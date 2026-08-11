@@ -84,7 +84,10 @@ HW_SERVER = VIVADO_LAB / "bin/hw_server"
 DEPTHS = [0, 1, 2, 4, 8, 16]
 WIDTHS = [1, 2, 3, 4, 6, 8]
 NCH = len(DEPTHS)
-NPOP = 24
+NPOP = 192
+NPOPW = (NPOP + 31) // 32   # readback words, 32 instances each
+POP_ADDRS = [5, 20, 21, 22, 23, 24]        # raw sticky, word 0..5
+POP_FLT_ADDRS = [26, 27, 28, 29, 30, 31]   # width-filtered twins
 CONSTS = {8: 0xDEAD_BEEF, 9: 0x5A5A_1234, 10: 0x0000_0000}
 TAG = 0x55
 SILICON_FACTOR = 0.975     # measured, hw/README.md -- silicon runs this fast vs SDF
@@ -205,7 +208,18 @@ for {{set rep 0}} {{$rep < {repeats}}} {{incr rep}} {{
 
 puts "ANOM [rd 2]"
 puts "FLT [rd 19]"
-puts "POP [rd 5]"
+puts "POP0 [rd 5]"
+puts "POP1 [rd 20]"
+puts "POP2 [rd 21]"
+puts "POP3 [rd 22]"
+puts "POP4 [rd 23]"
+puts "POP5 [rd 24]"
+puts "POPF0 [rd 26]"
+puts "POPF1 [rd 27]"
+puts "POPF2 [rd 28]"
+puts "POPF3 [rd 29]"
+puts "POPF4 [rd 30]"
+puts "POPF5 [rd 31]"
 puts "HITCNT0 [rd 6]"
 puts "HITCNT1 [rd 7]"
 puts "HITCNT2 [rd 11]"
@@ -257,13 +271,14 @@ def ensure_hw_server():
     return False
 
 
-def run_board(program):
+def run_board(program, repeats=None):
+    reps = REPEATS if repeats is None else repeats
     script = OUT / "measure.tcl"
     script.write_text(TCL.format(
         program=TCL_PROGRAM.format(bit=BIT) if program else "",
-        repeats=REPEATS, window_ms=WINDOW_MS))
+        repeats=reps, window_ms=WINDOW_MS))
     r = subprocess.run([str(XSDB), str(script)], capture_output=True,
-                       text=True, timeout=120 + REPEATS * (WINDOW_MS / 1000 + 30))
+                       text=True, timeout=120 + reps * (WINDOW_MS / 1000 + 30))
     return r.stdout + r.stderr
 
 
@@ -279,6 +294,7 @@ def load_state():
                 flt_sticky={}, flt_first_seen={},
                 threshold_sticky={}, threshold_first_seen={},
                 pop_sticky={}, pop_first_seen={},
+                pop_flt_sticky={}, pop_flt_first_seen={},
                 hitcnt={}, hitcnt_ovf={}, winctrl_hitcnt=None,
                 diag16_captured=False, diag16_first_seen=None,
                 diag8_captured=False, diag8_first_seen=None)
@@ -354,6 +370,13 @@ def main():
     ap.add_argument("--program", action="store_true",
                      help="reconfigure the device and reset state.json -- "
                           "does on-chip history.  Use only to (re)start a run.")
+    ap.add_argument("--light", action="store_true",
+                     help="skip the r1/r2 calibration windows.  The 32-bit "
+                          "exposure counters are free-running and wrap in "
+                          "about a minute, so a calibration costs real "
+                          "run-time every poll (see the header); a light "
+                          "poll only reads the sticky bits, which is all a "
+                          "long unattended run needs between rate checks.")
     args = ap.parse_args()
 
     for f in (BIT, SDF):
@@ -400,7 +423,8 @@ def main():
         return 2
 
     now = time.time()
-    log = run_board(program=args.program)
+    light = args.light
+    log = run_board(program=args.program, repeats=0 if light else None)
 
     if "DONE" not in log:
         print("the board run did not complete:", file=sys.stderr)
@@ -539,11 +563,16 @@ def main():
     for rep, h in re.findall(r"^R2COUNT (\d+) ([0-9a-fA-F]+)$", log, re.M):
         r2counts[int(rep)] = field(decode(h))
 
+    reps_done = 0 if light else REPEATS
     print()
-    print(f"calibration, {REPEATS} windows of {WINDOW_MS} ms")
+    if light:
+        print("calibration SKIPPED (--light): exposure rate carried forward "
+              "from the last full poll")
+    else:
+        print(f"calibration, {REPEATS} windows of {WINDOW_MS} ms")
     print("-" * 78)
     r1_rates, r2_rates = [], []
-    for rep in range(REPEATS):
+    for rep in range(reps_done):
         f1, f2 = r1counts.get(rep), r2counts.get(rep)
         w = windows.get(rep)
         if f1 is None or f2 is None or w is None:
@@ -572,16 +601,34 @@ def main():
     if bad:
         return 1
 
-    r1_rate = sum(r1_rates) / len(r1_rates)
-    r2_rate = sum(r2_rates) / len(r2_rates)
-    ratio = r1_rate / r2_rate
-    ratio_spread = (max(r1_rates[i] / r2_rates[i] for i in range(len(r1_rates)))
-                     - min(r1_rates[i] / r2_rates[i] for i in range(len(r1_rates))))
-    nearest_int_ratio = min(
-        abs(ratio - p / q) for p in range(1, 6) for q in range(1, 6))
-    print()
-    print(f"  r1 {r1_rate/1e6:.3f} MHz, r2 {r2_rate/1e6:.3f} MHz, "
-          f"ratio {ratio:.6f}, spread across repeats {ratio_spread:.2e}")
+    if light:
+        # Nothing measured this poll -- carry the stored rate forward.  A
+        # light poll still accumulates exposure (that is a rate times the
+        # host's wall clock, see the header), it just does not re-measure
+        # the rate, which barely moves between polls anyway.
+        st_prev = load_state()
+        r1_rate = st_prev.get("r1_rate_hz") or 0.0
+        r2_rate = st_prev.get("r2_rate_hz") or 0.0
+        if not r1_rate or not r2_rate:
+            print("  --light needs a previous full poll to carry a rate "
+                  "forward; run once without it first", file=sys.stderr)
+            return 1
+        print(f"  carried forward: r1 {r1_rate/1e6:.3f} MHz, "
+              f"r2 {r2_rate/1e6:.3f} MHz")
+        ratio = r1_rate / r2_rate
+        ratio_spread = 0.0
+        nearest_int_ratio = 1.0
+    else:
+        r1_rate = sum(r1_rates) / len(r1_rates)
+        r2_rate = sum(r2_rates) / len(r2_rates)
+        ratio = r1_rate / r2_rate
+        ratio_spread = (max(r1_rates[i] / r2_rates[i] for i in range(len(r1_rates)))
+                         - min(r1_rates[i] / r2_rates[i] for i in range(len(r1_rates))))
+        nearest_int_ratio = min(
+            abs(ratio - p / q) for p in range(1, 6) for q in range(1, 6))
+        print()
+        print(f"  r1 {r1_rate/1e6:.3f} MHz, r2 {r2_rate/1e6:.3f} MHz, "
+              f"ratio {ratio:.6f}, spread across repeats {ratio_spread:.2e}")
     if nearest_int_ratio < 1e-4:
         print(f"  WARNING: ratio is within 1e-4 of a small integer fraction -- "
               f"possible injection lock.")
@@ -608,10 +655,18 @@ def main():
         flt = field(decode(m.group(1)))["data"] & 0x3F
 
     # -- Phase 1: depth-0 population (raw, unaggregated, 24 instances) --------
-    pop = None
-    m = re.search(r"^POP ([0-9a-fA-F]+)$", log, re.M)
-    if m:
-        pop = field(decode(m.group(1)))["data"] & 0x00FF_FFFF
+    def read_pop(tag):
+        """Reassemble the NPOP-bit population from its 32-bit readback words."""
+        val, got = 0, False
+        for i in range(NPOPW):
+            mm = re.search(rf"^{tag}{i} ([0-9a-fA-F]+)$", log, re.M)
+            if mm:
+                val |= (field(decode(mm.group(1)))["data"] & 0xFFFF_FFFF) << (32 * i)
+                got = True
+        return (val & ((1 << NPOP) - 1)) if got else None
+
+    pop = read_pop("POP")
+    pop_flt = read_pop("POPF")
 
     # -- Phase 2: per-channel windowed hit-rate counters -----------------------
     hitcnt = [None] * NCH
@@ -751,13 +806,72 @@ def main():
             st["pop_sticky"][key] = bit
             if bit:
                 fired_idx.append(i)
-        print(f"  fired: {len(fired_idx)}/{NPOP}  -- instances {fired_idx}")
-        print(f"  raw bits (pop[0] first): "
-              f"{''.join('1' if (pop >> i) & 1 else '0' for i in range(NPOP))}")
-        print("  a uniform-looking spread across instances argues the six "
-              "ch[] depths are comparable;")
-        print("  a small number of instances dominating argues per-site "
-              "capture floor, not depth, explains ch[]'s pattern.")
+        print(f"  RAW      fired: {len(fired_idx):3d}/{NPOP}   (positive "
+              f"control -- the structural g1&g2 overlap, expected to "
+              f"saturate)")
+
+        # The width-filtered population is the actual measurement.
+        flt_idx = []
+        if pop_flt is not None:
+            for i in range(NPOP):
+                bit = bool((pop_flt >> i) & 1)
+                key = str(i)
+                was = st["pop_flt_sticky"].get(key, False)
+                if bit and not was:
+                    st["pop_flt_first_seen"][key] = now
+                st["pop_flt_sticky"][key] = bit
+                if bit:
+                    flt_idx.append(i)
+            print(f"  FILTERED fired: {len(flt_idx):3d}/{NPOP}   "
+                  f"{'instances ' + str(flt_idx) if flt_idx else '(none)'}")
+
+        # Instances whose raw bit never fired are NOT LISTENING -- their
+        # detector never proved it can capture anything, so their filtered
+        # zero is not evidence of anything and must not enter the estimate.
+        live = len(fired_idx)
+        dead = NPOP - live
+        if dead:
+            print(f"  {dead} instance(s) have a clean RAW bit -- their "
+                  f"detector is unproven, excluded from the estimate below")
+
+        # ---- the MTBF estimate ------------------------------------------
+        # Exposure is instance-seconds: `live` proven-listening instances,
+        # each running the whole wall-clock interval since the bitstream was
+        # loaded.  Every instance sees the same r1/r2 stimulus, so the rate
+        # per instance is what a single bd_arbcell would see in the field.
+        elapsed = now - st["loaded_at"]
+        inst_s = live * elapsed
+        if live and elapsed > 0:
+            print()
+            print(f"  exposure: {live} listening instance(s) x "
+                  f"{elapsed/3600:.2f} h = {inst_s/3600:.1f} instance-hours")
+            k = len(flt_idx)
+            if k == 0:
+                # No events: a one-sided 95% upper bound on the rate is
+                # 3/exposure (the Rule of Three -- P(0 events | rate 3/T)
+                # = e^-3 = 0.05).  This is an UPPER BOUND on the rate, hence
+                # a LOWER BOUND on MTBF, and is the honest way to report a
+                # null result.
+                rate_hi = 3.0 / inst_s
+                print(f"  0 filtered events in {inst_s:.3e} instance-seconds")
+                print(f"  -> 95% upper bound on failure rate: "
+                      f"{rate_hi:.3e} /instance-second")
+                print(f"  -> 95% LOWER bound on MTBF: "
+                      f"{1/rate_hi:.3e} s = {1/rate_hi/3600:.3e} h "
+                      f"= {1/rate_hi/3600/24/365:.3e} years")
+            else:
+                # Events observed: point estimate plus a Poisson interval.
+                rate = k / inst_s
+                lo = max(k - 1.96 * (k ** 0.5), 0.001) / inst_s
+                hi = (k + 1.96 * (k ** 0.5)) / inst_s
+                print(f"  {k} filtered event(s) in {inst_s:.3e} "
+                      f"instance-seconds")
+                print(f"  -> failure rate {rate:.3e} /instance-second "
+                      f"(95% CI {lo:.3e} .. {hi:.3e})")
+                print(f"  -> MTBF {1/rate:.3e} s = {1/rate/3600:.3e} h "
+                      f"= {1/rate/3600/24/365:.3e} years")
+                print(f"     (95% CI {1/hi/3600/24/365:.3e} .. "
+                      f"{1/lo/3600/24/365:.3e} years)")
 
     # -- Phase 2 report: per-channel windowed hit-rate counter, alongside the
     # sticky bit above, never instead of it --------------------------------

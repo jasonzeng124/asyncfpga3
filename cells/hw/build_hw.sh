@@ -165,7 +165,7 @@ echo "== place and route =="
 # runs -- that is a timestamp in the bitstream header, not placement drift;
 # the FASM is the thing that must be stable and it is.
 if [ "$TOP" = "arb_mtbf" ]; then
-    SEED="--seed ${NEXTPNR_SEED:-12}"
+    SEED="--seed ${NEXTPNR_SEED:-3}"
 else
     SEED=""
     [ -n "${NEXTPNR_SEED:-}" ] && SEED="--seed ${NEXTPNR_SEED}"

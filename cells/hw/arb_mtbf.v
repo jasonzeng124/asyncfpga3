@@ -452,9 +452,30 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // into one word, not a popcount or OR of the group.  An aggregate would
     // throw away exactly the information (which instances, and whether the
     // same ones repeat across polls) this experiment exists to see.
-    localparam integer NPOP = 24;
+    // NPOP is sized to fill the part, not to answer the comparability
+    // question above -- that one was already answered at NPOP=24.  What a
+    // large population buys is EXPOSURE: the failure rate this rig exists to
+    // measure is a rate per instance-second, so N instances running for T
+    // hours is N*T instance-hours, and 192 of them is nearly 5800x the
+    // exposure of the single unmodified cell that ch[0] provides.  At
+    // 6 LUT sites each (decision node, fractured decoder, filter delay,
+    // filter AND, and two sticky latches) 192 instances cost ~1150 sites on
+    // top of the ~1000 already here, comfortably inside this part's 17600 --
+    // the binding constraint is not area but the 32-address readback mux,
+    // which has exactly 12 free addresses left: 6 raw words and 6 filtered
+    // words at 32 instances per word.
+    //
+    // EVERY INSTANCE IS READ BACK RAW AND FILTERED, SEPARATELY.  The raw bit
+    // is the positive control: it is known to fire within microseconds (the
+    // structural g1/g2 overlap, see the WFILT note above), so a raw bit that
+    // is somehow still clean after hours means that instance's detector is
+    // dead and its filtered zero proves nothing.  Without the pair, a
+    // filtered population reading all-zero cannot be distinguished from a
+    // population that was never listening.
+    localparam integer NPOP  = 192;
+    localparam integer NPOPW = (NPOP + 31) / 32;   // readback words
 
-    wire [NPOP-1:0] pop_raw, pop_sticky;
+    wire [NPOP-1:0] pop_raw, pop_sticky, pop_flt, pop_flt_sticky;
 
     genvar pi;
     generate for (pi = 0; pi < NPOP; pi = pi + 1) begin : pop
@@ -471,7 +492,23 @@ module arb_mtbf (output wire led_red, output wire led_green);
         (* keep *) LUT3 #(.INIT(8'hE0)) usticky (
             .I0(pop_raw[pi]), .I1(pop_sticky[pi]), .I2(por_done),
             .O(pop_sticky[pi]));
+
+        // width discriminator, identical to the one on the ch[] channels
+        wire praw_d;
+        bd_delay #(.N(WFILT)) upwdly (.a(pop_raw[pi]), .z(praw_d));
+        (* keep *) LUT2 #(.INIT(4'h8)) upwand (
+            .I0(pop_raw[pi]), .I1(praw_d), .O(pop_flt[pi]));
+
+        (* keep *) LUT3 #(.INIT(8'hE0)) upfltsticky (
+            .I0(pop_flt[pi]), .I1(pop_flt_sticky[pi]), .I2(por_done),
+            .O(pop_flt_sticky[pi]));
     end endgenerate
+
+    // Zero-padded to a whole number of 32-bit readback words.
+    wire [NPOPW*32-1:0] pop_sticky_pad     = {{(NPOPW*32 - NPOP){1'b0}},
+                                              pop_sticky};
+    wire [NPOPW*32-1:0] pop_flt_sticky_pad = {{(NPOPW*32 - NPOP){1'b0}},
+                                              pop_flt_sticky};
 
     // ---- the threshold channels: same sticky construction, driven by a
     // pulse of known width instead of a real anomaly. ------------------------
@@ -674,7 +711,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
             // Phase 1: the depth-0 population, raw and unaggregated -- each
             // of the 24 bits is one physically distinct instance's own
             // sticky bit, not a popcount or OR of the group.
-            5'd5:  mux_d = {{(32 - NPOP){1'b0}}, pop_sticky};
+            5'd5:  mux_d = pop_sticky_pad[31:0];   // pop[0..31], raw
             // Phase 2: per-channel windowed hit counters, one address per
             // existing anomaly channel (ch[0..5], depths 0/1/2/4/8/16) --
             // {7'h0, overflow, 24-bit window-hit count}. Same reasoning as
@@ -715,6 +752,26 @@ module arb_mtbf (output wire led_red, output wire led_green);
             // raw one at address 2.  Read as a PAIR with address 2 -- a
             // filtered zero beside a raw saturation is the whole result.
             5'd19: mux_d = {{(32 - NCH){1'b0}}, flt_sticky};
+
+            // ---- the population, raw and filtered, 32 instances per word --
+            // Address 5 is pop[0..31] raw and stays where it was so an old
+            // script still reads something meaningful; 20..24 continue it to
+            // pop[191], and 26..31 are the width-filtered twins of all six.
+            // Read as PAIRS: raw word k against filtered word k.  A raw bit
+            // that is clean after hours means that instance is not
+            // listening, and its filtered zero carries no information.
+            5'd20: mux_d = pop_sticky_pad[63:32];      // pop[32..63]
+            5'd21: mux_d = pop_sticky_pad[95:64];      // pop[64..95]
+            5'd22: mux_d = pop_sticky_pad[127:96];     // pop[96..127]
+            5'd23: mux_d = pop_sticky_pad[159:128];    // pop[128..159]
+            5'd24: mux_d = pop_sticky_pad[191:160];    // pop[160..191]
+
+            5'd26: mux_d = pop_flt_sticky_pad[31:0];   // filtered, pop[0..31]
+            5'd27: mux_d = pop_flt_sticky_pad[63:32];
+            5'd28: mux_d = pop_flt_sticky_pad[95:64];
+            5'd29: mux_d = pop_flt_sticky_pad[127:96];
+            5'd30: mux_d = pop_flt_sticky_pad[159:128];
+            5'd31: mux_d = pop_flt_sticky_pad[191:160];
             default: mux_d = 32'h0000_0000;
         endcase
     end
