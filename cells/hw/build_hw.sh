@@ -164,8 +164,43 @@ echo "== place and route =="
 # identical PASSes, byte-identical FASM.  The .bit md5 does differ between
 # runs -- that is a timestamp in the bitstream header, not placement drift;
 # the FASM is the thing that must be stable and it is.
+#
+# Scaling the population from 24 to 192 instances (plus the filtered sticky
+# readback words) broke seed 12; a re-sweep found seed 3.  Wiring the
+# arbiters' rst pin to a real reset instead of 1'b0, then arming the
+# detectors from a shift register ~17 ms after that reset releases (both in
+# arb_mtbf.v), each shifted the netlist again; the final sweep for that pair
+# left seeds 0, 4 and 12 routable, seed 4 failed the THRESHOLD ladder, and
+# seed 0 was pinned.  Adding the population aggregate rate counters (two
+# 192-input OR trees plus two window-latch/sync/counter chains, ~54 flops --
+# see the PER-INSTANCE RATE note in arb_mtbf.v) shifted it once more.  The
+# first cut aggregated the population with two 192-input OR reductions and
+# cost 3064 LUT sites, routing on seed 3 alone; the reductions turned out to
+# be unusable for a reason that has nothing to do with routing (abc
+# re-decomposes them against the grant LUTs, so they glitch on ordinary
+# arbitration -- see arb_mtbf.v) and were replaced by counters wired directly
+# to two individual instances, which is 2745 sites.  Seeds 1, 4 and 5 all
+# route and all three are monotonic on both ladders.  Widening the width
+# discriminator from one link to two (WFILT, see arb_mtbf.v -- one link was
+# measured on hardware to be too narrow to clear the structural overlap at
+# every placement) added ~200 sites to 2943 and, unusually, made routing
+# EASIER: 7 of 8 seeds pass, only 0 fails.  Seed 5 is pinned (depth
+# 0/124/398/1336/2511/6471 ps, floor 124/398/672/946/1958/2432 ps) after
+# three clean rebuilds with byte-identical FASM.  All 198 grant pairs land
+# fractured but every one of them MOVED, so the grant_bels.json baseline was
+# deleted and re-recorded -- an exposure measured on the previous build does
+# not carry over to this one.
+#
+# Note that PnR passing is NOT sufficient -- check BOTH ladders against the
+# routed SDF on every candidate before pinning one.  Two separate seeds in
+# this history routed cleanly and were still unusable.
+#
+# TOP is POSITIONAL (see the top of this file): ./build_hw.sh arb_mtbf.
+# TOP=arb_mtbf ./build_hw.sh silently builds ro_top instead, which is easy to
+# miss because it passes -- and then the board gets programmed with a stale
+# bitstream whose readback addresses mean something else entirely.
 if [ "$TOP" = "arb_mtbf" ]; then
-    SEED="--seed ${NEXTPNR_SEED:-3}"
+    SEED="--seed ${NEXTPNR_SEED:-5}"
 else
     SEED=""
     [ -n "${NEXTPNR_SEED:-}" ] && SEED="--seed ${NEXTPNR_SEED}"

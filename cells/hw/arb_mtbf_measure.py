@@ -86,9 +86,20 @@ WIDTHS = [1, 2, 3, 4, 6, 8]
 NCH = len(DEPTHS)
 NPOP = 192
 NPOPW = (NPOP + 31) // 32   # readback words, 32 instances each
+WINBITS = 16                # must track arb_mtbf.v's localparam of the same
+                            # name -- only used to turn a window count into a
+                            # rate, so a mismatch scales the answer silently
 POP_ADDRS = [5, 20, 21, 22, 23, 24]        # raw sticky, word 0..5
 POP_FLT_ADDRS = [26, 27, 28, 29, 30, 31]   # width-filtered twins
-CONSTS = {8: 0xDEAD_BEEF, 9: 0x5A5A_1234, 10: 0x0000_0000}
+# Address 10 used to hold an all-zeros constant and now holds a per-instance
+# rate counter; 8 and 9 still catch a stuck-at-0 readback.
+CONSTS = {8: 0xDEAD_BEEF, 9: 0x5A5A_1234}
+# Windowed rate counters on two individual population instances' FILTERED
+# outputs -- must track RATE_A/RATE_B in arb_mtbf.v.  Each one is only
+# meaningful if that same instance's RAW sticky bit (in the words at 5/20-24)
+# has fired, which is what proves its detector is listening at all.
+RATE_INST = {"A": 0, "B": 96}
+RATE_ADDRS = {"A": 10, "B": 25}
 TAG = 0x55
 SILICON_FACTOR = 0.975     # measured, hw/README.md -- silicon runs this fast vs SDF
 
@@ -182,7 +193,7 @@ proc rd {{addr}} {{
     return [u1 $addr]
 }}
 
-foreach a {{8 9 10}} {{
+foreach a {{8 9}} {{
     puts "CONST $a [rd $a]"
 }}
 for {{set k 0}} {{$k < 24}} {{incr k}} {{
@@ -226,6 +237,8 @@ puts "HITCNT2 [rd 11]"
 puts "HITCNT3 [rd 13]"
 puts "HITCNT4 [rd 14]"
 puts "HITCNT5 [rd 15]"
+puts "RATEA [rd 10]"
+puts "RATEB [rd 25]"
 puts "WINCTRL [rd 16]"
 puts "DIAG16 [rd 17]"
 puts "DIAG8 [rd 18]"
@@ -296,6 +309,7 @@ def load_state():
                 pop_sticky={}, pop_first_seen={},
                 pop_flt_sticky={}, pop_flt_first_seen={},
                 hitcnt={}, hitcnt_ovf={}, winctrl_hitcnt=None,
+                poprate_samples=[],
                 diag16_captured=False, diag16_first_seen=None,
                 diag8_captured=False, diag8_first_seen=None)
 
@@ -678,6 +692,14 @@ def main():
             hitcnt[i] = d & 0x00FF_FFFF
             hitcnt_ovf[i] = bool((d >> 24) & 1)
 
+    # -- per-instance rate counters, the burst-vs-steady instrument ---------
+    poprate = {}
+    for name, tag in (("A", "RATEA"), ("B", "RATEB")):
+        m = re.search(rf"^{tag} ([0-9a-fA-F]+)$", log, re.M)
+        if m:
+            d = field(decode(m.group(1)))["data"]
+            poprate[name] = (d & 0x00FF_FFFF, bool((d >> 24) & 1))
+
     # -- negative control for the Phase 2 chain itself, I0 tied to 0 --------
     winctrl_cnt = None
     m = re.search(r"^WINCTRL ([0-9a-fA-F]+)$", log, re.M)
@@ -835,17 +857,47 @@ def main():
                   f"detector is unproven, excluded from the estimate below")
 
         # ---- the MTBF estimate ------------------------------------------
-        # Exposure is instance-seconds: `live` proven-listening instances,
-        # each running the whole wall-clock interval since the bitstream was
-        # loaded.  Every instance sees the same r1/r2 stimulus, so the rate
-        # per instance is what a single bd_arbcell would see in the field.
+        # STRUCTURALLY BROKEN SITES ARE EXCLUDED, AND THEY IDENTIFY
+        # THEMSELVES.  A filtered bit that is already set on the first poll
+        # belongs to an instance where the packer's pin assignment left the
+        # grant overlap wider than the width filter rejects -- measured
+        # directly on pop[0], which records a filtered event in ~18% of ALL
+        # windows, forever, while pop[96] records none ever (see the WFILT
+        # note in arb_mtbf.v).  Such a site fires within milliseconds of
+        # arming, every single time, and counting it as a failure would put a
+        # placement artifact into the numerator and swamp everything real.
+        #
+        # A rare event cannot fire within the first poll's few seconds except
+        # by an astronomical coincidence, so "set at poll #1" and
+        # "structural" are the same set in practice.  What this estimate
+        # therefore counts is LATE ARRIVALS: an instance whose filtered bit
+        # was clean at poll #1 and turned on later, after hours of exposure.
+        # That is the event class MTBF.md is about, and it is the only class
+        # this rig can attribute to the cell rather than to its placement.
+        #
+        # Exposure is instance-seconds over the eligible set only: proven
+        # listening (raw bit fired) AND not structurally broken.  Every
+        # instance sees the same r1/r2 stimulus, so the rate per instance is
+        # what a single bd_arbcell would see in the field.
         elapsed = now - st["loaded_at"]
-        inst_s = live * elapsed
-        if live and elapsed > 0:
+        structural = sorted(
+            i for i in flt_idx
+            if st["pop_flt_first_seen"].get(str(i)) is not None
+            and st["pop_flt_first_seen"][str(i)] - st["loaded_at"] < 120)
+        late = [i for i in flt_idx if i not in structural]
+        eligible = [i for i in fired_idx if i not in structural]
+        inst_s = len(eligible) * elapsed
+        if structural:
+            print(f"  {len(structural)} instance(s) fired FILTERED within "
+                  f"2 min of load -- structurally broken placements, "
+                  f"excluded: {structural}")
+        if eligible and elapsed > 0:
             print()
-            print(f"  exposure: {live} listening instance(s) x "
+            print(f"  exposure: {len(eligible)} eligible instance(s) x "
                   f"{elapsed/3600:.2f} h = {inst_s/3600:.1f} instance-hours")
-            k = len(flt_idx)
+            k = len(late)
+            if late:
+                print(f"  LATE ARRIVALS (clean at load, fired since): {late}")
             if k == 0:
                 # No events: a one-sided 95% upper bound on the rate is
                 # 3/exposure (the Rule of Three -- P(0 events | rate 3/T)
@@ -853,7 +905,8 @@ def main():
                 # a LOWER BOUND on MTBF, and is the honest way to report a
                 # null result.
                 rate_hi = 3.0 / inst_s
-                print(f"  0 filtered events in {inst_s:.3e} instance-seconds")
+                print(f"  0 late filtered events in {inst_s:.3e} "
+                      f"instance-seconds")
                 print(f"  -> 95% upper bound on failure rate: "
                       f"{rate_hi:.3e} /instance-second")
                 print(f"  -> 95% LOWER bound on MTBF: "
@@ -864,7 +917,7 @@ def main():
                 rate = k / inst_s
                 lo = max(k - 1.96 * (k ** 0.5), 0.001) / inst_s
                 hi = (k + 1.96 * (k ** 0.5)) / inst_s
-                print(f"  {k} filtered event(s) in {inst_s:.3e} "
+                print(f"  {k} late filtered event(s) in {inst_s:.3e} "
                       f"instance-seconds")
                 print(f"  -> failure rate {rate:.3e} /instance-second "
                       f"(95% CI {lo:.3e} .. {hi:.3e})")
@@ -912,6 +965,82 @@ def main():
         delta = f", +{cnt - prev} since last poll" if prev is not None and cnt >= prev else ""
         ovf_note = "  <-- OVERFLOWED, count is not reliable" if ovf else ""
         print(f"  depth {d:<3} links: {cnt:>10} window-hits{delta}{ovf_note}")
+
+    # -- per-instance rate: the only reading here that separates a load-time
+    # burst from a steady failure rate.  A sticky bit records when it was first
+    # READ, and the first read lands seconds after --program, so anything
+    # faster than about one event per ten seconds sets its bit before anyone
+    # looks and is indistinguishable from an event at configuration.  These
+    # counters accumulate, so the DELTA between two polls is
+    # exposure-proportional by construction: static across hours means it all
+    # happened before the first read, growing means a real rate.
+    print()
+    print("Per-instance filtered rate (windowed counters on two single "
+          "instances -- read the DELTA, not the value)")
+    if winctrl_bad:
+        print("  ** UNTRUSTED: see the negative control above **")
+    print("-" * 78)
+    if not poprate:
+        print("  no RATEA/RATEB lines in the log")
+    else:
+        samples = st.setdefault("poprate_samples", [])
+        samples.append(dict(t=now, **{k: v[0] for k, v in poprate.items()}))
+
+        # One window is 2**WINBITS cycles of the same ring that clocks the
+        # exposure counters, so windows/s is derivable rather than assumed.  A
+        # count approaching this means every window had a hit and the counter
+        # is reporting its own ceiling, not a rate.
+        win_per_s = (st["r1_rate_hz"] / (1 << WINBITS)) if st["r1_rate_hz"] else None
+
+        for name in sorted(poprate):
+            inst = RATE_INST[name]
+            cnt, ovf = poprate[name]
+            # The instance's own raw sticky bit is the positive control: a
+            # clean one means this detector never proved it can capture
+            # anything, so its filtered zero is not evidence of anything.
+            listening = None if pop is None else bool((pop >> inst) & 1)
+            ctl = ("raw bit FIRED, detector proven"
+                   if listening else
+                   "RAW BIT CLEAN -- detector unproven, this count means "
+                   "nothing" if listening is not None else "raw bit unknown")
+            note = "  <-- OVERFLOWED, delta is not reliable" if ovf else ""
+            print(f"  pop[{inst}]  {cnt:>10} window-hits{note}")
+            print(f"           ({ctl})")
+
+            prior = [x for x in samples[:-1] if x.get(name) is not None]
+            if not prior:
+                print("           first sample -- a delta needs a second "
+                      "poll; nothing can be concluded yet")
+                continue
+            base, prev = prior[0], prior[-1]
+            d_last, dt_last = cnt - prev[name], now - prev["t"]
+            d_all, dt_all = cnt - base[name], now - base["t"]
+            print(f"           +{d_last} in {dt_last/3600:.2f} h since last "
+                  f"poll, +{d_all} in {dt_all/3600:.2f} h since first sample")
+            if cnt == 0:
+                print(f"           NEVER FIRED in {dt_all/3600:.2f} h -- not "
+                      f"a burst and not a rate; this instance has produced "
+                      f"no filtered event at all")
+            elif d_all == 0 and dt_all > 0:
+                print(f"           STATIC over {dt_all/3600:.2f} h -- every "
+                      f"event on this instance predates the first poll, i.e. "
+                      f"a load-time burst, not a rate")
+            elif dt_all > 0 and not ovf and listening:
+                rate = d_all / dt_all
+                frac = (f" ({100*rate/win_per_s:.2g}% of windows)"
+                        if win_per_s else "")
+                print(f"           GROWING: {rate:.4g} /instance-second"
+                      f"{frac}")
+                print(f"           -> MTBF {1/rate:.3e} s = "
+                      f"{1/rate/3600:.3e} h = "
+                      f"{1/rate/3600/24/365:.3e} years")
+        if win_per_s:
+            print(f"  (window {1e6*(1<<WINBITS)/st['r1_rate_hz']:.0f} us, "
+                  f"ceiling {win_per_s:.0f} hits/s -- a count near that is "
+                  f"the counter saturating, not a measured rate)")
+        print("  (two instances, not the population -- per-site capture "
+              "floors differ, and the 192 sticky bits above are what say how "
+              "many instances fire at all)")
 
     st["winctrl_hitcnt"] = winctrl_cnt
 

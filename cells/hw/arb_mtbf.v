@@ -248,6 +248,33 @@ module arb_mtbf (output wire led_red, output wire led_green);
         por_sr <= {por_sr[22:0], 1'b1};
     wire por_done = por_sr[23];
 
+
+    // ---- THE ARBITERS' OWN RESET -------------------------------------------
+    // bd_c2n_set carries rst on a real pin for exactly one reason, stated in
+    // rtl/bd_arb.v's header: q may come up either way -- it only decides who
+    // wins the first tie -- but it MUST come up DEFINED, because an
+    // intermediate q is precisely the failure this whole rig exists to
+    // measure.
+    //
+    // Every instance in this file used to tie that pin to 1'b0, which is
+    // the one value that guarantees nothing.  A bare cross-coupled loop with
+    // no defined initial value resolves out of whatever the fabric settles
+    // into at configuration, and that resolution looks exactly like the
+    // both-grants condition the detectors catch.  The symptom was
+    // unmistakable once there were enough instances to see its shape:
+    // 138 of 192 population bits latched within TWO SECONDS of the bitstream
+    // load, after which the rate fell by about four orders of magnitude.  A
+    // real failure rate is flat -- the cell does not know when it was
+    // configured -- so that burst was configuration settling, not
+    // metastability.  (The same burst was present at NPOP=24, where it read
+    // as a plausible "about half the instances fired" and was mistaken for
+    // data.)
+    //
+    // arb_rst is asserted from configuration until por_sr has shifted all
+    // the way up, so every decision node is held at a defined q and only
+    // starts free-running once the detectors are also armed.
+    wire arb_rst = ~por_done;
+
     // ---- Phase 2: windowed hit-rate counters, one per existing anomaly
     // channel.  This is IN ADDITION to that channel's permanent sticky bit,
     // not a replacement -- the sticky bit's whole value is that it only has
@@ -289,6 +316,59 @@ module arb_mtbf (output wire led_red, output wire led_green);
     reg win_edge_d = 1'b0;
     always @(posedge stim[0].ck)
         win_edge_d <= win_edge;
+
+    // ---- ARM THE DETECTORS LONG AFTER RELEASING THE ARBITERS ---------------
+    // por_done does two jobs that must NOT happen at the same instant:
+    // it releases the arbiters' reset, and it arms the sticky latches.  Doing
+    // both together means the latches are listening at the exact moment 192
+    // decision loops start free-running, and the resulting startup transient
+    // is latched as if it were a result.  Wiring the reset up (see arb_rst
+    // below) fixed the undefined-power-up half of the problem and did NOT fix
+    // this half: with the two tied together, 124 of 124 raw bits and 40 of 40
+    // filtered bits still latched within two seconds of the bitstream load.
+    //
+    // The reset is provably quiet on its own -- with rst=1 the cell holds
+    // q=1, and the grant decoder at q=1 gives g1=r1, g2=0, so both grants can
+    // never be high while reset is asserted.  The burst is entirely in the
+    // window AFTER release, which is why it needs a separate, much later
+    // signal rather than a longer reset.
+    //
+    // arm_cnt is free-running and saturating: ~2^29 cycles of stim[0].ck at
+    // roughly 122 MHz is about 4.4 seconds, four orders of magnitude past the
+    // couple-of-seconds window the burst actually occupies, and it costs
+    // nothing to be generous here -- a multi-day run does not care about its
+    // first five seconds.  Unconditional increment, no clock-enable, same
+    // discipline as every other counter in this file (see win_cnt).
+    // Built as a free-running prescaler plus a shift register rather than one
+    // wide counter: a 29-bit counter needs a CARRY4 chain, and nextpnr could
+    // not route one here ("Failed to route arc 0 of net 'arm_cnt[1]'" -- a
+    // carry-chain arc inside a single slice).  A prescaler feeding a shift
+    // register has no carry chain at all, and the same power-on-safety
+    // argument as por_sr applies: both start at 0, which the global set/reset
+    // guarantees, and only ever shift 1s in.
+    // Built on the window timer this design ALREADY has rather than a counter
+    // of its own.  Two attempts at a dedicated counter (a 29-bit one, then a
+    // 24-bit prescaler feeding a shift register) both failed to route on
+    // every seed 0-9, always on the same kind of arc -- a carry-chain hop
+    // inside one slice, e.g. "Failed to route arc 0 of net 'arm_pre[1]'".
+    // With ~200 arbiters already placed, this part has no room left for
+    // another wide CARRY4 chain, and that is a placement fact rather than
+    // seed luck.
+    //
+    // win_cnt (declared below, WINBITS=16) already free-runs on this clock
+    // and already produces win_edge once every 2^16 cycles, which is ~538 us.
+    // Counting 32 of those in a shift register gives ~17 ms of quiet time
+    // before anything is armed.  That is shorter than the ~4.4 s originally
+    // intended, but still four orders of magnitude past the settling the
+    // burst actually needs: the measured transient is over within
+    // microseconds of release, and 17 ms is the first 1e-7 of a two-day run.
+    // A shift register also carries no CARRY4 and starts at 0 under the
+    // global set/reset, the same power-on-safety argument as por_sr.
+    reg [31:0] arm_sr = 32'h0;
+    always @(posedge stim[0].ck)
+        if (win_edge_d && por_done)
+            arm_sr <= {arm_sr[30:0], 1'b1};
+    wire armed = arm_sr[31];
 
     // ---- the anomaly channels: one bd_c2n_set + delay tap + grant decoder +
     // sticky latch per depth.  ugrant's INIT is bd_arbcell's, unmodified. ----
@@ -335,7 +415,48 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // the interesting number is the DIFFERENCE between raw and filtered, and
     // a filtered channel reading zero while its raw twin saturates is the
     // signature that says the raw count was structural all along.
-    localparam integer WFILT = 1;
+    // WHY 2 AND NOT 1.  One link was tried first and is NOT ENOUGH, and the
+    // hardware said so unambiguously.  Two population instances were given
+    // windowed rate counters (see the PER-INSTANCE RATE note below): pop[0]
+    // recorded a FILTERED event in 18% of all windows -- 991 per second,
+    // growing linearly, sustained over the whole run -- while pop[96], same
+    // logic, same stimulus, its raw detector equally proven, recorded exactly
+    // zero.  Nothing at ~1 kHz is metastability on a cell whose loop delay is
+    // ~100 ps, and metastability does not switch off entirely at one site and
+    // run continuously at another.  It is the structural overlap, and one
+    // link was clearing it at most sites and not at others.
+    //
+    // This build's own routed SDF says why, and the difference is a packer
+    // choice nothing in the RTL controls.  Both instances route q to both
+    // grant halves symmetrically (150 ps each) and both route O5 and O6 into
+    // the detector symmetrically (150 ps each), so there is no interconnect
+    // skew.  What differs is WHICH PHYSICAL LUT PIN q lands on, and the
+    // intrinsic pin-to-output arc is not the same for every pin: at pop[0] q
+    // enters the O5 half on A5 and takes 116 ps, against 124 ps to O6, so the
+    // rising grant arrives 8 ps EARLY and the overlap widens; at pop[96] q
+    // enters on A1 and takes 150 ps, so the rising grant arrives 26 ps LATE
+    // and the overlap narrows.  Against the ~97 ps intrinsic fall-minus-rise
+    // asymmetry of a LUT on this fabric (prjxray: O5 rise 55 / fall 152, O6
+    // rise 56 / fall 124) that is roughly 105 ps of overlap at pop[0] and
+    // roughly 71 ps at pop[96] -- straddling this filter's measured passband
+    // edge, which rejects <=80 ps and passes >=160 ps at one link.  A 34 ps
+    // packer decision therefore decides whether an instance reads as
+    // permanently broken or perfectly clean, which is not a property of the
+    // cell and must not be counted as one.
+    //
+    // Two links moves the rejection band to ~160 ps, above the worst-case
+    // structural overlap at any pin assignment, so the whole population lands
+    // below the floor for the structural reason and anything that survives
+    // needs a different explanation.  The cost is one LUT1 per channel and
+    // the arbiters are untouched -- this filter sits entirely downstream of
+    // the grant decoder, so every instance is still bit-for-bit the library
+    // cell.  Note the price: 2 links also rejects any real excursion shorter
+    // than ~160 ps, so this measures the rate of ambiguity outliving 160 ps,
+    // not the rate of ambiguity.  That is the honest form of the question --
+    // MTBF is always quoted against a resolution time -- but it must be
+    // quoted WITH the number, and the threshold ladder measures the number on
+    // this die rather than assuming it.
+    localparam integer WFILT = 2;
 
     // Sticky bits only, deliberately: a filtered twin of the Phase 2 window
     // counters was built first and cost ~162 more flip-flops, which pushed
@@ -351,7 +472,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     generate for (ci = 0; ci < NCH; ci = ci + 1) begin : ch
         wire q_raw, q_dly, g1c, g2c;
 
-        bd_c2n_set ustate (.a(r1), .b(r2), .rst(1'b0), .q(q_raw));
+        bd_c2n_set ustate (.a(r1), .b(r2), .rst(arb_rst), .q(q_raw));
         bd_delay #(.N(depth_of(ci))) udly (.a(q_raw), .z(q_dly));
 
         (* keep *) LUT6_2 #(.INIT(GRANT_INIT)) ugrant (
@@ -373,7 +494,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
 
         // filtered sticky bit, identical construction to the raw one below
         (* keep *) LUT3 #(.INIT(8'hE0)) ufltsticky (
-            .I0(anomaly_flt[ci]), .I1(flt_sticky[ci]), .I2(por_done),
+            .I0(anomaly_flt[ci]), .I1(flt_sticky[ci]), .I2(armed),
             .O(flt_sticky[ci]));
 
         // sticky_next = (set | sticky(fb)) & por_done -- latches on the first
@@ -381,7 +502,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
         // again.  Nothing feeds a live clear; por_done only ever goes 0->1,
         // once, self-timed from configuration -- see its declaration above.
         (* keep *) LUT3 #(.INIT(8'hE0)) usticky (
-            .I0(anomaly_raw[ci]), .I1(anomaly_sticky[ci]), .I2(por_done),
+            .I0(anomaly_raw[ci]), .I1(anomaly_sticky[ci]), .I2(armed),
             .O(anomaly_sticky[ci]));
 
         // Phase 2 windowed counter for this channel -- see the header note
@@ -395,7 +516,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
         wire win_hit;
         (* keep *) LUT4 #(.INIT(16'hAE00)) uwinlatch (
             .I0(anomaly_raw[ci]), .I1(win_hit), .I2(win_edge_d),
-            .I3(por_done), .O(win_hit));
+            .I3(armed), .O(win_hit));
 
         // 2-FF synchronizer -- win_hit is fed by an async latch and must not
         // touch the counter directly, same CDC discipline as every other
@@ -481,7 +602,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     generate for (pi = 0; pi < NPOP; pi = pi + 1) begin : pop
         wire q_raw, g1c, g2c;
 
-        bd_c2n_set ustate (.a(r1), .b(r2), .rst(1'b0), .q(q_raw));
+        bd_c2n_set ustate (.a(r1), .b(r2), .rst(arb_rst), .q(q_raw));
 
         (* keep *) LUT6_2 #(.INIT(GRANT_INIT)) ugrant (
             .I0(r1), .I1(r2), .I2(q_raw), .I3(1'b0), .I4(1'b0), .I5(1'b1),
@@ -490,7 +611,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
         assign pop_raw[pi] = g1c & g2c;
 
         (* keep *) LUT3 #(.INIT(8'hE0)) usticky (
-            .I0(pop_raw[pi]), .I1(pop_sticky[pi]), .I2(por_done),
+            .I0(pop_raw[pi]), .I1(pop_sticky[pi]), .I2(armed),
             .O(pop_sticky[pi]));
 
         // width discriminator, identical to the one on the ch[] channels
@@ -500,7 +621,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
             .I0(pop_raw[pi]), .I1(praw_d), .O(pop_flt[pi]));
 
         (* keep *) LUT3 #(.INIT(8'hE0)) upfltsticky (
-            .I0(pop_flt[pi]), .I1(pop_flt_sticky[pi]), .I2(por_done),
+            .I0(pop_flt[pi]), .I1(pop_flt_sticky[pi]), .I2(armed),
             .O(pop_flt_sticky[pi]));
     end endgenerate
 
@@ -509,6 +630,96 @@ module arb_mtbf (output wire led_red, output wire led_green);
                                               pop_sticky};
     wire [NPOPW*32-1:0] pop_flt_sticky_pad = {{(NPOPW*32 - NPOP){1'b0}},
                                               pop_flt_sticky};
+
+    // ---- PER-INSTANCE RATE, the only instrument here that can distinguish a
+    // load-time burst from a steady failure rate -----------------------------
+    //
+    // A sticky bit records WHEN IT WAS FIRST READ, not when it fired.  The
+    // first readback lands 5-20 s after --program, so every instance whose
+    // rate exceeds roughly one event per ten seconds sets its bit before
+    // anyone looks, and reads back as indistinguishable from one that fired
+    // instantly at configuration.  The 192-instance population saturated its
+    // sticky bits on the first poll of every build, and that observation is
+    // equally consistent with (a) a configuration-settling burst and (b) a
+    // genuinely high steady rate.  Two builds' worth of fixes aimed at (a)
+    // -- a real arbiter reset, then arming the detectors 17 ms after
+    // releasing them -- moved the number not at all, which is what a
+    // measurement that cannot see the distinction is expected to do.
+    //
+    // A windowed counter can see it, because it accumulates: read it twice
+    // an hour apart and a nonzero delta is exposure-proportional by
+    // construction.  Static across hours means the events all happened
+    // before the first read; growing means a real rate, and the growth rate
+    // IS the aggregate rate.
+    //
+    // TWO INSTANCES, NOT AN AGGREGATE, and this is not a cost compromise.
+    // The obvious construction is one counter on |pop_flt, buying 192x the
+    // exposure for the same two counters.  It was built, and it read every
+    // single window as a hit on both the raw and the filtered tree while
+    // only 42 of 192 filtered STICKY bits were set -- an outright
+    // contradiction, since a signal high in every 589 us window sets all 192
+    // latches in milliseconds.  Tracing the routed netlist explains it: the
+    // reduction's logic cone contains 64 inlined grant LUT6_2s.  (* keep *)
+    // holds the width-filter LUT2 as a cell but does not stop abc from
+    // re-decomposing the OR levels above it against the grants directly, and
+    // the grants toggle on every arbitration edge, so the tree glitches
+    // continuously on ordinary activity that contains no overlap at all.  A
+    // reduction over async nets is not safe here at any width and the
+    // aggregate was abandoned rather than patched.
+    //
+    // A counter wired to ONE instance's filtered output has no tree above it
+    // -- the window latch reads the (* keep *) LUT2 directly, so there is no
+    // logic between the measured net and the instrument that can invent an
+    // edge.  It also drops the ~460 LUT sites the two trees cost.
+    //
+    // POSITIVE CONTROL COMES FREE.  Each chosen instance's raw sticky bit is
+    // already read back individually in the words at 5/20-24, so a counter
+    // whose instance has a clean raw bit is known-not-listening and its zero
+    // carries no information -- the same pairing rule as the sticky words,
+    // with no extra hardware.  Two instances at opposite ends of the
+    // population index rather than one, because per-site capture floors are
+    // known to differ and a single site is not the population; two disagreeing
+    // is itself the finding.  Neither is a substitute for the 192 sticky bits
+    // -- those answer "how many", these answer "how often".
+    //
+    // Counting windows-with-a-hit rather than events, same caveat and same
+    // WINBITS-scaling check as the per-channel counters above.
+    localparam integer RATE_A = 0;
+    localparam integer RATE_B = 96;
+
+    wire [1:0] rate_src = {pop_flt[RATE_B], pop_flt[RATE_A]};
+
+    wire [1:0]  rate_ovf;
+    wire [23:0] rate_cnt [0:1];
+
+    genvar ai;
+    generate for (ai = 0; ai < 2; ai = ai + 1) begin : poprate
+        // identical construction to the ch[] windowed counters -- see the
+        // win_cnt header and ch[].uwinlatch for the reasoning behind every
+        // line of it, including why nothing here uses a clock enable.
+        wire win_hit;
+        (* keep *) LUT4 #(.INIT(16'hAE00)) uwinlatch (
+            .I0(rate_src[ai]), .I1(win_hit), .I2(win_edge_d),
+            .I3(armed), .O(win_hit));
+
+        reg sync1 = 1'b0, sync2 = 1'b0;
+        always @(posedge stim[0].ck) begin
+            sync1 <= win_hit;
+            sync2 <= sync1;
+        end
+
+        wire hit_this_window = win_edge_d & sync2;
+
+        reg [23:0] hitcnt = 24'h0;
+        reg        hitcnt_ovf = 1'b0;
+        always @(posedge stim[0].ck) begin
+            hitcnt     <= hitcnt + {23'h0, hit_this_window};
+            hitcnt_ovf <= hitcnt_ovf | (hit_this_window & (&hitcnt));
+        end
+
+        assign rate_cnt[ai] = hitcnt;
+        assign rate_ovf[ai] = hitcnt_ovf;
+    end endgenerate
 
     // ---- the threshold channels: same sticky construction, driven by a
     // pulse of known width instead of a real anomaly. ------------------------
@@ -540,7 +751,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // the construction CAN power up clean, on this die, this bitstream.
     wire ctrl_sticky;
     (* keep *) LUT3 #(.INIT(8'hE0)) uctrl_sticky (
-        .I0(1'b0), .I1(ctrl_sticky), .I2(por_done), .O(ctrl_sticky));
+        .I0(1'b0), .I1(ctrl_sticky), .I2(armed), .O(ctrl_sticky));
 
     // ---- negative control for the Phase 2 window-latch/sync/counter chain,
     // same idea as ctrl_sticky above but for the newer, more complex
@@ -551,7 +762,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // trusting any ch_hitcnt value.
     wire winctrl_win_hit;
     (* keep *) LUT4 #(.INIT(16'hAE00)) uwinctrl_latch (
-        .I0(1'b0), .I1(winctrl_win_hit), .I2(win_edge_d), .I3(por_done),
+        .I0(1'b0), .I1(winctrl_win_hit), .I2(win_edge_d), .I3(armed),
         .O(winctrl_win_hit));
 
     reg winctrl_sync1 = 1'b0, winctrl_sync2 = 1'b0;
@@ -600,7 +811,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // just transparently tracking its tap's live, fast-moving value) --
     // diag16_captured says which case a poll is looking at.
     wire diag16_q_raw, diag16_g1, diag16_g2;
-    bd_c2n_set udiag16_state (.a(r1), .b(r2), .rst(1'b0), .q(diag16_q_raw));
+    bd_c2n_set udiag16_state (.a(r1), .b(r2), .rst(arb_rst), .q(diag16_q_raw));
 
     (* keep *) wire [16:0] diag16_s;
     assign diag16_s[0] = diag16_q_raw;
@@ -617,7 +828,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
 
     wire diag16_captured;
     (* keep *) LUT3 #(.INIT(8'hE0)) udiag16_captured (
-        .I0(diag16_anomaly_raw), .I1(diag16_captured), .I2(por_done),
+        .I0(diag16_anomaly_raw), .I1(diag16_captured), .I2(armed),
         .O(diag16_captured));
 
     // 17 chain taps + r1 + r2 = 19 transparent-until-captured latches.
@@ -643,7 +854,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // construction throughout, just N=8 instead of N=16 (9 chain taps + r1
     // + r2 = 11 snapshot bits instead of 19).
     wire diag8_q_raw, diag8_g1, diag8_g2;
-    bd_c2n_set udiag8_state (.a(r1), .b(r2), .rst(1'b0), .q(diag8_q_raw));
+    bd_c2n_set udiag8_state (.a(r1), .b(r2), .rst(arb_rst), .q(diag8_q_raw));
 
     (* keep *) wire [8:0] diag8_s;
     assign diag8_s[0] = diag8_q_raw;
@@ -660,7 +871,7 @@ module arb_mtbf (output wire led_red, output wire led_green);
 
     wire diag8_captured;
     (* keep *) LUT3 #(.INIT(8'hE0)) udiag8_captured (
-        .I0(diag8_anomaly_raw), .I1(diag8_captured), .I2(por_done),
+        .I0(diag8_anomaly_raw), .I1(diag8_captured), .I2(armed),
         .O(diag8_captured));
 
     wire [10:0] diag8_snap;
@@ -721,7 +932,18 @@ module arb_mtbf (output wire led_red, output wire led_green);
             5'd7:  mux_d = {7'h0, ch_hitcnt_ovf[1], ch_hitcnt[1]};
             5'd8:  mux_d = 32'hDEAD_BEEF;
             5'd9:  mux_d = 32'h5A5A_1234;
-            5'd10: mux_d = 32'h0000_0000;
+            // Population aggregate rate, raw at 10 and filtered at 25 -- the
+            // pair that answers burst-versus-steady; see their declaration
+            // for why the sticky words at 5/20-24 cannot.  Read as a PAIR
+            // and read the DELTA between two polls, never the absolute
+            // value: these arm with everything else, so their first sample
+            // already contains whatever happened before the first poll, and
+            // only the growth between samples is exposure-proportional.
+            //
+            // 10 used to return the all-zeros bring-up constant; the nonzero
+            // constants at 8 and 9 still catch a stuck-at-0 readback path,
+            // and the addresses were full.
+            5'd10: mux_d = {7'h0, rate_ovf[0], rate_cnt[0]};
             5'd11: mux_d = {7'h0, ch_hitcnt_ovf[2], ch_hitcnt[2]};
             5'd12: mux_d = {{(32 - SB_W){1'b0}}, rs1};
             5'd13: mux_d = {7'h0, ch_hitcnt_ovf[3], ch_hitcnt[3]};
@@ -765,6 +987,9 @@ module arb_mtbf (output wire led_red, output wire led_green);
             5'd22: mux_d = pop_sticky_pad[127:96];     // pop[96..127]
             5'd23: mux_d = pop_sticky_pad[159:128];    // pop[128..159]
             5'd24: mux_d = pop_sticky_pad[191:160];    // pop[160..191]
+
+            // filtered half of the aggregate rate pair opened at address 10
+            5'd25: mux_d = {7'h0, rate_ovf[1], rate_cnt[1]};
 
             5'd26: mux_d = pop_flt_sticky_pad[31:0];   // filtered, pop[0..31]
             5'd27: mux_d = pop_flt_sticky_pad[63:32];
