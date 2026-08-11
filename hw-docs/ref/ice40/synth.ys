@@ -1,0 +1,48 @@
+# iCE40 synthesis template for async (clockless) bundled-data designs.
+#
+# This is a TEMPLATE: run_flow.sh substitutes the @PLACEHOLDERS@ and writes
+# the result to <outdir>/synth.gen.ys, which is what yosys actually runs.
+# Read README.md in this directory before changing the pass order -- the
+# ordering is load-bearing (deliberate combinational feedback everywhere).
+
+# iCE40 cell library as blackboxes, so SB_LUT4 instances in rtl/common/lut.sv
+# resolve and pass through synthesis untouched.
+read_verilog -lib -specify +/ice40/cells_sim.v
+
+# The primitive library (SYNTHESIS branch: SB_LUT4 wrapped in loop_breaker
+# blackboxes on every pin), then the compiled design.
+read_verilog -DSYNTHESIS -sv -I @RTL_DIR@ @RTL_DIR@/async.sv
+read_verilog -DSYNTHESIS -sv -I @RTL_DIR@ @DESIGN@
+hierarchy -top @TOP@
+
+# The library marks modules (* keep_hierarchy *), which would stop the
+# flatten inside synth_ice40 and leave a hierarchical netlist nextpnr cannot
+# consume. Strip it: the *real* loop protection is the loop_breaker
+# blackboxes, which stay opaque with or without hierarchy.
+setattr -mod -unset keep_hierarchy
+
+# Standard iCE40 synthesis. Safe here because every deliberate feedback path
+# crosses a loop_breaker blackbox: opt/abc treat blackboxes as boundaries, so
+# yosys literally cannot see the loops ("Found 0 SCCs"). Library SB_LUT4s
+# pass through as blackbox instances; only the generated datapath logic
+# (adders/mux trees/multipliers) gets mapped to new SB_LUT4/SB_CARRY cells.
+synth_ice40 -top @TOP@
+
+# Core cell counts (library SB_LUT4 + datapath SB_LUT4 + loop_breaker).
+tee -o @OUTDIR@/core.stat stat
+
+@SHIM_SECTION@
+# Dissolve the loop_breaker blackboxes into plain wires: techmap replaces
+# each instance with `assign Y = A` from loop_breaker_dissolve.v, i.e. a pure
+# net alias. This MUST stay after all optimization and immediately before
+# write_json -- no opt pass may run afterwards, or yosys would finally see
+# the feedback loops and eat them.
+techmap -map @BOARD_DIR@/loop_breaker_dissolve.v
+select -assert-none t:loop_breaker
+
+# $scopeinfo cells are hierarchy debug info from flatten; drop them so the
+# JSON contains only real cells.
+delete t:$scopeinfo
+
+tee -o @OUTDIR@/final.stat stat
+write_json @JSON@

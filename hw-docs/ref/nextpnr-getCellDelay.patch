@@ -1,0 +1,21 @@
+diff --git a/common/kernel/arch_pybindings_shared.h b/common/kernel/arch_pybindings_shared.h
+index 05d58f11..44adcf82 100644
+--- a/common/kernel/arch_pybindings_shared.h
++++ b/common/kernel/arch_pybindings_shared.h
+@@ -30,6 +30,16 @@ fn_wrapper_2a_v<Context, decltype(&Context::constrainCellToRegion), &Context::co
+ fn_wrapper_2a<Context, decltype(&Context::getNetinfoRouteDelay), &Context::getNetinfoRouteDelay, pass_through<delay_t>,
+               addr_and_unwrap<NetInfo>, unwrap_context<PortRef>>::def_wrap(ctx_cls, "getNetinfoRouteDelay");
+ 
++// Not exposed via fn_wrapper_*: getCellDelay has a bool return plus a DelayQuad out-param, which none of the
++// existing fn_wrapper arities model. Bind it directly with a lambda instead; DelayQuad is already py::class_'d
++// in pybindings.cc so it can be returned as-is in the (found, delay) tuple.
++ctx_cls.def("getCellDelay", [](Context &ctx, ContextualWrapper<CellInfo &> cell, const std::string &fromPort,
++                                const std::string &toPort) {
++    DelayQuad dq;
++    bool found = ctx.getCellDelay(&(cell.base), ctx.id(fromPort), ctx.id(toPort), dq);
++    return py::make_tuple(found, dq);
++});
++
+ fn_wrapper_1a<Context, decltype(&Context::createNet), &Context::createNet, deref_and_wrap<NetInfo>,
+               conv_from_str<IdString>>::def_wrap(ctx_cls, "createNet");
+ fn_wrapper_3a_v<Context, decltype(&Context::connectPort), &Context::connectPort, conv_from_str<IdString>,

@@ -1,0 +1,80 @@
+# Xilinx 7-series (openXC7) synthesis template for async (clockless)
+# bundled-data designs.
+#
+# This is a TEMPLATE: run_flow.sh substitutes the @PLACEHOLDERS@ and writes
+# the result to <outdir>/synth.gen.ys, which is what yosys actually runs.
+# Read README.md in this directory before changing the pass order -- the
+# ordering is load-bearing (deliberate combinational feedback everywhere).
+
+# iCE40 cell library as EMPTY blackboxes. Yes, iCE40 on a Xilinx flow: the
+# compiled designs instantiate rtl/common/lut.sv with its default NATIVE=1,
+# which emits SB_LUT4. We keep those cells opaque through ALL of synthesis
+# (an unknown blackbox is even safer than the ice40 flow's own library cells)
+# and only retarget them to Xilinx LUT4 at the very end, after optimization
+# is over.
+read_verilog -lib +/ice40/cells_sim.v
+
+# The primitive library (SYNTHESIS branch: SB_LUT4 wrapped in loop_breaker
+# blackboxes on every pin), then the compiled design.
+read_verilog -DSYNTHESIS -sv -I @RTL_DIR@ @RTL_DIR@/async.sv
+read_verilog -DSYNTHESIS -sv -I @RTL_DIR@ @DESIGN@
+hierarchy -top @TOP@
+
+# The library marks modules (* keep_hierarchy *), which would stop the
+# flatten inside synth_xilinx and leave a hierarchical netlist nextpnr cannot
+# consume. Strip it: the *real* loop protection is the loop_breaker
+# blackboxes, which stay opaque with or without hierarchy.
+setattr -mod -unset keep_hierarchy
+
+# Standard 7-series synthesis. Safe here because every deliberate feedback
+# path crosses a loop_breaker blackbox: opt/abc treat blackboxes as
+# boundaries, so yosys literally cannot see the loops ("Found 0 SCCs").
+# Library SB_LUT4s are unknown blackboxes to the Xilinx flow and pass through
+# untouched; only the generated datapath logic (adders/mux trees/multipliers)
+# gets mapped to LUT1..LUT6/CARRY4/MUXF* cells.
+#   -flatten : REQUIRED. synth_ice40 flattens by default, synth_xilinx does
+#            NOT -- without this the library modules survive as hierarchy
+#            and nextpnr cannot consume the JSON.
+#   -nodsp : keep multiplies in fabric. DSP48E1 inference is a later,
+#            deliberate optimization (06-field-notes.md) and openXC7 DSP
+#            support is not something this smoke flow should lean on.
+#   -nosrl/-nolutram/-nobram : no clocked storage exists in these netlists;
+#            forbid inference paths that could only misfire.
+synth_xilinx -family xc7 -top @TOP@ -flatten -nodsp -nosrl -nolutram -nobram
+
+# Explicit loop scan: must log "Found 0 SCCs" (the sanity checker asserts
+# every such line is 0). With the breakers opaque, yosys genuinely cannot
+# see the deliberate loops; this still catches any ACCIDENTAL loop created
+# purely inside the synthesized datapath. (Note: scc cannot see through
+# blackbox cells, so it reports 0 even on a corrupted early-dissolved
+# netlist -- it is a datapath check, not the library-count invariant. Also:
+# scc SETS the selection to the loops it finds, so clear it afterwards.)
+scc
+select -clear
+
+# Core cell counts (library SB_LUT4 + datapath LUT1..LUT6/CARRY4 +
+# loop_breaker + IBUF/OBUF).
+tee -o @OUTDIR@/core.stat stat
+
+# Retarget the library: SB_LUT4 -> LUT4, pins 1:1, INIT = LUT_INIT verbatim
+# (both families index INIT with {I3,I2,I1,I0}; SAT-proven by
+# check_lut_map.sh, which run_flow.sh executes on every build). techmap is a
+# pure 1:1 cell substitution -- no opt pass runs, counts must be invariant.
+techmap -map @BOARD_DIR@/sb_lut4_map.v
+select -assert-none t:SB_LUT4
+tee -o @OUTDIR@/mapped.stat stat
+
+# Dissolve the loop_breaker blackboxes into plain wires: techmap replaces
+# each instance with `assign Y = A` from loop_breaker_dissolve.v, i.e. a pure
+# net alias. This MUST stay after all optimization and immediately before
+# write_json -- no opt pass may run afterwards, or yosys would finally see
+# the feedback loops and eat them.
+techmap -map @BOARD_DIR@/loop_breaker_dissolve.v
+select -assert-none t:loop_breaker
+
+# $scopeinfo cells are hierarchy debug info from flatten; drop them so the
+# JSON contains only real cells.
+delete t:$scopeinfo
+
+tee -o @OUTDIR@/final.stat stat
+write_json @JSON@
