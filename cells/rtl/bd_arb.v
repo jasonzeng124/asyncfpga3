@@ -121,9 +121,16 @@ endmodule
 // adds bd_merge's select LUT, data mux and matched delay on R0.
 //
 // ---------------------------------------------------------------------------
-// THE ARBITER DOES NOT MEET THE MERGE'S PRECONDITION.  Reported, not silently
-// patched -- HOLD_ON_ACK defaults to 0, which is the arbiter exactly as
-// specified.
+// THE ARBITER AS SPECIFIED DOES NOT MEET THE MERGE'S PRECONDITION, so this
+// cell is NOT the arbiter as specified.  It holds q on ack, unconditionally,
+// and there is no way to ask for the unheld node.
+//
+// That is a deliberate departure from "report, do not silently patch", and
+// the reason is that this cell has one consumer that cannot read a note: a
+// compiler backend emits it once per contended resource, thousands of times,
+// and nobody reads a parameter default.  A defect that is opt-out in a
+// library is a defect that ships.  The finding below is the report; the
+// constant is the patch; the two are not in tension because both are here.
 //
 // bd_merge's own header states the obligation, and it is stronger than
 // exclusivity: the second input may not assert until the first transaction
@@ -154,7 +161,7 @@ endmodule
 // return-to-zero phase.  That is what makes the handover fast, and it is also
 // what makes it early.
 //
-// HOLD_ON_ACK(1) freezes q while A0 is high.  Then g1 falls when r1 falls, R0
+// Holding q while A0 is high fixes it.  Then g1 falls when r1 falls, R0
 // falls with it, the server drops A0, A1 falls, client 1 completes -- and only
 // then does q flip and g2 rise.  A0 is one more pin on the state node, and
 // because R0 is a function of the pins that node already has, the pair is
@@ -173,13 +180,52 @@ endmodule
 // With q frozen on A0 the two grants are separated by an entire server
 // round-trip and the question stops arising.
 //
-// What HOLD_ON_ACK does not do is make fairness unconditional.  q re-evaluates
-// at A0-fall; the losing client's request is already up, and the winning
-// client cannot re-raise its own until A1 has fallen, which is strictly later.
-// So alternation holds by one arc of margin, not by construction.  tb_arb
+// -- WHAT THE HOLD DOES NOT DO ----------------------------------------------
+//
+// It does not make fairness unconditional.  q re-evaluates at A0-fall; the
+// losing client's request is already up, and the winning client cannot
+// re-raise its own until A1 has fallen, which is strictly later.  So
+// alternation holds by one arc of margin, not by construction.  tb_arb
 // measures the alternation count rather than assuming it.
+//
+// IT DOES NOT MAKE THE MUTEX UNRACEABLE, and nothing here can.  The two
+// problems above are a protocol violation and an arc ordering; both are
+// digital races with digital fixes.  The third failure mode is not: r1 and r2
+// moving in OPPOSITE SENSES within one loop delay drive the decision loop for
+// less time than it needs to commit, and q can then sit at an intermediate
+// level and hand that level straight to the grants.  No arrangement of LUTs
+// removes it, because the analog filter that would is not buildable on this
+// fabric.
+//
+// The hold does not even relocate that race to a safe place.  q is frozen
+// while A0 is high, so the evaluation window opens at A0-fall -- and a request
+// arriving coincident with that edge is exactly the runt condition.  What the
+// hold plausibly buys is APERTURE: q is live only between A0-fall and the next
+// grant, instead of continuously, so there are fewer instants at which a race
+// can land.  That is a rate argument, not a structural one, and it is not
+// measured.
+//
+// So exclusion has three tiers and they must not be quoted as one:
+//
+//   settled q      structural.  Exactly one of q and ~q is high and both
+//                  grants read the same net.  No timing argument.
+//   during handover  structural WITH THE HOLD.  The grants are separated by a
+//                  server round-trip rather than racing within ~100 ps.
+//   metastable q   NOT EXCLUDED, at a rate that must be measured.  This is
+//                  what verify/MTBF.md exists for, and it is a property of
+//                  arbitration itself, not a defect of this cell.
+//
+// On the one lever that sets the third tier's rate, this construction is
+// already at the optimum: resolution time is governed by loop delay, and there
+// is one logic level and one feedback wire in this loop where the textbook
+// NAND mutex has two of each.  The remaining lever belongs to the consumer --
+// metastability decays exponentially, so a grant read N hops downstream has
+// had N hops to resolve.  Four-phase bundled data puts a full handshake
+// between the decision and its use, which is many hops.  A CONSUMER MUST NOT
+// READ A GRANT WITHIN ONE LOOP DELAY OF THE DECISION; that is the cell's
+// obligation on its user, and it is the only one.
 // ---------------------------------------------------------------------------
-module bd_arbiter #(parameter HOLD_ON_ACK = 0)
+module bd_arbiter
     (input  wire  rst,
      input  wire  r1,
      output wire  A1,
@@ -193,19 +239,12 @@ module bd_arbiter #(parameter HOLD_ON_ACK = 0)
     wire q;
 
     // q = rst + C(r1,~r2)   on O6;   R0 = r1.q + r2.~q   on O5.
-    // With HOLD_ON_ACK, I4 carries A0 and q additionally freezes while the
-    // resource is acknowledging.  Same site, same cost, different constant.
-    generate
-        if (HOLD_ON_ACK) begin : ghold
-            (* keep *) LUT6_2 #(.INIT(64'hFFF0_FFB2_ACAC_ACAC)) ustate (
-                .I0(r1), .I1(r2), .I2(q), .I3(rst), .I4(A0), .I5(1'b1),
-                .O5(R0), .O6(q));
-        end else begin : gplain
-            (* keep *) LUT6_2 #(.INIT(64'hFFB2_FFB2_ACAC_ACAC)) ustate (
-                .I0(r1), .I1(r2), .I2(q), .I3(rst), .I4(1'b0), .I5(1'b1),
-                .O5(R0), .O6(q));
-        end
-    endgenerate
+    // I4 carries A0, so q additionally freezes while the resource is
+    // acknowledging.  Same site, same cost as the unheld node -- the hold is
+    // a different constant, not a different price.
+    (* keep *) LUT6_2 #(.INIT(64'hFFF0_FFB2_ACAC_ACAC)) ustate (
+        .I0(r1), .I1(r2), .I2(q), .I3(rst), .I4(A0), .I5(1'b1),
+        .O5(R0), .O6(q));
 
     LUT6_2 #(.INIT(64'h0C0C_0C0C_A0A0_A0A0)) ugrant (
         .I0(r1), .I1(r2), .I2(q), .I3(1'b0), .I4(1'b0), .I5(1'b1),

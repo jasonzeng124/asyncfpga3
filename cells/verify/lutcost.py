@@ -149,12 +149,9 @@ CASES = [
      " output R0, input A0, output g1, output g2",
      "bd_arbiter u (.rst(rst), .r1(r1), .A1(A1), .r2(r2), .A2(A2),"
      " .R0(R0), .A0(A0), .g1(g1), .g2(g2));"),
-    # The reported fix is a different constant on the same site: same cost.
-    ("arbiter_held", 4,
-     "input rst, input r1, output A1, input r2, output A2,"
-     " output R0, input A0, output g1, output g2",
-     "bd_arbiter #(.HOLD_ON_ACK(1)) u (.rst(rst), .r1(r1), .A1(A1), .r2(r2),"
-     " .A2(A2), .R0(R0), .A0(A0), .g1(g1), .g2(g2));"),
+    # The ack-hold that used to be an opt-in variant is now the cell itself,
+    # so there is no second entry to price: it was always the same four LUTs
+    # on the same two sites, differing only in ustate's constant.
 ]
 
 RTL = sorted(str(p) for p in (ROOT / "rtl").glob("*.v"))

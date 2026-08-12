@@ -81,7 +81,7 @@ echo "== synthesis =="
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
 read_verilog -lib $CELLS_XTRA
-read_verilog rtl/bd_latch.v rtl/bd_ce.v $SRC
+read_verilog rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v $SRC
 synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP -run begin:map_luts
 opt_expr -mux_undef -noclkinv
 abc -luts 2:2,3,6:5,10,20
@@ -235,3 +235,21 @@ echo "$(stat -c%s "$OUT/$TOP.bit") bytes -> $OUT/$TOP.bit"
 echo "routed SDF -> $OUT/$TOP.sdf"
 echo
 echo "build_hw.sh PASS"
+
+# ---------------------------------------------------------------------------
+# arb_prot (hw/arb_prot.v) -- 96 bd_arbiter instances, each with a four-phase
+# server and two self-timed clients.  2962 occupied LUT sites, 62 global buffer
+# lines, 192 LUT6_2 (both the state node and the grant node of every arbiter
+# stay fractured -- hw/check_fracture.py covers both, see its NAME_RE).
+#
+# NO SEED IS PINNED FOR THIS DESIGN, and that is a result rather than an
+# omission: the default and every seed 1-5 route, and three rebuilds at the
+# default produced byte-identical FASM.  arb_mtbf needs a pinned seed because
+# it packs ~200 arbiters plus six ladders plus wide counters against BSCANE2's
+# fixed site and most seeds fail to route tck; arb_prot has no ladders and no
+# CARRY4 counters beyond two, so it is simply not congested.  If that ever
+# changes, sweep and pin here the way arb_mtbf's history above does.
+#
+# rtl/bd_arb.v was added to the read_verilog line for this design: arb_mtbf
+# only instantiates bd_c2n_set (which lives in rtl/bd_ce.v), but arb_prot
+# instantiates the whole bd_arbiter.  Unused modules cost nothing after -top.

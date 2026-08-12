@@ -114,7 +114,7 @@ module soak_top (input wire pin_in, output wire pin_out);
 
     // -- arbitration ---------------------------------------------------------
     wire a1, a2, r0, ag1, ag2;
-    bd_arbiter #(.HOLD_ON_ACK(1)) uarb (
+    bd_arbiter uarb (
         .rst(rst), .r1(u_req), .A1(a1), .r2(m_req), .A2(a2),
         .R0(r0), .A0(u_cack), .g1(ag1), .g2(ag2));
 

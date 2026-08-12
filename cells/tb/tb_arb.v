@@ -28,7 +28,7 @@
 // ---------------------------------------------------------------------------
 // One arbiter, one shared server, two clients that always want it back.
 // ---------------------------------------------------------------------------
-module arb_harness #(parameter HOLD_ON_ACK = 0, parameter integer ROUNDS = 40)
+module arb_harness #(parameter integer ROUNDS = 40)
     (input wire rst, input wire go);
 
     localparam integer H = `BD_HOP_PS;
@@ -38,7 +38,7 @@ module arb_harness #(parameter HOLD_ON_ACK = 0, parameter integer ROUNDS = 40)
     wire A1, A2, R0, g1, g2;
     reg  A0 = 1'b0;
 
-    bd_arbiter #(.HOLD_ON_ACK(HOLD_ON_ACK)) dut (
+    bd_arbiter dut (
         .rst(rst), .r1(r1), .A1(A1), .r2(r2), .A2(A2),
         .R0(R0), .A0(A0), .g1(g1), .g2(g2));
 
@@ -113,8 +113,7 @@ module tb_arb;
     reg rst = 1'b1;
     reg go  = 1'b0;
 
-    arb_harness #(.HOLD_ON_ACK(0), .ROUNDS(ROUNDS)) spec (.rst(rst), .go(go));
-    arb_harness #(.HOLD_ON_ACK(1), .ROUNDS(ROUNDS)) held (.rst(rst), .go(go));
+    arb_harness #(.ROUNDS(ROUNDS)) arb (.rst(rst), .go(go));
 
     // -- the decision element on its own -------------------------------------
     reg  cr1 = 1'b0, cr2 = 1'b0;
@@ -142,11 +141,10 @@ module tb_arb;
         // exact failure the risk note is about, so an x here is a real fault.
         #(4 * T);
         if (ucell.q !== 1'b1) fail("arbcell state node did not reset to 1");
-        if (spec.dut.q !== 1'b1) fail("arbiter state node did not reset to 1");
-        if (held.dut.q !== 1'b1) fail("held arbiter state node did not reset to 1");
+        if (arb.dut.q !== 1'b1) fail("arbiter state node did not reset to 1");
         rst = 1'b0;
         #(4 * T);
-        watching = 1'b1; spec.watching = 1'b1; held.watching = 1'b1;
+        watching = 1'b1; arb.watching = 1'b1;
 
         // -- uncontended: one client alone is granted ------------------------
         cr1 = 1'b1; #(4 * T);
@@ -179,33 +177,23 @@ module tb_arb;
         end
         cr1 = 1'b0; cr2 = 1'b0; #(4 * T);
 
-        // -- sustained contention, both variants -----------------------------
+        // -- sustained contention --------------------------------------------
         go = 1'b1;
         for (w = 0; w < 60000 &&
-                    (held.done1 < ROUNDS || held.done2 < ROUNDS ||
-                     spec.done1 < ROUNDS || spec.done2 < ROUNDS); w = w + 1)
+                    (arb.done1 < ROUNDS || arb.done2 < ROUNDS); w = w + 1)
             #H;
 
-        $display("  as specified (HOLD_ON_ACK=0): clients %0d+%0d acknowledged, server performed %0d",
-                 spec.done1, spec.done2, spec.served);
-        $display("  with the fix (HOLD_ON_ACK=1): clients %0d+%0d acknowledged, server performed %0d",
-                 held.done1, held.done2, held.served);
+        $display("  arbiter: clients %0d+%0d acknowledged, server performed %0d",
+                 arb.done1, arb.done2, arb.served);
 
-        // The fixed variant is what must be correct.
-        if (held.done1 != ROUNDS) fail("held: client 1 was starved");
-        if (held.done2 != ROUNDS) fail("held: client 2 was starved");
-        if (held.served != held.done1 + held.done2)
-            fail("held: server transactions do not match client acknowledges");
-        if (held.both_seen != 0) fail("held: exclusion was broken");
-
-        // The specified variant is the finding.  If it ever stops failing,
-        // either the model or the reasoning is wrong and the write-up in
-        // rtl/bd_arb.v should stop being trusted.
-        if (spec.served >= spec.done1 + spec.done2)
-            fail("the reported arbiter defect did not reproduce");
-        else
-            $display("  finding reproduces: %0d acknowledges were manufactured",
-                     spec.done1 + spec.done2 - spec.served);
+        // Every acknowledge must correspond to a transaction the server
+        // actually began.  The unheld state node manufactured half of them;
+        // that variant no longer exists, so this is the whole check.
+        if (arb.done1 != ROUNDS) fail("client 1 was starved");
+        if (arb.done2 != ROUNDS) fail("client 2 was starved");
+        if (arb.served != arb.done1 + arb.done2)
+            fail("server transactions do not match client acknowledges");
+        if (arb.both_seen != 0) fail("exclusion was broken");
 
         $display("  arbcell handover overlap at BD_ROUTE_PS=%0d: %0d instant(s)",
                  `BD_ROUTE_PS, cell_overlap);

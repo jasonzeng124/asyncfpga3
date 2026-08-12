@@ -37,8 +37,27 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-NAME_RE = re.compile(r"^(ch|pop)\[(\d+)\]\.ugrant\$LUT([56])$")
+# arb_mtbf names its fractured pairs ch[N].ugrant / pop[N].ugrant.  arb_prot
+# instantiates the whole bd_arbiter, so its pairs are arb[N].uarb.ugrant AND
+# arb[N].uarb.ustate -- the state node is fractured too there, pairing q on O6
+# with R0 on O5, and if THAT splits the arbiter stops being four LUTs and R0
+# stops reading the same q the grants read.  Same precondition, so the same
+# gate covers it.
+NAME_RE = re.compile(
+    r"^(ch|pop|arb)\[(\d+)\](?:\.uarb)?\.(ugrant|ustate)\$LUT([56])$")
 BEL_RE = re.compile(r"^(SLICE_X\d+Y\d+)/([A-D])([56])LUT$")
+
+
+def baseline_key(prefix, idx, cell):
+    """Stable baseline key.
+
+    ugrant keeps the historical bare form so arb_mtbf's recorded baseline stays
+    valid across this change; the state node, which only arb_prot exposes, is
+    qualified.  Renaming the existing keys would have made every one of
+    arb_mtbf's 192 channels read as new and silently accepted a fresh
+    placement, which is the exact failure this baseline exists to prevent.
+    """
+    return f"{prefix}{idx}" if cell == "ugrant" else f"{prefix}{idx}.{cell}"
 
 
 def load_grant_bels(routed_json):
@@ -47,13 +66,13 @@ def load_grant_bels(routed_json):
     top = next(iter(modules))
     cells = modules[top]["cells"]
 
-    found = {}  # (prefix, index) -> {"5": bel, "6": bel}
+    found = {}  # (prefix, index, cell) -> {"5": bel, "6": bel}
     for name, c in cells.items():
         m = NAME_RE.match(name)
         if not m:
             continue
-        key = (m.group(1), int(m.group(2)))
-        half = m.group(3)
+        key = (m.group(1), int(m.group(2)), m.group(3))
+        half = m.group(4)
         bel = c.get("attributes", {}).get("NEXTPNR_BEL", "")
         found.setdefault(key, {})[half] = bel
     return found
@@ -71,9 +90,8 @@ def main():
 
     found = load_grant_bels(routed)
     if not found:
-        print("no ch[N].ugrant$LUT5/$LUT6 or pop[N].ugrant$LUT5/$LUT6 cells "
-              "found in the routed JSON -- wrong design, or nextpnr did not "
-              "fracture anything",
+        print("no ugrant/ustate $LUT5/$LUT6 pairs found in the routed JSON "
+              "-- wrong design, or nextpnr did not fracture anything",
               file=sys.stderr)
         return 2
 
@@ -81,9 +99,9 @@ def main():
     sites = {}
     print("fracture check")
     print("-" * 78)
-    for key in sorted(found, key=lambda k: (k[0], k[1])):
-        prefix, idx = key
-        label = f"{prefix}[{idx}]"
+    for key in sorted(found, key=lambda k: (k[0], k[2], k[1])):
+        prefix, idx, cell = key
+        label = f"{prefix}[{idx}].{cell}"
         halves = found[key]
         if "5" not in halves or "6" not in halves:
             print(f"  channel {label}: only found half(s) {sorted(halves)} "
@@ -119,9 +137,9 @@ def main():
         baseline = json.loads(baseline_path.read_text())
         moved = 0
         for key, site in sites.items():
-            prefix, idx = key
-            label = f"{prefix}[{idx}]"
-            bkey = f"{prefix}{idx}"
+            prefix, idx, cell = key
+            label = f"{prefix}[{idx}].{cell}"
+            bkey = baseline_key(prefix, idx, cell)
             prev = baseline.get(bkey)
             if prev is None:
                 print(f"  channel {label}: no baseline entry (new channel?) "
@@ -146,7 +164,7 @@ def main():
         baseline_path.write_text(json.dumps(baseline, indent=2, sort_keys=True))
     else:
         baseline_path.write_text(
-            json.dumps({f"{k[0]}{k[1]}": v for k, v in sites.items()},
+            json.dumps({baseline_key(*k): v for k, v in sites.items()},
                        indent=2, sort_keys=True))
         print(f"no baseline existed -- recorded this build's sites to "
               f"{baseline_path}")

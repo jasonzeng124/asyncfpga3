@@ -83,9 +83,15 @@
 // baseline, before any hours are spent.
 //
 // WHAT THIS DOES NOT TEST.  bd_arbcell alone, not bd_arbiter's handover
-// protocol -- there is no A0/ack here, no HOLD_ON_ACK question, just the
-// decision element and whether it can ever hand a live value to both grants
-// at once.  And the two stimulus rings are unloaded, same caveat as ro_top:
+// protocol -- there is no A0/ack here and no server, just the decision element
+// and whether it can ever hand a live value to both grants at once.  That is
+// the right scope for characterising the element, and the wrong scope for
+// quoting a number about a shipped design: bd_arbiter holds q on ack, so the
+// grants it produces are separated by a server round-trip rather than racing
+// within ~100 ps, and its contention rate is set by a dataflow graph rather
+// than by two free-running rings.  hw/arb_prot.v measures that configuration;
+// this one measures the element underneath it.
+// And the two stimulus rings are unloaded, same caveat as ro_top:
 // this is the easy case for the rings, though not for the decision element,
 // which is under genuine two-sided contention the whole time it runs.
 // ---------------------------------------------------------------------------
@@ -426,23 +432,43 @@ module arb_mtbf (output wire led_red, output wire led_green);
     // run continuously at another.  It is the structural overlap, and one
     // link was clearing it at most sites and not at others.
     //
-    // This build's own routed SDF says why, and the difference is a packer
-    // choice nothing in the RTL controls.  Both instances route q to both
-    // grant halves symmetrically (150 ps each) and both route O5 and O6 into
-    // the detector symmetrically (150 ps each), so there is no interconnect
-    // skew.  What differs is WHICH PHYSICAL LUT PIN q lands on, and the
-    // intrinsic pin-to-output arc is not the same for every pin: at pop[0] q
-    // enters the O5 half on A5 and takes 116 ps, against 124 ps to O6, so the
-    // rising grant arrives 8 ps EARLY and the overlap widens; at pop[96] q
-    // enters on A1 and takes 150 ps, so the rising grant arrives 26 ps LATE
-    // and the overlap narrows.  Against the ~97 ps intrinsic fall-minus-rise
-    // asymmetry of a LUT on this fabric (prjxray: O5 rise 55 / fall 152, O6
-    // rise 56 / fall 124) that is roughly 105 ps of overlap at pop[0] and
-    // roughly 71 ps at pop[96] -- straddling this filter's measured passband
-    // edge, which rejects <=80 ps and passes >=160 ps at one link.  A 34 ps
-    // packer decision therefore decides whether an instance reads as
-    // permanently broken or perfectly clean, which is not a property of the
-    // cell and must not be counted as one.
+    // WHY THOSE TWO INSTANCES DIFFER IS NOT SETTLED.  An earlier version of
+    // this comment gave a confident arithmetic answer -- that q lands on a
+    // different physical LUT pin at pop[0] than at pop[96], and the intrinsic
+    // pin-to-output arcs differ enough to straddle the one-link passband.
+    // That was a two-point fit quoting arcs from a PREVIOUS build whose
+    // placement no longer exists, and correlating it across all 192 instances
+    // refutes it as stated.  What the current build's routed SDF actually
+    // says, tested over the whole population rather than a pair:
+    //
+    //   - grant->detector interconnect skew does not decide it.  146
+    //     instances have EXACTLY 0 ps skew and 10 of them still fire.
+    //   - the width filter's own race margin does not decide it (p = 0.60),
+    //     nor does die position (p = 0.23 on spatial clustering), nor any of
+    //     ~20 other quantities the netlist exposes.
+    //   - all 192 are structurally identical: detector on O6, grants on
+    //     O5/O6, filter LUTs INIT-identical, C-element feedback intra-site
+    //     at 0 ps.  Only routing delays and pin assignments differ.
+    //
+    // A full rise/fall-aware prediction -- per-pin O5 arcs, per-instance
+    // routing, both edges, the +68 ps pulse stretch an O6 LUT adds -- says
+    // NO instance should be able to produce a pulse this filter can pass at
+    // zero skew, since it caps the structural overlap at 96 ps against a
+    // minimum threshold of 203 ps.  Ten zero-skew instances fire anyway.  So
+    // the surviving pulses are not the handover overlap this comment used to
+    // blame, and the mechanism is below what the flow's timing model can
+    // express.
+    //
+    // The one association that survives both a selection-corrected
+    // permutation test and stratification on skew is which pin q occupies:
+    // instances where q touches A5 on either the C-element feedback or the
+    // grant decoder fire at 2/107, the rest at 13/85 (p = 0.0006; within the
+    // 146 zero-skew instances alone, 1/77 against 9/69, p = 0.005).  Treat
+    // that as a lead, not a cause -- it was found post-hoc in one build, on
+    // 15 events, and a pin theory has already been wrong here once.  The
+    // confirming test is a build with q forced to A5 everywhere, whose
+    // pre-registered prediction is that the structural population falls from
+    // 15 to low single digits.
     //
     // Two links moves the rejection band to ~160 ps, above the worst-case
     // structural overlap at any pin assignment, so the whole population lands
