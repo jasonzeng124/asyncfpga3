@@ -250,10 +250,12 @@ and each is measured by a bench rather than argued.
    sustained contention gives the opposite. `q` flips during the *other*
    client's return-to-zero, so `g2` rises while `A0` is still high and
    `C(g2,A0)` fires immediately. `tb_arb` measures 80 client acknowledges
-   against 40 server transactions — half of them manufactured. `HOLD_ON_ACK(1)`
-   freezes `q` while `A0` is high: 80 against 80. `A0` is one more pin on a
-   node whose partner function already uses the pins it needs, so it is **the
-   same four LUTs**, a different constant.
+   against 40 server transactions — half of them manufactured. The cell now
+   freezes `q` while `A0` is high, unconditionally: 80 against 80. `A0` is one
+   more pin on a node whose partner function already uses the pins it needs, so
+   it is **the same four LUTs**, a different constant. This is the one cell
+   that ships fixed rather than as specified — its consumer is a compiler, and
+   an opt-out defect is a defect that ships.
 
 3. **`bd_link` / `bd_pipe`: the request outruns its own data.** Structural, not
    a sizing error: `req_out` is the C-element node itself while `data_out` is

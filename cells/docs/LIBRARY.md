@@ -807,7 +807,7 @@ it holds. Exclusion *during handover* is a weaker claim that has to be checked
 rather than asserted; `tb_arb` counts the overlap in both timing regimes (1
 instant at `BD_ROUTE_PS=0`, 0 at 354). See `docs/ARBITER.md`.
 
-### `bd_arbiter #(HOLD_ON_ACK)`
+### `bd_arbiter`
 
 The arbitration cell in front of a plain merge, with nothing between them.
 `bd_arbiter(rst, r1, r2, A0) → A1, A2, R0, g1, g2`. Control only, matching the
@@ -845,17 +845,41 @@ g2` never returns to zero either — the OR bridges straight across the handover
 the server sees one long request where two clients were served. `tb_arb` measures
 eighty client acknowledges against forty server transactions on the unfixed cell.
 
-`HOLD_ON_ACK` defaults to 0, which is the arbiter exactly as specified; the fix is
-opt-in and reported rather than silently patched. `HOLD_ON_ACK(1)` freezes `q`
-while `A0` is high, giving 80 against 80. **`A0` is one more pin on a node whose
-partner function already uses the pins it needs, so the pair is still five
-distinct inputs: the fix is a different constant, not a different cost.** Still
-four LUTs — INIT `64'hFFF0_FFB2_ACAC_ACAC` against the plain
-`64'hFFB2_FFB2_ACAC_ACAC`, both derived and proved in `verify/inits.py`.
+**This cell holds `q` on ack unconditionally, so it is not the arbiter as
+specified, and there is no parameter to ask for the unheld node.** That is a
+deliberate departure from "report, do not silently patch". The reason is the
+consumer: a compiler backend emits this cell once per contended resource,
+thousands of times, and nobody reads a parameter default. A defect that is
+opt-out in a library is a defect that ships. The finding above is the report;
+the constant is the patch.
 
-The full trace, the narrower grant-overlap problem it also removes, and the limits
-of what it fixes — fairness holds by one arc of margin, not by construction — are
-in `docs/ARBITER.md`.
+Freezing `q` while `A0` is high gives 80 against 80. **`A0` is one more pin on a
+node whose partner function already uses the pins it needs, so the pair is still
+five distinct inputs: the fix is a different constant, not a different cost.**
+Still four LUTs — INIT `64'hFFF0_FFB2_ACAC_ACAC`, derived and proved as
+`ARB_STATE_R0_HOLD` in `verify/inits.py`. The retired `64'hFFB2_FFB2_ACAC_ACAC`
+stays in that table as a derivable variant no cell uses.
+
+**What the hold does not do is make the mutex unraceable, and nothing here can.**
+The precondition violation and the handover overlap are digital races with
+digital fixes. The third failure mode is not: `r1` and `r2` moving in opposite
+senses within one loop delay drive the decision loop for less time than it needs
+to commit, and `q` can hand an intermediate level straight to the grants. The
+analog filter that would suppress it is not buildable on this fabric. The hold
+does not even relocate that race — `q`'s evaluation window opens at `A0`-fall,
+and a request arriving on that edge is exactly the runt condition. What it
+plausibly buys is *aperture*, which is a rate argument and is not measured.
+
+So exclusion has three tiers and they must not be quoted as one: structural for
+a settled `q`; structural during handover *with the hold*; and **not excluded**
+for a metastable `q`, at a rate that must be measured. The last is a property of
+arbitration itself, not a defect of this cell. Its rate is set by loop delay,
+where this construction is already at the optimum — one logic level and one
+feedback wire, against two of each in the textbook NAND mutex — and by the
+consumer's distance from the decision. **A consumer must not read a grant within
+one loop delay of the decision.** That is this cell's only obligation on its
+user. Fairness, separately, holds by one arc of margin rather than by
+construction. See `docs/ARBITER.md`.
 
 ---
 
@@ -899,7 +923,9 @@ gate and what it fails to prove; the two limits worth repeating here are that
 per-pin prjxray arcs the simulation uses, and that the arbiter's failure rate is
 a hardware measurement that nothing in this repository discharges.
 
-Three cells ship with a known finding against them, all three built as the frozen
-review specifies by default with the fix behind an opt-in parameter:
-`bd_dr2bd` (`HOLD`), `bd_arbiter` (`HOLD_ON_ACK`) and `bd_link`/`bd_pipe`
-(`DELAY`). Each is measured by a bench rather than argued.
+Three cells ship with a known finding against them. `bd_dr2bd` (`HOLD`) and
+`bd_link`/`bd_pipe` (`DELAY`) are built as the frozen review specifies, with the
+fix behind an opt-in parameter. `bd_arbiter` is the exception: its finding is a
+protocol defect rather than a timing one, and it ships fixed with no way to ask
+for the specified behaviour, because its intended consumer is a compiler that
+would never opt in. Each is measured by a bench rather than argued.
