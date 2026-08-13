@@ -34,8 +34,43 @@ HIST=build/resize
 mkdir -p $HIST
 rm -f $OUT/sizes.vh $HIST/*.log $HIST/*.vh
 
-KEYS=(BD_SZ_UDEC BD_SZ_UMERGE BD_SZ_UMUX BD_SZ_UMEM_USETUP BD_SZ_UMEM_UCO)
+# The design under test, same opt-in spelling flow.sh uses.  Exported, because
+# flow.sh is what reads it.
+TOP_V="${BD_TOP_V:-verify/soak_top.v}"
+export BD_TOP_V="$TOP_V"
+[ -f "$TOP_V" ] || { echo "BD_TOP_V=$TOP_V does not exist"; exit 2; }
+
+# -- which delays exist is a property of the SOURCE ---------------------------
+#
+# This was a hardcoded list of the five keys soak_top.v happens to have, and a
+# hardcoded copy of their placeholder values.  That is fine right up until the
+# design under test is a GENERATED one, and then it is the worst kind of wrong:
+# a key not in the list is never proposed, never applied and never reverted, so
+# the loop settles, prints a verified assignment, and reports success having
+# silently skipped a delay entirely.  The list has to come from the same place
+# the defaults do -- the `ifndef / `define pair in the source -- or the two can
+# disagree and nothing says so.
 declare -A cur prop
+KEYS=()
+while read -r k v; do
+    if [ -n "${cur[$k]+x}" ] && [ "${cur[$k]}" != "$v" ]; then
+        echo "$k has two different placeholder values in the source " \
+             "(${cur[$k]} and $v).  Which one is the baseline is not this" \
+             "script's guess to make."
+        exit 2
+    fi
+    [ -n "${cur[$k]+x}" ] || KEYS+=("$k")
+    cur[$k]=$v
+done < <(grep -h '^[[:space:]]*`define[[:space:]]\+BD_SZ_' rtl/*.v "$TOP_V" \
+         | awk '{print $2, $3}' | sort -u)
+
+if [ ${#KEYS[@]} -eq 0 ]; then
+    echo "no \`BD_SZ_* placeholders found in rtl/*.v or $TOP_V -- either this"
+    echo "design has no matched delays, or they were inlined as literals, which"
+    echo "is the one thing that makes this whole mechanism a no-op."
+    exit 2
+fi
+echo "delays found in source: ${KEYS[*]}"
 
 SIZEFILE=$HIST/sizes.vh
 export BD_SIZES=$SIZEFILE
@@ -60,20 +95,25 @@ read_prop() {                         # load a proposal into prop[]
     local f=$1 k v
     for k in "${KEYS[@]}"; do prop[$k]=${cur[$k]}; done
     while read -r _ k v; do
-        [ -n "${cur[$k]+x}" ] && prop[$k]=$v
+        if [ -z "${cur[$k]+x}" ]; then
+            # tighten.py names a delay after the instance path it found it at.
+            # A name it proposes that no source file defines means the two
+            # halves of the mechanism have drifted: the length would be written
+            # to sizes.vh, read by nothing, and the loop would report success
+            # having changed nothing.  Never let that be quiet.
+            echo "tighten.py proposes $k = $v, but no \`define $k exists in"
+            echo "rtl/*.v or $TOP_V.  That delay cannot be driven, so this"
+            echo "search cannot honestly claim to have sized it."
+            exit 1
+        fi
+        prop[$k]=$v
     done < <(grep '^`define' "$f" | sed 's/`define //' | awk '{print "d", $1, $2}')
 }
 
 show() { local k out=""; for k in "${KEYS[@]}"; do
              out="$out ${k#BD_SZ_}=${cur[$k]}"; done; echo "$out"; }
 
-# -- baseline: the placeholders in soak_top.v -------------------------------
-cur[BD_SZ_UDEC]=4
-cur[BD_SZ_UMERGE]=4
-cur[BD_SZ_UMUX]=4
-cur[BD_SZ_UMEM_USETUP]=8
-cur[BD_SZ_UMEM_UCO]=12
-
+# -- baseline: the placeholders, already read out of the source above --------
 write_sizes
 echo "baseline (the placeholders):$(show)"
 if ! attempt base; then
