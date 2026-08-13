@@ -37,9 +37,18 @@ C.  CLOCK-TO-OUT.  The acknowledge tapped off the RAM clock must be at least
 Late signal on the SHORTEST path, early signal on the LONGEST.  A request that
 happens to have one fast route is what breaks the bundle, not its average, and
 data that has one slow route is what it breaks against.  Both are measured
-from a COMMON START POINT: a matched delay covers combinational logic inside
-one cell's own datapath, and a path that does not share a start point with the
-request is the upstream sender's obligation, not this delay's.
+from a COMMON START POINT where the cell admits one: a matched delay covers
+combinational logic inside one cell's own datapath, and a path that does not
+share a start point with the request is the upstream sender's obligation, not
+this delay's.
+
+Every hand-written cell in rtl/ does admit one -- its request and its datapath
+fan out from the same net inside the cell.  A GENERATED compute unit does not:
+its request arrives on a_req and its operands on a_data.  Those are two halves
+of one bundled channel, launched together by the upstream cell's own rule A, so
+they are paired without a shared start -- earliest request against latest data,
+which is strictly more pessimistic than a common start would be.  See
+check_bundled.  Which pairing produced a number is always printed.
 
 -- what the numbers are made of ---------------------------------------------
 
@@ -335,6 +344,69 @@ def check(timing, srcs, late_pins, early_pin, guard_of, confine=None):
     return worst
 
 
+def check_bundled(timing, srcs, late_pins, early_pin, guard_of, confine=None):
+    """The same setup margin, for a cell whose request and data enter on
+    DIFFERENT nets.  Returns (margin, guard, t_early, t_late, which_pin,
+    early_start, late_start) or None.
+
+    check() above pairs the two sides by requiring one start point that reaches
+    both.  That is exact, and it is what every hand-written cell in rtl/ admits,
+    because in all of them the request and the datapath fan out from the same
+    net inside the cell.  A generated compute unit does not: its request arrives
+    on a_req and its operands on a_data, so no single start pairs them and
+    check() correctly reports that it cannot measure anything.  Under four-phase
+    bundled data those wires are not independent -- they are two halves of one
+    channel, and the upstream cell's OWN rule A is the guarantee that they are
+    launched by one event.  That is precisely the property a common start point
+    was standing in for, and the reason this pairing is legitimate rather than a
+    relaxation.
+
+    Pairing them without a shared start means assuming every boundary net can
+    transition at t=0 together, and then taking the worst combination: the
+    EARLIEST the request can leave (min over starts) against the LATEST the
+    datapath can settle (max over starts).  Three things follow, and they are
+    the whole argument for why this is safe to add:
+
+      It can only ever be more pessimistic than check().  For any single start s
+      the margin here is <= the margin check() computes from s, since the min
+      and the max are taken over a set containing s.  So no cell that passes
+      today can start failing because of a looser rule -- only because a real
+      path was being skipped.
+
+      Treating an incoming request as launching at t=0 UNDERSTATES it.  Rule A
+      on the upstream cell says its request trails its data; ignoring that head
+      start shortens the request side, which shrinks the margin.  Conservative.
+
+      A state node inside the cell is in `srcs` too, and it cannot fire until
+      the incoming request has already arrived.  Calling it t=0 on the data side
+      overstates how late the data is.  Conservative again.
+
+    So this can report a violation that is not real -- a pessimistic pairing --
+    and it cannot hide one.  For a gate that is the correct direction to be
+    wrong in, but it does mean a failure here is a reason to look, not proof.
+    """
+    t_e, e_src = None, None
+    for s in srcs:
+        tab = timing.early(s, confine)
+        if early_pin in tab and (t_e is None or tab[early_pin] < t_e):
+            t_e, e_src = tab[early_pin], s
+    if t_e is None:
+        return None
+
+    worst = None
+    for s in srcs:
+        tab = timing.late(s, confine)
+        for p in late_pins:
+            if p not in tab:
+                continue
+            t_l = tab[p]
+            g = guard_of(p, t_l)
+            margin = t_e - t_l - g
+            if worst is None or margin < worst[0]:
+                worst = (margin, g, t_e, t_l, p, e_src, s)
+    return worst
+
+
 # ------------------------------------------------------------------ chains
 
 def find_chains(edges):
@@ -527,6 +599,11 @@ def main():
     print("-" * 78)
     hop = median_hop(edges)
     sites = request_sites(edges, back, chains)
+
+    def req_guard(p, t):
+        """The review's guardband: a fifth of the data path, floored at 200 ps."""
+        return max(int(0.2 * t), 200)
+
     audited = set()
     for parent, head, tail, links in sites:
         audited.add(parent)
@@ -555,14 +632,24 @@ def main():
             continue
 
         srcs = cell_boundary(edges, back, stops, parent)
-        res = check(timing, srcs, peers, tail,
-                    lambda p, t: max(int(0.2 * t), 200), confine=parent)
+        res = check(timing, srcs, peers, tail, req_guard, confine=parent)
+        # A cell whose request and data arrive on different nets -- every
+        # generated compute unit -- has no common start point, and used to be
+        # skipped here with a message.  Skipping is the one outcome this pass
+        # must not have: a delay that was never audited reads exactly like a
+        # delay that passed.  Fall back to pairing the channel's two halves.
+        pairing = "common source"
         if res is None:
-            print(f"  {label:<22} {n:>2} links   no common source with "
-                  f"{parent}'s other outputs")
+            res = check_bundled(timing, srcs, peers, tail, req_guard,
+                                confine=parent)
+            pairing = "bundled channel"
+        if res is None:
+            print(f"  {label:<22} {n:>2} links   nothing outside {parent} "
+                  f"reaches its request -- not audited")
             continue
 
-        margin, guard, t_e, t_l, pin, s = res
+        margin, guard, t_e, t_l, pin, s = res[:6]
+        late_src = res[6] if len(res) > 6 else s
         # what the chain itself contributes, on the path being measured
         chain_ps = None
         e_tab = timing.early(s, parent)
@@ -590,6 +677,16 @@ def main():
               f"req {t_e:>5}  peak {t_l:>5}  guard {guard:>4}  "
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<22} latest peer: {pin_split(pin)[0]}")
+        # Never let the pairing be invisible.  The two rules answer the same
+        # question with different amounts of evidence, and which one produced a
+        # number changes how much it is worth.
+        if pairing == "common source":
+            print(f"  {'':<22} paired by common source: {s}")
+        else:
+            print(f"  {'':<22} paired as one bundled channel (no common "
+                  f"source):")
+            print(f"  {'':<22}   request from {s}")
+            print(f"  {'':<22}   data    from {late_src}")
 
     for base in sorted(chains):
         parent = base.rpartition(".")[0]

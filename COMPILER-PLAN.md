@@ -149,15 +149,50 @@ Two concrete problems to solve:
 
 1. **The delay is unknowable at emit time**, which is fine — emit a placeholder
    and let `tighten.py` size it. That is what the pass is for.
-2. **`tighten.py` has to find the cell boundary.** It currently anchors rule A
-   on a `<cell>.uor` request OR, a convention that only holds for hand-written
-   cells. Generated units need a declared boundary — a wrapper module plus an
-   attribute the SDF preserves — and rule A's `confine` has to key off it.
-   This is a real change to the sizing pass, not a naming exercise: `confine`
-   is the definition of the check, not an optimisation, and getting it wrong
-   turns every line in the design into a violation.
+2. **`tighten.py` has to find the cell boundary.** It anchors rule A on a
+   `<cell>.uor` request OR, a convention that only holds for hand-written
+   cells, and `confine` is the definition of the check rather than an
+   optimisation — get it wrong and every line in the design is a violation.
+
+**Both are now done, and the prediction above was half right.** The `uor`
+anchor turned out to need nothing: a generated unit simply instantiates one,
+and it costs nothing because a pass-through LUT1 in front of a LUT1 delay
+chain is just one more link of that chain. What did need work was two things
+neither the prediction nor the roadmap named:
+
+- **The boundary has to survive flattening.** `flow.sh` synthesises with
+  `-flatten`, so without `(* keep_hierarchy *)` yosys dissolves the wrapper and
+  the inferred carry chain comes out as `$auto$alumacc.cc:...carry4`, outside
+  the cell's instance prefix entirely. `confine` then excludes the datapath and
+  the delay is reported as having nothing to wait for. A dissolved boundary is
+  indistinguishable from a cell with no logic in it.
+- **Rule A could not pair a bundled channel.** `check()` needs one start point
+  that reaches both the delay tail and a datapath peer. A compute unit's
+  request enters on `a_req` and its data on `a_data` — two different boundary
+  nets — so no single start pairs them and it returned "nothing to measure".
+  This is *not* something nextpnr or a richer SDF could supply: the SDF already
+  carries every arc needed. The fix is `check_bundled()`, which pairs the two
+  halves of one channel directly — earliest request against latest data, over
+  all boundary starts. That is sound because the upstream cell's own rule A is
+  what guarantees the halves launch together, and it is strictly *more*
+  pessimistic than a common start, so no cell that passes today can start
+  failing because the rule got looser. Which pairing produced a number is
+  always printed. The hand-written library still pairs by common source
+  everywhere, unchanged.
 
 Prototype end to end with **one** unit — an 8-bit adder — before generalising.
+Done: `bdc/compute.py addi 8 --proto`, routed on the real xc7z010 chipdb,
+59 occupied LUT sites, a real two-slice `CARRY4` chain inside the cell, and
+rule A sizing its 8-link placeholder down to 5 for that route.
+
+The prototype top is generated too, and that is deliberate. Two mistakes are
+recorded in its docstring because both passed every other gate while measuring
+nothing: operands derived from a single pin fold the whole adder away, and an
+environment that feeds `z_req` back into `z_ack` makes the matched delay a
+combinational cycle — every link becomes a state node, the chain's own tail
+lands in its start set, and rule A measures the request arriving at itself in
+0 ps. An output nobody reads is an output yosys deletes; `z_req` has to be
+observed somewhere that is not a way back into the cell.
 
 ---
 

@@ -191,13 +191,113 @@ endmodule
 """
 
 
+def emit_proto_top(op, width, pred=None):
+    """A two-pin top that exercises one unit, in the shape of verify/soak_top.v.
+
+    Two mistakes are baked into this, and both were made before being written
+    down.
+
+    The operands must come from real STATE.  The first version derived both
+    from pin_in, which looks non-constant but is not: every bit of both
+    operands was a function of the same single bit, so the whole sum collapsed
+    and yosys folded the adder away -- 14 LUTs, no carry chain, a gate passing
+    while measuring nothing.  bd_pipe's latches are keep'd LUT feedback loops
+    and so are opaque to folding, which is what makes them usable as a source.
+
+    The environment must not close a COMBINATIONAL LOOP around the unit.  The
+    second version fed z_req straight back to z_ack and derived a_req from
+    a_ack.  Both are cycles through the cell, and tighten.py's model treats a
+    pin on a cycle as a state node -- so every link of the matched delay became
+    one, the chain's own tail landed in the cell's start set, and rule A
+    measured the request arriving at itself in 0 ps.  The handshake is driven
+    from the spine's latched state instead, and the acks are OBSERVED (folded
+    into pin_out) rather than fed back.
+
+    This top is not a functioning adder and does not try to be.  Like
+    soak_top.v it exists so that nothing folds, nothing merges, and every net
+    is real enough for the router -- the gates measure topology and arrival
+    times, not arithmetic.
+    """
+    name = unit_name(op, width, pred)
+    out_w = 1 if op == "cmpi" else width
+    chans = ["a", "b"] + (["s"] if op == "select" else [])
+    # Each channel's request gets a DIFFERENT live signal.  Tying them together
+    # would let yosys collapse the join's C-element into a wire.
+    drive = {"a": "p_req_out", "b": "spine", "s": "p_data_out[0]"}
+
+    # The spine is sized so every operand gets its OWN slice.  A fixed 16-bit
+    # spine looked fine until width 16, where a and b would land on the same
+    # bits -- and a + a is a shift, which folds the carry chain away again.
+    # Each operand must be a distinct word or the unit under test is not the
+    # unit that gets routed.
+    nb = max(16, width * 2 + (1 if op == "select" else 0))
+    slices = {c: f"p_data_out[{(i + 1) * width - 1}:{i * width}]"
+              for i, c in enumerate(["a", "b"])}
+    slices["s"] = f"p_data_out[{nb - 1}]"
+
+    seed = int(("5A3C" * (nb // 16 + 1)), 16) & ((1 << (nb - 1)) - 1)
+
+    conns = "\n".join(
+        f"        .{c}_req({c}_req), .{c}_ack({c}_ack), "
+        f".{c}_data({slices[c]}),"
+        for c in chans)
+
+    return f"""
+`default_nettype none
+module {name}_top (input wire pin_in, output wire pin_out);
+
+    wire rst = pin_in;
+
+    // A free-running spine: the pipe acknowledges itself, so nothing settles
+    // and its {nb} latch bits keep changing.
+    wire        p_ack_in, p_req_out;
+    wire [{nb - 1}:0] p_data_out;
+    wire        spine;
+    bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
+
+    bd_pipe #(.W({nb}), .N(4)) upipe (
+        .rst(rst),
+        .req_in(~spine), .ack_in(p_ack_in),
+        .data_in({{{nb - 1}'h{seed:x}, pin_in}}),
+        .req_out(p_req_out), .ack_out(p_req_out), .data_out(p_data_out));
+
+    wire {', '.join(f'{c}_req, {c}_ack' for c in chans)}, z_req, z_ack;
+    wire [{out_w - 1}:0] z_data;
+
+    // Driven from latched state, never from the unit's own outputs.
+{chr(10).join(f'    assign {c}_req = {drive[c]};' for c in chans)}
+
+    {name} uut (
+        .rst(rst),
+{conns}
+        .z_req(z_req), .z_ack(z_ack), .z_data(z_data));
+
+    // The consumer is a latch bit, not z_req: feeding the request back would
+    // make the matched delay a cycle and take it out of the analysis.
+    assign z_ack = p_data_out[3];
+
+    // EVERY output of the unit is observed here, z_req included.  An output
+    // nobody reads is an output yosys deletes: with z_req feeding only z_ack
+    // the whole matched delay vanished, and rule A then measured a cell with
+    // no delay in it and called that a violation.  The request has to be read
+    // somewhere that is not a way back into the cell.
+    assign pin_out = ^z_data ^ p_req_out ^ z_req ^ {' ^ '.join(f'{c}_ack' for c in chans)};
+endmodule
+`default_nettype wire
+"""
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("op", help="addi, cmpi, select, ...")
     ap.add_argument("width", type=int)
     ap.add_argument("--pred", help="cmpi predicate (sgt, slt, eq, ...)")
+    ap.add_argument("--proto", action="store_true",
+                    help="also emit a two-pin prototype top for cells/flow.sh")
     args = ap.parse_args()
     sys.stdout.write(emit_unit(args.op, args.width, args.pred))
+    if args.proto:
+        sys.stdout.write(emit_proto_top(args.op, args.width, args.pred))
 
 
 if __name__ == "__main__":
