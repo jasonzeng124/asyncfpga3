@@ -71,21 +71,23 @@ BINARY = {
 }
 
 # cmpi carries its predicate as a bare keyword argument (`cmpi sgt, %a, %b`),
-# which the reader stores as a LiteralArg rather than an attribute.  Signed
-# predicates need $signed() or Verilog compares as unsigned and silently
-# gets large negative numbers wrong.
+# which the reader stores as a LiteralArg rather than an attribute.
+#
+# Each predicate is (greater, equal) -> expression, over the two outputs of the
+# comparison tree below.  Signed predicates are the unsigned ones with the sign
+# bit of both operands flipped, which is why there is no $signed() anywhere:
+# flipping the MSB maps two's complement onto unsigned in an order-preserving
+# way, so one tree serves both.
 CMPI = {
-    "eq":  "{a} == {b}",
-    "ne":  "{a} != {b}",
-    "slt": "$signed({a}) <  $signed({b})",
-    "sle": "$signed({a}) <= $signed({b})",
-    "sgt": "$signed({a}) >  $signed({b})",
-    "sge": "$signed({a}) >= $signed({b})",
-    "ult": "{a} <  {b}",
-    "ule": "{a} <= {b}",
-    "ugt": "{a} >  {b}",
-    "uge": "{a} >= {b}",
+    "eq":  "{e}",
+    "ne":  "~{e}",
+    "ult": "~({g} | {e})",
+    "ule": "~{g}",
+    "ugt": "{g}",
+    "uge": "{g} | {e}",
 }
+CMPI.update({"s" + k[1:]: v for k, v in CMPI.items() if k.startswith("u")})
+SIGNED_CMPI = {"slt", "sle", "sgt", "sge"}
 
 # Starting delay, in LUT1 links, by how deep the logic is.  A placeholder, and
 # stated as such: these are not measurements, they are "long enough that
@@ -93,10 +95,79 @@ CMPI = {
 # muli, where the logic is a real tree rather than a carry chain.
 DEFAULT_DELAY = {
     "wide": 4,    # bitwise ops: one LUT, no carry
-    "carry": 8,   # add/sub/compare: a carry chain
+    "carry": 8,   # add/sub: a carry chain.  compare shares the number but not
+                  # the reason -- its (g,e) tree is six levels at 32 bits
     "shift": 8,   # barrel shifter
     "mul": 24,    # multiplier tree
 }
+
+
+def cmp_tree(width):
+    """A (greater, equal) prefix tree over a_data and b_data, as Verilog text.
+
+    Returns (body_lines, greater_net, equal_net).
+
+    Writing `a_data > b_data` and letting yosys infer a CARRY4 chain is the
+    obvious thing, it produces a smaller netlist, and IT DOES NOT ROUTE ON THIS
+    PART.  The failure is worth recording in full, because it took three
+    experiments to separate from the two innocent explanations:
+
+      cmpi eq at width 8 routes (no carry chain is inferred for equality).
+      subi  at width 8 routes (a carry chain IS inferred, and its sum is used).
+      cmpi sgt fails at width 8 and 32, on every placer seed tried, always the
+      same way: "Failed to route arc 0 of net uut.$gt$....G[n], from
+      SLICE_X38Y39/D6LUT_O6 to SLICE_X40Y39/B1".
+
+    So it is not scale, not the op, and not placement luck -- it is carry
+    chains whose only consumer is the carry OUT.  A CARRY4's S and DI inputs
+    have no general routing to them; they must come from the LUTs in the same
+    slice, and the packer normally guarantees that by co-packing them.  In an
+    adder those LUTs also produce the sum, so both halves of the site are
+    spoken for.  In a comparator the result is one bit off the top of the
+    chain, the S-driving LUTs have a free O5 half, and the fractured-LUT packer
+    this library depends on pairs them with unrelated functions -- which strands
+    them in a slice the chain is not in, and the arc becomes unroutable.
+
+    That is a property of the packer, not of the design, and it is not one this
+    project controls.  So the comparison is built out of ordinary logic that
+    cannot be turned into a carry chain at all: yosys's alumacc pass fires on
+    $gt/$lt cells, and there are none here to fire on.
+
+    The cost is not obviously worse.  A balanced tree of (g, e) pairs is
+    2*(W-1) LUTs and ceil(log2(W)) + 1 deep -- six levels at 32 bits, against
+    eight CARRY4s in series.  On this fabric routing dominates so heavily that
+    the shallower tree is very likely the faster of the two; tighten.py will
+    say, and its answer is the only one that counts.
+    """
+    # The tree never needs to know whether it is serving a signed or an
+    # unsigned predicate: emit_unit hands it xa/xb, already sign-flipped where
+    # that applies.
+    lines = [f"    wire [{width - 1}:0] g0 = xa & ~xb;",
+             f"    wire [{width - 1}:0] e0 = xa ~^ xb;"]
+    pairs = [(f"g0[{i}]", f"e0[{i}]") for i in range(width)]
+
+    level = 0
+    while len(pairs) > 1:
+        level += 1
+        nxt, asg = [], []
+        # pairs[] stays ordered by significance, index 0 least, so the leftover
+        # of an odd level is the most significant group and is appended last,
+        # which keeps that order true at the next level.  The recurrence is
+        # greater = g_hi | (e_hi & g_lo): get hi and lo the wrong way round and
+        # the comparison is silently wrong for exactly the inputs where the
+        # high bits decide it, which is most of them.
+        for i in range(0, len(pairs) - 1, 2):
+            (g_hi, e_hi), (g_lo, e_lo) = pairs[i + 1], pairs[i]
+            gn, en = f"g{level}_{i // 2}", f"e{level}_{i // 2}"
+            asg.append(f"    wire {gn} = {g_hi} | ({e_hi} & {g_lo});")
+            asg.append(f"    wire {en} = {e_hi} & {e_lo};")
+            nxt.append((gn, en))
+        if len(pairs) % 2:
+            nxt.append(pairs[-1])       # odd one out, unchanged, next level
+        lines.extend(asg)
+        pairs = nxt
+
+    return lines, pairs[0][0], pairs[0][1]
 
 
 def _depth_class(op):
@@ -118,10 +189,29 @@ def emit_unit(op, width, pred=None):
     name = unit_name(op, width, pred)
     default = DEFAULT_DELAY[_depth_class(op)]
 
+    extra = []
     if op == "cmpi":
         if pred not in CMPI:
             raise ValueError(f"unknown cmpi predicate {pred!r}")
-        expr = CMPI[pred].format(a="a_data", b="b_data")
+        # Signed compare is unsigned compare on operands with the sign bit
+        # flipped: the flip is order-preserving from two's complement onto
+        # unsigned, so one tree serves all ten predicates and there is no
+        # second code path to get wrong.
+        # The sign-bit mask.  At width 1 the sign bit is the ONLY bit, so the
+        # zero-padding below it is a zero-width constant, which is not legal
+        # Verilog -- write the mask directly instead of concatenating nothing
+        # onto it.  A 1-bit signed value is 0 or -1, and this is what makes
+        # those compare in the right order.
+        flip = None
+        if pred in SIGNED_CMPI:
+            flip = "1'b1" if width == 1 else f"{{1'b1, {width - 1}'b0}}"
+        extra.append(f"    wire [{width - 1}:0] xa = a_data"
+                     + (f" ^ {flip};" if flip else ";"))
+        extra.append(f"    wire [{width - 1}:0] xb = b_data"
+                     + (f" ^ {flip};" if flip else ";"))
+        tree, g, e = cmp_tree(width)
+        extra.extend(tree)
+        expr = CMPI[pred].format(g=g, e=e)
         out_w, nin = 1, 2
     elif op == "select":
         expr = "s_data[0] ? a_data : b_data"
@@ -137,18 +227,22 @@ def emit_unit(op, width, pred=None):
     # operands are consumed and all must have arrived -- which is a join, not
     # a bd_mux.  Mapping it to bd_mux would leave the unselected input's token
     # in place and leak one token per firing.  See bdc/AUDIT.md section 3.
+    # Only the condition is narrow.  This started as a width table plus a
+    # patch-up that rewrote one declaration afterwards, and the patch-up
+    # indexed the wrong slot: three declarations per channel means b_data is
+    # index 5, not 4, so it overwrote b_ack -- the unit declared b_data twice,
+    # had no b_ack at all, and did not elaborate.  Every routing gate was blind
+    # to it, because none of them ever built a select.  bdc/test_compute.py is
+    # what found it, on the first run that included the op.
     chans = ["a", "b"] + (["s"] if op == "select" else [])
-    cw = {"a": width, "b": 1 if op == "select" else width, "s": 1}
+    cw = {"a": width, "b": width, "s": 1}
 
-    ports, decls = [], []
+    decls = []
     for c in chans:
-        ports += [f"{c}_req", f"{c}_ack", f"{c}_data"]
+        pad = ' ' * max(0, 7 - len(str(cw[c] - 1)))
         decls += [f"     input  wire             {c}_req,",
                   f"     output wire             {c}_ack,",
-                  f"     input  wire [{cw[c] - 1}:0]{' ' * max(0, 7 - len(str(cw[c] - 1)))}{c}_data,"]
-    if op == "select":
-        cw["b"] = width
-        decls[4] = f"     input  wire [{width - 1}:0]{' ' * max(0, 7 - len(str(width - 1)))}b_data,"
+                  f"     input  wire [{cw[c] - 1}:0]{pad}{c}_data,"]
 
     req_cat = "{" + ", ".join(f"{c}_req" for c in reversed(chans)) + "}"
     ack_cat = "{" + ", ".join(f"{c}_ack" for c in reversed(chans)) + "}"
@@ -195,6 +289,7 @@ module {name} #(parameter DELAY = {default})
 
     // The datapath.  yosys picks the implementation; the matched delay is
     // what makes whatever it picks safe.
+{chr(10).join(extra)}
     assign z_data = {expr};
 endmodule
 `default_nettype wire
