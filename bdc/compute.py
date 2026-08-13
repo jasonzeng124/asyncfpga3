@@ -152,6 +152,16 @@ def emit_unit(op, width, pred=None):
 `endif
 
 `default_nettype none
+// keep_hierarchy is load-bearing, not tidiness.  flow.sh synthesises with
+// -flatten, and without this yosys dissolves the wrapper: the inferred carry
+// chain comes out named `$auto$alumacc.cc:...$N.genblk1.slice[0]...carry4`,
+// outside this cell's instance prefix entirely.  verify/tighten.py confines
+// rule A to `<cell>.*` -- on purpose, so a matched delay is measured against
+// its own logic and not against an arrival accumulated across half the design
+// -- so a dissolved boundary puts the datapath out of reach and the delay is
+// reported as having nothing to wait for.  The cell must survive flattening
+// for its own delay to be auditable.
+(* keep_hierarchy *)
 module {name}
     (input  wire             rst,
 {chr(10).join(decls)}
