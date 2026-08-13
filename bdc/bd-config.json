@@ -1,0 +1,339 @@
+{
+  "_comment": [
+    "op -> cell table for the bundled-data backend.  Shaped after Dynamatic's",
+    "own data/rtl-config-verilog.json (op name + parameter guards -> an",
+    "implementation), because that structure is already proven to cover this",
+    "op set.  The difference is what sits behind it: cells/rtl/, four-phase",
+    "bundled data, no clock.",
+    "",
+    "'kind' says how an op is realised, and only these five values exist:",
+    "  cells   -- instantiate the listed cells/rtl/ modules",
+    "  wire    -- no cells at all; the op is rewiring (see 'why' on each)",
+    "  tree    -- an N-way op built from the 2-way cell named in 'cells'",
+    "  compute -- Stage 3, the generated compute-unit wrapper.  NOT YET BUILT",
+    "  todo    -- Stage 6 memory.  NOT YET BUILT, and audited as unsafe to",
+    "             assume (bdc/AUDIT.md section 2)",
+    "",
+    "'seen' is the number of occurrences across the four compiled kernels in",
+    "build/frontend/*/comp/handshake_transformed.mlir -- measured with",
+    "bdc/map.py --report, not estimated.  An op absent from the corpus has",
+    "seen: 0 and is mapped on the strength of the op definition alone, which",
+    "is weaker evidence; those are called out in 'why'."
+  ],
+
+  "control_channel_convention": {
+    "spelling": "W=1, data inputs tied to 0, data output left dangling",
+    "why": [
+      "A handshake control channel is `<>`: req and ack, no data.  Every",
+      "data-touching cell in cells/rtl/ declares [W-1:0], and W=0 is illegal",
+      "Verilog, so a control channel cannot be spelled W=0 without changing",
+      "the library -- which is frozen.",
+      "",
+      "Measured rather than assumed: bd_mux at W=8 costs 4 LUT1 + 1 LUT2 +",
+      "4 LUT6 + 4 LUT6_2.  At W=1 with the data output READ it costs the same",
+      "control logic plus one LUT3 for the 1-bit datapath.  At W=1 with the",
+      "data output DANGLING it costs 4 LUT1 + 1 LUT2 + 4 LUT6 and the LUT3 is",
+      "gone -- yosys removes the datapath when nothing reads it.",
+      "",
+      "So a control channel costs exactly zero extra LUTs and needs no new",
+      "cell.  The emitter must leave the data output genuinely unread for",
+      "this to hold; connecting it to a top-level port would put the LUT3",
+      "back."
+    ],
+    "caveat": [
+      "The purely-control cells -- bd_fork, bd_join, bd_steer, bd_arbiter,",
+      "bd_ctree -- have no data ports at all, so this convention never",
+      "applies to them.  It is only bd_mux, bd_link, bd_pipe, bd_src and",
+      "bd_snk that have to be told a width."
+    ]
+  },
+
+  "ops": [
+    {
+      "op": "fork",
+      "kind": "cells",
+      "seen": 59,
+      "cells": ["bd_fork"],
+      "params": { "N": "the fork's [N] bracket argument" },
+      "why": [
+        "Data is wires: one producer's data bus fans out to N consumers with",
+        "no cell in between.  The whole cost is the ack rendezvous, which is",
+        "bd_fork's bd_ctree.",
+        "",
+        "The roadmap said '+bd_ctree past fan-out 4'.  That is wrong as a",
+        "compiler obligation -- bd_fork already instantiates bd_ctree #(.N(N))",
+        "and bd_ctree recurses in chunks of four for any N.  The compiler",
+        "emits one bd_fork whatever the fan-out.",
+        "",
+        "Fan-outs in the corpus: 31x[2], 15x[3], 9x[4], 3x[5], 1x[6]."
+      ]
+    },
+    {
+      "op": "lazy_fork",
+      "kind": "cells",
+      "seen": 0,
+      "cells": ["bd_fork"],
+      "why": [
+        "Absent from the four kernels; present in Dynamatic's own tests.",
+        "Their lazy fork exists to keep two LSQ group allocations off the same",
+        "CLOCK CYCLE, a guarantee bdc/AUDIT.md section 2 records as void here.",
+        "Mapping it to bd_fork therefore drops a guarantee we could not have",
+        "honoured anyway -- acceptable only because it appears exclusively on",
+        "the memory network, which is Stage 6 and gated behind 'todo' below.",
+        "Revisit before any memory op is emitted."
+      ]
+    },
+    {
+      "op": "join",
+      "kind": "cells",
+      "seen": 0,
+      "cells": ["bd_join"],
+      "why": "The dual of fork; not emitted by the frontend for these kernels."
+    },
+
+    {
+      "op": "cond_br",
+      "kind": "cells",
+      "seen": 48,
+      "cells": ["bd_steer"],
+      "why": [
+        "bd_steer routes req to one of two outputs on s and collects the ack.",
+        "It has no data ports and needs none: under bundled data the data bus",
+        "runs to both destinations and only the request is steered.",
+        "",
+        "No bd_bd2dr converter.  The library's rule is dual-rail only on a",
+        "control channel that arrives separately from the data it steers; here",
+        "the condition rides in the bundle, so there is no boundary to cross."
+      ]
+    },
+    {
+      "op": "br",
+      "kind": "wire",
+      "seen": 23,
+      "why": "Pure forwarding (`%11 = br %10`). A wire in a dataflow graph."
+    },
+
+    {
+      "op": "merge",
+      "kind": "wire",
+      "guard": "len(operands) == 1",
+      "seen": 21,
+      "why": [
+        "ALL 21 merges in the corpus have exactly one operand. A one-input",
+        "merge forwards, so it is a wire and costs nothing."
+      ]
+    },
+    {
+      "op": "merge",
+      "kind": "tree",
+      "guard": "len(operands) >= 2",
+      "seen": 0,
+      "cells": ["bd_arbiter", "bd_mux"],
+      "why": [
+        "Never bd_merge.  bd_merge needs the second input to be unable to",
+        "assert until the first transaction has fully completed, and its own",
+        "header says pipelined code does not satisfy that.  Dynamatic emits",
+        "pipelined dataflow and documents merge as nondeterministic.  Full",
+        "evidence in bdc/AUDIT.md section 1.",
+        "",
+        "Arbitrate unconditionally; no exclusivity analysis gates a cheaper",
+        "path.  One uniform lowering beats two with a silent-downgrade mode."
+      ]
+    },
+
+    {
+      "op": "control_merge",
+      "kind": "wire",
+      "guard": "len(operands) == 1",
+      "seen": 9,
+      "why": [
+        "One predecessor means no decision to make: the data output is a wire",
+        "and the index output is the constant 0, which is itself wires plus a",
+        "tied-off data bus."
+      ]
+    },
+    {
+      "op": "control_merge",
+      "kind": "tree",
+      "guard": "len(operands) >= 2",
+      "seen": 11,
+      "cells": ["bd_arbiter", "bd_mux"],
+      "why": [
+        "control_merge derives its index from WHICH input arrived, so it",
+        "cannot be selected by its own output. Something must resolve",
+        "possibly-coincident requests, and on a LUT fabric that is bd_arbiter.",
+        "",
+        "10 of the 11 are 2-input and map to exactly one bd_arbiter + one",
+        "bd_mux. The remaining one is 3-input (gcd, control_merge at",
+        "handshake_transformed.mlir:239) and needs the tree construction."
+      ]
+    },
+
+    {
+      "op": "mux",
+      "kind": "cells",
+      "guard": "len(operands) == 3",
+      "seen": 25,
+      "cells": ["bd_mux"],
+      "params": { "W": "channel width", "DELAY": "BD_SZ_* placeholder" },
+      "why": [
+        "operands[0] is the select, operands[1:] the data inputs. A 2-way mux",
+        "is exactly one bd_mux: select on the ctl channel, inputs on x and y.",
+        "",
+        "This is the good case and it is the common one -- 25 of 26 muxes in",
+        "the corpus are 2-way. bd_mux acknowledges only the selected input and",
+        "leaves the other's token untouched, which is what a loop header",
+        "needs, and it infers nothing from a request wire."
+      ]
+    },
+    {
+      "op": "mux",
+      "kind": "tree",
+      "guard": "len(operands) >= 4",
+      "seen": 1,
+      "cells": ["bd_mux"],
+      "why": [
+        "N-way mux from 2-way cells. The one instance is gcd's 3-way mux at",
+        "handshake_transformed.mlir:238, paired with the 3-way control_merge",
+        "on the next line -- the same 3-predecessor loop header.",
+        "",
+        "Unsolved detail, and the reason this is 'tree' and not 'cells': the",
+        "index is iN for N inputs but bd_mux takes a 1-bit s, so the tree",
+        "needs the index decoded into per-level selects. Exactly one op in",
+        "the corpus forces this, so it is not on the critical path to a first",
+        "running program -- test_loop_free, single_loop and fir need none."
+      ]
+    },
+
+    {
+      "op": "source",
+      "kind": "cells",
+      "seen": 22,
+      "cells": ["bd_src"],
+      "params": { "W": 1, "VAL": 0 },
+      "why": [
+        "A token forever, which is exactly bd_src (req = ~ack). Control-only,",
+        "so W=1 per the convention above.",
+        "",
+        "The library states the obligation the compiler must honour: a bd_src",
+        "has no state of its own to reset, because ~x is x, so it must sit",
+        "behind a consumer that does reset. The emitter has to check that,",
+        "not assume it."
+      ]
+    },
+    {
+      "op": "constant",
+      "kind": "wire",
+      "seen": 31,
+      "why": [
+        "`%3 = constant %2 {value = 0 : i32} : <>, <i32>` forwards its control",
+        "channel's req/ack untouched and drives the data bus with a literal.",
+        "Both are wiring: req_out = req_in, ack_in = ack_out, data = VAL.",
+        "Zero cells.",
+        "",
+        "Peephole, worth one LUT each: 18 of the 31 are fed directly by a",
+        "bare `source`, and source + constant collapse into a single",
+        "bd_src #(.W(w), .VAL(v)). The other 13 are triggered by real control",
+        "and stay pure wiring."
+      ]
+    },
+    {
+      "op": "sink",
+      "kind": "cells",
+      "seen": 25,
+      "cells": ["bd_snk"],
+      "why": "ack = req, and free. Data input ignored."
+    },
+    {
+      "op": "end",
+      "kind": "wire",
+      "seen": 4,
+      "why": [
+        "Not a cell: its operands are the function's result channels and it",
+        "becomes the generated module's output ports. One per function."
+      ]
+    },
+
+    {
+      "op": "trunci",
+      "kind": "wire",
+      "seen": 9,
+      "why": "Narrowing is a bus slice."
+    },
+    {
+      "op": "extui",
+      "kind": "wire",
+      "seen": 6,
+      "why": "Zero-extension is a bus concatenation with constant 0."
+    },
+    {
+      "op": "extsi",
+      "kind": "wire",
+      "seen": 0,
+      "why": [
+        "Sign-extension is a bus concatenation with a replicated top bit.",
+        "Absent from the four kernels but heavily present in Dynamatic's own",
+        "tests (75 occurrences), so it will appear on other input."
+      ]
+    },
+
+    {
+      "op": "addi",   "kind": "compute", "seen": 7,  "why": "Stage 3. The 8-bit adder is the prototype: a carry chain, the one structure this fabric is good at." },
+    {
+      "op": "subi",   "kind": "compute", "seen": 3,  "why": "Stage 3, same carry chain as addi." },
+    {
+      "op": "muli",   "kind": "compute", "seen": 2,  "why": "Stage 3, and the deepest logic in the set -- do it after addi works end to end." },
+    {
+      "op": "cmpi",   "kind": "compute", "seen": 18, "why": "Stage 3. The predicate is a bare keyword argument (`cmpi sgt, %a, %b`), not an attribute -- the parser stores it as bracket_arg." },
+    {
+      "op": "andi",   "kind": "compute", "seen": 5,  "why": "Stage 3, one LUT per bit pair, shallow." },
+    {
+      "op": "ori",    "kind": "compute", "seen": 5,  "why": "Stage 3, shallow." },
+    {
+      "op": "xori",   "kind": "compute", "seen": 0,  "why": "Stage 3, shallow. Absent from the kernels, present in Dynamatic's tests." },
+    {
+      "op": "shli",   "kind": "compute", "seen": 1,  "why": "Stage 3. Constant shift is a wire; variable shift is a barrel shifter." },
+    {
+      "op": "shrsi",  "kind": "compute", "seen": 5,  "why": "Stage 3, arithmetic right shift." },
+    {
+      "op": "shrui",  "kind": "compute", "seen": 0,  "why": "Stage 3, logical right shift. Absent from the kernels." },
+    {
+      "op": "select", "kind": "compute", "seen": 3,  "why": [
+        "Stage 3, NOT bd_mux. handshake.select is a DATA operation: all three",
+        "operands arrive, one result leaves, and the unchosen input is still",
+        "consumed. bd_mux is a channel operation that leaves the unselected",
+        "input's token untouched. Mapping select to bd_mux would silently",
+        "leak a token every time. It is a 2:1 datapath multiplexer inside a",
+        "compute wrapper -- one LUT3 per bit."
+      ]
+    },
+
+    {
+      "op": "buffer", "kind": "cells", "seen": 0, "cells": ["bd_link", "bd_pipe"],
+      "why": [
+        "Present in Dynamatic's tests, absent from our kernels because we cut",
+        "above --handshake-place-buffers and never run it. Storage stages are",
+        "ours to place (COMPILER-PLAN Stage 5), so an incoming `buffer` op is",
+        "a hint, not an instruction."
+      ]
+    },
+
+    {
+      "op": "load",           "kind": "todo", "seen": 4, "why": "Stage 6. bd_mem, one port, program-order serialisation first." },
+    {
+      "op": "store",          "kind": "todo", "seen": 1, "why": "Stage 6." },
+    {
+      "op": "mem_controller", "kind": "todo", "seen": 5, "why": [
+        "Stage 6, and the most dangerous entry in this file. Its groupSizes /",
+        "connectedBlocks attributes are load-bearing for correct port wiring,",
+        "and bdc/AUDIT.md section 2 records that none of Dynamatic's",
+        "cycle-level memory guarantees survive the move off a clock. Each one",
+        "needs its own audit entry before anything here is emitted."
+      ]
+    },
+    {
+      "op": "lsq",            "kind": "todo", "seen": 0, "why": "Out of scope entirely. Program-order serialisation first, per COMPILER-PLAN Stage 6." },
+    {
+      "op": "instance",       "kind": "todo", "seen": 0, "why": "Hardware-instantiation escape hatch for external modules. Rejected loudly until there is a reason to support it." }
+  ]
+}

@@ -78,11 +78,12 @@ Deliverable: `./check.sh` green on a generated top.
 
 | Dataflow node | Cells | Note |
 |---|---|---|
-| fork | `bd_fork` (+`bd_ctree` past fan-out 4) | data is wires; the cost is the ack rendezvous |
+| fork | `bd_fork` at any fan-out | data is wires; the cost is the ack rendezvous |
 | join | `bd_join` | the dual |
 | conditional branch | `bd_steer` | + `bd_bd2dr` **only** if the condition arrives on its own channel |
 | `merge`, `control_merge` | `bd_arbiter #(HOLD_ON_ACK(1))` + **`bd_mux`** | unconditional; see below |
 | `mux` (select is data) | `bd_mux` | select comes from the `control_merge` of the same block |
+| `select` | **Stage 3 compute unit**, *not* `bd_mux` | it is an arith op; see below |
 | buffer / register | `bd_link`, `bd_pipe` | |
 | load / store | `bd_mem` | one port, manufactured clock edge |
 | **compute unit** | *does not exist yet* | Stage 3 |
@@ -101,6 +102,26 @@ path. There is an exclusivity proof that would sometimes let us drop it; we are
 deliberately not building it. The arbiter is trusted, the exposure in
 `verify/MTBF.md` is accepted as sufficient, and one uniform lowering beats two
 lowerings whose selection can silently go wrong.
+
+**`select` was in that table under `bd_mux`, and that was the second error.**
+It is not a channel operation at all — Dynamatic defines it in
+`HandshakeArithOps.td`, among `addi` and `ori`, as "select a value based on a
+1-bit predicate" with all three operands consumed. `bd_mux` deliberately does
+*not* consume the unselected input; that is the property that makes it right
+for a loop header. Using it for `select` would strand a token every firing,
+silently. `select` is a Stage 3 compute unit — a 2:1 datapath mux, one LUT3
+per bit. `bdc/AUDIT.md` section 3.
+
+Two measured facts that shrink this stage:
+
+- **`bd_fork` needs no help at any fan-out.** It already instantiates
+  `bd_ctree #(.N(N))`, and `bd_ctree` recurses in chunks of four for any N.
+  "+`bd_ctree` past fan-out 4" described what the cell does internally, not an
+  obligation on the compiler. Corpus fan-outs run 2 to 6.
+- **A control channel (`<>`) costs nothing.** It is spelled `W=1` with the
+  data output left unread, and yosys deletes the datapath LUT — measured, in
+  `bdc/AUDIT.md` section 4. No `W=0` support is needed and nothing has to be
+  unfrozen.
 
 Note the converter rule the library already states: bundled everywhere,
 dual-rail only on control channels that arrive separately from the data they

@@ -133,7 +133,70 @@ needs its own entry here before use.
 
 ---
 
-## 3. What does transfer cleanly
+## 3. `handshake.select` is arithmetic, not a mux
+
+**Status: confirmed. `COMPILER-PLAN.md`'s Stage 2 table grouped `select` with
+`mux` and `control_merge` under `bd_mux`. That is wrong and would leak a
+token on every firing.**
+
+`SelectOp` is not in `HandshakeOps.td` with the channel operations at all. It
+is defined in `include/dynamatic/Dialect/Handshake/HandshakeArithOps.td:570`,
+as a `Handshake_Arith_Op`, in among `addi`, `ori` and `cmpi`:
+
+> `let summary = "Select a value based on a 1-bit predicate.";`
+> `let arguments = (ins ChannelType:$condition, ChannelType:$trueValue,`
+> `                     ChannelType:$falseValue);`
+
+All three operands are ordinary consumed inputs — an arith op joins its
+operands and produces its result. That is the exact opposite of what
+`bd_mux` does, and `bd_mux`'s own header is explicit about it:
+
+> "Only the selected input is acknowledged... The other input keeps its
+> token, untouched, **which is exactly what a loop header needs**."
+
+Keeping the unselected token is the *feature* that makes `bd_mux` right for
+`mux` and wrong for `select`. Lowering `select` to `bd_mux` would strand a
+token on the unchosen input at every firing; against the standing
+one-token-per-loop invariant that is a hang, and it would be silent.
+
+**Consequence:** `select` is a Stage 3 compute unit — a 2:1 datapath
+multiplexer, one LUT3 per bit, inside the compute wrapper with all three
+inputs joined. 3 occurrences in the four kernels. Recorded in
+`bdc/bd-config.json`.
+
+---
+
+## 4. Zero-width control channels, and what they cost
+
+**Status: measured.**
+
+A handshake control channel is `<>` — req and ack, no data. Every
+data-touching cell in `cells/rtl/` declares `[W-1:0]`, and `W=0` is illegal
+Verilog, so a control channel cannot be spelled `W=0` without changing a
+frozen library.
+
+It does not need to be. Measured with `yosys synth_xilinx` on `bd_mux`:
+
+| instantiation | LUTs |
+|---|---|
+| `W=8`, data read | 4×LUT1 + 1×LUT2 + 4×LUT6 + 4×LUT6_2 |
+| `W=1`, data read | 4×LUT1 + 1×LUT2 + 1×LUT3 + 4×LUT6 |
+| `W=1`, data output **dangling** | 4×LUT1 + 1×LUT2 + 4×LUT6 |
+
+The datapath LUT disappears when nothing reads the output. So the convention
+is **`W=1`, data inputs tied to 0, data output left genuinely unread**, and a
+control channel costs exactly zero extra LUTs.
+
+The obligation this puts on the emitter: the data output must stay unread.
+Wiring it to a top-level port would put the `LUT3` back, and `lutcost.py`
+would then be measuring a cost that the design does not actually need.
+
+Note this never applies to `bd_fork`, `bd_join`, `bd_steer`, `bd_arbiter` or
+`bd_ctree` — those have no data ports at all.
+
+---
+
+## 5. What does transfer cleanly
 
 - **`--handshake-materialize` gives one producer and one consumer per value.**
   Its description: "Ensures that every SSA value within Handshake functions is
