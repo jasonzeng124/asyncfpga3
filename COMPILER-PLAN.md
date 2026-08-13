@@ -4,10 +4,32 @@ Stage 0 is done: `cells/` is a bundled-data primitive library that routes on a
 Zynq 7010, costs what it says it costs, and is held up by seven gates. This is
 the plan for the thing that emits designs made of it.
 
-The founding decision stands — **rebuild, do not fork Dynamatic**. Dynamatic is
-a reference for what the passes must achieve, not a codebase to inherit. Its
-buffer-placement MILP in particular does not survive the move: it optimises
-against a clock period, and there is no clock.
+The founding decision stands — **rebuild, do not fork Dynamatic**. Not one line
+of Dynamatic is patched or inherited. Its buffer-placement MILP in particular
+does not survive the move: it optimises against a clock period, and there is no
+clock.
+
+**Revised 2026-08-12: do Stage 7 first.** "Rebuild" was being read as "write a
+frontend too", and that is not what it has to mean. Stage 7 below already names
+the cheap path — consume CIRCT/Dynamatic's `handshake` output *as data*, which
+keeps the rebuild decision intact. Doing that first rather than last changes
+what the remaining stages are:
+
+- `--handshake-materialize` guarantees "every SSA value is used exactly once by
+  inserting forks and sinks as needed". That is the one-producer/one-consumer
+  channel discipline Stage 1 was going to define, for free and already tested.
+- The cut is immediately **above `--handshake-place-buffers`**, the single pass
+  that assumes a clock. Everything upstream is protocol-agnostic dataflow.
+- Their backend is already table-driven — `data/rtl-config-verilog.json` maps 96
+  `handshake.*` ops onto HDL. A bundled-data backend is that table with a
+  different library behind it.
+- Their *RTL library* does not transfer at all: `data/verilog/handshake/fork.v`
+  has `clk`, `rst`, `ins_valid`, `ins_ready`. Synchronous elastic. The dataflow
+  graph transfers; the timing does not, and neither do guarantees stated in
+  cycles. See `bdc/AUDIT.md`, which records each one that was checked.
+
+What remains genuinely ours is the backend, the compute units (Stage 3), and
+slack (Stage 5). Stages 4, 6 and 7 largely stop being work.
 
 ---
 

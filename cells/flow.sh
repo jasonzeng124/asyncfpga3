@@ -70,18 +70,32 @@ else
     echo "using the placeholder delay lengths in verify/soak_top.v"
 fi
 
+# The design under test is OPT-IN too, via BD_TOP_V=<file> BD_TOP_M=<module>,
+# and for the same reason as BD_SIZES above: bdc/ generates tops and runs them
+# through these gates, and a bare ./flow.sh must keep meaning the hand-written
+# soak design no matter what is lying around in build/.  The two pins in
+# soak.xdc are the board's, so a generated top has to present pin_in/pin_out
+# as well -- that is a constraint on the generator, not something to relax
+# here.
+TOP_V="${BD_TOP_V:-verify/soak_top.v}"
+TOP_M="${BD_TOP_M:-soak_top}"
+if [ "$TOP_V" != "verify/soak_top.v" ]; then
+    [ -f "$TOP_V" ] || { echo "BD_TOP_V=$TOP_V does not exist"; exit 2; }
+    echo "using the generated top $TOP_V (module $TOP_M)"
+fi
+
 echo "== synthesis =="
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
-read_verilog $SIZES rtl/*.v verify/soak_top.v
-synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top soak_top
+read_verilog $SIZES rtl/*.v $TOP_V
+synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP_M
 write_json $OUT/soak.json
 stat
 " > $OUT/synth.log 2>&1 || { echo "SYNTH FAILED"; tail -30 $OUT/synth.log; exit 1; }
 
 # synth_xilinx prints its own statistics as well; only the last block is the
 # final netlist.
-last=$(grep -n '^=== soak_top ===' $OUT/synth.log | tail -1 | cut -d: -f1)
+last=$(grep -n "^=== $TOP_M ===" $OUT/synth.log | tail -1 | cut -d: -f1)
 tail -n +"$last" $OUT/synth.log | grep -E "^\s+[0-9]+\s+(LUT|RAMB|IBUF|OBUF)" || true
 
 lut_cells=$(tail -n +"$last" $OUT/synth.log \
