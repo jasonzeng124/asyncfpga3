@@ -221,8 +221,19 @@ Small, and worth knowing before Stage 2 starts:
   consumer that resets, because it has no state of its own to reset and `~x`
   is `x`; and its inverter folds into whatever consumes `req`, which is a
   Stage 2 peephole worth about one LUT per constant.
-- a token source for loop initialisation — *not* `bd_src`, which offers
-  forever. A loop needs exactly one token, once.
+- ~~a token source for loop initialisation~~ — **this was never missing. It is
+  reset.** A four-phase stage whose control C-element comes out of reset already
+  holding emits exactly one token, once, and is an ordinary stage forever after.
+  `rtl/bd_ce.v` already provides the polarity and already names the use case:
+
+      bd_c2*      q = ~rst . C(...)   -- comes up empty   (link, fork, join, ...)
+      bd_c2_set   q =  rst + C(...)   -- comes up holding (the loop's select token)
+
+  So the loop-init token is a `bd_link` built on the `_set` variant, with
+  `bd_latch_rst`'s `RESET_VALUE` supplying the data. No new cell, and nothing
+  here needs unfreezing. The general lesson, since this keeps recurring: on a
+  fabric with no power-up state, **reset is the mechanism for anything that must
+  be true once at startup** — reach for it before designing a new primitive.
 - an N-way distribute, if `bd_steer` chains prove too deep
 
 ---
