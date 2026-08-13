@@ -207,3 +207,93 @@ Note this never applies to `bd_fork`, `bd_join`, `bd_steer`, `bd_arbiter` or
   Their bundled-data equivalents carry their own timing obligations, discharged
   inside `cells/rtl/` and already gated by `cells/check.sh`.
 - **Bitwidths** from `--handshake-optimize-bitwidths` are pure dataflow facts.
+
+---
+
+## 6. Containing a C-element is not the same as providing storage
+
+**Status: confirmed, while building `bdc/slack.py` (COMPILER-PLAN Stage 4/5's
+cycle-storage checker). Not a correction to anything already written down —
+the brief for that module posed this as an open question and asked for the
+evidence either way.**
+
+`slack.py` has to decide which handshake ops "provide storage" for the
+purpose of COMPILER-PLAN's cycle rule: every cycle in the dataflow graph
+needs at least one node that can hold a token independent of what its
+neighbours are doing, or the cycle is a combinational loop no routing fixes.
+The obvious candidate is `buffer` (`bd_link`/`bd_pipe`), but `rtl/bd_ctl.v`
+and `rtl/bd_ce.v` put C-elements (Muller gates — real bistable circuits, with
+a `rst` pin and a `(* keep *)` feedback loop identical in shape to the one
+inside `bd_link`) into `bd_fork`, `bd_join` (via `bd_ctree`), `bd_mux`, and
+`bd_arbiter` as well. The question worth asking by name: does having a
+C-element make a cell "storage" too?
+
+### The answer is no, and `bd_ctree`'s own header already says why
+
+> "Under the discipline this cell is actually used with... every input is a
+> request that rises once and falls once per transaction, all of them rise
+> before any falls, and nothing moves again until the acknowledge has
+> completed the cycle. Every sub-tree therefore returns to zero every cycle
+> and can never be stale."
+
+A C-element used this way is a **rendezvous** primitive, not a **token**
+primitive: its bistability exists to give a hazard-free decision for the ONE
+transaction currently in flight, and it is required to have fully reset by
+the time the next transaction starts. There is no state left over for a
+second, concurrent transaction to rest on — which is exactly the property a
+cycle needs from a storage node, so it can hold a token at rest on one side
+while the rest of the loop is still catching up.
+
+`bd_mux`'s join C-elements (`j0`/`j1` in `rtl/bd_mux.v`) are built the same
+way and reduce to the same argument. `bd_mux`'s datapath (`bd_datamux`,
+`rtl/bd_latch.v`) is stated outright to be plain combinational muxing — no
+latch at all.
+
+`bd_steer` (`rtl/bd_ctl.v`) makes the point from the other direction: it
+routes a handshake with **no C-element and no reset at all** ("No feedback
+wire, so no keep attribute, no loop for nextpnr to be told about, and no
+reset"), and nobody would call it storage. If a cell with a rendezvous
+C-element and a cell with none are both non-storage, the C-element's mere
+presence was never the deciding property.
+
+### The one case that looked different, and still isn't
+
+`bd_arbiter`'s state node (`bd_c2n_set` inside `bd_arbcell`, `rtl/bd_arb.v`)
+is NOT reset every transaction — it deliberately remembers who won last,
+across arbitrarily many transactions, so contention alternates fairly. That
+is genuinely longer-lived state than `bd_ctree`'s, and it was worth checking
+carefully for that reason. But what it remembers is a **priority bit**, not
+a **data token**: it does not let one side of a data cycle sit at rest,
+value intact, while the other side of the loop advances — which is the
+actual property `slack.py`'s check needs. An arbiter in a cycle changes
+nothing about whether that cycle can be phased with zero storage elsewhere
+in it.
+
+### What does count, and the one place this cuts the other way
+
+`bd_link`/`bd_pipe` (`rtl/bd_link.v`) count because their `bd_latch`
+(`rtl/bd_latch.v`) is different in kind, not just in degree: it is
+level-sensitive storage, opened and closed by the local handshake rather
+than reset every transaction, and its own file header opens with "Storage
+without a clock edge." `bd-config.json` already maps exactly one op onto
+these cells (`buffer`), and this audit entry confirms that mapping is the
+whole set — nothing else in `cells/rtl/` needed adding to it.
+
+The one cell that came close to arguing the other way is `bd_mem`
+(`rtl/bd_mem.v`): it instantiates a real clocked `RAMB18E1`, a genuinely
+stronger storage element than a latch. `load`/`store`/`mem_controller` are
+NOT counted as storage by `slack.py` regardless, and the reason is not the
+RTL — it is that `bd-config.json` marks all three `"kind": "todo"` with no
+committed `cells` entry (Stage 6 is unbuilt), and section 2 above already
+says none of Dynamatic's cycle-level memory guarantees are safe to assume
+without their own audit entry. Crediting an unbuilt, unaudited op with a
+correctness-relevant property here would be exactly that mistake. Concrete
+consequence, measured against the four kernels in `build/frontend/`: every
+kernel that touches memory (`single_loop`, `fir`, `gcd`) has at least one
+cycle that closes purely through a `mem_controller`'s own address echo
+(`mem_controller -> load -> mem_controller`, with no `buffer` anywhere), and
+`slack.py` reports it as a hard error today. That is an open question for
+whoever builds Stage 6, not a bug in the checker — once `mem_controller`'s
+real cell mapping is committed to `bd-config.json`, `bd_mem`'s `RAMB18E1`
+will very likely need adding to the storage set, and this entry is the
+pointer to why.
