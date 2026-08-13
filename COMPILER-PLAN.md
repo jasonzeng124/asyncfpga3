@@ -81,12 +81,26 @@ Deliverable: `./check.sh` green on a generated top.
 | fork | `bd_fork` (+`bd_ctree` past fan-out 4) | data is wires; the cost is the ack rendezvous |
 | join | `bd_join` | the dual |
 | conditional branch | `bd_steer` | + `bd_bd2dr` **only** if the condition arrives on its own channel |
-| merge, inputs exclusive | `bd_merge` | caller must discharge exclusivity |
-| merge, inputs **not** exclusive | `bd_arbiter #(HOLD_ON_ACK(1))` + `bd_merge` | this is where Finding 2 pays for itself |
-| mux (select is data) | `bd_mux` | |
+| `merge`, `control_merge` | `bd_arbiter #(HOLD_ON_ACK(1))` + **`bd_mux`** | unconditional; see below |
+| `mux` (select is data) | `bd_mux` | select comes from the `control_merge` of the same block |
 | buffer / register | `bd_link`, `bd_pipe` | |
 | load / store | `bd_mem` | one port, manufactured clock edge |
 | **compute unit** | *does not exist yet* | Stage 3 |
+
+**`bd_merge` is not in that table, and that is the correction.** It was listed
+as the common case for merges. It is not usable here at all: Dynamatic
+documents `merge` and `control_merge` as *nondeterministic* — "any input is
+propagated" — while `bd_merge` requires more than exclusivity, namely that the
+second input cannot assert until the first transaction has fully completed.
+Its own header says pipelined code does not satisfy that, and pipelined dataflow
+is exactly what Dynamatic emits. `bd_mux` is the right cell and the library
+already says so. Full evidence in `bdc/AUDIT.md`.
+
+The arbiter is emitted **unconditionally**, with no analysis gating a cheaper
+path. There is an exclusivity proof that would sometimes let us drop it; we are
+deliberately not building it. The arbiter is trusted, the exposure in
+`verify/MTBF.md` is accepted as sufficient, and one uniform lowering beats two
+lowerings whose selection can silently go wrong.
 
 Note the converter rule the library already states: bundled everywhere,
 dual-rail only on control channels that arrive separately from the data they
@@ -128,11 +142,19 @@ Prototype end to end with **one** unit — an 8-bit adder — before generalisin
 
 ## Stage 4 — control flow
 
-- SSA φ → `bd_mux` when the selector is available as data; `bd_merge` when the
-  predecessors are provably exclusive.
-- Branch → `bd_steer`.
-- Loops → **the standing invariant: exactly one token inside the loop, and the
-  buffer comes from the loop body, not from the steer.**
+**Mostly gone.** Dynamatic's `--lower-cf-to-handshake` already turns SSA φ,
+branches and loops into `mux` / `control_merge` / `cond_br` nodes, and it is
+tested against ~90 integration kernels. We consume that. What survives from this
+stage is only the checker below, which we need because we do not run their
+buffer placement.
+
+For reference, the lowering that arrives already done:
+
+- SSA φ → `mux` (selector from the block's `control_merge`) → `bd_mux`.
+- Branch → `cond_br` → `bd_steer`.
+- Loops → the standing invariant still holds: **exactly one token inside the
+  loop, and the buffer comes from the loop body, not from the steer.** This is
+  ours to enforce, since it is what the cycle-storage check below tests.
 
 **Gate.** A token-conservation checker over the graph: tokens in equal tokens
 out for every construct, and — separately — **every cycle contains at least one

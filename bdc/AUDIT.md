@@ -83,28 +83,34 @@ fired, `mux` selects on that decision:
 | `handshake.control_merge` | decide + `bd_mux` | see below — the decision is the problem |
 | `handshake.merge` | decide + `bd_mux` | never `bd_merge` by default |
 
-### The open question: what does "decide" cost?
+### The decision: arbitrate unconditionally, and stop optimising it
 
 `control_merge` derives its index *from which input arrived*, so it cannot be
 selected by its own output. Something has to resolve possibly-coincident
-requests, and on a LUT fabric that something is `bd_arbiter` — 4 LUTs plus
-metastability exposure that `cells/verify/MTBF.md` bounds only weakly.
+requests, and on a LUT fabric that something is `bd_arbiter`.
 
-An arbiter per basic-block head would be a serious cost, so it is worth not
-paying where it is not needed. The exemption is real: where the graph guarantees
-at most one predecessor edge can carry a token at a time — the standing loop
-invariant of exactly one token inside the loop — the inputs are serialised by
-construction and no arbitration is needed.
+There is an analysis that would let us skip the arbiter where the graph
+guarantees at most one predecessor edge can carry a token at a time — the
+standing one-token-per-loop invariant would serialise those inputs by
+construction. **We are not doing it.** The arbiter is trusted, on the owner's
+call, and the exposure measured in `cells/verify/MTBF.md` is taken as
+sufficient.
 
-**That is a token-count analysis, which is the same analysis as the Phase 4
-cycle-storage checker.** So the slack/token work is a *prerequisite* for the
-mapping table, not a follow-on to it. Sequence Phase 4 before finalising
-`bd-config.json`.
+So the lowering is unconditional:
 
-Until that analysis exists, the conservative lowering (arbitrate every
-`merge`/`control_merge`) is correct but expensive, and must not be quietly
-replaced by the cheap one on the assumption that block predecessors are
-exclusive.
+    handshake.merge, handshake.control_merge  ->  bd_arbiter + bd_mux
+
+This is not merely the conservative choice, it is the *simpler* one. The
+alternative made the emitter's output depend on whether a proof succeeded,
+which means two lowerings to test, a silent-downgrade failure mode when the
+proof is wrong, and a mapping table that cannot be read without also reading
+the analysis. Uniform lowering has none of that.
+
+Consequence for sequencing: the token-count analysis is **not** a prerequisite
+for the mapping table, and Phase 4 stays where it was. The cycle-storage check
+is still required — a cycle with no storage stage is a combinational loop and
+no arbitration policy saves it — but that is a separate obligation from this
+one.
 
 ---
 
