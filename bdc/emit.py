@@ -294,6 +294,87 @@ endmodule
 
 
 # ---------------------------------------------------------------------------
+# Storage placement
+#
+# THIS IS A POLICY AND IT IS EXPECTED TO CHANGE.  It is isolated in one
+# function so that changing it is a change to one function.
+#
+# Dynamatic's --handshake-place-buffers is the pass we deliberately do not run
+# (COMPILER-PLAN.md cuts immediately above it: it is a MILP against a target
+# clock period, and there is no clock).  So the graph arrives with no storage
+# on any channel, and something here has to put it back.
+#
+# bdc/slack.py already covers one reason to need storage -- a cycle with none
+# is a combinational loop and no routing saves it.  This is a SECOND and
+# independent reason, found by routing the first emitted kernel and asking
+# verify/tighten.py the only question that matters for bundled data: does each
+# cell's request come out AFTER that cell's own data?  For 7 of 9 matched
+# delays it could not answer, all with the same shape.
+#
+#     uut.uaddi0   8 links   req 0  peak 3701  guard 740  margin -4441
+#                  paired as one bundled channel (no common source):
+#                    request from uut.uaddi0.udly.chain.g[7].u/O6
+#                    data    from upipe.many.lat[3].u.pair[42].u$LUT5/O5
+#
+# Both halves are arrival times, and they were measured from different places,
+# so subtracting them means nothing.  The request's clock starts at the cell's
+# own join C-element, because a C-element is a feedback loop and an arrival
+# time cannot be carried through one.  The data's clock starts 3.7 ns earlier,
+# at the last latch upstream, because nothing cut that path at all.  The
+# analysis says so rather than staying quiet, which is the right call -- a
+# delay that was never checked looks exactly like a delay that passed.
+#
+# A bd_link on the channel fixes both halves at once.  The data then leaves the
+# link's latch and the request leaves the link's delay, and both start from the
+# link's own control node -- so the cell's delay becomes a local quantity that
+# can be measured, instead of an accumulation across everything upstream of it.
+#
+# The rule below is the narrowest one that does that: storage in front of the
+# cells that carry a matched delay, and nowhere else.  Every other channel
+# stays wire, and wire is free.
+
+# Ops that instantiate a cell carrying a matched delay -- i.e. the ops whose
+# data inputs have to arrive from a known start point for rule A to work.
+DELAY_BEARING = {
+    "addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
+    "shli", "shrsi", "shrui", "select", "mux",
+}
+
+
+def link_sites(func, channels):
+    """Which channels get a bd_link, as a set of SSA names.
+
+    Swap this function to change the storage policy.  Three alternatives were
+    on the table and this is the cheap end of them: storage on every data
+    channel (simplest, most area), storage where the uncut combinational depth
+    exceeds a threshold (needs a route to decide, so it becomes an
+    iterate-until-it-passes loop), or storage at basic-block boundaries (cheap,
+    but nothing bounds the within-block path).
+
+    Expect to revisit this against measurements rather than argument.  Nothing
+    downstream depends on which rule it is -- the emitter asks this function
+    and wires up whatever it says.
+    """
+    sites = set()
+    const = {r for n in func.nodes if n.op == "constant" for r in n.results}
+    for node in func.nodes:
+        multi = node.op in ("merge", "control_merge") and len(node.operands) >= 2
+        if node.op not in DELAY_BEARING and not multi:
+            continue
+        for o in node.operands:
+            width, _is_control = channels[o]
+            if width == 0:
+                continue        # no data, so nothing can be early
+            if o in const:
+                # A constant's data is a literal.  It is valid before the
+                # circuit powers on, never mind before the request arrives,
+                # so re-timing it buys nothing and costs a latch per bit.
+                continue
+            sites.add(o)
+    return sites
+
+
+# ---------------------------------------------------------------------------
 # The emitter
 
 class Emitter:
@@ -305,6 +386,10 @@ class Emitter:
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
         self._resolve_widths()
+        # Channels with storage on them.  A linked channel has TWO net
+        # bundles: the producer drives `<v>_u_*` and the link drives `<v>_*`,
+        # so consumers need no idea whether a link is there.
+        self.linked = link_sites(func, self.ch)
 
     # -- widths ------------------------------------------------------------
 
@@ -378,6 +463,41 @@ class Emitter:
         """
         return "" if self.is_control(ssa) else f"{vname(ssa)}_data"
 
+    # Producer-side accessors.  Identical to the consumer-side ones unless the
+    # channel has a bd_link on it, in which case the producer drives the link's
+    # input and the link drives everything the consumer sees.  Keeping this as
+    # a separate set of accessors -- rather than a flag threaded through each
+    # lowering -- is what lets the storage policy change without touching a
+    # single op's code.
+    def _u(self, ssa):
+        return f"{vname(ssa)}_u" if ssa in self.linked else vname(ssa)
+
+    def oreq(self, ssa):
+        return f"{self._u(ssa)}_req"
+
+    def oack(self, ssa):
+        return f"{self._u(ssa)}_ack"
+
+    def odata(self, ssa):
+        return "1'b0" if self.is_control(ssa) else f"{self._u(ssa)}_data"
+
+    def odata_out(self, ssa):
+        return "" if self.is_control(ssa) else f"{self._u(ssa)}_data"
+
+    def emit_links(self):
+        """One bd_link per linked channel, between producer and consumer."""
+        for ssa in sorted(self.linked):
+            w = self.width(ssa)
+            inst = f"ulink_{vname(ssa)}"
+            d = self.delay(inst, 0)
+            self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .req_in({self.oreq(ssa)}), .ack_in({self.oack(ssa)}), "
+                      f".data_in({self.odata(ssa)}),")
+            v = vname(ssa)
+            self.emit(f"        .req_out({v}_req), .ack_out({v}_ack), "
+                      f".data_out({v}_data));")
+
     def emit(self, text=""):
         self.lines.append(text)
 
@@ -406,10 +526,10 @@ class Emitter:
 
     def _pass_through(self, src, dst):
         """One channel driving another: a rename, not a cell."""
-        self.emit(f"    assign {self.req(dst)} = {self.req(src)};")
-        self.emit(f"    assign {self.ack(src)} = {self.ack(dst)};")
+        self.emit(f"    assign {self.oreq(dst)} = {self.req(src)};")
+        self.emit(f"    assign {self.ack(src)} = {self.oack(dst)};")
         if not self.is_control(dst):
-            self.emit(f"    assign {self.data(dst)} = {self.data(src)};")
+            self.emit(f"    assign {self.odata(dst)} = {self.data(src)};")
 
     def _op_br(self, node, inst):
         self._pass_through(node.operands[0], node.results[0])
@@ -434,8 +554,8 @@ class Emitter:
                   f".x_data({self.data(ops[0])}),")
         self.emit(f"        .y_req({self.req(ops[1])}), .y_ack({self.ack(ops[1])}), "
                   f".y_data({self.data(ops[1])}),")
-        self.emit(f"        .z_req({self.req(z)}), .z_ack({self.ack(z)}), "
-                  f".z_data({self.data_out(z)}), .grant());")
+        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+                  f".z_data({self.odata_out(z)}), .grant());")
 
     def _op_control_merge(self, node, inst):
         """result + index.  Two channels out of one arrival, so even the
@@ -447,14 +567,14 @@ class Emitter:
             self.emit(f"    bd_fork #(.N(2)) {inst} (")
             self.emit(f"        .rst(rst), .req({self.req(ops[0])}), "
                       f".ack({self.ack(ops[0])}),")
-            self.emit(f"        .req_out({{{self.req(idx)}, {self.req(res)}}}),")
-            self.emit(f"        .ack_in({{{self.ack(idx)}, {self.ack(res)}}}));")
+            self.emit(f"        .req_out({{{self.oreq(idx)}, {self.oreq(res)}}}),")
+            self.emit(f"        .ack_in({{{self.oack(idx)}, {self.oack(res)}}}));")
             if not self.is_control(res):
-                self.emit(f"    assign {self.data(res)} = {self.data(ops[0])};")
+                self.emit(f"    assign {self.odata(res)} = {self.data(ops[0])};")
             # One predecessor means the index is a compile-time constant, and
             # a constant needs no matched delay: it is valid before the
             # circuit powers on, never mind before the request arrives.
-            self.emit(f"    assign {self.data(idx)} = "
+            self.emit(f"    assign {self.odata(idx)} = "
                       f"{self.width(idx)}'d0;")
             return
         if len(ops) != 2:
@@ -482,19 +602,19 @@ class Emitter:
                   f".y_data({self.data(ops[1])}),")
         self.emit(f"        .z_req({m_req}), .z_ack({m_ack}), "
                   f".z_data({inst + '_data' if w else ''}), "
-                  f".grant({self.data(idx)}[0]));")
+                  f".grant({self.odata(idx)}[0]));")
         self.emit(f"    bd_fork #(.N(2)) {inst}_f (")
         self.emit(f"        .rst(rst), .req({m_req}), .ack({m_ack}),")
-        self.emit(f"        .req_out({{{self.req(idx)}, {self.req(res)}}}),")
-        self.emit(f"        .ack_in({{{self.ack(idx)}, {self.ack(res)}}}));")
+        self.emit(f"        .req_out({{{self.oreq(idx)}, {self.oreq(res)}}}),")
+        self.emit(f"        .ack_in({{{self.oack(idx)}, {self.oack(res)}}}));")
         if not self.is_control(res):
-            self.emit(f"    assign {self.data(res)} = {inst}_data;")
+            self.emit(f"    assign {self.odata(res)} = {inst}_data;")
 
     def _op_fork(self, node, inst):
         x = node.operands[0]
         n = len(node.results)
-        reqs = ", ".join(self.req(r) for r in reversed(node.results))
-        acks = ", ".join(self.ack(r) for r in reversed(node.results))
+        reqs = ", ".join(self.oreq(r) for r in reversed(node.results))
+        acks = ", ".join(self.oack(r) for r in reversed(node.results))
         self.emit(f"    bd_fork #(.N({n})) {inst} (")
         self.emit(f"        .rst(rst), .req({self.req(x)}), .ack({self.ack(x)}),")
         self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
@@ -502,7 +622,7 @@ class Emitter:
         # and nothing else.
         for r in node.results:
             if not self.is_control(r):
-                self.emit(f"    assign {self.data(r)} = {self.data(x)};")
+                self.emit(f"    assign {self.odata(r)} = {self.data(x)};")
 
     _op_lazy_fork = _op_fork
 
@@ -513,7 +633,7 @@ class Emitter:
         acks = ", ".join(self.ack(o) for o in reversed(ops))
         self.emit(f"    bd_join #(.N({len(ops)})) {inst} (")
         self.emit(f"        .rst(rst), .req_in({{{reqs}}}), .ack_out({{{acks}}}),")
-        self.emit(f"        .req({self.req(z)}), .ack({self.ack(z)}));")
+        self.emit(f"        .req({self.oreq(z)}), .ack({self.oack(z)}));")
 
     def _op_cond_br(self, node, inst):
         """The condition is its own channel, so it has to be joined with the
@@ -532,11 +652,11 @@ class Emitter:
         # req0 = req.~s, req1 = req.s -- so branch 1 is the true result.
         self.emit(f"    bd_steer {inst} (")
         self.emit(f"        .req({jr}), .s({self.data(cond)}[0]), .ack({ja}),")
-        self.emit(f"        .req0({self.req(false_r)}), .ack0({self.ack(false_r)}),")
-        self.emit(f"        .req1({self.req(true_r)}), .ack1({self.ack(true_r)}));")
+        self.emit(f"        .req0({self.oreq(false_r)}), .ack0({self.oack(false_r)}),")
+        self.emit(f"        .req1({self.oreq(true_r)}), .ack1({self.oack(true_r)}));")
         for r in (true_r, false_r):
             if not self.is_control(r):
-                self.emit(f"    assign {self.data(r)} = {self.data(dat)};")
+                self.emit(f"    assign {self.odata(r)} = {self.data(dat)};")
 
     def _op_mux(self, node, inst):
         sel = node.operands[0]
@@ -558,15 +678,15 @@ class Emitter:
                   f".y_data({self.data(ins[1])}),")
         self.emit(f"        .ctl_req({self.req(sel)}), .ctl_ack({self.ack(sel)}), "
                   f".s({self.data(sel)}[0]),")
-        self.emit(f"        .z_req({self.req(z)}), .z_ack({self.ack(z)}), "
-                  f".z_data({self.data_out(z)}));")
+        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+                  f".z_data({self.odata_out(z)}));")
 
     def _op_source(self, node, inst):
         z = node.results[0]
         w = max(self.width(z), 1)
         self.emit(f"    bd_src #(.W({w}), .VAL({w}'d0)) {inst} (")
-        self.emit(f"        .req({self.req(z)}), .ack({self.ack(z)}), "
-                  f".data({self.data_out(z)}));")
+        self.emit(f"        .req({self.oreq(z)}), .ack({self.oack(z)}), "
+                  f".data({self.odata_out(z)}));")
 
     def _op_sink(self, node, inst):
         x = node.operands[0]
@@ -587,9 +707,9 @@ class Emitter:
         # Two's complement into an unsigned literal: a negative constant is a
         # bit pattern here, and Verilog would sign-extend a bare minus into the
         # width instead of masking to it.
-        self.emit(f"    assign {self.data(z)} = {w}'h{raw & ((1 << w) - 1):x};")
-        self.emit(f"    assign {self.req(z)} = {self.req(ctl)};")
-        self.emit(f"    assign {self.ack(ctl)} = {self.ack(z)};")
+        self.emit(f"    assign {self.odata(z)} = {w}'h{raw & ((1 << w) - 1):x};")
+        self.emit(f"    assign {self.oreq(z)} = {self.req(ctl)};")
+        self.emit(f"    assign {self.ack(ctl)} = {self.oack(z)};")
 
     def _op_end(self, node, inst):
         """The function's results, which are ports, not cells."""
@@ -629,8 +749,8 @@ class Emitter:
             self.emit(f"        .{port}_req({self.req(o)}), "
                       f".{port}_ack({self.ack(o)}), "
                       f".{port}_data({self.data(o)}),")
-        self.emit(f"        .z_req({self.req(z)}), .z_ack({self.ack(z)}), "
-                  f".z_data({self.data_out(z)}));")
+        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+                  f".z_data({self.odata_out(z)}));")
 
     @staticmethod
     def _predicate(node):
@@ -679,6 +799,11 @@ def emit_func(func, table=None):
     for i, node in enumerate(func.nodes):
         e.lower(node, i)
 
+    if e.linked:
+        e.emit("    // Storage.  See link_sites() for the policy and for what")
+        e.emit("    // went wrong without it.")
+        e.emit_links()
+
     # Ports.  Arguments are driven from outside, results drive outward.
     ports = ["    input  wire             rst"]
     for arg in func.args:
@@ -698,26 +823,34 @@ def emit_func(func, table=None):
                        for i, d in e.delays)
     param_clause = f" #({params})" if params else ""
 
-    # Internal nets: every channel that is not already a port.
-    argnets = {a.ssa_name for a in func.args if a.ssa_name}
+    # Every channel is declared, function arguments included, and every driver
+    # is an assign.  Declaring an argument's channel implicitly as
+    # `wire v_req = b_req` was shorter and stopped working the moment an
+    # argument could carry a link -- the link needs to drive a wire that
+    # already exists.  Uniform is worth more than short here.
     decls = []
     for ssa, (w, ctl) in e.ch.items():
-        if ssa in argnets:
-            continue
         decls.append(f"    wire {vname(ssa)}_req, {vname(ssa)}_ack;")
         if not ctl:
             decls.append(f"    wire [{w - 1}:0] {vname(ssa)}_data;")
+        if ssa in e.linked:
+            # A linked channel has a second bundle, in front of its link.
+            u = f"{vname(ssa)}_u"
+            decls.append(f"    wire {u}_req, {u}_ack;")
+            if not ctl:
+                decls.append(f"    wire [{w - 1}:0] {u}_data;")
 
-    # A function argument's channel IS the port, so bridge the two names.
+    # A function argument's channel IS the port. Bridged onto the PRODUCER
+    # side, because an argument's channel can carry a link like any other.
     bridge = []
     for arg in func.args:
         if not arg.ssa_name:
             continue
-        b, v = portname(arg.name), vname(arg.ssa_name)
-        bridge.append(f"    wire {v}_req = {b}_req;")
-        bridge.append(f"    wire {v}_ack;  assign {b}_ack = {v}_ack;")
+        b, v = portname(arg.name), e._u(arg.ssa_name)
+        bridge.append(f"    assign {v}_req = {b}_req;")
+        bridge.append(f"    assign {b}_ack = {v}_ack;")
         if not arg.is_control:
-            bridge.append(f"    wire [{arg.width - 1}:0] {v}_data = {b}_data;")
+            bridge.append(f"    assign {v}_data = {b}_data;")
 
     body = "\n".join(
         [f"(* keep_hierarchy *)",
