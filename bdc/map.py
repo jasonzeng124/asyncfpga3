@@ -27,10 +27,17 @@ from hs import parse  # noqa: E402
 
 CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bd-config.json")
 
-# Kinds that are ready to emit today.  'compute' waits on the Stage 3 wrapper
-# and 'todo' on Stage 6 memory; both are known-missing rather than unknown,
-# which is a distinction --report has to make or it cannot say what blocks.
-READY = ("cells", "wire", "tree")
+# Kinds that are ready to emit today.  'todo' waits on Stage 6 memory --
+# known-missing rather than unknown, which is a distinction --report has to
+# make or it cannot say what actually blocks a kernel.
+#
+# 'compute' joined this list when bdc/compute.py landed with its correctness
+# gate green (140/140 (width, operation) combinations against Verilog's own
+# operators).  That is the bar for moving a kind in here: the stage exists AND
+# something checks it.  Moving one early would make --report claim a kernel is
+# buildable when it is not, and --report is the script the plan defers the
+# "what do we build first" question to, so a wrong answer here is not cosmetic.
+READY = ("cells", "wire", "tree", "compute")
 
 
 class Unmapped(Exception):
