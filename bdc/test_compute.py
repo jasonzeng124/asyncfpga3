@@ -6,13 +6,20 @@ matched delay is long enough.  None of them asks whether it computes the right
 answer, and for the hand-written library that is fine: those cells are control
 logic whose behaviour tb_*.v checks directly.
 
-The compute units are different, and the comparison tree is different again.
-`a > b` is one token that cannot be wrong; a hand-rolled (greater, equal)
-prefix tree is about forty lines of index arithmetic that can be wrong in a way
-nothing else here would notice -- fold hi and lo the wrong way round and it
-still routes, still meets its bundling constraint, still passes flow.sh and
-tighten.py, and quietly answers the wrong question for most inputs.  So the
-tree is checked against the operator it replaced.
+The compute units are different, and the comparisons are different again.
+`a > b` is one token that cannot be wrong -- but that is not what the signed
+predicates emit.  They emit an UNSIGNED `>` over operands with the sign bit
+flipped, which is a real trick and can be really wrong: get the mask width off
+by one, or apply it to one operand only, and the unit still routes, still meets
+its bundling constraint, still passes flow.sh and tighten.py, and quietly
+answers the wrong question for half the input space.  So every predicate is
+checked against the operator it claims to implement.
+
+This gate was originally written to guard a hand-rolled prefix tree, which is
+gone -- see cmp_pair() in compute.py for why.  What it guards now is smaller,
+which is the right direction for a correctness gate to move, and the reason to
+keep running it is unchanged: nothing else in this project ever asks whether a
+compute unit computes the right answer.
 
 The oracle is Verilog's own `>`, `<=`, `$signed()` and friends, evaluated by
 the same simulator, in the same run, on the same vectors.  That is deliberate:

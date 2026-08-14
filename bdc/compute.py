@@ -95,79 +95,56 @@ SIGNED_CMPI = {"slt", "sle", "sgt", "sge"}
 # muli, where the logic is a real tree rather than a carry chain.
 DEFAULT_DELAY = {
     "wide": 4,    # bitwise ops: one LUT, no carry
-    "carry": 8,   # add/sub: a carry chain.  compare shares the number but not
-                  # the reason -- its (g,e) tree is six levels at 32 bits
+    "carry": 8,   # add/sub/compare: a carry chain, eight CARRY4s at 32 bits
     "shift": 8,   # barrel shifter
     "mul": 24,    # multiplier tree
 }
 
 
-def cmp_tree(width):
-    """A (greater, equal) prefix tree over a_data and b_data, as Verilog text.
+def cmp_pair(pred):
+    """The (greater, equal) pair a predicate needs, as Verilog text.
 
-    Returns (body_lines, greater_net, equal_net).
+    Returns (body_lines, greater_net, equal_net); a net is None when the
+    predicate does not mention it, so `eq` builds no comparator chain at all.
+    Neither net needs to know whether it serves a signed or an unsigned
+    predicate: emit_unit hands over xa/xb, already sign-flipped where that
+    applies.
 
-    Writing `a_data > b_data` and letting yosys infer a CARRY4 chain is the
-    obvious thing, it produces a smaller netlist, and IT DOES NOT ROUTE ON THIS
-    PART.  The failure is worth recording in full, because it took three
-    experiments to separate from the two innocent explanations:
+    This was a hand-rolled forty-line (greater, equal) prefix tree, and why it
+    stopped being one is the part worth keeping.  `xa > xb` lets yosys infer a
+    CARRY4 chain, and on this part that chain DID NOT ROUTE -- "Failed to route
+    arc 0 of net uut.$gt$....G[n], from SLICE_X38Y39/D6LUT_O6 to
+    SLICE_X40Y39/B1", at width 8 and at 32, on every placer seed tried.  Three
+    experiments pinned it to carry chains whose only consumer is the carry OUT:
+    cmpi eq routed (equality infers no chain), subi routed (a chain, but its
+    sum is used), cmpi sgt did not.  The tree existed because it is the one
+    shape of comparison that cannot become a carry chain -- yosys's alumacc
+    pass fires on $gt/$lt cells and there were none left to fire on.
 
-      cmpi eq at width 8 routes (no carry chain is inferred for equality).
-      subi  at width 8 routes (a carry chain IS inferred, and its sum is used).
-      cmpi sgt fails at width 8 and 32, on every placer seed tried, always the
-      same way: "Failed to route arc 0 of net uut.$gt$....G[n], from
-      SLICE_X38Y39/D6LUT_O6 to SLICE_X40Y39/B1".
+    That was a defect in nextpnr-xilinx, not a property of the fabric, and it
+    is fixed upstream by c2c05095, "relocate carry-O fabric fanout in ALU
+    chains": where a chain bit has fabric fanout on BOTH its sum and its carry
+    out, the CARRY4 is split there and the sum duplicated into an ordinary LUT,
+    so the two no longer contend for the sub-slice's single output path.
+    Confirmed here on 2026-08-14 at both widths, with a real CARRY4 in the
+    FASM.  The tree cost about twice the LUTs -- 32-bit prototype top, same
+    toolchain: 200 occupied sites for the tree against 177 for the operator --
+    and bought nothing once the packer was right.
 
-    So it is not scale, not the op, and not placement luck -- it is carry
-    chains whose only consumer is the carry OUT.  A CARRY4's S and DI inputs
-    have no general routing to them; they must come from the LUTs in the same
-    slice, and the packer normally guarantees that by co-packing them.  In an
-    adder those LUTs also produce the sum, so both halves of the site are
-    spoken for.  In a comparator the result is one bit off the top of the
-    chain, the S-driving LUTs have a free O5 half, and the fractured-LUT packer
-    this library depends on pairs them with unrelated functions -- which strands
-    them in a slice the chain is not in, and the arc becomes unroutable.
-
-    That is a property of the packer, not of the design, and it is not one this
-    project controls.  So the comparison is built out of ordinary logic that
-    cannot be turned into a carry chain at all: yosys's alumacc pass fires on
-    $gt/$lt cells, and there are none here to fire on.
-
-    The cost is not obviously worse.  A balanced tree of (g, e) pairs is
-    2*(W-1) LUTs and ceil(log2(W)) + 1 deep -- six levels at 32 bits, against
-    eight CARRY4s in series.  On this fabric routing dominates so heavily that
-    the shallower tree is very likely the faster of the two; tighten.py will
-    say, and its answer is the only one that counts.
+    So the rule it leaves behind is the opposite of the one it was written
+    under: a routing failure in a construct as ordinary as `<` is a toolchain
+    bug until proven otherwise, and the first move is to find out what upstream
+    has already fixed -- not to write a replacement for the operator.
     """
-    # The tree never needs to know whether it is serving a signed or an
-    # unsigned predicate: emit_unit hands it xa/xb, already sign-flipped where
-    # that applies.
-    lines = [f"    wire [{width - 1}:0] g0 = xa & ~xb;",
-             f"    wire [{width - 1}:0] e0 = xa ~^ xb;"]
-    pairs = [(f"g0[{i}]", f"e0[{i}]") for i in range(width)]
-
-    level = 0
-    while len(pairs) > 1:
-        level += 1
-        nxt, asg = [], []
-        # pairs[] stays ordered by significance, index 0 least, so the leftover
-        # of an odd level is the most significant group and is appended last,
-        # which keeps that order true at the next level.  The recurrence is
-        # greater = g_hi | (e_hi & g_lo): get hi and lo the wrong way round and
-        # the comparison is silently wrong for exactly the inputs where the
-        # high bits decide it, which is most of them.
-        for i in range(0, len(pairs) - 1, 2):
-            (g_hi, e_hi), (g_lo, e_lo) = pairs[i + 1], pairs[i]
-            gn, en = f"g{level}_{i // 2}", f"e{level}_{i // 2}"
-            asg.append(f"    wire {gn} = {g_hi} | ({e_hi} & {g_lo});")
-            asg.append(f"    wire {en} = {e_hi} & {e_lo};")
-            nxt.append((gn, en))
-        if len(pairs) % 2:
-            nxt.append(pairs[-1])       # odd one out, unchanged, next level
-        lines.extend(asg)
-        pairs = nxt
-
-    return lines, pairs[0][0], pairs[0][1]
+    tmpl = CMPI[pred]
+    lines, g, e = [], None, None
+    if "{g}" in tmpl:
+        g = "cmp_g"
+        lines.append(f"    wire {g} = xa > xb;")
+    if "{e}" in tmpl:
+        e = "cmp_e"
+        lines.append(f"    wire {e} = xa == xb;")
+    return lines, g, e
 
 
 def _depth_class(op):
@@ -195,7 +172,7 @@ def emit_unit(op, width, pred=None):
             raise ValueError(f"unknown cmpi predicate {pred!r}")
         # Signed compare is unsigned compare on operands with the sign bit
         # flipped: the flip is order-preserving from two's complement onto
-        # unsigned, so one tree serves all ten predicates and there is no
+        # unsigned, so one comparison serves all ten predicates and there is no
         # second code path to get wrong.
         # The sign-bit mask.  At width 1 the sign bit is the ONLY bit, so the
         # zero-padding below it is a zero-width constant, which is not legal
@@ -209,8 +186,8 @@ def emit_unit(op, width, pred=None):
                      + (f" ^ {flip};" if flip else ";"))
         extra.append(f"    wire [{width - 1}:0] xb = b_data"
                      + (f" ^ {flip};" if flip else ";"))
-        tree, g, e = cmp_tree(width)
-        extra.extend(tree)
+        body, g, e = cmp_pair(pred)
+        extra.extend(body)
         expr = CMPI[pred].format(g=g, e=e)
         out_w, nin = 1, 2
     elif op == "select":
