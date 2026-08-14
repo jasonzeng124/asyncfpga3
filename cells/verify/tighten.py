@@ -586,6 +586,19 @@ def main():
     timing = Timing(edges, stops)
     chains = find_chains(edges)
 
+    # Which nextpnr measured this.  Every margin below is a routed arrival time
+    # from one placer's answer, so a margin quoted without its build is not a
+    # fact about the design -- it is a fact about a build that may since have
+    # been replaced.  flow.sh writes the stamp beside the SDF.
+    stamp = SDF.parent / "toolchain.txt"
+    if stamp.exists():
+        nx = next((l.strip() for l in stamp.read_text().splitlines()
+                   if "nextpnr" in l), "")
+        print(f"toolchain    {nx or 'stamp present but no nextpnr line'}")
+    else:
+        print(f"toolchain    UNSTAMPED -- no {stamp.name} beside the SDF, so "
+              f"the margins below cannot be attributed to a nextpnr build")
+
     print(f"routed SDF   {n_io} cell arcs, {n_ic} routed nets")
     print(f"state nodes  {len(stops)} LUT feedback loops -- start and stop points")
     print(f"delay lines  {len(chains)}")

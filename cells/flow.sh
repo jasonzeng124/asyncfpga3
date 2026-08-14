@@ -105,6 +105,24 @@ echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 
 echo
 echo "== place and route =="
+# Every routed number produced below -- occupied LUT sites, the SDF arrival
+# times, and every margin verify/tighten.py derives from them -- belongs to the
+# nextpnr build that produced it, and nothing else here recorded which one that
+# was.  This is a receipt, not a knob: there is exactly ONE installed
+# toolchain, deliberately, because maintaining parallel ones costs more than it
+# saves.  What that buys instead is that an update SUPERSEDES old numbers
+# rather than making them comparable -- so a saved margin is only meaningful
+# next to the version that measured it.  nextpnr's version string carries the
+# git hash (e.g. 0.9.1-17-g69119066), so this names the exact commit.
+#
+# This project has already been bitten three times by nextpnr placer/packer
+# defects, once by one that was fixed upstream 94 commits ahead of the
+# installed build.  Expect the toolchain to move; the stamp is what keeps the
+# numbers honest when it does.
+"$NEXTPNR" --version > $OUT/toolchain.txt 2>&1
+"$YOSYS" -V >> $OUT/toolchain.txt 2>&1
+sed 's/^/  /' $OUT/toolchain.txt
+
 # --sdf is what verify/tighten.py reads: real per-net routed delays, which is
 # the only place the matched-delay lengths can come from.
 "$NEXTPNR" --chipdb "$CHIPDB" --xdc $OUT/soak.xdc --ignore-loops \
