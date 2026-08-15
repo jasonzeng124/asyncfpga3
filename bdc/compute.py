@@ -89,16 +89,53 @@ CMPI = {
 CMPI.update({"s" + k[1:]: v for k, v in CMPI.items() if k.startswith("u")})
 SIGNED_CMPI = {"slt", "sle", "sgt", "sge"}
 
-# Starting delay, in LUT1 links, by how deep the logic is.  A placeholder, and
-# stated as such: these are not measurements, they are "long enough that
-# tighten.py has something to cut".  The one number with a reason behind it is
-# muli, where the logic is a real tree rather than a carry chain.
-DEFAULT_DELAY = {
-    "wide": 4,    # bitwise ops: one LUT, no carry
-    "carry": 8,   # add/sub/compare: a carry chain, eight CARRY4s at 32 bits
-    "shift": 8,   # barrel shifter
-    "mul": 24,    # multiplier tree
-}
+# Placeholder length, in bd_delay links, for a BARE LIBRARY CELL -- a bd_mux
+# or the generated arbitrated merge, whose data path is a single datamux LUT
+# and so does not grow with width.  Measured, not guessed: on the first routed
+# kernel bd_mux certifies at 4 links with room to come down to 3.
+CELL_DELAY = {"wide": 4}
+
+
+def default_delay(op, width):
+    """Placeholder length, in bd_delay links, for one COMPUTE UNIT.
+
+    Width-aware, because the class where it matters is the one whose logic
+    depth IS the width.  The flat table above was written before anything had
+    been routed, and it was wrong in the one direction that is not allowed:
+    verify/tighten.py only ever shrinks a delay, so a length that has to GROW
+    after routing is a bundling violation rather than a sizing result.  A
+    placeholder that starts too long is merely a slow design and gets
+    shortened on the first measurement; one that starts too short is a broken
+    design that reports itself broken.
+
+    Calibrated against the routed SDF of the first real kernel, not guessed:
+
+      * a link is ~290 ps on that route
+      * a 32-bit carry chain settles in 3070 ps -- about width/3 links
+      * the deepest thing measured was the abc-mapped 32-bit comparator at
+        4999 ps -- about width/2 links
+
+    Three quarters of the width therefore clears every measurement with room,
+    without being absurd, and being generous costs almost nothing: the
+    placeholder is never what ships.  verify/resize.sh proposes the measured
+    length from the routed SDF and that is what gets built.
+
+    `wide` covers the bitwise ops and `select`.  It does not scale with width
+    -- one LUT level is one LUT level -- but it is twice CELL_DELAY because a
+    compute unit wraps its datapath in a join and a uor that a bare cell does
+    not have.  The routed kernel put `select` at 6 links; 8 covers it.
+
+    Two classes are extrapolation and are marked as such: nothing has yet
+    routed a barrel shifter or a multiplier.
+    """
+    cls = _depth_class(op)
+    if cls == "carry":
+        return max(8, (3 * width) // 4)
+    if cls == "shift":
+        return max(8, (3 * width) // 4)     # EXTRAPOLATED -- none routed yet
+    if cls == "mul":
+        return max(24, 2 * width)           # EXTRAPOLATED -- none routed yet
+    return 8
 
 
 def cmp_pair(pred):
@@ -164,7 +201,7 @@ def unit_name(op, width, pred=None):
 def emit_unit(op, width, pred=None):
     """One compute unit as a self-contained Verilog module."""
     name = unit_name(op, width, pred)
-    default = DEFAULT_DELAY[_depth_class(op)]
+    default = default_delay(op, width)
 
     extra = []
     if op == "cmpi":
@@ -301,7 +338,7 @@ def emit_proto_top(op, width, pred=None):
     times, not arithmetic.
     """
     name = unit_name(op, width, pred)
-    default = DEFAULT_DELAY[_depth_class(op)]
+    default = default_delay(op, width)
     out_w = 1 if op == "cmpi" else width
     chans = ["a", "b"] + (["s"] if op == "select" else [])
     # Each channel's request gets a DIFFERENT live signal.  Tying them together

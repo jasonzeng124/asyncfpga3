@@ -75,9 +75,17 @@ from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# argv: [sdf]  [--emit <path>]
+# argv: [sdf]  [--emit <path>]  [--list-audited]
 _args  = [a for a in sys.argv[1:] if not a.startswith("--")]
 _flags = [a for a in sys.argv[1:] if a.startswith("--")]
+# --list-audited prints, one per line, "<BD_SZ macro> <instance> <peak ps>" for
+# every cell rule A actually audits and that carries a delay today, worst peak
+# first -- and nothing else, so it can be read by a script.  verify/teeth.sh
+# uses it to pick which delay to delete: it used to hardcode soak_top's
+# `umerge`, which meant that pointed at any OTHER design it zeroed a macro no
+# source file read, changed nothing, and then reported that the gate had no
+# teeth.  The victim has to come from the design under test.
+LIST = "--list-audited" in _flags
 EMIT = None
 if "--emit" in sys.argv:
     EMIT = pathlib.Path(sys.argv[sys.argv.index("--emit") + 1])
@@ -90,6 +98,10 @@ SDF = pathlib.Path(_args[0]) if _args else ROOT / "build/pnr/soak.sdf"
 def macro(path):
     """An instance path as a Verilog macro name: umem.usetup -> BD_SZ_UMEM_USETUP."""
     return "BD_SZ_" + re.sub(r"[^A-Za-z0-9]", "_", path).upper()
+
+
+# Filled by rule A: (peak ps, instance path, links) for each cell it audits.
+AUDITED = []
 
 # prjxray BRAM_L.sdf, max corner -- the same constants sim/bd_prims_sim.v
 # enforces, so the simulation gate and this gate cannot drift apart.
@@ -752,6 +764,8 @@ def main():
         else:
             verdict = "already exact"
         sized[parent] = want
+        if n:
+            AUDITED.append((t_l, parent, n))
         shown = f"{chain_ps} ps" if chain_ps is not None else "-"
         print(f"  {label:<22} {n:>2} links {shown:>9}   "
               f"req {t_e:>5}  peak {t_l:>5}  guard {guard:>4}  "
@@ -901,5 +915,20 @@ def main():
     return 0
 
 
+def list_audited():
+    """--list-audited: the report is run in full but thrown away, and only the
+    machine-readable census is printed.  Running it in full is the point -- the
+    list has to be the cells rule A ACTUALLY audits, not a guess at which ones
+    it would, or teeth.sh is back to picking a victim the gate never looks at.
+    """
+    import contextlib, io
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        main()
+    for peak, parent, links in sorted(AUDITED, reverse=True):
+        print(f"{macro(parent)} {parent} {peak}")
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(list_audited() if LIST else main())

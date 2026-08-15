@@ -547,7 +547,7 @@ class Emitter:
         z = node.results[0]
         w = self.width(z)
         self.units.setdefault(f"bdc_amerge_{w}", emit_amerge(w))
-        d = self.delay(inst, compute.DEFAULT_DELAY["wide"])
+        d = self.delay(inst, compute.CELL_DELAY["wide"])
         self.emit(f"    bdc_amerge_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
         self.emit(f"        .x_req({self.req(ops[0])}), .x_ack({self.ack(ops[0])}), "
@@ -589,7 +589,7 @@ class Emitter:
         # arrival.  The merge's own matched delay covers the grant.
         w = self.width(res)
         self.units.setdefault(f"bdc_amerge_{w}", emit_amerge(w))
-        d = self.delay(inst, compute.DEFAULT_DELAY["wide"])
+        d = self.delay(inst, compute.CELL_DELAY["wide"])
         m_req, m_ack = f"{inst}_req", f"{inst}_ack"
         self.emit(f"    wire {m_req}, {m_ack};")
         if not self.is_control(res):
@@ -668,7 +668,7 @@ class Emitter:
                 f"decoding, which gcd needs and nothing here has designed")
         z = node.results[0]
         w = self.width(z)
-        d = self.delay(inst, compute.DEFAULT_DELAY["wide"])
+        d = self.delay(inst, compute.CELL_DELAY["wide"])
         # s = 0 picks x, so x is input 0 -- the same order the index counts in.
         self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
@@ -740,7 +740,7 @@ class Emitter:
         w = self.width(node.operands[chans["a"]])
         name = compute.unit_name(node.op, w, pred)
         self.units.setdefault(name, compute.emit_unit(node.op, w, pred))
-        d = self.delay(inst, compute.DEFAULT_DELAY[compute._depth_class(node.op)])
+        d = self.delay(inst, compute.default_delay(node.op, w))
         z = node.results[0]
         self.emit(f"    {name} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
