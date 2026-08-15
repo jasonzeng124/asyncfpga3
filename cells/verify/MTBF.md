@@ -98,11 +98,31 @@ for 1721 instance-hours of exposure. One instance arrived late — instance 30
 first set `serv` at 2.35 h in — and is counted only from its arrival. Zero
 `viol`, zero `ovl` across that exposure gives MTBF >= 1.7e3 h.
 
-`arb_prot`, the arbiter as shipped, is currently running. It carries 96
-instances, all 96 with `serv` set, zero `viol` and zero `ovl`. At 26.56 h
-elapsed that is 8.868e14 arbitration events, and the Rule-of-Three 95% bound
-on that exposure is MTBF >= 2.956e14 arbitrations. The measured handshake rate
-is 96.60 MHz per instance against 97.5 MHz predicted by the routed simulation.
+`arb_prot`, the arbiter as shipped, is currently running and has been since
+2026-08-11. It carries 96 instances, all 96 with `serv` set, zero `viol` and
+zero `ovl`.
+
+| poll | elapsed | rate/instance | arbitration events | Rule-of-Three 95% bound |
+|---|---|---|---|---|
+| #3  | 26.56 h | 96.60 MHz | 8.868e14 | MTBF >= 2.956e14 |
+| #14 | 82.06 h | 96.49 MHz | 2.737e15 | MTBF >= 9.122e14 |
+
+Read as a rate that is 2.99e-1 years for ONE arbiter running flat out at
+96.49 MHz. The measured handshake rate is stable across three days and sits
+against 97.5 MHz predicted by the routed simulation.
+
+Nothing has failed. The bound moves only because exposure accumulates, which
+is the whole design of the rig: it is a clock, not an experiment that
+concludes. Every additional day of a clean run tightens the bound and nothing
+else about it changes.
+
+The run survived being unreachable for two days without losing any of that.
+The host could not see the board from 2026-08-12 to 2026-08-14 -- a WSL USB
+problem, written up in `hw/jtag_attach.sh`, entirely on the host side -- and
+the accumulated exposure was never at risk, because it accumulates on silicon
+in sticky latches and the host only ever reads them. That property is what
+makes `--program` the one destructive operation here, and it is why nothing
+in this project passes it without being asked.
 
 ## The exposure figure is not a metastability bound
 
@@ -144,6 +164,26 @@ second option is a rebuild, and a rebuild erases the accumulated exposure —
 | MTBF ≫ design life | Real arbiters stand. An arbitrated merge becomes a component with a settle-time budget, and the compiler may emit one wherever exclusivity cannot be established structurally. |
 | MTBF comparable to design life | Arbitration is expensive. Prefer structural exclusion, and arbitrate only where the program genuinely forces it. |
 | No usable MTBF | The arbitrated merge is off the table on this fabric. Every merge must then be provably exclusive by construction, which is a constraint on the frontend, not on this library. |
+
+**Which row is this run in? Not decided yet, and it cannot be rushed.** The
+bound stands at 9.1e14 arbitrations, which is 2.99e-1 years for one arbiter
+running flat out -- and that is a LOWER bound produced by having seen zero
+failures, not an estimate of where the true MTBF lies. With zero failures the
+bound can only ever be "however long it has run", so it rises linearly with
+exposure and will keep rising for as long as nothing breaks. Reading today's
+figure as the answer would be reading the clock as the deadline.
+
+Two things have to happen before this discriminates between the rows above.
+The exposure has to grow by orders of magnitude, which is only time. And the
+contested fraction has to be measured, per the section above -- without it the
+number bounds the total failure rate and not the metastability rate, and it is
+the metastability rate the rows are really about.
+
+What the run does already establish, and what the compiler is currently built
+on, is narrower and worth stating on its own: across 2.7e15 arbitrations the
+shipped cell has never once acknowledged both clients or overlapped its
+grants. Those are the two STRUCTURAL failures, they are not metastability, and
+for them the event count is the right denominator.
 
 ## The protocol defect is already out of the way
 
