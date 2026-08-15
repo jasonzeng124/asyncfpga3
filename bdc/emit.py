@@ -331,7 +331,9 @@ def emit_amerge(width, n=2):
     """
     dw = max(width, 1)
     pad = "     " if dw > 9 else "      "
-    iw, idx_expr = _index_expr(n, "g2")
+    iw, idx_expr = _index_expr(n, "won")
+    won_lines = "\n".join(
+        f"    assign won[{k}] = g2[{k}] | in{k}_ack;" for k in range(1, n))
 
     stages = []
     acc_req, acc_ack = "in0_req", "in0_ack"
@@ -366,9 +368,27 @@ module bdc_amerge{n}_{width} #(parameter DELAY = 4)
 
 {chr(10).join(stages)}
 
-    // Which input won, as ordinary channel data.  This is what a
-    // control_merge's index result is, and it is stable for exactly as long
-    // as z_data is, because it is the same grant that selected it.
+    // Which input won, as ordinary channel data -- and NOT the bare grant.
+    //
+    // cells/rtl/bd_merge.v states the rule this obeys, and states it as the
+    // reason it does not select on the request:
+    //
+    //     "The select cannot be the request.  Selecting on x_req flips the
+    //      mux the moment x enters phase three, while the downstream latch is
+    //      still transparent.  The select must rise with the request and fall
+    //      with the ack."
+    //
+    // g2 IS effectively the request here: g2 = r2 . ~q, so it falls when the
+    // input request falls, which is when R0 falls -- and A0, the ack that
+    // ends the downstream latch's hold window, falls strictly later.  That
+    // leaves a window where this cell is still being read and has already
+    // stopped saying who won.  bd_link's own header is explicit that its data
+    // must hold until ACK-fall and not req-fall.
+    //
+    // g2 | ack is bd_merge's `x_req + x_ack` written for a grant: it rises
+    // with the grant and falls only once the acknowledge has gone too.
+    wire [{n - 1}:1] won;
+{won_lines}
     assign index = {idx_expr};
 
     assign z_data = {_data_mux(n, dw, "index", "in")};
@@ -1095,13 +1115,26 @@ def emit_func(func, table=None):
          f"module bdc_{func.name}{param_clause} (",
          ",\n".join(ports) + ");",
          "",
-         "    // Function arguments, as channels.",
-         "\n".join(bridge),
-         "",
          "    // Every internal channel: req and ack always, data unless the",
          "    // channel is control -- a control channel has no data net at",
          "    // all, which is what makes the W=1-tied-low convention free.",
          "\n".join(decls),
+         "",
+         # DECLARATIONS FIRST, AND THAT ORDER IS LOAD-BEARING.
+         #
+         # These assigns used to come before the wires they drive.  Verilog
+         # wires have no order, so yosys read it exactly as intended and every
+         # synthesis gate passed -- flow.sh routed a design with real 32-bit
+         # carry chains in it.  iverilog does not: an undeclared name in an
+         # assign becomes an IMPLICIT ONE-BIT NET, so `n_arg0_data` was 1 bit
+         # wide in simulation and every argument was truncated to its low bit.
+         #
+         # It was reported only as `warning: implicit definition of wire`,
+         # buried in a wall of them, and it silently made the simulation
+         # gate's answers meaningless while every other gate stayed green.
+         # Do not move these back above `decls`.
+         "    // Function arguments, as channels.",
+         "\n".join(bridge),
          "",
          "\n".join(e.lines),
          "endmodule"])
