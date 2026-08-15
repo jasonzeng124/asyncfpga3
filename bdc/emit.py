@@ -45,6 +45,7 @@ Usage:
 """
 
 import argparse
+import heapq
 import os
 import re
 import sys
@@ -540,19 +541,21 @@ DELAY_BEARING = {
 }
 
 
-def link_sites(func, channels):
-    """Which channels get a bd_link, as a set of SSA names.
+# Where a cycle-breaking link goes, when the cycle offers a choice.  A loop
+# header is the natural rest position for a loop-carried token: it is the one
+# node in the cycle that already has an input from OUTSIDE the loop, so the
+# link starts empty, takes the entry token on the first iteration, and holds
+# each subsequent one exactly where the next iteration expects to find it.
+HEADER_OPS = ("control_merge", "merge", "mux")
 
-    Swap this function to change the storage policy.  Three alternatives were
-    on the table and this is the cheap end of them: storage on every data
-    channel (simplest, most area), storage where the uncut combinational depth
-    exceeds a threshold (needs a route to decide, so it becomes an
-    iterate-until-it-passes loop), or storage at basic-block boundaries (cheap,
-    but nothing bounds the within-block path).
 
-    Expect to revisit this against measurements rather than argument.  Nothing
-    downstream depends on which rule it is -- the emitter asks this function
-    and wires up whatever it says.
+def measurability_sites(func, channels):
+    """Rule 1: storage in front of every cell that carries a matched delay.
+
+    See the block comment above.  This rule exists so verify/tighten.py can
+    measure a delay against a known start point, and it deliberately skips
+    control channels -- a channel with no data has no data to arrive early,
+    so re-timing it buys nothing rule A can use.
     """
     sites = set()
     const = {r for n in func.nodes if n.op == "constant" for r in n.results}
@@ -573,6 +576,215 @@ def link_sites(func, channels):
     return sites
 
 
+def cycle_sites(func, already):
+    """Rule 2: enough further links that no cycle is left without storage.
+
+    This is COMPILER-PLAN Stage 5 obligation 3, the one bdc/slack.py reports
+    and nothing acted on.  It is a SEPARATE rule from rule 1 above and it has
+    to be, because the two disagree exactly where it matters:
+
+    Rule 1 skips width-0 channels, correctly, for its own purpose.  gcd's loop
+    headers are sequenced by pure CONTROL rings -- control_merge2 -> cond_br22
+    -> straight back into control_merge2, every edge width 0 -- so rule 1 puts
+    nothing in them at all.  On gcd rule 1 links 123 channels and leaves four
+    such rings, and a handshake ring with no storage cannot advance: every
+    cell in it routes its request combinationally, so the ring's request is a
+    function of itself and there is nowhere for the loop-carried token to
+    rest.  That is what made gcd time out on any vector needing a real
+    iteration, while the two early-exit vectors -- which never close a loop --
+    passed.
+
+    Rather than trust one pass, cut and re-run: link one edge, rebuild the
+    residual graph, ask Tarjan's again, and stop when no cycle survives.  A
+    single sweep would be wrong because one link can break several overlapping
+    cycles at once, and re-running is how you find out that it did instead of
+    paying for a link per cycle.
+    """
+    # bdc is imported both as a package (bdc.emit) and as loose modules on
+    # sys.path (simcheck.py does the latter), so take whichever works.
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+
+    edges, _adj = slack.build_node_graph(func)
+    ids = list(range(len(func.nodes)))
+    linked = set(already)
+    sites = set()
+
+    while True:
+        radj = {v: [] for v in ids}
+        for e in edges:
+            if e.value not in linked:
+                radj[e.producer].append(e.consumer)
+        live = [c for c in slack.tarjan_scc(ids, radj) if slack._is_cycle(c, radj)]
+        if not live:
+            return sites
+        for comp in live:
+            members = set(comp)
+            cand = [e for e in edges
+                    if e.producer in members and e.consumer in members
+                    and e.value not in linked]
+            if not cand:
+                raise EmitError(
+                    f"{func.name}: cycle through "
+                    f"{[slack.node_label(func, v) for v in comp]} has no "
+                    f"unlinked edge left to break -- storage cannot fix it")
+            # Deterministic, and biased to the loop header.  Sorting by SSA
+            # name makes the choice independent of dict/set iteration order,
+            # so the same .mlir always emits the same Verilog.
+            cand.sort(key=lambda e: (
+                func.nodes[e.consumer].op not in HEADER_OPS, str(e.value)))
+            pick = cand[0]
+            linked.add(pick.value)
+            sites.add(pick.value)
+
+
+# How many storage stages a cycle needs before a token can actually go round
+# it.  THREE, and the number is measured, not argued -- cells/tb/tb_ring.v
+# sweeps it on the frozen cells and gcd's own loop shape confirms it.
+#
+# Two stages are not enough and the reason is structural.  Close a ring of the
+# simple Muller controller, c_i = C(c_i-1, ~c_i+1), on two stages and each
+# controller's two inputs become x and ~x -- permanently disagreeing, so a
+# C-element holds, from every state, forever.  Said the other way round:
+# occupancy is half a token per stage (rtl/bd_link.v), so one token already
+# fills two stages and needs a third to move into.
+#
+# Nothing else in a cycle counts toward this.  A mux, a steer, a fork, a join
+# is a per-transaction rendezvous that returns to zero every cycle -- it can
+# pass a token through but cannot hold one, so it adds no stages.  Measured
+# directly on the mux -> steer -> storage -> mux ring: one and two stages dead,
+# three and up live, with the mux and steer contributing nothing.
+RING_MIN_STAGES = 3
+
+_INF = float("inf")
+
+
+def ring_depths(func, linked):
+    """How deep each link has to be, so that every cycle clears RING_MIN_STAGES.
+
+    Returns {ssa: n_stages}, defaulting to 1 -- a plain bd_link -- and deeper
+    only where some cycle through that channel would otherwise be under the
+    floor.  Depth is added at ONE point per short cycle rather than spread
+    around it: three stages in a single bd_pipe circulate exactly as well as
+    three scattered ones, and cost the same, so there is no reason to prefer
+    the fiddlier placement.
+
+    The floor has to hold on every SIMPLE CYCLE, which is why this works on
+    shortest paths rather than on SCCs.  Counting stages per SCC is the
+    tempting cheap version and it is wrong in exactly the way that matters: on
+    gcd, the SCC holding the main loop carries 34 stages and still contains
+    control_merge2 -> cond_br22 -> control_merge2 with ONE.  Summing over a
+    component says that ring is fine; it deadlocks anyway.
+
+    So: weight each edge by the stages on it, find the lightest cycle in the
+    whole graph, and if it is under the floor, deepen a link on it.  Repeat.
+    The lightest cycle is `min over edges (u,v) of w(u,v) + dist(v -> u)`,
+    which is all-pairs shortest paths -- cheap here because the weights are
+    small non-negative ints and the graphs are a few hundred nodes.
+    """
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+
+    edges, _adj = slack.build_node_graph(func)
+    n = len(func.nodes)
+    depth = {ssa: 1 for ssa in linked}
+
+    def lightest_cycle():
+        """(weight, [edges round it]) for the lightest cycle, or None."""
+        out = {v: [] for v in range(n)}
+        for e in edges:
+            out[e.producer].append((e.consumer, depth.get(e.value, 0), e))
+
+        def dijkstra(src):
+            dist = {src: 0}
+            pred = {}
+            pq = [(0, src)]
+            while pq:
+                c, u = heapq.heappop(pq)
+                if c > dist.get(u, _INF):
+                    continue
+                for v, w, e in out[u]:
+                    if c + w < dist.get(v, _INF):
+                        dist[v], pred[v] = c + w, e
+                        heapq.heappush(pq, (c + w, v))
+            return dist, pred
+
+        best = None
+        for u in range(n):
+            dist, pred = dijkstra(u)
+            for v, w, e in out[u]:
+                # A cycle: the edge u->v, then the shortest way back v -> u.
+                back = dist.get(u) if v == u else None
+                if v != u:
+                    d2, p2 = dijkstra(v)
+                    back = d2.get(u)
+                    if back is None:
+                        continue
+                    path, at = [], u
+                    while at != v:
+                        pe = p2[at]
+                        path.append(pe)
+                        at = pe.producer
+                    ring = [e] + path
+                else:
+                    ring = [e]
+                    back = 0
+                key = (w + back, sorted(str(x.value) for x in ring))
+                if best is None or key < best[0]:
+                    best = (key, w + back, ring)
+        return None if best is None else (best[1], best[2])
+
+    for _ in range(len(edges) + 1):
+        found = lightest_cycle()
+        if found is None or found[0] >= RING_MIN_STAGES:
+            return depth
+        weight, ring = found
+        cand = [e for e in ring if e.value in depth]
+        if not cand:
+            # cycle_sites() runs first and links every cycle, so a cycle with
+            # no linked edge at all means the two rules disagree about what a
+            # cycle is -- report it rather than paper over it.
+            raise EmitError(
+                f"{func.name}: cycle through "
+                f"{[slack.node_label(func, e.producer) for e in ring]} has no "
+                f"linked edge to deepen")
+        cand.sort(key=lambda e: (
+            func.nodes[e.consumer].op not in HEADER_OPS, str(e.value)))
+        depth[cand[0].value] += RING_MIN_STAGES - weight
+    raise EmitError(f"{func.name}: ring depth did not converge")
+
+
+def link_sites(func, channels):
+    """Which channels get a bd_link, as a set of SSA names.
+
+    Two rules, in order, for two unrelated reasons -- measurability, then
+    cycle-breaking.  Rule 2 runs second and is told what rule 1 already
+    covered, so it only pays for the cycles rule 1 missed: on gcd that is 4
+    extra links on top of 123.
+
+    Swap these functions to change the storage policy.  Three alternatives
+    were on the table for rule 1 and this is the cheap end of them: storage on
+    every data channel (simplest, most area), storage where the uncut
+    combinational depth exceeds a threshold (needs a route to decide, so it
+    becomes an iterate-until-it-passes loop), or storage at basic-block
+    boundaries (cheap, but nothing bounds the within-block path).
+
+    Expect to revisit rule 1 against measurements rather than argument.  Rule
+    2 is not a policy in the same sense and is not negotiable against
+    measurements: below RING_MIN_STAGES storage stages per cycle the design
+    does not work at all.  This function decides WHERE the links go; how deep
+    each one has to be is ring_depths(), and both have to hold.  Nothing
+    downstream depends on which rule put a link where -- the emitter asks these
+    two functions and wires up whatever they say.
+    """
+    sites = measurability_sites(func, channels)
+    return sites | cycle_sites(func, sites)
+
+
 # ---------------------------------------------------------------------------
 # The emitter
 
@@ -589,6 +801,9 @@ class Emitter:
         # bundles: the producer drives `<v>_u_*` and the link drives `<v>_*`,
         # so consumers need no idea whether a link is there.
         self.linked = link_sites(func, self.ch)
+        # ...and how many stages each of those links is, which is 1 everywhere
+        # except on the short cycles that would otherwise sit under the floor.
+        self.depth = ring_depths(func, self.linked)
 
     # -- widths ------------------------------------------------------------
 
@@ -689,18 +904,36 @@ class Emitter:
         return "" if self.is_control(ssa) else f"{self._u(ssa)}_data"
 
     def emit_links(self):
-        """One bd_link per linked channel, between producer and consumer."""
+        """One link per linked channel, between producer and consumer.
+
+        A bd_pipe rather than a bd_link wherever ring_depths() asked for more
+        than one stage -- the two have the same port list, and bd_pipe at N=1
+        is a bd_link, so the split here is only so that the common case reads
+        as the cell it is.
+
+        A link on a CONTROL channel is a link on the handshake alone.  Rule 2
+        in link_sites() puts them there, and a control channel has no data net
+        declared at either end -- so the link's data_out must be left
+        genuinely unconnected, exactly as data_out() does for every other
+        cell.  Naming a net that was never declared would not error: Verilog
+        would invent a one-bit wire and the link would look connected.
+        """
         for ssa in sorted(self.linked):
             w = self.width(ssa)
             inst = f"ulink_{vname(ssa)}"
             d = self.delay(inst, 0)
-            self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+            n = self.depth.get(ssa, 1)
+            if n > 1:
+                self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
+                          f".DELAY({d})) {inst} (")
+            else:
+                self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .req_in({self.oreq(ssa)}), .ack_in({self.oack(ssa)}), "
                       f".data_in({self.odata(ssa)}),")
             v = vname(ssa)
             self.emit(f"        .req_out({v}_req), .ack_out({v}_ack), "
-                      f".data_out({v}_data));")
+                      f".data_out({self.data_out(ssa)}));")
 
     def emit(self, text=""):
         self.lines.append(text)

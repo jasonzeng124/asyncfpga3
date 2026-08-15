@@ -220,7 +220,8 @@ def gen_testbench(func, vectors, expected, tb_name, dut_module):
     lines = [CTL_HELPERS, f"`timescale 1ps / 1ps", "", f"module {tb_name};",
              "", "    localparam integer H = `BD_HOP_PS;",
              "    localparam integer T = 12 * H;", "",
-             "    integer errors = 0;", "    reg rst = 1'b1;", ""]
+             "    integer errors = 0;", "    integer cur = -1;",
+             "    reg rst = 1'b1;", ""]
 
     def bname(ch):
         return emit.portname(ch.name)
@@ -266,13 +267,22 @@ def gen_testbench(func, vectors, expected, tb_name, dut_module):
     # -- one block per vector -------------------------------------------
     lines.append("    initial begin")
     lines.append(f'        $display("{tb_name}");')
-    lines.append("        #(4 * T);")
+    # Hold reset until the power-up X has drained all the way out of the
+    # design's longest combinational run, and then some.  This is not
+    # conservatism for its own sake: release it early and a C-element latches
+    # C(x, .) = x into its own feedback loop, where it stays -- there is no
+    # clock edge to wash it out, and the symptom is a wedge with an `x` on an
+    # ack, indistinguishable at first glance from a real deadlock.  Asserting
+    # reset is monotonic and safe, so the only cost of holding it is sim time,
+    # and the hold scales with the design because the settling time does.
+    lines.append(f"        #({max(64, 4 * len(func.nodes))} * T);")
     lines.append("        rst = 1'b0;")
-    lines.append("        #(4 * T);")
+    lines.append("        #(8 * T);")
     lines.append("")
 
     for idx, (vec, exp) in enumerate(zip(vectors, expected)):
         lines.append(f"        // -- vector {idx}: {vec} -> {exp}")
+        lines.append(f"        cur = {idx};")
         lines.append("        fork")
         for a in args:
             b = bname(a)
@@ -319,24 +329,44 @@ def gen_testbench(func, vectors, expected, tb_name, dut_module):
     lines.append("        $finish;")
     lines.append("    end")
     lines.append("")
+    # A bare "timeout" says the design wedged and nothing else, which is the
+    # least useful thing a self-reporting bench can say.  Name the vector it
+    # was on and print every endpoint's count: a source whose nsent is short
+    # by one never got its ack, a sink whose n is short never got its token,
+    # and which of those it is decides where to look next.
     lines.append("    initial begin")
     lines.append("        #40_000_000;")
-    lines.append(f'        $display("{tb_name} FAIL (timeout)");')
+    lines.append(f'        $display("{tb_name} FAIL (timeout) on vector %0d", cur);')
+    for a in args:
+        b = bname(a)
+        lines.append(f'        $display("    src {b}: %0d sent, req=%b ack=%b",'
+                     f" {b}_src.nsent, {b}_req, {b}_ack);")
+    for r in results:
+        b = bname(r)
+        lines.append(f'        $display("    snk {b}: %0d seen, req=%b ack=%b",'
+                     f" {b}_snk.n, {b}_req, {b}_ack);")
     lines.append("        $finish;")
     lines.append("    end")
+    lines.append("")
+    lines.append("`ifdef SIMCHECK_VCD")
+    lines.append("    initial begin")
+    lines.append(f'        $dumpfile("{tb_name}.vcd");')
+    lines.append(f"        $dumpvars(0, {tb_name});")
+    lines.append("    end")
+    lines.append("`endif")
     lines.append("endmodule")
     return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
 
-def run_iverilog(dut_path, tb_path, tb_name, route_ps=0):
+def run_iverilog(dut_path, tb_path, tb_name, route_ps=0, vcd=False):
     os.makedirs(OUTDIR, exist_ok=True)
     vvp = os.path.join(OUTDIR, f"{tb_name}.vvp")
     log = os.path.join(OUTDIR, f"{tb_name}.log")
     rtl_glob = os.path.join(CELLS, "rtl", "*.v")
     cmd = (f"iverilog -g2012 -gspecify -Wall -Wno-timescale "
-          f"-DBD_ROUTE_PS={route_ps} -o {vvp} "
+          f"-DBD_ROUTE_PS={route_ps} {'-DSIMCHECK_VCD' if vcd else ''} -o {vvp} "
           f"{CELLS}/sim/bd_prims_sim.v {CELLS}/sim/bd_env.v {rtl_glob} "
           f"{dut_path} {tb_path}")
     with open(log, "w") as f:
@@ -347,7 +377,7 @@ def run_iverilog(dut_path, tb_path, tb_name, route_ps=0):
             print(f.read())
         return False, log
     cp = subprocess.run(["vvp", vvp], stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT, text=True)
+                        stderr=subprocess.STDOUT, text=True, cwd=OUTDIR)
     with open(log, "a") as f:
         f.write(cp.stdout)
     print(cp.stdout)
@@ -366,6 +396,9 @@ def main():
                     help="BD_ROUTE_PS, as in run_sim.sh")
     ap.add_argument("--vectors", type=int, default=0,
                     help="use only the first N vectors (0 = all)")
+    ap.add_argument("--vcd", action="store_true",
+                    help="dump a VCD next to the log, for when the failure is "
+                         "a wedge rather than a wrong answer")
     args = ap.parse_args()
 
     funcs = [f for f in parse.parse_module(open(args.mlir).read(),
@@ -417,7 +450,8 @@ def main():
         f.write(tb_text)
     print(f"wrote {tb_path}")
 
-    ok, log = run_iverilog(dut_path, tb_path, tb_name, route_ps=args.route_ps)
+    ok, log = run_iverilog(dut_path, tb_path, tb_name, route_ps=args.route_ps,
+                           vcd=args.vcd)
     if ok:
         print(f"PASS  {tb_name}  (log: {log})")
         return 0
