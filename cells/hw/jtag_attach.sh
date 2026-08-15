@@ -13,12 +13,14 @@
 #      you) cannot open the cable at all.
 #
 #   2. The cable never gets its firmware.  A Platform Cable USB II is a
-#      Cypress FX2: out of reset it enumerates as 03fd:0008 with bcdDevice
-#      0.00 and NO usable interface.  `lsusb` shows it, which is what makes
-#      this confusing -- the cable looks present and hw_server still reports
-#      "available targets: none", because what it is looking for is a cable
-#      that has been given xusb_xp2.hex.  An empty `jtag targets` list means
-#      no CABLE, not an unpowered board.
+#      Cypress FX2 and comes up as 03fd:0008 with no usable interface until
+#      it is given xusb_xp2.hex.  `lsusb` lists it either way, which is what
+#      makes this confusing: the cable looks present and hw_server still
+#      reports "available targets: none".
+#
+# So an empty `jtag targets` list means the CABLE is not usable -- wrong
+# permissions or no firmware -- long before it means anything about the board.
+# Rule both of those out here before suspecting power or a ribbon.
 #
 # Loading the firmware is volatile: it lives in the cable's RAM and is gone on
 # unplug, on a usbipd detach, and on anything that resets the device (a plain
@@ -57,17 +59,33 @@ fi
 echo "== cable at $D =="
 chmod 666 "$D"
 
-# bcdDevice 0.00 is the unprogrammed FX2.  Anything else already has firmware
-# and re-loading it would only bounce the device for no reason.
-if lsusb -v -d 03fd: 2>/dev/null | grep -q "bcdDevice *0\.00"; then
-    echo "== downloading $(basename $FW) =="
-    /usr/sbin/fxload -t fx2 -I "$FW" -D "$D" || exit 1
-    sleep 4
-    D=$(node)
-    [ -n "$D" ] && chmod 666 "$D" && echo "== re-enumerated at $D =="
-else
-    echo "== firmware already present =="
-fi
+# Load unconditionally, and do NOT try to detect whether it is needed.
+#
+# The obvious guard -- skip the load when bcdDevice is already nonzero -- is
+# wrong twice over here, and both ways cost a working cable:
+#
+#   * bcdDevice NEVER updates over usbip.  After a load that demonstrably
+#     works (the chain comes up, the board reads), sysfs still reports 0000,
+#     because the FX2 renumerates -- drops off the bus and re-presents itself
+#     with a new descriptor -- and usbip does not propagate that.  So the
+#     guard would fire every time and skip nothing.
+#
+#   * reading it with `lsusb -v` RESETS the device, which throws away the
+#     firmware that was just loaded.  The check would break the thing it was
+#     checking.
+#
+# Reloading firmware that is already there costs a couple of seconds.  That is
+# the whole downside, so pay it every time.
+#
+# -t fx2lp, not -t fx2.  Single-stage fx2 can only reach 8 KB of on-chip RAM
+# and this image does not fit: it fails with "can't write 31 bytes external
+# memory at 0x2022" and leaves the cable dead.  fx2lp has 16 KB and the same
+# image loads in 102 segments.
+echo "== downloading $(basename $FW) =="
+/usr/sbin/fxload -t fx2lp -I "$FW" -D "$D" || exit 1
+sleep 4
+D=$(node)
+[ -n "$D" ] && chmod 666 "$D" && echo "== cable now at $D =="
 
 echo "== restarting hw_server =="
 pkill -f hw_server
