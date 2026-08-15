@@ -45,7 +45,14 @@ endmodule
 
 module tb_ring;
 
-    localparam integer WINDOW = 20000;   // ps of free running after reset
+    // Both of these scale with the hop, because everything here does.  The
+    // reset hold especially: release it while the power-up X is still draining
+    // and a C-element latches C(x, .) = x into its own feedback loop, which
+    // never clears -- the ring then reads as DEAD for a reason that has
+    // nothing to do with its length.  At BD_ROUTE_PS=354 a fixed 200 ps hold
+    // is far too short, and this bench found that out the hard way.
+    localparam integer HOLD   = 40 * `BD_HOP_PS;   // reset asserted
+    localparam integer WINDOW = 200 * `BD_HOP_PS;  // free running after reset
     localparam integer LIVE   = 2;       // more edges than this = circulating
 
     integer errors = 0;
@@ -82,7 +89,7 @@ module tb_ring;
     endtask
 
     initial begin
-        #200 rst = 1'b0;
+        #HOLD rst = 1'b0;
         #WINDOW;
 
         $display("length sweep (one stage up holding) -- three is the floor:");

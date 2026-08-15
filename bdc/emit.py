@@ -758,6 +758,35 @@ def ring_depths(func, linked):
     raise EmitError(f"{func.name}: ring depth did not converge")
 
 
+def select_channels(func):
+    """Channels whose data is read as a SELECT, not as ordinary data.
+
+    The distinction is a timing one and it comes straight from bd_link.v's
+    header: a link's `req_out` LEADS its `data_out`, by one latch arc per
+    stage, and the header is explicit that this is harmless for a consumer
+    that closes on ack-fall and bites only "at a boundary that SAMPLES the
+    request edge".
+
+    A select is exactly such a boundary.  bd_mux's join is
+    C(x_req, ctl_req . ~s) and bd_steer's branch is req . s -- both read the
+    value combinationally, gated by the request that arrived ahead of it.  Feed
+    one from a DELAY(0) link and the gate evaluates for one arc on a value that
+    has not landed, which shows up in simulation as an X on the branch request.
+
+    So these channels, and only these, need their link's outgoing request
+    padded.  Everywhere else DELAY stays 0, which is the cell the design review
+    costed.
+    """
+    sel = set()
+    for node in func.nodes:
+        # operand 0 is the condition of a cond_br/select and the select of a
+        # mux -- see result_channels(), which reads the data width off the
+        # OTHER operands for exactly these three ops.
+        if node.op in ("cond_br", "mux", "select") and node.operands:
+            sel.add(node.operands[0])
+    return sel
+
+
 def link_sites(func, channels):
     """Which channels get a bd_link, as a set of SSA names.
 
@@ -804,6 +833,9 @@ class Emitter:
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
         self.depth = ring_depths(func, self.linked)
+        # Channels read as a SELECT rather than as ordinary data.  These are
+        # the boundaries where a link's request may not outrun its own value.
+        self.selects = select_channels(func)
 
     # -- widths ------------------------------------------------------------
 
@@ -921,8 +953,19 @@ class Emitter:
         for ssa in sorted(self.linked):
             w = self.width(ssa)
             inst = f"ulink_{vname(ssa)}"
-            d = self.delay(inst, 0)
             n = self.depth.get(ssa, 1)
+            # DELAY 0 everywhere except in front of a select, where the link's
+            # request would otherwise arrive a latch arc ahead of the value the
+            # select is made of.  One delay element per stage matches the lead
+            # bd_link.v measures (one latch arc per stage); like every other
+            # matched delay here it is a placeholder that tighten.py replaces
+            # with the post-route number.
+            # Four elements per stage, not one.  The lead to cover is a
+            # latch arc (152 ps in the sim model, and bd_link.v measures the
+            # same on silicon) while a bd_delay element is a LUT1 whose RISE
+            # arc is 56 ps -- so it takes three to cover one latch arc, and a
+            # fourth is the guardband the bundling constraint asks for.
+            d = self.delay(inst, 4 * n if ssa in self.selects else 0)
             if n > 1:
                 self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
                           f".DELAY({d})) {inst} (")
