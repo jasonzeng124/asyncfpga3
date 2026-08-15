@@ -148,6 +148,57 @@ def parse_sdf(path):
 
 
 # ------------------------------------------------------------ the loop model
+#
+# STORAGE AND CYCLES ARE DIFFERENT THINGS, and this pass used to treat them as
+# one.  They coincide in verify/soak_top.v and they come apart in every design
+# that actually handshakes, which is why the conflation survived so long.
+#
+#   Storage is a LUT whose output feeds its own input.  On this fabric that is
+#   the only way a LUT holds anything -- every C-element, every latch, the
+#   arbiter's state node.  It is structural, local, and decidable by looking at
+#   one instance.
+#
+#   A cycle in the netlist graph is the HANDSHAKE.  A four-phase channel is a
+#   ring by construction: the request goes forward and the acknowledge comes
+#   back.  Rings are the protocol, not memory.
+#
+# Defining a start point as "any pin on a cycle" over-approximates storage by
+# exactly the set of combinational gates that happen to sit on a handshake
+# ring.  soak_top.v deliberately never closes one -- it cross-wires acks into
+# data bits so no cell duplicates another -- so there the two definitions agree
+# and nothing was ever wrong.  In a real pipeline the ring passes through every
+# cell, so the over-approximation swallows the matched delay itself: measured
+# on the first generated kernel, 51 delay-chain links, 7 request ORs and 5
+# acknowledge gates were all being called state.  A chain whose own links are
+# start points has its tail in its own start set, and the request then measures
+# as arriving at itself in 0 ps -- which is precisely the failure
+# bdc/compute.py's emit_proto_top docstring records hitting from the other
+# direction.
+#
+# Cutting at storage rather than at cycles yields a DAG, and that is an
+# invariant of the library rather than a hope: every handshake ring must
+# contain a rendezvous, because a ring of purely combinational gates IS a
+# combinational loop -- the same property bdc/slack.py checks on the handshake
+# graph, stated at the netlist level.  So it is asserted below rather than
+# assumed, and a leftover cycle is reported by name.
+
+def storage_nodes(edges):
+    """Output pins that feed an input of their OWN instance: the real storage.
+
+    This is the census of latches and C-elements, and unlike a cycle census it
+    cannot be inflated by the protocol wrapped around them.
+    """
+    out = set()
+    for src, lst in edges.items():
+        if not is_output(src):
+            continue
+        inst = pin_split(src)[0]
+        for dst, _ in lst:
+            if pin_split(dst)[0] == inst and not is_output(dst):
+                out.add(src)
+                break
+    return out
+
 
 def state_nodes(edges):
     """Pins that lie on a cycle (iterative Tarjan)."""
@@ -554,15 +605,15 @@ def main():
 
     dead, jpath = false_arcs(edges)
     if dead:
-        before = len({p for p in state_nodes(edges) if is_output(p)})
+        before = len(storage_nodes(edges))
         cut = 0
         for src in list(edges):
             keep = [(d, w) for d, w in edges[src] if (src, d) not in dead]
             cut += len(edges[src]) - len(keep)
             edges[src] = keep
-        after = len({p for p in state_nodes(edges) if is_output(p)})
-        # Every latch and C-element in this library IS a feedback loop, so the
-        # loop count is the census of storage.  Cutting an arc must never
+        after = len(storage_nodes(edges))
+        # storage_nodes IS the census of latches and C-elements -- a LUT that
+        # feeds its own input, and nothing else.  Cutting an arc must never
         # change it: if it does, a real dependence has been pruned and the
         # analysis has just been handed permission to walk through a latch.
         if after != before:
@@ -582,7 +633,23 @@ def main():
         for dst, _ in lst:
             back[dst].add(src)
 
-    stops = {p for p in state_nodes(edges) if is_output(p)}
+    stops = storage_nodes(edges)
+
+    # The invariant that makes cutting at storage legitimate: with every
+    # storage node removed, nothing is left on a cycle.  If something is, it is
+    # a ring of combinational gates with no rendezvous in it -- a real
+    # combinational loop, and one no matched delay can be sized against.  Say
+    # which pins, and stop.
+    acyclic = {s: lst for s, lst in edges.items() if s not in stops}
+    left = {p for p in state_nodes(acyclic) if is_output(p)}
+    if left:
+        print(f"storage      ABORT: {len(left)} pin(s) lie on a cycle that "
+              f"contains no latch or C-element.  That is a combinational loop "
+              f"with no storage in it, not a handshake, and no delay length "
+              f"makes it safe:")
+        for p in sorted(left)[:10]:
+            print(f"               {p}")
+        return 2
     timing = Timing(edges, stops)
     chains = find_chains(edges)
 
