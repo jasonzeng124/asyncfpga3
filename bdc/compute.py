@@ -91,9 +91,37 @@ SIGNED_CMPI = {"slt", "sle", "sgt", "sge"}
 
 # Placeholder length, in bd_delay links, for a BARE LIBRARY CELL -- a bd_mux
 # or the generated arbitrated merge, whose data path is a single datamux LUT
-# and so does not grow with width.  Measured, not guessed: on the first routed
-# kernel bd_mux certifies at 4 links with room to come down to 3.
-CELL_DELAY = {"wide": 4}
+# and so does not grow with width.
+#
+# This was 4, on the grounds that bd_mux certified at 4 with room to come down
+# to 3.  It did -- on ONE route.  Rebuilding gcd with longer compute delays
+# moved the placement, and the same uut.umux0 went from peak 664 ps and margin
+# +2022 to peak 1984 ps and margin -335.  Nothing about the mux changed; the
+# routing around it did.
+#
+# So a placeholder cannot be sized from one route's measurement, only bounded
+# by the worst routing spread seen across routes.  Observed mux peaks top out
+# at 2179 ps, which wants 6 links; 12 is two-fold headroom and still small.
+# This is the same argument as FLOOR below, and it is the general rule: what a
+# small cell races is not its own logic, it is its own wiring.
+CELL_DELAY = {"wide": 12}
+
+# The shortest placeholder any compute unit gets, whatever its width.  It is
+# not a logic-depth number: it covers the routing spread of a cell's own
+# datapath, which is what a narrow op actually races.  Measured -- see
+# default_delay() -- from a 1-bit compare that peaked at 3619 ps and wanted 10
+# links while several 32-bit adders wanted 4.
+FLOOR = 16
+
+
+def merge_delay(n):
+    """Placeholder for an n-input arbitrated merge.
+
+    An n-input merge is a cascade of n-1 bd_arbiters, so its grant is n-1
+    arbiter delays deep rather than one.  The flat 4 that served the two-input
+    case put the first three-input control_merge 38 ps short.
+    """
+    return CELL_DELAY["wide"] * (n - 1)
 
 
 def default_delay(op, width):
@@ -108,34 +136,38 @@ def default_delay(op, width):
     shortened on the first measurement; one that starts too short is a broken
     design that reports itself broken.
 
-    Calibrated against the routed SDF of the first real kernel, not guessed:
+    Calibrated against routed SDF, not guessed.  A link is ~290 ps on these
+    routes, and across 66 matched delays in gcd plus 9 in test_loop_free:
 
-      * a link is ~290 ps on that route
-      * a 32-bit carry chain settles in 3070 ps -- about width/3 links
-      * the deepest thing measured was the abc-mapped 32-bit comparator at
-        4999 ps -- about width/2 links
+      * 32-bit carry chains peak at 3552-5875 ps, wanting 4-10 links
+      * 32-bit shifts peak at 7481-8816 ps, wanting 12-25 links -- the barrel
+        shifter is by a wide margin the deepest datapath in the op set, and
+        the first version of this function extrapolated it from the carry
+        chain and came up one link short on ushrsi2
+      * bitwise ops and `select` peak at 1399-3229 ps, wanting 0-5 links
+      * NARROW ops are not cheap.  A 1-bit compare peaked at 3619 ps and
+        wanted 10 links -- more than several 32-bit ones.  Its logic is one
+        LUT; what it is racing is the ROUTING of its own datapath, which does
+        not shrink with width.  That is why there is a floor at all, and why
+        the floor is not small.
 
-    Three quarters of the width therefore clears every measurement with room,
-    without being absurd, and being generous costs almost nothing: the
-    placeholder is never what ships.  verify/resize.sh proposes the measured
-    length from the routed SDF and that is what gets built.
+    So: a floor that covers routing spread, and a width term only where logic
+    depth actually tracks width.  Being generous costs almost nothing -- the
+    placeholder is never what ships, verify/resize.sh proposes the measured
+    length from the routed SDF and that is what gets built -- while being one
+    link short costs a re-route.
 
-    `wide` covers the bitwise ops and `select`.  It does not scale with width
-    -- one LUT level is one LUT level -- but it is twice CELL_DELAY because a
-    compute unit wraps its datapath in a join and a uor that a bare cell does
-    not have.  The routed kernel put `select` at 6 links; 8 covers it.
-
-    Two classes are extrapolation and are marked as such: nothing has yet
-    routed a barrel shifter or a multiplier.
+    One class is still extrapolation and is marked as such: no multiplier has
+    ever routed here.
     """
     cls = _depth_class(op)
-    if cls == "carry":
-        return max(8, (3 * width) // 4)
-    if cls == "shift":
-        return max(8, (3 * width) // 4)     # EXTRAPOLATED -- none routed yet
     if cls == "mul":
-        return max(24, 2 * width)           # EXTRAPOLATED -- none routed yet
-    return 8
+        return max(FLOOR, 2 * width)        # EXTRAPOLATED -- none routed yet
+    if cls == "shift":
+        return max(FLOOR, width)
+    if cls == "carry":
+        return max(FLOOR, (3 * width) // 4)
+    return FLOOR
 
 
 def cmp_pair(pred):

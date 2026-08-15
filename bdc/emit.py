@@ -151,6 +151,21 @@ def _result_atoms(sig):
     return _atoms(parts[-1])
 
 
+def _known(chs):
+    """The first operand width that is already resolved, or None.
+
+    A merge, a mux and a cond_br all produce the width their data operands
+    carry, and those operands all carry the SAME width -- the IR would be
+    ill-typed otherwise.  So any one of them that is already known answers the
+    question, and insisting on a particular one is what deadlocks a loop: in
+    gcd the first data input of the loop-header mux is the value coming back
+    around the loop, whose width is exactly what is being asked for.  Taking
+    whichever input is known breaks that ring at the one place it is not
+    actually circular -- the input coming in from outside the loop.
+    """
+    return next((c for c in chs if c is not None), None)
+
+
 def result_channels(node, operand_ch):
     """The (width, is_control) of each of `node`'s results.
 
@@ -158,6 +173,13 @@ def result_channels(node, operand_ch):
     spells its OPERAND type and never mentions the i1 it produces, while
     `control_merge`'s spells both results after a `to`.  Anything not listed
     raises by name.
+
+    An entry of `operand_ch` may be None, meaning that operand's width is not
+    known yet.  A rule that needs it returns None in that result's place and
+    the caller tries again later; a rule that does not need it -- and several
+    genuinely do not -- answers straight away.  Returning None is NOT a way to
+    express "unknown width": it means "ask me again", and the fixpoint fails
+    loudly if the answer never arrives.
     """
     op = node.op
     nres = len(node.results)
@@ -181,10 +203,19 @@ def result_channels(node, operand_ch):
         return [operand_ch[1]]
     if op == "cond_br":
         return [operand_ch[1], operand_ch[1]]
-    if op in ("br", "merge", "buffer"):
+    if op in ("br", "buffer"):
         return [operand_ch[0]]
+    if op == "merge":
+        return [_known(operand_ch)]
+    if op in ("trunci", "extui", "extsi"):
+        # `trunci %19 : <i32> to <i1>` -- the width that matters is the one
+        # after the `to`, and it is the only place it appears.  These are the
+        # ops bdc/compute.py's header deliberately refuses: a slice or a
+        # concatenation is wire, not logic, so it is lowered here and gets no
+        # compute unit and no matched delay.
+        return [_result_atoms(node.type_sig)[-1]]
     if op == "mux":
-        return [operand_ch[1]]
+        return [_known(operand_ch[1:])]
     if op == "control_merge":
         atoms = _result_atoms(node.type_sig)
         if len(atoms) != 2:
@@ -241,45 +272,106 @@ AMERGE_HEADER = """
 """
 
 
-def emit_amerge(width):
-    """The two-input arbitrated data merge, as a module."""
+def _ports(n, dw, kind):
+    """The N repeated channel ports, as Verilog text."""
+    pad = "     " if dw > 9 else "      "
+    out = []
+    for k in range(n):
+        out.append(f"""     input  wire             {kind}{k}_req,
+     output wire             {kind}{k}_ack,
+     input  wire [{dw - 1}:0]{pad}{kind}{k}_data,
+""")
+    return "\n".join(out)
+
+
+def _index_expr(n, sig):
+    """Winner index from the per-stage grants, as a priority chain.
+
+    Stage k's grant is only meaningful when no LATER stage won, because a
+    later stage that granted is still holding its A0 low and stage k's own
+    grant is whatever it was when it last fired.  Reading them newest-first
+    is what makes the stale ones unreachable rather than merely unlikely.
+    """
+    iw = max(1, (n - 1).bit_length())
+    expr = f"{iw}'d0"
+    for k in range(1, n):
+        expr = f"{sig}[{k}] ? {iw}'d{k} : ({expr})"
+    return iw, expr
+
+
+def _data_mux(n, dw, sel, name):
+    """z_data as a chain of conditionals on `sel`."""
+    expr = f"{name}0_data"
+    for k in range(1, n):
+        expr = f"({sel} == {k}) ? {name}{k}_data : ({expr})"
+    return expr
+
+
+def emit_amerge(width, n=2):
+    """The N-input arbitrated data merge, as a module.
+
+    N inputs is a CASCADE of two-input bd_arbiters, not a balanced tree: each
+    stage arbitrates the accumulated winner so far against one more input, so
+    stage k's R0/A0 is stage k+1's r1/A1.  A cascade because that is the shape
+    whose grant decoding is a priority chain over the stage grants -- a
+    balanced tree needs the same number of arbiters and gives an encoding that
+    is harder to argue about, for a fairness gain that is not measured
+    anywhere and is not what this cell is for.
+
+    At n=2 this reduces to exactly one bd_arbiter with index = g2, which is
+    the circuit that was here before N inputs existed.
+
+    Fairness across the cascade is deliberately not claimed: input 0 goes
+    through every stage and input n-1 through one, so a saturated input n-1
+    can starve input 0.  handshake.merge makes no fairness promise for this to
+    violate, and the graphs this backend sees have at most three predecessors
+    on a control_merge.  If a kernel ever depends on it, that is a design
+    question and it should be answered deliberately, not by quietly changing
+    the topology here.
+    """
     dw = max(width, 1)
-    data_ports = "" if width == 0 else f"""
-     input  wire [{dw - 1}:0]     x_data,"""
+    pad = "     " if dw > 9 else "      "
+    iw, idx_expr = _index_expr(n, "g2")
+
+    stages = []
+    acc_req, acc_ack = "in0_req", "in0_ack"
+    for k in range(1, n):
+        last = (k == n - 1)
+        r0 = "r0" if last else f"acc{k}_req"
+        a0 = "z_ack" if last else f"acc{k}_ack"
+        if not last:
+            stages.append(f"    wire {r0}, {a0};")
+        stages.append(f"""    bd_arbiter uarb{k} (
+        .rst(rst),
+        .r1({acc_req}), .A1({acc_ack}),
+        .r2(in{k}_req), .A2(in{k}_ack),
+        .R0({r0}),{' ' * max(1, 8 - len(r0))}.A0({a0}),
+        .g1(g1[{k}]),  .g2(g2[{k}]));""")
+        acc_req, acc_ack = r0, a0
+
     return AMERGE_HEADER + f"""
 (* keep_hierarchy *)
-module bdc_amerge_{width} #(parameter DELAY = 4)
+module bdc_amerge{n}_{width} #(parameter DELAY = 4)
     (input  wire             rst,
 
-     input  wire             x_req,
-     output wire             x_ack,
-     input  wire [{dw - 1}:0]{'     ' if dw > 9 else '      '}x_data,
-
-     input  wire             y_req,
-     output wire             y_ack,
-     input  wire [{dw - 1}:0]{'     ' if dw > 9 else '      '}y_data,
-
+{_ports(n, dw, "in")}
      output wire             z_req,
      input  wire             z_ack,
-     output wire [{dw - 1}:0]{'     ' if dw > 9 else '      '}z_data,
+     output wire [{dw - 1}:0]{pad}z_data,
 
-     output wire             grant);
+     output wire [{iw - 1}:0]{pad}index);
 
-    wire r0, g1, g2;
-    bd_arbiter uarb (
-        .rst(rst),
-        .r1(x_req), .A1(x_ack),
-        .r2(y_req), .A2(y_ack),
-        .R0(r0),    .A0(z_ack),
-        .g1(g1),    .g2(g2));
+    wire r0;
+    wire [{n - 1}:1] g1, g2;
 
-    // z = g2 ? y : x, matching bd_datamux's own z = s ? b : a.
-    bd_datamux #(.W({dw})) udat (.a(x_data), .b(y_data), .s(g2), .z(z_data));
+{chr(10).join(stages)}
 
     // Which input won, as ordinary channel data.  This is what a
     // control_merge's index result is, and it is stable for exactly as long
     // as z_data is, because it is the same grant that selected it.
-    assign grant = g2;
+    assign index = {idx_expr};
+
+    assign z_data = {_data_mux(n, dw, "index", "in")};
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(r0), .O(either));
@@ -288,7 +380,94 @@ module bdc_amerge_{width} #(parameter DELAY = 4)
     // g1 is read so the arbiter's own output cannot be optimised away; the
     // grants are a fractured pair and deleting one changes the cell that
     // cells/verify/MTBF.md characterised.
-    wire unused_g1 = g1;
+    wire unused_g1 = |g1;
+endmodule
+"""
+
+
+MUXN_HEADER = """
+// ---------------------------------------------------------------------------
+// bdc_muxn -- N channels in, one out, picked by an index channel.
+//
+// cells/rtl/bd_mux.v generalised from two inputs to N.  Its structure is kept
+// exactly, because its correctness argument is about the SHAPE and not about
+// the arity:
+//
+//     j_k    = C(in_k_req, ctl_req . (s == k))
+//     z_req  = delta(OR of all j_k)
+//     in_k_ack = C(j_k, z_ack)
+//     ctl_ack  = z_ack
+//     z_data   = in_s_data
+//
+// Only the selected input is acknowledged, because in_k_ack can only rise if
+// j_k fired and j_k can only fire if the index said k.  Every other input
+// keeps its token untouched, which is what a loop header needs.
+//
+// WHY THIS IS NOT A TREE OF bd_mux, which is the obvious thing to try and is
+// wrong: a tree needs the index at every level, so the index channel has to
+// be forked.  A fork does not complete until every branch acknowledges, and
+// the branch feeding a level that the index did not select never fires -- so
+// it never acknowledges, and the fork deadlocks.  The one-level form has one
+// consumer of the index and cannot deadlock that way.
+//
+// bd_mux folds its decode into the join's LUT6, which at two inputs is free
+// because ~s and s are one wire.  At N inputs the decode is a comparison
+// against a multi-bit index and does not fit, so it is left as ordinary logic
+// for yosys to map.  That is safe for the same reason bd_mux's own comment
+// gives for trusting s: the index is ordinary channel data, held by the
+// control channel's contract from ctl_req-rise to ctl_ack-fall, so the decode
+// is a monotonic function of ctl_req over a window where everything else it
+// reads is already stable.  It cannot glitch a join input high.
+//
+// The OR feeding the delay cannot glitch either: the decode is one-hot, so at
+// most one j_k is ever changing.
+// ---------------------------------------------------------------------------
+"""
+
+
+def emit_muxn(width, n):
+    """The N-input index-selected mux, as a module."""
+    dw = max(width, 1)
+    pad = "     " if dw > 9 else "      "
+    iw = max(1, (n - 1).bit_length())
+
+    joins = []
+    for k in range(n):
+        joins.append(
+            f"    assign sel[{k}] = ctl_req & (s == {iw}'d{k});\n"
+            f"    bd_c2 uj{k} (.a(in{k}_req), .b(sel[{k}]), .rst(rst), "
+            f".q(j[{k}]));")
+    acks = "\n".join(
+        f"    bd_c2 ua{k} (.a(j[{k}]), .b(z_ack), .rst(rst), "
+        f".q(in{k}_ack));" for k in range(n))
+
+    return MUXN_HEADER + f"""
+(* keep_hierarchy *)
+module bdc_muxn{n}_{width} #(parameter DELAY = 4)
+    (input  wire             rst,
+
+{_ports(n, dw, "in")}
+     input  wire             ctl_req,
+     output wire             ctl_ack,
+     input  wire [{iw - 1}:0]{pad}s,
+
+     output wire             z_req,
+     input  wire             z_ack,
+     output wire [{dw - 1}:0]{pad}z_data);
+
+    wire [{n - 1}:0] sel, j;
+
+{chr(10).join(joins)}
+
+    wire either;
+    (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(|j), .O(either));
+    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+
+{acks}
+
+    assign ctl_ack = z_ack;
+
+    assign z_data = {_data_mux(n, dw, "s", "in")};
 endmodule
 """
 
@@ -410,24 +589,29 @@ class Emitter:
         while pending:
             progress = []
             for i, node in pending:
-                ops = node.operands
-                if any(o not in self.ch for o in ops):
-                    progress.append((i, node))
-                    continue
-                widths = result_channels(node, [self.ch[o] for o in ops])
+                widths = result_channels(
+                    node, [self.ch.get(o) for o in node.operands])
                 if len(widths) != len(node.results):
                     raise EmitError(
                         f"{node.op} at line {node.src_line}: width rule gave "
                         f"{len(widths)} result type(s) for {len(node.results)} "
                         f"result(s)")
+                if any(w is None for w in widths):
+                    progress.append((i, node))
+                    continue
                 for name, w in zip(node.results, widths):
                     self.ch[name] = w
             if len(progress) == len(pending):
-                stuck = {n.op for _, n in progress}
+                stuck = sorted({n.op for _, n in progress})
+                unknown = sorted({o for _, n in progress for o in n.operands
+                                  if o not in self.ch})
                 raise EmitError(
                     f"could not resolve channel widths; {len(progress)} op(s) "
-                    f"left, kinds {sorted(stuck)}. An operand has no producer, "
-                    f"which materialize should have made impossible")
+                    f"left, kinds {stuck}. Unresolved operands: "
+                    f"{unknown[:8]}{' ...' if len(unknown) > 8 else ''}. Either "
+                    f"an operand has no producer, which materialize should have "
+                    f"made impossible, or every op in a cycle is asking a rule "
+                    f"that needs a width from inside that same cycle")
             pending = progress
 
     def width(self, ssa):
@@ -534,28 +718,65 @@ class Emitter:
     def _op_br(self, node, inst):
         self._pass_through(node.operands[0], node.results[0])
 
+    def _reshape(self, node, expr):
+        """trunci / extui / extsi: the handshake passes straight through and
+        only the data bundle changes shape.
+
+        None of the three has any logic depth -- a slice is a wire and a
+        zero-extend is a constant -- so none gets a matched delay.  That is the
+        whole reason bdc/compute.py's header refuses to build units for them:
+        a unit would place a bd_join and a bd_delay around a renaming.
+
+        The request is NOT delayed here even though the data changes, because
+        it does not change in a way that costs time.  If that ever stops being
+        true -- if a reshape grows a mux -- it stops being a reshape and needs
+        a unit, and this method is the wrong place to notice that.
+        """
+        src, dst = node.operands[0], node.results[0]
+        self.emit(f"    assign {self.oreq(dst)} = {self.req(src)};")
+        self.emit(f"    assign {self.ack(src)} = {self.oack(dst)};")
+        self.emit(f"    assign {self.odata(dst)} = {expr};")
+
+    def _op_trunci(self, node, inst):
+        w = self.width(node.results[0])
+        self._reshape(node, f"{self.data(node.operands[0])}[{max(w, 1) - 1}:0]")
+
+    def _op_extui(self, node, inst):
+        src, dst = node.operands[0], node.results[0]
+        sw, dw = max(self.width(src), 1), max(self.width(dst), 1)
+        if dw <= sw:
+            raise EmitError(f"line {node.src_line}: extui from {sw} to {dw} "
+                            f"bits does not widen. Dynamatic emitted an "
+                            f"extension that is not one; do not silently slice")
+        self._reshape(node, f"{{{dw - sw}'b0, {self.data(src)}}}")
+
+    def _op_extsi(self, node, inst):
+        src, dst = node.operands[0], node.results[0]
+        sw, dw = max(self.width(src), 1), max(self.width(dst), 1)
+        if dw <= sw:
+            raise EmitError(f"line {node.src_line}: extsi from {sw} to {dw} "
+                            f"bits does not widen. Dynamatic emitted an "
+                            f"extension that is not one; do not silently slice")
+        d = self.data(src)
+        self._reshape(node, f"{{{{{dw - sw}{{{d}[{sw - 1}]}}}}, {d}}}")
+
     def _op_merge(self, node, inst):
         ops = node.operands
         if len(ops) == 1:
             self._pass_through(ops[0], node.results[0])
             return
-        if len(ops) != 2:
-            raise EmitError(
-                f"merge with {len(ops)} inputs at line {node.src_line}: only "
-                f"the two-input arbitrated merge is built. An N-way merge is a "
-                f"tree of them and needs its own arbitration argument made")
         z = node.results[0]
         w = self.width(z)
-        self.units.setdefault(f"bdc_amerge_{w}", emit_amerge(w))
-        d = self.delay(inst, compute.CELL_DELAY["wide"])
-        self.emit(f"    bdc_amerge_{w} #(.DELAY({d})) {inst} (")
+        n = len(ops)
+        self.units.setdefault(f"bdc_amerge{n}_{w}", emit_amerge(w, n))
+        d = self.delay(inst, compute.merge_delay(n))
+        self.emit(f"    bdc_amerge{n}_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
-        self.emit(f"        .x_req({self.req(ops[0])}), .x_ack({self.ack(ops[0])}), "
-                  f".x_data({self.data(ops[0])}),")
-        self.emit(f"        .y_req({self.req(ops[1])}), .y_ack({self.ack(ops[1])}), "
-                  f".y_data({self.data(ops[1])}),")
+        for k, o in enumerate(ops):
+            self.emit(f"        .in{k}_req({self.req(o)}), "
+                      f".in{k}_ack({self.ack(o)}), .in{k}_data({self.data(o)}),")
         self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
-                  f".z_data({self.odata_out(z)}), .grant());")
+                  f".z_data({self.odata_out(z)}), .index());")
 
     def _op_control_merge(self, node, inst):
         """result + index.  Two channels out of one arrival, so even the
@@ -577,32 +798,35 @@ class Emitter:
             self.emit(f"    assign {self.odata(idx)} = "
                       f"{self.width(idx)}'d0;")
             return
-        if len(ops) != 2:
-            raise EmitError(
-                f"control_merge with {len(ops)} inputs at line "
-                f"{node.src_line}: only two are built. gcd needs three, and "
-                f"that is a tree of arbiters plus index encoding -- a real "
-                f"design question, not a loop over this code")
-
-        # The arbitrated merge already produces the index as its grant, so
-        # result and index leave together and both need forking off one
-        # arrival.  The merge's own matched delay covers the grant.
+        # The arbitrated merge already produces the index, so result and index
+        # leave together and both need forking off one arrival.  The merge's
+        # own matched delay covers the index.
         w = self.width(res)
-        self.units.setdefault(f"bdc_amerge_{w}", emit_amerge(w))
-        d = self.delay(inst, compute.CELL_DELAY["wide"])
+        n = len(ops)
+        iw = max(1, (n - 1).bit_length())
+        if self.width(idx) < iw:
+            raise EmitError(
+                f"control_merge at line {node.src_line}: {n} inputs need "
+                f"{iw} index bit(s) but the index channel is "
+                f"{self.width(idx)} wide. Do not truncate a winner")
+        self.units.setdefault(f"bdc_amerge{n}_{w}", emit_amerge(w, n))
+        d = self.delay(inst, compute.merge_delay(n))
         m_req, m_ack = f"{inst}_req", f"{inst}_ack"
         self.emit(f"    wire {m_req}, {m_ack};")
         if not self.is_control(res):
             self.emit(f"    wire [{max(w, 1) - 1}:0] {inst}_data;")
-        self.emit(f"    bdc_amerge_{w} #(.DELAY({d})) {inst} (")
+        self.emit(f"    bdc_amerge{n}_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
-        self.emit(f"        .x_req({self.req(ops[0])}), .x_ack({self.ack(ops[0])}), "
-                  f".x_data({self.data(ops[0])}),")
-        self.emit(f"        .y_req({self.req(ops[1])}), .y_ack({self.ack(ops[1])}), "
-                  f".y_data({self.data(ops[1])}),")
+        for k, o in enumerate(ops):
+            self.emit(f"        .in{k}_req({self.req(o)}), "
+                      f".in{k}_ack({self.ack(o)}), .in{k}_data({self.data(o)}),")
         self.emit(f"        .z_req({m_req}), .z_ack({m_ack}), "
                   f".z_data({inst + '_data' if w else ''}), "
-                  f".grant({self.odata(idx)}[0]));")
+                  f".index({self.odata(idx)}[{iw - 1}:0]));")
+        if self.width(idx) > iw:
+            self.emit(f"    assign {self.odata(idx)}"
+                      f"[{self.width(idx) - 1}:{iw}] = "
+                      f"{self.width(idx) - iw}'d0;")
         self.emit(f"    bd_fork #(.N(2)) {inst}_f (")
         self.emit(f"        .rst(rst), .req({m_req}), .ack({m_ack}),")
         self.emit(f"        .req_out({{{self.oreq(idx)}, {self.oreq(res)}}}),")
@@ -661,23 +885,37 @@ class Emitter:
     def _op_mux(self, node, inst):
         sel = node.operands[0]
         ins = node.operands[1:]
-        if len(ins) != 2:
-            raise EmitError(
-                f"mux with {len(ins)} data inputs at line {node.src_line}: "
-                f"bd_mux is two-way. A wider one is a tree plus index "
-                f"decoding, which gcd needs and nothing here has designed")
         z = node.results[0]
         w = self.width(z)
+        n = len(ins)
         d = self.delay(inst, compute.CELL_DELAY["wide"])
-        # s = 0 picks x, so x is input 0 -- the same order the index counts in.
-        self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+        if n == 2:
+            # s = 0 picks x, so x is input 0 -- the order the index counts in.
+            self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .x_req({self.req(ins[0])}), "
+                      f".x_ack({self.ack(ins[0])}), .x_data({self.data(ins[0])}),")
+            self.emit(f"        .y_req({self.req(ins[1])}), "
+                      f".y_ack({self.ack(ins[1])}), .y_data({self.data(ins[1])}),")
+            self.emit(f"        .ctl_req({self.req(sel)}), "
+                      f".ctl_ack({self.ack(sel)}), .s({self.data(sel)}[0]),")
+            self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+                      f".z_data({self.odata_out(z)}));")
+            return
+        iw = max(1, (n - 1).bit_length())
+        if self.width(sel) < iw:
+            raise EmitError(
+                f"mux at line {node.src_line}: {n} inputs need {iw} index "
+                f"bit(s) but the index channel is {self.width(sel)} wide")
+        self.units.setdefault(f"bdc_muxn{n}_{w}", emit_muxn(w, n))
+        self.emit(f"    bdc_muxn{n}_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
-        self.emit(f"        .x_req({self.req(ins[0])}), .x_ack({self.ack(ins[0])}), "
-                  f".x_data({self.data(ins[0])}),")
-        self.emit(f"        .y_req({self.req(ins[1])}), .y_ack({self.ack(ins[1])}), "
-                  f".y_data({self.data(ins[1])}),")
-        self.emit(f"        .ctl_req({self.req(sel)}), .ctl_ack({self.ack(sel)}), "
-                  f".s({self.data(sel)}[0]),")
+        for k, o in enumerate(ins):
+            self.emit(f"        .in{k}_req({self.req(o)}), "
+                      f".in{k}_ack({self.ack(o)}), .in{k}_data({self.data(o)}),")
+        self.emit(f"        .ctl_req({self.req(sel)}), "
+                  f".ctl_ack({self.ack(sel)}), "
+                  f".s({self.data(sel)}[{iw - 1}:0]),")
         self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
                   f".z_data({self.odata_out(z)}));")
 

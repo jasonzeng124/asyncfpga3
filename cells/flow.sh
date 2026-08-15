@@ -133,28 +133,27 @@ sed 's/^/  /' $OUT/toolchain.txt
 echo "routed."
 echo
 
-# The FASM is the netlist as the bitstream sees it, and it is the only place
-# the fracturing claim can actually be checked.  prjxray writes ONE 64-bit
+# The FASM is the netlist as the bitstream sees it.  prjxray writes ONE 64-bit
 # xLUT.INIT per occupied LUT site: the O6 function in the upper half, the O5
-# function in the lower.  So LUT.INIT lines ARE occupied sites.  If the packer
-# had expanded each fractured cell into two sites the count would run well
-# ahead of the cell count instead of tracking it.
+# function in the lower.  So LUT.INIT lines ARE occupied sites, and that is
+# what gets reported here.
 #
 # Do not try to match these INITs against the constants in verify/inits.py.
 # The packer permutes LUT input pins freely and rewrites INIT to match, so the
-# bits are a different -- equivalent -- constant.  What is checked here is the
-# site count; the constants are proved exhaustively at the source, which is
-# where they mean something.
+# bits are a different -- equivalent -- constant.  The constants are proved
+# exhaustively at the source, which is where they mean something.
 lut_sites=$(grep -c "LUT\.INIT" $OUT/soak.fasm || true)
 brams=$(grep -c "RAMB18" $OUT/soak.fasm || true)
 echo "FASM:  $lut_sites occupied LUT sites, $brams BRAM lines"
 
-if [ "$lut_sites" -gt $(( lut_cells + 4 )) ]; then
-    echo "FAIL: $lut_sites sites for $lut_cells cells -- fractured pairs were split"
-    echo "      (this is what a nextpnr without split_lut6_2 does)"
-    exit 1
-fi
-echo "fractured pairs held one site each"
+# Whether the fractured pairs held is checked against the routed netlist, by
+# comparing the two halves' BELs directly.  It used to be inferred from the
+# site count above running ahead of $lut_cells, and that proxy gave a false
+# FAIL on the first design with many constants in it: nextpnr inserts its own
+# LUTs to drive constant nets ($PACKER_GND_NET / $PACKER_VCC_NET), 736 of them
+# on gcd, and those are sites the design did not ask for.  Every pair had in
+# fact held.  verify/fracture.py checks the claim instead of a proxy for it.
+python3 verify/fracture.py $OUT/soak_routed.json || exit 1
 
 # A global buffer on the manufactured clock is the failure bd_mem's header is
 # about, and it is silent in simulation.  It is not silent here.
