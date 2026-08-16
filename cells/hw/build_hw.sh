@@ -25,7 +25,29 @@ set -eu
 cd "$(dirname "$0")/.."
 
 TOP=${1:-ro_top}
-SRC=hw/$TOP.v
+
+# The source list, per design, spelled out rather than globbed -- the same
+# reason flow.sh names its files.  ro_top, arb_mtbf and arb_prot each sit
+# directly on a handful of primitives and read three files; gcd_hw is the
+# first design here that instantiates a whole COMPILED kernel, so it needs
+# the entire library plus two files that are not hand-written:
+#
+#   ../build/gen/gcd_kernel.v  generated, gitignored, and regenerated with
+#       python3 -m bdc.emit build/frontend/gcd/comp/handshake_transformed.mlir \
+#               --no-top -o build/gen/gcd_kernel.v
+#       from the project root.  It is checked for below by name, because a
+#       stale or missing kernel otherwise shows up as "module bdc_gcd not
+#       found" a hundred lines into a yosys log.
+#   hw/gcd_rig.v               the reset/vector/compare environment around it.
+case "$TOP" in
+gcd_hw)
+    KERNEL=../build/gen/gcd_kernel.v
+    SRCS="rtl/*.v $KERNEL hw/gcd_rig.v hw/$TOP.v"
+    ;;
+*)
+    SRCS="rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v hw/$TOP.v"
+    ;;
+esac
 
 TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
@@ -42,8 +64,9 @@ FRAMES2BIT=$TC/openxc7/bin/xc7frames2bit
 OUT=build/hw/$TOP
 mkdir -p "$OUT"
 
+# shellcheck disable=SC2086
 for f in "$YOSYS" "$NEXTPNR" "$CHIPDB" "$CELLS_SIM" "$CELLS_XTRA" \
-         "$FASM2FRAMES" "$FRAMES2BIT" "$SRC"; do
+         "$FASM2FRAMES" "$FRAMES2BIT" $SRCS; do
     [ -e "$f" ] || { echo "missing: $f"; exit 2; }
 done
 
@@ -81,7 +104,7 @@ echo "== synthesis =="
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
 read_verilog -lib $CELLS_XTRA
-read_verilog rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v $SRC
+read_verilog $SRCS
 synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP -run begin:map_luts
 opt_expr -mux_undef -noclkinv
 abc -luts 2:2,3,6:5,10,20
