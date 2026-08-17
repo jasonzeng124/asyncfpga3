@@ -113,9 +113,16 @@ def build_tb(op, width, pred, vecs):
     # widens both sides of == to the wider operand, so an unsized reference
     # would let a truncating unit agree with a non-truncating operator and the
     # gate would pass on a design that drops its top bits.
+    # SETTLE FOR A GATE, NOT FOR A DELTA.  bd_prims_sim.v is `timescale 1ps`
+    # and its LUT arc is 56/124 ps, so the old `#1` was one PICOSECOND -- it
+    # worked only while every unit ended in a zero-delay `assign`.  A cmpi now
+    # ends in a modelled LUT1 (see the carry-out note in compute.py), and at #1
+    # every vector read back x: a real failure signature produced entirely by
+    # the testbench.  1 ns clears any single arc with two decimal orders to
+    # spare and still costs nothing.
     label = f"{op}{'.' + pred if pred else ''}"
     body = "\n".join(
-        f"        a = {width}'d{a}; b = {width}'d{b}; #1;\n"
+        f"        a = {width}'d{a}; b = {width}'d{b}; #1000;\n"
         f"        want = {ref};\n"
         f"        if (z_data !== want) begin\n"
         f"            $display(\"MISMATCH w={width} {label} a=%0d b=%0d "
