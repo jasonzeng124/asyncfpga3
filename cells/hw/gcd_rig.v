@@ -66,6 +66,39 @@
 // uses.  The filter is the second line of defence only: what actually makes
 // the compare valid is that the request gating it has been padded to trail the
 // data it describes.  See CMPD below.
+//
+// -- THE ABS PROBE, AND WHY IT IS THE ONE MEASUREMENT WORTH TAKING -----------
+//
+// ok/err say WHETHER the kernel was right.  They cannot say WHERE it went
+// wrong, and the whole gcd investigation is now stuck on a where.  A gate-level
+// simulation of the routed netlist says `cmpi sgt(diff, -1)` returns 0 for
+// every positive diff, so `a = -diff` instead of `|diff|`, `a` goes negative,
+// `while (a != 0)` never terminates and no result is ever delivered.  That
+// model predicts the board's failing set exactly.  But it is a MODEL -- it runs
+// through this project's own SDF reader and primitive library -- and the change
+// that provably removed the mechanism it blamed left the board's verdict word
+// bit for bit identical.  Either the model is right about the silicon and wrong
+// about the cause, or it is wrong about the silicon and coincidentally breaks
+// the same vectors.  Nothing in simulation can tell those apart.  The die can.
+//
+// So one internal channel comes out: %138, the result of the `abs` select in
+// bb10.  It is chosen because it carries its own oracle.  |x| is non-negative,
+// so abs_data[31] MUST be 0, always, for every vector, with no reference value
+// to compare against and -- decisively -- NO SECOND CHANNEL TO SAMPLE.  Every
+// cross-channel check on this design has had to argue about iteration skew,
+// because a link output lags its own input by a full handshake and two probes
+// caught at one instant can belong to different trips round the loop.  A
+// one-channel invariant sampled on that channel's own request has no such
+// argument to make.
+//
+// The probe is a TAP.  It drives no acknowledge and closes no loop, so it
+// cannot complete a handshake or take a token; it costs the design fanout on
+// two nets and nothing else.  It does move placement, so a probe build's
+// verdict word is only comparable to another probe build's.
+//
+// abs_req is padded by CMPD for exactly the reason res_req is -- a link's
+// request leads its data by a latch arc, and a sampler on the request EDGE is
+// the one consumer that cares.
 // ---------------------------------------------------------------------------
 
 `default_nettype none
@@ -78,7 +111,11 @@ module gcd_rig #(parameter integer IDXW  = 4,
      output wire            lap,        // one four-phase cycle per completed gcd
      output wire            err_flt,    // a wrong answer, width-filtered
      output wire            ok_flt,     // a right answer, width-filtered
-     output wire            probe);     // liveness sample, meaning is in its variance
+     output wire            probe,      // liveness sample, meaning is in its variance
+     output wire            abs_neg,    // %138 arrived NEGATIVE -- the finding
+     output wire            abs_seen,   // %138 arrived at all -- without this, abs_neg=0 is void
+     output wire            abs_req,    // %138 valid, padded by CMPD
+     output wire [31:0]     abs_data);  // %138 -- bb10's |a-b|, which cannot be < 0
 
     // ---- the vector table --------------------------------------------------
     // Sixteen (a, b, expected) triples.  The first six are bdc/simcheck.py's
@@ -129,13 +166,20 @@ module gcd_rig #(parameter integer IDXW  = 4,
     wire out0_req, out0_ack, p_end_req, p_end_ack;
     wire [31:0] out0_data;
 
+    wire abs_req_raw;
+
     bdc_gcd udut (
         .rst(rst),
         .a_req(a_req),         .a_ack(a_ack),         .a_data(a_v),
         .b_req(b_req),         .b_ack(b_ack),         .b_data(b_v),
         .start_req(start_req), .start_ack(start_ack),
         .out0_req(out0_req),   .out0_ack(out0_ack),   .out0_data(out0_data),
-        .p_end_req(p_end_req), .p_end_ack(p_end_ack));
+        .p_end_req(p_end_req), .p_end_ack(p_end_ack),
+        .probe_n138_req(abs_req_raw), .probe_n138_data(abs_data));
+
+    // Same padding, same reason, as urdly below: the request must trail the
+    // data it describes before anything samples its edge.
+    bd_delay #(.N(CMPD)) uabsdly (.a(abs_req_raw), .z(abs_req));
 
     // ---- fork the env request into the three input channels ----------------
     wire env_c, in_ack;
@@ -230,6 +274,25 @@ module gcd_rig #(parameter integer IDXW  = 4,
 
     assign lap   = res_req;   // padded out0_req: one rise per delivered gcd
     assign probe = env_c;
+
+    // ---- the abs probe's detector ------------------------------------------
+    // Built from the same parts as err/ok above, in the same order, for the
+    // same reasons: gate the assertion on the padded request, then width-filter
+    // the gated result, and report the finding NEXT TO a witness that the event
+    // was ever observed.  abs_neg=0 on a vector whose abs_seen is also 0 says
+    // nothing at all -- it is the same trap ok_flt exists to close, and on a
+    // livelocking vector it is not hypothetical: if the kernel never reaches
+    // bb10, a detector on bb10 is silent for a reason that has nothing to do
+    // with what it detects.
+    wire absn_raw, abss_raw, absn_d, abss_d;
+    (* keep *) LUT2 #(.INIT(4'h8)) uabsn_d (.I0(abs_data[31]), .I1(abs_req), .O(absn_raw));
+    (* keep *) LUT1 #(.INIT(2'h2)) uabss_d (.I0(abs_req),                    .O(abss_raw));
+
+    bd_delay #(.N(WFILT)) uabsn_w (.a(absn_raw), .z(absn_d));
+    bd_delay #(.N(WFILT)) uabss_w (.a(abss_raw), .z(abss_d));
+
+    (* keep *) LUT2 #(.INIT(4'h8)) uabsn_a (.I0(absn_raw), .I1(absn_d), .O(abs_neg));
+    (* keep *) LUT2 #(.INIT(4'h8)) uabss_a (.I0(abss_raw), .I1(abss_d), .O(abs_seen));
 
 endmodule
 

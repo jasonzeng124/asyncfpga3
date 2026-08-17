@@ -43,6 +43,17 @@ case "$TOP" in
 gcd_hw)
     KERNEL=../build/gen/gcd_kernel.v
     SRCS="rtl/*.v $KERNEL hw/gcd_rig.v hw/$TOP.v"
+    # Regenerated here rather than checked for, because hw/gcd_rig.v now
+    # connects PROBE PORTS on bdc_gcd and those exist only if the kernel was
+    # emitted with --probe.  A stale kernel would fail as "port probe_n138_req
+    # does not exist", which is a true statement about a file nobody remembered
+    # to regenerate -- so the build regenerates it and the two cannot drift.
+    # BDC_PROBE names channels as they appear in the emitted Verilog; see the
+    # probe-port block in bdc/emit.py, and gcd_rig.v's header for why %138.
+    mkdir -p ../build/gen
+    ( cd .. && python3 bdc/emit.py \
+        build/frontend/gcd/comp/handshake_transformed.mlir \
+        --no-top --probe n138 -o build/gen/gcd_kernel.v )
     ;;
 *)
     SRCS="rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v hw/$TOP.v"

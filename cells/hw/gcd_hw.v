@@ -26,6 +26,23 @@
 // Both arrays are built from the same LUT3, the same INIT and the same arm
 // gate, so a vector whose ok bit set could have set its err bit.
 //
+// -- THE ABS PROBE -----------------------------------------------------------
+//
+//   absn (addr 10)  a bit is set if that vector ever saw bb10's |a-b| arrive
+//                   NEGATIVE.  |x| < 0 is impossible, so any set bit is a
+//                   finding and needs no reference value to interpret.
+//   abss (addr 11)  a bit is set if that vector ever saw bb10's abs arrive at
+//                   all.  A zero in addr 10 is void unless this bit is one --
+//                   and on a livelocking vector that is the expected shape, not
+//                   a corner case, because a detector on bb10 says nothing
+//                   about a kernel that never reaches bb10.
+//   absv (addr 12)  the first negative abs, verbatim
+//   (addr 13)       {valid, idx} for that capture -- which vector it came from
+//
+// gcd_rig.v's header argues why this particular channel is the one worth
+// bringing out, and why it is the only cross-check in this design that does not
+// have to argue about iteration skew.
+//
 // -- THE LATENCY MEASUREMENT -------------------------------------------------
 //
 // hold[10] pins the rig to a single vector, hold[9:6].  With that set, addr 0
@@ -197,10 +214,14 @@ module gcd_hw (output wire led_red, output wire led_green);
 
     // ---- the rig -----------------------------------------------------------
     wire rig_lap, rig_err, rig_ok, rig_probe;
+    wire rig_absn, rig_abss, rig_abs_req;
+    wire [31:0] rig_abs_data;
 
     gcd_rig #(.IDXW(IDXW), .WFILT(WFILT), .CMPD(CMPD)) urig (
         .rst(rig_rst), .idx(idx),
-        .lap(rig_lap), .err_flt(rig_err), .ok_flt(rig_ok), .probe(rig_probe));
+        .lap(rig_lap), .err_flt(rig_err), .ok_flt(rig_ok), .probe(rig_probe),
+        .abs_neg(rig_absn), .abs_seen(rig_abss),
+        .abs_req(rig_abs_req), .abs_data(rig_abs_data));
 
     // ---- per-vector stickies -----------------------------------------------
     // One bit per vector rather than one aggregate bit, so a finding names the
@@ -208,6 +229,8 @@ module gcd_hw (output wire led_red, output wire led_green);
     // drives the same table from the same reference.
     wire [NVEC-1:0] err_sticky;
     wire [NVEC-1:0] ok_sticky;
+    wire [NVEC-1:0] absn_sticky;
+    wire [NVEC-1:0] abss_sticky;
 
     // Low clears every sticky latch and holds it cleared; high lets them
     // accumulate.  Two sources, and both must permit: por_done for the
@@ -220,9 +243,16 @@ module gcd_hw (output wire led_red, output wire led_green);
     generate for (vi = 0; vi < NVEC; vi = vi + 1) begin : vec
         wire sel = (idx == vi[IDXW-1:0]);
 
-        wire err_raw, ok_raw;
+        wire err_raw, ok_raw, absn_raw, abss_raw;
         (* keep *) LUT2 #(.INIT(4'h8)) uerr_g (.I0(rig_err), .I1(sel), .O(err_raw));
         (* keep *) LUT2 #(.INIT(4'h8)) uok_g  (.I0(rig_ok),  .I1(sel), .O(ok_raw));
+
+        // The abs probe's two bits, per vector, through the SAME gate, the same
+        // INIT and the same arm as the verdict pair -- so "vector 5 never
+        // showed a negative abs" carries exactly the weight "vector 5 never
+        // gave a wrong answer" does, and no more.
+        (* keep *) LUT2 #(.INIT(4'h8)) uabsn_g (.I0(rig_absn), .I1(sel), .O(absn_raw));
+        (* keep *) LUT2 #(.INIT(4'h8)) uabss_g (.I0(rig_abss), .I1(sel), .O(abss_raw));
 
         // INIT EC, not E0.  E0 is q = armed & (q | raw) -- the arm gate holds
         // the latch CLEARED, not merely shut -- and that is right in
@@ -279,7 +309,44 @@ module gcd_hw (output wire led_red, output wire led_green);
         (* keep *) LUT4 #(.INIT(16'hEC00)) uok_s (
             .I0(ok_raw),  .I1(ok_sticky[vi]),  .I2(armed), .I3(sticky_keep),
             .O(ok_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uabsn_s (
+            .I0(absn_raw), .I1(absn_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(absn_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uabss_s (
+            .I0(abss_raw), .I1(abss_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(abss_sticky[vi]));
     end endgenerate
+
+    // ---- what the negative abs actually WAS --------------------------------
+    // The sticky above says a bit was set; this says which number set it, and
+    // that is the difference between "the sign is wrong" and "the value is
+    // corrupt".  If the modelled mechanism is what the die does, this reads
+    // back the exact negation of a diff the vector table can predict.  If it
+    // reads back something that is not -|a-b| for any operand pair in flight,
+    // the mechanism is something else entirely and the model was never
+    // measuring it.
+    //
+    // First hit only, held: a later, longer-running vector must not overwrite
+    // the first evidence, and the idx captured alongside is what attributes it.
+    // Clocked on the padded abs request because that is the only edge in this
+    // design that is synchronous to the data -- hk_ck is not, and sampling a
+    // 32-bit asynchronous bus on an unrelated clock would produce a word that
+    // is a mixture of two values and looks like a corrupt one.
+    wire abs_ck;
+    BUFG bg_abs (.I(rig_abs_req), .O(abs_ck));
+
+    reg [31:0]     absv       = 32'h0;
+    reg [IDXW-1:0] absv_idx   = {IDXW{1'b0}};
+    reg            absv_valid = 1'b0;
+    always @(posedge abs_ck) begin
+        if (hold_clr) begin
+            absv_valid <= 1'b0;
+        end else if (rig_abs_data[31] && armed && !absv_valid) begin
+            absv       <= rig_abs_data;
+            absv_idx   <= idx;
+            absv_valid <= 1'b1;
+        end
+    end
 
     // ---- completed gcds, counted on the die --------------------------------
     // The rig's lap signal is a real four-phase request, one rise per delivered
@@ -338,6 +405,15 @@ module gcd_hw (output wire led_red, output wire led_green);
 
             // A right answer -- must read all ONE, or addr 8 is void
             5'd9:  mux_d = {16'h0, ok_sticky};
+
+            // The abs probe.  10 is the finding, 11 is its witness: a zero bit
+            // in 10 means nothing unless the same bit in 11 is one.
+            5'd10: mux_d = {16'h0, absn_sticky};
+            5'd11: mux_d = {16'h0, abss_sticky};
+
+            // The first negative abs, and which vector produced it.
+            5'd12: mux_d = absv;
+            5'd13: mux_d = {24'h0, 3'h0, absv_valid, absv_idx};
 
             default: mux_d = 32'h0000_0000;
         endcase

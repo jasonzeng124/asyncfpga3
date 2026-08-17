@@ -94,6 +94,13 @@ class EmitError(Exception):
     """A construct this emitter will not guess at.  Always names the op."""
 
 
+# Internal channels to bring out as read-only probe ports.  Set by --probe or
+# by BDC_PROBE in the environment, so a build script can turn the probe on
+# without the emitter's caller learning a new flag.  See the long comment at
+# the probe-port block in emit_func for what a probe is and is not.
+PROBE = [p for p in os.environ.get("BDC_PROBE", "").split(",") if p]
+
+
 # Verilog keywords that a Dynamatic argName/resName can collide with.  `end`
 # is not hypothetical: it is the resName of every kernel's completion channel.
 RESERVED = {
@@ -1421,6 +1428,50 @@ def emit_func(func, table=None):
         if not res.is_control:
             ports.append(f"    output wire [{res.width - 1}:0]     {b}_data")
 
+    # ---- probe ports -------------------------------------------------------
+    # BDC_PROBE=<chan>[,<chan>...] brings an INTERNAL channel out of the kernel
+    # so it can be latched and read back over JTAG.
+    #
+    # This exists because a gate-level simulation of the routed netlist is a
+    # MODEL, and on gcd the model and the die disagreed in a way neither could
+    # settle alone: cells/gls said `cmpi sgt(diff, -1)` returns 0 for positive
+    # diff, the board failed exactly the vectors that predicts, and the change
+    # that provably removed the modelled cause left the board's verdict word
+    # bit-for-bit unchanged.  One of the two is lying and only the silicon
+    # knows which.  A probe port is how you ask it.
+    #
+    # The probe is a TAP, never a consumer: it reads <chan>_data and <chan>_req
+    # and drives no ack, so it cannot complete a handshake, cannot steal a
+    # token, and cannot change the schedule of the design it is measuring.  It
+    # does add fanout, which moves placement -- so a probe build is a different
+    # route and its verdict word is only comparable to another probe build.
+    probes = []
+    for name in [p for p in PROBE if p]:
+        ssa = next((s for s in e.ch if vname(s) == name), None)
+        if ssa is None:
+            raise EmitError(
+                f"--probe names {name!r}, which is not a channel in @{func.name}. "
+                f"Channels are named as they are in the emitted Verilog "
+                f"(`n136_u`, not `%136`); `grep 'wire n.*_req' <output>` lists them.")
+        w, ctl = e.ch[ssa]
+        probes.append((name, w, ctl))
+
+    for name, w, ctl in probes:
+        ports.append(f"    output wire             probe_{name}_req")
+        if not ctl:
+            ports.append(f"    output wire [{w - 1}:0]     probe_{name}_data")
+
+    # The tap is taken on the CONSUMER side of any link on the channel, i.e.
+    # the same nets the real consumer sees, so what is measured is the value
+    # the design actually acts on rather than one a link may still be holding.
+    probe_taps = "\n".join(
+        [f"    // Probe taps.  Read-only: no ack is driven from these."] +
+        [line for name, w, ctl in probes
+         for line in ([f"    assign probe_{name}_req = {name}_req;"] +
+                      ([] if ctl else
+                       [f"    assign probe_{name}_data = {name}_data;"]))]
+    ) if probes else ""
+
     params = ", ".join(f"parameter DELAY_{i.upper()} = {d}"
                        for i, d in e.delays)
     param_clause = f" #({params})" if params else ""
@@ -1481,6 +1532,7 @@ def emit_func(func, table=None):
          "\n".join(bridge),
          "",
          "\n".join(e.lines),
+         probe_taps,
          "endmodule"])
     return body, e.units, e.delays
 
@@ -1636,7 +1688,14 @@ def main():
     ap.add_argument("-o", "--out", help="write here instead of stdout")
     ap.add_argument("--no-top", action="store_true",
                     help="emit the kernel module only, without the two-pin top")
+    ap.add_argument("--probe", default="", metavar="CHAN[,CHAN...]",
+                    help="bring these internal channels out as read-only "
+                         "probe ports (names as they appear in the emitted "
+                         "Verilog, e.g. n136_u); also settable as BDC_PROBE")
     args = ap.parse_args()
+
+    if args.probe:
+        PROBE[:] = [p for p in args.probe.split(",") if p]
 
     text, func, delays = generate(args.mlir, top=not args.no_top)
     if args.out:

@@ -124,6 +124,8 @@ u1 0
 u1 0
 puts "CLRERR [rd 8]"
 puts "CLROK [rd 9]"
+puts "CLRABSN [rd 10]"
+puts "CLRABSS [rd 11]"
 set ctrl {ctrl_idle}
 u1 0
 
@@ -147,6 +149,10 @@ for {{set rep 0}} {{$rep < {reps}}} {{incr rep}} {{
 
 puts "ERR [rd 8]"
 puts "OK [rd 9]"
+puts "ABSN [rd 10]"
+puts "ABSS [rd 11]"
+puts "ABSV [rd 12]"
+puts "ABSI [rd 13]"
 
 jtag unlock
 puts "DONE"
@@ -218,6 +224,94 @@ def parse(out):
         elif len(p) == 3 and p[0].isupper() and p[1].lstrip("-").isdigit():
             got.setdefault(p[0], []).append((int(p[1]), decode(p[2])))
     return got
+
+
+def report_abs(got, err, okb):
+    """The abs probe: what bb10's |a-b| actually looked like on the die.
+
+    This is not part of the pass/fail verdict and deliberately does not change
+    the exit code.  It is a measurement of ONE INTERNAL SIGNAL, taken to settle
+    a disagreement between a gate-level simulation of the routed netlist and the
+    board -- see gcd_rig.v's header for the full argument.  A run can be a
+    perfectly good PASS and still print something interesting here.
+
+    Read it as a three-way:
+
+      absn bit set              bb10 delivered a NEGATIVE |a-b| on that vector.
+                                |x| < 0 is impossible, so this is a real fault
+                                inside the kernel and the simulation was right
+                                about the silicon.
+      absn clear, abss set      bb10 ran and every abs it delivered was
+                                non-negative.  Whatever breaks the failing
+                                vectors is NOT this, and the gate model's
+                                stuck-at-0 comparator is an artifact of the
+                                model.
+      absn clear, abss clear    bb10 was never reached at all.  Says nothing
+                                about the comparator either way.
+    """
+    if "ABSN" not in got or "ABSS" not in got:
+        print("\n  abs probe: NOT READ BACK (stale bitstream? this script "
+              "expects addr 10-13)")
+        return
+    absn = field(got["ABSN"][-1][1])["data"] & 0xFFFF
+    abss = field(got["ABSS"][-1][1])["data"] & 0xFFFF
+
+    print("\nTHE ABS PROBE -- bb10's |a-b|, measured on the die")
+    print("-" * 78)
+    print(f"  absn_sticky = 0x{absn:04X}  (a set bit is a NEGATIVE abs -- "
+          f"impossible; want 0x0000)")
+    print(f"  abss_sticky = 0x{abss:04X}  (bb10 reached at all; a zero in "
+          f"absn is void unless this is one)")
+
+    neg = [v for v in range(NVEC) if (absn >> v) & 1]
+    unseen = [v for v in range(NVEC) if not ((abss >> v) & 1)]
+    failing = [v for v in range(NVEC) if not ((okb >> v) & 1) or ((err >> v) & 1)]
+
+    if neg:
+        print(f"  NEGATIVE abs on vector(s): {neg}")
+    if unseen:
+        print(f"  bb10 never reached on vector(s): {unseen}")
+
+    # A check on the PROBE, not on the kernel.  Vectors 0 and 1 are the C
+    # source's two early returns (a==0 and b==0), so they never enter the main
+    # loop and bb10 is genuinely unreachable for them.  Every other vector
+    # re-runs continuously for the whole window, so its abs fires thousands of
+    # times.  abss reading anything other than 0xFFFC means the probe is not
+    # sampling what this script thinks it is, and nothing above is safe to read.
+    if abss != 0xFFFC:
+        print(f"  PROBE SANITY: abss=0x{abss:04X}, expected 0xFFFC -- vectors "
+              f"0 and 1 take the C source's early returns and never reach "
+              f"bb10, every other vector runs the loop all window.  A "
+              f"different word means the probe is not measuring what is "
+              f"assumed here; treat the verdict below with suspicion.")
+
+    if "ABSV" in got and "ABSI" in got:
+        absv = field(got["ABSV"][-1][1])["data"]
+        absi = field(got["ABSI"][-1][1])["data"]
+        if (absi >> 4) & 1:
+            signed = absv - (1 << 32) if absv >> 31 else absv
+            print(f"  first negative abs: 0x{absv:08X} ({signed}) on vector "
+                  f"{absi & 0xF}")
+        else:
+            print("  first negative abs: none captured")
+
+    # The comparison that actually settles the question.
+    if neg:
+        same = set(neg) == set(failing)
+        print(f"\n  VERDICT: the die really does deliver a negative abs. "
+              f"{'The set matches' if same else 'The set does NOT match'} the "
+              f"failing vectors {failing}.")
+    elif set(failing) - set(unseen):
+        print(f"\n  VERDICT: no negative abs anywhere, and bb10 WAS reached on "
+              f"{sorted(set(failing) - set(unseen))} of the failing vectors. "
+              f"The gate model's stuck-at-0 comparator is not what the silicon "
+              f"does; look elsewhere.")
+    elif failing:
+        print(f"\n  VERDICT: inconclusive -- every failing vector "
+              f"({failing}) never reached bb10, so the probe had nothing to "
+              f"measure on exactly the vectors in question.")
+    else:
+        print("\n  VERDICT: no negative abs, and nothing failed.")
 
 
 def main():
@@ -335,15 +429,22 @@ def main():
               "was zeroed, the per-vector verdict is a record of every sweep "
               "since configuration, not of this run.")
         return 2
-    clr_err = field(got["CLRERR"][-1][1])["data"] & 0xFFFF
-    clr_ok = field(got["CLROK"][-1][1])["data"] & 0xFFFF
-    if clr_err or clr_ok:
-        print(f"  sticky clear FAILED: after asserting hold[11] the array "
-              f"still reads err=0x{clr_err:04X} ok=0x{clr_ok:04X}, want both "
-              f"0x0000.  Stopping -- the verdict below would be stale.")
+    clr = {}
+    for tag in ("CLRERR", "CLROK", "CLRABSN", "CLRABSS"):
+        clr[tag] = field(got[tag][-1][1])["data"] & 0xFFFF if tag in got else None
+    if any(v is None for v in clr.values()):
+        print("  sticky clear: NOT READ BACK for "
+              + ", ".join(t for t, v in clr.items() if v is None)
+              + " -- stop.")
         return 2
-    print("  sticky clear: err=0x0000 ok=0x0000 confirmed, the array starts "
-          "this run empty")
+    if any(clr.values()):
+        print(f"  sticky clear FAILED: after asserting hold[11] the arrays "
+              f"still read err=0x{clr['CLRERR']:04X} ok=0x{clr['CLROK']:04X} "
+              f"absn=0x{clr['CLRABSN']:04X} abss=0x{clr['CLRABSS']:04X}, want "
+              f"all 0x0000.  Stopping -- the verdict below would be stale.")
+        return 2
+    print("  sticky clear: err/ok/absn/abss all 0x0000 confirmed, the arrays "
+          "start this run empty")
 
     # -- 4. is the silicon actually running? ---------------------------------
     live = {field(w)["data"] for _, w in got.get("SAMPLE", [])}
@@ -450,6 +551,8 @@ def main():
 
     print(f"\n  {n_correct}/{NVEC} correct, {n_wrong}/{NVEC} WRONG, "
           f"{n_never}/{NVEC} never checked")
+
+    report_abs(got, err, okb)
 
     if n_wrong or n_never:
         print("\n  FAIL -- not every vector proved correct.")
