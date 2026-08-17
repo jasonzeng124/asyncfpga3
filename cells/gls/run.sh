@@ -54,6 +54,19 @@ Read a FAIL here against the board before believing it.  This simulation is
 more pessimistic than silicon by construction: nextpnr's cell arcs are a flat
 124 ps on O6 where the part's own are 56-152 ps and pin- and edge-dependent
 (verify/tighten.py's header calls these "the weaker half of every number").
-On 2026-08-17 it failed 11 of 16 vectors where the board failed 7, so four of
-its failures were its own pessimism, not the design's.
+An earlier route failed 11 of 16 here where the board failed 7, so four of
+those were its own pessimism rather than the design's.
+
+On the route stamped 392abe70/aae1011d it fails EXACTLY the board's seven --
+5, 6, 7, 8, 11, 12, 13 -- which is why this is now the place to debug them.
+Two cautions on that match.  It is a match of PASS/FAIL MASKS; nothing on
+disk ties the programmed bitstream to that md5 pair, so it is not proof the
+two ran the same build.  And a failing vector reports laps=0: not one gcd
+ever completes, so "how many laps" cannot rank the failures by severity.
+
+A TIMEOUT here is only meaningful against the design's own timescale.  A
+passing gcd takes ~3.2 us, and rig_rst is re-released at the window edge near
+979 us, so TEND=150000 already gives a failing vector ~300 passing-gcd
+latencies to produce one lap.  Raising TEND past the window edge buys less
+than it looks like it does -- the ring restarts there.
 EOF
