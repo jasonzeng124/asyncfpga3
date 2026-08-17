@@ -46,12 +46,46 @@ Usage:
 
 import argparse
 import heapq
+import json
 import os
 import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compute  # noqa: E402
+
+# Delay elements placed per pipeline stage in front of a SELECT (a cond_br
+# condition or a mux control).  Overridable so the value can be swept against
+# real hardware instead of argued about: BDC_SELECT_PAD=32 python3 bdc/emit.py ...
+SELECT_PAD = int(os.environ.get("BDC_SELECT_PAD", "4"))
+
+def load_select_pads():
+    """Per-instance select padding, in bd_delay elements, from a JSON file.
+
+    Set BDC_SELECT_PADS to a path holding {"ulink_n120": 12, ...}.  The
+    intended producer is verify/tighten.py run against a routed SDF: it knows
+    the actual arrival skew between a select's request and its value on the
+    route that was actually built, and a global constant does not.
+
+    Missing file is an ERROR, not a fallback.  Silently reverting to the
+    constant would produce a build that looks sized and is not -- the same
+    failure mode flow.sh's BD_SIZES comment warns about, where every gate
+    passes on a design that ignored its own measurements.
+    """
+    path = os.environ.get("BDC_SELECT_PADS")
+    if not path:
+        return {}
+    with open(path) as f:
+        raw = json.load(f)
+    out = {}
+    for k, v in raw.items():
+        n = int(v)
+        if n < 0:
+            raise ValueError(f"select pad for {k!r} is negative: {n}")
+        out[str(k)] = n
+    return out
+
+
 from hs import parse  # noqa: E402
 from map import Table, Unmapped  # noqa: E402
 
@@ -836,6 +870,11 @@ class Emitter:
         # Channels read as a SELECT rather than as ordinary data.  These are
         # the boundaries where a link's request may not outrun its own value.
         self.selects = select_channels(func)
+        # Per-instance matched-delay lengths measured off a routed SDF, keyed by
+        # link instance name (e.g. "ulink_n120").  Whatever is in here wins over
+        # SELECT_PAD, because a number taken from the route beats a number taken
+        # from an argument.  Empty by default, so an unsized build is unchanged.
+        self.select_pads = load_select_pads()
 
     # -- widths ------------------------------------------------------------
 
@@ -965,7 +1004,36 @@ class Emitter:
             # same on silicon) while a bd_delay element is a LUT1 whose RISE
             # arc is 56 ps -- so it takes three to cover one latch arc, and a
             # fourth is the guardband the bundling constraint asks for.
-            d = self.delay(inst, 4 * n if ssa in self.selects else 0)
+            # SELECT_PAD, not a literal 4.  The 4 above was derived from the
+            # INTRINSIC lead only -- a latch arc over a LUT1 rise arc -- and it
+            # ignores the routing skew between the request net and the select
+            # net, which on this part is most of every hop.  On silicon that
+            # shows up as vectors whose loop has to take a real branch simply
+            # never completing, deterministic per bitstream and DIFFERENT on a
+            # different place-and-route seed, with err_sticky always clean
+            # because a mis-steered token deadlocks rather than computing a
+            # wrong answer.  Until tighten.py audits select channels and hands
+            # back a per-route number, this is the knob that buys margin.
+            #
+            # A GLOBAL CONSTANT CANNOT WORK HERE, and that is measured, not
+            # argued.  Swept on silicon against the sixteen-vector gcd rig:
+            #
+            #     pad  4   7 of 16 vectors complete      6820 LUT sites
+            #     pad 32  16 of 16 on one route,          7492
+            #             9 of 16 after an unrelated
+            #             one-LUT change to the rig       7483
+            #     pad 64   8 of 16, and gcd(1,1) -- the
+            #             most trivial vector there is
+            #             -- was one of the dead ones     8251
+            #
+            # Not monotone.  Padding a select buys margin on THAT channel and
+            # spends it everywhere else: 24 channels of 64 elements is 1536
+            # LUT1s of chain, congestion rises, and the routing skew on the
+            # selects that were already marginal grows faster than the padded
+            # ones improve.  The number has to come from the route, per channel.
+            pad = SELECT_PAD * n if ssa in self.selects else 0
+            pad = self.select_pads.get(inst, pad)
+            d = self.delay(inst, pad)
             if n > 1:
                 self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
                           f".DELAY({d})) {inst} (")

@@ -13,7 +13,7 @@ and this tool says so in those words.
     ./flow.sh                    # writes build/pnr/soak.sdf
     python3 verify/tighten.py
 
--- the three rules ----------------------------------------------------------
+-- the four rules -----------------------------------------------------------
 
 A.  THE REQUEST IS THE LAST THING A CELL EMITS.  For a cell with a matched
     delay on its outgoing request, that request must arrive later than every
@@ -31,6 +31,23 @@ B.  THE RAM BOUNDARY IS A REAL SETUP CHECK.  It is the one edge-sampled
 
 C.  CLOCK-TO-OUT.  The acknowledge tapped off the RAM clock must be at least
     t_co = 2454 ps behind it, or the read data is announced before it exists.
+
+D.  THE SELECT MUST BE STABLE BEFORE THE REQUEST THAT SAMPLES IT.  bd_steer
+    (req0 = req.~s, req1 = req.s) and bd_mux's joins (C(x_req, ctl_req.~s))
+    read their select bit combinationally, gated by whichever request lands
+    on the same LUT -- and a bd_link's req_out is free to LEAD its own
+    data_out by one latch arc per stage (bd_link.v), which bdc/emit.py's
+    SELECT_PAD exists to cover.  This rule measures what SELECT_PAD actually
+    bought on THIS route: earliest possible arrival at the request pin
+    against latest possible arrival at the select pin, at the consumer's own
+    physical, placed-and-permuted A-pins.  The two almost never share a
+    start point -- bd_steer's request is a join one storage hop downstream
+    of the select's own link, and an unlinked select shares no C-element
+    with its request at all -- so this is check_bundled's pairing, not
+    check()'s, for the same reason a generated compute unit's a_req/a_data
+    is.  The guardband is rule A's req_guard.  Consumers are found
+    structurally (see select_consumers), not by matching this design's
+    instance names.
 
 -- how a setup check is actually done ---------------------------------------
 
@@ -70,14 +87,22 @@ path considered here is acyclic by construction.
 """
 
 import json
-import math, re, sys, pathlib
+import math, re, statistics, sys, pathlib
 from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# argv: [sdf]  [--emit <path>]  [--list-audited]
-_args  = [a for a in sys.argv[1:] if not a.startswith("--")]
-_flags = [a for a in sys.argv[1:] if a.startswith("--")]
+# argv: [sdf]  [--emit <path>]  [--list-audited]  [--osc <instance-prefix> ...]
+_raw = sys.argv[1:]
+# --osc's value is a bare instance prefix, not a "--" flag, so it has to be
+# pulled out by position before the generic _args/_flags split below would
+# otherwise swallow it as if it were the SDF path.
+_osc_at = [i for i, a in enumerate(_raw) if a == "--osc"]
+OSC = [_raw[i + 1] for i in _osc_at if i + 1 < len(_raw)]
+_osc_skip = set(_osc_at) | {i + 1 for i in _osc_at if i + 1 < len(_raw)}
+_args  = [a for i, a in enumerate(_raw)
+          if not a.startswith("--") and i not in _osc_skip]
+_flags = [a for a in _raw if a.startswith("--")]
 # --list-audited prints, one per line, "<BD_SZ macro> <instance> <peak ps>" for
 # every cell rule A actually audits and that carries a delay today, worst peak
 # first -- and nothing else, so it can be read by a script.  verify/teeth.sh
@@ -86,6 +111,26 @@ _flags = [a for a in sys.argv[1:] if a.startswith("--")]
 # source file read, changed nothing, and then reported that the gate had no
 # teeth.  The victim has to come from the design under test.
 LIST = "--list-audited" in _flags
+# --osc <prefix> declares one instance (or its whole subtree, anything whose
+# path is the prefix or starts with "<prefix>.") a free-running ring
+# oscillator -- an instrument that supplies a clock, like hw/gcd_hw.v's `dhk`,
+# not a handshake.  The storage ABORT below exists because a combinational
+# cycle with no latch or C-element in it is a real defect everywhere else; an
+# oscillator is the one deliberate exception, already routed with nextpnr's
+# --ignore-loops for the same reason.  This flag may ONLY be used to name a
+# ring that is genuinely free-running end to end -- never to silence a real
+# bundling bug by declaring the cycle it lives on an "oscillator", and never
+# as a blanket switch: it is scoped per instance and reported per instance, so
+# a prefix that excludes nothing says so instead of disappearing quietly.
+# --select-pads <path> writes rule D's per-link requirement as JSON, in the
+# shape bdc/emit.py's BDC_SELECT_PADS reads: {"ulink_n1__1": 24, ...}, valued in
+# bd_delay links priced at THIS route's measured cost.  Additional padding, to
+# be added to what the link already carries -- rule D measures the shortfall it
+# can see, and it cannot see how long the chain already is.
+PADS = None
+if "--select-pads" in sys.argv:
+    PADS = pathlib.Path(sys.argv[sys.argv.index("--select-pads") + 1])
+    _args = [a for a in _args if a != str(PADS)]
 EMIT = None
 if "--emit" in sys.argv:
     EMIT = pathlib.Path(sys.argv[sys.argv.index("--emit") + 1])
@@ -108,9 +153,63 @@ AUDITED = []
 T_SU = {"ADDRARDADDR": 566, "DIADI": 737, "WEA": 532}
 T_CO = 2454
 
+# What one bd_delay link costs, in ps.  MEASURED OFF THIS ROUTE, not assumed.
+#
+# The old value here was 56, taken from sim/bd_prims_sim.v's `BD_T_RISE -- and
+# that macro is `(56 + BD_ROUTE_PS)` with BD_ROUTE_PS defaulting to ZERO.  It is
+# the LUT's rise arc in a world with no wires, and nothing on this part costs
+# that.  On the gcd route the same SDF this tool is already parsing says a chain
+# link is 124 ps of LUT plus 150 ps of interconnect = 274 ps, and hw/ro_top.v
+# measured five ring oscillators on silicon at ~396 ps per link over an 18x span
+# of ring length.  Pricing a recommendation at 56 ps overstates it by about 7x,
+# and acting on that number costs congestion: swept on the board, a global pad
+# of 64 and 96 elements BOTH worked worse than 32, because 24 padded channels of
+# LUT1 chain crowd the selects that were not the problem.
+#
+# hw/README.md is what licenses reading it out of the SDF rather than measuring
+# it again: measured = 0.975 x predicted across that 18x span, ~8.5% per-route
+# scatter with no trend in length, and every ring FASTER than predicted, which is
+# the safe direction for a matched delay.  So the SDF is good to about ten
+# percent and errs long, and the number to use is the local one it already holds.
+T_DELAY_RISE_FALLBACK = 274
+
+RE_CHAIN_LINK = re.compile(r"(.+)\.chain\.g\\?\[(\d+)\\?\]\.u$")
+# The bare link instance inside a placed path, e.g.
+#   urig.udut.ulink_n1__1.lat.pair[12].u$LUT6/O6  ->  ulink_n1__1
+RE_SEL_LINK = re.compile(r"(?:^|\.)(ulink_[A-Za-z0-9_]+)\.")
+
+
+def measure_delay_element(text):
+    """ps per bd_delay link on THIS route: the chain LUT plus the hop to the next.
+
+    Medians, not means: a handful of chain hops route long (the tail runs past
+    2.7 ns on the gcd build) and a mean would quietly price every recommendation
+    off those outliers.  Returns None when the design has no bd_delay chain to
+    measure, which is a real case -- soak has them, a pure control design may
+    not -- and the caller must then say it is falling back rather than pretend.
+    """
+    wire = []
+    for m in RE_IC.finditer(text):
+        src, dst, val = m.group(1), m.group(2), int(m.group(3))
+        sb, db = src.rsplit("/", 1)[0], dst.rsplit("/", 1)[0]
+        ms, md = RE_CHAIN_LINK.match(sb), RE_CHAIN_LINK.match(db)
+        if ms and md and ms.group(1) == md.group(1):
+            wire.append(val)
+    lut = []
+    for _ct, inst, body in RE_CELL_BLOCK.findall(text):
+        if RE_CHAIN_LINK.match(inst):
+            lut += [int(a) for a in RE_IOPATH_ARC.findall(body)]
+    if not wire or not lut:
+        return None
+    return int(statistics.median(lut) + statistics.median(wire))
+
 RE_INSTANCE = re.compile(r"\(INSTANCE\s+(\S*)\s*\)")
 RE_CELLTYPE = re.compile(r'\(CELLTYPE\s+"([^"]*)"\)')
 RE_IOPATH   = re.compile(r"\(IOPATH\s+(\S+)\s+(\S+)\s+\((\d+):")
+RE_IC       = re.compile(r"\(INTERCONNECT\s+(\S+)\s+(\S+)\s+\((\d+):")
+RE_IOPATH_ARC = re.compile(r"\(IOPATH\s+\S+\s+\S+\s+\((\d+):")
+RE_CELL_BLOCK = re.compile(
+    r'\(CELL\s*\(CELLTYPE "([^"]*)"\)\s*\(INSTANCE\s+(\S*)\s*\)(.*?)\n\s*\)\n', re.S)
 RE_INTERCON = re.compile(r"\(INTERCONNECT\s+(\S+)\s+(\S+)\s+\((\d+):")
 RE_LINK     = re.compile(r"^(?P<base>.+)\.chain\.g\[(?P<i>\d+)\]\.u$")
 
@@ -608,6 +707,97 @@ def false_arcs(edges):
     return dead, jpath
 
 
+# --------------------------------------------------------------- rule D
+
+def orig_ports(cell):
+    """A placed LUT cell's logical input ports (I0..I5, as the Verilog wrote
+    them) mapped to the physical pins the SDF actually names (A1..A6) --
+    nextpnr's own X_ORIG_PORT_A<k> record, the identical permutation
+    false_arcs() decodes above and for the identical reason: the packer puts
+    any function on any pin, and this attribute is the only thing that says
+    which original signal ended up on which one.  A physical pin whose
+    record names more than one logical port -- ABC tying several constant
+    inputs to one net -- is not any single one of them and is left out,
+    same rule false_arcs() applies.
+    """
+    attrs = cell.get("attributes", {})
+    out = {}
+    for k in range(1, 7):
+        v = attrs.get(f"X_ORIG_PORT_A{k}")
+        if v and re.fullmatch(r"I\d+", v):
+            out[v] = f"A{k}"
+    return out
+
+
+def select_consumers(jpath):
+    """Every bd_steer and bd_mux instance in the routed netlist -- the
+    consumers rule D audits -- found from the netlist's STRUCTURE rather
+    than by matching this design's instance names.  cells/rtl/ is frozen,
+    and both cells leave a fixed signature there that nextpnr cannot rename
+    away, so the anchor is the same kind this file already uses for request
+    chains (the ".uor" suffix in request_sites()) -- an internal instance
+    name the LIBRARY commits to, not one the compiler chose per site.
+
+    bd_steer is the one fracturable site in the library whose two functions
+    are req.~s and req.s (bd_ctl.v, instance `u`), sharing that exact
+    LUT6_2 pin for pin with bd_bd2dr -- "the same circuit", the source says
+    so.  What tells them apart is `uack`, bd_steer's acknowledge OR: it is
+    the only instance in the whole library named that, and bd_bd2dr's ack is
+    a wire, not a gate, so a `u` with a sibling `uack` is a real steer and
+    never a bd2dr converter.  Not needed today -- bdc/emit.py instantiates
+    no bd_bd2dr -- but the check is one dict lookup and it is what makes
+    this "structural" rather than "assumed".
+
+    bd_mux's two joins are the library's only unfractured 6-input LUTs that
+    feed their own input (bd_mux.v, instances `uj0`/`uj1`, always a pair).
+    Real inputs land on logical I0 (x_req or y_req), I1 (ctl_req) and I2
+    (s); I3 is the join's own feedback and I4 is rst.
+
+    A LUT nextpnr recorded no X_ORIG_PORT_A<k> permutation for contributes
+    nothing rather than a guess -- the same abstention false_arcs() makes.
+
+    -> [(kind, parent instance, [request pin, ...], [select pin, ...])]
+    """
+    if not jpath.exists():
+        return None
+    top = list(json.loads(jpath.read_text())["modules"].values())[0]
+    cells = top.get("cells", {})
+
+    suffix = re.compile(r"^(.*)\.(u(?:\$LUT\d+)?|uack|uj0|uj1)$")
+    by_parent = defaultdict(dict)
+    for name in cells:
+        m = suffix.match(name)
+        if not m:
+            continue
+        parent, tag = m.groups()
+        tag = re.sub(r"\$LUT\d+$", "", tag)   # a fractured u$LUT5/u$LUT6 is
+        by_parent[parent].setdefault(tag, []).append(name)   # still tag "u"
+
+    out = []
+    for parent, tags in sorted(by_parent.items()):
+        if "u" in tags and "uack" in tags:
+            req, sel = [], []
+            for cn in tags["u"]:
+                ports = orig_ports(cells[cn])
+                if "I0" in ports:
+                    req.append(f"{cn}/{ports['I0']}")
+                if "I1" in ports:
+                    sel.append(f"{cn}/{ports['I1']}")
+            if req and sel:
+                out.append(("bd_steer", parent, req, sel))
+        if "uj0" in tags and "uj1" in tags:
+            req, sel = [], []
+            for cn in tags["uj0"] + tags["uj1"]:
+                ports = orig_ports(cells[cn])
+                if "I1" in ports:
+                    req.append(f"{cn}/{ports['I1']}")
+                if "I2" in ports:
+                    sel.append(f"{cn}/{ports['I2']}")
+            if req and sel:
+                out.append(("bd_mux", parent, req, sel))
+    return out
+
+
 def main():
     if not SDF.exists():
         print(f"no routed SDF at {SDF} -- run ./flow.sh first", file=sys.stderr)
@@ -654,6 +844,39 @@ def main():
     # which pins, and stop.
     acyclic = {s: lst for s, lst in edges.items() if s not in stops}
     left = {p for p in state_nodes(acyclic) if is_output(p)}
+
+    # --osc removes a DECLARED oscillator's pins from the abort set -- and
+    # only those pins; every pin left in `left` afterward still aborts below,
+    # by name, exactly as it would with no flag at all.  Cutting every arc
+    # SOURCED from the declared instance (not just the ones that were on the
+    # cycle) is what actually stops the ring: it is what makes the walk below
+    # terminate, and it is what keeps no arrival time from ever being measured
+    # by going around the oscillator.  The count reported, though, is scoped
+    # to the cycle -- that is the only thing this flag is allowed to change.
+    if OSC:
+        all_insts = {pin_split(p)[0] for p in edges}
+        all_insts |= {pin_split(d)[0] for lst in edges.values() for d, _ in lst}
+        for prefix in OSC:
+            def under(i, prefix=prefix):
+                return i == prefix or i.startswith(prefix + ".")
+            matched_left = {p for p in left if under(pin_split(p)[0])}
+            if matched_left:
+                for src in list(edges):
+                    if under(pin_split(src)[0]):
+                        edges[src] = []
+                left -= matched_left
+                print(f"osc          {len(matched_left)} pin(s) under "
+                      f"{prefix}.* excluded -- declared free-running "
+                      f"instrument, NOT audited")
+            elif any(under(i) for i in all_insts):
+                print(f"osc          0 pin(s) under {prefix}.* excluded -- "
+                      f"that instance has no pin on the storage-free-cycle "
+                      f"set, so --osc {prefix} had no effect")
+            else:
+                print(f"osc          0 pin(s) under {prefix}.* excluded -- "
+                      f"no instance matches this prefix in the routed SDF; "
+                      f"--osc {prefix} is stale")
+
     if left:
         print(f"storage      ABORT: {len(left)} pin(s) lie on a cycle that "
               f"contains no latch or C-element.  That is a combinational loop "
@@ -885,6 +1108,127 @@ def main():
         print(f"  {base}: {len(links)} links, ack trails the clock edge by "
               f"{best} ps, t_co {T_CO} -> margin {margin} ps  {state}")
         print(f"  {'':<{len(base)}}  sized for this route: {want} links")
+
+    # -------------------------------------------------- D: the select boundary
+    print()
+    print("D. the select is stable before the request edge that samples it")
+    print("-" * 78)
+    # Price the recommendation in links of THIS design's own delay chains.  A
+    # recommendation is only ever acted on by adding links, so the unit has to
+    # be what a link costs here -- see measure_delay_element and the note above
+    # T_DELAY_RISE_FALLBACK for why the 56 ps this used to assume was not it.
+    t_elem = measure_delay_element(SDF.read_text())
+    if t_elem is None:
+        t_elem = T_DELAY_RISE_FALLBACK
+        print(f"  element cost: no bd_delay chain in this design to measure, "
+              f"falling back to {t_elem} ps/link -- recommendations below are "
+              f"priced on another route's number, so treat them as indicative")
+    else:
+        print(f"  element cost: {t_elem} ps per bd_delay link, measured off "
+              f"this route's own chains (median LUT arc + median hop)")
+    consumers = select_consumers(jpath)
+    if consumers is None:
+        print(f"  no routed netlist at {jpath} -- select consumers cannot be "
+              f"told apart from every other cell named the same thing without "
+              f"it, so rule D did not run.  This is a gap, not a pass.")
+    elif not consumers:
+        print("  no bd_steer or bd_mux instance in this design")
+    else:
+        worst_pad = None
+        pads = {}
+        for kind, parent, req_pins, sel_pins in consumers:
+            best = None
+            for rp in req_pins:
+                srcs = starts_reaching(back, rp, stops)
+                for sp in sel_pins:
+                    srcs |= starts_reaching(back, sp, stops)
+                res = check_bundled(timing, srcs, sel_pins, rp, req_guard)
+                if res is not None and (best is None or res[0] < best[0]):
+                    best = res
+            label = f"{parent} ({kind})"
+            if best is None:
+                print(f"  {label:<32} no source reaches both the select and "
+                      f"the request that samples it -- not audited")
+                continue
+            margin, guard, t_e, t_l, sel_pin, req_src, sel_src = best
+            # The fix goes on the REQUEST side, not the select side.  The
+            # violation is "req arrived before s settled", and the only cure is
+            # to move req later; delaying the link that SOURCES the select moves
+            # s later too and makes the violation worse, not better.  bd_link's
+            # DELAY pads req_out alone (bd_link.v:99), so the link named by
+            # req_src is exactly the one whose knob moves the offending edge.
+            #
+            # Keying this on sel_src instead -- which an earlier version did --
+            # produced a file naming nine links that all carried DELAY 0 and none
+            # of the 24 that emit.py had already padded.  Two disjoint sets is
+            # the signature of reading the wrong end of the boundary, and it is
+            # worth stating here because both ends print two lines below and the
+            # wrong one looks entirely plausible.
+            m_link = RE_SEL_LINK.search(req_src)
+            link = m_link.group(1) if m_link else None
+            if margin < 0:
+                need = math.ceil(-margin / t_elem)
+                if link:
+                    # Two consumers can share one link (a fork of the same
+                    # condition), and they will not need the same padding.  The
+                    # link can only have one length, so the worst wins.
+                    pads[link] = max(pads.get(link, 0), need)
+                verdict = (f"PAD by {need} bd_delay element(s) "
+                           f"({t_elem} ps ea) -- VIOLATION")
+                problems += 1
+                worst_pad = need if worst_pad is None else max(worst_pad, need)
+            else:
+                slack = int(margin // t_elem)
+                verdict = (f"{slack} bd_delay element(s) ({t_elem} ps ea) of slack"
+                           if slack else "no slack, but not a violation")
+            print(f"  {label:<32} req {t_e:>5}  sel {t_l:>5}  guard {guard:>4}  "
+                  f"margin {margin:>6}   {verdict}")
+            print(f"  {'':<32} latest select pin: {sel_pin}")
+            # Same transparency rule A holds itself to: a bundled-channel
+            # pairing has no shared start, so say what each side WAS measured
+            # from, or the number means nothing when the route changes it.
+            print(f"  {'':<32} paired as one bundled channel (no common source):")
+            print(f"  {'':<32}   request from {req_src}")
+            print(f"  {'':<32}   select  from {sel_src}")
+        if PADS is not None:
+            PADS.write_text(json.dumps(dict(sorted(pads.items())), indent=1))
+            print(f"\n  wrote {len(pads)} per-link requirement(s) to {PADS} "
+                  f"-- ADDITIONAL links, add to what each already carries")
+        if worst_pad is not None:
+            # State what this number IS before quoting it, because it reads like
+            # a sizing result and is not one.  check_bundled's own docstring:
+            # "this can report a violation that is not real -- a pessimistic
+            # pairing"; "a failure here is a reason to look, not proof."  It
+            # pairs the EARLIEST the request could leave against the LATEST the
+            # select settles, treating every incoming net as launching at t=0,
+            # so it discards whatever matched delay is already upstream.  On the
+            # gcd build that is ~10 ns of it: this rule reports a 150 ps request
+            # at a bd_steer whose request actually arrives around 10152 ps, and
+            # calls 38 of 39 branches violations.
+            #
+            # MEASURED 2026-08-17, and the reason this warning exists: acting on
+            # this number changes nothing.  Same netlist, same seed,
+            # BDC_SELECT_PAD 4 vs 32 -- 96 versus 768 delay elements -- produced
+            # a byte-identical failing mask on silicon (ok_sticky = 0xC61F,
+            # 9 of 16 both times).  It cost area and ~15-20% latency on
+            # branch-taking vectors and bought nothing.
+            print(f"  worst case would need SELECT_PAD (bdc/emit.py) >= "
+                  f"{worst_pad} to clear this SCREEN on this route")
+            print( "  -- but this rule is a SCREEN, not a measurement.  It is "
+                   "one-sided by construction")
+            print( "     (check_bundled: earliest request vs latest select, "
+                   "every input assumed to")
+            print( "     launch at t=0), so it cannot see matched delay already "
+                   "in the request path.")
+            print( "     Confirm against rule A on the upstream cell before "
+                   "changing any length:")
+            print( "     on gcd, rule A passes every comparator with +2.0 to "
+                   "+11.1 ns and says TIGHTEN.")
+        # Not written to `sized`/--emit: the padding above prices the DEFICIT
+        # measured on the winning path, which -- see the docstring on
+        # select_consumers -- is frequently not even routed through the one
+        # link SELECT_PAD actually controls.  Naming a macro here would claim
+        # an attribution this pass did not establish.
 
     if EMIT is not None:
         lines = ["// GENERATED by verify/tighten.py -- do not edit, and do not",
