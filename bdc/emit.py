@@ -1445,14 +1445,28 @@ def emit_func(func, table=None):
     # token, and cannot change the schedule of the design it is measuring.  It
     # does add fanout, which moves placement -- so a probe build is a different
     # route and its verdict word is only comparable to another probe build.
+    # A `_u` suffix asks for the PRODUCER side of a linked channel, in front of
+    # its link, and that distinction is the whole reason two probes can be
+    # compared at all.  Between a cell's data input and its own data output
+    # there is no storage, so the two are the same iteration by construction and
+    # a check across them needs no skew argument.  Across a LINK they are not:
+    # the link holds a result while the input channel is free to accept the next
+    # value, so `n135__2` and `n136` caught at one instant may be a trip apart.
     probes = []
     for name in [p for p in PROBE if p]:
-        ssa = next((s for s in e.ch if vname(s) == name), None)
+        base, pre = (name[:-2], True) if name.endswith("_u") else (name, False)
+        ssa = next((s for s in e.ch if vname(s) == base), None)
         if ssa is None:
             raise EmitError(
                 f"--probe names {name!r}, which is not a channel in @{func.name}. "
                 f"Channels are named as they are in the emitted Verilog "
-                f"(`n136_u`, not `%136`); `grep 'wire n.*_req' <output>` lists them.")
+                f"(`n136`, not `%136`); `grep 'wire n.*_req' <output>` lists them. "
+                f"A trailing `_u` asks for the pre-link bundle and is only valid "
+                f"on a channel that carries a link.")
+        if pre and ssa not in e.linked:
+            raise EmitError(
+                f"--probe names {name!r}, but channel {base!r} carries no link, "
+                f"so there is no pre-link bundle to tap -- probe {base!r}.")
         w, ctl = e.ch[ssa]
         probes.append((name, w, ctl))
 
@@ -1461,9 +1475,10 @@ def emit_func(func, table=None):
         if not ctl:
             ports.append(f"    output wire [{w - 1}:0]     probe_{name}_data")
 
-    # The tap is taken on the CONSUMER side of any link on the channel, i.e.
-    # the same nets the real consumer sees, so what is measured is the value
-    # the design actually acts on rather than one a link may still be holding.
+    # The bare name taps the CONSUMER side of any link on the channel -- the
+    # same nets the real consumer sees, so what is measured is the value the
+    # design acts on rather than one a link is still holding.  `<name>_u` taps
+    # the producer side instead; see above for when that is the one you want.
     probe_taps = "\n".join(
         [f"    // Probe taps.  Read-only: no ack is driven from these."] +
         [line for name, w, ctl in probes

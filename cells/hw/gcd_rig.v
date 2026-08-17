@@ -105,7 +105,8 @@
 
 module gcd_rig #(parameter integer IDXW  = 4,
                  parameter integer WFILT = 2,
-                 parameter integer CMPD  = 16)
+                 parameter integer CMPD  = 16,
+                 parameter integer PRBD  = 2)
     (input  wire            rst,        // holds the ring; idx may move only here
      input  wire [IDXW-1:0] idx,        // which vector, stable while rst is low
      output wire            lap,        // one four-phase cycle per completed gcd
@@ -115,7 +116,14 @@ module gcd_rig #(parameter integer IDXW  = 4,
      output wire            abs_neg,    // %138 arrived NEGATIVE -- the finding
      output wire            abs_seen,   // %138 arrived at all -- without this, abs_neg=0 is void
      output wire            abs_req,    // %138 valid, padded by CMPD
-     output wire [31:0]     abs_data);  // %138 -- bb10's |a-b|, which cannot be < 0
+     output wire [31:0]     abs_data,   // %138 -- bb10's |a-b|, which cannot be < 0
+     output wire            cmp_bad,    // ucmpi11 disagreed with its own sign bit, padded sample
+     output wire            cmp_bad0,   // the same, sampled on the RAW z_req -- see PRBD
+     output wire            cmp_seen,   // ucmpi11 answered at all
+     output wire            cmp_req,    // ucmpi11's own z_req, padded by CMPD
+     output wire [31:0]     cmp_in,     // ucmpi11's a_data, the value it got wrong
+     output wire            cmp_z,      // ucmpi11's answer, UNFILTERED -- see the capture note
+     output wire [31:0]     res_data);  // the delivered gcd, valid while lap is high
 
     // ---- the vector table --------------------------------------------------
     // Sixteen (a, b, expected) triples.  The first six are bdc/simcheck.py's
@@ -166,7 +174,7 @@ module gcd_rig #(parameter integer IDXW  = 4,
     wire out0_req, out0_ack, p_end_req, p_end_ack;
     wire [31:0] out0_data;
 
-    wire abs_req_raw;
+    wire abs_req_raw, cmp_req_raw;
 
     bdc_gcd udut (
         .rst(rst),
@@ -175,11 +183,37 @@ module gcd_rig #(parameter integer IDXW  = 4,
         .start_req(start_req), .start_ack(start_ack),
         .out0_req(out0_req),   .out0_ack(out0_ack),   .out0_data(out0_data),
         .p_end_req(p_end_req), .p_end_ack(p_end_ack),
-        .probe_n138_req(abs_req_raw), .probe_n138_data(abs_data));
+        .probe_n138_req(abs_req_raw),    .probe_n138_data(abs_data),
+        .probe_n136_u_req(cmp_req_raw),  .probe_n136_u_data(cmp_z),
+        .probe_n135__2_req(),            .probe_n135__2_data(cmp_in));
 
     // Same padding, same reason, as urdly below: the request must trail the
     // data it describes before anything samples its edge.
     bd_delay #(.N(CMPD)) uabsdly (.a(abs_req_raw), .z(abs_req));
+    // PRBD, NOT CMPD, AND THE DIFFERENCE IS THE WHOLE MEASUREMENT.
+    //
+    // CMPD pads out0_req because a link's request LEADS its data and a sampler
+    // on the request edge would otherwise catch the data still moving.  None of
+    // that applies here.  ucmpi11's z_req is the output of the cell's own
+    // matched delay, whose entire job is to trail its datapath -- at z_req both
+    // the operand and the answer are valid by the cell's construction, and no
+    // extra pad is needed.
+    //
+    // Extra pad is in fact HARMFUL, and that is not hypothetical.  bd_join
+    // drives a_ack from z_ack, so the operand is held only until the OUTPUT is
+    // consumed; the consumer here is one link, whose acknowledge comes back in
+    // a couple of LUTs.  A 16-element pad is about 4.4 ns, comfortably longer,
+    // so the sample could land after a_data had already advanced -- and the
+    // reading that produced, "input 0x00000000 with the answer 0", is exactly
+    // what a late sample of an operand that used to be negative looks like.
+    //
+    // So the padded detector keeps a short PRBD, enough to cover routing skew
+    // between the three probe nets and nothing more, and a SECOND detector
+    // samples the raw z_req on the same route.  Their disagreement is the
+    // measurement: both dirty means the comparator is genuinely wrong on the
+    // die; only the padded one dirty means the pad is the artifact and the
+    // comparator was never the fault.
+    bd_delay #(.N(PRBD)) ucmpdly (.a(cmp_req_raw), .z(cmp_req));
 
     // ---- fork the env request into the three input channels ----------------
     wire env_c, in_ack;
@@ -275,6 +309,14 @@ module gcd_rig #(parameter integer IDXW  = 4,
     assign lap   = res_req;   // padded out0_req: one rise per delivered gcd
     assign probe = env_c;
 
+    // The answer itself, so a WRONG one can be captured rather than merely
+    // counted.  err_flt says a vector disagreed with its expected gcd; it does
+    // not say by how much, and "off by a factor of two" and "unrelated garbage"
+    // are different bugs.  Valid on exactly the same terms the compare above is
+    // valid on -- res_req is padded, so out0_data has been stable since before
+    // it rose.
+    assign res_data = out0_data;
+
     // ---- the abs probe's detector ------------------------------------------
     // Built from the same parts as err/ok above, in the same order, for the
     // same reasons: gate the assertion on the padded request, then width-filter
@@ -293,6 +335,47 @@ module gcd_rig #(parameter integer IDXW  = 4,
 
     (* keep *) LUT2 #(.INIT(4'h8)) uabsn_a (.I0(absn_raw), .I1(absn_d), .O(abs_neg));
     (* keep *) LUT2 #(.INIT(4'h8)) uabss_a (.I0(abss_raw), .I1(abss_d), .O(abs_seen));
+
+    // ---- the comparator's own oracle ---------------------------------------
+    // The abs probe says bb10 delivers a negative |a-b|.  It does not say which
+    // of the three things on that path is responsible: the comparator that
+    // decides the sign, the subtract that negates, or the select that picks
+    // between them.  This splits off the first.
+    //
+    // ucmpi11 is `sgt(x, -1)`, and for that one comparison there is a
+    // one-inverter reference: x > -1 exactly when x >= 0, exactly when
+    // x[31] == 0.  So the correct answer is ~x[31] and nothing else needs to be
+    // known -- not the operands, not the iteration, not the loop state.
+    //
+    // WHY THIS PAIR CAN BE SAMPLED TOGETHER AND THE OTHERS CANNOT.  cmp_in is
+    // ucmpi11's a_data and cmp_z is its z_data; between them lies the unit's
+    // combinational datapath and its matched delay, and NO STORAGE.  z_req is
+    // that matched delay's output, so when z_req rises, a_data is the operand
+    // this very answer was computed from.  Both probes are therefore the same
+    // iteration by construction.  Every other cross-channel check in this
+    // design has a link in between and has to argue about skew; %136_u is
+    // deliberately the PRE-link bundle so that this one does not.
+    //
+    //   {I2,I1,I0} = {cmp_req, cmp_z, cmp_in[31]}: the fault is req & (z == s),
+    //   i.e. minterms 100 and 111.
+    wire cmpb_raw, cmps_raw, cmpb_d, cmps_d;
+    (* keep *) LUT3 #(.INIT(8'h90)) ucmpb_d (
+        .I0(cmp_in[31]), .I1(cmp_z), .I2(cmp_req), .O(cmpb_raw));
+    (* keep *) LUT1 #(.INIT(2'h2)) ucmps_d (.I0(cmp_req), .O(cmps_raw));
+
+    bd_delay #(.N(WFILT)) ucmpb_w (.a(cmpb_raw), .z(cmpb_d));
+    bd_delay #(.N(WFILT)) ucmps_w (.a(cmps_raw), .z(cmps_d));
+
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmpb_a (.I0(cmpb_raw), .I1(cmpb_d), .O(cmp_bad));
+
+    // The same detector on the unpadded request.  Same LUT3, same INIT, same
+    // filter -- the ONLY difference is which edge it samples on.
+    wire cmpb0_raw, cmpb0_d;
+    (* keep *) LUT3 #(.INIT(8'h90)) ucmpb0_d (
+        .I0(cmp_in[31]), .I1(cmp_z), .I2(cmp_req_raw), .O(cmpb0_raw));
+    bd_delay #(.N(WFILT)) ucmpb0_w (.a(cmpb0_raw), .z(cmpb0_d));
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmpb0_a (.I0(cmpb0_raw), .I1(cmpb0_d), .O(cmp_bad0));
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmps_a (.I0(cmps_raw), .I1(cmps_d), .O(cmp_seen));
 
 endmodule
 

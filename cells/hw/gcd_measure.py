@@ -126,6 +126,9 @@ puts "CLRERR [rd 8]"
 puts "CLROK [rd 9]"
 puts "CLRABSN [rd 10]"
 puts "CLRABSS [rd 11]"
+puts "CLRCMPB [rd 14]"
+puts "CLRCMPS [rd 15]"
+puts "CLRCMPB0 [rd 20]"
 set ctrl {ctrl_idle}
 u1 0
 
@@ -153,6 +156,13 @@ puts "ABSN [rd 10]"
 puts "ABSS [rd 11]"
 puts "ABSV [rd 12]"
 puts "ABSI [rd 13]"
+puts "CMPB [rd 14]"
+puts "CMPS [rd 15]"
+puts "CMPV [rd 16]"
+puts "CMPI [rd 17]"
+puts "ERRV [rd 18]"
+puts "ERRI [rd 19]"
+puts "CMPB0 [rd 20]"
 
 jtag unlock
 puts "DONE"
@@ -295,6 +305,49 @@ def report_abs(got, err, okb):
         else:
             print("  first negative abs: none captured")
 
+    # -- the comparator, against its own sign bit -----------------------------
+    cmpb = cmps = None
+    if "CMPB" in got and "CMPS" in got:
+        cmpb = field(got["CMPB"][-1][1])["data"] & 0xFFFF
+        cmps = field(got["CMPS"][-1][1])["data"] & 0xFFFF
+        print(f"\n  cmpb_sticky = 0x{cmpb:04X}  (ucmpi11 disagreed with "
+              f"x[31]; want 0x0000)")
+        print(f"  cmps_sticky = 0x{cmps:04X}  (ucmpi11 answered at all)")
+        bad = [v for v in range(NVEC) if (cmpb >> v) & 1]
+        if bad:
+            print(f"  WRONG SIGN DECISION on vector(s): {bad}")
+        # The control.  Same detector, same route, sampled on the UNPADDED
+        # z_req.  bd_join drives a_ack from z_ack, so a padded sample can land
+        # after the operand was released and report a mismatch the comparator
+        # never made.  This one cannot: at z_req the cell's own matched delay
+        # guarantees both operand and answer.
+        if "CMPB0" in got:
+            cmpb0 = field(got["CMPB0"][-1][1])["data"] & 0xFFFF
+            print(f"  cmpb0_sticky = 0x{cmpb0:04X}  (same check on the "
+                  f"UNPADDED z_req -- the control for probe over-padding)")
+            if cmpb0 and cmpb:
+                print("  -> both detectors agree: the comparator is wrong on "
+                      "the die, and the pad is not the explanation.")
+            elif cmpb and not cmpb0:
+                print("  -> ONLY the padded detector fires.  The pad is the "
+                      "artifact: it samples the operand after bd_join has "
+                      "released it.  The comparator is NOT at fault; discount "
+                      "cmpb entirely and look downstream.")
+            elif cmpb0 and not cmpb:
+                print("  -> only the UNPADDED detector fires, which is the one "
+                      "ordering neither pad explains.  Suspect routing skew "
+                      "between the three probe nets; raise PRBD and re-run.")
+        if "CMPV" in got and "CMPI" in got:
+            cmpv = field(got["CMPV"][-1][1])["data"]
+            cmpi = field(got["CMPI"][-1][1])["data"]
+            if (cmpi >> 4) & 1:
+                s = cmpv - (1 << 32) if cmpv >> 31 else cmpv
+                print(f"  first mis-compared operand: 0x{cmpv:08X} ({s}) on "
+                      f"vector {cmpi & 0xF} -- sgt(x,-1) should be "
+                      f"{int(s >= 0)} here")
+            else:
+                print("  first mis-compared operand: none captured")
+
     # The comparison that actually settles the question.
     if neg:
         same = set(neg) == set(failing)
@@ -312,6 +365,52 @@ def report_abs(got, err, okb):
               f"measure on exactly the vectors in question.")
     else:
         print("\n  VERDICT: no negative abs, and nothing failed.")
+
+    # Where on the path the damage is.  The two probes bracket it: cmpb accuses
+    # the comparator, and cmpb clear with absn set acquits it and points at the
+    # subtract or the select downstream.
+    if cmpb is None:
+        return
+
+    # SELF-CHECK ON THE DETECTOR, BEFORE ANY CONCLUSION IS DRAWN FROM IT.
+    # A vector that delivers correct gcds cannot also be getting its sign
+    # decisions wrong -- the loop would not terminate.  So a cmpb bit set on a
+    # PASSING vector is a false positive, and if there are any, the whole word
+    # is uninterpretable and must not be used to localise anything.
+    #
+    # The known mechanism, and it applies to both samplers.  bd_join drives
+    # a_ack from z_ack, so the operand is released as soon as the consumer
+    # acknowledges -- while z_req is still high.  The level-gated detector stays
+    # sensitive for that entire window, and the capture flop sits behind a BUFG
+    # worth about two nanoseconds of insertion delay.  Both can therefore read
+    # an operand that has already advanced past the answer beside it.
+    passing = [v for v in range(NVEC) if ((okb >> v) & 1) and not ((err >> v) & 1)]
+    false_pos = [v for v in passing if (cmpb >> v) & 1]
+    if false_pos:
+        print(f"\n  DETECTOR UNRELIABLE: cmpb is set on vector(s) {false_pos}, "
+              f"which delivered CORRECT gcds.  A wrong sign decision would stop "
+              f"those terminating, so these are false positives and the whole "
+              f"cmpb/cmpb0 word cannot localise anything.  Both samplers land "
+              f"after bd_join releases the operand; fix the sampling before "
+              f"reading this field again.  The abs probe above is unaffected -- "
+              f"it is a one-channel invariant with no operand to go stale.")
+        return
+
+    if cmpb and neg:
+        print("  LOCALISED: the comparator itself.  ucmpi11 returns the wrong "
+              "sign for operands whose sign bit says otherwise, and the "
+              "negative abs is downstream of that.  The captured operand above "
+              "is a test case -- replay it against bdc/test_compute.py and "
+              "against the post-synthesis netlist.")
+    elif neg and not cmpb:
+        print("  LOCALISED: NOT the comparator.  ucmpi11 agreed with x[31] "
+              "every time it answered, so the sign decision is right and the "
+              "damage is downstream: the subtract that negates (%137), or the "
+              "select that chooses between it and %135 (%138).")
+    elif cmpb and not neg:
+        print("  ANOMALY: the comparator answered wrongly but no negative abs "
+              "reached bb10's output.  Something downstream is masking it; "
+              "neither probe alone explains that.")
 
 
 def main():
@@ -430,7 +529,7 @@ def main():
               "since configuration, not of this run.")
         return 2
     clr = {}
-    for tag in ("CLRERR", "CLROK", "CLRABSN", "CLRABSS"):
+    for tag in ("CLRERR", "CLROK", "CLRABSN", "CLRABSS", "CLRCMPB", "CLRCMPS", "CLRCMPB0"):
         clr[tag] = field(got[tag][-1][1])["data"] & 0xFFFF if tag in got else None
     if any(v is None for v in clr.values()):
         print("  sticky clear: NOT READ BACK for "
@@ -438,13 +537,14 @@ def main():
               + " -- stop.")
         return 2
     if any(clr.values()):
-        print(f"  sticky clear FAILED: after asserting hold[11] the arrays "
-              f"still read err=0x{clr['CLRERR']:04X} ok=0x{clr['CLROK']:04X} "
-              f"absn=0x{clr['CLRABSN']:04X} abss=0x{clr['CLRABSS']:04X}, want "
-              f"all 0x0000.  Stopping -- the verdict below would be stale.")
+        print("  sticky clear FAILED: after asserting hold[11] the arrays still "
+              "read " + " ".join(f"{t[3:].lower()}=0x{v:04X}"
+                                 for t, v in clr.items())
+              + ", want all 0x0000.  Stopping -- the verdict below would be "
+                "stale.")
         return 2
-    print("  sticky clear: err/ok/absn/abss all 0x0000 confirmed, the arrays "
-          "start this run empty")
+    print("  sticky clear: err/ok/absn/abss/cmpb/cmps all 0x0000 confirmed, "
+          "the arrays start this run empty")
 
     # -- 4. is the silicon actually running? ---------------------------------
     live = {field(w)["data"] for _, w in got.get("SAMPLE", [])}
@@ -526,6 +626,12 @@ def main():
     print(f"\nTHE RESULT -- per-vector verdict from err_sticky/ok_sticky")
     print("-" * 78)
     print(f"  err_sticky = 0x{err:04X}  (want 0x0000)")
+    if "ERRV" in got and "ERRI" in got:
+        ev = field(got["ERRV"][-1][1])["data"]
+        ei = field(got["ERRI"][-1][1])["data"]
+        if (ei >> 4) & 1:
+            print(f"  first wrong answer: 0x{ev:08X} ({ev}) on vector "
+                  f"{ei & 0xF} -- what was DELIVERED, not what was expected")
     print(f"  ok_sticky  = 0x{okb:04X}  (want 0xFFFF)")
 
     n_correct = n_wrong = n_never = 0

@@ -22,6 +22,7 @@
 //   ok  (addr 9)   must read FFFF -- if a bit here is 0 then that vector's
 //                  err bit is not evidence of anything, because the rig never
 //                  produced a checkable answer for it
+//   errv (addr 18) the first wrong answer, verbatim; addr 19 is its {valid,idx}
 //
 // Both arrays are built from the same LUT3, the same INIT and the same arm
 // gate, so a vector whose ok bit set could have set its err bit.
@@ -38,6 +39,20 @@
 //                   about a kernel that never reaches bb10.
 //   absv (addr 12)  the first negative abs, verbatim
 //   (addr 13)       {valid, idx} for that capture -- which vector it came from
+//
+//   cmpb (addr 14)  a bit is set if ucmpi11 -- `sgt(x, -1)` -- ever disagreed
+//                   with x's own sign bit.  That comparison has a one-inverter
+//                   reference (x > -1 iff x[31] == 0), so a set bit names the
+//                   comparator itself and not the subtract or the select.
+//   cmps (addr 15)  ucmpi11 answered at all; addr 14 is void without it
+//   cmpv (addr 16)  the operand it got wrong, verbatim -- a value that can be
+//                   replayed against bdc/test_compute.py
+//   (addr 17)       {valid, idx} for that capture
+//
+// Read 10 and 14 together.  Both set, on the same vectors, means the fault is
+// the comparator and the negative abs is its consequence.  10 set with 14 clear
+// means the comparator is right and the damage is downstream of it -- in the
+// subtract that negates, or in the select that chooses.
 //
 // gcd_rig.v's header argues why this particular channel is the one worth
 // bringing out, and why it is the only cross-check in this design that does not
@@ -75,6 +90,7 @@ module gcd_hw (output wire led_red, output wire led_green);
     localparam integer IDXW  = 4;
     localparam integer WFILT = 2;
     localparam integer CMPD  = 16;
+    localparam integer PRBD  = 2;
 
     localparam integer W   = 48;      // DR width, same layout as arb_prot
     localparam [7:0]   TAG = 8'h6D;   // distinct from ro_top A5, arb_mtbf 55, arb_prot 3C
@@ -215,13 +231,17 @@ module gcd_hw (output wire led_red, output wire led_green);
     // ---- the rig -----------------------------------------------------------
     wire rig_lap, rig_err, rig_ok, rig_probe;
     wire rig_absn, rig_abss, rig_abs_req;
-    wire [31:0] rig_abs_data;
+    wire rig_cmpb, rig_cmpb0, rig_cmps, rig_cmp_req, rig_cmp_z;
+    wire [31:0] rig_abs_data, rig_cmp_in, rig_res_data;
 
-    gcd_rig #(.IDXW(IDXW), .WFILT(WFILT), .CMPD(CMPD)) urig (
+    gcd_rig #(.IDXW(IDXW), .WFILT(WFILT), .CMPD(CMPD), .PRBD(PRBD)) urig (
         .rst(rig_rst), .idx(idx),
         .lap(rig_lap), .err_flt(rig_err), .ok_flt(rig_ok), .probe(rig_probe),
         .abs_neg(rig_absn), .abs_seen(rig_abss),
-        .abs_req(rig_abs_req), .abs_data(rig_abs_data));
+        .abs_req(rig_abs_req), .abs_data(rig_abs_data),
+        .cmp_bad(rig_cmpb), .cmp_bad0(rig_cmpb0), .cmp_seen(rig_cmps),
+        .cmp_req(rig_cmp_req), .cmp_in(rig_cmp_in), .cmp_z(rig_cmp_z),
+        .res_data(rig_res_data));
 
     // ---- per-vector stickies -----------------------------------------------
     // One bit per vector rather than one aggregate bit, so a finding names the
@@ -231,6 +251,9 @@ module gcd_hw (output wire led_red, output wire led_green);
     wire [NVEC-1:0] ok_sticky;
     wire [NVEC-1:0] absn_sticky;
     wire [NVEC-1:0] abss_sticky;
+    wire [NVEC-1:0] cmpb_sticky;
+    wire [NVEC-1:0] cmps_sticky;
+    wire [NVEC-1:0] cmpb0_sticky;
 
     // Low clears every sticky latch and holds it cleared; high lets them
     // accumulate.  Two sources, and both must permit: por_done for the
@@ -243,7 +266,7 @@ module gcd_hw (output wire led_red, output wire led_green);
     generate for (vi = 0; vi < NVEC; vi = vi + 1) begin : vec
         wire sel = (idx == vi[IDXW-1:0]);
 
-        wire err_raw, ok_raw, absn_raw, abss_raw;
+        wire err_raw, ok_raw, absn_raw, abss_raw, cmpb_raw, cmpb0_raw, cmps_raw;
         (* keep *) LUT2 #(.INIT(4'h8)) uerr_g (.I0(rig_err), .I1(sel), .O(err_raw));
         (* keep *) LUT2 #(.INIT(4'h8)) uok_g  (.I0(rig_ok),  .I1(sel), .O(ok_raw));
 
@@ -253,6 +276,9 @@ module gcd_hw (output wire led_red, output wire led_green);
         // gave a wrong answer" does, and no more.
         (* keep *) LUT2 #(.INIT(4'h8)) uabsn_g (.I0(rig_absn), .I1(sel), .O(absn_raw));
         (* keep *) LUT2 #(.INIT(4'h8)) uabss_g (.I0(rig_abss), .I1(sel), .O(abss_raw));
+        (* keep *) LUT2 #(.INIT(4'h8)) ucmpb_g (.I0(rig_cmpb), .I1(sel), .O(cmpb_raw));
+        (* keep *) LUT2 #(.INIT(4'h8)) ucmps_g (.I0(rig_cmps), .I1(sel), .O(cmps_raw));
+        (* keep *) LUT2 #(.INIT(4'h8)) ucmpb0_g (.I0(rig_cmpb0), .I1(sel), .O(cmpb0_raw));
 
         // INIT EC, not E0.  E0 is q = armed & (q | raw) -- the arm gate holds
         // the latch CLEARED, not merely shut -- and that is right in
@@ -315,6 +341,15 @@ module gcd_hw (output wire led_red, output wire led_green);
         (* keep *) LUT4 #(.INIT(16'hEC00)) uabss_s (
             .I0(abss_raw), .I1(abss_sticky[vi]), .I2(armed), .I3(sticky_keep),
             .O(abss_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) ucmpb_s (
+            .I0(cmpb_raw), .I1(cmpb_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(cmpb_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) ucmps_s (
+            .I0(cmps_raw), .I1(cmps_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(cmps_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) ucmpb0_s (
+            .I0(cmpb0_raw), .I1(cmpb0_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(cmpb0_sticky[vi]));
     end endgenerate
 
     // ---- what the negative abs actually WAS --------------------------------
@@ -348,6 +383,35 @@ module gcd_hw (output wire led_red, output wire led_green);
         end
     end
 
+    // The same capture on the comparator, and this one is the more useful of
+    // the two: it is the exact operand ucmpi11 got the sign of wrong, which is
+    // a value that can be handed straight back to bdc/test_compute.py and to
+    // the post-synthesis netlist.  A fault that reproduces on one named input
+    // stops being a routing mystery and becomes a test case.
+    // GATED ON THE UNFILTERED COMPARISON, NOT ON cmp_bad, and that is not a
+    // shortcut.  cmp_bad is width-filtered -- a & delay(a) -- so it rises WFILT
+    // elements AFTER the request edge that clocks this register, and a capture
+    // gated on it samples a condition that has not happened yet.  Measured: on
+    // a route where cmpb_sticky read 0x6FFC, twelve vectors' worth of findings,
+    // this register captured nothing at all.  The sticky array does not have
+    // the problem because it is a latch and not a flop -- it is still high long
+    // after the edge.  The filter stays where it belongs, on the sticky.
+    wire cmp_ck;
+    BUFG bg_cmp (.I(rig_cmp_req), .O(cmp_ck));
+
+    reg [31:0]     cmpv       = 32'h0;
+    reg [IDXW-1:0] cmpv_idx   = {IDXW{1'b0}};
+    reg            cmpv_valid = 1'b0;
+    always @(posedge cmp_ck) begin
+        if (hold_clr) begin
+            cmpv_valid <= 1'b0;
+        end else if ((rig_cmp_z == rig_cmp_in[31]) && armed && !cmpv_valid) begin
+            cmpv       <= rig_cmp_in;
+            cmpv_idx   <= idx;
+            cmpv_valid <= 1'b1;
+        end
+    end
+
     // ---- completed gcds, counted on the die --------------------------------
     // The rig's lap signal is a real four-phase request, one rise per delivered
     // result.  Counting it against hk_cnt is the latency measurement; there is
@@ -363,6 +427,30 @@ module gcd_hw (output wire led_red, output wire led_green);
         lap_run <= {lap_run[0], hold_run};
         if (lap_run[1])               lap_cnt <= lap_cnt + 32'h1;
         if (lap_run[1] && (&lap_cnt)) lap_ovf <= 1'b1;
+    end
+
+    // ---- the first WRONG answer, verbatim ----------------------------------
+    // err_sticky counts a disagreement; it does not say what was delivered, and
+    // that is most of the information.  A gcd that comes back as twice the
+    // right one is a lost halving; unrelated garbage is a datapath or a
+    // bundling failure; the right answer for the PREVIOUS vector is a window
+    // boundary, not a kernel bug at all.  Those want completely different
+    // fixes and err_sticky cannot tell them apart.
+    //
+    // Clocked on lap_ck, which is the padded result request -- the same edge
+    // that makes gcd_rig's own compare valid -- so out0_data is stable here by
+    // exactly the argument that already licenses the compare.
+    reg [31:0]     errv       = 32'h0;
+    reg [IDXW-1:0] errv_idx   = {IDXW{1'b0}};
+    reg            errv_valid = 1'b0;
+    always @(posedge lap_ck) begin
+        if (hold_clr) begin
+            errv_valid <= 1'b0;
+        end else if (rig_err && armed && !errv_valid) begin
+            errv       <= rig_res_data;
+            errv_idx   <= idx;
+            errv_valid <= 1'b1;
+        end
     end
 
     // ---- asynchronous liveness sample, TCK domain --------------------------
@@ -414,6 +502,22 @@ module gcd_hw (output wire led_red, output wire led_green);
             // The first negative abs, and which vector produced it.
             5'd12: mux_d = absv;
             5'd13: mux_d = {24'h0, 3'h0, absv_valid, absv_idx};
+
+            // ucmpi11 against its own sign bit: 14 the finding, 15 the witness,
+            // 16 the operand it got wrong, 17 its {valid, idx}.
+            5'd14: mux_d = {16'h0, cmpb_sticky};
+            5'd15: mux_d = {16'h0, cmps_sticky};
+            5'd16: mux_d = cmpv;
+            5'd17: mux_d = {24'h0, 3'h0, cmpv_valid, cmpv_idx};
+
+            // The first wrong answer, verbatim, and which vector gave it.
+            // The same comparator check on the UNPADDED request.  Read against
+            // 14: both set means the comparator is genuinely wrong on the die;
+            // 20 clear with 14 set means the pad is the artifact.
+            5'd20: mux_d = {16'h0, cmpb0_sticky};
+
+            5'd18: mux_d = errv;
+            5'd19: mux_d = {24'h0, 3'h0, errv_valid, errv_idx};
 
             default: mux_d = 32'h0000_0000;
         endcase

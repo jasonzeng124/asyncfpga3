@@ -53,7 +53,7 @@ gcd_hw)
     mkdir -p ../build/gen
     ( cd .. && python3 bdc/emit.py \
         build/frontend/gcd/comp/handshake_transformed.mlir \
-        --no-top --probe n138 -o build/gen/gcd_kernel.v )
+        --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
     ;;
 *)
     SRCS="rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v hw/$TOP.v"
