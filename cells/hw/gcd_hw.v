@@ -39,6 +39,15 @@
 // number is per-gcd LATENCY, not throughput: gcd_rig.v keeps exactly one
 // transaction in flight on purpose, because that is what makes the answer
 // attributable to the operands.
+//
+// hold[11] clears err_sticky/ok_sticky, and a measurement session MUST issue it
+// before it reads anything.  The pin above cannot be applied until well after
+// the FPGA is configured -- a scan write takes far longer than the ~17 ms a
+// full sixteen-vector sweep needs -- so the rig always runs several unpinned
+// sweeps first, and their verdicts land in the sticky array.  Without hold[11]
+// those never go away, and every later read reports them instead of the run in
+// front of you.  hw/gcd_measure.py asserts it, reads both words back, and
+// refuses to continue unless they are zero.
 // ---------------------------------------------------------------------------
 
 `default_nettype none
@@ -86,11 +95,12 @@ module gcd_hw (output wire led_red, output wire led_green);
     // ---- hold register -----------------------------------------------------
     // addr + run, as arb_prot has them, plus the two fields that make the
     // latency sweep possible: which vector to pin to, and whether to pin.
-    reg  [10:0] hold = 11'h0;
+    reg  [11:0] hold = 12'h0;
     wire [4:0]  hold_addr = hold[4:0];
     wire        hold_run  = hold[5];
     wire [3:0]  hold_vec  = hold[9:6];
     wire        hold_pin  = hold[10];
+    wire        hold_clr  = hold[11];
 
     // ---- housekeeping ring and its counted clock ---------------------------
     wire hk_chain, hk_fb;
@@ -161,7 +171,29 @@ module gcd_hw (output wire led_red, output wire led_green);
     always @(posedge hk_ck)
         settle_sr <= rig_rst ? 16'h0 : {settle_sr[14:0], 1'b1};
 
-    wire armed = arm_sr[31] & settle_sr[15];
+    // settle_sr alone is SIXTEEN housekeeping cycles, and that is far too few.
+    // Measured: with the kernel proved correct on all sixteen vectors when
+    // PINNED -- sixteen separate runs, err_sticky 0x0000 in every one -- a free
+    // sweep of the same bitstream still set err on five vectors, and every one
+    // of those five had ok set as well.  Errors that appear only when idx MOVES
+    // and never when it is held are not the kernel getting an answer wrong.
+    //
+    // They are the previous vector's result.  At a window edge idx advances and
+    // rig_rst asserts, but the old result is still in flight -- in the kernel
+    // and in gcd_rig's own bd_delay #(.N(CMPD)) urdly, sixteen elements of it.
+    // Reset release plus settle_sr is 32 hk cycles, about 880 hops at the
+    // measured 27.5 hops/cycle, and the kernel's longest path is far longer
+    // than that.  So a stale result reaches the comparator after the gate has
+    // reopened and is judged against the NEW vector's expected gcd: err if it
+    // differs, ok if it happens to match.  That is exactly the ok+err pair.
+    //
+    // 2048 cycles of drain instead.  Taken from win_cnt rather than a longer
+    // shift register because the count already exists -- this is one LUT on
+    // five bits, not 2048 flops -- and it costs 3.1% of the window, which even
+    // the slowest vector (504 cycles/gcd) still crosses about 126 times.
+    wire settled = |win_cnt[15:11];
+
+    wire armed = arm_sr[31] & settle_sr[15] & settled;
 
     // ---- the rig -----------------------------------------------------------
     wire rig_lap, rig_err, rig_ok, rig_probe;
@@ -177,6 +209,13 @@ module gcd_hw (output wire led_red, output wire led_green);
     wire [NVEC-1:0] err_sticky;
     wire [NVEC-1:0] ok_sticky;
 
+    // Low clears every sticky latch and holds it cleared; high lets them
+    // accumulate.  Two sources, and both must permit: por_done for the
+    // power-up initialisation the LUT feedback loops need (they have no defined
+    // value at configuration), and ~hold_clr so software can zero the array at
+    // the START of a measurement session.  See the long note at the latches.
+    wire sticky_keep = por_done & ~hold_clr;
+
     genvar vi;
     generate for (vi = 0; vi < NVEC; vi = vi + 1) begin : vec
         wire sel = (idx == vi[IDXW-1:0]);
@@ -185,10 +224,61 @@ module gcd_hw (output wire led_red, output wire led_green);
         (* keep *) LUT2 #(.INIT(4'h8)) uerr_g (.I0(rig_err), .I1(sel), .O(err_raw));
         (* keep *) LUT2 #(.INIT(4'h8)) uok_g  (.I0(rig_ok),  .I1(sel), .O(ok_raw));
 
-        (* keep *) LUT3 #(.INIT(8'hE0)) uerr_s (
-            .I0(err_raw), .I1(err_sticky[vi]), .I2(armed), .O(err_sticky[vi]));
-        (* keep *) LUT3 #(.INIT(8'hE0)) uok_s (
-            .I0(ok_raw),  .I1(ok_sticky[vi]),  .I2(armed), .O(ok_sticky[vi]));
+        // INIT EC, not E0.  E0 is q = armed & (q | raw) -- the arm gate holds
+        // the latch CLEARED, not merely shut -- and that is right in
+        // arb_prot.v, where `armed` is arm_sr[31] alone and rises exactly once
+        // in the life of the bitstream.  Here it is not: armed carries
+        // settle_sr too, which is zeroed at every window edge, so E0 wiped all
+        // 32 bits every 65536 housekeeping cycles and a readback could only
+        // ever report the window it happened to land in.  Measured on the
+        // board: pinned to vector 0 the word read 0x0001, pinned to vector 1 it
+        // read 0x0002, and the free sweep read whichever window the scan caught
+        // -- fifteen vectors reported "never checked" while the rig was in fact
+        // computing them correctly at 51 million gcds a second.
+        //
+        // The fix is q | (armed & raw) -- the gate stops new sets and holds
+        // what is already there, which is what "sticky" has to mean when the
+        // arm is periodic.  But E0 was doing a second job as well, and dropping
+        // it silently would cost the design a bug worse than the one being
+        // fixed: these latches are LUT feedback loops with no defined value at
+        // configuration, and holding forever means a bit that powers up at 1
+        // reads as a wrong answer for the life of the bitstream.  E0's arm gate
+        // was initialising them by accident.
+        //
+        // So the clear becomes explicit and comes from the actual reset.
+        // por_done is the right one and the only one: it is a shift register
+        // out of the global set/reset, so it is low at configuration by
+        // construction and rises exactly once, 24 housekeeping cycles later --
+        // after the delay chains have settled, which is the window arb_mtbf.v
+        // records having got wrong at 4 stages.
+        //
+        //     q = sticky_keep & (q | (armed & raw))
+        //
+        // WHY sticky_keep AND NOT por_done ALONE.  por_done rises once and
+        // never falls, so gating on it alone means the stickies are cleared at
+        // configuration and NEVER AGAIN -- they become a cumulative record over
+        // the whole life of the bitstream rather than a verdict on the run in
+        // front of you.  That is not a hypothetical.  Measured on the board:
+        // with the rig pinned to vector 5 and only vector 5 able to execute,
+        // the words read err=0x8C36 ok=0xDE3F -- stickies set on TWELVE
+        // indices.  They were left by the free-running sweep between
+        // configuration and the JTAG write that lands the pin: a full sweep is
+        // sixteen windows, about 17 ms, and the scan write takes far longer, so
+        // the rig always completes several unpinned sweeps before anyone can
+        // pin it.  Every per-vector verdict read after that point was reporting
+        // those sweeps, not the run being measured.
+        //
+        // So the clear has to be commandable, and a measurement session has to
+        // start by issuing it.  hold[11] is that command; the AND below is one
+        // LUT2 for all thirty-two latches, since the term is shared.
+        //
+        // {I3,I2,I1,I0} = {sticky_keep, armed, q, raw}: set for 10,11,13,14,15.
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uerr_s (
+            .I0(err_raw), .I1(err_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(err_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uok_s (
+            .I0(ok_raw),  .I1(ok_sticky[vi]),  .I2(armed), .I3(sticky_keep),
+            .O(ok_sticky[vi]));
     end endgenerate
 
     // ---- completed gcds, counted on the die --------------------------------
@@ -240,7 +330,7 @@ module gcd_hw (output wire led_red, output wire led_green);
             // bitstream was built with.
             5'd4:  mux_d = {NVEC_V, CMPD_V, HKLEN_V, WFILT_V, 8'h0};
 
-            5'd5:  mux_d = {21'h0, hold_pin, hold_vec, idx, armed, por_done, hold_run};
+            5'd5:  mux_d = {20'h0, hold_clr, hold_pin, hold_vec, idx, armed, por_done, hold_run};
             5'd6:  mux_d = {28'h0, rs1};
 
             // A wrong answer -- must read all zero
@@ -277,7 +367,7 @@ module gcd_hw (output wire led_red, output wire led_green);
 
     wire hold_ce = bs_sel && bs_update;
     always @(posedge tck) begin
-        if (hold_ce) hold <= sr[10:0];
+        if (hold_ce) hold <= sr[11:0];
     end
 
     assign sr_tdo = sr[0];

@@ -90,8 +90,20 @@ echo "== loading $(basename $FW) =="
 }
 sleep 4
 D=$(node)
-[ -n "$D" ] && [ -w "$D" ] || { [ "$(id -u)" = 0 ] && chmod 666 "$D"; }
-echo "== cable now at ${D:-gone} =="
+[ -n "$D" ] || { echo "the cable vanished after fxload"; exit 1; }
+
+# chmod again, UNCONDITIONALLY, and never behind a `-w` test.  fxload
+# renumerates the FX2, so the kernel tears the node down and makes a new one
+# at the default 0600 root:root -- step 2's chmod applied to a node that no
+# longer exists.  The `-w` guard this used to carry was worse than useless:
+# root passes -w on any mode, so the check said "already writable" precisely
+# when running as the only user who could fix it, and skipped.  The failure is
+# silent and looks exactly like a dead board -- hw_server runs as you, cannot
+# open a 0600 node, and reports an EMPTY JTAG CHAIN rather than a permission
+# error, which is the same symptom as an unpowered FPGA.
+chmod 666 "$D" 2>/dev/null || {
+    echo "cannot chmod $D -- re-run with sudo"; exit 2; }
+echo "== cable now at $D ($(stat -c%a "$D")) =="
 
 # --- 5. hw_server -----------------------------------------------------------
 echo "== starting hw_server =="
@@ -102,6 +114,38 @@ else
     nohup "$LAB/bin/hw_server" -d -s tcp::3121 >/dev/null 2>&1 &
 fi
 sleep 8
+
+# --- 6. say whether it worked -----------------------------------------------
+#
+# This script used to end by printing instructions and leaving the user to
+# find out.  It cannot: every way this fails produces the SAME symptom from
+# the measure script -- "available targets: none" -- whether the cable is
+# missing from hw_server, the node is unreadable, or the FPGA is unpowered.
+# Two of those three are this script's own job and it should name them.
+#
+# The distinction is between the two levels hw_server reports.  A cable it can
+# open appears as a jtag target of its own; the FPGA appears BELOW it.  So:
+#   nothing at all      -> hw_server never opened the cable.  Permissions or
+#                          firmware, i.e. a bug here, not a board problem.
+#   cable but no device -> the cable is fine and the chain is empty.  That one
+#                          really is the board: power, or the JTAG header.
+#
+# `connect -url` is the same server the measure scripts talk to.  The warning
+# below is about a BARE `connect`, which starts a private server instead.
+CHAIN=$("$LAB/bin/xsdb" -eval \
+    'connect -url tcp:localhost:3121; puts [jtag targets]; exit' 2>&1 || true)
+if echo "$CHAIN" | grep -qi "xc7z\|arm_dap"; then
+    echo "== chain OK -- the FPGA is on it =="
+elif echo "$CHAIN" | grep -qi "platform cable\|digilent\|jtag-smt"; then
+    echo "== the cable is up but the CHAIN IS EMPTY =="
+    echo "   Nothing above is at fault: hw_server has the cable and sees no"
+    echo "   device on it.  Check board power and the JTAG ribbon."
+else
+    echo "== hw_server does not see the cable =="
+    echo "   $D is $(stat -c%a "$D" 2>/dev/null || echo gone); hw_server runs"
+    echo "   as $AS.  A 0600 node reads back as an empty chain, not as an"
+    echo "   error, so check that first."
+fi
 
 echo
 echo "Now read the board:"
