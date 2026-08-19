@@ -65,13 +65,26 @@ for work and the gate to prove the numbers.
 
 ## Reading a result honestly
 
-**This simulation is more pessimistic than silicon.** nextpnr's cell arcs are a
-flat 124 ps on O6 and 116–153 ps on O5, where the part's own are 56–152 ps and
-both pin- and edge-dependent; `verify/tighten.py`'s header calls these "the
-weaker half of every number". On 2026-08-17 it failed 11 of 16 gcd vectors where
-the board failed 7 — so **four of its failures were its own pessimism.** A
-failure here that the board gets right is not a bug report. Check against
-hardware before acting on it.
+**Until 2026-08-19 this simulation decoded 131 LUTs as the wrong function, and
+every pass/fail mask it produced before that date is void.** `gen.py`'s
+`expand_lut_init()` split `X_ORIG_PORT_A<n>` on whitespace, but nextpnr also
+writes that attribute run together (`'I1I3 '` as well as `'I0 I3'`), so a
+physical pin carrying two logical inputs lost both of them and the LUT was
+expanded as a smaller function. 33 of the 131 were inside `ucmpi11`, so this sim
+insisted gcd's comparator answered 0 for ordinary positive numbers while the
+same bitstream on the die ran a 31-iteration vector correctly. nextpnr's own
+`fasm.cc` had the identical defect, which is a separate and much worse bug --
+see `patches/`. Both are fixed. The moral for this directory: when the sim and
+the board disagree, the sim is a TRANSLATION of the routed design and the
+translation is a suspect, not a given.
+
+**This simulation is more pessimistic than silicon** in its timing. nextpnr's
+cell arcs are a flat 124 ps on O6 and 116-153 ps on O5, where the part's own are
+56-152 ps and both pin- and edge-dependent; `verify/tighten.py`'s header calls
+these "the weaker half of every number". A failure here that the board gets
+right is not a bug report. It is not conservative in the other direction either
+-- after the pin-map fix it passed all 16 while the board still failed one
+vector. Check against hardware before acting on either outcome.
 
 It is also delay-sensitive in the direction that makes it worth having: the same
 netlist re-run with routing removed passes only 2 of 16 rather than 5. Vectors 4,
