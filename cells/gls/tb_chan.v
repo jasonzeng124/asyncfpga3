@@ -32,6 +32,9 @@
 module tb_run;
 
 `include "chan.vh"
+`include "absguard.vh"
+`include "cmpguard.vh"
+`include "cmpsweep.vh"
 
 
     top dut ();
@@ -114,25 +117,33 @@ module tb_run;
         last_hk = 0; stuck_ns = 0;
         forever begin
             #1000000;                       // 1 us of simulated time
-            if ($time == 5000000 || $time == 15000000 || $time == 25000000)
+            // A snapshot every microsecond, not three of them.  Three
+            // samples can only say "the same at 15 and 25"; a series says
+            // whether the ring stepped once and stopped, drifted, or never
+            // moved -- and on the bb11 livelock those look identical at
+            // three points and completely different across thirty.
+            // cmpsweep FORCES nets, so it destroys the run it is
+            // measuring.  Opt in: +SWEEP.
+            if ($time == 3000000 && $test$plusargs("SWEEP")) cmpsweep;
+            if ($time <= 30000000)
                 dump_chan($time/1000000);
             $display("# t=%0t hk=%0d laps=%0d errs=%0d oks=%0d rst=%b lastlap=%0t",
                      $time, hk_edges, laps, errs, oks, `RIG_RST, t_last_lap);
             if (hk_edges == last_hk) begin
                 $display("RESULT ring-stopped: housekeeping oscillator dead at t=%0t", $time);
-                summarise; $finish;
+                absguard_report; cmpguard_report; summarise; $finish;
             end
             last_hk = hk_edges;
             if (t_rst_rel != 0 && ($time - t_last_lap) > quiet_ns*1000
                 && ($time - t_rst_rel) > quiet_ns*1000) begin
                 $display("RESULT deadlock: vec=%0d laps=%0d last lap at t=%0t, quiet for %0t",
                          vec, laps, t_last_lap, $time - t_last_lap);
-                summarise; $finish;
+                absguard_report; cmpguard_report; summarise; $finish;
             end
             if ($time > tend*1000) begin
                 $display("RESULT timeout: vec=%0d laps=%0d errs=%0d oks=%0d",
                          vec, laps, errs, oks);
-                summarise; $finish;
+                absguard_report; cmpguard_report; summarise; $finish;
             end
         end
     end

@@ -34,6 +34,15 @@ for name, nn in sorted(nets.items()):
     if m and len(bits) == 1 and isinstance(bits[0], int):
         data[m.group(1)][int(m.group(2))] = bits[0]
         continue
+    # A ONE-BIT channel is named `<chan>_data`, with no [0] -- and every
+    # select, every branch condition and every loop index in the design is
+    # one bit wide.  Matching only the subscripted form silently dropped all
+    # of them, which is how a livelock traced to "the abs is wrong" could not
+    # then be traced to the comparator feeding it: the deciding wire was the
+    # one wire not being recorded.
+    if name.endswith("_data") and len(bits) == 1 and isinstance(bits[0], int):
+        data[name[:-len("_data")]][0] = bits[0]
+        continue
     if (name.endswith("_req") or name.endswith("_ack")) and len(bits) == 1 \
             and isinstance(bits[0], int):
         hs.append((name, bits[0]))
