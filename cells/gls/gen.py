@@ -107,12 +107,35 @@ PORT_ORDER = {
 }
 
 
+RE_ORIG_PORT = re.compile(r"I\d+")
+
+
 def expand_lut_init(init_str, attrs, out_port):
     """nextpnr-xilinx xilinx/fasm.cc get_lut_init(), reimplemented.
 
     The JSON INIT is in the ORIGINAL logical order (I0 = LSB); the packer is
     free to put any logical input on any physical A-pin and records where it
-    put it in X_ORIG_PORT_A<n>.  Return a truth table addressed by PHYSICAL
+    put it in X_ORIG_PORT_A<n>.
+
+    THAT ATTRIBUTE IS NOT CONSISTENTLY DELIMITED, and a whitespace split on it
+    silently computes the wrong truth table.  When one physical pin carries
+    several logical inputs -- which happens whenever the packer routes one net
+    to two pins of the same LUT -- nextpnr writes the list two different ways
+    in the same file:
+
+        'I0 I3'    'I2 I3 I4'      space separated
+        'I4I3 '    'I3I1 '         run together, with a trailing space
+
+    On the second form .split() returns the single token "I4I3", which matches
+    no logical input, so BOTH inputs drop out of the address and the expanded
+    table is the function of a smaller LUT.  There is no error: the netlist
+    elaborates, the design simulates, and 131 LUTs of gcd_hw compute something
+    that is not what the bitstream computes -- 33 of them inside ucmpi11 alone,
+    which is why gate simulation insisted gcd's comparator answered 0 for
+    ordinary positive numbers while the same bitstream on the die was getting
+    31-iteration vectors right.  The silicon was never affected; nextpnr's own
+    fasm.cc reads the attribute it wrote.  Match the names instead of splitting
+    on the delimiter, because the delimiter is not dependable.  Return a truth table addressed by PHYSICAL
     pin (A1 = bit 0), so the Verilog model can be a plain direct-addressed
     decoder.  Arity comes from the stored width of INIT, never from
     X_ORIG_TYPE -- the two disagree on real cells here, and trusting
@@ -128,7 +151,8 @@ def expand_lut_init(init_str, attrs, out_port):
         for k in range(n_phys):
             if not (j >> k) & 1:
                 continue
-            for name in attrs.get("X_ORIG_PORT_A%d" % (k + 1), "").split():
+            for name in RE_ORIG_PORT.findall(
+                    attrs.get("X_ORIG_PORT_A%d" % (k + 1), "")):
                 if name in log_to_bit:
                     log_index |= 1 << log_to_bit[name]
         if log_index < (1 << arity):
