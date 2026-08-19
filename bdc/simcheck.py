@@ -126,7 +126,76 @@ def ref_gcd(args):
     return {"out0": u(b << k)}
 
 
-REFS = {"test_loop_free": ref_test_loop_free, "gcd": ref_gcd}
+# --- kernels/ -- written for this backend, not shipped by Dynamatic --------
+
+def ref_collatz(args):
+    """kernels/collatz/collatz.c -- Collatz stopping time."""
+    n = s(args["n"])
+    steps = 0
+    while n != 1:
+        n = s(n >> 1) if (n & 1) == 0 else s(3 * n + 1)
+        steps = s(steps + 1)
+    return {"out0": u(steps)}
+
+
+def ref_collatz64(args):
+    """kernels/collatz64/collatz64.c -- same, on a 64-bit datapath."""
+    n = s(args["n"], 64)
+    steps = 0
+    while n != 1:
+        n = s(n >> 1, 64) if (n & 1) == 0 else s(3 * n + 1, 64)
+        steps = s(steps + 1)
+    return {"out0": u(steps)}
+
+
+def ref_ipow(args):
+    """kernels/ipow/ipow.c -- binary exponentiation."""
+    b, e = s(args["b"]), s(args["e"])
+    r = 1
+    while e > 0:
+        if (e & 1) == 1:
+            r = s(r * b)
+        b = s(b * b)
+        e = e >> 1
+    return {"out0": u(r)}
+
+
+def ref_xorshift(args):
+    """kernels/xorshift/xorshift.c -- Marsaglia xorshift32."""
+    x, rounds = u(args["seed"]), s(args["rounds"])
+    i = 0
+    while i < rounds:
+        x = u(x ^ u(x << 13))
+        x = u(x ^ (x >> 17))
+        x = u(x ^ u(x << 5))
+        i += 1
+    return {"out0": u(x)}
+
+
+def ref_isprime(args):
+    """kernels/isprime/isprime.c -- trial division, shift-subtract modulo."""
+    n = s(args["n"])
+    if n < 2:
+        return {"out0": u(0)}
+    d = 2
+    while s(d * d) <= n:
+        r, sh, half = n, d, n >> 1
+        while sh <= half:
+            sh = s(sh << 1)
+        while sh >= d:
+            if r >= sh:
+                r = s(r - sh)
+            sh = sh >> 1
+        if r == 0:
+            return {"out0": u(0)}
+        d = s(d + 1)
+    return {"out0": u(1)}
+
+
+REFS = {"test_loop_free": ref_test_loop_free, "gcd": ref_gcd,
+        "collatz": ref_collatz, "collatz64": ref_collatz64,
+        "ipow": ref_ipow, "xorshift": ref_xorshift,
+        "isprime": ref_isprime}
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +223,36 @@ VECTORS = {
         dict(a=48, b=18),
         dict(a=1, b=1),
         dict(a=17, b=5),
+    ],
+    # --- kernels/ ----------------------------------------------------------
+    # collatz: n=1 never enters the loop; 27 is the classic long trajectory
+    # (111 steps, peak 9232). Nothing here leaves int32 -- the first n whose
+    # trajectory does is 113383, which is collatz64's job.
+    "collatz": [
+        dict(n=1), dict(n=2), dict(n=3), dict(n=6),
+        dict(n=7), dict(n=27), dict(n=97), dict(n=703),
+    ],
+    # collatz64: 113383 is exactly the smallest n whose trajectory leaves
+    # int32, so this vector is one a 32-bit datapath cannot answer at all.
+    "collatz64": [
+        dict(n=1), dict(n=27), dict(n=113383),
+    ],
+    # ipow: e=0 skips the loop; (5,14) and (7,11) wrap int32 on the way.
+    "ipow": [
+        dict(b=3, e=0), dict(b=3, e=1), dict(b=2, e=10),
+        dict(b=3, e=7), dict(b=-2, e=3), dict(b=-3, e=4),
+        dict(b=7, e=11), dict(b=5, e=14),
+    ],
+    # xorshift: rounds=0 must pass the seed through untouched.
+    "xorshift": [
+        dict(seed=2463534242, rounds=0), dict(seed=2463534242, rounds=1),
+        dict(seed=2463534242, rounds=2), dict(seed=2463534242, rounds=4),
+        dict(seed=1, rounds=3), dict(seed=-1, rounds=2),
+    ],
+    # isprime: below 2, even, odd composite, prime, square of a prime.
+    "isprime": [
+        dict(n=-7), dict(n=0), dict(n=1), dict(n=2), dict(n=3),
+        dict(n=4), dict(n=9), dict(n=91), dict(n=97), dict(n=113),
     ],
 }
 

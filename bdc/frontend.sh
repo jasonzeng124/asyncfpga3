@@ -77,13 +77,19 @@ done
 KERNEL="${1:-}"
 if [ -z "$KERNEL" ]; then
   echo "usage: $0 <kernel-name>   (e.g. $0 fir)"
-  echo "kernel must be a directory under dynamatic/integration-test/ containing <kernel>.c"
+  echo "kernel must be a directory under kernels/ or dynamatic/integration-test/ containing <kernel>.c"
   exit 2
 fi
 
-SRC_DIR="$DYN/integration-test/$KERNEL"
+# Where a kernel lives. This repo's own kernels/ wins over Dynamatic's
+# shipped integration-test/ so we can write kernels that exercise op and
+# control-flow shapes the shipped suite doesn't reach, without editing the
+# vendored tree. Same-named directory in kernels/ shadows the shipped one.
+SRC_DIR="$PWD/kernels/$KERNEL"
+[ -d "$SRC_DIR" ] || SRC_DIR="$DYN/integration-test/$KERNEL"
 SRC_C="$SRC_DIR/$KERNEL.c"
 [ -f "$SRC_C" ] || { echo "no such kernel source: $SRC_C"; exit 2; }
+echo "== $KERNEL: source $SRC_C =="
 
 OUT="build/frontend/$KERNEL"
 COMP="$OUT/comp"           # mirrors compile.sh's own $COMP_DIR naming
