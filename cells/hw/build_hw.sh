@@ -94,6 +94,13 @@ EOF
 echo "== synthesis =="
 # cells_xtra.v carries BSCANE2 as a blackbox; cells_sim.v does not have it.
 #
+# DSP48E1 inference, same knob and same default as cells/flow.sh -- see the
+# long note there for the area/bundling/latency measurements that turned it
+# on, and for why verify/tighten.py had to be able to cross a DSP first.
+# BD_DSP=0 restores -nodsp.
+DSPOPT=""
+[ "${BD_DSP:-1}" = "0" ] && DSPOPT="-nodsp"
+
 # synth_xilinx's map_luts stage normally ends with xilinx_dffopt, which folds
 # any FF bit whose D input is constant under some control condition (e.g. a
 # capture-mux bit fed by a compile-time-constant TAG nibble) into a per-bit
@@ -116,14 +123,14 @@ echo "== synthesis =="
 read_verilog -lib -specify $CELLS_SIM
 read_verilog -lib $CELLS_XTRA
 read_verilog $SRCS
-synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP -run begin:map_luts
+synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP -run begin:map_luts
 opt_expr -mux_undef -noclkinv
 abc -luts 2:2,3,6:5,10,20
 clean
 techmap -map +/xilinx/ff_map.v
 techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6
 opt_lut_ins -tech xilinx
-synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP -run finalize:
+synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP -run finalize:
 write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }

@@ -84,11 +84,46 @@ if [ "$TOP_V" != "verify/soak_top.v" ]; then
     echo "using the generated top $TOP_V (module $TOP_M)"
 fi
 
+# DSP48E1 is ON.  It was off from the initial commit, where -nodsp sat
+# alongside -nobram/-nolutram/-nosrl as a blanket "infer no hard blocks" at a
+# time when the library was latches and delay lines and no kernel had a
+# multiply in it at all.  That was never a finding about DSPs.  BD_DSP=0
+# restores the old behaviour.
+#
+# What changed: kernels/ipow is the first design here with a variable x
+# variable multiply, and with it the question could be measured.
+#
+#   Area.  ipow goes from 3572 to 1452 occupied LUT sites, 61% off, because
+#   two 32-bit multipliers stop being LUT logic.
+#
+#   Bundling.  rule E (verify/skew.py) reports 5 of 24 select gates violated
+#   on the LUT build and 0 of 24 on the DSP build.  Same kernel, same rules:
+#   the DSP build is small enough that the bd_mux select gap closes without
+#   anyone padding anything.
+#
+#   Latency.  The DSP path is the SLOWER one -- 16475 ps against 11152 ps --
+#   because a 32x32 product does not fit in one DSP48E1, so yosys cascades two
+#   and the 5400 ps A->P arc is paid twice.  That cost is carried by that one
+#   matched delay and nothing else, which is the trade a bundled-data design
+#   is in a position to make.
+#
+# This was only safe to turn on after verify/tighten.py could cross a DSP.
+# It could not: is_output() decided a pin was an output by whether its name
+# began with "O", true of every cell the library had (LUTs drive O5/O6) and
+# false of a DSP48E1, which drives P0..P47.  So the walk had no output to
+# leave the multiply by, stopped, and reported ipow's multiplier data peak as
+# 3705 ps -- below the DSP's own 5400 ps A->P arc in the same SDF -- and
+# recommended SHORTENING the matched delay to match.  Same shape as the
+# nextpnr X_ORIG_PORT bug: not a wrong answer, a confident one from a walk
+# that quietly gave up.  is_output now asks the SDF instead of the name.
+DSPOPT=""
+[ "${BD_DSP:-1}" = "0" ] && DSPOPT="-nodsp"
+
 echo "== synthesis =="
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
 read_verilog $SIZES rtl/*.v $TOP_V
-synth_xilinx -family xc7 -flatten -nodsp -nosrl -nolutram -nobram -noclkbuf -top $TOP_M
+synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP_M
 write_json $OUT/soak.json
 stat
 " > $OUT/synth.log 2>&1 || { echo "SYNTH FAILED"; tail -30 $OUT/synth.log; exit 1; }

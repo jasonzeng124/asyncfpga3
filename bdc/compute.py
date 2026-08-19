@@ -157,12 +157,25 @@ def default_delay(op, width):
     length from the routed SDF and that is what gets built -- while being one
     link short costs a re-route.
 
-    One class is still extrapolation and is marked as such: no multiplier has
-    ever routed here.
+      * 32-bit MULTIPLIERS peak at 11152 ps as LUT logic, wanting 31 links,
+        and at 16475 ps through cascaded DSP48E1s, wanting 46.  This class was
+        extrapolated for as long as no kernel contained a variable x variable
+        multiply -- every multiply the shipped tests have is by a literal, and
+        --arith-reduce-strength rewrites those into shifts and adds before the
+        backend sees them.  kernels/ipow is the first thing that routed one.
+
+        The DSP path is the SLOWER of the two and it is the one that sets this
+        number, because a 32x32 product does not fit in one DSP48E1: yosys
+        cascades two, and the A->P arc of 5400 ps is paid twice.  It is still
+        worth having -- it takes ipow from 3572 to 1388 occupied LUT sites,
+        61% off -- but a placeholder that only covered the LUT multiplier
+        would be 15 links short the moment BD_DSP=1 is set, and short is the
+        one direction that is not allowed.  So 2*width, which clears the
+        measured DSP requirement by 39% and the LUT one by 106%.
     """
     cls = _depth_class(op)
     if cls == "mul":
-        return max(FLOOR, 2 * width)        # EXTRAPOLATED -- none routed yet
+        return max(FLOOR, 2 * width)        # MEASURED on kernels/ipow, DSP path
     if cls == "shift":
         return max(FLOOR, width)
     if cls == "carry":

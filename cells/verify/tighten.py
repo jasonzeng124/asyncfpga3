@@ -223,7 +223,34 @@ def pin_split(pin):
     return inst, port
 
 
+# Pin direction, taken from the SDF rather than guessed from the pin's name.
+# parse_sdf fills these: every IOPATH names an input on the left and an output
+# on the right, which is authoritative for whatever cell types the SDF happens
+# to contain.
+SDF_OUT_PINS = set()
+SDF_IN_PINS = set()
+
+
 def is_output(pin):
+    """Is this pin a cell OUTPUT?
+
+    The name-based test this used to be -- port starts with "O" -- is right for
+    every cell the library had when it was written (LUTs drive O5/O6, CARRY4
+    drives O0..O3) and silently wrong for the first one that does not.  A
+    DSP48E1 drives P0..P47, PCOUT and CARRYOUT: not one of them starts with O,
+    so every DSP output read as an input, and a walk that has no output to
+    leave by stops at the multiply instead of crossing it.  That is how
+    verify/tighten.py came to report kernels/ipow's multiplier data peak as
+    3705 ps when the DSP's own A->P arc in the same SDF is 5400 ps, and to
+    recommend shortening the matched delay to cover it.
+
+    So ask the SDF.  The name test survives only as a fallback for pins that
+    appear in no IOPATH at all.
+    """
+    if pin in SDF_OUT_PINS:
+        return True
+    if pin in SDF_IN_PINS:
+        return False
     return pin_split(pin)[1].startswith("O")
 
 
@@ -248,6 +275,8 @@ def parse_sdf(path):
         if m and inst is not None:
             a, z, d = unescape(m.group(1)), unescape(m.group(2)), int(m.group(3))
             edges[f"{inst}/{a}"].append((f"{inst}/{z}", d))
+            SDF_IN_PINS.add(f"{inst}/{a}")
+            SDF_OUT_PINS.add(f"{inst}/{z}")
             n_io += 1
             continue
         m = RE_INTERCON.search(line)
