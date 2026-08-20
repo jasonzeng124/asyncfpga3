@@ -107,6 +107,12 @@ fi
 #       BD_DSP=1    25 of 430 correct
 #       BD_DSP=0   430 of 430 correct
 #
+#   That build lets yosys absorb the operand registers into the DSP (AREG=1).
+#   Building it with -DBD_KEEP_OPERANDS blocks the absorption, giving AREG=0 --
+#   the configuration kernels/ipow produces -- and it is broken too, 205 of
+#   430, but breaks DIFFERENTLY: small operands come back as 0 rather than as
+#   a corrupted product.  Two configurations, two wrong behaviours, one `*`.
+#
 #   1 * 4294967295 returns 0x0001FFFF: the low 17 bits and nothing else.
 #   The cascade's high partial products are not reaching the output.
 #
