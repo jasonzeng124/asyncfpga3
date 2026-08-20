@@ -45,8 +45,22 @@ for c in "${CHECKS[@]}"; do
     fi
 done
 
+SHA=$(sha256sum "$NEXTPNR" | cut -d' ' -f1)
 printf '  binary  %s\n' "$NEXTPNR"
-printf '  sha256  %s\n' "$(sha256sum "$NEXTPNR" | cut -c1-16)"
+printf '  sha256  %s\n' "${SHA:0:16}"
+
+# Provenance has to be recorded when the artefact is MADE, not when it is used.
+# A check run just before programming the board reports whichever binary is
+# installed at that moment, which is not necessarily the one that built the
+# bitstream about to be loaded -- so it can say "ok" over a stale bitstream and
+# the stamp would be a lie.  This runs from inside the build, which is the only
+# moment the answer is true, and it appends rather than overwrites so a number
+# can still be attributed weeks later.  Nobody has to remember to do it.
+LOG=${BD_TOOLCHAIN_LOG:-$(dirname "$0")/../build/toolchain.log}
+mkdir -p "$(dirname "$LOG")" 2>/dev/null &&
+    printf '%s %s %s %s\n' "$(date -Is)" "$SHA" \
+        "$([ "$miss" -eq 0 ] && echo ok || echo MISSING)" \
+        "${BD_STAMP:-$(basename "$NEXTPNR")}" >> "$LOG" 2>/dev/null || true
 
 if [ $miss -ne 0 ]; then
     echo
