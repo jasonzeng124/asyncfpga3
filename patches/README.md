@@ -49,3 +49,65 @@ comparator answered 0 for ordinary positive numbers while the same bitstream on
 the die was getting 31-iteration vectors right.  Both readers are fixed; the
 writer is left alone, because a reader that depends on the separator is the
 defect.
+
+## nextpnr-xilinx-dsp-constpins.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack_dsp_xc7.cc` and
+`xilinx/fasm.cc`.
+
+**An inferred DSP48E1 multiplier ignored its A operand and returned
+near-constant junk.**  Correct netlist, correct post-synthesis simulation,
+clean timing -- wrong on the die only.
+
+prjxray gives some DSP48E1 site pins no interconnect path into the site at
+all: they appear in `segbits_dsp_{l,r}.db` only as `<PIN>.DSP_GND_*` /
+`<PIN>.DSP_VCC_*`, in no ppips/pips list, so a tile-local constant bit is the
+*only* way to give them a value. The full set, for every 7-series part in the
+db:
+
+    D0..D24  RSTD  CARRYINSEL2  CED  CEAD  CEINMODE  CEALUMODE
+    INMODE0..4  ALUMODE2  ALUMODE3  OPMODE6
+
+`pack_dsps()` in `pack_dsp_xc7.cc` converted the first seven groups and left
+`INMODE0..4`, `ALUMODE2`, `ALUMODE3` and `OPMODE6` commented out with `//
+TODO: these seem to be inverted for unknown reasons`. Those pins stayed on
+`$PACKER_VCC_NET`/`$PACKER_GND_NET`, the router had nowhere to take them, no
+bit was ever emitted, and each pin came up on silicon as the tile default --
+the complement of what a VCC/GND net implies. For a plain inferred `a * b`
+that turns `INMODE` `00000` into `11111`: per UG479 Table 1-11,
+`INMODE[1]=1` gates the multiplier's A input to zero. `OPMODE[6:4]` also
+went `000` &rarr; `100` (P fed back into the Z mux instead of zero) and
+`ALUMODE[3:2]` `00` &rarr; `11`.
+
+Just uncommenting those three lines makes it worse (board goes fully inert),
+which is the "seem to be inverted" TODO talking about something real: these
+pins bypass the site's optional input inverter, so `ZIS_*_INVERTED` -- which
+`fasm.cc` applies to every *routed* pin -- never touches them. The constant
+chosen for a const-only pin has to already carry the logical value.
+`write_const_pins()` in `fasm.cc` tried to do exactly that, but
+`boost::erase_all(pin_basename, "0123456789")` strips every digit out of the
+pin name, turning `INMODE1` into `INMODE` and looking up
+`IS_INMODE_INVERTED` -- a parameter yosys never emits, since it writes the
+per-bit `IS_INMODE[1]_INVERTED`. The lookup silently returned false for
+every bussed pin, every time.
+
+The fix keeps the trailing digit as a bus index instead of discarding it,
+and checks `IS_<name>[<idx>]_INVERTED` (plus the plain and integer-bitmask
+forms, for whichever encoding a given yosys version emits) rather than a
+digit-stripped name that never existed as a parameter.
+
+Measured on an EBAZ4205 (xc7z010clg400), reading results back over JTAG:
+
+| test | before | after |
+|---|---|---|
+| bit-walk, all 16 A bits x 2 DSPs | A had zero effect | all correct |
+| `mult2_ps`, two lone 16x16 | 1/315 and 315/315 | 415/415 and 415/415 |
+| `mult_ps`, 32x32 three-DSP cascade | 25/430 | 430/430 |
+| `ipow_ps`, real kernel | 965/2016 | 516/516 |
+
+Ruled out along the way: timing (a 10 MHz run was bit-identical to the 100 MHz
+one, which is what pointed at the bitstream rather than a race), the
+`fasm.cc:449` DSP ppip drop (those ppips are `always` with no bits, so
+dropping them is correct and harmless), synthesis (the post-yosys netlist for
+a bare 32x32 multiply matches `cells_sim.v` on 4007/4007 vectors, including
+every operand the board got wrong), and the bdc compiler.
