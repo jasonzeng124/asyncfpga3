@@ -81,12 +81,35 @@ the route that produced the measurement, and measured on gcd it does not even
 converge.
 """
 
-import sys, pathlib
+import json, math, sys, pathlib
 
-SDF = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else
-                   pathlib.Path(__file__).resolve().parent.parent
-                   / "build/hw/gcd_hw/gcd_hw.sdf")
-VERBOSE = "-v" in sys.argv[1:]
+_raw = sys.argv[1:]
+VERBOSE = "-v" in _raw
+# --select-pads <path> writes, as JSON, the ADDITIONAL bd_delay elements each
+# violating site's own link needs: {"ulink_n151__0": 3, ...}.  That is the
+# shape bdc/emit.py's BDC_SELECT_PADS already reads.
+#
+# It is written HERE and deliberately not by tighten.py's rule D, which offers
+# the same file and must not be used for it.  Rule D says so itself: it is a
+# SCREEN, one-sided by construction -- it assumes every input launches at t=0,
+# so it cannot see matched delay already upstream in the request path, and on
+# gcd it therefore calls 38 of 39 branches violations at a bd_steer whose
+# request really arrives around 10 ns.  Driving a padding loop off that number
+# pads almost every channel in the design.  Measured 2026-08-17, that is
+# exactly what happened: BDC_SELECT_PAD 4 vs 32 -- 96 versus 768 delay elements
+# -- produced a byte-identical failing mask on silicon and bought nothing.
+#
+# Rule E measures from a common launch and finds 2 of 118 gates short on gcd,
+# 2 of 24 on ipow.  A loop driven off THIS file touches a handful of links.
+PADS = None
+if "--select-pads" in _raw:
+    _i = _raw.index("--select-pads")
+    PADS = pathlib.Path(_raw[_i + 1])
+    del _raw[_i:_i + 2]
+_pos = [a for a in _raw if not a.startswith("-")]
+SDF = pathlib.Path(_pos[0]) if _pos else (pathlib.Path(__file__).resolve()
+                                          .parent.parent
+                                          / "build/hw/gcd_hw/gcd_hw.sdf")
 
 # tighten.py reads its own argv at import time; hand it the SDF we were given
 # so its SDF-relative paths (the routed JSON, next to it) resolve the same way.
@@ -97,6 +120,36 @@ from collections import defaultdict                           # noqa: E402
 
 
 K = 6          # storage crossings a path may make before it is a lap, not a path
+
+# The guardband, and the whole reason this file does not reuse the review's
+# max(0.2*t_data, 200 ps).  That constant is EYEBALLED -- it is a judgement
+# call written into tighten.py's rule A, not a derivation, and it should not
+# be laundered into one by dividing it by a delay element and quoting the
+# quotient.
+#
+# There IS a measured number for the thing a guardband here is actually for:
+# how far a real route on this part lands from what the SDF predicted.
+# hw/README.md, five bd_delay ring oscillators spanning 18x in length, closed
+# and counted on silicon:
+#
+#     measured = 0.975 x predicted, residuals +0.1% -8.5% -5.7% -6.3% +2.2%
+#
+# with no trend against length, so it is per-route scatter rather than a model
+# error.  The common 0.975 cancels between the two arrivals being compared --
+# both routes are on the same die -- and what does not cancel is the residual
+# band.  The worst case for this check is the request as fast as scatter
+# allows against the select as slow as it allows:
+#
+#     GUARD_LO * t_req  >  GUARD_HI * t_sel
+#
+# Three things this number is NOT.  It was measured on bd_delay chain routes,
+# and it is applied here to ordinary interconnect.  It is five samples.  And
+# the SDF's cell arcs are nextpnr's flat 124 ps model rather than the per-pin
+# silicon arcs, so the arcs inside each arrival are the weaker half of it.
+# It is still the only term here with silicon behind it, which is why it is
+# preferred to a rounder number that has none.
+GUARD_LO = 0.915          # request may run this fraction of its predicted delay
+GUARD_HI = 1.022          # select may run this multiple of its predicted delay
 
 
 def main():
@@ -260,35 +313,96 @@ def main():
             continue
         rows.append((worst[0], kind, parent, cell, rp, sp) + worst[1:])
 
+    # Guarded margin, and the raw one kept alongside it so the guardband can
+    # always be seen doing its work rather than being folded into the verdict.
+    def guarded(t_req, t_sel):
+        return int(GUARD_LO * t_req - GUARD_HI * t_sel)
+
+    rows = [(guarded(r[7], r[9]),) + r for r in rows]
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
 
+    t_elem = T.measure_delay_element(SDF.read_text())
+    if t_elem is None:
+        t_elem = T.T_DELAY_RISE_FALLBACK
+        elem_src = (f"no bd_delay chain in this design to measure -- falling "
+                    f"back to {t_elem} ps/link off another route")
+    else:
+        elem_src = (f"{t_elem} ps per bd_delay link, measured off this route's "
+                    f"own chains")
+
     print(f"             {len(checks)} select gates, {len(rows)} measured, "
           f"{len(bad)} violated")
+    print(f"             guardband {GUARD_LO:.3f}*req vs {GUARD_HI:.3f}*sel, "
+          f"from hw/README.md's five measured rings")
+    print(f"             element cost: {elem_src}")
     if orphan:
         print(f"             {len(orphan)} gate(s) share no launch with their "
               f"own select within {K} crossings -- not checked")
 
-    for (margin, kind, parent, cell, rp, sp,
+    pads, unattributed = {}, []
+    for (gm, margin, kind, parent, cell, rp, sp,
          launch, t_req, k_req, t_sel, k_sel) in (rows if VERBOSE else bad):
-        flag = "VIOLATED" if margin <= 0 else "ok      "
+        flag = "VIOLATED" if gm <= 0 else "ok      "
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
         print(f"           req  {rp}")
         print(f"                earliest {t_req} ps, {k_req} storage crossing(s)")
         print(f"           sel  {sp}")
         print(f"                latest   {t_sel} ps, {k_sel} storage crossing(s)")
-        print(f"           margin {margin:+d} ps"
-              + ("   the request beats its own select" if margin <= 0 else ""))
+        print(f"           margin {margin:+d} ps raw, {gm:+d} ps guarded"
+              + ("   the request beats its own select" if gm <= 0 else ""))
+        if gm > 0:
+            continue
+        # WHICH link's knob moves this edge.  The launch is the storage node
+        # that released the select, and for every violation seen so far that
+        # node IS a bd_link's own C-element output -- which is precisely the
+        # node bd_link's DELAY pads, and it pads req_out ALONE (bd_link.v:99),
+        # leaving data_out where it is.  So padding the link named by the
+        # launch moves the request later and does not drag the select along
+        # with it.  Anything else is not attributable from this measurement and
+        # is reported rather than guessed at.
+        m = T.RE_SEL_LINK.search(launch)
+        if not m:
+            unattributed.append((parent, launch))
+            continue
+        # The elements being added sit in the request path, so they are subject
+        # to the same GUARD_LO scatter as the rest of it.
+        need = math.ceil(-gm / (t_elem * GUARD_LO))
+        pads[m.group(1)] = max(pads.get(m.group(1), 0), need)
+        print(f"           fix: {need} more bd_delay element(s) on "
+              f"{m.group(1)} ({t_elem} ps ea, derated to "
+              f"{int(t_elem * GUARD_LO)})")
+
+    if unattributed:
+        print()
+        for parent, launch in unattributed:
+            print(f"  {parent}: launch {launch} is not a bd_link C node, so no "
+                  f"DELAY knob\n    is attributable to it -- reported, not "
+                  f"padded")
+    if PADS is not None:
+        PADS.write_text(json.dumps(dict(sorted(pads.items())), indent=1) + "\n")
+        print(f"\n  wrote {len(pads)} per-link requirement(s) to {PADS} "
+              f"-- ADDITIONAL elements, to be added to what each link carries")
 
     if bad:
         print(f"\n  {len(bad)} site(s) take the request before the select is "
               f"stable.  A token\n  leaves on the branch the select USED to "
               f"name -- a MISSING result, not a wrong one.")
-        print("  The remedy is placement: the producing link's latch, its "
-              "request output and\n  this gate belong together.  Padding the "
-              "request is latency on every single\n  transaction, and it "
-              "changes the very route that produced this measurement.")
+        print("  The cause is placement, every time.  On gcd this site's own "
+              "link spends 900 ps\n  getting from its C node to its OWN latch's "
+              "enable -- two LUTs of one cell --\n  and another 1050 ps "
+              "reaching the mux, while the first element of the same\n  link's "
+              "delay chain sits 150 ps away.  Nothing declares that net "
+              "critical, so\n  the placer, minimising wirelength over the whole "
+              "design, has no reason to care.")
+        print("  Padding is therefore a correction, not a cure: it costs "
+              "latency on every\n  transaction through the gate and it changes "
+              "the very route that was measured.\n  Per-link and measured it is "
+              "worth trying -- a handful of LUT1s perturbs little.\n  If the "
+              "loop does not converge, the answer is to make the placer keep a "
+              "link's\n  C node and its latch in one slice, which is a packing "
+              "decision, not a pinned\n  location.")
     return 1 if bad else 0
 
 
