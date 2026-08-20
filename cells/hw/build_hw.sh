@@ -55,6 +55,18 @@ gcd_hw)
         build/frontend/gcd/comp/handshake_transformed.mlir \
         --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
     ;;
+gcd_ps|gcd_bench)
+    # The PS7-driven harness: same compiled kernel as gcd_hw, but the vectors
+    # come from the host over M_AXI_GP0 instead of a 16-entry case statement.
+    # No --probe here -- hw/gcd_ps_top.v connects only the kernel's declared
+    # channels, so a plain emit is what it expects.
+    KERNEL=../build/gen/gcd_kernel_ps.v
+    SRCS="rtl/*.v $KERNEL hw/$TOP.v"
+    mkdir -p ../build/gen
+    ( cd .. && python3 bdc/emit.py \
+        build/frontend/gcd/comp/handshake_transformed.mlir \
+        --no-top -o build/gen/gcd_kernel_ps.v )
+    ;;
 *)
     SRCS="rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v hw/$TOP.v"
     ;;
