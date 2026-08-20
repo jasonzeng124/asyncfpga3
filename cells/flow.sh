@@ -84,40 +84,76 @@ if [ "$TOP_V" != "verify/soak_top.v" ]; then
     echo "using the generated top $TOP_V (module $TOP_M)"
 fi
 
-# DSP48E1 is ON.  It was off from the initial commit, where -nodsp sat
-# alongside -nobram/-nolutram/-nosrl as a blanket "infer no hard blocks" at a
-# time when the library was latches and delay lines and no kernel had a
-# multiply in it at all.  That was never a finding about DSPs.  BD_DSP=0
-# restores the old behaviour.
+# DSP48E1 is OFF, and this is a measured toolchain fault, not caution.
 #
-# What changed: kernels/ipow is the first design here with a variable x
-# variable multiply, and with it the question could be measured.
+# It was off from the initial commit as a blanket "infer no hard blocks" at a
+# time when no kernel had a multiply in it at all.  kernels/ipow gave the
+# question its first real subject, and on area and bundling the DSP won:
+# ipow drops from 3572 to 1452 occupied LUT sites, 61% off, and rule E
+# (verify/skew.py) goes from 5 of 24 select gates violated to 0 of 24.  On
+# that evidence it was turned ON.  Then it went to the board.
 #
-#   Area.  ipow goes from 3572 to 1452 occupied LUT sites, 61% off, because
-#   two 32-bit multipliers stop being LUT logic.
+# THE DSP PATH COMPUTES THE WRONG PRODUCT ON THIS BOARD.
 #
-#   Bundling.  rule E (verify/skew.py) reports 5 of 24 select gates violated
-#   on the LUT build and 0 of 24 on the DSP build.  Same kernel, same rules:
-#   the DSP build is small enough that the bd_mux select gap closes without
-#   anyone padding anything.
+#   kernels/ipow, 2016 vectors through hw/xsdb_ipow_sweep.tcl, same RTL,
+#   same harness, same seed:
+#       BD_DSP=1   965 of 2016 correct
+#       BD_DSP=0  2016 of 2016 correct
 #
-#   Latency.  The DSP path is the SLOWER one -- 16475 ps against 11152 ps --
-#   because a 32x32 product does not fit in one DSP48E1, so yosys cascades two
-#   and the 5400 ps A->P arc is paid twice.  That cost is carried by that one
-#   matched delay and nothing else, which is the trade a bundled-data design
-#   is in a position to make.
+#   hw/mult_ps.v reduces that to a design whose entire datapath is
+#   `assign o_data_pl = a_data_reg * b_data_reg;` -- no kernel, no handshake
+#   around the multiply, no matched delay, operands written by the host and
+#   the product read back milliseconds later:
+#       BD_DSP=1    25 of 430 correct
+#       BD_DSP=0   430 of 430 correct
 #
-# This was only safe to turn on after verify/tighten.py could cross a DSP.
-# It could not: is_output() decided a pin was an output by whether its name
-# began with "O", true of every cell the library had (LUTs drive O5/O6) and
-# false of a DSP48E1, which drives P0..P47.  So the walk had no output to
-# leave the multiply by, stopped, and reported ipow's multiplier data peak as
-# 3705 ps -- below the DSP's own 5400 ps A->P arc in the same SDF -- and
-# recommended SHORTENING the matched delay to match.  Same shape as the
-# nextpnr X_ORIG_PORT bug: not a wrong answer, a confident one from a walk
-# that quietly gave up.  is_output now asks the SDF instead of the name.
-DSPOPT=""
-[ "${BD_DSP:-1}" = "0" ] && DSPOPT="-nodsp"
+#   1 * 4294967295 returns 0x0001FFFF: the low 17 bits and nothing else.
+#   The cascade's high partial products are not reaching the output.
+#
+# WHERE IT IS NOT.  Not the compiler: bdc/simcheck.py passes ipow, including
+# (7,11), which the board gets wrong.  Not synthesis: the post-yosys netlist
+# for a bare 32x32 multiply, simulated against the toolchain's own
+# cells_sim.v, is right on 4007 of 4007 vectors including every operand the
+# board fails.  Not bundled-data timing: BD_MUL_SCALE=4 lengthens the matched
+# delay from 64 links to 256 and the design gets WORSE, 921 of 2016, with the
+# failing set moving -- a delay that was short cannot be made short by making
+# it longer.  verify/tighten.py independently reports +10.7 ns of margin on
+# that path, and the routed SDF does carry the cascade arcs (A->P 5400 ps,
+# PCIN->P 1710 ps) for it to have crossed.
+#
+# So the fault is introduced between the correct netlist and the bitstream --
+# the same seam as patches/nextpnr-xilinx-lut-pinmap.patch, which was 131
+# LUTs written into the bitstream disagreeing with the netlist that produced
+# them.
+#
+# WHAT HAS BEEN CHECKED AT THAT SEAM, and found CORRECT:
+#   - placement.  The three cascaded DSPs land on DSP48_X0Y20/21/22, adjacent
+#     sites in one column, which is what the PCOUT->PCIN cascade requires.
+#   - OPMODE.  Decoded from the routed netlist, the cascade asks for Z=000 at
+#     the head, Z=101 (PCIN shifted right 17) in the middle and Z=001 at the
+#     tail -- a correct 32x32 decomposition -- and the FASM's inversion bits
+#     match that cell for cell.
+#   - ALUMODE, INMODE, the constant network (VCC, so the inversion bits mean
+#     what the decode above assumed), and the operand slices, which take
+#     a[16:0]/a[31:17] against b[16:0]/b[31:17] in the three needed pairings.
+#
+# ONE REAL DISAGREEMENT WAS FOUND AND FIXED THERE, and it was not the cause:
+# patches/nextpnr-xilinx-dsp-areg.patch.  prjxray defines the DSP feature
+# AREG_2_ACASCREG_1 as the conjunction (AREG == 2 && ACASCREG == 1); fasm.cc
+# derived its Z-form bit from ACASCREG alone, so AREG=1 -- what yosys emits
+# whenever it absorbs one level of input register into the multiply -- wrote
+# no bit and read back on silicon as AREG=2.  With the patch the bit appears
+# and the board result is BIT-IDENTICAL, because a design that reads its
+# answer milliseconds later cannot see an extra input pipeline stage.  Worth
+# having, not the bug.
+#
+# So the cause is still open, and until it is found every DSP48E1 this flow
+# places is a wrong answer waiting to be read.
+#
+# BD_DSP=1 re-enables inference for anyone working on the bug.  It is not a
+# performance knob and must not be set to ship.
+DSPOPT="-nodsp"
+[ "${BD_DSP:-0}" = "1" ] && DSPOPT=""
 
 echo "== synthesis =="
 "$YOSYS" -p "

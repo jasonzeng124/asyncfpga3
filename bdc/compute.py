@@ -52,6 +52,7 @@ of the toolchain already imposes:
 """
 
 import argparse
+import os
 import sys
 
 # Operations whose result is the full operand width, and the Verilog
@@ -172,10 +173,25 @@ def default_delay(op, width):
         would be 15 links short the moment BD_DSP=1 is set, and short is the
         one direction that is not allowed.  So 2*width, which clears the
         measured DSP requirement by 39% and the LUT one by 106%.
+
+        BD_DSP is now OFF by default -- the DSP path computes wrong products
+        on this board, see cells/flow.sh -- so in practice this sizes a LUT
+        multiplier and has 106% to spare.  The DSP figure stays in the number
+        anyway: it costs nothing while no DSP is placed, and it is the one
+        that would matter the day the toolchain bug is fixed.
     """
     cls = _depth_class(op)
     if cls == "mul":
-        return max(FLOOR, 2 * width)        # MEASURED on kernels/ipow, DSP path
+        # BD_MUL_SCALE is a DIAGNOSTIC knob and nothing else.  When a routed
+        # design gives wrong ANSWERS, the first question is whether the
+        # matched delay is short -- and the only way to answer it without
+        # trusting the same SDF that produced the delay is to make the delay
+        # absurdly long and see if the wrongness survives.  If it does, the
+        # fault is not timing.  Never set this to ship: a scaled delay is
+        # latency on every transaction, which is exactly the cost this
+        # backend exists to avoid paying.
+        scale = float(os.environ.get("BD_MUL_SCALE", "1"))
+        return max(FLOOR, int(2 * width * scale))   # MEASURED on kernels/ipow
     if cls == "shift":
         return max(FLOOR, width)
     if cls == "carry":

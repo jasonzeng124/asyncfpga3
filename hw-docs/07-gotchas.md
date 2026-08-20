@@ -7,6 +7,7 @@
 | 4-phase RTZ not completed | holding `i_req` high after `i_ack` freezes the entry chain and deadlocks every loop after one traversal. Same for `o_ack` — mirror `o_req`, don't latch it high. Generated TBs return to zero correctly, so **simulation never sees it**. |
 | Host-paced handshake wedge | any ms-cadence host (JTAG/AXI) violates the above; needs an async-clearing pulse adapter (`02` §5) |
 | AXI3 IDs tied to 0 | hangs every CPU access and wedges the DAP; sim stays green if the TB drives ID 0 |
+| `memmap` on the wrong context or too late | must be declared on the **APU** (the A9s inherit it) and **before** `fpga -f`. On a single `ARM*#0`, or after programming, it does not take and every access returns "Blocked address 0x40000000 ... has not been added to the memory map" — which reads like the `02` §8 "address not declared" entry even though it *was* declared. Both working scripts in `ref/zynq/` do it on APU before `fpga -f`. Nothing to simulate, so it fails only on hardware. |
 | JTAG device-node perms | reset on every USB re-enumeration; needs user sudo |
 | Board/cable state | not knowable remotely. Probe with `xc3sprog -c xpc -j` or xsdb `targets`. Ask the user for physical actions, not observations. |
 
@@ -23,6 +24,7 @@ violations hide.
 | Post-route pin views | lie under fracturable-LUT packing (`04` §5b). Resolve via the pre-place JSON by net name; **raise** on unresolved probes, never score zero. |
 | Implicit buffer insertion | yosys `clkbufmap` inserts a BUFG on clock pins unasked. A matched delay timing a response from the *pre*-buffer signal can be exceeded by BUFG insertion (~2 ns) ⇒ capture happens after "done" on silicon. Sim never sees it (no BUFG in the sim model); the structural audit passes vacuously if BUFG is a depth-0 source truncating the cone. Instantiate explicitly; keep capture clock and timing tap downstream of the same buffer. |
 | `--timing-allow-fail` | silences failures beyond the waived class. Always pair with a narrow checker. |
+| Inferred DSP48E1 computes the wrong product | openXC7 on xc7z010: a design whose whole datapath is `a * b` returns 25 of 430 correct with DSP inference on and 430 of 430 with `-nodsp`. Source, post-synthesis netlist and routed timing are all clean, so nothing before the bitstream shows it. `cells/flow.sh` keeps `BD_DSP=0` and carries the full bisect; `cells/hw/mult_ps.v` is the reproducer. |
 
 ## Simulation
 

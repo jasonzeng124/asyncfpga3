@@ -55,6 +55,23 @@ gcd_hw)
         build/frontend/gcd/comp/handshake_transformed.mlir \
         --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
     ;;
+mult_ps)
+    # No compiled kernel at all -- the datapath is one expression in the
+    # bridge.  See hw/mult_ps.v.
+    SRCS="rtl/*.v hw/$TOP.v"
+    ;;
+ipow_ps)
+    # ipow is the kernel with the variable x variable multiplies, so it is
+    # the one that would infer DSP48E1 if BD_DSP were set.  It is not, and
+    # this build is LUT multipliers -- see the BD_DSP block below.  Nothing
+    # else differs from the gcd_ps case.
+    KERNEL=../build/gen/ipow_kernel_ps.v
+    SRCS="rtl/*.v $KERNEL hw/$TOP.v"
+    mkdir -p ../build/gen
+    ( cd .. && python3 bdc/emit.py \
+        build/frontend/ipow/comp/handshake_transformed.mlir \
+        --no-top -o build/gen/ipow_kernel_ps.v )
+    ;;
 gcd_ps|gcd_bench)
     # The PS7-driven harness: same compiled kernel as gcd_hw, but the vectors
     # come from the host over M_AXI_GP0 instead of a 16-entry case statement.
@@ -106,12 +123,13 @@ EOF
 echo "== synthesis =="
 # cells_xtra.v carries BSCANE2 as a blackbox; cells_sim.v does not have it.
 #
-# DSP48E1 inference, same knob and same default as cells/flow.sh -- see the
-# long note there for the area/bundling/latency measurements that turned it
-# on, and for why verify/tighten.py had to be able to cross a DSP first.
-# BD_DSP=0 restores -nodsp.
-DSPOPT=""
-[ "${BD_DSP:-1}" = "0" ] && DSPOPT="-nodsp"
+# DSP48E1 is OFF.  The full argument, with the numbers, is in cells/flow.sh
+# next to the same two lines -- in short: the DSP path computes the wrong
+# product on this board, hw/mult_ps.v is the one-expression reproducer, and
+# the netlist that produced it is correct.  BD_DSP=1 re-enables inference for
+# anyone working on the bug and must not be set to ship.
+DSPOPT="-nodsp"
+[ "${BD_DSP:-0}" = "1" ] && DSPOPT=""
 
 # synth_xilinx's map_luts stage normally ends with xilinx_dffopt, which folds
 # any FF bit whose D input is constant under some control condition (e.g. a

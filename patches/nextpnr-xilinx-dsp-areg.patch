@@ -1,0 +1,46 @@
+From: asyncfpga3
+Subject: [PATCH] xilinx: DSP48E1 AREG/BREG -- ZAREG_2_ACASCREG_1 is a conjunction
+
+prjxray defines the DSP48E1 feature AREG_2_ACASCREG_1 as
+(AREG == 2 && ACASCREG == 1) -- see fuzzers/100-dsp-mskpat/generate.py.
+fasm.cc derived its Z-form bit from ACASCREG alone, ignoring AREG, so the
+configuration yosys emits whenever it absorbs one level of input register
+into the multiplier (AREG=1, ACASCREG=1) wrote no bit at all.  Silicon reads
+that back as AREG=2: one input pipeline stage more than the netlist asked
+for.  Same for BREG/BCASCREG.
+
+Found while bisecting wrong products out of an inferred DSP48E1 on
+xc7z010clg400 (EBAZ4205).  NOTE: fixing this did NOT fix those wrong
+products -- the design under test reads its result milliseconds later, so an
+extra input pipeline stage is invisible to it, and the board result was
+bit-identical before and after.  This is a real netlist/bitstream
+disagreement found on the way, not the cause of that bug, which is still
+open.
+
+diff --git a/xilinx/fasm.cc b/xilinx/fasm.cc
+index 0ed24dba..02fe54e6 100644
+--- a/xilinx/fasm.cc
++++ b/xilinx/fasm.cc
+@@ -5063,8 +5092,20 @@ void write_gtx_channel(CellInfo *ci)
+ 
+         write_bit("ZADREG[0]", !bool_or_default(ci->params, ctx->id("ADREG"), true));
+         write_bit("ZALUMODEREG[0]", !bool_or_default(ci->params, ctx->id("ALUMODEREG")));
+-        write_bit("ZAREG_2_ACASCREG_1", !bool_or_default(ci->params, ctx->id("ACASCREG")));
+-        write_bit("ZBREG_2_BCASCREG_1", !bool_or_default(ci->params, ctx->id("BCASCREG")));
++        // AREG_2_ACASCREG_1 is prjxray's name for a CONJUNCTION, not for
++        // ACASCREG: fuzzers/100-dsp-mskpat/generate.py sets it to
++        // (AREG == 2 && ACASCREG == 1).  Its Z-form bit therefore belongs in
++        // the bitstream whenever that conjunction is FALSE.  Deciding it from
++        // ACASCREG alone mis-encodes the case yosys emits whenever it absorbs
++        // one level of input register into the DSP -- AREG=1 with
++        // ACASCREG=1 -- which wrote no bit at all and reads back on silicon
++        // as AREG=2, one pipeline stage deeper than the netlist asked for.
++        // The multiply then samples its operands a cycle late and the design
++        // returns wrong products with a correct netlist.  Same for B.
++        auto acascreg = int_or_default(ci->params, ctx->id("ACASCREG"), 1);
++        auto bcascreg = int_or_default(ci->params, ctx->id("BCASCREG"), 1);
++        write_bit("ZAREG_2_ACASCREG_1", !(areg == 2 && acascreg == 1));
++        write_bit("ZBREG_2_BCASCREG_1", !(breg == 2 && bcascreg == 1));
+         write_bit("ZCARRYINREG[0]", !bool_or_default(ci->params, ctx->id("CARRYINREG")));
+         write_bit("ZCARRYINSELREG[0]", !bool_or_default(ci->params, ctx->id("CARRYINSELREG")));
+         write_bit("ZCREG[0]", !bool_or_default(ci->params, ctx->id("CREG"), true));
