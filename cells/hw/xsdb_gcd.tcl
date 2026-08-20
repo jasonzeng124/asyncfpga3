@@ -129,6 +129,17 @@ proc catch_cpu0_in_bootrom {} {
 catch_cpu0_in_bootrom
 
 # --- program PL -------------------------------------------------------
+# Declare the AXI3 register block BEFORE programming, and on the APU rather
+# than on a single A9.  Both matter, and getting either wrong gives the same
+# message: "Blocked address 0x40000000 ... has not been added to the memory
+# map" (hw-docs/02 section 8).  memmap attaches to the context it is issued
+# against; the A9 cores inherit the APU's, so declaring it on APU covers both
+# and survives the target switches below.  Declared after fpga -f it does not
+# take -- which is exactly how this script failed the first time it ran.
+targets -set -filter {name =~ "APU"}
+memmap -addr $BASE -size 0x1000 -flags 3
+targets -set -filter {name =~ "ARM*#0"}
+
 targets -set -filter {name =~ "xc7z010*"}
 puts "programming $bitfile ..."
 fpga -f $bitfile
@@ -146,7 +157,7 @@ puts "SLCR: FCLK0 set (IO PLL 1000/10 = 100 MHz), level shifters on, PL resets r
 # xsdb blocks PL AXI slave ranges by default ("Blocked address ... has
 # not been added to the memory map"); declare the register block. Must
 # come before any mrd/mwr against $BASE.
-memmap -addr $BASE -size 0x1000 -flags 3
+# (memmap is declared on APU before fpga -f -- see above.)
 
 # --- liveness pre-check ------------------------------------------------
 # CTRL powers up 0x4 (rst=1). A_DATA readback proves AXI write+read
