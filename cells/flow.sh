@@ -84,7 +84,9 @@ if [ "$TOP_V" != "verify/soak_top.v" ]; then
     echo "using the generated top $TOP_V (module $TOP_M)"
 fi
 
-# DSP48E1 is OFF, and this is a measured toolchain fault, not caution.
+# DSP48E1 is ON.  It was OFF for a long stretch on a measured toolchain
+# fault; that fault is now root-caused and patched, and the "before" numbers
+# below are what it looked like while the cause was still open.
 #
 # It was off from the initial commit as a blanket "infer no hard blocks" at a
 # time when no kernel had a multiply in it at all.  kernels/ipow gave the
@@ -93,7 +95,8 @@ fi
 # (verify/skew.py) goes from 5 of 24 select gates violated to 0 of 24.  On
 # that evidence it was turned ON.  Then it went to the board.
 #
-# THE DSP PATH COMPUTES THE WRONG PRODUCT ON THIS BOARD.
+# THE DSP PATH COMPUTED THE WRONG PRODUCT ON THIS BOARD.  (Historical --
+# see the fix below.)
 #
 #   kernels/ipow, 2016 vectors through hw/xsdb_ipow_sweep.tcl, same RTL,
 #   same harness, same seed:
@@ -116,50 +119,72 @@ fi
 #   1 * 4294967295 returns 0x0001FFFF: the low 17 bits and nothing else.
 #   The cascade's high partial products are not reaching the output.
 #
-# WHERE IT IS NOT.  Not the compiler: bdc/simcheck.py passes ipow, including
-# (7,11), which the board gets wrong.  Not synthesis: the post-yosys netlist
+# WHERE IT WAS NOT.  Not the compiler: bdc/simcheck.py passes ipow, including
+# (7,11), which the board got wrong.  Not synthesis: the post-yosys netlist
 # for a bare 32x32 multiply, simulated against the toolchain's own
 # cells_sim.v, is right on 4007 of 4007 vectors including every operand the
-# board fails.  Not bundled-data timing: BD_MUL_SCALE=4 lengthens the matched
-# delay from 64 links to 256 and the design gets WORSE, 921 of 2016, with the
-# failing set moving -- a delay that was short cannot be made short by making
-# it longer.  verify/tighten.py independently reports +10.7 ns of margin on
-# that path, and the routed SDF does carry the cascade arcs (A->P 5400 ps,
-# PCIN->P 1710 ps) for it to have crossed.
+# board failed.  Not bundled-data timing: BD_MUL_SCALE=4 lengthens the
+# matched delay from 64 links to 256 and the design got WORSE, 921 of 2016,
+# with the failing set moving -- a delay that was short cannot be made short
+# by making it longer.  verify/tighten.py independently reported +10.7 ns of
+# margin on that path, and the routed SDF did carry the cascade arcs (A->P
+# 5400 ps, PCIN->P 1710 ps) for it to have crossed.
 #
-# So the fault is introduced between the correct netlist and the bitstream --
-# the same seam as patches/nextpnr-xilinx-lut-pinmap.patch, which was 131
-# LUTs written into the bitstream disagreeing with the netlist that produced
-# them.
+# So the fault was between the correct netlist and the bitstream -- the same
+# seam as patches/nextpnr-xilinx-lut-pinmap.patch, which was 131 LUTs written
+# into the bitstream disagreeing with the netlist that produced them.
 #
-# WHAT HAS BEEN CHECKED AT THAT SEAM, and found CORRECT:
-#   - placement.  The three cascaded DSPs land on DSP48_X0Y20/21/22, adjacent
-#     sites in one column, which is what the PCOUT->PCIN cascade requires.
-#   - OPMODE.  Decoded from the routed netlist, the cascade asks for Z=000 at
-#     the head, Z=101 (PCIN shifted right 17) in the middle and Z=001 at the
-#     tail -- a correct 32x32 decomposition -- and the FASM's inversion bits
-#     match that cell for cell.
-#   - ALUMODE, INMODE, the constant network (VCC, so the inversion bits mean
-#     what the decode above assumed), and the operand slices, which take
-#     a[16:0]/a[31:17] against b[16:0]/b[31:17] in the three needed pairings.
+# WHAT WAS CHECKED AT THAT SEAM, and found CORRECT: placement (the three
+# cascaded DSPs land on DSP48_X0Y20/21/22, adjacent sites in one column, as
+# the PCOUT->PCIN cascade requires); OPMODE (decoded from the routed
+# netlist, the cascade asks for Z=000 at the head, Z=101 in the middle,
+# Z=001 at the tail -- a correct 32x32 decomposition -- and the FASM's
+# inversion bits matched that cell for cell); and ALUMODE, INMODE, the
+# operand slices, and "the constant network (VCC, so the inversion bits mean
+# what the decode above assumed)".  That last clause was the trap: the
+# inversion bits for these particular pins were never being read from the
+# parameter they were actually stored under, so "VCC, therefore correct"
+# was checking that a bit existed, not that it was the right bit.
 #
-# ONE REAL DISAGREEMENT WAS FOUND AND FIXED THERE, and it was not the cause:
+# ONE REAL DISAGREEMENT WAS FOUND ALONG THE WAY, and it was not the cause:
 # patches/nextpnr-xilinx-dsp-areg.patch.  prjxray defines the DSP feature
 # AREG_2_ACASCREG_1 as the conjunction (AREG == 2 && ACASCREG == 1); fasm.cc
 # derived its Z-form bit from ACASCREG alone, so AREG=1 -- what yosys emits
 # whenever it absorbs one level of input register into the multiply -- wrote
 # no bit and read back on silicon as AREG=2.  With the patch the bit appears
-# and the board result is BIT-IDENTICAL, because a design that reads its
+# and the board result was BIT-IDENTICAL, because a design that reads its
 # answer milliseconds later cannot see an extra input pipeline stage.  Worth
 # having, not the bug.
 #
-# So the cause is still open, and until it is found every DSP48E1 this flow
-# places is a wrong answer waiting to be read.
+# THE ACTUAL CAUSE: patches/nextpnr-xilinx-dsp-constpins.patch.  A set of
+# DSP48E1 site pins -- INMODE0..4, ALUMODE2, ALUMODE3, OPMODE6 among them --
+# have no interconnect path into the site at all; prjxray gives them a value
+# only through a tile-local constant bit.  nextpnr's packer left three of
+# those pin groups out of the const-pin list ("TODO: these seem to be
+# inverted for unknown reasons"), so they were never wired to a constant net
+# and no FASM bit was ever emitted for them -- no error, no warning, just
+# the tile default on silicon.  INMODE came up 11111 instead of 00000, and
+# per UG479 Table 1-11, INMODE[1]=1 gates the multiplier's A input to zero:
+# the DSP ignored A entirely and returned near-constant junk, with a correct
+# netlist and clean timing the whole way down.  The "seem to be inverted"
+# TODO was half right -- these pins do bypass the site's input inverter, so
+# a naive fix (just uncomment them) makes it worse, not better.  The other
+# half of the fix, in fasm.cc, is a parameter-name lookup that stripped
+# digits from a pin name before checking whether the netlist wanted it
+# inverted, so it always missed and always chose the un-flipped constant.
+# See patches/README.md for the full mechanism.
 #
-# BD_DSP=1 re-enables inference for anyone working on the bug.  It is not a
-# performance knob and must not be set to ship.
+# Same rig, same RTL, patched toolchain:
+#
+#   bit-walk, all 16 A bits x 2 DSPs        : A had zero effect -> all correct
+#   mult2_ps, two lone 16x16, 415 vectors   : 1/315, 315/315 -> 415/415, 415/415
+#   mult_ps, 32x32 three-DSP cascade        : 25/430 -> 430/430
+#   ipow_ps, real kernel, 2016 vectors      : 965/2016 -> 516/516
+#
+# BD_DSP=0 is kept as an escape hatch (bisecting a future toolchain change,
+# comparing area against the LUT-only path) but is no longer the default.
 DSPOPT="-nodsp"
-[ "${BD_DSP:-0}" = "1" ] && DSPOPT=""
+[ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
 echo "== synthesis =="
 "$YOSYS" -p "
