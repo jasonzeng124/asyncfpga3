@@ -55,6 +55,14 @@ gcd_hw)
         build/frontend/gcd/comp/handshake_transformed.mlir \
         --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
     ;;
+multn_ps)
+    # Eight independent one-DSP multiplies; see hw/multn_ps.v.
+    SRCS="rtl/*.v hw/$TOP.v"
+    ;;
+mult2_ps)
+    # Two independent one-DSP multiplies; see hw/mult2_ps.v.
+    SRCS="rtl/*.v hw/$TOP.v"
+    ;;
 mult_ps)
     # No compiled kernel at all -- the datapath is one expression in the
     # bridge.  See hw/mult_ps.v.
@@ -152,7 +160,9 @@ DSPOPT="-nodsp"
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
 read_verilog -lib $CELLS_XTRA
-read_verilog $SRCS
+# BD_DEFINES passes -D flags through to the design sources only (not the
+# vendor cell models).  Used by hw/mult2_ps.v's BD_KEEP_OPERANDS.
+read_verilog ${BD_DEFINES:-} $SRCS
 synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP -run begin:map_luts
 opt_expr -mux_undef -noclkinv
 abc -luts 2:2,3,6:5,10,20

@@ -1,28 +1,7 @@
-// mult_ps -- the minimal reproducer for the DSP48E1 disagreement.
+// multn_ps -- a site map for DSP48E1 P outputs.
 //
-// ipow_ps gives wrong ANSWERS on this board when BD_DSP=1 and correct ones
-// when BD_DSP=0: same RTL, same harness, same 2016 vectors, same seed.
-// Everything above the toolchain has been cleared.  The source simulates
-// correctly, and so does the POST-SYNTHESIS netlist against the toolchain's
-// own cells_sim.v -- 4007 of 4007 vectors, including the exact operands the
-// board gets wrong.  Lengthening the matched delay 4x does not fix it; it
-// moves which vectors fail.  So it is not a bundled-data timing failure
-// either.
-//
-// This design removes what is left to argue about.  It keeps gcd_ps.v's PS7
-// shell and register map verbatim -- so the same driver runs against it --
-// and replaces the compiled kernel with a single expression:
-//
-//     assign o_data_pl = a_data_reg * b_data_reg;
-//
-// The host writes the operands and reads the product back milliseconds
-// later.  There is no request, no matched delay and no ring.  A wrong
-// product here cannot be a handshake bug, a delay-sizing bug or a compiler
-// bug, because this design contains none of those things.
-//
-// ---------------------------------------------------------------------------
-// Below this line everything is gcd_ps.v's; see that file for the PS7
-// wiring, the BID/RID echo and the active-HIGH reset.
+// Eight independent 16x16 multiplies, one DSP each, no cascade, each product
+// readable at its own address.  See the datapath comment below.
 //
 // WHY THIS EXISTS ALONGSIDE gcd_hw.v
 //
@@ -75,7 +54,7 @@
 // delay timed from the PRE-buffer signal can be beaten by the ~2 ns the
 // buffer adds.  Naming it keeps the capture clock and any timing tap on the
 // same side of the same buffer.
-module mult_ps (
+module multn_ps (
   // The board's two dedicated PL LEDs -- a liveness indicator that does not
   // depend on the AXI link being healthy.  Everything else rides GP0.
   output led_red,
@@ -140,7 +119,7 @@ module mult_ps (
 
   wire core_i_ack, core_o_req;
 
-  mult_ps_bridge bridge_i (
+  multn_ps_bridge bridge_i (
     .aclk    (m_axi_gp0_aclk),
     .aresetn (aresetn),
 
@@ -171,7 +150,7 @@ endmodule
 // Standard single-beat AXI4-Lite slave pattern: AWREADY/WREADY assert only
 // once BOTH awvalid and wvalid have been seen, so a write completes in one
 // cycle whichever order the master issues AW and W in.
-module mult_ps_bridge (
+module multn_ps_bridge (
   input         aclk,
   input         aresetn,
 
@@ -241,18 +220,20 @@ module mult_ps_bridge (
 `ifdef BD_KEEP_OPERANDS
   (* keep = "true" *) reg [31:0] a_data_reg, b_data_reg;
 `else
+  integer ci;
   reg [31:0] a_data_reg, b_data_reg;
 `endif
 
   reg [1:0]  sync_i_ack, sync_o_req;
-  reg [31:0] o_data_capture;
+  reg [31:0] o_data_capture [0:7];
 
   wire i_ack_s = sync_i_ack[1];
   wire o_req_s = sync_o_req[1];
 
   wire        i_req_pl, o_ack_pl, rst_pl;
   wire        i_ack_pl, o_req_pl;
-  wire [31:0] o_data_pl;
+  wire [31:0] o_data_pl [0:7];
+  wire [31:0] o_data_pl0 = o_data_pl[0];
 
   // See the file header: bdc kernels reset ACTIVE-HIGH, so unlike
   // fib_ps_top.v there is no inversion here.
@@ -305,7 +286,7 @@ module mult_ps_bridge (
       ctrl_rst    <= 1'b1;      // hold the kernel in reset until software clears it
       sync_i_ack  <= 2'b0;
       sync_o_req  <= 2'b0;
-      o_data_capture <= 32'b0;
+      for (ci = 0; ci < 8; ci = ci + 1) o_data_capture[ci] <= 32'b0;
     end else begin
       // Bring the clockless status into this clock domain.  o_data is
       // captured unconditionally every cycle rather than on an edge of
@@ -317,7 +298,7 @@ module mult_ps_bridge (
       // it.
       sync_i_ack <= {sync_i_ack[0], i_ack_host};
       sync_o_req <= {sync_o_req[0], o_req_pl};
-      o_data_capture <= o_data_pl;
+      for (ci = 0; ci < 8; ci = ci + 1) o_data_capture[ci] <= o_data_pl[ci];
 
       // write address/data channel handshake
       if (~axi_awready && awvalid && wvalid && aw_en) begin
@@ -371,7 +352,14 @@ module mult_ps_bridge (
       4'h1: rdata_r = {30'b0, o_req_s, i_ack_s};
       4'h2: rdata_r = a_data_reg;          // RW per the map: readback echoes
       4'h3: rdata_r = b_data_reg;
-      4'h4: rdata_r = o_data_capture;
+      4'h4: rdata_r = o_data_capture[0];
+      4'h5: rdata_r = o_data_capture[1];
+      4'h6: rdata_r = o_data_capture[2];
+      4'h7: rdata_r = o_data_capture[3];
+      4'h8: rdata_r = o_data_capture[4];
+      4'h9: rdata_r = o_data_capture[5];
+      4'ha: rdata_r = o_data_capture[6];
+      4'hb: rdata_r = o_data_capture[7];
       default: rdata_r = 32'b0;
     endcase
   end
@@ -386,7 +374,26 @@ module mult_ps_bridge (
   //
   // Build it both ways to make the comparison: BD_DSP=1 infers DSP48E1,
   // BD_DSP=0 builds the same expression from LUTs and carry chains.
-  assign o_data_pl = a_data_reg * b_data_reg;
+  // EIGHT INDEPENDENT 16x16 MULTIPLIES, one DSP48E1 each, no cascade.
+  //
+  // mult2_ps showed two identical lone multiplies disagreeing: the one
+  // nextpnr put at DSP48_X0Y20 was right 315 times out of 315, and the one
+  // at DSP48_X0Y24 returned 0 every time.  Same design, same expression,
+  // both on DSP_0 sites, no PCOUT anywhere -- so the variable is WHICH SITE.
+  //
+  // Eight of them force nextpnr to spread across eight sites, and reading
+  // each product separately turns the board into a site map: which DSP48E1
+  // locations on this part actually produce their P output.
+  //
+  // The XOR constants only exist to stop yosys common-subexpression-ing the
+  // eight multiplies down to one.  They are cheap and they keep the oracle
+  // trivial to compute host-side.
+  genvar gi;
+  generate
+    for (gi = 0; gi < 8; gi = gi + 1) begin : gmul
+      assign o_data_pl[gi] = ((a_data_reg[15:0] ^ gi[15:0]) * b_data_reg[15:0]);
+    end
+  endgenerate
 
   assign core_i_ack = i_ack_host;
   assign core_o_req = o_req_pl;
