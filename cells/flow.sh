@@ -206,6 +206,13 @@ lut_cells=$(tail -n +"$last" $OUT/synth.log \
 echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 
 echo
+echo "== toolchain =="
+# Which binary is about to produce these numbers.  Three of this project's four
+# bugs were BITSTREAM bugs -- clean netlist, clean timing, wrong bits -- so the
+# patch set is part of the measurement, not background to it.  See
+# verify/toolchain.sh for the day this was learned the expensive way.
+./verify/toolchain.sh "$NEXTPNR"
+
 echo "== place and route =="
 # Every routed number produced below -- occupied LUT sites, the SDF arrival
 # times, and every margin verify/tighten.py derives from them -- belongs to the

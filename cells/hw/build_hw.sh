@@ -118,6 +118,11 @@ for f in "$YOSYS" "$NEXTPNR" "$CHIPDB" "$CELLS_SIM" "$CELLS_XTRA" \
     [ -e "$f" ] || { echo "missing: $f"; exit 2; }
 done
 
+# Existing is not the same as correct.  The check above proves the binary is
+# there; this one proves it is the PATCHED one.  A bitstream from an unpatched
+# nextpnr looks exactly as plausible as a good one everywhere except silicon.
+"$(dirname "$0")/../verify/toolchain.sh" "$NEXTPNR"
+
 # The only physical pins on this board.  A design with no ports at all gives
 # the packer nothing to anchor, so the two LEDs stay even though nothing here
 # is measured by looking at them.
