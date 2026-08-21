@@ -168,14 +168,41 @@ K = 6          # storage crossings a path may make before it is a lap, not a pat
 #
 #     GUARD_LO * t_req  >  GUARD_HI * t_sel
 #
-# Three things this number is NOT.  It was measured on bd_delay chain routes,
-# and it is applied here to ordinary interconnect.  It is five samples.  And
-# the SDF's cell arcs are nextpnr's flat 124 ps model rather than the per-pin
-# silicon arcs, so the arcs inside each arrival are the weaker half of it.
-# It is still the only term here with silicon behind it, which is why it is
-# preferred to a rounder number that has none.
-GUARD_LO = 0.915          # request may run this fraction of its predicted delay
-GUARD_HI = 1.022          # select may run this multiple of its predicted delay
+# HOW THE BAND IS DERIVED FROM THOSE FIVE NUMBERS.  Until 2026-08-21 it was
+# their min and max, 0.915/1.022, which is wrong in a specific way: the
+# extremes of a five-sample draw are a sample RANGE, and using one as a bound
+# asserts that a sixth route cannot land outside five you happened to see.
+# The sixth route routinely will.  What answers the actual question -- how far
+# out can a route land -- is a one-sided 95/95 normal TOLERANCE interval,
+# k = 4.202 at n = 5:
+#
+#     mean -3.64%, s 4.556%, k*s 19.14%  ->  0.772 / 1.155
+#
+# about 2.5x the old band.  Normality on five points is itself an assumption;
+# it is a better one than treating min/max as a bound, not a good one, and if
+# more rings are ever closed this should be recomputed rather than kept.
+#
+# THE WIDE BAND IS FREE, WHICH IS WHY IT IS THE ONE SHIPPING.  It was measured
+# before being adopted, over 24 routed designs (verify/rloc_sweep.sh, 4 placer
+# seeds x 2 designs x 3 placement variants).  With RLOC_GROUP v2 clustering on
+# -- a bd_link's C node in the same SLICE as its own latch -- v2 reports ZERO
+# violations at every width from raw to 95/95, on all 8 of its routes, worst
+# margin +170 ps on gcd and +951 ps on ipow.  Unclustered, the same designs
+# need 22 links and 66 delay elements of padding at this width, and still miss
+# by 1541 ps.  So the price of honesty here was paid by the placer, not by a
+# LUT budget.  Do not narrow this band to make an unclustered design pass:
+# that trades a real correctness margin for a placement the tool will give you
+# for nothing.
+#
+# Three things this number is still NOT.  It was measured on bd_delay chain
+# routes, and it is applied here to ordinary interconnect.  It is five
+# samples, tolerance interval or not.  And the SDF's cell arcs are nextpnr's
+# flat 124 ps model rather than the per-pin silicon arcs, so the arcs inside
+# each arrival are the weaker half of it.  It is still the only term here with
+# silicon behind it, which is why it is preferred to a rounder number that has
+# none.
+GUARD_LO = 0.772          # request may run this fraction of its predicted delay
+GUARD_HI = 1.155          # select may run this multiple of its predicted delay
 
 
 def main():

@@ -31,6 +31,10 @@ SDF = sys.argv[1] if len(sys.argv) > 1 else str(
 sys.path.insert(0, str(V))
 sys.argv = [sys.argv[0], SDF]
 import skew
+# Force every site's row to print, ok or not -- main() otherwise prints only
+# violations.  Without this, a case with 0 violations leaves no margin lines
+# behind at all, and "worst margin" cannot be read off a width that passes.
+skew.VERBOSE = True
 
 cases = [
     ("raw (no guardband)",      1.000, 1.000),
@@ -40,9 +44,11 @@ cases = [
     ("2x the band",             0.830, 1.044),
 
     ("+/-15% flat",             0.850, 1.150),
+    ("95/95 tolerance (n=5)",   0.772, 1.155),
 
 ]
-print(f"{'guardband':<22} {'lo':>6} {'hi':>6} {'viol':>5} {'links':>6} {'elems':>6}")
+print(f"{'guardband':<22} {'lo':>6} {'hi':>6} {'viol':>5} {'links':>6} "
+      f"{'elems':>6} {'worst':>7}")
 for name, lo, hi in cases:
     skew.GUARD_LO, skew.GUARD_HI = lo, hi
     buf = io.StringIO()
@@ -58,4 +64,12 @@ for name, lo, hi in cases:
     per = {}
     for n, link in fixes:
         per[link] = max(per.get(link, 0), int(n))
-    print(f"{name:<22} {lo:>6.3f} {hi:>6.3f} {viol:>5} {len(per):>6} {sum(per.values()):>6}")
+    # Worst (most negative, or least positive) GUARDED margin over every site
+    # measured at this width -- available for every row because VERBOSE is
+    # forced on above, not just the violating ones.
+    margins = [int(g) for _, g in
+               re.findall(r"margin ([+-]\d+) ps raw, ([+-]\d+) ps guarded", out)]
+    worst = min(margins) if margins else None
+    wstr = f"{worst:+d}" if worst is not None else "n/a"
+    print(f"{name:<22} {lo:>6.3f} {hi:>6.3f} {viol:>5} {len(per):>6} "
+          f"{sum(per.values()):>6} {wstr:>7}")
