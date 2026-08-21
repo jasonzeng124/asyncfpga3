@@ -70,9 +70,9 @@ mult_ps)
     ;;
 ipow_ps)
     # ipow is the kernel with the variable x variable multiplies, so it is
-    # the one that would infer DSP48E1 if BD_DSP were set.  It is not, and
-    # this build is LUT multipliers -- see the BD_DSP block below.  Nothing
-    # else differs from the gcd_ps case.
+    # the one that actually infers DSP48E1 -- and therefore the one whose
+    # numbers move when BD_DSP does.  It is ON by default now; see the BD_DSP
+    # block below.  Nothing else differs from the gcd_ps case.
     KERNEL=../build/gen/ipow_kernel_ps.v
     SRCS="rtl/*.v $KERNEL hw/$TOP.v"
     mkdir -p ../build/gen
@@ -123,6 +123,23 @@ done
 # nextpnr looks exactly as plausible as a good one everywhere except silicon.
 "$(dirname "$0")/../verify/toolchain.sh" "$NEXTPNR"
 
+# And write the answer down beside the SDF.  verify/tighten.py looks for
+# toolchain.txt there and says UNSTAMPED without it, which is the right
+# complaint: placement is deterministic per binary but NOT stable across
+# binaries -- an inert-looking nextpnr change moves it -- so a margin quoted
+# without its build is a fact about a build, not about the design.
+#
+# The sha goes on the FIRST line and names nextpnr, because tighten.py quotes
+# the first line matching "nextpnr" -- and every patch row below it matches
+# that word too, so leaving the order to chance would stamp a patch filename
+# where the build belongs.
+mkdir -p "$OUT"
+{
+    printf 'nextpnr %s  %s\n' \
+        "$(sha256sum "$NEXTPNR" | cut -c1-16)" "$NEXTPNR"
+    "$(dirname "$0")/../verify/toolchain.sh" "$NEXTPNR" 2>&1
+} > "$OUT/toolchain.txt" || true
+
 # The only physical pins on this board.  A design with no ports at all gives
 # the packer nothing to anchor, so the two LEDs stay even though nothing here
 # is measured by looking at them.
@@ -136,13 +153,20 @@ EOF
 echo "== synthesis =="
 # cells_xtra.v carries BSCANE2 as a blackbox; cells_sim.v does not have it.
 #
-# DSP48E1 is OFF.  The full argument, with the numbers, is in cells/flow.sh
-# next to the same two lines -- in short: the DSP path computes the wrong
-# product on this board, hw/mult_ps.v is the one-expression reproducer, and
-# the netlist that produced it is correct.  BD_DSP=1 re-enables inference for
-# anyone working on the bug and must not be set to ship.
+# DSP48E1 is ON, and this default was inverted on 2026-08-21 because the bug
+# that justified turning it off is fixed.  The full argument and the numbers
+# are in cells/flow.sh next to the same two lines: several DSP48E1 site pins
+# have no interconnect path and get a value only from a tile-local constant
+# bit, nextpnr left three of those groups unwired, and INMODE came up at the
+# tile default gating the multiplier's A operand to zero.  That is
+# patches/nextpnr-xilinx-dsp-constpins.patch, and verify/toolchain.sh gates
+# on its presence, so a binary without it cannot silently build this.
+#
+# BD_DSP=0 remains the escape hatch for bisecting a future toolchain change.
+# It is not a safety default any more: leaving it off costs LUT multipliers
+# on every kernel that has a variable-by-variable multiply, ipow first.
 DSPOPT="-nodsp"
-[ "${BD_DSP:-0}" = "1" ] && DSPOPT=""
+[ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
 # synth_xilinx's map_luts stage normally ends with xilinx_dffopt, which folds
 # any FF bit whose D input is constant under some control condition (e.g. a
