@@ -47,6 +47,7 @@ violations hide.
 | `ninja` not installed | relevant for LLVM-based builds defaulting to it |
 | `nextpnr-xilinx.bak` | same version string, lacks the timing-model fix — use the non-`.bak` |
 | chipdb rebuild | slow; `xc7z010clg400` already exists |
+| Routed placement is stable per binary, not across binaries | nextpnr-xilinx is deterministic: the same binary on the same netlist at the same seed gives a byte-identical FASM. But a *semantically inert* source change moves it. Measured 2026-08-21: adding `pack_rloc_groups()` — a pass that returns immediately when no cell carries the attribute — changed gcd_ps's placement on an unstamped netlist, while packing stayed identical (same 10183 cells, same type histogram). Confirmed by A/B: rebuilding with the patch stashed reproduced the installed binary's FASM exactly. So a routed number is only comparable to another routed number from the *same* binary — which is what `build/toolchain.log` stamps, and why `verify/rloc_sweep.sh` holds the binary fixed and re-routes its own baseline instead of reusing yesterday's. |
 
 ## Debugging method
 

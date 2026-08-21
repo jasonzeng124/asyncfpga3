@@ -180,6 +180,23 @@ write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 
+# Relative placement.  BD_RLOC=v2 (default) stamps an RLOC_GROUP attribute on
+# the post-synthesis netlist so nextpnr keeps each bd_link's C node in the same
+# SLICE as its own latch -- see hw/rloc_stamp.py and patches/README.md.  The
+# cluster floats; nothing is pinned.  BD_RLOC=none turns it off, and that is
+# the ONLY way to reproduce a pre-2026-08-21 route: routed placement is stable
+# per binary but not across binaries, so numbers from the two are not
+# comparable.  An unpatched nextpnr ignores the attribute silently, which is
+# what verify/toolchain.sh above is for.
+BD_RLOC=${BD_RLOC:-v2}
+if [ "$BD_RLOC" != none ]; then
+    python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
+        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+            echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
+    mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+    grep -E "group|link" "$OUT/rloc.log" | tail -3
+fi
+
 last=$(grep -n "^=== $TOP ===" "$OUT/synth.log" | tail -1 | cut -d: -f1)
 tail -n +"$last" "$OUT/synth.log" | grep -E "^\s+[0-9]+\s+(LUT|FD|BUFG|BSCAN|IBUF|OBUF|CARRY)" || true
 

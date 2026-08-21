@@ -32,6 +32,7 @@ CHECKS=(
   "X_ORIG_PORT_%s names logical input|nextpnr-xilinx-lut-pinmap.patch|131 LUTs written into the bitstream with permuted pins"
   "ZAREG_2_ACASCREG_1|nextpnr-xilinx-dsp-areg.patch|DSP cascade register mode encoded wrong"
   "]_INVERTED|nextpnr-xilinx-dsp-constpins.patch|8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)"
+  "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
 )
 
 miss=0
