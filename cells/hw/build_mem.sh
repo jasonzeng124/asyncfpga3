@@ -100,14 +100,41 @@ stat
 last=$(grep -n "^=== $TOP ===" "$OUT/synth.log" | tail -1 | cut -d: -f1)
 tail -n +"$last" "$OUT/synth.log" | grep -E "^\s+[0-9]+\s+(LUT|FD|BUFG|RAMB|IBUF|OBUF|CARRY)" || true
 
+# Relative placement, same default and same escape hatch as build_hw.sh's
+# BD_RLOC: v2 stamps RLOC_GROUP on bd_link's C node + its own latch (plus a
+# consuming bd_mux's join LUTs).  Neither mem_bist_ps nor mem_port_ps
+# instantiates bd_link or bd_mux -- bd_mem itself is built from bd_delay
+# (plain LUT1 chains) and RAMB18E1, nothing rloc_stamp.py's instance-path
+# anchors match -- so this is a deliberate no-op for these two designs, kept
+# on by default anyway so the *toolchain* is the same one build_hw.sh uses
+# rather than a second, divergently-flagged nextpnr invocation; BD_RLOC=none
+# to compare against a pre-2026-08-21-shaped route if that is ever needed.
+BD_RLOC=${BD_RLOC:-v2}
+if [ "$BD_RLOC" != none ]; then
+    python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
+        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+            echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
+    mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+    grep -E "group|link" "$OUT/rloc.log" | tail -3
+fi
+
 echo
 echo "== place and route =="
-"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops \
+# NEXTPNR_SEED, unset by default (nextpnr's own default seed) -- set it to
+# sweep placements when checking whether a derived margin is a property of
+# the design or of one lucky route (see verify/tighten.py's own warning that
+# every number it prints "expires the next time anything moves", and this
+# project's rule-E history: the same design at four placer seeds gave 0, 6,
+# 5 and 3 violations).
+SEEDOPT=""
+[ -n "${NEXTPNR_SEED:-}" ] && SEEDOPT="--seed ${NEXTPNR_SEED}"
+# shellcheck disable=SC2086
+"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEEDOPT \
            --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
     || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
-echo "routed."
+echo "routed.${NEXTPNR_SEED:+ (seed $NEXTPNR_SEED)}"
 
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
 bufgs=$(grep -c "BUFGCTRL" "$OUT/$TOP.fasm" || true)

@@ -259,6 +259,23 @@ module mem_port_bridge (
                           (pat == 2'd1) ? ~(16'h1 << k) :
                           {6'b0, addr};
 
+  // Address+data+req must race on the SAME edge to exercise bd_mem's real
+  // worst case (its own header: "assert address+data+req together").  The
+  // *ADV states below advance addr one cycle before the *ASSERT states used
+  // to (re-)assert req/we/wval -- which meant addr was always a full aclk
+  // cycle stable before req rose, never actually racing ADDRARDADDR's setup
+  // window against the manufactured strobe.  addr_p1/cur_val_next let the
+  // *ADV states pre-compute the NEXT access's payload and drive it onto
+  // we/req/wval on the SAME edge that addr itself advances; the *ASSERT
+  // states still (redundantly, harmlessly) re-drive the same values every
+  // cycle they wait for ack, so nothing here removes their old behavior,
+  // it only makes the address-changing edge and the request-rising edge
+  // the SAME edge, for every access after the first.
+  wire [AW-1:0] addr_p1 = addr + 1'b1;
+  wire [DW-1:0] cur_val_next = (pat == 2'd0) ? (16'h1 << k) :
+                                (pat == 2'd1) ? ~(16'h1 << k) :
+                                {6'b0, addr_p1};
+
   reg [DW-1:0] cap_val;
 
   localparam S_IDLE     = 5'd0,
@@ -310,9 +327,13 @@ module mem_port_bridge (
           mismatch_count <= 32'd0;
           fail_latched   <= 1'b0;
           run_pass       <= 1'b1;
-          we  <= 1'b0;
-          req <= 1'b0;
-          st  <= S_W_ASSERT;
+          // First access, pat=0 k=0: cur_val is 16'h1 independent of addr,
+          // so it is safe to race wval/we/req with the addr reset here --
+          // see the addr_p1/cur_val_next note above.
+          wval <= 16'h1;
+          we   <= 1'b1;
+          req  <= 1'b1;
+          st   <= S_W_ASSERT;
         end
 
         // -- correctness: write pass --------------------------------------
@@ -329,9 +350,14 @@ module mem_port_bridge (
         S_W_ADV: begin
           if (addr == {AW{1'b1}}) begin
             addr <= {AW{1'b0}};
+            we   <= 1'b0;
+            req  <= 1'b1;      // first read: races with the addr reset
             st   <= S_R_ASSERT;
           end else begin
             addr <= addr + 1'b1;
+            wval <= cur_val_next;
+            we   <= 1'b1;
+            req  <= 1'b1;      // races with the addr advance above
             st   <= S_W_ASSERT;
           end
         end
@@ -370,6 +396,7 @@ module mem_port_bridge (
             st   <= S_NEXTPAT;
           end else begin
             addr <= addr + 1'b1;
+            req  <= 1'b1;      // races with the addr advance above
             st   <= S_R_ASSERT;
           end
         end
