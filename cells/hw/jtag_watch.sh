@@ -3,7 +3,18 @@
 #
 #     sudo -b cells/hw/jtag_watch.sh          # start it, once, and walk away
 #     tail -f /tmp/asyncfpga3-jtag-watch.log  # what it has been doing
-#     sudo pkill -f jtag_watch.sh             # stop it
+#     sudo kill "$(pgrep -f 'bash .*jtag_watch.sh')"      # stop it
+#
+# Stop it by PID, NOT with `pkill -f jtag_watch.sh`.  With -f the pattern is
+# matched against every process's whole command line, and the shell you type
+# that command into has `jtag_watch.sh` in its own command line -- so it kills
+# the caller.  jtag_attach.sh carries the same warning about hw_server for the
+# same reason.  `pkill -x` does not help here either: the executable name is
+# `bash`, not `jtag_watch.sh`.
+#
+# `sudo -b` is not a shell job -- sudo says so itself -- so there is no `fg`
+# to bring it forward.  The log is the foreground: everything it would have
+# printed to a terminal is in there.
 #
 # WHY.  hw/jtag_attach.sh already knows how to bring the cable back: usbipd
 # attach, chmod the node, reload the volatile firmware.  What it cannot do is
