@@ -158,27 +158,90 @@ def default_delay(op, width):
     length from the routed SDF and that is what gets built -- while being one
     link short costs a re-route.
 
-      * 32-bit MULTIPLIERS peak at 11152 ps as LUT logic, wanting 31 links,
-        and at 16475 ps through cascaded DSP48E1s, wanting 46.  This class was
-        extrapolated for as long as no kernel contained a variable x variable
-        multiply -- every multiply the shipped tests have is by a literal, and
-        --arith-reduce-strength rewrites those into shifts and adds before the
-        backend sees them.  kernels/ipow is the first thing that routed one.
+      * 32-bit MULTIPLIERS.  The 11152 ps / 16475 ps figures this paragraph
+        used to quote were EXTRAPOLATED, for as long as no kernel contained a
+        variable x variable multiply -- every multiply the shipped tests have
+        is by a literal, and --arith-reduce-strength rewrites those into
+        shifts and adds before the backend sees them.  kernels/ipow is the
+        first thing that routed one, and BD_DSP=1 is now the default (the
+        toolchain bug that made the DSP path compute wrong products is fixed,
+        see cells/flow.sh and patches/nextpnr-xilinx-dsp-constpins.patch), so
+        this class is now measured rather than guessed on both paths.
 
-        The DSP path is the SLOWER of the two and it is the one that sets this
-        number, because a 32x32 product does not fit in one DSP48E1: yosys
-        cascades two, and the A->P arc of 5400 ps is paid twice.  It is still
-        worth having -- it takes ipow from 3572 to 1388 occupied LUT sites,
-        61% off -- but a placeholder that only covered the LUT multiplier
-        would be 15 links short the moment BD_DSP=1 is set, and short is the
-        one direction that is not allowed.  So 2*width, which clears the
-        measured DSP requirement by 39% and the LUT one by 106%.
+        THE DSP PATH IS STILL THE SLOWER OF THE TWO, and by more than the old
+        extrapolation assumed.  ipow_ps, nextpnr d216cb36a370f78a, both
+        umuli0 and umuli1, 10 placer seeds (default + 1-9), routed (not
+        extrapolated) each time:
 
-        BD_DSP is now OFF by default -- the DSP path computes wrong products
-        on this board, see cells/flow.sh -- so in practice this sizes a LUT
-        multiplier and has 106% to spare.  The DSP figure stays in the number
-        anyway: it costs nothing while no DSP is placed, and it is the one
-        that would matter the day the toolchain bug is fixed.
+            DSP48E1 cascade (3 DSPs per 32x32 multiply, 6 total in ipow_ps,
+              confirmed in the FASM) peak arrival: 14295-16785 ps
+            LUT-array peak arrival, same seeds, same route otherwise: 10806-
+              12981 ps
+
+        A 32x32 product needs THREE cascaded DSP48E1s on this part, not two --
+        yosys's own stat confirms 3 per multiply -- so the A->P/PCIN->P arc is
+        paid three times, and the cascade ends up slower than the LUT array it
+        replaced.  DSP48E1 is still worth having: it takes ipow from 3627 to
+        1449 occupied LUT sites, 60% off.  It is not worth a shorter matched
+        delay, because it does not need one -- it needs a slightly LONGER one
+        than the LUT path, and 2*width already covers both.
+
+        WHETHER 2*width CAN BE CUT DOWN FOR THE DSP CASE WAS TESTED, NOT
+        GUESSED, by rebuilding and RE-ROUTING ipow_ps at explicit shorter
+        DELAY values (BD_MUL_SCALE below) rather than extrapolating from the
+        64-link route's own tighten.py recommendation -- shrinking the chain
+        moves the placement, so only an actual re-route answers the question:
+
+            48 links (0.75x): a REAL violation, unguarded, on 1 of 5 seeds
+              routed -- bridge_i.udut.umuli0, seed 1, margin -1326 ps,
+              "PAD to 52 -- VIOLATION".  Rule A's own review margin
+              (max(0.2*t_data, 200 ps)) is not a hypothetical here.
+
+            56 links (0.875x): clears rule A's own guard on every one of 5
+              seeds sampled (worst raw margin +2749 ps).  But that margin is
+              carried entirely by the bd_delay chain's SDF-PREDICTED speed,
+              and the chain is the one thing rule A's flat 0.2*peak guard
+              was never built to protect -- that is exactly what GUARD_LO
+              (verify/skew.py, a 95/95 one-sided bound from five silicon ring
+              oscillators built of this same bd_delay primitive) exists for.
+              Derating the chain portion of the request by GUARD_LO = 0.772
+              -- i.e. asking "does this still hold if the chain runs as fast
+              as real silicon has been measured to run" -- turns 3 of the 8
+              sampled route/instance margins negative, worst -2178 ps.
+
+        And the number this was supposed to shrink FROM is not comfortably
+        clear of that same standard either: at the current 64 links, every
+        raw rule A margin across the 10-seed/2-instance sweep is healthy
+        (minimum +4906 ps), but the GUARD_LO-derated margin goes negative on
+        one of the 20 samples (bridge_i.udut.umuli0, seed 1: -527 ps).
+
+        That -527 ps was then chased out to 25 seeds / 50 samples, because a
+        minimum is not a distribution.  It does NOT indicate an under-priced
+        delay.  Three columns, same routes:
+
+              raw rule A margin        min  +4906   med +10544   neg  0/50
+              derated, + rule A guard  min   -527   med  +4226   neg  1/50
+              derated, ordering only   min  +2830   med  +7277   neg  0/50
+
+        The third is the correctness question -- with the chain running at the
+        95/95 low corner, does the request still arrive AFTER the data?  It
+        does, by at least 2830 ps on the worst of 50 samples.  The one
+        negative in the middle row is rule A's own guard (max(0.2*peak,200),
+        ~3357 ps at that route's 16785 ps peak) being eaten into, not the
+        delay going short.  Stacking rule A's guard on top of a full GUARD_LO
+        derate double-counts two independent conservatisms; one tail sample
+        landing 527 ps inside the combined pair is not a defect.
+
+        So 64 links is not raised either.  There is no headroom here to
+        spend, and -- once the two guards are not stacked -- none needing to
+        be added.
+
+        So: NOT re-priced down for BD_DSP.  2*width stays the number for
+        `mul` on both paths -- the DSP case does not get a shorter constant
+        because the measurement says it cannot safely have one, and the LUT
+        case was never the one asking for a change.  A negative result, kept
+        rather than an optimistic constant that would have shipped a design
+        that only fails at temperature.
     """
     cls = _depth_class(op)
     if cls == "mul":
