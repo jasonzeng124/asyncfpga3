@@ -10,6 +10,7 @@
 | `memmap` on the wrong context or too late | must be declared on the **APU** (the A9s inherit it) and **before** `fpga -f`. On a single `ARM*#0`, or after programming, it does not take and every access returns "Blocked address 0x40000000 ... has not been added to the memory map" — which reads like the `02` §8 "address not declared" entry even though it *was* declared. Both working scripts in `ref/zynq/` do it on APU before `fpga -f`. Nothing to simulate, so it fails only on hardware. |
 | JTAG device-node perms | reset on every USB re-enumeration; needs user sudo |
 | Board/cable state | not knowable remotely. Probe with `xc3sprog -c xpc -j` or xsdb `targets`. Ask the user for physical actions, not observations. |
+| A negative control that passes may mean the test is blind | `mem_port_ps` with `DCO=4` carries a **−2587 ps** static violation — the acknowledge leaves before the clock edge reaches `CLKARDCLK` — and passed on silicon, 0 of 49152 mismatches. The FSM observes `ack` through a 2-FF synchronizer at 100 MHz, so ~20 ns of observation latency swallows a few-ns deficit. Ask what the smallest defect a rig can detect is before trusting its pass: this one can gate `DSETUP` (tens of ns of slack) and cannot gate `DCO` (single-digit ns). Same session, same harness: it registered `addr` a cycle before `req`, so a `DSETUP=0` control passed while never racing the address against the strobe. |
 
 **Hardware fails / sim passes ⇒ suspect the environment first.** Generated
 TBs drive the protocol perfectly; real harnesses are where contract
