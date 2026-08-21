@@ -24,6 +24,7 @@ violations hide.
 | Post-route pin views | lie under fracturable-LUT packing (`04` §5b). Resolve via the pre-place JSON by net name; **raise** on unresolved probes, never score zero. |
 | Implicit buffer insertion | yosys `clkbufmap` inserts a BUFG on clock pins unasked. A matched delay timing a response from the *pre*-buffer signal can be exceeded by BUFG insertion (~2 ns) ⇒ capture happens after "done" on silicon. Sim never sees it (no BUFG in the sim model); the structural audit passes vacuously if BUFG is a depth-0 source truncating the cone. Instantiate explicitly; keep capture clock and timing tap downstream of the same buffer. |
 | `--timing-allow-fail` | silences failures beyond the waived class. Always pair with a narrow checker. |
+| Placer tears a logical macro in half | a wirelength-minimising placer with no timing constraint puts two cells of one macro nanoseconds apart when one of them has heavy downstream fanout: the macro's internal net is one net among thousands and loses the vote. Measured on `bd_link` — C node to its OWN latch enable, median 1920 ps, p90 3405, while the same C node reaches its own delay chain in 639 ps, because the chain is a string of single-load nets and the latch's output is not. Invisible in the netlist and in simulation; visible only in routed SDF, and only if you go looking for an *intra-cell* delay. Fixed by relative placement (`patches/nextpnr-xilinx-rloc-group.patch`), not by padding the other path. |
 | Inferred DSP48E1 computed the wrong product — FIXED | openXC7 on xc7z010: a design whose whole datapath was `a * b` returned 25 of 430 correct with DSP inference on. Cause: several DSP48E1 site pins (`INMODE0..4`, `ALUMODE2/3`, `OPMODE6`) have no interconnect path into the site — prjxray gives them a value only through a tile-local constant bit — and nextpnr-xilinx left three of those pin groups unwired, so no FASM bit was ever emitted and they came up at the tile default (`INMODE`=`11111` gates the multiply's A operand to zero per UG479). Source, post-synthesis netlist and routed timing were all clean; nothing before the bitstream showed it. Fixed by `patches/nextpnr-xilinx-dsp-constpins.patch`; `BD_DSP=1` is now `cells/flow.sh`'s default. **General lesson: openXC7 can silently emit no FASM bit for a site pin that has no routing path, leaving it at the tile default — this generalises past DSPs, to any const-only pin nextpnr's packer doesn't enumerate.** |
 
 ## Simulation
@@ -56,6 +57,11 @@ violations hide.
   look airtight while an edge mid-return-to-zero breaks everything.
 - **Simulate, don't argue.** Handshake logic is where plausible reasoning
   fails silently.
+- **One route is a sample, not a measurement.** The same design at four
+  placer seeds gave 0, 6, 5 and 3 rule-E violations with nothing changed
+  but the seed. Margins here are 76–400 ps and routing scatter is larger,
+  so a single-route count reads as a pass or a bug and is neither. Sweep
+  seeds and report the spread; `cells/verify/rloc_sweep.sh` shows the shape.
 - **Root cause, then minimal fix.** A constant that doesn't fix a race is
   evidence the mechanism is misunderstood, not grounds for a bigger
   constant.
