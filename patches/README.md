@@ -111,3 +111,56 @@ one, which is what pointed at the bitstream rather than a race), the
 dropping them is correct and harmless), synthesis (the post-yosys netlist for
 a bare 32x32 multiply matches `cells_sim.v` on 4007/4007 vectors, including
 every operand the board got wrong), and the bdc compiler.
+
+## nextpnr-xilinx-rloc-group.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack.cc` and
+`xilinx/pack.h`.
+
+**Relative placement from a netlist attribute.**  Not a bug fix -- a missing
+feature, and upstream-able as it stands because nothing in it knows what this
+project's cells are.
+
+Cells carrying the same string value for the `RLOC_GROUP` attribute are tied
+into one cluster: same tile, consecutive logic slots.  The cluster as a whole
+is unconstrained and floats over the whole device, so this is Vivado's
+`RLOC`/`H_SET` idea and **not** a `LOC` or a pinned BEL.  A group may name at
+most four logic slots on xc7 (one SLICE; eight on xcup), a fractured `LUT6_2`
+pair counting as one.  A group naming more than that, or containing a
+BEL-pinned or absolutely-z-constrained cell, is dropped **whole** with a
+warning -- a half-applied relative-placement constraint measures as a success
+on the members that did get it.
+
+Why it is needed.  A wirelength-minimising placer with no timing constraint to
+contradict it puts two cells of one logical macro nanoseconds apart when one of
+them has heavy downstream fanout: the macro's internal net is one net among
+thousands and loses the vote.  Carry chains already get relative placement
+(`pack_carries`), by hardcoding what a carry chain is.  This lets a front end
+say "these belong together" for a macro nextpnr has never heard of.
+
+Measured on `bd_link`, this project's storage primitive, whose C-element drives
+both a matched delay chain and a transparent latch.  The attribute is stamped
+by `cells/hw/rloc_stamp.py` on the post-synthesis JSON (`cells/rtl/` is frozen,
+so it cannot come from the RTL); `cells/verify/rloc_sweep.sh` reproduces the
+numbers.  Four seeds, two designs, `verify/skew.py` rule E:
+
+| | rule-E violations, 4 seeds | worst guarded margin |
+|---|---|---|
+| unclustered | gcd 0/6/5/3, ipow 2/2/2/0 | -801 ps |
+| C node + one latch LUT (v1) | **0 in all 8 routes** | +396 ps |
+| + the consuming bd_mux's joins (v2) | **0 in all 8 routes** | +594 ps |
+
+The C node to its own grouped latch bit falls from a mean 1529 ps of
+interconnect to 162 ps on gcd, and the *rest* of that link's latch bank
+improves too (2142 -> 1742 ps) because the controller is now anchored inside
+its own bank instead of wherever fanout dragged it.  Packing is untouched --
+the routed netlist's cell set is byte-identical across all three variants, only
+the placement moves -- so LUT sites are unchanged (6635 on gcd, 1449 on ipow),
+CLB tiles spread by about 1%, and place-and-route wall time varies less between
+variants than it does between runs of the same variant.
+
+Fingerprint for `cells/verify/toolchain.sh`, checked BOTH ways against an
+unpatched binary (present 1x patched, 0x unpatched) -- add it when the binary
+is installed, not before:
+
+    "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"

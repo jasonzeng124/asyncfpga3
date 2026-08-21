@@ -1,0 +1,195 @@
+diff --git a/xilinx/pack.cc b/xilinx/pack.cc
+index 5c8801c8..4f0b81ea 100644
+--- a/xilinx/pack.cc
++++ b/xilinx/pack.cc
+@@ -21,6 +21,7 @@
+ #include <algorithm>
+ #include <boost/optional.hpp>
+ #include <iterator>
++#include <map>
+ #include <queue>
+ #include <unordered_set>
+ #include "cells.h"
+@@ -254,6 +255,14 @@ std::vector<std::pair<IdString, IdString>> XilinxPacker::split_lut6_2()
+             // so it's safe to hand that BEL straight to whichever one it is.
+             if (ci->attrs.count(id_BEL))
+                 half->attrs[id_BEL] = ci->attrs.at(id_BEL);
++            // A relative-placement group is a property of the LOGIC, not of a
++            // particular cell object: both halves of a split LUT6_2 belong to
++            // whatever group the original instance did.  They are re-paired
++            // onto one physical LUT by constrain_lut6_2_pairs() below, so the
++            // group still spends a single slot for the two of them.
++            IdString rloc = ctx->id("RLOC_GROUP");
++            if (ci->attrs.count(rloc))
++                half->attrs[rloc] = ci->attrs.at(rloc);
+             new_cells.push_back(std::move(half));
+         };
+ 
+@@ -338,6 +347,133 @@ void XilinxPacker::constrain_lut6_2_pairs(const std::vector<std::pair<IdString,
+     }
+ }
+ 
++// ---------------------------------------------------------------------------
++// RLOC_GROUP -- relative placement from a netlist attribute.
++//
++// Cells carrying the same string value for the `RLOC_GROUP` attribute are tied
++// into ONE cluster: same tile, consecutive logic slots.  The cluster as a whole
++// is unconstrained -- it floats over the whole device and the placer decides
++// where it lands -- so this is Vivado's RLOC/H_SET idea (relative placement)
++// and NOT a LOC/BEL pin.  Nothing here knows what the grouped cells are for;
++// the attribute is the entire interface.
++//
++// Why it exists.  A wirelength-minimising placer with no timing constraint to
++// contradict it will happily put two cells of one logical macro two nanoseconds
++// of interconnect apart when one of them has heavy downstream fanout -- the
++// macro's internal net is one net among thousands and loses the vote.  Carry
++// chains already get this treatment (pack_carries), by hardcoding what a carry
++// chain is.  An attribute lets a front end say "these belong together" for a
++// macro nextpnr has never heard of.
++//
++// Mechanics.  The first member in name order becomes the cluster root and stays
++// completely unconstrained.  Every other member is attached as a child at
++// dx = dy = 0 and a RELATIVE z of one logic slot per member (BEL_6LUT slot
++// stride is 1<<4 on both xc7 and xcup).  Relative rather than absolute z is
++// deliberate: an absolute z would additionally pin which LUT of which slice the
++// root may occupy, which is a location constraint in disguise and needlessly
++// shrinks the site count.  The consequence is that a group of three or four may
++// straddle the two SLICEs of one CLB tile depending on where the root lands.
++// That is the same interconnect tile either way, which is what the delay
++// follows.
++//
++// Members already inside a cluster (the LUT5 half of a fractured LUT6_2, a
++// carry-chain feeder) are resolved to their cluster ROOT and it is the root
++// that joins the group, so a fractured pair still spends one slot.  A group
++// that would need more slots than a tile has, or that contains a BEL-pinned or
++// absolutely-z-constrained cell, is dropped whole with a warning: a partially
++// applied relative-placement constraint is worse than none, because it silently
++// measures as a success on some members.
++// ---------------------------------------------------------------------------
++void XilinxPacker::pack_rloc_groups()
++{
++    IdString rloc_id = ctx->id("RLOC_GROUP");
++
++    std::map<std::string, std::vector<CellInfo *>> groups;
++    for (auto cell : sorted(ctx->cells)) {
++        CellInfo *ci = cell.second;
++        auto fnd = ci->attrs.find(rloc_id);
++        if (fnd == ci->attrs.end())
++            continue;
++        groups[fnd->second.as_string()].push_back(ci);
++    }
++    if (groups.empty())
++        return;
++
++    log_info("Packing RLOC_GROUP relative-placement clusters..\n");
++
++    // Slots available at ONE placer location, for the cell types this
++    // understands.  A location is one SLICE: four logic slots on xc7
++    // (z = slot<<4 | BEL_6LUT, slot 0..3), eight on xcup.  A group asking for
++    // more than that names a z that has no bel and could never place.
++    const int max_slots = ctx->xc7 ? 4 : 8;
++
++    int n_groups = 0, n_members = 0, n_dropped = 0;
++    std::map<std::string, int> size_hist;
++    for (auto &grp : groups) {
++        const std::string &key = grp.first;
++
++        // Resolve every member to the root of whatever cluster it is already
++        // in, preserving first-seen order and dropping duplicates.
++        std::vector<CellInfo *> roots;
++        const char *reject = nullptr;
++        for (auto *ci : grp.second) {
++            if (ci->type != id_SLICE_LUTX) {
++                reject = "member is not a LUT";
++                break;
++            }
++            CellInfo *r = ci;
++            int guard = 0;
++            while (r->constr_parent != nullptr) {
++                r = r->constr_parent;
++                if (++guard > 64) {
++                    reject = "cluster parent chain does not terminate";
++                    break;
++                }
++            }
++            if (reject != nullptr)
++                break;
++            if (r->attrs.count(id_BEL)) {
++                reject = "member is BEL-pinned";
++                break;
++            }
++            if (r->constr_abs_z) {
++                reject = "member already has an absolute-z constraint";
++                break;
++            }
++            if (std::find(roots.begin(), roots.end(), r) == roots.end())
++                roots.push_back(r);
++        }
++        if (reject == nullptr && int(roots.size()) > max_slots)
++            reject = "group needs more logic slots than a tile has";
++        if (reject != nullptr) {
++            log_warning("    RLOC_GROUP '%s' (%d cells) not applied: %s\n", key.c_str(), int(grp.second.size()),
++                        reject);
++            ++n_dropped;
++            continue;
++        }
++        if (roots.size() < 2)
++            continue; // a group of one is already as close to itself as it gets
++
++        CellInfo *anchor = roots.front();
++        for (size_t i = 1; i < roots.size(); i++) {
++            CellInfo *m = roots.at(i);
++            anchor->constr_children.push_back(m);
++            m->constr_parent = anchor;
++            m->constr_x = 0;
++            m->constr_y = 0;
++            m->constr_abs_z = false;
++            m->constr_z = int(i) << 4;
++        }
++        ++n_groups;
++        n_members += int(roots.size());
++        size_hist[std::to_string(roots.size()) + " slots"]++;
++    }
++
++    for (auto &sh : size_hist)
++        log_info("    %6d group(s) of %s\n", sh.second, sh.first.c_str());
++    log_info("    %d cluster(s), %d logic slots clustered, %d group(s) dropped\n", n_groups, n_members, n_dropped);
++}
++
+ void XilinxPacker::pack_luts(const std::vector<std::pair<IdString, IdString>> &lut6_2_pairs)
+ {
+     log_info("Packing LUTs..\n");
+@@ -1419,6 +1555,9 @@ bool Arch::pack()
+         packer.pack_ffs();
+         packer.finalise_muxfs();
+         packer.pack_lutffs();
++        // Last: every cell an RLOC_GROUP can name is now in its final packed
++        // form, so a group resolves to the cells the placer will actually see.
++        packer.pack_rloc_groups();
+     } else {
+         USPacker packer;
+         packer.ctx = getCtx();
+@@ -1444,6 +1583,7 @@ bool Arch::pack()
+         packer.pack_ffs();
+         packer.finalise_muxfs();
+         packer.pack_lutffs();
++        packer.pack_rloc_groups();
+     }
+ 
+     // Confine FRESH (unstamped) fabric logic to a compact region hugging the
+diff --git a/xilinx/pack.h b/xilinx/pack.h
+index 8417fb70..7045fb3d 100644
+--- a/xilinx/pack.h
++++ b/xilinx/pack.h
+@@ -123,6 +123,11 @@ struct XilinxPacker
+     void pack_ffs();
+     void pack_lutffs();
+ 
++    // Relative placement: cells sharing an RLOC_GROUP attribute value are
++    // constrained into consecutive logic slots of one tile.  See the long
++    // comment on the definition in pack.cc.
++    void pack_rloc_groups();
++
+     bool is_constrained(const CellInfo *cell);
+     void pack_muxfs();
+     void finalise_muxfs();

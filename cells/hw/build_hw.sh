@@ -99,7 +99,7 @@ esac
 
 TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
-NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
+NEXTPNR=${NEXTPNR:-$TC/openxc7/bin/nextpnr-xilinx}
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
 CELLS_SIM=$TC/openxc7/share/yosys/xilinx/cells_sim.v
 CELLS_XTRA=$TC/openxc7/share/yosys/xilinx/cells_xtra.v
