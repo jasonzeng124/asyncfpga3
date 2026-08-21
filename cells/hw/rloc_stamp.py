@@ -5,9 +5,15 @@ post-synthesis netlist.
 WHY THIS IS A SEPARATE PASS AND NOT RTL.  cells/rtl/ is frozen, so the
 attribute cannot be written next to the cells it constrains.  It is stamped
 here instead, on the JSON yosys just wrote, keyed on the instance paths the
-library commits to (`<link>.ctl.u.u`, `<link>.lat.*`, `<mux>.uj0/uj1`) -- the
-same anchors verify/tighten.py's select_consumers() uses, and for the same
-reason: those names are the library's, not the compiler's.
+library commits to (`<link>.ctl.u.u`, `<link>.lat.*`, `<mux>.uj0/uj1`, and a
+bd_pipe's own `<pipe>.many.cpair[i].u.u` / `<pipe>.many.codd.u.u` / `<pipe>
+.many.lat[i].*`) -- the same anchors verify/tighten.py's select_consumers()
+uses, and for the same reason: those names are the library's, not the
+compiler's.  bd_pipe is bd_link's own multi-stage form (cells/rtl/bd_link.v),
+so it gets the identical treatment: a controller next to one of the latch
+bits it enables.  A `cpair` fractures TWO stages' controllers into one
+LUT6_2, so it can join only ONE of the two latch banks it drives -- see
+stage_banks() and the "fractured cpair controller(s)" line in the report.
 
 WHAT NEXTPNR DOES WITH IT.  Nothing that knows what a bd_link is.  The packer
 pass (xilinx/pack.cc, pack_rloc_groups) reads one generic attribute: cells
@@ -41,8 +47,8 @@ constraint is never overstated.
 
 usage: rloc_stamp.py IN.json OUT.json --variant v1|v2|none [--report]
 
-NOT YET WIRED INTO build_hw.sh -- that file has another owner.  The hook is
-three lines, between `write_json` and the nextpnr invocation:
+WIRED INTO hw/build_hw.sh and flow.sh, both the same three lines, between
+`write_json` and the nextpnr invocation:
 
     if [ -n "${BD_RLOC:-}" ]; then
         python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" \
@@ -52,9 +58,15 @@ three lines, between `write_json` and the nextpnr invocation:
 
 and it needs a nextpnr carrying patches/nextpnr-xilinx-rloc-group.patch; an
 unpatched binary ignores the attribute silently, which is exactly the failure
-mode cells/verify/toolchain.sh exists to catch.  Until then,
-cells/verify/rloc_sweep.sh drives the whole thing from the JSON build_hw.sh
-already wrote.
+mode cells/verify/toolchain.sh exists to catch.  cells/verify/rloc_sweep.sh
+drives the whole thing, across placer seeds, from a JSON build_hw.sh already
+wrote.
+
+A zero-match stamp -- the regex found no controller at all, or found some and
+paired none of them with a latch -- is not treated as success: it prints a
+WARNING naming what it looked for, and main() returns a nonzero exit so a
+caller like flow.sh's `|| { RLOC STAMP FAILED; exit 1; }` stops the build
+instead of silently shipping an unclustered netlist.
 """
 
 import json
@@ -66,9 +78,18 @@ ATTR = "RLOC_GROUP"
 
 # The library's own instance names.  bd_link's controller is `ctl.u.u`; a
 # bd_pipe pairs two stages' controllers into one fractured LUT6_2 at
-# `many.cpair[i].u.u` with an odd final stage at `many.codd.u.u`.
+# `many.cpair[i].u.u` with an odd final stage at `many.codd.u.u`.  Only
+# bd_link_ctl is ever instantiated as `ctl`, and only bd_pipe's own generate
+# block ever produces `many.cpair[N]`/`many.codd` -- cells/rtl/bd_link.v is
+# the sole source of both shapes -- so the suffix alone identifies a C node.
+# The prefix used to also require an `ulink_<name>` component, which is
+# bdc/emit.py's naming convention for a COMPILED link or pipe (emit_links());
+# it is not a promise a hand-instantiated one keeps, and cells/verify/soak_top.v
+# instantiates its bd_pipe as plain `upipe`.  Capturing whatever precedes the
+# suffix, instead of insisting on the compiler's naming, is what makes soak's
+# pipe visible at all.
 RE_CNODE = re.compile(
-    r"^(?P<link>.*ulink_[A-Za-z0-9_]+)\."
+    r"^(?P<link>.+)\."
     r"(?:ctl\.u\.u|many\.(?:cpair\[\d+\]|codd)\.u\.u)$")
 
 
@@ -153,6 +174,45 @@ def select_sites(cells, drv):
     return out
 
 
+def stage_banks(c, link, snk):
+    """The latch bank(s) one controller cell enables, one per output bit.
+
+    bd_link_ctl and bd_pipe's `codd` have a single output: one bank, same as
+    before.  bd_pipe's `cpair` fractures TWO stages' controllers into one
+    LUT6_2 -- O5 is `ci` (stage i), O6 is `cj` (stage i+1), per
+    cells/rtl/bd_link.v's `bd_link_pair` port map -- so it has two banks, and
+    they must not be merged: stage i's latch bank and stage i+1's are
+    different physical LUTs enabled by different nets, and treating their
+    union as one bank would let the "which bit to grab" search below hand
+    back a latch that this particular output bit does not even drive.
+    Confirmed against connectivity, not just the naming: on soak.json, O5 of
+    `cpair[0].u.u` sinks only `lat[0].u.pair[*].u`'s `I1` and O6 sinks only
+    `lat[1].u.pair[*].u`'s `I1`.
+
+    Returns a list of (port, bank) pairs, port order matching the cell's own
+    connections dict (O5 before O6 for a fractured pair, i.e. the earlier of
+    the two stages first), skipping any output with no latch sinks at all.
+    """
+    dirs = c.get("port_directions", {})
+    out = []
+    for p, bits in c.get("connections", {}).items():
+        if dirs.get(p) != "output":
+            continue
+        for b in bits:
+            if not isinstance(b, int):
+                continue
+            bank = []
+            for sname, _ in snk.get(b, ()):
+                if (sname.startswith(link + ".")
+                        and ".lat" in sname[len(link):]
+                        and sname not in bank):
+                    bank.append(sname)
+            if bank:
+                bank.sort()
+                out.append((p, bank))
+    return out
+
+
 def stamp(mods, variant, report):
     counts, top = instantiation_counts(mods)
     if top is None:
@@ -161,6 +221,8 @@ def stamp(mods, variant, report):
     n_groups = n_members = 0
     n_w1 = n_wide = 0
     n_consumer = 0
+    n_cands = 0
+    n_split = n_split_stages_dropped = 0
     skipped_shared = []
     bank_sizes = []
 
@@ -175,47 +237,54 @@ def stamp(mods, variant, report):
             skipped_shared.append((mname, counts.get(mname, 0), len(cands)))
             continue
 
+        n_cands += len(cands)
         drv, snk = net_maps(cells)
         sel = select_sites(cells, drv)
 
         for cname in sorted(cands):
             link = RE_CNODE.match(cname).group("link")
             c = cells[cname]
-            dirs = c.get("port_directions", {})
-            outs = [b for p, bits in c.get("connections", {}).items()
-                    if dirs.get(p) == "output" for b in bits
-                    if isinstance(b, int)]
 
-            # The latch bank this controller enables: sinks of the C node's
-            # own output that live under the same link and inside its `lat`.
-            bank = []
-            for b in outs:
-                for sname, _ in snk.get(b, ()):
-                    if sname.startswith(link + ".") and ".lat" in sname[len(link):]:
-                        if sname not in bank:
-                            bank.append(sname)
-            if not bank:
+            stages = stage_banks(c, link, snk)
+            if not stages:
                 continue
-            bank.sort()
-            bank_sizes.append(len(bank))
-            if len(bank) == 1:
-                n_w1 += 1
-            else:
-                n_wide += 1
 
-            # Which bit of the bank to grab.  Prefer one that drives a select
-            # -- that is the bit rule E measures -- otherwise the first.
-            chosen, consumers = bank[0], []
-            for lname in bank:
-                lc = cells[lname]
-                ldirs = lc.get("port_directions", {})
-                obits = [b for p, bits in lc.get("connections", {}).items()
-                         if ldirs.get(p) == "output" for b in bits
-                         if isinstance(b, int)]
-                hit = [x for b in obits for x in sel.get(b, ())]
-                if hit:
-                    chosen, consumers = lname, hit
-                    break
+            # Score each stage this controller drives: which bit of ITS bank
+            # to grab (prefer one that feeds a select -- that is the bit rule
+            # E measures -- otherwise the first), and whether it found one.
+            scored = []
+            for port, bank in stages:
+                bank_sizes.append(len(bank))
+                if len(bank) == 1:
+                    n_w1 += 1
+                else:
+                    n_wide += 1
+                chosen, consumers = bank[0], []
+                for lname in bank:
+                    lc = cells[lname]
+                    ldirs = lc.get("port_directions", {})
+                    obits = [b for p, bits in lc.get("connections", {}).items()
+                             if ldirs.get(p) == "output" for b in bits
+                             if isinstance(b, int)]
+                    hit = [x for b in obits for x in sel.get(b, ())]
+                    if hit:
+                        chosen, consumers = lname, hit
+                        break
+                scored.append((port, chosen, consumers))
+
+            # A fractured cpair controller sits in ONE physical logic slot
+            # and can join only ONE of its two stages' clusters -- picking
+            # both would ask nextpnr to hold two different latch banks, each
+            # already anchored to its OWN stage's fanout, in the same SLICE
+            # as a controller that belongs equally to both.  Prefer the stage
+            # whose chosen bit feeds a select (that is the site rule E
+            # measures) and otherwise the earlier stage, same tie-break as
+            # picking a bit within one bank.
+            if len(scored) > 1:
+                n_split += 1
+                n_split_stages_dropped += len(scored) - 1
+            port, chosen, consumers = next(
+                (s for s in scored if s[2]), scored[0])
 
             members = [cname, chosen]
             if variant == "v2" and consumers:
@@ -229,7 +298,13 @@ def stamp(mods, variant, report):
 
             if len(members) < 2:
                 continue
-            g = "bdlink_" + re.sub(r"[^A-Za-z0-9_]", "_", link)
+            # Keyed on the controller's own instance path, not just `link`:
+            # one bd_pipe instance owns several controller candidates
+            # (several cpair indices, maybe a codd), each its own physical
+            # cluster.  Keying on `link` alone would hand two unrelated
+            # clusters the same RLOC_GROUP string and ask nextpnr to fuse
+            # them into one SLICE.
+            g = "bdlink_" + re.sub(r"[^A-Za-z0-9_]", "_", cname)
             for mn in members:
                 cells[mn].setdefault("attributes", {})[ATTR] = g
             n_groups += 1
@@ -237,24 +312,47 @@ def stamp(mods, variant, report):
 
     if report:
         print(f"rloc_stamp   variant {variant}")
+        print(f"             {n_cands} controller candidate(s) matched "
+              f"'*.ctl.u.u' / '*.many.(cpair[N]|codd).u.u'")
         print(f"             {n_groups} group(s), {n_members} logic slot(s) "
               f"named")
-        print(f"             {n_w1} link(s) whose latch bank IS one LUT "
-              f"(W<=2), {n_wide} wider link(s) where only the named bit is "
+        print(f"             {n_w1} link/stage bank(s) that ARE one LUT "
+              f"(W<=2), {n_wide} wider bank(s) where only the named bit is "
               f"constrained")
         if bank_sizes:
             tot = sum(bank_sizes)
-            print(f"             {tot} latch LUT(s) in those banks, "
+            print(f"             {tot} latch LUT(s) across those banks, "
                   f"{n_groups} of them grouped "
                   f"({100.0 * n_groups / tot:.1f}%)")
         if variant == "v2":
             print(f"             {n_consumer} group(s) also hold their select "
                   f"consumer's LUTs")
+        if n_split:
+            print(f"             {n_split} fractured cpair controller(s) each "
+                  f"drive two pipeline stages from one LUT6_2; only one "
+                  f"stage's latch can share its SLICE, so "
+                  f"{n_split_stages_dropped} stage(s) are left out of any "
+                  f"group by construction, not by omission")
         for mname, cnt, ncand in skipped_shared:
             print(f"             SKIPPED {mname}: instantiated {cnt}x, "
                   f"{ncand} controller(s) -- one group value cannot name "
                   f"more than one physical cluster")
-    return n_groups
+
+    # A stamp that names nothing is not a quiet success: it means every
+    # storage cell in this netlist is free for the placer to drag away, and
+    # the next thing to notice will be a rule-E violation with no idea why.
+    # Say so unconditionally -- not gated on --report -- and let main() turn
+    # it into a failing exit code.
+    if n_cands == 0:
+        print("rloc_stamp   WARNING: 0 controller(s) matched "
+              "'*.ctl.u.u' or '*.many.(cpair[N]|codd).u.u' in any module -- "
+              "no RLOC_GROUP attributes written, every storage cell in this "
+              "netlist floats", file=sys.stderr)
+    elif n_groups == 0:
+        print(f"rloc_stamp   WARNING: {n_cands} controller candidate(s) "
+              f"matched but none could be paired with a latch bank -- no "
+              f"RLOC_GROUP attributes written", file=sys.stderr)
+    return n_groups, n_cands
 
 
 def main():
@@ -270,11 +368,17 @@ def main():
         print(__doc__)
         return 2
     d = load(args[0])
+    ok = True
     if variant != "none":
-        stamp(d["modules"], variant, report)
+        n_groups, n_cands = stamp(d["modules"], variant, report)
+        ok = n_groups > 0
     with open(args[1], "w") as f:
         json.dump(d, f)
-    return 0
+    # A silent no-op used to exit 0 and only be noticed once rule E failed on
+    # a build nobody thought to suspect.  Matching zero groups to a nonzero
+    # exit means flow.sh's `|| { RLOC STAMP FAILED; exit 1; }` catches it at
+    # the source instead.
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
