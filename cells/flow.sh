@@ -205,6 +205,21 @@ lut_cells=$(tail -n +"$last" $OUT/synth.log \
             | awk '{s+=$1} END {print s+0}')
 echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 
+# Relative placement, same as hw/build_hw.sh.  soak_top is built from the same
+# bd_link/bd_mux/bd_steer primitives every kernel is, so it wants the same
+# RLOC_GROUP clustering -- without it the C node of a link lands nanoseconds of
+# interconnect from its own latch and rule E fails here while passing on every
+# kernel, which is a difference in the FLOW rather than in the design.  The
+# cluster floats; nothing is pinned.  BD_RLOC=none turns it off.
+BD_RLOC=${BD_RLOC:-v2}
+if [ "$BD_RLOC" != none ]; then
+    python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
+        --variant "$BD_RLOC" --report > $OUT/rloc.log 2>&1 || {
+            echo "RLOC STAMP FAILED"; cat $OUT/rloc.log; exit 1; }
+    mv $OUT/soak.rloc.json $OUT/soak.json
+    grep -E "group|link" $OUT/rloc.log | tail -3
+fi
+
 echo
 echo "== toolchain =="
 # Which binary is about to produce these numbers.  Three of this project's four
