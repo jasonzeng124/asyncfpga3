@@ -101,6 +101,22 @@ VERBOSE = "-v" in _raw
 #
 # Rule E measures from a common launch and finds 2 of 118 gates short on gcd,
 # 2 of 24 on ipow.  A loop driven off THIS file touches a handful of links.
+# --osc <instance-prefix> declares one instance, or its whole subtree, a
+# free-running ring oscillator rather than a handshake -- the same flag and the
+# same meaning as tighten.py's.  A ring is the ONE legitimate combinational
+# cycle that stores nothing; verify/soak_top.v:130 has exactly one and says so
+# ("It is also the one loop in this design that stores nothing").  Traversal
+# here stops at storage, so a storage-free cycle has nothing to stop it -- see
+# fwd()'s pass cap below for what that costs if it is not declared.
+#
+# This flag may ONLY name a ring that is genuinely free-running end to end.  It
+# is not a way to silence a real bundling violation by declaring the cycle it
+# lives on an oscillator.
+OSC = []
+while "--osc" in _raw:
+    _i = _raw.index("--osc")
+    OSC.append(_raw[_i + 1])
+    del _raw[_i:_i + 2]
 PADS = None
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
@@ -117,6 +133,16 @@ sys.argv = [sys.argv[0], str(SDF)]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import tighten as T                                          # noqa: E402
 from collections import defaultdict                           # noqa: E402
+
+
+class CombinationalCycle(Exception):
+    """A cycle with no latch and no C-element on it, so nothing stops a walk.
+
+    Everywhere in this library that is a real defect: a handshake node IS
+    storage, and a loop of pure combinational logic holds no state and cannot
+    settle.  The one deliberate exception is a free-running ring oscillator,
+    which is what --osc exists to declare.
+    """
 
 
 K = 6          # storage crossings a path may make before it is a lap, not a path
@@ -174,6 +200,26 @@ def main():
                   file=sys.stderr)
             return 2
 
+    # Drop every arc that touches a declared oscillator, before anything walks
+    # the graph.  Pruning here rather than inside fwd() keeps the ring out of
+    # the storage census and out of the launch candidates too, so it cannot be
+    # picked as the point two signals diverged from.
+    if OSC:
+        def on_ring(pin):
+            inst = pin.rsplit("/", 1)[0]
+            return any(inst == o or inst.startswith(o + ".") for o in OSC)
+        cut = 0
+        for src in list(edges):
+            keep = [(d, w) for d, w in edges[src]
+                    if not (on_ring(src) or on_ring(d))]
+            cut += len(edges[src]) - len(keep)
+            edges[src] = keep
+        print(f"             --osc {' '.join(OSC)}: {cut} arc(s) excluded")
+        if cut == 0:
+            print("             WARNING: that prefix excluded nothing.  A flag "
+                  "that silences no cycle is\n             either misspelt or "
+                  "unnecessary; it is not a pass.")
+
     sites = T.select_consumers(jpath)
     if sites is None:
         print(f"             no routed netlist at {jpath} -- cannot map "
@@ -204,10 +250,33 @@ def main():
         so the signal's real path is the one with the FEWEST crossings and the
         deeper levels are laps."""
         better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
+        # Bellman-Ford's bound.  A shortest-path relaxation over positive
+        # weights settles on its own, but a LONGEST-path one does not: on a
+        # cycle whose arcs are all positive, every lap improves every node and
+        # the loop below never runs out of frontier.  Traversal stops at
+        # storage nodes, so any cycle containing one is safe -- which is every
+        # handshake in the library.  A cycle that stores NOTHING has nothing to
+        # stop it, and that is what a free-running ring oscillator is.
+        #
+        # Measured, before this cap existed: verify/soak_top.v has exactly one
+        # such ring (line 130, "the one loop in this design that stores
+        # nothing") and rule E ran for five minutes on a 535-arc design with
+        # two select gates and had to be killed.  It was not slow, it was not
+        # terminating, and as a gate in check.sh it would have hung the whole
+        # check rather than failing it.
+        #
+        # No path can improve more than |pins| times without revisiting a node,
+        # so exceeding that bound IS a positive cycle.  Say which pin, and say
+        # what to do about it -- a hang teaches nothing.
+        cap = len(edges) + 1
         out, seeds = [], {launch: 0}
         for _ in range(K + 1):
             tab, frontier = dict(seeds), list(seeds)
+            passes = 0
             while frontier:
+                passes += 1
+                if passes > cap:
+                    raise CombinationalCycle(sorted(frontier)[0])
                 nxt = []
                 for pn in frontier:
                     tv = tab[pn]
@@ -216,7 +285,21 @@ def main():
                             continue
                         if d not in tab or better(tv + w, tab[d]):
                             tab[d] = tv + w
-                            if d not in stops or d == launch:
+                            # Record an arrival back at the launch, but never EXPAND
+                            # from it.  The old condition was "d not in stops or
+                            # d == launch", and that second clause is a lap: it lets
+                            # the walk leave the launch, go round the launch's own
+                            # handshake loop, and set off again with a larger number,
+                            # forever, because every arc is positive and this is a
+                            # LONGEST-path relaxation.  Levels are kept apart precisely
+                            # so laps land at a deeper crossing count instead; the
+                            # clause quietly readmitted them at level 0.
+                            #
+                            # Measured: rule E on verify/soak_top.v -- 535 arcs, two
+                            # select gates -- ran five minutes and had to be killed.
+                            # Not slow: not terminating.  As a gate in check.sh that
+                            # would have hung the check rather than failing it.
+                            if d not in stops:
                                 nxt.append(d)
                 frontier = nxt
             out.append(tab)
@@ -300,7 +383,24 @@ def main():
             for d, lng in ((0, False), (1, True)):
                 key = (launch, lng)
                 if key not in cache:
-                    cache[key] = fwd(launch, lng)
+                    try:
+                        cache[key] = fwd(launch, lng)
+                    except CombinationalCycle as e:
+                        print(f"\n  ABORT: the walk from {launch} did not settle.")
+                        print( "         A longest-path relaxation over positive arcs "
+                               "terminates only if every")
+                        print( "         cycle it can reach is broken by storage.  One "
+                               "here is not.  Still")
+                        print(f"         relaxing at: {e.args[0]}")
+                        print( "         Every handshake in this library puts a latch or "
+                               "a C-element on its")
+                        print( "         loop, so this is a real defect unless it is a "
+                               "free-running ring")
+                        print( "         oscillator -- declare that with --osc <instance>, "
+                               "and only if it")
+                        print( "         genuinely runs free end to end.")
+                        print( "         Rule E did not run.  This is a gap, not a pass.")
+                        return 2
             e = at(cache[(launch, False)], rp)
             l = at(cache[(launch, True)], sp)
             if e is None or l is None:
