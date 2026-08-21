@@ -26,6 +26,7 @@ set -u
 
 FW=/home/jayjay/dev2/lib/vivado/2026.1/data/xicom/xusb_xp2.hex
 LAB=/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab
+USBIPD="/mnt/c/Program Files/usbipd-win/usbipd.exe"
 BUSID=${BUSID:-3-2}
 
 node() {
@@ -37,7 +38,7 @@ node() {
 # --- 1. the cable has to be in WSL at all -----------------------------------
 if [ -z "$(node)" ]; then
     echo "== attaching $BUSID to WSL =="
-    usbipd.exe attach --wsl --busid "$BUSID" 2>&1 | grep -v "^usbipd: info" || true
+    "$USBIPD" attach --wsl --busid "$BUSID" 2>&1 | grep -v "^usbipd: info" || true
     sleep 4
 fi
 D=$(node)
