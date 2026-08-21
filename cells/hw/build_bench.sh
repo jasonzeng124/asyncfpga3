@@ -109,13 +109,19 @@ set_property IOSTANDARD LVCMOS33 [get_ports led_green]
 EOF
 
 echo "== synthesis ($TOP) =="
-# BD_DSP note: see build_hw.sh and cells/flow.sh -- default OFF (-nodsp),
-# BD_DSP=1 re-enables DSP48E1 inference for anyone tracking the fix on the
-# other branch.  Whichever setting a bitstream was built with, the host
-# report stamps it, per the harness spec's "stamp results with the BD_DSP
-# setting used" requirement.
+# BD_DSP note: the DSP48E1 constant-pins bug (A operand gated to zero by an
+# unwired INMODE tile default) is FIXED -- patches/nextpnr-xilinx-dsp-constpins.patch,
+# gated by verify/toolchain.sh, so a binary without the patch cannot silently
+# build this.  flow.sh and build_hw.sh both default BD_DSP=1 now; this script
+# matches them.  BD_DSP=0 remains an escape hatch for bisecting a future
+# toolchain change, not a safety default -- leaving it off costs LUT
+# multipliers (and, per compute.py's 2*width matched-delay pricing, ~9ns of
+# latency it does not need) on every kernel with a variable-by-variable
+# multiply, ipow first.  Whichever setting a bitstream was built with, the
+# host report stamps it, per the harness spec's "stamp results with the
+# BD_DSP setting used" requirement.
 DSPOPT="-nodsp"
-[ "${BD_DSP:-0}" = "1" ] && DSPOPT=""
+[ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
@@ -132,6 +138,24 @@ synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -to
 write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
+
+# Relative placement.  BD_RLOC=v2 (default, matching build_hw.sh) stamps an
+# RLOC_GROUP attribute on the post-synthesis netlist so nextpnr keeps each
+# bd_link's C node in the same SLICE as its own latch -- see
+# hw/rloc_stamp.py and patches/README.md.  The cluster floats; nothing is
+# pinned.  BD_RLOC=none turns it off, and that is the ONLY way to reproduce
+# a pre-2026-08-21 route: routed placement is stable per binary but not
+# across binaries, so numbers from the two are not comparable.  An
+# unpatched nextpnr ignores the attribute silently, which is what
+# verify/toolchain.sh above is for.
+BD_RLOC=${BD_RLOC:-v2}
+if [ "$BD_RLOC" != none ]; then
+    python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
+        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+            echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
+    mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+    grep -E "group|link" "$OUT/rloc.log" | tail -3
+fi
 
 last=$(grep -n "^=== $TOP ===" "$OUT/synth.log" | tail -1 | cut -d: -f1)
 tail -n +"$last" "$OUT/synth.log" | grep -E "^\s+[0-9]+\s+(LUT|FD|BUFG|BSCAN|IBUF|OBUF|CARRY)" || true
@@ -168,6 +192,7 @@ PYTHONPATH="$PRJXRAY_SRC:$TC/openxc7/lib/python${PYTHONPATH:+:$PYTHONPATH}" \
 [ -s "$OUT/$TOP.bit" ] || { echo "empty bitstream"; exit 1; }
 echo "$(stat -c%s "$OUT/$TOP.bit") bytes -> $OUT/$TOP.bit"
 echo "routed SDF -> $OUT/$TOP.sdf"
-echo "BD_DSP=${BD_DSP:-0}"
+echo "BD_DSP=${BD_DSP:-1}"
+echo "BD_RLOC=${BD_RLOC:-v2}"
 echo
 echo "build_bench.sh PASS"
