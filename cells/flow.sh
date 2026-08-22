@@ -55,19 +55,73 @@ set_property PACKAGE_PIN W14 [get_ports pin_out]
 set_property IOSTANDARD LVCMOS33 [get_ports pin_out]
 EOF
 
-# Measured delay lengths are OPT-IN, via BD_SIZES=<file>.  verify/resize.sh
-# sets it; nothing else does.  Picking the file up automatically because it
-# happened to be lying in the build directory would mean a bare ./flow.sh
-# silently stopped being the placeholder build after one resize run, and the
-# whole point of the gates is that you know which design you just checked.
+# Measured delay lengths are the DEFAULT now, not opt-in: a bare ./flow.sh
+# derives them itself by running verify/resize.sh fresh and building with
+# whatever it settles on.  BD_SIZES=<file> is still the explicit override --
+# unchanged, and it still wins over everything else, because bdc/ and the
+# other gates that generate their own top depend on naming an exact file.
+# BD_NO_TIGHTEN=1 is the escape hatch back to the placeholder build.
+#
+# Exactly one of those three runs, and it is announced loudly, because the
+# whole point of the gates is that you always know which design you just
+# checked:
+#
+#   BD_SIZES=<file>   explicit file, as before.
+#   BD_NO_TIGHTEN=1   the untightened placeholders in verify/soak_top.v.
+#   (neither)         run verify/resize.sh fresh, then build with its answer.
+#
+# What must NEVER happen is silently picking up a sizes.vh that merely
+# happens to be lying in $OUT from some earlier run (teeth.sh's own sabotage
+# file has sat in build/pnr/sizes.vh before now) -- that would mean a bare
+# ./flow.sh sometimes means one design and sometimes another with no visible
+# difference.  The fix is to RUN THE LOOP FRESH every time the default path
+# is taken, never to read $OUT/sizes.vh back as an input; the copy into
+# $OUT/sizes.vh below is a RECEIPT of what this build used, not a cache.
+#
+# BD_TIGHTEN_RUNNING is resize.sh's own recursion guard: it always exports
+# BD_SIZES before it calls back into this script (see verify/resize.sh), so
+# the BD_SIZES branch below already keeps this from recursing.  The check
+# just below is belt-and-braces in case that ever stops being true.
+if [ -n "${BD_TIGHTEN_RUNNING:-}" ] && [ -z "${BD_SIZES:-}" ]; then
+    echo "flow.sh: BD_TIGHTEN_RUNNING is set but BD_SIZES is not -- this should"
+    echo "         be impossible (resize.sh always exports BD_SIZES before it"
+    echo "         calls back into flow.sh).  Refusing to recurse into"
+    echo "         verify/resize.sh again."
+    exit 2
+fi
+
 SIZES=""
 if [ -n "${BD_SIZES:-}" ]; then
     [ -f "$BD_SIZES" ] || { echo "BD_SIZES=$BD_SIZES does not exist"; exit 2; }
     cp "$BD_SIZES" "$OUT/sizes.vh"
     SIZES="-DBD_SIZES -I$OUT"
-    echo "using measured delay lengths from $BD_SIZES"
+    echo "MODE: explicit -- using measured delay lengths from BD_SIZES=$BD_SIZES"
+elif [ "${BD_NO_TIGHTEN:-0}" = "1" ]; then
+    echo "MODE: BD_NO_TIGHTEN=1 -- using the UNTIGHTENED placeholder delay" \
+         "lengths in verify/soak_top.v"
 else
-    echo "using the placeholder delay lengths in verify/soak_top.v"
+    echo "MODE: default -- no BD_SIZES, no BD_NO_TIGHTEN; deriving tightened" \
+         "lengths by running verify/resize.sh fresh"
+    echo
+    if ! BD_TIGHTEN_RUNNING=1 ./verify/resize.sh; then
+        echo
+        echo "flow.sh: verify/resize.sh did not settle -- see build/resize/" \
+             "for its logs."
+        echo "         Use BD_NO_TIGHTEN=1 for the untightened placeholder" \
+             "build, or"
+        echo "         BD_SIZES=<file> to supply lengths explicitly."
+        exit 1
+    fi
+    RESIZED=build/resize/sizes.vh
+    [ -f "$RESIZED" ] || {
+        echo "flow.sh: verify/resize.sh reported success but $RESIZED is missing"
+        exit 2
+    }
+    cp "$RESIZED" "$OUT/sizes.vh"
+    SIZES="-DBD_SIZES -I$OUT"
+    echo
+    echo "MODE: default -- verify/resize.sh settled; building with the" \
+         "derived lengths in $RESIZED"
 fi
 
 # The design under test is OPT-IN too, via BD_TOP_V=<file> BD_TOP_M=<module>,

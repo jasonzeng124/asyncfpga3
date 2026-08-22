@@ -33,6 +33,63 @@ case "$KERNEL" in
        exit 2 ;;
 esac
 
+# TOP is deliberately "_bench_gen"/"_null_bench_gen", NOT "_bench": build_hw.sh
+# (owned by someone else, off limits) already has a "gcd_bench" case that
+# builds the OLD hand-written hw/gcd_bench.v to output directory
+# build/hw/gcd_bench/. This generator's default top name from gen_bench.py
+# is "<kernel>_bench" -- identical to that -- so building it under that name
+# would land in the SAME build/hw/gcd_bench/ directory and silently
+# overwrite the other harness's bitstream (confirmed on disk: a gcd_bench.bit
+# already exists there, built via build_hw.sh, and is presumably still live
+# on the board or referenced by someone else's run). --top here renames both
+# the generated Verilog module AND, through TOP below, this script's own
+# output directory, so the two builds can never collide.  Computed up front
+# (rather than down where gen_bench.py is invoked) because the default-
+# tighten dispatch just below needs it before anything else in this script
+# runs.
+if [ "$NULL" = "1" ]; then
+    TOP="${KERNEL}_null_bench_gen"
+else
+    TOP="${KERNEL}_bench_gen"
+fi
+
+# Default build path: tighten, same treatment as hw/build_hw.sh (see its
+# header) -- but that script is off limits to patch, and converge.sh
+# hardcoded "./hw/build_hw.sh $DESIGN" as the builder it iterates, one
+# positional token, while this script takes "<kernel> [--null]".
+# CONVERGE_BUILDER (verify/converge.sh) is the parameterisation that lets
+# ONE loop drive both shapes without duplicating it here: point it at this
+# script plus this invocation's own args, and DESIGN becomes $TOP so
+# converge.sh's build/hw/$DESIGN/$DESIGN.sdf bookkeeping lines up with the
+# --top name below.
+#
+# BDC_SELECT_PADS already being set is the re-entry signal (converge.sh
+# always sets it, first iteration included) -- just build.  BD_NO_TIGHTEN=1
+# skips convergence and builds with bdc/emit.py's unmeasured SELECT_PAD=4
+# estimate, unchanged from before this existed.
+#
+# The --null DUT has no bd_link/bd_pipe at all (see the BD_RLOC note further
+# down), hence no bd_steer/bd_mux either -- rule E finds zero select gates on
+# it, same as ro_top/arb_mtbf/arb_prot, and converge.sh already treats a
+# zero-deficit first measurement as CONVERGED, so this costs exactly the one
+# build it would have cost anyway.
+if [ -z "${BDC_SELECT_PADS:-}" ] && [ "${BD_NO_TIGHTEN:-0}" != "1" ]; then
+    BUILDER_ARGS=("$KERNEL")
+    [ "$NULL" = "1" ] && BUILDER_ARGS+=(--null)
+    echo "build_bench.sh: MODE=converge -- no BDC_SELECT_PADS (not a" \
+         "re-entry) and no BD_NO_TIGHTEN; handing off to verify/converge.sh" \
+         "for $TOP" >&2
+    exec env CONVERGE_BUILDER="./hw/build_bench.sh ${BUILDER_ARGS[*]}" \
+        "$(dirname "$0")/../verify/converge.sh" "$TOP"
+fi
+if [ "${BD_NO_TIGHTEN:-0}" = "1" ]; then
+    echo "build_bench.sh: MODE=BD_NO_TIGHTEN -- building $TOP directly," \
+         "select channels at bdc/emit.py's unmeasured SELECT_PAD estimate" >&2
+else
+    echo "build_bench.sh: MODE=converge re-entry" \
+         "(BDC_SELECT_PADS=$BDC_SELECT_PADS) -- building $TOP" >&2
+fi
+
 # Every OTHER path in this script (SRCS, $OUT, the synth/PnR/bitstream
 # steps below) is cells-relative, because this script's own cwd is cells/
 # (see the `cd` above) and stays there the whole run -- no subshell `cd ..`
@@ -52,22 +109,11 @@ MLIR="../build/frontend/$KERNEL/comp/handshake_transformed.mlir"
 mkdir -p build/gen
 python3 ../bdc/emit.py "$MLIR" --no-top -o "build/gen/${KERNEL}_kernel_bench.v"
 
-# TOP is deliberately "_bench_gen"/"_null_bench_gen", NOT "_bench": build_hw.sh
-# (owned by someone else, off limits) already has a "gcd_bench" case that
-# builds the OLD hand-written hw/gcd_bench.v to output directory
-# build/hw/gcd_bench/. This generator's default top name from gen_bench.py
-# is "<kernel>_bench" -- identical to that -- so building it under that name
-# would land in the SAME build/hw/gcd_bench/ directory and silently
-# overwrite the other harness's bitstream (confirmed on disk: a gcd_bench.bit
-# already exists there, built via build_hw.sh, and is presumably still live
-# on the board or referenced by someone else's run). --top here renames both
-# the generated Verilog module AND, through TOP below, this script's own
-# output directory, so the two builds can never collide.
+# TOP itself was computed above, before the default-tighten dispatch; this is
+# just the gen_bench.py call the dispatch had no reason to duplicate.
 if [ "$NULL" = "1" ]; then
-    TOP="${KERNEL}_null_bench_gen"
     python3 hw/gen_bench.py "$KERNEL" --null --top "$TOP" -o "build/gen/${TOP}.v"
 else
-    TOP="${KERNEL}_bench_gen"
     python3 hw/gen_bench.py "$KERNEL" --top "$TOP" -o "build/gen/${TOP}.v"
 fi
 

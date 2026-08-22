@@ -26,6 +26,42 @@ cd "$(dirname "$0")/.."
 
 TOP=${1:-ro_top}
 
+# Default build path: tighten.  A bare hw/build_hw.sh <design> hands off to
+# verify/converge.sh, which iterates this same build (via BDC_SELECT_PADS) to
+# a fixed point on rule E's select-vs-request margins -- see converge.sh's
+# header for why a constant pad measurably does not work and a per-link,
+# measured one does.
+#
+# BDC_SELECT_PADS already being set is the re-entry signal: converge.sh sets
+# it (even to build/converge/<design>/pads.json holding '{}' on iteration 1)
+# before every build_hw.sh call it makes, so seeing it set here means
+# converge.sh is the one calling, not a human -- just build.  BD_NO_TIGHTEN=1
+# is the escape hatch back to bdc/emit.py's own unmeasured SELECT_PAD=4
+# estimate on every channel, no convergence loop at all.
+#
+# ro_top, arb_mtbf and arb_prot instantiate no bd_link/bd_pipe-fed bd_steer
+# or bd_mux (see the *) case below -- they sit directly on rtl/bd_latch.v,
+# rtl/bd_ce.v and rtl/bd_arb.v), so they have no select gates for rule E to
+# measure.  verify/skew.py already reports that as "0 select gates ... 0
+# measured, 0 violated" and returns 0 without walking anything (it only
+# walks per select gate found), and converge.sh already treats a
+# zero-deficit first measurement as CONVERGED.  So routing one of these
+# three through converge.sh below costs exactly the one build it would have
+# cost anyway, and still ends in "CONVERGED", not an error -- nothing extra
+# to make that true.
+if [ -z "${BDC_SELECT_PADS:-}" ] && [ "${BD_NO_TIGHTEN:-0}" != "1" ]; then
+    echo "build_hw.sh: MODE=converge -- no BDC_SELECT_PADS (not a re-entry)" \
+         "and no BD_NO_TIGHTEN; handing off to verify/converge.sh for $TOP" >&2
+    exec "$(dirname "$0")/../verify/converge.sh" "$TOP"
+fi
+if [ "${BD_NO_TIGHTEN:-0}" = "1" ]; then
+    echo "build_hw.sh: MODE=BD_NO_TIGHTEN -- building $TOP directly, select" \
+         "channels at bdc/emit.py's unmeasured SELECT_PAD estimate" >&2
+else
+    echo "build_hw.sh: MODE=converge re-entry (BDC_SELECT_PADS=$BDC_SELECT_PADS)" \
+         "-- building $TOP" >&2
+fi
+
 # The source list, per design, spelled out rather than globbed -- the same
 # reason flow.sh names its files.  ro_top, arb_mtbf and arb_prot each sit
 # directly on a handful of primitives and read three files; gcd_hw is the

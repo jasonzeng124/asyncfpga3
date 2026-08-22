@@ -74,6 +74,13 @@ echo "delays found in source: ${KEYS[*]}"
 
 SIZEFILE=$HIST/sizes.vh
 export BD_SIZES=$SIZEFILE
+# Exported once, here, and never unset for the rest of this script's life:
+# every ./flow.sh call below -- baseline, each try, and the final re-route --
+# therefore always takes flow.sh's explicit-BD_SIZES branch, never its
+# default auto-tighten branch.  That is what keeps flow.sh's default path
+# (which runs THIS script) from calling back into itself; flow.sh's own
+# BD_TIGHTEN_RUNNING check is the belt-and-braces for the day this line
+# stops being true.
 
 write_sizes() {                       # write the current assignment
     local k                           # NOT optional: without it this clobbers

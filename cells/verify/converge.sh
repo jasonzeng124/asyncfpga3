@@ -40,6 +40,22 @@ DESIGN=${1:-gcd_ps}
 MAX=${2:-6}
 CAP=${CONVERGE_CAP:-64}
 
+# The builder this loop iterates.  Default is hw/build_hw.sh DESIGN, exactly
+# as before this was parameterised.  hw/build_bench.sh is a SIBLING build
+# script (see its own header for why it must not be patched into
+# build_hw.sh) that takes "<kernel> [--null]" rather than one DESIGN token,
+# so its caller sets CONVERGE_BUILDER to the full command -- e.g.
+#   CONVERGE_BUILDER="./hw/build_bench.sh gcd --null" verify/converge.sh gcd_null_bench_gen
+# DESIGN still has to name the build's own TOP (build/hw/$DESIGN/$DESIGN.sdf
+# is where this script reads the routed SDF from below), which is exactly
+# what hw/build_bench.sh's own --top naming already produces
+# (<kernel>_bench_gen / <kernel>_null_bench_gen) -- so DESIGN is bookkeeping
+# for this script, not necessarily a literal argument to the builder.
+# CONVERGE_BUILDER is intentionally split by word here, not quoted as one
+# token, so it can carry a command plus its own arguments.
+# shellcheck disable=SC2206
+CONVERGE_BUILDER=(${CONVERGE_BUILDER:-./hw/build_hw.sh "$DESIGN"})
+
 STATE=build/converge/$DESIGN
 mkdir -p "$STATE"
 PADS=$(readlink -f "$STATE")/pads.json
@@ -47,12 +63,13 @@ DELTA=$(readlink -f "$STATE")/delta.json
 [ -f "$PADS" ] || echo '{}' > "$PADS"
 
 echo "converge     $DESIGN, up to $MAX iteration(s), cap $CAP elements/link"
+echo "             builder: ${CONVERGE_BUILDER[*]}"
 echo "             pads $PADS"
 
 for i in $(seq 1 "$MAX"); do
     echo
     echo "---- iteration $i: build ----"
-    if ! BDC_SELECT_PADS=$PADS ./hw/build_hw.sh "$DESIGN" > "$STATE/build.$i.log" 2>&1; then
+    if ! BDC_SELECT_PADS=$PADS "${CONVERGE_BUILDER[@]}" > "$STATE/build.$i.log" 2>&1; then
         echo "  BUILD FAILED -- see $STATE/build.$i.log"
         tail -20 "$STATE/build.$i.log"
         exit 2

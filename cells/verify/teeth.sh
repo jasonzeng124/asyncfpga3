@@ -55,6 +55,16 @@ if [ -z "${VICTIM_MACRO:-}" ]; then
 fi
 echo "teeth: removing the matched delay on $VICTIM_PATH ($VICTIM_MACRO)"
 
+# Save whatever sizes the census build actually used, so the restore at the
+# bottom can put back THAT design (explicit BD_SIZES, one cheap re-route)
+# instead of falling through to flow.sh's own default and re-running the
+# whole verify/resize.sh sweep a second time just to undo a sabotage.
+# build/pnr/sizes.vh is flow.sh's receipt of what it built with; it exists
+# whenever the census build was tightened (explicit or default) and is
+# absent for a BD_NO_TIGHTEN=1 census, which the fallback below covers.
+rm -f "$OUT/orig_sizes.vh"
+[ -f build/pnr/sizes.vh ] && cp build/pnr/sizes.vh "$OUT/orig_sizes.vh"
+
 cat > $OUT/sizes.vh <<EOF
 // One cell with no matched delay at all.  Everything else at its placeholder.
 \`define $VICTIM_MACRO 0
@@ -95,5 +105,15 @@ grep -E "$VICTIM_PATH|VIOLATION" $OUT/tighten.log | head -3
 echo "teeth.sh PASS -- the sizing gate catches a removed delay line"
 
 # Leave the build directory holding the real design, not this one, so a later
-# gate cannot accidentally read the sabotaged SDF.
-./flow.sh > $OUT/restore.log 2>&1 || true
+# gate cannot accidentally read the sabotaged SDF.  Restore with the SAME
+# sizes the census build used (one explicit, cheap re-route) rather than a
+# bare ./flow.sh, which under the default-tighten path would re-run all of
+# verify/resize.sh a second time just to clean up after this sabotage --
+# correct, but a needless multi-route cost for a step whose only job is to
+# put back what was already there.  No saved sizes means the census itself
+# was an untightened (BD_NO_TIGHTEN=1) build, so restore the same way.
+if [ -f "$OUT/orig_sizes.vh" ]; then
+    BD_SIZES=$OUT/orig_sizes.vh ./flow.sh > $OUT/restore.log 2>&1 || true
+else
+    BD_NO_TIGHTEN=1 ./flow.sh > $OUT/restore.log 2>&1 || true
+fi
