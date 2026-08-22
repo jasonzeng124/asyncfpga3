@@ -16,8 +16,22 @@
 set -u
 LOCK=${BOARD_LOCK:-/tmp/asyncfpga3-board.lock}
 WAIT=${BOARD_WAIT:-3600}
-[ -e "$LOCK" ] || : > "$LOCK"
-exec 9>"$LOCK"
+[ -e "$LOCK" ] || : > "$LOCK" 2>/dev/null || true
+
+# Opening the lock and CONTENDING for it are different failures and must not
+# report the same way.  jtag_watch.sh runs as root and creates this file; if it
+# leaves it root-owned and unwritable, `exec 9>` fails, flock then fails with
+# "Bad file descriptor", and the old code blamed a nonexistent other session --
+# a 3600-second wait message for what is really a chmod.
+if ! exec 9>"$LOCK" 2>/dev/null; then
+    echo "board.sh: cannot open $LOCK for writing." >&2
+    ls -l "$LOCK" >&2 2>/dev/null || true
+    echo "board.sh: this is a PERMISSIONS problem, not contention." >&2
+    echo "board.sh: fix with  sudo chmod 666 $LOCK  (or restart hw/jtag_watch.sh," >&2
+    echo "board.sh: which now does this itself at startup)." >&2
+    exit 77
+fi
+
 if ! flock -w "$WAIT" 9; then
     echo "board.sh: another session has held the board for over ${WAIT}s." >&2
     echo "board.sh: NOT proceeding unlocked -- check who, or raise BOARD_WAIT." >&2

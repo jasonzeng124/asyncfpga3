@@ -61,6 +61,16 @@ node() {
     local i; i=$(ident); [ -n "$i" ] && printf '/dev/bus/usb/%s\n' "$i"
 }
 
+# The lock is a RENDEZVOUS between this root watcher and hw/board.sh running
+# as the user, so it must be writable by both.  Creating it here as root leaves
+# it 0644 root:root, and every board.sh then fails to even OPEN it -- which
+# board.sh used to report as contention.  /tmp is sticky, so the user cannot
+# delete and recreate it either; it has to be made permissive by whoever gets
+# there first, and that is almost always this script.
+: > "$LOCK"
+chmod 666 "$LOCK" 2>/dev/null || \
+    say "jtag_watch: WARNING could not chmod $LOCK -- board.sh may not be able to open it"
+
 say "jtag_watch: started (poll ${POLL}s, lock $LOCK)"
 trap 'say "jtag_watch: stopping"; exit 0' INT TERM
 
