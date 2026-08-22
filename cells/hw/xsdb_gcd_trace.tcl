@@ -177,14 +177,22 @@ proc decode_fsm {v} {
     set st   [expr {$v & 0x7}]
     set name [lindex $ST_NAME $st]
     if {$name eq ""} { set name "S_?$st" }
-    return [list $name \
-        [expr {($v >> 3) & 1}]  ;# bench_set_req
-        [expr {($v >> 4) & 1}]  ;# bench_o_ack
-        [expr {($v >> 5) & 1}]  ;# i_ack_pl   (raw)
-        [expr {($v >> 6) & 1}]  ;# o_req_pl   (raw)
-        [expr {($v >> 7) & 1}]  ;# req_core
-        [expr {($v >> 8) & 1}]  ;# i_ack_latched
-        [expr {($v >> 9) & 1}]] ;# o_req_latched
+    # Build the result one field at a time.  Do NOT fold these into a single
+    # bracketed [list ...] spread over several lines with trailing ";# name"
+    # comments: the ";" ends the command mid-list and the following lines get
+    # parsed as commands of their own ("invalid command name 0").  That bug
+    # made decode_fsm throw on EVERY call, hung or not, and because the caller
+    # had no catch the whole trace just stopped printing after the last
+    # successful mrd -- a silent truncation that looked like a board problem.
+    set bench_set_req [expr {($v >> 3) & 1}]
+    set bench_o_ack   [expr {($v >> 4) & 1}]
+    set i_ack_pl      [expr {($v >> 5) & 1}]
+    set o_req_pl      [expr {($v >> 6) & 1}]
+    set req_core      [expr {($v >> 7) & 1}]
+    set i_ack_latched [expr {($v >> 8) & 1}]
+    set o_req_latched [expr {($v >> 9) & 1}]
+    return [list $name $bench_set_req $bench_o_ack $i_ack_pl $o_req_pl \
+                 $req_core $i_ack_latched $o_req_latched]
 }
 
 proc snap {} {
