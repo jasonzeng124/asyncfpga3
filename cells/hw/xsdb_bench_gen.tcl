@@ -52,12 +52,27 @@
 
 set bitfile [lindex $argv 0]
 set label   [lindex $argv 1]
-if {$bitfile eq ""} { error "usage: xsdb xsdb_bench_gen.tcl <bitfile> <label> \[n_uniform\]" }
+if {$bitfile eq ""} { error "usage: xsdb xsdb_bench_gen.tcl <bitfile> <label> \[n_uniform\] \[clk_ctrl_hex\]" }
 if {$label eq ""}   { set label "kernel" }
 set N_UNIFORM [lindex $argv 2]
 if {$N_UNIFORM eq ""} { set N_UNIFORM 2000 }
 
-set FCLK0_HZ_NOMINAL 100000000.0
+# Optional 4th arg: FPGA0_CLK_CTRL value (SLCR 0xF8000170), to drive FCLK0 --
+# and therefore this bridge's AXI/measurement domain -- at something other
+# than the 100 MHz default. Does NOT touch the DUT: the compiled kernel is
+# bundled-data with no clock of its own: this only changes how fast the
+# poller/histogram/AXI slave sample it. Default reproduces the original
+# hardcoded value (DIVISOR0=10, DIVISOR1=1, SRCSEL=IO PLL -> 1000/10=100MHz).
+# FCLK0_HZ_NOMINAL is derived from the SAME value so cyc2ns stays correct
+# at any clock setting instead of silently assuming 100 MHz.
+set CLK_CTRL_VAL [lindex $argv 3]
+if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
+set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
+set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
+if {$DIVISOR0 == 0} { set DIVISOR0 1 }
+if {$DIVISOR1 == 0} { set DIVISOR1 1 }
+set FCLK0_HZ_NOMINAL [expr {1000000000.0 / double($DIVISOR0 * $DIVISOR1)}]
+puts "FPGA0_CLK_CTRL=[format 0x%08x $CLK_CTRL_VAL] -> DIVISOR0=$DIVISOR0 DIVISOR1=$DIVISOR1 -> FCLK0 nominal [expr {$FCLK0_HZ_NOMINAL/1e6}] MHz"
 
 set BASE     0x40000000
 set CTRL     [expr {$BASE + 0x00}]
@@ -139,7 +154,7 @@ puts "FPGA done."
 
 targets -set -filter {name =~ "ARM*#0"}
 mwr -force $SLCR_UNLOCK $SLCR_UNLOCK_KEY
-mwr -force $FPGA0_CLK_CTRL 0x00100A00        ;# FCLK0 = IO PLL/10 = 100 MHz
+mwr -force $FPGA0_CLK_CTRL $CLK_CTRL_VAL     ;# FCLK0 = IO PLL / (DIVISOR0*DIVISOR1)
 mwr -force $LVL_SHFTR_EN 0xF
 mwr -force $FPGA_RST_CTRL 0x0
 mwr -force $SLCR_LOCK $SLCR_LOCK_KEY
@@ -197,6 +212,9 @@ proc run_batch {n mode op0 op1} {
     mwr -force $::OP1 $op1
     mwr -force $::NRUNS $n
     set bctrl_val [expr {0x1 | (($mode & 3) << 2)}]
+    # start is edge-triggered; drive low first so the 0->1 edge does not depend
+    # on every prior exit path having cleared it (an early error leaves it high).
+    mwr -force $::BCTRL 0x0
     mwr -force $::BCTRL $bctrl_val
 
     set poll_iters [expr {200 + $n}]
@@ -265,6 +283,7 @@ puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware =
 mwr -force $::OP0 48
 mwr -force $::OP1 18
 mwr -force $::NRUNS 200
+mwr -force $::BCTRL 0x0                         ;# clean 0->1 edge (see run_batch)
 mwr -force $::BCTRL [expr {0x1 | (1 << 2)}]     ;# FIXED, start
 set bs 0
 for {set i 0} {$i < 400} {incr i} {
@@ -344,8 +363,8 @@ set mean_cyc [expr {double($cycles) / $completed}]
 puts ""
 puts [format "  latency (cycles): min=%d p50~=%.0f p90~=%.0f p99~=%.0f max=%d mean=%.1f" \
       $latmin $p50 $p90 $p99 $latmax $mean_cyc]
-puts [format "  latency (ns, @100MHz nominal): min=%.1f p50~=%.1f p90~=%.1f p99~=%.1f max=%.1f mean=%.1f" \
-      [cyc2ns $latmin] [cyc2ns $p50] [cyc2ns $p90] [cyc2ns $p99] [cyc2ns $latmax] [cyc2ns $mean_cyc]]
+puts [format "  latency (ns, @%.1fMHz nominal): min=%.1f p50~=%.1f p90~=%.1f p99~=%.1f max=%.1f mean=%.1f" \
+      [expr {$FCLK0_HZ_NOMINAL/1e6}] [cyc2ns $latmin] [cyc2ns $p50] [cyc2ns $p90] [cyc2ns $p99] [cyc2ns $latmax] [cyc2ns $mean_cyc]]
 set mean_ns [cyc2ns $mean_cyc]
 puts [format "  throughput (this harness, 1 txn in flight -- NOT pipelined peak): %.1f tx/s" [expr {1.0e9/$mean_ns}]]
 puts ""
