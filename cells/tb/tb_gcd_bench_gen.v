@@ -60,6 +60,9 @@ module tb_gcd_bench_gen;
     localparam [31:0] MISM_IDX  = 32'h40;
     localparam [31:0] MISM_VAL  = 32'h44;
     localparam [31:0] MISM_REF  = 32'h48;
+    localparam [31:0] FSMST     = 32'h54;
+    localparam [31:0] ILLST     = 32'h58;
+    localparam [31:0] ILLCYC    = 32'h5C;
     localparam [31:0] HIST_BASE = 32'h100;
 
     localparam integer POLL_MAX = 20000;
@@ -349,6 +352,74 @@ module tb_gcd_bench_gen;
         check(hist_total === 64, "UNIFORM batch: sum of 64 histogram buckets == run count");
         if (hist_total !== 64) $display("        hist_total=%0d", hist_total);
 
+        wr(BCTRL, 32'h0);
+
+        // ================================================================
+        // Section 6: the illegal-pair detector must be OBSERVABLE.
+        //
+        // On silicon this bridge has been read, at a hang, as st == S_RTZ
+        // with bench_o_ack == 0 -- a pair the RTL cannot produce.  Register
+        // ILLST latches that pair the cycle it first appears, together with
+        // the PREVIOUS cycle's st and bench_o_ack, which is what separates
+        // "the two flops diverged on one edge" from "we arrived in S_RTZ
+        // already broken".
+        //
+        // A sticky nobody has ever seen go high is not evidence of anything:
+        // it is indistinguishable from a sticky that is wired to ground.  So
+        // this section proves all four properties the board run depends on --
+        // it reads 0 to start, a healthy batch leaves it 0, FORCING the pair
+        // sets it and records the right history, and bctrl_rst clears it so a
+        // later batch can be believed.
+        // ================================================================
+        $display("== Section 6: illegal-pair sticky, forced negative control ==");
+
+        rd(ILLST, rv);
+        check(rv[3] === 1'b0, "illegal sticky: reads 0 before any batch");
+
+        wr(OP0, 32'hACE1_2345);
+        wr(NRUNS, 32'd8);
+        wr(BCTRL, {28'b0, 2'b00, 1'b0, 1'b1});
+        poll_done(bstat, "sticky control batch");
+        rd(ILLST, rv);
+        check(rv[3] === 1'b0, "illegal sticky: a HEALTHY batch does not trip it");
+        wr(BCTRL, 32'h0);
+
+        // Now force the pair.  sync_o_req is pinned high first so S_RTZ cannot
+        // exit underneath the test -- without that the window is one or two
+        // cycles wide and whether the detector gets a chance to see anything
+        // depends on how fast this particular kernel returns to zero, which is
+        // exactly the kind of "passed because it was never actually exercised"
+        // result this section exists to rule out.
+        wr(NRUNS, 32'd64);
+        wr(BCTRL, {28'b0, 2'b00, 1'b0, 1'b1});
+        wait (dut.st === 3'd6);            // S_RTZ, bench_o_ack legitimately 1
+        force dut.sync_o_req = 2'b11;      // hold o_req_s high: stay in S_RTZ
+        // Two edges, not one.  st_d lags st by a cycle, so at the first edge
+        // after S_RTZ is entered st_d still holds S_ACK -- forcing there makes
+        // the detector record prev_st=S_ACK and the control tests the wrong
+        // signature.  Pinning sync_o_req is what makes waiting safe: S_RTZ
+        // cannot exit, so the history is guaranteed to settle.
+        @(posedge aclk);
+        @(posedge aclk);                   // st_d now S_RTZ, oack_d now 1
+        force dut.bench_o_ack = 1'b0;      // the impossible pair
+        @(posedge aclk);                   // detector latches on this edge
+        @(posedge aclk);
+        release dut.bench_o_ack;
+        release dut.sync_o_req;
+
+        rd(ILLST, rv);
+        rd(ILLCYC, rv2);
+        check(rv[3]   === 1'b1, "illegal sticky: FIRES when the pair is forced");
+        check(rv[2:0] === 3'd6, "illegal sticky: records ill_prev_st == S_RTZ");
+        check(rv[4]   === 1'b1, "illegal sticky: records ill_prev_oack == 1");
+        $display("        ILLST=0x%08x  prev_st=%0d sticky=%0b prev_oack=%0b oreqs=%0b sync0=%0b run=%0d",
+                 rv, rv[2:0], rv[3], rv[4], rv[5], rv[6], rv[31:16]);
+        $display("        ill_cycles=%0d", rv2);
+
+        wr(BCTRL, 32'h2);                  // bctrl_rst
+        @(posedge aclk); @(posedge aclk);
+        rd(ILLST, rv);
+        check(rv[3] === 1'b0, "illegal sticky: bctrl_rst clears it again");
         wr(BCTRL, 32'h0);
 
         if (errors == 0) $display("tb_gcd_bench_gen PASS");
