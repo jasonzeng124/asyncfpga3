@@ -30,10 +30,11 @@ echo "$EXP"
 EXP_SIG=$(echo "$EXP" | awk -F= '/^SIG=/{print $2}')
 EXP_OP0=$(echo "$EXP" | awk -F= '/^LASTOP0=/{print $2}')
 EXP_OP1=$(echo "$EXP" | awk -F= '/^LASTOP1=/{print $2}')
+EXP_RESULT=$(echo "$EXP" | awk -F= '/^LASTRESULT=/{print $2}')
 
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 [ -x "$XSDB" ] || { echo "missing xsdb at $XSDB"; exit 2; }
 
 echo
 echo "== board run + self-assert =="
-hw/board.sh "$XSDB" hw/xsdb_gcd_sig_check.tcl "$BIT" "$SEED" "$N" "$EXP_SIG" "$EXP_OP0" "$EXP_OP1"
+hw/board.sh "$XSDB" hw/xsdb_gcd_sig_check.tcl "$BIT" "$SEED" "$N" "$EXP_SIG" "$EXP_OP0" "$EXP_OP1" "$EXP_RESULT"

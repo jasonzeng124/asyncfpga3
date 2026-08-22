@@ -12,21 +12,32 @@
 # expected SIG/LASTOP0/LASTOP1 as arguments so THE BOARD asserts against them
 # and prints its own PASS/FAIL -- no human reads a register dump.
 #
-# Usage: xsdb xsdb_gcd_sig_check.tcl <bitfile> <seed_hex> <n> <exp_sig_hex> <exp_op0_hex> <exp_op1_hex>
+# Usage: xsdb xsdb_gcd_sig_check.tcl <bitfile> <seed_hex> <n> <exp_sig_hex> <exp_op0_hex> <exp_op1_hex> [exp_lastresult_dec]
+#
+# exp_lastresult_dec (optional, 7th arg) is host_gcd_replay.py's LASTRESULT
+# for this seed/n -- the actual gcd() answer for the FINAL run, independent
+# of the SIG accumulation path. Compared against ODATA (o_data_capture),
+# which the RTL captures on every completion. This splits "the kernel
+# computed something wrong" from "the kernel was right and SIG/LASTOP
+# readback mis-accumulated or mis-sampled" -- see MEMORY note on two-channel
+# probes reading stale operands; ODATA is a one-channel read of the same
+# register the manual path already trusts.
 set bitfile   [lindex $argv 0]
 set seed_hex  [lindex $argv 1]
 set n         [lindex $argv 2]
 set exp_sig   [lindex $argv 3]
 set exp_op0   [lindex $argv 4]
 set exp_op1   [lindex $argv 5]
+set exp_lastresult [lindex $argv 6]
 if {$bitfile eq "" || $exp_sig eq ""} {
-    error "usage: xsdb xsdb_gcd_sig_check.tcl <bitfile> <seed_hex> <n> <exp_sig_hex> <exp_op0_hex> <exp_op1_hex>"
+    error "usage: xsdb xsdb_gcd_sig_check.tcl <bitfile> <seed_hex> <n> <exp_sig_hex> <exp_op0_hex> <exp_op1_hex> \[exp_lastresult_dec\]"
 }
 
 set BASE     0x40000000
 set CTRL     [expr {$BASE + 0x00}]
 set OP0      [expr {$BASE + 0x08}]
 set OP1      [expr {$BASE + 0x0C}]
+set ODATA    [expr {$BASE + 0x10}]
 set NRUNS    [expr {$BASE + 0x14}]
 set BCTRL    [expr {$BASE + 0x20}]
 set BSTATUS  [expr {$BASE + 0x24}]
@@ -34,6 +45,9 @@ set LASTOP0  [expr {$BASE + 0x30}]
 set LASTOP1  [expr {$BASE + 0x34}]
 set SIG      [expr {$BASE + 0x38}]
 set MISM_ST  [expr {$BASE + 0x3C}]
+set MISM_IDX [expr {$BASE + 0x40}]
+set MISM_VAL [expr {$BASE + 0x44}]
+set MISM_REF [expr {$BASE + 0x48}]
 
 set SLCR_UNLOCK     0xF8000008
 set SLCR_LOCK       0xF8000004
@@ -105,13 +119,39 @@ for {set i 0} {$i < [expr {200 + $n}]} {incr i} {
     if {$bs & 0x2} { set done 1; break }
     after 10
 }
-if {!$done} { error "TIMEOUT waiting for batch done, BSTATUS=[format 0x%08x $bs]" }
+if {!$done} {
+    # Self-reporting timeout: the one number that says WHERE it stopped is
+    # runs_done, and it is already sitting in the BSTATUS we just polled.
+    # Erroring without printing it sends that number to stderr, where a
+    # redirect that only captures stdout throws it away -- which is exactly
+    # how three n=8000 runs produced logs that just stop after "PL resets
+    # released" and look like a hang.
+    set stalled [expr {($bs >> 16) & 0xFFFF}]
+    puts ""
+    puts "=== gcd host cross-check: seed=$seed_hex n=$n ==="
+    puts [format "  TIMEOUT after %d polls: BSTATUS=0x%08x  busy=%d done=%d  runs_done=%d of %d" \
+          [expr {200 + $n}] $bs [expr {$bs & 1}] [expr {($bs >> 1) & 1}] $stalled $n]
+    if {$stalled == 0} {
+        puts "  the batch never retired a single run -- start never took, or run 0 is stuck"
+    } elseif {$stalled >= $n} {
+        puts "  every run retired but bench_done never rose -- the terminating branch, not the kernel"
+    } else {
+        puts [format "  the batch stalled mid-flight at run %d -- that run's operands are the suspect" $stalled]
+    }
+    puts ""
+    puts "GCD HOST CROSS-CHECK: FAIL -- batch did not complete"
+    error "TIMEOUT waiting for batch done, BSTATUS=[format 0x%08x $bs] runs_done=$stalled of $n"
+}
 set completed [expr {($bs >> 16) & 0xFFFF}]
 
-set got_sig  [mrd -value $SIG]
-set got_op0  [mrd -value $LASTOP0]
-set got_op1  [mrd -value $LASTOP1]
-set mism     [mrd -value $MISM_ST]
+set got_sig      [mrd -value $SIG]
+set got_op0      [mrd -value $LASTOP0]
+set got_op1      [mrd -value $LASTOP1]
+set got_odata    [mrd -value $ODATA]
+set mism         [mrd -value $MISM_ST]
+set mism_idx     [mrd -value $MISM_IDX]
+set mism_val     [mrd -value $MISM_VAL]
+set mism_ref     [mrd -value $MISM_REF]
 mwr -force $BCTRL 0x0
 
 puts ""
@@ -120,12 +160,20 @@ puts [format "  completed=%d (want %d)" $completed $n]
 puts [format "  SIG:     board=0x%08x  host=%s" $got_sig $exp_sig]
 puts [format "  LASTOP0: board=0x%08x  host=%s" $got_op0 $exp_op0]
 puts [format "  LASTOP1: board=0x%08x  host=%s" $got_op1 $exp_op1]
+if {$exp_lastresult ne ""} {
+    puts [format "  ODATA (last run's result): board=%d (0x%08x)  host LASTRESULT=%d" $got_odata $got_odata $exp_lastresult]
+} else {
+    puts [format "  ODATA (last run's result): board=%d (0x%08x)  (no host LASTRESULT passed)" $got_odata $got_odata]
+}
+puts [format "  MISM_ST=%d MISM_IDX=%d MISM_VAL=%d MISM_REF=%d  (NOTE: mismatch_sticky is a FIXED-mode-only repeatability latch in this RTL -- it is unconditionally reset at batch start and only ever set inside the bctrl_mode==FIXED branch, so a UNIFORM-mode batch like this one is expected to read 0 here regardless of whether the kernel's answers were correct; it does NOT function as an on-chip oracle for UNIFORM-mode runs)" \
+      $mism $mism_idx $mism_val $mism_ref]
 
 set ok 1
 if {$completed != $n} { puts "  FAIL: completed != n"; set ok 0 }
 if {[format 0x%08x $got_sig] ne $exp_sig}   { puts "  FAIL: SIG mismatch";     set ok 0 }
 if {[format 0x%08x $got_op0] ne $exp_op0}   { puts "  FAIL: LASTOP0 mismatch"; set ok 0 }
 if {[format 0x%08x $got_op1] ne $exp_op1}   { puts "  FAIL: LASTOP1 mismatch"; set ok 0 }
+if {$exp_lastresult ne "" && $got_odata != $exp_lastresult} { puts "  FAIL: ODATA (last result) mismatch"; set ok 0 }
 
 puts ""
 if {$ok} {
