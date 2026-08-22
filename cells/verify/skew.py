@@ -99,8 +99,16 @@ VERBOSE = "-v" in _raw
 # exactly what happened: BDC_SELECT_PAD 4 vs 32 -- 96 versus 768 delay elements
 # -- produced a byte-identical failing mask on silicon and bought nothing.
 #
-# Rule E measures from a common launch and finds 2 of 118 gates short on gcd,
-# 2 of 24 on ipow.  A loop driven off THIS file touches a handful of links.
+# Rule E measures from a common launch and, on the route this was written
+# against, found 2 of 118 gates short on gcd, 2 of 24 on ipow.  A loop driven
+# off THIS file touches a handful of links.  That count is a property of a
+# ROUTE, not of the design: re-checked 2026-08-22 on two fresh single-seed
+# rebuilds of gcd_hw and one of ipow_ps, ALL 118 / 24 gates measured clean
+# under this file AND under the completely unmodified original -- the citation
+# above did not reproduce on either route tried, on any version of this file.
+# Consistent with the rest of this project's own experience ("one route is a
+# sample"): treat "2 of 118" as a historical measurement, not a live invariant
+# to compare future routes against.
 # --osc <instance-prefix> declares one instance, or its whole subtree, a
 # free-running ring oscillator rather than a handshake -- the same flag and the
 # same meaning as tighten.py's.  A ring is the ONE legitimate combinational
@@ -132,7 +140,7 @@ SDF = pathlib.Path(_pos[0]) if _pos else (pathlib.Path(__file__).resolve()
 sys.argv = [sys.argv[0], str(SDF)]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import tighten as T                                          # noqa: E402
-from collections import defaultdict                           # noqa: E402
+from collections import defaultdict, OrderedDict                           # noqa: E402
 
 
 class CombinationalCycle(Exception):
@@ -295,10 +303,20 @@ def main():
         # No path can improve more than |pins| times without revisiting a node,
         # so exceeding that bound IS a positive cycle.  Say which pin, and say
         # what to do about it -- a hang teaches nothing.
+        # `pred` is kept alongside `out`, ONE PER LEVEL, so the exact walk a
+        # pin's arrival took can be replayed rather than guessed at.  A node's
+        # predecessor is (level, node) -- almost always the same level, except
+        # a stop `o` seeded at the top of a new level, whose predecessor is
+        # the enable pin `ip` back in the PREVIOUS level's table (the single
+        # deliberate hop this docstring describes).  The launch's own entry
+        # at level 0 has predecessor None; nothing else does, since every
+        # other node was relaxed from something.
         cap = len(edges) + 1
-        out, seeds = [], {launch: 0}
-        for _ in range(K + 1):
-            tab, frontier = dict(seeds), list(seeds)
+        out, pred_out = [], []
+        seeds, seed_pred = {launch: 0}, {launch: None}
+        for lvl in range(K + 1):
+            tab, pred = dict(seeds), dict(seed_pred)
+            frontier = list(seeds)
             passes = 0
             while frontier:
                 passes += 1
@@ -312,6 +330,7 @@ def main():
                             continue
                         if d not in tab or better(tv + w, tab[d]):
                             tab[d] = tv + w
+                            pred[d] = (lvl, pn)
                             # Record an arrival back at the launch, but never EXPAND
                             # from it.  The old condition was "d not in stops or
                             # d == launch", and that second clause is a lap: it lets
@@ -330,7 +349,8 @@ def main():
                                 nxt.append(d)
                 frontier = nxt
             out.append(tab)
-            seeds = {}
+            pred_out.append(pred)
+            seeds, seed_pred = {}, {}
             for o in stops:
                 if o == launch:
                     continue
@@ -340,9 +360,67 @@ def main():
                     v = tab[ip] + arc
                     if o not in seeds or better(v, seeds[o]):
                         seeds[o] = v
+                        seed_pred[o] = (lvl, ip)
             if not seeds:
                 break
-        return out
+        return out, pred_out
+
+    def path_to(pred_out, level, node):
+        """The exact walk from `launch` to `node` at `level`, as a list of
+        (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
+        predecessor pointers -- not a proxy over what is merely backward-
+        reachable, the concrete route that pin's arrival time came from."""
+        chain = [(level, node)]
+        seen = {(level, node)}
+        p = pred_out[level].get(node)
+        while p is not None:
+            # A predecessor CYCLE is possible and must be caught here.  The
+            # longest-path relaxation is bounded by Bellman-Ford's cap, not by
+            # acyclicity, so on a loop that stores nothing -- a free-running
+            # ring -- the pointers it leaves behind can close on themselves.
+            # A pipeline cannot do this (soak_top.v has exactly one such ring;
+            # gcd has none), which is why this walked fine on every compiled
+            # design and hung only on soak: unguarded, the loop below appends
+            # forever.  Measured, it reached 10.4 GB in under seven minutes
+            # against 15.8 MB and 1.2 s for the same design before divergence
+            # tracking existed.
+            #
+            # Report NO usable prefix rather than a guess.  The caller then
+            # takes t_c = 0, which guards the whole launch-to-pin span -- the
+            # conservative direction, and exactly what this check did before
+            # divergent-tail guarding was added.  Degrading to the stricter
+            # behaviour is safe; inventing a prefix here would not be.
+            if p in seen:
+                return None
+            seen.add(p)
+            chain.append(p)
+            lvl, nd = p
+            p = pred_out[lvl].get(nd)
+        chain.reverse()
+        return chain
+
+    def divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp):
+        """X, the last (level, node) the two MEASURED walks -- the shortest
+        one that actually set the req arrival, the longest one that actually
+        set the sel arrival -- still agree on, and t_c, its arrival time.
+        Which table t_c is read from does not matter: a true shared prefix is
+        one physical route, and both relaxations added up the same arc
+        weights to reach it, so they agree by construction up to the exact
+        point this comparison stops -- no proxy, the concrete routes
+        `fwd`'s own predecessor pointers recorded."""
+        pr = path_to(pred_f, e[1], rp)
+        ps = path_to(pred_t, l[1], sp)
+        if pr is None or ps is None:
+            return 0          # cycle in the pointers: guard the whole span
+        n = 0
+        for a, b in zip(pr, ps):
+            if a != b:
+                break
+            n += 1
+        if n == 0:
+            return 0
+        xlvl, xnode = pr[n - 1]
+        return out_f[xlvl][xnode]
 
     def back(pin):
         """Pins that reach `pin`, and how many storage crossings away."""
@@ -392,7 +470,15 @@ def main():
             if "req" in d and "sel" in d:
                 checks.append((kind, parent, cell, d["req"], d["sel"]))
 
-    cache, rows, orphan = {}, [], []
+    # Bounded cache.  fwd() returns arrival tables AND predecessor tables, one
+    # per crossing level, and rule E walks up to four candidate launches per
+    # gate.  Held unbounded across every gate that is gigabytes on a design
+    # with many distinct launches -- soak was OOM-killed at 10.8 GB resident.
+    # A gate needs at most its own 4 launches x 2 directions = 8 live entries,
+    # so a cap well above that keeps all the reuse that matters and bounds the
+    # footprint.  Evict oldest-first.
+    CACHE_MAX = 64
+    cache, rows, orphan = OrderedDict(), [], []
     for kind, parent, cell, rp, sp in checks:
         br, bs = back(rp), back(sp)
         # The launch is where the request and the select DIVERGE, and the
@@ -405,13 +491,58 @@ def main():
         cand = sorted((bs[q], br[q], q)
                       for q in set(br) & set(bs)
                       if q in stops and not T.is_const(q))
+        # Keep the WORST candidate launch, and guard only the DIVERGENT tails.
+        #
+        # These are two separate things and only the second one changed here.
+        #
+        # (1) Launch selection stays "worst over cand[:4]", as it always was.
+        # An earlier revision of this file narrowed it to the nearest valid
+        # launch, on the theory that a shared prefix cancels in the raw
+        # subtraction so the choice could not matter.  That is false, and
+        # measurably so: on gcd it moved the raw margin on 90 of 118 gates, by
+        # as much as +15509 ps, always in the permissive direction.  The reason
+        # is the one this file's own header already gives -- the launch is the
+        # feeding bd_link's C node, "exactly where the request and the data
+        # diverge", because that node drives the latch enable on one side and
+        # the request chain on the other.  The nearest candidate is instead the
+        # LATCH OUTPUT, which the request never travels through at all; it is
+        # backward-reachable from the request pin only by going around the
+        # handshake loop.  Measured on gcd's umux10.uj0: from the C node the
+        # request is 0 storage crossings away and the select is 1, which is the
+        # real picture, while from the latch the request comes back 4 crossings
+        # and 19926 ps later -- about 15.2 ns of margin that is a lap of the
+        # loop, not slack.  Across gcd that change made the request cross MORE
+        # storage on 90 gates and fewer on none, which is the signature.  This
+        # is exactly the failure the comment below the ABORT warns about.
+        #
+        # (2) The GUARDED margin now spans only the divergent tails.  It used
+        # to be GUARD_LO*t_req - GUARD_HI*t_sel over the whole launch-to-pin
+        # distance, including the prefix both legs share.  That prefix is ONE
+        # physical delay drawing ONE sample of the PVT scatter these constants
+        # model, so scoring it at 0.772x on the request leg and 1.155x on the
+        # select leg at the same time guards a corner silicon cannot reach.
+        # Subtracting the arrival at the divergence point removes it from both
+        # legs, where it cancels.  This is a small, safe correction: measured
+        # alone on gcd it moves the raw margin on 0 of 118 gates (mechanically
+        # -- t_c cancels in a subtraction) and leaves the worst guarded gate
+        # unchanged at +529 ps.  t_c comes from divergence(), which replays the
+        # actual predecessor chains that set each arrival and takes their
+        # longest common prefix, so it can only credit nodes genuinely on both
+        # measured paths -- a backward-reachability proxy was tried first and
+        # did over-credit (usteer got t_c=417 where the true value is 0).
+        #
+        # Worst is chosen by the GUARDED margin, since that is the verdict.
         worst = None
         for _, _, launch in cand[:4]:
             for d, lng in ((0, False), (1, True)):
                 key = (launch, lng)
-                if key not in cache:
+                if key in cache:
+                    cache.move_to_end(key)
+                else:
                     try:
                         cache[key] = fwd(launch, lng)
+                        while len(cache) > CACHE_MAX:
+                            cache.popitem(last=False)
                     except CombinationalCycle as e:
                         print(f"\n  ABORT: the walk from {launch} did not settle.")
                         print( "         A longest-path relaxation over positive arcs "
@@ -428,24 +559,49 @@ def main():
                         print( "         genuinely runs free end to end.")
                         print( "         Rule E did not run.  This is a gap, not a pass.")
                         return 2
-            e = at(cache[(launch, False)], rp)
-            l = at(cache[(launch, True)], sp)
+            out_f, pred_f = cache[(launch, False)]
+            out_t, pred_t = cache[(launch, True)]
+            e = at(out_f, rp)
+            l = at(out_t, sp)
             if e is None or l is None:
                 continue
-            m = e[0] - l[0]
-            if worst is None or m < worst[0]:
-                worst = (m, launch, e[0], e[1], l[0], l[1])
+            # X, the DIVERGENCE POINT: the last node the two walks that
+            # actually set req's and sel's arrival still agree on, found by
+            # replaying fwd()'s own predecessor pointers back from each pin to
+            # `launch` and taking the longest common prefix of the two
+            # concrete routes -- not a proxy over what is merely backward-
+            # reachable from both pins, which can include nodes never on
+            # either measured path.  t_c is X's arrival time; never let it
+            # exceed either pin's own arrival, since X sits strictly before
+            # both on their own walks by construction.
+            tc = min(divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp),
+                     e[0], l[0])
+            g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+            if worst is None or g < worst[0]:
+                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc)
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
-        rows.append((worst[0], kind, parent, cell, rp, sp) + worst[1:])
+        rows.append((worst[1], kind, parent, cell, rp, sp) + worst[2:])
 
     # Guarded margin, and the raw one kept alongside it so the guardband can
     # always be seen doing its work rather than being folded into the verdict.
-    def guarded(t_req, t_sel):
-        return int(GUARD_LO * t_req - GUARD_HI * t_sel)
+    #
+    # Only the DIVERGENT tail past t_c (the shared-prefix arrival computed
+    # above) gets the asymmetric scatter; t_c itself is one shared physical
+    # delay and drops out of the margin untouched.  GUARD_LO and GUARD_HI
+    # model silicon PVT scatter on a signal's OWN path; a delay common to
+    # both req and sel cannot run 0.772x on one leg and 1.155x on the other
+    # at the same time, so guarding it in both directions at once was scoring
+    # an impossible corner, not a real one -- see the cand[:4] comment above
+    # for how t_c is found.  This also makes the guarded margin a function of
+    # where req and sel actually split, not of how far back the search
+    # happened to walk to find a common launch: t_c already backs out
+    # whatever headroom launch selection alone could have bought.
+    def guarded(t_req, t_sel, t_c):
+        return int(GUARD_LO * (t_req - t_c) - GUARD_HI * (t_sel - t_c))
 
-    rows = [(guarded(r[7], r[9]),) + r for r in rows]
+    rows = [(guarded(r[7], r[9], r[11]),) + r for r in rows]
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
 
@@ -469,10 +625,11 @@ def main():
 
     pads, unattributed = {}, []
     for (gm, margin, kind, parent, cell, rp, sp,
-         launch, t_req, k_req, t_sel, k_sel) in (rows if VERBOSE else bad):
+         launch, t_req, k_req, t_sel, k_sel, t_c) in (rows if VERBOSE else bad):
         flag = "VIOLATED" if gm <= 0 else "ok      "
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
+        print(f"           divergence point {t_c} ps in (shared, not guarded)")
         print(f"           req  {rp}")
         print(f"                earliest {t_req} ps, {k_req} storage crossing(s)")
         print(f"           sel  {sp}")
