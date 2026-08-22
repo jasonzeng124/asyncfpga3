@@ -166,6 +166,26 @@ set LATMAX   [expr {$BASE + 0x2C}]
 #   o_req_s LOW  -> S_WAIT_RES: the kernel never raised a request at all, so
 #                   o_req_latched never got async-set.
 set HS [expr {$BASE + 0x04}]
+# FSMST (register 7'h15, byte 0x54) carries the batch FSM's state directly plus
+# the RAW, unsynchronized handshake wires -- so a hang no longer has to be
+# inferred from o_req_s alone. That inference was always weak and is now known
+# to be ambiguous: both o_req_s=1 and o_req_s=0 have been seen on hangs.
+set FSMST [expr {$BASE + 0x54}]
+set ST_NAME {S_IDLE S_PREP S_ISSUE S_WAIT_ACK S_WAIT_RES S_ACK S_RTZ S_NEXT}
+proc decode_fsm {v} {
+    global ST_NAME
+    set st   [expr {$v & 0x7}]
+    set name [lindex $ST_NAME $st]
+    if {$name eq ""} { set name "S_?$st" }
+    return [list $name \
+        [expr {($v >> 3) & 1}]  ;# bench_set_req
+        [expr {($v >> 4) & 1}]  ;# bench_o_ack
+        [expr {($v >> 5) & 1}]  ;# i_ack_pl   (raw)
+        [expr {($v >> 6) & 1}]  ;# o_req_pl   (raw)
+        [expr {($v >> 7) & 1}]  ;# req_core
+        [expr {($v >> 8) & 1}]  ;# i_ack_latched
+        [expr {($v >> 9) & 1}]] ;# o_req_latched
+}
 
 proc snap {} {
     global BSTATUS CYCLES PREPCYC HS
@@ -243,6 +263,31 @@ if {$done} {
 }
 puts [format "  final: BSTATUS=0x%08x runs_done=%d busy=%d done=%d o_req_s=%d i_ack_s=%d cycles=%u prep_cycles=%u" \
       $bs $rd $busy $done $oreq $iack $cyc $prep]
+set fv [mrd -value $FSMST]
+lassign [decode_fsm $fv] stname bsr boa iackr oreqr rcore iackl oreql
+puts [format "  FSM: st=%s  bench_set_req=%d bench_o_ack=%d" $stname $bsr $boa]
+puts [format "       RAW wires: i_ack_pl=%d o_req_pl=%d req_core(i_req_pl)=%d" \
+      $iackr $oreqr $rcore]
+puts [format "       async latches: i_ack_latched=%d o_req_latched=%d" $iackl $oreql]
+if {!$done} {
+    # The three readings that name the culprit, stated so nobody has to
+    # re-derive them from the bit values at 2am.
+    if {$stname eq "S_WAIT_RES" && $oreqr == 1 && $oreql == 0} {
+        puts "       >> THE KERNEL IS ASSERTING o_req_pl RIGHT NOW and o_req_latched is 0."
+        puts "          The result arrived and the async-set latch does not hold it. The"
+        puts "          latch (or its S_ISSUE clear) is the bug, NOT the kernel."
+    } elseif {$stname eq "S_WAIT_RES" && $oreqr == 0} {
+        puts "       >> The kernel is NOT asserting o_req_pl. It accepted the operands"
+        puts "          (S_WAIT_ACK passed) and produced nothing: a kernel-side stall."
+    } elseif {$stname eq "S_RTZ" && $oreqr == 0} {
+        puts "       >> o_req_pl is already LOW but the FSM is still in S_RTZ, which waits"
+        puts "          on the SYNCHRONIZED o_req_s. The synchronizer is stuck, not the kernel."
+    } elseif {$stname eq "S_WAIT_ACK"} {
+        puts [format "       >> Parked in S_WAIT_ACK: req_core=%d, i_ack_pl=%d, i_ack_latched=%d." \
+              $rcore $iackr $iackl]
+        puts "          The input handshake never completed -- earlier than any hang seen so far."
+    }
+}
 puts [format "  lat_min=%u lat_max=%u (aclk cycles, only meaningful for runs that completed)" \
       [mrd -value $LATMIN] [mrd -value $LATMAX]]
 mwr -force $BCTRL 0x0
