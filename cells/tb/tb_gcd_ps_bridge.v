@@ -10,7 +10,14 @@
 // gcd_ps_bridge directly.  hw/gcd_ps.v is `include`d unmodified so that this
 // bench and the synthesised design can never drift; the PS7/BUFG stubs below
 // exist only so that file elaborates (gcd_ps itself is never instantiated,
-// and is not the simulation root -- see run_gate.sh's -s below).
+// and is not the simulation root -- see run_sim.sh's -s below).
+//
+// gcd_ps_bridge instantiates bdc_gcd with no probe ports connected (see
+// hw/gcd_ps.v), so the plain kernel -- not the --probe build gcd_rig.v
+// needs -- is what has to exist.
+//
+// requires: sim/ps7_stub.v
+// requires: build/gen/gcd_kernel_bench.v
 //
 // AXI3 IDs are the one thing every call site in this file gets deliberately
 // wrong on purpose to get right: hw-docs/07 records that tying BID/RID to
@@ -24,25 +31,7 @@
 // Only gcd_ps_bridge is instantiated as DUT below.  These stand in for the
 // ports gcd_ps's PS7/BUFG instances use, in case the simulator tries to
 // elaborate gcd_ps as an unreferenced root; they carry no behaviour.
-module PS7 (
-    input  MAXIGP0ACLK,
-    output MAXIGP0ARESETN,
-    output MAXIGP0AWVALID, input MAXIGP0AWREADY,
-    output [31:0] MAXIGP0AWADDR, output [11:0] MAXIGP0AWID,
-    output MAXIGP0WVALID, input MAXIGP0WREADY,
-    output [31:0] MAXIGP0WDATA, output [3:0] MAXIGP0WSTRB,
-    input  MAXIGP0BVALID, output MAXIGP0BREADY,
-    input  [1:0] MAXIGP0BRESP, input [11:0] MAXIGP0BID,
-    output MAXIGP0ARVALID, input MAXIGP0ARREADY,
-    output [31:0] MAXIGP0ARADDR, output [11:0] MAXIGP0ARID,
-    input  MAXIGP0RVALID, output MAXIGP0RREADY,
-    input  [31:0] MAXIGP0RDATA, input [1:0] MAXIGP0RRESP,
-    input  MAXIGP0RLAST, input [11:0] MAXIGP0RID,
-    output [3:0] FCLKCLK,
-    input  FCLKRESETN,
-    output FCLKCLKTRIGN
-);
-endmodule
+// PS7 stub now lives in sim/ps7_stub.v, declared in this file's header.
 
 // BUFG already has a simulation stand-in in sim/bd_prims_sim.v (zero-delay,
 // deliberately -- see its header); only PS7 is missing one.

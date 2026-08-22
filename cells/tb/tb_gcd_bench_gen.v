@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // ---------------------------------------------------------------------------
-// tb_gcd_bench_gen -- drives the GENERATED gcd_bench_bridge (cells/hw/gen_bench.py
+// tb_gcd_bench_gen -- drives the GENERATED gcd_bench_gen_bridge (cells/hw/gen_bench.py
 // output, build/gen/gcd_bench_gen.v) with raw AXI3 channel wiggles, the same
 // way tb_gcd_ps_bridge.v drives hw/gcd_ps.v's bridge.  See that file for why
 // PS7/BUFG never need to be simulated: this bench targets ...bench_bridge
@@ -14,13 +14,27 @@
 // harness must agree") -- the small-N agreement check itself happens here in
 // sim against a hand-computed oracle, before ever touching the board.
 //
-// Run (after `python3 cells/hw/gen_bench.py gcd -o build/gen/gcd_bench_gen.v`
+// The DUT module name below is gcd_bench_gen_bridge, not gcd_bench_bridge:
+// build_bench.sh (see its own header) generates gcd with --top gcd_bench_gen
+// specifically, to avoid colliding with hw/gcd_bench.v's own build/hw/gcd_bench/
+// output directory -- a collision that would otherwise silently overwrite
+// that hand-written harness's bitstream. Every OTHER kernel keeps the
+// generator's default top name (see tb_smoke_*_gen.v), so this "_gen" suffix
+// is a gcd-only wrinkle, not a general convention.
+//
+//
+// Run (after `python3 cells/hw/gen_bench.py gcd --top gcd_bench_gen -o build/gen/gcd_bench_gen.v`
 // and generating build/gen/gcd_kernel_bench.v -- see cells/hw/build_bench.sh):
 //   iverilog -g2012 -gspecify -Wall -Wno-timescale -o build/sim/tb_gcd_bench_gen.vvp \
 //     cells/sim/bd_prims_sim.v cells/sim/bd_env.v cells/rtl/*.v \
 //     build/gen/gcd_kernel_bench.v build/gen/gcd_bench_gen.v cells/tb/tb_gcd_bench_gen.v
 //   vvp build/sim/tb_gcd_bench_gen.vvp
 // ---------------------------------------------------------------------------
+
+
+// requires: sim/ps7_stub.v
+// requires: build/gen/gcd_bench_gen.v
+// requires: build/gen/gcd_kernel_bench.v
 
 `include "build/gen/gcd_bench_gen.v"
 
@@ -65,7 +79,7 @@ module tb_gcd_bench_gen;
     wire [31:0] rdata;
     wire        core_i_ack, core_o_req;
 
-    gcd_bench_bridge dut (
+    gcd_bench_gen_bridge dut (
         .aclk (aclk), .aresetn (aresetn),
         .awvalid (awvalid), .awready (awready), .awaddr (awaddr), .awid (awid),
         .wvalid  (wvalid),  .wready  (wready),  .wdata  (wdata),  .wstrb (wstrb),

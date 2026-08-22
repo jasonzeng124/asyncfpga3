@@ -38,7 +38,37 @@ module bdc_gcd (
     input  wire        b_req,     output wire        b_ack,  input wire [31:0] b_data,
     input  wire        start_req, output wire        start_ack,
     output wire        out0_req,  input  wire        out0_ack, output wire [31:0] out0_data,
-    output wire        p_end_req, input  wire        p_end_ack);
+    output wire        p_end_req, input  wire        p_end_ack,
+    // Probe taps, added to the real kernel's port list by 9a5286d (bdc/emit.py
+    // --probe) so that hw/gcd_rig.v could read %138/%136_u/%135__2 off silicon.
+    // The stub's port list has to stay exactly the real kernel's for the same
+    // hierarchical-name reason as `inject` above, so these exist here too --
+    // but there is no bb10, no ucmpi11, no SSA graph inside this stub for them
+    // to tap: the whole point of this bench is to test the RING (hw/gcd_rig.v),
+    // not the kernel, and gcd_rig.v's own instantiation of `uut` below never
+    // wires abs_neg/abs_seen/cmp_bad/etc. out, so nothing here samples these
+    // either.  Tied off rather than wired to a fabricated "always clean"
+    // value, so a future bench that DOES start reading them gets an honest
+    // "never asserted" instead of a value dressed up to look like a real
+    // invariant holding.
+    // n136_u's data port is [0:0], not [31:0]: it taps ucmpi11's own 1-bit
+    // compare result (gcd_rig.v's cmp_z, itself declared as a scalar), and
+    // `bdc/emit.py --probe` sizes a probe's data port from the channel's own
+    // width -- confirmed by regenerating the real probed kernel from
+    // build/frontend/gcd/comp/handshake_transformed.mlir and reading its
+    // port list. Declaring this one [31:0] like the other two compiled and
+    // ran (iverilog truncates on the port connection) but iverilog also
+    // warned on the width mismatch, and it is not what a real build emits.
+    output wire        probe_n138_req,    output wire [31:0] probe_n138_data,
+    output wire        probe_n136_u_req,  output wire [0:0]  probe_n136_u_data,
+    output wire        probe_n135__2_req, output wire [31:0] probe_n135__2_data);
+
+    assign probe_n138_req    = 1'b0;
+    assign probe_n138_data   = 32'h0;
+    assign probe_n136_u_req  = 1'b0;
+    assign probe_n136_u_data = 1'b0;
+    assign probe_n135__2_req = 1'b0;
+    assign probe_n135__2_data = 32'h0;
 
     // Stein's algorithm, transcribed from dynamatic/integration-test/gcd/gcd.c
     // exactly as bdc/simcheck.py's ref_gcd is.  Signed, because in_int_t is.

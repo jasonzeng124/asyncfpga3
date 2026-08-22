@@ -10,7 +10,39 @@
 // a hand-checked oracle.
 // ---------------------------------------------------------------------------
 
+
+// requires: sim/ps7_stub.v
+// requires: build/gen/collatz_bench_gen.v
+// requires: build/gen/collatz_kernel_bench.v
+
 `include "build/gen/collatz_bench_gen.v"
+
+// Heartbeat interval in cycles; -DSMOKE_HB=1000 to watch a slow kernel.
+// How many runs this SMOKE test drives.  It is deliberately NOT 80.
+//
+// What this bench exists to prove is structural: the async-clearing pulse
+// adapter generalises past gcd, a batch reaches completion without stalling,
+// and the histogram accounts for every run.  Eight runs establishes all three.
+//
+// Eighty does not, in any useful sense, establish more of them -- but it costs
+// far more.  iverilog carries this design at roughly 20 simulated cycles per
+// wall SECOND (the generated bench's `@*` over a 64-word histogram array is
+// most of it), and a collatz trajectory is several hundred cycles per run, so
+// eighty runs is around half an hour of wall clock for a gate that is supposed
+// to be cheap.  That is why these five benches had never once been seen to
+// finish.
+//
+// The VOLUME belongs on hardware, where it is nearly free and where the
+// latency distribution is the actual deliverable -- see hw/gen_bench.py and
+// the bench bitstreams.  Raise it here with -DSMOKE_RUNS=80 when you
+// specifically want the long sim; expect it to take that half hour.
+`ifndef SMOKE_RUNS
+  `define SMOKE_RUNS 8
+`endif
+
+`ifndef SMOKE_HB
+  `define SMOKE_HB 100_000
+`endif
 
 module tb_smoke_collatz_gen;
     localparam [31:0] CTRL=32'h00, OP0=32'h08, OP1=32'h0C, NRUNS=32'h14;
@@ -30,7 +62,7 @@ module tb_smoke_collatz_gen;
     wire [31:0] rdata;
     wire core_i_ack, core_o_req;
 
-    collatz_bench_bridge dut (
+    collatz_bench_gen_bridge dut (
         .aclk(aclk), .aresetn(aresetn),
         .awvalid(awvalid), .awready(awready), .awaddr(awaddr), .awid(awid),
         .wvalid(wvalid), .wready(wready), .wdata(wdata), .wstrb(wstrb),
@@ -73,26 +105,35 @@ module tb_smoke_collatz_gen;
         wr(CTRL, 32'h0);
         wr(OP0, 32'h0000_002A);
         wr(OP1, 32'h0000_0007);
-        wr(NRUNS, 32'd80);
+        wr(NRUNS, 32'd`SMOKE_RUNS);
         wr(BCTRL, {28'b0, 2'b00, 1'b0, 1'b1});  // UNIFORM
         bstatus = 0;
+        // Heartbeat.  Without it, a bench that is merely SLOW and a bench that
+        // is genuinely stuck look identical from outside: both print nothing
+        // for as long as you are willing to wait, and the 2,000,000-cycle
+        // watchdog below is itself far enough away that it is not reachable in
+        // a sane wall-clock budget for the longer kernels.  runs_done moving is
+        // the difference between the two, so say it out loud.
         for (t = 0; t < 2_000_000; t = t + 1) begin
             @(posedge aclk);
+            if (t % `SMOKE_HB == 0 && t != 0)
+                $display("%s heartbeat: cycle=%0d st=%0d runs_done=%0d",
+                         "tb_smoke_collatz_gen", t, dut.st, dut.runs_done);
             if (dut.bench_done) begin bstatus = 1; t = 2_000_000; end
         end
         if (!bstatus) begin
             $display("collatz smoke STALL: st=%0d runs_done=%0d", dut.st, dut.runs_done);
-            $display("collatz smoke FAIL"); $finish;
+            $display("tb_smoke_collatz_gen FAIL"); $finish;
         end
         rd(LATMIN, latmin); rd(LATMAX, latmax);
         hsum = 0;
         for (hi = 0; hi < 64; hi = hi + 1) hsum = hsum + dut.hist[hi];
         $display("collatz smoke done: runs_done=%0d lat_min=%0d lat_max=%0d hist_sum=%0d",
                   dut.runs_done, latmin, latmax, hsum);
-        if (dut.runs_done === 32'd80 && hsum === 32'd80 && latmin <= latmax)
-            $display("collatz smoke PASS");
+        if (dut.runs_done === 32'd`SMOKE_RUNS && hsum === 32'd`SMOKE_RUNS && latmin <= latmax)
+            $display("tb_smoke_collatz_gen PASS");
         else
-            $display("collatz smoke FAIL");
+            $display("tb_smoke_collatz_gen FAIL");
         $finish;
     end
 endmodule

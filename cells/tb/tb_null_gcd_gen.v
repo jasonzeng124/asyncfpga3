@@ -18,6 +18,9 @@
 //   vvp build/sim/tb_null_gcd_gen.vvp
 // ---------------------------------------------------------------------------
 
+// requires: sim/ps7_stub.v
+// requires: build/gen/gcd_null_bench_gen.v
+
 `include "build/gen/gcd_null_bench_gen.v"
 
 module tb_null_gcd_gen;
@@ -90,7 +93,7 @@ module tb_null_gcd_gen;
         end
         if (!bstatus) begin
             $display("null STALL: st=%0d runs_done=%0d", dut.st, dut.runs_done);
-            $display("null FAIL"); $finish;
+            $display("tb_null_gcd_gen FAIL"); $finish;
         end
         rd(LATMIN, latmin); rd(LATMAX, latmax);
         hsum = 0;
@@ -98,9 +101,9 @@ module tb_null_gcd_gen;
         $display("null done: runs_done=%0d lat_min=%0d lat_max=%0d hist_sum=%0d",
                   dut.runs_done, latmin, latmax, hsum);
         if (dut.runs_done === 32'd50 && hsum === 32'd50)
-            $display("null PASS");
+            $display("tb_null_gcd_gen PASS");
         else
-            $display("null FAIL");
+            $display("tb_null_gcd_gen FAIL");
         $finish;
     end
 endmodule

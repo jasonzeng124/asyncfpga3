@@ -3,6 +3,15 @@
 // tb_gcd_bench_gen.v: peeks internal FSM/operand state every cycle so we can
 // see exactly where it wedges and on what operand pair, instead of guessing
 // from the outside through AXI polls alone.
+//
+// DUT is gcd_bench_gen_bridge, not gcd_bench_bridge -- see tb_gcd_bench_gen.v
+// for why gcd alone gets the "_gen" suffix from build_bench.sh's --top.
+//
+
+// requires: sim/ps7_stub.v
+// requires: build/gen/gcd_bench_gen.v
+// requires: build/gen/gcd_kernel_bench.v
+
 `include "build/gen/gcd_bench_gen.v"
 
 module tb_gcd_bench_debug;
@@ -22,7 +31,7 @@ module tb_gcd_bench_debug;
     wire [31:0] rdata;
     wire core_i_ack, core_o_req;
 
-    gcd_bench_bridge dut (
+    gcd_bench_gen_bridge dut (
         .aclk(aclk), .aresetn(aresetn),
         .awvalid(awvalid), .awready(awready), .awaddr(awaddr), .awid(awid),
         .wvalid(wvalid), .wready(wready), .wdata(wdata), .wstrb(wstrb),
@@ -69,11 +78,19 @@ module tb_gcd_bench_debug;
             end
             if (dut.bench_done) begin
                 $display("DONE at t=%0t, runs_done=%0d", $time, dut.runs_done);
+                // This rig is a state TRACE, not an oracle -- it does not check
+                // gcd's answers, and the trace above is the point of it.  But it
+                // does distinguish completion from a stall, which is the failure
+                // this bench was written to catch, so it reports that verdict
+                // rather than leaving the gate to guess from a "DONE" line.
+                if (dut.runs_done == 20) $display("tb_gcd_bench_debug PASS");
+                else                     $display("tb_gcd_bench_debug FAIL -- finished with runs_done=%0d, expected 20", dut.runs_done);
                 $finish;
             end
         end
         $display("STALLED: never finished 20 runs. Final: st=%0d runs_done=%0d bench_op0=%h bench_op1=%h",
                   dut.st, dut.runs_done, dut.bench_op0, dut.bench_op1);
+        $display("tb_gcd_bench_debug FAIL -- stalled");
         $finish;
     end
 endmodule
