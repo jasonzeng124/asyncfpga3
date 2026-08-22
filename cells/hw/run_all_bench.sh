@@ -9,6 +9,13 @@ set -u
 cd "$(dirname "$0")/.."   # -> cells/
 
 N_UNIFORM=${1:-3000}
+# BSTATUS reports runs_done[15:0] -- a larger batch wraps the completion
+# count and the completed==n check then fails for a reason that is not the
+# hardware. Refuse it here rather than mis-attributing it to the board.
+if [ "$N_UNIFORM" -gt 65535 ]; then
+    echo "n_uniform=$N_UNIFORM exceeds the 16-bit runs_done field in BSTATUS (max 65535)" >&2
+    exit 2
+fi
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 KERNELS="gcd ipow collatz collatz64 isprime xorshift"
 

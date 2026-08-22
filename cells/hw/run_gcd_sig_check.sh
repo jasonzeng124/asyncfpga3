@@ -15,6 +15,11 @@ cd "$(dirname "$0")/.."   # -> cells/
 
 SEED=${1:-0xACE12345}
 N=${2:-64}
+# see run_all_bench.sh: BSTATUS only carries runs_done[15:0].
+if [ "$N" -gt 65535 ]; then
+    echo "n=$N exceeds the 16-bit runs_done field in BSTATUS (max 65535)" >&2
+    exit 2
+fi
 
 BIT=build/hw/gcd_bench_gen/gcd_bench_gen.bit
 [ -e "$BIT" ] || { echo "missing $BIT -- build it first: hw/build_bench.sh gcd"; exit 2; }
