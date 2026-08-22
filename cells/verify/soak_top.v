@@ -104,13 +104,20 @@ module soak_top (input wire pin_in, output wire pin_out);
         .y_req(j_req),   .y_ack(m_yack), .y_data({p_data_out[3:0], 4'hC}),
         .z_req(m_req),   .z_ack(t_q),    .z_data(m_data));
 
+    // ctl_req and s must be the req/data pair of ONE channel -- bd_mux.v's
+    // own header says so ("s is ordinary channel data, held by the control
+    // channel's own contract").  dec_req/dec_d is that pair: bd_dr2bd pads
+    // req behind d for exactly this reason (rtl/bd_ctl.v's DELAY on `either`).
+    // t_q was here before and is not dec_d's own request -- an unrelated
+    // free-running node paired with a select it has no contract with, which
+    // is what verify/skew.py's rule E was catching.
     wire u_xack, u_yack, u_cack, u_req;  wire [7:0] u_data;
     bd_mux #(.W(8), .DELAY(`BD_SZ_UMUX)) umux (
         .rst(rst),
-        .x_req(m_req),   .x_ack(u_xack), .x_data(m_data),
-        .y_req(dec_req), .y_ack(u_yack), .y_data(p_data_out),
-        .ctl_req(t_q),   .ctl_ack(u_cack), .s(dec_d),
-        .z_req(u_req),   .z_ack(m_xack), .z_data(u_data));
+        .x_req(m_req),     .x_ack(u_xack), .x_data(m_data),
+        .y_req(dec_req),   .y_ack(u_yack), .y_data(p_data_out),
+        .ctl_req(dec_req), .ctl_ack(u_cack), .s(dec_d),
+        .z_req(u_req),     .z_ack(m_xack), .z_data(u_data));
 
     // -- arbitration ---------------------------------------------------------
     wire a1, a2, r0, ag1, ag2;
