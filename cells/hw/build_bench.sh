@@ -148,7 +148,27 @@ stat
 # across binaries, so numbers from the two are not comparable.  An
 # unpatched nextpnr ignores the attribute silently, which is what
 # verify/toolchain.sh above is for.
-BD_RLOC=${BD_RLOC:-v2}
+#
+# The null DUT (see gen_bench.py's is_null branch) is built ONLY from
+# bd_join and bd_delay -- it never instantiates bd_link or bd_pipe, so it
+# structurally has zero '*.ctl.u.u' / cpair controller cells for
+# rloc_stamp.py to find.  That is not the "every storage cell floats" bug
+# the 0-candidate check exists to catch (confirmed on disk 2026-08-21: all
+# 6 null builds hit "RLOC STAMP FAILED / 0 controller(s) matched" -- the
+# real per-kernel builds, which DO instantiate bd_link, all found >0 and
+# passed).  Forcing BD_RLOC=none for --null is not a pinned BEL and not a
+# delay pad: it is skipping a placement pass that has nothing in this
+# netlist to act on.
+if [ "$NULL" = "1" ]; then
+    # Say it rather than doing it silently: a batch that exports BD_RLOC=v2
+    # for every kernel should be able to see why the null build did not
+    # cluster, instead of wondering whether the setting took.
+    [ "${BD_RLOC:-}" = none ] || \
+        echo "build_bench: --null has no bd_link/bd_pipe to cluster; forcing BD_RLOC=none" >&2
+    BD_RLOC=none
+else
+    BD_RLOC=${BD_RLOC:-v2}
+fi
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
         --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
