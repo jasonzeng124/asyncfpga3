@@ -382,6 +382,14 @@ module tb_gcd_bench_gen;
         poll_done(bstat, "sticky control batch");
         rd(ILLST, rv);
         check(rv[3] === 1'b0, "illegal sticky: a HEALTHY batch does not trip it");
+        // The transition detector is the regression gate for the synchroniser.
+        // Every hang this harness produced was the state register landing on a
+        // code its next-state logic cannot emit, because S_WAIT_ACK gated on an
+        // async-SET latch.  Now that the FSM reads synchronised copies, no
+        // illegal transition may occur -- in sim or on silicon.
+        check(rv[7] === 1'b0, "illegal transition: none during a healthy batch");
+        if (rv[7] !== 1'b0)
+            $display("        ill_tr_from=%0d ill_tr_to=%0d", rv[10:8], rv[13:11]);
         wr(BCTRL, 32'h0);
 
         // Now force the pair.  sync_o_req is pinned high first so S_RTZ cannot
