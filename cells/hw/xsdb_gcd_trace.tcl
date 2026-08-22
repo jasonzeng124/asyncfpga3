@@ -41,6 +41,8 @@ set ODATA    [expr {$BASE + 0x10}]
 set NRUNS    [expr {$BASE + 0x14}]
 set BCTRL    [expr {$BASE + 0x20}]
 set BSTATUS  [expr {$BASE + 0x24}]
+set ILLST    [expr {$BASE + 0x58}]
+set ILLCYC   [expr {$BASE + 0x5C}]
 set LASTOP0  [expr {$BASE + 0x30}]
 set LASTOP1  [expr {$BASE + 0x34}]
 set SIG      [expr {$BASE + 0x38}]
@@ -129,6 +131,20 @@ if {$gap_rb != $gap} {
 puts [format "run_gap = %d aclk cycles between runs (%.1f us at 100 MHz)" \
       $gap [expr {$gap / 100.0}]]
 mwr -force $NRUNS $n
+
+# Clear the illegal-pair sticky, and PROVE it went to zero WHILE the clear is
+# still asserted.  A sticky read back only after the clear has been released
+# cannot distinguish "it cleared" from "it was never set and never will be";
+# and one that reads 1 here means bctrl_rst is not reaching it, in which case a
+# 1 after the batch would prove nothing at all.  Refuse to run rather than
+# collect a number that cannot be interpreted.
+mwr -force $BCTRL 0x2
+set ill0 [mrd -value $ILLST]
+if {[expr {($ill0 >> 3) & 1}]} {
+    error "illegal-pair sticky reads 1 (ILLST=0x[format %08x $ill0]) while bctrl_rst is ASSERTED -- the clear is not reaching it, so nothing this run reports about that sticky can be believed"
+}
+puts [format "illegal-pair sticky cleared and verified zero under reset (ILLST=0x%08x)" $ill0]
+
 mwr -force $BCTRL 0x0   ;# BCTRL.start is edge-triggered (start_rise), so drive it
 mwr -force $BCTRL 0x1   ;# low first -- a left-high bit would hang and read as a board fault
 
@@ -277,6 +293,40 @@ puts [format "  FSM: st=%s  bench_set_req=%d bench_o_ack=%d" $stname $bsr $boa]
 puts [format "       RAW wires: i_ack_pl=%d o_req_pl=%d req_core(i_req_pl)=%d" \
       $iackr $oreqr $rcore]
 puts [format "       async latches: i_ack_latched=%d o_req_latched=%d" $iackl $oreql]
+
+# The illegal-pair sticky -- the reason this bitstream exists.  The snapshot
+# above is taken by a host poll and is therefore millions of cycles stale; it
+# can say the FSM is in an impossible state but not which edge put it there.
+# This register latched the pair the cycle it FIRST appeared, with the previous
+# cycle's st and bench_o_ack beside it.
+set iv  [mrd -value $ILLST]
+set icy [mrd -value $ILLCYC]
+set ill_prev_st   [expr {$iv & 0x7}]
+set ill_set       [expr {($iv >> 3) & 1}]
+set ill_prev_oack [expr {($iv >> 4) & 1}]
+set ill_oreqs     [expr {($iv >> 5) & 1}]
+set ill_sync0     [expr {($iv >> 6) & 1}]
+set ill_run       [expr {($iv >> 16) & 0xFFFF}]
+set pname [lindex $ST_NAME $ill_prev_st]
+if {$pname eq ""} { set pname "S_?$ill_prev_st" }
+if {$ill_set} {
+    puts [format "  ILLEGAL PAIR SEEN: st==S_RTZ with bench_o_ack==0, first at run %d, cycle %u" \
+          $ill_run $icy]
+    puts [format "       previous cycle: st=%s bench_o_ack=%d   (o_req_s=%d sync_o_req\[0\]=%d)" \
+          $pname $ill_prev_oack $ill_oreqs $ill_sync0]
+    if {$pname eq "S_RTZ" && $ill_prev_oack} {
+        puts "       => bench_o_ack DROPPED while st stayed in S_RTZ. The two flops'"
+        puts "          separate D/CE cones disagreed on a single edge."
+    } elseif {$pname eq "S_ACK" && !$ill_prev_oack} {
+        puts "       => entered S_RTZ ALREADY broken: S_WAIT_RES's set of bench_o_ack"
+        puts "          never landed."
+    } else {
+        puts [format "       => neither predicted story; raw ILLST=0x%08x" $iv]
+    }
+} else {
+    puts "  illegal-pair sticky: NOT set -- st==S_RTZ with bench_o_ack==0 never"
+    puts "       occurred this run, so whatever parked the FSM did so some other way."
+}
 if {!$done} {
     # The three readings that name the culprit, stated so nobody has to
     # re-derive them from the bit values at 2am.
