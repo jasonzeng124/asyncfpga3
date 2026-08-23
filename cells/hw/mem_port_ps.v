@@ -278,6 +278,31 @@ module mem_port_bridge (
 
   reg [DW-1:0] cap_val;
 
+  // ---- the checker that can actually go red -----------------------------
+  // cap_val above is sampled on posedge aclk once ack_s is high: at least
+  // two aclk edges, >= 20 ns, after bd_mem really raised ack.  DCO's entire
+  // job is to guarantee port_rdata is valid AT the ack edge, and t_co on a
+  // RAMB18E1 is 2454 ps -- eight times smaller than that observation
+  // window.  So the synchronized checker returns the same 0/49152 for
+  // DCO=11 and for DCO=0, and B3's PASS is not evidence that DCO is right.
+  // It is the same shape as the -2587 ps race that passed 0/49152 because
+  // the 2-FF synchronizer was slower than the defect it was watching for.
+  //
+  // edge_cap samples port_rdata on the RAW ack edge, which is what a real
+  // bundled-data consumer does: ack MEANS the data lines are valid, and
+  // sampling later than the edge tests a weaker claim than the protocol
+  // makes.  This checker has a resolution of its own -- the routed
+  // (ack -> CLK) minus (port_rdata -> D) skew at this flop -- so it can
+  // only see defects larger than that.  Quote that skew from the routed
+  // SDF, and do not trust a pass from it until a DCO sweep has been seen
+  // to drive it red.
+  //
+  // ack drives a clock pin off general interconnect.  That is the same
+  // thing bd_mem's own manufactured strobe does at USE_BUFG=0, which B2
+  // already proved routes here.
+  reg [DW-1:0] edge_cap;
+  always @(posedge ack) edge_cap <= port_rdata;
+
   localparam S_IDLE     = 5'd0,
              S_W_ASSERT  = 5'd1,
              S_W_DEASSRT = 5'd2,
@@ -300,6 +325,17 @@ module mem_port_bridge (
   reg [1:0]  fail_pat;
   reg [3:0]  fail_k;
   reg        run_pass;
+
+  // The ack-edge checker keeps its own verdict so the two are never
+  // conflated: the whole point is to compare what a late observer sees
+  // against what a consumer at the edge sees.
+  reg [31:0] edge_mismatch_count;
+  reg        edge_fail_latched;
+  reg [AW-1:0] edge_fail_addr;
+  reg [DW-1:0] edge_fail_got, edge_fail_expect;
+  reg [1:0]  edge_fail_pat;
+  reg [3:0]  edge_fail_k;
+  reg        edge_pass;
 
   reg [31:0] spd_iter;
   reg [31:0] spd_cycles;
@@ -327,6 +363,9 @@ module mem_port_bridge (
           mismatch_count <= 32'd0;
           fail_latched   <= 1'b0;
           run_pass       <= 1'b1;
+          edge_mismatch_count <= 32'd0;
+          edge_fail_latched   <= 1'b0;
+          edge_pass           <= 1'b1;
           // First access, pat=0 k=0: cur_val is 16'h1 independent of addr,
           // so it is safe to race wval/we/req with the addr reset here --
           // see the addr_p1/cur_val_next note above.
@@ -386,6 +425,21 @@ module mem_port_bridge (
               fail_expect  <= cur_val;
               fail_pat     <= pat;
               fail_k       <= k;
+            end
+          end
+          // edge_cap has been static since the ack edge, and S_R_DEASSRT
+          // already waited for the synchronized ack to fall, so reading it
+          // here is not itself a clock-domain crossing.
+          if (edge_cap !== cur_val) begin
+            edge_mismatch_count <= edge_mismatch_count + 1'b1;
+            edge_pass <= 1'b0;
+            if (!edge_fail_latched) begin
+              edge_fail_latched <= 1'b1;
+              edge_fail_addr    <= addr;
+              edge_fail_got     <= edge_cap;
+              edge_fail_expect  <= cur_val;
+              edge_fail_pat     <= pat;
+              edge_fail_k       <= k;
             end
           end
           st <= S_R_ADV;
@@ -448,7 +502,8 @@ module mem_port_bridge (
   always @(*) begin
     case (axi_araddr)
       5'h0: rdata_r = {31'b0, ctrl_rst};
-      5'h1: rdata_r = {28'b0, port_done && run_pass, port_done, busy, ack_s};
+      5'h1: rdata_r = {27'b0, port_done && edge_pass,
+                              port_done && run_pass, port_done, busy, ack_s};
       5'h2: rdata_r = mismatch_count;
       5'h3: rdata_r = {22'b0, fail_addr};
       5'h4: rdata_r = {16'b0, fail_got};
@@ -457,6 +512,11 @@ module mem_port_bridge (
       5'h7: rdata_r = {6'b0, addr, 3'b0, k, pat};
       5'h8: rdata_r = spd_cycles;
       5'h9: rdata_r = SPD_N;
+      5'ha: rdata_r = edge_mismatch_count;
+      5'hb: rdata_r = {22'b0, edge_fail_addr};
+      5'hc: rdata_r = {16'b0, edge_fail_got};
+      5'hd: rdata_r = {16'b0, edge_fail_expect};
+      5'he: rdata_r = {23'b0, edge_fail_k, edge_fail_pat};
       default: rdata_r = 32'b0;
     endcase
   end

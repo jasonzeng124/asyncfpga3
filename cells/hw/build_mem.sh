@@ -111,11 +111,24 @@ tail -n +"$last" "$OUT/synth.log" | grep -E "^\s+[0-9]+\s+(LUT|FD|BUFG|RAMB|IBUF
 # to compare against a pre-2026-08-21-shaped route if that is ever needed.
 BD_RLOC=${BD_RLOC:-v2}
 if [ "$BD_RLOC" != none ]; then
-    python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
-            echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
-    mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
-    grep -E "group|link" "$OUT/rloc.log" | tail -3
+    if python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
+            --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1; then
+        mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+        grep -E "group|link" "$OUT/rloc.log" | tail -3
+    elif grep -q "0 controller(s) matched" "$OUT/rloc.log" && \
+         ! grep -qE '"(bd_link|bd_mux|bd_pipe)"' "$OUT/$TOP.json"; then
+        # rloc_stamp.py exits nonzero on zero matches so a REAL design cannot
+        # quietly lose its relative placement -- that guard is right and stays.
+        # These two tops genuinely contain no bd_link/bd_mux/bd_pipe (bd_mem is
+        # bd_delay LUT1 chains plus one RAMB18E1), so zero matches is the
+        # correct answer here, not a silent loss.  Accept it ONLY when the
+        # netlist confirms there was nothing to match -- any other rloc failure
+        # still stops the build.
+        echo "rloc_stamp: 0 matches, and the netlist has no bd_link/bd_mux/bd_pipe"
+        echo "            to match -- expected no-op for $TOP, continuing."
+    else
+        echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1
+    fi
 fi
 
 echo

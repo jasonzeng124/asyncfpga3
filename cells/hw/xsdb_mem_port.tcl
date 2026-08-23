@@ -42,6 +42,14 @@ set FAIL_TAG    [expr {$BASE + 0x18}]
 set PROGRESS    [expr {$BASE + 0x1C}]
 set SPD_CYCLES  [expr {$BASE + 0x20}]
 set SPD_NREG    [expr {$BASE + 0x24}]
+# The ack-edge checker.  Same three patterns, same expected values, but
+# port_rdata is sampled on the RAW ack edge instead of two aclk edges later,
+# so it is the only one of the two that DCO can make fail.
+set E_RESULT    [expr {$BASE + 0x28}]
+set E_FAIL_ADDR [expr {$BASE + 0x2C}]
+set E_FAIL_GOT  [expr {$BASE + 0x30}]
+set E_FAIL_EXP  [expr {$BASE + 0x34}]
+set E_FAIL_TAG  [expr {$BASE + 0x38}]
 
 set SLCR_UNLOCK     0xF8000008
 set SLCR_LOCK       0xF8000004
@@ -123,11 +131,12 @@ if {[catch {poll_status 0x4 0x4 "STATUS.done"} s]} {
 }
 
 set pass_bit  [expr {($s >> 3) & 0x1}]
+set epass_bit [expr {($s >> 4) & 0x1}]
 set mismatches [mrd -value $RESULT]
 set spd_cycles [mrd -value $SPD_CYCLES]
 set spd_n      [mrd -value $SPD_NREG]
 
-puts "STATUS: [format 0x%08x $s]  pass=$pass_bit  mismatches=$mismatches"
+puts "STATUS: [format 0x%08x $s]  sync_pass=$pass_bit  edge_pass=$epass_bit"
 puts "SPD_CYCLES=$spd_cycles  SPD_N=$spd_n"
 
 if {$spd_n > 0} {
@@ -136,18 +145,39 @@ if {$spd_n > 0} {
           $ns_per_access $spd_cycles $spd_n]
 }
 
-if {$pass_bit == 1 && $mismatches == 0} {
-    puts "=== $label RESULT: PASS -- bd_mem correct over 1024 addr x 16 bits x 3 patterns ==="
-    set rc 0
-} else {
-    set fa   [mrd -value $FAIL_ADDR]
-    set fg   [mrd -value $FAIL_GOT]
-    set fe   [mrd -value $FAIL_EXPECT]
-    set ft   [mrd -value $FAIL_TAG]
+# Two verdicts, never folded into one.  The synchronized checker samples
+# port_rdata >= 20 ns after ack; the edge checker samples it AT the ack edge,
+# which is the claim DCO is actually responsible for.  Reporting only the
+# first is how a DCO that is far too short passes: t_co is 2454 ps and the
+# observer is eight times slower than that.
+proc report_checker {name mism addr_r got_r exp_r tag_r} {
+    if {$mism == 0} {
+        puts "  $name: CLEAN over 1024 addr x 16 bits x 3 patterns"
+        return 0
+    }
+    set fa   [mrd -value $addr_r]
+    set fg   [mrd -value $got_r]
+    set fe   [mrd -value $exp_r]
+    set ft   [mrd -value $tag_r]
     set fpat [expr {$ft & 0x3}]
     set fk   [expr {($ft >> 4) & 0x1f}]
-    puts "=== $label RESULT: FAIL -- $mismatches mismatch(es) ==="
-    puts "first mismatch: pattern=$fpat (0=walk1 1=walk0 2=addr=data) bit=$fk addr=[format 0x%03x $fa] got=[format 0x%04x $fg] expect=[format 0x%04x $fe]"
-    set rc 1
+    puts "  $name: $mism mismatch(es); first at pattern=$fpat (0=walk1 1=walk0 2=addr=data) bit=$fk addr=[format 0x%03x $fa] got=[format 0x%04x $fg] expect=[format 0x%04x $fe]"
+    return 1
 }
-exit $rc
+
+set e_mismatches [mrd -value $E_RESULT]
+set sync_bad [report_checker "sync (aclk, >=20 ns late)" $mismatches \
+                  $FAIL_ADDR $FAIL_GOT $FAIL_EXPECT $FAIL_TAG]
+set edge_bad [report_checker "edge (raw ack edge)      " $e_mismatches \
+                  $E_FAIL_ADDR $E_FAIL_GOT $E_FAIL_EXP $E_FAIL_TAG]
+
+# One parseable line for the DCO sweep to collect.
+proc envdef {name} { if {[info exists ::env($name)]} { return $::env($name) } ; return "?" }
+puts "MEMPORT label=$label dsetup=[envdef BD_MEM_DSETUP] dco=[envdef BD_MEM_DCO] bufg=[envdef BD_MEM_USE_BUFG] sync_mism=$mismatches edge_mism=$e_mismatches"
+
+if {$sync_bad == 0 && $edge_bad == 0 && $pass_bit == 1 && $epass_bit == 1} {
+    puts "=== $label RESULT: PASS -- both checkers clean ==="
+    exit 0
+}
+puts "=== $label RESULT: FAIL -- see the per-checker lines above ==="
+exit 1
