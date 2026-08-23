@@ -77,8 +77,19 @@ MAX_WORDS = 2  # every kernel in kernels/ needs at most this many 32-bit words
 # all-zero result to 1.  'and_mask' ANDs the low 32 bits of that arg's first
 # word with the given constant (used for xorshift's rounds).
 DOMAIN_RESTRICTIONS = {
-    "collatz":   {"n": {"kind": "positive_nonzero"}},
-    "collatz64": {"n": {"kind": "positive_nonzero"}},
+    # The mask is per-kernel because the binding constraint is not the START
+    # value, it is the trajectory PEAK -- Collatz climbs far above its seed
+    # before descending, and it is the peak that has to stay inside the C
+    # type.  Both numbers below are computed, not guessed (see the note in
+    # apply_domain_masks):
+    #   collatz   (int32): every n <= 0xFFFF peaks at most 593,279,152
+    #                      (at n=60975), inside INT32_MAX.  The next mask up,
+    #                      0x3FFFF, peaks at 1.7e10 and does not fit.
+    #   collatz64 (int64): masking the HIGH word to zero leaves n <= 2**32-1,
+    #                      whose sampled peak is 3.06e14 -- 30000x inside
+    #                      INT64_MAX.
+    "collatz":   {"n": {"kind": "positive_nonzero", "mask": "32'h0000FFFF"}},
+    "collatz64": {"n": {"kind": "positive_nonzero", "mask": "32'h00000000"}},
     "xorshift":  {"rounds": {"kind": "and_mask", "value": "32'h00000FFF"}},
     # gcd: found by simulation, not guessed -- see gen_bench.py's module
     # header "GCD'S OWN OVERFLOW HANG" note.  kernels/../gcd.c's main loop
@@ -1093,12 +1104,41 @@ def apply_domain_masks(kernel, data_args, raw0, raw1):
         rule = restr.get(a.name)
         if rule is not None:
             if rule["kind"] == "positive_nonzero":
-                masked[hi] = f"(({raw[hi]}) & 32'h7FFFFFFF)"
+                # 0x1FFFFFFF, not 0x7FFFFFFF.  Clearing the sign bit alone is
+                # NOT enough for collatz: the step is 3n+1 in signed int, which
+                # overflows for any n > (INT_MAX-1)/3 = 715827882, and the
+                # wrapped trajectory can enter a cycle that never reaches 1 --
+                # so the kernel hangs, correctly, waiting for a result the
+                # algorithm was never going to produce.  Same shape as gcd's
+                # note below, and measured the same way rather than guessed:
+                # on the board, collatz(2863311530 & 0x7FFFFFFF) = 715827882
+                # terminates in 248 cycles, where 3n+1 is exactly INT_MAX, and
+                # collatz(2882400001 & 0x7FFFFFFF) = 734916353 hangs, where it
+                # is INT_MAX+57125413.  The boundary is exactly where the
+                # arithmetic says it is.
+                #
+                # This is what hung the UNIFORM sweep at 0/3000 (collatz) and
+                # 4/3000 (collatz64) while FIXED mode ran 200/200 -- FIXED
+                # drives 48, which is nowhere near the bound.
+                #
+                # ...and bounding the START value is not sufficient either,
+                # which is the second thing the board taught here.  Masking to
+                # 0x1FFFFFFF (every start below (INT_MAX-1)/3) still hung, just
+                # later: 9/3000 instead of 0/3000.  The overflow condition
+                # applies to EVERY value on the trajectory, and Collatz climbs
+                # well above its seed before it descends -- n=60975 peaks at
+                # 593,279,152, nearly four orders above itself.
+                #
+                # So the mask is per-kernel and computed from the peak, not the
+                # seed: exhaustively for int32 (all n <= 0xFFFF), by sampling
+                # for int64.  See DOMAIN_RESTRICTIONS for both numbers.
+                m = rule.get("mask", "32'h7FFFFFFF")
+                masked[hi] = f"(({raw[hi]}) & {m})"
                 if lo == hi:
-                    masked[lo] = f"((({raw[lo]}) & 32'h7FFFFFFF) == 32'h0 ? 32'h1 : (({raw[lo]}) & 32'h7FFFFFFF))"
+                    masked[lo] = f"((({raw[lo]}) & {m}) == 32'h0 ? 32'h1 : (({raw[lo]}) & {m}))"
                 else:
                     zero_check = " && ".join(f"(({raw[w]}) == 32'h0)" for w in range(lo, hi))
-                    masked[lo] = (f"(({zero_check} && (({raw[hi]}) & 32'h7FFFFFFF) == 32'h0) "
+                    masked[lo] = (f"(({zero_check} && (({raw[hi]}) & {m}) == 32'h0) "
                                   f"? 32'h1 : ({raw[lo]}))")
             elif rule["kind"] == "and_mask":
                 masked[lo] = f"(({raw[lo]}) & {rule['value']})"
