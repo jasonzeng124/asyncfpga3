@@ -104,6 +104,13 @@ mult_ps)
     # bridge.  See hw/mult_ps.v.
     SRCS="rtl/*.v hw/$TOP.v"
     ;;
+ro_link_ps)
+    # Five bd_link rings of different lengths, one token each, counted against
+    # FCLK0.  Needs the whole library, not the three-file primitive list the
+    # default case gives: this is the first rig here built out of bd_link
+    # itself rather than out of bd_latch/bd_ce directly.  See hw/ro_link_ps.v.
+    SRCS="rtl/*.v hw/$TOP.v"
+    ;;
 ipow_ps)
     # ipow is the kernel with the variable x variable multiplies, so it is
     # the one that actually infers DSP48E1 -- and therefore the one whose
@@ -369,8 +376,20 @@ else
     [ -n "${NEXTPNR_SEED:-}" ] && SEED="--seed ${NEXTPNR_SEED}"
 fi
 
+# --freq, when asked for.  nextpnr defaults its target to 12 MHz, so an
+# unqualified "PASS" says nothing -- it is a pass against a target nothing
+# here runs at.  Most designs in this directory do not care, because the only
+# clocked logic is a readback shift register.  ro_link_ps does: its lap
+# counters are clocked BY THE RINGS, at whatever rate a 3-stage ring turns,
+# and a counter that does not close undercounts silently.  Setting a target
+# makes the router work for the margin instead of stopping at whatever it
+# happened to get.  --timing-allow-fail keeps the build going so the report
+# can be read; the verdict lives in the log, not in the exit code.
+FREQOPT=""
+[ -n "${NEXTPNR_FREQ:-}" ] && FREQOPT="--freq ${NEXTPNR_FREQ} --timing-allow-fail"
+
 # shellcheck disable=SC2086
-"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED \
+"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED $FREQOPT \
            --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
