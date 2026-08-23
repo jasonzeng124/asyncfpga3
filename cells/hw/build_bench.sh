@@ -117,7 +117,26 @@ else
     python3 hw/gen_bench.py "$KERNEL" --top "$TOP" -o "build/gen/${TOP}.v"
 fi
 
+# The per-route matched-delay sizes, when a previous build of THIS top has
+# produced them.  verify/tighten.py --emit writes one `define BD_SZ_<path>
+# per delay-bearing cell, and build/gen/<top>.v declares each of those under
+# `ifndef with the kernel's own default -- so this file, read first, wins, and
+# its absence leaves the circuit exactly as it was.
+#
+# BD_SIZES=none forces the unsized build, which is what you want when you are
+# producing the SDF that the next set of sizes will be measured from: sizes
+# belong to one route, and a route built from sizes is not the route they were
+# measured on.  hw/tighten_loop.sh drives that alternation.
+SIZES=build/gen/${TOP}_sizes.vh
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
+if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
+    SRCS="$SIZES $SRCS"
+    echo "build_bench.sh: applying $(grep -c '^`define' "$SIZES") measured " \
+         "delay size(s) from $SIZES" >&2
+else
+    echo "build_bench.sh: no measured sizes applied -- every chain at " \
+         "bdc/emit.py's unmeasured estimate" >&2
+fi
 
 TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
@@ -156,6 +175,22 @@ done
 # (timestamp, sha256, verdict) to build/toolchain.log. MISSING here means
 # STOP, per the harness spec -- do not work around it.
 "$(dirname "$0")/../verify/toolchain.sh" "$NEXTPNR"
+
+# And write the answer down beside the SDF, exactly as build_hw.sh does.
+# This file was missing here, and it is not cosmetic: verify/tighten.py prints
+# "toolchain UNSTAMPED" without it, and everything hw/tighten_loop.sh does
+# depends on the sizes it emits belonging to a KNOWN binary.  Placement is
+# deterministic per nextpnr build and not stable across builds, so a size
+# measured under one binary and applied under another is not a measurement.
+# Memory records fasm.cc being reverted underneath a session mid-run; that is
+# the failure this stamp catches.  First line names nextpnr because tighten.py
+# quotes the first line matching that word.
+mkdir -p "$OUT"
+{
+    printf 'nextpnr %s  %s\n' \
+        "$(sha256sum "$NEXTPNR" | cut -c1-16)" "$NEXTPNR"
+    "$(dirname "$0")/../verify/toolchain.sh" "$NEXTPNR" 2>&1
+} > "$OUT/toolchain.txt" || true
 
 cat > "$OUT/$TOP.xdc" <<EOF
 set_property PACKAGE_PIN W14 [get_ports led_red]
@@ -373,6 +408,55 @@ PYTHONPATH="$PRJXRAY_SRC:$TC/openxc7/lib/python${PYTHONPATH:+:$PYTHONPATH}" \
 [ -s "$OUT/$TOP.bit" ] || { echo "empty bitstream"; exit 1; }
 echo "$(stat -c%s "$OUT/$TOP.bit") bytes -> $OUT/$TOP.bit"
 echo "routed SDF -> $OUT/$TOP.sdf"
+
+# If measured sizes were applied, PROVE they hold on the route this build
+# actually got, before anyone can program the result.
+#
+# This gate exists because a sizes file is NOT portable and measurement says so
+# loudly.  Same 12 sizes, same design, five nextpnr seeds:
+#
+#   default  clean     seed 11  clean     seed 22  clean
+#   seed 33  ucmpi0 short by 229 ps       seed 44  (rule E did not converge)
+#
+# and after raising ucmpi0, seed 33 instead reported uaddi0 short by 557 ps.
+# Every seed finds a DIFFERENT cell, because a matched delay's own per-element
+# cost depends on how its chain got placed -- see cells/hw/tighten_loop.sh.
+# So the sizes belong to one route, exactly as verify/tighten.py's emitted
+# header says, and a stale or borrowed sizes file will build happily and be
+# short somewhere.  Short is the direction that is silent PVT corruption
+# rather than a simulation failure, so this must not be a warning.
+#
+# Rule A only.  tighten.py's exit code also carries rule D, the one-sided
+# select screen that fires on every bd_steer before anything is tightened.
+# BD_SIZES_GATE=0 is for hw/tighten_loop.sh ONLY.  That loop deliberately
+# builds sizes it expects to fail, because tighten.py prices the correction
+# off the failing route (verify/tighten.py:1020) and the next iteration
+# needs that number.  The loop runs this same rule A check itself and only
+# keeps a build that passes, so nothing escapes ungated -- but if this gate
+# fired there it would turn the loop's feedback signal into a build error
+# and the loop could never converge.  Do not set it anywhere else.
+if [ "${BD_SIZES:-auto}" != "none" ] && [ "${BD_SIZES_GATE:-1}" = "1" ] \
+   && [ -e "$SIZES" ]; then
+    echo
+    echo "== measured sizes: re-checking rule A on the route this build got =="
+    python3 "$(dirname "$0")/../verify/tighten.py" "$OUT/$TOP.sdf" \
+        > "$OUT/tighten_gate.log" 2>&1 || true
+    NVIOL=$(awk '/^A\. /{a=1;next} /^B\. /{a=0} a' "$OUT/tighten_gate.log" \
+            | grep -c "VIOLATION" || true)
+    if [ "${NVIOL:-0}" -ne 0 ]; then
+        echo "SIZES REJECTED: $NVIOL cell(s) whose request does not trail their" >&2
+        awk '/^A\. /{a=1;next} /^B\. /{a=0} a' "$OUT/tighten_gate.log" \
+            | grep "VIOLATION" | head -5 | sed 's/^/  /' >&2
+        echo "  own datapath ON THIS ROUTE.  $SIZES was measured somewhere else." >&2
+        echo "  Re-derive it here:  hw/tighten_loop.sh ${TOP%_bench_gen}" >&2
+        echo "  or build without it: BD_SIZES=none $0 ${TOP%_bench_gen}" >&2
+        echo "  No bitstream written." >&2
+        rm -f "$OUT/$TOP.bit"
+        exit 1
+    fi
+    echo "rule A holds on this route for all $(grep -c '^`define' "$SIZES") measured size(s)"
+fi
+
 echo "BD_DSP=${BD_DSP:-1}"
 echo "BD_RLOC=${BD_RLOC:-v2}"
 echo

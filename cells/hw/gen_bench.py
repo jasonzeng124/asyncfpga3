@@ -64,6 +64,7 @@ Usage:
 """
 import argparse
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bdc"))
@@ -112,6 +113,36 @@ DOMAIN_RESTRICTIONS = {
     "gcd": {"a": {"kind": "nonnegative"}, "b": {"kind": "nonnegative"}},
 }
 
+
+
+RE_KERNEL_PARAM = re.compile(r"parameter\s+DELAY_(\w+)\s*=\s*(\d+)")
+
+
+def kernel_delay_params(dut_module):
+    """[(instance, default links)] read off the emitted kernel's own header.
+
+    The names are PARSED OUT OF THE KERNEL, never written down here.  A second
+    hardcoded list of instance names is exactly the failure bdc/emit.py's header
+    warns about twice: get the key wrong and the tightening loop reports success
+    having changed nothing any source file reads, and every other gate still
+    passes.
+
+    Returns [] when the kernel declares no delay parameters.  When the kernel
+    FILE is missing it says so on stderr rather than returning [] quietly --
+    silently emitting a bench with no overrides is the same failure one level up.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    stem = dut_module[4:] if dut_module.startswith("bdc_") else dut_module
+    for c in (os.path.join(here, "..", "build", "gen", stem + "_kernel_bench.v"),
+              os.path.join("build", "gen", stem + "_kernel_bench.v")):
+        if os.path.exists(c):
+            m = re.search(r"module\s+" + re.escape(dut_module) + r"\s*#\((.*?)\)\s*\(",
+                          open(c).read(400000), re.S)
+            return [(i, int(d)) for i, d in RE_KERNEL_PARAM.findall(m.group(1))] if m else []
+    print("gen_bench.py: WARNING -- no kernel file for %s under build/gen/, so the "
+          "bench gets no per-instance delay overrides and verify/tighten.py's "
+          "proposals will have nothing to attach to" % dut_module, file=sys.stderr)
+    return []
 
 def words_for(width):
     assert width % 32 == 0, f"arg width {width} is not a multiple of 32 -- unsupported"
@@ -1043,7 +1074,36 @@ def emit(kernel, is_null, top_name):
     P("")
     P("    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));")
     P("")
-    P(f"    {dut_module} udut (")
+    # ---- per-instance matched-delay overrides ------------------------------
+    # The kernel takes one `parameter DELAY_<INST>` per delay-bearing cell and,
+    # until now, this bench instantiated it with none of them -- so every chain
+    # was built at bdc/emit.py's UNMEASURED estimate and verify/tighten.py had
+    # nothing to attach its per-route proposals to.  Measured cost of that gap
+    # on xorshift: chains built 122.2 ns where the route needs 76.0, and with
+    # region fusion on, 122.7 ns where the route needs 30.2.  Fusion cut the
+    # requirement by 2.5x and moved the board by 3%, because nothing shortened
+    # the line it had just made shortenable.
+    #
+    # Spelling matches verify/tighten.py's macro(): full instance path, non-
+    # alphanumerics to underscores, uppercased -- so udut.uxori0 inside bridge_i
+    # is BD_SZ_BRIDGE_I_UDUT_UXORI0, which is the name tighten.py --emit writes.
+    # Defaults are the kernel's own, so a bench built without a sizes file is
+    # byte-for-byte the circuit it was before.
+    dut_delays = kernel_delay_params(dut_module)
+    for inst, dflt in dut_delays:
+        m = "BD_SZ_BRIDGE_I_UDUT_" + inst.upper()
+        P("`ifndef " + m)
+        P(" `define " + m + " " + str(dflt))
+        P("`endif")
+    if dut_delays:
+        P("")
+        P(f"    {dut_module} #(")
+        P(",\n".join(
+            "        .DELAY_" + i.upper() + "(`BD_SZ_BRIDGE_I_UDUT_" + i.upper() + ")"
+            for i, _ in dut_delays))
+        P("    ) udut (")
+    else:
+        P(f"    {dut_module} udut (")
     P(f"        .rst       (rst_pl),")
     # Word wiring: for our 6 kernels nargs<=2 and each arg maps to a
     # contiguous, word-aligned slice of {op1_to_core,op0_to_core}.
