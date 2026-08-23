@@ -307,6 +307,29 @@ set ill_prev_oack [expr {($iv >> 4) & 1}]
 set ill_oreqs     [expr {($iv >> 5) & 1}]
 set ill_sync0     [expr {($iv >> 6) & 1}]
 set ill_run       [expr {($iv >> 16) & 0xFFFF}]
+set ill_tr_set    [expr {($iv >> 7) & 1}]
+set ill_tr_from   [expr {($iv >> 8) & 0x7}]
+set ill_tr_to     [expr {($iv >> 11) & 0x7}]
+
+# The illegal-TRANSITION detector is the regression gate for the synchroniser.
+# The hang was the 3-bit state register sampling an async-SET latch inside its
+# setup/hold window and landing on a code its next-state logic cannot emit.
+# The pair sticky above only ever noticed the corrupted code that happened to
+# land on S_RTZ; this one watches the transition itself, so it catches every
+# invalid landing.  After the synchroniser it must NEVER fire.
+if {$ill_tr_set} {
+    set fname [lindex $ST_NAME $ill_tr_from]
+    set tname [lindex $ST_NAME $ill_tr_to]
+    if {$fname eq ""} { set fname "S_?$ill_tr_from" }
+    if {$tname eq ""} { set tname "S_?$ill_tr_to" }
+    puts [format "  ILLEGAL TRANSITION: %s (0b%03b) -> %s (0b%03b) -- a code the" \
+          $fname $ill_tr_from $tname $ill_tr_to]
+    puts "       next-state logic cannot emit. The state register sampled an"
+    puts "       unsynchronised input inside its setup/hold window."
+} else {
+    puts "  illegal-transition detector: CLEAR -- every state change this run was"
+    puts "       one the next-state logic can actually emit."
+}
 set pname [lindex $ST_NAME $ill_prev_st]
 if {$pname eq ""} { set pname "S_?$ill_prev_st" }
 if {$ill_set} {
