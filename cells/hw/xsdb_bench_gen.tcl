@@ -354,18 +354,7 @@ puts "FIXED-mode repeatability check PASS (no mismatch across [dict get $r compl
 # =========================================================================
 puts ""
 puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware ==="
-# Slow the batch down so the host can actually interleave with it.  At the
-# default 15-cycle gap this whole batch is over in ~226 us -- long before the
-# first BSTATUS read returns -- so OP1 was being rewritten AFTER the batch had
-# finished and nothing ever diverged.  The test then blamed the mismatch path
-# for a race in its own driver.  20000 cycles is 200 us per run, ~40 ms for the
-# batch, which comfortably outlasts a JTAG round trip.
-mwr -force $::RUNGAP 20000
-set gap_rb [mrd -value $::RUNGAP]
-if {$gap_rb != 20000} {
-    error "corruption test: run_gap readback $gap_rb != 20000 -- this bitstream predates the run_gap register, so the batch cannot be slowed and this exercise would race"
-}
-# ...and corrupt something the kernel actually READS.  This used to hardcode
+# Corrupt something the kernel actually READS.  This used to hardcode
 # "rewrite OP1 to 17" and then blame the mismatch path when nothing diverged.
 # For half these kernels that corruption is invisible by construction:
 # collatz, collatz64 and isprime report nargs=1 in META, so OP1 is not an
@@ -395,36 +384,93 @@ if {$cand_op0 eq ""} {
     error "corruption test: no operand pair tried produces an output different from ($BASE_OP0,$BASE_OP1)->$base_out for this kernel, so no mid-batch corruption could ever be detected. Add a pair this kernel is actually sensitive to rather than asserting on one it is not."
 }
 
-mwr -force $::OP0 $BASE_OP0
-mwr -force $::OP1 $BASE_OP1
-mwr -force $::NRUNS 200
-mwr -force $::BCTRL 0x0                         ;# clean 0->1 edge (see run_batch)
-mwr -force $::BCTRL [expr {0x1 | (1 << 2)}]     ;# FIXED, start
-set bs 0
-for {set i 0} {$i < 400} {incr i} {
-    set bs [mrd -value $::BSTATUS]
-    if {(($bs >> 16) & 0xFFFF) >= 1} { break }
-    after 5
+# The exercise is a RACE between a JTAG write and an on-chip batch, and the
+# version before this one reported LOSING that race as a hardware failure.
+# xorshift retires a FIXED (48,18) run in ~99 cycles, so 200 runs can be over
+# before the first BSTATUS read comes back and the "corrupting" write then
+# lands on an idle harness.  Probed on the same bitstream with a longer batch:
+# the write landed at run ~85 of 200 and MISMATCH_STICKY set immediately.  The
+# mismatch path was never broken; the driver was.
+#
+# So the exercise now records `completed` at the instant the corrupting write
+# lands and treats "the batch had already finished" as INCONCLUSIVE -- escalate
+# to a longer batch -- rather than as evidence about the mismatch path.  Only a
+# write that demonstrably landed mid-batch is allowed to fail the test.
+proc corruption_try {gap nruns base0 base1 c0 c1} {
+    mwr -force $::RUNGAP $gap
+    set gap_rb [mrd -value $::RUNGAP]
+    if {$gap_rb != $gap} {
+        error "corruption test: run_gap readback $gap_rb != $gap -- this bitstream predates the run_gap register, so the batch cannot be slowed and this exercise would race"
+    }
+    mwr -force $::OP0 $base0
+    mwr -force $::OP1 $base1
+    mwr -force $::NRUNS $nruns
+    mwr -force $::BCTRL 0x0                         ;# clean 0->1 edge (see run_batch)
+    mwr -force $::BCTRL [expr {0x1 | (1 << 2)}]     ;# FIXED, start
+    set bs 0
+    for {set i 0} {$i < 400} {incr i} {
+        set bs [mrd -value $::BSTATUS]
+        if {($bs & 0x2) || ((($bs >> 16) & 0xFFFF) >= 1)} { break }
+        after 5
+    }
+    if {!($bs & 0x2) && ((($bs >> 16) & 0xFFFF) < 1)} {
+        mwr -force $::BCTRL 0x0
+        error "corruption test: run 0 never retired (BSTATUS=[format 0x%08x $bs])"
+    }
+    # the deliberate corruption -- FIXED mode resamples both operands every run
+    mwr -force $::OP0 $c0
+    mwr -force $::OP1 $c1
+    set at_write [mrd -value $::BSTATUS]
+    set landed_mid [expr {($at_write & 0x2) ? 0 : 1}]
+    set done 0
+    set poll_max [expr {400 + $nruns}]
+    for {set i 0} {$i < $poll_max} {incr i} {
+        set bs [mrd -value $::BSTATUS]
+        if {$bs & 0x2} { set done 1; break }
+        after 10
+    }
+    if {!$done} {
+        mwr -force $::BCTRL 0x0
+        error "corruption test: batch never finished (BSTATUS=[format 0x%08x $bs])"
+    }
+    set r [dict create \
+        landed_mid $landed_mid \
+        at_completed [expr {($at_write >> 16) & 0xFFFF}] \
+        mism_st  [mrd -value $::MISM_ST] \
+        mism_idx [mrd -value $::MISM_IDX] \
+        mism_val [mrd -value $::MISM_VAL] \
+        mism_ref [mrd -value $::MISM_REF]]
+    mwr -force $::BCTRL 0x0
+    return $r
 }
-if {(($bs >> 16) & 0xFFFF) < 1} { error "corruption test: run 0 never retired (BSTATUS=[format 0x%08x $bs])" }
-# the deliberate corruption -- FIXED mode resamples both operands every run
-mwr -force $::OP0 $cand_op0
-mwr -force $::OP1 $cand_op1
-set done 0
-for {set i 0} {$i < 400} {incr i} {
-    set bs [mrd -value $::BSTATUS]
-    if {$bs & 0x2} { set done 1; break }
-    after 10
+
+# 2000 runs at a 20000-cycle gap is ~0.8 s of batch at 50 MHz -- three orders
+# of magnitude more than a JTAG round trip.  The ladder exists for the case
+# where the host is much slower than that, not as a retry-until-green loop:
+# a conclusive miss (write landed mid-batch, no mismatch) fails on the spot.
+set res ""
+foreach step {{20000 2000} {50000 4000} {100000 8000}} {
+    set gap   [lindex $step 0]
+    set nruns [lindex $step 1]
+    set res [corruption_try $gap $nruns $BASE_OP0 $BASE_OP1 $cand_op0 $cand_op1]
+    puts [format "  attempt gap=%d n=%d: write landed at run %d of %d (mid-batch=%d) -> MISM_ST=%d MISM_IDX=%d MISM_VAL=%d MISM_REF=%d" \
+        $gap $nruns [dict get $res at_completed] $nruns [dict get $res landed_mid] \
+        [dict get $res mism_st] [dict get $res mism_idx] [dict get $res mism_val] [dict get $res mism_ref]]
+    if {[dict get $res mism_st] & 1} { break }
+    if {[dict get $res landed_mid]} { break }
+    puts "  INCONCLUSIVE: the batch finished before the corrupting write landed, so nothing diverged and this says nothing about the mismatch path. Retrying with a longer batch."
 }
-if {!$done} { error "corruption test: batch never finished (BSTATUS=[format 0x%08x $bs])" }
-set mism_st  [mrd -value $::MISM_ST]
-set mism_idx [mrd -value $::MISM_IDX]
-set mism_val [mrd -value $::MISM_VAL]
-set mism_ref [mrd -value $::MISM_REF]
-mwr -force $::BCTRL 0x0
 mwr -force $::RUNGAP 15        ;# restore the default rate for section (c)
-puts [format "  MISM_ST=%d MISM_IDX=%d MISM_VAL=%d MISM_REF=%d" $mism_st $mism_idx $mism_val $mism_ref]
-if {!($mism_st & 1)} { error "corruption test FAILED: MISMATCH_STICKY never set after switching the operands mid-batch to ($cand_op0,$cand_op1), which was verified above to produce a different output than ($BASE_OP0,$BASE_OP1). The corruption was observable and was not observed -- the mismatch path does not work on real hardware." }
+set mism_st  [dict get $res mism_st]
+set mism_idx [dict get $res mism_idx]
+set mism_val [dict get $res mism_val]
+set mism_ref [dict get $res mism_ref]
+if {!($mism_st & 1)} {
+    if {![dict get $res landed_mid]} {
+        error "corruption test INCONCLUSIVE on every attempt: the batch finished before the corrupting write landed each time, so the mismatch path was never exercised. This is a host/JTAG speed problem, not a hardware result -- raise the gap ladder."
+    }
+    error "corruption test FAILED: the corrupting write landed at run [dict get $res at_completed] with the batch still running, and MISMATCH_STICKY never set. Switching the operands to ($cand_op0,$cand_op1) was verified above to produce a different output than ($BASE_OP0,$BASE_OP1). The corruption was observable, was applied mid-batch, and was not observed -- the mismatch path does not work on real hardware."
+}
 puts "deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=$mism_idx val=$mism_val ref=$mism_ref)"
 
 # =========================================================================
