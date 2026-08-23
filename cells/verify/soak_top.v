@@ -31,7 +31,7 @@
  `include "sizes.vh"
 `endif
 `ifndef BD_SZ_UDEC
- `define BD_SZ_UDEC 4
+ `define BD_SZ_UDEC 16
 `endif
 `ifndef BD_SZ_UMERGE
  `define BD_SZ_UMERGE 4
@@ -44,6 +44,19 @@
 `endif
 `ifndef BD_SZ_UMEM_UCO
  `define BD_SZ_UMEM_UCO 12
+`endif
+// The spine's own matched delay.  upipe's data_out reaches usteer's select
+// through four latches while its req_out leaves the last C node directly, so
+// at DELAY(0) the request beats the select it is supposed to be steering by
+// -1372 ps (raw) on the routed SDF -- rule E red at usteer across four placer
+// seeds.  bdc/emit.py never emits this shape: emit_links() applies
+// SELECT_PAD * n to any channel consumed as a select, precisely to cancel
+// that lead, so this is the stress rig missing a delay the compiler always
+// puts in, not a backend defect.  Number from verify/skew.py on the route it
+// measured, then re-routed and re-measured; it is a per-build property like
+// every other BD_SZ_* here.
+`ifndef BD_SZ_UPIPE
+ `define BD_SZ_UPIPE 10
 `endif
 
 `default_nettype none
@@ -60,7 +73,7 @@ module soak_top (input wire pin_in, output wire pin_out);
     wire        spine;
     bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
 
-    bd_pipe #(.W(8), .N(4)) upipe (
+    bd_pipe #(.W(8), .N(4), .DELAY(`BD_SZ_UPIPE)) upipe (
         .rst(rst),
         .req_in(~spine), .ack_in(p_ack_in), .data_in({7'h5A, pin_in}),
         .req_out(p_req_out), .ack_out(p_req_out), .data_out(p_data_out));

@@ -178,6 +178,20 @@ RE_CHAIN_LINK = re.compile(r"(.+)\.chain\.g\\?\[(\d+)\\?\]\.u$")
 #   urig.udut.ulink_n1__1.lat.pair[12].u$LUT6/O6  ->  ulink_n1__1
 RE_SEL_LINK = re.compile(r"(?:^|\.)(ulink_[A-Za-z0-9_]+)\.")
 
+# The same question asked STRUCTURALLY instead of by name.  RE_SEL_LINK only
+# recognises emit.py's own naming convention (ulink_<ssa>), so a hand-written
+# rig -- verify/soak_top.v's `upipe` -- was reported as "no DELAY knob is
+# attributable" when it has exactly the same knob, spelled the same way, under
+# a different instance name.  What actually identifies the knob is the path the
+# launch node sits on: a bd_link's C node is <inst>.ctl.u..., and a bd_pipe's
+# is <inst>.one.u... (N==1) or <inst>.many.cpair[i].u... / <inst>.many.codd.u...
+# Everything before that first hop is the instance carrying DELAY.
+#
+# This is a strictly better test than the name: it CHECKS that the launch is
+# inside a link or pipe control rather than assuming it from a prefix.  The
+# name form stays first so compiler-generated designs key exactly as before.
+RE_SEL_LINK_STRUCT = re.compile(r"^(.*?)\.(?:ctl|one|many)\.")
+
 
 def measure_delay_element(text):
     """ps per bd_delay link on THIS route: the chain LUT plus the hop to the next.

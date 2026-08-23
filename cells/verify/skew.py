@@ -648,6 +648,10 @@ def main():
         # is reported rather than guessed at.
         m = T.RE_SEL_LINK.search(launch)
         if not m:
+            # Fall back to the structural form, which finds the same knob on an
+            # instance that is not named ulink_* -- see RE_SEL_LINK_STRUCT.
+            m = T.RE_SEL_LINK_STRUCT.search(launch)
+        if not m:
             unattributed.append((parent, launch))
             continue
         # The elements being added sit in the request path, so they are subject

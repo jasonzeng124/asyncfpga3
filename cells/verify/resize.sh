@@ -91,11 +91,24 @@ write_sizes() {                       # write the current assignment
 }
 
 # route + check; 0 = the design meets every constraint
+#
+# "every constraint" has to mean every constraint check.sh gates on, not just
+# the one that produced the proposal.  This ran flow.sh and tighten.py and
+# stopped there, which means it verified RULE D only -- and check.sh's own
+# comment says rule D is a one-sided screen whose numbers are not safe to act
+# on.  Rule E, the one that measures from a common launch and is the only one
+# that emits padding, was never consulted.  A loop that only ever SHRINKS
+# delays and cannot see rule E will happily shrink a delay that exists solely
+# to satisfy rule E, re-break it, and report a verified assignment: exactly
+# what would have happened to BD_SZ_UDEC, which had to go 4 -> 16 to close
+# umux.  Any accept test that cannot observe the constraint a length was
+# chosen for will eventually undo that length.
 attempt() {
     local tag=$1
     ./flow.sh > "$HIST/flow_$tag.log" 2>&1 || return 2
     python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" \
-        > "$HIST/tighten_$tag.log" 2>&1
+        > "$HIST/tighten_$tag.log" 2>&1 || return 1
+    python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1
 }
 
 read_prop() {                         # load a proposal into prop[]
