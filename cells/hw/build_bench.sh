@@ -246,23 +246,41 @@ TARGET_MHZ=${TARGET_MHZ:-100}
 # fresh seed before believing a near miss, and keep the best result rather
 # than whatever the last attempt happened to give.  An explicit NEXTPNR_SEED
 # disables this: that is someone reproducing one specific route.
-PNR_TRIES=${PNR_TRIES:-3}
+PNR_TRIES=${PNR_TRIES:-6}
 [ -n "${NEXTPNR_SEED:-}" ] && PNR_TRIES=1
 
 BEST=""
+ACHIEVED=""     # stays empty if the first attempt never got as far as a number
 attempt=0
 while [ "$attempt" -lt "$PNR_TRIES" ]; do
     attempt=$((attempt + 1))
     TRYSEED="$SEED"
     [ -z "${NEXTPNR_SEED:-}" ] && [ "$attempt" -gt 1 ] && TRYSEED="--seed $attempt"
 
+    # Bound each ATTEMPT, not just the build.  Asking for a frequency the router
+    # cannot reach makes it iterate rather than give up: xorshift_null ran 1800
+    # seconds on one seed and produced nothing, where every other null finished
+    # in 35-60.  A seed that has not converged in PNR_TIMEOUT is not close, so
+    # spend the time on the next seed instead of on this one.
     # shellcheck disable=SC2086
-    "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
+    if ! timeout "${PNR_TIMEOUT:-420}" "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
                --freq "$TARGET_MHZ" --timing-allow-fail \
                --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
                --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
-               > "$OUT/pnr.log" 2>&1 \
-        || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
+               > "$OUT/pnr.log" 2>&1; then
+        # nextpnr itself failing is ALSO seed-dependent, not just slow timing.
+        # collatz64_null died on "post-placement validity check failed for Bel
+        # SLICE_X8Y79/A5FF (no cell)" -- a placer bug that another seed walks
+        # straight past.  Treat it as a failed attempt, not as a verdict on the
+        # design, and only give up once every seed has had a turn.
+        echo "PNR FAILED on attempt $attempt/$PNR_TRIES:"
+        grep -E "^ERROR" "$OUT/pnr.log" | head -3 || true
+        grep -qE "^ERROR" "$OUT/pnr.log" || echo "  (no ERROR line -- attempt hit the ${PNR_TIMEOUT:-420}s per-seed timeout)"
+        if [ "$attempt" -lt "$PNR_TRIES" ]; then continue; fi
+        echo "PNR FAILED on all $PNR_TRIES seeds -- this is not seed noise." >&2
+        tail -40 "$OUT/pnr.log" >&2
+        exit 1
+    fi
 
     ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
     if [ -z "$ACHIEVED" ]; then
@@ -285,7 +303,7 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
 done
 
 # If no attempt met the target, restore the best one we saw.
-if awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}" && [ -e "$OUT/$TOP.fasm.best" ]; then
+if [ -n "$ACHIEVED" ] && awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}" && [ -e "$OUT/$TOP.fasm.best" ]; then
     for e in fasm sdf; do mv -f "$OUT/$TOP.$e.best" "$OUT/$TOP.$e"; done
     mv -f "$OUT/${TOP}_routed.json.best" "$OUT/${TOP}_routed.json"
     mv -f "$OUT/pnr.log.best" "$OUT/pnr.log"
