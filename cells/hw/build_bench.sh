@@ -232,12 +232,40 @@ SEED=""
 [ -n "${NEXTPNR_SEED:-}" ] && SEED="--seed ${NEXTPNR_SEED}"
 
 # shellcheck disable=SC2086
+# --freq is what makes the timing verdict MEAN anything.  Without it nextpnr
+# compares against its own 12 MHz default and prints "PASS at 12.00 MHz" for a
+# design the board then clocks at 100 -- which is exactly how the bridge shipped
+# for twelve builds closing at 28-35 MHz while FCLK0 ran it at 100 MHz, silently
+# corrupting the latency histogram (see gen_bench.py's histogram pipeline note).
+# Default it to the FCLK0 this harness actually runs at.
+TARGET_MHZ=${TARGET_MHZ:-100}
+
+# shellcheck disable=SC2086
 "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED \
+           --freq "$TARGET_MHZ" --timing-allow-fail \
            --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
     || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
 echo "routed."
+
+# --timing-allow-fail keeps the bitstream so a slow build can still be probed on
+# the board deliberately; this check is what stops it being used ACCIDENTALLY.
+# Re-read the achieved Fmax and refuse to call the build good below target.
+ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
+if [ -z "$ACHIEVED" ]; then
+    echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2
+    exit 1
+fi
+echo "TIMING: fclk0_bufg closes at ${ACHIEVED} MHz (target ${TARGET_MHZ} MHz)"
+if awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}"; then
+    echo "TIMING FAILED: ${ACHIEVED} MHz < ${TARGET_MHZ} MHz target." >&2
+    echo "  The bridge's own counters will corrupt above their closing frequency," >&2
+    echo "  quietly and only at large counts.  Do not measure with this bitstream." >&2
+    echo "  Critical path is in $OUT/pnr.log.  Set ALLOW_SLOW=1 to build anyway." >&2
+    [ "${ALLOW_SLOW:-0}" = "1" ] || exit 1
+    echo "  ALLOW_SLOW=1: continuing with a bitstream known to be over-clocked." >&2
+fi
 
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
 bufgs=$(grep -c "BUFGCTRL" "$OUT/$TOP.fasm" || true)

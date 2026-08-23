@@ -65,6 +65,18 @@ if {$N_UNIFORM eq ""} { set N_UNIFORM 2000 }
 # hardcoded value (DIVISOR0=10, DIVISOR1=1, SRCSEL=IO PLL -> 1000/10=100MHz).
 # FCLK0_HZ_NOMINAL is derived from the SAME value so cyc2ns stays correct
 # at any clock setting instead of silently assuming 100 MHz.
+# xsdb exits nonzero on an uncaught `error` but prints NOTHING -- not on
+# stdout, not on stderr.  Both of the last two failures here (the corruption
+# race and the null kernel's oracle) presented as a log that simply stopped
+# mid-sentence, and had to be re-derived from which puts was the last one to
+# appear.  Echo the message on the way out so the log says what went wrong.
+rename error _tcl_error
+proc error {msg args} {
+    puts "ERROR: $msg"
+    flush stdout
+    uplevel 1 [list _tcl_error $msg {*}$args]
+}
+
 set CLK_CTRL_VAL [lindex $argv 3]
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
@@ -97,6 +109,7 @@ set MISM_ST  [expr {$BASE + 0x3C}]
 # host cannot land a write inside the batch at all.  Widening the gap is the
 # only way to make "mid-batch" mean anything from the host's timescale.
 set RUNGAP   [expr {$BASE + 0x50}]
+set FSMST    [expr {$BASE + 0x54}]   ;# bit9 = o_req_latched (async-set catch of a narrow o_req)
 set MISM_IDX [expr {$BASE + 0x40}]
 set MISM_VAL [expr {$BASE + 0x44}]
 set MISM_REF [expr {$BASE + 0x48}]
@@ -208,8 +221,51 @@ if {$label eq "gcd"} {
     if {$got != 5} { error "manual pre-check FAILED: gcd(0,5) = $got, want 5" }
     puts "manual 4-phase pre-check PASS: gcd(0,5) = $got"
 } else {
-    set got [manual_once 12 18]
-    puts "manual 4-phase smoke ($label): op0=12 op1=18 -> ODATA=$got (no oracle asserted for this kernel)"
+    # The generic branch used to call manual_once and inherit its assumption
+    # that o_req is a HELD level.  It is not held by every kernel: the null
+    # kernels drive out0_req from a bd_delay off their own joined_req and
+    # never reference out0_ack, so their output request is a self-retracting
+    # PULSE, nanoseconds wide.  A JTAG mrd costs milliseconds, so the level
+    # poll cannot see it and timed out -- reported, wrongly, as "the ODATA
+    # plumbing does not reach the kernel".
+    #
+    # Probe instead of assuming.  Try the level; if it never appears, ask the
+    # bridge's async latch whether a pulse went by.  The latch is proven clear
+    # first, so a 1 afterwards is this request's pulse and not some older one
+    # (nothing clears that latch outside reset and S_ISSUE, and neither has
+    # run since the bitstream was configured).
+    mwr -force $::OP0 12
+    mwr -force $::OP1 18
+    set f0 [mrd -value $::FSMST]
+    if {($f0 >> 9) & 1} {
+        error "o_req_latched reads 1 BEFORE any request was issued (FSMST=[format 0x%08x $f0]) -- the latch cannot be used as evidence a pulse arrived"
+    }
+    mwr -force $::CTRL 0x1
+    poll_status 0x1 0x1 "i_ack rise (op0=12 op1=18)"
+    mwr -force $::CTRL 0x0
+    set held [expr {![catch {poll_status 0x2 0x2 "o_req rise (op0=12 op1=18)"}]}]
+    set f1 [mrd -value $::FSMST]
+    set caught [expr {($f1 >> 9) & 1}]
+    set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
+    if {$held} {
+        mwr -force $::CTRL 0x2
+        poll_status 0x2 0x0 "o_req fall (op0=12 op1=18)"
+        mwr -force $::CTRL 0x0
+        puts "manual 4-phase smoke ($label): op0=12 op1=18 -> ODATA=$got (no oracle asserted for this kernel)"
+    } elseif {$caught} {
+        puts "manual smoke ($label): op0=12 op1=18 -> ODATA=$got (free-running sample; no oracle asserted)"
+        puts "  NOTE: this kernel's output request did NOT hold as a 4-phase level."
+        puts "  It was seen only by the bridge's async o_req latch, i.e. it is a"
+        puts "  self-retracting pulse.  bd_end.v's turnaround invariant says every"
+        puts "  producer derives its request from the consumer's acknowledge; a"
+        puts "  kernel that ignores out0_ack does not, and cannot be handshaked by"
+        puts "  a host at JTAG speed.  The batch path below still measures it (the"
+        puts "  FSM reads the same latch), but that is a REAL defect in the kernel,"
+        puts "  not in this script."
+        mwr -force $::CTRL 0x0
+    } else {
+        error "manual smoke FAILED ($label): i_ack rose but o_req was seen neither as a held level nor by the async latch (FSMST=[format 0x%08x $f1]) -- the output plumbing does not reach the bridge at all"
+    }
 }
 
 # --- batch driver ----------------------------------------------------------
