@@ -341,7 +341,18 @@ SEED=""
 # for twelve builds closing at 28-35 MHz while FCLK0 ran it at 100 MHz, silently
 # corrupting the latency histogram (see gen_bench.py's histogram pipeline note).
 # Default it to the FCLK0 this harness actually runs at.
-TARGET_MHZ=${TARGET_MHZ:-100}
+# 83.3 MHz, not 100.  This harness does not close 100 MHz and asking it to
+# made the DEFAULT build path fail out of the box, for a reason that has
+# nothing to do with what it was failing about: six seeds land at 79.6-97.7
+# MHz, so the best of them still misses 100 and the build refuses.  The path
+# is 94% routing in the bridge's bctrl_rst net -- it is the harness, not the
+# kernel, and no amount of tightening moves it.
+#
+# 83.3 MHz is also simply the truth about how these parts are measured: the
+# PS drives them at CLK_CTRL=0x00100C00, which is 83.3 MHz.  Building for a
+# clock faster than the one the board supplies bought nothing and cost every
+# default build.  Raise it deliberately with TARGET_MHZ= if you have a reason.
+TARGET_MHZ=${TARGET_MHZ:-83}
 
 # One route is a sample, and a wide one: the same netlist has come back 95.19
 # and 105.88 MHz on neighbouring builds.  So a miss is not automatically a
