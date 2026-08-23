@@ -365,8 +365,38 @@ set gap_rb [mrd -value $::RUNGAP]
 if {$gap_rb != 20000} {
     error "corruption test: run_gap readback $gap_rb != 20000 -- this bitstream predates the run_gap register, so the batch cannot be slowed and this exercise would race"
 }
-mwr -force $::OP0 48
-mwr -force $::OP1 18
+# ...and corrupt something the kernel actually READS.  This used to hardcode
+# "rewrite OP1 to 17" and then blame the mismatch path when nothing diverged.
+# For half these kernels that corruption is invisible by construction:
+# collatz, collatz64 and isprime report nargs=1 in META, so OP1 is not an
+# input at all, and ipow reads both but 48**18 and 48**17 are each 0 mod 2**32,
+# so the "corrupted" run returns exactly the reference.  A negative control
+# that cannot be observed is not a negative control.
+#
+# So: measure first.  Run single-run FIXED batches until we find operands whose
+# output actually differs from the reference, and only then run the exercise.
+set BASE_OP0 48
+set BASE_OP1 18
+set base_out [dict get [run_batch 1 1 $BASE_OP0 $BASE_OP1] odata]
+set cand_op0 ""
+set cand_op1 ""
+foreach cand {{48 17} {48 19} {49 18} {47 18} {7 3} {12345 6789} {3 5} {1 1}} {
+    set c0 [lindex $cand 0]
+    set c1 [lindex $cand 1]
+    set o [dict get [run_batch 1 1 $c0 $c1] odata]
+    if {$o != $base_out} {
+        set cand_op0 $c0
+        set cand_op1 $c1
+        puts "  corruption chosen: ($BASE_OP0,$BASE_OP1)->$base_out  vs  ($c0,$c1)->$o"
+        break
+    }
+}
+if {$cand_op0 eq ""} {
+    error "corruption test: no operand pair tried produces an output different from ($BASE_OP0,$BASE_OP1)->$base_out for this kernel, so no mid-batch corruption could ever be detected. Add a pair this kernel is actually sensitive to rather than asserting on one it is not."
+}
+
+mwr -force $::OP0 $BASE_OP0
+mwr -force $::OP1 $BASE_OP1
 mwr -force $::NRUNS 200
 mwr -force $::BCTRL 0x0                         ;# clean 0->1 edge (see run_batch)
 mwr -force $::BCTRL [expr {0x1 | (1 << 2)}]     ;# FIXED, start
@@ -377,7 +407,9 @@ for {set i 0} {$i < 400} {incr i} {
     after 5
 }
 if {(($bs >> 16) & 0xFFFF) < 1} { error "corruption test: run 0 never retired (BSTATUS=[format 0x%08x $bs])" }
-mwr -force $::OP1 17          ;# the deliberate corruption -- FIXED mode resamples every run
+# the deliberate corruption -- FIXED mode resamples both operands every run
+mwr -force $::OP0 $cand_op0
+mwr -force $::OP1 $cand_op1
 set done 0
 for {set i 0} {$i < 400} {incr i} {
     set bs [mrd -value $::BSTATUS]
@@ -392,7 +424,7 @@ set mism_ref [mrd -value $::MISM_REF]
 mwr -force $::BCTRL 0x0
 mwr -force $::RUNGAP 15        ;# restore the default rate for section (c)
 puts [format "  MISM_ST=%d MISM_IDX=%d MISM_VAL=%d MISM_REF=%d" $mism_st $mism_idx $mism_val $mism_ref]
-if {!($mism_st & 1)} { error "corruption test FAILED: MISMATCH_STICKY never set after corrupting OP1 mid-batch -- the mismatch path does not work on real hardware" }
+if {!($mism_st & 1)} { error "corruption test FAILED: MISMATCH_STICKY never set after switching the operands mid-batch to ($cand_op0,$cand_op1), which was verified above to produce a different output than ($BASE_OP0,$BASE_OP1). The corruption was observable and was not observed -- the mismatch path does not work on real hardware." }
 puts "deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=$mism_idx val=$mism_val ref=$mism_ref)"
 
 # =========================================================================
