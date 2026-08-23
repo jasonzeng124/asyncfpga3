@@ -17,7 +17,11 @@ if [ "$N_UNIFORM" -gt 65535 ]; then
     exit 2
 fi
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
-KERNELS="gcd ipow collatz collatz64 isprime xorshift"
+# Overridable so a subset can be measured while the rest are still building.
+# Measuring a STALE bitstream is worse than measuring nothing: it reports a
+# number that looks like data but describes a design that no longer exists.
+# hw/_rebuild_benches.sh prints which targets are stale.
+KERNELS="${KERNELS:-gcd ipow collatz collatz64 isprime xorshift}"
 
 RESULTLOG=build/hw/_run_all_bench.log
 : > "$RESULTLOG"
