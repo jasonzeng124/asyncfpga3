@@ -46,8 +46,11 @@ echo
 echo "==== sweep summary ===="
 cat "$SUMMARY"
 echo
-echo "Read it as: census_spread is max/min mean occupancy across the five ring"
-echo "lengths.  One token per ring is a moving pair whose count does not depend"
-echo "on length, so census_spread must be about 1.0; anything much above that"
-echo "is a ring making tokens and its slope is not a measurement.  slope_ns is"
-echo "the answer -- nanoseconds per handshake stage at that RO_DELAY."
+echo "slope_ns is nanoseconds per handshake stage at that RO_DELAY; void=1 means"
+echo "a gate went red and the slope on that line is not a measurement.  The"
+echo "lowpulse column is the narrow LOW pulse that actually circulates -- see"
+echo "hw/ro_link_ps.v on why occupancy is not token count -- and it is an"
+echo "independent estimate of the same per-element cost, so the two disagreeing"
+echo "means one of them is wrong."
+echo
+echo "Then fit both levels:  python3 hw/ro_link_fit.py"

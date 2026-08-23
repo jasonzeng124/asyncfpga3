@@ -258,7 +258,7 @@ if {$fmax_s ne ""} { set fmax [split $fmax_s ","] }
 
 puts ""
 puts "lap time (window B, $W2 cycles at $ACLK_MHZ MHz):"
-set fitN {}; set fitY {}
+set fitN {}; set fitY {}; set lows {}
 set gate_dropped 0
 set win_ns [expr {double($W2) * 1000.0 / $ACLK_MHZ}]
 for {set i 0} {$i < $K} {incr i} {
@@ -281,6 +281,7 @@ for {set i 0} {$i < $K} {incr i} {
         set note "  (UNGATED: no BD_RO_FMAX)"
     }
     set tlow [expr {$ns * (double($n) - [lindex $cmeans $i]) / double($n)}]
+    lappend lows $tlow
     puts [format "  ring %d: %2d stages  %10d laps  %7.3f ns/lap  %6.1f MHz  low %.2f ns%s" \
           $i $n $c $ns $mhz $tlow $note]
     if {$note eq "" || ![string match "*VOID*" $note]} { lappend fitN $n; lappend fitY $ns }
@@ -314,8 +315,16 @@ if {$m >= 3} {
     }
     set r2 [expr {$sstot > 0 ? 1.0 - $ssres/$sstot : 0.0}]
     # The token test.  A ring holding T tokens ticks its counter T times per
-    # lap and lands at 1/T of the line -- for T=2 that is a 50% residual, an
-    # order of magnitude outside anything routing scatter produces.
+    # lap and lands at 1/T of the line -- for T=2 that is a 50% residual.
+    #
+    # The threshold is 25% and not something tighter, because routing scatter
+    # between rings is real and measured: the 3-stage ring and the 4-stage
+    # ring land within a couple of percent of EACH OTHER at RO_DELAY 1 and
+    # again at 6, which is a 15% residual on both and has nothing to do with
+    # tokens -- the short rings simply drew different placements.  Same
+    # lesson as four seeds giving 0/6/5/3 select violations on one design.
+    # 25% still leaves a factor of two between the worst scatter seen and the
+    # smallest defect this can miss, which is the margin that matters.
     puts ""
     puts "residuals (the token test: T tokens puts a ring at 1/T of the line):"
     set tok_bad 0
@@ -324,7 +333,7 @@ if {$m >= 3} {
         set y [lindex $fitY $i]
         set pred [expr {$slope*$x + $icept}]
         set rel [expr {100.0*($y-$pred)/$pred}]
-        set ok [expr {abs($rel) < 12.0}]
+        set ok [expr {abs($rel) < 25.0}]
         puts [format "  %2.0f stages: %7.3f ns measured, %7.3f predicted, %+6.1f%%  %s" \
               $x $y $pred $rel [expr {$ok ? "ok" : "<== not one token"}]]
         if {!$ok} { set tok_bad 1 }
@@ -359,10 +368,19 @@ set fitline "n/a"
 if {[info exists slope]} { set fitline [format "%.4f" $slope] }
 set icline "n/a"
 if {[info exists icept]} { set icline [format "%.4f" $icept] }
-set cflat "n/a"
-if {$cmin > 0.5} { set cflat [format "%.2f" [expr {$cmax/$cmin}]] }
-puts [format "ROLINK label=%s rodelay=%s slope_ns=%s icept_ns=%s points=%d census_spread=%s void=%d" \
-      $label $rodelay $fitline $icline [llength $fitN] $cflat $bad]
+# The low pulse is what actually circulates -- see the census note above --
+# so its spread across a 4x span of ring length is the honest one-number
+# summary of whether these five rings are all doing the same thing.
+set lmin ""; set lmax ""
+foreach t $lows {
+    if {$lmin eq "" || $t < $lmin} { set lmin $t }
+    if {$lmax eq "" || $t > $lmax} { set lmax $t }
+}
+set lspread "n/a"
+if {$lmin ne "" && $lmin > 0} { set lspread [format "%.2f" [expr {$lmax/$lmin}]] }
+puts [format "ROLINK label=%s rodelay=%s slope_ns=%s icept_ns=%s points=%d lowpulse_ns=%s low_spread=%s void=%d" \
+      $label $rodelay $fitline $icline [llength $fitN] \
+      [expr {$lmin eq "" ? "n/a" : [format "%.2f-%.2f" $lmin $lmax]}] $lspread $bad]
 
 if {$gate_dropped} {
     puts "=== $label: PASS with point(s) dropped by the counter-closure gate ==="
