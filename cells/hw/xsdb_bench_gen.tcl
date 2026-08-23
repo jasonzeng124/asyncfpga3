@@ -372,19 +372,36 @@ puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware =
 #
 # So: measure first.  Run single-run FIXED batches until we find operands whose
 # output actually differs from the reference, and only then run the exercise.
+# Compare MISM_REF, not ODATA.  ODATA is o_data_capture, a register that tracks
+# the kernel's combinational output EVERY cycle -- including after the batch has
+# finished, when bench_busy drops and the operand mux switches back from the
+# batch's bench_op0/bench_op1 to the host's raw OP0/OP1.  A pass-through kernel
+# has no storage, so at that moment its output is simply the host's operands
+# folded together, and the ODATA the host reads is a value NO RUN EVER PRODUCED.
+#
+# That is not hypothetical: collatz64's domain mask zeroes the high word (the
+# 64-bit n is {OP1,OP0}, and the kernel must not be seeded above 2**32), so
+# inside a batch collatz64_null cannot see OP1 at all.  ODATA still moved when
+# OP1 changed -- 48^18 vs 48^17, measured after each batch -- so the search
+# "verified" an operand pair the kernel is structurally blind to, and the
+# exercise then failed for the only possible reason: nothing diverged.
+#
+# MISM_REF is captured DURING run 0, off the same o_data_pl but at the instant
+# the run completes and while bench_busy is still high.  For an n=1 FIXED batch
+# it is exactly that run's result.
 set BASE_OP0 48
 set BASE_OP1 18
-set base_out [dict get [run_batch 1 1 $BASE_OP0 $BASE_OP1] odata]
+set base_out [dict get [run_batch 1 1 $BASE_OP0 $BASE_OP1] mism_ref]
 set cand_op0 ""
 set cand_op1 ""
 foreach cand {{48 17} {48 19} {49 18} {47 18} {7 3} {12345 6789} {3 5} {1 1}} {
     set c0 [lindex $cand 0]
     set c1 [lindex $cand 1]
-    set o [dict get [run_batch 1 1 $c0 $c1] odata]
+    set o [dict get [run_batch 1 1 $c0 $c1] mism_ref]
     if {$o != $base_out} {
         set cand_op0 $c0
         set cand_op1 $c1
-        puts "  corruption chosen: ($BASE_OP0,$BASE_OP1)->$base_out  vs  ($c0,$c1)->$o"
+        puts "  corruption chosen: ($BASE_OP0,$BASE_OP1)->$base_out  vs  ($c0,$c1)->$o  (run-captured, not post-batch ODATA)"
         break
     }
 }
