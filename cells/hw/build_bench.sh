@@ -287,6 +287,17 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
         grep -E "^ERROR" "$OUT/pnr.log" | head -3 || true
         grep -qE "^ERROR" "$OUT/pnr.log" || echo "  (no ERROR line -- attempt hit the ${PNR_TIMEOUT:-420}s per-seed timeout)"
         if [ "$attempt" -lt "$PNR_TRIES" ]; then continue; fi
+        # Last seed, and it failed -- but "the last attempt failed" is not "every
+        # attempt failed".  collatz64_null routed at 85.52 MHz on seed 3 and then
+        # lost seeds 4, 5 and 6 to the timeout; this branch threw that route away
+        # and reported "PNR FAILED on all 6 seeds", which was simply untrue.  If
+        # an earlier seed banked a route, fall through to the restore below and
+        # use it.
+        if [ -e "$OUT/$TOP.fasm.best" ]; then
+            echo "PNR FAILED on the last seed, but seed(s) earlier in this run routed at ${BEST} MHz -- using the best banked route." >&2
+            ACHIEVED="$BEST"
+            break
+        fi
         echo "PNR FAILED on all $PNR_TRIES seeds -- this is not seed noise." >&2
         tail -40 "$OUT/pnr.log" >&2
         exit 1
