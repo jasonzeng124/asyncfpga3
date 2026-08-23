@@ -134,6 +134,16 @@ FRAMES2BIT=$TC/openxc7/bin/xc7frames2bit
 OUT=build/hw/$TOP
 mkdir -p "$OUT"
 
+# Drop the previous bitstream BEFORE doing anything else.  Every failure path
+# below exits without touching $TOP.bit, so a build that dies in synthesis, in
+# placement, or on the timing gate used to leave the PREVIOUS run's bitstream
+# sitting there -- and run_all_bench.sh checks only that the file exists, so it
+# would program and measure it, reporting last week's design under this week's
+# name.  Caught when gcd_null failed the 100 MHz gate and the sweep queued up
+# behind it was about to measure a bitstream built 83 minutes earlier.  Absent
+# is a result you can act on; stale is one you cannot detect.
+rm -f "$OUT/$TOP.bit"
+
 # shellcheck disable=SC2086
 for f in "$YOSYS" "$NEXTPNR" "$CHIPDB" "$CELLS_SIM" "$CELLS_XTRA" \
          "$FASM2FRAMES" "$FRAMES2BIT" $SRCS; do
@@ -318,7 +328,19 @@ if awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}"; then
     echo "  quietly and only at large counts.  Do not measure with this bitstream." >&2
     echo "  Critical path is in $OUT/pnr.log.  Set ALLOW_SLOW=1 to build anyway." >&2
     [ "${ALLOW_SLOW:-0}" = "1" ] || exit 1
-    echo "  ALLOW_SLOW=1: continuing with a bitstream known to be over-clocked." >&2
+    echo "  ALLOW_SLOW=1: continuing with a route that missed the target." >&2
+fi
+# MIN_MHZ is the floor ALLOW_SLOW cannot argue with.  TARGET_MHZ is an ambition
+# -- routes land where they land, and 93 MHz is a perfectly good bitstream to
+# measure at 50 MHz even though it missed a 100 MHz target.  What must never be
+# waived is the margin over the clock the board will ACTUALLY run at: set
+# MIN_MHZ to a comfortable multiple of that and the "quietly wrong at large
+# counts" failure stays impossible regardless of who passes ALLOW_SLOW.
+MIN_MHZ=${MIN_MHZ:-0}
+if awk "BEGIN{exit !($ACHIEVED < $MIN_MHZ)}"; then
+    echo "FLOOR FAILED: ${ACHIEVED} MHz < MIN_MHZ ${MIN_MHZ} MHz." >&2
+    echo "  This floor is not waivable by ALLOW_SLOW.  No bitstream written." >&2
+    exit 1
 fi
 
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
