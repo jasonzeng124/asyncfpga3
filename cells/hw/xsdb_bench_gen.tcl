@@ -208,15 +208,52 @@ after 100
 # --- manual path smoke: proves the OP0/OP1/ODATA plumbing reaches the
 #     real kernel, generically (no expected value asserted here except for
 #     the gcd label, where the oracle is well known and cheap to check).
+# Wait until ANY bit under $mask is set, rather than for one exact value.
+proc poll_status_any {mask tag} {
+    for {set i 0} {$i < 200} {incr i} {
+        set s [mrd -value $::STATUS]
+        if {[expr {$s & $mask}] != 0} { return $s }
+    }
+    error "TIMEOUT waiting for STATUS&[format 0x%x $mask] != 0 ($tag); last STATUS=[format 0x%x $s]"
+}
+
+# The manual path has to drive two different kinds of kernel.
+#
+# DECOUPLED (every real kernel here -- they all carry bd_link/bd_pipe): i_ack
+# rises first, the hardware's req_clr asynchronously drops i_req, and only then
+# does o_req come up.  This is the sequence the proc used to assume outright.
+#
+# FULLY COUPLED (the null control: join -> bundling delay -> fork, no storage):
+# i_ack CANNOT rise until the output has been taken, so waiting for i_ack before
+# offering o_ack is a deadlock -- and it deadlocked exactly that way, STATUS
+# stuck at 0x2 with o_req high and i_ack low, on all four null bitstreams.
+# Coupled is legal 4-phase, so the host has to cope rather than the kernel.
+#
+# Two consequences, and the second is the subtle one: while i_ack has not
+# arrived, i_req must STAY ASSERTED.  CTRL bit 0 writes straight through to
+# req_core, so acknowledging with the usual CTRL=0x2 would drop i_req while the
+# output transaction is still open -- joined_req falls, out0_req falls, and the
+# result is retracted before it was taken.  The coupled branch writes CTRL=0x3,
+# holding i_req across the acknowledge and letting req_clr retire it on i_ack.
+# The decoupled branch must NOT do that: there req_core has already self-cleared,
+# and re-writing bit 0 would launch a second, spurious request.
 proc manual_once {op0 op1} {
     mwr -force $::OP0 $op0
     mwr -force $::OP1 $op1
     mwr -force $::CTRL 0x1
-    poll_status 0x1 0x1 "i_ack rise (op0=$op0 op1=$op1)"
-    mwr -force $::CTRL 0x0
-    poll_status 0x2 0x2 "o_req rise (op0=$op0 op1=$op1)"
-    set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
-    mwr -force $::CTRL 0x2
+    set st [poll_status_any 0x3 "i_ack or o_req (op0=$op0 op1=$op1)"]
+    if {$st & 0x1} {
+        # decoupled: input retired, i_req already cleared in hardware
+        mwr -force $::CTRL 0x0
+        poll_status 0x2 0x2 "o_req rise (op0=$op0 op1=$op1)"
+        set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
+        mwr -force $::CTRL 0x2
+    } else {
+        # coupled: hold i_req across the acknowledge
+        poll_status 0x2 0x2 "o_req rise (op0=$op0 op1=$op1)"
+        set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
+        mwr -force $::CTRL 0x3
+    }
     poll_status 0x2 0x0 "o_req fall (op0=$op0 op1=$op1)"
     mwr -force $::CTRL 0x0
     return $got
@@ -233,51 +270,22 @@ if {$label eq "gcd"} {
     if {$got != 5} { error "manual pre-check FAILED: gcd(0,5) = $got, want 5" }
     puts "manual 4-phase pre-check PASS: gcd(0,5) = $got"
 } else {
-    # The generic branch used to call manual_once and inherit its assumption
-    # that o_req is a HELD level.  It is not held by every kernel: the null
-    # kernels drive out0_req from a bd_delay off their own joined_req and
-    # never reference out0_ack, so their output request is a self-retracting
-    # PULSE, nanoseconds wide.  A JTAG mrd costs milliseconds, so the level
-    # poll cannot see it and timed out -- reported, wrongly, as "the ODATA
-    # plumbing does not reach the kernel".
+    # This branch used to probe-and-fall-back instead of calling manual_once.
+    # The reason was real: the null kernels drove out0_req from a bd_delay off
+    # their own joined_req and never referenced out0_ack, so their output
+    # request was a self-retracting PULSE nanoseconds wide, and a JTAG mrd costs
+    # milliseconds -- the level poll could not see it, so the branch asked the
+    # bridge's async o_req latch whether a pulse had gone by and printed a NOTE
+    # calling it a defect in the kernel.
     #
-    # Probe instead of assuming.  Try the level; if it never appears, ask the
-    # bridge's async latch whether a pulse went by.  The latch is proven clear
-    # first, so a 1 afterwards is this request's pulse and not some older one
-    # (nothing clears that latch outside reset and S_ISSUE, and neither has
-    # run since the bitstream was configured).
-    mwr -force $::OP0 12
-    mwr -force $::OP1 18
-    set f0 [mrd -value $::FSMST]
-    if {($f0 >> 9) & 1} {
-        error "o_req_latched reads 1 BEFORE any request was issued (FSMST=[format 0x%08x $f0]) -- the latch cannot be used as evidence a pulse arrived"
-    }
-    mwr -force $::CTRL 0x1
-    poll_status 0x1 0x1 "i_ack rise (op0=12 op1=18)"
-    mwr -force $::CTRL 0x0
-    set held [poll_status_soft 0x2 0x2]
-    set f1 [mrd -value $::FSMST]
-    set caught [expr {($f1 >> 9) & 1}]
-    set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
-    if {$held} {
-        mwr -force $::CTRL 0x2
-        poll_status 0x2 0x0 "o_req fall (op0=12 op1=18)"
-        mwr -force $::CTRL 0x0
-        puts "manual 4-phase smoke ($label): op0=12 op1=18 -> ODATA=$got (no oracle asserted for this kernel)"
-    } elseif {$caught} {
-        puts "manual smoke ($label): op0=12 op1=18 -> ODATA=$got (free-running sample; no oracle asserted)"
-        puts "  NOTE: this kernel's output request did NOT hold as a 4-phase level."
-        puts "  It was seen only by the bridge's async o_req latch, i.e. it is a"
-        puts "  self-retracting pulse.  bd_end.v's turnaround invariant says every"
-        puts "  producer derives its request from the consumer's acknowledge; a"
-        puts "  kernel that ignores out0_ack does not, and cannot be handshaked by"
-        puts "  a host at JTAG speed.  The batch path below still measures it (the"
-        puts "  FSM reads the same latch), but that is a REAL defect in the kernel,"
-        puts "  not in this script."
-        mwr -force $::CTRL 0x0
-    } else {
-        error "manual smoke FAILED ($label): i_ack rose but o_req was seen neither as a held level nor by the async latch (FSMST=[format 0x%08x $f1]) -- the output plumbing does not reach the bridge at all"
-    }
+    # It was a defect, and it is fixed: the null control is now a proper 4-phase
+    # relay (join -> bundling delay -> bd_fork, acknowledges rendezvoused in the
+    # fork's C-element tree), so every kernel here holds o_req as a level and
+    # manual_once drives all of them.  The pulse fallback is deliberately NOT
+    # kept: it would silently accept exactly the protocol violation that was
+    # just removed, which is how a regression gets back in.
+    set got [manual_once 12 18]
+    puts "manual 4-phase smoke ($label): op0=12 op1=18 -> ODATA=$got (no oracle asserted for this kernel)"
 }
 
 # --- batch driver ----------------------------------------------------------
