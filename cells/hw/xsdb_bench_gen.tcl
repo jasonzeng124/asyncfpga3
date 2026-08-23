@@ -124,6 +124,18 @@ set FPGA0_CLK_CTRL  0xF8000170
 set LVL_SHFTR_EN    0xF8000900
 set FPGA_RST_CTRL   0xF8000240
 
+# Returns 1/0 instead of raising.  Used where a miss is a legitimate outcome
+# being tested for, not a failure: the error shim above prints every raised
+# message, so probing with `catch {poll_status ...}` would stamp a misleading
+# "ERROR:" into a log where nothing went wrong.
+proc poll_status_soft {mask want} {
+    for {set i 0} {$i < 200} {incr i} {
+        set s [mrd -value $::STATUS]
+        if {([expr {$s & $mask}]) == $want} { return 1 }
+    }
+    return 0
+}
+
 proc poll_status {mask want tag} {
     for {set i 0} {$i < 200} {incr i} {
         set s [mrd -value $::STATUS]
@@ -243,7 +255,7 @@ if {$label eq "gcd"} {
     mwr -force $::CTRL 0x1
     poll_status 0x1 0x1 "i_ack rise (op0=12 op1=18)"
     mwr -force $::CTRL 0x0
-    set held [expr {![catch {poll_status 0x2 0x2 "o_req rise (op0=12 op1=18)"}]}]
+    set held [poll_status_soft 0x2 0x2]
     set f1 [mrd -value $::FSMST]
     set caught [expr {($f1 >> 9) & 1}]
     set got [expr {[mrd -value $::ODATA] & 0xFFFFFFFF}]
@@ -409,9 +421,26 @@ for {set b 0} {$b < 64} {incr b} {
     incr hist_total $hv
 }
 puts "  histogram sum = $hist_total (expect $completed)"
-if {$hist_total != $completed} { puts "  WARNING: histogram sum != completed runs -- see gen_bench.py's per-batch hist[] clear note" }
+if {$hist_total != $completed} {
+    # This used to be a WARNING, printed just above percentiles that were then
+    # reported as if they were data.  It is not a warning.  Every percentile
+    # below is reconstructed from these buckets, so a histogram that does not
+    # conserve means p50/p90/p99 are fiction -- and the one time it fired for
+    # real, the cause was the bridge running above its closing frequency and
+    # dropping carries in the bucket counters (gen_bench.py's histogram
+    # pipeline note).  min/max/mean/throughput come from separate plain
+    # counters and remain trustworthy; the percentiles do not.
+    error "histogram does not conserve: sum=$hist_total but completed=$completed runs. The percentiles below would be reconstructed from a distribution that is missing or inventing [expr {abs($hist_total - $completed)}] samples -- refusing to report them. Check the Fmax line in this build's pnr.log first."
+}
 
+# Mirrors gen_bench.py's encoder: bucket = leading_one*4 + 2 mantissa bits.
+# Bucket 63 is now the SATURATION bucket -- the encoder was narrowed to 16 bits
+# (see that file's histogram pipeline note), so anything at or above 2**16
+# cycles lands there rather than being spread across the top octave.  Nothing
+# in this suite comes within three orders of that, but decode it as a floor
+# rather than a midpoint so a saturated run cannot be quoted as a precise one.
 proc bucket_value {b} {
+    if {$b == 63} { return 65536.0 }
     set o [expr {$b / 4}]
     set m [expr {$b % 4}]
     if {$o == 0} { return 1.0 }

@@ -23,6 +23,19 @@ XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 # hw/_rebuild_benches.sh prints which targets are stale.
 KERNELS="${KERNELS:-gcd ipow collatz collatz64 isprime xorshift}"
 
+# FPGA0_CLK_CTRL, i.e. what FCLK0 -- and therefore the measurement bridge --
+# actually runs at.  0x00100A00 is DIVISOR0=10 -> 100 MHz.  This must not
+# exceed the Fmax the bitstream closed at: the bridge's histogram counters
+# corrupt above it, quietly and only at large counts (see gen_bench.py's
+# histogram pipeline note, and the TIMING line hw/build_bench.sh prints).
+# The tcl derives its cycles->ns conversion from this same value, so a slower
+# clock costs measurement RESOLUTION and nothing else -- the kernel under test
+# is self-timed and does not run on this clock at all.
+#   0x00100A00 = 100 MHz   0x00100E00 =  71.4 MHz
+#   0x00101400 =  50 MHz   0x00100400 = 250 MHz
+CLK_CTRL="${CLK_CTRL:-0x00100A00}"
+echo "measurement clock: FPGA0_CLK_CTRL=$CLK_CTRL"
+
 RESULTLOG=build/hw/_run_all_bench.log
 : > "$RESULTLOG"
 
@@ -47,7 +60,7 @@ for k in $KERNELS; do
             continue
         fi
         echo "=== RUN $TOP $(date -Iseconds) ===" | tee -a "$RESULTLOG"
-        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" > "$LOG" 2>&1; then
+        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" > "$LOG" 2>&1; then
             echo "=== PASS $TOP ===" | tee -a "$RESULTLOG"
         else
             echo "=== FAIL $TOP -- see $LOG ===" | tee -a "$RESULTLOG"

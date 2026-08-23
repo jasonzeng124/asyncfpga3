@@ -240,23 +240,59 @@ SEED=""
 # Default it to the FCLK0 this harness actually runs at.
 TARGET_MHZ=${TARGET_MHZ:-100}
 
-# shellcheck disable=SC2086
-"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED \
-           --freq "$TARGET_MHZ" --timing-allow-fail \
-           --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
-           --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
-           > "$OUT/pnr.log" 2>&1 \
-    || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
-echo "routed."
+# One route is a sample, and a wide one: the same netlist has come back 95.19
+# and 105.88 MHz on neighbouring builds.  So a miss is not automatically a
+# design that cannot make the target -- it may be the seed.  Re-route on a
+# fresh seed before believing a near miss, and keep the best result rather
+# than whatever the last attempt happened to give.  An explicit NEXTPNR_SEED
+# disables this: that is someone reproducing one specific route.
+PNR_TRIES=${PNR_TRIES:-3}
+[ -n "${NEXTPNR_SEED:-}" ] && PNR_TRIES=1
 
-# --timing-allow-fail keeps the bitstream so a slow build can still be probed on
-# the board deliberately; this check is what stops it being used ACCIDENTALLY.
-# Re-read the achieved Fmax and refuse to call the build good below target.
-ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
-if [ -z "$ACHIEVED" ]; then
-    echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2
-    exit 1
+BEST=""
+attempt=0
+while [ "$attempt" -lt "$PNR_TRIES" ]; do
+    attempt=$((attempt + 1))
+    TRYSEED="$SEED"
+    [ -z "${NEXTPNR_SEED:-}" ] && [ "$attempt" -gt 1 ] && TRYSEED="--seed $attempt"
+
+    # shellcheck disable=SC2086
+    "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
+               --freq "$TARGET_MHZ" --timing-allow-fail \
+               --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
+               --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
+               > "$OUT/pnr.log" 2>&1 \
+        || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
+
+    ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
+    if [ -z "$ACHIEVED" ]; then
+        echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2
+        exit 1
+    fi
+    echo "routed. (attempt $attempt/$PNR_TRIES: ${ACHIEVED} MHz)"
+
+    # Met the target: stop here, and keep THIS route's outputs.
+    if awk "BEGIN{exit !($ACHIEVED >= $TARGET_MHZ)}"; then BEST="$ACHIEVED"; break; fi
+
+    # Missed.  Keep the best route seen so far, so a later worse seed cannot
+    # overwrite a better one -- these files are the build's actual output.
+    if [ -z "$BEST" ] || awk "BEGIN{exit !($ACHIEVED > $BEST)}"; then
+        BEST="$ACHIEVED"
+        for e in fasm sdf; do cp -f "$OUT/$TOP.$e" "$OUT/$TOP.$e.best" 2>/dev/null || true; done
+        cp -f "$OUT/${TOP}_routed.json" "$OUT/${TOP}_routed.json.best" 2>/dev/null || true
+        cp -f "$OUT/pnr.log" "$OUT/pnr.log.best" 2>/dev/null || true
+    fi
+done
+
+# If no attempt met the target, restore the best one we saw.
+if awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}" && [ -e "$OUT/$TOP.fasm.best" ]; then
+    for e in fasm sdf; do mv -f "$OUT/$TOP.$e.best" "$OUT/$TOP.$e"; done
+    mv -f "$OUT/${TOP}_routed.json.best" "$OUT/${TOP}_routed.json"
+    mv -f "$OUT/pnr.log.best" "$OUT/pnr.log"
+    ACHIEVED="$BEST"
+    echo "keeping the best of $PNR_TRIES routes: ${ACHIEVED} MHz"
 fi
+rm -f "$OUT/$TOP".*.best "$OUT/${TOP}_routed.json.best" "$OUT/pnr.log.best"
 echo "TIMING: fclk0_bufg closes at ${ACHIEVED} MHz (target ${TARGET_MHZ} MHz)"
 if awk "BEGIN{exit !($ACHIEVED < $TARGET_MHZ)}"; then
     echo "TIMING FAILED: ${ACHIEVED} MHz < ${TARGET_MHZ} MHz target." >&2
