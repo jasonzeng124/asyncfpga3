@@ -91,6 +91,12 @@ set LASTOP0  [expr {$BASE + 0x30}]
 set LASTOP1  [expr {$BASE + 0x34}]
 set SIG      [expr {$BASE + 0x38}]
 set MISM_ST  [expr {$BASE + 0x3C}]
+# Inter-run gap, in aclk cycles (gen_bench.py register 7'h14, reset 15).  The
+# corruption exercise below needs it: a 200-run FIXED batch retires in about
+# 226 us at the default gap, while a single JTAG mrd costs MILLISECONDS, so a
+# host cannot land a write inside the batch at all.  Widening the gap is the
+# only way to make "mid-batch" mean anything from the host's timescale.
+set RUNGAP   [expr {$BASE + 0x50}]
 set MISM_IDX [expr {$BASE + 0x40}]
 set MISM_VAL [expr {$BASE + 0x44}]
 set MISM_REF [expr {$BASE + 0x48}]
@@ -280,6 +286,17 @@ puts "FIXED-mode repeatability check PASS (no mismatch across [dict get $r compl
 # =========================================================================
 puts ""
 puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware ==="
+# Slow the batch down so the host can actually interleave with it.  At the
+# default 15-cycle gap this whole batch is over in ~226 us -- long before the
+# first BSTATUS read returns -- so OP1 was being rewritten AFTER the batch had
+# finished and nothing ever diverged.  The test then blamed the mismatch path
+# for a race in its own driver.  20000 cycles is 200 us per run, ~40 ms for the
+# batch, which comfortably outlasts a JTAG round trip.
+mwr -force $::RUNGAP 20000
+set gap_rb [mrd -value $::RUNGAP]
+if {$gap_rb != 20000} {
+    error "corruption test: run_gap readback $gap_rb != 20000 -- this bitstream predates the run_gap register, so the batch cannot be slowed and this exercise would race"
+}
 mwr -force $::OP0 48
 mwr -force $::OP1 18
 mwr -force $::NRUNS 200
@@ -305,6 +322,7 @@ set mism_idx [mrd -value $::MISM_IDX]
 set mism_val [mrd -value $::MISM_VAL]
 set mism_ref [mrd -value $::MISM_REF]
 mwr -force $::BCTRL 0x0
+mwr -force $::RUNGAP 15        ;# restore the default rate for section (c)
 puts [format "  MISM_ST=%d MISM_IDX=%d MISM_VAL=%d MISM_REF=%d" $mism_st $mism_idx $mism_val $mism_ref]
 if {!($mism_st & 1)} { error "corruption test FAILED: MISMATCH_STICKY never set after corrupting OP1 mid-batch -- the mismatch path does not work on real hardware" }
 puts "deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=$mism_idx val=$mism_val ref=$mism_ref)"

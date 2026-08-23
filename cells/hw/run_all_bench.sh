@@ -30,8 +30,15 @@ for k in $KERNELS; do
     for variant in real null; do
         if [ "$variant" = "null" ]; then
             TOP="${k}_null_bench_gen"
+            # The label selects the tcl's oracle.  Passing the bare kernel name
+            # here made it check the NULL kernel -- an xor-fold pass-through --
+            # against gcd(12,18)=6, which errored out before any measurement
+            # ran.  A non-"gcd" label falls through to the tcl's generic smoke
+            # branch, which asserts no oracle.
+            LABEL="${k}_null"
         else
             TOP="${k}_bench_gen"
+            LABEL="$k"
         fi
         BIT=build/hw/$TOP/$TOP.bit
         LOG=build/hw/_run_${TOP}.log
@@ -40,7 +47,7 @@ for k in $KERNELS; do
             continue
         fi
         echo "=== RUN $TOP $(date -Iseconds) ===" | tee -a "$RESULTLOG"
-        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$k" "$N_UNIFORM" > "$LOG" 2>&1; then
+        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" > "$LOG" 2>&1; then
             echo "=== PASS $TOP ===" | tee -a "$RESULTLOG"
         else
             echo "=== FAIL $TOP -- see $LOG ===" | tee -a "$RESULTLOG"
