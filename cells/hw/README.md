@@ -42,6 +42,46 @@ out leaves 8.5% worst case, and the residual does not trend with length
 charged for *these particular nets* against what they cost, and not a
 systematic error in the shape of the model.
 
+### That table is one route, and a rebuild disagrees with it
+
+`ro_top` was rebuilt on 2026-08-18 and re-measured on 2026-08-23. Same RTL,
+same five rings, different nextpnr placement:
+
+| ring | links | period measured | period from the routed SDF | ratio |
+|---|---|---|---|---|
+| 0 | 7 | 6 293 ps | 4 674 ps | 1.346 |
+| 1 | 15 | 12 140 ps | 12 008 ps | 1.011 |
+| 2 | 31 | 27 784 ps | 28 228 ps | 0.984 |
+| 3 | 63 | 54 772 ps | 55 548 ps | 0.986 |
+| 4 | 127 | 103 409 ps | 112 972 ps | 0.915 |
+
+**measured = 0.933 × predicted, worst residual 30.7%**, and this time the
+residual *does* trend with length — Spearman rho −0.90 against ring length,
+where |rho| ≥ 0.9 is the 5% critical value at n = 5. `ro_measure.py` fails the
+run on that, and it should: the docstring calls a length-trending residual the
+case a single scale factor cannot fix.
+
+Both the measured periods and the SDF moved, which is what rules temperature
+out — a hotter die does not change what nextpnr predicted. Ring 0 is the whole
+story: nextpnr predicted its loop would drop 8 290 → 4 674 ps (−44%) while
+silicon only delivered 8 093 → 6 293 ps (−22%).
+
+Two consequences, and neither is "the first table was wrong":
+
+- **8.5% was never a measured bound, only a single sample.** It is the number
+  `verify/tighten.py` spends as its guardband, so that guardband's provenance
+  is one route of one design. Two routes is still n = 2; the honest statement
+  is that the scatter is not yet characterised, not that it is 30.7%.
+- **The error is worst on the shortest ring**, and short chains are most of
+  what `tighten.py` emits — the gcd and collatz sizing logs are full of cells
+  at 0→1, 1→2 and 2→3 links. Optimistic there means the built delay is
+  *shorter* than the logic it covers, which is the silent direction.
+
+Self-heating is not the confound. Six 8-second windows of continuous toggling
+moved every ring by 0.011% or less, with 0 of 5 rings rising consistently —
+fabric delay is stable to about one part in 10 000 under this load. That is a
+small load for 48 s and says nothing about a warm enclosure.
+
 The wall clock cannot account for it: over an 8-second window the host's timing
 uncertainty is under a tenth of a percent, and it would in any case be a scale
 factor applied equally to all five.

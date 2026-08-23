@@ -71,6 +71,10 @@ TAG = 0xA5
 
 WINDOW_MS = int(os.environ.get("RO_WINDOW_MS", "8000"))
 REPEATS = int(os.environ.get("RO_REPEATS", "3"))
+# verify/tighten.py's guardband, as a percentage of the delay it sizes --
+# the 8.5% of measured per-route scatter it holds back.  Drift is compared
+# against this because both are fractions of the same quantity.
+GUARDBAND_PCT = float(os.environ.get("RO_GUARDBAND_PCT", "8.5"))
 
 
 # --------------------------------------------------------------- prediction
@@ -322,11 +326,13 @@ def main():
           f"{'SDF ps':>10}{'meas/SDF':>10}{'spread':>10}")
 
     per_ring = []
+    per_window = []
     for i, n in enumerate(LENS):
         periods = [windows[rep] * 1e6 / c for rep, c in counts[i]]   # us->ps
         p = statistics.mean(periods)
         spread = (max(periods) - min(periods)) / p
         per_ring.append(p)
+        per_window.append(periods)
         print(f"{i:<6}{n:>6}{counts[i][0][1]:>14}{p:>12.0f}"
               f"{predicted[i]:>10}{p / predicted[i]:>10.3f}"
               f"{spread * 100:>9.2f}%")
@@ -348,6 +354,83 @@ def main():
     # question that has an answer.
     ratios = [p / q for p, q in zip(per_ring, predicted)]
 
+    # -- does the answer hold while the fabric is working? -----------------
+    #
+    # Every number above is a mean over the windows, and a mean hides the one
+    # shape that matters here.  The rings are the only load in this design, so
+    # they are their own heater: with run high they toggle continuously and
+    # burn fabric power in the same tiles whose delay they report.  If the die
+    # warms, the period rises MONOTONICALLY across the windows, and a mean plus
+    # a max-minus-min spread cannot tell that apart from noise.
+    #
+    # This matters because the sizing pass spends a guardband, and that band
+    # has to cover temperature as well as route scatter.  A cold measurement
+    # that is never repeated hot is a measurement of the wrong die.
+    #
+    # The test is a sign test on consecutive windows, not a fit: with few
+    # windows a slope is not significant, but "every step went the same way"
+    # is.  It needs RO_REPEATS well above the default of 3 to mean anything,
+    # and it says so rather than pretending three points are a trend.
+    print()
+    print("drift across the windows")
+    print("-" * 78)
+    if REPEATS < 8:
+        print(f"  not asked -- {REPEATS} window(s).  Self-heating needs a long "
+              f"run to show;")
+        print(f"  re-run with RO_REPEATS=24 or more to put a number on it.")
+    else:
+        print(f"{'ring':<6}{'first ps':>11}{'last ps':>11}{'change':>10}"
+              f"{'up-steps':>10}")
+        drifts, monotone = [], []
+        for i, w in enumerate(per_window):
+            d = (w[-1] - w[0]) / w[0]
+            ups = sum(1 for a, b in zip(w, w[1:]) if b > a)
+            drifts.append(d)
+            monotone.append(ups)
+            print(f"{i:<6}{w[0]:>11.0f}{w[-1]:>11.0f}{d * 100:>9.2f}%"
+                  f"{ups:>7}/{len(w) - 1}")
+        steps = len(per_window[0]) - 1
+        # A ring that heats slows down: most consecutive steps go up, on every
+        # ring at once.  One ring drifting alone is that ring's route, not the
+        # die.
+        heated = sum(1 for u in monotone if u > steps * 0.75)
+        worst_d = max(drifts, key=abs)
+        print()
+        if heated >= 4:
+            print(f"  HEATING     {heated} of 5 rings rose on more than three "
+                  f"quarters of their")
+            print(f"              steps.  That is the die warming under its "
+                  f"own load, not")
+            print(f"              scatter -- scatter does not agree across "
+                  f"five routes.")
+            print(f"              Worst drift {worst_d * 100:+.2f}% over the "
+                  f"run.")
+        else:
+            print(f"  no trend    only {heated} of 5 rings rose consistently; "
+                  f"the windows")
+            print(f"              scatter rather than climb.  Either the die "
+                  f"is not warming")
+            print(f"              measurably at this load, or the run is too "
+                  f"short to see it.")
+            print(f"              Largest excursion {worst_d * 100:+.2f}%.")
+        print()
+        # tighten.py's guardband is a fraction of the delay it sizes, so the
+        # comparison is like for like: both are percentages of a delay.
+        if abs(worst_d) * 100 >= GUARDBAND_PCT:
+            print(f"  BAND        {abs(worst_d) * 100:.2f}% EXCEEDS the "
+                  f"{GUARDBAND_PCT:.1f}% guardband tighten.py")
+            print(f"              spends.  A delay sized cold is not safe hot. "
+                  f" Widen the band")
+            print(f"              or size at temperature.")
+        else:
+            print(f"  band        {abs(worst_d) * 100:.2f}% of delay, against "
+                  f"the {GUARDBAND_PCT:.1f}% guardband")
+            print(f"              tighten.py spends.  Temperature fits inside "
+                  f"the band this")
+            print(f"              run explored -- which is this board, this "
+                  f"load, and no")
+            print(f"              claim about a hotter enclosure.")
+
     # Is one scale factor enough?  Fit measured = k * predicted through the
     # origin and look at what is left over.  If the residuals are small, the
     # model is right in shape and wrong only in magnitude, and a single
@@ -367,14 +450,64 @@ def main():
     print(f"              will.  That is the whole of the error to first "
           f"order.")
     print()
+    # Does the residual TREND with length?  The docstring calls this the case
+    # no single correction fixes, so it has to be tested rather than asserted.
+    #
+    # The test is Spearman rank correlation against ring length, NOT a check
+    # that every consecutive step goes the same way.  Two rings of similar
+    # length can land either side of each other by a hair -- one 0.2-point
+    # wobble between two near-tied points would hide a trend that runs across
+    # the whole span.  Rank correlation is unaffected by that and still
+    # answers the question asked, which is about order, not magnitude.
+    #
+    # n is 5, where |rho| >= 0.9 is the 5% one-sided critical value: only
+    # 4 of the 120 orderings reach it.  Below that, call it scatter.
+    def _spearman(xs, ys):
+        def rank(v):
+            order = sorted(range(len(v)), key=lambda i: v[i])
+            r = [0.0] * len(v)
+            for pos, i in enumerate(order):
+                r[i] = pos + 1.0
+            return r
+        rx, ry = rank(xs), rank(ys)
+        n = len(xs)
+        d2 = sum((a - b) ** 2 for a, b in zip(rx, ry))
+        return 1 - 6 * d2 / (n * (n * n - 1))
+
+    rho = _spearman(LENS, resid)
+    # The tolerance is not cosmetic: rho is a ratio of small integers, and
+    # the exactly-critical case here (d2 = 38, n = 5) evaluates to
+    # -0.8999999999999999, which a bare >= 0.9 puts on the wrong side of
+    # its own threshold.  The one ordering the test most needs to catch is
+    # the one it would have missed.
+    trending = abs(rho) >= 0.9 - 1e-9
+
     print(f"  residual    {worst * 100:.1f}% worst case once that factor is "
-          f"taken out, and it")
-    print(f"              does not trend with length "
-          f"({', '.join(f'{r:+.1%}' for r in resid)}).")
-    print(f"              So it is per-route scatter -- what nextpnr charged "
-          f"for THESE nets")
-    print(f"              versus what they cost -- not a systematic error in "
-          f"the model.")
+          f"taken out"
+          f"{'' if trending else ', and it'}")
+    if trending:
+        way = "DOWN" if rho < 0 else "UP"
+        print(f"              -- and it TRENDS {way} WITH LENGTH "
+              f"({', '.join(f'{r:+.1%}' for r in resid)}),")
+        print(f"              rank correlation {rho:+.2f} across the five. "
+              f" That is the case a")
+        print(f"              single scale")
+        print(f"              factor does NOT fix: the per-link and the "
+              f"per-net parts of")
+        print(f"              the model are wrong by different amounts, so "
+              f"correcting one")
+        print(f"              length mis-sizes every other.  Short chains sit "
+              f"at the bad end")
+        print(f"              here, and short chains are most of what "
+              f"tighten.py emits.")
+    else:
+        print(f"              does not trend with length "
+              f"({', '.join(f'{r:+.1%}' for r in resid)}).")
+        print(f"              So it is per-route scatter -- what nextpnr "
+              f"charged for THESE")
+        print(f"              nets versus what they cost -- not a systematic "
+              f"error in the")
+        print(f"              shape of the model.")
     print()
 
     late = [i for i, r in enumerate(ratios) if r > 1.0]
@@ -421,7 +554,7 @@ def main():
     # The failure that matters is silicon being SLOWER than predicted, because
     # that is the direction a matched delay cannot absorb.  A pessimistic model
     # costs links; an optimistic one costs correctness.
-    fail = max(ratios) > 1.05 or worst > 0.25
+    fail = max(ratios) > 1.05 or worst > 0.25 or trending
     if fail:
         print()
         print("  This does NOT support the sizing pass.")

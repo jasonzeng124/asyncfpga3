@@ -73,6 +73,52 @@ fi
 # it, same as ro_top/arb_mtbf/arb_prot, and converge.sh already treats a
 # zero-deficit first measurement as CONVERGED, so this costs exactly the one
 # build it would have cost anyway.
+# ---------------------------------------------------------------------------
+# RULE A IS THE OUTER LOOP, AND IT BELONGS IN THE DEFAULT PATH.
+#
+# Until this existed, a bare `./hw/build_bench.sh <kernel>` derived rule E
+# fresh (the converge.sh handoff just below) but never derived rule A.  It
+# only APPLIED build/gen/<top>_sizes.vh if some earlier run happened to leave
+# one there.  So a clean tree built every matched delay at bdc/emit.py's
+# unmeasured estimate -- correct, but 2-4x longer than the route needs -- and
+# the only way to get a tightened part was to know hw/tighten_loop.sh existed
+# and run it by hand.  An optimisation you have to know about is one that does
+# not get applied.
+#
+# WHY RULE A WRAPS RULE E AND NOT THE OTHER WAY ROUND.  Rule E measures how
+# far a select's control input has to be padded to trail its data, and it
+# measures that on a placed, routed design.  Rule A changes the length of the
+# matched-delay chains, which changes placement, which changes every number
+# rule E just measured.  Run rule E outside and its pads are stale the moment
+# rule A moves a chain.  Run rule A outside -- one converged rule E build per
+# rule A iteration -- and each set of pads is measured against the chain
+# lengths that will actually ship.  That is why this block sits ABOVE the
+# converge.sh handoff rather than below it.
+#
+# THE GUARDS, in the order they are tested:
+#
+#   BD_TIGHTEN_RUNNING   set by hw/tighten_loop.sh on every build it drives.
+#                        This is the recursion guard: without it this block
+#                        would re-enter the loop that invoked it, forever.
+#   BD_SIZES             any explicit value -- a path, or "none" -- means the
+#                        caller has already decided which sizes to build with,
+#                        so deriving a fresh set would throw that away.
+#   BD_NO_TIGHTEN=1      the untightened escape hatch.  It already skipped
+#                        rule E; it now skips rule A too, which is both what
+#                        the name says and what the same variable means in
+#                        flow.sh.
+#   --null               the null DUT has no delay-bearing cells to size.
+#
+# Anything else is the default, and the default is now tightened.
+if [ -z "${BD_TIGHTEN_RUNNING:-}" ] && [ -z "${BD_SIZES:-}" ] \
+   && [ "${BD_NO_TIGHTEN:-0}" != "1" ] && [ "$NULL" != "1" ]; then
+    echo "build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN;" \
+         "deriving per-route matched-delay sizes for $TOP by running" \
+         "hw/tighten_loop.sh (rule A outer, rule E inner)" >&2
+    exec env BD_TIGHTEN_RUNNING=1 "$(dirname "$0")/tighten_loop.sh" \
+        "$KERNEL" "${BD_TIGHTEN_ITERS:-6}"
+fi
+
 if [ -z "${BDC_SELECT_PADS:-}" ] && [ "${BD_NO_TIGHTEN:-0}" != "1" ]; then
     BUILDER_ARGS=("$KERNEL")
     [ "$NULL" = "1" ] && BUILDER_ARGS+=(--null)
@@ -128,6 +174,18 @@ fi
 # belong to one route, and a route built from sizes is not the route they were
 # measured on.  hw/tighten_loop.sh drives that alternation.
 SIZES=build/gen/${TOP}_sizes.vh
+# BD_SIZES may name a file to build with.  Before this, BD_SIZES was only ever
+# compared against "none", so BD_SIZES=/some/other/sizes.vh silently built with
+# build/gen/<top>_sizes.vh -- the caller's file was read as "not none" and then
+# ignored.  A wrong-but-plausible build is worse than a refused one.
+if [ -n "${BD_SIZES:-}" ] && [ "${BD_SIZES}" != "none" ] \
+   && [ "${BD_SIZES}" != "auto" ]; then
+    if [ ! -e "${BD_SIZES}" ]; then
+        echo "build_bench.sh: BD_SIZES=${BD_SIZES} does not exist" >&2
+        exit 1
+    fi
+    SIZES="${BD_SIZES}"
+fi
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
 if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
     SRCS="$SIZES $SRCS"
