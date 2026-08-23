@@ -56,6 +56,7 @@ set CENSUS  [expr {$BASE + 0x10}]
 set COUNT0  [expr {$BASE + 0x20}]
 set SIG     [expr {$BASE + 0x40}]
 set DELAYR  [expr {$BASE + 0x44}]
+set WIDTHR  [expr {$BASE + 0x48}]
 
 set K 5
 set ACLK_MHZ 100.0
@@ -125,8 +126,10 @@ if {[expr {$v & 0x1}] != 1} {
     error "CTRL.rst readback [format 0x%08x $v] -- rings should come up held in reset"
 }
 set rodelay [mrd -value $DELAYR]
+set rowidth [mrd -value $WIDTHR]
 puts "liveness pre-check PASS (SIG ok, rings held in reset)"
 puts "RO_DELAY (from the bitstream): $rodelay bd_delay element(s) per stage"
+puts "RO_WIDTH (from the bitstream): $rowidth payload bit(s) per stage"
 
 # Ring lengths come from the BITSTREAM, never from this script.  If the two
 # ever disagree the fit would be silently wrong and nothing would say so.
@@ -378,8 +381,8 @@ foreach t $lows {
 }
 set lspread "n/a"
 if {$lmin ne "" && $lmin > 0} { set lspread [format "%.2f" [expr {$lmax/$lmin}]] }
-puts [format "ROLINK label=%s rodelay=%s slope_ns=%s icept_ns=%s points=%d lowpulse_ns=%s low_spread=%s void=%d" \
-      $label $rodelay $fitline $icline [llength $fitN] \
+puts [format "ROLINK label=%s rodelay=%s rowidth=%s slope_ns=%s icept_ns=%s points=%d lowpulse_ns=%s low_spread=%s void=%d" \
+      $label $rodelay $rowidth $fitline $icline [llength $fitN] \
       [expr {$lmin eq "" ? "n/a" : [format "%.2f-%.2f" $lmin $lmax]}] $lspread $bad]
 
 if {$gate_dropped} {

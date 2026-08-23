@@ -149,12 +149,21 @@
 //   0x40  SIG      0x5A5A1234, bring-up probe, answers whatever else is on
 //   0x44  DELAY    RO_DELAY this bitstream was built with, so the sweep
 //                  never has to trust its own filename
+//   0x48  WIDTH    RO_WIDTH, likewise
 // ---------------------------------------------------------------------------
 // RO_DELAY -- bd_delay elements on every stage's outgoing request.  Set with
 // BD_DEFINES=-DRO_DELAY=n; hw/run_ro_link.sh sweeps it.  See the DELAY=0
 // note in the header.
 `ifndef RO_DELAY
  `define RO_DELAY 0
+`endif
+
+// RO_WIDTH -- payload bits per stage.  8 is the rig's own default; the
+// kernels carry 32, and bd_latch is W/2 LUTs, so a kernel stage's latch is
+// four times this one's.  Swept to find out whether that is where the
+// unexplained ~5 ns per kernel stage lives.  BD_DEFINES=-DRO_WIDTH=32.
+`ifndef RO_WIDTH
+ `define RO_WIDTH 8
 `endif
 
 module ro_link_ps (
@@ -339,7 +348,7 @@ module ro_link_bridge (
   // ---- the rings ---------------------------------------------------------
   localparam integer K    = 5;      // rings
   localparam integer MAXN = 12;     // longest ring, for array sizing
-  localparam integer DW   = 8;      // payload width, same on every ring
+  localparam integer DW   = `RO_WIDTH;  // payload width, same on every ring
 
   // Ring lengths in bd_link stages -- see RN below.  Floored at 3 because
   // below three storage stages a four-phase ring does not circulate at all
@@ -583,6 +592,7 @@ module ro_link_bridge (
       5'hc:  rdata_r = cnt_flat[159:128];
       5'h10: rdata_r = 32'h5A5A_1234;
       5'h11: rdata_r = `RO_DELAY;
+      5'h12: rdata_r = `RO_WIDTH;
       default: rdata_r = 32'b0;
     endcase
   end

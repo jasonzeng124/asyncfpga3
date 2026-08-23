@@ -64,7 +64,10 @@ set_property IOSTANDARD LVCMOS33 [get_ports led_green]
 set_property PACKAGE_PIN U18 [get_ports clk_p]
 set_property IOSTANDARD LVCMOS33 [get_ports clk_p]
 XDC
-sed "s/@KERNEL@/$K/g" hw/dyn_top.v.in > "$OUT/dyn_top.v"
+# The wrapper is generated from the exported top's own port list --
+# hw/dyn_wrap.py's header says why hardcoding one kernel's ports was
+# wrong.
+python3 hw/dyn_wrap.py "$V/$K.v" "$K" > "$OUT/dyn_top.v"
 
 "$TC/openxc7/bin/yosys" -p "
 read_verilog -lib -specify $TC/openxc7/share/yosys/xilinx/cells_sim.v
