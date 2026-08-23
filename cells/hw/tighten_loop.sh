@@ -135,9 +135,32 @@ report() {   # $1 = tighten log, $2 = label
     RULE_A=$v
 }
 
-echo "== iteration 0: build with no measured sizes =="
-rm -f "$SIZES" "$HIST/ratchet.vh"
-BD_SIZES=none BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.0.log" 2>&1 || {
+# BD_RESUME=1 keeps the accumulated ratchet from a previous run of this script.
+#
+# The ratchet is the loop's whole memory: every length any route has ever asked
+# for, merged by maximum.  Discarding it on a re-run throws away the iterations
+# that produced it, which matters because a kernel can need more passes than
+# MAXIT allows.  collatz64 is the case that showed this -- six iterations took
+# it from 3 rule A violations to a steady 1, but a DIFFERENT cell each time
+# (ucmpi2, uselect0, umux1, umux0, uaddi1), because the ratchet only learns
+# about a cell on a route where that cell happens to be the binding one.  With
+# 10 delay-bearing cells that can take more than 10 passes.  Restarting from
+# nothing would have re-paid for all six.
+#
+# Resuming is safe in the direction that matters: the merge only ever raises a
+# length, and the gate still runs on the route each build actually gets, so a
+# resumed size that no longer holds is rejected exactly like a fresh one.
+if [ "${BD_RESUME:-0}" = "1" ] && [ -e "$HIST/ratchet.vh" ]; then
+    echo "== resuming from $(grep -c '^`define' "$HIST/ratchet.vh") accumulated size(s) =="
+    cp "$HIST/ratchet.vh" "$SIZES"
+    IT0_SIZES=auto
+else
+    rm -f "$SIZES" "$HIST/ratchet.vh"
+    IT0_SIZES=none
+fi
+
+echo "== iteration 0: build with the sizes above (or none) =="
+BD_SIZES="$IT0_SIZES" BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.0.log" 2>&1 || {
     echo "BUILD FAILED"; tail -20 "$HIST/build.0.log"; exit 1; }
 python3 verify/tighten.py "$SDF" > "$HIST/tighten.0.log" 2>&1 || true
 report "$HIST/tighten.0.log" "unsized"
