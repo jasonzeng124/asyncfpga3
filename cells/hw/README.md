@@ -647,7 +647,7 @@ and the loop control, against one shift and a compare.
 
 | kernel | what one iteration does | cycles/iter | ns |
 |---|---|---|---|
-| xorshift | 3 shifts, 3 xors | 4.96 | 49.6 |
+| xorshift | 3 shifts, 3 xors | 4.9873 +- 0.0016 | 49.87 |
 | ipow | 2 multiplies (exact, counted) | **6.00** | 60.0 |
 | isprime inner | shift, compare, conditional subtract | 8.66 | 86.6 |
 | collatz | shift *and* 3n+1, both arms | 9.32 | 93.2 |
@@ -659,7 +659,7 @@ that is structure:
 
 | kernel | ring stages | ns/iter | ns/stage |
 |---|---|---|---|
-| xorshift | 6 | 49.6 | 8.27 |
+| xorshift | 6 | 49.87 | 8.31 |
 | ipow | 6 | 60.0 | 10.00 |
 | collatz | 7 | 93.2 | 13.31 |
 | collatz64 | 7 | 118.6 | 16.94 |

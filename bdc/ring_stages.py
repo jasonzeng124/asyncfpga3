@@ -11,7 +11,7 @@ default (it was off until 2026-08-23, and every number in the previous version
 of this docstring came from the 2.5x looser circuit that produced):
 
     kernel      stages   ns/iter   ns/stage
-    xorshift       6       49.6      8.27
+    xorshift       6       49.87     8.31
     ipow           6       60.0     10.00
     collatz        7       93.2     13.31
     collatz64      7      118.6     16.94
