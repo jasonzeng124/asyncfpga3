@@ -55,12 +55,28 @@ in it at all.
 (`gcd`, `ipow`, `collatz`, `isprime`) built normally through the same converge
 path earlier the same morning — `collatz_null` in 83 s. Only `collatz64_null`
 and `xorshift_null` overran. Removing the converge loop divides their cost by
-up to six, but a single seed of `collatz64_null` still sat 13+ minutes at 100%
-CPU inside nextpnr's placer without advancing past analytic iteration 5, and
-the design is **4280 cells — the same count as `collatz_null`**, which placed
-in seconds. So size is not the explanation and neither is rule E; something
-about these two netlists is pathological for the placer, and what it is has
-not been identified. Recorded here rather than guessed at.
+up to six, and it was real waste, but it is not why these two are slow.
+
+What it is not, each ruled out with its own measurement:
+
+- **Not the netlist.** `collatz64_null` and `collatz_null` have near-identical
+  cell histograms — 1064 vs 1079 LUT6, 1044 FDRE in both, 4280 cells each —
+  and `collatz_null` finished 20 placer iterations and routed in 83 s.
+- **Not machine load.** Load average 1.4 on 8 cores, one nextpnr process.
+- **Not the placer being slow.** Per-iteration *solver* time is ~1 s and
+  matches `collatz_null`'s iteration for iteration.
+
+**A warning about reading `pnr.log` while a build runs: it is buffered.** Twice
+I concluded the placer was "stuck at iteration 5/6" because the log had not
+advanced for 13 minutes. `/proc/<pid>/stat` said state `R`, 92–100% CPU, and
+no new major faults — it was working the whole time and the log had simply not
+flushed. Use `/proc`, not the log, to tell a hang from a slow phase.
+
+What is real and unexplained is **memory**: RSS climbs steadily, 6.8 → 7.0 →
+7.3 GB over 50 s, against 12 GB of RAM, with `VmPeak` reaching 25.6 GB. That
+is the constraint these two designs hit and the others do not, and why they
+alone overrun. Whether it is a nextpnr allocation problem or something these
+netlists legitimately need is not established.
 
 ## Tightening is worth 2x, and the default path is not currently delivering it
 
