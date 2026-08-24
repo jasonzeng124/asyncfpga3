@@ -616,10 +616,26 @@ DELAY_BEARING = {
 # the one storage stage in front of it -- there are just fewer delays to size
 # and check, not a boundary removed from checking.
 #
-# Default OFF and read once at module scope, same convention as
-# BDC_SELECT_PAD/BDC_RING_PAD: another agent may be building from this file
-# right now, and a default-on change here would silently change their build.
-BDC_CONST_FOLD = os.environ.get("BDC_CONST_FOLD", "0") == "1"
+# NOW DEFAULT ON.  It was default OFF for two reasons and both are spent.
+#
+# The first was that the single-consumer premise fusion rests on was asserted
+# in a comment rather than checked, so a graph that broke it would have been
+# mis-emitted silently.  That is fixed and has a negative control in
+# test_fusion_sharing.py.
+#
+# The second was that a default-on change would silently alter a build someone
+# else had in flight.  That is a real cost, and it is smaller than what
+# staying off costs: on xorshift, folding is the difference between 12 and 15
+# delay-bearing cells, because `x ^= x << 13` becomes a full handshake cell
+# with its own matched delay when a constant shift is nothing but rewiring.
+# Measured through the default path, that is 82.4 ns of built matched delay
+# against 33.4 ns -- and the 33.4 ns build is the one every speedup on this
+# board was measured from.  Leaving it off meant the default build was 2.5x
+# looser than the numbers being quoted for it.
+#
+# Read once at module scope, same convention as BDC_SELECT_PAD/BDC_RING_PAD.
+# Set BDC_CONST_FOLD=0 for the unfused lowering.
+BDC_CONST_FOLD = os.environ.get("BDC_CONST_FOLD", "1") == "1"
 
 # Ops safe to fuse across: DELAY_BEARING minus "mux" -- see the block comment
 # above for why "mux" is excluded.
