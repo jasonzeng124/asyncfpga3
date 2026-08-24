@@ -152,6 +152,11 @@ AUDITED = []
 # enforces, so the simulation gate and this gate cannot drift apart.
 T_SU = {"ADDRARDADDR": 566, "DIADI": 737, "WEA": 532}
 T_CO = 2454
+# The HOLD arcs from the same file, e.g.
+#   (HOLD ADDRAU (posedge CLKARDCLKU) (-0.566::0.360))
+# Rule C reports the bound these are checked against; sim/bd_prims_sim.v has
+# the same three numbers, and tb/tb_bdc_mem.v measures the real value.
+T_HOLD = {"ADDRARDADDR": 360, "DIADI": 667, "WEA": 197}
 
 # What one bd_delay link costs, in ps.  MEASURED OFF THIS ROUTE, not assumed.
 #
@@ -1208,6 +1213,31 @@ def main():
         print(f"  {base}: {len(links)} links, ack trails the clock edge by "
               f"{best} ps, t_co {T_CO} -> margin {margin} ps  {state}")
         print(f"  {'':<{len(base)}}  sized for this route: {want} links")
+
+        # The same number bounds HOLD, which nothing else here audits.
+        #
+        # The address is released one arc after `ack` falls, and `ack` is
+        # ram_clk delayed by this chain -- so
+        #
+        #   hold = t(addr changes) - t(ram_clk rises)
+        #        = pulse_high + chain + arcs
+        #
+        # and pulse_high is itself at least `chain`, because the request
+        # cannot fall until the consumer has answered and the consumer cannot
+        # be asked until `ack` has risen.  So 2 x `best` is a lower bound that
+        # needs no new SDF walking and no assumption about the consumer.
+        #
+        # Stated rather than gated: the bound is 10-20x the requirement on
+        # every route measured so far, and tb/tb_bdc_mem.v checks the real
+        # value (2632 ps against 360) rather than the bound.  It is here so
+        # that anyone who shortens DCO sees what else they are shortening.
+        hold_lb = 2 * best
+        worst_hold = max(T_HOLD.values())
+        hstate = "ok" if hold_lb >= worst_hold else "TOO SHORT"
+        if hold_lb < worst_hold:
+            problems += 1
+        print(f"  {'':<{len(base)}}  hold is bounded below by 2x that: "
+              f"{hold_lb} ps vs {worst_hold} ps needed  {hstate}")
 
     # -------------------------------------------------- D: the select boundary
     print()
