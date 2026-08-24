@@ -349,6 +349,12 @@ roughly a 3-in-4 bet on the next one.
 
 ## Why gcd cannot use rule E: the C node is 1.3 ns from its own latch
 
+> **Narrower than the heading says, as of 2026-08-24.** gcd at
+> `bdc/emit.py`'s estimate converges rule E on the first iteration -- 118
+> select gates, 0 violated, 0 pads. Everything below is about gcd *with
+> tightened sizes*, which is the case that does not converge. See "gcd: ten
+> tightening attempts failed" above.
+
 `gcd` is the one kernel that ships with `BD_SKIP_RULE_E=1` -- no select
 padding. Two results above make that worth revisiting, so here is the actual
 blocker, measured rather than asserted (`hw/ctl_latch_reach.py`).
@@ -534,6 +540,21 @@ Three details that were not optional:
   oracle must not be able to look like a broken kernel.
 
 The nulls get the same treatment, from the same fold expression their DUT uses.
+
+### State of the suite, 2026-08-24
+
+`hw/run_all_bench.sh 2000`, every target that has a bitstream:
+
+```
+  PASS gcd            PASS gcd_null          PASS ipow        PASS ipow_null
+  PASS collatz        PASS collatz_null      PASS collatz64   PASS isprime
+  PASS isprime_null   PASS xorshift
+  SKIP collatz64_null, xorshift_null -- no bitstream (PnR timeout, rebuilding)
+```
+
+Ten of ten passing targets asserted **both** oracles: the FIXED 200-run fold
+and the UNIFORM 2000-distinct-input fold. Nothing in the suite now reports
+timing without also having checked what the circuit computed.
 
 ## CYCLES really does exclude the issue gap, and max rate no longer hangs
 
@@ -891,6 +912,12 @@ slope** rather than an error. Sweep inputs are as capable of being wrong as
 circuits are.
 
 ## What one iteration of a bundled-data loop costs, measured
+
+> Superseded in precision, not in conclusion. The sweeps here fit a single
+> slope per kernel from points that vary one operand. The later sections fit
+> *separate* coefficients for each kind of step, report standard errors, and
+> carry a measured noise floor -- collatz's 92.7 ns/iter below is 93.2 +- 0.1
+> there. Use the later numbers; this section is where the method came from.
 
 `xorshift(seed, rounds)` is the only kernel in the suite whose TRIP COUNT is a
 runtime operand, so its loop cost can be measured by sweeping an input instead
