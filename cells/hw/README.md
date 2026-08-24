@@ -72,11 +72,23 @@ advanced for 13 minutes. `/proc/<pid>/stat` said state `R`, 92–100% CPU, and
 no new major faults — it was working the whole time and the log had simply not
 flushed. Use `/proc`, not the log, to tell a hang from a slow phase.
 
-What is real and unexplained is **memory**: RSS climbs steadily, 6.8 → 7.0 →
-7.3 GB over 50 s, against 12 GB of RAM, with `VmPeak` reaching 25.6 GB. That
-is the constraint these two designs hit and the others do not, and why they
-alone overrun. Whether it is a nextpnr allocation problem or something these
-netlists legitimately need is not established.
+What is real is **memory**, and it is not marginal. Watched to the end of one
+attempt, `nextpnr-xilinx` RSS went 5.9 → 6.8 → 7.3 → 9.4 GB, and the machine
+reached **165 MB free of 11.9 GB** with `VmPeak` at 25.6 GB. Killing it
+recovered 9.7 GB. Whether that is a nextpnr allocation problem or something
+these netlists legitimately need is not established, but the operational
+conclusion is:
+
+> **Do not build `collatz64_null` or `xorshift_null` on this box while
+> anything else valuable is running.** They cannot complete inside a sane
+> per-seed timeout, six retries repeat the whole thing, and at 165 MB free the
+> OOM killer is one allocation away from taking whatever else is running — in
+> this case an 8-hour soak with 4 hours still to go. The two derived oracles
+> they would check (`0x00001010` and `0x00001e1e`) are not worth that.
+
+The soak was unharmed; it is board I/O and cost no memory. `hw/soak_latency.sh`
+kept writing through the whole episode: 72 rows, zero non-OK, one signature per
+kernel.
 
 ## Tightening is worth 2x, and the default path is not currently delivering it
 
