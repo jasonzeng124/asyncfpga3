@@ -108,6 +108,13 @@ if {$FIX_OP1 eq ""} { set FIX_OP1 18 }
 # one has ever been observed.
 set REPEAT [lindex $argv 7]
 if {$REPEAT eq ""} { set REPEAT 0 }
+# Optional 9th argument: write RUNGAP (7'h14) before the batches.  CYCLES is
+# documented to EXCLUDE S_PREP, so the inter-run gap should not appear in it at
+# all -- this is how that gets checked rather than assumed.  RUNGAP=0 also
+# drives the bench at its maximum issue rate, which is the regime that used to
+# hang before the async-latch/state-register fix, so a clean batch there is a
+# regression test for it and not only a timing datum.
+set RUNGAP_SET [lindex $argv 8]
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
 set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
@@ -370,6 +377,13 @@ proc cyc2ns {c} { return [expr {double($c) / $::FCLK0_HZ_NOMINAL * 1e9}] }
 # (a) FIXED-mode repeatability + SIG determinism, N=200
 # =========================================================================
 puts ""
+if {$RUNGAP_SET ne ""} {
+    mwr -force $RUNGAP $RUNGAP_SET
+    set v [mrd -value $RUNGAP]
+    if {$v != $RUNGAP_SET} { error "RUNGAP readback [format 0x%x $v] != $RUNGAP_SET" }
+    puts "RUNGAP set to $v aclk cycles"
+}
+
 puts "=== (a) FIXED-mode repeatability: op0=$FIX_OP0 op1=$FIX_OP1, N=200 ==="
 set r [run_batch 200 1 $FIX_OP0 $FIX_OP1]
 set latmin [dict get $r latmin]

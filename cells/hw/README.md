@@ -437,6 +437,53 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## CYCLES really does exclude the issue gap, and max rate no longer hangs
+
+Every per-run cost in this file is `CYCLES / completed`, and every one of them
+rests on `gen_bench.py`'s claim that `CYCLES` excludes the `S_PREP` settling
+gap while `PREPCYC` counts it separately. That was documented, not checked.
+`hw/rungap_sweep.sh` writes RUNGAP (7'h14) before the batches and sweeps it:
+
+| RUNGAP | cycles/run | prepcyc/run |
+|---|---|---|
+| 0 | 98.713 | 1.000 |
+| 1 | 98.688 | 2.000 |
+| 2 | 98.703 | 3.000 |
+| 4 | 98.725 | 5.000 |
+| 8 | 98.720 | 9.000 |
+| 15 | 98.747 | 16.000 |
+| 31 | 98.720 | 32.000 |
+| 63 | 98.705 | 64.000 |
+| 127 | 98.703 | 128.000 |
+
+The gap moves by 128x. `CYCLES` moves by 0.059 cycles -- 600 ppm, which is the
+noise floor the repeatability section measured, so it does not move at all.
+`PREPCYC` is exactly `gap + 1` at every point. The separation is real, and no
+number in this file is carrying a hidden inter-run gap.
+
+### RUNGAP=0 is also the regression test the async-latch fix never got
+
+Maximum issue rate is the regime where batches used to park forever in
+`S_WAIT_RES` with `o_req_s=0` -- run 16, 26, 34, 61, a different index every
+time on a fixed seed. That was root-caused to an unsynchronised async-SET flop
+gating the 3-bit state register and fixed with a synchroniser rather than a
+delay, but the fix was verified at the default gap and never re-run at the rate
+that exposed it.
+
+All five kernels, three batches of 200 each at `RUNGAP=0`, oracle asserted on
+every batch:
+
+```
+  xorshift  PASS   98.713 cycles/run
+  ipow      PASS   27.000
+  collatz   PASS  111.010
+  collatz64 PASS  138.933
+  isprime   PASS  453.547
+```
+
+3000 transactions back-to-back, no hang, and every per-run cost equal to its
+gap-15 value inside the noise floor. The rate hypothesis stayed falsified.
+
 ## isprime: the kernel whose trip count is not an argument, swept anyway
 
 isprime is the only kernel with nested loops and an early return, and
