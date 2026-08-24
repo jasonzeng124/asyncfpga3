@@ -72,12 +72,42 @@ noise, so it cannot hold a per-channel constant across builds — which means
 this is not a rare accident, it is the expected behaviour of a loop searching
 for a constant that does not exist.
 
-The log itself names a fallback that is not wired up: `BD_SKIP_RULE_E=1` sizes
-rule A without it. Whether that is safe to ship is a real question — rule E
-pads select channels for a reason — but a build that silently drops a 2x
-because an *inner* loop could not converge is worse than one that ships rule A
-alone and says so. Sized-but-unpadded is being measured before anything is
-changed in the default path; nothing here has been made policy yet.
+### Rule A alone converges every time, and it is worth 1.99x
+
+`BD_SKIP_RULE_E=1` sizes rule A without the select padding. Two rebuilds, both
+on the board:
+
+| build path | tightened | cycles per round | matched delay carried |
+|---|---|---|---|
+| default (rule A outer, rule E inner) | **0 of 3** | 9.9870 ± 0.0006 | 124.9 ns (the estimate) |
+| `BD_SKIP_RULE_E=1` | **2 of 2** | 5.0224 ± 0.0020 | 39.7 ns |
+| | | 5.0223 ± 0.0020 | |
+
+The two rule-A-only builds agree to **0.002%**, which says the sizing loop is
+reproducible when it is allowed to finish. It converges in five iterations,
+ratcheting eight cells upward as each new route moves them, and then stops.
+
+**Correctness, checked properly rather than by inspection.** The 17 sweep
+points return results bit-identical to the known-good build. More to the point
+— 17 points is a weak oracle for a *select* question, since a select violation
+is data-dependent and rare — the rule-A-only bitstream was run through the
+suite's own oracles: the FIXED batch against `golden_sig.txt`, and the
+3000-input UNIFORM batch against `hw/uniform_oracle.py`. Both PASS.
+
+**It is not wired in as an automatic fallback, and that is deliberate.** Rule E
+pads select channels for a reason, and a rule-A-only build ships them unpadded.
+What makes it arguable rather than reckless is that *the estimate being shipped
+today ships them unpadded too*: rule D reports the same **8** select violations
+on the unsized baseline and on the rule-A-only build, at −4780 to −6790 ps,
+all of them `bd_steer` conditions fed from a `bd_link` latch. That is
+[[bundling-breaks-on-the-wire]]'s open problem, and it is the status quo on
+either path. So the choice is not "padded versus unpadded", it is "unpadded and
+2x slower versus unpadded and not".
+
+Arguable is not decided, so nothing in the default path changed. What did
+change: `hw/tighten_loop.sh` now prints the numbers above when it gives up, so
+a build that drops a factor of two says so instead of reporting a safe-sounding
+fallback. Raw data: `hw/xorshift_cost_skipE{1,2}.tsv`.
 
 Raw data: `hw/xorshift_cost_seed11_untightened.tsv`,
 `hw/xorshift_cost_seed13_tightened.tsv`, `hw/xorshift_cost_route{1,2,3}.tsv`.

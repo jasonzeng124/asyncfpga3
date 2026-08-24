@@ -286,6 +286,34 @@ echo
 if [ -z "$BEST" ]; then
     echo "RESULT: no sized build passed rule A on its own route."
     echo "Shipping bdc/emit.py's estimate -- unmeasured, generous, and safe."
+    if [ "${BD_SKIP_RULE_E:-0}" != "1" ]; then
+        cat <<'LOSS'
+
+  THIS COSTS ABOUT A FACTOR OF TWO AND THE NUMBER IS MEASURED, NOT GUESSED.
+
+  If the rejection above was rule E and not rule A, the sizes were fine and it
+  was the SELECT PADDING that could not settle.  BD_SKIP_RULE_E=1 sizes rule A
+  alone.  On xorshift, 2026-08-24, on the board:
+
+      default path (rule A outer, rule E inner)  0 of 3 rebuilds tightened
+                                                 9.9870 cycles per round
+      BD_SKIP_RULE_E=1                           2 of 2 rebuilds tightened
+                                                 5.0224 cycles per round
+                                                 (the two agree to 0.002%)
+
+  That is 1.99x, and the rule-A-only build passed the FIXED oracle and the
+  3000-input UNIFORM oracle with results bit-identical to this one at all 17
+  sweep points.  See hw/README.md.
+
+  IT IS NOT WIRED IN AS AN AUTOMATIC FALLBACK, on purpose.  Rule E pads select
+  channels, and a rule-A-only build ships them unpadded.  What makes that
+  arguable rather than reckless is that the estimate being shipped RIGHT HERE
+  ships them unpadded too -- rule D reported the same 8 select violations on
+  the unsized baseline and on the rule-A-only build -- so the select exposure
+  is the status quo either way.  Arguable is not the same as decided, and a
+  build that silently gives up 2x should at least say so.
+LOSS
+    fi
     rm -f "$SIZES"
     BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
         ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
