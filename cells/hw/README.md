@@ -734,6 +734,17 @@ Also worth noting against the null floor: the 8.5-cycle base means entering and
 leaving collatz's loop costs about 3.5 cycles more than the null's
 pass-through, which is the entry/exit structure, not the loop.
 
+It also settles an older loose end. The 2026-08-23 comparison against Dynamatic
+recorded that collatz's two fitted intercepts disagreed (8.3 vs 31.5 ns) and
+explained it as *"collatz iterations are non-uniform -- even is a shift, odd is
+a multiply -- so the slope is a mean and the linear model misses the low-step
+points."* That explanation is wrong: the iterations are not non-uniform, they
+cost 9.320 and 9.322 cycles. The intercepts disagreed because the design matrix
+could not determine one. Natural collatz trajectories have correlated even/odd
+counts and no low-step anchor; add powers of two and the base comes out at
+**85.0 +- 0.9 ns** with a 0.126-cycle residual. The fix was inputs, not a
+better fitter.
+
 ### The same sweep at 64 bits prices the datapath separately from the loop
 
 `K=collatz64 hw/collatz_branch.sh` runs the identical 19 points against the
