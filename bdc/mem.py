@@ -306,6 +306,18 @@ def emit_port(aw, dw, slots=1):
     dpad = " " * max(0, 7 - len(str(dw - 1)))
     apad = " " * max(0, 7 - len(str(aw - 1)))
 
+    # ONE PAIR OF DELAYS PER RAM, not one pair for the gang.  Each bd_mem in a
+    # gang is placed and routed separately, so rule B and rule C measure each
+    # one's setup and clock-to-out against its OWN clock path and propose two
+    # different numbers.  A shared parameter would silently collapse those into
+    # whichever was written last -- and sizing is per-delay-element here, never
+    # global.  The names line up with verify/tighten.py's macro convention:
+    # macro('uport.umem1.usetup') -> BD_SZ_UPORT_UMEM1_USETUP, passed in at the
+    # instance as .DSETUP_1(...).
+    parlist = ",\n                ".join(
+        f"parameter DSETUP_{k} = {DEFAULT_DSETUP}, parameter DCO_{k} = {DEFAULT_DCO}"
+        for k in range(n))
+
     # One-hot AND-OR mux.  At most one slot's request is high, so an OR of
     # masked payloads is the whole selector -- no priority, no encoder, and
     # nothing that changes value while a request is high, because the slot
@@ -332,7 +344,7 @@ def emit_port(aw, dw, slots=1):
             rd = f"{{rd_hi{i}, p_rdata[{lo + hi - 1}:{lo}]}}"
         rams += [
             f"    bd_mem #(.AW({aw}), .DW({RAM_DW}),",
-            f"             .DSETUP(DSETUP), .DCO(DCO), .USE_BUFG(0)) umem{i} (",
+            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)) umem{i} (",
             f"        .req(m_req), .ack(ram_ack[{i}]),",
             f"        .addr(m_addr), .wdata({wd}), .we(m_we),",
             f"        .rdata({rd}));",
@@ -373,7 +385,7 @@ def emit_port(aw, dw, slots=1):
 // simulation so that a wiring mistake is a message rather than a wrong answer.
 `default_nettype none
 (* keep_hierarchy *)
-module {name} #(parameter DSETUP = {DEFAULT_DSETUP}, parameter DCO = {DEFAULT_DCO})
+module {name} #({parlist})
     (input  wire             rst,
      input  wire [{slots - 1}:0]{" " * max(0, 7 - len(str(slots - 1)))}s_req,
      input  wire [{aw * slots - 1}:0]{" " * max(0, 7 - len(str(aw * slots - 1)))}s_addr,
@@ -406,6 +418,123 @@ endmodule
 """
 
 
+def emit_proto_top(aw=10, dw=32, module="bdc_mem_top"):
+    """A two-pin top that routes the port and both stations.
+
+    In the shape of cells/verify/soak_top.v, and for the same reason: it is NOT
+    a functioning design and is not trying to be.  It exists so that nothing
+    folds, nothing merges, and every net is real enough for the router, so the
+    gates downstream -- flow.sh, then verify/tighten.py rules B and C -- have a
+    routed two-RAM port to measure.
+
+    IT DOES NOT OBEY THE ONE-HOT OBLIGATION.  Both stations are driven from
+    independent spine bits, so both slot requests can be high at once, which
+    the port module will say so about in simulation.  That is deliberate here
+    and it would be a bug anywhere else: what is being asked is "does this
+    place, route, and meet the RAM's windows", not "does it compute".
+
+    Two rules from bdc/compute.py's emit_proto_top, both learned the hard way
+    and both repeated here because they bite a two-RAM port exactly as they bit
+    one unit.  Operands must come from real STATE, or every bit is a function
+    of one pin and yosys folds the datapath away.  And the environment must not
+    close a COMBINATIONAL loop around the design, or tighten.py sees every
+    matched delay as a state node and measures requests arriving at themselves
+    -- so every consumer acknowledge here is a LATCH BIT, never a request.
+    """
+    check(aw, dw)
+    nr = ram_count(dw)
+    # A wide, non-repeating constant so no two data bits are the same function
+    # of one pin -- that is what stops yosys folding the datapath away.
+    seed = int("5A3C1E2D" * 4, 16) & ((1 << (dw - 8)) - 1)
+    # The `include is half the mechanism, and leaving it out fails SILENTLY:
+    # flow.sh accepts BD_SIZES, prints "using measured delay lengths", copies
+    # the file to $OUT/sizes.vh, passes -DBD_SIZES -I$OUT -- and if nothing
+    # includes it the placeholders below are what actually get built.  This
+    # top shipped without it once: verify/resize.sh settled on UMEM0_UCO 6 /
+    # UMEM1_UCO 7 and every build in the sweep, including the final one, was
+    # routed with the 12-link placeholder.  The gates all passed, because a
+    # 12-link chain really does meet rule C; they were just not measuring the
+    # design the loop said it had produced.
+    szdefs = "`ifdef BD_SIZES\n `include \"sizes.vh\"\n`endif\n" + "\n".join(
+        f"`ifndef BD_SZ_UPORT_UMEM{k}_{w}\n"
+        f" `define BD_SZ_UPORT_UMEM{k}_{w} {d}\n"
+        f"`endif"
+        for k in range(nr)
+        for w, d in (("USETUP", DEFAULT_DSETUP), ("UCO", DEFAULT_DCO)))
+    szargs = ",\n                              ".join(
+        f".DSETUP_{k}(`BD_SZ_UPORT_UMEM{k}_USETUP), .DCO_{k}(`BD_SZ_UPORT_UMEM{k}_UCO)"
+        for k in range(nr))
+    return f"""
+// A two-pin top for the memory port and its stations.  Generated by bdc/mem.py.
+//
+//     BD_OUT=build/pnr/bdcmem BD_TOP_V=build/gen/{module}.v BD_TOP_M={module} \
+//         ./flow.sh
+//     python3 verify/tighten.py build/pnr/bdcmem/soak.sdf
+//
+// BD_OUT is not optional: flow.sh names every artifact soak.*, and
+// build/pnr/soak.sdf is the tighten gate's own input.
+`default_nettype none
+module {module} (input wire pin_in, output wire pin_out);
+
+    wire rst = pin_in;
+
+    // A free-running spine: the pipe acknowledges itself, so nothing settles
+    // and nothing folds, and there is no combinational path from the design's
+    // outputs back to its inputs.
+    wire               spine, p_ack_in, p_req_out;
+    wire [{dw - 1}:0]  p_data_out;
+    bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
+    bd_pipe #(.W({dw}), .N(4)) upipe (
+        .rst(rst),
+        .req_in(~spine), .ack_in(p_ack_in),
+        .data_in({{{dw - 8}'h{seed:x}, 7'h2D, pin_in}}),
+        .req_out(p_req_out), .ack_out(p_req_out), .data_out(p_data_out));
+
+    wire [1:0]           s_req, s_we;
+    wire [{2 * aw - 1}:0]  s_addr;
+    wire [{2 * dw - 1}:0]  s_wdata;
+    wire                 p_ack;
+    wire [{dw - 1}:0]    p_rdata;
+
+    wire sa_ack, sd_ack, sz_req, la_ack, lz_req;
+    wire [{dw - 1}:0] lz_data;
+
+    // Each channel's request gets a DIFFERENT live signal.  Tying them
+    // together lets yosys collapse the joins inside the stations into wires.
+    bdc_store_{aw}_{dw} ust (
+        .rst(rst),
+        .a_req(p_req_out), .a_ack(sa_ack), .a_data(p_data_out[{aw - 1}:0]),
+        .d_req(spine),     .d_ack(sd_ack), .d_data(p_data_out),
+        .z_req(sz_req),    .z_ack(p_data_out[{dw - 1}]),
+        .p_req(s_req[0]), .p_ack(p_ack), .p_addr(s_addr[{aw}*0 +: {aw}]),
+        .p_wdata(s_wdata[{dw}*0 +: {dw}]), .p_we(s_we[0]), .p_rdata(p_rdata));
+
+    bdc_load_{aw}_{dw} uld (
+        .rst(rst),
+        .a_req(p_data_out[0]), .a_ack(la_ack), .a_data(p_data_out[{2 * aw - 1}:{aw}]),
+        .z_req(lz_req), .z_ack(p_data_out[{dw - 2}]), .z_data(lz_data),
+        .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[{aw}*1 +: {aw}]),
+        .p_wdata(s_wdata[{dw}*1 +: {dw}]), .p_we(s_we[1]), .p_rdata(p_rdata));
+
+    // The delays are placeholders here exactly as they are everywhere else;
+    // the point of routing this is to replace them with measured lengths.
+    // The BD_SZ_* keys are spelled at the INSTANCE, matching verify/tighten.py's
+    // own naming (macro('uport.umem0.usetup') -> BD_SZ_UPORT_UMEM0_USETUP).
+{szdefs}
+    bdc_memport_{aw}_{dw}_2 #({szargs}) uport (
+        .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
+        .s_we(s_we), .p_ack(p_ack), .p_rdata(p_rdata));
+
+    // EVERY output is observed.  An output nothing reads is an output the
+    // packer is free to delete, and a deleted net is a gate measuring nothing.
+    assign pin_out = ^{{lz_data, p_rdata, sz_req, lz_req, sa_ack, sd_ack,
+                       la_ack, p_ack, s_req, s_we, s_addr, s_wdata,
+                       p_data_out, p_req_out, spine}};
+endmodule
+`default_nettype wire
+"""
+
+
 def emit_all(units, ports=()):
     """`units` is (kind, aw, dw); `ports` is (aw, dw, slots).  One Verilog file."""
     seen, out = {}, []
@@ -430,13 +559,17 @@ def main():
     import argparse
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("spec", nargs="+",
-                   help="load:AW:DW, store:AW:DW, or port:AW:DW:SLOTS")
+                   help="load:AW:DW, store:AW:DW, port:AW:DW:SLOTS, top:AW:DW")
     p.add_argument("-o", "--output")
     a = p.parse_args()
-    units, ports = [], []
+    units, ports, tops = [], [], []
     for s in a.spec:
         parts = s.split(":")
-        if parts[0] == "port":
+        if parts[0] == "top":
+            if len(parts) != 3:
+                raise SystemExit(f"bad spec {s!r} -- want top:AW:DW")
+            tops.append((int(parts[1]), int(parts[2])))
+        elif parts[0] == "port":
             if len(parts) != 4:
                 raise SystemExit(f"bad spec {s!r} -- want port:AW:DW:SLOTS")
             ports.append((int(parts[1]), int(parts[2]), int(parts[3])))
@@ -445,6 +578,8 @@ def main():
         else:
             raise SystemExit(f"bad spec {s!r} -- want kind:AW:DW")
     text = emit_all(units, ports)
+    for aw, dw in tops:
+        text += emit_proto_top(aw, dw)
     if a.output:
         with open(a.output, "w") as f:
             f.write(text)
