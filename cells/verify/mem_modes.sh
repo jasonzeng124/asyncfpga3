@@ -18,6 +18,10 @@
 set -u
 cd "$(dirname "$0")/.."
 
+# Self-contained: run_sim.sh SKIPs when the generated units are missing, and a
+# skipped negative control reads exactly like a passing one.
+./hw/gen_mem_units.sh >/dev/null
+
 LOG=build/sim/tb_bdc_memseq.log
 fails=0
 

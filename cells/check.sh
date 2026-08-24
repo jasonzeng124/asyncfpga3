@@ -18,10 +18,22 @@ run "toolchain: the installed nextpnr carries every patch in patches/" \
     ./verify/toolchain.sh
 run "constants: derived, proved exhaustively, audited against rtl/" \
     python3 verify/inits.py --check-rtl
+# run_sim.sh SKIPs a bench whose `// requires:` file is missing, and a skip is
+# not a pass.  Generate first so the two memory benches actually run.
+run "generate: the memory units the benches require" \
+    ./hw/gen_mem_units.sh
 run "protocol: arc-only timing" \
     ./run_sim.sh
 run "protocol: routed-estimate timing (BD_ROUTE_PS=354)" \
     env BD_ROUTE_PS=354 ./run_sim.sh
+# The memory generator's own gates.  Both are cheap and neither needs the
+# toolchain -- and both were sitting in verify/ with nothing calling them,
+# which for the second one is a real hole: three of tb_bdc_memseq's four modes
+# are SUPPOSED to fail, and a negative control nobody runs is not a control.
+run "memory: 36 shapes elaborate, and an out-of-range one is refused" \
+    ./verify/mem_shapes.sh
+run "memory: the release rule, the port's one-hot monitor, and the token chain" \
+    ./verify/mem_modes.sh
 run "cost: every cell synthesised alone" \
     python3 verify/lutcost.py
 run "packing, placement, routing: one design, real chipdb" \

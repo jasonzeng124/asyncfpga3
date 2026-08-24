@@ -82,10 +82,18 @@ what tells you it is structural and not a race.  See bdc/AUDIT.md section 7.
 
 AND DCO IS THE ADDRESS HOLD GUARD, NOT ONLY THE CLOCK-TO-OUT LINE
 
-Falling out of the same trace: the address is released one arc after p_ack
-falls, which is DCO after ram_clk falls, which is DSETUP + DCO after the RAM
-captured it.  So DCO is what provides the hold window, and rule C sizes it for
-clock-to-out alone.
+Falling out of the same trace: the address is released when the port claim is,
+which is DSETUP + DCO after the RAM captured it -- the capture edge is DSETUP
+after the request and the claim drops at the acknowledge, DCO later.  So DCO is
+what provides the hold window, and rule C sizes it for clock-to-out alone.
+
+(`done` shortened this.  The claim used to persist until the operands were
+withdrawn, so the measured hold was whatever the dataflow happened to take;
+now it is bounded by the RAM's own round trip and by nothing else, which is
+the point -- it is a number the port controls.  tb_bdc_mem.v measures 2700 ps
+for both address and data where it read 2632 / 2756 before.  Shortening a
+matched delay is the direction simulation cannot check, so note that DCO
+itself did not change: what went away was slack that was never guaranteed.)
 
 This paragraph used to say prjxray's model checks setup and says nothing about
 hold.  That was wrong: BRAM_L.sdf carries HOLD arcs right next to the SETUP
@@ -95,9 +103,9 @@ ones it was already being read for, e.g.
 
 They are exported by sim/bd_prims_sim.v now.  verify/tighten.py reports the
 bound (2x its own clock-to-out number, since DCO appears twice in the release
-path), and tb_bdc_mem.v measures the real value: 2632 ps against 360 needed.  That makes shortening DCO
-risky in two independent ways at once, and shortening a matched delay is
-already the direction simulation cannot see.
+path), and tb_bdc_mem.v measures the real value: 2700 ps against 360 needed.
+That makes shortening DCO risky in two independent ways at once, and
+shortening a matched delay is already the direction simulation cannot see.
 
 THE PORT CLAIM MUST RETURN TO ZERO ON ITS OWN, AND THAT IS WHAT `done` IS
 
@@ -607,7 +615,7 @@ endmodule
 """
 
 
-def emit_proto_top(aw=10, dw=32, module="bdc_mem_top"):
+def emit_proto_top(aw=10, dw=32, module="bdc_mem_top", arb=False):
     """A two-pin top that routes the port and both stations.
 
     In the shape of cells/verify/soak_top.v, and for the same reason: it is NOT
@@ -621,6 +629,17 @@ def emit_proto_top(aw=10, dw=32, module="bdc_mem_top"):
     the port module will say so about in simulation.  That is deliberate here
     and it would be a bug anywhere else: what is being asked is "does this
     place, route, and meet the RAM's windows", not "does it compute".
+
+    arb=True routes the OTHER port instead: bd_arbiter in front of the RAM
+    gang, `:seq` stations, per-slot acknowledges.  It is a separate top rather
+    than a replacement because the two have different things to prove.  The
+    plain one is the port whose routed rule-B and rule-C numbers are already
+    on record; the arbitrated one adds a mux to the address path and an
+    arbiter to the request path, and whether the RAM's setup window survives
+    that is a routed question, not a simulated one.  (The arbiter also brings
+    its own obligation from bd_arb.v: a consumer must not read a grant within
+    one loop delay of the decision.  Here the grant is read by the mux and the
+    RAM, which is many hops, but it is a thing to measure and not assume.)
 
     Two rules from bdc/compute.py's emit_proto_top, both learned the hard way
     and both repeated here because they bite a two-RAM port exactly as they bit
@@ -650,6 +669,19 @@ def emit_proto_top(aw=10, dw=32, module="bdc_mem_top"):
         f"`endif"
         for k in range(nr)
         for w, d in (("USETUP", DEFAULT_DSETUP), ("UCO", DEFAULT_DCO)))
+    sfx     = "_seq" if arb else ""
+    psfx    = "_arb" if arb else ""
+    ackdecl = ("    wire [1:0]           s_ack;" if arb
+               else "    wire                 p_ack;")
+    ack0    = "s_ack[0]" if arb else "p_ack"
+    ack1    = "s_ack[1]" if arb else "p_ack"
+    ackport = "s_ack(s_ack)" if arb else "p_ack(p_ack)"
+    ackobs  = "s_ack" if arb else "p_ack"
+    # The token channels get their own live bits.  They are not a real program
+    # order -- nothing here computes -- but they must be distinct signals or
+    # the extra join input folds away and the routed cell is the wrong one.
+    stok    = "\n        .c_req(p_data_out[1]), .c_ack()," if arb else ""
+    ltok    = "\n        .c_req(p_data_out[2]), .c_ack()," if arb else ""
     szargs = ",\n                              ".join(
         f".DSETUP_{k}(`BD_SZ_UPORT_UMEM{k}_USETUP), .DCO_{k}(`BD_SZ_UPORT_UMEM{k}_UCO)"
         for k in range(nr))
@@ -682,7 +714,7 @@ module {module} (input wire pin_in, output wire pin_out);
     wire [1:0]           s_req, s_we;
     wire [{2 * aw - 1}:0]  s_addr;
     wire [{2 * dw - 1}:0]  s_wdata;
-    wire                 p_ack;
+{ackdecl}
     wire [{dw - 1}:0]    p_rdata;
 
     wire sa_ack, sd_ack, sz_req, la_ack, lz_req;
@@ -690,19 +722,19 @@ module {module} (input wire pin_in, output wire pin_out);
 
     // Each channel's request gets a DIFFERENT live signal.  Tying them
     // together lets yosys collapse the joins inside the stations into wires.
-    bdc_store_{aw}_{dw} ust (
-        .rst(rst),
+    bdc_store{sfx}_{aw}_{dw} ust (
+        .rst(rst),{stok}
         .a_req(p_req_out), .a_ack(sa_ack), .a_data(p_data_out[{aw - 1}:0]),
         .d_req(spine),     .d_ack(sd_ack), .d_data(p_data_out),
         .z_req(sz_req),    .z_ack(p_data_out[{dw - 1}]),
-        .p_req(s_req[0]), .p_ack(p_ack), .p_addr(s_addr[{aw}*0 +: {aw}]),
+        .p_req(s_req[0]), .p_ack({ack0}), .p_addr(s_addr[{aw}*0 +: {aw}]),
         .p_wdata(s_wdata[{dw}*0 +: {dw}]), .p_we(s_we[0]), .p_rdata(p_rdata));
 
-    bdc_load_{aw}_{dw} uld (
-        .rst(rst),
+    bdc_load{sfx}_{aw}_{dw} uld (
+        .rst(rst),{ltok}
         .a_req(p_data_out[0]), .a_ack(la_ack), .a_data(p_data_out[{2 * aw - 1}:{aw}]),
         .z_req(lz_req), .z_ack(p_data_out[{dw - 2}]), .z_data(lz_data),
-        .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[{aw}*1 +: {aw}]),
+        .p_req(s_req[1]), .p_ack({ack1}), .p_addr(s_addr[{aw}*1 +: {aw}]),
         .p_wdata(s_wdata[{dw}*1 +: {dw}]), .p_we(s_we[1]), .p_rdata(p_rdata));
 
     // The delays are placeholders here exactly as they are everywhere else;
@@ -710,14 +742,14 @@ module {module} (input wire pin_in, output wire pin_out);
     // The BD_SZ_* keys are spelled at the INSTANCE, matching verify/tighten.py's
     // own naming (macro('uport.umem0.usetup') -> BD_SZ_UPORT_UMEM0_USETUP).
 {szdefs}
-    bdc_memport_{aw}_{dw}_2 #({szargs}) uport (
+    bdc_memport{psfx}_{aw}_{dw}_2 #({szargs}) uport (
         .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
-        .s_we(s_we), .p_ack(p_ack), .p_rdata(p_rdata));
+        .s_we(s_we), .{ackport}, .p_rdata(p_rdata));
 
     // EVERY output is observed.  An output nothing reads is an output the
     // packer is free to delete, and a deleted net is a gate measuring nothing.
     assign pin_out = ^{{lz_data, p_rdata, sz_req, lz_req, sa_ack, sd_ack,
-                       la_ack, p_ack, s_req, s_we, s_addr, s_wdata,
+                       la_ack, {ackobs}, s_req, s_we, s_addr, s_wdata,
                        p_data_out, p_req_out, spine}};
 endmodule
 `default_nettype wire
@@ -748,7 +780,7 @@ def main():
     import argparse
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("spec", nargs="+",
-                   help="load:AW:DW[:seq], store:AW:DW[:seq], port:AW:DW:SLOTS, portarb:AW:DW:2, top:AW:DW")
+                   help="load:AW:DW[:seq], store:AW:DW[:seq], port:AW:DW:SLOTS, portarb:AW:DW:2, top:AW:DW, toparb:AW:DW")
     p.add_argument("-o", "--output")
     a = p.parse_args()
     units, ports, tops = [], [], []
@@ -757,7 +789,11 @@ def main():
         if parts[0] == "top":
             if len(parts) != 3:
                 raise SystemExit(f"bad spec {s!r} -- want top:AW:DW")
-            tops.append((int(parts[1]), int(parts[2])))
+            tops.append((int(parts[1]), int(parts[2]), False))
+        elif parts[0] == "toparb":
+            if len(parts) != 3:
+                raise SystemExit(f"bad spec {s!r} -- want toparb:AW:DW")
+            tops.append((int(parts[1]), int(parts[2]), True))
         elif parts[0] == "portarb":
             if len(parts) != 4:
                 raise SystemExit(f"bad spec {s!r} -- want portarb:AW:DW:SLOTS")
@@ -773,8 +809,9 @@ def main():
         else:
             raise SystemExit(f"bad spec {s!r} -- want kind:AW:DW")
     text = emit_all(units, ports)
-    for aw, dw in tops:
-        text += emit_proto_top(aw, dw)
+    for aw, dw, arb in tops:
+        text += emit_proto_top(aw, dw, module="bdc_mem_arb_top" if arb else "bdc_mem_top",
+                               arb=arb)
     if a.output:
         with open(a.output, "w") as f:
             f.write(text)

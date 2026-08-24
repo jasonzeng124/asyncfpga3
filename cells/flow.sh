@@ -340,9 +340,31 @@ echo "== place and route =="
 "$YOSYS" -V >> $OUT/toolchain.txt 2>&1
 sed 's/^/  /' $OUT/toolchain.txt
 
+# NEXTPNR_SEED is OPTIONAL and off by default, which is not laziness: with no
+# --seed this flow is deterministic, so a routed margin is reproducible and two
+# runs of the same netlist can be diffed.  That is the right default for a gate.
+#
+# It is the wrong default for a MEASUREMENT.  A margin from one route is one
+# sample, and this fabric's build-to-build scatter has repeatedly been larger
+# than the margins being quoted.  Set NEXTPNR_SEED to resample.
+#
+# (Learned by getting it wrong here: three runs were launched with
+# NEXTPNR_SEED=2/3/4 to sample the arbitrated memory port's rule-B margin and
+# came back identical to the picosecond, because until this comment existed
+# flow.sh did not read the variable at all.  build_bench.sh does; flow.sh did
+# not; nothing said so.  Identical numbers across a swept parameter mean the
+# parameter is not connected at least as often as they mean the effect is
+# structural -- check the wire before believing the result.)
+SEEDARG=""
+if [ -n "${NEXTPNR_SEED:-}" ]; then
+    SEEDARG="--seed $NEXTPNR_SEED"
+    echo "  seed $NEXTPNR_SEED -- this is a SAMPLE of the route, not the route"
+fi
+
 # --sdf is what verify/tighten.py reads: real per-net routed delays, which is
 # the only place the matched-delay lengths can come from.
-"$NEXTPNR" --chipdb "$CHIPDB" --xdc $OUT/soak.xdc --ignore-loops \
+# shellcheck disable=SC2086
+"$NEXTPNR" --chipdb "$CHIPDB" --xdc $OUT/soak.xdc --ignore-loops $SEEDARG \
            --json $OUT/soak.json --write $OUT/soak_routed.json \
            --sdf $OUT/soak.sdf --fasm $OUT/soak.fasm > $OUT/pnr.log 2>&1 \
     || { echo "PNR FAILED"; tail -40 $OUT/pnr.log; exit 1; }
