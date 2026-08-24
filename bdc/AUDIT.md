@@ -297,3 +297,104 @@ whoever builds Stage 6, not a bug in the checker — once `mem_controller`'s
 real cell mapping is committed to `bd-config.json`, `bd_mem`'s `RAMB18E1`
 will very likely need adding to the storage set, and this entry is the
 pointer to why.
+
+---
+
+## 7. The memory station, and what a working prototype does not discharge
+
+**Status: prototype built, simulated and routed. `bd-config.json` deliberately
+unchanged — this entry is the evidence, not the mapping.**
+
+`bdc/mem.py` generates the two modules a memory access needs, and they are real:
+they simulate against a bench with its own oracle, and they place, route and
+resize through the default `cells/flow.sh` path. None of that, on its own,
+licenses `load`/`store`/`mem_controller` in `bd-config.json`. What it does is
+turn section 2's "memory is the last thing to attempt" into a specific list of
+what is now known and what is still open.
+
+### The shape: a memory access is a compute unit whose function is the RAM
+
+`bdc/compute.py` emits a unit as *join the operands, wait a matched delay, raise
+the outgoing request*. A memory station is the same unit with the RAM standing
+where the `bd_delay` stands. `bd_mem`'s `DSETUP` (address and data settled
+before the manufactured clock rises, rule B) and `DCO` (acknowledge trails the
+read data out of the RAM, rule C) **are** that matched delay, and
+`verify/tighten.py` already audits both. The station therefore contains no
+`bd_delay` of its own, and no `uor` — which is deliberate, because that is how
+rule A recognises a request boundary it should be sizing, and this cell does not
+have one.
+
+Split into a **port** (owns the RAMs) and **stations** (one per access) because
+the port is untestable otherwise: a `RAMB18E1` cannot be given an `INIT` here,
+so the only way to read a known value is to store it first, which needs two
+stations on one port.
+
+### Three things the RTL had to get right, and the negative controls for each
+
+**The operands are released when the PORT is quiet, not when the consumer is
+done.** My first version used `bd_join`, on the belief that its acknowledge
+already gave four-phase ordering. Reading `rtl/bd_ctl.v` falsified that:
+`bd_join` is `bd_ctree` over the input requests plus `assign ack_out =
+{N{ack}}`, so the outgoing request depends on the inputs only and there is *no
+arc from the acknowledge at all*. With the address released at `z_ack`, the next
+access arrives while the manufactured clock is still high and there is simply no
+second rising edge for it — a silently swallowed access, not a hang. The fix is
+an asymmetric C-element, `q = ~rst & (a | (q & b))` with `a = z_ack` and
+`b = p_ack`: it rises on `z_ack` alone so the producer learns promptly, and
+falls only when the port has returned to zero. `INIT 64'h00EA` is `bd_c2`'s
+`0x00E8` with exactly one bit changed — the code where `a` alone is high. That
+bit is the asymmetry and it is the whole cell. The bench keeps the broken
+version reachable as `BDC_MEM_NAIVE_ACK=1`.
+
+**`p_ack` is shared, so the outgoing request must be gated by this station's own
+claim** (`z_req = p_ack & joined`). Ungated, the *other* slot's acknowledge
+looks like a second result on this channel.
+
+**The bench counts RAM clock edges.** `always @(posedge ram_clk) nedges =
+nedges + 1`, checked against the access count at the end. 60 accesses, 60 edges.
+This is the check that would have caught the swallowed access on its own, and it
+is the reason the station is testable at all.
+
+Negative control for the sizing: the same design with `DSETUP = 0` reports 106
+and 107 setup violations where the sized port reports 0 and 0.
+
+### What routing added
+
+`flow.sh` closes on it: 2 `RAMB18E1`, 417 LUT cells, no global clock buffer.
+`verify/resize.sh` settles in 4 sweeps / 17 place-and-route runs on
+`UMEM0_UCO 9, UMEM0_USETUP 1, UMEM1_UCO 9, UMEM1_USETUP 8`, with rule B margins
+of 402 and 2759 ps and rule C margins of 981 and 1353 ps.
+
+Two constraints that fall out of the hardware rather than the design:
+
+- **The port is 16 bits.** `RAMB18E1` in x18 mode has 16-bit `DIADI`/`DOADO`.
+  Anything wider is a **gang** of RAMs with their acknowledges joined by a
+  `bd_ctree` — which is what `emit_port` builds — not a wider RAM.
+- **`AW > 10` truncates.** The address is `{addr, 4'b0000}` taken from the TOP of
+  `ADDRARDADDR`, so an eleventh address bit folds the memory in half without
+  saying anything. `check()` refuses it loudly.
+
+And one that is worth stating because nothing else audits it: **`DCO` is also the
+address HOLD guard.** The address is released one arc after `p_ack` falls, and
+`p_ack` falls `DCO` after `ram_clk` falls. Shortening `DCO` shortens hold. Rule C
+sizes it for clock-to-out and would not notice.
+
+### What this does NOT discharge
+
+`mem_controller` is where the program order lives, and it is unbuilt. A
+four-phase trace for a program-order token chain works on paper, with **one
+ordering assumption that could not be discharged by construction**: releasing
+the token when `p_ack` falls races the previous station's `z_ack` fall, and it is
+currently safe only because the port path is roughly 20 arcs against the
+consumer path's 2. A margin that large is not an argument, it is a coincidence
+with good odds — it needs either a real interlock or a rule that measures it.
+
+Until then section 6 stands unchanged: `slack.py` still reports a cycle closing
+through a `mem_controller` address echo as a violation, and `bd-config.json`
+still marks all three ops `"kind": "todo"`. When the mapping is committed,
+`bd_mem` will need adding to `STORAGE_CELLS`, and this entry plus section 6 are
+the pointer to why.
+
+Sharing one port between accesses is `bd_arbiter`'s job — the library's own
+recommended answer, and section 1 already argues for arbitrating
+unconditionally rather than building analyses to avoid it.
