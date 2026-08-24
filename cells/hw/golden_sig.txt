@@ -1,0 +1,19 @@
+# Expected SIG for each kernel's FIXED (48,18) N=200 batch, as asserted by
+# hw/xsdb_bench_gen.tcl argv 4.
+#
+# SIG is {sig[30:0],sig[31]} ^ o_data_capture folded over the batch, so it is a
+# pure function of the RESULT sequence -- no timing, no cycle counts.  It does
+# not move when the route, the seed, the clock rate or the matched-delay sizes
+# change.  It moves only when the kernel computes something different.
+#
+# This exists because no kernel but gcd has an oracle in the tcl, and the
+# 200-run repeatability check cannot see a kernel that is deterministically
+# wrong: an under-delayed xorshift build returned the same wrong answer 200
+# times and passed every check in the script.
+#
+# To add a kernel: run it on a build you trust, take the sig= field from
+# check (a), and put it here.  A value recorded from an UNTRUSTED build is
+# worse than no value at all -- it would pin the bug in place.
+#
+#   kernel     sig         recorded from
+xorshift       0x03dba483  # default-path tightened build, 2026-08-23, board-validated

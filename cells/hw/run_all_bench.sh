@@ -60,7 +60,18 @@ for k in $KERNELS; do
             continue
         fi
         echo "=== RUN $TOP $(date -Iseconds) ===" | tee -a "$RESULTLOG"
-        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" > "$LOG" 2>&1; then
+        # Assert the expected result-fold when one is recorded for this
+        # kernel.  The null variant computes something else entirely, so it
+        # never gets the real kernel's signature.
+        GOLD=""
+        if [ "$variant" = "real" ] && [ -e hw/golden_sig.txt ]; then
+            GOLD=$(awk -v k="$k" '$1==k {print $2; exit}' hw/golden_sig.txt)
+        fi
+        if [ -z "$GOLD" ]; then
+            echo "    note: no expected SIG recorded for $TOP -- a deterministically" \
+                 "wrong answer would not be caught (see hw/golden_sig.txt)"
+        fi
+        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" $GOLD > "$LOG" 2>&1; then
             echo "=== PASS $TOP ===" | tee -a "$RESULTLOG"
         else
             echo "=== FAIL $TOP -- see $LOG ===" | tee -a "$RESULTLOG"

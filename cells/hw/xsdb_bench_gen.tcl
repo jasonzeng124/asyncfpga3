@@ -78,6 +78,10 @@ proc error {msg args} {
 }
 
 set CLK_CTRL_VAL [lindex $argv 3]
+# Optional 5th argument: the SIG this kernel is known to produce for the
+# FIXED (48,18) N=200 batch.  See the note at check (a) for why a bench with
+# no oracle needs one.
+set GOLD_SIG [lindex $argv 4]
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
 set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
@@ -353,6 +357,33 @@ if {$latmin != $latmax} {
 }
 if {$mism & 1} { error "FIXED batch: MISMATCH_STICKY set on identical operands -- real repeatability failure, mismatch_idx=[dict get $r mism_idx] mismatch_val=[dict get $r mism_val] mismatch_ref=[dict get $r mism_ref]" }
 puts "FIXED-mode repeatability check PASS (no mismatch across [dict get $r completed] identical-input runs)"
+
+# ---------------------------------------------------------------------------
+# The repeatability check above cannot see a kernel that is DETERMINISTICALLY
+# wrong.  No oracle is hardcoded for any kernel but gcd, so 200 identical runs
+# that all return the same wrong answer pass every check in this script.
+#
+# That is not hypothetical.  A deliberately under-delayed xorshift build
+# (ucmpi1 cut from 18 matched-delay links to 10) returned 4241718536 for EVERY
+# input, in 4 cycles instead of 70 -- the loop-termination compare sampled
+# before it settled, so the loop exited immediately.  Check (a) passed it.
+# Check (b) only caught it as a side effect: it could not find any operand
+# pair that changed the output, because nothing changed the output.
+#
+# So: if the caller knows what this kernel's SIG should be, assert it.  SIG is
+# {sig[30:0],sig[31]} ^ o_data_capture folded over the batch (gen_bench.py),
+# i.e. a pure function of the RESULT sequence with no timing in it -- so it is
+# stable across routes, seeds and clock rates, and any change to it is a
+# change to what the kernel computed.
+if {$GOLD_SIG ne ""} {
+    set want [expr {$GOLD_SIG}]
+    if {$sig != $want} {
+        error [format "SIG ORACLE FAILED: FIXED (48,18) N=200 folded to 0x%08x, expected 0x%08x. SIG has no timing in it, so this kernel computed something different -- not a slower route, a wrong answer." $sig $want]
+    }
+    puts [format "SIG oracle PASS (0x%08x matches the expected result fold)" $sig]
+} else {
+    puts "SIG oracle: not asserted (no expected value passed as argv 4) -- a deterministically wrong answer would NOT be caught by check (a)"
+}
 
 # =========================================================================
 # (b) deliberate corruption -- prove MISMATCH_STICKY fires on real silicon.

@@ -204,6 +204,108 @@ do. The ratio is what carries.
 
 ---
 
+## Walking a matched delay to failure, 2026-08-23
+
+The 128-ring study above measures how well nextpnr's routed SDF predicts one
+loop's ABSOLUTE delay. Rule A guards something else: the DIFFERENCE between a
+request path and a data path. This is an attempt to measure that difference
+directly, by taking a kernel that works and shortening one matched delay until
+silicon breaks.
+
+Target: `xorshift`'s `ucmpi1`, the loop-termination compare, 18 links in the
+shipped build and the cell with the most headroom. Method: rewrite one
+`BD_SZ_*` define, build with `BD_SIZES=<file> BD_NO_TIGHTEN=1
+BD_SIZES_GATE=0`, run the bench. The gate is off because these builds are
+MEANT to violate rule A; every bitstream produced here is a broken measurement
+artifact and none of them may ever ship.
+
+### It breaks, and it breaks the way the cell means
+
+Two failure modes showed up, both reproducible 3/3 on re-run:
+
+- **Hang.** UNIFORM mode stops mid-batch (run 21/2000 at 8 links, 489/2000 at
+  another). The FIXED (48,18) batch still passes, so it is data-dependent --
+  only some operand patterns are slow enough to lose the race. A request that
+  arrives before its data breaks the 4-phase sequence and the FSM waits
+  forever, which is what a hang rather than a wrong answer should look like.
+- **Constant output.** At 10 links the kernel returned 4241718536 for every
+  input in 4 cycles instead of 70. That is exactly `ucmpi1`'s meaning: sample
+  the termination compare before it settles, read "done", exit the loop
+  immediately, hand back the input. See the next section for why this one
+  matters out of proportion to itself.
+
+### Rule A's margin did not order the outcomes
+
+Each point re-places the whole design, so this is twelve routes rather than
+one route twelve times, with `NEXTPNR_SEED` pinned and each build's margins
+read from its OWN routed SDF. Board verdict against the rule A slack
+(`margin + guard`, i.e. how much the request actually trails the data)
+tighten.py computed for `ucmpi1` on that same route:
+
+| links | slack (ps) | board | | links | slack (ps) | board |
+|---|---|---|---|---|---|---|
+| 18 | +710 | PASS | | 8 | −817 | FAIL |
+| 16 | +2557 | PASS | | 7 | **−2444** | **PASS** |
+| 14 | +1291 | PASS | | 6 | −663 | PASS |
+| 12 | +2091 | PASS | | 5 | −1281 | PASS |
+| 10 | **+628** | **FAIL** | | 4 | −3336 | FAIL |
+| 9 | **−1505** | **PASS** | | 3 | −3222 | FAIL |
+
+**A build whose request provably trails its data by 628 ps failed every time,
+and a build whose request leads its data by 2444 ps passed every time.** The
+ordering is not weak, it is absent across roughly ±3 ns. Rule D does not
+rescue it either: the FAIL range of worst select margin (−7196..−6288) sits
+strictly INSIDE the PASS range (−9139..−6255), and all twelve builds carry
+exactly 8 select violations, so it cannot discriminate at all.
+
+That ±3 ns is not a surprise next to the ring study. Per-route SDF error there
+was 25.2% at p90, and these data paths are 4–5 ns, so ~1–1.3 ns of model error
+per path and two paths per comparison. **The slacks being disputed here are
+inside the model's own measured noise floor.** The two rigs agree.
+
+### What this experiment does NOT establish
+
+Read the limits before quoting the table.
+
+- **It does not isolate `ucmpi1`.** Changing a link count re-places
+  everything. A failure can belong to any cell on that route.
+- **There is no clean control point.** `BD_NO_TIGHTEN=1` strips rule E select
+  padding, and the sizes were derived WITH it, so the worst-cell slack never
+  exceeded +545 ps in ANY of the twelve builds. Every point is a design that
+  is already marginal somewhere. In that regime, which path breaks first is
+  close to a lottery, and no single metric should be expected to order it.
+  A clean version starts from a fully tightened, fully padded build and
+  shortens from there -- at the cost of a full tighten run per point.
+- **It does not price rule A's guardband.** `max(0.2*t_data, 200 ps)` was
+  never derived from any of this, and nothing here says what it should be.
+
+The defensible claim is narrow and still worth having: **in a design carrying
+unguarded select violations, rule A's per-route margin has no demonstrated
+power to predict whether the circuit works on silicon.** Which is also an
+argument about `BD_SKIP_RULE_E=1`, the flag `gcd` still ships with.
+
+### The bench could not see a wrong answer
+
+The 10-link build passed the 200-run FIXED repeatability check. It was
+returning the same wrong number 200 times, and repeatability is all that check
+tests. The deliberate-corruption exercise then failed for a revealing reason:
+no operand pair it tried changed the output, because nothing changed the
+output. Only that accident flagged it.
+
+No kernel but `gcd` has an oracle in `hw/xsdb_bench_gen.tcl`. So the fix is a
+cheap one -- assert the result fold:
+
+- `hw/xsdb_bench_gen.tcl` takes an optional 5th argument, the expected SIG.
+- `hw/golden_sig.txt` records it per kernel; `hw/run_all_bench.sh` looks it up
+  and says so loudly when a kernel has none.
+- SIG is `{sig[30:0],sig[31]} ^ o_data_capture` folded over the batch -- pure
+  result, no timing -- so it survives a change of route, seed, clock or
+  matched-delay size, and moves only when the kernel computes differently.
+
+Controlled both ways on hardware: the good build passes the assertion, and the
+10-link build fails it at check (a) with
+`SIG ORACLE FAILED: ... folded to 0x1a9a2cac, expected 0x03dba483`.
+
 ## Two things about this board that cost real time
 
 **`hw_server` polls the JTAG chain, and a poll lands in your design.** The PL
