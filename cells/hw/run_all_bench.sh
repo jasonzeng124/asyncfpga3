@@ -63,15 +63,19 @@ for k in $KERNELS; do
         # Assert the expected result-fold when one is recorded for this
         # kernel.  The null variant computes something else entirely, so it
         # never gets the real kernel's signature.
-        GOLD=""
+        # golden_sig.txt columns: kernel, sig, fixed op0, fixed op1.  The
+        # operand pair travels WITH the signature: a sig is only meaningful for
+        # the inputs it was folded over, and (48,18) is degenerate for ipow
+        # (48**18 mod 2**32 == 0), so the pair is per kernel.
+        GOLD=""; FIXOP0=""; FIXOP1=""
         if [ "$variant" = "real" ] && [ -e hw/golden_sig.txt ]; then
-            GOLD=$(awk -v k="$k" '$1==k {print $2; exit}' hw/golden_sig.txt)
+            read -r GOLD FIXOP0 FIXOP1 <<<"$(awk -v k="$k" '$1==k {print $2, $3, $4; exit}' hw/golden_sig.txt)"
         fi
         if [ -z "$GOLD" ]; then
             echo "    note: no expected SIG recorded for $TOP -- a deterministically" \
                  "wrong answer would not be caught (see hw/golden_sig.txt)"
         fi
-        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" $GOLD > "$LOG" 2>&1; then
+        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" $GOLD $FIXOP0 $FIXOP1 > "$LOG" 2>&1; then
             echo "=== PASS $TOP ===" | tee -a "$RESULTLOG"
         else
             echo "=== FAIL $TOP -- see $LOG ===" | tee -a "$RESULTLOG"

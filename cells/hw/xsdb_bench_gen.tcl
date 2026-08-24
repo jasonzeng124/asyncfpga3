@@ -79,9 +79,21 @@ proc error {msg args} {
 
 set CLK_CTRL_VAL [lindex $argv 3]
 # Optional 5th argument: the SIG this kernel is known to produce for the
-# FIXED (48,18) N=200 batch.  See the note at check (a) for why a bench with
+# FIXED (FIX_OP0,FIX_OP1) N=200 batch.  See the note at check (a) for why a bench with
 # no oracle needs one.
 set GOLD_SIG [lindex $argv 4]
+# Optional 6th and 7th arguments: the operand pair the FIXED-mode batch and the
+# corruption search use, defaulting to the historical hardcoded (48,18).
+#
+# They are a parameter because (48,18) is not a usable vector for every kernel.
+# ipow(48,18) is 48**18 mod 2**32 = 0 EXACTLY, so its SIG folds to 0x00000000 --
+# a value a dead kernel, a held-in-reset kernel and a kernel whose output bus
+# reads zero all produce too.  Asserting it would be a check that cannot fail
+# in the dangerous direction.  ipow is run at (3,7) -> 2187 instead.
+set FIX_OP0 [lindex $argv 5]
+set FIX_OP1 [lindex $argv 6]
+if {$FIX_OP0 eq ""} { set FIX_OP0 48 }
+if {$FIX_OP1 eq ""} { set FIX_OP1 18 }
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
 set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
@@ -344,8 +356,8 @@ proc cyc2ns {c} { return [expr {double($c) / $::FCLK0_HZ_NOMINAL * 1e9}] }
 # (a) FIXED-mode repeatability + SIG determinism, N=200
 # =========================================================================
 puts ""
-puts "=== (a) FIXED-mode repeatability: op0=48 op1=18, N=200 ==="
-set r [run_batch 200 1 48 18]
+puts "=== (a) FIXED-mode repeatability: op0=$FIX_OP0 op1=$FIX_OP1, N=200 ==="
+set r [run_batch 200 1 $FIX_OP0 $FIX_OP1]
 set latmin [dict get $r latmin]
 set latmax [dict get $r latmax]
 set sig    [dict get $r sig]
@@ -378,7 +390,7 @@ puts "FIXED-mode repeatability check PASS (no mismatch across [dict get $r compl
 if {$GOLD_SIG ne ""} {
     set want [expr {$GOLD_SIG}]
     if {$sig != $want} {
-        error [format "SIG ORACLE FAILED: FIXED (48,18) N=200 folded to 0x%08x, expected 0x%08x. SIG has no timing in it, so this kernel computed something different -- not a slower route, a wrong answer." $sig $want]
+        error [format "SIG ORACLE FAILED: FIXED ($FIX_OP0,$FIX_OP1) N=200 folded to 0x%08x, expected 0x%08x. SIG has no timing in it, so this kernel computed something different -- not a slower route, a wrong answer." $sig $want]
     }
     puts [format "SIG oracle PASS (0x%08x matches the expected result fold)" $sig]
 } else {
@@ -397,9 +409,10 @@ puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware =
 # "rewrite OP1 to 17" and then blame the mismatch path when nothing diverged.
 # For half these kernels that corruption is invisible by construction:
 # collatz, collatz64 and isprime report nargs=1 in META, so OP1 is not an
-# input at all, and ipow reads both but 48**18 and 48**17 are each 0 mod 2**32,
-# so the "corrupted" run returns exactly the reference.  A negative control
-# that cannot be observed is not a negative control.
+# input at all, and ipow reads both but at the old fixed (48,18) both 48**18 and
+# 48**17 are 0 mod 2**32, so the "corrupted" run returned exactly the reference.
+# A negative control that cannot be observed is not a negative control.  (ipow
+# is now run at (3,7); the degeneracy was the vector, not the kernel.)
 #
 # So: measure first.  Run single-run FIXED batches until we find operands whose
 # output actually differs from the reference, and only then run the exercise.
@@ -420,12 +433,14 @@ puts "=== (b) deliberate corruption: prove the mismatch path fires on hardware =
 # MISM_REF is captured DURING run 0, off the same o_data_pl but at the instant
 # the run completes and while bench_busy is still high.  For an n=1 FIXED batch
 # it is exactly that run's result.
-set BASE_OP0 48
-set BASE_OP1 18
+set BASE_OP0 $FIX_OP0
+set BASE_OP1 $FIX_OP1
 set base_out [dict get [run_batch 1 1 $BASE_OP0 $BASE_OP1] mism_ref]
 set cand_op0 ""
 set cand_op1 ""
-foreach cand {{48 17} {48 19} {49 18} {47 18} {7 3} {12345 6789} {3 5} {1 1}} {
+foreach cand [concat [list [list $BASE_OP0 [expr {$BASE_OP1 + 1}]] \
+                          [list [expr {$BASE_OP0 + 1}] $BASE_OP1]] \
+                    {{48 17} {48 19} {49 18} {47 18} {7 3} {12345 6789} {3 5} {1 1}}] {
     set c0 [lindex $cand 0]
     set c1 [lindex $cand 1]
     set o [dict get [run_batch 1 1 $c0 $c1] mism_ref]

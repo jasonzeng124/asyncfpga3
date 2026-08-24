@@ -1,5 +1,10 @@
-# Expected SIG for each kernel's FIXED (op0=48, op1=18) N=200 batch, as
-# asserted by hw/xsdb_bench_gen.tcl argv 4 and looked up by run_all_bench.sh.
+# Expected SIG for each kernel's FIXED N=200 batch, as asserted by
+# hw/xsdb_bench_gen.tcl (argv 4 = sig, argv 5/6 = the operand pair) and looked
+# up by run_all_bench.sh.  Columns: kernel, sig, op0, op1.
+#
+# The operand pair is PER KERNEL because one pair does not suit all six: see
+# ipow below, where the historical (48,18) folds to a zero a dead kernel also
+# produces.  Omit op0/op1 and the tcl falls back to (48,18).
 #
 # SIG is {sig[30:0],sig[31]} ^ o_data_capture folded over the batch, so it is a
 # pure function of the RESULT sequence -- no timing, no cycle counts.  It does
@@ -14,24 +19,25 @@
 # THESE VALUES ARE NOT RECORDED FROM THE BOARD.  Reading a value off hardware
 # and calling it the expected value blesses whatever the hardware does, bug
 # included.  Each is computed from the kernel's own C source in kernels/<k>/,
-# folded in software, and only then compared against silicon -- all four below
-# matched on 2026-08-24.  Derive, then check.  Do not paste a number from a
-# log into this file.
+# folded in software, and only then compared against silicon.  Derive, then
+# check.  Do not paste a number from a log into this file.  The "checked"
+# column says which have been confirmed on the board and when.
 #
-#   kernel     sig         f(48,18)  checked
-gcd            0x00000202  # 6            gcd(48,18)=6, 205.9 ns tightened build
-collatz        0x000006f9  # 11           collatz(48)=11 steps
-collatz64      0x000006f9  # 11           collatz64(48)=11 steps
-xorshift       0x03dba483  # 2863579695   default-path tightened build
+#   kernel     sig         op0 op1   result   checked
+gcd            0x00000202  48  18  # 6           gcd(48,18)=6, checked 2026-08-24 on the 205.9 ns tightened build
+collatz        0x000006f9  48  18  # 11          collatz(48)=11 steps (nargs=1, op1 unread)
+collatz64      0x000006f9  48  18  # 11          collatz64(48)=11 steps (nargs=1, op1 unread)
+xorshift       0x03dba483  48  18  # 2863579695  default-path tightened build
+ipow           0x00078179  3   7   # 2187        ipow(3,7)=3**7, the kernel's own main() vector, checked 2026-08-24
 #
-# DELIBERATELY ABSENT, two different reasons:
+# ipow used to be absent from this table: ipow(48,18) is 48^18 mod 2^32 = 0
+# exactly, so its SIG folded to 0x00000000 -- a value a dead kernel, a
+# held-in-reset kernel and a kernel whose output bus reads zero all produce
+# too.  The readback was correct; the VECTOR was degenerate.  Fixed by making
+# the FIXED operands a per-kernel column instead of hardcoding (48,18), and
+# running ipow at (3,7) -> 2187.
 #
-# ipow -- ipow(48,18) is 48^18 mod 2^32 = 0 exactly, so SIG folds to
-#   0x00000000.  The readback is correct; the VECTOR is degenerate.  A zero
-#   oracle is one a dead kernel also passes, so it would be a check that
-#   cannot fail in the dangerous direction.  Needs an operand pair whose
-#   result is not zero, which means teaching the tcl per-kernel FIXED
-#   operands rather than the hardcoded (48,18).
+# DELIBERATELY ABSENT:
 #
 # isprime -- the KERNEL IS CORRECT: the corruption exercise captures
 #   isprime(48)=0 and isprime(47)=1 straight off o_data_pl, both right.  But

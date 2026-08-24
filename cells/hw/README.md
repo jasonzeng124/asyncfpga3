@@ -437,6 +437,40 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## ipow's oracle was degenerate; the fix was the vector, not the kernel
+
+`hw/golden_sig.txt` deliberately had no entry for ipow, because the bench ran
+every kernel at a hardcoded FIXED (48,18) and `ipow(48,18)` is `48**18 mod
+2**32 == 0` exactly. Its SIG folded to `0x00000000` -- which is also what a
+dead kernel, a kernel held in reset, and a kernel whose output bus reads zero
+all fold to. An oracle that green kernels and dead kernels both satisfy cannot
+fail in the direction that matters.
+
+The FIXED operand pair is now a per-kernel column in `golden_sig.txt`
+(`kernel sig op0 op1`), passed through `run_all_bench.sh` to
+`xsdb_bench_gen.tcl` argv 5/6, defaulting to (48,18) when omitted. ipow runs at
+(3,7) -> 2187, which is the vector its own `main()` uses. Derived in software
+first, then checked:
+
+```
+=== (a) FIXED-mode repeatability: op0=3 op1=7, N=200 ===
+  completed=200 latmin=30 latmax=31 cyc  odata=2187 sig=0x00078179 mism_st=0
+SIG oracle PASS (0x00078179 matches the expected result fold)
+  corruption chosen: (3,7)->2187  vs  (3,8)->6561
+```
+
+The negative control got better for free. The corruption search used to have to
+hunt past several candidate pairs ipow is blind to at (48,18); at (3,7) the
+first candidate it tries -- the base pair with op1+1 -- already diverges, so
+the search now leads with `(op0, op1+1)` and `(op0+1, op1)` before the old
+fixed list.
+
+**Five of six kernels now assert a derived result oracle on hardware**: gcd
+`0x00000202`, collatz and collatz64 `0x000006f9`, xorshift `0x03dba483`, ipow
+`0x00078179`. isprime still has none, for the separate and still-unfixed reason
+recorded in `golden_sig.txt` -- its kernel is correct but ODATA/SIG sample a
+released output bus.
+
 ## Where xorshift's matched delay actually goes
 
 An earlier note in this project claimed narrowing xorshift's induction variable
