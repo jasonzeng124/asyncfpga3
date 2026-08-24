@@ -443,6 +443,45 @@ still marks all three ops `"kind": "todo"`. When the mapping is committed,
 `bd_mem` will need adding to `STORAGE_CELLS`, and this entry plus section 6 are
 the pointer to why.
 
-Sharing one port between accesses is `bd_arbiter`'s job — the library's own
-recommended answer, and section 1 already argues for arbitrating
-unconditionally rather than building analyses to avoid it.
+### Program order needs more than a token chain, and the bench says how much
+
+With the release rule settled, the obvious next step is a program-order token,
+and it costs almost nothing: `bdc/mem.py`'s `:seq` stations carry it as **one
+more input to the existing join**, acknowledged by the same `hold`. No new
+cell, no sequencer, and the token is released exactly when the operands are —
+which is the rule proven above.
+
+Chaining it is ordinary channel composition: a store's completion channel
+carries no data, so `store.z -> load.c` is precisely a program-order edge.
+(An earlier attempt wired the load's `c_req` from the store's `c_ack`. That is
+not a handshake — an acknowledge is not a request — and the store's `hold`
+falls on its own schedule, pulling the load's request out from under it
+mid-join. Compose channels, not acknowledges.)
+
+**It is not sufficient, and the shape of the failure is the point.** Offering
+both accesses' operands at once and letting only the wiring order them
+(`-DBDC_SEQ_TOKEN`):
+
+| property | result |
+|---|---|
+| data ordering | correct, 0 failures |
+| four-phase on the a channel | correct, 0 overlaps |
+| port exclusivity | **violated, 12 times** |
+| RAM edges vs accesses | **12 for 24** — half never happened |
+
+One line of the station explains it: `z_req = p_ack & joined`. A station raises
+its completion when the *port* acknowledges, which is while its own `p_req` is
+still high — so the next station's token arrives before the port is free. A
+completion channel means "my result is ready", not "I have let go of the
+port", and program order across a shared port needs the second.
+
+The load returned the correct value throughout. Not luck: `bd_mem` sets
+`WRITE_MODE_A("WRITE_FIRST")`, so `DOADO` carries the data being *written* and
+the load read the store's payload without ever performing a read. A bench
+checking only data would have been green while half its accesses did not
+occur.
+
+So sharing one port between accesses is `bd_arbiter`'s job after all — the
+library's own recommended answer, and section 1 already argues for arbitrating
+unconditionally rather than building analyses to avoid it. This entry is the
+measurement that says a cheaper answer was tried and does not work.

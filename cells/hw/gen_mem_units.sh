@@ -7,6 +7,11 @@
 set -eu
 cd "$(dirname "$0")/.."
 mkdir -p build/gen
+# The :seq variants carry a program-order token as one more join input, and
+# cells/tb/tb_bdc_memseq.v uses them to check that the token actually orders
+# the accesses.  They cost nothing when unused -- a station without :seq is
+# byte-identical to what this script emitted before they existed.
 python3 ../bdc/mem.py port:10:32:2 store:10:32 load:10:32 \
+        store:10:32:seq load:10:32:seq \
         -o build/gen/bdc_mem_units.v
 echo "wrote build/gen/bdc_mem_units.v"

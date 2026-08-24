@@ -42,6 +42,37 @@
 // once, and until this bench existed that had never been seen to happen, which
 // by this library's own standard is not evidence.
 //
+// WHAT THE TOKEN MODE ESTABLISHES, WHICH IS A NEGATIVE RESULT
+//
+// -DBDC_SEQ_TOKEN uses the :seq stations, which carry a program-order token as
+// one more input to the join.  The chain is ordinary channel composition --
+// the store's completion channel is the load's token -- and the bench then
+// offers BOTH accesses' operands at once and lets only the wiring order them.
+//
+// It does not work, and the way it fails is the useful part:
+//
+//     data ordering            correct, 0 failures
+//     four-phase on a          correct, 0 overlaps
+//     port exclusivity         VIOLATED 12 times
+//     RAM edges vs accesses    12 for 24 -- half the accesses never happened
+//
+// The cause is one line of the station: z_req = p_ack & joined.  A station
+// raises its completion when the PORT acknowledges, which is while its own
+// p_req is still high -- so the next station's token arrives before the port
+// is free.  A completion channel signals "my result is ready", not "I have
+// let go of the port", and program order needs the second.
+//
+// The load returned the right value anyway.  That is not luck exactly:
+// bd_mem sets WRITE_MODE_A("WRITE_FIRST"), so DOADO carries the data being
+// WRITTEN, and the load read the store's payload without ever performing a
+// read.  A bench that checked only the data would have been green while half
+// its accesses did not occur -- which is the concrete version of the warning
+// two paragraphs down.
+//
+// The indicated answer is bd_arbiter, which is what the library already
+// recommends for a shared port and what bdc/AUDIT.md section 1 argues for
+// using unconditionally rather than building analyses to avoid.
+//
 // The gate is not the data.  The data can be perfectly correct while the
 // protocol is broken, which is the whole reason this file exists -- so the
 // gate is a monitor on the a channel itself.
@@ -85,7 +116,11 @@ module tb_bdc_memseq;
 
     reg              sa_req = 1'b0;   wire sa_ack;   reg [AW-1:0] sa_data = 0;
     reg              sd_req = 1'b0;   wire sd_ack;   reg [DW-1:0] sd_data = 0;
+`ifdef BDC_SEQ_TOKEN
+    wire             sz_req;          wire sz_ack;   // driven by the load's c_ack
+`else
     wire             sz_req;          reg  sz_ack = 1'b0;
+`endif
 
     reg              la_req = 1'b0;   wire la_ack;   reg [AW-1:0] la_data = 0;
     wire             lz_req;          reg  lz_ack = 1'b0;
@@ -97,6 +132,43 @@ module tb_bdc_memseq;
     wire               p_ack;
     wire [DW-1:0]      p_rdata;
 
+`ifdef BDC_SEQ_TOKEN
+    // The stations carry a program-order token on channel c.  The token is
+    // ONE MORE INPUT TO THE JOIN -- it does not gate anything -- and the
+    // acknowledge it gets is `hold`, the same one the operands get.  So the
+    // token is released exactly when the operands are, which is the release
+    // rule this file measures as the only correct one.
+    //
+    // The chain is ORDINARY CHANNEL COMPOSITION, and that is the whole
+    // result: the store's completion channel IS the load's token.  A store's
+    // z channel already carries no data -- it is the access having happened
+    // -- so `store.z -> load.c` is exactly a program-order edge, in proper
+    // four-phase, with no new cell and no sequencer.
+    //
+    // The first thing I tried was wiring the load's c_req from the store's
+    // c_ack.  That is not a handshake: an acknowledge is not a request, and
+    // the store's hold falls on its own schedule, so the load's request would
+    // drop out from under it mid-join.  Compose channels, not acknowledges.
+    reg  tok_req = 1'b0;
+    wire tok_ack;
+
+    bdc_store_seq_10_32 ust (
+        .rst(rst),
+        .c_req(tok_req), .c_ack(tok_ack),
+        .a_req(sa_req), .a_ack(sa_ack), .a_data(sa_data),
+        .d_req(sd_req), .d_ack(sd_ack), .d_data(sd_data),
+        .z_req(sz_req), .z_ack(sz_ack),
+        .p_req(s_req[0]), .p_ack(p_ack), .p_addr(s_addr[AW*0 +: AW]),
+        .p_wdata(s_wdata[DW*0 +: DW]), .p_we(s_we[0]), .p_rdata(p_rdata));
+
+    bdc_load_seq_10_32 uld (
+        .rst(rst),
+        .c_req(sz_req), .c_ack(sz_ack),
+        .a_req(la_req), .a_ack(la_ack), .a_data(la_data),
+        .z_req(lz_req), .z_ack(lz_ack), .z_data(lz_data),
+        .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[AW*1 +: AW]),
+        .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
+`else
     bdc_store_10_32 ust (
         .rst(rst),
         .a_req(sa_req), .a_ack(sa_ack), .a_data(sa_data),
@@ -111,6 +183,7 @@ module tb_bdc_memseq;
         .z_req(lz_req), .z_ack(lz_ack), .z_data(lz_data),
         .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[AW*1 +: AW]),
         .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
+`endif
 
     bdc_memport_10_32_2 #(.DSETUP_0(DSETUP), .DCO_0(DCO),
                           .DSETUP_1(DSETUP), .DCO_1(DCO)) uport (
@@ -139,6 +212,7 @@ module tb_bdc_memseq;
     // -- the consumer, as its own process -----------------------------------
     // Inline in the sequencer it could never race anything; the point of the
     // experiment is that returning to zero takes the consumer real time.
+`ifndef BDC_SEQ_TOKEN
     initial forever begin
         @(posedge sz_req);
         sz_ack = 1'b1;
@@ -146,6 +220,7 @@ module tb_bdc_memseq;
         #(CONS_RTZ);
         sz_ack = 1'b0;
     end
+`endif
     initial forever begin
         @(posedge lz_req);
         lz_ack = 1'b1;
@@ -195,7 +270,50 @@ module tb_bdc_memseq;
     // both stations concurrently instead of in program order, which is
     // precisely the obligation the port places on its caller, and the run is
     // then EXPECTED to report the violation.
-`ifdef BDC_SEQ_BOTH
+`ifdef BDC_SEQ_TOKEN
+    // The stimulus is BDC_SEQ_BOTH's: every operand offered at once, no
+    // sequencing by the bench at all.  Without a token that fires the port's
+    // one-hot monitor.  With one, the wiring has to serialise it.
+    initial begin
+        $display("tb_bdc_memseq");
+        $display("  release rule: TOKEN -- program order carried on channel c");
+        $display("  the bench offers store and load operands CONCURRENTLY;");
+        $display("  only the token chain orders them.");
+        $display("  THIS MODE IS EXPECTED TO FAIL.  It is the measurement that");
+        $display("  says channel composition alone does not serialise the PORT;");
+        $display("  see the header and bdc/AUDIT.md section 7.");
+        $display("  consumer return-to-zero: %0d ps", CONS_RTZ);
+
+        #(4 * T);  rst = 1'b0;  #(4 * T);
+        watching = 1'b1;
+
+        for (i = 0; i < 12; i = i + 1) begin
+            sa_data = i[AW-1:0];  sd_data = {16'hC0D0 + i[15:0], 16'h0A00 + i[15:0]};
+            la_data = i[AW-1:0];
+            // Everything at once.  The token is the only thing that orders it.
+            sa_req = 1'b1;  sd_req = 1'b1;  la_req = 1'b1;  tok_req = 1'b1;
+            wait (lz_req === 1'b1);
+            got = lz_data;
+            if (got !== {16'hC0D0 + i[15:0], 16'h0A00 + i[15:0]})
+                fail("the load did not see the store that precedes it");
+            wait (tok_ack === 1'b1);
+            sa_req = 1'b0;  sd_req = 1'b0;  la_req = 1'b0;  tok_req = 1'b0;
+            naccess = naccess + 2;
+            wait (tok_ack === 1'b0);
+            wait (la_ack === 1'b0);
+        end
+
+        $display("  %0d accesses issued, %0d manufactured clock edges at the RAM",
+                 naccess, nedges);
+        if (nedges != naccess)
+            fail("the RAM did not see one rising edge per access");
+        $display("  %0d operand(s) offered into a live acknowledge", noverlap);
+
+        if (errors == 0) $display("tb_bdc_memseq PASS");
+        else             $display("tb_bdc_memseq FAIL (%0d)", errors);
+        $finish;
+    end
+`elsif BDC_SEQ_BOTH
     initial begin
         $display("tb_bdc_memseq");
         $display("  release rule: NONE -- both stations driven at once, on purpose");
