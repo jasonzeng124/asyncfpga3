@@ -1,6 +1,6 @@
 """compute_fusion must refuse a value that has more than one consumer.
 
-BDC_CONST_FOLD's two load-bearing questions -- "who eats this constant" and
+BDC_OP_FUSION's two load-bearing questions -- "who eats this constant" and
 "does this member's result leave the region" -- were both answered from a
 first-consumer map built with setdefault, which keeps whichever consumer
 happens to come first in node order and discards the rest.  Both answers are
@@ -21,7 +21,7 @@ import sys
 
 sys.path[:0] = [os.path.join(os.path.dirname(__file__)),
                 os.path.join(os.path.dirname(__file__), "hs")]
-os.environ["BDC_CONST_FOLD"] = "1"
+os.environ["BDC_OP_FUSION"] = "1"
 import emit  # noqa: E402
 
 
@@ -64,7 +64,7 @@ def test_single_consumer_constant_is_absorbed():
     plan = emit.compute_fusion(_graph())
     assert _absorbed(plan), (
         "a constant with exactly one fusable consumer must still fold -- "
-        "if this fails the check is too strict and BDC_CONST_FOLD does "
+        "if this fails the check is too strict and BDC_OP_FUSION does "
         "nothing")
 
 

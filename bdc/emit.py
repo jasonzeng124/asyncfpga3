@@ -583,7 +583,7 @@ DELAY_BEARING = {
 
 
 # ---------------------------------------------------------------------------
-# BDC_CONST_FOLD -- fuse a maximal region of purely combinational arithmetic
+# BDC_OP_FUSION -- fuse a maximal region of purely combinational arithmetic
 # into ONE generated cell, instead of one cell (one keep_hierarchy boundary,
 # one bd_join, one matched delay, one storage stage) per op.
 #
@@ -634,8 +634,18 @@ DELAY_BEARING = {
 # looser than the numbers being quoted for it.
 #
 # Read once at module scope, same convention as BDC_SELECT_PAD/BDC_RING_PAD.
-# Set BDC_CONST_FOLD=0 for the unfused lowering.
-BDC_CONST_FOLD = os.environ.get("BDC_CONST_FOLD", "1") == "1"
+# Set BDC_OP_FUSION=0 for the unfused lowering.
+#
+# It was called BDC_OP_FUSION, which named the smallest thing it does.
+# Absorbing a constant is one step INSIDE the transform; the transform itself
+# fuses a maximal region of combinational ops into a single cell, and the
+# saving is the per-op handshake overhead -- one keep_hierarchy boundary, one
+# bd_join, one matched delay, one storage stage each -- not the constants.
+# The old name is still accepted so a script or an in-flight build that sets
+# it does not silently get the other lowering.
+_fusion_env = os.environ.get("BDC_OP_FUSION",
+                             os.environ.get("BDC_CONST_FOLD", "1"))
+BDC_OP_FUSION = _fusion_env == "1"
 
 # Ops safe to fuse across: DELAY_BEARING minus "mux" -- see the block comment
 # above for why "mux" is excluded.
@@ -775,7 +785,7 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
     for i in region.node_ids:
         if len(nodes[i].results) != 1:
             raise EmitError(
-                f"BDC_CONST_FOLD: fusable op {nodes[i].op!r} at line "
+                f"BDC_OP_FUSION: fusable op {nodes[i].op!r} at line "
                 f"{nodes[i].src_line} has {len(nodes[i].results)} results, "
                 f"not the 1 every FUSABLE_OPS lowering assumes")
         # A member is a sink if ANY consumer of its result sits outside the
@@ -787,7 +797,7 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
             sinks.append(i)
     if len(sinks) != 1:
         raise EmitError(
-            f"BDC_CONST_FOLD: fused region "
+            f"BDC_OP_FUSION: fused region "
             f"{[nodes[i].op for i in region.node_ids]} has {len(sinks)} "
             f"external result(s), expected exactly 1 -- the single-consumer "
             f"guarantee --handshake-materialize gives every value does not "
@@ -832,7 +842,7 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
 
 
 def compute_fusion(func):
-    """BDC_CONST_FOLD's whole analysis: which nodes fuse, which constants
+    """BDC_OP_FUSION's whole analysis: which nodes fuse, which constants
     fold.  Pure graph analysis -- no widths needed, so this can run before
     Emitter._resolve_widths, and does not depend on the Emitter at all.
     """
@@ -859,7 +869,7 @@ def compute_fusion(func):
     # value exactly one consumer, inserting a `fork` wherever a value is read
     # twice.  That premise was never checked; it was spelled out in a comment
     # and then assumed.  Check it, because fusion is only sound while it holds
-    # and because BDC_CONST_FOLD is now something a default build can turn on.
+    # and because BDC_OP_FUSION is now something a default build can turn on.
     value_consumers = {}
     for i, n in enumerate(nodes):
         for o in n.operands:
@@ -943,7 +953,7 @@ def _fused_node_expr(op, width, pred, ports, uniq):
 
     The same per-op logic bdc/compute.py's emit_unit uses for a standalone
     cell -- deliberately kept as a separate copy rather than shared with it,
-    so that touching this (BDC_CONST_FOLD-only) path can never change what
+    so that touching this (BDC_OP_FUSION-only) path can never change what
     emit_unit produces on the default, flag-off path.  `ports` maps
     'a'/'b'/'s' to already-resolved Verilog text (a literal, an external
     port net, or another node's interior wire); `uniq` disambiguates
@@ -986,7 +996,7 @@ def _fused_node_expr(op, width, pred, ports, uniq):
         expr = compute.BINARY[op].format(a=ports["a"], b=ports["b"])
         out_w = width
     else:
-        raise EmitError(f"BDC_CONST_FOLD has no fused lowering for {op!r}")
+        raise EmitError(f"BDC_OP_FUSION has no fused lowering for {op!r}")
     return extra, expr, out_w
 
 
@@ -1026,7 +1036,7 @@ def measurability_sites(func, channels):
 
 
 def measurability_sites_fused(func, channels, fusion):
-    """Rule 1 under BDC_CONST_FOLD: storage in front of a fused region's
+    """Rule 1 under BDC_OP_FUSION: storage in front of a fused region's
     EXTERNAL inputs, instead of in front of every arithmetic op's own
     operands.
 
@@ -1294,7 +1304,7 @@ def link_sites(func, channels, fusion=None):
     two functions and wires up whatever they say.
 
     `fusion`, when given, switches rule 1 to measurability_sites_fused() --
-    BDC_CONST_FOLD's variant, storage on a fused region's external inputs
+    BDC_OP_FUSION's variant, storage on a fused region's external inputs
     rather than on every arithmetic op's own operands.  Rule 2 (cycle_sites)
     is unchanged either way: it operates on the full, fusion-oblivious
     handshake graph, which is safe because a fusable region can never itself
@@ -1381,17 +1391,17 @@ class Emitter:
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
         self._resolve_widths()
-        # BDC_CONST_FOLD's analysis: which nodes fuse into one cell, which
+        # BDC_OP_FUSION's analysis: which nodes fuse into one cell, which
         # constants fold into a literal.  None when the flag is off, so every
         # site below that checks `self.fusion` takes its original branch and
         # the emitted Verilog is byte-identical to before this existed.
-        self.fusion = compute_fusion(func) if BDC_CONST_FOLD else None
+        self.fusion = compute_fusion(func) if BDC_OP_FUSION else None
         # Channels with storage on them.  A linked channel has TWO net
         # bundles: the producer drives `<v>_u_*` and the link drives `<v>_*`,
         # so consumers need no idea whether a link is there.
         self.linked = link_sites(func, self.ch, fusion=self.fusion)
         if self.fusion is not None:
-            # See link_sites()'s BDC_CONST_FOLD note: rule 2 cannot legally
+            # See link_sites()'s BDC_OP_FUSION note: rule 2 cannot legally
             # ask for storage on a value fusion has already folded into a
             # cell with no channel left to put it on.  This has to hold for
             # the emitted Verilog to reference only nets that exist; check it
@@ -1400,7 +1410,7 @@ class Emitter:
             if leaked:
                 raise EmitError(
                     f"{func.name}: cycle-breaking wants storage on "
-                    f"{sorted(leaked)}, which BDC_CONST_FOLD folded into a "
+                    f"{sorted(leaked)}, which BDC_OP_FUSION folded into a "
                     f"fused cell with no channel left there -- this loop "
                     f"shape is not safe to fuse this way")
         # ...and how many stages each of those links is, which is 1 everywhere
@@ -1904,7 +1914,7 @@ class Emitter:
         raise EmitError(f"cmpi at line {node.src_line} carries no recognised "
                         f"predicate; known ones are {sorted(compute.CMPI)}")
 
-    # -- BDC_CONST_FOLD: fused regions --------------------------------------
+    # -- BDC_OP_FUSION: fused regions --------------------------------------
 
     def lower_fused(self, region, index):
         """One handshake op AS the anchor of a fused region.
@@ -1923,7 +1933,7 @@ class Emitter:
             raise EmitError(f"line {anchor.src_line}: {ex}") from None
         inst = instname(anchor, index)
         chain = " + ".join(nodes[i].op for i in region.node_ids)
-        self.emit(f"    // {chain}  fused by BDC_CONST_FOLD "
+        self.emit(f"    // {chain}  fused by BDC_OP_FUSION "
                   f"(anchor line {anchor.src_line})")
         name, default = self._emit_fused_module(region, inst)
         d = self.delay(inst, default)
@@ -2004,9 +2014,9 @@ class Emitter:
 
         chain = " -> ".join(nodes[i].op for i in region.node_ids)
         text = f"""
-// Fused region: {chain}.  Generated by bdc/emit.py under BDC_CONST_FOLD --
+// Fused region: {chain}.  Generated by bdc/emit.py under BDC_OP_FUSION --
 // do not edit.  One keep_hierarchy boundary, one bd_join, one matched delay
-// for the whole region: see the BDC_CONST_FOLD block comment above
+// for the whole region: see the BDC_OP_FUSION block comment above
 // FUSABLE_OPS in bdc/emit.py for why this does not cost auditability.
 `default_nettype none
 (* keep_hierarchy *)
@@ -2152,7 +2162,7 @@ def emit_func(func, table=None):
                 f"so there is no pre-link bundle to tap -- probe {base!r}.")
         if e.fusion is not None and ssa in e.fusion.dead_values:
             raise EmitError(
-                f"--probe names {name!r}, but BDC_CONST_FOLD folded that "
+                f"--probe names {name!r}, but BDC_OP_FUSION folded that "
                 f"channel into a fused cell -- there is no net left to tap. "
                 f"Probe an external input or the region's own output instead.")
         w, ctl = e.ch[ssa]
@@ -2187,7 +2197,7 @@ def emit_func(func, table=None):
     decls = []
     for ssa, (w, ctl) in e.ch.items():
         if e.fusion is not None and ssa in e.fusion.dead_values:
-            # Absorbed by BDC_CONST_FOLD: an eliminated (source, constant)
+            # Absorbed by BDC_OP_FUSION: an eliminated (source, constant)
             # pair, or a fused region member other than its anchor.  Nothing
             # drives or reads these nets any more, so they are not declared
             # at all rather than left as unused wires -- the "DECLARATIONS

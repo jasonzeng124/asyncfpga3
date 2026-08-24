@@ -3,7 +3,7 @@
 # again with those sizes and check they still hold.
 #
 #   hw/tighten_loop.sh xorshift [iterations]
-#   BDC_CONST_FOLD=1 hw/tighten_loop.sh xorshift
+#   BDC_OP_FUSION=1 hw/tighten_loop.sh xorshift
 #
 # WHY THIS DID NOT EXIST.  verify/tighten.py has always measured what each
 # delay line should be for the route in front of it, and verify/resize.sh has
@@ -116,6 +116,14 @@ MAXIT=${2:-3}
 # invocation too -- `hw/tighten_loop.sh gcd 8` from a shell is the case that
 # has no guard set for it, and it is the way this script is usually run.
 export BD_TIGHTEN_RUNNING=1
+
+# BD_SKIP_RULE_E has to reach EVERY build this loop drives, not just the ones
+# inside the iteration loop.  It used to be applied at one of five call sites:
+# iteration 0 and the three final rebuilds called build_bench.sh without it,
+# so setting the flag skipped rule E for iterations 1..N and silently ran it
+# everywhere else.  That stayed hidden while iteration 0 was always the
+# UNSIZED build, which rule E settles on -- BD_RESUME makes iteration 0 a
+# SIZED build, and then the flag you set is not the flag that ran.
 TOP=${K}_bench_gen
 SIZES=build/gen/${TOP}_sizes.vh
 SDF=build/hw/${TOP}/${TOP}.sdf
@@ -173,7 +181,8 @@ else
 fi
 
 echo "== iteration 0: build with the sizes above (or none) =="
-BD_SIZES="$IT0_SIZES" BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.0.log" 2>&1 || {
+BD_SIZES="$IT0_SIZES" BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+    ./hw/build_bench.sh "$K" > "$HIST/build.0.log" 2>&1 || {
     echo "BUILD FAILED"; tail -20 "$HIST/build.0.log"; exit 1; }
 python3 verify/tighten.py "$SDF" > "$HIST/tighten.0.log" 2>&1 || true
 report "$HIST/tighten.0.log" "unsized"
@@ -278,14 +287,16 @@ if [ -z "$BEST" ]; then
     echo "RESULT: no sized build passed rule A on its own route."
     echo "Shipping bdc/emit.py's estimate -- unmeasured, generous, and safe."
     rm -f "$SIZES"
-    BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
+    BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+        ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
 else
     echo "RESULT: best passing build carries ${BEST_NS} ns of matched delay"
     echo "        (unsized baseline was ${BASE_NS} ns)"
     if ! cmp -s "$BEST" "$SIZES"; then
         echo "        restoring it and routing again..."
         cp "$BEST" "$SIZES"
-        BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
+        BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+        ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
         python3 verify/tighten.py "$SDF" > "$HIST/tighten.final.log" 2>&1 || true
         report "$HIST/tighten.final.log" "restored"
         if [ "$RULE_A" -ne 0 ]; then
@@ -294,7 +305,8 @@ else
             echo "   validated, so it is not shippable.  Falling back to the"
             echo "   unmeasured estimate."
             rm -f "$SIZES"
-            BD_SIZES_GATE=0 ./hw/build_bench.sh "$K" > "$HIST/build.fallback.log" 2>&1 || true
+            BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+        ./hw/build_bench.sh "$K" > "$HIST/build.fallback.log" 2>&1 || true
         fi
     fi
 fi

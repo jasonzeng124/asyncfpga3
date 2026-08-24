@@ -9,7 +9,7 @@
 # the number anyone cares about, which is how long an iteration takes on the
 # part.
 #
-# So build the kernel twice -- BDC_CONST_FOLD off, then on -- and run both
+# So build the kernel twice -- BDC_OP_FUSION off, then on -- and run both
 # through the same bench harness in the same session.  Building both here
 # rather than reusing the existing off-baseline is deliberate: placement is
 # deterministic per binary but not stable across builds, and the rings in
@@ -26,8 +26,8 @@ XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 
 for f in 0 1; do
     tag=$([ "$f" = 0 ] && echo off || echo on)
-    echo "==== BDC_CONST_FOLD=$f ($tag) ===="
-    BDC_CONST_FOLD=$f ./hw/build_bench.sh "$K" > "$OUT/build_$tag.log" 2>&1 || {
+    echo "==== BDC_OP_FUSION=$f ($tag) ===="
+    BDC_OP_FUSION=$f ./hw/build_bench.sh "$K" > "$OUT/build_$tag.log" 2>&1 || {
         echo "  BUILD FAILED (see $OUT/build_$tag.log)"; continue; }
     BIT=build/hw/${K}_bench_gen/${K}_bench_gen.bit
     [ -e "$BIT" ] || { echo "  no bitstream"; continue; }
