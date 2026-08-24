@@ -455,7 +455,7 @@ precisely how an under-delayed build once passed every check in this bench.
 latency_cycles = 4.12 + 4.9625 * rounds        (residuals < 1 cycle, rounds >= 1)
 
   per iteration    4.963 cycles = 49.6 ns @ 100 MHz
-  fixed overhead   4.12  cycles = 41.2 ns
+  fixed overhead   ~3.8 aclk cycles  -- harness, not kernel; see the clock sweep
 ```
 
 The fit holds across three orders of magnitude with residuals under one cycle
@@ -486,9 +486,41 @@ dominates the iteration but the exact share needs the critical cycle
 identified rather than the column summed. That identification has not been
 done, and no number here should be quoted as if it had.
 
-What the fixed 41.2 ns overhead is made of would be answered directly by the
-null variant (same harness, pass-through kernel) -- which is one more reason
-`xorshift_null` failing to route matters.
+### Control: sweep the measurement clock
+
+Every bench bitstream here closes between 88 and 97 MHz (`Max frequency for
+clock 'fclk0_bufg'`), and `run_all_bench.sh` measures at **100 MHz** by
+default. That is above the closed frequency of every one of them, so "is the
+bridge corrupting its own measurement?" is a fair question and the answer
+should be measured, not assumed.
+
+The DUT is self-timed and does not run on `fclk0` at all, so a sound
+measurement must return the same NANOSECONDS whatever this clock is set to.
+Re-running the whole sweep at three clocks:
+
+| FPGA0_CLK_CTRL | MHz | cycles/iter | **ns/iter** | intercept (ns) |
+|---|---|---|---|---|
+| 0x00100A00 | 100.00 | 4.9644 | **49.64** | 38.0 |
+| 0x00100C00 | 83.33 | 4.1326 | **49.59** | 44.3 |
+| 0x00101400 | 50.00 | 2.4797 | **49.59** | 77.5 |
+
+The per-iteration cost agrees to **0.1% over a 2x change in the measurement
+clock**, including at 100 MHz where the bridge is running past its own closed
+88.92 MHz. The kernel term is clock-independent, as a self-timed circuit must
+be.
+
+**The intercept behaves the opposite way, and that is the stronger result.**
+In nanoseconds it moves by a factor of two; in CYCLES it is nearly constant at
+3.80 / 3.69 / 3.88. So the fixed overhead is HARNESS work -- FSM states,
+synchronisers, the `S_PREP` handoff -- billed in clock cycles, while the
+per-iteration term is kernel work billed in real time. The two halves of the
+fit separate exactly along the line their physical origin predicts, which is a
+much better check on the model than either number alone. It also means the
+41.2 ns quoted above as "fixed overhead" is not kernel time in any sense; at
+50 MHz the same overhead is 77.5 ns.
+
+A null variant (same harness, pass-through kernel) would pin the harness term
+down directly -- one more reason `xorshift_null` failing to route matters.
 
 ## A saturating counter reported a 24% optimistic throughput
 

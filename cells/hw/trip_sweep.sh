@@ -22,13 +22,17 @@ set -u
 cd "$(dirname "$0")/.."
 
 SEED=${1:-2463534242}
+# FPGA0_CLK_CTRL for the measurement bridge.  The DUT is self-timed and does not
+# run on this clock at all, so a correct measurement must give the same ns here
+# whatever this is set to -- which is the point of sweeping it.
+CLK=${CLK:-0x00100A00}
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 BIT=build/hw/xorshift_bench_gen/xorshift_bench_gen.bit
-OUT=build/hw/trip_sweep_${SEED}.tsv
+OUT=build/hw/trip_sweep_${SEED}_${CLK}.tsv
 [ -e "$BIT" ] || { echo "no bitstream at $BIT"; exit 2; }
 
 printf 'rounds\tlatmin\tlatmax\tresult\tsig\n' > "$OUT"
-echo "trip sweep: seed=$SEED, FIXED N=200 per point, oracle asserted at every point"
+echo "trip sweep: seed=$SEED clk=$CLK, FIXED N=200 per point, oracle asserted at every point"
 
 for R in 0 1 2 4 8 16 32 64 128 256; do
     read -r WANT SIG <<<"$(python3 - "$SEED" "$R" <<'PY'
@@ -47,7 +51,7 @@ print(x, "0x%08x" % sig)
 PY
 )"
     LOG=build/hw/_trip_${R}.log
-    if ! hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" xorshift 200 0x00100A00 "$SIG" "$SEED" "$R" > "$LOG" 2>&1; then
+    if ! hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" xorshift 200 "$CLK" "$SIG" "$SEED" "$R" > "$LOG" 2>&1; then
         echo "  rounds=$R FAILED -- see $LOG"
         tail -5 "$LOG"
         continue
