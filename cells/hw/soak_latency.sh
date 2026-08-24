@@ -23,13 +23,26 @@ KERNELS=${KERNELS:-xorshift ipow collatz collatz64 isprime}
 OUT=build/hw/soak_latency.tsv
 END=$(( $(date +%s) + HOURS * 3600 ))
 
+# Pin the bitstreams.  A soak runs for hours next to a toolchain that is very
+# likely rebuilding something, and build_bench.sh writes straight over
+# build/hw/<top>/<top>.bit.  A rebuild landing mid-soak does not corrupt the
+# run in any way the oracle can see -- the new route computes the same answers
+# -- it silently changes what is being soaked, which is worse: the time series
+# gets a step in it that looks like drift.  Copy once, program from the copy.
+PIN=build/hw/soak_pinned
+mkdir -p "$PIN"
+for K in $KERNELS; do
+    SRC=build/hw/${K}_bench_gen/${K}_bench_gen.bit
+    [ -e "$SRC" ] && cp "$SRC" "$PIN/${K}.bit"
+done
+
 [ -e "$OUT" ] || printf 'unix\tiso\tkernel\trep\tcycles\tprepcyc\tlatmin\tlatmax\tsig\tstatus\n' > "$OUT"
 echo "soak: ${HOURS}h, one kernel per ${INTERVAL}s tick, rotating over: $KERNELS"
 set -- $KERNELS
 i=0
 while [ "$(date +%s)" -lt "$END" ]; do
     n=$#; idx=$(( i % n )); K=$(eval echo "\${$((idx + 1))}"); i=$((i + 1))
-    BIT=build/hw/${K}_bench_gen/${K}_bench_gen.bit
+    BIT=$PIN/${K}.bit
     if [ ! -e "$BIT" ]; then continue; fi
     read -r GOLD OP0 OP1 <<<"$(awk -v k="$K" '$1==k {print $2, $3, $4; exit}' hw/golden_sig.txt)"
     LOG=build/hw/_soak_${K}.log
