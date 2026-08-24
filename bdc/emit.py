@@ -1439,6 +1439,24 @@ class Emitter:
         """
         for i, arg in enumerate(self.func.args):
             if arg.ssa_name:
+                # A memref argument parses to Channel(width=0, is_control=False)
+                # -- see bdc/hs/parse.py's Channel docstring, where raw carries
+                # the truth and width/is_control are just 0/False.  That pair is
+                # INDISTINGUISHABLE here from a genuine zero-bit DATA channel,
+                # so without this check a `memref<64xi32>` argument becomes a
+                # 0-wide data bundle and every load and store hung off it emits
+                # wires of width zero.  Nothing downstream complains; the design
+                # simply has no memory in it.  Name it instead.
+                if arg.raw.startswith("memref"):
+                    raise EmitError(
+                        f"function argument %{arg.ssa_name} is a "
+                        f"{arg.raw} -- memory is not wired up in this "
+                        f"backend yet.  bdc/mem.py generates the port and "
+                        f"station modules and they simulate and route, but "
+                        f"nothing lowers mem_controller/load/store onto them, "
+                        f"so this cannot be emitted.  It must not be emitted "
+                        f"as a zero-width data channel, which is what the "
+                        f"parser's width=0 would otherwise silently produce.")
                 self.ch[arg.ssa_name] = (arg.width, arg.is_control)
 
         pending = list(enumerate(self.func.nodes))
