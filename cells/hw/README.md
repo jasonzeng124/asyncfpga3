@@ -680,6 +680,36 @@ conclusion the loop-cost section reached. The outlier is isprime's outer trial,
 and it is an outlier because it is not one loop iteration -- it is a trial that
 contains a whole inner loop's entry and exit.
 
+## xorshift, measured to 0.03%
+
+`hw/loop_cost.sh` already sweeps this kernel, but it fits LATMIN -- the
+register with the +-1 sampling ambiguity ipow exposed -- with one slope and no
+error bar. Same sweep against CYCLES/completed, 17 points, 3 batches each,
+oracle at every point:
+
+```
+  per ROUND       4.9873 +- 0.0016 cycles     49.87 +- 0.02 ns at 100 MHz
+  base            9.2203 +- 0.1452 cycles     92.20 +- 1.45 ns
+  residual RMS 0.4852 cycles over 17 points, 15 dof
+```
+
+**0.03% on the slope.** The earlier sweep gave 49.6 ns/iter, which was right,
+and this says how right.
+
+The residual column is the interesting part. Every point at `rounds <= 8` is an
+*exact integer* number of cycles per run -- 11, 14, 19, 24, 29, 39, 49 -- which
+is `9 + 5*rounds` with `rounds = 0` sitting two cycles high. From `rounds = 12`
+upward they go fractional and drift steadily below `9 + 5r`, reaching 1285.993
+against 1289 at `rounds = 256`.
+
+That is the same phase effect ipow made visible, seen from the other side. One
+round takes 4.9873 cycles, not 5. For a few rounds the accumulated shortfall
+never crosses a clock edge and every run samples to the same integer; past a
+dozen rounds the fractional part starts splitting runs between two integers,
+and the batch mean tracks the true value instead of the rounded one. **A short
+sweep would have measured exactly 5.0000 cycles per round and been wrong by
+0.25%.** Sweep far enough that the fraction shows up.
+
 ## collatz's two branches cost exactly the same, and that is a backend fact
 
 `hw/loop_cost.sh` measured collatz at n = 2^k, which reaches 1 by halving every
@@ -867,19 +897,28 @@ a value that has never met silicon should not look like one that has.
 
 ### And they give the harness floor directly
 
-All four nulls retire a transaction in **5 cycles = 50 ns** at 100 MHz, with
-`latmin == latmax` exactly. That is the floor for any kernel call through this
-bench: AXI-side FSM, both synchronisers, one bundled transfer, and the null's
-own deliberate `bd_delay #(.N(10))` bundle so that it pays a real handshake
-rather than a shorter one.
+All four nulls retire a transaction in **10.000 cycles = 100 ns** at 100 MHz,
+bit-exact, all four identical. That is the floor for any kernel call through
+this bench: AXI-side FSM, both synchronisers, one bundled transfer, the
+four-phase return to zero, and the null's own deliberate `bd_delay #(.N(10))`
+bundle so that it pays a real handshake rather than a shorter one.
 
-It is worth comparing against the intercepts fitted from the loop sweeps (4.12,
-2.96, 1.64, 0.27 cycles): those are **extrapolations to zero iterations of a
-kernel that still has its own entry structure**, and they sit below the
-measured 5-cycle floor. The fit intercept is not the harness cost, and the null
-is the thing that actually measures it. xorshift at `rounds=0` takes 6 cycles
-against the null's 5, so entering and leaving xorshift's loop without executing
-it costs one cycle over a pass-through.
+> **Corrected 2026-08-24.** This section first said 5 cycles, from
+> `latmin == latmax == 5`. That is half the transaction. `gen_bench.py` stops
+> `lat_ctr` at completion but keeps `cycles` running through `S_ACK`, `S_RTZ`
+> and `S_NEXT` -- so LATMIN sees the request half of the four-phase handshake
+> and CYCLES sees the whole round trip. The per-run cost is 10.000, and every
+> per-iteration figure in this file is a CYCLES number, so they were never
+> mixing the two. Only this floor was quoted in the wrong unit.
+
+It is worth comparing against the intercepts fitted from the loop sweeps
+(xorshift 9.22, collatz 8.50, isprime 16.17 cycles): those are
+**extrapolations to zero iterations of a kernel that still has its own entry
+structure**, and two of the three sit *below* the measured floor. The fit
+intercept is not the harness cost, and the null is the thing that actually
+measures it. xorshift at `rounds=0` costs 11.000 cycles/run against the null's
+10.000, so entering and leaving xorshift's loop without executing it costs
+exactly one cycle over a pass-through.
 
 ## Loop cost does not track total matched delay -- it tracks the critical cycle
 
