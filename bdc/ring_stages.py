@@ -1,20 +1,39 @@
 #!/usr/bin/env python3
 """Count storage stages on a loop's ring, for one handshake-dialect MLIR file.
 
-WHY.  On silicon each kernel costs a startlingly flat amount per loop
-iteration -- xorshift 104 ns, collatz 166 ns, collatz64 190 ns -- almost
-independent of what the loop computes, and collatz64 pays only 15% more than
-collatz for twice the datapath width.  That is the signature of a cost paid
-per handshake round trip.  Dividing by the number of storage stages the token
-must traverse per iteration gives 14.9 / 18.4 / 21.1 ns per stage, which is
-far flatter than the raw latencies and is the number worth reasoning about.
+WHY.  On silicon each kernel costs a similar amount per loop iteration almost
+independently of what the loop computes, which is the signature of a cost paid
+per handshake round trip rather than per operation.  Dividing by the storage
+stages the token traverses per iteration is the natural way to normalise it.
+
+BUT DO NOT OVERSELL THE DIVISION.  Re-measured 2026-08-24, with op fusion on by
+default (it was off until 2026-08-23, and every number in the previous version
+of this docstring came from the 2.5x looser circuit that produced):
+
+    kernel      stages   ns/iter   ns/stage
+    xorshift       6       49.6      8.27
+    ipow           6       60.0     10.00
+    collatz        7       93.2     13.31
+    collatz64      7      118.6     16.94
+
+Fusion shortened the rings as well as the datapath -- these were 7/9/9 stages
+before -- so both terms moved.  And ns/stage spans 2.0x across four kernels
+while ns/iter spans 2.4x, so normalising by stage count explains almost none of
+the spread.  Two of these rows settle why: collatz and collatz64 have the SAME
+ring at 7 stages and differ by 27%, which is datapath width alone, and xorshift
+and ipow have the same ring at 6 stages and differ by 21%, which is three
+shifts and three xors against two 32-bit multiplies.  Stage count is a real
+term, not the only one, and per-stage cost is not a constant of the fabric.
+
+Measurements and their error bars: cells/hw/README.md, "What a loop iteration
+costs, across every kernel measured".
 
 A stage on a LOOP is not a pipeline stage.  A loop with a carried dependency
 holds one token, so the token goes all the way round before the next
 iteration starts and every stage on the ring is serial latency paid every
 iteration.  RING_MIN_STAGES=3 is the correctness floor; anything above it is
 a policy choice, and emit.py's rule 1 (measurability_sites) is the reason we
-are at 7-9.
+are at 6-7 (7-9 before op fusion).
 
 WHAT IT REPORTS.  For each strongly connected component that is a real cycle:
 the heaviest simple cycle in it, weighted by storage stages.  The heaviest,

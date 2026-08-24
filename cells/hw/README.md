@@ -654,6 +654,25 @@ and the loop control, against one shift and a compare.
 | collatz64 | same, 64-bit | 11.77 | 117.7 |
 | isprime outer | multiply, 2 compares, increment | 26.95 | 269.5 |
 
+Ring stages, from `bdc/ring_stages.py` on the same circuits, say how much of
+that is structure:
+
+| kernel | ring stages | ns/iter | ns/stage |
+|---|---|---|---|
+| xorshift | 6 | 49.6 | 8.27 |
+| ipow | 6 | 60.0 | 10.00 |
+| collatz | 7 | 93.2 | 13.31 |
+| collatz64 | 7 | 118.6 | 16.94 |
+
+Dividing by stages does **not** flatten it: ns/stage spans 2.0x where ns/iter
+spans 2.4x. Two pairs say why. collatz and collatz64 have the *same* 7-stage
+ring and differ by 27%, which is datapath width alone; xorshift and ipow have
+the same 6-stage ring and differ by 21%, which is three shifts and three xors
+against two 32-bit multiplies. Stage count is a real term and not the only one,
+and per-stage cost is not a constant of this fabric -- `ring_stages.py`'s
+docstring used to claim otherwise, on numbers measured before op fusion was on
+by default.
+
 Five of these six sit between 5 and 12 cycles while the arithmetic inside them
 ranges from three xors to two 32-bit multiplies. The body is not what a loop
 iteration costs; the loop's own critical cycle is, and that is the same
