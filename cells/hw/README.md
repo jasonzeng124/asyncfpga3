@@ -51,6 +51,17 @@ The same shape as the [rule E finding below](#tightening-is-worth-2x-and-the-def
 rule E is expensive, and here it was being paid for a design with no selects
 in it at all.
 
+**That is not the whole story, and the rest is open.** Four null controls
+(`gcd`, `ipow`, `collatz`, `isprime`) built normally through the same converge
+path earlier the same morning — `collatz_null` in 83 s. Only `collatz64_null`
+and `xorshift_null` overran. Removing the converge loop divides their cost by
+up to six, but a single seed of `collatz64_null` still sat 13+ minutes at 100%
+CPU inside nextpnr's placer without advancing past analytic iteration 5, and
+the design is **4280 cells — the same count as `collatz_null`**, which placed
+in seconds. So size is not the explanation and neither is rule E; something
+about these two netlists is pathological for the placer, and what it is has
+not been identified. Recorded here rather than guessed at.
+
 ## Tightening is worth 2x, and the default path is not currently delivering it
 
 2026-08-24, xorshift, measured on the board rather than argued from a log.
