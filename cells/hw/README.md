@@ -437,6 +437,60 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## collatz's two branches cost exactly the same, and that is a backend fact
+
+`hw/loop_cost.sh` measured collatz at n = 2^k, which reaches 1 by halving every
+single step. Every number it produced is therefore the cost of the *cheap*
+branch; `3n+1` was never executed once. `hw/collatz_branch.sh` fixes that by
+decomposing the trip count instead of controlling it: python counts how many
+steps of each kind a given n takes, the board measures the batch, and the two
+per-step costs are fitted jointly. Powers of two (odd count exactly zero) pin
+the even coefficient on their own -- without them the two counts are correlated
+(odd ~ 0.53 x even along natural trajectories) and the fit could not separate
+them.
+
+19 points, 3 batches of 200 runs each:
+
+```
+  base (entry+exit+harness)    8.499 +- 0.094 cycles    85.0 +- 0.9 ns
+  per EVEN step (n>>1)         9.320 +- 0.008 cycles    93.2 +- 0.1 ns
+  per ODD step (3n+1)          9.322 +- 0.014 cycles    93.2 +- 0.1 ns
+  residual RMS 0.126 cycles over 19 points, 16 dof
+```
+
+**Ratio 1.00.** A multiply-by-three-and-add costs the same as a shift, to two
+parts in a thousand.
+
+That is not a coincidence and it is not a statement about the two operations.
+It is visible in the generated netlist. LLVM if-converts the branch long before
+the handshake dialect exists, so `bdc/emit.py` receives a `select`, and what it
+emits is:
+
+```
+    bdc_fused_uaddi0 ... .z_data(n26_u_data));      // shli+addi+addi = 3n+1
+    bdc_fused_uselect0 ...                          // andi+cmpi+shrsi+select
+        .e3_...(n19__4_...),                        //   the shifted arm
+        .e4_...(n26_...),                           //   the 3n+1 arm
+```
+
+The select's `bd_join` waits on **both** arms. Both are computed every
+iteration. So the loop pays `max(shift, 3n+1) + select` on every step no matter
+which way the data goes, and the measurement is reading the structure back out.
+
+Two consequences worth carrying:
+
+- **Data-dependent branch cost in these kernels is zero.** Latency is a
+  function of trip count alone, which is why the fits in this file are as clean
+  as they are. Predictability is free; average-case speed is not.
+- **Cheap arms do not make a loop cheap.** Making one arm of a hot `select`
+  cheaper buys nothing unless it was the longer arm. The lever is the arm on
+  the critical path, and after that the select itself -- which is the same
+  conclusion the loop-cost section reached from the other direction.
+
+Also worth noting against the null floor: the 8.5-cycle base means entering and
+leaving collatz's loop costs about 3.5 cycles more than the null's
+pass-through, which is the entry/exit structure, not the loop.
+
 ## Every latency here now has an error bar, and it is small
 
 Every number in the sections below was one batch from one programming, quoted
