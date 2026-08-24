@@ -131,6 +131,25 @@ module tb_bdc_mem;
     // observable that a skipped access shows up in and nothing else does.
     always @(posedge uport.umem0.ram_clk) nedges = nedges + 1;
 
+    // -- the payload must still be there AFTER the edge ---------------------
+    //
+    // Rule B (verify/tighten.py) checks that address/data arrive BEFORE the
+    // manufactured clock rises.  Nothing checks that they are still there
+    // long enough after it, and the release path runs clock-fall -> DCO ->
+    // p_ack -> the station's hold C-element -> the producer.  DCO is
+    // therefore the hold guard too, and rule C sizes it for clock-to-out
+    // alone.  Measure it rather than argue it.
+    time    t_edge = 0;
+    integer hold_addr_min = 1000000;
+    integer hold_di_min   = 1000000;
+    always @(posedge uport.umem0.ram_clk) t_edge = $time;
+    always @(uport.umem0.addr)
+        if (watching && t_edge != 0 && ($time - t_edge) < hold_addr_min)
+            hold_addr_min = $time - t_edge;
+    always @(uport.umem0.wdata)
+        if (watching && t_edge != 0 && ($time - t_edge) < hold_di_min)
+            hold_di_min = $time - t_edge;
+
     // -- the acknowledge must still follow the read data --------------------
     time    t_data = 0;
     reg     watching = 1'b0;
@@ -236,6 +255,13 @@ module tb_bdc_mem;
                  co_margin_min, `BD_RAM_TCO);
         if (co_margin_min <= 0)
             fail("acknowledge arrived before the read data settled");
+
+        $display("  payload held after the edge: addr %0d ps (need %0d), data %0d ps (need %0d)",
+                 hold_addr_min, `BD_RAM_THOLD_ADDR, hold_di_min, `BD_RAM_THOLD_DI);
+        if (hold_addr_min < `BD_RAM_THOLD_ADDR)
+            fail("the address changed too soon after the manufactured clock edge");
+        if (hold_di_min < `BD_RAM_THOLD_DI)
+            fail("the write data changed too soon after the clock edge");
 
         $display("  sized port:     %0d + %0d setup violations at the RAM boundary",
                  uport.umem0.uram.violations, uport.umem1.uram.violations);

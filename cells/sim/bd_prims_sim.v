@@ -76,6 +76,17 @@
 `define BD_RAM_TSU_WE   532
 `define BD_RAM_TCO      2454
 
+// The same file's HOLD arcs, max corner, e.g.
+//   (HOLD ADDRAU (posedge CLKARDCLKU) (-0.566::0.360))
+// The setup numbers above are audited by verify/tighten.py rule B; NOTHING
+// audits these.  bd_mem releases the address one arc after `ack` falls, and
+// `ack` is `ram_clk` delayed by DCO -- so DCO is the hold guard as well as the
+// clock-to-out guard, and rule C sizes it for clock-to-out only.  Exported so
+// the bench can measure hold instead of the design merely being argued safe.
+`define BD_RAM_THOLD_ADDR 360
+`define BD_RAM_THOLD_DI   667
+`define BD_RAM_THOLD_WE   197
+
 // ---------------------------------------------------------------------------
 // Each LUT is a mux tree, not an indexed lookup, and the difference matters
 // here more than anywhere else.  Every feedback loop in this library powers up

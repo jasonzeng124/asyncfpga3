@@ -374,10 +374,30 @@ Two constraints that fall out of the hardware rather than the design:
   `ADDRARDADDR`, so an eleventh address bit folds the memory in half without
   saying anything. `check()` refuses it loudly.
 
-And one that is worth stating because nothing else audits it: **`DCO` is also the
-address HOLD guard.** The address is released one arc after `p_ack` falls, and
-`p_ack` falls `DCO` after `ram_clk` falls. Shortening `DCO` shortens hold. Rule C
-sizes it for clock-to-out and would not notice.
+And one that used to be worth stating because nothing audited it: **`DCO` is
+also the address HOLD guard.** The address is released one arc after `p_ack`
+falls, and `p_ack` falls `DCO` after `ram_clk` falls. Shortening `DCO` shortens
+hold, and rule C sizes it for clock-to-out alone.
+
+That is now measured rather than argued. prjxray's `BRAM_L.sdf` has the hold
+arcs alongside the setup ones it was already being read for --
+`(HOLD ADDRAU (posedge CLKARDCLKU) (-0.566::0.360))` -- so `sim/bd_prims_sim.v`
+exports them and `tb/tb_bdc_mem.v` checks them:
+
+    payload held after the edge: addr 2632 ps (need 360), data 2756 ps (need 667)
+
+7.3x on the address and 4.1x on the write data. `DCO` appears twice in that
+path -- once inside the clock high pulse, since the request cannot fall until
+`p_ack` has risen, and once again on the release -- which is why the margin is
+so large, and why rule C's minimum carries hold for free rather than by luck.
+
+Negative controls, because a check that cannot go red is not a check: raising
+the requirement to 4000 ps turns it red at the right instant. The interesting
+one is the mechanism control, `BDC_MEM_NAIVE_ACK=1`: it does **not** reach this
+gate, because releasing operands on `z_ack` trips the return-to-zero monitor
+several accesses earlier. Hold is downstream of a hazard that fires first,
+which is worth knowing -- it means this gate protects against a future change
+to `DCO`, not against the bug the station was built to avoid.
 
 ### What this does NOT discharge
 
