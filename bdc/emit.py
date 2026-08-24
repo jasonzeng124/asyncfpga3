@@ -741,7 +741,7 @@ def _topo_order(nodes, members, value_producer, member_set):
     return order
 
 
-def _build_region(func, members, value_producer, value_consumer, const_of):
+def _build_region(func, members, value_producer, value_consumers, const_of):
     nodes = func.nodes
     member_set = set(members)
     region = Region(_topo_order(nodes, members, value_producer, member_set))
@@ -762,7 +762,12 @@ def _build_region(func, members, value_producer, value_consumer, const_of):
                 f"BDC_CONST_FOLD: fusable op {nodes[i].op!r} at line "
                 f"{nodes[i].src_line} has {len(nodes[i].results)} results, "
                 f"not the 1 every FUSABLE_OPS lowering assumes")
-        if value_consumer.get(nodes[i].results[0]) not in member_set:
+        # A member is a sink if ANY consumer of its result sits outside the
+        # region -- or if nothing consumes it at all, which is still a result
+        # that has to leave.  Asking only about the first consumer was how an
+        # externally-read value could be mistaken for an internal one.
+        eaters = value_consumers.get(nodes[i].results[0], [])
+        if not eaters or any(c not in member_set for c in eaters):
             sinks.append(i)
     if len(sinks) != 1:
         raise EmitError(
@@ -820,10 +825,29 @@ def compute_fusion(func):
     for i, n in enumerate(nodes):
         for r in n.results:
             value_producer[r] = i
-    value_consumer = {}
+    # EVERY consumer, not just the first one seen.  This used to be a
+    # setdefault into a value->consumer map, which silently kept whichever
+    # consumer happened to come first in node order and threw the rest away.
+    # Both places that read it are load-bearing, and both break quietly:
+    #
+    #   the sink test in _build_region asks whether a member's result leaves
+    #   the region.  With a first-consumer map, a value read by one node
+    #   INSIDE the region and one OUTSIDE looks purely internal whenever the
+    #   inside reader sorts first -- so the region emits without that output
+    #   and the outside reader's channel is dropped;
+    #
+    #   constant absorption asks who eats a constant.  A constant feeding two
+    #   nodes gets absorbed into the first and deleted, stranding the second.
+    #
+    # The premise both rely on is that --handshake-materialize gives every
+    # value exactly one consumer, inserting a `fork` wherever a value is read
+    # twice.  That premise was never checked; it was spelled out in a comment
+    # and then assumed.  Check it, because fusion is only sound while it holds
+    # and because BDC_CONST_FOLD is now something a default build can turn on.
+    value_consumers = {}
     for i, n in enumerate(nodes):
         for o in n.operands:
-            value_consumer.setdefault(o, i)
+            value_consumers.setdefault(o, []).append(i)
 
     fusable = {i for i, n in enumerate(nodes) if n.op in FUSABLE_OPS}
 
@@ -840,8 +864,13 @@ def compute_fusion(func):
     for i, n in enumerate(nodes):
         if n.op != "constant":
             continue
-        consumer = value_consumer.get(n.results[0])
-        if consumer is None or consumer not in fusable:
+        eaters = value_consumers.get(n.results[0], [])
+        # Exactly one.  Absorbing a constant deletes its channel, so a second
+        # reader would be left waiting on a wire nobody drives.
+        if len(eaters) != 1:
+            continue
+        consumer = eaters[0]
+        if consumer not in fusable:
             continue
         ctl_producer = value_producer.get(n.operands[0])
         if ctl_producer is None or nodes[ctl_producer].op != "source":
@@ -880,7 +909,7 @@ def compute_fusion(func):
     plan = FusionPlan()
     plan.skip |= absorbed
     for members in groups.values():
-        region = _build_region(func, members, value_producer, value_consumer,
+        region = _build_region(func, members, value_producer, value_consumers,
                                 const_of)
         for i in region.node_ids:
             plan.region_of[i] = region
