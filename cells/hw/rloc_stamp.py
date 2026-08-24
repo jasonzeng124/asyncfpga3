@@ -213,6 +213,31 @@ def stage_banks(c, link, snk):
     return out
 
 
+# Markers that a bd_link/bd_pipe instance exists in this netlist at all,
+# independent of whether RE_CNODE managed to pair one with a latch bank.
+# Measured, not guessed: on xorshift_bench_gen these appear 40 and 106 times;
+# on ro_top, which sits directly on bd_delay's LUT1s, both are 0.
+_STRUCTURAL_MARKERS = (".ctl.", ".many.")
+
+
+def has_link_structures(mods):
+    """True if anything in this netlist is a bd_link/bd_pipe instance.
+
+    This is what separates the two zeros.  A design that HAS links and stamps
+    none of them is the bug the exit code exists for -- every storage cell is
+    free for the placer to drag away and the next symptom is a rule-E
+    violation nobody can explain.  A design that has no links BY CONSTRUCTION
+    -- ro_top, ro_many_top, anything built straight on primitives -- has
+    nothing to hold together, and failing it is a false positive that makes
+    the design unbuildable for no reason.
+    """
+    for m in mods.values():
+        for cn in m.get("cells", {}):
+            if any(k in cn for k in _STRUCTURAL_MARKERS):
+                return True
+    return False
+
+
 def stamp(mods, variant, report):
     counts, top = instantiation_counts(mods)
     if top is None:
@@ -343,9 +368,16 @@ def stamp(mods, variant, report):
     # the next thing to notice will be a rule-E violation with no idea why.
     # Say so unconditionally -- not gated on --report -- and let main() turn
     # it into a failing exit code.
-    if n_cands == 0:
+    if n_cands == 0 and not has_link_structures(mods):
+        print("rloc_stamp   note: this netlist contains no bd_link/bd_pipe "
+              "instances at all, so there is no latch cluster to hold "
+              "together and nothing to stamp.  Not a failure: a design built "
+              "straight on primitives has no storage for RLOC_GROUP to "
+              "govern.", file=sys.stderr)
+    elif n_cands == 0:
         print("rloc_stamp   WARNING: 0 controller(s) matched "
-              "'*.ctl.u.u' or '*.many.(cpair[N]|codd).u.u' in any module -- "
+              "'*.ctl.u.u' or '*.many.(cpair[N]|codd).u.u' in any module, "
+              "BUT this netlist does contain bd_link/bd_pipe instances -- "
               "no RLOC_GROUP attributes written, every storage cell in this "
               "netlist floats", file=sys.stderr)
     elif n_groups == 0:
@@ -371,7 +403,12 @@ def main():
     ok = True
     if variant != "none":
         n_groups, n_cands = stamp(d["modules"], variant, report)
-        ok = n_groups > 0
+        # Zero groups is fatal ONLY when there was something to group.  A
+        # primitive-only top (ro_top, ro_many_top) legitimately stamps
+        # nothing; failing it made ro_top unbuildable once BD_RLOC=v2 became
+        # the default, which quietly cost us the ability to reproduce the very
+        # calibration the guardband rests on.
+        ok = n_groups > 0 or not has_link_structures(d["modules"])
     with open(args[1], "w") as f:
         json.dump(d, f)
     # A silent no-op used to exit 0 and only be noticed once rule E failed on
