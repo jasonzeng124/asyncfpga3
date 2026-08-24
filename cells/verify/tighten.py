@@ -1154,9 +1154,37 @@ def main():
     for base in co:
         links = chains[base]
         head, tail = chain_endpoints(edges, back, links)
-        ram = rams[0] if rams else None
+        # Pair each clock-to-out line with the RAM IN ITS OWN bd_mem instance,
+        # the way rule B above already picks its setup line.  This used to be
+        # `rams[0]`, which is right for one RAM and WRONG for a gang -- a
+        # 32-bit port is two bd_mem instances, because RAMB18E1 carries 16 data
+        # bits in x18 mode.
+        #
+        # The failure is worse than it looks.  The expectation was that pairing
+        # umem1's chain with umem0's clock would find no path and print "cannot
+        # pair", leaving half a wide port unaudited.  It does not: the two RAMs
+        # share the port request, so a path EXISTS and the arithmetic goes
+        # through.  Measured on build/pnr/bdcmem/soak.sdf, the old code reported
+        # umem1's acknowledge trailing the clock by 5686 ps when against its own
+        # clock it trails by 4891 -- margin overstated by 795 ps, and the
+        # proposal that follows is 6 links where the route needs 7.
+        #
+        # So it is not a blind gate, it is a confident wrong answer in the
+        # unsafe direction: a matched delay proposed SHORTER than its route
+        # supports is a setup violation that no simulation with a perfect
+        # protocol can show.
+        parent = base.rpartition(".")[0]        # <...>.umemN
+        own = [r for r in rams if r.startswith(parent + ".")]
+        if len(own) > 1:
+            print(f"  {base}: {len(own)} RAMs inside {parent} -- cannot tell "
+                  f"which one this line belongs to")
+            problems += 1
+            continue
+        ram = own[0] if own else None
         if not ram or head is None:
-            print(f"  {base}: cannot pair with a RAM")
+            print(f"  {base}: cannot pair with a RAM in its own instance "
+                  f"({parent})")
+            problems += 1
             continue
         srcs = starts_reaching(back, head, stops)
         best = None

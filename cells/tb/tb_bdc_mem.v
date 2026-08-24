@@ -107,7 +107,8 @@ module tb_bdc_mem;
         .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[AW*1 +: AW]),
         .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
 
-    bdc_memport_10_32_2 #(.DSETUP(DSETUP), .DCO(DCO)) uport (
+    bdc_memport_10_32_2 #(.DSETUP_0(DSETUP), .DCO_0(DCO),
+                          .DSETUP_1(DSETUP), .DCO_1(DCO)) uport (
         .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
         .s_we(s_we), .p_ack(p_ack), .p_rdata(p_rdata));
 
@@ -115,7 +116,8 @@ module tb_bdc_mem;
     // waits on its acknowledge; it exists so the setup check has teeth, the
     // way tb_mem's `bad` instance does.
     wire bad_ack;  wire [DW-1:0] bad_rdata;
-    bdc_memport_10_32_2 #(.DSETUP(0), .DCO(DCO)) ubad (
+    bdc_memport_10_32_2 #(.DSETUP_0(0), .DCO_0(DCO),
+                          .DSETUP_1(0), .DCO_1(DCO)) ubad (
         .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
         .s_we(s_we), .p_ack(bad_ack), .p_rdata(bad_rdata));
 

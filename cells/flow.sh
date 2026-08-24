@@ -40,7 +40,12 @@ NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
 CELLS_SIM=$TC/openxc7/share/yosys/xilinx/cells_sim.v
 
-OUT=build/pnr
+# build/pnr/soak.sdf is verify/tighten.py's INPUT.  Every artifact below is
+# named soak.*, so building a different design here would overwrite the gate's
+# SDF with one from another design and the next tighten run would silently
+# audit the wrong thing.  BD_OUT redirects the whole tree; a generated top must
+# set it, and is refused below if it does not.
+OUT=${BD_OUT:-build/pnr}
 mkdir -p $OUT
 
 for f in "$YOSYS" "$NEXTPNR" "$CHIPDB" "$CELLS_SIM"; do
@@ -105,14 +110,16 @@ else
     echo
     if ! BD_TIGHTEN_RUNNING=1 ./verify/resize.sh; then
         echo
-        echo "flow.sh: verify/resize.sh did not settle -- see build/resize/" \
+        echo "flow.sh: verify/resize.sh did not settle -- see ${BD_OUT:-build}/resize/" \
              "for its logs."
         echo "         Use BD_NO_TIGHTEN=1 for the untightened placeholder" \
              "build, or"
         echo "         BD_SIZES=<file> to supply lengths explicitly."
         exit 1
     fi
-    RESIZED=build/resize/sizes.vh
+    # Follows BD_OUT with verify/resize.sh, so two designs cannot read each
+    # other's settled lengths.
+    RESIZED=${BD_OUT:-build}/resize/sizes.vh
     [ -f "$RESIZED" ] || {
         echo "flow.sh: verify/resize.sh reported success but $RESIZED is missing"
         exit 2
@@ -135,7 +142,16 @@ TOP_V="${BD_TOP_V:-verify/soak_top.v}"
 TOP_M="${BD_TOP_M:-soak_top}"
 if [ "$TOP_V" != "verify/soak_top.v" ]; then
     [ -f "$TOP_V" ] || { echo "BD_TOP_V=$TOP_V does not exist"; exit 2; }
-    echo "using the generated top $TOP_V (module $TOP_M)"
+    if [ -z "${BD_OUT:-}" ]; then
+        echo "BD_TOP_V is set but BD_OUT is not."
+        echo "Everything this script writes is named soak.*, and"
+        echo "build/pnr/soak.sdf is verify/tighten.py's input.  Building a"
+        echo "generated top into the default tree would overwrite the gate's"
+        echo "SDF with a different design's, and the next tighten run would"
+        echo "audit that one without saying so.  Set BD_OUT=build/pnr/<name>."
+        exit 2
+    fi
+    echo "using the generated top $TOP_V (module $TOP_M) -> $OUT"
 fi
 
 # DSP48E1 is ON.  It was OFF for a long stretch on a measured toolchain

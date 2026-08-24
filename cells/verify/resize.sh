@@ -29,8 +29,17 @@
 set -u
 cd "$(dirname "$0")/.."
 
-OUT=build/pnr
-HIST=build/resize
+# Same redirect flow.sh takes, and for the same reason: every artifact here is
+# named soak.*, so a generated top must not read the hand-written soak design's
+# SDF.  Left hardcoded, this read a STALE build/pnr/soak.sdf while flow.sh was
+# routing into build/pnr/<name>/, and proposed BD_SZ_UMEM_UCO -- soak_top's
+# bd_mem instance -- for a design whose port is uport.umem0.  resize.sh's own
+# "that delay cannot be driven" check caught it, which is the only reason this
+# is a note and not a wrong bitstream.
+OUT=${BD_OUT:-build/pnr}
+# Per-design too: two designs sharing one resize history would ratchet each
+# other's proposals.  Follows BD_OUT for the same reason $OUT does.
+HIST=${BD_OUT:-build}/resize
 mkdir -p $HIST
 rm -f $OUT/sizes.vh $HIST/*.log $HIST/*.vh
 
@@ -106,7 +115,9 @@ write_sizes() {                       # write the current assignment
 attempt() {
     local tag=$1
     ./flow.sh > "$HIST/flow_$tag.log" 2>&1 || return 2
-    python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" \
+    # NAME THE SDF.  tighten.py defaults to build/pnr/soak.sdf, so with BD_OUT
+    # set this measured a stale route from a different design.
+    python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" "$OUT/soak.sdf" \
         > "$HIST/tighten_$tag.log" 2>&1 || return 1
     python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1
 }
@@ -180,7 +191,7 @@ done
 
 write_sizes
 ./flow.sh > "$HIST/flow_final.log" 2>&1
-python3 verify/tighten.py --emit "$HIST/final_prop.vh" > "$HIST/tighten_final.log" 2>&1
+python3 verify/tighten.py --emit "$HIST/final_prop.vh" "$OUT/soak.sdf" > "$HIST/tighten_final.log" 2>&1
 final=$?
 
 echo
