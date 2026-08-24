@@ -31,6 +31,27 @@ xorshift       0x03dba483  48  18  # 2863579695  default-path tightened build
 ipow           0x00078179  3   7   # 2187        ipow(3,7)=3**7, the kernel's own main() vector, checked 2026-08-24
 isprime        0x000000ff  47  18  # 1           isprime(47)=1, checked 2026-08-24; 48 is not prime and 0 is the degenerate fold
 #
+# NULL CONTROLS.  The null DUT (gen_bench.py's is_null branch) is a pass-through
+# that XORs its argument WORDS together, so its expected value is derivable the
+# same way a kernel's is -- from the generator's own fold expression, with the
+# same DOMAIN_RESTRICTIONS applied.  These used to be the targets run_all_bench
+# reported as "no expected SIG recorded", i.e. the controls were the only thing
+# in the suite nothing was checking.
+#
+#   target          sig         op0 op1   value   checked
+gcd_null       0x00001e1e  48  18  # 34          48^18, no mask
+ipow_null      0x000003fc  3   7   # 4           3^7, no mask
+collatz_null   0x00001010  48  18  # 48          nargs=1, n masked to 16 bits
+isprime_null   0x00001ae5  47  18  # 47          nargs=1, no mask
+collatz64_null 0x00001010  48  18  # 48          64-bit n, high word masked to 0
+xorshift_null  0x00001e1e  48  18  # 34          48^(18 & 0xFFF)
+#
+# All four with a bitstream were confirmed on the board 2026-08-24, first try.
+# collatz64_null and xorshift_null are DERIVED BUT NOT YET CHECKED -- neither
+# has routed since the generator changed (all six PnR seeds timed out).  They
+# are recorded here so the check happens automatically when they do build; a
+# value that has never been compared against silicon says so in this column.
+#
 # ipow used to be absent from this table: ipow(48,18) is 48^18 mod 2^32 = 0
 # exactly, so its SIG folded to 0x00000000 -- a value a dead kernel, a
 # held-in-reset kernel and a kernel whose output bus reads zero all produce

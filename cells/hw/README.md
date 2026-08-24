@@ -437,6 +437,50 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## The null controls were the only unchecked thing left in the suite
+
+Every `run_all_bench.sh` log carried lines like *"no expected SIG recorded for
+gcd_null_bench_gen -- a deterministically wrong answer would not be caught"*.
+The reasoning had been that the null computes "something else entirely" and so
+cannot be given the real kernel's signature. True, and beside the point: the
+null DUT is not opaque. `gen_bench.py`'s `is_null` branch emits
+
+```verilog
+assign out0_data = <arg word> ^ <arg word> ^ ... ;
+```
+
+so its expected value is derivable exactly the way a kernel's is -- from the
+generator's own fold expression, with the same DOMAIN_RESTRICTIONS applied.
+Derived in software, then checked, all four that have a bitstream passing on
+the first attempt:
+
+| target | operands | value | why |
+|---|---|---|---|
+| `gcd_null` | (48,18) | 34 | `48^18`, no mask |
+| `ipow_null` | (3,7) | 4 | `3^7`, no mask |
+| `collatz_null` | (48,18) | 48 | nargs=1, n masked to 16 bits |
+| `isprime_null` | (47,18) | 47 | nargs=1, no mask |
+
+`collatz64_null` and `xorshift_null` are derived and recorded but **not yet
+checked** -- neither has routed since the generator changed. The row says so;
+a value that has never met silicon should not look like one that has.
+
+### And they give the harness floor directly
+
+All four nulls retire a transaction in **5 cycles = 50 ns** at 100 MHz, with
+`latmin == latmax` exactly. That is the floor for any kernel call through this
+bench: AXI-side FSM, both synchronisers, one bundled transfer, and the null's
+own deliberate `bd_delay #(.N(10))` bundle so that it pays a real handshake
+rather than a shorter one.
+
+It is worth comparing against the intercepts fitted from the loop sweeps (4.12,
+2.96, 1.64, 0.27 cycles): those are **extrapolations to zero iterations of a
+kernel that still has its own entry structure**, and they sit below the
+measured 5-cycle floor. The fit intercept is not the harness cost, and the null
+is the thing that actually measures it. xorshift at `rounds=0` takes 6 cycles
+against the null's 5, so entering and leaving xorshift's loop without executing
+it costs one cycle over a pass-through.
+
 ## Loop cost does not track total matched delay -- it tracks the critical cycle
 
 `hw/loop_cost.sh` extends the xorshift sweep to every kernel whose trip count
