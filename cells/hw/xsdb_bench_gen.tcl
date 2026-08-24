@@ -56,7 +56,7 @@
 
 set bitfile [lindex $argv 0]
 set label   [lindex $argv 1]
-if {$bitfile eq ""} { error "usage: xsdb xsdb_bench_gen.tcl <bitfile> <label> \[n_uniform\] \[clk_ctrl_hex\]" }
+if {$bitfile eq ""} { error "usage: xsdb xsdb_bench_gen.tcl <bitfile> <label> \[n_uniform\] \[clk_ctrl_hex\] \[gold_sig\] \[fix_op0\] \[fix_op1\] \[repeat\]" }
 if {$label eq ""}   { set label "kernel" }
 set N_UNIFORM [lindex $argv 2]
 if {$N_UNIFORM eq ""} { set N_UNIFORM 2000 }
@@ -98,6 +98,16 @@ set FIX_OP0 [lindex $argv 5]
 set FIX_OP1 [lindex $argv 6]
 if {$FIX_OP0 eq ""} { set FIX_OP0 48 }
 if {$FIX_OP1 eq ""} { set FIX_OP1 18 }
+# Optional 8th argument: repeat the FIXED batch this many times WITHOUT
+# reprogramming, printing one line each, then stop before checks (b) and (c).
+# Every latency in hw/README.md is a single batch from a single programming and
+# carries no error bar.  This is how the error bar gets measured: the spread
+# across these repeats is the measurement noise of one fixed configuration,
+# and the spread across separate invocations (each of which reprograms) is
+# that plus configuration noise.  Two different numbers, and only the second
+# one has ever been observed.
+set REPEAT [lindex $argv 7]
+if {$REPEAT eq ""} { set REPEAT 0 }
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
 set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
@@ -399,6 +409,29 @@ if {$GOLD_SIG ne ""} {
     puts [format "SIG oracle PASS (0x%08x matches the expected result fold)" $sig]
 } else {
     puts "SIG oracle: not asserted (no expected value passed as argv 4) -- a deterministically wrong answer would NOT be caught by check (a)"
+}
+
+if {$REPEAT > 0} {
+    puts ""
+    puts "=== (r) repeat the SAME batch $REPEAT times, no reprogramming ==="
+    puts "rep\tcycles\tprepcyc\tlatmin\tlatmax\tsig"
+    puts [format "0\t%d\t%d\t%d\t%d\t0x%08x" [dict get $r cycles] [dict get $r prepcyc] $latmin $latmax $sig]
+    for {set rep 1} {$rep < $REPEAT} {incr rep} {
+        set q [run_batch 200 1 $FIX_OP0 $FIX_OP1]
+        # The oracle is asserted on EVERY repeat, not just the first.  A run
+        # that drifts into a wrong answer partway through a session is exactly
+        # what a repeatability study is for, and it would otherwise show up as
+        # a suspiciously fast batch with no explanation.
+        if {$GOLD_SIG ne "" && [dict get $q sig] != [expr {$GOLD_SIG}]} {
+            error [format "SIG ORACLE FAILED on repeat %d: 0x%08x != 0x%08x" $rep [dict get $q sig] [expr {$GOLD_SIG}]]
+        }
+        if {[dict get $q mism_st] & 1} { error "repeat $rep: MISMATCH_STICKY set" }
+        puts [format "%d\t%d\t%d\t%d\t%d\t0x%08x" $rep [dict get $q cycles] \
+              [dict get $q prepcyc] [dict get $q latmin] [dict get $q latmax] [dict get $q sig]]
+        flush stdout
+    }
+    puts "=== (r) done: $REPEAT batches, oracle asserted on each ==="
+    exit 0
 }
 
 # =========================================================================

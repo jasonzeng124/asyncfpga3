@@ -437,6 +437,66 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## Every latency here now has an error bar, and it is small
+
+Every number in the sections below was one batch from one programming, quoted
+to three or four digits with nothing said about how much it moves. Two noise
+terms sit under those digits, and `hw/repeatability.sh` separates them: repeat
+the same FIXED batch **without reprogramming** (WITHIN), and reprogram the same
+bitstream and measure again (ACROSS). Same route, same sizes, same die --
+nothing that could change the answer changes.
+
+4 programmings x 8 batches of 200 runs each, oracle asserted on every batch:
+
+| kernel | cycles/batch | within-prog | | across-prog | | latmin..latmax |
+|---|---|---|---|---|---|---|
+| | mean | spread | ppm | spread | ppm | |
+| xorshift | 19739.3 | 16 | 811 | 2.9 | 146 | 93..95 |
+| ipow | 5400.0 | **0** | **0** | **0.0** | **0** | 21..22 |
+| collatz | 22189.6 | 34 | 1532 | 12.9 | 580 | 103..105 |
+| collatz64 | 27784.8 | 20 | 720 | 9.4 | 337 | 130..132 |
+| isprime | 90708.2 | 83 | 915 | 25.1 | 277 | 433..439 |
+
+Worst case: **0.15% within a programming, 0.06% across**. Per run that is 0.08
+to 0.42 cycles -- every kernel's per-run timing is stable to a *fraction of one
+clock*, so the batch aggregate is where the fraction accumulates, not evidence
+that any kernel wanders. It also retroactively supports the clock sweep, which
+concluded ns/iter was constant "to 0.1%": that is about twice the
+across-programming floor, so the agreement was real and not luck.
+
+There is no trend against repeat index (per-rep deviations are ±0 to ±13
+cycles with no ordering), so nothing warms up, settles or drifts over a
+session at this duty cycle.
+
+### ipow is bit-exact, and that is structural, not luck
+
+ipow returned **5400 cycles, 32 times, across 4 programmings, zero spread.**
+Two explanations fit: its completion happens to land far from an aclk edge *at
+these operands*, or its run length is an exact number of cycles by
+construction. Operands alone tell them apart -- 8 pairs, 6 batches each:
+
+| e | bits | cycles/batch | cycles/run |
+|---|---|---|---|
+| 1 | 1 | 3000 | 15.00 |
+| 7 | 3 | 5400 | 27.00 |
+| 9, 11, 15 | 4 | 6600 | 33.00 |
+| 23, 27, 31 | 5 | 7800 | 39.00 |
+
+Every pair exact, and the run length is exactly `9 + 6*bits(e)` cycles. So
+ipow costs **6.00 cycles = 60.0 ns per iteration** -- not fitted, counted. The
+sweep in the loop-cost section fitted 60.4 ns/iter for the same kernel, which
+is that number within its own error bar.
+
+The other four kernels have *fractional* cycles per run (xorshift 98.7), and
+that is exactly where their jitter comes from: runs chain, so the phase at
+which one run starts is the phase at which the previous one finished, and a
+non-integer run length walks that phase. ipow's does not walk.
+
+One thing this kills: **`latmin != latmax` is not by itself evidence of silicon
+jitter.** ipow reports latmin=21, latmax=22 while its batch total is exactly
+200x27 every time. The runs are identical; the +-1 is the latency counter's own
+sampling, and the batch total is the statistic to trust.
+
 ## The null controls were the only unchecked thing left in the suite
 
 Every `run_all_bench.sh` log carried lines like *"no expected SIG recorded for
