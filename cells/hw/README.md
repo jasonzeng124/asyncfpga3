@@ -20,6 +20,72 @@ error. It never asks anyone to read an LED.
 
 ---
 
+## Tightening is worth 2x, and the default path is not currently delivering it
+
+2026-08-24, xorshift, measured on the board rather than argued from a log.
+
+`hw/xorshift_cost.sh` now takes `BIT` and `OUT` from the environment, so the
+same 17-point sweep can be pointed at any bitstream. Pointed at four of them:
+
+| build | tightened? | cycles per round | base |
+|---|---|---|---|
+| default, earlier today | yes, 12 sizes | 4.9873 ± 0.0016 | 9.220 |
+| seed 13 | yes | 4.5762 ± 0.0020 | 9.859 |
+| default rebuild 1 | **no** | 9.9870 ± 0.0006 | 12.743 |
+| default rebuild 2 | **no** | 9.9873 ± 0.0006 | 12.811 |
+| default rebuild 3 | **no** | 9.9862 ± 0.0004 | 12.791 |
+
+Two things come out of that table and the second one is the one that matters.
+
+**Route scatter is negligible, and I had it backwards.** The three rebuilds are
+three independent unpinned place-and-routes of the *same netlist* — all three
+fell back to `bdc/emit.py`'s estimate, so their delay chains are identical and
+the only difference between them is where nextpnr put things. They agree to
+**0.011%**. That makes sense once stated: an untightened chain is a long fixed
+count of `bd_delay` links, and routing variation is a small fraction of it.
+
+So the 8.2% between the two *tightened* builds is not the route. It is the
+**tightening result** differing — two routes measured, two different sets of
+sizes derived, and the sizes are what moved. An earlier commit message here
+called that gap route scatter; it is not, and the distinction matters because
+one of those is irreducible and the other is a property of the sizing loop.
+
+**Three consecutive default rebuilds shipped untightened.** Not seed-pinned,
+not resumed from a ratchet — `hw/tighten_loop.sh` deletes its accumulated
+sizes unless `BD_RESUME=1`, and there was no `build/gen/xorshift_bench_gen_sizes.vh`
+to reuse. Each one ran clean, sized 12 cells from its own route, and then:
+
+```
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: seeded 12 cell(s) from the first route
+   BUILD FAILED with these sizes -- not a candidate
+   (that is verify/converge.sh -- RULE E -- failing to settle, not rule A.)
+RESULT: no sized build passed rule A on its own route.
+Shipping bdc/emit.py's estimate -- unmeasured, generous, and safe.
+```
+
+That is the same rule E failure that blocked gcd, now on the kernel that was
+supposed to be the easy one. The cost of it is not subtle: 9.987 against 4.99
+is a factor of **2.00** on the loop slope, given up whenever rule E has a bad
+day. Rule E's own message says its margins are below this fabric's routing
+noise, so it cannot hold a per-channel constant across builds — which means
+this is not a rare accident, it is the expected behaviour of a loop searching
+for a constant that does not exist.
+
+The log itself names a fallback that is not wired up: `BD_SKIP_RULE_E=1` sizes
+rule A without it. Whether that is safe to ship is a real question — rule E
+pads select channels for a reason — but a build that silently drops a 2x
+because an *inner* loop could not converge is worse than one that ships rule A
+alone and says so. Sized-but-unpadded is being measured before anything is
+changed in the default path; nothing here has been made policy yet.
+
+Raw data: `hw/xorshift_cost_seed11_untightened.tsv`,
+`hw/xorshift_cost_seed13_tightened.tsv`, `hw/xorshift_cost_route{1,2,3}.tsv`.
+`hw/route_study.sh` produced the three rebuilds (unpinned on purpose:
+`NEXTPNR_SEED` sets `PNR_TRIES=1` and removes the retry the default path
+relies on, so a seed-pinned build is systematically more likely to be
+untightened and is the wrong instrument for this question).
+
 ## The result, 2026-08-03, `xc7z010clg400-1` on an EBAZ4205
 
 Five ring oscillators, each a `bd_delay` chain of a different length closed
