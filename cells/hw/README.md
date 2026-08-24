@@ -95,6 +95,94 @@ shorter than the logic it is meant to cover — and `ro_measure.py` fails on it.
 So `tighten.py` rests on ground that has now been checked, and the number to
 carry is that its inputs are good to about ten percent and err long.
 
+*That last sentence did not survive n = 128. See below.*
+
+---
+
+## The population, 2026-08-23 — 128 rings, `ro_many_top`
+
+Two routes is n = 2, and the section above says so. `ro_many_top.v` is the
+same experiment as a **population**: 128 rings, 32 at each of 7, 15, 31 and 63
+links, so the guardband becomes a percentile of a measured distribution instead
+of the max of five samples.
+
+```
+hw/build_hw.sh ro_many_top      # 4543 LUT sites, 9 BUFGCTRL of 32
+python3 hw/ro_many_measure.py   # sweeps 16 groups, judges itself
+```
+
+The blocker was global buffers, not LUTs: `ro_top` burns one BUFGCTRL per ring
+and 6 of 32 was already at the edge of what this part's clock router manages.
+So the counters are **time-multiplexed** — 8 slots, each with its own BUFG and
+counter, over 16 groups scanned one at a time, with only the selected group
+oscillating. 128 rings for 9 buffers, and the count does not grow with the
+population. Ring lengths rotate by *both* group and slot, which decorrelates
+length from both, so a slow slot cannot masquerade as a length effect.
+
+| links | n | median ratio | p90 | p99 | max | 8.5% covers |
+|---|---|---|---|---|---|---|
+| 7 | 32 | 1.176 | 1.438 | 1.470 | 1.470 | **15.6%** |
+| 15 | 32 | 0.987 | 1.117 | 1.203 | 1.203 | 56.2% |
+| 31 | 32 | 0.959 | 1.085 | 1.142 | 1.142 | 56.2% |
+| 63 | 32 | 0.969 | 1.059 | 1.134 | 1.134 | 81.2% |
+| **all** | **128** | **0.989** | 1.252 | 1.457 | 1.470 | **52.3%** |
+
+**8.5% is a median, not a guardband.** It covers the 52nd percentile of the
+population — 48% of rings need more than it — and on 7-link chains it covers
+15.6%. A p99 band would have to be 34.6%. Reproducibility across windows was
+0.052%, so this is scatter between routes, not measurement noise.
+
+**Ring 0's 1.346 was never an outlier.** Among 32 seven-link rings the ratio
+runs 0.773 to 1.470 with a median of 1.176, and 22% of them are at least as bad
+as 1.346. The rebuild that produced it drew an ordinary member of the
+short-chain population, and `ro_measure.py` failed the run because five samples
+cannot tell an ordinary draw from a defect.
+
+### The length trend is an offset, not a slope
+
+The short-chain effect is real at n = 32 — 7-link and 63-link residuals are
+drawn from different distributions, Mann-Whitney p = 5.6 × 10⁻⁵ — but it is
+**not a per-link error**:
+
+| model | fit | per-length median residual | 7 vs 63 |
+|---|---|---|---|
+| one parameter | measured = 0.9616 × predicted | +18.3%, +2.5%, −0.3%, +0.8% | p = 5.6e−5 |
+| two parameter | measured = 0.9383 × predicted **+ 988 ps** | +3.6%, −2.4%, −1.3%, +1.4% | p = 0.39 |
+
+One fixed ~1 ns per loop removes the length dependence entirely. A constant is
+a large fraction of a short chain and nothing at all of a long one, which is
+the whole of the "short chains are worse" effect. **So the per-link cost —
+the number `tighten.py` actually spends when it adds or removes a link — is
+not what is wrong. What is wrong is a constant the model does not charge**,
+and that argues for an additive correction, not a wider percentage.
+
+It does not rescue the band: coverage moves only 52% → 60%, because the
+residual scatter that remains is per-route and genuinely wide.
+
+Whether that 988 ps is a property of the fabric, of this route, or partly of
+this rig is **not settled**. Each ring node here feeds a mux leg as well as its
+own chain, and an under-charged extra sink would be per-loop — exactly the
+shape of the offset. `ro_top`'s rings tap a BUFG instead, which is also one
+extra sink, so the rigs are alike in kind; but fitting an intercept to five
+points where one is short gives an answer that flips sign between `ro_top`'s
+two routes (−1596 ps and +2303 ps). Settling it needs a second `ro_many` route,
+or a variant with the mux tap off the ring node.
+
+### It is per-route scatter, not a bad region and not a bad slot
+
+Permutation tests on the spread of per-label medians: by slot p = 0.73, by
+group p = 0.66. Neither clusters. The worst decile spreads across 6 of 8 slots
+and 9 of 16 groups. So the scatter is a property of the individual route —
+what nextpnr charged for *these* nets against what they cost — and not of where
+on the die a ring sits or which counter read it. That also clears the rig
+itself: a slow BUFG or counter would have clustered by slot.
+
+**76 of 128 rings ran *slower* than the scaled model**, which is the direction
+a matched delay cannot absorb. On that side alone 8.5% covers 65% of the
+population and p99 needs 34.0%. The 2026-08-03 table's "every ring ran faster
+than its prediction, which is the safe direction" was a property of five
+samples, not of the fabric.
+
 ### What this does not measure
 
 A ring runs at its own natural rate with nothing loading it but the next stage
@@ -183,6 +271,8 @@ firmware, attach again, then `chmod`. `xc3sprog -c xpc -j` should show
 | File | What it is |
 |---|---|
 | `ro_top.v` | five rings, five counters, a BSCANE2 readback register |
+| `ro_many_top.v` | 128 rings time-multiplexed onto 8 counters and 8 BUFGs, 16 groups |
+| `ro_many_measure.py` | sweeps the 16 groups one lock at a time, per-group raw logs, judges |
 | `arb_mtbf.v` | `bd_arbcell`'s MTBF, on silicon — see `verify/MTBF.md` and the file's own header |
 | `build_hw.sh` | synth → route → FASM → frames → `.bit`, for any `hw/*.v` |
 | `ro_measure.py` | walks the SDF for the prediction, drives the board, judges |
