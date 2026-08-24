@@ -68,13 +68,31 @@ With that, serialisation is correct by construction rather than by margin, and
 it composes: an operand released only at port-quiet is exactly the release
 signal a program-order token chain needs, so the token costs nothing extra.
 
+Be precise about WHICH signal, because the obvious cheaper one does not work.
+The token must wait for a_ack to FALL, not for p_ack to fall.  p_ack is
+shared, and a_ack lags it on every path -- z_req is p_ack & joined, so z_req
+falls because p_ack fell, the consumer only then drops z_ack, and hold needs
+both low.  Releasing on p_ack lets the producer offer its next operand into an
+acknowledge that never fell.  cells/tb/tb_bdc_memseq.v measures this: the p_ack
+rule fails identically at every consumer speed from 0 ps to 32 hops, which is
+what tells you it is structural and not a race.  See bdc/AUDIT.md section 7.
+
 AND DCO IS THE ADDRESS HOLD GUARD, NOT ONLY THE CLOCK-TO-OUT LINE
 
 Falling out of the same trace: the address is released one arc after p_ack
 falls, which is DCO after ram_clk falls, which is DSETUP + DCO after the RAM
-captured it.  Nothing in the library audits a HOLD window at the RAM boundary
--- prjxray's model checks setup and says nothing about hold -- so it is worth
-naming what is actually providing it.  It is DCO.  That makes shortening DCO
+captured it.  So DCO is what provides the hold window, and rule C sizes it for
+clock-to-out alone.
+
+This paragraph used to say prjxray's model checks setup and says nothing about
+hold.  That was wrong: BRAM_L.sdf carries HOLD arcs right next to the SETUP
+ones it was already being read for, e.g.
+
+    (HOLD ADDRAU (posedge CLKARDCLKU) (-0.566::0.360))
+
+They are exported by sim/bd_prims_sim.v now.  verify/tighten.py reports the
+bound (2x its own clock-to-out number, since DCO appears twice in the release
+path), and tb_bdc_mem.v measures the real value: 2632 ps against 360 needed.  That makes shortening DCO
 risky in two independent ways at once, and shortening a matched delay is
 already the direction simulation cannot see.
 
