@@ -119,7 +119,16 @@ if [ -z "${BD_TIGHTEN_RUNNING:-}" ] && [ -z "${BD_SIZES:-}" ] \
         "$KERNEL" "${BD_TIGHTEN_ITERS:-6}"
 fi
 
-if [ -z "${BDC_SELECT_PADS:-}" ] && [ "${BD_NO_TIGHTEN:-0}" != "1" ]; then
+# --null skips this branch for the same reason it skips MODE=tighten above,
+# and the reason is measured rather than assumed: verify/skew.py on
+# collatz64_null_bench_gen reports "0 select gates, 0 measured, 0 violated"
+# and converge.sh writes an empty pads.json.  There is nothing in a null DUT
+# to pad.  Without this the null control ran the full rule E search anyway --
+# up to 6 complete place-and-route builds to discover an empty set -- and on
+# collatz64 and xorshift that overran the per-seed PnR timeout and reported
+# as a BUILD FAILURE, which is how two null controls sat without a bitstream.
+if [ -z "${BDC_SELECT_PADS:-}" ] && [ "${BD_NO_TIGHTEN:-0}" != "1" ] \
+   && [ "$NULL" != "1" ]; then
     BUILDER_ARGS=("$KERNEL")
     [ "$NULL" = "1" ] && BUILDER_ARGS+=(--null)
     echo "build_bench.sh: MODE=converge -- no BDC_SELECT_PADS (not a" \
@@ -131,6 +140,12 @@ fi
 if [ "${BD_NO_TIGHTEN:-0}" = "1" ]; then
     echo "build_bench.sh: MODE=BD_NO_TIGHTEN -- building $TOP directly," \
          "select channels at bdc/emit.py's unmeasured SELECT_PAD estimate" >&2
+elif [ "$NULL" = "1" ]; then
+    # Reachable only since --null stopped being handed to converge.sh above.
+    # It is not a re-entry, so BDC_SELECT_PADS is unset and naming it here
+    # under `set -u` aborts the build -- which is exactly what happened.
+    echo "build_bench.sh: MODE=null -- building $TOP directly; a null DUT" \
+         "has no delay-bearing cells and no select gates to size" >&2
 else
     echo "build_bench.sh: MODE=converge re-entry" \
          "(BDC_SELECT_PADS=$BDC_SELECT_PADS) -- building $TOP" >&2

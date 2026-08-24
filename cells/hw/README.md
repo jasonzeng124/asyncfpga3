@@ -20,6 +20,37 @@ error. It never asks anyone to read an LED.
 
 ---
 
+## The null control was running the rule E search, and losing to a timeout
+
+2026-08-24. `collatz64_null_bench_gen` and `xorshift_null_bench_gen` both
+reported `BUILD FAILED` after ~2531 s, which is six seeds x the 420 s per-seed
+PnR timeout, cut off mid-placement with no `ERROR` line. Neither is a design
+failure and neither had anything to do with the null DUT.
+
+`hw/build_bench.sh` skips `MODE=tighten` for `--null` -- correctly, a null DUT
+has no delay-bearing cells -- and then fell straight into `MODE=converge`,
+which is the rule E select-padding search. `verify/skew.py` on that design
+says:
+
+```
+0 select gates, 0 measured, 0 violated
+```
+
+and `converge.sh` wrote `pads.json` as `{}`. So the null control was spending
+up to six complete place-and-route builds to discover an empty set, every
+time, and on the two biggest nulls that overran the timeout and looked like a
+broken kernel.
+
+`--null` now skips the converge handoff too and builds directly (`MODE=null`).
+One wrinkle that fell out of it: the branch below the handoff names
+`$BDC_SELECT_PADS` unguarded, and under `set -u` that is fatal the moment a
+non-re-entry build reaches it -- which nothing did until `--null` started
+falling through. It has its own arm now.
+
+The same shape as the [rule E finding below](#tightening-is-worth-2x-and-the-default-path-is-not-currently-delivering-it):
+rule E is expensive, and here it was being paid for a design with no selects
+in it at all.
+
 ## Tightening is worth 2x, and the default path is not currently delivering it
 
 2026-08-24, xorshift, measured on the board rather than argued from a log.
