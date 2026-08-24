@@ -28,7 +28,9 @@
 #   0x04 STATUS   RO [0]=i_ack [1]=o_req                (manual path)
 #   0x08 OP0      RW operand word 0 (also UNIFORM-mode LFSR seed)
 #   0x0C OP1      RW operand word 1
-#   0x10 ODATA    RO last result, captured on every completion
+#   0x10 ODATA    RO last result.  Inside/after a batch this is result_hold,
+#                    captured while the kernel still owned the bus; before any
+#                    batch it is the free-running mirror (manual path).
 #   0x14 NRUNS    RW transactions per batch
 #   0x18 CYCLES   RO batch cycles, EXCLUDING S_PREP settling
 #   0x1C PREPCYC  RO S_PREP settling cycles for the same batch
@@ -40,6 +42,8 @@
 #   0x34 LASTOP1  RO
 #   0x38 SIG      RO rotate-XOR signature over every result this batch
 #   0x3C MISM_ST  RO [0]=mismatch sticky (FIXED mode repeatability check)
+#                    [1]=hold_valid  [2]=hold_fallback (result captured without
+#                    the o_req level -- distrust that batch's SIG)
 #   0x40 MISM_IDX RO
 #   0x44 MISM_VAL RO
 #   0x48 MISM_REF RO

@@ -29,6 +29,7 @@ collatz        0x000006f9  48  18  # 11          collatz(48)=11 steps (nargs=1, 
 collatz64      0x000006f9  48  18  # 11          collatz64(48)=11 steps (nargs=1, op1 unread)
 xorshift       0x03dba483  48  18  # 2863579695  default-path tightened build
 ipow           0x00078179  3   7   # 2187        ipow(3,7)=3**7, the kernel's own main() vector, checked 2026-08-24
+isprime        0x000000ff  47  18  # 1           isprime(47)=1; 47 is prime, 48 is not, and 0 is the degenerate fold
 #
 # ipow used to be absent from this table: ipow(48,18) is 48^18 mod 2^32 = 0
 # exactly, so its SIG folded to 0x00000000 -- a value a dead kernel, a
@@ -37,15 +38,18 @@ ipow           0x00078179  3   7   # 2187        ipow(3,7)=3**7, the kernel's ow
 # the FIXED operands a per-kernel column instead of hardcoding (48,18), and
 # running ipow at (3,7) -> 2187.
 #
-# DELIBERATELY ABSENT:
+# isprime was absent until the sampling was fixed, and it is worth recording
+# what it caught.  The KERNEL WAS ALWAYS CORRECT: the corruption exercise read
+# isprime(48)=0 and isprime(47)=1 straight off o_data_pl, both right.  But
+# ODATA and SIG read 0x80000000 on every run, because the two paths sampled
+# different things -- mismatch_ref/mismatch_val latched o_data_pl AT RUN
+# COMPLETION, while o_data_capture (what ODATA returns and SIG folds) was read
+# later, in S_NEXT, AFTER this harness had acknowledged.  Past the acknowledge
+# the sender is entitled to return to zero and drop the data, so that read was
+# outside the 4-phase valid window; it worked for five kernels only because
+# their output bus happened to keep holding.  gen_bench.py now captures once,
+# in S_WAIT_RES, on the last edge before bench_o_ack rises, and SIG, the
+# repeatability latch and ODATA all read that one register.
 #
-# isprime -- the KERNEL IS CORRECT: the corruption exercise captures
-#   isprime(48)=0 and isprime(47)=1 straight off o_data_pl, both right.  But
-#   ODATA and SIG read 0x80000000 on every run (SIG is exactly
-#   fold(0x80000000)).  Those two paths sample different things:
-#   mismatch_ref/mismatch_val latch o_data_pl AT RUN COMPLETION, while
-#   o_data_capture is a free-running mirror in the AXI clock domain that is
-#   read later, in S_NEXT.  That assumes the output bus still holds the result
-#   by S_NEXT.  It does for the other five kernels; for isprime it does not.
-#   So isprime's SIG describes a released bus, not a result, and pinning it
-#   here would freeze the artifact in place.  Fix the sampling first.
+# isprime is run at op0=47 because isprime(48)=0 and a zero fold is the
+# degenerate case ipow had.  op1 is unread (nargs=1).
