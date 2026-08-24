@@ -112,14 +112,49 @@ write_sizes() {                       # write the current assignment
 # what would have happened to BD_SZ_UDEC, which had to go 4 -> 16 to close
 # umux.  Any accept test that cannot observe the constraint a length was
 # chosen for will eventually undo that length.
+#
+# THE SAME SENTENCE IS TRUE ABOUT ROUTES, and that half was missing.  flow.sh
+# is deterministic, so "it passed" here has always meant "it passed on the one
+# route nextpnr produces for this netlist" -- and a margin is not a property of
+# a netlist, it is a property of a route.  Measured on the arbitrated memory
+# port: this loop settled UPORT_UMEM0_USETUP at 5 links, on a route where rule
+# B had 10 ps of margin.  Re-routed under four other seeds, that same size gave
+# -108, -615, -719 ps and one pass.  At the untightened 8 links, twelve
+# measurements over six seeds were all ok with 660-2405 ps.  So the size was
+# not merely lucky, it was wrong, and nothing in the loop could have said so.
+#
+# BD_RESIZE_SEEDS=N asks for N routes per candidate and keeps a size only if
+# ALL of them meet every constraint.  Default 1, which is exactly the old
+# behaviour: N routes cost N times the place-and-route, and that is a real
+# price to pay on every candidate in every sweep, so it is the caller's call.
+# Pay it for anything whose numbers are going to be quoted or built.
+#
+# BE HONEST ABOUT WHAT N=3 BUYS.  On the same design it vetoed one shrink that
+# N=1 had accepted -- and the assignment it settled on instead still violated
+# rule B on three of eight fresh routes.  Three samples are weak evidence
+# against a defect that appears on about two routes in five; they miss it
+# roughly a fifth of the time, and they did.  This knob raises the bar.  It
+# does not clear it, and a length it keeps is still not a length to trust
+# without a guardband.  See bdc/AUDIT.md section 7.
+SEEDS=${BD_RESIZE_SEEDS:-1}
 attempt() {
-    local tag=$1
+    local tag=$1 s=2
     ./flow.sh > "$HIST/flow_$tag.log" 2>&1 || return 2
     # NAME THE SDF.  tighten.py defaults to build/pnr/soak.sdf, so with BD_OUT
     # set this measured a stale route from a different design.
     python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" "$OUT/soak.sdf" \
         > "$HIST/tighten_$tag.log" 2>&1 || return 1
     python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1
+    # The PROPOSAL always comes from the unseeded route above, so the loop's
+    # answer stays reproducible; the seeded routes below only ever veto.
+    while [ "$s" -le "$SEEDS" ]; do
+        NEXTPNR_SEED=$s ./flow.sh > "$HIST/flow_${tag}_s$s.log" 2>&1 || return 2
+        python3 verify/tighten.py "$OUT/soak.sdf" \
+            > "$HIST/tighten_${tag}_s$s.log" 2>&1 || return 1
+        python3 verify/skew.py "$OUT/soak.sdf" \
+            > "$HIST/skew_${tag}_s$s.log" 2>&1
+        s=$((s + 1))
+    done
 }
 
 read_prop() {                         # load a proposal into prop[]
@@ -178,8 +213,10 @@ while : ; do
         else
             cur[$k]=$was
             write_sizes
-            reason=$(grep -m1 VIOLATION "$HIST/tighten_try_${k}_${want}.log" \
-                     | sed 's/^ *//;s/  */ /g')
+            # The veto may have come from a confirmation seed, not from the
+            # unseeded route, so look in every log this candidate produced.
+            reason=$(grep -m1 -h VIOLATION "$HIST"/tighten_try_"${k}"_"${want}"*.log \
+                     2>/dev/null | sed 's/^ *//;s/  */ /g')
             printf "  %-20s %2d -> %-2d  REVERTED\n" "${k#BD_SZ_}" "$was" "$want"
             printf "  %-20s          %s\n" "" "${reason:-place-and-route failed}"
         fi
@@ -195,7 +232,13 @@ python3 verify/tighten.py --emit "$HIST/final_prop.vh" "$OUT/soak.sdf" > "$HIST/
 final=$?
 
 echo
-echo "settled after $sweep sweep(s), $routes place-and-route runs"
+if [ "$SEEDS" -gt 1 ]; then
+    echo "settled after $sweep sweep(s), $routes candidate(s) x $SEEDS route(s) each"
+else
+    echo "settled after $sweep sweep(s), $routes place-and-route runs"
+    echo "ONE ROUTE PER CANDIDATE -- these lengths are known to hold on the route"
+    echo "flow.sh happens to produce and on no other.  BD_RESIZE_SEEDS=N to confirm."
+fi
 echo "verified assignment:$(show)"
 echo "written to $SIZEFILE -- pass it back with BD_SIZES=$SIZEFILE ./flow.sh"
 if [ $final -ne 0 ]; then

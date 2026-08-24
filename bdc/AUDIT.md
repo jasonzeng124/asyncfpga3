@@ -552,3 +552,76 @@ generated Verilog, where it correctly reported `BAD TOKEN` and exited 1.
 The release-rule result above is unchanged: `-DBDC_SEQ_EAGER` still fails 12×
 with 13 edges, and `done` makes that argument stronger rather than weaker,
 since `p_ack` now falls even earlier relative to `a_ack`.
+
+### The routed answer, and a hole in the sizing loop that is not about memory
+
+`bdc/mem.py toparb:10:32` routes the arbitrated port for real — two RAMs, the
+arbiter, both `:seq` stations — and it places, routes, and passes every gate.
+`verify/tighten.py` needed no changes to handle it, and got the interesting
+part right unprompted: rule B measured both the manufactured clock and the
+latest payload from `uport.uarb.ustate$LUT6/O6`, the arbiter's state node,
+which is the correct common launch for a path that now runs through a grant.
+
+Then the sizing loop settled `UPORT_UMEM0_USETUP` at 5 links, on a route where
+rule B had **10 ps** of margin against a 737 ps setup window.
+
+Ten picoseconds is not a margin on this fabric, so it got re-routed:
+
+| `USETUP` | routes | rule B on `umem0` |
+|---|---|---|
+| 5 (what resize settled on) | 5 seeds | **−108, −615, −719 ps, +10, +1081** — 3 violations |
+| 8 (the untightened placeholder) | 6 seeds | +872 … +2405 ps, 12/12 ok |
+
+So the size was not lucky, it was **wrong**, and nothing in the loop could have
+said so. `flow.sh` is deterministic — no `--seed` — so "the candidate passed"
+has always meant "the candidate passed on the one route nextpnr produces for
+this netlist". A margin is a property of a route, not of a netlist.
+
+`verify/resize.sh` already carried the right sentence about a different axis:
+*any accept test that cannot observe the constraint a length was chosen for
+will eventually undo that length.* This is the same sentence about routes.
+`BD_RESIZE_SEEDS=N` now routes each candidate N times and keeps a size only if
+all N pass; the proposal still comes from the unseeded route, so the loop's
+answer stays reproducible and the extra routes only ever veto. Default is 1 —
+N routes cost N times the place-and-route on every candidate of every sweep,
+which is a real price — and at N=1 the loop now says out loud that its answer
+holds on one route and no other.
+
+**It helps and it is not enough, which is the part worth keeping.** At N=3 the
+loop vetoed a shrink that N=1 had accepted — `UMEM1_USETUP` 8→7, killed by a
+confirmation route at −719 ps — and settled on a genuinely different, larger
+assignment. That assignment was then re-routed under eight seeds:
+
+| | routes | rule B on `umem0` |
+|---|---|---|
+| N=3's answer (`USETUP` 5/8) | 8 seeds | −225, −266, −379 ps and five passes — **3 violations** |
+
+Three confirmation routes are weak evidence against a defect that shows up on
+roughly two routes in five: they all miss it about a fifth of the time, and
+this time they did. Sampling is the wrong instrument here. The right one is a
+guardband — rule A already has `max(0.2·t_data, 200 ps)` and rules B and C have
+none, they compare against the vendor window bare — sized from the scatter,
+which is measurable: at fixed lengths the manufactured clock's arrival moved
+4325 → 5730 ps over six routes. That is about four delay links, which is the
+entire tightening budget for this delay, and it says plainly that
+`UMEM0_USETUP` should not be tightened here at all.
+
+**Adding a guardband to rules B and C is a decision for the user, not for me.**
+It would move every sizing result already on record, in the conservative
+direction and at a throughput cost, and it is a change to the shared gate
+rather than to anything memory owns. The measurement is here; the call is not
+made.
+
+**This is not a memory finding.** Every quoted margin from a single `flow.sh`
+run is one sample, including the ones already on record. It showed up here
+because the arbiter's mux lengthened the payload path enough to make the
+scatter matter, but the scatter was always there: at fixed sizes the clock
+arrival alone moved 4325 → 5730 ps across six seeds, which is roughly four
+delay links — the entire tightening budget.
+
+A caveat that cuts the other way, and is not resolved: a seed sweep is not a
+PVT sweep. Six routes of the same netlist say how much the *router* moves; they
+say nothing about temperature, voltage, or process, and the whole reason
+shortening a matched delay is the risky direction is that silicon can be slower
+than any of these numbers. `BD_RESIZE_SEEDS` narrows one source of optimism.
+It does not make a tightened length safe.
