@@ -680,6 +680,60 @@ conclusion the loop-cost section reached. The outlier is isprime's outer trial,
 and it is an outlier because it is not one loop iteration -- it is a trial that
 contains a whole inner loop's entry and exit.
 
+## The return-to-zero half of the handshake is a per-kernel constant, and gcd's is 23 cycles
+
+`gen_bench.py` runs two counters over the same batch: `lat_ctr` starts at
+`S_ISSUE` and stops when the result is captured, while `cycles` keeps counting
+through `S_ACK`, `S_RTZ` and `S_NEXT`. Their difference is the **tail** -- the
+harness acknowledging, the kernel lowering `o_req`, and the FSM getting back to
+`S_PREP`. A four-phase matched delay is paid on both edges, so this is the
+second edge, and nothing in this file had ever measured it.
+
+Only rows where `latmin == latmax` give an exact answer -- `cycles/run` is a
+mean over the batch and `latmin` is a minimum over it, so where latency varies
+run to run the difference is inflated by however far the mean sits above the
+min (7 cycles of pure artefact for xorshift at 256 rounds). Pulling every
+deterministic point out of every sweep taken today:
+
+| target | exact tail (cycles) |
+|---|---|
+| gcd_null, ipow_null, collatz_null, isprime_null | **5.000** (all four) |
+| xorshift | 5.000 |
+| ipow | 6.000 |
+| collatz | 6.895 |
+| isprime | 7.000 |
+| **gcd** | **22.992** |
+
+Four independently built null bitstreams agree on 5.000 exactly, which makes
+that the floor and not an estimate. Every kernel then pays its own constant on
+top, the same for every input it is given -- and gcd pays **23 cycles, 230 ns,
+on every single transaction**, 4.6x the floor and 3.3x the next-worst kernel.
+
+That is 17% of `gcd(48,18)`'s entire 134-cycle run spent after the answer was
+already captured.
+
+**What it is not.** Three structural predictors were checked and none of them
+order the table:
+
+| kernel | tail | delay cells | chain built | bd_link+bd_pipe |
+|---|---|---|---|---|
+| xorshift | 5.00 | 12 | 33.7 ns | 24 |
+| ipow | 6.00 | 11 | 158.8 ns | 23 |
+| collatz | 6.90 | 10 | 45.2 ns | 24 |
+| isprime | 7.00 | 28 | 282.6 ns | 70 |
+| gcd | 22.99 | 51 | 204.6 ns | 116 |
+
+isprime carries the longest delay chain and pays 7. gcd has the most links and
+the most delay cells but not the longest chain, and pays 23. ipow's chain is
+3.5x collatz's and it pays *less*. So it is not the matched-delay total, not
+the delay-cell count, and not the link count -- it is measured, exact, and
+unexplained, which is a better place to leave it than with a story that fits
+five points and no mechanism.
+
+One practical consequence regardless of cause: **the tail is per transaction,
+not per iteration**, so it hurts short calls most. It is 40% of `ipow(3,1)`'s
+15-cycle run and 0.04% of `isprime(99991)`'s.
+
 ## gcd finally has a cost model
 
 gcd is the flagship kernel and the only one whose per-iteration cost had never
