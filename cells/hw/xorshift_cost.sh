@@ -15,8 +15,8 @@ set -u
 cd "$(dirname "$0")/.."
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 CLK=${CLK:-0x00100A00}
-BIT=build/hw/xorshift_bench_gen/xorshift_bench_gen.bit
-OUT=build/hw/xorshift_cost.tsv
+BIT=${BIT:-build/hw/xorshift_bench_gen/xorshift_bench_gen.bit}
+OUT=${OUT:-build/hw/xorshift_cost.tsv}
 [ -e "$BIT" ] || { echo "no bitstream at $BIT"; exit 2; }
 
 POINTS="0 1 2 3 4 6 8 12 16 24 32 48 64 96 128 192 256"
