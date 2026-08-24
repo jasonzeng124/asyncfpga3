@@ -347,6 +347,55 @@ what makes sizes portable at all, and 8 seeds is evidently not enough
 accumulated history for this design. Sizes converged against one route are
 roughly a 3-in-4 bet on the next one.
 
+## Why gcd cannot use rule E: the C node is 1.3 ns from its own latch
+
+`gcd` is the one kernel that ships with `BD_SKIP_RULE_E=1` -- no select
+padding. Two results above make that worth revisiting, so here is the actual
+blocker, measured rather than asserted (`hw/ctl_latch_reach.py`).
+
+**Padding cannot fix most of it.** Re-running gcd's default path with rule E
+enabled, `verify/converge.sh` reports 9 sites that take the request before the
+select is stable, and declines to pad 7 of them for a specific reason: the
+launch is a `control_merge`'s arbiter state LUT, not a `bd_link` C node, so
+there is no DELAY knob attributable to the site. It pads the 2 it can and
+never settles. The loop is not failing to find a value; for most sites there
+is no value to find.
+
+**The sites it does report are near misses, not blowouts.** `umux19`: request
+earliest 3241 ps, select latest 2262 ps -- **+979 ps raw, −110 ps guarded**.
+The raw ordering is correct by about a nanosecond. Only the 20% guardband is
+short, by 110 ps.
+
+**The cause is placement, and it is 1.3 ns.** Out of gcd's own routed SDF:
+
+| path | n | median | p90 | max |
+|---|---|---|---|---|
+| C node -> its own latch, **RLOC grouped** | 164 | **150 ps** | 150 | 444 |
+| C node -> its own latch, **ungrouped** | 2040 | **1440 ps** | 2085 | 3360 |
+| C node -> its own delay chain | 23 | 585 ps | 810 | 810 |
+
+Two LUTs of one cell, a nanosecond and a half apart, on the critical path of
+every transfer in the design -- while the same C node reaches its own delay
+chain in 585 ps.
+
+**`hw/rloc_stamp.py` already fixes this, 9x, where it applies.** Grouped sinks
+sit at a flat 150 ps. It is worth **1290 ps of median routing**. It just
+covers **7.4%** of latch sinks.
+
+That coverage is a structural cap, not an oversight -- rloc_stamp.py says so
+at its own line 23: "A SLICE on xc7 holds four LUTs." A group is a same-tile
+cluster, so a controller can share a tile with about one bit of its bank. For
+the 96 banks wider than 2 bits, only the named bit gets grouped and the other
+31 float. You cannot put a 32-bit latch bank in a SLICE.
+
+**So the fix is not more padding and not more RLOC.** The enable net has
+fanout ~17 per controller here and has to be short to ALL of its sinks. The
+lever that does that is replicating the enable driver -- one C node copy per
+few bits, each grouped with the bits it drives. That is a change inside
+`cells/rtl/`, which is frozen. Worth noting what it would buy: the residual
+gap is 110 ps and grouping is worth 1290 ps, so closing the packing would
+clear rule E on gcd with an order of magnitude to spare.
+
 ## Two things about this board that cost real time
 
 **`hw_server` polls the JTAG chain, and a poll lands in your design.** The PL
