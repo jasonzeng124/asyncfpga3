@@ -680,6 +680,55 @@ conclusion the loop-cost section reached. The outlier is isprime's outer trial,
 and it is an outlier because it is not one loop iteration -- it is a trial that
 contains a whole inner loop's entry and exit.
 
+## gcd finally has a cost model
+
+gcd is the flagship kernel and the only one whose per-iteration cost had never
+been measured, because it is the awkward case: four loops, one nested inside
+another, and no argument that controls any of them. The isprime method handles
+it -- replay the C, count each loop for a chosen operand pair, fit the costs
+from measured batches -- and the work is in choosing pairs that move the four
+counters independently:
+
+| pair | what it isolates |
+|---|---|
+| (1024, 1024) | the `k` loop only -- 10 iterations, everything else 1 or 0 |
+| (3<<20, 5) | the pre-loop ctz only -- 20 shifts, `k` untouched (b is odd) |
+| (999983, 999979) | main loop and inner ctz, nothing else |
+| (2^31-1, 1) | 31 main iterations, the worst case inside gcd's domain |
+
+24 pairs, 3 batches of 200 each, oracle asserted at every point:
+
+```
+  base (entry + exit + harness)        45.349 +- 0.547 cycles    453.5 ns
+  per k loop iteration                 12.708 +- 0.038 cycles    127.1 ns
+  per pre-loop ctz shift               10.835 +- 0.045 cycles    108.3 ns
+  per MAIN loop iteration              15.649 +- 0.077 cycles    156.5 ns
+  per inner ctz shift                  11.459 +- 0.052 cycles    114.6 ns
+  residual RMS 1.420 cycles over 24 points, 19 dof
+```
+
+Every coefficient is resolved to better than 0.5%, and the residual is 0.1% of
+the largest point (1216 cycles, at `(2^31-1, 2^31-2)`).
+
+Two things stand out.
+
+**gcd's base is 45.3 cycles -- 4.5x the null's 10.0.** No other kernel comes
+close (collatz 8.5, xorshift 9.2, isprime 16.2). That is gcd's entry and exit
+structure: two early returns before any loop runs, a final `b << k`, and the
+widest merge tree in the suite. It is also why a single-vector gcd latency
+badly over-charges the loop -- more than half of `gcd(48,18)`'s 134 cycles is
+structure that runs once.
+
+**Its loops are the most expensive per iteration of any kernel here**, 10.8 to
+15.6 cycles against collatz's 9.32 and xorshift's 4.99. The main loop is the
+worst at 15.6, which is consistent with what it contains: a subtract, a
+compare, a conditional negate and a conditional assign, all inside one
+recurrence.
+
+This is the same build the estimate section describes -- `BD_SIZES=none`, so
+these numbers are what gcd costs *untightened*. A tightened gcd would be
+faster, and there is no way to say by how much until one exists.
+
 ## xorshift, measured to 0.03%
 
 `hw/loop_cost.sh` already sweeps this kernel, but it fits LATMIN -- the
