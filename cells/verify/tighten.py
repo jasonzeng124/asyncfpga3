@@ -166,11 +166,40 @@ T_CO = 2454
 # of 64 and 96 elements BOTH worked worse than 32, because 24 padded channels of
 # LUT1 chain crowd the selects that were not the problem.
 #
-# hw/README.md is what licenses reading it out of the SDF rather than measuring
-# it again: measured = 0.975 x predicted across that 18x span, ~8.5% per-route
-# scatter with no trend in length, and every ring FASTER than predicted, which is
-# the safe direction for a matched delay.  So the SDF is good to about ten
-# percent and errs long, and the number to use is the local one it already holds.
+# What licenses reading it out of the SDF rather than measuring it again used to
+# be hw/README.md's five-ring study: measured = 0.975 x predicted across an 18x
+# span, ~8.5% per-route scatter with no trend in length, and every ring FASTER
+# than predicted -- the safe direction for a matched delay.  hw/ro_many_top.v put
+# 128 rings on the die (32 at each of 7/15/31/63 links) and two of those three
+# claims did not survive the larger sample:
+#
+#   * NOT every ring is faster.  76 of 128 ran SLOWER than the SDF predicted --
+#     the side a matched delay cannot absorb.  "Every ring was faster" was a
+#     property of having five samples, not of the fabric.
+#   * There IS a length effect, and it lands on exactly the short chains this
+#     constant is about: per-length median residual 7:+18.3%, 15:+2.5%,
+#     31:-0.3%, 63:+0.8% (7 vs 63, Mann-Whitney p = 5.6e-05).  It is an OFFSET,
+#     not a slope -- one fixed +988 ps per loop removes it (p -> 0.39) -- so the
+#     per-link cost itself is roughly right and the error is a per-loop constant.
+#   * The scatter is much wider than 8.5%: |resid| p90 25.2%, max 34.6%.  8.5%
+#     covers the 52nd percentile of the population.  It is a median, not a band.
+#     The scatter does not cluster by slot (p = 0.73) or by die region (p = 0.66)
+#     -- it is per-route, which is what "nextpnr placed this one badly" looks
+#     like, and it is therefore already net of common-mode process/voltage/
+#     temperature error, since all 128 were measured on one die in one session
+#     (widest per-ring spread across windows: 0.052%).
+#
+# What that does and does not change here.  This constant only prices rule D's
+# RECOMMENDATIONS, and only when a design has no bd_delay chain of its own to
+# measure -- which has never happened on a real kernel, so the number below has
+# never actually been used.  Rule A's enforced guardband is unrelated: it is
+# req_guard, max(0.2 * t_data, 200 ps), and it was never derived from any ring.
+# The finding that matters for rule A is that the SDF this tool reads is good to
+# about 25% at p90 per route and errs SHORT as often as long, not "good to ten
+# percent and errs long".  Whether that transfers one-for-one to a matched delay
+# is not settled here: a matched delay is a DIFFERENCE of two SDF paths, and this
+# rig measured absolute loop delay.  Do not quote the ring numbers as a bound on
+# rule A's margin without measuring the differential directly.
 T_DELAY_RISE_FALLBACK = 274
 
 RE_CHAIN_LINK = re.compile(r"(.+)\.chain\.g\\?\[(\d+)\\?\]\.u$")

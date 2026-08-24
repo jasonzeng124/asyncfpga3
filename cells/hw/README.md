@@ -42,6 +42,13 @@ out leaves 8.5% worst case, and the residual does not trend with length
 charged for *these particular nets* against what they cost, and not a
 systematic error in the shape of the model.
 
+> **Superseded — read this before quoting the paragraph above.** 128 rings
+> (below, "The population, 2026-08-23 — 128 rings, `ro_many_top`") contradict two of its
+> three claims. The residual *does* trend with length, and *not* every ring runs
+> faster than predicted — 76 of 128 ran slower. 8.5% is the 52nd percentile of
+> the population, i.e. a median, not a worst case. The one claim that survived
+> is that the scatter is per-route rather than systematic.
+
 ### That table is one route, and a rebuild disagrees with it
 
 `ro_top` was rebuilt on 2026-08-18 and re-measured on 2026-08-23. Same RTL,
