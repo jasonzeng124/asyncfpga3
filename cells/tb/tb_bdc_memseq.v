@@ -32,7 +32,15 @@
 // and varies how slow the consumer is to return to zero, which is the term
 // the "20 arcs against 2" argument is really about.  CONS_RTZ is that delay.
 //
-//     ./run_sim.sh tb_bdc_memseq
+//     ./run_sim.sh tb_bdc_memseq                            expect PASS
+//     BD_SIM_DEFS=-DBDC_SEQ_EAGER ./run_sim.sh tb_bdc_memseq  expect FAIL
+//     BD_SIM_DEFS=-DBDC_SEQ_BOTH  ./run_sim.sh tb_bdc_memseq  expect the port's
+//                                                            one-hot monitor
+//
+// The third is a control for a check that lives in bdc_memport rather than
+// here: its `ifndef SYNTHESIS block prints a FAIL if two slots request at
+// once, and until this bench existed that had never been seen to happen, which
+// by this library's own standard is not evidence.
 //
 // The gate is not the data.  The data can be perfectly correct while the
 // protocol is broken, which is the whole reason this file exists -- so the
@@ -180,6 +188,31 @@ module tb_bdc_memseq;
     end
     endtask
 
+    // -- the port's one-hot monitor, given something to find ----------------
+    // bdc_memport's `ifndef SYNTHESIS block prints a FAIL if two slots ever
+    // request at once.  It has never been seen to fire, which by this
+    // library's own standard makes it not yet evidence.  -DBDC_SEQ_BOTH runs
+    // both stations concurrently instead of in program order, which is
+    // precisely the obligation the port places on its caller, and the run is
+    // then EXPECTED to report the violation.
+`ifdef BDC_SEQ_BOTH
+    initial begin
+        $display("tb_bdc_memseq");
+        $display("  release rule: NONE -- both stations driven at once, on purpose");
+        $display("  this run is a control for bdc_memport's one-hot monitor;");
+        $display("  it is expected to print a FAIL naming 2 slots requesting.");
+        #(4 * T);  rst = 1'b0;  #(4 * T);
+        watching = 1'b1;
+        fork
+            begin sa_data = 10'd3; sd_data = 32'hFEED0003;
+                  sa_req = 1'b1; sd_req = 1'b1; end
+            begin la_data = 10'd3; la_req = 1'b1; end
+        join
+        #(200 * T);
+        $display("tb_bdc_memseq CONTROL DONE");
+        $finish;
+    end
+`else
     initial begin
         $display("tb_bdc_memseq");
 `ifdef BDC_SEQ_EAGER
@@ -216,6 +249,8 @@ module tb_bdc_memseq;
         else             $display("tb_bdc_memseq FAIL (%0d)", errors);
         $finish;
     end
+
+`endif
 
     initial begin
         #(80000 * T);
