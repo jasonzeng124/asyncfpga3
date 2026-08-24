@@ -79,7 +79,20 @@ for k in $KERNELS; do
             echo "    note: no expected SIG recorded for $TOP -- a deterministically" \
                  "wrong answer would not be caught (see hw/golden_sig.txt)"
         fi
-        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" $GOLD $FIXOP0 $FIXOP1 > "$LOG" 2>&1; then
+        # The UNIFORM batch is the largest test here -- N_UNIFORM runs, every
+        # input different -- and until hw/uniform_oracle.py it asserted nothing
+        # at all.  UNIFORM is an LFSR with a host-supplied seed, so the whole
+        # input sequence, the domain masks and the kernel are replayable in
+        # software; derive the fold here and let the tcl assert it.  Derivation
+        # is cheap (worst case isprime, ~13 s at N=3000) but it is not free, so
+        # a failure to derive downgrades to "not asserted" rather than failing
+        # the run -- a missing oracle must not look like a broken kernel.
+        UGOLD=$(timeout 300 python3 hw/uniform_oracle.py "$LABEL" 0xACE12345 "$N_UNIFORM" 2>/dev/null) || UGOLD=""
+        if [ -z "$UGOLD" ]; then
+            echo "    note: could not derive a UNIFORM SIG for $LABEL -- that batch" \
+                 "will report timing only (see hw/uniform_oracle.py)"
+        fi
+        if hw/board.sh "$XSDB" hw/xsdb_bench_gen.tcl "$BIT" "$LABEL" "$N_UNIFORM" "$CLK_CTRL" "$GOLD" "$FIXOP0" "$FIXOP1" "" "" "$UGOLD" > "$LOG" 2>&1; then
             echo "=== PASS $TOP ===" | tee -a "$RESULTLOG"
         else
             echo "=== FAIL $TOP -- see $LOG ===" | tee -a "$RESULTLOG"

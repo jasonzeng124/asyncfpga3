@@ -437,6 +437,57 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## The biggest test in the suite was the one asserting nothing
+
+Each kernel's FIXED batch has had an oracle since `hw/golden_sig.txt` existed:
+200 runs of one operand pair, folded to a signature, compared against a value
+derived from the C. The UNIFORM batch -- `N_UNIFORM` runs, default 3000, every
+single input different -- asserted **nothing**. It checked that the bench did
+not hang, that the histogram conserved, and reported percentiles. A kernel that
+returned a wrong answer for 2999 of 3000 distinct inputs would have passed it.
+
+That was never a necessary state. UNIFORM is not random. It is an LFSR with a
+host-supplied seed, and every step of it is written down in `gen_bench.py`:
+
+```verilog
+lfsr_n1 = {lfsr[30:0],    lfsr[31]^lfsr[21]^lfsr[1]^lfsr[0]};
+lfsr_n2 = {lfsr_n1[30:0], lfsr_n1[31]^lfsr_n1[21]^lfsr_n1[1]^lfsr_n1[0]};
+bench_op0 <= mask0(lfsr);  bench_op1 <= mask1(lfsr_n1);  lfsr <= lfsr_n2;
+```
+
+So the input sequence is reproducible from the seed, the kernel is a function
+of its inputs, and SIG is a fold over results with no timing in it.
+`hw/uniform_oracle.py` replays all three -- LFSR, `DOMAIN_RESTRICTIONS` masks,
+and the kernel transcribed from its own C -- and derives the value the board
+must produce.
+
+Every kernel with a bitstream passed on the first attempt, 64 distinct inputs
+each:
+
+```
+  xorshift   UNIFORM SIG oracle PASS (0xe73bdcfb)
+  ipow       UNIFORM SIG oracle PASS (0x6369040f)
+  collatz    UNIFORM SIG oracle PASS (0x0a864e3c)
+  collatz64  UNIFORM SIG oracle PASS (0x5038c4ac)
+  isprime    UNIFORM SIG oracle PASS (0x00202000)
+```
+
+Three details that were not optional:
+
+- The masks are **re-derived here, not imported** from `gen_bench.py`. An
+  oracle that shares its implementation with the thing it checks agrees with it
+  by construction, including when both are wrong.
+- The kernels are transcribed **with their int32 wraparound**, because the
+  hardware has it: `isprime`'s `d*d <= n` overflows for `d > 46340` and the
+  circuit does not stop to complain. A Python model using unbounded integers
+  would disagree with correct hardware.
+- Derivation is cheap but not free -- 13 s for isprime at N=3000, 1.6 s for
+  xorshift, under 0.1 s for the rest -- so `run_all_bench.sh` computes it
+  inline and **downgrades to "not asserted" if derivation fails**. A missing
+  oracle must not be able to look like a broken kernel.
+
+The nulls get the same treatment, from the same fold expression their DUT uses.
+
 ## CYCLES really does exclude the issue gap, and max rate no longer hangs
 
 Every per-run cost in this file is `CYCLES / completed`, and every one of them

@@ -115,6 +115,13 @@ if {$REPEAT eq ""} { set REPEAT 0 }
 # hang before the async-latch/state-register fix, so a clean batch there is a
 # regression test for it and not only a timing datum.
 set RUNGAP_SET [lindex $argv 8]
+# Optional 10th argument: the SIG the UNIFORM batch should produce for THIS
+# N_UNIFORM at seed 0xACE12345.  UNIFORM is not random -- it is an LFSR with a
+# host-supplied seed, so hw/uniform_oracle.py replays the sequence, the masks
+# and the kernel in python and derives the value.  Until this existed the
+# largest test in the suite (2000 runs, every input different) checked only
+# that the bench did not hang.
+set GOLD_UNIFORM [lindex $argv 9]
 if {$CLK_CTRL_VAL eq ""} { set CLK_CTRL_VAL 0x00100A00 }
 set DIVISOR0 [expr {($CLK_CTRL_VAL >> 8)  & 0x3F}]
 set DIVISOR1 [expr {($CLK_CTRL_VAL >> 20) & 0x3F}]
@@ -620,6 +627,17 @@ for {set b 0} {$b < 64} {incr b} {
     lappend hist $hv
     incr hist_total $hv
 }
+if {$GOLD_UNIFORM ne ""} {
+    set usig [dict get $r sig]
+    set uwant [expr {$GOLD_UNIFORM}]
+    if {$usig != $uwant} {
+        error [format "UNIFORM SIG ORACLE FAILED: N=%d seed=0xACE12345 folded to 0x%08x, expected 0x%08x.  Every input in this batch is derivable from the seed and every result is a function of its input, so this is a wrong answer somewhere in %d runs -- not a slower route." $completed $usig $uwant $completed]
+    }
+    puts [format "UNIFORM SIG oracle PASS (0x%08x over %d distinct inputs)" $usig $completed]
+} else {
+    puts "UNIFORM SIG oracle: not asserted (no expected value passed as argv 9) -- see hw/uniform_oracle.py"
+}
+
 puts "  histogram sum = $hist_total (expect $completed)"
 if {$hist_total != $completed} {
     # This used to be a WARNING, printed just above percentiles that were then
