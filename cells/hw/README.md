@@ -437,6 +437,68 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## isprime read 0x80000000 for a year because "later" was read as "safer"
+
+isprime was the one kernel with no result oracle. ODATA and SIG returned
+`0x80000000` on every run while the kernel was computing correctly the whole
+time -- the corruption exercise read `isprime(48)=0` and `isprime(47)=1`
+straight off `o_data_pl`, both right.
+
+Two readers of "the result" disagreed:
+
+| reader | where it sampled | when |
+|---|---|---|
+| repeatability latch (`mismatch_*`) | raw `o_data_pl` | `S_WAIT_RES`, the completion edge |
+| SIG and the host's ODATA | `o_data_capture`, a free-running mirror | `S_NEXT`, several cycles later |
+
+The later read was deliberate. A real mid-settle race on gcd (`hw/run_gcd_sig_check.sh`)
+had been bisected down to the `S_WAIT_RES` read, and moving SIG to `S_NEXT`
+bought clock edges without adding a state. **The reasoning was wrong.** By
+`S_NEXT` the harness has already asserted `bench_o_ack`, and 4-phase bundled
+data promises the result is valid from `o_req` high only until the sender sees
+the acknowledge and returns to zero. A read past the acknowledge is outside
+the window; it worked for five kernels because their output bus happens to
+keep holding, and isprime's does not. **Late is not safe. Inside the valid
+window is safe.**
+
+### One capture, three readers
+
+`gen_bench.py` now loads `result_hold` in `S_WAIT_RES` on the last edge before
+`bench_o_ack` rises (the ack is assigned on that same edge, so it goes high
+after it). SIG folds it, the repeatability latch moved to `S_NEXT` and compares
+it, and ODATA returns it once a batch has captured anything -- so the three can
+no longer disagree about what the kernel returned. Before any batch, ODATA
+still returns the free-running mirror, which is all the manual 4-phase smoke
+path has to read.
+
+`S_WAIT_RES` also now waits for the `o_req` LEVEL, not only the async edge
+latch. `o_req_latched` is SET asynchronously by any rise on `o_req`, including
+a transient that never becomes a completion; `o_req_s` is a 2-flop sample of
+the level, which a sub-cycle transient does not survive. For a genuine
+completion both are the same 2-flop delay off the same rise, so this costs 0-1
+cycles per run. `res_wait` bounds the disagreeing case at 255 cycles and
+captures anyway, setting a `hold_fallback` sticky (`MISM_ST[2]`) -- **a harness
+made stricter must not be able to turn a wrong answer into a hang.**
+
+### Measured
+
+Sim could not see this bug at all: iverilog holds the bus, so an ad-hoc
+isprime FIXED-mode testbench read the correct value through the OLD path too.
+`tb_gcd_bench_gen` passes in full either way. The board is the only witness:
+
+```
+=== (a) FIXED-mode repeatability: op0=47 op1=18, N=200 ===
+  completed=200 latmin=433 latmax=439 cyc  odata=1 sig=0x000000ff mism_st=2
+SIG oracle PASS (0x000000ff matches the expected result fold)
+  corruption chosen: (47,18)->1  vs  (48,18)->0
+  ... MISM_ST=3 MISM_IDX=37 MISM_VAL=0 MISM_REF=1
+```
+
+`odata=1` where it read `0x80000000` before, `sig` exactly the fold derived in
+software, and `mism_st=2` is `hold_valid` set with `hold_fallback` clear -- the
+level gate never had to time out. **All six kernels now assert a derived result
+oracle on silicon.**
+
 ## ipow's oracle was degenerate; the fix was the vector, not the kernel
 
 `hw/golden_sig.txt` deliberately had no entry for ipow, because the bench ran
