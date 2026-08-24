@@ -12,6 +12,6 @@ mkdir -p build/gen
 # the accesses.  They cost nothing when unused -- a station without :seq is
 # byte-identical to what this script emitted before they existed.
 python3 ../bdc/mem.py port:10:32:2 store:10:32 load:10:32 \
-        store:10:32:seq load:10:32:seq \
+        store:10:32:seq load:10:32:seq portarb:10:32:2 \
         -o build/gen/bdc_mem_units.v
 echo "wrote build/gen/bdc_mem_units.v"

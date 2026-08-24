@@ -484,4 +484,71 @@ occur.
 So sharing one port between accesses is `bd_arbiter`'s job after all — the
 library's own recommended answer, and section 1 already argues for arbitrating
 unconditionally rather than building analyses to avoid it. This entry is the
-measurement that says a cheaper answer was tried and does not work.
+measurement that says a cheaper answer was tried and does not work. The next
+entry is what happened when the arbiter went in.
+
+### The arbiter was necessary and not sufficient; the second gate is in the station
+
+`bd_arbiter` drops onto the port exactly: the two slots are `r1/r2`, the RAM
+gang is `R0/A0`, and the mux selects are `g1/g2`, which the cell's own header
+establishes are exclusive by construction for a settled state node and — with
+the `A0` hold — across handover too. So the caller's *obligation* becomes a
+guarantee, and each slot gets its own acknowledge instead of a shared one.
+`bdc_memport_arb_<AW>_<DW>_2` is that port. Two slots only; a tree for more
+is not built, and the generator raises rather than guessing one.
+
+**With the arbiter and nothing else, the token chain deadlocks: one RAM edge,
+then nothing.** That is a cleaner failure than the previous one and a more
+interesting cause.
+
+`p_req = joined`, so a station claims the port for as long as its *operands*
+are held — and the operands are held until its consumer is finished. When that
+consumer is the next access on the same memory, the store will not free the
+port until the load completes and the load cannot start until the store frees
+it. The arbiter has nothing to arbitrate: neither request is illegal, and no
+grant is wrong. A resource whose claim is scoped to the dataflow cannot be
+shared with the dataflow.
+
+The fix is two LUTs in the station, and it is not a delay:
+
+```
+done  = joined & (p_ack | done)     latched completion, gated by joined on
+                                    BOTH terms so an idle station reads zero
+                                    even while a shared p_ack is high
+p_req = joined & ~done              the claim, dropped when the RAM answers
+z_req = done                        was p_ack & joined — the same conjunction,
+                                    latched, because p_ack now falls long
+                                    before the consumer takes the result
+```
+
+The port then sees one four-phase transaction per access, bounded by the RAM,
+with none of the surrounding dataflow inside it.
+
+| | plain port | + arbiter | + arbiter + `done` |
+|---|---|---|---|
+| RAM edges / accesses | 12 / 24 | 1 / 24 | **24 / 24** |
+| port exclusivity | violated 12× | held | **held** |
+| four-phase on `a` | 0 overlaps | — (hung) | **0 overlaps** |
+| load reads its store | yes, via `WRITE_FIRST` | — | **yes, on its own edge** |
+
+The last row is why the edge count is the gate and the data is not. A
+`WRITE_FIRST` read shares its write's clock edge; 24 accesses over 24 edges
+are not sharing one, so the load performed a real read. Under the plain port
+the data column was green while half the accesses did not happen.
+
+Both failures are recorded rather than only the fix, because each was reached
+by an argument that looked complete: "the token is released at port-quiet, so
+program order composes" and "the grants are exclusive, so the port is safe to
+share". Both are true. Neither is sufficient.
+
+`tb/tb_bdc_memseq.v -DBDC_SEQ_TOKEN` is now a PASS. Three of that bench's four
+modes are *supposed* to fail, which nothing ran until `verify/mem_modes.sh`
+existed — a negative control nobody runs is not a control, and one that
+quietly starts passing is worse than none. That script runs all four and is
+red if EAGER passes or if the port's one-hot monitor stops firing, as loudly
+as if the real modes break; it was checked by editing the fix back out of the
+generated Verilog, where it correctly reported `BAD TOKEN` and exited 1.
+
+The release-rule result above is unchanged: `-DBDC_SEQ_EAGER` still fails 12×
+with 13 edges, and `done` makes that argument stronger rather than weaker,
+since `p_ack` now falls even earlier relative to `a_ack`.

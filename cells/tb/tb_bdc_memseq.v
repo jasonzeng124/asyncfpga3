@@ -42,36 +42,47 @@
 // once, and until this bench existed that had never been seen to happen, which
 // by this library's own standard is not evidence.
 //
-// WHAT THE TOKEN MODE ESTABLISHES, WHICH IS A NEGATIVE RESULT
+// WHAT THE TOKEN MODE ESTABLISHES, AND THE TWO THINGS IT COST TO GET THERE
 //
 // -DBDC_SEQ_TOKEN uses the :seq stations, which carry a program-order token as
-// one more input to the join.  The chain is ordinary channel composition --
-// the store's completion channel is the load's token -- and the bench then
-// offers BOTH accesses' operands at once and lets only the wiring order them.
+// one more input to the join, and the ARBITRATED port.  The chain is ordinary
+// channel composition -- the store's completion channel is the load's token --
+// and the bench then offers BOTH accesses' operands at once and lets only the
+// wiring order them.  It passes: 24 accesses, 24 RAM edges, zero four-phase
+// violations, every load reading the store that precedes it.
 //
-// It does not work, and the way it fails is the useful part:
+// It did not pass the first two times, and both failures are the point.
 //
-//     data ordering            correct, 0 failures
-//     four-phase on a          correct, 0 overlaps
-//     port exclusivity         VIOLATED 12 times
-//     RAM edges vs accesses    12 for 24 -- half the accesses never happened
+// 1.  TOKEN + PLAIN PORT.  Data ordering correct, four-phase on `a` correct,
+//     port exclusivity VIOLATED 12 times, and 12 RAM edges for 24 accesses --
+//     half the accesses never happened.  The cause is that a station raises
+//     its completion when the PORT acknowledges, while its own p_req is still
+//     high, so the next station's token arrives before the port is free.  A
+//     completion channel signals "my result is ready", not "I have let go of
+//     the port", and program order needs the second.
 //
-// The cause is one line of the station: z_req = p_ack & joined.  A station
-// raises its completion when the PORT acknowledges, which is while its own
-// p_req is still high -- so the next station's token arrives before the port
-// is free.  A completion channel signals "my result is ready", not "I have
-// let go of the port", and program order needs the second.
+//     The load returned the right value anyway.  Not luck: bd_mem sets
+//     WRITE_MODE_A("WRITE_FIRST"), so DOADO carries the data being WRITTEN,
+//     and the load read the store's payload without ever performing a read.
+//     A bench that checked only the data would have been green while half its
+//     accesses did not occur.  The edge count is what caught it, and it is
+//     also what now rules the passthrough out: a WRITE_FIRST read shares its
+//     write's edge, and 24 accesses over 24 edges are not sharing.
 //
-// The load returned the right value anyway.  That is not luck exactly:
-// bd_mem sets WRITE_MODE_A("WRITE_FIRST"), so DOADO carries the data being
-// WRITTEN, and the load read the store's payload without ever performing a
-// read.  A bench that checked only the data would have been green while half
-// its accesses did not occur -- which is the concrete version of the warning
-// two paragraphs down.
+// 2.  TOKEN + ARBITER, still with `p_req = joined`.  ONE RAM edge, then
+//     deadlock.  `joined` is high for as long as the operands are held, and
+//     the operands are held until the consumer finishes -- here, the next
+//     access on the same memory.  The store will not free the port until the
+//     load completes and the load cannot start until the store frees it.  The
+//     arbiter cannot break that: neither request is illegal.
 //
-// The indicated answer is bd_arbiter, which is what the library already
-// recommends for a shared port and what bdc/AUDIT.md section 1 argues for
-// using unconditionally rather than building analyses to avoid.
+//     The fix is in the station, not the port: `done = joined & (p_ack | done)`
+//     and `p_req = joined & ~done`, so the port claim completes and lets go on
+//     the RAM's schedule rather than the dataflow's.  Two LUTs.  See the
+//     "THE PORT CLAIM" section of bdc/mem.py.
+//
+// So the arbiter was necessary and not sufficient, which is why both failures
+// are recorded rather than just the fix.
 //
 // The gate is not the data.  The data can be perfectly correct while the
 // protocol is broken, which is the whole reason this file exists -- so the
@@ -129,8 +140,14 @@ module tb_bdc_memseq;
     wire [1:0]         s_req, s_we;
     wire [2*AW-1:0]    s_addr;
     wire [2*DW-1:0]    s_wdata;
-    wire               p_ack;
     wire [DW-1:0]      p_rdata;
+`ifdef BDC_SEQ_TOKEN
+    // The arbitrated port gives each slot its OWN acknowledge, so there is
+    // no shared p_ack to wait on and no exclusivity obligation on the caller.
+    wire [1:0]         s_ack;
+`else
+    wire               p_ack;
+`endif
 
 `ifdef BDC_SEQ_TOKEN
     // The stations carry a program-order token on channel c.  The token is
@@ -158,7 +175,7 @@ module tb_bdc_memseq;
         .a_req(sa_req), .a_ack(sa_ack), .a_data(sa_data),
         .d_req(sd_req), .d_ack(sd_ack), .d_data(sd_data),
         .z_req(sz_req), .z_ack(sz_ack),
-        .p_req(s_req[0]), .p_ack(p_ack), .p_addr(s_addr[AW*0 +: AW]),
+        .p_req(s_req[0]), .p_ack(s_ack[0]), .p_addr(s_addr[AW*0 +: AW]),
         .p_wdata(s_wdata[DW*0 +: DW]), .p_we(s_we[0]), .p_rdata(p_rdata));
 
     bdc_load_seq_10_32 uld (
@@ -166,7 +183,7 @@ module tb_bdc_memseq;
         .c_req(sz_req), .c_ack(sz_ack),
         .a_req(la_req), .a_ack(la_ack), .a_data(la_data),
         .z_req(lz_req), .z_ack(lz_ack), .z_data(lz_data),
-        .p_req(s_req[1]), .p_ack(p_ack), .p_addr(s_addr[AW*1 +: AW]),
+        .p_req(s_req[1]), .p_ack(s_ack[1]), .p_addr(s_addr[AW*1 +: AW]),
         .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
 `else
     bdc_store_10_32 ust (
@@ -185,10 +202,17 @@ module tb_bdc_memseq;
         .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
 `endif
 
+`ifdef BDC_SEQ_TOKEN
+    bdc_memport_arb_10_32_2 #(.DSETUP_0(DSETUP), .DCO_0(DCO),
+                              .DSETUP_1(DSETUP), .DCO_1(DCO)) uport (
+        .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
+        .s_we(s_we), .s_ack(s_ack), .p_rdata(p_rdata));
+`else
     bdc_memport_10_32_2 #(.DSETUP_0(DSETUP), .DCO_0(DCO),
                           .DSETUP_1(DSETUP), .DCO_1(DCO)) uport (
         .rst(rst), .s_req(s_req), .s_addr(s_addr), .s_wdata(s_wdata),
         .s_we(s_we), .p_ack(p_ack), .p_rdata(p_rdata));
+`endif
 
     // -- THE GATE -----------------------------------------------------------
     // Four-phase on the a channel: an operand may only be offered into an
@@ -277,11 +301,9 @@ module tb_bdc_memseq;
     initial begin
         $display("tb_bdc_memseq");
         $display("  release rule: TOKEN -- program order carried on channel c");
+        $display("  port: ARBITRATED (bd_arbiter), stations release the claim on done");
         $display("  the bench offers store and load operands CONCURRENTLY;");
         $display("  only the token chain orders them.");
-        $display("  THIS MODE IS EXPECTED TO FAIL.  It is the measurement that");
-        $display("  says channel composition alone does not serialise the PORT;");
-        $display("  see the header and bdc/AUDIT.md section 7.");
         $display("  consumer return-to-zero: %0d ps", CONS_RTZ);
 
         #(4 * T);  rst = 1'b0;  #(4 * T);

@@ -12,7 +12,8 @@ same wiring, arc for arc.  bdc/compute.py builds every arithmetic cell as
 
 and bd_mem is already exactly that shape with the delay inside it:
 
-    bd_mem.req  = joined
+    bd_mem.req  = joined         <- see THE PORT CLAIM below; it is really
+                                    `joined & ~done`, which is the same edge
     bd_mem.ack  = z_req          <- DSETUP + the explicit clock buffer + DCO
     bd_mem.rdata = z_data        <- the RAM, clocked by the request itself
 
@@ -43,7 +44,10 @@ z_ack at all.  So the sequence really runs
     z_ack rises      the consumer took the value
     a_req falls      the producer saw its ack
     joined falls  -> p_req falls, and z_req falls with it
-    a_ack falls      one arc later, because a_ack IS z_ack
+    a_ack falls      one arc later, because a_ack IS z_ack   (*)
+
+(*) as of THE PORT CLAIM below, p_req falls earlier than this -- at p_ack, not
+at joined.  The rest of the trace is unchanged and so is the conclusion.
 
 and the producer is free to present the next address HERE -- while ram_clk is
 still high, DSETUP + DCO before p_ack falls.  The next request would then find
@@ -70,9 +74,8 @@ signal a program-order token chain needs, so the token costs nothing extra.
 
 Be precise about WHICH signal, because the obvious cheaper one does not work.
 The token must wait for a_ack to FALL, not for p_ack to fall.  p_ack is
-shared, and a_ack lags it on every path -- z_req is p_ack & joined, so z_req
-falls because p_ack fell, the consumer only then drops z_ack, and hold needs
-both low.  Releasing on p_ack lets the producer offer its next operand into an
+shared, and a_ack lags it on every path -- z_req rises with p_ack, the
+consumer only then drops z_ack, and hold needs z_ack and p_ack both low.  Releasing on p_ack lets the producer offer its next operand into an
 acknowledge that never fell.  cells/tb/tb_bdc_memseq.v measures this: the p_ack
 rule fails identically at every consumer speed from 0 ps to 32 hops, which is
 what tells you it is structural and not a race.  See bdc/AUDIT.md section 7.
@@ -96,6 +99,37 @@ path), and tb_bdc_mem.v measures the real value: 2632 ps against 360 needed.  Th
 risky in two independent ways at once, and shortening a matched delay is
 already the direction simulation cannot see.
 
+THE PORT CLAIM MUST RETURN TO ZERO ON ITS OWN, AND THAT IS WHAT `done` IS
+
+Everything above is about ONE station's accesses.  The moment two stations
+share the port -- which is the entire point of a port -- `p_req = joined` is a
+deadlock, and it is worth being exact because it also looks free.
+
+`joined` is high for as long as the OPERANDS are held, and the operands are
+held until the consumer is finished.  If that consumer is a later access on
+the same memory, the second station cannot get the port until the first
+releases it, and the first cannot release it until the second finishes.  An
+arbiter does not help: neither request is illegal, so there is nothing for it
+to reject.  Measured, with bd_arbiter in place: ONE RAM edge, then nothing.
+
+The port claim therefore has to complete and let go by itself, on the RAM's
+schedule rather than the dataflow's:
+
+    done  = joined & (p_ack | done)      one LUT, gated by joined on BOTH
+                                         terms so an idle station reads zero
+                                         even while a shared p_ack is high
+    p_req = joined & ~done               dropped the moment the RAM answered
+    z_req = done                         the result, held until the operands go
+
+Two LUTs.  `done` is the old `p_ack & joined` latched, so z_req is a rename --
+and a necessary one, because p_ack now falls long before the consumer has
+taken the result and z_req has to outlast it.
+
+What this buys is that the port sees one clean four-phase transaction per
+access, bounded by the RAM, with nothing of the surrounding dataflow inside
+it.  That is the property a shared resource needs, and it is the difference
+between "the caller must guarantee one-hotness" and "the port arbitrates".
+
 THE PORT AND THE STATION ARE SEPARATE MODULES, AND THAT IS NOT TIDINESS
 
 The first draft had each unit own its own bd_mem.  It is not testable.  A RAM
@@ -111,14 +145,37 @@ one-hot AND-OR over the slot requests, which is correct ONLY while at most one
 slot's request is high -- an obligation on whoever wires them up, checked in
 simulation by the port module itself rather than assumed.
 
-WHAT THIS FILE DELIBERATELY DOES NOT SOLVE
+WHO GUARANTEES THE ONE-HOTNESS: EITHER THE CALLER OR bd_arbiter
 
-Who guarantees that one-hotness, and in what order the slots fire.  That is
-program-order serialisation -- handshake's `mem_controller` -- and bdc/MEMORY.md
-records how far the design got and the one ordering assumption that is not yet
-correct by construction.  Nothing here assumes an answer: a caller that
-sequences the slots itself (as cells/tb/tb_bdc_mem.v does) is using this file
-exactly as intended.
+There are two ports, and the difference is exactly that obligation.
+
+`bdc_memport_*` is the plain one: one shared acknowledge, mux selected by the
+slot requests, and the caller must not let two slots request at once.  A
+caller that sequences the slots itself (cells/tb/tb_bdc_mem.v does) is using
+it as intended.
+
+`bdc_memport_arb_*` puts bd_arbiter between the slots and the RAM.  The slots
+become r1/r2, the RAM gang becomes R0/A0, and the mux selects are g1/g2, which
+are exclusive BY CONSTRUCTION -- so the obligation becomes a guarantee and
+each slot gets its own acknowledge, A1/A2, instead of a shared one.  It is
+two slots only; a tree for more is not built and the generator refuses rather
+than guessing one.
+
+Program order on top of that is `:seq`, a station variant with one more join
+input: a token channel `c`.  It gates nothing -- it is simply another operand
+that must arrive -- and it is acknowledged by the same `hold` the operands
+are, so it is released at port-quiet, which is the release rule this file
+argues for above.  The chain is then ordinary channel composition: a store's
+completion channel IS the next access's token, `store.z -> load.c`.  No
+sequencer, no new cell.
+
+The arbiter is not optional there.  With the plain port the token chain gets
+the DATA right and the PROTOCOL wrong -- 12 exclusivity violations and 12 RAM
+edges for 24 accesses, the load reading correctly only because bd_mem sets
+WRITE_MODE_A("WRITE_FIRST") and handed back the data being written.  With the
+arbiter and `done` it is 24 edges for 24 accesses and zero violations, which
+is also what rules out the passthrough: a WRITE_FIRST read is the same edge as
+its write, and these are two.  bdc/AUDIT.md section 7 has the measurements.
 
 THE WIDE PORT IS A GANG, NOT A WIDER RAM
 
@@ -316,7 +373,33 @@ module {name}
     // is high.  That bit is the asymmetry, and it is the whole cell.
 {hold_block}
 
-    assign p_req   = joined;
+    // THE PORT CLAIM RETURNS TO ZERO ON ITS OWN, which is what makes the port
+    // shareable.  `p_req = joined` was the obvious thing and it deadlocks: it
+    // holds the port for as long as the OPERANDS are held, and the operands
+    // are held until the consumer -- possibly a later access on the same
+    // memory -- is finished.  Two stations chained in program order then wait
+    // on each other forever, and the arbiter cannot break it because there is
+    // nothing wrong with either request.  Measured: one RAM edge, then
+    // nothing (tb_bdc_memseq -DBDC_SEQ_TOKEN before this cell existed).
+    //
+    // `done` is the access having happened, remembered until the operands go
+    // away.  It is gated by `joined` on BOTH terms so an idle station reads
+    // zero even while some other slot's acknowledge is high -- that matters on
+    // the unarbitrated port, where p_ack is shared.
+    //
+    //     done  = joined & (p_ack | done)      LUT3, I0 p_ack, I1 joined,
+    //                                          I2 done, I3 rst clears
+    //     p_req = joined & ~done               the claim, dropped on completion
+    //
+    // So the port sees one clean four-phase transaction per access and is free
+    // again the moment the RAM answered, whatever the station's operands are
+    // still waiting for downstream.
+    wire done;
+    (* keep *) LUT6 #(.INIT(64'h00C8_00C8_00C8_00C8)) udone (
+        .I0(p_ack), .I1(joined), .I2(done), .I3(rst), .I4(1'b0), .I5(1'b0),
+        .O(done));
+    (* keep *) LUT2 #(.INIT(4'h2)) upr (.I0(joined), .I1(done), .O(p_req));
+
     assign p_addr  = a_data;
     assign p_wdata = {"d_data" if store else f"{dw}'b0"};
     assign p_we    = 1'b{1 if store else 0};
@@ -325,23 +408,39 @@ module {name}
     // whole substitution this file is about: bd_mem's DSETUP + buffer + DCO
     // stands exactly where bdc/compute.py puts its bd_delay.
     //
-    // It is gated by this station's own claim, and the gate is not optional.
-    // p_ack is SHARED: without the gate, the next slot's acknowledge would
-    // look like a second result on this channel.  joined falls when z_ack
-    // rises, so the gate drops z_req after its acknowledge, which is the
-    // four-phase order and not an early release.
-    (* keep *) LUT2 #(.INIT(4'h8)) uzr (.I0(p_ack), .I1(joined), .O(z_req));
+    // It used to be `p_ack & joined`, gated because p_ack is shared.  `done`
+    // is that same conjunction LATCHED, so this is now just a rename -- and a
+    // necessary one: p_ack falls as soon as the claim is released, which is
+    // long before the consumer has taken the result.  z_req must outlast it.
+    // z_req therefore rises when the RAM answered and falls when the operands
+    // are withdrawn, which is after its own acknowledge.
+    assign z_req = done;
 {"" if store else "    assign z_data  = p_rdata;"}
 endmodule
 `default_nettype wire
 """
 
 
-def emit_port(aw, dw, slots=1):
-    """The RAM gang and its slot mux, as a self-contained Verilog module."""
+def emit_port(aw, dw, slots=1, arb=False):
+    """The RAM gang and its slot mux, as a self-contained Verilog module.
+
+    `arb` puts a bd_arbiter in front of the RAM instead of trusting the caller
+    to keep the slot requests one-hot.  That changes the interface: each slot
+    gets its OWN acknowledge (`s_ack`), because that is what an arbiter hands
+    back, and the payload mux selects on the arbiter's GRANTS, which are
+    exclusive by construction rather than by obligation.
+    """
     check(aw, dw)
     n = ram_count(dw)
-    name = f"bdc_memport_{aw}_{dw}_{slots}"
+    if arb and slots != 2:
+        raise MemError(
+            f"arbitrated port asked for {slots} slots; only 2 is implemented. "
+            f"bd_arbiter arbitrates two requesters, so N slots need a TREE of "
+            f"them with each leaf's select ANDed down its path to the root. "
+            f"That is not written yet, and guessing it would put an unproven "
+            f"mutual-exclusion argument under a RAM")
+    name = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{slots}"
+    sel = (lambda k: f"g{k + 1}") if arb else (lambda k: f"s_req[{k}]")
 
     dpad = " " * max(0, 7 - len(str(dw - 1)))
     apad = " " * max(0, 7 - len(str(aw - 1)))
@@ -365,10 +464,10 @@ def emit_port(aw, dw, slots=1):
     mux = []
     for sig, w in (("addr", aw), ("wdata", dw)):
         terms = " |\n                    ".join(
-            f"({{{w}{{s_req[{k}]}}}} & s_{sig}[{w}*{k} +: {w}])"
+            f"({{{w}{{{sel(k)}}}}} & s_{sig}[{w}*{k} +: {w}])"
             for k in range(slots))
         mux.append(f"    wire [{w - 1}:0] m_{sig} = {terms};")
-    weterms = " | ".join(f"(s_req[{k}] & s_we[{k}])" for k in range(slots))
+    weterms = " | ".join(f"({sel(k)} & s_we[{k}])" for k in range(slots))
     mux.append(f"    wire m_we = {weterms};")
 
     rams = []
@@ -390,8 +489,9 @@ def emit_port(aw, dw, slots=1):
             f"        .rdata({rd}));",
         ]
 
+    gack = "m_ack" if arb else "p_ack"
     if n == 1:
-        joinacks = "    assign p_ack = ram_ack[0];"
+        joinacks = f"    assign {gack} = ram_ack[0];"
     else:
         joinacks = (
             "    // Every word has answered before the acknowledge rises, and\n"
@@ -399,9 +499,74 @@ def emit_port(aw, dw, slots=1):
             "    // gate that means both.  It sits AFTER each DCO, which\n"
             "    // lengthens the acknowledge -- the safe direction, and the\n"
             "    // direction rule C's margin then understates.\n"
-            f"    bd_ctree #(.N({n})) uackj (.a(ram_ack), .rst(rst), .q(p_ack));")
+            f"    bd_ctree #(.N({n})) uackj (.a(ram_ack), .rst(rst), .q({gack}));")
 
     words = f"{n} x {RAM_DW} bits" if n > 1 else f"{RAM_DW} bits"
+
+    if arb:
+        excl_note = (
+            "// EXCLUSIVITY IS THIS MODULE'S JOB, NOT THE CALLER'S.  bd_arbiter\n"
+            "// takes both slot requests, hands the RAM a single request, and\n"
+            "// returns a separate acknowledge per slot.  Its g1/g2 grants are\n"
+            "// exclusive by construction, so the AND-OR mux below selects on\n"
+            "// THOSE and not on the raw requests.\n"
+            "//\n"
+            "// The unarbitrated bdc_memport puts this obligation on its caller,\n"
+            "// and cells/tb/tb_bdc_memseq.v measures what happens when a plain\n"
+            "// program-order token chain is asked to discharge it: correct data,\n"
+            "// correct four-phase, and half the accesses silently not happening,\n"
+            "// because a station raises its completion while it still holds the\n"
+            "// port.  See bdc/AUDIT.md section 7.")
+        ackport = ("     output wire [%d:0]%ss_ack,\n"
+                   % (slots - 1, " " * max(0, 7 - len(str(slots - 1)))))
+        reqblock = "\n".join([
+            "    wire m_req, m_ack, g1, g2;",
+            "    bd_arbiter uarb (",
+            "        .rst(rst),",
+            "        .r1(s_req[0]), .A1(s_ack[0]),",
+            "        .r2(s_req[1]), .A2(s_ack[1]),",
+            "        .R0(m_req), .A0(m_ack), .g1(g1), .g2(g2));"])
+    else:
+        excl_note = (
+            "// AT MOST ONE SLOT REQUEST MAY BE HIGH AT A TIME.  The mux below is\n"
+            "// a one-hot AND-OR and says nothing useful about two live slots;\n"
+            "// worse, two live slots mean the RAM's manufactured clock never\n"
+            "// falls between them, so there is no second edge and the second\n"
+            "// access silently does not happen.  Enforcing that is the caller's\n"
+            "// job -- and cells/tb/tb_bdc_memseq.v shows a program-order token\n"
+            "// chain does NOT enforce it.  Use the arbitrated variant unless the\n"
+            "// caller can prove exclusivity some other way.  This module checks\n"
+            "// it in simulation so a wiring mistake is a message, not a wrong\n"
+            "// answer.")
+        ackport = "     output wire             p_ack,\n"
+        reqblock = "    wire m_req = |s_req;"
+
+    if arb:
+        # The requests are ALLOWED to contend here -- that is what the arbiter
+        # is for -- so checking s_req would be checking the wrong thing and
+        # would fire on correct behaviour.  What must never both be high is the
+        # pair of GRANTS, which is a check on bd_arbiter rather than on the
+        # caller, and is exactly the claim the mux rests on.
+        excl_check = "\n".join([
+            "`ifndef SYNTHESIS",
+            "    always @(g1 or g2)",
+            "        if (g1 === 1'b1 && g2 === 1'b1)",
+            f'            $display("  FAIL {name}: both arbiter grants high at %0t -- the mux selects are not exclusive", $time);',
+            "`endif"])
+    else:
+        excl_check = "\n".join([
+            "`ifndef SYNTHESIS",
+            "    // Not a gate and not synthesised -- a wiring check, so that the",
+            "    // one obligation this module places on its caller cannot be",
+            "    // broken quietly.",
+            "    integer nlive, k;",
+            "    always @(s_req) begin",
+            "        nlive = 0;",
+            f"        for (k = 0; k < {slots}; k = k + 1) nlive = nlive + s_req[k];",
+            "        if (nlive > 1)",
+            f'            $display("  FAIL {name}: %0d slots requesting at once (s_req=%b) at %0t -- the port mux is one-hot", nlive, s_req, $time);',
+            "    end",
+            "`endif"])
     return f"""
 // memory port, {aw}-bit address, {dw}-bit word ({words}), {slots} slot(s).
 // Generated by bdc/mem.py -- do not edit.
@@ -417,12 +582,7 @@ def emit_port(aw, dw, slots=1):
 // benchmark will show, too short is a setup violation that a simulation with
 // a perfect protocol cannot see and that silicon shows only at some corners.
 //
-// AT MOST ONE SLOT REQUEST MAY BE HIGH AT A TIME.  The mux below is a one-hot
-// AND-OR and says nothing useful about two live slots; worse, two live slots
-// mean the RAM's manufactured clock never falls between them, so there is no
-// second edge and the second access silently does not happen.  Enforcing that
-// is the caller's job -- see bdc/MEMORY.md.  This module checks it in
-// simulation so that a wiring mistake is a message rather than a wrong answer.
+{excl_note}
 `default_nettype none
 (* keep_hierarchy *)
 module {name} #({parlist})
@@ -431,10 +591,9 @@ module {name} #({parlist})
      input  wire [{aw * slots - 1}:0]{" " * max(0, 7 - len(str(aw * slots - 1)))}s_addr,
      input  wire [{dw * slots - 1}:0]{" " * max(0, 7 - len(str(dw * slots - 1)))}s_wdata,
      input  wire [{slots - 1}:0]{" " * max(0, 7 - len(str(slots - 1)))}s_we,
-     output wire             p_ack,
-     output wire [{dw - 1}:0]{dpad}p_rdata);
+{ackport}     output wire [{dw - 1}:0]{dpad}p_rdata);
 
-    wire m_req = |s_req;
+{reqblock}
 {chr(10).join(mux)}
 
     wire [{n - 1}:0] ram_ack;
@@ -442,17 +601,7 @@ module {name} #({parlist})
 
 {joinacks}
 
-`ifndef SYNTHESIS
-    // Not a gate and not synthesised -- a wiring check, so that the one
-    // obligation this module places on its caller cannot be broken quietly.
-    integer nlive, k;
-    always @(s_req) begin
-        nlive = 0;
-        for (k = 0; k < {slots}; k = k + 1) nlive = nlive + s_req[k];
-        if (nlive > 1)
-            $display("  FAIL {name}: %0d slots requesting at once (s_req=%b) at %0t -- the port mux is one-hot", nlive, s_req, $time);
-    end
-`endif
+{excl_check}
 endmodule
 `default_nettype wire
 """
@@ -578,12 +727,12 @@ endmodule
 def emit_all(units, ports=()):
     """`units` is (kind, aw, dw, seq); `ports` is (aw, dw, slots)."""
     seen, out = {}, []
-    for aw, dw, slots in ports:
-        key = ("port", aw, dw, slots)
+    for aw, dw, slots, arb in ports:
+        key = ("port", aw, dw, slots, arb)
         if key in seen:
             continue
         seen[key] = True
-        out.append(emit_port(aw, dw, slots))
+        out.append(emit_port(aw, dw, slots, arb))
     for kind, aw, dw, seq in units:
         name = unit_name(kind, aw, dw, seq)
         if name in seen:
@@ -599,7 +748,7 @@ def main():
     import argparse
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("spec", nargs="+",
-                   help="load:AW:DW[:seq], store:AW:DW[:seq], port:AW:DW:SLOTS, top:AW:DW")
+                   help="load:AW:DW[:seq], store:AW:DW[:seq], port:AW:DW:SLOTS, portarb:AW:DW:2, top:AW:DW")
     p.add_argument("-o", "--output")
     a = p.parse_args()
     units, ports, tops = [], [], []
@@ -609,10 +758,14 @@ def main():
             if len(parts) != 3:
                 raise SystemExit(f"bad spec {s!r} -- want top:AW:DW")
             tops.append((int(parts[1]), int(parts[2])))
+        elif parts[0] == "portarb":
+            if len(parts) != 4:
+                raise SystemExit(f"bad spec {s!r} -- want portarb:AW:DW:SLOTS")
+            ports.append((int(parts[1]), int(parts[2]), int(parts[3]), True))
         elif parts[0] == "port":
             if len(parts) != 4:
                 raise SystemExit(f"bad spec {s!r} -- want port:AW:DW:SLOTS")
-            ports.append((int(parts[1]), int(parts[2]), int(parts[3])))
+            ports.append((int(parts[1]), int(parts[2]), int(parts[3]), False))
         elif len(parts) == 4 and parts[3] == "seq":
             units.append((parts[0], int(parts[1]), int(parts[2]), True))
         elif len(parts) == 3:
