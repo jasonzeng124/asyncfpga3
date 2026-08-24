@@ -306,6 +306,47 @@ Controlled both ways on hardware: the good build passes the assertion, and the
 10-link build fails it at check (a) with
 `SIG ORACLE FAILED: ... folded to 0x1a9a2cac, expected 0x03dba483`.
 
+## How often are sizes and route NOT a pair? 2 rebuilds in 8
+
+`hw/tighten_loop.sh` already says it: "Sizes and route are a pair and this
+pairing was never validated, so it is not shippable." It rejects such a build
+rather than shipping it. What was never measured is how OFTEN the pairing
+fails.
+
+Method (`hw/rebuild_stability.sh`, raw data in
+`hw/rebuild_stability_results.tsv`): take the converged, board-validated
+`xorshift` and its own shipped `_sizes.vh`, rebuild it eight times changing
+nothing but `NEXTPNR_SEED`, and run rule A against each build's own routed SDF.
+
+| seed | rule A violations | worst cell | worst margin |
+|---|---|---|---|
+| 1 | 2 | ucontrol_merge1 | −567 |
+| 2 | 1 | ucmpi0 | −1637 |
+| 3 | 0 | umux0 | +207 |
+| 4 | 0 | umux0 | +56 |
+| 5 | 0 | umux3 | +195 |
+| 6 | 0 | ucontrol_merge0 | +301 |
+| 7 | 0 | umux1 | +326 |
+| 8 | 0 | uxori1 | +11 |
+
+**Two of eight rebuilds of a shipped design are not shippable.** The gate is
+doing real work; it is not ceremony. Anyone who rebuilds a released bitstream
+and skips the gate has a one-in-four chance of shipping a design whose request
+does not trail its data.
+
+**Every passing rebuild is marginal too.** Worst-cell margin lands between +11
+and +326 ps, so on every route some cell sits inside ~550 ps of true slack. And
+the identity of that cell changes completely from route to route -- `umux0`,
+`umux3`, `ucontrol_merge0`, `umux1`, `uxori1`. There is no chronically weak
+cell to fix. It is whichever one the router treated worst this time, which is
+the same per-route scatter the 128 rings measured, seen through a different
+instrument.
+
+A practical consequence for the ratchet: its running maximum over routes is
+what makes sizes portable at all, and 8 seeds is evidently not enough
+accumulated history for this design. Sizes converged against one route are
+roughly a 3-in-4 bet on the next one.
+
 ## Two things about this board that cost real time
 
 **`hw_server` polls the JTAG chain, and a poll lands in your design.** The PL
