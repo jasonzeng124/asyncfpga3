@@ -437,6 +437,65 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## Where xorshift's matched delay actually goes
+
+An earlier note in this project claimed narrowing xorshift's induction variable
+was worth ~20% and was "a lowering change". The first half survives
+measurement; **the second half does not, and the fix is not available to the
+backend.**
+
+Current default-path build, per-cell matched delay from its own routed SDF
+(`verify/tighten.py`), 87 links / 33 379 ps total:
+
+| group | ps | share |
+|---|---|---|
+| loop control (`uaddi0` + `ucmpi0` + `ucmpi1`) | 18 310 | **54.9%** |
+| xor arithmetic (`uxori0..2`) | 9 682 | 29.0% |
+| mux / merge | 5 387 | 16.1% |
+
+So the circuit spends more matched delay counting iterations than doing the
+work the kernel exists to do, and the two comparators alone are 15 023 ps --
+45% of the budget.
+
+### It is routing, not logic, and that changes what the fix is
+
+`hw/delay_budget.py` splits each cell's cone into interconnect and cell arcs.
+(These are sums over every arc in the cone, not a critical path -- read them as
+what the delay is MADE OF.)
+
+| cell | routing | logic | routing share |
+|---|---|---|---|
+| `ucmpi1` | 192 369 ps | 38 455 ps | **83.3%** |
+| `ucmpi0` | 247 969 ps | 32 656 ps | **88.4%** |
+| `uaddi0` | 10 595 ps | 80 511 ps | **11.6%** |
+| `uxori0..2` | -- | -- | ~83% |
+
+The adder is the odd one out because a CARRY4 chain is dedicated intra-slice
+interconnect, counted as a cell arc: its cost is intrinsic and already cheap.
+The comparators are ~85% wire.
+
+**bdc does not lower a comparator badly.** `bdc/emit.py` emits behavioural
+`xa > xb` / `xa == xb` (with a sign-flip for signed predicates) and lets yosys
+pick the structure, which is a CARRY4 chain -- well under 2 ns of logic for 32
+bits against a measured 8.25 ns of matched delay on `ucmpi1`. A cleverer
+comparator structure has almost nothing to win.
+
+**And narrowing the induction variable is not a backend change.** `rounds` is a
+runtime `i32` argument to the kernel, so nothing downstream of the frontend may
+assume a bound on the trip count. Narrowing is a SOURCE-level or frontend
+change (`bdc/` is a backend; it consumes the handshake dialect and may not
+invent width facts). What narrowing would actually buy is a shorter ROUTED
+SPAN -- fewer bits to scatter -- not shallower logic.
+
+### Which makes it the same problem gcd has
+
+Both findings point at one lever: wide bundled channels whose bits the placer
+scatters, with `hw/rloc_stamp.py` able to group only about one bit per bank.
+gcd cannot use rule E for that reason (see above); xorshift spends 55% of its
+matched delay on loop control for that reason. **The packing work is not just
+gcd's select-padding blocker -- it is also the main throughput lever measured
+so far**, which is worth knowing before pricing it.
+
 ## Two things about this board that cost real time
 
 **`hw_server` polls the JTAG chain, and a poll lands in your design.** The PL
