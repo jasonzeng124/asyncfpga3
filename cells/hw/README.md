@@ -437,6 +437,64 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## isprime: the kernel whose trip count is not an argument, swept anyway
+
+isprime is the only kernel with nested loops and an early return, and
+`loop_cost.sh` could not sweep it because nothing about its work is a knob you
+can turn from the host. It does not have to be: the C is deterministic, so
+python replays it and *counts* each n's outer trials and inner shift steps, and
+the costs are fitted from the measured batches. 24 inputs, 3 batches of 200
+runs each, every point asserting its own derived oracle.
+
+Two things about the design, both load-bearing:
+
+- The three natural counts are linearly dependent -- the shift-down loop runs
+  exactly one step more per trial than the shift-up loop, so `down = up +
+  outer`. Fitting all three would report a decomposition the data does not
+  contain. `(outer, inner)` is a full-rank basis for the same span.
+- The leverage comes from choosing inputs, not from having many. n = 2 and 3
+  leave before the outer loop at all (`outer = inner = 0`) and pin the base;
+  1000, 5000 and 60000 are even, so they take exactly **one** outer trial with
+  a varying number of inner shifts, which is what separates the two
+  coefficients. Primes run the outer loop to sqrt(n).
+
+```
+  base (entry + exit + harness)         16.174 +- 0.728 cycles    161.7 ns
+  per OUTER trial (d*d<=n, r==0, d+1)   26.949 +- 0.059 cycles    269.5 ns
+  per INNER shift step                   8.661 +- 0.003 cycles     86.6 ns
+  early-return saving (composite)      -10.095 +- 0.731 cycles   -101.0 ns
+  residual RMS 1.407 cycles over 24 points, 20 dof
+```
+
+The fourth term was not in the first model, and leaving it out was visible in
+the residuals rather than in any number: composites all sat low, primes all
+high, and the two loop-skipping inputs sat +9. That is the kernel's own comment
+coming true -- its exit block is reached from three different places, and the
+`r == 0` return does strictly less work in its last trial than falling out of
+`d*d <= n` does. One indicator column drops the residual RMS from 4.46 to 1.41
+cycles. **Taking the early exit is 10 cycles cheaper, once, not per trial.**
+
+An outer trial costs 3.1 inner steps: a multiply, two compares, an increment
+and the loop control, against one shift and a compare.
+
+### What a loop iteration costs, across every kernel measured
+
+| kernel | what one iteration does | cycles/iter | ns |
+|---|---|---|---|
+| xorshift | 3 shifts, 3 xors | 4.96 | 49.6 |
+| ipow | 2 multiplies (exact, counted) | **6.00** | 60.0 |
+| isprime inner | shift, compare, conditional subtract | 8.66 | 86.6 |
+| collatz | shift *and* 3n+1, both arms | 9.32 | 93.2 |
+| collatz64 | same, 64-bit | 11.77 | 117.7 |
+| isprime outer | multiply, 2 compares, increment | 26.95 | 269.5 |
+
+Five of these six sit between 5 and 12 cycles while the arithmetic inside them
+ranges from three xors to two 32-bit multiplies. The body is not what a loop
+iteration costs; the loop's own critical cycle is, and that is the same
+conclusion the loop-cost section reached. The outlier is isprime's outer trial,
+and it is an outlier because it is not one loop iteration -- it is a trial that
+contains a whole inner loop's entry and exit.
+
 ## collatz's two branches cost exactly the same, and that is a backend fact
 
 `hw/loop_cost.sh` measured collatz at n = 2^k, which reaches 1 by halving every
