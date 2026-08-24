@@ -437,6 +437,66 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## Loop cost does not track total matched delay -- it tracks the critical cycle
+
+`hw/loop_cost.sh` extends the xorshift sweep to every kernel whose trip count
+can be driven from an operand, so four loop bodies can be priced on silicon
+without rebuilding anything:
+
+| kernel | how the trip count is set | ns/iter | intercept (cyc) | worst residual |
+|---|---|---|---|---|
+| xorshift | `rounds` is an argument | **49.6** | 4.12 | 1.88 |
+| ipow | `e = 2^k - 1` -> k iterations, every bit set | **60.4** | 2.96 | 0.53 |
+| collatz | `n = 2^k` -> k steps, all even-branch | **92.7** | 1.64 | 0.38 |
+| collatz64 | same, 64-bit | **117.7** | 0.27 | 0.51 |
+
+Every point asserts a derived oracle, and the fits are clean -- worst residual
+under 0.6 cycles for three of the four, over sweeps spanning 30x in trip count.
+
+**Two variable-by-variable 32-bit multiplies per iteration are cheaper than
+collatz's shift, compare and add.** ipow at 60.4 ns does two real multiplies an
+iteration; collatz at 92.7 ns does a right shift. So what an iteration costs on
+this backend is not set by the arithmetic in it.
+
+### The sum of matched delays does not predict it either
+
+| kernel | matched delay (all cells) | cells | ns/iter | iter / total |
+|---|---|---|---|---|
+| xorshift | 33.7 ns | 12 | 49.6 | 1.47 |
+| ipow | **75.8 ns** | 11 | **60.4** | **0.80** |
+| collatz | 52.3 ns | 10 | 92.7 | 1.77 |
+| collatz64 | 69.0 ns | 10 | 117.7 | 1.71 |
+
+ipow carries **more than twice** collatz's matched delay and its iteration is
+**35% faster**. And ipow's ratio is below 1: one iteration costs less than the
+sum of its own matched delays, which is only possible because those delays are
+not in series -- the cells run concurrently and an iteration pays the CRITICAL
+CYCLE through the dataflow graph, not the column total.
+
+This matters for what to optimise. `verify/tighten.py` reports and shortens the
+sum, and shortening the sum is worth doing (it is the guardband against a
+request arriving before its data). But **the sum is not a throughput model**,
+and the delay-budget split earlier in this file -- which sums per-cell cones --
+answers "what is the matched delay made of", never "what does an iteration
+cost". The two questions have different answers here, and the ipow row is the
+proof.
+
+The one place the sum does track: within a kernel family, at fixed structure.
+collatz64 against collatz is 1.32x the matched delay and 1.27x the iteration
+cost -- doubling the datapath width scales both together, because the graph is
+the same shape.
+
+### A note on the oracle catching the experimenter
+
+The first collatz sweep failed at k>=16 with `folded to 0x00000000, expected
+0x00000ff0`. Not a kernel bug: `gen_bench.py`'s DOMAIN_RESTRICTIONS mask
+collatz's `n` to 16 bits (so `3n+1` cannot overflow int32) and the mask applies
+in FIXED mode, not only to the uniform generator -- so `n = 2^16` arrives as 0,
+is mapped to 1, and the kernel correctly returns 0 steps. **Without the oracle
+those four points would have contributed four suspiciously fast rows to the
+slope** rather than an error. Sweep inputs are as capable of being wrong as
+circuits are.
+
 ## What one iteration of a bundled-data loop costs, measured
 
 `xorshift(seed, rounds)` is the only kernel in the suite whose TRIP COUNT is a
