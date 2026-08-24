@@ -60,11 +60,38 @@ STATE=build/converge/$DESIGN
 mkdir -p "$STATE"
 PADS=$(readlink -f "$STATE")/pads.json
 DELTA=$(readlink -f "$STATE")/delta.json
-[ -f "$PADS" ] || echo '{}' > "$PADS"
+# pads.json is THIS INVOCATION's state, not a cache that survives to the next
+# one.  It used to persist, and that quietly broke the loop it belongs to.
+#
+# The regression test below asks: has a link THIS LOOP ALREADY PADDED measured
+# short again?  One instance is enough to declare non-convergence, because it
+# means the padding is changing the route as fast as it is fixing it.  That is
+# the right test for pads this invocation placed.  It is the WRONG test for
+# pads inherited from an earlier invocation, whose route no longer exists --
+# and this script's own abort message says so in as many words: "NO per-channel
+# constant taken from build N is still valid on build N+1".  Carrying them
+# forward and then treating them as evidence contradicts that.
+#
+# Measured on gcd, 2026-08-24: with an inherited {ulink_n85__3: 2} in the file,
+# two successive repair runs aborted at iteration 1 in four minutes on state
+# from a route that had already been thrown away.  Deleting the file by hand
+# let the same command build and measure normally.  Worse, hw/tighten_loop.sh
+# calls this script once per OUTER iteration against one state directory, so a
+# persisted pads file capped the outer loop at a single sized step no matter
+# what iteration budget it was given.
+#
+# CONVERGE_RESUME=1 keeps the file for anyone deliberately continuing a search.
+# The previous file is archived either way, so nothing is silently destroyed.
+if [ -f "$PADS" ] && [ "${CONVERGE_RESUME:-0}" != "1" ]; then
+    cp "$PADS" "$(dirname "$PADS")/pads.prev.json"
+    echo '{}' > "$PADS"
+elif [ ! -f "$PADS" ]; then
+    echo '{}' > "$PADS"
+fi
 
 echo "converge     $DESIGN, up to $MAX iteration(s), cap $CAP elements/link"
 echo "             builder: ${CONVERGE_BUILDER[*]}"
-echo "             pads $PADS"
+echo "             pads $PADS${CONVERGE_RESUME:+ (RESUMED from the previous run)}"
 
 for i in $(seq 1 "$MAX"); do
     echo

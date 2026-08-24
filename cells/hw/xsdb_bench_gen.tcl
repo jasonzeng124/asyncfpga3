@@ -614,15 +614,44 @@ proc percentile {hist total p} {
 set p50 [percentile $hist $hist_total 0.50]
 set p90 [percentile $hist $hist_total 0.90]
 set p99 [percentile $hist $hist_total 0.99]
-set mean_cyc [expr {double($cycles) / $completed}]
+
+# CYCLES is a 32-bit counter that SATURATES rather than wraps (gen_bench.py:
+# `cycles != 32'hFFFFFFFF`), which is the right choice in the RTL and a trap
+# for this script: 0xFFFFFFFF is a flag saying "the batch was longer than I can
+# count", not a measurement.  Dividing it by the run count yields a mean that
+# is merely the largest mean expressible, and a throughput that is the smallest
+# -- both silently WRONG in the optimistic direction, and both looking exactly
+# like data.
+#
+# Measured 2026-08-24: isprime at N=20000 read cycles=4294967295 exactly and
+# this script reported "mean=214748.4 cycles, 465.7 tx/s".  Every digit of that
+# was an artifact of the saturation.  The per-run numbers beside it were fine
+# -- latmin/latmax and the histogram are per-run, and lat_ctr never came close
+# to its own limit -- so the fix is to drop the two derived aggregates, not the
+# whole batch.
+set cyc_sat [expr {$cycles == 0xFFFFFFFF}]
+if {!$cyc_sat} { set mean_cyc [expr {double($cycles) / $completed}] }
 
 puts ""
-puts [format "  latency (cycles): min=%d p50~=%.0f p90~=%.0f p99~=%.0f max=%d mean=%.1f" \
-      $latmin $p50 $p90 $p99 $latmax $mean_cyc]
-puts [format "  latency (ns, @%.1fMHz nominal): min=%.1f p50~=%.1f p90~=%.1f p99~=%.1f max=%.1f mean=%.1f" \
-      [expr {$FCLK0_HZ_NOMINAL/1e6}] [cyc2ns $latmin] [cyc2ns $p50] [cyc2ns $p90] [cyc2ns $p99] [cyc2ns $latmax] [cyc2ns $mean_cyc]]
-set mean_ns [cyc2ns $mean_cyc]
-puts [format "  throughput (this harness, 1 txn in flight -- NOT pipelined peak): %.1f tx/s" [expr {1.0e9/$mean_ns}]]
+if {$cyc_sat} {
+    puts [format "  latency (cycles): min=%d p50~=%.0f p90~=%.0f p99~=%.0f max=%d mean=UNAVAILABLE" \
+          $latmin $p50 $p90 $p99 $latmax]
+    puts [format "  latency (ns, @%.1fMHz nominal): min=%.1f p50~=%.1f p90~=%.1f p99~=%.1f max=%.1f" \
+          [expr {$FCLK0_HZ_NOMINAL/1e6}] [cyc2ns $latmin] [cyc2ns $p50] [cyc2ns $p90] [cyc2ns $p99] [cyc2ns $latmax]]
+    puts "  mean and throughput WITHHELD: the batch CYCLES counter saturated at"
+    puts "  0xFFFFFFFF, so the total is a lower bound and any mean or tx/s taken"
+    puts [format "  from it would be optimistic by an unknown amount.  Re-run with a"]
+    puts [format "  smaller N (this batch was %d runs; the counter holds about %.0f" \
+          $completed [expr {4294967295.0 / ($latmax > 0 ? $latmax : 1)}]]
+    puts "  runs at THIS batch's worst-case per-run latency)."
+} else {
+    puts [format "  latency (cycles): min=%d p50~=%.0f p90~=%.0f p99~=%.0f max=%d mean=%.1f" \
+          $latmin $p50 $p90 $p99 $latmax $mean_cyc]
+    puts [format "  latency (ns, @%.1fMHz nominal): min=%.1f p50~=%.1f p90~=%.1f p99~=%.1f max=%.1f mean=%.1f" \
+          [expr {$FCLK0_HZ_NOMINAL/1e6}] [cyc2ns $latmin] [cyc2ns $p50] [cyc2ns $p90] [cyc2ns $p99] [cyc2ns $latmax] [cyc2ns $mean_cyc]]
+    set mean_ns [cyc2ns $mean_cyc]
+    puts [format "  throughput (this harness, 1 txn in flight -- NOT pipelined peak): %.1f tx/s" [expr {1.0e9/$mean_ns}]]
+}
 puts ""
 puts "Histogram (bucket: count  approx-cycles):"
 for {set b 0} {$b < 64} {incr b} {

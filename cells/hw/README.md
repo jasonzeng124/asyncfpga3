@@ -437,6 +437,41 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## A saturating counter reported a 24% optimistic throughput
+
+The bench's batch CYCLES register is 32 bits and SATURATES rather than wraps
+(`gen_bench.py`: `cycles != 32'hFFFFFFFF`). That is the right choice in the
+RTL -- a wrapped total is indistinguishable from a small one -- and it was a
+trap for the host script, which divided it by the run count and printed the
+result as a mean and a throughput.
+
+isprime at N=20000 read `cycles=4294967295` exactly and the log said
+`mean=214748.4 cycles, 465.7 tx/s`. Every digit of that came from the
+saturation, and it was wrong in the flattering direction: the counter can only
+UNDERstate a total, so the mean is the largest expressible and the throughput
+the smallest overstatement of speed.
+
+Measured against smaller batches that do not saturate:
+
+| N | cycles | mean (cycles) | throughput |
+|---|---|---|---|
+| 20000 | 4294967295 (saturated) | *reported* 214748 | *reported* 465.7 tx/s |
+| 2000 | valid | 265993 | ~376 tx/s |
+| 500 | valid | 268144 | ~373 tx/s |
+
+So isprime's real per-run mean is about **266k cycles (2.66 ms)** and the
+saturated run overstated throughput by **24%**. The two unsaturated batches
+agree with each other to 0.8%, which is what makes the third number's
+disagreement a defect rather than scatter.
+
+`xsdb_bench_gen.tcl` now tests for `0xFFFFFFFF` and WITHHOLDS the mean and
+throughput, printing what the batch can still support -- `latmin`/`latmax` and
+the histogram are per-run and unaffected, and `lat_ctr` never came close to its
+own limit. It also prints how many runs the counter holds at that batch's
+worst-case per-run latency, so the next N is a calculation and not a guess.
+Only isprime is anywhere near the limit; at 100 MHz the counter covers 43
+seconds of batch, which every other kernel clears by orders of magnitude.
+
 ## isprime read 0x80000000 for a year because "later" was read as "safer"
 
 isprime was the one kernel with no result oracle. ODATA and SIG returned
