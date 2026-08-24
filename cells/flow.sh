@@ -151,6 +151,25 @@ if [ "$TOP_V" != "verify/soak_top.v" ]; then
         echo "audit that one without saying so.  Set BD_OUT=build/pnr/<name>."
         exit 2
     fi
+    # BD_SIZES is a two-part mechanism: this script copies the file in and
+    # passes -DBD_SIZES -I$OUT, and the TOP must `include "sizes.vh"` itself.
+    # Leaving the include out of a generated top does not fail -- it makes
+    # verify/resize.sh "converge" on numbers no build ever applied.  bdc/mem.py
+    # shipped without it and settled on a 7-link clock-to-out that measures
+    # -1081 ps the moment it is actually built.  So refuse the top outright
+    # rather than let it produce a green log about a design nobody routed.
+    if [ -n "$SIZES" ] && ! grep -q '`include "sizes.vh"' "$TOP_V"; then
+        echo "BD_TOP_V=$TOP_V never includes sizes.vh, but sizes are in play."
+        echo "Add this to the generated top, above its \`ifndef BD_SZ_* block:"
+        echo ""
+        echo "    \`ifdef BD_SIZES"
+        echo "     \`include \"sizes.vh\""
+        echo "    \`endif"
+        echo ""
+        echo "Without it every measured length is copied in, announced, and"
+        echo "read by nothing; the placeholders are what get routed."
+        exit 2
+    fi
     echo "using the generated top $TOP_V (module $TOP_M) -> $OUT"
 fi
 
