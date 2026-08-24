@@ -75,8 +75,14 @@ for tb in "${benches[@]}"; do
         continue
     fi
 
+    # BD_SIM_DEFS reaches the compile line so a bench can keep its negative
+    # control as a SWITCH rather than a hand edit -- the same reason
+    # BDC_MEM_NAIVE_ACK exists on the generator side.  Unquoted on purpose:
+    # it is a list of -D flags, e.g. BD_SIM_DEFS="-DBDC_SEQ_EAGER".
+    # shellcheck disable=SC2086
     if ! iverilog -g2012 -gspecify -Wall -Wno-timescale \
             -DBD_ROUTE_PS="${BD_ROUTE_PS:-0}" \
+            ${BD_SIM_DEFS:-} \
             -o "build/sim/$tb.vvp" \
             sim/bd_prims_sim.v sim/bd_env.v rtl/*.v verify/attempts/*.v \
             ${extra[@]+"${extra[@]}"} \

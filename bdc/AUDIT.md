@@ -401,13 +401,41 @@ to `DCO`, not against the bug the station was built to avoid.
 
 ### What this does NOT discharge
 
-`mem_controller` is where the program order lives, and it is unbuilt. A
-four-phase trace for a program-order token chain works on paper, with **one
-ordering assumption that could not be discharged by construction**: releasing
-the token when `p_ack` falls races the previous station's `z_ack` fall, and it is
-currently safe only because the port path is roughly 20 arcs against the
-consumer path's 2. A margin that large is not an argument, it is a coincidence
-with good odds — it needs either a real interlock or a rule that measures it.
+`mem_controller` is where the program order lives, and it is unbuilt. The
+four-phase trace for a program-order token chain had **one ordering assumption
+that could not be discharged by construction**: whether the token may be
+released when `p_ack` falls, or must wait for the previous station's `a_ack`.
+The argument for `p_ack` was a margin — the port path is roughly 20 arcs
+against the consumer path's 2.
+
+`tb/tb_bdc_memseq.v` settles it, and the answer is that the margin was not the
+point. Releasing on `p_ack` is wrong **structurally**, at every consumer speed:
+
+| consumer RTZ | release on `a_ack` | release on `p_ack` |
+|---|---|---|
+| 0 ps | PASS | FAIL, 12 overlaps |
+| 1 hop | PASS | FAIL, 12 overlaps |
+| 2 hops | PASS | FAIL, 12 overlaps |
+| 4 hops | PASS | FAIL, 12 overlaps |
+| 8 hops | PASS | FAIL, 12 overlaps |
+| 32 hops | PASS | FAIL, 12 overlaps |
+
+Identical counts at every point is the tell that nothing is racing. The RTL
+says why. `z_req = p_ack & joined`, so `z_req` falls *because* `p_ack` fell;
+the consumer only then drops `z_ack`; and `hold` — hence `a_ack` — needs
+`z_ack` and `p_ack` both low. So `a_ack` falls strictly after `p_ack` on every
+path, including with a zero-delay consumer. `p_ack` is not an early release
+point, it is never a release point.
+
+The consequence for a token chain is a four-phase violation on the a channel,
+not a data corruption: the producer offers its next operand into an
+acknowledge that never fell. The bench reports both, and it is worth noting
+that it reports the data error too — so this one would not have hidden. It
+easily could have: the gate here is the a-channel monitor, deliberately not
+the data.
+
+`tb/tb_bdc_mem.v`'s sequencer already waits for `a_ack` to fall, so the
+prototype was never wrong; the open question was whether it had to. It does.
 
 Until then section 6 stands unchanged: `slack.py` still reports a cycle closing
 through a `mem_controller` address echo as a violation, and `bd-config.json`
