@@ -596,6 +596,38 @@ Also worth noting against the null floor: the 8.5-cycle base means entering and
 leaving collatz's loop costs about 3.5 cycles more than the null's
 pass-through, which is the entry/exit structure, not the loop.
 
+### The same sweep at 64 bits prices the datapath separately from the loop
+
+`K=collatz64 hw/collatz_branch.sh` runs the identical 19 points against the
+64-bit kernel, which is the same source with a wider type:
+
+```
+  base (entry+exit+harness)     8.553 +- 0.120 cycles     85.5 +- 1.2 ns
+  per EVEN step (n>>1)         11.857 +- 0.011 cycles    118.6 +- 0.1 ns
+  per ODD step (3n+1)          11.841 +- 0.018 cycles    118.4 +- 0.2 ns
+  residual RMS 0.161 cycles over 19 points, 16 dof
+```
+
+Ratio 1.00 again, for the same structural reason. Against the 32-bit run:
+
+| | 32-bit | 64-bit | change |
+|---|---|---|---|
+| base | 8.499 +- 0.094 | 8.553 +- 0.120 | **none** (0.4 sigma) |
+| per step | 9.320 +- 0.008 | 11.857 +- 0.011 | +2.537 cycles, **+27.2%** |
+
+Doubling the datapath width costs **+25.4 ns per iteration and nothing else**.
+Entry and exit do not care about width at all, which is what you would expect
+if they are handshake structure rather than arithmetic.
+
+Two points and an assumption of linearity in width give a decomposition worth
+holding loosely: `93.2 = F + W` and `118.6 = F + 2W` puts the width-dependent
+part at **W = 25.4 ns** and the width-independent part at **F = 67.8 ns**, so
+roughly **two thirds of a collatz iteration is loop overhead that no datapath
+change can touch**. That is consistent with the cross-kernel table below --
+bodies from three xors to two multiplies all landing between 5 and 12 cycles --
+but it rests on exactly two widths, and a third would be worth having before
+anyone plans against it.
+
 ## Every latency here now has an error bar, and it is small
 
 Every number in the sections below was one batch from one programming, quoted
