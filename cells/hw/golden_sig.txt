@@ -1,20 +1,45 @@
-# Expected SIG for each kernel's FIXED (48,18) N=200 batch, as asserted by
-# hw/xsdb_bench_gen.tcl argv 4.
+# Expected SIG for each kernel's FIXED (op0=48, op1=18) N=200 batch, as
+# asserted by hw/xsdb_bench_gen.tcl argv 4 and looked up by run_all_bench.sh.
 #
 # SIG is {sig[30:0],sig[31]} ^ o_data_capture folded over the batch, so it is a
 # pure function of the RESULT sequence -- no timing, no cycle counts.  It does
 # not move when the route, the seed, the clock rate or the matched-delay sizes
 # change.  It moves only when the kernel computes something different.
 #
-# This exists because no kernel but gcd has an oracle in the tcl, and the
-# 200-run repeatability check cannot see a kernel that is deterministically
+# This exists because no kernel but gcd has an operand oracle in the tcl, and
+# the 200-run repeatability check cannot see a kernel that is deterministically
 # wrong: an under-delayed xorshift build returned the same wrong answer 200
 # times and passed every check in the script.
 #
-# To add a kernel: run it on a build you trust, take the sig= field from
-# check (a), and put it here.  A value recorded from an UNTRUSTED build is
-# worse than no value at all -- it would pin the bug in place.
+# THESE VALUES ARE NOT RECORDED FROM THE BOARD.  Reading a value off hardware
+# and calling it the expected value blesses whatever the hardware does, bug
+# included.  Each is computed from the kernel's own C source in kernels/<k>/,
+# folded in software, and only then compared against silicon -- all four below
+# matched on 2026-08-24.  Derive, then check.  Do not paste a number from a
+# log into this file.
 #
-#   kernel     sig         recorded from
-xorshift       0x03dba483  # default-path tightened build, 2026-08-23, board-validated
-gcd            0x00000202  # 205.9 ns tightened build, 2026-08-24, board-validated (odata=6 = gcd(48,18))
+#   kernel     sig         f(48,18)  checked
+gcd            0x00000202  # 6            gcd(48,18)=6, 205.9 ns tightened build
+collatz        0x000006f9  # 11           collatz(48)=11 steps
+collatz64      0x000006f9  # 11           collatz64(48)=11 steps
+xorshift       0x03dba483  # 2863579695   default-path tightened build
+#
+# DELIBERATELY ABSENT, two different reasons:
+#
+# ipow -- ipow(48,18) is 48^18 mod 2^32 = 0 exactly, so SIG folds to
+#   0x00000000.  The readback is correct; the VECTOR is degenerate.  A zero
+#   oracle is one a dead kernel also passes, so it would be a check that
+#   cannot fail in the dangerous direction.  Needs an operand pair whose
+#   result is not zero, which means teaching the tcl per-kernel FIXED
+#   operands rather than the hardcoded (48,18).
+#
+# isprime -- the KERNEL IS CORRECT: the corruption exercise captures
+#   isprime(48)=0 and isprime(47)=1 straight off o_data_pl, both right.  But
+#   ODATA and SIG read 0x80000000 on every run (SIG is exactly
+#   fold(0x80000000)).  Those two paths sample different things:
+#   mismatch_ref/mismatch_val latch o_data_pl AT RUN COMPLETION, while
+#   o_data_capture is a free-running mirror in the AXI clock domain that is
+#   read later, in S_NEXT.  That assumes the output bus still holds the result
+#   by S_NEXT.  It does for the other five kernels; for isprime it does not.
+#   So isprime's SIG describes a released bus, not a result, and pinning it
+#   here would freeze the artifact in place.  Fix the sampling first.

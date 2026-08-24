@@ -396,6 +396,47 @@ few bits, each grouped with the bits it drives. That is a change inside
 gap is 110 ps and grouping is worth 1290 ps, so closing the packing would
 clear rule E on gcd with an order of magnitude to spare.
 
+### isprime computes correctly and reads back wrong
+
+Deriving the expected SIG for all six kernels from their own C source, rather
+than recording what the board said, immediately caught one kernel disagreeing.
+
+`isprime`'s ODATA and SIG report **0x80000000** on every run -- SIG is exactly
+`fold(0x80000000)` over 200 runs, so it is stable, not a race. The kernel is
+nonetheless **correct**: the corruption exercise reads `isprime(48)=0` and
+`isprime(47)=1` off `o_data_pl` directly, and both are right (47 is prime).
+
+The two readings come from different samples of the same signal:
+
+- `mismatch_ref` / `mismatch_val` latch `o_data_pl` **at run completion**.
+- `o_data_capture` -- what ODATA returns and what SIG folds -- is a
+  free-running mirror in the **AXI clock domain**, read later in `S_NEXT`.
+
+The mirror was deliberate and its comment argues the case: reading in `S_NEXT`
+gives the data a long settling window instead of sampling on the single edge
+the completion pulse arrives on. That reasoning holds only while the output
+bus still carries the result when `S_NEXT` runs. For five of six kernels it
+does. For `isprime` it does not, so its SIG describes a released bus rather
+than a result.
+
+Consequences, in order of importance:
+
+1. **`isprime`'s ODATA and SIG cannot be trusted**, and no golden SIG is
+   recorded for it. Pinning one would freeze the artifact in place.
+2. The bench's headline result readback is **kernel-dependent** in a way
+   nothing declares. It is right for gcd, ipow, collatz, collatz64 and
+   xorshift -- all four recorded oracles were checked against independently
+   computed values and matched -- but "it agrees for the kernels we tried" is
+   what the 8.5% guardband was too.
+3. `ipow` is excluded for an unrelated and much duller reason: `ipow(48,18)`
+   is `48^18 mod 2^32 = 0` exactly, so its SIG is `0x00000000` -- a value a
+   dead kernel also produces. That needs per-kernel FIXED operands, not a fix
+   to the sampling.
+
+Not fixed here. Changing when the bench samples its result touches a harness
+five working kernels depend on, and the kernel that exposed it is not wrong --
+only its readback is.
+
 ## Two things about this board that cost real time
 
 **`hw_server` polls the JTAG chain, and a poll lands in your design.** The PL
