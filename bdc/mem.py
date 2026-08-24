@@ -21,28 +21,62 @@ because the obvious first draft is a hand-built four-phase sequencer with a
 capture latch, a done C-element and a return-to-zero detector.  None of it is
 needed.  Substituting bd_mem for the bd_delay is the whole cell.
 
-WHY THE RETURN-TO-ZERO ORDERING FALLS OUT FOR FREE
+THE RETURN TO ZERO IS THE ONE THING THAT IS NOT FREE, AND IT COSTS ONE GATE
 
 bd_mem's header names "pipelined return-to-zero overlap" as a failure this
-cell owns: back-to-back accesses whose reset phases overlap corrupt the port.
-With one station on one port that cannot happen, and the reason is the
-four-phase hold window rather than any timing argument.  Trace it:
+cell owns: back-to-back accesses whose reset phases overlap corrupt the port,
+and it records that history of being misdiagnosed as a margin problem and
+"fixed" by scaling guard delays, which never worked because the mechanism is
+sequencing.  So it is worth being exact about where the sequencing comes from.
 
-    z_ack rises      the consumer has taken the loaded value
-    joined falls     because bd_join's ack_out is z_ack, so the address
-                       channel's request drops
-    bd_mem.req falls
-    ram_clk falls    DSETUP later
-    ack falls        DCO after that, so z_req falls
-    z_ack falls      the consumer's latch closes on data that is still
-                       being held -- rdata does not move until the next
-                       manufactured edge, and there cannot be one yet
-    address released only now, and only now can the next request rise
+The first version of this file claimed it fell out of bd_join for free.  It
+does not, and the reason is worth writing down because the claim is plausible:
 
-The next manufactured clock edge requires the address channel to be free,
-which requires z_ack to have fallen, which is strictly after ack fell.  The
-port is fully returned to zero before it is asked for anything again.  This is
-correct by construction and needs no delay to make it so.
+    bd_join #(.N(n)) u (..., .req_in(...), .ack_out(...), .req(q), .ack(z_ack));
+    bd_ctree #(.N(N)) u (.a(req_in), .rst(rst), .q(req));
+    assign ack_out = {N{ack}};
+
+`joined` is a C-element over the INPUT REQUESTS ONLY.  It has no path from
+z_ack at all.  So the sequence really runs
+
+    p_ack rises      DSETUP + buffer + DCO after the request
+    z_ack rises      the consumer took the value
+    a_req falls      the producer saw its ack
+    joined falls  -> p_req falls, and z_req falls with it
+    a_ack falls      one arc later, because a_ack IS z_ack
+
+and the producer is free to present the next address HERE -- while ram_clk is
+still high, DSETUP + DCO before p_ack falls.  The next request would then find
+the manufactured clock already high, there would be no second rising edge, and
+the second access would silently not happen.  That is exactly the failure
+bd_mem warns about, reached by the shortest possible route.
+
+The fix is one gate and it is not a delay.  The operands must be released when
+the PORT is quiet, not when the consumer is done, so the acknowledge sent back
+to them is held up until p_ack falls:
+
+    hold = ~rst & (z_ack | (hold & p_ack))
+
+An asymmetric C-element: it rises on z_ack alone, so the producer is told
+promptly that its value was taken, and it falls only when z_ack and p_ack are
+both low, so the producer cannot present the next address until the port has
+finished resetting.  One LUT6, the same cost as every other C-element in the
+library, and it differs from bd_c2's INIT in exactly one bit -- 0x00EA against
+0x00E8 -- which is the bit that makes the rise asymmetric.
+
+With that, serialisation is correct by construction rather than by margin, and
+it composes: an operand released only at port-quiet is exactly the release
+signal a program-order token chain needs, so the token costs nothing extra.
+
+AND DCO IS THE ADDRESS HOLD GUARD, NOT ONLY THE CLOCK-TO-OUT LINE
+
+Falling out of the same trace: the address is released one arc after p_ack
+falls, which is DCO after ram_clk falls, which is DSETUP + DCO after the RAM
+captured it.  Nothing in the library audits a HOLD window at the RAM boundary
+-- prjxray's model checks setup and says nothing about hold -- so it is worth
+naming what is actually providing it.  It is DCO.  That makes shortening DCO
+risky in two independent ways at once, and shortening a matched delay is
+already the direction simulation cannot see.
 
 THE PORT AND THE STATION ARE SEPARATE MODULES, AND THAT IS NOT TIDINESS
 
@@ -92,6 +126,14 @@ being reached twice by different routes.
 """
 
 import math
+import os
+
+# BDC_MEM_NAIVE_ACK=1 emits the station WITHOUT the asymmetric C-element --
+# operand acknowledges tied straight to z_ack, which is what bd_join would do.
+# It exists so the negative control is a switch rather than a hand edit: a
+# check that has never been seen to fail is not evidence.  cells/tb/tb_bdc_mem.v
+# records what it produces.  Never set it for anything that will be built.
+NAIVE_ACK = os.environ.get("BDC_MEM_NAIVE_ACK") == "1"
 
 # One RAMB18E1 in x18 mode: 1024 words of 16 data bits (plus 2 parity, unused).
 RAM_WORDS = 1024
@@ -167,13 +209,25 @@ def emit_unit(kind, aw, dw):
                   f"     output wire             {c}_ack,",
                   f"     input  wire [{cw[c] - 1}:0]{pad}{c}_data,"]
 
-    req_cat = ("{" + ", ".join(f"{c}_req" for c in reversed(chans)) + "}"
-               if len(chans) > 1 else "a_req")
-    ack_cat = ("{" + ", ".join(f"{c}_ack" for c in reversed(chans)) + "}"
-               if len(chans) > 1 else "a_ack")
+    req_cat = "{" + ", ".join(f"{c}_req" for c in reversed(chans)) + "}"
+    ack_cat = "{" + ", ".join(f"{c}_ack" for c in reversed(chans)) + "}"
 
     dpad = " " * max(0, 7 - len(str(dw - 1)))
     apad = " " * max(0, 7 - len(str(aw - 1)))
+
+    if NAIVE_ACK:
+        hold_block = "\n".join([
+            "    // BDC_MEM_NAIVE_ACK -- THE NEGATIVE CONTROL, AND IT IS WRONG.",
+            "    // The operand acknowledges are tied straight to z_ack, which is",
+            "    // what bd_join does.  cells/tb/tb_bdc_mem.v records what happens.",
+            f"    assign {ack_cat} = {{{len(chans)}{{z_ack}}}};"])
+    else:
+        hold_block = "\n".join([
+            "    wire hold;",
+            "    (* keep *) LUT6 #(.INIT(64'h00EA_00EA_00EA_00EA)) uhold (",
+            "        .I0(z_ack), .I1(p_ack), .I2(hold), .I3(rst), .I4(1'b0), .I5(1'b0),",
+            "        .O(hold));",
+            f"    assign {ack_cat} = {{{len(chans)}{{hold}}}};"])
     # A store's result is the ACCESS COMPLETING, which carries no value.  It is
     # a control channel and gets no data net, matching the convention every
     # other cell here follows.
@@ -205,14 +259,22 @@ module {name}
      input  wire [{dw - 1}:0]{dpad}p_rdata);
 
     // Every operand must have arrived before the RAM boundary means anything.
-    // The acknowledge goes back to ALL of them together and it is z_ack, so
-    // the address and the write data are held until the consumer's own latch
-    // has closed -- which is what puts the whole return-to-zero phase of the
-    // port inside the operands' hold window.  See bdc/mem.py's header.
+    // This is bd_join's C-tree without bd_join's acknowledge: `joined` is a
+    // C-element over the input requests, which is what is wanted, but
+    // ack_out = {{N{{z_ack}}}} is NOT -- see bdc/mem.py's header for the trace.
     wire joined;
-    bd_join #(.N({len(chans)})) ujoin (
-        .rst(rst), .req_in({req_cat}), .ack_out({ack_cat}),
-        .req(joined), .ack(z_ack));
+    bd_ctree #(.N({len(chans)})) ujoin (.a({req_cat}), .rst(rst), .q(joined));
+
+    // The operands are released when the PORT is quiet, not when the consumer
+    // is done.  Asymmetric C-element: rises on z_ack alone so the producer
+    // learns promptly that its value was taken; falls only when z_ack and
+    // p_ack are both low, so the next address cannot arrive while the
+    // manufactured clock is still high.  Without this the second access
+    // silently does not happen -- there is no second rising edge for it.
+    //
+    // 0x00EA is bd_c2's 0x00E8 with one bit changed: the code where a alone
+    // is high.  That bit is the asymmetry, and it is the whole cell.
+{hold_block}
 
     assign p_req   = joined;
     assign p_addr  = a_data;
@@ -336,8 +398,7 @@ module {name} #(parameter DSETUP = {DEFAULT_DSETUP}, parameter DCO = {DEFAULT_DC
         nlive = 0;
         for (k = 0; k < {slots}; k = k + 1) nlive = nlive + s_req[k];
         if (nlive > 1)
-            $display("  FAIL {name}: %0d slots requesting at once (s_req=%b) "
-                     "at %0t -- the port mux is one-hot", nlive, s_req, $time);
+            $display("  FAIL {name}: %0d slots requesting at once (s_req=%b) at %0t -- the port mux is one-hot", nlive, s_req, $time);
     end
 `endif
 endmodule
