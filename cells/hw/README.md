@@ -437,6 +437,59 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## What one iteration of a bundled-data loop costs, measured
+
+`xorshift(seed, rounds)` is the only kernel in the suite whose TRIP COUNT is a
+runtime operand, so its loop cost can be measured by sweeping an input instead
+of rebuilding anything. `hw/trip_sweep.sh` drives a FIXED-mode N=200 batch per
+point and **asserts a derived oracle at every point** -- the expected value is
+computed from `kernels/xorshift/xorshift.c` and folded the way the RTL folds
+it, because a loop that exits early otherwise reads as a fast loop, which is
+precisely how an under-delayed build once passed every check in this bench.
+
+| rounds | 0 | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| latency (cycles) | 6 | 9 | 14 | 24 | 44 | 83 | 162 | 321 | 639 | 1275 |
+
+```
+latency_cycles = 4.12 + 4.9625 * rounds        (residuals < 1 cycle, rounds >= 1)
+
+  per iteration    4.963 cycles = 49.6 ns @ 100 MHz
+  fixed overhead   4.12  cycles = 41.2 ns
+```
+
+The fit holds across three orders of magnitude with residuals under one cycle
+-- at 256 rounds the model is off by 0.5 of 1275. `rounds=0` is the only point
+off the line (+1.9), which is the degenerate case where the loop body never
+runs.
+
+**Control: it is data-independent.** Re-running the whole sweep from
+`seed=1` -- a completely different value sequence -- reproduces every point to
+within one cycle. That is what the C promises (shifts and xors, no branching on
+data) and it is worth having measured rather than assumed, since it is the
+assumption that makes a single seed's slope mean anything.
+
+### How much of an iteration is matched delay
+
+This build carries **33.7 ns of matched delay** across 12 delay-bearing cells
+(87 links, `verify/tighten.py` on its own routed SDF). An iteration measures
+49.6 ns.
+
+Those two numbers are NOT directly a ratio, and the gap is worth stating
+carefully. The 33.7 ns is a SUM OVER ALL CELLS; a loop iteration traverses one
+cycle through the dataflow graph, not every cell's chain added together. Cutting
+the other way, a 4-phase handshake pays each matched delay TWICE per
+transaction -- the delay element delays the return-to-zero as well as the
+request. Taken together, 49.6 ns per iteration implies **at most ~25 ns of
+matched delay on the loop's critical cycle**, i.e. matched delay plausibly
+dominates the iteration but the exact share needs the critical cycle
+identified rather than the column summed. That identification has not been
+done, and no number here should be quoted as if it had.
+
+What the fixed 41.2 ns overhead is made of would be answered directly by the
+null variant (same harness, pass-through kernel) -- which is one more reason
+`xorshift_null` failing to route matters.
+
 ## A saturating counter reported a 24% optimistic throughput
 
 The bench's batch CYCLES register is 32 bits and SATURATES rather than wraps
