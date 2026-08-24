@@ -437,6 +437,53 @@ Not fixed here. Changing when the bench samples its result touches a harness
 five working kernels depend on, and the kernel that exposed it is not wrong --
 only its readback is.
 
+## gcd: ten tightening attempts failed, and the estimate converged first try
+
+gcd spent this session without a bitstream. Ten consecutive runs of
+`hw/tighten_loop.sh gcd` failed identically -- rule E reporting the same
+channel, `ulink_n85__3`, short again after it had already been padded, with the
+loop's own message saying why: the margins in question are 76-400 ps and the
+build-to-build routing noise on this fabric is larger than that, so no
+per-channel constant taken from build N survives to build N+1.
+
+`BD_NO_TIGHTEN=1` did *not* fix it, and the way it failed is worth keeping: it
+reuses `build/gen/gcd_bench_gen_sizes.vh`, which was the stale product of those
+ten attempts, and the rule A gate caught two cells whose request no longer
+trailed their own datapath (`umux9` at -310 ps, `uori4` at -298 ps) and wrote
+no bitstream at all. The gate did exactly its job. `BD_SIZES=none` is the flag
+that actually falls back to `bdc/emit.py`'s estimate.
+
+And at the estimate, rule E converged on the first iteration:
+
+```
+  118 select gates, 118 measured, 0 violated
+  CONVERGED after 1 iteration(s)
+  final pads: none needed        total added: 0 bd_delay element(s)
+```
+
+That reframes the ten failures. It is not that gcd cannot satisfy rule E on
+this fabric -- it satisfies it comfortably, untouched. **Tightening is what
+creates the select violations**, because shortening the matched delays is what
+moves those gates to the edge of their guardband, and once they are at the edge
+the routing noise is bigger than the correction. Which is the same conclusion
+as "shortening a matched delay is the risky direction", arrived at from the
+tooling rather than from a timing argument.
+
+The estimate build closes at 91.58 MHz and is green end to end, including the
+new 2000-input UNIFORM oracle:
+
+```
+  manual 4-phase pre-check PASS: gcd(12,18)=6, gcd(48,18)=6, gcd(0,5)=5
+  FIXED  SIG oracle PASS (0x00000202)          latmin=122 latmax=124
+  deliberate corruption PASS (idx=178 val=1 ref=6)
+  UNIFORM SIG oracle PASS (0x824df03f over 2000 distinct inputs)
+  latency: min=59 p50~=768 p90~=896 p99~=1024 max=1096 cycles  mean=716.4
+```
+
+The cost of shipping the estimate is real and unmeasured here: emit.py's
+numbers are generous by construction, so this build is slower than a tightened
+one would be. It is also the only one that exists.
+
 ## The biggest test in the suite was the one asserting nothing
 
 Each kernel's FIXED batch has had an oracle since `hw/golden_sig.txt` existed:
