@@ -116,16 +116,28 @@
 // same-generation read cannot hide behind it.
 //
 // Phase 2 still has to fire the token to get a load at all -- the load's
-// c_req comes from the store's z_req, there is no other way to start one --
-// so phase 2 RE-STORES the same payload to the same address immediately
-// before re-reading it.  Be honest about what that does and does not prove:
-// it demonstrates the value survives a SECOND transaction on the address,
-// not that it survives with no write at all.  A read-only phase 2 would need
-// wiring this design does not have (an unsequenced load station with no
-// token input), and inventing that just to dodge this limit would be its own
-// unaudited mechanism.  So phase 2 is exactly as strong as "re-store, then
-// re-read comes back right," named as such, not as an unconditional proof
-// the RAM retains data with no write in between.
+// c_req comes from the store's z_req, and there is no other way to start one.
+// The obvious way to satisfy that is to re-store the same payload to the same
+// address before re-reading it, and THAT VERSION PROVES NOTHING: under
+// WRITE_FIRST a load satisfied out of the write port instead of the array
+// returns that very payload, so the check passes either way.  A phase a
+// defect cannot fail is not a phase, and this one was written that way first.
+//
+// What phase 2 does instead is send the store SOMEWHERE ELSE.  It writes a
+// DECOY -- the complement of the phase 1 payload, which can never equal it --
+// to a decoy address 512 words up, disjoint from the 0..N-1 range under test,
+// while the load still reads the phase 1 address.  The two outcomes now
+// separate cleanly:
+//
+//     value came from the ARRAY  ->  p1_payload   ->  pass
+//     value came from the WRITE  ->  ~p1_payload  ->  mismatch, logged with
+//                                                     addr/got/expect
+//
+// So phase 2 means what its name says: the RAM is still holding what phase 1
+// put there, on its own, a full transaction later, with a different address
+// and a different payload having gone through the port in between.  No extra
+// wiring, no unsequenced load station, nothing this design does not already
+// have -- just a store that is not the read under test.
 //
 // Phase 3 (cost): SPD_N back-to-back store/load pairs at a fixed address,
 // timed by a free-running aclk cycle counter that runs only during this
@@ -377,18 +389,47 @@ module mem_arb_bridge (
 
   localparam [DW-1:0] SPD_PAYLOAD = 32'hA5A5_5A5A;
 
-  wire [AW-1:0] cur_addr    = (phase == 2'd2) ? {AW{1'b0}} : idx;
   // Same payload shape tb_bdc_memseq.v's TOKEN loop uses (i folded into both
   // halves of the word), so a mismatch reported here is directly comparable
   // to a mismatch tb_bdc_memseq.v would report for the same index.
-  wire [DW-1:0] cur_payload = (phase == 2'd2) ? SPD_PAYLOAD :
-                               {16'hC0D0 + {6'b0, idx}, 16'h0A00 + {6'b0, idx}};
+  wire [DW-1:0] p1_payload = {16'hC0D0 + {6'b0, idx}, 16'h0A00 + {6'b0, idx}};
+
+  // PHASE 2'S STORE DELIBERATELY GOES SOMEWHERE ELSE, AND THAT IS THE WHOLE
+  // TEST.  The load's `c_req` comes from the store's `z_req`, so a load cannot
+  // fire without a store in front of it -- the token chain IS the ordering and
+  // there is no read-only path through this design.  The first version of this
+  // phase therefore re-stored the SAME payload to the SAME address and then
+  // read it back, which proves nothing at all: bd_mem sets
+  // WRITE_MODE_A("WRITE_FIRST"), so if the load were satisfied out of the
+  // write port instead of the array it would return that very payload and the
+  // check would pass. A phase that a defect cannot fail is not a phase.
+  //
+  // So phase 2 stores a DECOY -- the complement of the phase 1 payload, which
+  // can never equal it -- to a DECOY ADDRESS 512 words away, disjoint from the
+  // 0..N-1 range being checked, and the load still reads the phase 1 address.
+  // Now the two outcomes separate:
+  //
+  //   value came from the ARRAY   -> p1_payload   -> pass
+  //   value came from the WRITE   -> ~p1_payload  -> mismatch, logged
+  //
+  // and phase 2 finally means what its name says: the RAM is holding what
+  // phase 1 put there, on its own, one full transaction later.
+  localparam [AW-1:0] DECOY_BASE = 10'd512;
+
+  wire [AW-1:0] store_addr = (phase == 2'd2) ? {AW{1'b0}}
+                           : (phase == 2'd1) ? (DECOY_BASE + idx)
+                                             : idx;
+  wire [DW-1:0] store_data = (phase == 2'd2) ? SPD_PAYLOAD
+                           : (phase == 2'd1) ? ~p1_payload
+                                             : p1_payload;
+  wire [AW-1:0] load_addr  = (phase == 2'd2) ? {AW{1'b0}} : idx;
+  wire [DW-1:0] expect_val = (phase == 2'd2) ? SPD_PAYLOAD : p1_payload;
 
   bdc_store_seq_10_32 ust (
       .rst(~aresetn | ctrl_rst),
       .c_req(tok_req), .c_ack(tok_ack),
-      .a_req(sa_req), .a_ack(sa_ack), .a_data(cur_addr),
-      .d_req(sd_req), .d_ack(sd_ack), .d_data(cur_payload),
+      .a_req(sa_req), .a_ack(sa_ack), .a_data(store_addr),
+      .d_req(sd_req), .d_ack(sd_ack), .d_data(store_data),
       .z_req(store_z_req), .z_ack(store_z_ack),
       .p_req(s_req[0]), .p_ack(s_ack[0]), .p_addr(s_addr[AW*0 +: AW]),
       .p_wdata(s_wdata[DW*0 +: DW]), .p_we(s_we[0]), .p_rdata(p_rdata));
@@ -396,7 +437,7 @@ module mem_arb_bridge (
   bdc_load_seq_10_32 uld (
       .rst(~aresetn | ctrl_rst),
       .c_req(store_z_req), .c_ack(store_z_ack),
-      .a_req(la_req), .a_ack(la_ack), .a_data(cur_addr),
+      .a_req(la_req), .a_ack(la_ack), .a_data(load_addr),
       .z_req(lz_req), .z_ack(lz_ack), .z_data(lz_data),
       .p_req(s_req[1]), .p_ack(s_ack[1]), .p_addr(s_addr[AW*1 +: AW]),
       .p_wdata(s_wdata[DW*1 +: DW]), .p_we(s_we[1]), .p_rdata(p_rdata));
@@ -448,8 +489,8 @@ module mem_arb_bridge (
   // 2 need to address N=64 locations -- SPD_N=2048 overflows it, so phase 3
   // counts its own iterations in a full-width counter instead of trying to
   // widen `idx` (and the address bus) just for a loop bound nothing else
-  // needs.  `idx` itself is simply unused while phase==2; cur_addr already
-  // forces the address to a fixed constant during phase 3.
+  // needs.  `idx` itself is simply unused while phase==2; store_addr and
+  // load_addr already force the address to a fixed constant during phase 3.
   reg [31:0] spd_iter;
 
   // -- the hang detector: one shared counter, reset on entry to (or on
@@ -560,22 +601,22 @@ module mem_arb_bridge (
         // -- the checker that can actually go red -----------------------
         S_CHECK: begin
           case (phase)
-            2'd0: if (cap_val !== cur_payload) begin
+            2'd0: if (cap_val !== expect_val) begin
               p1_mismatch <= p1_mismatch + 1'b1;
               if (!p1_fail_latched) begin
                 p1_fail_latched <= 1'b1;
                 p1_fail_addr    <= idx;
                 p1_fail_got     <= cap_val;
-                p1_fail_expect  <= cur_payload;
+                p1_fail_expect  <= expect_val;
               end
             end
-            2'd1: if (cap_val !== cur_payload) begin
+            2'd1: if (cap_val !== expect_val) begin
               p2_mismatch <= p2_mismatch + 1'b1;
               if (!p2_fail_latched) begin
                 p2_fail_latched <= 1'b1;
                 p2_fail_addr    <= idx;
                 p2_fail_got     <= cap_val;
-                p2_fail_expect  <= cur_payload;
+                p2_fail_expect  <= expect_val;
               end
             end
             default: ; // phase 3 (SPD) is timed only, not checked -- same as
