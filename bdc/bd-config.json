@@ -319,16 +319,85 @@
     },
 
     {
-      "op": "load",           "kind": "todo", "seen": 4, "why": "Stage 6. bd_mem, one port, program-order serialisation first." },
+      "op": "load",           "kind": "cells", "seen": 4, "why": [
+        "bdc/mem.py's bdc_load_<AW>_<DW>[_seq] station, emit.py's _op_load.",
+        "addressResult is absorbed into the owning mem_controller (the",
+        "station's own p_addr/p_rdata round trip) and gets no net -- this",
+        "table entry is coarse and cannot see that, so it says buildable for",
+        "any load whose mem_controller is itself buildable; see mem_controller."
+      ]
+    },
     {
-      "op": "store",          "kind": "todo", "seen": 1, "why": "Stage 6." },
+      "op": "store",          "kind": "cells", "seen": 1, "why": [
+        "bdc/mem.py's bdc_store_<AW>_<DW>[_seq] station, emit.py's _op_store.",
+        "addressResult/dataResult are absorbed the same way load's is. A lone",
+        "store's completion (z) is tied off like bd_snk; the first store of a",
+        "2-way arbitrated chain instead becomes the second accessor's",
+        "program-order token. See mem_controller's caveat: this table cannot",
+        "see whether a store's OWN controller is one this backend will",
+        "actually emit."
+      ]
+    },
     {
-      "op": "mem_controller", "kind": "todo", "seen": 5, "why": [
-        "Stage 6, and the most dangerous entry in this file. Its groupSizes /",
-        "connectedBlocks attributes are load-bearing for correct port wiring,",
-        "and bdc/AUDIT.md section 2 records that none of Dynamatic's",
-        "cycle-level memory guarantees survive the move off a clock. Each one",
-        "needs its own audit entry before anything here is emitted."
+      "op": "mem_controller", "kind": "cells", "seen": 4,
+      "guard": "len(operands) == len(results) + 2",
+      "cells": ["bd_mem", "bd_join"],
+      "why": [
+        "A LOAD-ONLY controller. bdc/mem.py's bdc_memport[_arb]_<AW>_<DW>_<N>,",
+        "emit.py's _op_mem_controller. 1 accessor -> plain port; 2 ->",
+        "arbitrated port + bd_arbiter + program-order token chain (only the",
+        "SECOND accessor is the :seq station -- see bdc/mem.py's own note that",
+        "a store's z IS the next access's c, no new cell); >2 raises by name,",
+        "no N-way arbiter tree exists.",
+        "",
+        "The guard is what separates this from the store-having entry below,",
+        "and it is not arbitrary. A controller owning only loads has one",
+        "result per load plus memEnd, and one operand per load plus",
+        "memref/memStart/ctrlEnd -- so operands == results + 2. Add a store",
+        "and it carries that store's address and data operands plus a",
+        "per-block store-count constant, and the identity breaks. No fixed",
+        "operand count would do it, because both counts grow with the number",
+        "of accesses.",
+        "",
+        "memStart/ctrlEnd/memEnd reproduce dynamatic's own",
+        "mem_controller_storeless.v, which hardwires allRequestsDone = 1 --",
+        "loads are never tracked for completion. A bd_link holds memStart's",
+        "pulse until ctrlEnd arrives and a bd_join #(.N(2)) produces memEnd.",
+        "Two cells already on silicon, no new primitive.",
+        "",
+        "That bd_link is deliberately NOT in the cells list above, and this is",
+        "load-bearing rather than an oversight: slack.py derives its storage",
+        "ops from these lists, and bd_link is a storage cell. Listing it here",
+        "declares that a cycle through mem_controller is buffered, which",
+        "silences the address-echo cycle checks for both memory kernels --",
+        "measured, it dropped fir from 2 unbuffered cycles to 0. The link",
+        "sits on the memStart/ctrlEnd control path and offers no capacity to",
+        "the address/data cycle slack.py is reasoning about. Same reason",
+        "bd_mem itself stays out of STORAGE_CELLS: a station holds its",
+        "operands only until the access completes, which is not capacity."
+      ]
+    },
+    {
+      "op": "mem_controller", "kind": "todo", "seen": 1, "why": [
+        "A controller that owns a STORE, and this backend does not build it.",
+        "dynamatic's mem_controller_loadless.v gates memEnd on remainingStores",
+        "== 0 -- an up/down counter incremented by each block's store-count",
+        "token and decremented per completed store. That counter is real",
+        "state, it is not a handshake, and there is no clock here to run it",
+        "on.",
+        "",
+        "emit.py's _op_mem_controller RAISES by name on this rather than",
+        "wiring memEnd without it. Firing memEnd while a store is still in",
+        "flight would be a completion signal that reports done early, which",
+        "is the same defect class as a null control that fakes its ack --",
+        "already paid for once in this project, and it hid real deadlocks",
+        "until it was removed.",
+        "",
+        "This entry exists so map.py's verdict matches what emit.py will",
+        "actually do. It previously said 'cells' for every controller, which",
+        "made --report call single_loop buildable while the emitter refused",
+        "it; a status line that reads buildable is believed, and no one reads",
+        "the caveat underneath it."
       ]
     },
     {

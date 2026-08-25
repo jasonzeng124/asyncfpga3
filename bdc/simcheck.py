@@ -313,7 +313,10 @@ def gen_testbench(func, vectors, expected, tb_name, dut_module):
     value).  `expected` is the matching list of {resname: int}, already
     reference-computed.
     """
-    args = [a for a in func.args]
+    # A memref argument is not a channel (see bdc/emit.py's Emitter.memrefs)
+    # -- it gets no _req/_ack/_data port on the generated module at all, so a
+    # source/sink for it here would drive a port that does not exist.
+    args = [a for a in func.args if not a.raw.startswith("memref")]
     results = [r for r in func.results]
 
     lines = [CTL_HELPERS, f"`timescale 1ps / 1ps", "", f"module {tb_name};",

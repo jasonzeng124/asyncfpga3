@@ -53,6 +53,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compute  # noqa: E402
+import mem  # noqa: E402
 
 # Delay elements placed per pipeline stage in front of a SELECT (a cond_br
 # condition or a mux control).  Overridable so the value can be swept against
@@ -268,6 +269,43 @@ def result_channels(node, operand_ch):
         return []
     if op == "join":
         return [CONTROL]
+    if op in ("load", "store"):
+        # `<i10>, <i32>, <i10>, <i32>` -- (addr-in, data-in, addr-out,
+        # data-out) atoms in that fixed order regardless of load vs store;
+        # the results are always (addressResult, dataResult).  addressResult
+        # is absorbed into the owning mem_controller (see _op_load/_op_store)
+        # but still needs a real width for the fixpoint.
+        atoms = _atoms(node.type_sig)
+        if len(atoms) != 4:
+            raise EmitError(f"{op} type clause {node.type_sig!r} has "
+                            f"{len(atoms)} atom(s), expected 4 (addr-in, "
+                            f"data-in, addr-out, data-out)")
+        if len(node.results) != 2:
+            raise EmitError(f"{op} at line {node.src_line} has "
+                            f"{len(node.results)} result(s), expected 2 "
+                            f"(addressResult, dataResult)")
+        return atoms[2:4]
+    if op == "mem_controller":
+        # '(...) -> (...)' -- everything left of '->' is inputs (memref,
+        # memStart, the accessor group, ctrlEnd); everything right of it is
+        # the data result(s) this controller hands back to its load
+        # accessor(s), one atom per result other than the trailing memEnd.
+        if not node.results:
+            raise EmitError(f"mem_controller at line {node.src_line} has no "
+                            f"results; expected at least memEnd")
+        n_out = len(node.results) - 1
+        parts = node.type_sig.split("->", 1)
+        if len(parts) != 2:
+            raise EmitError(f"mem_controller at line {node.src_line}: type "
+                            f"clause {node.type_sig!r} has no '->' "
+                            f"separating inputs from outputs")
+        out_atoms = _atoms(parts[1])
+        if len(out_atoms) != n_out:
+            raise EmitError(f"mem_controller at line {node.src_line}: type "
+                            f"clause promises {len(out_atoms)} data "
+                            f"result(s), node has {n_out} (results minus "
+                            f"memEnd)")
+        return out_atoms + [CONTROL]
     raise EmitError(f"no width rule for handshake op {op!r} -- add one to "
                     f"result_channels(), do not assume")
 
@@ -1069,8 +1107,16 @@ def measurability_sites_fused(func, channels, fusion):
     return sites
 
 
-def cycle_sites(func, already):
+def cycle_sites(func, already, exclude=frozenset()):
     """Rule 2: enough further links that no cycle is left without storage.
+
+    `exclude` names channels this graph edge exists for on paper but that
+    have no net in the emitted design -- a load/store's address round trip
+    with its owning mem_controller, absorbed entirely inside one station (see
+    Emitter._resolve_mem_accessors).  slack.build_node_graph is unaware of
+    that absorption; without filtering, this function could pick one of those
+    edges as a cycle-breaking site and ask emit_links() to wrap a net that
+    _op_load/_op_store never declares.
 
     This is COMPILER-PLAN Stage 5 obligation 3, the one bdc/slack.py reports
     and nothing acted on.  It is a SEPARATE rule from rule 1 above and it has
@@ -1101,6 +1147,7 @@ def cycle_sites(func, already):
         import slack
 
     edges, _adj = slack.build_node_graph(func)
+    edges = [e for e in edges if e.value not in exclude]
     ids = list(range(len(func.nodes)))
     linked = set(already)
     sites = set()
@@ -1154,8 +1201,13 @@ RING_MIN_STAGES = 3
 _INF = float("inf")
 
 
-def ring_depths(func, linked):
+def ring_depths(func, linked, exclude=frozenset()):
     """How deep each link has to be, so that every cycle clears RING_MIN_STAGES.
+
+    `exclude` -- see cycle_sites(): a mem-accessor round trip absorbed inside
+    one station has no net, so it must not be considered a cycle edge here
+    either, or the "no linked edge to deepen" check below could fire on a
+    2-node mem-only cycle that is not a real wire loop at all.
 
     Returns {ssa: n_stages}, defaulting to 1 -- a plain bd_link -- and deeper
     only where some cycle through that channel would otherwise be under the
@@ -1183,6 +1235,7 @@ def ring_depths(func, linked):
         import slack
 
     edges, _adj = slack.build_node_graph(func)
+    edges = [e for e in edges if e.value not in exclude]
     n = len(func.nodes)
     depth = {ssa: 1 for ssa in linked}
 
@@ -1280,7 +1333,7 @@ def select_channels(func):
     return sel
 
 
-def link_sites(func, channels, fusion=None):
+def link_sites(func, channels, fusion=None, exclude=frozenset()):
     """Which channels get a bd_link, as a set of SSA names.
 
     Two rules, in order, for two unrelated reasons -- measurability, then
@@ -1317,7 +1370,7 @@ def link_sites(func, channels, fusion=None):
         sites = measurability_sites_fused(func, channels, fusion)
     else:
         sites = measurability_sites(func, channels)
-    return sites | cycle_sites(func, sites)
+    return sites | cycle_sites(func, sites, exclude=exclude)
 
 
 # ---------------------------------------------------------------------------
@@ -1387,10 +1440,17 @@ class Emitter:
         self.func = func
         self.table = table or Table()
         self.ch = {}        # ssa name -> (width, is_control)
+        self.memrefs = {}   # ssa name -> (aw, dw), disjoint from self.ch --
+                             # a memref never gets _req/_ack/_data nets
         self.lines = []
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
         self._resolve_widths()
+        # Which load/store/mem_controller SSA results round-trip entirely
+        # inside a station -- no net -- and how each accessor and controller
+        # wires to its shared port.  Must run before link_sites/ring_depths
+        # below, which need to know which graph edges to ignore.
+        self._resolve_mem_accessors()
         # BDC_OP_FUSION's analysis: which nodes fuse into one cell, which
         # constants fold into a literal.  None when the flag is off, so every
         # site below that checks `self.fusion` takes its original branch and
@@ -1399,7 +1459,15 @@ class Emitter:
         # Channels with storage on them.  A linked channel has TWO net
         # bundles: the producer drives `<v>_u_*` and the link drives `<v>_*`,
         # so consumers need no idea whether a link is there.
-        self.linked = link_sites(func, self.ch, fusion=self.fusion)
+        self.linked = link_sites(func, self.ch, fusion=self.fusion,
+                                  exclude=self.mem_absorbed)
+        leaked_mem = self.linked & self.mem_absorbed
+        if leaked_mem:
+            raise EmitError(
+                f"{func.name}: cycle-breaking or rule 1 wants storage on "
+                f"{sorted(leaked_mem)}, which is absorbed into a memory "
+                f"station's internal address/data round trip with no "
+                f"channel left there")
         if self.fusion is not None:
             # See link_sites()'s BDC_OP_FUSION note: rule 2 cannot legally
             # ask for storage on a value fusion has already folded into a
@@ -1415,7 +1483,7 @@ class Emitter:
                     f"shape is not safe to fuse this way")
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
-        self.depth = ring_depths(func, self.linked)
+        self.depth = ring_depths(func, self.linked, exclude=self.mem_absorbed)
         _apply_ring_pad(func, self.linked, self.depth)
         # Channels read as a SELECT rather than as ordinary data.  These are
         # the boundaries where a link's request may not outrun its own value.
@@ -1446,17 +1514,24 @@ class Emitter:
                 # so without this check a `memref<64xi32>` argument becomes a
                 # 0-wide data bundle and every load and store hung off it emits
                 # wires of width zero.  Nothing downstream complains; the design
-                # simply has no memory in it.  Name it instead.
+                # simply has no memory in it.  Parse its real shape instead --
+                # into self.memrefs, never self.ch, so it can never accidentally
+                # get _req/_ack/_data nets: a memref is not a channel, it is the
+                # address/data width pair its mem_controller and every load and
+                # store hung off it need.
                 if arg.raw.startswith("memref"):
-                    raise EmitError(
-                        f"function argument %{arg.ssa_name} is a "
-                        f"{arg.raw} -- memory is not wired up in this "
-                        f"backend yet.  bdc/mem.py generates the port and "
-                        f"station modules and they simulate and route, but "
-                        f"nothing lowers mem_controller/load/store onto them, "
-                        f"so this cannot be emitted.  It must not be emitted "
-                        f"as a zero-width data channel, which is what the "
-                        f"parser's width=0 would otherwise silently produce.")
+                    m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", arg.raw)
+                    if not m:
+                        raise EmitError(
+                            f"function argument %{arg.ssa_name} is "
+                            f"{arg.raw!r}, which is not a memref<NxiW> this "
+                            f"backend knows how to parse. Add a rule, do not "
+                            f"guess a shape.")
+                    n_elems, dw = int(m.group(1)), int(m.group(2))
+                    aw = max(1, (n_elems - 1).bit_length())
+                    mem.check(aw, dw)
+                    self.memrefs[arg.ssa_name] = (aw, dw)
+                    continue
                 self.ch[arg.ssa_name] = (arg.width, arg.is_control)
 
         pending = list(enumerate(self.func.nodes))
@@ -1487,6 +1562,192 @@ class Emitter:
                     f"made impossible, or every op in a cycle is asking a rule "
                     f"that needs a width from inside that same cycle")
             pending = progress
+
+    # -- memory --------------------------------------------------------
+
+    def _resolve_mem_accessors(self):
+        """Match each mem_controller to its load/store accessors, in program
+        order, and work out the wiring the shared-port design in bdc/mem.py
+        needs.
+
+        A load's addressResult, and a store's addressResult/dataResult, are
+        the owning station's own p_addr/p_rdata pair: internal to
+        bdc_load_<AW>_<DW>/bdc_store_<AW>_<DW>, not a channel in the emitted
+        netlist.  So is the mem_controller's own data-output result -- the
+        SAME round trip, read from the controller's side, and it is what a
+        load's second operand actually is (verified below by producer, not
+        guessed by position).  self.mem_absorbed collects every SSA name on
+        that round trip; nothing else in this file may declare a net for one.
+
+        self.accessor_info[addr_result_ssa] and self.mc_info[memEnd_ssa] hold
+        everything _op_load/_op_store/_op_mem_controller need, keyed by a
+        result each op already has in hand -- lower() calls per-op methods as
+        fn(node, inst) with no index, so lookups here cannot be keyed by node
+        index or by the (unhashable) Node itself.
+        """
+        nodes = self.func.nodes
+        producer, consumers = {}, {}
+        for i, n in enumerate(nodes):
+            for r in n.results:
+                producer[r] = i
+            for o in n.operands:
+                consumers.setdefault(o, []).append(i)
+
+        self.mem_absorbed = set()
+        self.accessor_info = {}
+        self.mc_info = {}
+
+        for mc_idx, node in enumerate(nodes):
+            if node.op != "mem_controller":
+                continue
+            ops = node.operands
+            if len(ops) < 3:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line} has "
+                    f"{len(ops)} operand(s); expected at least 3 (memref, "
+                    f"memStart, ctrlEnd)")
+            memref_ssa, memstart, ctrlend = ops[0], ops[1], ops[-1]
+            if memref_ssa not in self.memrefs:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line}: operand "
+                    f"{memref_ssa!r} is not a memref this backend resolved "
+                    f"a shape for")
+            aw, dw = self.memrefs[memref_ssa]
+
+            # ops[2:-1] is the paren-grouped accessor list -- program order,
+            # per bdc/AUDIT.md's reading of the dialect.  It also carries a
+            # per-basic-block store-count constant (mem_controller_loadless's
+            # `remainingStores` increment in dynamatic's mc_support.v); skip
+            # those, they name no accessor.
+            ordered, seen = [], set()
+            for v in ops[2:-1]:
+                p = producer.get(v)
+                if p is None:
+                    raise EmitError(
+                        f"mem_controller at line {node.src_line}: operand "
+                        f"{v!r} has no producer in this function")
+                pop = nodes[p].op
+                if pop == "constant":
+                    continue
+                if pop not in ("load", "store"):
+                    raise EmitError(
+                        f"mem_controller at line {node.src_line}: operand "
+                        f"{v!r} is produced by {pop!r}, which is neither an "
+                        f"access (load/store) nor a per-block store count "
+                        f"(constant) -- this design does not know what it is")
+                if p not in seen:
+                    seen.add(p)
+                    ordered.append(p)
+
+            n = len(ordered)
+            if n == 0:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line} has no "
+                    f"load/store accessor")
+            if n > 2:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line} has {n} "
+                    f"accessors; only 1 (plain port) or 2 (arbitrated port -- "
+                    f"bd_arbiter arbitrates exactly two requesters) is "
+                    f"implemented")
+            arb = n == 2
+            if arb and nodes[ordered[0]].op != "store":
+                raise EmitError(
+                    f"mem_controller at line {node.src_line}: the first "
+                    f"accessor in program order is "
+                    f"{nodes[ordered[0]].op!r}, not 'store'. The program-"
+                    f"order token chain reuses the FIRST accessor's own "
+                    f"z_req/z_ack as the second accessor's c token (bdc/"
+                    f"mem.py: \"a store's completion channel IS the next "
+                    f"access's token\") because a store's z has no other "
+                    f"consumer; a load's z already feeds a real downstream "
+                    f"channel, and chaining it too needs a fork this design "
+                    f"does not build")
+
+            mc_inst = instname(node, mc_idx)
+            memend = node.results[-1]
+
+            # The controller's own data-output result(s): the other half of
+            # each load's address/data round trip.  Verify each load's
+            # second operand really is produced by THIS controller -- not
+            # guessed by position -- then absorb it, same as the accessor's
+            # own addressResult.
+            out_results = list(node.results[:-1])
+            claimed = set()
+            for acc_idx in ordered:
+                acc = nodes[acc_idx]
+                if acc.op != "load":
+                    continue
+                if len(acc.operands) != 2:
+                    raise EmitError(
+                        f"load at line {acc.src_line} has "
+                        f"{len(acc.operands)} operand(s), expected 2 "
+                        f"(address, mem_controller readback)")
+                out_ssa = acc.operands[1]
+                if producer.get(out_ssa) != mc_idx:
+                    raise EmitError(
+                        f"load at line {acc.src_line}: second operand "
+                        f"{out_ssa!r} is not produced by its own "
+                        f"mem_controller (line {node.src_line}) -- the "
+                        f"address/data round trip this design absorbs does "
+                        f"not hold")
+                if out_ssa not in out_results:
+                    raise EmitError(
+                        f"load at line {acc.src_line}: its second operand "
+                        f"{out_ssa!r} is not among mem_controller (line "
+                        f"{node.src_line})'s own declared results "
+                        f"{out_results}")
+                claimed.add(out_ssa)
+                self.mem_absorbed.add(out_ssa)
+            unclaimed = [r for r in out_results if r not in claimed]
+            if unclaimed:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line} declares data "
+                    f"result(s) {unclaimed} that no load accessor's second "
+                    f"operand claims")
+
+            # Slot wiring.  Only the SECOND station in a 2-way chain gets the
+            # program-order token input (bdc/mem.py: "prev.z_req/z_ack ->
+            # next.c_req/c_ack" -- the first station is the plain variant, it
+            # has no c port to wire).
+            tok_req, tok_ack = f"{mc_inst}_tok_req", f"{mc_inst}_tok_ack"
+            accessors_desc = []
+            for k, acc_idx in enumerate(ordered):
+                acc = nodes[acc_idx]
+                seq = arb and k > 0
+                addr_res = acc.results[0]
+                info = {
+                    "aw": aw, "dw": dw, "seq": seq, "slot": k,
+                    "mc_inst": mc_inst,
+                    "p_req": f"{mc_inst}_s{k}_req",
+                    "p_ack": f"{mc_inst}_s{k}_ack",
+                    "p_addr": f"{mc_inst}_s{k}_addr",
+                    "p_wdata": f"{mc_inst}_s{k}_wdata",
+                    "p_we": f"{mc_inst}_s{k}_we",
+                    "p_rdata": f"{mc_inst}_rdata",
+                }
+                if arb and k == 0:
+                    info["z_req_net"] = tok_req
+                    info["z_ack_net"] = tok_ack
+                if seq:
+                    info["c_req"] = tok_req
+                    info["c_ack"] = tok_ack
+                self.accessor_info[addr_res] = info
+                self.mem_absorbed.add(acc.results[0])
+                if acc.op == "store":
+                    if len(acc.results) != 2:
+                        raise EmitError(
+                            f"store at line {acc.src_line} has "
+                            f"{len(acc.results)} result(s), expected 2 "
+                            f"(addressResult, dataResult)")
+                    self.mem_absorbed.add(acc.results[1])
+                accessors_desc.append((acc.op, addr_res))
+
+            self.mc_info[memend] = {
+                "aw": aw, "dw": dw, "slots": n, "arb": arb,
+                "inst": mc_inst, "accessors": accessors_desc,
+                "memstart": memstart, "ctrlend": ctrlend,
+            }
 
     def width(self, ssa):
         return self.ch[ssa][0]
@@ -1894,6 +2155,208 @@ class Emitter:
             if not self.is_control(src):
                 self.emit(f"    assign {base}_data = {self.data(src)};")
 
+    # -- memory --------------------------------------------------------
+
+    def _op_load(self, node, inst):
+        """A load: its own bdc_load_<AW>_<DW>[_seq] station, driving one
+        slot of the mem_controller's shared port.  addressResult is
+        absorbed into the controller (see _resolve_mem_accessors) and gets
+        no net; operand 1 is that same round trip read back from the
+        controller's side and is never referenced here -- it exists only so
+        the pre-pass could verify the round trip holds.
+        """
+        if len(node.operands) != 2:
+            raise EmitError(
+                f"load at line {node.src_line} has {len(node.operands)} "
+                f"operand(s), expected 2 (address, mem_controller readback)")
+        addr = node.operands[0]
+        addr_res, z = node.results
+        info = self.accessor_info[addr_res]
+        aw, dw, seq = info["aw"], info["dw"], info["seq"]
+        name = mem.unit_name("load", aw, dw, seq=seq)
+        self.units.setdefault(name, mem.emit_unit("load", aw, dw, seq=seq))
+        self.emit(f"    {name} {inst} (")
+        self.emit(f"        .rst(rst),")
+        if seq:
+            self.emit(f"        .c_req({info['c_req']}), "
+                      f".c_ack({info['c_ack']}),")
+        self.emit(f"        .a_req({self.req(addr)}), .a_ack({self.ack(addr)}), "
+                  f".a_data({self.data(addr)}),")
+        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+                  f".z_data({self.odata_out(z)}),")
+        self.emit(f"        .p_req({info['p_req']}), .p_ack({info['p_ack']}), "
+                  f".p_addr({info['p_addr']}),")
+        self.emit(f"        .p_wdata({info['p_wdata']}), .p_we({info['p_we']}), "
+                  f".p_rdata({info['p_rdata']}));")
+
+    def _op_store(self, node, inst):
+        """A store: its own bdc_store_<AW>_<DW>[_seq] station.
+        addressResult and dataResult are absorbed into the owning
+        mem_controller and get no net.  z (the access completing) is
+        control-only: if this store is the first accessor of a 2-way
+        arbitrated chain, z becomes the SECOND accessor's program-order
+        token (bdc/mem.py's own mechanism -- "a store's completion channel
+        IS the next access's token", no new cell); with a single accessor
+        nothing downstream needs to know a store finished, so z is tied off
+        exactly as bd_snk would (cells/rtl/bd_end.v: assign ack = req).
+        """
+        if len(node.operands) != 2:
+            raise EmitError(
+                f"store at line {node.src_line} has {len(node.operands)} "
+                f"operand(s), expected 2 (address, value)")
+        addr, val = node.operands
+        addr_res, _data_res = node.results
+        info = self.accessor_info[addr_res]
+        aw, dw, seq = info["aw"], info["dw"], info["seq"]
+        name = mem.unit_name("store", aw, dw, seq=seq)
+        self.units.setdefault(name, mem.emit_unit("store", aw, dw, seq=seq))
+        chained = "z_req_net" in info
+        z_req_net = info["z_req_net"] if chained else f"{inst}_z_req"
+        z_ack_net = info["z_ack_net"] if chained else f"{inst}_z_ack"
+        if not chained:
+            self.emit(f"    wire {z_req_net}, {z_ack_net};")
+        self.emit(f"    {name} {inst} (")
+        self.emit(f"        .rst(rst),")
+        if seq:
+            self.emit(f"        .c_req({info['c_req']}), "
+                      f".c_ack({info['c_ack']}),")
+        self.emit(f"        .a_req({self.req(addr)}), .a_ack({self.ack(addr)}), "
+                  f".a_data({self.data(addr)}),")
+        self.emit(f"        .d_req({self.req(val)}), .d_ack({self.ack(val)}), "
+                  f".d_data({self.data(val)}),")
+        self.emit(f"        .z_req({z_req_net}), .z_ack({z_ack_net}),")
+        self.emit(f"        .p_req({info['p_req']}), .p_ack({info['p_ack']}), "
+                  f".p_addr({info['p_addr']}),")
+        self.emit(f"        .p_wdata({info['p_wdata']}), .p_we({info['p_we']}), "
+                  f".p_rdata({info['p_rdata']}));")
+        if not chained:
+            self.emit(f"    assign {z_ack_net} = {z_req_net};")
+
+    def _op_mem_controller(self, node, inst):
+        """The shared memory port -- one bdc_memport[_arb]_<AW>_<DW>_<N> --
+        wired to each accessor's own station (see _op_load/_op_store).
+        Owns nothing else.
+
+        memStart / ctrlEnd / memEnd: see the block comment inline below for
+        what dynamatic's real mc_control FSM does and what this reproduces
+        -- and where it deliberately stops rather than invent an unreviewed
+        completion counter.
+        """
+        memend = node.results[-1]
+        info = self.mc_info[memend]
+        if info["inst"] != inst:
+            raise EmitError(
+                f"mem_controller at line {node.src_line}: instance name "
+                f"{inst!r} disagrees with the pre-pass's {info['inst']!r} "
+                f"-- instname() must be a pure function of (node, index)")
+        aw, dw, n, arb = info["aw"], info["dw"], info["slots"], info["arb"]
+        accessors = info["accessors"]
+
+        pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{n}"
+        self.units.setdefault(pname, mem.emit_port(aw, dw, slots=n, arb=arb))
+
+        # ONE PAIR OF DELAYS PER RAM -- mem.py's own header: each bd_mem in
+        # a gang is placed and routed separately, so rule B and rule C
+        # measure and propose a number per RAM, not per gang.  Keys match
+        # verify/tighten.py's macro() convention (dots and underscores both
+        # sanitise to '_'): BD_SZ_<UUT>_<INST>_UMEM<k>_USETUP/_UCO.
+        nram = mem.ram_count(dw)
+        parms = []
+        for k in range(nram):
+            dset = self.delay(f"{inst}_umem{k}_usetup", mem.DEFAULT_DSETUP)
+            dco = self.delay(f"{inst}_umem{k}_uco", mem.DEFAULT_DCO)
+            parms.append(f".DSETUP_{k}({dset})")
+            parms.append(f".DCO_{k}({dco})")
+
+        aw1, dw1 = max(aw, 1), max(dw, 1)
+        for k in range(n):
+            self.emit(f"    wire {inst}_s{k}_req, {inst}_s{k}_ack, "
+                      f"{inst}_s{k}_we;")
+            self.emit(f"    wire [{aw1 - 1}:0] {inst}_s{k}_addr;")
+            self.emit(f"    wire [{dw1 - 1}:0] {inst}_s{k}_wdata;")
+        self.emit(f"    wire [{dw1 - 1}:0] {inst}_rdata;")
+        if arb:
+            # The token wire a chained store's z becomes -- see _op_store.
+            # Declared here, not there: Verilog wires are order-free and
+            # this is the one place that always runs for an arbitrated
+            # controller regardless of which accessor happens to lower
+            # first.
+            self.emit(f"    wire {inst}_tok_req, {inst}_tok_ack;")
+
+        def cat(sig):
+            names = [f"{inst}_s{k}_{sig}" for k in range(n)]
+            return names[0] if n == 1 else "{" + ", ".join(reversed(names)) + "}"
+
+        ack_port = f".s_ack({cat('ack')})" if arb else f".p_ack({inst}_s0_ack)"
+        self.emit(f"    {pname} #({', '.join(parms)}) {inst}_uport (")
+        self.emit(f"        .rst(rst),")
+        self.emit(f"        .s_req({cat('req')}), .s_addr({cat('addr')}), "
+                  f".s_wdata({cat('wdata')}),")
+        self.emit(f"        .s_we({cat('we')}), {ack_port}, "
+                  f".p_rdata({inst}_rdata));")
+
+        # memStart / ctrlEnd / memEnd.
+        #
+        # dynamatic/data/verilog/support/mc_support.v's real mc_control FSM:
+        # a 2-state IDLE/RUNNING machine.  memStart_valid moves IDLE ->
+        # RUNNING.  ctrlEnd_valid latches "no more requests will come".
+        # memEnd_valid = that latch AND allRequestsDone AND fsm_running;
+        # memEnd_valid moves RUNNING -> IDLE (function_return) and clears
+        # the latch.  For a LOAD-ONLY controller (dynamatic's own
+        # mem_controller_storeless.v), allRequestsDone is HARDWIRED 1'b1 --
+        # Dynamatic's own accepted simplification: loads are never tracked
+        # for completion.  A controller with a STORE
+        # (mem_controller_loadless.v) instead needs a real up/down counter,
+        # remainingStores, incremented by each basic block's own ctrl count
+        # token (the constant this pre-pass skips in the accessor group) and
+        # decremented per completed store -- and ctrl_ready never
+        # backpressures it, so promised counts can race ahead of actual
+        # completions.
+        #
+        # This reproduces the load-only case with proven cells and nothing
+        # new: a bd_link naturally captures memStart's one-shot pulse and
+        # holds req_out high until its consumer's ack arrives -- exactly
+        # "wait here until ctrlEnd shows up" -- then bd_join #(.N(2)) with
+        # ctrlEnd produces memEnd.  Once both branches release, the link is
+        # empty again, ready for the next invocation -- the same
+        # IDLE-reset behaviour the real FSM has, and functionally identical
+        # to mem_controller_storeless's own accepted limitation.
+        #
+        # For a store-having controller this same shortcut would be
+        # genuinely, silently WRONG -- it omits remainingStores == 0, so
+        # memEnd could fire while a promised-but-not-yet-completed store is
+        # still in flight.  An async up/down counter correct under that
+        # race is out of scope here: STOP rather than invent an unreviewed
+        # mechanism under a completion signal.
+        has_store = any(kind == "store" for kind, _ in accessors)
+        if has_store:
+            raise EmitError(
+                f"mem_controller at line {node.src_line} has a store "
+                f"accessor. Its real memEnd (dynamatic's "
+                f"mem_controller_loadless.v) requires remainingStores == 0, "
+                f"an asynchronous up/down completion counter this backend "
+                f"does not build; wiring memEnd without it would silently "
+                f"let it fire while a store is still in flight. Not "
+                f"implemented -- see _op_mem_controller's memStart/ctrlEnd/"
+                f"memEnd comment in bdc/emit.py.")
+
+        memstart, ctrlend = info["memstart"], info["ctrlend"]
+        hold = f"{inst}_started"
+        d = self.delay(f"{inst}_uhold", 0)
+        self.emit(f"    wire {hold}_req, {hold}_ack;")
+        self.emit(f"    bd_link #(.W(1), .DELAY({d})) {inst}_uhold (")
+        self.emit(f"        .rst(rst),")
+        self.emit(f"        .req_in({self.req(memstart)}), "
+                  f".ack_in({self.ack(memstart)}), .data_in(1'b0),")
+        self.emit(f"        .req_out({hold}_req), .ack_out({hold}_ack), "
+                  f".data_out());")
+        self.emit(f"    bd_join #(.N(2)) {inst}_uend (")
+        self.emit(f"        .rst(rst), "
+                  f".req_in({{{self.req(ctrlend)}, {hold}_req}}),")
+        self.emit(f"        .ack_out({{{self.ack(ctrlend)}, {hold}_ack}}),")
+        self.emit(f"        .req({self.oreq(memend)}), "
+                  f".ack({self.oack(memend)}));")
+
     # -- compute units -----------------------------------------------------
 
     def _compute(self, node, inst, chans):
@@ -2127,6 +2590,11 @@ def emit_func(func, table=None):
     # Ports.  Arguments are driven from outside, results drive outward.
     ports = ["    input  wire             rst"]
     for arg in func.args:
+        if arg.ssa_name in e.memrefs:
+            # A memref is not a channel -- see _resolve_widths().  Its
+            # mem_controller instances get no top-level port; the memory
+            # lives entirely inside the kernel, behind bd_mem.
+            continue
         b = portname(arg.name)
         ports.append(f"    input  wire             {b}_req")
         ports.append(f"    output wire             {b}_ack")
@@ -2183,6 +2651,13 @@ def emit_func(func, table=None):
                 f"--probe names {name!r}, but BDC_OP_FUSION folded that "
                 f"channel into a fused cell -- there is no net left to tap. "
                 f"Probe an external input or the region's own output instead.")
+        if ssa in e.mem_absorbed:
+            raise EmitError(
+                f"--probe names {name!r}, but that channel is a load/store's "
+                f"address or data round trip with its own mem_controller, "
+                f"absorbed entirely inside a bdc_load/bdc_store station -- "
+                f"there is no net left to tap. Probe the load's dataResult "
+                f"or the accessor's own operand instead.")
         w, ctl = e.ch[ssa]
         probes.append((name, w, ctl))
 
@@ -2223,6 +2698,12 @@ def emit_func(func, table=None):
             # declaration for a name nothing references invites exactly the
             # confusion that note is guarding against.
             continue
+        if ssa in e.mem_absorbed:
+            # A load's addressResult, a store's addressResult/dataResult, or
+            # a mem_controller's own data-output result -- the station's
+            # internal p_addr/p_rdata round trip.  See _resolve_mem_accessors:
+            # no net exists for these, by design, so none is declared.
+            continue
         decls.append(f"    wire {vname(ssa)}_req, {vname(ssa)}_ack;")
         if not ctl:
             decls.append(f"    wire [{w - 1}:0] {vname(ssa)}_data;")
@@ -2237,7 +2718,7 @@ def emit_func(func, table=None):
     # side, because an argument's channel can carry a link like any other.
     bridge = []
     for arg in func.args:
-        if not arg.ssa_name:
+        if not arg.ssa_name or arg.ssa_name in e.memrefs:
             continue
         b, v = portname(arg.name), e._u(arg.ssa_name)
         bridge.append(f"    assign {v}_req = {b}_req;")
@@ -2292,9 +2773,14 @@ def emit_top(func, delays, inst="uut"):
     delay as a state node and measures requests arriving at themselves.
     """
     name = f"bdc_{func.name}"
-    inputs = [portname(a.name) for a in func.args]
+    # A memref argument is not a channel and gets no top-level port on
+    # bdc_<func> (see emit_func's ports/bridge loops and _resolve_widths) --
+    # so this top, which drives every argument from its own spine, must skip
+    # it too or the instantiation below names a port that does not exist.
+    real_args = [a for a in func.args if not a.raw.startswith("memref")]
+    inputs = [portname(a.name) for a in real_args]
     outputs = [portname(r.name) for r in func.results]
-    total = sum(a.width for a in func.args)
+    total = sum(a.width for a in real_args)
     # Every driven pin gets its OWN spine bit and they must not overlap.  The
     # first version let the result acknowledges land on top of the last
     # argument's data slice, which does not fail: it routes, and it silently
@@ -2312,7 +2798,7 @@ def emit_top(func, delays, inst="uut"):
                         for i, d in delays)
 
     conns, obs, bit = [], [], 0
-    for i, arg in enumerate(func.args):
+    for i, arg in enumerate(real_args):
         b = portname(arg.name)
         # Each request gets a DIFFERENT live signal: tying them together lets
         # yosys collapse the joins downstream into wires.
@@ -2337,7 +2823,7 @@ def emit_top(func, delays, inst="uut"):
     conns[-1] = conns[-1].rstrip(",")
 
     decls = []
-    for a in func.args:
+    for a in real_args:
         decls.append(f"    wire {portname(a.name)}_ack;")
     for r in func.results:
         decls.append(f"    wire {portname(r.name)}_req;")

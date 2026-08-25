@@ -97,6 +97,29 @@ def _eval_guard(guard, node):
     data that decides what hardware gets built; it must not be able to run
     code, and a typo in it must fail rather than do something."""
     env = {"len(operands)": len(node.operands), "len(results)": len(node.results)}
+
+    def rhs(text):
+        """The right side is an integer, or the OTHER count plus an integer.
+        That second form exists for exactly one distinction and it is worth
+        naming: a mem_controller that owns only loads has one result per load
+        plus memEnd, and one operand per load plus memref/memStart/ctrlEnd, so
+        operands == results + 2.  A controller that also owns a store carries
+        the store's address and data operands and a per-block store-count
+        constant, and that identity breaks.  No fixed operand count separates
+        them, because both grow with the number of accesses."""
+        text = text.strip()
+        for key, value in env.items():
+            if text.startswith(key):
+                tail = text[len(key):].strip()
+                if not tail:
+                    return value
+                if tail.startswith("+"):
+                    return value + int(tail[1:].strip())
+                if tail.startswith("-"):
+                    return value - int(tail[1:].strip())
+                raise ValueError(f"unparseable guard {guard!r} in bd-config.json")
+        return int(text)
+
     for key, value in env.items():
         if guard.startswith(key):
             rest = guard[len(key):].strip()
@@ -108,7 +131,7 @@ def _eval_guard(guard, node):
                 ("<", lambda a, b: a < b),
             ):
                 if rest.startswith(opname):
-                    return fn(value, int(rest[len(opname):].strip()))
+                    return fn(value, rhs(rest[len(opname):]))
     raise ValueError(f"unparseable guard {guard!r} in bd-config.json")
 
 
