@@ -768,3 +768,46 @@ supports is the weaker and more useful claim: the default of 12 sits about ten
 links above the observed threshold, and that headroom costs 20 ns per pair
 (12%). Whether to spend some of it is the same open guardband question rules B
 and C already carry, and it is still the user's call.
+
+### Rule B measured on the same port, and it does not fail as a cliff
+
+Same rig, same pinned seed, sweeping `USETUP` (address+data setup into the RAM)
+with `UCO` held at 12/12 — `WHAT=usetup cells/hw/mem_arb_dco_sweep.sh`:
+
+| USETUP | P1 | P2 | edge_mism | ns/pair | |
+|---:|---:|---:|---:|---:|---|
+| 0 | 64 | 64 | 2176 | 160.0 | everything red |
+| 1 | 64 | 64 | 2176 | 160.0 | everything red |
+| 2 | **1** | **1** | **2** | 160.0 | **red on 1 access in 64** |
+| 3–6 | 0 | 0 | 0 | 160.0 | ok |
+| 7–12 | 0 | 0 | 0 | 170.0 | ok |
+
+**The `USETUP=2` row is the result.** At 0 and 1 the delay is so short that
+every access fails and no test could miss it. At 2 exactly one address out of
+64 fails, in each phase. That is what a setup violation looks like one link
+before it disappears: not a cliff, a **marginal zone** where the failure rate is
+a fraction and depends on which address and which data pattern happen to hit
+the worst path.
+
+This is the concrete answer to the guardband question rules B and C have been
+carrying. A sizing loop that shortens a delay until a test stops passing does
+not stop at 3 — it stops wherever its particular test run happened to come back
+clean, and at 2 links a run of a few dozen accesses comes back clean roughly
+half the time. Recall what `verify/resize.sh` actually did on this exact port:
+it settled `UMEM0_USETUP` at **5**, which passes here, and then failed rule B on
+3 of 8 independently seeded routes. Five is only two links above this route's
+threshold of three, and clock arrival on this design moves about four links
+across seeds. The tightened answer was inside the noise, and the reason it
+looked fine is visible in this table — the region just above the threshold
+passes cleanly on any one route.
+
+The shipped default of 8 sits five links above the threshold and costs 10 ns
+per pair (170 vs 160) relative to the fastest passing size.
+
+**A note on the stimulus, which is the other half of any negative result.** At
+`USETUP=2` the edge-sampled checker saw 2 failures out of 2176 samples while
+the phase 1 and 2 checkers saw 1 out of 64 each — meaning **all 2048 phase-3
+accesses passed**. Phase 3 is the speed loop: one address, one payload, over
+and over. Nothing toggles, so nothing races, and it contributes ~34× the sample
+count and ~0× the coverage. Sample count is not stress. The two phases that
+walk addresses and change data found the defect; the long one did not.
