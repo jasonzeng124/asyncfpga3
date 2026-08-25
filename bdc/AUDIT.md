@@ -658,3 +658,60 @@ say nothing about temperature, voltage, or process, and the whole reason
 shortening a matched delay is the risky direction is that silicon can be slower
 than any of these numbers. `BD_RESIZE_SEEDS` narrows one source of optimism.
 It does not make a tightened length safe.
+
+### The arbitrated port on silicon, and a negative control that could not go red
+
+`cells/hw/mem_arb_ps.v` puts section 7's design — two `:seq` stations sharing
+one `bdc_memport_arb_10_32_2`, ordered only by a token chain — on the board,
+under the same manufactured-strobe pressure `mem_port_ps` applied to a bare
+`bd_mem`. Measured 2026-08-24 at the untightened placeholders (`USETUP` 8/8,
+`UCO` 12/12), 100 MHz PS clock:
+
+| | |
+|---|---|
+| verdict | **PASS** — `STATUS 0x0000002a`, `pass=1`, `timeout=0` |
+| phase 1, program order | clean over 64 addresses, `P1_MISMATCH=0` |
+| phase 2, RAM retention | clean over 64 addresses, `P2_MISMATCH=0` |
+| latency | 170.0 ns per store+load pair (34816 cycles / 2048 pairs) |
+
+So the `done` cell holds up where it matters: the claim returns to zero on the
+RAM's schedule, the token chain does not deadlock, and the arbiter hands the
+port over 2048 times without losing a transaction.
+
+**The two negative controls are not symmetric, and only one of them is a
+result.** `cells/hw/negctl_mem_arb.sh` rebuilds the harness with one delay
+zeroed at elaboration.
+
+`USETUP → 0` **goes red**: 64/64 addresses mismatch, `got=0x00000000` against
+`expect=0xc0d00a00`, failing address logged. The write request beats its payload
+to the RAM, nothing is latched, every later load reads an uninitialised cell.
+This is what gives the PASS its meaning — the harness demonstrably can fail.
+
+`DCO → 0` **stays green, and that is a blind spot rather than a margin.** DCO
+exists so the load's acknowledge trails the RAM's read data (clock-to-out is
+2.454 ns per prjxray `BRAM_L.sdf`). But the only consumer of `lz_data` in this
+harness is a two-flop synchroniser into the PS clock domain, and the host does
+not sample the captured word until it has polled `STATUS` over AXI — tens of
+nanoseconds after `z_req` rose. The data has always arrived by the time
+anything looks, so DCO is not load-bearing in this circuit and deleting it
+changes nothing observable. **Rule C is untested on silicon.** Testing it needs
+a consumer that reads `z_data` at the instant `z_req` arrives and in the same
+domain — a second bundled-data station downstream of the load, not a
+memory-mapped register. That harness is not written.
+
+Two harness defects were caught before the bitstream reached the board, both of
+the same shape — a check that could not fail:
+
+- Phase 2 originally re-stored the same payload to the same address. `bd_mem`
+  is `WRITE_MODE_A("WRITE_FIRST")`, so `DOADO` returns the word being written;
+  the load would have read "correct" data without the array ever being
+  consulted. Fixed with a decoy: phase 1 writes its payload, phase 2 writes the
+  *complement* to a different base and then re-stores and re-reads the original,
+  so a read served from the write port returns the wrong value.
+- The verdict line printed the four delay lengths out of the *shell's*
+  environment via an `envdef` helper, which printed `?` whenever the build was
+  launched from a different shell — i.e. always. Since `USETUP=0` turns every
+  read into `0x00000000` and `DCO=0` changes nothing at all, a verdict without
+  its lengths beside it is not a measurement. The lengths now live in a
+  read-only register at offset `0x40`, packed five bits apiece, so the number
+  comes back **from the device that produced the result**.

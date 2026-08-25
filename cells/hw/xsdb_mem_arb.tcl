@@ -66,6 +66,7 @@ set P2_FAIL_GOT   [expr {$BASE + 0x30}]
 set P2_FAIL_EXP   [expr {$BASE + 0x34}]
 set PROGRESS      [expr {$BASE + 0x38}]
 set SPD_ITER      [expr {$BASE + 0x3C}]
+set SIZES         [expr {$BASE + 0x40}]
 
 set SLCR_UNLOCK     0xF8000008
 set SLCR_LOCK       0xF8000004
@@ -208,7 +209,19 @@ if {$p2_mism > 0} {
 
 # One parseable line, same spirit as xsdb_mem_port.tcl's MEMPORT line.
 proc envdef {name} { if {[info exists ::env($name)]} { return $::env($name) } ; return "?" }
-puts "MEMARB label=$label uco0=[envdef BD_SZ_UPORT_UMEM0_UCO] usetup0=[envdef BD_SZ_UPORT_UMEM0_USETUP] uco1=[envdef BD_SZ_UPORT_UMEM1_UCO] usetup1=[envdef BD_SZ_UPORT_UMEM1_USETUP] p1_mism=$p1_mism p2_mism=$p2_mism timeout=$timeout_bit"
+# The delay lengths come back FROM THE DEVICE, not from this shell's
+# environment.  They used to be read with an `envdef` helper, which printed "?"
+# whenever the build had been launched from a different shell -- i.e. always.
+# The two negative controls are why that matters: at usetup=0 every read is
+# 0x00000000 and at uco=0 nothing observable changes, so a verdict without its
+# four numbers is not a result.
+set sz  [mrd -value $SIZES]
+set su0 [expr {$sz & 0x1f}]
+set co0 [expr {($sz >> 5) & 0x1f}]
+set su1 [expr {($sz >> 10) & 0x1f}]
+set co1 [expr {($sz >> 15) & 0x1f}]
+puts "sizes read back from the bitstream: usetup0=$su0 uco0=$co0 usetup1=$su1 uco1=$co1"
+puts "MEMARB label=$label usetup0=$su0 uco0=$co0 usetup1=$su1 uco1=$co1 p1_mism=$p1_mism p2_mism=$p2_mism timeout=$timeout_bit"
 
 if {$pass_bit == 1 && $timeout_bit == 0 && $p1_mism == 0 && $p2_mism == 0} {
     puts "=== $label RESULT: PASS -- program order held, RAM retained it, no timeout ==="

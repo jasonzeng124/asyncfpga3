@@ -156,6 +156,31 @@
 // poller along with the fabric.  A harness that hangs reports nothing, which
 // is exactly the failure mode a hang detector exists to make visible.
 //
+// -- WHAT THE NEGATIVE CONTROLS SAY, AND WHAT ONE OF THEM CANNOT SAY ------
+//
+// hw/negctl_mem_arb.sh rebuilds this harness twice with one delay broken at
+// the source.  Measured on the board 2026-08-24:
+//
+//   USETUP -> 0  goes RED: 64/64 addresses mismatch, got=0x00000000 against
+//   expect=0xc0d00a00, failing address logged.  The write request beats its
+//   own payload to the RAM, nothing is latched, and every later load reads an
+//   uninitialised cell.  This is what makes the PASS mean something -- the
+//   harness demonstrably can fail.
+//
+//   DCO -> 0  stays GREEN, AND THAT IS THIS HARNESS'S BLIND SPOT, NOT A
+//   RESULT ABOUT RULE C.  DCO exists so the load's acknowledge trails the
+//   RAM's read data (clock-to-out is 2.454 ns per prjxray BRAM_L.sdf).  But
+//   the only consumer of lz_data here is a two-flop synchroniser into the
+//   100 MHz PS domain, and the host does not sample the captured word until
+//   it has polled STATUS over AXI -- tens of nanoseconds later.  The data has
+//   always arrived by the time anything reads it, so DCO is not load-bearing
+//   in this circuit and removing it changes nothing observable.
+//
+//   Do not conclude rule C has margin.  Conclude that testing rule C needs a
+//   consumer that reads z_data at the instant z_req arrives, in the same
+//   domain -- a second bundled-data station downstream of the load, not a
+//   memory-mapped register.  That harness is not written.
+//
 // -- WHAT THIS FILE DELIBERATELY DOES NOT DO -----------------------------
 //
 // No delay element anywhere, arbitrary or otherwise.  Every wait in the FSM
@@ -388,6 +413,14 @@ module mem_arb_bridge (
   reg  [AW-1:0] idx;
 
   localparam [DW-1:0] SPD_PAYLOAD = 32'hA5A5_5A5A;
+
+  // Narrowed to 5 bits apiece so register 0x40 can carry all four.  A macro
+  // expands to a bare integer literal and `12[4:0]` is not legal Verilog, so
+  // the width has to be given a name before it can be sliced.
+  localparam [4:0] SZ_SU0 = `BD_SZ_UPORT_UMEM0_USETUP;
+  localparam [4:0] SZ_CO0 = `BD_SZ_UPORT_UMEM0_UCO;
+  localparam [4:0] SZ_SU1 = `BD_SZ_UPORT_UMEM1_USETUP;
+  localparam [4:0] SZ_CO1 = `BD_SZ_UPORT_UMEM1_UCO;
 
   // Same payload shape tb_bdc_memseq.v's TOKEN loop uses (i folded into both
   // halves of the word), so a mismatch reported here is directly comparable
@@ -701,6 +734,15 @@ module mem_arb_bridge (
       5'he: rdata_r = {17'b0, phase, st, idx}; // idx reads 0 during phase 3;
                                                 // see SPD_ITER (0xf) instead
       5'hf: rdata_r = spd_iter;
+      // THE SIZES THIS BITSTREAM WAS ELABORATED WITH, so a result read back
+      // over JTAG carries the delay lengths that produced it.  The two
+      // negative controls make this non-optional: DSETUP=0 turns every read
+      // into 0x00000000 and DCO=0 changes nothing observable, so "PASS" and
+      // "FAIL" mean nothing without the four numbers next to them, and the
+      // tcl used to print them as "?".  A routed number without its build is
+      // not a measurement -- same rule verify/tighten.py's UNSTAMPED warning
+      // and build_mem.sh's nextpnr sha256 exist for.
+      5'h10: rdata_r = {12'b0, SZ_CO1, SZ_SU1, SZ_CO0, SZ_SU0};
       default: rdata_r = 32'b0;
     endcase
   end
