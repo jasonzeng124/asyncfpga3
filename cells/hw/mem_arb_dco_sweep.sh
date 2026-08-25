@@ -62,14 +62,18 @@ for D in $VALUES; do
     # manufactures a failure at whatever point the session happened to die.
     # One such row (seed 2, usetup=6) was produced and briefly believed
     # before this guard existed; the bitstream had built fine and only the
-    # JTAG half was cut short.
+    # JTAG half was cut short.  Without the guard an empty $em is simply
+    # != "0", so a dropped connection printed as "RULE C RED" -- a spurious
+    # red sitting in the middle of an otherwise clean range, which is exactly
+    # the shape of a genuine non-monotone band and would have been believed.
+    # Any rig that can fail to hear back from its DUT needs a third verdict.
     if [ -z "${em:-}" ] || [ -z "${p1:-}" ] || [ -z "${p2:-}" ]; then
         printf '%-5s %-9s %-9s %-10s %-8s %s\n' "$D" - - - - \
             "INCONCLUSIVE -- no MEMARB line, re-run this point" | tee -a "$OUT"
         continue
     fi
     v="ok"; [ "$em" = "0" ] || v="RULE C RED"
-    [ "$p1" = "0" ] && [ "$p2" = "0" ] || v="$v +DATA RED"
+    { [ "$p1" = "0" ] && [ "$p2" = "0" ]; } || v="$v +DATA RED"
     printf '%-5s %-9s %-9s %-10s %-8s %s\n' "$D" "${p1:-?}" "${p2:-?}" "${em:-?}" "${ns:-?}" "$v" | tee -a "$OUT"
 done
 echo "-> $OUT"
