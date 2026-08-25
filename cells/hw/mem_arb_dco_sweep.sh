@@ -56,8 +56,20 @@ for D in $VALUES; do
     p2=$(echo "$line" | grep -o 'p2_mism=[0-9]*' | cut -d= -f2)
     em=$(echo "$line" | grep -o 'edge_mism=[0-9]*' | cut -d= -f2)
     ns=$(echo "$R" | grep -o 'per-pair latency: [0-9.]*' | grep -o '[0-9.]*$')
-    v="ok"; [ "${em:-x}" = "0" ] || v="RULE C RED"
-    [ "${p1:-x}" = "0" ] && [ "${p2:-x}" = "0" ] || v="$v +DATA RED"
+    # THREE verdicts, not two.  If the MEMARB line did not come back, the
+    # board run was interrupted or never reached the device -- that is
+    # evidence about the run, not about the hardware, and scoring it RED
+    # manufactures a failure at whatever point the session happened to die.
+    # One such row (seed 2, usetup=6) was produced and briefly believed
+    # before this guard existed; the bitstream had built fine and only the
+    # JTAG half was cut short.
+    if [ -z "${em:-}" ] || [ -z "${p1:-}" ] || [ -z "${p2:-}" ]; then
+        printf '%-5s %-9s %-9s %-10s %-8s %s\n' "$D" - - - - \
+            "INCONCLUSIVE -- no MEMARB line, re-run this point" | tee -a "$OUT"
+        continue
+    fi
+    v="ok"; [ "$em" = "0" ] || v="RULE C RED"
+    [ "$p1" = "0" ] && [ "$p2" = "0" ] || v="$v +DATA RED"
     printf '%-5s %-9s %-9s %-10s %-8s %s\n' "$D" "${p1:-?}" "${p2:-?}" "${em:-?}" "${ns:-?}" "$v" | tee -a "$OUT"
 done
 echo "-> $OUT"
