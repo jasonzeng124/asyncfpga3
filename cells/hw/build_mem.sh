@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# build_mem.sh -- build+route+bitstream for the B1/B2/B3 memory harnesses.
+# build_mem.sh -- build+route+bitstream for the B1/B2/B3 memory harnesses,
+# plus mem_arb_ps (the arbitrated bundled-data port under a program-order
+# token -- see hw/mem_arb_ps.v's header and bdc/AUDIT.md section 7).
 #
 #   cells/hw/build_mem.sh mem_bist_ps                                  # B1
 #   cells/hw/build_mem.sh mem_port_ps bufg1                             # B2a
@@ -7,27 +9,35 @@
 #       cells/hw/build_mem.sh mem_port_ps bufg0                         # B2b
 #   BD_DEFINES="-DBD_MEM_DSETUP=2 -DBD_MEM_DCO=10 -DBD_MEM_USE_BUFG=0" \
 #       cells/hw/build_mem.sh mem_port_ps derived                       # B3
+#   cells/hw/gen_mem_units.sh && cells/hw/build_mem.sh mem_arb_ps        # arb
 #
 # Deliberately separate from build_hw.sh (owned by another agent) and from
 # flow.sh/soak_top.v (cells/build/pnr, owned by the tighten.py gate) -- own
 # sources, own output tree (build/hw_mem/<top>/<variant>/), own toolchain-log
 # stamp name, so nobody else's concurrent build can clobber this one and vice
-# versa. Modeled on build_hw.sh's flow (same yosys/nextpnr command shapes)
-# but without its per-design SRCS table -- there are exactly two tops here
-# and both just want rtl/*.v + their own hw/ file.
+# versa. Modeled on build_hw.sh's flow (same yosys/nextpnr command shapes).
+# mem_bist_ps and mem_port_ps still just want rtl/*.v + their own hw/ file;
+# mem_arb_ps additionally needs the generated stations/port from
+# build/gen/bdc_mem_units.v (run hw/gen_mem_units.sh first -- this script
+# does not regenerate it, the same way it does not regenerate rtl/*.v), so
+# the "no per-design SRCS table" simplification this file used to describe no
+# longer covers all three tops.
 set -eu
 
 cd "$(dirname "$0")/.."
 
-TOP=${1:?"usage: build_mem.sh <mem_bist_ps|mem_port_ps> [variant]"}
+TOP=${1:?"usage: build_mem.sh <mem_bist_ps|mem_port_ps|mem_arb_ps> [variant]"}
 VARIANT=${2:-default}
 
 case "$TOP" in
-  mem_bist_ps|mem_port_ps) ;;
-  *) echo "build_mem.sh only knows mem_bist_ps and mem_port_ps"; exit 2 ;;
+  mem_bist_ps|mem_port_ps|mem_arb_ps) ;;
+  *) echo "build_mem.sh only knows mem_bist_ps, mem_port_ps, and mem_arb_ps"; exit 2 ;;
 esac
 
 SRCS="rtl/*.v hw/$TOP.v"
+if [ "$TOP" = "mem_arb_ps" ]; then
+    SRCS="$SRCS build/gen/bdc_mem_units.v"
+fi
 
 TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
@@ -156,7 +166,9 @@ echo "FASM: $lut_sites occupied LUT sites, $bufgs global buffer lines, $brams BR
 echo "(expect 1 BUFG for aclk-only builds e.g. mem_bist_ps; expect 2 for" \
      "mem_port_ps with USE_BUFG=1 -- aclk plus bd_mem's manufactured clock;" \
      "expect 1 for mem_port_ps with USE_BUFG=0 -- ram_clk must NOT show" \
-     "here, it is a LUT1 not a BUFGCTRL)"
+     "here, it is a LUT1 not a BUFGCTRL; expect 1 for mem_arb_ps -- both" \
+     "RAMB18E1 gangs inside bdc_memport_arb_10_32_2 are fixed USE_BUFG=0" \
+     "in the generated source, so aclk's own BUFG is the only one)"
 
 echo
 echo "== bitstream =="
