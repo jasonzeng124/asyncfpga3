@@ -86,6 +86,26 @@ Grounded in cells/rtl/, not assumed:
   test output as an open question for Stage 6, not silently special-cased
   away.
 
+  RESOLVED 2026-08-24, and NOT the way the deferral implied. bdc/mem.py's
+  station exists now, so the question can be asked of RTL instead of a
+  table, and the answer is that bd_mem must STAY OUT of STORAGE_CELLS --
+  permanently, not pending a mapping. The criterion above is slack: does it
+  let one side of a cycle rest while the other advances. The station has
+  none. It holds its operands until `hold` rises, and `hold` rises on
+  `z_ack`, the consumer taking the result -- so it cannot accept a new
+  operand until its own output is taken. Capacity zero. Its two state nodes,
+  `hold` and `done`, are both per-transaction (cleared when `joined` falls),
+  which is bd_ctree's situation and not the arbiter's. The RAM output
+  register does hold the read data, but its clock is manufactured from the
+  request already travelling the cycle, so it sits downstream of the token
+  rather than anywhere the token can wait.
+
+  A memory station is a compute unit whose function happens to be a RAM, and
+  compute units do not break rings. Crediting it here would make this
+  checker bless a ring that can deadlock -- the exact failure it exists to
+  catch -- so the address-echo cycle stays a real violation and its fix is a
+  bd_link, not an entry in this set. See bdc/AUDIT.md section 7.
+
 Concretely: STORAGE_OPS is computed from bd-config.json's own `"cells"`
 lists (any op whose cells intersect {bd_link, bd_pipe}), not hardcoded --
 so this module and bdc/map.py can never disagree about what `buffer` means.

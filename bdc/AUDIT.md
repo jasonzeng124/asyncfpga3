@@ -439,9 +439,42 @@ prototype was never wrong; the open question was whether it had to. It does.
 
 Until then section 6 stands unchanged: `slack.py` still reports a cycle closing
 through a `mem_controller` address echo as a violation, and `bd-config.json`
-still marks all three ops `"kind": "todo"`. When the mapping is committed,
-`bd_mem` will need adding to `STORAGE_CELLS`, and this entry plus section 6 are
-the pointer to why.
+still marks all three ops `"kind": "todo"`.
+
+**Correction, 2026-08-24: this entry used to say "when the mapping is
+committed, `bd_mem` will need adding to `STORAGE_CELLS`". That is wrong, and
+the station RTL is what settles it.** `slack.py` defers to the table today for
+a good reason — the op was unbuilt and unaudited — but the deferral was hiding
+the real question, and the answer goes the other way.
+
+The checker's own criterion is in its module docstring: storage is what "lets
+one side of a data cycle sit at rest while the other advances". That is slack —
+capacity to hold a token while the producer moves on. The RAMB18E1 is the
+strongest storage element in the library and it does not supply any, because
+the capacity that matters is the STATION's, not the array's:
+
+- The station holds `a_data` and `d_data` until `hold` rises, and `hold` rises
+  on `z_ack` — the consumer taking the result. It cannot accept a new operand
+  until its own output has been taken. Capacity zero.
+- `hold` and `done` are both per-transaction, cleared when `joined` falls.
+  Neither is long-lived, so neither is a token at rest. This is the same
+  distinction section 6 already drew for `bd_ctree` against the arbiter's
+  priority bit.
+- The read data *is* registered — `DOADO` updates on the manufactured clock
+  edge and holds — but that edge is manufactured from the request that is
+  already going around the cycle. The register is downstream of the token, not
+  a place the token can wait.
+
+So a memory station is a compute unit with a RAM for a function, exactly as
+this file's first sentence says, and compute units do not break rings. A cycle
+closing through a `mem_controller` address echo will still be a real violation
+after Stage 6, and the fix is a `bd_link` in that cycle — not a table edit.
+Adding `bd_mem` to `STORAGE_CELLS` would make the checker bless a ring that can
+deadlock, which is the failure `slack.py` exists to catch.
+
+`STORAGE_CELLS` therefore needs no change when the mapping lands. What does
+need writing is the mapping itself, and it should not be written until the port
+has board evidence — see the entry below on what is and is not measured.
 
 ### Program order needs more than a token chain, and the bench says how much
 
