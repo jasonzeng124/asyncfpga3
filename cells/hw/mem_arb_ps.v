@@ -167,19 +167,32 @@
 //   uninitialised cell.  This is what makes the PASS mean something -- the
 //   harness demonstrably can fail.
 //
-//   DCO -> 0  stays GREEN, AND THAT IS THIS HARNESS'S BLIND SPOT, NOT A
-//   RESULT ABOUT RULE C.  DCO exists so the load's acknowledge trails the
-//   RAM's read data (clock-to-out is 2.454 ns per prjxray BRAM_L.sdf).  But
-//   the only consumer of lz_data here is a two-flop synchroniser into the
-//   100 MHz PS domain, and the host does not sample the captured word until
-//   it has polled STATUS over AXI -- tens of nanoseconds later.  The data has
-//   always arrived by the time anything reads it, so DCO is not load-bearing
-//   in this circuit and removing it changes nothing observable.
+//   DCO -> 0  goes RED on the EDGE-SAMPLED checker, and green on everything
+//   else -- which is the whole point of having two checkers.  Measured
+//   2026-08-24: edge_mism=64, first failure got=0xbf2f0a00 against
+//   expect=0xc0d00a00, while P1_MISMATCH and P2_MISMATCH both stayed 0.
 //
-//   Do not conclude rule C has margin.  Conclude that testing rule C needs a
-//   consumer that reads z_data at the instant z_req arrives, in the same
-//   domain -- a second bundled-data station downstream of the load, not a
-//   memory-mapped register.  That harness is not written.
+//   Read that failing word carefully.  The LOW half is correct and the HIGH
+//   half is garbage.  The two RAMB18E1 gangs are the two halves, umem1's
+//   manufactured clock arrives ~285 ps after umem0's, and with DCO removed
+//   only the later gang misses the capture edge.  That is what a clock-to-out
+//   violation looks like from the outside: not a wrong value, a HALF-SETTLED
+//   one.  A checker that samples late sees it settle and reports success.
+//
+//   Note also that DCO=0 measured 150.0 ns per pair against 170.0 ns at the
+//   default -- removing the delay buys a real 12% and returns half-formed
+//   data, which is exactly why shortening a matched delay is the risky
+//   direction.  Nothing about the fast build looks wrong from the host.
+//
+//   THIS HARNESS USED TO BE BLIND HERE, and the reason is worth keeping:
+//   the original checker captured lz_data through a two-flop synchroniser
+//   that the host did not poll until it had been round an AXI read -- tens of
+//   nanoseconds after z_req rose, against a 2454 ps clock-to-out.  The data
+//   had always arrived by the time anything looked, so DCO was not
+//   load-bearing in the observation path and every value from 0 up passed.
+//   The fix was not more board time; it was a consumer that reads z_data at
+//   the instant z_req arrives and in the same domain, which is what a real
+//   downstream station is.  See `edge_cap` below.
 //
 // -- WHAT THIS FILE DELIBERATELY DOES NOT DO -----------------------------
 //
@@ -516,6 +529,36 @@ module mem_arb_bridge (
   reg [DW-1:0] p1_fail_got, p1_fail_expect, p2_fail_got, p2_fail_expect;
   reg [DW-1:0] cap_val;
 
+  // -- THE EDGE-SAMPLED CHECKER, which is the one that can see rule C -------
+  //
+  // cap_val above is sampled on posedge aclk once lz_req_s is high: two aclk
+  // edges, >= 20 ns, after the load station really raised z_req.  DCO's whole
+  // job is to guarantee z_data is valid AT that edge, and the RAM's t_co is
+  // 2454 ps, so cap_val is satisfied no matter how short DCO is.  That is why
+  // the DCO=0 negative control stays green -- see this file's header.
+  //
+  // edge_cap samples z_data on the RAW z_req edge, which is exactly what a
+  // downstream bundled-data station would do, and is the claim the protocol
+  // actually makes.  Same construction as hw/mem_port_ps.v's ack-edge checker,
+  // which is what moved bd_mem's DCO from "green at all 24 points" to a
+  // measured band.  No reset on edge_cap on purpose: it is only ever consulted
+  // in S_CHECK, after a load that wrote it, and putting a reset net on a
+  // raw-handshake clock domain buys nothing.  The DETECTORS below are cleared
+  // in S_IDLE with everything else, which is the part that must be cleared.
+  reg [DW-1:0] edge_cap;
+  always @(posedge lz_req) edge_cap <= lz_data;
+
+  // Its own verdict, never folded into overall_pass: a rule C failure and a
+  // rule B failure are different defects and a single pass bit would hide
+  // which one fired.  By S_CHECK, lz_req has been high for at least two aclk
+  // edges (S_WAIT_LZ waited on the synchronized copy), so edge_cap has been
+  // static for longer than the crossing needs.
+  reg [31:0]    edge_mismatch;
+  reg           edge_pass;
+  reg           edge_fail_latched;
+  reg [AW-1:0]  edge_fail_addr;
+  reg [DW-1:0]  edge_fail_got, edge_fail_expect;
+
   reg [31:0] spd_cycles;
   reg        spd_counting;
   // `idx` is only AW=10 bits wide (0..1023) because that is all phases 1 and
@@ -580,6 +623,8 @@ module mem_arb_bridge (
           spd_iter <= 32'd0;
           p1_mismatch <= 32'd0;  p1_fail_latched <= 1'b0;
           p2_mismatch <= 32'd0;  p2_fail_latched <= 1'b0;
+          edge_mismatch <= 32'd0; edge_fail_latched <= 1'b0;
+          edge_pass     <= 1'b1;
           timeout_flag <= 1'b0;  timeout_code <= TMO_NONE;
           tmo_cnt <= 24'd0;
           st <= S_ASSERT;
@@ -655,6 +700,19 @@ module mem_arb_bridge (
             default: ; // phase 3 (SPD) is timed only, not checked -- same as
                        // mem_port_ps.v's cost phase.
           endcase
+          // Phase-independent: the protocol claim is the same in all three,
+          // and phase 3 (the speed loop) gives it 2048 more samples for free.
+          if (edge_cap !== expect_val) begin
+            edge_mismatch <= edge_mismatch + 1'b1;
+            edge_pass     <= 1'b0;
+            if (!edge_fail_latched) begin
+              edge_fail_latched <= 1'b1;
+              edge_fail_addr    <= load_addr;
+              edge_fail_got     <= edge_cap;
+              edge_fail_expect  <= expect_val;
+            end
+          end
+
           st <= S_RTZ;
         end
 
@@ -743,6 +801,13 @@ module mem_arb_bridge (
       // not a measurement -- same rule verify/tighten.py's UNSTAMPED warning
       // and build_mem.sh's nextpnr sha256 exist for.
       5'h10: rdata_r = {12'b0, SZ_CO1, SZ_SU1, SZ_CO0, SZ_SU0};
+      // The edge-sampled checker reports separately from overall_pass; see
+      // the comment at its declaration for why they are not merged.
+      5'h11: rdata_r = edge_mismatch;
+      5'h12: rdata_r = {30'b0, edge_fail_latched, edge_pass};
+      5'h13: rdata_r = {22'b0, edge_fail_addr};
+      5'h14: rdata_r = edge_fail_got;
+      5'h15: rdata_r = edge_fail_expect;
       default: rdata_r = 32'b0;
     endcase
   end

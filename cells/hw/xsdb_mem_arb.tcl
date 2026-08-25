@@ -67,6 +67,11 @@ set P2_FAIL_EXP   [expr {$BASE + 0x34}]
 set PROGRESS      [expr {$BASE + 0x38}]
 set SPD_ITER      [expr {$BASE + 0x3C}]
 set SIZES         [expr {$BASE + 0x40}]
+set EDGE_MISM     [expr {$BASE + 0x44}]
+set EDGE_STAT     [expr {$BASE + 0x48}]
+set EDGE_ADDR     [expr {$BASE + 0x4C}]
+set EDGE_GOT      [expr {$BASE + 0x50}]
+set EDGE_EXPECT   [expr {$BASE + 0x54}]
 
 set SLCR_UNLOCK     0xF8000008
 set SLCR_LOCK       0xF8000004
@@ -215,13 +220,29 @@ proc envdef {name} { if {[info exists ::env($name)]} { return $::env($name) } ; 
 # The two negative controls are why that matters: at usetup=0 every read is
 # 0x00000000 and at uco=0 nothing observable changes, so a verdict without its
 # four numbers is not a result.
+# The edge-sampled checker is the only one here that can observe rule C: it
+# latches z_data on the RAW z_req edge the way a downstream bundled-data
+# station would, instead of through the synchroniser the host polls tens of ns
+# later.  It keeps its own verdict on purpose -- a rule C failure and a rule B
+# failure are different defects.
+set edge_mism [mrd -value $EDGE_MISM]
+set edge_stat [mrd -value $EDGE_STAT]
+set edge_pass [expr {$edge_stat & 1}]
+if {$edge_mism == 0 && $edge_pass} {
+    puts "  edge-sampled (rule C): CLEAN -- z_data valid at every z_req edge"
+} else {
+    puts "  edge-sampled (rule C): $edge_mism mismatches -- z_data NOT valid at the z_req edge"
+    puts [format "    first: addr=0x%x got=0x%08x expect=0x%08x" \
+              [mrd -value $EDGE_ADDR] [mrd -value $EDGE_GOT] [mrd -value $EDGE_EXPECT]]
+}
+
 set sz  [mrd -value $SIZES]
 set su0 [expr {$sz & 0x1f}]
 set co0 [expr {($sz >> 5) & 0x1f}]
 set su1 [expr {($sz >> 10) & 0x1f}]
 set co1 [expr {($sz >> 15) & 0x1f}]
 puts "sizes read back from the bitstream: usetup0=$su0 uco0=$co0 usetup1=$su1 uco1=$co1"
-puts "MEMARB label=$label usetup0=$su0 uco0=$co0 usetup1=$su1 uco1=$co1 p1_mism=$p1_mism p2_mism=$p2_mism timeout=$timeout_bit"
+puts "MEMARB label=$label usetup0=$su0 uco0=$co0 usetup1=$su1 uco1=$co1 p1_mism=$p1_mism p2_mism=$p2_mism edge_mism=$edge_mism timeout=$timeout_bit"
 
 if {$pass_bit == 1 && $timeout_bit == 0 && $p1_mism == 0 && $p2_mism == 0} {
     puts "=== $label RESULT: PASS -- program order held, RAM retained it, no timeout ==="

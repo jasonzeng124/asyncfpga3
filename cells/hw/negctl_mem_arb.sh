@@ -18,22 +18,22 @@
 #            uninitialised cell.  This is the control that gives the PASS its
 #            meaning: the harness demonstrably has the power to fail.
 #
-#   dco0     (rule C, RAM clock-to-out before the ack)  -> STAYS GREEN, AND
-#            THAT IS A LIMITATION OF THIS HARNESS, NOT A RESULT.  Do not read
-#            it as "rule C has margin".  The harness cannot test rule C at all,
-#            for a structural reason:  mem_arb_ps captures lz_data through a
-#            two-flop synchroniser into the 100 MHz PS clock domain, and the
-#            host does not sample it until it has polled STATUS over AXI --
-#            tens of nanoseconds after the load's z_req rose.  The RAM's real
-#            clock-to-out is 2.454 ns (prjxray BRAM_L.sdf).  So the data is
-#            always already there by the time anything looks, whatever DCO is
-#            set to, and setting DCO to zero removes a delay that was never
-#            load-bearing in this circuit.
+#   dco0     (rule C, RAM clock-to-out before the ack)  -> GOES RED on the
+#            EDGE-SAMPLED checker only.  Measured 2026-08-24: edge_mism=64,
+#            got=0xbf2f0a00 vs expect=0xc0d00a00, while P1/P2_MISMATCH stayed
+#            0.  Low half right, high half garbage -- the later of the two
+#            RAMB18E1 gangs misses the capture edge, which is what clock-to-out
+#            failure looks like from outside.  It also runs 150.0 ns/pair
+#            against 170.0, so the broken build is the fast one.
 #
-#            To actually test rule C you need a consumer that reads z_data at
-#            the instant z_req arrives and in the same clock domain -- i.e. a
-#            second bundled-data station consuming the load's output, not a
-#            memory-mapped register.  That harness does not exist yet.
+#            UNTIL 2026-08-24 THIS CONTROL WAS GREEN, and that was a property
+#            of the harness, not of the circuit: the only consumer of the read
+#            data was a synchroniser the host polled tens of ns later, so the
+#            RAM's 2454 ps clock-to-out was satisfied whatever DCO was set to.
+#            Fixed by adding a consumer that latches z_data on the raw z_req
+#            edge the way a downstream bundled-data station does.  If you find
+#            yourself with a green negative control, suspect the observer
+#            before you credit the margin.
 #
 # Rebuilds from scratch each time (PnR is reseeded), so the routes differ from
 # the reference build; see cells/verify/resize.sh and the seed discussion in
@@ -51,7 +51,7 @@ run_one() {
         echo "$L: BUILD FAILED"; tail -5 "build/hw/_mem_arb_${L}.log"; return 1
     fi
     "$XSDB" hw/xsdb_mem_arb.tcl "build/hw_mem/mem_arb_ps/$L/mem_arb_ps.bit" "$L" 2>&1 \
-        | grep -E "sizes read back|STATUS:|MISMATCH|phase1|phase2|RESULT|per-pair|MEMARB"
+        | grep -E "sizes read back|STATUS:|MISMATCH|phase1|phase2|edge-sampled|first:|RESULT|per-pair|MEMARB"
 }
 
 case "$WHICH" in

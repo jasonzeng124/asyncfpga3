@@ -687,17 +687,34 @@ zeroed at elaboration.
 to the RAM, nothing is latched, every later load reads an uninitialised cell.
 This is what gives the PASS its meaning — the harness demonstrably can fail.
 
-`DCO → 0` **stays green, and that is a blind spot rather than a margin.** DCO
-exists so the load's acknowledge trails the RAM's read data (clock-to-out is
-2.454 ns per prjxray `BRAM_L.sdf`). But the only consumer of `lz_data` in this
-harness is a two-flop synchroniser into the PS clock domain, and the host does
-not sample the captured word until it has polled `STATUS` over AXI — tens of
-nanoseconds after `z_req` rose. The data has always arrived by the time
-anything looks, so DCO is not load-bearing in this circuit and deleting it
-changes nothing observable. **Rule C is untested on silicon.** Testing it needs
-a consumer that reads `z_data` at the instant `z_req` arrives and in the same
-domain — a second bundled-data station downstream of the load, not a
-memory-mapped register. That harness is not written.
+`DCO → 0` **now goes red too, on a second checker that had to be built for
+it.** The first version of this harness reported green at every DCO, and that
+was a property of the observer: the only consumer of the load's `z_data` was a
+two-flop synchroniser the host did not poll until it had been round an AXI
+read — tens of nanoseconds after `z_req` rose, against a 2.454 ns clock-to-out
+(prjxray `BRAM_L.sdf`). The data had always arrived by the time anything
+looked. The fix was not more board time but a consumer that reads `z_data` at
+the instant `z_req` arrives, in the same domain — which is exactly what a
+downstream bundled-data station is. `edge_cap` latches `z_data` on the raw
+`z_req` edge and keeps its own verdict, so a rule C failure and a rule B
+failure can never be confused. Same construction as `mem_port_ps`'s ack-edge
+checker, and nextpnr routes `z_req` to the flop's clock pin through local
+routing — the build still reports one BUFG, so nothing was inserted that would
+delay the capture edge and mask the very delay under test.
+
+With it in place, `DCO → 0` measures `edge_mism=64` while `P1_MISMATCH` and
+`P2_MISMATCH` both stay 0. **The failing word is the interesting part:**
+`got=0xbf2f0a00` against `expect=0xc0d00a00` — low half correct, high half
+garbage. The two `RAMB18E1` gangs are the two halves and `umem1`'s manufactured
+clock arrives about 285 ps after `umem0`'s, so with the delay removed only the
+later gang misses the capture edge. A clock-to-out violation does not present
+as a wrong value; it presents as a **half-settled** one, which any checker that
+samples late will watch settle and call correct.
+
+The broken build is also the fast one: 150.0 ns per pair against 170.0 at the
+default, a real 12% for data that is half-formed and a host that cannot tell.
+That is the concrete form of "shortening a matched delay is the risky
+direction" — the reward is visible from the host and the cost is not.
 
 Two harness defects were caught before the bitstream reached the board, both of
 the same shape — a check that could not fail:
