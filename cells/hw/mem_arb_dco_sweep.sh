@@ -26,16 +26,27 @@ cd "$(dirname "$0")/.."
 
 XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 SEED=${NEXTPNR_SEED:-1}
+# WHICH delay to sweep: dco (rule C, clock-to-out before the ack) or usetup
+# (rule B, address+data setup into the RAM).  Both are per-RAM and both are
+# swept on BOTH gangs together -- the two gangs' clocks arrive ~285 ps apart,
+# so sweeping them independently would be measuring the skew, not the delay.
+WHAT=${WHAT:-dco}
+case "$WHAT" in
+  dco)    KNOB=UCO;    FIXED="USETUP fixed at 8/8" ;;
+  usetup) KNOB=USETUP; FIXED="UCO fixed at 12/12" ;;
+  *) echo "WHAT must be dco or usetup"; exit 2 ;;
+esac
 VALUES=${*:-0 1 2 3 4 5 6 7 8 10 12}
-OUT=build/hw/mem_arb_dco_sweep.txt
+OUT=build/hw/mem_arb_${WHAT}_sweep.txt
 
 : > "$OUT"
-echo "DCO sweep, seed $SEED, USETUP fixed at 8/8" | tee -a "$OUT"
-printf '%-5s %-9s %-9s %-10s %-8s %s\n' DCO p1_mism p2_mism edge_mism ns/pair verdict | tee -a "$OUT"
+echo "$WHAT sweep, seed $SEED, $FIXED" | tee -a "$OUT"
+printf '%-5s %-9s %-9s %-10s %-8s %s\n' "$WHAT" p1_mism p2_mism edge_mism ns/pair verdict | tee -a "$OUT"
 
 for D in $VALUES; do
-    L="dco$D"
-    if ! NEXTPNR_SEED="$SEED" BD_DEFINES="-DBD_SZ_UPORT_UMEM0_UCO=$D -DBD_SZ_UPORT_UMEM1_UCO=$D" \
+    L="$WHAT$D"
+    if ! NEXTPNR_SEED="$SEED" \
+            BD_DEFINES="-DBD_SZ_UPORT_UMEM0_${KNOB}=$D -DBD_SZ_UPORT_UMEM1_${KNOB}=$D" \
             hw/build_mem.sh mem_arb_ps "$L" > "build/hw/_mem_arb_${L}.log" 2>&1; then
         printf '%-5s %s\n' "$D" "BUILD FAILED" | tee -a "$OUT"; continue
     fi

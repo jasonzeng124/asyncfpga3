@@ -732,3 +732,39 @@ the same shape — a check that could not fail:
   its lengths beside it is not a measurement. The lengths now live in a
   read-only register at offset `0x40`, packed five bits apiece, so the number
   comes back **from the device that produced the result**.
+
+### Rule C measured on the arbitrated port: the band, and what the default costs
+
+With the edge-sampled checker in place, DCO becomes measurable rather than
+assertable. Sweep at a **pinned placer seed** (`NEXTPNR_SEED=1`, `USETUP` held
+at 8/8), `cells/hw/mem_arb_dco_sweep.sh`:
+
+| DCO | edge_mism | ns/pair | |
+|---:|---:|---:|---|
+| 0 | 64 | 150.0 | rule C red |
+| 1 | 64 | 150.0 | rule C red |
+| 2–8 | 0 | 160.0 | ok |
+| 10–12 | 0 | 170.0 | ok |
+
+The threshold on this route sits **between 1 and 2 links**, and the shipped
+default is 12. Unlike `bd_mem`'s own DCO band (`cells/hw/MEM_DCO.md`), this one
+came out **monotone** — no hole in the passing range.
+
+Two things worth reading off the table rather than the verdict column. The
+latency moves in steps with the delay (150 → 160 → 170 ns), which is the
+independent confirmation that the knob is actually connected to the circuit —
+the failure mode where a swept parameter is disconnected and every row comes
+back identical has bitten this project before. And `P1_MISMATCH`/`P2_MISMATCH`
+stay 0 in **every** row including the red ones, which is precisely why the
+second checker had to exist: the data-path verdict cannot see this defect at
+any DCO.
+
+**This does not license tightening DCO to 3.** The threshold is a property of
+one placement: the two RAM gangs' manufactured clocks arrive ~285 ps apart on
+this route, and clock arrival has been measured to move 4325 → 5730 ps across
+six seeds on this same design — comfortably more than the gap between "red at
+1" and "green at 2". A seed sweep is also not a PVT sweep. What the table
+supports is the weaker and more useful claim: the default of 12 sits about ten
+links above the observed threshold, and that headroom costs 20 ns per pair
+(12%). Whether to spend some of it is the same open guardband question rules B
+and C already carry, and it is still the user's call.
