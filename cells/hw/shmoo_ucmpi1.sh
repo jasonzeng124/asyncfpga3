@@ -13,9 +13,10 @@
 # This still deliberately builds rule-A violations, so the gate stays off and
 # every bitstream here is a broken measurement artifact that must never ship.
 set -u
-cd /home/jayjay/dev2/proj/asyncfpga3/cells
-D=/home/jayjay/.claude/jobs/4181ab68/tmp/shmoo
-XSDB=/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb
+cd "$(dirname "$0")/.."
+D=${D:-${TMPDIR:-/tmp}/shmoo}
+mkdir -p "$D"
+XSDB=${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb}
 export NEXTPNR_SEED=1
 GOLD_SIG=0x03dba483; GOLD_ODATA=2863579695
 TSV="$D/results2.tsv"

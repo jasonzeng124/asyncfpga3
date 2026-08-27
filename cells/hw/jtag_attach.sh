@@ -24,9 +24,10 @@
 # Nothing here configures the FPGA.  No bitstream is written.
 set -u
 
-FW=/home/jayjay/dev2/lib/vivado/2026.1/data/xicom/xusb_xp2.hex
-LAB=/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab
-USBIPD="/mnt/c/Program Files/usbipd-win/usbipd.exe"
+VIVADO=${VIVADO:-/home/jayjay/dev2/lib/vivado/2026.1}
+FW=${FW:-$VIVADO/data/xicom/xusb_xp2.hex}
+LAB=${LAB:-$VIVADO/Vivado_Lab}
+USBIPD=${USBIPD:-"/mnt/c/Program Files/usbipd-win/usbipd.exe"}
 BUSID=${BUSID:-3-2}
 
 node() {

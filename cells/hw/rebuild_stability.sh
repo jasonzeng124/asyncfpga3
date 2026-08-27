@@ -4,8 +4,9 @@
 # converged, board-validated xorshift with its own shipped sizes, changing
 # nothing but the PnR seed, and count rule A violations each time.
 set -u
-cd /home/jayjay/dev2/proj/asyncfpga3/cells
-D=/home/jayjay/.claude/jobs/4181ab68/tmp/shmoo
+cd "$(dirname "$0")/.."
+D=${D:-${TMPDIR:-/tmp}/shmoo}
+mkdir -p "$D/logs"
 SZ=build/validated/xorshift_bench_gen/xorshift_bench_gen_sizes.vh
 printf 'seed\tnviol\tworst_cell\tworst_margin\tworst_slack\tviolators\n' > "$D/stability.tsv"
 for s in 1 2 3 4 5 6 7 8; do
