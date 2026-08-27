@@ -166,25 +166,44 @@ Note that `g x L` is independent of `N`: the guardband is a fraction of the
 logic covered, and the total logic is fixed. **Fusing stages does not buy
 guardband back.** It buys latch arcs, handshake cost, and some of `d`.
 
-Filling it in gives a floor of **~1.8x** and a realistic best of **~2.6–2.8x**.
-Parity is not reachable.
+Filling it in gives a floor of **~1.8x** for this four-phase design and a
+realistic best of **~2.6–2.8x**. See the note on two-phase below: that floor is
+protocol-dependent, and the protocol was a choice.
 
 ### Attribution
 
 The floor is two multiplicands, and neither is the handshake:
 
 - **x1.5, return-to-zero.** Every matched delay is traversed twice per
-  transaction. Two-phase signalling avoids this but needs dual-edge-triggered
-  storage, and 7-series has none. → **fabric**
+  transaction. Two-phase signalling pays it once. → **protocol choice, see
+  below**
 - **x1.18–1.35, guardband.** The delay line is a LUT chain; the datapath is
   mostly interconnect. They do not track. On an ASIC both are the same gates in
   the same region and track to a few percent. → **fabric**
 - **x1.06, the protocol itself.** 1.6 ns out of ~23. → **async**
 
-So roughly **94% of the irreducible slowdown is the FPGA and ~6% is
-asynchronous logic**. The handshaking — the thing people mean when they say
-async has overhead — is the smallest term in the model by an order of
-magnitude.
+So the guardband is the fabric's bill, return-to-zero is this design's own,
+and the handshaking — the thing people mean when they say async has overhead —
+is the smallest term in the model by an order of magnitude.
+
+**On two-phase.** This backend is four-phase throughout, and the x1.5 above is
+the price. Two-phase does not require dual-edge-triggered storage, which is
+what an earlier version of this file claimed: the Mousetrap style holds a
+normally-transparent latch open with `en = XNOR(req, ack_next)`, so a
+transition in either direction on either wire produces the correct *level* and
+nothing ever samples an edge. Rise/fall asymmetry does not rescue four-phase
+either — the chain length is set by the faster direction in both protocols, so
+an imbalance inflates the two identically and the ratio stays 2.
+
+The real cost of two-phase is elsewhere. It is cheap for a linear pipeline,
+which is all Mousetrap is, and expensive for everything else. Four-phase has a
+rest state, so a C-element naturally means "both operands arrived"; two-phase
+has none, so joins become phase comparators and merges, muxes and arbiters lose
+the level they read. `bd_mux`'s correctness argument — the select is valid
+because control holds it "from ctl_req-rise until ctl_ack-fall" — has no
+two-phase translation. Switching would mean rewriting `cells/rtl/` rather than
+patching it. That is a real reason to have stayed, and a better one than the
+one previously given here.
 
 The fabric is not badly built; it is *specialised for exactly the thing being
 competed against*. Free flops in every slice, dedicated low-skew clock trees,
@@ -197,8 +216,8 @@ self-timed pipeline wants one locally generated enable per stage. A 32-bit
 storage stage therefore costs 16 LUTs where the synchronous baseline gets 32
 flops for free.
 
-Removing every fabric handicap — an ASIC, two-phase signalling, delay lines
-that track — lands at roughly **parity**, not a win. Dynamatic is *dynamically*
+Removing the remaining fabric handicaps — an ASIC, delay lines that track —
+and switching protocol lands at roughly **parity**, not a win. Dynamatic is *dynamically*
 scheduled, so it already harvests the variable-trip-count advantage that async
 is usually sold on, and bundled data uses worst-case matched delays by
 construction so it does not recover per-operation variance either. Only
@@ -242,6 +261,40 @@ disagree, suspect the translators before the design.
 
 Every reported number is stamped with the toolchain revision that produced it,
 because that revision has changed underneath a measurement before.
+
+---
+
+## Related work
+
+Bundled-data on commercial FPGAs is not new ground, though it is filed under
+low-power and NoC design rather than under HLS, which makes it easy to miss.
+
+- [Bhardwaj et al., *Towards a Complete Methodology for Synthesizing
+  Bundled-Data Asynchronous Circuits on FPGAs*, ISLPED
+  2019](http://www.cs.columbia.edu/~luca/research/bhardwaj_ISLPED19.pdf) —
+  two-phase Mousetrap pipelines on Virtex 7 through Vivado, NoC switches, with
+  matched delays controlled by manual LUT placement constraints. Reports 47%
+  lower energy-per-packet and 75% lower idle power against a synchronous
+  switch, at 28% more LUTs.
+- [*EDA-oriented FPGA Circuit Design Method for Four-phase Bundled-data*, IPSJ
+  JIP 31](https://www.jstage.jst.go.jp/article/ipsjjip/31/0/31_495/_pdf) —
+  four-phase on commercial FPGAs with automated constraint generation and delay
+  adjustment; the closest published relative of the tightening pass here.
+- [Moreira et al., *A Bundled-Data Asynchronous Circuit Synthesis Flow Using a
+  Commercial EDA Framework*, DSD
+  2015](https://www.inf.pucrs.br/~calazans/publications/2015-DSD_ACSD.pdf) —
+  ASIC rather than FPGA, but the relative-timing-constraint machinery is the
+  same problem.
+- [*Yak: An Asynchronous Bundled Data Pipeline Description
+  Language*](https://arxiv.org/pdf/2308.04189).
+
+What is different here: the input is a **dataflow IR** rather than hand-written
+HDL, the toolchain is **fully open** rather than Vivado, there are **no manual
+placement constraints**, delay sizing is **automated per element after
+place-and-route**, and the baseline is a **dynamically scheduled** HLS compiler
+rather than a fixed-schedule one. That last point matters for reading the
+results: a dynamically scheduled baseline has already collected the
+variable-latency advantage async is usually measured against.
 
 ---
 
