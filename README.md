@@ -191,9 +191,17 @@ the price. Two-phase does not require dual-edge-triggered storage, which is
 what an earlier version of this file claimed: the Mousetrap style holds a
 normally-transparent latch open with `en = XNOR(req, ack_next)`, so a
 transition in either direction on either wire produces the correct *level* and
-nothing ever samples an edge. Rise/fall asymmetry does not rescue four-phase
-either — the chain length is set by the faster direction in both protocols, so
-an imbalance inflates the two identically and the ratio stays 2.
+nothing ever samples an edge. Rise/fall asymmetry does buy part of it back,
+and an earlier version of this paragraph was wrong to say otherwise: at a
+transparent-latch consumer the falling request guards nothing (no data can
+move between the consumer's node rising and falling), so only the rising edge
+has to be matched. `bd_delay #(.FASTFALL(1))` — every stage an
+`AND(prev, input)` — keeps the rise at N hops and flushes the fall in one, and
+the compute cells use it. Measured on the routed `xorshift_round` ring it
+recovers ~7% of the interval (17.70 → 16.43 ns), not the x1.5: the chains
+in a tightened design are short (6–9 links at 274 ps, ~1.6–2.5 ns), so
+their return-to-zero is a small share of a 16 ns cycle; the rest of the
+cycle is handshake and interconnect, which the fast fall does not touch.
 
 The real cost of two-phase is elsewhere. It is cheap for a linear pipeline,
 which is all Mousetrap is, and expensive for everything else. Four-phase has a

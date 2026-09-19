@@ -745,32 +745,60 @@ def request_sites(edges, back, chains):
     return sites
 
 
+RE_UPSTREAM_BD_LINK = re.compile(
+    r"^(.*?)\.(?:ctl\.u\.u|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56]|"
+    r"many\.(?:codd\.u\.u|cpair\[\d+\]\.u|"
+    r"lat\[\d+\]\.u\.(?:pair\[\d+\]|odd)\.u\$LUT[56]))$")
+RE_LATCH_STOP = re.compile(
+    r"^(?:.*\.)?lat(?:\[\d+\])?(?:\.u)?\."
+    r"(?:pair\[\d+\]|odd)\.u\$LUT[56]$")
+
+
 def upstream_bd_links(srcs):
-    """Single-stage bd_link instances represented in a cell's boundary."""
+    """Link prefixes represented by latch or controller boundary pins."""
     links = set()
     for pin in srcs:
-        inst, _ = pin_split(pin)
-        m = re.match(r"^(.*)\.ctl\.u\.u$", inst)
-        if m:
-            links.add(m.group(1))
-            continue
-        m = re.match(r"^(.*)\.lat\.pair\[\d+\]\.u\$LUT[56]$", inst)
-        if m:
-            links.add(m.group(1))
+        match = RE_UPSTREAM_BD_LINK.match(pin_split(pin)[0])
+        if match:
+            links.add(match.group(1))
     return tuple(sorted(links))
 
 
-def upstream_data_lag(timing, confine, links):
-    """Longest controller-to-latch settling path in folded bd_link stages."""
+def upstream_data_lag(timing, back, confine, links, srcs):
+    """Longest controller-to-final-latch path in folded upstream links."""
     lag = 0
     for link in links:
-        ctl = f"{link}.ctl.u.u/O6"
-        tab = timing.late(ctl, confine)
-        for pin in timing.stops:
+        latch_pins = []
+        for pin in srcs:
             inst, _ = pin_split(pin)
-            if (inst.startswith(link + ".lat.pair[") and
-                    re.search(r"\.u\$LUT[56]$", inst)):
-                lag = max(lag, tab.get(pin, 0))
+            if (inst.startswith(link + ".") and
+                    RE_LATCH_STOP.match(inst.rsplit(link + ".", 1)[-1])):
+                latch_pins.append(pin)
+        for latch_pin in latch_pins:
+            latch_inst, _ = pin_split(latch_pin)
+            input_pins = [
+                pin for pin in timing.edges
+                if pin_split(pin)[0] == latch_inst and not is_output(pin)
+            ]
+            controllers = {
+                source for pin in input_pins
+                for source in back.get(pin, ())
+                if source in timing.stops
+                and pin_split(source)[0].startswith(link + ".")
+                and ".lat." not in pin_split(source)[0]
+            }
+            if not controllers:
+                print(f"  WARNING: no upstream controller found for "
+                      f"{latch_pin}")
+                continue
+            found = False
+            for ctl in controllers:
+                arrival = timing.late(ctl, confine).get(latch_pin)
+                if arrival is not None:
+                    lag = max(lag, arrival)
+                    found = True
+            if not found:
+                print(f"  WARNING: no controller path reaches {latch_pin}")
     return lag
 
 
@@ -1112,7 +1140,8 @@ def main():
                   f"reaches its request -- not audited")
             continue
 
-        upstream_lag = (upstream_data_lag(timing, confine, upstream_links)
+        upstream_lag = (upstream_data_lag(timing, back, confine,
+                                          upstream_links, srcs)
                         if pairing == "bundled channel" else 0)
         margin, guard, t_e, t_l, pin, s = res[:6]
         late_src = res[6] if len(res) > 6 else s
