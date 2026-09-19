@@ -483,7 +483,7 @@ module {name} #(parameter DELAY = {default})
     // avoid.  It is also just the first link of the delay line.
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
 
     // The datapath.  yosys picks the implementation; the matched delay is
     // what makes whatever it picks safe.

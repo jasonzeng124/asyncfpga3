@@ -475,7 +475,7 @@ module bdc_amerge{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(r0), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
 
     // g1 is read so the arbiter's own output cannot be optimised away; the
     // grants are a fractured pair and deleting one changes the cell that
@@ -561,7 +561,7 @@ module bdc_muxn{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(|j), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
 
 {acks}
 
@@ -2581,7 +2581,7 @@ module {name} #(parameter DELAY = {default_total})
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
 
     // The datapath.  yosys picks the implementation, across the WHOLE
     // region at once; the matched delay above is what makes whatever it

@@ -271,6 +271,28 @@ def pin_split(pin):
     return inst, port
 
 
+def fastfall_side_arcs(edges):
+    """Arcs into fast-fall side pins only carry the falling transition.
+
+    A rising request must arrive through the preceding chain stage, so these
+    arcs are excluded from shortest-path request arrivals.
+    """
+    side = set()
+    for src, links in edges.items():
+        src_inst = pin_split(src)[0]
+        for dst, _ in links:
+            match = RE_LINK.match(pin_split(dst)[0])
+            if not match or int(match.group("i")) < 1:
+                continue
+            if is_output(dst):
+                continue
+            previous = (f"{match.group('base')}.chain.g["
+                        f"{int(match.group('i')) - 1}].u")
+            if src_inst != previous:
+                side.add((src, dst))
+    return side
+
+
 # Pin direction, taken from the SDF rather than guessed from the pin's name.
 # parse_sdf fills these: every IOPATH names an input on the left and an output
 # on the right, which is authoritative for whatever cell types the SDF happens
@@ -548,10 +570,21 @@ def starts_reaching(back, pin, stops, limit=20000):
 
 
 class Timing:
-    """Arrival tables, computed on demand and keyed by (start, confinement)."""
+    """Arrival tables keyed by (start, confinement).
+
+    FASTFALL side arcs of an AND-chain stage propagate only the falling
+    transition; request rules check the rising edge, so shortest walks omit
+    them while longest walks retain the full graph.
+    """
 
     def __init__(self, edges, stops):
         self.edges, self.stops = edges, stops
+        side = fastfall_side_arcs(edges)
+        self.early_edges = {
+            src: [(dst, delay) for dst, delay in links
+                  if (src, dst) not in side]
+            for src, links in edges.items()
+        }
         self._late, self._early = {}, {}
 
     def late(self, s, confine=None):        # longest path: the data side
@@ -563,7 +596,8 @@ class Timing:
     def early(self, s, confine=None):       # shortest path: the request side
         k = (s, confine)
         if k not in self._early:
-            self._early[k] = walk(self.edges, s, self.stops, False, confine)
+            self._early[k] = walk(self.early_edges, s, self.stops, False,
+                                  confine)
         return self._early[k]
 
 

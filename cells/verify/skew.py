@@ -262,6 +262,12 @@ def main():
         return 2
 
     stops = T.storage_nodes(edges)
+    side_arcs = T.fastfall_side_arcs(edges)
+    early_edges = {
+        src: [(dst, delay) for dst, delay in links
+              if (src, dst) not in side_arcs]
+        for src, links in edges.items()
+    }
     binc, srcs_of = defaultdict(list), defaultdict(set)
     for s, lst in edges.items():
         for d, w in lst:
@@ -312,6 +318,7 @@ def main():
         # at level 0 has predecessor None; nothing else does, since every
         # other node was relaxed from something.
         cap = len(edges) + 1
+        walked_edges = edges if longest else early_edges
         out, pred_out = [], []
         seeds, seed_pred = {launch: 0}, {launch: None}
         for lvl in range(K + 1):
@@ -325,7 +332,7 @@ def main():
                 nxt = []
                 for pn in frontier:
                     tv = tab[pn]
-                    for d, w in edges.get(pn, ()):
+                    for d, w in walked_edges.get(pn, ()):
                         if (pn, d) in feed:
                             continue
                         if d not in tab or better(tv + w, tab[d]):

@@ -82,22 +82,60 @@ endmodule
 //
 // Built from the same LUT primitive as the datapath it covers, so the two
 // track each other across PVT.
+//
+// FASTFALL keeps the rising edge matched through N hops but lets the falling
+// edge flush the chain in one LUT delay.  It is permitted only for consumers
+// whose latch is transparent during the request rise/fall window; do not use
+// it for edge-sampling consumers such as bd_mem's usetup or uco.
 // ---------------------------------------------------------------------------
-module bd_delay #(parameter N = 4) (input wire a, output wire z);
+`ifdef __ICARUS__
+`define BD_DELAY_SYM_CHAIN chain_sym
+`define BD_DELAY_FAST_CHAIN chain_fast
+`define BD_DELAY_SYM_G g_sym
+`define BD_DELAY_FAST_G0 g_fast0
+`define BD_DELAY_FAST_G1 g_fast1
+`else
+`define BD_DELAY_SYM_CHAIN chain
+`define BD_DELAY_FAST_CHAIN chain
+`define BD_DELAY_SYM_G g
+`define BD_DELAY_FAST_G0 g
+`define BD_DELAY_FAST_G1 g
+`endif
+module bd_delay #(parameter N = 4, parameter FASTFALL = 0)
+                 (input wire a, output wire z);
     generate
         if (N == 0) begin : bypass
             assign z = a;
-        end else begin : chain
+        end
+        if (N != 0 && !FASTFALL) begin : `BD_DELAY_SYM_CHAIN
             (* keep *) wire [N:0] s;
             assign s[0] = a;
             genvar i;
-            for (i = 0; i < N; i = i + 1) begin : g
+            for (i = 0; i < N; i = i + 1) begin : `BD_DELAY_SYM_G
                 (* keep *) LUT1 #(.INIT(2'h2)) u (.I0(s[i]), .O(s[i+1]));
+            end
+            assign z = s[N];
+        end
+        if (N != 0 && FASTFALL) begin : `BD_DELAY_FAST_CHAIN
+            (* keep *) wire [N:0] s;
+            assign s[0] = a;
+            genvar i;
+            for (i = 0; i < 1; i = i + 1) begin : `BD_DELAY_FAST_G0
+                (* keep *) LUT1 #(.INIT(2'h2)) u (.I0(s[i]), .O(s[i+1]));
+            end
+            for (i = 1; i < N; i = i + 1) begin : `BD_DELAY_FAST_G1
+                (* keep *) LUT2 #(.INIT(4'h8)) u (
+                    .I0(s[i]), .I1(a), .O(s[i+1]));
             end
             assign z = s[N];
         end
     endgenerate
 endmodule
+`undef BD_DELAY_SYM_CHAIN
+`undef BD_DELAY_FAST_CHAIN
+`undef BD_DELAY_SYM_G
+`undef BD_DELAY_FAST_G0
+`undef BD_DELAY_FAST_G1
 
 // ---------------------------------------------------------------------------
 // bd_datamux -- z = s ? b : a, two bits to a fractured LUT6_2.
