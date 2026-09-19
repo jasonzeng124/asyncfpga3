@@ -23,7 +23,7 @@
 # worse than no check: it reports "ok" for a broken toolchain.  The fasm half
 # discriminates and the two halves ship as one patch, so one line covers it.
 set -u
-NEXTPNR="${1:-$HOME/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx}"
+NEXTPNR="${1:-${TC:-/home/jayjay/dev2/lib/fpgatoolchain}/openxc7/bin/nextpnr-xilinx}"
 
 [ -x "$NEXTPNR" ] || { echo "toolchain: no nextpnr at $NEXTPNR" >&2; exit 2; }
 

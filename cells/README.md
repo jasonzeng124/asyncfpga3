@@ -172,13 +172,13 @@ that stops checking out. It terminates because lengths only decrease and are
 bounded below by zero. On this design:
 
 ```
-baseline (placeholders)   UDEC=4 UMERGE=4 UMUX=4 UMEM_USETUP=8 UMEM_UCO=12
-verified assignment       UDEC=1 UMERGE=4 UMUX=4 UMEM_USETUP=5 UMEM_UCO=12
-                          3 sweeps, 13 place-and-route runs
+baseline (placeholders)   UDEC=4 UMERGE=6 UMUX=4 UMEM_USETUP=8 UMEM_UCO=12
+verified assignment       UDEC=16 UMERGE=4 UMUX=2 UMEM_USETUP=2 UMEM_UCO=9
+                          4 sweeps, 25 place-and-route runs
 ```
 
-**Two of the five lines could be tightened at all; eleven of thirteen proposals
-were reverted.** That is the result worth keeping: on this fabric and this
+**Four of the five lines could be tightened at all; seventeen of twenty-four
+proposals were reverted.** That is the result worth keeping: on this fabric and this
 router, a matched delay cannot be shaved close to its measured requirement,
 because the act of shaving it perturbs placement by more than the margin the
 measurement claimed. Budget matched delays conservatively and do not expect

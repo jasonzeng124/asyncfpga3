@@ -34,7 +34,7 @@
  `define BD_SZ_UDEC 16
 `endif
 `ifndef BD_SZ_UMERGE
- `define BD_SZ_UMERGE 4
+ `define BD_SZ_UMERGE 6
 `endif
 `ifndef BD_SZ_UMUX
  `define BD_SZ_UMUX 4
