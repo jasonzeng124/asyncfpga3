@@ -215,6 +215,10 @@ module IOB33_OUTBUF (input wire IN, output wire OUT);
     assign OUT = IN;
 endmodule
 
+module IOB33_INBUF_EN (input wire PAD, output wire OUT);
+    assign OUT = PAD;
+endmodule
+
 module PSEUDO_GND (output wire Y); assign Y = 1'b0; endmodule
 module PSEUDO_VCC (output wire Y); assign Y = 1'b1; endmodule
 

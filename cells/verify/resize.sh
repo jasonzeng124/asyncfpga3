@@ -144,7 +144,7 @@ attempt() {
     # set this measured a stale route from a different design.
     python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" "$OUT/soak.sdf" \
         > "$HIST/tighten_$tag.log" 2>&1 || return 1
-    python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1
+    python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1 || return 1
     # The PROPOSAL always comes from the unseeded route above, so the loop's
     # answer stays reproducible; the seeded routes below only ever veto.
     while [ "$s" -le "$SEEDS" ]; do
@@ -152,7 +152,7 @@ attempt() {
         python3 verify/tighten.py "$OUT/soak.sdf" \
             > "$HIST/tighten_${tag}_s$s.log" 2>&1 || return 1
         python3 verify/skew.py "$OUT/soak.sdf" \
-            > "$HIST/skew_${tag}_s$s.log" 2>&1
+            > "$HIST/skew_${tag}_s$s.log" 2>&1 || return 1
         s=$((s + 1))
     done
 }
@@ -203,14 +203,16 @@ while : ; do
         want=${prop[$k]}
         [ "$want" -ge "${cur[$k]}" ] && continue      # only ever tighten
         was=${cur[$k]}
-        cur[$k]=$want
-        write_sizes
-        routes=$((routes + 1))
-        if attempt "try_${k}_${want}"; then
-            cp "$HIST/prop_try_${k}_${want}.vh" "$HIST/prop_last.vh"
-            printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
-            changed=1
-        else
+        while [ "$want" -lt "$was" ]; do
+            cur[$k]=$want
+            write_sizes
+            routes=$((routes + 1))
+            if attempt "try_${k}_${want}"; then
+                cp "$HIST/prop_try_${k}_${want}.vh" "$HIST/prop_last.vh"
+                printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
+                changed=1
+                break
+            fi
             cur[$k]=$was
             write_sizes
             # The veto may have come from a confirmation seed, not from the
@@ -219,7 +221,8 @@ while : ; do
                      2>/dev/null | sed 's/^ *//;s/  */ /g')
             printf "  %-20s %2d -> %-2d  REVERTED\n" "${k#BD_SZ_}" "$was" "$want"
             printf "  %-20s          %s\n" "" "${reason:-place-and-route failed}"
-        fi
+            want=$(((want + was + 1) / 2))
+        done
     done
 
     [ $changed -eq 0 ] && break
@@ -227,8 +230,7 @@ while : ; do
 done
 
 write_sizes
-./flow.sh > "$HIST/flow_final.log" 2>&1
-python3 verify/tighten.py --emit "$HIST/final_prop.vh" "$OUT/soak.sdf" > "$HIST/tighten_final.log" 2>&1
+attempt final
 final=$?
 
 echo

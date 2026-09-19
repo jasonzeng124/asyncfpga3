@@ -697,17 +697,8 @@ _FUSABLE_CHANS = {
     for op in FUSABLE_OPS
 }
 
-# How many arithmetic ops one fused cell may absorb.  A FIXED bound, not a
-# measured one: link_sites()'s docstring already names "storage where the
-# uncut combinational depth exceeds a threshold" as an alternative to rule 1
-# and rejects it for needing a route to decide -- but cells/verify/converge.sh
-# and resize.sh already ARE that iterate-until-it-passes loop, so the
-# objection is against building an unbounded fuser with no way to size its
-# own delay, not against a bound at all.  This pass does not build that
-# feedback loop; it picks a small conservative bound instead and leaves
-# closing it on measurement for later.  4 covers every region actually seen
-# in xorshift and collatz (2 ops each) with room to spare.
-MAX_FUSE_NODES = 4
+BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
+MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
 
 
 class _UnionFind:
@@ -777,7 +768,7 @@ class FusionPlan:
         self.dead_values = set()
 
 
-def _topo_order(nodes, members, value_producer, member_set):
+def _topo_order(nodes, members, value_producer, member_set, aliases):
     """`members`, ordered so every node follows every in-region producer of
     its operands.  A plain DFS postorder: fusable regions cannot contain a
     cycle (a cycle needs a mux/control_merge to close, and those are never
@@ -786,7 +777,7 @@ def _topo_order(nodes, members, value_producer, member_set):
     for i in members:
         d = []
         for opnd in nodes[i].operands:
-            p = value_producer.get(opnd)
+            p = value_producer.get(aliases.get(opnd, opnd))
             if p in member_set:
                 d.append(p)
         deps[i] = d
@@ -805,10 +796,13 @@ def _topo_order(nodes, members, value_producer, member_set):
     return order
 
 
-def _build_region(func, members, value_producer, value_consumers, const_of):
+def _build_region(func, members, value_producer, value_consumers, const_of,
+                  aliases=None):
+    aliases = aliases or {}
     nodes = func.nodes
     member_set = set(members)
-    region = Region(_topo_order(nodes, members, value_producer, member_set))
+    region = Region(_topo_order(nodes, members, value_producer, member_set,
+                               aliases))
 
     # --handshake-materialize guarantees one consumer per SSA value (see this
     # file's own header), and every FUSABLE_OPS node has exactly one result
@@ -852,7 +846,7 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
             if (i, port) in region.const_of:
                 region.ref[(i, port)] = ("const", region.const_of[(i, port)])
                 continue
-            opnd = n.operands[pos]
+            opnd = aliases.get(n.operands[pos], n.operands[pos])
             p = value_producer.get(opnd)
             if p in member_set:
                 region.ref[(i, port)] = ("wire", p)
@@ -879,11 +873,61 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
     return region
 
 
-def compute_fusion(func):
+def _absorb_forks(nodes, uf, value_producer, value_consumers, max_nodes):
+    """Contract forks whose entire fanout reconverges in one arithmetic region."""
+    owners = {}
+    pending = {i for i, n in enumerate(nodes) if n.op == "fork"}
+
+    def owner(i):
+        if i in uf.parent:
+            return uf.find(i)
+        if i in owners:
+            return uf.find(owners[i])
+        return None
+
+    changed = True
+    while changed:
+        changed = False
+        for i in sorted(pending):
+            n = nodes[i]
+            if len(n.operands) != 1 or not n.results:
+                continue
+            if value_consumers.get(n.operands[0]) != [i]:
+                continue
+            consumers = [value_consumers.get(r, []) for r in n.results]
+            if any(len(cs) != 1 for cs in consumers):
+                continue
+            targets = {owner(cs[0]) for cs in consumers}
+            if None in targets or len(targets) != 1:
+                continue
+            target = targets.pop()
+            source = owner(value_producer.get(n.operands[0]))
+            if source == target:
+                continue
+            owners[i] = target
+            pending.remove(i)
+            changed = True
+            if source is not None:
+                uf.union_if(source, target, max_nodes)
+
+    aliases = {r: nodes[i].operands[0] for i in owners for r in nodes[i].results}
+    for value in aliases:
+        src = aliases[value]
+        while src in aliases:
+            src = aliases[src]
+        aliases[value] = src
+    return owners, aliases
+
+
+def compute_fusion(func, *, forks=None, max_nodes=None):
     """BDC_OP_FUSION's whole analysis: which nodes fuse, which constants
     fold.  Pure graph analysis -- no widths needed, so this can run before
     Emitter._resolve_widths, and does not depend on the Emitter at all.
     """
+    forks = BDC_FORK_FUSION if forks is None else forks
+    max_nodes = MAX_FUSE_NODES if max_nodes is None else max_nodes
+    if max_nodes < 1:
+        raise EmitError("BDC_MAX_FUSE_NODES must be at least 1")
     nodes = func.nodes
     value_producer = {}
     for i, n in enumerate(nodes):
@@ -939,6 +983,8 @@ def compute_fusion(func):
         ctl_producer = value_producer.get(n.operands[0])
         if ctl_producer is None or nodes[ctl_producer].op != "source":
             continue
+        if value_consumers.get(n.operands[0]) != [i]:
+            continue
         value = n.attrs.get("value")
         raw = getattr(value, "value", value)
         if not isinstance(raw, int):
@@ -964,17 +1010,29 @@ def compute_fusion(func):
                 edges.append((opnd, p, i))
     edges.sort(key=lambda e: e[0])
     for _, p, c in edges:
-        uf.union_if(p, c, MAX_FUSE_NODES)
+        uf.union_if(p, c, max_nodes)
+
+    fork_owners, aliases = {}, {}
+    if forks:
+        fork_owners, aliases = _absorb_forks(
+            nodes, uf, value_producer, value_consumers, max_nodes)
+        value_consumers = {}
+        for i, n in enumerate(nodes):
+            if i in fork_owners:
+                continue
+            for opnd in n.operands:
+                value = aliases.get(opnd, opnd)
+                value_consumers.setdefault(value, []).append(i)
 
     groups = {}
     for i in fusable:
         groups.setdefault(uf.find(i), []).append(i)
 
     plan = FusionPlan()
-    plan.skip |= absorbed
+    plan.skip |= absorbed | fork_owners.keys()
     for members in groups.values():
         region = _build_region(func, members, value_producer, value_consumers,
-                                const_of)
+                                const_of, aliases)
         for i in region.node_ids:
             plan.region_of[i] = region
             if i != region.anchor:
@@ -983,6 +1041,9 @@ def compute_fusion(func):
         plan.anchor_region[region.anchor] = region
     for i in absorbed:
         plan.dead_values.add(nodes[i].results[0])
+    for i, target in fork_owners.items():
+        plan.region_of[i] = plan.region_of[uf.find(target)]
+        plan.dead_values.update(nodes[i].results)
     return plan
 
 

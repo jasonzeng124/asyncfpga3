@@ -440,8 +440,9 @@ def walk(edges, start, stops, longest, confine=None):
     passing through a stop pin.  longest=True for the data side of a setup
     check, False for the signal that has to be late.
 
-    `confine` restricts the traversal to one cell's subtree, and it is not an
-    optimisation -- it is the definition.  A matched delay covers combinational
+    `confine` restricts the traversal to one cell's subtree, or to a tuple of
+    instance prefixes, and it is not an optimisation -- it is the definition.
+    A matched delay covers combinational
     logic INSIDE ONE CELL.  Let the walk wander out through the rest of the
     design and back in, and t_data becomes an accumulated arrival from half the
     netlist; 0.2*t_data becomes a guardband on somebody else's path; and every
@@ -451,7 +452,9 @@ def walk(edges, start, stops, longest, confine=None):
         if confine is None:
             return True
         i = pin_split(pin)[0]
-        return i == confine or i.startswith(confine + ".")
+        prefixes = (confine,) if isinstance(confine, str) else confine
+        return any(i == prefix or i.startswith(prefix + ".")
+                   for prefix in prefixes)
 
     best = {start: 0}
     frontier, guard = [start], 0
@@ -499,9 +502,11 @@ def cell_boundary(edges, back, stops, parent):
     t_data, inflates 0.2*t_data with it, and turns every line in the design
     into a violation.
     """
-    prefix = parent + "."
+    prefixes = (parent,) if isinstance(parent, str) else parent
     inside = {p for p in set(edges) | {d for l in edges.values() for d, _ in l}
-              if pin_split(p)[0] == parent or pin_split(p)[0].startswith(prefix)}
+              if any(pin_split(p)[0] == prefix or
+                     pin_split(p)[0].startswith(prefix + ".")
+                     for prefix in prefixes)}
     starts = set()
     for p in inside:
         for s in back.get(p, ()):
@@ -670,15 +675,15 @@ def chain_endpoints(edges, back, links):
 
 
 def request_sites(edges, back, chains):
-    """Every cell whose outgoing request this rule applies to, INCLUDING the
-    ones whose delay line has length zero.
+    """Every OR-anchored cell whose outgoing request this rule applies to.
 
     Finding these by looking for delay chains was the obvious thing and it was
     wrong: bd_delay #(.N(0)) is a bare wire, so a cell with no delay at all --
     the one case that most needs auditing -- left nothing in the netlist to
     find and was silently skipped.  The anchor is instead the request OR that
-    every such cell has, `<cell>.uor`.  The request output is the chain tail
-    if there is a chain, and the OR's own output if there is not.
+    generated compute cells have, `<cell>.uor`.  The request output is the
+    chain tail if there is a chain, and the OR's own output if there is not.
+    A bd_link controller is not a `.uor` anchor and is not found here.
 
     -> [(parent, head, tail, links)]
     """
@@ -704,6 +709,35 @@ def request_sites(edges, back, chains):
                      and not is_output(p)), None)
         sites.append((parent, head or or_out, or_out, []))
     return sites
+
+
+def upstream_bd_links(srcs):
+    """Single-stage bd_link instances represented in a cell's boundary."""
+    links = set()
+    for pin in srcs:
+        inst, _ = pin_split(pin)
+        m = re.match(r"^(.*)\.ctl\.u\.u$", inst)
+        if m:
+            links.add(m.group(1))
+            continue
+        m = re.match(r"^(.*)\.lat\.pair\[\d+\]\.u\$LUT[56]$", inst)
+        if m:
+            links.add(m.group(1))
+    return tuple(sorted(links))
+
+
+def upstream_data_lag(timing, confine, links):
+    """Longest controller-to-latch settling path in folded bd_link stages."""
+    lag = 0
+    for link in links:
+        ctl = f"{link}.ctl.u.u/O6"
+        tab = timing.late(ctl, confine)
+        for pin in timing.stops:
+            inst, _ = pin_split(pin)
+            if (inst.startswith(link + ".lat.pair[") and
+                    re.search(r"\.u\$LUT[56]$", inst)):
+                lag = max(lag, tab.get(pin, 0))
+    return lag
 
 
 def median_hop(edges):
@@ -1023,8 +1057,12 @@ def main():
                   f"this request to wait for")
             continue
 
-        srcs = cell_boundary(edges, back, stops, parent)
-        res = check(timing, srcs, peers, tail, req_guard, confine=parent)
+        parent_srcs = cell_boundary(edges, back, stops, parent)
+        upstream_links = upstream_bd_links(parent_srcs)
+        region = (parent,) + upstream_links
+        srcs = cell_boundary(edges, back, stops, region)
+        confine = region if upstream_links else parent
+        res = check(timing, srcs, peers, tail, req_guard, confine=confine)
         # A cell whose request and data arrive on different nets -- every
         # generated compute unit -- has no common start point, and used to be
         # skipped here with a message.  Skipping is the one outcome this pass
@@ -1033,15 +1071,20 @@ def main():
         pairing = "common source"
         if res is None:
             res = check_bundled(timing, srcs, peers, tail, req_guard,
-                                confine=parent)
+                                confine=confine)
             pairing = "bundled channel"
         if res is None:
             print(f"  {label:<22} {n:>2} links   nothing outside {parent} "
                   f"reaches its request -- not audited")
             continue
 
+        upstream_lag = (upstream_data_lag(timing, confine, upstream_links)
+                        if pairing == "bundled channel" else 0)
         margin, guard, t_e, t_l, pin, s = res[:6]
         late_src = res[6] if len(res) > 6 else s
+        if upstream_lag:
+            margin -= upstream_lag
+            t_l += upstream_lag
         # what the chain itself contributes, on the path being measured
         chain_ps = None
         e_tab = timing.early(s, parent)
@@ -1071,6 +1114,9 @@ def main():
               f"req {t_e:>5}  peak {t_l:>5}  guard {guard:>4}  "
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<22} latest peer: {pin_split(pin)[0]}")
+        if upstream_lag:
+            print(f"  {'':<22} upstream link data lag: "
+                  f"{upstream_lag} ps")
         # Never let the pairing be invisible.  The two rules answer the same
         # question with different amounts of evidence, and which one produced a
         # number changes how much it is worth.
@@ -1081,6 +1127,10 @@ def main():
                   f"source):")
             print(f"  {'':<22}   request from {s}")
             print(f"  {'':<22}   data    from {late_src}")
+        if upstream_links:
+            print(f"  {'':<22} paired through upstream link(s) "
+                  f"{', '.join(upstream_links)} (common source "
+                  f"{s if pairing == 'common source' else 'not shared'})")
 
     for base in sorted(chains):
         parent = base.rpartition(".")[0]

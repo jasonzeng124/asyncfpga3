@@ -67,6 +67,7 @@ OUTPUT_PORTS = {
     "BSCAN": {"CAPTURE", "DRCK", "RESET", "RUNTEST", "SEL", "SHIFT",
               "TCK", "TDI", "TMS", "UPDATE"},
     "IOB33_OUTBUF": {"OUT"},
+    "IOB33_INBUF_EN": {"OUT"},
     "PSEUDO_GND": {"Y"},
     "PSEUDO_VCC": {"Y"},
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
@@ -102,6 +103,7 @@ PORT_ORDER = {
               "TCK", "TDI", "TMS", "UPDATE"],
     "PAD": ["PAD"],
     "IOB33_OUTBUF": ["IN", "OUT"],
+    "IOB33_INBUF_EN": ["PAD", "OUT"],
     "PSEUDO_GND": ["Y"],
     "PSEUDO_VCC": ["Y"],
 }
