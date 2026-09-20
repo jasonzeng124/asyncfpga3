@@ -447,6 +447,16 @@ if grep -qi "BUFGCTRL\|BUFG_" $OUT/soak.fasm; then
     exit 1
 fi
 echo "no global clock buffer in the bitstream, as required"
+
+# The FF timing patch has two halves; the binary fingerprint above only sees
+# one.  A chipdb built before the importer fix leaves every flop at the 100 ps
+# placeholders, and the only place that shows is the SDF.
+if grep -q "SETUPHOLD" $OUT/soak.sdf && \
+   ! grep "SETUPHOLD" $OUT/soak.sdf | grep -qv "(100:100:100) (100:100:100)"; then
+    echo "FAIL: every FF SETUPHOLD in the SDF is the 100 ps placeholder -- the chipdb"
+    echo "      predates nextpnr-xilinx-ff-timing.patch; regenerate it (patches/README.md)"
+    exit 1
+fi
 echo
 echo "routed SDF written to $OUT/soak.sdf -- run verify/tighten.py to size the"
 echo "matched delays against it."

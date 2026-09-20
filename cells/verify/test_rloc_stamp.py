@@ -164,6 +164,32 @@ def test_v5_banks_without_controller_and_one_slot_ordered_spine():
     assert rloc_stamp.ATTR not in mods["top"]["cells"]["urst.u"].get("attributes", {})
 
 
+def test_gated_chain_taps_do_not_reorder_the_walk():
+    """bd_delay_gated's taps come from the cell in front of the OR (here C_a's
+    own output), so C_a is adjacent to the chain as well as to the OR: the
+    walk must still go C_a -> OR -> g[0] -> ... and not step into the chain
+    off a tap."""
+    mods = ring_netlist()
+    top = mods["top"]["cells"]
+    # the walk starts at C_b's dead end and reaches C_a with C_b already
+    # seen, so the OR and the chain tie on unvisited neighbours and the
+    # name decides: the module is named to sort after `top`
+    del top["ulink_a.uack.chain.g[0].u"]
+    top.update(chain("ulink_b.uack", 60, 1))
+    top["ufused"]["type"] = "zfused"
+    mods["zfused"] = mods.pop("bdc_fused_a")
+    fused = mods["zfused"]["cells"]
+    for i in (1, 2):
+        fused[f"udly.chain.g[{i}].u"] = lut([2 + i, 1], [3 + i], "LUT2")
+    rloc_stamp.stamp(mods, "v5", report=False)
+    spine = {k: v for k, v in groups(mods).items() if k.startswith("bdspine_")}
+    (group,) = spine
+    assert slot_order(mods, group) == [
+        "top/ulink_b.uack.chain.g[0].u", "top/ulink_b.ctl.u.u",
+        "top/ulink_a.ctl.u.u", "zfused/uor", "zfused/udly.chain.g[0].u",
+        "zfused/udly.chain.g[1].u", "zfused/udly.chain.g[2].u"]
+
+
 def test_v5_splits_a_long_spine_into_segments_in_order():
     mods = ring_netlist()
     # a 40-link request chain: with C_a, the OR and C_b that is more than one

@@ -90,7 +90,7 @@ iverilog -gspecify -I. -o gate.vvp "$SRC/tb_gate.v" netlist.v "$SRC/prims.v"
 # run_baked.vvp is the same numbers from the same parse, baked in as parameters,
 # so it starts in seconds.  Equivalence is not assumed: a full run of each was
 # diffed and every event timestamp is identical.
-iverilog -gspecify -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
+iverilog -gspecify -DGLS_TRANSPORT_IC -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
     | grep -v 'procedural continuous' || true
 
 cat <<EOF

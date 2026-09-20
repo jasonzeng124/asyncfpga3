@@ -482,7 +482,7 @@ module bdc_amerge{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(r0), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
+    {compute.request_delay("r0")}
 
     // g1 is read so the arbiter's own output cannot be optimised away; the
     // grants are a fractured pair and deleting one changes the cell that
@@ -568,7 +568,7 @@ module bdc_muxn{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(|j), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
+    {compute.request_delay("|j")}
 
 {acks}
 
@@ -706,7 +706,7 @@ _FUSABLE_CHANS = {
 
 BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
 MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
-BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
+BDC_FASTFALL = compute.BDC_FASTFALL
 
 
 class _UnionFind:
@@ -1502,6 +1502,123 @@ def _apply_ring_pad(func, linked, depth):
 
 
 # ---------------------------------------------------------------------------
+# Slack stages: an EMPTY stage behind every feed-forward link.
+#
+# A bd_link is a half buffer.  Its C node cannot rise again until the stage
+# after it has taken the token AND its own request has returned to zero, so
+# the cycle it sits on runs through the logic on BOTH sides of it: with cone A
+# feeding link L feeding cone B, L's period is about fwd(A) + fwd(B) + the
+# handshake.  Fusion made that the bottleneck.  It shrank xorshift to two
+# cones and two links, and the routed fast-source interval (7.4 ns) came out
+# ABOVE the routed latency (6.8 ns): the pipe was slower than the same logic
+# with no storage in it at all, because every token has to clear both cones
+# before the next may enter the first.
+#
+# One empty stage between the cones splits that cycle in two -- fwd(A) + eps
+# and eps + fwd(B) -- so the interval drops toward the slower cone alone.  The
+# stage costs W/2 latch LUTs, one control LUT and one forward hop of latency,
+# and needs no logic of its own; the SDELAY rule-I check covers its request.
+#
+# Only where there IS logic on both sides.  A link fed straight from a port
+# (or by nothing but forks and buffers from one) has fwd(A) = whatever the
+# environment takes to answer an ack, which the design cannot shorten and
+# which a stage cannot overlap with anything; routed, xorshift cap 8 (one
+# cone, one link on the input) with a stage there went 6.3 -> 7.7 ns interval
+# and 4.1 -> 5.5 ns latency.  Same for a link that feeds a port with no logic
+# after it.  And only on links that are NOT on a cycle: a loop's ring carries
+# one token per iteration round its loop-carried dependency, so its
+# throughput IS its latency and an extra stage on it is pure cost;
+# ring_depths() already puts exactly the depth a ring needs and no more.
+#
+# BDC_SLACK_STAGES=N is how many stages to add (default 1; 0 turns it off).
+SLACK_STAGES = int(os.environ.get("BDC_SLACK_STAGES", "1"))
+
+
+def _logic_before(func, value, linked, producer):
+    """Is a matched-delay cell upstream of `value` with no link in between?"""
+    seen, stack = set(), [value]
+    while stack:
+        v = stack.pop()
+        if v in seen or v not in producer:
+            continue
+        seen.add(v)
+        node = func.nodes[producer[v]]
+        if node.op in DELAY_BEARING:
+            return True
+        stack.extend(o for o in node.operands if o not in linked)
+    return False
+
+
+def _logic_after(func, value, linked):
+    """Is a matched-delay cell downstream of `value` with no link in between?"""
+    seen, stack = set(), [value]
+    while stack:
+        v = stack.pop()
+        if v in seen:
+            continue
+        seen.add(v)
+        for ci, _operand in func.consumers.get(v, []):
+            node = func.nodes[ci]
+            if node.op in DELAY_BEARING:
+                return True
+            stack.extend(r for r in node.results if r not in linked)
+    return False
+
+
+def slack_sites(func, linked, exclude=frozenset()):
+    """The linked channels that sit between two pieces of logic and on no
+    cycle, as a set of SSA names."""
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+    edges, adj = slack.build_node_graph(func)
+    ids = list(range(len(func.nodes)))
+    comp = {}
+    for k, scc in enumerate(slack.tarjan_scc(ids, adj)):
+        if slack._is_cycle(scc, adj):
+            for v in scc:
+                comp[v] = k
+    cyclic = {e.value for e in edges
+              if e.producer in comp and comp[e.producer] == comp.get(e.consumer)}
+    producer = {r: i for i, n in enumerate(func.nodes) for r in n.results}
+    return {v for v in linked
+            if v not in cyclic and v not in exclude
+            and _logic_before(func, v, linked, producer)
+            and _logic_after(func, v, linked)}
+
+
+def _apply_slack_stages(func, linked, depth, exclude=frozenset()):
+    if SLACK_STAGES <= 0:
+        return set()
+    sites = slack_sites(func, linked, exclude)
+    for ssa in sites:
+        depth[ssa] = depth.get(ssa, 1) + SLACK_STAGES
+    return sites
+
+
+# Per-link stage counts, for slack-matching experiments: BDC_LINK_DEPTHS=
+# "ulink_n_v9=2,ulink_n_x=3".  A depth may only be raised -- ring_depths()'s
+# answer is a floor the design does not work under.
+LINK_DEPTHS = {}
+for _item in filter(None, os.environ.get("BDC_LINK_DEPTHS", "").split(",")):
+    _k, _, _v = _item.partition("=")
+    LINK_DEPTHS[_k.strip()] = int(_v)
+
+
+def _apply_link_depths(func, linked, depth, floor):
+    for ssa in linked:
+        want = LINK_DEPTHS.get(f"ulink_{vname(ssa)}")
+        if want is None:
+            continue
+        if want < floor.get(ssa, 1):
+            raise EmitError(f"{func.name}: BDC_LINK_DEPTHS asks for {want} "
+                            f"stage(s) on ulink_{vname(ssa)}, under the "
+                            f"{floor[ssa]} its rings need")
+        depth[ssa] = want
+
+
+# ---------------------------------------------------------------------------
 # The emitter
 
 class Emitter:
@@ -1553,7 +1670,12 @@ class Emitter:
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
         self.depth = ring_depths(func, self.linked, exclude=self.mem_absorbed)
+        floor = dict(self.depth)
         _apply_ring_pad(func, self.linked, self.depth)
+        # ...plus one empty stage on every feed-forward link, for throughput.
+        self.slack_stages = _apply_slack_stages(func, self.linked, self.depth,
+                                                exclude=self.mem_absorbed)
+        _apply_link_depths(func, self.linked, self.depth, floor)
         # Channels read as a SELECT rather than as ordinary data.  These are
         # the boundaries where a link's request may not outrun its own value.
         self.selects = select_channels(func)
@@ -2594,7 +2716,7 @@ module {name} #(parameter DELAY = {default_total})
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
+    {compute.request_delay("joined")}
 
     // The datapath.  yosys picks the implementation, across the WHOLE
     // region at once; the matched delay above is what makes whatever it

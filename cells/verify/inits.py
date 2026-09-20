@@ -213,6 +213,22 @@ SPECS = {
     # of one -- which is why odd widths cost the extra half.
     "DATAMUX1": ("lut3", "s a b", lambda s, a, b: b if s else a),
 
+    # --- two-phase (MOUSETRAP) link, rtl/bd_mlink.v --------------------------
+    # Latch enable: open while the stage's request and its successor's
+    # acknowledge agree (both phases seen), forced open in reset.
+    "MT_EN":        ("lut3", "done ack rst",
+                     lambda d, a, r: r | (1 - (d ^ a))),
+    # The same XNOR gated by the delayed reopen s, so closing does not wait
+    # for the reopen delay.
+    "MT_EN_REOPEN": ("lut4", "s done ack rst",
+                     lambda s, d, a, r: s & (r | (1 - (d ^ a)))),
+    # FF-backed variant: the clock is the phase mismatch, held low in reset...
+    "MT_CK":        ("lut3", "done ack rst",
+                     lambda d, a, r: (1 - r) & (d ^ a)),
+    # ...and the request bit is a LUT latch, transparent while ck is low.
+    "MT_REQ_LATCH": ("lut3", "req ck done",
+                     lambda q, ck, d: d if ck else q),
+
     # --- plain gates ------------------------------------------------------
     "OR2":     ("lut2", "a b", lambda a, b: a | b),
     "AND2":    ("lut2", "a b", lambda a, b: a & b),

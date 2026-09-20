@@ -36,6 +36,7 @@ CHECKS=(
   "tallest logic column on this device|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)"
   "RLOC_COL offsets|nextpnr-xilinx-rloc-group.patch|RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)"
   "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"
+  "REG_INIT_FF|nextpnr-xilinx-ff-timing.patch|slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders"
 )
 
 miss=0

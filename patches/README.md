@@ -217,3 +217,40 @@ only reads the number.
 Fingerprint, 0x in every binary without this patch (the string is new):
 
     "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"
+
+## nextpnr-xilinx-ff-timing.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/python/parse_sdf.py`,
+`xilinx/python/nextpnr_structs.py`, `xilinx/arch.{h,cc}`.  Independent of the
+other patches; nothing in it is specific to this project.  **Needs the chipdb
+regenerated** (`bbaexport.py` + `bbasm`) as well as the binary rebuilt -- the
+checks live in the `.bin`.
+
+**Slice flip-flops had placeholder timing: 100 ps clock-to-Q, 100 ps setup,
+100 ps hold, for every FF on every device.**  `getPortClockingInfo` never read
+the chipdb.  Two halves to the fix:
+
+1. The chipdb importer only understood `(SETUPHOLD ...)` records, and prjxray
+   emits `(SETUP ...)` and `(HOLD ...)` separately, so no FF check ever reached
+   the `.bin` (the SETUPHOLD/WIDTH branches were also dead code that would have
+   appended a *list* to the check table).  The importer now keeps both forms.
+2. `getPortClockingInfo` looks the FF up in the slice's timing instance:
+   variant `REG_INIT_FF` for AFF..DFF (`BEL_FF`), `FF_INIT` for the 5FFs
+   (`BEL_FF2`); `CLK->Q` from the IOPATH, `DIN`/`CE` setup and hold from the
+   checks.  On xc7z010-1 that is CK->Q 303..362 ps, setup -45..-60 ps (yes,
+   negative, at the FF's own pin), hold 225..262 ps.
+
+Why it matters here: every routed number for a design with FFs -- the
+synchronous reference in `cells/verify/sync_ref/`, the two-phase FF link (`rtl/bd_mlink.v`) -- used to be
+2.5x optimistic on CK->Q and 2.5x optimistic on hold.  The sync reference's
+`Fmax` moved from 467 to 434 MHz on the same route; the FF link's hold audit
+had 100 ps where the device wants 241.
+
+Fingerprint, 0x in every binary without this patch (the string is new to the
+binary; it already existed in the chipdb as a variant name):
+
+    "REG_INIT_FF|nextpnr-xilinx-ff-timing.patch|slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders"
+
+Stale chipdb: a `.bin` built before the importer fix still routes and still
+writes an SDF, but every FF `SETUPHOLD` in it reads `(100:100:100)`.
+`cells/flow.sh` fails the route when it sees that.

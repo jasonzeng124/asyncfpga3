@@ -478,8 +478,8 @@ def simulate_route(outdir, func, *, strict_gls=True):
                             f"bd_source #(.W(32), .SETUP({lead})) {arg}_src(")
         (gls / f"tb_{kind}.v").write_text(tb)
         sim = gls / f"sim_{kind}.vvp"
-        run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
-             str(sim), str(CELLS / "gls/prims.v"),
+        run(["iverilog", "-g2012", "-gspecify", "-DGLS_TRANSPORT_IC", "-s", "tb",
+             "-o", str(sim), str(CELLS / "gls/prims.v"),
              str(CELLS / "sim/bd_env.v"), str(gls / "netlist_baked.v"),
              str(gls / f"tb_{kind}.v")],
             gls / f"compile_{kind}.log")

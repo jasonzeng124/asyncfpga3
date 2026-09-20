@@ -95,6 +95,38 @@ def test_shared_constant_source_remains_live():
     assert not {0, 1} & plan.skip
 
 
+def test_slack_stage_between_logic_off_cycles_only():
+    # x -> mux -> add -> fork, one arm back to the mux, the other through a
+    # fork to an xori and out.  The ring's channels keep what ring_depths()
+    # said; x comes from a port (nothing upstream to overlap) and g#1 goes
+    # straight to the output (nothing downstream); g#0 has the add behind it
+    # through two forks and the xori ahead of it, and is the one site.
+    src = """
+handshake.func @ring(%x: !handshake.channel<i32>, %sel: !handshake.channel<i1>, ...) -> !handshake.channel<i32> attributes {argNames = ["x", "sel"], resNames = ["out"]} {
+    %m = mux %sel [%x, %fb] : <i1>, [<i32>, <i32>] to <i32>
+    %s = addi %m, %m : <i32>
+    %f:2 = fork [2] %s : <i32>
+    %fb = buffer %f#0 : <i32>
+    %g:2 = fork [2] %f#1 : <i32>
+    %y = xori %g#0, %g#0 : <i32>
+    end %y, %g#1 : <i32>, <i32>
+}
+"""
+    func = parse.parse_module(src)[0]
+    linked = {"x", "fb", "m", "g#0", "g#1"}
+    assert emit.slack_sites(func, linked) == {"g#0"}
+    # a link on f#1 as well: it hides the add from g#0, and sees no logic
+    # itself before the next links
+    assert emit.slack_sites(func, linked | {"f#1"}) == set()
+    assert emit.slack_sites(func, (linked - {"g#0"}) | {"f#1"}) == {"f#1"}
+    depth = {"fb": 3}
+    assert emit._apply_slack_stages(func, linked, depth) == {"g#0"}
+    assert depth == {"fb": 3, "g#0": 2}
+    assert emit._apply_slack_stages(func, linked, depth, exclude={"g#0"}) == set()
+    func, _ = plan_for("xorshift_round")
+    assert emit.slack_sites(func, {"x", "v9"}) == {"v9"}
+
+
 def test_invalid_cap():
     with pytest.raises(emit.EmitError, match="at least 1"):
         emit.compute_fusion(F([]), max_nodes=0)

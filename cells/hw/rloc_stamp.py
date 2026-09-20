@@ -116,8 +116,8 @@ ATTR = "RLOC_GROUP"
 SLOT_ATTR = "RLOC_SLOT"
 COL_ATTR = "RLOC_COL"
 WEIGHT_ATTR = "PLACE_WEIGHT"
-WHOLE_BANK = ("v3", "v4", "v5", "v6", "v7", "v8", "v9")
-VARIANTS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "none")
+WHOLE_BANK = ("v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10")
+VARIANTS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "none")
 # One logic tile is eight LUT slots (two SLICEs of four); a slot-ordered
 # group's row is slot // 8.  v8 aligns each C node to a row boundary so the
 # node and the control that follows it share a tile.
@@ -184,12 +184,17 @@ _DATA_INST = (".lat.", ".udat.")
 # three controller LUTs (`ctl.ub`, `ctl.ua`, `ctl.uld`) are on one another's
 # feedback and on the stage's cycle at fixed cost, so the spine walks the
 # four as ONE node and lays them out as one block, in handshake order.
-RE_CNODE = re.compile(r"^(?P<link>.+)\.ctl\.(?:u\.u|ult)$")
+# bd_mlink_ctl (rtl/bd_mlink.v, two-phase) enables its bank from `ctl.ux`
+# (NOPEN <= 1) or `ctl.slow_reopen.uz`; its request latch `ctl.uq`, the XNOR
+# `ctl.ux` and the reopen delay's links are the same kind of block.
+RE_CNODE = re.compile(r"^(?P<link>.+)\.ctl\.(?:u\.u|ult|ux|slow_reopen\.uz)$")
 RE_DCPART = re.compile(r"^(?P<link>.+)\.ctl\.(?P<part>ub|ua|uld)$")
 DC_PARTS = ("ub", "ua", "uld")
+RE_MPART = re.compile(r"^(?P<link>.+)\.ctl\.(?P<part>uq\.odd\.u|ux"
+                      r"|slow_reopen\.uen\.chain\.g\[(?P<i>\d+)\]\.u)$")
 # bd_delay's links: `<dly>.chain.g[i].u` (cells/rtl/bd_latch.v), the same
 # chain whether symmetric, FASTFALL or FASTRISE.
-RE_DLINK = re.compile(r"^(?P<dly>.+\.chain)\.g\[\d+\]\.u$")
+RE_DLINK = re.compile(r"^(?P<dly>.+\.chain)\.g\[(?P<i>\d+)\]\.u$")
 
 
 def load(path):
@@ -489,22 +494,26 @@ class Seg:
 
 
 class Side:
-    """In an atom: these chain links go in a side column, at the row of the
-    slot before this marker."""
+    """In an atom: these cells go in a side column, at the row of the slot
+    before this marker -- the nearer free run of either column, or, with
+    `col`, that column exactly (v10's bank halves)."""
 
-    def __init__(self, links):
+    def __init__(self, links, col=None):
         self.links = links
+        self.col = col
 
 
 def place_beside(mods, g, beside, taken):
-    """Give each chain in `beside` consecutive slots of one side column of
-    group g, as near the row it hangs off as the column is free, columns
-    alternating.  Returns (links placed, links left to the placer)."""
+    """Give each run of cells in `beside` consecutive slots of one side
+    column of group g, as near the row it hangs off as the column is free,
+    columns alternating unless the run names its own.  Returns (cells
+    placed, cells left to the placer, {cell: slot} of those placed)."""
     n_ok = n_loose = 0
-    for i, (links, at) in enumerate(beside):
+    placed = {}
+    for i, (links, at, own) in enumerate(beside):
         want = (at // ROW_SLOTS) * ROW_SLOTS
         best = None
-        for col in ((-1, 1), (1, -1))[i % 2]:
+        for col in (own,) if own is not None else ((-1, 1), (1, -1))[i % 2]:
             for s0 in range(0, SIDE_SLOTS - len(links) + 1):
                 if any(s in taken[g][col] for s in range(s0, s0 + len(links))):
                     continue
@@ -519,15 +528,16 @@ def place_beside(mods, g, beside, taken):
         _, col, s0 = best
         for j, (mname, cname) in enumerate(links):
             taken[g][col].add(s0 + j)
+            placed[(mname, cname)] = s0 + j
             attrs = mods[mname]["cells"][cname].setdefault("attributes", {})
             attrs[ATTR] = g
             attrs[SLOT_ATTR] = s0 + j
             attrs[COL_ATTR] = col
         n_ok += len(links)
-    return n_ok, n_loose
+    return n_ok, n_loose, placed
 
 
-def stamp_datapath(mods, cells, rst, segments, taken):
+def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
     """v7: every LUT that is neither control nor on the spine -- abc's data
     path, a bd_datamux, the single latch of a W<=2 link -- goes into the
     logic column to the left or right of the spine segment its nets lead
@@ -541,10 +551,11 @@ def stamp_datapath(mods, cells, rst, segments, taken):
     one; nothing said the data belonged with its latches.
 
     Where a LUT wants to be is the mean spine position of what it connects
-    to, over all spine segments laid end to end; LUTs that only reach the
-    spine through other data LUTs take the mean of their neighbours, a few
-    rounds of it.  Slots are handed out nearest-first to that position in
-    whichever side column has the nearer free slot.
+    to, over all spine segments laid end to end (a cell in a side column,
+    `beside`, counts at the slot of its row); LUTs that only reach the spine
+    through other data LUTs take the mean of their neighbours, a few rounds
+    of it.  Slots are handed out nearest-first to that position in whichever
+    side column has the nearer free slot.
     """
     if not segments:
         return 0, 0, 0, {-1: 0, 0: 0, 1: 0}
@@ -558,6 +569,8 @@ def stamp_datapath(mods, cells, rst, segments, taken):
                 gaps[g].add(i)
             else:
                 fixed[key] = offset + i
+        for key, i in (beside or {}).get(g, {}).items():
+            fixed[key] = offset + i
         offset += len(seg)
 
     drivers, sinks = {}, defaultdict(list)
@@ -624,7 +637,7 @@ def stamp_datapath(mods, cells, rst, segments, taken):
 
 
 def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
-             control_row=False, shared_rows=False):
+             control_row=False, shared_rows=False, side_banks=False):
     """v5: latch banks in their own columns, control on a slot-ordered spine.
     v6 (banks_on_spine): the same spine with each C node's bank around it.
     v7 (datapath_beside): v6, plus the data path in the columns beside it.
@@ -635,6 +648,10 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
     v9 (shared_rows): v8 with two stages to a row -- only the control on
     the cycle at fixed cost is in the row, the inner links of every matched
     delay go beside it -- so a two-stage ring never leaves its tile.
+    v10 (side_banks): v8's row with the bank's halves in the side columns
+    at the row of their node instead of the rows above and below it, so a
+    stage is two rows of the spine, not three, and the data path sits in
+    the row between two banks instead of between two rows of them.
 
     v8 is about which hops of the cycle are in-tile.  On the v7 route of
     xorshift_round (fusion on, cap 4) a delay link reaching its neighbour in
@@ -729,14 +746,23 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
     # otherwise let the walk enter a chain in the middle.
     chain_of = {}
     chains = defaultdict(list)
+    link_index = {}
     for key in control:
         hit = RE_DLINK.match(key[1])
         if hit:
             node = (key[0], hit.group("dly"))
             chain_of[key] = node
             chains[node].append(key)
+            link_index[key] = int(hit.group("i"))
     for node, links in chains.items():
-        links.sort(key=lambda k: int(re.search(r"g\[(\d+)\]\.u$", k[1]).group(1)))
+        links.sort(key=lambda k: link_index[k])
+    # The tap into a link past the first is not a hop of the walk either:
+    # bd_delay_gated takes it from the cell BEFORE the OR, and the walk would
+    # step from that cell straight into the chain, leaving the OR and the
+    # chain's head -- the hop the request actually takes -- for a later row.
+    def side_tap(driver, sink):
+        i = link_index.get(sink)
+        return i is not None and i > 0 and link_index.get(driver) != i - 1
     # A decoupled controller is one node too: its state LUTs fold onto the
     # enable, which is the C-node candidate the bank hangs off.
     ctl_block = {}
@@ -751,6 +777,31 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
     for node, parts in ctl_block.items():
         parts.sort(key=lambda k: DC_PARTS.index(RE_DCPART.match(k[1]).group("part")))
         parts.append(node)
+    # A two-phase controller likewise: uq, ux and the reopen delay fold onto
+    # the LUT that drives the bank.  With no reopen delay ux IS that LUT.
+    mparts = {}
+    for key in control:
+        hit = RE_MPART.match(key[1])
+        if hit:
+            mparts.setdefault((key[0], hit.group("link")), []).append((key, hit))
+    for (mname, link), parts in mparts.items():
+        node = (mname, link + ".ctl.slow_reopen.uz")
+        if node not in control:
+            node = (mname, link + ".ctl.ux")
+            parts = [(k, h) for k, h in parts if h.group("part") != "ux"]
+        if node not in control:
+            continue
+
+        def rank(kh):
+            part = kh[1].group("part")
+            return (0, 0) if part.startswith("uq") else (1, 0) if part == "ux" \
+                else (2, int(kh[1].group("i")))
+        parts.sort(key=rank)
+        for k, _ in parts:
+            if k in chain_of:
+                chains.pop(chain_of[k], None)
+            chain_of[k] = node
+        ctl_block[node] = [k for k, _ in parts] + [node]
 
     def expand(n):
         return chains.get(n) or ctl_block.get(n) or [n]
@@ -761,7 +812,7 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
         a = chain_of.get(d, d)
         for s in sinks.get(g, ()):
             b = chain_of.get(s, s)
-            if a != b:
+            if a != b and not side_tap(d, s):
                 adj[a].add(b)
                 adj[b].add(a)
     adj = {n: sorted(v) for n, v in adj.items()}
@@ -771,6 +822,9 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
     def atoms(comp):
         if shared_rows:
             yield from shared_row_atoms(comp)
+            return
+        if side_banks:
+            yield from side_bank_atoms(comp)
             return
         if control_row:
             yield from row_atoms(comp)
@@ -819,6 +873,47 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
             for k in head:
                 yield [k]
             yield [ROW] + bank[:half] + [ROW] + tail + node + run + [ROW] + bank[half:]
+        for k in carry:
+            yield [k]
+
+    # v10: v8's row, with the bank beside it.  The two halves go in the side
+    # columns at the node's own row (one tile away either way, as v8's rows
+    # above and below were), so the next node's row is two rows on instead
+    # of three: the acknowledge and the return-to-zero of a stage-to-stage
+    # cycle each cross one tile less.  The row between two nodes' rows holds
+    # the links that overflowed the row before it and is otherwise gaps, and
+    # the data path -- reading the bank at the row above, writing the one at
+    # the row below -- takes those gaps and the side slots of that row.  On
+    # the v8 route the data LUTs sat between banks three rows apart, and the
+    # two wires of the data path were 855 and 765 ps against 540 for a hop
+    # to the next row; that is what sizes the matched delay.
+    def side_bank_atoms(comp):
+        i = 0
+        carry = []
+        first = True
+        while i < len(comp) and comp[i] not in bank_of:
+            carry.extend(expand(comp[i]))
+            i += 1
+        while i < len(comp):
+            n = comp[i]
+            i += 1
+            after = []
+            while i < len(comp) and comp[i] not in bank_of:
+                after.extend(expand(comp[i]))
+                i += 1
+            node = expand(n)
+            row_in = ROW_IN if len(node) == 1 else 1
+            row_out = ROW_SLOTS - len(node) - row_in
+            cut = max(0, len(carry) - row_in)
+            head, tail = carry[:cut], carry[cut:]
+            run, carry = after[:row_out], after[row_out:]
+            bank = bank_of[n]
+            half = len(bank) // 2
+            if head or not first:
+                yield [ROW] + (head or [None] * ROW_SLOTS)
+            first = False
+            yield [ROW] + tail + node + run + \
+                [Side(bank[:half], -1), Side(bank[half:], 1)]
         for k in carry:
             yield [k]
 
@@ -905,16 +1000,17 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
                 while len(out.slots) % ROW_SLOTS:
                     out.slots.append(None)
             elif isinstance(a, Side):
-                out.beside.append((a.links, len(out.slots) - 1))
+                out.beside.append((a.links, len(out.slots) - 1, a.col))
             else:
                 out.slots.append(a)
         return out
 
-    limit = SPINE_SEGMENT_V8 if control_row or shared_rows else \
+    limit = SPINE_SEGMENT_V8 if control_row or shared_rows or side_banks else \
         SPINE_SEGMENT_V6 if banks_on_spine else SPINE_SEGMENT
     n_spines = n_slots = 0
     n_side_links = n_spine_links_loose = 0
     taken = defaultdict(lambda: {-1: set(), 1: set()})
+    beside_at = {}
     seg_sizes = []
     segments = []
     for comp in spine_order(nodes, adj):
@@ -946,15 +1042,15 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
             n_slots += len(members)
             seg_sizes.append(len(seg.slots))
             segments.append((g, seg.slots))
-            n_beside, n_loose_links = place_beside(mods, g, seg.beside, taken)
+            n_beside, n_loose_links, beside_at[g] = place_beside(mods, g, seg.beside, taken)
             n_side_links += n_beside
             n_spine_links_loose += n_loose_links
 
     if datapath_beside:
-        dp = stamp_datapath(mods, cells, rst, segments, taken)
+        dp = stamp_datapath(mods, cells, rst, segments, taken, beside_at)
 
     if report:
-        variant = "v9" if shared_rows else "v8" if control_row \
+        variant = "v10" if side_banks else "v9" if shared_rows else "v8" if control_row \
             else "v7" if datapath_beside else "v6" if banks_on_spine else "v5"
         print(f"rloc_stamp   variant {variant}")
         print(f"             {n_cands} controller candidate(s) matched "
@@ -968,6 +1064,9 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
               f"{n_slots} slot-ordered")
         if shared_rows:
             print(f"             {n_side_links} delay link(s) beside their row, "
+                  f"{n_spine_links_loose} left to the placer for want of a side slot")
+        if side_banks:
+            print(f"             {n_side_links} latch LUT(s) beside their node's row, "
                   f"{n_spine_links_loose} left to the placer for want of a side slot")
         if datapath_beside:
             n_dp, n_far, n_loose, per_col = dp
@@ -985,10 +1084,11 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
 
 
 def stamp(mods, variant, report):
-    if variant in ("v5", "v6", "v7", "v8", "v9"):
+    if variant in ("v5", "v6", "v7", "v8", "v9", "v10"):
         return stamp_v5(mods, report, banks_on_spine=variant != "v5",
-                        datapath_beside=variant in ("v7", "v8", "v9"),
-                        control_row=variant == "v8", shared_rows=variant == "v9")
+                        datapath_beside=variant in ("v7", "v8", "v9", "v10"),
+                        control_row=variant == "v8", shared_rows=variant == "v9",
+                        side_banks=variant == "v10")
     counts, top = instantiation_counts(mods)
     if top is None:
         raise SystemExit("no top module in this netlist")

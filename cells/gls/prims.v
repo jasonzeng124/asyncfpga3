@@ -45,10 +45,27 @@
 // and the baked one exists only because iverilog's annotator does a linear
 // scope scan per entry, which on 58k instances costs minutes of wall clock
 // before time 0.
+// A wire is a TRANSPORT delay: FPGA interconnect is a chain of buffers, so a
+// pulse narrower than the wire's delay still comes out the far end.  iverilog's
+// module-path delay is not that -- with more than one edge in flight it drops
+// edges (a 906 ps pulse into a 1245 ps path never arrives, and two pulses 300
+// ps apart lose their second rise), which read as a latch that never opened.
+// Four-phase control never puts two edges of one wire within a wire delay of
+// each other, so it was never caught out (a data cone's glitches are, and a
+// dropped one hides a hazard rather than inventing one); a two-phase link's
+// enable pulse is exactly that wide.  The baked build (-DGLS_TRANSPORT_IC) uses a
+// nonblocking transport assignment; the annotated build keeps the specify
+// path, which is what $sdf_annotate attaches its IOPATH to.
 module ICBUF (input wire I, output wire O);
     parameter D = 1;
+`ifdef GLS_TRANSPORT_IC
+    reg o = 1'bx;
+    always @(I) o <= #D I;
+    assign O = o;
+`else
     assign O = I;
     specify (I => O) = D; endspecify
+`endif
 endmodule
 
 // ---- SLICE_LUTX --------------------------------------------------- 1 LUT --
@@ -112,18 +129,37 @@ module SLICE_FFX (
     parameter [0:0] INIT  = 1'b0;
     parameter [0:0] SRVAL = 1'b0;
     parameter TCKQ = 100;
+    // The SDF's SETUPHOLD for this bel.  iverilog applies no TIMINGCHECK, so
+    // the check is behavioural: a D (or CE) change inside TSU before or THD
+    // after a rising CK is reported, and the flop goes X, which the vector
+    // compare then catches.  TSU/THD 0 (no SETUPHOLD in the SDF) checks
+    // nothing.
+    parameter TSU = 0;
+    parameter THD = 0;
     initial Q = INIT;
+    time t_ck = 0, t_in = 0;
 
-    always @(posedge CK)
-        if (SR)      Q <= SRVAL;
-        else if (CE) Q <= D;
+    always @(posedge CK) begin
+        if (TSU > 0 && t_in > 0 && $time - t_in < TSU) begin
+            $display("FF SETUP VIOLATION %m at %0t (input moved %0t ago)",
+                     $time, $time - t_in);
+            Q <= 1'bx;
+        end else if (SR) Q <= SRVAL;
+        else if (CE)     Q <= D;
+        t_ck = $time;
+    end
+
+    always @(D or CE) begin
+        if (THD > 0 && t_ck > 0 && $time - t_ck < THD) begin
+            $display("FF HOLD VIOLATION %m at %0t (CK rose %0t ago)",
+                     $time, $time - t_ck);
+            Q <= 1'bx;
+        end
+        t_in = $time;
+    end
 
     specify
         (posedge CK => (Q +: D)) = TCKQ;
-        $setuphold(posedge CK, posedge D,  100, 100);
-        $setuphold(posedge CK, negedge D,  100, 100);
-        $setuphold(posedge CK, posedge CE, 100, 100);
-        $setuphold(posedge CK, negedge CE, 100, 100);
     endspecify
 endmodule
 

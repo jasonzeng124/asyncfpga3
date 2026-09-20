@@ -203,6 +203,33 @@ in a tightened design are short (6–9 links at 274 ps, ~1.6–2.5 ns), so
 their return-to-zero is a small share of a 16 ns cycle; the rest of the
 cycle is handshake and interconnect, which the fast fall does not touch.
 
+**Two-phase, measured.** `cells/rtl/bd_mlink.v` is a standalone MOUSETRAP
+link — latch-based `bd_mlink`, and `bd_flink`, the same controller with the
+data in the slice's flip-flops, clocked by the phase mismatch. Both were routed
+in the same harness as the four-phase rows (`xorshift_round`, two storage
+stages, xc7z010-1, every number an SDF back-annotated GLS of the routed
+netlist, nothing here is silicon). Against the best route-robust four-phase
+row, fusion on / cap 4 / gated FASTFALL / one slack stage / v9 placement:
+
+| link | LUT sites | FFs | latency | fast-source interval | stalled-consumer interval | fresh seeds passing every gate |
+|---|---:|---:|---:|---:|---:|---|
+| `bd_link`, four-phase, 3 storage stages | 222 | 0 | 7.0–7.3 ns | 5.4–5.5 ns | 13.5–13.6 ns | 3 / 3 |
+| `bd_flink`, two-phase, FF data, 2 stages | 201 | 64 | 7.4–8.0 ns | 5.4–5.9 ns | 8.3–8.8 ns | 3 / 4 |
+| synchronous twin (`cells/verify/sync_ref/`) | 71 | 129 | 3 periods | 2.0 ns (GLS), 2.3 ns (STA) | — | — |
+
+The fast-source column does not move: the gated FASTFALL already flushed the
+four-phase return-to-zero off the forward path, and the FF stage pays a
+clock-to-Q and a symmetric request delay in its place; the stalled column
+is where the round trip lives, and there two-phase removes 5 ns of 13.5. The
+fourth `bd_flink` seed passes both GLS runs and fails the request bit's own
+loop audit (the router took the latch feedback out of the slice), so it is
+rejected, not counted. The flip-flop rows depend on the toolchain patch in
+`patches/nextpnr-xilinx-ff-timing.patch`: without it every slice FF is 100 ps
+setup, 100 ps hold, 100 ps clock-to-Q, and the synchronous twin's STA reads 467
+MHz where the device data gives 434. The synchronous period is the floor the
+model above predicts for this fabric: best seed 5.4 / 2.0 = 2.7x, inside the 2.6–2.8x
+"realistic best" above, with `E` now 1 instead of 1.5.
+
 The real cost of two-phase is elsewhere. It is cheap for a linear pipeline,
 which is all Mousetrap is, and expensive for everything else. Four-phase has a
 rest state, so a C-element naturally means "both operands arrived"; two-phase
