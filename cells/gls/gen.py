@@ -67,6 +67,7 @@ OUTPUT_PORTS = {
     "BSCAN": {"CAPTURE", "DRCK", "RESET", "RUNTEST", "SEL", "SHIFT",
               "TCK", "TDI", "TMS", "UPDATE"},
     "IOB33_OUTBUF": {"OUT"},
+    "IOB33_INBUF_EN": {"OUT"},
     "PSEUDO_GND": {"Y"},
     "PSEUDO_VCC": {"Y"},
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
@@ -102,6 +103,7 @@ PORT_ORDER = {
               "TCK", "TDI", "TMS", "UPDATE"],
     "PAD": ["PAD"],
     "IOB33_OUTBUF": ["IN", "OUT"],
+    "IOB33_INBUF_EN": ["PAD", "OUT"],
     "PSEUDO_GND": ["Y"],
     "PSEUDO_VCC": ["Y"],
 }
@@ -334,7 +336,15 @@ def main():
             # 20 of the 247 flops here are FDSE, and modelling them as FDRE
             # would hold rst_sr at 0 and never assert the rig's reset at all.
             sr_val = 1 if attrs.get("X_ORIG_PORT_SR") == "S" else 0
-            init = int(params.get("INIT", "0") or "0", 2)
+            # An uninitialised reg arrives as INIT "x"; the bel powers up 0.
+            init = int((params.get("INIT", "0") or "0").replace("x", "0"), 2)
+            # iverilog applies none of the SDF's TIMINGCHECKs, so the baked
+            # netlist carries the FF's setup/hold as parameters and the model
+            # checks them itself (SLICE_FFX in prims.v).
+            shs = setuphold.get(cname, [])
+            if shs:
+                tps += ", .TSU(%d), .THD(%d)" % (max(s for _, _, s, _ in shs),
+                                                  max(h for _, _, _, h in shs))
             L.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)) %s (%s);"
                      % (init, sr_val, nn, ", ".join(conn)))
             B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s) %s (%s);"
@@ -358,12 +368,15 @@ def main():
          '  (PROGRAM "gen.py rewrite of nextpnr gcd_hw.sdf")',
          "  (DIVIDER /)",
          "  (TIMESCALE 1ps)"]
-    n_emit_io = n_emit_sh = 0
+    n_emit_io = 0
+    n_emit_sh = sum(1 for c in order if c in setuphold and cells[c]["type"] == "SLICE_FFX")
     for cname in order:
         t = cells[cname]["type"]
         arcs = iopaths.get(cname, [])
-        shs = setuphold.get(cname, [])
-        if not arcs and not shs:
+        # No TIMINGCHECK: iverilog reports every one as 'SDF WARNING:
+        # TIMINGCHECK not supported', which is the line the annotated run is
+        # required not to print; the checks live in the baked netlist.
+        if not arcs:
             continue
         S.append('  (CELL (CELLTYPE "%s") (INSTANCE %s)' % (t, newname[cname]))
         if arcs:
@@ -375,13 +388,6 @@ def main():
                          % (a, z, ps, ps, ps, ps, ps, ps))
                 n_emit_io += 1
             S.append("    ))")
-        if shs:
-            S.append("    (TIMINGCHECK")
-            for edge, sig, su, hd in shs:
-                S.append("      (SETUPHOLD (%s %s) (posedge CK) (%d:%d:%d) (%d:%d:%d))"
-                         % (edge, sig, su, su, su, hd, hd, hd))
-                n_emit_sh += 1
-            S.append("    )")
         S.append("  )")
     for k, (_src, _dst, ps) in enumerate(ic):
         S.append('  (CELL (CELLTYPE "ICBUF") (INSTANCE ic_%06d)'
@@ -410,7 +416,7 @@ def main():
     print("nets          : %d (+%d icbuf outputs)" % (len(bits), len(ic)))
     print("IOPATH  claimed %d -> emitted %d (incl. %d icbuf)"
           % (n_io + n_ic, n_emit_io, len(ic)))
-    print("SETUPHOLD claimed %d -> emitted %d" % (n_sh, n_emit_sh))
+    print("SETUPHOLD claimed %d -> %d flops check them in netlist_baked.v" % (n_sh, n_emit_sh))
     if unexpected:
         print("UNEXPECTED unconnected ports: %d" % len(unexpected))
         for r in unexpected[:20]:

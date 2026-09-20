@@ -109,15 +109,21 @@ module tb_link;
         // -- occupancy ------------------------------------------------------
         // Output stalled.  The source pushes until it blocks; what it
         // completed is what the pipe swallowed.  The controller family table
-        // says half a token per stage.
+        // says half a token per stage for the Muller controller and a whole
+        // one for the decoupled controller (BD_LINK_DC).
         snk.stall = 1'b1;
         go        = 1'b1;
         #(400 * H);
 
         occupancy = src.nsent;
         $display("  occupancy of a %0d-stage pipe: %0d token(s)", N, occupancy);
+`ifdef BD_LINK_DC
+        if (occupancy != N)
+            fail("occupancy is not a token per stage");
+`else
         if (occupancy != N / 2)
             fail("occupancy is not half a token per stage");
+`endif
         if (snk.n != 0)
             fail("stalled sink took a token");
 

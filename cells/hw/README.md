@@ -568,6 +568,20 @@ few bits, each grouped with the bits it drives. That is a change inside
 gap is 110 ps and grouping is worth 1290 ps, so closing the packing would
 clear rule E on gcd with an order of magnitude to spare.
 
+> **2026-09-19, superseded in part.** "You cannot put a 32-bit latch bank in
+> a SLICE" was the constraint; a bank does fit in a *column* of five. The
+> rloc-group patch now lays a group past four slots out one SLICE row per
+> tile, alternating above and below the root, and `rloc_stamp.py --variant
+> v4` names the whole bank plus every delay chain (`patches/README.md`). On
+> the routed `xorshift_round` soak (fork fusion on, cap 4) this script reports
+> 200/200 latch sinks grouped at median 540 ps, max 630, against v2's 12
+> grouped at 150 and 188 floating at median 855, max 1230; the resize loop
+> settles every `DACK` at 0-1 links against 0-5 -- `bdc/fusion_bench.py`'s
+> docstring has the table. gcd itself has not been
+> re-routed under v4 here (no frontend output on this machine), so the 7.4%
+> and the rule E verdict above are still the v2 measurement; the driver
+> replication argument stands only for whatever the column does not reach.
+
 ### isprime computes correctly and reads back wrong
 
 Deriving the expected SIG for all six kernels from their own C source, rather

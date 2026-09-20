@@ -140,6 +140,7 @@ module tb_bdc_mem;
     // therefore the hold guard too, and rule C sizes it for clock-to-out
     // alone.  Measure it rather than argue it.
     time    t_edge = 0;
+    reg     watching = 1'b0;
     integer hold_addr_min = 1000000;
     integer hold_di_min   = 1000000;
     always @(posedge uport.umem0.ram_clk) t_edge = $time;
@@ -152,7 +153,6 @@ module tb_bdc_mem;
 
     // -- the acknowledge must still follow the read data --------------------
     time    t_data = 0;
-    reg     watching = 1'b0;
     integer co_margin_min = 1000000;
     always @(p_rdata) if (watching) t_data = $time;
     always @(posedge p_ack) if (watching && t_data != 0)

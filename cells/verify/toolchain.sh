@@ -23,7 +23,7 @@
 # worse than no check: it reports "ok" for a broken toolchain.  The fasm half
 # discriminates and the two halves ship as one patch, so one line covers it.
 set -u
-NEXTPNR="${1:-$HOME/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx}"
+NEXTPNR="${1:-${TC:-/home/jayjay/dev2/lib/fpgatoolchain}/openxc7/bin/nextpnr-xilinx}"
 
 [ -x "$NEXTPNR" ] || { echo "toolchain: no nextpnr at $NEXTPNR" >&2; exit 2; }
 
@@ -33,6 +33,11 @@ CHECKS=(
   "ZAREG_2_ACASCREG_1|nextpnr-xilinx-dsp-areg.patch|DSP cascade register mode encoded wrong"
   "]_INVERTED|nextpnr-xilinx-dsp-constpins.patch|8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)"
   "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
+  "tallest logic column on this device|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)"
+  "RLOC_COL offsets|nextpnr-xilinx-rloc-group.patch|RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)"
+  "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"
+  "REG_INIT_FF|nextpnr-xilinx-ff-timing.patch|slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders"
+  "permuted LUT input pins as routed sink wires|nextpnr-xilinx-lut-perm-sink.patch|SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route"
 )
 
 miss=0

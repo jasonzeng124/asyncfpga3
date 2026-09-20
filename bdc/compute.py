@@ -21,9 +21,12 @@ of the toolchain already imposes:
   delay chain instead was tried and was wrong, because bd_delay #(.N(0)) is a
   bare wire, so a cell with NO delay -- the case that most needs auditing --
   left nothing in the netlist to find and was skipped silently.  A generated
-  unit without a `uor` would be skipped the same way.  It costs nothing: a
-  pass-through LUT1 in front of a LUT1 delay chain is just one more element
-  of that chain, so DELAY is one shorter to compensate.
+  unit without a `uor` would be skipped the same way.  Its rise costs
+  nothing: a pass-through LUT1 in front of a LUT1 delay chain is just one
+  more element of that chain, so DELAY is one shorter to compensate.  Its
+  FALL is not inside any matched length, so the chain behind it is a
+  bd_delay_gated whose fast side is tapped from the anchor's input
+  (request_delay below): the request falls one LUT after the join, not two.
 
   The `BD_SZ_*` key, and WHERE it lives.  verify/teeth.sh and verify/resize.sh
   drive a design only by overriding `define BD_SZ_*` through BD_SIZES, and
@@ -54,6 +57,17 @@ of the toolchain already imposes:
 import argparse
 import os
 import sys
+
+BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
+
+
+def request_delay(gate):
+    """The `udly` instance behind the `uor` anchor, as Verilog text.  `gate`
+    is the anchor's own input, which is where the fall is taken from."""
+    if BDC_FASTFALL:
+        return ("bd_delay_gated #(.N(DELAY)) udly "
+                f"(.a(either), .gate({gate}), .z(z_req));")
+    return "bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));"
 
 # Operations whose result is the full operand width, and the Verilog
 # expression that computes them.  `trunci`, `extui` and `extsi` are absent on
@@ -483,7 +497,7 @@ module {name} #(parameter DELAY = {default})
     // avoid.  It is also just the first link of the delay line.
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    {request_delay("joined")}
 
     // The datapath.  yosys picks the implementation; the matched delay is
     // what makes whatever it picks safe.

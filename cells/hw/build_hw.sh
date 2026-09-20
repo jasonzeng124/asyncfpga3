@@ -247,18 +247,32 @@ write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 
-# Relative placement.  BD_RLOC=v2 (default) stamps an RLOC_GROUP attribute on
-# the post-synthesis netlist so nextpnr keeps each bd_link's C node in the same
-# SLICE as its own latch -- see hw/rloc_stamp.py and patches/README.md.  The
-# cluster floats; nothing is pinned.  BD_RLOC=none turns it off, and that is
-# the ONLY way to reproduce a pre-2026-08-21 route: routed placement is stable
-# per binary but not across binaries, so numbers from the two are not
-# comparable.  An unpatched nextpnr ignores the attribute silently, which is
-# what verify/toolchain.sh above is for.
-BD_RLOC=${BD_RLOC:-v2}
+# Relative placement.  BD_RLOC=v8 (default) stamps RLOC_GROUP/RLOC_SLOT/
+# RLOC_COL attributes on the post-synthesis netlist so nextpnr lays every
+# handshake cycle out along one control spine -- each stage's controller in
+# a row of its own with its delay chains, its latch bank in the rows above and
+# below, the stage's datapath LUTs in the columns beside -- see
+# hw/rloc_stamp.py and patches/README.md.  The clusters float; nothing is
+# pinned.  BD_RLOC=v4 is the 2026-09-19 variant (bank and chain columns, no
+# spine); BD_RLOC=v2 is the 2026-08-21 variant
+# (C node beside ONE latch LUT) every board number on record was built with;
+# BD_RLOC=none turns it off, and that is the ONLY way to reproduce a
+# pre-2026-08-21 route: routed placement is stable per binary but not across
+# binaries, so numbers from the two are not comparable.  An unpatched nextpnr
+# ignores the attribute silently, which is what verify/toolchain.sh above is
+# for.
+# BD_PLACE_WEIGHT=K (default 1 = off) weights every handshake net K-fold in
+# the placer's wirelength objective; see flow.sh for why it stays off.
+# BD_COLUMN_ROWS=N is the tallest spine segment / side column stamped, in
+# tiles; the patched nextpnr takes groups as tall as the device's tallest
+# unbroken logic column (25 on xc7z010).  See flow.sh.
+BD_RLOC=${BD_RLOC:-v8}
+BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
+BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+        --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
+        --column-rows "$BD_COLUMN_ROWS" --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3
@@ -394,6 +408,17 @@ FREQOPT=""
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
     || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
+# A group the packer dropped (too tall for the device, a slot clash) leaves
+# the design measured as something other than what rloc_stamp.py described.
+if [ "$BD_RLOC" != none ]; then
+    dropped=$(grep -oE "[0-9]+ group\(s\) dropped" "$OUT/pnr.log" | awk '{print $1}')
+    if [ -n "$dropped" ] && [ "$dropped" != 0 ]; then
+        echo "PNR DROPPED $dropped RLOC GROUP(S)"
+        grep -iE "RLOC|dropped|reject" "$OUT/pnr.log" | head -20
+        exit 1
+    fi
+    grep -E "group\(s\) dropped" "$OUT/pnr.log" | sed 's/^Info: *//'
+fi
 echo "routed."
 
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
