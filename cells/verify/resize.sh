@@ -281,6 +281,7 @@ repair() {                            # repair KEY TAG WAS WANT
         [ "$(total)" -lt "$budget" ] || break
         round=$((round + 1))
         rtag=${tag}_r$round
+        last_tag=$rtag
         write_sizes
         routes=$((routes + 1))
         if attempt "$rtag"; then
@@ -293,6 +294,77 @@ repair() {                            # repair KEY TAG WAS WANT
         fi
     done
     for y in "${!save[@]}"; do cur[$y]=${save[$y]}; done
+    return 1
+}
+
+ask_for() {                           # ask_for KEY TAG -> what the vetoing route asked of KEY
+    local veto
+    veto=$(veto_of "$2") || return 0
+    awk -v k="$1" '$1 == "`define" && $2 == k {print $3}' "$HIST/prop_$veto.vh"
+}
+
+# -- the jump: apply the whole proposal, then pad what the new route asks -----
+#
+# The descent above moves one delay per route.  When the placeholders are far
+# from the answer that is a placement change of tens of LUT sites per
+# candidate, and every candidate lands on a different route.  Measured on
+# xorshift_round (fusion off, v9, 25 rows) against the corrected SDF: uxori_9
+# came in at 48 links on a 3-link need, and 58 routes later the descent held
+# it at 43 -- 18 ns of a 28 ns interval -- because each shrink moved uxori_4's
+# data path by up to 900 ps and the padded re-route moved it again.
+#
+# So first take the baseline route's whole proposal in one step and iterate
+# THAT to a fixed point: route, pad every delay the route found short to what
+# it asks (never above its placeholder), route again.  Lengths only go up
+# from the proposal and are bounded by the placeholders, so it terminates;
+# BD_RESIZE_JUMP_ROUNDS bounds the cost.  A converged jump is the descent's
+# new baseline -- the routes it then compares differ by one or two links, the
+# regime the one-delay-per-route argument was made for.  A jump that does not
+# converge is abandoned and the descent starts from the placeholders, as
+# before.  BD_RESIZE_JUMP=0 skips it.
+JUMP=${BD_RESIZE_JUMP:-1}
+JUMP_ROUNDS=${BD_RESIZE_JUMP_ROUNDS:-4}
+
+jump() {
+    local round=0 tag k y v n veto
+    local -A base
+    for k in "${KEYS[@]}"; do base[$k]=${cur[$k]}; done
+    read_prop "$HIST/prop_base.vh"
+    n=0
+    for k in "${KEYS[@]}"; do
+        [ "${prop[$k]}" -lt "${cur[$k]}" ] || continue
+        cur[$k]=${prop[$k]}
+        n=$((n + 1))
+    done
+    [ $n -gt 0 ] || return 1
+    while : ; do
+        round=$((round + 1))
+        tag=jump_$round
+        write_sizes
+        routes=$((routes + 1))
+        if attempt "$tag"; then
+            cp "$HIST/prop_$tag.vh" "$HIST/prop_last.vh"
+            for k in "${KEYS[@]}"; do
+                [ "${cur[$k]}" -ne "${base[$k]}" ] || continue
+                printf "  %-20s %2d -> %-2d  jumped\n" "${k#BD_SZ_}" "${base[$k]}" "${cur[$k]}"
+            done
+            echo "  -- jump converged in $round route(s)"
+            return 0
+        fi
+        [ $round -lt "$JUMP_ROUNDS" ] || break
+        veto=$(veto_of "$tag") || break
+        n=0
+        while read -r _ y v; do
+            [ -n "${cur[$y]+x}" ] || continue
+            [ "$v" -gt "${base[$y]}" ] && v=${base[$y]}
+            [ "$v" -gt "${cur[$y]}" ] || continue
+            cur[$y]=$v
+            n=$((n + 1))
+        done < <(grep '^`define' "$HIST/prop_$veto.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
+        [ $n -gt 0 ] || break
+    done
+    for k in "${KEYS[@]}"; do cur[$k]=${base[$k]}; done
+    echo "  -- jump abandoned after $round route(s); descending from the placeholders"
     return 1
 }
 
@@ -310,6 +382,8 @@ echo "baseline routes and passes."
 echo
 
 routes=1
+last_tag=base
+[ "$JUMP" = 0 ] || jump || write_sizes
 sweep=0
 while : ; do
     sweep=$((sweep + 1))
@@ -320,11 +394,13 @@ while : ; do
         want=${prop[$k]}
         [ "$want" -ge "${cur[$k]}" ] && continue      # only ever tighten
         was=${cur[$k]}
+        guided=0
         while [ "$want" -lt "$was" ]; do
             cur[$k]=$want
             write_sizes
             routes=$((routes + 1))
-            if attempt "try_${k}_${want}"; then
+            last_tag=try_${k}_${want}
+            if attempt "$last_tag"; then
                 cp "$HIST/prop_try_${k}_${want}.vh" "$HIST/prop_last.vh"
                 printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
                 changed=1
@@ -344,7 +420,19 @@ while : ; do
                      grep -v "^search slack" | grep -m1 VIOLATION | sed 's/^ *//;s/  */ /g')
             printf "  %-20s %2d -> %-2d  REVERTED\n" "${k#BD_SZ_}" "$was" "$want"
             printf "  %-20s          %s\n" "" "${reason:-place-and-route failed}"
-            want=$(((want + was + 1) / 2))
+            # Bisect towards what was held, except that when the route found
+            # the TRIED delay itself short it also said by how much: try that
+            # ask next, and if that is refuted too fall back to the midpoint,
+            # so the guided steps cannot more than double the bisection.
+            mid=$(((want + was + 1) / 2))
+            ask=$(ask_for "$k" "$last_tag")
+            if [ $guided -eq 0 ] && [ -n "$ask" ] && [ "$ask" -gt "$want" ] && [ "$ask" -lt "$mid" ]; then
+                want=$ask
+                guided=1
+            else
+                want=$mid
+                guided=0
+            fi
         done
     done
 

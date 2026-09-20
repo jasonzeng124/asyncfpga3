@@ -70,12 +70,13 @@ if Path(__file__).stem == "tighten" and (a < need_a or b < need_b):
 """
 
 
-def run_coupled(tmp_path, source, oracle=COUPLED):
+def run_coupled(tmp_path, source, oracle=COUPLED, jump=False, **env):
     flow = make_flow(tmp_path, source, oracle)
     out = flow / "build"
     result = subprocess.run(
         ["bash", str(flow / "verify/resize.sh")], text=True, capture_output=True,
-        env={**os.environ, "BD_OUT": str(out)}, timeout=30,
+        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_JUMP": str(int(jump)), **env},
+        timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     sizes = dict(line.split()[-2:]
@@ -83,6 +84,8 @@ def run_coupled(tmp_path, source, oracle=COUPLED):
                  if line.startswith("`define"))
     return result.stdout, sizes, out
 
+
+# -- the descent alone (BD_RESIZE_JUMP=0) --------------------------------------
 
 def test_veto_by_another_delay_pads_it_instead_of_reverting(tmp_path):
     # Every shrink of B breaks A.  Without repair B parks at 50, the smallest
@@ -109,7 +112,8 @@ def test_veto_by_another_delay_on_a_confirmation_seed_pads_it_too(tmp_path):
     out = flow / "build"
     result = subprocess.run(
         ["bash", str(flow / "verify/resize.sh")], text=True, capture_output=True,
-        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_SEEDS": "3"}, timeout=60,
+        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_SEEDS": "3",
+             "BD_RESIZE_JUMP": "0"}, timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     sizes = dict(line.split()[-2:]
@@ -134,26 +138,77 @@ def test_padded_route_asking_for_more_is_padded_again(tmp_path):
     assert "B                    96 -> 6   kept" in stdout
 
 
+GREEDY = COUPLED.replace("(8 if b < 50 else 5)", "(5 if b >= 50 else a + 1)")
+
+
 def test_repair_rounds_are_bounded(tmp_path):
     # A asks for one more link on every padded route, without end; the
     # search must stop trying after BD_RESIZE_REPAIR_ROUNDS and park B.
-    flow = make_flow(tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n",
-                     COUPLED.replace("(8 if b < 50 else 5)",
-                                     "(5 if b >= 50 else a + 1)"))
-    out = flow / "build"
-    result = subprocess.run(
-        ["bash", str(flow / "verify/resize.sh")], text=True, capture_output=True,
-        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_REPAIR_ROUNDS": "2"},
-        timeout=60,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    sizes = dict(line.split()[-2:]
-                 for line in (out / "resize/sizes.vh").read_text().splitlines()
-                 if line.startswith("`define"))
+    stdout, sizes, out = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n", GREEDY,
+        BD_RESIZE_REPAIR_ROUNDS="2")
     assert sizes == {"BD_SZ_A": "5", "BD_SZ_B": "50"}
-    assert "padded" not in result.stdout
+    assert "padded" not in stdout
     assert (out / "resize/flow_try_BD_SZ_B_6_r2.log").exists()
     assert not (out / "resize/flow_try_BD_SZ_B_6_r3.log").exists()
+
+
+# B's own need depends on B's route: 6 while B is 40 or more, 40 below that
+# -- so B is short of its own ask at every length below 40, and the ask on
+# the vetoing route names 40 directly.
+SELF = """import sys
+from pathlib import Path
+
+words = dict(line.split()[-2:] for line in Path(sys.argv[-1]).read_text().splitlines())
+b = int(words["BD_SZ_B"])
+need_b = 6 if b >= 40 else 40
+if "--emit" in sys.argv:
+    Path(sys.argv[sys.argv.index("--emit") + 1]).write_text(f"`define BD_SZ_B {need_b}\\n")
+if Path(__file__).stem == "tighten" and b < need_b:
+    print("VIOLATION")
+    sys.exit(1)
+"""
+
+
+def test_tried_delay_short_takes_its_own_ask_before_bisecting(tmp_path):
+    stdout, sizes, out = run_coupled(tmp_path, "`define BD_SZ_B 96\n", SELF)
+    assert sizes == {"BD_SZ_B": "40"}
+    assert "B                    96 -> 6   REVERTED" in stdout
+    assert "B                    96 -> 40  kept" in stdout
+    assert not (out / "resize/flow_try_BD_SZ_B_51.log").exists()
+
+
+# -- the jump ------------------------------------------------------------------
+
+def test_jump_pads_to_the_new_routes_asks_and_converges(tmp_path):
+    stdout, sizes, out = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n", jump=True)
+    assert sizes == {"BD_SZ_A": "8", "BD_SZ_B": "6"}
+    assert "A                    96 -> 8   jumped" in stdout
+    assert "B                    96 -> 6   jumped" in stdout
+    assert "jump converged in 2 route(s)" in stdout
+    assert "REVERTED" not in stdout
+    assert "VIOLATION" not in (out / "resize/tighten_final.log").read_text()
+
+
+def test_jump_that_does_not_converge_is_abandoned(tmp_path):
+    stdout, sizes, out = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n", GREEDY, jump=True,
+        BD_RESIZE_JUMP_ROUNDS="3", BD_RESIZE_REPAIR_ROUNDS="1")
+    assert "jump abandoned after 3 route(s)" in stdout
+    assert (out / "resize/flow_jump_3.log").exists()
+    assert not (out / "resize/flow_jump_4.log").exists()
+    assert sizes == {"BD_SZ_A": "5", "BD_SZ_B": "50"}
+
+
+def test_jump_never_pads_above_the_placeholder(tmp_path):
+    # Once B moves the route A asks for 200 links; its placeholder is 96, so
+    # the jump caps the pad there, fails again, and gives up.
+    stdout, sizes, _ = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n",
+        COUPLED.replace("(8 if b < 50 else 5)", "(200 if b < 50 else 5)"), jump=True)
+    assert "jump abandoned" in stdout
+    assert sizes == {"BD_SZ_A": "5", "BD_SZ_B": "50"}
 
 
 def test_pad_that_costs_more_than_the_shrink_saves_is_a_veto(tmp_path):
