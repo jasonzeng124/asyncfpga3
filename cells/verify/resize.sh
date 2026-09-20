@@ -137,19 +137,43 @@ write_sizes() {                       # write the current assignment
 # does not clear it, and a length it keeps is still not a length to trust
 # without a guardband.  See bdc/AUDIT.md section 7.
 SEEDS=${BD_RESIZE_SEEDS:-1}
+# BD_RESIZE_SLACK=P (ps) is the other half of the same bargain.  N routes say
+# whether a length holds on N routes; they say nothing about how far from the
+# edge it sits on each, and a length kept with 20 ps to spare on all three is
+# short on a fourth as soon as the router moves one wire.  Measured on
+# xorshift_round under v8 placement, N=3: one DACK kept at 1 link with +171 ps
+# on the search's route came back at -23 and -19 ps on two of three fresh
+# seeds.  With P, tighten.py widens every guardband by P during the search
+# only, so what is kept passed with at least P ps of physical margin on every
+# route it was checked on.  The audits that gate a build run with P=0.  Costs
+# up to one link (~274 ps) on a delay in P/274 of cases; buys the fresh-seed
+# pass rate.
+#
+# Default 300, from the spread itself.  Over 15 xorshift_round rows (v8/v9
+# placement, 9- and 25-row columns, fusion on and off, caps 4 and 8; four
+# routes each, one of them the search's own), the margin of a rule-A or -H
+# row with fewer than 1000 ps to spare moved by 100-290 ps between routes
+# in all but two cases (357 and 477 ps, both on rows with 390+ ps in hand).
+# The one fresh-seed FAILURE in that set was a row kept at +212 ps under the
+# old default of 150 that came back at -11 ps: 150 is inside the spread, 300
+# is at its edge.  A P that covered the two outliers would be 500 and cost
+# another link on about half of the tight delays; not paid.
+SLACK=${BD_RESIZE_SLACK:-300}
 attempt() {
     local tag=$1 s=2
     ./flow.sh > "$HIST/flow_$tag.log" 2>&1 || return 2
     # NAME THE SDF.  tighten.py defaults to build/pnr/soak.sdf, so with BD_OUT
     # set this measured a stale route from a different design.
-    python3 verify/tighten.py --emit "$HIST/prop_$tag.vh" "$OUT/soak.sdf" \
+    python3 verify/tighten.py --slack "$SLACK" --emit "$HIST/prop_$tag.vh" "$OUT/soak.sdf" \
         > "$HIST/tighten_$tag.log" 2>&1 || return 1
     python3 verify/skew.py "$OUT/soak.sdf" > "$HIST/skew_$tag.log" 2>&1 || return 1
     # The PROPOSAL always comes from the unseeded route above, so the loop's
     # answer stays reproducible; the seeded routes below only ever veto.
+    # A seed's proposal is never applied as a proposal (see above); it is kept
+    # so that repair() can read which delay a seed found short.
     while [ "$s" -le "$SEEDS" ]; do
         NEXTPNR_SEED=$s ./flow.sh > "$HIST/flow_${tag}_s$s.log" 2>&1 || return 2
-        python3 verify/tighten.py "$OUT/soak.sdf" \
+        python3 verify/tighten.py --slack "$SLACK" --emit "$HIST/prop_${tag}_s$s.vh" "$OUT/soak.sdf" \
             > "$HIST/tighten_${tag}_s$s.log" 2>&1 || return 1
         python3 verify/skew.py "$OUT/soak.sdf" \
             > "$HIST/skew_${tag}_s$s.log" 2>&1 || return 1
@@ -194,26 +218,45 @@ total() { local k t=0; for k in "${KEYS[@]}"; do t=$((t + cur[$k])); done; echo 
 # ps on the re-route, and uxori_4 kept 37 links of a 6-link need -- ten
 # nanoseconds of latency, on a kernel whose whole round is fourteen.
 #
-# So when the unseeded route's violators are OTHER delays, pad them to what
-# tighten.py asks for on the new route and check again.  The result is kept
-# only if the sum of all lengths still went down: that is what keeps this a
-# descent (the total strictly decreases on every kept step, so it terminates)
-# and what stops a shrink of one element from buying itself with a pad of
-# ten.  A veto from a confirmation seed, from skew.py, or on the tried delay
-# itself is a real veto and is bisected as before.
+# So when the route's violators are OTHER delays, pad them to what tighten.py
+# asks for on the new route and check again.  The result is kept only if the
+# sum of all lengths still went down: that is what keeps this a descent (the
+# total strictly decreases on every kept step, so it terminates) and what
+# stops a shrink of one element from buying itself with a pad of ten.  A veto
+# from skew.py, or on the tried delay itself, is a real veto and is bisected
+# as before.
+#
+# The route that vetoed may be a confirmation seed's, and that is the same
+# case, not a stronger veto: the tried delay held on every route, and some
+# other delay -- already at its length in the baseline, checked there on the
+# same seeds -- came up P ps short once the netlist moved under it.  Treated
+# as a veto of the tried delay it parked uxori_14 at 8 links on a 5-link
+# need (the harness pipe's DACK, at 0, wanted 1 on seed 2 of the 5-link
+# candidate and nowhere else), and the shrink from 8 never came back: ~1.1 ns
+# of interval on a 6.4 ns cycle.
 repair() {                            # repair KEY TAG WAS WANT
-    local k=$1 tag=$2 was=$3 want=$4 y v before after n=0
+    local k=$1 tag=$2 was=$3 want=$4 y v before after n=0 veto s=2
     local -A pad save
     [ -f "$HIST/prop_$tag.vh" ] || return 1
-    [ -f "$HIST/skew_$tag.log" ] && return 1        # tighten.py passed; the veto is skew's or a seed's
-    grep -q VIOLATION "$HIST/tighten_$tag.log" 2>/dev/null || return 1
+    if [ -f "$HIST/skew_$tag.log" ]; then       # tighten.py passed the unseeded route
+        while [ "$s" -le "$SEEDS" ]; do
+            [ -f "$HIST/prop_${tag}_s$s.vh" ] || return 1   # that seed did not route
+            [ -f "$HIST/skew_${tag}_s$s.log" ] || break     # its tighten.py vetoed
+            s=$((s + 1))
+        done
+        [ "$s" -le "$SEEDS" ] || return 1       # every tighten.py passed; the veto is skew.py's
+        veto=${tag}_s$s
+    else
+        veto=$tag
+    fi
+    grep -q VIOLATION "$HIST/tighten_$veto.log" 2>/dev/null || return 1
     while read -r _ y v; do
         [ -n "${cur[$y]+x}" ] || continue
         [ "$v" -gt "${cur[$y]}" ] || continue
         [ "$y" = "$k" ] && return 1                  # the tried delay is the one that is short
         pad[$y]=$v
         n=$((n + 1))
-    done < <(grep '^`define' "$HIST/prop_$tag.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
+    done < <(grep '^`define' "$HIST/prop_$veto.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
     [ $n -gt 0 ] || return 1                         # a violation with no knob to pad
     before=$(total)
     for y in "${!pad[@]}"; do save[$y]=${cur[$y]}; cur[$y]=${pad[$y]}; done
@@ -279,7 +322,7 @@ while : ; do
             # unseeded route, so look in every log this candidate produced.
             reason=$(cat "$HIST"/tighten_try_"${k}"_"${want}".log \
                          "$HIST"/tighten_try_"${k}"_"${want}"_s*.log 2>/dev/null |
-                     grep -m1 VIOLATION | sed 's/^ *//;s/  */ /g')
+                     grep -v "^search slack" | grep -m1 VIOLATION | sed 's/^ *//;s/  */ /g')
             printf "  %-20s %2d -> %-2d  REVERTED\n" "${k#BD_SZ_}" "$was" "$want"
             printf "  %-20s          %s\n" "" "${reason:-place-and-route failed}"
             want=$(((want + was + 1) / 2))

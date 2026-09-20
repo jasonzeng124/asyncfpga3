@@ -261,7 +261,8 @@ def measure(name, outdir, *, synth=False, stalls=None):
     for kind, tb in (("stalled", tb_stalled), ("fast", tb_fast)):
         sim = outdir / f"sim_{kind}.vvp"
         run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
-             str(sim), *map(str, [*sources, tb])],
+             str(sim), *os.environ.get("BD_SYN_DEFS", "").split(),
+             *map(str, [*sources, tb])],
             outdir / f"compile_{kind}.log")
         outputs[kind] = metrics(run(["vvp", str(sim)],
                                      outdir / f"sim_{kind}.log"))
@@ -511,6 +512,8 @@ def main():
     ap.add_argument("--output", type=Path, default=REPO / "build/fusion-bench")
     ap.add_argument("--kernels", nargs="+", choices=FIXTURES, default=FIXTURES)
     ap.add_argument("--caps", nargs="+", type=int, default=[4, 8])
+    ap.add_argument("--no-baseline", action="store_true",
+                    help="skip the fusion-off row")
     ap.add_argument("--synth", action="store_true")
     ap.add_argument("--route", action="store_true",
                     help="resize, audit, and simulate routed xorshift with SDF")
@@ -524,7 +527,8 @@ def main():
     if args.route and args.kernels != ["xorshift_round"]:
         ap.error("--route currently requires --kernels xorshift_round")
     results = []
-    for forks, cap in [(False, 4), *((True, n) for n in args.caps)]:
+    configs = [] if args.no_baseline else [(False, 4)]
+    for forks, cap in [*configs, *((True, n) for n in args.caps)]:
         emit.BDC_FORK_FUSION, emit.MAX_FUSE_NODES = forks, cap
         for name in args.kernels:
             out = args.output.resolve() / f"{name}-forks{int(forks)}-cap{cap}"

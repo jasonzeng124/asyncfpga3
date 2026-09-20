@@ -103,9 +103,99 @@ module bd_link_ctl (input wire req_in, input wire c_next, input wire rst,
     bd_c2n u (.a(req_in), .b(c_next), .rst(rst), .q(c));
 endmodule
 
-// -- one pipeline stage: controller + latch -------- 1 LUT + W/2 LUTs -------
-module bd_link #(parameter W = 8, parameter integer DELAY = 0,
-                 parameter integer DACK = 0)
+// -- the decoupled controller ------------------------------------ 4 LUT6 ---
+// Selected for every bd_link by `define BD_LINK_DC.  The latch is normally
+// TRANSPARENT and closes on capture, so a stage holds a whole token and the
+// input handshake completes without waiting for the output one.  Four state
+// bits, each one LUT6 with its own feedback (rst on a real pin, like bd_c2):
+//
+//     b   set   req_in . ld . ~ack_out       captured: latch shuts, req_out
+//         reset ack_out . ~ld                 rises (req_out IS b, delayed)
+//     a   set   req_in . b . ld               acknowledge, one hop after b
+//         reset ~req_in . ~ld
+//     ld  set   lt . s . ~a                   "loaded": the latch has been
+//         reset a                             open long enough since it
+//                                             last closed to hold Q = D
+//     lt  =     ~b . ~a . (~ack_out)          the enable, BROAD adds ack_out
+//
+// ld is what makes the ack a one-shot: it falls with a and cannot rise until
+// the latch has reopened (b and a both low) and stayed open through s, so a
+// request still high from the previous token cannot be acknowledged twice,
+// and a new one cannot be captured before Q has followed D again.  With a
+// downstream ack still high, b waits for it (~ack_out), which is the only
+// coupling to the output side that remains.
+//
+// BROAD=1 (the default) keeps the data-valid window every cell in this
+// library expects of a sender: data_out holds until ack_out has fallen
+// (~ack_out in lt).  bd_link_ctl's latch is transparent-on-request and
+// holds from the acknowledge until the NEXT request, so a steer select or a
+// merge input fed from it never moves during return-to-zero; BROAD=1 is
+// the same promise.  BROAD=0 drops ~ack_out: the stage reopens the moment
+// the sink has acknowledged and req_in has withdrawn, which takes the
+// sink's whole return-to-zero off this stage's cycle.  It is legal only when
+// every reader of data_out captures on its request's rise -- another link,
+// or a cone feeding only links -- and bd_pipe uses it on every internal
+// boundary; the compiler chooses it per link from the consumers it emits.
+//
+// The cell is not speed-independent.  It relies on one fact, in three
+// places, each one LUT arc against a round trip through a neighbour:
+//   * lt settles (one arc from b or a) before the neighbouring controller
+//     can respond to b or a through a matched-delay chain, a wire, its own
+//     LUTs and a wire back.  verify/decoupled_si.py explores every other
+//     interleaving of these equations against a four-phase source and sink
+//     and finds no hazard, protocol, opacity or liveness failure once that
+//     one assumption is made; without it every hazard it reports is lt
+//     still stale after a whole handshake.
+//   * The bundled-data consequences are what the routed audit measures:
+//     the sender releases data after a rises (rule H, on the ack's rise --
+//     DACK pads it); this stage's own Q must have followed D through the
+//     open window before lt falls again (rule L -- LDN lengthens the window
+//     when a route is short); the pipe fill must not outrun data (rule I).
+//   * s is FASTFALL, so an lt pulse too short to set ld is simply lost and
+//     the next one retries; it cannot be swallowed into a false ld.
+//
+// Status: an experiment, and on xc7 a failed one.  Closing the latch ON the
+// request turns every input boundary into a setup check that the Muller
+// link never has: each data bit's wire, its LUT arc and its ~700 ps
+// feedback wire against the one request wire plus two controller arcs
+// (rule K in verify/tighten.py).  On xorshift_round every dc route measured
+// short by 100-900 ps on most links across four seeds, one of them as a
+// routed-GLS data corruption, and the request padding that would fix it is
+// about what the decoupling was supposed to save: the one route that did
+// pass GLS was already slower than bd_link_ctl (13.8 against 12.6 ns fast
+// interval, fusion off).  Kept for the record; not a production option.
+module bd_link_dctl #(parameter BROAD = 1, parameter integer LDN = 0)
+    (input wire req_in, input wire ack_out, input wire rst,
+     output wire b, output wire a, output wire lt);
+    wire ld, s, gate;
+    (* keep *) LUT6 #(.INIT(64'h0000F3200000F320)) ub (
+        .I0(req_in), .I1(ack_out), .I2(ld), .I3(b), .I4(rst), .I5(1'b0), .O(b));
+    (* keep *) LUT6 #(.INIT(64'h0000FA800000FA80)) ua (
+        .I0(req_in), .I1(b), .I2(ld), .I3(a), .I4(rst), .I5(1'b0), .O(a));
+    (* keep *) LUT6 #(.INIT(64'h00000F0800000F08)) uld (
+        .I0(lt), .I1(s), .I2(a), .I3(ld), .I4(rst), .I5(1'b0), .O(ld));
+    generate
+        if (BROAD) begin : broad
+            assign gate = ack_out;
+        end else begin : early
+            assign gate = 1'b0;
+        end
+        if (LDN == 0) begin : nos
+            assign s = 1'b1;
+        end else begin : withs
+            bd_delay #(.N(LDN), .FASTFALL(1)) us (.a(lt), .z(s));
+        end
+    endgenerate
+    (* keep *) LUT6 #(.INIT(64'h0101010101010101)) ult (
+        .I0(b), .I1(a), .I2(gate), .I3(1'b0), .I4(1'b0), .I5(1'b0), .O(lt));
+endmodule
+
+// -- one decoupled stage: controller + latch ------- 4 LUTs + W/2 LUTs -----
+// Always available under this name; `define BD_LINK_DC makes bd_link itself
+// this cell, so a design switches controller family in one place.
+module bd_link_dc #(parameter W = 8, parameter integer DELAY = 0,
+                    parameter integer DACK = 0, parameter BROAD = 1,
+                    parameter integer LDN = 0)
     (input  wire             rst,
      input  wire             req_in,
      output wire             ack_in,
@@ -114,6 +204,39 @@ module bd_link #(parameter W = 8, parameter integer DELAY = 0,
      input  wire             ack_out,
      output wire [W-1:0]     data_out);
 
+    wire b, a, lt;
+    bd_link_dctl #(.BROAD(BROAD), .LDN(LDN)) ctl (
+        .req_in(req_in), .ack_out(ack_out), .rst(rst), .b(b), .a(a), .lt(lt));
+    bd_latch #(.W(W)) lat (.d(data_in), .en(lt), .q(data_out));
+
+    // req_out is the capture node; ack_in the acknowledge, its RISE held
+    // back until the enable has reached every latch bit.
+    bd_delay #(.N(DELAY)) rdly (.a(b), .z(req_out));
+    bd_delay #(.N(DACK), .FASTFALL(1)) uack (.a(a), .z(ack_in));
+endmodule
+
+// -- one pipeline stage: controller + latch -------- 1 LUT + W/2 LUTs -------
+module bd_link #(parameter W = 8, parameter integer DELAY = 0,
+                 parameter integer DACK = 0, parameter BROAD = 1,
+                 parameter integer LDN = 0)
+    (input  wire             rst,
+     input  wire             req_in,
+     output wire             ack_in,
+     input  wire [W-1:0]     data_in,
+     output wire             req_out,
+     input  wire             ack_out,
+     output wire [W-1:0]     data_out);
+
+`ifdef BD_LINK_DC
+    // Same body as bd_link_dc, kept flat so <link>.ctl / .lat / .uack / .rdly
+    // name the same things in either family.
+    wire b, a, lt;
+    bd_link_dctl #(.BROAD(BROAD), .LDN(LDN)) ctl (
+        .req_in(req_in), .ack_out(ack_out), .rst(rst), .b(b), .a(a), .lt(lt));
+    bd_latch #(.W(W)) lat (.d(data_in), .en(lt), .q(data_out));
+    bd_delay #(.N(DELAY)) rdly (.a(b), .z(req_out));
+    bd_delay #(.N(DACK), .FASTFALL(1)) uack (.a(a), .z(ack_in));
+`else
     wire c;
     bd_link_ctl ctl (.req_in(req_in), .c_next(ack_out), .rst(rst), .c(c));
     bd_latch #(.W(W)) lat (.d(data_in), .en(c), .q(data_out));
@@ -123,6 +246,7 @@ module bd_link #(parameter W = 8, parameter integer DELAY = 0,
     // enable has reached every latch bit.  Both default to the bare node.
     bd_delay #(.N(DELAY)) rdly (.a(c), .z(req_out));
     bd_delay #(.N(DACK), .FASTRISE(1)) uack (.a(c), .z(ack_in));
+`endif
 endmodule
 
 // -- N stages ---------------- N*(1 + DACK) + (N-1)*SDELAY + N*W/2 LUTs -------
@@ -132,7 +256,8 @@ endmodule
 // because each stage's enable has its own fanout to close before the stage
 // in front of it may reopen.
 module bd_pipe #(parameter W = 8, parameter N = 2, parameter integer DELAY = 0,
-                 parameter integer SDELAY = 1, parameter integer DACK = 0)
+                 parameter integer SDELAY = 1, parameter integer DACK = 0,
+                 parameter BROAD = 1)
     (input  wire             rst,
      input  wire             req_in,
      output wire             ack_in,
@@ -144,7 +269,7 @@ module bd_pipe #(parameter W = 8, parameter N = 2, parameter integer DELAY = 0,
     genvar i;
     generate
     if (N == 1) begin : one
-        bd_link #(.W(W), .DELAY(DELAY), .DACK(DACK)) u (
+        bd_link #(.W(W), .DELAY(DELAY), .DACK(DACK), .BROAD(BROAD)) u (
             .rst(rst), .req_in(req_in), .ack_in(ack_in), .data_in(data_in),
             .req_out(req_out), .ack_out(ack_out), .data_out(data_out));
     end else begin : many
@@ -158,7 +283,46 @@ module bd_pipe #(parameter W = 8, parameter N = 2, parameter integer DELAY = 0,
         assign data_out = dat[W*N +: W];
         for (i = 0; i < N; i = i + 1) begin : stage
             bd_link #(.W(W), .DELAY(i + 1 == N ? DELAY : SDELAY),
-                      .DACK(DACK)) u (
+                      .DACK(DACK), .BROAD(i + 1 == N ? BROAD : 0)) u (
+                .rst(rst),
+                .req_in(r[i]), .ack_in(a[i]), .data_in(dat[W*i +: W]),
+                .req_out(r[i+1]), .ack_out(a[i+1]),
+                .data_out(dat[W*(i+1) +: W]));
+        end
+    end
+    endgenerate
+endmodule
+
+// -- N decoupled stages: bd_pipe over bd_link_dc, one token a stage ------
+module bd_pipe_dc #(parameter W = 8, parameter N = 2, parameter integer DELAY = 0,
+                 parameter integer SDELAY = 1, parameter integer DACK = 0,
+                 parameter BROAD = 1)
+    (input  wire             rst,
+     input  wire             req_in,
+     output wire             ack_in,
+     input  wire [W-1:0]     data_in,
+     output wire             req_out,
+     input  wire             ack_out,
+     output wire [W-1:0]     data_out);
+
+    genvar i;
+    generate
+    if (N == 1) begin : one
+        bd_link_dc #(.W(W), .DELAY(DELAY), .DACK(DACK), .BROAD(BROAD)) u (
+            .rst(rst), .req_in(req_in), .ack_in(ack_in), .data_in(data_in),
+            .req_out(req_out), .ack_out(ack_out), .data_out(data_out));
+    end else begin : many
+        wire [N:0] r, a;                  // r[k] into stage k, a[k] out of it
+        wire [W*(N+1)-1:0] dat;
+        assign r[0] = req_in;
+        assign ack_in = a[0];
+        assign a[N] = ack_out;
+        assign req_out = r[N];
+        assign dat[W-1:0] = data_in;
+        assign data_out = dat[W*N +: W];
+        for (i = 0; i < N; i = i + 1) begin : stage
+            bd_link_dc #(.W(W), .DELAY(i + 1 == N ? DELAY : SDELAY),
+                      .DACK(DACK), .BROAD(i + 1 == N ? BROAD : 0)) u (
                 .rst(rst),
                 .req_in(r[i]), .ack_in(a[i]), .data_in(dat[W*i +: W]),
                 .req_out(r[i+1]), .ack_out(a[i+1]),

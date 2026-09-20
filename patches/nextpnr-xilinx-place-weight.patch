@@ -1,0 +1,138 @@
+diff --git a/common/place_common.cc b/common/place_common.cc
+index 50a11880..d6a57583 100644
+--- a/common/place_common.cc
++++ b/common/place_common.cc
+@@ -18,12 +18,23 @@
+  */
+ 
+ #include "place_common.h"
++#include <algorithm>
+ #include <cmath>
++#include <cstdlib>
+ #include "log.h"
+ #include "util.h"
+ 
+ NEXTPNR_NAMESPACE_BEGIN
+ 
++int get_net_place_weight(const Context *ctx, const NetInfo *net)
++{
++    auto w = net->attrs.find(ctx->id("PLACE_WEIGHT"));
++    if (w == net->attrs.end())
++        return 1;
++    int64_t v = w->second.is_string ? std::atoll(w->second.as_string().c_str()) : w->second.as_int64();
++    return std::max<int64_t>(1, std::min<int64_t>(1000, v));
++}
++
+ // Get the total estimated wirelength for a net
+ wirelen_t get_net_metric(const Context *ctx, const NetInfo *net, MetricType type, float &tns)
+ {
+@@ -74,7 +85,7 @@ wirelen_t get_net_metric(const Context *ctx, const NetInfo *net, MetricType type
+     }
+ 
+     tns += ctx->getDelayNS(negative_slack);
+-    return wirelength;
++    return wirelength * get_net_place_weight(ctx, net);
+ }
+ 
+ // Get the total wirelength for a cell
+diff --git a/common/place_common.h b/common/place_common.h
+index fa5ce4c2..13b96929 100644
+--- a/common/place_common.h
++++ b/common/place_common.h
+@@ -32,6 +32,14 @@ enum class MetricType
+     WIRELENGTH
+ };
+ 
++// A net's placement weight: the value of its PLACE_WEIGHT attribute, 1 when
++// it has none.  Both placers multiply the net's wirelength term by it, so a
++// netlist can say which nets it wants short without any of them being on a
++// timed path -- a handshake loop that classic STA cuts with --ignore-loops has
++// no criticality of its own, and every net in it is otherwise placed by the
++// same wirelength objective as a data bit with thirty siblings.
++int get_net_place_weight(const Context *ctx, const NetInfo *net);
++
+ // Return the wirelength of a net
+ wirelen_t get_net_metric(const Context *ctx, const NetInfo *net, MetricType type, float &tns);
+ 
+diff --git a/common/placer1.cc b/common/placer1.cc
+index c2719918..516cc5bb 100644
+--- a/common/placer1.cc
++++ b/common/placer1.cc
+@@ -68,9 +68,11 @@ class SAPlacer
+         int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+         // Number of cells at each extremity
+         int nx0 = 0, nx1 = 0, ny0 = 0, ny1 = 0;
++        // The net's PLACE_WEIGHT
++        int weight = 1;
+         wirelen_t hpwl(const Placer1Cfg &cfg) const
+         {
+-            return wirelen_t(cfg.hpwl_scale_x * (x1 - x0) + cfg.hpwl_scale_y * (y1 - y0));
++            return wirelen_t(weight * (cfg.hpwl_scale_x * (x1 - x0) + cfg.hpwl_scale_y * (y1 - y0)));
+         }
+     };
+ 
+@@ -924,6 +926,7 @@ class SAPlacer
+         bb.nx1 = 1;
+         bb.ny0 = 1;
+         bb.ny1 = 1;
++        bb.weight = get_net_place_weight(ctx, net);
+         for (auto user : net->users) {
+             if (user.cell->bel == BelId())
+                 continue;
+diff --git a/common/placer_heap.cc b/common/placer_heap.cc
+index b6a6e31d..2e8f61a0 100644
+--- a/common/placer_heap.cc
++++ b/common/placer_heap.cc
+@@ -154,6 +154,18 @@ class HeAPPlacer
+         wirelen_t hpwl = total_hpwl();
+         log_info("Creating initial analytic placement for %d cells, random placement wirelen = %d.\n",
+                  int(place_cells.size()), int(hpwl));
++        {
++            int n_weighted = 0, w_max = 1;
++            for (auto &net : ctx->nets) {
++                int w = net_weight(net.second.get());
++                if (w > 1)
++                    ++n_weighted;
++                w_max = std::max(w_max, w);
++            }
++            if (n_weighted)
++                log_info("    %d net(s) carry PLACE_WEIGHT (max %d): their wirelength counts that many times over\n",
++                         n_weighted, w_max);
++        }
+         for (int i = 0; i < 4; i++) {
+             setup_solve_cells();
+             auto solve_startt = std::chrono::high_resolution_clock::now();
+@@ -377,6 +389,16 @@ class HeAPPlacer
+ 
+     NetCriticalityMap net_crit;
+ 
++    // PLACE_WEIGHT per net, looked up once: this runs per arc per solver pass
++    std::unordered_map<const NetInfo *, int> net_weights;
++    int net_weight(const NetInfo *ni)
++    {
++        auto f = net_weights.find(ni);
++        if (f == net_weights.end())
++            f = net_weights.emplace(ni, get_net_place_weight(ctx, ni)).first;
++        return f->second;
++    }
++
+     // Place cells with the BEL attribute set to constrain them
+     void place_constraints()
+     {
+@@ -782,6 +804,7 @@ class HeAPPlacer
+                     double weight = 1.0 / (ni->users.size() *
+                                            std::max<double>(1, (yaxis ? cfg.hpwl_scale_y : cfg.hpwl_scale_x) *
+                                                                        std::abs(o_pos - this_pos)));
++                    weight *= net_weight(ni);
+ 
+                     if (user_idx != -1 && net_crit.count(ni->name)) {
+                         auto &nc = net_crit.at(ni->name);
+@@ -871,7 +894,7 @@ class HeAPPlacer
+                 ymin = std::min(ymin, usrloc.y);
+                 ymax = std::max(ymax, usrloc.y);
+             }
+-            hpwl += cfg.hpwl_scale_x * (xmax - xmin) + cfg.hpwl_scale_y * (ymax - ymin);
++            hpwl += net_weight(ni) * (cfg.hpwl_scale_x * (xmax - xmin) + cfg.hpwl_scale_y * (ymax - ymin));
+         }
+         return hpwl;
+     }

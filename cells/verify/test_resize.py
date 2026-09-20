@@ -97,6 +97,30 @@ def test_veto_by_another_delay_pads_it_instead_of_reverting(tmp_path):
     assert "VIOLATION" not in (out / "resize/tighten_final.log").read_text()
 
 
+def test_veto_by_another_delay_on_a_confirmation_seed_pads_it_too(tmp_path):
+    # Same coupling, but A only comes up short on the second confirmation
+    # route.  The tried delay B held on every route, so the answer is still
+    # to pad A -- not to park B at 50 as if B's own length had been refuted.
+    flow = make_flow(tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n",
+                     COUPLED.replace(
+                         "need_a, need_b = (8 if b < 50 else 5), 6",
+                         "seed = int(words['seed'])\n"
+                         "need_a, need_b = (8 if b < 50 and seed == 2 else 5), 6"))
+    out = flow / "build"
+    result = subprocess.run(
+        ["bash", str(flow / "verify/resize.sh")], text=True, capture_output=True,
+        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_SEEDS": "3"}, timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    sizes = dict(line.split()[-2:]
+                 for line in (out / "resize/sizes.vh").read_text().splitlines()
+                 if line.startswith("`define"))
+    assert sizes == {"BD_SZ_A": "8", "BD_SZ_B": "6"}
+    assert "A                     5 -> 8   padded" in result.stdout
+    for s in (2, 3):
+        assert "VIOLATION" not in (out / f"resize/tighten_final_s{s}.log").read_text()
+
+
 def test_pad_that_costs_more_than_the_shrink_saves_is_a_veto(tmp_path):
     # B's placeholder is 52, so its shrink to 6 saves 46 links, and A asks
     # for 55 more once the route moves.  The descent must refuse that trade

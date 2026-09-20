@@ -133,8 +133,10 @@ is unconstrained and floats over the whole device, so this is Vivado's
 xc7 (one SLICE; eight on xcup) fill one tile, a fractured `LUT6_2` pair
 counting as one; a group naming more is laid out as a **column**, one row of
 slots per tile, the rows stacked alternately above and below the root's
-(dy = 0, +1, -1, +2, -2, ...) so the root sits mid-column, up to nine tiles.
-A group needing more than that, or containing a BEL-pinned or
+(dy = 0, +1, -1, +2, -2, ...) so the root sits mid-column, up to as many
+tiles as the tallest unbroken run of logic tiles in the device's grid (25 on
+xc7z010, a clock region; it was a constant nine until 2026-09-20, which cut a
+pipeline of more than three W=32 stages into separately floating segments).  A group needing more than that, or containing a BEL-pinned or
 absolutely-z-constrained cell, is dropped **whole** with a warning -- a
 half-applied relative-placement constraint measures as a success on the
 members that did get it.  The column is what lets `rloc_stamp.py`'s `v3`/`v4`
@@ -168,10 +170,50 @@ the placement moves -- so LUT sites are unchanged (6635 on gcd, 1449 on ipow),
 CLB tiles spread by about 1%, and place-and-route wall time varies less between
 variants than it does between runs of the same variant.
 
+**Slot-ordered and multi-column groups** (`RLOC_SLOT`, `RLOC_COL`).  A member
+carrying an integer `RLOC_SLOT` is laid at that slot -- row `slot/8`, logic
+slot `slot%8` on xc7 -- instead of in name order, so a front end can lay a
+group out in the order its transitions travel and leave gaps.  `RLOC_COL`
+(default 0) puts a member in a neighbouring logic column of the same rows.
+Logic columns are not evenly spaced on the die (CLB pairs sit back to back,
+interconnect and BRAM/DSP columns come between), so the grid offset of column
+`c` is read from the device: the spacing pattern the most consecutive logic
+columns share (the log line `RLOC_COL offsets {...} hold at N of M logic
+columns`), and anchors where it does not hold are illegal for the cluster
+exactly as a column straddling a row without logic is.  Duplicate slots in one
+column are a front-end bug and are warned about, that column then packing
+densely rather than the group being dropped.  All three attributes are copied
+from a `LUT6_2` to both halves the packer splits it into, so a fractured pair
+still spends one slot.  This is what `rloc_stamp.py` `v5`..`v9` build their
+control spine and side columns from; `cells/hw/README.md` has the measurements.
+
 Fingerprints for `cells/verify/toolchain.sh`, each checked BOTH ways (present
-1x in the patched binary, 0x unpatched; the second also 0x in a binary carrying
-only the single-tile revision of this patch) -- add them when the binary is
-installed, not before:
+in the patched binary, 0x unpatched; the second also 0x in a binary carrying
+only the single-tile revision of this patch, the third 0x in one carrying only
+the column revision) -- add them when the binary is installed, not before:
 
     "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
-    "column of nine tiles|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns (whole latch bank, delay chain)"
+    "tallest logic column on this device|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)"
+    "RLOC_COL offsets|nextpnr-xilinx-rloc-group.patch|RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)"
+
+## nextpnr-xilinx-place-weight.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `common/place_common.{cc,h}`,
+`common/placer1.cc` and `common/placer_heap.cc`.  Independent of the rloc
+patch; nothing in it is specific to this project.
+
+**Per-net placement weight from a netlist attribute.**  A net carrying an
+integer `PLACE_WEIGHT` (clamped to 1..1000, 1 when absent) has its wirelength
+term multiplied by it in both placers: HeAP's solver weights and its HPWL
+report, and placer1's per-net bounding-box cost.  Why: classic STA sees a
+handshake ring as a combinational loop and `--ignore-loops` cuts it, so no net
+in the ring is ever critical and every one of them is placed by the same
+wirelength objective as a data bit with thirty siblings.  The weight is how
+`cells/flow.sh` (`BD_PLACE_WEIGHT`, via `rloc_stamp.py weight_control_nets`)
+tells the placer which nets are the cycle: req/ack/C-node nets, not reset and
+not the bundled data.  The stamper decides what a control net is; the patch
+only reads the number.
+
+Fingerprint, 0x in every binary without this patch (the string is new):
+
+    "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"

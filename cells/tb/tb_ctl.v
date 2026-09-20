@@ -89,7 +89,11 @@ module conf_rig #(parameter KIND = 0, parameter integer N = 4,
 
     bd_source #(.W(W), .SETUP(TSU)) src (.req(rq), .ack(ak), .data(di));
     generate
-        if (KIND == 2) begin : g_deco
+        if (KIND == 3) begin : g_dc
+            bd_pipe_dc #(.W(W), .N(N)) dut (
+                .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
+                .req_out(ro), .ack_out(ao), .data_out(dout));
+        end else if (KIND == 2) begin : g_deco
             bd_pipe_deco #(.W(W), .N(N)) dut (
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
@@ -130,7 +134,11 @@ module occ_rig #(parameter KIND = 0, parameter integer N = 4,
     wire rq, ak, ro, ao;  wire [W-1:0] di, dout;
     bd_source #(.W(W)) src (.req(rq), .ack(ak), .data(di));
     generate
-        if (KIND == 2) begin : g_deco
+        if (KIND == 3) begin : g_dc
+            bd_pipe_dc #(.W(W), .N(N)) dut (
+                .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
+                .req_out(ro), .ack_out(ao), .data_out(dout));
+        end else if (KIND == 2) begin : g_deco
             bd_pipe_deco #(.W(W), .N(N)) dut (
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
@@ -187,6 +195,8 @@ module tb_ctl;
     occ_rig #(.KIND(1), .N(N)) o_attempt (rst, go, occ_a, occ_ad);
     wire [15:0] occ_d;  wire occ_dd;
     occ_rig #(.KIND(2), .N(N)) o_deco    (rst, go, occ_d, occ_dd);
+    wire [15:0] occ_c;  wire occ_cd;
+    occ_rig #(.KIND(3), .N(N)) o_dc      (rst, go, occ_c, occ_cd);
 
     // ---- the stress grid ---------------------------------------------------
     // FAST | SLOWA slow to acknowledge | SLOWR slow to release | SLOWS slow sender
@@ -223,6 +233,22 @@ module tb_ctl;
         g_r_d (rst, go, wr_d, dr_d, fr_d);
     conf_rig #(.KIND(2), .T_ACK(T_SAMPLE), .TSU(6000), .GAP(6000))
         g_s_d (rst, go, ws_d, ds_d, fs_d);
+
+    // ---- bd_link_dc: the capture-owned decoupled controller, same matrix ---
+    wire [15:0] wf_c, wa_c, wr_c, ws_c, df_c, da_c, dr_c, ds_c;
+    wire        ff_c, fa_c, fr_c, fs_c;
+    conf_rig #(.KIND(3), .T_ACK(T_SAMPLE))
+        g_f_c (rst, go, wf_c, df_c, ff_c);
+    conf_rig #(.KIND(3), .T_ACK(T_SAMPLE + 6000))
+        g_a_c (rst, go, wa_c, da_c, fa_c);
+    conf_rig #(.KIND(3), .T_ACK(T_SAMPLE), .T_REL(6000))
+        g_r_c (rst, go, wr_c, dr_c, fr_c);
+    conf_rig #(.KIND(3), .T_ACK(T_SAMPLE), .TSU(6000), .GAP(6000))
+        g_s_c (rst, go, ws_c, ds_c, fs_c);
+    // and the two-sided cases the attempt lost: slow sender with slow release
+    wire [15:0] w_rel_c, d_rel_c;  wire f_rel_c;
+    conf_rig #(.KIND(3), .T_ACK(T_SAMPLE), .TSU(6000), .T_REL(6000))
+        g_rel_c (rst, go, w_rel_c, d_rel_c, f_rel_c);
 
     // ---- separating the two halves of the "slow sender" case --------------
     // SLOWS moves two things at once, setup and inter-token gap.  These two
@@ -268,6 +294,21 @@ module tb_ctl;
     initial begin wait (go);
         for (i3 = 0; i3 < 16; i3 = i3 + 1) psrc_d.send(8'hA0 + i3[7:0]); end
 
+    wire p_rq_c, p_ak_c, p_ro_c, p_ao_c;  wire [W-1:0] p_di_c, p_do_c;
+    bd_source #(.W(W)) psrc_c (.req(p_rq_c), .ack(p_ak_c), .data(p_di_c));
+    bd_pipe_dc #(.W(W), .N(N)) pdut_c (
+        .rst(rst), .req_in(p_rq_c), .ack_in(p_ak_c), .data_in(p_di_c),
+        .req_out(p_ro_c), .ack_out(p_ao_c), .data_out(p_do_c));
+    conf_sink #(.W(W), .T_ACK(T_SAMPLE)) psnk_c
+        (.req(p_ro_c), .ack(p_ao_c), .data(p_do_c));
+    bd_monitor #(.W(W), .CHAN("dc-in"))                       mi_c
+        (.req(p_rq_c), .ack(p_ak_c), .data(p_di_c));
+    bd_monitor #(.W(W), .CHAN("dc-out"), .SETTLE(N*`BD_T_FALL)) mo_c
+        (.req(p_ro_c), .ack(p_ao_c), .data(p_do_c));
+    integer i4;
+    initial begin wait (go);
+        for (i4 = 0; i4 < 16; i4 = i4 + 1) psrc_c.send(8'hA0 + i4[7:0]); end
+
     wire p_rq_a, p_ak_a, p_ro_a, p_ao_a;  wire [W-1:0] p_di_a, p_do_a;
     bd_source #(.W(W)) psrc_a (.req(p_rq_a), .ack(p_ak_a), .data(p_di_a));
     bd_pipe_semi #(.W(W), .N(N)) pdut_a (
@@ -298,20 +339,34 @@ module tb_ctl;
 
         // reset must leave every pipe empty and DEFINED
         #(20 * H);
+`ifdef BD_LINK_DC
+        // bd_pipe IS bd_pipe_dc under this define; its row reads as dc.
+        if ({pdut_s.many.stage[3].u.b, pdut_s.many.stage[2].u.b,
+             pdut_s.many.stage[1].u.b, pdut_s.many.stage[0].u.b} !== {N{1'b0}})
+            fail("the simple pipe did not reset to empty");
+`else
         if ({pdut_s.many.stage[3].u.c, pdut_s.many.stage[2].u.c,
              pdut_s.many.stage[1].u.c, pdut_s.many.stage[0].u.c} !== {N{1'b0}})
             fail("the simple pipe did not reset to empty");
+`endif
         if (pdut_a.stage[0].u.l !== 1'b0 || pdut_a.stage[0].u.r !== 1'b0)
             fail("the attempt did not reset to empty");
+        if ({pdut_c.many.stage[3].u.b, pdut_c.many.stage[2].u.b,
+             pdut_c.many.stage[1].u.b, pdut_c.many.stage[0].u.b} !== {N{1'b0}}
+            || {pdut_c.many.stage[3].u.a, pdut_c.many.stage[2].u.a,
+                pdut_c.many.stage[1].u.a, pdut_c.many.stage[0].u.a} !== {N{1'b0}})
+            fail("bd_link_dc did not reset to empty");
         rst = 1'b0;
         #(20 * H);
         mi_s.arm; mo_s.arm; mi_a.arm; mo_a.arm; mi_d.arm; mo_d.arm;
+        mi_c.arm; mo_c.arm;
 
         go = 1'b1;
-        wait (occ_sd && occ_ad && occ_dd);
+        wait (occ_sd && occ_ad && occ_dd && occ_cd);
         wait (ff_s && fa_s && fr_s && fs_s && ff_a && fa_a && fr_a && fs_a);
         wait (f_su_a && f_gap_a && f_rel_a);
         wait (ff_d && fa_d && fr_d && fs_d);
+        wait (ff_c && fa_c && fr_c && fs_c && f_rel_c);
         #(200 * H);
 
         $display();
@@ -326,6 +381,9 @@ module tb_ctl;
         $display("  decoupled      %2d/%0d  %0s %0s %0s %0s %0s",
                  occ_d, N,   verdict(wf_d), verdict(wa_d), verdict(wr_d),
                  verdict(ws_d), verdict(mi_d.errors + mo_d.errors));
+        $display("  bd_link_dc     %2d/%0d  %0s %0s %0s %0s %0s",
+                 occ_c, N,   verdict(wf_c), verdict(wa_c), verdict(wr_c),
+                 verdict(ws_c), verdict(mi_c.errors + mo_c.errors));
         $display();
         $display("  wrong tokens out of 20 -- FAST/SLOWA/SLOWR/SLOWS");
         $display("    simple          %0d / %0d / %0d / %0d",
@@ -334,6 +392,8 @@ module tb_ctl;
                  wf_a, wa_a, wr_a, ws_a);
         $display("    decoupled       %0d / %0d / %0d / %0d",
                  wf_d, wa_d, wr_d, ws_d);
+        $display("    bd_link_dc      %0d / %0d / %0d / %0d  (slow sender AND slow release %0d)",
+                 wf_c, wa_c, wr_c, ws_c, w_rel_c);
         $display("  attempt, isolating the slow-sender case:");
         $display("    long setup only (TSU=6000)   %0d wrong", w_su_a);
         $display("    long gap only   (GAP=6000)   %0d wrong", w_gap_a);
@@ -345,14 +405,30 @@ module tb_ctl;
                  df_a, da_a, dr_a, ds_a);
 
         // -- the simple controller is the reference: it must fill its row ----
+`ifdef BD_LINK_DC
+        if (occ_s != N) fail("simple (=dc): occupancy is not a token a stage");
+`else
         if (occ_s != N / 2) fail("simple: occupancy is not half a token a stage");
+`endif
         if (wf_s != 0) fail("simple: FAST");
         if (wa_s != 0) fail("simple: SLOWA -- a slow acknowledge broke it");
         if (wr_s != 0) fail("simple: SLOWR -- a slow release broke it");
         if (ws_s != 0) fail("simple: SLOWS -- a slow sender broke it");
         if (mi_s.errors + mo_s.errors != 0) fail("simple: PROTO");
 
-        // -- the derived decoupled controller must fill the row entirely -----
+        // -- bd_link_dc is a library cell: it must fill its row --------------
+        // It owns its latch close (the enable falls on its own capture node,
+        // not on anything a partner gates), so no partner timing is presumed.
+        if (occ_c != N) fail("bd_link_dc: occupancy is not a token a stage");
+        if (wf_c != 0) fail("bd_link_dc: FAST");
+        if (wa_c != 0) fail("bd_link_dc: SLOWA -- a slow acknowledge broke it");
+        if (wr_c != 0) fail("bd_link_dc: SLOWR -- a slow release broke it");
+        if (ws_c != 0) fail("bd_link_dc: SLOWS -- a slow sender broke it");
+        if (w_rel_c != 0) fail("bd_link_dc: slow sender AND slow release");
+        if (df_c != 20 || da_c != 20 || dr_c != 20 || ds_c != 20 || d_rel_c != 20)
+            fail("bd_link_dc: did not deliver every token");
+        if (mi_c.errors + mo_c.errors != 0) fail("bd_link_dc: PROTO");
+
         // -- the decoupled attempt: UNRESOLVED, and asserted as unresolved ----
         // It is not scored as a library cell, because it is not one.  What is
         // known is narrow and was measured by sweeping the one thing this rig

@@ -136,6 +136,20 @@ EMIT = None
 if "--emit" in sys.argv:
     EMIT = pathlib.Path(sys.argv[sys.argv.index("--emit") + 1])
     _args = [a for a in _args if a != str(EMIT)]
+# --slack <ps> widens every guardband by that much, for the SEARCH only.  A
+# margin is a property of one route, and the same netlist re-routed under
+# another seed moves a rule H margin at a stage boundary by 150-200 ps either
+# way (bdc/fusion_bench.py's fresh-seed reroutes: -23, -19, +171 on one DACK).
+# A length verify/resize.sh keeps because it passed with 0..274 ps to spare on
+# the routes it saw is therefore short on a fresh one about as often as not.
+# With the slack folded in, a length is kept only if it would still pass had
+# every guardband been that much larger; the audit that gates a build
+# (check.sh, the fresh-seed reroutes) runs without it and measures the
+# physical margin.  Only resize.sh passes it.
+SLACK = 0
+if "--slack" in sys.argv:
+    SLACK = int(sys.argv[sys.argv.index("--slack") + 1])
+    _args = [a for a in _args if a != str(SLACK)]
 # Default is what flow.sh writes; an explicit path lets the gate be pointed at
 # a deliberately under-delayed build to confirm it still has teeth.
 SDF = pathlib.Path(_args[0]) if _args else ROOT / "build/pnr/soak.sdf"
@@ -781,7 +795,46 @@ def request_sites(edges, back, chains):
 # one of those under <pipe>.one.u or <pipe>.many.stage[i].u, and the stage
 # is the link rule A folds in.
 RE_UPSTREAM_BD_LINK = re.compile(
-    r"^(.*?)\.(?:ctl\.u\.u|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56])$")
+    r"^(.*?)\.(?:ctl\.(?:u\.u|ub|ua|uld|ult)|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56])$")
+
+# bd_link_dc (rtl/bd_link.v, `define BD_LINK_DC): the controller is four LUT6s
+# under <link>.ctl -- ub (b, the capture node and outgoing request), ua (a,
+# the acknowledge), uld (ld) and ult (lt, the latch enable, combinational in
+# b, a and ack_out).  Everything that names "the controller" of a link below
+# names b: it is the state node whose RISE closes the latch, so it stands
+# where the Muller controller's C node stands in every rule, with the enable
+# arc measured through ult.
+RE_DC_B = re.compile(r"^(.*?)\.ctl\.ub$")
+# What acknowledges a bd_link_dc: the next link's uack chain, or its `a`
+# when that chain is empty.
+RE_DC_ACK = re.compile(r"\.uack\.chain\.g\[\d+\]\.u$|\.ctl\.ua$")
+
+
+def dc_link_of(node):
+    """The bd_link_dc a state node is the capture node of, or None."""
+    m = RE_DC_B.match(pin_split(node)[0])
+    return m.group(1) if m else None
+
+
+def dc_node(edges, link, name):
+    """The output pin of <link>.ctl.<name>, or None."""
+    inst = f"{link}.ctl.{name}"
+    return next((p for p in edges if pin_split(p)[0] == inst and is_output(p)),
+                None)
+
+
+def dc_ack_exit(timing, link, tail, confine=None):
+    """b's rise to the tail of the link's uack chain: through a, a state node
+    the walk stops at, so two legs."""
+    b = dc_node(timing.edges, link, "ub")
+    a = dc_node(timing.edges, link, "ua")
+    if b is None or a is None:
+        return 0
+    t_a = timing.early(b, confine).get(a)
+    t_t = timing.early(a, confine).get(tail)
+    if t_a is None or t_t is None:
+        return 0
+    return t_a + t_t
 RE_LATCH_STOP = re.compile(
     r"^(?:.*\.)?lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56]$")
 
@@ -819,6 +872,16 @@ def upstream_data_lag(timing, back, confine, links, srcs):
                 and pin_split(source)[0].startswith(link + ".")
                 and ".lat." not in pin_split(source)[0]
             }
+            # A decoupled link's enable is lt, combinational; the launch the
+            # data is measured from is b (through ult -- see latch_enables).
+            for pin in input_pins:
+                for source in back.get(pin, ()):
+                    if pin_split(source)[0].endswith(".ctl.ult"):
+                        b = dc_node(timing.edges,
+                                    pin_split(source)[0][:-len(".ctl.ult")],
+                                    "ub")
+                        if b is not None:
+                            controllers.add(b)
             if not controllers:
                 print(f"  WARNING: no upstream controller found for "
                       f"{latch_pin}")
@@ -852,9 +915,10 @@ def ack_knob(base, ctl_inst):
     a pipe stage's line rolling up into the pipe's one knob either way."""
     if base:
         return RE_ACK_CHAIN.match(base).group(1) + ".uack"
-    if ctl_inst.endswith(".ctl.u.u"):
-        link = ctl_inst[:-len(".ctl.u.u")]
-        return RE_ACK_CHAIN.match(link + ".uack").group(1) + ".uack"
+    for suffix in (".ctl.u.u", ".ctl.ub"):
+        if ctl_inst.endswith(suffix):
+            link = ctl_inst[:-len(suffix)]
+            return RE_ACK_CHAIN.match(link + ".uack").group(1) + ".uack"
     return None
 
 
@@ -865,9 +929,10 @@ def stage_delay_knob(up, ctl):
     stage's line is the pipe's own DELAY, like a bare link's."""
     def link_of(node):
         inst = pin_split(node)[0]
-        if not inst.endswith(".ctl.u.u"):
-            return None
-        return inst[:-len(".ctl.u.u")]
+        for suffix in (".ctl.u.u", ".ctl.ub"):
+            if inst.endswith(suffix):
+                return inst[:-len(suffix)]
+        return None
 
     link = link_of(up)
     if link is None:
@@ -887,11 +952,26 @@ def stage_delay_knob(up, ctl):
 def latch_enables(edges, ctl):
     """bd_latch input pins the state node drives directly, with the routed
     arc to each.  A controller is any state node that is not itself a latch
-    and has some."""
-    if RE_BD_LATCH.search(pin_split(ctl)[0]):
+    and has some.  A bd_link_dc's b drives its latches through its own ult
+    (one LUT6, no storage), and that path is folded in as b's enable arc;
+    a and ack_out also feed ult but are not controllers of this latch."""
+    inst = pin_split(ctl)[0]
+    if RE_BD_LATCH.search(inst):
         return []
-    return [(dst, d) for dst, d in edges.get(ctl, ())
-            if not is_output(dst) and RE_BD_LATCH.search(pin_split(dst)[0])]
+    out = [(dst, d) for dst, d in edges.get(ctl, ())
+           if not is_output(dst) and RE_BD_LATCH.search(pin_split(dst)[0])]
+    link = dc_link_of(ctl)
+    if link is not None:
+        ult = link + ".ctl.ult"
+        for lt_in, d1 in edges.get(ctl, ()):
+            if pin_split(lt_in)[0] != ult or is_output(lt_in):
+                continue
+            for lt_out, d2 in edges.get(lt_in, ()):
+                for dst, d3 in edges.get(lt_out, ()):
+                    if not is_output(dst) and \
+                            RE_BD_LATCH.search(pin_split(dst)[0]):
+                        out.append((dst, d1 + d2 + d3))
+    return out
 
 
 def latch_data_pins(back, insts, en_pins):
@@ -907,9 +987,21 @@ def latch_data_pins(back, insts, en_pins):
     return pins
 
 
+def loop_wire(edges, inst):
+    """The routed wire from a latch LUT's output back to its own input, in
+    ps.  A mux-latch bit has captured D only once that new value is back at
+    its feedback pin: close the enable before then and the stale value still
+    on the loop is what gets held.  Up to ~700 ps on a route, so it is not
+    a rounding term."""
+    return max((w for o in (inst + "/O5", inst + "/O6")
+                for d, w in edges.get(o, ())
+                if not is_output(d) and pin_split(d)[0] == inst), default=0)
+
+
 def req_guard(p, t):
-    """The review's guardband: a fifth of the data path, floored at 200 ps."""
-    return max(int(0.2 * t), 200)
+    """The review's guardband: a fifth of the data path, floored at 200 ps,
+    plus the search slack (0 outside resize.sh)."""
+    return max(int(0.2 * t), 200) + SLACK
 
 
 def input_lead(timing, back, req_start, data_starts, guard=None):
@@ -920,7 +1012,7 @@ def input_lead(timing, back, req_start, data_starts, guard=None):
     data arrival against earliest enable arrival at each latch the request's
     controllers drive, plus `guard(t_data)`; None when no latch reads it."""
     req = timing.early(req_start)
-    enables, en_pins = {}, set()
+    enables, en_pins, settle = {}, set(), {}
     for ctl in req:
         if ctl not in timing.stops:
             continue
@@ -928,6 +1020,12 @@ def input_lead(timing, back, req_start, data_starts, guard=None):
             inst = pin_split(pin)[0]
             enables[inst] = min(enables.get(inst, math.inf), req[ctl] + arc)
             en_pins.add(pin)
+            # A bd_link_dc latch is transparent between tokens and CLOSES on
+            # this enable, so its D has to have gone through the LUT and
+            # round the feedback loop by then.  The Muller link's latch
+            # OPENS on it and closes a handshake later; nothing to add.
+            if dc_link_of(ctl) is not None:
+                settle[inst] = loop_wire(timing.edges, inst)
     pins = latch_data_pins(back, set(enables), en_pins)
     guard = guard or (lambda t: req_guard(None, t))
     need = None
@@ -935,13 +1033,18 @@ def input_lead(timing, back, req_start, data_starts, guard=None):
         late = timing.late(start)
         for pin in pins:
             if pin in late:
+                inst = pin_split(pin)[0]
                 t = late[pin]
-                lead = guard(t) - (enables[pin_split(pin)[0]] - t)
+                if inst in settle:
+                    t += settle[inst] + max((a for _, a in
+                                             timing.edges.get(pin, ())),
+                                            default=0)
+                lead = guard(t) - (enables[inst] - t)
                 need = lead if need is None else max(need, lead)
     return need
 
 
-def earliest_disturbance(timing, start, targets, skip):
+def earliest_disturbance(timing, start, targets, skip, falls=True):
     """Shortest arrival at any target pin from `start`, passing THROUGH state
     nodes -- each assumed to fire the moment it is reached -- except those
     `skip` names.  Returns (arrival or None, {state node: arrival}).
@@ -960,9 +1063,13 @@ def earliest_disturbance(timing, start, targets, skip):
         t, s = heapq.heappop(heap)
         if t > best.get(s, t):
             continue
-        # The node itself FALLS; what fires downstream of it has no fixed
+        # The node itself FALLS (a Muller C node releasing) or RISES (a
+        # bd_link_dc capture node); what fires downstream of it has no fixed
         # polarity, so from the second state node on every arc counts.
-        table = timing.early_fall(s) if s == start else timing.early_any(s)
+        if s == start:
+            table = timing.early_fall(s) if falls else timing.early(s)
+        else:
+            table = timing.early_any(s)
         for pin, d in table.items():
             at = t + d
             if pin in targets and (hit is None or at < hit):
@@ -1273,6 +1380,9 @@ def main():
     print(f"routed SDF   {n_io} cell arcs, {n_ic} routed nets")
     print(f"state nodes  {len(stops)} LUT feedback loops -- start and stop points")
     print(f"delay lines  {len(chains)}")
+    if SLACK:
+        print(f"search slack {SLACK} ps added to every guardband below -- a "
+              f"VIOLATION here is a margin under {SLACK} ps, not under zero")
 
     problems = 0
     sized = {}          # instance path -> recommended link count
@@ -1427,11 +1537,26 @@ def main():
         def own(pin, insts=insts):
             return pin_split(pin)[0] in insts
 
-        base, head, tail = ack_chains.get(ctl, (None, None, None))
+        dc = dc_link_of(ctl)
+        if dc is not None:
+            # The uack chain hangs off a, not b; find it by the link's name.
+            base = dc + ".uack" if dc + ".uack" in chains else None
+            head, tail = chain_endpoints(edges, back, chains[base]) \
+                if base else (None, None)
+        else:
+            base, head, tail = ack_chains.get(ctl, (None, None, None))
         n = len(chains[base]) if base else 0
-        t_exit = timing.early_fall(ctl, base[:-len(".uack")]).get(tail, 0) \
-                 if tail else 0
-        t_int, reached = earliest_disturbance(timing, ctl, d_pins, own)
+        if not tail:
+            t_exit = 0
+        elif dc is not None:
+            t_exit = dc_ack_exit(timing, dc, tail, dc)
+        else:
+            t_exit = timing.early_fall(ctl, base[:-len(".uack")]).get(tail, 0)
+        # A Muller controller releases the sender when its node FALLS (the
+        # ack falls with it); a decoupled one when b RISES (a rises one arc
+        # later, and a BROAD=0 sender reopens on the rise).
+        t_int, reached = earliest_disturbance(timing, ctl, d_pins, own,
+                                              falls=dc is None)
         # Data whose source this node's fall can never reach is coming from
         # outside the design -- a pin, or the soak harness's spine -- and the
         # environment may release it the moment the acknowledge leaves.  The
@@ -1533,15 +1658,24 @@ def main():
                   f"from no link stage that also requests -- not audited")
             continue
         worst = None
+        dc = dc_link_of(ctl)
         for up in ups:
             t_rise = timing.early(up)[ctl]
-            t_ack = timing.early(ctl).get(up)
-            if t_ack is None:
-                continue
-            t_fall = timing.early_fall(up).get(ctl)
-            if t_fall is None:
-                continue
-            t_close = t_rise + t_ack + t_fall + t_close_rel
+            if dc is not None:
+                # b rises on the request alone and lt falls one arc after:
+                # no acknowledge on the closing path.  The data side keeps
+                # the sender's node -> its enable -> its Q composition, which
+                # for a transparent latch that was open since before its own
+                # request rose overstates how late Q settled -- conservative.
+                t_close = t_rise + t_close_rel
+            else:
+                t_ack = timing.early(ctl).get(up)
+                if t_ack is None:
+                    continue
+                t_fall = timing.early_fall(up).get(ctl)
+                if t_fall is None:
+                    continue
+                t_close = t_rise + t_ack + t_fall + t_close_rel
             own_lat = {pin_split(p)[0] for p, _ in latch_enables(edges, up)}
             l_up = timing.late(up)
             arrivals = []
@@ -1551,7 +1685,8 @@ def main():
                 l_f = timing.late(f)
                 arrivals += [(l_up[f] + l_f[dp]
                               + max((a for _, a in edges.get(dp, ())),
-                                    default=0), dp)
+                                    default=0)
+                              + loop_wire(edges, pin_split(dp)[0]), dp)
                              for dp in d_pins if dp in l_f]
             if not arrivals:
                 continue
@@ -1594,6 +1729,158 @@ def main():
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<40} from {pin_split(up)[0]}, latest bit {dpin}")
 
+    # ------------------------------------------------- L: the load rule (dc)
+    # bd_link_dc only.  Its latch is transparent between tokens and the next
+    # capture may come as soon as ld says the latch is loaded: lt rises, ld
+    # one arc later, b one more (the request is already up), lt falls one
+    # more, the latch closes one latch arc after that.  Against it: Q has to
+    # have followed D through every bit -- lt's rise to the farthest bit plus
+    # its own arc.  The enable net is on both sides, so its fanout skew mostly
+    # cancels; what is measured is three LUT6 arcs and their wires against one
+    # latch arc.  LDN (rtl/bd_link.v) lengthens the ld path when a route
+    # needs it; no kernel has yet, so there is no knob to size, only a verdict.
+    dcs = [ctl for ctl in controllers if dc_link_of(ctl) is not None]
+    if dcs:
+        print()
+        print("L. the latch has followed its input before it can close again")
+        print("-" * 78)
+    for ctl in dcs:
+        link = dc_link_of(ctl)
+        label = pin_split(ctl)[0]
+        lt = dc_node(edges, link, "ult")
+        ld = dc_node(edges, link, "uld")
+        enables = latch_enables(edges, ctl)
+        insts = {pin_split(p)[0] for p, _ in enables}
+        if lt is None or ld is None or not enables:
+            print(f"  {label:<40} controller incomplete in the SDF -- not audited")
+            problems += 1
+            continue
+        t_ld = timing.early(lt, link).get(ld)
+        t_b = timing.early(ld, link).get(ctl)
+        if t_ld is None or t_b is None:
+            print(f"  {label:<40} lt -> ld -> b path not routed -- not audited")
+            problems += 1
+            continue
+        lat_pins = [p for p, _ in enables]
+        # closing: b -> ult -> the nearest bit, plus that bit's own arc
+        t_close = t_ld + t_b + min(d + min((a for _, a in edges.get(p, ())),
+                                           default=0)
+                                   for p, d in enables)
+        # following: lt -> the farthest bit, plus its arc and its feedback
+        # wire, so Q holds D
+        l_lt = timing.late(lt, link)
+        t_follow = max(l_lt.get(p, 0) + max((a for _, a in edges.get(p, ())),
+                                            default=0)
+                       + loop_wire(edges, pin_split(p)[0])
+                       for p in lat_pins)
+        guard = req_guard(None, t_follow)
+        margin = t_close - t_follow - guard
+        if margin < 0:
+            verdict = "VIOLATION -- add LDN to this link"
+            problems += 1
+        else:
+            verdict = "ok"
+        print(f"  {label:<40} {len(insts):>2} latch LUT(s)   "
+              f"reclose {t_close:>5}  follow {t_follow:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+
+    # ---------------------------------------------- K: the capture rule (dc)
+    # bd_link_dc only, and the rule that decides whether it can be used at
+    # all.  A Muller link's latch is opaque between tokens and OPENS on the
+    # request, so the data has the whole downstream handshake to arrive
+    # (rule I is about the far end of that window).  The dc latch is the
+    # other way round: transparent between tokens and CLOSED by the request,
+    # so every bit has to have come through its LUT and round its feedback
+    # wire before b -> lt -> its enable pin gets there.  That is a setup
+    # check at the receiving link's pins that no other rule makes: rule A
+    # holds at the SENDER's boundary and says nothing about the 32 data
+    # wires and one request wire between the two cells.  Both halves are
+    # taken as launched together from the sender's outputs -- the same
+    # pairing as check_bundled, conservative by the sender's rule A lead --
+    # and the request is whichever ub input shares the most of its name
+    # with the drivers of the data.
+    if dcs:
+        print()
+        print("K. the latch has captured its input before the request closes it")
+        print("-" * 78)
+    for ctl in dcs:
+        link = dc_link_of(ctl)
+        label = pin_split(ctl)[0]
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        d_pins = latch_data_pins(back, insts, en_pins)
+        d_drivers = {s for dp in d_pins for s in back.get(dp, ())
+                     if not is_const(s)}
+        b_inputs = [p for p in back if pin_split(p)[0] == pin_split(ctl)[0]
+                    and not is_output(p)]
+        outside = {s for p in b_inputs for s in back[p]
+                   if not is_const(s) and not pin_split(s)[0].startswith(link + ".")}
+
+        def shared(a, b):
+            n = 0
+            for x, y in zip(a.split("."), b.split(".")):
+                if x != y:
+                    break
+                n += 1
+            return n
+        # The acknowledge is a uack tail or a bare `a`; whatever else feeds
+        # b from outside is the request or the reset, and the reset shares
+        # no name with the data.
+        scored = sorted(((max((shared(pin_split(s)[0], pin_split(d)[0])
+                               for d in d_drivers), default=0), s)
+                         for s in outside
+                         if not RE_DC_ACK.search(pin_split(s)[0])),
+                        reverse=True)
+        top = [s for n, s in scored if scored and n == scored[0][0] and n > 0]
+        if not d_pins or len(top) != 1:
+            print(f"  {label:<40} cannot tell the request from the "
+                  f"acknowledge among b's inputs -- not audited")
+            problems += 1
+            continue
+        req_src = top[0]
+        t_req = timing.early(req_src).get(ctl)
+        if t_req is None:
+            print(f"  {label:<40} {pin_split(req_src)[0]} does not reach b "
+                  f"-- not audited")
+            problems += 1
+            continue
+        worst = None
+        for p, d in enables:
+            inst = pin_split(p)[0]
+            t_close = t_req + d + min((a for _, a in edges.get(p, ())),
+                                      default=0)
+            for dp in d_pins:
+                if pin_split(dp)[0] != inst:
+                    continue
+                for drv in back[dp]:
+                    if is_const(drv):
+                        continue
+                    t_data = (dict(edges[drv]).get(dp, 0)
+                              + max((a for _, a in edges.get(dp, ())),
+                                    default=0)
+                              + loop_wire(edges, inst))
+                    guard = req_guard(None, t_data)
+                    margin = t_close - t_data - guard
+                    if worst is None or margin < worst[0]:
+                        worst = (margin, guard, t_close, t_data, dp)
+        if worst is None:
+            print(f"  {label:<40} no data pin paired with the request "
+                  f"-- not audited")
+            problems += 1
+            continue
+        margin, guard, t_close, t_data, dpin = worst
+        if margin < 0:
+            verdict = (f"VIOLATION -- the request from "
+                       f"{pin_split(req_src)[0]} needs {-margin} ps more lead")
+            problems += 1
+        else:
+            verdict = "ok"
+        print(f"  {label:<40} {len(insts):>2} latch LUT(s)   "
+              f"close {t_close:>5}  data {t_data:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        print(f"  {'':<40} request {pin_split(req_src)[0]}, latest bit {dpin}")
+
     # ------------------------------------------------ B and C: the RAM boundary
     rams = [i for i, t in celltype.items() if t and "RAMB" in t]
     print()
@@ -1615,8 +1902,8 @@ def main():
             port = pin_split(p)[1]
             for k, v in T_SU.items():
                 if port.startswith(k):
-                    return v
-            return 200
+                    return v + SLACK
+            return 200 + SLACK
 
         res = check(timing, srcs, payload, clk, guard_of)
         if res is None:
@@ -1707,7 +1994,7 @@ def main():
         if best is None:
             print(f"  {base}: no path from the RAM clock to the acknowledge")
             continue
-        margin = best - T_CO
+        margin = best - T_CO - SLACK
         per = best / len(links)
         want = len(links) + math.ceil(-margin / per) if margin < 0 \
                else max(1, len(links) - int(margin // per))

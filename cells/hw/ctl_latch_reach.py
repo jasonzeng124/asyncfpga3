@@ -47,9 +47,10 @@ def main():
     g, u, chain = [], [], []
     for m in pat.finditer(sdf):
         src, dst, dl = m.groups()
-        if ".ctl.u.u" not in src:
+        hit = re.search(r"\.ctl\.(?:u\.u|ult)", src)
+        if not hit:
             continue
-        base = src.split(".ctl.u.u")[0]
+        base = src[:hit.start()]
         if not dst.startswith(base):
             continue
         tail = dst[len(base):]

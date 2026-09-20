@@ -148,6 +148,22 @@ SPECS = {
                    (lambda rq, ci, cj, ck, r:                     # O5 = C_i
                     (not r) and maj(rq, 1 - cj, ci)))),
 
+    # --- decoupled link controller (bd_link_dctl, an experiment) ----------
+    # Four SR-style state nodes, each `q' = ~rst . (set + q . ~reset)`, from
+    # the equations in bd_link.v's header.  ld comes up 0 and is set by the
+    # first lt.
+    "DC_B":  ("lut6", "req ack ld b rst -",
+              lambda rq, ak, ld, b, r, _5:
+              (not r) and ((rq & ld & (1 - ak)) | (b & (1 - (ak & (1 - ld)))))),
+    "DC_A":  ("lut6", "req b ld a rst -",
+              lambda rq, b, ld, a, r, _5:
+              (not r) and ((rq & b & ld) | (a & (rq | ld)))),
+    "DC_LD": ("lut6", "lt s a ld rst -",
+              lambda lt, s, a, ld, r, _5:
+              (not r) and (1 - a) and ((lt & s) | ld)),
+    "DC_LT": ("lut6", "b a gate - - -",
+              lambda b, a, g, _3, _4, _5: (1 - b) & (1 - a) & (1 - g)),
+
     # --- mux --------------------------------------------------------------
     # The control decode folds into the join: C(x_req, ctl_req.~s) is a
     # function of four wires, one LUT6 with rst.
