@@ -384,6 +384,11 @@ echo
 routes=1
 last_tag=base
 [ "$JUMP" = 0 ] || jump || write_sizes
+# A candidate refuted at every length down to its ask, with no other delay
+# having moved since, would be refuted again by the same routes: the sweep
+# that finds nothing else to change is not worth re-routing it to prove.
+declare -A refuted
+settled_at=0
 sweep=0
 while : ; do
     sweep=$((sweep + 1))
@@ -393,6 +398,7 @@ while : ; do
     for k in "${KEYS[@]}"; do
         want=${prop[$k]}
         [ "$want" -ge "${cur[$k]}" ] && continue      # only ever tighten
+        [ "${refuted[$k]:--1}" -eq $settled_at ] && continue
         was=${cur[$k]}
         guided=0
         while [ "$want" -lt "$was" ]; do
@@ -404,11 +410,13 @@ while : ; do
                 cp "$HIST/prop_try_${k}_${want}.vh" "$HIST/prop_last.vh"
                 printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
                 changed=1
+                settled_at=$routes
                 break
             fi
             if repair "$k" "try_${k}_${want}" "$was" "$want"; then
                 printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
                 changed=1
+                settled_at=$routes
                 break
             fi
             cur[$k]=$was
@@ -434,6 +442,7 @@ while : ; do
                 guided=0
             fi
         done
+        [ "${cur[$k]}" -eq "$was" ] && refuted[$k]=$settled_at
     done
 
     [ $changed -eq 0 ] && break

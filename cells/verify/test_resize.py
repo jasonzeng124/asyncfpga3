@@ -178,6 +178,33 @@ def test_tried_delay_short_takes_its_own_ask_before_bisecting(tmp_path):
     assert not (out / "resize/flow_try_BD_SZ_B_51.log").exists()
 
 
+# Both asks are wrong (1), so every length is found by bisection: A needs 6,
+# B needs 7.
+UNDER = """import sys
+from pathlib import Path
+
+words = dict(line.split()[-2:] for line in Path(sys.argv[-1]).read_text().splitlines())
+a, b = int(words["BD_SZ_A"]), int(words["BD_SZ_B"])
+if "--emit" in sys.argv:
+    Path(sys.argv[sys.argv.index("--emit") + 1]).write_text("`define BD_SZ_A 1\\n`define BD_SZ_B 1\\n")
+if Path(__file__).stem == "tighten" and (a < 6 or b < 7):
+    print("VIOLATION")
+    sys.exit(1)
+"""
+
+
+def test_a_refutation_nothing_has_moved_since_is_not_rerouted(tmp_path):
+    # Sweep 5 lands A at 6 and then refutes B at 1, 4 and 6.  Sweep 6 refutes
+    # A at 1, 4 and 5 and must not route B's three lengths again: no delay
+    # has changed since they were refuted, so the same routes would refute
+    # them the same way.
+    stdout, sizes, _ = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n", UNDER)
+    assert sizes == {"BD_SZ_A": "6", "BD_SZ_B": "7"}
+    assert stdout.count("B                     7 -> 6   REVERTED") == 1
+    assert "settled after 6 sweep(s), 26 place-and-route runs" in stdout
+
+
 # -- the jump ------------------------------------------------------------------
 
 def test_jump_pads_to_the_new_routes_asks_and_converges(tmp_path):
