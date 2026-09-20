@@ -55,6 +55,8 @@ import argparse
 import os
 import sys
 
+BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
+
 # Operations whose result is the full operand width, and the Verilog
 # expression that computes them.  `trunci`, `extui` and `extsi` are absent on
 # purpose: they are bus slices and concatenations, i.e. wires, and belong in
@@ -483,7 +485,7 @@ module {name} #(parameter DELAY = {default})
     // avoid.  It is also just the first link of the delay line.
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
 
     // The datapath.  yosys picks the implementation; the matched delay is
     // what makes whatever it picks safe.

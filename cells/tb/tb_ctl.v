@@ -298,7 +298,8 @@ module tb_ctl;
 
         // reset must leave every pipe empty and DEFINED
         #(20 * H);
-        if (pdut_s.many.c !== {N{1'b0}})
+        if ({pdut_s.many.stage[3].u.c, pdut_s.many.stage[2].u.c,
+             pdut_s.many.stage[1].u.c, pdut_s.many.stage[0].u.c} !== {N{1'b0}})
             fail("the simple pipe did not reset to empty");
         if (pdut_a.stage[0].u.l !== 1'b0 || pdut_a.stage[0].u.r !== 1'b0)
             fail("the attempt did not reset to empty");

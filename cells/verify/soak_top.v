@@ -58,6 +58,14 @@
 `ifndef BD_SZ_UPIPE
  `define BD_SZ_UPIPE 10
 `endif
+// The pipe's acknowledge-fall hold (bd_link.v DACK), rule H's knob.
+`ifndef BD_SZ_UPIPE_UACK
+ `define BD_SZ_UPIPE_UACK 4
+`endif
+// The request line on each internal stage boundary (SDELAY), rule I's knob.
+`ifndef BD_SZ_UPIPE_SDELAY
+ `define BD_SZ_UPIPE_SDELAY 3
+`endif
 
 `default_nettype none
 
@@ -73,7 +81,8 @@ module soak_top (input wire pin_in, output wire pin_out);
     wire        spine;
     bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
 
-    bd_pipe #(.W(8), .N(4), .DELAY(`BD_SZ_UPIPE)) upipe (
+    bd_pipe #(.W(8), .N(4), .DELAY(`BD_SZ_UPIPE), .SDELAY(`BD_SZ_UPIPE_SDELAY),
+              .DACK(`BD_SZ_UPIPE_UACK)) upipe (
         .rst(rst),
         .req_in(~spine), .ack_in(p_ack_in), .data_in({7'h5A, pin_in}),
         .req_out(p_req_out), .ack_out(p_req_out), .data_out(p_data_out));

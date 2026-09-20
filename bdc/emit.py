@@ -59,6 +59,13 @@ import mem  # noqa: E402
 # condition or a mux control).  Overridable so the value can be swept against
 # real hardware instead of argued about: BDC_SELECT_PAD=32 python3 bdc/emit.py ...
 SELECT_PAD = int(os.environ.get("BDC_SELECT_PAD", "4"))
+# Placeholder for a link's acknowledge-fall delay (bd_link.v DACK).  Rule H in
+# verify/tighten.py sizes it per route; generous so the placeholder build
+# passes and the search only ever shrinks.
+ACK_PAD = int(os.environ.get("BDC_ACK_PAD", "6"))
+# Placeholder for the request line between two stages of a bd_pipe (SDELAY),
+# rule I's knob; the same generous-then-shrink arrangement.
+STAGE_PAD = int(os.environ.get("BDC_STAGE_PAD", "3"))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -475,7 +482,7 @@ module bdc_amerge{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(r0), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
 
     // g1 is read so the arbiter's own output cannot be optimised away; the
     // grants are a fractured pair and deleting one changes the cell that
@@ -561,7 +568,7 @@ module bdc_muxn{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(|j), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
 
 {acks}
 
@@ -699,6 +706,7 @@ _FUSABLE_CHANS = {
 
 BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
 MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
+BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
 
 
 class _UnionFind:
@@ -1924,11 +1932,16 @@ class Emitter:
             pad = SELECT_PAD * n if ssa in self.selects else 0
             pad = self.select_pads.get(inst, pad)
             d = self.delay(inst, pad)
+            # A control channel's link latches a constant: nothing to hold.
+            a = self.delay(f"{inst}_uack", 0 if self.is_control(ssa) else ACK_PAD)
             if n > 1:
+                # The request line on each internal stage boundary: rule I.
+                s = self.delay(f"{inst}_sdelay", STAGE_PAD)
                 self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
-                          f".DELAY({d})) {inst} (")
+                          f".DELAY({d}), .SDELAY({s}), .DACK({a})) {inst} (")
             else:
-                self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+                self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d}), "
+                          f".DACK({a})) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .req_in({self.oreq(ssa)}), .ack_in({self.oack(ssa)}), "
                       f".data_in({self.odata(ssa)}),")
@@ -2581,7 +2594,7 @@ module {name} #(parameter DELAY = {default_total})
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY), .FASTFALL(1)) udly (.a(either), .z(z_req));
+    bd_delay #(.N(DELAY), .FASTFALL({1 if BDC_FASTFALL else 0})) udly (.a(either), .z(z_req));
 
     // The datapath.  yosys picks the implementation, across the WHOLE
     // region at once; the matched delay above is what makes whatever it
@@ -2911,6 +2924,15 @@ def emit_top(func, delays, inst="uut"):
  `include "sizes.vh"
 `endif
 {defines}
+// The spine's own ack-fall hold (bd_link.v DACK), sized by rule H like any
+// other -- its data is constant, but the audit cannot know that.
+`ifndef BD_SZ_UPIPE_UACK
+ `define BD_SZ_UPIPE_UACK {ACK_PAD}
+`endif
+// ... and its stage-to-stage request pad (bd_link.v SDELAY), sized by rule I.
+`ifndef BD_SZ_UPIPE_SDELAY
+ `define BD_SZ_UPIPE_SDELAY {STAGE_PAD}
+`endif
 
 `default_nettype none
 module {name}_top (input wire pin_in, output wire pin_out);
@@ -2926,7 +2948,8 @@ module {name}_top (input wire pin_in, output wire pin_out);
     wire        spine;
     bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
 
-    bd_pipe #(.W({nb}), .N(4)) upipe (
+    bd_pipe #(.W({nb}), .N(4), .SDELAY(`BD_SZ_UPIPE_SDELAY),
+              .DACK(`BD_SZ_UPIPE_UACK)) upipe (
         .rst(rst),
         .req_in(~spine), .ack_in(p_ack_in),
         .data_in({{{nb - 1}'h{seed:x}, pin_in}}),

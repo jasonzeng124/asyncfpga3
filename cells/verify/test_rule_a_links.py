@@ -9,17 +9,17 @@ def test_upstream_bd_links_recognizes_link_shapes():
     srcs = {
         "u1.lat.odd.u$LUT6/O6",
         "u8.lat.pair[3].u$LUT5/O5",
-        "pipe3.many.codd.u.u/O6",
-        "pipe3.many.lat[2].u.odd.u$LUT6/O6",
-        "pipe2.many.cpair[0].u/O6",
-        "pipe2.many.lat[1].u.pair[0].u$LUT5/O5",
+        "pipe3.many.stage[2].u.ctl.u.u/O6",
+        "pipe3.many.stage[2].u.lat.odd.u$LUT6/O6",
+        "pipe2.many.stage[1].u.ctl.u.u/O6",
+        "pipe2.many.stage[1].u.lat.pair[0].u$LUT5/O5",
         "pipe1.one.u.ctl.u.u/O6",
         "unrelated/O6",
     }
     assert tighten.upstream_bd_links(srcs) == (
         "pipe1.one.u",
-        "pipe2",
-        "pipe3",
+        "pipe2.many.stage[1].u",
+        "pipe3.many.stage[2].u",
         "u1",
         "u8",
     )
@@ -38,15 +38,15 @@ def test_upstream_data_lag_uses_final_latch_controller_paths():
     pairs = [
         add_latch(
             edges,
-            "pipe3.many.codd.u.u/O6",
-            "pipe3.many.lat[2].u.odd.u$LUT6",
+            "pipe3.many.stage[2].u.ctl.u.u/O6",
+            "pipe3.many.stage[2].u.lat.odd.u$LUT6",
             7,
             13,
         ),
         add_latch(
             edges,
-            "pipe2.many.cpair[0].u/O6",
-            "pipe2.many.lat[1].u.pair[0].u$LUT5",
+            "pipe2.many.stage[1].u.ctl.u.u/O6",
+            "pipe2.many.stage[1].u.lat.pair[0].u$LUT5",
             11,
             17,
         ),
@@ -61,5 +61,12 @@ def test_upstream_data_lag_uses_final_latch_controller_paths():
 
     assert tighten.upstream_data_lag(
         timing, back, None,
-        ("pipe2", "pipe3"), srcs,
+        ("pipe2.many.stage[1].u", "pipe3.many.stage[2].u"), srcs,
     ) == 28
+
+
+def test_ack_chain_knob():
+    knob = lambda b: tighten.RE_ACK_CHAIN.match(b).group(1) + ".uack"
+    assert knob("uut.ulink_n_x.uack") == "uut.ulink_n_x.uack"
+    assert knob("upipe.one.u.uack") == "upipe.uack"
+    assert knob("upipe.many.stage[3].u.uack") == "upipe.uack"

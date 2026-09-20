@@ -179,6 +179,61 @@ read_prop() {                         # load a proposal into prop[]
 show() { local k out=""; for k in "${KEYS[@]}"; do
              out="$out ${k#BD_SZ_}=${cur[$k]}"; done; echo "$out"; }
 
+total() { local k t=0; for k in "${KEYS[@]}"; do t=$((t + cur[$k])); done; echo $t; }
+
+# -- a veto that is not about the delay being tried ---------------------------
+#
+# Shrinking one delay changes the netlist, so it moves the placement of
+# everything, and a delay that was kept at its exact measured length on the
+# old route can come up short on the new one.  Reverting the TRIED delay for
+# that is the wrong response, and it compounds: every later shrink moves the
+# route the same way and fails the same way, so the tried delay is parked at
+# whatever length it had.  Measured on bdc/fusion_bench.py's xorshift_round:
+# uxori_9 settled at 5 links with 96 ps of margin, after which 34 candidate
+# shrinks of uxori_4 and uxori_14 were all vetoed by uxori_9 going -17..-761
+# ps on the re-route, and uxori_4 kept 37 links of a 6-link need -- ten
+# nanoseconds of latency, on a kernel whose whole round is fourteen.
+#
+# So when the unseeded route's violators are OTHER delays, pad them to what
+# tighten.py asks for on the new route and check again.  The result is kept
+# only if the sum of all lengths still went down: that is what keeps this a
+# descent (the total strictly decreases on every kept step, so it terminates)
+# and what stops a shrink of one element from buying itself with a pad of
+# ten.  A veto from a confirmation seed, from skew.py, or on the tried delay
+# itself is a real veto and is bisected as before.
+repair() {                            # repair KEY TAG WAS WANT
+    local k=$1 tag=$2 was=$3 want=$4 y v before after n=0
+    local -A pad save
+    [ -f "$HIST/prop_$tag.vh" ] || return 1
+    [ -f "$HIST/skew_$tag.log" ] && return 1        # tighten.py passed; the veto is skew's or a seed's
+    grep -q VIOLATION "$HIST/tighten_$tag.log" 2>/dev/null || return 1
+    while read -r _ y v; do
+        [ -n "${cur[$y]+x}" ] || continue
+        [ "$v" -gt "${cur[$y]}" ] || continue
+        [ "$y" = "$k" ] && return 1                  # the tried delay is the one that is short
+        pad[$y]=$v
+        n=$((n + 1))
+    done < <(grep '^`define' "$HIST/prop_$tag.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
+    [ $n -gt 0 ] || return 1                         # a violation with no knob to pad
+    before=$(total)
+    for y in "${!pad[@]}"; do save[$y]=${cur[$y]}; cur[$y]=${pad[$y]}; done
+    after=$(total)
+    if [ "$after" -lt "$((before + was - want))" ]; then
+        write_sizes
+        routes=$((routes + 1))
+        if attempt "${tag}_r"; then
+            cp "$HIST/prop_${tag}_r.vh" "$HIST/prop_last.vh"
+            for y in "${!pad[@]}"; do
+                printf "  %-20s %2d -> %-2d  padded, so that the shrink below could stand\n" \
+                       "${y#BD_SZ_}" "${save[$y]}" "${pad[$y]}"
+            done
+            return 0
+        fi
+    fi
+    for y in "${!save[@]}"; do cur[$y]=${save[$y]}; done
+    return 1
+}
+
 # -- baseline: the placeholders, already read out of the source above --------
 write_sizes
 echo "baseline (the placeholders):$(show)"
@@ -213,12 +268,18 @@ while : ; do
                 changed=1
                 break
             fi
+            if repair "$k" "try_${k}_${want}" "$was" "$want"; then
+                printf "  %-20s %2d -> %-2d  kept\n" "${k#BD_SZ_}" "$was" "$want"
+                changed=1
+                break
+            fi
             cur[$k]=$was
             write_sizes
             # The veto may have come from a confirmation seed, not from the
             # unseeded route, so look in every log this candidate produced.
-            reason=$(grep -m1 -h VIOLATION "$HIST"/tighten_try_"${k}"_"${want}"*.log \
-                     2>/dev/null | sed 's/^ *//;s/  */ /g')
+            reason=$(cat "$HIST"/tighten_try_"${k}"_"${want}".log \
+                         "$HIST"/tighten_try_"${k}"_"${want}"_s*.log 2>/dev/null |
+                     grep -m1 VIOLATION | sed 's/^ *//;s/  */ /g')
             printf "  %-20s %2d -> %-2d  REVERTED\n" "${k#BD_SZ_}" "$was" "$want"
             printf "  %-20s          %s\n" "" "${reason:-place-and-route failed}"
             want=$(((want + was + 1) / 2))

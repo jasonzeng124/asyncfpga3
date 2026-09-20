@@ -5,15 +5,14 @@ post-synthesis netlist.
 WHY THIS IS A SEPARATE PASS AND NOT RTL.  cells/rtl/ is frozen, so the
 attribute cannot be written next to the cells it constrains.  It is stamped
 here instead, on the JSON yosys just wrote, keyed on the instance paths the
-library commits to (`<link>.ctl.u.u`, `<link>.lat.*`, `<mux>.uj0/uj1`, and a
-bd_pipe's own `<pipe>.many.cpair[i].u.u` / `<pipe>.many.codd.u.u` / `<pipe>
-.many.lat[i].*`) -- the same anchors verify/tighten.py's select_consumers()
+library commits to (`<link>.ctl.u.u`, `<link>.lat.*`, `<mux>.uj0/uj1`; a
+bd_pipe is a chain of bd_links at `<pipe>.many.stage[i].u.*` or
+`<pipe>.one.u.*`) -- the same anchors verify/tighten.py's select_consumers()
 uses, and for the same reason: those names are the library's, not the
-compiler's.  bd_pipe is bd_link's own multi-stage form (cells/rtl/bd_link.v),
-so it gets the identical treatment: a controller next to one of the latch
-bits it enables.  A `cpair` fractures TWO stages' controllers into one
-LUT6_2, so it can join only ONE of the two latch banks it drives -- see
-stage_banks() and the "fractured cpair controller(s)" line in the report.
+compiler's.  Every stage gets the identical treatment: a controller next to
+one of the latch bits it enables.  A controller cell with more than one
+output (none in the library today) can join only ONE latch bank -- see
+stage_banks().
 
 WHAT NEXTPNR DOES WITH IT.  Nothing that knows what a bd_link is.  The packer
 pass (xilinx/pack.cc, pack_rloc_groups) reads one generic attribute: cells
@@ -76,21 +75,17 @@ from collections import defaultdict
 
 ATTR = "RLOC_GROUP"
 
-# The library's own instance names.  bd_link's controller is `ctl.u.u`; a
-# bd_pipe pairs two stages' controllers into one fractured LUT6_2 at
-# `many.cpair[i].u.u` with an odd final stage at `many.codd.u.u`.  Only
-# bd_link_ctl is ever instantiated as `ctl`, and only bd_pipe's own generate
-# block ever produces `many.cpair[N]`/`many.codd` -- cells/rtl/bd_link.v is
-# the sole source of both shapes -- so the suffix alone identifies a C node.
+# The library's own instance names.  bd_link's controller is `ctl.u.u`, and
+# a bd_pipe's stages are bd_links, so theirs are too.  Only bd_link_ctl is
+# ever instantiated as `ctl` -- cells/rtl/bd_link.v is the sole source of the
+# shape -- so the suffix alone identifies a C node.
 # The prefix used to also require an `ulink_<name>` component, which is
 # bdc/emit.py's naming convention for a COMPILED link or pipe (emit_links());
 # it is not a promise a hand-instantiated one keeps, and cells/verify/soak_top.v
 # instantiates its bd_pipe as plain `upipe`.  Capturing whatever precedes the
 # suffix, instead of insisting on the compiler's naming, is what makes soak's
 # pipe visible at all.
-RE_CNODE = re.compile(
-    r"^(?P<link>.+)\."
-    r"(?:ctl\.u\.u|many\.(?:cpair\[\d+\]|codd)\.u\.u)$")
+RE_CNODE = re.compile(r"^(?P<link>.+)\.ctl\.u\.u$")
 
 
 def load(path):
@@ -177,21 +172,14 @@ def select_sites(cells, drv):
 def stage_banks(c, link, snk):
     """The latch bank(s) one controller cell enables, one per output bit.
 
-    bd_link_ctl and bd_pipe's `codd` have a single output: one bank, same as
-    before.  bd_pipe's `cpair` fractures TWO stages' controllers into one
-    LUT6_2 -- O5 is `ci` (stage i), O6 is `cj` (stage i+1), per
-    cells/rtl/bd_link.v's `bd_link_pair` port map -- so it has two banks, and
-    they must not be merged: stage i's latch bank and stage i+1's are
-    different physical LUTs enabled by different nets, and treating their
-    union as one bank would let the "which bit to grab" search below hand
-    back a latch that this particular output bit does not even drive.
-    Confirmed against connectivity, not just the naming: on soak.json, O5 of
-    `cpair[0].u.u` sinks only `lat[0].u.pair[*].u`'s `I1` and O6 sinks only
-    `lat[1].u.pair[*].u`'s `I1`.
+    bd_link_ctl has a single output, so one bank.  Kept per output bit
+    rather than per cell because a fractured LUT6_2 driving two stages (the
+    library once had one) has two banks that must not be merged: treating
+    their union as one bank would let the "which bit to grab" search below
+    hand back a latch that this particular output bit does not even drive.
 
     Returns a list of (port, bank) pairs, port order matching the cell's own
-    connections dict (O5 before O6 for a fractured pair, i.e. the earlier of
-    the two stages first), skipping any output with no latch sinks at all.
+    connections dict, skipping any output with no latch sinks at all.
     """
     dirs = c.get("port_directions", {})
     out = []
@@ -297,8 +285,8 @@ def stamp(mods, variant, report):
                         break
                 scored.append((port, chosen, consumers))
 
-            # A fractured cpair controller sits in ONE physical logic slot
-            # and can join only ONE of its two stages' clusters -- picking
+            # A multi-output controller sits in ONE physical logic slot
+            # and can join only ONE of its stages' clusters -- picking
             # both would ask nextpnr to hold two different latch banks, each
             # already anchored to its OWN stage's fanout, in the same SLICE
             # as a controller that belongs equally to both.  Prefer the stage
@@ -325,8 +313,7 @@ def stamp(mods, variant, report):
                 continue
             # Keyed on the controller's own instance path, not just `link`:
             # one bd_pipe instance owns several controller candidates
-            # (several cpair indices, maybe a codd), each its own physical
-            # cluster.  Keying on `link` alone would hand two unrelated
+            # (one per stage), each its own physical cluster.  Keying on `link` alone would hand two unrelated
             # clusters the same RLOC_GROUP string and ask nextpnr to fuse
             # them into one SLICE.
             g = "bdlink_" + re.sub(r"[^A-Za-z0-9_]", "_", cname)
@@ -338,7 +325,7 @@ def stamp(mods, variant, report):
     if report:
         print(f"rloc_stamp   variant {variant}")
         print(f"             {n_cands} controller candidate(s) matched "
-              f"'*.ctl.u.u' / '*.many.(cpair[N]|codd).u.u'")
+              f"'*.ctl.u.u'")
         print(f"             {n_groups} group(s), {n_members} logic slot(s) "
               f"named")
         print(f"             {n_w1} link/stage bank(s) that ARE one LUT "
@@ -353,8 +340,8 @@ def stamp(mods, variant, report):
             print(f"             {n_consumer} group(s) also hold their select "
                   f"consumer's LUTs")
         if n_split:
-            print(f"             {n_split} fractured cpair controller(s) each "
-                  f"drive two pipeline stages from one LUT6_2; only one "
+            print(f"             {n_split} multi-output controller(s) each "
+                  f"drive two pipeline stages from one LUT; only one "
                   f"stage's latch can share its SLICE, so "
                   f"{n_split_stages_dropped} stage(s) are left out of any "
                   f"group by construction, not by omission")
@@ -376,7 +363,7 @@ def stamp(mods, variant, report):
               "govern.", file=sys.stderr)
     elif n_cands == 0:
         print("rloc_stamp   WARNING: 0 controller(s) matched "
-              "'*.ctl.u.u' or '*.many.(cpair[N]|codd).u.u' in any module, "
+              "'*.ctl.u.u' in any module, "
               "BUT this netlist does contain bd_link/bd_pipe instances -- "
               "no RLOC_GROUP attributes written, every storage cell in this "
               "netlist floats", file=sys.stderr)

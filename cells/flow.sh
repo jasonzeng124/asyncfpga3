@@ -301,8 +301,8 @@ echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 # while passing on every kernel, which is a difference in the FLOW rather than
 # in the design.  soak_top's own storage is a bd_pipe (verify/soak_top.v's
 # `upipe`), not a bd_link, and it is not named `ulink_...` the way a compiled
-# kernel's is -- hw/rloc_stamp.py's controller regex keys off the `ctl.u.u` /
-# `many.cpair[N].u.u` / `many.codd.u.u` suffix alone for exactly this reason.
+# kernel's is -- hw/rloc_stamp.py's controller regex keys off the `ctl.u.u`
+# suffix alone for exactly this reason.
 # The cluster floats; nothing is pinned.  BD_RLOC=none turns it off.
 BD_RLOC=${BD_RLOC:-v2}
 if [ "$BD_RLOC" != none ]; then

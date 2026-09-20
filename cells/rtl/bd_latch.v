@@ -87,6 +87,11 @@ endmodule
 // edge flush the chain in one LUT delay.  It is permitted only for consumers
 // whose latch is transparent during the request rise/fall window; do not use
 // it for edge-sampling consumers such as bd_mem's usetup or uco.
+//
+// FASTRISE is the mirror image (every stage an OR with the input): the fall
+// takes N hops and the rise flushes in one.  It is the shape of an
+// acknowledge delay, where only the fall -- the end of the sender's hold
+// window -- has to be held back.
 // ---------------------------------------------------------------------------
 `ifdef __ICARUS__
 `define BD_DELAY_SYM_CHAIN chain_sym
@@ -101,13 +106,16 @@ endmodule
 `define BD_DELAY_FAST_G0 g
 `define BD_DELAY_FAST_G1 g
 `endif
-module bd_delay #(parameter N = 4, parameter FASTFALL = 0)
+module bd_delay #(parameter N = 4, parameter FASTFALL = 0,
+                  parameter FASTRISE = 0)
                  (input wire a, output wire z);
+    // AND with the input flushes the fall; OR with it flushes the rise.
+    localparam [3:0] SIDE_INIT = FASTRISE ? 4'hE : 4'h8;
     generate
         if (N == 0) begin : bypass
             assign z = a;
         end
-        if (N != 0 && !FASTFALL) begin : `BD_DELAY_SYM_CHAIN
+        if (N != 0 && !FASTFALL && !FASTRISE) begin : `BD_DELAY_SYM_CHAIN
             (* keep *) wire [N:0] s;
             assign s[0] = a;
             genvar i;
@@ -116,7 +124,7 @@ module bd_delay #(parameter N = 4, parameter FASTFALL = 0)
             end
             assign z = s[N];
         end
-        if (N != 0 && FASTFALL) begin : `BD_DELAY_FAST_CHAIN
+        if (N != 0 && (FASTFALL || FASTRISE)) begin : `BD_DELAY_FAST_CHAIN
             (* keep *) wire [N:0] s;
             assign s[0] = a;
             genvar i;
@@ -124,7 +132,7 @@ module bd_delay #(parameter N = 4, parameter FASTFALL = 0)
                 (* keep *) LUT1 #(.INIT(2'h2)) u (.I0(s[i]), .O(s[i+1]));
             end
             for (i = 1; i < N; i = i + 1) begin : `BD_DELAY_FAST_G1
-                (* keep *) LUT2 #(.INIT(4'h8)) u (
+                (* keep *) LUT2 #(.INIT(SIDE_INIT)) u (
                     .I0(s[i]), .I1(a), .O(s[i+1]));
             end
             assign z = s[N];

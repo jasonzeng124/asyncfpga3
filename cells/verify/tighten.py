@@ -86,6 +86,7 @@ between two of them.  Traversal never passes through a state node, so every
 path considered here is acyclic by construction.
 """
 
+import heapq
 import json
 import math, re, statistics, sys, pathlib
 from collections import defaultdict
@@ -218,7 +219,7 @@ RE_SEL_LINK = re.compile(r"(?:^|\.)(ulink_[A-Za-z0-9_]+)\.")
 # attributable" when it has exactly the same knob, spelled the same way, under
 # a different instance name.  What actually identifies the knob is the path the
 # launch node sits on: a bd_link's C node is <inst>.ctl.u..., and a bd_pipe's
-# is <inst>.one.u... (N==1) or <inst>.many.cpair[i].u... / <inst>.many.codd.u...
+# is <inst>.one.u... (N==1) or <inst>.many.stage[i].u.ctl.u...
 # Everything before that first hop is the instance carrying DELAY.
 #
 # This is a strictly better test than the name: it CHECKS that the launch is
@@ -271,13 +272,11 @@ def pin_split(pin):
     return inst, port
 
 
-def fastfall_side_arcs(edges):
-    """Arcs into fast-fall side pins only carry the falling transition.
-
-    A rising request must arrive through the preceding chain stage, so these
-    arcs are excluded from shortest-path request arrivals.
-    """
-    side = set()
+def chain_side_arcs(edges):
+    """Every arc into a chain stage past the first that does not come from
+    the stage before it: the input-side tap of a FASTFALL or FASTRISE
+    bd_delay, which carries one transition only.  -> {(src, dst): base}"""
+    side = {}
     for src, links in edges.items():
         src_inst = pin_split(src)[0]
         for dst, _ in links:
@@ -289,8 +288,25 @@ def fastfall_side_arcs(edges):
             previous = (f"{match.group('base')}.chain.g["
                         f"{int(match.group('i')) - 1}].u")
             if src_inst != previous:
-                side.add((src, dst))
+                side[(src, dst)] = match.group("base")
     return side
+
+
+def fastfall_side_arcs(edges):
+    """Arcs into fast-fall side pins only carry the falling transition.
+
+    A rising request must arrive through the preceding chain stage, so these
+    arcs are excluded from shortest-path request arrivals.  The ack-hold
+    lines (`.uack`, FASTRISE) are the mirror image and are not in this set.
+    """
+    return {arc for arc, base in chain_side_arcs(edges).items()
+            if not base.endswith(".uack")}
+
+
+def fastrise_side_arcs(edges):
+    """The FASTRISE taps: they carry the rise, so a falling walk omits them."""
+    return {arc for arc, base in chain_side_arcs(edges).items()
+            if base.endswith(".uack")}
 
 
 # Pin direction, taken from the SDF rather than guessed from the pin's name.
@@ -572,20 +588,23 @@ def starts_reaching(back, pin, stops, limit=20000):
 class Timing:
     """Arrival tables keyed by (start, confinement).
 
-    FASTFALL side arcs of an AND-chain stage propagate only the falling
-    transition; request rules check the rising edge, so shortest walks omit
-    them while longest walks retain the full graph.
+    A one-sided bd_delay tap propagates one transition only: the FASTFALL
+    side of a request line carries the fall, the FASTRISE side of an ack-hold
+    line carries the rise.  A shortest walk has to say which edge it is
+    following -- early() is the rising request, early_fall() the falling
+    acknowledge, early_any() a signal of either polarity (data) -- while the
+    longest walk keeps the full graph, since more arcs can only make it later.
     """
 
     def __init__(self, edges, stops):
         self.edges, self.stops = edges, stops
-        side = fastfall_side_arcs(edges)
-        self.early_edges = {
+        ff, fr = fastfall_side_arcs(edges), fastrise_side_arcs(edges)
+        without = lambda side: {
             src: [(dst, delay) for dst, delay in links
                   if (src, dst) not in side]
-            for src, links in edges.items()
-        }
-        self._late, self._early = {}, {}
+            for src, links in edges.items()}
+        self.early_edges, self.fall_edges = without(ff), without(fr)
+        self._late, self._early, self._fall, self._any = {}, {}, {}, {}
 
     def late(self, s, confine=None):        # longest path: the data side
         k = (s, confine)
@@ -599,6 +618,19 @@ class Timing:
             self._early[k] = walk(self.early_edges, s, self.stops, False,
                                   confine)
         return self._early[k]
+
+    def early_fall(self, s, confine=None):  # shortest path of a falling edge
+        k = (s, confine)
+        if k not in self._fall:
+            self._fall[k] = walk(self.fall_edges, s, self.stops, False,
+                                 confine)
+        return self._fall[k]
+
+    def early_any(self, s, confine=None):   # shortest path, either polarity
+        k = (s, confine)
+        if k not in self._any:
+            self._any[k] = walk(self.edges, s, self.stops, False, confine)
+        return self._any[k]
 
 
 def check(timing, srcs, late_pins, early_pin, guard_of, confine=None):
@@ -745,13 +777,13 @@ def request_sites(edges, back, chains):
     return sites
 
 
+# A bd_link is <link>.ctl.u.u plus <link>.lat.{pair[k],odd}.u; a bd_pipe is
+# one of those under <pipe>.one.u or <pipe>.many.stage[i].u, and the stage
+# is the link rule A folds in.
 RE_UPSTREAM_BD_LINK = re.compile(
-    r"^(.*?)\.(?:ctl\.u\.u|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56]|"
-    r"many\.(?:codd\.u\.u|cpair\[\d+\]\.u|"
-    r"lat\[\d+\]\.u\.(?:pair\[\d+\]|odd)\.u\$LUT[56]))$")
+    r"^(.*?)\.(?:ctl\.u\.u|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56])$")
 RE_LATCH_STOP = re.compile(
-    r"^(?:.*\.)?lat(?:\[\d+\])?(?:\.u)?\."
-    r"(?:pair\[\d+\]|odd)\.u\$LUT[56]$")
+    r"^(?:.*\.)?lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56]$")
 
 
 def upstream_bd_links(srcs):
@@ -800,6 +832,99 @@ def upstream_data_lag(timing, back, confine, links, srcs):
             if not found:
                 print(f"  WARNING: no controller path reaches {latch_pin}")
     return lag
+
+
+# ------------------------------------------------------------ H: the hold rule
+
+RE_BD_LATCH = re.compile(r"\.lat\.(?:pair\[\d+\]|odd)\.u(?:\$LUT[56])?$")
+# The bd_delay a link's ack-fall hold lives on, and the DACK knob it is sized
+# by: every stage of a bd_pipe has its own line but the pipe has one knob.
+RE_ACK_CHAIN = re.compile(r"^(.*?)(?:\.(?:one|many\.stage\[\d+\])\.u)?\.uack$")
+
+
+RE_PIPE_STAGE = re.compile(r"^(.*)\.many\.stage\[(\d+)\]\.u$")
+
+
+def stage_delay_knob(up, ctl):
+    """The request line between two link controllers and the knob that sizes
+    it: (knob, chain base), or None when `up` is not a bd_link/bd_pipe stage.
+    Inside a pipe every internal boundary shares the pipe's SDELAY; the last
+    stage's line is the pipe's own DELAY, like a bare link's."""
+    def link_of(node):
+        inst = pin_split(node)[0]
+        if not inst.endswith(".ctl.u.u"):
+            return None
+        return inst[:-len(".ctl.u.u")]
+
+    link = link_of(up)
+    if link is None:
+        return None
+    base = link + ".rdly"
+    ms = RE_PIPE_STAGE.match(link)
+    mc = RE_PIPE_STAGE.match(link_of(ctl) or "")
+    if ms and mc and ms.group(1) == mc.group(1) \
+            and int(mc.group(2)) == int(ms.group(2)) + 1:
+        return (ms.group(1) + ".sdelay", base)
+    if ms:
+        return (ms.group(1), base)
+    m1 = re.match(r"^(.*)\.one\.u$", link)
+    return (m1.group(1) if m1 else link, base)
+
+
+def latch_enables(edges, ctl):
+    """bd_latch input pins the state node drives directly, with the routed
+    arc to each.  A controller is any state node that is not itself a latch
+    and has some."""
+    if RE_BD_LATCH.search(pin_split(ctl)[0]):
+        return []
+    return [(dst, d) for dst, d in edges.get(ctl, ())
+            if not is_output(dst) and RE_BD_LATCH.search(pin_split(dst)[0])]
+
+
+def latch_data_pins(back, insts, en_pins):
+    """The latches' inputs that are neither the enable nor their own feedback."""
+    pins = set()
+    for pin, drivers in back.items():
+        inst = pin_split(pin)[0]
+        if inst not in insts or is_output(pin) or pin in en_pins:
+            continue
+        if all(is_const(s) or pin_split(s)[0] == inst for s in drivers):
+            continue
+        pins.add(pin)
+    return pins
+
+
+def earliest_disturbance(timing, start, targets, skip):
+    """Shortest arrival at any target pin from `start`, passing THROUGH state
+    nodes -- each assumed to fire the moment it is reached -- except those
+    `skip` names.  Returns (arrival or None, {state node: arrival}).
+
+    Rule A walks stop at storage because a matched delay covers one cell's
+    combinational logic.  Hold is different: the question is how soon the
+    consequences of this node's fall -- the sender's controller firing, its
+    latch opening, the next value rippling through the datapath -- can come
+    back to this node's own latch inputs, and that path crosses storage by
+    definition.  Letting every node fire instantly is the lower bound.
+    """
+    best = {start: 0}
+    heap = [(0, start)]
+    hit = None
+    while heap:
+        t, s = heapq.heappop(heap)
+        if t > best.get(s, t):
+            continue
+        # The node itself FALLS; what fires downstream of it has no fixed
+        # polarity, so from the second state node on every arc counts.
+        table = timing.early_fall(s) if s == start else timing.early_any(s)
+        for pin, d in table.items():
+            at = t + d
+            if pin in targets and (hit is None or at < hit):
+                hit = at
+            if (pin in timing.stops and pin != s and not skip(pin)
+                    and at < best.get(pin, math.inf)):
+                best[pin] = at
+                heapq.heappush(heap, (at, pin))
+    return hit, best
 
 
 def median_hop(edges):
@@ -1200,7 +1325,205 @@ def main():
         if parent in audited:
             continue
         print(f"  {base:<22} {len(chains[base]):>2} links   not an outgoing "
-              f"request -- see rule B or C")
+              f"request -- see rule {'H' if base.endswith('.uack') else 'B or C'}")
+
+    # ------------------------------------------------------- H: the hold rule
+    print()
+    print("H. the acknowledge is released after every latch bit has closed")
+    print("-" * 78)
+    t_elem = measure_delay_element(SDF.read_text()) or T_DELAY_RISE_FALLBACK
+    ack_chains = {}
+    for base, links in chains.items():
+        if not base.endswith(".uack"):
+            continue
+        head, tail = chain_endpoints(edges, back, links)
+        for ctl in back.get(head, ()):
+            ack_chains[ctl] = (base, head, tail)
+    controllers = sorted(s for s in stops if latch_enables(edges, s))
+    if not controllers:
+        print("  no bd_latch in this design")
+    for ctl in controllers:
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        label = pin_split(ctl)[0]
+        # The latch closes one arc after the enable lands: the enable's own
+        # path through the LUT to the feedback is what ends transparency.
+        t_en = max(d + max((a for _, a in edges.get(p, ())), default=0)
+                   for p, d in enables)
+        d_pins = latch_data_pins(back, insts, en_pins)
+        if not d_pins:
+            print(f"  {label:<40} {len(insts):>2} latch LUT(s)   no data input "
+                  f"that anything drives -- nothing to hold")
+            continue
+
+        def own(pin, insts=insts):
+            return pin_split(pin)[0] in insts
+
+        base, head, tail = ack_chains.get(ctl, (None, None, None))
+        n = len(chains[base]) if base else 0
+        t_exit = timing.early_fall(ctl, base[:-len(".uack")]).get(tail, 0) \
+                 if tail else 0
+        t_int, reached = earliest_disturbance(timing, ctl, d_pins, own)
+        # Data whose source this node's fall can never reach is coming from
+        # outside the design -- a pin, or the soak harness's spine -- and the
+        # environment may release it the moment the acknowledge leaves.  The
+        # protocol allows exactly that, so credit only the path from where it
+        # enters to the latch.
+        t_ext, ext_src = None, None
+        for dp in d_pins:
+            for s in starts_reaching(back, dp, stops):
+                if s in reached or own(s):
+                    continue
+                at = timing.early(s).get(dp)
+                if at is not None and (t_ext is None or t_exit + at < t_ext):
+                    t_ext, ext_src = t_exit + at, s
+        arrivals = [(t, k) for t, k in ((t_int, "sender"), (t_ext, "outside"))
+                    if t is not None]
+        if not arrivals:
+            print(f"  {label:<40} {len(insts):>2} latch LUT(s)   no path from "
+                  f"this node back to its own data -- not audited")
+            continue
+        t_d, via = min(arrivals)
+        guard = req_guard(None, t_en)
+        margin = t_d - t_en - guard
+        per = (t_exit / n) if (n and t_exit) else t_elem
+        want = max(0, n - int(margin // per)) if margin >= 0 \
+               else n + math.ceil(-margin / per)
+        if want > n:
+            verdict = f"PAD to {want} -- VIOLATION" if base else \
+                      f"VIOLATION -- no DACK line here to pad"
+            problems += 1
+        elif not base:
+            verdict = "ok"
+        elif want == 0:
+            verdict = "0 links -- the sender is slow enough on its own"
+        elif want < n:
+            verdict = f"tighten to {want}"
+        else:
+            verdict = "already exact"
+        if base:
+            knob = RE_ACK_CHAIN.match(base).group(1) + ".uack"
+            sized[knob] = max(sized.get(knob, 0), want)
+        print(f"  {label:<40} {n:>2} links   "
+              f"enable {t_en:>5}  data {t_d:>5} ({via})  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        if via == "outside":
+            print(f"  {'':<40} data released at {ext_src}")
+
+    # -------------------------------------------------- I: the capture rule
+    # The other half of the hold window.  H asks whether the NEXT value can
+    # reach a latch before it has closed; this asks whether the CURRENT one
+    # has arrived by then.  A latch closes when its node falls, and inside a
+    # pipe the node falls one controller arc after the stage before it fell
+    # -- while the data it is supposed to be holding arrives one LATCH arc
+    # after the stage before it settled.  The latch arc is the slower of the
+    # two (152 against 124 ps in sim/bd_prims_sim.v, before routing), so an
+    # empty pipe filling behind an environment that returns to zero at once
+    # closes each stage a little sooner after its data than the last, and
+    # deep enough it closes on garbage.  The old bd_pipe hid this in
+    # simulation by putting alternate controllers on a LUT6_2's O5, whose
+    # fall arc happens to match the latch's; it was never checked on a route.
+    #
+    # From the upstream node's rise: the earliest its successor can rise,
+    # acknowledge it (FASTRISE, the fast side), let it fall, and fall itself
+    # -- against the latest the data it launched settles through the latch.
+    # Every request line between the two is on the closing path twice (rise
+    # and fall) and on the data path not at all, which is why the request
+    # line is the knob, and why a bd_pipe now carries one on every internal
+    # boundary (SDELAY) instead of relying on the arc it cannot see.
+    print()
+    print("I. the stage closes only after the data it holds has arrived")
+    print("-" * 78)
+    for ctl in controllers:
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        label = pin_split(ctl)[0]
+        d_pins = latch_data_pins(back, insts, en_pins)
+        if not d_pins:
+            continue
+        # The bit that closes first: its enable arc plus its own LUT arc.
+        t_close_rel = min(d + min((a for _, a in edges.get(p, ())), default=0)
+                          for p, d in enables)
+        # The upstream stages: controllers whose rise requests this one and
+        # whose own latches feed its data.  Data crosses one storage node on
+        # the way (the sender's latch output), so its arrival is composed:
+        # sender node -> sender latch -> ... -> this latch's D pin.
+        feeders = set()
+        for dp in d_pins:
+            feeders |= {s for s in starts_reaching(back, dp, stops)
+                        if s in stops and RE_BD_LATCH.search(pin_split(s)[0])}
+        ups = [up for up in controllers if up != ctl
+               and ctl in timing.early(up)
+               and any(pin_split(f)[0] in
+                       {pin_split(p)[0] for p, _ in latch_enables(edges, up)}
+                       for f in feeders)]
+        if not ups:
+            print(f"  {label:<40} data enters from outside the design, or "
+                  f"from no link stage that also requests -- not audited")
+            continue
+        worst = None
+        for up in ups:
+            t_rise = timing.early(up)[ctl]
+            t_ack = timing.early(ctl).get(up)
+            if t_ack is None:
+                continue
+            t_fall = timing.early_fall(up).get(ctl)
+            if t_fall is None:
+                continue
+            t_close = t_rise + t_ack + t_fall + t_close_rel
+            own_lat = {pin_split(p)[0] for p, _ in latch_enables(edges, up)}
+            l_up = timing.late(up)
+            arrivals = []
+            for f in feeders:
+                if pin_split(f)[0] not in own_lat or f not in l_up:
+                    continue
+                l_f = timing.late(f)
+                arrivals += [(l_up[f] + l_f[dp]
+                              + max((a for _, a in edges.get(dp, ())),
+                                    default=0), dp)
+                             for dp in d_pins if dp in l_f]
+            if not arrivals:
+                continue
+            t_data, dpin = max(arrivals)
+            guard = req_guard(None, t_data)
+            margin = t_close - t_data - guard
+            if worst is None or margin < worst[0]:
+                worst = (margin, guard, t_close, t_data, up, dpin)
+        if worst is None:
+            print(f"  {label:<40} no upstream node both requests and feeds "
+                  f"this latch -- not audited")
+            continue
+        margin, guard, t_close, t_data, up, dpin = worst
+        knob = stage_delay_knob(up, ctl)
+        n = len(chains.get(knob[1], ())) if knob else 0
+        # One added link delays the close by its rise AND its fall.
+        per = 2 * t_elem
+        want = max(0, n - int(margin // per)) if margin >= 0 \
+               else n + math.ceil(-margin / per)
+        # Only a pipe's SDELAY is this rule's own knob.  A bare link's DELAY
+        # is also somebody else's (rule D's select padding, a boundary the
+        # designer padded by hand), so slack found here is reported, never
+        # taken; a deficit is padded wherever the line is.
+        owned = knob is not None and knob[0].endswith(".sdelay")
+        if margin < 0:
+            verdict = f"PAD to {want} -- VIOLATION" if knob else \
+                      "VIOLATION -- no request line between them to pad"
+            problems += 1
+        elif not knob:
+            verdict = "ok"
+        elif want < n:
+            verdict = f"tighten to {want}" if owned else \
+                      f"{n - want} link(s) of slack on {knob[0]}"
+        else:
+            verdict = "already exact"
+        if knob and (owned or want > n):
+            sized[knob[0]] = max(sized.get(knob[0], 0), want)
+        print(f"  {label:<40} {n:>2} links   "
+              f"close {t_close:>5}  data {t_data:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        print(f"  {'':<40} from {pin_split(up)[0]}, latest bit {dpin}")
 
     # ------------------------------------------------ B and C: the RAM boundary
     rams = [i for i, t in celltype.items() if t and "RAMB" in t]
@@ -1266,7 +1589,7 @@ def main():
     print()
     print("C. clock-to-out: the acknowledge must trail the read data")
     print("-" * 78)
-    co = [b for b in chains if b.endswith("uco")]
+    co = [b for b in chains if b.endswith(".uco")]
     if not co:
         print("  no clock-to-out line in this design")
     for base in co:

@@ -111,7 +111,7 @@ def vectors(func, count=96):
     ]
 
 
-def testbench(func, inputs, expected, *, stalls=True):
+def testbench(func, inputs, expected, *, stalls):
     n = len(inputs)
     lines = [
         "`timescale 1ps / 1ps", "module tb;",
@@ -136,10 +136,11 @@ def testbench(func, inputs, expected, *, stalls=True):
         lines += [f"  {b}_values[{i}] = 32'h{v[b]:08x};"
                   for i, v in enumerate(inputs)]
         gap = f"(({b}_sent * {j + 3}) % 11) * 977" if stalls else "0"
+        send_tail = " #1000;" if stalls else ""
         lines += [
             "  wait (!rst); #20000;",
             f"  for ({b}_sent = 0; {b}_sent < {n}; {b}_sent = {b}_sent + 1) begin",
-            f"    #({gap}); {b}_src.send({b}_values[{b}_sent]); #1000;",
+            f"    #({gap}); {b}_src.send({b}_values[{b}_sent]);{send_tail}",
             "  end", "end",
         ]
         conns += [f".{b}_{p}({b}_{p})" for p in ("req", "ack", "data")]
@@ -150,6 +151,11 @@ def testbench(func, inputs, expected, *, stalls=True):
         "initial begin",
     ]
     lines += [f"  expected[{i}] = 32'h{v:08x};" for i, v in enumerate(expected)]
+    sink_wait = (
+        f"    #(1000 + (received % 7) * 1777);"
+        if stalls else ""
+    )
+    sink_release = "#1000; out_ack = 0;" if stalls else "out_ack = 0;"
     lines += ["  #2000000; rst = 0; monitor.arm;", "end", "initial begin",
               "  wait (!rst);", f"  repeat ({n}) begin",
               "    wait (out_req === 1);",
@@ -158,8 +164,8 @@ def testbench(func, inputs, expected, *, stalls=True):
               " out_data, expected[received]);",
               "    if (received == 0) first_result = $time;",
               "    last_result = $time;",
-              ("    #(1000 + (received % 7) * 1777);" if stalls else "    #1000;"),
-              "    out_ack = 1; wait (out_req === 0); #1000; out_ack = 0;",
+              sink_wait,
+              f"    out_ack = 1; wait (out_req === 0); {sink_release}",
               "    received = received + 1;", "  end", "  #100000;"]
     for a in func.args:
         lines.append(f"  if ({a.name}_sent != {n}) $fatal(1, \"source stalled\");")
@@ -194,7 +200,7 @@ def metrics(output):
     return tuple(map(int, match.groups()))
 
 
-def measure(name, outdir, *, synth=False, stalls=True):
+def measure(name, outdir, *, synth=False, stalls=None):
     outdir.mkdir(parents=True, exist_ok=True)
     text, reference = fixture(name)
     path = outdir / "input.mlir"
@@ -205,24 +211,34 @@ def measure(name, outdir, *, synth=False, stalls=True):
     e = emit.Emitter(func)
     assert e.fusion is not None
     data = vectors(func)
-    tb = outdir / "tb.v"
-    tb.write_text(testbench(func, data, [reference(v) for v in data], stalls=stalls))
-    sim = outdir / "sim.vvp"
+    expected = [reference(v) for v in data]
+    tb_stalled = outdir / "tb_stalled.v"
+    tb_fast = outdir / "tb_fast.v"
+    tb_stalled.write_text(testbench(func, data, expected, stalls=True))
+    tb_fast.write_text(testbench(func, data, expected, stalls=False))
     sources = [CELLS / "sim/bd_prims_sim.v", CELLS / "sim/bd_env.v",
-               *sorted((CELLS / "rtl").glob("*.v")), rtl, tb]
-    run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o", str(sim),
-         *map(str, sources)], outdir / "compile.log")
-    output = run(["vvp", str(sim)], outdir / "sim.log")
-    latency, interval = metrics(output)
+               *sorted((CELLS / "rtl").glob("*.v")), rtl]
+    outputs = {}
+    for kind, tb in (("stalled", tb_stalled), ("fast", tb_fast)):
+        sim = outdir / f"sim_{kind}.vvp"
+        run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
+             str(sim), *map(str, [*sources, tb])],
+            outdir / f"compile_{kind}.log")
+        outputs[kind] = metrics(run(["vvp", str(sim)],
+                                     outdir / f"sim_{kind}.log"))
+    latency, interval = outputs["fast"]
+    stalled_latency, stalled_interval = outputs["stalled"]
     result = {
         "kernel": name, "fork_fusion": emit.BDC_FORK_FUSION,
-        "max_nodes": emit.MAX_FUSE_NODES, "stalls": stalls,
+        "max_nodes": emit.MAX_FUSE_NODES, "fastfall": emit.BDC_FASTFALL,
         "regions": len(e.fusion.anchor_region),
         "forks_absorbed": sum(n.op == "fork" and i in e.fusion.skip
                               for i, n in enumerate(func.nodes)),
         "storage_bits": sum(max(e.ch[v][0], 1) * d for v, d in e.depth.items()),
         "storage_stages": sum(e.depth.values()),
-        "model_latency_ps": latency, "model_interval_ps": interval,
+        "latency_ps": latency, "interval_ps": interval,
+        "stalled_latency_ps": stalled_latency,
+        "stalled_interval_ps": stalled_interval,
     }
     if synth:
         script = outdir / "synth.ys"
@@ -351,17 +367,27 @@ def simulate_route(outdir, func):
         value = "{" + ", ".join(f"dut.n{b}" for b in reversed(bits)) + "}"
         connection.append(f"assign {port} = {value};")
 
-    tb = (outdir / "tb.v").read_text()
-    tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
-    (gls / "tb.v").write_text(tb)
-    run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
-         str(gls / "sim.vvp"), str(CELLS / "gls/prims.v"),
-         str(CELLS / "sim/bd_env.v"), str(gls / "netlist_baked.v"),
-         str(gls / "tb.v")], gls / "compile.log")
-    latency, interval = metrics(run(["vvp", str(gls / "sim.vvp")], gls / "sim.log"))
+    outputs = {}
+    for kind in ("stalled", "fast"):
+        tb = (outdir / f"tb_{kind}.v").read_text()
+        tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
+        (gls / f"tb_{kind}.v").write_text(tb)
+        sim = gls / f"sim_{kind}.vvp"
+        run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
+             str(sim), str(CELLS / "gls/prims.v"),
+             str(CELLS / "sim/bd_env.v"), str(gls / "netlist_baked.v"),
+             str(gls / f"tb_{kind}.v")],
+            gls / f"compile_{kind}.log")
+        outputs[kind] = metrics(run(["vvp", str(sim)],
+                                     gls / f"sim_{kind}.log", cwd=gls))
+    latency, interval = outputs["fast"]
+    stalled_latency, stalled_interval = outputs["stalled"]
     fasm = (outdir / "pnr/soak.fasm").read_text()
     return {
         "routed_latency_ps": latency, "routed_interval_ps": interval,
+        "routed_stalled_latency_ps": stalled_latency,
+        "routed_stalled_interval_ps": stalled_interval,
+        "fastfall": emit.BDC_FASTFALL,
         "routed_lut_sites_including_harness": fasm.count("LUT.INIT"),
         "toolchain": (outdir / "pnr/toolchain.txt").read_text().splitlines(),
     }
@@ -377,7 +403,6 @@ def main():
                     help="resize, audit, and simulate routed xorshift with SDF")
     ap.add_argument("--seeds", type=int, default=3,
                     help="routes checked for every resize candidate")
-    ap.add_argument("--no-stalls", action="store_true")
     args = ap.parse_args()
     if args.route and args.kernels != ["xorshift_round"]:
         ap.error("--route currently requires --kernels xorshift_round")
@@ -386,7 +411,7 @@ def main():
         emit.BDC_FORK_FUSION, emit.MAX_FUSE_NODES = forks, cap
         for name in args.kernels:
             out = args.output.resolve() / f"{name}-forks{int(forks)}-cap{cap}"
-            row = measure(name, out, synth=args.synth, stalls=not args.no_stalls)
+            row = measure(name, out, synth=args.synth)
             if args.route:
                 row.update(measure_route(name, out, seeds=args.seeds))
             results.append(row)
