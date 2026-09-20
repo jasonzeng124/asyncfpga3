@@ -206,29 +206,59 @@ cycle is handshake and interconnect, which the fast fall does not touch.
 **Two-phase, measured.** `cells/rtl/bd_mlink.v` is a standalone MOUSETRAP
 link — latch-based `bd_mlink`, and `bd_flink`, the same controller with the
 data in the slice's flip-flops, clocked by the phase mismatch. Both were routed
-in the same harness as the four-phase rows (`xorshift_round`, two storage
-stages, xc7z010-1, every number an SDF back-annotated GLS of the routed
-netlist, nothing here is silicon). Against the best route-robust four-phase
-row, fusion on / cap 4 / gated FASTFALL / one slack stage / v9 placement:
+in the same harness as the four-phase rows (`xorshift_round`, xc7z010-1,
+every number an SDF back-annotated GLS of the routed netlist, nothing here is
+silicon). The SDF is the one `patches/nextpnr-xilinx-lut-perm-sink.patch`
+produces: before that fix every LUT input reached through a pin permutation —
+about 60% of them, including the same-slice hops of every delay chain and
+C-element — carried the placer's *estimate* (0 ps in-slice) instead of the
+routed wire, and an earlier version of this table was measured against it.
+Fusion on / cap 4 / gated FASTFALL / one slack stage / v9 placement, three
+route seeds each (`bdc/fusion_bench.py --route-seeds 3`, `BD_RESIZE_SEEDS=3`;
+six for the cap-4 row):
 
-| link | LUT sites | FFs | latency | fast-source interval | stalled-consumer interval | fresh seeds passing every gate |
+| design | LUT sites | FFs | latency | fast-source interval | stalled-consumer interval | fresh seeds passing every gate |
 |---|---:|---:|---:|---:|---:|---|
-| `bd_link`, four-phase, 3 storage stages | 222 | 0 | 7.0–7.3 ns | 5.4–5.5 ns | 13.5–13.6 ns | 3 / 3 |
-| `bd_flink`, two-phase, FF data, 2 stages | 201 | 64 | 7.4–8.0 ns | 5.4–5.9 ns | 8.3–8.8 ns | 3 / 4 |
-| synchronous twin (`cells/verify/sync_ref/`) | 71 | 129 | 3 periods | 2.0 ns (GLS), 2.3 ns (STA) | — | — |
+| `bd_link`, four-phase, fusion off (10 storage stages) | 360 | 0 | 15.7–16.3 ns | 10.0–10.7 ns | 15.6–16.0 ns | 3 / 3 |
+| `bd_link`, four-phase, fusion on cap 4 (3 stages) | 218 | 0 | 7.6–7.9 ns | 5.35–5.83 ns | 13.4–13.7 ns | 6 / 6 |
+| `bd_link`, four-phase, fusion on cap 8 (1 stage) | 156 | 0 | 3.9 ns | 5.9 ns | 18.0–18.1 ns | 3 / 3 |
+| `bd_flink`, two-phase, FF data, 2 stages (standalone, `bd_mlink.v`) | 201 | 64 | 6.7–8.9 ns | 5.2–6.5 ns | 8.2–9.5 ns | 1 / 2 |
+| synchronous twin (`cells/verify/sync_ref/`) | 71 | 129 | 3 periods | 2.3 ns (STA); GLS passes at 1.8 ns, fails at 1.7 | — | — |
 
-The fast-source column does not move: the gated FASTFALL already flushed the
-four-phase return-to-zero off the forward path, and the FF stage pays a
-clock-to-Q and a symmetric request delay in its place; the stalled column
-is where the round trip lives, and there two-phase removes 5 ns of 13.5. The
-fourth `bd_flink` seed passes both GLS runs and fails the request bit's own
-loop audit (the router took the latch feedback out of the slice), so it is
-rejected, not counted. The flip-flop rows depend on the toolchain patch in
+The corrected SDF moved the four-phase rows less than expected — the
+delay chains grew (fusion off went from 280 to 360 sites) but the control
+hops the old SDF had at 0 ps are 295 ps in the routed model, against
+~440 ps to the next tile row, so the cycle was already mostly interconnect.
+The 5.8 ns fast-source cycle of the cap-4 row is, on the routed GLS trace,
+the two-stage slack pipe's own ring: 1.49 ns for stage 0's request to reach
+stage 1 (858 ps to the one-link request delay, 632 on), 3.49 ns for stage 1's
+output handshake (the OR, the 4-link output cone delay, and 0.79 ns of
+harness wire for the acknowledge), 0.84 ns for stage 1's acknowledge back to
+stage 0. The fused xor cone's own 4-link delay finishes 0.3 ns before that
+acknowledge, so it is not on the cycle; the two stage-to-stage hops are
+716–858 ps because the walk paired stage 0 with the link in front of it and
+put stage 1 four tile rows on (295 ps is the in-tile hop). Pairing the two
+pipe stages instead was measured and rejected (six routes each: latency
+7.72 → 7.43 ns, fast interval 5.67 → 5.94 ns) — the link in front of the
+pipe then sits across the pipe's bank from stage 0, and the matched delay
+between those banks, which is on the same ring, grows by more than the hop
+saved; so was stacking three bank rows to seat all three C nodes in one row
+(`BD_ROW_BANK_ROWS=3`: 8.1 ns latency, the fast interval unchanged, every
+enable one row farther). What did move the row above was a placement bug:
+`rloc_stamp.py` flattened the hierarchy without joining the nets a module
+wires straight through (`assign a_ack = z_ack` in every fused unit), so the
+datapath LUTs on either side of such a pass-through were placed as if
+unconnected — 30 of 217 sites, fast interval 5.67 → 5.53 ns mean over the
+same six seeds. The stalled column is where the four-phase round trip lives
+and where two-phase removes 4–5 ns. The two-phase row is two routes sized independently against their
+own SDF (it has no resize loop yet): the second passes both GLS runs at the
+faster numbers but its route-derived request-vs-data margin is 24 ps against
+the 250 ps guard, so it is rejected, not counted. The flip-flop rows depend on
 `patches/nextpnr-xilinx-ff-timing.patch`: without it every slice FF is 100 ps
-setup, 100 ps hold, 100 ps clock-to-Q, and the synchronous twin's STA reads 467
-MHz where the device data gives 434. The synchronous period is the floor the
-model above predicts for this fabric: best seed 5.4 / 2.0 = 2.7x, inside the 2.6–2.8x
-"realistic best" above, with `E` now 1 instead of 1.5.
+setup, 100 ps hold, 100 ps clock-to-Q, and the synchronous twin's STA reads
+467 MHz where the device data gives 434. The synchronous period is the floor
+the model above predicts for this fabric: 5.4 / 2.3 = 2.3x on STA, 3.0x on
+the GLS period, either side of the 2.6–2.8x "realistic best" above.
 
 The real cost of two-phase is elsewhere. It is cheap for a linear pipeline,
 which is all Mousetrap is, and expensive for everything else. Four-phase has a

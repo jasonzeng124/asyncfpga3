@@ -325,10 +325,15 @@ echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 BD_RLOC=${BD_RLOC:-v8}
 BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
 BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
+# v9: how many tile rows of latch-bank halves stack on each side of a shared
+# control row -- two W=32 banks by default; three puts a third C node in the
+# row at the price of a farther enable for one half of each bank.
+BD_ROW_BANK_ROWS=${BD_ROW_BANK_ROWS:-2}
 if [ "$BD_RLOC" != none ]; then
     python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
         --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
-        --column-rows "$BD_COLUMN_ROWS" --report > $OUT/rloc.log 2>&1 || {
+        --column-rows "$BD_COLUMN_ROWS" --row-bank-rows "$BD_ROW_BANK_ROWS" \
+        --report > $OUT/rloc.log 2>&1 || {
             echo "RLOC STAMP FAILED"; cat $OUT/rloc.log; exit 1; }
     mv $OUT/soak.rloc.json $OUT/soak.json
     grep -E "group|link" $OUT/rloc.log | tail -3

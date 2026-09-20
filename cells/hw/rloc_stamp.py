@@ -408,11 +408,20 @@ def flatten(mods, top, counts):
 
     Yields (mname, cname, cell, global-bit-of-each-connection) for each cell,
     where a global bit identifies one flattened net -- a module port and the
-    parent net it is connected to are the same net.  Shared modules (count
-    != 1) are not entered: one JSON cell object cannot carry two placements.
+    parent net it is connected to are the same net, and so are two parent
+    nets a module wires straight through (`assign a_ack = z_ack` in a fused
+    unit joins the acknowledge it receives to the one it passes on).  Shared
+    modules (count != 1) are not entered: one JSON cell object cannot carry
+    two placements.
     """
     out = []
     rst = set()
+    alias = {}
+
+    def root(g):
+        while g in alias:
+            g = alias[g]
+        return g
 
     def visit(mname, path, bitmap):
         m = mods[mname]
@@ -438,13 +447,22 @@ def flatten(mods, top, counts):
                 child = {}
                 for p, gids in conns.items():
                     for b, g in zip(mods[t]["ports"][p]["bits"], gids):
-                        if isinstance(b, int) and g is not None:
-                            child[b] = g
+                        if not isinstance(b, int) or g is None:
+                            continue
+                        if b in child and root(child[b]) != root(g):
+                            alias[root(child[b])] = root(g)
+                        child[b] = g
                 visit(t, path + cname + ".", child)
             else:
                 out.append((mname, cname, c, conns))
 
     visit(top, "", {})
+    if alias:
+        out = [(mname, cname, c,
+                {p: [None if g is None else root(g) for g in gids]
+                 for p, gids in conns.items()})
+               for mname, cname, c, conns in out]
+        rst = {root(g) for g in rst}
     return out, rst
 
 
@@ -970,6 +988,14 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
                 spill[at].extend(inner)
             else:
                 beside[at].append(inner)
+        # Rows are packed in walk order.  Pairing the two stages of a bd_pipe
+        # instead (their request delay and acknowledge are the ring's two
+        # stage-to-stage hops) was measured on xorshift_round, cap 4, six
+        # routes each: latency 7.72 -> 7.43 ns, but the fast-source interval
+        # 5.67 -> 5.94 ns, because the link in front of the pipe then sits
+        # across the pipe's bank from stage 0, and the matched delay between
+        # their banks -- which is on the same ring -- grew by more than the
+        # hop it saved.  Whichever pair shares the row, one pair does not.
         rows, row = [], []
         for c in cnodes:
             block = tail[c] + expand(c) + run[c]
@@ -1287,6 +1313,11 @@ def main():
     if "--column-rows" in args:
         i = args.index("--column-rows")
         set_column_rows(int(args[i + 1]))
+        del args[i:i + 2]
+    if "--row-bank-rows" in args:
+        global ROW_BANK_ROWS
+        i = args.index("--row-bank-rows")
+        ROW_BANK_ROWS = int(args[i + 1])
         del args[i:i + 2]
     report = "--report" in args
     args = [a for a in args if not a.startswith("-")]
