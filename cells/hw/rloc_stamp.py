@@ -108,6 +108,7 @@ instead of silently shipping an unclustered netlist.
 """
 
 import json
+import math
 import re
 import sys
 from collections import defaultdict
@@ -601,7 +602,10 @@ def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
         for key in loose:
             known = [target[n] for n in neigh[key] if n in target]
             if known:
-                nxt[key] = sum(known) / len(known)
+                # fsum: the mean must not depend on the order a set yields
+                # its neighbours, or two LUTs tied for a slot swap columns
+                # from one run to the next and the route is not reproducible.
+                nxt[key] = math.fsum(known) / len(known)
         target.update(nxt)
 
     # A slot the spine left empty (v8's row padding) is in the same tile as
