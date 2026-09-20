@@ -13,9 +13,12 @@
 // reachable only through an interconnect tile's two CLK wires, each with four
 // fabric sources.  A self-timed pipeline wants one locally generated enable
 // per stage and stages are dense, so that per-tile ceiling is the
-// disqualifier.  Keeping storage on LUTs also keeps the latch and the delay
-// line on the same primitive, so the two track each other across voltage and
-// temperature.
+// disqualifier.  Measured, too: a W=32 link's enable reached its LDCE.G
+// pins 977-1704 ps after the C node on xc7z010 (nextpnr-xilinx, one route)
+// against 640-1260 ps for the LUT pairs, so the slice clock pin does not
+// even buy arrival time for the LUTs it saves.  Keeping storage on LUTs also
+// keeps the latch and the delay line on the same primitive, so the two track
+// each other across voltage and temperature.
 // ---------------------------------------------------------------------------
 
 `default_nettype none

@@ -303,8 +303,10 @@ echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 # `upipe`), not a bd_link, and it is not named `ulink_...` the way a compiled
 # kernel's is -- hw/rloc_stamp.py's controller regex keys off the `ctl.u.u`
 # suffix alone for exactly this reason.
-# The cluster floats; nothing is pinned.  BD_RLOC=none turns it off.
-BD_RLOC=${BD_RLOC:-v2}
+# The cluster floats; nothing is pinned.  BD_RLOC=none turns it off; v2 is
+# the variant on record before 2026-09-19 (bdc/fusion_bench.py's table says
+# what v4 bought on this harness).
+BD_RLOC=${BD_RLOC:-v4}
 if [ "$BD_RLOC" != none ]; then
     python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
         --variant "$BD_RLOC" --report > $OUT/rloc.log 2>&1 || {

@@ -90,6 +90,18 @@ def test_fastrise_side_arc_carries_the_rise_only():
     assert tighten.fastfall_side_arcs(edges) == set()
 
 
+def test_ack_knob_named_with_and_without_a_chain():
+    knob = tighten.ack_knob
+    assert knob("uut.ulink_y.uack", "uut.ulink_y.ctl.u.u") == "uut.ulink_y.uack"
+    assert knob("uut.ulink_x.many.stage[2].u.uack",
+                "uut.ulink_x.many.stage[2].u.ctl.u.u") == "uut.ulink_x.uack"
+    # DACK=0: no chain, the controller's path names the knob
+    assert knob(None, "uut.ulink_y.ctl.u.u") == "uut.ulink_y.uack"
+    assert knob(None, "uut.ulink_x.many.stage[2].u.ctl.u.u") == "uut.ulink_x.uack"
+    assert knob(None, "uut.ulink_y.one.u.ctl.u.u") == "uut.ulink_y.uack"
+    assert knob(None, "uut.ucomp.uor.u") is None
+
+
 def test_stage_delay_knob():
     knob = tighten.stage_delay_knob
     pipe = "uut.ulink_x.many.stage[%d].u.ctl.u.u/O6"
@@ -102,3 +114,23 @@ def test_stage_delay_knob():
     assert knob("uut.ulink_y.ctl.u.u/O6", pipe % 0) == \
         ("uut.ulink_y", "uut.ulink_y.rdly")
     assert knob("uut.ucomp.uor.u/O6", pipe % 0) is None
+
+
+def test_input_lead_is_latest_data_against_earliest_enable():
+    """The sender's obligation at tx's boundary: a request net that fires tx's
+    controller (I3 -> O6 120 ps, enable +200 -> 320) and a data net that
+    reaches tx's latch input at 900 needs a lead of 900 - 320 + 200 guard."""
+    edges, back, stops = two_links()
+    edges["env/req"].append(("tx.ctl.u.u/I3", 0))
+    back["tx.ctl.u.u/I3"].add("env/req")
+    edges["env/d0"].append(("tx.lat.pair[0].u$LUT5/I0", 900))
+    back["tx.lat.pair[0].u$LUT5/I0"].add("env/d0")
+    timing = tighten.Timing(edges, stops)
+    assert tighten.input_lead(timing, back, "env/req", ["env/d0"]) == 780
+    # a data net that lands 300 ps before the enable is covered by the guard
+    edges["env/d1"] = [("tx.lat.pair[0].u$LUT5/I0", 20)]
+    back["tx.lat.pair[0].u$LUT5/I0"].add("env/d1")
+    timing = tighten.Timing(edges, stops)
+    assert tighten.input_lead(timing, back, "env/req", ["env/d1"]) == -100
+    # a request that reaches no controller has nothing to lead
+    assert tighten.input_lead(timing, back, "env/d1", ["env/d0"]) is None

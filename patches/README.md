@@ -114,8 +114,13 @@ every operand the board got wrong), and the bdc compiler.
 
 ## nextpnr-xilinx-rloc-group.patch
 
-Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack.cc` and
-`xilinx/pack.h`.
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack.cc`,
+`xilinx/pack.h` and `xilinx/arch_place.cc`.  The `arch_place.cc` hunk is
+the fork's post-placement repair (`fixupPlacement`, which moves a cluster
+whose root the placer left on a 5LUT slot) learning that a cluster's children
+carry x/y offsets too: computing every member's bel from the root's tile
+alone put two members of a column on one bel and tripped `bindBel`'s
+assertion on the first multi-tile group.
 
 **Relative placement from a netlist attribute.**  Not a bug fix -- a missing
 feature, and upstream-able as it stands because nothing in it knows what this
@@ -124,12 +129,16 @@ project's cells are.
 Cells carrying the same string value for the `RLOC_GROUP` attribute are tied
 into one cluster: same tile, consecutive logic slots.  The cluster as a whole
 is unconstrained and floats over the whole device, so this is Vivado's
-`RLOC`/`H_SET` idea and **not** a `LOC` or a pinned BEL.  A group may name at
-most four logic slots on xc7 (one SLICE; eight on xcup), a fractured `LUT6_2`
-pair counting as one.  A group naming more than that, or containing a
-BEL-pinned or absolutely-z-constrained cell, is dropped **whole** with a
-warning -- a half-applied relative-placement constraint measures as a success
-on the members that did get it.
+`RLOC`/`H_SET` idea and **not** a `LOC` or a pinned BEL.  Four logic slots on
+xc7 (one SLICE; eight on xcup) fill one tile, a fractured `LUT6_2` pair
+counting as one; a group naming more is laid out as a **column**, one row of
+slots per tile, the rows stacked alternately above and below the root's
+(dy = 0, +1, -1, +2, -2, ...) so the root sits mid-column, up to nine tiles.
+A group needing more than that, or containing a BEL-pinned or
+absolutely-z-constrained cell, is dropped **whole** with a warning -- a
+half-applied relative-placement constraint measures as a success on the
+members that did get it.  The column is what lets `rloc_stamp.py`'s `v3`/`v4`
+name a whole W=32 latch bank (17 slots, 5 tiles) or a matched delay chain.
 
 Why it is needed.  A wirelength-minimising placer with no timing constraint to
 contradict it puts two cells of one logical macro nanoseconds apart when one of
@@ -159,8 +168,10 @@ the placement moves -- so LUT sites are unchanged (6635 on gcd, 1449 on ipow),
 CLB tiles spread by about 1%, and place-and-route wall time varies less between
 variants than it does between runs of the same variant.
 
-Fingerprint for `cells/verify/toolchain.sh`, checked BOTH ways against an
-unpatched binary (present 1x patched, 0x unpatched) -- add it when the binary
-is installed, not before:
+Fingerprints for `cells/verify/toolchain.sh`, each checked BOTH ways (present
+1x in the patched binary, 0x unpatched; the second also 0x in a binary carrying
+only the single-tile revision of this patch) -- add them when the binary is
+installed, not before:
 
     "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
+    "column of nine tiles|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns (whole latch bank, delay chain)"

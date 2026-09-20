@@ -845,6 +845,19 @@ RE_ACK_CHAIN = re.compile(r"^(.*?)(?:\.(?:one|many\.stage\[\d+\])\.u)?\.uack$")
 RE_PIPE_STAGE = re.compile(r"^(.*)\.many\.stage\[(\d+)\]\.u$")
 
 
+def ack_knob(base, ctl_inst):
+    """The DACK knob that sizes a controller's ack-fall hold.  Named by the
+    uack chain when there is one; DACK=0 leaves no chain in the netlist, and
+    then the controller's own path names it (<link>.ctl.u.u -> <link>.uack),
+    a pipe stage's line rolling up into the pipe's one knob either way."""
+    if base:
+        return RE_ACK_CHAIN.match(base).group(1) + ".uack"
+    if ctl_inst.endswith(".ctl.u.u"):
+        link = ctl_inst[:-len(".ctl.u.u")]
+        return RE_ACK_CHAIN.match(link + ".uack").group(1) + ".uack"
+    return None
+
+
 def stage_delay_knob(up, ctl):
     """The request line between two link controllers and the knob that sizes
     it: (knob, chain base), or None when `up` is not a bd_link/bd_pipe stage.
@@ -894,6 +907,40 @@ def latch_data_pins(back, insts, en_pins):
     return pins
 
 
+def req_guard(p, t):
+    """The review's guardband: a fifth of the data path, floored at 200 ps."""
+    return max(int(0.2 * t), 200)
+
+
+def input_lead(timing, back, req_start, data_starts, guard=None):
+    """How far a channel's data must lead its request at a bd_link boundary,
+    in ps -- the sender's half of the bundling constraint, which the link's
+    consumer never audits: its rule A credits the controller-to-latch lag and
+    assumes the data was at the latch's pins when the enable arrived.  Latest
+    data arrival against earliest enable arrival at each latch the request's
+    controllers drive, plus `guard(t_data)`; None when no latch reads it."""
+    req = timing.early(req_start)
+    enables, en_pins = {}, set()
+    for ctl in req:
+        if ctl not in timing.stops:
+            continue
+        for pin, arc in latch_enables(timing.edges, ctl):
+            inst = pin_split(pin)[0]
+            enables[inst] = min(enables.get(inst, math.inf), req[ctl] + arc)
+            en_pins.add(pin)
+    pins = latch_data_pins(back, set(enables), en_pins)
+    guard = guard or (lambda t: req_guard(None, t))
+    need = None
+    for start in data_starts:
+        late = timing.late(start)
+        for pin in pins:
+            if pin in late:
+                t = late[pin]
+                lead = guard(t) - (enables[pin_split(pin)[0]] - t)
+                need = lead if need is None else max(need, lead)
+    return need
+
+
 def earliest_disturbance(timing, start, targets, skip):
     """Shortest arrival at any target pin from `start`, passing THROUGH state
     nodes -- each assumed to fire the moment it is reached -- except those
@@ -934,7 +981,30 @@ def median_hop(edges):
     return d[len(d) // 2] if d else 1
 
 
-def false_arcs(edges):
+def routed_graph(sdf):
+    """The timing graph of a routed SDF as every rule sees it: false arcs cut,
+    the reverse map, and the storage nodes the walks stop at.  Raises on the
+    two netlists no rule can size -- a pruning that removed storage, or a
+    cycle with no storage in it."""
+    edges, _, _, _ = parse_sdf(sdf)
+    dead, _ = false_arcs(edges, sdf)
+    before = len(storage_nodes(edges))
+    for src in list(edges):
+        edges[src] = [(d, w) for d, w in edges[src] if (src, d) not in dead]
+    stops = storage_nodes(edges)
+    if len(stops) != before:
+        raise RuntimeError(f"{sdf}: pruning false arcs removed storage")
+    acyclic = {s: lst for s, lst in edges.items() if s not in stops}
+    if any(is_output(p) for p in state_nodes(acyclic)):
+        raise RuntimeError(f"{sdf}: combinational cycle with no storage")
+    back = defaultdict(set)
+    for src, lst in edges.items():
+        for dst, _ in lst:
+            back[dst].add(src)
+    return edges, back, stops
+
+
+def false_arcs(edges, sdf=None):
     """Arcs the SDF carries that the logic cannot use.
 
     The SDF gives every physical LUT input an arc to the output, because the
@@ -969,7 +1039,8 @@ def false_arcs(edges):
     gate.  nextpnr records the permutation as X_ORIG_PORT_A<k>, and that
     attribute is the only thing that makes the two orders comparable.
     """
-    jpath = SDF.with_name(SDF.stem + "_routed.json")
+    sdf = SDF if sdf is None else pathlib.Path(sdf)
+    jpath = sdf.with_name(sdf.stem + "_routed.json")
     if not jpath.exists():
         return set(), jpath
     top = list(json.loads(jpath.read_text())["modules"].values())[0]
@@ -1213,10 +1284,6 @@ def main():
     hop = median_hop(edges)
     sites = request_sites(edges, back, chains)
 
-    def req_guard(p, t):
-        """The review's guardband: a fifth of the data path, floored at 200 ps."""
-        return max(int(0.2 * t), 200)
-
     audited = set()
     for parent, head, tail, links in sites:
         audited.add(parent)
@@ -1390,9 +1457,12 @@ def main():
         per = (t_exit / n) if (n and t_exit) else t_elem
         want = max(0, n - int(margin // per)) if margin >= 0 \
                else n + math.ceil(-margin / per)
+        knob = ack_knob(base, label)
         if want > n:
-            verdict = f"PAD to {want} -- VIOLATION" if base else \
-                      f"VIOLATION -- no DACK line here to pad"
+            verdict = f"PAD to {want} -- VIOLATION" if base else (
+                f"PAD to {want} -- VIOLATION (no DACK line routed; "
+                f"priced at {t_elem} ps per link)" if knob else
+                "VIOLATION -- no DACK line here to pad")
             problems += 1
         elif not base:
             verdict = "ok"
@@ -1402,8 +1472,7 @@ def main():
             verdict = f"tighten to {want}"
         else:
             verdict = "already exact"
-        if base:
-            knob = RE_ACK_CHAIN.match(base).group(1) + ".uack"
+        if knob and (base or want > n):
             sized[knob] = max(sized.get(knob, 0), want)
         print(f"  {label:<40} {n:>2} links   "
               f"enable {t_en:>5}  data {t_d:>5} ({via})  guard {guard:>4}  "

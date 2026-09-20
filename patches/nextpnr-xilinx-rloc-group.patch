@@ -1,5 +1,43 @@
+diff --git a/xilinx/arch_place.cc b/xilinx/arch_place.cc
+index 1e0100a4..a1f5401e 100644
+--- a/xilinx/arch_place.cc
++++ b/xilinx/arch_place.cc
+@@ -1273,6 +1273,16 @@ void Arch::fixupPlacement()
+                     out.push_back(tb);
+                     for (auto child : vc->constr_children) {
+                         Loc cloc = ploc;
++                        // A cluster may span tiles (an RLOC_GROUP column):
++                        // honour the child's x/y offsets exactly as the placer
++                        // does, or two members land on one bel and bindBel
++                        // asserts.
++                        if (child->constr_x != child->UNCONSTR)
++                            cloc.x += child->constr_x;
++                        if (child->constr_y != child->UNCONSTR)
++                            cloc.y += child->constr_y;
++                        if (cloc.x < 0 || cloc.y < 0)
++                            return false;
+                         if (child->constr_z != child->UNCONSTR)
+                             cloc.z = child->constr_abs_z ? child->constr_z : (ploc.z + child->constr_z);
+                         work.emplace_back(child, cloc);
+@@ -1327,8 +1337,15 @@ void Arch::fixupPlacement()
+                             bindBel(obels[i], members[i], STRENGTH_WEAK);
+                     }
+                 log_warning("post-place repair: no valid placement for '%s'\n", root->name.c_str(this));
+-            } else
++            } else {
+                 ++fixed;
++                if (getCtx()->verbose) {
++                    Loc nloc = getBelLocation(root->bel);
++                    log_info("post-place repair: '%s' (%s, %d member(s)) moved (%d,%d,z%d) -> (%d,%d,z%d)\n",
++                             root->name.c_str(this), root->type.c_str(this), int(members.size()), oloc.x, oloc.y,
++                             oloc.z, nloc.x, nloc.y, nloc.z);
++                }
++            }
+         }
+         if (fixed)
+             log_info("post-place repair: relocated %d stranded cluster(s)/cell(s) to valid bels\n", fixed);
 diff --git a/xilinx/pack.cc b/xilinx/pack.cc
-index 5c8801c8..4f0b81ea 100644
+index 5c8801c8..72a508cd 100644
 --- a/xilinx/pack.cc
 +++ b/xilinx/pack.cc
 @@ -21,6 +21,7 @@
@@ -25,7 +63,7 @@ index 5c8801c8..4f0b81ea 100644
              new_cells.push_back(std::move(half));
          };
  
-@@ -338,6 +347,133 @@ void XilinxPacker::constrain_lut6_2_pairs(const std::vector<std::pair<IdString,
+@@ -338,6 +347,140 @@ void XilinxPacker::constrain_lut6_2_pairs(const std::vector<std::pair<IdString,
      }
  }
  
@@ -86,8 +124,13 @@ index 5c8801c8..4f0b81ea 100644
 +    // Slots available at ONE placer location, for the cell types this
 +    // understands.  A location is one SLICE: four logic slots on xc7
 +    // (z = slot<<4 | BEL_6LUT, slot 0..3), eight on xcup.  A group asking for
-+    // more than that names a z that has no bel and could never place.
++    // more than that is laid out as a COLUMN of slices -- one row of slots
++    // per tile, the rows stacked alternately above and below the root's
++    // (dy = 0, +1, -1, +2, -2, ...) so the root sits mid-column -- the way a
++    // carry chain already spans tiles.  A column can straddle a row with no
++    // slice in it; the legaliser then rejects that anchor and tries the next.
 +    const int max_slots = ctx->xc7 ? 4 : 8;
++    const int max_rows = 9;
 +
 +    int n_groups = 0, n_members = 0, n_dropped = 0;
 +    std::map<std::string, int> size_hist;
@@ -125,8 +168,8 @@ index 5c8801c8..4f0b81ea 100644
 +            if (std::find(roots.begin(), roots.end(), r) == roots.end())
 +                roots.push_back(r);
 +        }
-+        if (reject == nullptr && int(roots.size()) > max_slots)
-+            reject = "group needs more logic slots than a tile has";
++        if (reject == nullptr && int(roots.size()) > max_slots * max_rows)
++            reject = "group needs more logic slots than a column of nine tiles has";
 +        if (reject != nullptr) {
 +            log_warning("    RLOC_GROUP '%s' (%d cells) not applied: %s\n", key.c_str(), int(grp.second.size()),
 +                        reject);
@@ -141,14 +184,16 @@ index 5c8801c8..4f0b81ea 100644
 +            CellInfo *m = roots.at(i);
 +            anchor->constr_children.push_back(m);
 +            m->constr_parent = anchor;
++            int row = int(i) / max_slots;
 +            m->constr_x = 0;
-+            m->constr_y = 0;
++            m->constr_y = (row % 2) ? (row + 1) / 2 : -(row / 2);
 +            m->constr_abs_z = false;
-+            m->constr_z = int(i) << 4;
++            m->constr_z = (int(i) % max_slots) << 4;
 +        }
 +        ++n_groups;
 +        n_members += int(roots.size());
-+        size_hist[std::to_string(roots.size()) + " slots"]++;
++        int rows = (int(roots.size()) + max_slots - 1) / max_slots;
++        size_hist[std::to_string(roots.size()) + " slots" + (rows > 1 ? " in " + std::to_string(rows) + " tiles" : "")]++;
 +    }
 +
 +    for (auto &sh : size_hist)
@@ -159,7 +204,7 @@ index 5c8801c8..4f0b81ea 100644
  void XilinxPacker::pack_luts(const std::vector<std::pair<IdString, IdString>> &lut6_2_pairs)
  {
      log_info("Packing LUTs..\n");
-@@ -1419,6 +1555,9 @@ bool Arch::pack()
+@@ -1419,6 +1562,9 @@ bool Arch::pack()
          packer.pack_ffs();
          packer.finalise_muxfs();
          packer.pack_lutffs();
@@ -169,7 +214,7 @@ index 5c8801c8..4f0b81ea 100644
      } else {
          USPacker packer;
          packer.ctx = getCtx();
-@@ -1444,6 +1583,7 @@ bool Arch::pack()
+@@ -1444,6 +1590,7 @@ bool Arch::pack()
          packer.pack_ffs();
          packer.finalise_muxfs();
          packer.pack_lutffs();

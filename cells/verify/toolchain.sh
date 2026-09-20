@@ -33,6 +33,7 @@ CHECKS=(
   "ZAREG_2_ACASCREG_1|nextpnr-xilinx-dsp-areg.patch|DSP cascade register mode encoded wrong"
   "]_INVERTED|nextpnr-xilinx-dsp-constpins.patch|8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)"
   "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
+  "column of nine tiles|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns (whole latch bank, delay chain)"
 )
 
 miss=0

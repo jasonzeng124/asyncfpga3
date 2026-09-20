@@ -4,6 +4,41 @@
 These materialized graphs model arithmetic kernels, not frontend output.
 Simulation measures handshake cost with placeholder matched delays and ideal
 arithmetic. It is not routed timing or a silicon frequency prediction.
+
+--route puts xorshift_round through cells/flow.sh on xc7z010clg400-1: the
+delays are tightened by verify/resize.sh (--seeds N confirmation routes per
+candidate), the route is audited by tighten.py and skew.py, and the routed SDF
+is simulated under a stalled consumer AND a fast source; a row is reported
+only if both pass.  --route-seeds M then re-routes the settled lengths under
+M-1 seeds the resize never saw, and records -- does not enforce -- what the
+audits and the GLS say about each.
+
+Measured 2026-09-19, --seeds 3 --route-seeds 4, OSS CAD Suite 2026-09-01 +
+nextpnr-xilinx bfdeaf7c with the four patches in patches/.  LUT sites are
+FASM LUT.INIT counts and include the soak harness.  The three fresh routes of
+each row all passed both GLS; "audits" counts those that also passed both
+audits, with the worst margin among the others.
+
+  BD_RLOC=v2 (C node beside one latch LUT)
+  fusion   cap  sites  latency  interval  stalled  fresh-route audits
+  off       4    335   23.3 ns  18.6 ns   24.9 ns  2/3  (rule H -716 ps)
+  on        4    213    8.2 ns   9.3 ns   16.8 ns  0/3  (rule H -230 ps)
+  on        8    169    6.4 ns   9.4 ns   21.3 ns  2/3  (rule H -307 ps)
+
+  BD_RLOC=v4 (whole latch bank and every delay chain in columns)
+  fusion   cap  sites  latency  interval  stalled  fresh-route audits
+  off       4    280   14.9 ns  13.2 ns   18.7 ns  3/3
+  on        4    196    6.7 ns   8.0 ns   15.4 ns  2/3  (rule A -253 ps)
+  on        8    160    5.9 ns   8.2 ns   19.9 ns  2/3  (rule H -271 ps)
+
+The v4 rows are also the smaller delay assignments (fusion-off UXORI_14 5
+links against 24, its DACKs 0-1 against 0-5): the columns take out the
+placement skew the delays were paying for.  The fresh-route column is the
+honest part.  Three confirmation routes leave a settled length that a fourth
+route breaks by up to a link, and the GLS passing on those routes measures
+the guard band, not the absence of the defect (bdc/AUDIT.md, "A margin is a
+property of a route").  A number here is a routed-SDF number; none is a
+silicon number.
 """
 
 import argparse
@@ -15,6 +50,7 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 
 import emit
 from hs import parse
@@ -22,6 +58,9 @@ from hs import parse
 
 REPO = Path(__file__).resolve().parents[1]
 CELLS = REPO / "cells"
+sys.path.insert(0, str(CELLS / "verify"))
+import tighten  # noqa: E402
+
 MASK = (1 << 32) - 1
 
 
@@ -152,7 +191,7 @@ def testbench(func, inputs, expected, *, stalls):
     ]
     lines += [f"  expected[{i}] = 32'h{v:08x};" for i, v in enumerate(expected)]
     sink_wait = (
-        f"    #(1000 + (received % 7) * 1777);"
+        "    #(1000 + (received % 7) * 1777);"
         if stalls else ""
     )
     sink_release = "#1000; out_ack = 0;" if stalls else "out_ack = 0;"
@@ -312,7 +351,33 @@ def routed_signals(outdir, func):
             for port, bits in source["cells"]["uut"]["connections"].items()}
 
 
-def measure_route(name, outdir, *, seeds):
+def source_lead(outdir, signals, args):
+    """How far each input channel's data must lead its request on THIS route,
+    in ps (tighten.input_lead): the environment's half of the bundling
+    constraint at the DUT's boundary.  bd_source's default SETUP is a
+    placeholder for it, and with a fast source that placeholder was a third
+    of the measured cycle."""
+    edges, back, stops = tighten.routed_graph(outdir / "pnr/soak.sdf")
+    timing = tighten.Timing(edges, stops)
+    routed = json.loads((outdir / "pnr/soak_routed.json").read_text())
+    driver = {}
+    for name, cell in routed["modules"]["top"]["cells"].items():
+        for port, bits in cell["connections"].items():
+            if cell["port_directions"][port] == "output":
+                for bit in bits:
+                    driver[bit] = f"{name}/{port}"
+    leads = {}
+    for arg in args:
+        need = tighten.input_lead(
+            timing, back, driver[signals[f"{arg}_req"][0]],
+            [driver[bit] for bit in signals[f"{arg}_data"]])
+        if need is None:
+            raise RuntimeError(f"{arg}: no bd_link latch reads this channel")
+        leads[arg] = max(need, 0)
+    return leads
+
+
+def measure_route(name, outdir, *, seeds, route_seeds=1):
     """Drive the DUT boundary in the routed soak harness; retain its wire delays."""
     path = outdir / "input.mlir"
     func = parse.parse_module(path.read_text())[0]
@@ -328,10 +393,45 @@ def measure_route(name, outdir, *, seeds):
     for audit in ("tighten", "skew"):
         run(["python3", str(CELLS / f"verify/{audit}.py"), str(sdf)],
             outdir / f"{audit}.log")
-    return {**simulate_route(outdir, func), "resize_seeds": seeds}
+    row = {**simulate_route(outdir, func), "resize_seeds": seeds}
+    if route_seeds > 1:
+        row["reroutes"] = {s: reroute(outdir, func, env, s)
+                           for s in range(seeds + 1, seeds + route_seeds)}
+    return row
 
 
-def simulate_route(outdir, func):
+def reroute(outdir, func, env, seed):
+    """The settled delay lengths on a different route of the same netlist:
+    how much of the measured number is the placement and how much is luck.
+    The audits are recorded, not enforced -- a length that a fresh route
+    violates is the finding, and GLS still runs on it."""
+    seeddir = outdir / f"seed{seed}"
+    seeddir.mkdir(exist_ok=True)
+    for kind in ("fast", "stalled"):
+        shutil.copy2(outdir / f"tb_{kind}.v", seeddir / f"tb_{kind}.v")
+    env = {**env, "BD_OUT": str(seeddir / "pnr"), "NEXTPNR_SEED": str(seed),
+           "BD_SIZES": str(outdir / "pnr/sizes.vh")}
+    run([str(CELLS / "flow.sh")], seeddir / "route.log", env=env, timeout=3600)
+    audits = {}
+    for audit in ("tighten", "skew"):
+        result = subprocess.run(
+            ["python3", str(CELLS / f"verify/{audit}.py"),
+             str(seeddir / "pnr/soak.sdf")],
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        (seeddir / f"{audit}.log").write_text(result.stdout)
+        audits[audit] = "pass" if result.returncode == 0 else "FAIL"
+    try:
+        sim = simulate_route(seeddir, func, strict_gls=False)
+    except RuntimeError as err:
+        sim = {"routed_gls": f"FAIL: {err}"}
+    return {"audits": audits, **sim}
+
+
+def simulate_route(outdir, func, *, strict_gls=True):
+    """Fast-source and stalled-consumer GLS on the routed SDF.  A failing
+    simulation is fatal for the measured row -- a number from a design that
+    corrupts data is not a measurement -- and recorded for a re-route, where
+    the failure is the finding."""
     gls = outdir / "gls"
     gls.mkdir(exist_ok=True)
     shutil.copy2(outdir / "pnr/soak.sdf", gls / "routed.sdf")
@@ -352,6 +452,7 @@ def simulate_route(outdir, func):
     for arg in func.args:
         drive += [f"{arg.name}_req", f"{arg.name}_data"]
         observe.append(f"{arg.name}_ack")
+    leads = source_lead(outdir, signals, [a.name for a in func.args])
     connection = ["top dut();"]
     driven = set()
     for port in drive:
@@ -367,10 +468,13 @@ def simulate_route(outdir, func):
         value = "{" + ", ".join(f"dut.n{b}" for b in reversed(bits)) + "}"
         connection.append(f"assign {port} = {value};")
 
-    outputs = {}
+    outputs, status = {}, {}
     for kind in ("stalled", "fast"):
         tb = (outdir / f"tb_{kind}.v").read_text()
         tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
+        for arg, lead in leads.items():
+            tb = tb.replace(f"bd_source #(.W(32)) {arg}_src(",
+                            f"bd_source #(.W(32), .SETUP({lead})) {arg}_src(")
         (gls / f"tb_{kind}.v").write_text(tb)
         sim = gls / f"sim_{kind}.vvp"
         run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o",
@@ -378,8 +482,15 @@ def simulate_route(outdir, func):
              str(CELLS / "sim/bd_env.v"), str(gls / "netlist_baked.v"),
              str(gls / f"tb_{kind}.v")],
             gls / f"compile_{kind}.log")
-        outputs[kind] = metrics(run(["vvp", str(sim)],
-                                     gls / f"sim_{kind}.log", cwd=gls))
+        try:
+            outputs[kind] = metrics(run(["vvp", str(sim)],
+                                         gls / f"sim_{kind}.log", cwd=gls))
+            status[kind] = "pass"
+        except RuntimeError as err:
+            outputs[kind] = (None, None)
+            status[kind] = f"FAIL: {err}"
+    if strict_gls and any(s != "pass" for s in status.values()):
+        raise RuntimeError(f"routed GLS failed: {status}")
     latency, interval = outputs["fast"]
     stalled_latency, stalled_interval = outputs["stalled"]
     fasm = (outdir / "pnr/soak.fasm").read_text()
@@ -387,6 +498,8 @@ def simulate_route(outdir, func):
         "routed_latency_ps": latency, "routed_interval_ps": interval,
         "routed_stalled_latency_ps": stalled_latency,
         "routed_stalled_interval_ps": stalled_interval,
+        "routed_gls": status,
+        "routed_source_lead_ps": leads,
         "fastfall": emit.BDC_FASTFALL,
         "routed_lut_sites_including_harness": fasm.count("LUT.INIT"),
         "toolchain": (outdir / "pnr/toolchain.txt").read_text().splitlines(),
@@ -403,6 +516,10 @@ def main():
                     help="resize, audit, and simulate routed xorshift with SDF")
     ap.add_argument("--seeds", type=int, default=3,
                     help="routes checked for every resize candidate")
+    ap.add_argument("--route-seeds", type=int, default=1,
+                    help="re-route the settled lengths under N-1 nextpnr "
+                         "seeds the resize never confirmed on, auditing and "
+                         "simulating each route")
     args = ap.parse_args()
     if args.route and args.kernels != ["xorshift_round"]:
         ap.error("--route currently requires --kernels xorshift_round")
@@ -413,7 +530,8 @@ def main():
             out = args.output.resolve() / f"{name}-forks{int(forks)}-cap{cap}"
             row = measure(name, out, synth=args.synth)
             if args.route:
-                row.update(measure_route(name, out, seeds=args.seeds))
+                row.update(measure_route(name, out, seeds=args.seeds,
+                                         route_seeds=args.route_seeds))
             results.append(row)
             print(json.dumps(row), flush=True)
     (args.output / "results.json").write_text(json.dumps(results, indent=2) + "\n")

@@ -19,8 +19,10 @@ pass (xilinx/pack.cc, pack_rloc_groups) reads one generic attribute: cells
 carrying the same RLOC_GROUP string are tied into one cluster -- same tile,
 consecutive logic slots -- and the cluster as a whole floats.  That is
 Vivado's RLOC, not a LOC: no cell is ever pinned to a BEL and the placer still
-chooses where the group lands.  A SLICE on xc7 holds four LUTs, so a group may
-name at most four logic slots (a fractured LUT6_2 pair is one slot).
+chooses where the group lands.  A SLICE on xc7 holds four LUTs (a fractured
+LUT6_2 pair is one slot); a group naming more is laid out as a column, one
+tile per four slots, rows alternating above and below the root's so the root
+sits mid-column, at most nine tiles (patches/README.md).
 
 WHAT IT IS FOR.  cells/build/hw/gcd_ps/gcd_ps.sdf, measured: a link's C node
 reaches its OWN latch's enable with a median 1920 ps of interconnect (p90 3405)
@@ -36,15 +38,37 @@ VARIANTS.
   v1   {C node, one latch LUT}                 -- 2 slots, every link.
   v2   v1, plus at a link whose latch drives a select, the consuming
        bd_mux's two join LUTs                  -- 4 slots.
+  v3   v2, but the WHOLE latch bank            -- a column of slices.
+  v4   v3, plus every bd_delay chain as its own column.
 
-Only ONE latch LUT per link is grouped: a bd_latch packs two data bits per
-LUT6_2, so a W=32 link is 16 of them and a four-LUT cluster cannot hold the
-bank.  The bit that is grouped is chosen deliberately -- the one that drives a
-select consumer where there is one, otherwise the first -- and the report says
-how many links are W=1 (where one LUT IS the whole bank) so the reach of the
-constraint is never overstated.
+Under v1/v2 only ONE latch LUT per link is grouped: a bd_latch packs two data
+bits per LUT6_2, so a W=32 link is 16 of them and a four-LUT cluster cannot
+hold the bank.  The bit that is grouped is chosen deliberately -- the one that
+drives a select consumer where there is one, otherwise the first -- and the
+report says how many links are W=1 (where one LUT IS the whole bank) so the
+reach of the constraint is never overstated.
 
-usage: rloc_stamp.py IN.json OUT.json --variant v1|v2|none [--report]
+v3 names every LUT of the bank.  It needs the rloc-group patch's column
+layout (a group past four slots is stacked one slice per tile above and below
+the root's), and exists because the enable net is what the whole cycle waits
+on: on a W=32 link routed under v2 the C node reached its own latches 640 to
+1260 ps after switching (median 936), under v3 150 to 630 (median 540) for
+the same design.  The latch closing late shows up twice -- once as data
+leaving the stage late relative to its request (rule A, sized into the
+consumer's delay line) and once as the acknowledge that may not fall until
+the latch is shut (rule H, sized into DACK).
+
+v4 also groups each bd_delay's LUTs (`<dly>.chain.g[i].u`).  Ungrouped, a
+link of the chain costs 150 ps of interconnect when the placer put its
+neighbour in the same SLICE and 540-630 when it did not, so the same N is
+worth anything between 275 and 750 ps per link from one route to the next
+and the resize pass, which sizes N against one route and confirms it on
+another, keeps rejecting shrinks that a steadier chain would take.  A
+placeholder chain longer than the column can hold is left unclustered by
+nextpnr, with a warning; only the tightened lengths are ever the ones that
+matter.
+
+usage: rloc_stamp.py IN.json OUT.json --variant v1|v2|v3|v4|none [--report]
 
 WIRED INTO hw/build_hw.sh and flow.sh, both the same three lines, between
 `write_json` and the nextpnr invocation:
@@ -74,6 +98,7 @@ import sys
 from collections import defaultdict
 
 ATTR = "RLOC_GROUP"
+WHOLE_BANK = ("v3", "v4")
 
 # The library's own instance names.  bd_link's controller is `ctl.u.u`, and
 # a bd_pipe's stages are bd_links, so theirs are too.  Only bd_link_ctl is
@@ -86,6 +111,9 @@ ATTR = "RLOC_GROUP"
 # suffix, instead of insisting on the compiler's naming, is what makes soak's
 # pipe visible at all.
 RE_CNODE = re.compile(r"^(?P<link>.+)\.ctl\.u\.u$")
+# bd_delay's links: `<dly>.chain.g[i].u` (cells/rtl/bd_latch.v), the same
+# chain whether symmetric, FASTFALL or FASTRISE.
+RE_DLINK = re.compile(r"^(?P<dly>.+\.chain)\.g\[\d+\]\.u$")
 
 
 def load(path):
@@ -234,6 +262,8 @@ def stamp(mods, variant, report):
     n_groups = n_members = 0
     n_w1 = n_wide = 0
     n_consumer = 0
+    n_latch = 0
+    n_chains = n_chain_links = 0
     n_cands = 0
     n_split = n_split_stages_dropped = 0
     skipped_shared = []
@@ -244,10 +274,32 @@ def stamp(mods, variant, report):
         if not cells:
             continue
         cands = [n for n in cells if RE_CNODE.match(n)]
-        if not cands:
+        chains = defaultdict(list)
+        if variant == "v4":
+            for cname in sorted(cells):
+                hit = RE_DLINK.match(cname)
+                if hit:
+                    chains[hit.group("dly")].append(cname)
+        if not cands and not chains:
             continue
         if counts.get(mname, 0) != 1:
             skipped_shared.append((mname, counts.get(mname, 0), len(cands)))
+            continue
+
+        # Group strings are matched design-wide after nextpnr flattens, so a
+        # name inside a submodule is qualified by the module: two fused
+        # compute cells (bdc_fused_*, kept hierarchical so DELAY stays a
+        # knob) both own a `udly.chain`.
+        scope = "" if mname == top else re.sub(r"[^A-Za-z0-9_]", "_", mname) + "__"
+        for dly, links in sorted(chains.items()):
+            if len(links) < 2:
+                continue
+            g = "bddly_" + scope + re.sub(r"[^A-Za-z0-9_]", "_", dly)
+            for mn in links:
+                cells[mn].setdefault("attributes", {})[ATTR] = g
+            n_chains += 1
+            n_chain_links += len(links)
+        if not cands:
             continue
 
         n_cands += len(cands)
@@ -300,12 +352,16 @@ def stamp(mods, variant, report):
                 (s for s in scored if s[2]), scored[0])
 
             members = [cname, chosen]
-            if variant == "v2" and consumers:
+            if variant in WHOLE_BANK:
+                bank = next(b for p, b in stages if p == port)
+                members += [l for l in bank if l != chosen]
+            n_latch += len(members) - 1
+            if variant != "v1" and consumers:
                 # A SLICE is four LUTs.  The two joins of one bd_mux fit
                 # alongside the pair; a latch feeding more than one consumer
                 # does not, and taking an arbitrary subset would silently
                 # constrain one site and not another, so leave those alone.
-                if len(members) + len(consumers) <= 4:
+                if variant in WHOLE_BANK or len(members) + len(consumers) <= 4:
                     members += sorted(consumers)
                     n_consumer += 1
 
@@ -316,7 +372,7 @@ def stamp(mods, variant, report):
             # (one per stage), each its own physical cluster.  Keying on `link` alone would hand two unrelated
             # clusters the same RLOC_GROUP string and ask nextpnr to fuse
             # them into one SLICE.
-            g = "bdlink_" + re.sub(r"[^A-Za-z0-9_]", "_", cname)
+            g = "bdlink_" + scope + re.sub(r"[^A-Za-z0-9_]", "_", cname)
             for mn in members:
                 cells[mn].setdefault("attributes", {})[ATTR] = g
             n_groups += 1
@@ -329,16 +385,20 @@ def stamp(mods, variant, report):
         print(f"             {n_groups} group(s), {n_members} logic slot(s) "
               f"named")
         print(f"             {n_w1} link/stage bank(s) that ARE one LUT "
-              f"(W<=2), {n_wide} wider bank(s) where only the named bit is "
-              f"constrained")
+              f"(W<=2), {n_wide} wider bank(s) where "
+              + ("the whole bank is" if variant in WHOLE_BANK else
+                 "only the named bit is") + " constrained")
         if bank_sizes:
             tot = sum(bank_sizes)
             print(f"             {tot} latch LUT(s) across those banks, "
-                  f"{n_groups} of them grouped "
-                  f"({100.0 * n_groups / tot:.1f}%)")
-        if variant == "v2":
+                  f"{n_latch} of them grouped "
+                  f"({100.0 * n_latch / tot:.1f}%)")
+        if variant != "v1":
             print(f"             {n_consumer} group(s) also hold their select "
                   f"consumer's LUTs")
+        if variant == "v4":
+            print(f"             {n_chains} delay chain(s) grouped, "
+                  f"{n_chain_links} link LUT(s)")
         if n_split:
             print(f"             {n_split} multi-output controller(s) each "
                   f"drive two pipeline stages from one LUT; only one "
@@ -383,7 +443,7 @@ def main():
         del args[i:i + 2]
     report = "--report" in args
     args = [a for a in args if not a.startswith("-")]
-    if len(args) != 2 or variant not in ("v1", "v2", "none"):
+    if len(args) != 2 or variant not in ("v1", "v2", "v3", "v4", "none"):
         print(__doc__)
         return 2
     d = load(args[0])

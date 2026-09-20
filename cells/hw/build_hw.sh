@@ -247,15 +247,18 @@ write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 
-# Relative placement.  BD_RLOC=v2 (default) stamps an RLOC_GROUP attribute on
-# the post-synthesis netlist so nextpnr keeps each bd_link's C node in the same
-# SLICE as its own latch -- see hw/rloc_stamp.py and patches/README.md.  The
-# cluster floats; nothing is pinned.  BD_RLOC=none turns it off, and that is
-# the ONLY way to reproduce a pre-2026-08-21 route: routed placement is stable
-# per binary but not across binaries, so numbers from the two are not
-# comparable.  An unpatched nextpnr ignores the attribute silently, which is
-# what verify/toolchain.sh above is for.
-BD_RLOC=${BD_RLOC:-v2}
+# Relative placement.  BD_RLOC=v4 (default) stamps an RLOC_GROUP attribute on
+# the post-synthesis netlist so nextpnr keeps each bd_link's C node in a
+# column of SLICEs with its whole latch bank, and each matched delay chain in
+# a column of its own -- see hw/rloc_stamp.py and patches/README.md.  The
+# cluster floats; nothing is pinned.  BD_RLOC=v2 is the 2026-08-21 variant
+# (C node beside ONE latch LUT) every board number on record was built with;
+# BD_RLOC=none turns it off, and that is the ONLY way to reproduce a
+# pre-2026-08-21 route: routed placement is stable per binary but not across
+# binaries, so numbers from the two are not comparable.  An unpatched nextpnr
+# ignores the attribute silently, which is what verify/toolchain.sh above is
+# for.
+BD_RLOC=${BD_RLOC:-v4}
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
         --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
