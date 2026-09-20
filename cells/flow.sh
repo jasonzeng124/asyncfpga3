@@ -457,6 +457,18 @@ if grep -q "SETUPHOLD" $OUT/soak.sdf && \
     echo "      predates nextpnr-xilinx-ff-timing.patch; regenerate it (patches/README.md)"
     exit 1
 fi
+
+# An INTERCONNECT of 0 ps between two cells is not a route: every routed arc
+# crosses at least one pip.  Zero is what the SDF writer emits when the sink
+# wire it is handed is not in the net (lut-perm-sink.patch), so any such arc
+# means the numbers downstream are placement estimates.  PAD arcs are the one
+# legitimate zero (the pad wire is the pin).
+if grep "INTERCONNECT" $OUT/soak.sdf | grep -v "/PAD (" | grep -q "(0:0:0)"; then
+    echo "FAIL: zero-delay INTERCONNECT arcs in the SDF -- the sink wire is not in"
+    echo "      the routed net (nextpnr-xilinx-lut-perm-sink.patch, patches/README.md)"
+    grep "INTERCONNECT" $OUT/soak.sdf | grep -v "/PAD (" | grep "(0:0:0)" | head -5
+    exit 1
+fi
 echo
 echo "routed SDF written to $OUT/soak.sdf -- run verify/tighten.py to size the"
 echo "matched delays against it."

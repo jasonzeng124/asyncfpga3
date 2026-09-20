@@ -254,3 +254,64 @@ binary; it already existed in the chipdb as a variant name):
 Stale chipdb: a `.bin` built before the importer fix still routes and still
 writes an SDF, but every FF `SETUPHOLD` in it reads `(100:100:100)`.
 `cells/flow.sh` fails the route when it sees that.
+
+## nextpnr-xilinx-lut-perm-sink.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/arch_place.cc`
+(`fixupRouting`).  Independent of the other patches; nothing in it is specific
+to this project.
+
+**Every SDF `INTERCONNECT` into a LUT input that the router reached through a
+permutation pip was the placer's distance estimate, not the routed delay.  On
+this project's routes that was 6 arcs in 10, and 0 ps for every same-slice
+arc -- C-element feedback, latch feedback, the hop between two links of a
+matched delay chain.**
+
+The arch models the LUT input crossbar as `PIP_LUT_PERMUTATION` pseudo-pips
+(tile pin `D5` -> site wire `D3`, say), so the router may bring a net in on
+any pin and the INIT is permuted to match.  `fixupRouting` then renames the
+cell's ports after the tile pins the nets actually arrived on, so the JSON
+and the bitstream agree.  What it did not do is tell the timing side: after
+the rename, `getNetinfoSinkWire()` maps port `A5` to bel pin `A5` to site wire
+`D5`, and the routed net never visits `D5` -- it ends on `D3`.
+`Context::getNetinfoRouteDelay` walks the route back from the sink wire it is
+given, fails to find it in the net, and quietly returns `predictDelay()`:
+
+    same slice, same LUT pair       0 ps
+    same tile, other pair         150 ps
+    other tile                    450 + 90*|dy| + 45*|dx| ps
+
+which is exactly the histogram of the old SDF (375 of 1637 arcs at 0, then
+540, 630, 585, 900, 495 ...).  Identity-pin sinks got the real routed sum;
+the other 658 pins got the estimate.  The router itself was fine -- during
+routing the ports still had their logical names and the sinks were the right
+site wires -- so the routes are good and only their reported delays were
+wrong.  Post-route STA and the SDF both read through the same call, so the
+sync reference's `Fmax` and every routed-GLS number were built on it.
+
+The fix is one line per LUT half: when `fixupRouting` renames a port for the
+tile pin, record the site pin it actually landed on in `cell->pins`, which is
+the map `getNetinfoSinkWire()` already consults.  Nothing else reads that map
+for LUTs (a checksum does), and the JSON/FASM writers are untouched.  The
+routed count is logged (`Recorded N permuted LUT input pins as routed sink
+wires`, N counting a fractured LUT6_2 twice).
+
+Same route (`fb-gated2-v9r25`, fusion on cap 4), same JSON, SDF regenerated
+by the two binaries:
+
+| | before | after |
+|---|---|---|
+| arcs at 0 ps | 375 | 1 (the OBUF pad) |
+| same-slice O6 -> A hop | 0 | 295 |
+| next-tile hop (dy=1) | 540 | 426..444, 576 |
+| `stage[0].ctl.u.u/O6 -> A5` (C-element feedback) | 0 | 295 |
+
+Consequence for this project: every routed latency/interval reported before
+this patch was optimistic, and the matched delays were sized against an SDF
+that undercounted the very hops the chains are made of.  `cells/flow.sh`
+refuses an SDF with a zero-delay inter-cell arc; `README.md` has the
+re-measured numbers.
+
+Fingerprint, 0x in every binary without this patch (the string is new):
+
+    "permuted LUT input pins as routed sink wires|nextpnr-xilinx-lut-perm-sink.patch|SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route"

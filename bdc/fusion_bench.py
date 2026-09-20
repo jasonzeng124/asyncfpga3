@@ -14,7 +14,7 @@ M-1 seeds the resize never saw, and records -- does not enforce -- what the
 audits and the GLS say about each.
 
 Measured 2026-09-19, --seeds 3 --route-seeds 4, OSS CAD Suite 2026-09-01 +
-nextpnr-xilinx bfdeaf7c with the four patches in patches/.  LUT sites are
+nextpnr-xilinx bfdeaf7c with the patches in patches/.  LUT sites are
 FASM LUT.INIT counts and include the soak harness.  The three fresh routes of
 each row all passed both GLS; "audits" counts those that also passed both
 audits, with the worst margin among the others.
