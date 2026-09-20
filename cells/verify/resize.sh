@@ -234,45 +234,64 @@ total() { local k t=0; for k in "${KEYS[@]}"; do t=$((t + cur[$k])); done; echo 
 # need (the harness pipe's DACK, at 0, wanted 1 on seed 2 of the 5-link
 # candidate and nowhere else), and the shrink from 8 never came back: ~1.1 ns
 # of interval on a 6.4 ns cycle.
-repair() {                            # repair KEY TAG WAS WANT
-    local k=$1 tag=$2 was=$3 want=$4 y v before after n=0 veto s=2
-    local -A pad save
-    [ -f "$HIST/prop_$tag.vh" ] || return 1
-    if [ -f "$HIST/skew_$tag.log" ]; then       # tighten.py passed the unseeded route
+#
+# And the padded route is a new route, so it can come up short somewhere else
+# -- or in the same place by more, since what tighten.py asked for was the
+# need on the route it saw.  One round of padding parked uxori_9 at 43 links
+# on a 4-link need (fusion off, v9, 25 rows): every candidate below 43 was
+# vetoed by uxori_4 wanting 6, padded to 6, and vetoed again by uxori_4
+# wanting 7 on the padded route.  So pad up to REPAIR_ROUNDS times, each
+# round reading the latest route's asks, under the same total-decreases
+# budget throughout.
+REPAIR_ROUNDS=${BD_RESIZE_REPAIR_ROUNDS:-3}
+
+veto_of() {                           # veto_of TAG -> which tighten.py log vetoed it
+    local tag=$1 s=2
+    [ -f "$HIST/prop_$tag.vh" ] || return 1          # the unseeded route failed
+    if [ -f "$HIST/skew_$tag.log" ]; then           # tighten.py passed the unseeded route
         while [ "$s" -le "$SEEDS" ]; do
             [ -f "$HIST/prop_${tag}_s$s.vh" ] || return 1   # that seed did not route
             [ -f "$HIST/skew_${tag}_s$s.log" ] || break     # its tighten.py vetoed
             s=$((s + 1))
         done
-        [ "$s" -le "$SEEDS" ] || return 1       # every tighten.py passed; the veto is skew.py's
-        veto=${tag}_s$s
-    else
-        veto=$tag
+        [ "$s" -le "$SEEDS" ] || return 1           # every tighten.py passed; the veto is skew.py's
+        tag=${tag}_s$s
     fi
-    grep -q VIOLATION "$HIST/tighten_$veto.log" 2>/dev/null || return 1
-    while read -r _ y v; do
-        [ -n "${cur[$y]+x}" ] || continue
-        [ "$v" -gt "${cur[$y]}" ] || continue
-        [ "$y" = "$k" ] && return 1                  # the tried delay is the one that is short
-        pad[$y]=$v
-        n=$((n + 1))
-    done < <(grep '^`define' "$HIST/prop_$veto.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
-    [ $n -gt 0 ] || return 1                         # a violation with no knob to pad
-    before=$(total)
-    for y in "${!pad[@]}"; do save[$y]=${cur[$y]}; cur[$y]=${pad[$y]}; done
-    after=$(total)
-    if [ "$after" -lt "$((before + was - want))" ]; then
+    grep -q VIOLATION "$HIST/tighten_$tag.log" 2>/dev/null || return 1
+    echo "$tag"
+}
+
+repair() {                            # repair KEY TAG WAS WANT
+    local k=$1 tag=$2 was=$3 want=$4 y v budget n veto round=0 rtag
+    local -A save
+    rtag=$tag
+    budget=$(( $(total) + was - want ))
+    while [ $round -lt "$REPAIR_ROUNDS" ]; do
+        veto=$(veto_of "$rtag") || break
+        n=0
+        while read -r _ y v; do
+            [ -n "${cur[$y]+x}" ] || continue
+            [ "$v" -gt "${cur[$y]}" ] || continue
+            [ "$y" = "$k" ] && break 2                # the tried delay is the one that is short
+            [ -n "${save[$y]+x}" ] || save[$y]=${cur[$y]}
+            cur[$y]=$v
+            n=$((n + 1))
+        done < <(grep '^`define' "$HIST/prop_$veto.vh" | sed 's/`define //' | awk '{print "d", $1, $2}')
+        [ $n -gt 0 ] || break                        # a violation with no knob to pad
+        [ "$(total)" -lt "$budget" ] || break
+        round=$((round + 1))
+        rtag=${tag}_r$round
         write_sizes
         routes=$((routes + 1))
-        if attempt "${tag}_r"; then
-            cp "$HIST/prop_${tag}_r.vh" "$HIST/prop_last.vh"
-            for y in "${!pad[@]}"; do
+        if attempt "$rtag"; then
+            cp "$HIST/prop_$rtag.vh" "$HIST/prop_last.vh"
+            for y in "${!save[@]}"; do
                 printf "  %-20s %2d -> %-2d  padded, so that the shrink below could stand\n" \
-                       "${y#BD_SZ_}" "${save[$y]}" "${pad[$y]}"
+                       "${y#BD_SZ_}" "${save[$y]}" "${cur[$y]}"
             done
             return 0
         fi
-    fi
+    done
     for y in "${!save[@]}"; do cur[$y]=${save[$y]}; done
     return 1
 }

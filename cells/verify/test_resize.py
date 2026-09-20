@@ -121,6 +121,41 @@ def test_veto_by_another_delay_on_a_confirmation_seed_pads_it_too(tmp_path):
         assert "VIOLATION" not in (out / f"resize/tighten_final_s{s}.log").read_text()
 
 
+def test_padded_route_asking_for_more_is_padded_again(tmp_path):
+    # A's need depends on its own length once B has moved the route: at 5 it
+    # asks for 8, at 8 it asks for 9 (the padded route is a new route).  One
+    # round of repair parks B at 50; the second round lands A at 9.
+    stdout, sizes, _ = run_coupled(
+        tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n",
+        COUPLED.replace("(8 if b < 50 else 5)",
+                        "(5 if b >= 50 else 8 if a < 8 else 9)"))
+    assert sizes == {"BD_SZ_A": "9", "BD_SZ_B": "6"}
+    assert "A                     5 -> 9   padded" in stdout
+    assert "B                    96 -> 6   kept" in stdout
+
+
+def test_repair_rounds_are_bounded(tmp_path):
+    # A asks for one more link on every padded route, without end; the
+    # search must stop trying after BD_RESIZE_REPAIR_ROUNDS and park B.
+    flow = make_flow(tmp_path, "`define BD_SZ_A 96\n`define BD_SZ_B 96\n",
+                     COUPLED.replace("(8 if b < 50 else 5)",
+                                     "(5 if b >= 50 else a + 1)"))
+    out = flow / "build"
+    result = subprocess.run(
+        ["bash", str(flow / "verify/resize.sh")], text=True, capture_output=True,
+        env={**os.environ, "BD_OUT": str(out), "BD_RESIZE_REPAIR_ROUNDS": "2"},
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    sizes = dict(line.split()[-2:]
+                 for line in (out / "resize/sizes.vh").read_text().splitlines()
+                 if line.startswith("`define"))
+    assert sizes == {"BD_SZ_A": "5", "BD_SZ_B": "50"}
+    assert "padded" not in result.stdout
+    assert (out / "resize/flow_try_BD_SZ_B_6_r2.log").exists()
+    assert not (out / "resize/flow_try_BD_SZ_B_6_r3.log").exists()
+
+
 def test_pad_that_costs_more_than_the_shrink_saves_is_a_veto(tmp_path):
     # B's placeholder is 52, so its shrink to 6 saves 46 links, and A asks
     # for 55 more once the route moves.  The descent must refuse that trade
