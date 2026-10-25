@@ -78,7 +78,7 @@ fi
 # PYTHONPATH (build_hw.sh) and fasm is built below against the shared antlr.
 if ! PYTHONPATH="$SRC/prjxray:$PREFIX/lib/python" python3 -c 'import fasm, prjxray, intervaltree, simplejson' 2>/dev/null; then
     log "prjxray python"
-    grep -v '^-e' "$SRC/prjxray/requirements.txt" > "$SRC/prjxray-req.txt"
+    { grep -v '^-e' "$SRC/prjxray/requirements.txt"; echo cython; } > "$SRC/prjxray-req.txt"   # fasm's setup.py imports Cython
     python3 -m pip install -q --break-system-packages -r "$SRC/prjxray-req.txt" 2>/dev/null \
         || python3 -m pip install -q -r "$SRC/prjxray-req.txt"
     (cd "$SRC/prjxray/third_party/fasm" && \
