@@ -170,3 +170,14 @@ toolchain agreeing with itself, not with silicon.
 - cloud/setup-toolchain.sh: apt `time` added (gls/run.sh needs /usr/bin/time; the cache key is
   unchanged).
 - Running: routed GLS of this route (16 vectors), and seeds 2/3/4 with the converged pads.
+### progress 21:20 (gcd_hw routed GLS)
+- Route 1 (converge's final route, build_hw default seed, pads n166__0=12/n166__1=13/n32__2=11,
+  routed.json md5 13643a10, sdf md5 e9bbd1f2): `gls/build.sh gcd_hw`, `vvp gate.vvp` ->
+  ANNOTATE_DONE, 0 SDF warnings/errors (11 min); `gls/run.sh gcd_hw` (TEND 150 us): **16/16
+  vectors complete laps with errs=0**, including 5, 6, 7, 8, 11, 12, 13 (the board's historical
+  seven). Laps per vector 19 to 2626. Expected values re-checked here against math.gcd: 16/16,
+  none degenerate.
+- Same pads on fresh seeds: seed 2 and 4 rule E 0 violated; seed 3 rule E 1 violated (umux2,
+  -29 ps guarded on +2292 raw, wants +1 on n32__2). Rules A/H/I 0 on all four; D 38 (screen).
+  So the converged pads are marginal on 1 route in 4. Taking the longer number: pads +1/+1/+2
+  (13/14/13) are being re-checked on 4 seeds (default, 2, 3, 4), then GLS on each.
