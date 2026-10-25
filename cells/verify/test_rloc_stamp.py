@@ -410,3 +410,22 @@ def test_v7_leaves_the_luts_of_a_wide_mux_to_its_site():
     for name in ("$abc$3$m70", "$abc$3$m71", "$abc$3$m8"):
         assert placement(mods, name) == (None, None, None)
     assert placement(mods, "$abc$3$sel")[0] is not None
+
+
+def test_v7_leaves_carry_luts_to_their_carry4():
+    mods = ring_netlist()
+    top = mods["top"]["cells"]
+    # an adder's propagate (S) and generate (DI) LUTs on a's bank, and a
+    # LUT that only reads the carry's output, which is ordinary data path
+    top["$abc$4$p"] = lut([30, 31], [130], "LUT2")
+    top["$abc$4$g"] = lut([30, 31], [131], "LUT2")
+    top["$abc$4$c"] = {
+        "type": "CARRY4",
+        "port_directions": {"S": "input", "DI": "input", "CI": "input", "O": "output"},
+        "connections": {"S": [130, None, None, None], "DI": [131, None, None, None],
+                        "CI": [None], "O": [132, None, None, None]}}
+    top["$abc$4$use"] = lut([132, 31], [133], "LUT2")
+    rloc_stamp.stamp(mods, "v7", report=False)
+    assert placement(mods, "$abc$4$p") == (None, None, None)
+    assert placement(mods, "$abc$4$g") == (None, None, None)
+    assert placement(mods, "$abc$4$use")[0] is not None

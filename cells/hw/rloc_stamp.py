@@ -166,12 +166,15 @@ def set_column_rows(rows):
 ROW_BANK_ROWS = 2
 SIDE_CHAIN = 16
 LUT_TYPES = frozenset(f"LUT{i}" for i in range(1, 7)) | {"LUT6_2"}
-# A LUT feeding a MUXF7 (or a MUXF7 feeding a MUXF8) is wired to it inside one
-# SLICE, so nextpnr packs the LUTs of a wide function into fixed slots of one
-# site before RLOC_GROUP sees them.  Giving such a LUT a slot of its own put
-# the four LUTs of a MUXF8 in two columns of a group, which no placement
-# satisfies ("Unable to find legal placement", soak_top under yosys 0.62).
-WIDE_MUX_TYPES = frozenset({"MUXF7", "MUXF8"})
+# A LUT feeding a MUXF7 data input (or a MUXF7 feeding a MUXF8), or a
+# CARRY4's S or DI, is wired to it inside one SLICE, so nextpnr packs it into
+# fixed slots of that site before RLOC_GROUP sees it.  Giving such a LUT a slot
+# of its own put the four LUTs of a MUXF8 in two columns of a group, which no
+# placement satisfies ("Unable to find legal placement", soak_top under yosys
+# 0.62), and a carry LUT in a group makes nextpnr drop the whole group
+# ("member already has an absolute-z constraint", gcd_hw).  Select inputs
+# (MUXF S) are ordinary routed pins and do not count.
+SITE_PINNED_INPUTS = {"MUXF7": ("I0", "I1"), "MUXF8": ("I0", "I1"), "CARRY4": ("S", "DI")}
 # bd_link's `lat` (bd_latch) and bd_mux/bd_merge's `udat` (bd_datamux) are
 # the library's only data-path instances (cells/rtl); every other named LUT
 # is handshake control.  abc's own cells are `$`-prefixed.
@@ -602,8 +605,8 @@ def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
     loose = {}
     wide_in = set()
     for mname, cname, c, conns in cells:
-        if c["type"] in WIDE_MUX_TYPES:
-            wide_in.update(gid for p in ("I0", "I1") for gid in conns.get(p, ()) if gid is not None)
+        pins = SITE_PINNED_INPUTS.get(c["type"], ())
+        wide_in.update(gid for p in pins for gid in conns.get(p, ()) if gid is not None)
     n_wide = 0
     for mname, cname, c, conns in cells:
         key = (mname, cname)
@@ -1119,7 +1122,7 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
                   f"({per_col[-1]} left, {per_col[1]} right, {per_col[0]} in its gaps), "
                   f"{n_far} too far from a free side slot, "
                   f"{n_loose} not connected to any spine, "
-                  f"{n_wide} left to a MUXF7/MUXF8 site")
+                  f"{n_wide} left to their MUXF/CARRY4 site")
     if n_cands == 0 and not has_link_structures(mods):
         print("rloc_stamp   note: no bd_link/bd_pipe instances; nothing to stamp",
               file=sys.stderr)

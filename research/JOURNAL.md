@@ -116,3 +116,14 @@ toolchain agreeing with itself, not with silicon.
   probes and gcd_rig.v's `GCD_RIG_CMP_PROBE` come back with BDC_OP_FUSION=0 (emission checked
   both ways). With fusion on, cmp_seen is 0 by construction, which voids cmp_bad.
 - Running: gcd_bench_gen tighten loop (main tree), gcd_hw converge (scratch worktree).
+### progress 20:10 (gcd_hw placement)
+- Same bug class as soak_top, larger: gcd_hw's data path has 21 CARRY4 and 35 MUXF7. Stamped
+  LUTs drove CARRY4 S/DI, so nextpnr dropped 5 bank groups ("member already has an absolute-z
+  constraint") and placement failed. rloc_stamp now leaves every LUT on a CARRY4 S/DI or a
+  MUXF7/F8 data input to its site (1112 LUTs in gcd_hw). Unit test fails on the old code;
+  soak_top's seed-1 bitstream is byte-identical (cmp) to the MUXF-only fix.
+- After that: 0 groups dropped, yet placement still fails (latch `lat.odd.u` of ulink_n64__2).
+  Geometry: 48 of the 90 v8 spine groups use three columns, and the {-1,0,1} -> dx {-1,0,3}
+  pattern holds at only 4 of 22 logic columns. 8-9-tile groups in 25-row runs give roughly 30-40
+  legal homes for 48 groups. So v8 does not fit gcd_hw. Not a bug in any one cell; v8 was only
+  ever measured on xorshift_round. Next: gcd_hw with BD_RLOC=v4.
