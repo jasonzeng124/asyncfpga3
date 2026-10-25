@@ -284,3 +284,31 @@ compute chains, which `build_bench.sh gcd` could not do stably).
   bd_arbiter, the A0 fall must reach ua1/ua2 (plus their C-element arc) before q's re-decision
   can raise R0 and bring A0 back up, with the guardband. Prove it can fail (ua2 x2.5 above is a
   ready negative control), then run it on all 8 gcd_hw routes and on xorshift/the benches.
+### progress 00:30 (rule J: verify/arb_fork.py)
+- Exact race from a time-ordered trace (ua2 arcs x2.5, no scatter): client 1 acked (608.8 ns);
+  A0 falls (659.3); ustate sees it, q flips to client 2 (660.9), g2 rises (661.3); **ua2 =
+  C(g2, A0) rises at 662.7 because A0's fall has not reached it yet**; client 2 drops r2, g2 and
+  R0 fall, and the merge's gated delay flushes before z_req ever rises. The control token is gone.
+  This is the very handover bug bd_arb.v's hold was added for; the hold only works if A0 reaches
+  ua_k no later than q -> ugrant -> g_k does.
+- New audit `cells/verify/arb_fork.py` (rule J): per arbiter and client, late = A0 -> ua_k +
+  ua_k's A0 arc; early = A0 -> ustate + ustate arc + q -> ugrant + grant arc + g_k -> ua_k +
+  ua_k's g arc; guarded = 0.772*early - 1.155*late > 0. Pins resolved from the routed JSON; rst
+  is told from A0 by fanout. Exit 1 on violation, 2 on an unresolved arbiter.
+- Validation against GLS (default-seed route, same delays in both):
+
+| delays | rule J raw (worst) | rule J guarded | GLS vector 6 |
+|---|---|---|---|
+| sigma 25% draw 1 (merge2) | -1090 | -1921 | deadlock |
+| ua2 x2.5 (merge2) | -607 | -1944 | deadlock |
+| ua2 x1.6 (merge2) | +344 | -696 | 5 correct laps |
+| nominal (merge2) | +864 | +48 | correct |
+
+  Raw sign predicts the GLS outcome in all four cases. The guard flags x1.6 as well, as intended.
+- **On the 8 nominal routes: guarded violations on 3 (d: -96, 5: -150, 6: -80; worst is always
+  ucontrol_merge9 client 1); raw positive on all 8.** BOARD-QUEUE #1 is the d route, so it is
+  downgraded: it does not pass every check.
+- Next: a placement fix. Put each bd_arbiter's ustate, ugrant, ua1 and ua2 in one slice
+  (rloc_stamp) so A0's branches into them are near-equal and the grant path decides. Then rule J
+  and GLS again on 8 seeds. An rtl alternative (hold q on the acks rather than A0) does not work
+  as such: the idle client's ack does not change when A0 falls, so it cannot be observed.
