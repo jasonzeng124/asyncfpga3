@@ -159,3 +159,14 @@ toolchain agreeing with itself, not with silicon.
   "0 violated".
 - check.sh: ALL GATES PASS with both changes (soak rule E 3/3, 0 violated). pytest verify/ 49 pass.
 - Running: gcd_hw converge with the fixed knob, v4 and v6.
+### progress 21:00 (gcd_hw converges)
+- With the knob fix, `BD_RLOC=v4 hw/build_hw.sh gcd_hw` CONVERGES in 2 iterations: pads
+  ulink_n166__0=12, ulink_n166__1=13, ulink_n32__2=11 (36 elements added), rule E 0/118 violated.
+  v6 still does not converge (17 -> 9 violated, n166__0 and n90__0 short again): v6 placement is
+  worse for gcd's selects.
+- tighten.py on that route (`--osc dhk --osc invhk`, the harness's free-running housekeeping
+  ring): rules A, H, I 0 violations; the 38 reported problems are all rule D, the documented
+  screen (check.sh: "on gcd it calls 38 of 39 branches violations").
+- cloud/setup-toolchain.sh: apt `time` added (gls/run.sh needs /usr/bin/time; the cache key is
+  unchanged).
+- Running: routed GLS of this route (16 vectors), and seeds 2/3/4 with the converged pads.

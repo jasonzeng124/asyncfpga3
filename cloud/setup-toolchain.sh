@@ -35,7 +35,7 @@ if command -v apt-get >/dev/null; then
         build-essential clang bison flex gawk tcl-dev libffi-dev libreadline-dev \
         pkg-config zlib1g-dev git cmake python3 python3-dev python3-pip \
         libboost-all-dev libeigen3-dev libantlr4-runtime-dev antlr4 \
-        iverilog uuid-dev default-jre-headless >/dev/null
+        iverilog uuid-dev default-jre-headless time >/dev/null
 fi
 
 # A cached build for exactly these patches skips everything below.
