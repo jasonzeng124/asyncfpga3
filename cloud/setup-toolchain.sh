@@ -38,6 +38,12 @@ if command -v apt-get >/dev/null; then
         iverilog uuid-dev default-jre-headless >/dev/null
 fi
 
+# A cached build for exactly these patches skips everything below.
+BUILT=0
+if [ ! -x "$PREFIX/bin/nextpnr-xilinx" ] && [ "${NO_CACHE:-0}" != 1 ]; then
+    "$REPO/cloud/toolchain-cache.sh" fetch || true
+fi
+
 mkdir -p "$SRC" "$PREFIX/bin" "$PREFIX/lib/python"
 
 clone() {  # clone <dir> <url> <rev>
@@ -49,6 +55,7 @@ clone() {  # clone <dir> <url> <rev>
 
 if [ ! -x "$PREFIX/bin/yosys" ]; then
     log "yosys $YOSYS_REV"
+    BUILT=1
     clone yosys https://github.com/YosysHQ/yosys.git "$YOSYS_REV"
     make -C "$SRC/yosys" -j"$JOBS" >/dev/null
     make -C "$SRC/yosys" install PREFIX="$PREFIX" >/dev/null
@@ -56,6 +63,7 @@ fi
 
 if [ ! -x "$PREFIX/bin/xc7frames2bit" ]; then
     log "prjxray"
+    BUILT=1
     clone prjxray https://github.com/openXC7/prjxray.git "$PRJXRAY_REV"
     cmake -S "$SRC/prjxray" -B "$SRC/prjxray/build" -DCMAKE_INSTALL_PREFIX="$PREFIX" >/dev/null
     make -C "$SRC/prjxray/build" -j"$JOBS" >/dev/null
@@ -79,6 +87,7 @@ STAMP="$PREFIX/.patches.sha"
 WANT=$(cat "$REPO"/patches/nextpnr-xilinx-*.patch | sha256sum | cut -c1-16)
 if [ ! -x "$PREFIX/bin/nextpnr-xilinx" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "$WANT" ]; then
     log "nextpnr-xilinx $NEXTPNR_REV + patches/"
+    BUILT=1
     clone nextpnr-xilinx https://github.com/openXC7/nextpnr-xilinx.git "$NEXTPNR_REV"
     N="$SRC/nextpnr-xilinx"
     git -C "$N" checkout -q -- .
@@ -110,6 +119,7 @@ fi
 
 if [ ! -s "$PREFIX/xc7z010clg400.bin" ]; then
     log "chipdb $PART"
+    BUILT=1
     N="$SRC/nextpnr-xilinx"
     (cd "$N" && python3 xilinx/python/bbaexport.py --device "$PART" --bba /tmp/xc7z010.bba)
     "$PREFIX/bin/bbasm" -l /tmp/xc7z010.bba "$PREFIX/xc7z010clg400.bin"
@@ -133,3 +143,10 @@ cp -rn "$REPO/cloud/fixtures/frontend/"* "$REPO/build/frontend/"
 log "fingerprint"
 TC="$TC" "$REPO/cells/verify/toolchain.sh"
 echo "toolchain ready: source $PREFIX/export.sh"
+
+# Only a build that just passed the fingerprints is worth caching.  A failed
+# upload costs the next session a rebuild, nothing more.
+if [ "$BUILT" = 1 ]; then
+    log "publish toolchain cache"
+    TC="$TC" "$REPO/cloud/toolchain-cache.sh" publish || echo "toolchain cache: publish FAILED (next session rebuilds)"
+fi
