@@ -33,7 +33,8 @@ questions: decide, record why in the journal, and keep going. The owner reads
 ## Budget (the owner caps this agent at half their weekly usage)
 
 - Stop working 90 minutes after the session starts: write the journal, clear the
-  lock, push, and end. Long builds and routes run in the background meanwhile.
+  lock, push, and end. Background processes die with the session, so don't
+  start a route or GLS run that can't finish in the time left.
 - At most `MAX_SESSIONS_PER_WEEK = 30` sessions per ISO week. Count this week's
   `## ` journal entries that start with `Session`; if the cap is reached, exit
   without changing anything. Only the owner changes this number.
@@ -53,7 +54,8 @@ questions: decide, record why in the journal, and keep going. The owner reads
 4. Read the last few entries of `JOURNAL.md` and pick the next step: the
    highest-priority goal with an open, concrete lead.
 5. Work in small, verified steps. Commit and push at least every 45 minutes,
-   with a journal entry each time, so that a killed session loses little.
+   with a `### progress` note under this session's entry each time, so that a
+   killed session loses little. Exactly one `## Session` heading per session.
 6. Before the session ends: write the journal entry, update `BOARD-QUEUE.md`,
    clear `LOCK` (empty file), and commit and push.
 
