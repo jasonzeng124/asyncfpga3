@@ -30,6 +30,16 @@ questions: decide, record why in the journal, and keep going. The owner reads
    is allowed, but only as a background job, and only when goals 1 and 2 have
    nothing to work on.
 
+## Budget (the owner caps this agent at half their weekly usage)
+
+- Stop working 90 minutes after the session starts: write the journal, clear the
+  lock, push, and end. Long builds and routes run in the background meanwhile.
+- At most `MAX_SESSIONS_PER_WEEK = 30` sessions per ISO week. Count this week's
+  `## ` journal entries that start with `Session`; if the cap is reached, exit
+  without changing anything. Only the owner changes this number.
+- Make the session count: if a session started but produced no result, still log
+  a one-line `Session` entry.
+
 ## Each session
 
 1. `git fetch origin && git checkout claude/research && git pull --ff-only`.
@@ -50,7 +60,7 @@ questions: decide, record why in the journal, and keep going. The owner reads
 ## Journal entry format (append, newest last)
 
 ```
-## <UTC date time> -- <one-line result>
+## Session <UTC date time> -- <one-line result>
 Toolchain: <patch sha from $TC/openxc7/.patches.sha>   Seeds: <list>
 Did: ...
 Measured: <table: kernel, metric, mean, range, n, vs previous>
