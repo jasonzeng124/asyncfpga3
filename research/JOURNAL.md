@@ -186,3 +186,17 @@ toolchain agreeing with itself, not with silicon.
   rule E 0/118 violated on all four, rules A/H/I 0, D 38 (screen). GLS of all four running.
   Reproduce one route: `cd cells && BDC_SELECT_PADS=hw/gcd_hw_pads.json BD_RLOC=v4 [NEXTPNR_SEED=N]
   ./hw/build_hw.sh gcd_hw`.
+### progress 21:50 (gcd_hw top of the ladder -> BOARD-QUEUE #1)
+GLS of all four 13/14/13 routes (seeds d, 2, 3, 4): each gate ANNOTATE_DONE with 0 SDF
+warnings/errors; each 16/16 vectors with errs=0 and laps>0. Board queue entry #1 with the
+default-seed bitstream committed (`research/board/gcd_hw_03e82630.bit`).
+
+| gcd_hw (v4, pads 13/14/13) per 150 us GLS window | laps mean | range | n | ns/lap upper bound |
+|---|---|---|---|---|
+| vec 0 (a=0) | 2689.5 | 2650-2719 | 4 | 56 |
+| vec 4 (1,1) | 328.8 | 325-333 | 4 | 456 |
+| vec 6 (gcd.c's main pair, deepest k-loop) | 25.0 | 24-26 | 4 | 6000 |
+| vec 12 (2^31-1, 2) | 19.2 | 19-20 | 4 | 7792 |
+| vec 13 (1000000, 999999) | 28.2 | 28-29 | 4 | 5310 |
+(ns/lap = 150 us / laps, so it includes the window's reset and settling; it is an upper bound
+on latency, not a measurement of it. All 16 vectors are in r2/*.gls_run.log in the session.)
