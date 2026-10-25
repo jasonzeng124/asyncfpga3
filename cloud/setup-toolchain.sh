@@ -81,8 +81,16 @@ if ! PYTHONPATH="$SRC/prjxray:$PREFIX/lib/python" python3 -c 'import fasm, prjxr
     { grep -v '^-e' "$SRC/prjxray/requirements.txt"; echo cython; } > "$SRC/prjxray-req.txt"   # fasm's setup.py imports Cython
     python3 -m pip install -q --break-system-packages -r "$SRC/prjxray-req.txt" 2>/dev/null \
         || python3 -m pip install -q -r "$SRC/prjxray-req.txt"
-    (cd "$SRC/prjxray/third_party/fasm" && \
-        PYTHONNOUSERSITE=1 python3 setup.py install --antlr-runtime=shared --home="$PREFIX" >/dev/null)
+    # The antlr C++ parser is only an accelerator.  On the cloud image the
+    # antlr4 tool (4.9.2) and its C++ runtime (4.10) disagree and it does not
+    # compile; fasm then falls back to its textX parser, same grammar, slower.
+    if ! (cd "$SRC/prjxray/third_party/fasm" && \
+          PYTHONNOUSERSITE=1 python3 setup.py install --antlr-runtime=shared --home="$PREFIX" >/dev/null 2>&1); then
+        echo "  fasm: antlr parser did not build; installing the pure-Python package (textX parser)"
+        rm -rf "$PREFIX/lib/python/fasm"
+        cp -r "$SRC/prjxray/third_party/fasm/fasm" "$PREFIX/lib/python/fasm"
+    fi
+    PYTHONPATH="$SRC/prjxray:$PREFIX/lib/python" python3 -c 'import fasm, prjxray; print("  fasm parsers:", fasm.parser.available)'
 fi
 
 if [ ! -d "$PREFIX/share/nextpnr/prjxray-db/zynq7" ]; then
