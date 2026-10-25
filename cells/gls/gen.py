@@ -182,6 +182,12 @@ def unesc(s):
 #                          0.9 fast, 1.1 slow)
 #   GLS_SCATTER=sigma      then each arc independently times (1 + sigma*N(0,1)),
 #                          clamped at 0; GLS_SCATTER_SEED picks the draw.
+#   GLS_SCATTER_ONLY=prefix[,prefix...]
+#                          apply the scatter only to arcs of instances with one
+#                          of these prefixes; every arc still draws its factor,
+#                          so each keeps exactly the value it had in the full
+#                          draw -- for bisecting which unit a failure needs.
+#                          A prefix ending in '=' matches that name exactly.
 #   GLS_SCALE_INST=prefix:f[,prefix:f...]
 #                          arcs of instances whose name starts with prefix
 #                          (and interconnect INTO them) times f as well -- a
@@ -193,6 +199,7 @@ SCATTER = float(os.environ.get("GLS_SCATTER", "0"))
 _rng = __import__("random").Random(int(os.environ.get("GLS_SCATTER_SEED", "1")))
 
 
+SCATTER_ONLY = [p for p in os.environ.get("GLS_SCATTER_ONLY", "").split(",") if p]
 SCALE_INST = [(p.rsplit(":", 1)[0], float(p.rsplit(":", 1)[1]))
               for p in os.environ.get("GLS_SCALE_INST", "").split(",") if p]
 n_scaled_inst = 0
@@ -201,6 +208,9 @@ n_scaled_inst = 0
 def perturb(ps, inst=""):
     global n_scaled_inst
     f = DELAY_SCALE * (1 + SCATTER * _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
+    if SCATTER and SCATTER_ONLY and not any(
+            inst == p[:-1] if p.endswith("=") else inst.startswith(p) for p in SCATTER_ONLY):
+        f = DELAY_SCALE
     for prefix, g in SCALE_INST:
         if inst.startswith(prefix):
             f *= g
