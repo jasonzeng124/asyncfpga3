@@ -219,3 +219,15 @@ on latency, not a measurement of it. All 16 vectors are in r2/*.gls_run.log in t
   for a targeted fault). With none set, the generated netlist, baked netlist, SDF and name map
   are byte-identical to before (cmp). Running: negative control, uselect1's 94-link matched
   delay scaled to 0 on the default-seed gcd_hw route.
+### progress 23:30 (gcd_hw GLS negative controls)
+On the default-seed route (pads 13/14/13), baked GLS via GLS_SCALE_INST:
+| fault | arcs scaled | vectors correct | note |
+|---|---|---|---|
+| none | 0 | 16/16 | as above |
+| uselect1.udly x0 (its 94-link, 45 ns chain) | 374 | 16/16 | not a failure of the check: rule A says the request trails the data by 38.6 ns with the chain; 94 links is grossly oversized for these vectors ("tighten to 14") |
+| every compute unit's udly x0 (50 units) | 4270 | 1/16 | 15 vectors: one WRONG answer, then the ring wedges (laps=1, errs=1). Vector 0 (a=0) is the C's early return and touches no datapath |
+So the routed GLS does catch a bundling fault, when the fault is real on the vectors' paths. The
+single-unit control shows how much slack the emitted estimates carry (a speed lead: tighten the
+compute chains, which `build_bench.sh gcd` could not do stably).
+- Seeds 5 and 6 (pads 13/14/13): rule E 0, A/H/I 0. Running: seeds 7, 8; GLS corner
+  (x0.9, x1.1) and scatter (sigma 8.5% x3 draws, 17% x2, 25% x2) sweeps.
