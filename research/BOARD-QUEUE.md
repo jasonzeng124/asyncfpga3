@@ -4,10 +4,16 @@ Experiments that have passed every check possible without the board, most
 valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
-(empty: as of 2026-10-25 claude/research fails cells/check.sh, flow.sh and the
-arc-only sim, see JOURNAL.md, so nothing on it qualifies.)
+(empty of board experiments: as of 2026-10-25 19:45 `cells/check.sh` passes on claude/research,
+but no cloud-built kernel bitstream has been through routed GLS yet; a gcd bench build is in
+progress, see JOURNAL.md.)
 
-## Owner-side check, not a board experiment (cheap, answers an open question)
+## Owner-side check, not a board experiment (cheap, still useful)
+ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
+yosys 0.62 maps soak_top's two 8-input functions to MUXF7/MUXF8, and rloc_stamp gave their LUTs
+slots no placement can honour (fixed in 77b20a8). The check below still tells whether the local
+yosys makes MUXF7/F8 here (`grep -c MUXF build/pnr/synth.log`); if it does not, the two
+toolchains produce different netlists from the same source, which is worth knowing.
 On the owner's machine, with the local toolchain rebuilt from this branch's
 patches/ (the local one has only main's patches, see the first journal entry):
 

@@ -92,3 +92,20 @@ Toolchain: patches 789a7120c912d393, nextpnr sha256 9c732bc6303458df, yosys v0.6
   The two zero-routing benches now size their own boundary (`BD_TB_SDELAY`, 2) with the measured
   reason in a comment; rtl/ untouched. Both PASS in both regimes; control at SDELAY=1 still FAILs.
 - `cells/check.sh`: **ALL GATES PASS** (first time on this branch in the cloud). pytest 99 passed.
+### progress 19:45 (routed xorshift_round)
+`bdc/fusion_bench.py --route --kernels xorshift_round --caps 4 --no-baseline --seeds 3 --route-seeds 4`
+(fusion on, cap 4; resize route plus fresh seeds 4/5/6, four distinct bitstreams). Every route:
+tighten pass, skew pass, both GLS pass, gate.log has ANNOTATE_DONE and no SDF warning or error.
+
+| xorshift_round fusion on cap 4 | mean | range | n | vs README row |
+|---|---|---|---|---|
+| routed latency | 7.73 ns | 7.61-7.90 | 4 | 7.6-7.9 |
+| fast-source interval | 5.68 ns | 5.60-5.81 | 4 | 5.35-5.83 |
+| stalled-consumer interval | 13.84 ns | 13.72-14.02 | 4 | 13.4-13.7 |
+| LUT sites incl. harness | 217 | 217 | 4 | 218 |
+
+So the cloud toolchain reproduces the owner's routed numbers within route scatter. That is the
+toolchain agreeing with itself, not with silicon.
+- Draft PR #2 claude/research -> main opened.
+- Started: `hw/build_bench.sh gcd` (tighten loop), aiming for a cloud-built kernel bitstream
+  -> routed GLS -> BOARD-QUEUE.
