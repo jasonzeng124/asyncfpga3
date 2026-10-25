@@ -58,6 +58,16 @@
 // instances and silently did not for a third, which reported a pipe with no
 // backpressure at all.  A race that only shows up on some instances is the
 // worst kind of bench bug, so the knob is elaboration-time now.
+// The pipe's internal request line (bd_link.v SDELAY), sized for this bench
+// the way rule I sizes it on a route.  With no wire delay the closing wave
+// reaches stage 1 one element plus one controller arc (112 ps) after stage
+// 0's node rose, inside the latch's x->0 arc (124-152 ps), so at SDELAY=1
+// stage 0 captures X (iverilog 12, BD_ROUTE_PS=0).  Two elements clear it in
+// both regimes.  Every routed instance sets its own, audited by rule I.
+`ifndef BD_TB_SDELAY
+ `define BD_TB_SDELAY 2
+`endif
+
 module conf_sink #(parameter W = 8, parameter integer T_ACK = 300,
                    parameter integer T_REL = 300,
                    parameter integer STALLED = 0)
@@ -102,7 +112,7 @@ module conf_rig #(parameter KIND = 0, parameter integer N = 4,
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
         end else begin : g_simple
-            bd_pipe #(.W(W), .N(N)) dut (
+            bd_pipe #(.W(W), .N(N), .SDELAY(`BD_TB_SDELAY)) dut (
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
         end
@@ -147,7 +157,7 @@ module occ_rig #(parameter KIND = 0, parameter integer N = 4,
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
         end else begin : g_simple
-            bd_pipe #(.W(W), .N(N)) dut (
+            bd_pipe #(.W(W), .N(N), .SDELAY(`BD_TB_SDELAY)) dut (
                 .rst(rst), .req_in(rq), .ack_in(ak), .data_in(di),
                 .req_out(ro), .ack_out(ao), .data_out(dout));
         end
@@ -269,7 +279,7 @@ module tb_ctl;
     // ---- protocol, on a plain instance of each -----------------------------
     wire p_rq_s, p_ak_s, p_ro_s, p_ao_s;  wire [W-1:0] p_di_s, p_do_s;
     bd_source #(.W(W)) psrc_s (.req(p_rq_s), .ack(p_ak_s), .data(p_di_s));
-    bd_pipe #(.W(W), .N(N)) pdut_s (
+    bd_pipe #(.W(W), .N(N), .SDELAY(`BD_TB_SDELAY)) pdut_s (
         .rst(rst), .req_in(p_rq_s), .ack_in(p_ak_s), .data_in(p_di_s),
         .req_out(p_ro_s), .ack_out(p_ao_s), .data_out(p_do_s));
     conf_sink #(.W(W), .T_ACK(T_SAMPLE)) psnk_s

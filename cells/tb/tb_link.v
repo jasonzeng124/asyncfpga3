@@ -13,6 +13,16 @@
 
 `timescale 1ps / 1ps
 
+// The pipe's internal request line (bd_link.v SDELAY), sized for this bench
+// the way rule I sizes it on a route.  With no wire delay the closing wave
+// reaches stage 1 one element plus one controller arc (112 ps) after stage
+// 0's node rose, inside the latch's x->0 arc (124-152 ps), so at SDELAY=1
+// stage 0 captures X (iverilog 12, BD_ROUTE_PS=0).  Two elements clear it in
+// both regimes.  Every routed instance sets its own, audited by rule I.
+`ifndef BD_TB_SDELAY
+ `define BD_TB_SDELAY 2
+`endif
+
 module tb_link;
 
     localparam integer W = 8;
@@ -39,7 +49,7 @@ module tb_link;
 
     bd_source #(.W(W)) src (.req(req_in), .ack(ack_in), .data(data_in));
 
-    bd_pipe #(.W(W), .N(N)) dut (
+    bd_pipe #(.W(W), .N(N), .SDELAY(`BD_TB_SDELAY)) dut (
         .rst(rst),
         .req_in(req_in), .ack_in(ack_in), .data_in(data_in),
         .req_out(req_out), .ack_out(ack_out), .data_out(data_out));
@@ -72,7 +82,7 @@ module tb_link;
     wire [W-1:0] pdata_out;
 
     bd_source #(.W(W)) psrc (.req(preq_in), .ack(pack_in), .data(pdata_in));
-    bd_pipe #(.W(W), .N(N), .DELAY(PAD)) pdut (
+    bd_pipe #(.W(W), .N(N), .SDELAY(`BD_TB_SDELAY), .DELAY(PAD)) pdut (
         .rst(rst),
         .req_in(preq_in), .ack_in(pack_in), .data_in(pdata_in),
         .req_out(preq_out), .ack_out(pack_out), .data_out(pdata_out));

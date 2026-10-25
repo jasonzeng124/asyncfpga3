@@ -86,3 +86,9 @@ Toolchain: patches 789a7120c912d393, nextpnr sha256 9c732bc6303458df, yosys v0.6
   the same routed SLICE; three negative controls FAIL it.
 - BD_NO_TIGHTEN=1 flow.sh (v8 default): PASS on seeds 1-4, four distinct bitstreams, 0 groups
   dropped (was: placement FAIL 5/5).
+### progress 19:45
+- Arc-only tb_link/tb_ctl: every real bd_pipe instance (emit.py, soak_top.v) sets SDELAY, and
+  rule I audits every pipe controller on a route, so the rtl default only reaches unsized uses.
+  The two zero-routing benches now size their own boundary (`BD_TB_SDELAY`, 2) with the measured
+  reason in a comment; rtl/ untouched. Both PASS in both regimes; control at SDELAY=1 still FAILs.
+- `cells/check.sh`: **ALL GATES PASS** (first time on this branch in the cloud). pytest 99 passed.
