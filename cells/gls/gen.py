@@ -176,6 +176,41 @@ def unesc(s):
     return s.replace("\\", "")
 
 
+# Delay perturbation, for corner and scatter runs (off by default, and then
+# every number below is the routed SDF's own):
+#   GLS_DELAY_SCALE=f      every IOPATH and INTERCONNECT times f (a corner:
+#                          0.9 fast, 1.1 slow)
+#   GLS_SCATTER=sigma      then each arc independently times (1 + sigma*N(0,1)),
+#                          clamped at 0; GLS_SCATTER_SEED picks the draw.
+#   GLS_SCALE_INST=prefix:f[,prefix:f...]
+#                          arcs of instances whose name starts with prefix
+#                          (and interconnect INTO them) times f as well -- a
+#                          targeted fault, for proving a check can fail.
+# SETUPHOLD windows are left alone.  The numbers are drawn here, once, so the
+# annotated and the baked netlist carry the same perturbed values.
+DELAY_SCALE = float(os.environ.get("GLS_DELAY_SCALE", "1"))
+SCATTER = float(os.environ.get("GLS_SCATTER", "0"))
+_rng = __import__("random").Random(int(os.environ.get("GLS_SCATTER_SEED", "1")))
+
+
+SCALE_INST = [(p.rsplit(":", 1)[0], float(p.rsplit(":", 1)[1]))
+              for p in os.environ.get("GLS_SCALE_INST", "").split(",") if p]
+n_scaled_inst = 0
+
+
+def perturb(ps, inst=""):
+    global n_scaled_inst
+    f = DELAY_SCALE * (1 + SCATTER * _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
+    for prefix, g in SCALE_INST:
+        if inst.startswith(prefix):
+            f *= g
+            n_scaled_inst += 1
+            break
+    if f == 1:
+        return ps
+    return max(0, int(round(ps * f)))
+
+
 def read_sdf(path):
     """-> iopaths[inst] = [(from,to,ps)], ic = [(srcpin,dstpin,ps)],
           sh[inst] = [(edge,sig,su,hd)], plus raw claim counts."""
@@ -187,7 +222,7 @@ def read_sdf(path):
     for line in open(path):
         m = RE_IC.search(line)
         if m:
-            ic.append((unesc(m.group(1)), unesc(m.group(2)), int(m.group(3))))
+            ic.append((unesc(m.group(1)), unesc(m.group(2)), perturb(int(m.group(3)), unesc(m.group(2)).rpartition("/")[0])))
             n_ic += 1
             continue
         m = RE_INST.search(line)
@@ -196,7 +231,7 @@ def read_sdf(path):
             continue
         m = RE_IO.search(line)
         if m:
-            iopaths[inst].append((m.group(1), m.group(2), int(m.group(3))))
+            iopaths[inst].append((m.group(1), m.group(2), perturb(int(m.group(3)), inst or "")))
             n_io += 1
             continue
         m = RE_SH.search(line)
@@ -210,6 +245,13 @@ def main():
     top = json.load(open(JSON))["modules"]["top"]
     cells = top["cells"]
     iopaths, ic, setuphold, n_io, n_ic, n_sh = read_sdf(SDF)
+    sys.stderr.write("delays: scale %g, scatter sigma %g (seed %s)\n"
+                     % (DELAY_SCALE, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1")))
+    if SCALE_INST:
+        sys.stderr.write("delays: %d arc(s) scaled by GLS_SCALE_INST %s\n"
+                         % (n_scaled_inst, os.environ["GLS_SCALE_INST"]))
+        if n_scaled_inst == 0:
+            sys.exit("GLS_SCALE_INST matched no instance -- the fault was not injected")
     sys.stderr.write("SDF claims: %d IOPATH, %d INTERCONNECT, %d SETUPHOLD\n"
                      % (n_io, n_ic, n_sh))
 

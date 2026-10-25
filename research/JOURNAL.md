@@ -200,3 +200,22 @@ default-seed bitstream committed (`research/board/gcd_hw_03e82630.bit`).
 | vec 13 (1000000, 999999) | 28.2 | 28-29 | 4 | 5310 |
 (ns/lap = 150 us / laps, so it includes the window's reset and settling; it is an upper bound
 on latency, not a measurement of it. All 16 vectors are in r2/*.gls_run.log in the session.)
+### progress 23:00 (benches; owner: no board for a long time)
+- Owner's PROGRAM.md update (1acd25b): no board for the foreseeable future, so strengthen the
+  off-board evidence: 8+ seeds with the worst one reported, routed GLS at corners and under delay
+  scatter, negative controls for every check, the August silicon failures as regressions. One
+  bitstream is already committed (BOARD-QUEUE #1); no more will be.
+- `hw/build_bench.sh xorshift` (tighten loop, rule A outer, rule E inner, with the fixed rule E
+  knob): CONVERGED after 4 iterations; rule A 0 on the final route; 39 measured sizes.
+- `hw/build_bench.sh gcd`: NOT converged in 6 iterations (62 min). Rule A violations per
+  iteration 5, 74, 23, 12, 18, 10, 8, a different set each time (compute units ucmpi*/uori4/
+  uselect1/ushrsi3, merges, DACK lines). The script falls back to emit.py's estimate sizes and
+  still writes a bitstream, and its iteration-0 route already had 5 rule A violations. So the
+  gcd bench bitstream it produces does not pass rule A. This is the route-sensitivity problem
+  CLAUDE.md describes (rule A tightening to exact sizes, 2 of 8 fail). Not fixed here; noted for
+  a later lead (tightening with headroom, or sizing against several routes at once, as
+  resize.sh does for xorshift_round).
+- gls/gen.py: opt-in delay perturbation (GLS_DELAY_SCALE, GLS_SCATTER + _SEED, GLS_SCALE_INST
+  for a targeted fault). With none set, the generated netlist, baked netlist, SDF and name map
+  are byte-identical to before (cmp). Running: negative control, uselect1's 94-link matched
+  delay scaled to 0 on the default-seed gcd_hw route.
