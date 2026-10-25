@@ -258,3 +258,29 @@ compute chains, which `build_bench.sh gcd` could not do stably).
   for example a multi-input change on a LUT C-element when per-arc delays diverge by tens of
   percent.
 - Running: sigma 20% x3 draws, 25% x2 more, 25% on the seed-2 route x2.
+### progress 00:00 (the first margin to fail under scatter: bd_arbiter's A0 fork)
+- More scatter draws: sigma 20% x3 -> 11/16 (draw 1), 16/16, 16/16; sigma 25% draws 3, 4 ->
+  16/16, 16/16. Draw 1 fails at both 20% and 25% (same random sequence, smaller amplitude).
+  Total at >=20%: 2 failing of 7 draws on the default-seed route.
+- Bisection with GLS_SCATTER_ONLY (each arc keeps its draw-1 factor): of 355 kernel units, the
+  deadlock needs ucontrol_merge2 alone (the loop-header control merge, bdc_amerge2_0 = bd_arbiter
+  between loop entry and back edge). Of its 21 cells it needs exactly two together:
+  **uarb1.ua2.u** (A2 = C(g2, A0)) and **uarb1.ustate$LUT6** (q, held while A0 is high). Either
+  alone passes.
+- What the draw did to them: A0 (the fork ack, one net) reaches ustate's hold pin at 777 ps
+  (x0.52) but ua2 at 2378 ps (x1.59), 1.6 ns of skew between two branches of the same net.
+  So q unfreezes at A0-fall and starts the next grant long before ua2 has seen A0 fall. bd_arb.v
+  says the handover ordering is "a post-route check, not a defect" and that alternation holds by
+  "one arc of margin, not by construction". **No such post-route check exists**: rules A, D, E,
+  H and I do not look inside the arbiter, and all pass on this perturbed SDF.
+- Confirmed with no scatter (GLS_SCALE_INST on every arc into ua2): x1.6 -> 5 correct laps;
+  x2.5 (A0 about 2.2 ns later at ua2) -> deadlock; x4 -> deadlock. The nominal margin on this
+  route is therefore roughly 0.9-2.2 ns of extra A0->ua2 delay.
+- Realism: the two A0 branches share one net and much of its route, so independent per-arc
+  scatter overstates their divergence; nominally the margin is positive on 8/8 routes (all pass
+  GLS where run). But it is an unaudited timing dependency in a cell every kernel with a loop
+  emits, and its margin is not measured anywhere.
+- **Next (goal 1, highest value):** add the missing post-route check, call it rule J. For every
+  bd_arbiter, the A0 fall must reach ua1/ua2 (plus their C-element arc) before q's re-decision
+  can raise R0 and bring A0 back up, with the guardband. Prove it can fail (ua2 x2.5 above is a
+  ready negative control), then run it on all 8 gcd_hw routes and on xorshift/the benches.
