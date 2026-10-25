@@ -31,7 +31,7 @@ if command -v apt-get >/dev/null; then
     SUDO=""; [ "$(id -u)" = 0 ] || SUDO="sudo"
     log "apt dependencies"
     $SUDO apt-get update -qq
-    $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
         build-essential clang bison flex gawk tcl-dev libffi-dev libreadline-dev \
         pkg-config zlib1g-dev git cmake python3 python3-dev python3-pip \
         libboost-all-dev libeigen3-dev libantlr4-runtime-dev antlr4 \
