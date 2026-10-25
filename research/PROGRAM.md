@@ -4,6 +4,23 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## No board for a long time (owner, 2026-10-25)
+
+Nobody will run anything on silicon for the foreseeable future. Keep adding to
+`BOARD-QUEUE.md` (one short entry per candidate; don't commit a bitstream for
+each one), but never wait on it and never count it as verification. Goal 1 is
+therefore as strong as the evidence available without a board, so make that
+evidence stronger:
+- more seeds (8+ for anything you ship as a default), with the worst seed
+  reported, not just the mean;
+- routed GLS at the slow AND fast corners of the SDF, plus delay scatter
+  injected around the routed values (at least the measured 8.5% median ring
+  scatter, and the tails beyond it), showing which margin fails first;
+- negative controls that prove each audit and each GLS check can fail;
+- re-checking the August silicon failures (bitstream bugs, memory inference,
+  async latch, stale operands) as regression tests, wherever they can be
+  reproduced without a board.
+
 ## Goals, in strict priority order
 
 1. **Works on hardware, as far as can be verified without a board.** A faster
