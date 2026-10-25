@@ -68,8 +68,19 @@ if [ ! -x "$PREFIX/bin/xc7frames2bit" ]; then
     cmake -S "$SRC/prjxray" -B "$SRC/prjxray/build" -DCMAKE_INSTALL_PREFIX="$PREFIX" >/dev/null
     make -C "$SRC/prjxray/build" -j"$JOBS" >/dev/null
     make -C "$SRC/prjxray/build" install >/dev/null
-    pip3 install -q --break-system-packages -r "$SRC/prjxray/requirements.txt" 2>/dev/null \
-        || pip3 install -q -r "$SRC/prjxray/requirements.txt"
+fi
+
+# prjxray's Python side (fasm2frames).  Its own block, guarded on the import,
+# so a failure here is retried on the next run instead of being skipped because
+# xc7frames2bit already exists.  `python3 -m pip`, not `pip3`: in the cloud
+# image they are different interpreters.  The `-e` lines in requirements.txt
+# are relative to the prjxray checkout; prjxray itself is reached through
+# PYTHONPATH (build_hw.sh) and fasm is built below against the shared antlr.
+if ! PYTHONPATH="$SRC/prjxray:$PREFIX/lib/python" python3 -c 'import fasm, prjxray, intervaltree, simplejson' 2>/dev/null; then
+    log "prjxray python"
+    grep -v '^-e' "$SRC/prjxray/requirements.txt" > "$SRC/prjxray-req.txt"
+    python3 -m pip install -q --break-system-packages -r "$SRC/prjxray-req.txt" 2>/dev/null \
+        || python3 -m pip install -q -r "$SRC/prjxray-req.txt"
     (cd "$SRC/prjxray/third_party/fasm" && \
         PYTHONNOUSERSITE=1 python3 setup.py install --antlr-runtime=shared --home="$PREFIX" >/dev/null)
 fi
