@@ -181,3 +181,8 @@ toolchain agreeing with itself, not with silicon.
   -29 ps guarded on +2292 raw, wants +1 on n32__2). Rules A/H/I 0 on all four; D 38 (screen).
   So the converged pads are marginal on 1 route in 4. Taking the longer number: pads +1/+1/+2
   (13/14/13) are being re-checked on 4 seeds (default, 2, 3, 4), then GLS on each.
+### progress 21:40
+- Pads 13/14/13 (`cells/hw/gcd_hw_pads.json`, committed): seeds d/2/3/4, four distinct bitstreams,
+  rule E 0/118 violated on all four, rules A/H/I 0, D 38 (screen). GLS of all four running.
+  Reproduce one route: `cd cells && BDC_SELECT_PADS=hw/gcd_hw_pads.json BD_RLOC=v4 [NEXTPNR_SEED=N]
+  ./hw/build_hw.sh gcd_hw`.
