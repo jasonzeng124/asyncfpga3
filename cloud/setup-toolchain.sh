@@ -124,7 +124,21 @@ if [ ! -x "$PREFIX/bin/nextpnr-xilinx" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "
         esac
     done
     sed -i 's/foreach (PyVer 3 36 37 38 39 310 311 312)/foreach (PyVer 3 36 37 38 39 310 311 312 313 314)/' "$N/CMakeLists.txt"
-    cmake -S "$N" -B "$N/build" -DCMAKE_INSTALL_PREFIX="$PREFIX" -DARCH=xilinx \
+    # nextpnr links Boost.Python, so its CMake must find the Python that Boost
+    # was built for, not whichever python3 is first (the cloud image has
+    # 3.11/3.12/3.13 and Boost for 3.12 only).
+    PYPIN=""
+    BPY=$(ls /usr/lib/*/libboost_python3*.so 2>/dev/null | head -1 | sed -E 's/.*libboost_python3([0-9]+)\.so$/\1/')
+    # The executable alone is not enough: FindPython's Development search
+    # still settles on the newest 3.x, so name the headers and library too.
+    if [ -n "$BPY" ] && [ -x "/usr/bin/python3.$BPY" ]; then
+        PYINC=$("/usr/bin/python3.$BPY" -c 'import sysconfig; print(sysconfig.get_paths()["include"])')
+        PYLIB=$("/usr/bin/python3.$BPY" -c 'import sysconfig, os; print(os.path.join(sysconfig.get_config_var("LIBDIR"), sysconfig.get_config_var("LDLIBRARY")))')
+        PYPIN="-DPython3_EXECUTABLE=/usr/bin/python3.$BPY -DPython3_INCLUDE_DIR=$PYINC -DPython3_LIBRARY=$PYLIB"
+        echo "  python for nextpnr: $PYPIN"
+    fi
+    rm -f "$N/build/CMakeCache.txt"
+    cmake -S "$N" -B "$N/build" -DCMAKE_INSTALL_PREFIX="$PREFIX" -DARCH=xilinx $PYPIN \
         -DUSE_OPENMP=ON -DBUILD_GUI=OFF -DBUILD_TESTS=OFF >/dev/null
     make -C "$N/build" -j"$JOBS" >/dev/null
     make -C "$N/build" install >/dev/null
