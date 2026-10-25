@@ -107,6 +107,7 @@ caller like flow.sh's `|| { RLOC STAMP FAILED; exit 1; }` stops the build
 instead of silently shipping an unclustered netlist.
 """
 
+import copy
 import json
 import math
 import re
@@ -1317,6 +1318,78 @@ def stamp(mods, variant, report):
     return n_groups, n_cands
 
 
+
+# Every bd_arbiter's four LUT sites -- ustate (q and R0), ugrant (g1, g2) and
+# the two acknowledge C-elements ua1/ua2 -- as one group, i.e. one SLICE.
+# bd_arbiter's hold on q assumes A0's fall reaches ua_k no later than the grant
+# it unlocks (q -> ugrant -> g_k -> ua_k); on gcd_hw's v4 route the A0 branch to
+# an ack C-element ran up to 1.3 ns behind the branch to ustate, and
+# verify/arb_fork.py (rule J) is short under the guardband on 3 of 8 routes.  In
+# one SLICE the four sinks share A0's last hop.
+#
+# The arbiter usually lives in a module emitted once per merge shape and
+# instantiated many times (bdc_amerge2_0 seven times on gcd), and a group string
+# on a shared module's cell would name one cluster for every instance.  Such a
+# module is therefore copied once per instance first -- nextpnr flattens the
+# hierarchy anyway, so the copy changes nothing but which attributes each
+# instance's cells carry.
+RE_ARB = re.compile(r"^(?P<arb>(?:.*\.)?[A-Za-z0-9_]+)\.ustate$")
+
+
+def arbiter_sites(cells):
+    out = []
+    for cname in cells:
+        m = RE_ARB.match(cname)
+        if not m:
+            continue
+        a = m.group("arb")
+        members = [a + ".ustate", a + ".ugrant", a + ".ua1.u", a + ".ua2.u"]
+        if all(x in cells for x in members):
+            out.append((a, members))
+    return sorted(out)
+
+
+def stamp_arbiters(mods, report):
+    counts, top = instantiation_counts(mods)
+    if top is None:
+        return 0
+    # Uniquify shared modules that hold an arbiter, one level below a module
+    # that is itself instantiated once.
+    for mname in sorted(mods):
+        m = mods[mname]
+        if counts.get(mname, 0) <= 1 or not arbiter_sites(m.get("cells", {})):
+            continue
+        for pname in sorted(mods):
+            if counts.get(pname, 0) != 1:
+                continue
+            for iname, ic in sorted(mods[pname].get("cells", {}).items()):
+                if ic["type"] != mname:
+                    continue
+                clone = mname + "$" + re.sub(r"[^A-Za-z0-9_]", "_", pname + "." + iname)
+                mods[clone] = copy.deepcopy(m)
+                mods[clone].get("attributes", {}).pop("top", None)
+                ic["type"] = clone
+    counts, top = instantiation_counts(mods)
+    n_arb = n_cells = 0
+    for mname, m in sorted(mods.items()):
+        if counts.get(mname, 0) != 1:
+            continue
+        cells = m.get("cells", {})
+        scope = "" if mname == top else re.sub(r"[^A-Za-z0-9_]", "_", mname) + "__"
+        for a, members in arbiter_sites(cells):
+            if any(ATTR in cells[x].get("attributes", {}) for x in members):
+                continue
+            g = "bdarb_" + scope + re.sub(r"[^A-Za-z0-9_]", "_", a)
+            for x in members:
+                attrs = cells[x].setdefault("attributes", {})
+                attrs[ATTR] = g
+            n_arb += 1
+            n_cells += len(members)
+    if report:
+        print(f"             {n_arb} bd_arbiter(s) grouped into one SLICE each "
+              f"({n_cells} LUT sites)")
+    return n_arb
+
 def main():
     args = sys.argv[1:]
     variant = "v1"
@@ -1339,6 +1412,7 @@ def main():
         ROW_BANK_ROWS = int(args[i + 1])
         del args[i:i + 2]
     report = "--report" in args
+    arb_groups = "--arb-groups" in args
     args = [a for a in args if not a.startswith("-")]
     if len(args) != 2 or variant not in VARIANTS:
         print(__doc__)
@@ -1355,6 +1429,8 @@ def main():
         # the default, which quietly cost us the ability to reproduce the very
         # calibration the guardband rests on.
         ok = n_groups > 0 or not has_link_structures(d["modules"])
+        if arb_groups:
+            stamp_arbiters(d["modules"], report)
     with open(args[1], "w") as f:
         json.dump(d, f)
     # A silent no-op used to exit 0 and only be noticed once rule E failed on

@@ -277,10 +277,12 @@ stat
 BD_RLOC=${BD_RLOC:-v8}
 BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
 BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
+# BD_RLOC_ARB=1: also put each bd_arbiter's four LUT sites in one SLICE
+# (rloc_stamp.py --arb-groups; verify/arb_fork.py is the check it serves).
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
         --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
-        --column-rows "$BD_COLUMN_ROWS" --report > "$OUT/rloc.log" 2>&1 || {
+        --column-rows "$BD_COLUMN_ROWS" ${BD_RLOC_ARB:+--arb-groups} --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3
