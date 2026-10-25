@@ -231,3 +231,30 @@ single-unit control shows how much slack the emitted estimates carry (a speed le
 compute chains, which `build_bench.sh gcd` could not do stably).
 - Seeds 5 and 6 (pads 13/14/13): rule E 0, A/H/I 0. Running: seeds 7, 8; GLS corner
   (x0.9, x1.1) and scatter (sigma 8.5% x3 draws, 17% x2, 25% x2) sweeps.
+### progress 23:25 (gcd_hw: 8 seeds, corners, scatter -- first failure is NOT seen by any audit)
+- Seeds 5, 6, 7, 8 (pads 13/14/13): rule E 0, A/H/I 0, D 38 on each. **8/8 routes** (d, 2-8) clean
+  on every audit, 8 distinct bitstreams. GLS on d, 2, 3, 4: 16/16 each (seeds 5-8 not yet GLS'd).
+- GLS perturbation sweep on the default-seed route (baked run, 16 vectors, TEND 150 us):
+
+| delays | vectors correct |
+|---|---|
+| x0.90 (fast corner) | 16/16 |
+| x1.10 (slow corner) | 16/16 |
+| scatter sigma 8.5% (median ring scatter), 3 draws | 16/16, 16/16, 16/16 |
+| scatter sigma 17%, 2 draws | 16/16, 16/16 |
+| scatter sigma 25%, 2 draws | **11/16** (draw 1), 16/16 (draw 2) |
+
+- The sigma-25% draw-1 failure is liveness, not data: vectors 6, 9, 11, 14, 15 complete no gcd
+  (laps=0, errs=0). No wrong answer anywhere.
+- **No audit sees it.** The same perturbed delays written back into an SDF (scratch tool
+  perturb_sdf.py, same regexes and draw order as gen.py) pass rule E (0/118), A, H, I (0 each);
+  D 38 as always.
+- Localised on vector 6 (tb_wedge + probe.vh): a true deadlock about 200 ns after the rig's
+  reset releases (450 -> ~655 ns), no control node X. The loop-header muxes umux0/1/2 hold valid
+  back-edge data (n_trueResult_22/24/26: req=1, ack=0; ulink_n_trueResult_22 really passed a
+  token), but control_merge2 never delivers the next index (its inputs n_trueResult_18/28 idle),
+  and source n33's fork waits on one output. So a CONTROL token is lost in the first loop
+  iteration. Not yet found where; candidates are a timing relation none of A/D/E/H/I models,
+  for example a multi-input change on a LUT C-element when per-arc delays diverge by tens of
+  percent.
+- Running: sigma 20% x3 draws, 25% x2 more, 25% on the seed-2 route x2.
