@@ -71,3 +71,18 @@ Next:
    local binary if a sha is recorded in build/toolchain.log on their machine.
 3. Then SDELAY: change the bd_pipe default 1 -> 2 only with a routed GLS of xorshift_round
    across 4 seeds showing it (rules in CLAUDE.md for cells/rtl/).
+
+## Session 2026-10-25 19:21 -- flow.sh green again: MUXF7/F8 LUTs no longer RLOC-stamped; in-site mux wires pass the zero-arc gate
+Toolchain: patches 789a7120c912d393, nextpnr sha256 9c732bc6303458df, yosys v0.62 (cloud cache d7ce266cff0c8e1e)   Seeds: 1 2 3 4
+### progress 19:30
+- Root cause of the inherited placement failure: this yosys maps soak_top's two 8-input
+  functions to 4 LUT6 + 2 MUXF7 + 1 MUXF8 each. rloc_stamp v8 (stamp_datapath) gave those LUTs
+  side slots in columns 0 and 1 of one group (seen in soak.json: four `lk1...lut0/lut1` LUT6s at
+  (col,slot) (0,10) (0,11) (0,12) (1,12)); an F8 tree lives in one SLICE, so no anchor is legal.
+  Not a patch bug and not a chipdb bug. Fix: stamp_datapath skips any LUT driving a MUXF7/F8
+  I0/I1 (8 LUTs here); unit test added, fails on the old code.
+- v4/v5 (which did place) then failed the zero-INTERCONNECT gate on exactly 12 arcs, all
+  LUT->F7 / F7->F8 site wires. New verify/zero_arcs.py exempts only a SELMUX2_1 data pin fed from
+  the same routed SLICE; three negative controls FAIL it.
+- BD_NO_TIGHTEN=1 flow.sh (v8 default): PASS on seeds 1-4, four distinct bitstreams, 0 groups
+  dropped (was: placement FAIL 5/5).
