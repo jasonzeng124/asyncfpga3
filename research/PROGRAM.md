@@ -32,8 +32,9 @@ questions: decide, record why in the journal, and keep going. The owner reads
 
 ## Budget
 
-No usage cap (the owner lifted it on 2026-10-25). Keep working as long as the
-session lasts. A new session starts every hour and the lock keeps there from
+No usage cap (the owner lifted it on 2026-10-25). Run continuously: never end a
+session on your own. When one lead is done or blocked, journal it and start the
+next one; the leads under goal 2 and the journal's `Next:` lines are never empty. A new session starts every hour and the lock keeps there from
 being two at once, so:
 - Refresh `research/LOCK` (commit and push) at least every 45 minutes. A lock
   older than 90 minutes counts as dead.
@@ -55,7 +56,8 @@ being two at once, so:
 5. Work in small, verified steps. Commit and push at least every 45 minutes,
    with a `### progress` note under this session's entry each time, so that a
    killed session loses little. Exactly one `## Session` heading per session.
-6. When you finish (or run out of useful work): write the journal entry, update `BOARD-QUEUE.md`,
+6. Keep the branch in a state the next session can pick up at any moment, since
+   the session can end without warning: write the journal entry, update `BOARD-QUEUE.md`,
    clear `LOCK` (empty file), and commit and push.
 
 ## Journal entry format (append, newest last)
