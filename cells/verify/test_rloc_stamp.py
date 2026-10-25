@@ -383,3 +383,30 @@ def test_group_strings_are_unique_per_cluster():
     assert "bddly_bdc_fused_b__udly_chain" in g
     for members in g.values():
         assert len({m.split("/")[0] for m in members}) == 1
+
+
+def test_v7_leaves_the_luts_of_a_wide_mux_to_its_site():
+    mods = ring_netlist()
+    top = mods["top"]["cells"]
+    # an 8-input function as yosys maps it: four LUT6 -> two MUXF7 -> MUXF8,
+    # every LUT on a's bank.  The LUTs are wired to the muxes inside one
+    # SLICE, so a slot of their own (two side columns) cannot be legalised.
+    for i in range(4):
+        top[f"$abc$3$l{i}"] = lut([30, 31], [110 + i], "LUT6")
+    for j in range(2):
+        top[f"$abc$3$m7{j}"] = {
+            "type": "MUXF7",
+            "port_directions": {"I0": "input", "I1": "input", "S": "input", "O": "output"},
+            "connections": {"I0": [110 + 2 * j], "I1": [111 + 2 * j], "S": [32], "O": [120 + j]}}
+    top["$abc$3$m8"] = {
+        "type": "MUXF8",
+        "port_directions": {"I0": "input", "I1": "input", "S": "input", "O": "output"},
+        "connections": {"I0": [120], "I1": [121], "S": [33], "O": [122]}}
+    # its select LUT is an ordinary data-path LUT and is still stamped
+    top["$abc$3$sel"] = lut([30, 31], [32], "LUT2")
+    rloc_stamp.stamp(mods, "v7", report=False)
+    for i in range(4):
+        assert placement(mods, f"$abc$3$l{i}") == (None, None, None)
+    for name in ("$abc$3$m70", "$abc$3$m71", "$abc$3$m8"):
+        assert placement(mods, name) == (None, None, None)
+    assert placement(mods, "$abc$3$sel")[0] is not None

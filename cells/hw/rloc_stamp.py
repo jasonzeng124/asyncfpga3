@@ -166,6 +166,12 @@ def set_column_rows(rows):
 ROW_BANK_ROWS = 2
 SIDE_CHAIN = 16
 LUT_TYPES = frozenset(f"LUT{i}" for i in range(1, 7)) | {"LUT6_2"}
+# A LUT feeding a MUXF7 (or a MUXF7 feeding a MUXF8) is wired to it inside one
+# SLICE, so nextpnr packs the LUTs of a wide function into fixed slots of one
+# site before RLOC_GROUP sees them.  Giving such a LUT a slot of its own put
+# the four LUTs of a MUXF8 in two columns of a group, which no placement
+# satisfies ("Unable to find legal placement", soak_top under yosys 0.62).
+WIDE_MUX_TYPES = frozenset({"MUXF7", "MUXF8"})
 # bd_link's `lat` (bd_latch) and bd_mux/bd_merge's `udat` (bd_datamux) are
 # the library's only data-path instances (cells/rtl); every other named LUT
 # is handshake control.  abc's own cells are `$`-prefixed.
@@ -577,7 +583,7 @@ def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
     side column has the nearer free slot.
     """
     if not segments:
-        return 0, 0, 0, {-1: 0, 0: 0, 1: 0}
+        return 0, 0, 0, {-1: 0, 0: 0, 1: 0}, 0
     base, fixed = {}, {}
     gaps = defaultdict(set)
     offset = 0
@@ -594,10 +600,19 @@ def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
 
     drivers, sinks = {}, defaultdict(list)
     loose = {}
+    wide_in = set()
+    for mname, cname, c, conns in cells:
+        if c["type"] in WIDE_MUX_TYPES:
+            wide_in.update(gid for p in ("I0", "I1") for gid in conns.get(p, ()) if gid is not None)
+    n_wide = 0
     for mname, cname, c, conns in cells:
         key = (mname, cname)
         if c["type"] in LUT_TYPES and key not in fixed and not is_control_cell(cname, c):
-            loose[key] = c
+            if any(gid in wide_in for p, gids in conns.items()
+                   if c.get("port_directions", {}).get(p) == "output" for gid in gids):
+                n_wide += 1
+            else:
+                loose[key] = c
         dirs = c.get("port_directions", {})
         for p, gids in conns.items():
             for gid in gids:
@@ -655,7 +670,7 @@ def stamp_datapath(mods, cells, rst, segments, taken, beside=None):
         attrs[COL_ATTR] = col
         per_col[col] += 1
         n_dp += 1
-    return n_dp, n_far, len(loose) - len(order), per_col
+    return n_dp, n_far, len(loose) - len(order), per_col, n_wide
 
 
 def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
@@ -1099,11 +1114,12 @@ def stamp_v5(mods, report, banks_on_spine=False, datapath_beside=False,
             print(f"             {n_side_links} latch LUT(s) beside their node's row, "
                   f"{n_spine_links_loose} left to the placer for want of a side slot")
         if datapath_beside:
-            n_dp, n_far, n_loose, per_col = dp
+            n_dp, n_far, n_loose, per_col, n_wide = dp
             print(f"             {n_dp} data-path LUT(s) beside the spine "
                   f"({per_col[-1]} left, {per_col[1]} right, {per_col[0]} in its gaps), "
                   f"{n_far} too far from a free side slot, "
-                  f"{n_loose} not connected to any spine")
+                  f"{n_loose} not connected to any spine, "
+                  f"{n_wide} left to a MUXF7/MUXF8 site")
     if n_cands == 0 and not has_link_structures(mods):
         print("rloc_stamp   note: no bd_link/bd_pipe instances; nothing to stamp",
               file=sys.stderr)

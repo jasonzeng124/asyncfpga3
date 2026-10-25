@@ -467,13 +467,10 @@ fi
 # crosses at least one pip.  Zero is what the SDF writer emits when the sink
 # wire it is handed is not in the net (lut-perm-sink.patch), so any such arc
 # means the numbers downstream are placement estimates.  PAD arcs are the one
-# legitimate zero (the pad wire is the pin).
-if grep "INTERCONNECT" $OUT/soak.sdf | grep -v "/PAD (" | grep -q "(0:0:0)"; then
-    echo "FAIL: zero-delay INTERCONNECT arcs in the SDF -- the sink wire is not in"
-    echo "      the routed net (nextpnr-xilinx-lut-perm-sink.patch, patches/README.md)"
-    grep "INTERCONNECT" $OUT/soak.sdf | grep -v "/PAD (" | grep "(0:0:0)" | head -5
-    exit 1
-fi
+# legitimate zero (the pad wire is the pin), and so is a LUT or F7 mux feeding
+# an F7/F8 mux data input in its own SLICE (a site wire, no pip); the check
+# reads the routed placement to tell that from a broken route.
+python3 verify/zero_arcs.py $OUT/soak.sdf $OUT/soak_routed.json || exit 1
 echo
 echo "routed SDF written to $OUT/soak.sdf -- run verify/tighten.py to size the"
 echo "matched delays against it."
