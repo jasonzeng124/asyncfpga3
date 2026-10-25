@@ -86,10 +86,18 @@ gcd_hw)
     # to regenerate -- so the build regenerates it and the two cannot drift.
     # BDC_PROBE names channels as they appear in the emitted Verilog; see the
     # probe-port block in bdc/emit.py, and gcd_rig.v's header for why %138.
+    # Op fusion (the emitter default) folds ucmpi11 and %135#2 into a fused
+    # cell, so only the abs probe exists then; the cmp probes need
+    # BDC_OP_FUSION=0 and gcd_rig.v's GCD_RIG_CMP_PROBE.
+    GCD_PROBES=n138
+    if [ "${BDC_OP_FUSION:-${BDC_CONST_FOLD:-1}}" != 1 ]; then
+        GCD_PROBES=n138,n136_u,n135__2
+        BD_DEFINES="${BD_DEFINES:-} -DGCD_RIG_CMP_PROBE"
+    fi
     mkdir -p ../build/gen
     ( cd .. && python3 bdc/emit.py \
         build/frontend/gcd/comp/handshake_transformed.mlir \
-        --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
+        --no-top --probe $GCD_PROBES -o build/gen/gcd_kernel.v )
     ;;
 multn_ps)
     # Eight independent one-DSP multiplies; see hw/multn_ps.v.

@@ -109,3 +109,10 @@ toolchain agreeing with itself, not with silicon.
 - Draft PR #2 claude/research -> main opened.
 - Started: `hw/build_bench.sh gcd` (tighten loop), aiming for a cloud-built kernel bitstream
   -> routed GLS -> BOARD-QUEUE.
+### progress 19:55
+- `hw/build_hw.sh gcd_hw` (the routed-GLS target) was broken on this branch: its
+  `--probe n138,n136_u,n135__2` names channels that op fusion (the emitter default) folds into
+  select1's fused cell, and emit.py refuses them. Now only n138 is probed by default; the cmp
+  probes and gcd_rig.v's `GCD_RIG_CMP_PROBE` come back with BDC_OP_FUSION=0 (emission checked
+  both ways). With fusion on, cmp_seen is 0 by construction, which voids cmp_bad.
+- Running: gcd_bench_gen tighten loop (main tree), gcd_hw converge (scratch worktree).
