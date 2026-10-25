@@ -142,3 +142,20 @@ toolchain agreeing with itself, not with silicon.
   but the select moved +716 ps (5286 -> 6002), guarded -1029. Exact padding is inside route
   noise. Added `CONVERGE_HEADROOM=K` to converge.sh (pad K elements beyond the deficit;
   default 0 = unchanged) since too long only costs time. Running v4 with K=3 and K=6.
+### progress 20:45 (rule E's knob was the wrong link)
+- Headroom did not help: v4 with K=3 and K=6 (n165 at 8 and 11 elements) still has the same 6
+  violations. Six extra elements (~2.5 ns nominal) moved umux20's request by +609 ps, i.e. the
+  pad was not on the measured path at all.
+- Cause, in skew.py's attribution: it pads the LAUNCH's link, assuming the launch is the C node
+  of the link whose req/data pair is checked. On gcd_hw the launch is umux20's OUTPUT pipe
+  (ulink_n165 stage[0], the shared acknowledge); its DELAY pads stage[1]'s req_out, which is on
+  neither leg. The link that owns the checked request is the mux's select channel ulink_n166__1
+  (ctl_req vs s). Same for umux19 (n164 -> n166__0) and umux2 (n31 -> n32__2).
+- Fix: skew.py takes the knob from the measured request path (the storage crossing nearest the
+  request pin, only if the path leaves it through its rdly chain or its req_out C node, in a
+  pipe's last stage); otherwise the violation is reported, not padded.
+- Gate hole found and closed: converge.sh declared CONVERGED whenever the pad file was empty,
+  including when every violation was unattributed. It now also requires rule E's own
+  "0 violated".
+- check.sh: ALL GATES PASS with both changes (soak rule E 3/3, 0 violated). pytest verify/ 49 pass.
+- Running: gcd_hw converge with the fixed knob, v4 and v6.

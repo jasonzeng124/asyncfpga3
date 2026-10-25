@@ -81,7 +81,13 @@ the route that produced the measurement, and measured on gcd it does not even
 converge.
 """
 
-import json, math, sys, pathlib
+import json, math, re, sys, pathlib
+
+# A bd_pipe stage instance: <link>.many.stage[i].u
+RE_PIPE_STAGE = re.compile(r"^(.*?)\.many\.stage\[(\d+)\]\.u(?:\.|$)")
+# A node on a link's REQUEST side: its rdly chain, or the C node that drives
+# req_out -- of a bare link, or of one bd_pipe stage.
+RE_REQ_SIDE = re.compile(r"^(.*?)(?:\.many\.stage\[(\d+)\]\.u)?\.(?:rdly|ctl)\.")
 
 _raw = sys.argv[1:]
 VERBOSE = "-v" in _raw
@@ -585,7 +591,8 @@ def main():
                      e[0], l[0])
             g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
             if worst is None or g < worst[0]:
-                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc)
+                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
+                         path_to(pred_f, e[1], rp) or [])
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
@@ -630,9 +637,36 @@ def main():
         print(f"             {len(orphan)} gate(s) share no launch with their "
               f"own select within {K} crossings -- not checked")
 
+    # The last stage of every bd_pipe, for req_knob() below.
+    last_stage = {}
+    for name in set(T.pin_split(n)[0] for n in srcs_of):
+        mp = RE_PIPE_STAGE.match(name)
+        if mp:
+            last_stage[mp.group(1)] = max(last_stage.get(mp.group(1), 0), int(mp.group(2)))
+
+    def req_knob(req_path):
+        """The link whose DELAY really sits on the measured request path: the
+        storage crossing nearest the request pin, and only if the path leaves
+        it through its request side (its rdly chain or the C node that drives
+        req_out), in the stage DELAY pads (a bd_pipe's last).  None when the
+        crossing nearest the pin is not such a node -- a latch, an inner pipe
+        stage, an acknowledge."""
+        for _, node in reversed(req_path):
+            inst = T.pin_split(node)[0]
+            mk = RE_REQ_SIDE.match(inst)
+            if mk is None:
+                if T.RE_SEL_LINK.search(inst) or T.RE_SEL_LINK_STRUCT.search(inst):
+                    return None
+                continue
+            link, stage = mk.group(1), mk.group(2)
+            if stage is not None and int(stage) != last_stage.get(link, int(stage)):
+                return None
+            return link.rpartition(".")[2] if "." in link else link
+        return None
+
     pads, unattributed = {}, []
     for (gm, margin, kind, parent, cell, rp, sp,
-         launch, t_req, k_req, t_sel, k_sel, t_c) in (rows if VERBOSE else bad):
+         launch, t_req, k_req, t_sel, k_sel, t_c, req_path) in (rows if VERBOSE else bad):
         flag = "VIOLATED" if gm <= 0 else "ok      "
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
@@ -653,28 +687,33 @@ def main():
         # launch moves the request later and does not drag the select along
         # with it.  Anything else is not attributable from this measurement and
         # is reported rather than guessed at.
-        m = T.RE_SEL_LINK.search(launch)
-        if not m:
-            # Fall back to the structural form, which finds the same knob on an
-            # instance that is not named ulink_* -- see RE_SEL_LINK_STRUCT.
-            m = T.RE_SEL_LINK_STRUCT.search(launch)
-        if not m:
+        #
+        # That premise fails when the launch is a bd_pipe stage or an
+        # acknowledge: on gcd_hw (2026-10-25) umux20's launch is its OUTPUT
+        # pipe's stage[0] C node, both legs run back upstream from there, and
+        # padding that pipe's DELAY (its last stage's req_out) moved the
+        # request by reroute noise only -- +609 ps for six elements -- so
+        # converge.sh padded it forever.  The knob is therefore taken from the
+        # measured request path itself (req_knob) and only used if it is
+        # really on it.
+        knob = req_knob(req_path)
+        if knob is None:
             unattributed.append((parent, launch))
             continue
         # The elements being added sit in the request path, so they are subject
         # to the same GUARD_LO scatter as the rest of it.
         need = math.ceil(-gm / (t_elem * GUARD_LO))
-        pads[m.group(1)] = max(pads.get(m.group(1), 0), need)
+        pads[knob] = max(pads.get(knob, 0), need)
         print(f"           fix: {need} more bd_delay element(s) on "
-              f"{m.group(1)} ({t_elem} ps ea, derated to "
+              f"{knob} ({t_elem} ps ea, derated to "
               f"{int(t_elem * GUARD_LO)})")
 
     if unattributed:
         print()
         for parent, launch in unattributed:
-            print(f"  {parent}: launch {launch} is not a bd_link C node, so no "
-                  f"DELAY knob\n    is attributable to it -- reported, not "
-                  f"padded")
+            print(f"  {parent}: launch {launch}: no link's DELAY is on the "
+                  f"measured request path,\n    so no knob is attributable -- "
+                  f"reported, not padded")
     if PADS is not None:
         PADS.write_text(json.dumps(dict(sorted(pads.items())), indent=1) + "\n")
         print(f"\n  wrote {len(pads)} per-link requirement(s) to {PADS} "

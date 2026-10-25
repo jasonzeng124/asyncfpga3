@@ -133,6 +133,16 @@ was=set(json.load(open(sys.argv[1])))
 now=set(json.load(open(sys.argv[2])))
 print(','.join(sorted(was & now)))" "$PADS" "$DELTA")
 
+    # An empty pad file is not convergence by itself: skew.py leaves out a
+    # violation it cannot attribute to a knob, so rule E's own count decides.
+    violated=$(grep -oE "[0-9]+ violated" "$STATE/skew.$i.log" | awk '{print $1}')
+    if [ "$n" = "0" ] && [ "${violated:-1}" != "0" ]; then
+        echo
+        echo "  NOT CONVERGED: rule E reports ${violated:-an unknown number of} violated"
+        echo "  gate(s) and attributes none of them to a link's DELAY -- see"
+        echo "  $STATE/skew.$i.log.  Nothing to pad; this is a failure, not a pass."
+        exit 1
+    fi
     if [ "$n" = "0" ]; then
         echo
         echo "  CONVERGED after $i iteration(s): every select gate clears rule E's"
