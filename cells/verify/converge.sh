@@ -39,6 +39,14 @@ cd "$(dirname "$0")/.."
 DESIGN=${1:-gcd_ps}
 MAX=${2:-6}
 CAP=${CONVERGE_CAP:-64}
+# CONVERGE_HEADROOM=K: pad every short link K elements beyond rule E's
+# deficit.  Rule E's guardband scales with arrival time (0.772*req against
+# 1.155*sel), so on gcd's ~7 ns select paths a +1.8 ns raw margin is still
+# -0.6 ns guarded, and the reroute that the exact pad causes moved the select
+# by more than the pad moved the request (+716 against +542 ps, ulink_n165,
+# 2026-10-25).  A pad that is too long only costs time.  Default 0, the
+# behaviour this loop always had.
+HEADROOM=${CONVERGE_HEADROOM:-0}
 
 # The builder this loop iterates.  Default is hw/build_hw.sh DESIGN, exactly
 # as before this was parameterised.  hw/build_bench.sh is a SIBLING build
@@ -159,9 +167,10 @@ print(f'  total added: {sum(d.values())} bd_delay element(s)')" "$PADS"
         exit 1
     fi
 
-    python3 - "$PADS" "$DELTA" "$CAP" <<'PYEOF'
+    python3 - "$PADS" "$DELTA" "$CAP" "$HEADROOM" <<'PYEOF'
 import json, pathlib, re, sys, glob
 pads, delta, cap = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), int(sys.argv[3])
+headroom = int(sys.argv[4])
 cur = json.loads(pads.read_text())
 add = json.loads(delta.read_text())
 # A link this loop has not touched yet is already carrying whatever emit.py
@@ -175,7 +184,7 @@ for f in glob.glob("../build/gen/*.v"):
 over = []
 for k, v in add.items():
     base = cur.get(k, emitted.get(k, 0))
-    want = base + v
+    want = base + v + headroom
     if want > cap:
         over.append((k, want))
         want = cap

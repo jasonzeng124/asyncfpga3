@@ -134,3 +134,11 @@ toolchain agreeing with itself, not with silicon.
   each). converge.sh's own verdict: the padding moves the route as fast as it fixes it. This is
   the "rule E blocks tightening" lead, reproduced in the cloud on gcd. No GLS (no converged
   build). Running: the same build with v6 and with v2.
+### progress 20:30 (gcd_hw, rule E convergence)
+- v6 and v2 placements behave like v4: same short links (v6: 17 then 14 violated, adds
+  ulink_n90__0; v2: 6 then 6). In every case the failure is n31/n164/n165.
+- Why it chases: rule E's guardband is proportional (0.772*req vs 1.155*sel). umux20 (v2):
+  iteration 1 raw +1818 ps, guarded -621; after +2 elements on n165 the request moved +542 ps
+  but the select moved +716 ps (5286 -> 6002), guarded -1029. Exact padding is inside route
+  noise. Added `CONVERGE_HEADROOM=K` to converge.sh (pad K elements beyond the deficit;
+  default 0 = unchanged) since too long only costs time. Running v4 with K=3 and K=6.
