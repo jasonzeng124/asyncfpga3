@@ -127,3 +127,10 @@ toolchain agreeing with itself, not with silicon.
   pattern holds at only 4 of 22 logic columns. 8-9-tile groups in 25-row runs give roughly 30-40
   legal homes for 48 groups. So v8 does not fit gcd_hw. Not a bug in any one cell; v8 was only
   ever measured on xorshift_round. Next: gcd_hw with BD_RLOC=v4.
+### progress 20:20 (gcd_hw, v4)
+- `BD_RLOC=v4 hw/build_hw.sh gcd_hw` places and routes (5 min). Rule E converge then gives up
+  after iteration 2: 118 select gates, 6 violated, and the same three links (ulink_n31, n164,
+  n165) measure short again after being padded (margins 76-400 ps, needing 3-4 more elements
+  each). converge.sh's own verdict: the padding moves the route as fast as it fixes it. This is
+  the "rule E blocks tightening" lead, reproduced in the cloud on gcd. No GLS (no converged
+  build). Running: the same build with v6 and with v2.
