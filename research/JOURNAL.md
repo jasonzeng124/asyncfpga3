@@ -526,3 +526,28 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
 - Candidate r1 (an earlier ratchet + 1 link everywhere, research/data/gcd_hw_sizes_r1.vh; 198 links more
   than L7 in total but 1 cell shorter): rules E/A/H/I/J clean on **7 seeds (d, 2, 3, 4, 5, 7, 8)**;
   seed 6 running. GLS of r1 on d and 2 running. L7 on fresh seeds 4-8 running.
+### progress 09:20 (collatz pads on fresh seeds and corners; isprime routed GLS; subagent, reviewed)
+- `cells/check.sh`: ALL GATES PASS with the zero_arcs CARRY4-S change (flow.sh: "12 in-site F7/F8 mux /
+  CARRY4 S input wire(s) are 0 ps by construction").
+- collatz with research/data/collatz_rulee_sizes.vh on FRESH seeds 5-8: A/H/I 0, rule E 0/18, rule J ok,
+  GLS fast and stalled pass on all 4; 160.4 ns per iteration (157.0-164.2). **All 8 seeds: 159.3 ns
+  (156.3-164.2).** Seed 1 at x0.9 and x1.1: both GLS pass (n=27 latency 15.66 / 19.08 us, so the scale
+  took effect). Uniform scaling cannot flip a race's sign; scatter on collatz not run.
+- isprime: default BD_DSP=1 has no routed GLS (cells/gls has no DSP48E1 model: gen.py KeyError); its
+  audits on 4 seeds: A/H/I 0, rule E 16-18/86 violated, rule J 0/14. With BD_DSP=0 (LUT multiplier):
+  fusion_bench's routed_signals() now finds a result bit no net name carries (out0_data[31], folded into
+  $PACKER_GND_NET since the answer is 0 or 1) through the leaf pin it reaches.
+
+| isprime BD_DSP=0 | rule E violated /86 | A/H/I | GLS fast/stalled |
+|---|---|---|---|
+| placeholders, seeds 1-4 | 16, 23, 21, 16 (worst raw -960..-1690 ps) | 0 | pass, **deadlock (n=4)**, **deadlock (n=4)**, **out-of-phase out0_req** |
+| + pads (research/data/isprime_rulee_sizes.vh), seeds 1-8 (5-8 fresh) | 5, 3, 2, 2, 3, 2, 3, 0 | 0, except seed 1 rule I 1 | pass on all 8 |
+
+  Remaining rule E violations all have POSITIVE raw margins and fail only after the guardband:
+  ucond_br16 on 7/8 (raw +4.5..+7.9 ns, guarded -1.1..-4.1 ns; request crosses 4 storage stages, ~25 ns,
+  so the proportional guard grows with it; skew.py: no link DELAY is on the request path, nothing to
+  pad), and umux2/4/7 (raw +0.9..+2.0 ns, guarded -16..-539 ps, paddable: a second round).
+  Latency over 8 seeds (fast): n=91 5.74 us (5.62-5.92), n=97 7.76 us (7.60-8.00), n=997 38.55 us
+  (37.66-39.83).
+- Does NOT show: isprime's shipped (DSP) build in GLS; isprime passing the audits (it does not: rule E
+  guarded on 7/8, rule I on 1); scatter on either kernel.

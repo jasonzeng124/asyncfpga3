@@ -321,6 +321,7 @@ def routed_signals(outdir, func):
     nets = routed["modules"]["top"]["netnames"]
     physical = {}
     aliases = {}
+    pins = {}            # canonical bit -> [(leaf cell path, port)]
 
     def root(bit):
         while bit in aliases:
@@ -340,6 +341,10 @@ def routed_signals(outdir, func):
         for name, cell in module["cells"].items():
             child = synthesis["modules"].get(cell["type"])
             if child is None or not child.get("cells"):
+                for port, values in cell["connections"].items():
+                    for value in values:
+                        pins.setdefault(canonical(value), []).append(
+                            (prefix + name, port))
                 continue
             bindings = {}
             for port, values in cell["connections"].items():
@@ -352,6 +357,27 @@ def routed_signals(outdir, func):
 
     collect(source, "", {})
     physical = {root(bit): value for bit, value in physical.items()}
+    # A bit that no surviving net NAME carries -- on isprime, out0_data[31],
+    # which nextpnr's packer folded into $PACKER_GND_NET because the result
+    # is 0 or 1 -- is found through a leaf cell pin it reaches instead: the
+    # same cell in the routed netlist, the same logical pin (a LUT pin is
+    # permuted, so it is matched through X_ORIG_PORT_<pin>; F7/F8's S is S0).
+    cells = routed["modules"]["top"]["cells"]
+    for bit, refs in pins.items():
+        if root(bit) in physical:
+            continue
+        for cname, port in refs:
+            rc = cells.get(cname)
+            if rc is None:
+                continue
+            for rp, rbits in rc["connections"].items():
+                orig = rc.get("attributes", {}).get(f"X_ORIG_PORT_{rp}", rp)
+                if rbits and (port in orig.split() or (port, rp) in
+                              (("S", "S0"), ("I0", "0"), ("I1", "1"))):
+                    physical[root(bit)] = rbits[0]
+                    break
+            if root(bit) in physical:
+                break
     return {port: [physical[root(("", b))] for b in bits]
             for port, bits in source["cells"]["uut"]["connections"].items()}
 
@@ -693,7 +719,10 @@ def measure_kernel(mlir, outdir, *, route_seeds, sizes=None):
     row = {"kernel": name, "vectors": len(vecs),
            "sizes": str(sizes) if sizes else "placeholder",
            "fork_fusion": emit.BDC_FORK_FUSION, "max_nodes": emit.MAX_FUSE_NODES,
-           "fastfall": emit.BDC_FASTFALL}
+           "fastfall": emit.BDC_FASTFALL,
+           # flow.sh's BD_DSP (default 1); cells/gls/ has no DSP48E1 model,
+           # so a kernel with a multiply gets routed GLS only with BD_DSP=0.
+           "bd_dsp": os.environ.get("BD_DSP", "1")}
     sources = [CELLS / "sim/bd_prims_sim.v", CELLS / "sim/bd_env.v",
                *sorted((CELLS / "rtl").glob("*.v")), rtl]
     for kind in ("fast", "stalled"):
