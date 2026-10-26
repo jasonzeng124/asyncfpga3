@@ -592,8 +592,17 @@ def kernel_vectors(name):
         vecs += [dict(n=rng.randrange(2, 2000))
                  for _ in range(KERNEL_EXTRA_VECTORS)]
     elif name == "ipow":
-        vecs += [dict(b=rng.randrange(-50, 50), e=rng.randrange(0, 40))
-                 for _ in range(KERNEL_EXTRA_VECTORS)]
+        # Random b^e wraps to 0 whenever b is even and e is large, and 0 is
+        # also what a stuck datapath returns: draw until the C reference is
+        # non-zero.  One wrap-to-0 is kept on purpose: 65536^2 = 2^32, a
+        # product whose only set bit is bit 32, which the 32x32 multiply
+        # (three cascaded DSP48E1s) must carry out of the low word and drop.
+        extra = []
+        while len(extra) < KERNEL_EXTRA_VECTORS:
+            v = dict(b=rng.randrange(-50, 50), e=rng.randrange(0, 40))
+            if simcheck.REFS[name](v)["out0"] != 0:
+                extra.append(v)
+        vecs += extra + [dict(b=65536, e=2)]
     expected = [simcheck.REFS[name](v) for v in vecs]
     return vecs, expected
 
