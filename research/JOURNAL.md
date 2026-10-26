@@ -477,3 +477,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   26 / 24 / 22). Corners were on 1 route before; now 3. Seeds 7/8 running.
 - gcd_hw sizing, rule A per pass: 54, 7, 5, 0 (rejected by fresh seeds 2 and 3), 2, 1, ...: one new
   binding cell per route, chain 170.8 ns at pass 6.
+### progress 06:50 (gcd_hw: 8/8 seeds pass nominal routed GLS; sizing run 1 did not converge)
+- Seeds 7, 8 (pads 13/14/13): rule E 0/118, A/H/I 0, rule J pass, gate clean, **16/16 vectors errs=0**.
+  BOARD-QUEUE #1's configuration now has nominal routed GLS on all 8 seeds (d, 2-8), and x0.9/x1.1 on
+  d, 5, 6 (7/8 corners running).
+- Sizing run 1 (`tighten_loop.sh gcd_hw 8`, seeds d + fresh 2 3, slack 300): rule A per pass 54, 7, 5,
+  0*, 2, 1, 0*, 0* (* = passed its own route, then rejected by a fresh seed: 2 rejected pass 4 with 7
+  cells, seed 3 pass 7 with 2, seed 2 pass 8 with 1). Chain 163.8 -> 171.5 ns. No candidate accepted
+  in 8 passes, so it shipped nothing (fallback to emit's estimate, as designed). Resumed from the
+  ratchet (BD_RESUME=1, 10 more passes); the requirement is still rising by 1-3 cells per new route.
