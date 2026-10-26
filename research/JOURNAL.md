@@ -827,3 +827,7 @@ Subagent round 8, reviewed and committed:
   38.97 us (38.39-39.49). Groups are tile-sized: 1-2 arbiters per seed straddle the tile's two slices.
 - Decision kept: skew.py's Part B (which would clear ucond_br16) stays out; isprime is reported as not
   clean on rule E rather than loosening the audit.
+### progress 17:05 (container restart)
+- The container restarted around 16:40-17:00 UTC; every background job died (ipow ratchet at pass 3, R5 GLS
+  seed 6, both subagents: August-failure regressions, gcd RTZ tail analysis). Toolchain still in place,
+  toolchain.sh all ok. Restarting them.
