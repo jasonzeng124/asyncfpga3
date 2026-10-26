@@ -967,3 +967,8 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   the tighten.py update, also shows rule F 0). **76.2 ns per iteration (74.6-78.6)** vs 105.6 for pads-only
   compute: **1.39x**; the headroom costs nothing measurable (T6 77.4 on other seeds). T6/T7/T8 each failed one
   fresh route in four-to-eight; T9 is the first ipow size set clean on a full fresh 8.
+### progress 23:28 (link fast fall on xorshift: -9% per round)
+- xorshift T3 sizes + BDC_LINK_FASTFALL=1 (13 fast-fall instances emitted), seeds 1-4, 14 vectors: rules
+  A/E/F/H/I/J 0, routed GLS fast+stalled pass on 4/4. Per round: **65.4 -> 59.5 ns (-9.0%)** vs T3 without fast
+  fall on the same seeds (65.9/64.4/65.4/65.7 -> 59.6/59.7/59.9/58.7). Combined with sizing: 102.5 -> 59.5 ns
+  per round vs the placeholder build (1.72x). collatz the same way running.
