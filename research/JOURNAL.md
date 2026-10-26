@@ -740,3 +740,17 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   (one new short steer link per route). R5 routed GLS (nominal + corners) running on d, 3, 5, 6.
 - xorshift ratchet: placeholders fail rule E on 8/8 seeds (1-6 each; GLS passes 8/8); pass 1: rule A 4-8,
   rule E 2-8 per seed (shorter compute makes requests earlier; pads catching up). Continuing.
+### progress 01:30 (xorshift sized: 1.70x per round, every audit + routed GLS clean on 8 seeds)
+- **xorshift T3** (research/data/xorshift_sizes_T3.vh), fusion_bench --mlir .../xorshift/... (the frontend
+  kernel, fork fusion + cap 4), ratchet over seeds 1-8 from placeholders (rule E fix asks + rule A proposals,
+  per-cell max), 3 passes: rules A/E(C-node)/H/I/J 0 on all 8, gate clean on all 8, routed GLS fast+stalled
+  pass on all 8.
+
+| xorshift, ns per round (slope over 6 vectors, rounds 0-4) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| placeholders (FAIL rule E on 8/8: 1-6 gates each) | 102.2 103.0 102.3 102.9 102.0 100.8 105.4 101.5 | 102.5 | 100.8-105.4 |
+| **T3** | 61.6 60.1 61.6 61.4 61.4 59.1 59.4 56.8 | **60.2** | 56.8-61.6 |
+  1.70x, against a baseline that is itself unsafe (it needs rule E pads, which add delay), so the speedup
+  over a SAFE unsized build is larger. Only 6 vectors (simcheck's; fusion_bench adds random ones only for
+  collatz/isprime/ipow): a thin oracle, though non-degenerate.
+- gcd_hw R5: seed 9 clean too: every audit clean on 8 placed routes (d, 3-9; seed 2 unplaceable).
