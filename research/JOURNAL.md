@@ -594,3 +594,38 @@ GLS (nominal + corners) running on d, 2, 3 first, then 4, 5, 6.
 All three: gate clean (ANNOTATE_DONE, 0 SDF warnings), **16/16 vectors errs=0**. R2 is a little slower
 than r1/the exploratory pass-8 sizes (vec 6: 47-48 vs 51-53) because it carries the most headroom.
 r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
+### progress 12:30 (DSP48E1 GLS model; ipow and isprime with DSPs; isprime pad round 2; ucond_br16; subagent, reviewed)
+- **cells/gls DSP48E1 model** (prims.v `DSP48E1_DSP48E1`, gen.py `dsp_config()`): models exactly the
+  configuration flow.sh's DSP cascade uses (no pipeline registers, INMODE/ALUMODE/CARRYIN* 0, OPMODE X=Y=M
+  with Z in {000, 001, 101}, A direct or cascade, 25x18 signed multiply) and REFUSES anything else by name
+  (checked by injecting PREG=1, a flipped OPMODE inversion and a dropped ALUMODE inversion: each exits 1).
+  Timing: the SDF's per-bit IOPATHs, each set to its (input group, output group) maximum (on this chipdb
+  each group has one value anyway: A->P 5400, B->P 3850, PCIN->P 1710 ps). Checks: unit test against the
+  UG479 equations, 200 random operands x 6 configurations PASS, 1200 mismatches with `-DGLS_DSP_FAULT=5`;
+  gate ANNOTATE_DONE with 0 warnings and claimed = emitted IOPATHs (isprime 80004, 38682 of them DSP);
+  renaming one DSP arc's pin in the SDF yields an SDF WARNING (the arcs really are matched). Fault
+  injection in routed GLS fails ipow ("got 13 expected 3") and isprime (n=9).
+  **Non-DSP designs unchanged:** old and new gen.py on the seed-5 gcd_hw route give byte-identical
+  netlist.v, netlist_baked.v, annot.sdf, names.map (cmp).
+- ipow BD_DSP=1 (shipped config), placeholder lengths, seeds 1-4: A/H/I 0, rule J 0/4, **rule E 3-4/24
+  violated on every seed (worst raw -279..-2295 ps; umux1/2/3)**, routed GLS fast+stalled pass on all 4;
+  96.9 ns per loop iteration (95.7-98.2; iterations = bit length of e). 4 of its 8 random vectors expect 0
+  (power wraps): weak vectors; 12 of 16 non-zero. GLS passing with raw rule E deficits up to -2.3 ns says
+  this GLS does not exercise those races; rule E is the evidence there. fusion_bench: a channel with no
+  bd_link latch reading it (ipow's b enters a loop-entry mux) now keeps bd_source's default 3000 ps setup,
+  recorded as None (unmeasured).
+- isprime BD_DSP=1 seed 1 GLS: all 18 values right (incl. 97, 113, 997, which need the DSP d*d), then a
+  protocol $fatal (out0 X pulse) on a route with 16 rule E violations: the same signature as collatz's
+  rule E failures.
+- isprime BD_DSP=0 second pad round (research/data/isprime_rulee2_sizes.vh), seeds 1 (re-check) and fresh
+  9-12: rule E 0, 3, 2, 3, 0 of 86; rule I 1 on seed 9; GLS pass on all 5. Remaining: ucond_br16 (raw
+  +6.2..+8.6 ns), umux1 (paddable), ulink_n_index_71 SDELAY (rule I).
+- **ucond_br16 is a rule E measurement artifact (analysis only, no rule changed).** skew.py measures the
+  select from ulink_n18__1's latch outputs, and its request path from there runs through ucond_br16's OWN
+  select pin and ack, round the loop (ufork6, ufork30, ulink_n76 C node and latch) to the NEXT token's
+  request: a lap, not the bundled request. The right common launch is ulink_n18__1's C node (latch enable
+  -> select, 1 crossing; ucmpi2 join -> its delay -> ucond_br16_j -> request, 2 crossings): raw +31.8 ns,
+  guarded +16.7 ns there. skew.py never evaluates it: it ranks launches by select crossings and keeps
+  cand[:4], and the 32-bit latch bank alone supplies 64 zero-crossing candidates (C node is #96 of 2061).
+  The error direction is a FALSE violation (conservative). Fix candidate: always evaluate the C node of
+  the select's feeding link; needs a negative control showing rule E can still fail there.

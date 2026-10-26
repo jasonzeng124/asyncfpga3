@@ -403,7 +403,12 @@ def source_lead(outdir, signals, args):
             timing, back, driver[signals[f"{arg}_req"][0]],
             [driver[bit] for bit in signals[f"{arg}_data"]])
         if need is None:
-            raise RuntimeError(f"{arg}: no bd_link latch reads this channel")
+            # No bd_link latch reads this channel directly (on ipow, `b` enters
+            # a loop-entry bd_mux first), so there is no measured lead: the
+            # source keeps bd_source's default SETUP (3000 ps), and the row
+            # says so rather than carrying a number nobody measured.
+            leads[arg] = None
+            continue
         leads[arg] = max(need, 0)
     return leads
 
@@ -514,6 +519,8 @@ def simulate_route(outdir, func, *, strict_gls=True, parse=None):
         tb = (outdir / f"tb_{kind}.v").read_text()
         tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
         for arg, lead in leads.items():
+            if lead is None:
+                continue
             tb = re.sub(rf"bd_source #\(\.W\((\d+)\)\) {arg}_src\(",
                         rf"bd_source #(.W(\1), .SETUP({lead})) {arg}_src(", tb)
         (gls / f"tb_{kind}.v").write_text(tb)

@@ -70,6 +70,9 @@ OUTPUT_PORTS = {
     "IOB33_INBUF_EN": {"OUT"},
     "PSEUDO_GND": {"Y"},
     "PSEUDO_VCC": {"Y"},
+    "DSP48E1_DSP48E1": set(["P%d" % i for i in range(48)]
+                           + ["PCOUT%d" % i for i in range(48)]
+                           + ["ACOUT%d" % i for i in range(30)]),
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
 }
 
@@ -107,6 +110,113 @@ PORT_ORDER = {
     "PSEUDO_GND": ["Y"],
     "PSEUDO_VCC": ["Y"],
 }
+
+# ---- DSP48E1 ----------------------------------------------------------------
+# prims.v models ONE configuration (see its DSP48E1_DSP48E1 header).  These
+# are its port groups, in the order prims.v declares them; a group of width 0
+# is a scalar pin.
+DSP_T = "DSP48E1_DSP48E1"
+DSP_IN = [("A", 30), ("ACIN", 30), ("B", 18), ("C", 48), ("PCIN", 48),
+          ("OPMODE", 7), ("ALUMODE", 4), ("CARRYINSEL", 3), ("CARRYIN", 0)]
+DSP_OUT = [("P", 48), ("PCOUT", 48), ("ACOUT", 30)]
+
+
+def _dsp_pins(groups):
+    return [g if n == 0 else "%s%d" % (g, i) for g, n in groups
+            for i in range(max(n, 1))]
+
+
+PORT_ORDER[DSP_T] = _dsp_pins(DSP_IN) + _dsp_pins(DSP_OUT)
+
+
+def dsp_group(pin):
+    for g, n in DSP_IN + DSP_OUT:
+        if pin == g if n == 0 else (pin.startswith(g) and pin[len(g):].isdigit()):
+            return g
+    return None
+
+
+# Parameters a routed DSP48E1 of this flow carries, and the value each must
+# have for the modelled configuration (None = checked separately).  Anything
+# else -- a parameter not listed, or a listed one with another value -- is
+# refused: an unmodelled DSP mode would otherwise simulate as this one.
+DSP_PARAMS = {"AREG": 0, "ACASCREG": 0, "BREG": 0, "BCASCREG": 0, "CREG": 0,
+              "DREG": 0, "ADREG": 0, "MREG": 0, "PREG": 0, "INMODEREG": 0,
+              "OPMODEREG": 0, "ALUMODEREG": 0, "CARRYINREG": 0,
+              "CARRYINSELREG": 0, "USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48",
+              "USE_DPORT": "FALSE", "B_INPUT": "DIRECT", "A_INPUT": None}
+RE_DSP_INV = re.compile(r"^IS_(OPMODE|ALUMODE|INMODE)\[(\d)\]_INVERTED$|^IS_CARRYIN_INVERTED$")
+
+
+def dsp_config(cname, c, netname):
+    """-> (ZMUX, ACASC) for the routed DSP48E1 `c`, or exit naming what is
+    not modelled.  A control pin's value is its connected constant net, or
+    the tile constant nextpnr recorded in DSP_VCC_PINS / DSP_GND_PINS (pins
+    with no interconnect path, patches/nextpnr-xilinx-dsp-constpins.patch),
+    XOR its IS_*_INVERTED parameter."""
+    def refuse(why):
+        sys.exit("gen.py: DSP48E1 %s: %s -- prims.v models one DSP configuration "
+                 "only (see its DSP48E1_DSP48E1 header); refusing rather than "
+                 "simulating this one as that." % (cname, why))
+    params, attrs, conns = c.get("parameters", {}), c.get("attributes", {}), c["connections"]
+
+    def val(v):
+        return int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else v
+    inv = {}
+    for k, v in params.items():
+        m = RE_DSP_INV.match(k)
+        if m:
+            inv[(m.group(1) or "CARRYIN") + (m.group(2) or "")] = val(v) & 1
+        elif k not in DSP_PARAMS:
+            refuse("parameter %s=%s is not one this model knows" % (k, v))
+        elif DSP_PARAMS[k] is not None and val(v) != DSP_PARAMS[k]:
+            refuse("%s=%s (modelled: %s)" % (k, v, DSP_PARAMS[k]))
+    vcc = set(attrs.get("DSP_VCC_PINS", "").split())
+    gnd = set(attrs.get("DSP_GND_PINS", "").split())
+
+    def ctl(pin):
+        bl = conns.get(pin)
+        if bl:
+            name = netname.get(bl[0], "")
+            if name == "$PACKER_VCC_NET":
+                v = 1
+            elif name == "$PACKER_GND_NET":
+                v = 0
+            else:
+                refuse("control pin %s is driven by %r, not a constant" % (pin, name))
+        elif pin in vcc:
+            v = 1
+        elif pin in gnd:
+            v = 0
+        else:
+            refuse("control pin %s is neither connected nor a recorded tile constant" % pin)
+        return v ^ inv.get(pin, 0)
+
+    def word(g, n):
+        return sum(ctl("%s%d" % (g, i)) << i for i in range(n))
+    opmode, alumode, inmode = word("OPMODE", 7), word("ALUMODE", 4), word("INMODE", 5)
+    carryinsel, carryin = word("CARRYINSEL", 3), ctl("CARRYIN")
+    if (inmode, alumode, carryinsel, carryin) != (0, 0, 0, 0):
+        refuse("INMODE=%s ALUMODE=%s CARRYINSEL=%s CARRYIN=%d (modelled: all 0)"
+               % (bin(inmode), bin(alumode), bin(carryinsel), carryin))
+    if opmode & 0xF != 0b0101 or (opmode >> 4) not in (0, 1, 5):
+        refuse("OPMODE=%s (modelled: X=Y=M, Z in {000, 001, 101})" % format(opmode, "07b"))
+    zmux = opmode >> 4
+    acasc = {"DIRECT": 0, "CASCADE": 1}.get(params.get("A_INPUT", "DIRECT"))
+    if acasc is None:
+        refuse("A_INPUT=%s" % params.get("A_INPUT"))
+    for pin, bl in conns.items():
+        if bl and c["port_directions"].get(pin) == "output" and dsp_group(pin) is None:
+            refuse("output %s is connected and not modelled" % pin)
+    # The operand pins the function reads must be wired, or the model would
+    # multiply tie-offs.
+    need = ["%s%d" % ("ACIN" if acasc else "A", i) for i in range(25)] + \
+           ["B%d" % i for i in range(18)] + \
+           (["PCIN%d" % i for i in range(48)] if zmux else [])
+    missing = [p for p in need if not conns.get(p)]
+    if missing:
+        refuse("operand pins %s... are not connected" % ", ".join(missing[:4]))
+    return zmux, acasc
 
 
 RE_ORIG_PORT = re.compile(r"I\d+")
@@ -347,6 +457,28 @@ def main():
     top = json.load(open(JSON))["modules"]["top"]
     cells = top["cells"]
     iopaths, ic, setuphold, n_io, n_ic, n_sh = read_sdf(SDF)
+    netname = {}
+    for name, nn2 in top.get("netnames", {}).items():
+        for b in nn2["bits"]:
+            netname.setdefault(b, name)
+    # A DSP's timing is one parameter per (input group, output group), which
+    # is exactly what the routed SDF carries on this chipdb.  A perturbed run
+    # (scale, scatter) draws per arc; both netlists then take the group's
+    # LARGEST arc, so the annotated and the baked build still agree.
+    dsp_group_ps = {}
+    for cname, c in cells.items():
+        if c["type"] != DSP_T or cname not in iopaths:
+            continue
+        g = {}
+        for a, z, ps in iopaths[cname]:
+            ga, gz = dsp_group(a), dsp_group(z)
+            if ga is None or gz is None:
+                sys.exit("gen.py: DSP48E1 %s: SDF arc %s -> %s has no port in the "
+                         "model" % (cname, a, z))
+            g[(ga, gz)] = max(g.get((ga, gz), 0), ps)
+        dsp_group_ps[cname] = g
+        iopaths[cname] = [(a, z, g[(dsp_group(a), dsp_group(z))])
+                          for a, z, _ in iopaths[cname]]
     sys.stderr.write("delays: scale %g, scatter sigma %g (seed %s, mode %s)\n"
                      % (DELAY_SCALE, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
     if SCATTER_MODE == "wire" and SCATTER:
@@ -449,6 +581,8 @@ def main():
             # exactly the two vectors that would otherwise have caught it.
             if t == "CARRY4" and port == "CYINIT" and "PRECYINIT_CONST" in params:
                 return "1'b%s" % params["PRECYINIT_CONST"]
+            if t == DSP_T:
+                return "1'b0"      # dsp_config() refuses if the model reads it
             d = TIE.get((t, port))
             if d is None:
                 unexpected.append((cname, t, port))
@@ -496,6 +630,13 @@ def main():
                      % (init, sr_val, nn, ", ".join(conn)))
             B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s) %s (%s);"
                      % (init, sr_val, tps, nn, ", ".join(conn)))
+        elif t == DSP_T:
+            zmux, acasc = dsp_config(cname, c, netname)
+            cfg = ".ZMUX(%d), .ACASC(%d)" % (zmux, acasc)
+            gp = "".join(", .T%s_%s(%d)" % (ga, gz, ps)
+                         for (ga, gz), ps in sorted(dsp_group_ps.get(cname, {}).items()))
+            L.append("  %s #(%s) %s (%s);" % (t, cfg, nn, ", ".join(conn)))
+            B.append("  %s #(%s%s) %s (%s);" % (t, cfg, gp, nn, ", ".join(conn)))
         else:
             L.append("  %s %s (%s);" % (t, nn, ", ".join(conn)))
             B.append("  %s %s%s %s (%s);"
