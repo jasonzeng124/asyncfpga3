@@ -4,7 +4,7 @@ Experiments that have passed every check possible without the board, most
 valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
-## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 4 seeds
+## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
 (8 seeds: worst +272, raw >= +718). That counts the part of A0's route its branches share as
 common, and that part is an ESTIMATE (pip-count fraction; the routed JSON has no per-pip delays).
@@ -42,6 +42,9 @@ What it would mean:
   shape. Compare the mask with 5, 6, 7, 8, 11, 12, 13.
 - Refused / scan misaligned: a bitstream generation problem (the fasm or frames path), not the
   design.
+
+Evidence update 2026-10-26: same pads on seeds d and 2-8, rules A/E/H/I/J clean and routed GLS
+16/16 errs=0 on all 8; x0.9 and x1.1 corners 16/16 on seeds d, 5, 6 (JOURNAL 2026-10-26 04:13).
 
 Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 routes; tighten rules
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
