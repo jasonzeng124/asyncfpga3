@@ -919,3 +919,14 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
 - T7 = T6 + those routes' proposals + 1 link on each raised cell (ulink_n13 SDELAY 2 -> 4, falseResult_11
   SDELAY 0 -> 2; research/data/ipow_dsp1_sizes_T7.vh); validating on 8 more fresh seeds 13-20.
 - R5 seed 4 scatter: 8.5%, 17%, 25% draw 1 all 16/16.
+### progress 21:40 (P3 steer-join grouping: safe, no speedup -- negative result; round-9 hop corrected)
+- Correction to the round-9 trace: the 1.77 ns hop is uori4's delay-chain end (g[18]/O6) -> ucond_br45_j/A3,
+  not ucond_br45_j -> ucond_br45 (the back-tracer labels a hop by its receiving cell). The join -> steer net is
+  already the 295 ps minimum on every route.
+- P3 implemented as an opt-in (rloc_stamp --steer-join-groups / BD_RLOC_STEERJ; default off byte-identical; 4
+  unit tests) and A/B'd on gcd_hw R5, seeds d/3/4/5 both arms: every audit clean in both arms, routed GLS 16/16
+  (ON arm also x0.9/x1.1 on 2 seeds). 37/38 steers land with their join; the join->steer wire unchanged (295 ps),
+  the uori4->join wire moves with placement (775-2504 off, 776-1899 on). Lap change per seed on vec 6: +2.0,
+  -15.2, -3.6, +1.2% (mean -4.2%, carried by one seed whose OFF route was the slowest; OFF alone spans 16%).
+  **Not a speedup; not committed** (diff kept as research/data/p3_steer_join_groups.diff).
+- R5 scatter: seed 4 8.5/17/25/25% all 16/16; seed 3 17% 16/16.
