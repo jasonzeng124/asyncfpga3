@@ -808,3 +808,8 @@ Subagent round 7, reviewed:
   gcd_hw (+8 ps) because isprime's A0 nets are long (median 1.1-1.2 ns, max 3.0 ns).
 - Grouping is INCOMPLETE: 4 of 7 arbiters grouped; ucontrol_merge7 (4-input merge, a tree of 3 arbiters) is
   not -- stamp_arbiters() only uniquifies one level below a singly-instantiated module. Fix next.
+### progress 16:11 (collatz and xorshift sized builds hold on FRESH seeds)
+- collatz T3 and xorshift T3 (both ratcheted on seeds 1-8) on fresh seeds 9-12: rules A/E/H/I/J 0 and
+  routed GLS fast+stalled pass on 4/4 each (xorshift with the 14-vector set). So both now pass every check
+  on 12 routes, 4 of them never seen by the sizing loop.
+- gcd_hw R5 seed 5 routed GLS 16/16 (vec 6 49 laps): nominal GLS on 5 seeds (d, 3, 5, 7, 9).
