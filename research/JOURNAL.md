@@ -831,3 +831,22 @@ Subagent round 8, reviewed and committed:
 - The container restarted around 16:40-17:00 UTC; every background job died (ipow ratchet at pass 3, R5 GLS
   seed 6, both subagents: August-failure regressions, gcd RTZ tail analysis). Toolchain still in place,
   toolchain.sh all ok. Restarting them.
+### progress 17:08 (gcd critical cycle, hop by hop: where a lap goes; RTZ = 36%)
+Subagent round 9 (analysis, one route: gcd_hw R5, default seed, all audits clean, GLS gate clean; tools in
+research/tools/rtz/): VCD of every routed net for one 3154.3 ns lap of vector 6, back-traced event by event
+(5229 hops, each matched exactly: t_in + wire + arc = t_out).
+- **Falling (return-to-zero) edges are 35.7% of the critical path** (1126 of 3154 ns); wire is 79% (2501 ns)
+  vs cell arcs 654 ns. Rise: compute matched delays 956 ns, gates 334, link rdly 244, link C nodes 203.
+  Fall: link rdly 227 (no fast fall), compute udly 223 (FASTFALL already), C nodes 221, gates 197.
+- One ctz-loop iteration (28 per lap) = 43.0 ns: rise 26.9 (uori4's 19-link delay 10.4 alone), fall 16.1
+  (umux15 3.1, ulink_n151__0 rdly 2.8, ulink_n145__3 rdly 2.5 at full cost on the fall). One wire,
+  ucond_br45_j -> ucond_br45, costs 1.77 ns on each edge.
+- **The board's "23-cycle RTZ tail" (cells/hw/README.md) is not the kernel's:** its output RTZ in this rig is
+  ~14 ns (~1.5 board cycles). The tail is a gen_bench harness interaction (its FSM's S_RTZ waits on a
+  synchronised o_req); a routed GLS of gcd_bench_gen would settle it (not run). rtz_cost_results.tsv now shows
+  12.1, not 23.
+- Speed proposals, each to be gated by audits + GLS on >=4 seeds: (P1) fast fall for bd_link rdly and
+  mux/merge output delays (~7.6% lap, frozen rtl/: needs routed-GLS justification); (P2) uori4 19 -> 13
+  links (rule A here says so, but R5 keeps 19 because other routes asked for it); (P3) RLOC-group each steer
+  join with its steer (~5% lap from one wire on the ctz ring); (P4) two-phase links on loop rings (removes
+  the falling lap, large change).
