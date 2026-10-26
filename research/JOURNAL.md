@@ -899,3 +899,16 @@ Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to en
 | vec 13 | 56 | 49 | 53 | 57 | 59 | 56 | 57 | 56 | 55.4 | 27-29 |
 Every route: rules A/E(C-node)/H/I/J 0, gate clean, 16/16 errs=0 at nominal, x0.9 and x1.1. Worst seed (3)
 still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
+### progress 20:54 (ipow sized, with DSPs: 1.36x per iteration, every audit + routed GLS clean on 8 seeds)
+- **ipow T6** (research/data/ipow_dsp1_sizes_T6.vh; BD_DSP=1, the shipped config; routed GLS through the new
+  DSP48E1 model): ratchet over seeds 1-8 from the rule E pads (research/data/ipow_dsp1_rulee3_sizes.vh, which
+  were already clean at placeholder compute), 6 passes (rule A per pass: 3-6, 3-5, 0-2, 0-1, 0-1, 0): rules
+  A/E(C-node)/H/I/J 0, gate clean, GLS fast+stalled pass on all 8 (17 vectors, one deliberate wrap).
+
+| ipow, ns per loop iteration (slope vs bit length of e) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| placeholder compute + rule E pads | 103.6 105.4 103.0 107.6 105.4 105.7 106.1 107.6 | 105.6 | 103.0-107.6 |
+| **T6 (route-measured sizes)** | 73.8 77.7 79.7 76.0 78.0 78.7 78.8 76.8 | **77.4** | 73.8-79.7 |
+  1.36x (worst T6 seed 79.7 vs best baseline 103.0: 1.29x). Smaller gain than collatz/xorshift: the DSP
+  cascade's own arcs (A->P 5.4 ns per DSP) dominate the multiply and are not a delay line.
+- R5 seed 4 per-arc scatter 8.5%: 16/16 (17%, 25% x2 running).
