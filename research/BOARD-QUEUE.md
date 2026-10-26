@@ -80,7 +80,7 @@ What it would mean:
 
 Evidence (JOURNAL 2026-10-26 04:13 session): rules E/A/H/I/J 0 violations on seeds d, 2-8, worst
 guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 at nominal on all 8
-seeds and at x0.9/x1.1 on d, 2-7 (gate clean on each); per-arc scatter to 25% 16/16 on two routes.
+seeds and at x0.9/x1.1 on all 8 too (gate clean on each); per-arc scatter to 25% 16/16 on two routes.
 Laps: vec 6 mean 49.5 (47-54) vs 24-26 unsized. Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
 1 link of headroom per cell, because sizes accepted on 3 seeds failed rule A on a 4th.
 

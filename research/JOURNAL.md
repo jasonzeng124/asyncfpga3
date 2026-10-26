@@ -669,3 +669,4 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   muxes, uselect0), as on gcd_hw.
 - Candidate CR = S5 + 1 link on every cell (research/data/collatz_sizes_CR.vh), being validated on seeds 1-8
   with every audit and routed GLS. R2 seed 8 x0.9 16/16; R2 d scatter 20% x2 and 25% draw 2 16/16.
+- R2 seed 8 x1.1 16/16: **R2 passes nominal, x0.9 and x1.1 routed GLS on all 8 seeds.** Running: wire-mode scatter (per pip, 25% x1, 35% x2) on R2 seed 2.
