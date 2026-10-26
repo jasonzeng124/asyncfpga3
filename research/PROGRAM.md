@@ -89,7 +89,9 @@ or two hour-long builds. Do not wait on a single lead:
 4. Read the last few entries of `JOURNAL.md` and pick the next step: the
    highest-priority goal with an open, concrete lead.
 5. Work in small, verified steps. Commit and push at least every 45 minutes,
-   with a `### progress` note under this session's entry each time, so that a
+   with a `### progress HH:MM` note under this session's entry each time (take
+   the time from `date -u +%H:%M` and the session heading's from `date -u`; never
+   estimate it, since past entries ran up to 11 hours off the commit times), so that a
    killed session loses little. Exactly one `## Session` heading per session.
 6. Keep the branch in a state the next session can pick up at any moment, since
    the session can end without warning: write the journal entry, update `BOARD-QUEUE.md`,
