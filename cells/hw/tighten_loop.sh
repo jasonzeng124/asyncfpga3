@@ -277,6 +277,48 @@ RPY
         continue
     fi
 
+    # BD_TIGHTEN_SEEDS="2 3 ...": the same sizes must also pass rule A when
+    # routed under each of these seeds.  A length that one route accepts is
+    # short on a fresh route about as often as not (gcd, 2026-10-26: 600 ps
+    # search slack, 0 of 3 fresh seeds); a route that rejects the sizes
+    # contributes its own proposals to the ratchet and the candidate is not
+    # accepted.  Default empty: one route, as before.
+    if [ -n "${BD_TIGHTEN_SEEDS:-}" ]; then
+        fresh_bad=""
+        for fs in $BD_TIGHTEN_SEEDS; do
+            if ! NEXTPNR_SEED=$fs BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+                 ./hw/build_bench.sh "$K" > "$HIST/build.$i.s$fs.log" 2>&1; then
+                fresh_bad="$fresh_bad $fs(build)"
+                continue
+            fi
+            python3 verify/tighten.py "$SDF" > "$HIST/tighten.$i.s$fs.log" 2>&1 || true
+            nv=$(awk '/^A\. /{a=1;next} /^B\. /{a=0} a' "$HIST/tighten.$i.s$fs.log" | grep -c VIOLATION || true)
+            if [ "${nv:-0}" -ne 0 ]; then
+                fresh_bad="$fresh_bad $fs($nv)"
+                python3 verify/tighten.py "$SDF" --emit "$HIST/raw.$i.s$fs.vh" \
+                    ${BD_TIGHTEN_SLACK:+--slack "$BD_TIGHTEN_SLACK"} > /dev/null 2>&1 || true
+                python3 - "$HIST/raw.$i.s$fs.vh" "$HIST/ratchet.vh" "$SIZES" <<'RPY2'
+import pathlib, re, sys
+raw, acc, out = (pathlib.Path(a) for a in sys.argv[1:4])
+rd = lambda p: {m[1]: int(m[2]) for m in re.finditer(r"^`define (\S+) (\d+)", p.read_text(), re.M)} if p.exists() else {}
+new, merged = rd(raw), rd(acc)
+up = [k for k, v in new.items() if v > merged.get(k, -1)]
+for k in up:
+    merged[k] = new[k]
+txt = "".join(f"`define {k} {merged[k]}\n" for k in sorted(merged))
+acc.write_text(txt); out.write_text(txt)
+print(f"   fresh-seed ratchet: {len(up)} cell(s) raised")
+RPY2
+            fi
+        done
+        if [ -n "$fresh_bad" ]; then
+            echo "   rejected on fresh seed(s):$fresh_bad -- their proposals join the ratchet"
+            LAST=""
+            continue
+        fi
+        echo "   also passes rule A under seed(s) $BD_TIGHTEN_SEEDS"
+    fi
+
     read -r built need n <<<"$(totals "$HIST/tighten.$i.log")"
     if [ -z "$BEST_NS" ] || awk "BEGIN{exit !($built < $BEST_NS)}"; then
         BEST="$HIST/sizes.$i.vh"; BEST_NS="$built"
