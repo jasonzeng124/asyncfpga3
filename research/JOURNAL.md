@@ -511,3 +511,9 @@ So the matched delay is on the critical cycle, and sizing it to the route buys a
 routed GLS, the same size of effect as the board's 1.99x for rule-A-only sizing of xorshift in August.
 What stops it shipping is the route-sensitivity long tail: each fresh route finds 1-2 more cells short.
 - Seed-8 route, per-arc scatter: 8.5% draws 1, 2 and 17% draw 1: 16/16 each (17% draw 2 running).
+### progress 08:20 (scatter on a second route; sized route at corners; ratchet + 1 link)
+- Seed-8 route (unsized, pads 13/14/13), per-arc scatter 8.5% x2 and 17% x2 draws: 16/16 on all four.
+- The exploratory sized route (pass-8 sizes, default seed): x0.9 and x1.1 also 16/16.
+- New candidate "r1" = the resumed loop's ratchet (207 sizes) + 1 link on every cell (taking the longer
+  number instead of chasing one binding cell per route): rules E/A/H/I/J clean on seeds d and 2 so far;
+  seeds 3-8 running (two worktrees). The resumed loop itself is still finding 1-2 short cells per fresh route.
