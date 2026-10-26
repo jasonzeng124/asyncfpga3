@@ -758,3 +758,17 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   fusion_bench commit above), seeds 1-8 rerouted: rules A/E/H/I/J 0 (tighten.py's exit 1 is rule D's 8
   screens), GLS fast+stalled pass on all 8. Per round over 14 vectors: **64.3 ns (60.7-65.9)** (the 6-vector
   fit said 60.2; the wider round range is the better fit).
+### progress 02:30 (ipow DSP pads clean on fresh seeds; isprime DSP: rule E and GLS agree on a real failure; rule J in the wild)
+Subagent round 5 (committed rule E, BD_DSP=1, the shipped config), reviewed:
+- **ipow** with research/data/ipow_dsp1_rulee3_sizes.vh (placeholders + 4 select-link pads), FRESH seeds
+  13-16: rules A/E/H/I/J 0, gate clean, GLS fast+stalled pass (17 vectors, 16 non-zero + the deliberate
+  65536^2 wrap); 103.4 ns per iteration (101.6-106.1). Pads only, compute at placeholders: a ratchet run
+  on ipow (my loop, seeds 1-8, from these pads) is in progress.
+- **isprime** with research/data/isprime_dsp1_rulee3_sizes.vh, fresh seeds 13-16: rule E 4, 0, 4, 1 of 86;
+  **seed 13: umux1 raw -676 ps (negative BEFORE the guardband) and routed GLS FAILS** (out0 req out of
+  phase, X pulse; all values seen before were correct). So on a route where rule E reports a raw-negative
+  margin, the routed GLS fails too: another case where rule E is load-bearing and GLS agrees.
+  Seed 15: rule J violated on ucontrol_merge5.uarb1 client 2 (raw +1010, guarded -103 ps, shared 591 ps):
+  the second arbiter-fork violation found in the wild (both isprime); no delay knob, placement only.
+  The ucond_br16 false violation remains on seed 13 only (raw +8.5 ns).
+  Remaining paddable asks: ulink_n29__1 +9, ulink_n66__2 +5.
