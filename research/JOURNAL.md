@@ -734,3 +734,9 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   error is recorded here; worth a look if it recurs (RLOC v4 groups vs packing).
 - xorshift (frontend kernel, fusion_bench --mlir, placeholders fail rule E per the subagent) ratchet started
   on 8 seeds with the collatz procedure.
+### progress 00:30 (R5 audits: 7/7 placed routes clean)
+- gcd_hw R5 under the C-node rule E: rules E/A/H/I/J clean on seeds d, 3, 4, 5, 6, 7, 8 (seed 2 did not place,
+  see above; seed 9 running as its substitute). The --slack 500 step closed the long tail seen R2 -> R3 -> R4
+  (one new short steer link per route). R5 routed GLS (nominal + corners) running on d, 3, 5, 6.
+- xorshift ratchet: placeholders fail rule E on 8/8 seeds (1-6 each; GLS passes 8/8); pass 1: rule A 4-8,
+  rule E 2-8 per seed (shorter compute makes requests earlier; pads catching up). Continuing.
