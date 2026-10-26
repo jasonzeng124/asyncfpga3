@@ -337,3 +337,34 @@ compute chains, which `build_bench.sh gcd` could not do stably).
   needed A0's two branches to diverge by ~1.6 ns. A per-wire scatter model would be more
   physical, and is the next improvement to the GLS perturbation (it needs per-pip delays,
   which the SDF does not have).
+### summary so far (01:00)
+Measured (toolchain patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62):
+
+| what | result | n | vs previous |
+|---|---|---|---|
+| cells/check.sh | ALL GATES PASS | 3 runs | was red (flow.sh placement, arc-only sims) |
+| flow.sh (soak, v8), BD_NO_TIGHTEN | PASS | seeds 1-4 | was placement FAIL 5/5 |
+| xorshift_round fusion cap 4, routed | 4/4 routes pass audits + both GLS; latency 7.73 ns (7.61-7.90), fast interval 5.68 ns (5.60-5.81) | 4 | README 7.6-7.9 / 5.35-5.83 |
+| gcd_hw (v4, pads 13/14/13): rule E | 0/118 violated on every route | 8 seeds | never converged before (v2/v4/v6) |
+| gcd_hw: tighten A/H/I | 0 violations every route (D 38 = screen) | 8 | -- |
+| gcd_hw: rule J (new) | 0/8 violated, worst guarded +272 ps, raw >= +718 | 8 | new check |
+| gcd_hw: routed GLS | 16/16 vectors, errs=0, every route; gate clean | 8 | first cloud kernel GLS |
+| gcd_hw GLS x0.9 / x1.1 | 16/16 / 16/16 | 1 route | -- |
+| gcd_hw GLS scatter 8.5% / 17% / 20% / 25% | 3/3, 2/2, 2/3, 3/4 draws all-correct | 1 route (+2 draws on seed 2) | first-failing: bd_arbiter A0 fork |
+| GLS negative control (all compute delays x0) | 1/16 (the a=0 early return) | 1 | proves GLS can fail |
+| build_bench.sh xorshift | converged | 1 | -- |
+| build_bench.sh gcd | rule A not converged in 6 iterations | 1 | open |
+
+Does NOT show: anything on silicon (no board for the foreseeable future); that rule J's shared-route
+credit is exact (it is a pip-fraction estimate); that the per-sink scatter model is physical (it
+is not: shared wires get independent factors, which is what made the 25% deadlock possible); that
+the other kernels' benches pass rule A/E/J or GLS (only gcd_hw has a GLS rig); xorshift bench GLS.
+Next:
+1. A per-WIRE scatter model in gls/gen.py (one factor per route segment, shared by every sink
+   that uses it); that needs per-pip delays, so start from nextpnr's chipdb or a pip-count model,
+   and check that it reproduces nominal exactly at sigma 0.
+2. Rule J into the standard audit path (build_hw/converge, check.sh once a design with an
+   arbiter is in the gate); run it on xorshift's and the other benches' routes.
+3. gcd bench rule A non-convergence (tightening with headroom, or sizing against several routes).
+4. Speed: uselect1's 94-link (45 ns) chain is 6.7 ns longer than its whole request path needs on
+   these vectors (rule A: "tighten to 14"); gcd_hw's compute chains are emit.py estimates.
