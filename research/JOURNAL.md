@@ -772,3 +772,17 @@ Subagent round 5 (committed rule E, BD_DSP=1, the shipped config), reviewed:
   the second arbiter-fork violation found in the wild (both isprime); no delay knob, placement only.
   The ucond_br16 false violation remains on seed 13 only (raw +8.5 ns).
   Remaining paddable asks: ulink_n29__1 +9, ulink_n66__2 +5.
+### progress 03:30 (rule J survey over 168 routes; isprime DSP round 4)
+Subagent round 6, reviewed:
+- isprime BD_DSP=1 round-4 pads (research/data/isprime_dsp1_rulee4_sizes.vh; n29__1 21, n66__2 17), fresh
+  seeds 17-20: A/H/I/J 0, rule E 1/0/0/0 (seed 17: umux11 raw +1329, guarded -1094, asks +4 on ulink_n79__1),
+  gate clean, GLS fast+stalled pass on 4/4; ucond_br16 not flagged on any. n=997 39.72 us (39.62-39.77).
+- **Rule J survey** (arb_fork.py on 168 routed SDFs, 1562 arbiter x client rows; script + rows in
+  research/data/ruleJ_survey/): **minimum RAW margin +618 ps over all rows** -- the arbiter's handover
+  ordering holds on every route; both violations ever seen (isprime DSP1, -45 and -103 ps) exist only after
+  the 0.772/1.155 guardband. The tail is set by how far A0 travels (A0 > 2 ns: min -103, median +590; < 1 ns:
+  min +204, median +711) and by arbiter count (isprime 7 arbiters: ~1 route in 8 fails, a fifth within
+  200 ps; gcd_hw 9 arbiters: 0 of 40 fail, worst +185; 2-arbiter kernels: none below +272). So: seed selection
+  suffices for gcd_hw and the 2-arbiter kernels; isprime has a systematic guardband tail. Candidate fix is
+  placement (BD_RLOC_ARB=1 grouping, which flow.sh cannot enable today); note that on gcd_hw (2026-10-26
+  00:50) grouping changed the worst rule J margin by +8 ps only, because A0 itself comes from far away.
