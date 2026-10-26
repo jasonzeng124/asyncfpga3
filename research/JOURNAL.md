@@ -696,3 +696,10 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   ucontrol_merge1 (6 links; margins -125..-1022 ps): the extra link elsewhere moved its data peak later.
   Ratcheting CR on its own 8 routes (CR2).
 - R2 d scatter 25% draws 2-4 also 16/16.
+### progress 19:30 (R3, collatz 8-seed ratchet, wire scatter)
+- R2 seed 2 (tightest rule A route), GLS_SCATTER_MODE=wire (one factor per pip): 25% x1, 35% x2 all 16/16.
+- R3 (R2 + C-node rule E asks + 1 on ulink_n112__1, n145__3, n1__1, n94__1) under the new rule E: seeds d, 2,
+  5, 6, 7 clean on every audit; **seed 3: ucond_br33 -83 ps guarded (raw +2863), asks +1 on ulink_n106__1**.
+  The rule E long tail now, as rule A had: each route finds one more paddable link.
+- collatz: CR's 8 routes pass the new rule E (0 on all). T1 = CR + ucontrol_merge1 9: rules A 0 on 8/8, rule E
+  0 on 7/8 (seed 4: 2, padding in T2). Running T2 on 8 seeds.
