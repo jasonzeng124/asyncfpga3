@@ -992,3 +992,13 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   With sizing: 159.3 (padded) -> 91.1 ns per iteration, 1.75x. gcd_hw R5 + BD_RLOC_ARB seed 3 x0.9/x1.1 16/16.
 - Next: fast fall needs the same fresh-seed / 8-seed / corners treatment as the sizes before it is a default or a
   board candidate (subagent doing gcd_hw R5+FF to 8 seeds; ipow+FF running).
+### progress 23:50 (link fast fall on ipow: -6% per iteration)
+- ipow T9 + BDC_LINK_FASTFALL=1 (11 instances, BD_DSP=1), seeds 29-32: rules A/E/F/H/I/J 0, GLS fast+stalled pass
+  4/4. Per iteration 74.6/77.9/74.9/77.1 -> 71.3/70.3/74.3/71.0: **76.1 -> 71.7 ns (-5.8%)**; with sizing 105.6 ->
+  71.7 (1.47x). Smallest gain of the three kernels (fewest link/mux delays on its cycle; the DSP cascade dominates).
+| link fast fall, 4 seeds each | without | with | change |
+|---|---|---|---|
+| gcd_hw R5, vec 6 laps (more = faster) | 45.75 | 49.5 | +8.2% |
+| collatz T3, ns/iteration | 103.3 | 91.1 | -11.8% |
+| xorshift T3, ns/round | 65.4 | 59.5 | -9.0% |
+| ipow T9 (DSP), ns/iteration | 76.1 | 71.7 | -5.8% |
