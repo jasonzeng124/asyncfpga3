@@ -450,6 +450,13 @@ echo "FASM:  $lut_sites occupied LUT sites, $brams BRAM lines"
 # fact held.  verify/fracture.py checks the claim instead of a proxy for it.
 python3 verify/fracture.py $OUT/soak_routed.json || exit 1
 
+# The bitstream says what the netlist says: every LUT site's INIT and every
+# DSP48E1 register/const-pin bit, read back out of the FASM.  Three of the
+# four worst bugs here were in fasm.cc and invisible to everything upstream
+# of it (patches/README.md); verify/fasm/check.sh is this check's negative
+# control.
+python3 verify/fasm_audit.py $OUT/soak_routed.json $OUT/soak.fasm --synth $OUT/soak.json || exit 1
+
 # A global buffer on the manufactured clock is the failure bd_mem's header is
 # about, and it is silent in simulation.  It is not silent here.
 if grep -qi "BUFGCTRL\|BUFG_" $OUT/soak.fasm; then

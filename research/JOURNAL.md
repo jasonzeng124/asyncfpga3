@@ -850,3 +850,23 @@ research/tools/rtz/): VCD of every routed net for one 3154.3 ns lap of vector 6,
   links (rule A here says so, but R5 keeps 19 because other routes asked for it); (P3) RLOC-group each steer
   join with its steer (~5% lap from one wire on the ctz ring); (P4) two-phase links on loop rings (removes
   the falling lap, large change).
+### progress 17:34 (August silicon failures as board-free regression tests; FASM audit on every build)
+Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to end with everything applied
+(17m39s, in its worktree); pytest verify 75 pass here.
+- **verify/fasm_audit.py, now run by flow.sh and build_hw.sh after routing (exit 0 pass, 1 mismatch, 2 cannot
+  check; any nonzero stops the build):** reads every LUT site's INIT and every DSP48E1 register/const-pin bit
+  back out of the FASM and checks it against the yosys netlist (hierarchical names resolved strictly).
+  Catches the three August FASM-writer bugs: lut-pinmap (run-together X_ORIG_PORT; emulated unpatched writer:
+  58 corrupted LUT sites on a gcd_hw route, 90 on ipow), dsp-constpins (packer half and inversion half, 24 and
+  24 on the probe), dsp-areg (4 on the probe). Gate verify/fasm/check.sh runs a probe with each encoding plus
+  each bug re-applied as a negative control. PASS on soak, gcd_hw (8925 sites), collatz, xorshift, ipow DSP.
+  Note: toolchain.sh's dsp-areg fingerprint ("ZAREG_2_ACASCREG_1") CANNOT fail -- the string is already in
+  unpatched fasm.cc; not changed (toolchain.sh is frozen against weakening; the FASM audit now covers it).
+- verify/cdc_fsm.py + cdc_bench.sh (gate): the bench FSM reads the kernel only through a two-flop
+  synchroniser; on all 6 kernels; the August wiring and a one-flop version both fail it. 5 unit tests.
+- verify/harness_pss.sh (gate): the synthesised bench harness passes tb_gcd_bench_gen (guards the hist[]
+  memory-inference class; the specific August bug does not reproduce on yosys 0.62, so this guards the class).
+- tb_gcd_bench_gen drives out0_data to X outside req-up..ack-up; verify/bench_window.sh re-applies the August
+  late read (isprime 0x80000000) and checks that it fails.
+- Not reproducible without the board: the gcd_hw sweep stale-result (settle window) and the cmpb probe's stale
+  operands (an instrument's silicon timing; the probe no longer exists with fusion on).

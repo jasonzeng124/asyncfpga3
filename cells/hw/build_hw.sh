@@ -468,6 +468,11 @@ echo "routed."
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
 bufgs=$(grep -c "BUFGCTRL" "$OUT/$TOP.fasm" || true)
 echo "FASM:  $lut_sites occupied LUT sites, $bufgs global buffer lines"
+# Read the FASM back against the netlist before it becomes a bitstream: the
+# lut-pinmap bug wrote 131 of gcd_hw's LUTs as another function, and nothing
+# but the die saw it (verify/fasm_audit.py, verify/fasm/check.sh).
+python3 verify/fasm_audit.py "$OUT/${TOP}_routed.json" "$OUT/$TOP.fasm" --synth "$OUT/$TOP.json" \
+    || { echo "FASM AUDIT FAILED -- the bitstream would not be the netlist"; exit 1; }
 
 echo
 echo "== bitstream =="
