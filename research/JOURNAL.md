@@ -492,3 +492,22 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   route; the run-1 pass-8 sizes (171.5 ns, rule A 0 on the default seed only) built and GLS'd on the
   default seed, to see whether 3.2x less matched delay buys laps at all (exploratory: those sizes
   failed a fresh seed and are not a candidate).
+### progress 07:45 (gcd_hw sizing is worth ~2.2x in routed GLS; seed-8 scatter clean)
+Exploratory, ONE route, NOT a candidate: run 1's pass-8 sizes (`sizes.8.vh`, 207 sizes, 171.5 ns of
+matched delay against 547.7 unsized) rebuilt on build_hw's default seed (pads 13/14/13, v4):
+rule E 0/118, A/H/I 0, rule J pass, GLS gate clean, **16/16 vectors errs=0**. These sizes were
+rejected by fresh seed 2 (rule A, 1 cell), so they are not shippable.
+
+| laps per 150 us GLS window | unsized (seed 5) | sized pass 8 (seed d) | ratio |
+|---|---|---|---|
+| vec 0 (a=0, no loop) | 2509 | 4432 | 1.77 |
+| vec 4 (1,1) | 323 | 733 | 2.27 |
+| vec 6 (gcd.c's pair) | 24 | 53 | 2.2 |
+| vec 12 (2^31-1, 2) | 19 | 44 | 2.3 |
+| vec 13 (1000000, 999999) | 28 | 63 | 2.25 |
+(unsized seeds d/2-8 agree within a lap or two on vecs 6/12/13: 24-26, 18-20, 27-29.)
+
+So the matched delay is on the critical cycle, and sizing it to the route buys about 2.2x laps in the
+routed GLS, the same size of effect as the board's 1.99x for rule-A-only sizing of xorshift in August.
+What stops it shipping is the route-sensitivity long tail: each fresh route finds 1-2 more cells short.
+- Seed-8 route, per-arc scatter: 8.5% draws 1, 2 and 17% draw 1: 16/16 each (17% draw 2 running).
