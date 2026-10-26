@@ -176,7 +176,14 @@ module gcd_rig #(parameter integer IDXW  = 4,
 
     wire abs_req_raw, cmp_req_raw;
 
+    // GCD_DUT_PARAMS: per-cell matched-delay sizes, defined only when
+    // hw/build_hw.sh is given BD_SIZES (see there).  Absent, the kernel builds
+    // at bdc/emit.py's own estimates, as it always has.
+`ifdef GCD_DUT_PARAMS
+    bdc_gcd #(`GCD_DUT_PARAMS) udut (
+`else
     bdc_gcd udut (
+`endif
         .rst(rst),
         .a_req(a_req),         .a_ack(a_ack),         .a_data(a_v),
         .b_req(b_req),         .b_ack(b_ack),         .b_data(b_v),

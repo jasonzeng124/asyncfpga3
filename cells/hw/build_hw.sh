@@ -98,6 +98,40 @@ gcd_hw)
     ( cd .. && python3 bdc/emit.py \
         build/frontend/gcd/comp/handshake_transformed.mlir \
         --no-top --probe $GCD_PROBES -o build/gen/gcd_kernel.v )
+    # BD_SIZES: per-cell matched-delay sizes, as for the benches
+    # (build_bench.sh), so that hw/tighten_loop.sh gcd_hw can size the one
+    # kernel that has a routed GLS rig.  The macros are tighten.py's names for
+    # urig.udut.<inst> (BD_SZ_URIG_UDUT_<INST>); every DELAY_<INST> the kernel
+    # declares gets a default equal to its own, so a sizes file only has to
+    # name what it changes.  OFF unless BD_SIZES is set (a path, or "auto" for
+    # build/gen/gcd_hw_sizes.vh if it exists): unlike the bench, nothing here
+    # gates a sizes file on rule A, so a stale one must never be picked up by a
+    # plain build.  Unset, the sources and the netlist are what they were.
+    if [ -n "${BD_SIZES:-}" ] && [ "$BD_SIZES" != none ]; then
+        HW_SIZES=build/gen/gcd_hw_sizes.vh
+        [ "$BD_SIZES" != auto ] && HW_SIZES=$BD_SIZES
+        if [ -e "$HW_SIZES" ]; then
+            mkdir -p build/gen
+            python3 - "$KERNEL" build/gen/gcd_hw_dut_params.vh <<'PY'
+import re, sys
+src, out = sys.argv[1:3]
+ps = re.findall(r"parameter\s+DELAY_(\w+)\s*=\s*(\d+)", open(src).read())
+if not ps:
+    sys.exit(f"{src}: no DELAY_ parameters -- nothing to size")
+m = lambda i: "BD_SZ_URIG_UDUT_" + i.upper()
+lines = [f"`ifndef {m(i)}\n `define {m(i)} {d}\n`endif" for i, d in ps]
+lines.append("`define GCD_DUT_PARAMS " + ", ".join(f".DELAY_{i}(`{m(i)})" for i, _ in ps))
+open(out, "w").write("\n".join(lines) + "\n")
+PY
+            SRCS="rtl/*.v $KERNEL $HW_SIZES build/gen/gcd_hw_dut_params.vh hw/gcd_rig.v hw/$TOP.v"
+            echo "build_hw.sh: applying $(grep -c '^`define' "$HW_SIZES") measured" \
+                 "delay size(s) from $HW_SIZES" >&2
+        else
+            echo "build_hw.sh: BD_SIZES=$BD_SIZES but $HW_SIZES does not exist --" \
+                 "every chain at bdc/emit.py's estimate" >&2
+            [ "$BD_SIZES" = auto ] || exit 2
+        fi
+    fi
     ;;
 multn_ps)
     # Eight independent one-DSP multiplies; see hw/multn_ps.v.
