@@ -793,3 +793,7 @@ Subagent round 6, reviewed:
 - ipow ratchet: placeholder + rule E pads are already clean on 8/8 (it0); T1 = pads + it0's tightened
   proposals, running.
 - R5 seeds 3 and 9 also pass x0.9/x1.1: R5 routed GLS nominal + both corners 16/16 on d, 3, 7, 9.
+### progress 15:42 (correction: this session's progress times)
+- The "### progress HH:MM" times in this session's entry after the first few were ESTIMATES and drifted far
+  from real time (e.g. the note headed "04:20" was written around 15:15 UTC). The commit times in
+  `git log` are the true ones. From here on every heading comes from `date -u +%H:%M` (PROGRAM.md, 17edbba).
