@@ -703,3 +703,24 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   The rule E long tail now, as rule A had: each route finds one more paddable link.
 - collatz: CR's 8 routes pass the new rule E (0 on all). T1 = CR + ucontrol_merge1 9: rules A 0 on 8/8, rule E
   0 on 7/8 (seed 4: 2, padding in T2). Running T2 on 8 seeds.
+### progress 21:30 (collatz sized: 1.56x per iteration, every audit + routed GLS clean on 8 seeds; gcd_hw R4)
+- **collatz T3** (research/data/collatz_sizes_T3.vh, 42 sizes): the ratchet continued on 8 seeds from CR
+  (T1: ucontrol_merge1 9; T2 = T1 because the ratchet's merge dropped a rule E ask for a link with no
+  size macro -- fixed: it now falls back to the kernel's DELAY default; T3: ulink_n1__1 0 -> 2).
+  `fusion_bench.py --mlir .../collatz/... --sizes research/data/collatz_sizes_T3.vh --route
+  --nextpnr-seeds 1 2 3 4 5 6 7 8`: rules A/E(new, C-node launches)/H/I/J 0 on all 8, gate clean on all 8,
+  **routed GLS fast + stalled pass on all 8**.
+
+| collatz, ns per loop iteration (slope over 16 vectors) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| padded (rule E pads only) | 156.3 160.2 156.6 159.6 158.6 164.2 161.9 157.0 | 159.3 | 156.3-164.2 |
+| **T3 (route-measured sizes)** | 98.3 101.3 106.1 107.5 99.6 103.4 102.6 99.3 | **102.3** | 98.3-107.5 |
+  1.56x (worst T3 seed 107.5 vs best padded 156.3: still 1.45x). Zero-delay RTL is 18.4 ns, so ~84 ns of
+  each iteration is still routing and the remaining delay lines. Merge script committed as
+  research/data/collatz_ratchet_merge.py (scratch tool, not a flow).
+- gcd_hw R4 (= R3 + rule E ask on n106__1 + umux10/umux6 headroom): every audit clean on 7 of 8 seeds;
+  seed 7: ucond_br42/45 -64/-222 ps guarded (raw +4.4 ns) from yet another link (ulink_n155__1). New:
+  `skew.py --slack <ps>` (706f697) prices fixes for gates within <ps> of the guard, to buy headroom across
+  routes instead of chasing one link per route; measuring R4's 8 routes at --slack 500 to build R5.
+- The sandbox disk filled (GLS build dirs, ~900 MB each); cleaned. One slack measurement (R4 seed 8)
+  failed on it and is being rerun.
