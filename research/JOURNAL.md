@@ -418,3 +418,12 @@ So the 600 ps result is a property of the route it was sized on (0 of 3 fresh ro
 it), the failure CLAUDE.md describes for xorshift ("rebuilds violate rule A 2 times in 8").
 Negative result, not shippable. To make a sized gcd bench robust, size against several routes
 at once (resize.sh's --seeds approach for xorshift_round) rather than one route plus slack.
+
+## Session 2026-10-26 04:13 -- (in progress)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   Seeds: TBD
+- Took the lock at 04:13 (previous holder's lock dated 02:43, past 90 min). Toolchain restored
+  from cache, toolchain.sh all ok. Machine: 4 cores, 15 GB.
+- Plan: (1) per-cell matched-delay sizes for gcd_hw (the GLS-able rig), sized against several
+  routes, then GLS laps vs the emit.py-estimate baseline: the only speed lead the routed GLS can
+  check end to end; (2) in parallel, routed GLS of gcd_hw seeds 5-8 (8/8 GLS for BOARD-QUEUE #1)
+  and slow/fast corners on more than one route.
