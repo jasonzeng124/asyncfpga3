@@ -661,3 +661,11 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   seed (GLS passes) but rule A 3-4 per seed; pass 2 rule A 1-3; pass 3 rule A 1-3 and rule E 1-2 (shorter
   compute chains make requests earlier, so the select pads must grow): the merge now also takes skew.py's
   fix asks (current + ask + 1). Continuing.
+### progress 17:45 (collatz sizing ratchet converges on seeds 1-4)
+- Ratchet (fusion_bench --sizes, seeds 1-4, merge = per-cell max of every route's tighten.py proposal,
+  never below the rule E pads, plus skew.py's fix asks as current+ask+1 from pass 3 on): rule A per seed
+  (3,3,4,4) -> (1,2,1,3) -> (1,2,1,3)+E(1,2,0,0) -> (0,1,2,2) -> (1,1,0,1) -> **(0,0,0,0), rule E 0 on all**
+  (pass 6, research/data/collatz_sizes_S5.vh). The binding cells move every pass (control merges, then
+  muxes, uselect0), as on gcd_hw.
+- Candidate CR = S5 + 1 link on every cell (research/data/collatz_sizes_CR.vh), being validated on seeds 1-8
+  with every audit and routed GLS. R2 seed 8 x0.9 16/16; R2 d scatter 20% x2 and 25% draw 2 16/16.
