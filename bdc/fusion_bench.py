@@ -62,6 +62,10 @@ sys.path.insert(0, str(CELLS / "verify"))
 import tighten  # noqa: E402
 
 MASK = (1 << 32) - 1
+# A frontend kernel's routed netlist is several times xorshift_round's, and
+# the SDF annotator's cost grows with it (cells/gls/README.md: ~6 min on
+# gcd_hw); run()'s 300 s default would kill a healthy gate.
+GLS_TIMEOUT = 3 * 3600
 
 
 class Graph:
@@ -428,7 +432,7 @@ def reroute(outdir, func, env, seed):
     return {"audits": audits, **sim}
 
 
-def simulate_route(outdir, func, *, strict_gls=True):
+def simulate_route(outdir, func, *, strict_gls=True, parse=None):
     """Fast-source and stalled-consumer GLS on the routed SDF.  A failing
     simulation is fatal for the measured row -- a number from a design that
     corrupts data is not a measurement -- and recorded for a re-route, where
@@ -438,22 +442,32 @@ def simulate_route(outdir, func, *, strict_gls=True):
     shutil.copy2(outdir / "pnr/soak.sdf", gls / "routed.sdf")
     shutil.copy2(outdir / "pnr/soak_routed.json", gls / "routed.json")
     run(["python3", str(CELLS / "gls/gen.py")], gls / "generate.log",
-        env={**os.environ, "GLS_WORK": str(gls)})
+        env={**os.environ, "GLS_WORK": str(gls)}, timeout=GLS_TIMEOUT)
     run(["iverilog", "-g2012", "-gspecify", "-s", "tb_gate", "-o",
          str(gls / "gate.vvp"), str(CELLS / "gls/prims.v"),
          str(gls / "netlist.v"), str(CELLS / "gls/tb_gate.v")],
-        gls / "compile_gate.log")
-    gate = run(["vvp", "gate.vvp"], gls / "gate.log", cwd=gls)
+        gls / "compile_gate.log", timeout=GLS_TIMEOUT)
+    gate = run(["vvp", "gate.vvp"], gls / "gate.log", cwd=gls,
+               timeout=GLS_TIMEOUT)
     if "ANNOTATE_DONE" not in gate or re.search(r"WARNING|ERROR", gate):
         raise RuntimeError(f"SDF annotation failed: {gls}")
 
     signals = routed_signals(outdir, func)
-    drive = ["rst", "out_ack"]
-    observe = ["out_req", "out_data"]
+    # Ports by emit.portname, control channels without a data bus: for the
+    # fixtures this is exactly rst/out_*/<arg>_*, for a frontend kernel it
+    # adds its `start` and `end` control channels.
+    drive, observe = ["rst"], []
+    for res in func.results:
+        b = emit.portname(res.name)
+        drive.append(f"{b}_ack")
+        observe += [f"{b}_req"] + ([] if res.is_control else [f"{b}_data"])
     for arg in func.args:
-        drive += [f"{arg.name}_req", f"{arg.name}_data"]
-        observe.append(f"{arg.name}_ack")
-    leads = source_lead(outdir, signals, [a.name for a in func.args])
+        b = emit.portname(arg.name)
+        drive += [f"{b}_req"] + ([] if arg.is_control else [f"{b}_data"])
+        observe.append(f"{b}_ack")
+    leads = source_lead(outdir, signals, [emit.portname(a.name)
+                                          for a in func.args
+                                          if not a.is_control])
     connection = ["top dut();"]
     driven = set()
     for port in drive:
@@ -474,27 +488,36 @@ def simulate_route(outdir, func, *, strict_gls=True):
         tb = (outdir / f"tb_{kind}.v").read_text()
         tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
         for arg, lead in leads.items():
-            tb = tb.replace(f"bd_source #(.W(32)) {arg}_src(",
-                            f"bd_source #(.W(32), .SETUP({lead})) {arg}_src(")
+            tb = re.sub(rf"bd_source #\(\.W\((\d+)\)\) {arg}_src\(",
+                        rf"bd_source #(.W(\1), .SETUP({lead})) {arg}_src(", tb)
         (gls / f"tb_{kind}.v").write_text(tb)
         sim = gls / f"sim_{kind}.vvp"
         run(["iverilog", "-g2012", "-gspecify", "-DGLS_TRANSPORT_IC", "-s", "tb",
              "-o", str(sim), str(CELLS / "gls/prims.v"),
              str(CELLS / "sim/bd_env.v"), str(gls / "netlist_baked.v"),
              str(gls / f"tb_{kind}.v")],
-            gls / f"compile_{kind}.log")
+            gls / f"compile_{kind}.log", timeout=GLS_TIMEOUT)
         try:
-            outputs[kind] = metrics(run(["vvp", str(sim)],
-                                         gls / f"sim_{kind}.log", cwd=gls))
+            outputs[kind] = (parse or metrics)(run(
+                ["vvp", str(sim)], gls / f"sim_{kind}.log", cwd=gls,
+                timeout=GLS_TIMEOUT))
             status[kind] = "pass"
         except RuntimeError as err:
             outputs[kind] = (None, None)
             status[kind] = f"FAIL: {err}"
     if strict_gls and any(s != "pass" for s in status.values()):
         raise RuntimeError(f"routed GLS failed: {status}")
+    fasm = (outdir / "pnr/soak.fasm").read_text()
+    if parse is not None:
+        return {
+            "routed_fast": outputs["fast"], "routed_stalled": outputs["stalled"],
+            "routed_gls": status, "routed_source_lead_ps": leads,
+            "fastfall": emit.BDC_FASTFALL,
+            "routed_lut_sites_including_harness": fasm.count("LUT.INIT"),
+            "toolchain": (outdir / "pnr/toolchain.txt").read_text().splitlines(),
+        }
     latency, interval = outputs["fast"]
     stalled_latency, stalled_interval = outputs["stalled"]
-    fasm = (outdir / "pnr/soak.fasm").read_text()
     return {
         "routed_latency_ps": latency, "routed_interval_ps": interval,
         "routed_stalled_latency_ps": stalled_latency,
@@ -505,6 +528,228 @@ def simulate_route(outdir, func, *, strict_gls=True):
         "routed_lut_sites_including_harness": fasm.count("LUT.INIT"),
         "toolchain": (outdir / "pnr/toolchain.txt").read_text().splitlines(),
     }
+
+
+# --- frontend kernels (kernels/, Dynamatic output) --------------------------
+#
+# The fixtures above are straight-line graphs that accept a new token every
+# cycle.  A frontend kernel is a whole C function with loops, start/end control
+# channels, and no promise that two invocations may overlap inside it, so it is
+# driven the way bdc/simcheck.py drives it: one invocation at a time, every
+# argument offered together, every result consumed before the next.  The
+# oracle is simcheck.REFS, transcribed from the C in kernels/ and not from
+# anything this backend emits.
+
+KERNEL_EXTRA_VECTORS = 8
+
+
+def kernel_vectors(name):
+    """simcheck's hand-picked vectors plus a few seeded random ones, all
+    evaluated by the C-derived reference."""
+    import simcheck
+    vecs = [dict(v) for v in simcheck.VECTORS[name]]
+    rng = random.Random(20261026)
+    if name == "collatz":
+        # n >= 2: n == 1 is the loop-skip case already in the list, and
+        # n <= 0 never reaches 1 (0 is a fixed point of n >> 1).  Below
+        # 113383 no trajectory leaves int32 (kernels/README.md).
+        vecs += [dict(n=rng.randrange(2, 20000))
+                 for _ in range(KERNEL_EXTRA_VECTORS)]
+    elif name == "isprime":
+        vecs += [dict(n=rng.randrange(2, 2000))
+                 for _ in range(KERNEL_EXTRA_VECTORS)]
+    elif name == "ipow":
+        vecs += [dict(b=rng.randrange(-50, 50), e=rng.randrange(0, 40))
+                 for _ in range(KERNEL_EXTRA_VECTORS)]
+    expected = [simcheck.REFS[name](v) for v in vecs]
+    return vecs, expected
+
+
+def kernel_testbench(func, inputs, expected, *, stalls):
+    """Sequential invocations; prints `LAT <i> <ps>` per vector (first result
+    request minus the last argument request of that invocation)."""
+    args = [a for a in func.args if not a.raw.startswith("memref")]
+    n = len(inputs)
+    L = ["`timescale 1ps / 1ps", "module tb;", "reg rst = 1;",
+         "integer cur = -1;", "time t_go;"]
+    conns = [".rst(rst)"]
+    for a in args:
+        b = emit.portname(a.name)
+        if a.is_control:
+            L += [f"reg {b}_req = 0;", f"wire {b}_ack;"]
+            conns += [f".{b}_req({b}_req)", f".{b}_ack({b}_ack)"]
+        else:
+            w = max(a.width, 1)
+            L += [f"wire {b}_req, {b}_ack;", f"wire [{w - 1}:0] {b}_data;",
+                  f"bd_source #(.W({w})) {b}_src(.req({b}_req), .ack({b}_ack),"
+                  f" .data({b}_data));"]
+            conns += [f".{b}_{p}({b}_{p})" for p in ("req", "ack", "data")]
+        L += [f"time {b}_t = 0;", f"always @(posedge {b}_req) {b}_t = $time;"]
+    data_results = []
+    for r in func.results:
+        b = emit.portname(r.name)
+        L += [f"wire {b}_req;", f"reg {b}_ack = 0;", f"integer {b}_n = 0;",
+              f"time {b}_t;"]
+        conns += [f".{b}_req({b}_req)", f".{b}_ack({b}_ack)"]
+        grab = ""
+        if not r.is_control:
+            w = max(r.width, 1)
+            data_results.append((r, b, w))
+            L += [f"wire [{w - 1}:0] {b}_data;", f"reg [{w - 1}:0] {b}_got;",
+                  f'bd_monitor #(.W({w}), .CHAN("{b}"), .EARLY_RELEASE(1))'
+                  f" {b}_mon(.req({b}_req), .ack({b}_ack), .data({b}_data));"]
+            conns.append(f".{b}_data({b}_data)")
+            grab = f" {b}_got = {b}_data;"
+        hold = f" #(1000 + ({b}_n % 7) * 1777);" if stalls else ""
+        rel = " #1000;" if stalls else ""
+        L += ["always begin",
+              f"  wait (!rst && {b}_req === 1); {b}_t = $time;{grab}{hold}",
+              f"  {b}_ack = 1; wait ({b}_req === 0);{rel} {b}_ack = 0;",
+              f"  {b}_n = {b}_n + 1;", "end"]
+    L.append(f"bdc_{func.name} dut({', '.join(conns)});")
+    first = data_results[0][1]
+    L += ["initial begin", "  #5000000; rst = 0;"]
+    L += [f"  {b}_mon.arm;" for _, b, _ in data_results]
+    L.append("  #20000;")
+    for i, (vec, exp) in enumerate(zip(inputs, expected)):
+        L += [f"  // vector {i}: {vec} -> {exp}", f"  cur = {i};", "  fork"]
+        for j, a in enumerate(args):
+            b = emit.portname(a.name)
+            gap = f"#({((i * (j + 3)) % 11) * 977}); " if stalls else ""
+            if a.is_control:
+                L.append(f"    begin {gap}{b}_req = 1; wait ({b}_ack === 1);"
+                         f" {b}_req = 0; wait ({b}_ack === 0); end")
+            else:
+                L.append(f"    begin {gap}{b}_src.send({emit_lit(a.width, vec[a.name])}); end")
+        for r in func.results:
+            L.append(f"    wait ({emit.portname(r.name)}_n == {i + 1});")
+        L.append("  join")
+        tgo = f"{emit.portname(args[0].name)}_t"
+        for a in args[1:]:
+            ta = f"{emit.portname(a.name)}_t"
+            tgo = f"(({tgo}) > {ta} ? ({tgo}) : {ta})"
+        L.append(f"  t_go = {tgo};")
+        for r, b, w in data_results:
+            want = emit_lit(w, exp[r.name])
+            L += [f"  if ({b}_got !== {want})",
+                  f'    $fatal(1, "vector {i}: {b} got %h expected %h", {b}_got, {want});']
+        L.append(f'  $display("LAT {i} %0d", {first}_t - t_go);')
+        if stalls:
+            L.append(f"  #({(i % 5) * 1311});")
+    L.append("  #100000;")
+    for r in func.results:
+        b = emit.portname(r.name)
+        L.append(f'  if ({b}_n != {n} || {b}_req !== 0) $fatal(1, "{b}: extra or stuck token");')
+    for _, b, _ in data_results:
+        L.append(f'  if ({b}_mon.errors != 0) $fatal(1, "protocol error on {b}");')
+    L += ['  $display("PASS"); $finish;', "end",
+          'initial if ($test$plusargs("vcd")) begin',
+          '  $dumpfile("trace.vcd"); $dumpvars(0, tb); end',
+          'initial begin #2000000000; $fatal(1, "timeout on vector %0d", cur); end',
+          "endmodule"]
+    return "\n".join(L) + "\n"
+
+
+def emit_lit(width, value):
+    width = max(width, 1)
+    return f"{width}'h{value & ((1 << width) - 1):0{(width + 3) // 4}x}"
+
+
+def kernel_metrics(output):
+    if "PASS" not in output:
+        raise RuntimeError("simulation did not pass")
+    lat = [int(v) for _, v in sorted(
+        (int(i), v) for i, v in re.findall(r"^LAT (\d+) (\d+)$", output, re.M))]
+    if not lat:
+        raise RuntimeError("no latencies reported")
+    return lat
+
+
+def count_violations(log):
+    text = log.read_text()
+    return sum("VIOLATION" in line or "VIOLATED" in line
+               for line in text.splitlines())
+
+
+def measure_kernel(mlir, outdir, *, route_seeds, sizes=None):
+    """Zero-delay RTL check, then for each pinned NEXTPNR_SEED: route with the
+    placeholder (untightened) delay lengths -- or with `sizes`, a sizes.vh
+    whose `defines override some of them -- run every post-route audit, and
+    simulate the routed SDF under a fast and a stalled consumer.  The audits
+    are recorded, not enforced: a violating route is still simulated, because
+    whether GLS sees the violation is part of the finding."""
+    outdir.mkdir(parents=True, exist_ok=True)
+    path = outdir / "input.mlir"
+    shutil.copy2(mlir, path)
+    func = parse.parse_module(path.read_text())[0]
+    name = func.name
+    vecs, expected = kernel_vectors(name)
+    (outdir / "vectors.json").write_text(json.dumps(
+        [{"in": v, "expected": e} for v, e in zip(vecs, expected)], indent=1))
+    rtl = outdir / "dut.v"
+    rtl.write_text(emit.generate(str(path), top=False)[0])
+    top = outdir / "top.v"
+    top.write_text(emit.generate(str(path))[0])
+    row = {"kernel": name, "vectors": len(vecs),
+           "sizes": str(sizes) if sizes else "placeholder",
+           "fork_fusion": emit.BDC_FORK_FUSION, "max_nodes": emit.MAX_FUSE_NODES,
+           "fastfall": emit.BDC_FASTFALL}
+    sources = [CELLS / "sim/bd_prims_sim.v", CELLS / "sim/bd_env.v",
+               *sorted((CELLS / "rtl").glob("*.v")), rtl]
+    for kind in ("fast", "stalled"):
+        tb = outdir / f"tb_{kind}.v"
+        tb.write_text(kernel_testbench(func, vecs, expected,
+                                       stalls=kind == "stalled"))
+        sim = outdir / f"sim_{kind}.vvp"
+        run(["iverilog", "-g2012", "-gspecify", "-s", "tb", "-o", str(sim),
+             *map(str, [*sources, tb])], outdir / f"compile_{kind}.log")
+        row[f"rtl_{kind}"] = kernel_metrics(run(
+            ["vvp", str(sim)], outdir / f"sim_{kind}.log", timeout=GLS_TIMEOUT))
+    print(json.dumps(row), flush=True)
+    env = os.environ.copy()
+    for key in ("BD_SIZES", "BD_RESIZE_SEEDS"):
+        env.pop(key, None)
+    env.update(BD_TOP_V=str(top), BD_TOP_M=f"bdc_{name}_top")
+    if sizes:
+        env.pop("BD_NO_TIGHTEN", None)
+        env["BD_SIZES"] = str(sizes)
+    else:
+        env["BD_NO_TIGHTEN"] = "1"
+    row["routes"] = {}
+    for seed in route_seeds:
+        seeddir = outdir / f"seed{seed}"
+        seeddir.mkdir(exist_ok=True)
+        for kind in ("fast", "stalled"):
+            shutil.copy2(outdir / f"tb_{kind}.v", seeddir / f"tb_{kind}.v")
+        senv = {**env, "BD_OUT": str(seeddir / "pnr"), "NEXTPNR_SEED": str(seed)}
+        rec = {"nextpnr_seed": seed}
+        try:
+            run([str(CELLS / "flow.sh")], seeddir / "route.log", env=senv,
+                timeout=4 * 3600)
+        except RuntimeError as err:
+            rec["route"] = f"FAIL: {err}"
+            row["routes"][seed] = rec
+            print(json.dumps(rec), flush=True)
+            continue
+        sdf = seeddir / "pnr/soak.sdf"
+        rec["audits"] = {}
+        for audit in ("tighten", "skew", "arb_fork"):
+            result = subprocess.run(
+                ["python3", str(CELLS / f"verify/{audit}.py"), str(sdf)],
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            log = seeddir / f"{audit}.log"
+            log.write_text(result.stdout)
+            rec["audits"][audit] = {"exit": result.returncode,
+                                    "violations": count_violations(log)}
+        try:
+            rec.update(simulate_route(seeddir, func, strict_gls=False,
+                                      parse=kernel_metrics))
+        except RuntimeError as err:
+            rec["routed_gls"] = f"FAIL: {err}"
+        row["routes"][seed] = rec
+        print(json.dumps(rec), flush=True)
+        (outdir / "results.json").write_text(json.dumps(row, indent=2) + "\n")
+    return row
 
 
 def main():
@@ -523,7 +768,26 @@ def main():
                     help="re-route the settled lengths under N-1 nextpnr "
                          "seeds the resize never confirmed on, auditing and "
                          "simulating each route")
+    ap.add_argument("--mlir", type=Path,
+                    help="a frontend kernel (build/frontend/<k>/comp/"
+                         "handshake_transformed.mlir) instead of the fixtures:"
+                         " RTL check, then --route routes it with placeholder"
+                         " delay lengths under each --nextpnr-seeds seed, "
+                         "audits each route (tighten, skew, arb_fork) and runs"
+                         " routed GLS on it")
+    ap.add_argument("--nextpnr-seeds", nargs="+", type=int, default=[1, 2, 3, 4])
+    ap.add_argument("--sizes", type=Path,
+                    help="with --mlir: a sizes.vh (BD_SIZES) overriding some "
+                         "placeholder lengths, e.g. rule E padding")
     args = ap.parse_args()
+    if args.mlir:
+        out = args.output.resolve()
+        row = measure_kernel(args.mlir.resolve(), out,
+                             route_seeds=args.nextpnr_seeds if args.route else [],
+                             sizes=args.sizes.resolve() if args.sizes else None)
+        print(json.dumps(row), flush=True)
+        (out / "results.json").write_text(json.dumps(row, indent=2) + "\n")
+        return
     if args.route and args.kernels != ["xorshift_round"]:
         ap.error("--route currently requires --kernels xorshift_round")
     results = []

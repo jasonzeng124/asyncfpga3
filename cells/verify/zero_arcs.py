@@ -14,7 +14,14 @@ estimate.  Two kinds of arc are legitimately 0 ps and pass:
     site, with no pip.  Their delay is the mux's own IOPATH (217-223 ps on
     the chipdb), which the SDF carries.  yosys 0.62 maps soak_top's two
     8-input functions this way; the select input S0 is routed and still has
-    to be nonzero.
+    to be nonzero;
+  * into select input S<k> of a CARRY4 from the O6 of LUT "ABCD"[k] in the
+    SAME SLICE: the carry chain's propagate inputs are hardwired to the
+    slice's own LUT O6 outputs, again with no pip.  Their delay is the
+    CARRY4's S->O/CO IOPATH (210-472 ps on the chipdb), which the SDF
+    carries.  First met on collatz (bdc/fusion_bench.py --mlir): all 64
+    S arcs of its two 32-bit adders, on every one of three seeds, were
+    same-site, letter-matched and 0 ps.  DI, CIN and CYINIT stay checked.
 
 Anything else at 0 ps fails, including a mux data input fed from another
 site, which would be a broken route rather than a site wire.
@@ -60,6 +67,14 @@ def main(sdf_path, json_path):
                     and site(snk[0]) is not None and site(snk[0]) == site(src[0])):
                 wires += 1
                 continue
+            bel = cells.get(src[0], {}).get("attributes", {}).get("NEXTPNR_BEL", "")
+            if (c.get("type") == "CARRY4" and snk[1] in ("S0", "S1", "S2", "S3")
+                    and src[1] == "O6"
+                    and cells.get(src[0], {}).get("type") == "SLICE_LUTX"
+                    and site(snk[0]) is not None and site(snk[0]) == site(src[0])
+                    and bel.split("/")[-1][:1] == "ABCD"[int(snk[1][1])]):
+                wires += 1
+                continue
             bad.append(line.strip())
     if bad:
         print("FAIL: zero-delay INTERCONNECT arcs in the SDF -- the sink wire is not in")
@@ -68,7 +83,7 @@ def main(sdf_path, json_path):
             print("        " + b)
         print(f"      {len(bad)} such arc(s)")
         return 1
-    print(f"no zero-delay routed arc ({wires} in-site F7/F8 mux input wire(s) are 0 ps by construction)")
+    print(f"no zero-delay routed arc ({wires} in-site F7/F8 mux / CARRY4 S input wire(s) are 0 ps by construction)")
     return 0
 
 

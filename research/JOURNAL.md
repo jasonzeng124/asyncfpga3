@@ -443,3 +443,31 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
 - gcd_hw sizing: rule A violations per pass 54, 7, 5, 0. Pass 4 on the default seed: **163.8 ns
   built (unsized 547.7 ns, 3.3x less), rule A 0**. It is now being rebuilt under seeds 2 and 3
   (BD_TIGHTEN_SEEDS) before it counts as a candidate.
+### progress 05:45 (collatz: first routed GLS of a loop kernel besides gcd; subagent, reviewed and committed here)
+- `bdc/fusion_bench.py --mlir <frontend mlir> --route --nextpnr-seeds ...` (new): zero-delay RTL check,
+  then per pinned seed flow.sh, tighten.py (A/H/I/B/C/D), skew.py (E), arb_fork.py (J), and routed
+  GLS (fast source and stalled consumer), one invocation at a time, oracle = simcheck.REFS (the
+  kernels' C, transcribed) on simcheck.VECTORS + 8 seeded random vectors, `$fatal` on mismatch,
+  bd_monitor on the protocol. Audits are recorded, not enforced, so a violating route still runs.
+- zero_arcs.py (flow.sh gate) blocked every collatz route: 64 CARRY4 S<k> arcs at 0 ps. All were
+  LUT O6 -> CARRY4 S<k> in the same SLICE with the LUT letter matching k, the hard-wired propagate
+  input (delay carried by the CARRY4 S->O/CO IOPATH, 210-472 ps). That case is now accepted with
+  the same same-site test as the F7/F8 exception; DI/CIN/CYINIT stay checked. Negative control:
+  swapping S0/S1 sink names in a copy of the SDF makes it fail (32 arcs). pytest verify/ 52 pass.
+
+| collatz, 4 seeds (1-4) | rule E violated | rule J | A/H/I | GLS fast / stalled |
+|---|---|---|---|---|
+| emit placeholders | 4, 3, 4, 5 of 18 (umux0/1/2) | 4/4 ok | 0 | pass, pass, **FAIL, FAIL** |
+| + rule E pads (research/data/collatz_rulee_sizes.vh) | 0 on all 4 | 4/4 ok | 0 | pass on all 4 |
+
+- The seed-3 GLS failure is the rule E violation itself: umux0's join sees vector 1's request at
+  5100.798 ns while its select (ulink_n14__0) settles at 5101.033 ns, the -235 ps raw deficit skew.py
+  reports on that route. So routed GLS and rule E agree, and rule E is load-bearing on collatz.
+- Latency (padded, 4 seeds): **158.2 ns per loop iteration (156.3-160.2)**, slope of latency against
+  Collatz steps over 16 vectors; n=1 40.9 ns (39.8-41.3); n=27 (111 steps) 17.57 us (17.37-17.79).
+  Zero-delay RTL: 18.4 ns per iteration.
+- Negative control: one expected value changed (n=27: 111 -> 112) fails both RTL and routed GLS.
+- Does NOT show: tightened delays (placeholders + 3 pads; the 158 ns is not a speed result); the pads
+  were derived from and re-checked on the same seeds 1-4 (fresh seeds still owed); corners or
+  scatter; rule D (tighten.py exits 1 on the 6 ucond_br screens, which rule E passes); check.sh
+  not re-run after the zero_arcs change; isprime/ipow (the mode has their vectors, not run).
