@@ -953,3 +953,9 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   existing compute line ucontrol_merge12.udly is the tightest (+770..+1341 ps).
 - Not yet: rule F re-run on previously claimed routes (BOARD-QUEUE #1/#2, collatz/xorshift/ipow sizes); P1 as a
   BOARD-QUEUE candidate (needs 8 seeds + corners).
+### progress 22:43 (ipow T8: 7/8 fresh; T9 with compute headroom; arbiter grouping on gcd)
+- ipow T8 on fresh seeds 21-28: every audit + GLS clean on 7 of 8; seed 24 rule A ushrsi0 (28 links, -146 ps).
+  T9 = T8 + 1 link on every compute cell (14) + that ask (research/data/ipow_dsp1_sizes_T9.vh), the recipe that
+  closed gcd (r1/R2); validating on fresh seeds 29-36.
+- gcd_hw R5 with BD_RLOC_ARB=1, default seed: every audit clean, GLS 16/16, laps vec 6 47 (ungrouped 47), x0.9
+  16/16. No speedup on gcd (isprime's gain came from its long A0 nets). Seed 3 running.
