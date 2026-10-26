@@ -986,3 +986,9 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   divergence point t_c (shared-route credit) and req_knob() -- can follow a wrong chain on lap paths. A wrong t_c
   could over-credit (permissive). Effect on committed verdicts not yet measured: next round. Until then the
   strict flag stays off by default.
+### progress 23:46 (link fast fall on collatz: -12% per iteration)
+- collatz T3 sizes + BDC_LINK_FASTFALL=1 (17 fast-fall instances), seeds 1-4: rules A/E/F/H/I/J 0, routed GLS fast+
+  stalled pass on 4/4. Per iteration 98.3/101.3/106.1/107.5 -> 92.8/93.3/87.4/90.8 ns: **103.3 -> 91.1 (-11.8%)**.
+  With sizing: 159.3 (padded) -> 91.1 ns per iteration, 1.75x. gcd_hw R5 + BD_RLOC_ARB seed 3 x0.9/x1.1 16/16.
+- Next: fast fall needs the same fresh-seed / 8-seed / corners treatment as the sizes before it is a default or a
+  board candidate (subagent doing gcd_hw R5+FF to 8 seeds; ipow+FF running).
