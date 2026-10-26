@@ -724,3 +724,13 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   routes instead of chasing one link per route; measuring R4's 8 routes at --slack 500 to build R5.
 - The sandbox disk filled (GLS build dirs, ~900 MB each); cleaned. One slack measurement (R4 seed 8)
   failed on it and is being rerun.
+### progress 23:00 (collatz T3 robustness; R5; xorshift ratchet started)
+- collatz T3, seeds 1 and 4: routed GLS at x0.9, x1.1, per-arc scatter 8.5% x2 and 17% x1: fast and stalled
+  pass on all 10 runs.
+- gcd_hw R5 = R4 + `skew.py --slack 500` asks over R4's 8 routes (links n129__0/1, n151__1, n155__1, n32__0,
+  n59__3, n8__1, n90__0; research/data/gcd_hw_sizes_R5.vh). Audit running: d and 5 clean so far. **Seed 2:
+  nextpnr placement failed** ("post-placement validity check failed for Bel SLICE_X18Y90/A5FF (no cell)"),
+  a placer legality failure on this netlist+seed, not an audit result; seed 9 substituted. First time this
+  error is recorded here; worth a look if it recurs (RLOC v4 groups vs packing).
+- xorshift (frontend kernel, fusion_bench --mlir, placeholders fail rule E per the subagent) ratchet started
+  on 8 seeds with the collatz procedure.
