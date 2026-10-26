@@ -797,3 +797,14 @@ Subagent round 6, reviewed:
 - The "### progress HH:MM" times in this session's entry after the first few were ESTIMATES and drifted far
   from real time (e.g. the note headed "04:20" was written around 15:15 UTC). The commit times in
   `git log` are the true ones. From here on every heading comes from `date -u +%H:%M` (PROGRAM.md, 17edbba).
+### progress 15:54 (arbiter grouping fixes isprime's rule J tail; flow.sh opt-in)
+Subagent round 7, reviewed:
+- cells/flow.sh: opt-in BD_RLOC_ARB (rloc_stamp.py --arb-groups, as build_hw.sh). Unset: same seed gives a
+  byte-identical soak.fasm/xdc/rloc.log, and soak.json/sdf/routed.json identical after path normalisation.
+- isprime BD_DSP=1, round-5 pads (research/data/isprime_dsp1_rulee5_sizes.vh), seeds 21-24, grouping off vs on:
+  rule J worst guarded -105 (violation, merge7) -> **+142 ps (0 violations)**; rule E violations 9 -> 3 (clean
+  seeds 0/4 -> 2/4); GLS passes in both arms; n=997 latency 40.95 -> 39.02 us. Raw margins barely move; the
+  shared part of A0's route doubles (median 243 -> 489 ps), and the guard applies only past the split. Unlike
+  gcd_hw (+8 ps) because isprime's A0 nets are long (median 1.1-1.2 ns, max 3.0 ns).
+- Grouping is INCOMPLETE: 4 of 7 arbiters grouped; ucontrol_merge7 (4-input merge, a tree of 3 arbiters) is
+  not -- stamp_arbiters() only uniquifies one level below a singly-instantiated module. Fix next.

@@ -329,11 +329,16 @@ BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
 # control row -- two W=32 banks by default; three puts a third C node in the
 # row at the price of a farther enable for one half of each bank.
 BD_ROW_BANK_ROWS=${BD_ROW_BANK_ROWS:-2}
+# BD_RLOC_ARB=1: also put each bd_arbiter's four LUT sites in one SLICE
+# (rloc_stamp.py --arb-groups), as hw/build_hw.sh does under the same name.
+# verify/arb_fork.py (rule J) is the check it serves: its guardband scales with
+# how far A0 travels to its two sinks.  Off by default; unset, the command
+# below is the one this script always ran.
 if [ "$BD_RLOC" != none ]; then
     python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
         --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
         --column-rows "$BD_COLUMN_ROWS" --row-bank-rows "$BD_ROW_BANK_ROWS" \
-        --report > $OUT/rloc.log 2>&1 || {
+        ${BD_RLOC_ARB:+--arb-groups} --report > $OUT/rloc.log 2>&1 || {
             echo "RLOC STAMP FAILED"; cat $OUT/rloc.log; exit 1; }
     mv $OUT/soak.rloc.json $OUT/soak.json
     grep -E "group|link" $OUT/rloc.log | tail -3
