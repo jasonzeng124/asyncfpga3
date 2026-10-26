@@ -638,3 +638,13 @@ r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
 - R2 seeds 4, 5, 6: gate clean, nominal 16/16 (vec 6: 48 / 53 / 54 laps; vec 12: 39 / 43 / 44), x0.9
   16/16, x1.1 16/16. **R2 now passes nominal, x0.9 and x1.1 routed GLS on 6 seeds (d, 2-6)**, every audit
   on 8. Running: seeds 7, 8; per-arc scatter (8.5% x2, 17% x2, 25% x1) on the R2 default-seed route.
+### progress 15:40 (R2: 7 seeds full GLS, scatter clean to 25%; collatz sizing started)
+- R2 seed 7: gate clean, 16/16 at nominal (vec 6 50 laps), x0.9 and x1.1. **7 seeds (d, 2-7) pass nominal +
+  both corners.** Seed 8 running.
+- R2 per-arc scatter, default-seed route: 8.5% x2, 17% x2, 25% x1 all 16/16. Seed-2 route (the worst rule A
+  margin, +190 ps): 8.5% x2, 17% x2 all 16/16; 25% running. (Unsized seed d failed 1 of 2 draws at >=20%
+  via the bd_arbiter A0 fork, now watched by rule J.)
+- Next speed lead started: collatz sizing. tighten.py on the 8 padded collatz routes says the placeholders
+  are generous (e.g. uaddi0 80 links, "tighten to 24"). Running a ratchet over seeds 1-4 (per-cell max of
+  every route's proposal, never below the rule E pads) until rules A and E are clean on all four; then
+  fresh seeds with headroom, as for gcd_hw.
