@@ -376,3 +376,18 @@ Next:
   route, exit 1. A design with no arbiter passes trivially (soak_top). Re-ran `BD_RLOC=v4
   hw/build_hw.sh gcd_hw` from scratch: rule J line printed, CONVERGED after 2 iterations at the
   same pads as the first run (12/13/11), so converge is reproducible on the default seed.
+### progress 02:00 (wire-model scatter)
+GLS on the default-seed gcd_hw route, GLS_SCATTER_MODE=wire (one factor per pip, shared by every
+sink using it; arc = mean over its path; cell IOPATHs still one draw each):
+
+| per-pip sigma | draws | vectors correct |
+|---|---|---|
+| 17% | 1 | 16/16 |
+| 25% | 4 | 16/16 x4 (per-arc mode: 3/4 draws) |
+| 35% | 3 | 16/16 x3 |
+
+Caveat: averaging over ~9 pips makes an arc's effective spread about sigma/3, so these sigmas
+are not comparable to per-arc mode's. What the two modes do show together: the only failure
+mechanism found needs two branches of one net to diverge by ~1.6 ns. Per-arc mode makes that
+possible; a model where shared wire scatters together does not reach it even at 35% per pip.
+Rule J watches that margin directly on every route.
