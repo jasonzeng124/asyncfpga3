@@ -368,3 +368,11 @@ Next:
 3. gcd bench rule A non-convergence (tightening with headroom, or sizing against several routes).
 4. Speed: uselect1's 94-link (45 ns) chain is 6.7 ns longer than its whole request path needs on
    these vectors (rule A: "tighten to 14"); gcd_hw's compute chains are emit.py estimates.
+### progress 01:30 (rule J in the standard paths)
+- Rule J on the bench routes still on disk: xorshift_bench_gen (2 arbiters) pass, gcd_bench_gen
+  (9 arbiters, the non-converged fallback build) pass.
+- converge.sh: a run whose rule E converged is now NOT SHIPPABLE (exit 1) if rule J fails or
+  cannot resolve an arbiter on the same route. tighten_loop.sh: same check on the final bitstream's
+  route, exit 1. A design with no arbiter passes trivially (soak_top). Re-ran `BD_RLOC=v4
+  hw/build_hw.sh gcd_hw` from scratch: rule J line printed, CONVERGED after 2 iterations at the
+  same pads as the first run (12/13/11), so converge is reproducible on the default seed.

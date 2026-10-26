@@ -145,6 +145,16 @@ print(','.join(sorted(was & now)))" "$PADS" "$DELTA")
     fi
     if [ "$n" = "0" ]; then
         echo
+        # Rule J on the same route: a converged select padding is not a
+        # shippable build if an arbiter handover on it is short.
+        if ! python3 verify/arb_fork.py "$SDF" > "$STATE/arb_fork.$i.log" 2>&1; then
+            echo
+            echo "  NOT SHIPPABLE: rule E converged, but rule J (verify/arb_fork.py) fails"
+            echo "  or cannot resolve an arbiter on this route:"
+            grep -E "VIOLATED|NOT RESOLVED" "$STATE/arb_fork.$i.log" | head -5
+            exit 1
+        fi
+        echo "  rule J: $(tail -1 "$STATE/arb_fork.$i.log" | sed 's/^ *//')"
         echo "  CONVERGED after $i iteration(s): every select gate clears rule E's"
         echo "  guardband on the route its own padding produced."
         python3 -c "

@@ -346,3 +346,11 @@ else
     echo "final: no sizes applied -- kernel is at bdc/emit.py's estimate"
 fi
 echo "bitstream build/hw/$TOP/$TOP.bit"
+# Rule J (bd_arbiter's A0 fork) on the route that bitstream came from.  Rules
+# A and E above do not look inside an arbiter.
+if ! python3 verify/arb_fork.py "build/hw/$TOP/$TOP.sdf" > "$HIST/arb_fork.log" 2>&1; then
+    echo "rule J FAILS on this route -- not shippable:"
+    grep -E "VIOLATED|NOT RESOLVED" "$HIST/arb_fork.log" | head -5
+    exit 1
+fi
+echo "rule J: $(tail -1 "$HIST/arb_fork.log" | sed 's/^ *//')"
