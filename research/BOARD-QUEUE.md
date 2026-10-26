@@ -18,7 +18,7 @@ fasm via prjxray's textX parser).
 
 Use the committed bitstream, not a local rebuild: the local yosys may map a different netlist
 (it did for soak_top, see JOURNAL 2026-10-25 19:21), and this bitstream is the one that was
-GLS'd. To rebuild the same route in the cloud: `cd cells && BDC_SELECT_PADS=hw/gcd_hw_pads.json
+GLS'd. To rebuild the same route in the cloud: `cd cells && BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json
 BD_RLOC=v4 ./hw/build_hw.sh gcd_hw`.
 
     cd cells
