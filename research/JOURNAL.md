@@ -584,3 +584,13 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
 Mean 199.9 ns of matched delay (unsized 547.7 ns on the same pads: 2.74x less); worst seed's worst
 margin +190 ps after the guardband. r1 (one link less on uori4) also passed x0.9 on d and 3. R2 routed
 GLS (nominal + corners) running on d, 2, 3 first, then 4, 5, 6.
+### progress 11:40 (R2 in routed GLS: 16/16 on 3 seeds at ~1.95x laps)
+| laps per 150 us | unsized (8 seeds) | R2 seed d | R2 seed 2 | R2 seed 3 |
+|---|---|---|---|---|
+| vec 4 (1,1) | 323-333 | 623 | 664 | 650 |
+| vec 6 | 24-26 | 47 | 48 | 48 |
+| vec 12 | 18-20 | 38 | 38 | 39 |
+| vec 13 | 27-29 | 55 | 57 | 55 |
+All three: gate clean (ANNOTATE_DONE, 0 SDF warnings), **16/16 vectors errs=0**. R2 is a little slower
+than r1/the exploratory pass-8 sizes (vec 6: 47-48 vs 51-53) because it carries the most headroom.
+r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
