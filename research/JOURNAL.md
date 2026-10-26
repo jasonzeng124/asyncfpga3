@@ -486,3 +486,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   cells, seed 3 pass 7 with 2, seed 2 pass 8 with 1). Chain 163.8 -> 171.5 ns. No candidate accepted
   in 8 passes, so it shipped nothing (fallback to emit's estimate, as designed). Resumed from the
   ratchet (BD_RESUME=1, 10 more passes); the requirement is still rising by 1-3 cells per new route.
+### progress 07:05 (gcd_hw corners on 5 routes)
+- Seeds 7, 8: routed GLS x0.9 and x1.1, 16/16 errs=0 on both. **Corners now pass on 5 of 8 routes
+  (d, 5, 6, 7, 8); nominal on 8/8.** Running: per-arc scatter (8.5% x2 draws, 17% x2) on the seed-8
+  route; the run-1 pass-8 sizes (171.5 ns, rule A 0 on the default seed only) built and GLS'd on the
+  default seed, to see whether 3.2x less matched delay buys laps at all (exploratory: those sizes
+  failed a fresh seed and are not a candidate).

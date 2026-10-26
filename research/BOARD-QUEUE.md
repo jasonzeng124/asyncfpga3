@@ -44,7 +44,7 @@ What it would mean:
   design.
 
 Evidence update 2026-10-26: same pads on seeds d and 2-8, rules A/E/H/I/J clean and routed GLS
-16/16 errs=0 on all 8; x0.9 and x1.1 corners 16/16 on seeds d, 5, 6 (JOURNAL 2026-10-26 04:13).
+16/16 errs=0 on all 8; x0.9 and x1.1 corners 16/16 on seeds d, 5, 6, 7, 8 (JOURNAL 2026-10-26 04:13).
 
 Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 routes; tighten rules
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
