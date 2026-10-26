@@ -427,3 +427,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   routes, then GLS laps vs the emit.py-estimate baseline: the only speed lead the routed GLS can
   check end to end; (2) in parallel, routed GLS of gcd_hw seeds 5-8 (8/8 GLS for BOARD-QUEUE #1)
   and slow/fast corners on more than one route.
+### progress 04:30 (gcd_hw sizing hook works; seeds 5/6 audits reproduced)
+- `BD_SIZES` for gcd_hw (16ee9c8): checked in synth.log that the sized build elaborates bdc_gcd with
+  the file's values (DELAY_USELECT1 = 15 against the default 94); unset, gcd_rig.v is unchanged.
+- `BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 BD_TIGHTEN_SEEDS="2 3" BD_TIGHTEN_SLACK=300
+  hw/tighten_loop.sh gcd_hw 8` (running): unsized route 547.7 ns of matched delay built, 166.9 ns
+  needed, rule A 0. Pass 1 (207 sizes): 103.6 ns built, rule A 54 violations, rejected and
+  ratcheting, as the loop expects on its first pass.
+- Seeds 5 and 6 (pads 13/14/13) rebuilt: rule E 0/118, A/H/I 0, rule J pass, as in the last
+  session. GLS (nominal, x0.9, x1.1) running; then seeds 7, 8.
