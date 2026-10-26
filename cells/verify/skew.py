@@ -135,6 +135,16 @@ while "--osc" in _raw:
     OSC.append(_raw[_i + 1])
     del _raw[_i:_i + 2]
 PADS = None
+# --slack <ps>: also attribute and price a fix for gates whose guarded margin
+# is positive but at most <ps> (flagged "SLACK", padded to reach <ps>), so a
+# sizing loop can buy headroom against the next route instead of chasing one
+# short link per route.  The verdict and the exit status still count only
+# guarded margins <= 0.  Default 0: unchanged.
+SLACK = 0
+if "--slack" in _raw:
+    _i = _raw.index("--slack")
+    SLACK = int(_raw[_i + 1])
+    del _raw[_i:_i + 2]
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -641,6 +651,7 @@ def main():
     rows = [(guarded(r[7], r[9], r[11]),) + r for r in rows]
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
+    short = [r for r in rows if r[0] <= SLACK]
 
     t_elem = T.measure_delay_element(SDF.read_text())
     if t_elem is None:
@@ -689,8 +700,8 @@ def main():
 
     pads, unattributed = {}, []
     for (gm, margin, kind, parent, cell, rp, sp,
-         launch, t_req, k_req, t_sel, k_sel, t_c, req_path) in (rows if VERBOSE else bad):
-        flag = "VIOLATED" if gm <= 0 else "ok      "
+         launch, t_req, k_req, t_sel, k_sel, t_c, req_path) in (rows if VERBOSE else short):
+        flag = "VIOLATED" if gm <= 0 else ("SLACK   " if gm <= SLACK else "ok      ")
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
         print(f"           divergence point {t_c} ps in (shared, not guarded)")
@@ -700,7 +711,7 @@ def main():
         print(f"                latest   {t_sel} ps, {k_sel} storage crossing(s)")
         print(f"           margin {margin:+d} ps raw, {gm:+d} ps guarded"
               + ("   the request beats its own select" if gm <= 0 else ""))
-        if gm > 0:
+        if gm > SLACK:
             continue
         # WHICH link's knob moves this edge.  The launch is the storage node
         # that released the select, and for every violation seen so far that
@@ -725,7 +736,7 @@ def main():
             continue
         # The elements being added sit in the request path, so they are subject
         # to the same GUARD_LO scatter as the rest of it.
-        need = math.ceil(-gm / (t_elem * GUARD_LO))
+        need = math.ceil((SLACK - gm) / (t_elem * GUARD_LO))
         pads[knob] = max(pads.get(knob, 0), need)
         print(f"           fix: {need} more bd_delay element(s) on "
               f"{knob} ({t_elem} ps ea, derated to "
