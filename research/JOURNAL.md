@@ -754,3 +754,7 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
   over a SAFE unsized build is larger. Only 6 vectors (simcheck's; fusion_bench adds random ones only for
   collatz/isprime/ipow): a thin oracle, though non-degenerate.
 - gcd_hw R5: seed 9 clean too: every audit clean on 8 placed routes (d, 3-9; seed 2 unplaceable).
+- xorshift T3 re-validated with 14 vectors (simcheck's 6 + 8 seeded random nonzero states, rounds 0-8;
+  fusion_bench commit above), seeds 1-8 rerouted: rules A/E/H/I/J 0 (tighten.py's exit 1 is rule D's 8
+  screens), GLS fast+stalled pass on all 8. Per round over 14 vectors: **64.3 ns (60.7-65.9)** (the 6-vector
+  fit said 60.2; the wider round range is the better fit).
