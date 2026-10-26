@@ -875,3 +875,10 @@ Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to en
   annot.sdf unchanged since its write at 17:22) gives ANNOTATE_DONE with 0 warnings/errors. Most likely the
   first gate read the file before it was completely on disk (this was right after the container restart). The
   vector runs use netlist_baked.v from the same gen.py run, so they stand; flagged here in case it recurs.
+### progress 17:48 (correction: the "restart" did not kill everything; R5 seed 6 GLS discarded)
+- After the container notice, some pre-restart jobs were in fact still running: the old ipow loop (already at
+  pass 4) and the old R5 GLS chain (which finished seed 6 at 17:38). My restarted duplicates wrote into the
+  same directories, so **both R5 seed 6 GLS results are discarded** (the transient gate parse error above is
+  explained by this: two gen.py runs, nominal and x1.1, writing the same annot.sdf). Seed 6 is being rerun in a
+  fresh worktree. The duplicate ipow loop was killed; the surviving loop redoes pass 3 from T3 (same inputs).
+  Rule kept: after a restart notice, check `ps` before restarting anything.
