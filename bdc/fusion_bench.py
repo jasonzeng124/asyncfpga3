@@ -591,6 +591,13 @@ def kernel_vectors(name):
     elif name == "isprime":
         vecs += [dict(n=rng.randrange(2, 2000))
                  for _ in range(KERNEL_EXTRA_VECTORS)]
+    elif name == "xorshift":
+        # simcheck's six cover rounds 0-4 from three seeds.  Add random
+        # nonzero 32-bit states (0 is xorshift's fixed point: a stuck
+        # datapath would pass it) with up to 8 rounds, so the per-round
+        # slope is fitted over more than five points.
+        vecs += [dict(seed=rng.randrange(1, 1 << 31), rounds=rng.randrange(0, 9))
+                 for _ in range(KERNEL_EXTRA_VECTORS)]
     elif name == "ipow":
         # Random b^e wraps to 0 whenever b is even and e is large, and 0 is
         # also what a stuck datapath returns: draw until the C reference is
