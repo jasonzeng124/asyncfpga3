@@ -145,6 +145,14 @@ if "--slack" in _raw:
     _i = _raw.index("--slack")
     SLACK = int(_raw[_i + 1])
     del _raw[_i:_i + 2]
+# --own-gate-laps-off-strict: at a gate where (3) below adds a link's C node as
+# a launch, the REQUEST walks launched from that same link's LATCH OUTPUTS may
+# not pass through the gate being checked.  Every other launch, and every gate
+# where (3) adds nothing, is walked exactly as without the flag.  Opt-in until
+# reviewed; see (4) below for what it removes and why that is a lap.
+STRICT_LAPS = "--own-gate-laps-off-strict" in _raw
+if STRICT_LAPS:
+    _raw.remove("--own-gate-laps-off-strict")
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -301,7 +309,7 @@ def main():
     feed = {(o, ip) for o in stops
             for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
 
-    def fwd(launch, longest):
+    def fwd(launch, longest, term=None):
         """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
         kept apart deliberately.  Take the extremal over all of them and a
         longest path granted six crossings simply goes round the handshake
@@ -336,6 +344,11 @@ def main():
         # deliberate hop this docstring describes).  The launch's own entry
         # at level 0 has predecessor None; nothing else does, since every
         # other node was relaxed from something.
+        # `term`, when given, is an instance prefix the walk may ARRIVE at but
+        # never leave: a pin under it is recorded and not expanded, and a
+        # storage node under it is never seeded as a crossing.  Only (4)'s
+        # strict request walks pass one; every other walk has term None and
+        # is exactly the walk this function always did.
         cap = len(edges) + 1
         walked_edges = edges if longest else early_edges
         out, pred_out = [], []
@@ -371,14 +384,14 @@ def main():
                             # select gates -- ran five minutes and had to be killed.
                             # Not slow: not terminating.  As a gate in check.sh that
                             # would have hung the check rather than failing it.
-                            if d not in stops:
+                            if d not in stops and not (term and d.startswith(term)):
                                 nxt.append(d)
                 frontier = nxt
             out.append(tab)
             pred_out.append(pred)
             seeds, seed_pred = {}, {}
             for o in stops:
-                if o == launch:
+                if o == launch or (term and o.startswith(term)):
                     continue
                 for ip, arc in binc.get(o, ()):
                     if (o, ip) in feed or ip not in tab:
@@ -569,6 +582,7 @@ def main():
         # one.  (It does not clear ucond_br16: the lap launches stay binding.)
         names = {q for _, _, q in cand}
         launches = [q for _, _, q in cand[:4]]
+        added = set()           # links whose C node (3) added at this gate
         if cand:
             k0 = cand[0][0]
             for ks, _, q in cand:
@@ -578,15 +592,34 @@ def main():
                 cnode = m and m.group(1) + ".ctl.u.u/O6"
                 if cnode and cnode in names and cnode not in launches:
                     launches.append(cnode)
+                    added.add(m.group(1))
+        # (4) --own-gate-laps-off-strict.  Once (3) has added link L's C node,
+        # L's real divergence point is being measured directly.  A launch at
+        # one of L's LATCH OUTPUTS reaches the select through the latch (that
+        # is why it is a candidate at all), but it reaches the REQUEST pin
+        # only by going round the handshake: through this very gate, out to
+        # its acknowledge, back through L's controller and request chain --
+        # the NEXT token's request, not the one this select is bundled with.
+        # So for exactly those launches, and only on the request (shortest)
+        # walk, the walk may not pass through this gate.  The select walk, the
+        # C-node launch, every other cand[:4] launch, and every gate where (3)
+        # added nothing are untouched, so a row can change only if its binding
+        # launch was such a latch output and its request walk ran through its
+        # own gate.  A latch launch whose request then has no path is simply
+        # not evaluated; the verdict is the MIN over what is.
+        own = parent + "."
         worst = None
         for launch in launches:
+            m = RE_LATCH_OUT.match(T.pin_split(launch)[0])
+            lap = STRICT_LAPS and m is not None and m.group(1) in added
             for d, lng in ((0, False), (1, True)):
-                key = (launch, lng)
+                term = own if (lap and not lng) else None
+                key = (launch, lng, term)
                 if key in cache:
                     cache.move_to_end(key)
                 else:
                     try:
-                        cache[key] = fwd(launch, lng)
+                        cache[key] = fwd(launch, lng, term)
                         while len(cache) > CACHE_MAX:
                             cache.popitem(last=False)
                     except CombinationalCycle as e:
@@ -605,8 +638,8 @@ def main():
                         print( "         genuinely runs free end to end.")
                         print( "         Rule E did not run.  This is a gap, not a pass.")
                         return 2
-            out_f, pred_f = cache[(launch, False)]
-            out_t, pred_t = cache[(launch, True)]
+            out_f, pred_f = cache[(launch, False, own if lap else None)]
+            out_t, pred_t = cache[(launch, True, None)]
             e = at(out_f, rp)
             l = at(out_t, sp)
             if e is None or l is None:

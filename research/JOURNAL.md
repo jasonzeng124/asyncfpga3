@@ -972,3 +972,17 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   A/E/F/H/I/J 0, routed GLS fast+stalled pass on 4/4. Per round: **65.4 -> 59.5 ns (-9.0%)** vs T3 without fast
   fall on the same seeds (65.9/64.4/65.4/65.7 -> 59.6/59.7/59.9/58.7). Combined with sizing: 102.5 -> 59.5 ns
   per round vs the placeholder build (1.72x). collatz the same way running.
+### progress 23:31 (rule E: opt-in removal of the own-gate lap; a fwd() bug found)
+Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-off-strict; default off):
+- For a gate where Part A added a feeding-link C node, the request walk from that link's latch-output (lap)
+  launches may not expand through the gate's own pins. Flag off: -v output byte-identical (soak, gcd R5, isprime,
+  negctl); check.sh's rule E gate identical. Over 96 routes: 174 rows change, every one verified to be a lap
+  through the gate's own select (path replay, t_req match, strict margin never lower), 0 others move. isprime
+  rule-E-clean routes 13 -> 23 of 50 (ucond_br16: 53 VIOL -> ok, all now binding at the C node, min +9.5 ns).
+  Negative controls still flag: ucmpi2-delay-removed isprime (ucond_br14-17 ~ -20 ns, both arms); uori4 delay
+  zeroed in a gcd R5 SDF (ucond_br41-46 -1.4..-3.6 ns, both arms). pytest verify 75 pass here.
+- **Side finding, pre-existing, NOT fixed:** skew.py fwd() can overwrite a storage node that seeded a level with a
+  later within-level arrival without re-expanding it, so pred/tab disagree; path_to() replay -- used by the
+  divergence point t_c (shared-route credit) and req_knob() -- can follow a wrong chain on lap paths. A wrong t_c
+  could over-credit (permissive). Effect on committed verdicts not yet measured: next round. Until then the
+  strict flag stays off by default.
