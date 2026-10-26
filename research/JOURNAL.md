@@ -517,3 +517,12 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
 - New candidate "r1" = the resumed loop's ratchet (207 sizes) + 1 link on every cell (taking the longer
   number instead of chasing one binding cell per route): rules E/A/H/I/J clean on seeds d and 2 so far;
   seeds 3-8 running (two worktrees). The resumed loop itself is still finding 1-2 short cells per fresh route.
+### progress 08:55 (gcd_hw multi-seed sizing converges)
+- Resumed loop (`BD_RESUME=1 ... tighten_loop.sh gcd_hw 10`): pass 7 passed rule A on its own route
+  AND on fresh seeds 2 and 3, ACCEPTED, then CONVERGED (proposal stopped moving). **182.1 ns of matched
+  delay (unsized 547.7), 207 sizes, rule J pass on the final route.** Committed as
+  research/data/gcd_hw_sizes_L7.vh. Total passes across both runs: 8 + 7 builds plus 2 fresh-seed
+  builds each.
+- Candidate r1 (an earlier ratchet + 1 link everywhere, research/data/gcd_hw_sizes_r1.vh; 198 links more
+  than L7 in total but 1 cell shorter): rules E/A/H/I/J clean on **7 seeds (d, 2, 3, 4, 5, 7, 8)**;
+  seed 6 running. GLS of r1 on d and 2 running. L7 on fresh seeds 4-8 running.
