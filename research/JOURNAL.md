@@ -391,3 +391,17 @@ are not comparable to per-arc mode's. What the two modes do show together: the o
 mechanism found needs two branches of one net to diverge by ~1.6 ns. Per-arc mode makes that
 possible; a model where shared wire scatters together does not reach it even at 35% per pip.
 Rule J watches that margin directly on every route.
+### progress 02:30 (gcd bench: rule A sizing converges with 600 ps of search slack)
+`BD_TIGHTEN_SLACK=<ps> hw/build_bench.sh gcd` (tighten.py --slack on the sizing proposals only;
+the rule A gate on each route runs without it):
+
+| slack | rule A violations per iteration | outcome |
+|---|---|---|
+| 0 (earlier) | 5, 74, 23, 12, 18, 10, 8 | no sized build passed; falls back to estimates |
+| 300 ps | 5, 53, 15, 6, 4, 3, 5 | no sized build passed |
+| 600 ps | 2, 25, 13, 2, 1, 0, 2; restored best: 0 | **sized build passes rule A on its route** |
+
+The 600 ps build carries 208.6 ns of matched delay against the unsized estimate's 572.9 ns
+(2.75x less). On its final route: rule E 0/118 violated, rule J pass, 213 measured sizes. ONE
+route; fresh seeds 2/3/4 with the sizes fixed are running. No speed number: the bench reads its
+cycles through the PS, which has no GLS model, and there is no board.
