@@ -58,6 +58,24 @@ being two at once, so:
 - Background processes die with the session. Commit before starting anything
   long, so that a killed session loses only the job that was running.
 
+### Use far more parallelism (owner, 2026-10-26)
+After a whole night the owner had used about 4% of the weekly limit. The
+bottleneck is wall time, not budget. Sessions mostly sit idle, waiting on one
+or two hour-long builds. Do not wait on a single lead:
+- Check `nproc` and `free -g` at session start. Keep the machine full: as many
+  concurrent nextpnr/GLS jobs as cores and RAM allow (one nextpnr per core,
+  leave ~2 GB headroom each), each in its own git worktree under the scratchpad.
+- Run several leads at once. While a build runs, spawn subagents on independent
+  tracks: a routed GLS rig for each kernel besides gcd_hw, rule A/E/J audits on
+  other benches, speed analysis (tightening slack, chain lengths, critical
+  cycles), literature or web research on bundled-data timing. Subagents never
+  touch git in the main tree; they work in their own worktrees and report back,
+  and you commit their results.
+- A finished background job is a cue to start the next one immediately, not to
+  write a long summary and stop.
+- The priority order still holds: parallelism is for getting more verified
+  results per hour, never for skipping a gate.
+
 ## Each session
 
 1. `git fetch origin && git checkout claude/research && git pull --ff-only`.
