@@ -792,3 +792,4 @@ Subagent round 6, reviewed:
   still running.
 - ipow ratchet: placeholder + rule E pads are already clean on 8/8 (it0); T1 = pads + it0's tightened
   proposals, running.
+- R5 seeds 3 and 9 also pass x0.9/x1.1: R5 routed GLS nominal + both corners 16/16 on d, 3, 7, 9.
