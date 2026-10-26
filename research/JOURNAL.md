@@ -912,3 +912,10 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   1.36x (worst T6 seed 79.7 vs best baseline 103.0: 1.29x). Smaller gain than collatz/xorshift: the DSP
   cascade's own arcs (A->P 5.4 ns per DSP) dominate the multiply and are not a delay line.
 - R5 seed 4 per-arc scatter 8.5%: 16/16 (17%, 25% x2 running).
+### progress 21:18 (ipow T6 on fresh seeds: rule I short on 2 of 4; T7)
+- ipow T6 on fresh seeds 9-12: GLS pass 4/4, rules A/E/H/J clean on 11 and 12, but **rule I short on seeds 9
+  and 10** (ulink_n13 stage[1] -20/-11 ps, falseResult_11 stage[1] -179 ps; SDELAY asks). So T6 (validated on
+  the 8 seeds it was ratcheted on) is not yet a fresh-seed-safe size set -- same lesson as gcd L7.
+- T7 = T6 + those routes' proposals + 1 link on each raised cell (ulink_n13 SDELAY 2 -> 4, falseResult_11
+  SDELAY 0 -> 2; research/data/ipow_dsp1_sizes_T7.vh); validating on 8 more fresh seeds 13-20.
+- R5 seed 4 scatter: 8.5%, 17%, 25% draw 1 all 16/16.
