@@ -551,3 +551,12 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
   (37.66-39.83).
 - Does NOT show: isprime's shipped (DSP) build in GLS; isprime passing the audits (it does not: rule E
   guarded on 7/8, rule I on 1); scatter on either kernel.
+### progress 09:45 (L7 fails a fresh seed; r1 clean on 8/8; candidate R2)
+- L7 (the loop's converged sizes, validated on d/2/3) on fresh seed 4: **rule A 1 violation** (ucmpi3
+  14 links, margin -96 ps, wants 15). A three-seed acceptance is not enough on gcd_hw; the long tail
+  continues on fresh routes. L7 is not a candidate; its remaining seeds were stopped.
+- r1 (ratchet + 1 link everywhere): rules E/A/H/I/J clean on **all 8 seeds (d, 2-8)**. r1 has ucmpi3 at
+  15 already, but uori4 at 18 where an L7 route asked for 19. Taking the longer number:
+  **R2 = max(L7, r1) per cell** (research/data/gcd_hw_sizes_R2.vh) is the shipping candidate; its 8-seed
+  audit is running. GLS of r1 on d/2/3/4 is running (r1 and R2 differ by one link on one cell, but a
+  netlist change is a new route, so R2 gets its own GLS).
