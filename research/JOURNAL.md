@@ -930,3 +930,14 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   -15.2, -3.6, +1.2% (mean -4.2%, carried by one seed whose OFF route was the slowest; OFF alone spans 16%).
   **Not a speedup; not committed** (diff kept as research/data/p3_steer_join_groups.diff).
 - R5 scatter: seed 4 8.5/17/25/25% all 16/16; seed 3 17% 16/16.
+### progress 22:02 (ipow T7 on 8 fresh seeds; T8; P1 fast fall reviewed, check.sh running)
+- ipow T7 on fresh seeds 13-20: every audit clean and GLS pass on 7 of 8; seed 19 rule I short (ulink_n17__0
+  stage[1] SDELAY, -366 ps). Rule I has the same long tail rule A and E had. T8 = T7 + 1 on every SDELAY (15) +
+  that ask (research/data/ipow_dsp1_sizes_T8.vh); validating on fresh seeds 21-28.
+- Subagent: P1 (fast fall on bd_link rdly and rtl bd_mux output delay, opt-in BDC_LINK_FASTFALL=1, default
+  byte-identical) with a NEW tighten.py rule F ("a fast-fall line is flushed before its input can rise again":
+  an undrained line lets the next token's request skip links -- unaudited until now, for the existing compute
+  FASTFALL lines too). A/B on gcd_hw R5 seeds d/3/4/5: every audit incl. F clean in both arms; routed GLS 16/16;
+  laps +8.2% (vec 6), +8.1% (12), +8.4% (13); ON-arm corners and 17% scatter clean on 2 routes. Being checked
+  with cells/check.sh before commit.
+- gcd_hw R5 with BD_RLOC_ARB=1 (seeds d, 3) running, to see whether arbiter grouping speeds gcd as it did isprime.
