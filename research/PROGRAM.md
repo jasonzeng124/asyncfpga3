@@ -59,7 +59,7 @@ being two at once, so:
   long, so that a killed session loses only the job that was running.
 
 ### Use far more parallelism (owner, 2026-10-26)
-After a whole night the owner had used about 4% of the weekly limit. The
+So far the routine has used about 4% of the owner's weekly limit. The
 bottleneck is wall time, not budget. Sessions mostly sit idle, waiting on one
 or two hour-long builds. Do not wait on a single lead:
 - Check `nproc` and `free -g` at session start. Keep the machine full: as many
