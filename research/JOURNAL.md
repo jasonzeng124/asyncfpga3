@@ -891,3 +891,11 @@ Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to en
 - R5 seed 4: every audit clean, gate clean, 16/16 at nominal (vec 6 45 laps), x0.9, x1.1. R5 routed GLS
   (nominal + corners) now on 7 seeds (d, 3, 4, 5, 6, 7, 9); seed 8 running.
 - ipow ratchet pass 4: rules A+E clean on 7 of 8 seeds (seed 1: rule A 1); pass 5 running.
+### progress 20:38 (R5 complete: every audit + routed GLS with corners on all 8 placed routes)
+| R5, laps per 150 us | d | 3 | 4 | 5 | 6 | 7 | 8 | 9 | mean | unsized |
+|---|---|---|---|---|---|---|---|---|---|---|
+| vec 6 | 47 | 42 | 45 | 49 | 50 | 48 | 49 | 48 | 47.3 | 24-26 |
+| vec 12 | 38 | 34 | 37 | 39 | 41 | 39 | 39 | 38 | 38.1 | 18-20 |
+| vec 13 | 56 | 49 | 53 | 57 | 59 | 56 | 57 | 56 | 55.4 | 27-29 |
+Every route: rules A/E(C-node)/H/I/J 0, gate clean, 16/16 errs=0 at nominal, x0.9 and x1.1. Worst seed (3)
+still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.

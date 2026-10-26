@@ -50,7 +50,7 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
-## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS, every audit clean on 8 routes
+## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS; every audit and routed GLS (nominal + corners) clean on 8 routes
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R5.vh`
 (220 sizes). History: R2 passed every audit on 8 seeds until rule E learned to launch from the select's
 feeding-link C node (69ee32b), which flagged R2 on 2 seeds; R3/R4 padded the asks route by route; R5 adds
@@ -81,8 +81,8 @@ What it would mean:
 
 Evidence (JOURNAL 2026-10-26 04:13 session): rules E (with C-node launches)/A/H/I/J 0 violations on
 seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement validity check); routed GLS
-16/16 errs=0 at nominal, x0.9 and x1.1 on d, 3, 5, 6, 7, 9 (vec 6 nominal: 47 / 42 / 49 / 50 / 48 / 48
-laps vs 24-26 unsized), gate clean on each. Its predecessor R2 (same compute sizes, fewer select pads) passed
+16/16 errs=0 at nominal, x0.9 and x1.1 on ALL 8 placed routes d, 3-9 (vec 6 nominal: 47 / 42 / 45 / 49 /
+50 / 48 / 49 / 48 laps, mean 47.3, vs 24-26 unsized), gate clean on each. Its predecessor R2 (same compute sizes, fewer select pads) passed
 nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
