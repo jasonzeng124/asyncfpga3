@@ -405,3 +405,16 @@ The 600 ps build carries 208.6 ns of matched delay against the unsized estimate'
 (2.75x less). On its final route: rule E 0/118 violated, rule J pass, 213 measured sizes. ONE
 route; fresh seeds 2/3/4 with the sizes fixed are running. No speed number: the bench reads its
 cycles through the PS, which has no GLS model, and there is no board.
+### progress 02:45 (gcd bench sized at 600 ps slack: does NOT survive fresh seeds)
+Rebuilt with the 213 sizes fixed (`BD_SIZES=... NEXTPNR_SEED=s hw/build_bench.sh gcd`):
+
+| seed | build_bench rule A gate | audits on the route it reached |
+|---|---|---|
+| 2 | SIZES REJECTED (3 cells), no bitstream | A 2, H 1, I 0, E 0, J pass |
+| 3 | SIZES REJECTED (1 cell), no bitstream | A 0 / I 1, E 0, J pass |
+| 4 | SIZES REJECTED (2 cells), no bitstream | A 2, E 1, J pass |
+
+So the 600 ps result is a property of the route it was sized on (0 of 3 fresh routes accept
+it), the failure CLAUDE.md describes for xorshift ("rebuilds violate rule A 2 times in 8").
+Negative result, not shippable. To make a sized gcd bench robust, size against several routes
+at once (resize.sh's --seeds approach for xorshift_round) rather than one route plus slack.
