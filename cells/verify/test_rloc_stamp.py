@@ -429,3 +429,84 @@ def test_v7_leaves_carry_luts_to_their_carry4():
     assert placement(mods, "$abc$4$p") == (None, None, None)
     assert placement(mods, "$abc$4$g") == (None, None, None)
     assert placement(mods, "$abc$4$use")[0] is not None
+
+
+# --- --arb-groups: stamp_arbiters() ----------------------------------------
+
+def arbiter_cells(prefix):
+    """One bd_arbiter's four LUT sites, named as rtl/bd_arb.v names them."""
+    return {f"{prefix}.ustate": lut([1, 2, 3], [4], "LUT6"),
+            f"{prefix}.ugrant": lut([4, 5], [6, 7]),
+            f"{prefix}.ua1.u": lut([6, 8], [9], "LUT6"),
+            f"{prefix}.ua2.u": lut([7, 8], [10], "LUT6")}
+
+
+def inst(kind):
+    return {"type": kind, "port_directions": {}, "connections": {}}
+
+
+def arb_groups(mods):
+    """group string -> set of (module, cell) for every bdarb_ group."""
+    out = {}
+    for mname, m in mods.items():
+        for cname, c in m.get("cells", {}).items():
+            g = c.get("attributes", {}).get(rloc_stamp.ATTR, "")
+            if g.startswith("bdarb_"):
+                out.setdefault(g, set()).add((mname, cname))
+    return out
+
+
+def test_arbiter_in_a_shared_merge_is_copied_and_grouped_per_instance():
+    mods = {"top": {"attributes": {"top": "1"},
+                    "cells": {"um0": inst("amerge2"), "um1": inst("amerge2")}},
+            "amerge2": {"attributes": {}, "cells": arbiter_cells("uarb1")}}
+    assert rloc_stamp.stamp_arbiters(mods, report=False) == 2
+    g = arb_groups(mods)
+    assert len(g) == 2
+    for members in g.values():
+        assert len(members) == 4 and len({m for m, _ in members}) == 1
+
+
+def test_arbiter_tree_below_a_shared_module_is_reached():
+    # a 4-input merge (a tree of three arbiters) inside a wrapper module that
+    # is instantiated twice: the arbiters are two levels below a unique module
+    tree = {**arbiter_cells("uarb1"), **arbiter_cells("uarb2"), **arbiter_cells("uarb3")}
+    mods = {"top": {"attributes": {"top": "1"},
+                    "cells": {"uw0": inst("wrap"), "uw1": inst("wrap")}},
+            "wrap": {"attributes": {}, "cells": {"um": inst("amerge4")}},
+            "amerge4": {"attributes": {}, "cells": tree}}
+    assert rloc_stamp.stamp_arbiters(mods, report=False) == 6
+    g = arb_groups(mods)
+    assert len(g) == 6                      # one string per physical arbiter
+    for members in g.values():
+        assert len(members) == 4 and len({m for m, _ in members}) == 1
+    counts, _ = rloc_stamp.instantiation_counts(mods)
+    for members in g.values():
+        (m, _), = {(m, 0) for m, _ in members}
+        assert counts[m] == 1
+
+
+def test_arbiter_luts_already_in_a_spine_group_move_to_their_own():
+    cells = arbiter_cells("uarb1")
+    cells["uother"] = lut([11], [12], "LUT2")
+    for i, name in enumerate(["uarb1.ustate", "uarb1.ugrant", "uother"]):
+        cells[name]["attributes"] = {rloc_stamp.ATTR: "bdspine_x",
+                                     rloc_stamp.SLOT_ATTR: 10 + i}
+    mods = {"top": {"attributes": {"top": "1"}, "cells": cells}}
+    assert rloc_stamp.stamp_arbiters(mods, report=False) == 1
+    for name in ("uarb1.ustate", "uarb1.ugrant", "uarb1.ua1.u", "uarb1.ua2.u"):
+        attrs = cells[name]["attributes"]
+        assert attrs[rloc_stamp.ATTR] == "bdarb_uarb1"
+        assert rloc_stamp.SLOT_ATTR not in attrs and rloc_stamp.COL_ATTR not in attrs
+    # the spine's other member keeps its group and slot
+    assert cells["uother"]["attributes"] == {rloc_stamp.ATTR: "bdspine_x",
+                                             rloc_stamp.SLOT_ATTR: 12}
+
+
+def test_without_arb_groups_no_arbiter_is_grouped():
+    mods = {"top": {"attributes": {"top": "1"},
+                    "cells": {"um0": inst("amerge2"), "um1": inst("amerge2")}},
+            "amerge2": {"attributes": {}, "cells": arbiter_cells("uarb1")}}
+    rloc_stamp.stamp(mods, "v8", report=False)
+    assert arb_groups(mods) == {}
+    assert set(mods) == {"top", "amerge2"}  # nothing copied either

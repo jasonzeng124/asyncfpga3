@@ -813,3 +813,17 @@ Subagent round 7, reviewed:
   routed GLS fast+stalled pass on 4/4 each (xorshift with the 14-vector set). So both now pass every check
   on 12 routes, 4 of them never seen by the sizing loop.
 - gcd_hw R5 seed 5 routed GLS 16/16 (vec 6 49 laps): nominal GLS on 5 seeds (d, 3, 5, 7, 9).
+### progress 16:31 (isprime: all 7 arbiters grouped; rule J clean on fresh seeds; only ucond_br16 remains)
+Subagent round 8, reviewed and committed:
+- rloc_stamp.py --arb-groups (only under BD_RLOC_ARB): (a) an arbiter LUT already claimed by a spine group
+  leaves it for its own bdarb_ group (isprime's 4-input merge, bdc_amerge4, had all 12 LUTs in v8 spine
+  groups, which is why it was skipped, not depth); (b) uniquification repeats until every module holding an
+  arbiter is instantiated once. Stamped netlists unchanged for soak_top v8/v4, gcd_hw v4 (on and off) and
+  isprime off; changed only where intended (isprime v8+arb: 4 -> 7 grouped; soak_top v8+arb: 0 -> 1). 4 new
+  unit tests (2 fail on the old code); pytest verify 56 pass.
+- isprime BD_DSP=1, BD_RLOC_ARB=1, research/data/isprime_dsp1_rulee6_sizes.vh, FRESH seeds 25-28: 7/7 arbiters
+  grouped; rules A/H/I/J 0 (rule J worst +266 ps); rule E 0 on 2 seeds, and on the other 2 ONLY ucond_br16
+  (raw +8.1/+8.4 ns, the launch-selection false violation; no knob); GLS fast+stalled pass 4/4; n=997
+  38.97 us (38.39-39.49). Groups are tile-sized: 1-2 arbiters per seed straddle the tile's two slices.
+- Decision kept: skew.py's Part B (which would clear ucond_br16) stays out; isprime is reported as not
+  clean on rule E rather than loosening the audit.

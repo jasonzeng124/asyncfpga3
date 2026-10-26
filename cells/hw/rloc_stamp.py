@@ -1353,32 +1353,62 @@ def stamp_arbiters(mods, report):
     counts, top = instantiation_counts(mods)
     if top is None:
         return 0
-    # Uniquify shared modules that hold an arbiter, one level below a module
-    # that is itself instantiated once.
-    for mname in sorted(mods):
-        m = mods[mname]
-        if counts.get(mname, 0) <= 1 or not arbiter_sites(m.get("cells", {})):
-            continue
-        for pname in sorted(mods):
-            if counts.get(pname, 0) != 1:
+
+    # Which modules hold an arbiter, directly or anywhere below them.  A merge
+    # wider than two inputs is a TREE of arbiters, and it can sit inside a
+    # module that is itself shared, so one level of copying is not enough.
+    def holds_arbiter(name, seen=()):
+        m = mods.get(name, {})
+        if arbiter_sites(m.get("cells", {})):
+            return True
+        return any(c["type"] in mods and c["type"] not in seen
+                   and holds_arbiter(c["type"], seen + (name,))
+                   for c in m.get("cells", {}).values())
+
+    # Uniquify top-down until every module that holds an arbiter is
+    # instantiated exactly once: each round copies a shared module once per
+    # instance in a parent that is already unique, which makes the copies
+    # unique, so the next round can reach the level below them.
+    changed = True
+    while changed:
+        changed = False
+        for mname in sorted(mods):
+            m = mods[mname]
+            if counts.get(mname, 0) <= 1 or not holds_arbiter(mname):
                 continue
-            for iname, ic in sorted(mods[pname].get("cells", {}).items()):
-                if ic["type"] != mname:
+            for pname in sorted(mods):
+                if counts.get(pname, 0) != 1:
                     continue
-                clone = mname + "$" + re.sub(r"[^A-Za-z0-9_]", "_", pname + "." + iname)
-                mods[clone] = copy.deepcopy(m)
-                mods[clone].get("attributes", {}).pop("top", None)
-                ic["type"] = clone
-    counts, top = instantiation_counts(mods)
-    n_arb = n_cells = 0
+                for iname, ic in sorted(mods[pname].get("cells", {}).items()):
+                    if ic["type"] != mname:
+                        continue
+                    clone = mname + "$" + re.sub(r"[^A-Za-z0-9_]", "_", pname + "." + iname)
+                    mods[clone] = copy.deepcopy(m)
+                    mods[clone].get("attributes", {}).pop("top", None)
+                    ic["type"] = clone
+                    changed = True
+        if changed:
+            counts, top = instantiation_counts(mods)
+    n_arb = n_cells = n_taken = 0
     for mname, m in sorted(mods.items()):
         if counts.get(mname, 0) != 1:
             continue
         cells = m.get("cells", {})
         scope = "" if mname == top else re.sub(r"[^A-Za-z0-9_]", "_", mname) + "__"
         for a, members in arbiter_sites(cells):
-            if any(ATTR in cells[x].get("attributes", {}) for x in members):
-                continue
+            # A spine variant (v5+) may already have put some of these LUTs in
+            # a link's column -- the arbiter of a wider merge sits on the
+            # handshake path it walks (isprime's bdc_amerge4: all 12 of its
+            # LUTs, spread over three spine groups).  Asked for, the
+            # arbiter's own SLICE wins: its members leave whatever group they
+            # were in, slot and column with it.  The other cells of that group
+            # keep theirs.
+            for x in members:
+                attrs = cells[x].get("attributes", {})
+                if ATTR in attrs:
+                    n_taken += 1
+                    for k in (ATTR, SLOT_ATTR, COL_ATTR):
+                        attrs.pop(k, None)
             g = "bdarb_" + scope + re.sub(r"[^A-Za-z0-9_]", "_", a)
             for x in members:
                 attrs = cells[x].setdefault("attributes", {})
@@ -1388,6 +1418,9 @@ def stamp_arbiters(mods, report):
     if report:
         print(f"             {n_arb} bd_arbiter(s) grouped into one SLICE each "
               f"({n_cells} LUT sites)")
+        if n_taken:
+            print(f"             {n_taken} of those LUT(s) taken out of a spine "
+                  f"group to do it")
     return n_arb
 
 def main():
