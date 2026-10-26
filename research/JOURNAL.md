@@ -941,3 +941,15 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   laps +8.2% (vec 6), +8.1% (12), +8.4% (13); ON-arm corners and 17% scatter clean on 2 routes. Being checked
   with cells/check.sh before commit.
 - gcd_hw R5 with BD_RLOC_ARB=1 (seeds d, 3) running, to see whether arbiter grouping speeds gcd as it did isprime.
+### progress 22:10 (P1 committed: fast fall on link/mux request delays, opt-in; rule F)
+- Committed: rtl/bd_link.v RFAST and rtl/bd_mux.v FASTFALL parameters (default 0, unchanged netlists; stated
+  reason in each header), bdc/emit.py BDC_LINK_FASTFALL=1 (refused for kernels with memory), tighten.py rule F
+  + rule I padding-estimate fix, 2 tests. cells/check.sh ALL GATES PASS with it applied (run here in a clean
+  worktree); pytest verify 77 pass. Default-off identity: emitted Verilog cmp-identical for 8 kernels; gcd_hw
+  R5 default seed fasm/frames byte-identical, SDF md5 a9c4e265 (= BOARD-QUEUE #2's).
+- Evidence for the rtl/ change (routed GLS, gcd_hw R5, seeds d/3/4/5 per arm): every audit incl. F clean;
+  laps OFF -> ON: vec 6 45.75 -> 49.5 (+8.2%), vec 12 37.0 -> 40.0 (+8.1%), vec 13 53.75 -> 58.25 (+8.4%), vec 4
+  +1.7%; ON corners x0.9/x1.1 and 17% scatter clean on d and 3. Rule F worst margin: new lines >= +2.7 ns; the
+  existing compute line ucontrol_merge12.udly is the tightest (+770..+1341 ps).
+- Not yet: rule F re-run on previously claimed routes (BOARD-QUEUE #1/#2, collatz/xorshift/ipow sizes); P1 as a
+  BOARD-QUEUE candidate (needs 8 seeds + corners).

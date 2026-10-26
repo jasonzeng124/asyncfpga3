@@ -707,6 +707,11 @@ _FUSABLE_CHANS = {
 BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
 MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
 BDC_FASTFALL = compute.BDC_FASTFALL
+# Opt-in, default off: a fast fall on every bare bd_link's request line (RFAST)
+# and every bd_mux's output delay (FASTFALL).  Off emits the same text as
+# before, byte for byte.  rtl/bd_link.v RFAST says why it is safe and where it
+# is not (bd_pipe, bd_mem); verify/tighten.py rule F audits the drain.
+BDC_LINK_FASTFALL = os.environ.get("BDC_LINK_FASTFALL", "0") == "1"
 
 
 class _UnionFind:
@@ -2062,8 +2067,9 @@ class Emitter:
                 self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
                           f".DELAY({d}), .SDELAY({s}), .DACK({a})) {inst} (")
             else:
+                rf = ", .RFAST(1)" if BDC_LINK_FASTFALL else ""
                 self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d}), "
-                          f".DACK({a})) {inst} (")
+                          f".DACK({a}){rf}) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .req_in({self.oreq(ssa)}), .ack_in({self.oack(ssa)}), "
                       f".data_in({self.odata(ssa)}),")
@@ -2280,7 +2286,8 @@ class Emitter:
         d = self.delay(inst, compute.CELL_DELAY["wide"])
         if n == 2:
             # s = 0 picks x, so x is input 0 -- the order the index counts in.
-            self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+            ff = ", .FASTFALL(1)" if BDC_LINK_FASTFALL else ""
+            self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d}){ff}) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .x_req({self.req(ins[0])}), "
                       f".x_ack({self.ack(ins[0])}), .x_data({self.data(ins[0])}),")
@@ -2361,6 +2368,11 @@ class Emitter:
         controller's side and is never referenced here -- it exists only so
         the pre-pass could verify the round trip holds.
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         if len(node.operands) != 2:
             raise EmitError(
                 f"load at line {node.src_line} has {len(node.operands)} "
@@ -2396,6 +2408,11 @@ class Emitter:
         nothing downstream needs to know a store finished, so z is tied off
         exactly as bd_snk would (cells/rtl/bd_end.v: assign ack = req).
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         if len(node.operands) != 2:
             raise EmitError(
                 f"store at line {node.src_line} has {len(node.operands)} "
@@ -2438,6 +2455,11 @@ class Emitter:
         -- and where it deliberately stops rather than invent an unreviewed
         completion counter.
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         memend = node.results[-1]
         info = self.mc_info[memend]
         if info["inst"] != inst:

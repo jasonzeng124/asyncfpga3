@@ -49,6 +49,13 @@ D.  THE SELECT MUST BE STABLE BEFORE THE REQUEST THAT SAMPLES IT.  bd_steer
     structurally (see select_consumers), not by matching this design's
     instance names.
 
+F.  A FAST FALL IS A FLUSH.  A FASTFALL line's tail falls on its own side
+    tap, before the fall has rippled through; its next rise is matched only
+    if every stage has fallen by the time the handshake can bring the input
+    back up.  Every stage's latest fall against the tail's earliest fall
+    plus the shortest routed path from the tail back to the input.  No other
+    rule sees this: A, D and E all time the rise from a drained line.
+
 -- how a setup check is actually done ---------------------------------------
 
 Late signal on the SHORTEST path, early signal on the LONGEST.  A request that
@@ -528,6 +535,101 @@ def walk(edges, start, stops, longest, confine=None):
                         nxt.append(dst)
         frontier = nxt
     return best
+
+
+def shortest_to(edges, start, target, limit=200000):
+    """Shortest path from `start` to `target` over the WHOLE graph, through
+    state nodes and round cycles: a lower bound on how soon anything that
+    starts at `start` can cause `target` to move, since every causal chain is
+    one path in this graph.  None if `target` is unreachable."""
+    best, heap, n = {start: 0}, [(0, start)], 0
+    while heap:
+        t, pin = heapq.heappop(heap)
+        if pin == target:
+            return t
+        if t > best.get(pin, t):
+            continue
+        n += 1
+        if n > limit:
+            return None
+        for dst, d in edges.get(pin, ()):
+            if dst not in best or t + d < best[dst]:
+                best[dst] = t + d
+                heapq.heappush(heap, (t + d, dst))
+    return None
+
+
+def audit_fastfall(edges, back, chains, timing):
+    """Rule F (see main): -> [(base, links, t_flush, t_reuse, guard, margin)],
+    margin None (and t_flush a reason) when a line could not be traced."""
+    ffside = fastfall_side_arcs(edges)
+    side_by_base = defaultdict(list)
+    for (src, dst) in ffside:
+        m = RE_LINK.match(pin_split(dst)[0])
+        side_by_base[m.group("base")].append((src, dst))
+    arc_of = lambda a, b: max((d for x, d in edges.get(a, ()) if x == b),
+                              default=None)
+    inputs_of, output_of = defaultdict(list), {}
+    for p in set(edges) | set(back):
+        inst = pin_split(p)[0]
+        if not RE_LINK.match(inst):
+            continue
+        if is_output(p):
+            output_of[inst] = p
+        else:
+            inputs_of[inst].append(p)
+    rows = []
+    for base in sorted(side_by_base):
+        links = chains.get(base, [])
+        head, tail = chain_endpoints(edges, back, links)
+        srcs = {src for src, _ in side_by_base[base]}
+        if len(srcs) != 1 or head is None or tail is None:
+            rows.append((base, len(links), f"side taps from {len(srcs)} nets",
+                         None, None, None))
+            continue
+        src = next(iter(srcs))
+        late = timing.late(src)
+        fall = prev = None
+        t_flush = 0
+        for i, inst in enumerate(links):
+            ins = inputs_of.get(inst, ())
+            out = output_of.get(inst)
+            if out is None or not ins:
+                fall = None
+                break
+            cand = []
+            for ip in ins:
+                arc = arc_of(ip, out)
+                if arc is None:
+                    continue
+                for sp in back.get(ip, ()):
+                    if i > 0 and sp == prev:            # the ripple
+                        cand.append(fall + (arc_of(sp, ip) or 0) + arc)
+                    elif sp == src:                     # the side tap
+                        cand.append((arc_of(sp, ip) or 0) + arc)
+                    elif i == 0 and ip in late:         # the head's input
+                        cand.append(late[ip] + arc)
+            if not cand:
+                fall = None
+                break
+            # an AND falls on its EARLIER input; the head (LUT1) has one
+            fall, prev = min(cand), out
+            t_flush = max(t_flush, fall)
+        t_exit = timing.early_fall(src).get(tail)
+        if fall is None or t_exit is None:
+            rows.append((base, len(links), "chain not traceable in the SDF",
+                         None, None, None))
+            continue
+        t_back = shortest_to(edges, tail, src)
+        if t_back is None:
+            rows.append((base, len(links), "no path from the tail back to "
+                         "its input", None, None, None))
+            continue
+        t_reuse = t_exit + t_back
+        guard = req_guard(None, t_flush)
+        rows.append((base, len(links), t_flush, t_reuse, guard,
+                     t_reuse - t_flush - guard))
+    return rows
 
 
 def reaches(edges, start, stops):
@@ -1627,6 +1729,7 @@ def main():
     # line is the knob, and why a bd_pipe now carries one on every internal
     # boundary (SDELAY) instead of relying on the arc it cannot see.
     print()
+    ffside_all = fastfall_side_arcs(edges)
     print("I. the stage closes only after the data it holds has arrived")
     print("-" * 78)
     for ctl in controllers:
@@ -1702,8 +1805,13 @@ def main():
         margin, guard, t_close, t_data, up, dpin = worst
         knob = stage_delay_knob(up, ctl)
         n = len(chains.get(knob[1], ())) if knob else 0
-        # One added link delays the close by its rise AND its fall.
-        per = 2 * t_elem
+        # One added link delays the close by its rise AND its fall -- unless
+        # the line is FASTFALL (bd_link RFAST), whose fall is one hop whatever
+        # its length: then a link buys its rise only.
+        fast = knob is not None and any(
+            RE_LINK.match(pin_split(d)[0]).group("base") == knob[1]
+            for _, d in ffside_all)
+        per = (1 if fast else 2) * t_elem
         want = max(0, n - int(margin // per)) if margin >= 0 \
                else n + math.ceil(-margin / per)
         # Only a pipe's SDELAY is this rule's own knob.  A bare link's DELAY
@@ -1728,6 +1836,49 @@ def main():
               f"close {t_close:>5}  data {t_data:>5}  guard {guard:>4}  "
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<40} from {pin_split(up)[0]}, latest bit {dpin}")
+
+    # ------------------------------------------- F: a fast fall is a flush
+    # A FASTFALL line (bd_delay #(.FASTFALL(1)), bd_delay_gated) falls at its
+    # TAIL as soon as its own side tap sees the input fall -- it does not wait
+    # for the fall to ripple through.  Its next RISE is matched only if every
+    # stage has fallen by the time the input can rise again: a stage still
+    # high when the input returns lets the rise skip every link in front of
+    # it, and the next token's request outruns its data (or its select) with
+    # nothing in any static walk to show it -- rules A/D/E all measure the
+    # rise from a fully drained line.  The input cannot rise again before the
+    # tail's fall has reached the consumer and the consumer has answered: at
+    # least two LUT arcs (the consumer's node, then the producer's), no wire
+    # credited.  So: every stage's LATEST fall must come before the tail's
+    # EARLIEST fall plus two LUT arcs.  A stage falls on whichever of its two
+    # inputs falls first -- its own side tap or the stage before it -- so the
+    # latest fall is computed with that min, from the longest arcs.
+    f_rows = audit_fastfall(edges, back, chains, timing)
+    if f_rows:
+        print()
+        print("F. a fast-fall line is flushed before its input can rise again")
+        print("-" * 78)
+    f_worst = None
+    for base, n, t_flush, t_reuse, guard, margin in f_rows:
+        if margin is None:
+            print(f"  {base:<40} {t_flush} -- not audited")
+            problems += 1
+            continue
+        if f_worst is None or margin < f_worst[0]:
+            f_worst = (margin, base)
+        if margin < 0:
+            problems += 1
+            print(f"  {base:<40} {n:>2} links   flushed {t_flush:>5}  "
+                  f"reusable {t_reuse:>5}  guard {guard:>4}  margin {margin:>6}   "
+                  f"VIOLATION")
+    for base, n, t_flush, t_reuse, guard, margin in sorted(
+            (r for r in f_rows if r[-1] is not None and r[-1] >= 0),
+            key=lambda r: r[-1])[:3]:
+        print(f"  {base:<40} {n:>2} links   flushed {t_flush:>5}  "
+              f"reusable {t_reuse:>5}  guard {guard:>4}  margin {margin:>6}   ok")
+    if f_rows:
+        print(f"  {len(f_rows)} fast-fall lines audited; worst margin "
+              f"{f_worst[0] if f_worst else 'n/a'} ps"
+              f"{(' (' + f_worst[1] + ')') if f_worst else ''}")
 
     # ------------------------------------------------- L: the load rule (dc)
     # bd_link_dc only.  Its latch is transparent between tokens and the next

@@ -218,7 +218,7 @@ endmodule
 // -- one pipeline stage: controller + latch -------- 1 LUT + W/2 LUTs -------
 module bd_link #(parameter W = 8, parameter integer DELAY = 0,
                  parameter integer DACK = 0, parameter BROAD = 1,
-                 parameter integer LDN = 0)
+                 parameter integer LDN = 0, parameter RFAST = 0)
     (input  wire             rst,
      input  wire             req_in,
      output wire             ack_in,
@@ -244,7 +244,21 @@ module bd_link #(parameter W = 8, parameter integer DELAY = 0,
     // The node drives three things.  req_out may need padding at an
     // edge-sampling boundary; ack_in may need its fall held back until the
     // enable has reached every latch bit.  Both default to the bare node.
-    bd_delay #(.N(DELAY)) rdly (.a(c), .z(req_out));
+    //
+    // RFAST (default 0: the line above is unchanged, and so is every netlist
+    // built without it) makes rdly a FASTFALL line: the request still rises
+    // through DELAY hops, and falls one hop after c.  Why the fall carries no
+    // obligation here: every consumer's data hold ends at an acknowledge
+    // fall, and every acknowledge fall in this library is caused by the
+    // consumer's own node falling AFTER this request fell -- so an earlier
+    // request fall moves only events that already wait for it.  The one
+    // place a request's fall is load-bearing is a stage closing on data
+    // still rippling in (rule I), and rule I times the fall through the side
+    // taps.  Not for an edge-sampling consumer (bd_mem), and not inside
+    // bd_pipe, whose SDELAY exists to delay exactly that close.  The next
+    // token's rise is matched only if the whole line has drained first:
+    // verify/tighten.py rule F.  bdc/emit.py sets it under BDC_LINK_FASTFALL=1.
+    bd_delay #(.N(DELAY), .FASTFALL(RFAST)) rdly (.a(c), .z(req_out));
     bd_delay #(.N(DACK), .FASTRISE(1)) uack (.a(c), .z(ack_in));
 `endif
 endmodule
