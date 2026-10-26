@@ -81,8 +81,8 @@ What it would mean:
 
 Evidence (JOURNAL 2026-10-26 04:13 session): rules E (with C-node launches)/A/H/I/J 0 violations on
 seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement validity check); routed GLS
-16/16 errs=0 at nominal, x0.9 and x1.1 on d, 3, 7, 9 (vec 6 nominal: 47 / 42 / 48 / 48 laps vs 24-26
-unsized), gate clean on each. Its predecessor R2 (same compute sizes, fewer select pads) passed
+16/16 errs=0 at nominal, x0.9 and x1.1 on d, 3, 5, 6, 7, 9 (vec 6 nominal: 47 / 42 / 49 / 50 / 48 / 48
+laps vs 24-26 unsized), gate clean on each. Its predecessor R2 (same compute sizes, fewer select pads) passed
 nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
 
 ## Owner-side check, not a board experiment (cheap, still useful)

@@ -882,3 +882,8 @@ Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to en
   explained by this: two gen.py runs, nominal and x1.1, writing the same annot.sdf). Seed 6 is being rerun in a
   fresh worktree. The duplicate ipow loop was killed; the surviving loop redoes pass 3 from T3 (same inputs).
   Rule kept: after a restart notice, check `ps` before restarting anything.
+### progress 18:46 (R5 routed GLS on 6 seeds)
+- R5 seed 6 rerun in a fresh worktree: every audit clean, gate clean, 16/16 at nominal (vec 6 50 laps), x0.9,
+  x1.1. R5 now: every audit clean on 8 placed routes; routed GLS nominal + both corners 16/16 on 6 (d, 3, 5,
+  6, 7, 9). BOARD-QUEUE #2 updated.
+- ipow ratchet pass 3: rules A+E clean on seeds 1, 5, 6, 7; A <= 2 and E <= 4 elsewhere; pass 4 running.
