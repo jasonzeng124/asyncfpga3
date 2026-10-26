@@ -959,3 +959,5 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   closed gcd (r1/R2); validating on fresh seeds 29-36.
 - gcd_hw R5 with BD_RLOC_ARB=1, default seed: every audit clean, GLS 16/16, laps vec 6 47 (ungrouped 47), x0.9
   16/16. No speedup on gcd (isprime's gain came from its long A0 nets). Seed 3 running.
+- gcd_hw R5 + BD_RLOC_ARB=1: seeds d and 3 every audit clean, GLS 16/16 (d also x0.9/x1.1); vec 6 laps 47 / 46
+  vs ungrouped 47 / 42. Two seeds, within route scatter: no demonstrated speedup on gcd; not pursued.
