@@ -50,19 +50,18 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
-**ON HOLD (2026-10-26 ~18:30): the stricter rule E (skew.py C-node launches, commit after 5ca2053) flags
-R2 seeds 2 and 6 (3 bd_steer gates each, raw +2.3..+3.9 ns, guarded -10..-520 ps). Do not run until a
-successor (R3, padded for those asks) passes every audit on 8 seeds; this entry will be replaced.**
-
-## 2. gcd_hw with route-measured matched-delay sizes (R2) -- ~2.0x laps in routed GLS, every audit and routed GLS clean on 8 seeds
-Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R2.vh`
-(207 sizes; 199.9 ns of matched delay built per route, against 547.7 ns at bdc/emit.py's estimate).
+## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS, every audit clean on 8 routes
+Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R5.vh`
+(220 sizes). History: R2 passed every audit on 8 seeds until rule E learned to launch from the select's
+feeding-link C node (69ee32b), which flagged R2 on 2 seeds; R3/R4 padded the asks route by route; R5 adds
+`skew.py --slack 500` asks over R4's 8 routes, i.e. every select link with less than +500 ps guarded on any
+route was padded to reach it.
 Branch claude/research. No bitstream is committed (owner, 2026-10-25); build it in the cloud toolchain
 (nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62). The default-seed build's md5s were
-bit f3caefef, routed.json f51f2bf9, sdf 885b619f; check yours with md5sum before trusting the run:
+bit ce596deb, routed.json 7be3c1cf, sdf a9c4e265; check yours with md5sum before trusting the run:
 
     cd cells
-    BD_SIZES=../research/data/gcd_hw_sizes_R2.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
+    BD_SIZES=../research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
     md5sum build/hw/gcd_hw/gcd_hw.bit build/hw/gcd_hw/gcd_hw_routed.json build/hw/gcd_hw/gcd_hw.sdf
     hw/board.sh python3 hw/gcd_measure.py --program
     sleep 60
@@ -70,23 +69,21 @@ bit f3caefef, routed.json f51f2bf9, sdf 885b619f; check yours with md5sum before
 
 Pass (self-reporting): `PASS -- all vectors correct, err_sticky=0x0000, ok_sticky=0xFFFF.` and exit 0.
 Speed (secondary, only meaningful after a PASS): gcd_measure.py's per-vector latency in housekeeping
-cycles per completed gcd; run #1's bitstream the same way and compare. Routed GLS predicts R2 at about
-0.51x of #1's latency on the loop vectors (6, 12, 13). The housekeeping ring is placed per route, so
+cycles per completed gcd; run #1's bitstream the same way and compare. Routed GLS predicts R5 at about
+0.5x of #1's latency on the loop vectors (6, 12, 13). The housekeeping ring is placed per route, so
 compare ratios across vectors, not absolute cycles.
 
 What it would mean:
-- PASS and ~2x: route-measured sizing of a compiled kernel's matched delays is safe and pays on silicon
-  for gcd, as rule-A-only sizing did for xorshift in August (1.99x).
-- PASS with no speedup: the matched delays are not on silicon's critical cycle (the GLS's flat cell arcs
-  overstate them); still safe.
-- FAIL while #1 passes: a too-short delay that rules A/E/H/I/J and corner GLS on 8 routes did not see --
-  the most important possible result; send the full gcd_measure.py output.
+- PASS and ~2x: route-measured sizing of a compiled kernel's matched delays is safe and pays on silicon.
+- PASS with no speedup: the matched delays are not on silicon's critical cycle; still safe.
+- FAIL while #1 passes: a too-short delay that rules A/E/H/I/J and corner GLS did not see -- the most
+  important possible result; send the full gcd_measure.py output.
 
-Evidence (JOURNAL 2026-10-26 04:13 session): rules E/A/H/I/J 0 violations on seeds d, 2-8, worst
-guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 at nominal on all 8
-seeds and at x0.9/x1.1 on all 8 too (gate clean on each); per-arc scatter to 25% 16/16 on two routes.
-Laps: vec 6 mean 49.5 (47-54) vs 24-26 unsized. Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
-1 link of headroom per cell, because sizes accepted on 3 seeds failed rule A on a 4th.
+Evidence (JOURNAL 2026-10-26 04:13 session): rules E (with C-node launches)/A/H/I/J 0 violations on
+seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement validity check); routed GLS
+16/16 errs=0 at nominal on d, 3, 7, 9 (vec 6: 47 / 42 / 48 / 48 laps vs 24-26 unsized) and at x0.9 and
+x1.1 on d and 7, gate clean on each. Its predecessor R2 (same compute sizes, fewer select pads) passed
+nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

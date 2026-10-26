@@ -786,3 +786,9 @@ Subagent round 6, reviewed:
   suffices for gcd_hw and the 2-arbiter kernels; isprime has a systematic guardband tail. Candidate fix is
   placement (BD_RLOC_ARB=1 grouping, which flow.sh cannot enable today); note that on gcd_hw (2026-10-26
   00:50) grouping changed the worst rule J margin by +8 ps only, because A0 itself comes from far away.
+### progress 04:20 (BOARD-QUEUE #2 is now R5)
+- R5 routed GLS: d, 3, 7, 9 16/16 at nominal (vec 6: 47, 42, 48, 48 laps), d and 7 also x0.9/x1.1 16/16.
+  BOARD-QUEUE #2 rewritten for R5 (rebuild command, md5s ce596deb / 7be3c1cf / a9c4e265). Seeds 5, 6 GLS
+  still running.
+- ipow ratchet: placeholder + rule E pads are already clean on 8/8 (it0); T1 = pads + it0's tightened
+  proposals, running.
