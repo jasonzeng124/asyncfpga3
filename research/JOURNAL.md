@@ -634,3 +634,7 @@ r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
   x0.9 and x1.1: 16/16 each. R2 now has nominal routed GLS on 4 seeds and corners on 3, every audit on 8:
   BOARD-QUEUE #2 written (rebuild command + md5s, no bitstream committed). Seeds 4/6 GLS and corners on 5
   still running.
+### progress 14:30 (R2: routed GLS + corners on 6 seeds)
+- R2 seeds 4, 5, 6: gate clean, nominal 16/16 (vec 6: 48 / 53 / 54 laps; vec 12: 39 / 43 / 44), x0.9
+  16/16, x1.1 16/16. **R2 now passes nominal, x0.9 and x1.1 routed GLS on 6 seeds (d, 2-6)**, every audit
+  on 8. Running: seeds 7, 8; per-arc scatter (8.5% x2, 17% x2, 25% x1) on the R2 default-seed route.

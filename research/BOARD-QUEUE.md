@@ -79,8 +79,8 @@ What it would mean:
   the most important possible result; send the full gcd_measure.py output.
 
 Evidence (JOURNAL 2026-10-26 04:13 session): rules E/A/H/I/J 0 violations on seeds d, 2-8, worst
-guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 on seeds d, 2, 3, 5 (gate clean on
-each), x0.9 and x1.1 16/16 on d, 2, 3. Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
+guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 at nominal, x0.9
+and x1.1 on seeds d, 2-6 (gate clean on each). Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
 1 link of headroom per cell, because sizes accepted on 3 seeds failed rule A on a 4th.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
