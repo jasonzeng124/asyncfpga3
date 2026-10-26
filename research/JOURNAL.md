@@ -870,3 +870,8 @@ Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to en
   late read (isprime 0x80000000) and checks that it fails.
 - Not reproducible without the board: the gcd_hw sweep stale-result (settle window) and the cmpb probe's stale
   operands (an instrument's silicon timing; the probe no longer exists with fusion on).
+- Anomaly, R5 seed 6 GLS: the first `vvp gate.vvp` printed 4 SDF errors ("Invalid/malformed IOPATH" at
+  annot.sdf:94016, "Too many errors"); a rerun on the identical files (routed.json/sdf md5 = the route's,
+  annot.sdf unchanged since its write at 17:22) gives ANNOTATE_DONE with 0 warnings/errors. Most likely the
+  first gate read the file before it was completely on disk (this was right after the container restart). The
+  vector runs use netlist_baked.v from the same gen.py run, so they stand; flagged here in case it recurs.
