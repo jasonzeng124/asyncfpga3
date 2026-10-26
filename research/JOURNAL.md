@@ -436,3 +436,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   ratcheting, as the loop expects on its first pass.
 - Seeds 5 and 6 (pads 13/14/13) rebuilt: rule E 0/118, A/H/I 0, rule J pass, as in the last
   session. GLS (nominal, x0.9, x1.1) running; then seeds 7, 8.
+### progress 05:00 (gcd_hw seeds 5/6 GLS; sizing loop reaches rule A 0 on its route)
+- Seeds 5, 6 (pads 13/14/13): GLS gate ANNOTATE_DONE, 0 SDF warnings/errors; **16/16 vectors,
+  errs=0, laps>0 on both** (vec 6: 24/24 laps, vec 12: 19/18, vec 13: 28/27 per 150 us, in line with
+  d/2/3/4). So 6 of 8 seeds now have nominal GLS. x0.9/x1.1 on them and seeds 7/8 running.
+- gcd_hw sizing: rule A violations per pass 54, 7, 5, 0. Pass 4 on the default seed: **163.8 ns
+  built (unsized 547.7 ns, 3.3x less), rule A 0**. It is now being rebuilt under seeds 2 and 3
+  (BD_TIGHTEN_SEEDS) before it counts as a candidate.
