@@ -648,3 +648,16 @@ r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
   are generous (e.g. uaddi0 80 links, "tighten to 24"). Running a ratchet over seeds 1-4 (per-cell max of
   every route's proposal, never below the rule E pads) until rules A and E are clean on all four; then
   fresh seeds with headroom, as for gcd_hw.
+### progress 16:50 (R2: routed GLS 16/16 on all 8 seeds, ~2.0x)
+| laps per 150 us GLS window | R2, seeds d,2,3,4,5,6,7,8 | mean | unsized (seeds d,2-8) | ratio of means |
+|---|---|---|---|---|
+| vec 6 (gcd.c's pair) | 47 48 48 48 53 54 50 48 | 49.5 | 24-26 (seeds 5-8: 24 24 25 24) | ~2.0x |
+| vec 12 (2^31-1, 2) | 38 38 39 39 43 44 40 39 | 40.0 | 18-20 | ~2.1x |
+| vec 13 (1000000, 999999) | 55 57 55 56 61 64 59 56 | 57.9 | 27-29 | ~2.1x |
+Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every R2 route: gate clean,
+16/16 errs=0. x0.9/x1.1 16/16 on d, 2-7 (seed 8 corners running). Scatter on R2 d: 8.5% x2, 17% x2, 20% x2,
+25% x1 all 16/16; seed 2: 8.5% x2, 17% x2, 25% x1 all 16/16.
+- collatz sizing ratchet (seeds 1-4): pass 1 latency 0.52-0.55x of the padded build on every vector and
+  seed (GLS passes) but rule A 3-4 per seed; pass 2 rule A 1-3; pass 3 rule A 1-3 and rule E 1-2 (shorter
+  compute chains make requests earlier, so the select pads must grow): the merge now also takes skew.py's
+  fix asks (current + ask + 1). Continuing.

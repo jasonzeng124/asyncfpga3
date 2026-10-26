@@ -50,7 +50,7 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
-## 2. gcd_hw with route-measured matched-delay sizes (R2) -- ~1.95x laps in routed GLS, every audit clean on 8 seeds
+## 2. gcd_hw with route-measured matched-delay sizes (R2) -- ~2.0x laps in routed GLS, every audit and routed GLS clean on 8 seeds
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R2.vh`
 (207 sizes; 199.9 ns of matched delay built per route, against 547.7 ns at bdc/emit.py's estimate).
 Branch claude/research. No bitstream is committed (owner, 2026-10-25); build it in the cloud toolchain
@@ -79,8 +79,9 @@ What it would mean:
   the most important possible result; send the full gcd_measure.py output.
 
 Evidence (JOURNAL 2026-10-26 04:13 session): rules E/A/H/I/J 0 violations on seeds d, 2-8, worst
-guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 at nominal, x0.9
-and x1.1 on seeds d, 2-6 (gate clean on each). Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
+guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 at nominal on all 8
+seeds and at x0.9/x1.1 on d, 2-7 (gate clean on each); per-arc scatter to 25% 16/16 on two routes.
+Laps: vec 6 mean 49.5 (47-54) vs 24-26 unsized. Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
 1 link of headroom per cell, because sizes accepted on 3 seeds failed rule A on a 4th.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
