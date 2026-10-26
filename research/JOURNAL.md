@@ -629,3 +629,8 @@ r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
   cand[:4], and the 32-bit latch bank alone supplies 64 zero-crossing candidates (C node is #96 of 2061).
   The error direction is a FALSE violation (conservative). Fix candidate: always evaluate the C node of
   the select's feeding link; needs a negative control showing rule E can still fail there.
+### progress 13:20 (R2 -> BOARD-QUEUE #2)
+- R2 seed 5 routed GLS: gate clean, 16/16 (vec 6 53 laps, vec 12 43, vec 13 61). R2 seed d, 2, 3 at
+  x0.9 and x1.1: 16/16 each. R2 now has nominal routed GLS on 4 seeds and corners on 3, every audit on 8:
+  BOARD-QUEUE #2 written (rebuild command + md5s, no bitstream committed). Seeds 4/6 GLS and corners on 5
+  still running.

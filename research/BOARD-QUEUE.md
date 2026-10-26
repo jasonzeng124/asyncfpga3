@@ -50,6 +50,39 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
+## 2. gcd_hw with route-measured matched-delay sizes (R2) -- ~1.95x laps in routed GLS, every audit clean on 8 seeds
+Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R2.vh`
+(207 sizes; 199.9 ns of matched delay built per route, against 547.7 ns at bdc/emit.py's estimate).
+Branch claude/research. No bitstream is committed (owner, 2026-10-25); build it in the cloud toolchain
+(nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62). The default-seed build's md5s were
+bit f3caefef, routed.json f51f2bf9, sdf 885b619f; check yours with md5sum before trusting the run:
+
+    cd cells
+    BD_SIZES=../research/data/gcd_hw_sizes_R2.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
+    md5sum build/hw/gcd_hw/gcd_hw.bit build/hw/gcd_hw/gcd_hw_routed.json build/hw/gcd_hw/gcd_hw.sdf
+    hw/board.sh python3 hw/gcd_measure.py --program
+    sleep 60
+    hw/board.sh python3 hw/gcd_measure.py; echo "exit $?"
+
+Pass (self-reporting): `PASS -- all vectors correct, err_sticky=0x0000, ok_sticky=0xFFFF.` and exit 0.
+Speed (secondary, only meaningful after a PASS): gcd_measure.py's per-vector latency in housekeeping
+cycles per completed gcd; run #1's bitstream the same way and compare. Routed GLS predicts R2 at about
+0.51x of #1's latency on the loop vectors (6, 12, 13). The housekeeping ring is placed per route, so
+compare ratios across vectors, not absolute cycles.
+
+What it would mean:
+- PASS and ~2x: route-measured sizing of a compiled kernel's matched delays is safe and pays on silicon
+  for gcd, as rule-A-only sizing did for xorshift in August (1.99x).
+- PASS with no speedup: the matched delays are not on silicon's critical cycle (the GLS's flat cell arcs
+  overstate them); still safe.
+- FAIL while #1 passes: a too-short delay that rules A/E/H/I/J and corner GLS on 8 routes did not see --
+  the most important possible result; send the full gcd_measure.py output.
+
+Evidence (JOURNAL 2026-10-26 04:13 session): rules E/A/H/I/J 0 violations on seeds d, 2-8, worst
+guarded rule A margin +190 ps (seed 2); routed GLS 16/16 errs=0 on seeds d, 2, 3, 5 (gate clean on
+each), x0.9 and x1.1 16/16 on d, 2, 3. Sizes derived by hw/tighten_loop.sh gcd_hw over fresh seeds plus
+1 link of headroom per cell, because sizes accepted on 3 seeds failed rule A on a 4th.
+
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
 yosys 0.62 maps soak_top's two 8-input functions to MUXF7/MUXF8, and rloc_stamp gave their LUTs
