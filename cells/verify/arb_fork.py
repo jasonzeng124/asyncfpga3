@@ -23,9 +23,13 @@ For each arbiter and each client k, from A0's driver:
           + q -> ugrant_k (interconnect) + ugrant_k's q-pin arc
           + g_k -> ua_k (interconnect) + ua_k's g_k-pin arc
 
-and the guarded margin is GUARD_LO*early - GUARD_HI*late (skew.py's
-constants; the two legs share only A0's driver, so nothing is credited as
-common).  It must be > 0.  rst is told from A0 by fanout: both reach ustate
+and the guarded margin is GUARD_LO*(early - c) - GUARD_HI*(late - c) (skew.py's
+constants), where c is the part of A0's route the two branches share: one
+physical wire cannot run fast on one leg and slow on the other, the same
+reasoning as skew.py's divergence point.  The routed JSON gives each net's
+route tree (ROUTING) but not per-pip delays, so c is an ESTIMATE: for each of
+the two sinks, its interconnect delay times the fraction of its pips that lie on
+the shared prefix, and the smaller of the two.  It must be > 0.  rst is told from A0 by fanout: both reach ustate
 and ua_k, and rst reaches far more cells.
 
 Exit status 1 on any violation, 2 if an arbiter cannot be resolved (a gap,
@@ -67,6 +71,51 @@ def main(argv):
         if m and inst:
             io[(inst, m.group(1), m.group(2))] = int(m.group(3))
 
+    routes = {}
+    for nn in top[0]["netnames"].values():
+        r = nn.get("attributes", {}).get("ROUTING")
+        if r and nn["bits"]:
+            routes.setdefault(nn["bits"][0], r)
+
+    def path_to(bit, cn):
+        """Wires from the net's source to the input of cell `cn`, source first.
+        The route names PHYSICAL LUT pins (after nextpnr's pin permutation),
+        the cell's connections logical ones, so the sink is found as the one
+        site wire of this net on the cell's own LUT (site + letter)."""
+        r = routes.get(bit)
+        bel = cells[cn]["attributes"].get("NEXTPNR_BEL", "")
+        if r is None or "/" not in bel:
+            return None
+        site, lut = bel.split("/")
+        sink = re.compile(r"^SITEWIRE/%s/%s[1-6]$" % (re.escape(site), lut[0]))
+        f = r.split(";")
+        parent = {}
+        for i in range(0, len(f) - 2, 3):
+            w, pip = f[i], f[i + 1]
+            parent[w] = pip.split("->")[0] if "->" in pip else None
+        hits = [w for w in parent if sink.match(w)]
+        if len(hits) != 1:
+            return None
+        out, w, seen = [], hits[0], set()
+        while w is not None and w not in seen:
+            seen.add(w)
+            out.append(w)
+            w = parent.get(w)
+        return out[::-1]
+
+    def shared_ps(bit, sink_a, d_a, sink_b, d_b):
+        pa, pb = path_to(bit, sink_a[0]), path_to(bit, sink_b[0])
+        if not pa or not pb:
+            return 0
+        n = 0
+        for x, y in zip(pa, pb):
+            if x != y:
+                break
+            n += 1
+        hops_a, hops_b = max(len(pa) - 1, 1), max(len(pb) - 1, 1)
+        shared = max(n - 1, 0)
+        return int(min(d_a * shared / hops_a, d_b * shared / hops_b))
+
     driver, fanout = {}, collections.Counter()
     for cn, c in cells.items():
         for p, d in c.get("port_directions", {}).items():
@@ -90,7 +139,8 @@ def main(argv):
 
     arbs = sorted(cn[:-len(".ustate$LUT6")] for cn in cells if cn.endswith(".ustate$LUT6"))
     print(f"rule J       {sdf}")
-    print(f"             {len(arbs)} bd_arbiter(s); guardband {GUARD_LO}*early vs {GUARD_HI}*late")
+    print(f"             {len(arbs)} bd_arbiter(s); guardband {GUARD_LO}*early vs {GUARD_HI}*late "
+          f"past the shared part of A0's route")
     bad = gaps = 0
     for a in arbs:
         st = a + ".ustate$LUT6"
@@ -112,19 +162,21 @@ def main(argv):
                 ua_g = next(p for p, b in pu.items() if b == g)
                 st_a0 = next(p for p, b in ps.items() if b == a0)
                 g_q = next(p for p, b in pg.items() if b == q)
-                late = ic[(src, f"{ua}/{ua_a0}")] + io[(ua, ua_a0, "O6")]
-                early = (ic[(src, f"{st}/{st_a0}")] + io[(st, st_a0, "O6")]
+                d_ua, d_st = ic[(src, f"{ua}/{ua_a0}")], ic[(src, f"{st}/{st_a0}")]
+                c = shared_ps(a0, (ua, ua_a0), d_ua, (st, st_a0), d_st)
+                late = d_ua + io[(ua, ua_a0, "O6")]
+                early = (d_st + io[(st, st_a0, "O6")]
                          + ic[(f"{st}/O6", f"{gcell}/{g_q}")] + io[(gcell, g_q, gport)]
                          + ic[(f"{gcell}/{gport}", f"{ua}/{ua_g}")] + io[(ua, ua_g, "O6")])
             except (KeyError, StopIteration, ValueError) as e:
                 print(f"  {a} client {k}: NOT RESOLVED ({type(e).__name__} {e}) -- a gap, not a pass")
                 gaps += 1
                 continue
-            margin = int(GUARD_LO * early - GUARD_HI * late)
+            margin = int(GUARD_LO * (early - c) - GUARD_HI * (late - c))
             ok = margin > 0
             bad += not ok
             print(f"  {'ok      ' if ok else 'VIOLATED'} {a} client {k}: A0 late {late} ps, "
-                  f"grant early {early} ps, raw {early - late:+d}, guarded {margin:+d}")
+                  f"grant early {early} ps, shared {c} ps, raw {early - late:+d}, guarded {margin:+d}")
     if bad:
         print(f"\n  {bad} arbiter handover(s) can acknowledge a client before the server "
               f"has begun its transaction.")

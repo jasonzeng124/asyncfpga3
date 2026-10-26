@@ -312,3 +312,28 @@ compute chains, which `build_bench.sh gcd` could not do stably).
   (rloc_stamp) so A0's branches into them are near-equal and the grant path decides. Then rule J
   and GLS again on 8 seeds. An rtl alternative (hold q on the acks rather than A0) does not work
   as such: the idle client's ack does not change when A0 falls, so it cannot be observed.
+### progress 00:50 (rule J with shared route credit; arbiter grouping measured, rejected)
+- `BD_RLOC_ARB=1` (one SLICE per arbiter), 8 seeds, pads 13/14/13: rules A/E/H/I 0 on all eight.
+  Rule J WITHOUT a shared-route credit: still short on 3 of 8 (d -288, 7 -198, 8 -102). Packing
+  the four LUTs into one slice does not shorten A0, which comes from far away (merge9's arbiter
+  sits at X2, the die edge). Most of each branch is the same wire.
+- The flaw was in rule J, not the route: it guarded each leg's full A0 interconnect (x0.772 vs
+  x1.155) as if the branches were independent wires. arb_fork.py now walks each net's ROUTING
+  tree to where the two sinks diverge (physical site pins, since the route is post-permutation)
+  and leaves the shared prefix unguarded, like skew.py's divergence point. Its delay is an
+  ESTIMATE (each sink's interconnect times its shared-pip fraction, the smaller of the two),
+  because the routed JSON has no per-pip delays.
+- Validation still holds: draw-1 scatter -> guarded -1698 (GLS deadlock); ua2 x2.5 -> -1516
+  (deadlock); ua2 x1.6 -> -267 (GLS passes; flagged, conservative); nominal -> pass.
+
+| rule J, 8 seeds each | violated | worst guarded | worst raw |
+|---|---|---|---|
+| v4, pads 13/14/13 (BOARD-QUEUE #1 config) | 0/8 | +272 (seed 6) | +718 |
+| same + BD_RLOC_ARB=1 | 0/8 | +280 (seed 6) | +618 |
+
+  Grouping buys nothing, so it stays opt-in and off. BOARD-QUEUE #1 is restored with that caveat.
+- What the sigma-25% deadlock was: gen.py's scatter draws one factor per SINK interconnect,
+  so two sinks sharing 0.6-1.1 ns of one physical wire get independent factors. The deadlock
+  needed A0's two branches to diverge by ~1.6 ns. A per-wire scatter model would be more
+  physical, and is the next improvement to the GLS perturbation (it needs per-pip delays,
+  which the SDF does not have).

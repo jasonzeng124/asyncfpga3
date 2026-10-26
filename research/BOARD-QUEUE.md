@@ -5,11 +5,10 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 4 seeds
-**DOWNGRADED 2026-10-26: fails rule J (verify/arb_fork.py, new) on this exact route**:
-ucontrol_merge9's arbiter, client 1, raw +1331 ps but guarded -96 ps (A0's fork to the ack
-C-element vs the grant it unlocks; see JOURNAL "the first margin to fail under scatter"). Raw is
-positive on all 8 routes and GLS passes, but 3 of 8 routes are short under the guardband. Do not
-treat this entry as having passed every check until a route passes rule J too.
+**Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
+(8 seeds: worst +272, raw >= +718). That counts the part of A0's route its branches share as
+common, and that part is an ESTIMATE (pip-count fraction; the routed JSON has no per-pip delays).
+Without that credit, 3 of 8 routes came out short. See JOURNAL 2026-10-25 "rule J".
 
 Branch claude/research. Bitstream: `research/board/gcd_hw_03e82630.bit`
 (sha256 03e82630dcf5c453b40121cdaf86eae0cc79c6c65a69ba1bfa0c83e402141196; the route with
