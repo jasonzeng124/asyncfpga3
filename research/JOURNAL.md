@@ -566,3 +566,21 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
   (unsized, 8 seeds: vec 6 24-26, vec 12 18-20, vec 13 27-29), i.e. **~2.1x**.
 - R2 (= max(L7, r1)): rules E/A/H/I/J clean on seeds d, 2, 3, 4, 5 so far. Queued: R2 routed GLS
   (nominal, x0.9, x1.1) on seeds d, 2, 3, 4, 5, 6.
+### progress 10:50 (R2 sizes: every audit clean on 8/8 seeds)
+`BD_SIZES=research/data/gcd_hw_sizes_R2.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4
+[NEXTPNR_SEED=s] hw/build_hw.sh gcd_hw`, seeds d and 2-8:
+
+| seed | rule E /118 | A | H | I | J | matched delay built | worst rule-A guarded margin |
+|---|---|---|---|---|---|---|---|
+| d | 0 | 0 | 0 | 0 | pass | 200.2 ns | +918 ps |
+| 2 | 0 | 0 | 0 | 0 | pass | 200.1 | +190 |
+| 3 | 0 | 0 | 0 | 0 | pass | 200.9 | +769 |
+| 4 | 0 | 0 | 0 | 0 | pass | 200.5 | +253 |
+| 5 | 0 | 0 | 0 | 0 | pass | 198.6 | +916 |
+| 6 | 0 | 0 | 0 | 0 | pass | 200.1 | +1051 |
+| 7 | 0 | 0 | 0 | 0 | pass | 199.4 | +400 |
+| 8 | 0 | 0 | 0 | 0 | pass | 199.4 | +241 |
+
+Mean 199.9 ns of matched delay (unsized 547.7 ns on the same pads: 2.74x less); worst seed's worst
+margin +190 ps after the guardband. r1 (one link less on uori4) also passed x0.9 on d and 3. R2 routed
+GLS (nominal + corners) running on d, 2, 3 first, then 4, 5, 6.
