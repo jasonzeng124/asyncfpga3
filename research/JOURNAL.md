@@ -560,3 +560,9 @@ What stops it shipping is the route-sensitivity long tail: each fresh route find
   **R2 = max(L7, r1) per cell** (research/data/gcd_hw_sizes_R2.vh) is the shipping candidate; its 8-seed
   audit is running. GLS of r1 on d/2/3/4 is running (r1 and R2 differ by one link on one cell, but a
   netlist change is a new route, so R2 gets its own GLS).
+### progress 10:20 (r1 in routed GLS: 16/16 at ~2.1x; R2 audits 5/8 clean so far)
+- r1 sizes, routed GLS nominal, seeds d and 3: gate clean, **16/16 vectors errs=0** on both.
+  laps per 150 us: vec 0 4603/4872, vec 4 653/684, vec 6 51/52, vec 12 41/41, vec 13 59/61
+  (unsized, 8 seeds: vec 6 24-26, vec 12 18-20, vec 13 27-29), i.e. **~2.1x**.
+- R2 (= max(L7, r1)): rules E/A/H/I/J clean on seeds d, 2, 3, 4, 5 so far. Queued: R2 routed GLS
+  (nominal, x0.9, x1.1) on seeds d, 2, 3, 4, 5, 6.
