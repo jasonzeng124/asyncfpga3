@@ -182,6 +182,14 @@ def unesc(s):
 #                          0.9 fast, 1.1 slow)
 #   GLS_SCATTER=sigma      then each arc independently times (1 + sigma*N(0,1)),
 #                          clamped at 0; GLS_SCATTER_SEED picks the draw.
+#   GLS_SCATTER_MODE=wire  instead, every PIP of the route gets one factor
+#                          (a stable hash of seed and pip name), and each
+#                          interconnect arc is scaled by the mean factor of the
+#                          pips on its own path -- so sinks that share a wire
+#                          share its scatter, and sigma 0 is still exact.  The
+#                          SDF has no per-pip delays, hence the mean.  Arcs
+#                          whose route sink cannot be found fall back to one
+#                          draw each, and are counted.
 #   GLS_SCATTER_ONLY=prefix[,prefix...]
 #                          apply the scatter only to arcs of instances with one
 #                          of these prefixes; every arc still draws its factor,
@@ -221,6 +229,89 @@ def perturb(ps, inst=""):
     return max(0, int(round(ps * f)))
 
 
+SCATTER_MODE = os.environ.get("GLS_SCATTER_MODE", "arc")
+n_wire = n_wire_fallback = 0
+
+
+class WireModel:
+    def __init__(self, json_path, sigma, seed):
+        top = json.load(open(json_path))["modules"]["top"]
+        self.cells = top["cells"]
+        self.routes = {}
+        for nn in top["netnames"].values():
+            r = nn.get("attributes", {}).get("ROUTING")
+            if r and nn["bits"]:
+                self.routes.setdefault(nn["bits"][0], r)
+        self.parents = {}
+        self.sigma, self.seed = sigma, seed
+
+    def pip_factor(self, pip):
+        import hashlib, math
+        h = hashlib.md5(("%s:%s" % (self.seed, pip)).encode()).digest()
+        u1 = (int.from_bytes(h[:8], "big") + 1) / 2.0 ** 64
+        u2 = int.from_bytes(h[8:], "big") / 2.0 ** 64
+        return 1 + self.sigma * math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+
+    def parent(self, bit):
+        if bit not in self.parents:
+            f = self.routes[bit].split(";")
+            self.parents[bit] = {f[i]: f[i + 1] for i in range(0, len(f) - 2, 3)}
+        return self.parents[bit]
+
+    def factor(self, dst):
+        cell, _, pin = dst.rpartition("/")
+        c = self.cells.get(cell)
+        if c is None or pin not in c["connections"]:
+            return None
+        bit = c["connections"][pin][0]
+        if bit not in self.routes:
+            return None
+        par = self.parent(bit)
+        bel = c["attributes"].get("NEXTPNR_BEL", "")
+        if "/" not in bel:
+            return None
+        site, b = bel.split("/")[:2]
+        pre = "SITEWIRE/%s/" % site
+        if b.endswith("LUT"):
+            sinks = [w for w in par if w.startswith(pre) and re.match(r"^%s[1-6]$" % b[0], w[len(pre):])]
+        else:
+            sinks = [w for w in par if w.startswith(pre + pin)] or \
+                    [w for w in par if w.startswith(pre) and par[w] and
+                     not any(par.get(x, "").split("->")[0] == w for x in par)]
+        if len(sinks) != 1:
+            return None
+        pips, w, seen = [], sinks[0], set()
+        while w in par and par[w] and w not in seen:
+            seen.add(w)
+            pips.append(par[w])
+            w = par[w].split("->")[0]
+        if not pips:
+            return None
+        return sum(self.pip_factor(p) for p in pips) / len(pips)
+
+
+_wire = None
+
+
+def perturb_ic(ps, src, dst):
+    """INTERCONNECT arcs: per-arc draw (perturb), or the wire model."""
+    global _wire, n_wire, n_wire_fallback
+    if SCATTER_MODE != "wire" or not SCATTER:
+        return perturb(ps, dst.rpartition("/")[0])
+    if _wire is None:
+        _wire = WireModel(JSON, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1"))
+    f = _wire.factor(dst)
+    if f is None:
+        n_wire_fallback += 1
+        return perturb(ps, dst.rpartition("/")[0])
+    n_wire += 1
+    inst = dst.rpartition("/")[0]
+    if SCATTER_ONLY and not any(
+            inst == p[:-1] if p.endswith("=") else inst.startswith(p) for p in SCATTER_ONLY):
+        f = 1
+    return max(0, int(round(ps * DELAY_SCALE * f)))
+
+
 def read_sdf(path):
     """-> iopaths[inst] = [(from,to,ps)], ic = [(srcpin,dstpin,ps)],
           sh[inst] = [(edge,sig,su,hd)], plus raw claim counts."""
@@ -232,7 +323,8 @@ def read_sdf(path):
     for line in open(path):
         m = RE_IC.search(line)
         if m:
-            ic.append((unesc(m.group(1)), unesc(m.group(2)), perturb(int(m.group(3)), unesc(m.group(2)).rpartition("/")[0])))
+            ic.append((unesc(m.group(1)), unesc(m.group(2)),
+                       perturb_ic(int(m.group(3)), unesc(m.group(1)), unesc(m.group(2)))))
             n_ic += 1
             continue
         m = RE_INST.search(line)
@@ -255,8 +347,11 @@ def main():
     top = json.load(open(JSON))["modules"]["top"]
     cells = top["cells"]
     iopaths, ic, setuphold, n_io, n_ic, n_sh = read_sdf(SDF)
-    sys.stderr.write("delays: scale %g, scatter sigma %g (seed %s)\n"
-                     % (DELAY_SCALE, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1")))
+    sys.stderr.write("delays: scale %g, scatter sigma %g (seed %s, mode %s)\n"
+                     % (DELAY_SCALE, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
+    if SCATTER_MODE == "wire" and SCATTER:
+        sys.stderr.write("delays: %d interconnect arc(s) from the wire model, %d fell back "
+                         "to one draw each\n" % (n_wire, n_wire_fallback))
     if SCALE_INST:
         sys.stderr.write("delays: %d arc(s) scaled by GLS_SCALE_INST %s\n"
                          % (n_scaled_inst, os.environ["GLS_SCALE_INST"]))

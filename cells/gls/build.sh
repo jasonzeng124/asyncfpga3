@@ -59,7 +59,7 @@ cp "$S" "$WORK/routed.sdf"
     echo "stamped:   $(date '+%Y-%m-%d %H:%M:%S')"
     echo "routed.json md5 $(md5sum < "$WORK/routed.json" | cut -d' ' -f1)  <- $J"
     echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- $S"
-    echo "delays:    scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none} (gen.py)"
+    echo "delays:    scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none}, mode ${GLS_SCATTER_MODE:-arc} (gen.py)"
     if [ -f "$HW/toolchain.txt" ]; then
         cat "$HW/toolchain.txt"
     else
