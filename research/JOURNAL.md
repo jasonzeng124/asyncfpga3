@@ -471,3 +471,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   See
   were derived from and re-checked on the same seeds 1-4 (fresh seeds still owed); corners or
   scatter; rule D (tighten.py exits 1 on the 6 ucond_br screens, which rule E passes); check.sh
   not re-run after the zero_arcs change; isprime/ipow (the mode has their vectors, not run).
+### progress 06:15 (gcd_hw seeds 5/6 at both corners)
+- Seeds 5 and 6 (pads 13/14/13), routed GLS with every delay x0.9 and x1.1: **16/16 vectors,
+  errs=0, laps>0 at both corners on both routes** (laps scale about 1/factor, e.g. seed 6 vec 6:
+  26 / 24 / 22). Corners were on 1 route before; now 3. Seeds 7/8 running.
+- gcd_hw sizing, rule A per pass: 54, 7, 5, 0 (rejected by fresh seeds 2 and 3), 2, 1, ...: one new
+  binding cell per route, chain 170.8 ns at pass 6.
