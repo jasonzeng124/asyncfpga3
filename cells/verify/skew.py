@@ -88,6 +88,9 @@ RE_PIPE_STAGE = re.compile(r"^(.*?)\.many\.stage\[(\d+)\]\.u(?:\.|$)")
 # A node on a link's REQUEST side: its rdly chain, or the C node that drives
 # req_out -- of a bare link, or of one bd_pipe stage.
 RE_REQ_SIDE = re.compile(r"^(.*?)(?:\.many\.stage\[(\d+)\]\.u)?\.(?:rdly|ctl)\.")
+# A latch output of a bd_link (or of one bd_pipe stage): <link>.lat.<...>.
+# Its controller's C node is <link>.ctl.u.u/O6.
+RE_LATCH_OUT = re.compile(r"^(.*?)\.lat\.")
 
 _raw = sys.argv[1:]
 VERBOSE = "-v" in _raw
@@ -545,8 +548,28 @@ def main():
         # did over-credit (usteer got t_c=417 where the true value is 0).
         #
         # Worst is chosen by the GUARDED margin, since that is the verdict.
+        # (3) Plus the C node of every link whose LATCH is a nearest-storage
+        # launch of the select.  cand is ordered by select crossings, so a
+        # 32-bit latch bank fills cand[:4] with its own outputs (64 of them,
+        # O5 and O6 per bit) and that link's C node -- where the request
+        # and the select really diverge, per (1) -- can sit at index 96 and
+        # never be evaluated (isprime ucond_br16, 2026-10-26).  It is ADDED,
+        # never substituted: the verdict is still the MIN over every launch
+        # evaluated, so an extra launch can only find a violation, never hide
+        # one.  (It does not clear ucond_br16: the lap launches stay binding.)
+        names = {q for _, _, q in cand}
+        launches = [q for _, _, q in cand[:4]]
+        if cand:
+            k0 = cand[0][0]
+            for ks, _, q in cand:
+                if ks != k0:
+                    break
+                m = RE_LATCH_OUT.match(T.pin_split(q)[0])
+                cnode = m and m.group(1) + ".ctl.u.u/O6"
+                if cnode and cnode in names and cnode not in launches:
+                    launches.append(cnode)
         worst = None
-        for _, _, launch in cand[:4]:
+        for launch in launches:
             for d, lng in ((0, False), (1, True)):
                 key = (launch, lng)
                 if key in cache:

@@ -670,3 +670,29 @@ Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every
 - Candidate CR = S5 + 1 link on every cell (research/data/collatz_sizes_CR.vh), being validated on seeds 1-8
   with every audit and routed GLS. R2 seed 8 x0.9 16/16; R2 d scatter 20% x2 and 25% draw 2 16/16.
 - R2 seed 8 x1.1 16/16: **R2 passes nominal, x0.9 and x1.1 routed GLS on all 8 seeds.** Running: wire-mode scatter (per pip, 25% x1, 35% x2) on R2 seed 2.
+### progress 18:30 (rule E finds more with the C-node launch; R2 on hold; ipow/isprime DSP pads)
+- **skew.py (rule E): the select's feeding-link C node is now always among the launches evaluated** (subagent's
+  "Part A", committed here). The verdict was and stays the MIN guarded margin over every launch evaluated,
+  so this can only make rule E stricter. Why: launches are ranked by select crossings and only cand[:4]
+  evaluated; a 32-bit latch bank fills those with its own outputs and the C node, where request and select
+  really diverge, could sit at #96. Subagent's comparison of every gate's worst row (old -> new): soak_top 3
+  gates 0 changed; collatz 18 gates 12 stricter; ipow 24/16 stricter; xorshift 24/14 stricter; isprime 86/58
+  stricter (one new violation, ucond_br31 -178 ps); **gcd_hw BOARD-QUEUE #1 recipe seeds 1-8: 28 stricter,
+  0 verdicts changed, worst guarded margin per seed unchanged (174-520 ps)**; nowhere more permissive.
+  Negative control: isprime with ucmpi2's delay removed: ucond_br16 flagged (raw -16.3 ns) in old and new.
+  pytest verify 52 pass. NOT committed: the subagent's opt-in "Part B" (stop the request walk at the gate's
+  own pins, which clears the isprime ucond_br16 false violation): it also loosens rows whose binding launch
+  is not the C node (gcd_hw ucond_br23/28/41, +66..+1449 ps), so it removes more than the artifact.
+- **R2 under the new rule E: seeds 2 and 6 violate** (seed 2: ucond_br42 -520, ucond_br46 -167, ucond_br10
+  -10 ps guarded, raw +2.3..+3.9 ns, from ulink_n145__3 / ulink_n1__1 C nodes; seed 6: 8 rows). Seeds d, 3,
+  4, 5, 7, 8: 0. So the sized design has select margins the old rule E did not measure. BOARD-QUEUE #2 is ON
+  HOLD; building R3 = R2 + skew.py's asks + 1 from all 8 routes, to be re-audited on 8 seeds and GLS'd.
+- Subagent round 4 (ipow and isprime, BD_DSP=1, all audits on the OLD skew.py): ipow two pad rounds, rule E
+  clean on 5 of 8 fresh routes (seed 12 still -568 ps guarded), GLS 8/8, 101.0 ns per iteration (99.0-102.6),
+  vectors now non-degenerate except one deliberate wrap (65536^2). isprime: two rounds, rule E clean on 3 of 8
+  fresh routes (ucond_br16 artifact plus umux6/7/9), **first rule J violation seen in the wild**: seed 11
+  ucontrol_merge3.uarb1 client 2, raw +956, guarded -45 ps, no knob; GLS 8/8. Neither kernel is clean.
+- collatz CR (= S5 + 1 link everywhere): rules E/H/I/J clean on 8/8 but **rule A 1 on 7 of 8**, always
+  ucontrol_merge1 (6 links; margins -125..-1022 ps): the extra link elsewhere moved its data peak later.
+  Ratcheting CR on its own 8 routes (CR2).
+- R2 d scatter 25% draws 2-4 also 16/16.

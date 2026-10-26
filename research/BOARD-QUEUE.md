@@ -50,6 +50,10 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
+**ON HOLD (2026-10-26 ~18:30): the stricter rule E (skew.py C-node launches, commit after 5ca2053) flags
+R2 seeds 2 and 6 (3 bd_steer gates each, raw +2.3..+3.9 ns, guarded -10..-520 ps). Do not run until a
+successor (R3, padded for those asks) passes every audit on 8 seeds; this entry will be replaced.**
+
 ## 2. gcd_hw with route-measured matched-delay sizes (R2) -- ~2.0x laps in routed GLS, every audit and routed GLS clean on 8 seeds
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R2.vh`
 (207 sizes; 199.9 ns of matched delay built per route, against 547.7 ns at bdc/emit.py's estimate).
