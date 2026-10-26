@@ -961,3 +961,9 @@ still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
   16/16. No speedup on gcd (isprime's gain came from its long A0 nets). Seed 3 running.
 - gcd_hw R5 + BD_RLOC_ARB=1: seeds d and 3 every audit clean, GLS 16/16 (d also x0.9/x1.1); vec 6 laps 47 / 46
   vs ungrouped 47 / 42. Two seeds, within route scatter: no demonstrated speedup on gcd; not pursued.
+### progress 23:25 (ipow T9: clean on 8 fresh seeds)
+- **ipow T9** (research/data/ipow_dsp1_sizes_T9.vh = T8 + 1 link on every compute cell), FRESH seeds 29-36 (none
+  ever fed the ratchet): rules A/E/H/I/J 0, routed GLS fast+stalled pass on all 8 (seed 36's log, written after
+  the tighten.py update, also shows rule F 0). **76.2 ns per iteration (74.6-78.6)** vs 105.6 for pads-only
+  compute: **1.39x**; the headroom costs nothing measurable (T6 77.4 on other seeds). T6/T7/T8 each failed one
+  fresh route in four-to-eight; T9 is the first ipow size set clean on a full fresh 8.
