@@ -1002,3 +1002,9 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 | collatz T3, ns/iteration | 103.3 | 91.1 | -11.8% |
 | xorshift T3, ns/round | 65.4 | 59.5 | -9.0% |
 | ipow T9 (DSP), ns/iteration | 76.1 | 71.7 | -5.8% |
+### progress 23:56 (collatz and xorshift with link fast fall: 8 seeds clean)
+- collatz T3 + FF, seeds 1-8: rules A/E/F/H/I/J 0, GLS fast+stalled pass on 8/8; **92.1 ns/iteration (87.4-95.6)**
+  (T3 alone 102.3; padded 159.3: 1.73x overall).
+- xorshift T3 + FF, seeds 1-8 (14 vectors): same, **60.0 ns/round (58.7-62.1)** (T3 alone 64.3; placeholders
+  102.5: 1.71x overall).
+- ipow T9 + FF seeds 33-36 running (29-32 clean, 71.7 ns).
