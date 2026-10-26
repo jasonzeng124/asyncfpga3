@@ -195,7 +195,11 @@ LAST=""
 
 for i in $(seq 1 "$MAXIT"); do
     echo "== iteration $i: size from that route, rebuild, re-check =="
-    python3 verify/tighten.py "$SDF" --emit "$SIZES" > "$HIST/emit.$i.log" 2>&1 || true
+    # BD_TIGHTEN_SLACK=<ps>: propose lengths that would still pass with that
+    # much more guardband (tighten.py --slack, resize.sh's knob), so a
+    # proposal survives the reroute it causes.  Default 0, as before.
+    python3 verify/tighten.py "$SDF" --emit "$SIZES" ${BD_TIGHTEN_SLACK:+--slack "$BD_TIGHTEN_SLACK"} \
+        > "$HIST/emit.$i.log" 2>&1 || true
     [ -e "$SIZES" ] || { echo "   tighten.py wrote no sizes -- stopping"; break; }
     cp "$SIZES" "$HIST/raw.$i.vh"
     RATCHET=$HIST/ratchet.vh
