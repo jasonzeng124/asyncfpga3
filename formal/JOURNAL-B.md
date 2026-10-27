@@ -12,6 +12,13 @@ Formal/Cells/<F>.lean` (core Lean, no Mathlib). Notes: `formal/notes/B-*.md`.
 | 6 latch/link | **works** | Latch (mux latch, setup/hold, DACK rule H sufficient), LinkHandshake (four-phase refinement, token conservation, half-token bound, deadlock freedom for any N; exact bundling inequality), Bundling (delay lines; capture condition derived; rules I and F each miss a term) | ~2-3 d: compose C-element + latch into a link stage, W-bit lift, pipe | a derived spec for tighten.py rules H/I/F; reference spec for track 10 |
 | 7 arbiter | **works for binary/Kleene/handover; analog pending** | ArbKleene (exclusion for all 3-valued inputs; only (X,X) fails), ArbHandover (16 ps claim exact; held INIT meets the merge's counting precondition in all interleavings), MuxTree (fidelity of the Kleene LUT) | analog (7c/7d) pending; RT1/RT2 timed (7h), A0 fork (7g), ternary-sim soundness (7f) running | exclusion tiers made precise: settled q structural; handover with hold is relative timing, not structural; metastable tier only (X,X) |
 
+Library coverage: every LUT INIT in cells/rtl (bd_ce, bd_latch, bd_link,
+bd_arb, bd_ctl, bd_merge, bd_mux, bd_end, bd_mem, bd_mlink) is proved equal
+to its header equation (CElemFn, Latch, LinkHandshake, ArbKleene, Lib1,
+Lib2): no mismatches. Caveat (Lib2): single-X glitch freedom holds for EVERY
+INIT under closure semantics, so the per-cell single-X theorems carry no
+per-cell content; all of it is in H_KLEENE_LUT.
+
 Fidelity (per primitive, shard B): LUT function exact (real INIT, pin map);
 Kleene LUT = hypothesis on ONE 2:1 pass-transistor mux (MuxTree proves the
 tree then gives closure semantics in any input order), graded B: credible
