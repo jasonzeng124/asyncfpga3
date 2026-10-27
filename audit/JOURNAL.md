@@ -73,3 +73,6 @@ Research responded (2b52380, 7a8199b, 769c67c). Verified: new rule F t_flush=724
 
 ### progress 08:08
 Formal eecc6f7: clean build 3096 jobs, 0 sorry (48 min). All-modules axiom audit cannot import two XAudit modules together (both define main); wrote audit/tools/axiom_audit_permod.sh (per-module) and running it. P4 statement audit (gcd_hw capstone, ArbOverlapRace, RtFb generated files) launched.
+
+### progress 08:14
+tcheck reproduction in: formal C-10g model omits slice OUTMUX delay (verified in prjxray-db); J rows partly refuted (one BQ#1 failure is an artefact, one seed-4 row worse). Board routes at one consistent corner, no band: BQ#1, BQ#2 clean; BQ#3 rule A ushrsi1 -36 ps fast corner (thin, model-dependent). Fast-early/slow-late: rule J 7/18 negative on all three (worst -472).
