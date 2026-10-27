@@ -30,7 +30,9 @@
   storage on its data loop), so the real bdc graph is required: done (`GcdHw*`, 8i): the graph bdc
   emits for gcd_hw, imported from bdc's own code with a drift check, ends every
   complete run on every schedule/arbiter outcome with exactly the C function's
-  result (one-invocation invariant proved). Open: C = Nat.gcd on [0,2^31) (8k). Muller
+  result (one-invocation invariant proved); with 8k: = Nat.gcd for a, b <
+  2^31, every partial run completes, bounded, no fairness assumption (token
+  level). Circuit-level refinement of that graph + hypothesis list: 8l. Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -226,3 +228,9 @@ doing 'git add -u' on claimed dirs, so in-progress edits to already-claimed
 files (11e's) entered WIP snapshots before review; all of them were then
 rebuilt and audited clean, and the helper now adds only notes/Wip/tools.
 Launched 8k (gcdC = Nat.gcd on [0,2^31), termination, combined corollary).
+
+### progress 06:18
+8k committed: gcd_hw's bdc graph computes Nat.gcd on [0,2^31) and is live at
+token level (audit 1109). Launched 8l: capstone refinement (link + N-way mux
+op cells, Ops refinement on the imported graph with bdc's link placement,
+circuit liveness) and shard C's hypothesis list for the gcd_hw theorem.

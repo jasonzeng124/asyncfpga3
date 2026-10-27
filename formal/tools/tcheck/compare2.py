@@ -112,13 +112,14 @@ def verdict(mins):
 
 def main():
     s = sys.argv[1]
+    tag = sys.argv[2] if len(sys.argv) > 2 else "2"       # C-10h: run tag (2 = 10g, 5 = 10h)
     b = f"{HERE}/build"
-    C = tc_rows(f"{b}/t2_{s}.out")
-    meta = json.load(open(f"{b}/obl2_{s}.json"))["obligations"]
+    C = tc_rows(f"{b}/t{tag}_{s}.out")
+    meta = json.load(open(f"{b}/obl{tag}_{s}.json"))["obligations"]
     P = {"A": proj_A(f"{b}/tighten_{s}.log"), "E": proj_E(f"{b}/skew_v_{s}.log"),
          "J": proj_J(f"{b}/arbfork_{s}.log"), "F": {}}
     for x in meta:
-        if x["rule"] == "F" and x.get("project"):
+        if x["rule"] in ("F", "Fc") and x.get("project"):
             n, tf, tr, g, mg = x["project"]
             if mg is not None:
                 P["F"][x["ctl"]] = {"raw": tr - tf, "guard": g, "margin": mg,
@@ -134,7 +135,7 @@ def main():
                 for m, rest in d.get(v, []):
                     launch = rest.split()[0]
                     E[key][launch].setdefault(rule, {})[v] = m
-    flav = {"A": ["A"], "F": ["F"], "J": ["J0", "Jx", "Jp"], "E": ["E", "E0"]}
+    flav = {"A": ["A"], "F": ["F", "Fc"], "J": ["J0", "Jx", "Jp"], "E": ["E", "E0"]}
     for rule in ("A", "E", "F", "J"):
         keys = sorted(set(P[rule]) | {k for (r, k) in C if r in flav[rule]})
         for key in keys:
@@ -167,7 +168,7 @@ def main():
                     rule, key, fl, p.get("raw", "-"), p.get("margin", "-"), pv or "-",
                     *[mins[v] if mins[v] is not None else "-" for v in V], cv or "-", agree, note)))
     txt = "\n".join(lines) + "\n"
-    open(f"{b}/compare2_{s}.tsv", "w").write(txt)
+    open(f"{b}/compare{tag}_{s}.tsv", "w").write(txt)
     print(f"# seed {s}: rule flavour project tcheck count")
     for k, n in sorted(stats.items(), key=lambda x: str(x)):
         print("#", *k, n)
