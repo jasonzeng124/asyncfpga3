@@ -48,13 +48,14 @@
   result (8s2 is proving the first-result/per-invocation version); H_BUNDLE is
   stated on zero-delay traces, so tcheck discharges it only through a
   physical -> zero-delay refinement that is not yet proved (8w finding; 8x).
-  No joint witness run yet (8t). Liveness: pipelines and single rings proved
+  Joint witness (8t): one explicit run satisfies all four hypotheses and
+  latches gcd 12 18 = 6. Rig: first result proved (8s2); every result open. Liveness: pipelines and single rings proved
   with linear bounds (8n, 8o); gcd_hw: arbiters provably never contested, so
   an uncontested-only settle bound suffices (8u); `gcd_hw_live` still rests
   on two open network obligations, H_NO_DEADLOCK and H_FIRING_BOUND (8z).
   Other kernels (8v): ipow's bdc graph = b^e mod 2^32 on every schedule for
   all i32 inputs, live; collatz conditional on C termination (unconditional
-  1 <= n < 256). Token level only. Muller
+  1 <= n < 256). ipow also at circuit level (ipow_circuit_safe3, 8y). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -408,3 +409,28 @@ Committed after my own build + check.sh audit:
 Launched 8x (physical refinement for the capstone) and 8y (ipow circuit-level
 safety, generic capstone generator). Installed libtcl8.6 + boost libs (the
 toolchain cache restore lacks them; yosys failed without libtcl).
+
+### progress 12:44
+Committed after my own build + check.sh audit (all core Lean, axioms
+propext/Classical.choice/Quot.sound only):
+- 8u (3591 decls): circuit liveness reduced, not proved. The 9 arbiter
+  stages are never contested, so an uncontested-only settle bound suffices
+  (gcd_hw_arb_settle; stall_* shows the uncontested bound alone is useless);
+  generic ranking theorem rank_live (no fairness); gcd_hw_live holds under two
+  OPEN network obligations, H_NO_DEADLOCK and H_FIRING_BOUND (8z on them).
+- 8s (3497 decls): H_WALK proved for all a, b < 2^31. gcd_hw_circuit_safe3:
+  every out0 latch is Nat.gcd a b under H_CELLS, H_BUNDLE, H_START_ONCE.
+- 8s2 (3590 decls): the rig violates H_START_ONCE (re-offers start after
+  every result). gcd_rig_first: under the rig's env gate model (H_ENV) the
+  FIRST out0 result is gcd a b; reset level settled without a new hypothesis.
+  Negative (proved): re-arming fails at every re-offer (invocations overlap at
+  the out0/env handshake), so "every result" is open (8s3 on it).
+- 8t (3740 decls): joint non-vacuity. One explicit run (a=12, b=18) satisfies
+  H_CELLS, H_BUNDLE, H_START_ONCE, H_WALK together and latches 6 on out0.
+  One input, one unit-delay schedule, zero-delay buses.
+- 8y (3734 decls): ipow at circuit level, ipow_circuit_safe3 (same hypotheses;
+  H_WALK proved), from bdc's own ipow graph; generator formal/tools/capnet
+  reproduces the gcd files byte for byte.
+Launched 8s3 (every rig result) and 8y2 (capstone parametric in a Kernel
+structure; one-argument kernels; xorshift's steer case).
+Still running: 10m, 12d, 10n, 11f, 10l2, 8x, 8z.
