@@ -6,9 +6,10 @@ Probe WE4g: a copy of events7/cert7.py (A-events7, unchanged below except where 
 plus the GUARD certificates of Events8Cert.GuardOK8.  Per guarded pin p of stage j (source D,
 guard pin g = gp with source Gs, guard label (grp, br) from ana's guard_info, label source S):
 the pin's grp/br are set to the guard's label, and a `guards` entry "j/p" gives S and six log
-lines: iB (BACK-G: walk D -> j in the label, <= 1 token), iU (U-bound Gs -> S in the label),
-iW (walk S -> D, <= 1 token), iX (closed walk D -> D, 1 token), iG (walk D -> Gs in the label,
-no token).  --no-guard emits none of them (then every guarded pin is residual).
+lines: iD (walk D -> S, no token), iB (BACK-G: walk S -> j in the label, <= 1 token), iU
+(U-bound Gs -> S in the label), iW (walk S -> D, <= 1 token), iX (closed walk D -> D, 1 token),
+iG (walk S -> Gs in the label, no token).  The labelled walks start at S because the Events7
+SUB rule's walk starts at the label's source.  --no-guard emits none of them (then every guarded pin is residual).
 Original cert7 docstring follows.
 
 
@@ -392,19 +393,22 @@ class Cert7(Cert):
                 gpin = nd["pins"][gk]
                 D, Gs = p.src, gpin.src
                 try:
-                    wB = self.walk(D, x, 1, ctx=(g, b))
+                    wD = self.walk(D, S, 0) if D != S else None
+                    wB = self.walk(S, x, 1, ctx=(g, b))
                     u = self.uline(Gs, g, b)
                     wW = self.walk(S, D, 1)
                     wX = self.walk(D, D, 1, closed=True)
-                    wG = self.walk(D, Gs, 0, ctx=(g, b))
-                    miss = [n for n, w in (("B", wB), ("U", u), ("W", wW), ("X", wX), ("G", wG)) if not w]
+                    wG = self.walk(S, Gs, 0, ctx=(g, b))
+                    miss = [n for n, w in (("D", wD if D != S else True), ("B", wB), ("U", u), ("W", wW),
+                                           ("X", wX), ("G", wG)) if not w]
                     if miss:
                         errs.append(f"guard {x} pin{k}: no walk {miss}")
                         continue
                     guards[f"{self.idx[x]}/{k}"] = dict(
-                        S=self.idx[S], iB=self.build(wB[2], D, (g, b)), iU=u[0],
+                        S=self.idx[S], iD=(self.build(wD[2], D, None) if D != S else self.line({"k": "refl", "a": self.idx[D]})),
+                        iB=self.build(wB[2], S, (g, b)), iU=u[0],
                         iW=self.build(wW[2], S, None), iX=self.build(wX[2], D, None),
-                        iG=self.build(wG[2], D, (g, b)))
+                        iG=self.build(wG[2], S, (g, b)))
                 except Unsup as ex:
                     errs.append(f"guard {x} pin{k}: {ex}")
         parts = [sorted(P) for P in self.parts.values() if len(P) > 1]
