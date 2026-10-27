@@ -5,7 +5,7 @@ proved correct (in Lean 4 or similar), and how feasible is that?
 Program: `formal/PROGRAM.md`. Shard A writes this file from all three shards'
 journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
-**Status: DRAFT, updated as probes land (last update: see git log).**
+**Status: verdicts in for tracks 1–11 and 13; track 12 pending (shard C). Updated as probes land.**
 
 ## Short answer (provisional)
 
@@ -43,14 +43,14 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 | 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
 | 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel (probe running) | sound wire abstraction; exact bundling lemma |
 | 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL | `Core/{Kleene,Lut,LutTree,Ternary,Bridge,LutCells,LutAudit}.lean`, `tools-A/lut_extract.py` | mechanised environment model (which multi-input changes the protocol allows): 1–2 d | decidable per-cell hazard/settling check |
-| 5 | C-element | (shard B) | see `JOURNAL-B.md` | | |
-| 6 | Latch / link | (shard B) | | | |
-| 7 | Arbiter | (shard B) | | | |
-| 8 | Composition | (shard C) | see `JOURNAL-C.md` | | |
-| 9 | Ring needs 3 stages | (shard C) | | | |
-| 10 | Verified timing checker | (shard C) | | | |
-| 11 | Netlist import | (shard C) | | | |
-| 12 | Other tools | (shard C) | | | |
+| 5 | C-element | **works** (B) | `Cells/{CElemFn,CElemTiming,CTree}.lean`; A: `Core/{Ternary,XSim,LutAudit}` bd_c2 results | 1–2 d: port to Core, inertial/involution regimes, c3/c4 timing | INITs machine-checked; exact timing condition per cell (enabling input ≥ LUT + feedback delay, tight); the ack wait shown necessary |
+| 6 | Latch / link | **works** (B) | `Cells/{Latch,LinkHandshake,Bundling}.lean` | 2–3 d: link stage = C-element + latch, W-bit lift | derived spec for tighten.py rules H/I/F (rules I and F each miss a term; guardband covers them today) |
+| 7 | Arbiter | **works** for binary race, Kleene, handover (B); digital race is the primary model (PROGRAM.md item 4, owner 2026-10-27) | `Cells/{ArbBinary,ArbKleene,ArbHandover,...}.lean`; A: `Core/LutAudit` (same-sense tie hazard), `Core/Discretize` (`mutex_between`) | race windows for every property (B, phase 2) | exclusion tiers made precise; header claims corrected (runt from same-sense moves; handover exclusion is relative timing) |
+| 8 | Composition | **works** at protocol level + Muller stage (C) | `Net/Handshake*.lean` | Kahn/gcd, forks/joins/merges (phase 3) | n-stage four-phase pipeline is a live FIFO given per-link obligations = rules I/H |
+| 9 | Ring needs 3 stages | **works** (C) | `Net/Ring.lean` (`ring_three`, `k_tokens`: N ≥ 2k+1) | 1–2 d: tie to bounded-delay traces; H_ONE_TOKEN | the project's rule proved, and generalised to k tokens |
+| 10 | Verified timing checker | **works** on toy netlists (C) | `Timing/{Semantics,Checker,CheckerToy,Rules}.lean` | 1–2 weeks for routed designs (phase 2); blocker is delay *data* (nextpnr SDF has slow max only) | rules E/A/J each get a proved counterexample; a checker makes them exact relative to a stated delay model |
+| 11 | Netlist import | **works** (C): yosys JSON for 11 cells, and FASM read back from the bitstream for bd_c2/bd_c2n | `formal/tools/import/import.sh --check`, `formal/tools/fasm2lean/check.sh` | whole designs 2–3 weeks | proofs about generated terms: a flipped INIT bit fails the build; placer pin permutation is real and moves delay by up to ~0.5 ns |
+| 12 | Other tools | pending (C) | | | |
 | 13 | Literature | **done** | `notes/A-lit-1.md`, `notes/A-lit-2.md` | — | positioning; nothing like this exists in Lean |
 
 ### 1. Toolchain
