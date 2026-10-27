@@ -1308,7 +1308,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - August-shaped route rebuilt: BDC_OP_FUSION=0 BD_NO_TIGHTEN=1 BD_RLOC=v4 (sdf c647eb1a); the pad-converge recipe does
   not converge on it (ulink_n32__2 measured short again after padding), so SELECT_PAD=4 as F4 recorded.
   lut_pinmap control: NOT EQUIVALENT (LUT FUNCTION DIFFERS). Full stack on good vs bug bitstream queued -- the hard test.
-### progress 11:20 (fast corner, rule F re-check, rings, DSP controls under the full stack)
+### progress 11:19 (fast corner, rule F re-check, rings, DSP controls under the full stack)
 - **BQ#3 full stack at FAST_MIN: 16/16, errs=0** (laps vec 6 91, vec 12 75, vec 13 108; ~2.75x the SLOW_MAX laps).
   With SLOW_MAX (above) that is both consistent prjxray corners passing on the netlist decoded from the bits. Answers
   the audit's tcheck row 40 in part: the -36 ps on ushrsi1 needs req at FAST_MIN and data at FAST_MAX at once
