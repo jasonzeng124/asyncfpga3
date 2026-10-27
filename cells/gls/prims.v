@@ -163,6 +163,37 @@ module SLICE_FFX (
     endspecify
 endmodule
 
+// ---- SLICE_LATX ---------------------------------------- LDCE and LDPE --
+// A slice storage element in LATCH mode (nextpnr: SLICE_FFX with X_ORIG_TYPE
+// LDCE/LDPE).  Transparent while CK == GHIGH and CE (the gate enable) is 1;
+// SR is ASYNCHRONOUS and wins: Q = SRVAL (0 for LDCE's CLR, 1 for LDPE's PRE).
+// GHIGH comes from IS_CLK_INVERTED (gen.py) or the slice's CLKINV bit
+// (fasm2net.py): a latch-mode element is open while its post-CLKINV clock is
+// low.  nextpnr's SDF has only CK->Q for this bel; D->Q while open and SR->Q
+// take the same number, an assumption, stated.
+module SLICE_LATX (
+    input  wire CK, D, CE, SR,
+    output wire Q
+);
+    parameter [0:0] INIT  = 1'b0;
+    parameter [0:0] SRVAL = 1'b0;
+    parameter [0:0] GHIGH = 1'b1;
+    parameter TCKQ = 100;
+    reg q;
+    initial q = INIT;
+    always @* begin
+        if (SR === 1'b1)                     q = SRVAL;
+        else if (SR !== 1'b0)                q = 1'bx;
+        else if (CK === GHIGH && CE === 1'b1) q = D;
+        else if ((CK !== GHIGH && CK !== ~GHIGH) || CE === 1'bx)
+                                             q = (q === D) ? q : 1'bx;
+    end
+    assign Q = q;
+    specify
+        (CK => Q) = TCKQ; (D => Q) = TCKQ; (SR => Q) = TCKQ; (CE => Q) = TCKQ;
+    endspecify
+endmodule
+
 // ---- CARRY4 ------------------------------------------------------- 1 bel --
 // Flat scalar bel ports (not UNISIM's buses).  The SDF annotates only the
 // S*/CIN arcs; the DI* arcs it omits keep the nominal below.

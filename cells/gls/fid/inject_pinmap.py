@@ -3,7 +3,7 @@
 inject_pinmap.py -- negative control for the FASM-built GLS: the August
 lut-pinmap bug's mechanism, applied to LIVE LUT pins.
 
-    inject_pinmap.py ROUTED.json GOOD.fasm OUT.fasm [--prefix urig.udut.ucmpi]
+    inject_pinmap.py ROUTED.json GOOD.fasm OUT.fasm [--prefix REGEX]
 
 The bug (patches/nextpnr-xilinx-lut-pinmap.patch): fasm.cc split
 X_ORIG_PORT_A<n> on ' ' and looked each token up with operator[], so a token
@@ -37,7 +37,9 @@ def main():
     ap.add_argument("routed")
     ap.add_argument("fasm_in")
     ap.add_argument("fasm_out")
-    ap.add_argument("--prefix", default="urig.udut.ucmpi")
+    ap.add_argument("--prefix", default=r"(urig\.udut\.|uut\.)ucmpi",
+                    help="regex matched at the start of the cell name (default: the comparators, "
+                         "in the gcd rig or a fusion_bench soak harness)")
     a = ap.parse_args()
     cells = FA.top_cells(a.routed)
     sites = FA.load_sites()
@@ -56,7 +58,7 @@ def main():
         touched = False
         bad = {}
         for which, (cn, c) in slot.items():
-            if not cn.startswith(a.prefix):
+            if not re.match(a.prefix, cn):
                 continue
             attrs = dict(c["attributes"])
             for k in range(1, 7):

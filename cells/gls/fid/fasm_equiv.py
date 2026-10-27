@@ -64,10 +64,12 @@ def pin_drivers(cells, drv, gen_ties):
     belof = {cn: bel(c, cn) for cn, c in cells.items()}
     for cn, c in cells.items():
         t = c["type"]
-        if t in CONST:
-            continue
+        if t in CONST or t == "PAD":
+            continue            # a pad is the port itself; its net has no driver on either side
         b = belof[cn]
         key = lutpos(b) or b
+        if t == gen.DSP_T:
+            continue            # compared in section 2b, pins the model reads only
         for p, bl in c["connections"].items():
             if c.get("port_directions", {}).get(p) not in ("input", "inout"):
                 continue
@@ -77,6 +79,8 @@ def pin_drivers(cells, drv, gen_ties):
                     v = ("undriven",)
                 elif cells[d[0]]["type"] in CONST:
                     v = ("const", CONST[cells[d[0]]["type"]])
+                elif cells[d[0]]["type"] == "PAD":
+                    v = ("undriven",)       # fasm2net names the pad as the driver of its own net
                 else:
                     v = ("bel", belof[d[0]], d[1])
             else:
@@ -156,6 +160,19 @@ def main():
         (jn, j), (fn, f) = jb[b], fb[b]
         t = j["type"]
         if t == "SLICE_FFX":
+            jl = j["attributes"].get("X_ORIG_TYPE") in ("LDCE", "LDPE")
+            fl = f["attributes"].get("X_ORIG_TYPE") in ("LDCE", "LDPE")
+            if jl != fl:
+                flag("FF/LATCH MODE DIFFERS", "%s json %s bits %s" % (
+                    b, j["attributes"].get("X_ORIG_TYPE"), f["attributes"].get("X_ORIG_TYPE")))
+            elif jl:
+                ginv = lambda c: int(str(c["parameters"].get("IS_CLK_INVERTED", "0")) or "0", 2) & 1
+                if ginv(j) != ginv(f):
+                    flag("LATCH GATE SENSE DIFFERS", "%s json IS_CLK_INVERTED=%d bits %d" % (b, ginv(j), ginv(f)))
+                if j["attributes"]["X_ORIG_TYPE"] != f["attributes"]["X_ORIG_TYPE"]:
+                    flag("LATCH CLEAR/PRESET DIFFERS", "%s json %s bits %s" % (
+                        b, j["attributes"]["X_ORIG_TYPE"], f["attributes"]["X_ORIG_TYPE"]))
+                continue
             ji = int((j["parameters"].get("INIT", "0") or "0").replace("x", "0"), 2)
             fi = int(f["parameters"]["INIT"], 2)
             if ji != fi:
@@ -189,6 +206,82 @@ def main():
                                if jb[b][1]["type"] in ("SLICE_FFX", "CARRY4", "BUFGCTRL", "BSCAN"))
     say("2. CONFIG  compared %s (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)"
         % dict(sorted(ncfg.items())))
+
+    # ---- 2b. DSP48E1: the decoded control words and the pins the model reads
+    def dsp_words(c, drv, cells):
+        netv = {}
+        for cn2, c2 in cells.items():
+            if c2["type"] in CONST:
+                netv[c2["connections"]["Y"][0]] = CONST[c2["type"]]
+        params, attrs, conns = c.get("parameters", {}), c.get("attributes", {}), c["connections"]
+        vcc = set(attrs.get("DSP_VCC_PINS", "").split())
+        gnd = set(attrs.get("DSP_GND_PINS", "").split())
+
+        def pv(k, d=0):
+            v = params.get(k)
+            if v is None:
+                return d
+            return int(v, 2) if set(v) <= set("01") else v
+        out = {}
+        for g, w in (("OPMODE", 7), ("ALUMODE", 4), ("INMODE", 5), ("CARRYINSEL", 3), ("CARRYIN", 0)):
+            val = 0
+            for i in range(max(w, 1)):
+                pin = g if w == 0 else "%s%d" % (g, i)
+                bl = conns.get(pin)
+                if bl:
+                    v = netv.get(bl[0], "live")
+                elif pin in vcc:
+                    v = 1
+                elif pin in gnd:
+                    v = 0
+                else:
+                    v = "none"
+                if not isinstance(v, int):
+                    out[g] = "%s=%s" % (pin, v)
+                    break
+                inv = pv("IS_%s_INVERTED" % pin) if w == 0 else pv("IS_%s[%d]_INVERTED" % (g, i))
+                val |= (v ^ (int(inv) & 1)) << i
+            else:
+                out[g] = format(val, "0%db" % max(w, 1))
+        for k in ("AREG", "ACASCREG", "BREG", "BCASCREG", "CREG", "DREG", "ADREG", "MREG", "PREG",
+                  "INMODEREG", "OPMODEREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG",
+                  "A_INPUT", "B_INPUT", "USE_DPORT", "USE_SIMD"):
+            out[k] = pv(k, "default")
+        return out
+    n_dsp = 0
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        if j["type"] != gen.DSP_T:
+            continue
+        n_dsp += 1
+        wj, wf = dsp_words(j, jd, jc), dsp_words(f, fd, fc)
+        for k in sorted(set(wj) | set(wf)):
+            if wj.get(k) != wf.get(k):
+                flag("DSP CONFIGURATION DIFFERS", "%s %s: json %s bits %s" % (b, k, wj.get(k), wf.get(k)))
+        if "FASM2NET_REFUSED" in f["attributes"]:
+            flag("DSP REFUSED by the bit decoder", "%s: %s" % (b, f["attributes"]["FASM2NET_REFUSED"]))
+        z = int(wj["OPMODE"], 2) >> 4 if set(str(wj["OPMODE"])) <= set("01") else 0
+        cas = wj.get("A_INPUT") == "CASCADE"
+        read = ["%s%d" % ("ACIN" if cas else "A", i) for i in range(25)] + ["B%d" % i for i in range(18)] + \
+               (["PCIN%d" % i for i in range(48)] if z else [])
+        bj = {cn: bel(c, cn) for cn, c in jc.items()}
+        bf = {cn: bel(c, cn) for cn, c in fc.items()}
+        for p in read:
+            def d(c, drv, cells, bm):
+                bl = c["connections"].get(p)
+                if not bl:
+                    return None
+                x = drv.get(bl[0])
+                if x is None:
+                    return ("undriven",)
+                if cells[x[0]]["type"] in CONST:
+                    return ("const", CONST[cells[x[0]]["type"]])
+                return (bm[x[0]], x[1])
+            if d(j, jd, jc, bj) != d(f, fd, fc, bf):
+                flag("DSP DATA PIN DRIVER DIFFERS", "%s/%s json %s bits %s"
+                     % (b, p, d(j, jd, jc, bj), d(f, fd, fc, bf)))
+    say("2b. DSP48E1  %d compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), "
+        "register/input parameters, drivers of every data pin the modelled function reads" % n_dsp)
 
     # ---- 3. connectivity
     jp = pin_drivers(jc, jd, gen.TIE)
@@ -303,12 +396,13 @@ def main():
                 src, dst = pip.split("->")
                 s.add((nd(src), nd(dst)))
         fpips = collections.defaultdict(set)
+        always = set()
         for line in open(a.routes):
             if line.startswith("#"):
                 continue
             netn, sink, csrc, pips = (line.rstrip("\n").split("\t") + [""] * 4)[:4]
-            if netn.startswith("$const"):
-                key = ("const", int(netn[-1]))
+            if netn.startswith("$const") or netn in ("$PACKER_VCC_NET", "$PACKER_GND_NET"):
+                key = ("const", 1 if netn in ("$const1", "$PACKER_VCC_NET") else 0)
                 if csrc == "default":
                     continue        # no pip at all: an IMUX left alone reads VCC
             else:
@@ -316,7 +410,10 @@ def main():
                 key = (bb, pp)
             for pid in pips.split():
                 t, d_, s_ = pid.split(".")
-                fpips[key].add((fab.node(t, s_), fab.node(t, d_)))
+                pr = (fab.node(t, s_), fab.node(t, d_))
+                fpips[key].add(pr)
+                if s_ in fab.tt(fab.ttype[t])["always"].get(d_, ()):
+                    always.add(pr)
         stub = set()
         if a.stubs:
             for line in open(a.stubs):
@@ -350,6 +447,11 @@ def main():
                      "%s: %d pips, e.g. %s" % (key, len(dead), [(fab.node_name(x), fab.node_name(y))
                                                                for x, y in list(dead)[:2]]))
                 A = A - dead
+            ap = (B - A) & always
+            if ap:
+                flag("bits-only always-on ppip the JSON does not list (no bits: a fixed wire)",
+                     "%s: %s" % (key, [(fab.node_name(x), fab.node_name(y)) for x, y in list(ap)[:2]]))
+                B = B - ap
             i1 = {p for p in B - A if re.search(r"BUFGCTRL\d+_I1$", fab.node_name(p[1]))}
             if i1:
                 flag("bits-only pip into a deselected BUFGCTRL I1 (all-zero mux encoding)",
@@ -381,7 +483,7 @@ def main():
     benign = ("cell in routed JSON, not configured by the bits (it has NO loads)",
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
-              "bits-only pip into a deselected BUFGCTRL I1")
+              "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip")
     hard = [k for k in bad if not k.startswith(benign)]
     say("VERDICT: %s" % ("EQUIVALENT (only the benign kinds above)" if not hard else
                          "NOT EQUIVALENT: " + "; ".join(hard)))

@@ -51,7 +51,11 @@ PART = os.environ.get("PART", "xc7z010clg400-1")
 sys.path.insert(0, PRJXRAY)
 from prjxray.db import Database  # noqa: E402
 
-CONST_WIRES = {"VCC_WIRE": 1, "GND_WIRE": 0}
+CONST_WIRES = {"VCC_WIRE": 1, "GND_WIRE": 0,
+               # a DSP48E1 tile's constant sources: the only way prjxray-db knows
+               # to give a value to the pins with no interconnect path
+               # (patches/nextpnr-xilinx-dsp-constpins.patch)
+               "DSP_GND_L": 0, "DSP_VCC_L": 1, "DSP_GND_R": 0, "DSP_VCC_R": 1}
 LUTS = "ABCD"
 
 
@@ -369,6 +373,8 @@ class Design:
                 self.decode_hrow(tile)
             elif tt.startswith("RIOI3") or tt.startswith("LIOI3"):
                 self.decode_ioi(tile)
+            elif tt in ("DSP_L", "DSP_R"):
+                self.decode_dsp(tile)
 
     def sitepins(self, tile, sname):
         for s, name in self.fab.sites(tile):
@@ -397,8 +403,7 @@ class Design:
                     self.used.add((tile, f))        # LUTRAM data mux: unused unless RAM/SRL
                     continue
                 self.problem("REFUSED: LUTRAM/SRL configured", "%s.%s" % (tile, f))
-        if has("LATCH"):
-            self.problem("REFUSED: slice in LATCH mode (prims.v has no latch bel)", "%s %s" % (tile, site))
+        latch = has("LATCH")
         clkinv = has("CLKINV")
         has("NOCLKINV")
         ffsync = has("FFSYNC")
@@ -446,8 +451,30 @@ class Design:
         c.outs = ["O%d" % i for i in range(4)] + ["CO%d" % i for i in range(4)]
         self.add(c)
         # ---- flops
-        def ff(name, d, zini, zrst):
+        def ff(name, d, zini, zrst, five=False):
             c = Cell("%s/%s" % (site, name), "SLICE_FFX", root=True)
+            if latch and not five:
+                # LDCE/LDPE (the four FFs of a LATCH slice; fasm2bels ff_bel()):
+                # transparent while the clock pin, after CLKINV, is LOW -- i.e.
+                # open while CK == CLKINV.  nextpnr encodes that as CLKINV =
+                # !IS_CLK_INVERTED, so the cell carries IS_CLK_INVERTED =
+                # !CLKINV, the same convention as the routed JSON.  SR is the
+                # ASYNCHRONOUS clear (ZRST) or preset; CE is the gate enable.
+                c.ins["CK"] = R("CLK")
+                c.ins["D"] = d
+                c.ins["CE"] = R("CE") if ceused else ("const", 1)
+                c.ins["SR"] = R("SR") if srused else ("const", 0)
+                c.outs = ["Q"]
+                c.params["INIT"] = "0" if zini else "1"
+                c.params["IS_CLK_INVERTED"] = "0" if clkinv else "1"
+                c.attrs["X_ORIG_TYPE"] = "LDCE" if zrst else "LDPE"
+                c.attrs["X_ORIG_PORT_SR"] = "CLR" if zrst else "PRE"
+                if ffsync:
+                    self.problem("REFUSED: LATCH with FFSYNC set", "%s %s" % (tile, c.name))
+                self.add(c)
+                return
+            if latch and five:
+                self.problem("REFUSED: 5FF in a LATCH slice (an asynchronous FF)", "%s %s" % (tile, c.name))
             c.ins["CK"] = R("CLK")
             c.ins["D"] = d
             c.ins["CE"] = R("CE") if ceused else ("const", 1)
@@ -481,7 +508,7 @@ class Design:
                     if has("%s5FFMUX.%s" % (L, k))]
             if sel5:
                 ff("%s5FF" % L, K("%s5LUT" % L, "O5") if sel5[0] == "IN_A" else R(L + "X"),
-                   has("%s5FF.ZINI" % L), has("%s5FF.ZRST" % L))
+                   has("%s5FF.ZINI" % L), has("%s5FF.ZRST" % L), five=True)
             # site outputs
             self.sout(tile, pins, site, L, ("%s/%s6LUT" % (site, L), "O6"))
             outsel = dict(srcs)
@@ -585,6 +612,24 @@ class Design:
             # TQ = T1 (BUF mode), T1 inverted unless ZINV_T1.
             self.ologic[(tile, pins["OQ"])] = (sname, ("route", tile, pins["T1"]),
                                                not self.has(tile, pfx + "ZINV_T1"))
+        n_il = sum(1 for s, _ in self.fab.sites(tile) if s["type"] == "ILOGICE3")
+        for s, sname in self.fab.sites(tile):
+            if s["type"] != "ILOGICE3":
+                continue
+            pfx = "ILOGIC_Y%d." % (n_il - 1 - s["y_coord"])
+            if any(self.feats[tile].get(pfx + f) for f in ("ISERDES.IN_USE", "IDDR_OR_ISERDES.IN_USE")):
+                self.problem("REFUSED: ILOGIC in ISERDES/IDDR mode", "%s %s" % (tile, sname))
+                continue
+            if not self.has(tile, pfx + "ZINV_D"):
+                continue
+            # passthrough (fasm2bels ioi_models: ZINV_D and no ISERDES/IDDR): O = D
+            pins = {p: v["wire"] for p, v in s["site_pins"].items() if v}
+            c = Cell("%s/ILOGIC_D_O" % sname, "ROUTETHRU")
+            c.ins["I"] = ("route", tile, pins["D"], sname, "D")
+            c._thru_pip = "%s.%s.%s" % (tile, pins["O"], pins["D"])    # the site's D -> O
+            c.outs = ["O"]
+            self.add(c)
+            self.sout(tile, pins, sname, "O", (c.name, "O"))
         for f in self.feats[tile]:
             if re.match(r"(ILOGIC|IDELAY)_Y\d\.", f) and \
                     re.search(r"IDELMUXE3\.P1|IFF\.SRTYPE\.ASYNC|ISERDES\.(MODE\.MASTER|NUM_CE\.N1)|"
@@ -599,9 +644,19 @@ class Design:
             for f in self.feats[tile]:
                 if f.startswith(pfx):
                     self.used.add((tile, f))    # electrical settings: no logic meaning
+            pins = {p: v["wire"] for p, v in s["site_pins"].items() if v}
+            if any(f.startswith(pfx) and (f.endswith(".IN") or f.endswith(".IN_ONLY"))
+                   for f in self.feats[tile]):
+                pad = Cell("%s/IOB33/PAD" % sname, "PAD", root=True)
+                pad.outs = ["PAD"]
+                self.add(pad)
+                ib = Cell("%s/IOB33/INBUF_EN" % sname, "IOB33_INBUF_EN", root=True)
+                ib.ins["PAD"] = ("int", (pad.name, "PAD"))
+                ib.outs = ["OUT"]
+                self.add(ib)
+                self.sout(tile, pins, sname, "I", (ib.name, "OUT"))
             if not drive:
                 continue
-            pins = {p: v["wire"] for p, v in s["site_pins"].items() if v}
             ob = Cell("%s/IOB33/OUTBUF" % sname, "IOB33_OUTBUF", root=True)
             ob.ins["IN"] = ("route", tile, pins["O"], sname, "O")
             ob.outs = ["OUT"]
@@ -643,6 +698,10 @@ class Design:
         for c in self.cells.values():
             for p in list(c.ins):
                 d = self.driver_of(c, p)
+                if d and d[0] == "drv" and d[1][0] in self.cells and \
+                        d[1][1] not in self.cells[d[1][0]].outs:
+                    self.problem("REFUSED: a sink reads a bel output that is not modelled",
+                                 "%s/%s <- %s/%s" % (c.name, p, d[1][0], d[1][1]))
                 if d and d[0] == "drv" and d[1][0] not in self.cells:
                     self.problem("sink driven by a bel that is not configured", "%s/%s <- %s" % (c.name, p, d))
                 if d and d[0] == "float" and (c.type, p) == ("BUFGCTRL", "I1"):
@@ -651,6 +710,8 @@ class Design:
                     self.notes.append("%s/I1 is not driven (deselected: see check_bufg)" % c.name)
                     c.ins.pop(p)
                     continue
+                if d and d[0] == "float" and p in getattr(c, "_float_ok", ()):
+                    continue            # resolved by the cell's own check (DSP tile default)
                 if d and d[0] == "float":
                     self.problem("FLOATING input: nothing drives this pin's node", "%s/%s" % (c.name, p))
 
@@ -668,6 +729,193 @@ class Design:
         return ("const", src[1], "site")
 
     # ------------------------------------------------------------- checks
+    # ------------------------------------------------------------- DSP48E1
+    DSP_IN = [("A", 30), ("ACIN", 30), ("B", 18), ("C", 48), ("PCIN", 48)]
+    DSP_CTL = [("OPMODE", 7), ("ALUMODE", 4), ("INMODE", 5), ("CARRYINSEL", 3), ("CARRYIN", 0)]
+    DSP_OUT = [("P", 48), ("PCOUT", 48), ("ACOUT", 30)]
+
+    @staticmethod
+    def _bus(groups):
+        return [g if n == 0 else "%s%d" % (g, i) for g, n in groups for i in range(max(n, 1))]
+
+    def decode_dsp(self, tile):
+        """DSP48E1, from its bits.  Configuration bits as nextpnr's fasm.cc
+        writes them (and prjxray-db names them): AREG_0/AREG_2 (no bit = 1),
+        Z<x>REG[0] present = register off, ZAREG_2_ACASCREG_1 present = NOT
+        (AREG=2 and ACASCREG=1), ZIS_<pin>_INVERTED present = not inverted,
+        A_INPUT[0]/B_INPUT[0] = cascade, USE_DPORT[0], USE_SIMD_*.  The
+        control pins are resolved like every other input, through routing; the
+        ones with no interconnect path (INMODE0..4, ALUMODE2/3, OPMODE6,
+        CARRYINSEL2, ...) through the tile's DSP_GND_*/DSP_VCC_* bits, which
+        BYPASS the site inverter -- patches/nextpnr-xilinx-dsp-constpins.patch,
+        measured on the board.  check_dsp() decodes and refuses."""
+        side = self.fab.ttype[tile][-1]
+        for s, sname in self.fab.sites(tile):
+            if s["type"] != "DSP48E1":
+                continue
+            n = s["y_coord"]
+            pfx = "DSP48.DSP_%d." % n
+            feats = [f for f, v in self.feats[tile].items() if f.startswith(pfx) and v]
+            if not any(re.match(r"DSP48\.DSP_\d\.(AREG_|BREG_|Z|MASK|PATTERN|A_INPUT|B_INPUT|USE_)", f)
+                       for f in feats):
+                continue
+            pins = {p: v["wire"] for p, v in s["site_pins"].items() if v}
+            c = Cell("%s/DSP48E1" % sname, "DSP48E1_DSP48E1", root=True)
+            for p in self._bus(self.DSP_IN) + self._bus(self.DSP_CTL):
+                c.ins[p] = ("route", tile, pins[p], sname, p)
+            c.outs = self._bus(self.DSP_OUT)
+            self.add(c)
+            for p, v in s["site_pins"].items():
+                if v and "res" in v:                      # an output site pin
+                    self.sout(tile, pins, sname, p, (c.name, p))
+            c._dsp = (tile, n, pfx, side)
+            # tile-constant pins resolve in check_dsp(); the dedicated cascade
+            # inputs float when nothing cascades in, and check_dsp() refuses
+            # that only if the decoded mode READS them
+            c._float_ok = {p for p in c.ins if p in self.dsp_const_only(side)
+                           or re.fullmatch(r"(ACIN|PCIN)\d+", p)}
+
+    def dsp_const_only(self, side):
+        """Pins prjxray reaches ONLY through a DSP_GND/DSP_VCC tile bit."""
+        if not hasattr(self, "_dsp_co"):
+            self._dsp_co = {}
+        if side not in self._dsp_co:
+            info = self.fab.tt("DSP_%s" % side)
+            dst = collections.defaultdict(set)
+            for (d, srcw) in info["pips"]:
+                m = re.match(r"DSP_0_(\w+)$", d)
+                if m:
+                    dst[m.group(1)].add(srcw)
+            for d, srcs in info["always"].items():
+                m = re.match(r"DSP_0_(\w+)$", d)
+                if m:
+                    dst[m.group(1)] |= set(srcs)
+            # pins that CAN take a tile constant (they may also have a routed path)
+            self._dsp_co[side] = {p for p, srcs in dst.items()
+                                  if any(x.startswith(("DSP_GND", "DSP_VCC")) for x in srcs)}
+        return self._dsp_co[side]
+
+    def check_dsp(self):
+        for c in list(self.cells.values()):
+            if c.type != "DSP48E1_DSP48E1":
+                continue
+            tile, n, pfx, side = c._dsp
+            def has(f):
+                # "NAME[i]" features are parsed into one integer per NAME
+                m = re.fullmatch(r"(.*)\[(\d+)\]", f)
+                if m:
+                    return bool((self.val(tile, pfx + m.group(1)) >> int(m.group(2))) & 1)
+                return self.has(tile, pfx + f)
+            co = self.dsp_const_only(side)
+            why = []
+            # ---- configuration bits
+            reg = {}
+            for X in "AB":
+                r = [v for v in (0, 2) if has("%sREG_%d" % (X, v))]
+                reg[X + "REG"] = r[0] if len(r) == 1 else (1 if not r else None)
+                cas_bit = has("Z%sREG_2_%sCASCREG_1" % (X, X))
+                if reg[X + "REG"] == 0 and cas_bit:
+                    reg[X + "CASCREG"] = 0
+                else:
+                    reg[X + "CASCREG"] = None
+                    why.append("%sREG=%s with Z%sREG_2_%sCASCREG_1 %s" % (
+                        X, reg[X + "REG"], X, X, "set" if cas_bit else "CLEAR"))
+            for r in ("ADREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG", "CREG", "DREG",
+                      "INMODEREG", "MREG", "OPMODEREG", "PREG"):
+                reg[r] = 0 if has("Z%s[0]" % r) else 1
+                if reg[r]:
+                    why.append("%s=1 (Z%s[0] clear)" % (r, r))
+            a_cascade = has("A_INPUT[0]")
+            if has("B_INPUT[0]"):
+                why.append("B_INPUT=CASCADE")
+            if has("USE_DPORT[0]"):
+                why.append("USE_DPORT=TRUE")
+            for f in ("USE_SIMD_FOUR12", "USE_SIMD_FOUR12_TWO24"):
+                if has(f):
+                    why.append(f)
+            for f in self.feats[tile]:
+                if f.startswith(pfx) and re.search(r"\.(MASK|PATTERN|SEL_MASK|AUTORESET)", f):
+                    self.used.add((tile, f))      # pattern detector: no modelled output reads it
+            has("ZIS_CLK_INVERTED")               # clock: every register is off
+            # ---- control pins
+            words = {}
+            for g, w in self.DSP_CTL:
+                val = 0
+                for i in range(max(w, 1)):
+                    pin = g if w == 0 else "%s%d" % (g, i)
+                    d = self.driver_of(c, pin)
+                    root, pips = self.sink_root[(c.name, pin)]
+                    via_tile = bool(pips) and pips[-1].split(".")[2].startswith(("DSP_GND", "DSP_VCC"))
+                    if pin in co and (via_tile or d[0] == "float"):
+                        # no inverter on this path; no bit at all = the tile
+                        # default, which the board showed is 1 (INMODE 00000 ->
+                        # 11111 under the unpatched writer)
+                        v = d[1] if d[0] == "const" else 1
+                        if d[0] != "const":
+                            self.problem("DSP const-only pin with no DSP_GND/VCC bit (tile default 1)",
+                                         "%s/%s" % (c.name, pin))
+                        c.params.pop("IS_%s_INVERTED" % pin, None)
+                    else:
+                        if d[0] != "const":
+                            why.append("control pin %s is not a constant (%s)" % (pin, d))
+                            continue
+                        zis = ("ZIS_%s_INVERTED[%d]" % (g, i)) if w else ("ZIS_%s_INVERTED" % g)
+                        inv = 0 if has(zis) else 1
+                        if g in ("CARRYINSEL",):
+                            inv = 0                       # no inverter on CARRYINSEL
+                        v = d[1] ^ inv
+                        if inv:
+                            c.params["IS_%s_INVERTED" % (pin if w == 0 else "%s[%d]" % (g, i))] = "1"
+                    val |= v << i
+                words[g] = val
+            c._words = words
+            # const-only pins: hand gen.py the PHYSICAL value (it XORs IS_*,
+            # which a const-only pin must therefore not carry)
+            vcc, gnd = [], []
+            for pin in sorted(co & set(c.ins)):
+                d = self.driver_of(c, pin)
+                root, pips = self.sink_root[(c.name, pin)]
+                if d[0] == "float" or (pips and pips[-1].split(".")[2].startswith(("DSP_GND", "DSP_VCC"))):
+                    v = d[1] if d[0] == "const" else 1
+                    (vcc if v else gnd).append(pin)
+                    c.ins.pop(pin)
+            c.attrs["DSP_VCC_PINS"] = " ".join(vcc)
+            c.attrs["DSP_GND_PINS"] = " ".join(gnd)
+            for r, v in reg.items():
+                c.params[r] = format(v if v is not None else 0, "032b")
+            c.params.update({"USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48", "USE_DPORT": "FALSE",
+                             "B_INPUT": "DIRECT", "A_INPUT": "CASCADE" if a_cascade else "DIRECT"})
+            c.attrs["FASM2NET_DSP"] = "OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d A_INPUT=%s" % (
+                format(words["OPMODE"], "07b"), format(words["ALUMODE"], "04b"),
+                format(words["INMODE"], "05b"), format(words["CARRYINSEL"], "03b"),
+                words["CARRYIN"], "CASCADE" if a_cascade else "DIRECT")
+            # ---- the one configuration prims.v models (gen.py dsp_config)
+            op = words["OPMODE"]
+            undriven = []
+            for p in [q for q in c.ins if re.fullmatch(r"(ACIN|PCIN)\d+", q)]:
+                if self.driver_of(c, p)[0] != "float":
+                    continue
+                read = (p.startswith("ACIN") and a_cascade and int(p[4:]) < 25) or \
+                       (p.startswith("PCIN") and (op >> 4) != 0)
+                if read:
+                    undriven.append(p)
+                c.ins.pop(p)
+            if undriven:
+                why.append("%d cascade inputs read by the decoded mode but undriven (%s..%s)"
+                           % (len(undriven), undriven[0], undriven[-1]))
+            if (words["INMODE"], words["ALUMODE"], words["CARRYINSEL"], words["CARRYIN"]) != (0, 0, 0, 0):
+                why.append("INMODE=%s ALUMODE=%s CARRYINSEL=%s CARRYIN=%d" % (
+                    format(words["INMODE"], "05b"), format(words["ALUMODE"], "04b"),
+                    format(words["CARRYINSEL"], "03b"), words["CARRYIN"]))
+                if words["INMODE"] & 2:
+                    why.append("INMODE[1]=1: the multiplier's A input is GATED TO ZERO (UG479 Table 1-11)")
+            if op & 0xF != 0b0101 or (op >> 4) not in (0, 1, 5):
+                why.append("OPMODE=%s" % format(op, "07b"))
+            if why:
+                self.problem("REFUSED: DSP48E1 configuration outside the modelled one",
+                             "%s: %s" % (c.name, "; ".join(why)))
+                c.attrs["FASM2NET_REFUSED"] = "; ".join(why)
+
     def check_bufg(self):
         for c in self.cells.values():
             if c.type != "BUFGCTRL":
@@ -758,7 +1006,7 @@ def emit(des, out_dir, names_json=None, sdf_in=None):
 
     def netname(k):
         if k[0] == "$const":
-            return "$const%d" % k[1]
+            return "$PACKER_VCC_NET" if k[1] else "$PACKER_GND_NET"
         return "%s/%s" % k
 
     jcells = {}
@@ -795,6 +1043,16 @@ def emit(des, out_dir, names_json=None, sdf_in=None):
         k = conns.get((cn, p))
         if k is None:
             continue
+        thru = []
+        while k and k[0] in cells and cells[k[0]].type == "ROUTETHRU":
+            # a route-through is part of the net it passes: file the sink under
+            # the real driver, with the through-site's own path in front
+            thru = list(des.sink_root.get((k[0], "I"), (None, []))[1]) + \
+                ([cells[k[0]]._thru_pip] if hasattr(cells[k[0]], "_thru_pip") else []) + thru
+            k = conns.get((k[0], "I"))
+        if k is None:
+            continue
+        pips = thru + list(pips)
         sinkpaths.append(pips)
         rows.append("%s\t%s/%s\t%s\t%s" % (netname(k), cn, p,
                                           root[2] if root[0] == "const" else "", " ".join(pips)))
@@ -1026,6 +1284,7 @@ def main():
     des = Design(fab, parse_fasm(fasm))
     des.build()
     des.check_bufg()
+    des.check_dsp()
     des.check_outputs()
     emit(des, a.out, a.names, a.sdf)
 

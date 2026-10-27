@@ -1135,3 +1135,18 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   FASM-built GLS 0/16 (no gcd completes; the August "absent result" signature) while routed-JSON GLS stays 16/16.
   Hard-test caveat: an injection, not the August bitstream (none archived).
 - Not shown: delays (still nextpnr's), DSP/latch sites, corners/scatter on the FASM netlist, other designs.
+### progress 04:01 (F2 phase 2: DSP48E1 + latches from the bits; DSP bitstream bugs detected)
+- fasm2net decodes DSP48E1 (register bits, control pins through routing with DSP_GND/VCC bits and inverters) and
+  LDCE/LDPE; anything outside the modelled configuration is refused by name. gen.py now emits a real latch
+  (SLICE_LATX in prims.v) for LDCE/LDPE -- before, it simulated one as an edge-triggered flop. No current design
+  instantiates LDCE (bd_latch keeps storage on LUTs), so no committed result changes.
+- ipow BD_DSP=1 fresh7 seed13: bits EQUIVALENT (6 DSPs, same decoded words); GLS from routed JSON, .fasm and .bit
+  identical latencies. Controls via `bit_control.py ROUTE KIND` (one CONTROL line, exit 0/1/2): dsp_constpins and
+  dsp_constpins_inv (real unpatched writers) decode INMODE 11111 / ALUMODE 1100 / OPMODE6 1 on all 6 DSPs -- matching
+  the patch README's board measurement -- NOT EQUIVALENT, GLS refuses ("A input gated to zero"). dsp_areg: the real
+  writer is harmless on this route, so the bug was injected; detected. Caveat: refused, not simulated as numbers.
+- xorshift fresh seed9: the real unpatched lut-pinmap writer changes 1 reachable LUT function (a harness C-element,
+  1 of 8 input rows) that equivalence catches and **GLS does not** (vectors never reach it); live-pin injection
+  fails GLS. Equivalence is the stronger bitstream check; GLS alone is not enough.
+- Possible nextpnr defect (not on board, no shipped design affected): LDCE with .CLR(1'b0) is packed as VCC +
+  IS_CLR_INVERTED, but a slice SR has no inverter, so the latch is held cleared (bits and both GLS agree).

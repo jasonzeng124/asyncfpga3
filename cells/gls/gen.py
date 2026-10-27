@@ -624,6 +624,21 @@ def main():
                      % (init & ((1 << 64) - 1), nn, ", ".join(conn)))
             B.append("  SLICE_LUTX #(.INIT(64'h%016x)%s) %s (%s);"
                      % (init & ((1 << 64) - 1), tps, nn, ", ".join(conn)))
+        elif t == "SLICE_FFX" and attrs.get("X_ORIG_TYPE") in ("LDCE", "LDPE"):
+            # A transparent latch on the FF bel (nextpnr marks it X_FF_AS_LATCH).
+            # Simulating it as SLICE_FFX would make it edge-triggered.  Open
+            # while CK == !IS_CLK_INVERTED (fasm.cc writes CLKINV =
+            # !IS_CLK_INVERTED for a latch, and a latch-mode storage element is
+            # open while its post-CLKINV clock is low); SR is asynchronous:
+            # clear for LDCE, preset for LDPE.  The slice has no SR inverter,
+            # so IS_CLR/PRE_INVERTED is NOT applied -- as on the die.
+            ghigh = 0 if int(str(params.get("IS_CLK_INVERTED", "0")) or "0", 2) & 1 else 1
+            sr_val = 1 if attrs["X_ORIG_TYPE"] == "LDPE" else 0
+            init = int((params.get("INIT", "0") or "0").replace("x", "0"), 2) & 1
+            L.append("  SLICE_LATX #(.INIT(1'b%d), .SRVAL(1'b%d), .GHIGH(1'b%d)) %s (%s);"
+                     % (init, sr_val, ghigh, nn, ", ".join(conn)))
+            B.append("  SLICE_LATX #(.INIT(1'b%d), .SRVAL(1'b%d), .GHIGH(1'b%d)%s) %s (%s);"
+                     % (init, sr_val, ghigh, "".join(x for x in [tps] if "TCKQ" in x), nn, ", ".join(conn)))
         elif t == "SLICE_FFX":
             # FDRE and FDSE share this bel.  X_ORIG_PORT_SR says which the SR
             # pin is: "R" = synchronous reset to 0, "S" = synchronous set to 1.
@@ -679,6 +694,8 @@ def main():
         # required not to print; the checks live in the baked netlist.
         if not arcs:
             continue
+        if t == "SLICE_FFX" and cells[cname].get("attributes", {}).get("X_ORIG_TYPE") in ("LDCE", "LDPE"):
+            t = "SLICE_LATX"
         S.append('  (CELL (CELLTYPE "%s") (INSTANCE %s)' % (t, newname[cname]))
         if arcs:
             S.append("    (DELAY (ABSOLUTE")
