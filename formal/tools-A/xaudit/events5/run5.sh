@@ -7,7 +7,7 @@
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 O=${O:-/tmp/events5/out}
-export PYTHONHASHSEED=0
+export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1
 IN="$HERE/inputs"; G="$HERE/../gcd/inputs"
 for s in ${SEEDS:-d 3 4 5}; do   # restore the inputs from the repo if the rebuild scratch is gone
   mkdir -p $O/$s
