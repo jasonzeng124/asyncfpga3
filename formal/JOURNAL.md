@@ -187,3 +187,10 @@ incl. PerLink, EndToEnd*, Gen/*). Fix: commit Formal/Net/CoreLut.lean (after it
 checks) or revert those imports. A has not touched C's files.
 A's own modules all build (last per-file checks OK). gcd_hw xaudit claimed (see
 commit bf952a1 and FEASIBILITY).
+### progress 06:33
+`formal/check.sh --committed` green again (C committed CoreLut): all library modules
+audited together, each executable module (xaudit, xevents, xevents2, C's GcdHwProof)
+audited alone. Claimed since last note: XAudit/Parse (shared trusted parser; refactor
+byte-identical on 11 runs), xevents2, Events3 (choice: steer/OR-merge), EnvFast
+mux/merge-data/steer (bd_mux: rtz, select hold past uj1, fork conditions -- not in the
+RTL header; merge selFast withdrawn).
