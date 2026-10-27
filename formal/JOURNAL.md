@@ -26,3 +26,28 @@ never build from source unless the cache fails: it fails.
   modules, never `import Mathlib`.
 ### progress 02:48
 11 shard-A probes launched as subagents: trace (ℝ, event list, discrete; common benchmark B0-B5), circuit layer + event/ℝ bridge, delay (pure, inertial, involution), Kleene LUT (INIT semantics, shared Core API), LUT mux-tree fidelity theorem, primitive fidelity table, literature x2. Mathlib subset builder running (lead only); probes ask for modules in Wip/REQUESTS.txt. Draft PR #3 opened.
+### progress 02:59
+check.sh hardened: per-file mode (`formal/check.sh Formal/X.lean ...`, used while
+other probes' files are mid-edit); comment-aware textual scan (formal/scan.py);
+audit imports Lean. Negative controls run: a sorryAx hidden from the scan fails
+the audit (`negctl_sorry uses sorryAx`); native_decide fails both the scan
+and the audit (`..._native.native_decide.ax_1_1`); a clean rfl theorem passes.
+Bug found and fixed on the way: with pipefail, a failing `lean` made the
+`| grep error && fail=1` branch never run -- the check could not fail. 
+Claimed (check.sh OK, audit only propext/choice/Quot.sound):
+- Formal/Core/Delay/Pure.lean (47 decls): bounded FIFO transport channel as a
+  retiming relation; series composition is EXACTLY the sum band
+  (chan_comp_iff); pulse width bounds w±(hi-lo); a pulse can vanish iff
+  w ≤ hi-lo (pulse_vanish_iff); bundling lemma bundle_two_wires
+  (ts + hiD ≤ loR). Open in Wip: event-list adequacy; bounded-skew variant.
+- Formal/Core/LutTree.lean (core Lean only): mux-tree Kleene eval equals the
+  INIT-table Kleene semantics for every k, INIT, K3 vector
+  (evalTree_eq_tableEval); tree order irrelevant for the Kleene function
+  (evalTree_swap); timed tree with arbitrary per-mux delays: single input
+  change with equal endpoint values is glitch-free (sic_glitch_free) under two
+  named hypotheses H_mux_kleene, H_sram; two-input changes across a function
+  hazard glitch, order-dependently. Finding: research GLS's SLICE_LUTX builds
+  the tree with A6 at the leaves (silicon: A6 at the root, per UG474); harmless
+  for Kleene values, differs in timing.
+Literature notes A-lit-1 (40 sources), A-lit-2 (Graphiti, Lean 4 Dynamatic
+dataflow, ASPLOS'26; ACL2 link-joint async proofs; Lutsig HOL4 7-series LUT).

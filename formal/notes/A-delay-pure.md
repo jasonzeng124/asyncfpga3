@@ -9,7 +9,11 @@ Check (from `formal/lean`, with `export PATH=$HOME/.elan/bin:$PATH`):
 
     ../slot.sh lake env lean Formal/Core/Delay/Pure.lean
 
-Status: CHECK_STATUS
+Status: checks with exit 0, no errors, no `sorry`/`admit`/`axiom`/`native_decide`.
+`#print axioms` on the main theorems gives only `[propext, Classical.choice, Quot.sound]`.
+Remaining warnings are deprecations only: this Mathlib flags the
+`Mathlib.Data.Real.Basic` import and `if_pos`/`if_neg`.
+The Wip statements elaborate when concatenated with Pure.lean; they have two `sorry`s.
 
 ## The model
 

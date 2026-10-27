@@ -5,22 +5,31 @@
 # Also fails on a textual `sorry`/`admit`/`axiom`/`native_decide` in a source
 # file, as a second line of defence. Work in progress goes in formal/lean/Wip/.
 #   formal/check.sh            # whole project
+#   formal/check.sh FILE...    # only these files (paths relative to formal/lean),
+#                              # checked with `lake env lean`, then audited
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export PATH="$HOME/.elan/bin:$PATH"
 cd "$HERE/lean"
 fail=0
+FILES=("$@")
 echo "[check] textual scan"
-if grep -rnE '(^|[^A-Za-z_.])(sorry|admit|native_decide)([^A-Za-z_]|$)|^[[:space:]]*(private |protected )?axiom[[:space:]]' \
-     --include='*.lean' Formal Formal.lean | grep -vE '^\S+:[0-9]+:\s*--'; then
-  echo "[check] FAIL: forbidden token in a claimed file (comments excepted)"; fail=1
-fi
+if [ ${#FILES[@]} -gt 0 ]; then SCAN=("${FILES[@]}"); else mapfile -t SCAN < <(find Formal Formal.lean -name '*.lean'); fi
+python3 "$HERE/scan.py" "${SCAN[@]}" || { echo "[check] FAIL: forbidden token in a claimed file (comments excepted)"; fail=1; }
+if [ ${#FILES[@]} -eq 0 ]; then
 echo "[check] lake build"
 FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
 grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] FAIL: build"; fail=1; }
 mods=$(find Formal -name '*.lean' | sed 's|\.lean$||; s|/|.|g' | sort)
+else
+  for f in "${FILES[@]}"; do
+    echo "[check] lean $f"; mkdir -p ".lake/build/lib/lean/$(dirname "$f")"
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env lean -o ".lake/build/lib/lean/${f%.lean}.olean" "$f" > ".lake/check-file.log" 2>&1 || { grep -E 'error' .lake/check-file.log | head -20; echo "[check] FAIL: $f"; fail=1; }
+  done
+  mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
+fi
 mkdir -p .lake/audit
-{ echo "import Formal"; for m in $mods; do echo "import $m"; done
+{ echo "import Lean"; [ ${#FILES[@]} -eq 0 ] && echo "import Formal"; for m in $mods; do echo "import $m"; done
   cat <<'LEAN'
 open Lean Meta in
 #eval show MetaM Unit from do
