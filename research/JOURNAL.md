@@ -1344,7 +1344,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - Audit r5 3g (metastability window pessimistic): agreed and kept as is for now -- TAU=WIN=150 ps is a stress
   setting that exercises both outcomes far more often than silicon would; fid meta-event counts are not rates. A
   silicon-sized window needs the board (hw/arb_mtbf).
-### progress 12:08 (OOM lost two vectors; BQ#1 bug bits; 8-seed full stack queued)
+### progress 12:07 (OOM lost two vectors; BQ#1 bug bits; 8-seed full stack queued)
 - **Lost data, recorded:** a full-stack vvp is ~3.1 GB RSS and its iverilog compile ~3.7 GB; four sims plus a compile
   overran 15 GB and the OOM killer silently truncated BQ#1 FAST_MIN vectors 6 and 14 (run_fid printed "no verdict
   line"; every other completed run was checked: no other truncation). The run is discarded and re-queued; at most 3
