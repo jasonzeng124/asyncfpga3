@@ -22,14 +22,15 @@ wide it does certify one.**
     never become binary.
   - **Every flag examined is abstraction imprecision, not a race.** Three pieces of evidence:
     1. the static own-feedback check finds 0 candidates at either corner, on all 4 seeds;
-    2. 590 concrete fixed-delay samples give the right answer, 7, and every storage node toggles
-       exactly as in every other sample;
+    2. 520 concrete fixed-delay samples (480 on vector 1, 40 on vector 2) give the right answer,
+       and every storage node toggles exactly as in every other sample;
     3. the flag mechanism has been traced by hand (§4).
 - **Narrow bands, `[(1-w)·SLOW_MAX, SLOW_MAX]` per element (plus up to 25 ps of rounding).**
-  - At w = 0 and at w = 0.02 xaudit **certifies the transaction**. For every delay assignment
-    in these bands and every power-up state:
-    - rig_lap is 0 on [13.1, 78.1] ns and 1 from 83.15 ns;
-    - rig_res_data = 7 at that edge;
+  - At w = 0 and at w = 0.02 xaudit **certifies the transaction**. The w = 0.02 run's numbers
+    hold for both, since the w = 0 bands lie inside the w = 0.02 bands. For every delay
+    assignment in these bands and every power-up state:
+    - rig_lap is 0 on [13.1, 78.1] ns and 1 from 83.15 ns to the 100 ns horizon;
+    - all 32 bits of rig_res_data are binary on [65.2, 87.95] ns, and equal 7 there;
     - rig_ok = 1 on [86.6, 92.0] ns;
     - rig_err = 0 on [15.3, 92.9] ns.
   - At w = 0.05 the certification is lost.
@@ -175,15 +176,14 @@ expected, and it is not a flag.
 | slow, seed 4 | 309 / 105 (+20 data-latch GLITCH, 10 UNRESOLVED) | 31.2 `ucond_br11_j` | no | 967* |
 | slow, seed 5 | 307 / 107 | 30.9 `ucond_br9_j` | no | 952* |
 | fast | 187 / 227 | 24.3 `ucond_br11_j` | no (X from 39.1) | 359, 1.29 GB |
-| slowmax w = 0 | 387 / 27 "STORED" (all bounded 0→X→1 transitions, >2 ns) | — | **yes, 83.15 ns, res = 7, ok = 1, err = 0** | 413†, 1.75 GB |
+| slowmax w = 0 | 387 / 27 "STORED" (all bounded 0→X→1 transitions, >2 ns) | — | **yes, 83.15 ns, res = 7 (binary on [65.2, 89.25] ns), ok = 1 on [86.6, 93.4], err = 0 on [15.3, 94.2]** | 404, 1.78 GB |
 | slowmax w = 0.02 | 386 / 26 "STORED" + 2 UNRESOLVED (at 85 ns, after the lap) | — | **yes, 83.15 ns, res = 7** | 467, 1.78 GB |
 | slowmax w = 0.05 | 386 / 8 "STORED" + 20 UNRESOLVED | 48.0 `ucond_br13_j` | no (X from 76.7) | 507, 1.78 GB |
-| negative control (w = 0, mism +20 ns) | as w = 0 | — | yes, 7; **rig_err X on [82.7, 89.6] ns** | see results |
+| negative control (w = 0, mism +20 ns) | as w = 0 | — | yes, 7; **rig_err X on [82.7, 89.6] ns**, rig_ok X on [82.3, 91.5] | 392, 1.78 GB |
 
 Notes on the table:
 
-- \* Three runs shared 4 cores. † is the pre-fix band run; the rerun's time is in
-  `results/*.time`.
+- \* Three runs shared 4 cores.
 - **"STORED".** xaudit labels any 0→X→1 longer than `--xmax` (2 ns) "STORED X POSSIBLE". In
   these runs those are bounded transitions with 2-3 ns of accumulated timing uncertainty, not
   stored X. Only UNRESOLVED and GLITCH are real losses.
@@ -231,7 +231,9 @@ route. It appears as soon as one loop's window is wider than that loop's respons
 2. **Concrete samples (`csim.py`).** Fixed delays per element in the band, binary, pure
    transport, power-up 0; `samples/summary.txt`.
    - Vector 1: 100 `rand` + 100 `ends` at slow, 50 `ends` at fast and 50 `ends` at indep on seed
-     d, plus 30 slow + 30 indep `ends` on each of seeds 3/4/5. That is 470 samples.
+     d, plus 30 slow + 30 indep `ends` on each of seeds 3/4/5. That is 480 samples.
+     (`rand`: each element uniform in its band; `ends`: each element at lo or hi, chosen at
+     random.)
      - **Every one gives 0x7 on three consecutive laps**, ok rising and err never rising.
      - **The per-period transition count of every one of the 4,599 storage nets is identical
        across all samples in each group.** A glitch would add 2.
@@ -311,6 +313,7 @@ route. It appears as soon as one loop's window is wider than that loop's respons
 | `formal/tools-A/xaudit/gcd/analyze.py` | report summariser (control / data split, observables) |
 | `formal/tools-A/xaudit/gcd/fbrace.py` | static own-feedback vs neighbour-response check |
 | `formal/tools-A/xaudit/gcd/csim.py` | concrete fixed-delay transport simulator (cross-check only) |
+| `formal/tools-A/xaudit/gcd/sample.sh`, `sampsum.py`, `sigsum.py` | sampling driver and summaries (scratch paths under /tmp/gcdx hard-coded) |
 | `formal/tools-A/xaudit/gcd/inputs/` | seed-d netlist and band files (xz), stimuli, routed2x reports (all seeds), build md5s |
 | `formal/tools-A/xaudit/gcd/results/` | xaudit reports (xz) and summaries, fbrace outputs, sample summaries |
 
