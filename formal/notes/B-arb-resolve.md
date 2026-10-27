@@ -1,27 +1,34 @@
 # Probe 7d: linearized resolution of the arbiter loop (e^(-t/tau) law, probabilistic bound, MTBF)
 
-Track 7 (arbiter), shard B. Lean file: `formal/lean/Wip/Cells/ArbResolve.lean`
-(STATUS: see "Check status" below). Mathlib (reals, derivatives, Lebesgue
+Track 7 (arbiter), shard B. Lean file: `formal/lean/Formal/Cells/ArbResolve.lean`
+(CLAIMED: checks clean). Mathlib (reals, derivatives, Lebesgue
 measure). No `sorry`/`admit`/`axiom`/`native_decide`.
 
 ## Check status
 
-CHECK_STATUS_PLACEHOLDER
+**Checks clean** (no errors, no warnings) against Lean 4.35.0 / Mathlib v4.35.0
+built from source, 2026-10-27, in ~7-9 s wall. Promoted from `Wip/Cells/` to
+`Formal/Cells/ArbResolve.lean` (the Wip copy is removed). `#print axioms` on
+`LinLoop.prob_unresolved_dt`, `gain_prob_unresolved`, `LinLoop.sol_unique`,
+`LinLoop.inBand_iff`: only `propext, Classical.choice, Quot.sound`.
+No `sorry`/`admit`/`axiom`/`native_decide`. No unproved goals.
 
 Check command (from `formal/lean`, through the slot semaphore):
 
-    cd /home/user/asyncfpga3/formal/lean && PATH=$HOME/.elan/bin:$PATH ../slot.sh lake env lean Wip/Cells/ArbResolve.lean
+    cd /home/user/asyncfpga3/formal/lean && PATH=$HOME/.elan/bin:$PATH ../slot.sh lake env lean Formal/Cells/ArbResolve.lean
 
-(after promotion: same command with `Formal/Cells/ArbResolve.lean`). The file
-imports seven Mathlib modules, not `Mathlib`:
+The file imports six Mathlib modules, not `Mathlib`:
 `Analysis.SpecialFunctions.{ExpDeriv,Log.Basic}`, `Analysis.Calculus.MeanValue`,
-`Analysis.Calculus.Deriv.MeanValue`, `MeasureTheory.Measure.{Lebesgue.Basic,WithDensity}`,
-`Topology.Order.DenselyOrdered`. NOTE for the shard lead: `lake build` of the
-project only builds the Mathlib modules that some `Formal/` file imports; as
-long as this file sits in `Wip/`, nothing pulls in the MeasureTheory part of
-Mathlib, so these oleans exist only if someone builds them
-(`lake build Mathlib.MeasureTheory.Measure.WithDensity ...`) or the file is
-promoted to `Formal/Cells/`.
+`Analysis.Calculus.Deriv.MeanValue`, `MeasureTheory.Measure.Lebesgue.Basic`,
+`Topology.Order.DenselyOrdered` -- all inside the closure the shard lead's
+`lake build` target list already builds. A lemma
+`densityBound_of_withDensity` (a measure `volume.withDensity f` with `f <= p`
+on `N` satisfies `DensityBound`) was written but dropped, because
+`MeasureTheory.Measure.WithDensity` pulls in convolution/Radon-Nikodym and is
+not in the built closure; it is a 5-line proof (`withDensity_apply`,
+`setLIntegral_mono'`, `setLIntegral_const`) to restore if that module is
+built. Until then `DensityBound` is the hypothesis itself (any measure, a
+bound on measurable subsets of `N`).
 
 ## Model
 
@@ -74,8 +81,8 @@ Linear loop (`LinLoop` = `tau, g, vs, H_tau_pos, H_gain_gt_one`):
 - `LinLoop.unresolved_eq`, `unresolved_volume` (3, interval form): the set of
   `v0` unresolved at `T` is the interval `vs ± delta e^{-T/tau_r}`, length
   `2 delta e^{-T/tau_r}`.
-- `DensityBound`, `densityBound_of_withDensity`: a measure `volume.withDensity f`
-  with `f <= p` on `N` satisfies the bound.
+- `DensityBound mu N p`: `mu s <= p * volume s` for measurable `s ⊆ N` (the
+  density hypothesis, stated without Radon-Nikodym).
 - `prob_band`, `LinLoop.prob_unresolved` (3, measure form): `T >= 0`, density
   `<= p` on the band ⇒ `mu {v0 | |v(T) - vs| < delta} <= 2 p delta e^{-T/tau_r}`.
 - `LinLoop.prob_unresolved_dt`: in terms of the edge timing `Δt` with
@@ -174,8 +181,40 @@ it needs the analog layer.)
 
 ## How hard were the Mathlib parts
 
-DIFFICULTY_PLACEHOLDER
+Easy. The whole file (≈490 lines, 28 theorems) was written blind while
+Mathlib was still building, from grepping the Mathlib sources for lemma names,
+and checked on the first run with zero errors; the only edits afterwards were
+lint warnings (`field_simp` already closed four goals the trailing `ring` was
+meant for; `Set.mem_setOf_eq` is deprecated in favour of `Set.mem_ofPred_eq`).
+What made it easy:
+- ODE: no Mathlib ODE library needed. Uniqueness of the linear ODE is the
+  integrating factor `(v - vs) e^{-t/tau_r}` plus `constant_of_has_deriv_right_zero`;
+  the nonlinear comparison is `(v-vs)^2 e^{-2 gamma t}` plus
+  `monotoneOn_of_deriv_nonneg`. Derivatives are built with `HasDerivAt.mul/exp/
+  const_mul/div_const/sub_const` and closed with `congr_deriv` + `ring`.
+  (Gronwall / Picard-Lindelöf would be needed only for *existence* of the
+  nonlinear trajectory, which the theorems avoid by quantifying over any
+  trajectory.)
+- Exit time: `lt_log_iff_exp_lt`, `lt_div_iff₀`, `div_lt_iff₀` in one `rw` chain.
+- Measure: the unresolved set is literally an `Ioo`; `Real.volume_Ioo` gives its
+  length, and the density bound is applied to that one measurable set
+  (`measure_mono` for the nonlinear superset). No integrals at all.
+The hard part is not Lean, it is the physics: `tau`, `g`, `delta`, `k` and the
+density are hypotheses with no source in prjxray-db.
 
 ## Verdict
 
-VERDICT_PLACEHOLDER
+**Works** (done, claimed, checks clean). Effort spent ≈1 h of writing plus
+waiting for Mathlib; effort to extend: (a) restore the `withDensity` lemma once
+that module is built (minutes); (b) existence of the nonlinear trajectory via
+`Mathlib.Analysis.ODE.PicardLindelof` for a Lipschitz `f` (≈half a day); (c)
+a multi-pole node (mux-tree depth) — the dominant-unstable-mode version — is
+real work (days; linear ODE systems / matrix exponentials in Mathlib are thin).
+What it buys the project: a machine-checked statement that (i) a LUT arbiter's
+exclusion at any fixed read time is not deterministically provable
+(`no_deadline`), (ii) the failure probability is `<= q T0 e^{-T/tau_r}` under
+named hypotheses, also for the nonlinear loop with `g_min`, and (iii) hence the
+MTBF formula `e^{T/tau_r}/(T0 f1 f2)`, which turns `cells/verify/MTBF.md`'s open
+"contested fraction" into the measurable product `f2 T0`, and says the two
+numbers the board must deliver are `tau_r` (a slope of log-rate vs resolution
+time — impossible from zero-failure runs) and `T0` (its intercept).

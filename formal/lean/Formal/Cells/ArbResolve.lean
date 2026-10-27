@@ -117,7 +117,7 @@ theorem sol_ode (v0 t : ℝ) :
   rw [(L.sol_hasDerivAt v0 t).deriv]
   have h := L.H_tau_pos.ne'
   unfold rate
-  field_simp <;> ring
+  field_simp
 
 /-- (1b) Uniqueness: any `v` satisfying the linearized ODE on `[0, T]` is the
 explicit solution with `v0 = v 0`. -/
@@ -206,7 +206,7 @@ theorem no_deadline {δ : ℝ} (hδ : 0 < δ) (T : ℝ) :
   · intro h; linarith
   · rw [L.sol_dev, add_sub_cancel_left, abs_of_pos hpos]
     have : δ / (2 * exp (T / L.taur)) * exp (T / L.taur) = δ / 2 := by
-      field_simp <;> ring
+      field_simp
     rw [this]; linarith
 
 end LinLoop
@@ -217,7 +217,7 @@ end LinLoop
 theorem band_set_eq (a c δ : ℝ) (hc : 0 < c) :
     {x : ℝ | |x - a| * c < δ} = Ioo (a - δ / c) (a + δ / c) := by
   ext x
-  simp only [mem_setOf_eq, mem_Ioo]
+  simp only [mem_ofPred_eq, mem_Ioo]
   rw [← lt_div_iff₀ hc, abs_lt]
   constructor <;> rintro ⟨h1, h2⟩ <;> constructor <;> linarith
 
@@ -266,7 +266,7 @@ theorem unresolved_eq (T δ : ℝ) :
       = Ioo (L.vs - δ * exp (-(T / L.taur))) (L.vs + δ * exp (-(T / L.taur))) := by
   have hE := exp_pos (T / L.taur)
   have : {v0 : ℝ | |L.sol v0 T - L.vs| < δ} = {x : ℝ | |x - L.vs| * exp (T / L.taur) < δ} := by
-    ext x; simp only [mem_setOf_eq, L.sol_dev]
+    ext x; simp only [mem_ofPred_eq, L.sol_dev]
   rw [this, band_set_eq _ _ _ hE]
   simp only [exp_neg, div_eq_mul_inv]
 
@@ -291,7 +291,7 @@ theorem prob_unresolved (μ : Measure ℝ) {N : Set ℝ} {T δ p : ℝ}
   have hE1 : 1 ≤ exp (T / L.taur) := one_le_exp (div_nonneg hT L.taur_pos.le)
   have hset : {v0 : ℝ | |L.sol v0 T - L.vs| < δ}
       = {x : ℝ | |x - L.vs| * exp (T / L.taur) < δ} := by
-    ext x; simp only [mem_setOf_eq, L.sol_dev]
+    ext x; simp only [mem_ofPred_eq, L.sol_dev]
   rw [hset]
   refine (prob_band μ hE hp ((Ioo_shrink hδ.le hE1).trans hN) H_density).trans (le_of_eq ?_)
   simp only [exp_neg, div_eq_mul_inv]
@@ -318,7 +318,7 @@ theorem prob_unresolved_dt (ν : Measure ℝ) {N : Set ℝ} {T δ q k : ℝ}
   have hset : {dt : ℝ | |L.sol (L.vs + k * dt) T - L.vs| < δ}
       = {x : ℝ | |x - 0| * (|k| * exp (T / L.taur)) < δ} := by
     ext x
-    simp only [mem_setOf_eq, L.sol_dev, add_sub_cancel_left, sub_zero, abs_mul]
+    simp only [mem_ofPred_eq, L.sol_dev, add_sub_cancel_left, sub_zero, abs_mul]
     rw [mul_comm |k| |x|, mul_assoc]
   have hsub : Ioo (0 - δ / (|k| * exp (T / L.taur))) (0 + δ / (|k| * exp (T / L.taur)))
       ⊆ N := by
@@ -332,7 +332,7 @@ theorem prob_unresolved_dt (ν : Measure ℝ) {N : Set ℝ} {T δ q k : ℝ}
   refine (prob_band ν hc hq hsub H_density).trans (le_of_eq ?_)
   congr 1
   rw [exp_neg]
-  field_simp <;> ring
+  field_simp
 
 end LinLoop
 
@@ -484,6 +484,6 @@ theorem mtbf_lower {lam f1 f2 T0 T taur : ℝ}
   have h := one_div_le_one_div_of_le hlam hbound
   refine Eq.trans_le ?_ h
   rw [exp_neg]
-  field_simp <;> ring
+  field_simp
 
 end Formal.Cells.ArbResolve
