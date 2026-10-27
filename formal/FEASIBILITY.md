@@ -165,7 +165,7 @@ it at every corner (`bundle_ratio_affine_iff`); monotone nominal delays alone
 are not enough (`monotone_not_enough`). The project's guardbands become exact
 scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_sound`,
 `ruleE_tight`); rule A *with exact division Pd/5* iff κ ≤ 1/11 ≈ 9.1% (`ruleA_sound_rel`,
-`ruleA_tight`); tighten.py as coded truncates (`max(int(0.2*t),200)`), and the audit shows its limit is ≈ 25/276 ≈ 9.06% (t_data 1004, t_req 1204 passes the code and fails at 1/11); probe CornerCode is proving the coded rule's exact limit. Soft evidence that κ can be larger: the 7-link ring ratios
+`ruleA_tight`); tighten.py's gate as coded (`max(int(0.2*t),200)`, SLACK = 0) is sound iff κ ≤ 25/276 ≈ 9.06% (`Core/Delay/CornerCode.lean`: `ruleA_code_sound`, `ruleA_code_tight`, worst case t_data 1004, t_req 1204, confirming the audit); with SLACK ≥ 1 (resize.sh's search) it is again κ ≤ 1/11. Assumed, not proved in Lean: Python's `int(0.2*t)` = ⌊t/5⌋ for 0 ≤ t < 2^50 (argument plus scans). Soft evidence that κ can be larger: the 7-link ring ratios
 0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
 path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
 two-path difference, so this is not a refutation. **Correction (2026-10-27 ~07:00):** the ring ratios behind κ ≥ 0.311 are

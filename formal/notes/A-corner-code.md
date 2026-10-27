@@ -2,10 +2,14 @@
 
 Files:
 - `formal/lean/Formal/Core/Delay/CornerCode.lean`, namespace `Formal.Core.CornerCode`.
-  It imports Mathlib only (`Data.Real.Archimedean`, `Tactic.Linarith`, `Tactic.NormNum`,
-  `Tactic.Positivity`), not Corner.lean. The corner model is restated inline with the same
+  It imports Mathlib only (`Algebra.Order.Archimedean.Real.Basic`, `Data.Nat.Cast.Order.Field`,
+  `Tactic.Linarith`, `Tactic.NormNum`, `Tactic.Positivity`, `Tactic.Ring`), not Corner.lean. The corner model is restated inline with the same
   hypothesis shape as `Corner.ruleA_sound_rel`.
 - this note.
+
+Check (from `formal/`): `./check.sh Formal/Core/Delay/CornerCode.lean` →
+`[audit] 21 declarations checked`, `[check] OK`. Also `../slot.sh lake env lean
+Formal/Core/Delay/CornerCode.lean` from `formal/lean`: no output (no errors, no warnings).
 
 ## Problem
 

@@ -8,3 +8,4 @@ import Formal.Core.XSim
 import Formal.Core.Ternary
 import Formal.Core.Delay.SAF
 import Formal.Core.Delay.GLSPass
+import Formal.Core.Delay.CornerCode

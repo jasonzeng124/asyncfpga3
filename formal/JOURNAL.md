@@ -306,3 +306,7 @@ has no guarded delay lines, no select partitions, no >2-arm merges, so the Event
 extensions are vacuous there): slow/fast CLEAN on all 4 seeds; gb seed 5 rig env
 uenv1 -9 ps / uenv0 0 ps; indep 3/3/2/5. Negative controls fail. Mathlib build:
 2529 oleans at 12:17.
+### progress 12:21
+CornerCode claimed (check.sh 21 decls OK): tighten.py's rule A as coded (SLACK=0) is
+sound iff κ ≤ 25/276 (iff proved; audit row answered); SLACK ≥ 1 gives 1/11 again; the
+float-to-floor equality is argued, not proved. FEASIBILITY 3b and FOR-RESEARCH §9 updated.

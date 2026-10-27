@@ -190,3 +190,13 @@ Evidence and reproducers: `formal/notes/A-gls-compare-2.md`, `sh formal/tools-A/
   rules E and A are proved sound. Either clip at a stated κ, or say so where
   scatter results are quoted.
 
+
+## 9. tighten.py rule A: exact κ limit, and one place to look (2026-10-27)
+
+- The gate (SLACK = 0) is sound iff local scatter κ ≤ 25/276 ≈ 9.06% (proved,
+  `formal/lean/Formal/Core/Delay/CornerCode.lean`); the worst pair is t_data 1004 ps,
+  t_req 1204 ps, where the 200 ps floor sets the guard. If the project's κ estimate
+  exceeds 9%, raise the floor or use exact division.
+- Unverified (spotted while reading, not modelled): in the bundled-channel pairing,
+  `upstream_lag` is added to the data delay after the guard was computed on the
+  smaller pre-lag t_l. Check whether the guard should use the post-lag delay.
