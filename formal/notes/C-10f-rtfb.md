@@ -43,7 +43,7 @@ the shipped gcd_hw kernel in any one-corner model, on any of 4 seeds.**
 
 - Compile times on this machine: each Muller data file about 80 s, `RtFbMuller.lean` about
   10 min (one slot, under 1 GB RSS), each gcd file plus `RtFbGcd` under 2 min.
-- `check.sh` result: see the end of this file.
+- `check.sh` result: **[check] OK, 449 declarations audited**.
 
 **Toolchain.** `cells/verify/toolchain.sh` passed before every route, with nextpnr
 **sha256 9c732bc6303458df**. `fasm_audit.py` PASS on every route.
@@ -344,4 +344,5 @@ negative needs the same items 1 to 3.
 
 ## check.sh
 
-(see below; updated when the run finishes)
+`./check.sh` on the 14 RtFb files: **[check] OK, 449 declarations audited** (only propext /
+Quot.sound / Classical.choice; no sorry, axiom or native_decide). Log: `formal/tools/rtfb/build/check.log`.
