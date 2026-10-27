@@ -1,0 +1,28 @@
+# collatz64 T4 seed 3 repro (origin/claude/research 9a02f6f snapshot, fusion_bench --mlir ... --sizes research/data/collatz64_sizes_T4.vh --route --nextpnr-seeds 3)
+{"kernel": "collatz64", "vectors": 11, "sizes": "/home/user/wt-r3/research/data/collatz64_sizes_T4.vh", "fork_fusion": true, "max_nodes": 4, "fastfall": true, "bd_dsp": "1", "rtl_fast": [5543, 2884751, 6417691, 5586395, 6599537, 9431139, 8262129, 8288107, 11769159, 6781383, 7171053], "rtl_stalled": [5543, 2884751, 6417691, 5586395, 6598629, 9429254, 8262129, 8288107, 11766023, 6781383, 7171053], "routes": {"3": {"nextpnr_seed": 3, "audits": {"tighten": {"exit": 1, "violations": 6}, "skew": {"exit": 0, "violations": 0}, "arb_fork": {"exit": 0, "violations": 0}}, "routed_fast": [27507, 11636169, 25889405, 22535645, 26623040, 38046785, 33330560, 33435365, 47479235, 27356675, 28928750], "routed_stalled": [27507, 11635463, 25887722, 22535645, 26619403, 38042171, 33330560, 33435365, 47471690, 27356675, 28928750], "routed_gls": {"stalled": "pass", "fast": "pass"}, "routed_source_lead_ps": {"n": 271}, "fastfall": true, "routed_lut_sites_including_harness": 2578, "toolchain": ["\"nextpnr-xilinx\" -- Next Generation Place and Route (Version 0.9.2-100-gbfdeaf7c)", "Yosys 0.62 (git sha1 7326bb7d6, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)"]}}}
+
+## skew.log (rule E)
+rule E       /home/user/wt-r3/build/r3_c64/seed3/pnr/soak.sdf
+             15904 cell arcs, 17423 routed net delays
+             18 select gates, 18 measured, 0 violated
+             guardband 0.772*req vs 1.155*sel, from hw/README.md's five measured rings
+             element cost: 419 ps per bd_delay link, measured off this route's own chains
+## tighten.log VIOLATION lines (all rule D)
+  uut.ucond_br2 (bd_steer)         req   295  sel  4217  guard  843  margin  -4765   PAD by 12 bd_delay element(s) (419 ps ea) -- VIOLATION
+  uut.ucond_br3 (bd_steer)         req   508  sel  3936  guard  787  margin  -4215   PAD by 11 bd_delay element(s) (419 ps ea) -- VIOLATION
+  uut.ucond_br4 (bd_steer)         req   295  sel  3936  guard  787  margin  -4428   PAD by 11 bd_delay element(s) (419 ps ea) -- VIOLATION
+  uut.ucond_br5 (bd_steer)         req   579  sel  5932  guard 1186  margin  -6539   PAD by 16 bd_delay element(s) (419 ps ea) -- VIOLATION
+  uut.ucond_br6 (bd_steer)         req   295  sel  7171  guard 1434  margin  -8310   PAD by 20 bd_delay element(s) (419 ps ea) -- VIOLATION
+  uut.ucond_br7 (bd_steer)         req   295  sel  6072  guard 1214  margin  -6991   PAD by 17 bd_delay element(s) (419 ps ea) -- VIOLATION
+## rule F
+F. a fast-fall line is flushed before its input can rise again
+------------------------------------------------------------------------------
+  uut.uaddi0.udly                          37 links   flushed  2038  reusable  3563  guard  407  margin   1118   ok
+  uut.ucontrol_merge1.udly                  5 links   flushed   838  reusable  2411  guard  200  margin   1373   ok
+  uut.ucontrol_merge0.udly                  6 links   flushed  1051  reusable  4023  guard  210  margin   2762   ok
+  7 fast-fall lines audited; worst margin 1118 ps (uut.uaddi0.udly)
+
+## rule J
+
+  every arbiter's A0 reaches its ack C-elements before the grant it unlocks
+## slope fit: fast 104.8 ns/iteration, stalled 104.7 ns/iteration
