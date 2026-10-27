@@ -1080,3 +1080,18 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   x0.9, x1.1, wire scatter 25% x1 and 35% x2. Added to BOARD-QUEUE #3.
 - collatz64 ratchet it1: rule A 4-12 / rule E 6-7 per seed, GLS fails (out0 out of phase) on all 8 -- audits and
   GLS agree; it2 running.
+### progress 02:21 (owner: board-fidelity GLS is THE priority -- re-planned)
+- Read the owner's cbb347e/eb4380c/976cf90 (PROGRAM.md "THE priority", CLAUDE.md, TC default fix). Speed work stops;
+  the collatz64 ratchet keeps running only as an idle-core filler (renice +10). Rule gates stay exactly as they are
+  until the new GLS passes acceptance.
+- prjxray-db zynq7 (commit 0a0added, 2021-12-14) sparse-cloned to /root/dev2/lib/xray/prjxray-db (91 MB): tile_type
+  pip/wire delays at 4 corners + R/C, timings/*.sdf, segbits, xc7z010clg400-1. prjxray.timing imports from the
+  openxc7-src checkout via PYTHONPATH. (pip-installing fasm/sdf-timing from git was refused by the session; not
+  needed so far.)
+- Four workstreams (subagents, shared brief): F1 prjxray RC-tree delay calculator -> min:typ:max SDF for gen.py, hand
+  checks, comparison with nextpnr's SDF, ring validation; F2 netlist from FASM (fasm2bels or focused converter),
+  equivalence on BQ#3's route, lut-pinmap negative control; F3 transport/hazard LUT model, metastability,
+  correlated + per-wire variation from the ring data, with negative controls; F4 acceptance suite: inventory of every
+  silicon measurement and August failure with its reproducible bitstream/route, harness, baseline on today's GLS.
+- Committed before the redirect (rule tooling, now "heuristics"): rule A link pricing (e68dcd6), skew walk fix
+  (9b6596d), size_kernel tool (54e0247). BQ#3 reproduction + scatter clean (cbe2206).
