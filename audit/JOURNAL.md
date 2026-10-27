@@ -15,3 +15,8 @@ cloud/setup-toolchain.sh into ~/audit-tc (cache hit). Textual sorry/axiom grep c
 comments). Wrote audit/tools/axiom_audit.sh (own collectAxioms over every Formal.* constant).
 Subagents running: A/B/C statement+witness+mutation audits, transcription fidelity, GLS
 sample-at-fire reproduction, rules J/I/F reproduction. #1 bitstream sha256 matches.
+
+### progress 03:33
+Toolchain restored (nextpnr sha256 9c732bc6303458df = committed toolchain.txt). BQ#1 route rebuild started in
+clean worktree wt-rb1 (19a93c1). BQ#3 "~9%" found OVERSTATED from their own tables (8-seed vs 4-seed mean);
+see audit/findings/research-stats.md.
