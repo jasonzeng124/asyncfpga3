@@ -226,3 +226,28 @@ disproved.
   Never merge.
 - Revert anything that breaks a gate. A red branch blocks the next session.
 - Never delete or rewrite the owner's or Devin's history.
+
+## Read the independent audit every session (owner, 2026-10-27)
+
+An independent auditor works on branch `claude/audit`. It writes only
+`audit/REPORT.md` and `audit/findings/`. At the start of every session, run
+`git fetch origin && git show origin/claude/audit:audit/REPORT.md`. Fix every
+REFUTED or OVERSTATED row that concerns your files, or answer it in your
+journal with evidence. Never edit the audit branch.
+
+**First, the corner misreading (REFUTED by the audit).** The prjxray SDF
+triples are `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`
+(`prjxray/utils/makesdf.py:63`). They are **fast and slow corners, not rise and
+fall.** So the "O6 rise 45-56 ps, fall 100-124 ps" and the "rise and fall differ
+by 2.2x" figures are wrong: 56 and 124 are the fast-corner and slow-corner
+bounds of one arc. Nothing in prjxray-db separates rise from fall. Never mix
+corners within one analysis (a fast-corner rise with a slow-corner fall);
+use one consistent corner, or the corner model with scatter κ.
+- Fix `cells/sim/bd_prims_sim.v:57-61` (BD_T_RISE 56 / BD_T_FALL 124, 5LUT
+  55/152). Then re-run and re-judge every result that used it:
+  tb_arb_overlap, arb_mtbf and the null-generator testbenches. The routed GLS
+  (nextpnr SDF, 124 ps on both edges) is not affected.
+- The audit also CONFIRMED the GLS sample-at-fire early edge, rule J's missing
+  site-pin delays (BQ#1 may be negative under fast-early/slow-late), and the
+  rule F in-flight gap. It found that the ring validation rests on ONE ring
+  measured on silicon. Treat these as open defects.
