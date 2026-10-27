@@ -1056,3 +1056,10 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   later routes ask); violation counts unchanged in every old/new log. 5 tests, 4 fail on a chain/n mutant.
 - No shipped claim is touched: verdicts come from measured margins, not proposals, and every claimed sizes file was
   re-audited after its last merge. Rules H/B/C still price at chain/n (not changed). New sizes not yet routed.
+### progress 01:34 (container restart; jobs re-launched)
+- Restart at ~01:30 killed every job. BQ#3 FF default-seed reproduction had finished: md5s match (routed.json
+  f9c4597d, sdf 61e14755), rules E/A/H/I/J 0, gate ANNOTATE_DONE with 0 SDF warn/err, nominal GLS 16/16 correct
+  (errs=0). Corners and wire scatter re-launched on the same build (md5 re-checked first).
+- After the restart `cells/verify/toolchain.sh` failed with its default TC path (resolved to a /home/jayjay
+  path); with TC=/root/dev2/lib/fpgatoolchain it passes, nextpnr 9c732bc6303458df, unchanged.
+- collatz64 ratchet restarted at it1 (T1 = it0 merge: rule E 3-6 per seed on all 8, rule A 0).
