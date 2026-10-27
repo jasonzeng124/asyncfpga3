@@ -286,6 +286,18 @@ def unesc(s):
     return s.replace("\\", "")
 
 
+# Which column of each (min:typ:max) triple to read.  nextpnr writes the same
+# number in all three, so for its SDF this changes nothing; an SDF from
+# fid/xray_delay.py carries (FAST_MIN : SLOW_MIN : SLOW_MAX) and this picks
+# the corner.  Default "min" keeps the behaviour this file always had.
+SDF_FIELD = {"min": 0, "typ": 1, "max": 2}[os.environ.get("GLS_SDF_FIELD", "min")]
+
+
+def tri(m, first):
+    """the selected column of the triple whose min is group `first`"""
+    return int(m.group(first + SDF_FIELD))
+
+
 # Delay perturbation, for corner and scatter runs (off by default, and then
 # every number below is the routed SDF's own):
 #   GLS_DELAY_SCALE=f      every IOPATH and INTERCONNECT times f (a corner:
@@ -434,7 +446,7 @@ def read_sdf(path):
         m = RE_IC.search(line)
         if m:
             ic.append((unesc(m.group(1)), unesc(m.group(2)),
-                       perturb_ic(int(m.group(3)), unesc(m.group(1)), unesc(m.group(2)))))
+                       perturb_ic(tri(m, 3), unesc(m.group(1)), unesc(m.group(2)))))
             n_ic += 1
             continue
         m = RE_INST.search(line)
@@ -443,7 +455,7 @@ def read_sdf(path):
             continue
         m = RE_IO.search(line)
         if m:
-            iopaths[inst].append((m.group(1), m.group(2), perturb(int(m.group(3)), inst or "")))
+            iopaths[inst].append((m.group(1), m.group(2), perturb(tri(m, 3), inst or "")))
             n_io += 1
             continue
         m = RE_SH.search(line)
@@ -479,8 +491,9 @@ def main():
         dsp_group_ps[cname] = g
         iopaths[cname] = [(a, z, g[(dsp_group(a), dsp_group(z))])
                           for a, z, _ in iopaths[cname]]
-    sys.stderr.write("delays: scale %g, scatter sigma %g (seed %s, mode %s)\n"
-                     % (DELAY_SCALE, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
+    sys.stderr.write("delays: SDF column %s, scale %g, scatter sigma %g (seed %s, mode %s)\n"
+                     % (os.environ.get("GLS_SDF_FIELD", "min"), DELAY_SCALE, SCATTER,
+                        os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
     if SCATTER_MODE == "wire" and SCATTER:
         sys.stderr.write("delays: %d interconnect arc(s) from the wire model, %d fell back "
                          "to one draw each\n" % (n_wire, n_wire_fallback))

@@ -52,14 +52,22 @@ fi
 
 mkdir -p "$WORK"
 cp "$J" "$WORK/routed.json"
-cp "$S" "$WORK/routed.sdf"
+# GLS_SDF: simulate another delay calculation of THIS route in place of
+# nextpnr's, e.g. fid/xray_delay.py's (which takes nextpnr's SDF as its
+# template, so the pair check above still covers the route).  GLS_SDF_FIELD
+# picks min/typ/max from it (gen.py).
+if [ -n "${GLS_SDF:-}" ]; then
+    cp "$GLS_SDF" "$WORK/routed.sdf"
+else
+    cp "$S" "$WORK/routed.sdf"
+fi
 
 {   echo "design:    $DESIGN"
     echo "built:     $(date -d @"$dj" '+%Y-%m-%d %H:%M:%S')"
     echo "stamped:   $(date '+%Y-%m-%d %H:%M:%S')"
     echo "routed.json md5 $(md5sum < "$WORK/routed.json" | cut -d' ' -f1)  <- $J"
-    echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- $S"
-    echo "delays:    scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none}, mode ${GLS_SCATTER_MODE:-arc} (gen.py)"
+    echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- ${GLS_SDF:-$S}"
+    echo "delays:    sdf column ${GLS_SDF_FIELD:-min}, scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none}, mode ${GLS_SCATTER_MODE:-arc} (gen.py)"
     if [ -f "$HW/toolchain.txt" ]; then
         cat "$HW/toolchain.txt"
     else

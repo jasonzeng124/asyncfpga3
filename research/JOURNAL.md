@@ -1103,3 +1103,20 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   by the A/B and fixed. Rules B/C rest on one route (soak). Heuristic tooling; no gate changed.
 - Coordination slip: I put two subagents in the same worktree (wt_aug); one's checkout wiped the other's uncommitted
   edits, which it rebuilt from copies. Each workstream now gets its own worktree.
+### progress 03:08 (F1: prjxray delay calculator -- nextpnr misses the site input-pin delay)
+- `cells/gls/fid/xray_delay.py`: nextpnr routed.json -> prjxray node model -> RC tree with prjxray timing.py ->
+  SDF (FAST_MIN:SLOW_MIN:SLOW_MAX) on nextpnr's SDF as template; gen.py GLS_SDF_FIELD=min|typ|max, build.sh GLS_SDF.
+  Default reproduces old gen outputs byte for byte (ro_top). Zynq7 db was fuzzed on xc7z020-1 (= board's -1); the
+  4-tuple is [FAST_MIN, FAST_MAX, SLOW_MIN, SLOW_MAX]; timings/*.sdf groups are (fast)(slow), not rise/fall.
+- Mapping proven by re-deriving nextpnr's getPipDelay from the resolved pips: within 1 ps on 41091/41096 (gcd),
+  7746/7749, 2444/2444, 8365/8456 arcs (misses: one pad route-through); wrong-pip negative control drops it to 483/2444.
+  Hand Elmore checks agree to 0.1 ps (buffered pip, fanout-6 with/without branches, synthetic pass-transistor chain).
+- vs nextpnr, slow max: interconnect median x1.44 (+287 ps), growing with length (+166 ps at 1 pip, +727 at 13+).
+  The biggest class is the **site input-pin delay nextpnr never charges** (+338 ps mean; LUT A1/A2 ~0.51 ns, A6
+  ~0.005 ns), then fanout loading (25 ps median at fanout 1, 327 ps at 64+), OUTMUX; minus nextpnr's 25 ps site pips
+  and 35 ps tie epsilon. Cell arcs equal except CK->Q (303 vs 340) and DSP (A->P 3841 vs 5400). Clock nets untrusted.
+- Rings (across routes only; per-ring board periods for n=128 are not in the repo and that route predates the
+  lut-perm-sink patch): no measured ring is above slow max (worst 0.72 of it); the board sits at ~0.35-0.41 of the
+  [fast min, slow max] band on long rings, 0.25-0.58 on short ones. A fixed band position reproduces the measured
+  0.938 slope and +309 of the +988 ps offset. Model spread is about half the measured ring scatter.
+- Not shown: per-ring agreement, a full GLS run on the new SDF (only ANNOTATE_DONE/0 warnings on ro_top and gcd).
