@@ -37,6 +37,12 @@ Findings for the cell owner (not confirmed on a route):
   feedback wire (E >= dwmax + dlmax - dlmin). Unchecked.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
+- Arbiter runt direction (7a): the runt comes from SAME-sense request moves
+  within one loop delay (both rising from idle with a gap in (0, L), or a
+  request pulse shorter than L, or A0 falling against a request edge);
+  opposite-sense moves give q exactly one clean edge. bd_arb.v's header says
+  the reverse. Exact simultaneity is the only deterministic tie. Ties go to
+  the previous winner; alternation needs H_Q_BEFORE_REREQ.
 - Bare-cell filtered overlap (8%): an isolated handover overlaps <= 72/94 ps
   for any request skew, below the filter; the observed events are not the
   digital handover overlap.
@@ -81,3 +87,9 @@ Core channels; inertial/involution), 7f (ternary-sim soundness), 7g (A0
 fork), 7h (RT1/RT2 timed). Running: 6b, 7a, 7c, 7d. Note: A's Core uses ℝ
 time and a FIFO pure delay; 5b's window channel is weaker than FIFO, so its
 positive results transfer and its counter-trace (fixed transport) is FIFO.
+
+### progress 03:13
+In: 6b LinkHandshake, 7a ArbBinary, 7f TernarySound, 7g ArbA0Fork (rule J
+proved exact; corrected my earlier "unchecked" claim, owner re-notified).
+Launched 6d LinkTimed (controller composed with latch, timed), 7i
+TernaryPhases. Running: 7c, 7d (waiting on Mathlib), 5d, 7h, 7i, 6d.
