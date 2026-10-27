@@ -15,7 +15,7 @@ git URL in lakefile.toml; Mathlib built from source, but only the modules the
 project imports (lake builds the transitive closure only). PROGRAM.md says
 never build from source unless the cache fails: it fails.
 - formal/slot.sh: flock semaphore, default slots = min(nproc-1, (memGB-2)/4)
-  = 3 here. A  holds one slot but uses all cores; only the shard
+  = 3 here. A `lake build` holds one slot but uses all cores; only the shard
   lead runs it.
 - formal/check.sh: builds every module under formal/lean/Formal/ (lakefile
   globs Formal.+), a textual scan for sorry/admit/native_decide/axiom, then an
@@ -24,3 +24,5 @@ never build from source unless the cache fails: it fails.
   Lean.ofReduceBool fail it). Unproved work goes in formal/lean/Wip/ (not built).
 - Import policy (to keep the from-source build small): import specific Mathlib
   modules, never `import Mathlib`.
+### progress 02:48
+11 shard-A probes launched as subagents: trace (ℝ, event list, discrete; common benchmark B0-B5), circuit layer + event/ℝ bridge, delay (pure, inertial, involution), Kleene LUT (INIT semantics, shared Core API), LUT mux-tree fidelity theorem, primitive fidelity table, literature x2. Mathlib subset builder running (lead only); probes ask for modules in Wip/REQUESTS.txt. Draft PR #3 opened.
