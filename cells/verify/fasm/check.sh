@@ -20,7 +20,7 @@
 # the unpatched fasm.cc / pack_dsp_xc7.cc.
 set -uo pipefail
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 CELLS=$(cd "$(dirname "$0")/../.." && pwd)
 SRC=$CELLS/verify/fasm
 WORK=$CELLS/build/verify/fasm

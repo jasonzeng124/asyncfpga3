@@ -34,7 +34,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 CELLS_SIM=$TC/openxc7/share/yosys/xilinx/cells_sim.v
 W=build/verify/harness_pss
 mkdir -p "$W" build/gen

@@ -25,7 +25,7 @@ point of the number being what it is.
 import os, re, subprocess, sys, tempfile, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TC   = pathlib.Path(os.environ.get("TC", "/home/jayjay/dev2/lib/fpgatoolchain"))
+TC   = pathlib.Path(os.environ.get("TC", os.path.expanduser("~/dev2/lib/fpgatoolchain")))
 YOSYS = TC / "openxc7/bin/yosys"
 CELLS_SIM = TC / "openxc7/share/yosys/xilinx/cells_sim.v"
 

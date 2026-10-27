@@ -48,7 +48,7 @@ import os
 import re
 import sys
 
-DB = os.path.join(os.environ.get("TC", "/home/jayjay/dev2/lib/fpgatoolchain"),
+DB = os.path.join(os.environ.get("TC", os.path.expanduser("~/dev2/lib/fpgatoolchain")),
                   "openxc7/share/nextpnr/prjxray-db/zynq7")
 PART = "xc7z010"
 

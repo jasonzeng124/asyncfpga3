@@ -211,7 +211,7 @@ else
          "bdc/emit.py's unmeasured estimate" >&2
 fi
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
 NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
 CHIPDB=$TC/openxc7/xc7z010clg400.bin

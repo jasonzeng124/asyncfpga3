@@ -18,7 +18,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 W=build/verify/cdc
 mkdir -p "$W" build/gen
 kernels=("$@")
