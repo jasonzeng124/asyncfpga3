@@ -74,13 +74,16 @@ Findings for the cell owner (not confirmed on a route):
 - C-element fork: after seeing the ack the environment must wait out the
   feedback wire (E >= dwmax + dlmax - dlmin). Unchecked.
 - CORNERS (Bc, ArbCorners): at a consistent corner the bare-cell handover
-  overlap is 0 for every routing (the 16 ps was the corner mix); the held
-  arbiter's "wfa2+16" tightest margin does not exist; rule J's flat 2x124 arc
-  is exact (client 2) or 26 ps conservative (client 1), so 7g's "68-161 ps
-  optimistic" is WITHDRAWN (the site-pin item stands); raw rule J does not
-  cover FAST_MIN (84 ps flip window at wire/cell ratio 0.55), guarded rule J
-  does given >= 114 ps early routing. Every SLOW_MAX-only margin needs an
-  added guard As - Af/k against a corner flip (exact per condition).
+  overlap is 0 for every routing (the 16 ps was the corner mix; audit
+  CONFIRMED). The rule-J/RT1/RT1b/caps numbers in ArbCorners assume q enters
+  ugrant on pin A3 (identity pin map); the routed bits put q on A5 in 3 of 4
+  seeds, where O5's arc is 116 ps at SLOW_MAX (< O6's 124) and 48 at FAST_MIN
+  (> 45): rule J is then 8 ps OPTIMISTIC for client 1, not 26 ps conservative,
+  and RT1b is not structural at SLOW_MAX (audit row 35, ArbPinA5.lean). The
+  "guarded rule J covers FAST_MIN" result rests on ONE wire ratio for the
+  whole signed wire sum (plus k <= 1, site pins excluded); with per-wire
+  ratios inside the measured band it fails by -118.5 ps (audit row 36,
+  ruleJ_perwire_cex). Withdrawn as stated; redo per pin per seed (probe Bc2).
 - FEEDBACK PIN ORDER (Bq, FifoFidelity): the timed pipe's FIFO assumption
   holds for bd_link_ctl iff (besides FIFO pin buffers and tree) the
   feedback reaches its mux select before the first departing req/ack does:
@@ -155,6 +158,17 @@ Rows concerning shard B, and what was done:
 - Row 51 (CONFIRMED) adds a result: drop_env_latency_cex shows the C-element
   fork condition E >= dwmax + dlmax - dlmin is NECESSARY, not just
   sufficient. Recorded.
+
+Audit pass 3 (2d5d055), rows on B:
+- Row 35 (OVERSTATED): ArbCorners' rule J / RT1 / RT1b / caps use the
+  identity pin map (q on A3); real routes use A5 in 3/4 seeds, flipping the
+  sign. Agreed; findings line corrected; probe Bc2 redoes it per seed.
+- Row 36 (OVERSTATED): guarded rule J needs one wire ratio; per-wire ratios
+  break it. Agreed; withdrawn as stated.
+- Row 37 (OVERSTATED): PipeTimedN's unit witness is degenerate (req and ack
+  arrive in the same tick, the C-element never holds). Agreed; the audit's
+  Aud.witness_g repairs the control side; a non-unit data-side and DACK >= 2
+  joint witness is being built (probe 6h).
 
 North star (PROGRAM.md, owner, 2026-10-27; I read it late, at ~05:30):
 digital only. The analog probes (ArbAnalog, ArbAnalog2, ArbResolve) are
