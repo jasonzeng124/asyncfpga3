@@ -86,6 +86,12 @@ Findings for the cell owner (not confirmed on a route):
   from every rule and from the GLS (which satisfies FIFO by construction).
   Counterexample run oscillates. Fixtures suggest feedback does land on A1 in
   some seeds (unverified reading). Fix: a FASM-pin gate, or LOCK_PINS.
+- PIN 1 FEEDBACK IS COMMON (Bp, PinAssign, from the bits): the router put a
+  C-element/latch feedback on the slowest site pin (pin 1) in 12/36 feedback
+  pins of C's fixtures and 24/64 muller64 stages; all 12 muller64 stages that
+  fail C-10d's routed RT_FB check have a positive per-pin term. A site-pin
+  table in arb_fork.py/skew.py plus pins read from FASM (~0.5 d) would make
+  rule J' and H_SEL_ORDER gates.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
