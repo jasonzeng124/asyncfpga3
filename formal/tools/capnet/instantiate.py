@@ -30,7 +30,7 @@ PROFILES = {
     "ipow": dict(
         prefix="IpowCap", ns="Formal.Net.IpowCap", label="ipow_ps",
         gmod="Formal.Net.IpowHw", gns="Formal.Net.IpowHw", gq="IpowHw", live="Formal.Net.IpowHwLive",
-        spec="ipowSpec a b", tpre="ipow_hw_", tpre2="ipowhw_", chOut=57, chEnd=4,
+        spec="IpowHw.ipowSpec a b", tpre="ipow_hw_", tpre2="ipowhw_", chOut=57, chEnd=4,
         # final_empty: the final store is empty off out0/end (the kernel's own store lemma)
         final_empty="theorem final_empty (r c : Nat) (h3 : c ≠ 4) (h250 : c ≠ 57) : final r c = [] :=\n"
                     "  final_store_only r c h250 h3",
