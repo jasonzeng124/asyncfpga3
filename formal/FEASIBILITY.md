@@ -42,7 +42,7 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 | 1 | Toolchain | **works, with a workaround** | `formal/setup.sh`, `check.sh` | done | — |
 | 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
 | 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel (probe running) | sound wire abstraction; exact bundling lemma |
-| 4 | Kleene LUT | **works** | `Core/{Kleene,Lut,LutTree,Ternary,Bridge}.lean` | per-cell hazard audit (probe running) | decidable per-cell hazard/settling check |
+| 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL | `Core/{Kleene,Lut,LutTree,Ternary,Bridge,LutCells,LutAudit}.lean`, `tools-A/lut_extract.py` | mechanised environment model (which multi-input changes the protocol allows): 1–2 d | decidable per-cell hazard/settling check |
 | 5 | C-element | (shard B) | see `JOURNAL-B.md` | | |
 | 6 | Latch / link | (shard B) | | | |
 | 7 | Arbiter | (shard B) | | | |
@@ -209,5 +209,15 @@ a standard SDF reader misreads them (A-fidelity).
 - The research GLS's `SLICE_LUTX` builds the LUT mux tree with A6 at the
   leaves; the silicon has A6 at the root (UG474). Harmless for logic values,
   differs in timing (A-lut-tree).
+- **bd_arb header: "a tie is resolved deterministically" is not true for a
+  same-sense tie.** Both requests rising together from idle is a static hazard
+  on q for either held q (`LutAudit.arb_tie_from_idle_hazard`; shard B 7a
+  reached the same conclusion independently in timed form). Same-sense
+  near-ties should be in the MTBF experiment (cells/verify/MTBF.md).
+- **The losing grant can pulse without metastability**
+  (`LutAudit.arb_grant_near_tie_runt`): q rising while r2 rises, with routing
+  skew between the q branches. A2 = C(g2, A0) absorbs it, but bdc/emit.py's
+  `won = g2 | ack` drives `index` directly, so index sees the pulse: an
+  unchecked bundling margin, not a demonstrated failure.
 - Shard B (7b): the bd_arbiter A0 hold relies on a fork ordering H_A0_FORK
   (A0's fall must reach ua2 before A0 → ustate → q → ugrant → g2 does).
