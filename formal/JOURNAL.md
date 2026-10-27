@@ -151,3 +151,18 @@ import; now globs = ["Formal", "Formal.+"]. (2) check.sh file mode wrote hand-bu
 oleans into .lake/build, which broke lake's C linking of xaudit; it now writes to
 .lake/checkfile. Clean rebuild: 1540 jobs, 4m37s. Full `formal/check.sh`: 9003
 declarations audited, OK.
+### progress 04:55
+EnvFast claimed: bit-packed proved-once checker over untrusted certificates;
+bd_link W=2 (1048 states) proved (link2_sound) in ~20 s / 736 MB peak, where Env
+needed > 6 GB. bd_merge control path: merge_sound under the documented exclusivity
+obligation plus selFast; NEW: selFast is needed and is not stated in the RTL header
+(merge_needs_selFast: the select LUT must settle before the x side moves again,
+else sel gets a runt). Negative controls: certificate with a state removed is
+rejected; unconstrained merge is rejected.
+check.sh file mode, two more fixes: (1) per-run overlay dir (concurrent runs from
+probes wiped a shared one mid-run); (2) the overlay is a symlink copy of lake's
+oleans, because Lean resolves Formal.* from the first LEAN_PATH entry that has a
+Formal/ dir. Negative control re-run: hidden sorryAx still fails the audit.
+The heartbeat's --committed run was void (check.sh was edited while bash was
+reading it); rerunning. Usage limit hit at ~04:45 (resets 04:50): the gcd_hw xaudit
+probe stopped mid-way and will be resumed.

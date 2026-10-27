@@ -29,13 +29,19 @@ FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | t
 grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] FAIL: build"; fail=1; }
 mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g' | sort)
 else
+  # per-run directory: concurrent runs (probes use check.sh too) must not share it,
+  # and stale oleans there would shadow lake's (it is first on LEAN_PATH)
+  CHK=".lake/checkfile.$$"; rm -rf "$CHK"; trap 'rm -rf "$CHK" "$CHK.log" "$AUD"' EXIT; export CHK
+  # Lean takes Formal.* from the first LEAN_PATH entry that has a Formal/ dir, so CHK
+  # must be a full overlay: symlinks to lake's oleans, replaced by each file checked.
+  mkdir -p "$CHK"; [ -d .lake/build/lib/lean/Formal ] && cp -rs "$PWD/.lake/build/lib/lean/Formal" "$CHK/"
   for f in "${FILES[@]}"; do
-    echo "[check] lean $f"; mkdir -p ".lake/checkfile/$(dirname "$f")"
-    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/.lake/checkfile:$LEAN_PATH" exec lean -o ".lake/checkfile/${1%.lean}.olean" "$1"' sh "$f" > ".lake/check-file.log" 2>&1 || { grep -E 'error' .lake/check-file.log | head -20; echo "[check] FAIL: $f"; fail=1; }
+    echo "[check] lean $f"; mkdir -p "$CHK/$(dirname "$f")"; rm -f "$CHK/${f%.lean}.olean" "$CHK/${f%.lean}.ilean"
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/$CHK:$LEAN_PATH" exec lean -o "$CHK/${1%.lean}.olean" "$1"' sh "$f" > "$CHK.log" 2>&1 || { grep -E 'error' "$CHK.log" | head -20; echo "[check] FAIL: $f"; fail=1; }
   done
   mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
 fi
-mkdir -p .lake/audit
+AUD=".lake/audit/Audit.$$.lean"; mkdir -p .lake/audit
 { echo "import Lean"; [ ${#FILES[@]} -eq 0 ] && [ $COMMITTED -eq 0 ] && echo "import Formal"; for m in $mods; do echo "import $m"; done
   cat <<'LEAN'
 open Lean Meta in
@@ -57,10 +63,10 @@ open Lean Meta in
   for b in bad do IO.println s!"[audit] BAD: {b}"
   if bad.size > 0 then throwError "audit failed"
 LEAN
-} > .lake/audit/Audit.lean
+} > "$AUD"
 echo "[check] axiom audit"
 if [ $fail -eq 0 ]; then
-  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/.lake/checkfile:$LEAN_PATH" exec lean .lake/audit/Audit.lean' || { echo "[check] FAIL: audit"; fail=1; }
+  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/${CHK:-.lake/none}:$LEAN_PATH" exec lean "$0"' "$AUD" || { echo "[check] FAIL: audit"; fail=1; }
 fi
 [ $fail -eq 0 ] && echo "[check] OK" || echo "[check] FAILED"
 exit $fail

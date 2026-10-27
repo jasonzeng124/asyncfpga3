@@ -4,9 +4,13 @@ import Formal.Core.EnvFast.Models
 Certificate / table generator for `Formal.Core.EnvFast` (UNTRUSTED: every number
 it prints is checked by the kernel). Run from formal/lean:
 
-    ../slot.sh lake env lean ../tools-A/envfast/Gen.lean
+    ../slot.sh lake env sh -c 'LEAN_PATH=$PWD/.lake/checkfile:$LEAN_PATH lean ../tools-A/envfast/Gen.lean'
 
-It writes `Formal/Core/EnvFast/Tables.lean` and the `*Cert.lean` files.
+(after `../check.sh … Formal/Core/EnvFast/Models.lean` has put the oleans in .lake/checkfile).
+
+It writes `Formal/Core/EnvFast/Tables.lean`, `Link2Cert.lean` and `MergeCert.lean`.
+To add a model: define it in `EnvFast/Models.lean`, add its LUT outputs to `luts`,
+emit its certificate below, then write the `CModel` and chunk theorems.
 Reachable sets come from `Env.reachTree` (interpreted); certificates are
 emitted in balanced-BST preorder so that `EnvFast.mkTree` builds a balanced tree.
 -/
