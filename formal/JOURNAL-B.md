@@ -267,6 +267,24 @@ theorem name. Bk2 ConstraintsKappa written, held until Mathlib builds
 Running: Bk1, Bu, Bpt, Bmx, Bdg, Bj (JSON: strictness, steer, fork rows),
 Bar, Bsw, Bex, Bc4.
 
+### progress 11:55
+In: Bmx LibGapMux (bd_mux select exact at both joins), Bdg LibGapDelay
+(bd_delay_gated flush exact under stated side conditions; false without
+H_LO_ORDER), Bsw (SteerWit finding was misattributed; corrected), Bu
+RigToken (rig env ring uenv0/uenv1: release in ANY rst order, given
+H_UENV1_HOLD (exact), H_ACK_QUIET, one rst fall; then for any kernel
+#start rises <= #results + 1 and the prefix form of H_START_ONCE).
+FOR SHARD C (Bu): C's H_START_ONCE (CapstoneCut.lean:145, global
+`cnt (riseB start.req) t <= 1`) is false for a whole rig run (one start per
+lap); what B proves is the per-result / prefix form (start_per_result,
+start_once_prefix). Missing bridges: a T-bounded capstone, the kernel's
+return to reset after a lap, the time origin (start.req = 1 at release vs
+Src.iz), and H_ENV_REFINES_SRC (uenv1 + fork c3 as C's Src). Rig finding:
+H_FB_FIRST at uenv1 is the rig's RT_FB, which fails under the band on seeds
+2 and 4 (C-10h); dropping it gives extra start offers
+(Stale.stale_fb_extra_start). GLS test: exactly one start_req rise between
+consecutive res_req rises on seeds 2/4 at the fast corner.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
