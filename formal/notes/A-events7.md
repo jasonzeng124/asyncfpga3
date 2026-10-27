@@ -56,7 +56,7 @@ There was no new build. Every row is one route of one placer seed; the 4 seeds a
 | `formal/lean/Wip/Events7.lean` | W-E4g reduction (`guardOK_of_entry_exit`, `sorry`). `guardCnt_mono` is proved there. It compiles |
 | `formal/tools-A/xaudit/events7/cert7.py` | UNTRUSTED certificate emitter (cert6 nodes + log search; flags `--no-u3 --no-nary --no-gline`) |
 | `…/events7/run7.sh`, `abl7.sh`, `neg7.sh`, `guard7.py`, `table7.py`, `mk.sh`, `xe7.sh` | runs, ablation, negative controls, the guard evidence, the table, the olean overlay, `lean --run` |
-| `…/events7/xe7_<seed>_<corner>.txt` (16), `cert7_*.txt` (16), `xe7_d_slow_ABL*.txt` (4), `xe7_d_slow_NEG*.txt` (6), `table7.txt`, `guard7.txt` | results |
+| `…/events7/xe7_<seed>_<corner>.txt` (16), `cert7_*.txt` (16), `xe7_d_slow_ABL*.txt` (4), `xe7_d_slow_NEG*.txt` (6), `table7.txt`, `guard7.txt` | results. **Correction (E7r):** `cert7_*.txt` are cert7.py's one-line SUMMARIES (stdout), not the certificates; the JSON certificates were written to `/tmp/events7/out` and are regenerated deterministically (see the E7r section) |
 
 ### Check
 
@@ -72,7 +72,9 @@ Result:
 - `[check] OK`.
 
 There is no sorry, admit, axiom, native_decide or bv_decide. Events6* and Events5 are in lake's
-build now, so they need not be listed.
+build now, so they need not be listed. **Correction (E7r):** that holds only once `lake build` has
+built them; in a fresh container the dependencies must be listed too, and the audit counts then
+differ (see the E7r section for the command and counts that were actually run).
 
 ### Lakefile stanza (for the lead; I did not edit the lakefile)
 
@@ -305,3 +307,74 @@ only.
   bundling hypotheses SelOK and SelPart, and H_ARB.
 - The mixed-corner and seed-5 gb residuals are timing findings with names and margins, unchanged
   from A-events6.
+
+## Rebuild 2026-10-27 (E7r)
+
+**What happened.** The five Lean modules of this probe were never committed and were lost with the
+container. Probe E7r rebuilt them from this note, `Wip/Events7.lean` (which imports them) and the
+certificate format fixed by `cert7.py`. GuardOK / W-E4g was not attempted.
+
+**Rebuilt files** (all under `formal/lean/Formal/Core/XAudit/`):
+
+| file | content (as described in §1) |
+|---|---|
+| `Events7Core.lean` | `Net4.OK7` (+ `OK.ok7`), `Beh7` (guard pins read AND/OR of all copies), `M`/`P`/`cm`, `SelOK`/`LineOK`/`PinOK`/`ExclOK`/`GuardOK`, **`Beh7.safe`** (Beh4.safe's proof), count lemmas (`P_le`, `M_le_pin`, `P_filt_le`, `M_merge` for any arity, `P_merge_le`, `P_zero_merge`), control `plain_two_neg` |
+| `Events7Excl.lean` | `Lab`, **`SelPart`**, `Excl`, `lx` / `lx_sound`, `fsum_filt_le`, `fodd_filt_le`, `excl_stepN`, **`merge_exclN`**, control `selpart_neg` |
+| `Events7Cert.lean` | `Jd`, `Arm`, `Ln`, `armD`/`ArmsOK`, **`concl`**, `runLog`; `Holds`/`AllH`; **`concl_sound`**, **`runLog_sound`**; `backOK7`/`lineOK7`/`exclOK7` (strict) with soundness; **`verdict7`** |
+| `Events7Beh.lean` | `ND7`, `ofND7`, **`HARB7`**, `ndReal7` (guard case = multi case), `nd7_merge0`, `init0_7`, **`design_beh7`**, **`design_verdict7`** |
+| `Events7Main.lean` | executable `xevents7` (reader, lenient diagnostic log run `runLogD`, output format of the committed `xe7_*.txt`) |
+
+**What `design_verdict7` says (plain language).** Assumed: the netlist is recognised (`Recog6`),
+`Net4.OK7`, the log is accepted by `runLog`, the certified items pass `backOK7`/`exclOK7`/`lineOK7`;
+per-pin `SatPin` semantics, constant wires, reset high on `[0,T)`, H_ARB (`HARB7`). Proved: for
+every `sel` and every monotone `gc` there is a `Beh7` realising the netlist behaviour (with that
+`gc`) such that IF `sel` satisfies SelPart for the certificate's partitions AND the realisation
+satisfies SelOK, GuardOK and the residual items' count obligations, every real LUT wire equals
+`ph (v j) (M t j)` at every time. NOT covered: GuardOK (W-E4g, open; note `gc` is free, so GuardOK is
+a hypothesis about a chosen count), SelOK/SelPart (bundling), H_ARB (arbiter, metastability), the
+trusted reader/printing in `Events7Main`, the skeleton cut (`skel.py`), and the analog/delay model.
+
+**Check** (from `formal/lean`; Mathlib was still building and no `Formal` olean was in lake's build,
+so the 25 non-Mathlib dependencies are listed first, from `Formal/Core/Kleene.lean` to
+`Formal/Core/XAudit/Events5Main.lean`):
+
+    ../check.sh <25 deps> Formal/Core/XAudit/Events7Core.lean Formal/Core/XAudit/Events7Excl.lean \
+      Formal/Core/XAudit/Events7Cert.lean Formal/Core/XAudit/Events7Beh.lean Formal/Core/XAudit/Events7Main.lean
+
+Result: `[audit] 2525 declarations checked`; executables audited separately:
+`Events5Main` 2293 (= A-events6's number), `Events7Main` **2609** (the lost version reported 2588:
+the rebuild has different helper lemmas; the library count is not comparable because more files
+were listed); **`[check] OK`**. No sorry/admit/axiom/native_decide/bv_decide.
+`Wip/Events7.lean` compiles against the rebuilt modules unchanged (only its `sorry` warning), so the
+names and shapes it uses (`Beh7`, `cm`, `gc`, `wG`, `M_mono`, `AllH`, `Jd`, `SelPart`, `Net4.OK7`,
+`GuardOK`) match the lost ones.
+
+**Rerun** (`tools-A/xaudit/events7/rerun/`; `prep.sh` regenerates the inputs exactly as
+`events6/run6.sh`, `rerun.sh` the 16 rows, `ablneg.sh` the ablation and controls; xevents7 run with
+`lean --run` on the private overlay `/tmp/events7/olean` via `xe7.sh`/`mk.sh`, through `slot.sh`):
+
+- inputs: the 4 `net.json` md5s equal `events5/builds.txt`;
+- `cert7.py` summaries: all 16 byte-identical to the committed `cert7_*.txt` (deterministic, PYTHONHASHSEED=0);
+- **xevents7: all 16 rows byte-identical** to the committed `xe7_<seed>_<corner>.txt` (after removing
+  `[slot]` stderr lines). The residual table of the Verdict section is confirmed row by row:
+  slow / fast 0 (CLEAN) on all seeds; gb 0 / 0 / 0 / 1 (d / 3 / 4 / 5); mixed 9 / 13 / 10 / 8;
+- **ablation** (all3 41 = 33 Back + 7 Excl + 1 Line, nou3 28, nonary 7, nogline 6) and **all six
+  negative controls** byte-identical to the committed files, including the diagnostic margins of the
+  two rejected-log controls (NEGu3 first rejected line 75, NEGnary line 1160);
+- one run takes about 24 s.
+
+**Disagreements found: none** in verdicts, residual counts, item names or margins. Notes to the
+record:
+- The diagnostics on a REJECTED log are computed from a lenient run where a rejected line gets the
+  default judgement (all 0); the printed line minimum then includes those zero judgements (e.g.
+  NEGu3 `min margin -2194` from `W 0` lines), while the Back minimum counts only judgements that
+  match the pin. The rebuild reproduces this exactly (it is cosmetic: nothing is certified when the
+  log is rejected). Recorded so nobody reads those numbers as timing.
+- The "16 certificates" of the task are summaries (see the correction in Files); the certificates
+  themselves are regenerated from the committed inputs.
+- Running several `lean --run` jobs in parallel produced 7 EMPTY outputs once (no error text);
+  rerun serially/in fewer jobs they were identical. Cause not found; the rerun scripts compare
+  byte-for-byte, so an empty file shows as DIFFERS.
+
+**For the lead.** Lakefile stanza unchanged (above). Root import (Formal.lean), if wanted:
+`Formal.Core.XAudit.Events7Core`, `…Events7Excl`, `…Events7Cert`, `…Events7Beh` (not `Events7Main`, it defines `main`).

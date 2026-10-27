@@ -281,3 +281,12 @@ conservative corner). Sufficient condition proved: acyclic, monotone LUTs, risin
 inputs => one run at the maxima bounds the band; two runs (FAST_MIN, SLOW_MAX) give
 request-after-data. Not covered: per-pin arcs, GLS_FID, X, feedback nets (so not
 gcd's datapath). Notes: notes/A-gls-pass.md.
+### progress 11:57
+E7r claimed: Events7{Core,Excl,Cert,Beh,Main}.lean rebuilt from notes/A-events7.md.
+check.sh (with 25 deps listed; lake build not yet possible): library 2525 decls,
+xevents7 2609, [check] OK. Rerun on the 4 gcd_hw R5 nets (md5s = events5/builds.txt):
+byte-identical to all 16 committed xe7 outputs, 4 ablations and 6 negative controls.
+So notes/A-events7.md's table now stands on committed Lean: slow and fast CLEAN on
+every seed; gb residuals 0/0/0/1 (d/3/4/5); mixed (independent per arc) 9/13/10/8.
+design_verdict7 still assumes GuardOK, SelOK, SelPart, H_ARB; the reader is trusted.
+xevents7 lakefile stanza added. Open: W-E4g (GuardOK).
