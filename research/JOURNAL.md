@@ -1019,3 +1019,9 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   kernel exists); simcheck had 3. A first collatz64 routed GLS (placeholders, 3 vectors) is running; it will be rerun
   with the 11.
   ipow T9 + FF over seeds 29-36: **72.2 ns/iteration (70.3-74.3)** (T9 alone 76.2; pads-only 105.6: 1.46x).
+### progress 00:26 (collatz64: first routed GLS -- fails, and rule E agrees)
+- collatz64 (64-bit datapath), placeholder lengths, seeds 1-4: rules A/F/H/I/J 0 but **rule E 3-4 violated on every
+  seed** (umux0/umux1; two rows raw-negative, -210 and -810 ps), and **routed GLS fails on all 4** (fast and
+  stalled): every value checked was correct, then "req fell out of phase on out0" -- the select-deficit signature
+  seen on collatz and isprime. Rule E and routed GLS agree again. Ratchet (rule E pads + rule A sizes, seeds 1-8,
+  11 vectors) running; seeds 5-8 at placeholders with 11 vectors also running.
