@@ -38,6 +38,11 @@ Results (all for EVERY transfer function satisfying the named hypotheses):
   `t` contains an interval of width proportional to `exp(-K (t - tw))`. This is
   the lower-bound half of the e^(-t/tau) law (the failure probability cannot
   decay faster than exponentially).
+* `grow_lower`, `undecided_near_up/dn`, `aperture_upper_bound`: the upper-bound
+  half. With local loop gain `g` around `vs` (H_LOCAL_GAIN_UP/DN) a node still
+  within `r` of `vs` at time `T` started within `r exp(-(g-1)(T-tw)/tau)` of
+  it; with H_SPREAD (slope `c` of `s ↦ q(tw)` at `s*`) the undecided timings lie
+  within `(r/c) exp(-(T-tw)/tau_eff)` of `s*`, `tau_eff = tau/(g-1)`.
 -/
 
 open Set Filter Real
@@ -218,7 +223,7 @@ theorem sol_dist_le (hx : IsSolFamily m S v0 x) (s s' T : ℝ) (hT : 0 ≤ T) :
       simp only [sub_self, abs_zero, add_zero] at h
       calc _ ≤ _ := h
         _ ≤ m.L * (S.M * |s - s'| + S.M * |s - s'|) / m.tau := by
-          gcongr <;> assumption
+          gcongr
         _ = _ := by ring)
     (by simp [hx.init])
     T ⟨hT, le_rfl⟩
@@ -336,7 +341,7 @@ theorem unstable_equilibrium {vs g : ℝ} (heq : m.F 1 1 vs = vs)
     filter_upwards [hs', self_mem_nhdsWithin] with v hsl (hv : v < vs)
     rw [slope_def_field, h0, sub_zero] at hsl
     by_contra hc
-    push_neg at hc
+    push Not at hc
     have : (m.field 1 1 v) / (v - vs) ≤ 0 :=
       div_nonpos_of_nonneg_of_nonpos hc (by linarith)
     linarith
@@ -375,7 +380,7 @@ theorem metastable_forever (hx : IsSolFamily m S v0 x) {sA sB tw vs : ℝ}
     ((hx.cont s).mono fun y hy => (htw.trans hy.1 : (0 : ℝ) ≤ y))
     (fun y hy => hold_deriv hx htw hH hs hy.1)
     continuousOn_const
-    (fun y _ => by beta_reduce; rw [h0]; exact hasDerivWithinAt_const _ _ _)
+    (fun y _ => by rw [h0]; exact hasDerivWithinAt_const _ _ _)
     hxs
   exact this ⟨ht, le_rfl⟩
 
@@ -392,7 +397,7 @@ theorem stays_near (hx : IsSolFamily m S v0 x) {sA sB tw vs : ℝ} (htw : 0 ≤ 
     ((hx.cont s).mono fun y hy => (htw.trans hy.1 : (0 : ℝ) ≤ y))
     (fun y hy => hold_deriv hx htw hH hs hy.1)
     continuousOn_const
-    (fun y _ => by beta_reduce; rw [h0]; exact hasDerivWithinAt_const _ _ _)
+    (fun y _ => by rw [h0]; exact hasDerivWithinAt_const _ _ _)
     (le_of_eq (Real.dist_eq _ _))
     t ⟨ht, le_rfl⟩
   rwa [Real.dist_eq] at this
@@ -500,9 +505,8 @@ theorem undecided_near_dn (hx : IsSolFamily m S v0 x) {sA sB tw vs r g : ℝ}
     (a := tw) (b := T) (c := -vs) (d := vs - x s tw) (r := r) (lam := lam)
     ((hx.cont s).mono fun y hy => (htw.trans hy.1 : (0 : ℝ) ≤ y)).neg
     (fun t ht => (hold_deriv hx htw hH hs ht.1).neg)
-    (by linarith) (by simp only; linarith)
+    (by linarith) (by linarith)
     (fun t _ h1 h2 => by
-      simp only at h1 h2 ⊢
       have := H_LOCAL_GAIN_DN (x s t) ⟨by linarith, by linarith⟩
       have h3 : (m.F 1 1 (x s t) - x s t) / m.tau < (g - 1) * (x s t - vs) / m.tau :=
         (div_lt_div_iff_of_pos_right m.H_TAU).mpr this
@@ -510,9 +514,8 @@ theorem undecided_near_dn (hx : IsSolFamily m S v0 x) {sA sB tw vs r g : ℝ}
       rw [div_mul_eq_mul_div]
       have e : (g - 1) * (-x s t - -vs) / m.tau = -((g - 1) * (x s t - vs) / m.tau) := by ring
       rw [e]; linarith)
-    (fun t ht => by simp only; linarith [hund t ht])
+    (fun t ht => by linarith [hund t ht])
     T ⟨hT, le_rfl⟩
-  simp only at hg
   have hTr := hund T ⟨hT, le_rfl⟩
   have hE : exp (lam * (T - tw)) * exp (-(lam * (T - tw))) = 1 := by
     rw [← Real.exp_add]; simp

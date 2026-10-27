@@ -1,9 +1,9 @@
 # B-arb-analog: probe 7c, the arbiter's state loop as an ODE
 
 Track 7 (arbiter), analog layer (PROGRAM.md "The model the owner has in mind",
-item 4). File: `formal/lean/Wip/Cells/ArbAnalog.lean` (STATUS: see "Check"
-below; it moves to `formal/lean/Formal/Cells/ArbAnalog.lean` only once it
-checks clean against Mathlib).
+item 4). File: `formal/lean/Formal/Cells/ArbAnalog.lean` (CLAIMED: checks
+clean against Mathlib, no sorry/admit/axiom/native_decide; the Wip copy was
+removed after the move).
 
 ## Model
 
@@ -88,9 +88,32 @@ Goal 2, the saddle:
   `δ` of the metastable point at resolution time `t`: the bad-timing aperture
   cannot shrink faster than `exp(-K t)`. This is the LOWER-bound half of the
   e^(-t/tau) law, i.e. "only a probabilistic bound holds, and it is at best
-  exponential". The upper-bound half (aperture ≤ c·exp(-(g-1)t/tau), what
-  MTBF needs) needs a local lower bound on the gain around `vs` and a
-  comparison argument for escaping trajectories; not done (see below).
+  exponential". The upper-bound half (what MTBF needs) is next.
+
+Upper-bound half (added in the continuation, after the container restart):
+* `grow_lower` (comparison / fencing, `image_le_of_deriv_right_lt_deriv_boundary`):
+  if `y(a) ≥ c + d`, `d > 0`, and `y' > lam (y - c)` whenever `y ∈ (c, c+r]`,
+  then while `y ≤ c + r` on `[a, b]`, `y(t) ≥ c + d exp(lam (t - a))`.
+* `undecided_near_up` / `undecided_near_dn`: hold region from `tw`,
+  **H_LOCAL_GAIN_UP** `(g-1)(v - vs) < G v - v` on `(vs, vs+r]`
+  (**H_LOCAL_GAIN_DN** mirror on `[vs-r, vs)`; physical fact: loop gain at
+  least `g` near the metastable point; test: SPICE/GLS small-signal sweep of
+  the closed loop around `vs`). If `q` is still undecided (within `r` of `vs`,
+  on the same side) at every time up to `T`, then
+  `|q(tw) - vs| ≤ r exp(-(g-1)(T-tw)/tau)`. In state space the undecided set
+  shrinks at least exponentially with rate `1/tau_eff = (g-1)/tau`.
+* `aperture_upper_bound`: plus **H_SPREAD** `c |s - s*| ≤ |q_s(tw) - vs|`
+  (the contention window maps timings onto states with slope at least `c > 0`
+  at `s*`; test: GLS/SPICE sweep of the request skew, read q at `tw`): every
+  timing undecided (`|q - vs| ≤ r`) on all of `[tw, T]` satisfies
+  `|s - s*| ≤ (r/c) exp(-(T-tw)/tau_eff)`.
+  With `aperture_lower_bound` the bad-timing window is pinned between
+  `δ/(C exp(K(T-tw)))` and `(r/c) exp(-(g-1)(T-tw)/tau)`: both exponential,
+  rates `K = (L+1)/tau` (global gain bound) and `(g-1)/tau` (local gain).
+  Not proved: that the two rates coincide (needs a two-sided local gain bound
+  `|G' - g| ≤ ε` near `vs` used in the lower bound instead of the global `L`;
+  same proof shape, ~half a day), and that H_SPREAD follows from the model (it
+  is a property of F off the rails, not derivable from H_INIT + H_LIP).
 
 ## Mathlib ODE facts: what exists, what was used
 
@@ -103,6 +126,8 @@ Goal 2, the saddle:
 | `ODE_solution_unique` (Icc, Lipschitz in x) | yes | YES: `metastable_forever` |
 | `gronwallBound`, `gronwallBound_of_K_ne_0` | yes | YES (`gronwallBound_zero_left`) |
 | `intermediate_value_uIcc`, `intermediate_value_Icc` | yes | YES |
+| `image_le_of_deriv_right_lt_deriv_boundary` (fencing with right derivatives, Calculus/MeanValue) | yes | YES: `grow_lower` (escape) |
+| global existence on `[0, ∞)` for a globally Lipschitz field | no (only local `IsPicardLindelof` on a ball / `Icc`) | no |
 | `hasDerivAt_iff_tendsto_slope`, `slope_def_field` | yes | YES (instability sign) |
 | continuous dependence on parameters as a packaged theorem | no | derived from the approximate-trajectory Groenwall above |
 
@@ -112,11 +137,19 @@ negative time was needed.
 
 ## Check
 
-    cd /home/user/asyncfpga3/formal/lean && PATH=$HOME/.elan/bin:$PATH ../slot.sh lake env lean Wip/Cells/ArbAnalog.lean
+    cd /home/user/asyncfpga3/formal/lean && PATH=$HOME/.elan/bin:$PATH ../slot.sh lake env lean Formal/Cells/ArbAnalog.lean
 
-(after it checks clean, the same with `Formal/Cells/ArbAnalog.lean`).
-STATUS: written while Mathlib's oleans were not yet available; see the end of
-this file for the result of the check.
+STATUS (2026-10-27, after the container restart and Mathlib rebuild): checks
+clean, no errors, no warnings (other than lake's "module system" import note).
+Fixes needed against the real Mathlib were small: four `simp only` that made
+no progress, `push_neg` -> `push Not`, two no-op `beta_reduce`, one no-op
+`<;> assumption`. Every Mathlib lemma name and argument order written before
+the oleans existed was right.
+`#print axioms` (run on a scratch copy) for analog_arbiter_not_exclusive,
+not_forall_valid, metastable_forever, aperture_lower_bound,
+aperture_upper_bound, Loop.unstable_equilibrium, Loop.exists_equilibrium:
+[propext, Classical.choice, Quot.sound]; qNext_eq_arbiter,
+arbiter_holds_on_A0: [propext].
 
 ## Connection to the repo
 
@@ -183,10 +216,29 @@ this file for the result of the check.
   (F is bounded on the physical range, but that is not assumed) or stitching.
   Not needed for soundness of the impossibility theorems (they are for every
   solution family), only for non-vacuity. Effort: ~1 day.
-* Upper-bound half of the e^(-t/tau) law (bad aperture ≤ c·exp(-(g'-1)t/tau)
-  given `G v - v ≥ (g'-1)(v - vs)` near `vs`): needs a comparison/escape lemma
-  (monotonicity of `(x - vs) exp(-λ t)`). Effort: ~1 day.
+* Upper-bound half: DONE (`aperture_upper_bound`) under H_LOCAL_GAIN_UP/DN and
+  H_SPREAD. Open: matching the two exponential rates (~0.5 day) and deriving
+  H_SPREAD from F (~1-2 days).
+* Non-vacuity of `Loop` itself (an explicit F satisfying H_LIP and H_INIT,
+  e.g. multilinear interpolation of the INIT composed with clamping to [0,1])
+  is not constructed in Lean. Effort: ~half a day.
+* Note: H_GAIN on `[0,1]` is implied by H_INIT (`G 0 = 0`, `G 1 = 1`), but
+  then IVT may return a rail; the interior equilibrium needs a gain hypothesis
+  (e.g. `G a < a`, `G b > b` for some `0 < a ≤ b < 1`).
 * Deriving H_ENDS from the ODE (that far-apart requests resolve): needs
   quantitative bounds on `F` off the rails (e.g. `F ≥ 1 - ε` on the set region).
   Effort: ~1-2 days; the binary probes already cover the digital version.
 * DDE (transport delay) model of the loop.
+
+## Verdict
+
+Works. Goal 1 (Buridan/Marino: for no T is "q valid by T for every input
+timing" true) and goal 2 (hold equilibrium by IVT, instability from gain
+g > 1, a metastable-forever timing by ODE uniqueness) are proved, with H_CONT
+DISCHARGED from H_LIP + H_STIM_LIP via Groenwall, not assumed. The continuation
+added the upper-bound half of the exponential law. Remaining (above): global
+existence / non-vacuity (~1 day), rate matching (~0.5 day), H_SPREAD from F
+(~1-2 days), DDE loop. What it buys the project: ARBITER.md's third exclusion
+tier and MTBF.md's "must be measured" become theorems of a stated analog
+model, and the MTBF law's form (aperture ∝ exp(-t/tau_eff), tau_eff =
+tau/(g-1)) is bracketed from both sides under named, testable hypotheses.
