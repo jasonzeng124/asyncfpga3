@@ -10,8 +10,13 @@ output: `formal/tools/zone/build/tchecker/` (gitignored). No Lean in this probe.
 generator ports to it in ~450 lines. Every C-element and arbiter question
 12b asked is re-answered **exactly in dense time** (thresholds checked at 0.1
 ps and 0.01-tick resolution). Typical checks take 0.05-4 s and use 15-150 MB.
-The one case 12b could not finish (transport + arc spread) is
-**ITEM 2 STATUS: see section "Item 2" below**.
+The one case 12b could not finish (transport + arc spread) is answered in
+part:
+- Its headline property, mutex, is **violated, in 1.9 s at 62 MB**. The
+  violation needs no runt on q.
+- The full exploration (needed for the properties that hold) still runs out
+  of memory: `bad_alloc` at the 3.5 GB cap after 81 min, even with K=2.
+- Every reduced variant finishes in 2-71 s.
 
 Surprises:
 1. C-element, inertial channel: the spec bound depends on the LUT delay,
@@ -178,6 +183,14 @@ Results:
        asymmetry.
     5. g1 rises 52 ps after qg arrives, while g2 falls only 124 ps after it.
   - The A0 hold cannot help, because A0 is low.
+  - **Refinement (wq_s != 0).**
+    - Transport: what matters is the skew wq_g - wq_s. With
+      wq_s = wq_g = 16, mutex_nr holds; with wq_g = 16.1 it fails. When the
+      ustate copy is just as late, a late r2 makes a q runt instead, which is
+      tier 3.
+    - Inertial: the bound is absolute, wq_g < 56 ps, for wq_s = 0, 20 and 40.
+      ustate swallows its own reversal, so q stays put while ugrant still
+      reads the old q.
   - Equivalent hypothesis: H_GRANT_FORK. The fork of r1/r2 into ustate and
     ugrant must be isochronic with respect to q's route to ugrant. That is:
     no request edge may reach ugrant inside the window in which ustate has
@@ -199,7 +212,37 @@ The row is 12b's section 4: spread ±8 ps on every LUT arc,
 wq_s, wq_g in [0,32] ps, wa in [0,16] ps, srv [160,180] ps. There are 9
 transport nodes with 3 slots each plus 4 environment clocks, so 31 clocks.
 
-(results below)
+Run: `python3 -I arb.py spread transport` (the reduced rows) or
+`python3 -I arb.py spread transport full` (the full row: OOM). Use
+`spread inertial` for the inertial rows.
+
+| variant (HELD, transport, srv [160,180]) | result | cost |
+|---|---|---|
+| full: spread 8, wq in [0,32], wa in [0,16], K=3, one `-l bad` run for mutex_nr | **mutex_nr reachable** (grant-LUT runt, see Item 3) | 1.9 s, 3.0 k zones, 62 MB |
+| same, per-property runs (12b style) | the first unreachable property (ovf_nr) was still running at 2.9 GB after 30 min; killed by the background time limit | -- |
+| same, `explore_all`, K=2 | **std::bad_alloc at the 3.5 GB ulimit after 81 min wall** (57 min CPU, CPU-contended) | OOM |
+| spread 8, all wires 0 | every `_nr` / `_nra` property holds; ovf_nr = 0 (exact); mutex/amutex need a q runt | 1.7 s, 3.4 k zones, 64 MB |
+| spread 8, wires fixed wq_s = wq_g = 16, wa = 8 | every `_nr` / `_nra` holds, ovf_nr = 0 | 71 s, 149 k zones, 219 MB |
+| spread 2, wq in [0,8], wa in [0,4] | mutex_nr = 1 (wq_g can exceed wq_s); every `_nra` and other `_nr` holds; ovf_nr = 0 | 24 s, 58 k zones, 157 MB |
+| inertial, full spread row (12b section 4) | HELD: all hold; UNHELD: all fail. Agrees with 12b | 0.1 s / 0.3 s, 92 / 746 zones (Storm: 13 k / 257 k states) |
+
+Conclusions for item 2:
+- Under pure delay with arc spread, the shipped arbiter keeps every
+  property in runs with no runt anywhere.
+- Mutex and the ack properties are lost only through runts:
+  - q runts (tier 3, as in 12b);
+  - grant-LUT runts, whenever the q copy reaching ugrant can lag the copy
+    reaching ustate's own I2 (wq_g > wq_s; see Item 3).
+- The blow-up comes from the wide *wire* windows in transport mode, not from
+  the arc spread. Several in-flight edges per wire, each with its own clock,
+  give 31 clocks and a combinatorial number of queue shapes. Fixed wires plus
+  spread arcs are cheap.
+- The full model stays out of reach in 3.5 GB. Possible next steps:
+  - fewer transport wires (make the wires inertial and keep transport on the
+    LUTs);
+  - DFS with a bounded store;
+  - a K=1 wire channel;
+  - UPPAAL, which is blocked.
 
 ## TChecker (zones) vs Storm (digital clocks), same models
 
@@ -210,8 +253,9 @@ transport nodes with 3 slots each plus 4 environment clocks, so 31 clocks.
 | HELD transport, srv [40,45] ticks | 71 k states, 2.6 s | 1.4 k zones, 0.7 s exploration (1.8 s wall incl. graph print) |
 | HELD transport, wa = 29 ticks | 221 k states, 5 s | 3.2 k zones, 1.4 s |
 | HELD transport, srv [1,6] ticks / [4,24] ps | (not run at this latency) | 45.6 k zones, 26 s, 150 MB |
-| HELD/UNHELD inertial, spread ±2 ticks | 13 k / 257 k states, 0.6 / 6.8 s | (see Item 2 log) |
-| HELD transport + spread | **OOM at 5.3 GB / >20 min** | see Item 2 |
+| HELD/UNHELD inertial, spread ±2 ticks | 13 k / 257 k states, 0.6 / 6.8 s | 92 / 746 zones, 0.1 / 0.3 s |
+| HELD transport + spread (full) | **OOM at 5.3 GB / >20 min** | violation found in 1.9 s; full exploration OOM at 3.5 GB / 81 min (K=2) |
+| HELD transport, spread, wires fixed 16/8 | not run | 149 k zones, 71 s, 219 MB |
 
 Overall:
 - Zones are 20-70x fewer than digital states and do not grow with time

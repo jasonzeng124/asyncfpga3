@@ -188,9 +188,21 @@ if __name__ == "__main__":
              lambda x: dict(wq_g=(x, x)), (15.9, 16, 16.1, 17),
              "UNHELD wq_g", held=False)
     elif what == "spread":
-        # 12b's section 4 (OOM in Storm in transport mode)
-        for held in (True, False):
-            row(f"{'HELD' if held else 'UNHELD'} spread=8 wq=[0,32] wa=[0,16]",
-                held=held, spread=8, wq_g=(0, 32), wq_s=(0, 32), wa=(0, 16),
-                srv=(160, 180), mode=mode)
+        # 12b's section 4 and reduced variants, one full exploration each
+        # (tckmodel.explore_all).  The FULL transport row ran out of memory
+        # (bad_alloc at 3.5 GB after 81 min, K=2); pass "full" to retry it.
+        from tckmodel import explore_all
+        rows = [dict(spread=8, wq_g=(0, 32), wq_s=(0, 32), wa=(0, 16))] \
+            if (len(sys.argv) > 3 and sys.argv[3] == "full") else \
+            [dict(spread=8),
+             dict(spread=8, wq_g=(16, 16), wq_s=(16, 16), wa=(8, 8)),
+             dict(spread=2, wq_g=(0, 8), wq_s=(0, 8), wa=(0, 4))]
+        for held in ((True, False) if mode == "inertial" else (True,)):
+            for kw in rows:
+                r = explore_all(build(held=held, srv=(160, 180), mode=mode,
+                                      **kw), props(mode), mem_gb=3.5)
+                print("HELD" if held else "UNHELD", kw,
+                      {k: r.get(k) for k in ("seconds", "VISITED_STATES",
+                                             "MEMORY_MAX_RSS", "props",
+                                             "err")}, flush=True)
     print(f"total {time.time()-t0:.1f} s")
