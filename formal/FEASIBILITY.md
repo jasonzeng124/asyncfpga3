@@ -144,8 +144,17 @@ scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_so
 `ruleA_tight`). Soft evidence that κ can be larger: the 7-link ring ratios
 0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
 path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
-two-path difference, so this is not a refutation. Estimating κ properly
-needs per-route two-path data (notes/A-delay-corner.md gives the estimator).
+two-path difference, so this is not a refutation. **κ estimator** (`formal/tools-A/kappa/kappa.py`,
+`notes/A-kappa.md`; `python3 kappa.py selftest`, `python3 kappa.py repo`): on
+the 128-ring data the per-path κ ≥ 0.311 (7-link class; no common offset in
+[0, 988] ps lowers it), so the *per-path* hypotheses of `ruleE_sound` and
+`ruleA_sound_rel` are refuted. The rules compare two paths, so what they need
+is κ on a path *difference*, which nothing in the repo measures: whether rules
+E and A are safe is open. Proposed board experiment: a ring with a shared body
+splitting into two tails rejoined at a scan-selected LUT mux (the shared body,
+offset included, cancels), ≥ 64 pairs per class, 4 seeds, two temperatures; or,
+cheaper, commit the `ro_many` per-ring raw logs (`kappa.py rawlogs` parses
+them).
 
 ### 4. Kleene LUT
 - `Core/Kleene.lean`, `Core/Lut.lean`: shared K3 and LUT API (INIT as
