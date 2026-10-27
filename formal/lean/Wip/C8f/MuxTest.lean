@@ -181,6 +181,9 @@ instance (e : MS) (xr xa yr ya cr ca s zr za j0 j1 : Bool) :
     Decidable (Concl e xr xa yr ya cr ca s zr za j0 j1) := by
   unfold Concl; exact inferInstance
 
+set_option synthInstance.maxSize 4096 in
+set_option synthInstance.maxHeartbeats 400000 in
+set_option maxRecDepth 100000 in
 /-- Closure of the reachable set under every step the gate model and the
 environment allow (interleaved so that `decide` prunes early). -/
 theorem mux_closed : ∀ e ∈ tbl,
@@ -198,4 +201,5 @@ theorem mux_closed : ∀ e ∈ tbl,
     Concl e xr xa yr ya cr ca s zr za j0 j1 := by
   decide +kernel
 
+#print axioms mux_closed
 end Formal.Net.Ops.Mux

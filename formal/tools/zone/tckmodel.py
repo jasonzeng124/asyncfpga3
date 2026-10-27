@@ -506,3 +506,41 @@ def reach(text, label="bad", mem_gb=3.5, timeout=3600, algo="covreach",
         if k in st:
             res[k] = st[k]
     return res
+
+
+def witness(text, label="bad", show=None, mem_gb=3.5, timeout=3600):
+    """concrete run to `label` (tck-reach -a reach -C concrete).  Returns a
+    list of (time, {var: value}) at every change of a variable in `show`,
+    plus the event vector of each step."""
+    fd, path = tempfile.mkstemp(suffix=".tck")
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+    cmd = (f"ulimit -v {int(mem_gb*1024*1024)}; "
+           f"exec {TCK} -a reach -l {label} -s bfs -C concrete {path}")
+    p = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True,
+                       timeout=timeout)
+    os.unlink(path)
+    nodes, edges = {}, {}
+    for m in re.finditer(r'^\s*(\d+) \[(.*)\]\s*$', p.stdout, re.M):
+        attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(2)))
+        nodes[int(m.group(1))] = attrs
+    for m in re.finditer(r'^\s*(\d+) -> (\d+) \[(.*)\]\s*$', p.stdout, re.M):
+        attrs = dict(re.findall(r'(\w+)="([^"]*)"', m.group(3)))
+        edges[int(m.group(1))] = (int(m.group(2)), attrs)
+    if not nodes:
+        return None
+    cur = next(k for k, a in nodes.items() if a.get("initial") == "true")
+    t, out, prev = 0.0, [], None
+    while True:
+        iv = dict(kv.split("=") for kv in nodes[cur]["intval"].split(","))
+        vals = {k: int(v) for k, v in iv.items() if show is None or k in show}
+        if vals != prev:
+            out.append((t, vals))
+            prev = vals
+        if cur not in edges:
+            break
+        nxt, ea = edges[cur]
+        t += float(eval(ea.get("delay", "0").replace("/", "/")))
+        out[-1] = out[-1]
+        cur = nxt
+    return out
