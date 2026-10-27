@@ -51,9 +51,16 @@ def g1B : Sig := fun t => decide (87 ≤ t)
 def g2B : Sig := fun t => decide (t < 124)
 
 theorem cell_worst : Cell (worstA 0 (by decide)) r1W r2W qB g1B g2B := by
-  refine ⟨?_, ?_, ?_⟩ <;> intro t <;>
-    simp only [LutOut3, worstA, r1W, r2W, qB, g1B, g2B, stateF_eqn, g1F_eqn, g2F_eqn] <;>
-    (rw [Bool.eq_iff_iff]; simp; omega)
+  refine ⟨fun t => ?_, fun t => ?_, fun t => ?_⟩
+  · show qB t = (stateF (r1W (t - 45)) (r2W (t - 45)) (qB (t - 45 - 0)) ||
+      stateF (r1W (t - 45)) (r2W (t - 45)) (qB (t - 45 - 0)))
+    simp only [r1W, r2W, qB, stateF_eqn]; rw [Bool.eq_iff_iff]; simp; omega
+  · show g1B t = (g1F (r1W (t - 152)) (r2W (t - 152)) (qB (t - 42 - 0)) ||
+      g1F (r1W (t - 152)) (r2W (t - 152)) (qB (t - 42 - 0)))
+    simp only [r1W, r2W, qB, g1B, g1F_eqn]; rw [Bool.eq_iff_iff]; simp; omega
+  · show g2B t = (g2F (r1W (t - 124)) (r2W (t - 124)) (qB (t - 124 - 0)) ||
+      g2F (r1W (t - 124)) (r2W (t - 124)) (qB (t - 124 - 0)))
+    simp only [r1W, r2W, qB, g2B, g2F_eqn]; rw [Bool.eq_iff_iff]; simp; omega
 
 theorem worst_nonvacuous :
     (countTrue (fun t => g1B t && g2B t) 0 124 : Int) = 37 := by
