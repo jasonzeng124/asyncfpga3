@@ -162,3 +162,10 @@ before neighbour response) fails on 12/64 stages under prjxray slowE intervals
 (worst -138 ps), feedback placed on B1/C1; SDF says +419 ps. One seed;
 Elmore unvalidated; passes only under near-perfect on-die correlation.
 Owner notified. Launched 10f (seeds, a shipped kernel route, pin constraints).
+
+### progress 04:30
+8h committed (per-link end_to_end2; rise/fall pins; per-event pins under
+H_PULSE; Prelim's BoundedDelay admits echoes no pulse condition excludes --
+three probes (8d, 8e, 8h) now agree it is the wrong channel for these proofs;
+NoOvertake/EPin are the usable ones; flagged for shard A's Core). Launched 8i
+(gcd graph imported from bdc, not hand-drawn).
