@@ -1,0 +1,71 @@
+#### denominator: the CURRENT SDF (lut-perm-sink patched) ####
+== ro_many_top: model / SDF per length (all routes pooled; per-route medians in []) ==
+links  n   SDF_med  fast_min/SDF med  fast_max/SDF med  slow_min/SDF med  slow_max/SDF med   silicon/SDF med p90 max
+    7 128     7262         0.495              0.612              1.185              1.465       1.176 1.438 1.470
+   15 128    15157         0.489              0.603              1.165              1.449       0.987 1.117 1.203
+   31 128    30752         0.492              0.604              1.171              1.446       0.959 1.085 1.142
+   63 128    62052         0.489              0.599              1.159              1.437       0.969 1.059 1.134
+per-route median slow_max/SDF by length:
+  ro_many_top_s1           7:1.466  15:1.468  31:1.449  63:1.440
+  ro_many_top_s2           7:1.468  15:1.414  31:1.431  63:1.444
+  ro_many_top_s3           7:1.478  15:1.446  31:1.463  63:1.432
+  ro_many_top_sdefault     7:1.423  15:1.462  31:1.440  63:1.428
+
+== shape: does s * (model/SDF) reproduce silicon/SDF per length? ==
+fast_min  s=2.017  7: med 0.999 p90 1.110 max 1.210 min 0.719 | 15: med 0.986 p90 1.077 max 1.182 min 0.809 | 31: med 0.992 p90 1.049 max 1.119 min 0.882 | 63: med 0.987 p90 1.026 max 1.059 min 0.900
+fast_max  s=1.640  7: med 1.004 p90 1.124 max 1.226 min 0.731 | 15: med 0.989 p90 1.072 max 1.175 min 0.799 | 31: med 0.991 p90 1.048 max 1.086 min 0.891 | 63: med 0.983 p90 1.024 max 1.063 min 0.889
+slow_min  s=0.848  7: med 1.004 p90 1.109 max 1.211 min 0.736 | 15: med 0.988 p90 1.062 max 1.151 min 0.811 | 31: med 0.992 p90 1.041 max 1.067 min 0.886 | 63: med 0.982 p90 1.025 max 1.061 min 0.888
+slow_max  s=0.684  7: med 1.003 p90 1.126 max 1.226 min 0.750 | 15: med 0.991 p90 1.064 max 1.159 min 0.798 | 31: med 0.990 p90 1.042 max 1.069 min 0.898 | 63: med 0.983 p90 1.021 max 1.064 min 0.877
+silicon             7: med 1.176 p90 1.438 max 1.470 | 15: med 0.987 p90 1.117 max 1.203 | 31: med 0.959 p90 1.085 max 1.142 | 63: med 0.969 p90 1.059 max 1.134  (7-link min 0.773)
+
+== spread of model/SDF within a length (p90/med, max/med, min/med); silicon p90/med, max/med ==
+  7: model 1.123 1.223 0.748   silicon 1.223 1.250 0.657
+ 15: model 1.073 1.169 0.805   silicon 1.132 1.219 nan
+ 31: model 1.053 1.080 0.908   silicon 1.131 1.191 nan
+ 63: model 1.038 1.082 0.892   silicon 1.093 1.170 nan
+
+== model = a * SDF + b (all ro_many rings, all routes); silicon: 0.9383 * SDF + 988 ==
+fast_min  a=0.4886  b=+85 ps   b/a=+174 ps
+fast_max  a=0.6002  b=+106 ps   b/a=+176 ps
+slow_min  a=1.1574  b=+231 ps   b/a=+200 ps
+slow_max  a=1.4327  b=+276 ps   b/a=+192 ps
+
+== where the model differs from the SDF (slow_max, per ring, x2 traversals) ==
+  7: model-SDF med   3382 ps; site-pin excess over 25 ps/pin med   5214 ps; RC med   310 ps; spearman(site-pin excess / SDF, model/SDF) = +0.98
+ 15: model-SDF med   6746 ps; site-pin excess over 25 ps/pin med  10350 ps; RC med   688 ps; spearman(site-pin excess / SDF, model/SDF) = +0.98
+ 31: model-SDF med  13763 ps; site-pin excess over 25 ps/pin med  21087 ps; RC med  1427 ps; spearman(site-pin excess / SDF, model/SDF) = +0.96
+ 63: model-SDF med  27030 ps; site-pin excess over 25 ps/pin med  41657 ps; RC med  2870 ps; spearman(site-pin excess / SDF, model/SDF) = +0.97
+physical pin use (all ring stages): A1:2348 A2:3690 A3:3579 A4:1984 A5:3759 A6:0
+
+== ro_top: re-routed model vs the two measured routes ==
+route              ring links  SDF   fmin   fmax   smin   smax  smax/SDF
+ro_top_sdefault       0     7   7264   3902   4766   9252  11326  1.559
+ro_top_sdefault       1    15  14786   7490   9208  18008  22236  1.504
+ro_top_sdefault       2    31  33024  16978  20642  40314  49202  1.490
+ro_top_sdefault       3    63  60496  28397  34893  67863  83931  1.387
+ro_top_sdefault       4   127 122384  60388  74208 143292 176976  1.446
+ro_top_s1             0     7   9030   4922   6060  11430  14262  1.579
+ro_top_s1             1    15  15812   8051   9793  19107  23333  1.476
+ro_top_s1             2    31  30036  13742  16790  33068  40524  1.349
+ro_top_s1             3    63  66436  30923  37663  73285  89703  1.350
+ro_top_s1             4   127 127868  61453  75079 145883 179167  1.401
+ro_top_s2             0     7   7234   4152   5164   9924  12408  1.715
+ro_top_s2             1    15  16480   7853   9555  18611  22723  1.379
+ro_top_s2             2    31  30880  14671  17911  35337  43299  1.402
+ro_top_s2             3    63  61200  31204  38520  74170  92152  1.506
+ro_top_s2             4   127 127018  61373  75557 146201 180999  1.425
+ro_top_s3             0     7   7938   3953   4881   9557  11891  1.498
+ro_top_s3             1    15  15342   7550   9302  17954  22258  1.451
+ro_top_s3             2    31  34058  17129  20845  40305  49219  1.445
+ro_top_s3             3    63  60816  27795  34065  66371  81781  1.345
+ro_top_s3             4   127 124426  59951  73517 142865 176125  1.416
+measured routes (README):
+  2026-08-03: 7:8093/8290=0.976  15:12204/13576=0.899  31:22924/24842=0.923  63:52075/56784=0.917  127:103094/103418=0.997
+  2026-08-18: 7:6293/4674=1.346  15:12140/12008=1.011  31:27784/28228=0.984  63:54772/55548=0.986  127:103409/112972=0.915
+
+== ring 0 (2026-08-18 route: SDF 4674, measured 6293): 7-link rings here have SDF 6704..10052 ps (n=132) ==
+fast_min  model = 0.398*SDF +743  -> at SDF 4674:   2602 ps (measured/model 2.419); at SDF 8290:   4040 (measured 8093, ratio 2.003)
+fast_max  model = 0.433*SDF +1330  -> at SDF 4674:   3352 ps (measured/model 1.877); at SDF 8290:   4917 (measured 8093, ratio 1.646)
+slow_min  model = 0.800*SDF +2833  -> at SDF 4674:   6572 ps (measured/model 0.958); at SDF 8290:   9464 (measured 8093, ratio 0.855)
+slow_max  model = 0.882*SDF +4311  -> at SDF 4674:   8432 ps (measured/model 0.746); at SDF 8290:  11621 (measured 8093, ratio 0.696)
+SDF per stage traversal, 7-link rings here: 419..628 ps; the 2026-08-18 ring 0: 292 ps
