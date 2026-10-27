@@ -1344,3 +1344,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - Audit r5 3g (metastability window pessimistic): agreed and kept as is for now -- TAU=WIN=150 ps is a stress
   setting that exercises both outcomes far more often than silicon would; fid meta-event counts are not rates. A
   silicon-sized window needs the board (hw/arb_mtbf).
+### progress 12:08 (OOM lost two vectors; BQ#1 bug bits; 8-seed full stack queued)
+- **Lost data, recorded:** a full-stack vvp is ~3.1 GB RSS and its iverilog compile ~3.7 GB; four sims plus a compile
+  overran 15 GB and the OOM killer silently truncated BQ#1 FAST_MIN vectors 6 and 14 (run_fid printed "no verdict
+  line"; every other completed run was checked: no other truncation). The run is discarded and re-queued; at most 3
+  vvp-class jobs at once from now on. A truncated log must never be read as a pass: run_fid's "no verdict line" is
+  the tell.
+- BQ#1 route, unpatched lut-pinmap bits (58 INITs changed, one LUT left with no INIT), full stack SLOW_MAX: **16/16,
+  errs=0**, laps within 1-6% of the patched bits' (vec 6 16 vs 16). So the bug is harmless on this fusion-on route in
+  the full stack too, as F4 found with a LUT-only reader: this route does not discriminate, the nofuse one does.
+- BQ#3 seeds 3-8 rebuilt (sdf b238ca95, a0d20c19, c71ed2cb, a1abd66d, ec9a75df, a81e16ee; seed 9 building);
+  full stack at FAST_MIN and SLOW_MAX queued for each, after the scatter draws.
+- Subagent S3: acceptance.py `--stack full`, so the harness itself runs the hard items on the full stack.
