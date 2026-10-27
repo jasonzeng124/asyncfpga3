@@ -157,3 +157,11 @@ In: 7c ArbAnalog, Bc ArbCorners, 6f PipeTimedN. All three tracks have a
 verdict. Running: 5e (involution loop on Core), Bn (B theorems on C's
 bitstream-read netlists), 7k (analog non-vacuity, rate closure), Bq (FIFO
 assumption fidelity), 7l (general ternary exactness). Full check.sh running.
+
+### progress 04:19
+Full formal/check.sh on this sandbox: lake build of all of Formal/ OK (2939
+jobs, all three shards); the axiom audit then failed only because the root
+Formal.olean was not built (the lakefile globs "Formal.+" do not match the
+root module). Built it with `lake env lean Formal.lean -o` and re-ran the
+audit: 9443 declarations checked, none BAD. For shard A (owner of
+check.sh/lakefile): the root module may need adding to the build.
