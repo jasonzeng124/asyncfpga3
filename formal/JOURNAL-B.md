@@ -297,3 +297,14 @@ audit corrections, Bk RulesKL, 5f CTreeTimed, Bx TernaryOnBits.
 Running: P1 (port Cells from Prelim to Core, non-breaking for C/A's
 importers), P3 (prove the 19 unproved constraint entries), Bov (does a
 digital race explain bd_arbcell's unexplained overlap?), Bx2.
+
+### progress 07:03
+Audit f5facff: no new rows on B. In since the last note: Bov/Bmt (arbcell
+8% not explained; correction sent), Bg2 gcd_hw inventory, P3 Constraints*
+(16/19 unproved entries closed), P4 JSON update (87 entries, 82 proved), Lt
+OpsTimed* and Lt2 OpsTimed2 (timed steer/mux/merge, control and value), Cm
+AMerge*/MuxN3* (control_merge and 3-way header, SI), Bc2 ArbCornersPin
+(audit rows 35-36), 6h PipeWitness (audit row 37).
+Running: P1 port (Prelim -> Core), Br (obligations on routed gcd_hw, 4
+seeds), Cm2 (timed control_merge obligations), Lt3 (necessity of operator
+obligations).
