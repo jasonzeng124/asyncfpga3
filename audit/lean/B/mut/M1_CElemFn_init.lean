@@ -48,7 +48,7 @@ instance K3.decForall {P : K3 → Prop} [DecidablePred P] : Decidable (∀ k, P 
 /-! ## 1. INITs from `bd_ce.v` (verbatim) -/
 
 /-- `bd_c2`:      `I0=a I1=b I2=q I3=rst I4=0 I5=0`. -/
-def INIT_c2       : Nat := 0x00E900E800E800E8
+def INIT_c2       : Nat := 0x00E800E800E800E9
 /-- `bd_c2_set`:  `I0=a I1=b I2=q I3=rst I4=0 I5=0`. -/
 def INIT_c2_set   : Nat := 0xFFE8FFE8FFE8FFE8
 /-- `bd_c2n`:     `I0=a I1=b I2=q I3=rst I4=0 I5=0`. -/

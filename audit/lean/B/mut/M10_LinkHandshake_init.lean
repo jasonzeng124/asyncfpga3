@@ -50,7 +50,7 @@ set_option linter.unusedSimpArgs false
 
 /-- `bd_c2n` (cells/rtl/bd_ce.v), used verbatim by `bd_link_ctl`:
 pins `I0=a=req_in  I1=b=c_next  I2=q=c (own output, fed back)  I3=rst  I4=0  I5=0`. -/
-def INIT_C2N : Nat := 0x00B300B200B200B2
+def INIT_C2N : Nat := 0x00B200B200B200B3
 
 /-- The controller LUT, evaluated from its INIT. -/
 def ctlB (req cnext q rst : Bool) : Bool :=
