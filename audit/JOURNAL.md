@@ -91,3 +91,6 @@ Pass 5: formal f4696cc clean build started (Formal oleans removed, Mathlib reuse
 
 ### progress 10:05
 Research pass 5: xorshift re-baseline like-for-like CONFIRMED (own seed-1 fit 105.22); collatz64 coverage wording overstated (rule I audits 12/34 stages); GLS_MODEL=fid transport OK but no OUTMUX, file list in f3_model.md wrong.
+
+### progress 10:40
+Formal f4696cc clean build FAILS: RigContract.lean (3e00ce4) errors at 607-611/740/743 -- uses section variable e outside its section; cannot have compiled at its commit. Its claimed refutation of the research rig explanation is unchecked. Per-module axiom audit still running.
