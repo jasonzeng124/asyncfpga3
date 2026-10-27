@@ -51,12 +51,16 @@ structure Late where
   sw : List Nat := []
   blocked : List Nat := []
   targets : List (Nat × Nat) := []
+  /-- C-10k: routed arcs `(src, dst)` dropped in both phases (rule Z: the
+  fast-fall side taps of the cell's own delay line, inert on a rise under
+  H_FF_DRAINED, which rule Fd checks). -/
+  cut : List (Nat × Nat) := []
 
 def enc (L : Late) (p ph : Nat) : Nat := if p = L.s ∧ ph = 0 then 0 else 2 * (p + 1) + ph
 
 /-- The product arcs one routed arc contributes. -/
 def expand (L : Late) (stor : Nat → Bool) (g : GArc) : List Arc :=
-  if L.blocked.contains g.src then [] else
+  if L.blocked.contains g.src || L.cut.contains (g.src, g.dst) then [] else
   let st := stor g.src && g.src != L.s
   let a0 : List Arc :=
     if (L.noFr0 && g.fr && !(L.swStor && st)) || (L.stop0 && st) then []
@@ -124,6 +128,44 @@ theorem cverdict_sound {stor : Nat → Bool} {G : List GArc} {i : CInst}
   rw [hw] at this
   simp only [List.all_eq_true, decide_eq_true_eq] at this
   have := this q hq
+  omega
+
+/-! ## C-10k: per-pair verdicts
+
+A cert obligation with several data nodes and several targets is a cross
+product in `cverdict` (every data node before every target). Rules Fd and Z
+need it per PAIR: stage `i`'s fall at stage `i+1`'s chain pin against stage
+`i+1`'s own side tap (Fd); a consumer link's latch data against that link's own
+latch enables (Z). `pairs` lists `(data node, target pin, target phase)`. -/
+
+def pverdict (stor : Nat → Bool) (G : List GArc) (i : CInst) (pairs : List (Nat × Nat × Nat)) :
+    Bool :=
+  decide i.dag.WF && lateOK i.late stor G i.potf &&
+  pairs.all fun (d, x, ph) => enc i.late x ph != 0 &&
+    match winArr i.dag d with
+    | none => true
+    | some (_, l) => decide (l + i.setup ≤ i.potf (enc i.late x ph))
+
+/-- **Soundness of a per-pair cert PASS**: under the same two `Run` hypotheses as
+`cverdict_sound`, every change of each pair's data node precedes every change of
+that pair's target by at least `setup`. -/
+theorem pverdict_sound {stor : Nat → Bool} {G : List GArc} {i : CInst}
+    {pairs : List (Nat × Nat × Nat)}
+    (h : pverdict stor G i pairs = true) {sigD sigL : Nat → Trace}
+    (rD : Run i.dag sigD) (rL : Run (lateNet i.late stor G) sigL) :
+    ∀ d x ph, (d, x, ph) ∈ pairs → ∀ s t, changes (sigD d) s →
+      changes (sigL (enc i.late x ph)) t → s + i.setup ≤ t := by
+  intro d x ph hp s t hs ht
+  simp only [pverdict, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
+  obtain ⟨⟨hwf, hlate⟩, hpairs⟩ := h
+  rw [lateOK_eq] at hlate
+  have hq := hpairs (d, x, ph) hp
+  simp only [Bool.and_eq_true, bne_iff_ne, ne_eq] at hq
+  obtain ⟨hnz, hd⟩ := hq
+  have hb := potOK_sound hlate rL t _ hnz ht
+  obtain ⟨e, l, hw, _, hsl⟩ := changes_in_winArr hwf rD d s hs
+  rw [hw] at hd
+  simp only [decide_eq_true_eq] at hd
   omega
 
 end Tcheck

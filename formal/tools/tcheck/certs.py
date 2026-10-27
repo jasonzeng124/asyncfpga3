@@ -84,7 +84,10 @@ class CertGraph:
         if p in spec["blocked"]:
             return res
         st = p in self.stops and p != s
+        cut = spec.get("cut", ())
         for d, iv in self.succ.get(p, ()):
+            if (p, d) in cut:           # C-10k: Tcheck.Late.cut (both phases)
+                continue
             lo = iv[v][0]
             if ph == 0:
                 if (spec["noFr0"] and (p, d) in self.fr and not (spec["swStor"] and st)) \

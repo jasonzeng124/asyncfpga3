@@ -36,6 +36,8 @@ structure Pending where
   late : Option (Nat × Late) := none
   cap : Nat := 0
   pots : Array (Nat × Nat × Nat) := #[]
+  -- C-10k: per-pair targets (data node, target pin, phase); empty = cross product
+  pairs : Array (Nat × Nat × Nat) := #[]
 
 /-- The global routed graph (C-10h): one arc list per corner variant, storage flags. -/
 structure Graph where
@@ -74,10 +76,24 @@ def reportCert (g : Graph) (p : Pending) (vi : Nat) (L : Late) : String :=
   let G := g.arcs.getD vi []
   let stor := fun x => g.stor.getD x false
   let wf := decide i.dag.WF
+  let T := winTable i.dag
+  if p.pairs.size > 0 then
+    -- C-10k: per-pair verdict `Tcheck.pverdict` (`pverdict_sound`); margin = least
+    -- (target potential - data latest - setup) over the pairs
+    let v := pverdict stor G i p.pairs.toList
+    let tag := if !wf then "ILLFORMED" else if v then "PASS"
+      else if !lateOK L stor G i.potf then "CERTBAD" else "FAIL"
+    let ms := p.pairs.toList.filterMap fun (d, x, ph) => match getW T d with
+      | some (_, l) => some ((i.potf (enc L x ph) : Int) - l - p.setup)
+      | none => none
+    let m := match ms with
+      | [] => "none"
+      | a :: r => toString (r.foldl min a)
+    s!"{p.label}\t{tag}\t{m}\treq=[pairs={p.pairs.size},cert]\tdata_late=-\tarcs={p.arcs.size}"
+  else
   let v := cverdict stor G i
   let tag := if !wf then "ILLFORMED" else if v then "PASS"
     else if !lateOK L stor G i.potf then "CERTBAD" else "FAIL"
-  let T := winTable i.dag
   let late := i.data.foldl (fun acc d => match getW T d with
     | some (_, l) => max acc l | none => acc) 0
   let b := cbound i
@@ -149,6 +165,21 @@ partial def loop (h : IO.FS.Stream) (g : Graph) (cur : Option Pending) (n : Nat)
     | .ok x, .ok ph, some (vi, L) =>
       loop h g (some { p with late := some (vi, { L with targets := L.targets ++ [(x, ph)] }) }) n out
     | _, _, _ => return .error s!"bad target line: {line}"
+  | "cut" :: xs, some p =>
+    match xs.mapM parseNat!, p.late with
+    | .ok ks, some (vi, L) =>
+      let rec prs : List Nat → List (Nat × Nat) → Option (List (Nat × Nat))
+        | [], acc => some acc.reverse
+        | a :: b :: r, acc => prs r ((a, b) :: acc)
+        | _, _ => none
+      match prs ks [] with
+      | some cs => loop h g (some { p with late := some (vi, { L with cut := L.cut ++ cs }) }) n out
+      | none => return .error s!"bad cut line (not pairs): {line}"
+    | _, _ => return .error s!"bad cut line: {line}"
+  | ["pair", d, x, ph], some p =>
+    match parseNat! d, parseNat! x, parseNat! ph with
+    | .ok d, .ok x, .ok ph => loop h g (some { p with pairs := p.pairs.push (d, x, ph) }) n out
+    | _, _, _ => return .error s!"bad pair line: {line}"
   | ["cap", c], some p =>
     match parseNat! c with
     | .ok c => loop h g (some { p with cap := c }) n out
