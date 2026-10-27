@@ -61,15 +61,34 @@ CARRY4, BUFGCTRL, DSP48E1 by its register configuration).  An arc the
 database does not have keeps nextpnr's number (scaled into all three
 columns) and is counted.
 
-SITE-INTERNAL PIPS.  prjxray models the slice output mux as the tile pseudo-
-pip  X ->> XMUX  (e.g. CLBLL_L_C->>CLBLL_L_CMUX, 166..205 ps).  It is charged
-when the route takes an xOUTMUX from the 6-LUT's O6 (or DOUTMUX from COUT),
-since the LUT6 cell arc ends at O6.  An O5 or CARRY4 output through the OUTMUX
-is charged 0: the database's LUT5/CARRY4 arcs are the arcs to the site pin
-and there is no separate pseudo-pip for them.  Every other site pip (FFMUX,
-CY0, CLKINV, CEUSEDMUX, SRUSEDMUX, ...) is 0 -- the FF/CARRY timing checks and
-arcs include them in Vivado's model.  This is the weakest modelling choice in
-the file; --sitepip-ps overrides it with a flat number for a sensitivity run.
+SITE-INTERNAL PIPS.  A slice's site-internal muxes are Vivado "routing BEL"
+speed models, which prjxray-db keeps per SITE TYPE in timings/slicel.sdf and
+timings/slicem.sdf (fuzzers/007-timing/routing-bels: cell ROUTING_BEL,
+instance SLICEL/<output>, one INTERCONNECT per input, (FAST)(SLOW) groups).
+Every slice site pip on the route is charged the arc it is:
+    xOUTMUX  <src>  ->  ROUTING_BEL <x>MUX  from <src>   (O6, O5, CY, XOR, F7/F8, 5FF Q)
+    xFFMUX   <src>  ->  ROUTING_BEL <x>FF   from <src>   (O6, O5, CY, XOR, F7/F8, X)
+    x5FFMUX  <src>  ->  ROUTING_BEL <x>5FF  from <src>   (O5, X)
+    CLKINV / CEUSEDMUX / SRUSEDMUX  ->  clk / ce / sr into the FFs (the
+             largest over the slice's eight FFs: the pip does not say which FF
+             the arc ends at; in prjxray-db they are equal within a site type)
+<src> is named the way the database names it: x6LUT_O6 -> x6lut, x5LUT_O5 ->
+x5lut, CARRY4_O<i>/CO<i> -> carry4_o<i>/co<i>, F7AMUX_OUT -> f7amux, xX -> ax,
+x5FF_Q -> x5ff.  O6 -> xMUX from this table is the same number as the tile
+pseudo-pip  X ->> XMUX  prjxray's tile_type json carries (e.g.
+CLBLL_L_A->>CLBLL_L_AMUX, 168..209 ps), and COUT -> DMUX the same as
+CLBLL_L_COUT->>CLBLL_L_DMUX, which is how the x6lut/x5lut names were tied to
+the LUT outputs.  UNRESOLVED IN THE DATABASE: each mux also has entries named
+o5/o6 (e.g. SLICEL AMUX: a5lut 163/202 ps slow, o5 141/175) and an "...L"
+instance (AMUXL, AFFL, AFFL1/2) whose meaning the fuzzer does not record; the
+x5lut/x6lut, non-L entries are used.  The LUT and CARRY4 cell arcs end at the
+bel pin (A1 -> O5, S0 -> O0), so nothing is charged twice.  Not charged
+(0): the CARRY4 inputs (xCY0 is folded into the CARRY4 cell variants), O6 ->
+CARRY4 S / F7 mux inputs (no site pip in the route), xUSED/COUTUSED (0 in the
+database), and every non-slice site pip (BUFGCTRL inverters, IOB, ...).  A
+slice site pip the table has no entry for is counted
+(sitepip_rb_missing_*) and charged 0.  --sitepip-ps overrides all of this
+with a flat number for a sensitivity run.
 
 WHAT IT KEEPS FROM nextpnr.  The SDF's structure, instance names, SETUPHOLD
 checks and every arc list: the input SDF is the template and only numbers are
@@ -260,6 +279,7 @@ class XrayDb(object):
 # --------------------------------------------------------------- cell arcs
 
 RE_CELL = re.compile(r'\(CELL\s*\(CELLTYPE "([^"]*)"\)\s*\(INSTANCE\s*([^)]*)\)')
+RE_RBIC = re.compile(r'\(INTERCONNECT\s+(\S+)\s+(\S+)\s+\(([-\d.]*):[-\d.]*:([-\d.]*)\)\s*\(([-\d.]*):[-\d.]*:([-\d.]*)\)')
 RE_IOP = re.compile(r'\(IOPATH\s+(\(\w+\s+)?(\S+?)\)?\s+(\S+)\s+\(([-\d.]*):[-\d.]*:([-\d.]*)\)\s*\(([-\d.]*):[-\d.]*:([-\d.]*)\)')
 
 
@@ -282,11 +302,17 @@ def read_timing_sdf(path):
             inst = re.search(r"\(INSTANCE\s*([^)]*)\)", line).group(1).strip()
             cur = out.setdefault((pend, inst), {})
             continue
+        f = lambda s: float(s) if s else 0.0
         m = RE_IOP.search(line)
         if m and cur is not None:
-            f = lambda s: float(s) if s else 0.0
             cur[(m.group(2), m.group(3))] = (f(m.group(4)), f(m.group(5)),
                                              f(m.group(6)), f(m.group(7)))
+            continue
+        m = RE_RBIC.search(line)
+        if m and cur is not None:
+            # ROUTING_BEL (slicel.sdf/slicem.sdf): INTERCONNECT <in> <out>
+            cur[(m.group(1), m.group(2))] = (f(m.group(3)), f(m.group(4)),
+                                             f(m.group(5)), f(m.group(6)))
     return out
 
 
@@ -399,7 +425,63 @@ def pip_parent(pip):
     return pip.split("->")[0]
 
 
-OUTMUX_PSEUDO = re.compile(r"^([A-D])OUTMUX$")
+SLICE_SITE_TYPES = ("SLICEL", "SLICEM")
+
+
+class RoutingBels(object):
+    """prjxray-db timings/slicel.sdf, slicem.sdf ROUTING_BEL arcs:
+    (site type, OUTPUT upper) -> {input lower: 4-tuple ns}."""
+
+    def __init__(self, timing_dir):
+        self.rb = {}
+        for st in SLICE_SITE_TYPES:
+            p = os.path.join(timing_dir, st.lower() + ".sdf")
+            for (ct, inst), arcs in read_timing_sdf(p).items():
+                if ct != "ROUTING_BEL" or "/" not in inst:
+                    continue
+                site, out = inst.split("/", 1)
+                self.rb[(site, out)] = {a: v for (a, z), v in arcs.items()}
+
+    def arc(self, st, out, inp):
+        return self.rb.get((st, out), {}).get(inp)
+
+    def ff_max(self, st, inp):
+        """The largest <inp> -> FF arc over the slice's eight FFs, per column."""
+        best = None
+        for L in "ABCD":
+            for out in (L + "FF", L + "5FF"):
+                v = self.arc(st, out, inp)
+                if v is not None:
+                    best = v if best is None else tuple(max(x, y) for x, y in zip(best, v))
+        return best
+
+
+def rb_src_name(src):
+    """nextpnr site wire feeding a slice mux -> the database's input name."""
+    m = re.match(r"^([A-D])([56])LUT_O[56]$", src)
+    if m:
+        return "%s%slut" % (m.group(1).lower(), m.group(2))
+    m = re.match(r"^CARRY4_(C?O)(\d)$", src)
+    if m:
+        return "carry4_%s%s" % (m.group(1).lower(), m.group(2))
+    m = re.match(r"^(F7AMUX|F7BMUX|F8MUX)_OUT$", src)
+    if m:
+        return m.group(1).lower()
+    m = re.match(r"^([A-D])5FF_Q$", src)
+    if m:
+        return "%s5ff" % m.group(1).lower()
+    if re.match(r"^[A-D]X$", src):
+        return src.lower()
+    return src.lower()
+
+
+SITEPIP_RB = (
+    (re.compile(r"^([A-D])OUTMUX$"), lambda L: L + "MUX"),
+    (re.compile(r"^([A-D])FFMUX$"), lambda L: L + "FF"),
+    (re.compile(r"^([A-D])5FFMUX$"), lambda L: L + "5FF"),
+)
+SITEPIP_FFCTRL = {"CLKINV": "clk", "CEUSEDMUX": "ce", "SRUSEDMUX": "sr"}
+SITEPIP_ZERO = re.compile(r"^([A-D]USED|COUTUSED|[A-D]CY0)$")
 
 
 class NetTiming(object):
@@ -439,21 +521,31 @@ class NetTiming(object):
         _, site, bel, src = pip.split("/", 3)
         if self.sitepip_ps is not None:
             return (self.sitepip_ps / 1000.0,) * 4
-        m = OUTMUX_PSEUDO.match(bel)
-        if m and (src.endswith("6LUT_O6") or src == "CARRY4_COUT"):
-            L = m.group(1)
-            info = CELLARCS.site_info(site)
-            if info is None:
+        info = CELLARCS.site_info(site)
+        if info is None or info[2] not in SLICE_SITE_TYPES:
+            return ZERO4
+        st = info[2]
+        if bel in SITEPIP_FFCTRL:
+            v = ROUTINGBELS.ff_max(st, SITEPIP_FFCTRL[bel])
+            kind = bel
+        elif SITEPIP_ZERO.match(bel):
+            return ZERO4
+        else:
+            v = kind = None
+            for rx, outf in SITEPIP_RB:
+                m = rx.match(bel)
+                if m:
+                    kind = re.sub(r"^[A-D]", "x", bel)
+                    v = ROUTINGBELS.arc(st, outf(m.group(1)), rb_src_name(src))
+                    break
+            if kind is None:
+                self.stats["sitepip_unmodelled_%s" % re.sub(r"^[A-D]", "x", bel)] += 1
                 return ZERO4
-            tile, tt, st = info
-            pins = self.xdb.site_pin_wires(tile, site)
-            srcpin = pins.get("COUT" if src == "CARRY4_COUT" else L)
-            hit = self.xdb.pipmap(tt).get((srcpin, pins.get(L + "MUX")))
-            if hit and hit[0].timing is not None:
-                self.stats["sitepip_outmux_charged"] += 1
-                return d4(hit[0].timing.delays)
-            self.stats["sitepip_outmux_nopseudo"] += 1
-        return ZERO4
+        if v is None:
+            self.stats["sitepip_rb_missing_%s_%s" % (kind, src)] += 1
+            return ZERO4
+        self.stats["sitepip_charged_%s" % kind] += 1
+        return v
 
     def walk_site(self, w, extra, npips):
         """w is a SITEWIRE on the source side (before any tile routing)."""
@@ -630,6 +722,7 @@ class NetTiming(object):
 
 
 CELLARCS = None
+ROUTINGBELS = None
 
 
 # ----------------------------------------------------- dst pin -> site wire
@@ -699,7 +792,7 @@ def ps(x):
 
 
 def main():
-    global CELLARCS
+    global CELLARCS, ROUTINGBELS
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--routed", required=True)
     ap.add_argument("--sdf", required=True, help="nextpnr's SDF for the same route (template)")
@@ -713,6 +806,7 @@ def main():
     t0 = time.time()
     xdb = XrayDb()
     CELLARCS = CellArcs(xdb)
+    ROUTINGBELS = RoutingBels(xdb.timing_dir)
     top = json.load(open(args.routed))["modules"]["top"]
     cells = top["cells"]
     routes = {}

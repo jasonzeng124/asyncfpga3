@@ -1,0 +1,42 @@
+1. CELLS  routed JSON 13215 bels, bitstream 13214 bels, common 13214
+2. CONFIG  compared {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'SLICE_FFX': 326} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  0 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+3. CONNECTIVITY  37623 pins with the same driver on both sides
+   driver->sink pairs: json 37626, bits 59011, common 37623
+4. LUT FUNCTIONS  11619 LUTs compared, 11618 identical over every input assignment
+5. ROUTING  13575 nets with identical pip sets, 0 differ (1 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (8 kinds):
+       2  HARMLESS: LUT pin on a different constant in the routed JSON than on the board (an IMUX nextpnr tied to GND but never routed reads VCC through its default ppip), and the bits' LUT function does not read that pin
+            SLICE_X10Y92/B/A6 json 0 bits 1 (SLICE_X10Y92/B6LUT)
+            SLICE_X22Y51/A/A6 json 0 bits 1 (SLICE_X22Y51/A6LUT)
+       1  LUT FUNCTION DIFFERS
+            SLICE_X10Y92/A6LUT (urig.udut.ulink_n166__1.many.stage[1].u.ctl.u.u) on 1 of 16 input assignments
+       1  LUT PIN ON A DIFFERENT CONSTANT AND THE LUT FUNCTION READS IT
+            SLICE_X10Y92/A/A6 json 0 bits 1 (SLICE_X10Y92/A6LUT)
+   16066  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y16/A/A1
+            SLICE_X0Y16/A/A2
+            SLICE_X0Y16/A/A3
+            SLICE_X0Y16/B/A1
+            SLICE_X0Y16/B/A2
+            SLICE_X0Y16/B/A3
+       1  cell in routed JSON, not configured by the bits (it has NO loads)
+            SLICE_X22Y84/F7AMUX SELMUX2_1 urig.udut.ucontrol_merge12.$abc$10510$auto$blifparse.cc:557:parse_blif$10513.gen
+       1  json pips that ARE in the bits but reach no live sink (routing to a dead bel)
+            ('SLICE_X31Y83/C6LUT', 'O6'): 7 pips, e.g. [('INT_L_X16Y83/BYP_ALT6', 'INT_L_X16Y83/BYP_BOUNCE6'), ('INT_R_X17Y83/WR1BEG3', 'INT_L_X16Y83/BYP_ALT6')]
+     284  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X10Y77/AFF/SR
+            SLICE_X10Y77/BFF/SR
+            SLICE_X10Y77/CFF/SR
+            SLICE_X10Y77/DFF/SR
+            SLICE_X11Y77/AFF/SR
+            SLICE_X11Y79/AFF/SR
+    5035  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y16/A/A6
+            SLICE_X0Y16/B/A6
+            SLICE_X0Y16/C/A6
+            SLICE_X0Y16/D/A6
+            SLICE_X0Y17/A/A6
+            SLICE_X0Y17/B/A6
+VERDICT: NOT EQUIVALENT: LUT PIN ON A DIFFERENT CONSTANT AND THE LUT FUNCTION READS IT; LUT FUNCTION DIFFERS

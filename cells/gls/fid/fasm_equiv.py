@@ -13,6 +13,12 @@ bel-level, so everything is compared by bel name:
   3. connectivity  every input pin: same driver (bel/pin, or the same constant).
                    The two LUT bels of one position (A6LUT/A5LUT) share six
                    physical pins, so pins are compared per LUT POSITION.
+                   A LUT pin the JSON ties to one constant and the bits to the
+                   other (nextpnr ties it to GND but never routes it, so the
+                   IMUX reads VCC through its default ppip) is HARMLESS, and
+                   counted as such, iff the bits' LUT function does not read
+                   that pin (both halves, the other pins at their own drivers);
+                   otherwise it is a hard difference.
   4. LUT function  every LUT, evaluated over every assignment of the distinct
                    nets on its pins, each side with ITS OWN pin map and constants
                    -- JSON through gen.py's X_ORIG_PORT expansion (the logical
@@ -110,6 +116,48 @@ def lut_table(c, out_port):
     """Physical truth table, A1 = bit 0 (gen.py's expansion of the JSON;
     for fasm2net's cells X_ORIG_PORT is the identity, so this is the INIT)."""
     return gen.expand_lut_init(c["parameters"].get("INIT", "0"), c["attributes"], out_port)
+
+
+def lut_reads_pin(pos, pin, vals, cells_by_bel, pd):
+    """Does the bits' LUT function at LUT position `pos` (both its 6LUT and
+    5LUT bels) change when physical pin `pin` moves between the constants in
+    `vals`?  The other pins take their own bits-side drivers: constants fixed,
+    every distinct live net free over 0/1.  -> (reads?, which bels looked at)."""
+    site, L = pos.rsplit("/", 1)
+    i = int(pin[1]) - 1
+    seen = []
+    for b6 in ("6", "5"):
+        b = "%s/%s%sLUT" % (site, L, b6)
+        if b not in cells_by_bel:
+            continue
+        cn, c = cells_by_bel[b]
+        out = "O6" if b6 == "6" else "O5"
+        npins = 6 if out == "O6" else 5
+        seen.append(b)
+        if i >= npins:
+            continue                    # A6 is not an input of the O5 half
+        t = lut_table(c, out)
+        m = lut_eval_inputs(cn, c, pd, gen.TIE)
+        var = sorted({d for k2, d in list(m.items())[:npins]
+                      if k2 != pin and d[0] not in ("const", "tie")}, key=str)
+        for v in range(1 << len(var)):
+            env = {d: (v >> j) & 1 for j, d in enumerate(var)}
+            outs = set()
+            for pv in vals:
+                x = 0
+                for j in range(npins):
+                    d = m["A%d" % (j + 1)]
+                    bitv = pv if j == i else (d[1] if d[0] in ("const", "tie") else env[d])
+                    x |= bitv << j
+                outs.add((t >> x) & 1)
+            if len(outs) > 1:
+                return True, seen
+    return False, seen
+
+
+HARMLESS_CONST = ("HARMLESS: LUT pin on a different constant in the routed JSON than on the board "
+                  "(an IMUX nextpnr tied to GND but never routed reads VCC through its default "
+                  "ppip), and the bits' LUT function does not read that pin")
 
 
 def main():
@@ -326,6 +374,16 @@ def main():
         if b_ is None:
             flag("pin connected in routed JSON, unconnected on the board", "%s/%s <- %s" % (k[0], k[1], a_))
             continue
+        if a_[0] == "const" and b_[0] == "const" and re.search(r"/[A-D]$", k[0]) \
+                and re.match(r"^A[1-6]$", k[1]):
+            reads, seen = lut_reads_pin(k[0], k[1], (a_[1], b_[1]), fb, fp)
+            if not reads:
+                flag(HARMLESS_CONST, "%s/%s json %d bits %d (%s)" % (k[0], k[1], a_[1], b_[1],
+                                                                     ", ".join(seen) or "no LUT"))
+            else:
+                flag("LUT PIN ON A DIFFERENT CONSTANT AND THE LUT FUNCTION READS IT",
+                     "%s/%s json %d bits %d (%s)" % (k[0], k[1], a_[1], b_[1], ", ".join(seen)))
+            continue
         flag("DRIVER DIFFERS", "%s/%s json %s bits %s" % (k[0], k[1], a_, b_))
     say("3. CONNECTIVITY  %d pins with the same driver on both sides" % n_same)
     # driver -> sink pairs, as sets
@@ -483,7 +541,8 @@ def main():
     benign = ("cell in routed JSON, not configured by the bits (it has NO loads)",
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
-              "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip")
+              "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip",
+              HARMLESS_CONST)
     hard = [k for k in bad if not k.startswith(benign)]
     say("VERDICT: %s" % ("EQUIVALENT (only the benign kinds above)" if not hard else
                          "NOT EQUIVALENT: " + "; ".join(hard)))
