@@ -194,3 +194,12 @@ Formal.* deps by mtime) and an axiom audit (Gen 590, Net 1409 decls clean).
 Note for A: check.sh FILE mode (.lake/checkfile) fails on files whose
 Formal.* imports are not also passed (reported by 8f/8g). Launched 8j
 (control_merge, witness, liveness) and 11e (port shard C off Cells.Prelim).
+
+### progress 05:18
+10e committed: tcheck (compiled, proved core) on 4 gcd_hw routes agrees with
+rule I 75/75 and rule H 157-158/158; 2 H rows pass tighten but fail under the
+project's own guard band once prjxray site-pin delays replace the SDF's flat
+pin charge (thin margins, not predicted failures). Incident: 10e ran
+slot.sh lake build in formal/lean by mistake (slot.sh cds there) and compiled
+Mathlib for ~17 min before killing it; only .lake/packages build dirs touched.
+Launched 10g (rules A/E/F/J + 8e races + RT_FB rows in tcheck).
