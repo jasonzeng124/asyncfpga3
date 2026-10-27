@@ -40,9 +40,9 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 | # | track | verdict | evidence (checks) | effort to finish | buys the project |
 |---|---|---|---|---|---|
 | 1 | Toolchain | **works, with a workaround** | `formal/setup.sh`, `check.sh` | done | — |
-| 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity | `Core/Trace/{Discrete,Event,Real}.lean` | discretisation soundness ℝ→ℕ: 1–2 d (probe running) | a common substrate for B and C |
-| 3 | Delay channels | pure, inertial, involution: **all work** | `Core/Delay/{Pure,Inertial,Involution}.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; corner-correlated bounds (probe running) | sound wire abstraction; exact bundling lemma |
-| 4 | Kleene LUT | **works** | `Core/{Kleene,Lut,LutTree,Ternary}.lean` | unify K3 types (probe running) | decidable per-cell hazard/settling check |
+| 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
+| 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel (probe running) | sound wire abstraction; exact bundling lemma |
+| 4 | Kleene LUT | **works** | `Core/{Kleene,Lut,LutTree,Ternary,Bridge}.lean` | per-cell hazard audit (probe running) | decidable per-cell hazard/settling check |
 | 5 | C-element | (shard B) | see `JOURNAL-B.md` | | |
 | 6 | Latch / link | (shard B) | | | |
 | 7 | Arbiter | (shard B) | | | |
@@ -117,6 +117,36 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   wide (A-fidelity), so no matched-delay (bundling) condition is provable from
   independent bands; a shared-corner + local-scatter model is being probed.
 
+### 2b. Circuit layer and discretisation
+- `Core/Circuit.lean`: the owner's layering, representation-independent:
+  `Gate := Beh W σ → Prop`, `Circuit := List Gate`, `Sat`, composition is
+  conjunction (`sat_compose`), refinement, hiding internal wires by
+  projection, assume-guarantee chaining. `Core/Trace/Bridge.lean`: event lists
+  denote exactly the right-continuous ℝ → Bool functions with finitely many
+  changes (`range_toFun`), so the trace choice locks nothing in.
+- `Core/Discretize.lean`: if a continuous behaviour satisfies a bounded
+  transport channel and its input has no two transitions within one quantum
+  q, its grid samples satisfy the discrete channel with bounds
+  [⌊lo/q⌋, ⌈hi/q⌉] (`chan_sample`), and likewise for gates and circuits
+  (`circuit_sample`, `transfer`); joint separation over a gate's inputs is
+  needed. Shard B's C-element theorems therefore hold at grid points of every
+  separated continuous behaviour (`loop_of_continuous`). Without separation a
+  sub-quantum runt is invisible: grant exclusion can hold at every grid point
+  and fail between them (`mutex_between`) -- exactly the arbiter tie.
+
+### 3b. Corner correlation (`Core/Delay/Corner.lean`)
+With one shared PVT corner c and affine nominal delays per arc plus local
+scatter |ε| ≤ κ, a bundling condition at both corner endpoints is equivalent to
+it at every corner (`bundle_ratio_affine_iff`); monotone nominal delays alone
+are not enough (`monotone_not_enough`). The project's guardbands become exact
+scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_sound`,
+`ruleE_tight`); tighten.py rule A iff κ ≤ 1/11 ≈ 9.1% (`ruleA_sound_rel`,
+`ruleA_tight`). Soft evidence that κ can be larger: the 7-link ring ratios
+0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
+path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
+two-path difference, so this is not a refutation. Estimating κ properly
+needs per-route two-path data (notes/A-delay-corner.md gives the estimator).
+
 ### 4. Kleene LUT
 - `Core/Kleene.lean`, `Core/Lut.lean`: shared K3 and LUT API (INIT as
   `BitVec (2^k)`, I0 = LSB, LUT6_2 O5/O6). Kleene eval equals the INIT-table
@@ -162,6 +192,20 @@ Note: prjxray-db's `timings/*.sdf` triples are (FAST)(SLOW), not rise/fall;
 a standard SDF reader misreads them (A-fidelity).
 
 ## Findings for the main project (to verify, not confirmed defects)
+- **The research GLS's LUT delay can propagate an edge early**
+  (`notes/A-gls-compare.md`, `tools-A/gls-compare/run_all.sh`). iverilog
+  specify paths on `SLICE_LUTX` behave as "sample at fire": a change at t
+  schedules an update at t+d that copies the function value when it fires,
+  with no cancellation (fits 140/140 random traces; inertial 48, transport 4).
+  An edge following an earlier change within d arrives early (reproduced: a
+  rise at 1130 ps seen at 1244 ps through a 124 ps arc; down to 4 ps in the
+  probe). GLS bundled-data margins can therefore be optimistic for glitchy
+  data cones. Not measured: how often in a routed design. The GLS's annotated
+  and baked builds also treat wire pulses differently (LUT-like vs transport).
+- X-propagation of the GLS LUT/MUXF7 models equals Core `kevalSpec` on all
+  43,767 vectors tested; bd_c2 single-input flips clean in both. bd_c2 a,b
+  01→10 at q=0: Lean says hazard (X); the GLS shows a sharp skew threshold
+  with a clean flip, and endless oscillation with a transport feedback wire.
 - The research GLS's `SLICE_LUTX` builds the LUT mux tree with A6 at the
   leaves; the silicon has A6 at the root (UG474). Harmless for logic values,
   differs in timing (A-lut-tree).
