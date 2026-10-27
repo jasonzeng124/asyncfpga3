@@ -24,7 +24,7 @@ and 4). The physical INIT accounts for this, and the proof covers it.
 
 ## What checks (run it)
 
-    formal/tools/fasm2lean2/check.sh          # ~3-5 min from the committed fixtures
+    formal/tools/fasm2lean2/check.sh          # 2 min 24 s wall (2 min 5 s user) from the committed fixtures
     formal/tools/fasm2lean2/route.sh SEED     # re-route one seed (~13 s), then check.sh
 
 Last run of `check.sh`: **PASS** (log excerpt at the end). It does the following:
@@ -211,3 +211,50 @@ One seed alone takes ~20 s user with plain `decide` and ~11 s with `decide +kern
   LUT6_2), so 11a's per-cell import matches the in-context cell here.
 - `xc7frames2bit` header bytes vary between runs (as 11b noted). The bit sha256 in
   `fixture/` changes on each re-route, but the FASM does not.
+
+## Last check.sh run (2026-10-27)
+
+```
+    == 0. toolchain ==
+      seed 1: nextpnr 9c732bc6303458df, toolchain.sh ok, fasm_audit PASS
+      seed 2: nextpnr 9c732bc6303458df, toolchain.sh ok, fasm_audit PASS
+      seed 3: nextpnr 9c732bc6303458df, toolchain.sh ok, fasm_audit PASS
+      seed 4: nextpnr 9c732bc6303458df, toolchain.sh ok, fasm_audit PASS
+    == 1. FASM vs bitstream read-back, Lean data drift ==
+      seed 1: same netlist from FASM and from .bit  (7 LUTs, 10 outputs, inputs ['A0', 'ack_out', 'data_in[0]', 'data_in[1]', 'data_in[2]', 'r1', 'r2'
+      seed 1: Formal/Net/FasmLink/S1.lean up to date
+      seed 2: same netlist from FASM and from .bit  (7 LUTs, 10 outputs, inputs ['A0', 'ack_out', 'data_in[0]', 'data_in[1]', 'data_in[2]', 'r1', 'r2'
+      seed 2: Formal/Net/FasmLink/S2.lean up to date
+      seed 3: same netlist from FASM and from .bit  (7 LUTs, 10 outputs, inputs ['A0', 'ack_out', 'data_in[0]', 'data_in[1]', 'data_in[2]', 'r1', 'r2'
+      seed 3: Formal/Net/FasmLink/S3.lean up to date
+      seed 4: same netlist from FASM and from .bit  (7 LUTs, 10 outputs, inputs ['A0', 'ack_out', 'data_in[0]', 'data_in[1]', 'data_in[2]', 'r1', 'r2'
+      seed 4: Formal/Net/FasmLink/S4.lean up to date
+    == 2. composition vs yosys flattening ==
+      compose: LinkArb.insts = yosys flattening of link_arb (7 LUT cells, 10 outputs, same INITs and pin sources)
+    == 3. Lean ==
+      ok  Formal/Net/FasmLink/Basic.lean  (2 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/LinkArb.lean  (1 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/S1.lean  (0 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/S2.lean  (1 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/S3.lean  (0 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/S4.lean  (1 s wall incl. slot wait)
+      ok  Formal/Net/FasmLink/Proofs.lean  (99 s wall incl. slot wait)
+      'Formal.Net.FasmLink.Design.check_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.Design.not_correct' depends on axioms: [propext]
+      'Formal.Net.FasmLink.LinkArb.seed1_correct' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.LinkArb.seed2_correct' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.LinkArb.seed3_correct' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.LinkArb.seed4_correct' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.LinkArb.wrong_rho_caught' depends on axioms: [propext]
+      'Formal.Net.FasmLink.LinkArb.grant_exclusion_s1' depends on axioms: [propext, Classical.choice, Quot.sound]
+      'Formal.Net.FasmLink.LinkArb.grant_exclusion_s4' depends on axioms: [propext, Classical.choice, Quot.sound]
+    == 4. negative controls in the bits (seed 1) ==
+      MutInit: caught (not Correct, proved by decide)  [CLBLM_R_X29Y95.SLICEM_X0.ALUT INIT bit 36 flipped]
+      MutPips: caught (not Correct, proved by decide)  [pin A1 (was {'k': 'port', 'name': 'r1', 'site': 'IOB_X0Y91'}): INT_R_X29Y95.IMUX7.NW2END_S0_0 
+      MutShort: refused by fasm2lean2: fasm2lean: CLBLM_R_X29Y95.SLICEM_X0.ALUT pin A1: node ('CLBLM_R_X29Y95', 'CLBLM_IMUX7') has 2 active
+      MutFF: refused by fasm2lean2: CLBLM_R_X29Y95.SLICEM_X0.AFF.ZINI  [flip-flop / latch]
+      MutCarry: refused by fasm2lean2: CLBLM_R_X29Y95.SLICEM_X0.CARRY4.ACY0  [carry chain (CARRY4)]
+    fasm2lean2 check PASS
+```
+
+Note: `formal/lean/Wip/C11c/` was removed by something outside this probe during one run (another agent's cleanup?); check.sh now recreates it. Its contents are regenerated each run and are not claims.

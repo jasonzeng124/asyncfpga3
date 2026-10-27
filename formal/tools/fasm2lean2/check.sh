@@ -60,7 +60,7 @@ echo "== 3. Lean =="
 export PATH=$HOME/.elan/bin:$PATH
 cd "$LEAN"; export LEAN_PATH=$PWD/.lake/build/lib/lean
 O=.lake/build/lib/lean
-mkdir -p $O/Formal/Net/FasmLink $O/Wip/C11c
+mkdir -p $O/Formal/Net/FasmLink $O/Wip/C11c "$LEAN/Wip/C11c"
 python3 ../scan.py Formal/Net/FasmLink/*.lean || { echo "  forbidden token"; fail=1; }
 for dep in Formal/Cells/CElemTiming Formal/Net/Fasm/Basic Formal/Net/Import/Netlist Formal/Net/Import/Cells Formal/Net/Import/Proofs; do
     [ -f $O/$dep.olean ] || { echo "  missing $dep.olean (build it first: see notes/C-11c-fasmlink.md)"; fail=1; }
