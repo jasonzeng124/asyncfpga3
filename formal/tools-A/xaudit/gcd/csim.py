@@ -27,12 +27,15 @@ def main():
     ap.add_argument("net")
     ap.add_argument("bands")
     ap.add_argument("--stim", required=True)
-    ap.add_argument("--mode", default="rand", choices=["rand", "mid", "lo", "hi"])
+    ap.add_argument("--mode", default="rand", choices=["rand", "mid", "lo", "hi", "ends"])
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--watch", nargs="*", default=[])
     ap.add_argument("--bus", nargs="*", default=[], help="bus prefixes to print at each change of --strobe")
     ap.add_argument("--strobe", default=None, help="print buses when this net rises")
     ap.add_argument("--stop-after", type=int, default=0, help="stop after this many strobe rises")
+    ap.add_argument("--extra-ps", type=int, default=0, help="keep simulating this long after the last strobe")
+    ap.add_argument("--sig", help="write {net: transitions between the first and the last strobe rise} "
+                    "for every named net to this JSON (per-period counts: a glitch adds 2)")
     a = ap.parse_args()
     rnd = random.Random(a.seed)
     m = next(iter(json.load(open(a.net))["modules"].values()))
@@ -45,6 +48,8 @@ def main():
             return max(1, lo)
         if a.mode == "hi":
             return hi
+        if a.mode == "ends":
+            return max(1, lo if rnd.random() < 0.5 else hi)
         if a.mode == "mid":
             return max(1, (lo + hi) // 2)
         return max(1, rnd.randint(lo, hi))
@@ -115,6 +120,8 @@ def main():
                 busbits.setdefault(p, {})[int(nm[len(p) + 1:-1])] = b
     nrise = 0
     nev = 0
+    ntr = {}
+    snaps = []
     while q:
         t, _, kind, x, y = heapq.heappop(q)
         if t > H:
@@ -124,6 +131,7 @@ def main():
             if val.get(x) == y:
                 continue
             val[x] = y
+            ntr[x] = ntr.get(x, 0) + 1
             if x in watch:
                 print("%9d ps  %s = %d" % (t, watch[x], y))
             if x == strobe and y == 1:
@@ -131,8 +139,9 @@ def main():
                 s = "  ".join("%s=0x%x" % (p, sum(val[b] << i for i, b in bb.items()))
                               for p, bb in busbits.items())
                 print("%9d ps  STROBE %s rise #%d  %s" % (t, a.strobe, nrise, s))
+                snaps.append(dict(ntr))
                 if a.stop_after and nrise >= a.stop_after:
-                    break
+                    H = min(H, t + a.extra_ps)
             for gi, pi, d in sinks.get(x, []):
                 push(t + d, "pin", gi, (pi, y))
         elif kind == "pin":
@@ -147,6 +156,10 @@ def main():
             addr = sum(b << i for i, b in enumerate(g[1]))
             push(t + g[3], "net", g[2], (g[0] >> addr) & 1)
     print("events %d, end t %d ps" % (nev, t))
+    if a.sig:
+        f, l = (snaps[0], snaps[-1]) if len(snaps) >= 2 else ({}, ntr)
+        json.dump({"strobes": len(snaps), "counts": {nm: l.get(b, 0) - f.get(b, 0) for nm, b in names.items()}},
+                  open(a.sig, "w"))
 
 
 if __name__ == "__main__":

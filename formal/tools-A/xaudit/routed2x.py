@@ -57,6 +57,8 @@ BANDS (ps; xaudit rounds lo down -- raising it to 1 step if below -- and hi up):
   --corner indep: [FAST_MIN, SLOW_MAX]  (any element anywhere in sign-off range)
            slow:  [SLOW_MIN, SLOW_MAX]  (H_ONE_CORNER, slow die)
            fast:  [FAST_MIN, FAST_MAX]  (H_ONE_CORNER, fast die)
+           slowmax: [SLOW_MAX, SLOW_MAX], with --widen W: [(1-W)*SLOW_MAX, SLOW_MAX] (precision
+                  sweep only: a single delay assignment at W = 0, NOT a sign-off band)
 """
 import argparse
 import collections
@@ -65,7 +67,7 @@ import math
 import re
 import sys
 
-COLS = {"indep": (4, 7), "slow": (6, 7), "fast": (4, 5)}   # column indices into arcs.tsv
+COLS = {"indep": (4, 7), "slow": (6, 7), "fast": (4, 5), "slowmax": (7, 7)}   # column indices into arcs.tsv
 SEQ_TYPES = {"SLICE_FFX", "BUFGCTRL", "BUFG", "BSCAN", "IOB33_OUTBUF", "IOB33_INBUF_EN",
              "PAD", "DSP48E1", "RAMB18E1", "RAMB36E1"}
 COMB_TYPES = {"SLICE_LUTX", "SELMUX2_1", "CARRY4"}
@@ -77,7 +79,7 @@ def die(msg):
     sys.exit(1)
 
 
-def load_xray(path, corner):
+def load_xray(path, corner, widen=0.0):
     lo_c, hi_c = COLS[corner]
     ic, io = {}, collections.defaultdict(list)
     with open(path) as f:
@@ -85,7 +87,7 @@ def load_xray(path, corner):
         assert hdr.startswith("kind\tsrc\tdst"), "not an xray_delay --arcs TSV"
         for line in f:
             r = line.rstrip("\n").split("\t")
-            band = (float(r[lo_c]), float(r[hi_c]))
+            band = (float(r[lo_c]) * (1 - widen), float(r[hi_c]))
             if r[0] == "IC":
                 ic[(r[1], r[2])] = band
             else:
@@ -115,6 +117,8 @@ def main():
     ap.add_argument("--bands", required=True)
     ap.add_argument("--xray-arcs")
     ap.add_argument("--corner", default="indep", choices=sorted(COLS))
+    ap.add_argument("--widen", type=float, default=0.0,
+                    help="lo := lo*(1-W) (precision sweep: --corner slowmax --widen W is [(1-W)*SLOW_MAX, SLOW_MAX])")
     ap.add_argument("--sdf")
     ap.add_argument("--kappa", default="0.35,1.0",
                     help="SDF fallback band [KLO*d, KHI*d]; default 0.35 = median prjxray FAST_MIN/SLOW_MAX")
@@ -125,8 +129,8 @@ def main():
     a = ap.parse_args()
     cut_nets = set(a.cut_net if a.cut_net is not None else ["rig_rst"])
     if a.xray_arcs:
-        ic, io = load_xray(a.xray_arcs, a.corner)
-        src = "xray_delay.py arcs %s, corner %s" % (a.xray_arcs, a.corner)
+        ic, io = load_xray(a.xray_arcs, a.corner, a.widen)
+        src = "xray_delay.py arcs %s, corner %s, lo widened by %g" % (a.xray_arcs, a.corner, a.widen)
     elif a.sdf:
         klo, khi = map(float, a.kappa.split(","))
         ic, io = load_sdf(a.sdf, klo, khi)
