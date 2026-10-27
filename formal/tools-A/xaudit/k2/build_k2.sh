@@ -87,5 +87,5 @@ for s in "${@:-d}"; do
     for f in collatz_hw_routed.json collatz_hw.sdf collatz_hw.json collatz_hw.fasm pnr.log toolchain.txt synth.log rloc.log; do
         [ -e "$SRC/cells/build/hw/collatz_hw/$f" ] && cp "$SRC/cells/build/hw/collatz_hw/$f" "$OUT/$s/"
     done
-    ( cd "$OUT/$s" && md5sum collatz_hw.sdf collatz_hw_routed.json 2>/dev/null ) | sed "s|^|$s |"
+    ( cd "$OUT/$s" && md5sum collatz_hw.sdf collatz_hw_routed.json 2>/dev/null || echo "NO ROUTE: $(grep -m1 ERROR pnr.log)" ) | sed "s|^|$s |"
 done
