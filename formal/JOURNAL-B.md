@@ -93,3 +93,9 @@ In: 6b LinkHandshake, 7a ArbBinary, 7f TernarySound, 7g ArbA0Fork (rule J
 proved exact; corrected my earlier "unchecked" claim, owner re-notified).
 Launched 6d LinkTimed (controller composed with latch, timed), 7i
 TernaryPhases. Running: 7c, 7d (waiting on Mathlib), 5d, 7h, 7i, 6d.
+
+### progress 03:17
+Container restarted. Lost: the Mathlib lake build (about 1430 oleans had
+survived; restarted) and all running probes. Resumed 7d, 5d, 7h, 7i, 6d from
+their transcripts; 7c was not resumable and was re-created to continue from
+its files on disk (Wip/Cells/ArbAnalog.lean, notes/B-arb-analog.md).
