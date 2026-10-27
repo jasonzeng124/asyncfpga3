@@ -227,9 +227,18 @@ them).
   select sequences (Back margin ≥ 961 ps slow / 434 ps fast). With fast and slow
   mixed per element: 331/405 clean; the two own-feedback races fbrace found, plus
   guarded-ack races (arbiter A_b to −1278 ps, umux3/umux4 −51..−187 ps) and
-  FASTFALL delay-line contiguity violated on 64 lines (a request can skip its
-  bundling delay). All of these need corner mixing, i.e. local scatter, which
-  is unmeasured.
+  a FASTFALL delay-line finding that turned out to be a model artefact
+  (Events5: the shared chain after two taps meet was double-counted; corrected,
+  64 → 1/4/0/0 lines per seed). All of these need corner mixing, i.e. local
+  scatter, which is unmeasured. **Events5** (all 4 seeds, strict margins,
+  `Beh4.safe` proved, so the verdict is a theorem about the model; the netlist
+  link `design_beh4` and the guard timing are still open): slow and fast corners
+  402/405 on every seed (3 = the cascaded arbiter, outside the domain); at
+  skew.py's own guardband (one die, 0.668–1.0 × slow max) four items fail:
+  three arbiter re-arm entries on seed d (−52, −26, −9 ps) and the rig's `uenv1`
+  (−19 ps, seed 5). The real FASTFALL residual is rule F's missing in-flight term
+  at the head of `bd_delay_gated` (g[0] is a plain buffer): −365/−726 ps on
+  mixed dies, not reached at the rig's ~260 ns source low phase.
 - **Per-pin race checker** (`lake exe xevents2pin`, `Events2Pin*.lean`): sound
   without the all-pins-at-one-instant assumption (`H_ATOMIC_LUT`); with prjxray
   per-physical-pin bands, per-pin skew costs 11–79 ps of margin. One corner: no

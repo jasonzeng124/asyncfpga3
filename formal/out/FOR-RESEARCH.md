@@ -116,6 +116,16 @@ correct (`formal/tools-A/xaudit/gcd/results/`). Whether silicon can mix like
 this is exactly κ on a path difference (item 5). Until κ is measured, check
 these feedback loops with the ring-measured scatter applied.
 
+## 6c'. First items to test on gcd_hw R5 (fail at skew.py's own guardband)
+Events5 (notes/A-events5.md, `formal/tools-A/xaudit/events5/run5.sh`): with one die
+anywhere in [0.668, 1.0] × slow max (skew.py's 0.772/1.155 spread), four race
+margins go negative: three arbiter re-arm entries on seed d (−52, −26, −9 ps) and
+the rig's `uenv1` own-feedback (−19 ps, seed 5). Check them in the board-fidelity
+GLS with per-element scatter. Also: rule F misses the in-flight term at the head of
+`bd_delay_gated` (g[0] is a plain buffer; −365 ps seed d `ushli0`, −726 ps seed 3
+`uselect1` on mixed dies); add the term to rule F (gating g[0] would touch frozen
+cells/rtl).
+
 ## 6d. toolchain.sh does not check runtime libraries
 A restored toolchain cache lacked libtcl8.6 and boost 1.83 at runtime. toolchain.sh
 greps the binary and passed anyway. Add `ldd nextpnr-xilinx | grep 'not found'` (and
