@@ -434,3 +434,14 @@ propext/Classical.choice/Quot.sound only):
 Launched 8s3 (every rig result) and 8y2 (capstone parametric in a Kernel
 structure; one-argument kernels; xorshift's steer case).
 Still running: 10m, 12d, 10n, 11f, 10l2, 8x, 8z.
+
+### progress 12:54
+10n committed (tools/notes only): tcheck runs on collatz/xorshift/ipow (12
+routes); no disagreement is a fixed-point prjxray failure; finding: the
+project's rule A (tighten.cell_boundary) and tcheck's rules2.py time GND/VCC
+tie-off routes as data -- a false path that sets the rule-A peak on every
+route (0.9-4.2 ns too high) and is the whole cause of the only project-rule
+violation seen (ipow s3 umuli1, -59 ps guarded). Safe-side error but it
+over-sizes delay lines; for FOR-RESEARCH (shard A). tcheck fix queued until
+10m releases the front end. How-to for a new kernel:
+notes/C-howto-new-kernel.md.
