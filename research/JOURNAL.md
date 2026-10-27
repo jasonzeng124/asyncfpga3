@@ -1267,3 +1267,22 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   without weakening them. bd_arb.v's "rising grant wins by 16 ps" header is unproven under one corner.
 - Does NOT show: no full kernel (gcd_hw/BQ#3) GLS under fid yet; CARRY4/DSP/latch/BUFG/flop clock pins still
   sample-at-fire; multi-cell loops get no resolver; taus unmeasured.
+
+## Session 2026-10-27 10:12 -- (in progress) board-fidelity GLS: the full stack (bits netlist + prjxray SDF + fid primitives) on BQ#3; one-corner cell sims
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh from cache, 2m06s, all fingerprints ok)
+### progress 10:25 (start; audit read)
+- Lock 08:23 (109 min, dead); taken. 4 cores, 15 GB. Fresh container: no routes on disk; prjxray-db zynq7 re-cloned
+  at 0a0added (91 MB) to the path xray_delay.py defaults to.
+- Audit pass 5 rows on this branch: 6119060 xorshift re-baseline CONFIRMED (seeds 5-8 sized means unpublished --
+  noted); 9452a14 collatz64 "clean" OVERSTATED as coverage wording (rule H audits 29 of 35 controllers, rule I 12 of
+  34 stages; agreed, this is the correct reading of the progress note); 5567170 fid model OVERSTATED in parts:
+  OUTMUX not modelled in xray_delay (subagent S2 on it), per-pin LUT arcs add little because prjxray's A1..A6->O6 are
+  equal (agreed: the gain is transport, not per-pin), metastability window pessimistic (a request 360 ps later
+  still wins 75/200 -- stated assumption, to be revisited), and f3_model.md lists bd_prims_sim.v/tb_end.v as changed
+  but they are not in the commit (true: held back; subagent S1 redoes it now). Still open from earlier passes: BQ#3
+  rule A `ushrsi1` -36 ps at one consistent fast corner with interval semantics -- this is what the full-stack GLS at
+  the fast corner is for (below).
+- Plan: main thread runs the integrated stack on BQ#3's default-seed route at FAST_MIN, SLOW_MAX and band; S1 lands
+  the single-corner bd_prims_sim.v; S2 fixes OUTMUX in xray_delay.py and the A6 GND/VCC class in fasm_equiv.py.
+- build_fid.sh now takes GLS_SDF (re-keyed in place of nextpnr's SDF) and GLS_MODEL=fid, read as gls/build.sh reads
+  them; default output unchanged (both only add when set).
