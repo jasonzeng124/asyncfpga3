@@ -130,3 +130,67 @@ def test_rule_a_tighten_never_removes_more_than_the_margin_covers():
 def test_rule_a_without_any_chain_on_route_falls_back():
     assert tighten.rule_a_links(0, -413, None, [], 300) == (
         2, 300, "no chain on this route to measure")
+
+
+def test_chain_link_costs_ignores_a_side_tap_the_step_does_not_use():
+    # A FASTRISE/FASTFALL line: every stage past the first also hears the
+    # line's input on a side pin.  The step from link i to link i+1 enters on
+    # the pin link i drives, so that pin's LUT arc is the one an added link
+    # costs -- not a cheaper arc from the side tap.
+    edges = defaultdict(list)
+    links = add_chain(edges, "uut.ul.uack", [124, 124, 124], [400, 440])
+    for link in links[1:]:
+        edges["drv/O6"].append((f"{link}/A2", 900))
+        edges[f"{link}/A2"].append((f"{link}/O6", 50))
+    costs = tighten.chain_link_costs(edges, {"uut.ul.uack": links})
+    assert costs == {"uut.ul.uack": 544}
+
+
+# Rules H, B and C size a bd_delay line by the same arithmetic as rule A.  Each
+# used to divide a measured span by n; each span holds more than the link-to-
+# link steps an added link repeats.  Numbers below are a line of LUT 124 ps
+# and hop 300 ps: one more link is 424 ps.
+
+def test_rule_h_pads_at_the_line_own_link_cost():
+    # 3-link uack line, 600 ps from the node into it: t_exit = 600 + 3*124 +
+    # 2*300 = 1572, and t_exit / 3 = 524 ps a link.  Margin -500 needs two
+    # links at 424; the old price asked for one, 76 ps short.
+    want, per, how = tighten.rule_h_links(3, -500, 424, [419, 424, 700],
+                                          1572, 274)
+    assert (want, per, how) == (5, 424, "own chain")
+    assert (want - 3) * per >= 500
+
+
+def test_rule_h_tighten_without_own_hop_never_beats_the_old_price():
+    # 1-link line: no hop of its own.  Priced at the dearer of the route's
+    # dearest link and the old t_exit / n, so it never removes more than the
+    # old price did.
+    assert tighten.rule_h_links(1, 1000, None, [419, 700], 1100, 274)[:2] == (
+        1, 1100)
+    assert tighten.rule_h_links(1, 1200, None, [419, 700], 1100, 274)[0] == 0
+
+
+def test_rule_h_tighten_with_own_hop_keeps_the_hop_into_the_line():
+    # gcd_hw wtR2g_s2, ulink_n8__1 stage 1: 2-link uack line, one step 419 ps,
+    # margin 1575.  Taking the line to 0 also removes the hop from the node
+    # into it, which t_exit carries (here > 1575: the old price said 1).
+    # Priced at the step alone it went to 0.
+    assert tighten.rule_h_links(2, 1575, 419, [419, 700], 1600, 274)[:2] == (
+        1, 800)
+
+
+def test_rule_b_tightens_no_further_than_the_link_it_removes():
+    # 2-link usetup line, 2*124 + 300 = 548 ps, so chain / n = 274.  Margin
+    # 300 cannot pay for a 424 ps link; the old price removed it anyway.
+    assert tighten.rule_b_links(2, 300, 424, [424], 548, 300)[0] == 2
+    assert tighten.rule_b_links(2, 430, 424, [424], 548, 300)[0] == 1
+
+
+def test_rule_c_tightens_no_further_than_the_link_it_removes():
+    # 9-link uco line fed off the RAM's clock net: best = 9*124 + 8*300 =
+    # 3516, best / 9 = 391 ps a link.  Margin 400 cannot pay for a 424 ps
+    # link; the old price removed one anyway.
+    assert tighten.rule_c_links(9, 400, 424, [424], 3516)[:2] == (9, 424)
+    assert tighten.rule_c_links(9, 424, 424, [424], 3516)[0] == 8
+    # and it keeps one link, however large the margin
+    assert tighten.rule_c_links(2, 10_000, 424, [424], 1300)[0] == 1

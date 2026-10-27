@@ -1202,15 +1202,19 @@ def chain_link_costs(edges, chains):
     27 links where a link on that route costs ~419 ps, and left the cell at 32
     links that its own later routes said should be 4.
 
-    So: per chain with at least two links, the n - 1 link-to-next steps (the
-    LUT arc of link i, plus the hop from link i to link i+1), each the
-    shortest routed arc between those pins, averaged.  Read straight off the
-    routed SDF.  A one-link chain has no hop to measure and is not in the
-    result.  -> {base: ps per added link}
+    So: per chain with at least two links, the n - 1 link-to-next steps --
+    the routed hop from link i's output into a pin of link i+1, plus link
+    i+1's LUT arc from THAT pin (not from a FASTFALL/FASTRISE side tap, which
+    the step does not pass through) -- the shortest such step, averaged over
+    the chain.  Read straight off the routed SDF.  A one-link chain has no hop
+    to measure and is not in the result.  Rules A, H, B and C all size a
+    bd_delay chain, and all of them price it from here.
+    -> {base: ps per added link}
     """
     where = {inst: (base, i) for base, links in chains.items()
              for i, inst in enumerate(links)}
-    lut, hop = {}, {}
+    hop = defaultdict(dict)     # (base, i) -> {pin of link i+1: routed hop}
+    lut = {}                    # input pin of a link -> its LUT arc
     for src, lst in edges.items():
         si = pin_split(src)[0]
         if si not in where:
@@ -1219,49 +1223,96 @@ def chain_link_costs(edges, chains):
         for dst, w in lst:
             di = pin_split(dst)[0]
             if di == si and not is_output(src) and is_output(dst):
-                lut[base, i] = min(lut.get((base, i), math.inf), w)
+                lut[src] = min(lut.get(src, math.inf), w)
             elif where.get(di) == (base, i + 1):
-                hop[base, i] = min(hop.get((base, i), math.inf), w)
+                hop[base, i][dst] = min(hop[base, i].get(dst, math.inf), w)
     out = {}
     for base, links in chains.items():
-        steps = range(len(links) - 1)
-        if not steps or any((base, i) not in lut or (base, i) not in hop
-                            for i in steps):
-            continue
-        out[base] = sum(lut[base, i] + hop[base, i] for i in steps) / len(steps)
+        steps = []
+        for i in range(len(links) - 1):
+            step = [w + lut[q] for q, w in hop.get((base, i), {}).items()
+                    if q in lut]
+            if not step:
+                break
+            steps.append(min(step))
+        if steps and len(steps) == len(links) - 1:
+            out[base] = sum(steps) / len(steps)
     return out
 
 
-def rule_a_links(n, margin, own_ps, route_ps, legacy_ps):
-    """Rule A's proposal: how many links make this request trail its latest
-    peer by the guardband, which `margin` already has subtracted.
+def line_links(n, margin, own_ps, route_ps, legacy_ps, floor=0):
+    """How many links a bd_delay line needs on this route, for every rule
+    that sizes one (A, H, B, C): the line is n links, and `margin` -- with the
+    guardband already subtracted -- grows by one link's cost per link added.
 
-    own_ps    what one more link costs on THIS cell's chain (chain_link_costs),
-              or None when its chain is too short to measure a hop on.
+    own_ps    what one more link costs on THIS line (chain_link_costs), or
+              None when the line is too short to measure a hop on.
     route_ps  every chain_link_costs value on the route.
-    legacy_ps the old per-link price (chain length / n, or the median routed
-              hop at n == 0); used only when the route has no chain to
-              measure at all.
+    legacy_ps the rule's old per-link price (line length / n, or a stand-in
+              at n == 0).
+    floor     the fewest links the rule allows (rule C keeps one).
 
-    With its own measurement a cell is priced by it in both directions.
-    Without one the price is a guess, and the guess is taken on the side that
-    makes the delay LONGER: the cheapest link seen on the route when padding
-    (a cheap link means more of them -- never under-pads), the dearest when
-    tightening (a dear link means fewer removed -- never over-tightens).
+    PADDING is priced at what one more link adds: the line's own link cost
+    when it has a hop to measure, else the cheapest link seen on the route (a
+    cheap link means more of them -- never under-pads).
+
+    TIGHTENING is priced at the dearer of that (own cost, else the route's
+    dearest link) and the legacy price, so it never removes more links than
+    the old price did.  The legacy span is not wrong for removal: taking a
+    line down to zero also removes the hop INTO it, which rule H's t_exit / n
+    carries and a link-to-link step does not.  On gcd_hw routes the own-cost
+    price alone took twelve rule H lines to 0 with less margin than t_exit
+    (wtR2g_s2 ulink_n8__1 stage 1: margin 1575 ps, 419 ps a step, t_exit
+    above 1575).  With no chain on the route at all, the legacy price.
     -> (links, ps per link used, which price it was)
     """
-    if own_ps:
-        per, how = own_ps, "own chain"
-    elif route_ps:
-        per, how = ((min(route_ps), "route minimum") if margin < 0 else
-                    (max(route_ps), "route maximum"))
+    if margin < 0:
+        if own_ps:
+            per, how = own_ps, "own chain"
+        elif route_ps:
+            per, how = min(route_ps), "route minimum"
+        else:
+            per, how = legacy_ps, "no chain on this route to measure"
     else:
-        per, how = legacy_ps, "no chain on this route to measure"
+        per, how = ((own_ps, "own chain") if own_ps else
+                    (max(route_ps), "route maximum") if route_ps else
+                    (legacy_ps, "no chain on this route to measure"))
+        if legacy_ps and legacy_ps > per:
+            per, how = legacy_ps, "old price, dearer"
     if margin >= 0:
-        want = max(0, n - int(margin // per))
+        want = max(floor, n - int(margin // per))
     else:
         want = n + math.ceil(-margin / per)
     return want, per, how
+
+
+rule_a_links = line_links
+
+
+# Each rule's legacy price, kept only as line_links' last resort -- and why it
+# is not the price.  Every one of them divided a measured span by n, and every
+# span holds something besides the n - 1 link-to-link steps an added link
+# repeats.
+def rule_h_links(n, margin, own_ps, route_ps, t_exit, t_elem):
+    """Rule H's uack line.  t_exit runs from the controller node to the line's
+    tail, so t_exit / n also carries the hop from the node into the line."""
+    legacy = (t_exit / n) if (n and t_exit) else t_elem
+    return line_links(n, margin, own_ps, route_ps, legacy)
+
+
+def rule_b_links(n, margin, own_ps, route_ps, chain_ps, hop):
+    """Rule B's usetup line.  chain_ps / n is rule A's old price: n LUT arcs
+    and only n - 1 hops."""
+    legacy = (chain_ps / n) if (n and chain_ps) else hop
+    return line_links(n, margin, own_ps, route_ps, legacy)
+
+
+def rule_c_links(n, margin, own_ps, route_ps, best):
+    """Rule C's uco line, which keeps at least one link.  best runs from the
+    RAM's clock pin to the line's tail -- the same net feeds both, so it is
+    the line plus a hop at most, and best / n under-prices a link the way
+    rule A's chain / n did (bd_mem soak route: 337 ps against 436)."""
+    return line_links(n, margin, own_ps, route_ps, best / n, floor=1)
 
 
 def routed_graph(sdf):
@@ -1641,12 +1692,12 @@ def main():
         # One link's cost: what ONE MORE link adds on this route, LUT plus hop
         # (chain_link_costs).  The cell's own chain when it has a hop to
         # measure; otherwise the route's cheapest link when padding and its
-        # dearest when tightening, so a guess always errs long (rule_a_links).
+        # dearest when tightening, so a guess always errs long (line_links).
         base = next((b for b in chains if b.rpartition(".")[0] == parent),
                     None) if n else None
         legacy = (chain_ps / n) if (chain_ps and n) else hop
-        want, per, how = rule_a_links(n, margin, link_ps.get(base),
-                                      list(link_ps.values()), legacy)
+        want, per, how = line_links(n, margin, link_ps.get(base),
+                                    list(link_ps.values()), legacy)
 
         if want > n:
             verdict = f"PAD to {want} -- VIOLATION"
@@ -1767,14 +1818,17 @@ def main():
         t_d, via = min(arrivals)
         guard = req_guard(None, t_en)
         margin = t_d - t_en - guard
-        per = (t_exit / n) if (n and t_exit) else t_elem
-        want = max(0, n - int(margin // per)) if margin >= 0 \
-               else n + math.ceil(-margin / per)
+        # Priced like rule A (line_links): this line's own link cost when it
+        # has a hop to measure, else the route's cheapest link to pad and its
+        # dearest to tighten.  t_exit / n, the old price, also carries the hop
+        # from the node into the line, which adding a link does not repeat.
+        want, per, how = rule_h_links(n, margin, link_ps.get(base),
+                                      list(link_ps.values()), t_exit, t_elem)
         knob = ack_knob(base, label)
         if want > n:
             verdict = f"PAD to {want} -- VIOLATION" if base else (
                 f"PAD to {want} -- VIOLATION (no DACK line routed; "
-                f"priced at {t_elem} ps per link)" if knob else
+                f"priced at {per:.0f} ps per link)" if knob else
                 "VIOLATION -- no DACK line here to pad")
             problems += 1
         elif not base:
@@ -1792,6 +1846,8 @@ def main():
               f"margin {margin:>6}   {verdict}")
         if via == "outside":
             print(f"  {'':<40} data released at {ext_src}")
+        if base and want != n:
+            print(f"  {'':<40} priced at {per:.0f} ps/link ({how})")
 
     # -------------------------------------------------- I: the capture rule
     # The other half of the hold window.  H asks whether the NEXT value can
@@ -2166,18 +2222,18 @@ def main():
             if setup:
                 nn = len(chains[setup])
                 h, t = chain_endpoints(edges, back, chains[setup])
-                per = None
+                chain_ps = None
                 for st in srcs:
                     e = timing.early(st)
                     if h in e and t in e and nn:
-                        per = (e[t] - e[h]) / nn
+                        chain_ps = e[t] - e[h]
                         break
-                per = per or hop
-                want = max(0, nn - int(margin // per)) if margin >= 0 \
-                       else nn + math.ceil(-margin / per)
+                want, per, how = rule_b_links(nn, margin, link_ps.get(setup),
+                                              list(link_ps.values()),
+                                              chain_ps, hop)
                 sized[setup] = want
                 print(f"  {'':<{len(ram)}}  sized for this route: {want} links "
-                      f"(one link is {per:.0f} ps here)")
+                      f"(one link is {per:.0f} ps here, {how})")
 
     print()
     print("C. clock-to-out: the acknowledge must trail the read data")
@@ -2232,16 +2288,16 @@ def main():
             print(f"  {base}: no path from the RAM clock to the acknowledge")
             continue
         margin = best - T_CO - SLACK
-        per = best / len(links)
-        want = len(links) + math.ceil(-margin / per) if margin < 0 \
-               else max(1, len(links) - int(margin // per))
+        want, per, how = rule_c_links(len(links), margin, link_ps.get(base),
+                                      list(link_ps.values()), best)
         state = "ok" if margin >= 0 else "VIOLATION"
         if margin < 0:
             problems += 1
         sized[base] = want
         print(f"  {base}: {len(links)} links, ack trails the clock edge by "
               f"{best} ps, t_co {T_CO} -> margin {margin} ps  {state}")
-        print(f"  {'':<{len(base)}}  sized for this route: {want} links")
+        print(f"  {'':<{len(base)}}  sized for this route: {want} links "
+              f"(one link is {per:.0f} ps here, {how})")
 
         # The same number bounds HOLD, which nothing else here audits.
         #

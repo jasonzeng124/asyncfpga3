@@ -1095,3 +1095,11 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   silicon measurement and August failure with its reproducible bitstream/route, harness, baseline on today's GLS.
 - Committed before the redirect (rule tooling, now "heuristics"): rule A link pricing (e68dcd6), skew walk fix
   (9b6596d), size_kernel tool (54e0247). BQ#3 reproduction + scatter clean (cbe2206).
+### progress 03:06 (tighten.py: rules H/B/C share rule A's link pricing)
+- One pricing function for A/H/B/C (pad at own link cost, else route min; tighten never deeper than the old price).
+  On 52 routes (16 xorshift, the RAM soak, 35 gcd_hw): per-section VIOLATION counts and exit codes identical; of
+  ~8000 proposals 0 got smaller, 4 rule H tightens got 1 link longer. First draft priced tightens at the own step
+  only and would have taken 12 gcd_hw rule-H lines to 0 links unsafely (the hop into the line is lost too) -- caught
+  by the A/B and fixed. Rules B/C rest on one route (soak). Heuristic tooling; no gate changed.
+- Coordination slip: I put two subagents in the same worktree (wt_aug); one's checkout wiped the other's uncommitted
+  edits, which it rebuilt from copies. Each workstream now gets its own worktree.
