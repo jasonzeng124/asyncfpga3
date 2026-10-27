@@ -69,6 +69,7 @@ if __name__ == "__main__":
         else:
             gmin, gmax = min(gmin, lo), max(gmax, hi)
             pmin, pmax = min(pmin, min(p for p in per)), max(pmax, max(per))
-    print(f"feedback {fb}: {runs} runs, {bad} violate the proved order/hop bounds; "
-          f"hop gap observed [{gmin},{gmax}] steps (proved [45,57]); "
-          f"node event spacing observed [{pmin},{pmax}] steps (proved [135,171])")
+    ok = runs - bad
+    obs = (f"hop gap observed [{gmin},{gmax}] steps (proved [45,57]); "
+           f"node event spacing observed [{pmin},{pmax}] steps (proved [135,171])") if ok else "no clean run"
+    print(f"feedback {fb}: {runs} runs, {bad} violate the proved order/hop bounds; {obs}")
