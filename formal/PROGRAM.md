@@ -58,13 +58,20 @@ postulated. The expected layering (test it, and change it if it fails):
    semantics "1 if every INIT entry consistent with the inputs is 1, 0 if every
    one is 0, else X" (compare Lenzen/Fuegger/Friedrichs on
    metastability-containing circuits).
-4. **Analog, only for storage loops:** a first-order ODE per gate
-   (tau * v' = f(v_in) - v), and the saddle point of the arbiter's loop.
-   Linearizing gives the resolution constant and the e^(-t/tau) law. The
-   expected result is that a LUT arbiter's mutual exclusion is NOT
-   unconditionally provable: only a probabilistic bound holds. Confirm or
-   refute this, and connect it to the unexplained bd_arbcell grant overlap
-   in the repo's notes.
+4. **The arbiter is a digital race, not a special element (owner,
+   2026-10-27).** `bd_arb` is LUTs, so model it as the same gates and channels
+   as everything else: two requests racing through LUTs and wires with
+   bounded (and involution) delays. "Metastability" then shows up digitally:
+   a nondeterministic winner when the arrivals are close, runts, a loop that
+   oscillates or holds undecided for an unbounded time. Prove what holds
+   for EVERY such digital behaviour (exclusion, the handshake, what
+   downstream can see), or produce the counterexample trace, and derive the
+   exact race conditions (the timing windows) under which each property holds.
+   This is the primary model. No MTBF.
+   *Secondary, optional:* an analog model of the same LUTs' feedback loop
+   near mid-rail (ODE, saddle, τ, an MTBF bound). Do it only if it is cheap
+   given what already exists in `Wip/`, after the digital race is done, and
+   report both. If it gets expensive, drop it and say so.
 Every assumption is a named hypothesis in the theorem statement. **No `sorry`,
 no `axiom` (other than Lean/Mathlib's standard ones) and no `native_decide` in
 anything reported as proved.** `formal/check.sh` must build every claimed file
@@ -102,8 +109,9 @@ come back with what checks, what doesn't, and why.
    handshake, and the bundling condition (request after data) as a derived
    hypothesis.
 7. **Arbiter** (`bd_arb.v`, 4 probes): binary (the tie and runt cases);
-   Kleene (does X reach both grants?); analog loop (ODE, saddle, e^(-t/tau)
-   with Mathlib's ODE library); the handover-ordering claim in the header.
+   Kleene (does X reach both grants?); the digital race (item 4: all
+   arrival orders and gaps, runts, oscillation; analog only as an optional
+   second view); the handover-ordering claim in the header.
 8. **Composition** (2 probes): correct cells plus their timing conditions
    give a correct handshake network; deterministic dataflow equals sequential
    semantics (Kahn) on a small graph, e.g. a gcd-shaped loop.
@@ -179,12 +187,11 @@ and the journals current, and keep `check.sh` green.
   `bd_ctl`, `bd_end`, `bd_mem`, `bd_mlink`, the C3/C4 trees, delay lines)
   against a handshake spec. For each cell, emit its **exact timing conditions**
   as machine-readable data (`formal/out/cell_constraints.json`): these are what
-  rules A/E/F/H/I/J approximate. The arbiter's metastability, from an analog model of its own gates. There
-  is no analog arbiter: `bd_arb` is LUTs. The analog part is only how
-  those LUTs' feedback loop behaves near mid-rail, which no digital model
-  represents. Derive the saddle point, τ from the loop and the MTBF bound. Then the no-filter theorem for a LUT arbiter: the
-  overlap probability in terms of loop gain, threshold spread and the grant
-  window. Say whether it can explain the unexplained bd_arbcell overlap.
+  rules A/E/F/H/I/J approximate. The arbiter as a digital race (see item 4 above): for every
+  digital behaviour of its LUTs and wires, the exact windows in which
+  exclusion and the handshake hold, the counterexample traces outside them,
+  and whether a race trace explains the unexplained bd_arbcell overlap. Only
+  after that, and only if cheap, the analog loop and MTBF as a second view.
 - **C: a verified timing checker on real routes.** It is a compiled Lean
   executable (`lake exe`), proved sound, that reads a routed JSON, per-arc delay
   intervals (prjxray via the research branch's `xray_delay.py`, read-only, or
