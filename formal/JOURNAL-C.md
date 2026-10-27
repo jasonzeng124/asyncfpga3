@@ -19,9 +19,25 @@
   sound and per-node exact. Bundling check exact when req and data share only
   the launch; with a shared arc it is conservative under fixed delays (CPPR
   pessimism) but justified under per-event delays (glitches pass). Rules
-  E/A/J exactness (10b) pending. Effort to real routed netlists: ~1-2 weeks
-  (array version, prjxray per-pip intervals, CPPR).
-- Tracks 11, 12: pending.
+  (array version, prjxray per-pip intervals, CPPR): ~1-2 weeks.
+  Rules E/A/J (`Formal/Timing/Rules.lean`): a verified checker makes them exact
+  relative to a stated delay model, not to silicon; the blocker is delay DATA.
+  Each rule has a proved counterexample (E: SDF charges a flat ~25 ps per LUT
+  pin, prjxray says A1 516 ps vs A6 5 ps slow max; A: sound under E's band only
+  for data paths <= 402 ps; J: the pip-count estimate of the shared A0 route
+  over-credits). nextpnr's SDF carries slow-corner max only (min=typ=max), so
+  "shortest path" checks have no lower bound. Counterexamples are constructed
+  netlists, not found in shipped routes (no routed SDF on disk).
+- **Track 11 (netlist import): works.** (a) yosys JSON: 11 cells, project's own
+  yosys 0.62 flow, generator + drift check (`formal/tools/import/import.sh
+  --check`), proved equal to B's binary/Kleene transcriptions; a flipped INIT
+  bit fails the build. (b) bitstream: `formal/tools/fasm2lean/check.sh`;
+  bd_c2->bd_c2n routed on 4 seeds, FASM read back from the .bit, physical INIT
+  + pip-walked pin map proved to compute the logical cells; mutated INIT/pips
+  caught (which fasm_audit cannot see for re-pointed pips). LUT-only so far;
+  whole designs ~2-3 weeks. Finding: the placer's pin permutation is real
+  (BLUT INIT 0x3220.. vs logical 0x00E8..), and moves delay by up to ~0.5 ns.
+- Track 12: pending.
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 
@@ -56,3 +72,23 @@ native_decide in a /-- -/ comment). Finding from 8a: the bundling window must
 end at ack-fall (latch closes), not ack-rise; internal links need only
 control-event separations. Killed Mathlib's `cache get` (9031 x 403, 18 min);
 Mathlib now builds from source. Launched 8e (checker accepts => pipeline FIFO).
+
+### progress 03:35
+Committed 10b (Rules), 11a (Import), 11b (Fasm) after per-file compile +
+axiom audit (B's CElemFn/CElemTiming/Latch/ArbKleene also audited clean as
+deps). Lead fixes: trimmed 11a's yosys JSON to the top module (write_json
+dumped ~420 blackbox primitives, 10 MB/cell; drift check still passes); doc
+comments mentioning sorry/native_decide reworded (check.sh's textual scan
+excludes only '--' lines). Environment: probes apt-installed libtcl8.6 and
+libboost 1.83 libs, pip simplejson/textx/intervaltree (nextpnr/prjxray need
+them; not committed; setup gap for cloud/setup-toolchain.sh's cache path).
+.bit files are not byte-reproducible (4 header bytes differ across
+xc7frames2bit runs): CLAUDE.md's cmp on bitstreams gives false differences;
+compare FASM or frames.
+PROGRAM.md gained a 48-h plan (owner). Shard C: Phase 1 = import every cell into
+Formal/Gen/ (launched 11d); Phase 2 = compiled verified checker on real routes
+(10d running; needs a lake exe target in A's lakefile); Phase 3 = composition
+through Dynamatic ops + gcd from bdc's netlist (8b/8e). Launched 10c (prjxray
+vs SDF on the 128-ring data), 10d (checker on routed FASM), 11c (routed link +
+arbiter import). Risk: B is deleting Cells/Prelim; Import/Fasm/Ring import it
+and will need porting to Core.
