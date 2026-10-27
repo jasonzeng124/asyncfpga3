@@ -151,3 +151,9 @@ one instance in the gate build).
 MergeMuxSI (Lib3) is being split: its 2000-state check takes 7 GB / 160 s,
 too heavy for a claimed file in every shard's lake build; it goes to Wip.
 Running: 7c (analog), Bc (corners), 6f (pipe general N), Lib3 split.
+
+### progress 04:14
+In: 7c ArbAnalog, Bc ArbCorners, 6f PipeTimedN. All three tracks have a
+verdict. Running: 5e (involution loop on Core), Bn (B theorems on C's
+bitstream-read netlists), 7k (analog non-vacuity, rate closure), Bq (FIFO
+assumption fidelity), 7l (general ternary exactness). Full check.sh running.
