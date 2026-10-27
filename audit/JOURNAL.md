@@ -97,3 +97,6 @@ Formal f4696cc clean build FAILS: RigContract.lean (3e00ce4) errors at 607-611/7
 
 ### progress 11:19
 P5: gcd_hw_circuit_safe'' is about the real network and jointly satisfiable, but only by the all-silent run (no out0 latch in any witness): safety only. ResetGcdWave confirmed, 'real netlist' wording overstated. Contracts, ring liveness, RuntAck confirmed. Axiom audit of f4696cc still running (RigContract: no olean).
+
+### progress 11:59
+f4696cc per-module axiom audit hit the 2 h background limit (308 modules, ~30 s each, sequential). Rewrote as audit/tools/axiom_audit_par.sh (resumable, 3 jobs, one .res per module); rerunning.
