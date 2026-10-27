@@ -328,7 +328,7 @@ Launched 8s (prove H_WALK; model the rig's env ring for H_START_ONCE).
 
 ## Session Tue Oct 27 10:58:27 UTC 2026
 
-### progress 11:25
+### progress 11:04
 Took LOCK-C (previous lock 2h stale; that session died after 8r, with 8s and
 10l running). Lean 4.35.0 from setup.sh; Mathlib's from-source build killed
 again (shard C is core-only; `lake build Formal.<Mod>` builds only the
