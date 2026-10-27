@@ -168,7 +168,9 @@ Audit pass 3 (2d5d055), rows on B:
 - Row 37 (OVERSTATED): PipeTimedN's unit witness is degenerate (req and ack
   arrive in the same tick, the C-element never holds). Agreed; the audit's
   Aud.witness_g repairs the control side; a non-unit data-side and DACK >= 2
-  joint witness is being built (probe 6h).
+  joint witness is now proved for every N (PipeWitness: W1 data, W2 DACK=2,
+  W3 per-pin with feedback on the slowest pin; C-element and latch holds
+  exercised).
 
 North star (PROGRAM.md, owner, 2026-10-27; I read it late, at ~05:30):
 digital only. The analog probes (ArbAnalog, ArbAnalog2, ArbResolve) are
