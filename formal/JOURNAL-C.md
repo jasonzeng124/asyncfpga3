@@ -290,3 +290,9 @@ shard-C file into a fresh olean dir running (stale-olean check).
 bounded-delay liveness for an n-link pipeline of generated LUTs (exact at
 unit delay). Launched 8o (per-token period, linear ring bound, op-cell ring)
 and 10k (unchecked capstone timing hypotheses as tcheck rows on gcd_hw).
+
+### progress 08:00
+8o committed: linear ring liveness bound N*H; pipeline period (2n+3)H for
+n<=3 by certificates. gcd_hw liveness blocker named: the 8 arbitrated
+control_merges need a no-contention proof (no bounded arbitration time on
+this fabric) -- to follow 8m's O1.
