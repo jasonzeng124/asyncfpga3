@@ -14,13 +14,19 @@ An INIT given by a localparam of the form  NAME = cond ? LIT : LIT  is emitted
 as two variants (suffix _t / _f), so parametrised cells are covered for both
 parameter values.
 
-Usage:  python3 formal/tools-A/lut_extract.py [repo_root] > LutCells.lean
-        (default: writes formal/lean/Formal/Core/LutCells.lean in place)
-Also prints a summary table to stderr.
+Usage:  python3 formal/tools-A/lut_extract.py [repo_root]
+            writes formal/lean/Formal/Core/LutCells.lean, summary on stderr
+        python3 formal/tools-A/lut_extract.py --audit [repo_root]
+            independent cross-check of Formal.Core.LutAudit.audit: for every
+            output, counts (sHF, sHZ, dHF, dHZ) of multi-input changes with the
+            feedback pins held, by brute-force vertex enumeration (Nowick-Dill
+            dynamic definition, Eichelberger static); writes nothing.
 """
 import os, re, sys
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), '..', '..')
+AUDIT = '--audit' in sys.argv
+ARGS = [a for a in sys.argv[1:] if a != '--audit']
+ROOT = ARGS[0] if ARGS else os.path.join(os.path.dirname(__file__), '..', '..')
 ROOT = os.path.abspath(ROOT)
 RTL = os.path.join(ROOT, 'cells', 'rtl')
 OUT = os.path.join(ROOT, 'formal', 'lean', 'Formal', 'Core', 'LutCells.lean')
@@ -129,9 +135,44 @@ def emit(res):
     L.append('end Formal.Core.LutCells')
     return '\n'.join(L) + '\n'
 
+def audit(res):
+    import itertools
+    def cube(old, new):
+        ch = [i for i in range(len(old)) if old[i] != new[i]]
+        for bits in itertools.product([0, 1], repeat=len(ch)):
+            v = list(old)
+            for i, b in zip(ch, bits): v[i] = b
+            yield tuple(v)
+    def classify(f, old, new):
+        if f(old) == f(new):
+            return 'sHF' if all(f(v) == f(old) for v in cube(old, new)) else 'sHZ'
+        for C in cube(old, new):
+            if f(C) == f(new) and any(f(D) != f(new) for D in cube(C, new)): return 'dHZ'
+        return 'dHF'
+    for r in res:
+        fr = [i for i, (t, _) in enumerate(r['pins']) if t in ('sig', 'fb')]
+        fb = [j for j, i in enumerate(fr) if r['pins'][i][0] == 'fb']
+        for o, _ in r['outs']:
+            def f(v, r=r, o=o):
+                it = iter(v); full = []
+                for t, _ in r['pins']:
+                    full.append(0 if t == 'c0' else 1 if t == 'c1' else next(it))
+                idx = sum(b << i for i, b in enumerate(full))
+                if o == 'O5': idx &= 31
+                return (r['init'] >> idx) & 1
+            m = len(fr); cnt = dict(sHF=0, sHZ=0, dHF=0, dHZ=0)
+            for old in itertools.product([0, 1], repeat=m):
+                for new in itertools.product([0, 1], repeat=m):
+                    if any(old[j] != new[j] for j in fb): continue
+                    if sum(a != b for a, b in zip(old, new)) < 2: continue
+                    cnt[classify(f, old, new)] += 1
+            print(r['lean'], o, m, cnt['sHF'], cnt['sHZ'], cnt['dHF'], cnt['dHZ'])
+
 if __name__ == '__main__':
     res = extract()
     src = emit(res)
+    if AUDIT:
+        audit(res); sys.exit(0)
     with open(OUT, 'w') as f: f.write(src)
     for r in res:
         print('%-26s %-20s %-6s INIT=%-18s pins=%s outs=%s' % (
