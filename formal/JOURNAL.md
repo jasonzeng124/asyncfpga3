@@ -215,3 +215,8 @@ Claimed since last note: xevents2pin (per-pin, no H_ATOMIC_LUT), Events5 (Beh4.s
 4 seeds; FASTFALL finding corrected to a rule-F head residual; 4 guardband survivors
 sent to the owner). Running: Events6 (netlist link design_beh4, GuardOK, n-ary merge,
 xevents5 vs ana5 cross-check).
+### progress 08:46 (heartbeat)
+--committed check green at ~08:30 (3109 jobs, 24054 library decls + executables).
+Claimed: Events6 (netlist link design_beh4; xevents5; gcd verdict conditional on 45
+residuals per seed). Running: Events7 (U3, guarded delay-line pins, GuardOK, 3-way
+merge, cascade) aiming at a CLEAN slow/fast certificate on one seed.
