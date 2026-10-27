@@ -108,6 +108,9 @@ rules A/E/F/H/I/J and corner/scatter GLS did not see (send the full output).
 Evidence (JOURNAL 2026-10-26/27): seeds d, 3-9: rules A/E/F/H/I/J 0, fasm_audit PASS, gate clean, routed GLS 16/16
 errs=0 at nominal on all 8 and at x0.9/x1.1 on d, 3, 6, 7, 8, 9; 17% scatter on d and 3. Laps vec 6 mean 50.0
 (46-52) vs 45.75 for #2 on the same 4 seeds; vec 12 40.4, vec 13 58.6. Rule F worst +888 ps (an existing line).
+Reproduction (2026-10-27): an independent rebuild of the default-seed route gives the same routed.json
+(f9c4597d) and sdf (61e14755) md5s; on it rules A/E/H/I/J 0, gate clean, GLS 16/16 at nominal, x0.9, x1.1 and
+wire scatter 25% (1 draw) and 35% (2 draws).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

@@ -1074,3 +1074,9 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   **Not done:** that would relax a safety audit on static evidence only (no GLS or board test of the lap argument);
   over-padding only costs isprime latency, which is not a claimed number. Strict stays opt-in until a routed-GLS
   negative control shows a lap row can be ignored safely.
+### progress 02:16 (BQ#3 route reproduced; wire scatter to 35% clean)
+- BQ#3 (gcd_hw R5 + link fast fall), default seed rebuilt independently: routed.json/sdf md5s identical to the
+  committed evidence; rules A/E/H/I/J 0; gate ANNOTATE_DONE, 0 SDF warn/err; routed GLS 16/16 errs=0 at nominal,
+  x0.9, x1.1, wire scatter 25% x1 and 35% x2. Added to BOARD-QUEUE #3.
+- collatz64 ratchet it1: rule A 4-12 / rule E 6-7 per seed, GLS fails (out0 out of phase) on all 8 -- audits and
+  GLS agree; it2 running.
