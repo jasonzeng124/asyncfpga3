@@ -65,6 +65,11 @@ read_verilog rtl/*.v
 $cp
 synth_xilinx -family xc7 -flatten -nosrl -nolutram -nobram -noclkbuf -top $top
 write_json $out/$name.json" >/dev/null ) || { echo "import.sh: SYNTH FAILED for $name (log $out/$name.log)" >&2; exit 1; }
+    # Keep only the synthesized top module: write_json also dumps ~420
+    # blackbox primitive declarations from cells_sim.v (~10 MB per cell).
+    python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p))
+d["modules"]={n:m for n,m in d["modules"].items() if str(m.get("attributes",{}).get("top","0")).strip("0") }
+json.dump(d,open(p,"w"),indent=1)' "$out/$name.json"
   done
 }
 
