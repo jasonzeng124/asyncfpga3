@@ -129,13 +129,14 @@ Findings for the cell owner (not confirmed on a route):
   (ZAREG_2_ACASCREG_1) is also present in the unpatched source
   (xilinx/fasm.cc:5096), so that check cannot fail (verified).
 - GCD_HW ROUTES (Br, 4 seeds, nextpnr 9c732bc6303458df, toolchain.sh ok,
-  --freq 100): at a consistent corner NO C-element violates H_SELORD and no
-  latch bit violates the corrected rule I (feedback arc + site pins) or rule
-  H with site pins, with or without the guardband; only the box reading
-  fails (5-10 C-elements per seed, worst -585 ps). Thinnest: the rig's own
-  2-cell ring urig.uenv1 (feedback on pin 1): +4 ps at the fast corner on
-  seed 4, +24 guarded. Rule H with site pins drops to +40 ps guarded on its
-  worst bit. Shipped rules all pass the same routes.
+  --freq 100): in the KERNEL no C-element violates H_SELORD and no latch bit
+  violates the corrected rule I or rule H with site pins at a consistent
+  corner. CORRECTION (audit pass 4, rows 43/71): Br reused C's rtfb_design.py,
+  which omits the driver-side LUT->xMUX hop (prjxray a6lut->amux
+  0.071..0.209 ns); with it, the RIG's urig.uenv1 ring FAILS RT_FB on 2 of 4
+  seeds (C's tcheck: seed 2 -114/-219 ps, seed 4 -81/-201 ps banded); Br's
+  "+4 ps" was optimistic. Kernel margins are unaffected in sign. Rule H with
+  site pins drops to +40 ps guarded on its worst bit.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
@@ -188,6 +189,13 @@ Audit pass 3 (2d5d055), rows on B:
   joint witness is now proved for every N (PipeWitness: W1 data, W2 DACK=2,
   W3 per-pin with feedback on the slowest pin; C-element and latch holds
   exercised).
+
+Audit pass 4 (37951ab), rows on B:
+- Row 45 (OVERSTATED): ArbOverlapRace's 305 ps rig overlap is a hand-chosen
+  pin/route witness (73 ps with q on ugrant A3); the universal cell cap is
+  CONFIRMED. Agreed; Bmt had already shown the rig does not explain the 8%.
+- Rows 43/71: Br's gcd_hw RT_FB numbers omit the LUT->xMUX hop; corrected in
+  the findings above (uenv1 fails on 2 seeds; rig, not kernel).
 
 North star (PROGRAM.md, owner, 2026-10-27; I read it late, at ~05:30):
 digital only. The analog probes (ArbAnalog, ArbAnalog2, ArbResolve) are

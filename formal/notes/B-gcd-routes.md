@@ -352,3 +352,6 @@ requirement in either direction.
   - `lat.sh SEED` = `tools/tighten_dump.py` (from `tools/mkdump.py`) + `tools/latchsp.py`;
   - outputs: `lat/dump_<s>.json`, `lat/lat_<s>.json`, `lat/lat_<s>.txt`;
   - summary: `tools/lat_sum.py`.
+
+## Correction (audit pass 4, rows 43/71)
+The H_SELORD/RT_FB evaluation above reused C's rtfb_design.py, which omits the driver-side LUT->xMUX hop (prjxray a6lut->amux 0.071..0.209 ns). With it the rig's urig.uenv1 ring fails on 2 of 4 seeds (C's tcheck: seed 2 -114/-219 ps, seed 4 -81/-201 ps banded). The "+4 ps" above is optimistic. Kernel C-elements keep positive margins.
