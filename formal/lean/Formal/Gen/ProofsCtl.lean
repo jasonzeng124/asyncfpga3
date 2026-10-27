@@ -124,8 +124,9 @@ theorem bd_merge_W2_step (rst xr x0 x1 yr y0 y1 za xa ya : Bool) :
       some [c2B xr za xa rst, c2B yr za ya rst] ∧
     bd_merge_W2.outs boolSem [rst, xr, x0, x1, yr, y0, y1, za] [xa, ya] =
       some [xa, ya, or2B xr yr, if selB xr xa then x0 else y0, if selB xr xa then x1 else y1] := by
+  rw [boolSem_eq_boolSemP]
   refine ⟨rfl, ?_⟩
-  have h : bd_merge_W2.outs boolSem [rst, xr, x0, x1, yr, y0, y1, za] [xa, ya] =
+  have h : bd_merge_W2.outs boolSemP [rst, xr, x0, x1, yr, y0, y1, za] [xa, ya] =
       some [xa, ya, lutB 0x2 [lutB 0x2 [lutB INIT_or2 [xr, yr]]],
             o5B 0xFFAA5500E4E4E4E4 [selB xr xa, y0, x0, y1, x1, true],
             o6B 0xFFAA5500E4E4E4E4 [selB xr xa, y0, x0, y1, x1, true]] := rfl
@@ -158,8 +159,9 @@ theorem bd_mux_W2_step (rst xr x0 x1 yr y0 y1 cr s za xa ya j0 j1 : Bool) :
       some [c2B j0 za xa rst, c2B j1 za ya rst, j0B xr cr s j0 rst, j1B yr cr s j1 rst] ∧
     bd_mux_W2.outs boolSem [rst, xr, x0, x1, yr, y0, y1, cr, s, za] [xa, ya, j0, j1] =
       some [xa, ya, za, or2B j0 j1, if s then y0 else x0, if s then y1 else x1] := by
+  rw [boolSem_eq_boolSemP]
   refine ⟨rfl, ?_⟩
-  have h : bd_mux_W2.outs boolSem [rst, xr, x0, x1, yr, y0, y1, cr, s, za] [xa, ya, j0, j1] =
+  have h : bd_mux_W2.outs boolSemP [rst, xr, x0, x1, yr, y0, y1, cr, s, za] [xa, ya, j0, j1] =
       some [xa, ya, za, lutB 0x2 [lutB 0x2 [lutB INIT_or2 [j0, j1]]],
             o5B 0xFFAA5500E4E4E4E4 [s, x0, y0, x1, y1, true],
             o6B 0xFFAA5500E4E4E4E4 [s, x0, y0, x1, y1, true]] := rfl

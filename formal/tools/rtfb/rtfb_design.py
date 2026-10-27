@@ -49,6 +49,7 @@ import fasm2lean as F  # noqa: E402
 import routed2lean as R  # noqa: E402
 
 VARIANTS = ["indep", "fast", "slow", "fastE", "slowE", "sdf"]
+POINT = {"pFmin": 0, "pFmax": 1, "pSmin": 2, "pSmax": 3}
 BD_CE = os.path.join(REPO, "cells", "rtl", "bd_ce.v")
 # logical feedback input per C-element module (cells/rtl/bd_ce.v)
 FB_PORT = {"bd_c2": "I2", "bd_c2_set": "I2", "bd_c2n": "I2", "bd_c2n_set": "I2",
@@ -203,6 +204,8 @@ def main():
     ap.add_argument("--json")
     ap.add_argument("--variants", default=",".join(VARIANTS))
     ap.add_argument("--max-paths", type=int, default=4000)
+    ap.add_argument("--dump", help="SITE.xLUT[:VARIANT]: print the concrete violating fixed-delay run "
+                    "(feedback elements at their max, earliest response path at its min)")
     a = ap.parse_args()
     variants = a.variants.split(",")
 
@@ -464,6 +467,12 @@ def main():
         return el
 
     def ivl(c, var):
+        # point models (Python evidence only, H_CORRELATED): every element at the same corner end
+        if var in POINT:
+            if isinstance(c, tuple):
+                return (int(round(c[1])),) * 2
+            x = c[POINT[var]]
+            return (x, x)
         if isinstance(c, tuple):
             E = c[1]
             return (int(math.floor(E)) if var in ("fastE", "slowE") else 0, int(math.ceil(E)))
@@ -620,6 +629,21 @@ def main():
         if paths:
             k = min(range(len(paths)), key=lambda q: sum(ivl(c, "slowE")[0] for _, c, _ in paths[q][0]))
             worst_path = paths[k][1]
+        if a.dump and a.dump.split(":")[0] == "%s.%sLUT" % (l["site"], l["lut"]) and paths:
+            dv = (a.dump.split(":") + ["slowE"])[1]
+            k = min(range(len(paths)), key=lambda q: sum(ivl(c, dv)[0] for _, c, _ in paths[q][0]))
+            print("== concrete run, variant %s, C-element %s (%s), launch = its O6 edge at t=0" % (dv, ce["cell"], ce["mod"]))
+            t = 0
+            print("  feedback route (every element at its MAX):")
+            for lab, c in fb_el:
+                lo_, hi_ = ivl(c, dv); t += hi_
+                print("    %-60s [%5d,%5d] -> %5d   t=%d" % (lab, lo_, hi_, hi_, t))
+            tf = t; t = 0
+            print("  earliest response %s (every element at its MIN):" % " -> ".join(paths[k][1]))
+            for lab, c, _ in paths[k][0]:
+                lo_, hi_ = ivl(c, dv); t += lo_
+                print("    %-60s [%5d,%5d] -> %5d   t=%d" % (lab, lo_, hi_, lo_, t))
+            print("  feedback pin changes at %d ps, response pin at %d ps: violation by %d ps" % (tf, t, tf - t))
         entries.append({"ce": ce, "site": "%s.%sLUT" % (l["site"], l["lut"]), "fb": l["pins"][fbk - 1]["pin"],
                         "nodes": nn[0], "arcs": arcs, "reqs": reqs, "fbn": fbn, "part": part,
                         "slack": W, "dijkstra": dj, "npaths": len(paths), "overflow": overflow, "opaque": opaque_pins,

@@ -2,23 +2,19 @@
 
 Shard C, probe 10f, 2026-10-27. IN PROGRESS (notes kept current as work proceeds).
 
-## Status so far
+## Results so far
 
-(1) Muller pipeline, 8 placer seeds (1..8), nextpnr 9c732bc6303458df, toolchain.sh ok,
-fasm_audit PASS on every seed, seed 1 FASM read back from the bits is byte-identical to
-10d's fixture. Python evidence (10d's unchanged rt_all.py on 11b's unchanged fasm2lean
-read-back), `formal/tools/rtfb/build/muller/summary.txt`:
+(1) Muller pipeline, 8 seeds: 4..12 of 64 fail at slowE (mean 7.2), worst -116..-231 ps.
+Under PERFECT correlation (every element at one corner end) 5 of 8 seeds still have 1-3
+failing stages (seed 3: -112 ps at slow max). Seed 1 (10d's) happens to be a clean one.
+Failures: feedback on physical pins 1/2/3 only; pin 6 never carries feedback.
 
-| variant | failing stages mean [range] of 64 | worst slack ps mean [range] |
-|---|---|---|
-| indep | 40.9 [37..43] | -641 [-726..-594] |
-| fast  | 11.9 [7..16] | -133 [-188..-117] |
-| slow  | 10.2 [6..15] | -218 [-325..-184] |
-| fastE | 7.2 [4..12] | -67 [-94..-47] |
-| slowE | 7.2 [4..12] | -154 [-231..-116] |
-| sdf   | 0.1 [0..1] | +96 [-7..+206] |
+(2) gcd_hw (10e's routes, project flow): seeds 2 and 4: 0/363 C-elements fail in every
+one-corner variant; worst slowE +375 / +234 ps, both the RIG's bd_c2n_set uenv1 (a bare
+2-cell Muller ring in gcd_rig.v); the kernel's own worst is ~+950..1230 ps; under
+H_INDEP 8/363 fail. Seeds d and 3: bitstream being written here (10e's died).
 
-Every slowE failure (58 over 8 seeds) has its feedback on physical pin 1, 2 or 3; none on
-4 or 5; pin 6 is never used for feedback.
+(3) No LUT-pin constraint anywhere (cells/, bdc/, patches/); the nextpnr binary has no
+LOCK_PINS string.
 
-Next: Lean summaries per seed; shipped gcd_hw (C-10e's 4 routes, project flow).
+Tools: formal/tools/rtfb/{route_muller.sh,muller_rt.sh,rtfb_design.py,gcd_rt.sh,summarize.py}.

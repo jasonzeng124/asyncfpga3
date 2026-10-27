@@ -139,8 +139,9 @@ theorem bd_link_W2_DC_step (rst r d0 d1 ack a b q0 q1 ld : Bool) :
             bmux lt d0 q0, bmux lt d1 q1, lutB INIT_DLD [lt, true, a, ld, rst, false]] ∧
     bd_link_W2_DC.outs boolSem [rst, r, d0, d1, ack] [a, b, q0, q1, ld] = some [a, b, q0, q1] := by
   intro lt
+  rw [boolSem_eq_boolSemP]
   refine ⟨?_, rfl⟩
-  have h : bd_link_W2_DC.next boolSem [rst, r, d0, d1, ack] [a, b, q0, q1, ld] =
+  have h : bd_link_W2_DC.next boolSemP [rst, r, d0, d1, ack] [a, b, q0, q1, ld] =
       some [lutB INIT_DA [r, b, ld, a, rst, false], lutB INIT_DB [r, ack, ld, b, rst, false],
             o5B INIT_PAIR [d0, lt, q0, d1, q1, true], o6B INIT_PAIR [d0, lt, q0, d1, q1, true],
             lutB INIT_DLD [lt, true, a, ld, rst, false]] := rfl
@@ -154,11 +155,12 @@ theorem bd_link_dc_W2_step (rst r d0 d1 ack q0 q1 b ld a : Bool) :
             lutB INIT_DLD [lt, true, a, ld, rst, false], lutB INIT_DA [r, b, ld, a, rst, false]] ∧
     bd_link_dc_W2.outs boolSem [rst, r, d0, d1, ack] [q0, q1, b, ld, a] = some [a, b, q0, q1] := by
   intro lt
-  have h : bd_link_dc_W2.next boolSem [rst, r, d0, d1, ack] [q0, q1, b, ld, a] =
+  rw [boolSem_eq_boolSemP]
+  have h : bd_link_dc_W2.next boolSemP [rst, r, d0, d1, ack] [q0, q1, b, ld, a] =
       some [o5B INIT_PAIR [d0, lt, q0, d1, q1, true], o6B INIT_PAIR [d0, lt, q0, d1, q1, true],
             lutB INIT_DB [r, ack, ld, b, rst, false],
             lutB INIT_DLD [lt, true, a, ld, rst, false], lutB INIT_DA [r, b, ld, a, rst, false]] := rfl
-  have ho : bd_link_dc_W2.outs boolSem [rst, r, d0, d1, ack] [q0, q1, b, ld, a] =
+  have ho : bd_link_dc_W2.outs boolSemP [rst, r, d0, d1, ack] [q0, q1, b, ld, a] =
       some [lutB BUF [a], lutB BUF [b], q0, q1] := rfl
   rw [h, ho, (pair_eq _ _ _ _ _).1, (pair_eq _ _ _ _ _).2]
   cases a <;> cases b <;> exact ⟨rfl, rfl⟩
@@ -208,7 +210,8 @@ theorem bd_pipe_dc_W1_N2_step (rst r d ack a0 b1 q1 b0 ld0 a1 q0 ld1 : Bool) :
             lutB INIT_DLD [lt0, true, a0, ld0, rst, false], lutB INIT_DA [r1, b1, ld1, a1, rst, false],
             bmux lt0 d q0, lutB INIT_DLD [lt1, true, a1, ld1, rst, false]] := by
   intro lt0 lt1 r1
-  have h : bd_pipe_dc_W1_N2.next boolSem [rst, r, d, ack] [a0, b1, q1, b0, ld0, a1, q0, ld1] =
+  rw [boolSem_eq_boolSemP]
+  have h : bd_pipe_dc_W1_N2.next boolSemP [rst, r, d, ack] [a0, b1, q1, b0, ld0, a1, q0, ld1] =
       some [lutB INIT_DA [r, b0, ld0, a0, rst, false], lutB INIT_DB [r1, ack, ld1, b1, rst, false],
             lutB INIT_LAT [q0, lt1, q1, false, false, false], lutB INIT_DB [r, a1, ld0, b0, rst, false],
             lutB INIT_DLD [lt0, true, a0, ld0, rst, false], lutB INIT_DA [r1, b1, ld1, a1, rst, false],

@@ -62,7 +62,7 @@ cd "$LEAN"; export LEAN_PATH=$PWD/.lake/build/lib/lean
 O=.lake/build/lib/lean
 mkdir -p $O/Formal/Net/FasmLink $O/Wip/C11c "$LEAN/Wip/C11c"
 python3 ../scan.py Formal/Net/FasmLink/*.lean || { echo "  forbidden token"; fail=1; }
-for dep in Formal/Cells/CElemTiming Formal/Net/Fasm/Basic Formal/Net/Import/Netlist Formal/Net/Import/Cells Formal/Net/Import/Proofs; do
+for dep in Formal/Cells/CElemTiming Formal/Cells/MuxTree Formal/Net/CoreLut Formal/Net/CoreLutPrelim Formal/Net/Fasm/Basic Formal/Net/Import/Netlist Formal/Net/Import/Cells Formal/Net/Import/PrelimSem Formal/Net/Import/Proofs; do
     [ -f $O/$dep.olean ] || { echo "  missing $dep.olean (build it first: see notes/C-11c-fasmlink.md)"; fail=1; }
 done
 for m in Basic LinkArb S1 S2 S3 S4 Proofs; do

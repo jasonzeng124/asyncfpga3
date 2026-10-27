@@ -45,6 +45,9 @@ mkdir -p .lake/build/lib/lean/Formal/Net/Fasm .lake/build/lib/lean/Wip/C11b
 python3 ../scan.py Formal/Net/Fasm/*.lean || { echo "  forbidden token"; fail=1; }
 [ -f .lake/build/lib/lean/Formal/Cells/CElemTiming.olean ] || \
     ../slot.sh lean -o .lake/build/lib/lean/Formal/Cells/CElemTiming.olean Formal/Cells/CElemTiming.lean || fail=1
+# CePair's Core twin (probe 11e) needs Formal.Net.CoreLut (Core.Lut only)
+[ -f .lake/build/lib/lean/Formal/Net/CoreLut.olean ] || \
+    ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/CoreLut.olean Formal/Net/CoreLut.lean || fail=1
 for m in Basic CePairS1 CePairS2 CePairS3 CePairS4 CePair; do
     ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/Fasm/$m.olean Formal/Net/Fasm/$m.lean \
         > "$TMP/$m.log" 2>&1 && echo "  ok  Formal/Net/Fasm/$m.lean" \
@@ -62,6 +65,7 @@ open Formal.Net.Fasm.CePair
 #print axioms q1_loop_s1
 #print axioms q1_follow_hold_s1
 #print axioms q1_kleene_s1
+#print axioms q1_kleene_s1_core
 #print axioms q1_follow_hold_s1_ps
 EOF
 ../slot.sh lean "$TMP/ax.lean" > "$TMP/ax.log" 2>&1
