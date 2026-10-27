@@ -5,10 +5,11 @@ Shard B, Phase 2 item B, 2026-10-27. Outputs:
   hypotheses);
 - `formal/out/cell_constraints.md` (a short companion with a table of every entry).
 
-**Updated by probe P4 and probe P5 (same day): see the last two sections.**
+**Updated by probes P4, P5 and P6 (same day): see the last three sections.**
 The counts and the "unproved" list below are P2's; after P4 they were 87
-entries, 82 proved, 1 partial, 4 unproved; after P5 they are 116 entries,
-110 proved, 1 partial, 5 unproved.
+entries, 82 proved, 1 partial, 4 unproved; after P5, 116 entries, 110 proved,
+1 partial, 5 unproved; after P6, 123 entries, 121 proved, 1 partial,
+1 unproved, with 8 global hypotheses.
 
 No Lean was edited and no route or measurement was made. No git command that changes
 anything was run.
@@ -440,3 +441,102 @@ lumped windows.
 - `OpsCounter.lean` is untracked: its theorems are cited in text only (see the Lt3 paragraph).
 - The JSON-vs-Lean correspondence is checked by reading, as before.
 - No routed number is new. Cm2's margins are arc-only (routes 0).
+
+## Probe P6 update (2026-10-27): Lt3/Lt4 exactness, timed muxn3, reset contract
+
+**Assumed.** The P6 sources (all committed in e54d7ca) are correct about what
+their Lean files prove: B-ops-counter.md (`OpsCounter`), B-ops-exact.md
+(`OpsExact`), B-muxn3-timed.md (`MuxN3Timed`), B-reset-contract.md
+(`ResetContract`) and B-reset-gcd.md (`ResetGcd`, `ResetGcdNet`). I re-read
+the Lean statements the new forms transcribe: `MN3Static`, `MN3DataStatic`,
+`MN3DataEnv`, `muxn3_s_pin_of_static`, `rtz_of_fork_j` (MuxN3Timed);
+`MergeDataExact`, `mux_rtz_of_J`, `mux_rtz_y_of_J`, `merge_za_of_R`
+(OpsExact); `gcd_release_quiet`, `gcd_reset_release` (ResetGcd). No Lean was
+re-run.
+
+**Produced.** `cell_constraints.json` regenerated: 123 entries (was 116),
+121 proved, 1 partial (`bd_link_dctl.lt_first`), 1 unproved
+(`gcd_rig.idx_setup`); 8 global hypotheses (was 6); 913 Lean references in
+58 files (was 708 in 53). `OPSCOUNTER_TRACKED = True` in the generator.
+
+**Checked.**
+- Validator: 0 errors. Every cited name is declared in the cited, tracked
+  file. No tracked Lean file differs from `HEAD` (`git diff HEAD --
+  formal/lean` empty), so the check holds against `HEAD`. Other agents'
+  untracked Lean files (`Contracts`, `ContractsOps`, `OpsExact2`) appeared
+  during the probe. None is cited.
+- Negative control on a scratch copy: a misspelt name, a name cited from a
+  file that does not declare it, and a bogus arc kind give 3 errors (3/3).
+- One citation was dropped rather than forced. `OpsExact.merge_data_ok'` is
+  declared, but the validator's `\b` after a primed name cannot match, and I
+  may not edit the validator. It is named in the `MergeDataStatic.exact`
+  note.
+
+**Status and exactness changes.**
+
+| id | before | after | justifying theorems |
+|---|---|---|---|
+| bd_merge.isochronic_forks | 5 forms (FORK x2, S_SEL_XA_Z, S_SEL_XA_R, S_SEL_XA_N) | 3 forms: S_XA_FORK, S_YA_FORK, **S_SEL_XA_N alone**; still sufficient+necessary_at_boundary | `merge_data_ok_exact`, `MergeDataExact`, `MergeDataStatic.exact`; `bnd_/cex_S_SEL_XA_N` (one tick) |
+| bd_merge.sel_low_xreq | proved, sufficient | **removed** (redundant, proved): NOT_OBLIGATIONS row | `merge_data_ok_exact` (no S_SEL_XR; `last_x`) |
+| bd_merge.reset_first | 3 forms incl. H_SEL_START | 2 forms (H_RST_LONG, H_RST_EARLY) | unchanged |
+| bd_merge.sel_start (new) | (inside reset_first) | proved, **sufficient+necessary_at_boundary** in the `Lxa.hi + hq` leg, only against uxa powering up high; the `hr` leg is not shown | `MergeY.bnd_/cex_H_SEL_START`, `surv_H_SEL_START_low` |
+| bd_merge.uxa_feedback | sufficient | sufficient; **redundant when `Wzx.hi - Wzx.lo <= Wxc.hi - Wxc.lo`** (given `S_XA_R (1)`); probably not exact | `merge_za_of_R` |
+| bd_mux.bundled_z_s | at_boundary (S0/S1 jointly) | at_boundary; **S_Z_S1 necessary alone**, S_Z_S0 by the x/y mirror (not built) | `MuxA.cex_S_Z_S1`, `MuxA.bnd` |
+| bd_mux.bundled_z_data | sufficient | **sufficient+necessary_at_boundary**: tight when x is the join's late input, slack when ctl is late | `MuxA.cex_S_Z_X`; Lt3 `surv_S_Z_X` |
+| bd_mux.uxa_rtz_env / uya_rtz_env | sufficient | sufficient; **redundant when `Wzx.hi - Wzx.lo <= W0x.hi - W0x.lo`** (y: Wzy, W1y), given `S_XA_J (1)` | `mux_rtz_of_J`, `mux_rtz_y_of_J` |
+| bdc_muxn.rtz | unproved | proved, sufficient+necessary_untimed; **redundant when `Wza.hi - Wza.lo <= Wja.hi - Wja.lo`** | `MN3Static.S_A_RTZ`, `rtz_of_fork_j` |
+| bdc_muxn.s_setup | unproved | proved, **sufficient+necessary_at_boundary** (decode form; one-tick `Mn3Cex`); LUT5 form sufficient | `muxn3_s_pin_of_static`, `muxn3_data_ok`; `bnd_ok`, `cex_setup_violated`, `cex_fails` |
+| bdc_muxn.s_hold | unproved | proved, sufficient (under the header's hold contract) | `muxn3_s_pin_of_static` |
+| bdc_muxn.iso_ctl | unproved, no form | proved, sufficient: no skew bound, only the per-branch join env latency S_J_C | `MN3Static.S_J_C`, `E_step` |
+| bdc_muxn.iso_zack | unproved, no form | proved, sufficient (S_A_FORK, S_A_J) | `MN3Static` |
+| bdc_muxn.bundled_z_data (new) | missing | proved, sufficient (S_Z_D) | `muxn3_data_ok` |
+| bdc_muxn.uj_env_latency_req (new) | missing | proved, sufficient (S_J_X) | `muxn3_timing_of_static` |
+| design.rst_hold (new) | missing | proved, sufficient | `c2n_reset`, `c2n_set_reset`, `c2_reset`, `c3/c4_reset`, `*_rstB/_rstK`; `gcd_census`, `gcd_spec` |
+| design.rst_flush (new) | missing | proved, sufficient; gcd_hw: rst held >= 23(D+W+1)+W model steps | `reset_binary`, `gcd_reset_binary`, `gcd_reset_release` |
+| design.rst_release_skew (new) | missing | proved, sufficient only | `first_change`, `released_quiet`; `gcd_release_quiet` shows it is NOT needed for "nothing moves before a frontier link fires" |
+| gcd_rig.token_static (new) | missing | proved (structural) | `c2n_frontier`, `gcd_frontier`, `gcd_frontier_fire`, `gcd_reset_ones` |
+| gcd_rig.idx_setup (new) | missing | **unproved** (no composing theorem; trivially met) | context: `c2n_frontier`, `latch_write`, `Bundling.capture` |
+
+**Choices made here, not in the sources.**
+- `H_SEL_START` became its own entry, `bd_merge.sel_start`. Its exactness
+  (one tick, power-up high) differs from the reset forms beside it, whose
+  necessity is not shown. Keeping them in one entry would have forced one
+  label onto both.
+- `bd_merge.sel_low_xreq` was removed rather than kept as "redundant". This
+  follows P5's precedent for `or_skew`: a premise that no routed netlist can
+  fail in the model is not an entry, and NOT_OBLIGATIONS records why. The
+  lumped `S_SEL_XA_Z`/`S_SEL_XA_R` are listed there too, as conservative
+  checks that are no longer required.
+- Redundancy conditions (`*_rtz_env`, `uxa_feedback`, `bdc_muxn.rtz`) are
+  recorded in the form `note`, in `exactness_note` and as a `lean` reference
+  with the new role `redundancy`. The schema has no field for a skip
+  condition, and I did not add one. The entry stays a gate: the checker may
+  skip it only when the spread condition holds on the route.
+- `bd_latch.first_write` has no id, as B-reset-contract.md section 3.6 says.
+  The latch lemmas and a phase-0 note are attached to
+  `bd_latch[odd|pair.O5|pair.O6].setup_data`, `bd_pipe.boundary_I` and
+  `bd_pipe.data_lead`. The guard half (NRBW (a)) is a
+  `hypotheses_not_inequalities` row. It records Rst2's finding that
+  H_GUARD_MAP is not needed for reset or release.
+- `design.rst_release_skew` keeps status `proved`, exactness `sufficient`
+  (`first_change`, `released_quiet`). Its note and the H_NO_RETURN row say
+  that `gcd_release_quiet` removes it for the pre-frontier step for every
+  skew, and that after a frontier fires it is only a sufficient guard
+  against an argued, unproved hazard.
+- `bdc_muxn` forms charge the decode's per-pin arc (s pin vs ctl_req pin) and
+  the LUT5 per-pin arcs as extra arcs, as P5 did for the steer. The Lean
+  model lumps them.
+
+**NOT covered.**
+- No route, so none of the new forms is evaluated. In particular the rst net
+  (fanout 414, general routing) has unknown skew.
+- ResetGcd is about the elaborated RTL control netlist (default DELAY_*
+  sizes). It is not the synthesized or routed netlist, and its Verilog-to-Lean
+  import is an unverified generator, cross-checked against yosys by WL. A
+  tightened `GCD_DUT_PARAMS` build changes the rank bound.
+- The JSON-vs-Lean correspondence is still checked by reading.
+- Rule mappings of the new entries are `none`, except rule A
+  (`different_condition`) on `bdc_muxn.bundled_z_data` and rule E on the
+  muxn decode setup.
+- No routed number is new.
+

@@ -92,7 +92,9 @@ CE = {
                    rt=[L("Cells/CElemTiming", "runt_oscillates", "counter_trace", note="bd_c2 trace; bd_c2n = bd_c2 with b inverted (OnNetlistTimed.c2n_as_c2)")],
                    fp=[L("Cells/OnNetlistTimed", "c2n_four_phase", "sufficient"),
                        L("Cells/OnNetlistTimed", "c_four_phase_s1", "instance", note="s1..s4")],
-                   rs=[L("Cells/OnNetlistTimed2", "c_reset_s1", "sufficient", note="routed link_arb instances c_reset_s1..s4 (instance-level; no general bd_c2n reset theorem)")]),
+                   rs=[L("Cells/ResetContract", "c2n_reset", "sufficient", note="general bd_c2n timed reset and hold through release, any power-up (B-reset-contract.md; P6)"),
+                       L("Cells/ResetContract", "c2n_set_reset", "sufficient", note="bd_c2n_set"),
+                       L("Cells/OnNetlistTimed2", "c_reset_s1", "instance", note="routed link_arb instances c_reset_s1..s4")]),
     "bd_c3":  dict(u="u", ins=["I0", "I1", "I2"], fb="I3", rst="I4", init="64'h0000_FE80_0000_FE80",
                    also=["bd_c3_norst", "bd_ctree nodes"],
                    fh=[L("Cells/CTreeTimed", "c3_follow_hold", "sufficient")],
@@ -804,12 +806,15 @@ add(id="bd_mux.bundled_z", cell="bd_mux", catalogue_row="X5",
 OPS_X = "OpsTimed* (B-ops-timed.md, B-ops-timed2.md): every Ret window (W*, L*, Dz) is lo/hi of one routed arc incl. its site pin; LUT arcs are lumped over pins (per-pin LUT arcs not modelled: charge them as listed, hi on the data side, lo on the request side). Sufficient; necessity not shown (negative controls only show the term is used)."
 CORNER_OPS = dict(CORNER_1C, note="Lean windows: take every lo and hi of one form from the same prjxray column (FAST_MIN, then SLOW_MAX); the lumped LUT arc is O6 45/124 (flat) or the per-pin O5 column")
 
-# Probe Lt3 (B-ops-counter.md, Formal/Cells/OpsCounter.lean). Set to True once
-# OpsCounter.lean is git-tracked; until then its theorems are cited in text only
-# (the validator rejects untracked files).
-OPSCOUNTER_TRACKED = False
+# Probe Lt3 (B-ops-counter.md, Formal/Cells/OpsCounter.lean). OpsCounter.lean is
+# git-tracked since e54d7ca (probe P6), so its theorems are cited as references.
+OPSCOUNTER_TRACKED = True
 def OC(name, role, note=None):
     return [L("Cells/OpsCounter", name, role, note=note)] if OPSCOUNTER_TRACKED else []
+# Probe Lt4 (B-ops-exact.md, Formal/Cells/OpsExact.lean), probe P6.
+def OX(name, role, note=None):
+    return [L("Cells/OpsExact", name, role, note=note)]
+LT4 = "Lt4 (B-ops-exact.md, OpsExact.lean)"
 
 def Kz(src="{j0|j1}", pins="{I0|I1}"):
     """request/join edge -> z_ack edge at the server, min (Kz = wo + Lor.lo + Dz.lo + Es)."""
@@ -842,7 +847,10 @@ MERGE_T = [L("Cells/OpsTimedMux", "merge_timing_of_static", "sufficient", note="
            L("Cells/OpsTimedMux", "merge_ok", "sufficient", note="whole-cell timed handshake: each server transaction acknowledges exactly its requester"),
            L("Cells/OpsTimedMux", "MergeStatic", "definition"), L("Cells/OpsTimedMux", "MergeCausal", "definition"),
            L("Cells/OpsTimedWit", "static", "non_vacuity", note="MergeWit.static"),
-           L("Cells/OpsTimedWit", "witness", "non_vacuity", note="MergeWit.witness")]
+           L("Cells/OpsTimedWit", "witness", "non_vacuity", note="MergeWit.witness")] + \
+          OX("merge_ok_noskew", "sufficient", "merge_ok's whole conclusion without H_OR_SKEW (MergeTimingNoSkew)") + \
+          OX("merge_timing_ns_of_static", "sufficient", "MergeTimingNoSkew from MergeStaticNS (MergeStatic without S_OR)") + \
+          OX("MergeStaticNS", "definition") + OX("MergeWit.noskew_witness", "non_vacuity")
 STEER_T = [L("Cells/OpsTimed2", "steer_ok_static", "sufficient", note="steer_ok under SteerCausal + SteerStatic"),
            L("Cells/OpsTimed2", "steer_env_of_static", "sufficient", note="derives every SteerEnv field (H_S_PIN via steer_s_pin_of_wire, H_ACK_SKEW via steer_gap_causal + fst_order)"),
            L("Cells/OpsTimed2", "SteerStatic", "definition"), L("Cells/OpsTimed2", "SteerCausal", "definition"),
@@ -873,7 +881,7 @@ add(id="bd_mux.uj_env_latency_req", cell="bd_mux", catalogue_row="X (new, B-ops-
                 launch=f"phase start at {u}'s pins (c{u[-1]} j)", note=nm)
            for u, j, a, c, L_, wh, W, La, Wa, E_, Wc, nm in [("uj0", "j0", "uxa", "x", "Lj0", "wj0h", "W0x", "Lxa", "Wxa", "Ex", "Wx", "S_J0_X"),
                                                             ("uj1", "j1", "uya", "y", "Lj1", "wj1h", "W1y", "Lya", "Wya", "Ey", "Wy", "S_J1_Y")]],
-    lean=MUX_T, exactness="sufficient", exactness_note="P5: field S_J0_X / S_J1_Y of MuxStatic, discharging MuxTiming.H_DEP_J0/J1. The bd_c2.env_latency form instantiated at the join (different INIT, same loop). " + OPS_X,
+    lean=MUX_T, exactness="sufficient", exactness_note="P5: field S_J0_X / S_J1_Y of MuxStatic, discharging MuxTiming.H_DEP_J0/J1. The bd_c2.env_latency form instantiated at the join (different INIT, same loop). " + LT4 + " section 5 (analysis, NOT proved): only sufficient as stated: the x return path also waits for z_ack (cx = max(A0, ZA0), ZA0 >= E + Kz + Wzx.lo), so W0x.lo could be replaced by max(W0x.lo, Kz + Wzx.lo); in a realistic netlist Kz dominates and this form has slack. No counter-run. " + OPS_X,
     site_pins={"needed": True, "roles": ["uj*.I3 (feedback) hi", "uj*.I0 (req) lo", "uxa/uya.I0 lo"]},
     rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
 add(id="bd_mux.uj_env_latency_ctl", cell="bd_mux", catalogue_row="X (new, B-ops-timed)",
@@ -922,8 +930,9 @@ add(id="bd_mux.bundled_z_s", cell="bd_mux", catalogue_row="X5 (refined, B-ops-ti
           L("Cells/OpsTimed2", "mux_value_ok_static", "sufficient", note="mux_ok_static + mux_data_ok from causal partners and static obligations"),
           L("Cells/OpsTimed2", "MuxDataStatic", "definition"), L("Cells/OpsTimed2", "MuxDataEnv", "definition"),
           L("Cells/OpsTimed2", "value_witness", "non_vacuity", note="MuxWit.value_witness: real E4 INIT, inputs always disagree")]
-         + OC("cex_S_Z_S", "counter_trace", "MuxCex: shi one tick past the boundary, stale select") + OC("bnd_S_Z", "instance", "MuxCex: boundary holds"),
-    exactness="sufficient+necessary_at_boundary", exactness_note="P5: refines bd_mux.bundled_z (whose launch 'join edge' presumes s settled there). Lt3 (B-ops-counter.md, OpsCounter.lean MuxCex.bnd_S_Z / cex_S_Z_S): tight by one tick in MuxWit.run (shi = Ls + 5 holds, shi = Ls + 6 delivers the wrong bit for a y and an x token); S_Z_S0 and S_Z_S1 are not separated (shared select pin, equal right-hand sides in that run). Not a general iff. Hold half: no inequality under the bundled protocol (senders hold until they see their ack rise; margin holdM = sum of MIN delays). Negative control: Wx.lo -> Wx.hi in S_Z_X breaks the proof; no counter-trace. " + OPS_X,
+         + OC("cex_S_Z_S", "counter_trace", "MuxCex: shi one tick past the boundary, stale select") + OC("bnd_S_Z", "instance", "MuxCex: boundary holds")
+         + OX("cex_S_Z_S1", "counter_trace", "MuxA (Wc0 = 2): shi = 10 fails S_Z_S1 by one tick while S_Z_S0, S_Z_X, S_Z_Y hold; y's token reads x's bit; also proves no MuxDataStatic instance") + OX("bnd", "instance", "MuxA.bnd: shi = 9, mux_value_ok_static applies"),
+    exactness="sufficient+necessary_at_boundary", exactness_note="P5: refines bd_mux.bundled_z (whose launch 'join edge' presumes s settled there). Lt3 (B-ops-counter.md, OpsCounter.lean MuxCex.bnd_S_Z / cex_S_Z_S): tight by one tick in MuxWit.run (shi = Ls + 5 holds, shi = Ls + 6 delivers the wrong bit for a y and an x token); In that run S_Z_S0 and S_Z_S1 fail together. P6 / Lt4 (OpsExact.lean MuxA.cex_S_Z_S1): S_Z_S1 is necessary ON ITS OWN (asymmetric run Wc0 = 2, one tick past with S_Z_S0 holding); S_Z_S0 alone holds by the cell's x/y mirror, which is not built. Keep both forms. Not a general iff. Hold half: no inequality under the bundled protocol (senders hold until they see their ack rise; margin holdM = sum of MIN delays). Negative control: Wx.lo -> Wx.hi in S_Z_X breaks the proof; no counter-trace. " + OPS_X,
     site_pins={"needed": True, "roles": ["udat.I0 (s) hi", "uj*.I1 (ctl_req) lo", "uor.I0/I1 lo"]},
     rule={"rule": "A", "verdict": "different_condition", "detail": "rule A audits the request after the data cone at the consumer; this launch is the sender's s driver"},
     corner=CORNER_OPS, check_scope="route_plus_env")
@@ -938,8 +947,9 @@ add(id="bd_mux.bundled_z_data", cell="bd_mux", catalogue_row="X5 (new, B-ops-tim
                                                      ("y", "{I2|I4}", "bhi", "Ly", "uj1", "Wy", "Lj1", "j1", "I1", "S_Z_Y")]],
     lean=[L("Cells/OpsTimed2", "mux_data_ok", "sufficient"), L("Cells/OpsTimed2", "mux_value_ok_static", "sufficient"),
           L("Cells/OpsTimed2", "MuxDataStatic", "definition"), L("Cells/OpsTimed2", "value_witness", "non_vacuity", note="MuxWit.value_witness")]
-         + OC("surv_S_Z_X", "not_necessary", "MuxCex: 4 ticks past the bound the value is still right (ctl_req is the join's late input)") + OC("cex_S_Z_X", "counter_trace", "5 ticks past") + OC("cex_S_Z_Y", "counter_trace"),
-    exactness="sufficient", exactness_note="P5: MuxDataStatic.S_Z_X / S_Z_Y; bundled_z covered only the select cone. Lt3 (OpsCounter.lean MuxCex.surv_S_Z_X, cex_S_Z_X, cex_S_Z_Y): only SUFFICIENT as stated: in MuxWit.run the value survives 4 ticks past the bound (the join waits for the later of x_req and ctl_req) and fails at 5. Exact condition: ahi + Mz <= Lx + (Z(2k) - xi(2m)), i.e. along the join's actually-late input; the static form equals it when x is the late input at minimum arcs (not exhibited). " + OPS_X,
+         + OC("surv_S_Z_X", "not_necessary", "MuxCex: 4 ticks past the bound the value is still right (ctl_req is the join's late input)") + OC("cex_S_Z_X", "counter_trace", "5 ticks past") + OC("cex_S_Z_Y", "counter_trace")
+         + OX("cex_S_Z_X", "counter_trace", "MuxA (x is the join's late input): ahi = 6 fails S_Z_X by one tick while S_Z_S0, S_Z_S1, S_Z_Y hold; x's token sees x's previous bit; also proves no MuxDataStatic instance") + OX("bnd", "instance", "MuxA.bnd: ahi = 5"),
+    exactness="sufficient+necessary_at_boundary", exactness_note="P5: MuxDataStatic.S_Z_X / S_Z_Y; bundled_z covered only the select cone. Lt3 (OpsCounter.lean MuxCex.surv_S_Z_X, cex_S_Z_X, cex_S_Z_Y): when ctl_req is the join's late input the form has slack (MuxWit.run: the value survives 4 ticks past the bound, fails at 5); exact condition ahi + Mz <= Lx + (Z(2k) - xi(2m)) along the actually-late input. P6 / Lt4 (OpsExact.lean MuxA.cex_S_Z_X): when x IS the join's late input the static form is tight by one tick, and a routed netlist can produce that case, so the form is safe everywhere and exact when the client is late (not merely conservative). Tight on one run, not a general iff. S_Z_Y: by symmetry (late-y run not built; Lt3 cex_S_Z_Y is the ctl-late run). " + OPS_X,
     site_pins={"needed": True, "roles": ["udat data pins hi", "uj*.I0 (req) lo", "uor.I0/I1 lo"]},
     rule={"rule": "A", "verdict": "different_condition", "detail": "rule A's sender-request-last form is the classic version of this (sufficient for it only with the lead term)"},
     corner=CORNER_OPS, check_scope="route_plus_env")
@@ -994,13 +1004,14 @@ add(id="bd_merge.bundled_z", cell="bd_merge", catalogue_row="M2",
                 [Kz("x_req", "I0")[:4]], launch="x_req rise at the client")],
     lean=[L("Cells/OpsTimed2", "merge_data_ok", "sufficient", note="z = the requester's bit from Z(2k) - Mz to zeta(2k) + Hm, every token; real usel 4'hE and datamux E4 INITs"),
           L("Cells/OpsTimed2", "MergeDataStatic", "definition"), L("Cells/OpsTimed2", "value_witness", "non_vacuity", note="MergeWit.value_witness")]
-         + OC("cex_S_ZM_SEL_X", "counter_trace", "MergeCex") + OC("cex_S_ZM_SEL_X_static", "counter_trace", "no MergeDataStatic instance for the failing windows") + [
+         + OC("cex_S_ZM_SEL_X", "counter_trace", "MergeCex") + OC("cex_S_ZM_SEL_X_static", "counter_trace", "no MergeDataStatic instance for the failing windows")
+         + OX("merge_data_ok_exact", "sufficient", "same conclusion as merge_data_ok under MergeDataExact (S_ZM_SEL_X, S_ZM_X/Y, S_SEL_XA_N, H_SEL_START; no S_SEL_XR, no S_OR); in a y token the x_req branch is launched by the LAST x token (last_x), so S_ZM_SEL_X covers it") + OX("MergeDataExact", "definition") + [
           L("Cells/MergeMuxSI", "merge_ok", "sufficient", note="untimed hypothesis"),
           L("Cells/ConstraintsMux", "usel_high", "lemma", note="usel = x_req | x_ack (4'hE)"), L("Cells/ConstraintsMux", "usel_low", "lemma"),
           L("Cells/ConstraintsMux", "usel_kleene", "function_equality"), L("Cells/ConstraintsMux", "dm_settles", "sufficient"),
           L("Cells/ConstraintsMux", "bundled_z_capture", "sufficient", note="H_BUNDLED_Z_T Tz + zhi <= Ton + ehi, H_PW, H_HOLD"),
           L("Cells/Bundling", "setup_not_classic", "context")],
-    exactness="sufficient+necessary_at_boundary", exactness_note="Lt3 (OpsCounter.lean MergeCex.bnd_S_ZM_SEL_X, cex_S_ZM_SEL_X, cex_S_ZM_SEL_X_static): tight by one tick in MergeWit.run (usel x_req pin one tick late: select still low at Z 0, z = y's bit), and no MergeDataStatic instance exists for the failing windows. Not a general iff. P5: now the field S_ZM_SEL_X of a whole-cell timed theorem (merge_data_ok, early data protocol); same arcs as before. The y-token side needs sel LOW: bd_merge.sel_low_xreq and the x_ack branch of bd_merge.isochronic_forks. Negative control: Wzx.hi -> Wzx.lo in S_SEL_XA_Z breaks the proof; no counter-trace. " + OPS_X,
+    exactness="sufficient+necessary_at_boundary", exactness_note="Lt3 (OpsCounter.lean MergeCex.bnd_S_ZM_SEL_X, cex_S_ZM_SEL_X, cex_S_ZM_SEL_X_static): tight by one tick in MergeWit.run (usel x_req pin one tick late: select still low at Z 0, z = y's bit), and no MergeDataStatic instance exists for the failing windows. Not a general iff. P5: now the field S_ZM_SEL_X of a whole-cell timed theorem (merge_data_ok, early data protocol); same arcs as before. The y-token side needs sel LOW: its x_req branch is covered by THIS form (P6 / Lt4 merge_data_ok_exact: S_SEL_XR proved redundant, so bd_merge.sel_low_xreq is no longer an entry), its x_ack branch is S_SEL_XA_N in bd_merge.isochronic_forks. Negative control: Wzx.hi -> Wzx.lo in S_SEL_XA_Z breaks the proof; no counter-trace. " + OPS_X,
     site_pins={"needed": True, "roles": ["usel.I0, udat.I0 hi", "uor.I0 lo"]}, rule={"rule": "A", "verdict": "rule_is_the_check"}, corner=CORNER_OPS)
 add(id="bd_merge.bundled_z_data", cell="bd_merge", catalogue_row="M2 (new, B-ops-timed2)",
     obligation="S_ZM_X / S_ZM_Y: the requesting client's data, launched at its driver, settles at udat's output before its request reaches the server",
@@ -1010,55 +1021,46 @@ add(id="bd_merge.bundled_z_data", cell="bd_merge", catalogue_row="M2 (new, B-ops
                 launch=f"{c}_data settled at client {c}'s driver", note=nm)
            for c, dp, hi, Ld, p, nm in [("x", "{I2|I4}", "xh", "Lx", "I0", "S_ZM_X"), ("y", "{I1|I3}", "yh", "Ly", "I1", "S_ZM_Y")]],
     lean=[L("Cells/OpsTimed2", "merge_data_ok", "sufficient"), L("Cells/OpsTimed2", "MergeDataStatic", "definition"), L("Cells/OpsTimed2", "value_witness", "non_vacuity", note="MergeWit.value_witness")]
-         + OC("cex_S_ZM_X", "counter_trace", "MergeCex") + OC("cex_S_ZM_Y", "counter_trace", "MergeCex") + OC("bnd_S_ZM_XY", "instance"),
+         + OC("cex_S_ZM_X", "counter_trace", "MergeCex") + OC("cex_S_ZM_Y", "counter_trace", "MergeCex") + OC("bnd_S_ZM_XY", "instance")
+         + OX("merge_data_ok_exact", "sufficient", "S_ZM_X / S_ZM_Y are fields of MergeDataExact unchanged"),
     exactness="sufficient+necessary_at_boundary", exactness_note="Lt3 (OpsCounter.lean MergeCex.bnd_S_ZM_XY, cex_S_ZM_X, cex_S_ZM_Y and their _static forms): each tight by one tick in MergeWit.run (data pin one tick late: the server sees the client's previous bit). Not a general iff. P5: MergeDataStatic.S_ZM_X / S_ZM_Y (bd_merge's udat is .a(y_data), .b(x_data), .s(sel)). " + OPS_X,
     site_pins={"needed": True, "roles": ["udat data pins hi", "uor.I0/I1 lo"]},
     rule={"rule": "A", "verdict": "different_condition", "detail": "classic sender-request-last version"}, corner=CORNER_OPS, check_scope="route_plus_env")
-add(id="bd_merge.sel_low_xreq", cell="bd_merge", catalogue_row="M2 (new, B-ops-timed2)",
-    obligation="S_SEL_XR: for a y token, the previous token's x_req fall has crossed usel and the datamux select before y's request reaches the server",
-    inequality="hr + sh + Mz <= Kz + Ka + (Wyo.lo + Lor.lo + Dz.lo)",
-    forms=[form([[wire("x_req", "usel.I0", "hr"), sp("usel", "I0", "x_req"), lut("usel", "I0", "O6", "hr"), wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"),
-                  env("Mz", "consumer margin", "Mz")]],
-                [Kz("{x_req|y_req}") + Ka() + Kz("y_req", "I1")[:4]], launch="previous token's request fall at the client")],
-    lean=[L("Cells/OpsTimed2", "merge_data_ok", "sufficient"), L("Cells/OpsTimed2", "usel_low2", "lemma", note="usel low from separate start times per pin"), L("Cells/OpsTimed2", "MergeDataStatic", "definition")],
-    exactness="sufficient", exactness_note="P5: MergeDataStatic.S_SEL_XR, a premise of merge_data_ok. Lt3 (B-ops-counter.md): REDUNDANT in exact form: with the owner of the last x token tracked, the exact condition hr + sh + Mz <= (Wxo.lo + Lor.lo + Dz.lo + Es) + Ka + (Wyo.lo + Lor.lo + Dz.lo) is implied by bd_merge.bundled_z (S_ZM_SEL_X); the static form's wo = min(Wxo.lo, Wyo.lo) is a proof-route looseness. The re-proof without it is not written, so the entry stays as a sufficient premise. " + OPS_X,
-    site_pins={"needed": True, "roles": ["usel.I0, udat.I0 hi", "uor, uxa/uya.I1 lo"]},
-    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
+# bd_merge.sel_low_xreq (S_SEL_XR) removed in P6: Lt4's merge_data_ok_exact does not assume it
+# (redundant, proved); recorded in hypotheses_not_inequalities NOT_OBLIGATIONS.
 add(id="bd_merge.isochronic_forks", cell="bd_merge", catalogue_row="M3",
-    obligation="z_ack -> {uxa, uya} fork (S_XA_FORK / S_YA_FORK, H_MERGE_SEQ's 'fully completed') and the x_ack -> {usel, client} fork (S_SEL_XA_Z / S_SEL_XA_R: x_ack's fall crosses usel and the select before the next owner's request reaches the server)",
-    inequality="Wzx.hi + Lxa.hi + wxah <= Ka + Wxc.lo; Wzy.hi + Lya.hi + wyah <= Ka + Wyc.lo; Wzx.hi + Lxa.hi + hq + sh + Mz <= Ka + (Wyo.lo + Lor.lo + Dz.lo); Wxc.hi + Lxa.hi + hq + sh + Mz <= Kz + Ka + (Wyo.lo + Lor.lo + Dz.lo)",
+    obligation="z_ack -> {uxa, uya} fork (S_XA_FORK / S_YA_FORK, H_MERGE_SEQ's 'fully completed') and the x_ack -> {usel, client} fork (S_SEL_XA_N: the fall of uxa's node crosses usel and the select before the next owner's request, launched by the same node fall through the x client, reaches the server)",
+    inequality="Wzx.hi + Lxa.hi + wxah <= Ka + Wxc.lo; Wzy.hi + Lya.hi + wyah <= Ka + Wyc.lo; hq + sh + Mz <= Wxa.lo + Eo + Wyo.lo + Lor.lo + Dz.lo (S_SEL_XA_N, node-launched; replaces S_SEL_XA_Z and S_SEL_XA_R)",
     forms=[form([cel("uxa", "I1", "z_ack.drv", "Wzx.hi", "Lxa.hi", "z_ack", "wxah")], [Ka() + [wire("x_req", "uxa.I0", "Wxc.lo"), sp("uxa", "I0", "x_req")]],
                 launch="z_ack edge at its driver", note="S_XA_FORK"),
            form([cel("uya", "I1", "z_ack.drv", "Wzy.hi", "Lya.hi", "z_ack", "wyah")], [Ka() + [wire("y_req", "uya.I0", "Wyc.lo"), sp("uya", "I0", "y_req")]],
                 launch="z_ack edge at its driver", note="S_YA_FORK"),
-           form([[wire("z_ack.drv", "uxa.I1", "Wzx.hi"), sp("uxa", "I1", "z_ack"), lut("uxa", "I1", "O6", "Lxa.hi"), wire("uxa.O6", "usel.I1", "hq"), sp("usel", "I1", "x_ack"), lut("usel", "I1", "O6", "hq"),
-                  wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
-                [Ka() + Kz("y_req", "I1")[:4]], launch="previous token's z_ack fall at the server", note="S_SEL_XA_Z (x_ack branch, z_ack form)"),
-           form([[wire("x_req", "uxa.I0", "Wxc.hi"), sp("uxa", "I0", "x_req"), lut("uxa", "I0", "O6", "Lxa.hi"), wire("uxa.O6", "usel.I1", "hq"), sp("usel", "I1", "x_ack"), lut("usel", "I1", "O6", "hq"),
-                  wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
-                [Kz("x_req", "I0") + Ka() + Kz("y_req", "I1")[:4]], launch="previous token's request fall at the client", note="S_SEL_XA_R (x_ack branch, request form)"),
            form([[wire("uxa.O6", "usel.I1", "hq"), sp("usel", "I1", "x_ack"), lut("usel", "I1", "O6", "hq"),
                   wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
                 [[wire("uxa.O6", "x client", "Wxa.lo"), env("Eo", "owner x: x_ack fall seen -> next requester (y) raises (MergeCausal.H_OWN), min", "Eo")] + Kz("y_req", "I1")[:4]],
-                launch="fall of uxa's node (x_ack at uxa.O6; the later of the x_req fall and the z_ack fall at uxa)",
-                note="S_SEL_XA_N (Lt3, B-ops-counter.md): the single node-launched form of the x_ack branch; S_SEL_XA_Z and S_SEL_XA_R are its two sufficient lumpings. Shown tight by one tick (cex_S_SEL_XA_Z, where it coincides with S_SEL_XA_Z); merge_data_ok under S_SEL_XA_N ALONE is not proved, so the two lumped forms stay required")],
-    lean=MERGE_T + [L("Cells/OpsTimed2", "merge_data_ok", "sufficient", note="x_ack branch: S_SEL_XA_Z, S_SEL_XA_R"), L("Cells/OpsTimed2", "MergeDataStatic", "definition"),
+                launch="fall of uxa's node in the LAST x token before the y token (x_ack at uxa.O6; the later of the x_req fall and the z_ack fall at uxa)",
+                note="S_SEL_XA_N (MergeDataExact.S_SEL_XA_N): the single exact x_ack-branch gate; the lumped forms S_SEL_XA_Z / S_SEL_XA_R are superseded (MergeDataStatic.exact: S_SEL_XA_Z implies S_SEL_XA_N) and are not checked")],
+    lean=MERGE_T + OX("merge_data_ok_exact", "sufficient", "x_ack branch: S_SEL_XA_N alone (no S_SEL_XA_Z, S_SEL_XA_R, S_SEL_XR)") + OX("MergeDataExact", "definition")
+                 + OX("MergeDataStatic.exact", "lemma", "the old static set implies the new one; merge_data_ok' (OpsExact) re-derives merge_data_ok as a corollary (not cited as a reference: the validator's name regex cannot match a primed name)")
+                 + OX("bnd_S_SEL_XA_N", "instance", "MergeCex: hq = 4, theorem applies") + OX("cex_S_SEL_XA_N", "counter_trace", "MergeCex: hq = 5 fails only S_SEL_XA_N; y's token 1 delivers x's bit; also proves no MergeDataExact instance")
+                 + [L("Cells/OpsTimed2", "merge_data_ok", "sufficient", note="earlier, lumped x_ack branch: S_SEL_XA_Z, S_SEL_XA_R"), L("Cells/OpsTimed2", "MergeDataStatic", "definition"),
                     *OC("cex_S_SEL_XA_Z", "counter_trace", "MergeCex: x_ack branch"), *OC("cex_S_SEL_XA_Z_static", "counter_trace"),
                     L("Cells/MergeMuxSI", "merge_ok", "sufficient", note="untimed, isochronic forks assumed"), L("Cells/MergeMuxSI", "merge_needs_iso_za", "necessary", note="untimed"),
                     L("Cells/MergeMuxSI", "merge_broad_needs_iso_xa", "necessary", note="untimed, broad data protocol")],
     status="proved", exactness="sufficient+necessary_at_boundary",
-    exactness_note="Lt3 (OpsCounter.lean MergeCex.bnd_S_SEL_XA_Z, cex_S_SEL_XA_Z, cex_S_SEL_XA_Z_static): the x_ack branch is real: usel's x_ack pin one tick past S_SEL_XA_Z's boundary (S_SEL_XA_R and H_SEL_START still holding) makes a y token deliver x's bit. Necessity is at that boundary in MergeWit.run only (not an iff); the z_ack branch (S_XA_FORK/S_YA_FORK) is only sufficient (not probed). P5: timed sufficient forms (merge_timing_of_static + merge_ok for the z_ack branch; merge_data_ok for the x_ack branch, EARLY data protocol). The broad protocol (consumer needs data until after its own ack falls; merge_broad_needs_iso_xa) is NOT covered. No timed counter-trace. " + OPS_X,
-    site_pins={"needed": True, "roles": ["uxa/uya.I1 hi", "uxa/uya.I2 hi", "usel.I1, udat.I0 hi", "uxa/uya.I0 lo", "uor.I1 lo"]},
+    exactness_note="P6 / " + LT4 + ": the x_ack branch gates on S_SEL_XA_N ALONE (merge_data_ok_exact, MergeDataExact); it is tight by one tick in MergeWit.run (bnd_S_SEL_XA_N at hq = 4, cex_S_SEL_XA_N at hq = 5 with every other MergeDataExact field holding). The launch is the uxa node fall of the last x token (last_x): every slot in between is a y slot. S_SEL_XA_Z and S_SEL_XA_R are dropped as separate checks (S_SEL_XA_Z implies S_SEL_XA_N; S_SEL_XA_R is no longer needed). Lt3 (OpsCounter cex_S_SEL_XA_Z) is the same boundary in the old form. Necessity is at that boundary in one run (not an iff); the z_ack branch (S_XA_FORK/S_YA_FORK) is only sufficient (not probed). EARLY data protocol only: the broad protocol (merge_broad_needs_iso_xa) is NOT covered. " + OPS_X,
+    site_pins={"needed": True, "roles": ["uxa/uya.I1 hi", "uxa/uya.I2 hi", "usel.I1, udat.I0 hi", "uxa/uya.I0 lo", "x client pin of x_ack lo", "uor.I1 lo"]},
     rule={"rule": "none", "verdict": "none"}, corner=CORNER_OPS, check_scope="route_plus_env")
 add(id="bd_merge.uxa_feedback", cell="bd_merge", catalogue_row="M4",
     obligation="S_XA_ZA / S_YA_ZA: z_ack's pulse at uxa/uya outlasts the C-element's loop (generic env latency; no mux-like race)",
     inequality="Wzx.hi + Lxa.hi + wxah <= Wzx.lo + Ka + Kz (uya: Wzy, Lya, wyah); dlmax + dwmax <= dlmin + E (bd_c2.env_latency)",
     forms=[form([cel(a, "I1", "z_ack.drv", f"{Wz}.hi", f"{La}.hi", "z_ack", wh)], [Ka() + Kz() + [wire("z_ack.drv", f"{a}.I1", f"{Wz}.lo"), sp(a, "I1", "z_ack")]],
-                launch="z_ack edge at its driver", note=nm)
-           for a, Wz, La, wh, nm in [("uxa", "Wzx", "Lxa", "wxah", "S_XA_ZA"), ("uya", "Wzy", "Lya", "wyah", "S_YA_ZA")]],
+                launch="z_ack edge at its driver", note=nm + f" (redundant when {Wz}.hi - {Wz}.lo <= {Wc}.hi - {Wc}.lo)")
+           for a, Wz, La, wh, nm, Wc in [("uxa", "Wzx", "Lxa", "wxah", "S_XA_ZA", "Wxc"), ("uya", "Wzy", "Lya", "wyah", "S_YA_ZA", "Wyc")]],
     refers_to=["bd_c2.env_latency"],
-    lean=[L("Cells/MuxRtzTimed", "merge_rtz_of_latency", "sufficient")] + MERGE_T, exactness="sufficient",
-    exactness_note="P5: forms are MergeStatic.S_XA_ZA / S_YA_ZA inside the whole-cell theorem. " + OPS_X,
+    lean=[L("Cells/MuxRtzTimed", "merge_rtz_of_latency", "sufficient")] + MERGE_T
+         + OX("merge_za_of_R", "redundancy", "S_XA_ZA follows from S_XA_R (1) (bd_merge.uxa_req_latency) whenever Wzx.hi - Wzx.lo <= Wxc.hi - Wxc.lo"), exactness="sufficient",
+    exactness_note="P5: forms are MergeStatic.S_XA_ZA / S_YA_ZA inside the whole-cell theorem. P6 / " + LT4 + " merge_za_of_R: REDUNDANT, and the checker may skip it, when the z_ack wire's spread is at most the request wire's, (Wzx.hi - Wzx.lo) <= (Wxc.hi - Wxc.lo) at uxa (uya: Wzy vs Wyc, by symmetry; the y lemma is not written), given bd_merge.uxa_req_latency S_XA_R (1). Otherwise keep it. Probably NOT exact: the next edge of either uxa input is causally after node + Wxa + Eo, so a node-launched form like S_SEL_XA_N should replace it (Lxa.hi + wxah <= Lxa.lo + Wxa.lo + Eo + min(Wxc.lo, Kz + Wzx.lo), proposed, not proved). " + OPS_X,
     site_pins={"needed": True, "roles": ["uxa.I2 hi", "uxa/uya.I1 hi and lo"]}, rule={"rule": "none", "verdict": "none"}, corner=CORNER_OPS, check_scope="route_plus_env")
 add(id="bd_merge.uxa_req_latency", cell="bd_merge", catalogue_row="M (new, B-ops-timed)", also_applies_to=["bd_c2.env_latency at uxa/uya (request input)"],
     obligation="S_XA_R / S_YA_R: a request edge at the ack C-element outlasts its loop until the next request edge and the next z_ack edge",
@@ -1072,18 +1074,32 @@ add(id="bd_merge.uxa_req_latency", cell="bd_merge", catalogue_row="M (new, B-ops
     site_pins={"needed": True, "roles": ["uxa/uya.I0 hi and lo", "uxa/uya.I2 hi", "uxa/uya.I1 lo"]},
     rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
 add(id="bd_merge.reset_first", cell="bd_merge", catalogue_row="M (new, B-ops-timed2)",
-    obligation="H_RST_LONG + H_RST_EARLY (uxa, uya) and H_SEL_START: reset outlasts wires and loops, is released before the first edge at each C-element, and the first token's window starts after uxa's output and usel are clean",
-    inequality="Wxc.hi, Wyc.hi, Wzx.hi, Wzy.hi, Lxa.hi + wxah, Lya.hi + wyah <= R; R <= AX 0, ZA0 0, AY 0, ZA1 0; max(hr, Lxa.hi + hq) + sh + Mz <= rho 0 + (Wyo.lo + Lor.lo + Dz.lo)",
+    obligation="H_RST_LONG + H_RST_EARLY (uxa, uya): reset outlasts wires and loops and is released before the first edge at each C-element (H_SEL_START moved to bd_merge.sel_start in P6)",
+    inequality="Wxc.hi, Wyc.hi, Wzx.hi, Wzy.hi, Lxa.hi + wxah, Lya.hi + wyah <= R; R <= AX 0, ZA0 0, AY 0, ZA1 0",
     forms=[form([[lut("{uxa|uya}", "{I0|I1}", "O6", "L*a.hi"), fbw("{uxa|uya}", "O6", "I2", "w*ah")]], [[env("R", "reset release at the rst pins, min")]], launch="reset assertion (time 0)", note="H_RST_LONG (loop terms; each wire hi <= R likewise)"),
-           form([[env("R", "reset release at the rst pins, max")]], [[env("first_edge", "first request / z_ack edge at uxa/uya input pins (AX 0, ZA0 0, AY 0, ZA1 0), min")]], launch="reset assertion (time 0)", note="H_RST_EARLY"),
-           form([[lut("uxa", "{I0|I1}", "O6", "Lxa.hi"), wire("uxa.O6", "usel.I1", "hq"), sp("usel", "I1", "x_ack"), lut("usel", "I1", "O6", "hq"),
-                  wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
-                [[env("rho0", "first request edge at the client after reset (rho 0)", "rho 0")] + Kz("y_req", "I1")[:4]], launch="reset assertion (time 0)", note="H_SEL_START (the usel.I0 leg hr likewise)")],
-    lean=[L("Cells/OpsTimedMux", "merge_timing_of_static", "sufficient", note="hypotheses hRL, hRE"), L("Cells/OpsTimedMux", "MergeTiming", "definition"),
-          L("Cells/OpsTimed2", "merge_data_ok", "sufficient", note="MergeDataStatic.H_SEL_START"), L("Cells/OpsTimed2", "MergeDataStatic", "definition")],
-    exactness="sufficient", exactness_note="P5: start-up only (reset polarity). Necessity not shown.",
+           form([[env("R", "reset release at the rst pins, max")]], [[env("first_edge", "first request / z_ack edge at uxa/uya input pins (AX 0, ZA0 0, AY 0, ZA1 0), min")]], launch="reset assertion (time 0)", note="H_RST_EARLY")],
+    refers_to=["design.rst_hold", "design.rst_release_skew"],
+    lean=[L("Cells/OpsTimedMux", "merge_timing_of_static", "sufficient", note="hypotheses hRL, hRE"), L("Cells/OpsTimedMux", "MergeTiming", "definition")],
+    exactness="sufficient", exactness_note="P5: start-up only (reset polarity). Necessity not shown. P6: at design level these are design.rst_hold (per rst pin) and, for H_RST_EARLY, design.rst_release_skew / gcd_rig.token_static (B-reset-contract.md).",
     site_pins={"needed": False, "roles": ["rst pins not modelled per pin"]},
     rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED; harness resets are microsecond-scale"}, corner=CORNER_1C, check_scope="environment")
+add(id="bd_merge.sel_start", cell="bd_merge", catalogue_row="M (new, B-ops-timed2; split from reset_first in P6)",
+    obligation="H_SEL_START: the first token's window starts after uxa's output (defined after its first evaluation) and usel are clean at the datamux select; a start-up condition about uxa's power-up level",
+    inequality="max(hr, Lxa.hi + hq) + sh + Mz <= rho 0 + (Wyo.lo + Lor.lo + Dz.lo)",
+    forms=[form([[lut("uxa", "{I0|I1}", "O6", "Lxa.hi"), wire("uxa.O6", "usel.I1", "hq"), sp("usel", "I1", "x_ack"), lut("usel", "I1", "O6", "hq"),
+                  wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
+                [[env("rho0", "first request edge at the client after reset (rho 0)", "rho 0")] + Kz("y_req", "I1")[:4]], launch="reset assertion (time 0)", note="H_SEL_START, uxa leg (shown exact)"),
+           form([[wire("x_req", "usel.I0", "hr"), sp("usel", "I0", "x_req"), lut("usel", "I0", "O6", "hr"),
+                  wire("usel.O6", "udat.I0", "sh"), sp("udat", "I0", "sel"), lut("udat", "I0", "O5|O6", "sh"), env("Mz", "consumer margin", "Mz")]],
+                [[env("rho0", "first request edge at the client after reset (rho 0)", "rho 0")] + Kz("y_req", "I1")[:4]], launch="reset assertion (time 0)", note="H_SEL_START, x_req leg hr (not shown necessary: a transport run on N cannot exercise it)")],
+    lean=[L("Cells/OpsTimed2", "merge_data_ok", "sufficient", note="MergeDataStatic.H_SEL_START"), L("Cells/OpsTimed2", "MergeDataStatic", "definition")]
+         + OX("merge_data_ok_exact", "sufficient", "MergeDataExact.H_SEL_START, unchanged") + OX("bnd_H_SEL_START", "instance", "MergeY (y owns token 0): hq = 2, the theorem applies for either power-up level p")
+         + OX("cex_H_SEL_START", "counter_trace", "MergeY: hq = 3, every other MergeDataExact field (incl. S_SEL_XA_N) holds; with uxa powering up high, usel reads it when y's token 0 reaches the server: z(4) = x's bit")
+         + OX("surv_H_SEL_START_low", "not_necessary", "the same violation with uxa powering up low is harmless") + OX("witness", "non_vacuity", "MergeY.witness p: whole control side via merge_ok_noskew, both power-up levels"),
+    exactness="sufficient+necessary_at_boundary",
+    exactness_note="P6 / " + LT4 + " section 3 (MergeY): the Lxa.hi + hq leg is tight by one tick in a y-first run, but only against a uxa output that powers up HIGH (surv_H_SEL_START_low: harmless if it powers up low). Not a general iff. The hr leg is not shown necessary. A reset-polarity fact in the CLAUDE.md sense (true once at startup): uxa defined and seen by usel before the first request arrives. bdc emits bdc_amerge (bd_arbiter), not bd_merge, so gcd_hw has no instance. " + OPS_X,
+    site_pins={"needed": True, "roles": ["usel.I0, usel.I1, udat.I0 hi", "uor.I1 lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="environment")
 
 # =============================================================== bdc_amerge (generated control_merge; probes Cm, Cm2: B-amerge.md, B-amerge-timed.md)
 # 7 x bdc_amerge2_0 + 1 x bdc_amerge3_0 in gcd_hw. The arbiters inside are bd_arbiter
@@ -1234,62 +1250,140 @@ add(id="bdc_amerge3.bundled_idx0_grant", cell="bdc_amerge3", also_applies_to=["b
     site_pins={"needed": True, "roles": ["uarb1.ugrant.I2, index_lut.I1 hi", "uarb1.ustate.I2, uarb2.ustate.I0, uor.I0 lo"]},
     rule={"rule": "A", "verdict": "different_condition", "detail": "as bdc_amerge.bundled_idx_grant"}, corner=CORNER_ARBPIN, check_scope="route_plus_env")
 
-# =============================================================== bdc_muxn (generated N-way mux; probe Cm: B-amerge.md; 1 x bdc_muxn3_32 in gcd_hw)
+# =============================================================== bdc_muxn (generated N-way mux; probe Cm: B-amerge.md; probe Mn: B-muxn3-timed.md; 1 x bdc_muxn3_32 in gcd_hw)
 MN_SI = [L("Cells/MuxN3Proof", "muxn3_ok", "sufficient", note="untimed SI (1728 states): one output transaction per control token, only the selected input acknowledged, no hazard on any gate incl. the inferred decode LUT3s"),
          L("Cells/MuxN3Proof", "muxn3_serves", "non_vacuity")]
-MN_X = "Cm: SI filter form only (no timed model of bdc_muxn); the arc form is stated in B-amerge.md in words and transcribed here. The bd_mux timed theorems (OpsTimedMux) do not cover it: the decode is a separate LUT3 per input (sel[k] = ctl_req & (s == k)), one more gate and wire between ctl_req/s and each join."
-add(id="bdc_muxn.rtz", cell="bdc_muxn", also_applies_to=["bdc_muxn3_32 (1 instance in gcd_hw)"], catalogue_row="Cm H_MUX_RTZ",
-    obligation="H_MUX_RTZ: z_ack rises again only when no ua_k is excited to fall (z_ack's low pulse at ua_k outlasts ua_k's fall + feedback)",
-    inequality="z_ack fall -> ua_k fall + feedback (max) <= z_ack fall -> ctl sender -> ctl_req -> decode LUT3 -> uj_m -> |j LUT3 -> uor -> DELAY -> server -> z_ack rise at ua_k (min)",
-    forms=[form([[wire("z_ack.drv", "ua_k.I1"), sp("ua_k", "I1", "z_ack"), lut("ua_k", "I1", "O6"), fbw("ua_k", "O6", "I2"), sp("ua_k", "I2", "feedback")]],
-                [[wire("z_ack.drv", "ctl.sender"), env("Ec", "control sender: ctl_ack (= z_ack) fall seen -> next ctl_req rise, min"),
-                  wire("ctl_req", "sel_m.I2"), sp("sel_m", "I2", "ctl_req"), lut("sel_m", "I2", "O6"), wire("sel_m.O6", "uj_m.I1"), sp("uj_m", "I1", "sel"), lut("uj_m", "I1", "O6"),
-                  wire("uj_m.O6", "or3.{I0|I1|I2}"), lut("or3", "{I0|I1|I2}", "O6"), wire("or3.O6", "uor.I0"), lut("uor", "I0", "O6"),
-                  line("udly", "rise", "chain", "bd_delay_gated rise"), env("Es", "server: z_req rise -> z_ack rise, min"), wire("z_ack.drv", "ua_k.I1"), sp("ua_k", "I1", "z_ack")]],
-                launch="z_ack fall at its driver", note="m = the next token's selected input, k = any input")],
-    lean=MN_SI + [L("Cells/MuxN3Proof", "muxn3_needs_rtz", "necessary", note="untimed: runt on in0_ack, as bd_mux"),
-                  L("Cells/MuxRtzTimed", "rtz_safe", "context", note="cell-level H_RTZ for any bd_c2 loop with a low j input: applies to ua_k verbatim"),
-                  L("Cells/MuxRtzTimed", "mux_rtz_env_safe", "context", note="bd_mux's env form; the muxn path has one more LUT (decode) and the |j LUT3")],
-    status="unproved", exactness="sufficient+necessary_untimed",
-    exactness_note=MN_X + " The extra decode LUT3 ADDS slack relative to bd_mux.uxa_rtz_env.",
-    site_pins={"needed": True, "roles": ["ua_k.I1 hi and lo", "ua_k.I2 hi", "sel_m.I2, uj_m.I1 lo"]},
-    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_1C, check_scope="route_plus_env")
-add(id="bdc_muxn.s_setup", cell="bdc_muxn", also_applies_to=["bdc_muxn3_32 (1)"], catalogue_row="Cm H_S_PIN (setup)",
-    obligation="H_S_PIN setup: at each decode LUT3 the s pins settle before the ctl_req pin rises; at each data LUT5 bit the s pins settle before z_req reaches the consumer",
-    inequality="common launch -> s at sel_k.{I0|I1} (wire + SP + arc, hi) <= common launch -> ctl_req at sel_k.I2 (wire + SP + arc, lo); per z_data LUT5 bit: s -> zdat.{I3|I4} (hi) + Mz <= request path to the consumer (lo)",
-    forms=[form([[env("s_path", "common launch -> s driver (the link n_index_97 latching the amerge3 index)"), wire("s{0|1}", "sel_k.{I0|I1}"), sp("sel_k", "{I0|I1}", "s"), lut("sel_k", "{I0|I1}", "O6")]],
-                [[env("req_path", "common launch -> ctl_req driver"), wire("ctl_req", "sel_k.I2"), sp("sel_k", "I2", "ctl_req"), lut("sel_k", "I2", "O6")]],
-                launch="control sender event (common launch)", note="decode LUT3, per k"),
-           form([[env("s_path", "common launch -> s driver"), wire("s{0|1}", "zdat.{I3|I4}"), sp("zdat", "{I3|I4}", "s"), lut("zdat", "{I3|I4}", "O6"), env("Mz", "consumer margin")]],
-                [[env("req_path", "common launch -> ctl_req driver"), wire("ctl_req", "sel_k.I2"), lut("sel_k", "I2", "O6"), wire("sel_k.O6", "uj_k.I1"), lut("uj_k", "I1", "O6"),
-                  wire("uj_k.O6", "or3"), lut("or3", "{I0|I1|I2}", "O6"), wire("or3.O6", "uor.I0"), lut("uor", "I0", "O6"), line("udly", "rise", "chain", "bd_delay_gated rise + z_req -> consumer")]],
-                launch="control sender event (common launch)", note="data LUT5 F0AA_CCF0, per bit (32)")],
-    lean=MN_SI + [L("Cells/AMergeGates", "sel_needs_setup", "necessary", note="Kleene: a moving s pin under a high ctl_req gives x"),
-                  L("Cells/AMergeGates", "sel_idle", "context", note="decodes ignore s while ctl_req is low"), L("Cells/AMergeGates", "dm5_eq", "function_equality")],
-    status="unproved", exactness="sufficient+necessary_untimed", exactness_note=MN_X + " Necessity at the select is Kleene (sel_needs_setup), not a timed trace.",
-    site_pins={"needed": True, "roles": ["sel_k.I0/I1, zdat.I3/I4 (s) hi", "sel_k.I2 (ctl_req) lo"]},
+MNT = "Cells/MuxN3Timed"
+MN_T = [L(MNT, "muxn3_ok", "sufficient", note="timed whole-cell theorem (event form): join i fires exactly in the tokens selecting i, |j and z_req one clean transaction per control token, only the selected input acknowledged"),
+        L(MNT, "muxn3_timing_of_static", "sufficient", note="MN3Timing (except reset sequencing and the line flush) derived from MN3Causal + MN3Static"),
+        L(MNT, "muxn3_ok_static", "sufficient"), L(MNT, "MN3Static", "definition"), L(MNT, "MN3Causal", "definition"),
+        L(MNT, "E_step", "lemma", note="selected-join edges increase from causality alone: no H_CTL_SEQ, no OR skew over the three j -> |j wires"),
+        L(MNT, "static", "non_vacuity", note="Mn3Wit.static: every MN3Static field on the unit-delay witness (k-th token selects k % 3)"),
+        L(MNT, "witness", "non_vacuity", note="Mn3Wit.witness = muxn3_ok applied; witness_values checks the acks and z_req")]
+MN_X = ("Mn (B-muxn3-timed.md, MuxN3Timed.lean): real inferred INITs (decode LUT3 10/40/40, |j LUT3 FE, data LUT5 F0AA_CCF0), bd_c2 joins/acks, Lt2's FASTFALL line (bd_delay_gated as emitted); LUT arcs LUMPED over pins (H_LUT_FIFO): "
+        "the decode's s-pin vs ctl-pin arc difference and the LUT5's per-pin arcs are charged as extra arcs; FIFO wire per fork branch, none isochronic. "
+        "Kz = wo + Lo.lo + Dl + Es (selected join node -> z_ack at the server); Kj = wc + ls + wsj + lj (ctl_req -> decode -> join); Kc = Wzc.lo + Ec + Kj. "
+        "Reset sequencing (H_RST_LONG, H_RST_EARLY) and the line's H_FLUSH_STAGE (bd_delay[FASTFALL].flush_per_stage) are taken in event form. Necessity of a form is shown only where stated.")
+
+def MKj(m="m"):
+    return [wire("ctl_req", f"sel_{m}.I2", "wc"), sp(f"sel_{m}", "I2", "ctl_req"), lut(f"sel_{m}", "I2", "O6", "ls"),
+            wire(f"sel_{m}.O6", f"uj_{m}.I1", "wsj"), sp(f"uj_{m}", "I1", "sel"), lut(f"uj_{m}", "I1", "O6", "lj")]
+def MKz(m="m", srv=True):
+    a = [wire(f"uj_{m}.O6", "or3.{I0|I1|I2}", "wo"), sp("or3", "{I0|I1|I2}", "j"), lut("or3", "{I0|I1|I2}", "O6", "Lo.lo"),
+         line("udly", "any", "stage-0 composite path or3 -> uor (LUT1) -> wire -> LUT1, then the taps", "bd_delay_gated (FASTFALL = 1) to z_req at the server, min over H 0 and Tp i (ffE_ge)", "Dl")]
+    return a + ([env("Es", "server: z_req edge at its pin -> z_ack edge, min", "Es")] if srv else [])
+def MKc(m="m"):
+    return [wire("z_ack.drv", "ctl.sender (ctl_ack = z_ack)", "Wzc.lo"), env("Ec", "control sender: ctl_ack edge seen -> next ctl_req edge (MN3Causal), min", "Ec")] + MKj(m)
+def uacel(i, pin, src, W, role):
+    return [wire(src, f"ua_{i}.{pin}", f"{W}.hi"), sp(f"ua_{i}", pin, role), lut(f"ua_{i}", pin, "O6", "La.hi"), fbw(f"ua_{i}", "O6", "I2", "wah"), sp(f"ua_{i}", "I2", "feedback")]
+MN_ALSO = ["bdc_muxn3_32 (1 instance in gcd_hw)"]
+
+add(id="bdc_muxn.rtz", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm H_MUX_RTZ",
+    obligation="S_A_RTZ (H_MUX_RTZ): z_ack's pulse at ua_k (either polarity) outlasts ua_k's arc + feedback loop plus the z_ack wire's spread, against the round trip z_ack -> control sender -> ctl_req -> decode -> next join -> |j -> line -> server",
+    inequality="Wza.hi + La.hi + wah <= Wza.lo + Kc + Kz (per k; m = the next token's selected input, any)",
+    forms=[form([uacel("k", "I1", "z_ack.drv", "Wza", "z_ack")],
+                [[wire("z_ack.drv", "ua_k.I1", "Wza.lo"), sp("ua_k", "I1", "z_ack")] + MKc("m") + MKz("m")],
+                launch="z_ack edge at its driver", note="MN3Static.S_A_RTZ; redundant when Wza.hi - Wza.lo <= Wja.hi - Wja.lo (rtz_of_fork_j, given bdc_muxn.iso_zack)")],
+    lean=MN_T + [L(MNT, "rtz_of_fork_j", "redundancy", note="S_A_RTZ follows from S_A_FORK and S_A_J's second half whenever the z_ack branch's spread is at most the j branch's (any fixed-delay run)"),
+                 L("Cells/MuxN3Proof", "muxn3_needs_rtz", "necessary", note="untimed: runt on in0_ack, as bd_mux"),
+                 L("Cells/MuxRtzTimed", "rtz_safe", "context", note="cell-level H_RTZ for any bd_c2 loop with a low j input: applies to ua_k verbatim")] + MN_SI,
+    status="proved", exactness="sufficient+necessary_untimed",
+    exactness_note="P6 / Mn: MN3Static.S_A_RTZ, proved sufficient inside muxn3_timing_of_static + muxn3_ok (the JSON's old arc set, with the Lean's composite stage-0 line path in place of |j -> uor -> udly). REDUNDANT, and the checker may skip it, when the z_ack wire's spread at ua_k is at most the j wire's, (Wza.hi - Wza.lo) <= (Wja.hi - Wja.lo), given bdc_muxn.iso_zack (S_A_FORK and S_A_J (2)); so no transport run in the static family violates it alone. Necessity untimed only (muxn3_needs_rtz); an event-form counter-run (asymmetric Ec) is designed, not built. " + MN_X,
+    site_pins={"needed": True, "roles": ["ua_k.I1 hi and lo", "ua_k.I2 hi", "sel_m.I2, uj_m.I1, or3 pin lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.s_setup", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm H_S_PIN (setup)",
+    obligation="S_S_SETUP / S_Z_S: the index bits, settled at the control sender's driver Lsd before its ctl_req rise, reach each decode LUT3 before ctl_req does, and each data LUT5 bit before z_req reaches the server",
+    inequality="decode i, per bit b: Ws_b(i).hi <= Lsd + Wc(i).lo (+ per-pin arc margin sel_i.I{0,1} vs sel_i.I2); data LUT5, per bit: sh_b + Mz <= Lsd + Kj + wo + Lo.lo + Dl",
+    forms=[form([[wire("s{0|1}.drv", "sel_i.{I0|I1}", "Ws0/Ws1.hi"), sp("sel_i", "{I0|I1}", "s"), lut("sel_i", "{I0|I1}", "O6", note="not in the Lean model (lumped decode arc); per-pin margin")]],
+                [[env("Lsd", "control sender: index settled at its driver -> ctl_req rise at its port (MN3DataEnv.H_S_LEAD; the link n_index_97 latching the amerge3 index), min", "Lsd"),
+                  wire("ctl_req", "sel_i.I2", "Wc.lo"), sp("sel_i", "I2", "ctl_req"), lut("sel_i", "I2", "O6", note="not in the Lean model; per-pin margin")]],
+                launch="index settled at the control sender's driver", note="S_S_SETUP (muxn3_s_pin_of_static), per decode i and bit; exact (Mn3Cex)"),
+           form([[wire("s{0|1}.drv", "zdat.{I3|I4}", "sh0/sh1"), sp("zdat", "{I3|I4}", "s"), lut("zdat", "{I3|I4}", "O6", "sh0/sh1"), env("Mz", "consumer margin before z_req reaches the server", "Mz")]],
+                [[env("Lsd", "control sender: index settled -> ctl_req rise, min", "Lsd")] + MKj("m") + MKz("m", srv=False)],
+                launch="index settled at the control sender's driver", note="MN3DataStatic.S_Z_S, data LUT5 F0AA_CCF0, per bit (32)")],
+    lean=[L(MNT, "muxn3_s_pin_of_static", "sufficient", note="H_S_PIN at every decode from S_S_SETUP and S_S_HOLD and the sender's contract"),
+          L(MNT, "muxn3_data_ok", "sufficient", note="LUT5 output = the selected input's bit from Mz before z_req until Hm after z_ack, under MN3DataStatic (S_Z_S)"),
+          L(MNT, "MN3DataStatic", "definition"), L(MNT, "MN3DataEnv", "definition"),
+          L(MNT, "dm5_sel", "lemma", note="kernel-checked on the INIT: with definite index bits of v < 3 the LUT5 output is the selected pin whatever the other two read, x included"),
+          L(MNT, "bnd_ok", "instance", note="Mn3Cex: s wires 1 tick, S_S_SETUP with equality, muxn3_ok_static applies"),
+          L(MNT, "cex_setup_violated", "counter_trace", note="Mn3Cex: s wires 2 ticks, S_S_SETUP fails by one tick, S_S_HOLD holds, every other hypothesis the same proof term"),
+          L(MNT, "cex_fails", "counter_trace", note="decode 0 emits a one-tick runt in token 1; join 0 high at 52 in [E 2, E 3): muxn3_ok's conclusion (1) is false; in0_ack high at 59"),
+          L(MNT, "s_pin_static", "non_vacuity", note="Mn3Wit: H_S_PIN from muxn3_s_pin_of_static, S_S_SETUP tight"),
+          L(MNT, "data_witness", "non_vacuity", note="Mn3Wit: muxn3_data_ok applied; data_values: non-degenerate bits")] + MN_T
+         + [L("Cells/AMergeGates", "sel_needs_setup", "necessary", note="Kleene: a moving s pin under a high ctl_req gives x"),
+            L("Cells/AMergeGates", "sel_idle", "context", note="decodes ignore s while ctl_req is low"), L("Cells/AMergeGates", "dm5_eq", "function_equality")] + MN_SI,
+    status="proved", exactness="sufficient+necessary_at_boundary",
+    exactness_note="P6 / Mn: decode form (S_S_SETUP) proved sufficient and EXACT in the counter-run family Mn3Cex (boundary holds, boundary + 1 corrupts the token: one-tick counter-run with every other hypothesis unchanged). Tight on one run, not a general iff. Data LUT5 form (S_Z_S): proved sufficient (muxn3_data_ok, non-vacuous data_witness), no counter-run. " + MN_X,
+    site_pins={"needed": True, "roles": ["sel_i.I0/I1, zdat.I3/I4 (s) hi", "sel_i.I2 (ctl_req) lo", "uj_m.I1, or3 pin lo"]},
     rule={"rule": "E (skew.py)", "verdict": "exact_structure_missing_site_pins", "detail": "rule E's common-launch setup form, if it is applied to these LUTs; no SP terms"},
-    corner=CORNER_1C, check_scope="route_plus_env")
-add(id="bdc_muxn.s_hold", cell="bdc_muxn", also_applies_to=["bdc_muxn3_32 (1)"], catalogue_row="Cm H_CTL_HOLD / H_S_PIN (hold)",
-    obligation="H_S_PIN hold / H_CTL_HOLD: s moves at a decode LUT3 pin only after ctl_req's fall reached that LUT (and at the data LUT5 only after z_ack fell)",
-    inequality="common launch -> ctl_req fall at sel_k.I2 (hi) <= common launch -> next s change at sel_k.{I0|I1} (lo)",
-    forms=[form([[env("req_fall", "common launch -> ctl_req fall at driver"), wire("ctl_req", "sel_k.I2"), sp("sel_k", "I2", "ctl_req"), lut("sel_k", "I2", "O6")]],
-                [[env("s_change", "common launch -> next s change at driver"), wire("s{0|1}", "sel_k.{I0|I1}"), sp("sel_k", "{I0|I1}", "s"), lut("sel_k", "{I0|I1}", "O6")]],
-                launch="control sender event")],
-    lean=MN_SI + [L("Cells/MuxN3Proof", "muxn3_needs_hold", "necessary", note="untimed: s moves under a high ctl_req, sel[0] runt"),
-                  L("Cells/AMergeGates", "sel_needs_setup", "necessary", note="Kleene")],
-    status="unproved", exactness="sufficient+necessary_untimed", exactness_note=MN_X,
-    site_pins={"needed": True, "roles": ["sel_k.I2 hi", "sel_k.I0/I1 lo"]},
-    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_1C, check_scope="route_plus_env")
-for nm, what in [("iso_ctl", "ctl_req -> {sel_0, sel_1, sel_2} fork (weak isochrony: skew < a half handshake)"),
-                 ("iso_zack", "z_ack -> {ua_0, ua_1, ua_2, ctl sender} fork (weak isochrony)")]:
-    add(id=f"bdc_muxn.{nm}", cell="bdc_muxn", also_applies_to=["bdc_muxn3_32 (1)"], catalogue_row="Cm isochrony",
-        obligation=what, inequality="branch skew < half a handshake (reading of the untimed result)", forms=[],
-        lean=MN_SI + [L("Cells/MergeMuxSI", "mux_needs_iso_cr" if nm == "iso_ctl" else "mux_needs_iso_za", "necessary", note="bd_mux analogue (untimed); no muxn3-specific counter-run"),
-                      L("Cells/OpsTimedMux", "mux_timing_of_static", "context", note="bd_mux's timed form: the z_ack branch is S_XA_FORK, the ctl_req branch needs no condition under FIFO wires; not instantiated for muxn")],
-        status="unproved", exactness="sufficient+necessary_untimed",
-        exactness_note=MN_X + " muxn3_ok ASSUMES this fork isochronic; necessity is cited from bd_mux, not shown for muxn3. Candidate for the bd_mux timed treatment (S_XA_FORK per ua_k).",
-        site_pins={"needed": True, "roles": []}, rule={"rule": "none", "verdict": "none"}, corner=CORNER_1C, check_scope="route_plus_env")
+    corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.s_hold", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm H_CTL_HOLD / H_S_PIN (hold)",
+    obligation="S_S_HOLD: ctl_req's fall reaches each decode LUT3 before the next index change does, under the header's contract (index held until the sender has SEEN ctl_ack fall)",
+    inequality="Wc(i).hi <= Kj + Kz + Wzc.lo + Ws_b(i).lo (per decode i, per bit b); the data LUT5 hold needs no inequality (S_HM are sums of MIN delays)",
+    forms=[form([[wire("ctl_req", "sel_i.I2", "Wc.hi"), sp("sel_i", "I2", "ctl_req"), lut("sel_i", "I2", "O6", note="per-pin margin, not in Lean")]],
+                [MKj("m") + MKz("m") + [wire("z_ack.drv", "ctl.sender (ctl_ack = z_ack)", "Wzc.lo"), env("hold", "sender: ctl_ack fall seen -> next index change at its driver, >= 0 (MN3DataEnv.H_S_HOLD)"),
+                                        wire("s{0|1}.drv", "sel_i.{I0|I1}", "Ws0/Ws1.lo"), sp("sel_i", "{I0|I1}", "s"), lut("sel_i", "{I0|I1}", "O6", note="per-pin margin, not in Lean")]],
+                launch="ctl_req fall at the control sender", note="S_S_HOLD (muxn3_s_pin_of_static)")],
+    lean=[L(MNT, "muxn3_s_pin_of_static", "sufficient"), L(MNT, "MN3DataEnv", "definition", note="H_S_HOLD: index held until the sender has seen ctl_ack fall"),
+          L(MNT, "muxn3_data_ok", "sufficient", note="data LUT5 hold: S_HM only")] + MN_T
+         + [L("Cells/MuxN3Proof", "muxn3_needs_hold", "necessary", note="untimed: s moves under a high ctl_req, sel[0] runt"),
+            L("Cells/AMergeGates", "sel_needs_setup", "necessary", note="Kleene")] + MN_SI,
+    status="proved", exactness="sufficient",
+    exactness_note="P6 / Mn: proved sufficient under the header's hold contract; the margin is a whole round trip, so it binds only for a pathological ctl_req wire. Timed necessity not probed (untimed: muxn3_needs_hold). " + MN_X,
+    site_pins={"needed": True, "roles": ["sel_i.I2 hi", "sel_i.I0/I1 lo", "uj_m.I1, or3 pin lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.iso_ctl", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm isochrony",
+    obligation="ctl_req -> {sel_0, sel_1, sel_2} fork: NO skew bound under FIFO branches (selected-edge order from causality, E_step; unselected decodes stay low by H_S_PIN + selF_off). Its only timed content is S_J_C per branch: join i's own feedback settles before z_req -> z_ack -> control sender -> ctl_req -> decode i returns to the join",
+    inequality="Lj(i).hi + wjh(i) <= Lj(i).lo + Kz + Wzc.lo + Ec + Wc(i).lo + Ls(i).lo + Wsj(i).lo (per i)",
+    forms=[form([[lut("uj_i", "{I0|I1}", "O6", "Lj.hi"), fbw("uj_i", "O6", "I2", "wjh"), sp("uj_i", "I2", "feedback")]],
+                [[lut("uj_i", "{I0|I1}", "O6", "Lj.lo")] + MKz("i") + [wire("z_ack.drv", "ctl.sender (ctl_ack = z_ack)", "Wzc.lo"), env("Ec", "control sender latency, min", "Ec")] + MKj("i")],
+                launch="join i's node edge", note="MN3Static.S_J_C, per branch i")],
+    lean=MN_T + [L(MNT, "selF_off", "lemma", note="sel_i = 0 while ctl_req is low"), L(MNT, "selF_idx", "lemma", note="sel_i = ctl_req . (v = i) for v < 3 (from the INITs)"),
+                 L("Cells/MergeMuxSI", "mux_needs_iso_cr", "necessary", note="bd_mux analogue, untimed: two transitions in flight on one branch, which a FIFO wire excludes by assumption")] + MN_SI,
+    status="proved", exactness="sufficient",
+    exactness_note="P6 / Mn: refines 'branch skew < half a handshake' (as bd_mux.isochronic_forks' ctl branch): no skew condition, only the per-branch join env latency S_J_C. Not shown necessary. " + MN_X,
+    site_pins={"needed": True, "roles": ["uj_i.I2 (feedback) hi", "sel_i.I2, uj_i.I1, or3 pin lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.iso_zack", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm isochrony",
+    obligation="z_ack -> {ua_0, ua_1, ua_2, ctl sender} fork (S_A_FORK) and ua_i's env latency at its j input (S_A_J): z_ack's edge settles ua_i's loop before the next join edge, launched by the same z_ack edge through the control sender, reaches ua_i; j_i's edge outlasts ua_i's loop until the next j edge and the next z_ack edge",
+    inequality="Wza(i).hi + La(i).hi + wah(i) <= Kc + Wja(i).lo; Wja(i).hi + La(i).hi + wah(i) <= Kz + Kc + Wja(i).lo and <= 2 Kz + Kc + Wza(i).lo",
+    forms=[form([uacel("i", "I1", "z_ack.drv", "Wza", "z_ack")], [MKc("m") + [wire("uj_i.O6", "ua_i.I0", "Wja.lo"), sp("ua_i", "I0", "j")]],
+                launch="z_ack edge at its driver", note="S_A_FORK, per i"),
+           form([uacel("i", "I0", "uj_i.O6", "Wja", "j")], [MKz("m") + MKc("m") + [wire("uj_i.O6", "ua_i.I0", "Wja.lo"), sp("ua_i", "I0", "j")]],
+                launch="join i's node edge", note="S_A_J (1): next j edge"),
+           form([uacel("i", "I0", "uj_i.O6", "Wja", "j")], [MKz("m") + MKc("m") + MKz("m") + [wire("z_ack.drv", "ua_i.I1", "Wza.lo"), sp("ua_i", "I1", "z_ack")]],
+                launch="join i's node edge", note="S_A_J (2): next z_ack edge")],
+    lean=MN_T + [L("Cells/MergeMuxSI", "mux_needs_iso_za", "necessary", note="bd_mux analogue (untimed); no muxn3-specific counter-run")] + MN_SI,
+    status="proved", exactness="sufficient",
+    exactness_note="P6 / Mn: MN3Static.S_A_FORK and S_A_J, proved sufficient. For an input the next token does not select, S_A_FORK constrains a bookkeeping edge (j_i does not move); like Lt3's skew results it may be a proof artefact there. Not shown necessary. " + MN_X,
+    site_pins={"needed": True, "roles": ["ua_i.I1, ua_i.I0 hi and lo", "ua_i.I2 hi", "sel_m.I2, uj_m.I1, or3 pin lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.bundled_z_data", cell="bdc_muxn", also_applies_to=MN_ALSO, catalogue_row="Cm (new, B-muxn3-timed.md)",
+    obligation="S_Z_D: input i's data, settled at its driver Ld before in_i_req rises, settles at the data LUT5 output before z_req (through join i) reaches the server",
+    inequality="dh(i) + Mz <= Ld + Wx(i).lo + Lj(i).lo + wo + Lo.lo + Dl (per i, per bit)",
+    forms=[form([[wire("in_i_data.drv", "zdat.I{2-i}", "dh"), sp("zdat", "I{2-i}", "in_i data"), lut("zdat", "I{2-i}", "O6", "dh"), env("Mz", "consumer margin", "Mz")]],
+                [[env("Ld", "client i: data settled at its driver -> in_i_req rise (MN3DataEnv.H_D_LEAD), min", "Ld"),
+                  wire("in_i_req", "uj_i.I0", "Wx.lo"), sp("uj_i", "I0", "in_i_req"), lut("uj_i", "I0", "O6", "Lj.lo")] + MKz("i", srv=False)],
+                launch="in_i data settled at client i's driver", note="MN3DataStatic.S_Z_D, per i")],
+    lean=[L(MNT, "muxn3_data_ok", "sufficient"), L(MNT, "MN3DataStatic", "definition"), L(MNT, "MN3DataEnv", "definition"),
+          L(MNT, "dm5_sel", "lemma"), L(MNT, "data_witness", "non_vacuity", note="Mn3Wit.data_witness; data_values: 1,0,1,0,1,0 over inputs 0,1,2,0,1,2, an unselected input carrying the opposite bit")],
+    exactness="sufficient",
+    exactness_note="P6 / Mn: new entry (was missing). Proved sufficient; as Lt3 found for bd_mux's S_Z_X, probably only sufficient when the decode is the join's late input (exact when in_i_req is late, by analogy with Lt4's MuxA; not built for muxn). " + MN_X,
+    site_pins={"needed": True, "roles": ["zdat.I0/I1/I2 (data) hi", "uj_i.I0 (req) lo", "or3 pin lo"]},
+    rule={"rule": "A", "verdict": "different_condition", "detail": "rule A's sender-request-last form is the classic version (sufficient for it only with the lead term)"},
+    corner=CORNER_OPS, check_scope="route_plus_env")
+add(id="bdc_muxn.uj_env_latency_req", cell="bdc_muxn", also_applies_to=MN_ALSO + ["bd_c2.env_latency at uj_i"], catalogue_row="Cm (new, B-muxn3-timed.md)",
+    obligation="S_J_X: join i's own feedback settles before its answer (j_i -> ua_i -> in_i_ack -> client i -> in_i_req) returns to the join",
+    inequality="Lj(i).hi + wjh(i) <= Lj(i).lo + Wja(i).lo + La(i).lo + Wak(i).lo + Ex + Wx(i).lo (per i)",
+    forms=[form([[lut("uj_i", "{I0|I1}", "O6", "Lj.hi"), fbw("uj_i", "O6", "I2", "wjh"), sp("uj_i", "I2", "feedback")]],
+                [[lut("uj_i", "{I0|I1}", "O6", "Lj.lo"), wire("uj_i.O6", "ua_i.I0", "Wja.lo"), sp("ua_i", "I0", "j"), lut("ua_i", "I0", "O6", "La.lo"),
+                  wire("ua_i.O6", "client i", "Wak.lo"), env("Ex", "client i: ack edge seen -> request edge (MN3Causal), min", "Ex"),
+                  wire("in_i_req", "uj_i.I0", "Wx.lo"), sp("uj_i", "I0", "in_i_req")]],
+                launch="join i's node edge", note="MN3Static.S_J_X, per i")],
+    lean=MN_T, exactness="sufficient",
+    exactness_note="P6 / Mn: new entry (bd_mux analogue bd_mux.uj_env_latency_req). Proved sufficient; only sufficient by Lt4's bd_mux analysis (the return path also waits for z_ack), not probed for muxn. " + MN_X,
+    site_pins={"needed": True, "roles": ["uj_i.I2 (feedback) hi", "uj_i.I0 (req) lo", "ua_i.I0 lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_OPS, check_scope="route_plus_env")
 
 # =============================================================== mlink / flink
 for cell, ctl, en, enpins in [("bd_mlink", "ux", "en", "I0"), ("bd_flink", "uck", "ck", "I0")]:
@@ -1356,6 +1450,90 @@ add(id="bd_mem.clk_high_width", cell="bd_mem", catalogue_row="ME4", obligation="
     site_pins={"needed": False, "roles": []}, rule={"rule": "none", "verdict": "none"}, corner=CORNER_1C)
 
 
+# =============================================================== design-level reset (probes Rst, Rst2: B-reset-contract.md, B-reset-gcd.md)
+# rst_src = gcd_hw.v's rig_rst LUT output (~por_done | rst_sr[15]); w_rst(X) = the routed rst net to pin X.
+RC = "Cells/ResetContract"
+RG = "Cells/ResetGcd"
+RST_X = ("Rst/Rst2: no route, so no form is evaluated. ResetGcd's results are about the ELABORATED RTL control netlist of gcd_hw (bdc default DELAY_* sizes, gcd_rig CMPD = 16; "
+         "3322 nodes, real INITs and pin lists, Verilog -> Lean by an unverified generator cross-checked against yosys by WL colour refinement), not the synthesized or routed netlist. "
+         "The GMW network theorems are in model steps (D = LUT bound, W = wire bound); the per-cell timed lemmas are window channels; the two are not one theorem.")
+RST_CELLS = ["185 bd_c2n (link/pipe controllers, uenv0)", "1 bd_c2n_set (uenv1)", "153 bd_c2 (incl. 18 arbiter acks, 42 mux acks, 6 muxn3 C-elements)",
+             "10 bd_c3", "14 bd_c4", "21 + 21 bd_mux uj0/uj1", "9 bd_arbiter ustate O6 (+ 9 O5 read rst: 423 rst pins)"]
+add(id="design.rst_hold", cell="design", also_applies_to=["per reset-carrying LUT G of gcd_hw (414): " + "; ".join(RST_CELLS), "generalises bd_c2.reset_width, bd_c2n.reset_width, bd_c3.reset_width, bd_c4.reset_width"],
+    catalogue_row="Rst section 3.1 (C16)",
+    obligation="rst held at every reset pin for the cell's loop bound: each reset-carrying LUT reaches its reset value from ANY power-up state (binary and all-X)",
+    inequality="w_rst(G.I_rst).hi + SP + G arc I_rst -> O (dlmax) + feedback wire (dwmax) + feedback SP <= rst_width + w_rst(G.I_rst).lo, per G",
+    forms=[form([[wire("rst_src", "G.I_rst", "w_rst(G).hi"), sp("G", "I_rst", "rst"), lut("G", "I_rst", "O6", "dlmax"), fbw("G", "O6", "I_fb", "dwmax"), sp("G", "I_fb", "feedback")]],
+                [[env("rst_width", "rst_src high, min (gcd_hw: 16 hk cycles from rst_sr; 24 more at POR)", "rst_width"), wire("rst_src", "G.I_rst", "w_rst(G).lo"), sp("G", "I_rst", "rst")]],
+                launch="rst_src rise", note="per reset-carrying LUT G")],
+    lean=[L(RC, "c2n_reset", "sufficient", note="timed reset and hold through release, any power-up (LoopG window channels)"), L(RC, "c2n_set_reset", "sufficient"),
+          L("Cells/CElemTiming", "c2_reset", "sufficient"), L("Cells/CTreeTimed", "c3_reset", "sufficient"), L("Cells/CTreeTimed", "c4_reset", "sufficient")]
+         + [L(RC, f"{c}_rstB", "function_equality", note="rst = 1 forces the reset value for every Boolean value of every other pin") for c in ("c2", "c2n", "c2n_set", "c3", "c4", "uj0", "uj1", "arb")]
+         + [L(RC, f"{c}_rstK", "lemma", note="the same for every K3 value (all-X power-up)") for c in ("c2", "c2n", "c2n_set", "c3", "c4", "uj0", "uj1", "arb")]
+         + [L(RG, "gcd_census", "instance", note="414 reset cells, 423 rst pins, by kind"), L(RG, "gcd_spec", "instance", note="ResetSpec on the whole gcd_hw control network (decide +kernel)"),
+            L(RG, "neg_norst", "counter_trace", note="negative control: ulink_n1__1's rst pin tied to 0 fails the check")],
+    exactness="sufficient",
+    exactness_note="P6 / Rst: sufficient; the per-cell form of bd_c*.reset_width, now with a general bd_c2n theorem. Necessity not shown separately (same loop as pulse_width). " + RST_X,
+    site_pins={"needed": True, "roles": ["G.I_rst hi and lo", "G feedback pin hi"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED; rst is a general-routed net with fanout 414 (skew unknown)"}, corner=CORNER_1C, check_scope="route_plus_env")
+add(id="design.rst_flush", cell="design", also_applies_to=["per reset cell G and per non-rst control pin p of G driven, through stateless LUTs and delay lines, by reset cell H"], catalogue_row="Rst section 3.2 (C16)",
+    obligation="rst held long enough for every stateless control LUT and delay line to flush to its reset value (rank by rank) before release",
+    inequality="w_rst(H.I_rst).hi + SP + H arc (hi) + longest control path H.O -> G.p (hi, every LUT arc, wire and delay-line hop) <= rst_width + w_rst(G.I_rst).lo; model units: rst held >= 23 (D + W + 1) + W steps on gcd_hw (maxRank = 21)",
+    forms=[form([[wire("rst_src", "H.I_rst", "w_rst(H).hi"), sp("H", "I_rst", "rst"), lut("H", "I_rst", "O6"),
+                  line("ctl_path", "any", "longest", "H.O6 -> stateless control LUTs / delay lines -> G.p, every hop (hi)", "rank"), sp("G", "p", "control")]],
+                [[env("rst_width", "rst_src high, min", "rst_width"), wire("rst_src", "G.I_rst", "w_rst(G).lo"), sp("G", "I_rst", "rst")]],
+                launch="rst_src rise", note="per (H, G.p); gcd_hw's longest path is uselect1's 94-element bd_delay_gated (+ uor, fork wire, join pin)")],
+    refers_to=["bd_pipe.rst_lines"],
+    lean=[L(RC, "reset_binary", "sufficient", note="every bounded GMW run, any power-up, rst held on (0, E]: control nodes of rank < m at reset values on [(m+1)(D+W+1), E]"),
+          L(RC, "reset_ternary", "sufficient", note="Kleene from all-X"), L(RC, "ResetSpec", "definition", note="H_IN, H_LOCAL"),
+          L(RG, "gcd_reset_binary", "sufficient", note="gcd_hw instance: reset values on [23(D+W+1), E]"), L(RG, "gcd_reset_ternary", "sufficient"),
+          L(RG, "gcd_reset_release", "sufficient", note="composition: rst = 1 on (0, E] with E >= 23(D+W+1) + W, anything after: reset values hold until a frontier controller moves"),
+          L(RC, "rig_reset_binary", "instance", note="35-node rig skeleton"), L(RG, "neg_unguarded", "counter_trace", note="negative control: an OR steer lets the never-reset latch's X into control")],
+    exactness="sufficient",
+    exactness_note="P6 / Rst, Rst2: sufficient (the GMW bound by rank). Rst2's whole-network ranks count delay elements one LUT at a time (maxRank = 21, 23 Jacobi steps; Rst's scan reported 4 with lines collapsed). A tightened GCD_DUT_PARAMS build changes chain lengths and needs a regeneration. " + RST_X,
+    site_pins={"needed": True, "roles": ["H.I_rst hi", "G.p hi", "G.I_rst lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_1C, check_scope="route_plus_env")
+add(id="design.rst_release_skew", cell="design", also_applies_to=["per frontier F (gcd_hw: ulink_n1__1, ulink_n36__0/1/2, ulink_n68__0/1, ulink_n94__0/1, ulink_n155__0/1) and per reset cell G with a pin reachable from F; evaluate only for G in the first wave (ucond_br9/10/11_j)"],
+    catalogue_row="Rst section 3.3 (H_RST_SKEW)",
+    obligation="H_RST_SKEW: each reset cell's rst pin releases before the earliest frontier event can reach any of its pins (sufficient against H_NO_RETURN, the lost-event hazard after a frontier fires)",
+    inequality="w_rst(G.I_rst).hi + SP <= w_rst(F.I_rst).lo + SP + F arc I3 -> O6 (lo) + shortest path F.O -> G.p (lo)",
+    forms=[form([[wire("rst_src", "G.I_rst", "w_rst(G).hi"), sp("G", "I_rst", "rst")]],
+                [[wire("rst_src", "F.I3", "w_rst(F).lo"), sp("F", "I3", "rst"), lut("F", "I3", "O6"),
+                  line("ctl_path", "rise", "shortest", "F.O6 -> G.p, every hop (lo); first wave: ulink_n1__1.O -> ucmpi0.uor -> 30-hop gated line -> ufork2 -> join pins"), sp("G", "p", "control")]],
+                launch="rst_src fall", note="H_RST_SKEW, per (F, G)")],
+    lean=[L(RC, "first_change", "sufficient", note="min-delay potentials bound the first event (H_CAUSAL per node, from loop_causal / win_causal; not assembled for a network)"),
+          L(RC, "released_quiet", "sufficient", note="H_RST_SKEW gives the simultaneous-release state"),
+          L(RG, "gcd_release_quiet", "not_necessary", note="whole network, any per-pin release skew: no control node moves before a frontier controller does"),
+          L(RC, "c2n_race_holdK", "lemma"), L(RC, "c2_race_holdK", "lemma"), L(RC, "uj_race_holdK", "lemma"), L(RC, "race_movesK", "lemma", note="a first-wave cell goes x during the race; its forced excitation erases the transient")],
+    exactness="sufficient",
+    exactness_note="P6 / Rst2: gcd_release_quiet (kernel-checked on the imported gcd_hw network) makes release skew UNNECESSARY for 'nothing moves before a frontier link fires': it holds for every skew. What H_RST_SKEW still buys is the step after: a frontier fires while some cell's rst is still high, and that cell could miss a complete input pulse (H_NO_RETURN, argued, not proved). So this form is only sufficient, and a checker need evaluate it only for first-wave cells; for the 1-LUT paths to fork ack trees (likely to fail) the race lemmas make it harmless. " + RST_X,
+    site_pins={"needed": True, "roles": ["G.I_rst hi", "F.I3 lo", "G.p lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_1C, check_scope="route_plus_env")
+add(id="gcd_rig.token_static", cell="gcd_rig", also_applies_to=["the 10 frontier link controllers of gcd_hw: ulink_n1__1 (rig token, uenv1), ulink_n155__0/1 (usource13), ulink_n36__0/1/2 (usource3), ulink_n68__0/1 (usource5), ulink_n94__0/1 (usource7)", "replaces PipePerPin H_RST_SEL(c) / PipeTimedN H_RST_EARLY for these stages"],
+    catalogue_row="Rst section 3.4",
+    obligation="the request pin of each frontier controller F carries 1 from before rst_src falls (minus w_rst(F).lo) until F's first rise plus its loop bound; then F fires once, within dlmax of its own release, with no ordering between its rst and request selects",
+    inequality="structural: holds by construction (env_c forced 1 during reset and held by bd_c2n_set; bd_src req = ~ack with ack = 0)", forms=[],
+    lean=[L(RC, "c2n_frontier", "sufficient", note="H_TOKEN, H_STAY: 0 while rst is high at its pin, 1 from r + dlmax, fires once"),
+          L(RC, "c2n_set_reset", "lemma", note="uenv1 holds the token through release"),
+          L(RG, "gcd_frontier", "instance", note="exactly these 10 control nodes are excited at the simultaneous-release state"),
+          L(RG, "gcd_frontier_fire", "instance", note="each is a bd_c2n with its request at 1 during reset (uenv1 or a usource)"),
+          L(RG, "gcd_reset_ones", "instance", note="the 17 reset-1 nodes: rst, 9 arbiter q, 4 bd_src requests, uenv1, both upsnk elements (p_end consumed during reset)"),
+          L(RG, "gcd_links_empty", "instance", note="every bd_c2n resets to 0: all links empty"), L(RC, "rig_frontier", "instance", note="35-node rig")],
+    exactness="sufficient",
+    exactness_note="P6 / Rst, Rst2: a property of the netlist, decided on the imported elaborated netlist. PipePerPin's H_RST_SEL(c) with rho 0 = R would demand ps.hi <= pr.lo, a spurious per-pin band requirement when the request has been static since power-up; c2n_frontier is the right statement for frontier stages. The kernel at release holds the rig token on a/b/start plus the four sources' standing tokens. " + RST_X,
+    site_pins={"needed": False, "roles": []}, rule={"rule": "none", "verdict": "none", "detail": "structural"}, corner=CORNER_NA, check_scope="structural")
+add(id="gcd_rig.idx_setup", cell="gcd_rig", also_applies_to=["per bit of a_v, b_v (and g_v at the compare): the frontier latch of ulink_n1__1 and the direct a_data / b_data readers"], catalogue_row="Rst section 3.5",
+    obligation="the vector index, moved by an hk clock edge before reset, has settled at the frontier latch's d pin and the direct readers before the frontier controller's first rise opens the latch",
+    inequality="tCO + vector decode LUTs + route to latch d / readers (hi) + setup <= rst_width + w_rst(F).lo + F arc I3 -> O6 (lo), from the hk edge that moves idx",
+    forms=[form([[param("tCO", "FDRE clock-to-out (idx register)", "tCO"), env("vec_path", "vector decode LUTs + route to ulink_n1__1's latch d pin and the a_data/b_data readers, hi", "vec"), env("su", "latch / reader setup", "su")]],
+                [[env("rst_width", "rst_src high after the idx edge, min (16 hk cycles)", "rst_width"), wire("rst_src", "F.I3", "w_rst(F).lo"), sp("F", "I3", "rst"), lut("F", "I3", "O6")]],
+                launch="the hk-clock edge that moves idx")],
+    lean=[L(RC, "c2n_frontier", "context", note="F rises within dlmax of its own release"), L(RC, "latch_write", "context", note="a transparent latch with definite d is definite whatever its X feedback"),
+          L("Cells/Bundling", "capture", "context", note="the phase-0 capture (Ton = the first enable rise)")],
+    status="unproved", exactness="unproved",
+    exactness_note="P6 / Rst: stated in EndpointOK form, not composed as one theorem (the clocked idx register is outside every Lean model). Trivially met: 16 hk cycles of reset. Note B-reset-contract.md section 7.3: the stale ok+err pairs are more consistent with the ASSERTION edge (idx and rst_sr load on the same win_edge_d edge) than with a result in flight after release; a hypothesis from reading the RTL, not a measurement. " + RST_X,
+    site_pins={"needed": True, "roles": ["F.I3 lo"]}, rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"}, corner=CORNER_1C, check_scope="environment")
+
 # --------------------------------------------------------------- probe P5: references added to existing entries
 BYID = {e["id"]: e for e in E}
 def more(i, refs=(), note=None, also=None, evidence=None):
@@ -1403,6 +1581,24 @@ more("bd_pipe.rst_lines", [L(PW, "witness", "non_vacuity", note="W3.witness: H_R
      evidence="B-pipe-witness.md W3 mutation M3 (feedback site pin 7): only H_RST_SEL (b) fails, so that startup obligation is genuine (scratch mutation, not a theorem)")
 more("bd_pipe.output", [L(PW, "witness", "non_vacuity", note="W1/W2/W3.witness apply pipe_forward: every token delivered")])
 more("bd_delay[FASTRISE].ack_flush", [L(PW, "chain2", "non_vacuity", note="real FASTRISE chain (BUF 2'h2, FR_SIDE 4'hE) with DACK = 2 in a joint pipe witness (W2, W3)")])
+# --------------------------------------------------------------- probe P6: Lt4, Mn, Rst, Rst2 references added to existing entries
+for cell, pre in (("bd_c2", "c2"), ("bd_c2n", "c2n"), ("bd_c3", "c3"), ("bd_c4", "c4")):
+    more(f"{cell}.reset_width", [L(RC, f"{pre}_rstB", "function_equality", note="rst = 1 forces the reset value for every Boolean value of every other pin"),
+                                 L(RC, f"{pre}_rstK", "lemma", note="the same in Kleene semantics: holds from all-X power-up")],
+         note="P6 (B-reset-contract.md): the per-instance form of design.rst_hold (which adds w_rst and the rst site pin); forcing lemmas on the real INIT." + (" bd_c2n now has a general theorem (ResetContract.c2n_reset); c_reset_s1 is an instance." if cell == "bd_c2n" else ""))
+for i, lem, Wz, Wj, ent in (("bd_mux.uxa_rtz_env", "mux_rtz_of_J", "Wzx", "W0x", "S_XA_J (1)"), ("bd_mux.uya_rtz_env", "mux_rtz_y_of_J", "Wzy", "W1y", "S_YA_J (1)")):
+    more(i, OX(lem, "redundancy", f"MuxStatic.S_*_RTZ follows from {ent} (bd_mux.uxa_join_latency) whenever {Wz}.hi - {Wz}.lo <= {Wj}.hi - {Wj}.lo"),
+         note=f"P6 / {LT4} {lem}: REDUNDANT, and the checker may skip it, when the z_ack wire's spread is at most the join wire's, ({Wz}.hi - {Wz}.lo) <= ({Wj}.hi - {Wj}.lo), given bd_mux.uxa_join_latency {ent}; it can bind only through the z_ack wire's rise/fall delay spread. Otherwise keep it: plausibly exact (the next token's z_ack rise is not causally after x_ack's fall); counter-run designed (time-varying Wzx), not built.")
+FW = [L(RC, "latch_stays_x", "context", note="bd_latch is not reset: opaque with X feedback it stays X"), L(RC, "latch_holdB", "lemma", note="binary: holds its old value (the previous window's data on silicon)"),
+      L(RC, "latch_write", "lemma", note="the first write: transparent with definite d is definite whatever its X feedback"),
+      L(RC, "latch2_write_lo", "lemma"), L(RC, "latch2_write_hi", "lemma")]
+FWN = "P6 / Rst (B-reset-contract.md section 4, 'bd_latch.first_write', no separate id): the never-reset latch's first write after release is the PHASE-0 instance of this entry (NRBW (b): every guard's first rise after c_L's first rise plus d -> q and the cone's settle). Reset adds no inequality; NRBW (a), the guard, is the hypotheses_not_inequalities row NRBW."
+for key in ("bd_latch[odd]", "bd_latch[pair.O5]", "bd_latch[pair.O6]"):
+    more(f"{key}.setup_data", FW, note=FWN)
+more("bd_pipe.boundary_I", FW, note=FWN)
+more("bd_pipe.data_lead", [], note=FWN)
+more("bd_pipe.rst_lines", [L(RC, "c2n_frontier", "sufficient", note="frontier stages: no select ordering needed")],
+     note="P6 / Rst: at a FRONTIER stage (request 1 throughout reset: the 10 gcd_hw links in gcd_rig.token_static) H_RST_SEL(c) with rho 0 = R becomes ps.hi <= pr.lo, a spurious requirement; gcd_rig.token_static (c2n_frontier) replaces it there. Design level: design.rst_flush.")
 for e in E:
     if e["cell"] == "bd_arbiter" and (e["id"].startswith("bd_arbiter.rt") or e["id"].startswith("bd_arbiter.a0_fork")):
         e["also_applies_to"] = e.get("also_applies_to", []) + ["bdc_amerge2_0.uarb (7 in gcd_hw), bdc_amerge3_0.uarb2 (1); bdc_amerge3_0.uarb1 with smin made explicit: bdc_amerge3.rt2_cascade_* (B-amerge.md, B-amerge-timed.md)"]
@@ -1422,11 +1618,24 @@ HYP = [
      "lean": [L("Cells/TernaryOnBits2", "SiteSync", "definition", note="restriction of the run class; universal theorems unchanged, witnesses rebuilt"),
               L("Cells/ArbOverlapRace", "Decomp", "definition", note="field H_SHARED_Q_PIN"), L("Cells/ArbOverlapRace", "b_cancel", "lemma")],
      "check": "GLS or board: drive one pin of a fractured LUT and measure O5 vs O6; must stay below one model step. Unmeasured."},
-    {"id": "NOT_OBLIGATIONS: H_OR_SKEW / S_OR (bd_mux, bd_merge), H_ACK_SKEW / S_ACK (bd_steer), S_XA_PW / S_YA_PW (bd_mux, bd_merge)", "catalogue_row": "Lt3",
+    {"id": "NOT_OBLIGATIONS: H_OR_SKEW / S_OR (bd_mux, bd_merge), H_ACK_SKEW / S_ACK (bd_steer), S_XA_PW / S_YA_PW (bd_mux, bd_merge), S_SEL_XR (bd_merge.sel_low_xreq), S_SEL_XA_Z / S_SEL_XA_R as separate checks", "catalogue_row": "Lt3, Lt4",
      "cells": ["bd_mux", "bd_merge", "bd_steer"],
-     "statement": "premises of OpsTimed*'s proof route (MuxStatic.S_OR, MergeStatic.S_OR, SteerStatic.S_ACK, mux_XA_step/merge_XA_step's S_XA_PW) that are NOT cell obligations: B-ops-counter.md proves the conclusions without them (OpsCounter.lean: mux_ok_noskew, Tok.retime, or_tok_mono, mux_or_step; merge_or_step; steer_back_noskew; mux_ack_pulses_noPW, mux_XA_real_step, mux_YA_real_step, merge_XA_real_step, merge_YA_real_step; MuxWit.noskew_witness, MuxWit.ack_pulses_noPW_witness), from causality alone (1 <= Es, 1 <= Ex/Ey/Eo). They are deliberately NOT entries in `constraints`: no routed netlist can fail them in the model. merge_ok's re-plumbing without S_OR is not written (merge_or_step is the key lemma).",
-     "lean": OC("mux_ok_noskew", "sufficient") + OC("merge_or_step", "lemma") + OC("steer_back_noskew", "sufficient") + OC("mux_ack_pulses_noPW", "sufficient") + OC("merge_XA_real_step", "sufficient"),
+     "statement": "premises of OpsTimed*'s proof route that are NOT cell obligations. B-ops-counter.md proves the conclusions without the skew and pulse-width premises (OpsCounter.lean: mux_ok_noskew, Tok.retime, or_tok_mono, mux_or_step; merge_or_step; steer_back_noskew; mux_ack_pulses_noPW, mux_XA_real_step, mux_YA_real_step, merge_XA_real_step, merge_YA_real_step; MuxWit.noskew_witness, MuxWit.ack_pulses_noPW_witness), from causality alone (1 <= Es, 1 <= Ex/Ey/Eo). B-ops-exact.md (P6) finishes the merge: merge_ok_noskew / merge_timing_ns_of_static remove the merge's H_OR_SKEW / S_OR by a theorem, and merge_data_ok_exact proves the value path under MergeDataExact, which has no S_SEL_XR (the x_req branch of a y token is launched by the LAST x token and covered by S_ZM_SEL_X, bd_merge.bundled_z) and replaces S_SEL_XA_Z / S_SEL_XA_R by the single node-launched S_SEL_XA_N (bd_merge.isochronic_forks; MergeDataStatic.exact: the old set implies the new). They are deliberately NOT entries in `constraints`: no routed netlist can fail them in the model (S_SEL_XA_Z / S_SEL_XA_R are sufficient lumpings of S_SEL_XA_N, so checking them is merely conservative).",
+     "lean": OC("mux_ok_noskew", "sufficient") + OC("merge_or_step", "lemma") + OC("steer_back_noskew", "sufficient") + OC("mux_ack_pulses_noPW", "sufficient") + OC("merge_XA_real_step", "sufficient")
+             + OX("merge_ok_noskew", "sufficient") + OX("merge_timing_ns_of_static", "sufficient") + OX("merge_data_ok_exact", "sufficient", "no S_SEL_XR, S_SEL_XA_N in place of S_SEL_XA_Z / S_SEL_XA_R")
+             + OX("last_x", "lemma") + OX("MergeDataStatic.exact", "lemma"),
      "check": "none needed"},
+    {"id": "NRBW (no read before first write): bd_latch is not reset", "catalogue_row": "Rst section 4",
+     "cells": ["bd_latch (every data latch)", "bd_steer, bd_mux uj0/uj1, gcd_rig samplers (the guards)"],
+     "statement": "(a) GUARD: every LUT that reads q_L or a net in its X cone is either a guard whose Kleene value, with its guarding request at reset value 0 and every data pin x, is definite (steer req0/req1, mux joins' select pin, gcd_rig uerr_d/uok_d/uabsn_d/ucmpb_d), or the next latch with en = 0. (b) WRITE BEFORE READ: the phase-0 instance of the latch/bundling entries (bd_latch[*].setup_data, bd_pipe.boundary_I, bd_pipe.data_lead). Rst2 decides (a) on the whole imported gcd_hw control network with every data net (incl. the muxn3 decode outputs) a FREE input, so H_GUARD_MAP (yosys keeping ctl_req in the decode LUT) is NOT needed for reset or release.",
+     "lean": [L(RC, "steer_guardK", "lemma"), L(RC, "uj0_guardK", "lemma"), L(RC, "uj1_guardK", "lemma"), L(RC, "rig_cmp_guardK", "lemma"),
+              L(RG, "gcd_post_definite", "instance", note="every control excitation at release is definite with all 64 data nets X"),
+              L(RG, "neg_unguarded", "counter_trace", note="an OR steer fails the check"), L(RC, "rig_post_definite", "instance")],
+     "check": "structural; decided on the elaborated RTL control netlist (ResetGcd), not yet on a synthesized / routed netlist (C-11c import)"},
+    {"id": "H_NO_RETURN", "catalogue_row": "Rst section 2", "cells": ["every reset cell whose rst is still high when a frontier link fires"],
+     "statement": "no input of a cell still held in reset rises AND returns before the cell's rst releases (a lost event). Argued from the four-phase discipline (every return needs the reader's acknowledge), not proved. gcd_release_quiet reduces it to events caused by the 10 frontier links; design.rst_release_skew (H_RST_SKEW) is the checkable sufficient form.",
+     "lean": [L(RG, "gcd_release_quiet", "context", note="nothing moves before a frontier controller, for any release skew")],
+     "check": "evaluate design.rst_release_skew for the first-wave cells, or prove H_NO_RETURN (bounded-window closure per frontier event)"},
     {"id": "H_RF_ASYM", "catalogue_row": "11", "statement": "rise = fall within a corner column; asymmetry unmeasured", "lean": [], "check": "unmeasured"},
     {"id": "H_WIRE_RATIO", "catalogue_row": "11", "statement": "one fast/slow ratio k per margin; per-wire scatter p10 0.37 .. p90 0.82 not modelled",
      "lean": [L("Cells/ArbCorners", "fast_neg_iff", "corner"), L("Cells/ArbCorners", "guard_universal", "corner")], "check": "guard As - Af/k on SLOW_MAX-only checks"},
@@ -1435,7 +1644,7 @@ HYP = [
 # --------------------------------------------------------------- top level
 doc = {
     "schema": "cell_constraints/1",
-    "produced_by": "probe P2 (shard B, Phase 2 item B), 2026-10-27; transcribed from formal/notes/B-obligations.md and the B-*.md notes; no new Lean, no route. Updated by probe P4 (2026-10-27) from B-constraints-more.md (P3 Constraints{Sel,LatchRst,FastFall,Mux,More}.lean: 16 of the 19 unproved entries proved, lt_first partial, isochronic_forks x2 unproved; new bd_latch_rst.reset), B-gcd-cells.md (GcdCells.lean for bd_delay_gated; new bd_steer entries, unproved) and B-arb-overlap-race.md / B-ternary-on-bits2.md (grant overlap cap, H_LUT62_SHARED_READ). Updated by probe P5 (2026-10-27) from B-ops-timed.md / B-ops-timed2.md (OpsTimed, OpsTimedMux, OpsTimedWit, OpsTimed2: timed bd_steer/bd_mux/bd_merge; steer select setup/hold and both isochronic_forks now proved; new env-latency instances, reset_first, value path) and B-ops-counter.md (OpsCounter: one-tick counter-runs for the value path; or_skew / ack_or_skew / ack_pulse_width shown NOT necessary and therefore not entries), B-amerge.md / B-amerge-timed.md (AMerge*, MuxN3*: new cells bdc_amerge, bdc_amerge3, bdc_muxn), B-arb-corners-pin.md (per-pin O5 corner rule for the arbiter-based entries) and B-pipe-witness.md (non-degenerate witnesses cited on the bd_pipe entries); no new Lean, no route",
+    "produced_by": "probe P2 (shard B, Phase 2 item B), 2026-10-27; transcribed from formal/notes/B-obligations.md and the B-*.md notes; no new Lean, no route. Updated by probe P4 (2026-10-27) from B-constraints-more.md (P3 Constraints{Sel,LatchRst,FastFall,Mux,More}.lean: 16 of the 19 unproved entries proved, lt_first partial, isochronic_forks x2 unproved; new bd_latch_rst.reset), B-gcd-cells.md (GcdCells.lean for bd_delay_gated; new bd_steer entries, unproved) and B-arb-overlap-race.md / B-ternary-on-bits2.md (grant overlap cap, H_LUT62_SHARED_READ). Updated by probe P5 (2026-10-27) from B-ops-timed.md / B-ops-timed2.md (OpsTimed, OpsTimedMux, OpsTimedWit, OpsTimed2: timed bd_steer/bd_mux/bd_merge; steer select setup/hold and both isochronic_forks now proved; new env-latency instances, reset_first, value path) and B-ops-counter.md (OpsCounter: one-tick counter-runs for the value path; or_skew / ack_or_skew / ack_pulse_width shown NOT necessary and therefore not entries), B-amerge.md / B-amerge-timed.md (AMerge*, MuxN3*: new cells bdc_amerge, bdc_amerge3, bdc_muxn), B-arb-corners-pin.md (per-pin O5 corner rule for the arbiter-based entries) and B-pipe-witness.md (non-degenerate witnesses cited on the bd_pipe entries); no new Lean, no route. Updated by probe P6 (2026-10-27) from B-ops-counter.md (OpsCounter.lean now tracked: OPSCOUNTER_TRACKED = True), B-ops-exact.md (OpsExact: merge x_ack branch on S_SEL_XA_N alone, S_SEL_XR redundant -> bd_merge.sel_low_xreq removed, H_SEL_START split out as bd_merge.sel_start and shown exact against uxa powering up high, mux S_Z_S1 exact alone, S_Z_X exact when x is the join's late input, S_*_RTZ / S_XA_ZA redundant under a wire-spread condition), B-muxn3-timed.md (MuxN3Timed: the 5 bdc_muxn entries proved, new bdc_muxn.bundled_z_data and .uj_env_latency_req, s_setup exact by the one-tick Mn3Cex), B-reset-contract.md and B-reset-gcd.md (ResetContract, ResetGcd: new design.rst_hold, design.rst_flush, design.rst_release_skew, gcd_rig.token_static, gcd_rig.idx_setup; bd_latch first write as the phase-0 instance of the latch entries; hypotheses NRBW and H_NO_RETURN); no new Lean, no route",
     "routed_numbers_provenance": "every 'evidence' number is quoted from B/C notes: link_arb/ce_pair s1..s4 and gcd_hw d/2/3/4 routed by nextpnr sha256 9c732bc6303458df (toolchain.sh ok); muller64 s1 is one route",
     "conventions": {
         "time_unit": "ps",
