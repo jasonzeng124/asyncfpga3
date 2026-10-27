@@ -58,6 +58,8 @@ for c in spC:
 ACC = names.index("acc251")
 adj = [True] * NC; adj[ACC] = False
 al = [[grp[c]] for c in range(NC)]; al[ACC] = [13, 27]
+if os.environ.get("NEG") == "acc":  # negative control: treat acc251 like any other channel
+    adj[ACC] = True; al[ACC] = [251]
 
 def succs(c):
     o = op(c)
@@ -112,4 +114,4 @@ if len(sys.argv) > 1:
     open(sys.argv[1], "w").write(txt)
 else:
     print(txt)
-sys.exit(1 if bad or not init_ok else 0)
+sys.exit(0 if os.environ.get('NEG') else (1 if bad or not init_ok else 0))
