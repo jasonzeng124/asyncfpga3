@@ -326,3 +326,19 @@ P5: cell_constraints.json at 116 entries (110 proved). In: Cm2
 AMergeTimed*, Lt3 OpsCounter (6 value obligations exact on a run; 4 control
 obligations shown unnecessary), Rst ResetContract (pending commit with the
 port).
+
+### progress 08:16
+PHASE 1 PORT committed (e54d7ca), verified by a full lake build (3115 jobs)
+and check.sh OK. Prelim now names Core's objects (K3 = Core.K3, lutK = Core's
+mux tree with lutK_ofFn = Lut.keval, lutB_ofFn = Lut.eval). NOT deleted: C's
+Net/Fasm/Basic, Net/CoreLutPrelim, Gen/PrelimSem, Net/Import/PrelimSem and A's
+Core/Bridge still import it; their Cells bridges are now identities (toCells,
+toP/ofP). Recommended deletion route (notes/B-port-core.md): move Prelim's
+list-based LUT API into a Core module (e.g. Core/LutList.lean, shard A) and
+change import lines. The Trace/WinDelay half (CElemTiming -> Substrate) was
+reverted: it makes Core.Circuit visible to importers, and Formal.Core.Gate
+then shadows Env.Gate in A's Core/EnvFast/SteerEnv.lean (unqualified 'Gate'
+at l.84). FOR SHARD A: qualify it (Env.Gate) and B will redo that half.
+New in the same commit: OpsCounter, OpsExact, MuxN3Timed, ResetContract,
+ResetGcd/ResetGcdNet (gcd_hw control network reset and release, by decide).
+In before that: Br (gcd_hw routes: clean at consistent corners).
