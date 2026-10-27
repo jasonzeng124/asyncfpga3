@@ -32,7 +32,10 @@
   complete run on every schedule/arbiter outcome with exactly the C function's
   result (one-invocation invariant proved); with 8k: = Nat.gcd for a, b <
   2^31, every partial run completes, bounded, no fairness assumption (token
-  level). Circuit-level refinement of that graph + hypothesis list: 8l. Muller
+  level). Circuit level (`Capstone*`, 8l): every op cell gcd_hw uses has an operator
+  theorem; every gcd_hw cycle carries >= 3 links (bdc's placement); safety
+  proved conditional on a token-equation solution; hypothesis list in
+  formal/notes/C-gcd_hw-hypotheses.md. Closing it: 8m (safety), 8n (liveness). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -263,3 +266,10 @@ passes unguarded. Launched 9c (Muller chain for all n by a local invariant).
 (runt up to ~1.2 ns on a grant wire at SLOW_MAX; pin assignment); evidence
 that the handshake survives (runt ends >= 342 ps before A0 can rise), not
 proved. Owner notified, with the 10f follow-up (gcd_hw C-elements safe).
+
+### progress 07:14
+8l committed (audit 1773). Not yet an unconditional circuit-level gcd
+theorem: open O1 (circuit follows the token run's control_merge labels), O2
+(total stream solution), O4 (Ops gates = generated cells + C2), O5 (circuit
+liveness), O7 (concrete network). Launched 8m (O7+O2+O1 -> gcd_hw_circuit_safe)
+and 8n (O4 + bounded-delay liveness).
