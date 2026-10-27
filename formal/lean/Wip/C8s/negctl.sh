@@ -18,7 +18,7 @@ for i in range(3, len(sys.argv), 2):
 open(sys.argv[2],'w').write(s)
 PY
   if (cd "$LEAN" && ../slot.sh lake env lean "$tmp/$name.lean" 2>&1 | grep -q "error"); then echo "$name: rejected (ok)"; else echo "$name: ACCEPTED (BAD)"; rc=1; fi; }
-: run Neg1 ".lab2 gi => gi == idx && al z == [res] && kk == bn (c == y)" ".lab2 gi => gi == idx && al z == [res] && kk == bn (c != y)"
+run Neg1 ".lab2 gi => gi == idx && al z == [res] && kk == bn (c == y)" ".lab2 gi => gi == idx && al z == [res] && kk == bn (c != y)"
 # Neg2: tables regenerated with acc251 treated as an ordinary channel (adj, al = [251])
 NEG=acc python3 "$HERE/walkgen.py" "$tmp/negtabs.txt" 2>&1 | tail -1
 python3 - "$T" "$tmp/negtabs.txt" "$tmp/Neg2.lean" <<'PY'
@@ -30,5 +30,5 @@ for name in ["adjL", "alL", "recs"]:
 open(sys.argv[3], "w").write(s)
 PY
 if (cd "$LEAN" && ../slot.sh lake env lean "$tmp/Neg2.lean" 2>&1 | grep -q "error"); then echo "Neg2: rejected (ok)"; else echo "Neg2: ACCEPTED (BAD)"; rc=1; fi
-: run Neg3 "grp t == gt && grp f == gf" "grp t == gf && grp f == gt"
+run Neg3 "grp t == gt && grp f == gf" "grp t == gf && grp f == gt"
 rm -rf "$tmp"; exit $rc
