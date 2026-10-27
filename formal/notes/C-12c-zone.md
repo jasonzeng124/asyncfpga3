@@ -35,3 +35,29 @@ had dl_lo = 1 tick, which is exactly the tick of the digital grid, so the
 dl_lo term was hidden by the tie rule. The safe (hazard-free / transport)
 bound is dw_hi: strict for inertial (at equality a zero-width excitation is
 swallowed = hz), closed for transport (zero-width reversal cancelled).
+
+## Arbiter thresholds (item 3), DONE -- interim notes
+
+Dense time, 0.1 ps resolution (u=10), nominal arcs, zero routing except the
+swept wire, srv window [s_lo, s_lo+20], clients fall [4,24] ps after A.
+Every check < 0.3 s inertial (<= 300 zones), 2-4 s transport (<= 3.5 k zones,
+63 MB).
+- HELD ack exclusion (amutex): inertial holds iff s_lo > 56 ps (strict);
+  transport (no q runt) holds iff s_lo >= 56 ps (closed); tx_nr same in
+  transport. 12b's "~60 ps" (15 ticks) is 56 ps exactly, i.e. the 14-tick
+  boundary 12b saw at "<= 14 fails".
+- A0 fork (HELD): holds iff wa < 112 + c_lo ps, c_lo = client's minimum
+  r-fall response (checked c_lo = 0, 4, 20, 40: thresholds 112, 116, 132, 152).
+  So 12b's 116 ps = O6 rise (A2, 56) + c_lo (4) + O6 rise (q, 56), and the
+  dependence on c_lo is now explicit. Same in transport (_nr).
+- UNHELD grant overlap: mutex iff wq_g > 16 ps (strict). UNHELD ho/tx iff
+  s_lo >= 60 ps fails (59.9 holds).
+- NEW: HELD arbiter, q->ugrant route wq_g: inertial mutex holds iff
+  wq_g < 56 ps; transport (pure delay) mutex fails for EVERY wq_g > 0 (0.1 ps
+  fails) even with no runt on q. Mechanism (witness): r1 alone, q rises, r2
+  rises after q has committed but before the new q reaches ugrant.I2; ugrant
+  sees r2 & ~qg(old) and g2 gets an excitation of width (wq_g - (t_r2 -
+  t_q)); g1 then rises 52 ps after qg arrives while g2 falls only 124 ps
+  after it. The hold does not cover this (A0 is low). 12b never saw it because
+  its HELD rows had wq_g <= 32 ps inertial, and wq_g = 0 in transport except
+  the spread row that OOMed.
