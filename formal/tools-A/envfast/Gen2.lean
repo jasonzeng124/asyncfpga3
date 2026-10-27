@@ -11,9 +11,11 @@ them, e.g. the one `check.sh` builds):
 
     ../slot.sh lake env sh -c 'LEAN_PATH=<overlay>:$LEAN_PATH lean ../tools-A/envfast/Gen2.lean'
 
-It writes `Formal/Core/EnvFast/Tables2.lean`, `MuxCert.lean`, `MergeDataCert.lean`, and
-(only with GEN_MUXD set in the environment: 27680 states, 4 MB) `MuxDataCert.lean`,
-and prints the per-chunk theorem lines to paste into `Mux.lean` / `MergeData.lean`.
+It writes `Formal/Core/EnvFast/Tables2.lean`, `MuxCert.lean`, `MuxDataCert.lean`,
+`MergeDataCert.lean` (and, with GEN_MUXD_FULL=<path>, the 27680-state certificate of the
+mux with both data senders free, to <path>),
+and (with GEN2_CHUNKS=<prefix>) writes the per-chunk theorem lines to paste into
+`Mux.lean` / `MuxData.lean` / `MergeData.lean` to <prefix>.mux and <prefix>.merge.
 Reachable sets come from a hash-map BFS over `Env.succs` (interpreted); certificates
 are emitted in balanced-BST preorder so that `kmkTree` builds a balanced tree.
 -/
@@ -118,22 +120,29 @@ def certFile (mod doc : String) (defs : List (String × String × List Nat)) (k 
   let a := certOf (muxModel ⟨true⟩)
   let b := certOf (muxZaModel ⟨true, true, true⟩)
   let c := certOf (muxCrModel ⟨true, true, true⟩)
-  let d := if (← IO.getEnv "GEN_MUXD").isSome then certOf (muxDModel ⟨true, true⟩) else []
-  IO.println s!"mux {a.length}, muxZa {b.length}, muxCr {c.length}, muxD {d.length}"
+  let d := certOf (muxDModel ⟨true, true, false⟩)
+  IO.println s!"mux {a.length}, muxZa {b.length}, muxCr {c.length}, muxD (y data held) {d.length}"
   IO.FS.writeFile "Formal/Core/EnvFast/MuxCert.lean" (certFile "MuxCert" "bd_mux."
     [("mux_R", "`muxModel ⟨true⟩`", a), ("mux_ZA", "`muxZaModel ⟨true, true, true⟩`", b),
      ("mux_CR", "`muxCrModel ⟨true, true, true⟩`", c)])
-  if !d.isEmpty then
-    IO.FS.writeFile "Formal/Core/EnvFast/MuxDataCert.lean" (certFile "MuxDataCert" "bd_mux with data (W = 1)."
-      [("mux_D", "`muxDModel ⟨true, true⟩`", d)])
-  IO.FS.writeFile "/tmp/envmux/mux_chunks.txt" (
-    chunkThms "mux_R" "muxR" "kchunk CR (kmuxQ CR)" a 128 ++
-    chunkThms "mux_ZA" "muxZA" "kchunk CZA (kmuxQ CZA)" b 128 ++
-    chunkThms "mux_CR" "muxCR" "kchunk CCR (kmuxQ CCR)" c 128 ++
-    chunkThms "mux_D" "muxD" "kchunkD CD muxDSpecK (kmuxDQ CD)" d 128)
+  IO.FS.writeFile "Formal/Core/EnvFast/MuxDataCert.lean" (certFile "MuxDataCert" "bd_mux with data (W = 1)."
+    [("mux_D", "`muxDModel ⟨true, true, false⟩`", d)])
+  -- The model with both data senders free (27680 states, about 4 MB of certificate; too
+  -- costly to kernel-check in the shared build): only on request, to the given path.
+  if let some path := ← IO.getEnv "GEN_MUXD_FULL" then
+    let d2 := certOf (muxDModel ⟨true, true, true⟩)
+    IO.println s!"muxD (both data free) {d2.length}"
+    IO.FS.writeFile path (certFile "MuxDataFullCert" "bd_mux with data (W = 1), both senders free."
+      [("mux_DF", "`muxDModel ⟨true, true, true⟩`", d2)])
   let f := certOf (mergeDModel 1 ⟨true, false, true⟩)
   IO.println s!"mergeD1 noSelFast {f.length}"
   IO.FS.writeFile "Formal/Core/EnvFast/MergeDataCert.lean" (certFile "MergeDataCert" "bd_merge with data."
     [("mergeD1_N", "`mergeDModel 1 ⟨true, false, true⟩`", f)])
-  IO.FS.writeFile "/tmp/envmux/merge_chunks.txt" (
-    chunkThms "mergeD1_N" "mD1N" "kchunkD (CM1 ⟨true, false, true⟩) mergeDSpecK (kmergeDQ 1 (CM1 ⟨true, false, true⟩))" f 128)
+  if let some chunks := ← IO.getEnv "GEN2_CHUNKS" then
+    IO.FS.writeFile (chunks ++ ".mux") (
+      chunkThms "mux_R" "muxR" "kchunk CR (kmuxQ CR)" a 128 ++
+      chunkThms "mux_ZA" "muxZA" "kchunk CZA (kmuxQ CZA)" b 128 ++
+      chunkThms "mux_CR" "muxCR" "kchunk CCR (kmuxQ CCR)" c 128 ++
+      chunkThms "mux_D" "muxD" "kchunkD CD muxDSpecK (kmuxDQ CD)" d 128)
+    IO.FS.writeFile (chunks ++ ".merge") (
+      chunkThms "mergeD1_N" "mD1N" "kchunkD (CM1 ⟨true, false, true⟩) mergeDSpecK (kmergeDQ 1 (CM1 ⟨true, false, true⟩))" f 128)
