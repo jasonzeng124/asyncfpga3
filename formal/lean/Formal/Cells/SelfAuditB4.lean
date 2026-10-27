@@ -3,9 +3,9 @@ import Formal.Cells.ContractsTruncWit
 # Self-audit of shard B (probe Bsa), part 4: a witness for `ContractsB.steer_contract`
 
 `steer_contract` (B-contracts.md) had no run meeting all of its hypotheses.
-`OpsTimed.SteerWit` (the witness of `steer_ok_static`) does NOT meet it: its
-first branch request is at `R0 0 = 4` while `H_T1` needs `T1 0 = 5 ≤ R0 0`
-(the clean window of the FIFO model starts too late). Here the run of
+`OpsTimed.SteerWit` witnesses `steer_ok`/`steer_ok_static`, not this theorem
+(not a defect): its first branch request is at `R0 0 = 4` while `H_T1` needs
+`T1 0 = 5 ≤ R0 0` (`OpsTimed.SteerWit.not_H_T1`). Here the run of
 `ContractsTruncWit` (first request at 9) is used: every hypothesis of
 `steer_contract`, including `SteerCausal`, `SteerStatic` (by `decide`), the
 reset-quiet and first-edge facts and C's channel identifications (C = `Option

@@ -111,6 +111,17 @@ level of the whole four-phase run).
 * `SteerWit.witness`, `witness_routes`: unit delays, `sv` alternating, `s`
   changing mid-idle; all hypotheses proved for every token; `r0 4 = 1, r1 4 = 0,
   r0 20 = 0, r1 20 = 1, ack 8 = ack 24 = 1`.
+  **Scope (self-audit correction).** This run witnesses `steer_ok` (every field of
+  `SteerGates` and `SteerEnv`: `SteerWit.gates`, `SteerWit.env`) and, via
+  `OpsTimed2.SteerWit.static_witness`, `steer_ok_static`. It is NOT a witness of
+  `ContractsB.steer_contract`, whose extra hypotheses `H_T1` (`T1 Tr ≤ R0 (2·κ false 0)`)
+  and `H_T2` (`T2 Ta ≤ K 0`) it violates: `SteerWit.not_H_T1` (`¬ T1 Tr ≤ R0 0` for every
+  `Tr`: `T1 Tr ≥ 5 > R0 0 = 4`) and `SteerWit.not_H_T2` (`T2 6 = 10 > K 0 = 8`). `H_T1` is
+  not a hypothesis of `steer_ok`/`steer_ok_static`, so nothing in this file is unwitnessed;
+  `steer_contract`'s witness is `SelfAuditB4.steer_contract_witness` (ContractsTruncWit's run,
+  first request at 9). Caveat: the unit-delay windows `T1 0 = 5`, `T2 6 = 10` start after the
+  first branch request (4) and first acknowledge (8), so `witness`'s `Tok` conclusions cover
+  token 0 only from those times on; `witness_routes` checks token 0 directly.
 
 ### bd_mux (`OpsTimedMux.lean`)
 * `mux_E_mono`: the selected join's node edges `E` (control-indexed, defined

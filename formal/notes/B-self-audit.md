@@ -24,9 +24,11 @@ now compiles (only `if_pos`/`if_neg` deprecation warnings): the audit row 48 fix
 | `SelfAuditB3.lean` | `idx_setup_witness` | `RigContract.idx_setup` had no witness. 7600 ps hk, transport paths 600/1500 ps, real `bd_c2n` INIT with unit LUT arc and feedback wire: every hypothesis holds for every load edge `n0`; controller high from `r+1` to window end. Caveat: lo = hi paths, so `PathOK`'s band and `H_RST_ONE_FALL` are exercised only trivially. |
 | `SelfAuditB4.lean` | `steer_contract_witness` | `ContractsB.steer_contract` had no witness. Run of ContractsTruncWit; `SteerCausal`, `SteerStatic` (decide), quiet/first-edge facts, C's channel maps. |
 
-Finding (minor): `OpsTimed.SteerWit` (the witness of `steer_ok_static`) does NOT satisfy
-`steer_contract`'s `H_T1` (`T1 0 = 5 > R0 0 = 4`), so `steer_contract` was unwitnessed until
-SelfAuditB4.
+Note (corrected by probe Bsw): `OpsTimed.SteerWit` witnesses `steer_ok` and
+`steer_ok_static` (all their hypotheses hold) and was never meant to witness
+`steer_contract`; it does not meet `steer_contract`'s `H_T1` (`T1 0 = 5 > R0 0 = 4`,
+`OpsTimed.SteerWit.not_H_T1`). Not a defect: `steer_contract` simply had no witness
+until SelfAuditB4.
 
 Observation (SelfAuditB2): with D = W = 0 the steers are 0 exactly through `F+34`
 (`gcd_loop_late`) and the wave settles exactly at `F + 34(D+W+1) = F+34`, so

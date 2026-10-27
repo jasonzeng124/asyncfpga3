@@ -630,6 +630,27 @@ theorem witness_routes :
     r0 4 = true ∧ r1 4 = false ∧ r0 20 = false ∧ r1 20 = true ∧ ack 8 = true ∧ ack 24 = true := by
   decide
 
+/-! ### Scope of this witness (self-audit correction)
+
+This run witnesses `steer_ok` (all of `SteerGates` and `SteerEnv`: `gates`,
+`env`) and, through `OpsTimed2.SteerWit.static_witness`, `steer_ok_static`
+(`SteerCausal`, `SteerStatic`). Neither theorem has a hypothesis `H_T1`.
+`H_T1` and `H_T2` are hypotheses of `ContractsB.steer_contract` only, which
+asks the FIFO model's clean windows to open before the first edges. They fail
+here, for EVERY choice of the free window start `Tr` (resp. at the chosen
+`Ta = 6`): the first branch request reaches receiver 0 at `R0 0 = 4`, one tick
+before the forward window can open. `steer_contract`'s witness is
+`SelfAuditB4.steer_contract_witness` (a run whose first request is at 9). -/
+
+/-- `steer_contract`'s `H_T1.1` (`T1 Tr ≤ R0 (2 · κ false 0)`, with token 0 the
+first `s = 0` token, so `κ false 0 = 0`) is false for every `Tr`. -/
+theorem not_H_T1 (Tr : Nat) : ¬ run.T1 Tr ≤ run.R0 0 := by
+  rw [R0_eq]; show ¬ Tr + 1 + (1 + 1) + (1 + 1) ≤ 8 * 0 + 4; omega
+
+/-- `steer_contract`'s `H_T2` (`T2 Ta ≤ K 0`) is false at the `Ta = 6` used by `env`. -/
+theorem not_H_T2 : ¬ run.T2 6 ≤ run.K 0 := by
+  rw [K_eq]; show ¬ 6 + (1 + 1) + 1 + 1 ≤ 8 * 0 + 8; omega
+
 end SteerWit
 
 end Formal.Cells.OpsTimed

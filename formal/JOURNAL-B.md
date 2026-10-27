@@ -255,6 +255,10 @@ WinFifo (X1: B's FIFO hypotheses do NOT follow from Win; FIFO = Win +
 H_NO_REVERT under spacing; H_NO_REVERT is inertial-type, a named fidelity
 hypothesis), Bri RigIdx (gcd_rig.idx_setup proved sufficient and exact;
 RigContract.idx_setup's H_TOKEN_STATIC fails in the running ring).
+Bsa's "OpsTimed.SteerWit violates its own H_T1" (commit 3300f44) was
+misattributed (probe Bsw): H_T1 belongs to ContractsB.steer_contract, which
+SteerWit never claimed to witness; SteerWit witnesses steer_ok and
+steer_ok_static. Disproof theorems not_H_T1/not_H_T2 added, notes fixed.
 Corrections applied: B-rig-contract.md correction block (5 items: idx_setup
 hypothesis, "refuted" -> "excluded given H_RESULT_FRESH", verdict_current
 scope, withdrawn necessity, constants not bit-exact); RigContract docstring
