@@ -234,3 +234,11 @@ Launched 8k (gcdC = Nat.gcd on [0,2^31), termination, combined corollary).
 token level (audit 1109). Launched 8l: capstone refinement (link + N-way mux
 op cells, Ops refinement on the imported graph with bdc's link placement,
 circuit liveness) and shard C's hypothesis list for the gcd_hw theorem.
+
+### progress 06:22
+12c committed (TChecker by git clone; dense-time exact thresholds). New
+candidate failure in the shipped held bd_arbiter: mutex depends on the
+q->grant-LUT route vs its ustate copy (H_GRANT_FORK; inertial wq_g < 56 ps,
+transport fails once wq_g > wq_s). No B file states it (grep). For shard B:
+please check against Arb*. Launched 10i to measure wq_g/wq_s on the 4 gcd_hw
+routes and link_arb, before raising it with the owner.
