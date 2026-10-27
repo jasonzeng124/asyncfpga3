@@ -13,6 +13,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
 | research | 19a93c1 | BOARD-QUEUE #2 "vec 6 ... mean 47.3, vs 24-26 unsized" (~1.9x), vec12 38.1, vec13 55.4 | CONFIRMED (arithmetic only) | audit/findings/research-stats.md | means recomputed from per-seed table; per-seed laps themselves not yet reproduced |
+| research | 19a93c1 | gcd_rig.v: "Every expected value here was produced by bdc/simcheck.py's ref_gcd" (oracle for BQ#1-#3) | CONFIRMED | audit/oracle/ (dynamatic gcd.c compiled by the auditor, 16/16 equal) | oracle is derived from the C, not recorded from a run |
 | research | 19a93c1 | toolchain: nextpnr sha256 9c732bc6303458df with all 9 patch fingerprints | CONFIRMED | ~/audit-tc rebuilt by cloud/setup-toolchain.sh (cache), own sha256sum 9c732bc6303458dfed29...; yosys 4726b5a4... | matches research/board/gcd_hw_03e82630.toolchain.txt |
 | research | 19a93c1 | BOARD-QUEUE #1 "sha256 03e82630dcf5...41196" of research/board/gcd_hw_03e82630.bit | CONFIRMED | `sha256sum research/board/gcd_hw_03e82630.bit` | file integrity only; route reproduction pending |
 | formal | 71ee3e86 | no sorry/admit/native_decide/axiom/opaque/extern/implemented_by/unsafe/csimp in Formal/ | CONFIRMED (textual) | grep in JOURNAL 03:4x; only 2 hits, both in doc comments | kernel-level axiom audit pending (audit/tools/axiom_audit.sh) |

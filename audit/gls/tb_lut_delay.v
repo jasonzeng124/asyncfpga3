@@ -7,16 +7,79 @@ module tb;
     localparam N = 12;
     reg  [N-1:0] a = 0;
     wire [N-1:0] o;
-    genvar i;
-    generate for (i = 0; i < N; i = i + 1) begin : g
+    always @(a) $display("IN  t=%0d a=%b", $time, a);
 `ifdef ANNOT
-        SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u (.A1(a[i]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[i]));
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u0 (.A1(a[0]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[0]));
 `else
-        SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u (.A1(a[i]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[i]));
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u0 (.A1(a[0]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[0]));
 `endif
-        always @(a[i]) $display("IN  ch%0d t=%0d a=%b", i, $time, a[i]);
-        always @(o[i]) $display("OUT ch%0d t=%0d o=%b", i, $time, o[i]);
-    end endgenerate
+    always @(o[0]) $display("OUT ch0 t=%0d o=%b", $time, o[0]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u1 (.A1(a[1]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[1]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u1 (.A1(a[1]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[1]));
+`endif
+    always @(o[1]) $display("OUT ch1 t=%0d o=%b", $time, o[1]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u2 (.A1(a[2]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[2]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u2 (.A1(a[2]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[2]));
+`endif
+    always @(o[2]) $display("OUT ch2 t=%0d o=%b", $time, o[2]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u3 (.A1(a[3]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[3]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u3 (.A1(a[3]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[3]));
+`endif
+    always @(o[3]) $display("OUT ch3 t=%0d o=%b", $time, o[3]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u4 (.A1(a[4]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[4]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u4 (.A1(a[4]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[4]));
+`endif
+    always @(o[4]) $display("OUT ch4 t=%0d o=%b", $time, o[4]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u5 (.A1(a[5]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[5]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u5 (.A1(a[5]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[5]));
+`endif
+    always @(o[5]) $display("OUT ch5 t=%0d o=%b", $time, o[5]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u6 (.A1(a[6]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[6]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u6 (.A1(a[6]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[6]));
+`endif
+    always @(o[6]) $display("OUT ch6 t=%0d o=%b", $time, o[6]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u7 (.A1(a[7]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[7]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u7 (.A1(a[7]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[7]));
+`endif
+    always @(o[7]) $display("OUT ch7 t=%0d o=%b", $time, o[7]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u8 (.A1(a[8]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[8]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u8 (.A1(a[8]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[8]));
+`endif
+    always @(o[8]) $display("OUT ch8 t=%0d o=%b", $time, o[8]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u9 (.A1(a[9]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[9]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u9 (.A1(a[9]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[9]));
+`endif
+    always @(o[9]) $display("OUT ch9 t=%0d o=%b", $time, o[9]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u10 (.A1(a[10]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[10]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u10 (.A1(a[10]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[10]));
+`endif
+    always @(o[10]) $display("OUT ch10 t=%0d o=%b", $time, o[10]);
+`ifdef ANNOT
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA), .TA1O6(7)) u11 (.A1(a[11]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[11]));
+`else
+    SLICE_LUTX #(.INIT(64'hAAAAAAAAAAAAAAAA)) u11 (.A1(a[11]), .A2(1'b0), .A3(1'b0), .A4(1'b0), .A5(1'b0), .A6(1'b0), .O5(), .O6(o[11]));
+`endif
+    always @(o[11]) $display("OUT ch11 t=%0d o=%b", $time, o[11]);
     // channel stimuli (all start at 0)
     initial begin
 `ifdef ANNOT
