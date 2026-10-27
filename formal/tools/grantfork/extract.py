@@ -26,8 +26,10 @@ RC tree, tcheck/extract.Prjx.split):
     asr  ustate arc r_k pin -> O6
 Transport window (B-style per-pin pure delays):  W = (dqg+agq) - (dqs+asq) - ((drg+agr) - (drs+asr))
    H_GRANT_FORK (transport) holds iff W <= 0 over the variant's box.
-Inertial reading (12c: ustate swallows its own reversal, so r_k may reach ustate
-from q's output edge on):  width = dqg - (drg - drs),  threshold = min(agq, agr)
+Inertial reading (12c: r_k reaches ustate's core no earlier than q's output edge
+and late enough that ustate swallows its own reversal, i.e. within its inertial
+delay dst = max(asq, asr) of q's feedback arrival):
+   width = dqg - (drg - drs) - max(0, dqs - dst + 1),  threshold = min(agq, agr)
    H_GRANT_FORK (inertial) holds iff width.hi < threshold.lo.
 
 Variants: fast = [fast_min, fast_max] per element, slow = [slow_min, slow_max]
@@ -167,7 +169,8 @@ def run_design(label, odir, top, T, R, F):
                        - d["drg"][0] - d["agr"][0] + d["drs"][1] + d["asr"][1])
                 Wlo = (d["dqg"][0] + d["agq"][0] - d["dqs"][1] - d["asq"][1]
                        - d["drg"][1] - d["agr"][1] + d["drs"][0] + d["asr"][0])
-                wid = d["dqg"][1] - d["drg"][0] + d["drs"][1]
+                wid = (d["dqg"][1] - d["drg"][0] + d["drs"][1]
+                       - max(0, d["dqs"][0] - max(d["asq"][1], d["asr"][1]) + 1))
                 thr = min(d["agq"][0], d["agr"][0])
                 V[v] = dict(iv=d, W=(Wlo, Whi), transport_ok=Whi <= 0,
                             width_hi=wid, thr_lo=thr, inertial_ok=wid < thr)
@@ -211,6 +214,7 @@ def write_lean(rows, path):
                    "    agq := ⟨%d, %d⟩, agr := ⟨%d, %d⟩, asq := ⟨%d, %d⟩, asr := ⟨%d, %d⟩ }") % tuple(
                        y for k in ("dqg", "dqs", "drg", "drs", "agq", "agr", "asq", "asr") for y in d[k])
             out.append(f"def {nm} : Box :=\n  {box}\n")
+            out.append(f"theorem {nm}_wf : {nm}.wf = true := by decide")
             out.append(f"theorem {nm}_T : okT {nm} = {'true' if x['transport_ok'] else 'false'} := by decide")
             out.append(f"theorem {nm}_I : okI {nm} = {'true' if x['inertial_ok'] else 'false'} := by decide\n")
             nT += x["transport_ok"]
@@ -224,17 +228,29 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lean")
     ap.add_argument("--only")
+    ap.add_argument("--part", help="internal: extract ONE design into build/part_LABEL.json")
     a = ap.parse_args()
     sys.argv = [sys.argv[0]]
-    T, R, F = E.load_rules(CELLS)
+    (HERE / "build").mkdir(exist_ok=True)
+    if a.part:
+        # ONE design per process: fasm2lean / ringdelay keep per-fabric state in
+        # module-level caches, and a second design extracted in the same process
+        # was seen to read stale state (spurious floating LV nodes, different
+        # numbers).  Found 2026-10-27 by running a design alone vs. after others.
+        T, R, F = E.load_rules(CELLS)
+        label, odir, top = next(d for d in DESIGNS if d[0] == a.part)
+        rs = run_design(label, odir, top, T, R, F)
+        json.dump(rs, open(HERE / f"build/part_{label}.json", "w"))
+        return
+    import subprocess
     rows = []
     for label, odir, top in DESIGNS:
         if a.only and a.only not in label:
             continue
-        rs = run_design(label, odir, top, T, R, F)
+        subprocess.run([sys.executable, "-I", str(HERE / "extract.py"), "--part", label], check=True)
+        rs = json.load(open(HERE / f"build/part_{label}.json"))
         rows += rs
         print(f"{label}: {len(rs)} arbiter-clients", file=sys.stderr)
-    (HERE / "build").mkdir(exist_ok=True)
     json.dump(rows, open(HERE / "build/grantfork.json", "w"), indent=1)
     with open(HERE / "build/grantfork.tsv", "w") as f:
         f.write("design\tinst\tclient\tpins(ug q,r / st q,r)\tfallback\tvariant\tW_lo\tW_hi\ttransport\twidth_hi\tthr_lo\tinertial\n")
