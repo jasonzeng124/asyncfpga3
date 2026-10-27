@@ -1011,3 +1011,4 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 ### progress 00:07 (collatz + FF: corners and scatter clean)
 - collatz T3 + link fast fall, seeds 1 and 4: routed GLS at x0.9, x1.1, per-arc scatter 8.5% x2 and 17% x1: fast and
   stalled pass on all 10 runs.
+- xorshift T3 + link fast fall, seeds 1 and 4: x0.9, x1.1, scatter 8.5% x2 and 17%: fast+stalled pass on all 10 runs.
