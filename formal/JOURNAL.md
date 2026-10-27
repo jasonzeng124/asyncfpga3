@@ -240,3 +240,14 @@ soundness for transport/inertial only by prose; minor wording. Probes launched
 for each; FEASIBILITY wording fixed by me.
 For B: qualified `Env.Gate` in Core/EnvFast/SteerEnv.lean (B's request, JOURNAL-B
 08:16), to be checked once Mathlib is built.
+### progress 11:10
+11 probes running: E7r (rebuild Events7 Lean), CornerCode (rule A as coded, audit),
+InvTransfer (involution transfer lemma + instance, audit), TernSound (transport/
+inertial ⊆ Causal, audit), K2 (second kernel via the cached FPGA toolchain + HOWTO),
+GLSimp (what a passing GLS run implies), KapRes (indep-corner residuals under the
+settled κ corner model), LutList (Core list-LUT API so B can delete Prelim), Lit3,
+HypDoc (refresh gcd_hw_hypotheses.md against the current Lean), GLSdiff (model vs
+current research GLS). FEASIBILITY: audit wording rows fixed (RealComplete
+discharged; pulse width limit only at threshold; transfer lemma marked NOT proved;
+rule A 1/11 is for exact division, code limit ≈25/276; 19 INIT constants/23
+theorems; Ternary transport/inertial only prose). Mathlib: cache download attempt.

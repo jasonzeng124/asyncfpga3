@@ -77,7 +77,7 @@ B3 pulses, B4 inertial, B5 an AND gate in a conjunction circuit):
 - **ℝ → Bool** (`Core/Trace/Real.lean`, 511 lines, ~1.5 h): all of B0–B5,
   channel as a strictly increasing time warp (composition ~10 lines; the
   event-level reading is *proved* from it). B4 carries a named hypothesis
-  `RealComplete` (Mathlib proves it; the module was not built yet). Costs:
+  `RealComplete`, since discharged from Mathlib (audit: this line was stale). Costs:
   every "first event" argument needs completeness; concrete waveforms are
   verbose (ε choices); nothing computes, so no `decide`. Finding: the
   order-preserving warp can never lose a pulse, which is unsound for runts
@@ -103,13 +103,16 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
 - **Involution** (`Core/Delay/Involution.lean`, Függer/Najvirt/Nowak/Schmid):
   all hypotheses are fields of `InvolutionPair`. Consecutive outputs cancel
   iff t(n+1) − o(n) ≤ −δmin (`cancel_iff`); output pulse width is strictly
-  increasing in input width and shrinks continuously to 0 at the threshold
+  increasing in input width and tends to 0 as the input width approaches the threshold (limit at the threshold only; audit wording fix)
   (`pulseWidth_small`: the property that makes the model faithful to
   short-pulse filtration), in contrast to inertial (`inertial_gap`). Exp
   channel derived from a first-order RC (exp/log as hypotheses). **Transfer
-  lemma:** with input separation T0 the involution channel is a bounded pure
-  delay in [δ(T0), δ∞) with no cancellation, so cell proofs can use pure delay
-  plus a separation hypothesis and need involution only for runts/hazards.
+  lemma: NOT proved (audit OVERSTATED, 2026-10-27).** Only monotonicity and
+  boundedness of δ (`up_bounds`/`down_bounds`, in time since the previous
+  OUTPUT) are proved; no theorem relates the channel to `Pure.Chan`, no
+  `InvolutionPair` instance was built, and no module imported Involution.
+  Probe InvTransfer (session 10:38) is proving it; until then cell proofs
+  that use pure delay plus separation do not inherit involution faithfulness.
   For bd_arb: in the faithful model the arbiter loop has no bounded settling
   time, so handover exclusion cannot be unconditional (no MTBF: that needs
   the analog layer, shard B 7c/7d).
@@ -140,8 +143,8 @@ scatter |ε| ≤ κ, a bundling condition at both corner endpoints is equivalent
 it at every corner (`bundle_ratio_affine_iff`); monotone nominal delays alone
 are not enough (`monotone_not_enough`). The project's guardbands become exact
 scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_sound`,
-`ruleE_tight`); tighten.py rule A iff κ ≤ 1/11 ≈ 9.1% (`ruleA_sound_rel`,
-`ruleA_tight`). Soft evidence that κ can be larger: the 7-link ring ratios
+`ruleE_tight`); rule A *with exact division Pd/5* iff κ ≤ 1/11 ≈ 9.1% (`ruleA_sound_rel`,
+`ruleA_tight`); tighten.py as coded truncates (`max(int(0.2*t),200)`), and the audit shows its limit is ≈ 25/276 ≈ 9.06% (t_data 1004, t_req 1204 passes the code and fails at 1/11); probe CornerCode is proving the coded rule's exact limit. Soft evidence that κ can be larger: the 7-link ring ratios
 0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
 path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
 two-path difference, so this is not a refutation. **Correction (2026-10-27 ~07:00):** the ring ratios behind κ ≥ 0.311 are
@@ -176,7 +179,7 @@ them).
   `BitVec (2^k)`, I0 = LSB, LUT6_2 O5/O6). Kleene eval equals the INIT-table
   definition for every k; monotone; single-input change never hazardous
   (`no_static_hazard_single`); two-input change can be — on the C-element itself,
-  a b 01→10 with q=0 gives X (`Init.bd_c2_two_change_hazard`). 23 cell INITs
+  a b 01→10 with q=0 gives X (`Init.bd_c2_two_change_hazard`). 19 cell INIT constants (23 `*_eval` theorems)
   transcribed with `*_eval` theorems that confirm the RTL header comments.
 - `Core/LutTree.lean` (gate fidelity): the LUT as a pass-transistor mux tree.
   Mux-tree Kleene eval = INIT-table semantics for every k, INIT, input
@@ -184,7 +187,7 @@ them).
   delays a single-input change with equal endpoint values never glitches
   (`sic_glitch_free`), under named hypotheses `H_mux_kleene`, `H_sram`.
 - `Core/Ternary.lean`: Eichelberger ternary simulation is sound for every
-  causal delay behaviour (gate/wire transport, inertial, GMW) and settles
+  causal delay behaviour (proved: GMW ⊆ Causal; transport and inertial ⊆ Causal argued in prose only, audit OVERSTATED; probe TernSound proving them) and settles
   under bounded staleness; bd_c2's every single-input flip settles with no
   static hazard. This is a decidable, delay-independent per-cell check.
 
