@@ -25,8 +25,9 @@
   handshake level (8f), per-event glitching delays in the multi-token run,
   the gcd graph not imported from bdc. Operator composition (`Ops*`, Phase 3):
   any network of bdc's op cells refines the token semantics (prefix at every
-  time, determinate), gate-level fork/join/steer/mux; gcd_circuit on the
-  hand-drawn loop (no non-vacuity witness yet; control_merge open). Muller
+  time, determinate), gate-level fork/join/steer/mux, arbitrated merge; gcd_circuit on the
+  hand-drawn loop is VACUOUS for a != 0 (proved deadlock: that graph has no
+  storage on its data loop), so the real bdc graph (8i) is required. Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -203,3 +204,12 @@ pin charge (thin margins, not predicted failures). Incident: 10e ran
 slot.sh lake build in formal/lean by mistake (slot.sh cds there) and compiled
 Mathlib for ~17 min before killing it; only .lake/packages build dirs touched.
 Launched 10g (rules A/E/F/J + 8e races + RT_FB rows in tcheck).
+
+### progress 05:57
+8j committed: negative result -- the hand-drawn gcd graph used by 8b/8f
+deadlocks for every a != 0 (no storage on the data loop); gcd_circuit is
+non-vacuous only at a=0. This is why theorems need a liveness/witness check.
+10g committed: tcheck covers A/E/F/J/H/I + two unchecked races on 4 gcd_hw
+routes; every disagreement is project-rule PASS vs tcheck FAIL under prjxray
+site pins + the project's own band (thin margins); J's pip estimate
+over-credits by ~95 ps avg. RT_FB thin fail on the env C-element (2 seeds).
