@@ -10,4 +10,5 @@ import Formal.Core.Delay.SAF
 import Formal.Core.Delay.GLSPass
 import Formal.Core.Delay.CornerCode
 import Formal.Core.Delay.InvolutionTransfer
+import Formal.Core.Delay.InvolutionDMin
 import Formal.Core.TernaryChannels

@@ -359,3 +359,7 @@ class RCausal δ with soundness and settling (SettlesWithin, covers inertial), a
 transport/inertial/bounded-inertial channels with positive lower bound are instances
 (ternary_noGlitch_channels, ternary_settle_channels). FEASIBILITY §4 bullet replaced;
 pulseWidth wording made one-sided. All four audit rows on A's files now answered.
+### progress 12:57
+DMin claimed (check.sh 222 decls OK): δmin exists for every InvolutionPair from its
+fields (sSup argument, no continuity field); IsDMin-free versions of the headline
+theorems; exact separation threshold sep_threshold_exact (rise strict, fall non-strict).

@@ -136,8 +136,11 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   wording (separation T0, band [δ(T0), δ∞)) was wrong in all three parts.
   `sep_threshold_sharp`: at 0 < S ≤ δ∞↑ − δmin evenly spaced inputs cancel, so the
   threshold is exact for symmetric channels. A concrete instance (`ratPair`,
-  δ(T) = 2 − 1/(T+2)) shows the class is non-vacuous. Not covered: the filtered output
-  under chained cancellation; the asymmetric gap; an exp-channel instance.
+  δ(T) = 2 − 1/(T+2)) shows the class is non-vacuous. `Core/Delay/InvolutionDMin.lean` removes the `IsDMin`
+  hypothesis (δmin exists for every `InvolutionPair`, from its fields alone) and
+  closes the asymmetric gap: S-separated inputs never cancel iff
+  δ∞↑ − δmin < S and δ∞↓ − δmin ≤ S (`sep_threshold_exact`). Not covered: the
+  filtered output under chained cancellation; an exp-channel instance.
   For bd_arb: in the faithful model the arbiter loop has no bounded settling
   time, so handover exclusion cannot be unconditional (no MTBF: that needs
   the analog layer, shard B 7c/7d).
