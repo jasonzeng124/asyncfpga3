@@ -63,7 +63,7 @@ sources and internal nodes are unbounded in Lean.
     cd /home/user/asyncfpga3/formal/lean && export PATH=$HOME/.elan/bin:$PATH
     FORMAL_SLOT_CWD=$PWD ../slot.sh lake build Formal.Net.CapstoneLiveRank Formal.Net.CapstoneLiveArb \
       Formal.Net.CapstoneLiveSpine Formal.Net.CapstoneLive
-    ../slot.sh lean Wip/C8u/Axioms.lean        # (LEAN_PATH=.lake/build/lib/lean) prints axioms
+    FORMAL_SLOT_CWD=$PWD ../slot.sh lake env lean Wip/C8u/Axioms.lean   # prints axioms
     cd .. && ./check.sh Formal/Net/CapstoneLiveRank.lean Formal/Net/CapstoneLiveArb.lean \
       Formal/Net/CapstoneLiveSpine.lean Formal/Net/CapstoneLive.lean
 
@@ -170,6 +170,15 @@ so a unit-delay synchronous run of the SI models should meet both, but this is n
   is not available, and 8r's no-contention result removes it cleanly. The hard remaining part
   is ordinary dataflow progress (H_NO_DEADLOCK), not arbitration.
 
-## Check results
+## Check results (2026-10-27)
 
-(filled in below after the build)
+- `lake build` of the 4 modules: OK. Each new module takes about 3-7 s once its dependencies
+  are built. Building the dependencies from scratch (CapstoneCut and its chain) took about
+  25 min under contention from other probes.
+- `./check.sh Formal/Net/CapstoneLiveRank.lean Formal/Net/CapstoneLiveArb.lean
+  Formal/Net/CapstoneLiveSpine.lean Formal/Net/CapstoneLive.lean`:
+  `[audit] 3591 declarations checked`, `[check] OK`, in 71 s.
+- `Wip/C8u/Axioms.lean`:
+  - every theorem uses a subset of {propext, Classical.choice, Quot.sound};
+  - `arb_frozen_quiet` uses none;
+  - `frozen_quiet`, `stall_cell` and `stall_not_settle` use propext only.
