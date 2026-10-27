@@ -17,7 +17,7 @@ Transport delay in the form of `Prelim.BoundedDelay` breaks SI reasoning
 
     cd formal && ./check.sh Formal/Net/Bridge.lean Formal/Net/BridgeTransport.lean \
         Formal/Net/BridgeRing.lean Formal/Net/BridgeWire.lean
-    # -> [audit] 524 declarations checked, [check] OK   (about 30 s CPU)
+    # -> [audit] N declarations checked, [check] OK   (about 30 s CPU)
     # axiom listing of the main theorems (propext, Classical.choice, Quot.sound only):
     cd formal/lean && export PATH=$HOME/.elan/bin:$PATH LEAN_PATH=$PWD/.lake/build/lib/lean
     ../slot.sh lean Wip/C8d/Axioms.lean
@@ -134,8 +134,12 @@ with those wires explicit (delay-insensitive on those forks).
   (`c_{i-1}` and `c_{i+1}` both excited). By hand: for the transition
   `(a, b) = (q, !q) -> (!q, q)`, every monotone path, including Kleene X
   intermediates, gives `q, X, !q` and never returns to `q` (no dynamic
-  hazard). Not yet a Lean theorem (one `decide` over `c2nK`, about 15 min);
-  shard B's single-input-change results cover the rest.
+  hazard). PROVED for both `bd_c2n` and `bd_c2n_set` with the Kleene LUT
+  (`ring_lut_two_input_monotone`, `ring_lut_two_input_ends`, under shard B's
+  H_KLEENE_LUT), and this is the only concurrent multi-pin change a ring
+  stage sees (argument in the file's comment, from `excited_tok`; the
+  "only" part is an informal argument, not a Lean theorem). Single-pin
+  changes: shard B's results.
 * `settle` with per-gate `hi`: used only for liveness (`fires_within`).
 
 ## Theorems proved (namespaces under `Formal.Net.Bridge`)
@@ -168,6 +172,7 @@ Ring (`BridgeRing.lean`, all for every per-stage bound assignment):
 * `timed_ring_k_tokens`: D = 2k, N >= 2k+1: never stuck.
 * `timed_ring_dead` (N <= 2: frozen from any state), `timed_ring_degenerate`
   (K = 0 or K >= N: frozen at reset).
+* `ring_lut_two_input_monotone`, `ring_lut_two_input_ends` (Kleene, real INITs).
 
 Wires (`BridgeWire.lean`): `check_sound`, `frame_mask`, `fork3_check`,
 `fork4_check`, `fork3_persistent`, `fork4_persistent`, `timed_fork_of`,
@@ -179,7 +184,9 @@ Wires (`BridgeWire.lean`): `check_sound`, `frame_mask`, `fork3_check`,
 1. `forkNet` persistence for all N (have N = 3, 4 claimed, 5 in Wip).
 2. FIFO / fixed transport traces of persistent networks are `NoOvertake`
    traces (so the bridge covers pure delay too).
-3. H_ATOMIC_LUT for the ring's two-input transition, Kleene (`decide`).
+3. The "only concurrent multi-pin change" claim as a Lean theorem (easy,
+   from `excited_tok`); and linking the Kleene per-transition result to the
+   timed model (a three-valued timed semantics), which is not done.
 4. Bounds in ps: the window `(N(N-1)+1)·H` is loose; the real period is
    about `N·(stage delay)`. A tighter timed bound needs a timed argument (not
    just the SI count).
