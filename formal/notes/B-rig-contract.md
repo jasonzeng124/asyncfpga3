@@ -1,5 +1,26 @@
 # B-rig-contract: the rig's own obligations for the gcd_hw capstone (probe Rig)
 
+> **Corrections (2026-10-27, probes Bri and Bsa: notes/B-rig-idx.md, notes/B-self-audit.md).**
+> 1. `RigContract.idx_setup` assumes `H_TOKEN_STATIC` (aF=1, bF=0) for the whole
+>    window, which the running ring breaks after its first input handshake; its
+>    conclusion (c) "F high to the end of the window" is false in the real ring.
+>    The constraint `gcd_rig.idx_setup` is now proved, sufficient AND exact, in
+>    `RigIdx.lean` (`idx_setup_suff`, `idx_setup_iff`, `cex_rig`, `idx_nonvacuous`),
+>    with `token_static` needed only until F's first rise (`idx_fire`).
+> 2. "The gcd_hw.v comment's mechanism is refuted" and "explained exactly" are
+>    OVERSTATED: what is proved is the open arm at p=1 while idx has moved
+>    (`armedOld_iff`, `stale_cycle`, `stale_window`) and steady detector values
+>    (`stale_err_vectors`). Excluding an old result surviving to p>=33 is the
+>    hypothesis `H_RESULT_FRESH` (not composed with ResetGcd in Lean), and the
+>    timed part `C_STALE` (a stale result passing the width filter) is unproved.
+>    Read "refuted" below as "excluded given H_RESULT_FRESH".
+> 3. `verdict_current` alone does not prove "no verdict can be stale": it needs
+>    `verdict_attrib` + `H_RESULT_FRESH` + `H_RES_BUNDLED`.
+> 4. §5's "`stale_window` (necessary)" for `arm_before_idx` is withdrawn:
+>    `stale_window` is about the RTL without `settled`; no counter-run exists
+>    for the current RTL.
+> 5. "Bit-exact": `arm_sr`, `hold_pin` and `hold_vec` are modelled as constants.
+
 File: `formal/lean/Formal/Cells/RigContract.lean`. It is Core Lean and imports
 `Formal.Cells.ResetContract`, which brings in `CElemTiming` and `CTreeTimed`.
 I edited nothing else.

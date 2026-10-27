@@ -239,6 +239,30 @@ B files committed after 07:45: vacuity, statement vs note, mutants), Bag
 (A0 fork and RT1/RT2 on gcd_hw's routed arbiters), Bpr (audit row 76 prose:
 rise/fall wording), Blt (library coverage gaps; dctl lt_first).
 
+### progress 11:40
+In (each checked under autoImplicit=false, core olean build; see commit
+messages for statements): Bpr (audit row 76 prose), Blt LibGapSteer
+(bd_steer select timing exact per pin; bd_link_dctl not emitted, lt_first
+deprioritised), Bs CElemStrict (own-feedback race exact only STRICT under the
+per-pin Kleene mux tree: X2 resolved in C's favour), Bfd ForkData (C14:
+C-8f's H_FORK_DATA sufficient, not necessary; exact form credits the
+handshake round trip; C11 amerge index), Bag OnGcdArb (RT1/RT1b on all 36
+gcd_hw arbiters x 4 consistent corners; box needs 525-711 ps server, not
+proved met; A0 fork on gcd_hw NOT done: routes absent here, probe Bar
+rebuilding), Bsa self-audit (19 files compile, 4 witnesses, 7 mutants break;
+RigContract stale claim and ContractsMux witness wording OVERSTATED), Bw
+WinFifo (X1: B's FIFO hypotheses do NOT follow from Win; FIFO = Win +
+H_NO_REVERT under spacing; H_NO_REVERT is inertial-type, a named fidelity
+hypothesis), Bri RigIdx (gcd_rig.idx_setup proved sufficient and exact;
+RigContract.idx_setup's H_TOKEN_STATIC fails in the running ring).
+Corrections applied: B-rig-contract.md correction block (5 items: idx_setup
+hypothesis, "refuted" -> "excluded given H_RESULT_FRESH", verdict_current
+scope, withdrawn necessity, constants not bit-exact); RigContract docstring
+theorem name. Bk2 ConstraintsKappa written, held until Mathlib builds
+(finding: JSON's "box is always sound" is wrong for kappa > 0).
+Running: Bk1, Bu, Bpt, Bmx, Bdg, Bj (JSON: strictness, steer, fork rows),
+Bar, Bsw, Bex, Bc4.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48

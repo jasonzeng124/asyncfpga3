@@ -49,7 +49,7 @@ with the asynchronous kernel (the operand vector `vector(idx)`, the rig reset
    the readers and the instant is at least 2047 hk periods after idx moved,
    given `H_ARM_BEFORE_IDX : ahi ≤ Tlo + vlo`. `verdict_attrib` adds the
    kernel-side fact as the named hypothesis `H_RESULT_FRESH`.
-4. `stale_counter`: the counter-run for the RTL without `settled`: in the hk
+4. `stale_cycle` / `stale_window`: the counter-run for the RTL without `settled`: in the hk
    cycle after the edge that sets `win_cnt := 1`, the arm pin is 1 and the
    operands/expected/`sel` are the NEW vector's; with the real LUT INITs a
    result for the OLD vector still on `res_req` sets `err` on the new vector
