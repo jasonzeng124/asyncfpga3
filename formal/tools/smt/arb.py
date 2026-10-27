@@ -48,14 +48,25 @@ def arcs(tick=4, spread=True):
 class Net:
     """Small netlist builder over a TS.  Signals are accessors S -> value."""
 
-    def __init__(self, ts):
+    def __init__(self, ts, settled=False):
         self.ts = ts
         self.sig = {}
+        self.settled = settled    # start from a quiescent state (all nets
+                                  # stable, consistent with the gates)
+
+    def _settle(self, name, f, hist):
+        if self.settled:
+            def ini(S):
+                cs = [S[name] == f(S)]
+                cs += [S['%s~%d' % (name, j)] == S[name] for j in range(1, hist)]
+                return z3.And(cs)
+            self.ts.init(ini)
 
     def lut(self, name, init, pins, arc):
         ts = self.ts
         f = lambda S: C.lutB(init, [p(S) if callable(p) else p for p in pins])
         C.inert(ts, name, f, arc[0], arc[1])
+        self._settle(name, f, 0)
         self.sig[name] = lambda S, n=name: S[n]
         return self.sig[name]
 
@@ -64,6 +75,7 @@ class Net:
             self.sig[name] = src
             return src
         C.win(self.ts, name, src, d, d)
+        self._settle(name, src, d)
         self.sig[name] = lambda S, n=name: S[n]
         return self.sig[name]
 
@@ -101,12 +113,17 @@ def monitors(ts, g1, g2, OVW=64, GW=64):
         ts.trans(tr)
 
 
-def arbcell(tick=4, spread=True, route=0, P=40, rst_len=None, settle=None):
-    """Bare bd_arbcell; route = interconnect after every LUT output, in ps."""
+def arbcell(tick=4, spread=True, route=0, P=20, rst_len=None, settle=None,
+            settled=True):
+    """Bare bd_arbcell; route = interconnect after every LUT output, in ps.
+    settled=True: start from any quiescent state (q either value, all nets
+    consistent) with rst = 0, instead of simulating reset from power-up."""
     o6, o5 = arcs(tick, spread)
     R = int(round(route / tick))
     ts = tsmc.TS('arbcell_t%d_s%d_R%d_P%d' % (tick, spread, R, P))
-    net = Net(ts)
+    net = Net(ts, settled)
+    if settled:
+        rst_len, settle = 1, 1
     env_free(ts, ['r1', 'r2'], P)
     r1 = lambda S: S['r1']
     r2 = lambda S: S['r2']
@@ -115,7 +132,7 @@ def arbcell(tick=4, spread=True, route=0, P=40, rst_len=None, settle=None):
     rl = rst_len or (loop + 2)
     ts.bool('rst')
     ts.int('rc', 0, rl)
-    ts.init(lambda S: z3.And(S['rst'], S['rc'] == 0))
+    ts.init(lambda S: z3.And(S['rst'] == (not settled), S['rc'] == 0))
     ts.trans(lambda S, N: z3.And(N['rc'] == z3.If(S['rc'] < rl, S['rc'] + 1, rl),
                                  N['rst'] == (S['rc'] < rl - 1)))
     rst = lambda S: S['rst']
@@ -131,10 +148,10 @@ def arbcell(tick=4, spread=True, route=0, P=40, rst_len=None, settle=None):
     ts.bool('live')
     st = settle if settle is not None else rl + o5[1][1] + 1
     ts.int('lc', 0, st)
-    ts.init(lambda S: z3.And(S['lc'] == 0, z3.Not(S['live'])))
+    ts.init(lambda S: z3.And(S['lc'] == 0, S['live'] == settled))
     ts.trans(lambda S, N: z3.And(N['lc'] == z3.If(S['lc'] < st, S['lc'] + 1, st),
                                  N['live'] == (S['lc'] >= st - 1)))
-    ts.show = ['rst', 'r1', 'r2', 'q', 'qR', 'g1', 'g2', ('ov', lambda r: '#' if r['ov'] else '.')]
+    ts.show = ['r1', 'r2', 'q', ('qR', lambda r: r.get('qR', r['q'])), 'g1', 'g2', ('ov', lambda r: '#' if r['ov'] else '.')]
     props = {
         'mutex': lambda S: z3.Implies(S['live'], z3.Not(z3.And(g1(S), g2(S)))),
         'ovw': lambda w: (lambda S: z3.Implies(S['live'], S['ov'] < w)),

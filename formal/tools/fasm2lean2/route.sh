@@ -40,6 +40,19 @@ PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" --part "$PART" \
     --bitread "$TC/openxc7/bin/bitread" "$B.bit" > "$B.fromBit.fasm" 2> "$B.bit2fasm.log"
 echo "bit $(sha256sum "$B.bit" | cut -c1-16)  $(grep -vc '^\s*$' "$B.fromBit.fasm") features read back"
-for x in fasm fromBit.fasm toolchain audit sdf; do cp "$B.$x" "$FIX/link_arb_s$SEED.$x"; done
+# The placement HINT (cell -> BEL) from nextpnr's routed JSON: used ONLY to
+# propose the state-net renaming `rho` that the Lean proof then checks; the
+# netlist itself is never taken from it (a wrong hint makes the proof fail).
+python3 - "$B"_routed.json > "$B.bels" <<'PY'
+import json, sys
+m = list(json.load(open(sys.argv[1]))["modules"].values())[0]
+for n, c in sorted(m["cells"].items()):
+    bel = c.get("attributes", {}).get("NEXTPNR_BEL", "")
+    if c["type"] == "SLICE_LUTX":
+        base, _, half = n.partition("$")
+        site, b = bel.split("/")
+        print(base, "O5" if half == "LUT5" or b[1] == "5" else "O6", site, b[0])
+PY
+for x in fasm fromBit.fasm toolchain audit sdf bels; do cp "$B.$x" "$FIX/link_arb_s$SEED.$x"; done
 sha256sum "$B.bit" | sed "s|$OUT/||" > "$FIX/link_arb_s$SEED.bit.sha256"
 echo "routed $B.fasm  (nextpnr $(grep sha256 "$B.toolchain" | awk '{print $2}'))"

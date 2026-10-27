@@ -248,16 +248,52 @@ def main():
         site, b = cells[c]["attributes"]["NEXTPNR_BEL"].split("/")
         return site, b[0], b[1:]          # SLICE_X.., 'A', '6LUT'
 
-    def out_pin(c):
-        """site output pin (name) carrying cell c's output."""
+    def out_pins(c):
+        """site output pins that can carry cell c's output: the direct pin for
+        an O6 (A..D), and ?MUX when the FASM sets ?OUTMUX to this LUT's output."""
         site, L, kind = bel(c)
         tile, s = site_at[site]
         pre = "%s.%s_X%d" % (tile, s["type"], s["x_coord"])
-        if kind == "6LUT" and "%s.%sOUTMUX.O6" % (pre, L) not in feats:
-            return tile, s, L
-        return tile, s, L + "MUX"
+        o = "O6" if kind == "6LUT" else "O5"
+        pins = [L] if o == "O6" else []
+        if "%s.%sOUTMUX.%s" % (pre, L, o) in feats:
+            pins.append(L + "MUX")
+        return tile, s, pins
 
     nets = {}
+
+    # bit -> ROUTING string of the net, for the pre-patch SDF emulation
+    routing_of = {}
+    for nn, v in mod["netnames"].items():
+        rt = v["attributes"].get("ROUTING")
+        if rt and len(v["bits"]) == 1:
+            routing_of[v["bits"][0]] = rt
+
+    def tile_xy(site):
+        g = fab.grid[site_at[site][0]]
+        return g["grid_x"], g["grid_y"]
+
+    def prepatch_ic(c, pin, pc, routed_ic):
+        """What the SDF said before patches/nextpnr-xilinx-lut-perm-sink.patch
+        (2026-09-20): a sink reached through a NON-identity LUT permutation pip
+        (tile pin A<x> -> site wire A<y>, x != y) got predictDelay(), the
+        placer estimate (patches/README.md): same site and LUT letter 0 ps,
+        same tile 150 ps, else 450 + 90|dy| + 45|dx| ps (tile grid).  Returns
+        (delay, permuted)."""
+        site, L, _k = bel(c)
+        rt = routing_of.get(cells[c]["connections"][pin][0], "")
+        m = re.search(r"CLB\w+_%s(\d)->SITEWIRE/%s/%s(\d)" % (L, re.escape(site), L), rt)
+        if not m:
+            raise SystemExit(f"{c}/{pin}: no LUT permutation pip in the net's ROUTING")
+        if m.group(1) == m.group(2):
+            return routed_ic, False
+        psite, PL, _pk = bel(pc)
+        if psite == site and PL == L:
+            return 0, True
+        (x0, y0), (x1, y1) = tile_xy(psite), tile_xy(site)
+        if (x0, y0) == (x1, y1):
+            return 150, True
+        return 450 + 90 * abs(y1 - y0) + 45 * abs(x1 - x0), True
 
     def net_of(tile, s, pin):
         k = (tile, s["type"], s["x_coord"], pin)
@@ -276,6 +312,8 @@ def main():
         total = [0.0] * 4
         comp = defaultdict(float)     # slow_max components
         stages = []
+        old_loop = 0
+        n_perm = 0
         for c in names:
             site, L, kind = bel(c)
             tile, s = site_at[site]
@@ -287,17 +325,18 @@ def main():
                 break
             pin, pc = preds[0]
             # cross-check the physical pin against the bits
-            ptile, psite, ppin = out_pin(pc)
+            ptile, psite, ppins = out_pins(pc)
             pinwire = s["site_pins"][L + pin[1]]["wire"]
             try:
                 src, _p = ex.walk(tile, pinwire, f"{c}/{pin}")
             except SystemExit:
                 src = None
-            if not (src and src[0] == "slice" and src[1] == ptile and src[3] == ppin
+            if not (src and src[0] == "slice" and src[1] == ptile and src[3] in ppins
                     and src[2]["type"] == psite["type"] and src[2]["x_coord"] == psite["x_coord"]):
-                print(f"{rid} {c}/{pin}: FASM walk reaches {src and src[:1]} {src and src[3:]}, "
-                      f"routed JSON says {pc} ({ptile} {ppin})", file=sys.stderr)
+                print(f"{rid} {c}/{pin}: FASM walk reaches {src and src[:2]} {src and src[3:]}, "
+                      f"routed JSON says {pc} ({ptile} {ppins})", file=sys.stderr)
                 sys.exit(1)
+            ppin = src[3]
             n = net_of(ptile, psite, ppin)
             r = n.sink(tile, pinwire)
             if r is None:
@@ -313,7 +352,15 @@ def main():
             comp["pips_and_outpin"] += intr[3] - sitep[3]
             comp["rc"] += rc
             comp["npips"] += npips
-            stages.append({"cell": c, "bel": f"{site}/{L}{kind}", "pin": pin, "pred": pc,
+            ic = [w for k2 in ("O6", "O5") for d2, w in edges.get(f"{pc}/{k2}", ()) if d2 == f"{c}/{pin}"]
+            la = [w for d2, w in edges.get(f"{c}/{pin}", ()) if d2.startswith(c + "/O")]
+            if len(ic) != 1 or len(la) != 1:
+                raise SystemExit(f"{c}/{pin}: SDF arcs {ic} {la}")
+            oic, perm = prepatch_ic(c, pin, pc, ic[0])
+            old_loop += oic + la[0]
+            n_perm += perm
+            stages.append({"sdf_ic": ic[0], "sdf_lut": la[0], "prepatch_ic": oic, "permuted": perm,
+                           "cell": c, "bel": f"{site}/{L}{kind}", "pin": pin, "pred": pc,
                            "net_ps": [round(x, 1) for x in dly], "rc_ps": round(rc, 1),
                            "sitepin_ps": [round(x, 1) for x in sitep], "lut_ps": arc, "npips": npips})
         else:
@@ -322,9 +369,12 @@ def main():
                 print(f"{rid}: SDF walk: {err}", file=sys.stderr)
                 bad += 1
                 continue
+            if sum(st["sdf_ic"] + st["sdf_lut"] for st in stages) != loop:
+                raise SystemExit(f"{rid}: per-stage SDF arcs do not sum to the repo's loop {loop}")
             pins = [st["pin"] for st in stages]
             results.append({"ring": rid, "links": ring_len(rid), "n_luts": len(names),
                             "sdf_period_ps": 2 * loop,
+                            "sdf_prepatch_period_ps": 2 * old_loop, "n_permuted": n_perm,
                             "prjx_period_ps": [round(2 * x, 1) for x in total],
                             "slowmax_components_ps": {k: round(2 * v, 1) for k, v in comp.items()},
                             "pins": pins, "stages": stages})

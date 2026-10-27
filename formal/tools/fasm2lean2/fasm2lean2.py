@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """FASM (the bits the board runs) -> a physical LUT netlist -> Lean terms.
 
-    python3 formal/tools/fasm2lean/fasm2lean.py FASM XDC --ns NAME [--out F.lean] [--json F.json]
+Probe C-11c copy of formal/tools/fasm2lean/fasm2lean.py (11b), extended: XDC
+port names with brackets, every site feature classified (unmodelled ones
+refused), IOI bypass inversion features checked, OLOGIC D1 bypass via OMUX.D1.
+
+    python3 formal/tools/fasm2lean2/fasm2lean2.py FASM XDC --ns NAME [--out F.lean] [--json F.json]
 
 Reads ONLY the FASM and prjxray-db (tilegrid, tile_type_*.json, tileconn).
 It does not read nextpnr's routed JSON or SDF, and it does not read yosys:
@@ -213,17 +217,28 @@ class Extract:
                     out.append((t, p, False))
         return out
 
-    # Pseudo pips that a SITE mux selects: (dst regex, src regex, feature).
-    # prjxray fuzzers/035-iob-ilogic/generate.py: IDELMUXE3.P1 = 'direct'
-    # (D -> O), P0 = 'idelay' (DDLY -> O).  ILOGIC<k> wires are FASM ILOGIC_Y<k>.
-    SITE_MUX = [(r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_D$", "ILOGIC_Y{0}.IDELMUXE3.P1"),
-                (r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_DDLY$", "ILOGIC_Y{0}.IDELMUXE3.P0")]
+    # Pseudo pips that a SITE mux selects: (dst regex, src regex, features that
+    # must ALL be set, features that must NOT be set).  prjxray
+    # fuzzers/035-iob-ilogic/generate.py: IDELMUXE3.P1 = 'direct' (D -> O),
+    # P0 = 'idelay' (DDLY -> O); ZINV_D set = D NOT inverted (Z = inverted
+    # sense).  fuzzers/036-iob-ologic: OMUX.D1 = OQ is D1 (combinational
+    # bypass of the OSERDES/ODDR), IS_D1_INVERTED = D1 inverted.  ILOGIC<k>
+    # wires are FASM ILOGIC_Y<k> (likewise OLOGIC).  [C-11c: the inversion
+    # features were not checked by fasm2lean (11b); here an inverted bypass
+    # is refused instead of being read as a plain wire.]
+    SITE_MUX = [(r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_D$",
+                 ["ILOGIC_Y{0}.IDELMUXE3.P1", "ILOGIC_Y{0}.ZINV_D"], []),
+                (r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_DDLY$",
+                 ["ILOGIC_Y{0}.IDELMUXE3.P0", "ILOGIC_Y{0}.ZINV_D"], []),
+                (r"OLOGIC(\d)_OQ$", r"_OLOGIC\d_D1$",
+                 ["OLOGIC_Y{0}.OMUX.D1"], ["OLOGIC_Y{0}.IS_D1_INVERTED"])]
 
     def site_mux_ok(self, t, p):
-        for rd, rs, feat in self.SITE_MUX:
+        for rd, rs, need, forbid in self.SITE_MUX:
             m = re.search(rd, p["dst_wire"])
             if m and re.search(rs, p["src_wire"]):
-                return "%s.%s" % (t, feat.format(*m.groups())) in self.feats
+                return (all("%s.%s" % (t, f.format(*m.groups())) in self.feats for f in need)
+                        and not any("%s.%s" % (t, f.format(*m.groups())) in self.feats for f in forbid))
         return True
 
     def pseudo_drivers(self, node):
@@ -291,6 +306,69 @@ class Extract:
                    for t, p, _ in self.pseudo_drivers(node))
 
 
+# ---- Site features (C-11c).  Every FASM feature that is not a pip or a LUT
+# INIT is classified here.  The ones listed in SITE_OK are the configuration
+# the model covers (or that has no effect on a LUT-only netlist: defaults the
+# FASM writers print for every used site); anything else -- an FF, a carry
+# chain, an F7/F8 mux, LUTRAM/SRL, an inverted or registered IOI path, a
+# clock buffer, a DSP or BRAM -- is REFUSED, loudly, with its category, so
+# an unmodelled primitive can never be read as a wire.
+SITE_OK = [
+    # CLB: the site-wide clock inverter and the carry-chain init default
+    # (CARRY4 itself unused: any ?CY0 / CARRY4 / OUTMUX.XOR|CY feature is refused)
+    (r"^SLICE[LM]_X[01]\.NOCLKINV$", "default"),
+    (r"^SLICE[LM]_X[01]\.PRECYINIT\.C0$", "default"),
+    # SLICEM LUTRAM data-in muxes: only meaningful with ?LUT.RAM / SRL, refused below
+    (r"^SLICEM_X0\.[A-D]LUT\.DI1MUX\.\w+$", "default"),
+    # the O5/O6 output muxes: modelled (Src.lut i .o5 / .o6 through ?MUX)
+    (r"^SLICE[LM]_X[01]\.[A-D]OUTMUX\.O[56]$", "outmux"),
+    # IOB: standard / drive / slew / termination / pull: electrical, not logical
+    (r"^IOB_Y[01]\.(IN_TERM\.NONE|PULLTYPE\.(NONE|PULLDOWN|PULLUP|KEEPER))$", "iob"),
+    (r"^IOB_Y[01]\.[A-Z0-9_]+\.(IN_ONLY|IN|SLEW\.(SLOW|FAST)|DRIVE\.[A-Z0-9_]+)$", "iob"),
+    # IOI: combinational bypasses (checked per pip in SITE_MUX) and the
+    # defaults bit2fasm prints for an unused IDELAY / ISERDES / IFF / OSERDES
+    (r"^IDELAY_Y[01]\.IDELAY_TYPE_FIXED$", "default"),
+    (r"^ILOGIC_Y[01]\.(IDELMUXE3\.P[01]|ZINV_D)$", "ioi-bypass"),
+    (r"^ILOGIC_Y[01]\.(IFF\.SRTYPE\.ASYNC|ISERDES\.MODE\.MASTER|ISERDES\.NUM_CE\.N1)$", "default"),
+    (r"^OLOGIC_Y[01]\.(OMUX\.D1|OQUSED)$", "ioi-bypass"),
+    (r"^OLOGIC_Y[01]\.OSERDES\.DATA_RATE_TQ\.BUF$", "default"),
+    # configuration-center always-on bits
+    (r"^ALWAYS_ON_PROP\d$", "default"),
+]
+SITE_REFUSED = [  # (regex on the feature without its tile, category) -- first match names it
+    (r"\.[A-D]5?FF\.|\.[A-D]FFMUX\.|FFSYNC|LATCH|CEUSEDMUX|SRUSEDMUX|\.CLKINV|ZINI|ZRST", "flip-flop / latch"),
+    (r"CARRY4|\.[A-D]CY0|COUTUSED|OUTMUX\.(XOR|CY)|PRECYINIT", "carry chain (CARRY4)"),
+    (r"F7|F8", "wide mux (MUXF7/MUXF8)"),
+    (r"\.RAM|SRL|SMALL|WA[678]USED|WEMUX", "LUTRAM / SRL"),
+    (r"OUTMUX\.", "slice output mux other than O5/O6"),
+    (r"INV|IFF|ISERDES|OSERDES|ODDR|IDDR|IDELAY|ZINIT|ZSRVAL|TQ", "registered / inverted IOI path"),
+    (r"BUFG|BUFH|HCLK|GCLK|CLK", "clocking"),
+    (r"DSP|BRAM|RAMB", "hard block (DSP / BRAM)"),
+]
+
+
+def check_site_features(site_feats):
+    """Return {category: count} for accepted features; die on anything else."""
+    seen = defaultdict(int)
+    bad = []
+    for f in site_feats:
+        rest = f.split(".", 1)[1] if "." in f else f
+        for rx, cat in SITE_OK:
+            if re.search(rx, rest):
+                seen[cat] += 1
+                break
+        else:
+            for rx, cat in SITE_REFUSED:
+                if re.search(rx, rest):
+                    bad.append("%s  [%s]" % (f, cat))
+                    break
+            else:
+                bad.append("%s  [unclassified]" % f)
+    if bad:
+        die("site features the model does not cover (refused):\n  " + "\n  ".join(sorted(bad)))
+    return dict(seen)
+
+
 def lut_output(fab, ex, src, lut_index):
     """A SLICE output pin -> ('lut', index, 'O6'|'O5')."""
     _, tile, site, pin = src
@@ -332,6 +410,7 @@ def main():
                 port_of_site[pin_site[m.group(1)]] = m.group(2) or m.group(3)
 
     ex = Extract(fab, feats, vecs, port_of_site)
+    site_census = check_site_features(ex.site_feats)
 
     # used LUT sites
     lut_sites = []
@@ -484,7 +563,7 @@ def main():
 
     res = {"fasm": os.path.abspath(a.fasm), "luts": luts, "outs": outs,
            "inputs": ports_in, "unused_pips": sorted(unused),
-           "site_features": sorted(ex.site_feats)}
+           "site_features": sorted(ex.site_feats), "site_census": site_census}
     if a.json:
         with open(a.json, "w") as f:
             json.dump(res, f, indent=1)
@@ -503,6 +582,7 @@ def main():
 
 
 def emit_lean(res, ns):
+    ns = ns if "." in ns else "Formal.Net.Fasm." + ns
     inputs = res["inputs"]
 
     def src(s):
@@ -520,12 +600,12 @@ def emit_lean(res, ns):
     L = []
     L.append("import Formal.Net.Fasm.Basic")
     L.append("")
-    L.append("/-! Generated by formal/tools/fasm2lean/fasm2lean.py from")
+    L.append("/-! Generated by formal/tools/fasm2lean2/fasm2lean2.py (probe C-11c) from")
     L.append("    %s" % os.path.relpath(res["fasm"], os.path.join(os.path.dirname(__file__), "../../..")))
     L.append("    Do not edit; regenerate.  Inputs (port index order): %s." % ", ".join(inputs))
     L.append("    Physical pins are A1..A6 (A1 = INIT address bit 0). -/")
     L.append("")
-    L.append("namespace Formal.Net.Fasm.%s" % ns)
+    L.append("namespace %s" % ns)
     L.append("open Formal.Net.Fasm")
     L.append("")
     L.append("/-- Input ports, in `Src.port` index order. -/")
@@ -564,7 +644,7 @@ def emit_lean(res, ns):
                         for l in res["luts"]))
     L.append("]")
     L.append("")
-    L.append("end Formal.Net.Fasm.%s" % ns)
+    L.append("end %s" % ns)
     return "\n".join(L) + "\n"
 
 
