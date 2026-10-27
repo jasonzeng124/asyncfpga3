@@ -198,6 +198,17 @@ them).
   the cell's own feedback is slower than a neighbour's response (an obligation
   not found among tighten.py's rules). Not run on gcd_hw yet (no routed JSON in
   this sandbox; loops need a FIFO-aware abstract domain for precision).
+- **xaudit on the real routed gcd_hw R5** (`notes/A-xaudit-gcd.md`, 4 seeds,
+  prjxray per-arc bands via the research branch's `xray_delay.py`; 47,894
+  wires, 4,599 storage nodes): with bands ≤ 2% wide it **certifies a whole gcd
+  transaction** (a=7, b=0) for every delay in band and every power-up state, and
+  the negative control is flagged. At prjxray's one-corner widths (~17%) the
+  window domain loses precision after 4–11 ns: imprecision, not a race (520
+  concrete samples correct; no static own-feedback candidate). With fast and
+  slow corners mixed per element, 4–10 own-feedback race candidates per seed;
+  one reproduced concretely (a 9 ps runt in `ucontrol_merge4.uarb1.ua2`, seed d).
+  The C-element feedback assumption holds at each corner and fails once corners
+  mix, so it rests on the shared-corner hypothesis and on κ.
 - **Event-count domain** (`Core/XAudit/Events*.lean`, `Events2*.lean`;
   `lake exe xevents`): per-wire transition counts with min-plus timing (timed
   marked graph) over the behaviour's own monotone warps. Closed and open

@@ -97,6 +97,20 @@ inputs (strict; equality is a function hazard). Independently flagged by
 dependent and checked by no rule today. Change: add it to tighten.py as a
 gate, with prjxray slow-max for the feedback and fast-min for the loops.
 
+## 6c. The own-feedback race on real gcd_hw routes depends on corner mixing
+On gcd_hw R5 (seeds d, 3, 4, 5), the C-element own-feedback obligation holds at
+each single corner, but with per-element [fast_min, slow_max] bands there are
+4–10 violating candidates per seed. One reproduces concretely: a 9 ps runt in
+`ucontrol_merge4.uarb1.ua2` on seed d, circulating in its loop, answer still
+correct (`formal/tools-A/xaudit/gcd/results/`). Whether silicon can mix like
+this is exactly κ on a path difference (item 5). Until κ is measured, check
+these feedback loops with the ring-measured scatter applied.
+
+## 6d. toolchain.sh does not check runtime libraries
+A restored toolchain cache lacked libtcl8.6 and boost 1.83 at runtime. toolchain.sh
+greps the binary and passed anyway. Add `ldd nextpnr-xilinx | grep 'not found'` (and
+yosys) to it, and a check that can fail on a stripped install.
+
 ## 7. Hypotheses each proof rests on, and their tests
 See `formal/notes/A-substrate.md` (graded list) and FEASIBILITY.md's fidelity
 table. The ones only the board can test:
