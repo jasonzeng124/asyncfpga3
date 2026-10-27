@@ -201,6 +201,21 @@ obligation, with B's verdict.
     exercises almost none of the loop, which is the kind of near-degenerate vector CLAUDE.md warns
     about.
 
+### 7b. Resolutions (shard A, notes/A-contradictions.md)
+- **X1:** EnvFast's data exemption is now the named hypothesis `H_DATA_SETTLES`
+  (EnvFast/DataHyp.lean), stated over `Win`: sufficient (`window_data`), necessary
+  (`settles_needed`), and discharged by `hiP + hi ≤ R`, which is rule A with the data
+  mux's own delay counted on the data side (`settles_of_bundle`). Still open: the timed
+  refinement of SoundD, `H_SOUNDD_TRACE`.
+- **X2:** the `≤` race forms are sound only under `H_ATOMIC_LUT` (every pin of a LUT
+  read at one instant). Without it, `BackStrict` + `PinSkew 1` is sound (`safe_strict`),
+  and equality fails (`cx_unsafe`). Use the strict form: `lake exe xevents2strict`.
+- **X6:** not a disagreement about the cell. A and C assume the library contract
+  `H_S_AFTER_ACK` (s moves only after ack↓): no hold needed (`hold_free_of_ackfall`).
+  B assumes `H_S_AFTER_REQ`: the hold is needed (`steerB_needs_hold`). Keep
+  `bd_steer.bundled_s_hold` until every steer sender in gcd_hw is shown to respect
+  `H_S_AFTER_ACK`.
+
 ## 8. Top 5 tests that would retire the most C-graded hypotheses
 
 The C-graded items: D9 H_AFFINE, D11 κ value, D12 H_ONE_CORNER (contested), D16 H_WIRE_RATIO,
