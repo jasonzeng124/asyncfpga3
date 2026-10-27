@@ -25,6 +25,7 @@ export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1 PATH=$HOME/.elan/bin:$PATH
 XE5=${XEVENTS5:-$LEAN/.lake/build/bin/xevents5}
 JOBS=$OUT/xe5_jobs.txt; : > $JOBS
 for s in ${SEEDS:-d 4 5 6}; do
+  [ "$s" = none ] && continue
   D=$OUT/$s
   for c in ${CORNERS:-slow fast indep gb}; do
     python3 "$X/events4/skel.py" $D/net.json $D/$c.bands.json $D/skel.json $D/skel_$c.bands.json > /dev/null
@@ -33,13 +34,29 @@ for s in ${SEEDS:-d 4 5 6}; do
     echo "$D/skel.json $D/skel_$c.bands.json $D/cert_$c.json $R/xe5_${s}_$c.txt" >> $JOBS
   done
 done
-# negative control (seed d, slow): +1500 ps on ucontrol_merge0's arbiter ua2 own-feedback arc
+# negative controls (seed d, slow), each must FAIL:
+#  NEG-fb<PS>: +PS ps on ucontrol_merge0's arbiter ua2 own-feedback arc (negctl_k2.py); PS = 1500
+#              (gcd_hw's value) and 3000 (larger than this stage's measured margin, 2054 ps)
+#  NEG-recog : the certificate claims one real node's feedback input is its reset input (qi := ri);
+#              Recog6 must reject that node (events6/neg6.sh's mutation)
 if [ "${NEG:-1}" = 1 ]; then
   D=$OUT/d
-  python3 "$K2/negctl_k2.py" $D/skel.json $D/skel_slow.bands.json $D/skel_slow_NEGfb.bands.json \
-      urig.udut.ucontrol_merge0.uarb1.ua2.u | tee "$R/neg_fb.txt"
-  python3 "$X/events6/cert6.py" $D/skel.json $D/skel_slow_NEGfb.bands.json $D/cert_NEGfb.json >> "$R/neg_fb.txt" 2>&1
-  echo "$D/skel.json $D/skel_slow_NEGfb.bands.json $D/cert_NEGfb.json $R/xe5_d_slow_NEGfb.txt" >> $JOBS
+  : > "$R/neg.txt"
+  for ps in 1500 3000; do
+    python3 "$K2/negctl_k2.py" $D/skel.json $D/skel_slow.bands.json $D/skel_slow_NEGfb$ps.bands.json \
+        urig.udut.ucontrol_merge0.uarb1.ua2.u $ps >> "$R/neg.txt"
+    python3 "$X/events6/cert6.py" $D/skel.json $D/skel_slow_NEGfb$ps.bands.json $D/cert_NEGfb$ps.json >> "$R/neg.txt" 2>&1
+    echo "$D/skel.json $D/skel_slow_NEGfb$ps.bands.json $D/cert_NEGfb$ps.json $R/xe5_d_slow_NEGfb$ps.txt" >> $JOBS
+  done
+  python3 -I - $D/cert_slow.json $D/cert_NEGrecog.json >> "$R/neg.txt" <<'PY'
+import json, sys
+c = json.load(open(sys.argv[1]))
+n = next(x for x in c["nodes"] if not x["virt"] and not x["mg"])
+n["qi"] = n["ri"]
+print("NEG-recog:", n["name"])
+json.dump(c, open(sys.argv[2], "w"))
+PY
+  echo "$D/skel.json $D/skel_slow.bands.json $D/cert_NEGrecog.json $R/xe5_d_slow_NEGrecog.txt" >> $JOBS
 fi
 FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" lake env bash -c '
   while read n b c o; do

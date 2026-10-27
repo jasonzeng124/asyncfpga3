@@ -33,3 +33,16 @@ for m in $order; do
   "$K2/../lean.sh" "$m.lean" > "$XAUDIT_OLEAN.$(echo $m | tr / _).log" 2>&1 || { echo "FAIL $m"; tail -5 "$XAUDIT_OLEAN.$(echo $m | tr / _).log"; exit 1; }
   echo "ok $m ($(( $(date +%s) - t0 )) s)"
 done
+# Native xaudit: ../build.sh (C for its 10 modules via lean.sh -c, linked with leanc) does not
+# list Formal/Core/XAudit/Parse, which Main imports now, so its link fails with
+# "undefined symbol: initialize_formal_Formal_Core_XAudit_Parse".  NATIVE=1 runs build.sh, then
+# emits Parse's C the same way and relinks.  -> $XAUDIT_OUT/xaudit
+if [ "${NATIVE:-0}" = 1 ]; then
+  export XAUDIT_OUT=${XAUDIT_OUT:-$HOME/k2xa}
+  "$K2/../build.sh" || true
+  "$K2/../lean.sh" Formal/Core/XAudit/Parse.lean -c "$XAUDIT_OUT/c/Formal_Core_XAudit_Parse.c"
+  LEANC="$(dirname "$(readlink -f "$(command -v lean)")")/leanc"
+  [ -x "$LEANC" ] || LEANC="$(elan which lean | xargs dirname)/leanc"
+  "$LEANC" -O2 -o "$XAUDIT_OUT/xaudit" "$XAUDIT_OUT"/c/*.c
+  echo "[k2] built $XAUDIT_OUT/xaudit"
+fi
