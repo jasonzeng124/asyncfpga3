@@ -325,3 +325,39 @@ H_CUT via the single control-spine token).
 H_START_ONCE, H_WALK. Finding: a free-running start source violates H_CUT
 (argued with a=12, b=18), so the env must offer start once per result.
 Launched 8s (prove H_WALK; model the rig's env ring for H_START_ONCE).
+
+## Session Tue Oct 27 10:58:27 UTC 2026
+
+### progress 11:25
+Took LOCK-C (previous lock 2h stale; that session died after 8r, with 8s and
+10l running). Lean 4.35.0 from setup.sh; Mathlib's from-source build killed
+again (shard C is core-only; `lake build Formal.<Mod>` builds only the
+module's Formal deps). FPGA toolchain restored from the cache branch and
+cells/verify/toolchain.sh passes (9 patch fingerprints ok; nextpnr sha256
+9c732bc6303458df). Recovered 10l: its two Lean modules existed only as
+tcheck's synced copies; restored verbatim to Formal/Timing/{MaxNode,
+SharedPrefix}.lean (sync.sh --check: same), compiled, audit clean (142
+decls). 10l's results (summary10l.txt) show rule K (B's X4 ctl_req fork)
+failing 16-24 of 42 rows per seed even unguarded, by up to -5.9 ns: not yet
+diagnosed, so no verdict; probe 10l2 is on it. 8s's work was lost (nothing
+saved); relaunched.
+Audit (claude/audit REPORT.md) rows on shard C, all still unanswered:
+win_exact exact only over all cell functions (C.md #1); corr_bd_violation's
+per-event "justification" needs a wire to glitch (#2); Ring header bound
+N(N-1)/2 vs proved N(N-1) (#3); ring_three over a hand ctl, INIT only via a
+bridge (#9); Rules "<= 402 ps" leaves 403 (C2); Import "equal to B's Kleene
+specs" is same-INIT only (C2); tcheck front end omits the slice OUTMUX hop
+(tcheck.md; J numbers change sign on some rows); "+490 ps" is a mean;
+RtFbGcd omits the driver LUT->xMUX hop (P4); gcd_hw_conditional has no gcd
+content (P4). Also, by my own grep: 12a/12b/12c modelled LUT arcs as
+"rise 56 / fall 124", the corner misreading PROGRAM.md flags for shard B, so
+their arbiter/C-element thresholds may be artefacts. Until the probes below
+report, read the track-10 "per-node exact" and the track-12 thresholds in the
+verdicts above with these caveats.
+Launched 11 probes: aud (audit fixups in Lean/docs), 10m (OUTMUX + xMUX hop,
+rerun all rows), 12d (12a/b/c and 10i at one consistent corner), 8s (prove
+H_WALK), 8t (joint non-vacuity witness for gcd_hw_circuit_safe''), 8u
+(circuit liveness O5), 8v (second kernel, token level), 10n (tcheck on
+collatz/xorshift/ipow + how-to), 11f (whole-design bitstream import:
+FF/CARRY4/MUXF7/F8), 8w (tcheck verdicts => capstone H_BUNDLE, O6), 10l2
+(diagnose rule K, finish 10l).
