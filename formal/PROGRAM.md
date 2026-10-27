@@ -138,7 +138,7 @@ your shard. All three push to `claude/formal`.
 |---|---|---|---|
 | A (lead) | `formal/LOCK` | 1 toolchain, 2 traces, 3 delay channels, 4 Kleene LUT, 13 literature | `formal/setup.sh`, `check.sh`, `slot.sh`, `formal/lean/` project files (lakefile, toolchain, root `Formal.lean`), `Formal/Core/`, `FEASIBILITY.md` |
 | B | `formal/LOCK-B` | 5 C-element, 6 latch/link, 7 arbiter | `Formal/Cells/`, `formal/notes/B-*.md`, `formal/JOURNAL-B.md` |
-| C | `formal/LOCK-C` | 8 composition, 9 ring, 10 timing checker, 11 netlist import, 12 other tools | `Formal/Net/`, `Formal/Timing/`, `formal/tools/`, `formal/notes/C-*.md`, `formal/JOURNAL-C.md` |
+| C | `formal/LOCK-C` | 8 composition, 9 ring, 10 timing checker, 11 netlist import, 12 other tools | `Formal/Net/`, `Formal/Timing/`, `Formal/Gen/` (generated cells), `formal/tools/`, `formal/notes/C-*.md`, `formal/JOURNAL-C.md` |
 
 - Write only the files your shard owns. Before every push, run `git pull --rebase`.
   Since no two shards share a file, rebases do not conflict. If one does, you
@@ -153,6 +153,67 @@ your shard. All three push to `claude/formal`.
   put their verdicts at the top of their journals, in the same form.
 - Lock and journal rules are the same for every shard (B and C use their own
   lock file and journal).
+
+## After the feasibility verdicts: the next 48 hours (owner, 2026-10-27)
+
+Feasibility is a few hours from done. Then turn it into something the project
+uses. The capstone is one end-to-end theorem: **the routed gcd_hw computes gcd
+(the C in `kernels/`) under an explicit, finite list of hypotheses about the
+silicon**, where every hypothesis is named, graded, and paired with a test.
+Work in phases; within a phase, shards run in parallel. Keep `FEASIBILITY.md`
+and the journals current, and keep `check.sh` green.
+
+### Phase 1 (about 0-12 h): one substrate, the real cells
+- **A:** consolidate `Core`: one discrete ℕ-ps substrate plus the ℝ bridge and
+  the discretisation theorem. Settle the corner model (shared corner plus local
+  scatter κ) as the delay model everyone uses. Write the κ estimator so it can
+  run on per-route two-path data.
+- **B:** port every `Cells/` proof from `Prelim` to `Core`. Delete `Prelim`.
+- **C:** netlist import, done properly. Generate Lean from the yosys JSON of
+  every cell in `cells/rtl/` (INITs, pin maps, feedback wires), and prove it
+  equal to B's hand transcriptions. From then on, proofs are about the
+  generated terms, so a changed INIT breaks the build.
+
+### Phase 2 (about 12-30 h): the whole library, and a checker that runs on real routes
+- **B: the whole cell library.** Prove every cell (`bd_mux`, `bd_merge`,
+  `bd_ctl`, `bd_end`, `bd_mem`, `bd_mlink`, the C3/C4 trees, delay lines)
+  against a handshake spec. For each cell, emit its **exact timing conditions**
+  as machine-readable data (`formal/out/cell_constraints.json`): these are what
+  rules A/E/F/H/I/J approximate. Analog arbiter: the saddle point, τ from the
+  loop, and the MTBF bound. Then the no-filter theorem for a LUT arbiter: the
+  overlap probability in terms of loop gain, threshold spread and the grant
+  window. Say whether it can explain the unexplained bd_arbcell overlap.
+- **C: a verified timing checker on real routes.** It is a compiled Lean
+  executable (`lake exe`), proved sound, that reads a routed JSON, per-arc delay
+  intervals (prjxray via the research branch's `xray_delay.py`, read-only, or
+  nextpnr's SDF), the corner model, and B's constraints, and reports every
+  condition with its margin. Run it on the gcd_hw R5 routes and on the
+  collatz/xorshift/ipow routes whose SDFs the research journal points to,
+  rebuilding them if needed. **Compare its verdicts, row by row, with
+  rules A/E/F/H/I/J**, and explain every disagreement.
+- **A: a verified X/hazard audit for whole designs.** Ternary simulation,
+  proved sound, as an executable over the full routed netlist: every possible
+  X or hazard that could reach a storage node, for any delays in the band.
+  Also formalise the research GLS's "sample-at-fire" LUT channel, and prove
+  what a passing GLS run does and does not imply.
+
+### Phase 3 (about 30-48 h): end to end
+- **C (with B's cells):** composition through Dynamatic's operators (fork,
+  join, merge, mux, branch, buffer) and Kahn determinacy. The gcd dataflow graph
+  that `bdc` emits for gcd_hw (from its netlist, not hand-drawn) computes the C
+  gcd (8b/8e).
+- **All:** the capstone theorem for gcd_hw. Its hypotheses, listed in
+  `formal/out/gcd_hw_hypotheses.md`, are each graded A/B/C (as in the fidelity
+  table), and each comes with the GLS or board experiment that would test it.
+  Then a second kernel, if time remains.
+- **A:** `formal/out/FOR-RESEARCH.md`: what the research branch should change.
+  Which rules the verified checker replaces, the GLS model fixes (early edges,
+  inertial LUT paths), and the tests for each hypothesis. Keep it short and
+  concrete, with commands.
+
+If a phase finishes early, start the next. If one is blocked, record why and
+go around it. Never weaken a statement to make it prove; an unproved goal stays
+reported as unproved.
 
 ## Housekeeping
 
