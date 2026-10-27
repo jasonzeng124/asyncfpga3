@@ -114,19 +114,26 @@ def monitors(ts, g1, g2, OVW=64, GW=64):
 
 
 def arbcell(tick=4, spread=True, route=0, P=20, rst_len=None, settle=None,
-            settled=True):
+            settled=True, lumped=False, rroute=0):
     """Bare bd_arbcell; route = interconnect after every LUT output, in ps.
     settled=True: start from any quiescent state (q either value, all nets
-    consistent) with rst = 0, instead of simulating reset from power-up."""
+    consistent) with rst = 0, instead of simulating reset from power-up.
+    lumped=True: the route is added to every LUT arc inside the inertial
+    channel, exactly as bd_prims_sim.v's BD_ROUTE_PS does (no separate
+    transport wire).  rroute: transport route on r1/r2 into both LUTs (ps)."""
     o6, o5 = arcs(tick, spread)
     R = int(round(route / tick))
-    ts = tsmc.TS('arbcell_t%d_s%d_R%d_P%d' % (tick, spread, R, P))
+    RR = int(round(rroute / tick))
+    if lumped:
+        add = lambda a: ((a[0][0] + R, a[0][1] + R), (a[1][0] + R, a[1][1] + R))
+        o6, o5, R = add(o6), add(o5), 0
+    ts = tsmc.TS('arbcell_t%d_s%d_R%d_P%d_L%d_RR%d' % (tick, spread, R, P, lumped, RR))
     net = Net(ts, settled)
     if settled:
         rst_len, settle = 1, 1
     env_free(ts, ['r1', 'r2'], P)
-    r1 = lambda S: S['r1']
-    r2 = lambda S: S['r2']
+    r1 = net.wire('r1R', lambda S: S['r1'], RR)
+    r2 = net.wire('r2R', lambda S: S['r2'], RR)
     # rst: start in reset long enough to define q, then 0 forever
     loop = o6[0][1] + o6[1][1] + 2 * R
     rl = rst_len or (loop + 2)

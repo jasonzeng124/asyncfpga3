@@ -147,9 +147,20 @@ directly comparable.
   (the "80 completions vs 40 transactions" count).
 - reach1/2: non-vacuity, = 1 in every row.
 
-**Run.** `$S/venv/bin/python -I arb.py inertial` takes 27 s for 48 checks;
-`arb.py transport` takes many minutes (up to 1.3 M states and 25 s per check).
-Logs: `$S/arb_in.log`, `$S/arb_tp.log`.
+**Run.**
+- `$S/venv/bin/python -I arb.py inertial` takes 27 s for 48 checks.
+- `arb.py transport` takes 2-30 s per check, with up to 1.3 M states.
+  - The first full transport run was **OOM-killed** by the sandbox memory
+    cgroup at 5.3 GB RSS, in section 4 (unheld, transport, arc spread ±2).
+  - A HELD transport+spread row was still building after 20 min at 5.2 GB.
+    I killed it, so as not to take shared memory from shard Lean jobs (the
+    same cgroup has OOM-killed `lean` twice today).
+  - Transport mode now skips section 4.
+- Logs: `$S/arb_in.log`, `$S/arb_tp.log` (sections 1-3), `$S/arb_tp2.log`.
+
+**Effort figures.** About 2.5 h of work: about 40 min on tool hunting and the
+proxy, about 1 h writing the front end (with 5 stormpy API fixes, since the
+2.0 API differs from the docs), and the rest on sweeps, witnesses and notes.
 
 ### Inertial channel (exact for integer bounds)
 
@@ -311,4 +322,8 @@ Run: `$S/venv/bin/python -I meta_dtmc.py`, 115 s for 9 chains of 8002 states.
 - No STG / speed-independence check through Petrify or MPSat. The haz monitor
   is the hand-made equivalent of output persistency.
 - No per-pin delays and no prjxray corner bounds.
-- No transport run with spread for the unheld cell (state-space heavy).
+- No transport run with arc spread. It blows up: more than 5 GB and more
+  than 20 min, OOM. This is the explicit-state digital-clock limit. Zone-based
+  tools (UPPAAL, TChecker) or a symbolic engine are what would fix it.
+  `stormpy.build_symbolic_model` (Storm's BDD engine) has not been tried; it
+  is the next cheap thing to try.

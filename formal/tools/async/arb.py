@@ -141,7 +141,8 @@ if __name__ == "__main__":
     for w in (0, 8, 16, 24, 32, 48):
         row(f"HELD wa={w} srv=[40,45]", held=True, wa=(w, w), srv=(40, 45))
     print("== 4. arc spread +-2 ticks, routed q in [0,8], A0 fork [0,4] ==")
-    for held in (False, True):
+    # transport + spread: > 20 min and > 5 GB (OOM-killed in this sandbox)
+    for held in ((False, True) if MODE == "inertial" else ()):
         row(f"{'HELD' if held else 'UNHELD'} spread=2 srv=[40,45]",
             held=held, spread=2, wq_g=(0, 8), wq_s=(0, 8), wa=(0, 4),
             srv=(40, 45))
