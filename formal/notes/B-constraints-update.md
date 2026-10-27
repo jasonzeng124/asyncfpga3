@@ -176,3 +176,125 @@ the +1 margins carry over.
 
 Its CORNER_1C text replaces the corner rule that the Bfd rows also use (they use CORNER_1C), so
 those rows will pick up the new text automatically.
+
+---
+
+# Update (probe Bj2): bdc_muxn exact per bit, bd_latch exact per pin, reset necessity and box-exact reset forms, H_NO_RETURN
+
+Files changed: `formal/out/cell_constraints.gen.py`, `formal/out/cell_constraints.validate.py`, and,
+through the generator, `formal/out/cell_constraints.json` and the entry table of
+`formal/out/cell_constraints.md` (no hand edits to the md). No Lean changed. Before editing, the
+unchanged generator reproduced the committed JSON byte for byte. All logic is ported into one new
+generator section ("probe Bj2", just before the global hypotheses), which runs after Bj's strict
+and `strict_pending` passes. The generator reads no scratch file. It now also imports `copy`.
+
+## Checks
+
+| check | result |
+|---|---|
+| `python3 -I cell_constraints.validate.py cell_constraints.json` | 129 constraints, 8 hypotheses, 1437 Lean references in 69 files, strict 62, strict_pending 18, **errors: 0** |
+| port against the drafts | Blp's 9 rows are identical to `Blp/draft_entries.json`. Bmn's 3 rows differ only by the intended fields below. Each of Bsx's 12 rows has the drafted exactness and every drafted citation. |
+| negative control (scratch copy: misspelt `sel_box_exakt`, latch hold margin 0, `exact_scope` on a sufficient entry, `not_necessary` without `replacement`, `informational` with empty `refers_to`) | 5 errors, one for each fault |
+
+Every cited name is checked by the validator's declaration grep (`theorem|def|...` at the start of
+a line in the cited file). `LibGapMuxN`, `LibGapLatch`, `NecessityReset`, `NecessityMuxRtz` and
+`ResetGcdWave` are all git-tracked.
+
+New validator checks:
+- `exact_scope` only on `exact` entries;
+- `not_necessary` needs a `replacement` that is a `hypotheses_not_inequalities` id, and a citation
+  whose role starts with `not_necessary`;
+- `informational` needs a non-empty `refers_to`.
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries | 128 | 129 (+ `bdc_muxn.no_third_branch`) |
+| proved / unproved | 127 / 1 | 128 / 1 |
+| exact | 19 | 31 |
+| sufficient | 64 | 51 |
+| sufficient+necessary | 13 | 18 |
+| sufficient+necessary_at_boundary | 18 | 13 |
+| sufficient+necessary_at_instance | 5 | 6 |
+| not_necessary | 0 | 1 |
+| strict (+1) | 59 | 62 |
+| strict_pending | 20 | 18 |
+
+## 1. bdc_muxn (Bmn, LibGapMuxN)
+
+- `s_setup` and `s_hold` carry Bmn's per-decode, per-index-bit inequalities, lean_syms and citations.
+- Both get `exactness: exact` plus a new field `exact_scope`; the draft's compound value is not used:
+  - s_setup: decode form (forms[0]) exact; data LUT5 form (forms[1], S_Z_S) sufficient;
+  - s_hold: the inequality text is exact given S1_b. forms[0] still bounds S1_b − Cf by the sender's
+    round-trip contract, and that bound is only sufficient.
+- `s_hold` also gets `strict_pending`, for the same reason as `bd_mux.bundled_s_hold`: Bmn has no
+  Kleene version.
+- New row `no_third_branch` (H_NO_THIRD, exact per join 0):
+  - `informational: true`, with `refers_to` set to s_setup and s_hold, which imply it;
+  - fields copied from the original s_setup: cell, also_applies_to, corner, check_scope, combine.
+
+## 2. bd_latch (Blp, LibGapLatch; added by the lead)
+
+- The nine odd / pair.O5 / pair.O6 rows (setup_data, setup_pulse, hold) become `exact` with the
+  per-pin inequalities.
+- The three hold rows become STRICT: margin_ps 1, `strict.backing = strict_edges`, and
+  `strict_pending` removed. They cite `box_exact_edges`, `strict_edges`, and
+  CElemStrict.env_latency_strict as context.
+- `bd_latch_rst.hold` is not in Blp's scope and keeps `strict_pending`.
+
+## 3. Necessity (Bsx) and the reset-width forms
+
+Exactness changes on Bsx's 12 rows:
+
+| rows | new exactness |
+|---|---|
+| reset_width ×4 | sufficient+necessary |
+| design.rst_hold | sufficient+necessary_at_instance |
+| bd_latch_rst.reset | sufficient+necessary, with `necessity_scope` "forms[0] only" |
+| bd_merge.reset_first, bd_mux.reset_first, bd_pipe.rst_lines | sufficient (notes and citations added) |
+| design.rst_release_skew | **not_necessary**, with `replacement: H_NO_RETURN` (new vocabulary value, in conventions) |
+| bd_mux.uxa_rtz_env, bd_mux.uya_rtz_env | sufficient+necessary_at_boundary |
+
+**Form fix (Bsx finding 1).** `bd_c{2,2n,3,4}.reset_width` and `design.rst_hold` now have the
+shape of `bd_latch_rst.reset` form 0, which is box-exact:
+- data side: Rhi (the I_rst arc hi; for rst_hold also the wire and SP) plus Qhi (the feedback
+  wire, SP[fb] and the feedback pin's own arc hi);
+- request side: rst_width + Rlo (the I_rst arc lo; for rst_hold also the wire and SP lo);
+- margin_ps stays 1 (strict).
+
+Moving the I_rst arc lo to the request side alone would make the form weaker, not exact. With
+Bsx's numbers, the old form passes at W >= 917 and "arc lo on the request side only" passes at
+W >= 872. Exact box needs 995, and the new form (exact + 1) needs 996. The old form's single
+`dlmax` arc stood for the feedback-pin arc, which equals the I_rst arc only when O6 is flat
+(1C). The fixed form therefore charges both arcs.
+
+The four rows get `corner = CORNER_1C` plus a note citing `reset_box_exact` and
+`json_box_gap_fails`. The reset_width inequality text now says that the "release before the first
+request" clause is sufficient, not necessary.
+
+## 4. H_NO_RETURN (B-hypotheses.md section 2)
+
+- The hypothesis entry is rewritten:
+  - cell level: exact by `returned_pulse_lost` / `early_request_ok`;
+  - design level: proved for the reset-release window by `ResetGcdWave.gcd_wave_settled`. Its
+    docstring calls it "H_NO_RETURN for the reset-release window". It specialises
+    `gcd_first_wave`, the name B-hypotheses cites, which states the covering sA / sB m;
+  - residual: H_RST_BEFORE_LOOP (W < 34 steps), from `gcd_clean_release`, `gcd_loop_late` and
+    `rst_reads_low`;
+  - loop phases: not covered.
+- Its `check` is now the routed SDF test of H_RST_BEFORE_LOOP.
+- `design.rst_release_skew` cites both ResetGcdWave theorems as `not_necessary`.
+
+## Bk2's kappa_check.patch
+
+Not applied. I re-tested it on scratch copies of the final generator and validator with
+`patch -p0`:
+- it applies: hunk 2 at offset +639, hunk 3 with fuzz 2, because its trailing context line (the
+  conventions `exactness` vocabulary) changed. The new vocabulary text is kept;
+- the patched generator runs: 129 entries, each with `kappa_check`;
+- the patched validator gives 464 errors, all "ConstraintsKappa.lean is untracked".
+
+Bk2's text replaces CORNER_1C's rule, and CORNER_RST is built from CORNER_1C, so the reset rows
+pick up the new text. The patch should be regenerated (not hand-applied) before it lands, because
+of the fuzz.

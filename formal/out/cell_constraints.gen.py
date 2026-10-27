@@ -4,7 +4,7 @@
 Every entry is transcribed from formal/notes/B-obligations.md and the B-*.md notes
 it cites, checked against the Lean statements named in `lean`. Run with -I.
 """
-import json, sys
+import copy, json, sys
 
 OUT = sys.argv[1]
 
@@ -1962,6 +1962,279 @@ for i in ("bd_latch[odd].hold", "bd_latch[pair.O5].hold", "bd_latch[pair.O6].hol
           "bdc_amerge3.rt2_cascade_forkA", "bdc_amerge3.rt2_cascade_forkG", "bdc_amerge3.rt2_cascade_forkA2", "bdc_amerge3.rt2_cascade_forkG2"):
     BYID[i]["strict_pending"] = PEND + ("; Latch.ct2_hold_violation_x already shows the X" if ".hold" in i and "latch" in i else "")
 
+# --------------------------------------------------------------- probe Bj2: Bmn (LibGapMuxN), Blp (LibGapLatch), Bsx (NecessityReset, NecessityMuxRtz), H_NO_RETURN (ResetGcdWave)
+def LN(f, n, role, note=None):
+    return L(f, n, role, **({"note": note} if note else {}))
+
+# ---- Bmn (formal/notes/B-lib-gap-muxn.md): bdc_muxn select setup/hold exact per decode and index bit; new bdc_muxn.no_third_branch
+LMN = "Cells/LibGapMuxN"
+MN_COMMON = [
+    LN(LMN, "join_exact_fixed", "exact", "fixed per-pin delays, ANY index-bit traces: NSpec for every request trace and every trace obeying H_PIN_READ (decode LUT3 + bd_c2 join) + H_RESET iff no instant where ctl_req reads 1 at the decode and the per-bit code reading disagrees with the token about k. Request pin, decode->join wire and join feedback drop out"),
+    LN(LMN, "decode_exact_all_tokens", "exact", "M1 box: join k correct for EVERY token value v < 3 iff decode k's two index pins meet per-bit setup AND hold (decode pins only)"),
+    LN(LMN, "sel_box_exact", "exact", "M1 box, selected join (v = k): iff per-bit setup and hold, both bits"),
+    LN(LMN, "unsel_box_exact", "exact", "M1 box, unselected join: iff Cover (every instant ctl_req may read 1 lies in the read-stable window of a bit where k and v differ); implied by the per-bit form (sel_cond_cover)"),
+    LN(LMN, "join_ok_of_reads", "sufficient", "any (non-monotone) read maps"),
+    LN(LMN, "maps_ok", "sufficient", "per-instant box form"),
+    LN(LMN, "maps_needed", "necessary", "constant-delay bad instant inside the box refutes the box statement"),
+    LN(LMN, "join_needed", "necessary", "every bad instant has a real trace (run) on which NSpec fails: unselected join rises with its request waiting; selected join fails to rise or falls early"),
+    LN(LMN, "dec_eq", "function_equality", "decode LUT3 INITs 10/40/40 (H_YOSYS_MAP pin orders) = ctl_req & (s == k)"),
+    LN(LMN, "c2_dev", "function_equality", "bd_c2 00E8: output differs between two decode values iff they differ and request read != feedback read"),
+    LN(LMN, "third_branch_latched", "counter_trace", "index 1 -> 2 with s1 (rising) read 600 ps late: decode 0 reads 00 on [1300,1500), join 0 with in0_req waiting latches 1 from 1400 for ever: input 0's token consumed by a control token for input 2"),
+    LN(LMN, "selcond_witness", "non_vacuity"), LN(LMN, "witness_third", "non_vacuity", "join 0 is 0 at every instant, join 2 fires at 1400, good timing, both requests waiting"),
+]
+_mn_orig_setup = copy.deepcopy(BYID["bdc_muxn.s_setup"])
+for side in ("setup", "hold"):
+    e = BYID[f"bdc_muxn.s_{side}"]
+    fm = e["forms"][0]
+    if side == "setup":
+        e["obligation"] = ("S_MUXN_S_SETUP_PIN (LibGapMuxN, per decode k, per index bit b): bit b, settled at its driver at S0_b, is read by "
+                           "decode k (pin s_b -> O6) no later than ctl_req's rise (Cr) is read by it (pin ctl_req -> O6); and S_Z_S for the data LUT5 (unchanged)")
+        e["inequality"] = ("decode k, per bit b: S0_b + ps_b(k).hi <= Cr + pc(k).lo; ps_b(k) = s_b.drv -> sel_k.I{0|1} wire + SP + arc(I -> O6); "
+                           "pc(k) = ctl_req.drv -> sel_k.I2 wire + SP + arc(I2 -> O6). The sel_k -> uj_k wire, uj_k's request pin and its feedback do NOT enter. "
+                           "Old form: Ws_b(i).hi <= Lsd + Wc(i).lo with S0_b = Cr - Lsd. Data LUT5 form unchanged: sh_b + Mz <= Lsd + Kj + wo + Lo.lo + Dl")
+        for p in fm["data_paths"]:
+            for st in p:
+                if st.get("kind") == "lut_arc": st["lean_sym"] = "ps_b(k).hi (arc part)"; st.pop("note", None)
+                if st.get("kind") == "wire": st["lean_sym"] = "ps_b(k).hi (wire part)"
+        for p in fm["request_paths"]:
+            for st in p:
+                if st.get("kind") == "lut_arc": st["lean_sym"] = "pc(k).lo (arc part)"; st.pop("note", None)
+                if st.get("kind") == "wire": st["lean_sym"] = "pc(k).lo (wire part)"
+        fm["note"] = "Lean LibGapMuxN.decode_exact_all_tokens / sel_box_exact: S0_b + Shi_b <= Cr + Clo per decode, per bit; EXACT (iff over the box, every token value)"
+    else:
+        e["obligation"] = ("S_MUXN_S_HOLD_PIN (LibGapMuxN, per decode k, per index bit b): ctl_req's fall (Cf) is read by decode k (I2 -> O6) "
+                           "no later than bit b's next change at its driver (S1_b) is read by it (s_b pin -> O6)")
+        e["inequality"] = ("decode k, per bit b: Cf + pc(k).hi <= S1_b + ps_b(k).lo (S1_b from the control sender's contract: index held until ctl_ack fall "
+                           "seen; the old sufficient form Wc(i).hi <= Kj + Kz + Wzc.lo + Ws_b(i).lo is this with S1_b - Cf >= Kj + Kz + Wzc.lo). "
+                           "The sel_k -> uj_k wire, uj_k's request pin and its feedback do NOT enter.")
+        fm["note"] = ("Lean LibGapMuxN.decode_exact_all_tokens / sel_box_exact: Cf + Chi <= S1_b + Slo_b per decode, per bit; EXACT given S1_b. "
+                      "The composed form via the sender contract (S1_b >= Cf + Kj + Kz + Wzc.lo) stays sufficient (MuxN3Timed)")
+    e["lean"] = MN_COMMON + e["lean"]
+    e["exactness"] = "exact"
+    e["exact_scope"] = ("decode form (forms[0]) exact per decode k and per index bit; data LUT5 form (forms[1], S_Z_S) sufficient only" if side == "setup" else
+                        "the inequality text is exact given S1_b; forms[0] bounds S1_b - Cf by the sender's round-trip contract (Kj + Kz + Wzc.lo), which is sufficient only")
+    e["exactness_note"] = ("Bmn (formal/notes/B-lib-gap-muxn.md, LibGapMuxN.lean): the DECODE form is exact (iff) per decode k and per index bit over the "
+        "delay box, with PER-PIN reads of the decode LUT3 (s0, s1, ctl_req) and of the bd_c2 join (request, sel_k, own feedback), read maps not "
+        "necessarily monotone, each index bit stable on its own window and arbitrary outside (M1), the client request arbitrary, quantified over every "
+        "token value v < 3. For one fixed token the unselected joins need only Cover (weaker; unsel_box_exact); the per-bit form is what makes every "
+        "join right for every token. The decode->join wire and the join's request/feedback pins drop out. Box necessity takes pin delays "
+        "independent; under a correlated corner model use join_exact_fixed per realisation. "
+        + ("The data LUT5 form (S_Z_S) stays SUFFICIENT (MuxN3Timed.muxn3_data_ok). " if side == "setup" else
+           "S1_b itself comes from the sender's contract; the composed round-trip form stays sufficient. ")
+        + "Old Mn content: " + e["exactness_note"])
+    e["status"] = "proved"
+# same reason as bd_mux.bundled_s_hold / bd_steer.bundled_s_hold: Bmn's model has no X on the index bits (H_KLEENE_LUT not covered)
+BYID["bdc_muxn.s_hold"]["strict_pending"] = PEND + "; LibGapMuxN has no Kleene version (no X on the index bits)"
+t = {k: v for k, v in _mn_orig_setup.items() if k in ("cell", "also_applies_to", "check_scope", "combine", "corner")}
+t.update(id="bdc_muxn.no_third_branch", catalogue_row="Bmn (new, B-lib-gap-muxn.md)",
+    obligation=("H_NO_THIRD (LibGapMuxN.third_box_exact): when the index changes 1 -> 2 or 2 -> 1 (both bits change) across a control token's "
+                "ctl_req window, decode 0 never reads the intermediate code 00 while ctl_req reads 1 (11 selects nothing)"),
+    inequality=("r = the bit going 0 -> 1, f = the bit going 1 -> 0, T = their change times at the driver, decode 0's pins: "
+                "Cf + pc(0).hi <= T_f + ps_f(0).lo  OR  T_r + ps_r(0).hi <= Cr + pc(0).lo  OR  T_r + ps_r(0).hi <= T_f + ps_f(0).lo. "
+                "Setup side (token = the new code) and hold side (token = the old code, T = the next change) alike."),
+    forms=[{"launch": "the index change (both bits) at the control sender's driver",
+            "data_paths": [[{"kind": "wire", "from": "s_r.drv", "to": "sel_0.I{0|1}", "lean_sym": "Bhi (rising bit, wire part)"},
+                            {"kind": "site_pin", "from": "sel_0.I{0|1}@pip", "to": "sel_0.I{0|1}", "pin_role": "s (rising bit)"},
+                            {"kind": "lut_arc", "from": "sel_0.I{0|1}", "to": "sel_0.O6", "lean_sym": "Bhi (arc part)"}]],
+            "request_paths": [[{"kind": "wire", "from": "s_f.drv", "to": "sel_0.I{0|1}", "lean_sym": "Alo (falling bit, wire part)"},
+                               {"kind": "site_pin", "from": "sel_0.I{0|1}@pip", "to": "sel_0.I{0|1}", "pin_role": "s (falling bit)"},
+                               {"kind": "lut_arc", "from": "sel_0.I{0|1}", "to": "sel_0.O6", "lean_sym": "Alo (arc part)"}]],
+            "margin_ps": 0,
+            "note": "third disjunct (rise-first) only; the other two are s_setup's rising-bit form and s_hold's falling-bit form at decode 0. A checker may take the OR of the three"}],
+    lean=[LN(LMN, "third_box_exact", "exact", "iff over the box, index 1 -> 2 (s0 falls, s1 rises), any token v in {1,2}"),
+          LN(LMN, "third_fixed_exact", "exact", "fixed delays, 1 -> 2"), LN(LMN, "third_fixed_exact_21", "exact", "fixed delays, 2 -> 1"),
+          LN(LMN, "third_implied_by_setup", "sufficient", "the selected join's correctness implies join 0's: the third branch is never the only failure"),
+          LN(LMN, "step_sel_exact", "exact", "selected join after a clean step: iff both changed bits read changed by ctl_req's read rise"),
+          LN(LMN, "step_old_exact", "exact", "old branch: excluded once ONE changed bit is read changed"),
+          LN(LMN, "rise_first_example", "instance", "rise-first: join 0 correct, selected join 2 fires late (NSpec deviation, not a wrong token)"),
+          LN(LMN, "third_branch_latched", "counter_trace"), LN(LMN, "witness_third", "non_vacuity"),
+          LN(LMN, "code12_zero", "lemma"), LN(LMN, "dec_eq", "function_equality")],
+    exactness="exact",
+    exactness_note=("Bmn: exact per join 0 over the box under H_S_STEP (each bit changes once, cleanly). Implied by bdc_muxn.s_setup's rising-bit "
+                    "form (setup side) and bdc_muxn.s_hold's falling-bit form (hold side), so it adds no obligation to a design that meets those; it is the "
+                    "exact condition for the third-branch hazard alone (a weaker per-join form). n = 3 only (2 index bits). INFORMATIONAL: a checker that "
+                    "evaluates s_setup and s_hold need not evaluate this row."),
+    informational=True, refers_to=["bdc_muxn.s_setup", "bdc_muxn.s_hold"],
+    status="proved",
+    site_pins={"needed": True, "roles": ["sel_0.I{0|1} (rising bit) hi", "sel_0.I{0|1} (falling bit) lo", "sel_0.I2 (ctl_req) lo/hi"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED (implied by rule-E-shaped per-bit setup + the unchecked hold)"})
+E.insert(E.index(BYID["bdc_muxn.s_hold"]) + 1, t)
+BYID[t["id"]] = t
+
+# ---- Blp (formal/notes/B-lib-gap-latch.md): the nine bd_latch rows exact per pin; hold strict (clears strict_pending)
+LGL = "Cells/LibGapLatch"
+LBITS_P = {"odd": ("odd_box_exact", "I0", "I2", "O6"), "pair.O5": ("o5_box_exact", "I0", "I2", "O5"), "pair.O6": ("o6_box_exact", "I3", "I4", "O6")}
+L_MODEL = ("LibGapLatch model: H_PIN_READ (each of d, en, own q read through its own window [t-hi, t-lo]: wire + SP + that pin's arc "
+           "to THIS output; read maps need not be monotone), H_KLEENE_LUT on the real INIT (Latch.*_kleene: the pair's neighbour pins never "
+           "matter, X included), H_EN_TOKEN (en definite 1 on [Ton, Toff-we), ARBITRARY on the closing window [Toff-we, Toff), 0 from Toff; "
+           "arbitrary before Ton), H_D_STABLE (d definite v on [Td, Tnew-wd), arbitrary elsewhere), power-up arbitrary (no reset). "
+           "Spec Capt: q = v (definite) whenever en reads the closing window or later. ")
+L_NOTES = ("Exactness: box_exact (iff over the per-pin box, three inequalities together; each one has its own counter-trace "
+           "family: need_pulse_two / need_data / need_hold). Strictness: with H_MUX_KLEENE's one tick of X on the moving select "
+           "(we = wd = 1) all three rows are strict (strict_edges); with instantaneous selects (we = wd = 0) all three are '<=' "
+           "(atomic_edges). The 1 ps is the model's minimum, not a measured slew. Box necessity takes the three pins independent; "
+           "under H_RF_SYM (one delay per arc for both edges) use sym_exact / cells_sym_exact (setup_pulse loses the enable's spread). "
+           "Not covered: multi-token packaging (per token), the sources of Ton/Toff/Td/Tnew (LinkTimed, ForkData), mid-rail selects beyond H_KLEENE_LUT.")
+for bit, (thm, dp, fp, o) in LBITS_P.items():
+    common_lean = [
+        LN(LGL, thm, "exact", f"real INIT ({bit}), iff over the per-pin box: setup_pulse AND setup_data AND hold"),
+        LN(LGL, "box_exact", "exact", "engine form on latM"),
+        LN(LGL, "box_exact_edges", "exact", "binary-edge form with X windows we (enable fall) and wd (next datum)"),
+        LN(LGL, "strict_edges", "exact", "we = wd = 1: all three strict"),
+        LN(LGL, "atomic_edges", "context", "we = wd = 0: all three '<='"),
+        LN(LGL, "sym_exact", "exact_fixed_transport", "H_RF_SYM: fixed per-pin delays anywhere in the box"),
+        LN(LGL, "cells_sym_exact", "exact_fixed_transport", "the same on the three real INITs"),
+        LN(LGL, "latch_pin_ok", "sufficient", "any read maps"),
+        LN(LGL, "witness_run", "non_vacuity", "a run at the boundary writes 0 -> 1 and holds 1"),
+    ]
+    for row in ("setup_data", "setup_pulse", "hold"):
+        e = BYID[f"bd_latch[{bit}].{row}"]
+        e["exactness"] = "exact"
+        e["status"] = "proved"
+        e.pop("strict_pending", None)
+        if row == "setup_data":
+            e["obligation"] = ("L_SETUP_DATA (LibGapLatch, per pin): the datum, settled at its driver at Td, read through the D pin (slowest), "
+                               "then once round the bit's OWN feedback pin (slowest), is in before the enable's closing window starts as read (fastest)")
+            e["inequality"] = (f"Td + dhi + fhi + we <= Toff + elo (we = 1: strict); dhi = D wire + SP[u.{dp}] + arc u.{dp}->{o} (max); "
+                               f"fhi = feedback wire (incl. any LUT->xMUX output hop) + SP[u.{fp}] + arc u.{fp}->{o} (max); "
+                               f"elo = en wire + SP[u.I1] + arc u.I1->{o} (min)")
+            e["lean"] = common_lean + [LN(LGL, "need_data", "necessary", "violated: X (window) or the old value captured"),
+                                       LN(LGL, "ct_data_x", "counter_trace", "1 ps short: X captured"),
+                                       LN(LGL, "ct_data_wrong", "counter_trace", "1 ps short, instantaneous select: old value 0 captured")] + \
+                [r for r in e["lean"] if r["name"] in ("capture", "odd_latch", "pair_o6_latch", "counter_rule_I", "latch_facts", "env_latency_strict", "clean_iff")]
+            e["exactness_note"] = L_MODEL + "setup_data: exact (iff). Consistent with CElemStrict.latch_facts/clean_iff (c = Td + dhi, D = fhi, s = Toff - we + elo). " + L_NOTES
+            e["rule"]["detail"] = (e["rule"]["detail"] + " Blp: every missing term APPEARS in the exact form: the feedback-pin arc and SP[fb] (in fhi, max), "
+                                   "SP[d] (in dhi, max), and the +1 strictness; SP[en] and the en arc appear on the right at min (omitting them is conservative); "
+                                   "the enable's hi does not appear.")
+        elif row == "setup_pulse":
+            e["obligation"] = ("L_SETUP_PULSE (LibGapLatch, per pin): the enable's rise as read (slowest) plus once round the bit's own feedback "
+                               "pin (slowest) lands before its closing window starts as read (fastest); the data pin drops out")
+            e["inequality"] = (f"Ton + ehi + fhi + we <= Toff + elo (we = 1: strict), i.e. Won >= (ehi - elo) + fhi + 1; ehi/elo = en wire + "
+                               f"SP[u.I1] + arc u.I1->{o} (max/min), fhi as setup_data. Under H_RF_SYM (one delay per arc): Won >= fhi + 1. "
+                               "prjxray, ONE corner c in {FAST, SLOW}: Won >= (w_en.c_max - w_en.c_min) + (SP[en].c_max - SP[en].c_min) + "
+                               f"(arc_I1->{o}.c_max - c_min) + w_fb.c_max + SP[fb].c_max + arc_fb->{o}.c_max + 1")
+            e["lean"] = common_lean + [LN(LGL, "need_pulse_two", "necessary", "box: rise read at ehi, fall at elo; the bit keeps its power-up value"),
+                                       LN(LGL, "need_pulse_sym", "necessary", "fixed delays: Ton + fhi > Toff - we"),
+                                       LN(LGL, "ct_pulse_x", "counter_trace", "1 ps short: X captured"),
+                                       LN(LGL, "ct_pulse_wrong", "counter_trace", "1 ps short, instantaneous select: power-up value 0 kept")] + \
+                [r for r in e["lean"] if r["name"] in ("capture", "stage_token", "setup_iff", "latch_facts")]
+            e["exactness_note"] = L_MODEL + "setup_pulse: exact (iff); previously sufficient only. " + L_NOTES
+            e["rule"] = {"rule": "none", "verdict": "none",
+                         "detail": "UNCHECKED by any rule (rule I starts at the upstream latch). Blp proposes rule P: per latch bit, per corner, "
+                                   "Won(en driver, min over the route's enable pulse) >= (en spread at the bit) + fhi + 1 with SP from the FASM pin. "
+                                   "Binding on the Bt2 routes (required E >= 1101-1953 ps)."}
+            e["evidence"] = (e["evidence"] + "; prjxray SLOW, odd bit (O6 100::124), en on A2 (SP 409::507), fb on A1 (SP 516): "
+                             "Won >= 763 ps + en wire spread + fb wire (box) or >= 641 ps + fb wire (H_RF_SYM); FAST: 324 / 271 ps + wires")
+            e["site_pins"]["roles"] = ["u.I1 (enable) hi and lo", f"u.{fp} (feedback) hi"]
+        else:
+            e["obligation"] = ("L_HOLD (LibGapLatch, per pin): the end of the enable's closing window as read (slowest) comes no later than "
+                               "the start of the next datum's X window as read through the D pin (fastest); the feedback pin drops out")
+            e["inequality"] = (f"Toff + ehi + wd <= Tnew + dlo (wd = 1: strict); ehi = en wire + SP[u.I1] + arc u.I1->{o} (max); "
+                               f"dlo = D wire + SP[u.{dp}] + arc u.{dp}->{o} (min)")
+            for f_ in e["forms"]:
+                f_["margin_ps"] = 1
+            e["strict"] = {"source": "Blp (formal/notes/B-lib-gap-latch.md, Formal/Cells/LibGapLatch.lean)", "backing": "strict_edges",
+                           "forms": [0], "terms": "every form", "margin_added_ps": 1}
+            e["lean"] = common_lean + [LN(LGL, "need_hold", "necessary", "violated: X (window) or the next datum captured and fed back"),
+                                       LN(LGL, "ct_hold_x", "counter_trace", "1 ps short: X captured"),
+                                       LN(LGL, "ct_hold_wrong", "counter_trace", "1 ps short, instantaneous select: new datum 0 captured")] + \
+                [r for r in e["lean"] if r["name"] in ("capture", "latch_rule_h_net", "counter_rule_H", "ct2_hold_violation_x")] + \
+                [LN(CS, "env_latency_strict", "context", "the same H_MUX_KLEENE mechanism (X on a moving select); here the moving select is the next datum's")]
+            e["exactness_note"] = L_MODEL + ("hold: exact (iff). strict_pending RESOLVED: strict by the next datum's X window (wd), "
+                                             "margin_ps raised to 1. ") + L_NOTES
+            e["rule"]["detail"] = (e["rule"]["detail"] + f" Blp: the exact form contains SP[u.I1].hi and SP[u.{dp}].lo (the missing site-pin term), the "
+                                   "D-pin arc at min (rule H omits it: conservative) and the +1 strictness (missing); no feedback term.")
+
+# ---- Bsx (formal/notes/B-necessity.md): exactness of 12 sufficient-only rows; reset-width forms made box-exact
+NR = "Cells/NecessityReset"
+NMR = "Cells/NecessityMuxRtz"
+RGW = "Cells/ResetGcdWave"
+def bsx(i, exactness, note, refs, **extra):
+    e = BYID[i]
+    e["exactness"] = exactness
+    e["exactness_note"] = (note + " Earlier: " + e.get("exactness_note", "")).strip()
+    e["lean"] = e["lean"] + [LN(f, n, r, nt) for f, n, r, nt in refs]
+    e.update(extra)
+    return e
+CORNER_RST = dict(CORNER_1C, note=("Bsx: the reset-width form charges the I_rst arc hi on the data side and lo on the request side, so box mode is exact "
+                                   "(NecessityReset.reset_box_exact); the earlier form (I_rst arc on the data side only) was short by arc.hi - arc.lo - 1 "
+                                   "in box mode (json_box_gap_fails) and exact (+1) only in 1C with flat O6 arcs"))
+RST_FORM_NOTE = ("Bsx (NecessityReset.reset_box_exact): Rhi + Qhi + 1 <= W + Rlo, Rhi/Rlo = rst read window (wire + SP[I_rst] + arc I_rst -> O), "
+                 "Qhi = loop (feedback-pin arc + feedback wire + SP[fb]); same shape as bd_latch_rst.reset form 0. The +1 is the rst rise X window "
+                 "(kleene_rise_x; the fall is harmless, kleene_release_harmless)")
+for c in ("bd_c2", "bd_c2n", "bd_c3", "bd_c4"):
+    rp, fp = CE[c]["rst"], CE[c]["fb"]
+    e = BYID[f"{c}.reset_width"]
+    m = e["forms"][0]["margin_ps"]
+    e["forms"] = [form([[lut("u", rp, "O6", "Rhi: I_rst arc (hi)"), fbw("u", "O6", fp, "Qhi: loop wire"), sp("u", fp, "feedback", "in Qhi"), lut("u", fp, "O6", "Qhi: feedback-pin arc")]],
+                       [[env("rst_width", f"rst high at u.{rp} (pin), min", "W"), lut("u", rp, "O6", "Rlo: I_rst arc (lo)")]],
+                       margin=m, launch=f"rst rise at u.{rp} (pin)", note=RST_FORM_NOTE)]
+    e["inequality"] = (f"width (exact, strict): arc(u.{rp} -> O6).hi + Qhi + 1 <= rst_width(at u.{rp}) + arc(u.{rp} -> O6).lo, Qhi = arc(u.{fp} -> O6) + feedback wire + SP[u.{fp}] "
+                       "(1C, flat O6: rst held >= dlmax + dwmax + 1); release before the first request reaches the pins: sufficient, NOT necessary "
+                       "(the exact cell-level condition is H_NO_RETURN)")
+    e["corner"] = CORNER_RST
+    e["site_pins"]["roles"] = [f"u.{fp} (feedback) hi", f"u.{rp} (reset) arc hi and lo"]
+bsx("bd_c2.reset_width", "sufficient+necessary",
+    "Bsx: width clause exact in the per-pin model (NecessityReset.reset_box_exact / c2_box_exact): box iff Rhi + Qhi <= W + Rlo, 1C (fixed delays) iff loop <= W (rst path drops out). The form now charges the I_rst arc on both sides (hi data, lo request), so it is box-exact plus its strict +1; the earlier form omitted the arc's spread in box mode (json_box_gap). The 'released before the first request' clause is NOT necessary (early_request_ok); the needed condition is H_NO_RETURN (returned_pulse_lost).",
+    [(NR, "reset_box_exact", "exact", None), (NR, "reset_pin_exact", "exact", None), (NR, "c2_box_exact", "exact", None),
+     (NR, "c2_short_reset", "counter_trace", "loop 400 ps, rst path 500 ps, rst held 399 ps: bd_c2 is 0 at 600 and 1 again at 899"),
+     (NR, "c2_ok_reset", "non_vacuity", "rst held 400 ps: 0 for ever"), (NR, "c2_traces_exist", "non_vacuity", None),
+     (NR, "json_box_gap_fails", "counter_trace", "the earlier form passes at W = 917; the exact box needs 995"),
+     (NR, "early_request_ok", "not_necessary", None), (NR, "early_request_numbers", "not_necessary", None),
+     (NR, "returned_pulse_lost", "counter_trace", None), (NR, "kleene_rise_x", "context", None)])
+bsx("bd_c2n.reset_width", "sufficient+necessary",
+    "Bsx: as bd_c2.reset_width; c2n HOLDS with every input at its reset value (c2n_resetstate_holds), so the width is needed in gcd_hw's actual reset state, not only for a power-up input value.",
+    [(NR, "c2n_box_exact", "exact", None), (NR, "c2n_resetstate_holds", "instance", None), (NR, "reset_pin_exact", "exact", None),
+     (NR, "early_request_ok", "not_necessary", None), (NR, "returned_pulse_lost", "counter_trace", None)])
+for c, v in (("bd_c3", "(1,0,0)"), ("bd_c4", "(1,0,0,0)")):
+    bsx(f"{c}.reset_width", "sufficient+necessary",
+        f"Bsx: as bd_c2.reset_width (inputs held at {v}); with all inputs 0 the cell resets itself (inputs0_force).",
+        [(NR, f"{c[3:]}_box_exact", "exact", None), (NR, "inputs0_force", "context", None)])
+e = BYID["design.rst_hold"]
+m = e["forms"][0]["margin_ps"]
+e["forms"] = [form([[wire("rst_src", "G.I_rst", "Rhi: w_rst(G).hi"), sp("G", "I_rst", "rst", "in Rhi"), lut("G", "I_rst", "O6", "Rhi: I_rst arc (hi)"),
+                     fbw("G", "O6", "I_fb", "Qhi: loop wire"), sp("G", "I_fb", "feedback", "in Qhi"), lut("G", "I_fb", "O6", "Qhi: feedback-pin arc")]],
+                   [[env("rst_width", "rst_src high, min (gcd_hw: 16 hk cycles from rst_sr; 24 more at POR)", "W"), wire("rst_src", "G.I_rst", "Rlo: w_rst(G).lo"),
+                     sp("G", "I_rst", "rst", "in Rlo"), lut("G", "I_rst", "O6", "Rlo: I_rst arc (lo)")]],
+                   margin=m, launch="rst_src rise", note="per reset-carrying LUT G. " + RST_FORM_NOTE)]
+e["inequality"] = ("per G: w_rst(G.I_rst).hi + SP[I_rst].hi + arc(I_rst -> O).hi + arc(I_fb -> O).hi + feedback wire.hi + SP[I_fb].hi + 1 "
+                   "<= rst_width + w_rst(G.I_rst).lo + SP[I_rst].lo + arc(I_rst -> O).lo (Rhi + Qhi + 1 <= W + Rlo)")
+e["corner"] = CORNER_RST
+e["site_pins"]["roles"] = ["G.I_rst hi and lo (wire, SP and arc)", "G feedback pin hi"]
+bsx("design.rst_hold", "sufficient+necessary_at_instance",
+    "Bsx: per G exact (reset_box_exact on the real INIT of c2, c2n, c2n_set, c3, c4, uj0, uj1). Needed for c2n/c2n_set even with inputs at reset values; for c2/c3/c4/uj0/uj1 NOT needed once every input reads 0 (c2_inputs0_selfreset). FORM FIXED (Bj2): the earlier form charged the I_rst arc only on the data side, so in BOX mode it was short by (arc hi - arc lo - 1) per pin (json_box_gap, json_box_gap_fails: W = 917 passed the form, the exact box needs 995); it was sound only in 1C. The form now has the I_rst arc lo on the request side and the feedback-pin arc hi on the data side, as bd_latch_rst.reset form 0, which is the exact box condition plus the strict +1. Arbiter ustate not covered.",
+    [(NR, "reset_box_exact", "exact", None), (NR, "cells", "instance", None), (NR, "c2ns_box_exact", "exact", None),
+     (NR, "uj0_box_exact", "exact", None), (NR, "uj1_box_exact", "exact", None),
+     (NR, "c2_inputs0_selfreset", "not_necessary_at_instance", None), (NR, "json_box_gap", "counter_trace", "numbers: the earlier form at W = 917 vs the exact box at 995"),
+     (NR, "json_box_gap_fails", "counter_trace", None)])
+bsx("bd_latch_rst.reset", "sufficient+necessary",
+    "Bsx: form 0 (H_RST_PW: R0 + rhi + fhi + 1 <= R1 + rlo) is exactly the per-pin box condition (+1 strict) for both RESET_VALUEs, en held low (latch_rst0_box_exact, latch_rst1_box_exact). Unlike the earlier design.rst_hold form this form is box-sound (rlo includes the I3 arc). Forms 1-2 (H_EN_CLOSED_AT_RELEASE, H_RST_DONE) untouched (sufficient).",
+    [(NR, "latch_rst0_box_exact", "exact", None), (NR, "latch_rst1_box_exact", "exact", None)],
+    necessity_scope="forms[0] (H_RST_PW) only; forms 1-2 sufficient")
+bsx("bd_merge.reset_first", "sufficient",
+    "Bsx: NOT necessary as a whole. Loop terms (Lxa.hi + wxah + 1 <= R, uya) necessary at the instance (c2_box_exact, uxa with x_req up and z_ack 0). H_RST_EARLY (R <= AX 0, ZA0 0, ...) is NOT necessary at the cell: an early edge that stays is processed as if it arrived at release (early_request_ok); the needed condition is H_NO_RETURN (returned_pulse_lost). Wire terms (W*.hi <= R) not analysed (FIFO start-time artifact).",
+    [(NR, "c2_box_exact", "necessary_loop_terms", None), (NR, "early_request_ok", "not_necessary", None), (NR, "returned_pulse_lost", "counter_trace", None)])
+bsx("bd_mux.reset_first", "sufficient",
+    "Bsx: as bd_merge.reset_first; loop terms necessary at uj0/uj1 (uj0_box_exact, uj1_box_exact: join held with its request up, ctl_req 0) and uxa/uya (c2_box_exact); H_RST_EARLY not necessary (early_request_ok).",
+    [(NR, "uj0_box_exact", "necessary_loop_terms", None), (NR, "uj1_box_exact", "necessary_loop_terms", None),
+     (NR, "c2_box_exact", "necessary_loop_terms", None), (NR, "early_request_ok", "not_necessary", None)])
+bsx("bd_pipe.rst_lines", "sufficient",
+    "Bsx: the loop term L_i.hi + wh_i + 1 <= R is necessary for the bd_c2n stage controller in the actual reset state (inputs at reset values hold: c2n_box_exact, c2n_resetstate_holds). The line/flush and per-pin (6g) terms are untouched.",
+    [(NR, "c2n_box_exact", "necessary_loop_term", None), (NR, "c2n_resetstate_holds", "instance", None)])
+bsx("design.rst_release_skew", "not_necessary",
+    "Bsx + Rst3: NOT necessary. Cell level: an input edge that reaches a reset cell while its rst is still read high and then stays is processed exactly as if it arrived at release (early_request_ok, numbers early_request_numbers). The exact cell-level requirement is H_NO_RETURN: an input pulse that completes while rst is read high is lost (returned_pulse_lost). Design level: ResetGcdWave.gcd_wave_settled proves H_NO_RETURN for the reset-release window on gcd_hw's control network for EVERY rst waveform (any skew, glitches, re-assertion), so this skew bound is not needed there; the residual is H_RST_BEFORE_LOOP (rst final W < 34 GMW steps before the loop is first requested: gcd_loop_late, rst_reads_low). Kept as a sufficient form only; see hypotheses_not_inequalities H_NO_RETURN.",
+    [(NR, "early_request_ok", "not_necessary", None), (NR, "early_request_numbers", "not_necessary", None),
+     (NR, "returned_pulse_lost", "exact_replacement_counter_trace", None),
+     (RGW, "gcd_wave_settled", "not_necessary", "whole gcd_hw control network: from F + 34(D+W+1) every control node is at sigB for every rst waveform in (S, F]"),
+     (RGW, "gcd_first_wave", "not_necessary", "the covering statement gcd_wave_settled specialises")],
+    replacement="H_NO_RETURN")
+bsx("bd_mux.uxa_rtz_env", "sufficient+necessary_at_boundary",
+    "Bsx: in mux_rtz_env_safe's own hypothesis set, H_RTZ_ENV cannot be weakened by 1 ps: claim1_false (box run: z_ack wire fall 4 / rise 1) and claim1_false_1C (every stage one fixed delay) satisfy every other hypothesis, violate H_RTZ_ENV by exactly 1 tick, and x_ack returns to 1 inside the window (real uj1 and bd_c2 INITs). claim0 = the sufficient half. One parameter point per form; mux_ok's other hypotheses not re-checked on the run.",
+    [(NMR, "claim0", "sufficient", None), (NMR, "claim1_false", "counter_trace", None), (NMR, "claim1_false_1C", "counter_trace", None)])
+bsx("bd_mux.uya_rtz_env", "sufficient+necessary_at_boundary",
+    "Bsx: mirror of uxa_rtz_env with the real uj0 INIT (x_req waiting, s = 0).",
+    [(NMR, "claimY0", "sufficient", None), (NMR, "claimY1_false", "counter_trace", None), (NMR, "claimY1_false_1C", "counter_trace", None)])
+
 # =============================================================== global hypotheses (not inequalities)
 HYP = [
     {"id": "H_LUT_FIFO / H_PIN_FIFO / H_TREE_FIFO", "catalogue_row": "C4", "cells": ["every handshake LUT"],
@@ -1992,9 +2265,16 @@ HYP = [
               L(RG, "neg_unguarded", "counter_trace", note="an OR steer fails the check"), L(RC, "rig_post_definite", "instance")],
      "check": "structural; decided on the elaborated RTL control netlist (ResetGcd), not yet on a synthesized / routed netlist (C-11c import)"},
     {"id": "H_NO_RETURN", "catalogue_row": "Rst section 2", "cells": ["every reset cell whose rst is still high when a frontier link fires"],
-     "statement": "no input of a cell still held in reset rises AND returns before the cell's rst releases (a lost event). Argued from the four-phase discipline (every return needs the reader's acknowledge), not proved. gcd_release_quiet reduces it to events caused by the 10 frontier links; design.rst_release_skew (H_RST_SKEW) is the checkable sufficient form.",
-     "lean": [L(RG, "gcd_release_quiet", "context", note="nothing moves before a frontier controller, for any release skew")],
-     "check": "evaluate design.rst_release_skew for the first-wave cells, or prove H_NO_RETURN (bounded-window closure per frontier event)"},
+     "statement": "no input of a cell still held in reset rises AND returns before the cell's rst releases (a lost event). Cell level (Bsx, NecessityReset): this is the exact requirement: a pulse that completes while rst is read high is lost (returned_pulse_lost), while an edge that arrives early and stays is processed as if it arrived at release (early_request_ok), so 'released before the first request' (H_RST_EARLY, design.rst_release_skew) is sufficient, not necessary. Design level (Rst3, ResetGcdWave): PROVED for the reset-release window on gcd_hw's elaborated control network: for every rst waveform on (S, F] (any per-pin skew, glitches, re-assertion) every control node is at the same state sigB from F + 34(D+W+1) until the first loop request (gcd_wave_settled, from gcd_first_wave; model steps D = LUT bound, W = wire bound). Residual: H_RST_BEFORE_LOOP, rst final before the loop is first requested, which holds with a clean rst edge when W < 34 steps (gcd_clean_release, gcd_loop_late, rst_reads_low). The loop phases (after the first steer request) are not covered.",
+     "lean": [L(RG, "gcd_release_quiet", "context", note="nothing moves before a frontier controller, for any release skew"),
+              L(RGW, "gcd_first_wave", "sufficient", note="every bounded run from the reset state, rst anything on (S, F] and 0 on (F, E], steers 0 on (S, E]: sA covers [S, E], sB m covers [F + m(D+W+1), E]"),
+              L(RGW, "gcd_wave_settled", "sufficient", note="H_NO_RETURN for the reset-release window: from F + 34(D+W+1) to E every control node is at sigB, whatever rst did"),
+              L(RGW, "gcd_clean_release", "sufficient", note="with a clean rst edge at F, from power-up; steer-hold needed only after F + 34"),
+              L(RGW, "gcd_loop_late", "lemma", note="no steer leaves 0 until 34 steps after rst was last 1 (a causal chain of 34 real LUTs)"),
+              L(RGW, "rst_reads_low", "lemma", note="H_RST_BEFORE_LOOP: every rst pin reads 0 once F + W < k"),
+              L(NR, "returned_pulse_lost", "necessary", note="cell level: a returned pulse while rst is read high is lost (bd_c2 stays 0)"),
+              L(NR, "early_request_ok", "context", note="cell level: an early edge that stays gets exactly the clean response")],
+     "check": "H_RST_BEFORE_LOOP on a routed netlist: max rst-pin delay (slow) < 34 fast-min LUT+wire steps on the path ulink_n1__1 -> ucmpi0 -> join -> steer, guardbanded (GUARD_LO/GUARD_HI); design.rst_release_skew need not be evaluated"},
     {"id": "H_RF_ASYM", "catalogue_row": "11", "statement": "rise = fall within a corner column; asymmetry unmeasured", "lean": [], "check": "unmeasured"},
     {"id": "H_WIRE_RATIO", "catalogue_row": "11", "statement": "one fast/slow ratio k per margin; per-wire scatter p10 0.37 .. p90 0.82 not modelled",
      "lean": [L("Cells/ArbCorners", "fast_neg_iff", "corner"), L("Cells/ArbCorners", "guard_universal", "corner")], "check": "guard As - Af/k on SLOW_MAX-only checks"},
@@ -2022,9 +2302,13 @@ doc = {
         "site_pins": "`needed` = the obligation's exact form contains per-pin site delays; `roles` = which logical pin roles and on which side. The SDF cannot see them (flat 25 ps).",
         "corner_rule": "prjxray's two IOPATH triples are FAST and SLOW corners, NOT rise and fall (ArbCorners.prj_is_mix; prjxray makesdf.py:63). NEVER take a rise arc from FAST and a fall arc from SLOW. Modes: '1C' = both sides from one column, checked at FAST_MIN and at SLOW_MAX (or EndpointOK with kappa over a shared corner); 'box' = every hi at SLOW_MAX and every lo at FAST_MIN independently (always sound, pessimistic); '1C_both_corners_required' = a SLOW_MAX-only check is NOT enough (RT1b). A SLOW_MAX-only margin needs the guard As - Af/k (fast_neg_iff; As - Af if k <= 1, guard_universal). Rise = fall within a column (H_RF_ASYM unmeasured).",
         "status": "'proved' = every cited sufficient theorem exists in a tracked file; 'unproved' = the inequality is not a Lean statement (extrapolated, physical reading of an untimed result, or no theorem).",
-        "exactness": "sufficient | sufficient+necessary (a counter-trace shows the condition cannot be dropped) | sufficient+necessary_at_boundary/instance (tight on a concrete trace, not a general iff) | exact (iff) | sufficient+necessary_untimed (S/N in an untimed model; the delay inequality is its physical reading) | untimed_schedule | hypothesis (a named assumption the cell theorems use, not derived) | sufficient_by_arithmetic | see_refers_to | partial (status stays 'unproved': a weaker statement than the entry is proved; exactness_note says what is missing) | unproved.",
+        "exactness": "sufficient | sufficient+necessary (a counter-trace shows the condition cannot be dropped) | sufficient+necessary_at_boundary/instance (tight on a concrete trace, not a general iff) | exact (iff; see exact_scope / exact_under when present) | not_necessary (sufficient, but a theorem shows the condition is not needed; see `replacement`) | sufficient+necessary_untimed (S/N in an untimed model; the delay inequality is its physical reading) | untimed_schedule | hypothesis (a named assumption the cell theorems use, not derived) | sufficient_by_arithmetic | see_refers_to | partial (status stays 'unproved': a weaker statement than the entry is proved; exactness_note says what is missing) | unproved.",
         "rule_verdicts": "exact | conservative | missing_term (rule weaker; `missing` names the term) | exact_arcs_missing_site_pins | conservative_arcs_missing_site_pins | rule_is_the_check | different_condition | none (no rule checks it) | uncheckable_statically.",
         "check_scope": "static_route (route + prjxray only) | route_plus_env (needs a neighbour or environment latency; static when the neighbour is in the design) | environment | protocol | structural | not_static.",
+        "exact_scope": "optional text: which forms or parts of an 'exact' entry are exact; the rest of the entry is sufficient only (e.g. bdc_muxn.s_setup: decode form exact, data LUT5 form sufficient).",
+        "necessity_scope": "optional text: where the necessity half of an entry's exactness holds (a consumer kind, or a subset of its forms).",
+        "informational": "true: the entry is implied by the entries in refers_to; a checker that evaluates those need not evaluate it.",
+        "replacement": "for exactness 'not_necessary': the named hypothesis (hypotheses_not_inequalities) that is the needed condition in its place.",
         "exact_under": "optional list of named side conditions: the entry's 'exact' holds only under them; outside them it is sufficient only.",
         "strictness": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean): in the per-pin Kleene mux-tree model (H_TREE, H_MUX_KLEENE: a moving select reads X on [s, s + wa), wa >= 1 tick; H_FB_PURE) the own-feedback race is clean iff dlmax + dwmax + wa <= dlmin + E (env_latency_iff), so with the grid minimum wa = 1 ps every own-feedback race entry reads L + 1 <= R (env_latency_strict; at equality bd_c2 reads X, boundary_x) and every held width >= Dmax + 1. Entries carrying `strict` have margin_ps raised by 1 on the forms it lists; their earlier '<=' theorems are proved with instantaneous selects (wa = 0, env_latency_atomic) and remain sufficient. The 1 ps is the model's minimum, NOT a measured slew: the physical margin is the departing select's X width (with SDF 50% arrival times about half the sum of the two select slews), which nothing here measures. `strict_pending` marks input-against-input orders where the same mechanism may apply but has not been checked; they stay '<='.",
         "guards_in_rules": "tighten.py A, D, F, H, I, K, L add req_guard = max(0.2 t, 200 ps); skew.py (E) and arb_fork.py (J) use 0.772 early / 1.155 late (GUARD_LO/GUARD_HI).",
@@ -2051,6 +2335,7 @@ doc = {
     "hypotheses_not_inequalities": HYP,
 }
 doc["produced_by"] += ". Updated by probe Bj (2026-10-27) from B-celem-strict.md (CElemStrict: own-feedback race entries strict, L + 1 <= R, field `strict`; input-against-input orders marked `strict_pending`), B-lib-gap.md (LibGapSteer: bd_steer select setup/hold exact per pin; bd_fork/bd_join delegation rows) B-fork-data.md (ForkData: bd_fork.branch_data, bd_fork.branch_data_edge, bdc_amerge.idx_bundle; edge-sampling caveat on the amerge index races), B-lib-gap-mux.md (LibGapMux: bd_mux select setup/hold exact per join), B-lib-gap-delay.md (LibGapDelay: bd_delay_gated.gate exact under side conditions) and B-rig-idx.md (RigIdx: gcd_rig.idx_setup proved exact); no new Lean, no route"
+doc["produced_by"] += ". Updated by probe Bj2 (2026-10-27) from B-lib-gap-muxn.md (LibGapMuxN: bdc_muxn.s_setup decode form and s_hold exact per decode and index bit, field exact_scope; new informational bdc_muxn.no_third_branch), B-lib-gap-latch.md (LibGapLatch: the nine bd_latch setup_data / setup_pulse / hold rows exact per pin; hold strict), B-necessity.md (NecessityReset, NecessityMuxRtz: reset-width rows necessary, reset-width forms of bd_c*.reset_width and design.rst_hold made box-exact with the I_rst arc on both sides, design.rst_release_skew not necessary, bd_mux rtz_env tight at the boundary) and B-reset-gcd-wave.md (ResetGcdWave: H_NO_RETURN proved for the reset-release window); no new Lean, no route"
 json.dump(doc, open(OUT, "w"), indent=1)
 print(len(E), "constraints")
 

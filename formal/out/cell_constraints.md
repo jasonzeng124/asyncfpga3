@@ -227,34 +227,34 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_c2.pulse_width` | proved | exact (strict +1) | yes | none |
 | `bd_c2.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c2.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
-| `bd_c2.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c2.reset_width` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c2n.pulse_width` | proved | exact (strict +1) | yes | none |
 | `bd_c2n.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c2n.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
-| `bd_c2n.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c2n.reset_width` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c3.pulse_width` | proved | exact (strict +1) | yes | none |
 | `bd_c3.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c3.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
-| `bd_c3.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c3.reset_width` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c4.pulse_width` | proved | exact (strict +1) | yes | none |
 | `bd_c4.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c4.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
-| `bd_c4.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c4.reset_width` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_ctree.node_fork` | proved | sufficient (strict +1) | yes | none |
 | `bd_ctree.ack_wait` | proved | exact | no | none |
-| `bd_latch[odd].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[odd].setup_pulse` | proved | sufficient (strict +1) | yes | none |
-| `bd_latch[odd].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch[pair.O5].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[pair.O5].setup_pulse` | proved | sufficient (strict +1) | yes | none |
-| `bd_latch[pair.O5].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch[pair.O6].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[pair.O6].setup_pulse` | proved | sufficient (strict +1) | yes | none |
-| `bd_latch[pair.O6].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch[odd].setup_data` | proved | exact (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[odd].setup_pulse` | proved | exact (strict +1) | yes | none |
+| `bd_latch[odd].hold` | proved | exact (strict +1) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch[pair.O5].setup_data` | proved | exact (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[pair.O5].setup_pulse` | proved | exact (strict +1) | yes | none |
+| `bd_latch[pair.O5].hold` | proved | exact (strict +1) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch[pair.O6].setup_data` | proved | exact (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[pair.O6].setup_pulse` | proved | exact (strict +1) | yes | none |
+| `bd_latch[pair.O6].hold` | proved | exact (strict +1) | yes | H: conservative_arcs_missing_site_pins |
 | `bd_latch_rst.setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
 | `bd_latch_rst.setup_pulse` | proved | sufficient (strict +1) | yes | none |
 | `bd_latch_rst.hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch_rst.reset` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch_rst.reset` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_latch.loop_bound` | proved | hypothesis | yes | none |
 | `bd_delay[sym].pulse_width` | proved | sufficient+necessary_at_boundary | yes | A/B/C/D/E (edge window via SDF): none |
 | `bd_delay[FASTFALL].flush_uniform` | proved | sufficient (strict pending) | yes | F: missing_term |
@@ -292,9 +292,9 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_arbiter.alternation` | proved | sufficient+necessary | no | none |
 | `bd_arbiter.ack_celements` | proved | see_refers_to | yes | none |
 | `bd_mux.uxa_rtz` | proved | exact (strict +1) | yes | none |
-| `bd_mux.uxa_rtz_env` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uxa_rtz_env` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_mux.uya_rtz` | proved | exact (strict +1) | yes | none |
-| `bd_mux.uya_rtz_env` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uya_rtz_env` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_mux.bundled_s_setup` | proved | exact | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
 | `bd_mux.bundled_s_hold` | proved | exact (strict pending) | yes | none |
 | `bd_mux.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
@@ -330,8 +330,9 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient (strict pending) | yes | none |
 | `bdc_amerge3.bundled_idx0_grant` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_muxn.rtz` | proved | sufficient+necessary_untimed (strict +1) | yes | none |
-| `bdc_muxn.s_setup` | proved | sufficient+necessary_at_boundary | yes | E (skew.py): exact_structure_missing_site_pins |
-| `bdc_muxn.s_hold` | proved | sufficient | yes | none |
+| `bdc_muxn.s_setup` | proved | exact | yes | E (skew.py): exact_structure_missing_site_pins |
+| `bdc_muxn.s_hold` | proved | exact (strict pending) | yes | none |
+| `bdc_muxn.no_third_branch` | proved | exact | yes | none |
 | `bdc_muxn.iso_ctl` | proved | sufficient (strict +1) | yes | none |
 | `bdc_muxn.iso_zack` | proved | sufficient (strict +1) | yes | none |
 | `bdc_muxn.bundled_z_data` | proved | sufficient | yes | A: different_condition |
@@ -342,9 +343,9 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_mem.hold` | proved | sufficient | no | none |
 | `bd_mem.rdata_before_ack` | proved | sufficient | yes | C: missing_term |
 | `bd_mem.clk_high_width` | proved | sufficient | no | none |
-| `design.rst_hold` | proved | sufficient (strict +1) | yes | none |
+| `design.rst_hold` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
 | `design.rst_flush` | proved | sufficient | yes | none |
-| `design.rst_release_skew` | proved | sufficient | yes | none |
+| `design.rst_release_skew` | proved | not_necessary | yes | none |
 | `gcd_rig.token_static` | proved | sufficient | no | none |
 | `gcd_rig.idx_setup` | proved | exact | yes | none |
 | `bd_fork.delegated` | proved | see_refers_to | yes | none |

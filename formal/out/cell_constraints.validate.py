@@ -74,6 +74,17 @@ for e in doc["constraints"]:
     for r in e.get("refers_to", []):
         if r not in ids:
             errs.append(f"{e['id']}: refers_to unknown id {r}")
+# scope fields (Bj2)
+hyp_ids = {h["id"] for h in doc["hypotheses_not_inequalities"]}
+for e in doc["constraints"]:
+    if "exact_scope" in e and e["exactness"] != "exact":
+        errs.append(f"{e['id']}: exact_scope on a non-exact entry")
+    if e["exactness"] == "not_necessary" and e.get("replacement") not in hyp_ids:
+        errs.append(f"{e['id']}: not_necessary without a replacement hypothesis id")
+    if e.get("informational") and not e.get("refers_to"):
+        errs.append(f"{e['id']}: informational without refers_to")
+    if e["exactness"] == "not_necessary" and not any(r["role"].startswith("not_necessary") for r in e["lean"]):
+        errs.append(f"{e['id']}: not_necessary without a not_necessary citation")
 C = doc["constraints"]
 print(f"constraints={len(C)} hypotheses={len(doc['hypotheses_not_inequalities'])} lean_refs={nref} files={len(cache)}")
 print("status", Counter(e["status"] for e in C))
