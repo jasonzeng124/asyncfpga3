@@ -179,8 +179,10 @@ and the journals current, and keep `check.sh` green.
   `bd_ctl`, `bd_end`, `bd_mem`, `bd_mlink`, the C3/C4 trees, delay lines)
   against a handshake spec. For each cell, emit its **exact timing conditions**
   as machine-readable data (`formal/out/cell_constraints.json`): these are what
-  rules A/E/F/H/I/J approximate. Analog arbiter: the saddle point, τ from the
-  loop, and the MTBF bound. Then the no-filter theorem for a LUT arbiter: the
+  rules A/E/F/H/I/J approximate. The arbiter's metastability, from an analog model of its own gates. There
+  is no analog arbiter: `bd_arb` is LUTs. The analog part is only how
+  those LUTs' feedback loop behaves near mid-rail, which no digital model
+  represents. Derive the saddle point, τ from the loop and the MTBF bound. Then the no-filter theorem for a LUT arbiter: the
   overlap probability in terms of loop gain, threshold spread and the grant
   window. Say whether it can explain the unexplained bd_arbcell overlap.
 - **C: a verified timing checker on real routes.** It is a compiled Lean
