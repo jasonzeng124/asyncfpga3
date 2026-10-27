@@ -85,3 +85,6 @@ Per-module axiom audit (fixed) catches the planted sorry (incl. transitive) and 
 
 ### progress 09:57
 eecc6f7 per-module axiom audit: 31931 constants, 0 bad, 0 modules failed. Second usage-limit stop ~09:30-09:50 UTC (tcheck agent had already delivered its report). Next: re-audit newest heads.
+
+### progress 09:59
+Pass 5: formal f4696cc clean build started (Formal oleans removed, Mathlib reused); key claims 71f12a8 gcd_hw_circuit_safe'', 3e00ce4 RigContract (refutes a research explanation of board ok+err pairs), 2211e06 ResetGcdWave. Research agent on 6119060 xorshift re-baseline, 9452a14 collatz64, 5567170 GLS_MODEL=fid.
