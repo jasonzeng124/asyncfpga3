@@ -204,6 +204,21 @@ as a digital race (ArbBinary, ArbInvolution, TernaryOnBits). Phase 1 task
 for B: port Cells from Prelim to Core and delete Prelim. Phase 2: the whole
 library against a handshake spec, and formal/out/cell_constraints.json.
 
+## Session Tue Oct 27 10:48:58 UTC 2026
+
+### progress 11:05
+Took LOCK-B (previous B lock 1h50m stale). Fresh container: A's setup.sh
+running (Lean zip ok; Mathlib from source). Audit 1f6a9a1 row 48 (REFUTED as
+checked: RigContract.lean does not compile) is right and is mine:
+`stale_window` used the section variable `e` outside `section timed`. The
+previous session's probes compiled with bare `lean`, whose default
+autoImplicit=true silently bound `e`; the lakefile sets autoImplicit=false.
+Reproduced the 9 errors with -DautoImplicit=false, fixed by binding
+`{e : Nat → Nat}` explicitly (same meaning as the auto-bound one), and it now
+checks under the lakefile's options. Every check in this session passes
+-DautoImplicit=false (or goes through lake). A sweep of every core-only
+Cells file under those options is running.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48

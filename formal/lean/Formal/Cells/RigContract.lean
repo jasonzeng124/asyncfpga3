@@ -602,7 +602,7 @@ min alo vlo)` the old arm pin is 1 while the readers already show the NEW
 idx (which differs from the previous window's), and the current arm pin, on
 the same path, is 0. Nonempty whenever `max ahi vhi < Tlo + min alo vlo`
 (true for every routed number in the notes: one hk period is about 7.6 ns). -/
-theorem stale_window {vec : Nat} {n0 : Nat} (hL : Load n0) (h : 131072 ≤ n0)
+theorem stale_window {e : Nat → Nat} {vec : Nat} {n0 : Nat} (hL : Load n0) (h : 131072 ≤ n0)
     {alo ahi vlo vhi : Nat} {armOldP armP : Nat → K3} {idxP : Nat → Nat}
     (P_old : PathOK e alo ahi (fun n => K3.ofBool (armedOld true (run false vec n))) armOldP)
     (P_cur : PathOK e alo ahi (fun n => K3.ofBool (armed true (run false vec n))) armP)
