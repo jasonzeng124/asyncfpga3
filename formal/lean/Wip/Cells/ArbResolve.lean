@@ -3,7 +3,6 @@ import Mathlib.Analysis.SpecialFunctions.Log.Basic
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.MeasureTheory.Measure.WithDensity
 import Mathlib.Topology.Order.DenselyOrdered
 
 /-!
@@ -237,16 +236,6 @@ CLEN1 = 3 / CLEN2 = 5 drift is designed to provide; it is testable on the
 routed GLS by histogramming `Δt` over many arbitrations. -/
 def DensityBound (μ : Measure ℝ) (N : Set ℝ) (p : ℝ) : Prop :=
   ∀ s, MeasurableSet s → s ⊆ N → μ s ≤ ENNReal.ofReal p * volume s
-
-/-- A measure given by a density `f ≤ p` on `N` satisfies `DensityBound`. -/
-theorem densityBound_of_withDensity (f : ℝ → ℝ≥0∞) (N : Set ℝ) (p : ℝ)
-    (hf : ∀ x ∈ N, f x ≤ ENNReal.ofReal p) :
-    DensityBound (volume.withDensity f) N p := by
-  intro s hs hsN
-  rw [withDensity_apply f hs]
-  calc ∫⁻ x in s, f x ∂volume ≤ ∫⁻ _ in s, ENNReal.ofReal p ∂volume :=
-        setLIntegral_mono' hs (fun x hx => hf x (hsN hx))
-    _ = ENNReal.ofReal p * volume s := setLIntegral_const s _
 
 /-- Generic probabilistic band bound. -/
 theorem prob_band (μ : Measure ℝ) {N : Set ℝ} {a c δ p : ℝ} (hc : 0 < c)
