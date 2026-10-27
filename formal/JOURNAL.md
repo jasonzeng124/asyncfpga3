@@ -51,3 +51,12 @@ Claimed (check.sh OK, audit only propext/choice/Quot.sound):
   for Kleene values, differs in timing.
 Literature notes A-lit-1 (40 sources), A-lit-2 (Graphiti, Lean 4 Dynamatic
 dataflow, ASPLOS'26; ACL2 link-joint async proofs; Lutsig HOL4 7-series LUT).
+### progress 03:04
+Claimed since last note: Core/Delay/Inertial, Core/Fidelity, Core/Trace/Event,
+Core/Trace/Discrete, Core/Kleene, Core/Lut, Core/Ternary (see commit messages).
+`formal/check.sh --committed` (new mode: lake build of git-tracked Formal/ modules
+of all three shards, then the axiom audit): Build completed (902 jobs), 1531
+declarations audited, OK. B and C have both chosen discrete ℕ-ps time for cell
+and network proofs, independently; A's discrete probe recommends the same.
+Running: trace-real, circuit layer, involution, corner-correlated bounds, LUT
+hazard audit. Launching a K3 bridge (LutTree/Ternary K3 ≅ Core.K3).

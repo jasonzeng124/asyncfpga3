@@ -5,6 +5,7 @@
 # Also fails on a textual `sorry`/`admit`/`axiom`/`native_decide` in a source
 # file, as a second line of defence. Work in progress goes in formal/lean/Wip/.
 #   formal/check.sh            # whole project
+#   formal/check.sh --committed   # only git-tracked files under Formal/ (lake build + audit)
 #   formal/check.sh FILE...    # only these files (paths relative to formal/lean),
 #                              # checked with `lake env lean`, then audited
 set -uo pipefail
@@ -12,15 +13,20 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 export PATH="$HOME/.elan/bin:$PATH"
 cd "$HERE/lean"
 fail=0
+COMMITTED=0
+if [ "${1:-}" = "--committed" ]; then COMMITTED=1; shift; fi
 FILES=("$@")
 echo "[check] textual scan"
-if [ ${#FILES[@]} -gt 0 ]; then SCAN=("${FILES[@]}"); else mapfile -t SCAN < <(find Formal Formal.lean -name '*.lean'); fi
+if [ ${#FILES[@]} -gt 0 ]; then SCAN=("${FILES[@]}")
+elif [ $COMMITTED -eq 1 ]; then mapfile -t SCAN < <(git ls-files Formal Formal.lean | grep '\.lean$')
+else mapfile -t SCAN < <(find Formal Formal.lean -name '*.lean'); fi
 python3 "$HERE/scan.py" "${SCAN[@]}" || { echo "[check] FAIL: forbidden token in a claimed file (comments excepted)"; fail=1; }
 if [ ${#FILES[@]} -eq 0 ]; then
 echo "[check] lake build"
-FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
+TARGETS=(); [ $COMMITTED -eq 1 ] && TARGETS=($(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g'))
+FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
 grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] FAIL: build"; fail=1; }
-mods=$(find Formal -name '*.lean' | sed 's|\.lean$||; s|/|.|g' | sort)
+mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g' | sort)
 else
   for f in "${FILES[@]}"; do
     echo "[check] lean $f"; mkdir -p ".lake/build/lib/lean/$(dirname "$f")"
@@ -29,7 +35,7 @@ else
   mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
 fi
 mkdir -p .lake/audit
-{ echo "import Lean"; [ ${#FILES[@]} -eq 0 ] && echo "import Formal"; for m in $mods; do echo "import $m"; done
+{ echo "import Lean"; [ ${#FILES[@]} -eq 0 ] && [ $COMMITTED -eq 0 ] && echo "import Formal"; for m in $mods; do echo "import $m"; done
   cat <<'LEAN'
 open Lean Meta in
 #eval show MetaM Unit from do
