@@ -1,6 +1,6 @@
 {
  "schema": "cell_constraints/1",
- "produced_by": "probe P2 (shard B, Phase 2 item B), 2026-10-27; transcribed from formal/notes/B-obligations.md and the B-*.md notes; no new Lean, no route",
+ "produced_by": "probe P2 (shard B, Phase 2 item B), 2026-10-27; transcribed from formal/notes/B-obligations.md and the B-*.md notes; no new Lean, no route. Updated by probe P4 (2026-10-27) from B-constraints-more.md (P3 Constraints{Sel,LatchRst,FastFall,Mux,More}.lean: 16 of the 19 unproved entries proved, lt_first partial, isochronic_forks x2 unproved; new bd_latch_rst.reset), B-gcd-cells.md (GcdCells.lean for bd_delay_gated; new bd_steer entries, unproved) and B-arb-overlap-race.md / B-ternary-on-bits2.md (grant overlap cap, H_LUT62_SHARED_READ)",
  "routed_numbers_provenance": "every 'evidence' number is quoted from B/C notes: link_arb/ce_pair s1..s4 and gcd_hw d/2/3/4 routed by nextpnr sha256 9c732bc6303458df (toolchain.sh ok); muller64 s1 is one route",
  "conventions": {
   "time_unit": "ps",
@@ -20,7 +20,7 @@
   "site_pins": "`needed` = the obligation's exact form contains per-pin site delays; `roles` = which logical pin roles and on which side. The SDF cannot see them (flat 25 ps).",
   "corner_rule": "prjxray's two IOPATH triples are FAST and SLOW corners, NOT rise and fall (ArbCorners.prj_is_mix; prjxray makesdf.py:63). NEVER take a rise arc from FAST and a fall arc from SLOW. Modes: '1C' = both sides from one column, checked at FAST_MIN and at SLOW_MAX (or EndpointOK with kappa over a shared corner); 'box' = every hi at SLOW_MAX and every lo at FAST_MIN independently (always sound, pessimistic); '1C_both_corners_required' = a SLOW_MAX-only check is NOT enough (RT1b). A SLOW_MAX-only margin needs the guard As - Af/k (fast_neg_iff; As - Af if k <= 1, guard_universal). Rise = fall within a column (H_RF_ASYM unmeasured).",
   "status": "'proved' = every cited sufficient theorem exists in a tracked file; 'unproved' = the inequality is not a Lean statement (extrapolated, physical reading of an untimed result, or no theorem).",
-  "exactness": "sufficient | sufficient+necessary (a counter-trace shows the condition cannot be dropped) | sufficient+necessary_at_boundary/instance (tight on a concrete trace, not a general iff) | exact (iff) | sufficient+necessary_untimed (S/N in an untimed model; the delay inequality is its physical reading) | untimed_schedule | hypothesis (a named assumption the cell theorems use, not derived) | sufficient_by_arithmetic | see_refers_to | unproved.",
+  "exactness": "sufficient | sufficient+necessary (a counter-trace shows the condition cannot be dropped) | sufficient+necessary_at_boundary/instance (tight on a concrete trace, not a general iff) | exact (iff) | sufficient+necessary_untimed (S/N in an untimed model; the delay inequality is its physical reading) | untimed_schedule | hypothesis (a named assumption the cell theorems use, not derived) | sufficient_by_arithmetic | see_refers_to | partial (status stays 'unproved': a weaker statement than the entry is proved; exactness_note says what is missing) | unproved.",
   "rule_verdicts": "exact | conservative | missing_term (rule weaker; `missing` names the term) | exact_arcs_missing_site_pins | conservative_arcs_missing_site_pins | rule_is_the_check | different_condition | none (no rule checks it) | uncheckable_statically.",
   "check_scope": "static_route (route + prjxray only) | route_plus_env (needs a neighbour or environment latency; static when the neighbour is in the design) | environment | protocol | structural | not_static.",
   "guards_in_rules": "tighten.py A, D, F, H, I, K, L add req_guard = max(0.2 t, 200 ps); skew.py (E) and arb_fork.py (J) use 0.772 early / 1.155 late (GUARD_LO/GUARD_HI).",
@@ -39,7 +39,9 @@
   "bd_merge": "uor LUT2 E (x_req, y_req); uxa/uya bd_c2 (I0 x_req/y_req, I1 z_ack); usel LUT2 E (x_req, x_ack)",
   "bd_mlink": "ctl.ux LUT3 F9: I0 done, I1 ack, I2 rst -> en; ctl.uq bd_latch W=1: I0 req_in, I1 en, I2 done",
   "bd_flink": "ctl.uck LUT3 06: I0 done, I1 ack, I2 rst -> ck; ctl.uq LUT3 E2: I0 req_in, I1 ck, I2 done",
-  "bd_mem": "ubuf LUT1 2'h2: strobe -> ram_clk (USE_BUFG = 0)"
+  "bd_mem": "ubuf LUT1 2'h2: strobe -> ram_clk (USE_BUFG = 0)",
+  "bd_steer": "u LUT6_2 8888_8888_2222_2222: I0 req, I1 s, I2..I4 0, I5 1 -> O5 req0 (req.~s), O6 req1 (req.s); uack LUT2 E (ack0, ack1)",
+  "bd_delay_gated": "as bdc instantiates it: uor LUT1 (gate) -> g[0] LUT1 -> g[i] LUT2 4'h8 (I0 chain s[i], I1 tap gate), 1 <= i < N; z = s[N]"
  },
  "constraints": [
   {
@@ -324,10 +326,53 @@
      "note": "LUT arcs cancel: the reference instant is the actual node edge, so there is no LUT spread term (6g)"
     }
    ],
-   "lean": [],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "extrapolated from bd_c2n's proof (FifoFidelity/PipePerPin use INIT_c2n only); no Lean theorem for this INIT/pin map.",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_phase_gen",
+     "role": "sufficient",
+     "note": "H_SEL_ORDER (forall i, pq.fst kappa <= (p i).fst (alpha' i)) + H_SEL_KEEP on CPinLut n; applied with isC_c2"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "isC_c2",
+     "role": "relation",
+     "note": "the real INIT is a C-element (IsCElem)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_order_of_lat_gen",
+     "role": "sufficient",
+     "note": "arithmetic form K + pq.hi <= D + (p i).lo for every departing pin, K = tau + w_hi, D = tau + E_tau >= 1; implies H_SEL_ORDER"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_runt_gen",
+     "role": "necessary",
+     "note": "select level: an input gone at its select before the feedback arrived gives the old excitation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c2_sel_order_fails",
+     "role": "counter_trace",
+     "note": "real INIT (other inputs high reduce it to a || q): fb site pin 6 ticks, departing pin 1 tick; H_SEL_ORDER fails (20 > 17), node rises 13, falls 19, rises 22"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c2_not_fifo",
+     "role": "counter_trace",
+     "note": "no FIFO read with hi <= 18 of the pin-level excitation reproduces it"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "cjG_clean",
+     "role": "twin",
+     "note": "same environment, every pin 1 tick: one clean edge"
+    }
+   ],
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_instance",
+   "exactness_note": "P3 (B-constraints-more.md): proved for the real bd_c2 INIT and pin map with per-pin FIFO site buffers (CPinLut: H_PIN_FIFO per pin, H_TREE_FIFO); the Lean arithmetic form (sel_order_of_lat_gen) is this entry's inequality. Necessity: select-level runt (sel_runt_gen) and one oscillating counter-run of the real INIT (ce_c2_sel_order_fails), not a general iff.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -1118,10 +1163,58 @@
      "note": "LUT arcs cancel: the reference instant is the actual node edge, so there is no LUT spread term (6g)"
     }
    ],
-   "lean": [],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "extrapolated from bd_c2n's proof (FifoFidelity/PipePerPin use INIT_c2n only); no Lean theorem for this INIT/pin map.",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_phase_gen",
+     "role": "sufficient",
+     "note": "H_SEL_ORDER (forall i, pq.fst kappa <= (p i).fst (alpha' i)) + H_SEL_KEEP on CPinLut n; applied with isC_c3"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "isC_c3",
+     "role": "relation",
+     "note": "the real INIT is a C-element (IsCElem); INIT = ~rst*(all + q*any) by c3_eq"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "c3_eq",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_order_of_lat_gen",
+     "role": "sufficient",
+     "note": "arithmetic form K + pq.hi <= D + (p i).lo for every departing pin, K = tau + w_hi, D = tau + E_tau >= 1; implies H_SEL_ORDER"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_runt_gen",
+     "role": "necessary",
+     "note": "select level: an input gone at its select before the feedback arrived gives the old excitation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c3_sel_order_fails",
+     "role": "counter_trace",
+     "note": "real INIT (other inputs high reduce it to a || q): fb site pin 6 ticks, departing pin 1 tick; H_SEL_ORDER fails (20 > 17), node rises 13, falls 19, rises 22"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c3_not_fifo",
+     "role": "counter_trace",
+     "note": "no FIFO read with hi <= 18 of the pin-level excitation reproduces it"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "cjG_clean",
+     "role": "twin",
+     "note": "same environment, every pin 1 tick: one clean edge"
+    }
+   ],
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_instance",
+   "exactness_note": "P3 (B-constraints-more.md): proved for the real bd_c3 INIT and pin map with per-pin FIFO site buffers (CPinLut: H_PIN_FIFO per pin, H_TREE_FIFO); the Lean arithmetic form (sel_order_of_lat_gen) is this entry's inequality. Necessity: select-level runt (sel_runt_gen) and one oscillating counter-run of the real INIT (ce_c3_sel_order_fails), not a general iff.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -1497,10 +1590,58 @@
      "note": "LUT arcs cancel: the reference instant is the actual node edge, so there is no LUT spread term (6g)"
     }
    ],
-   "lean": [],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "extrapolated from bd_c2n's proof (FifoFidelity/PipePerPin use INIT_c2n only); no Lean theorem for this INIT/pin map.",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_phase_gen",
+     "role": "sufficient",
+     "note": "H_SEL_ORDER (forall i, pq.fst kappa <= (p i).fst (alpha' i)) + H_SEL_KEEP on CPinLut n; applied with isC_c4"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "isC_c4",
+     "role": "relation",
+     "note": "the real INIT is a C-element (IsCElem); INIT = ~rst*(all + q*any) by c4_eq"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "c4_eq",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_order_of_lat_gen",
+     "role": "sufficient",
+     "note": "arithmetic form K + pq.hi <= D + (p i).lo for every departing pin, K = tau + w_hi, D = tau + E_tau >= 1; implies H_SEL_ORDER"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "sel_runt_gen",
+     "role": "necessary",
+     "note": "select level: an input gone at its select before the feedback arrived gives the old excitation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c4_sel_order_fails",
+     "role": "counter_trace",
+     "note": "real INIT (other inputs high reduce it to a || q): fb site pin 6 ticks, departing pin 1 tick; H_SEL_ORDER fails (20 > 17), node rises 13, falls 19, rises 22"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "ce_c4_not_fifo",
+     "role": "counter_trace",
+     "note": "no FIFO read with hi <= 18 of the pin-level excitation reproduces it"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsSel.lean",
+     "name": "cjG_clean",
+     "role": "twin",
+     "note": "same environment, every pin 1 tick: one clean edge"
+    }
+   ],
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_instance",
+   "exactness_note": "P3 (B-constraints-more.md): proved for the real bd_c4 INIT and pin map with per-pin FIFO site buffers (CPinLut: H_PIN_FIFO per pin, H_TREE_FIFO); the Lean arithmetic form (sel_order_of_lat_gen) is this entry's inequality. Necessity: select-level runt (sel_runt_gen) and one oscillating counter-run of the real INIT (ce_c4_sel_order_fails), not a general iff.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3114,20 +3255,42 @@
    ],
    "lean": [
     {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "rst_latch_on",
+     "role": "relation",
+     "note": "rst reading definitely 0 at its pin: the bit is LatchRel (the Kleene mux), both INITs RST0 00B8.., RST1 FFB8.."
+    },
+    {
      "file": "formal/lean/Formal/Cells/Latch.lean",
      "name": "rst0_kleene",
      "role": "function_equality"
     },
     {
-     "file": "formal/lean/Formal/Cells/Bundling.lean",
-     "name": "capture",
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "capture_rst",
      "role": "sufficient",
-     "note": "for the rst=0 relation, by reduction (not composed in Lean)"
+     "note": "Bundling.capture for the resettable bit, both polarities: H_SETUP, H_HOLD, H_RST_LOW from Rl, H_RST_DONE Rl + rhi <= max(Ton+ehi, Td+dhi)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "counter_rule_I_rst",
+     "role": "counter_trace",
+     "note": "Bundling's rule-I transport counter-trace is a run of both _rst INITs with rst tied low (rst0/rst1_bin_odd); H_SETUP misses the I2 arc, the bit ends wrong"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "counter_rules_rst0",
+     "role": "counter_trace"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "counter_rules_rst1",
+     "role": "counter_trace"
     }
    ],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "timing theorem not stated for the _rst INIT; Latch.rst0_kleene/rst1_kleene show it is the odd latch mux when rst = 0, so Bundling.capture should apply, but no Lean theorem composes them",
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_boundary",
+   "exactness_note": "P3 (B-constraints-more.md): capture_rst, sufficient; boundary witness counter_rule_I_rst (rule I's counter-trace, a run of both _rst INITs with rst low). Extra hypothesis for this cell: H_RST_DONE, rst's fall reaches I3 (Rl + rhi) no later than max(Ton + ehi, Td + dhi); see bd_latch_rst.reset.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3235,10 +3398,33 @@
      "note": "the enable wire appears on both sides: its spread (hi - lo) is the term"
     }
    ],
-   "lean": [],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "timing theorem not stated for the _rst INIT; Latch.rst0_kleene/rst1_kleene show it is the odd latch mux when rst = 0, so Bundling.capture should apply, but no Lean theorem composes them",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "rst_latch_on",
+     "role": "relation",
+     "note": "rst reading definitely 0 at its pin: the bit is LatchRel (the Kleene mux), both INITs RST0 00B8.., RST1 FFB8.."
+    },
+    {
+     "file": "formal/lean/Formal/Cells/Latch.lean",
+     "name": "rst0_kleene",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "capture_rst_from_request",
+     "role": "sufficient",
+     "note": "ehi + fhi <= W + elo together with the data part Td + dhi + fhi <= Tr + Rlo + W + elo (via Bundling.setup_from_request)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/Bundling.lean",
+     "name": "setup_from_request",
+     "role": "lemma"
+    }
+   ],
+   "status": "proved",
+   "exactness": "sufficient",
+   "exactness_note": "P3: capture_rst_from_request, sufficient (as the odd bit); no separate witness for the _rst INIT.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3322,10 +3508,34 @@
      "margin_ps": 0
     }
    ],
-   "lean": [],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "timing theorem not stated for the _rst INIT; Latch.rst0_kleene/rst1_kleene show it is the odd latch mux when rst = 0, so Bundling.capture should apply, but no Lean theorem composes them",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "rst_latch_on",
+     "role": "relation",
+     "note": "rst reading definitely 0 at its pin: the bit is LatchRel (the Kleene mux), both INITs RST0 00B8.., RST1 FFB8.."
+    },
+    {
+     "file": "formal/lean/Formal/Cells/Latch.lean",
+     "name": "rst0_kleene",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "capture_rst",
+     "role": "sufficient",
+     "note": "H_HOLD Toff + ehi <= Tnew + dlo"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "counter_rule_H_rst",
+     "role": "counter_trace",
+     "note": "rule-H counter-trace as a run of both _rst INITs with rst low; H_HOLD fails, the bit ends wrong"
+    }
+   ],
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_boundary",
+   "exactness_note": "P3: capture_rst, sufficient; boundary witness counter_rule_H_rst.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3346,6 +3556,252 @@
    },
    "check_scope": "static_route",
    "evidence": "Bt2 rule H at pins: q2 required 135-929 ps; tighten.py l.148: H margins move 150-200 ps per seed",
+   "combine": "all"
+  },
+  {
+   "id": "bd_latch_rst.reset",
+   "cell": "bd_latch_rst",
+   "bit_kind": "bd_latch_rst",
+   "catalogue_row": "L5",
+   "obligation": "H_RST_PW / H_EN_CLOSED_AT_RELEASE / H_RST_DONE: the reset pulse loads the initial value and fills the loop, the enable is closed when rst is released, and rst's release reaches the bit before the first capture",
+   "inequality": "R0 + rhi + fhi <= R1 + rlo (rst high on [R0, R1) at the driver; rhi/rlo = rst wire + SP[I3] + I3 arc); E0 + ehi <= R1 + rlo (enable low from E0); Rl + rhi <= max(Ton + ehi, Td + dhi) for the first capture (H_RST_DONE of capture_rst)",
+   "forms": [
+    {
+     "launch": "rst rise at the driver (R0)",
+     "data_paths": [
+      [
+       {
+        "kind": "wire",
+        "from": "rst.drv",
+        "to": "u.I3",
+        "lean_sym": "rhi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I3@pip",
+        "to": "u.I3",
+        "pin_role": "reset"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I3",
+        "to": "u.O6",
+        "lean_sym": "rhi"
+       },
+       {
+        "kind": "feedback_wire",
+        "from": "u.O6",
+        "to": "u.I2",
+        "lean_sym": "fhi: loop wire"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I2@pip",
+        "to": "u.I2",
+        "pin_role": "feedback",
+        "lean_sym": "in fhi"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I2",
+        "to": "u.O6",
+        "lean_sym": "fhi: I2 arc"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "rst_width",
+        "spec": "rst high at the driver: R1 - R0, min",
+        "lean_sym": "R1 - R0"
+       },
+       {
+        "kind": "wire",
+        "from": "rst.drv",
+        "to": "u.I3",
+        "lean_sym": "rlo"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I3@pip",
+        "to": "u.I3",
+        "pin_role": "reset"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I3",
+        "to": "u.O6",
+        "lean_sym": "rlo"
+       }
+      ]
+     ],
+     "margin_ps": 0,
+     "note": "H_RST_PW: the pulse fills the loop"
+    },
+    {
+     "launch": "rst fall at the driver (R1)",
+     "data_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "E0",
+        "spec": "enable fall at the en driver, relative to the rst fall (may be negative: closed before)",
+        "lean_sym": "E0"
+       },
+       {
+        "kind": "wire",
+        "from": "en.drv",
+        "to": "u.I1",
+        "lean_sym": "ehi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I1@pip",
+        "to": "u.I1",
+        "pin_role": "enable"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I1",
+        "to": "u.O6",
+        "lean_sym": "ehi"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "wire",
+        "from": "rst.drv",
+        "to": "u.I3",
+        "lean_sym": "rlo"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I3@pip",
+        "to": "u.I3",
+        "pin_role": "reset"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I3",
+        "to": "u.O6",
+        "lean_sym": "rlo"
+       }
+      ]
+     ],
+     "margin_ps": 0,
+     "note": "H_EN_CLOSED_AT_RELEASE; nothing is assumed about rst after R1 (the INIT's consensus makes rst a select between equal legs)"
+    },
+    {
+     "launch": "rst fall at the driver (Rl)",
+     "data_paths": [
+      [
+       {
+        "kind": "wire",
+        "from": "rst.drv",
+        "to": "u.I3",
+        "lean_sym": "rhi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I3@pip",
+        "to": "u.I3",
+        "pin_role": "reset"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I3",
+        "to": "u.O6",
+        "lean_sym": "rhi"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "first_capture",
+        "spec": "rst fall -> first enable rise at the en driver (Ton - Rl), min",
+        "lean_sym": "Ton - Rl"
+       },
+       {
+        "kind": "wire",
+        "from": "en.drv",
+        "to": "u.I1",
+        "lean_sym": "ehi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I1@pip",
+        "to": "u.I1",
+        "pin_role": "enable"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I1",
+        "to": "u.O6",
+        "lean_sym": "ehi"
+       }
+      ]
+     ],
+     "margin_ps": 0,
+     "note": "H_RST_DONE, enable branch of the max; Lean has the enable at its hi bound, this form charges its lo bound (stronger, conservative); the data branch Td + dhi also suffices"
+    }
+   ],
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "reset_loads",
+     "role": "sufficient",
+     "note": "rst high on [R0, R1) gives q = rv on [R0 + rhi, R1 + rlo)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "reset_holds",
+     "role": "sufficient",
+     "note": "initial token holds after release until the next enable rise reaches the bit; H_RST_PW, H_EN_CLOSED_AT_RELEASE"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "capture_rst",
+     "role": "sufficient",
+     "note": "H_RST_DONE"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "rst0_isRst",
+     "role": "relation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsLatchRst.lean",
+     "name": "rst1_isRst",
+     "role": "relation"
+    }
+   ],
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): sufficient; no counter-trace for the reset conditions.",
+   "site_pins": {
+    "needed": true,
+    "roles": [
+     "u.I3 (reset) hi and lo",
+     "u.I2 (feedback) hi",
+     "u.I1 (enable) hi"
+    ]
+   },
+   "rule": {
+    "rule": "none",
+    "verdict": "none",
+    "detail": "UNCHECKED (top-level / testbench reset); bd_latch_rst is not emitted for gcd_hw (B-gcd-cells.md)"
+   },
+   "corner": {
+    "mode": "1C",
+    "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
+   },
+   "check_scope": "route_plus_env",
+   "status": "proved",
    "combine": "all"
   },
   {
@@ -3545,7 +4001,7 @@
     }
    ],
    "exactness": "sufficient",
-   "exactness_note": "uniform sufficient form; the exact per-stage form is the next entry (unproved).",
+   "exactness_note": "uniform sufficient form; the exact per-stage form is the next entry (proved sufficient in P3, ConstraintsFastFall.slow_not_early_ps; flush_stage_of_uniform: this form implies it).",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3582,19 +4038,27 @@
        {
         "kind": "env",
         "name": "fall_i",
-        "spec": "a fall -> stage i output fall, latest"
+        "spec": "a fall -> stage i output fall, latest (Lean fallBound: min over tap and chain, per-stage windows)",
+        "lean_sym": "fallBound i"
        },
        {
         "kind": "wire",
         "from": "s[i].O",
         "to": "u[i+1].I0",
-        "lean_sym": "hop_hi: chain wire"
+        "lean_sym": "hi i: chain wire"
        },
        {
         "kind": "site_pin",
         "from": "u[i+1].I0@pip",
         "to": "u[i+1].I0",
-        "pin_role": "chain"
+        "pin_role": "chain",
+        "lean_sym": "in hi i"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u[i+1].I0",
+        "to": "u[i+1].O6",
+        "lean_sym": "in hi i"
        }
       ]
      ],
@@ -3603,27 +4067,75 @@
        {
         "kind": "env",
         "name": "T",
-        "spec": "a fall -> a re-rise (low width), min"
+        "spec": "a fall -> a re-rise (low width), min",
+        "lean_sym": "Tt - Fa"
        },
        {
         "kind": "wire",
         "from": "a",
         "to": "u[i+1].I1",
-        "lean_sym": "tap_lo"
+        "lean_sym": "tlo i: tap wire"
        },
        {
         "kind": "site_pin",
         "from": "u[i+1].I1@pip",
         "to": "u[i+1].I1",
-        "pin_role": "tap"
+        "pin_role": "tap",
+        "lean_sym": "in tlo i"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u[i+1].I1",
+        "to": "u[i+1].O6",
+        "lean_sym": "in tlo i"
        }
       ]
      ],
      "margin_ps": 0,
-     "note": "LUT2 arc of u[i+1] is common to both arrivals and cancels at select level"
+     "note": "Lean H_FLUSH_STAGE i: fallBound i + hi i <= Tt + tlo i for every side stage 1 <= i < N (Lean's gate i reads s i and drives s (i+1), = this form's u[i+1]); each window includes its LUT2 pin arc, which cancel only with prjxray's flat O6 arc at one corner"
     }
    ],
    "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "slow_not_early_ps",
+     "role": "sufficient",
+     "note": "H_FLUSH_STAGE per side stage; every stage holds the fast value on [fallBound i, Ta + Lo i - 1], so z cannot rise before Ta + sum lo"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "slow_arrives_ps",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "fast_edge_ps",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "fastfall_lineP",
+     "role": "relation",
+     "note": "real INITs 2'h2, 4'h8 as a FastLineP"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "flush_stage_of_uniform",
+     "role": "lemma",
+     "note": "uniform H_FLUSH implies every H_FLUSH_STAGE"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "flush_stage_strictly_weaker",
+     "role": "context",
+     "note": "numeric case: every per-stage condition holds, H_FLUSH fails"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "ruleF_counter_violates_stage",
+     "role": "counter_trace",
+     "note": "Bundling.ff_counter_ruleF (rule F's premise holds, the rise skips) violates H_FLUSH_STAGE 1 (13+3 > 12+1)"
+    },
     {
      "file": "formal/lean/Formal/Cells/Bundling.lean",
      "name": "ff_counter_ruleF",
@@ -3631,9 +4143,8 @@
      "note": "shows rule F without the in-flight term is insufficient"
     }
    ],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "stated in B-bundling.md as the exact requirement; no Lean theorem proves it sufficient or necessary per stage (H_FLUSH is its uniform sufficient form).",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): sufficient for every behaviour of the window model (per-hop, per-tap windows); strictly weaker than the uniform H_FLUSH. Necessity is shown only on rule F's witness (ruleF_counter_violates_stage), not in general (any violated stage => skip is open).",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -3650,6 +4161,7 @@
     "mode": "1C",
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
+   "status": "proved",
    "check_scope": "static_route",
    "combine": "all"
   },
@@ -3745,10 +4257,247 @@
    "id": "bd_delay_gated.gate",
    "cell": "bd_delay_gated",
    "catalogue_row": "D5",
-   "obligation": "gated FASTFALL line: gate low forces 0 down the chain",
-   "inequality": "none proved (Kleene only)",
-   "forms": [],
+   "obligation": "gated FASTFALL line (H_FLUSH_STAGE with taps from `gate`, = GcdCells H_GFLUSH i): the gate's low phase flushes every stage before the gate's re-rise re-enables it, so z rises no earlier than the matched delay after the gate rises; z falls one tap hop after the gate",
+   "inequality": "stage 1 (behind the ungated uor and g[0] LUT1s): F + r0.hi + r1.hi + (p 1).hi <= T + (q 1).lo; stage i >= 2: F + (q(i-1)).hi + (p i).hi <= T + (q i).lo (gate low on [F, T); r0 = gate -> uor, r1 = uor -> g[0], p i = chain pin, q i = tap pin of g[i], each route + site pin + arc)",
+   "forms": [
+    {
+     "launch": "gate falls at its driver (F)",
+     "data_paths": [
+      [
+       {
+        "kind": "wire",
+        "from": "gate",
+        "to": "uor.I0",
+        "lean_sym": "r0.hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "uor.I0@pip",
+        "to": "uor.I0",
+        "pin_role": "chain"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uor.I0",
+        "to": "uor.O6",
+        "lean_sym": "r0.hi"
+       },
+       {
+        "kind": "wire",
+        "from": "uor.O6",
+        "to": "g[0].I0",
+        "lean_sym": "r1.hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[0].I0@pip",
+        "to": "g[0].I0",
+        "pin_role": "chain"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[0].I0",
+        "to": "g[0].O6",
+        "lean_sym": "r1.hi"
+       },
+       {
+        "kind": "wire",
+        "from": "g[0].O6",
+        "to": "g[1].I0",
+        "lean_sym": "(p 1).hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[1].I0@pip",
+        "to": "g[1].I0",
+        "pin_role": "chain"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[1].I0",
+        "to": "g[1].O6",
+        "lean_sym": "(p 1).hi"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "low_width",
+        "spec": "gate low on [F, T): T - F, min",
+        "lean_sym": "T - F"
+       },
+       {
+        "kind": "wire",
+        "from": "gate",
+        "to": "g[1].I1",
+        "lean_sym": "(q 1).lo"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[1].I1@pip",
+        "to": "g[1].I1",
+        "pin_role": "tap"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[1].I1",
+        "to": "g[1].O6",
+        "lean_sym": "(q 1).lo"
+       }
+      ]
+     ],
+     "margin_ps": 0,
+     "note": "H_GFLUSH 1 (gflush1_of_lat): the two ungated hops are in flight"
+    },
+    {
+     "launch": "gate falls at its driver (F)",
+     "data_paths": [
+      [
+       {
+        "kind": "wire",
+        "from": "gate",
+        "to": "g[i-1].I1",
+        "lean_sym": "(q (i-1)).hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[i-1].I1@pip",
+        "to": "g[i-1].I1",
+        "pin_role": "tap"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[i-1].I1",
+        "to": "g[i-1].O6",
+        "lean_sym": "(q (i-1)).hi"
+       },
+       {
+        "kind": "wire",
+        "from": "g[i-1].O6",
+        "to": "g[i].I0",
+        "lean_sym": "(p i).hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[i].I0@pip",
+        "to": "g[i].I0",
+        "pin_role": "chain"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[i].I0",
+        "to": "g[i].O6",
+        "lean_sym": "(p i).hi"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "low_width",
+        "spec": "gate low on [F, T): T - F, min",
+        "lean_sym": "T - F"
+       },
+       {
+        "kind": "wire",
+        "from": "gate",
+        "to": "g[i].I1",
+        "lean_sym": "(q i).lo"
+       },
+       {
+        "kind": "site_pin",
+        "from": "g[i].I1@pip",
+        "to": "g[i].I1",
+        "pin_role": "tap"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "g[i].I1",
+        "to": "g[i].O6",
+        "lean_sym": "(q i).lo"
+       }
+      ]
+     ],
+     "margin_ps": 0,
+     "note": "H_GFLUSH i, 2 <= i < N (gflush_of_lat); ConstraintsFastFall states the same per stage as fallBound i + hi i <= Tg + tlo i"
+    }
+   ],
    "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "gated_not_early",
+     "role": "sufficient",
+     "note": "window model (house model, Kleene closure of the real INITs); H_FLUSH_STAGE against the gate's rise Tg; uses the header contract H_A_FOLLOWS_GATE as separate stability windows of a and gate"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "gated_line",
+     "role": "relation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "gated_fast_edge",
+     "role": "sufficient",
+     "note": "z falls one gate-tap hop after gate"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsFastFall.lean",
+     "name": "gated_dip_glitch",
+     "role": "sufficient",
+     "note": "timed gated_dip_flushes: gate low on [F, F'] puts z low on [F + thi, F' + tlo] even while a stays high"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "no_early",
+     "role": "sufficient",
+     "note": "per-pin FIFO read model (PipeTimed.Ret) as bdc instantiates the cell (gate -> uor -> g[0] -> AND stages); H_GFLUSH i"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "gflush1_of_lat",
+     "role": "sufficient",
+     "note": "H_GFLUSH 1 from delays, with the uor hop"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "gflush_of_lat",
+     "role": "sufficient",
+     "note": "H_GFLUSH i >= 2 from delays"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "fast_fall",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "rises",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "rise_by",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "flush_needed",
+     "role": "counter_trace",
+     "note": "N = 2, gate dip [10, 12): H_GFLUSH 1 false (17 > 13), z high at 13 < 19 = T + L 2"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "long_dip_no_early",
+     "role": "non_vacuity"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/GcdCells.lean",
+     "name": "long_dip_rises",
+     "role": "non_vacuity"
+    },
     {
      "file": "formal/lean/Formal/Cells/LibEndMemMlink.lean",
      "name": "gated_gate_low",
@@ -3760,22 +4509,29 @@
      "role": "kleene"
     }
    ],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "no timing theorem; expect the FASTFALL per-stage form with taps from `gate`.",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (ConstraintsFastFall, window model) and Bg2 (GcdCells, per-pin FIFO model with the explicit uor anchor hop): two independent sufficient proofs; GcdCells.flush_needed is a failing counter-run with H_GFLUSH 1 violated (necessity at one instance, not tight, not general). Not shown: the AND gate's static-hazard freedom when chain and tap pins move together (H_TREE_FIFO folded into the per-pin maps); the bundling of the data z covers (rule A on the compute cone).",
    "site_pins": {
-    "needed": false,
-    "roles": []
+    "needed": true,
+    "roles": [
+     "g[i].I0 (chain) hi",
+     "g[i].I1 (tap) lo and hi",
+     "uor.I0, g[0].I0 hi (stage 1)"
+    ]
    },
    "rule": {
     "rule": "F",
-    "verdict": "none"
+    "source": "cells/verify/tighten.py audit_fastfall (covers bd_delay_gated: head input = uor output's late fall)",
+    "verdict": "missing_term",
+    "missing": "(p i).hi - (q i).lo: chain wire into g[i] against the tap wire into it (as row D2)"
    },
    "corner": {
     "mode": "1C",
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
-   "check_scope": "static_route",
+   "check_scope": "route_plus_env",
+   "evidence": "29 instances in gcd_hw (20 fused compute units, 8 control merges, 1 muxn3; N 12..94), B-gcd-cells.md; no route measured",
+   "status": "proved",
    "combine": "all"
   },
   {
@@ -4576,21 +5332,41 @@
    ],
    "catalogue_row": "P6",
    "obligation": "H_LT_FIRST: lt settles before a neighbour can answer through b/a",
-   "inequality": "ult arc + lt wire (hi) <= wire + LUTs + wire back through b/a (lo)",
+   "inequality": "max(bhi, ahi, ghi) + wlt_hi <= R - 1 + min(blo, alo, glo) + wlt_lo (ConstraintsMore H_LT_FIRST_T): b/a/gate stable at their drivers on [T, T + R - 1] (H_ROUND_TRIP, R = round trip back through b/a), each ult pin read over [lo, hi] (route + SP + arc), lt read by every consumer over [wlt_lo, wlt_hi]",
    "forms": [
     {
-     "launch": "b or a edge at ult's pins",
+     "launch": "last change of an ult input at its driver (T)",
      "data_paths": [
       [
        {
+        "kind": "wire",
+        "from": "{b|a|gate}.drv",
+        "to": "ult.{I0|I1|I2}",
+        "lean_sym": "bhi/ahi/ghi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "ult.{I0|I1|I2}@pip",
+        "to": "ult.{I0|I1|I2}",
+        "pin_role": "input"
+       },
+       {
         "kind": "lut_arc",
-        "from": "ult.{I0|I1}",
-        "to": "ult.O6"
+        "from": "ult.{I0|I1|I2}",
+        "to": "ult.O6",
+        "lean_sym": "bhi/ahi/ghi"
        },
        {
         "kind": "wire",
         "from": "ult.O6",
-        "to": "uld.I0"
+        "to": "uld.I0",
+        "lean_sym": "wlt_hi"
+       },
+       {
+        "kind": "site_pin",
+        "from": "uld.I0@pip",
+        "to": "uld.I0",
+        "pin_role": "lt"
        }
       ]
      ],
@@ -4598,12 +5374,44 @@
       [
        {
         "kind": "env",
-        "name": "answer",
-        "spec": "b or a edge -> neighbour -> back to ub/ua pins, lo"
+        "name": "R",
+        "spec": "last b/a/gate change at its driver -> next change of any ult input at its driver (round trip through a neighbour), min, minus one tick",
+        "lean_sym": "R - 1"
+       },
+       {
+        "kind": "wire",
+        "from": "{b|a|gate}.drv",
+        "to": "ult.{I0|I1|I2}",
+        "lean_sym": "min(blo, alo, glo)"
+       },
+       {
+        "kind": "site_pin",
+        "from": "ult.{I0|I1|I2}@pip",
+        "to": "ult.{I0|I1|I2}",
+        "pin_role": "input"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "ult.{I0|I1|I2}",
+        "to": "ult.O6",
+        "lean_sym": "min(blo, alo, glo)"
+       },
+       {
+        "kind": "wire",
+        "from": "ult.O6",
+        "to": "uld.I0",
+        "lean_sym": "wlt_lo"
+       },
+       {
+        "kind": "site_pin",
+        "from": "uld.I0@pip",
+        "to": "uld.I0",
+        "pin_role": "lt"
        }
       ]
      ],
-     "margin_ps": 0
+     "margin_ps": 0,
+     "note": "LUT-level form only (lt_first_window); its link to the untimed schedule ltFirst is not proved"
     }
    ],
    "lean": [
@@ -4623,11 +5431,34 @@
      "name": "dctl_si_hazard",
      "role": "counter_trace",
      "note": "9-step trace"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "ult_kleene",
+     "role": "function_equality",
+     "note": "INIT_DLT is the Kleene NOR"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "lt_settles",
+     "role": "lemma"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "lt_first_window",
+     "role": "partial",
+     "note": "under H_ROUND_TRIP and H_LT_FIRST_T every consumer pin reads the settled lt before the next input change can arrive"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "lt_opposite_x",
+     "role": "necessary",
+     "note": "Kleene: opposite b/a edges inside the window give x; with one input high the other's edge is masked"
     }
    ],
    "status": "unproved",
-   "exactness": "untimed_schedule",
-   "exactness_note": "proved as an untimed schedule restriction; the delay inequality is its physical reading, not a Lean statement.",
+   "exactness": "partial",
+   "exactness_note": "P3 PARTIAL (LUT level only): lt_first_window proves the timed LUT-level statement; NOT proved that timed runs satisfying H_LT_FIRST_T obey the untimed schedule ltFirst that dctl_ok0/1 need (needs a timed model of the dctl controller and its two neighbours, est. 1 day). Status stays 'unproved' as an inequality => hazard-freedom theorem.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -5109,6 +5940,30 @@
      "name": "prj_is_mix",
      "role": "context",
      "note": "the old 16 ps was the corner mix"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "grant_cap",
+     "role": "bound",
+     "note": "Bov: for EVERY digital trace (any request waveforms, fork skew, near ties, runts, q oscillation) every g1 & g2 interval is <= |b5 - b6| = |O5 - O6 arc of q's pin| (b_cancel, H_SHARED_Q_PIN)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "cell_cap_consistent",
+     "role": "bound",
+     "note": "<= 33 ps at a consistent corner"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "cell_cap_box",
+     "role": "bound",
+     "note": "<= 112 ps in the independent box"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "cell_never_203",
+     "role": "bound",
+     "note": "the cell cannot pass the board's >= 203 ps filter; the rig's detector site pins can (slow_trace_passes_203, 305 ps at SLOW_MAX with zero SDF skew)"
     }
    ],
    "exactness": "exact",
@@ -7490,7 +8345,7 @@
    ],
    "catalogue_row": "X1",
    "obligation": "H_RTZ_ENV: z_ack fall reaching uxa plus its loop beats the control token's round trip back to z_ack's rise at uxa",
-   "inequality": "Wux + dlmax + dwmax <= wzc + dc + wcr + dl1 + wjo + dlo + dz + ds + wux (all right terms min); conservative baseline Wux - wux + dlmax + dwmax <= sum of (N+4) min arcs + (N+4) min hops",
+   "inequality": "Wxa + dlmax + dwmax <= wzc + dc + wcr + dl1 + wjo + dlo + dz + ds + wxa (all right terms min; Lean: te + dlmax + dwmax <= Tzf + (...) + wxa); conservative baseline Wxa - wxa + dlmax + dwmax <= sum of (N+4) min arcs + (N+4) min hops",
    "forms": [
     {
      "launch": "z_ack fall at its driver (Tzf)",
@@ -7500,7 +8355,7 @@
         "kind": "wire",
         "from": "z_ack.drv",
         "to": "uxa.I1",
-        "lean_sym": "Wux"
+        "lean_sym": "Wxa"
        },
        {
         "kind": "site_pin",
@@ -7590,7 +8445,7 @@
         "kind": "wire",
         "from": "z_ack.drv",
         "to": "uxa.I1",
-        "lean_sym": "wux"
+        "lean_sym": "wxa"
        },
        {
         "kind": "site_pin",
@@ -7751,7 +8606,7 @@
    ],
    "catalogue_row": "X1",
    "obligation": "H_RTZ_ENV: z_ack fall reaching uya plus its loop beats the control token's round trip back to z_ack's rise at uya",
-   "inequality": "Wux + dlmax + dwmax <= wzc + dc + wcr + dl1 + wjo + dlo + dz + ds + wux (all right terms min); conservative baseline Wux - wux + dlmax + dwmax <= sum of (N+4) min arcs + (N+4) min hops",
+   "inequality": "Wya + dlmax + dwmax <= wzc + dc + wcr + dl0 + wjo + dlo + dz + ds + wya (all right terms min; Lean: te + dlmax + dwmax <= Tzf + (...) + wya); conservative baseline Wya - wya + dlmax + dwmax <= sum of (N+4) min arcs + (N+4) min hops",
    "forms": [
     {
      "launch": "z_ack fall at its driver (Tzf)",
@@ -7761,7 +8616,7 @@
         "kind": "wire",
         "from": "z_ack.drv",
         "to": "uya.I1",
-        "lean_sym": "Wux"
+        "lean_sym": "Wya"
        },
        {
         "kind": "site_pin",
@@ -7819,7 +8674,7 @@
         "kind": "lut_arc",
         "from": "uj0.I1",
         "to": "uj0.O6",
-        "lean_sym": "dl1"
+        "lean_sym": "dl0"
        },
        {
         "kind": "wire",
@@ -7851,7 +8706,7 @@
         "kind": "wire",
         "from": "z_ack.drv",
         "to": "uya.I1",
-        "lean_sym": "wux"
+        "lean_sym": "wya"
        },
        {
         "kind": "site_pin",
@@ -7875,11 +8730,28 @@
      "file": "formal/lean/Formal/Cells/MuxRtzTimed.lean",
      "name": "floop_causal",
      "role": "lemma"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "mux_rtz_env_safe_uya",
+     "role": "sufficient",
+     "note": "H_RTZ_ENV for uya: uj0's real INIT 0000AE08 (uj0_eq), uor pins swapped (H_J1_OR); y_ack low on [te+dlmax, t2+dlmin]"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_eq",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_blocked",
+     "role": "lemma",
+     "note": "a low ctl_req pin holds uj0 at 0"
     }
    ],
-   "status": "unproved",
-   "exactness": "unproved",
-   "exactness_note": "mirror of the uxa theorem (uj0 in place of uj1); not stated in Lean.",
+   "status": "proved",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): mux_rtz_env_safe_uya, sufficient; env bound tightness argued, not proved (as uxa). Cell-level exactness: rtz_safe / rtz_counter are stated for any bd_c2 loop with a held-low j input, so they apply to uya verbatim (comment, no separate theorem).",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -7918,36 +8790,52 @@
        {
         "kind": "env",
         "name": "s_path",
-        "spec": "common launch -> s net driver"
+        "spec": "common launch -> s net driver",
+        "lean_sym": "Ts"
        },
        {
         "kind": "wire",
         "from": "s",
-        "to": "uj0.I2"
+        "to": "uj0.I2",
+        "lean_sym": "shi"
        },
        {
         "kind": "site_pin",
         "from": "uj0.I2@pip",
         "to": "uj0.I2",
         "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj0.I2",
+        "to": "uj0.O6",
+        "lean_sym": "shi"
        }
       ],
       [
        {
         "kind": "env",
         "name": "s_path",
-        "spec": "common launch -> s net driver"
+        "spec": "common launch -> s net driver",
+        "lean_sym": "Ts"
        },
        {
         "kind": "wire",
         "from": "s",
-        "to": "uj1.I2"
+        "to": "uj1.I2",
+        "lean_sym": "shi"
        },
        {
         "kind": "site_pin",
         "from": "uj1.I2@pip",
         "to": "uj1.I2",
         "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj1.I2",
+        "to": "uj1.O6",
+        "lean_sym": "shi"
        }
       ]
      ],
@@ -7956,40 +8844,57 @@
        {
         "kind": "env",
         "name": "req_path",
-        "spec": "common launch -> ctl_req driver"
+        "spec": "common launch -> ctl_req driver",
+        "lean_sym": "Tc"
        },
        {
         "kind": "wire",
         "from": "ctl_req",
-        "to": "uj0.I1"
+        "to": "uj0.I1",
+        "lean_sym": "clo"
        },
        {
         "kind": "site_pin",
         "from": "uj0.I1@pip",
         "to": "uj0.I1",
         "pin_role": "ctl_req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj0.I1",
+        "to": "uj0.O6",
+        "lean_sym": "clo"
        }
       ],
       [
        {
         "kind": "env",
         "name": "req_path",
-        "spec": "common launch -> ctl_req driver"
+        "spec": "common launch -> ctl_req driver",
+        "lean_sym": "Tc"
        },
        {
         "kind": "wire",
         "from": "ctl_req",
-        "to": "uj1.I1"
+        "to": "uj1.I1",
+        "lean_sym": "clo"
        },
        {
         "kind": "site_pin",
         "from": "uj1.I1@pip",
         "to": "uj1.I1",
         "pin_role": "ctl_req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj1.I1",
+        "to": "uj1.O6",
+        "lean_sym": "clo"
        }
       ]
      ],
-     "margin_ps": 0
+     "margin_ps": 0,
+     "note": "Lean H_BUNDLED_S_SETUP_T: Ts + shi <= Tc + clo, per join"
     }
    ],
    "lean": [
@@ -8013,11 +8918,55 @@
      "file": "formal/lean/Formal/Cells/MergeMuxSI.lean",
      "name": "mux_weak_broad_fails",
      "role": "necessary"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_unsel_low_timed",
+     "role": "sufficient",
+     "note": "unselected join stays low until the next ctl_req rise; H_BUNDLED_S_SETUP_T Ts + shi <= Tc + clo, H_BUNDLED_S_HOLD_T Tcf + chi <= Ts' + slo, join low for one loop window"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj1_unsel_low_timed",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "unsel_low_timed",
+     "role": "sufficient",
+     "note": "generic join form"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_selected_c2",
+     "role": "sufficient",
+     "note": "while s reads definitely at the selecting value, the join's gate IS bd_c2 on (req, ctl_req): every C-element theorem applies"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj1_selected_c2",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j0_sel_is_c2",
+     "role": "function_equality",
+     "note": "all 81 Kleene rows"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j1_sel_is_c2",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j0_s_x_hazard",
+     "role": "necessary",
+     "note": "Kleene, at the select: s mid-edge while req and ctl_req are high gives x (per-pin form of mux_needs_bundled_s_hazard; not a full trace)"
     }
    ],
-   "status": "unproved",
-   "exactness": "sufficient+necessary_untimed",
-   "exactness_note": "untimed S/N (mux_ok hypothesis); the delay inequality is its physical reading, not a timed Lean statement.",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): proved at the join pins (ConstraintsMux, Bundling window model, real INITs), sufficient; necessity at the select by Kleene (j0_s_x_hazard) and untimed (mux_needs_bundled_s*). NOT covered: the composition with the rest of the mux (mux_ok is still untimed). Each window (shi/slo, chi/clo) includes the route, the site pin and the uj pin arc.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -8035,6 +8984,7 @@
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
    "check_scope": "static_route",
+   "status": "proved",
    "combine": "all"
   },
   {
@@ -8055,36 +9005,52 @@
        {
         "kind": "env",
         "name": "req_fall",
-        "spec": "common launch -> ctl_req fall at driver"
+        "spec": "common launch -> ctl_req fall at driver",
+        "lean_sym": "Tcf"
        },
        {
         "kind": "wire",
         "from": "ctl_req",
-        "to": "uj0.I1"
+        "to": "uj0.I1",
+        "lean_sym": "chi"
        },
        {
         "kind": "site_pin",
         "from": "uj0.I1@pip",
         "to": "uj0.I1",
         "pin_role": "ctl_req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj0.I1",
+        "to": "uj0.O6",
+        "lean_sym": "chi"
        }
       ],
       [
        {
         "kind": "env",
         "name": "req_fall",
-        "spec": "common launch -> ctl_req fall at driver"
+        "spec": "common launch -> ctl_req fall at driver",
+        "lean_sym": "Tcf"
        },
        {
         "kind": "wire",
         "from": "ctl_req",
-        "to": "uj1.I1"
+        "to": "uj1.I1",
+        "lean_sym": "chi"
        },
        {
         "kind": "site_pin",
         "from": "uj1.I1@pip",
         "to": "uj1.I1",
         "pin_role": "ctl_req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj1.I1",
+        "to": "uj1.O6",
+        "lean_sym": "chi"
        }
       ]
      ],
@@ -8093,40 +9059,57 @@
        {
         "kind": "env",
         "name": "s_change",
-        "spec": "common launch -> next s change at driver"
+        "spec": "common launch -> next s change at driver",
+        "lean_sym": "Ts'"
        },
        {
         "kind": "wire",
         "from": "s",
-        "to": "uj0.I2"
+        "to": "uj0.I2",
+        "lean_sym": "slo"
        },
        {
         "kind": "site_pin",
         "from": "uj0.I2@pip",
         "to": "uj0.I2",
         "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj0.I2",
+        "to": "uj0.O6",
+        "lean_sym": "slo"
        }
       ],
       [
        {
         "kind": "env",
         "name": "s_change",
-        "spec": "common launch -> next s change at driver"
+        "spec": "common launch -> next s change at driver",
+        "lean_sym": "Ts'"
        },
        {
         "kind": "wire",
         "from": "s",
-        "to": "uj1.I2"
+        "to": "uj1.I2",
+        "lean_sym": "slo"
        },
        {
         "kind": "site_pin",
         "from": "uj1.I2@pip",
         "to": "uj1.I2",
         "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "uj1.I2",
+        "to": "uj1.O6",
+        "lean_sym": "slo"
        }
       ]
      ],
-     "margin_ps": 0
+     "margin_ps": 0,
+     "note": "Lean H_BUNDLED_S_HOLD_T: Tcf + chi <= Ts' + slo, per join"
     }
    ],
    "lean": [
@@ -8140,10 +9123,55 @@
      "name": "steer_s_x_while_req",
      "role": "necessary",
      "note": "bd_steer"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_unsel_low_timed",
+     "role": "sufficient",
+     "note": "unselected join stays low until the next ctl_req rise; H_BUNDLED_S_SETUP_T Ts + shi <= Tc + clo, H_BUNDLED_S_HOLD_T Tcf + chi <= Ts' + slo, join low for one loop window"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj1_unsel_low_timed",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "unsel_low_timed",
+     "role": "sufficient",
+     "note": "generic join form"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj0_selected_c2",
+     "role": "sufficient",
+     "note": "while s reads definitely at the selecting value, the join's gate IS bd_c2 on (req, ctl_req): every C-element theorem applies"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "uj1_selected_c2",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j0_sel_is_c2",
+     "role": "function_equality",
+     "note": "all 81 Kleene rows"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j1_sel_is_c2",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "j0_s_x_hazard",
+     "role": "necessary",
+     "note": "Kleene, at the select: s mid-edge while req and ctl_req are high gives x (per-pin form of mux_needs_bundled_s_hazard; not a full trace)"
     }
    ],
-   "status": "unproved",
-   "exactness": "sufficient+necessary_untimed",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): proved at the join pins (ConstraintsMux, Bundling window model, real INITs), sufficient; necessity at the select by Kleene (j0_s_x_hazard) and untimed (mux_needs_bundled_s*). NOT covered: the composition with the rest of the mux (mux_ok is still untimed). Each window (shi/slo, chi/clo) includes the route, the site pin and the uj pin arc.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -8161,6 +9189,7 @@
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
    "check_scope": "static_route",
+   "status": "proved",
    "combine": "all"
   },
   {
@@ -8168,7 +9197,7 @@
    "cell": "bd_mux",
    "catalogue_row": "X5",
    "obligation": "H_BUNDLED_Z: z_req after the datamux select has settled (matched DELAY)",
-   "inequality": "select cone + datamux (hi) <= uor + udly rise (lo), from the join edge",
+   "inequality": "select cone + datamux (hi) <= uor + udly rise (lo), from the join edge; Lean (consumer side) H_BUNDLED_Z_T Tz + zhi <= Ton + ehi with the consumer's H_PW and H_HOLD",
    "forms": [
     {
      "launch": "join edge",
@@ -8197,7 +9226,8 @@
        }
       ]
      ],
-     "margin_ps": 0
+     "margin_ps": 0,
+     "note": "this form bounds Tz + zhi by the request path's lower bound; with Ton >= join edge + uor + line + C-element it implies the Lean H_BUNDLED_Z_T (composition left to the reader with Bundling.sym_edge / slow_not_early_ps, not one theorem)"
     }
    ],
    "lean": [
@@ -8206,11 +9236,45 @@
      "name": "mux_ok",
      "role": "sufficient",
      "note": "untimed hypothesis"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "bundled_z_capture",
+     "role": "sufficient",
+     "note": "consumer bit captures the selected value: H_BUNDLED_Z_T Tz + zhi <= Ton + ehi (rule A's form), H_PW, H_HOLD"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "dm_settles",
+     "role": "sufficient",
+     "note": "z is the selected value from max(Ts + shi, Td + dhi)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "dm_odd_kleene",
+     "role": "function_equality",
+     "note": "bd_datamux INIT E4"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "dm_pair_o5_kleene",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "dm_pair_o6_kleene",
+     "role": "function_equality",
+     "note": "FFAA_5500_E4E4_E4E4"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/Bundling.lean",
+     "name": "setup_not_classic",
+     "role": "context",
+     "note": "the exact condition is H_SETUP against the enable fall; the classic form is sufficient, not necessary"
     }
    ],
-   "status": "unproved",
-   "exactness": "hypothesis",
-   "exactness_note": "a hypothesis of an untimed proof; the inequality is rule A's, no timed Lean theorem.",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): proved in the classic form (bundled_z_capture via Bundling.classic_implies_setup), sufficient, not necessary (the exact condition is the consumer's H_SETUP, Bundling.setup_not_classic). The request path lower bound is a composition, not a single theorem.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -8225,6 +9289,7 @@
     "mode": "1C",
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
+   "status": "proved",
    "check_scope": "static_route",
    "combine": "all"
   },
@@ -8254,7 +9319,7 @@
    ],
    "status": "unproved",
    "exactness": "sufficient+necessary_untimed",
-   "exactness_note": "isochrony needed (N theorems); the numeric skew bound is not a Lean statement.",
+   "exactness_note": "isochrony needed (N theorems); the numeric skew bound is not a Lean statement. P3: still unproved (needs a timed mux trace model, est. 1-2 days); partial per-pin coverage: the ctl_req -> {uj0, uj1} fork by the H_BUNDLED_S timed theorems (each join's ctl_req pin has its own window), the z_ack -> {uxa, uya} fork by the two H_RTZ_ENV theorems; missing is 'same transition seen consistently' between branches.",
    "site_pins": {
     "needed": true,
     "roles": []
@@ -8268,6 +9333,281 @@
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
    "check_scope": "route_plus_env",
+   "combine": "all"
+  },
+  {
+   "id": "bd_steer.bundled_s_setup",
+   "cell": "bd_steer",
+   "also_applies_to": [
+    "bd_bd2dr (same LUT6_2 INIT)"
+   ],
+   "catalogue_row": "X3 (steer)",
+   "obligation": "select before request at the steer LUT (OpsSteer Held, setup half): s settled at u.I1 before req's rise reaches u.I0",
+   "inequality": "common launch -> s at u.I1 (wire + SP + arc, hi) <= common launch -> req at u.I0 (wire + SP + arc, lo); O5 and O6 read I0/I1 through one shared site pin each (H_LUT62_SHARED_READ)",
+   "forms": [
+    {
+     "launch": "the join's node edge / sender event (common launch)",
+     "data_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "s_path",
+        "spec": "common launch -> s net driver (behind bd_join(cond, data))"
+       },
+       {
+        "kind": "wire",
+        "from": "s",
+        "to": "u.I1"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I1@pip",
+        "to": "u.I1",
+        "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I1",
+        "to": "u.O5|O6"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "req_path",
+        "spec": "common launch -> joined req driver"
+       },
+       {
+        "kind": "wire",
+        "from": "req",
+        "to": "u.I0"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I0@pip",
+        "to": "u.I0",
+        "pin_role": "req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I0",
+        "to": "u.O5|O6"
+       }
+      ]
+     ],
+     "margin_ps": 0
+    }
+   ],
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req0",
+     "role": "function_equality",
+     "note": "req0 = req . ~s (O5)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req1",
+     "role": "function_equality",
+     "note": "req1 = req . s (O6)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_excl",
+     "role": "exact",
+     "note": "settled exclusion, Bool"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_excl_K",
+     "role": "exact",
+     "note": "Kleene exclusion"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_idle_s_free",
+     "role": "context",
+     "note": "req low: s may move freely"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_s_x_while_req",
+     "role": "necessary",
+     "note": "Kleene: s mid-edge while req is high gives x on both outputs"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req_s_together",
+     "role": "necessary",
+     "note": "req and s moving together gives x"
+    },
+    {
+     "file": "formal/lean/Formal/Net/OpsSteer.lean",
+     "name": "steer_op",
+     "role": "sufficient",
+     "note": "shard C, untimed operator refinement under Held (the input's bundling keeps s still)"
+    }
+   ],
+   "status": "unproved",
+   "exactness": "sufficient+necessary_untimed",
+   "exactness_note": "no timed theorem: the select-before-request is the physical reading of OpsSteer's Held (untimed) and of the Kleene x at the select; B-gcd-cells.md suggests a select-level theorem in the style of FifoFidelity.sel_phase on INIT 8888_8888_2222_2222 (small).",
+   "site_pins": {
+    "needed": true,
+    "roles": [
+     "u.I1 (s) hi",
+     "u.I0 (req) lo"
+    ]
+   },
+   "rule": {
+    "rule": "E (skew.py)",
+    "verdict": "exact_structure_missing_site_pins",
+    "detail": "rule E checks the setup half without site pins (B-gcd-cells.md)"
+   },
+   "corner": {
+    "mode": "1C",
+    "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
+   },
+   "check_scope": "static_route",
+   "evidence": "38 instances in gcd_hw (every cond_br, behind bd_join(cond, data)), B-gcd-cells.md; no route measured",
+   "combine": "all"
+  },
+  {
+   "id": "bd_steer.bundled_s_hold",
+   "cell": "bd_steer",
+   "also_applies_to": [
+    "bd_bd2dr"
+   ],
+   "catalogue_row": "X3 (steer)",
+   "obligation": "s still at the steer LUT while req is high there (OpsSteer Held, hold half)",
+   "inequality": "req fall at u.I0 (hi) <= next s change at u.I1 (lo), from a common launch",
+   "forms": [
+    {
+     "launch": "sender event",
+     "data_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "req_fall",
+        "spec": "common launch -> req fall at driver"
+       },
+       {
+        "kind": "wire",
+        "from": "req",
+        "to": "u.I0"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I0@pip",
+        "to": "u.I0",
+        "pin_role": "req"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I0",
+        "to": "u.O5|O6"
+       }
+      ]
+     ],
+     "request_paths": [
+      [
+       {
+        "kind": "env",
+        "name": "s_change",
+        "spec": "common launch -> next s change at driver"
+       },
+       {
+        "kind": "wire",
+        "from": "s",
+        "to": "u.I1"
+       },
+       {
+        "kind": "site_pin",
+        "from": "u.I1@pip",
+        "to": "u.I1",
+        "pin_role": "select"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "u.I1",
+        "to": "u.O5|O6"
+       }
+      ]
+     ],
+     "margin_ps": 0
+    }
+   ],
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req0",
+     "role": "function_equality",
+     "note": "req0 = req . ~s (O5)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req1",
+     "role": "function_equality",
+     "note": "req1 = req . s (O6)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_excl",
+     "role": "exact",
+     "note": "settled exclusion, Bool"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_excl_K",
+     "role": "exact",
+     "note": "Kleene exclusion"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_idle_s_free",
+     "role": "context",
+     "note": "req low: s may move freely"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_s_x_while_req",
+     "role": "necessary",
+     "note": "Kleene: s mid-edge while req is high gives x on both outputs"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/LibCtlMergeMux.lean",
+     "name": "steer_req_s_together",
+     "role": "necessary",
+     "note": "req and s moving together gives x"
+    },
+    {
+     "file": "formal/lean/Formal/Net/OpsSteer.lean",
+     "name": "steer_op",
+     "role": "sufficient",
+     "note": "shard C, untimed operator refinement under Held (the input's bundling keeps s still)"
+    }
+   ],
+   "status": "unproved",
+   "exactness": "sufficient+necessary_untimed",
+   "exactness_note": "no timed theorem (as setup); steer_s_x_while_req is the Kleene necessity at the select.",
+   "site_pins": {
+    "needed": true,
+    "roles": [
+     "u.I0 (req) hi",
+     "u.I1 (s) lo"
+    ]
+   },
+   "rule": {
+    "rule": "none",
+    "verdict": "none",
+    "detail": "UNCHECKED"
+   },
+   "corner": {
+    "mode": "1C",
+    "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
+   },
+   "check_scope": "static_route",
    "combine": "all"
   },
   {
@@ -8370,10 +9710,42 @@
      "name": "merge_ok",
      "role": "sufficient",
      "note": "untimed hypothesis"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "usel_high",
+     "role": "lemma",
+     "note": "usel = x_req | x_ack (4'hE)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "usel_low",
+     "role": "lemma"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "usel_kleene",
+     "role": "function_equality"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "dm_settles",
+     "role": "sufficient"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMux.lean",
+     "name": "bundled_z_capture",
+     "role": "sufficient",
+     "note": "H_BUNDLED_Z_T Tz + zhi <= Ton + ehi, H_PW, H_HOLD"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/Bundling.lean",
+     "name": "setup_not_classic",
+     "role": "context"
     }
    ],
-   "status": "unproved",
-   "exactness": "hypothesis",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): proved in the classic form (usel_high/low, dm_settles, bundled_z_capture), sufficient, not necessary; request path lower bound left as a composition.",
    "site_pins": {
     "needed": true,
     "roles": []
@@ -8386,6 +9758,7 @@
     "mode": "1C",
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
+   "status": "proved",
    "check_scope": "static_route",
    "combine": "all"
   },
@@ -8415,6 +9788,7 @@
    ],
    "status": "unproved",
    "exactness": "sufficient+necessary_untimed",
+   "exactness_note": "P3: still unproved; needs a timed merge trace model with its environment (est. 1-2 days with the mux one).",
    "site_pins": {
     "needed": true,
     "roles": []
@@ -8471,7 +9845,7 @@
    "cell": "bd_mlink",
    "catalogue_row": "ML1",
    "obligation": "H_QFB_FIRST: the request latch's own feedback (done -> uq.I2) settles before ux reacts through en",
-   "inequality": "done -> uq.I2 wire (max) [+ SP] < done -> ux.I0 wire (min) + ux arc (min) + en -> uq.I1 wire (min)",
+   "inequality": "fhi <= wlo + elo: done -> uq.I2 wire + SP + I2 arc (max) <= done -> ux.I0 wire + SP + ux arc (min) + en -> uq.I1 wire + SP + I1 arc (min) (qfb_clean_form, when done makes one clean edge); general Lean form H_QFB_FIRST_T max(max(A+whi, B+ahi) + ehi, Td + dhi) + fhi <= Tq + wlo + elo",
    "forms": [
     {
      "launch": "done edge at uq.O6",
@@ -8480,13 +9854,21 @@
        {
         "kind": "feedback_wire",
         "from": "ctl.uq.O6",
-        "to": "ctl.uq.I2"
+        "to": "ctl.uq.I2",
+        "lean_sym": "fhi"
        },
        {
         "kind": "site_pin",
         "from": "ctl.uq.I2@pip",
         "to": "ctl.uq.I2",
-        "pin_role": "feedback"
+        "pin_role": "feedback",
+        "lean_sym": "in fhi"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "ctl.uq.I2",
+        "to": "ctl.uq.O6",
+        "lean_sym": "in fhi"
        }
       ]
      ],
@@ -8495,34 +9877,45 @@
        {
         "kind": "wire",
         "from": "ctl.uq.O6",
-        "to": "ctl.ux.I0"
+        "to": "ctl.ux.I0",
+        "lean_sym": "wlo"
        },
        {
         "kind": "site_pin",
         "from": "ctl.ux.I0@pip",
         "to": "ctl.ux.I0",
-        "pin_role": "done"
+        "pin_role": "done",
+        "lean_sym": "in wlo"
        },
        {
         "kind": "lut_arc",
         "from": "ctl.ux.I0",
-        "to": "ctl.ux.O6"
+        "to": "ctl.ux.O6",
+        "lean_sym": "in wlo"
        },
        {
         "kind": "wire",
         "from": "ctl.ux.O6",
-        "to": "ctl.uq.I1"
+        "to": "ctl.uq.I1",
+        "lean_sym": "elo"
        },
        {
         "kind": "site_pin",
         "from": "ctl.uq.I1@pip",
         "to": "ctl.uq.I1",
-        "pin_role": "en"
+        "pin_role": "en",
+        "lean_sym": "in elo"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "ctl.uq.I1",
+        "to": "ctl.uq.O6",
+        "lean_sym": "in elo"
        }
       ]
      ],
-     "margin_ps": 1,
-     "note": "strict '<' => margin 1 ps; uq's own arc cancels at select level"
+     "margin_ps": 0,
+     "note": "P3: the JSON's former strict '<' (margin 1) relaxes to '<=' in the discrete model (qfb_counter: one tick more oscillates; qfb_clean: equality is clean). In the window model uq's I2 and I1 arcs are inside fhi and elo; they cancel only with prjxray's flat O6 arc at one corner"
     }
    ],
    "lean": [
@@ -8546,11 +9939,51 @@
      "file": "formal/lean/Formal/Cells/LibEndMemMlink.lean",
      "name": "masks_fail_without_H",
      "role": "necessary"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "mlink_qfb_first_timed",
+     "role": "sufficient",
+     "note": "H_QFB_FIRST_T, H_ACK_STABLE, H_GAP, H_HOLD: done captures and holds the new token, no runt"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "qfb_clean_form",
+     "role": "lemma",
+     "note": "S <= Tq (one clean done edge): H_QFB_FIRST_T reduces to fhi <= wlo + elo"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "capture_gap",
+     "role": "lemma"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "mlink_uq_latch",
+     "role": "relation"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "ux_open",
+     "role": "lemma",
+     "note": "ux F9 keeps the latch open until wlo after done shows the new value"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "qfb_counter",
+     "role": "counter_trace",
+     "note": "closed-form transport run of the whole request-bit loop (real INITs, ack = 0), fhi = 3 > wlo + elo = 2: done rises 6, falls 8, oscillates with period 3"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "qfb_clean",
+     "role": "twin",
+     "note": "same environment, fhi = 2 = wlo + elo: one clean edge"
     }
    ],
-   "status": "unproved",
-   "exactness": "untimed_schedule",
-   "exactness_note": "proved as an untimed schedule restriction (S and N); the delay inequality is the Lean doc's physical reading, not a timed theorem. NOPEN > 1 (uz path) not modelled.",
+   "status": "proved",
+   "exactness": "sufficient+necessary_at_boundary",
+   "exactness_note": "P3 (B-constraints-more.md): mlink_qfb_first_timed, sufficient; tight by one tick on a witness (qfb_counter oscillates at fhi = wlo + elo + 1, qfb_clean is clean at equality), not a general iff. Untimed S/N (mlink_req_bit_H, masks_fail_without_H) still cited. NOPEN > 1 (uz path) not modelled.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -8576,7 +10009,7 @@
    "cell": "bd_flink",
    "catalogue_row": "ML1",
    "obligation": "H_QFB_FIRST: the request latch's own feedback (done -> uq.I2) settles before uck reacts through ck",
-   "inequality": "done -> uq.I2 wire (max) [+ SP] < done -> uck.I0 wire (min) + uck arc (min) + ck -> uq.I1 wire (min)",
+   "inequality": "fhi <= wlo + elo: done -> uq.I2 wire + SP + I2 arc (max) <= done -> uck.I0 wire + SP + uck arc (min) + ck -> uq.I1 wire + SP + I1 arc (min) (qfb_clean_form, when done makes one clean edge); general Lean form H_QFB_FIRST_T max(max(A+whi, B+ahi) + ehi, Td + dhi) + fhi <= Tq + wlo + elo",
    "forms": [
     {
      "launch": "done edge at uq.O6",
@@ -8585,13 +10018,21 @@
        {
         "kind": "feedback_wire",
         "from": "ctl.uq.O6",
-        "to": "ctl.uq.I2"
+        "to": "ctl.uq.I2",
+        "lean_sym": "fhi"
        },
        {
         "kind": "site_pin",
         "from": "ctl.uq.I2@pip",
         "to": "ctl.uq.I2",
-        "pin_role": "feedback"
+        "pin_role": "feedback",
+        "lean_sym": "in fhi"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "ctl.uq.I2",
+        "to": "ctl.uq.O6",
+        "lean_sym": "in fhi"
        }
       ]
      ],
@@ -8600,34 +10041,45 @@
        {
         "kind": "wire",
         "from": "ctl.uq.O6",
-        "to": "ctl.uck.I0"
+        "to": "ctl.uck.I0",
+        "lean_sym": "wlo"
        },
        {
         "kind": "site_pin",
         "from": "ctl.uck.I0@pip",
         "to": "ctl.uck.I0",
-        "pin_role": "done"
+        "pin_role": "done",
+        "lean_sym": "in wlo"
        },
        {
         "kind": "lut_arc",
         "from": "ctl.uck.I0",
-        "to": "ctl.uck.O6"
+        "to": "ctl.uck.O6",
+        "lean_sym": "in wlo"
        },
        {
         "kind": "wire",
         "from": "ctl.uck.O6",
-        "to": "ctl.uq.I1"
+        "to": "ctl.uq.I1",
+        "lean_sym": "elo"
        },
        {
         "kind": "site_pin",
         "from": "ctl.uq.I1@pip",
         "to": "ctl.uq.I1",
-        "pin_role": "ck"
+        "pin_role": "ck",
+        "lean_sym": "in elo"
+       },
+       {
+        "kind": "lut_arc",
+        "from": "ctl.uq.I1",
+        "to": "ctl.uq.O6",
+        "lean_sym": "in elo"
        }
       ]
      ],
-     "margin_ps": 1,
-     "note": "strict '<' => margin 1 ps; uq's own arc cancels at select level"
+     "margin_ps": 0,
+     "note": "P3: the JSON's former strict '<' (margin 1) relaxes to '<=' in the discrete model (qfb_counter: one tick more oscillates; qfb_clean: equality is clean). In the window model uq's I2 and I1 arcs are inside fhi and elo; they cancel only with prjxray's flat O6 arc at one corner"
     }
    ],
    "lean": [
@@ -8651,11 +10103,39 @@
      "file": "formal/lean/Formal/Cells/LibEndMemMlink.lean",
      "name": "masks_fail_without_H",
      "role": "necessary"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "flink_qfb_first_timed",
+     "role": "sufficient",
+     "note": "H_QFB_FIRST_T, H_ACK_STABLE, H_GAP, H_HOLD: done captures and holds the new token, no runt"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "qfb_clean_form",
+     "role": "lemma",
+     "note": "S <= Tq (one clean done edge): H_QFB_FIRST_T reduces to fhi <= wlo + elo"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "capture_gap",
+     "role": "lemma"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "flink_uq_latch",
+     "role": "relation",
+     "note": "E2 is LatchRel with enable !ck (winK_not)"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "uck_open",
+     "role": "lemma"
     }
    ],
-   "status": "unproved",
-   "exactness": "untimed_schedule",
-   "exactness_note": "proved as an untimed schedule restriction (S and N); the delay inequality is the Lean doc's physical reading, not a timed theorem. NOPEN > 1 (uz path) not modelled.",
+   "status": "proved",
+   "exactness": "sufficient",
+   "exactness_note": "P3 (B-constraints-more.md): flink_qfb_first_timed, sufficient; no flink counter-trace. NOPEN > 1 (uz path) not modelled.",
    "site_pins": {
     "needed": true,
     "roles": [
@@ -8910,7 +10390,7 @@
    "cell": "bd_mem",
    "catalogue_row": "ME4",
    "obligation": "RAM clock high width vs tPWH",
-   "inequality": "tPWH <= dsLo + dcLo + dsLoF - dsHi (clk_high_width gives width >= the right side; the comparison is arithmetic)",
+   "inequality": "tPWH <= dsLo + dcLo + dsLoF - dsHi (clk_high_width gives width >= the right side; ConstraintsMore.MemPort.clk_high_ok makes the comparison a theorem)",
    "forms": [
     {
      "launch": "req rise",
@@ -8972,11 +10452,22 @@
      "file": "formal/lean/Formal/Cells/LibEndMemMlink.lean",
      "name": "rtz_serialised",
      "role": "bound"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "clk_high_ok",
+     "role": "sufficient",
+     "note": "MemPort.clk_high_ok: tPWH + dsHi <= dsLo + dcLo + dsLoF implies tClkR + tPWH <= tClkF"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ConstraintsMore.lean",
+     "name": "clk_low_ok",
+     "role": "sufficient",
+     "note": "MemPort.clk_low_ok: tPWL <= dcLoF + dsLo implies tClkF + tPWL <= tClkR2 (companion low-width bound)"
     }
    ],
-   "status": "unproved",
-   "exactness": "sufficient_by_arithmetic",
-   "exactness_note": "the width bound is proved; comparing with tPWH is not a Lean statement.",
+   "exactness": "sufficient",
+   "exactness_note": "P3: MemPort.clk_high_ok, sufficient (arithmetic on clk_high_width with the MemPort hypotheses H_SETUP_LINE, H_CO_LINE, H_FOUR_PHASE_ENV). Datasheet parameters only; BRAM is not a gate model.",
    "site_pins": {
     "needed": false,
     "roles": []
@@ -8989,6 +10480,7 @@
     "mode": "1C",
     "rule": "evaluate both sides in the SAME prjxray column, once at FAST_MIN and once at SLOW_MAX (H_ONE_CORNER), or as A's EndpointOK with kappa; box (every hi at SLOW_MAX, every lo at FAST_MIN) is always sound. A SLOW_MAX-only check must add the guard As - Af/k (ArbCorners.fast_neg_iff). Never rise=FAST / fall=SLOW."
    },
+   "status": "proved",
    "check_scope": "static_route",
    "combine": "all"
   }
@@ -9038,6 +10530,34 @@
     }
    ],
    "check": "not static; MTBF needs tau_r, T0 measured (analog tier frozen by the north star)"
+  },
+  {
+   "id": "H_LUT62_SHARED_READ",
+   "catalogue_row": "11",
+   "cells": [
+    "every LUT6_2 with O5 and O6 used (bd_arbiter.ugrant/ustate, bd_latch pair, bd_steer, bd_datamux pair)"
+   ],
+   "statement": "O5 and O6 of one LUT6_2 read each shared physical pin A1..A5 at the same time (one input buffer per pin; residual skew inside the mux tree ignored); grant/overlap results that cancel q's route and site pin rely on it",
+   "lean": [
+    {
+     "file": "formal/lean/Formal/Cells/TernaryOnBits2.lean",
+     "name": "SiteSync",
+     "role": "definition",
+     "note": "restriction of the run class; universal theorems unchanged, witnesses rebuilt"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "Decomp",
+     "role": "definition",
+     "note": "field H_SHARED_Q_PIN"
+    },
+    {
+     "file": "formal/lean/Formal/Cells/ArbOverlapRace.lean",
+     "name": "b_cancel",
+     "role": "lemma"
+    }
+   ],
+   "check": "GLS or board: drive one pin of a fractured LUT and measure O5 vs O6; must stay below one model step. Unmeasured."
   },
   {
    "id": "H_RF_ASYM",

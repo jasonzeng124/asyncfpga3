@@ -7,6 +7,17 @@ and the B-*.md notes, and every cited Lean name was checked to be declared in
 the cited, git-tracked file (316 references, 0 missing; one is on
 `origin/claude/audit`). Details and limits: `formal/notes/B-cell-constraints.md`.
 
+**Update (probe P4, 2026-10-27).** Re-generated from the same generator
+after the P3 and Bg2 Lean files landed (`Formal/Cells/Constraints{Sel,LatchRst,
+FastFall,Mux,More}.lean`, `Formal/Cells/GcdCells.lean`; notes
+`B-constraints-more.md`, `B-gcd-cells.md`, `B-arb-overlap-race.md`,
+`B-ternary-on-bits2.md`). 16 of the 19 unproved entries are now proved; one
+(`bd_link_dctl.lt_first`) is partial; two (isochronic forks) stay unproved.
+New entries: `bd_latch_rst.reset` (proved) and `bd_steer.bundled_s_setup` /
+`.bundled_s_hold` (unproved; bd_steer had no entry). New global hypothesis:
+H_LUT62_SHARED_READ. Validator: 87 constraints, 5 hypotheses, 448 Lean
+references in 40 files, 0 errors. Still no route and no measurement.
+
 ## What one entry says
 
 - `id`, `cell` (RTL module; `bit_kind` for latch bits, `variant` for delay
@@ -34,7 +45,8 @@ the cited, git-tracked file (316 references, 0 missing; one is on
   and fall from SLOW.** prjxray's two triples are corners, not edges.
 - `status`: `proved`, or `unproved` when the inequality is not a Lean
   statement (extrapolated, the physical reading of an untimed result, or no
-  theorem at all).
+  theorem at all). A partial result keeps `status: unproved` (the validator
+  allows only these two) and says `exactness: partial`.
 - `check_scope`: static_route, route_plus_env, environment, protocol,
   structural or not_static.
 
@@ -48,13 +60,15 @@ every request path ends in. `setup` is `margin_ps`. tcheck's PASS is then
 The checker resolves `env` arcs by walking the routed netlist when the
 neighbour is inside the design. Otherwise they are environment hypotheses.
 
-## Entries (84, plus 4 global hypotheses that are not inequalities)
+## Entries (87, plus 5 global hypotheses that are not inequalities)
+
+Counts: 82 proved, 1 partial (`unproved` + `exactness: partial`), 4 unproved.
 
 | id | status | exactness | site pins | rule: verdict |
 |---|---|---|---|---|
 | `bd_c2.pulse_width` | proved | exact | yes | none |
 | `bd_c2.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c2.sel_order` | unproved | unproved | yes | none |
+| `bd_c2.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
 | `bd_c2.reset_width` | proved | sufficient | yes | none |
 | `bd_c2n.pulse_width` | proved | exact | yes | none |
 | `bd_c2n.env_latency` | proved | sufficient+necessary | yes | none |
@@ -62,11 +76,11 @@ neighbour is inside the design. Otherwise they are environment hypotheses.
 | `bd_c2n.reset_width` | proved | sufficient | yes | none |
 | `bd_c3.pulse_width` | proved | exact | yes | none |
 | `bd_c3.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c3.sel_order` | unproved | unproved | yes | none |
+| `bd_c3.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
 | `bd_c3.reset_width` | proved | sufficient | yes | none |
 | `bd_c4.pulse_width` | proved | exact | yes | none |
 | `bd_c4.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c4.sel_order` | unproved | unproved | yes | none |
+| `bd_c4.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
 | `bd_c4.reset_width` | proved | sufficient | yes | none |
 | `bd_ctree.node_fork` | proved | sufficient | yes | none |
 | `bd_ctree.ack_wait` | proved | exact | no | none |
@@ -79,15 +93,16 @@ neighbour is inside the design. Otherwise they are environment hypotheses.
 | `bd_latch[pair.O6].setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
 | `bd_latch[pair.O6].setup_pulse` | proved | sufficient | yes | none |
 | `bd_latch[pair.O6].hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch_rst.setup_data` | unproved | unproved | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch_rst.setup_pulse` | unproved | unproved | yes | none |
-| `bd_latch_rst.hold` | unproved | unproved | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch_rst.setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch_rst.setup_pulse` | proved | sufficient | yes | none |
+| `bd_latch_rst.hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch_rst.reset` | proved | sufficient | yes | none |
 | `bd_latch.loop_bound` | proved | hypothesis | yes | none |
 | `bd_delay[sym].pulse_width` | proved | sufficient+necessary_at_boundary | yes | A/B/C/D/E (edge window via SDF): none |
 | `bd_delay[FASTFALL].flush_uniform` | proved | sufficient | yes | F: missing_term |
-| `bd_delay[FASTFALL].flush_per_stage` | unproved | unproved | yes | F: missing_term |
+| `bd_delay[FASTFALL].flush_per_stage` | proved | sufficient | yes | F: missing_term |
 | `bd_delay[FASTRISE].ack_flush` | proved | sufficient | yes | none |
-| `bd_delay_gated.gate` | unproved | unproved | no | F: none |
+| `bd_delay_gated.gate` | proved | sufficient | yes | F: missing_term |
 | `bd_pipe.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
 | `bd_pipe.lat_lumped` | proved | sufficient | no | none |
 | `bd_pipe.boundary_I` | proved | sufficient | yes | I: missing_term |
@@ -95,7 +110,7 @@ neighbour is inside the design. Otherwise they are environment hypotheses.
 | `bd_pipe.rst_lines` | proved | sufficient | yes | none |
 | `bd_pipe.data_lead` | proved | sufficient | yes | A: conservative |
 | `bd_pipe.output` | proved | sufficient | no | consumer's own rule (I at the next stage; B/D/E at an edge-sampling consumer): different_condition |
-| `bd_link_dctl.lt_first` | unproved | untimed_schedule | yes | none |
+| `bd_link_dctl.lt_first` | unproved | partial | yes | none |
 | `bd_link_dc.rule_K_corrected` | proved | sufficient | yes | K: missing_term |
 | `bd_link_dc.rule_L_corrected` | proved | sufficient | yes | L: missing_term |
 | `bd_arbcell.req_separation` | proved | sufficient+necessary | no | uncheckable_statically |
@@ -121,30 +136,34 @@ neighbour is inside the design. Otherwise they are environment hypotheses.
 | `bd_mux.uxa_rtz` | proved | exact | yes | none |
 | `bd_mux.uxa_rtz_env` | proved | sufficient | yes | none |
 | `bd_mux.uya_rtz` | proved | exact | yes | none |
-| `bd_mux.uya_rtz_env` | unproved | unproved | yes | none |
-| `bd_mux.bundled_s_setup` | unproved | sufficient+necessary_untimed | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
-| `bd_mux.bundled_s_hold` | unproved | sufficient+necessary_untimed | yes | none |
-| `bd_mux.bundled_z` | unproved | hypothesis | yes | A: rule_is_the_check |
+| `bd_mux.uya_rtz_env` | proved | sufficient | yes | none |
+| `bd_mux.bundled_s_setup` | proved | sufficient | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
+| `bd_mux.bundled_s_hold` | proved | sufficient | yes | none |
+| `bd_mux.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
 | `bd_mux.isochronic_forks` | unproved | sufficient+necessary_untimed | yes | none |
+| `bd_steer.bundled_s_setup` | unproved | sufficient+necessary_untimed | yes | E (skew.py): exact_structure_missing_site_pins |
+| `bd_steer.bundled_s_hold` | unproved | sufficient+necessary_untimed | yes | none |
 | `bd_merge.seq` | proved | sufficient+necessary | no | none |
-| `bd_merge.bundled_z` | unproved | hypothesis | yes | A: rule_is_the_check |
+| `bd_merge.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
 | `bd_merge.isochronic_forks` | unproved | sufficient+necessary_untimed | yes | none |
 | `bd_merge.uxa_feedback` | proved | sufficient | yes | none |
-| `bd_mlink.qfb_first` | unproved | untimed_schedule | yes | none |
-| `bd_flink.qfb_first` | unproved | untimed_schedule | yes | none |
+| `bd_mlink.qfb_first` | proved | sufficient+necessary_at_boundary | yes | none |
+| `bd_flink.qfb_first` | proved | sufficient | yes | none |
 | `bd_mem.setup` | proved | sufficient | yes | B: conservative_partial |
 | `bd_mem.hold` | proved | sufficient | no | none |
 | `bd_mem.rdata_before_ack` | proved | sufficient | yes | C: missing_term |
-| `bd_mem.clk_high_width` | unproved | sufficient_by_arithmetic | no | none |
+| `bd_mem.clk_high_width` | proved | sufficient | no | none |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
-H_TREE_FIFO (C4), metastability with no deadline (C8/R3), H_RF_ASYM and
-H_WIRE_RATIO.
+H_TREE_FIFO (C4), metastability with no deadline (C8/R3),
+H_LUT62_SHARED_READ (O5/O6 of a LUT6_2 read a shared pin at the same time;
+TernaryOnBits2.SiteSync, ArbOverlapRace.Decomp), H_RF_ASYM and H_WIRE_RATIO.
 
 ## Read first
 
 - **Unchecked by any rule, and on routed evidence the most likely to bite.**
-  - `bd_c*.env_latency` and `sel_order`: C-10f RT_FB fails 4-12 of 64 (mean 7.2, 8 seeds, nextpnr 9c732bc6303458df) Muller-pipeline
+  - `bd_c*.env_latency` and `sel_order` (now proved for every C-element
+    INIT, still checked by no rule): C-10f RT_FB fails 4-12 of 64 (mean 7.2, 8 seeds, nextpnr 9c732bc6303458df) Muller-pipeline
     muller stages at slowE.
   - `bd_latch[*].setup_pulse`: the binding environment constraint on the Bt2
     routes.
@@ -153,10 +172,26 @@ H_WIRE_RATIO.
 - **A project rule exists but misses a term.**
   - Rule I, K and L: the feedback-pin arc and the site-pin terms
     (`bd_latch[*].setup_data`, `bd_link_dc.rule_*`).
-  - Rule F: the in-flight hop.
+  - Rule F: the in-flight hop (`bd_delay[FASTFALL].flush_per_stage` and the
+    29 `bd_delay_gated` lines of gcd_hw; both now proved sufficient in the
+    per-stage form rule F lacks).
   - Rule H and rule J: site pins.
   - Rule C: the consumer's route skew.
-- **unproved** (19): sel_order for bd_c2, bd_c3 and bd_c4 (extrapolated from
-  bd_c2n); all of bd_latch_rst; the per-stage FASTFALL form; bd_delay_gated;
-  dctl `H_LT_FIRST`; mlink/flink `H_QFB_FIRST`; the mux and merge bundling and
-  isochrony readings; `uya_rtz_env`; the BRAM clock-width comparison.
+- **Proved in P4's update** (16 of the former 19 unproved, with the
+  theorem names in the JSON): sel_order for bd_c2/c3/c4
+  (`ConstraintsSel.sel_phase_gen`, `sel_order_of_lat_gen`; counter-runs
+  `ce_c*_sel_order_fails`); bd_latch_rst setup_data/setup_pulse/hold
+  (`ConstraintsLatchRst.capture_rst`, `capture_rst_from_request`); the
+  per-stage FASTFALL form (`ConstraintsFastFall.slow_not_early_ps`);
+  bd_delay_gated (`ConstraintsFastFall.gated_not_early` and
+  `GcdCells.no_early` / `gflush1_of_lat` with the `uor` hop); `uya_rtz_env`
+  (`ConstraintsMux.mux_rtz_env_safe_uya`); mux select setup/hold at the join
+  pins (`uj0/uj1_unsel_low_timed`); mux and merge bundled_z, classic form
+  (`bundled_z_capture`); mlink/flink qfb_first (`*_qfb_first_timed`; the
+  former strict `<` is now `<=`, margin 0, tight by one tick on
+  `qfb_counter`); BRAM clock high width (`MemPort.clk_high_ok`).
+- **partial** (1): dctl `H_LT_FIRST` (`lt_first_window`, LUT level only; its
+  link to the untimed schedule `ltFirst` is open).
+- **unproved** (4): mux and merge isochronic forks (need a timed mux/merge
+  trace model); bd_steer select setup and hold (no timed theorem; the
+  untimed Held and the Kleene x at the select are cited).
