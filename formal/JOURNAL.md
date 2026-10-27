@@ -270,3 +270,14 @@ chains); flop treats X on SR/CE as 0 (hides X); FID_RESOLVE splits at TLOOP-WIN/
 (349 ps of 424) where a Float run of Lean's loop recurrence decides at ~TLOOP/2
 (computation, not a theorem). Bullets added as FOR-RESEARCH §8; fidelity-table GLS
 row updated (was "inertial", stale). Nothing claimed in Lean (Wip #eval only).
+### progress 11:22
+GLSimp claimed: Formal/Core/Delay/GLSPass.lean (check.sh with Trace/Discrete + SAF:
+263 declarations, [check] OK; Lean core only). A passing sample-at-fire GLS run implies
+the property only if silicon is exactly SAF at exactly the annotated delays; proved
+counterexamples (XOR skew glitch, XOR3 capture, bd_c2 with feedback) pass the GLS at
+124 ps and fail at another delay in the [45,124] band, under transport, or under
+inertial; a faster LUT can fail where the slow arc passed (the slow column is not a
+conservative corner). Sufficient condition proved: acyclic, monotone LUTs, rising
+inputs => one run at the maxima bounds the band; two runs (FAST_MIN, SLOW_MAX) give
+request-after-data. Not covered: per-pin arcs, GLS_FID, X, feedback nets (so not
+gcd's datapath). Notes: notes/A-gls-pass.md.

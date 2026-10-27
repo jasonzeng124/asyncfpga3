@@ -7,3 +7,4 @@ import Formal.Core.Substrate
 import Formal.Core.XSim
 import Formal.Core.Ternary
 import Formal.Core.Delay.SAF
+import Formal.Core.Delay.GLSPass
