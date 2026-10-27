@@ -150,7 +150,11 @@ the 128-ring data the per-path κ ≥ 0.311 (7-link class; no common offset in
 [0, 988] ps lowers it), so the *per-path* hypotheses of `ruleE_sound` and
 `ruleA_sound_rel` are refuted. The rules compare two paths, so what they need
 is κ on a path *difference*, which nothing in the repo measures: whether rules
-E and A are safe is open. Proposed board experiment: a ring with a shared body
+E and A are safe is open. `Core/Delay/CornerDiff.lean` makes this exact: both
+rules are sound under a *difference* scatter bound κd with the same limits
+(`ruleE_sound_diff`, `ruleA_sound_diff`, both tight); per-path κ implies κd but
+not conversely (`diff_not_imp_scat`), and the ring pair bound is attained
+(`ring_kappa_iff`), so ring data cannot decide κd either way. Proposed board experiment: a ring with a shared body
 splitting into two tails rejoined at a scan-selected LUT mux (the shared body,
 offset included, cancels), ≥ 64 pairs per class, 4 seeds, two temperatures; or,
 cheaper, commit the `ro_many` per-ring raw logs (`kappa.py rawlogs` parses
