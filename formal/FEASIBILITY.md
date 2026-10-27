@@ -239,6 +239,13 @@ them).
   (−19 ps, seed 5). The real FASTFALL residual is rule F's missing in-flight term
   at the head of `bd_delay_gated` (g[0] is a plain buffer): −365/−726 ps on
   mixed dies, not reached at the rig's ~260 ns source low phase.
+  **Events6** (`lake exe xevents5`): the netlist link `design_beh4` is proved
+  (per-pin, no `H_ATOMIC_LUT`), so the checker's verdict on the parsed routed
+  netlist is a theorem, but for gcd_hw it is still conditional on 45 residual
+  obligations per seed (branch labels through merges, the 3-way merge, the
+  cascaded arbiter, and 6 guarded acks arriving through delay lines whose
+  obligation is expected to be false until the domain gets a guarded
+  multi-copy pin kind). No seed is certified yet: about 3 days of work left.
 - **Per-pin race checker** (`lake exe xevents2pin`, `Events2Pin*.lean`): sound
   without the all-pins-at-one-instant assumption (`H_ATOMIC_LUT`); with prjxray
   per-physical-pin bands, per-pin skew costs 11–79 ps of margin. One corner: no
