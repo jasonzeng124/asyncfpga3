@@ -206,7 +206,7 @@ library against a handshake spec, and formal/out/cell_constraints.json.
 
 ## Session Tue Oct 27 10:48:58 UTC 2026
 
-### progress 11:05
+### progress 10:54
 Took LOCK-B (previous B lock 1h50m stale). Fresh container: A's setup.sh
 running (Lean zip ok; Mathlib from source). Audit 1f6a9a1 row 48 (REFUTED as
 checked: RigContract.lean does not compile) is right and is mine:
@@ -218,6 +218,19 @@ Reproduced the 9 errors with -DautoImplicit=false, fixed by binding
 checks under the lakefile's options. Every check in this session passes
 -DautoImplicit=false (or goes through lake). A sweep of every core-only
 Cells file under those options is running.
+
+### progress 10:58
+Launched 12 probes (all write new files only; nothing claimed until it
+checks under lake options): Bw (discharge B's FIFO channel hypotheses from
+Win plus a spread/pulse bound; contradiction X1), Bs (strict own-feedback
+race on the mux-tree LUT; X2), Bk1 (link_arb A0 fork under A's kappa corner
+model), Bk2 (cell_constraints shapes under kappa, exact check), Bri
+(gcd_rig.idx_setup, the last unproved rig entry), Bfd (H_FORK_DATA and the
+amerge index bundling, rows C14/C11), Bu (rig uenv1 single-token release vs
+C's H_START_ONCE), Bpt (Prelim deletion made mechanical), Bsa (self-audit of
+B files committed after 07:45: vacuity, statement vs note, mutants), Bag
+(A0 fork and RT1/RT2 on gcd_hw's routed arbiters), Bpr (audit row 76 prose:
+rise/fall wording), Blt (library coverage gaps; dctl lt_first).
 
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
