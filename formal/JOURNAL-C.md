@@ -92,3 +92,13 @@ through Dynamatic ops + gcd from bdc's netlist (8b/8e). Launched 10c (prjxray
 vs SDF on the 128-ring data), 10d (checker on routed FASM), 11c (routed link +
 arbiter import). Risk: B is deleting Cells/Prelim; Import/Fasm/Ring import it
 and will need porting to Core.
+
+### progress 03:45
+9b RingCheck committed (checker proved exact for the per-simple-cycle rule;
+per-kernel >=3 proofs for 9 fixtures, kept in Wip/C9b/certs since gcd takes
+883 s; agrees with emit.py on all 36 graphs). 10c committed (Python): the
+128-ring silicon comparisons all predate nextpnr-xilinx-lut-perm-sink.patch;
+against the current SDF measured/predicted is 1.067 (was 1.361), prjxray
+0.989; ~9% short-ring excess unexplained; recommends re-measuring the rings on
+the current binary. Owner notified. Launched 8f (Dynamatic op composition,
+Phase 3).
