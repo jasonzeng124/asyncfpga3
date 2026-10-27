@@ -27,9 +27,11 @@
 //
 // Exclusion DURING HANDOVER is a different claim and a weaker one.  The two
 // grants reach the same net through different arcs, so the ordering has to be
-// checked rather than asserted -- and in one of the two directions it holds by
-// a small margin that only routing supplies.  See the finding at the bottom of
-// this header, and tb_arb, which counts the overlap in both timing regimes.
+// checked rather than asserted.  In the single-corner cell-arc model it holds
+// in both directions, by 42 ps or more arc-only (fast min, r2-to-r1; the
+// r1-to-r2 lead is 96 ps slow, 46 ps fast); the O5-versus-O6 delta is the residual
+// exposure (see the finding at the bottom of this header, and tb_arb_overlap,
+// which checks it in both timing regimes).
 //
 // Because q only ever moves while exactly one request is up, sustained
 // contention forces alternation.
@@ -171,14 +173,21 @@ endmodule
 //
 // It also removes a second, narrower problem.  Grant exclusion during handover
 // is not quite structural in the unfixed cell: on the r2-to-r1 direction the
-// falling grant travels one fall arc (O6, 124 ps) while the rising grant
-// travels two rise arcs (q at 56, then O5 at 52), so with zero routing the
-// rising grant wins by 16 ps and both grants are briefly high.  Real routing
-// puts a full hop in the q feedback and the ordering is restored with about
-// twenty times the margin -- so this is a post-route check, not a defect, but
-// it is a timing dependency and the review presents exclusion as structural.
-// With q frozen on A0 the two grants are separated by an entire server
-// round-trip and the question stops arising.
+// falling grant g2 travels one arc (r2 -> O6) while the rising grant g1
+// travels two (q on O6, then O5 from its A3 pin).  At ONE corner that is
+// 124 vs 124+150 ps at slow max and 45 vs 45+42 ps at fast min, so with zero
+// routing the falling grant leads by 150 ps (slow) or 42 ps (fast) and the
+// cell-arc model shows no overlap; routing adds to the two-arc path twice and
+// only widens the lead.  (An earlier version of this note said "the rising
+// grant wins by 16 ps" from 56 + 52 vs 124.  Those were prjxray's fast-corner
+// and slow-corner bounds of one arc read as rise and fall -- a mix no single
+// PVT point produces -- and the claim is withdrawn.)  What remains is the
+// O5-versus-O6 delta in the shared site, up to 28 ps at slow max: a per-pin
+// transport model (research/data/fid/f3_model.md section 5) shows g1&g2
+// overlaps of 5-28 ps in the unheld cell, which a one-link filter removes.
+// A timing dependency either way, while the review presents exclusion as
+// structural.  With q frozen on A0 the two grants are separated by an entire
+// server round-trip and the question stops arising.
 //
 // -- WHAT THE HOLD DOES NOT DO ----------------------------------------------
 //

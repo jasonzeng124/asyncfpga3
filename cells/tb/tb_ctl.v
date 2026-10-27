@@ -342,6 +342,9 @@ module tb_ctl;
         verdict = (bad == 0) ? "  ok " : " FAIL";
     endfunction
 
+    time t_go = 0, t_lib = 0;
+    reg  deco_hung = 1'b0;
+
     initial begin
         $display("tb_ctl -- pipeline controller conformance");
         $display("  consumers sample %0d ps after req-rise: %0d stages of request-leads-data, plus guard",
@@ -372,11 +375,27 @@ module tb_ctl;
         mi_c.arm; mo_c.arm;
 
         go = 1'b1;
+        t_go = $time;
         wait (occ_sd && occ_ad && occ_dd && occ_cd);
         wait (ff_s && fa_s && fr_s && fs_s && ff_a && fa_a && fr_a && fs_a);
         wait (f_su_a && f_gap_a && f_rel_a);
-        wait (ff_d && fa_d && fr_d && fs_d);
         wait (ff_c && fa_c && fr_c && fs_c && f_rel_c);
+        // The decoupled attempt is the one rig allowed NOT to finish.  Under
+        // the single-corner model at slow max (default) it never completes a
+        // send: its input side never acknowledges while its output request
+        // keeps cycling (the sink counts far more than 20 "tokens").  An
+        // unbounded wait here turned that into a bench hang.  So it gets a
+        // watchdog: the same stresses on the library rows above have all
+        // finished by now, and the attempt gets as long again on top.  Not
+        // finishing by then is recorded as the attempt FAILING its row --
+        // never as a pass, and never as a skip.  Every library and semi rig
+        // above is still waited for unconditionally (the global timeout
+        // below catches them).
+        t_lib = $time - t_go;
+        fork : deco_wd
+            begin wait (ff_d && fa_d && fr_d && fs_d); disable deco_wd; end
+            begin #(t_lib + 200 * H); deco_hung = 1'b1; disable deco_wd; end
+        join
         #(200 * H);
 
         $display();
@@ -388,9 +407,13 @@ module tb_ctl;
         $display("  semi (attempt) %2d/%0d  %0s %0s %0s %0s %0s",
                  occ_a, N,   verdict(wf_a), verdict(wa_a), verdict(wr_a),
                  verdict(ws_a), verdict(mi_a.errors + mo_a.errors));
-        $display("  decoupled      %2d/%0d  %0s %0s %0s %0s %0s",
-                 occ_d, N,   verdict(wf_d), verdict(wa_d), verdict(wr_d),
-                 verdict(ws_d), verdict(mi_d.errors + mo_d.errors));
+        if (deco_hung)
+            $display("  decoupled      %2d/%0d   HANG: no completion %0t ps after go (watchdog)  %0s",
+                     occ_d, N, t_lib + 200 * H, verdict(mi_d.errors + mo_d.errors));
+        else
+            $display("  decoupled      %2d/%0d  %0s %0s %0s %0s %0s",
+                     occ_d, N,   verdict(wf_d), verdict(wa_d), verdict(wr_d),
+                     verdict(ws_d), verdict(mi_d.errors + mo_d.errors));
         $display("  bd_link_dc     %2d/%0d  %0s %0s %0s %0s %0s",
                  occ_c, N,   verdict(wf_c), verdict(wa_c), verdict(wr_c),
                  verdict(ws_c), verdict(mi_c.errors + mo_c.errors));
@@ -400,8 +423,14 @@ module tb_ctl;
                  wf_s, wa_s, wr_s, ws_s);
         $display("    semi (attempt)  %0d / %0d / %0d / %0d",
                  wf_a, wa_a, wr_a, ws_a);
-        $display("    decoupled       %0d / %0d / %0d / %0d",
-                 wf_d, wa_d, wr_d, ws_d);
+        if (deco_hung)
+            $display("    decoupled       (hung; sink request cycles counted %0d / %0d / %0d / %0d, input accepted %0d / %0d / %0d / %0d of 20)",
+                     g_f_d.snk.n, g_a_d.snk.n, g_r_d.snk.n, g_s_d.snk.n,
+                     g_f_d.src.nsent, g_a_d.src.nsent, g_r_d.src.nsent,
+                     g_s_d.src.nsent);
+        else
+            $display("    decoupled       %0d / %0d / %0d / %0d",
+                     wf_d, wa_d, wr_d, ws_d);
         $display("    bd_link_dc      %0d / %0d / %0d / %0d  (slow sender AND slow release %0d)",
                  wf_c, wa_c, wr_c, ws_c, w_rel_c);
         $display("  attempt, isolating the slow-sender case:");
@@ -463,7 +492,12 @@ module tb_ctl;
         // Deciding it needs a source that models a physical turnaround, which
         // is a change to the harness every other bench shares.  Until then
         // this asserts the measured state, so a silent change is still caught.
-        if (occ_d == N && wf_d == 0 && wa_d == 0 && wr_d == 0 && ws_d == 0)
+        //
+        // Under the single-corner model the failure takes two shapes, and
+        // either one is the attempt failing its row: at fast min it completes
+        // and corrupts every token; at slow max it does not complete at all
+        // (deco_hung, from the watchdog above).
+        if (!deco_hung && occ_d == N && wf_d == 0 && wa_d == 0 && wr_d == 0 && ws_d == 0)
             fail("decoupled: it now passes a zero-turnaround sender -- the note above is stale, promote it or rewrite it");
         if (mi_d.errors + mo_d.errors != 0) fail("decoupled: PROTO");
 
@@ -477,12 +511,27 @@ module tb_ctl;
         // amount of routing changes that.  It must reproduce in both regimes.
         if (w_rel_a == 0)
             fail("attempt: slow-release passed -- trigger 2 did not reproduce");
-        // Trigger 1 is a RACE, one arc wide.  Routing puts a hop in the path
-        // that has to lose and the race goes away -- the same shape as the
-        // arbiter's handover overlap.  So it is asserted per regime, and the
-        // regime is what decides which way.
+        // Trigger 1 is TIMING-DEPENDENT, and which way it goes is asserted per
+        // corner and regime, in both directions, so a silent change is caught.
+        // The old "fires arc-only, gone at 354" came from the corner-mixed
+        // model (56 ps rises racing 124-152 ps falls).  With one corner per
+        // run it fires ONLY with short cell arcs and no routing:
+        //     fast min, route 0     17 of 20 wrong   (must fail)
+        //     slow max, route 0      0 of 20 wrong   (must pass)
+        //     either,   route 354    0 of 20 wrong   (must pass)
+        // It is the arc MAGNITUDE that decides, not the O5-versus-O6 delta:
+        // with every O5 arc forced equal to O6 the same split holds (45 ps:
+        // fails, 124 ps: passes), and the FAST row's sender setup (0..300 ps)
+        // and the sink's T_ACK/T_REL do not move it at slow max.  The exact
+        // race was not root-caused.  Trigger 2 is the shipping blocker
+        // either way.
+`ifdef BD_FAST_MIN
         if (`BD_ROUTE_PS == 0 && wf_a == 0)
-            fail("attempt: FAST passed arc-only -- trigger 1 did not reproduce");
+            fail("attempt: FAST passed at fast min arc-only -- trigger 1 did not reproduce");
+`else
+        if (`BD_ROUTE_PS == 0 && wf_a != 0)
+            fail("attempt: FAST failed at slow max arc-only -- trigger 1 moved, re-measure");
+`endif
         if (`BD_ROUTE_PS >= 354 && wf_a != 0)
             fail("attempt: FAST still fails with routing -- trigger 1 is not a race");
         if (w_su_a != 0 || w_gap_a != 0)
@@ -502,8 +551,13 @@ module tb_ctl;
         $display("  sweep found only half of it.  See verify/attempts/.");
         $display();
         if (`BD_ROUTE_PS == 0) begin
-            $display("  At BD_ROUTE_PS=0 both triggers fire.  Trigger 1 is a one-arc");
-            $display("  race; re-run at 354 and routing removes it.");
+`ifdef BD_FAST_MIN
+            $display("  At fast min, BD_ROUTE_PS=0, both triggers fire.  Trigger 1 needs");
+            $display("  short arcs: it is gone at slow max and with routing.");
+`else
+            $display("  At slow max, BD_ROUTE_PS=0, trigger 1 does not fire; it needs");
+            $display("  the short arcs of the fast-min corner (-DBD_FAST_MIN).");
+`endif
         end else begin
             $display("  At BD_ROUTE_PS=%0d trigger 1 is gone: it was a one-arc race and",
                      `BD_ROUTE_PS);

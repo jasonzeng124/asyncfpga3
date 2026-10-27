@@ -75,6 +75,12 @@
 //   arbiter's handover overlap.  A race that routing fixes is a post-route
 //   check, not a defect.
 //
+//   (Corner note: those figures came from a model that read prjxray's fast
+//   and slow corner bounds as rise and fall.  With one corner per run,
+//   trigger 1 fires at fast min arc-only, 17 of 20, and NOT at slow max
+//   arc-only or with routing at either corner; tb_ctl asserts each.  The
+//   race itself was not root-caused.  Trigger 2 reproduces at every corner.)
+//
 //   trigger 2 is STRUCTURAL.  The outgoing request cannot rise while the
 //   consumer holds its acknowledge, so the latch cannot close, and no routing
 //   changes that.  It reproduces at 0 ps and at 354 ps, and it gets worse:

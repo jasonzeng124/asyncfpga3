@@ -12,15 +12,28 @@
 //   CLBLL_L.sdf  SLICEL/A6LUT   A1..A6 -> O6   (0.045::0.056)(0.100::0.124)
 //   CLBLL_L.sdf  SLICEL/A5LUT   A1..A5 -> O5   (0.044::0.055)(0.122::0.152)
 //                                              per pin, see the table below
+//                                              (FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)
 //   BRAM_L.sdf   CLKARDCLK -> DOADO, unregistered      max 2.454 ns
 //                DIADI setup                           max 0.737 ns
 //                ADDRARDADDR setup                     max 0.566 ns
 //                WEA setup                             max 0.532 ns
 //
-// The LUT figures are the 117-152 ps raw arc the sizing table quotes.  Rise
-// and fall differ by more than a factor of two on this fabric, so they are
-// modelled separately; a uniform per-cell delay would hide every asymmetric
-// hazard in the library.
+// Each SDF triple pair is (FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX) -- the
+// fast-corner and slow-corner bounds of ONE arc.  prjxray utils/makesdf.py
+// writes the fast corner into SDF's rise slot and the slow corner into its
+// fall slot, so the file LOOKS like rise/fall and is not.  An earlier version
+// of this file read 56/124 as rise/fall, which mixed two corners in one
+// simulation and made every falling edge 2.2x slower than every rising one.
+// There is no characterised rise/fall split here, so both edges take the
+// same number, at ONE corner:
+//
+//   default         slow max   O6 124      O5 per pin 152 152 150 150 118
+//   -DBD_FAST_MIN   fast min   O6  45      O5 per pin  44  44  42  46  48
+//
+// (SLICEL/A5LUT, A6LUT; the other BELs and CLBLM differ by a few ps.)  The
+// slow max is the 117-152 ps raw arc the sizing table quotes.  The corners
+// never mix, so an edge race can only come from DIFFERENT arcs (e.g. O5 vs
+// O6, or path depth), never from a fast-corner edge racing a slow-corner one.
 //
 // -- what these arcs are NOT ------------------------------------------------
 //
@@ -52,21 +65,41 @@
  `define BD_ROUTE_PS 0
 `endif
 
-// Slowest cell arc in the library, for testbench settle times.
+// Testbench settle unit: the slow-max 6LUT arc.  Held at 124 at BOTH corners
+// (at -DBD_FAST_MIN that is merely generous); the O5 arcs can reach 152.
 `define BD_HOP_PS  (124 + `BD_ROUTE_PS)
 
-// 6LUT: every pin has the same arc.  Rise and fall differ by 2.2x on this
-// fabric, so they are modelled separately.
-`define BD_T_RISE  (56 + `BD_ROUTE_PS)
-`define BD_T_FALL  (124 + `BD_ROUTE_PS)
+// One corner per run.  See the header: the old 56/124 and 55/152 "rise/fall"
+// pairs were fast-min / slow-max bounds of the same arc.
+`ifdef BD_FAST_MIN
+ `define BD_LUT6_PS  45
+ `define BD_LUT5_A1  44
+ `define BD_LUT5_A2  44
+ `define BD_LUT5_A3  42
+ `define BD_LUT5_A4  46
+ `define BD_LUT5_A5  48
+`else
+ `define BD_LUT6_PS  124
+ `define BD_LUT5_A1  152
+ `define BD_LUT5_A2  152
+ `define BD_LUT5_A3  150
+ `define BD_LUT5_A4  150
+ `define BD_LUT5_A5  118
+`endif
+
+// 6LUT: every pin has the same arc.  BD_T_RISE / BD_T_FALL are kept as names
+// (testbenches size from them) and are now EQUAL: prjxray gives no rise/fall
+// split for a LUT arc.
+`define BD_T_RISE  (`BD_LUT6_PS + `BD_ROUTE_PS)
+`define BD_T_FALL  (`BD_LUT6_PS + `BD_ROUTE_PS)
 `define BD_T6      `BD_T_RISE, `BD_T_FALL
 
-// 5LUT: per pin, A1..A5.
-`define BD_T5_0    (55 + `BD_ROUTE_PS), (152 + `BD_ROUTE_PS)
-`define BD_T5_1    (55 + `BD_ROUTE_PS), (152 + `BD_ROUTE_PS)
-`define BD_T5_2    (52 + `BD_ROUTE_PS), (150 + `BD_ROUTE_PS)
-`define BD_T5_3    (57 + `BD_ROUTE_PS), (150 + `BD_ROUTE_PS)
-`define BD_T5_4    (60 + `BD_ROUTE_PS), (118 + `BD_ROUTE_PS)
+// 5LUT: per pin, A1..A5, same number on both edges.
+`define BD_T5_0    (`BD_LUT5_A1 + `BD_ROUTE_PS), (`BD_LUT5_A1 + `BD_ROUTE_PS)
+`define BD_T5_1    (`BD_LUT5_A2 + `BD_ROUTE_PS), (`BD_LUT5_A2 + `BD_ROUTE_PS)
+`define BD_T5_2    (`BD_LUT5_A3 + `BD_ROUTE_PS), (`BD_LUT5_A3 + `BD_ROUTE_PS)
+`define BD_T5_3    (`BD_LUT5_A4 + `BD_ROUTE_PS), (`BD_LUT5_A4 + `BD_ROUTE_PS)
+`define BD_T5_4    (`BD_LUT5_A5 + `BD_ROUTE_PS), (`BD_LUT5_A5 + `BD_ROUTE_PS)
 
 // prjxray BRAM_L.sdf, max corner.  Exported so a testbench can size a matched
 // delay from the vendor number rather than from a hand-copied constant --
