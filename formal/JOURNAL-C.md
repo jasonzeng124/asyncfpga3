@@ -3,9 +3,11 @@
 ## Verdicts (shard C)
 
 - **Track 9 (ring needs three stages): works.** `Formal/Net/Ring.lean` (check:
-  `formal/check.sh`). Ring of bd_link_ctl C-elements with the real bd_c2n INITs,
+  `formal/check.sh`). Ring of bd_link_ctl C-elements; `RingGen` restates the
+  headlines over the generated bd_c2n netlist (a flipped INIT breaks them),
   interleaving semantics (H_SI): dead for N<=2; with one token live iff N>=3
-  (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair-window progress.
+  (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair window N(N-1)/2
+  transitions (`RingFair`).
   The rule "3" is 2k+1 at k=1, resting on H_ONE_TOKEN (unproved). Not yet tied
   to bounded-delay traces (probe 8d). Effort to finish: ~1-2 days.
 - **Track 8 (composition): works, at three levels, with a checker-to-FIFO
@@ -40,24 +42,39 @@
   H_CM_FORCED, now reduced to H_CUT (8q: req-rise counting; arbiters see
   no free contention under it); H_CUT and H_CM_FORCED proved (8r) from H_START_ONCE
   (start offered once per result; a free-running start source breaks it)
-  and H_WALK (token-run property, 32 vectors; proof: 8s). Liveness: pipelines and single
-  rings proved with linear bounds (8n, 8o); gcd_hw liveness needs the
-  arbiters to be uncontended (no bounded arbitration time on this fabric). Muller
+  and H_WALK, now proved for all a, b < 2^31 (8s): `gcd_hw_circuit_safe3`
+  needs only H_CELLS, H_BUNDLE, H_START_ONCE. Caveats: H_START_ONCE ("start
+  rises once, ever") is false for the rig, which re-offers start after every
+  result (8s2 is proving the first-result/per-invocation version); H_BUNDLE is
+  stated on zero-delay traces, so tcheck discharges it only through a
+  physical -> zero-delay refinement that is not yet proved (8w finding; 8x).
+  No joint witness run yet (8t). Liveness: pipelines and single rings proved
+  with linear bounds (8n, 8o); gcd_hw: arbiters provably never contested, so
+  an uncontested-only settle bound suffices (8u); `gcd_hw_live` still rests
+  on two open network obligations, H_NO_DEADLOCK and H_FIRING_BOUND (8z).
+  Other kernels (8v): ipow's bdc graph = b^e mod 2^32 on every schedule for
+  all i32 inputs, live; collatz conditional on C termination (unconditional
+  1 <= n < 256). Token level only. Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
   ~2-3 weeks.
 - **Track 10 (verified timing checker): works.** `Formal/Timing/{Semantics,
   Checker,CheckerToy}.lean`: interval STA over BoundedDelay arcs, executable,
-  sound and per-node exact. Bundling check exact when req and data share only
-  the launch; with a shared arc it is conservative under fixed delays (CPPR
-  pessimism) but justified under per-event delays (glitches pass). Rules
+  sound; per-node exact only over the choice of cell functions (fixed LUT
+  functions: `win` is an upper bound, CheckerFixedFn). Bundling check exact
+  in that same sense when req and data share only the launch; with a shared
+  arc it is conservative under fixed delays (one example); the old
+  "justified under per-event delays" needs a wire to glitch, which monotone
+  routing rules out (audit C.md #2). Sound shared-prefix credit:
+  SharedPrefix.pot2_sound under H_CLEAN_EDGE (10l). Known front-end gap: the
+  prjxray model omits the slice OUTMUX hop (audit; 10m re-running all rows). Rules
   (array version, prjxray per-pip intervals, CPPR): ~1-2 weeks.
   Rules E/A/J (`Formal/Timing/Rules.lean`): a verified checker makes them exact
   relative to a stated delay model, not to silicon; the blocker is delay DATA.
   Each rule has a proved counterexample (E: SDF charges a flat ~25 ps per LUT
   pin, prjxray says A1 516 ps vs A6 5 ps slow max; A: sound under E's band only
-  for data paths <= 402 ps; J: the pip-count estimate of the shared A0 route
+  for data paths <= 403 ps, exactly (ruleA_band_threshold); J: the pip-count estimate of the shared A0 route
   over-credits). nextpnr's SDF carries slow-corner max only (min=typ=max), so
   "shortest path" checks have no lower bound. Counterexamples are constructed
   netlists, not found in shipped routes (no routed SDF on disk).
@@ -67,7 +84,8 @@
   flipped INIT bit breaks the build. bd_mem's BRAM is opaque.
 - **Track 11 (netlist import): works.** (a) yosys JSON: 11 cells, project's own
   yosys 0.62 flow, generator + drift check (`formal/tools/import/import.sh
-  --check`), proved equal to B's binary/Kleene transcriptions; a flipped INIT
+  --check`), proved equal to B's independent binary specs (the Kleene
+  comparisons only show the same INIT and pin order); a flipped INIT
   bit fails the build. (b) bitstream: `formal/tools/fasm2lean/check.sh`;
   bd_c2->bd_c2n routed on 4 seeds, FASM read back from the .bit, physical INIT
   + pip-walked pin map proved to compute the logical cells; mutated INIT/pips
@@ -82,9 +100,12 @@
   Storm (12b): exact delay thresholds and witness
   traces in seconds for fixed integer delays (C-element: env min response >=
   feedback max; shipped arbiter: server latency >= ~60 ps, A0 rising skew <
-  116 ps), but nothing for all delays; pure delay + spread runs out of memory.
+  116 ps -- CAVEAT: 12a/12b/12c took prjxray's fast/slow corner pair 56/124
+  as rise/fall, so these thresholds may be artefacts; 12d is redoing them at
+  one consistent corner), but nothing for all delays; pure delay + spread
+  runs out of memory.
   Best use: find the bound, then prove it in Lean. Zone-based dense time
-  (12c, TChecker by git clone) pending.
+  (12c, TChecker by git clone): done, same corner caveat.
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 
