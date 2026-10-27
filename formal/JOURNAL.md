@@ -105,3 +105,12 @@ Analysis.* from source on 4 cores costs hours and risks OOM next to 3 Lean
 slots (one OOM kill already); it only served the optional involution exp/log
 instance, which stays with exp/log as named hypotheses (ExpLog).
 FEASIBILITY.md: verdicts for tracks 1-11 and 13 in; track 12 pending (C).
+### progress 03:52
+Push helper incident (lead tooling, no data lost): after rebasing in a detached
+worktree, the main tree was moved with `reset --soft`, then `reset --mixed` +
+`restore`, which left other shards' files stale or missing in my working tree
+(never committed: each push went from the worktree). Restored every non-A path
+from HEAD; the helper now uses `git reset --keep NEW` (updates every file
+changed upstream, refuses if one has local edits).
+Untracked Formal/Core/{Env,Substrate,XAudit} are probes in progress; they are
+committed only after check.sh passes (Env currently fails: mid-edit).
