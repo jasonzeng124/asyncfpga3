@@ -27,7 +27,10 @@
   any network of bdc's op cells refines the token semantics (prefix at every
   time, determinate), gate-level fork/join/steer/mux, arbitrated merge; gcd_circuit on the
   hand-drawn loop is VACUOUS for a != 0 (proved deadlock: that graph has no
-  storage on its data loop), so the real bdc graph (8i) is required. Muller
+  storage on its data loop), so the real bdc graph is required: done (`GcdHw*`, 8i): the graph bdc
+  emits for gcd_hw, imported from bdc's own code with a drift check, ends every
+  complete run on every schedule/arbiter outcome with exactly the C function's
+  result (one-invocation invariant proved). Open: C = Nat.gcd on [0,2^31) (8k). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -214,3 +217,12 @@ non-vacuous only at a=0. This is why theorems need a liveness/witness check.
 routes; every disagreement is project-rule PASS vs tcheck FAIL under prjxray
 site pins + the project's own band (thin margins); J's pip estimate
 over-credits by ~95 ps avg. RT_FB thin fail on the env C-element (2 seeds).
+
+### progress 06:09
+Committed 12a (z3 BMC/k-induction/Spacer), 11e (port toward Core: 22 modules
+Prelim-free; audit 5216 decls), 8i (gcd_hw graph from bdc computes the C
+function on every schedule; audit 832). Process fix: my push helper had been
+doing 'git add -u' on claimed dirs, so in-progress edits to already-claimed
+files (11e's) entered WIP snapshots before review; all of them were then
+rebuilt and audited clean, and the helper now adds only notes/Wip/tools.
+Launched 8k (gcdC = Nat.gcd on [0,2^31), termination, combined corollary).
