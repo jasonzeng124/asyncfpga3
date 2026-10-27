@@ -15,7 +15,8 @@ and anything synthesis could merge (every LUT in these cells is (* keep *)).
   ring3  : the tb_ring control ring, N=3, K=1: stage 0 bd_c2n_set, stages 1-2
            bd_c2n, c_i = C(c_{i-1}, ~c_{i+1})  (cells/tb/tb_ring.v)
 
-Usage: mkdesign.py OUTDIR
+Usage: mkdesign.py OUTDIR            (pipe3.json, ring3.json)
+       mkdesign.py OUTDIR N W        (pipeN_W.json: bd_pipe N stages, W bits; scaling runs)
 """
 import json
 import os
@@ -67,8 +68,8 @@ class Mod:
                                         "netnames": self.netnames}}}
 
 
-def pipe3(W=2, N=3):
-    m = Mod("pipe3")
+def pipe3(W=2, N=3, name="pipe3"):
+    m = Mod(name)
     rst, req_in, ack_out = m.net("rst"), m.net("req_in"), m.net("ack_out")
     din = m.net("data_in", W)
     c = [m.net(f"stage[{i}].u.c") for i in range(N)]
@@ -112,7 +113,11 @@ def ring3(N=3, K=1):
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "."
     os.makedirs(out, exist_ok=True)
-    for mod in (pipe3(), ring3()):
+    mods = (pipe3(), ring3())
+    if len(sys.argv) > 3:
+        n, w = int(sys.argv[2]), int(sys.argv[3])
+        mods = (pipe3(W=w, N=n, name=f"pipe{n}_{w}"),)
+    for mod in mods:
         with open(os.path.join(out, mod.name + ".json"), "w") as f:
             json.dump(mod.json(), f, indent=1)
         print("wrote", os.path.join(out, mod.name + ".json"))
