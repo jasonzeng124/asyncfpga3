@@ -51,8 +51,10 @@
   Joint witness (8t): one explicit run satisfies all four hypotheses and
   latches gcd 12 18 = 6. Rig: first result proved (8s2); every result open. Liveness: pipelines and single rings proved
   with linear bounds (8n, 8o); gcd_hw: arbiters provably never contested, so
-  an uncontested-only settle bound suffices (8u); `gcd_hw_live` still rests
-  on two open network obligations, H_NO_DEADLOCK and H_FIRING_BOUND (8z).
+  an uncontested-only settle bound suffices (8u); `gcd_hw_live_final` (8z):
+  first out0 within an explicit bound, value gcd, resting on one open
+  network obligation H_NO_DEADLOCK' (8u's earlier `gcd_hw_live` is likely
+  vacuous: do not cite it).
   Other kernels (8v): ipow's bdc graph = b^e mod 2^32 on every schedule for
   all i32 inputs, live; collatz conditional on C termination (unconditional
   1 <= n < 256). ipow also at circuit level (ipow_circuit_safe3, 8y). Muller
