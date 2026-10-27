@@ -1,0 +1,10 @@
+Reproduce (read-only on worktrees):
+  S=scratch; git -C /home/user/asyncfpga3 archive origin/claude/research bdc cloud/fixtures/frontend/gcd cells/rtl | tar -x -C $S/res
+  copy formal/tools/dfimport + formal/lean/Wip/C8l from claude/formal eecc6f7 into $S/res/formal/...
+  cd $S/res && python3 -I -B formal/lean/Wip/C8l/linkexport.py -o CL.lean   -> identical to Formal/Net/CapstoneLinks.lean
+              python3 -I -B formal/tools/dfimport/mlir2lean.py -o GcdHw.lean -> identical to Formal/Net/GcdHw.lean
+  python3 -B bdc/emit.py cloud/fixtures/frontend/gcd/comp/handshake_transformed.mlir --no-top -o $S/k_plain.v
+  cmp_links.py: Verilog bd_link/bd_pipe instances -> per-channel stages == Lean `links` (100 channels, 175 stages + 9 eternal)
+  yosys -p "read_verilog -DSYNTHESIS cells/rtl/*.v k_plain.v; hierarchy -top bdc_gcd; proc; write_json k.json"
+  ring_v.py k.json: independent cycle check on the emitted netlist's *_req nets: min stages on any cycle = 3
+  t2.v: iverilog check of the Lean Ops shrsi/shli/subi/shrui formulas (444 vectors, 0 mismatches)

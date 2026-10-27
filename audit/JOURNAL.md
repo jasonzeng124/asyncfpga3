@@ -76,3 +76,6 @@ Formal eecc6f7: clean build 3096 jobs, 0 sorry (48 min). All-modules axiom audit
 
 ### progress 08:14
 tcheck reproduction in: formal C-10g model omits slice OUTMUX delay (verified in prjxray-db); J rows partly refuted (one BQ#1 failure is an artefact, one seed-4 row worse). Board routes at one consistent corner, no band: BQ#1, BQ#2 clean; BQ#3 rule A ushrsi1 -36 ps fast corner (thin, model-dependent). Fast-early/slow-late: rule J 7/18 negative on all three (worst -472).
+
+### progress 08:24
+P4 (eecc6f7): gcd_hw_conditional has no gcd content (holds for any network; OVERSTATED as capstone); ring_ge3 graph confirmed by own re-export and netlist cycle search; RtFb 'safe in every corner' likely overstated (missing LUT->xMUX hop, as tcheck audit found); rig 305 ps witness pin-dependent. Per-module axiom audit still running.
