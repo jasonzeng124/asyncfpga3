@@ -10,6 +10,7 @@ for f in $(find Formal -name '*.lean' | sort); do
   M=$(echo $f | sed 's#/#.#g; s#\.lean$##')
   T=$(mktemp --suffix=.lean)
   cat > $T <<L
+import Lean
 import $M
 open Lean Elab Command in
 #eval show CommandElabM Unit from do
