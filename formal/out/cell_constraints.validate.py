@@ -60,6 +60,20 @@ for h in doc["hypotheses_not_inequalities"]:
 for i, n in ids.items():
     if n > 1:
         errs.append(f"duplicate id {i}")
+# strictness (Bs) and cross references
+for e in doc["constraints"]:
+    st = e.get("strict")
+    if st:
+        for k in st.get("forms", []):
+            if k >= len(e["forms"]) or e["forms"][k]["margin_ps"] < st["margin_added_ps"]:
+                errs.append(f"{e['id']}: strict form {k} margin below {st['margin_added_ps']}")
+        if st.get("margin_added_ps") and not any(r["file"].endswith("CElemStrict.lean") for r in e["lean"]):
+            errs.append(f"{e['id']}: strict without a CElemStrict citation")
+        if "strict_pending" in e:
+            errs.append(f"{e['id']}: both strict and strict_pending")
+    for r in e.get("refers_to", []):
+        if r not in ids:
+            errs.append(f"{e['id']}: refers_to unknown id {r}")
 C = doc["constraints"]
 print(f"constraints={len(C)} hypotheses={len(doc['hypotheses_not_inequalities'])} lean_refs={nref} files={len(cache)}")
 print("status", Counter(e["status"] for e in C))
@@ -67,6 +81,7 @@ print("exactness", Counter(e["exactness"] for e in C))
 print("rule verdicts", Counter(e["rule"]["verdict"] for e in C))
 print("site pins needed", sum(e["site_pins"]["needed"] for e in C))
 print("cells", Counter(e["cell"] for e in C))
+print("strict", sum(bool(e.get("strict", {}).get("margin_added_ps")) for e in C), "strict_pending", sum("strict_pending" in e for e in C))
 print("errors:", len(errs))
 for x in errs:
     print("  ", x)

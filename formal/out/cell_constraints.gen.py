@@ -1603,6 +1603,365 @@ for e in E:
     if e["cell"] == "bd_arbiter" and (e["id"].startswith("bd_arbiter.rt") or e["id"].startswith("bd_arbiter.a0_fork")):
         e["also_applies_to"] = e.get("also_applies_to", []) + ["bdc_amerge2_0.uarb (7 in gcd_hw), bdc_amerge3_0.uarb2 (1); bdc_amerge3_0.uarb1 with smin made explicit: bdc_amerge3.rt2_cascade_* (B-amerge.md, B-amerge-timed.md)"]
 
+# --------------------------------------------------------------- probe Blt: bd_steer exact per-pin rows; bd_fork / bd_join delegation
+LGS = "Cells/LibGapSteer"
+for side in ("setup", "hold"):
+    e = BYID[f"bd_steer.bundled_s_{side}"]
+    f0 = e["forms"][0]
+    if side == "setup":
+        e["obligation"] = ("S_S_SETUP_PIN (LibGapSteer H_SETUP_PIN, per output O5 and O6): s, settled at its driver at S0, "
+                           "is read by output O_b no later than req's rise at its driver (R) is read by O_b")
+        e["inequality"] = "per output b in {O5, O6}: S0 + ps_b.hi <= R + pr_b.lo; ps_b = s.drv -> u.I1 wire + SP[I1] + arc(I1 -> O_b); pr_b = req -> u.I0 wire + SP[I0] + arc(I0 -> O_b)"
+        f0["data_paths"][0][2]["note"] = "per-pin arc I1 -> O5 resp. O6 (in the Lean model: part of ps_b)"
+        f0["data_paths"][0][0]["lean_sym"] = "ps_b.hi"
+        f0["request_paths"][0][1]["lean_sym"] = "pr_b.lo"
+        f0["request_paths"][0][3]["note"] = "per-pin arc I0 -> O5 resp. O6 (in the Lean model: part of pr_b)"
+    else:
+        e["obligation"] = ("S_S_HOLD_PIN (LibGapSteer H_HOLD_PIN, per output O5 and O6): req's fall at its driver (F) is read by "
+                           "O_b no later than s's next change at its driver (S1) is read by O_b")
+        e["inequality"] = "per output b in {O5, O6}: F + pr_b.hi <= S1 + ps_b.lo (with bd_ctl's contract S1 - F = Hs, a round trip: OpsTimed2.steer_hold_of_ackfall)"
+        f0["data_paths"][0][2]["note"] = "per-pin arc I0 -> O5 resp. O6 (in the Lean model: part of pr_b)"
+        f0["data_paths"][0][0]["lean_sym"] = "pr_b.hi"
+        f0["request_paths"][0][1]["lean_sym"] = "ps_b.lo"
+        f0["request_paths"][0][3]["note"] = "per-pin arc I1 -> O5 resp. O6 (in the Lean model: part of ps_b)"
+    e["lean"] = [
+        L(LGS, "steer_box_exact", "exact", note="iff over the delay box, for every read-map pair inside it and every s stable on [S0,S1) (arbitrary outside): SpecOK <-> setup AND hold"),
+        L(LGS, "steer_pin_exact", "exact", note="iff for fixed per-pin delays (apply per corner realisation)"),
+        L(LGS, "steer_pin_ok", "sufficient", note="any (non-monotone) per-pin read maps"),
+        L(LGS, "steer_both", "sufficient", note="both outputs, four inequalities"),
+        L(LGS, "steer_tokens", "sufficient", note="any number of tokens, per-token windows"),
+        L(LGS, "steer_pin_ok_K", "sufficient", note="Kleene: s may be X outside its window; outputs stay definite"),
+        L(LGS, "setup_needed", "necessary", note="violated setup: SpecOK fails at R + dr on either output"),
+        L(LGS, "hold_needed", "necessary", note="violated hold: SpecOK fails at F - 1 + dr"),
+        L(LGS, "spurious_token", "counter_trace", note="setup short by 100 ps: the UNSELECTED branch O5 rises (spurious token)"),
+        L(LGS, "late_hold_glitch", "counter_trace", note="hold violated: unselected branch high at the end of the pulse"),
+        L(LGS, "witness_run", "non_vacuity", note="selected O6 rises and falls, O5 stays low"),
+        L(LGS, "witness_hyps", "non_vacuity"),
+        L(LGS, "Rd", "definition", note="H_PIN_READ"),
+        L(LGS, "SpecOK", "definition", note="= OpsSteer's lut field for one token"),
+    ] + [r for r in e["lean"] if r["name"] in ("steer_req0", "steer_req1", "steer_ok", "steer_op", "steer_hold_of_ackfall", "steer_excl_K")]
+    e["exactness"] = "exact"
+    e["exactness_note"] = ("Blt (formal/notes/B-lib-gap.md): exact (iff) over the delay box with PER-PIN LUT arcs (H_PIN_READ: each output reads each pin "
+        "through its own window; read maps need not be monotone), the select adversarial outside [S0,S1). Supersedes the lumped-arc sufficient "
+        "form of OpsTimed2 for this obligation; necessity is per output (either output fails: unselected = spurious token, selected = late/runt). "
+        "Box necessity assumes the two pins' delays independent; under a correlated corner model use steer_pin_exact per realisation. "
+        "Not covered: mid-rail select inside the mux tree (H_KLEENE_LUT), the uack OR (steer_back, H_ACK_SKEW).")
+    e["status"] = "proved"
+
+FD = "Cells/ForkData"
+FORK_ALSO = ["bd_fork N=2..6 in gcd_hw (52 instances incl. the 8 control_merge `_f` forks; 139 branches): 53 branches end at bd_link/bd_pipe (bd_fork.branch_data), 59 at bd_join (data obligation moves to the join's consumer: bd_steer.bundled_s_setup / compute rule A), 12 at a nested bd_fork (pass through to the leaf), 6 at bd_snk and 9 control-only (no data)"]
+for cell, n, what, refs in (
+        ("bd_fork", 52, "request broadcast as wires, acks joined by bd_ctree",
+         ["bd_fork.branch_data", "bd_c2.env_latency", "bd_c3.env_latency", "bd_c4.env_latency", "bd_ctree.node_fork", "bd_ctree.ack_wait"]),
+        ("bd_join", 38, "requests joined by bd_ctree, ack broadcast as wires",
+         ["bd_c2.env_latency", "bd_c3.env_latency", "bd_c4.env_latency", "bd_ctree.node_fork", "bd_ctree.ack_wait",
+          "bd_latch[odd].setup_data", "bd_latch[pair.O5].setup_data", "bd_latch[pair.O6].setup_data", "bd_steer.bundled_s_setup"])):
+    fwd = ("its forward data obligation is bd_fork.branch_data (per branch, at the consumer latch; Bfd); its ack side is the C-tree rows"
+           if cell == "bd_fork" else
+           "its data passes through unchanged, so the data obligation is the consumer's (bd_steer.bundled_s_setup, a latch setup_data with the join's wires on both paths, or the compute unit's rule A)")
+    add(id=f"{cell}.delegated", cell=cell, catalogue_row="none (Blt coverage audit)",
+        obligation=f"{cell} has no LUT of its own ({what}); {fwd}",
+        inequality="see refers_to, with the fork/join wires on the consumer's data and request paths",
+        forms=[], refers_to=refs,
+        lean=[L("Cells/CTreeTimed", "tree_four_phase", "sufficient")] + ([L(FD, "fork_capture", "sufficient", note="data side, every branch (bd_fork.branch_data)")] if cell == "bd_fork" else []),
+        exactness="see_refers_to",
+        site_pins={"needed": True, "roles": ["consumer pins, as in the referred rows"]},
+        rule={"rule": "none", "verdict": "none", "detail": "covered by the referred rows' rules (A/I/E) when they walk through the fork/join wires"},
+        corner=CORNER_1C, check_scope="route_plus_env",
+        evidence=f"{n} instances in gcd_hw (B-gcd-cells.md); no route measured")
+
+# --------------------------------------------------------------- probe Bfd: bd_fork branch data (C14), bdc_amerge index conjunction (C11)
+FDATA = [env("Td", "launch -> last change of the shared data net at its driver (producer: its latch Q / amerge index LUT / compute output), max", "Td"),
+         wire("x_data.drv", "consumer.lat.u.I0", "dhi", note="THIS branch's route of the shared bus (per bit)"),
+         sp("consumer.lat.u", "I0", "data"), lut("consumer.lat.u", "I0", "O6|O5", "dhi"),
+         fbw("consumer.lat.u", "O6|O5", "I2|I4", "fhi"), sp("consumer.lat.u", "I2|I4", "feedback", "in fhi"),
+         lut("consumer.lat.u", "I2|I4", "O6|O5", "fhi", note="the arc rule I omits (bd_latch[*].setup_data missing_term)")]
+FREQ_EDGE = [env("Tr", "launch -> producer request edge at its driver, min", "Tr"),
+             wire("x_req.drv", "consumer.ctl.u.u.I0", "rlo", note="the fork's req fan-out wire to THIS branch"),
+             sp("consumer.ctl.u.u", "I0", "req_in"), lut("consumer.ctl.u.u", "I0", "O6", "rlo"),
+             wire("consumer.ctl.u.u.O6", "consumer.lat.u.I1", "elo"), sp("consumer.lat.u", "I1", "enable"), lut("consumer.lat.u", "I1", "O6|O5", "elo")]
+FREQ_W = FREQ_EDGE[:4] + [env("wlo", "consumer node rise -> node fall, min: node -> DACK (FASTRISE rise) -> fork C-tree -> producer ack pin -> producer req fall -> fork wire -> node fall (rule I's t_ack + t_fall)", "wlo")] + FREQ_EDGE[4:]
+FD_EV = "none: no routed number (Bfd; gcd_hw re-emitted, consumer census in Bfd's scratch, B-fork-data.md section 1)"
+add(id="bd_fork.branch_data", cell="bd_fork", also_applies_to=FORK_ALSO, catalogue_row="C14 (H_FORK_DATA, C-8f)",
+    obligation="H_FORK_DATA_W: per branch, the shared data bus is through the branch's latch and once round its loop before the branch's enable FALL can arrive (bd_latch.setup_data with the launch at the fork's producer)",
+    inequality="Td + dhi + fhi <= Tr + rlo + wlo + elo; side conditions H_FORK_PULSE ehi + fhi <= wlo + elo (= bd_latch.setup_pulse) and H_FORK_HOLD ehi <= alo + dlo (= bd_latch.hold with the fork C-tree on the ack path)",
+    forms=[form([FDATA], [FREQ_W], launch="producer node rise (the event that launches both the data and the request)")],
+    lean=[L(FD, "branch_capture", "sufficient"), L(FD, "fork_capture", "sufficient", note="all branches, one shared data net"),
+          L(FD, "H_FORK_DATA_W", "definition"), L(FD, "BrRun", "definition"),
+          L(FD, "fork_data_needed", "counter_trace", note="parametric: every branch with point windows violating by exactly 1 ps at the minimal environment latches the stale value (real odd-bit INIT), q = !v at Toff + elo and every loop period after"),
+          L(FD, "fork_data_needed_num", "instance", note="the counter-trace hypotheses are satisfiable"),
+          L(FD, "fork_data_good", "non_vacuity", note="parametric witness run of every hypothesis"),
+          L("Cells/Bundling", "capture", "lemma")],
+    exactness="sufficient+necessary",
+    exactness_note="Bfd (B-fork-data.md): sufficient for every trace of the window gate relation; necessary by one ps at the minimal environment (node rises at Tr + rlo, falls wlo later), point windows. Odd-bit LUT6 only; the LUT6_2 pair bits use pair_o5_latch/pair_o6_latch in branch_capture (sufficiency) but the counter-trace is not built for them. No routed number.",
+    site_pins={"needed": True, "roles": ["consumer.lat.u.I0 (data), I2/I4 (feedback) hi", "consumer.ctl req_in pin, consumer.lat.u.I1 (enable) lo"]},
+    rule={"rule": "I", "source": "cells/verify/tighten.py rule I (reading the code, not a run)", "verdict": "missing_term",
+          "detail": "rule I audits every controller whose data enters from a link stage that also requests it, through any combinational path, so a link->fork->link branch is covered, with the closing path t_rise + t_ack + t_fall (the wlo credit). It omits the latch's feedback-pin arc (as for bd_latch.setup_data). Branches whose producer is not a bd_link stage (amerge index, compute outputs, steer/mux outputs, environment) print 'not audited'; for those, rule A (uor-audited cells) covers the producer's own cone but not the fork branch's route skew. UNCONFIRMED on a routed tighten log."},
+    corner=CORNER_1C, check_scope="route_plus_env", evidence=FD_EV)
+add(id="bd_fork.branch_data_edge", cell="bd_fork", also_applies_to=FORK_ALSO + ["edge-sampling consumers (bd_link_dc, BRAM clock) where it is the relevant form"], catalogue_row="C14 (H_FORK_DATA, C-8f, as written)",
+    obligation="H_FORK_DATA as C-8f states it: per branch, data_hi at the consumer's latch (through D and once round the loop) <= req_lo (earliest the branch's request can open the latch)",
+    inequality="Td + dhi + fhi <= Tr + rlo + elo",
+    forms=[form([FDATA], [FREQ_EDGE], launch="producer node rise")],
+    lean=[L(FD, "H_FORK_DATA", "definition"), L(FD, "edge_implies_W", "sufficient", note="implies bd_fork.branch_data"),
+          L(FD, "edge_form_not_needed", "not_necessary", note="violated by 850 ps, H_FORK_DATA_W holds, the latch captures")],
+    exactness="sufficient",
+    exactness_note="Bfd: sufficient (implies H_FORK_DATA_W), NOT necessary at a Muller bd_link/bd_pipe consumer (every latch consumer in gcd_hw: BD_LINK_DC not defined). A route checker should check bd_fork.branch_data instead; this form is the conservative screen.",
+    site_pins={"needed": True, "roles": ["as bd_fork.branch_data"]},
+    rule={"rule": "none", "verdict": "none", "detail": "no rule states it; rule I checks the weaker exact form"},
+    corner=CORNER_1C, check_scope="route_plus_env", evidence=FD_EV)
+AMT = "Cells/AMergeTimed"
+AM_CAVEAT = ("CAVEAT (Bfd, B-fork-data.md section 3): Cm2's consumer is edge-sampling (index settled su before Zr), and the necessity above holds only at such a consumer. "
+             "Every index consumer in gcd_hw is a Muller bd_link/bd_pipe behind the _f fork, which closes a whole handshake after Zr: the counter-traces show a stale index at the request edge, not a stale latched value. "
+             "At those consumers the exact condition is bd_fork.branch_data (H_FORK_DATA_W, with Td = the index settle time), and this entry is sufficient only.")
+add(id="bdc_amerge.idx_bundle", cell="bdc_amerge", also_applies_to=["bdc_amerge2_0 (7 in gcd_hw)", "the per-race entries bdc_amerge.bundled_idx_grant, .bundled_idx_ack, .bundled_idx_ack_g, .bundled_idx_grant_fall, .idx_ack_fork (this entry is their conjunction)"],
+    catalogue_row="C11 (H_AMERGE_IDX)",
+    obligation="H_AMERGE_IDX: index = g2 | in1_ack names the token's owner at the consumer su before that token's request (R0 -> uor -> bd_delay_gated -> z_req -> fork _f -> consumer) does, in all three races (new owner's grant; previous owner's ack and grant fall; the in1_ack fork into the index LUT). The data-mux leg is empty in gcd_hw (width 0: in_k_data = 1'b0, z_data unconnected)",
+    inequality="BidxA /\\ BidxB (ack, gack, grant) /\\ IdxAckFork, see the per-race entries; wid = index LUT O6 -> fork _f data wire -> consumer latch D -> loop (max), dz = R0 -> uor -> udly rise -> z_req -> fork _f req wire -> consumer node -> latch EN (min)",
+    forms=[form([[env("per_race", "see bdc_amerge.bundled_idx_grant / bundled_idx_ack / bundled_idx_ack_g / bundled_idx_grant_fall / idx_ack_fork")]], [[env("per_race", "as data side")]], launch="per race")],
+    refers_to=["bdc_amerge.bundled_idx_grant", "bdc_amerge.bundled_idx_ack", "bdc_amerge.bundled_idx_ack_g", "bdc_amerge.bundled_idx_grant_fall", "bdc_amerge.idx_ack_fork", "bd_fork.branch_data"],
+    lean=[L(FD, "H_AMERGE_IDX", "definition", note="namespace Formal.Cells.ForkData.AMerge"), L(FD, "amerge_idx_sufficient", "sufficient", note="needs the arbiter's RT2b"),
+          L(FD, "amerge_idx_necessary", "counter_trace", note="exact legs at an edge-sampling consumer: BidxA (with A0Fork, H_Z_IN_SRV), BidxB.ack (xr = xf), IdxAckFork (minimal client)"),
+          L(FD, "amerge_idx_nonvacuous", "non_vacuity", note="SLOW_MAX DELAY = 12, cmin = 248; runs in AMergeTimedW.nonvacuous_slow"),
+          L(FD, "amerge_data_const", "lemma", note="data-mux leg constant in gcd_hw"),
+          L(AMT, "bidx_new_owner", "sufficient"), L(AMT, "bidx_old_owner", "sufficient"), L(AMT, "idx_ack_fork_hold", "sufficient")],
+    exactness="sufficient+necessary_at_boundary",
+    exactness_note="Bfd: the conjunction of Cm2's legs; necessary leg by leg at the minimal request path / minimal client EXCEPT BidxB.gack (sufficient only) and BidxB.grant (own counter-trace). " + AM_CAVEAT,
+    site_pins={"needed": True, "roles": ["as the per-race entries"]},
+    rule={"rule": "A", "verdict": "different_condition", "detail": "as bdc_amerge.bundled_idx_grant; the consumer side (fork _f branch to a link) is rule I's when the producer is a link, which the amerge is not: 'not audited'"},
+    corner=CORNER_1C, check_scope="route_plus_env", evidence=FD_EV)
+BYID = {e["id"]: e for e in E}
+for i in ("bdc_amerge.bundled_idx_grant", "bdc_amerge.bundled_idx_ack", "bdc_amerge.bundled_idx_ack_g", "bdc_amerge.bundled_idx_grant_fall", "bdc_amerge.idx_ack_fork", "bdc_amerge3.bundled_idx0_grant"):
+    if i in BYID:
+        more(i, [L(FD, "amerge_idx_sufficient", "sufficient", note="the conjunction bdc_amerge.idx_bundle")] if i.startswith("bdc_amerge.") else [], note=AM_CAVEAT)
+        BYID[i]["necessity_scope"] = "edge_sampling_consumer_only"
+
+# --------------------------------------------------------------- probe Bmx: bd_mux select setup/hold exact per join (LibGapMux)
+LGM = "Cells/LibGapMux"
+MUX_KEEP = ("mux_needs_bundled_s", "mux_needs_bundled_s_hazard", "mux_weak_broad_fails", "steer_s_x_while_req",
+            "uj0_unsel_low_timed", "uj1_unsel_low_timed", "j0_sel_is_c2", "j1_sel_is_c2", "j0_s_x_hazard", "mux_ok", "MuxEnv")
+for side in ("setup", "hold"):
+    e = BYID[f"bd_mux.bundled_s_{side}"]
+    e["also_applies_to"] = []   # bdc_muxn has other join INITs: NOT covered by LibGapMux (its own rows are bdc_muxn.s_setup / s_hold)
+    fm = e["forms"][0]
+    if side == "setup":
+        e["obligation"] = ("S_MUX_S_SETUP_PIN (LibGapMux H_SETUP_PIN, per join uj0 and uj1): s, settled at its driver at S0, "
+                           "is read by the join (pin I2 -> O6) no later than ctl_req's rise at its driver (Cr) is read by it (pin I1 -> O6)")
+        e["inequality"] = ("per join k in {uj0, uj1}: S0 + ps_k.hi <= Cr + pc_k.lo; ps_k = s.drv -> uk.I2 wire + SP[I2] + arc(I2 -> O6); "
+                           "pc_k = ctl_req.drv -> uk.I1 wire + SP[I1] + arc(I1 -> O6). The request pin I0 and the feedback pin I3 do NOT enter.")
+        for p in fm["data_paths"]: p[0]["lean_sym"] = "S0"; p[1]["lean_sym"] = "ps_k.hi"; p[3]["lean_sym"] = "ps_k.hi"
+        for p in fm["request_paths"]: p[0]["lean_sym"] = "Cr"; p[1]["lean_sym"] = "pc_k.lo"; p[3]["lean_sym"] = "pc_k.lo"
+        fm["note"] = "Lean LibGapMux.join_box_exact: S0 + Shi <= Cr + Clo (per join); same shape as the old H_BUNDLED_S_SETUP_T Ts + shi <= Tc + clo"
+    else:
+        e["obligation"] = ("S_MUX_S_HOLD_PIN (LibGapMux H_HOLD_PIN, per join uj0 and uj1): ctl_req's fall at its driver (Cf) is read by the "
+                           "join (I1 -> O6) no later than s's next change at its driver (S1) is read by it (I2 -> O6)")
+        e["inequality"] = ("per join k in {uj0, uj1}: Cf + pc_k.hi <= S1 + ps_k.lo (S1 from the control channel's contract: s held to "
+                           "ctl_ack fall = z_ack fall). The request pin I0 and the feedback pin I3 do NOT enter.")
+        for p in fm["data_paths"]: p[0]["lean_sym"] = "Cf"; p[1]["lean_sym"] = "pc_k.hi"; p[3]["lean_sym"] = "pc_k.hi"
+        for p in fm["request_paths"]: p[0]["lean_sym"] = "S1"; p[1]["lean_sym"] = "ps_k.lo"; p[3]["lean_sym"] = "ps_k.lo"
+        fm["note"] = "Lean LibGapMux.join_box_exact: Cf + Chi <= S1 + Slo (per join); same shape as the old H_BUNDLED_S_HOLD_T Tcf + chi <= Ts' + slo"
+    e["lean"] = [
+        L(LGM, "join_box_exact", "exact", note="iff over the delay box (request, ctl_req, s AND feedback pin windows, Qlo >= 1), for every request trace, every s stable on [S0,S1) (arbitrary outside) and every join trace obeying H_PIN_READ + H_RESET: JSpec <-> setup AND hold"),
+        L(LGM, "join_pin_exact", "exact", note="iff for fixed per-pin delays (apply per corner realisation)"),
+        L(LGM, "join_pin_ok", "sufficient", note="any (non-monotone) read maps; no hypothesis on the request pin, feedback pin, reset or loop"),
+        L(LGM, "mux_joins", "sufficient", note="both joins, four inequalities, own ctl_req/s read maps per join"),
+        L(LGM, "join_pin_ok_K", "sufficient", note="Kleene reads: s, request and feedback may be X; s anything outside its window"),
+        L(LGM, "dev_iff", "function_equality", note="pointwise, real INITs: LUT != spec iff ctl_req reads 1, s reads !v, request read != feedback read"),
+        L(LGM, "unsel_low", "sufficient", note="JSpec + H_RESET + positive loop: the unselected join is 0 for ever (no wrong-branch token)"),
+        L(LGM, "join_needed", "necessary", note="every violation has a real trace (constructed by run) on which JSpec fails"),
+        L(LGM, "caseA", "necessary"), L(LGM, "caseB_unsel", "necessary"), L(LGM, "caseB_sel_short", "necessary"), L(LGM, "caseB_sel_long", "necessary"),
+        L(LGM, "wrong_branch_latched", "counter_trace", note="setup short by 100 ps, loop 50 ps: unselected uj0 latches 1 with x_req waiting (x's token taken for y's control token)"),
+        L(LGM, "wrong_branch_runt", "counter_trace", note="same, loop 200 ps: 100 ps runt on j0, recirculated every 200 ps"),
+        L(LGM, "selected_early_fall", "counter_trace", note="hold violated: selected uj1 falls 500 ps early (y_req already low)"),
+        L(LGM, "witness_hyps", "non_vacuity"), L(LGM, "witness_run", "non_vacuity", note="uj1 fires, uj0 stays 0 with both requests waiting"),
+        L(LGM, "LutEq", "definition", note="H_PIN_READ per pin incl. feedback I3"), L(LGM, "JSpec", "definition", note="C-element law with the token's decode"),
+    ] + [r for r in e["lean"] if r["name"] in MUX_KEEP]
+    e["exactness"] = "exact"
+    e["exactness_note"] = ("Bmx (formal/notes/B-lib-gap-mux.md): exact (iff) per join over the delay box with PER-PIN reads of all four live pins "
+        "(x/y_req I0, ctl_req I1, s I2, own feedback I3; read maps need not be monotone), s adversarial outside [S0,S1), the client request arbitrary. "
+        "The request and feedback windows drop out of the condition (they only shape the failure: latched wrong-branch token if the bad window "
+        "outlasts the loop, else a recirculating runt). Necessity per join: unselected join with the other client's request waiting; selected join "
+        "with its request waiting (setup) or already fallen (hold). Box necessity assumes pin delays independent; under a correlated corner model "
+        "use join_pin_exact per realisation. O6 LUT arcs are flat over pins in prjxray, so the per-pin content is the site pins SP[I1], SP[I2]. "
+        "Supersedes the window-model sufficient form (ConstraintsMux.*_unsel_low_timed) for this obligation. Not covered: bdc_muxn (other INITs; "
+        "its rows are bdc_muxn.s_setup / s_hold), the ctl_req fork as a C rule K obligation, the source of S0/S1, mid-rail select (H_KLEENE_LUT).")
+    e["status"] = "proved"
+
+# --------------------------------------------------------------- probe Bri: gcd_rig.idx_setup proved exact (RigIdx)
+RI = "Cells/RigIdx"
+e = BYID["gcd_rig.idx_setup"]
+e["obligation"] = ("H_IDX_SETUP: the operand word vector(idx), moved by the hk load edge n0 that also raises rig_rst, has settled at the frontier latch's d pins "
+                   "(ulink_n1__1, and any direct a_data/b_data reader whose request is a delayed copy of F, e.g. ucmpi0) su before the frontier controller F opens the latch (RigIdx.SetupOK)")
+e["inequality"] = ("vhi + su <= 16*Tlo + rlo + dlmin + enlo; vhi = idx tCO + vector decode + route to d (PathOK band hi), Tlo = min hk period, "
+                   "rlo = rig_rst tCO + OR + route + SP[F.I3] (band lo), dlmin = F's LUT arc (min), enlo = F.O6 -> latch enable / reader request (min). "
+                   "Side condition H_RST_LONG: rhi + dlmax + dwmax <= 16*Tlo + rlo (and H_RST_LONG_EN with + enhi for the iff)")
+e["forms"] = [form([[param("tCO", "FDRE clock-to-out (idx register)", "vhi"),
+                     env("vec_path", "vector decode LUTs + route to ulink_n1__1's latch d pin and the a_data/b_data readers, hi (with tCO: the band hi vhi)", "vhi"),
+                     env("su", "latch / reader setup", "su")]],
+                   [[env("16Tlo", "16 hk periods from the load edge n0 to the rst fall edge (min period Tlo)", "16*Tlo"),
+                     param("tCO_rst", "FDRE clock-to-out (rig_rst register), lo", "rlo"),
+                     wire("rst_src", "F.I3", "rlo", note="incl. the OR stage"), sp("F", "I3", "rst", "rlo"), lut("F", "I3", "O6", "dlmin"),
+                     wire("F.O6", "lat.u.I1", "enlo", note="or the direct reader's request path"), sp("lat.u", "I1", "enable", "enlo"),
+                     lut("lat.u", "I1", "O6", "enlo")]],
+                   launch="the hk load edge n0 (moves idx and raises rig_rst)")]
+e["lean"] = [L(RI, "idx_setup_suff", "sufficient", note="Rig + H_RST_LONG + H_IDX_SETUP: SetupOK, operands = the window's vector on [e n0 + vhi, e(n0+65536) + vlo), F low until r + dlmin"),
+             L(RI, "idx_setup_iff", "exact", note="SetupOK for every run satisfying Rig <-> H_IDX_SETUP, under Tlo > 0, ordered bands at most one hk period wide, H_RST_LONG_EN, H_SHORT"),
+             L(RI, "cex_rig", "counter_trace", note="explicit run satisfying every Rig field with no setup assumed; with H_IDX_SETUP false the d pin shows the previous vector su before the opening (cex_open, idx_before)"),
+             L(RI, "idx_nonvacuous", "non_vacuity", note="7.6 ns hk period instance (illustrative bands, not routed)"),
+             L(RI, "idx_fire", "context", note="the opening exists given H_TOKEN_FIRST; the token is needed only until F's first rise plus its loop bound (gcd_rig.token_static)")] + e["lean"]
+e["status"] = "proved"
+e["exactness"] = "exact"
+e["exactness_note"] = ("Bri (formal/notes/B-rig-idx.md, RigIdx.lean): exact (idx_setup_iff) over every run satisfying Rig (H_HK_PERIOD, H_LOOP, H_PATH_RST, H_PATH_IDX, "
+                       "H_RST_ONE_FALL, H_EN), every edge timing and window; no token hypothesis is needed for the setup half (the reset alone holds F low until r + dlmin). "
+                       "Side conditions of the iff: Tlo > 0, bands ordered and at most one hk period wide, H_RST_LONG_EN, H_SHORT. Non-vacuity at 7.6 ns with illustrative, "
+                       "not routed, bands. The previous P6 note (stale ok+err pairs, B-reset-contract.md 7.3) is a hypothesis from reading the RTL, not a measurement. " + RST_X)
+e["check_scope"] = "route_plus_env"
+more("gcd_rig.token_static", [L(RI, "idx_fire", "context", note="aF = 1, bF = 0 needed only on [e n0 + rhi, r + dlmax + dwmax]")],
+     note="Bri (RigIdx.idx_fire): the static token is needed only until F's first rise plus its loop bound, not for the whole run.")
+
+# --------------------------------------------------------------- probe Bdg: bd_delay_gated.gate per-pin box-exact (LibGapDelay)
+LGD = "Cells/LibGapDelay"
+e = BYID["bd_delay_gated.gate"]
+e["obligation"] = ("H_GFLUSH i (LibGapDelay.GF, per stage 1 <= i < N, per pin): the stale stage value is gone from g[i]'s chain pin "
+                   "before the gate's re-rise reaches its tap pin. Spec: from the fast-fall point F + (q(N-1)).hi on, z equals the "
+                   "line's response to the new token alone (Flushed: no stale pulse), hence z rises no earlier than T + Llo N "
+                   "(NoEarly: the full matched length, chain LOWER bounds, after the gate rose); z falls one tap hop after the gate")
+e["lean"] = [
+    L(LGD, "box_exact_flushed", "exact", note="iff over the per-pin delay box (every read-map tuple inside it, non-monotone allowed): Flushed <-> H_GFLUSH i for all 1 <= i < N, under H_BAL_HI, H_LO_ORDER, H_START (all stages), gate pulse F < T"),
+    L(LGD, "box_exact_no_early", "exact", note="same, for NoEarly, with H_SHORT added"),
+    L(LGD, "flush_of_gflush", "sufficient", note="any read maps in the box, no side condition"),
+    L(LGD, "no_early_of_gflush", "sufficient"),
+    L(LGD, "stale_pulse", "necessary", note="per stage: GF i false by any amount -> at the box corner (constant delays: stages <= i slow, tap i and later fast) z high at T + (q i).lo + Pl i (N-1) while the new-token response is low"),
+    L(LGD, "stale_pulse_early", "necessary", note="with H_SHORT the stale pulse is before T + Llo N"),
+    L(LGD, "rescue_flushed", "counter_trace", note="boundary: without H_LO_ORDER per-stage GF is NOT necessary (N=3, GF 1 false, slow tap 2 covers the hole; Flushed holds for every map)"),
+    L(LGD, "rescue_no_early", "counter_trace"),
+    L(LGD, "rescue_hyps", "counter_trace"),
+    L(LGD, "real_ok", "non_vacuity", note="SLOW corner, N=12, low phase 900 ps (stage-1 slack 0): every hypothesis of both iff theorems holds; Flushed and NoEarly for every map"),
+    L(LGD, "real_rises", "non_vacuity", note="slow corner: z out at 623, falls at 624, rises at 6180"),
+    L(LGD, "real_bad", "counter_trace", note="899 ps (GF 1 short by 1 ps): z high at 4499 < 5119 = T + Llo 12, new-token response low (stale pulse, early by 620 ps)"),
+    L(LGD, "fresh_late", "relation", note="the new token's response is never early"),
+    L(LGD, "line_unique", "relation", note="every trace of the per-pin line is run"),
+    L(LGD, "Flushed", "definition", note="spec: no stale pulse after the fast-fall point"),
+    L(LGD, "NoEarly", "definition", note="spec: no request before the full matched length"),
+    L(LGD, "GF", "definition", note="H_GFLUSH i, = this row's inequality"),
+] + e["lean"]
+e["exactness"] = "exact"
+e["exact_under"] = ["H_BAL_HI", "H_LO_ORDER", "H_START", "H_SHORT (NoEarly only)"]
+e["exactness_note"] = (
+    "Bdg (formal/notes/B-lib-gap-delay.md): exact (iff) over the per-pin delay box (H_PIN_READ, read maps need not be monotone), "
+    "for both specs, ONLY under four per-route side conditions (field exact_under) that delimit where per-stage necessity holds; outside them the row is sufficient only "
+    "(flush_of_gflush / no_early_of_gflush need no side condition). "
+    "H_BAL_HI (stages k+1 < N: Vd(k+1) <= Vd k + (p k).hi, i.e. (q 1).hi <= r0.hi + r1.hi + (p 1).hi and (q k).hi <= (q(k-1)).hi + (p k).hi), "
+    "H_LO_ORDER ((q k).lo <= (q i).lo + sum_{j=i+1..k} (p j).lo for i < k), H_START (F + (q(N-1)).hi <= T + (q i).lo + sum_{j>i} (p j).lo), "
+    "and for NoEarly H_SHORT ((q i).lo < Llo(i+1)). Necessity is FALSE without H_LO_ORDER (rescue_*: a slow later tap "
+    "covers the hole). Necessity uses independent per-pin corners (box); under a correlated corner model it is the box corner, always sound "
+    "for sufficiency. Supersedes GcdCells/ConstraintsFastFall's sufficient forms for this obligation. Not covered: glitch-freedom of the "
+    "new token's rising edge itself under non-monotone maps (FIFO: GcdCells.rises), the data bundled (rule A), the gate waveform (H_GATE_PULSE), "
+    "and mid-rail X inside the LUT2 mux (H_KLEENE_LUT), hence strict_pending stays.")
+e["evidence"] = e["evidence"] + "; LibGapDelay real_*: illustrative SLOW-corner numbers (LUT arc prjxray 100..124, wires assumed), no route measured"
+e["status"] = "proved"
+
+# --------------------------------------------------------------- probe Bj: strict own-feedback race (Bs, B-celem-strict.md, CElemStrict.lean)
+CS = "Cells/CElemStrict"
+STRICT_EXACT = [L(CS, "env_latency_iff", "exact", note="per-pin Kleene mux-tree model (H_TREE, H_MUX_KLEENE, H_FB_PURE): clean <-> dlmax + dwmax + wa <= dlmin + E, wa = X window of the departing select"),
+                L(CS, "env_latency_strict", "exact", note="wa = 1 tick (the grid minimum): clean <-> dlmax + dwmax < dlmin + E"),
+                L(CS, "box_iff", "exact", note="over the delay box D in [Dlo, Dhi]: safe for all <-> tb + Dhi + wb <= slo (slo = release X start)"),
+                L(CS, "clean_iff", "exact"),
+                L(CS, "env_latency_atomic", "context", note="wa = 0 (instantaneous selects, H_ATOMIC_LUT): the old '<=' form; the cited <= theorems are proved in that model and stay sufficient for the strict form")]
+STRICT_C2 = STRICT_EXACT + [L(CS, "c2_all", "instance", note="the Facts hold on the real bd_c2 INIT, all 8 cycles"),
+                            L(CS, "boundary_x", "counter_trace", note="at equality (D = 420): bd_c2 reads 1 at tick 419 and X at tick 420"),
+                            L(CS, "binary_glitch", "counter_trace", note="release before the feedback moved: full binary glitch back to 0"),
+                            L(CS, "strict_clean", "non_vacuity", note="the strict side is clean")]
+STRICT_C2N = STRICT_EXACT + [L(CS, "c2n_c8g", "instance", note="the Facts hold on bd_c2n for C-8g's transition (1,0,0)->(1,1,1) only"),
+                             L(CS, "boundary_x_c2n", "counter_trace", note="X at equality on C-8g's transition"),
+                             L(CS, "strict_clean", "non_vacuity")]
+STRICT_LATCH = STRICT_EXACT + [L(CS, "latch_facts", "instance", note="the Facts hold on the bd_latch odd bit (data edge while en = 1, then the en fall); pair O5/O6 are the same mux (Latch.pair_o5_kleene / pair_o6_kleene)")]
+STRICT_MECH = [L(CS, "clean_iff", "exact", note="generic theorem (any Facts); the Facts for this cell/race are NOT decided: strict by the same mechanism"),
+               L(CS, "env_latency_strict", "exact", note="generic"), L(CS, "box_iff", "exact", note="generic"), L(CS, "boundary_x", "counter_trace", note="bd_c2 instance of the mechanism")]
+STRICT_INST = [L(CS, "env_latency_strict", "exact", note="for the bd_c2 / bd_c2n own-feedback race inside this entry; the composed entry's exactness is unchanged"),
+               L(CS, "box_iff", "exact", note="same race"), L(CS, "c2_all", "instance"), L(CS, "boundary_x", "counter_trace", note="the race at equality reads X")]
+
+def strict(i, refs, forms=None, ineq=None, backing=None, what=None):
+    """L <= R becomes L + 1 <= R on the given forms (default all); held widths become >= Dmax + 1."""
+    e = BYID[i]
+    idx = list(range(len(e["forms"]))) if forms is None else forms
+    for k in idx:
+        e["forms"][k]["margin_ps"] += 1
+    if ineq is None:
+        ineq = e["inequality"].replace(" <= ", " + 1 <= ").replace(">= dlmax + dwmax", ">= dlmax + dwmax + 1")
+    e["inequality"] = ineq
+    e["lean"] = e["lean"] + refs
+    e["strict"] = {"source": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean)", "backing": backing, "forms": idx,
+                   "terms": what or "every form", "margin_added_ps": 1}
+    e["exactness_note"] = (e.get("exactness_note", "") + " STRICT (Bs): own-feedback race, L <= R is now L + 1 <= R (margin_ps + 1 on forms " + str(idx) + (", " + what if what else "") +
+                           "); the cited '<=' theorems are proved with instantaneous selects (H_ATOMIC_LUT / zero-width windows) and stay sufficient for the strict form. See conventions.strictness.").strip()
+
+for c in ("bd_c2", "bd_c2n"):
+    R = STRICT_C2 if c == "bd_c2" else STRICT_C2N
+    b = "c2_all" if c == "bd_c2" else "c2n_c8g"
+    strict(f"{c}.env_latency", R, backing=b)
+    strict(f"{c}.sel_order", R, backing=b)
+    strict(f"{c}.pulse_width", R, backing=b, what="held width >= Dmax + 1")
+for c in ("bd_c2", "bd_c2n", "bd_c3", "bd_c4"):
+    strict(f"{c}.reset_width", STRICT_MECH, backing="mechanism (Facts not decided)", what="rst held >= Dmax + 1")
+for c in ("bd_c3", "bd_c4"):
+    for o in ("env_latency", "sel_order"):
+        strict(f"{c}.{o}", STRICT_MECH, backing="mechanism (Facts not decided)")
+    strict(f"{c}.pulse_width", STRICT_MECH, backing="mechanism (Facts not decided)", what="held width >= Dmax + 1")
+strict("design.rst_hold", STRICT_MECH, backing="mechanism (Facts not decided)")
+for key in ("bd_latch[odd]", "bd_latch[pair.O5]", "bd_latch[pair.O6]", "bd_latch_rst"):
+    strict(f"{key}.setup_data", STRICT_LATCH, backing="latch_facts")
+    strict(f"{key}.setup_pulse", STRICT_LATCH, backing="latch_facts")
+strict("bd_latch_rst.reset", STRICT_LATCH, forms=[0], backing="latch_facts", what="first part H_RST_PW only",
+       ineq="R0 + rhi + fhi + 1 <= R1 + rlo (rst high on [R0, R1) at the driver; rhi/rlo = rst wire + SP[I3] + I3 arc); E0 + ehi <= R1 + rlo (enable low from E0); Rl + rhi <= max(Ton + ehi, Td + dhi) for the first capture (H_RST_DONE of capture_rst)")
+strict("bd_ctree.node_fork", STRICT_INST, backing="c2_all (bd_c3/bd_c4 nodes: mechanism)")
+strict("bd_pipe.sel_order", STRICT_INST, backing="c2n_c8g / c2_all", what="both halves")
+strict("bd_pipe.lat_lumped", STRICT_INST, backing="c2n_c8g / c2_all")
+strict("bd_pipe.rst_lines", STRICT_INST, backing="c2n_c8g / c2_all", what="loop terms only (the representative form is the loop term out.hi + wh + pq.hi)",
+       ineq="L_i.hi + wh_i + 1 <= R; L(b-1).hi + Rq_b.hi <= R; L_b.hi + ahi_b <= R; Ag_b <= R; per pin (6g): R0 + pr.hi <= R + ps.lo; out.hi + wh + pq.hi + 1 <= R + ps.lo; R + ps.hi <= rho0 + pr.lo; R0 + pa.hi <= rho0 + pr.lo (the two loop terms strict, Bs)")
+for i in ("bd_mux.uxa_rtz", "bd_mux.uya_rtz", "bd_mux.uxa_rtz_env", "bd_mux.uya_rtz_env", "bd_mux.uj_env_latency_req", "bd_mux.uj_env_latency_ctl"):
+    strict(i, STRICT_INST, backing="c2_all")
+strict("bd_mux.isochronic_forks", STRICT_INST, backing="c2_all", what="both")
+strict("bd_mux.uxa_join_latency", STRICT_INST, backing="c2_all", what="both, uxa and uya",
+       ineq="W0x.hi + Lxa.hi + wxah + 1 <= Kz + Kc + W0x.lo and W0x.hi + Lxa.hi + wxah + 1 <= 2 Kz + Kc + Wzx.lo (uya: W1y, Lya, wyah, Wzy)")
+strict("bd_mux.reset_first", STRICT_INST, forms=[0], backing="c2_all", what="loop terms (H_RST_LONG) only",
+       ineq="Lj*.hi + wj*h + 1 <= R, Lxa.hi + wxah + 1 <= R, Lya.hi + wyah + 1 <= R (loop terms, strict, Bs); Wx.hi, Wy.hi, Wc0.hi, Wc1.hi, Lj*.hi + W0x/W1y.hi, Wzx.hi, Wzy.hi <= R; R <= first edge at each C-element pin (Xp 0, D0 0, Yp 0, D1 0, A0 0, ZA0 0, A1 0, ZA1 0)")
+strict("bd_merge.isochronic_forks", STRICT_INST, forms=[0, 1], backing="c2_all", what="S_XA_FORK and S_YA_FORK; the S_SEL_XA_N part is bundling and stays '<='",
+       ineq="Wzx.hi + Lxa.hi + wxah + 1 <= Ka + Wxc.lo; Wzy.hi + Lya.hi + wyah + 1 <= Ka + Wyc.lo; hq + sh + Mz <= Wxa.lo + Eo + Wyo.lo + Lor.lo + Dz.lo (S_SEL_XA_N, node-launched; replaces S_SEL_XA_Z and S_SEL_XA_R)")
+strict("bd_merge.uxa_feedback", STRICT_INST, backing="c2_all", what="both")
+strict("bd_merge.uxa_req_latency", STRICT_INST, backing="c2_all", what="both, uxa and uya",
+       ineq="Wxc.hi + Lxa.hi + wxah + 1 <= Kz + Ka + Wxc.lo and Wxc.hi + Lxa.hi + wxah + 1 <= 2 Kz + Ka + Wzx.lo (uya: Wyc, Lya, wyah, Wzy)")
+strict("bd_merge.reset_first", STRICT_INST, forms=[0], backing="c2_all", what="loop terms (H_RST_LONG) only",
+       ineq="Lxa.hi + wxah + 1 <= R, Lya.hi + wyah + 1 <= R (loop terms, strict, Bs); Wxc.hi, Wyc.hi, Wzx.hi, Wzy.hi <= R; R <= AX 0, ZA0 0, AY 0, ZA1 0")
+for i in ("bdc_muxn.rtz", "bdc_muxn.iso_ctl", "bdc_muxn.uj_env_latency_req"):
+    strict(i, STRICT_INST, backing="c2_all")
+strict("bdc_muxn.iso_zack", STRICT_INST, backing="c2_all", what="all three",
+       ineq="Wza(i).hi + La(i).hi + wah(i) + 1 <= Kc + Wja(i).lo; Wja(i).hi + La(i).hi + wah(i) + 1 <= Kz + Kc + Wja(i).lo and Wja(i).hi + La(i).hi + wah(i) + 1 <= 2 Kz + Kc + Wza(i).lo")
+for i in ("bd_arbiter.rt2_pulse", "bd_arbiter.rt2_g1", "bd_arbiter.rt2b_pulse2", "bd_arbiter.rt2b_g2",
+          "bdc_amerge3.rt2_cascade_pulse", "bdc_amerge3.rt2_cascade_g1", "bdc_amerge3.rt2_cascade_pulse2", "bdc_amerge3.rt2_cascade_g2"):
+    strict(i, STRICT_INST, backing="c2_all", what="the ua_k C-element's loop against the A0 re-rise")
+more("bd_arbiter.ack_celements", note="STRICT (Bs): inherits the strict bd_c2 entries it refers to.")
+for i in ("bd_mlink.qfb_first", "bd_flink.qfb_first"):
+    strict(i, STRICT_LATCH, backing="latch_facts (uq is a latch-shaped LUT3 loop)",
+           ineq=BYID[i]["inequality"].replace("fhi <= wlo + elo:", "fhi + 1 <= wlo + elo:").replace("+ fhi <= Tq + wlo + elo", "+ fhi + 1 <= Tq + wlo + elo"))
+    BYID[i]["exactness_note"] += " P3's relaxation to '<=' (qfb_clean: equality is clean) holds only with zero-width selects; in the per-pin Kleene model equality reads X, so the margin is 1 again (the pre-P3 strict form)."
+# branch_data is bd_latch.setup_data with the launch at the producer: strict for the same reason (latch_facts); not in Bs's list (the entry is new)
+strict("bd_fork.branch_data", STRICT_LATCH, backing="latch_facts (it is bd_latch.setup_data launched at the producer)", what="H_FORK_DATA_W and H_FORK_PULSE; H_FORK_HOLD is input-against-input and stays '<='",
+       ineq="Td + dhi + fhi + 1 <= Tr + rlo + wlo + elo; side conditions H_FORK_PULSE ehi + fhi + 1 <= wlo + elo (= bd_latch.setup_pulse) and H_FORK_HOLD ehi <= alo + dlo (= bd_latch.hold with the fork C-tree on the ack path; input-against-input, not made strict)")
+strict("bd_fork.branch_data_edge", STRICT_LATCH, backing="latch_facts")
+for i, why in (("bd_link_dctl.lt_first", "already strict (R - 1)"), ("bd_arbcell.req_separation", "already strict ('>')"),
+               ("bd_link_dc.rule_K_corrected", "strict when guard >= 1"), ("bd_link_dc.rule_L_corrected", "strict when guard >= 1")):
+    BYID[i]["strict"] = {"source": "Bs (formal/notes/B-celem-strict.md)", "status": why, "margin_added_ps": 0}
+# input-against-input orders: NOT made strict; need their own check (B-celem-strict.md)
+PEND = ("input-against-input order (B-celem-strict.md): at equality the same X-window mechanism applies whenever the function is not constant across the two "
+        "moving selects; NOT made strict here, needs its own check before it is")
+for i in ("bd_latch[odd].hold", "bd_latch[pair.O5].hold", "bd_latch[pair.O6].hold", "bd_latch_rst.hold",
+          "bd_steer.bundled_s_hold", "bd_mux.bundled_s_hold",
+          "bd_delay[FASTFALL].flush_uniform", "bd_delay[FASTFALL].flush_per_stage", "bd_delay[FASTRISE].ack_flush", "bd_delay_gated.gate",
+          "bd_arbiter.a0_fork_client1", "bd_arbiter.a0_fork_client2",
+          "bd_arbiter.rt2_forkA", "bd_arbiter.rt2_forkG", "bd_arbiter.rt2b_forkA2", "bd_arbiter.rt2b_forkG2",
+          "bdc_amerge3.rt2_cascade_forkA", "bdc_amerge3.rt2_cascade_forkG", "bdc_amerge3.rt2_cascade_forkA2", "bdc_amerge3.rt2_cascade_forkG2"):
+    BYID[i]["strict_pending"] = PEND + ("; Latch.ct2_hold_violation_x already shows the X" if ".hold" in i and "latch" in i else "")
+
 # =============================================================== global hypotheses (not inequalities)
 HYP = [
     {"id": "H_LUT_FIFO / H_PIN_FIFO / H_TREE_FIFO", "catalogue_row": "C4", "cells": ["every handshake LUT"],
@@ -1666,6 +2025,8 @@ doc = {
         "exactness": "sufficient | sufficient+necessary (a counter-trace shows the condition cannot be dropped) | sufficient+necessary_at_boundary/instance (tight on a concrete trace, not a general iff) | exact (iff) | sufficient+necessary_untimed (S/N in an untimed model; the delay inequality is its physical reading) | untimed_schedule | hypothesis (a named assumption the cell theorems use, not derived) | sufficient_by_arithmetic | see_refers_to | partial (status stays 'unproved': a weaker statement than the entry is proved; exactness_note says what is missing) | unproved.",
         "rule_verdicts": "exact | conservative | missing_term (rule weaker; `missing` names the term) | exact_arcs_missing_site_pins | conservative_arcs_missing_site_pins | rule_is_the_check | different_condition | none (no rule checks it) | uncheckable_statically.",
         "check_scope": "static_route (route + prjxray only) | route_plus_env (needs a neighbour or environment latency; static when the neighbour is in the design) | environment | protocol | structural | not_static.",
+        "exact_under": "optional list of named side conditions: the entry's 'exact' holds only under them; outside them it is sufficient only.",
+        "strictness": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean): in the per-pin Kleene mux-tree model (H_TREE, H_MUX_KLEENE: a moving select reads X on [s, s + wa), wa >= 1 tick; H_FB_PURE) the own-feedback race is clean iff dlmax + dwmax + wa <= dlmin + E (env_latency_iff), so with the grid minimum wa = 1 ps every own-feedback race entry reads L + 1 <= R (env_latency_strict; at equality bd_c2 reads X, boundary_x) and every held width >= Dmax + 1. Entries carrying `strict` have margin_ps raised by 1 on the forms it lists; their earlier '<=' theorems are proved with instantaneous selects (wa = 0, env_latency_atomic) and remain sufficient. The 1 ps is the model's minimum, NOT a measured slew: the physical margin is the departing select's X width (with SDF 50% arrival times about half the sum of the two select slews), which nothing here measures. `strict_pending` marks input-against-input orders where the same mechanism may apply but has not been checked; they stay '<='.",
         "guards_in_rules": "tighten.py A, D, F, H, I, K, L add req_guard = max(0.2 t, 200 ps); skew.py (E) and arb_fork.py (J) use 0.772 early / 1.155 late (GUARD_LO/GUARD_HI).",
         "tcheck_mapping": "for one form: node 0 = launch; each path is a chain of 10a arcs [lo, hi] from node 0; data = the end nodes of the data paths; req = one node joined by the request paths' ends (the earliest change of any); setup = margin_ps. tcheck's PASS is then `verdict_sound` (every data change precedes every request change by setup). A shared arc on both sides (same element, as in setup_pulse) is CPPR-pessimistic under FixedRun (C-10a corr)."},
     "cells_pin_maps": {
@@ -1689,5 +2050,23 @@ doc = {
     "constraints": E,
     "hypotheses_not_inequalities": HYP,
 }
+doc["produced_by"] += ". Updated by probe Bj (2026-10-27) from B-celem-strict.md (CElemStrict: own-feedback race entries strict, L + 1 <= R, field `strict`; input-against-input orders marked `strict_pending`), B-lib-gap.md (LibGapSteer: bd_steer select setup/hold exact per pin; bd_fork/bd_join delegation rows) B-fork-data.md (ForkData: bd_fork.branch_data, bd_fork.branch_data_edge, bdc_amerge.idx_bundle; edge-sampling caveat on the amerge index races), B-lib-gap-mux.md (LibGapMux: bd_mux select setup/hold exact per join), B-lib-gap-delay.md (LibGapDelay: bd_delay_gated.gate exact under side conditions) and B-rig-idx.md (RigIdx: gcd_rig.idx_setup proved exact); no new Lean, no route"
 json.dump(doc, open(OUT, "w"), indent=1)
 print(len(E), "constraints")
+
+# optional: python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md re-renders the md's entry table
+if len(sys.argv) > 2:
+    rows = []
+    for e in E:
+        r = e["rule"]
+        rv = "none" if r["rule"] == "none" else f'{r["rule"]}: {r["verdict"]}'
+        tag = " (strict +1)" if e.get("strict", {}).get("margin_added_ps") else (" (strict pending)" if "strict_pending" in e else "")
+        rows.append(f'| `{e["id"]}` | {e["status"]} | {e["exactness"]}{tag} | {"yes" if e["site_pins"]["needed"] else "no"} | {rv} |')
+    md = open(sys.argv[2]).read().split("\n")
+    h = md.index("| id | status | exactness | site pins | rule: verdict |")
+    st = en = h + 2
+    while en < len(md) and md[en].startswith("| `"):
+        en += 1
+    md[st:en] = rows
+    open(sys.argv[2], "w").write("\n".join(md))
+    print("table:", len(rows), "rows ->", sys.argv[2])

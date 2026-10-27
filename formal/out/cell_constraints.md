@@ -109,7 +109,7 @@ and Rst2 Lean files were committed (`OpsCounter`, `OpsExact`, `MuxN3Timed`,
   for EVERY release skew, so the form matters only for H_NO_RETURN after
   that), `gcd_rig.token_static` (`c2n_frontier`, `gcd_frontier`; replaces
   `H_RST_SEL(c)` at the 10 frontier links), `gcd_rig.idx_setup` (unproved,
-  trivially met). The bd_latch first write has no id of its own: it is the
+  trivially met; proved exact since probe Bj's update, RigIdx). The bd_latch first write has no id of its own: it is the
   phase-0 instance of `bd_latch[*].setup_data`, `bd_pipe.boundary_I` and
   `bd_pipe.data_lead`, which now cite the latch lemmas; its guard half is the
   NRBW hypothesis row. `bd_c*.reset_width` cite the forcing lemmas
@@ -121,6 +121,59 @@ Validator: 123 constraints, 8 hypotheses, 913 Lean references in 58 files,
 0 errors. Negative control (scratch copy): a misspelt name, a name cited from
 the wrong file and a bogus arc kind give 3 errors. Still no route and no
 measurement.
+
+**Update (probe Bj, 2026-10-27).** Re-generated after the Bs, Blt, Bfd, Bmx, Bdg and Bri
+Lean files were committed (`CElemStrict`, `LibGapSteer`, `ForkData`, and then
+`LibGapMux`, `LibGapDelay`, `RigIdx`; notes `B-celem-strict.md`,
+`B-lib-gap.md`, `B-fork-data.md`, `B-lib-gap-mux.md`, `B-lib-gap-delay.md`,
+`B-rig-idx.md`). Details:
+`formal/notes/B-constraints-update.md`.
+- **Strict own-feedback race** (Bs). In the per-pin Kleene mux-tree model a
+  moving select reads X for at least one tick, so the race is clean iff
+  `dlmax + dwmax + wa <= dlmin + E` (`CElemStrict.env_latency_iff`); with
+  `wa = 1` ps every own-feedback entry reads `L + 1 <= R`
+  (`env_latency_strict`; at equality bd_c2 reads X, `boundary_x`). 59 entries
+  carry a new `strict` field and `margin_ps` + 1 on the listed forms (widths
+  held `>= Dmax + 1`). The earlier `<=` theorems stay cited: they are proved
+  with instantaneous selects and remain sufficient. The 1 ps is the grid
+  minimum, not a measured slew (`conventions.strictness`). The
+  `bd_mlink`/`bd_flink.qfb_first` margin is back to 1 (P3's `<=` holds only
+  with zero-width selects). 20 input-against-input entries (latch hold,
+  steer/mux select hold, bd_delay flushes, a0_fork, the rt2 fork fields)
+  carry `strict_pending` instead and stay `<=`.
+- **bd_steer** (Blt): `bundled_s_setup`/`_hold` are now the per-output,
+  per-pin rows of `LibGapSteer` and **exact** (`steer_box_exact`,
+  `steer_pin_exact`; counter-traces `spurious_token`, `late_hold_glitch`).
+- **bd_fork / bd_join** (Blt, Bfd): new `bd_fork.branch_data` (H_FORK_DATA_W,
+  sufficient+necessary, `ForkData.branch_capture`, `fork_data_needed`; rule I
+  missing_term; strict like `bd_latch.setup_data`), `bd_fork.branch_data_edge`
+  (C-8f's form, sufficient only, `edge_form_not_needed`), and the delegation
+  rows `bd_fork.delegated`, `bd_join.delegated` (`see_refers_to`; bd_fork's
+  points at `branch_data` for its data side).
+- **bdc_amerge** (Bfd): new `bdc_amerge.idx_bundle` (the conjunction
+  H_AMERGE_IDX). The per-race `bundled_idx_*`, `idx_ack_fork` and
+  `bdc_amerge3.bundled_idx0_grant` now say that their necessity holds only at
+  an edge-sampling consumer (`necessity_scope`); gcd_hw's index consumers are
+  Muller links, where the exact form is `bd_fork.branch_data`.
+- **bd_mux** (Bmx): `bundled_s_setup`/`_hold` are now per-join, per-pin
+  rows of `LibGapMux` and **exact** (`join_box_exact`, `join_pin_exact`;
+  counter-traces `wrong_branch_latched`, `wrong_branch_runt`,
+  `selected_early_fall`). They no longer list bdc_muxn (other INITs).
+- **bd_delay_gated.gate** (Bdg): **exact** (`LibGapDelay.box_exact_flushed`,
+  `box_exact_no_early`) only under the side conditions in the new field
+  `exact_under` (H_BAL_HI, H_LO_ORDER, H_START; H_SHORT for NoEarly);
+  sufficient alone otherwise. Without H_LO_ORDER necessity is false
+  (`rescue_*`). It keeps `strict_pending`.
+- **gcd_rig.idx_setup** (Bri): now proved and **exact**: H_IDX_SETUP
+  `vhi + su <= 16*Tlo + rlo + dlmin + enlo` (`RigIdx.idx_setup_suff`,
+  `idx_setup_iff`, `cex_rig`, `idx_nonvacuous`). `gcd_rig.token_static` is
+  needed only until F's first rise (`idx_fire`).
+- The validator also checks the `strict` margins, a CElemStrict citation on
+  every strict entry, and that every `refers_to` id exists.
+Validator: 128 constraints, 8 hypotheses, 1295 Lean references in 64 files,
+0 errors. Negative control (scratch copy): a misspelt LibGapSteer name, a
+strict form with margin 0 and an unknown `refers_to` id give 3 errors. Still
+no route and no measurement.
 
 ## What one entry says
 
@@ -147,6 +200,7 @@ measurement.
 - `corner`: `1C` (one prjxray column for both sides, checked at FAST_MIN and at
   SLOW_MAX), `box`, or `1C_both_corners_required`. **Never take rise from FAST
   and fall from SLOW.** prjxray's two triples are corners, not edges.
+- `strict` (Bs): the forms whose `margin_ps` was raised by 1 for the own-feedback race, with the backing Facts lemma; `strict_pending`: an input-against-input order that may need the same +1 but is unchecked.
 - `status`: `proved`, or `unproved` when the inequality is not a Lean
   statement (extrapolated, the physical reading of an untimed result, or no
   theorem at all). A partial result keeps `status: unproved` (the validator
@@ -164,54 +218,54 @@ every request path ends in. `setup` is `margin_ps`. tcheck's PASS is then
 The checker resolves `env` arcs by walking the routed netlist when the
 neighbour is inside the design. Otherwise they are environment hypotheses.
 
-## Entries (123, plus 8 global hypotheses that are not inequalities)
+## Entries (128, plus 8 global hypotheses that are not inequalities)
 
-Counts: 121 proved, 1 partial (`unproved` + `exactness: partial`: `bd_link_dctl.lt_first`), 1 unproved (`gcd_rig.idx_setup`: an EndpointOK form with no composing theorem; trivially met).
+Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 strict pending), 1 partial (`unproved` + `exactness: partial`: `bd_link_dctl.lt_first`), 0 unproved (`gcd_rig.idx_setup` is proved exact since probe Bj's update, RigIdx).
 
 | id | status | exactness | site pins | rule: verdict |
 |---|---|---|---|---|
-| `bd_c2.pulse_width` | proved | exact | yes | none |
-| `bd_c2.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c2.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
-| `bd_c2.reset_width` | proved | sufficient | yes | none |
-| `bd_c2n.pulse_width` | proved | exact | yes | none |
-| `bd_c2n.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c2n.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
-| `bd_c2n.reset_width` | proved | sufficient | yes | none |
-| `bd_c3.pulse_width` | proved | exact | yes | none |
-| `bd_c3.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c3.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
-| `bd_c3.reset_width` | proved | sufficient | yes | none |
-| `bd_c4.pulse_width` | proved | exact | yes | none |
-| `bd_c4.env_latency` | proved | sufficient+necessary | yes | none |
-| `bd_c4.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
-| `bd_c4.reset_width` | proved | sufficient | yes | none |
-| `bd_ctree.node_fork` | proved | sufficient | yes | none |
+| `bd_c2.pulse_width` | proved | exact (strict +1) | yes | none |
+| `bd_c2.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
+| `bd_c2.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
+| `bd_c2.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c2n.pulse_width` | proved | exact (strict +1) | yes | none |
+| `bd_c2n.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
+| `bd_c2n.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
+| `bd_c2n.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c3.pulse_width` | proved | exact (strict +1) | yes | none |
+| `bd_c3.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
+| `bd_c3.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
+| `bd_c3.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_c4.pulse_width` | proved | exact (strict +1) | yes | none |
+| `bd_c4.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
+| `bd_c4.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
+| `bd_c4.reset_width` | proved | sufficient (strict +1) | yes | none |
+| `bd_ctree.node_fork` | proved | sufficient (strict +1) | yes | none |
 | `bd_ctree.ack_wait` | proved | exact | no | none |
-| `bd_latch[odd].setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[odd].setup_pulse` | proved | sufficient | yes | none |
-| `bd_latch[odd].hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch[pair.O5].setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[pair.O5].setup_pulse` | proved | sufficient | yes | none |
-| `bd_latch[pair.O5].hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch[pair.O6].setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch[pair.O6].setup_pulse` | proved | sufficient | yes | none |
-| `bd_latch[pair.O6].hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch_rst.setup_data` | proved | sufficient+necessary_at_boundary | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch_rst.setup_pulse` | proved | sufficient | yes | none |
-| `bd_latch_rst.hold` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_latch_rst.reset` | proved | sufficient | yes | none |
+| `bd_latch[odd].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[odd].setup_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch[odd].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch[pair.O5].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[pair.O5].setup_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch[pair.O5].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch[pair.O6].setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch[pair.O6].setup_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch[pair.O6].hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch_rst.setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
+| `bd_latch_rst.setup_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch_rst.hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
+| `bd_latch_rst.reset` | proved | sufficient (strict +1) | yes | none |
 | `bd_latch.loop_bound` | proved | hypothesis | yes | none |
 | `bd_delay[sym].pulse_width` | proved | sufficient+necessary_at_boundary | yes | A/B/C/D/E (edge window via SDF): none |
-| `bd_delay[FASTFALL].flush_uniform` | proved | sufficient | yes | F: missing_term |
-| `bd_delay[FASTFALL].flush_per_stage` | proved | sufficient | yes | F: missing_term |
-| `bd_delay[FASTRISE].ack_flush` | proved | sufficient | yes | none |
-| `bd_delay_gated.gate` | proved | sufficient | yes | F: missing_term |
-| `bd_pipe.sel_order` | proved | sufficient+necessary_at_instance | yes | none |
-| `bd_pipe.lat_lumped` | proved | sufficient | no | none |
+| `bd_delay[FASTFALL].flush_uniform` | proved | sufficient (strict pending) | yes | F: missing_term |
+| `bd_delay[FASTFALL].flush_per_stage` | proved | sufficient (strict pending) | yes | F: missing_term |
+| `bd_delay[FASTRISE].ack_flush` | proved | sufficient (strict pending) | yes | none |
+| `bd_delay_gated.gate` | proved | exact (strict pending) | yes | F: missing_term |
+| `bd_pipe.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
+| `bd_pipe.lat_lumped` | proved | sufficient (strict +1) | no | none |
 | `bd_pipe.boundary_I` | proved | sufficient | yes | I: missing_term |
 | `bd_pipe.boundary_H` | proved | sufficient | yes | H: conservative_arcs_missing_site_pins |
-| `bd_pipe.rst_lines` | proved | sufficient | yes | none |
+| `bd_pipe.rst_lines` | proved | sufficient (strict +1) | yes | none |
 | `bd_pipe.data_lead` | proved | sufficient | yes | A: conservative |
 | `bd_pipe.output` | proved | sufficient | no | consumer's own rule (I at the next stage; B/D/E at an edge-sampling consumer): different_condition |
 | `bd_link_dctl.lt_first` | unproved | partial | yes | none |
@@ -222,77 +276,82 @@ Counts: 121 proved, 1 partial (`unproved` + `exactness: partial`: `bd_link_dctl.
 | `bd_arbcell.handover_overlap` | proved | exact | no | none |
 | `bd_arbcell.bbm` | proved | sufficient | no | none |
 | `bd_arbcell.settled_exclusion` | proved | exact | no | none |
-| `bd_arbiter.a0_fork_client2` | proved | exact | yes | J: exact_arcs_missing_site_pins |
-| `bd_arbiter.a0_fork_client1` | proved | exact | yes | J: exact_arcs_missing_site_pins |
+| `bd_arbiter.a0_fork_client2` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
+| `bd_arbiter.a0_fork_client1` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
 | `bd_arbiter.rt1` | proved | exact | yes | none |
 | `bd_arbiter.rt1b` | proved | exact | yes | none |
-| `bd_arbiter.rt2_pulse` | proved | sufficient+necessary_matched_fork | yes | none |
-| `bd_arbiter.rt2_g1` | proved | sufficient | yes | none |
-| `bd_arbiter.rt2_forkA` | proved | sufficient | yes | none |
-| `bd_arbiter.rt2_forkG` | proved | sufficient | yes | none |
-| `bd_arbiter.rt2b_pulse2` | proved | sufficient+necessary_matched_fork | yes | none |
-| `bd_arbiter.rt2b_g2` | proved | sufficient | yes | none |
-| `bd_arbiter.rt2b_forkA2` | proved | sufficient | yes | none |
-| `bd_arbiter.rt2b_forkG2` | proved | sufficient | yes | none |
+| `bd_arbiter.rt2_pulse` | proved | sufficient+necessary_matched_fork (strict +1) | yes | none |
+| `bd_arbiter.rt2_g1` | proved | sufficient (strict +1) | yes | none |
+| `bd_arbiter.rt2_forkA` | proved | sufficient (strict pending) | yes | none |
+| `bd_arbiter.rt2_forkG` | proved | sufficient (strict pending) | yes | none |
+| `bd_arbiter.rt2b_pulse2` | proved | sufficient+necessary_matched_fork (strict +1) | yes | none |
+| `bd_arbiter.rt2b_g2` | proved | sufficient (strict +1) | yes | none |
+| `bd_arbiter.rt2b_forkA2` | proved | sufficient (strict pending) | yes | none |
+| `bd_arbiter.rt2b_forkG2` | proved | sufficient (strict pending) | yes | none |
 | `bd_arbiter.server_min` | proved | hypothesis | no | none |
 | `bd_arbiter.alternation` | proved | sufficient+necessary | no | none |
 | `bd_arbiter.ack_celements` | proved | see_refers_to | yes | none |
-| `bd_mux.uxa_rtz` | proved | exact | yes | none |
-| `bd_mux.uxa_rtz_env` | proved | sufficient | yes | none |
-| `bd_mux.uya_rtz` | proved | exact | yes | none |
-| `bd_mux.uya_rtz_env` | proved | sufficient | yes | none |
-| `bd_mux.bundled_s_setup` | proved | sufficient | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
-| `bd_mux.bundled_s_hold` | proved | sufficient | yes | none |
+| `bd_mux.uxa_rtz` | proved | exact (strict +1) | yes | none |
+| `bd_mux.uxa_rtz_env` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uya_rtz` | proved | exact (strict +1) | yes | none |
+| `bd_mux.uya_rtz_env` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.bundled_s_setup` | proved | exact | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
+| `bd_mux.bundled_s_hold` | proved | exact (strict pending) | yes | none |
 | `bd_mux.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
-| `bd_mux.isochronic_forks` | proved | sufficient | yes | none |
-| `bd_mux.uj_env_latency_req` | proved | sufficient | yes | none |
-| `bd_mux.uj_env_latency_ctl` | proved | sufficient | yes | none |
-| `bd_mux.uxa_join_latency` | proved | sufficient | yes | none |
-| `bd_mux.reset_first` | proved | sufficient | no | none |
+| `bd_mux.isochronic_forks` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uj_env_latency_req` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uj_env_latency_ctl` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uxa_join_latency` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.reset_first` | proved | sufficient (strict +1) | no | none |
 | `bd_mux.bundled_z_s` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 | `bd_mux.bundled_z_data` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
-| `bd_steer.bundled_s_setup` | proved | sufficient | yes | E (skew.py): exact_structure_missing_site_pins |
-| `bd_steer.bundled_s_hold` | proved | sufficient | yes | none |
+| `bd_steer.bundled_s_setup` | proved | exact | yes | E (skew.py): exact_structure_missing_site_pins |
+| `bd_steer.bundled_s_hold` | proved | exact (strict pending) | yes | none |
 | `bd_merge.seq` | proved | sufficient+necessary | no | none |
 | `bd_merge.bundled_z` | proved | sufficient+necessary_at_boundary | yes | A: rule_is_the_check |
 | `bd_merge.bundled_z_data` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
-| `bd_merge.isochronic_forks` | proved | sufficient+necessary_at_boundary | yes | none |
-| `bd_merge.uxa_feedback` | proved | sufficient | yes | none |
-| `bd_merge.uxa_req_latency` | proved | sufficient | yes | none |
-| `bd_merge.reset_first` | proved | sufficient | no | none |
+| `bd_merge.isochronic_forks` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_merge.uxa_feedback` | proved | sufficient (strict +1) | yes | none |
+| `bd_merge.uxa_req_latency` | proved | sufficient (strict +1) | yes | none |
+| `bd_merge.reset_first` | proved | sufficient (strict +1) | no | none |
 | `bd_merge.sel_start` | proved | sufficient+necessary_at_boundary | yes | none |
 | `bdc_amerge.bundled_idx_grant` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_amerge.bundled_idx_ack` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_amerge.bundled_idx_ack_g` | proved | sufficient | yes | A: different_condition |
 | `bdc_amerge.bundled_idx_grant_fall` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_amerge.idx_ack_fork` | proved | sufficient+necessary | yes | none |
-| `bdc_amerge3.rt2_cascade_pulse` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_g1` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_forkA` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_forkG` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_pulse2` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_g2` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_forkA2` | proved | sufficient | yes | none |
-| `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_g1` | proved | sufficient (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA` | proved | sufficient (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG` | proved | sufficient (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse2` | proved | sufficient (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_g2` | proved | sufficient (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA2` | proved | sufficient (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient (strict pending) | yes | none |
 | `bdc_amerge3.bundled_idx0_grant` | proved | sufficient+necessary | yes | A: different_condition |
-| `bdc_muxn.rtz` | proved | sufficient+necessary_untimed | yes | none |
+| `bdc_muxn.rtz` | proved | sufficient+necessary_untimed (strict +1) | yes | none |
 | `bdc_muxn.s_setup` | proved | sufficient+necessary_at_boundary | yes | E (skew.py): exact_structure_missing_site_pins |
 | `bdc_muxn.s_hold` | proved | sufficient | yes | none |
-| `bdc_muxn.iso_ctl` | proved | sufficient | yes | none |
-| `bdc_muxn.iso_zack` | proved | sufficient | yes | none |
+| `bdc_muxn.iso_ctl` | proved | sufficient (strict +1) | yes | none |
+| `bdc_muxn.iso_zack` | proved | sufficient (strict +1) | yes | none |
 | `bdc_muxn.bundled_z_data` | proved | sufficient | yes | A: different_condition |
-| `bdc_muxn.uj_env_latency_req` | proved | sufficient | yes | none |
-| `bd_mlink.qfb_first` | proved | sufficient+necessary_at_boundary | yes | none |
-| `bd_flink.qfb_first` | proved | sufficient | yes | none |
+| `bdc_muxn.uj_env_latency_req` | proved | sufficient (strict +1) | yes | none |
+| `bd_mlink.qfb_first` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_flink.qfb_first` | proved | sufficient (strict +1) | yes | none |
 | `bd_mem.setup` | proved | sufficient | yes | B: conservative_partial |
 | `bd_mem.hold` | proved | sufficient | no | none |
 | `bd_mem.rdata_before_ack` | proved | sufficient | yes | C: missing_term |
 | `bd_mem.clk_high_width` | proved | sufficient | no | none |
-| `design.rst_hold` | proved | sufficient | yes | none |
+| `design.rst_hold` | proved | sufficient (strict +1) | yes | none |
 | `design.rst_flush` | proved | sufficient | yes | none |
 | `design.rst_release_skew` | proved | sufficient | yes | none |
 | `gcd_rig.token_static` | proved | sufficient | no | none |
-| `gcd_rig.idx_setup` | unproved | unproved | yes | none |
+| `gcd_rig.idx_setup` | proved | exact | yes | none |
+| `bd_fork.delegated` | proved | see_refers_to | yes | none |
+| `bd_join.delegated` | proved | see_refers_to | yes | none |
+| `bd_fork.branch_data` | proved | sufficient+necessary (strict +1) | yes | I: missing_term |
+| `bd_fork.branch_data_edge` | proved | sufficient (strict +1) | yes | none |
+| `bdc_amerge.idx_bundle` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
 H_TREE_FIFO (C4), metastability with no deadline (C8/R3),
@@ -336,8 +395,9 @@ proved), H_RF_ASYM and H_WIRE_RATIO.
   `qfb_counter`); BRAM clock high width (`MemPort.clk_high_ok`).
 - **partial** (1): dctl `H_LT_FIRST` (`lt_first_window`, LUT level only; its
   link to the untimed schedule `ltFirst` is open).
-- **unproved** (1): `gcd_rig.idx_setup` (a clocked-to-async setup with no
-  composing theorem; trivially met by 16 hk cycles of reset). The five
+- **unproved** (1, now 0): `gcd_rig.idx_setup` (a clocked-to-async setup with no
+  composing theorem; trivially met by 16 hk cycles of reset; proved exact
+  since probe Bj's update, `RigIdx.idx_setup_iff`). The five
   `bdc_muxn` entries that were unproved after P5 (SI filter only) are proved
   sufficient by MuxN3Timed since P6. The four entries that were unproved
   before P5 (mux and merge isochronic forks, bd_steer select setup and hold)
