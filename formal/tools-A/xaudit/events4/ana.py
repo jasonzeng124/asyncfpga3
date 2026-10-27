@@ -27,7 +27,7 @@ import json
 import sys
 from model import Model, Pin
 
-DEPTH = 14
+DEPTH = 24
 
 
 class Ana:
@@ -46,7 +46,7 @@ class Ana:
 
     # -- reset values / tokens
     def v(self, x):
-        return self.N[x]["v"]
+        return self.N[x]["v"] if x in self.N else 0
 
     def off(self, j, p):
         return int((self.v(p.src) ^ p.inv ^ p.pol) != self.v(j))
@@ -124,6 +124,13 @@ class Ana:
 
     # -- walk search: maximise d of a walk from `a` upstream to `goal`
     def walk(self, a, goal, budget, ctx=None, closed=False):
+        r1 = self.walk1(a, goal, budget, ctx, closed, False)
+        r2 = self.walk1(a, goal, budget, ctx, closed, True)
+        if r1 is None or (r2 is not None and r2[0] > r1[0]):
+            return r2
+        return r1
+
+    def walk1(self, a, goal, budget, ctx, closed, rev):
         best = [None]
         bestat = {}
 
@@ -144,7 +151,7 @@ class Ana:
                 return
             F = nd["F"][0]
             if nd["kind"] == "cel":
-                for p in nd["pins"]:
+                for p in (nd["pins"][::-1] if rev else nd["pins"]):
                     o = self.off(x, p)
                     if tok + o > budget:
                         continue
@@ -311,6 +318,16 @@ def main():
         print(f"    {m}")
     Ws = [w for w in r["W"].values() if w is not None]
     print(f"  per-window bound W (ps): min {min(Ws)}, median {sorted(Ws)[len(Ws)//2]}, none {sum(1 for w in r['W'].values() if w is None)}")
+    nb = len(neg) + len(nn)
+    ng = sum(1 for e in g if (e["entry"] is None or e["entry"] < 0 or e["exit"] is None or e["exit"] < 0))
+    nm = len(bad)
+    nx = sum(1 for m in mg if not m["ok"])
+    ok = nb == 0 and ng == 0 and nm == 0 and nx == 0
+    print(f"VERDICT [{a.label}]: " + ("ALL CONDITIONS MET" if ok else
+          f"NOT MET: Back {nb}, guard {ng}, delay-line contiguity {nm}, merge exclusivity {nx}") +
+          " | hypotheses: SelOK (select bundled, E6), H_ARB (arbiter = virtual mux core), "
+          "guard entry/exit and contiguity rules NOT yet proved in Lean (A-events4 notes)")
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":

@@ -72,6 +72,8 @@ class Model:
         Returns ('tap', src, inv, filt, band) | ('multi', op, src, inv, [bands]) | ('sel', net)."""
         n, s = self.n, self.s
         if net not in n.drv:
+            if str(n.inputs.get(net, "")).startswith("sel_"):
+                return ("sel", net)  # a cut select input of the skeleton
             raise Unrec(f"net {net} has no driver (free input {n.inputs.get(net)})")
         cn = n.drv[net]
         if cn in s.kind:
