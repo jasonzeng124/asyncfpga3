@@ -38,7 +38,9 @@
   formal/notes/C-gcd_hw-hypotheses.md. `gcd_hw_circuit_safe` (8m): every run of the concrete 465-channel
   network latches only Nat.gcd a b on out0 under H_CELLS, H_BUNDLE and
   H_CM_FORCED, now reduced to H_CUT (8q: req-rise counting; arbiters see
-  no free contention under it); discharging H_CUT: 8r. Liveness: pipelines and single
+  no free contention under it); H_CUT and H_CM_FORCED proved (8r) from H_START_ONCE
+  (start offered once per result; a free-running start source breaks it)
+  and H_WALK (token-run property, 32 vectors; proof: 8s). Liveness: pipelines and single
   rings proved with linear bounds (8n, 8o); gcd_hw liveness needs the
   arbiters to be uncontended (no bounded arbitration time on this fabric). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
@@ -317,3 +319,9 @@ probe. (Files claimed since then were each compiled on commit.)
 8q committed: H_CM_FORCED -> H_CUT; gcd_hw_protocol needs no forcing
 assumption; no free arbiter contention under H_CUT. Launched 8r (discharge
 H_CUT via the single control-spine token).
+
+### progress 08:58
+8r committed: gcd_hw_circuit_safe'' needs only H_CELLS, H_BUNDLE,
+H_START_ONCE, H_WALK. Finding: a free-running start source violates H_CUT
+(argued with a=12, b=18), so the env must offer start once per result.
+Launched 8s (prove H_WALK; model the rig's env ring for H_START_ONCE).
