@@ -63,11 +63,12 @@ def main():
     # ---- the netlist
     if a.mode == "ref":
         shutil.copy2(pnr / "soak_routed.json", work / "routed.json")
-        shutil.copy2(pnr / "soak.sdf", work / "routed.sdf")
+        shutil.copy2(os.environ.get("GLS_SDF") or pnr / "soak.sdf", work / "routed.sdf")
     else:
         src = ["--bit", str(a.bit)] if a.mode == "bit" else ["--fasm", str(a.fasm or pnr / "soak.fasm")]
         rc, out = run([sys.executable, str(HERE / "fasm2net.py"), *src, "--out", str(work / "fid"),
-                       "--names", str(pnr / "soak_routed.json"), "--sdf", str(pnr / "soak.sdf"), "--allow"],
+                       "--names", str(pnr / "soak_routed.json"),
+                       "--sdf", os.environ.get("GLS_SDF") or str(pnr / "soak.sdf"), "--allow"],
                       work / "fasm2net.log")
         rep = (work / "fid/report.txt").read_text() if (work / "fid/report.txt").exists() else out
         refused = [l.strip() for l in rep.splitlines() if re.match(r"\s+\d+\s+(REFUSED|CONTENTION|FLOATING)", l)]
@@ -162,7 +163,9 @@ def main():
                             rf"bd_source #(.W(\1), .SETUP({lead})) {arg}_src(", tb)
         (work / f"tb_{kind}.v").write_text(tb)
         sim = work / f"sim_{kind}.vvp"
-        rc, _ = run(["iverilog", "-g2012", "-gspecify", "-DGLS_TRANSPORT_IC", "-s", "tb", "-o", str(sim),
+        # GLS_MODEL=fid / GLS_SDF: the same opt-ins as gls/build.sh (full board-fidelity stack)
+        fid = ["-DGLS_FID", "-I%s" % GLS] if os.environ.get("GLS_MODEL") == "fid" else []
+        rc, _ = run(["iverilog", "-g2012", "-gspecify", "-DGLS_TRANSPORT_IC", *fid, "-s", "tb", "-o", str(sim),
                      str(GLS / "prims.v"), str(CELLS / "sim/bd_env.v"), str(work / "netlist_baked.v"),
                      str(work / f"tb_{kind}.v")], work / f"compile_{kind}.log")
         if rc:

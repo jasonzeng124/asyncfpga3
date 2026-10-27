@@ -1308,3 +1308,22 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - August-shaped route rebuilt: BDC_OP_FUSION=0 BD_NO_TIGHTEN=1 BD_RLOC=v4 (sdf c647eb1a); the pad-converge recipe does
   not converge on it (ulink_n32__2 measured short again after padding), so SELECT_PAD=4 as F4 recorded.
   lut_pinmap control: NOT EQUIVALENT (LUT FUNCTION DIFFERS). Full stack on good vs bug bitstream queued -- the hard test.
+### progress 11:20 (fast corner, rule F re-check, rings, DSP controls under the full stack)
+- **BQ#3 full stack at FAST_MIN: 16/16, errs=0** (laps vec 6 91, vec 12 75, vec 13 108; ~2.75x the SLOW_MAX laps).
+  With SLOW_MAX (above) that is both consistent prjxray corners passing on the netlist decoded from the bits. Answers
+  the audit's tcheck row 40 in part: the -36 ps on ushrsi1 needs req at FAST_MIN and data at FAST_MAX at once
+  (Vivado's OCV box, ~24% spread inside one corner); no single corner fails, and within-die variation is being
+  injected as measured-size scatter instead (queued: region 0.16 + wire 0.126 at min/max/band, and a 2x tail).
+  Whether the OCV box or the measured ring scatter is the right size for within-die spread is open: the ring scatter
+  (8.5% median) is the only silicon datum and it bounds within-die spread from above for long rings.
+- **Rule F re-run with the in-flight fix** on today's BQ#3 route: 65 fast-fall lines, worst +888 ps
+  (ucontrol_merge12.udly) -- the same number as before the fix, so BQ#3's figure stands. BQ#1: 29 lines, worst +1343.
+  research/data/fid/bq3_tighten_today.log.gz.
+- **Rings after the OUTMUX fix** (research/data/fid/rings_outmux.md, today's ro_top route, across routes = soft):
+  all 10 measured periods lie inside [FAST_MIN, SLOW_MAX]; band position 0.36/0.37 at 127 links on both August
+  routes, 0.25-0.58 on short rings. Unchanged by the fix (ro_top's rings route no O5 through an OUTMUX).
+- soak_fid.py takes GLS_SDF and GLS_MODEL=fid too. **ipow T9 seed 29 (BD_DSP=1) full stack at SLOW_MAX, good bits:
+  PASS fast + stalled**, latencies 1.54x nextpnr's SDF. dsp_constpins / dsp_constpins_inv unpatched writers:
+  DETECTED -- but by the decoder REFUSING the configuration (INMODE 11111 etc.), not by simulating the gated product.
+  Graded: hard datum, detection mechanism = refusal (weaker than a simulated wrong answer; same caveat the audit gave
+  dsp_areg). Note: today's fusion_bench defaults fastfall on, so this seed-29 route is not F4's route.
