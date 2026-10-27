@@ -53,6 +53,8 @@ def dij(src, cell, k):
         t, u = heapq.heappop(pq)
         if t > dist.get(u, 1e18):
             continue
+        if len(best) >= 2 and t > sorted(best.values())[1]:
+            break  # two pins settled: enough for "min over pins other than the feedback pin"
         for d, w in edges.get(u, ()):
             x = SDFW[(u, d)] if k is None else W[(u, d)][0][k]
             cd = d.rsplit("/", 1)[0]
@@ -71,7 +73,7 @@ def dij(src, cell, k):
 print("seed\tnode\tfb_pin\tfb_sdf\tfb_prjx(fmin,fmax,smin,smax)\treq_pin_sdf\treq_sdf\treq_fmin\treq_smin\tsdf\tfast\tslow\tfastG\tslowG\tmix\tfb_fallback")
 for o in sorted(stops):
     cell = o.rsplit("/", 1)[0]
-    if only and not any(x in cell for x in only):
+    if ".lat." in cell or (only and not any(x in cell for x in only)):
         continue
     fbs = [(d, w) for d, w in edges.get(o, ()) if d.rsplit("/", 1)[0] == cell]
     if not fbs:
