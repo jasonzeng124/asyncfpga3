@@ -1,0 +1,27 @@
+xevents2pin: /tmp/events2pin/build/ring3_s1.net.json top top: 18 wires, 15 gates; 12 per-pin LUT arcs, 12 site-pin entries
+bands: 1 step = 1 ps; environment answer band [1, 500] steps = [1, 500] ps (lo raised to 1 step)
+3 C-element stages recognised (InitOK on the bd_ce.v layout, logical pin order)
+  stage 0 u0.u/O: 2-input C-element, reset 1, bubbles [I1]; LUT (atomic) [45,56] ps; feedback route [82,91] ps + feedback pin I2 [78,98] ps (site pin [33,42])
+    I0 <- stage 2 through 1 gate(s); route [153,179] ps, pin arc [133,165] ps (site pin [88,109]), token 1
+      BackPin: walk 2.I1, tokens 1; fastest return to O 585 ps vs slowest feedback to O 189 ps: margin 396 ps | atomic Back margin 407 ps (per-pin skew eats 11 ps)
+    I1 <- stage 1 through 1 gate(s); route [74,83] ps, pin arc [216,269] ps (site pin [171,213]), token 0
+      BackPin: walk 1.I1 -> 2.I1, tokens 1; fastest return to O 959 ps vs slowest feedback to O 189 ps: margin 770 ps | atomic Back margin 781 ps (per-pin skew eats 11 ps)
+  stage 1 u1.u/O: 2-input C-element, reset 0, bubbles [I1]; LUT (atomic) [45,56] ps; feedback route [74,83] ps + feedback pin I2 [134,167] ps (site pin [89,111])
+    I0 <- stage 0 through 1 gate(s); route [82,91] ps, pin arc [158,196] ps (site pin [113,140]), token 1
+      BackPin: walk 0.I1, tokens 1; fastest return to O 530 ps vs slowest feedback to O 250 ps: margin 280 ps | atomic Back margin 291 ps (per-pin skew eats 11 ps)
+    I1 <- stage 2 through 1 gate(s); route [153,179] ps, pin arc [217,270] ps (site pin [172,214]), token 1
+      BackPin: walk 2.I1 -> 0.I1, tokens 1; fastest return to O 959 ps vs slowest feedback to O 250 ps: margin 709 ps | atomic Back margin 720 ps (per-pin skew eats 11 ps)
+  stage 2 u2.u/O: 2-input C-element, reset 0, bubbles [I1]; LUT (atomic) [45,56] ps; feedback route [48,57] ps + feedback pin I2 [78,98] ps (site pin [33,42])
+    I0 <- stage 1 through 1 gate(s); route [122,148] ps, pin arc [152,189] ps (site pin [107,133]), token 0
+      BackPin: walk 1.I1, tokens 1; fastest return to O 644 ps vs slowest feedback to O 155 ps: margin 489 ps | atomic Back margin 500 ps (per-pin skew eats 11 ps)
+    I1 <- stage 0 through 1 gate(s); route [82,91] ps, pin arc [217,270] ps (site pin [172,214]), token 0
+      BackPin: walk 0.I1 -> 1.I1, tokens 1; fastest return to O 959 ps vs slowest feedback to O 155 ps: margin 804 ps | atomic Back margin 815 ps (per-pin skew eats 11 ps)
+per-window upper bounds (Events2PinDesign.cycle_le_pin, via `sound_pin`; walk re-checked with walkOK):
+  stage 0: at most 1 event(s) in every window of 959 ps (walk 0.I1 -> 1.I1 -> 2.I1, checked true)
+  stage 1: at most 1 event(s) in every window of 959 ps (walk 1.I1 -> 2.I1 -> 0.I1, checked true)
+  stage 2: at most 1 event(s) in every window of 959 ps (walk 2.I1 -> 0.I1 -> 1.I1, checked true)
+Recog2 on the netlist closed by 0 environment gate(s) (proved-decidable): true
+BackPin (every pin, per-pin arcs, margin >= 0 at 1 step = 1 ps, proved-decidable): true
+OneOK (1-input gates keep their band): true; PinOK (pin arcs >= 1 step): true; BandsOK (no empty pin band): true; EnvOK: true
+summary: 0 pin(s) with BackPin margin <= 0; min BackPin margin 280 ps; min atomic Back margin 291 ps
+VERDICT: CLEAN FOREVER (Events2PinMain.sound_pin, per-pin LUT arcs, no H_ATOMIC_LUT): every per-pin behaviour of the parsed netlist (each LUT pin read through its own warp in its own band, every route in its band, any power-up, reset released once), with every handshake port answered by its stage within [1, 500] ps (HYPOTHESIS: environment = []), has every C-element output = reset value flipped M t j times at every time.

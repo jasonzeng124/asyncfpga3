@@ -1,0 +1,29 @@
+xevents2: /tmp/events2pin/build/ring3_s3.net.json top top: 18 wires, 15 gates
+bands: 1 step = 1 ps; environment answer band [1, 500] steps = [1, 500] ps (lo raised to 1 step)
+3 C-element stages recognised (InitOK on the bd_ce.v layout)
+  stage 0 u0.u/O (wire 7 'u0.q'): 2-input C-element, reset value 1, bubbles on [I1], INIT 0xffb2ffb2ffb2ffb2; LUT [45,124] ps, own feedback [82,262] ps
+    I0 <- stage 2 through 1 gate(s); channel [294,867] ps, token 1
+      Back: walk stage 2.I1; tokens 1 (need <= 1), fastest return 672 ps vs own feedback max 262 ps: margin 410 ps
+    I1 <- stage 1 through 1 gate(s); channel [287,760] ps, token 0
+      Back: walk stage 1.I1 -> stage 2.I1; tokens 1 (need <= 1), fastest return 827 ps vs own feedback max 262 ps: margin 565 ps
+  stage 1 u1.u/O (wire 5 'u0.b'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [45,124] ps, own feedback [353,935] ps
+    I0 <- stage 0 through 1 gate(s); channel [331,899] ps, token 1
+      Back: walk stage 0.I1; tokens 1 (need <= 1), fastest return 663 ps vs own feedback max 935 ps: margin -272 ps
+    I1 <- stage 2 through 1 gate(s); channel [117,312] ps, token 1
+      Back: walk stage 2.I1 -> stage 0.I1; tokens 1 (need <= 1), fastest return 827 ps vs own feedback max 935 ps: margin -108 ps
+  stage 2 u2.u/O (wire 3 'u0.a'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [45,124] ps, own feedback [113,301] ps
+    I0 <- stage 1 through 1 gate(s); channel [358,945] ps, token 0
+      Back: walk stage 1.I1; tokens 1 (need <= 1), fastest return 520 ps vs own feedback max 301 ps: margin 219 ps
+    I1 <- stage 0 through 1 gate(s); channel [333,907] ps, token 0
+      Back: walk stage 0.I1 -> stage 1.I1; tokens 1 (need <= 1), fastest return 827 ps vs own feedback max 301 ps: margin 526 ps
+Recog2 on the netlist closed by 0 environment gate(s) (proved-decidable): true
+BackStrict (every pin, margin >= 1 step = 1 ps, proved-decidable): false
+EnvOK (environment gates are 1-input buffers/inverters): true
+counter graph: 5 simple cycles, 0 token-free
+per-window upper bounds (Events2Time.cycle_le, via `sound`; walk re-checked with walkOK):
+  stage 0: at most 1 event(s) in every window of 872 ps (walk 0.I1 -> 1.I1 -> 2.I1, checked true)
+  stage 1: at most 1 event(s) in every window of 872 ps (walk 1.I1 -> 2.I1 -> 0.I1, checked true)
+  stage 2: at most 1 event(s) in every window of 872 ps (walk 2.I1 -> 0.I1 -> 1.I1, checked true)
+  long-run UPPER rate (Events2Time.rate_upper via `sound`): 872·M t j ≤ 1·t + ρ_j + 872 steps, ρ = [378, 710, 0]: at most 1 event(s) per 872 ps per stage = critical cycle 872.0 ps/token; certificate checked true
+  long-run LOWER rate (liveness, Events2Time.rate_lower via `sound`): 1·t ≤ 2351·M t j + π_j + 1·(T_rst + 1591 + 1069) steps, π = [884, 0, 1915]: at least 1 event(s) per 2351 ps per stage = max cycle ratio 2351.0 ps/token; certificate checked true
+VERDICT: NOT PROVED (a hypothesis of Events2MainStrict.sound_strict fails; a zero race margin counts as a failure; see the margins above). This is not a hazard report: run xaudit for the X-window audit.

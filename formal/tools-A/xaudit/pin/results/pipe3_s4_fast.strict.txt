@@ -1,0 +1,31 @@
+xevents2: /tmp/events2pin/build/pipe3_s4.net.json top top: 62 wires, 55 gates
+bands: 1 step = 1 ps; environment answer band [1, 500] steps = [1, 500] ps (lo raised to 1 step)
+3 C-element stages recognised (InitOK on the bd_ce.v layout)
+  stage 0 u.many.stage[0].u.ctl.u.u/O (wire 10 'u.ack_in'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [45,56] ps, own feedback [169,199] ps
+    I0 <- port req_in (environment: inverting channel from this stage, [1,500] ps); channel [439,1021] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 439 ps vs own feedback max 199 ps: margin 240 ps
+      BOUNDARY: margin = 239 ps (port route vs own feedback) + the environment's minimum answer time (1 ps assumed)
+    I1 <- stage 1 through 1 gate(s); channel [229,266] ps, token 1
+      Back: walk stage 1.I0; tokens 1 (need <= 1), fastest return 900 ps vs own feedback max 199 ps: margin 701 ps
+  stage 1 u.many.stage[1].u.ctl.u.u/O (wire 8 'u.many.a[1]'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [45,56] ps, own feedback [160,190] ps
+    I0 <- stage 0 through 3 gate(s); channel [626,756] ps, token 0
+      Back: walk stage 0.I1; tokens 1 (need <= 1), fastest return 900 ps vs own feedback max 190 ps: margin 710 ps
+    I1 <- stage 2 through 1 gate(s); channel [117,135] ps, token 1
+      Back: walk stage 2.I0; tokens 1 (need <= 1), fastest return 672 ps vs own feedback max 190 ps: margin 482 ps
+  stage 2 u.many.stage[2].u.ctl.u.u/O (wire 28 'u.req_out'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [45,56] ps, own feedback [117,135] ps
+    I0 <- stage 1 through 3 gate(s); channel [510,623] ps, token 0
+      Back: walk stage 1.I1; tokens 1 (need <= 1), fastest return 672 ps vs own feedback max 135 ps: margin 537 ps
+    I1 <- port ack_out (environment: buffering channel from this stage, [1,500] ps); channel [513,1110] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 513 ps vs own feedback max 135 ps: margin 378 ps
+      BOUNDARY: margin = 377 ps (port route vs own feedback) + the environment's minimum answer time (1 ps assumed)
+Recog2 on the netlist closed by 2 environment gate(s) (proved-decidable): true
+BackStrict (every pin, margin >= 1 step = 1 ps, proved-decidable): true
+EnvOK (environment gates are 1-input buffers/inverters): true
+counter graph: 4 simple cycles, 0 token-free
+per-window upper bounds (Events2Time.cycle_le, via `sound`; walk re-checked with walkOK):
+  stage 0: at most 1 event(s) in every window of 945 ps (walk 0.I1 -> 1.I0, checked true)
+  stage 1: at most 1 event(s) in every window of 945 ps (walk 1.I0 -> 0.I1, checked true)
+  stage 2: at most 1 event(s) in every window of 717 ps (walk 2.I0 -> 1.I1, checked true)
+  long-run UPPER rate (Events2Time.rate_upper via `sound`): 945·M t j ≤ 1·t + ρ_j + 945 steps, ρ = [1226, 555, 0]: at most 1 event(s) per 945 ps per stage = critical cycle 945.0 ps/token; certificate checked true
+  long-run LOWER rate (liveness, Events2Time.rate_lower via `sound`): 1·t ≤ 1166·M t j + π_j + 1·(T_rst + 699 + 1166) steps, π = [0, 812, 1491]: at least 1 event(s) per 1166 ps per stage = max cycle ratio 1166.0 ps/token; certificate checked true
+VERDICT: CLEAN FOREVER (Events2MainStrict.sound_strict, strict race): every behaviour of the parsed netlist (every delay in the bands, any power-up, reset released once), with every handshake port answered by its stage within [1, 500] ps (HYPOTHESIS: environment = [env:req_in, env:ack_out]), has every C-element output = reset value flipped M t j times at every time: no X, no glitch, for all time. Period bounds above hold for the same M (certificates: upper true, lower true).
