@@ -283,5 +283,13 @@ a standard SDF reader misreads them (A-fidelity).
   skew between the q branches. A2 = C(g2, A0) absorbs it, but bdc/emit.py's
   `won = g2 | ack` drives `index` directly, so index sees the pulse: an
   unchecked bundling margin, not a demonstrated failure.
+- **bd_mux: three obligations the RTL header does not state**
+  (`EnvFast/Mux*.lean`, notes/A-envfast-2.md): return-to-zero (the previous
+  token's x_ack/y_ack fall before the next z_ack rises; shard B's H_MUX_RTZ,
+  found independently); select held until ctl_req's fall has passed the join
+  LUT uj1 (the header says until ctl_ack falls); fork conditions on the z_ack
+  and ctl_req branches. Each is shown necessary. bd_merge with its data mux is
+  sound under exclusivity and the matched delay; an earlier `selFast`
+  obligation is withdrawn (it only bites while the output window is closed).
 - Shard B (7b): the bd_arbiter A0 hold relies on a fork ordering H_A0_FORK
   (A0's fall must reach ua2 before A0 → ustate → q → ugrant → g2 does).
