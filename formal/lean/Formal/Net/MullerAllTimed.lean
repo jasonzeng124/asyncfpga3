@@ -1,8 +1,87 @@
-import Wip.C9c.Main
-import Wip.C9c.GuardL
+import Formal.Net.MullerAll
+import Formal.Net.MullerTimed
+
+/-!
+# Probe 9c: the timed Muller chain for EVERY number of stages
+
+## Problem statement (plain language)
+
+Probe 8g (`MullerTimed.lean`) proved, generically in n, that if a certificate
+`Cert n` holds (enabledness persistence in the rt semantics plus a per-state
+"loop level" check `guardOkB` for the two feedback loops of every stage),
+then every timed trace of the real chain whose delays satisfy `FbBound`
+(H_FB_DELAY: the feedback route's max delay is below the min delay of each
+neighbour loop) is a run of 8c's rt semantics; with 8c's `Good .rt n` this
+gives the four-phase protocol, token order and no glitch in time. 8g closed
+`Cert n` by kernel BFS for n <= 3 only.
+
+**Here `Cert n` is proved for every n >= 1 (`cert_all`)**, and with
+`MullerAll.rt_good` the timed corollaries hold for every n:
+`timedAll_reach`, `timedAll_step_run`, `timedAll_protocol`,
+`timedAll_token_order`, `timedAll_hazard_free`.
+
+Assumptions: exactly 8g's (`Timed n lo hi x`: H_INERTIAL per node,
+H_LUMP for the req path, H_ATOMIC_LUT, H_RESET_CLEAN, H_ENV; and `FbBound`),
+plus `1 ≤ n`. Not covered: the equality case of `FbBound`, corner
+correlation, the data path (see `formal/notes/C-8g-mullertimed.md`).
+
+## Method
+
+`guardOkB n s (k, loop)` only looks at nodes of positions `k+1 .. k+3` and their
+neighbours. For each loop a 5-slot window of positions is used (`wsP`:
+positions `Q-2 .. Q+1` for the pred loop, `wsS`: `Q-1 .. Q+2` for the succ loop,
+`Q = k + 2`, the unused slot a constant sentinel), the loop is translated to
+window offsets (`predL`, `succL`, related by `Rel`), and the window check
+`lguardOk` is done once for every window allowed by `MullerAll.Inv`
+(`chkPredW_v`, `chkSuccW_v`, one `decide +kernel` per value of the middle
+stage, to keep each kernel run small). `guard_glob` is the gluing lemma.
+-/
 
 namespace Formal.Net.MullerAll
 open Formal.Net Formal.Net.Muller Formal.Net.MullerTimed
+
+/-! ## Five-position windows for the loop (guard) certificate of probe 8g -/
+
+def wv (ws : List Nat) (i : Nat) : Nat := ws.getD i 48
+def wexc (ws : List Nat) (off t : Nat) : Bool := lexc .rt (wv ws (off - 1)) (wv ws off) (wv ws (off + 1)) t
+def wen (ws : List Nat) (off t : Nat) : Bool := lenabled .rt (wv ws (off - 1)) (wv ws off) (wv ws (off + 1)) t
+def wfire (ws : List Nat) (off t : Nat) : List Nat := ws.set off (flip (wv ws off) t)
+
+def ldone (ws : List Nat) (z : Nat × Nat × Bool) : Bool := (bt (wv ws z.1) z.2.1 == bt (wv ws 2) 0) == z.2.2
+
+def llevel (ws : List Nat) : List (Nat × Nat × Bool) → Nat
+  | [] => 0
+  | z :: zs => if ldone ws z then llevel ws zs + 1 else 0
+
+def linfl (ws : List Nat) : Bool := bt (wv ws 2) 3 != bt (wv ws 2) 0
+
+def lguardOk (ws : List Nat) (zs : List (Nat × Nat × Bool)) (offs : List Nat) : Bool :=
+  (!wen ws 2 0 || (zs.all (fun z => !wexc ws z.1 z.2.1) && llevel (wfire ws 2 0) zs == 0)) &&
+  (!linfl ws ||
+    ((offs.all fun off => types.all fun t => !valid (wv ws off) t || !wen ws off t ||
+        !linfl (wfire ws off t) || llevel (wfire ws off t) zs == llevel ws zs ||
+        (llevel (wfire ws off t) zs == llevel ws zs + 1 &&
+          (zs[llevel ws zs]?).map (fun z => (z.1, z.2.1)) == some (off, t))) &&
+     (List.range zs.length).all fun j => match zs[j]? with
+        | some z => !wexc ws z.1 z.2.1 || decide (j ≤ llevel ws zs)
+        | none => true))
+
+def predL (ws : List Nat) : List (Nat × Nat × Bool) :=
+  if isSrc (wv ws 1) then [(2, 2, true), (1, 0, false)] else [(2, 2, true), (1, 0, false), (1, 1, false)]
+def succL (ws : List Nat) : List (Nat × Nat × Bool) :=
+  if isSnk (wv ws 3) then [(2, 1, true), (3, 0, true)] else [(2, 1, true), (3, 0, true), (3, 2, true)]
+
+/-- Pred-side loops: window `[Q-2, Q-1, Q, Q+1, -]`, the moving nodes at `Q-1, Q`. -/
+def chkPredW (v2 : Nat) : Bool :=
+  dom.all fun v0 => (adj .rt v0).all fun v1 => !(adj .rt v1).contains v2 ||
+    (adj .rt v2).all fun v3 =>
+      lguardOk [v0, v1, v2, v3, 48] (predL [v0, v1, v2, v3, 48]) [1, 2]
+
+/-- Succ-side loops: window `[-, Q-1, Q, Q+1, Q+2]`, the moving nodes at `Q, Q+1`. -/
+def chkSuccW (v2 : Nat) : Bool :=
+  dom.all fun v1 => !(adj .rt v1).contains v2 ||
+    (adj .rt v2).all fun v3 => (adj .rt v3).all fun v4 =>
+      lguardOk [48, v1, v2, v3, v4] (succL [48, v1, v2, v3, v4]) [2, 3]
 
 /-! ## Local guard check, read as propositions -/
 
@@ -363,5 +442,130 @@ theorem chkSuccW_all : ∀ v, v < 16 → chkSuccW v = true
   | 14, _ => chkSuccW_14
   | 15, _ => chkSuccW_15
   | _ + 16, h => absurd h (by omega)
+
+section Cert
+variable {n : Nat}
+
+theorem mem_guards {g : Nat × List (Nat × Bool)} :
+    g ∈ guards n ↔ ∃ k, k < n ∧ (g = predG k ∨ g = succG n k) := by
+  simp [guards, List.mem_flatMap, List.mem_range]
+
+theorem wsP_eq (s k : Nat) : wsP n s (k + 2) = [V n s k, V n s (k + 1), V n s (k + 2), V n s (k + 3), 48] := by
+  simp [wsP]
+theorem wsS_eq (s k : Nat) :
+    wsS n s (k + 2) = [48, V n s (k + 1), V n s (k + 2), V n s (k + 3), V n s (k + 4)] := by
+  simp [wsS]
+
+theorem guard_all (hn : 1 ≤ n) {s : Nat} (hs : Reach .rt n s) :
+    ∀ g ∈ guards n, guardOkB n s g = true := by
+  have hI := reach_inv hn chkAll_rt hs
+  intro g hg
+  obtain ⟨k, hk, rfl | rfl⟩ := mem_guards.1 hg
+  · have hv : V n s (k + 2) < 16 := by rw [V_st hk]; exact enc4_lt ..
+    have hc := chkPredW_all _ hv
+    unfold chkPredW at hc
+    simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hc
+    have hl : lguardOk (wsP n s (k + 2)) (predL (wsP n s (k + 2))) [1, 2] = true := by
+      rw [wsP_eq]
+      have h1 := hc (V n s k) (V_dom hn) (V n s (k + 1)) (adm_mem.1 (hI k (by omega)))
+      rcases h1 with h1 | h1
+      · have := hI (k + 1) (by omega); simp only [adm] at this; rw [this] at h1; cases h1
+      · exact h1 _ (adm_mem.1 (hI (k + 2) (by omega)))
+    rw [predG_eq]
+    exact guard_glob hn (winP hn (by omega)) hk rfl (rel_pred hn hk s) hl
+  · have hv : V n s (k + 2) < 16 := by rw [V_st hk]; exact enc4_lt ..
+    have hc := chkSuccW_all _ hv
+    unfold chkSuccW at hc
+    simp only [List.all_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hc
+    have hl : lguardOk (wsS n s (k + 2)) (succL (wsS n s (k + 2))) [2, 3] = true := by
+      rw [wsS_eq]
+      rcases hc (V n s (k + 1)) (V_dom hn) with h1 | h1
+      · have := hI (k + 1) (by omega); simp only [adm] at this; rw [this] at h1; cases h1
+      · exact h1 _ (adm_mem.1 (hI (k + 2) (by omega))) _ (adm_mem.1 (hI (k + 3) (by omega)))
+    rw [succG_eq]
+    exact guard_glob hn (winS hn (by omega)) hk rfl (rel_succ hn hk s) hl
+
+theorem wf_all (hn : 1 ≤ n) : ∀ g ∈ guards n,
+    g.1 < n ∧ g.2 ≠ [] ∧ ∀ z ∈ g.2, z.1 < numNodes n ∧ z.1 ≠ c g.1 := by
+  intro g hg
+  obtain ⟨k, hk, rfl | rfl⟩ := mem_guards.1 hg
+  · unfold predG
+    split
+    · subst k; simp [numNodes, w, src, c]; omega
+    · simp [numNodes, w, c, b]; omega
+  · unfold succG
+    split
+    · simp [numNodes, b, snk, c]; omega
+    · simp [numNodes, w, c, b]; omega
+
+theorem cover_all (hn : 1 ≤ n) : ∀ i, i < numNodes n → ∀ k, readerStage n i = some k →
+    ∃ g ∈ guards n, g.1 = k ∧ g.2.getLast?.map Prod.fst = some i := by
+  intro i hi k hk
+  rcases node_cases hi with rfl | rfl | ⟨j, hj, rfl | rfl | rfl | rfl⟩
+  · rw [rs_src] at hk; cases hk
+    exact ⟨predG 0, mem_guards.2 ⟨0, hn, Or.inl rfl⟩, by simp [predG], by simp [predG]⟩
+  · rw [rs_snk] at hk; cases hk
+    refine ⟨succG n (n - 1), mem_guards.2 ⟨n - 1, by omega, Or.inr rfl⟩, ?_, ?_⟩ <;>
+      simp [succG, show n - 1 + 1 = n by omega]
+  · rw [rs_c] at hk; cases hk
+  · rw [rs_b] at hk
+    split at hk
+    · cases hk
+      refine ⟨predG (j + 1), mem_guards.2 ⟨j + 1, by omega, Or.inl rfl⟩, ?_, ?_⟩ <;> simp [predG]
+    · cases hk
+  · rw [rs_w] at hk
+    split at hk
+    · cases hk
+      refine ⟨succG n (j - 1), mem_guards.2 ⟨j - 1, by omega, Or.inr rfl⟩, ?_, ?_⟩ <;>
+        simp [succG, show j - 1 + 1 = j by omega, show j ≠ n by omega]
+    · cases hk
+  · rw [rs_f] at hk; cases hk
+
+/-- **8g's certificate, for every `n ≥ 1`** (replaces `checkT n = true`). -/
+theorem cert_all (hn : 1 ≤ n) : Cert n where
+  ep := fun _ hs => rt_ep hn hs
+  guard := fun _ hs => guard_all hn hs
+  wf := wf_all hn
+  cover := cover_all hn
+
+end Cert
+
+/-! ## Timed corollaries for every `n` -/
+
+section TimedAll
+variable {n : Nat} {lo hi : Nat → Nat} {x : Nat → Nat}
+
+/-- **H_FB_BEFORE_INPUT from delay bounds, every `n ≥ 1`.** Every state of a
+timed trace (every LUT, route, feedback route, environment node an inertial
+channel `[lo, hi]` after its real gate function; the feedback a free wire)
+that satisfies `FbBound` is reachable in 8c's rt semantics. -/
+theorem timedAll_reach (hn : 1 ≤ n) (hT : Timed n lo hi x) (hB : FbBound n lo hi) (t : Nat) :
+    Reach .rt n (x t) := timed_reach hT (cert_all hn) hB.guards t
+
+theorem timedAll_step_run (hn : 1 ≤ n) (hT : Timed n lo hi x) (hB : FbBound n lo hi) (t : Nat) :
+    RunL n (x t) (chg n x t) ∧ finalL (x t) (chg n x t) = x (t + 1) :=
+  timed_step_run hT (cert_all hn) hB.guards t
+
+/-- Four-phase protocol on every link, every timed trace, every `n`. -/
+theorem timedAll_protocol (hn : 1 ≤ n) (hT : Timed n lo hi x) (hB : FbBound n lo hi) {X Y : Nat}
+    (hp : (X, Y) ∈ pairs n) :
+    Handshake.Protocol ⟨fun t => get (x t) X, fun t => get (x t) Y, fun _ => 0⟩ :=
+  timed_protocol hT (cert_all hn) hB.guards (rt_good hn) hp
+
+/-- Token order between consecutive stages, every timed trace, every `n`. -/
+theorem timedAll_token_order (hT : Timed n lo hi x) (hB : FbBound n lo hi) {k : Nat}
+    (hk1 : 1 ≤ k) (hkn : k < n) (t : Nat) :
+    tog (fun t => get (x t) (c k)) t ≤ tog (fun t => get (x t) (c (k - 1))) t ∧
+    tog (fun t => get (x t) (c (k - 1))) t ≤ tog (fun t => get (x t) (c k)) t + 1 :=
+  timed_token_order hT (cert_all (by omega)) hB.guards (rt_good (by omega)) hk1 hkn t
+
+/-- No glitch on any LUT, wire or environment node, every timed trace, every `n`. -/
+theorem timedAll_hazard_free (hn : 1 ≤ n) (hT : Timed n lo hi x) (hB : FbBound n lo hi) {t i : Nat}
+    (hiN : i < numNodes n) (he : nextVal .free n (x t) i ≠ get (x t) i)
+    (hs : get (x (t + 1)) i = get (x t) i) :
+    nextVal .free n (x (t + 1)) i ≠ get (x (t + 1)) i :=
+  timed_hazard_free hT (cert_all hn) hB.guards (rt_good hn) hiN he hs
+
+end TimedAll
 
 end Formal.Net.MullerAll

@@ -1,7 +1,186 @@
-import Wip.C9c.Local
+import Formal.Net.Muller
+import Formal.Net.MullerRun
+import Formal.Net.MullerTimed
+
+/-!
+# Probe 9c: the gate-level Muller chain (`bd_pipe` control) for EVERY number of stages
+
+## Problem statement (plain language)
+
+Probe 8c modelled the real `bd_link` control chain (`bd_c2n` LUT6 with its real
+INIT `0x00B200B200B200B2`, the LUT1 req buffer `2'h2`, the ack and feedback
+routes as free nodes of unknown delay, a four-phase source and a passive
+sink) as an asynchronous transition system, and checked by exhaustive
+in-kernel search, for n <= 4 (isochronic feedback) and n <= 3 (free feedback
+under H_FB_BEFORE_INPUT, `Mode.rt`), that every reachable state is `Good`:
+hazard-free (no excitation of any node is ever withdrawn) and every pair rule
+holds (four-phase protocol on every link, token order).
+
+**This file proves the same for every n >= 1**, in both modes, with no new
+hypothesis: the semantics (`Muller.Reach`, `Muller.Good`) are 8c's,
+unchanged. The only assumption on n is `1 ≤ n`.
+
+**What it does NOT cover**: the free-feedback network without H_FB_BEFORE_INPUT
+(that one has hazards already at n = 1, 8c's `free_hazard_n1`); the reset
+release; the latch/data path; X values (binary model). The timed corollary
+(H_FB_BEFORE_INPUT derived from delay bounds, for every n) is in
+`MullerAllTimed.lean`.
+
+## Method: a stage-local inductive invariant
+
+Read the chain as positions: 0 sentinel (48), 1 source (`16 + src`), `k + 2`
+stage k (its four bits `c, b, w, f` as a number below 16), `n + 2` sink
+(`32 + snk`), `n + 3` sentinel. `V n s q` is the value at position q.
+**`Inv m n s`: every two adjacent positions form a pair of the fixed table
+`adj m`** (13 entries for iso, 21 for rt; the same table for every n and every
+stage). Each node's gate function, rt restriction and excitation depend only
+on its own position and the two neighbours (`loc`), and firing a node changes
+only its own position (`V_fire`). Hence:
+
+* closure (`inv_step`): a 3-position window check (`chkMid`);
+* hazard-freedom and enabledness persistence (`persist_glob`): 3- and
+  4-position window checks (`chkMid`, `chkLeft`, `chkRight`);
+* the pair rules (`follow_glob`): every pair of `pairs n` lies within two
+  adjacent positions (`pairs_loc`), so `chkMid` covers it;
+* reset (`inv_init`): `chkInit`.
+
+The window checks are finite and closed once by `decide +kernel` (kernel
+evaluation, no native code): `chkAll_iso`, `chkAll_rt`. The gluing (every
+global check of an n-stage chain is an instance of a window check) is proved
+by hand for every n. The table itself was read off a Python BFS of n = 5; it
+is a certificate (it is checked, not trusted).
+-/
 
 namespace Formal.Net.MullerAll
 open Formal.Net Formal.Net.Muller Formal.Net.CoreLut
+
+def cfun (a b q : Bool) : Bool := (a && !b) || (q && (a || !b))
+
+theorem evalL_c2n (a b q : Bool) :
+    evalL INIT_bd_c2n [a, b, q, false, false, false] = cfun a b q := by
+  cases a <;> cases b <;> cases q <;> decide
+
+theorem evalL_buf (a : Bool) : evalL INIT_buf [a] = a := by cases a <;> decide
+
+def bt (v j : Nat) : Bool := v.testBit j
+def isSt (v : Nat) : Bool := decide (v < 16)
+def isSrc (v : Nat) : Bool := v == 16 || v == 17
+def isSnk (v : Nat) : Bool := v == 32 || v == 33
+
+def lnext (m : Mode) (l v r t : Nat) : Bool :=
+  if isSrc v then !bt r 2
+  else if isSnk v then bt l 1
+  else match t with
+    | 0 => cfun (if isSrc l then bt l 0 else bt l 1) (if isSnk r then bt r 0 else bt r 2)
+             (if m = .iso then bt v 0 else bt v 3)
+    | 1 => bt v 0
+    | 2 => bt v 0
+    | _ => if m = .iso then bt v 3 else bt v 0
+
+def lexc (m : Mode) (l v r t : Nat) : Bool := lnext m l v r t != bt v t
+
+def lallowed (m : Mode) (l v r t : Nat) : Bool :=
+  match m with
+  | .rt => if isSrc v then bt r 3 == bt r 0
+           else if isSnk v then bt l 3 == bt l 0
+           else if t = 1 then (if isSt r then bt r 3 == bt r 0 else true)
+           else if t = 2 then (if isSt l then bt l 3 == bt l 0 else true)
+           else true
+  | _ => true
+
+def valid (v t : Nat) : Bool := (isSt v && decide (t < 4)) || ((isSrc v || isSnk v) && t == 0)
+
+def lenabled (m : Mode) (l v r t : Nat) : Bool :=
+  valid v t && lexc m l v r t && lallowed m l v r t
+
+def adjIso : Nat → List Nat
+  | 0 => [0, 2, 4, 5, 6, 7, 32, 33]
+  | 1 => [0, 2, 32]
+  | 2 => [5, 7, 33]
+  | 3 => [0, 1, 2, 3, 5, 7, 32, 33]
+  | 4 => [0, 2, 4, 5, 6, 7, 32, 33]
+  | 5 => [0, 2, 32]
+  | 6 => [5, 7, 33]
+  | 7 => [0, 1, 2, 3, 5, 7, 32, 33]
+  | 16 => [0, 2, 4, 5, 6, 7]
+  | 17 => [0, 1, 2, 3, 5, 7]
+  | 32 => [48]
+  | 33 => [48]
+  | 48 => [16, 17]
+  | _ => []
+
+def adjRt : Nat → List Nat
+  | 0 => [0, 2, 4, 6, 8, 10, 12, 13, 14, 15, 32, 33]
+  | 1 => [0, 2, 8, 10, 32]
+  | 2 => [5, 7, 13, 15, 33]
+  | 3 => [0, 1, 2, 3, 9, 11, 32]
+  | 4 => [0, 2, 4, 6, 8, 10, 12, 13, 14, 15, 32, 33]
+  | 5 => [0, 2, 8, 10, 32]
+  | 6 => [5, 7, 13, 15, 33]
+  | 7 => [0, 1, 2, 3, 9, 11, 32]
+  | 8 => [4, 6, 12, 13, 14, 15, 33]
+  | 9 => [0, 2, 8, 10, 32]
+  | 10 => [5, 7, 13, 15, 33]
+  | 11 => [0, 1, 2, 3, 5, 7, 9, 11, 13, 15, 32, 33]
+  | 12 => [4, 6, 12, 13, 14, 15, 33]
+  | 13 => [0, 2, 8, 10, 32]
+  | 14 => [5, 7, 13, 15, 33]
+  | 15 => [0, 1, 2, 3, 5, 7, 9, 11, 13, 15, 32, 33]
+  | 16 => [0, 2, 4, 6, 8, 10, 12, 13, 14, 15]
+  | 17 => [0, 1, 2, 3, 5, 7, 9, 11, 13, 15]
+  | 32 => [48]
+  | 33 => [48]
+  | 48 => [16, 17]
+  | _ => []
+
+def adj : Mode → Nat → List Nat
+  | .iso => adjIso
+  | .rt => adjRt
+  | .free => fun _ => []
+
+def adm (m : Mode) (a b : Nat) : Bool := (adj m a).contains b
+
+def dom : List Nat := List.range 16 ++ [16, 17, 32, 33, 48]
+def types : List Nat := [0, 1, 2, 3]
+def flip (v t : Nat) : Nat := v ^^^ 2 ^ t
+
+def lpair (v1 v2 : Nat) (same : Bool) (t1 t2 : Nat) : Bool :=
+  if same then isSt v1 && t1 == 0 && (t2 == 1 || t2 == 2)
+  else (isSrc v1 && isSt v2 && t1 == 0 && (t2 == 0 || t2 == 2)) ||
+       (isSt v1 && isSnk v2 && (t1 == 0 || t1 == 1) && t2 == 0) ||
+       (isSt v1 && isSt v2 && ((t1 == 0 && t2 == 0) || (t1 == 1 && t2 == 0) || (t1 == 1 && t2 == 2)))
+
+def followL (a b c t : Nat) : Bool :=
+  types.all fun u =>
+    (!lpair b b true t u || bt b t == bt b u) &&
+    (!lpair b c false t u || bt b t == bt c u) &&
+    (!lpair b b true u t || bt b t != bt b u) &&
+    (!lpair a b false u t || bt b t != bt a u)
+
+def persist (m : Mode) (l v v' r u : Nat) : Bool :=
+  (!lexc m l v r u || lexc m l v' r u) && (!lenabled m l v r u || lenabled m l v' r u)
+
+def chkMid (m : Mode) : Bool :=
+  dom.all fun a => (adj m a).all fun b => (adj m b).all fun c => types.all fun t =>
+    !lenabled m a b c t ||
+      (adm m a (flip b t) && adm m (flip b t) c && followL a b c t &&
+        types.all fun u => u == t || !valid b u || persist m a b (flip b t) c u)
+
+def chkLeft (m : Mode) : Bool :=
+  dom.all fun z => (adj m z).all fun a => (adj m a).all fun b => (adj m b).all fun c =>
+    types.all fun t => !lenabled m a b c t || types.all fun u => !valid a u ||
+      (!lexc m z a b u || lexc m z a (flip b t) u) &&
+      (!lenabled m z a b u || lenabled m z a (flip b t) u)
+
+def chkRight (m : Mode) : Bool :=
+  dom.all fun a => (adj m a).all fun b => (adj m b).all fun c => (adj m c).all fun d =>
+    types.all fun t => !lenabled m a b c t || types.all fun u => !valid c u ||
+      (!lexc m b c d u || lexc m (flip b t) c d u) &&
+      (!lenabled m b c d u || lenabled m (flip b t) c d u)
+
+def chkInit (m : Mode) : Bool :=
+  adm m 48 16 && adm m 16 0 && adm m 0 0 && adm m 0 32 && adm m 32 48 
+
 
 theorem ifN {p : Prop} [Decidable p] (h : ¬p) {α : Sort _} (a b : α) :
     (if p then a else b) = b := by simp [h]
