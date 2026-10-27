@@ -1,0 +1,33 @@
+ok    tb_f3_lut [default] FAIL (expected)
+        T1 buffer: 1 edges, last at 1244 (transport: 3 edges, last 1254)
+          FAIL T1 edge after 1130 arrives at 1254, not 1244
+        T2 XOR3: 1 edges, settles 1124 (transport: 3, 1224); value at request 1200 = 1 (true 0)
+           margin of a request at 1200 against the settle time: 76 ps
+          FAIL T2 XOR3 settles at 1224, margin -24 ps
+          FAIL T3 50 ps pulse passes
+          FAIL T4 30 ps function hazard on XOR2 appears
+          ok   T5 unread pin: no edge
+          FAIL T6 MUXF7 passes a 50 ps pulse
+ok    tb_f3_lut [fid] PASS (expected)
+        T1 buffer: 3 edges, last at 1254 (transport: 3 edges, last 1254)
+          ok   T1 edge after 1130 arrives at 1254, not 1244
+        T2 XOR3: 3 edges, settles 1224 (transport: 3, 1224); value at request 1200 = 0 (true 0)
+           margin of a request at 1200 against the settle time: -24 ps
+          ok   T2 XOR3 settles at 1224, margin -24 ps
+          ok   T3 50 ps pulse passes
+          ok   T4 30 ps function hazard on XOR2 appears
+          ok   T5 unread pin: no edge
+          ok   T6 MUXF7 passes a 50 ps pulse
+ok    tb_f3_meta [default] FAIL (expected)
+        A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 200, r2 won 0, neither 0, X 0, settled double grant 0
+           transient g1&g2 overlaps 0, widest 0 ps (O5/O6 arc difference 28 ps)
+          FAIL A: one side always wins
+        B. 200 captures with D 20 ps before CK (window -60/+40): got 1 0, got 0 0, X 200; slowest CK->Q 300 ps (nominal 300)
+          FAIL B: one value always
+          FAIL B: X captured
+ok    tb_f3_meta [fid] PASS (expected)
+        A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 125, r2 won 75, neither 0, X 0, settled double grant 0
+           transient g1&g2 overlaps 191, widest 26 ps (O5/O6 arc difference 28 ps)
+        B. 200 captures with D 20 ps before CK (window -60/+40): got 1 116, got 0 84, X 0; slowest CK->Q 593 ps (nominal 300)
+ok    tb_f3_kleene: 3000 settled x-laden vectors identical under both models
+logs in /tmp/claude-0/-home-user-asyncfpga3/51f58590-4ae3-5ee9-a557-58439d00deba/scratchpad/f3out
