@@ -165,3 +165,8 @@ theorem drop_env_latency_cex :
     subst this; decide
 
 end AuditB.CElem
+#print axioms AuditB.CElem.four_phase_hyps
+#print axioms AuditB.CElem.four_phase_applies
+#print axioms AuditB.CElem.follow_hold_hyps
+#print axioms AuditB.CElem.drop_pulse_cex
+#print axioms AuditB.CElem.drop_env_latency_cex

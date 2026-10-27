@@ -118,3 +118,7 @@ theorem runt_hyps :
 
 end T
 end AuditB.Arb
+#print axioms AuditB.Arb.header_16ps_hyps
+#print axioms AuditB.Arb.safe_run
+#print axioms AuditB.Arb.bad_run
+#print axioms AuditB.Arb.runt_hyps

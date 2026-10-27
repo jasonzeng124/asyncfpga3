@@ -139,5 +139,24 @@ example : ∃ x, LinkHandshake.Reach 1 x 1 1 :=
       (Step.gate _ 1 (by decide) (by decide) (by decide)))
       (Step.recv _ (by decide))⟩
 
+/-- SETUP of `latch_capture`/`setup_iff` is sufficient but not necessary in
+general: with the previous token equal to the new one, every other hypothesis
+holds, SETUP fails (a + L + F = 7 > 5 = c), and the conclusion still holds. -/
+theorem setup_not_necessary :
+    LatchRec 1 1 (fun _ => .t) lEn (fun _ => .t) ∧ 1 ≤ 5 ∧
+    (∀ τ, 5 ≤ τ → τ < 5 → lEn τ = .t) ∧
+    (∀ τ, 5 + 1 ≤ τ → τ < 100 → lEn τ = .f) ∧
+    (∀ τ, 5 ≤ τ → τ < 5 + 1 → (fun _ => K3.t) τ = K3.ofBool true) ∧
+    ¬ (5 + 1 + 1 ≤ 5) ∧
+    (∀ τ, 5 + 1 ≤ τ → τ < 100 + 1 → (fun _ => K3.t) τ = K3.ofBool true) := by
+  refine ⟨fun t _ => (latK_keep true (lEn t)).symm, by decide, fun τ h1 h2 => absurd h2 (by omega),
+    ?_, fun _ _ _ => rfl, by decide, fun _ _ _ => rfl⟩
+  intro τ h1 h2
+  simp only [lEn, if_neg (show ¬ τ < 5 by omega), if_neg (show ¬ τ = 5 by omega)]
+
 end LH
 end AuditB.Data
+#print axioms AuditB.Data.latch_hyps
+#print axioms AuditB.Data.capture_hyps
+#print axioms AuditB.Data.latch_capture_hyps
+#print axioms AuditB.Data.setup_not_necessary

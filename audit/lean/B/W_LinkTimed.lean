@@ -123,3 +123,6 @@ theorem token_alternates (k : Nat) :
   rw [this]; rfl
 
 end AuditB.LT
+#print axioms AuditB.LT.ctlEnv
+#print axioms AuditB.LT.dataPath
+#print axioms AuditB.LT.token_alternates

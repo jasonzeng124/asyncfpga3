@@ -1,0 +1,44 @@
+diff --git a/xilinx/arch_place.cc b/xilinx/arch_place.cc
+--- a/xilinx/arch_place.cc
++++ b/xilinx/arch_place.cc
+@@ -1689,6 +1706,7 @@ void Arch::fixupRouting()
+         }
+     }
+ 
++    int permuted_pins = 0;
+     for (size_t ti = 0; ti < tileStatus.size(); ti++) {
+         if (!used_perm_pips.count(int(ti)))
+             continue;
+@@ -1750,6 +1768,14 @@ void Arch::fixupRouting()
+                         lut6->ports[p].type = PORT_IN;
+                     }
+                     connect_port(getCtx(), orig_nets[new_connections.at(p).front()], lut6, p);
++                    // The port is now named for the tile input pin it enters
++                    // on; the routed sink is the LUT input site wire on the
++                    // far side of the permutation pip, so record that as the
++                    // bel pin, or getNetinfoSinkWire() names a wire the net
++                    // never visits and the SDF falls back to predictDelay().
++                    lut6->pins[p] = new_connections.at(p).front();
++                    if (lut6->pins[p] != p)
++                        permuted_pins++;
+                     lut6->attrs[id("X_ORIG_PORT_" + p.str(this))] = std::string("");
+                     auto &orig_attr = lut6->attrs[id("X_ORIG_PORT_" + p.str(this))].str;
+                     bool first = true;
+@@ -1766,6 +1792,9 @@ void Arch::fixupRouting()
+                         lut5->ports[p].type = PORT_IN;
+                     }
+                     connect_port(getCtx(), orig_nets[new_connections.at(p).front()], lut5, p);
++                    lut5->pins[p] = new_connections.at(p).front();
++                    if (lut5->pins[p] != p)
++                        permuted_pins++;
+                     lut5->attrs[id("X_ORIG_PORT_" + p.str(this))] = std::string("");
+                     auto &orig_attr = lut5->attrs[id("X_ORIG_PORT_" + p.str(this))].str;
+                     bool first = true;
+@@ -1779,6 +1808,7 @@ void Arch::fixupRouting()
+             }
+         }
+     }
++    log_info("Recorded %d permuted LUT input pins as routed sink wires\n", permuted_pins);
+     /*
+      * Route PAD nets which won't have been routed due to inout issues
+      */

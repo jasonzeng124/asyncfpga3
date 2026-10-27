@@ -1,0 +1,80 @@
+# formal/tools/gen/targets.txt -- what gen.sh synthesizes, one target per line:
+#   <lean name>  <top module>  [P=value ...]  [+DEFINE ...]
+# P=value  -> chparam -set P value <top>   (Verilog literal syntax allowed, e.g. VAL=2'b10)
+# +DEFINE  -> read_verilog -DDEFINE (as cells/flow.sh's BD_SYN_DEFS)
+# Every module of cells/rtl/*.v appears at least once (gen.sh --check fails
+# if `yosys ls` lists a module that no target uses as top).
+# Parameter values are small representatives, chosen so every generate branch
+# of the module is exercised by some target and exhaustive `decide` stays cheap.
+#
+# bd_ce.v
+bd_c2           bd_c2
+bd_c2_set       bd_c2_set
+bd_c2n          bd_c2n
+bd_c2n_set      bd_c2n_set
+bd_c3           bd_c3
+bd_c4           bd_c4
+bd_c2_norst     bd_c2_norst
+bd_c3_norst     bd_c3_norst
+bd_ctree_N1     bd_ctree   N=1
+bd_ctree_N3     bd_ctree   N=3
+bd_ctree_N5     bd_ctree   N=5
+bd_ctree_N8     bd_ctree   N=8
+# bd_latch.v
+bd_latch_W1     bd_latch   W=1
+bd_latch_W2     bd_latch   W=2
+bd_latch_W3     bd_latch   W=3
+bd_latch_rst_W1 bd_latch_rst W=1
+bd_latch_rst_W2_R2 bd_latch_rst W=2 RESET_VALUE=64'd2
+bd_delay_N0     bd_delay   N=0
+bd_delay_N3     bd_delay   N=3
+bd_delay_N3_FF  bd_delay   N=3 FASTFALL=1
+bd_delay_N3_FR  bd_delay   N=3 FASTRISE=1
+bd_delay_gated_N3 bd_delay_gated N=3
+bd_datamux_W3   bd_datamux W=3
+# bd_link.v
+bd_link_ctl     bd_link_ctl
+bd_link_dctl_B1 bd_link_dctl BROAD=1 LDN=0
+bd_link_dctl_B0_L2 bd_link_dctl BROAD=0 LDN=2
+bd_link_dc_W2   bd_link_dc W=2 DELAY=1 DACK=1
+bd_link_W2      bd_link    W=2
+bd_link_W2_D2_K2 bd_link   W=2 DELAY=2 DACK=2
+bd_link_W2_RF   bd_link    W=2 DELAY=2 RFAST=1
+bd_link_W2_DC   bd_link    W=2 +BD_LINK_DC
+bd_pipe_W1_N2   bd_pipe    W=1 N=2
+bd_pipe_W1_N1   bd_pipe    W=1 N=1
+bd_pipe_dc_W1_N2 bd_pipe_dc W=1 N=2
+# bd_ctl.v
+bd_fork_N2      bd_fork    N=2
+bd_fork_N5      bd_fork    N=5
+bd_join_N2      bd_join    N=2
+bd_join_N3      bd_join    N=3
+bd_steer        bd_steer
+bd_bd2dr        bd_bd2dr
+bd_dr2bd_D2     bd_dr2bd   DELAY=2 HOLD=0
+bd_dr2bd_D2_H   bd_dr2bd   DELAY=2 HOLD=1
+# bd_end.v
+bd_src_W2       bd_src     W=2 VAL=2'b10
+bd_snk_W2       bd_snk     W=2
+# bd_mem.v (RAMB18E1: imported as an opaque cell)
+bd_mem          bd_mem     DSETUP=2 DCO=2
+bd_mem_bufg     bd_mem     DSETUP=1 DCO=1 USE_BUFG=1
+# bd_merge.v, bd_mux.v
+bd_merge_W2     bd_merge   W=2 DELAY=2
+bd_mux_W2       bd_mux     W=2 DELAY=2
+bd_mux_W2_FF    bd_mux     W=2 DELAY=2 FASTFALL=1
+# bd_mlink.v
+bd_mlink_ctl    bd_mlink_ctl NOPEN=1
+bd_mlink_ctl_N3 bd_mlink_ctl NOPEN=3
+bd_mlink_W2     bd_mlink   W=2 DELAY=2
+bd_flink_ctl    bd_flink_ctl
+bd_flink_W2     bd_flink   W=2 DELAY=1
+# bd_arb.v
+bd_arbcell      bd_arbcell
+bd_arbiter      bd_arbiter
+# primitive fixtures (formal/tools/gen/test/prims.v, not library cells)
+prims_add       prims_add
+prims_mux8      prims_mux8
+prims_mux16     prims_mux16
+prims_ff        prims_ff
+prims_lat       prims_lat

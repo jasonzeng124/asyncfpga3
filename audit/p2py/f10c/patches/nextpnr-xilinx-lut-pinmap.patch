@@ -1,0 +1,54 @@
+diff --git a/xilinx/fasm.cc b/xilinx/fasm.cc
+index 0ed24dba..aa6304e8 100644
+--- a/xilinx/fasm.cc
++++ b/xilinx/fasm.cc
+@@ -579,7 +579,29 @@ struct FasmBackend
+                 if (!lut->attrs.count(ctx->id("X_ORIG_PORT_" + phys_inputs[j].str(ctx))))
+                     continue;
+                 std::string orig = lut->attrs.at(ctx->id("X_ORIG_PORT_" + phys_inputs[j].str(ctx))).as_string();
+-                boost::split(phys_to_log[j], orig, boost::is_any_of(" "));
++                // X_ORIG_PORT_A<n> IS NOT CONSISTENTLY DELIMITED.  When one
++                // physical pin carries several logical inputs it is written
++                // both as "I0 I3" and, elsewhere, run together as "I1I3 ".
++                // Splitting on the delimiter turns the second form into the
++                // single token "I1I3", which is not a logical input name --
++                // and the lookup below used to be unordered_map::operator[],
++                // so an unknown token silently INSERTED itself with value 0
++                // and the pin was encoded as if it drove I0.  The LUT then
++                // got a truth table that is not its function, with no error
++                // and no warning, in the bitstream only: the JSON, the SDF
++                // and every simulation of them stayed correct, so the design
++                // failed on the die and nowhere else.  Match the names
++                // instead of trusting the separator.
++                for (size_t p = 0; p < orig.size(); p++) {
++                    if (orig[p] != 'I')
++                        continue;
++                    size_t q = p + 1;
++                    while (q < orig.size() && isdigit((unsigned char)orig[q]))
++                        q++;
++                    if (q > p + 1)
++                        phys_to_log[j].push_back(orig.substr(p, q - p));
++                    p = q - 1;
++                }
+             }
+             int lbound = 0, ubound = 64;
+             // Fracturable LUTs
+@@ -593,8 +615,16 @@ struct FasmBackend
+                 for (int k = 0; k < 6; k++) {
+                     if ((j & (1 << k)) == 0)
+                         continue;
+-                    for (auto &p2l : phys_to_log[k])
+-                        log_index |= (1 << log_to_bit[p2l]);
++                    for (auto &p2l : phys_to_log[k]) {
++                        // find(), never operator[]: a name this cell does not
++                        // have is a bug in the mapping, not a vote for I0.
++                        auto lb = log_to_bit.find(p2l);
++                        if (lb == log_to_bit.end())
++                            log_error("LUT '%s': X_ORIG_PORT_%s names logical input '%s', "
++                                      "which this cell does not have\n",
++                                      ctx->nameOf(lut), phys_inputs[k].c_str(ctx), p2l.c_str());
++                        log_index |= (1 << lb->second);
++                    }
+                 }
+                 bits[j] = (init.str.at(log_index) == Property::S1);
+             }
