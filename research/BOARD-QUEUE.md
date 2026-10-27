@@ -12,7 +12,8 @@ Without that credit, 3 of 8 routes came out short. See JOURNAL 2026-10-25 "rule 
 
 Branch claude/research. Bitstream: `research/board/gcd_hw_03e82630.bit`
 (sha256 03e82630dcf5c453b40121cdaf86eae0cc79c6c65a69ba1bfa0c83e402141196; the route with
-build_hw.sh's default seed; routed.json md5 1c6a1fb9, sdf md5 6f8b99e6; toolchain in the
+build_hw.sh's default seed; sdf md5 6f8b99e6 (routed.json 1c6a1fb9 on the original build only: it embeds
+absolute paths and does not reproduce, audit bq1-repro.md -- compare the sdf); toolchain in the
 `.toolchain.txt` beside it: nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62,
 fasm via prjxray's textX parser).
 
@@ -57,10 +58,10 @@ feeding-link C node (69ee32b), which flagged R2 on 2 seeds; R3/R4 padded the ask
 `skew.py --slack 500` asks over R4's 8 routes, i.e. every select link with less than +500 ps guarded on any
 route was padded to reach it.
 Branch claude/research. No bitstream is committed (owner, 2026-10-25); build it in the cloud toolchain
-(nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62). The default-seed build's md5s were
-bit ce596deb, routed.json 7be3c1cf, sdf a9c4e265; check yours with md5sum before trusting the run
-(the .bit md5 is NOT reproducible on its own -- 3 header bytes differ between builds of one route; compare the
-routed.json and sdf md5s):
+(nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62). The default-seed build's sdf md5 is
+a9c4e265; check yours with md5sum before trusting the run. Compare the SDF only: the .bit md5 is not reproducible
+(header date bytes), and the routed.json md5 recorded earlier (7be3c1cf) was not reproduced by the independent
+audit's clean rebuild (b398103e, same sdf) -- a different routed.json md5 is NOT a reason to distrust the build:
 
     cd cells
     BD_SIZES=../research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
@@ -88,11 +89,12 @@ seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement valid
 (seed 4), 17%, 25% x2 all 16/16. Its predecessor R2 (same compute sizes, fewer select pads) passed
 nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
 
-## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~9% more laps than #2, every audit and routed GLS clean on 8 routes
+## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~6% more laps than #2 (same 8 routes), every audit and routed GLS clean on 8 routes
 Run only after #2 passes: it is #2 plus one opt-in change (bd_link's request delay and bd_mux's output delay fall
 in one hop; cells/rtl/bd_link.v RFAST, bd_mux.v FASTFALL, committed fdfe098 with tighten.py rule F, which audits
 that a fast-fall line drains before its input can rise again). Same rig, pads, placement, sizes.
-Toolchain as #2. Default-seed md5s: routed.json f9c4597d, sdf 61e14755 (bit f9fb4b19, not reproducible on its own):
+Toolchain as #2. Default-seed md5s: sdf 61e14755 (compare this one), routed.json f9c4597d (reproduced by the audit, but routed.json
+md5s are not portable in general), bit f9fb4b19 (not reproducible):
 
     cd cells
     BD_SIZES=../research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 BDC_LINK_FASTFALL=1 ./hw/build_hw.sh gcd_hw
@@ -107,7 +109,8 @@ What it would mean: PASS = the fast request fall is safe on silicon; FAIL while 
 rules A/E/F/H/I/J and corner/scatter GLS did not see (send the full output).
 Evidence (JOURNAL 2026-10-26/27): seeds d, 3-9: rules A/E/F/H/I/J 0, fasm_audit PASS, gate clean, routed GLS 16/16
 errs=0 at nominal on all 8 and at x0.9/x1.1 on d, 3, 6, 7, 8, 9; 17% scatter on d and 3. Laps vec 6 mean 50.0
-(46-52) vs 45.75 for #2 on the same 4 seeds; vec 12 40.4, vec 13 58.6. Rule F worst +888 ps (an existing line).
+(46-52, 8 routes) vs #2's 47.25 on the same 8 routes (+5.8%; vec 12 +6.0%, vec 13 +5.8%; the earlier "~9%" compared
+8 routes with #2's 4, corrected per audit research-stats.md); vec 12 40.4, vec 13 58.6. Rule F worst +888 ps (an existing line).
 Reproduction (2026-10-27): an independent rebuild of the default-seed route gives the same routed.json
 (f9c4597d) and sdf (61e14755) md5s; on it rules A/E/H/I/J 0, gate clean, GLS 16/16 at nominal, x0.9, x1.1 and
 wire scatter 25% (1 draw) and 35% (2 draws).

@@ -31,7 +31,7 @@ cells/gls/fid/bit_control.py ROUTE_DIR KIND [--work DIR] [--good] [--gls]
 |---|---|
 | `dsp_constpins` | `fasm_audit.py --write-unpatched constpins-packer`: INMODE0..4, ALUMODE2/3 and OPMODE6 get no tile-constant bit |
 | `dsp_constpins_inv` | `--write-unpatched constpins-inv`: the tile bit carries the net, not the logical value |
-| `dsp_areg` | `--write-unpatched areg`. If that changes no bit (ACASCREG=0 everywhere, which is every route of this flow), the mechanism is INJECTED instead: every Z[AB]REG_2_[AB]CASCREG_1 bit is cleared |
+| `dsp_areg` | `--write-unpatched areg`. If that changes no bit (ACASCREG=0 everywhere, which is every route of this flow), the mechanism is INJECTED instead: every Z[AB]REG_2_[AB]CASCREG_1 bit is cleared. **Weak control (audit r3.md 1):** that injected state is one the old writer never produced, and it is caught only because the decoder REFUSES it. The real bug (AREG=1/ACASCREG=1 written as no bit, so silicon AREG=2) is not modelled, and the decoder refuses every registered DSP, so on a route where the bug matters the good bitstream would be refused too. Not a hard acceptance test. |
 | `lut_pinmap` | `--write-unpatched pinmap`. If that changes no bit, `inject_pinmap.py` is used on live pins. If it changes only GND-tied pins it is functionally harmless, and the line says MISSED |
 | `lut_pinmap_live` | always `inject_pinmap.py`: one live pin per comparator LUT is read as I0 |
 

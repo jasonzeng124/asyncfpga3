@@ -142,7 +142,7 @@ def main():
                     say("ERROR", "no DSP on this route: nothing to inject", 2)
                 open(bug, "w").write("\n".join(lines) + "\n")
                 how = ("real writer HARMLESS here (ACASCREG=0 everywhere); injected: every "
-                       "Z[AB]REG_2_[AB]CASCREG_1 bit cleared")
+                       "Z[AB]REG_2_[AB]CASCREG_1 bit cleared; caught only by decoder refusal, the real AREG=2 bug is not modelled")
             elif a.kind == "lut_pinmap":
                 rc, out = sh([sys.executable, str(HERE / "inject_pinmap.py"), str(routed), str(fasm), str(bug)])
                 if rc:

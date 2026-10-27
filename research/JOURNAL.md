@@ -1173,3 +1173,32 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 - Soft cross-route rings: today's SDF reads ~+9.5% slow at 127 links on both August routes (which agree to 0.3%).
 - ro_many_measure.py gains RO_OFFLINE/RO_MEAS_TSV so the owner can export the per-ring table without a board
   (BOARD-QUEUE owner-side request updated with the command).
+
+## Session 2026-10-27 06:13 -- (in progress) board-fidelity GLS: F1+F2 integration, F3 silicon-like model; audit rows answered
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh from cache, 2m35s, all fingerprints ok)
+### progress 06:13 (start; audit read)
+- Lock was 2 h old (dead); taken. 4 cores, 15 GB. The prjxray-db clone xray_delay.py defaults to was lost with the
+  container; the toolchain's own copy (openXC7 prjxray-db 0.8.2) has tile_type_*.json and timings -- an F5
+  subagent checks whether it equals 0a0added before switching the default.
+- Audit (origin/claude/audit REPORT.md) rows on this branch, answered:
+  - bd_prims_sim.v 56/124 as rise/fall (REFUTED, still present): handed to the F3 subagent with the re-run list
+    (tb_arb_overlap, arb_mtbf, null-gen tbs). Open until that lands.
+  - BQ#1/#2 routed.json md5s do not reproduce (REFUTED): BOARD-QUEUE now says compare the SDF md5 only; #2's
+    recorded routed.json md5 was probably from another build. No claim depended on it (the sdf md5s match).
+  - BQ#3 "~9% more laps" (OVERSTATED): it compared 8 routes with 4. Same 8 routes: +5.8% (vec 6), +6.0%, +5.8%.
+    Title and body corrected.
+  - xorshift "102.5 -> 60.0 (1.71x)" (REFUTED as a comparison): 102.5 is a 6-vector fit, 60.0 a 14-vector fit,
+    and the vector set alone moves the slope 6.9%. **Withdrawn**; the placeholder baseline was never fitted on 14
+    vectors, so the true ratio is unknown until it is (queued as filler work).
+  - ipow 1.39x/1.46x/1.47x, collatz 1.75x (UNVERIFIED): different seed sets in numerator and denominator. Collatz on
+    the same seeds is 1.737x (audit). Treat the ipow ratios as unverified until re-measured on one seed set.
+  - collatz64 T4 provenance (OVERSTATED): the T4 run used 8977190's tighten/skew (no rule F, older rule E) and the
+    journal's "11 vectors" for it is right only for the later runs. The audit's seed-3 re-run with current tools is
+    clean. **Re-run of all 8 seeds with current tools queued** (filler).
+  - dsp_areg control "DETECTED" (OVERSTATED): agreed -- it is detected only by decoder refusal of an injected state
+    the old writer never produced. README and bit_control's CONTROL line now say so; it stays a property, not a
+    hard acceptance test (inventory already said "property only").
+  - fasm_equiv misses unrouted GND-tied A6 pins that read VCC on silicon (NOT EQUIVALENT on BQ#1 per audit):
+    harmless on that route (functions ignore the pin), but the checker must classify it; handed to the F5 subagent.
+  - GLS "sample at fire" early edge and inertial LUT paths (CONFIRMED defects): F3 subagent builds an opt-in
+    transport per-pin LUT model and reproduces the audit's 1130->1244 and XOR3 examples.
