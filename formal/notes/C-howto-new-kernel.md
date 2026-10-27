@@ -150,9 +150,14 @@ Reading the result:
 - **disagree.tsv classes:**
   - **band-only:** fails only with the band; the unguarded prjxray fast and slow corners both
     pass.
-  - **frontend-gap?:** an unguarded corner fails and the deciding instance contains fallback
-    arcs (SDF band in place of prjxray). Confirm with `diag.py`.
-  - **corner-fail:** an unguarded corner fails with no fallback. A candidate real failure.
+  - **frontend-gap(const):** a rule-A row whose data peak is a constant tie-off driver's route.
+    This is a false path in both tighten and tcheck (`constsrc.py`).
+  - **frontend-gap(fallback):** an unguarded corner fails and the deciding instance contains
+    fallback arcs (SDF band in place of prjxray). Confirm with `diag.py`.
+  - **spread-only:** an unguarded corner fails, but `pointcheck.py` passes with every arc at
+    one end of its interval. The failure needs independent within-corner spread (the κ
+    question).
+  - **corner-fail:** fails even at a fixed point, with no fallback. A candidate real failure.
   - **project-only:** the project rule fails and tcheck passes.
 - **Explaining a row:**
 
@@ -172,8 +177,9 @@ Reading the result:
     fall back to the SDF band (H_FALLBACK_BAND). It also chooses the obligations and their phase
     rules (C-10e/10g/10h).
   - Known front-end gaps:
-    - the slice OUTMUX hop on LUT outputs (being fixed by C-10m);
-    - CARRY4 CIN nets and F7/F8 select nets, which fall back.
+    - CARRY4 CIN nets, F7/F8 select nets and DSP48E1, which fall back to the SDF band;
+    - rule A's constant tie-off sources (C-10n);
+    - the Jx shared-hop split (C-10m).
   - **Rows mirror the project rules only.** No gcd_hw capstone rows (rules10k/10l are gcd_hw-
     specific) and no end-to-end correctness. A kernel with all rows PASS has the A/E/F/H/I/J
     obligations discharged under the delay model, nothing more.
