@@ -284,3 +284,9 @@ adjacency invariant + kernel-checked windows + gluing lemma.
 routed gcd_hw arbiters at 4 corners (proved; per-instance kernel verdicts;
 H_CAUSAL_PATH, H_FF_DRAINED). Owner notified. Clean rebuild of every claimed
 shard-C file into a fresh olean dir running (stale-olean check).
+
+### progress 07:35
+8n committed: Ops gates = generated cells under H_FB_FIRST (B's C2), and
+bounded-delay liveness for an n-link pipeline of generated LUTs (exact at
+unit delay). Launched 8o (per-token period, linear ring bound, op-cell ring)
+and 10k (unchecked capstone timing hypotheses as tcheck rows on gcd_hw).
