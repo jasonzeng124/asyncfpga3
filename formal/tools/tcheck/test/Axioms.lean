@@ -11,3 +11,4 @@ import Tcheck.Cert
 #print axioms Formal.Timing.SharedPrefix.pot2_sound
 #print axioms Formal.Timing.MaxNode.potMax_sound
 #print axioms Formal.Timing.MaxNode.cel_needs_pin
+#print axioms Formal.Timing.MaxNode.ctl_needs_pin

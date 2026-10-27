@@ -100,20 +100,23 @@ theorem potMax_sound {net : Netlist} {M : Nat → List Nat} {pot : Nat → Nat}
 
 /-- **A C-element output needs every agreeing pin to move first** (H_ALL from
 the bounded-delay semantics, per pin). Hypotheses:
-* `hhold`: the node function keeps `w` while pin `ka` and the feedback pin `kf`
-  both read `w` (true of `maj` and of every C-element LUT with reset inactive);
-* `h0`, `ha0`: output and pin `ka` both read `w` at the origin;
+* `hhold`: the node function keeps `w` while pin `ka` reads `wa` and the
+  feedback pin `kf` reads `w` (`wa = w` for a plain input of `maj`, `wa = !w` for
+  an inverted one such as `bd_c2n`'s `c_next`; true of every C-element LUT with
+  reset inactive);
+* `h0`, `ha0`: the output reads `w` and pin `ka` reads `wa` at the origin (pin
+  `ka` "agrees" with the output: it does not already enable the next edge);
 * `hfb` (H_FB_FIRST, Run form): at each output change the feedback pin
   already reads the output's current value. -/
 theorem cel_needs_pin {net : Netlist} {sig : Nat → Trace} (r : Run net sig) {v : Nat}
-    (hv : v ≠ 0) {ka kf : Nat} {w : Bool}
-    (hhold : ∀ x : Nat → Bool, x ka = w → x kf = w → r.g v x = w)
-    (h0 : sig v 0 = w) (ha0 : r.pin ka 0 = w)
+    (hv : v ≠ 0) {ka kf : Nat} {w wa : Bool}
+    (hhold : ∀ x : Nat → Bool, x ka = wa → x kf = w → r.g v x = w)
+    (h0 : sig v 0 = w) (ha0 : r.pin ka 0 = wa)
     (hfb : ∀ u, changes (sig v) u → r.pin kf (u + 1) = sig v u) :
     ∀ t, changes (sig v) t → ∃ s, s ≤ t ∧ changes (r.pin ka) s := by
   intro t hc
   apply Classical.byContradiction; intro hn
-  have hka : ∀ u, u ≤ t + 1 → r.pin ka u = w := by
+  have hka : ∀ u, u ≤ t + 1 → r.pin ka u = wa := by
     have := const_before (i := r.pin ka) (a := t + 1) (fun s hs => by
       apply Classical.byContradiction; intro h; exact hn ⟨s, by omega, hs⟩)
     intro u hu; rw [this u hu, ha0]
@@ -133,18 +136,53 @@ theorem cel_needs_pin {net : Netlist} {sig : Nat → Trace} (r : Run net sig) {v
       exact hhold _ (hka (u + 1) hu) hf
   exact hc ((hv' t (by omega)).trans (hv' (t + 1) (Nat.le_refl _)).symm)
 
+/-- **A gate held by a controlling pin** (the steer's branch LUT `req ∧ sel`
+with `req` low): if the node function is `w` whenever pin `ka` reads `wa`, and
+both hold at the origin, every output change needs a prior change of pin `ka`.
+This is H_ALL for a singleton group without any feedback (H_CONTROLLING +
+H_ZERO_DELAY_FN; H_KLEENE_LUT makes the LUT hazard-free under it). -/
+theorem ctl_needs_pin {net : Netlist} {sig : Nat → Trace} (r : Run net sig) {v : Nat}
+    (hv : v ≠ 0) {ka : Nat} {w wa : Bool}
+    (hhold : ∀ x : Nat → Bool, x ka = wa → r.g v x = w)
+    (h0 : sig v 0 = w) (ha0 : r.pin ka 0 = wa) :
+    ∀ t, changes (sig v) t → ∃ s, s ≤ t ∧ changes (r.pin ka) s := by
+  intro t hc
+  apply Classical.byContradiction; intro hn
+  have hka : ∀ u, u ≤ t + 1 → r.pin ka u = wa := by
+    have := const_before (i := r.pin ka) (a := t + 1) (fun s hs => by
+      apply Classical.byContradiction; intro h; exact hn ⟨s, by omega, hs⟩)
+    intro u hu; rw [this u hu, ha0]
+  have hv' : ∀ u, u ≤ t + 1 → sig v u = w := by
+    intro u hu
+    cases u with
+    | zero => exact h0
+    | succ u => rw [r.node v hv (u + 1)]; exact hhold _ (hka (u + 1) hu)
+  exact hc ((hv' t (by omega)).trans (hv' (t + 1) (Nat.le_refl _)).symm)
+
 /-- The per-pin lemma over a group: H_ALL for every pin of `grp` that agrees
 with the output at the origin and has the hold property. -/
 theorem allBefore_of_pins {net : Netlist} {sig : Nat → Trace} (r : Run net sig) {v : Nat}
-    (hv : v ≠ 0) {grp : List Nat} {kf : Nat} {w : Bool}
-    (hhold : ∀ ka ∈ grp, ∀ x : Nat → Bool, x ka = w → x kf = w → r.g v x = w)
-    (h0 : sig v 0 = w) (ha0 : ∀ ka ∈ grp, r.pin ka 0 = w)
+    (hv : v ≠ 0) {grp : List Nat} {kf : Nat} {w : Bool} {wa : Nat → Bool}
+    (hhold : ∀ ka ∈ grp, ∀ x : Nat → Bool, x ka = wa ka → x kf = w → r.g v x = w)
+    (h0 : sig v 0 = w) (ha0 : ∀ ka ∈ grp, r.pin ka 0 = wa ka)
     (hfb : ∀ u, changes (sig v) u → r.pin kf (u + 1) = sig v u) :
     AllBefore r v grp := by
   intro t hc k hk
   exact cel_needs_pin r hv (hhold k hk) h0 (ha0 k hk) hfb t hc
 
 /-! ## The C-element function holds: `maj` on (pin a, pin b, feedback) -/
+
+/-- `bd_c2n` (the link controller, `C(a, !b)`): the inverted pin holds on `!w`. -/
+def celNFn (ka kb kf : Nat) (x : Nat → Bool) : Bool :=
+  (x ka && !x kb) || (x kf && (x ka || !x kb))
+
+theorem celNFn_hold_b (ka kb kf : Nat) (w : Bool) (x : Nat → Bool) (h1 : x kb = !w)
+    (h2 : x kf = w) : celNFn ka kb kf x = w := by
+  unfold celNFn; rw [h1, h2]; cases w <;> simp
+
+theorem celNFn_hold_a (ka kb kf : Nat) (w : Bool) (x : Nat → Bool) (h1 : x ka = w)
+    (h2 : x kf = w) : celNFn ka kb kf x = w := by
+  unfold celNFn; rw [h1, h2]; cases w <;> simp
 
 /-- The 2-input C-element as a node function of three pins. -/
 def celFn (ka kb kf : Nat) (x : Nat → Bool) : Bool :=

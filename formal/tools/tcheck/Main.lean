@@ -206,6 +206,11 @@ partial def loop (h : IO.FS.Stream) (g : Graph) (cur : Option Pending) (n : Nat)
     match xs.mapM parseNat!, p.late with
     | .ok ks, some (vi, L) => loop h g (some { p with late := some (vi, { L with sw := L.sw ++ ks }) }) n out
     | _, _ => return .error s!"bad sw line: {line}"
+  | "blocked0" :: xs, some p =>
+    match xs.mapM parseNat!, p.late with
+    | .ok ks, some (vi, L) =>
+      loop h g (some { p with late := some (vi, { L with blocked0 := L.blocked0 ++ ks }) }) n out
+    | _, _ => return .error s!"bad blocked0 line: {line}"
   | "blocked" :: xs, some p =>
     match xs.mapM parseNat!, p.late with
     | .ok ks, some (vi, L) =>

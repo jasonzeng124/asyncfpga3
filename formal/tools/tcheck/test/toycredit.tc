@@ -8,6 +8,7 @@
 #   credit-lie      same with potA(3,1) claimed 500: refuted, CERTBAD
 #   credit-or-fail  data from X latest 300, OR at D: A = 195-300: FAIL -105
 #   credit-max-pass same with D a max node over its two inputs: A = 515-300: PASS 215
+#   blocked0-pass   (below) phase-0-only blocking of the fork pin: PASS 215
 graph 6
 g 1 2 0 100 300 100 300 100 300 100 300 100 300 100 300
 g 2 3 0 10 20 10 20 10 20 10 20 10 20 10 20
@@ -87,4 +88,23 @@ cap 100000
 pot 2 0 100
 acap 515
 apot 2 0 0 3 0 10 4 0 30 5 0 80 5 1 80 6 0 400 6 1 400 1 1 405 2 1 505
+end
+# blocked0-pass: as credit-or-fail, with the fork pin 4 blocked in phase 0 only
+# (blocked0): the loop through 4 is gone in phase 0, phase 1 is entered only at 6
+# (lo 400 from X): A = (6,1) 400 + 5 + 100 + 10 = 515 - 300: PASS 215
+inst blocked0-pass
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5 6
+blocked0 4
+credit 2
+aarc 0 1 10 300
+xpair 2 1 3 1
+cap 100000
+pot 2 0 100
+acap 515
+apot 2 0 0 3 0 10 4 0 30 6 0 400 6 1 400 1 1 405 2 1 505
 end

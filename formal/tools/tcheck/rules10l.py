@@ -26,13 +26,17 @@ Rules (letters):
      z over its REQUEST pin only, under H_REQ_AGREE -- r's request pin is low with r
      at the launch, a protocol fact -- instead of H_OR_IDLE).
   K  B's X4 second half, ctl_req -> {uj0, uj1(, uj2)} weak isochrony: launch = the
-     control link's controller C (root of every join's ctl pin); data = C -> each
-     join's ctl pin (any change the edge causes there); target = (that join's select
-     pin, phase 1), phase 1 entered at C's handshake inputs with (C, 1) a max node
-     (C's next edge); the control link's latch (s) moves only after C's next edge
-     (H_S_HELD: its enable is C, rule H keeps D = Q while it closes).  PASS: the ctl
-     pulse at every join has ended before s can change there, so no stale pulse can
-     fire the newly selected join (B's `mux_needs_iso_cr`).
+     control channel's request driver C (common storage root of every join's ctl pin);
+     data = C -> one join's ctl pin (any change the edge causes there; one instance per
+     join); target = (that join's select pin s, phase 1); phase 1 entered at C's
+     handshake inputs, (C, 1) a max node over them (C's next edge), and the select
+     latch's output a phase-1 max node over its enable pins (H_LATCH_CLOSED: C's edge
+     closed it with D = Q, which rule H checks, so it moves only after its enable
+     reopens, i.e. after C's next edge).  PASS: the ctl pulse at the join has ended
+     before s can change there, so no stale pulse can fire the newly selected join
+     (B's `mux_needs_iso_cr`).
+  D  diagnostics only (no instances): Fd's least-margin pairs on cm12 / ushrsi3 with
+     the arcs shared by the data and late critical paths (rule_FdDiag).
 """
 import heapq
 import math
@@ -52,6 +56,8 @@ def emit_all(c, which):
         rule_XC(c)
     if "K" in which:
         rule_K(c)
+    if "D" in which:
+        rule_FdDiag(c)
 
 
 # ---------------------------------------------------------------- product-graph Dijkstra
@@ -263,35 +269,59 @@ def emit_credited(c, I, L, D, pairs, spec_of, meta):
             path.append(x); x = prev[x]
         path.append(x)
         path.reverse()
-        # 2. X: the deepest phase-0 node of that path that dominates the data
-        X = None
-        for (p, ph) in path:
-            if ph == 0 and p in pin2key and p != D:
-                X = p
-        if X is None:
+        # 2. X candidates: phase-0 nodes of that path that dominate the data, shallow first
+        onp = [p for (p, ph) in path if ph == 0 and p in pin2key and p != D]
+        cands = sorted(set(onp), key=lambda p: idxD[pin2key[p]])
+        if not cands:
             # no shared node on the path: credit the deepest dominator anyway (sound,
             # it only splits the certificate)
-            cands = sorted((idxD[pin2key[p]], p) for p in pin2key if p != D)
-            X = cands[-1][1] if cands else None
-        if X is None:
+            allc = sorted((idxD[pin2key[p]], p) for p in pin2key if p != D)
+            cands = [allc[-1][1]] if allc else []
+        if not cands:
             meta["skip"] = "no dominator"
             break
-        XK = pin2key[X]
-        arcsA, reachA = _sub_dag(I, XK)
-        lateA = {}
-        if arcsA:
-            class _I:
-                pass
-            IA = _I(); IA.arcs = arcsA
-            lateA = _late_hi(IA, XK, v)
-        lA = max(lateA.get(d, 0) for d in datas)
-        idxA = _topo(arcsA, XK) if arcsA else {XK: 0}
-        # 3. potA (from (X,0)), its arg-max per max node; potB (X blocked, same arcs)
-        bestA, capA, argA = dij(G, spec, v, (X, 0), tg, maxn=maxn, bound=lA + SLACK)
-        bestB, capB, _ = dij(G, spec, v, (spec["s"], 0), tg, block=(X, 0), maxn=maxn,
-                             fixed=argA, bound=lD + SLACK)
-        mB = min(bestB.get(t_, capB) for t_ in tg) if tg else 0
-        mA = min(bestA.get(t_, capA) for t_ in tg) if tg else 0
+        tmin = lambda b, cp: min(min(b.get(t_, cp), cp) for t_ in tg)   # noqa: E731
+
+        def evaluate(X):
+            XK = pin2key[X]
+            arcsA, _reach = _sub_dag(I, XK)
+            lateA = {}
+            if arcsA:
+                class _I:
+                    pass
+                IA = _I(); IA.arcs = arcsA
+                lateA = _late_hi(IA, XK, v)
+            lA = max(lateA.get(d, 0) for d in datas)
+            idxA = _topo(arcsA, XK) if arcsA else {XK: 0}
+            # potA (from (X,0)) and potB (X blocked); one arc per max node must serve both
+            # certificates (Pot2OK): try A's arg-max and B's arg-max, keep the better
+            bestA, capA, argA = dij(G, spec, v, (X, 0), tg, maxn=maxn, bound=lA + SLACK)
+            bestB, capB, _ = dij(G, spec, v, (spec["s"], 0), tg, block=(X, 0), maxn=maxn,
+                                 fixed=argA, bound=lD + SLACK)
+            if maxn:
+                bB2, cB2, argB = dij(G, spec, v, (spec["s"], 0), tg, block=(X, 0), maxn=maxn,
+                                     bound=lD + SLACK)
+                if argB != argA:
+                    bA2, cA2, _ = dij(G, spec, v, (X, 0), tg, maxn=maxn, fixed=argB, bound=lA + SLACK)
+                    m1 = min(tmin(bestB, capB) - lD, tmin(bestA, capA) - lA)
+                    m2 = min(tmin(bB2, cB2) - lD, tmin(bA2, cA2) - lA)
+                    if m2 > m1:
+                        bestA, capA, bestB, capB = bA2, cA2, bB2, cB2
+            marg = min(tmin(bestB, capB) - lD, tmin(bestA, capA) - lA)
+            return marg, (X, arcsA, idxA, lA, bestA, capA, bestB, capB)
+        tried = {}
+        best_m, sol = evaluate(cands[0])
+        tried[cands[0]] = best_m
+        if best_m < 0:
+            for X2 in cands[1:]:
+                m2, sol2 = evaluate(X2)
+                tried[X2] = m2
+                if m2 > best_m:
+                    best_m, sol = m2, sol2
+        X, arcsA, idxA, lA, bestA, capA, bestB, capB = sol
+        mB = tmin(bestB, capB)
+        mA = tmin(bestA, capA)
+        meta.setdefault("tried", {})[v] = {k.replace("urig.udut.", ""): m_ for k, m_ in tried.items()}
         meta["x"][v] = dict(X=X.replace("urig.udut.", ""), x_kind="out" if T.is_output(X) else "pin",
                             lD=lD, lA=lA, potB=min(mB, capB), potA=min(mA, capA),
                             uncredited=min(best0.get(t_, cap0) for t_ in tg) - lD,
@@ -310,6 +340,8 @@ def emit_credited(c, I, L, D, pairs, spec_of, meta):
             f.write("sw " + " ".join(str(G.id[p]) for p in sorted(spec["sw"]) if p in G.id) + "\n")
         if spec["blocked"]:
             f.write("blocked " + " ".join(str(G.id[p]) for p in sorted(spec["blocked"])) + "\n")
+        if spec.get("blocked0"):
+            f.write("blocked0 " + " ".join(str(G.id[p]) for p in sorted(spec["blocked0"]) if p in G.id) + "\n")
         cut = sorted((G.id[a], G.id[b]) for a, b in spec.get("cut", ()) if a in G.id and b in G.id)
         for i in range(0, len(cut), 32):
             f.write("cut " + " ".join(f"{a} {b}" for a, b in cut[i:i + 32]) + "\n")
@@ -340,6 +372,14 @@ def emit_credited(c, I, L, D, pairs, spec_of, meta):
 
 
 # ---------------------------------------------------------------- C: X / Xi / Xm credited
+
+def _own_latch_outs(c, ctl):
+    """Output pins of the latch bits whose enable controller is `ctl` (a pin)."""
+    T = c["T"]
+    lc = K._latch_ctl(c)
+    lis = {li for li, (cc, _) in lc.items() if cc == ctl}
+    return {q for q in c["edges"] if T.is_output(q) and T.pin_split(q)[0] in lis}
+
 
 def _cell(inst):
     return inst.rsplit(".", 1)[0]
@@ -420,6 +460,8 @@ def rule_XC(c):
                         sw.add(r)
                 return dict(base, sw=sw), {}, pick.rsplit("/", 1)[1]
 
+            own = _own_latch_outs(c, D)
+
             def spec_M(v):
                 sw = set(cand)
                 maxn = {(D, 1): [(p, 1) for p in cand]}
@@ -428,9 +470,21 @@ def rule_XC(c):
                     if len(rq) == 1:
                         sw.add(rq[0])
                         maxn[(r, 1)] = [(rq[0], 1)]
+                        # the steer's branch LUT driving r's request: held at 0 by the
+                        # steer's own (low) request pin (MaxNode.ctl_needs_pin, H_REQ_AGREE)
+                        drv = sorted(c["back"].get(rq[0], ()))
+                        if len(drv) == 1 and T.is_output(drv[0]):
+                            sinst = T.pin_split(drv[0])[0]
+                            sreq = [q for q in _in_pins(c, sinst) if _W(c, q, drv[0]) is not None
+                                    and _roots(c, q)[0]
+                                    and not any(T.RE_BD_LATCH.search(T.pin_split(x)[0]) for x in _roots(c, q)[0])]
+                            if len(sreq) == 1:
+                                maxn[(drv[0], 0)] = [(sreq[0], 0)]
                     else:                       # request pin not identified: rule X's switch
                         sw.add(r)
-                return dict(base, sw=sw), maxn, {"cand": [q.rsplit("/", 1)[1] for q in cand], "req_pins": {r.replace("urig.udut.", ""): [q.rsplit("/", 1)[1] for q in req_pin[r]] for r in others}}
+                return dict(base, sw=sw, blocked0=own), maxn, {"cand": [q.rsplit("/", 1)[1] for q in cand], "own_latch_bits": len(own),
+                                                 "max": [f"{m[0].replace('urig.udut.', '')}:{m[1]}<-" + ",".join(q[0].rsplit('/', 1)[1] for q in g) for m, g in maxn.items()],
+                                                 "req_pins": {r.replace("urig.udut.", ""): [q.rsplit("/", 1)[1] for q in req_pin[r]] for r in others}}
             meta0 = {"ctl": ui, "z": D, "roots": len(zd), "z_pin": p0}
             emit_credited(c, _relabel(I, "Xc"), L, D, pairs, lambda v: spec_X(v, False),
                           dict(meta0, rule="Xc"))
@@ -488,6 +542,10 @@ def rule_K(c):
             c["meta"].append(meta)
             continue
         C = next(iter(common))
+        # the select latch: closed by C's edge with D = Q (rule H), its output is a max node
+        # over its enable pins in phase 1 (it moves only once the enable reopens, which needs
+        # C's next edge: MaxNode.cel_needs_pin with the enable as the agreeing pin)
+        lc = K._latch_ctl(c)
         cf = _fb_pins(c, C)
         cand = [p for p in _in_pins(c, T.pin_split(C)[0])
                 if p not in cf and _W(c, p, C) is not None and _roots(c, p)[0]]
@@ -495,9 +553,21 @@ def rule_K(c):
             meta["skip"] = "C has no handshake input"
             c["meta"].append(meta)
             continue
+        maxn = {(C, 1): [(p, 1) for p in cand]}
+        nlat = 0
+        for ji in jinst:
+            for sp in sel_pins[ji]:
+                for r_ in _roots(c, sp)[0]:
+                    li = T.pin_split(r_)[0]
+                    if li in lc and lc[li][0] == C:
+                        ens = [en for en in lc[li][1] if T.pin_split(en)[0] == li and _W(c, en, r_) is not None]
+                        if ens:
+                            maxn[(r_, 1)] = [(en, 1) for en in ens]
+                            nlat += 1
         base = c["certs"].spec(C, [], two=1, sw=set(cand))
         base["cut"] = set()
-        maxn = {(C, 1): [(p, 1) for p in cand]}
+        base["blocked0"] = _own_latch_outs(c, C)
+        meta.update(latches=nlat, own_latch_bits=len(base["blocked0"]))
         n_ok = 0
         for ji in jinst:
             cps = [p for p in ctl_pins[ji] if C in _roots(c, p)[0]]
@@ -515,3 +585,70 @@ def rule_K(c):
         if not n_ok:
             meta["skip"] = "ctl route not walkable"
             c["meta"].append(meta)
+
+
+# ---------------------------------------------------------------- D: diagnostics for Fd (no instances)
+
+def rule_FdDiag(c, only=("ucontrol_merge12", "ushrsi3")):
+    """Evidence only (writes JSON meta, no obligations): for the Fd lines named in
+    `only`, per corner variant and per pair, the data-side critical path, the late
+    critical path, and the arcs the two share.  A shared arc is the SAME routed element
+    carrying the fall (data, at hi) and the next rise (late, at lo): under a fixed delay
+    per element and rise = fall (H_FIXED_DELAY + no H_RF_ASYM) the two charges cancel,
+    so sum(hi - lo) over shared arcs is how much of a failure is the band's two-edge
+    charge on one element rather than a real race."""
+    G = _graph(c)
+    real = K.emit_pairs
+
+    def diag(c_, I, L, spec, pairs, meta, spec_v=None):
+        if not any(o in I.label for o in only):
+            return False
+        pin = lambda k: k[1] if k[0] == "launch" else k[-1]   # noqa: E731
+        out = {}
+        for v in c_["VARIANTS"]:
+            # data: longest hi path to each paired node, with its arcs
+            succ = defaultdict(list)
+            for a, b, iv, _ in I.arcs:
+                succ[a].append((b, iv[v]))
+            late, how = {L: 0}, {}
+            order = _topo(I.arcs, L)
+            for n in sorted(order, key=order.get):
+                for b, (lo, hi) in succ.get(n, ()):
+                    if late[n] + hi > late.get(b, -1):
+                        late[b] = late[n] + hi; how[b] = (n, lo, hi)
+            tg = {(p, ph) for _, p, ph in pairs}
+            prev = {}
+            best, cap, _ = dij(G, spec, v, (spec["s"], 0), tg, prev=prev)
+            rows = []
+            for d, p, ph in pairs:
+                if d not in late or (p, ph) not in best:
+                    continue
+                darcs, x = {}, d
+                while x in how:
+                    n, lo, hi = how[x]; darcs[(pin(n), pin(x))] = (lo, hi); x = n
+                larcs, y = set(), (p, ph)
+                while y in prev:
+                    z = prev[y]
+                    if z[0] != y[0]:
+                        larcs.add((z[0], y[0]))
+                    y = z
+                common = [a for a in darcs if a in larcs]
+                credit = 0
+                for a in common:
+                    lo_ = next((iv[v][0] for dd, iv in G.succ.get(a[0], ()) if dd == a[1]), 0)
+                    credit += darcs[a][1] - lo_
+                rows.append(dict(stage=p.rsplit("/", 1)[0].rsplit(".", 2)[-2] if "." in p else p,
+                                 margin=best[(p, ph)] - late[d], data=late[d], late=best[(p, ph)],
+                                 shared=len(common), shared_credit=credit,
+                                 shared_arcs=[f"{a[0].replace('urig.udut.', '')}->{a[1].replace('urig.udut.', '')}" for a in common][:6]))
+            rows.sort(key=lambda r: r["margin"])
+            out[v] = rows[:4]
+        meta["diag"] = out
+        meta["label"] = I.label
+        c_["meta"].append(meta)
+        return True
+    K.emit_pairs = diag
+    try:
+        K.rule_Fd(c)
+    finally:
+        K.emit_pairs = real

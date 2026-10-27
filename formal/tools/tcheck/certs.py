@@ -91,7 +91,7 @@ class CertGraph:
             lo = iv[v][0]
             if ph == 0:
                 if (spec["noFr0"] and (p, d) in self.fr and not (spec["swStor"] and st)) \
-                        or (spec["stop0"] and st):
+                        or (spec["stop0"] and st) or p in spec.get("blocked0", ()):
                     continue
                 res.append(((d, 1 if (spec["swStor"] and st) else 0), lo))
             elif spec["two"]:

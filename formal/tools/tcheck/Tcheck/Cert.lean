@@ -56,6 +56,10 @@ structure Late where
   fast-fall side taps of the cell's own delay line, inert on a rise under
   H_FF_DRAINED, which rule Fd checks). -/
   cut : List (Nat × Nat) := []
+  /-- C-10l: pins whose arcs are dropped in phase 0 only (rules Xm, K: the launch
+  controller's own latch bits, closed by the launch edge with D = Q, H_OWN_LATCH_CLOSED;
+  they reopen only after the controller's next edge, i.e. in phase 1). -/
+  blocked0 : List Nat := []
 
 def enc (L : Late) (p ph : Nat) : Nat := if p = L.s ∧ ph = 0 then 0 else 2 * (p + 1) + ph
 
@@ -64,7 +68,7 @@ def expand (L : Late) (stor : Nat → Bool) (g : GArc) : List Arc :=
   if L.blocked.contains g.src || L.cut.contains (g.src, g.dst) then [] else
   let st := stor g.src && g.src != L.s
   let a0 : List Arc :=
-    if (L.noFr0 && g.fr && !(L.swStor && st)) || (L.stop0 && st) then []
+    if (L.noFr0 && g.fr && !(L.swStor && st)) || (L.stop0 && st) || L.blocked0.contains g.src then []
     else [⟨enc L g.src 0, enc L g.dst (if L.swStor && st then 1 else 0), g.lo, g.hi⟩]
   let a1 : List Arc := if L.two then [⟨enc L g.src 1, enc L g.dst 1, g.lo, g.hi⟩] else []
   a0 ++ a1
