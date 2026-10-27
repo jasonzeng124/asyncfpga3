@@ -178,9 +178,9 @@ The physical relation is `LutFb F p qp o` (`OpsGen.lean:86`) or `LutSI` (:90).
 
 **These theorems are not instantiated on the 367 operators of §0.1.**
 - It is not proved that every operator in `CapstoneNet` is an instance of a bound kind.
-- Not bound at all: fork/join for N ≥ 3 (forks), C-trees for N ≥ 4 (H_CTREE_ATOMIC), the data
-  paths, and the arbiter's grants.
 - Bound kinds per the OpsGen header: fork N = 2; join N = 2, 3.
+- Not bound at all: forks with N ≥ 3 (20 of gcd_hw's 52; B-gcd-cells), C-trees for N ≥ 4
+  (H_CTREE_ATOMIC), the data paths, and the arbiter's grants.
 
 | hypothesis | where | statement | grade | evidence | test | status |
 |---|---|---|---|---|---|---|
