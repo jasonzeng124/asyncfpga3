@@ -1190,6 +1190,80 @@ def median_hop(edges):
     return d[len(d) // 2] if d else 1
 
 
+def chain_link_costs(edges, chains):
+    """What one MORE link costs, per bd_delay chain on this route, in ps.
+
+    Adding a link to a chain adds that link's LUT arc AND the routed hop that
+    now separates it from its neighbour.  A chain of n links is n LUT arcs and
+    n - 1 hops, so its length divided by n -- what rule A used to price a link
+    at -- is not that.  It is short by a hop / n, and at n == 1 it is the bare
+    124 ps LUT arc with no wire at all.  That is how it1 of the xorshift sizing
+    run priced ucontrol_merge1's 3162 ps shortfall at 124 ps a link, asked for
+    27 links where a link on that route costs ~419 ps, and left the cell at 32
+    links that its own later routes said should be 4.
+
+    So: per chain with at least two links, the n - 1 link-to-next steps (the
+    LUT arc of link i, plus the hop from link i to link i+1), each the
+    shortest routed arc between those pins, averaged.  Read straight off the
+    routed SDF.  A one-link chain has no hop to measure and is not in the
+    result.  -> {base: ps per added link}
+    """
+    where = {inst: (base, i) for base, links in chains.items()
+             for i, inst in enumerate(links)}
+    lut, hop = {}, {}
+    for src, lst in edges.items():
+        si = pin_split(src)[0]
+        if si not in where:
+            continue
+        base, i = where[si]
+        for dst, w in lst:
+            di = pin_split(dst)[0]
+            if di == si and not is_output(src) and is_output(dst):
+                lut[base, i] = min(lut.get((base, i), math.inf), w)
+            elif where.get(di) == (base, i + 1):
+                hop[base, i] = min(hop.get((base, i), math.inf), w)
+    out = {}
+    for base, links in chains.items():
+        steps = range(len(links) - 1)
+        if not steps or any((base, i) not in lut or (base, i) not in hop
+                            for i in steps):
+            continue
+        out[base] = sum(lut[base, i] + hop[base, i] for i in steps) / len(steps)
+    return out
+
+
+def rule_a_links(n, margin, own_ps, route_ps, legacy_ps):
+    """Rule A's proposal: how many links make this request trail its latest
+    peer by the guardband, which `margin` already has subtracted.
+
+    own_ps    what one more link costs on THIS cell's chain (chain_link_costs),
+              or None when its chain is too short to measure a hop on.
+    route_ps  every chain_link_costs value on the route.
+    legacy_ps the old per-link price (chain length / n, or the median routed
+              hop at n == 0); used only when the route has no chain to
+              measure at all.
+
+    With its own measurement a cell is priced by it in both directions.
+    Without one the price is a guess, and the guess is taken on the side that
+    makes the delay LONGER: the cheapest link seen on the route when padding
+    (a cheap link means more of them -- never under-pads), the dearest when
+    tightening (a dear link means fewer removed -- never over-tightens).
+    -> (links, ps per link used, which price it was)
+    """
+    if own_ps:
+        per, how = own_ps, "own chain"
+    elif route_ps:
+        per, how = ((min(route_ps), "route minimum") if margin < 0 else
+                    (max(route_ps), "route maximum"))
+    else:
+        per, how = legacy_ps, "no chain on this route to measure"
+    if margin >= 0:
+        want = max(0, n - int(margin // per))
+    else:
+        want = n + math.ceil(-margin / per)
+    return want, per, how
+
+
 def routed_graph(sdf):
     """The timing graph of a routed SDF as every rule sees it: false arcs cut,
     the reverse map, and the storage nodes the walks stop at.  Raises on the
@@ -1495,6 +1569,13 @@ def main():
     print("-" * 78)
     hop = median_hop(edges)
     sites = request_sites(edges, back, chains)
+    # Request-side arcs only, as the chain is timed below: a fast-fall tap is
+    # not a link.
+    link_ps = chain_link_costs(timing.early_edges, chains)
+    if link_ps:
+        print(f"link cost    one more link costs {min(link_ps.values()):.0f}-"
+              f"{max(link_ps.values()):.0f} ps on this route (LUT + routed "
+              f"hop, {len(link_ps)} chains of 2+ links)")
 
     audited = set()
     for parent, head, tail, links in sites:
@@ -1557,12 +1638,15 @@ def main():
         e_tab = timing.early(s, parent)
         if head in e_tab and tail in e_tab:
             chain_ps = e_tab[tail] - e_tab[head]
-        # One link's cost.  Measured from the chain when there is one; the
-        # median routed hop when there is not, because a zero-length line has
-        # nothing to measure and still has to be sized.
-        per = (chain_ps / n) if (chain_ps and n) else hop
-        want = max(0, n - int(margin // per)) if margin >= 0 \
-               else n + math.ceil(-margin / per)
+        # One link's cost: what ONE MORE link adds on this route, LUT plus hop
+        # (chain_link_costs).  The cell's own chain when it has a hop to
+        # measure; otherwise the route's cheapest link when padding and its
+        # dearest when tightening, so a guess always errs long (rule_a_links).
+        base = next((b for b in chains if b.rpartition(".")[0] == parent),
+                    None) if n else None
+        legacy = (chain_ps / n) if (chain_ps and n) else hop
+        want, per, how = rule_a_links(n, margin, link_ps.get(base),
+                                      list(link_ps.values()), legacy)
 
         if want > n:
             verdict = f"PAD to {want} -- VIOLATION"
@@ -1581,6 +1665,8 @@ def main():
               f"req {t_e:>5}  peak {t_l:>5}  guard {guard:>4}  "
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<22} latest peer: {pin_split(pin)[0]}")
+        if want != n:
+            print(f"  {'':<22} priced at {per:.0f} ps/link ({how})")
         if upstream_lag:
             print(f"  {'':<22} upstream link data lag: "
                   f"{upstream_lag} ps")

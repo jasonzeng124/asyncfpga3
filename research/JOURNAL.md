@@ -1046,3 +1046,13 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 - Method weakness, not fixed: UCONTROL_MERGE1 went 12 -> 1 (it0 proposals) -> 32 (tighten prices rule-A padding with
   the 124 ps cell arc rather than the ~419 ps per-link hop) and "never lower" keeps 32 although routes then say 4.
   Costs nothing measurable on training seeds (64.9 vs 65.4) -- inference, not proof that it is off the critical cycle.
+### progress 01:31 (tighten.py: rule A link pricing)
+- Rule A turned a deficit into links at chain_ps/n -- at n=1 the bare 124 ps LUT arc, so ucontrol_merge1 was told
+  "PAD to 32" when a routed link costs ~419 ps. The same average priced *tighten-to* proposals, in the unsafe
+  direction: uxori1 (xorshift it1 seed 1) margin 425 ps, real link 489 ps, old proposal "tighten to 2" (64 ps short).
+- Fix: price at the cell's own routed chain (LUT arc + hop, from the SDF); without one, pad at the route's cheapest
+  link and tighten at its dearest (both err longer); old price only if the route has no 2+ link chain. Re-priced on
+  the 16 xorshift it1-it4 routes: only ucontrol_merge1 it1 32->11 and uxori2 it1 7->6 get smaller (each <= what all
+  later routes ask); violation counts unchanged in every old/new log. 5 tests, 4 fail on a chain/n mutant.
+- No shipped claim is touched: verdicts come from measured margins, not proposals, and every claimed sizes file was
+  re-audited after its last merge. Rules H/B/C still price at chain/n (not changed). New sizes not yet routed.
