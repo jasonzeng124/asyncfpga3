@@ -1150,3 +1150,10 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   fails GLS. Equivalence is the stronger bitstream check; GLS alone is not enough.
 - Possible nextpnr defect (not on board, no shipped design affected): LDCE with .CLR(1'b0) is packed as VCC +
   IS_CLR_INVERTED, but a slice SR has no inverter, so the latch is held cleared (bits and both GLS agree).
+### progress 04:15 (collatz64: ratchet converged at T4 -- filler work)
+- collatz64 (64-bit datapath, 11 vectors incl. 8 with trajectory peak > 2^31), from placeholders: it0-it3 failed
+  (rule E 3-7 and rule A up to 12 per seed; routed GLS failed on all 8 at it0/it1 with "req out of phase on out0",
+  agreeing with rule E). **it4 (T4): rules A/E/F/H/I/J 0 and routed GLS fast+stalled pass on all 8 seeds** (rule D
+  screen 6 per seed, informational). T4H (+1 link on 10 compute cells) on fresh seeds 9-16 running.
+  Data: research/data/collatz64_sizes_T4{,H}.vh. Tool: scratch loop in wt_coll (8977190 tighten/skew), not
+  size_kernel.py -- the run began before the tool landed.
