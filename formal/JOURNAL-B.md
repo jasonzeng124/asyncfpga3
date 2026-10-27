@@ -95,6 +95,13 @@ Findings for the cell owner (not confirmed on a route):
   fail C-10d's routed RT_FB check have a positive per-pin term. A site-pin
   table in arb_fork.py/skew.py plus pins read from FASM (~0.5 d) would make
   rule J' and H_SEL_ORDER gates.
+- ROUTED ARBITER SAFETY HINGES ON THE CORNER MODEL (Bt3, OnNetlistArb):
+  on the 4 link_arb bitstreams the A0 fork is safe on 8/8 seed x client
+  pairs at one die corner (proved on C's Behaves), negative on 8/8 if each
+  delay is independent in [fast_min, slow_max], and negative on 7/8 at the
+  fast corner once the 0.772/1.155 guardband is applied on top (arithmetic,
+  not Lean), while shipped rule J passes all 8. The corner model needs board
+  or GLS evidence (A's kappa estimator).
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
