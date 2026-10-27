@@ -5,11 +5,13 @@
 Probe WE4g: a copy of events7/cert7.py (A-events7, unchanged below except where marked WE4g)
 plus the GUARD certificates of Events8Cert.GuardOK8.  Per guarded pin p of stage j (source D,
 guard pin g = gp with source Gs, guard label (grp, br) from ana's guard_info, label source S):
-the pin's grp/br are set to the guard's label, and a `guards` entry "j/p" gives S and six log
-lines: iD (walk D -> S, no token), iB (BACK-G: walk S -> j in the label, <= 1 token), iU
-(U-bound Gs -> S in the label), iW (walk S -> D, <= 1 token), iX (closed walk D -> D, 1 token),
-iG (walk S -> Gs in the label, no token).  The labelled walks start at S because the Events7
-SUB rule's walk starts at the label's source.  --no-guard emits none of them (then every guarded pin is residual).
+the pin's grp/br are set to the guard's label, and a `guards` entry "j/p" gives S, three log
+lines iU (U-bound Gs -> S in the label), iW (walk S -> D, <= 1 token), iX (closed walk D -> D,
+1 token), and two HYPOTHESIS lines (the `hyp` list, Events8Cert.HLn) iB (BACK-G: labelled walk
+D -> j, <= 1 token) and iG (labelled walk D -> Gs, no token).  A labelled walk from D that enters
+its label by SUB at a merge is NOT a valid Events7 log line (SUB starts at the label's source S);
+it is emitted as a `dsub` hypothesis line (its truth is the hypothesis Events8Cert.HDsub), never
+into the log.  --no-guard emits no guard certificate (then every guarded pin is residual).
 Original cert7 docstring follows.
 
 

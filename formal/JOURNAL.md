@@ -330,3 +330,16 @@ untested against that alone; kept as Wip/LutList/Bridge.switched.lean. Deleting 
 needs one coordinated commit (B + C + Bridge); the end-state trial compiled all 189
 Mathlib-free dependents. Recipe and per-file diffs for B and C: notes/A-lutlist.md
 (rerun the switch scripts on the live tree; B's tree has moved).
+### progress 12:38
+WE4g -> Events8 claimed (check.sh with deps: 2489 lib decls, xevents8 2724, OK):
+GuardOK is no longer a hypothesis of the gcd_hw verdict; each of the 63 guarded pins
+per row carries a Lean-checked guard certificate (BACK-G, LINE, ENTRY, EXIT, strict).
+It is replaced by a narrower named count hypothesis **HDsub** (126 SUB judgements from
+the guarded source D; the Events7 SUB rule is sound only from the label source; ~1 day
+to close). design_verdict8 hypotheses: SatPin, constant wires/reset, H_ARB, SelOK,
+SelPart, HDsub. Rows: slow and fast CLEAN on all 4 seeds (63/63 guards); gb: seed d
+FAILS ENTRY on 3 arbiter guard pins (ucontrol_merge3.uarb1.ua2 pin0 -51 ps,
+ucontrol_merge3.uarb1.ua1 pin0 -94, ucontrol_merge2.uarb1.ua2 pin0 -68), seeds 3/4
+CLEAN, seed 5 only the rig uenv1 item; indep 46-51/63 guards. Negative controls
+rejected. Wip/Events7.lean's fmax guardCnt shown wrong (guard_fmax_neg), superseded.
+Next: probe HDsub.
