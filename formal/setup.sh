@@ -33,8 +33,13 @@ if ! elan toolchain list 2>/dev/null | grep -q "v$VER"; then
   fi
 fi
 lean --version
-[ -d .lake/packages/mathlib ] || retry lake update || { echo "[setup] FAIL: lake update"; exit 1; }
-if lake exe cache get; then
+# If the Mathlib cache host is blocked, `cache get` (also run by lake update's
+# post-update hook) fails file by file for hours: probe it once and skip it.
+CACHE_OK=1
+curl -sS -m 15 -o /dev/null https://cache.mathlib.org/ 2>/dev/null || CACHE_OK=0
+[ $CACHE_OK = 0 ] && { echo "[setup] cache.mathlib.org unreachable: skipping the cache"; export MATHLIB_NO_CACHE_ON_UPDATE=1; }
+[ -d .lake/packages/mathlib/Mathlib ] || retry lake update || { echo "[setup] FAIL: lake update"; exit 1; }
+if [ $CACHE_OK = 1 ] && lake exe cache get; then
   echo "[setup] Mathlib oleans from cache"
 else
   echo "[setup] Mathlib cache unreachable: building the imported part of Mathlib from source"
