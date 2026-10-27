@@ -15,7 +15,7 @@
   verified checker accepting a routed link netlist (fixed per-arc delays)
   implies that FIFO conclusion, with H_CEL_SI and H_LATCH derived from the real
   INITs on routed pin copies; found an obligation the project rules lack (latch
-  open width). Gate level (`Muller*`, SI exhaustive, n<=4): with a free
+  open width). Gate level (`Muller*`; for EVERY n via `MullerAll*`, 9c): with a free
   feedback wire the real bd_c2n chain glitches already at n=1; with isochronic
   feedback or H_FB_BEFORE_INPUT it is hazard-free. Timed bridge (`Bridge*`):
   persistent + NoOvertake channels => timed traces are SI runs; per-change
@@ -273,3 +273,8 @@ theorem: open O1 (circuit follows the token run's control_merge labels), O2
 (total stream solution), O4 (Ops gates = generated cells + C2), O5 (circuit
 liveness), O7 (concrete network). Launched 8m (O7+O2+O1 -> gcd_hw_circuit_safe)
 and 8n (O4 + bounded-delay liveness).
+
+### progress 07:22
+9c committed: the gate-level bd_link chain is hazard-free / four-phase / in
+order for every n (iso, rt and timed under FbBound) via a two-position
+adjacency invariant + kernel-checked windows + gluing lemma.
