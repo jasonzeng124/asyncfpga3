@@ -6,3 +6,4 @@ import Tcheck.Cert
 #print axioms Tcheck.window_eq
 #print axioms Formal.Timing.pot_sound
 #print axioms Tcheck.cverdict_sound
+#print axioms Tcheck.pverdict_sound

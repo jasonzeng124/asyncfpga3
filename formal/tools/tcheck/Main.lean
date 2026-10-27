@@ -20,6 +20,11 @@ Output, one line per instance, tab separated:
 
     LABEL  PASS|FAIL|ILLFORMED  margin  req=[e,l]  data_late=L  arcs=N
 
+C-10k additions inside a cert instance (after its `late` line): `cut A B ...` (routed
+arcs dropped from the late side, `Tcheck.Late.cut`) and `pair D X PH` (per-pair
+targets: the verdict is then `Tcheck.pverdict`, proved in `Tcheck.pverdict_sound`,
+and the margin is the least pair margin).
+
 The verdict is `Tcheck.verdict` (= decide WF && 10d's checkArr), proved sound in
 `Tcheck.verdict_sound`; margin is `Tcheck.margin` (= 10a's `slack`).
 -/

@@ -164,3 +164,23 @@ The proof would be `Capstone.latched_const`, applied to the O2 solution (with
 `amerge_op_forced` for the control_merges and the other `*_op` theorems for the remaining
 operators). Everything named in that chain exists and checks except O1, O2 and the concrete
 network term (½ day of bookkeeping once O2 fixes the value conventions).
+
+## Status update after probe 10k (lead, merged)
+
+The timing hypotheses this list marked "no tcheck rule checks this yet" are now
+rows of the proved checker on the 4 gcd_hw routes (d, 2, 3, 4); full per-row
+table in `formal/notes/C-10k-fbfirst.md`, data in
+`formal/tools/tcheck/results/r10k_rows.tsv`. Summary:
+- H_FB_FIRST / H_FB_SETTLED: implied by RT_FB (`FbFirstRt.fbFirst_of_resp`,
+  plus protocol fact H_RESP_ONLY); holds wherever Rc passes, i.e. everywhere
+  except the rig's urig.uenv1 under the band on seeds 2 and 4.
+- H_AMERGE_RTZ (rule Z): holds on all routes, all models (worst +383 ps),
+  except cm12 on seeds 3/4 under the band (through H_FF_DRAINED).
+- H_FF_DRAINED (rule Fd; rule F is NOT sufficient, incomparable): passes
+  unguarded everywhere; band failures on cm12 (seeds 3, 4) and ushrsi3 (seed 4).
+- H_MUX_RTZ / X1 / A3 pulse (rules X, Xi): 0 failures at sdf/fast/slow; band
+  failures only on muxes whose z_ack is a steer OR (umux10, umux16 on seeds
+  3/4, worst -2208 ps; shared DACK ripple charged twice -- shared-prefix
+  credit open). Xi adds H_OR_IDLE.
+- Still unchecked: X4 ctl_req->uj fork, M3, C7.
+Every row passes at sdf, fast and slow; all remaining failures are band-only.
