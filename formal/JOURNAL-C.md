@@ -8,7 +8,20 @@
   (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair-window progress.
   The rule "3" is 2k+1 at k=1, resting on H_ONE_TOKEN (unproved). Not yet tied
   to bounded-delay traces (probe 8d). Effort to finish: ~1-2 days.
-- Tracks 8, 10, 11, 12: pending.
+- **Track 8 (composition): works (protocol level + Muller stage).**
+  `Formal/Net/Handshake*.lean`: n-stage four-phase pipeline is a FIFO and live
+  given per-link obligations (source SetupHold around ack-fall; internal Sep =
+  rule I/SDELAY, Hold = rule H/DACK; per-stage H_LATCH). Kahn/gcd (8b),
+  gate-level Muller SI (8c), SI->timed bridge (8d), checker->FIFO end-to-end
+  (8e) pending. Gaps: forks/joins/merges, general wire delays.
+- **Track 10 (verified timing checker): works.** `Formal/Timing/{Semantics,
+  Checker,CheckerToy}.lean`: interval STA over BoundedDelay arcs, executable,
+  sound and per-node exact. Bundling check exact when req and data share only
+  the launch; with a shared arc it is conservative under fixed delays (CPPR
+  pessimism) but justified under per-event delays (glitches pass). Rules
+  E/A/J exactness (10b) pending. Effort to real routed netlists: ~1-2 weeks
+  (array version, prjxray per-pip intervals, CPPR).
+- Tracks 11, 12: pending.
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 
@@ -35,3 +48,11 @@ Cells.CElemFn). Surprise: tb_ring.v's occupancy sweep never varies the token
 count (every 0<K<N reset carries one token), so a 2-token ring was never
 tested on the bench; N=4 with two tokens is dead. Launched 8d (SI
 interleaving -> timed traces bridge, to discharge H_SI for Ring/Muller).
+
+### progress 03:20
+10a and 8a committed after my own per-file compile + axiom audit (I fixed one
+doc comment in CheckerToy that tripped check.sh's textual scan: the word
+native_decide in a /-- -/ comment). Finding from 8a: the bundling window must
+end at ack-fall (latch closes), not ack-rise; internal links need only
+control-event separations. Killed Mathlib's `cache get` (9031 x 403, 18 min);
+Mathlib now builds from source. Launched 8e (checker accepts => pipeline FIFO).
