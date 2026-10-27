@@ -28,3 +28,6 @@ prjxray makesdf.py; research bd_prims_sim.v has the same misreading -> REFUTED),
 CONFIRMED, 10/10 mutants break), transcription (0 mismatches). BQ#1 rebuilt from clean: sdf md5 and bit payload
 identical; routed.json md5 not reproducible (embedded paths). Still running: shard A and B statement audits;
 formal lake build (Mathlib).
+
+### progress 03:46
+Formal clean build OK (981 jobs). Own axiom audit: 6707 constants, 0 bad; planted-sorry control caught 4/4. BQ#1 routed GLS with own judge + negative control delegated.

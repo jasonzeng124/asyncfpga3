@@ -58,7 +58,7 @@ theorem flips_same : ∀ (l : List ℝ) (t : ℝ),
   | [], _ => rfl
   | a :: l, t => by
       simp only [Formal.Core.Bridge.flips, Formal.Core.TraceEvent.flips, flips_same l t]
-      rfl
+
 
 #print axioms Formal.Core.Discretize.chan_sample
 #print axioms Formal.Core.Discretize.circuit_sample

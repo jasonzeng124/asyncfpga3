@@ -104,4 +104,64 @@ theorem drop_pulse_cex :
   have := h 7 (by decide) (by decide)
   revert this; decide
 
+/-! ### H_ENV_LATENCY is necessary (not only sufficient) for `c2_four_phase`.
+Counter-model: dl = 1, dw = 2 (fixed), E = 1, so `dlmax + dwmax = 3 > 2 = dlmin + E`.
+Rising phase at 8m+4 (a = b = 1), the environment drops `a` one tick after it saw
+O = 1, before the ack has gone round the feedback wire: O glitches low at 8m+7,
+inside the window where the theorem promises O = 1. Every OTHER hypothesis holds. -/
+def a2 : Trace := fun t => decide (t % 8 = 4 ∨ t % 8 = 5)
+def b2 : Trace := fun t => decide (t % 8 = 4 ∨ t % 8 = 5 ∨ t % 8 = 6)
+def O2 : Trace := fun t => decide (t % 8 = 5 ∨ t % 8 = 6)
+def qp2 : Trace := fun t => O2 (t - 2)
+def c2' : Nat → Nat := fun k => 8 * (k / 2) + 4 + 3 * (k % 2)
+
+theorem loop2 : Loop INIT_c2 a2 b2 rst O2 qp2 1 1 2 2 where
+  H_LUT := by
+    intro t ht
+    refine ⟨t - 1, by omega, by omega, ?_⟩
+    simp only [rst, c2_eq, a2, b2, qp2, O2]
+    have h8 : (t - 1) % 8 = 0 ∨ (t - 1) % 8 = 1 ∨ (t - 1) % 8 = 2 ∨ (t - 1) % 8 = 3 ∨
+      (t - 1) % 8 = 4 ∨ (t - 1) % 8 = 5 ∨ (t - 1) % 8 = 6 ∨ (t - 1) % 8 = 7 := by omega
+    rcases h8 with h | h | h | h | h | h | h | h <;>
+    · have e1 : t % 8 = ((t - 1) % 8 + 1) % 8 := by omega
+      by_cases hs : t - 1 < 2
+      · have e2 : t - 1 - 2 = 0 := by omega
+        rw [e1, e2, h]; simp <;> omega
+      · have e2 : (t - 1 - 2) % 8 = ((t - 1) % 8 + 6) % 8 := by omega
+        rw [e1, e2, h]; simp
+  H_FB := by intro t ht; exact ⟨t - 2, by omega, by omega, rfl⟩
+  H_LOOP_POS := by decide
+
+theorem drop_env_latency_cex :
+    Loop INIT_c2 a2 b2 rst O2 qp2 1 1 2 2 ∧
+    (∀ k, V (k + 1) = !V k) ∧
+    (∀ k, c2' k < c2' (k + 1)) ∧
+    (∀ k, a2 (c2' k) = V k ∧ b2 (c2' k) = V k) ∧
+    (∀ k s, c2' k ≤ s → s < c2' (k + 1) → a2 s = V k ∨ b2 s = V k) ∧
+    (∀ s, c2' 0 ≤ s → rst s = false) ∧
+    (∀ k s, c2' k ≤ s → (a2 s ≠ V k ∨ b2 s ≠ V k) → ∃ u, c2' k ≤ u ∧ u + 1 ≤ s ∧ O2 u = V k) ∧
+    ¬ (1 + 2 ≤ 1 + 1) ∧
+    (∀ u, c2' 0 ≤ u → u < c2' 0 + 1 → O2 u = !V 0) ∧
+    -- the conclusion of c2_four_phase fails at k = 0, t = 7:
+    (c2' 0 + 1 ≤ 7 ∧ 7 + 1 ≤ c2' 1 + 1 ∧ O2 7 ≠ V 0) := by
+  refine ⟨loop2, four_phase_hyps.2.1, ?_, ?_, ?_, fun _ _ => rfl, ?_, by decide, ?_, by decide⟩
+  · intro k; simp only [c2']; omega
+  · intro k; simp only [c2', a2, b2, V]
+    rcases Nat.mod_two_eq_zero_or_one k with hk | hk <;> simp [hk] <;> omega
+  · intro k s h1 h2; simp only [c2', a2, b2, V] at *
+    rcases Nat.mod_two_eq_zero_or_one k with hk | hk
+    · right; simp [hk]; omega
+    · left; simp [hk]; omega
+  · intro k s h1 hne
+    simp only [c2', V] at *
+    rcases Nat.mod_two_eq_zero_or_one k with hk | hk
+    · refine ⟨8 * (k / 2) + 5, by omega, ?_, ?_⟩
+      · rcases hne with h | h <;> (simp [a2, b2, hk] at h; omega)
+      · simp [O2, hk] <;> omega
+    · refine ⟨8 * (k / 2) + 7, by omega, ?_, ?_⟩
+      · rcases hne with h | h <;> (simp [a2, b2, hk] at h; omega)
+      · simp [O2, hk] <;> omega
+  · intro u h1 h2; have : u = 4 := by simp [c2'] at h1 h2; omega
+    subst this; decide
+
 end AuditB.CElem

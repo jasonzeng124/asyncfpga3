@@ -13,7 +13,8 @@ open Lean Elab Command in
 #eval show CommandElabM Unit from do
   let env ← getEnv
   let ok := #[``propext, ``Classical.choice, ``Quot.sound]
-  let mut n := 0; let mut bad := 0
+  let mut n : Nat := 0
+  let mut bad : Nat := 0
   for (c, _) in env.constants.toList do
     let some idx := env.getModuleIdxFor? c | continue
     let mn := env.header.moduleNames[idx.toNat]!
@@ -23,8 +24,8 @@ open Lean Elab Command in
     for a in axs do
       unless ok.contains a do
         bad := bad + 1
-        logInfo m!"BAD {c} ({mn}) uses {a}"
-  logInfo m!"AUDIT constants={n} bad={bad}"
+        logInfo s!"BAD {c} ({mn}) uses {a}"
+  logInfo s!"AUDIT constants={n} bad={bad}"
 L
 } > $OUT
 lake env lean $OUT 2>&1

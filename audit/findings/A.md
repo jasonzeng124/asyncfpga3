@@ -1,0 +1,70 @@
+# Audit findings, shard A (formal Core library)
+
+Audited: `claude/formal` 71ee3e86, `/home/user/wt-formal/formal/lean/Formal/Core/**`,
+claims in `formal/FEASIBILITY.md` §2, §2b, §3, §3b, §4 and `formal/JOURNAL.md`.
+Toolchain: Lean 4.35.0, Mathlib v4.35.0 (built from source by the lead's `lake build`).
+
+Audit artefacts (all compile with `lake env lean`, 0 errors, 0 `sorry`):
+- `audit/lean/A/A_Lut.lean` (+ `.out`): Lut / LutTree / Ternary witnesses and axioms
+- `audit/lean/A/A_Real.lean` (+ `.out`): Pure / Inertial / Involution / Corner witnesses,
+  a concrete `InvolutionPair`, the rule A code counterexample, and axioms
+- `audit/lean/A/A_Disc.lean` (+ `.out`): Discretize / Trace.Bridge witnesses and axioms
+- `audit/lean/A/mut/M*.lean` (+ `.out`): 9 mutants
+
+Axioms: `#print axioms` on 36 headline theorems and on our witnesses (see
+the `.out` files). Every one uses only `propext`, `Classical.choice` and `Quot.sound`
+(several use a subset of these). There is no `sorryAx`, no `Lean.ofReduceBool` and no
+`native_decide` anywhere under `Formal/Core` (grep).
+
+## Verdict table (OVERSTATED first)
+
+| theorem (file:line) | FEASIBILITY claim | what the Lean statement actually says | verdict | evidence |
+|---|---|---|---|---|
+| `ruleA_sound_rel` Delay/Corner.lean:451, `ruleA_tight` :473 | "tighten.py rule A iff κ ≤ 1/11 ≈ 9.1%" | With `Pd + max (Pd/5) 200 ≤ Pr` (**real** division), proportional shared scale `s` and relative scatter `0 ≤ κ ≤ 1/11`: `ad ≤ ar`. Tightness: one example, Pd = 1000, Pr = 1200. | **OVERSTATED** (for the code as written) | tighten.py:1106 computes `max(int(0.2*t), 200)`, which truncates, on integer-ps delays. The check passes iff `margin ≥ 0` (:1940, :1964). So the code accepts t_data = 1004, t_req = 1204, because int(200.8) = 200. At κ = 1/11 the data can then arrive at (12/11)·1004 ≈ 1095.3 and the request at (10/11)·1204 ≈ 1094.5: a violation. Proved: `ruleA_code_unsound_at_1_11` (A_Real.lean). For the code the exact limit is κ ≤ 25/276 ≈ 0.09058, attained at t_data = 1004 (exhaustive scan of 1..2·10^5 ps). `ruleA_sound` (κ ≤ 1/22, θ ≤ 50) fails the same way: at (1004, 1204) the bound comes out 1099.64 > 1099.27. The theorems are correct for the real-valued rule they state. The claim is off for tighten.py by about 0.3% in κ. |
+| `up_bounds` / `down_bounds` Delay/Involution.lean:383/390 ("transfer lemma") | "**Transfer lemma:** with input separation T0 the involution channel is a bounded pure delay in [δ(T0), δ∞) with no cancellation, so cell proofs can use pure delay plus a separation hypothesis" | `T0 ≤ T → δ(T0) ≤ δ(T) ∧ δ(T) < δ∞`: monotonicity of the delay *function* and nothing more. `T` is the time from the previous **output** to the current input, not an input separation. No theorem relates `tent` sequences to `DelayPure.Chan` and none states "no cancellation". `Formal.Core.DelayInvolution` is imported by no other module (grep). | **OVERSTATED** | The statement, read in full. The step from "every T ≥ T0" to an input-separation hypothesis is not formalised. Neither is "the output trace is a Chan behaviour" (it would also need `cancel_iff` with T0 > −δmin, plus an induction over `tent`). |
+| "23 cell INITs transcribed" Lut.lean:400–515 | "23 cell INITs transcribed with `*_eval` theorems that confirm the RTL header comments" | 19 INIT constants (15 single-output LUTs + 4 LUT6_2), with 23 `*_eval` theorems, one per output function | CONFIRMED (count wording overstated) | All 19 INIT values and pin orders match `cells/rtl/bd_ce.v`, `bd_arb.v`, `bd_latch.v` in both wt-formal and wt-research (grep, by hand). Mutants: changing an addressed INIT bit breaks the proofs (M1b bd_c2 bit 0: 2 errors; M1c arb_state bit 1: 1 error). Changing an **unaddressed** bit **survives** (M1: bd_c2 bit 48). That is correct, because I4 = I5 = 0 are tied in the RTL, but the `*_eval` theorems do not check the full 64-bit constant. |
+| Ternary.lean header / FEASIBILITY §4 | "Eichelberger ternary simulation is sound for every causal delay behaviour (gate/wire transport, inertial, GMW)" | `soundA`/`noGlitchA` (:508/:517) hold for every σ satisfying the discrete-time relation `Causal`. Only `gmw_causal` (GMW ⊆ Causal) is proved. That transport and inertial behaviours fall under `Causal` is asserted in prose only. `settleB` needs `Stale D`. | CONFIRMED with a caveat (slightly OVERSTATED) | By inspection, a ≥ 1-step transport delay is `Causal`, so the prose is plausible. It has no proof. |
+| §2 text on `Trace/Real` | "B4 carries a named hypothesis `RealComplete` (Mathlib proves it; the module was not built yet)" | `Trace/Real.lean:516 realComplete : RealComplete` is proved from `Real.exists_isGLB` | stale (understated) | JOURNAL 03:20 says "discharged". FEASIBILITY was not updated. |
+| `chan_comp_iff` Delay/Pure.lean:150 | "Series composition is exactly the sum band" | For `lo1 ≤ hi1`, `lo2 ≤ hi2`: `(∃ y, Chan lo1 hi1 x y ∧ Chan lo2 hi2 y z) ↔ Chan (lo1+lo2) (hi1+hi2) x z`. `Chan` = there is a monotone read map σ with `s−hi ≤ σ s ≤ s−lo`. | CONFIRMED | Read in full. Not trivialising: `Chan` is the FIFO transport relation. |
+| `pulse_vanish_iff` Pure.lean:271 | "can vanish iff w ≤ hi−lo" | `lo ≤ hi → (Chan lo hi (pulse w) const-false ↔ w ≤ hi−lo)` | CONFIRMED | Both directions instantiated in A_Real.lean (w = 1/2 vanishes; w = 2 cannot). |
+| `bundle_two_wires` Pure.lean:315 | "data stable at request arrival when ts + hi_data ≤ lo_req" | src stable on [t0+ts, t1], data = Chan[loD,hiD](src), req = Chan[loR,hiR](reqIn), reqIn = b before t0, `ts+hiD ≤ loR`, `reqOut s ≠ b`, `s ≤ t1+loD` ⇒ `data s = v` | CONFIRMED | Concrete witness with all hypotheses (`bundle_witness`). Without `hbundle` the conclusion fails on a concrete trace (`bundle_fails_without_hbundle`). Mutant M4 (`hiD` → `loD` in `hbundle`) breaks the proof. |
+| `inertial_comp_1_2_not_inertialRD` Delay/Inertial.lean:553 | "inertial channels are not closed under composition" | `¬ ∃ ρ Δ, ∀ x y w, Inertial 1 x y → Inertial 2 y w → InertialRD ρ Δ x w` | CONFIRMED | Strong form (the cascade is contained in no inertial channel). Concrete twoPulse/pulse witnesses inside the proof. |
+| `inertialRD_of_noShort` Inertial.lean:164 | "on runt-free inputs inertial = transport" | `NoShort ρ x → InertialRD ρ Δ x (shift Δ x)`, with `inertialRD_unique` | CONFIRMED | Instantiated (A_Real.lean). |
+| `cancel_iff` Delay/Involution.lean:284 | "consecutive outputs cancel iff t(n+1) − o(n) ≤ −δmin" | For any `InvolutionPair` P, `IsDMin d`, strictly increasing t: `tent(n+1) ≤ tent n ↔ t(n+1) − tent n ≤ −d` | CONFIRMED | **No instance of `InvolutionPair` exists in the claimed build** (the only one, `ExpLog.expPair`, needs an `ExpLog`, whose real instance is in unbuilt `Wip/`). We built one: δ(T) = 2 − 1/(T+2), δ∞ = 2, δmin = 1 (`Audit.A.P`, `P_dmin`). `cancel_iff` holds on it, and a real cancellation occurs at t = n/2. All 14 structure fields are jointly satisfiable. Mutant M5 (`≤` → `<`) breaks the proof. |
+| `pulseWidth_small` Involution.lean:337 | "output pulse width … shrinks continuously to 0 at the threshold" | ∀ε>0 ∃η>0: Δ ∈ (δ∞↑−δmin, δ∞↑−δmin+η) ⇒ 0 < width < ε. Plus `pulseWidth_strictMono`. | CONFIRMED (wording) | Instantiated on `P` with ε = 1/1000. It proves a right-limit of 0 at the threshold, not continuity everywhere. The existence of δmin is a hypothesis (`IsDMin`), which is disclosed. |
+| ExpLog / exp channel | "Exp channel derived from a first-order RC (exp/log as hypotheses)" | `ExpLog` is a structure of exp/log properties. Every exp theorem is conditional on it. | CONFIRMED (disclosed) | `Wip/DelayInvolution.lean` holds the `Real.exp` instance (not built, not claimed). |
+| `bundle_ratio_affine_iff` Corner.lean:111 | "bundling at both corner endpoints is equivalent to it at every corner" | `(∀ c∈[0,1], (1+κ)·lerp Fd Sd c + m ≤ (1−κ)·lerp Fr Sr c) ↔ (both endpoints)` | CONFIRMED | Truly ∀c (affine in c), not only the endpoints. The affine nominal delay is a stated model hypothesis. |
+| `monotone_not_enough` Corner.lean:142 | "monotone nominal delays alone are not enough" | Explicit step functions, monotone, endpoint-OK, violated at c = 1/2 | CONFIRMED | Closed statement, by norm_num. |
+| `ruleE_sound` Corner.lean:353, `ruleE_tight` :372 | "skew.py rule E is sound iff κ ≤ 383/1927" | Tails `ar ∈ s·Pr·(1±κ)`, `as ∈ s·Ps·(1±κ)`, common prefix C, `0 < 0.772·Pr − 1.155·Ps`, `κ ≤ 383/1927` ⇒ `C+as < C+ar`. Tight: for κ ∈ (κE, 1) some passing (Pr, Ps) is violated with s = 1. | CONFIRMED | Constants match skew.py:239-240 (`GUARD_LO = 0.772`, `GUARD_HI = 1.155`), and the guard form matches skew.py:708-709 (`GUARD_LO*(t_req−t_c) − GUARD_HI*(t_sel−t_c)`, divergent tails). 383/1927 = (1.155−0.772)/(1.155+0.772). The code's `int(...)` with `≤ 0 ⇒ bad` (:709, :713) requires g ≥ 1, which is stricter than Lean's g > 0, so soundness carries over. Witness at κ = κE (A_Real.lean). Mutants M2 (384/1927) and M7 (382/1927) both break `guard_kappa_iff`. This is a faithful restatement of the rule, inside the proportional-corner + local-scatter model (a stated hypothesis). |
+| `ring_kappa_lower` Corner.lean:485 | "two rings bound κ from below … not a refutation" | `Scat κ s ri ∧ Scat κ s rj ⇒ ri − rj ≤ κ(ri + rj)` | CONFIRMED | 0.773 and 1.470 are in cells/hw/README.md:297, :309. The caveat is disclosed. Note: the Lean name `guard_refuted_by_7link_rings` is stronger than the prose's "not a refutation". It is correct only under the stated path-scatter reading. |
+| `chan_sample` Discretize.lean:315 | "samples satisfy the discrete channel with bounds [⌊lo/q⌋, ⌈hi/q⌉]" | `0<q`, `L q ≤ lo`, `hi ≤ H q`, `Chan lo hi x y`, `Sep q x`, `AtRest x` ⇒ `Transport L H (sample x) (sample y)` | CONFIRMED | `lo_round_down_needed` shows the rounding direction matters. |
+| `circuit_sample` :466, `transfer` :475 | "likewise for gates and circuits; joint separation needed" | Every field of `Discretizes` (q > 0, grid bounds, Sep and AtRest **on each excitation**) ⇒ sampled behaviour is a widened `DCircuit.Beh` | CONFIRMED | Concrete `CCircuit`, behaviour and `Discretizes` instance (`v1_sampled`, A_Disc.lean). |
+| `mutex_between` :637 | "exclusion can hold at every grid point and fail between" | Closed statement on `dn`, `up` | CONFIRMED | No hypotheses. |
+| `range_toFun` Trace/Bridge.lean:510 | "event lists denote exactly the right-continuous ℝ → Bool functions with finitely many changes" | `(∃ e : EvTrace, e.toFun = f) ↔ RightCont f ∧ FinChanges f` (+ injectivity) | CONFIRMED | `EvTrace` is a re-definition, not `Trace/Event.Sig`. We proved their `flips` coincide (`flips_same`, A_Disc.lean), so the bridge applies to Event.lean's traces. |
+| `keval_eq_kevalSpec` Lut.lean:223 | "Kleene eval equals the INIT-table definition for every k" | as stated, ∀ k, L, v | CONFIRMED | Read in full. |
+| `no_static_hazard_single` Lut.lean:327 | "single-input change never hazardous" | Flip of j keeps the Boolean output ⇒ `keval` with j = X is defined and equal | CONFIRMED | Instantiated on bd_c2 (a falls). The converse `single_change_visible` is also instantiated. |
+| `bd_c2_two_change_hazard` Lut.lean:548 | "a b 01→10 with q=0 gives X" | closed, by `decide` on the real INIT | CONFIRMED | Closed `decide` on the real INIT; M1b breaks the neighbouring bd_c2 theorems. |
+| `evalTree_eq_tableEval` LutTree.lean:210 | "Mux-tree Kleene eval = INIT-table semantics for every k, INIT, input" | ∀ v g, equality | CONFIRMED | Read in full. |
+| `sic_glitch_free` LutTree.lean:415 | "with arbitrary per-mux delays a single-input change with equal endpoint values never glitches, under named hypotheses H_mux_kleene, H_sram" | `H_sram`, `H_mux_kleene`, `Abstracts (mergeK old new)` (steady pins constant at ALL times), `ndiff ≤ 1`, equal endpoints ⇒ root constant | CONFIRMED | All hypotheses jointly satisfied by a concrete timed AND2 tree whose pin dwells at X (`W_sic`). Dropping `H_mux_kleene` breaks the conclusion (`Bad`). Mutant M6 (`ndiff ≤ 2`) breaks the proof. H_mux_kleene and H_sram are hypotheses about the silicon, disclosed in FEASIBILITY's fidelity table. |
+| `soundA`/`noGlitchA`/`settleB`, `bdc2_single_input_ok` Ternary.lean:508/517/542/654 | "bd_c2's every single-input flip settles with no static hazard" | Decided exhaustively over every stable state and flip. Transported to all `Causal` behaviours. | CONFIRMED | Concrete unit-delay GMW runs satisfy `Causal`, `Stale 1`, `hc`, `h0` all at once and settle or hold as predicted (`sig_settles`, `sig2_ok`). The `Stale` hypothesis is satisfiable. |
+
+## Mutation tests (`audit/lean/A/mut/`)
+
+| mutant | change | result |
+|---|---|---|
+| M1 | Lut.lean `bd_c2` INIT bit 48 (0x00E8→0x00E9 in top word) | **survives**. The bit is unaddressed because I4 = I5 = 0 are tied. Legitimate, but the eval theorems do not pin down the full INIT. |
+| M1b | `bd_c2` INIT bit 0 | fails: `bd_c2_eval` and `bd_c2_contain` |
+| M1c | `arb_state` INIT bit 1 | fails: `arb_state_R0` |
+| M2 | `kappaE` 383/1927 → 384/1927 | fails: `guard_kappa_iff` |
+| M7 | `kappaE` → 382/1927 | fails: `guard_kappa_iff`, `ruleE_tight` |
+| M3 | `ruleA_sound_rel` hκ 1/11 → 1/10 | fails |
+| M4 | `bundle_two_wires` `ts + hiD` → `ts + loD` | fails |
+| M5 | `cancel_iff` `≤ −d` → `< −d` | fails |
+| M6 | `sic_glitch_free` `ndiff ≤ 1` → `≤ 2` | fails |
+
+Of the 9 mutants, the only survivor is M1, an unaddressed don't-care bit, which is expected.
+
+## Notes on hypotheses (disclosure check)
+- `RealComplete` is discharged. `exp`/`log` are hypotheses (`ExpLog`, disclosed, no built instance). `IsDMin` existence is a hypothesis (disclosed). `H_mux_kleene` and `H_sram` are hypotheses (disclosed). The corner model (SharedCorner, affine nominal delays, LocalScatter κ) is explicit in every Corner theorem.
+- Quantifier order and "every corner" (`bundle_ratio_affine_iff`) were checked: it is genuinely ∀c ∈ [0,1].
+- No definition we read trivialises its theorem. `Chan`, `Filt`, `Transport`, `Causal`, `Sep` and `PhysTree` all have nontrivial witnesses and counter-witnesses, built either in the source or by us.

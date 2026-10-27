@@ -40,7 +40,7 @@ def pinsW : Nat → Time → LutTree.K3
 
 def W : PhysTree 2 := exactTree 2 andInit pinsW (fun _ => 3) (fun _ _ => 2)
 
-theorem W_abs : W.Abstracts (mergeK [false, true] [false, false]) := by
+theorem W_abs : W.Abstracts (PhysTree.mergeK [false, true] [false, false]) := by
   refine ⟨rfl, ?_⟩
   intro i h τ
   match i, h with
@@ -68,7 +68,7 @@ def Bad : PhysTree 2 where
 example : Bad.H_sram := by
   intro p hp τ; simp [Bad, hp]
 
-example : Bad.Abstracts (mergeK [false, true] [false, false]) := by
+example : Bad.Abstracts (PhysTree.mergeK [false, true] [false, false]) := by
   refine ⟨rfl, ?_⟩
   intro i h τ
   match i, h with
@@ -100,18 +100,17 @@ theorem cIn_hc (t : Nat) (x : Fin 3) :
   · exact Or.inr rfl
 
 theorem sig_causal : Causal bdc2Net cIn sig :=
-  gmw_causal _ _ _ (fun t i => Or.inr rfl)
+  gmw_causal _ _ _ (fun _ _ => Or.inr rfl)
 
 theorem sig_stale : Stale bdc2Net cIn sig 1 := by
   intro t i ht
-  match t, ht with
-  | t + 1, _ =>
-    exact ⟨fun _ => t, fun _ => t, fun _ => ⟨by omega, by omega⟩,
-      fun _ => ⟨by omega, by omega⟩, rfl⟩
+  obtain ⟨u, rfl⟩ : ∃ u, t = u + 1 := ⟨t - 1, by omega⟩
+  exact ⟨fun _ => u, fun _ => u, fun _ => ⟨by simp, by simp⟩,
+    fun _ => ⟨by simp, by simp⟩, rfl⟩
 
 theorem sig_settles : ∀ t, 2 + 1 * 1 ≤ t → sig t () = true :=
   bdc2_settles true false false false 1 true (by decide) cIn sig cIn_hc 2
-    (fun t ht => by unfold cIn; rw [if_neg (by omega)]) sig_causal 1 sig_stale rfl
+    (fun t ht => by unfold cIn; rw [ite_eq_right_iff.mpr (by omega)]) sig_causal 1 sig_stale rfl
 
 -- the run really moves: q is 0 early and 1 later.
 example : sig 2 () = false ∧ sig 4 () = true := by decide
@@ -127,7 +126,7 @@ def sig2 : Nat → Unit → Bool
 theorem sig2_ok : ∀ t, sig2 t () = false :=
   bdc2_no_static_hazard true false false false 0 (by decide) (by decide) cIn2 sig2
     (fun t x => by unfold cIn2; split <;> simp)
-    (gmw_causal _ _ _ (fun t i => Or.inr rfl)) rfl
+    (gmw_causal _ _ _ (fun _ _ => Or.inr rfl)) rfl
 
 end Tern
 
