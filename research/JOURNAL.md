@@ -1218,3 +1218,16 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   `.uack` is FASTRISE only when its link has no `ctl.ub` (the dc controller). 2 tests; 94/94 in cells/verify.
   No claimed design uses BD_LINK_DC (only cells/tb and flow.sh's BD_SYN_DEFS), so no claim changes; not run on a
   routed dc design.
+### progress 07:40 (collatz64 T4 re-checked with current tools: clean on 8 seeds)
+- Answers the audit's provenance row. `bdc/size_kernel.py --start research/data/collatz64_sizes_T4.vh --seeds 1-8
+  --max-iter 1` at 818e90e (current tighten/skew/arb_fork; rule F's in-flight fix landed later but collatz64 has no
+  fast-fall line, so rule F has no rows), 11 vectors from the C oracle:
+  | collatz64 T4 | ns/iteration | n |
+  |---|---|---|
+  | seeds 1-8, routed GLS fast+stalled pass, A/B/C/F/H/I/E/J 0 | mean 102.65, range 99.7-104.8 (worst seed 3: 104.8) | 8 |
+- **Coverage hole, same on all 8 seeds (identical list):** rule H skips 6 controllers ("no path from this node
+  back to its own data": the four ulink_n21 lanes, n7, n8) and rule I skips 22 stages ("data enters from outside the
+  design, or from no link stage that also requests"). Those stages are covered by routed GLS only. So "clean" means
+  clean where the rules look. Data: research/data/collatz64_T4_recheck/ (log, seed-1 tighten.log, sdf md5s).
+- Does NOT show: fresh seeds (all 8 were T4's fitting seeds -- the T4H fresh-seed run is still the validation and
+  was not repeated); corners; anything on the board.
