@@ -12,7 +12,7 @@ each physical pin, the source the active pips connect it to.
 
 Semantics (gate relations, shard B's discrete-time traces and window channel
 `WinDelay` from `Formal.Cells.CElemTiming`, LUT function `lutB`/`o5B` from
-`Formal.Core.LutList`; nothing is redefined):
+`Formal.Cells.Prelim`; nothing is redefined):
 
 * every LUT pin has its OWN trace (`pin i k`), a bounded-delay copy of its
   source: the route from a different source, or to a different sink, is a

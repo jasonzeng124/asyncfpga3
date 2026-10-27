@@ -9,7 +9,7 @@ Porting aid, **to be deleted together with `Formal/Cells/Prelim.lean`**.
 `Formal.Gen.Netlist` reads every netlist with shard A's Core semantics
 (`boolSem` = `Lut.eval`, `kleeneSem` = `Lut.keval` on `Formal.Core.K3`). Shard
 B's hand transcriptions (`CElemFn.c2K`, `ArbKleene.g1K`, `Latch`, ...) are
-still valued in Prelim's `Formal.Core.LutList.K3`, so the `Proofs*` theorems that say
+still valued in Prelim's `Formal.Cells.K3`, so the `Proofs*` theorems that say
 "generated gate = B's Kleene function" are stated with `kleeneSemP` below,
 which is the same interpreter with Prelim's `lutK`. They keep their exact
 pre-port statements. When B ports to Core, replace `kleeneSemP` by

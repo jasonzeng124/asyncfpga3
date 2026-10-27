@@ -2,7 +2,7 @@ import Formal.Net.CoreLut
 import Formal.Core.LutList
 
 /-!
-# Probe 11e: shard C's Core LUT view = shard B's `Formal.Core.LutList`
+# Probe 11e: shard C's Core LUT view = shard B's `Formal.Cells.Prelim`
 
 Porting aid, **to be deleted together with `Formal/Cells/Prelim.lean`**.
 It proves that the Core functions shard C now uses (`Formal.Net.CoreLut`) are
