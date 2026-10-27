@@ -124,7 +124,7 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
 - **Involution** (`Core/Delay/Involution.lean`, Függer/Najvirt/Nowak/Schmid):
   all hypotheses are fields of `InvolutionPair`. Consecutive outputs cancel
   iff t(n+1) − o(n) ≤ −δmin (`cancel_iff`); output pulse width is strictly
-  increasing in input width and tends to 0 as the input width approaches the threshold (limit at the threshold only; audit wording fix)
+  increasing in input width and tends to 0 as the input width decreases to the threshold (`pulseWidth_small`: right-hand limit 0 at the threshold; continuity elsewhere not stated)
   (`pulseWidth_small`: the property that makes the model faithful to
   short-pulse filtration), in contrast to inertial (`inertial_gap`). Exp
   channel derived from a first-order RC (exp/log as hypotheses). **Transfer
@@ -211,10 +211,21 @@ them).
   (`evalTree_eq_tableEval`); tree order irrelevant; with arbitrary per-mux
   delays a single-input change with equal endpoint values never glitches
   (`sic_glitch_free`), under named hypotheses `H_mux_kleene`, `H_sram`.
-- `Core/Ternary.lean`: Eichelberger ternary simulation is sound for every
-  causal delay behaviour (proved: GMW ⊆ Causal; transport and inertial ⊆ Causal argued in prose only, audit OVERSTATED; probe TernSound proving them) and settles
-  under bounded staleness; bd_c2's every single-input flip settles with no
-  static hazard. This is a decidable, delay-independent per-cell check.
+- `Core/Ternary.lean` + `Core/TernaryChannels.lean`: Eichelberger ternary
+  simulation is sound for discrete-time causal behaviours (`Causal`, which
+  includes GMW, `gmw_causal`, and discrete transport with lower bound ≥ 1
+  step, `causal_of_transport`), and, in continuous time, for every network
+  whose nodes are zero-delay gates followed by `Core/Delay` transport
+  (`Chan`) or inertial (`InertialRD`/`BoundedInertial`) channels with a
+  positive lower delay bound (`ternary_noGlitch_channels`). Settling
+  (algorithm B) holds within `|ν|·D` for both channel kinds, `D` the largest
+  upper delay bound (`ternary_settle_channels`; for inertial channels via
+  `SettlesWithin`, not `Stale`). A zero lower delay bound makes it unsound
+  (`zero_delay_chan_unsound`, `zero_delay_inertial_unsound`); grid samples
+  of continuous behaviours are `Causal` only under separation
+  (`causal_of_sample`; counterexample `sample_not_causal`). bd_c2's every
+  single-input flip settles with no static hazard. This is a decidable,
+  delay-independent per-cell check.
 
 ### 4b. Whole-cell and whole-design checks (A, phases 1–2)
 - **Substrate** (`Core/Substrate.lean`, `Substrate/{Chan,CornerNat,Real,Legacy}.lean`;

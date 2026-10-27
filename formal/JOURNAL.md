@@ -350,3 +350,12 @@ is a Pure.Chan behaviour), exact for symmetric pairs (sep_threshold_sharp), inst
 ratPair. Audit row answered; FEASIBILITY §3 rewritten. setup.sh finished (7561 s) with
 one failure, Formal.Core.Bridge (built while LutList's switched Bridge was in the tree;
 reverted since); full check.sh --committed running.
+### progress 12:51
+TernSound claimed (check.sh 833 decls OK): Formal/Core/TernaryChannels.lean. The audit
+was right and the prose claim was not literally true: Causal is discrete-time, the
+channels are ℝ-time; sampling is not Causal in general (sample_not_causal); zero lower
+delay makes ternary simulation unsound (zero_delay_*_unsound). Proved: a continuous
+class RCausal δ with soundness and settling (SettlesWithin, covers inertial), and
+transport/inertial/bounded-inertial channels with positive lower bound are instances
+(ternary_noGlitch_channels, ternary_settle_channels). FEASIBILITY §4 bullet replaced;
+pulseWidth wording made one-sided. All four audit rows on A's files now answered.
