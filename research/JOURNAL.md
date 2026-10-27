@@ -1270,7 +1270,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 
 ## Session 2026-10-27 10:12 -- (in progress) board-fidelity GLS: the full stack (bits netlist + prjxray SDF + fid primitives) on BQ#3; one-corner cell sims
 Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh from cache, 2m06s, all fingerprints ok)
-### progress 10:25 (start; audit read)
+### progress 10:17 (start; audit read)
 - Lock 08:23 (109 min, dead); taken. 4 cores, 15 GB. Fresh container: no routes on disk; prjxray-db zynq7 re-cloned
   at 0a0added (91 MB) to the path xray_delay.py defaults to.
 - Audit pass 5 rows on this branch: 6119060 xorshift re-baseline CONFIRMED (seeds 5-8 sized means unpublished --
