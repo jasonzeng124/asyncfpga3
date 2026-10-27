@@ -112,6 +112,7 @@ case "$MODE" in
     mkdir -p "$JSON_DIR"
     rm -f "$JSON_DIR"/*.json
     synth_all "$JSON_DIR"
+    rm -f "$JSON_DIR"/*.log
     check_coverage
     generate "$JSON_DIR" "$LEAN_OUT"
     echo "[gen] wrote $LEAN_OUT and $JSON_DIR/*.json" ;;
@@ -121,8 +122,8 @@ case "$MODE" in
     if [ "$MODE" = --check ]; then
       check_coverage || rc=1
       synth_all "$tmp"; jd=$tmp
-      if ! diff -r -q "$JSON_DIR" "$tmp" --exclude=Cells.lean >/dev/null; then
-        diff -r -q "$JSON_DIR" "$tmp" --exclude=Cells.lean || true
+      if ! diff -r -q -x '*.log' -x Cells.lean "$JSON_DIR" "$tmp" >/dev/null; then
+        diff -r -q -x '*.log' -x Cells.lean "$JSON_DIR" "$tmp" || true
         echo "gen.sh: DRIFT: yosys output differs from the committed json/" >&2; rc=1
       fi
     else jd=$JSON_DIR; fi

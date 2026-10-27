@@ -544,3 +544,46 @@ def witness(text, label="bad", show=None, mem_gb=3.5, timeout=3600):
         out[-1] = out[-1]
         cur = nxt
     return out
+
+
+def explore_all(circ, props, mem_gb=3.5, timeout=7200, algo="covreach"):
+    """ONE full zone-graph exploration answering every state property in
+    `props` ({name: AST over int variables}).  tck-reach searches for a label
+    no location carries, so it explores the whole (covering-reduced) zone
+    graph and prints it (-C graph); every distinct discrete state (locations +
+    int valuation) of the zone graph appears as a node there, because
+    covering only ever relates nodes with the same discrete state.  Each
+    property is then evaluated on the set of distinct int valuations."""
+    text = circ.tck(C(0), label="never")
+    fd, path = tempfile.mkstemp(suffix=".tck")
+    with os.fdopen(fd, "w") as fh:
+        fh.write(text)
+    cmd = (f"ulimit -v {int(mem_gb*1024*1024)}; "
+           f"exec {TCK} -a {algo} -l never -s bfs -C graph {path}")
+    t0 = time.time()
+    p = subprocess.Popen(["bash", "-c", cmd], stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True)
+    vals, stats, tail = set(), {}, []
+    pat = re.compile(r'intval="([^"]*)"')
+    for line in p.stdout:
+        m = pat.search(line)
+        if m:
+            vals.add(m.group(1))
+            continue
+        mm = re.match(r"^(\w+)\s+(\S+)\s*$", line)
+        if mm:
+            stats[mm.group(1)] = mm.group(2)
+        elif "->" not in line:
+            tail.append(line)
+    rc = p.wait(timeout=timeout)
+    os.unlink(path)
+    res = dict(seconds=time.time() - t0, rc=rc, discrete_states=len(vals),
+               **stats)
+    if stats.get("REACHABLE") is None:
+        res["err"] = "".join(tail[-20:])
+        return res
+    dicts = [{k: int(v) for k, v in (kv.split("=") for kv in s.split(","))}
+             for s in vals]
+    res["props"] = {k: int(any(evalb(e, d) for d in dicts))
+                    for k, e in props.items()}
+    return res

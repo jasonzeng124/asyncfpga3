@@ -1,0 +1,39 @@
+# bd_c2: minimum pulse width W (H_ENV_PULSE) per channel kind
+# B (CElemTiming.lean, WinDelay): W >= Dmax = dl_hi + dw_hi is sufficient, and tight for fixed delays
+== win dl=(1, 1) dw=(1, 1) Dmax=2
+   W=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.04s]
+   counterexample at W=1 (depth 4):
+     t          01234
+     rst        11___
+     a          __111
+     b          __1__
+     z          __111
+     O          ___1_
+     qp         ____1
+     cnt        01011
+   W=2 mono: PROVED (k-induction, k=10)  [15 state bits, 0.85s]
+   R=2 follow: PROVED (k-induction, k=3)  [16 state bits, 0.05s]
+== win dl=(1, 2) dw=(1, 2) Dmax=4
+   W=4 follow: PROVED (k-induction, k=6)  [20 state bits, 0.15s]
+   counterexample at W=3 (depth 8):
+     t          012345678
+     rst        1111_____
+     a          ____1111_
+     b          ____111_1
+     z          ____11111
+     O          ______11_
+     qp         ________1
+     cnt        012201222
+   W=4 mono: PROVED (k-induction, k=16)  [20 state bits, 5.26s]
+   R=4 follow: PROVED (k-induction, k=6)  [20 state bits, 0.16s]
+== win dl=(2, 3) dw=(1, 3) Dmax=6
+   W=6 follow: PROVED (k-induction, k=9)  [22 state bits, 0.16s]
+   counterexample at W=5 (depth 13):
+     t          01234567890123
+     rst        111111________
+     a          ______11111111
+     b          ______11111___
+     z          ______11111111
+     O          1_1______1111_
+     qp         ____1_______11
+     cnt        01233301233333

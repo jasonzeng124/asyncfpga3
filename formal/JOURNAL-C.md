@@ -169,3 +169,9 @@ H_PULSE; Prelim's BoundedDelay admits echoes no pulse condition excludes --
 three probes (8d, 8e, 8h) now agree it is the wrong channel for these proofs;
 NoOvertake/EPin are the usable ones; flagged for shard A's Core). Launched 8i
 (gcd graph imported from bdc, not hand-drawn).
+
+### progress 04:55
+API session limit hit (resets 04:50 UTC): probes 8f, 8g, 8i, 10e, 10f, 11d,
+12c stopped mid-work; their work so far is saved in the tree (Wip/notes
+snapshotted; unchecked Formal/ files left untracked). 12a still running its
+own background jobs. Will resume each probe after the reset.
