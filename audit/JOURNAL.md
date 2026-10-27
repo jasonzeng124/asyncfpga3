@@ -103,3 +103,6 @@ f4696cc per-module axiom audit hit the 2 h background limit (308 modules, ~30 s 
 
 ### progress 12:00
 New heads: formal (RigContract fix 807448a + claim withdrawal 21b1b7c; gcd_hw_circuit_safe3 with H_WALK proved; Events7 'CLEAN at both corners'; ipow/collatz token level), research (bd_prims_sim fixed 5d535d7; BQ#3 full-stack GLS at FAST_MIN/SLOW_MAX/band). Research pass-6 agent launched; formal pass-6 build after the f4696cc axiom audit finishes.
+
+### progress 12:42
+f4696cc axiom audit: 307/308 modules clean (45319 constants, 0 bad), RigContract no olean. Disk allowance ran out (0 MB) while copying Mathlib for pass 6; removed old formal worktrees (wt-formal..4, ~13 GB); pass-6 head 14482a6 now builds against a symlink to wt-formal5's Mathlib packages (same rev).
