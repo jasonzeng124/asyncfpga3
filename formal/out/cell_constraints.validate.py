@@ -92,7 +92,7 @@ for e in doc["constraints"]:
 ROLES = {"sufficient", "exact", "exact_inner", "exact_formula", "necessary", "counter_trace", "non_vacuity", "instance", "lemma", "definition", "context",
          "corner", "function_equality", "exact_fixed_transport", "reduction", "relation", "not_necessary", "not_necessary_at_instance", "rule_as_coded",
          "uses", "bound", "twin", "checker_exactness", "redundancy", "necessary_loop_terms", "necessary_loop_term", "kleene", "partial", "exact_first_edge",
-         "mirror", "exact_replacement_counter_trace"}
+         "mirror", "exact_replacement_counter_trace", "counter_run", "numbers"}
 # explicit exceptions: (file, name) cited as 'exact' although the statement has no '↔' (none at present)
 EXACT_NOT_IFF = {}
 def statement(r):
@@ -115,7 +115,38 @@ for e in doc["constraints"] + doc["hypotheses_not_inequalities"]:
             st = statement(r)
             if st is not None and "↔" not in st:
                 errs.append(f"{e['id']}: {r['name']} cited as exact but its statement has no '↔'")
+# binds_at (Bj4): counts ordered, cited names present in the entry's lean list, design-level by_row sums match the rows
+nbind = 0
+for e in doc["constraints"]:
+    b = e.get("binds_at")
+    if not b:
+        continue
+    nbind += 1
+    try:
+        rv, pc, nw = (b[k]["cells"] for k in ("reset_vector", "per_cell_model", "network"))
+    except (KeyError, TypeError):
+        errs.append(f"{e['id']}: binds_at needs reset_vector / per_cell_model / network with an integer 'cells'"); continue
+    if not (isinstance(rv, int) and isinstance(pc, int) and isinstance(nw, int) and nw <= rv <= pc):
+        errs.append(f"{e['id']}: binds_at counts not ordered network <= reset_vector <= per_cell_model ({nw}, {rv}, {pc})")
+    if "of" in b["reset_vector"] and rv > b["reset_vector"]["of"]:
+        errs.append(f"{e['id']}: binds_at reset_vector cells exceed 'of'")
+    names = {f"{r['file'].split('/')[-1][:-5]}.{r['name']}" for r in e["lean"]}
+    if not b.get("lean"):
+        errs.append(f"{e['id']}: binds_at without lean names")
+    for n in b.get("lean", []):
+        if n not in names:
+            errs.append(f"{e['id']}: binds_at cites {n}, not in the entry's lean list")
+    for k in ("reset_vector", "per_cell_model"):
+        br = b[k].get("by_row")
+        if br is None:
+            continue
+        if sum(br.values()) != b[k]["cells"]:
+            errs.append(f"{e['id']}: binds_at {k} by_row sums to {sum(br.values())}, not {b[k]['cells']}")
+        for rid, n in br.items():
+            if rid in BYID and BYID[rid].get("binds_at", {}).get(k, {}).get("cells") != n:
+                errs.append(f"{e['id']}: binds_at {k} by_row {rid} = {n} disagrees with that row")
 C = doc["constraints"]
+print(f"binds_at entries: {nbind}")
 print(f"constraints={len(C)} hypotheses={len(doc['hypotheses_not_inequalities'])} lean_refs={nref} files={len(cache)}")
 print("status", Counter(e["status"] for e in C))
 print("exactness", Counter(e["exactness"] for e in C))

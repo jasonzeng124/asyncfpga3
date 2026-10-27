@@ -2349,6 +2349,233 @@ for i, sf, nc in (("bd_arbiter.rt1", "rt1_exclusion", "rt1_counter_minserver"), 
 for i in ("bd_mux.uxa_rtz", "bd_mux.uya_rtz"):
     BYID[i]["exact_scope"] = "fixed delays, from two theorems (no single iff): rtz_exact_safe (w >= dl + dw: safe) and rtz_counter (0 < w < dl + dw: oscillates)"
 
+# --------------------------------------------------------------- probe Bj4: Bsx2 (Necessity2*), Bct (CTreeExact), reset binding (ResetGcdVec, ResetGcdVec2)
+def addrefs(e, refs):
+    have = {(r["file"], r["name"], r["role"]) for r in e["lean"]}
+    for r in refs:
+        if (r["file"], r["name"], r["role"]) not in have:
+            e["lean"].append(r); have.add((r["file"], r["name"], r["role"]))
+
+# ---- (1) Bsx2 (formal/notes/B-necessity2.md): 1-ps boundary refutations (role counter_trace, NOT exact: each *_false is a negation, not an iff)
+N2A, N2M, N2D, N2L = "Cells/Necessity2Arb", "Cells/Necessity2AMerge", "Cells/Necessity2Delay", "Cells/Necessity2Latch"
+TAIL_STRICT = (" The JSON form's strict +1 (conventions.strictness) is CElemStrict's Kleene X window at equality; this binary run shows the Lean '<=' form "
+               "cannot be weakened by 1 ps.")
+TAIL_PEND = (" The JSON form keeps margin 0 (strict_pending: an input-against-input order, Bs's X window not checked for it); this binary run shows the Lean "
+             "'<=' form cannot be weakened by 1 ps.")
+def bsx2(i, exactness, note, refs, **extra):
+    e = BYID[i]
+    tail = TAIL_STRICT if e.get("strict", {}).get("margin_added_ps") else (TAIL_PEND if "strict_pending" in e else "")
+    e["exactness"] = exactness
+    e["exactness_note"] = ("Bsx2 (formal/notes/B-necessity2.md): " + note + (tail if exactness != "not_necessary" else "") +
+                           " Earlier: " + e.get("exactness_note", "")).strip()
+    addrefs(e, [LN(f, n, r, nt) for f, n, r, nt in refs])
+    e.update(extra)
+ARB = ("in {thm}'s own hypothesis set (Run: real INITs, rise-fast OR channel, routed pins, H_SERVER_MIN server; Scn; the other RT2 fields; the A0 fork) "
+       "the field '{f}' cannot be weakened by 1 ps: an explicit run for ALL t (server answering in exactly smin, the worst case the arc form is stated for) "
+       "meets every other hypothesis, violates '{f}' by exactly 1 ps and has both acks high. {run} One parameter point per form; a slower server than smin "
+       "can still pass (the field is a worst-case-server bound). The cited *_false theorems are refutations (not iffs): role counter_trace.")
+ARB_ROWS = [
+    ("bd_arbiter.rt2_g1", "rt2_exclusion_arcs", "g1", "claim0", "g1_false", ["G1_viol", "G1c_viol"], ["SG1_run", "SG1c_run"], ["g1_false_1C"],
+     "SG1: ua1 makes a 1-tick runt at 19 and re-latches at 20 while A2 rises (c1f = 2 > c1r = 1); SG1c: every arc rise = fall (one corner): ua1's hole "
+     "recirculates forever (A1 = [t < 19] or [t >= 22, t = 2 mod 4]), ack overlap every 4 ps."),
+    ("bd_arbiter.rt2_forkA", "rt2_exclusion_arcs", "forkA", "claim0", "forkA_false", ["FA_viol"], ["SFA_run"], [],
+     "SFA: every arc 1 (one corner), A0 -> ua1 route 11: A1 falls at 21, A2 rises at 20. RT1 holds on the run."),
+    ("bd_arbiter.rt2_forkG", "rt2_exclusion_arcs", "forkG", "claim0", "forkG_false", ["FG_viol"], ["SFG_run"], [],
+     "SFG: every arc 1, r1 -> ugrant 12, g1 -> ua1 7, A0 -> ua1 3: A1 falls at 21, A2 rises at 20. RT1 holds on the run."),
+    ("bd_arbiter.rt2b_g2", "rt2_exclusion2_arcs", "g2", "claim2_0", "g2_false", ["G2_viol"], ["SG2_run"], [],
+     "SG2 (mirror, Scn2): ua2 1-tick runt at 19, re-latch at 20, A1 rises at 20 (c2f = 2 > c2r = 1; no one-corner variant built for the mirror)."),
+    ("bd_arbiter.rt2b_forkA2", "rt2_exclusion2_arcs", "forkA", "claim2_0", "forkA2_false", ["FA2_viol"], ["SFA2_run"], [],
+     "SFA2 (mirror): every arc 1, A0 -> ua2 route 11: A2 falls at 21, A1 rises at 20."),
+    ("bd_arbiter.rt2b_forkG2", "rt2_exclusion2_arcs", "forkG", "claim2_0", "forkG2_false", ["FG2_viol"], ["SFG2_run"], [],
+     "SFG2 (mirror): every arc 1, r2 -> ugrant 12, g2 -> ua2 7, A0 -> ua2 3: A2 falls at 21, A1 rises at 20."),
+]
+for i, thm, f, c0, cf, nums, runs, more1c, run in ARB_ROWS:
+    bsx2(i, "sufficient+necessary_at_boundary", ARB.format(thm=thm, f=f, run=run),
+         [(N2A, c0, "sufficient", f"the '<=' form ({thm}) in Necessity2Arb's parameterised claim, margin 0"),
+          (N2A, cf, "counter_trace", f"the claim with '{f}' weakened by 1 ps is false")] +
+         [(N2A, n, "counter_trace", "one-corner variant") for n in more1c] +
+         [(N2A, n, "numbers", "the run violates the field by exactly 1 ps and meets the others") for n in nums] +
+         [(N2A, n, "counter_run", "the explicit run satisfies Run for all t") for n in runs])
+for i, c0, cf, num, run, mirror in (("bd_arbiter.rt2_pulse", "claim0", "pulse_false", "P_viol", "SP_run", "ua1"),
+                                    ("bd_arbiter.rt2b_pulse2", "claim2_0", "pulse2_false", "P2_viol", "SP2_run", "ua2")):
+    bsx2(i, "sufficient+necessary_at_boundary",
+         ("strengthens the matched-fork necessity (A1_band_overlap_matched) to a 1-ps boundary counter-run with UNMATCHED forks at one corner: every arc rise = fall, "
+          f"{mirror} loop 8 + 3 = A0 low pulse + 1; the C-element falls at 20, re-latches at 30 for one tick, the hole recirculates forever (period 11) while the other "
+          "ack is high from 20. Every other RT2 field and the fork hold (forkA with margin 0). The cited *_false theorem is a refutation (not an iff): role counter_trace."),
+         [(N2A, c0, "sufficient", "the '<=' form, margin 0"), (N2A, cf, "counter_trace", "the claim with 'pulse' weakened by 1 ps is false"),
+          (N2A, num, "numbers", None), (N2A, run, "counter_run", None),
+          ("Cells/ArbHeldTimed2", "A1_band_overlap_matched", "necessary", "earlier, matched-fork necessity")])
+CASC = ("in {thm}'s own hypothesis set (runs of BOTH arbiters for all t, the wiring acc1_req = R0, acc1_ack = A0 pointwise, CSide incl. H_IN2_IDLE and "
+        "H_ACK1_PULSE, the other fields, the A0 fork) the field '{f}' cannot be weakened by 1 ps. Arbiter 1 = Necessity2Arb's run {run}; arbiter 2 = "
+        "AMergeTimedC.C2 1 1 1 6 under dW 1 1 1 6 (every arc 1, routes 0, z_ack server 6), so sF = sR = 8 and the cascade realises arbiter 1's minimum "
+        "server exactly; both acks of arbiter 1 high together. One parameter point; in2-handover case outside the theorem (not covered). The cited *_false "
+        "theorem is a refutation (not an iff): role counter_trace.")
+for i, thm, f, c0, cf, run, extra in (
+        ("bdc_amerge3.rt2_cascade_pulse", "rt2_cascade", "pulse", "cclaim0", "cpulse_false", "SP", []),
+        ("bdc_amerge3.rt2_cascade_g1", "rt2_cascade", "g1", "cclaim0", "cg1_false", "SG1 (and cg1_false_1C on SG1c)", ["cg1_false_1C"]),
+        ("bdc_amerge3.rt2_cascade_forkA", "rt2_cascade", "forkA", "cclaim0", "cforkA_false", "SFA", []),
+        ("bdc_amerge3.rt2_cascade_forkG", "rt2_cascade", "forkG", "cclaim0", "cforkG_false", "SFG", []),
+        ("bdc_amerge3.rt2_cascade_pulse2", "rt2_cascade2", "pulse (RT2Cb)", "cclaim2_0", "cpulse2_false", "SP2", []),
+        ("bdc_amerge3.rt2_cascade_g2", "rt2_cascade2", "g2", "cclaim2_0", "cg2_false", "SG2", []),
+        ("bdc_amerge3.rt2_cascade_forkA2", "rt2_cascade2", "forkA (RT2Cb)", "cclaim2_0", "cforkA2_false", "SFA2", []),
+        ("bdc_amerge3.rt2_cascade_forkG2", "rt2_cascade2", "forkG (RT2Cb)", "cclaim2_0", "cforkG2_false", "SFG2", [])):
+    bsx2(i, "sufficient+necessary_at_boundary", CASC.format(thm=thm, f=f, run=run),
+         [(N2M, c0, "sufficient", f"the '<=' form ({thm}), margin 0"), (N2M, cf, "counter_trace", f"the claim with '{f}' weakened by 1 ps is false"),
+          (N2M, "S2c_run", "counter_run", "arbiter 2's run"), (N2M, "S2c_side", "counter_run", "CSide on the run"), (N2M, "D2c_resp", "numbers", "sF = sR = 8")] +
+         [(N2M, n, "counter_trace", "one-corner variant") for n in extra])
+bsx2("bd_delay[FASTFALL].flush_per_stage", "sufficient+necessary_at_boundary",
+     "in slow_not_early_ps' hypothesis set (taps on s 0, the non-gated bd_delay; window channels, Kleene closure of the real 2'h2 / 4'h8 INITs, per-stage windows) "
+     "weakening every H_FLUSH_STAGE by 1 tick is unsound (flush1_false): N = 2, head hop 1, hop 1->2 of 3, taps 1 (transport inside point windows, one corner), a low "
+     "on [10, 11]: fallBound 1 + hi 1 = 14 = 12 + 1 + 1, and z is high at 13 although the conclusion needs it low on [11, 15] (matched rise 16): stage 1's last 1 is still "
+     "on the 3-tick hop when the tap re-enables stage 2. One parameter point; bd_delay_gated not instantiated. flush1_false is a refutation (not an iff): role counter_trace.",
+     [(N2D, "flush0", "sufficient", "the per-stage form, margin 0"), (N2D, "flush1_false", "counter_trace", "every stage weakened by 1 tick: false"),
+      (N2D, "cline", "counter_run", "the explicit FASTFALL line"), (N2D, "cline_viol", "numbers", None), (N2D, "cline_early", "numbers", None),
+      ("Cells/ConstraintsFastFall", "ruleF_counter_violates_stage", "counter_trace", None)])
+bsx2("bd_delay[FASTFALL].flush_uniform", "not_necessary",
+     "the uniform H_FLUSH is not needed: at chain [1, 3], taps [1, 1], low phase [0, 4], N = 3 it fails (2*3 + 1 > 5 + 1) while every line of the model meets the "
+     "conclusion (slow_not_early_ps via flush_stage_strictly_weaker), and such a line exists (uw_line, transport). The needed condition is the per-stage form "
+     "(bd_delay[FASTFALL].flush_per_stage, necessary at the boundary, Necessity2Delay.flush1_false). Kept for traceability; a checker evaluates flush_per_stage.",
+     [(N2D, "uniform_not_necessary", "not_necessary", None), (N2D, "uw_line", "non_vacuity", "a line meeting the model at those parameters"),
+      ("Cells/ConstraintsFastFall", "flush_stage_strictly_weaker", "context", None), ("Cells/ConstraintsFastFall", "flush_stage_of_uniform", "redundancy", "uniform implies per-stage")],
+     replacement="bd_delay[FASTFALL].flush_per_stage")
+bsx2("bd_latch_rst.setup_pulse", "sufficient+necessary_at_boundary",
+     "H_PW (ehi + fhi <= W + elo) of capture_rst_from_request cannot be weakened by 1 tick, for BOTH real INITs (00B8.., FFB8..): transport run (one corner) d arc 1, "
+     "en arc 1, loop 3, rst tied low; en high [10, 12) (W = 2), data early (H_SETUP_DATA margin 9), H_HOLD, H_RST_DONE hold; ehi + fhi = 4 = W + elo + 1; q falls "
+     "back to 0 at 13 (its own 1 still on the loop when en closes) and a period-3 runt train circulates forever, inside the window [11, 1001) where the conclusion "
+     "needs q = 1. One parameter point. pw1_false_rst* are refutations (not iffs): role counter_trace.",
+     [(N2L, "pw0", "sufficient", "the '<=' form, margin 0, any INIT and reset value"), (N2L, "pw1_false_rst0", "counter_trace", "RESET_VALUE 0 (00B8..)"),
+      (N2L, "pw1_false_rst1", "counter_trace", "RESET_VALUE 1 (FFB8..)"), (N2L, "pGate", "counter_run", None), (N2L, "p_viol", "numbers", None)])
+bsx2("bd_fork.branch_data_edge", "not_necessary",
+     "RECLASSIFICATION ONLY (no new Lean): the existing ForkData.edge_form_not_needed already shows a run where H_FORK_DATA (this form) fails by 850 ps, "
+     "H_FORK_DATA_W holds and the Muller-link latch captures; the needed condition is bd_fork.branch_data (sufficient+necessary). Valid at a Muller bd_link/bd_pipe "
+     "consumer (every latch consumer in gcd_hw). Kept as the conservative screen; a checker evaluates bd_fork.branch_data.",
+     [("Cells/ForkData", "edge_form_not_needed", "not_necessary", None), ("Cells/ForkData", "edge_implies_W", "sufficient", None)],
+     replacement="bd_fork.branch_data")
+for i, r in (("bd_delay[FASTFALL].flush_uniform", "bd_delay[FASTFALL].flush_per_stage"), ("bd_fork.branch_data_edge", "bd_fork.branch_data")):
+    BYID[i]["refers_to"] = [x for x in BYID[i].get("refers_to", []) if x != r] + [r]
+
+# ---- (2) Bct (formal/notes/B-ctree-exact.md, CTreeExact.lean): bd_ctree.node_loop exact (any shape); node_fork not_necessary
+CTE = "Cells/CTreeExact"
+BCT = "Bct (formal/notes/B-ctree-exact.md, CTreeExact.lean)"
+old = BYID["bd_ctree.node_fork"]
+STRICT_CT = [dict(r, role="exact_inner") if r["role"] == "exact" else r for r in STRICT_INST] + \
+            [L(CS2, "c3_all", "instance", note="bd_c3 nodes: Facts on all 18 cycles"), L(CS2, "c4_all", "instance", note="bd_c4 nodes: Facts on all 32 cycles")]
+nl = dict(
+    id="bd_ctree.node_loop", cell="bd_ctree", catalogue_row="C7 (Bct; replaces node_fork)",
+    obligation=("H_CTREE_LOOP: every node's own feedback settles before the first next-phase input edge reaches any of its pins; launched at the node's OUTPUT "
+                "edge, so path spreads cancel"),
+    inequality=("for every node n and every child c of n: fb(n).hi + SP(n.fb).hi + arc(n.fb -> O6).hi + 1 <= dist_min(n -> root) + E + MaxMin(c) + read_lo(c -> n); "
+                "read_lo(c -> n) = wire(c.O6 or port -> n.pin).lo + SP(n.pin).lo + arc(n.pin -> O6).lo; dist_min(n -> root) = sum of read_lo over the edges "
+                "n -> parent -> ... -> root (0 at the root); MaxMin(leaf) = 0, MaxMin(m) = max over children j of m of (MaxMin(j) + read_lo(j -> m)); "
+                "E = min over leaves of (root O6 edge -> that leaf's next edge at its port), lo"),
+    forms=[form([[fbw("n", "O6", "fb", "Qhi(n): feedback wire (I2 for bd_c2, I3 for bd_c3, I4 for bd_c4)"), sp("n", "fb", "feedback", "in Qhi(n)"),
+                  lut("n", "fb", "O6", "Qhi(n): feedback-pin arc, hi")]],
+                [[env("dist_min", "for each edge on n -> root: wire lo + parent site pin lo + parent arc lo", "dist_min(n -> root)"),
+                  env("E", "root ack -> environment -> earliest leaf edge at its port, lo (H_ACK)", "E"),
+                  env("MaxMin(c)", "max over the leaf -> c paths of the sum of read_lo (port wire + site pin + arc, per edge); 0 for a leaf", "MaxMin(c)"),
+                  wire("c.O6|port", "n.pin", "read_lo(c -> n): wire lo"), sp("n", "pin", "child c", "in read_lo(c -> n)"),
+                  lut("n", "pin", "O6", "read_lo(c -> n): arc lo")]],
+                margin=1, launch="n.O6 edge (per node n, per child c)",
+                note="one form per (n, c); for a leaf child c, MaxMin(c) = 0 and read_lo is the port wire + pin + arc. Only lo values on the request side")],
+    provides=copy.deepcopy(old["provides"]),
+    uniform_example=("gcd_hw N = 6 (C2(C4, C2)), N = 5 (C2(C4, wire)), N = 2..4 (one node): with uniform read lo l and loop hi Qh the condition is Qh <= E + 2 l "
+                     "for N = 5, 6 (sh6_cond_iff) and Qh <= E + l for N <= 4 (ctree1_box_exact)"),
+    lean=[L(CTE, "tree_box_exact", "exact", note="TreeOK <-> Cond: any Wf tree (fan-in >= 2), per-pin box, real bd_c2/c3/c4 INITs (cSpec), H_LEAF, H_ACK; '<='"),
+          L(CTE, "tree_suff", "sufficient"), L(CTE, "tree_needs", "necessary", note="counter-trace: maps at lo, leaves below n late in phase 0, a sibling's leaves late in phase 1"),
+          L(CTE, "arrive_bound", "lemma", note="pin j's next arrival >= edge + dist_min + E + MaxMin + lo"),
+          L(CTE, "sh6_cond_iff", "exact_inner", note="N = 6, uniform delays: Qh <= E + 2 l"),
+          L(CTE, "sh6_glitch", "counter_trace", note="N = 6 box numbers with the loop at 591 (1 ps over): not TreeOK"),
+          L(CTE, "nonvacuous", "non_vacuity", note="maps at 145, leaves every 2000 ps: every hypothesis met, a run exists"),
+          L(CTE, "old_imply_new", "redundancy", note="per node, the old lumped StaticOK form implies this one: nothing that passed node_fork fails here"),
+          L(NM, "cel_box_exact", "lemma", note="node level, pointwise"), L(NM, "ctree1_box_exact", "exact_inner", note="N <= 4 (one node) special case"),
+          L(NM, "c2_cspec", "function_equality"), L(NM, "c3_cspec", "function_equality"), L(NM, "c4_cspec", "function_equality")] + STRICT_CT,
+    exactness="exact",
+    exact_scope=("binary per-pin box: the exact condition is '<=' (tree_box_exact); the +1 is Bs's Kleene X window (CElemStrict / CElemStrict2), kept on top and "
+                 "not re-proved here. NOT covered: the protocol (H_ACK assumed: bd_ctree.ack_wait); one lower bound E for all leaves (per-leaf E_i argued, not proved); "
+                 "correlated corners (pins independent in the box: evaluate per corner, H_ONE_CORNER, or in the box); Kleene X windows inside the tree model."),
+    exactness_note=(BCT + ": exact for every tree shape and depth (fan-in >= 2 per node). Every next-phase edge at n's pins comes after the root has fired, which is "
+                    "no earlier than n's edge + dist_min; each leaf then waits E, and a C-element child moves only after its LATEST input (MaxMin). Both sides are "
+                    "measured from n's own output edge, so no hi bound of an input edge and no path spread enters. Witness in tree_needs (constant maps at lo, physical "
+                    "schedule meeting H_ACK); box numbers sh6_numbers (old row fails at the inner C4, this one holds). Closes Bmg's open depth >= 2 point."),
+    site_pins={"needed": True, "roles": ["each node's feedback pin hi (I2/I3/I4 by fan-in; data side)", "every input pin lo (request side, inside read_lo)"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"},
+    corner=dict(CORNER_1C, note="a box theorem (always sound); per corner realisation it holds with each window collapsed"),
+    check_scope="route_plus_env", status="proved", combine="all",
+    strict={"source": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean)", "backing": "c2_all (CElemStrict); c3_all / c4_all (CElemStrict2)",
+            "forms": [0], "terms": "every form", "margin_added_ps": 1})
+E.insert(E.index(old) + 1, nl)
+BYID["bd_ctree.node_loop"] = nl
+old["exactness"] = "not_necessary"
+old["replacement"] = "bd_ctree.node_loop"
+addrefs(old, [L(CTE, "sh6_numbers", "not_necessary", note="N = 6 box numbers: this row fails at the inner C4 (79 + 300 + 300 > 145 + 300), H_CTREE_LOOP holds (424 <= 590), every run glitch-free"),
+              L(CTE, "old_imply_new", "redundancy", note="per node, this row's lumped StaticOK form implies bd_ctree.node_loop")])
+old["exactness_note"] = (BCT + ": NOT necessary; replaced by bd_ctree.node_loop (H_CTREE_LOOP), which is exact for every tree shape (tree_box_exact). This row charges "
+                         "the spread of every leaf -> n path (port wires included), which cancels when the race is launched at n's output edge; on prjxray-shaped box "
+                         "numbers it fails by 234 ps where every run is correct (sh6_numbers). Kept for traceability; a checker evaluates bd_ctree.node_loop. The depth >= 2 "
+                         "point left open by Bmg is closed by Bct. Earlier: " + old["exactness_note"])
+old["refers_to"] = old.get("refers_to", []) + ["bd_ctree.node_loop"]
+for i in ("bd_fork.delegated", "bd_join.delegated"):
+    r = BYID[i]["refers_to"]
+    r.insert(r.index("bd_ctree.node_fork") + 1, "bd_ctree.node_loop")
+
+# ---- (3) where the reset width binds in gcd_hw (Brst: ResetGcdVec, B-reset-gcd-vec.md; Bfw: ResetGcdVec2, B-reset-gcd-vec2.md)
+RV, RV2 = "Cells/ResetGcdVec", "Cells/ResetGcdVec2"
+BV = {  # name -> (file, role, note)
+    "gcd_vec_census": (RV, "instance", "decided census of gcd_hw's 414 rst-reading loops at the reset vector rho (control at gR, data x): hold / forced / leave per cell kind; holdL = 195"),
+    "holdL": (RV, "definition", "the 195 hold-vector cells"),
+    "gcd_reset_vec": (RV, "sufficient", "per-cell CellRun model: H_RST_LONG (T1 + Dhi <= s) assumed ONLY for holdL; the 209 forced and 10 frontier cells need no width"),
+    "gcd_hold_exact": (RV, "exact", "at each holdL cell, CElemStrict2.reset_width_iff on its real LUT at rho, from q = not reset and from q = x: safe iff Dhi + wa <= P"),
+    "nonvac_hold": (RV, "non_vacuity", "real link controller node 1703 (bd_c2n), D = 420, release at 421"),
+    "link_boundary_x": (RV, "counter_trace", "same cell at P = D: root x at the release tick"),
+    "vec2_census": (RV2, "instance", "class at the first-wave vector rhoA: 203 hold (192 old + 11 newHoldL), 194 forced, 10 leave, 7 moving"),
+    "newHoldL": (RV2, "definition", "11 cells forced at rho and hold at rhoA (all I_c2 in ResetGcdNet)"),
+    "gcd_reset_vec2": (RV2, "sufficient", "per-cell two-phase model (CellRunW): H_RST_LONG2 at the rhoA hold cells (T1 + Dhi <= s, or for newHoldL T1 + Dhi <= Tw), H_RST_LONG at the 3 moving hold joins"),
+    "newHold_exact": (RV2, "exact", "the 11 at the moved vector rhoA1: safe iff Dhi + wa <= P (exactness of the 'or T1 + Dhi <= Tw' branch NOT proved)"),
+    "wave_cells_order": (RV2, "context", "GMW network, clean rst: a first-wave cell's control data pins read reset values up to F + dminP and its rst pin reads 0 after F + W; with W < dminP the newHoldL cells are released before their data moves and stay forced"),
+    "counter_uori2": (RV2, "counter_trace", "W = dminP = 1: uori2.ujoin's rst pin reads 1 at every step before its first-wave pin reads the moved value"),
+    "counter_br9": (RV2, "counter_trace", "W = dminP = 32 at ucond_br9_j"),
+    "gcd_reset_vec_of_net": (RV2, "redundancy", "GMW network (Bounded run, H_RST_CLEAN, H_HOLD_LONG (maxRank + 2)(D + W + 1) + W <= F, H_RST_LOW, H_STEER_HOLD): every H_CELL and every per-cell H_RST_LONG discharged, so the per-cell width is implied by the global rst hold"),
+}
+NET = {"cells": 0, "model": "Rst2's GMW network run of gNet (model steps, root = the LUT value the cell sees, Dhi = W + D + 1 a model bound)",
+       "under": "H_HOLD_LONG (Rst2's global rst hold, (maxRank + 2)(D + W + 1) + W <= F) with H_RST_CLEAN, H_RST_LOW, H_STEER_HOLD",
+       "detail": "none: gcd_reset_vec_of_net discharges every per-cell H_RST_LONG from H_HOLD_LONG; no per-cell width condition is left in this model. The per-cell row is still the routed check when a cell's own rst high width or loop delay is outside the GMW bounds (per-pin rst skew, routed loop)."}
+SCOPE = "gcd_hw, Rst2's elaborated RTL control network (default matched-delay sizes + gcd_rig; 414 rst-reading loops, 423 rst pins); no route, counts in model terms"
+def binds(i, rv, pc, names, by_row=None):
+    e = BYID[i]
+    addrefs(e, [LN(BV[n][0], n, BV[n][1], BV[n][2]) for n in names])
+    e["binds_at"] = {"scope": SCOPE, "reset_vector": rv, "per_cell_model": pc, "network": dict(NET),
+                     "lean": [f"{BV[n][0].split('/')[-1]}.{n}" for n in names]}
+    if by_row:
+        e["binds_at"]["reset_vector"]["by_row"], e["binds_at"]["per_cell_model"]["by_row"] = by_row
+NB = ["gcd_vec_census", "holdL", "gcd_reset_vec", "vec2_census", "gcd_reset_vec2", "gcd_reset_vec_of_net"]
+binds("bd_c2.reset_width",
+      {"cells": 8, "of": 153, "list": ["ufork0.u.u (reads an element of urig.upsnk, reset value 1)", "ucond_br9_j, ucond_br10_j, ucond_br11_j (read urig.uenv1)",
+                                       "ucmpi3.ujoin (reads usource3)", "umux21.uj0, uj1, uj2 (muxn3: the free decode pin at 1; forced under H_GUARD_MAP)"],
+       "rest": "145 forced (every fork, join and ack tree at all-0)"},
+      {"cells": 19, "list": ["the 8 above (ucond_br9/10/11_j are first-wave nodes: H_RST_LONG still assumed for them)",
+                             "+ 11 newHoldL: ufork1, ufork10, ufork18, ufork23, ufork38, ushrsi0..4.ujoin, uaddi0.ujoin (forced at rho, hold once their first-wave pin rises; bind only if the rst skew W >= dminP: 1 step for ushrsi/uaddi, 2 for ufork1, 3 for ufork10/18/23/38)"]},
+      NB + ["gcd_hold_exact", "newHoldL", "newHold_exact", "wave_cells_order", "counter_br9"])
+binds("bd_c2n.reset_width",
+      {"cells": 175, "of": 186, "list": ["174 bd_c2n: every ulink_* / pipe stage controller except the 10 frontier ones, at req = ack = 0", "urig.uenv1 (bd_c2n_set, the token, at (0, 0))"],
+       "rest": "urig.uenv0 forced at (0, 1); the 10 frontier controllers leave (ResetGcd.frontierL)"},
+      {"cells": 175, "list": ["the same 175 (no bd_c2n in newHoldL)"]},
+      NB + ["gcd_hold_exact", "nonvac_hold", "link_boundary_x"])
+binds("bd_c3.reset_width", {"cells": 0, "of": 10, "list": [], "rest": "all 10 forced"}, {"cells": 0, "list": []}, NB)
+binds("bd_c4.reset_width",
+      {"cells": 3, "of": 14, "list": ["uori2.ujoin, uori3.ujoin, uori4.ujoin (read a source token)"], "rest": "11 forced"},
+      {"cells": 3, "list": ["the same 3: hold at rho and at rhoA (their c4 never has all inputs equal during the wave), so H_RST_LONG alone covers the frontier-link read"]},
+      NB + ["gcd_hold_exact", "wave_cells_order", "counter_uori2"])
+binds("design.rst_hold",
+      {"cells": 195, "of": 414, "list": ["bd_c2 8, bd_c2n 174 + bd_c2n_set 1, bd_c4 3 (see the rows)", "9 bd_arbiter ustate O6 (ucontrol_merge2/3/4/6/9/10/11/12.uarb1, ucontrol_merge12.uarb2; all requests 0, reset value 1; pin I4 treated as static data)"],
+       "rest": "209 forced (incl. all 42 bd_mux uj0/uj1 and every bd_c3), 10 leave (frontier); the 9 arbiter O5 are combinational (no loop)"},
+      {"cells": 206, "list": ["192 of the 195 hold at rhoA, + the 3 moving hold joins ucond_br9/10/11_j (H_RST_LONG), + 11 newHoldL (bd_c2)"]},
+      NB + ["gcd_hold_exact", "newHoldL", "newHold_exact", "wave_cells_order", "counter_uori2", "counter_br9"],
+      by_row=({"bd_c2.reset_width": 8, "bd_c2n.reset_width": 175, "bd_c3.reset_width": 0, "bd_c4.reset_width": 3, "bd_arbiter ustate O6 (no reset_width row)": 9},
+              {"bd_c2.reset_width": 19, "bd_c2n.reset_width": 175, "bd_c3.reset_width": 0, "bd_c4.reset_width": 3, "bd_arbiter ustate O6 (no reset_width row)": 9}))
+BYID["design.rst_hold"]["exactness_note"] += (" Bj4 (binds_at; Brst / Bfw): in gcd_hw the width binds at 195 hold-vector cells at the reset vector (gcd_vec_census; exact there, "
+                                              "gcd_hold_exact, which also covers the 9 arbiter ustate O6 at their real LUT), at up to 206 in the per-cell model (newHoldL, "
+                                              "newHold_exact) and at none in the GMW network under Rst2's global hold (gcd_reset_vec_of_net).")
+
 # =============================================================== global hypotheses (not inequalities)
 HYP = [
     {"id": "H_LUT_FIFO / H_PIN_FIFO / H_TREE_FIFO", "catalogue_row": "C4", "cells": ["every handshake LUT"],
@@ -2452,6 +2679,17 @@ doc = {
 doc["produced_by"] += ". Updated by probe Bj (2026-10-27) from B-celem-strict.md (CElemStrict: own-feedback race entries strict, L + 1 <= R, field `strict`; input-against-input orders marked `strict_pending`), B-lib-gap.md (LibGapSteer: bd_steer select setup/hold exact per pin; bd_fork/bd_join delegation rows) B-fork-data.md (ForkData: bd_fork.branch_data, bd_fork.branch_data_edge, bdc_amerge.idx_bundle; edge-sampling caveat on the amerge index races), B-lib-gap-mux.md (LibGapMux: bd_mux select setup/hold exact per join), B-lib-gap-delay.md (LibGapDelay: bd_delay_gated.gate exact under side conditions) and B-rig-idx.md (RigIdx: gcd_rig.idx_setup proved exact); no new Lean, no route"
 doc["produced_by"] += ". Updated by probe Bj2 (2026-10-27) from B-lib-gap-muxn.md (LibGapMuxN: bdc_muxn.s_setup decode form and s_hold exact per decode and index bit, field exact_scope; new informational bdc_muxn.no_third_branch), B-lib-gap-latch.md (LibGapLatch: the nine bd_latch setup_data / setup_pulse / hold rows exact per pin; hold strict), B-necessity.md (NecessityReset, NecessityMuxRtz: reset-width rows necessary, reset-width forms of bd_c*.reset_width and design.rst_hold made box-exact with the I_rst arc on both sides, design.rst_release_skew not necessary, bd_mux rtz_env tight at the boundary) and B-reset-gcd-wave.md (ResetGcdWave: H_NO_RETURN proved for the reset-release window); no new Lean, no route"
 doc["produced_by"] += ". Updated by probe Bj3 (2026-10-27) from B-necessity-merge.md (NecessityMerge: new exact bd_merge.uxa_loop (H_XA_LOOP, launched at the ack C-element's output); uxa_feedback and uxa_req_latency not_necessary with replacement bd_merge.uxa_loop; bd_ctree.node_fork not necessary for a one-node tree, depth >= 2 open), B-celem-strict2.md (CElemStrict2: the 11 'mechanism (Facts not decided)' strict rows now cite the decided Facts c3_all, c4_all, *_rst_dec, reset_width_iff) and B-self-audit2.md (citation roles: exact only for an iff; exact_inner, exact_formula; non-iff theorems relabelled); no new Lean, no route"
+doc["conventions"]["binds_at"] = ("optional (reset-width rows): where in gcd_hw the width condition binds, from Brst (ResetGcdVec) and Bfw (ResetGcdVec2): reset_vector = "
+                                  "cells at a hold vector of the reset vector rho (gcd_vec_census, exact there by gcd_hold_exact); per_cell_model = cells that bind in the "
+                                  "per-cell two-phase model (adds newHoldL); network = cells left in Rst2's GMW network under its global rst hold (gcd_reset_vec_of_net). "
+                                  "`lean` names citations of the entry's own `lean` list (the validator checks this and the counts).")
+doc["conventions"]["lean_roles"] += (" 'counter_run': a theorem that an explicit run satisfies the model (Run / CSide / a line) for all t, used by a counter_trace; "
+                                     "'numbers': a decided arithmetic fact about a counter-run (which field it violates by how much). A 'necessary at the boundary' "
+                                     "refutation (a theorem of the form NOT Claim(weakened by 1)) is cited as counter_trace, never as exact.")
+doc["produced_by"] += (". Updated by probe Bj4 (2026-10-27) from B-necessity2.md (Necessity2Arb, Necessity2AMerge, Necessity2Delay, Necessity2Latch: 16 rt2 / cascade "
+                       "rows, FASTFALL flush_per_stage and bd_latch_rst.setup_pulse necessary at the 1-ps boundary (counter_trace refutations); flush_uniform and "
+                       "bd_fork.branch_data_edge not_necessary), B-ctree-exact.md (CTreeExact: new exact bd_ctree.node_loop, node_fork not_necessary) and "
+                       "B-reset-gcd-vec.md / B-reset-gcd-vec2.md (ResetGcdVec, ResetGcdVec2: field binds_at on the reset-width rows)")
 json.dump(doc, open(OUT, "w"), indent=1)
 print(len(E), "constraints")
 

@@ -447,3 +447,182 @@ Not applied. I re-tested it on scratch copies of the final generator and validat
   untracked".
 
 As before, regenerate the patch rather than hand-apply it.
+
+---
+
+# Update (probe Bj4): Bsx2 boundary necessity, exact bd_ctree.node_loop, where the reset width binds
+
+Files changed: `formal/out/cell_constraints.gen.py`, `formal/out/cell_constraints.validate.py`, and,
+through the generator, `formal/out/cell_constraints.json` and the entry table of
+`formal/out/cell_constraints.md` (no hand edits to the md). No Lean changed. Before editing, the
+unchanged generator reproduced the committed JSON byte for byte, and the final generator does too on
+a second run.
+
+All logic is in one new generator section ("probe Bj4", just before the global hypotheses), which
+runs after Bj3's section. The generator reads no scratch file. Two conventions were added: `binds_at`,
+and an extension of `lean_roles` that defines two new roles, `counter_run` and `numbers`.
+
+## Checks
+
+| check | result |
+|---|---|
+| `python3 -I cell_constraints.validate.py cell_constraints.json` | 131 constraints, 8 hypotheses, 1669 Lean references in 78 files, strict 64, strict_pending 18, binds_at 5, **errors: 0** |
+| port against the drafts | Every one of Bsx2's 20 rows has the drafted exactness, replacement and citation (file, name, role). There is one intended difference: `flush_stage_of_uniform` on `flush_uniform` is cited as `redundancy` (the uniform form implies the per-stage form), not `lemma`. Bct's row is ported with the role changes listed in section 2. |
+| negative control (a scratch JSON with 6 faults: a `binds_at` count that disagrees with design.rst_hold's `by_row`, a `binds_at` name missing from the entry's `lean`, `g1_false` cited as `exact`, node_fork's replacement pointing at a not_necessary row, the unknown role `counter_runn`, and a network count above the reset-vector count) | 6 errors, one for each fault |
+
+Every cited name resolves through the validator's declaration grep. `Necessity2Arb`,
+`Necessity2AMerge`, `Necessity2Delay`, `Necessity2Latch`, `CTreeExact`, `ResetGcdVec` and
+`ResetGcdVec2` are all git-tracked.
+
+New validator checks:
+- the roles `counter_run` and `numbers` are added to `ROLES`;
+- `binds_at` must have `reset_vector`, `per_cell_model` and `network`, each with an integer `cells`;
+- the counts must be ordered network <= reset_vector <= per_cell_model, and reset_vector <= `of`;
+- each name in `binds_at.lean` must be in the entry's own `lean` list;
+- each `by_row` must sum to its `cells`, and must agree with the named rows.
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries | 130 | 131 (+ `bd_ctree.node_loop`) |
+| proved / unproved | 129 / 1 | 130 / 1 |
+| exact | 31 | 32 |
+| sufficient | 50 | 31 |
+| sufficient+necessary_at_boundary | 13 | 31 |
+| sufficient+necessary_matched_fork | 2 | 0 |
+| not_necessary | 3 | 6 |
+| strict (+1) | 63 | 64 |
+| strict_pending | 18 | 18 |
+| citations with role `exact` / `exact_inner` | 125 / 114 | 132 / 118 |
+
+## 1. Bsx2 (formal/notes/B-necessity2.md)
+
+**18 rows become `sufficient+necessary_at_boundary`:**
+- `bd_arbiter.rt2_g1`, `rt2_forkA`, `rt2_forkG`, `rt2b_g2`, `rt2b_forkA2`, `rt2b_forkG2`;
+- `rt2_pulse` and `rt2b_pulse2`, which were `necessary_matched_fork`. `A1_band_overlap_matched` is kept, with role `necessary`;
+- the 8 `bdc_amerge3.rt2_cascade_*` rows;
+- `bd_delay[FASTFALL].flush_per_stage`;
+- `bd_latch_rst.setup_pulse`.
+
+Each cited `*_false` theorem has the form `¬ Claim(field weakened by 1)`. It is a refutation, not an
+iff, so its role is `counter_trace`, never `exact`. The sufficient half (`claim0`, `claim2_0`,
+`cclaim0`, `cclaim2_0`, `flush0`, `pw0`) is cited as `sufficient`.
+
+The new role `counter_run` marks a theorem that an explicit run satisfies the model. The new role
+`numbers` marks a decided fact that says by how much the run violates which field.
+
+Each note ends with a sentence that depends on the row's margin:
+- strict rows: Bsx2's sentence about the Kleene +1;
+- `strict_pending` rows (the fork rows and the flush row): the margin stays 0, and the X window is
+  not checked for an input-against-input order. Bsx2's draft used the strict sentence on these rows
+  as well, which would have been wrong for a margin-0 form.
+
+**Two rows become `not_necessary`:**
+- `bd_delay[FASTFALL].flush_uniform`: replacement `bd_delay[FASTFALL].flush_per_stage`. It cites
+  `uniform_not_necessary` and `uw_line` (non_vacuity).
+- `bd_fork.branch_data_edge`: replacement `bd_fork.branch_data`. This is a reclassification only, by
+  the existing `ForkData.edge_form_not_needed`.
+
+Both rows add their replacement to `refers_to`.
+
+## 2. Bct (formal/notes/B-ctree-exact.md, CTreeExact)
+
+**New row `bd_ctree.node_loop` (H_CTREE_LOOP), exactness `exact`.** It is inserted after node_fork.
+
+The row has one form per (node n, child c), launched at n's O6 edge:
+- data side: the feedback wire, the site pin and the feedback-pin arc, all hi;
+- request side: dist_min(n -> root) + E + MaxMin(c) + read_lo(c -> n), where read_lo is the wire,
+  site pin and arc, all lo.
+
+The form keeps `margin_ps 1` as strict +1. Its backing is c2_all (CElemStrict) and c3_all / c4_all
+(CElemStrict2).
+
+`exact_scope` says:
+- the binary iff (`tree_box_exact`) is `<=`;
+- the +1 is Bs's Kleene window, put on top and not re-proved;
+- NOT covered: H_ACK, which is assumed; the single E; correlated corners.
+
+Citations:
+
+| role | theorems |
+|---|---|
+| exact | `tree_box_exact` |
+| sufficient | `tree_suff` |
+| necessary | `tree_needs` |
+| lemma | `arrive_bound`, `cel_box_exact` |
+| exact_inner | `sh6_cond_iff`, `ctree1_box_exact` |
+| counter_trace | `sh6_glitch` |
+| non_vacuity | `nonvacuous` |
+| redundancy | `old_imply_new` |
+| function_equality | `c2/c3/c4_cspec` |
+| strict | the strict citations |
+
+Bct's draft roles are changed in three places:
+- `ctree1_box_exact` becomes `exact_inner`: it is the one-node special case, as in Bj3's convention;
+- `nonvacuous` becomes `non_vacuity`;
+- Bct's draft exactness `sufficient+necessary` becomes `exact`, as the brief asks, because
+  `tree_box_exact` is an iff.
+
+**`bd_ctree.node_fork` becomes `not_necessary`**, with `replacement: bd_ctree.node_loop`. It cites:
+- `sh6_numbers` (`not_necessary`): on box numbers the old form fails by 234 ps, and every run is
+  correct;
+- `old_imply_new` (`redundancy`).
+
+The row is kept for traceability, and its `refers_to` includes the new row. `bd_fork.delegated` and
+`bd_join.delegated` now refer to `bd_ctree.node_loop` as well.
+
+## 3. Where the reset width binds (field `binds_at`; Brst ResetGcdVec, Bfw ResetGcdVec2)
+
+The field is on `bd_c{2,2n,3,4}.reset_width` and `design.rst_hold`. It has three counts:
+- `reset_vector`: cells at a hold vector of rho (`gcd_vec_census`). The condition is exact there
+  (`gcd_hold_exact`);
+- `per_cell_model`: cells that bind in Bfw's two-phase model (`gcd_reset_vec2`; `newHoldL`,
+  `newHold_exact`);
+- `network`: 0 under Rst2's global hold H_HOLD_LONG (`gcd_reset_vec_of_net`).
+
+| row | reset_vector | per_cell_model | network |
+|---|---|---|---|
+| bd_c2 | 8 of 153 (ufork0, ucond_br9/10/11_j, ucmpi3.ujoin, umux21.uj0/1/2) | 19 (+ the 11 `newHoldL`) | 0 |
+| bd_c2n (+ c2n_set) | 175 of 186 (174 link/pipe controllers + uenv1) | 175 | 0 |
+| bd_c3 | 0 of 10 | 0 | 0 |
+| bd_c4 | 3 of 14 (uori2/3/4.ujoin) | 3 | 0 |
+| design.rst_hold | 195 of 414 (the rows above + 9 arbiter ustate O6) | 206 | 0 |
+
+The 11 `newHoldL` cells bind only if the rst skew W >= dminP, which is 1 to 3 steps.
+
+I checked that the 11 `newHoldL` nodes are `I_c2` by grepping `ResetGcdNet.lean`
+(n66, n309, n311, n346, n381, n628, n718, n847, n937, n1400, n1491).
+
+Citation roles:
+
+| role | theorems |
+|---|---|
+| instance | `gcd_vec_census`, `vec2_census` |
+| definition | `holdL`, `newHoldL` |
+| sufficient | `gcd_reset_vec`, `gcd_reset_vec2` |
+| exact | `gcd_hold_exact`, `newHold_exact` (both contain `↔`, per cell, at the cell's vector) |
+| context | `wave_cells_order` (W < dminP: released before the data moves) |
+| counter_trace | `counter_uori2` (bd_c4, rst_hold), `counter_br9` (bd_c2, rst_hold), `link_boundary_x` (bd_c2n) |
+| non_vacuity | `nonvac_hold` (bd_c2n) |
+| redundancy | `gcd_reset_vec_of_net`: the per-cell width is implied by the global hold in the GMW model |
+
+NOT covered:
+- every count is in model terms on Rst2's elaborated RTL network, not a routed netlist;
+- the exactness of the "or T1 + Dhi <= Tw" branch is not proved;
+- the network count assumes the GMW bounds (D, W model steps). A routed rst skew or loop delay
+  outside them makes the per-cell row the check again. The field's `network.detail` says so.
+
+Exactness fields are unchanged on these rows.
+
+## Bk2's kappa_check.patch
+
+Not applied. I re-tested it on scratch copies of the final generator and validator with
+`patch -p0`:
+- it still applies: hunk 2 at offset +980, and hunk 3 with fuzz 2 (its trailing context is the
+  conventions `exactness` line);
+- the patched generator runs: 131 entries, each with `kappa_check`, including `bd_ctree.node_loop`;
+- the patched validator (REPO pointed at the repo) gives 472 errors, all "ConstraintsKappa.lean is
+  untracked". None of them is from the new `binds_at` check.
+
+As before, regenerate the patch rather than hand-apply it.

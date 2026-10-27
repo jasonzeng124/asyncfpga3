@@ -240,7 +240,8 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_c4.env_latency` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_c4.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
 | `bd_c4.reset_width` | proved | sufficient+necessary (strict +1) | yes | none |
-| `bd_ctree.node_fork` | proved | sufficient (strict +1) | yes | none |
+| `bd_ctree.node_fork` | proved | not_necessary (strict +1) | yes | none |
+| `bd_ctree.node_loop` | proved | exact (strict +1) | yes | none |
 | `bd_ctree.ack_wait` | proved | exact | no | none |
 | `bd_latch[odd].setup_data` | proved | exact (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
 | `bd_latch[odd].setup_pulse` | proved | exact (strict +1) | yes | none |
@@ -252,13 +253,13 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_latch[pair.O6].setup_pulse` | proved | exact (strict +1) | yes | none |
 | `bd_latch[pair.O6].hold` | proved | exact (strict +1) | yes | H: conservative_arcs_missing_site_pins |
 | `bd_latch_rst.setup_data` | proved | sufficient+necessary_at_boundary (strict +1) | yes | I (also K, L for bd_link_dc): missing_term |
-| `bd_latch_rst.setup_pulse` | proved | sufficient (strict +1) | yes | none |
+| `bd_latch_rst.setup_pulse` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_latch_rst.hold` | proved | sufficient+necessary_at_boundary (strict pending) | yes | H: conservative_arcs_missing_site_pins |
 | `bd_latch_rst.reset` | proved | sufficient+necessary (strict +1) | yes | none |
 | `bd_latch.loop_bound` | proved | hypothesis | yes | none |
 | `bd_delay[sym].pulse_width` | proved | sufficient+necessary_at_boundary | yes | A/B/C/D/E (edge window via SDF): none |
-| `bd_delay[FASTFALL].flush_uniform` | proved | sufficient (strict pending) | yes | F: missing_term |
-| `bd_delay[FASTFALL].flush_per_stage` | proved | sufficient (strict pending) | yes | F: missing_term |
+| `bd_delay[FASTFALL].flush_uniform` | proved | not_necessary (strict pending) | yes | F: missing_term |
+| `bd_delay[FASTFALL].flush_per_stage` | proved | sufficient+necessary_at_boundary (strict pending) | yes | F: missing_term |
 | `bd_delay[FASTRISE].ack_flush` | proved | sufficient (strict pending) | yes | none |
 | `bd_delay_gated.gate` | proved | exact (strict pending) | yes | F: missing_term |
 | `bd_pipe.sel_order` | proved | sufficient+necessary_at_instance (strict +1) | yes | none |
@@ -280,14 +281,14 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_arbiter.a0_fork_client1` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
 | `bd_arbiter.rt1` | proved | exact | yes | none |
 | `bd_arbiter.rt1b` | proved | exact | yes | none |
-| `bd_arbiter.rt2_pulse` | proved | sufficient+necessary_matched_fork (strict +1) | yes | none |
-| `bd_arbiter.rt2_g1` | proved | sufficient (strict +1) | yes | none |
-| `bd_arbiter.rt2_forkA` | proved | sufficient (strict pending) | yes | none |
-| `bd_arbiter.rt2_forkG` | proved | sufficient (strict pending) | yes | none |
-| `bd_arbiter.rt2b_pulse2` | proved | sufficient+necessary_matched_fork (strict +1) | yes | none |
-| `bd_arbiter.rt2b_g2` | proved | sufficient (strict +1) | yes | none |
-| `bd_arbiter.rt2b_forkA2` | proved | sufficient (strict pending) | yes | none |
-| `bd_arbiter.rt2b_forkG2` | proved | sufficient (strict pending) | yes | none |
+| `bd_arbiter.rt2_pulse` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_arbiter.rt2_g1` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_arbiter.rt2_forkA` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bd_arbiter.rt2_forkG` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bd_arbiter.rt2b_pulse2` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_arbiter.rt2b_g2` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bd_arbiter.rt2b_forkA2` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bd_arbiter.rt2b_forkG2` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
 | `bd_arbiter.server_min` | proved | hypothesis | no | none |
 | `bd_arbiter.alternation` | proved | sufficient+necessary | no | none |
 | `bd_arbiter.ack_celements` | proved | see_refers_to | yes | none |
@@ -321,14 +322,14 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bdc_amerge.bundled_idx_ack_g` | proved | sufficient | yes | A: different_condition |
 | `bdc_amerge.bundled_idx_grant_fall` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_amerge.idx_ack_fork` | proved | sufficient+necessary | yes | none |
-| `bdc_amerge3.rt2_cascade_pulse` | proved | sufficient (strict +1) | yes | none |
-| `bdc_amerge3.rt2_cascade_g1` | proved | sufficient (strict +1) | yes | none |
-| `bdc_amerge3.rt2_cascade_forkA` | proved | sufficient (strict pending) | yes | none |
-| `bdc_amerge3.rt2_cascade_forkG` | proved | sufficient (strict pending) | yes | none |
-| `bdc_amerge3.rt2_cascade_pulse2` | proved | sufficient (strict +1) | yes | none |
-| `bdc_amerge3.rt2_cascade_g2` | proved | sufficient (strict +1) | yes | none |
-| `bdc_amerge3.rt2_cascade_forkA2` | proved | sufficient (strict pending) | yes | none |
-| `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_g1` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse2` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_g2` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA2` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
 | `bdc_amerge3.bundled_idx0_grant` | proved | sufficient+necessary | yes | A: different_condition |
 | `bdc_muxn.rtz` | proved | sufficient+necessary_untimed (strict +1) | yes | none |
 | `bdc_muxn.s_setup` | proved | exact | yes | E (skew.py): exact_structure_missing_site_pins |
@@ -352,7 +353,7 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_fork.delegated` | proved | see_refers_to | yes | none |
 | `bd_join.delegated` | proved | see_refers_to | yes | none |
 | `bd_fork.branch_data` | proved | sufficient+necessary (strict +1) | yes | I: missing_term |
-| `bd_fork.branch_data_edge` | proved | sufficient (strict +1) | yes | none |
+| `bd_fork.branch_data_edge` | proved | not_necessary (strict +1) | yes | none |
 | `bdc_amerge.idx_bundle` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
