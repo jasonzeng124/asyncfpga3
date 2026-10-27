@@ -327,7 +327,7 @@ def emit_credited(c, I, L, D, pairs, spec_of, meta):
                             lD=lD, lA=lA, potB=min(mB, capB), potA=min(mA, capA),
                             uncredited=min(best0.get(t_, cap0) for t_ in tg) - lD,
                             path0=[p.rsplit("/", 1)[0].replace("urig.udut.", "") for p, ph in path if ph == 0][:40])
-        if meta.get("rule") == "K":     # C-10l2: the whole uncredited late path, both phases
+        if str(meta.get("rule", "")).startswith("K"):     # C-10l2: the whole uncredited late path, both phases
             meta["x"][v]["pathK"] = [(p.replace("urig.udut.", ""), ph, best0.get((p, ph)))
                                      for p, ph in path]
         if info is not None:
@@ -591,7 +591,9 @@ def rule_K(c):
                 if os.environ.get("K10L_ABLATE"):
                     abl = {"Knocmax": ({k: g for k, g in maxn.items() if k != (C, 1)}, base),
                            "Knolat": ({(C, 1): maxn[(C, 1)]}, base),
-                           "Knoblk": (maxn, dict(base, blocked0=set()))}
+                           "Knoblk": (maxn, dict(base, blocked0=set())),
+                           # the rule as it stood when results/summary10l.txt (08:57) was made
+                           "Kold": ({(C, 1): maxn[(C, 1)]}, dict(base, blocked0=set()))}
                     for tag, (mx, bs) in abl.items():
                         emit_credited(c, _relabel(I, tag), L, C, pairs,
                                       lambda v, mx=mx, bs=bs: (bs, mx, None), dict(m2, rule=tag))

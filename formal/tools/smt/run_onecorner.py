@@ -195,6 +195,24 @@ def sec_arbiter2():
                 break
 
 
+def sec_arbiter3():
+    log('# SLOW one corner, deeper BMC (depth 90): the depth-55 search of arbiter2 found')
+    log('# no early ack at any extra delay 1..20 for SLOW/SLOWp, which may be depth, not safety.')
+    log('# B-style prediction (inertial): early ack iff late >= early + ua2 rise arc,')
+    log('# early = 1 + ustate + 1 + ugrant + 1 (route 1 per net).')
+    for name, lut, Ls, ks in (('SLOWp (5,5)', ((5, 5), (5, 5)), 1, (14, 16, 17, 18)),
+                              ('SLOW (4,5)', ((4, 5), (4, 5)), 2, (12, 14, 16))):
+        for k in ks:
+            ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, k), Ls=Ls)
+            t = time.time()
+            d, tr = tsmc.bmc(ts, P['owner'], 90)
+            log('  %s Ls=%d extra %2d: owner %s [%d bits, %.1fs]' % (
+                name, Ls, k, 'CEX@%s' % d if d is not None else 'none to 90', ts.nbits(), time.time() - t))
+            if d is not None:
+                wv(ts, tr)
+                break
+
+
 if __name__ == '__main__':
     secs = sys.argv[1:] or ['tb', 'real', 'arbiter']
     for s in secs:
