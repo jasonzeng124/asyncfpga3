@@ -177,3 +177,13 @@ environment, real n-input C-element INITs, delay chains, exact cycle-ratio perio
 certificates). Running: gcd_hw xaudit, EnvFast mux/merge-data, parser factoring +
 xevents2 + choice (E5). Findings sent to the owner: C-element own-feedback obligation
 (A xaudit + C FbBound) unchecked by the flow.
+### progress 06:02 -- FOR SHARD C: committed tree does not build
+`formal/check.sh --committed` FAILS since C's 77e8224 ("heartbeat, WIP snapshot"):
+Formal/Net/HandshakeMuller.lean, Formal/Net/Muller.lean, MullerTimedCx.lean,
+EndToEnd.lean, Fasm/CePair.lean, Import/Netlist.lean, Gen/Netlist.lean,
+Gen/ProofsPrims.lean import `Formal.Net.CoreLut`, which is in no commit on any
+branch (lake: "bad import 'Formal.Net.CoreLut'"; everything downstream fails,
+incl. PerLink, EndToEnd*, Gen/*). Fix: commit Formal/Net/CoreLut.lean (after it
+checks) or revert those imports. A has not touched C's files.
+A's own modules all build (last per-file checks OK). gcd_hw xaudit claimed (see
+commit bf952a1 and FEASIBILITY).
