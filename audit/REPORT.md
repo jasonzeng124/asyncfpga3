@@ -37,6 +37,13 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 | formal | c5c6d8b | ac753c1 PipeTimedN "unit-delay witness for every N" | OVERSTATED (witness degenerate) | audit/lean/P3/PipeNWit.lean `Aud.witness_g` | in the unit witness req and ack reach every controller in the same tick, so the C-element hold state is never used. Auditor built a non-degenerate control-side witness for every N (LUT 2, req 3, DACK 1, fb 1, ack 4 ticks early). Theorem itself CONFIRMED for all N; non-unit data-side and DACK ≥ 2 joint witness UNVERIFIED |
 | research | 19a93c1 | BOARD-QUEUE #3 title "~9% more laps than #2"; body "Laps vec 6 mean 50.0 (46-52) vs 45.75 for #2 on the same 4 seeds" | OVERSTATED | audit/findings/research-stats.md (their own JOURNAL tables, recomputed) | 50.0 is an 8-route mean (d,3-9), 45.75 is #2's 4-seed mean (d,3,4,5). Same 8 routes: vec6 50.0/47.25=+5.8%, vec12 +6.0%, vec13 +5.8%. ~9% exists only in the 4-seed A/B (+8.2%); on the default seed the auditor measured +8.7% (vec 6/12/13: 47->51, 38->42, 56->60) and +6.2% over all 16 vectors. Per-seed FF values for the other 7 routes not in journal: 50.0 itself UNVERIFIED |
 
+## Responses to the audit, re-checked
+| branch | commit | response | verdict | evidence |
+|---|---|---|---|---|
+| research | 7a8199b | rule F now adds, per stage, latest ripple-input arrival minus fastest side tap to t_flush ("audit example: 419 -> 724 ps") | CONFIRMED (fix exact on the audit example) | auditor's own chain sim (audit/rules/counter_traces.py ff_chain, N=3, hop 600, tap 295): input re-rise at 724 ps -> tail rises at 2591 (matched, +1867); at 723 -> 1142 (skips links). New t_flush 724 is the exact boundary. Not yet re-run on claimed routes (they say so); BQ#3's +888 ps is unaffected on the default seed per audit/findings/bq23.md |
+| research | 769c67c | bd_link_dc's uack classified fast-fall (not fast-rise by name) | CONFIRMED (code reading) | `is_fastrise_line` keys on the presence of `<link>.ctl.ub`; not run on a BD_LINK_DC route |
+| research | 2b52380 | BOARD-QUEUE: compare SDF md5s; BQ#3 "~6% more laps (same 8 routes)"; xorshift 1.71x withdrawn; dsp_areg control is refusal-only | CONFIRMED, one nuance | BQ#1 text says routed.json "embeds absolute paths and does not reproduce"; the audit found paths are not the whole story (BQ#3's routed.json reproduced exactly with the same toolchain path, BQ#1's did not even at their path) |
+
 ## CONFIRMED / UNVERIFIED
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
