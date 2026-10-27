@@ -31,7 +31,7 @@ mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g'
 else
   # per-run directory: concurrent runs (probes use check.sh too) must not share it,
   # and stale oleans there would shadow lake's (it is first on LEAN_PATH)
-  CHK=".lake/checkfile.$$"; rm -rf "$CHK"; trap 'rm -rf "$CHK" "$CHK.log" "$AUD"' EXIT; export CHK
+  CHK=".lake/checkfile.$$"; rm -rf "$CHK"; trap 'rm -rf "$CHK" "$CHK.log"' EXIT; export CHK
   # Lean takes Formal.* from the first LEAN_PATH entry that has a Formal/ dir, so CHK
   # must be a full overlay: symlinks to lake's oleans, replaced by each file checked.
   mkdir -p "$CHK"; [ -d .lake/build/lib/lean/Formal ] && cp -rs "$PWD/.lake/build/lib/lean/Formal" "$CHK/"
@@ -41,9 +41,18 @@ else
   done
   mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
 fi
-AUD=".lake/audit/Audit.$$.lean"; mkdir -p .lake/audit
-{ echo "import Lean"; [ ${#FILES[@]} -eq 0 ] && [ $COMMITTED -eq 0 ] && echo "import Formal"; for m in $mods; do echo "import $m"; done
-  cat <<'LEAN'
+# Modules that define `main` (executables) clash when imported together, so each is
+# audited in its own run; all other modules are audited together.
+LIBMODS=(); EXEMODS=()
+for m in $mods; do
+  if grep -qE '^def main' "$(echo "$m" | tr . /).lean" 2>/dev/null; then EXEMODS+=("$m"); else LIBMODS+=("$m"); fi
+done
+mkdir -p .lake/audit
+audit_run() {  # $1 = header flag (root|none), rest = modules
+  local root=$1; shift
+  local AUD=".lake/audit/Audit.$$.$RANDOM.lean"
+  { echo "import Lean"; [ "$root" = root ] && echo "import Formal"; for m in "$@"; do echo "import $m"; done
+    cat <<'LEAN'
 open Lean Meta in
 #eval show MetaM Unit from do
   let env ← getEnv
@@ -63,10 +72,18 @@ open Lean Meta in
   for b in bad do IO.println s!"[audit] BAD: {b}"
   if bad.size > 0 then throwError "audit failed"
 LEAN
-} > "$AUD"
+  } > "$AUD"
+  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/${CHK:-.lake/none}:$LEAN_PATH" exec lean "$0"' "$AUD"
+  local rc=$?; rm -f "$AUD"; return $rc
+}
 echo "[check] axiom audit"
 if [ $fail -eq 0 ]; then
-  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/${CHK:-.lake/none}:$LEAN_PATH" exec lean "$0"' "$AUD" || { echo "[check] FAIL: audit"; fail=1; }
+  ROOT=none; [ ${#FILES[@]} -eq 0 ] && [ $COMMITTED -eq 0 ] && ROOT=root
+  audit_run $ROOT "${LIBMODS[@]}" || { echo "[check] FAIL: audit"; fail=1; }
+  for m in "${EXEMODS[@]}"; do
+    echo "[check] audit (executable) $m"
+    audit_run none "$m" || { echo "[check] FAIL: audit $m"; fail=1; }
+  done
 fi
 [ $fail -eq 0 ] && echo "[check] OK" || echo "[check] FAILED"
 exit $fail
