@@ -87,7 +87,8 @@ class CertGraph:
         for d, iv in self.succ.get(p, ()):
             lo = iv[v][0]
             if ph == 0:
-                if (spec["noFr0"] and (p, d) in self.fr) or (spec["stop0"] and st):
+                if (spec["noFr0"] and (p, d) in self.fr and not (spec["swStor"] and st)) \
+                        or (spec["stop0"] and st):
                     continue
                 res.append(((d, 1 if (spec["swStor"] and st) else 0), lo))
             elif spec["two"]:

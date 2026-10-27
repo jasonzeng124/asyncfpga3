@@ -332,6 +332,10 @@ def main():
     ap.add_argument("--json", help="per-obligation metadata")
     ap.add_argument("--rules2", default="", help="C-10g extra rules, letters of AEFJR8 (rules2.py)")
     ap.add_argument("--no-hi", action="store_true", help="skip 10e's H and I obligations")
+    ap.add_argument("--cert", action="store_true",
+                    help="C-10h: also emit F, R, H with the late side as a checked potential "
+                         "on the cyclic graph (labels Fc, Rc, Hc; certs.py)")
+    ap.add_argument("--only", default="", help="C-10h: comma list of rules to emit (e.g. Hc)")
     a = ap.parse_args()
     bd = pathlib.Path(a.build)
     sdf, routed, fasm = bd / f"{a.top}.sdf", bd / f"{a.top}_routed.json", bd / f"{a.top}.fasm"
@@ -405,6 +409,10 @@ def main():
     controllers = sorted(s for s in stops if T.latch_enables(edges, s))
     out = open(a.out, "w")
     meta = []
+    want = set(a.only.split(",")) if a.only else {"H", "I", "Hc", "A", "E", "F", "J", "W", "R", "Fc", "Rc"}
+    import certs                          # noqa: E402  (C-10h)
+    cctx = dict(T=T, edges=edges, stops=stops, fr=fr, ivl=ivl, VARIANTS=VARIANTS, out=out,
+                meta=meta, cert=a.cert)
     for ctl in ([] if a.no_hi else controllers):
         label = T.pin_split(ctl)[0]
         if T.dc_link_of(ctl) is not None:
@@ -474,7 +482,7 @@ def main():
                                     iv2, fb2 = ivl(o, fbp, w2)
                                     I.add(("dq", f_, o), ("dfb", f_, fbp), iv2, fb2)
                                     I.data.add(("dfb", f_, fbp))
-            if not I.data:
+            if not I.data or "I" not in want:
                 continue
             I.emit(out, L)
             meta.append({"ctl": label, "rule": "I", "up": T.pin_split(up)[0], "label": I.label})
@@ -529,14 +537,27 @@ def main():
             nstate = sum(1 for p, _ in path[1:-1] if p in stops)
         if chains_ok and I.data:
             I.label = f"H {label} via={nstate}states"
-            I.emit(out, L)
-            meta.append({"ctl": label, "rule": "H", "label": I.label})
+            if "H" in want:
+                I.emit(out, L)
+                meta.append({"ctl": label, "rule": "H", "label": I.label})
+        if a.cert and "Hc" in want:
+            # C-10h: same data side (ctl -> enables -> latch outputs); late side = the
+            # earliest disturbance of a D pin over the WHOLE graph, phase rule as the
+            # Dijkstra above (phase 0: no FASTRISE taps until a state node; ctl's own
+            # latch bits not crossed), bounded by a checked potential.
+            Ic = Inst(f"Hc {label}")
+            Ic.arcs = [x for x in I.arcs if x[1][0] == "en"]
+            Ic.data = set(ks)
+            own_st = {p for p in stops if own(p) and p != ctl}
+            sp = certs.spec(ctl, [(dp, ph) for dp in d_pins for ph in (0, 1)],
+                            two=1, noFr0=1, swStor=1, blocked=own_st)
+            certs.emit_cert(cctx, Ic, L, sp, {"ctl": label, "rule": "Hc"})
     if a.rules2:
         import rules2                     # noqa: E402  (C-10g: rules A, E, F, J, RT_FB, 8e)
         ctx = dict(T=T, P=P, edges=edges, back=back, stops=stops, ff=ff, fr=fr, timing=timing,
                    ivl=ivl, segment=segment, out=out, meta=meta, sdf=sdf, routed=routed,
                    controllers=controllers, osc=a.osc, Inst=Inst, VARIANTS=VARIANTS,
-                   intervals=intervals)
+                   intervals=intervals, cert=a.cert, cctx=cctx, certs=certs, want=want)
         rules2.emit_all(ctx, a.rules2)
     out.close()
     print(f"extract: {len(controllers)} controllers, {len(meta)} obligations; "

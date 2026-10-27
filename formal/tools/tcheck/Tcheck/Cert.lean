@@ -18,7 +18,8 @@ response); it is stated here, in Lean, instead of inside the Python search:
 * node `(p, ph)` = routed pin `p` in phase `ph ∈ {0, 1}`; `(s, 0)` is the launch
   (node 0 of the netlist), every other `(p, ph)` is `2 (p + 1) + ph`;
 * `noFr0`: phase 0 drops FASTRISE-side arcs (a falling wave does not travel
-  through a rise-only tap, tighten's polarity rule);
+  through a rise-only tap, tighten's polarity rule), except out of a storage node
+  that switches the phase (`swStor`: it fires, so any polarity leaves it);
 * `stop0`: phase 0 does not leave a storage node other than the launch (tighten's
   segment walk);
 * `swStor`: leaving a storage node other than the launch enters phase 1
@@ -58,7 +59,7 @@ def expand (L : Late) (stor : Nat → Bool) (g : GArc) : List Arc :=
   if L.blocked.contains g.src then [] else
   let st := stor g.src && g.src != L.s
   let a0 : List Arc :=
-    if (L.noFr0 && g.fr) || (L.stop0 && st) then []
+    if (L.noFr0 && g.fr && !(L.swStor && st)) || (L.stop0 && st) then []
     else [⟨enc L g.src 0, enc L g.dst (if L.swStor && st then 1 else 0), g.lo, g.hi⟩]
   let a1 : List Arc := if L.two then [⟨enc L g.src 1, enc L g.dst 1, g.lo, g.hi⟩] else []
   a0 ++ a1

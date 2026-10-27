@@ -85,6 +85,15 @@ def rule_R(c, ZERO, _emit):
             iv, fb = ivl(o, d, w)
             I.add(L, ("fb", d), iv, fb)
             I.data.add(("fb", d))
+        if c.get("cert") and "Rc" in c["want"]:
+            # C-10h: same data side; late side = the earliest change of any other pin of
+            # o over the WHOLE raw graph (one phase), bounded by a checked potential.
+            Ic = Inst(f"Rc {inst}")
+            Ic.arcs, Ic.data = list(I.arcs), set(I.data)
+            sp = c["certs"].spec(o, [(q, 0) for q in targets])
+            c["certs"].emit_cert(c["cctx"], Ic, L, sp, {"rule": "Rc", "ctl": inst})
+        if "R" not in c["want"]:
+            continue
         used = set()
         for j, v in enumerate(("sdf", "fast", "slow")):
             path = _dijkstra_any(edges, o, targets, fbset, inst, T,

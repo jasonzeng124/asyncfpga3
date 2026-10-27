@@ -465,6 +465,17 @@ def rule_F(c):
             pmeta["skip"] = "stage not traceable"
             c["meta"].append(pmeta)
             continue
+        if c.get("cert") and "Fc" in c["want"]:
+            # C-10h: data side = the stage falls built above; late side = src's next
+            # change over the whole graph: phase 0 = the falling wave (no FASTRISE taps,
+            # storage not left) up to the tail, switch at the tail, phase 1 = anything
+            # back to src (tighten's shortest_to), bounded by a checked potential.
+            Ic = Inst(f"Fc {base} n={len(links)}")
+            Ic.arcs, Ic.data = list(I.arcs), set(I.data)
+            sp = c["certs"].spec(src, [(src, 1)], two=1, noFr0=1, stop0=1, sw={tail})
+            c["certs"].emit_cert(c["cctx"], Ic, L, sp, dict(pmeta, rule="Fc"))
+        if "F" not in c["want"]:
+            continue
         rx = seg(I, "x", L, src, {tail}, fr)
         if tail not in rx:
             pmeta["skip"] = "no fall path to the tail"
