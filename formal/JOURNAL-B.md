@@ -2,15 +2,24 @@
 
 ## Verdicts (shard B)
 
-All files below check with `formal/check.sh` (lake build of `Formal/`) and
-standalone with `cd formal/lean && LEAN_PATH=.lake/build/lib/lean lean
-Formal/Cells/<F>.lean` (core Lean, no Mathlib). Notes: `formal/notes/B-*.md`.
+All files under formal/lean/Formal/Cells/ check with `formal/check.sh` (full
+lake build + axiom audit, last run OK after e54d7ca). Notes:
+`formal/notes/B-*.md`. Machine-readable cell constraints:
+`formal/out/cell_constraints.json` (123 entries, 121 tied to proved Lean
+theorems; validator `formal/out/cell_constraints.validate.py`).
 
-| track | verdict | evidence | effort to finish | buys |
-|---|---|---|---|---|
-| 5 C-element | **works** | CElemFn (8 INITs = spec; Kleene closed forms), CElemTiming (bounded delay: enabling input >= LUT+feedback delay, tight; four-phase spec with new fork condition), CTree (tree and flat C-element have equal reachable-state sets, all shapes, atomic-cell model, under four-phase with ack wait — not trace equality) | ~1-2 d: port to Core's real-time channels (probe 5d running), inertial/involution regimes, bd_c3/c4 timing | INITs machine-checked; the exact timing condition per cell; the ack wait shown necessary |
-| 6 latch/link | **works** | Latch (mux latch, setup/hold, DACK rule H sufficient), LinkHandshake (four-phase refinement, token conservation, half-token bound, deadlock freedom for any N in an atomic-gate model with isochronic forks; unequal fork delays only N<=3; bundling inequality SUFFICIENT, necessity shown on one trace only — audit row 20), Bundling (delay lines; capture condition derived; rules I and F each miss a term) | ~2-3 d: compose C-element + latch into a link stage, W-bit lift, pipe | a derived spec for tighten.py rules H/I/F; reference spec for track 10 |
-| 7 arbiter | **works** (all four probes) | binary: ArbBinary (runt trace, exclusion under named timing, tie to previous winner, runt from same-sense moves); Kleene: ArbKleene + TernarySound/TernaryPhases (exclusion for all 3-valued inputs, X only as (X,X), scenarios lifted to every binary trace under GMW delays, exactness witnesses); analog: ArbAnalog (Buridan/Marino impossibility with continuity proved by Gronwall; repelling equilibrium; bad-timing window between two exponentials) and ArbResolve (e^(-t/tau) law, probability and MTBF bounds, no fixed read time safe); handover: ArbHandover, ArbHeldTimed(2), ArbCorners (16 ps overlap is exact only in the simulator's corner-MIXED arc model, 0 at any consistent corner; held INIT meets the merge precondition in all interleavings of a ZERO-WIRE-DELAY model (isochronic A0 fork); RT1/RT2 both directions, numeric instances redone at consistent corners in ArbCorners), ArbA0Fork (rule J exact) | rates equal (0.5 d), explicit F (non-vacuity, 1 d), corner-consistent numbers (Bc running), DDE loop | exclusion tiers made exact: structural only for settled q; handover is relative timing; metastable tier provably only probabilistic, rate needs tau_r and T0 measured |
+| track / phase | verdict | evidence (Lean files) | open |
+|---|---|---|---|
+| 5 C-element | **works** | CElemFn, CElemTiming, CElemCore, CElemInvolution, CTree, CTreeTimed, ConstraintsSel | trace half of the Core port (blocked on A's SteerEnv `Gate`) |
+| 6 latch/link/pipe | **works** | Latch, Bundling, LinkHandshake, LinkTimed, PipeTimed, PipeTimedN, PipePerPin, PipeWitness, RulesKL, FifoFidelity | none blocking; per-pin data bits only on witnesses |
+| 7 arbiter (digital race) | **works** | ArbBinary, ArbKleene, ArbInvolution(2), ArbHandover, ArbHeldTimed(2), ArbA0Fork, ArbCorners(Pin), ArbOverlapRace, TernarySound/Phases/Exact | the board's 8% bd_arbcell overlap is NOT explained (B-arb-mtbf-copies) |
+| Phase 1 port | **done for values** | Prelim now names Core.K3 / Lut.eval / Lut.keval / Core mux tree | delete Prelim (needs A/C import changes); traces half pending A |
+| Phase 2 library | **works** | LibCtlMergeMux, LibEndMemMlink, MergeMuxSI, OpsTimed(2/Mux/Wit), OpsCounter, OpsExact, MuxRtzTimed, AMerge*, AMergeTimed*, MuxN3*, Constraints* | dctl lt_first partial (bd_link_dc is a failed experiment) |
+| Phase 2 on real routes/bits | **works** | OnNetlist, OnNetlistTimed(2), OnNetlistArb, TernaryOnBits(2), PinAssign; notes B-gcd-routes, B-arb-mtbf-copies | corner model (shared vs independent) decides several margins |
+| Phase 3 support | **in progress** | ResetContract, ResetGcd/ResetGcdNet (gcd_hw control network reset and release by decide), GcdCells | first wave after release, rig contract, uniform contracts for C (running) |
+
+Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
+north star; they check but get no further work.
 
 Library coverage: every LUT INIT in cells/rtl (bd_ce, bd_latch, bd_link,
 bd_arb, bd_ctl, bd_merge, bd_mux, bd_end, bd_mem, bd_mlink) is proved equal
