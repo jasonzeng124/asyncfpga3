@@ -183,4 +183,12 @@ self-contradictory in tone: it no longer "carries" a hypothesis.)
 
 ## Check result
 
-(filled in below)
+`formal/check.sh Formal/Core/TernaryChannels.lean` (2026-10-27 ~13:00 UTC):
+`[check] textual scan` / `[check] lean …` / `[audit] 833 declarations checked` /
+`[check] OK`. Plain `lake env lean` gives no errors and no warnings.
+Imports: Ternary, Delay.Pure, Delay.Inertial, Trace.Discrete, Discretize
+(the last pulls Net.Prelim and Cells.CElemTiming, only for `causal_of_sample`),
+plus `Mathlib.Basic.Real.Basic`, `Mathlib.Algebra.Order.Archimedean.Real.Basic`.
+
+Lead to-do: add `import Formal.Core.TernaryChannels` to `Formal.lean` (no
+lakefile change: it is under `Formal/`).
