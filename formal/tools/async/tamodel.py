@@ -83,6 +83,9 @@ class Node:
     # on_fire: (flag, condition evaluated in the PRE-state) -> flag |= cond
     on_fire_set: List[Tuple[str, Expr]] = field(default_factory=list)
     # on_fire_set: (monitor var, expr in the PRE-state) -> var := expr
+    mode: str = "inertial"   # or "transport": FIFO pure delay, queue of K
+    K: int = 2               # in-flight edges; ovf_<name> flags overflow
+    pending0: bool = False   # transport: one edge to !init already in flight
 
 
 class Circuit:
@@ -106,56 +109,126 @@ class Circuit:
         his = [d[1] if d[1] is not None else d[0] for d in (n.rise, n.fall)]
         return max(max(his), 1)
 
+    # transport-queue helpers.  Q = (len_expr, [(v_expr, c_expr)] * K)
+    @staticmethod
+    def _Q(n):
+        return (f"len_{n.name}",
+                [(f"v_{n.name}_{j}", f"c_{n.name}_{j}") for j in range(n.K)])
+
+    @staticmethod
+    def _Qshift(n):
+        L, sl = Circuit._Q(n)
+        return (f"({L}-1)", sl[1:] + [("false", "0")])
+
+    @staticmethod
+    def _chain(L, items, default):
+        e = default
+        for k in reversed(range(len(items))):
+            e = f"({L}={k} ? {items[k]} : {e})"
+        return e
+
+    def _tp_updates(self, m, env_post, Q, out_post):
+        """updates of transport node m's queue after a move whose post-state
+        outputs are env_post, starting from queue Q."""
+        L, sl = Q
+        K = m.K
+        fp = f"({m.f(env_post)})"
+        lastv = self._chain(L, [out_post] + [v for v, _ in sl], "false")
+        prevv = self._chain(L, ["false", out_post] + [v for v, _ in sl[:-1]],
+                            "false")
+        clast = self._chain(L, ["0"] + [c for _, c in sl], "0")
+        push = f"({fp} != {lastv})"
+        cancel = f"({push} & {L}>=1 & {clast}=0 & {fp}={prevv})"
+        add = f"({push} & !{cancel})"
+        ups = [f"(len_{m.name}'={cancel} ? {L}-1 : ({add} ? min({L}+1,{K}) : {L}))",
+               f"(ovf_{m.name}'=ovf_{m.name} | ({add} & {L}>={K}))"]
+        for j in range(K):
+            v, c = sl[j]
+            ups.append(f"(v_{m.name}_{j}'=({add} & {L}={j}) ? {fp} : {v})")
+            ups.append(f"(c_{m.name}_{j}'=({add} & {L}={j}) ? 0 : {c})")
+        return ups
+
+    def _others(self, n, post, ident):
+        ups = []
+        for m in self.nodes:
+            if m is n:
+                continue
+            if m.mode == "inertial":
+                eb = self._exc(m, ident)
+                ea = self._exc(m, post)
+                ups.append(f"(c_{m.name}'=({eb} & {ea}) ? c_{m.name} : 0)")
+                if m.watch_hazard:
+                    ups.append(f"(hz_{m.name}'=hz_{m.name} | ({eb} & !{ea}))")
+            else:
+                ups += self._tp_updates(m, post, self._Q(m), m.name)
+        for fl, cond in n.on_fire:
+            ups.append(f"({fl}'={fl} | ({cond(ident)}))")
+        for fl, ex in n.on_fire_set:
+            ups.append(f"({fl}'={ex(ident)})")
+        return ups
+
     def prism(self) -> str:
         L = ["mdp", "", "module circuit"]
         for n in self.nodes:
             L.append(f"  {n.name} : bool init {'true' if n.init else 'false'};")
-            L.append(f"  c_{n.name} : [0..{self._cap(n)}] init 0;")
+            if n.mode == "inertial":
+                L.append(f"  c_{n.name} : [0..{self._cap(n)}] init 0;")
+            else:
+                L.append(f"  len_{n.name} : [0..{n.K}] init {1 if n.pending0 else 0};")
+                L.append(f"  ovf_{n.name} : bool init false;")
+                for j in range(n.K):
+                    v0 = "true" if (j == 0 and n.pending0 and not n.init) else "false"
+                    L.append(f"  v_{n.name}_{j} : bool init {v0};")
+                    L.append(f"  c_{n.name}_{j} : [0..{self._cap(n)}] init 0;")
         for fl in self.flags + [f"hz_{n.name}" for n in self.nodes
-                                if n.watch_hazard]:
+                                if n.watch_hazard and n.mode == "inertial"]:
             L.append(f"  {fl} : bool init false;")
         L.append("")
         ident: Dict[str, str] = {}
         # --- fire commands
         for n in self.nodes:
-            exc = self._exc(n, ident)
-            for tgt, (lo, _hi) in ((True, n.rise), (False, n.fall)):
-                guard = (f"{exc} & {n.name}={'false' if tgt else 'true'}"
-                         f" & c_{n.name}>={lo}")
-                post = {n.name: ("true" if tgt else "false")}
-                ups = [f"({n.name}'={'true' if tgt else 'false'})",
-                       f"(c_{n.name}'=0)"]
-                for m in self.nodes:
-                    if m is n:
-                        continue
-                    eb = self._exc(m, ident)
-                    ea = self._exc(m, post)
-                    ups.append(f"(c_{m.name}'=({eb} & {ea}) ? c_{m.name} : 0)")
-                for m in self.nodes:
-                    if m is n or not m.watch_hazard:
-                        continue
-                    eb = self._exc(m, ident)
-                    ea = self._exc(m, post)
-                    ups.append(f"(hz_{m.name}'=hz_{m.name} | ({eb} & !{ea}))")
-                for fl, cond in n.on_fire:
-                    ups.append(f"({fl}'={fl} | ({cond(ident)}))")
-                for fl, ex in n.on_fire_set:
-                    ups.append(f"({fl}'={ex(ident)})")
+            if n.mode == "inertial":
+                exc = self._exc(n, ident)
+                for tgt, (lo, _hi) in ((True, n.rise), (False, n.fall)):
+                    guard = (f"{exc} & {n.name}={'false' if tgt else 'true'}"
+                             f" & c_{n.name}>={lo}")
+                    post = {n.name: ("true" if tgt else "false")}
+                    ups = [f"({n.name}'={'true' if tgt else 'false'})",
+                           f"(c_{n.name}'=0)"] + self._others(n, post, ident)
+                    L.append(f"  [] {guard} -> " + " & ".join(ups) + ";")
+            else:
+                h = f"v_{n.name}_0"
+                guard = (f"len_{n.name}>0 & c_{n.name}_0 >= "
+                         f"({h} ? {n.rise[0]} : {n.fall[0]})")
+                post = {n.name: h}
+                ups = [f"({n.name}'={h})"]
+                ups += self._tp_updates(n, post, self._Qshift(n), h)
+                ups += self._others(n, post, ident)
                 L.append(f"  [] {guard} -> " + " & ".join(ups) + ";")
         # --- time step
         block = []
         for n in self.nodes:
-            exc = self._exc(n, ident)
-            for tgt, (_lo, hi) in ((True, n.rise), (False, n.fall)):
-                if hi is not None:
-                    block.append(f"({exc} & {n.name}={'false' if tgt else 'true'}"
-                                 f" & c_{n.name}>={hi})")
+            if n.mode == "inertial":
+                exc = self._exc(n, ident)
+                for tgt, (_lo, hi) in ((True, n.rise), (False, n.fall)):
+                    if hi is not None:
+                        block.append(f"({exc} & {n.name}={'false' if tgt else 'true'}"
+                                     f" & c_{n.name}>={hi})")
+            else:
+                assert n.rise[1] is not None and n.fall[1] is not None
+                block.append(f"(len_{n.name}>0 & c_{n.name}_0 >= "
+                             f"(v_{n.name}_0 ? {n.rise[1]} : {n.fall[1]}))")
         g = "!(" + " | ".join(block) + ")" if block else "true"
         ups = []
         for n in self.nodes:
-            exc = self._exc(n, ident)
             cap = self._cap(n)
-            ups.append(f"(c_{n.name}'={exc} ? min(c_{n.name}+1,{cap}) : 0)")
+            if n.mode == "inertial":
+                exc = self._exc(n, ident)
+                ups.append(f"(c_{n.name}'={exc} ? min(c_{n.name}+1,{cap}) : 0)")
+            else:
+                for j in range(n.K):
+                    ups.append(f"(c_{n.name}_{j}'=len_{n.name}>{j} ? "
+                               f"min(c_{n.name}_{j}+1,{cap}) : 0)")
         L.append(f"  [tick] {g} -> " + " & ".join(ups) + ";")
         L.append("endmodule")
         return "\n".join(L) + "\n"

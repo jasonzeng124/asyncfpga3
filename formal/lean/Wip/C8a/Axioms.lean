@@ -1,4 +1,5 @@
 import Formal.Net.HandshakeLive
+import Formal.Net.HandshakeWitness
 open Formal.Net.Handshake
 #print axioms phase_step
 #print axioms pipeline_protocol
@@ -10,3 +11,7 @@ open Formal.Net.Handshake
 #print axioms muller_out_setupHold
 #print axioms muller_pipeline
 #print axioms muller_live
+#print axioms mullerW_stageSpec
+#print axioms node_latch_transfers
+#print axioms mullerW_pipeline_protocol
+#print axioms Formal.Net.Handshake.Witness.witness

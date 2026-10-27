@@ -48,7 +48,10 @@ def iv(nom, spread):
 
 
 def build(held=True, spread=0, wq_s=(0, 0), wq_g=(0, 0), wa=(0, 0),
-          srv=(1, 6), cli=(1, 6)):
+          srv=(1, 6), cli=(1, 6), mode="inertial"):
+    """mode applies to every LUT output and routed wire (inertial or
+    transport); the environment (rst, server A0, clients) stays inertial."""
+    tp = dict(mode=mode, K=3)
     c = Circuit()
     for f in ("bad_ho", "bad_tx", "tok"):
         c.flag(f)
@@ -56,20 +59,22 @@ def build(held=True, spread=0, wq_s=(0, 0), wq_g=(0, 0), wa=(0, 0),
     pins_s = ["r1", "r2", "qs", "rst", "A0s", "1"]
     pins_g = ["r1", "r2", "qg", None, None, "1"]
     c.add("rst", lambda env: "false", True, (0, 0), (0, 2))
-    c.add("q", lut(st, pins_s, "O6"), False, iv(O6R, spread), iv(O6F, spread))
-    c.add("R0", lut(st, pins_s, "O5"), False, iv(O5R, spread), iv(O5F, spread))
-    c.add("qs", var("q"), False, wq_s, wq_s)
-    c.add("qg", var("q"), False, wq_g, wq_g)
-    c.add("A0s", var("A0"), False, wa, wa)
+    c.add("q", lut(st, pins_s, "O6"), False, iv(O6R, spread), iv(O6F, spread),
+          pending0=(mode == "transport"), **tp)
+    c.add("R0", lut(st, pins_s, "O5"), False, iv(O5R, spread), iv(O5F, spread),
+          **tp)
+    c.add("qs", var("q"), False, wq_s, wq_s, **tp)
+    c.add("qg", var("q"), False, wq_g, wq_g, **tp)
+    c.add("A0s", var("A0"), False, wa, wa, **tp)
     c.add("g1", lut(INIT_GRANT, pins_g, "O5"), False,
-          iv(O5R, spread), iv(O5F, spread),
+          iv(O5R, spread), iv(O5F, spread), **tp,
           on_fire=[("bad_ho", lambda env: "!g1 & A0 & !tok")])
     c.add("g2", lut(INIT_GRANT, pins_g, "O6"), False,
-          iv(O6R, spread), iv(O6F, spread),
+          iv(O6R, spread), iv(O6F, spread), **tp,
           on_fire=[("bad_ho", lambda env: "!g2 & A0 & !tok")])
     for i in (1, 2):
         c.add(f"A{i}", lut(INIT_C2, [f"g{i}", "A0", f"A{i}", "rst"]), False,
-              iv(O6R, spread), iv(O6F, spread),
+              iv(O6R, spread), iv(O6F, spread), **tp,
               on_fire=[("bad_tx", lambda env, i=i: f"!A{i} & !tok")],
               on_fire_set=[("tok", lambda env, i=i: f"A{i} ? tok : false")])
     c.add("A0", var("R0"), False, srv, srv,
@@ -90,8 +95,19 @@ PROPS = {"mutex": "Pmax=? [F g1 & g2]",
          "reach2": "Pmax=? [F A2]"}
 
 
+OVF = "Pmax=? [F " + " | ".join(f"ovf_{n}" for n in
+                              ("q", "R0", "qs", "qg", "A0s", "g1", "g2",
+                               "A1", "A2")) + "]"
+MODE = "inertial"
+
+
 def row(label, **kw):
-    r, ns, nt, sec = check(build(**kw).prism(), PROPS)
+    kw.setdefault("mode", MODE)
+    props = dict(PROPS)
+    if kw["mode"] == "transport":
+        props["ovf"] = OVF
+    label = f"[{kw['mode'][:4]}] " + label
+    r, ns, nt, sec = check(build(**kw).prism(), props)
     vals = " ".join(f"{k}={v:.0f}" for k, v in r.items())
     print(f"{label:46} {vals}  states={ns} trans={nt} {sec:.1f}s", flush=True)
     return r
@@ -102,6 +118,8 @@ if __name__ == "__main__":
         print(build().prism())
         sys.exit()
     t0 = time.time()
+    if len(sys.argv) > 1:
+        MODE = sys.argv[1]
     print("== 1. grant overlap, UNHELD, nominal arcs: q->ugrant wire needed ==")
     for w in range(0, 7):
         row(f"UNHELD wq_g={w} ({4*w} ps) srv=[40,45]", held=False,

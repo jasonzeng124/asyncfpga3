@@ -2,13 +2,17 @@
 # Route the fasm2lean fixture (ce_pair.v: bd_c2 -> bd_c2n) with the project's
 # flow options (cells/flow.sh: synth_xilinx -flatten -nosrl -nolutram -nobram
 # -noclkbuf; nextpnr --ignore-loops), plus --freq and a pinned seed (CLAUDE.md).
-#     formal/tools/fasm2lean/route.sh [SEED]     -> fixture/ce_pair_s<SEED>.*
+#     formal/tools/fasm2lean/route.sh [SEED]
+# Everything goes to build/ (large: synth JSON, frames, .bit; not for git);
+# the small, reviewable results are copied to fixture/: the nextpnr FASM, the
+# FASM read back from the .bit, the toolchain stamp, the fasm_audit verdict,
+# the .bit's sha256, and the SDF (for comparison with the route data).
 set -euo pipefail
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../../.." && pwd)
 SEED=${1:-1}
-OUT=$HERE/fixture; mkdir -p "$OUT"
+OUT=$HERE/build; FIX=$HERE/fixture; mkdir -p "$OUT" "$FIX"
 B=$OUT/ce_pair_s$SEED
 BD_TOOLCHAIN_LOG=$OUT/toolchain.log "$REPO/cells/verify/toolchain.sh" > "$B.toolchain" \
     || { cat "$B.toolchain"; echo "toolchain.sh FAILED: nothing routed here is a result"; exit 1; }
@@ -24,4 +28,18 @@ write_json $B.json
     > "$B.pnr.log" 2>&1 || { tail -30 "$B.pnr.log"; exit 1; }
 python3 "$REPO/cells/verify/fasm_audit.py" "$B"_routed.json "$B.fasm" --synth "$B.json" > "$B.audit" 2>&1 \
     || { cat "$B.audit"; echo "fasm_audit FAILED"; exit 1; }
+# The bitstream the board would load, exactly as cells/hw/build_hw.sh makes it,
+# then read BACK with prjxray's bitread + bit2fasm: fasm2lean is run on the
+# disassembled FASM (ce_pair_s<SEED>.fromBit.fasm), so the Lean terms come
+# from the bits, not from nextpnr's FASM text.
+PRJ=$TC/openxc7-src/prjxray; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PART=xc7z010clg400-1
+PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore "$PRJ/utils/fasm2frames.py" \
+    --db-root "$DB" --part "$PART" "$B.fasm" > "$B.frames" 2> "$B.frames.log"
+"$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/$PART/part.yaml" --part_name "$PART" \
+    --frm_file "$B.frames" --output_file "$B.bit" > "$B.bit.log" 2>&1
+PYTHONPATH="$PRJ:$PRJ/third_party/fasm" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" --part "$PART" \
+    --bitread "$TC/openxc7/bin/bitread" "$B.bit" > "$B.fromBit.fasm" 2> "$B.bit2fasm.log"
+echo "bit $(sha256sum "$B.bit" | cut -c1-16)  $(grep -vc '^\s*$' "$B.fromBit.fasm") features read back"
+for x in fasm fromBit.fasm toolchain audit sdf; do cp "$B.$x" "$FIX/ce_pair_s$SEED.$x"; done
+sha256sum "$B.bit" | sed "s|$OUT/||" > "$FIX/ce_pair_s$SEED.bit.sha256"
 echo "routed $B.fasm  (nextpnr $(grep sha256 "$B.toolchain" | awk '{print $2}'))"

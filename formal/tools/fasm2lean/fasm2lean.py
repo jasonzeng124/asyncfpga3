@@ -28,9 +28,11 @@ Per output port: the same walk from the IOB's O pin.
 Checks made while walking (each exits 1 with a message): a node with two
 active drivers (a short), a LUT pin with no driver (floating), a source the
 tool does not model (FF Q, carry, F7/F8 mux, an OUTMUX other than O6/O5).
-Pseudo pips (no config bits: ILOGIC/OLOGIC combinational bypass) are taken
-only when exactly one candidate's source is itself driven; that inference is
-hypothesis H_IOI_BYPASS in the emitted Lean.
+Implicit pips (no config bits: prjxray-db ppips 'always'/'default', and the
+tile json's pseudo pips such as the ILOGIC/OLOGIC combinational bypass) are
+never printed by bit2fasm, so they are inferred: taken only for a node with
+no active pip, and only when exactly one candidate's source is itself driven.
+That inference is hypothesis H_IMPLICIT (notes/C-11b-fasm.md).
 
 Lean output: one namespace with `luts : List PLut` (index = order of the LUT
 sites, sorted), `outs : List (String x Src)`, `ports`, and `pinDelay`
@@ -119,6 +121,22 @@ class Fabric:
             for k, p in j["pips"].items():
                 j["_by_dst"][p["dst_wire"]].append(p)
                 j["_by_name"][(p["dst_wire"], p["src_wire"])] = p
+            # prjxray-db ppips: pips with NO configuration bits.  'always' and
+            # 'default' ones conduct without any FASM feature (bit2fasm never
+            # prints them; nextpnr's FASM writer prints some); 'hint' ones
+            # (LUT route-throughs) need site configuration and are not taken.
+            j["_implicit"] = set()
+            pp = os.path.join(self.db, "ppips_%s.db" % ttype.lower())
+            if os.path.exists(pp):
+                with open(pp) as f:
+                    for line in f:
+                        w = line.split()
+                        if len(w) == 2 and w[1] in ("always", "default"):
+                            _t, dst, src = w[0].split(".", 2)
+                            j["_implicit"].add((dst, src))
+            for p in j["pips"].values():
+                if p["is_pseudo"] == "1":
+                    j["_implicit"].add((p["dst_wire"], p["src_wire"]))
             # site pin wires
             j["_sitepin"] = {}
             for s in j["sites"]:
@@ -193,12 +211,26 @@ class Extract:
                     out.append((t, p, False))
         return out
 
+    # Pseudo pips that a SITE mux selects: (dst regex, src regex, feature).
+    # prjxray fuzzers/035-iob-ilogic/generate.py: IDELMUXE3.P1 = 'direct'
+    # (D -> O), P0 = 'idelay' (DDLY -> O).  ILOGIC<k> wires are FASM ILOGIC_Y<k>.
+    SITE_MUX = [(r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_D$", "ILOGIC_Y{0}.IDELMUXE3.P1"),
+                (r"IOI_ILOGIC(\d)_O$", r"_ILOGIC\d_DDLY$", "ILOGIC_Y{0}.IDELMUXE3.P0")]
+
+    def site_mux_ok(self, t, p):
+        for rd, rs, feat in self.SITE_MUX:
+            m = re.search(rd, p["dst_wire"])
+            if m and re.search(rs, p["src_wire"]):
+                return "%s.%s" % (t, feat.format(*m.groups())) in self.feats
+        return True
+
     def pseudo_drivers(self, node):
         out = []
         for t, w in node:
             j = self.fab.tt(self.fab.ttype(t))
             for p in j["_by_dst"].get(w, ()):
-                if p["is_pseudo"] == "1":
+                if ((w, p["src_wire"]) in j["_implicit"] and (w, p["src_wire"]) not in self.active[t]
+                        and self.site_mux_ok(t, p)):
                     out.append((t, p, True))
         return out
 
@@ -245,8 +277,15 @@ class Extract:
             node = self.fab.node(t, p["src_wire"])
         die("%s: route longer than 200 pips" % what, 2)
 
-    def is_driven(self, node):
-        return bool(self.source_pin(node) or self.drivers(node))
+    def is_driven(self, node, depth=8):
+        """Has a source: a site output, an active pip, or (up to `depth`
+        implicit pips back) an implicit pip from a driven node."""
+        if self.source_pin(node) or self.drivers(node):
+            return True
+        if depth == 0:
+            return False
+        return any(self.is_driven(self.fab.node(t, p["src_wire"]), depth - 1)
+                   for t, p, _ in self.pseudo_drivers(node))
 
 
 def lut_output(fab, ex, src, lut_index):
