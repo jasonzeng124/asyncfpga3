@@ -22,6 +22,26 @@ output feeds back to their own input. The arbiter is a decision element
 with NO analog metastability filter, because a filter cannot be built on
 this fabric.
 
+## The model must be gate-fidelity (owner)
+
+The model is only worth proving things about if its gates are faithful to the
+fabric's real gates. A proof about an idealized gate says nothing about the
+chip. So each primitive is modelled as what it physically is on a 7-series
+part, and the fidelity of each choice is stated and, where possible, checked:
+- **LUT:** an SRAM-driven pass-transistor mux tree behind input buffers, not
+  a Boolean function. That is what decides its glitch, X and runt behaviour.
+- **Routing:** buffered pips and pass-transistor pips (prjxray-db marks which
+  is which), and wires with R and C, with delay bounds taken from prjxray-db's
+  fast/slow min/max for this part (`prjxray/prjxray/timing.py` is the model).
+- **MUXF7/F8, carry, FFs (CK->Q, setup/hold, async SR):** as the silicon has
+  them.
+- **Where the fabric is not known:** for example, whether a real LUT follows
+  Kleene semantics exactly. Make it an explicit hypothesis, write down how it
+  could be tested (a GLS or board experiment), and never assume it silently.
+Compare the model with the board-fidelity GLS being built on
+`claude/research` (read-only). Where the two disagree, find out which is wrong.
+`FEASIBILITY.md` must say, for every primitive, how faithful its model is.
+
 ## The model the owner has in mind
 
 Gate level: an arbiter is just a collection of gates, and its behaviour,
