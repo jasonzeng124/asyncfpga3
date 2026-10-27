@@ -44,10 +44,19 @@
   bit fails the build. (b) bitstream: `formal/tools/fasm2lean/check.sh`;
   bd_c2->bd_c2n routed on 4 seeds, FASM read back from the .bit, physical INIT
   + pip-walked pin map proved to compute the logical cells; mutated INIT/pips
-  caught (which fasm_audit cannot see for re-pointed pips). LUT-only so far;
-  whole designs ~2-3 weeks. Finding: the placer's pin permutation is real
+  caught (which fasm_audit cannot see for re-pointed pips). (c) routed bd_link W=3 + bd_arbiter on 4 seeds: bits == yosys
+  import up to a checked renaming (`Formal/Net/FasmLink`, `formal/tools/
+  fasm2lean2/check.sh`), grant exclusion of the routed bits. LUT6/LUT6_2 only;
+  FF/CARRY4/F7F8 semantics ~3-5 days, whole designs ~2-3 weeks. Finding: the placer's pin permutation is real
   (BLUT INIT 0x3220.. vs logical 0x00E8..), and moves delay by up to ~0.5 ns.
-- Track 12: pending.
+- **Track 12 (other tools): works with ~1 day per tool, as a bound-finder,
+  not a prover.** UPPAAL/Workcraft/TChecker/PRISM downloads blocked (403);
+  z3/SMT (12a, pending) and Storm (12b): exact delay thresholds and witness
+  traces in seconds for fixed integer delays (C-element: env min response >=
+  feedback max; shipped arbiter: server latency >= ~60 ps, A0 rising skew <
+  116 ps), but nothing for all delays; pure delay + spread runs out of memory.
+  Best use: find the bound, then prove it in Lean. Zone-based dense time
+  (12c, TChecker by git clone) pending.
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 
@@ -135,3 +144,13 @@ A0->ustate rising skew < 116 ps, conditions the header presents as
 structural; pure delay breaks mutex via runts. Evidence for fixed integer
 delays, not proofs. Memory: the sandbox cgroup kills processes at ~5 GB (also
 killed Lean twice). Launched 12c (TChecker by git clone, dense-time zones).
+
+### progress 04:09
+11c committed (routed link+arbiter bits == yosys import, 4 seeds). My own
+error: during the incident restore I did rm -rf Wip/C* then copied a backup,
+which deleted Wip/C11c files created after the backup; 11c regenerated them.
+Mathlib abandoned in this sandbox: setup.sh's retry loop re-ran lake update
+-> cache get (9031 x 403) repeatedly; killed it. Shard C's files are all core
+Lean, so I verify per file (compile + collectAxioms audit) instead of
+check.sh's full lake build (which needs Mathlib for A's Core). Launched 10e
+(compiled tcheck exe on real routes, row-by-row vs rules A/E/F/H/I/J).

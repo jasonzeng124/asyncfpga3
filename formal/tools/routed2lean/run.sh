@@ -7,6 +7,9 @@
 #       Formal/Timing/RoutedCePairS1Loop.lean   launch = input a at q1's physical pin B4
 #       Formal/Timing/RoutedCePairS1Input.lean  launch = input a at its IOB
 #     reports (windows per node and variant) -> build/*.txt, copied to fixture/
+#     and for the 64-stage Muller pipeline (pipe/): RT_FB for every C-element
+#       Formal/Timing/RoutedMuller64S1.lean       (rt_all.py, 64 entries)
+#       Formal/Timing/RoutedMuller64S1Wave.lean   launch = req at its IOB (1227 arcs)
 #  3. compiles the data and Formal/Timing/RoutedCePair.lean (theorems), audits axioms.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -28,13 +31,25 @@ $R --launch pin:1:B4 --ns CePairS1Loop --out "$LEAN/Formal/Timing/RoutedCePairS1
 $R --launch port:a --ns CePairS1Input --out "$LEAN/Formal/Timing/RoutedCePairS1Input.lean" --report "$B/input.txt" \
    --name b4=SLICE_X42Y95.B4 --name q1=SLICE_X42Y95.BLUT.O6 --name q2=SLICE_X42Y94.ALUT.O6 \
    --name q2port="port q2 (IOB O)" > /dev/null || fail=1
-cp "$B"/fork.txt "$B"/loop.txt "$B"/input.txt "$FIX/"
+# the 64-stage Muller pipeline (pipe/route.sh routes it; fixture/ holds its read-back FASM)
+python3 "$F2L/fasm2lean.py" "$FIX/muller64_s1.fromBit.fasm" "$HERE/pipe/muller_pipe.xdc" --ns X \
+    --json "$B/muller64_s1.f2l.json" --out /dev/null || exit 1
+MR=$B/muller64_s1_routed.json
+if [ -f "$MR" ]; then MBEL=(--routed "$MR" --belmap "$FIX/muller64_s1.bels.json")
+else MBEL=(--routed "$FIX/muller64_s1.bels.json"); fi
+python3 -I "$HERE/rt_all.py" "$B/muller64_s1.f2l.json" --ns Muller64S1 --sdf "$FIX/muller64_s1.sdf" \
+    --routed "${MBEL[1]}" --out "$LEAN/Formal/Timing/RoutedMuller64S1.lean" --report "$B/muller64_rt.txt" > /dev/null || fail=1
+python3 -I "$HERE/routed2lean.py" "$B/muller64_s1.f2l.json" --launch port:req --ns Muller64S1Wave \
+    --sdf "$FIX/muller64_s1.sdf" "${MBEL[@]}" --out "$LEAN/Formal/Timing/RoutedMuller64S1Wave.lean" \
+    --report "$B/muller64_wave.txt" --name qn="port qn (IOB O)" > /dev/null || fail=1
+cp "$B"/fork.txt "$B"/loop.txt "$B"/input.txt "$B"/muller64_rt.txt "$B"/muller64_wave.txt "$FIX/"
 [ "${1:-}" = --no-lean ] && exit $fail
 export PATH=$HOME/.elan/bin:$PATH
 cd "$LEAN"; export LEAN_PATH=$PWD/.lake/build/lib/lean
 O=.lake/build/lib/lean/Formal/Timing
 python3 ../scan.py Formal/Timing/WinArray*.lean Formal/Timing/Routed*.lean || fail=1
-for m in WinArray WinArrayB RoutedCePairS1Fork RoutedCePairS1Loop RoutedCePairS1Input RoutedCePair; do
+for m in WinArray WinArrayB RoutedCePairS1Fork RoutedCePairS1Loop RoutedCePairS1Input RoutedCePair \
+         RoutedMuller64S1 RoutedMuller64S1Wave RoutedMuller; do
     s=$(date +%s)
     ../slot.sh lean -o $O/$m.olean Formal/Timing/$m.lean > "$B/$m.log" 2>&1 \
         && echo "  ok  Formal/Timing/$m.lean ($(( $(date +%s) - s )) s incl. slot wait)" \
@@ -42,9 +57,10 @@ for m in WinArray WinArrayB RoutedCePairS1Fork RoutedCePairS1Loop RoutedCePairS1
 done
 cat > "$B/ax.lean" <<'LEAN'
 import Formal.Timing.RoutedCePair
+import Formal.Timing.RoutedMuller
 LEAN
 grep -ho '^theorem [A-Za-z0-9_]*' Formal/Timing/WinArray.lean Formal/Timing/WinArrayB.lean | sed 's/.*theorem /#print axioms Formal.Timing./' >> "$B/ax.lean"
-grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/RoutedCePair.lean | sed 's/.*theorem /#print axioms Formal.Timing.Routed./' >> "$B/ax.lean"
+grep -ho '^theorem [A-Za-z0-9_]*' Formal/Timing/RoutedCePair.lean Formal/Timing/RoutedMuller.lean | sed 's/.*theorem /#print axioms Formal.Timing.Routed./' >> "$B/ax.lean"
 ../slot.sh lean "$B/ax.lean" > "$B/ax.log" 2>&1
 if grep -q "sorryAx\|ofReduceBool\|ofReduceNat\|error" "$B/ax.log" || grep "depends on axioms" "$B/ax.log" \
      | sed 's/.*\[\(.*\)\]/\1/' | tr ',' '\n' | tr -d ' ' | grep -qv '^\(propext\|Quot.sound\|Classical.choice\)$'; then
