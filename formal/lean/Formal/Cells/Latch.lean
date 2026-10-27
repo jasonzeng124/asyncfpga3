@@ -221,9 +221,9 @@ theorem holds_value {L : Nat} (b : LatchBit L) (v : K3) (s T : Nat)
       rw [b.hloop t (by omega)]
       exact ih (t - b.loop.k t) (by omega) (by omega) (by omega)
     cases he : b.en t with
-    | t => rw [hq, he]; exact H_DATA t hs hT (by rw [he]; decide)
-    | f => rw [hq, he]; exact hp (by rw [he]; decide)
-    | x =>
+    | one => rw [hq, he]; exact H_DATA t hs hT (by rw [he]; decide)
+    | zero => rw [hq, he]; exact hp (by rw [he]; decide)
+    | X =>
       rw [hq, he, hp (by rw [he]; decide), H_DATA t hs hT (by rw [he]; decide)]
       simp [K3.mux, K3.join]
 

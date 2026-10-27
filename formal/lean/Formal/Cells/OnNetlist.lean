@@ -1,4 +1,5 @@
 import Formal.Cells.Prelim
+import Formal.Cells.MuxTree
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
 import Formal.Cells.ArbBinary
@@ -546,7 +547,7 @@ theorem completions_ofBool : ∀ v : List Bool, completions (v.map K3.ofBool) = 
 
 theorem lutK_ofBool (init : Nat) (v : List Bool) :
     lutK init (v.map K3.ofBool) = K3.ofBool (lutB init v) := by
-  simp only [lutK, completions_ofBool]
+  simp only [MuxTree.lutK_eq_closure, completions_ofBool]
   cases hb : lutB init v <;> simp [hb, K3.ofBool]
 
 theorem fnK_ofBool (L : PLut) (o : LOut) (v : List Bool) :

@@ -1,4 +1,5 @@
 import Formal.Cells.Prelim
+import Formal.Cells.MuxTree
 
 /-!
 # Shard B, probe Lib2: `bd_end.v`, `bd_mem.v`, `bd_mlink.v`, and the parts of
@@ -79,7 +80,7 @@ under H_KLEENE_LUT. -/
 theorem singleX_any (init : Nat) (v : List Bool) (i : Nat) (h : i < v.length) :
     lutK init ((v.map K3.ofBool).set i .x)
       = K3.join (.ofBool (lutB init (v.set i false))) (.ofBool (lutB init (v.set i true))) := by
-  unfold lutK
+  rw [MuxTree.lutK_eq_closure]
   rw [completions_setx v i h]
   simp only [List.map_cons, List.map_nil]
   cases lutB init (v.set i false) <;> cases lutB init (v.set i true) <;> rfl
@@ -87,7 +88,7 @@ theorem singleX_any (init : Nat) (v : List Bool) (i : Nat) (h : i < v.length) :
 /-- Kleene agrees with binary on definite inputs (any INIT). -/
 theorem lutK_ofBool (init : Nat) (v : List Bool) :
     lutK init (v.map K3.ofBool) = .ofBool (lutB init v) := by
-  unfold lutK; rw [completions_ofBool]
+  rw [MuxTree.lutK_eq_closure, completions_ofBool]
   simp only [List.map_cons, List.map_nil]
   cases lutB init v <;> rfl
 

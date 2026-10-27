@@ -1,4 +1,5 @@
 import Formal.Cells.Prelim
+import Formal.Cells.MuxTree
 import Formal.Cells.ArbKleene
 
 /-!
@@ -150,7 +151,7 @@ theorem completions_mono {zs zs' : List K3} (h : Pw le zs zs') :
 /-- `lutK` is `t` exactly when every completion gives 1. -/
 theorem lutK_eq_t_iff (init : Nat) (zs : List K3) :
     lutK init zs = .t ↔ ∀ c ∈ completions zs, lutB init c = true := by
-  dsimp only [lutK]
+  rw [MuxTree.lutK_eq_closure]; dsimp only
   constructor
   · intro h c hc
     split at h
@@ -170,7 +171,7 @@ theorem lutK_eq_t_iff (init : Nat) (zs : List K3) :
 theorem lutK_eq_f_iff (init : Nat) (zs : List K3) :
     lutK init zs = .f ↔ ∀ c ∈ completions zs, lutB init c = false := by
   have hne := completions_ne_nil zs
-  dsimp only [lutK]
+  rw [MuxTree.lutK_eq_closure]; dsimp only
   constructor
   · intro h c hc
     split at h
@@ -199,12 +200,12 @@ are ordered the same way. -/
 theorem lutK_mono (init : Nat) {zs zs' : List K3} (h : Pw le zs zs') :
     le (lutK init zs) (lutK init zs') := by
   cases h' : lutK init zs' with
-  | x => exact Or.inr rfl
-  | t =>
+  | X => exact Or.inr rfl
+  | one =>
     left
     rw [lutK_eq_t_iff] at h' ⊢
     exact fun c hc => h' c (completions_mono h c hc)
-  | f =>
+  | zero =>
     left
     rw [lutK_eq_f_iff] at h' ⊢
     exact fun c hc => h' c (completions_mono h c hc)
@@ -216,9 +217,9 @@ theorem lutK_sound (init : Nat) {zs : List K3} {bs : List Bool}
     K3.admits (lutK init zs) (lutB init bs) = true := by
   have hm := mem_completions_of_forall2 h
   cases h' : lutK init zs with
-  | x => rfl
-  | t => rw [lutK_eq_t_iff] at h'; simp [K3.admits, h' bs hm]
-  | f => rw [lutK_eq_f_iff] at h'; simp [K3.admits, h' bs hm]
+  | X => rfl
+  | one => rw [lutK_eq_t_iff] at h'; simp [K3.admits, h' bs hm]
+  | zero => rw [lutK_eq_f_iff] at h'; simp [K3.admits, h' bs hm]
 
 /-! ## Networks -/
 
@@ -626,8 +627,8 @@ theorem algB_bounded (N : Circ) (u a sA : Nat → K3) (hpost : sle (stepK N u sA
         have := hB.wire i n p
         exact ih _ (by omega) q
       cases hz : lutK init (pins.map (srcK (iter N a m sA))) with
-      | x => rfl
-      | t =>
+      | X => rfl
+      | one =>
         have hb : ∀ i, T0 + m * (D + W + 1) + W ≤ i → R.exc init pins i n = true := by
           intro i hi
           have := hexc i hi; rw [hz] at this
@@ -644,7 +645,7 @@ theorem algB_bounded (N : Circ) (u a sA : Nat → K3) (hpost : sle (stepK N u sA
             · rw [← Nat.add_assoc, h]; exact hb (i + d) (by omega)
         have : k = i + (k - i) := by rw [Nat.succ_mul] at hk; omega
         rw [this, hold]; rfl
-      | f =>
+      | zero =>
         have hb : ∀ i, T0 + m * (D + W + 1) + W ≤ i → R.exc init pins i n = false := by
           intro i hi
           have := hexc i hi; rw [hz] at this

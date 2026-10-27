@@ -278,11 +278,11 @@ theorem inw_avail {i : Nat}
   · have hx : u i = .x := by
       have h1 := hui.1
       cases hux : u i with
-      | x => rfl
-      | t =>
+      | X => rfl
+      | one =>
         rw [hux] at hb h1; exfalso; apply hc
         revert hb h1; cases b <;> cases c0 i <;> decide
-      | f =>
+      | zero =>
         rw [hux] at hb h1; exfalso; apply hc
         revert hb h1; cases b <;> cases c0 i <;> decide
     refine ⟨1, Nat.le_refl _, ?_⟩
@@ -616,9 +616,9 @@ theorem B_exact
     intro hnx
     have hdef : ∃ b, iter N (fin a') mB (iter N u mA (s0 c0)) n = K3.ofBool b := by
       cases h : iter N (fin a') mB (iter N u mA (s0 c0)) n with
-      | t => exact ⟨true, rfl⟩
-      | f => exact ⟨false, rfl⟩
-      | x => exact absurd h hnx
+      | one => exact ⟨true, rfl⟩
+      | zero => exact ⟨false, rfl⟩
+      | X => exact absurd h hnx
     obtain ⟨b, hb⟩ := hdef
     have hs0 := s0_chain N c0 a' u hstab hu
     have hpost : sle (stepK N u (iter N u mA (s0 c0))) (iter N u mA (s0 c0)) := by
@@ -855,17 +855,17 @@ theorem tv_avail (t i : Nat) (b : Bool) (hb : K3.admits (sig N c0 a' u mA t i) b
     have hdef : tv N c0 a' u mA (t + 1) i = (match sig N c0 a' u mA (t + 1) i with
       | .x => !tv N c0 a' u mA t i | .t => true | .f => false) := rfl
     cases hs : sig N c0 a' u mA (t + 1) i with
-    | x =>
+    | X =>
       rw [hs] at hdef
       by_cases hc : tv N c0 a' u mA t i = b
       · exact ⟨t, ⟨Nat.le_succ t, by omega⟩, hc⟩
       · refine ⟨t + 1, ⟨Nat.le_refl _, by omega⟩, ?_⟩
         rw [hdef]; revert hc; cases b <;> cases tv N c0 a' u mA t i <;> decide
-    | t =>
+    | one =>
       rw [hs] at hb hdef
       exact ⟨t + 1, ⟨Nat.le_refl _, by omega⟩,
         by rw [hdef]; exact ((admits_ofBool_iff true b).1 hb).symm⟩
-    | f =>
+    | zero =>
       rw [hs] at hb hdef
       exact ⟨t + 1, ⟨Nat.le_refl _, by omega⟩,
         by rw [hdef]; exact ((admits_ofBool_iff false b).1 hb).symm⟩
@@ -983,9 +983,9 @@ theorem B_exact_fifo
     intro hnx
     have hdef : ∃ b, iter N (fin a') mB (iter N u mA (s0 c0)) n = K3.ofBool b := by
       cases h : iter N (fin a') mB (iter N u mA (s0 c0)) n with
-      | t => exact ⟨true, rfl⟩
-      | f => exact ⟨false, rfl⟩
-      | x => exact absurd h hnx
+      | one => exact ⟨true, rfl⟩
+      | zero => exact ⟨false, rfl⟩
+      | X => exact absurd h hnx
     obtain ⟨b, hb⟩ := hdef
     have hs0 := s0_chain N c0 a' u hstab hu
     have hpost : sle (stepK N u (iter N u mA (s0 c0))) (iter N u mA (s0 c0)) := by

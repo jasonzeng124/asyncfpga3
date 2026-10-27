@@ -1,4 +1,5 @@
 import Formal.Cells.Prelim
+import Formal.Cells.MuxTree
 
 /-!
 # Track 6c: matched delay lines (`bd_delay`) and the bundling condition (`bd_link`)
@@ -140,7 +141,7 @@ of every consistent Boolean evaluation. -/
 theorem lutK_sound {init : Nat} {ks : List K3} {vs : List Bool} {b : Bool}
     (h : lutK init ks = K3.ofBool b) (hv : vs ∈ completions ks) : lutB init vs = b := by
   have hm : lutB init vs ∈ (completions ks).map (lutB init) := List.mem_map.2 ⟨vs, hv, rfl⟩
-  unfold lutK at h
+  rw [MuxTree.lutK_eq_closure] at h
   by_cases h1 : ((completions ks).map (lutB init)).all id = true
   · simp only [h1, ↓reduceIte] at h
     have := List.all_eq_true.1 h1 _ hm

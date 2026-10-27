@@ -139,9 +139,9 @@ theorem phase_cov (N : Circ) (u a s : Nat → K3) (hpost : sle (stepK N u s) s)
         have : k = i + (k - i) := by omega
         rw [this]; exact hold _ (by omega)
       cases hz : lutK init (pins.map (srcK (iter N a m s))) with
-      | x => rfl
-      | t => rw [key true hz]; rfl
-      | f => rw [key false hz]; rfl
+      | X => rfl
+      | one => rw [key true hz]; rfl
+      | zero => rw [key false hz]; rfl
 
 /-! ## (1) Many phases -/
 

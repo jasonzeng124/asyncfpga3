@@ -3,15 +3,19 @@ import Formal.Cells.Prelim
 /-!
 # Fidelity of H_KLEENE_LUT: one Kleene 2:1 mux gives the closure semantics
 
-`Prelim.lutK` is the *closure* (Kleene) semantics of a LUT: `t`/`f` if every
-INIT entry consistent with the inputs is 1/0, else `x`. Physically a 7-series
+The *closure* (Kleene) semantics of a LUT is: `t`/`f` if every INIT entry
+consistent with the inputs is 1/0, else `x` (`cloN`). Since the Core port,
+`Prelim.lutK` is DEFINED as the mux tree (`muxTree init.testBit`, which is
+Core's `kevalT`, `Prelim.muxTree_ofFn`); this file proves it equals the
+closure (`lutK_eq_closure`, the pre-port definition). Physically a 7-series
 LUT is a tree of 2:1 pass-transistor muxes behind input buffers. Here we show
 that the closure semantics is exactly what you get if you assume, for ONE
 2:1 mux only, the Kleene behaviour `K3.mux` (select `x` passes a value iff both
 legs carry it), and evaluate the tree level by level:
 
-* `muxTree_eq_lutK`: Prelim's `muxTree init.testBit ins = lutK init ins`
-  (I0 at the root, the order Prelim fixes).
+* `muxTree_eq_cloN` / `lutK_eq_closure`: Prelim's `muxTree init.testBit ins`
+  (= `lutK init ins` by definition) is the closure semantics (I0 at the
+  root, the order Prelim fixes). `muxTree_eq_lutK` is now `rfl`.
 * `Tree.evalK_eq_cloF`: for ANY read-once decision tree (each input tested at
   most once on every root-leaf path, inputs tested in any order, the order may
   even differ between subtrees) whose Boolean function is `G`, its Kleene
@@ -45,12 +49,6 @@ def cloF (G : List Bool → Bool) (ins : List K3) : K3 :=
 def cloN (g : Nat → Bool) (ins : List K3) : K3 :=
   cloF (fun v => g (lutIdx v)) ins
 
-theorem lutK_eq_cloF (init : Nat) (ins : List K3) :
-    lutK init ins = cloF (lutB init) ins := rfl
-
-theorem lutK_eq_cloN (init : Nat) (ins : List K3) :
-    lutK init ins = cloN init.testBit ins := rfl
-
 theorem clo_append {vs ws : List Bool} (hv : vs ≠ []) (hw : ws ≠ []) :
     clo (vs ++ ws) = K3.join (clo vs) (clo ws) := by
   match vs, ws, hv, hw with
@@ -73,9 +71,9 @@ theorem cloF_cons (G : List Bool → Bool) (a : K3) (as : List K3) :
       K3.mux a (cloF (fun v => G (false :: v)) as) (cloF (fun v => G (true :: v)) as) := by
   have hne := completions_ne_nil as
   cases a with
-  | f => simp [cloF, completions, K3.admits, K3.mux, Function.comp_def]
-  | t => simp [cloF, completions, K3.admits, K3.mux, Function.comp_def]
-  | x =>
+  | zero => simp [cloF, completions, K3.admits, K3.mux, Function.comp_def]
+  | one => simp [cloF, completions, K3.admits, K3.mux, Function.comp_def]
+  | X =>
     simp only [cloF, completions, K3.admits, K3.mux, ite_true, List.map_append,
       List.map_map]
     apply clo_append <;> simpa [Function.comp_def] using hne
@@ -101,8 +99,23 @@ theorem muxTree_eq_cloN (g : Nat → Bool) (ins : List K3) :
 /-- **Main theorem (Prelim order).** A tree of Kleene 2:1 muxes over the INIT
 bits, I0 at the output mux, computes the closure semantics `lutK`. -/
 theorem muxTree_eq_lutK (init : Nat) (ins : List K3) :
-    muxTree init.testBit ins = lutK init ins := by
-  rw [muxTree_eq_cloN, lutK_eq_cloN]
+    muxTree init.testBit ins = lutK init ins := rfl
+
+theorem lutK_eq_cloN (init : Nat) (ins : List K3) :
+    lutK init ins = cloN init.testBit ins :=
+  muxTree_eq_cloN _ _
+
+theorem lutK_eq_cloF (init : Nat) (ins : List K3) :
+    lutK init ins = cloF (lutB init) ins :=
+  lutK_eq_cloN _ _
+
+/-- **The closure form of `lutK`** (its definition before the Core port):
+`t`/`f` if every INIT entry consistent with the inputs is 1/0, else `x`. -/
+theorem lutK_eq_closure (init : Nat) (ins : List K3) :
+    lutK init ins =
+      (let vs := (completions ins).map (lutB init)
+       if vs.all id then .t else if vs.all (!·) then .f else .x) :=
+  lutK_eq_cloF _ _
 
 /-! ## Part 2: any input order -/
 
