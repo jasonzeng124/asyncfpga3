@@ -9,7 +9,10 @@ set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd); cd "$HERE"
 export PATH=$HOME/.elan/bin:$PATH
 ./sync.sh --check || exit 1
-FORMAL_SLOT_CWD=$HERE ../../slot.sh lake build 2>&1 | grep -E "error|Build completed" || exit 1
+# SKIP_BUILD=1 when the exe is current and the slot semaphore is busy (lake build is a no-op then)
+if [ -z "${SKIP_BUILD:-}" ]; then
+  FORMAL_SLOT_CWD=$HERE ../../slot.sh lake build 2>&1 | grep -E "error|Build completed" || exit 1
+fi
 EXE=$HERE/.lake/build/bin/tcheck
 $EXE test/toy.tc 2>/dev/null | diff - test/toy.expected && echo "  toy self-test ok" || { echo "  toy self-test FAILED"; exit 1; }
 SEEDS=${*:-d 2 3 4}
@@ -25,3 +28,4 @@ for s in $SEEDS; do
   python3 compare.py build/t2hi_$s.out build/tighten_$s.log --tsv build/compare2hi_$s.tsv | grep "^#"
   python3 compare2.py $s
 done
+python3 summarize2.py $SEEDS > /dev/null && cp build/compare2_*.tsv results/ && echo "  results/agree2.tsv disagree2.tsv unchecked2.tsv updated"

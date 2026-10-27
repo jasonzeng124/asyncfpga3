@@ -65,6 +65,9 @@ def emit_all(c, which):
         rule_F(c)
     if "J" in which:
         rule_J(c)
+    if "W" in which or "R" in which:
+        import rules3                     # noqa: E402  (8e open width, RT_FB)
+        rules3.emit_all(c, which, ZERO, _emit)
 
 
 def _emit(c, I, L, meta):
