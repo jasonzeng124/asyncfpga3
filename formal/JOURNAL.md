@@ -81,3 +81,17 @@ Agreement: LUT/MUXF7 X-propagation = Core kevalSpec on 43,767/43,767 vectors;
 bd_c2 single-input flips clean. Disagreement: bd_c2 a,b 01→10 at q=0 is a hazard
 in Lean (X), a sharp skew threshold in GLS (no X), and with a transport feedback
 wire oscillates forever.
+### progress 03:34 (heartbeat)
+`formal/check.sh --committed`: all three shards' committed modules build, 4924
+declarations audited, OK. First attempt died with exit 137 (OOM kill) on
+Formal.Core.LutAudit while the Mathlib builder (4 parallel lean) and 3 probe
+slots were running; rebuilt alone in 44 s. Memory, not proofs; a lake build of
+Mathlib should not overlap full slot use (to fix in the builder).
+Claimed since last note: Discretize, LutCells/LutAudit, Delay/SAF (final), XSim
+(interim). SAF: the GLS's sample-at-fire channel is contained in transport [1,d]
+and in no [lo,hi] with lo ≥ 2 (saf_not_transport): GLS per-LUT delay is an upper
+bound only. GLS settle ≤ pure-delay settle on a chain but fails on reconvergent
+logic (xor_settle_late); only the static bound survives (net_settle_static).
+A GLS run equals the pure-delay run iff every fire copies the value its own
+change set (saf_eq_delay_iff) -- checkable by a monitor in prims.v.
+Running: XSim, Env (protocol environment model).
