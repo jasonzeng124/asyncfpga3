@@ -126,3 +126,11 @@ the Prelims). When the Prelims are deleted, A removes the Prelim sections of
 Core/Discretize.lean and Core/Bridge.lean (replacements already in
 Substrate/Real.lean). Weakest hypotheses: H_AFFINE (grade C) and the value of κ (C;
 per-path κ ≥ 0.31 from the rings, difference κ unmeasured: notes/A-kappa.md).
+### progress 04:02
+Env (mechanised SI environment model) claimed: bd_c2, bd_latch pair, bd_link 1-bit
+are speed-independent under rules H, L and isoEn, each proved necessary; all
+reachable multi-input LUT changes hazard-free. For shard B: Env + LutAudit are
+available for bd_arb/bd_merge/bd_mux SI models (A is not modelling the arbiter, to
+leave the digital race to B). Kernel memory limits Env at ~1000 states (2-bit
+link > 6 GB); launched EnvFast (bit-packed Nat states, GMP kernel ops, proved-once
+checker over an untrusted certificate).
