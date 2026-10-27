@@ -203,3 +203,9 @@ owner was told the 31% figure earlier and is being told the correction. Open A i
 from §7: X2 (Race/Back use ≤, the mux-tree equality case is a hazard: make strict),
 X1 (EnvFast's data exemption leans on inertial filtering), X6 (steer select hold:
 A says none needed, B/C require one).
+### progress 07:21 (heartbeat)
+Claimed since last note: Events4 (gcd_hw control at real widths, seed d; analysis in
+Python, rule arithmetic in Lean, Beh4.safe open), contradictions X1/X2/X6 resolved
+(Events2Strict, DataHyp, SteerEnv; xevents2strict exe), gcd_hw_hypotheses.md
+(+ §7b resolutions). Corrected κ claim (pre-patch SDF). Running: Events5 (Beh4.safe +
+seeds 3/4/5 + FASTFALL check), per-pin BackPin checker. --committed check running.
