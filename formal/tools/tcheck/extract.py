@@ -90,6 +90,7 @@ class Prjx:
         self.R, self.F = R, F
         feats, vecs = F.read_fasm(str(fasm))
         self.fab = F.Fabric(F.DB)
+        self.nrev = self._bidir(feats)
         self.ex = F.Extract(self.fab, feats, vecs, {})
         self.arcs = R.lut_arcs(F.DB)
         self.site_at = {}
@@ -103,6 +104,36 @@ class Prjx:
         self.cache = {}
         self.inpin = {}
         self.hops = {}       # C-10h: (src, dst) -> (driver hop, sink hop), 4 corners
+
+    def _bidir(self, feats):
+        """C-10h: long lines (LV/LVB) are BIDIRECTIONAL pips in prjxray-db, stored once
+        (e.g. INT_R.LVB0<<->>LVB12: src LVB0, dst LVB12, with src_to_dst and dst_to_src
+        delays).  A route that drives the line from the other end appears in the FASM as
+        TILE.LVB0.LVB12 (dst LVB0, src LVB12), which fasm2lean's Extract does not match,
+        so its backward walk found the node "floating".  Before Extract is built, add the
+        reverse direction of every bidirectional pip of the tile types that the FASM
+        uses that way, with dst_to_src as its delay.  (fasm2lean itself is read-only.)"""
+        need = set()
+        for f in feats:
+            parts = f.split(".")
+            if len(parts) == 3 and parts[0] in self.fab.grid:
+                need.add(self.fab.ttype(parts[0]))
+        n = 0
+        for tt in sorted(need):
+            j = self.fab.tt(tt)
+            add = {}
+            for k, p in j["pips"].items():
+                if p.get("is_directional") == "0" and p.get("dst_to_src") \
+                        and (p["src_wire"], p["dst_wire"]) not in j["_by_name"]:
+                    q = dict(p, src_wire=p["dst_wire"], dst_wire=p["src_wire"],
+                             src_to_dst=p["dst_to_src"], dst_to_src=p["src_to_dst"])
+                    add[k + "#reverse"] = q
+            for k, q in add.items():
+                j["pips"][k] = q
+                j["_by_dst"][q["dst_wire"]].append(q)
+                j["_by_name"][(q["dst_wire"], q["src_wire"])] = q
+                n += 1
+        return n
 
     def lut(self, inst):
         c = self.cells.get(inst)
@@ -675,7 +706,9 @@ def main():
     if a.json:
         kinds = defaultdict(int)
         for (s_, d_), (_iv, fb) in W.items():
-            if fb:
+            if fb and T.is_const(s_):
+                kinds["(constant driver: never switches) net to " + _ct.get(T.pin_split(d_)[0], "?")] += 1
+            elif fb:
                 same = T.pin_split(s_)[0] == T.pin_split(d_)[0] and not T.is_output(s_)
                 ct = _ct.get(T.pin_split(d_)[0], "?")
                 kinds[("cell " if same else "net to ") + ct + "/" + re.sub(r"\d+$", "#", T.pin_split(d_)[1])] += 1

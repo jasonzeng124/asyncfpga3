@@ -26,9 +26,14 @@ for s in seeds:
         if f.exists():
             for l in list(open(f))[1:]:
                 r = l.rstrip("\n").split("\t")
+                if name and r[0] != "H":
+                    continue
                 agree[(r[0], name or r[0])][(s, r[13])] += 1
                 if r[13] == "NO":
-                    dis.append((s, r[0], name or r[0], r[1], *r[2:4], *r[5:11], "", ""))
+                    tc = r[6:12]
+                    cls = ("unguarded corner fails" if any(x not in ("-", "") and int(x) < 0 for x in tc[2:4])
+                           else "band on prjxray corner only")
+                    dis.append((s, r[0], name or r[0], r[1], r[2], r[4], *tc, cls, f"fallback={r[14]}"))
 with open(R / "agree3.tsv", "w") as o:
     o.write("rule\tflavour\t" + "\t".join(f"{s}:agree/NO/-" for s in seeds) + "\ttotal agree\n")
     for (rule, fl), d in sorted(agree.items()):
