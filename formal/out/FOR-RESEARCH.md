@@ -89,6 +89,14 @@ paths, so what they need is κ on a path difference.
 - Shard B: rule J ignores per-pin site-pin delays (up to ~0.5 ns) and uses a
   flat 124 ps LUT arc; proposed rule J' in formal/notes/B-arb-a0fork.md.
 
+## 6b. Add a rule: C-element own feedback faster than every neighbour loop
+`FbBound` (shard C, Formal/Net, track 8 Muller timed): for every C-element,
+feedback-wire hi < the lo-sum of each loop through a neighbour back to its
+inputs (strict; equality is a function hazard). Independently flagged by
+`xaudit` (formal/tools-A/xaudit/run_all.sh, `pipe3_slowfb`). Placement-
+dependent and checked by no rule today. Change: add it to tighten.py as a
+gate, with prjxray slow-max for the feedback and fast-min for the loops.
+
 ## 7. Hypotheses each proof rests on, and their tests
 See `formal/notes/A-substrate.md` (graded list) and FEASIBILITY.md's fidelity
 table. The ones only the board can test:

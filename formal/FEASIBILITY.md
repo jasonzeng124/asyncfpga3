@@ -227,6 +227,13 @@ Note: prjxray-db's `timings/*.sdf` triples are (FAST)(SLOW), not rise/fall;
 a standard SDF reader misreads them (A-fidelity).
 
 ## Findings for the main project (to verify, not confirmed defects)
+- **C-element own-feedback obligation, unchecked by the flow** (two shards,
+  independently). A's `xaudit` flags C-element glitches in a 3-stage pipe
+  when a cell's own feedback is slower than a neighbour's response; C (track 8
+  Muller timed, `H_FB_BEFORE_INPUT` / `FbBound`: feedback hi < lo-sum of each
+  neighbour loop, strict) derives the same bound and finds it
+  placement-dependent: the shortest LUT-to-LUT route of 11b fails it, the
+  seed-1 route passes. No tighten.py rule checks it.
 - **The research GLS's LUT delay can propagate an edge early**
   (`notes/A-gls-compare.md`, `tools-A/gls-compare/run_all.sh`). iverilog
   specify paths on `SLICE_LUTX` behave as "sample at fire": a change at t
