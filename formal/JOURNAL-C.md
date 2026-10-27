@@ -307,3 +307,7 @@ sdf/fast/slow; band-only failures listed; status merged into
 C-gcd_hw-hypotheses.md). 8m committed: gcd_hw_circuit_safe (audit 2649).
 Launched 10l (shared-prefix credit, max-node, X4/M3/C7 rows) and 8q (O1).
 Clean rebuild: 139 modules ok, 0 other lines.
+Clean rebuild finished: every claimed shard-C module tracked at its start
+(136, plus Core/Cells deps: 139 modules) compiled from scratch into a fresh
+olean dir with no error, so no result depends on a stale olean copied by a
+probe. (Files claimed since then were each compiled on commit.)
