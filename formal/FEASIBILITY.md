@@ -21,6 +21,27 @@ analog resolution), which no proof can discharge and which need GLS or board
 experiments; and (2) **connecting** the proofs to the real routed design
 (netlist import, delay numbers per arc), which is engineering.
 
+## Status against the owner's three goals (2026-10-27 ~12:10 UTC)
+
+1. **A correct model of the chip.** LUT as mux tree with per-pin delays, per-edge
+   bands only where the data has them (prjxray has none: fast/slow corners only),
+   pure/inertial/involution/SAF channels, shared corner plus local scatter κ. Open:
+   the involution transfer lemma (audit: not proved; probe running), ternary soundness
+   for transport/inertial (prose only; probe running), CARRY4/latch/flop fidelity in
+   the research GLS (FOR-RESEARCH §8). What a passing GLS run implies is proved
+   (`Core/Delay/GLSPass.lean`): only SAF silicon at the annotated delays.
+2. **A correct gcd.** Token level: the bdc graph computes the C gcd (C, `GcdHw*`).
+   Circuit level: C's `gcd_hw_circuit_safe3` -- every out0 latch of the concrete
+   network is `Nat.gcd a b` (a, b < 2^31) under H_CELLS, H_BUNDLE, H_START_ONCE
+   (safety only; first rig lap; liveness reduced to two open obligations). Routed
+   timing: A's `Events7.design_verdict7` -- the 4 routed gcd_hw seeds are CLEAN at the
+   slow and at the fast corner under GuardOK, SelOK, SelPart, H_ARB (GuardOK probe
+   running); independent per-arc delays leave 8-13 timing residuals per seed.
+   These pieces are not yet one theorem: see `out/gcd_hw_hypotheses.md`.
+3. **Reusable on other designs.** `out/HOWTO-new-kernel.md`. Run on collatz (4 seeds,
+   verified toolchain): xevents5 CLEAN at slow and fast on every seed, 0 structural
+   residuals; xaudit certifies one transaction at slowmax only.
+
 ## How to check
 
 ```
