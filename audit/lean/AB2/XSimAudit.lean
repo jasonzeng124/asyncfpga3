@@ -84,6 +84,22 @@ theorem sound_needs_lo :
   have := h 1 1
   revert this; decide
 
+
+/-! ## "from any power-up state" (docstring of `fp_q_concrete`): the gate relation
+forces every driven wire at time 0 to equal its gate function of the time-0 pins,
+so the concrete model admits no free power-up state. Here: q(0) is forced. -/
+theorem q0_forced (x : Fin 8 → Sig) (hsat : Circuit.Sat (toCircuit net) x)
+    (hin : ∀ w, Undriven net w → x w = stimFP w) : x 6 0 = false := by
+  have hg : (c2lut 1 3).rel x := hsat _ (by simp [toCircuit, net, c2net])
+  obtain ⟨s, h1, h2, hx⟩ := (c2lut 1 3).relW_of_rel hg 0
+  have hs : s = 0 := by simp [c2lut] at h1 h2; omega
+  subst hs
+  have h3 : x 3 0 = false := by rw [hin 3 (by decide)]; rfl
+  have h2' : x 2 0 = true := by rw [hin 2 (by decide)]; rfl
+  change x 6 0 = (c2lut 1 3).exc x 0 at hx
+  rw [hx, c2lut_exc x 1 3 0 h3, h2']; rfl
+
+#print axioms q0_forced
 #print axioms fp_nonvacuous
 #print axioms sound_needs_lo
 end AB2.XSimAudit

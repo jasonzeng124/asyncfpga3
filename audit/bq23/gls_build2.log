@@ -1,0 +1,46 @@
+== provenance ==
+design:    gcd_hw
+built:     2026-10-27 04:03:16
+stamped:   2026-10-27 04:04:23
+routed.json md5 b398103edf54dc95061925152100616e  <- /home/user/wt-bq23/cells/build/hw/gcd_hw/gcd_hw_routed.json
+routed.sdf  md5 a9c4e26566621e10399440c2d9a43af3  <- /home/user/wt-bq23/cells/build/hw/gcd_hw/gcd_hw.sdf
+delays:    sdf column min, scale 1, scatter sigma 0, seed 1, inst none, mode arc (gen.py)
+nextpnr 9c732bc6303458df  /root/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+
+== generating netlist ==
+delays: SDF column min, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 44438 IOPATH, 50025 INTERCONNECT, 84 SETUPHOLD
+cells         : 11734
+icbufs        : 50025
+nets          : 12094 (+50025 icbuf outputs)
+IOPATH  claimed 94463 -> emitted 94463 (incl. 50025 icbuf)
+SETUPHOLD claimed 84 -> 42 flops check them in netlist_baked.v
+probed nodes: 9906
+handshake wires: 542  data buses: 160
+resolved 14 signals -> signals.vh
+== compiling ==
+
+built in /home/user/wt-bq23/cells/build/gls/gcd_hw
+
+  gate:        vvp gate.vvp
+               must print ANNOTATE_DONE and NO 'SDF WARNING'/'SDF ERROR' lines.
+               An unannotated run looks like it works and means nothing --
+               iverilog 11 accepts (INTERCONNECT ...) and applies none of it,
+               which is why gen.py rewrites every one as an IOPATH on an ICBUF.
+
+  one vector:  vvp run_baked.vvp +VEC=6 +TEND=150000 +QUIET=200000
+               TEND/QUIET in ns; VEC indexes the table in cells/hw/gcd_rig.v.
+
+  all 16:      cells/gls/run.sh gcd_hw
+exit 0

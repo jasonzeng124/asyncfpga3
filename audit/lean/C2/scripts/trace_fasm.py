@@ -31,10 +31,11 @@ def node(tw):
         pass
     return r
 allw = defaultdict(list)
-for tw in list(parent.keys()):
+seen = set(parent.keys()) | set(parent.values())
+for tw in seen:
     allw[find(tw)].append(tw)
 def node_wires(tw):
-    r = find(tw); return allw.get(r, [tw]) if tw in parent else [tw]
+    return allw.get(find(tw), [tw]) if tw in seen else [tw]
 ttype = {t: grid.gridinfo_at_tilename(t).tile_type for t in grid.tiles()}
 pipcache = {}; segcache = {}
 def pips_into(tt, w):
@@ -68,14 +69,15 @@ def active(tile, tt, dst, src):
     if f in segfeats(tt): return ('%s.%s.%s' % (tile, dst, src)) in feats
     # no config bits: fixed connection (site pin pass-throughs etc.)
     return True
-STOP = re.compile(r'^(CLBL[LM]_[LM]_(A|B|C|D|AMUX|BMUX|CMUX|DMUX)|GND_WIRE|VCC_WIRE|[LR]IOI_ILOGIC[01]_D)$')
+STOP = re.compile(r'^(CLBL[LM]_[LM]_(A|B|C|D|AMUX|BMUX|CMUX|DMUX)|GND_WIRE|VCC_WIRE|[LR]?IOI_ILOGIC[01]_O)$')
 def trace(tile, wire, depth=0, path=()):
+    if depth > 40: return None
     for t, w in node_wires((tile, wire)):
         tt = ttype[t]
         if STOP.match(w): return (t, w, path + (w,))
         for src, p in pips_to(tt, w):
             if active(t, tt, w, src) and not (src == w):
-                if ('INT' in tt and '%s.%s.%s' % (tt, w, src) not in segfeats(tt)): continue
+                if (tt in ('INT_L', 'INT_R') and '%s.%s.%s' % (tt, w, src) not in segfeats(tt) and not (len(pips_to(tt, w)) == 1 and 'BOUNCE' in w)): continue
                 r = trace(t, src, depth+1, path + (w,))
                 if r: return r
     return None
@@ -97,7 +99,7 @@ def describe(stop):
     t, w, path = stop
     if w == 'GND_WIRE': return 'GND'
     if w == 'VCC_WIRE': return 'VCC'
-    m = re.match(r'[LR]IOI_ILOGIC([01])_D', w)
+    m = re.match(r"[LR]?IOI_ILOGIC([01])_O", w)
     if m:
         # IOI tile Xa Yb sits beside IOB tile at same X+? -> find IOB tile with same grid row pair
         gi = grid.gridinfo_at_tilename(t)
