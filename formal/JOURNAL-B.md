@@ -119,6 +119,14 @@ Findings for the cell owner (not confirmed on a route):
   234 with site pins); toolchain.sh's dsp-areg fingerprint
   (ZAREG_2_ACASCREG_1) is also present in the unpatched source
   (xilinx/fasm.cc:5096), so that check cannot fail (verified).
+- GCD_HW ROUTES (Br, 4 seeds, nextpnr 9c732bc6303458df, toolchain.sh ok,
+  --freq 100): at a consistent corner NO C-element violates H_SELORD and no
+  latch bit violates the corrected rule I (feedback arc + site pins) or rule
+  H with site pins, with or without the guardband; only the box reading
+  fails (5-10 C-elements per seed, worst -585 ps). Thinnest: the rig's own
+  2-cell ring urig.uenv1 (feedback on pin 1): +4 ps at the fast corner on
+  seed 4, +24 guarded. Rule H with site pins drops to +40 ps guarded on its
+  worst bit. Shipped rules all pass the same routes.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
