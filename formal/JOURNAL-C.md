@@ -445,3 +445,19 @@ violation seen (ipow s3 umuli1, -59 ps guarded). Safe-side error but it
 over-sizes delay lines; for FOR-RESEARCH (shard A). tcheck fix queued until
 10m releases the front end. How-to for a new kernel:
 notes/C-howto-new-kernel.md.
+
+### progress 13:01
+8z committed (3948 decls). gcd_hw_live_final: for a, b < 2^31 the first out0
+token closes within (1168(8 Lrun+23)+1)(H+1) ticks carrying gcd a b, under
+H_CELLS, H_BUNDLE, H_START_ONCE, H_BOUNDED_DELAY' (all gates but start's LUT),
+H_START_ENV, H_ARB_UNCONTESTED_BOUNDED and H_NO_DEADLOCK' (the one open
+network obligation; 56 random-delay simulations never deadlocked -- evidence
+only). Proved: every channel offers <= 4L+11 tokens (kernel-checked
+15-round certificate), firing bound, H_WALK_ENDS. CORRECTION to 8u (committed
+705257c): its gcd_hw_live is likely VACUOUS -- H_BOUNDED_DELAY on start's
+source LUT plus H_START_ONCE forces start's ack never to fall
+(start_never_closes, mechanised; the step to "out0 never closes" is argued),
+and its H_FIRING_BOUND counted unconstrained traces, so it could not hold.
+Use gcd_hw_live_final, not gcd_hw_live. No Lean witness yet that 8z's
+hypothesis set is jointly satisfiable. Launching 8z2 (H_NO_DEADLOCK' +
+witness).
