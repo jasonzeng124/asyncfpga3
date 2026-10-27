@@ -47,6 +47,7 @@ class Cert7(Cert):
         super().__init__(netp, bandp)
         self.u3, self.nary, self.gline, self.guardc = u3, nary, gline, guard
         self.log, self.memo = [], {}
+        self.hyp = []  # WE4g: hypothesis lines (Events8Cert.HLn)
         self.parts = {}
         self._ucache = {}
         self._r3c = {}
@@ -304,6 +305,26 @@ class Cert7(Cert):
                                   "w1": w1, "w2": w2})
         return self.line({"k": "lift", "g": L[0], "b": L[1], "r": self.chain(steps, start)})
 
+    def dbuild(self, steps, start, ctx):
+        """WE4g: a labelled walk from `start` (a guarded source D, not the label's source S) as a
+        HYPOTHESIS line: `copy` of a valid log line when the walk enters its label by `lift` or
+        `fpin` before any SUB; else `dsub` (the SUB conclusion started at D, Events8Cert.HDsub).
+        Never puts an invalid line into the log."""
+        g, b = ctx
+        for i, (kind, x, info) in enumerate(steps):
+            if kind == "fpin":
+                break
+            if kind == "SUB":
+                ti, arms = info
+                pins = self.M.nodes[x]["pins"]
+                w1 = self.chain(steps[:i], start)
+                w2 = self.chain(steps[i + 1:], pins[ti].src)
+                self.hyp.append({"k": "dsub", "a": self.idx[start], "x": self.idx[x], "S": self.idx[g[0]],
+                                 "ab": ti, "arms": arms, "w1": w1, "w2": w2})
+                return len(self.hyp) - 1
+        self.hyp.append({"k": "copy", "i": self.build(steps, start, ctx)})
+        return len(self.hyp) - 1
+
     # ---------------- assembly ---------------------------------------------------------------
     def run7(self):
         M, A = self.M, self.A
@@ -393,28 +414,25 @@ class Cert7(Cert):
                 gpin = nd["pins"][gk]
                 D, Gs = p.src, gpin.src
                 try:
-                    wD = self.walk(D, S, 0) if D != S else None
-                    wB = self.walk(S, x, 1, ctx=(g, b))
+                    wB = self.walk(D, x, 1, ctx=(g, b))
                     u = self.uline(Gs, g, b)
                     wW = self.walk(S, D, 1)
                     wX = self.walk(D, D, 1, closed=True)
-                    wG = self.walk(S, Gs, 0, ctx=(g, b))
-                    miss = [n for n, w in (("D", wD if D != S else True), ("B", wB), ("U", u), ("W", wW),
-                                           ("X", wX), ("G", wG)) if not w]
+                    wG = self.walk(D, Gs, 0, ctx=(g, b))
+                    miss = [n for n, w in (("B", wB), ("U", u), ("W", wW), ("X", wX), ("G", wG)) if not w]
                     if miss:
                         errs.append(f"guard {x} pin{k}: no walk {miss}")
                         continue
                     guards[f"{self.idx[x]}/{k}"] = dict(
-                        S=self.idx[S], iD=(self.build(wD[2], D, None) if D != S else self.line({"k": "refl", "a": self.idx[D]})),
-                        iB=self.build(wB[2], S, (g, b)), iU=u[0],
+                        S=self.idx[S], iB=self.dbuild(wB[2], D, (g, b)), iU=u[0],
                         iW=self.build(wW[2], S, None), iX=self.build(wX[2], D, None),
-                        iG=self.build(wG[2], S, (g, b)))
+                        iG=self.dbuild(wG[2], D, (g, b)))
                 except Unsup as ex:
                     errs.append(f"guard {x} pin{k}: {ex}")
         parts = [sorted(P) for P in self.parts.values() if len(P) > 1]
         log = [self.enc(ln) for ln in self.log]
         return dict(nodes=nodes, rank=base["rank"], log=log, parts=parts, back=back, lines=lines, excl=excl,
-                    guards=guards, errors=errs, groups=len(self.grp))
+                    guards=guards, hyp=self.hyp, errors=errs, groups=len(self.grp))
 
     @staticmethod
     def enc(ln):

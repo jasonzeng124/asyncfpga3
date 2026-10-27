@@ -310,3 +310,14 @@ uenv1 -9 ps / uenv0 0 ps; indep 3/3/2/5. Negative controls fail. Mathlib build:
 CornerCode claimed (check.sh 21 decls OK): tighten.py's rule A as coded (SLACK=0) is
 sound iff κ ≤ 25/276 (iff proved; audit row answered); SLACK ≥ 1 gives 1/11 again; the
 float-to-floor equality is argued, not proved. FEASIBILITY 3b and FOR-RESEARCH §9 updated.
+### progress 12:31
+KapRes done (notes/A-kapres.md; xevents5, untrusted cover argument): under the settled
+corner model (shared corner c in [0,1], local scatter κ) the "indep" timing residuals
+of gcd_hw vanish: seeds d/3/4 have no timing item at any κ ≤ 0.10, seed 5 has one, the
+rig environment pin urig.uenv1.u (not the kernel), which fails for κ ≥ ~0.08 at the
+slow corner. Nothing survives at κ = 0. Caveats: the 45 structural items remain
+hypotheses (xevents5, not 7); the cell-cover lemma (Corner.cell_band) is argued, not
+proved. **Data finding:** committed fast band files have FAST_MIN > FAST_MAX on 2-20
+arcs per seed and the checker silently reads such a band as [lo,lo] -- a front-end
+input that should be rejected, not narrowed. Follow-up probe KapRes2: prove cell_band,
+make the band reader reject lo > hi, rerun with xevents7.
