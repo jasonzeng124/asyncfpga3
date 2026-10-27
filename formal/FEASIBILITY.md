@@ -220,6 +220,16 @@ them).
   one reproduced concretely (a 9 ps runt in `ucontrol_merge4.uarb1.ua2`, seed d).
   The C-element feedback assumption holds at each corner and fails once corners
   mix, so it rests on the shared-corner hypothesis and on κ.
+- **gcd_hw control at real prjxray widths** (`Core/XAudit/Events4.lean`,
+  `notes/A-events4.md`; seed d only; analysis in Python over a recogniser shared
+  with `lake exe xevents4`, rule arithmetic proved, end-to-end `Beh4.safe` still
+  open): at one corner, 402/405 C-element stages clean for all time and all
+  select sequences (Back margin ≥ 961 ps slow / 434 ps fast). With fast and slow
+  mixed per element: 331/405 clean; the two own-feedback races fbrace found, plus
+  guarded-ack races (arbiter A_b to −1278 ps, umux3/umux4 −51..−187 ps) and
+  FASTFALL delay-line contiguity violated on 64 lines (a request can skip its
+  bundling delay). All of these need corner mixing, i.e. local scatter, which
+  is unmeasured.
 - **Event-count domain** (`Core/XAudit/Events*.lean`, `Events2*.lean`;
   `lake exe xevents`): per-wire transition counts with min-plus timing (timed
   marked graph) over the behaviour's own monotone warps. Closed and open
