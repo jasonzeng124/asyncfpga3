@@ -49,7 +49,8 @@ Kleene mux):
 BANDS (ps; xaudit rounds lo down -- raising it to 1 step if below -- and hi up):
   routed arc (net -> sink pin): the IC row of that (driver pin, sink pin).
   LUT / MUXF gate: [min lo, max hi] over the cell's IOPATH rows to that output.
-  CARRY4 internals: XORCY_i [lo,hi] of IO S_i->O_i; MUXCY_i [0, hi of IO S_i->CO_i];
+  CARRY4 internals: XORCY_i [min lo, max hi] of IO S_i->O_i (and CIN/CYINIT->O0 for i = 0);
+      MUXCY_i [0, max hi of IO S_i/DI_i(/CIN/CYINIT for i = 0)->CO_i];
       internal ci arcs [0, max per-bit carry increment at hi].  The script CHECKS
       that every CARRY4 IO path's real hi is <= the model's summed hi (else exits 1)
       and REPORTS every path whose real lo is below the model's 1-step-per-element
@@ -373,13 +374,17 @@ def main():
                 di_bit = bit(DI[0]) if DI else "0"
                 di_arc = arc_band(DI[0], cn, "DI%d" % i) if DI else None
                 s_bit, s_arc = bit(Si), arc_band(Si, cn, "S%d" % i)
+                srcs = ["S%d" % i, "DI%d" % i] + (["CIN", "CYINIT"] if i == 0 else [])
+                cyhi = max([rows[(sp, "CO%d" % i)][1] for sp in srcs if (sp, "CO%d" % i) in rows] + [0.0])
                 put(cy, "LUT3", {"I0": [di_bit], "I1": [ci_bit], "I2": [s_bit], "O": [bit(cob)]},
-                    0xCA, 3, (0.0, rows.get(("S%d" % i, "CO%d" % i), (0, 0))[1]),
+                    0xCA, 3, (0.0, cyhi),
                     {"I0": di_arc, "I1": ci_arc, "I2": s_arc})
                 Oi = cc.get("O%d" % i) or []
                 if Oi:
+                    xs = [rows[(sp, "O%d" % i)] for sp in ["S%d" % i] + (["CIN", "CYINIT"] if i == 0 else [])
+                          if (sp, "O%d" % i) in rows]
                     put(xo, "LUT2", {"I0": [s_bit], "I1": [ci_bit], "O": [bit(Oi[0])]},
-                        0x6, 2, rows[("S%d" % i, "O%d" % i)], {"I0": s_arc, "I1": ci_arc})
+                        0x6, 2, (min(x[0] for x in xs), max(x[1] for x in xs)), {"I0": s_arc, "I1": ci_arc})
                 prev = cob
             # check the decomposition against every IO row of this CARRY4
             g = lambda nm: bands_cells[nm]

@@ -11,7 +11,8 @@ them, e.g. the one `check.sh` builds):
 
     ../slot.sh lake env sh -c 'LEAN_PATH=<overlay>:$LEAN_PATH lean ../tools-A/envfast/Gen2.lean'
 
-It writes `Formal/Core/EnvFast/Tables2.lean`, `MuxCert.lean`, `MergeDataCert.lean`,
+It writes `Formal/Core/EnvFast/Tables2.lean`, `MuxCert.lean`, `MergeDataCert.lean`, and
+(only with GEN_MUXD set in the environment: 27680 states, 4 MB) `MuxDataCert.lean`,
 and prints the per-chunk theorem lines to paste into `Mux.lean` / `MergeData.lean`.
 Reachable sets come from a hash-map BFS over `Env.succs` (interpreted); certificates
 are emitted in balanced-BST preorder so that `kmkTree` builds a balanced tree.
@@ -33,8 +34,14 @@ partial def balanced (xs : Array Nat) (lo hi : Nat) (out : Array Nat) : Array Na
     let mid := (lo + hi) / 2
     balanced xs (mid + 1) hi (balanced xs lo mid (out.push xs[mid]!))
 
-/-- Reachable set by BFS (hash set). -/
+/-- Compiled gates (tables computed here; validity is checked in the kernel). -/
+def compile (M : Model) : List CGate := M.gates.map fun
+  | .lut q L o pins => .lut q L o pins (ttOf L o pins.length) (hzOf L o pins.length)
+  | .wire q s => .wire q s
+
+/-- Reachable set by BFS (hash set), with `EnvFast.succsF` (= `Env.succs` by `succsF_eq`). -/
 def reachList (M : Model) : List Nat := Id.run do
+  let cg := compile M
   let mut seen : Std.HashMap Nat Unit := {}
   let mut q : Array Nat := #[]
   for s in M.inits do
@@ -43,7 +50,7 @@ def reachList (M : Model) : List Nat := Id.run do
   while i < q.size do
     let s := q[i]!
     i := i + 1
-    for (_, s') in succs M s do
+    for (_, s') in succsF M cg s do
       if !seen.contains s' then seen := seen.insert s' (); q := q.push s'
   return q.toList
 
@@ -111,24 +118,22 @@ def certFile (mod doc : String) (defs : List (String × String × List Nat)) (k 
   let a := certOf (muxModel ⟨true⟩)
   let b := certOf (muxZaModel ⟨true, true, true⟩)
   let c := certOf (muxCrModel ⟨true, true, true⟩)
-  let d := certOf (muxDModel ⟨true, true⟩)
+  let d := if (← IO.getEnv "GEN_MUXD").isSome then certOf (muxDModel ⟨true, true⟩) else []
   IO.println s!"mux {a.length}, muxZa {b.length}, muxCr {c.length}, muxD {d.length}"
   IO.FS.writeFile "Formal/Core/EnvFast/MuxCert.lean" (certFile "MuxCert" "bd_mux."
     [("mux_R", "`muxModel ⟨true⟩`", a), ("mux_ZA", "`muxZaModel ⟨true, true, true⟩`", b),
-     ("mux_CR", "`muxCrModel ⟨true, true, true⟩`", c), ("mux_D", "`muxDModel ⟨true, true⟩`", d)])
+     ("mux_CR", "`muxCrModel ⟨true, true, true⟩`", c)])
+  if !d.isEmpty then
+    IO.FS.writeFile "Formal/Core/EnvFast/MuxDataCert.lean" (certFile "MuxDataCert" "bd_mux with data (W = 1)."
+      [("mux_D", "`muxDModel ⟨true, true⟩`", d)])
   IO.FS.writeFile "/tmp/envmux/mux_chunks.txt" (
     chunkThms "mux_R" "muxR" "kchunk CR (kmuxQ CR)" a 128 ++
     chunkThms "mux_ZA" "muxZA" "kchunk CZA (kmuxQ CZA)" b 128 ++
     chunkThms "mux_CR" "muxCR" "kchunk CCR (kmuxQ CCR)" c 128 ++
     chunkThms "mux_D" "muxD" "kchunkD CD muxDSpecK (kmuxDQ CD)" d 128)
-  let e := certOf (mergeDModel 1 ⟨true, true, true⟩)
   let f := certOf (mergeDModel 1 ⟨true, false, true⟩)
-  let g := certOf (mergeDModel 2 ⟨true, false, true⟩)
-  IO.println s!"mergeD1 {e.length}, mergeD1 noSelFast {f.length}, mergeD2 noSelFast {g.length}"
+  IO.println s!"mergeD1 noSelFast {f.length}"
   IO.FS.writeFile "Formal/Core/EnvFast/MergeDataCert.lean" (certFile "MergeDataCert" "bd_merge with data."
-    [("mergeD1_S", "`mergeDModel 1 ⟨true, true, true⟩`", e), ("mergeD1_N", "`mergeDModel 1 ⟨true, false, true⟩`", f),
-     ("mergeD2_N", "`mergeDModel 2 ⟨true, false, true⟩`", g)])
+    [("mergeD1_N", "`mergeDModel 1 ⟨true, false, true⟩`", f)])
   IO.FS.writeFile "/tmp/envmux/merge_chunks.txt" (
-    chunkThms "mergeD1_S" "mD1S" "kchunkD (CM1 ⟨true, true, true⟩) mergeDSpecK (kmergeDQ 1 (CM1 ⟨true, true, true⟩))" e 128 ++
-    chunkThms "mergeD1_N" "mD1N" "kchunkD (CM1 ⟨true, false, true⟩) mergeDSpecK (kmergeDQ 1 (CM1 ⟨true, false, true⟩))" f 128 ++
-    chunkThms "mergeD2_N" "mD2N" "kchunkD (CM2 ⟨true, false, true⟩) mergeDSpecK (kmergeDQ 2 (CM2 ⟨true, false, true⟩))" g 128)
+    chunkThms "mergeD1_N" "mD1N" "kchunkD (CM1 ⟨true, false, true⟩) mergeDSpecK (kmergeDQ 1 (CM1 ⟨true, false, true⟩))" f 128)

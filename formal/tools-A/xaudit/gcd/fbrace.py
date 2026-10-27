@@ -9,7 +9,8 @@ xaudit's definition), compare
     RSP = the shortest path, by lo, from its output net back to ANY OTHER of its
           pins (arc lo + LUT lo + arc lo + ... + final arc lo)
 If RSP < FB there is a delay assignment inside the bands in which another input
-changes in response to the output before the LUT has seen its own new value: the
+changes in response to the output (only pins the INIT depends on count; a LUT5 of a
+fractured pair has pins it ignores) before the LUT has seen its own new value: the
 LUT then evaluates a stale hold value and can emit a runt (the pipe3 C-element
 race of formal/notes/A-xaudit.md).  The path is structural (not checked to be
 sensitisable), so a hit is a CANDIDATE race; a miss excludes this race class for
@@ -36,6 +37,12 @@ def main():
         for p, bb in c["connections"].items():
             if p != "O" and not isinstance(bb[0], str):
                 sinks.setdefault(bb[0], []).append((cn, p, B["arcs"]["%s/%s" % (cn, p)][0]))
+    def depends(c, p):
+        k = int(c["type"][3:])
+        i = int(p[1:])
+        t = int(c["parameters"]["INIT"], 2)
+        return any(((t >> x) & 1) != ((t >> (x ^ (1 << i))) & 1) for x in range(1 << k))
+
     rows = []
     for cn, c in cells.items():
         o = out[cn]
@@ -54,7 +61,7 @@ def main():
             for (sc, sp, alo) in sinks.get(net, []):
                 t = d + alo
                 if sc == cn:
-                    if sp not in own and (best is None or t < best[0]):
+                    if sp not in own and depends(c, sp) and (best is None or t < best[0]):
                         best = (t, sp, net)
                     continue
                 t2 = t + B["cells"][sc][0]
