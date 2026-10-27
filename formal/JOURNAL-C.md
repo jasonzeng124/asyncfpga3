@@ -361,3 +361,29 @@ H_WALK), 8t (joint non-vacuity witness for gcd_hw_circuit_safe''), 8u
 collatz/xorshift/ipow + how-to), 11f (whole-design bitstream import:
 FF/CARRY4/MUXF7/F8), 8w (tcheck verdicts => capstone H_BUNDLE, O6), 10l2
 (diagnose rule K, finish 10l).
+
+### progress 11:50
+Committed after my own build + check.sh audit:
+- aud (2798 decls): audit rows answered in Lean. RingFair proves the
+  N(N-1)/2 fair window; RingGen restates ring_three/k_tokens over the
+  generated bd_c2n netlist (a flipped INIT now breaks the headline, Wip
+  mutant); CheckerFixedFn: `win` is exact only when the witness may choose
+  the cell functions (XOR counterexample), docs corrected; Rules: the rule-A
+  band threshold is exactly tl <= 403 (iff; the journal's 402 was off by one),
+  SLACK=0 stated; CheckerToy/Capstone docstrings corrected (corr needs a
+  glitching wire; gcd_hw_conditional has no gcd content -- the gcd theorem is
+  gcd_hw_circuit_safe''). Table: notes/C-aud-audit.md.
+- 8w (506 decls): O6 mechanised as data (1212 Ops obligations, 4500 of 4572
+  tcheck rows matched; H_MUXN_SEL(umux21) has no rule-E row although the
+  hypothesis list says it does; C7, M3 and the cm stage-1 bus acc251 have no
+  rule) and in Lean for the PHYSICAL channel (held_of_tx/held_of_cert under
+  TxCover). Finding: the capstone's H_BUNDLE lives on zero-delay traces, so
+  tcheck cannot discharge it directly; a physical -> zero-delay refinement is
+  missing (launched 8x for it).
+- 8v (817 decls): ipow's bdc graph computes b^e mod 2^32 on every schedule for
+  all i32 inputs and is live without fairness; collatz conditional on C
+  termination (unconditional for 1 <= n < 256). Importer generic; drift check
+  covers 3 kernels; negative control caught. Token level only.
+Launched 8x (physical refinement for the capstone) and 8y (ipow circuit-level
+safety, generic capstone generator). Installed libtcl8.6 + boost libs (the
+toolchain cache restore lacks them; yosys failed without libtcl).
