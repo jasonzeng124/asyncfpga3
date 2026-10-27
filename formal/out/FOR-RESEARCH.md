@@ -67,7 +67,17 @@ endpoints is then exact for every corner (`bundle_realizes`,
 - skew.py rule E is sound iff κ ≤ 19.9% (`ruleE_sound`, tight);
 - tighten.py rule A is sound iff κ ≤ 9.1% (`ruleA_sound_rel`, tight).
 
-**The κ that matters is unmeasured.** Per path, the 128-ring data gives
+**The κ that matters is unmeasured.** (Correction: the ring ratios behind κ ≥ 0.311 are
+measured/predicted against SDFs written *before*
+`patches/nextpnr-xilinx-lut-perm-sink.patch` (shard C,
+`notes/C-10c-prjxdelay.md`): those SDFs charged 0–150 ps for permuted LUT pins
+where the routed hop is ~295 ps, on ~85% of chain hops. Against corrected
+predictions, comparable rings agree to 1.1% (prjxray median) / 6.7% (current
+SDF), population against population. So the 0.311 bound measures that SDF bug,
+not silicon scatter, and does **not** refute the per-path hypotheses of
+`ruleE_sound`/`ruleA_sound_rel`. κ (per path and on differences) is unmeasured
+on the current toolchain; the per-ring data and bitstreams needed to redo it
+are not in the tree.) Per path, the 128-ring data gives
 κ ≥ 0.311 (`python3 formal/tools-A/kappa/kappa.py repo`). The rules compare two
 paths, so what they need is κ on a path difference.
 - **Cheapest step:** commit the per-ring raw logs of the `ro_many` 128-ring run

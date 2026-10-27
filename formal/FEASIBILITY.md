@@ -144,7 +144,18 @@ scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_so
 `ruleA_tight`). Soft evidence that κ can be larger: the 7-link ring ratios
 0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
 path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
-two-path difference, so this is not a refutation. **κ estimator** (`formal/tools-A/kappa/kappa.py`,
+two-path difference, so this is not a refutation. **Correction (2026-10-27 ~07:00):** the ring ratios behind κ ≥ 0.311 are
+measured/predicted against SDFs written *before*
+`patches/nextpnr-xilinx-lut-perm-sink.patch` (shard C,
+`notes/C-10c-prjxdelay.md`): those SDFs charged 0–150 ps for permuted LUT pins
+where the routed hop is ~295 ps, on ~85% of chain hops. Against corrected
+predictions, comparable rings agree to 1.1% (prjxray median) / 6.7% (current
+SDF), population against population. So the 0.311 bound measures that SDF bug,
+not silicon scatter, and does **not** refute the per-path hypotheses of
+`ruleE_sound`/`ruleA_sound_rel`. κ (per path and on differences) is unmeasured
+on the current toolchain; the per-ring data and bitstreams needed to redo it
+are not in the tree.
+**κ estimator** (`formal/tools-A/kappa/kappa.py`,
 `notes/A-kappa.md`; `python3 kappa.py selftest`, `python3 kappa.py repo`): on
 the 128-ring data the per-path κ ≥ 0.311 (7-link class; no common offset in
 [0, 988] ps lowers it), so the *per-path* hypotheses of `ruleE_sound` and

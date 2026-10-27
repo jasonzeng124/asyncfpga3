@@ -1,3 +1,15 @@
+> **Correction (2026-10-27 ~07:00):** the ring ratios behind κ ≥ 0.311 are
+> measured/predicted against SDFs written *before*
+> `patches/nextpnr-xilinx-lut-perm-sink.patch` (shard C,
+> `notes/C-10c-prjxdelay.md`): those SDFs charged 0–150 ps for permuted LUT pins
+> where the routed hop is ~295 ps, on ~85% of chain hops. Against corrected
+> predictions, comparable rings agree to 1.1% (prjxray median) / 6.7% (current
+> SDF), population against population. So the 0.311 bound measures that SDF bug,
+> not silicon scatter, and does **not** refute the per-path hypotheses of
+> `ruleE_sound`/`ruleA_sound_rel`. κ (per path and on differences) is unmeasured
+> on the current toolchain; the per-ring data and bitstreams needed to redo it
+> are not in the tree.
+
 # A / kappa: an estimator for the Corner model's local scatter
 
 PROGRAM.md Phase 1, item A: "Write the κ estimator so it can run on per-route two-path data".

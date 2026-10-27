@@ -194,3 +194,12 @@ audited alone. Claimed since last note: XAudit/Parse (shared trusted parser; ref
 byte-identical on 11 runs), xevents2, Events3 (choice: steer/OR-merge), EnvFast
 mux/merge-data/steer (bd_mux: rtz, select hold past uj1, fork conditions -- not in the
 RTL header; merge selFast withdrawn).
+### progress 06:51
+gcd_hw_hypotheses.md drafted (≈65 rows, graded, with tests; §7 lists contradictions).
+**Correction, κ:** A-kappa's κ ≥ 0.311 used ring ratios against pre-lut-perm-sink-patch
+SDFs (C-10c); corrected predictions match comparable rings to 1.1–6.7%. The bound
+measured an SDF bug, not scatter. FEASIBILITY, FOR-RESEARCH, A-kappa corrected; the
+owner was told the 31% figure earlier and is being told the correction. Open A items
+from §7: X2 (Race/Back use ≤, the mux-tree equality case is a hazard: make strict),
+X1 (EnvFast's data exemption leans on inertial filtering), X6 (steer select hold:
+A says none needed, B/C require one).
