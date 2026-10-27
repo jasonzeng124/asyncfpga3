@@ -246,6 +246,16 @@ time-bounded `net_protocol` (Held up to t ⇒ protocol up to t) would remove it.
 - umux21's select has no tcheck row, although the hypothesis list says rule E covers it.
 - 9 linked stages (eternal chains) are checked by tcheck and absent from the capstone network.
 
-## Check log
+## Check log (2026-10-27)
 
-(filled in after the runs; see below)
+- `lake build Formal.Timing.OblBridge Formal.Net.CapstoneBundle`: Build completed successfully. The
+  only warnings are pre-existing deprecations in WinArray.lean. The first attempt timed out waiting
+  for a slot: other probes held all 3 slots for over 20 min.
+- `./check.sh Formal/Timing/OblBridge.lean Formal/Net/CapstoneBundle.lean`: textual scan,
+  `[audit] 506 declarations checked`, `[check] OK`. Axioms ⊆ {propext, Classical.choice,
+  Quot.sound}.
+- `python3 tools/oblgen/oblgen.py --check`: `oblgen --check: ok`. That covers the netgen drift
+  check, Lean ops = generator ops, and out/ reproduced.
+- Not run: tcheck itself. The routes are not on disk (`tools/tcheck/build/tree_*` holds sources
+  only; a rebuild attempt in that tree at 11:04 failed synthesis on libtcl). The mapping uses the
+  committed `results/*.tsv`.
