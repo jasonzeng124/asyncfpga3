@@ -21,6 +21,53 @@ evidence stronger:
   async latch, stale operands) as regression tests, wherever they can be
   reproduced without a board.
 
+## The audits are heuristics; an accurate GLS is the ground truth (owner, 2026-10-27)
+
+The post-route rules (A/E/F/H/I/J, `tighten.py`, `skew.py`) are heuristics:
+fast screens that say where to look and propose sizes. The ground truth is
+meant to be a very accurate gate-level simulation of the routed FPGA. The
+data for one exists in prjxray, so build it. This is the top lead under
+goal 1, and it also unlocks goal 2: today a rule violation blocks a build
+even when routed GLS passes, and that is where most of the remaining speed
+is held back.
+
+Why today's GLS is not that ground truth yet: `cells/gls/` simulates
+nextpnr's SDF, and nextpnr's `getPipDelay` (`xilinx/arch.h`) is a single
+number per pip. It is the pip's max delay plus one lumped RC term, with
+the upstream wire length guessed from the Manhattan distance to the driving
+pip. There is no fanout loading, no rise/fall, no fast corner, LUT
+route-throughs are a flat 300 ps and site pips are 25 ps. The x0.9/x1.1
+"corners" only scale those numbers. Silicon already disagreed: 76 of 128
+rings ran slower than the SDF, by an offset of about +988 ps.
+
+Build it:
+- A delay calculator that takes the routed design (`*_routed.json`: each
+  net's pip list, so the real RC tree) and prjxray-db `zynq7/`
+  (`tile_type_*.json`: pip intrinsic delays at 4 corners, pip and wire R/C;
+  `timings/*.sdf`: cell arcs with rise/fall, fast/slow). Compute every
+  sink's delay with the Elmore RC tree in `prjxray/prjxray/timing.py`
+  (Outpin/Buffer/PassTransistor/Wire/Inpin, pi-model wires, `PvtCorner`);
+  reuse it, don't rewrite it. Emit an SDF with min:typ:max per arc that
+  `gls/gen.py` can read in place of nextpnr's.
+- Check it on small cases by hand (one buffered pip; one pass-transistor
+  chain; a fanout-of-N net) and against nextpnr's numbers. Explain every
+  large disagreement before trusting either.
+- **Validate against silicon already in the repo:** the n=128 ring
+  measurements and the five rings in `cells/hw/README.md`, plus the
+  board-measured kernel timings (gcd 310 ns to 6.34 us, the ns-per-iteration
+  table) wherever the measured bitstream's route can be reproduced. Report the
+  model's error distribution (median, tails, and whether it depends on length).
+  What is left over becomes the scatter that GLS injects, and the measured
+  ring scatter remains a floor.
+
+Once it is validated, a design is verified when routed GLS on the new model
+passes at the slow and fast corners, with the measured residual injected as
+scatter, on at least 8 seeds. A rule violation on a route whose accurate GLS
+passes is no longer a blocker. Record it as a disagreement and work out which
+one is wrong; a negative control that GLS must catch is the way to decide. A
+GLS failure blocks, whatever the rules say. Until the model is validated, keep
+the current gates exactly as they are.
+
 ## Goals, in strict priority order
 
 1. **Works on hardware, as far as can be verified without a board.** A faster

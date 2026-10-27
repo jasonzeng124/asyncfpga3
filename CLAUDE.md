@@ -38,13 +38,18 @@ right and was wrong.
   adding one, ask why the two signals diverge and whether they can share one
   request (a join), or whether the value is already registered somewhere.
 - A delay that is too long only costs time. One that is too short corrupts data
-  silently under PVT, which simulation cannot show. When a measurement is
+  silently under PVT, which a nominal-delay simulation cannot show; only GLS at
+  the slow and fast corners, with measured scatter, can. When a measurement is
   ambiguous, take the longer number. Quote margins with the guardband applied
   (`GUARD_LO`/`GUARD_HI` in `cells/verify/skew.py`). Never shorten a delay to hit
   a speed target.
 - 8.5% is the median ring scatter, not a guardband.
 
 ## Simulation is not silicon
+- The post-route rules are heuristics; the intended ground truth is routed GLS
+  on an accurate delay model built from prjxray timing data (see
+  `research/PROGRAM.md`). Until that model is validated against the board's
+  measurements, the rules stay as gates.
 - Zero-delay RTL sim proves very little here. The strongest evidence available
   without the board is `cells/gls/`: the routed design, simulated with its
   routed delays. It must print `ANNOTATE_DONE` with no SDF warning or error.
