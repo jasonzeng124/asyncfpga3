@@ -13,6 +13,24 @@ Check (clean, about 2 s, no output, no warnings):
 `Quot.sound`, and (for the `iff`/`box` theorems) `Classical.choice`. No sorry,
 admit, axiom or native_decide in the file.
 
+**Audit correction (claude/audit REPORT row 10, REFUTED; 2026-10-27).** This
+note originally read prjxray's two IOPATH triples as rise and fall ("O6 rise
+45-56 ps, fall 100-124 ps") and concluded that rule J's flat 124 ps arcs are
+"biased unsafe by 68-161 ps". That reading is wrong: the triples are the FAST
+and SLOW corners of ONE arc (`prjxray/utils/makesdf.py:63` writes
+`(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`, each for both edges), so 56/124 is
+FAST_MAX/SLOW_MAX, and every numeric instance below that combined a "rise" with
+a "fall" mixed corners. The Lean theorems of this file are unaffected (they are
+generic in the delays). The corrected arc values are `ArbCorners.ruleJ_arcs`
+(B-arb-corners.md): the early side's two arcs are 248 ps (SLOW_MAX) / 90 ps
+(FAST_MIN) for client 2 and 274 / 87 for client 1. Rule J's flat 2 x 124 is
+therefore exact for client 2 and 26 ps conservative for client 1 at SLOW_MAX;
+the "68-161 ps" bias is withdrawn. Rule J's real gaps are the per-pin site-pin
+delays (item 2 below, CONFIRMED by the audit) and the corner flip of the raw
+sign (`ArbCorners.client{1,2}_corner_flip`, `ruleJ_raw_window`); guarded rule J
+covers FAST_MIN under stated premises (`ArbCorners.ruleJ_guard_covers_fast`).
+Corrected values are inlined below; the withdrawn ones are kept in brackets.
+
 ## Claim settled
 
 Probe 7b found that `sc_a0_fall_skewed` ends with A2 = x. This probe answers it
@@ -112,7 +130,10 @@ survey rows (`research/data/ruleJ_survey/rows.json.gz`) do not record them.
 * Site-pin (input buffer + select), `tile_type_CLBLL_L.json` (from
   B-muxtree-fidelity.md): A1 0.172-0.516, A2 0.170-0.507, A3 0.107-0.344,
   A4 0.086-0.284, A5 0.033-0.112, A6 0.002-0.005.
-* LUT arcs, `CLBLL_L.sdf`: O6 rise 45-56 ps, fall 100-124 ps; O5 rise 42-61 ps.
+* LUT arcs, `CLBLL_L.sdf`, per corner (FAST_MIN-FAST_MAX / SLOW_MIN-SLOW_MAX,
+  both edges; makesdf.py:63): O6 45-56 / 100-124 ps; O5 I0/I1 44-55 / 122-152 ps,
+  O5 I2 42-52 / 121-150 ps. [Withdrawn: "O6 rise 45-56 ps, fall 100-124 ps; O5
+  rise 42-61 ps", which read the corners as edges.]
 * nextpnr's SDF (what rule J reads) has a flat 124 ps for every LUT arc, a
   flat 25 ps per site pip, and no per-pin site delay (TOOLING.md;
   research/PROGRAM.md).
@@ -124,18 +145,23 @@ survey rows (`research/data/ruleJ_survey/rows.json.gz`) do not record them.
 **Where the margin comes from.** early - late = (A0 branch divergence) + ustate
 arc + q hop + ugrant arc + grant hop + pin terms. With the arbiter's four LUTs
 in one slice and A0 splitting at it, the two extra routed hops (2 x ~295 ps)
-plus two arcs (145-180 ps for client 2, 87-117 ps for client 1) give about
-+0.7-0.8 ns. That matches the survey median. **This ordering is safe by
+plus two arcs (at one corner: 248 ps SLOW_MAX / 90 ps FAST_MIN for client 2,
+274 / 87 ps for client 1, `ArbCorners.ruleJ_arcs`; the earlier "145-180 /
+87-117 ps" mixed corners) give about +0.7-0.8 ns. That matches the survey median. **This ordering is safe by
 routing, not by construction.** The early side always contains two more routed
 hops than the late side. Nothing structural stops the A0 branch into ua_k from
 being long (the survey's tail is exactly the long-A0 routes).
 
 **What rule J does not see** (corrections to its raw margin, true minus rule J):
-1. LUT arcs. Rule J counts 124 ps for ustate and for ugrant. True: client 2
-   is ustate fall + ugrant O6 rise = 145-180 ps, so -68 to -103 ps. Client 1
-   is ustate rise + ugrant O5 rise = 87-117 ps, so -131 to -161 ps. ua_k's
+1. LUT arcs. Rule J counts 124 ps for ustate and for ugrant (2 x 124 = 248).
+   At a consistent SLOW_MAX corner the true sum is 248 ps for client 2 (two O6
+   arcs: exact) and 274 ps for client 1 (O6 + O5 I2: rule J is 26 ps
+   conservative); at FAST_MIN it is 90 / 87 ps (`ArbCorners.ruleJ_arcs`).
+   [Withdrawn: "client 2 = ustate fall + ugrant O6 rise = 145-180 ps, so -68
+   to -103 ps; client 1 = 87-117 ps, so -131 to -161 ps": corner mix.] ua_k's
    arcs cancel (theorem: `aC` drops out), and rule J's equal flat values
-   cancel too.
+   cancel too. Read at SLOW_MAX only, the raw sign does not cover FAST_MIN
+   (window `0 <= M < 248 - 90/k` for client 2, `ArbCorners.ruleJ_raw_window`).
 2. Site-pin delays, which are absent from nextpnr's SDF. The correction is
    (pSt + pQG + pGC - pAC) - (3 - 1) x 25 ps. Worst pin assignment: A0 on
    ua_k's A1, everything else on the fastest legal pin (A5, A5, A6).
@@ -148,11 +174,13 @@ being long (the survey's tail is exactly the long-A0 routes).
 
    | case | slow corner | full box |
    |---|---|---|
-   | client 2 | -405 ps | -601 ps |
-   | client 1 | -468 ps | -657 ps |
+   | client 2 | -337 ps [was -405] | -656 ps [was -601] |
+   | client 1 | -311 ps [was -468] | -659 ps [was -657] |
 
-   Against the tightest raw margin ever seen (+618 ps), that leaves about
-   +150 ps at a consistent slow corner and about 0 in the box. At the survey
+   (Recomputed in B-arb-corners.md §3 with the consistent-corner arcs plus the
+   unchanged pin term; arithmetic, not a theorem.) Against the tightest raw
+   margin ever seen (+618 ps), that leaves about +280 ps at a consistent slow
+   corner and about -40 ps in the box (618 - 659). At the survey
    median (+1188 ps) about +0.7 ns remains.
 
 **Verdict on risk.** It is real but bounded: a timing dependency of the same
@@ -187,7 +215,10 @@ JSON's connections are physical A1..A6):
 
 * `SP_lo/SP_hi[A_i]`: prjxray-db `tile_type_CLBL{L,M}_{L,R}.json`
   site-pin delay, fast-min and slow-max.
-* `ARC`: prjxray `CLBLL_L.sdf` / `CLBLM_*.sdf` per pin, fast-min.
+* `ARC`: prjxray `CLBLL_L.sdf` / `CLBLM_*.sdf` per pin, fast-min. prjxray has
+  no rise/fall split (makesdf.py:63), so the "fall"/"rise" labels above only
+  name the edge; the value is the FAST_MIN arc of that output/pin (O6 45 ps,
+  O5 I2 42 ps).
 * Drop ua_k's IOPATH from both sides: it is common (the theorem). With nextpnr
   it cancels anyway, but a future per-pin SDF that folds site delays into the
   IOPATH must then keep both sides' ua_k arcs instead of the SP terms.
@@ -226,9 +257,11 @@ on the real INITs, in core Lean in about 2 s.
   1. The obligation is the exact condition, not just a sufficient one, so rule
      J's raw sign is the right test.
   2. The shared-prefix credit and the cancellation of ua_k's arc are justified.
-  3. Two concrete gaps in rule J are named: per-pin site delays (up to about
-     0.5 ns, the same order as the smallest observed raw margin) and flat
-     124 ps arcs (biased unsafe by 68-161 ps). Both bias rule J optimistic.
+  3. One concrete gap in rule J is named: per-pin site delays (up to about
+     0.5 ns, the same order as the smallest observed raw margin), which bias
+     rule J optimistic. [Withdrawn after the audit: "flat 124 ps arcs (biased
+     unsafe by 68-161 ps)". At a consistent corner the flat arcs are exact
+     (client 2) or 26 ps conservative (client 1), `ArbCorners.ruleJ_arcs`.]
 
 ## Fidelity per primitive
 

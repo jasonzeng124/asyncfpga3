@@ -16,7 +16,10 @@ from its INIT with `lutB`/`lutK` (Prelim); equations are proved, not assumed.
    four-phase compliance of every channel (`node_moves`, `env_moves`), speed
    independence (`persist`), token conservation (`conservation`), occupancy
    bound (`bounded`), deadlock freedom (`deadlock_free`), no starvation of
-   sender or receiver (`send_progress`, `recv_progress`).
+   sender or receiver (`send_progress`, `recv_progress`). Scope (claude/audit
+   REPORT row 21): "for every N" holds only in this model, i.e. atomic gates
+   (H_FB_FAST) AND isochronic forks (H_ISO_FORK); with independent fork-branch
+   delays the control is checked only for N ≤ 3 (Section 3).
 3. The same with a separate unbounded delay on every fork branch, N = 1, 2, 3,
    by a finite kernel check: H_ISO_FORK is NOT needed by the control
    (`di_pipe1..3`). It is needed only on the latch-enable branch (Section 5).
@@ -24,9 +27,15 @@ from its INIT with `lutB`/`lutK` (Prelim); equations are proved, not assumed.
    mode of the loop). Sufficient (`fb_refines`), and needed (`fb_hazard`).
 5. Data path: latch LUT facts (binary and Kleene), a timed latch-capture
    theorem (`latch_capture`), pipe data correctness (`pipe_data`), and the
-   bundling condition derived exactly (`setup_iff`), with classical
-   "request after data" as a sufficient special case (`arr_classical`) and a
-   counterexample showing the setup term is needed (`setup_needed`).
+   bundling condition SETUP derived as a SUFFICIENT condition (`latch_capture`,
+   `pipe_data`); `setup_iff` only unfolds SETUP's `max` recursion into explicit
+   per-stage terms (an arithmetic identity, not a necessity result). Classical
+   "request after data" is a sufficient special case (`arr_classical`).
+   Necessity is shown on ONE trace only (`setup_needed`, L = F = 1). The audit's
+   `setup_not_necessary` (claude/audit `audit/lean/B/W_Data.lean`, REPORT row
+   20) gives a run that violates SETUP (7 > 5) with every other hypothesis of
+   `latch_capture` and the conclusion still true (old token = new token): SETUP
+   is exact only as a worst-case-data condition.
    Hypotheses **H_LUT_TRANSPORT**, **H_WIRE_TRANSPORT** (pure delays).
 6. `bd_link_dctl`: INIT = header equations; hazard- and deadlock-free under
    the header's one timing assumption (**H_LT_FIRST**), N = 1, both `BROAD`;
@@ -487,7 +496,10 @@ theorem ivt (e : Nat → Bool) (n : Nat) (h0 : e 0 = true) (hn : e n = false) :
 /-- **Deadlock freedom.** In EVERY state (reachable or not) of a pipe of
 `N` stages, some transition is enabled: the sender may send, the receiver
 may consume, or some controller is excited. With an environment that always
-sends when the protocol lets it and always consumes, the system never stops. -/
+sends when the protocol lets it and always consumes, the system never stops.
+Scope: this is the Section 2 model (atomic gates, H_FB_FAST; isochronic forks,
+H_ISO_FORK). With a delay on every fork branch it is checked only for N ≤ 3
+(`di_pipe1..3`). -/
 theorem deadlock_free (N : Nat) (x : St) : ∃ l y, Step N l x y := by
   cases h0 : d x 0 with
   | false => exact ⟨.send, en_step (en_d.2 h0)⟩
@@ -907,10 +919,13 @@ theorem latch_capture {L F : Nat} {D en Q : Nat → K3} (hrec : LatchRec L F D e
       · rw [hD t (by omega) hh, hq, latK_keep]
       · rw [hshut t (by omega) (by omega), latK_shut, hq]
 
-/-- **SETUP is needed** (a concrete counterexample, `L = F = 1`): the enable is
+/-- **SETUP can be needed** (a concrete counterexample, `L = F = 1`): the enable is
 high until `6`, in transit at `6`, low after; `D` changes to `1` at `5`, so
 `a + L + F = 7 > 6 = c`. The loop captures an `X` (it then circulates as a
-`1, X` pattern in the two-delay loop): the stage hands on garbage. -/
+`1, X` pattern in the two-delay loop): the stage hands on garbage. This shows
+necessity on this one trace only; SETUP is not necessary in general (the
+audit's `setup_not_necessary`, claude/audit `audit/lean/B/W_Data.lean`: SETUP
+violated, 7 > 5, capture still correct because the data does not change). -/
 def cxD (t : Nat) : K3 := if t < 5 then .f else .t
 def cxEn (t : Nat) : K3 := if t < 6 then .t else if t = 6 then .x else .f
 def cxQ : Nat → K3
@@ -1034,10 +1049,14 @@ theorem arr_le_iff (L a0 : Nat) (o w : Nat → Nat) (i : Nat) : ∀ K T,
       have := h2 (i+1) (Nat.le_refl _); rw [ei] at this
       omega
 
-/-- **The derived bundling condition, exactly.** SETUP at stage `i` holds iff,
-for the source and for every upstream stage `j ≤ i`, the data launched there
-reaches and settles in stage `i`'s latch before stage `i`'s enable starts to
-fall at this bit:
+/-- **The derived (sufficient) bundling condition, unfolded.** SETUP at stage
+`i` holds iff, for the source and for every upstream stage `j ≤ i`, the data
+launched there reaches and settles in stage `i`'s latch before stage `i`'s
+enable starts to fall at this bit. The `iff` is between SETUP and its unfolding
+over `arr`'s `max` recursion (arithmetic); SETUP itself is proved sufficient
+(`latch_capture`, `pipe_data`), necessary only on one trace (`setup_needed`),
+and not necessary in general (audit `setup_not_necessary`, REPORT row 20). It
+is exact only as a worst-case-data condition:
 
 * `a0 + Σ_{m=1..i}(L + w m) + L + F ≤ c i` (source data wave),
 * `o j + Σ_{m=j+1..i}(L + w m) + L + F ≤ c i` for every `j ≤ i`.
@@ -1059,9 +1078,13 @@ data reaches every latch input before that latch opens (`a0 ≤ o 0`, and
 than stage `i`'s output plus the data wire), the data wave is the enable wave
 (`arr i = o i`), and SETUP reduces to the pulse-width term alone. The Muller
 pipe does not provide this ordering by itself: `C_{i+1}` rises one controller
-arc (~56 ps) after `C_i`, the latch arc is ~152 ps (header of `bd_link.v`),
-which is why the exact condition `setup_iff` (rule I) is what the router must
-meet, with `SDELAY` as the knob. -/
+arc after `C_i`, while the data needs a latch arc plus a data wire. (The
+header of `bd_link.v` quotes ~56 ps vs ~152 ps; those are FAST_MAX of O6 and
+SLOW_MAX of O5, two different prjxray corners, makesdf.py:63. At one corner the
+arcs are comparable, e.g. 124 vs 152 ps at SLOW_MAX, and the data wire still
+breaks the ordering.) That is why the sufficient condition SETUP, unfolded in
+`setup_iff` (rule I), is what the router must meet, with `SDELAY` as the
+knob. -/
 theorem arr_classical (L a0 : Nat) (o w : Nat → Nat) (h0 : a0 ≤ o 0)
     (hb : ∀ i, o i + L + w (i+1) ≤ o (i+1)) : ∀ i, arr L a0 o w i = o i := by
   intro i

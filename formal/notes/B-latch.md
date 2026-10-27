@@ -84,6 +84,11 @@ delay, allowed to vary per tick). The other bit's pins are arbitrary traces.
   rule H). `ct1` is the failure when E > A + R (e.g. tc = 0, E = 4, A + R = 3).
   Note also LIBRARY.md's point that the window ends at ack↓, not req↓: in
   pin terms the obligation is "until en has fallen at THIS latch's pin".
+  **Scope (audit REPORT row 21, findings B #6):** `hold_of_dack` is a
+  one-line `omega` lemma about a SINGLE close/transaction (`H_RELEASE` fixes
+  `d = v` for every `t < tc + A + R` from time 0). It does not cover a stream
+  of transactions. The windowed, per-transaction form on a routed netlist is
+  `OnNetlistTimed2.latch_rule_h_net` (B-on-netlist-timed2.md).
 
 ## Hypotheses (named) and how to test them
 - H_KLEENE_LUT (Prelim): closure semantics of the LUT; checked here to agree
@@ -123,7 +128,8 @@ resolves to: 1-3 days, depends on track 3. What it buys: the latch cell's
 correctness reduced to two named, route-measurable conditions (setup ≥ loop
 delay before en leaves 1; data stable until en is 0 at this pin), which are
 exactly what rules L and H check; DACK's sizing rule `E ≤ A + R` is proved to
-be sufficient for the hold side.
+be sufficient for the hold side of a single transaction (`hold_of_dack`; the
+windowed form is `OnNetlistTimed2.latch_rule_h_net`).
 
 ## Fidelity per primitive
 - LUT6_2 / LUT6: real INIT and pin map; binary = exact truth table. Kleene =

@@ -20,13 +20,39 @@ This probe builds on 7e (`B-arb-handover.md`, which found the untimed traces
 is only a named hypothesis (`A0Fork`, 7g's `late ≤ early`), and it is not
 re-derived.
 
+## Audit correction (claude/audit REPORT rows 10, 24; findings AB2 #2; 2026-10-27)
+
+The `prj` instance below reads the pairs 56/124 (O6), 55/152 (O5 I0/I1) and
+52/150 (O5 I2) as rise/fall arcs. They are prjxray's FAST_MAX and SLOW_MAX of
+ONE arc (`prjxray/utils/makesdf.py:63` writes
+`(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`, each for both edges; prjxray has no
+edge split). So `prj` mixes corners (FAST_MAX rises with SLOW_MAX falls;
+`ArbCorners.prj_is_mix`), and its margins (292/164/276/220/332 ps, "112 ps
+server = two LUT1 rise arcs" = 2 × FAST_MAX) are artefacts. The generic
+theorems (every `Dl`, rise = fall included) are unaffected. Corrected values
+(B-arb-corners.md §2):
+- arc parts at a consistent corner: `ArbCorners.arcs_slowMax` /
+  `arcs_fastMin` (RT1 248 / 90, pulse 150 / 42, g1 150 / 42, forkA 274 / 87,
+  forkG 274 / 87, 7g fork 248 / 90; old mix 180, 52, 52, 108, 108, 180);
+- arc-only margins with the server = two arcs at the same corner (248 / 90 ps):
+  `ArbCorners.slow_arc_only` (RT1 496, pulse 398, g1 646, forkA 522, forkG 770,
+  fork 248) and `ArbCorners.fast_arc_only` (180, 132, 222, 177, 267, 90);
+- box (each arc independently in [FAST_MIN, SLOW_MAX]): `ArbCorners.box_7h`,
+  `box_7h_worst`;
+- with plausible routing every margin grows by about +0.1 to +0.2 ns at
+  SLOW_MAX (arithmetic); corner sign changes: `ArbCorners.fast_neg_iff`.
+Corrected values are inlined below; withdrawn ones are in brackets.
+
 ## Verdict
 
 **Works.** Both relative-timing conditions are named in arc terms and proved
 sufficient, for every server whose response time is at least `smin`. Each has
 a counter-trace that shows it is needed.
-- With the prjxray arcs, RT1, RT2 and 7g's fork condition hold even with zero
-  routing. The smallest margin is 164 ps, with a 112 ps server.
+- At zero routing, RT1, RT2 and 7g's fork condition hold at a consistent
+  corner: the smallest margin is 90 ps at FAST_MIN (the 7g fork; 132 ps among
+  RT1/RT2; server 90 ps) and 248 ps at SLOW_MAX (the fork; 398 among RT1/RT2) (`ArbCorners.fast_arc_only`, `slow_arc_only`). [Withdrawn:
+  "with the prjxray arcs ... smallest margin 164 ps, with a 112 ps server",
+  a corner mix.]
 - With plausible routing, every margin is about 0.6 ns or more.
 
 So the header's tier "during handover: structural WITH THE HOLD" is wrong as
@@ -87,7 +113,7 @@ a hazard-free R0 satisfies it.
 | `Dl` routes `w..` | Route from the driving output to the pin, plus the site-pin delay of the physical pin (A1 slowest, A6 fastest; B-muxtree-fidelity) | routed SDF interconnect + prjxray `tile_type_CLBLL_*.json` |
 | `Dl` arcs | Cell arcs: O6 flat; O5 per pin (I0, I1, I2) | prjxray / `bd_prims_sim.v`; GLS |
 | `H_NONNEG` | causality | – |
-| `H_RISE_LE_FALL` | rise ≤ fall per arc (56/124, 55/152, 52/150) | prjxray |
+| `H_RISE_LE_FALL` | rise ≤ fall per arc. [The pairs 56/124, 55/152, 52/150 once cited here are FAST_MAX/SLOW_MAX of one arc, makesdf.py:63, not rise/fall; prjxray gives rise = fall per corner, which satisfies this. The real asymmetry is the unmeasured `ArbCorners.RF`.] | board: odd-inversion LUT ring vs buffer ring |
 | `H_LOOP_POS` | ustate, ua1 and ua2 feedback loops have positive delay | routed SDF |
 | `smin` / H_SERVER_MIN | minimum R0-edge → A0-edge response of the server | routed SDF of the server chain; GLS |
 | `Scn.H_SETTLED` | A0↑ reached ustate (+qf) and ua1 (+c1f) before r1↓ | holds whenever client 1's own A1↑ → r1↓ path is slower, which it is (3-LUT client chain) |
@@ -180,12 +206,17 @@ loop delay (`c1r + wfa1`). Inside it, A1 dips and re-latches, or produces a
 runt. The band is **not characterised** here, and it is the C-element runt
 regime (`CElemTiming`).
 
-### prjxray instance (`prj`, `prj_RT1`, `prj_RT2`, `prj_arc_only`)
+### Corner-mixed instance (`prj`, `prj_RT1`, `prj_RT2`, `prj_arc_only`)
 
-The arcs are:
+The arcs are (as "rise/fall"; really FAST_MAX/SLOW_MAX of one arc,
+makesdf.py:63, see the audit correction):
 - O6: 56/124;
 - O5 I0/I1: 55/152;
 - O5 I2: 52/150.
+
+Everything in this subsection is the corner mix. Corrected:
+`ArbCorners.arcs_slowMax`, `arcs_fastMin`, `slow_arc_only`, `fast_arc_only`,
+`box_7h`.
 
 The R0 and g1 fall arcs from I0 are both 152, so they cancel. The conditions
 reduce to:
@@ -199,21 +230,24 @@ reduce to:
 | RT2 forkG | `(wr1g − wr1s) + wg1 ≤ 2·smin + 108 + wa0s + wfb + wa02` |
 | 7g fork | `wa02 ≤ wa0s + 180 + wq + wg2` |
 
-**`prj_arc_only`** (proved): with every route 0 and a 112 ps server (two LUT1
-rise arcs), all of these hold. The margins are:
+**`prj_arc_only`** (proved): with every route 0 and a 112 ps server (2 ×
+FAST_MAX), all of these hold. The margins below are corner-mixed (SLOW_MAX /
+FAST_MIN in brackets, `ArbCorners.slow_arc_only` / `fast_arc_only`):
 
 | condition | margin |
 | --- | --- |
-| RT1 | 292 ps |
-| pulse | 164 ps |
-| g1 | 276 ps |
-| forkA | 220 ps |
-| forkG | 332 ps |
+| RT1 | 292 ps [496 / 180] |
+| pulse | 164 ps [398 / 132] |
+| g1 | 276 ps [646 / 222] |
+| forkA | 220 ps [522 / 177] |
+| forkG | 332 ps [770 / 267] |
 
 ## Margin estimate with plausible routing (not a proof; arithmetic on the formulas)
 
 **hw/arb_prot's server** is `bd_delay #(SLEN=2)`: two LUT1 hops from R0 to A0.
-- Arcs alone give 2×56 = 112 ps (rise) and 2×124 = 248 ps (fall).
+- Arcs alone give 2×124 = 248 ps at SLOW_MAX and 2×45 = 90 ps at FAST_MIN,
+  for both edges. [Withdrawn: "2×56 = 112 ps (rise) and 2×124 = 248 ps
+  (fall)", which read FAST_MAX/SLOW_MAX as rise/fall.]
 - With the build's 434–945 ps per hop (cells/docs/LIBRARY.md), each server
   edge is about 1.0–2.1 ns. Take smin ≈ 980 ps, the minimum.
 
@@ -225,7 +259,9 @@ Other routing assumptions:
   with no pin permutation, so r1 and g1 land on A1 and A0 lands on A5. They
   are in the route terms; the skews below include them.
 
-The worst-case sign of each skew gives:
+The worst-case sign of each skew gives (arc terms here are the corner-mixed
+ones; at SLOW_MAX each margin grows by the arc change, about +0.1 to +0.2 ns,
+e.g. RT2 pulse ≈ 0.72 ns; see B-arb-corners.md §2):
 
 | condition | worst-case margin |
 | --- | --- |
@@ -294,7 +330,9 @@ hold, it is also the signature of an RT2 failure.
     margin of 136 + smin + … .
   - RT2 pulse becomes `c2f + wfa2 ≤ wa0s + qr + wfb + 52 + smin`, a margin of
     smin − 16 + … . That is the tighter direction: 96 ps arc-only with a
-    112 ps server.
+    112 ps server. [Corner mix: at one corner the arc part is +150 (SLOW_MAX)
+    / +42 (FAST_MIN), `ArbCorners.pulse2_zero_routing`.] (Since done: 7j,
+    B-arb-held-timed2.md.)
 
   Done by hand from the formulas; about 2–3 h to prove, mostly duplication
   (or abstracting the polarity).

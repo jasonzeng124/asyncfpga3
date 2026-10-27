@@ -14,7 +14,11 @@ It checks clean: no output, no `sorry`/`admit`/`axiom`/`native_decide`.
 ## Verdict
 
 **Works.** Both claims in the `bd_ctree` header are proved with the real
-INITs, in a speed-independent interleaving model:
+INITs, in a speed-independent interleaving model with atomic cells
+(H_ATOMIC_CELL). Scope (audit REPORT row 21, findings B #5): "tree = flat
+C-element" means EQUALITY OF REACHABLE (phase, inputs, output) STATE SETS in
+this atomic-cell model (plus the step simulations below), not equality of
+traces and not a timed statement:
 - the concrete counterexamples;
 - the equivalence under the four-phase discipline, **for every tree shape** by
   structural induction. The fallback (finite `decide` for N=5) was not needed.
@@ -198,7 +202,8 @@ The timing assumption the interleaving model hides is H_ATOMIC_CELL item 2
 ## What did not work / not proved
 
 - Trace-level equivalence is not stated as one theorem; it is implied by the
-  two step simulations.
+  two step simulations. What is stated is equality of reachable-state sets
+  in the atomic-cell model.
 - The generate block is proved for every tree shape, and its widths are
   checked by evaluation for 2..64. There is no symbolic proof that `gen n`
   is a cell rooted, reset-0 tree for all n; it is easy, but the fuelled

@@ -20,7 +20,9 @@ Nothing in the repo was changed except this file.
   byte for byte into the scratch dir (`SOURCES.sha256` records the hashes). Two prims sets
   were used:
   - **cells/sim:** `cells/sim/bd_prims_sim.v`, with rise 56 / fall 124 and the O5 per-pin
-    pairs.
+    pairs. (These pairs are prjxray FAST_MAX / SLOW_MAX of one arc, `makesdf.py:63`, so this
+    prims set mixes corners; see the prediction section and `ArbCorners.simArcs_is_mix`,
+    `sim_overlap_C`.)
   - **research GLS:** `git show origin/claude/research:cells/gls/prims.v` at `7e90c4f`
     (`SLICE_LUTX`, `ICBUF`), read-only. There are two builds:
     - **gate**: the default, with the specify-path ICBUF. This is the annotated acceptance

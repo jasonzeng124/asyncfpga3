@@ -38,7 +38,21 @@ This file names the relative-timing conditions and proves them in a timed model.
 * RT2: `A1_low_after` / `A2_low_before` / `rt2_exclusion` (run form),
   `rt2_exclusion_arcs` (arc form, every server), `A1_stuck` / `rt2_counter`
   (counter-trace: A1's fall swallowed, A1.A2 both high).
-* `prj_*`: the conditions with the prjxray arcs.
+* `prj_*`: the conditions with the numbers of `cells/sim/bd_prims_sim.v`.
+
+**Audit correction (claude/audit REPORT rows 10, 24; findings AB2 #2).** The
+pairs 56/124 (O6), 55/152 (O5 I0/I1) and 52/150 (O5 I2) used by `prj` are NOT
+rise/fall arcs: they are prjxray's FAST_MAX and SLOW_MAX of ONE arc
+(`prjxray/utils/makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`,
+each triple applying to both edges). The numeric instance `prj` therefore mixes
+corners (fast-corner rises with slow-corner falls; `ArbCorners.prj_is_mix`), and
+its margins (292/164/276/220/332 ps, "112 ps server") are artefacts. The generic
+theorems (every `Dl`, including rise = fall) are unaffected. Corrected values at
+a consistent corner: `ArbCorners.arcs_slowMax`/`arcs_fastMin` (arc parts),
+`ArbCorners.slow_arc_only`/`fast_arc_only` (arc-only margins, server = two arcs
+at the same corner: 248 / 90 ps), `ArbCorners.box_7h` (each arc independently
+in [FAST_MIN, SLOW_MAX]). Rise/fall asymmetry is unmeasured
+(`ArbCorners.RF`, H_RF_ASYM).
 -/
 
 namespace Formal.Cells.ArbHeldTimed
@@ -138,8 +152,11 @@ structure Dl where
     0 ≤ wq ∧ 0 ≤ wg1 ∧ 0 ≤ wa01 ∧ 0 ≤ wfa1 ∧ 0 ≤ wg2 ∧ 0 ≤ wa02 ∧ 0 ≤ wfa2 ∧
     0 ≤ qr ∧ 0 ≤ Rr1 ∧ 0 ≤ Rr2 ∧ 0 ≤ Rrq ∧ 0 ≤ g1r1 ∧ 0 ≤ g1r2 ∧ 0 ≤ g1rq ∧
     0 ≤ g2r ∧ 0 ≤ c1r ∧ 0 ≤ c2r ∧ 0 ≤ smin
-  /-- H_RISE_LE_FALL: rise arc ≤ fall arc on every arc (prjxray 56/124,
-  55/152, 52/150): what makes the OR channel the rise-fast channel. -/
+  /-- H_RISE_LE_FALL: rise arc ≤ fall arc on every arc: what makes the OR
+  channel the rise-fast channel. (The pairs once quoted here as prjxray rise/fall,
+  56/124, 55/152, 52/150, are FAST_MAX/SLOW_MAX of one arc, makesdf.py:63; prjxray
+  gives no edge split, so the consistent instance is rise = fall, which satisfies
+  this hypothesis. See `ArbCorners.RF` and `ArbCorners.prj_is_mix`.) -/
   H_RISE_LE_FALL : qr ≤ qf ∧ Rr1 ≤ Rf1 ∧ Rr2 ≤ Rf2 ∧ Rrq ≤ Rfq ∧ g1r1 ≤ g1f1 ∧
     g1r2 ≤ g1f2 ∧ g1rq ≤ g1fq ∧ g2r ≤ g2f ∧ c1r ≤ c1f ∧ c2r ≤ c2f
   /-- H_LOOP_POS: every feedback loop (ustate, ua1, ua2) has positive delay. -/
@@ -580,8 +597,11 @@ end
 
 /-! ## The prjxray arcs -/
 
-/-- prjxray arcs (cells/sim/bd_prims_sim.v): O6 56/124 flat; O5 per pin
-I0 55/152, I1 55/152, I2 52/150; routes and smin free. -/
+/-- The arcs of cells/sim/bd_prims_sim.v: O6 56/124 flat; O5 per pin
+I0 55/152, I1 55/152, I2 52/150; routes and smin free. These were read as
+rise/fall, but each pair is prjxray's FAST_MAX/SLOW_MAX of one arc
+(makesdf.py:63), so this instance mixes corners (`ArbCorners.prj_is_mix`).
+Consistent-corner replacements: `ArbCorners.Dslow`/`Dfast` via `ArbCorners.cDl`. -/
 def prj (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int)
     (h : 0 ≤ wr1s ∧ 0 ≤ wr2s ∧ 0 ≤ wr1g ∧ 0 ≤ wr2g ∧ 0 ≤ wfb ∧ 0 ≤ wa0s ∧
       0 ≤ wq ∧ 0 ≤ wg1 ∧ 0 ≤ wa01 ∧ 0 ≤ wfa1 ∧ 0 ≤ wg2 ∧ 0 ≤ wa02 ∧ 0 ≤ wfa2 ∧ 0 ≤ smin) :
@@ -624,19 +644,26 @@ def prj (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int)
   H_RISE_LE_FALL := by omega
   H_LOOP_POS := by omega
 
-/-- **RT1 with prjxray arcs**: holds whenever r1's route to ugrant is at most
-`180 + smin + wa0s + wq` ps longer than its route to ustate (180 = qf + g2r,
-the R0/g1 fall arcs from I0 being equal, 152). -/
+/-- **RT1 with the `prj` (corner-mixed) arcs**: holds whenever r1's route to
+ugrant is at most `180 + smin + wa0s + wq` ps longer than its route to ustate
+(180 = qf + g2r, the R0/g1 fall arcs from I0 being equal, 152). The 180 mixes
+corners (FAST_MAX rise + SLOW_MAX "fall", makesdf.py:63); at a consistent corner
+the arc part is 248 ps (SLOW_MAX) / 90 ps (FAST_MIN): `ArbCorners.arcs_slowMax`,
+`ArbCorners.arcs_fastMin`. -/
 theorem prj_RT1 (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int) (h)
     (H : wr1g ≤ wr1s + 180 + smin + wa0s + wq) :
     RT1 (prj wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin h) := by
   unfold RT1 prj; simp only; omega
 
-/-- **RT2 with prjxray arcs**: the four conditions reduce to
+/-- **RT2 with the `prj` (corner-mixed) arcs**: the four conditions reduce to
 * pulse: `wfa1 ≤ smin + 52 + wa0s + wfb`
 * g1:    `wr1g + wg1 + wfa1 ≤ wr1s + 2 smin + 52 + wa0s + wfb + wa01`
 * forkA: `wa01 ≤ smin + 108 + wa0s + wfb + wa02`
-* forkG: `wr1g + wg1 ≤ wr1s + 2 smin + 108 + wa0s + wfb + wa02`. -/
+* forkG: `wr1g + wg1 ≤ wr1s + 2 smin + 108 + wa0s + wfb + wa02`.
+
+The 52/108 arc parts mix FAST_MAX and SLOW_MAX of one arc (makesdf.py:63). At a
+consistent corner they are 150/274 ps (SLOW_MAX) and 42/87 ps (FAST_MIN):
+`ArbCorners.arcs_slowMax`, `ArbCorners.arcs_fastMin`. -/
 theorem prj_RT2 (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int) (h)
     (Hp : wfa1 ≤ smin + 52 + wa0s + wfb)
     (Hg : wr1g + wg1 + wfa1 ≤ wr1s + 2 * smin + 52 + wa0s + wfb + wa01)
@@ -645,9 +672,12 @@ theorem prj_RT2 (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smi
     RT2 (prj wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin h) := by
   constructor <;> (unfold prj; simp only; omega)
 
-/-- **Arc-only corner** (every route 0, server = two LUT1 rise arcs, 112 ps):
+/-- **Arc-only, corner-mixed** (every route 0, server 112 ps = 2 × FAST_MAX):
 RT1, RT2 and the 7g fork condition all hold. Margins: RT1 180 + 112 = 292 ps;
-RT2 pulse 164, g1 276, forkA 220, forkG 332 ps. -/
+RT2 pulse 164, g1 276, forkA 220, forkG 332 ps. These numbers are artefacts of
+reading prjxray's FAST_MAX/SLOW_MAX (makesdf.py:63) as rise/fall. Corrected:
+`ArbCorners.slow_arc_only` (server 248: RT1 496, pulse 398, g1 646, forkA 522,
+forkG 770) and `ArbCorners.fast_arc_only` (server 90: 180, 132, 222, 177, 267). -/
 theorem prj_arc_only :
     let D := prj 0 0 0 0 0 0 0 0 0 0 0 0 0 112 (by omega)
     RT1 D ∧ RT2 D ∧ A0Fork D := by

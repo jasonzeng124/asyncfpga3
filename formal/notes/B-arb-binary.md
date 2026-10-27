@@ -162,7 +162,11 @@ but they are timing hypotheses, and the theorem names them.
 ## What did not work / not done
 * No request-routing skew between the state LUT's and the grant LUT's pins,
   and no separate rise/fall arcs (the header's 124 ps fall vs 56+52 ps rise
-  race). The overlap mechanism in the runt trace is O5/O6 skew; rise/fall
+  race). [Audit correction, REPORT rows 10/24: 124 and 56/52 are SLOW_MAX and
+  FAST_MAX of the same arcs (prjxray `makesdf.py:63`), not fall and rise, so
+  that race is a corner mix; at one consistent corner the bare-cell overlap is
+  0 (`ArbCorners.corner_no_overlap`, B-arb-corners.md §1). Rise/fall asymmetry
+  is the unmeasured `ArbCorners.RF`.] The overlap mechanism in the runt trace is O5/O6 skew; rise/fall
   asymmetry would be a second mechanism (probe 7d territory).
 * The bounded-delay model uses one constant delay per trace, not a delay
   varying per edge inside an interval. Counterexamples transfer; the positive

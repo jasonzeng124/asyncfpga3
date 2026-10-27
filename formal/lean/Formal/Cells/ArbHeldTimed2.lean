@@ -16,10 +16,10 @@ the server relation `Server` (H_SERVER_MIN) and the 7h scenario `Scn`.
    `g2_eq2`; server bounds `TA_ge2`, `TA2_ge2`; RT1 `overlap_exact2`,
    `rt1_exclusion2`, `rt1_counter2`, `rt1_counter2_minserver`; RT2
    `A2_low_after2`, `A1_low_before2`, `rt2_exclusion2`, `rt2_exclusion2_arcs`,
-   `A2_stuck2`, `rt2_counter2`; prjxray form `prj_RT1b`, `prj_RT2b`,
+   `A2_stuck2`, `rt2_counter2`; corner-mixed `prj` form `prj_RT1b`, `prj_RT2b`,
    `prj_arc_only2` (margins: RT1 248, pulse 96, g2 236, forkA 152, forkG 292,
    fork 108 ps at zero routing with a 112 ps server).
-2. **Non-vacuity**: one concrete delay set `D0` (prjxray arcs, zero routes,
+2. **Non-vacuity**: one concrete delay set `D0` (7h's `prj` arcs, zero routes,
    smin = 112) satisfying every arc condition of both directions, and two
    explicit trace sets `W1`, `W2` that satisfy `Run D0` (for ALL t ∈ ℤ, server
    relation included) and `Scn` / `Scn2` (for every horizon past the second
@@ -29,6 +29,21 @@ the server relation `Server` (H_SERVER_MIN) and the 7h scenario `Scn`.
    does when A0's low pulse at ua1 lies between `A1_stuck`'s condition and
    RT2a: an exact first excursion (low on `[T1, TA2+wa01+c1r)`, high again on
    `[TA2+wa01+c1r, T1+c1r+wfa1)`) and the resulting ack overlap.
+
+**Audit correction (claude/audit REPORT row 24; findings AB2 #1).** 7h's `prj`
+reads the pairs 56/124 (O6), 55/152 and 52/150 (O5) as rise/fall arcs. They are
+prjxray's FAST_MAX and SLOW_MAX of ONE arc (`prjxray/utils/makesdf.py:63`:
+`(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`, both edges). So `prj`, `D0` and every
+number derived from them mix corners (`ArbCorners.prj_is_mix`): the 16 ps
+pulse2 threshold, the 96 ps "tightest margin", the "112 ps server" (2 × FAST_MAX)
+and the margins in item 1 are artefacts. The generic theorems and the
+non-vacuity itself remain valid mathematics. Corrected, at one consistent corner
+(rise = fall): `ArbCorners.pulse2_zero_routing` (pulse2 at zero routing holds for
+every `smin ≥ 0`), `ArbCorners.slow_arc_only`/`fast_arc_only` (server 248/90 ps;
+RT1b 550/176, pulse2 398/132, g2 674/221, forkA2 522/177, forkG2 798/266,
+fork2 274/87), `ArbCorners.box_7j` (box), `ArbCorners.nonvacuous_corners`
+(replaces `nonvacuous`), and for the runt band `ArbCorners.stuck_pulse_vacuous`,
+`ArbCorners.A1_band_corner` (lower edge 0, not 68).
 -/
 
 namespace Formal.Cells.ArbHeldTimed2
@@ -394,20 +409,31 @@ theorem rt2_counter2 (R : Run D s) (S : Scn2 D s t0 ta TA TA2 Hz)
 
 end
 
-/-! ## prjxray arcs, mirror direction -/
+/-! ## The `prj` (corner-mixed) arcs, mirror direction
 
-/-- **RT1 mirror with prjxray arcs**: r2's route to ugrant at most
+All numbers in this section use 7h's `prj`, whose pairs are FAST_MAX/SLOW_MAX of
+one arc read as rise/fall (makesdf.py:63; `ArbCorners.prj_is_mix`). Consistent-
+corner arc parts: `ArbCorners.arcs_slowMax` (RT1b 302, pulse2 150, g2 178,
+forkA2 274, forkG2 302, fork2 274) and `ArbCorners.arcs_fastMin` (86, 42, 41,
+87, 86, 87). -/
+
+/-- **RT1 mirror with the `prj` (corner-mixed) arcs**: r2's route to ugrant at most
 `136 + smin + wa0s + wq` longer than to ustate (136 = 152 + 56 + 52 − 124). -/
 theorem prj_RT1b (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int) (h)
     (H : wr2g ≤ wr2s + 136 + smin + wa0s + wq) :
     RT1b (prj wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin h) := by
   unfold RT1b prj; simp only; omega
 
-/-- **RT2 mirror with prjxray arcs**: the four conditions reduce to
+/-- **RT2 mirror with the `prj` (corner-mixed) arcs**: the four conditions reduce to
 * pulse: `wfa2 + 16 ≤ smin + wa0s + wfb`
 * g2:    `wr2g + wg2 + wfa2 ≤ wr2s + 2 smin + 12 + wa0s + wfb + wa02`
 * forkA: `wa02 ≤ wa01 + smin + 40 + wa0s + wfb`
-* forkG: `wr2g + wg2 ≤ wr2s + 2 smin + 68 + wa0s + wfb + wa01`. -/
+* forkG: `wr2g + wg2 ≤ wr2s + 2 smin + 68 + wa0s + wfb + wa01`.
+
+The pulse term `+16` (negative arc part −16) exists only because a SLOW_MAX
+"fall" is set against FAST_MAX "rises"; at a consistent corner the pulse arc
+part is +150 (SLOW_MAX) / +42 (FAST_MIN) (`ArbCorners.arcs_slowMax`,
+`ArbCorners.arcs_fastMin`). -/
 theorem prj_RT2b (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int) (h)
     (Hp : wfa2 + 16 ≤ smin + wa0s + wfb)
     (Hg : wr2g + wg2 + wfa2 ≤ wr2s + 2 * smin + 12 + wa0s + wfb + wa02)
@@ -416,14 +442,17 @@ theorem prj_RT2b (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 sm
     RT2b (prj wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin h) := by
   constructor <;> (unfold prj; simp only; omega)
 
-/-- Mirror fork with prjxray arcs: `wa01 ≤ wa0s + 108 + wq + wg1`. -/
+/-- Mirror fork with the `prj` (corner-mixed) arcs: `wa01 ≤ wa0s + 108 + wq + wg1`. -/
 theorem prj_fork2 (wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin : Int) (h)
     (H : wa01 ≤ wa0s + 108 + wq + wg1) :
     A0Fork2 (prj wr1s wr2s wr1g wr2g wfb wa0s wq wg1 wa01 wfa1 wg2 wa02 wfa2 smin h) := by
   unfold A0Fork2 prj; simp only; omega
 
-/-- **Arc-only corner, mirror** (every route 0, 112 ps server): all hold.
-Margins: RT1 136 + 112 = 248; pulse 96; g2 236; forkA 152; forkG 292; fork 108 ps. -/
+/-- **Arc-only, corner-mixed, mirror** (every route 0, 112 ps server = 2 ×
+FAST_MAX): all hold. Margins: RT1 136 + 112 = 248; pulse 96; g2 236; forkA 152;
+forkG 292; fork 108 ps. These are artefacts of reading FAST_MAX/SLOW_MAX
+(makesdf.py:63) as rise/fall; corrected: `ArbCorners.slow_arc_only`,
+`ArbCorners.fast_arc_only`. -/
 theorem prj_arc_only2 :
     let D := prj 0 0 0 0 0 0 0 0 0 0 0 0 0 112 (by omega)
     RT1b D ∧ RT2b D ∧ A0Fork2 D := by
@@ -434,7 +463,10 @@ theorem prj_arc_only2 :
 
 /-- The pulse margin of the mirror direction is exactly `smin + wa0s + wfb − wfa2 − 16`:
 at zero routing it is 96 ps with a 112 ps server, and it FAILS for a server
-faster than 16 ps (so the condition is not vacuously true). -/
+faster than 16 ps (so the condition is not vacuously true). The 16 is
+SLOW_MAX(124) − FAST_MAX(56) − FAST_MAX(52), a corner mix (makesdf.py:63). At one
+consistent corner the threshold is `d6 − o5q ≤ 0`, so the condition holds for
+every `smin ≥ 0`: `ArbCorners.pulse2_zero_routing`. -/
 theorem prj_pulse2_tight (smin : Int) (h) :
     let D := prj 0 0 0 0 0 0 0 0 0 0 0 0 0 smin h
     (D.c2f + D.wfa2 ≤ D.wa0s + D.qr + D.wfb + D.Rrq + D.smin) ↔ 16 ≤ smin := by
@@ -442,8 +474,12 @@ theorem prj_pulse2_tight (smin : Int) (h) :
 
 /-! ## Non-vacuity: a concrete delay set and traces satisfying everything
 
-`D0`: prjxray arcs, every route 0, server minimum response 112 ps (two LUT1
-rise arcs). It satisfies RT1, RT2, A0Fork (7h) and RT1b, RT2b, A0Fork2 (here).
+`D0`: 7h's `prj` arcs, every route 0, server minimum response 112 ps. (Audit
+correction: `prj` pairs FAST_MAX "rises" with SLOW_MAX "falls", makesdf.py:63,
+so `D0` mixes corners and 112 = 2 × FAST_MAX; the witness is valid mathematics
+but not a prjxray instance. Consistent-corner witnesses: `ArbCorners.Dslow`,
+`ArbCorners.Dfast`, `ArbCorners.nonvacuous_corners`.) It satisfies RT1, RT2,
+A0Fork (7h) and RT1b, RT2b, A0Fork2 (here).
 
 `W1` (7h's direction, `t0 = 0`, `ta = -1000`): the server answers in exactly
 `smin` both times: `TA = TR + smin = 152 + 112 = 264`,
@@ -586,6 +622,10 @@ makes a low runt of width `p − (c1f − c1r)`, then re-latches high for
 acks are high. With matched A0 forks and arcs (`wa02 + c2r = wa01 + c1r`)
 A2 rises exactly at the window's start, so EVERY pulse in the band gives an
 ack overlap (`A1_band_overlap_matched`).
+
+(The lower band edge `c1f − c1r` = 68 ps of `prj` is the corner mix; with rise =
+fall it is 0 and `A1_stuck`'s pulse disjunct is vacuous:
+`ArbCorners.stuck_pulse_vacuous`, `ArbCorners.A1_band_corner`.)
 
 After the window the low hole recirculates through ua1's loop; in this
 rise-fast OR-channel model each round shrinks it by `c1f − c1r` (hand

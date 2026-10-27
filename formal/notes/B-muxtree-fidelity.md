@@ -98,7 +98,10 @@ Nothing is unproved in the claimed file. Not attempted:
   Monotone A1 slowest to A6 fastest: A1 sits at the SRAM end (its buffer
   drives the most pass gates and its edge has to ripple through all levels),
   A6 at the output mux. The `CLBLL_L.sdf` cell arcs `A_i -> O6` are uniform
-  (45/56 ps rise, 100/124 ps fall), so the per-pin difference lives entirely
+  (45/56 ps FAST_MIN/FAST_MAX, 100/124 ps SLOW_MIN/SLOW_MAX, both edges; first
+  written here as "rise"/"fall", corrected after the audit, REPORT row 10:
+  prjxray `makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`;
+  consistent-corner arbiter values in `ArbCorners`, B-arb-corners.md), so the per-pin difference lives entirely
   in these site-pin delays (up to ~0.5 ns at slow max). Worth checking that
   the research GLS's delay calculator includes them; nextpnr's SDF used today
   sets every `TA_iO6` to the same nominal value.

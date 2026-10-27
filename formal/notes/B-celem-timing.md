@@ -96,6 +96,13 @@ Let `Dmax = dlmax + dwmax`, `Dmin = dlmin + dwmin` (loop delay bounds).
 * Four-phase alone is NOT enough. The discipline needs
   `E ≥ dwmax + (dlmax - dlmin)`: the environment, after seeing the ack on `O`,
   must not move an input before the ack has gone round the feedback wire.
+  The repo proves this condition SUFFICIENT (`c2_four_phase`). The
+  independent audit (claude/audit REPORT, row 51 / findings B #4) proved it
+  NECESSARY: `drop_env_latency_cex` in `audit/lean/B/W_CElem.lean`
+  (claude/audit branch; dl = 1, dw = 2, E = 1) satisfies every hypothesis of
+  `c2_four_phase` except H_ENV_LATENCY, and O glitches to 0 at t = 7, inside
+  the promised window. So the fork condition is necessary, not only
+  sufficient (necessity is the audit's theorem, not in this repo's Lean).
   This is an isochronic-fork condition on the fork `O -> environment` vs
   `O -> I2`. With fixed delays (`dlmin = dlmax`) it reduces to
   `E ≥ dwmax`. In the library the environment's latency is at least another
@@ -147,7 +154,8 @@ Works. Main results proved, core Lean, about 3 hours as a probe. Finishing
 is about 1 day. What it buys the project: the exact C-element timing
 condition (`min pulse width = Dmax`), and a NEW derived constraint that is not
 in the library's rules: environment ack-to-input latency
-`≥ dwmax + (dlmax - dlmin)`. Track 10's checker could check it per cell.
+`≥ dwmax + (dlmax - dlmin)` (sufficient here; necessary by the audit's
+`drop_env_latency_cex`, audit/lean/B/W_CElem.lean). Track 10's checker could check it per cell.
 
 ## Fidelity per primitive
 

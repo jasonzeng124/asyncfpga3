@@ -13,12 +13,41 @@ Check command:
 Shared definitions: none were added to Prelim. Everything is local to the file:
 `LutOut3`, `Arcs`, `Cell`, `countTrue`, `St`, `Gate`, `Reach`.
 
+## Audit correction (claude/audit REPORT rows 10, 21, 24; 2026-10-27)
+
+- **Corner mix.** The arcs used for every number in Part 1 (O6 56/124, O5 I2
+  52/150, O5 I0 55/152, from `cells/sim/bd_prims_sim.v`) were read as
+  rise/fall. They are prjxray's FAST_MAX and SLOW_MAX of ONE arc
+  (`prjxray/utils/makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`,
+  each for both edges; prjxray has no edge split). The general theorems
+  (`overlap_duration_r2_to_r1`, the skew theorems, any `Arcs`) stand. The
+  numeric instances `header_16ps`, `header_routed`, `header_r1_to_r2`,
+  `sim_overlap`, `prj_overlap_caps` (16 ps, w ≥ 16, 28 + w, 16 − R, 72/94 ps)
+  and ARBITER.md's "+68 ps" (= 124 − 56) mix corners
+  (`ArbCorners.prjArcs_is_mix`, `simArcs_is_mix`, `mix_header_16`). They are
+  exact only in the simulator's (mixed) arc model. Corrected (B-arb-corners.md
+  §1): overlap `max 0 (d6 − o5q − w)` = **0 at every consistent corner, every
+  w ≥ 0** (`ArbCorners.overlap_C`, `corner_no_overlap`, `slow_header`,
+  `fast_header`; `sim_overlap_C` for the simulator); an overlap needs an
+  unmeasured asymmetry larger than a whole O5 arc (`header_needs_asym`);
+  reverse margin 96 + w (SLOW_MAX) / 46 + w (FAST_MIN) (`r1_to_r2_margins`);
+  skew caps 0/26 ps (SLOW_MAX), 3/0 ps (FAST_MIN) (`caps_are`), box 82/105
+  (`box_caps`). Corrected values are inlined below; withdrawn ones are in
+  brackets.
+- **Scope of `held_protocol`.** Part 2 is speed-independent with ZERO wire
+  delay, so the A0 fork is isochronic. With wire delay the property depends on
+  the A0-fork ordering (H_A0_FORK, `ArbA0Fork.no_early_ack_iff`,
+  `TernaryPhases.arb_a0_fall_skewed_early_ack`).
+
 ## Verdict
 
-**Works.** (1) The header's 16 ps arc claim is proved exactly, in both
-directions, and extended to arbitrary request-fork skew, where it gives a cap.
+**Works.** (1) The header's 16 ps arc claim is proved exactly in the
+simulator's arc model (corner-mixed; 0 ps at any consistent corner, see the
+audit correction), in both directions, and extended to arbitrary request-fork
+skew, where it gives a cap.
 (2) The unheld protocol violation is reproduced as a reachable trace. The held
-INIT is proved to meet the merge's counting precondition in every interleaving.
+INIT is proved to meet the merge's counting precondition in every interleaving
+of a zero-wire-delay model (A0 fork isochronic).
 (3) The same exhaustive model also shows that two of the header's claims are
 stronger than the hold supports without timing:
 - grant exclusion during handover
@@ -34,9 +63,13 @@ Effort to finish (see "Missing"): about 1-2 days.
 
 What it buys the project:
 - The tier table in ARBITER.md gets a proof-backed correction.
-- tb_arb's threshold gets an exact value (16 ps, not 56).
-- The structural-overlap cap (72/94 ps for any skew) is proved, which closes
-  the structural explanation of the unexplained 8% under this channel model.
+- tb_arb's threshold gets an exact value in the simulator's arc model (16 ps,
+  not 56). [At a consistent corner there is no threshold: 0 ps for every R,
+  `ArbCorners.sim_overlap_C`.]
+- The structural-overlap cap (72/94 ps for any skew, corner-mixed; 26/3 ps at
+  SLOW_MAX/FAST_MIN, 82/105 in the box, `ArbCorners.caps_are`, `box_caps`) is
+  proved, which closes the structural explanation of the unexplained 8% under
+  this channel model.
 
 ## Part 1: timed, bare `bd_arbcell` (one isolated handover)
 
@@ -50,7 +83,9 @@ pure-delay channel** `LutOut3`:
 This needs rise ≤ fall per pin (`H_rise_le_fall`). For an isolated edge, the
 output rises exactly `dr` and falls exactly `df` after the input edge, which is
 what `bd_prims_sim.v`'s `specify` paths do. High pulses are stretched by
-`df - dr`, which is ARBITER.md's "+68 ps".
+`df - dr`, which is ARBITER.md's "+68 ps". [That 68 = 124 − 56 is SLOW_MAX −
+FAST_MAX of one O6 arc (makesdf.py:63), not a measured rise/fall asymmetry;
+the asymmetry is the unmeasured `ArbCorners.RF` (H_RF_ASYM).]
 
 The functions are the real INITs through `lutB`/`o5B`/`o6B`:
 - `stateF` uses `bd_c2n_set` 0xFFB2…
@@ -96,20 +131,28 @@ cannot be measured directly.
 - `q_falls` and **`overlap_r1_to_r2`**: the other direction. The overlap is
   `[t0+qf+w+g2r, t0+g1f_r1)`, under `H_g1_by_r1`, which says g1 is lowered
   by r1 and not by q.
-- **`header_16ps`**: with prjxray arcs (56, 52, 124) and w = 0, the overlap
-  is exactly `[t0+108, t0+124)`, which is 16 ps.
-- **`header_routed`**: with w ≥ 16 ps there is no overlap.
+- **`header_16ps`**: with the bd_prims_sim arcs (56, 52, 124: FAST_MAX
+  "rises" against a SLOW_MAX "fall") and w = 0, the overlap is exactly
+  `[t0+108, t0+124)`, which is 16 ps. Corrected: 0 ps at every consistent
+  corner (`ArbCorners.slow_header`, `fast_header`).
+- **`header_routed`**: with w ≥ 16 ps there is no overlap (consistent corner:
+  every w ≥ 0, `ArbCorners.corner_no_overlap`).
 - **`header_r1_to_r2`**: the reverse direction never overlaps, for any w ≥ 0.
-  The margin is 180 + w − 152 = 28 + w ps.
+  The margin is 180 + w − 152 = 28 + w ps (corner-mixed; 96 + w SLOW_MAX,
+  46 + w FAST_MIN, `ArbCorners.r1_to_r2_margins`; in the box only a bound
+  `max 0 (62 − w)` on an overlap, `box_r1_to_r2_le`).
 - **`sim_overlap`**: the simulator's `BD_ROUTE_PS = R` adds R to every arc,
-  so the overlap is `max 0 (16 − R)` ps.
+  so the overlap is `max 0 (16 − R)` ps (corner-mixed; 0 for every R with
+  consistent arcs, `ArbCorners.sim_overlap_C`).
 - **`overlap_skew_r2_to_r1`/`_le`, `overlap_skew_r1_to_r2`/`_le`**: the
   request reaches the grant LUT σ after the state LUT, with σ of either sign.
   - r2→r1: the overlap is `[t0+qr+w+g1r_q, t0+min(σ, qr+w)+g2f)`.
   - r1→r2: the overlap is `[t0+qf+w+g2r, t0+min(σ+g1f_r1, qf+w+g1f_q))`.
   - For every σ and w, the duration is at most `max 0 (g2f − g1r_q)` (r2→r1)
     or `max 0 (g1f_q − g2r)` (r1→r2).
-- **`prj_overlap_caps`**: those caps are 72 ps and 94 ps for the prjxray arcs.
+- **`prj_overlap_caps`**: those caps are 72 ps and 94 ps for the bd_prims_sim
+  (corner-mixed) arcs. Corrected: 0/26 ps at SLOW_MAX, 3/0 ps at FAST_MIN
+  (`ArbCorners.corner_caps`, `caps_are`), 82/105 ps in the box (`box_caps`).
 
 ## Part 2: untimed `bd_arbiter`, every interleaving
 
@@ -207,14 +250,20 @@ hazard. In the unheld design, R0 and A0 are also non-persistent.
 
 The stronger properties additionally need two relative-timing conditions,
 which are not proved here:
-- **RT1, grant exclusion in bd_arbiter.** The r1→g1 fall (O5 fall arc of 152
-  plus routing) must beat the chain r1→R0 fall (152), then the server's A0
-  fall, then A0→q (124 or 56), then q→g2 rise (56) plus routing. The margin is
+- **RT1, grant exclusion in bd_arbiter.** The r1→g1 fall (O5 arc, 152 at
+  SLOW_MAX, plus routing) must beat the chain r1→R0 fall (152), then the
+  server's A0 fall, then A0→q (124 at SLOW_MAX), then q→g2 rise (124 at
+  SLOW_MAX) plus routing. [The original "124 or 56", "rise (56)" mixed
+  corners; see ArbCorners §2.] The margin is
   at least a server response plus two arcs.
 - **RT2, ack exclusion.** A1's fall after A0 falls (124 plus routing) must beat
   the chain A0↓→q→g2/R0↑→server→A0↑.
 
 ## Comparison with ARBITER.md's measured numbers
+
+(All numbers in this section are in the simulator's corner-mixed arc model,
+which is what tb_arb and tb_arb_overlap run on; they are not silicon
+predictions. At a consistent corner the bare-cell overlap is 0.)
 
 **tb_arb** (1 overlap at BD_ROUTE_PS = 0, 0 at 354). This matches
 `sim_overlap`: a single r2→r1 handover gives 16 ps at R = 0 and none for
@@ -237,7 +286,8 @@ is consistent with "one link removes every instance".
   request-fork skew σ > w − 16, or non-isolated edges. The skew theorems allow
   that.
 - **FILTERED fired 15/192, unexplained.** The skew theorems cap every isolated
-  handover's overlap at 72 or 94 ps, for every skew and every routing.
+  handover's overlap at 72 or 94 ps (corner-mixed arcs; 26/3 ps at a consistent
+  corner, 82/105 ps in the box), for every skew and every routing.
   Assuming, not proving here, that the detector AND adds a +68 ps stretch, the
   raw pulse is at most about 162 ps. That is below the 203 ps minimum
   threshold of the W = 2 filter.
@@ -255,7 +305,8 @@ is consistent with "one link removes every instance".
   channel.
 
 **hw/arb_prot** (viol 0/96, ovl 0/96).
-- `held_protocol` explains why there are no phantom acks.
+- `held_protocol` explains why there are no phantom acks (in the
+  zero-wire-delay model; with wires it also needs H_A0_FORK).
 - `held_ack_overlap_untimed` shows that A1.A2 is reachable in the held design
   without timing. So `viol` is **not** an exclusive signature of the protocol
   defect, contrary to ARBITER.md: in the held design it would also fire if
@@ -272,8 +323,9 @@ is consistent with "one link removes every instance".
 
 - **LUT function**: exact. The real INIT is used via `lutB`/`o5B`/`o6B`, with
   the RTL pin maps and the constant pins tied as in the RTL.
-- **LUT timing (Part 1)**: rise-fast pure-delay channel with prjxray per-pin
-  O5 arcs and flat O6 arcs. Exact for isolated single-pin edges. For pulses
+- **LUT timing (Part 1)**: rise-fast pure-delay channel with per-pin O5 arcs
+  and flat O6 arcs (the numeric instances use bd_prims_sim's corner-mixed
+  pairs; prjxray itself gives one value per corner for both edges). Exact for isolated single-pin edges. For pulses
   it is transport/stretching with no inertial rejection, unlike iverilog's
   default inertial specify. No glitch or Kleene behaviour is modelled, since
   every LUT here sees only function-irrelevant extra edges. Per-pin O6 arcs

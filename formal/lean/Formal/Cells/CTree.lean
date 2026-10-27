@@ -13,6 +13,11 @@ of one input is a plain wire, `assign q = a[0]`), and the chunk outputs feed a
    `C(C(a0,a1), C(a2,a3,a4))` with vector `0 1 1 1 1`);
 2. under the four-phase discipline it equals one.
 
+Scope of "equals" here (claude/audit REPORT row 21): EQUALITY OF REACHABLE
+(phase, inputs, output) STATE SETS in an atomic-cell (H_ATOMIC_CELL),
+speed-independent model, plus step matching (`live`). It is not trace
+equality, and not a timed result (for timed tree cells see `CTreeTimed`).
+
 ## Model (what is proved about)
 
 * **Speed-independent interleaving model.** A state is the input vector plus
@@ -792,7 +797,8 @@ theorem flat_refines {t0 : T} (H_RESET : AllQ false t0) (hcell : IsCell t0) {f :
 
 /-- **Main theorem (part 2), any tree shape.** Under H_RESET and H_FOUR_PHASE,
 the reachable (phase, inputs, output) states of the tree are exactly those of
-a flat C-element over the tree's inputs. -/
+a flat C-element over the tree's inputs. Scope: equality of reachable-state
+sets in the atomic-cell model (H_ATOMIC_CELL), not equality of traces. -/
 theorem reachable_eq_flat {t0 : T} (H_RESET : AllQ false t0) (hcell : IsCell t0)
     (ph : Bool) (inp : Inp) (z : Bool) :
     FReach (leaves t0) ⟨ph, inp, z⟩ ↔ ∃ t, Reach .fourPhase t0 ⟨ph, inp, t⟩ ∧ out inp t = z := by

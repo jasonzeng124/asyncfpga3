@@ -216,7 +216,10 @@ The table uses C's corner reading of the LUT arcs.
 These give different early-side arc credits. Under 7g's reading client 2 has +55 ps more
 in the box and ~−55 ps less at the slow corner. Totals under 7g's reading are in
 `report_risefall.txt`. They do not change any sign above. I did not resolve which reading
-is right.
+is right. [Resolved after the audit (REPORT row 10, REFUTED): the corner reading is right;
+`prjxray/utils/makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`, so 56/124
+is FAST_MAX/SLOW_MAX of one arc. 7g's rise/fall totals (`report_risefall.txt`) are
+withdrawn; corrected arc credits are `ArbCorners.ruleJ_arcs` (B-arb-corners.md §3).]
 
 ## 4. Side finding: latch hold term (site pins only)
 

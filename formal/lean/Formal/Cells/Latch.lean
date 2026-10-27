@@ -328,7 +328,13 @@ falling at tick `tc`:
   pin to this latch's d pin (sender's controller, latch, route).
 * The protocol: data at the pin is still `v` before `tc + A + R`.
 Rule H (verify/tighten.py) is `E ≤ A + R`; under it `H_DATA` holds during the
-edge. -/
+edge.
+
+Scope (claude/audit REPORT row 21): this is a one-line arithmetic (`omega`)
+lemma about a SINGLE close/transaction: `H_RELEASE` fixes `d = v` for all
+`t < tc + A + R` from time 0, so it says nothing about later transactions.
+The windowed, per-transaction form on a routed netlist is
+`OnNetlistTimed2.latch_rule_h_net`. -/
 theorem hold_of_dack (en d : Nat → K3) (v : K3) (tc E A R : Nat)
     (H_EN_FANOUT : ∀ t, tc + E ≤ t → en t = .f)
     (H_RELEASE : ∀ t, t < tc + A + R → d t = v)

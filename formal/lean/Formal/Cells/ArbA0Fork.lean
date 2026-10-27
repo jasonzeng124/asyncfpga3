@@ -36,6 +36,12 @@ transport delays. In this scenario every net makes AT MOST ONE transition
 (proved: `q_trace`, `g_trace`, and the A0 step), so a per-edge (rise/fall)
 delay is exactly a fixed delay whose value is the delay of the edge this
 scenario exercises; the doc comment of each field names that edge.
+(prjxray gives no rise/fall split: its two IOPATH triples are the FAST and SLOW
+corners of one arc, `prjxray/utils/makesdf.py:63`. The notes' earlier reading of
+O6 56/124 as rise/fall was withdrawn after the audit; consistent-corner arc
+values for this condition, and the corner sign changes, are in
+`ArbCorners.ruleJ_arcs`, `ArbCorners.client2_corner_flip`,
+`ArbCorners.client1_corner_flip`.)
 
 The relevant delays are collected in `Dl`; `early` and `late` are
 

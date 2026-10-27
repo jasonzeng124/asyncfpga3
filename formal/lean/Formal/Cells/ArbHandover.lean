@@ -26,18 +26,36 @@ not enter.
 
 Named hypotheses (structure `Arcs`, fields `H_...`), each a measurable arc:
 * `qr`, `qf`   : state LUT (`bd_c2n_set`, a LUT6 on O6) rise/fall arc, any pin
-                 (prjxray: O6 flat over pins, 56/124).
+                 (the 56/124 once quoted here is prjxray FAST_MAX/SLOW_MAX of
+                 one O6 arc, not rise/fall; see the audit correction below).
 * `w`          : routing delay of the q net from the state LUT output to the
                  grant LUT's I2 pin ("feedback routing", 0 in the arc-only sim).
 * `wfb`        : routing delay of q back to the state LUT's own I2 (enters
                  only through `H_init`, not the result).
 * `g1r_q`, `g1f_q`, `g1r_r1`, `g1f_r1` : grant LUT O5 arcs from pins I2 (q)
-                 and I0 (r1) (prjxray per-pin: I2 52/150, I0 55/152).
-* `g2r`, `g2f` : grant LUT O6 arcs, any pin (56/124).
+                 and I0 (r1) (per-pin pairs I2 52/150, I0 55/152: again
+                 FAST_MAX/SLOW_MAX, not rise/fall).
+* `g2r`, `g2f` : grant LUT O6 arcs, any pin (56/124, FAST_MAX/SLOW_MAX).
 * `H_REQ_ISO`  : requests reach both LUTs at the same instant (encoded by
                  giving both LUTs the same `r1`/`r2` traces). Test: read the
                  two `r2` routes in the SDF; a skew `s` shifts the formula by
                  `s` (not proved here).
+
+**Audit correction (claude/audit REPORT rows 10, 24; findings B #10).** The
+pairs 56/124 (O6), 52/150 (O5 I2) and 55/152 (O5 I0/I1) of
+`cells/sim/bd_prims_sim.v` are prjxray's FAST_MAX and SLOW_MAX of ONE arc
+(`prjxray/utils/makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`,
+each for both edges), not rise and fall. prjxray has no edge split. The general
+theorems of Part 1 (any `Arcs`, rise = fall included) stand, but every numeric
+instance below (`prjArcs`, `simArcs`: the 16 ps header overlap, the 28 + w
+reverse margin, the 72/94 ps skew caps, ARBITER.md's "+68 ps" = 124 − 56) mixes
+corners (`ArbCorners.prjArcs_is_mix`, `ArbCorners.simArcs_is_mix`). Corrected:
+`ArbCorners.overlap_C`/`corner_no_overlap` (overlap `max 0 (d6 − o5q − w)` = 0 at
+every consistent corner, every w ≥ 0), `ArbCorners.header_needs_asym`,
+`ArbCorners.sim_overlap_C`, `ArbCorners.r1_to_r2_margins` (96 + w SLOW_MAX,
+46 + w FAST_MIN), `ArbCorners.caps_are` (caps 0/26 ps SLOW_MAX, 3/0 ps
+FAST_MIN), `ArbCorners.box_overlap_le`/`box_caps` (box: 37 − w, caps 82/105).
+Rise/fall asymmetry is the unmeasured `ArbCorners.RF` (H_RF_ASYM).
 
 ## Part 2: untimed, `bd_arbiter`, every interleaving
 
@@ -145,9 +163,10 @@ structure Arcs where
   g2f : Int
   /-- H_ARC_NONNEG: causality, every arc and wire is non-negative. -/
   H_nonneg : 0 ≤ qr ∧ 0 ≤ w ∧ 0 ≤ wfb ∧ 0 ≤ g1r_q ∧ 0 ≤ g1r_r1 ∧ 0 ≤ g2r
-  /-- H_RISE_LE_FALL: each output rises no slower than it falls, per pin
-  (prjxray: 56/124, 52/150, 55/152). This is what makes `LutOut3` the
-  rise-fast channel. -/
+  /-- H_RISE_LE_FALL: each output rises no slower than it falls, per pin. This
+  is what makes `LutOut3` the rise-fast channel. (The pairs 56/124, 52/150,
+  55/152 once quoted here as prjxray rise/fall are FAST_MAX/SLOW_MAX of one arc,
+  makesdf.py:63; the consistent instance is rise = fall, `ArbCorners.RF.sym`.) -/
   H_rise_le_fall : qr ≤ qf ∧ g1r_q ≤ g1f_q ∧ g1r_r1 ≤ g1f_r1 ∧ g2r ≤ g2f
 
 /-- The bare cell under the arcs: q from the state LUT reading the routed-back
@@ -347,10 +366,16 @@ theorem overlap_r1_to_r2 (A : Arcs) (t0 : Int) (r1 r2 q g1 g2 : Sig)
   simp
   omega
 
-/-! ### The header's numbers -/
+/-! ### The header's numbers
 
-/-- prjxray cell arcs (cells/sim/bd_prims_sim.v), q routing `w`, every
-other wire 0. -/
+All numbers in this section use the arcs of `cells/sim/bd_prims_sim.v`, which
+read prjxray's FAST_MAX/SLOW_MAX of one arc (makesdf.py:63) as rise/fall. They
+are exact in that simulator's arc model only, and mix corners. Corrected values:
+`ArbCorners` §1 (see the audit correction in the module header). -/
+
+/-- Cell arcs of cells/sim/bd_prims_sim.v (corner-mixed: "rise" = FAST_MAX,
+"fall" = SLOW_MAX; `ArbCorners.prjArcs_is_mix`), q routing `w`, every other
+wire 0. -/
 def prjArcs (w : Int) (hw : 0 ≤ w) : Arcs where
   qr := 56
   qf := 124
@@ -366,7 +391,9 @@ def prjArcs (w : Int) (hw : 0 ≤ w) : Arcs where
   H_rise_le_fall := by omega
 
 /-- **Header claim, zero routing:** r2 → r1 overlap is exactly 108..124 ps after
-r2 falls, i.e. 16 ps. -/
+r2 falls, i.e. 16 ps, with the corner-mixed `prjArcs`. 16 = SLOW_MAX(124) −
+FAST_MAX(56) − FAST_MAX(52). At one consistent corner the overlap is 0:
+`ArbCorners.slow_header`, `ArbCorners.fast_header`, `ArbCorners.mix_header_16`. -/
 theorem header_16ps (t0 : Int) (r1 r2 q g1 g2 : Sig)
     (C : Cell (prjArcs 0 (by omega)) r1 r2 q g1 g2)
     (H_r1 : ∀ t, r1 t = true) (H_r2 : ∀ t, r2 t = decide (t < t0))
@@ -381,7 +408,9 @@ theorem header_16ps (t0 : Int) (r1 r2 q g1 g2 : Sig)
     simp [prjArcs] at this
     omega
 
-/-- **Header claim, routed:** with at least 16 ps of q routing, no overlap. -/
+/-- **Header claim, routed:** with at least 16 ps of q routing, no overlap
+(corner-mixed arcs; at a consistent corner every w ≥ 0 suffices:
+`ArbCorners.corner_no_overlap`). -/
 theorem header_routed (w : Int) (hw : 16 ≤ w) (t0 : Int) (r1 r2 q g1 g2 : Sig)
     (C : Cell (prjArcs w (by omega)) r1 r2 q g1 g2)
     (H_r1 : ∀ t, r1 t = true) (H_r2 : ∀ t, r2 t = decide (t < t0))
@@ -390,7 +419,8 @@ theorem header_routed (w : Int) (hw : 16 ≤ w) (t0 : Int) (r1 r2 q g1 g2 : Sig)
   no_overlap_r2_to_r1 _ t0 r1 r2 q g1 g2 C H_r1 H_r2 H_init (by simp [prjArcs]; omega)
 
 /-- **Reverse direction with the header's numbers:** never an overlap, for any
-q routing (margin 180 + w - 152 = 28 + w ps). -/
+q routing (margin 180 + w - 152 = 28 + w ps, corner-mixed; consistent-corner
+margins 96 + w at SLOW_MAX, 46 + w at FAST_MIN: `ArbCorners.r1_to_r2_margins`). -/
 theorem header_r1_to_r2 (w : Int) (hw : 0 ≤ w) (t0 : Int) (r1 r2 q g1 g2 : Sig)
     (C : Cell (prjArcs w hw) r1 r2 q g1 g2)
     (H_r2 : ∀ t, r2 t = true) (H_r1 : ∀ t, r1 t = decide (t < t0))
@@ -404,7 +434,9 @@ theorem header_r1_to_r2 (w : Int) (hw : 0 ≤ w) (t0 : Int) (r1 r2 q g1 g2 : Sig
   · have := h.1 hc; simp [prjArcs] at this; omega
 
 /-- The simulator's `BD_ROUTE_PS = R` adds `R` to EVERY arc (bd_prims_sim.v),
-not only to the q wire. Then the r2 → r1 overlap is `max 0 (16 - R)` ps. -/
+not only to the q wire. Then the r2 → r1 overlap is `max 0 (16 - R)` ps. The 16
+is the simulator's corner mix (`ArbCorners.simArcs_is_mix`); with consistent
+arcs the overlap is 0 for every R (`ArbCorners.sim_overlap_C`). -/
 def simArcs (R : Int) (hR : 0 ≤ R) : Arcs where
   qr := 56 + R
   qf := 124 + R
@@ -436,7 +468,9 @@ Drop `H_REQ_ISO`: the dropping request reaches the state LUT at `t0` and the
 grant LUT at `t0 + σ` (`σ` of either sign: a routing skew on the request fork).
 Then the overlap is no longer a routing question in one direction only, but it
 is CAPPED, for every skew and every q routing, by `g2f - g1r_q` (r2 → r1;
-72 ps with prjxray arcs) and `g1f_q - g2r` (r1 → r2; 94 ps). -/
+72 ps with the corner-mixed `prjArcs`) and `g1f_q - g2r` (r1 → r2; 94 ps).
+At a consistent corner the caps are 0/26 ps (SLOW_MAX) and 3/0 ps (FAST_MIN):
+`ArbCorners.corner_caps`, `ArbCorners.caps_are`; box 82/105: `ArbCorners.box_caps`. -/
 
 theorem overlap_skew_r2_to_r1 (A : Arcs) (t0 σ : Int) (r1 r2s r2g q g1 g2 : Sig)
     (Hs : LutOut3 stateF r1 r2s (fun s => q (s - A.wfb)) A.qr A.qr A.qr A.qf A.qf A.qf q)
@@ -510,9 +544,10 @@ theorem overlap_skew_r1_to_r2_le (A : Arcs) (t0 σ : Int) (r1s r1g r2 q g1 g2 : 
   have := countTrue_interval _ t0 _ _ hov (by omega) n
   omega
 
-/-- With prjxray arcs: whatever the request-fork skew and q routing, an
-isolated handover overlaps the grants for at most 72 ps (r2 → r1) or
-94 ps (r1 → r2). -/
+/-- With the corner-mixed `prjArcs` (FAST_MAX "rise", SLOW_MAX "fall",
+makesdf.py:63): whatever the request-fork skew and q routing, an isolated
+handover overlaps the grants for at most 72 ps (r2 → r1) or 94 ps (r1 → r2).
+Consistent-corner caps: `ArbCorners.caps_are` (0/26 SLOW_MAX, 3/0 FAST_MIN). -/
 theorem prj_overlap_caps (w : Int) (hw : 0 ≤ w) :
     (prjArcs w hw).g2f - (prjArcs w hw).g1r_q = 72 ∧
     (prjArcs w hw).g1f_q - (prjArcs w hw).g2r = 94 := by
@@ -699,7 +734,13 @@ In every reachable state, every enabled transition respects `okTrans`:
 a client ack rises only against an undelivered server transaction and only
 after R0 has returned to zero since the previous client ack; A0 rises only once
 the previous transaction was delivered. So client acks and server transactions
-alternate one-for-one. -/
+alternate one-for-one.
+
+Scope (claude/audit REPORT row 21): this is a speed-independent model with
+ZERO wire delay, so the A0 fork is isochronic (both branches of A0 seen at
+once). With wire delay the property depends on the A0-fork ordering
+(H_A0_FORK; `ArbA0Fork.no_early_ack_iff`,
+`TernaryPhases.arb_a0_fall_skewed_early_ack`). -/
 theorem held_protocol (s : St) (h : Reach INIT_HELD s) (x : Gate)
     (hen : enabled INIT_HELD s x = true) : okTrans s x = true :=
   ((held_spec s (held_inv s h)).2 x hen).2

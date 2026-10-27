@@ -12,6 +12,29 @@ Check command (about 10 s; nearly all of it is the N = 3 finite check in Section
 No new shared definitions. Everything is local to namespace
 `Formal.Cells.LinkHandshake`. Prelim is unchanged.
 
+## Audit correction (claude/audit REPORT rows 20, 21; findings B #1, #7; 2026-10-27)
+
+- **"Exact bundling condition" withdrawn.** `setup_iff` is an `iff` between
+  SETUP (`arr i + L + F ≤ c i`) and its unfolding over the `max` recursion of
+  `arr`: an arithmetic identity. SETUP itself is proved SUFFICIENT
+  (`latch_capture`, `pipe_data`). Its necessity is shown on ONE trace
+  (`setup_needed`, L = F = 1); no theorem says every violation breaks capture.
+  The audit's `setup_not_necessary` (claude/audit `audit/lean/B/W_Data.lean`)
+  is a run with every other hypothesis of `latch_capture`, SETUP violated
+  (7 > 5), and the conclusion still true (the old token equals the new one).
+  SETUP is exact only as a worst-case-data condition.
+- **Scope of "for any N".** `deadlock_free`, `conservation`, `bounded`,
+  `persist` hold for every N in the Section 2 model: atomic gates (H_FB_FAST)
+  and isochronic forks (H_ISO_FORK). With an independent delay on every fork
+  branch the control is checked only for N ≤ 3 (`di_pipe1..3`).
+- The "56 ps controller arc against a 152 ps latch arc" comparison below sets
+  FAST_MAX of O6 against SLOW_MAX of O5 (prjxray `makesdf.py:63`: the two
+  triples are corners, not edges). At one corner the arcs are comparable
+  (124 vs 152 ps at SLOW_MAX); the data wire still breaks the classical
+  ordering, so the conclusion stands.
+
+Wording below is corrected in place.
+
 ## Cells and INITs used (verbatim from cells/rtl)
 
 * `bd_link_ctl` = `bd_c2n`: INIT `0x00B200B200B200B2`, `I0=req_in I1=c_next I2=c (fed back) I3=rst I4=I5=0`.
@@ -23,7 +46,7 @@ No new shared definitions. Everything is local to namespace
 
 ## Theorems (all proved)
 
-### Item (1): one stage refines four-phase (interleaving, atomic gates)
+### Item (1): one stage refines four-phase (interleaving, atomic gates, isochronic forks)
 Model (Section 2): state `x : Nat → Bool`, `x 0 = req_in`, `x (i+1) = C_i`,
 `x (N+1) = ack_out`. Transitions: the sender toggles `req_in` when `ack_in = C_0` equals it;
 gate `i` fires when its LUT output (`ctlB`, from the INIT) differs from the node;
@@ -63,7 +86,8 @@ one at boundary N. This is an exclusion process with injection and ejection.
 * `bounded`: `r ≤ s ≤ r + N + 1`. This is at most one half token per stage plus one on the input
   wire, i.e. "half a token per stage". `pipe2_full`: the bound is attained (N = 2, 3 half tokens,
   receiver stalled).
-* `deadlock_free`: in every state, reachable or not, some transition is enabled.
+* `deadlock_free`: in every state, reachable or not, some transition is enabled (any N, in
+  this atomic-gate, isochronic-fork model; with fork-branch delays only N ≤ 3, Section 3).
 * `send_progress` / `recv_progress`: any run that avoids the sender (resp. receiver)
   has at most `Phi` (resp. `Psi`) ≤ (N+1)(N+2)/2 transitions. With a greedy environment every
   run is infinite, and sends and receives each recur within every window of
@@ -88,14 +112,17 @@ one at boundary N. This is an exclusion process with injection and ejection.
   **SETUP `a + L + F ≤ c`** and **HOLD (D = v on `[a, c+h)`)** give `Q = v` on `[a+L, z+L)`.
 * `setup_needed`: concrete counterexample with L = F = 1. D arrives one tick too late
   (`a+L+F = c+1`), and the loop captures X, which then circulates as a 1/X pattern.
+  This shows necessity on this one trace only. SETUP is not necessary in general: the audit's
+  `setup_not_necessary` violates it (7 > 5) and capture still succeeds (same data).
 * `pipe_data` (any N, one bit, one token; **H_WIRE_TRANSPORT**: data wire `Q_i -> D_{i+1}` is a
   pure delay `w(i+1)`). With the data wave `arr 0 = max(o0, a0)`,
   `arr(i+1) = max(o(i+1), arr i + L + w(i+1))`, the conditions
   SETUP_i: `arr i + L + F ≤ c i` and
   HOLD_{i+1}: `c(i+1) + h ≤ z i + L + w(i+1)`, plus a source that holds `v` on
   `[a0, c0 + h)`, give that every stage latches `v` and holds it until its next opening.
-* `setup_iff`: **the exact bundling condition**. SETUP_i holds iff for the source and for
-  every upstream stage `j ≤ i`:
+* `setup_iff`: **SETUP unfolded** (an arithmetic identity over `arr`'s `max` recursion; SETUP
+  is a sufficient bundling condition, exact only for worst-case data). SETUP_i holds iff for the
+  source and for every upstream stage `j ≤ i`:
   `o_j + Σ_{m=j+1..i}(L + w_m) + L + F ≤ c_i` (and `a0 + Σ_{m=1..i}(L+w_m) + L + F ≤ c_i`).
   Here `o_j = t(C_j↑) + e_j(bit)` and `c_i = t(C_i↓) + e_i(bit)`, with `e` the enable-wire delay to that bit.
   The `j = i` term is a minimum enable pulse width at the pin. The `j < i` terms are
@@ -106,9 +133,10 @@ one at boundary N. This is an exclusion process with injection and ejection.
 * `arr_classical`: the classical "request after data" (`o_i + L + w_{i+1} ≤ o_{i+1}`, i.e.
   `C_{i+1}↑` at the latch at least one latch arc plus one data wire after `C_i↑`) is sufficient. It makes
   the data wave equal to the enable wave, so only the pulse-width term remains.
-  It is NOT necessary, and the Muller stage does not provide it on its own (56 ps controller arc
-  against a 152 ps latch arc), which is why the exact form above is what the route must meet,
-  with SDELAY as the adjustment.
+  It is NOT necessary, and the Muller stage does not provide it on its own (one controller arc
+  against a latch arc plus a data wire; the "56 ps vs 152 ps" first quoted here mixed FAST_MAX
+  and SLOW_MAX, see the audit correction), which is why the sufficient condition SETUP, in the
+  unfolded form above, is what the route must meet, with SDELAY as the adjustment.
 * HOLD in control terms (derived by hand, not in Lean): `z_i = t(C_i↑ next) + e_i`, and
   `C_i↑ next` cannot happen before `C_{i+1}↓` reaches `C_i`'s `I1` through the ack wire and
   DACK and then one controller arc. Sufficient:
@@ -148,18 +176,21 @@ one at boundary N. This is an exclusion process with injection and ejection.
 * Reset is not modelled as a transition. Every run starts at the reset values.
 
 ## Verdict
-**Works.** Item (1) and item (2) are proved for general N in the isochronic-fork interleaving model,
-and for N ≤ 3 with independent delays on every fork branch. Item (3) has an exact, machine-checked
-bundling condition (`setup_iff`), proved sufficient (`pipe_data`) and shown necessary by a
-counterexample (`setup_needed`). `bd_link_dctl` is done for one stage.
+**Works.** Item (1) and item (2) are proved for general N in the atomic-gate, isochronic-fork
+interleaving model, and for N ≤ 3 with independent delays on every fork branch. Item (3) has a
+machine-checked bundling condition SETUP, proved sufficient (`latch_capture`, `pipe_data`), unfolded
+into explicit per-stage terms (`setup_iff`, arithmetic), and shown necessary on one trace
+(`setup_needed`); it is not necessary in general (audit `setup_not_necessary`), so it is exact only
+as a worst-case-data condition. `bd_link_dctl` is done for one stage.
 Effort to finish:
 * General-N branch-delay theorem: about 1 day.
 * Delay ranges on top of Track 3's bounded-delay channel: 1-2 days.
 * Deriving `o/c/z` from controller and wire delays, turning the rule-H derivation into a
   theorem, and multi-token data: 3-5 days.
 
-What it buys: rules I (fill race) and H (hold / DACK) become exact, proved inequalities instead of
-heuristics. The isochronic-fork assumption is shown to be needed only on the latch-enable branch.
+What it buys: rules I (fill race) and H (hold / DACK) become proved sufficient inequalities
+(rule I: SETUP, worst-case-data exact; rule H: hand derivation above, single-transaction lemma in
+`Latch.hold_of_dack`, windowed form `OnNetlistTimed2.latch_rule_h_net`) instead of heuristics. The isochronic-fork assumption is shown to be needed only on the latch-enable branch.
 The feedback-loop fundamental-mode assumption (H_FB_FAST) is pinned down as the one place where
 the controller is not speed-independent, and the dctl header's single-assumption claim is confirmed.
 

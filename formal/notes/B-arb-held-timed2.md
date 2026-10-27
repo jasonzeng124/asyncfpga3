@@ -34,6 +34,32 @@ No shared definitions were added. Everything new is local to the file:
 
 `Run`, `Dl`, `Server`, `Scn` and `prj` are 7h's, unchanged.
 
+## Audit correction (claude/audit REPORT row 24, OVERSTATED; findings AB2 #1; 2026-10-27)
+
+7h's `prj`, and so `D0` and every number of this note quoted "with the prjxray
+arcs", reads the pairs 56/124 (O6), 55/152 (O5 I0/I1) and 52/150 (O5 I2) as
+rise/fall. They are prjxray's FAST_MAX and SLOW_MAX of ONE arc
+(`prjxray/utils/makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`,
+each for both edges). `D0` therefore mixes corners (`ArbCorners.prj_is_mix`):
+the 16 ps pulse2 threshold (= 124 − 56 − 52), the 96 ps "tightest margin", the
+"112 ps server = two LUT1 rise arcs" (= 2 × FAST_MAX) and the band edge 68 ps
+(= 124 − 56) are artefacts. The generic theorems and the non-vacuity itself
+remain valid mathematics. Corrected (B-arb-corners.md §2, §4):
+- `ArbCorners.pulse2_zero_routing`: at zero routing pulse2 holds iff
+  `smin ≥ d6 − o5q`, i.e. for every `smin ≥ 0` at any consistent corner. The
+  pulse condition is `wfa2 ≤ smin + 150 + wa0s + wfb` at SLOW_MAX and `+42` at
+  FAST_MIN (box: `wfa2 + 37 ≤ smin + wa0s + wfb`, `ArbCorners.box_7j`).
+- Arc-only margins, server = two arcs at the same corner (248 / 90 ps):
+  `ArbCorners.slow_arc_only` (RT1b 550, pulse2 398, g2 674, forkA2 522,
+  forkG2 798, fork2 274) and `ArbCorners.fast_arc_only` (176, 132, 221, 177,
+  266, 87).
+- Non-vacuity at consistent corners: `ArbCorners.nonvacuous_corners` (`Dslow`,
+  `Dfast`, runs `W1s/W2s/W1f/W2f`), replacing `nonvacuous`'s `D0`.
+- Runt band: `ArbCorners.stuck_pulse_vacuous`, `A1_band_corner` (band
+  `0 < p < c1f + wfa1`; `δ < p` under the unmeasured asymmetry
+  `ArbCorners.RF`, `A1_band_asym`).
+Corrected values are inlined below; withdrawn ones are in brackets.
+
 ## Verdict
 
 **Works.** All three items are done. Item 3 is done for the first excursion
@@ -44,23 +70,23 @@ and the resulting overlap; the echo train afterwards is not proved.
 The exclusion theorems and counter-traces are proved. Their structure matches
 7h's.
 
-The tightest margin anywhere in the held arbiter is this direction's RT2 pulse
-condition. With the prjxray arcs it reads:
-
-    wfa2 + 16 ≤ smin + wa0s + wfb
-
-- At zero routing with a 112 ps server, the margin is 96 ps.
-- `prj_pulse2_tight` proves that at zero routing the condition holds exactly
-  when `smin ≥ 16`.
-
-The pulse is shorter than in 7h's direction because q rises on the fast O6 arc
-(56) instead of falling on the slow one (124). That makes A0's low pulse
-68 ps shorter.
+[Withdrawn, corner mix:] "The tightest margin anywhere in the held arbiter is
+this direction's RT2 pulse condition. With the prjxray arcs it reads
+`wfa2 + 16 ≤ smin + wa0s + wfb`: 96 ps at zero routing with a 112 ps server;
+`prj_pulse2_tight`: holds iff `smin ≥ 16`. q rises on the fast O6 arc (56)
+instead of falling on the slow one (124), making A0's low pulse 68 ps
+shorter." The theorems are correct for `prj`, but 56 and 124 are FAST_MAX and
+SLOW_MAX of the same O6 arc, not a rise and a fall. At one consistent corner
+the condition reads `wfa2 ≤ smin + 150 + wa0s + wfb` (SLOW_MAX) or `+ 42`
+(FAST_MIN), holds for every `smin ≥ 0` at zero routing
+(`ArbCorners.pulse2_zero_routing`), and the two directions' pulse conditions have
+the same arc part; there is no 16 ps threshold.
 
 ### 2. Non-vacuity
 
 `nonvacuous` exhibits one delay set and two runs:
-- The delay set is `D0`: prjxray arcs, all routes 0, `smin` = 112. It
+- The delay set is `D0`: 7h's `prj` arcs (corner-mixed; consistent-corner
+  replacement `ArbCorners.nonvacuous_corners`), all routes 0, `smin` = 112. It
   satisfies RT1, RT2 and A0Fork of 7h and RT1b, RT2b and A0Fork2 of 7j.
 - Each run is an explicit step-function trace. It satisfies `Run D0` for
   **all t in ℤ**, server relation included, and it satisfies `Scn` or `Scn2`
@@ -77,7 +103,9 @@ g1 is at ua1 before A0's fall arrives there. Then the band is
 
     c1f − c1r < p < c1f + wfa1
 
-which is 68 < p < 124 + wfa1 with the prjxray arcs. In this band:
+which is 68 < p < 124 + wfa1 with the `prj` arcs. [At a consistent corner
+c1r = c1f, so the band is `0 < p < c1f + wfa1` and `A1_stuck`'s pulse disjunct
+is vacuous: `ArbCorners.stuck_pulse_vacuous`, `A1_band_corner`.] In this band:
 - A1 makes a low runt of width `p − (c1f − c1r)`.
 - A1 is then high again for `c1f + wfa1 − p`.
 
@@ -191,7 +219,12 @@ Counter-traces:
 - **`rt2_counter2`**: if, in addition, g1 is at ua1 when A0 re-rises there,
   A1 and A2 are both high at `T2b`.
 
-### prjxray form
+### `prj` (corner-mixed) form
+
+The constants in this table come from reading FAST_MAX/SLOW_MAX as rise/fall
+(makesdf.py:63). Consistent-corner arc parts (`ArbCorners.arcs_slowMax` /
+`arcs_fastMin`): RT1b 302 / 86, pulse 150 / 42, g2 178 / 41, forkA 274 / 87,
+forkG 302 / 86, A0Fork2 274 / 87 (old 136, −16, 12, 40, 68, 108).
 
 The theorems are `prj_RT1b`, `prj_RT2b`, `prj_fork2`, `prj_arc_only2` and
 `prj_pulse2_tight`.
@@ -206,11 +239,15 @@ The theorems are `prj_RT1b`, `prj_RT2b`, `prj_fork2`, `prj_arc_only2` and
 | A0Fork2 | `wa01 ≤ wa0s + 108 + wq + wg1` | 108 |
 
 **`prj_pulse2_tight`**: at zero routing, the pulse condition holds iff
-`16 ≤ smin`. So the condition is not trivially true, and the hand estimate
-"smin − 16" in 7h's notes is exact.
+`16 ≤ smin`, for the corner-mixed `prj`. [At a consistent corner it holds for
+every `smin ≥ 0` (`ArbCorners.pulse2_zero_routing`); the "smin − 16" estimate
+and this tightness are artefacts of the mix.]
 
-**Margins with plausible routing.** This is arithmetic, not a proof. It uses
-the same conventions as 7h's notes:
+**Margins with plausible routing.** This is arithmetic, not a proof, with the
+corner-mixed constants. [At SLOW_MAX, replacing the arc parts by the corrected
+ones: RT1b ≈ 1.64, pulse ≈ 0.72, g2 ≈ 0.71, forkA ≈ 1.28, forkG ≈ 1.77,
+A0Fork2 ≈ 0.63 ns; so the pulse is no longer the tightest. Arithmetic.] It
+uses the same conventions as 7h's notes:
 - smin ≈ 980 ps;
 - inter-LUT routes 434–945 ps;
 - feedback routes 100–945 ps;
@@ -296,11 +333,13 @@ A1 is now known for every pulse length:
 
 | pulse length (with g1 early) | A1's first excursion | theorem |
 | --- | --- | --- |
-| `p ≤ c1f − c1r` (68 ps) | A1 never falls | `A1_stuck` |
+| `p ≤ c1f − c1r` (68 ps with `prj`; 0, i.e. vacuous, at a consistent corner) | A1 never falls | `A1_stuck` |
 | `68 < p < c1f + wfa1` | a low runt of width `p − 68`, then a re-latch of width `c1f + wfa1 − p` | runt theorems above |
 | `p ≥ c1f + wfa1` | clean fall, stays low | `A1_low_after` |
 
-The prjxray pulse is at least `176 + smin + wa0s + wfb`. So the band is
+With `prj` the pulse is at least `176 + smin + wa0s + wfb` (corner-mixed;
+the band's upper edge, and so this conclusion, is unchanged at a consistent
+corner, B-arb-corners.md §2). So the band is
 reachable only when `wfa1 > 52 + smin + wa0s + wfb`, which is exactly the
 failure of RT2 `pulse`. The band is not a separate risk; it is how a pulse
 failure shows up.
@@ -308,7 +347,9 @@ failure shows up.
 **Not proved: the echo train.** After the re-latch window, the hole comes
 round ua1's loop again. By hand, in this rise-fast OR model:
 - each round shrinks the hole by `c1f − c1r`, so A1 ends latched high after
-  `⌈p/68⌉ − 1` runts in total;
+  `⌈p/68⌉ − 1` runts in total (68 is the corner-mixed `c1f − c1r`; with
+  rise = fall the hole does not shrink in this channel, and the asymmetry is
+  the unmeasured `ArbCorners.RF`);
 - the holes do not interact (checked by hand for `p < c1f + wfa1`).
 
 This is not formalised. What silicon does with sub-arc runts is outside this
