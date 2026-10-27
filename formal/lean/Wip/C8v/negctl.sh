@@ -34,16 +34,16 @@ CHK="$TMP/chk"; mkdir -p "$CHK"; cp -rs "$L/.lake/build/lib/lean/Formal" "$CHK/"
 cd "$L"
 for m in IpowHw IpowHwSeg; do
   rm -f "$CHK/Formal/Net/$m.olean" "$CHK/Formal/Net/$m.ilean"
-  FORMAL_SLOT_CWD="$L" "$ROOT/formal/slot.sh" lake env sh -c 'LEAN_PATH="$1:$LEAN_PATH" exec lean -o "$2" "$3"' \
-    sh "$CHK" "$CHK/Formal/Net/$m.olean" "$TMP/src/Formal/Net/$m.lean" > "$TMP/$m.log" 2>&1 \
-    || { echo "[negctl] mutated $m did not compile (unexpected):"; grep error "$TMP/$m.log" | head; ok=0; }
+  FORMAL_SLOT_CWD="$L" "$ROOT/formal/slot.sh" lake env sh -c 'LEAN_PATH="$1:$LEAN_PATH" exec lean --root="$4" -o "$2" "$3"' \
+    sh "$CHK" "$CHK/Formal/Net/$m.olean" "$TMP/src/Formal/Net/$m.lean" "$TMP/src" > "$TMP/$m.log" 2>&1 \
+    || { echo "[negctl] mutated $m did not compile (unexpected):"; tail -5 "$TMP/$m.log"; ok=0; }
 done
 rm -f "$CHK/Formal/Net/IpowHwProof.olean"
-if FORMAL_SLOT_CWD="$L" "$ROOT/formal/slot.sh" lake env sh -c 'LEAN_PATH="$1:$LEAN_PATH" exec lean -o "$2" "$3"' \
-    sh "$CHK" "$CHK/Formal/Net/IpowHwProof.olean" "$TMP/src/Formal/Net/IpowHwProof.lean" > "$TMP/p.log" 2>&1; then
+if FORMAL_SLOT_CWD="$L" "$ROOT/formal/slot.sh" lake env sh -c 'LEAN_PATH="$1:$LEAN_PATH" exec lean --root="$4" -o "$2" "$3"' \
+    sh "$CHK" "$CHK/Formal/Net/IpowHwProof.olean" "$TMP/src/Formal/Net/IpowHwProof.lean" "$TMP/src" > "$TMP/p.log" 2>&1; then
   echo "[negctl] FAIL: the proof still checks against the mutated graph"; ok=0
 else
-  echo "[negctl] ok: IpowHwProof fails on the mutated graph:"; grep -m3 'error' "$TMP/p.log"
+  echo "[negctl] ok: IpowHwProof fails on the mutated graph:"; grep -m3 -A3 "error" "$TMP/p.log"
 fi
 [ $ok -eq 1 ] && echo "[negctl] PASS (both controls fired)" && exit 0
 exit 1

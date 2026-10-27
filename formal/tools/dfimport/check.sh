@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Drift check for probes C-8i (gcd_hw) and C-8v (ipow): regenerate each imported
+# Drift check for probes C-8i (gcd_hw) and C-8v (ipow, collatz): regenerate each imported
 # graph and its schedule certificates from the MLIR bdc compiles, and fail if
 # they differ from the committed Lean.  A change in bdc's parser, fusion plan or
 # lowering, or in a kernel's handshake MLIR, then breaks this check (and, if the
 # committed files are regenerated, breaks the hand-written proofs
-# Formal/Net/GcdHwProof.lean / IpowHwProof.lean unless the new graph still
+# Formal/Net/GcdHwProof.lean / IpowHwProof.lean / CollatzHwProof.lean unless the new graph still
 # computes the C function).
 #   formal/tools/dfimport/check.sh            # diff only (seconds)
 #   formal/tools/dfimport/check.sh --lean     # also re-check the Lean files
@@ -30,9 +30,12 @@ python3 "$HERE/mlir2lean.py" "$(mlir gcd)" -o "$TMP/GcdHw.lean" --segments "$TMP
 # ipow (C-8v): same tool, only the Lean names differ
 python3 "$HERE/mlir2lean.py" "$(mlir ipow)" -o "$TMP/IpowHw.lean" --segments "$TMP/IpowHwSeg.lean" \
   --ns Formal.Net.IpowHw --graph-module Formal.Net.IpowHw --label ipow_ps --short ipow
+# collatz (C-8v): same tool, only the Lean names differ
+python3 "$HERE/mlir2lean.py" "$(mlir collatz)" -o "$TMP/CollatzHw.lean" --segments "$TMP/CollatzHwSeg.lean" \
+  --ns Formal.Net.CollatzHw --graph-module Formal.Net.CollatzHw --label collatz --short collatz
 
 fail=0
-for f in GcdHw.lean GcdHwSeg.lean IpowHw.lean IpowHwSeg.lean; do
+for f in GcdHw.lean GcdHwSeg.lean IpowHw.lean IpowHwSeg.lean CollatzHw.lean CollatzHwSeg.lean; do
   if ! diff -q "$TMP/$f" "$LEAN/$f" >/dev/null; then
     echo "[dfimport] DRIFT: $f differs from what bdc's graph generates now:"
     diff "$LEAN/$f" "$TMP/$f" | head -20
@@ -45,6 +48,7 @@ if [ "${1:-}" = "--lean" ] && [ $fail -eq 0 ]; then
   "$ROOT/formal/check.sh" Formal/Net/GcdHwLib.lean Formal/Net/GcdHw.lean \
     Formal/Net/GcdHwSeg.lean Formal/Net/GcdHwProof.lean \
     Formal/Net/IpowHw.lean Formal/Net/IpowHwSeg.lean \
-    Formal/Net/IpowHwProof.lean Formal/Net/IpowHwLive.lean || fail=1
+    Formal/Net/IpowHwProof.lean Formal/Net/IpowHwLive.lean \
+    Formal/Net/CollatzHw.lean Formal/Net/CollatzHwSeg.lean Formal/Net/CollatzHwProof.lean || fail=1
 fi
 exit $fail
