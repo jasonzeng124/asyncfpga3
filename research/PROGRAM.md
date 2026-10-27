@@ -96,7 +96,18 @@ from the same bitstreams or rebuilt identical routes:
   register), the DSP products gated to zero, isprime's late read. A sim that
   passes a bitstream the board failed is not board-fidelity.
 
-Write down each mismatch, then fix the model, not the test.
+The owner is not sure how accurate the statistics on some of those board
+failures are. Before using a silicon datum as an acceptance test, grade it
+from what is on record: sample size; whether it was reproduced; whether the
+instrument was itself verified (two board probes read stale operands, and
+one checker was blind at all 24 points); and whether the stated cause was
+later revised. Use only the well-established data as hard acceptance tests.
+Deterministic bitstream bugs (lut-pinmap, dsp-constpins, dsp-areg) and the
+n=128 ring set are good candidates. Treat the rest as soft evidence, and say
+which is which in the journal. A soft datum the sim disagrees with is
+something to look into, not proof that the model is wrong.
+
+Write down each mismatch against hard data, then fix the model, not the test.
 
 ### Once it passes acceptance
 A design is verified when this sim passes it: slow and fast corners, the
