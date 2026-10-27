@@ -222,7 +222,7 @@ residuals per seed). Running: Events7 (U3, guarded delay-line pins, GuardOK, 3-w
 merge, cascade) aiming at a CLEAN slow/fast certificate on one seed.
 
 ## Session Tue Oct 27 10:38 UTC 2026 (shard A, lead; session_01HC49FuHh39ZuDhAHxHUAQa)
-### progress 10:55
+### progress 10:45
 Took LOCK (previous A lock 08:46, 112 min stale; B/C locks also ~100 min stale).
 Fresh container: setup.sh running (Lean zip from GitHub, Mathlib from source).
 **Loss, correction:** the previous A session ended before committing the Events7
@@ -240,7 +240,7 @@ soundness for transport/inertial only by prose; minor wording. Probes launched
 for each; FEASIBILITY wording fixed by me.
 For B: qualified `Env.Gate` in Core/EnvFast/SteerEnv.lean (B's request, JOURNAL-B
 08:16), to be checked once Mathlib is built.
-### progress 11:10
+### progress 10:50
 11 probes running: E7r (rebuild Events7 Lean), CornerCode (rule A as coded, audit),
 InvTransfer (involution transfer lemma + instance, audit), TernSound (transport/
 inertial ⊆ Causal, audit), K2 (second kernel via the cached FPGA toolchain + HOWTO),
@@ -251,7 +251,7 @@ current research GLS). FEASIBILITY: audit wording rows fixed (RealComplete
 discharged; pulse width limit only at threshold; transfer lemma marked NOT proved;
 rule A 1/11 is for exact division, code limit ≈25/276; 19 INIT constants/23
 theorems; Ternary transport/inertial only prose). Mathlib: cache download attempt.
-### progress 11:55
+### progress 10:58
 Lit3 done (notes/A-lit-3.md; paper hosts unreachable, entries tagged by source quality;
 FEASIBILITY track 13 updated). HypDoc done: out/gcd_hw_hypotheses.md rewritten against
 the Lean (read at file:line; no Lean run, Mathlib still building). Best end-to-end
@@ -262,7 +262,7 @@ REPORT.md:48), so a full check.sh fails until it is fixed or moved to Wip; B's r
 model `gNet` and the capstone's `Src` disagree on the initial request value; OpsGen's
 per-cell bindings are not applied to the 367 operators; rule K (C-10l, WIP) fails
 16-26 of 42 rows per route at every corner (meaning unconfirmed).
-### progress 12:15
+### progress 11:02 (times above in this session corrected to date -u)
 GLSdiff done (notes/A-gls-compare-2.md, research 5d535d7): LUT function/X agree on
 43,767 vectors; fid's LUT/MUXF channel = Lean per-pin transport (60/60 + 60/60). GLS
 wrong on four: CARRY4 and latch still sample-at-fire under fid (early edges in carry
