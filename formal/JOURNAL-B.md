@@ -355,6 +355,23 @@ verdict flips per Bag2's recomputation. OnGcdArb (old rows) stays as
 committed; OnGcdArbFix supersedes its numbers.
 Running: Barp, Bex2, Bmg, Blink, Bnet, Bsx2.
 
+### progress 12:22
+In since 12:00: Barp ArbPin (arbcell per-pin race: same-sense window
+unchanged; handover/opposite-sense exclusion needs pin FIFO, H_PIN_FIFO),
+Bex2 WinFifoN (N-stage pipe on Win channels; wires: monotone read => FIFO;
+strict DACK flush under Win), Bmg NecessityMerge (uxa_feedback /
+uxa_req_latency not necessary; exact H_XA_LOOP), Bsa2 self-audit 2 (10 exact
+theorems CONFIRMED, non-degenerate non-monotone witnesses, 13/13 mutants;
+JSON citation fixes), Blink LinkExact (one bd_link stage: exact 6-condition
+contract, no cross-cell condition), Bj3 cell_constraints batch 3 (130
+entries; validator enforces exact => iff), Bsx2 Necessity2* (18 more rows
+necessary at the boundary or not necessary), ArbHeldTimed2 runt-decay remark
+corrected. Mathlib build: 2264 oleans; Mathlib-closure files still waiting.
+Running: Bnet (regenerate the reset network from the real build), Bfw
+(first-wave reset cells), Barp2 (arbcell per-pin on gcd_hw routes), Bct
+(C-tree depth >= 2 exact), Blink2 (closed-loop link pipe, W bits, tokens),
+Bsx3 (necessity round 3).
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
