@@ -242,3 +242,11 @@ q->grant-LUT route vs its ustate copy (H_GRANT_FORK; inertial wq_g < 56 ps,
 transport fails once wq_g > wq_s). No B file states it (grep). For shard B:
 please check against Arb*. Launched 10i to measure wq_g/wq_s on the 4 gcd_hw
 routes and link_arb, before raising it with the owner.
+
+### progress 06:34
+10f committed: the C-element feedback race is real on bare Muller rings on all
+8 seeds (slowE 4-12 of 64 fail, worst -116..-231 ps; feedback on pins 1-3,
+no pin constraint exists anywhere in the flow), but NOT reached on shipped
+gcd_hw on 4 seeds in any one-corner model (worst slowE +234 ps; response
+paths are 2-5 LUTs). Only the test rig's bare 2-cell ring is thin (+4 ps).
+This answers my earlier notification: a risk for bare rings, not for gcd_hw.
