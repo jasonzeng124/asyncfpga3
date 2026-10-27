@@ -1,5 +1,15 @@
 # B probe Bag: the held arbiter's timing conditions on the 36 routed gcd_hw arbiters
 
+> **Correction (probe Bar, notes/B-gcd-arb-a0.md).** The routed rows this file
+> reads (C's Timing/RuntAckInst, from tcheck's `extract.Prjx.split`) mis-split
+> nets whose driver leaves the site through two site pins (O6 on both B and
+> BMUX; 16 pairs on these routes): sink a's OUTMUX hop (73-86 ps FMIN, up to
+> 241 ps SMAX) is counted as shared and sink b's is dropped. For seed 2
+> merge10.uarb1 client 1, `drg` is understated by 75 ps (FMIN) / 211 ps (SMAX):
+> its RT1 margin is about +174 ps, not +249, at FMIN (still positive), and its
+> box need about 594 ps, not 383. The theorems are correct for the rows as
+> given; the rows are optimistic there. Not re-proved with corrected rows yet.
+
 Shard B, 2026-10-27. File: `formal/lean/Formal/Cells/OnGcdArb.lean` (core Lean, 1082 lines,
 generator in the scratchpad `Bag/gen.py`). No route was rebuilt and no committed file was edited.
 

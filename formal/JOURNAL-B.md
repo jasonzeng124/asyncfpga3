@@ -304,6 +304,29 @@ per-pin race), Blp (latch per-pin exact), Bmn (bdc_muxn), Bsx (necessity of
 sufficient rows), Bex2 (Win lines, general N), Bng (grade H_NO_REVERT), Brst
 (gcd_hw reset vectors), Bhyp (B hypothesis ledger for the capstone).
 
+### progress 11:50
+In: Bmn LibGapMuxN, Bhyp B-hypotheses.md (29-row ledger + change list for
+A's gcd_hw_hypotheses.md), Bsx NecessityReset/NecessityMuxRtz (reset width
+exact; JSON reset forms short in box mode; H_RST_EARLY not necessary), Blp
+LibGapLatch (latch setup/hold exact per pin; hold strict), Bng NoRevert
+(H_NO_REVERT from ordered-replay channels; LUT needs H_MUX_MONO; grade B),
+Bar OnGcdArbA0: toolchain restored from the toolchain-cache branch blob
+(toolchain.sh 9/9 ok, nextpnr 9c732bc6303458df), C-10e's routes d/2/3/4
+reproduced byte-for-byte (FASM, JSON, SDF vs results/sha_*.txt); on all 36
+gcd_hw arbiters at each consistent corner the A0 fork is safe (288/288
+clients, worst +239 ps) and A1/A2 are exclusive across both handovers given
+H_SERVER_GRAPH (server at least the routed R0->A0 path); in the independent
+box the fork fails on 15/72 clients (worst -501 ps). So gcd_hw's arbiter
+safety, like link_arb's, is decided by the corner model.
+FOR SHARD C (Bar): bug in tcheck `extract.Prjx.split`: when a driver leaves
+its site through two site pins (O6 on B and BMUX), sink a's OUTMUX hop is
+counted as shared and sink b's dropped (16 pairs on the gcd_hw routes). Jx is
+optimistic for seed 3 merge11 c2 (421 vs 336) and seed 4 merge12.uarb2 c1/c2
+(353/235 vs 270/152), still positive; C-10i/10j rows affected (seed 2
+merge10.uarb1 client 1 drg -75/-211 ps). Corrected split in Bar's scratch
+extractor (a0extract.py); B-gcd-arb.md carries the correction for Bag's RT1.
+Running: Barp, Bex2, Brst, Bj2 (JSON batch 2), Bmg, Blink.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
