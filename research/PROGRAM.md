@@ -46,6 +46,18 @@ route-throughs are a flat 300 ps and site pips are 25 ps. The x0.9/x1.1
 "corners" only scale those numbers. Silicon already disagreed: 76 of 128
 rings ran slower than the SDF, by an offset of about +988 ps.
 
+What prjxray's numbers are, and what they are not: they were extracted from
+Vivado's timing model (`prjxray/fuzzers/007-timing`). prjxray's reduced model
+matches Vivado to about +/-1.5% on most nets; clock nets are the exception
+(`prjxray/minitests/timing/README.md`). Vivado's model is a sign-off model:
+fast/slow, min/max corner bounds across PVT for a speed grade. It is not the
+delay of this chip. Expect the board to fall inside [fast min, slow max] and
+not on any one corner, and expect paths on one die not to sit at the same
+point in that band. Check which speed grade the zynq7 data is for (the board
+is -1). The ring data says where in the band this board sits. If a ring runs
+slower than prjxray's slow max, the model or the comparison is wrong: chase
+that before anything else.
+
 Build it:
 - A delay calculator that takes the routed design (`*_routed.json`: each
   net's pip list, so the real RC tree) and prjxray-db `zynq7/`
