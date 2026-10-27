@@ -170,3 +170,10 @@ probe stopped mid-way and will be resumed.
 `formal/check.sh --committed` (all shards): build 2972 jobs OK, 11582 declarations
 audited, OK. Running: gcd_hw xaudit (resumed), EnvFast bd_mux + merge data path,
 event-time abstraction for loop precision (XAudit/Events).
+### progress 05:58 (heartbeat)
+Claimed since last note: XAudit/Events (closed Muller rings precise for all time; Race
+obligation per pin; xevents exe), Events2 (open nets incl. pipe3 for every handshaking
+environment, real n-input C-element INITs, delay chains, exact cycle-ratio period
+certificates). Running: gcd_hw xaudit, EnvFast mux/merge-data, parser factoring +
+xevents2 + choice (E5). Findings sent to the owner: C-element own-feedback obligation
+(A xaudit + C FbBound) unchecked by the flow.
