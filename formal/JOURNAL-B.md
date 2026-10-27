@@ -372,6 +372,16 @@ Running: Bnet (regenerate the reset network from the real build), Bfw
 (C-tree depth >= 2 exact), Blink2 (closed-loop link pipe, W bits, tokens),
 Bsx3 (necessity round 3).
 
+### progress 12:35
+In since 12:22: Barp2 ArbPin2 (no routed gcd_hw arbiter needs H_PIN_FIFO;
+seed 2 merge3.uarb1 fails within one corner's range even with FIFO pins),
+Bnet ResetGcdNetRe/ResetGcdNetR5 + committed generator (reset contract
+re-proved on the synthesized network and on the R5 board build; audit
+pass-5 caveat closed for ResetGcd), Bct CTreeExact (bd_ctree exact at any
+depth), Bfw ResetGcdVec2 (per-cell reset model derived from the network
+run; 21 first-wave cells closed). Running: Blink2, Bsx3, Bk3, Bj4, Bwv
+(Wave/Vec on the real nets), Bsrc (rig env as C's Src).
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
