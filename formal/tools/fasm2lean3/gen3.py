@@ -611,6 +611,12 @@ def main():
         f.write("  exact ⟨%s⟩\n\n" % ", ".join("C%03d.ok" % ci for ci in range(len(chunks))))
         f.write("/-- H_NETLIST for this route (gate level): every instance is sound. -/\n")
         f.write("theorem sound : ∀ i ∈ insts, i.Sound rho := checkAll_sound rho insts all_ok\n\n")
+        f.write("/-- H_CELLS (INIT half) for this route: every bound library-cell LUT has the kind and\n"
+                "INIT of the Formal.Gen cell generated from the same line of cells/rtl (%d of %d). -/\n"
+                % (len(bind_of), lib_luts))
+        f.write("theorem cells_init : %s :=\n  ⟨%s⟩\n\n" % (
+            " ∧\n    ".join("bindsOk C%03d.insts C%03d.binds = true" % (ci, ci) for ci in range(len(chunks))),
+            ", ".join("C%03d.binds_ok" % ci for ci in range(len(chunks)))))
         f.write("end %s\n" % NS)
 
     rep = {"lib_luts": lib_luts, "bound": len(bind_of), "unbound_by_src": dict(unbound), "dangling_logical": dangling, "logical_cells": len(L), "logical_matched": len(matched_l), "logical_unmatched": unmatched_l[:50],

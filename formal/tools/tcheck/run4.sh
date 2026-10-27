@@ -20,6 +20,8 @@ SEEDS=${*:-d 2 3 4}
 one() {
   s=$1; O=build/tree_$s/cells/build/hw/gcd_hw
   [ -f "$O/gcd_hw.sdf" ] || { echo "seed $s: no route (run ./route.sh $s)"; return; }
+  # C-10m: compare2.py needs rule E's verbose log (run2.sh made it; a fresh clone has none)
+  [ -s build/skew_v_$s.log ] || (cd build/tree_$s/cells && python3 verify/skew.py "$PWD/build/hw/gcd_hw/gcd_hw.sdf" -v > "$HERE/build/skew_v_$s.log" 2>&1)
   python3 extract.py "$O" gcd_hw --cells "build/tree_$s/cells" --osc dhk --osc invhk --rules2 AEFJWR --cert \
       --out build/obl5_$s.tc --json build/obl5_$s.json 2> build/extract5_$s.log || { tail build/extract5_$s.log; return; }
   $EXE build/obl5_$s.tc > build/t5_$s.out 2> build/t5_$s.err

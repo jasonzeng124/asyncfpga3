@@ -39,6 +39,14 @@ PROFILES = {
         good_args="a hb",
         good_thm="ipow_hw_graph_computes_pow a hb",
         input_doc="for every Nat `a` (base) and every i32 bit pattern `b < 2^32` (exponent)",
+        # H_WALK proof (C-8s's, instantiated). gcd's 3-input cascade (stage-1 output acc251 over
+        # control_merge12 = rules 154/155: cm 13|27 -> res 251, idx 249) has no counterpart here;
+        # its constants are mapped to a real 2-input control_merge (rules 19/20: cm 22|41 -> res 39,
+        # idx 40), for which every cascade fact the proof states is still true (kernel-checked),
+        # and `acc` to a non-spine channel, so the cascade branches are never taken.
+        walk=dict(acc=0, q1=22, q2=41, res=39, idx=40, l1=19, l2=20,
+                  hyps="(hb : b < 2 ^ 32)", args="a b hb", grun="good_run hb",
+                  gthm="IpowHw.ipow_hw_graph_computes_pow a hb"),
     ),
 }
 
@@ -46,7 +54,7 @@ GCD_SPEC = "Nat.gcd a b"
 SAFEPER = ("cntL perL cntL_zero cntL_cons_succ cnt_take cnt_add cnt_periodic perL_ne perL_mod len_pos "
            "cnt_per filter_rank filter_len sel tst sel_rank sel_len")
 HIDE = "R Hh Hh_pr Hh_cn NoEnd JOK FoldOK OpChk"
-COPIED = ["SafeHist", "NetDef", "NetSound", "NetChk", "Safe", "O1", "CutSpine", "Cut"]
+COPIED = ["SafeHist", "NetDef", "NetSound", "NetChk", "Safe", "O1", "CutSpine", "Cut", "WalkTab", "WalkRun", "Walk"]
 
 
 class Sub:
@@ -188,6 +196,78 @@ def inst_generic(P, name, src_ns, subs=()):
     return put_banner(s.t, P, f"Capstone{name}")
 
 
+def inst_walk(P, kernel):
+    """C-8s's H_WALK proof (CapstoneWalkTab/Run/Walk), instantiated."""
+    W = P["walk"]
+    E, O = P["chEnd"], P["chOut"]
+    tabs = subprocess.run([sys.executable, os.path.join(HERE, "capnet.py"), "--kernel", kernel, "walktab"],
+                          check=True, capture_output=True, text=True).stdout
+    out = {}
+    def opens_fix(sub):
+        sub.t = re.sub(r"^(open .*)\bFormal\.Net\.GcdHw\.Gcd\b", r"\1" + P["gns"], sub.t, flags=re.M)
+    t = Sub(read("WalkTab"), "WalkTab")
+    t.rex(r"^def spN : List Nat := .*?^def recs : .*?$\n", tabs, flags=re.M | re.S)
+    t.rep("def acc : Fin NC := 463\n", f"def acc : Fin NC := {W['acc']}\n")
+    t.rep("gc != 3 && gc != 250", f"gc != {E} && gc != {O}")
+    t.rep("idx != 250", f"idx != {O}")
+    t.rep(".lo3 gi => gi == 249 && idx == 249 && al z == [13, 27]",
+          f".lo3 gi => gi == {W['idx']} && idx == {W['idx']} && al z == [{W['q1']}, {W['q2']}]")
+    t.rep("al z == [251] && tab.w w == .hi3 249", f"al z == [{W['res']}] && tab.w w == .hi3 {W['idx']}")
+    t.rep("g != 3 && g != 250", f"g != {E} && g != {O}")
+    t.rep("(res == 251 && idx == 249 && kk % 4 != 2)", f"(res == {W['res']} && idx == {W['idx']} && kk % 4 != 2)")
+    t.rep("idx != 249 || ((i, kk) == (13, 0) || (i, kk) == (27, 1)",
+          f"idx != {W['idx']} || ((i, kk) == ({W['q1']}, 0) || (i, kk) == ({W['q2']}, 1)")
+    t.rep("theorem r154 : rules[154]? = some (.cm 13 251 249 0)",
+          f"theorem r154 : rules[{W['l1']}]? = some (.cm {W['q1']} {W['res']} {W['idx']} 0)")
+    t.rep("theorem r155 : rules[155]? = some (.cm 27 251 249 1)",
+          f"theorem r155 : rules[{W['l2']}]? = some (.cm {W['q2']} {W['res']} {W['idx']} 1)")
+    retarget(t, P, "Formal.Net.CapNet.Gcd"); opens_fix(t); fix_opens(t, P); common(t, P)
+    out["WalkTab"] = put_banner(t.t, P, "CapstoneWalkTab", WALK_NOTE.format(**W))
+    r = Sub(read("WalkRun"), "WalkRun")
+    r.rep("lab : ((x.pr 249).filter (fun v => v % 4 != 2)).length = (x.cn 13).length + (x.cn 27).length",
+          f"lab : ((x.pr {W['idx']}).filter (fun v => v % 4 != 2)).length = (x.cn {W['q1']}).length + "
+          f"(x.cn {W['q2']}).length")
+    r.rep("theorem pres_lab : Pres (fun x => ((x.pr 249).filter (fun v => v % 4 != 2)).length =\n"
+          "    (x.cn 13).length + (x.cn 27).length) := by",
+          f"theorem pres_lab : Pres (fun x => ((x.pr {W['idx']}).filter (fun v => v % 4 != 2)).length =\n"
+          f"    (x.cn {W['q1']}).length + (x.cn {W['q2']}).length) := by")
+    r.rep("  show ((x'.pr 249).filter _).length = (x'.cn 13).length + (x'.cn 27).length",
+          f"  show ((x'.pr {W['idx']}).filter _).length = (x'.cn {W['q1']}).length + (x'.cn {W['q2']}).length")
+    r.rep("  by_cases ho : 249 ∈ r.outsL", f"  by_cases ho : {W['idx']} ∈ r.outsL")
+    r.rep("    have n13 : 13 ∉ r.insL := by", f"    have n13 : {W['q1']} ∉ r.insL := by")
+    r.rep("    have n27 : 27 ∉ r.insL := by", f"    have n27 : {W['q2']} ∉ r.insL := by")
+    r.rep("      by_cases hl' : l = 154", f"      by_cases hl' : l = {W['l1']}")
+    r.rep("      by_cases hl' : l = 155", f"      by_cases hl' : l = {W['l2']}")
+    retarget(r, P, "Formal.Net.CapNet.Gcd"); opens_fix(r); fix_opens(r, P); common(r, P)
+    out["WalkRun"] = put_banner(r.t, P, "CapstoneWalkRun", WALK_NOTE.format(**W))
+    w = Sub(read("Walk"), "Walk")
+    w.rep("g ≠ 3 ∧ g ≠ 250", f"g ≠ {E} ∧ g ≠ {O}")
+    w.rep("(h3 : gc ≠ 3) (h250 : gc ≠ 250)", f"(h3 : gc ≠ {E}) (h250 : gc ≠ {O})")
+    w.rep("(x.pr 249)[(x.cn 251).length]?", f"(x.pr {W['idx']})[(x.cn {W['res']}).length]?")
+    w.rep("(x'.pr 249)[(x'.cn 251).length]?", f"(x'.pr {W['idx']})[(x'.cn {W['res']}).length]?")
+    w.rep("(x.cn 251).length", f"(x.cn {W['res']}).length", 3)
+    w.rep("(texec_pre ls x y hls 249)", f"(texec_pre ls x y hls {W['idx']})")
+    w.rep("(y.pr 249)[", f"(y.pr {W['idx']})[")
+    w.rep("(x3.cn 251).length = (x2.pr 249).length", f"(x3.cn {W['res']}).length = (x2.pr {W['idx']}).length")
+    w.rep("(x2.pr 249).filter", f"(x2.pr {W['idx']}).filter", 2)
+    w.rep("(y.pr 249).filter", f"(y.pr {W['idx']}).filter")
+    w.rep("(hsp2 13 (by decide)).2, (hsp2 27 (by decide)).2", f"(hsp2 {W['q1']} (by decide)).2, (hsp2 {W['q2']} (by decide)).2")
+    w.rep("(ha : a < 2 ^ 31) (hb : b < 2 ^ 31)", W["hyps"], 5)
+    w.rep("gcd_hw_graph_computes_gcd ha hb", W["gthm"])
+    w.rep("good_run ha hb", W["grun"])
+    w.rep("a b ha hb", W["args"], 3)
+    retarget(w, P, "Formal.Net.CapNet.Gcd"); opens_fix(w); fix_opens(w, P); common(w, P)
+    out["Walk"] = put_banner(w.t, P, "CapstoneWalk", WALK_NOTE.format(**W))
+    return out
+
+
+WALK_NOTE = ("\n\nH_WALK proof (C-8s). gcd's 3-input cascade (acc251 over control_merge12, rules 154/155) has no\n"
+             "counterpart in this kernel: its constants are mapped to the 2-input control_merge of rules\n"
+             "{l1}/{l2} (cm {q1}|{q2} -> {res}, index {idx}), for which every cascade fact stated here is true\n"
+             "(kernel-checked), and `acc` to channel {acc}, which is not a spine channel, so the walk never\n"
+             "takes the cascade branches. The tables (`spN` .. `recs`) are `capnet.py walktab`'s.")
+
+
 def spine_info(kernel):
     out = subprocess.run([sys.executable, os.path.join(HERE, "capnet.py"), "--kernel", kernel, "spine"],
                          check=True, capture_output=True, text=True).stdout
@@ -233,6 +313,8 @@ def main():
     files["CutSpine"] = put_banner(cs.t, P, "CapstoneCutSpine",
                                    "\n\n`spL` and `start` are generated by `capnet.py --kernel K spine`.")
     files["Cut"] = inst_generic(P, "Cut", "Formal.Net.CapNet.Gcd")
+    if "walk" in P:
+        files.update(inst_walk(P, a.kernel))
     for k, t in files.items():
         dst = os.path.join(a.out_dir, f"{P['prefix']}{k}.lean")
         open(dst, "w").write(t)

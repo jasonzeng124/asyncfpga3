@@ -39,6 +39,7 @@ Rules (letters):
      the arcs shared by the data and late critical paths (rule_FdDiag).
 """
 import heapq
+import os
 import math
 import re
 from collections import defaultdict
@@ -585,6 +586,15 @@ def rule_K(c):
                           sel=[q.rsplit("/", 1)[1] for q in sel_pins[ji]])
                 emit_credited(c, I, L, C, pairs, lambda v: (base, maxn, None), m2)
                 n_ok += 1
+                # C-10l2 diagnosis only (K10L_ABLATE=1; never in run10l.sh): the same row
+                # with one modelling element removed, to see which one the margin rests on
+                if os.environ.get("K10L_ABLATE"):
+                    abl = {"Knocmax": ({k: g for k, g in maxn.items() if k != (C, 1)}, base),
+                           "Knolat": ({(C, 1): maxn[(C, 1)]}, base),
+                           "Knoblk": (maxn, dict(base, blocked0=set()))}
+                    for tag, (mx, bs) in abl.items():
+                        emit_credited(c, _relabel(I, tag), L, C, pairs,
+                                      lambda v, mx=mx, bs=bs: (bs, mx, None), dict(m2, rule=tag))
         if not n_ok:
             meta["skip"] = "ctl route not walkable"
             c["meta"].append(meta)

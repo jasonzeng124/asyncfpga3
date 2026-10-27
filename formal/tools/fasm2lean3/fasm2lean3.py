@@ -519,7 +519,7 @@ def main():
         kinds[c["kind"] if c["kind"] != "opaque" else "opaque:" + c["prim"]] += 1
     fl = Extract3.floats
     res = {"floats": [list(x) for x in fl], "cells": cells, "outputs": outs, "census": dict(kinds), "zero_lut_reads": zero_reads,
-           "leftover_features": dict(census), "untraced_pips": len(unused),
+           "leftover_features": dict(census), "untraced_pips": len(unused), "untraced": sorted(".".join(u) for u in unused),
            "active_pips": sum(len(v) for v in ex.active.values())}
     with open(a.json, "w") as f:
         json.dump(res, f, indent=0, sort_keys=True)

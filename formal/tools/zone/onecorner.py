@@ -203,7 +203,7 @@ def sec_tp(mode, cors):
     keys = [k for k in KEYS[mode] if not k.startswith("reach")]
     for cor in cors:
         print(f"== {cor} HELD transport: server latency ==", flush=True)
-        sweep(cor, mode, "s_lo", lambda s: dict(srv=(s, s + 20)), [0, 20, 160],
+        sweep(cor, mode, "s_lo", lambda s: dict(srv=(s, s + 20)), [160, 60, 20],
               keys, "HELD  ")
         print(f"== {cor} HELD transport: A0 fork ==", flush=True)
         sweep(cor, mode, "wa", lambda w: dict(wa=(w, w)),

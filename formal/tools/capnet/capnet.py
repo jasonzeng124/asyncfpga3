@@ -631,11 +631,93 @@ class Net:
         return sp
 
 
+def _walktab(self):
+    """C-8s's walkgen.py (H_WALK proof tables), generalised: for every circuit spine channel its
+    token-graph group, position, adjacency, count list and consuming rule. The 3-input
+    cascade's stage-1 output `accR` (gcd only) is the one channel that is not `adj` and counts
+    its two inputs. Not trusted: <Prefix>WalkTab checks everything by kernel evaluation."""
+    names, ops, sp = self.chans, self.ops, self.spine()
+    NC = len(names)
+    cons = {}
+    for n_, o in enumerate(ops):
+        k = o[0]
+        ins = {"forkG": lambda: [o[1]], "forkH": lambda: [o[1]], "join": lambda: o[1], "bjoin": lambda: o[1],
+               "steerC": lambda: [o[1]], "steerD": lambda: [o[1]], "mux": lambda: [o[1], o[2], o[3]],
+               "muxn": lambda: [o[1]] + o[2], "amerge": lambda: [o[1], o[2]], "link": lambda: [o[1]],
+               "src": lambda: [], "sink": lambda: [o[1]]}[k]()
+        for c in ins: cons[c] = o
+    bjin = {o[2]: (o[1][0], o[1][1]) for o in ops if o[0] == "bjoin"}
+    spC = [c for c in range(NC) if sp[c]]
+    grp = [0] * NC
+    for c in spC:
+        m = re.fullmatch(r"g(\d+)\.\d+", names[c]) or re.fullmatch(r"z(\d+)", names[c]) or re.fullmatch(r"acc(\d+)", names[c])
+        if m: grp[c] = int(m.group(1))
+    for c in spC:
+        if names[c].startswith("j"): grp[c] = grp[bjin[c][1]]
+    adj = [True] * NC
+    al = [[grp[c]] for c in range(NC)]
+    accs = [c for c in spC if names[c].startswith("acc")]
+    self.acc_info = []
+    for ACC in accs:
+        st1 = [o for o in ops if o[0] == "amerge" and o[3] == ACC][0]
+        r1 = [r for r in self.rules if r[0] == "cm" and r[2] == grp[ACC]]
+        ins01 = [grp[st1[1]], grp[st1[2]]]
+        adj[ACC] = False; al[ACC] = ins01
+        self.acc_info.append((ACC, ins01))
+    def succs(c):
+        o = cons[c]
+        if o[0] in ("link",): return [o[2]]
+        if o[0] == "bjoin": return [o[2]]
+        if o[0] == "forkG": return [x for x in o[2] if sp[x]][:1]
+        if o[0] == "steerC": return [o[2], o[3]]
+        if o[0] == "amerge": return [o[3]]
+        if o[0] == "sink": return [None]
+        raise ValueError(names[c], o)
+    rho = [0] * NC
+    for _ in range(20):
+        for c in spC:
+            for o in succs(c):
+                if o is not None and grp[o] == grp[c]:
+                    rho[o] = max(rho[o], rho[c] + 1)
+    gcons = {}
+    for i, r in enumerate(self.rules):
+        for ch in mlir2lean.Graph.rule_ins(r): gcons[ch] = i
+    lc = [gcons.get(grp[c], 0) if sp[c] else 0 for c in range(NC)]
+    def B(cur, c):
+        if cur is None: return 0
+        return 1 if (adj[c] and grp[c] == grp[cur] and rho[c] <= rho[cur]) else 0
+    bad = 0
+    for c in spC:
+        for o in succs(c):
+            stay = o is not None and grp[o] == grp[c]
+            dg = None if stay else grp[c]
+            for d in spC:
+                if B(c, d) + (1 if o == d else 0) != (al[d].count(dg) if dg is not None else 0) + B(o, d):
+                    bad += 1; print("transOK fails", names[c], "->", o, "at", names[d], file=sys.stderr); break
+    st = self.start
+    init_ok = all(B(st, d) == (1 if d == st else 0) for d in spC)
+    print(f"-- {len(spC)} spine channels; transitions bad={bad}; init_ok={init_ok}", file=sys.stderr)
+    if bad or not init_ok: raise SystemExit("walktab: self-check failed")
+    L = lambda xs: "[" + ", ".join(xs) + "]"
+    out = [f"def spN : List Nat := {L(str(c) for c in spC)}",
+           f"def grpL : List Nat := {L(str(x) for x in grp)}",
+           f"def rhoL : List Nat := {L(str(x) for x in rho)}",
+           f"def adjL : List Bool := {L('true' if x else 'false' for x in adj)}",
+           f"def alL : List (List Nat) := {L(L(str(y) for y in x) for x in al)}",
+           f"def lcL : List Nat := {L(str(x) for x in lc)}",
+           "def recs : List (Nat × Nat × Nat × Bool × List Nat) := " +
+           L('(%d, %d, %d, %s, %s)' % (c, grp[c], rho[c], 'true' if adj[c] else 'false', L(str(y) for y in al[c])) for c in spC)]
+    return "\n\n".join(out) + "\n"
+
+
+Net.walktab = _walktab
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--kernel", required=True, choices=sorted(PROFILES))
     ap.add_argument("--gcd-compat", action="store_true", help="(gcd only) reproduce the 8l/8m/8r outputs")
-    ap.add_argument("what", choices=["links", "ring", "net", "spine", "summary"])
+    ap.add_argument("what", choices=["links", "ring", "net", "spine", "walktab", "summary"])
     ap.add_argument("-o", "--out", default=None)
     a = ap.parse_args()
     P = PROFILES[a.kernel]
@@ -650,6 +732,8 @@ def main():
         if a.what == "net":
             text = net.lean(P)
             print(f"{len(net.chans)} channels, {len(net.ops)} operators, {net.counts}", file=sys.stderr)
+        elif a.what == "walktab":
+            text = net.walktab()
         elif a.what == "spine":
             sp = net.spine()
             print(f"-- {sum(sp)} spine channels of {len(sp)}", file=sys.stderr)
