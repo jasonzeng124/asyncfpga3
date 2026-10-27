@@ -138,7 +138,7 @@ Findings for the cell owner (not confirmed on a route):
   corner. CORRECTION (audit pass 4, rows 43/71): Br reused C's rtfb_design.py,
   which omits the driver-side LUT->xMUX hop (prjxray a6lut->amux
   0.071..0.209 ns); with it, the RIG's urig.uenv1 ring FAILS RT_FB on 2 of 4
-  seeds (C-10e tcheck: seed 2 -114/-219 ps, seed 4 -81/-201 ps banded; C-10h, with per-pin arcs: -117/-221 and -86/-243); Br's
+  seeds (C's tcheck, run not identified: seed 2 -114/-219 ps, seed 4 -81/-201 ps banded; C-10h, with per-pin arcs: -117/-221 and -86/-243); Br's
   "+4 ps" was optimistic. Kernel margins are unaffected in sign. Rule H with
   site pins drops to +40 ps guarded on its worst bit.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
