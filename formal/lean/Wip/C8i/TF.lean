@@ -226,16 +226,19 @@ theorem main_reach : ∀ f a b k r, mainLoop f a b = some r →
       rw [hs] at h
       simp only at h
       refine reach_trans (loop11 f _ k a b x hs) ?_
-      by_cases hc : isT (Ops.cmpi .eq 32 x 0) = true
+      -- name the bb9 values, so that no elaboration or kernel step unfolds them
+      generalize minC a b = m at h ⊢
+      generalize Ops.cmpi .eq 32 x 0 = z at h ⊢
+      by_cases hc : isT z = true
       · simp only [hc, ↓reduceIte, Option.some.injEq] at h; subst h
-        exact edge' (he := by simp only [sig16, List.map, E.eval, BOp.ev, UOp.ev, List.getD, List.getElem?_cons_succ,
-            List.getElem?_cons_zero, Option.getD_some, absd, gSc, minC]) lenT9 seg16 [x, minC a b, Ops.cmpi .eq 32 x 0, k] _
-          (fact1 (by show (Ops.cmpi .eq 32 x 0 % 2 == 1) = true; exact hc))
+        exact edge' (he := by simp only [sig16, List.map, E.eval, BOp.ev, List.getD,
+            List.getElem?_cons_succ, List.getElem?_cons_zero, Option.getD_some])
+          lenT9 seg16 [x, m, z, k] _ (fact1 hc)
       · simp only [hc, Bool.false_eq_true, ↓reduceIte] at h
         simp only [isT, Bool.not_eq_true] at hc
-        exact reach_trans (edge' (he := by simp only [sig17, List.map, E.eval, BOp.ev, UOp.ev, List.getD, List.getElem?_cons_succ,
-            List.getElem?_cons_zero, Option.getD_some, absd, gSc, minC]) lenT9 seg17 [x, minC a b, Ops.cmpi .eq 32 x 0, k] _
-          (fact1 (by show (Ops.cmpi .eq 32 x 0 % 2 == 1) = false; exact hc))) (main_reach f x (minC a b) k r h)
+        exact reach_trans (edge' (he := by simp only [sig17, List.map, E.eval, BOp.ev, UOp.ev,
+            List.getD, List.getElem?_cons_succ, List.getElem?_cons_zero, Option.getD_some, absd, gSc])
+          lenT9 seg17 [x, m, z, k] _ (fact1 hc)) (main_reach f x m k r h)
 
 
 end Formal.Net.GcdHw.Gcd
