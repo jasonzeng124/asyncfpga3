@@ -1157,3 +1157,19 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   screen 6 per seed, informational). T4H (+1 link on 10 compute cells) on fresh seeds 9-16 running.
   Data: research/data/collatz64_sizes_T4{,H}.vh. Tool: scratch loop in wt_coll (8977190 tighten/skew), not
   size_kernel.py -- the run began before the tool landed.
+### progress 04:32 (F4: acceptance inventory + harness; baseline on today's GLS)
+- research/data/fid/inventory.{json,md}: 17 silicon items graded with source lines. **No August measured bitstream
+  or route is archived, none has a recorded md5.** HARD: ring128 (n=128, self-checking readback, 0.052% repeat) --
+  blocked, per-ring data only on the owner's machine; lut-pinmap (emulated on BQ#1's route, sdf 6f8b99e6 matches,
+  and on an August-shaped BDC_OP_FUSION=0 route); dsp_constpins(_inv) (emulated on ipow T9 seed 29); dsp_areg
+  (property only). SOFT: the 5-ring routes, abs_negative (cause revised), bench_hang (5/8 stochastic), isprime late
+  read, every kernel timing (routes not archived), mem_dco edge_cap only. EXCLUDED: cmpb probe (stale operands).
+- cells/gls/fid/acceptance.py with --sdf-cmd (F1) and --netlist-cmd (F2) hooks; hard/soft reported apart, exit 1
+  only on a hard mismatch, blocked != pass. Baseline (today's GLS): every runnable hard bitstream test MISMATCHES --
+  it passes bitstreams the board failed because it never reads the FASM. On the fusion-on gcd route the 58 corrupted
+  sites are all latch odd-bit LUTs and the sim passes even with them corrupted, so that route cannot discriminate;
+  the fusion-off route can: with a FASM-reading stand-in, unpatched completes 9/16, the missing 7 (5-8, 11-13,
+  errs=0) are exactly BOARD-QUEUE #1's August list (patches/README says 7/16 -- records disagree; vector set soft).
+- Soft cross-route rings: today's SDF reads ~+9.5% slow at 127 links on both August routes (which agree to 0.3%).
+- ro_many_measure.py gains RO_OFFLINE/RO_MEAS_TSV so the owner can export the per-ring table without a board
+  (BOARD-QUEUE owner-side request updated with the command).

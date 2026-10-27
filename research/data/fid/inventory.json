@@ -1,0 +1,364 @@
+{
+ "about": "Every silicon datum in the repo that a board-fidelity GLS must reproduce, graded per research/PROGRAM.md ('THE priority', b23e19c). grade: hard = well-established, a model that disagrees is wrong; soft = evidence to investigate; excluded = the instrument was not verified. reproducible: how the route/bitstream that produced the datum can be rebuilt today. Read by cells/gls/fid/acceptance.py.",
+ "items": [
+  {
+   "id": "ring128",
+   "kind": "ring_population",
+   "title": "128 ring oscillators (ro_many_top), 32 each at 7/15/31/63 links",
+   "grade": "hard",
+   "grade_reason": "n=128; window-to-window reproducibility 0.052%; the readback checks itself (constants, group echo, liveness, overflow, length order) and the scatter does not cluster by slot or group (permutation p=0.73/0.66)",
+   "oracle": {
+    "per_length_median_ratio_vs_aug_sdf": {
+     "7": 1.176,
+     "15": 0.987,
+     "31": 0.959,
+     "63": 0.969
+    },
+    "all_median": 0.989,
+    "slower_than_scaled_model": "76/128",
+    "two_param_fit": "measured = 0.9383 x predicted(Aug SDF) + 988 ps"
+   },
+   "sources": [
+    "cells/hw/README.md:296-301",
+    "cells/hw/README.md:305-306",
+    "cells/hw/README.md:321-323",
+    "cells/hw/README.md:353"
+   ],
+   "provenance": "built 2026-08-23 on the owner's machine with BD_RLOC=none; nextpnr of that date (before nextpnr-xilinx-lut-perm-sink.patch, 2026-09-20, which changed every in-slice SDF arc); per-ring raw counts in build/hw/ro_many_top/raw/gNN.log there",
+   "reproducible": "no -- no md5, no archived .bit/.fasm/.sdf; the per-ring measured periods are NOT in the repo (only the summary above, and it is a ratio against an SDF that no longer exists). A rebuild today is a different route.",
+   "needs": "on the owner's machine, with the August build still in build/hw/ro_many_top/: `cd cells && RO_OFFLINE=1 RO_MEAS_TSV=measured.tsv python3 hw/ro_many_measure.py` (no board needed: it re-judges the cached raw/gNN.log), then copy measured.tsv, ro_many_top_routed.json, ro_many_top.sdf (and .fasm) into one directory and run `acceptance.py --items ring128 --ro-many-data DIR`. That makes this a per-ring hard test on the measured route",
+   "route_dir": "build/fid/ro_many_top"
+  },
+  {
+   "id": "ring5_a",
+   "kind": "ring_route",
+   "title": "ro_top five rings, route A (2026-08-03)",
+   "grade": "soft",
+   "grade_reason": "the measurement is sound (3 windows, 0.01-0.02% reproducible, ro_measure self-checks) but n=5 and the route cannot be rebuilt: any comparison is across routes, and per-route scatter is the quantity in question",
+   "oracle": {
+    "links": [
+     7,
+     15,
+     31,
+     63,
+     127
+    ],
+    "measured_ps": [
+     8093,
+     12204,
+     22924,
+     52075,
+     103094
+    ],
+    "aug_sdf_ps": [
+     8290,
+     13576,
+     24842,
+     56784,
+     103418
+    ]
+   },
+   "sources": [
+    "cells/hw/README.md:192-202"
+   ],
+   "provenance": "2026-08-03, owner's machine, nextpnr of that date (pre lut-perm-sink)",
+   "reproducible": "no -- no md5 or archive; rebuilt today as a different route (build/fid/ro_top)",
+   "route_dir": "build/fid/ro_top"
+  },
+  {
+   "id": "ring5_b",
+   "kind": "ring_route",
+   "title": "ro_top five rings, route B (rebuilt 2026-08-18, measured 2026-08-23)",
+   "grade": "soft",
+   "grade_reason": "as ring5_a; with route A it shows route-to-route spread: 0.3% at 127 links, up to 25% at 7 links on silicon",
+   "oracle": {
+    "links": [
+     7,
+     15,
+     31,
+     63,
+     127
+    ],
+    "measured_ps": [
+     6293,
+     12140,
+     27784,
+     54772,
+     103409
+    ],
+    "aug_sdf_ps": [
+     4674,
+     12008,
+     28228,
+     55548,
+     112972
+    ]
+   },
+   "sources": [
+    "cells/hw/README.md:218-229"
+   ],
+   "provenance": "2026-08-18 build, owner's machine, pre lut-perm-sink",
+   "reproducible": "no -- as ring5_a",
+   "route_dir": "build/fid/ro_top"
+  },
+  {
+   "id": "lutpinmap_gcd",
+   "kind": "bitstream_bug",
+   "bug": "pinmap",
+   "title": "gcd_hw livelock from fasm.cc writing run-together X_ORIG_PORT pins as I0 (nextpnr-xilinx-lut-pinmap.patch)",
+   "grade": "hard",
+   "grade_reason": "deterministic bitstream property: the unpatched writer's output is a pure function of the routed JSON (emulated line for line by verify/fasm_audit.py --write-unpatched pinmap); board before/after on the same source and seed: 7/16 -> 16/16. Caveat recorded: bdc/emit.py:2046 attributes a 7-of-16 board result to SELECT_PAD=4 instead, so WHICH vectors fail on the August route is soft; that the corrupted bitstream fails at all is hard; ON THIS ROUTE (fusion on, today's default) the 58 sites the unpatched writer corrupts are all bd_latch odd-bit LUTs (lat.odd) whose corruption changes no vector -- measured, see lutpinmap_gcd_nofuse for the August-like netlist",
+   "oracle": {
+    "patched": "16/16 vectors complete, err_sticky=0x0000",
+    "unpatched": "not all vectors complete; the failure is ABSENT results (livelock), not wrong ones: err=0",
+    "aug_route": "7/16, nine vectors never completing"
+   },
+   "sources": [
+    "patches/README.md:39-44",
+    "patches/README.md:31-35",
+    "cells/gls/README.md:66-80",
+    "bdc/emit.py:2044-2048"
+   ],
+   "provenance": "August gcd_hw route (owner's machine, not archived). Reproduced here as a MECHANISM on BOARD-QUEUE #1's route (sdf md5 6f8b99e6 reproduced exactly; routed.json md5 1c6a1fb9 at BOARD-QUEUE time, different today only in yosys src line-number attributes since fdfe098 edited rtl/bd_link.v and bd_mux.v, research/BOARD-QUEUE.md #1), with the unpatched FASM emulated",
+   "reproducible": "emulated -- the August route is gone; the same defect is regenerated on a route whose md5s are on record",
+   "route_dir": "build/fid/gcd_hw_bq1",
+   "expect_md5": {
+    "gcd_hw.sdf": "6f8b99e6"
+   }
+  },
+  {
+   "id": "lutpinmap_gcd_nofuse",
+   "kind": "bitstream_bug",
+   "bug": "pinmap",
+   "title": "gcd_hw livelock from the lut-pinmap bug, on the August-like netlist (BDC_OP_FUSION=0: ucmpi11 exists)",
+   "grade": "hard",
+   "grade_reason": "deterministic bitstream property, emulated as for lutpinmap_gcd, on a netlist shaped like August's: op fusion off (it was off in August), so the run-together pins land in the compute comparators (9 sites in each of ucmpi0/1/8/10/11, 126 in all; August: 131, 33 in ucmpi11). The route is not August's (SELECT_PAD=4, no measured pads), so which vectors fail is soft; that the corrupted bitstream fails is the hard claim",
+   "oracle": {
+    "patched": "16/16 vectors complete, err_sticky=0x0000",
+    "unpatched": "not all vectors complete; the failure is ABSENT results (livelock), not wrong ones: err=0",
+    "aug_route": "7/16, nine vectors never completing"
+   },
+   "sources": [
+    "patches/README.md:39-44",
+    "patches/README.md:31-35",
+    "cells/gls/README.md:66-80",
+    "bdc/emit.py:2044-2048"
+   ],
+   "provenance": "rebuilt today: BDC_OP_FUSION=0 BD_NO_TIGHTEN=1 BD_RLOC=v4 hw/build_hw.sh gcd_hw, default seed (md5s in build/fid/gcd_hw_nofuse/md5.txt)",
+   "reproducible": "emulated -- August's route is gone; the same defect on an August-shaped netlist",
+   "route_dir": "build/fid/gcd_hw_nofuse"
+  },
+  {
+   "id": "abs_negative",
+   "kind": "record",
+   "title": "gcd bb10 abs going negative (the stated mechanism of the lut-pinmap livelock)",
+   "grade": "soft",
+   "grade_reason": "no board read-out of the abs probe (absn_sticky) is on record anywhere in the repo; the negative abs is the mechanism patches/README.md states for the livelock, first predicted by a GLS whose own LUT decode was wrong (cells/gls/README.md:66-80); and gcd_rig.v says a fix of the blamed mechanism left the board verdict bit-identical -- the cause was revised",
+   "oracle": {
+    "stated": "a comparator that answers wrongly makes gcd's abs skip the negation, a goes negative, while (a != 0) never terminates"
+   },
+   "sources": [
+    "patches/README.md:31-35",
+    "cells/hw/gcd_rig.v:70-82",
+    "cells/gls/README.md:66-80"
+   ],
+   "provenance": "August, owner's machine",
+   "reproducible": "covered by lutpinmap_gcd as a mechanism; the abs probe needs BDC_OP_FUSION=0 (cmp probes) and no such board run is recorded",
+   "runnable": false
+  },
+  {
+   "id": "dsp_constpins",
+   "kind": "bitstream_bug",
+   "bug": "constpins-packer",
+   "title": "DSP48E1 INMODE/ALUMODE2-3/OPMODE6 left at the tile default: A gated to zero (nextpnr-xilinx-dsp-constpins.patch)",
+   "grade": "hard",
+   "grade_reason": "deterministic bitstream property (emulated by fasm_audit.py --write-unpatched constpins-packer); four independent board tests agree before/after, including a bit-walk; timing ruled out (10 MHz bit-identical to 100 MHz)",
+   "oracle": {
+    "bit_walk": "A had zero effect -> all correct",
+    "mult2_ps": "1/315 and 315/315 -> 415/415 and 415/415",
+    "mult_ps": "25/430 -> 430/430",
+    "ipow_ps": "965/2016 -> 516/516",
+    "unpatched_expectation": "a multiply's result does not depend on A"
+   },
+   "sources": [
+    "patches/README.md:98-110"
+   ],
+   "provenance": "August, owner's machine (mult_ps/mult2_ps/ipow_ps rigs, not archived). Reproduced here as a mechanism on ipow (BD_DSP=1, T9 sizes, NEXTPNR_SEED=29) whose fusion_bench GLS has a C-derived oracle",
+   "reproducible": "emulated",
+   "route_dir": "build/fid/ipow_dsp"
+  },
+  {
+   "id": "dsp_constpins_inv",
+   "kind": "bitstream_bug",
+   "bug": "constpins-inv",
+   "title": "the fasm.cc half of dsp-constpins: a bussed const pin's inversion looked up under a name that never exists",
+   "grade": "hard",
+   "grade_reason": "deterministic (same patch); the README records that fixing only the packer half made the board 'fully inert'",
+   "oracle": {
+    "unpatched_expectation": "INMODE/OPMODE6 const bits carry the wrong polarity: wrong products"
+   },
+   "sources": [
+    "patches/README.md:79-95"
+   ],
+   "provenance": "as dsp_constpins",
+   "reproducible": "emulated",
+   "route_dir": "build/fid/ipow_dsp"
+  },
+  {
+   "id": "dsp_areg",
+   "kind": "property",
+   "title": "DSP48E1 AREG=1 written as AREG=2 (nextpnr-xilinx-dsp-areg.patch)",
+   "grade": "hard",
+   "grade_reason": "a deterministic bitstream property, but the board showed NO functional effect (result read milliseconds later: bit-identical before and after). The acceptance test is the property, not a failure: the sim built from an unpatched FASM must model AREG=2; no kernel in the repo has an AREG=1 DSP (ipow's are AREG=0), so only verify/fasm/probe.v exercises it",
+   "oracle": {
+    "board": "bit-identical before and after the patch"
+   },
+   "sources": [
+    "patches/nextpnr-xilinx-dsp-areg.patch:10-17",
+    "cells/flow.sh:238-246"
+   ],
+   "provenance": "August",
+   "reproducible": "emulated (verify/fasm/check.sh)",
+   "runnable": false
+  },
+  {
+   "id": "bench_hang",
+   "kind": "record",
+   "title": "gcd_bench_gen hang: the 3-bit state register sampling an async-set latch (S_WAIT_ACK 011 -> S_RTZ 110)",
+   "grade": "soft",
+   "grade_reason": "stochastic (metastability): caught by the 7'h16 sticky in 5 of 8 board runs, a different run index each time; the detector was validated by a forced negative control in sim (tb_gcd_bench_gen section 6); the fix (a synchroniser) held over 3000 back-to-back transactions at RUNGAP=0. Well documented, but a rate, not a deterministic outcome, and it needs a metastability model (F3)",
+   "oracle": {
+    "failure": "batches park in S_WAIT_RES with o_req_s=0; illegal transition 011 -> 110 recorded by the 7'h16 sticky, 5 of 8 runs",
+    "fixed": "3000 transactions, no hang, 5 kernels"
+   },
+   "sources": [
+    "cells/hw/gen_bench.py:520-535",
+    "cells/hw/README.md:763-785",
+    "cells/hw/xsdb_gcd_trace.tcl:315-330"
+   ],
+   "provenance": "August gcd_bench_gen builds, not archived",
+   "reproducible": "no -- no archived route; the routed GLS has no AXI host model for the bench harness and resolves every flop in zero time. The structure is checked board-free by verify/cdc_bench.sh",
+   "runnable": false
+  },
+  {
+   "id": "isprime_late_read",
+   "kind": "record",
+   "title": "isprime ODATA/SIG read 0x80000000: result sampled after bench_o_ack",
+   "grade": "soft",
+   "grade_reason": "deterministic and repeated (200/200 runs, SIG = fold(0x80000000)), cause confirmed by the fix (odata=1, derived SIG) -- but what the bus carries after the acknowledge is a property of the kernel's route, which is not archived; and in the GLS it depends on the harness, which is not simulated",
+   "oracle": {
+    "failure": "ODATA = 0x80000000 on every run, kernel correct (isprime(47)=1 read directly)",
+    "fixed": "odata=1, sig exactly the derived fold"
+   },
+   "sources": [
+    "cells/hw/README.md:585-600",
+    "cells/hw/README.md:1392-1452"
+   ],
+   "provenance": "August isprime_bench_gen, not archived",
+   "reproducible": "no -- route gone; the RTL-level regression is verify/bench_window.sh",
+   "runnable": false
+  },
+  {
+   "id": "gcd_sweep_stale",
+   "kind": "record",
+   "title": "gcd_hw free sweep: previous vector's result judged against the new one (ok+err on 5 vectors)",
+   "grade": "soft",
+   "grade_reason": "seen in sweeps but never when pinned; the explanation (a result in flight across the window edge) is inferred, not observed; an RTL sweep at settle 0 does not reproduce it (2026-10-26 regression work)",
+   "oracle": {
+    "failure": "err and ok both set on five vectors in a free sweep; pinned runs clean"
+   },
+   "sources": [
+    "cells/hw/gcd_hw.v:207-226"
+   ],
+   "provenance": "August",
+   "reproducible": "no",
+   "runnable": false
+  },
+  {
+   "id": "kernel_ns_per_iter",
+   "kind": "record",
+   "title": "per-iteration cost on silicon: xorshift 49.6, ipow 60.4, collatz 92.7, collatz64 117.7 ns",
+   "grade": "soft",
+   "grade_reason": "the measurements are good (oracle asserted, 0.03% repeatability, fits with small residuals) but the routes AND the matched-delay sizes they ran with are not archived; today's fusion/cap defaults emit a different netlist from the same C",
+   "oracle": {
+    "xorshift": 49.6,
+    "ipow": 60.4,
+    "collatz": 92.7,
+    "collatz64": 117.7
+   },
+   "sources": [
+    "README.md:118-126",
+    "cells/hw/loop_cost_results.tsv",
+    "cells/hw/trip_sweep_results.tsv",
+    "cells/hw/xorshift_cost_results.tsv"
+   ],
+   "provenance": "2026-08-24, gen_bench harness, 100 MHz measurement clock",
+   "reproducible": "no",
+   "runnable": false
+  },
+  {
+   "id": "gcd_latency",
+   "kind": "record",
+   "title": "gcd latency 310 ns to 6.34 us; cost model (k 127.1, pre-ctz 108.3, main 156.5, inner ctz 114.6 ns)",
+   "grade": "soft",
+   "grade_reason": "24 pairs x 3 batches x 200, oracle asserted, fit residual 1.4 cycles RMS -- sound data, but the route and sizes are not archived",
+   "oracle": {
+    "span": "310 ns .. 6.34 us",
+    "per_k": 127.1,
+    "per_prectz": 108.3,
+    "per_main": 156.5,
+    "per_inner_ctz": 114.6
+   },
+   "sources": [
+    "README.md:134-135",
+    "cells/hw/README.md:917-940",
+    "cells/hw/gcd_cost_results.tsv"
+   ],
+   "provenance": "2026-08-24, gen_bench harness",
+   "reproducible": "no",
+   "runnable": false
+  },
+  {
+   "id": "shmoo_ucmpi1",
+   "kind": "record",
+   "title": "xorshift ucmpi1 matched delay walked to failure",
+   "grade": "soft",
+   "grade_reason": "one board run per point (3x at n=10/9/8/7); the bench at the time could not see wrong answers (cells/hw/README.md:453-473), so early verdicts are suspect",
+   "sources": [
+    "cells/hw/shmoo_ucmpi1_results.tsv",
+    "cells/hw/README.md:373-452"
+   ],
+   "provenance": "2026-08-23, NEXTPNR_SEED=1, 83.3 MHz bench clock",
+   "reproducible": "no -- seed recorded but the toolchain and netlist have changed",
+   "runnable": false
+  },
+  {
+   "id": "mem_dco",
+   "kind": "record",
+   "title": "bd_mem DCO sweep (edge_mism), and the arbitrated port's timing",
+   "grade": "soft",
+   "grade_reason": "edge_cap data is usable; the earlier sync_mism checker was blind at all 24 points and the B3 'PASS 0/49152' could not have failed -- only the edge_cap columns are evidence",
+   "sources": [
+    "cells/hw/MEM_DCO.md:15-47",
+    "cells/hw/MEM_ARB_TIMING.md",
+    "hw-docs/07-gotchas.md:13"
+   ],
+   "provenance": "August",
+   "reproducible": "no",
+   "runnable": false
+  },
+  {
+   "id": "cmpb_probe",
+   "kind": "record",
+   "title": "gcd_hw cmpb/cmpb0 comparator probes",
+   "grade": "excluded",
+   "grade_reason": "the instrument read stale operands (bd_join releases the operand on z_ack while the sampler is still sensitive, plus ~2 ns BUFG insertion): set on vectors that delivered correct gcds; gcd_measure.py prints DETECTOR UNRELIABLE",
+   "sources": [
+    "cells/hw/gcd_measure.py:380-397"
+   ],
+   "provenance": "August",
+   "reproducible": "no -- the probed net no longer exists under op fusion",
+   "runnable": false
+  }
+ ]
+}

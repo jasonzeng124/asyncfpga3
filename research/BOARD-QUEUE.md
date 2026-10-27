@@ -136,3 +136,9 @@ rebuilt). If they still exist on the owner's machine, commit them under `researc
 the raw `g*.log` (or whatever ro_many_measure.py read), `ro_many_top_routed.json`, `ro_many_top.sdf`, the `.bit`,
 and its toolchain.txt. Self-check: `python3 cells/gls/fid/ring_predict.py --help` names the inputs it needs;
 `md5sum` of the .bit should match any md5 recorded in the JOURNAL for that build.
+Simplest form (no board needed, reads the cached raw logs in `build/hw/ro_many_top/raw`):
+
+    cd cells && RO_OFFLINE=1 RO_MEAS_TSV=measured.tsv python3 hw/ro_many_measure.py; echo "exit $?"
+
+Pass: exit 0 and `measured.tsv` has 128 rows (`g b links measured_ps spread predicted_ps`). Commit it with the
+routed.json + SDF of that build; the cloud side runs `cells/gls/fid/acceptance.py --ro-many-data ...` on it.
