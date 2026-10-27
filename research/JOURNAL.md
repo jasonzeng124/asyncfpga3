@@ -1327,3 +1327,20 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   DETECTED -- but by the decoder REFUSING the configuration (INMODE 11111 etc.), not by simulating the gated product.
   Graded: hard datum, detection mechanism = refusal (weaker than a simulated wrong answer; same caveat the audit gave
   dsp_areg). Note: today's fusion_bench defaults fastfall on, so this seed-29 route is not F4's route.
+### progress 11:53 (HARD acceptance item reproduced by the full stack: lut-pinmap on the August-shaped netlist)
+- Full stack (bits-decoded netlist + prjxray SDF + fid primitives), SLOW_MAX, nofuse route (BDC_OP_FUSION=0
+  BD_NO_TIGHTEN=1 BD_RLOC=v4, sdf c647eb1a):
+  | bits | equivalence | vectors complete | errs | never complete |
+  |---|---|---|---|---|
+  | patched (as built) | EQUIVALENT | 16/16 | 0 | - |
+  | unpatched lut-pinmap writer (fasm_audit --write-unpatched pinmap) | NOT EQUIVALENT | 9/16 | 0 | 5,6,7,8,11,12,13 |
+  The failure is absent results, not wrong ones (the board's signature), and the dead set is exactly BOARD-QUEUE
+  #1's recorded August list. **First hard acceptance item MATCHED by the full board-fidelity stack** (before: today's
+  GLS MISMATCHED it, baseline.md). Caveat (inventory): an emulated defect on a rebuilt route, not the August
+  bitstream; which vectors fail is soft (patches/README says 7/16 complete -- the records disagree), that it fails is
+  the hard claim. The GLS reads the bits, so this is the sim detecting it, not the equivalence checker.
+- Also 16/16 errs=0: BQ#3 at band 0.38 (laps v6/v12/v13 55/45/64 -- 8% MORE than nextpnr's SDF predicts, 51/42/60);
+  BQ#1 at SLOW_MAX (16/12/18). Table: research/data/fid/fullstack.md (regenerated as runs land).
+- Audit r5 3g (metastability window pessimistic): agreed and kept as is for now -- TAU=WIN=150 ps is a stress
+  setting that exercises both outcomes far more often than silicon would; fid meta-event counts are not rates. A
+  silicon-sized window needs the board (hw/arb_mtbf).
