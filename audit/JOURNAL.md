@@ -82,3 +82,6 @@ P4 (eecc6f7): gcd_hw_conditional has no gcd content (holds for any network; OVER
 
 ### progress 08:39
 Per-module axiom audit (fixed) catches the planted sorry (incl. transitive) and native_decide in ~/audit-plant: 4/4. Running on eecc6f7.
+
+### progress 09:57
+eecc6f7 per-module axiom audit: 31931 constants, 0 bad, 0 modules failed. Second usage-limit stop ~09:30-09:50 UTC (tcheck agent had already delivered its report). Next: re-audit newest heads.
