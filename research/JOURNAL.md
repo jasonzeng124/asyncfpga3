@@ -1327,7 +1327,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   DETECTED -- but by the decoder REFUSING the configuration (INMODE 11111 etc.), not by simulating the gated product.
   Graded: hard datum, detection mechanism = refusal (weaker than a simulated wrong answer; same caveat the audit gave
   dsp_areg). Note: today's fusion_bench defaults fastfall on, so this seed-29 route is not F4's route.
-### progress 11:53 (HARD acceptance item reproduced by the full stack: lut-pinmap on the August-shaped netlist)
+### progress 11:47 (HARD acceptance item reproduced by the full stack: lut-pinmap on the August-shaped netlist)
 - Full stack (bits-decoded netlist + prjxray SDF + fid primitives), SLOW_MAX, nofuse route (BDC_OP_FUSION=0
   BD_NO_TIGHTEN=1 BD_RLOC=v4, sdf c647eb1a):
   | bits | equivalence | vectors complete | errs | never complete |
