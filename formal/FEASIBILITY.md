@@ -128,12 +128,16 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   (`pulseWidth_small`: the property that makes the model faithful to
   short-pulse filtration), in contrast to inertial (`inertial_gap`). Exp
   channel derived from a first-order RC (exp/log as hypotheses). **Transfer
-  lemma: NOT proved (audit OVERSTATED, 2026-10-27).** Only monotonicity and
-  boundedness of δ (`up_bounds`/`down_bounds`, in time since the previous
-  OUTPUT) are proved; no theorem relates the channel to `Pure.Chan`, no
-  `InvolutionPair` instance was built, and no module imported Involution.
-  Probe InvTransfer (session 10:38) is proving it; until then cell proofs
-  that use pure delay plus separation do not inherit involution faithfulness.
+  lemma, corrected and proved (`Core/Delay/InvolutionTransfer.lean`, answering the
+  audit's OVERSTATED row).** `transfer_sep`: if consecutive inputs are at least S apart
+  with S > D − δmin (D = max(δ∞↑, δ∞↓)), nothing cancels, each input transition gives
+  exactly one output transition with delay in [min(δ↑, δ↓)(S − D), D], and the output
+  is a `Pure.Chan` behaviour of the input with that band (`chan_sigOf`). The old
+  wording (separation T0, band [δ(T0), δ∞)) was wrong in all three parts.
+  `sep_threshold_sharp`: at 0 < S ≤ δ∞↑ − δmin evenly spaced inputs cancel, so the
+  threshold is exact for symmetric channels. A concrete instance (`ratPair`,
+  δ(T) = 2 − 1/(T+2)) shows the class is non-vacuous. Not covered: the filtered output
+  under chained cancellation; the asymmetric gap; an exp-channel instance.
   For bd_arb: in the faithful model the arbiter loop has no bounded settling
   time, so handover exclusion cannot be unconditional (no MTBF: that needs
   the analog layer, shard B 7c/7d).

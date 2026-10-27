@@ -343,3 +343,10 @@ ucontrol_merge3.uarb1.ua1 pin0 -94, ucontrol_merge2.uarb1.ua2 pin0 -68), seeds 3
 CLEAN, seed 5 only the rig uenv1 item; indep 46-51/63 guards. Negative controls
 rejected. Wip/Events7.lean's fmax guardCnt shown wrong (guard_fmax_neg), superseded.
 Next: probe HDsub.
+### progress 12:51
+InvTransfer claimed (check.sh with Pure/Involution: 191 decls OK): corrected transfer
+lemma transfer_sep (threshold S > D - δmin, band [δ(S-D), D] closed at the top, output
+is a Pure.Chan behaviour), exact for symmetric pairs (sep_threshold_sharp), instance
+ratPair. Audit row answered; FEASIBILITY §3 rewritten. setup.sh finished (7561 s) with
+one failure, Formal.Core.Bridge (built while LutList's switched Bridge was in the tree;
+reverted since); full check.sh --committed running.

@@ -9,3 +9,4 @@ import Formal.Core.Ternary
 import Formal.Core.Delay.SAF
 import Formal.Core.Delay.GLSPass
 import Formal.Core.Delay.CornerCode
+import Formal.Core.Delay.InvolutionTransfer
