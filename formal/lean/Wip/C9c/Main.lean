@@ -560,4 +560,166 @@ theorem pairs_loc (hn : 1 ≤ n) {X Y : Nat} (hp : (X, Y) ∈ pairs n) :
 
 end Pairs
 
+
+section Good
+variable {m : Mode} {n s : Nat}
+
+theorem followL_spec {a b c t : Nat} (h : followL a b c t = true) {u : Nat} (hu : u < 4) :
+    (lpair b b true t u = true → bt b t = bt b u) ∧
+    (lpair b c false t u = true → bt b t = bt c u) ∧
+    (lpair b b true u t = true → bt b t ≠ bt b u) ∧
+    (lpair a b false u t = true → bt b t ≠ bt a u) := by
+  unfold followL at h
+  simp only [List.all_eq_true] at h
+  have := h u (mem_types hu)
+  simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', beq_iff_eq, bne_iff_ne,
+    ne_eq] at this
+  obtain ⟨⟨⟨h1, h2⟩, h3⟩, h4⟩ := this
+  refine ⟨fun e => ?_, fun e => ?_, fun e => ?_, fun e => ?_⟩
+  · rcases h1 with h1 | h1
+    · rw [e] at h1; cases h1
+    · exact h1
+  · rcases h2 with h2 | h2
+    · rw [e] at h2; cases h2
+    · exact h2
+  · rcases h3 with h3 | h3
+    · rw [e] at h3; cases h3
+    · exact h3
+  · rcases h4 with h4 | h4
+    · rw [e] at h4; cases h4
+    · exact h4
+
+theorem follow_glob (hn : 1 ≤ n) (hc : chkAll m = true) (hI : Inv m n s) {y : Nat}
+    (hy : enabled m n s y = true) : ∀ p ∈ pairs n, pairOk s y p = true := by
+  intro ⟨X, Y⟩ hp
+  obtain ⟨hX, hY, hpos⟩ := pairs_loc (s := s) hn hp
+  have hyN := enabled_lt hy
+  obtain ⟨-, -, -, -, hp1, hp2⟩ := loc (m := m) (s := s) hn hyN
+  rw [enabled_loc hn hyN] at hy
+  obtain ⟨-, -, hfl, -⟩ := chkMid_spec (chkAll_parts hc).1 (V_dom hn)
+    (inv_adm hI hp1 (by omega)) (hI _ hp2) (typ_lt y) hy
+  have gX := (loc (m := m) (s := s) hn hX).1
+  have gY := (loc (m := m) (s := s) hn hY).1
+  have hXY : X ≠ Y := by
+    rintro rfl
+    rcases hpos with ⟨-, hl⟩ | ⟨e, -⟩
+    · simp [lpair] at hl; omega
+    · omega
+  unfold pairOk
+  simp only [Bool.and_eq_true, Bool.or_eq_true, bne_iff_ne, beq_iff_eq, ne_eq]
+  constructor
+  · by_cases hyX : y = X
+    · right; subst hyX
+      rw [gX, gY]
+      rcases hpos with ⟨e, hl⟩ | ⟨e, hl⟩
+      · rw [e]; rw [e] at gY
+        exact (followL_spec hfl (typ_lt Y)).1 hl
+      · rw [e]; exact (followL_spec hfl (typ_lt Y)).2.1 (e ▸ hl)
+    · left; exact hyX
+  · by_cases hyY : y = Y
+    · right; subst hyY
+      rw [gX, gY]
+      rcases hpos with ⟨e, hl⟩ | ⟨e, hl⟩
+      · rw [← e]; rw [← e] at hl
+        exact (followL_spec hfl (typ_lt X)).2.2.1 hl
+      · have e' : posOf n y - 1 = posOf n X := by omega
+        rw [e'] at hfl
+        exact (followL_spec hfl (typ_lt X)).2.2.2 hl
+    · left; exact hyY
+
+theorem good_of_inv (hn : 1 ≤ n) (hc : chkAll m = true) (hI : Inv m n s) : Good m n s :=
+  ⟨fun x _ hx hxy hy he => (persist_glob hn hc hI hy hx hxy).1 he,
+   fun _ hy => follow_glob hn hc hI hy⟩
+
+theorem V_init (q : Nat) :
+    V n 0 q = if q = 0 then 48 else if q = 1 then 16 else if q ≤ n + 1 then 0
+      else if q = n + 2 then 32 else 48 := by
+  unfold V
+  simp only [Muller.get, Nat.zero_testBit, Bool.toNat_false, Nat.add_zero]
+  by_cases h0 : q = 0
+  · subst h0; simp
+  by_cases h1 : q = 1
+  · subst h1; simp
+  by_cases h2 : q ≤ n + 1
+  · rw [ifN h1, ifN (by omega), ifP ⟨by omega, h2⟩, ifN h0, ifN h1, ifP h2]; rfl
+  by_cases h3 : q = n + 2
+  · rw [ifN h1, ifP h3, ifN h0, ifN h1, ifN h2, ifP h3]
+  · rw [ifN h1, ifN h3, ifN (by omega), ifN h0, ifN h1, ifN h2, ifN h3]
+
+theorem inv_init (hn : 1 ≤ n) (hc : chkAll m = true) : Inv m n 0 := by
+  have h := (chkAll_parts hc).2.2.2
+  simp only [chkInit, Bool.and_eq_true] at h
+  obtain ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
+  intro q hq
+  rw [V_init, V_init]
+  by_cases e0 : q = 0
+  · subst e0; simpa using h1
+  by_cases e1 : q = 1
+  · subst e1; simp; rw [ifP (by omega)]; exact h2
+  by_cases e2 : q + 1 ≤ n + 1
+  · rw [ifN e0, ifN e1, ifP (by omega), ifN (by omega), ifN (by omega), ifP e2]; exact h3
+  by_cases e3 : q = n + 1
+  · rw [ifN e0, ifN e1, ifP (by omega), ifN (by omega), ifN (by omega), ifN e2, ifP (by omega)]
+    exact h4
+  · rw [ifN e0, ifN e1, ifN (by omega), ifP (by omega), ifN (by omega), ifN (by omega),
+      ifN (by omega), ifN (by omega)]
+    exact h5
+
+theorem reach_inv (hn : 1 ≤ n) (hc : chkAll m = true) {s : Nat} (hs : Reach m n s) : Inv m n s := by
+  induction hs with
+  | init => exact inv_init hn hc
+  | step _ hst ih =>
+    obtain ⟨y, hy, rfl⟩ := hst
+    exact inv_step hn hc ih hy
+
+/-- Generic: for every `n ≥ 1`, every reachable state is `Good`. -/
+theorem good_all (hn : 1 ≤ n) (hc : chkAll m = true) : ∀ s, Reach m n s → Good m n s :=
+  fun _ hs => good_of_inv hn hc (reach_inv hn hc hs)
+
+end Good
+
+theorem chkAll_iso : chkAll .iso = true := by decide +kernel
+theorem chkAll_rt : chkAll .rt = true := by decide +kernel
+
+
+/-! ## Results for every `n` -/
+
+section Results
+variable {n : Nat}
+
+/-- **Isochronic feedback, every `n ≥ 1`**: every reachable state of the real
+`bd_link` chain is hazard-free (no excitation of any LUT, wire or environment
+node is ever withdrawn) and obeys every pair rule. -/
+theorem iso_good (hn : 1 ≤ n) : ∀ s, Reach .iso n s → Good .iso n s := good_all hn chkAll_iso
+
+/-- **Free feedback wire + H_FB_BEFORE_INPUT, every `n ≥ 1`.** -/
+theorem rt_good (hn : 1 ≤ n) : ∀ s, Reach .rt n s → Good .rt n s := good_all hn chkAll_rt
+
+theorem iso_hazard_free (hn : 1 ≤ n) {s : Nat} (hs : Reach .iso n s) : HazardFree .iso n s :=
+  (iso_good hn s hs).1
+theorem rt_hazard_free (hn : 1 ≤ n) {s : Nat} (hs : Reach .rt n s) : HazardFree .rt n s :=
+  (rt_good hn s hs).1
+
+/-- Four-phase protocol on every link of the `n`-stage chain, every execution. -/
+theorem iso_protocol (hn : 1 ≤ n) {σ} (hr : Run .iso n σ) {X Y : Nat} (hp : (X, Y) ∈ pairs n) :
+    Handshake.Protocol (chanOf σ X Y) := run_protocol (iso_good hn) hr hp
+theorem rt_protocol (hn : 1 ≤ n) {σ} (hr : Run .rt n σ) {X Y : Nat} (hp : (X, Y) ∈ pairs n) :
+    Handshake.Protocol (chanOf σ X Y) := run_protocol (rt_good hn) hr hp
+
+/-- Token order between consecutive stages, every execution, every `n`. -/
+theorem iso_token_order {σ} (hr : Run .iso n σ) {k : Nat} (hk1 : 1 ≤ k) (hkn : k < n) (t : Nat) :
+    tog (nodeTrace σ (c k)) t ≤ tog (nodeTrace σ (c (k - 1))) t ∧
+    tog (nodeTrace σ (c (k - 1))) t ≤ tog (nodeTrace σ (c k)) t + 1 :=
+  run_token_order (iso_good (by omega)) hr hk1 hkn t
+theorem rt_token_order {σ} (hr : Run .rt n σ) {k : Nat} (hk1 : 1 ≤ k) (hkn : k < n) (t : Nat) :
+    tog (nodeTrace σ (c k)) t ≤ tog (nodeTrace σ (c (k - 1))) t ∧
+    tog (nodeTrace σ (c (k - 1))) t ≤ tog (nodeTrace σ (c k)) t + 1 :=
+  run_token_order (rt_good (by omega)) hr hk1 hkn t
+
+/-- Enabledness persistence in the rt semantics, every `n` (8g's (EP)). -/
+theorem rt_ep (hn : 1 ≤ n) {s : Nat} (hs : Reach .rt n s) : MullerTimed.EP n s :=
+  fun i j hij hi hj => (persist_glob hn chkAll_rt (reach_inv hn chkAll_rt hs) hj (enabled_lt hi) hij).2 hi
+
+end Results
+
 end Formal.Net.MullerAll

@@ -1,5 +1,6 @@
 import Formal.Net.Muller
 import Formal.Net.MullerRun
+import Formal.Net.MullerTimed
 
 namespace Formal.Net.MullerAll
 open Formal.Net.Muller Formal.Net.CoreLut
