@@ -53,7 +53,81 @@ def die(msg):
     sys.exit(1)
 
 
+class Fabric3(F2.Fabric):
+    """11c's fabric, plus the REVERSE direction of every bidirectional pip
+    (prjxray-db stores e.g. INT_R.LV0<<->>LV18 once, as LV18 <- LV0; the FASM
+    feature INT_R.LV0.LV18 drives LV0 from LV18)."""
+
+    def tt(self, ttype):
+        fresh = ttype not in self._tt
+        j = super().tt(ttype)
+        if fresh:
+            for p in list(j["pips"].values()):
+                if str(p.get("is_directional")) == "0":
+                    r = dict(p)
+                    r["dst_wire"], r["src_wire"] = p["src_wire"], p["dst_wire"]
+                    r["src_to_dst"] = p.get("dst_to_src") or p.get("src_to_dst")
+                    if (r["dst_wire"], r["src_wire"]) not in j["_by_name"]:
+                        j["_by_dst"][r["dst_wire"]].append(r)
+                        j["_by_name"][(r["dst_wire"], r["src_wire"])] = r
+        return j
+
+
+def read_fasm3(path):
+    """11c's reader, plus single-bit vector features (bit2fasm prints a LUT
+    INIT with one bit set as `...INIT[k]`)."""
+    lines = []
+    single = defaultdict(int)
+    with open(path) as f:
+        for line in f:
+            t = line.split("#", 1)[0].strip()
+            m = re.match(r"^(\S+\.[A-D]LUT\.INIT)\[(\d+)\]$", t)
+            if m:
+                single[m.group(1)] |= 1 << int(m.group(2))
+            else:
+                lines.append(line)
+    tmp = path + ".nosingle.tmp"
+    with open(tmp, "w") as f:
+        f.writelines(lines)
+    feats, vecs = F2.read_fasm(tmp)
+    os.unlink(tmp)
+    for k, v in single.items():
+        if k in vecs:
+            die("%s given both as a vector and as single bits" % k)
+        vecs[k] = v
+    return feats, vecs
+
+
 class Extract3(F2.Extract):
+    floats = []
+
+    def walk(self, tile, wire, what):
+        """11c's walk, except that a node with no driver (and no unique implicit
+        one) is returned as ("float", what, #pips walked) instead of exiting:
+        the caller makes it a FREE input (H_FLOAT_FREE)."""
+        pips = []
+        node = self.fab.node(tile, wire)
+        for _ in range(200):
+            src = self.source_pin(node)
+            if src:
+                self.paths.append((pips, node, src))
+                return src, pips
+            d = self.drivers(node)
+            if len(d) > 1:
+                die("%s: node %s has %d active drivers (a short)" % (what, sorted(node)[0], len(d)))
+            if not d:
+                cand = [(t, p, ps) for t, p, ps in self.pseudo_drivers(node)
+                        if self.is_driven(self.fab.node(t, p["src_wire"]))]
+                if len(cand) != 1:
+                    self.floats.append((what, len(pips), sorted(node)[0], len(cand)))
+                    return ("float", what, len(pips)), pips
+                d = cand
+            t, p, ps = d[0]
+            pips.append((t, p, ps, node))
+            self.used_pips.add((t, p["dst_wire"], p["src_wire"]))
+            node = self.fab.node(t, p["src_wire"])
+        die("%s: route longer than 200 pips" % what)
+
     def source_pin(self, node):
         for t, w in node:
             if w in ("GND_WIRE", "VCC_WIRE"):
@@ -72,7 +146,7 @@ class Extract3(F2.Extract):
                 if pin == "I":
                     return ("iob", t, site, pin)
                 continue
-            if "res" in v:      # an output site pin (prjxray-db: drivers carry R)
+            if site["type"] in ("BUFGCTRL", "BUFHCE", "BSCAN") and "res" in v:   # an output site pin
                 return ("site", t, site, pin)
         return None
 
@@ -84,8 +158,8 @@ def main():
     ap.add_argument("--json", required=True)
     a = ap.parse_args()
 
-    feats, vecs = F2.read_fasm(a.fasm)
-    fab = F2.Fabric()
+    feats, vecs = read_fasm3(a.fasm)
+    fab = Fabric3()
     pin_site = {}
     with open(os.path.join(F2.DB, F2.PKG, "package_pins.csv")) as f:
         for r in csv.DictReader(f):
@@ -131,6 +205,8 @@ def main():
     def src_key(src, what):
         if src[0] == "const":
             return {"const": src[1]}
+        if src[0] == "float":
+            return {"net": "float:" + src[1]}
         _, tile, site, pin = src
         if src[0] == "iob":
             sname = fab.site_name(tile, site)
@@ -156,7 +232,8 @@ def main():
             L = pin[0]
             i = LS.index(L)
             for o, key in (("O6", "%s6" % L), ("O5", "%s5" % L), ("XOR", "XOR%d" % i),
-                           ("CY", "CO%d" % i), ("%s5Q" % L, "%s5Q" % L)):
+                           ("CY", "CO%d" % i), ("%s5Q" % L, "%s5Q" % L),
+                           ("F7", "F7A" if L == "A" else "F7B"), ("F8", "F8")):
                 if has(pre, "%sOUTMUX.%s" % (L, o)):
                     if o in ("O6", "O5") and (pre, L) not in lut_init:
                         zero_reads.append(what)
@@ -193,8 +270,6 @@ def main():
         tile, site, sn = slice_site(pre)
         sname_of[pre] = sn
         fs = sf[pre]
-        if any(re.search(r"F7|F8", x) for x in fs):
-            die("%s: wide mux (MUXF7/F8) not modelled: %s" % (sn, sorted(x for x in fs if re.search("F7|F8", x))))
         if has(pre, "LATCH"):
             die("%s: LATCH mode not modelled (LDCE/LDPE)" % sn)
         if any(re.search(r"\.RAM|SRL|SMALL|WA[678]USED|WEMUX", "." + x) for x in fs):
@@ -230,6 +305,10 @@ def main():
                     d = {"net": "%s.XOR%d" % (sn, i)}; carry_used.add(pre)
                 elif sel == "CY":
                     d = {"net": "%s.CO%d" % (sn, i)}; carry_used.add(pre)
+                elif sel == "F7" and L in "AC":
+                    d = {"net": "%s.F7%s" % (sn, "A" if L == "A" else "B")}
+                elif sel == "F8" and L == "B":
+                    d = {"net": "%s.F8" % sn}
                 else:
                     die("%s: %s not modelled" % (sn, mux[0]))
             else:
@@ -284,10 +363,45 @@ def main():
                 outs["CO%d" % i] = "%s.CO%d" % (sn, i)
             cells.append({"name": sn + ".CARRY4", "kind": "carry4", "init": 0, "conn": conn,
                           "outs": outs, "inv": []})
+    # wide muxes, where referenced: F7AMUX = AX ? A6 : B6, F7BMUX = CX ? C6 : D6,
+    # F8MUX = BX ? F7AMUX : F7BMUX (UG474 fig. 2-4; I1 = the A/C side, as nextpnr's
+    # SELMUX2_1 placement on these BELs: A6LUT -> input 1, B6LUT -> input 0).
+    def add_wide(sn, which):
+        pre = [p for p, s in sname_of.items() if s == sn][0]
+        tile, site, _ = slice_site(pre)
+        names = {c["name"] for c in cells}
+        for nm, i0, i1, sel in (("F7A", "B", "A", "AX"), ("F7B", "D", "C", "CX")):
+            if sn + "." + nm in names or nm not in which:
+                continue
+            cells.append({"name": sn + "." + nm, "kind": "muxf7", "init": 0,
+                          "conn": {"I0": lut_net(pre, sn, i0, "6", "%s %s I0" % (sn, nm)),
+                                   "I1": lut_net(pre, sn, i1, "6", "%s %s I1" % (sn, nm)),
+                                   "S": walk_pin(tile, site, sel, "%s %s S" % (sn, nm))},
+                          "outs": {"O": "%s.%s" % (sn, nm)}, "inv": []})
+            names.add(sn + "." + nm)
+
+    def add_f8(sn):
+        pre = [p for p, s in sname_of.items() if s == sn][0]
+        tile, site, _ = slice_site(pre)
+        if any(c["name"] == sn + ".F8" for c in cells):
+            return
+        cells.append({"name": sn + ".F8", "kind": "muxf8", "init": 0,
+                      "conn": {"I0": {"net": sn + ".F7B"}, "I1": {"net": sn + ".F7A"},
+                               "S": walk_pin(tile, site, "BX", "%s F8 S" % sn)},
+                      "outs": {"O": sn + ".F8"}, "inv": []})
+
     # iterate: a CIN walk may reach a further COUT
     for _ in range(64):
         n0 = len(cells)
         referenced = {v["net"] for c in cells for v in c["conn"].values() if "net" in v}
+        for net in sorted(referenced):
+            m = re.match(r"^(SLICE_X\d+Y\d+)\.(F7A|F7B|F8)$", net)
+            if m:
+                if m.group(2) == "F8":
+                    add_f8(m.group(1))
+                    add_wide(m.group(1), ("F7A", "F7B"))
+                else:
+                    add_wide(m.group(1), (m.group(2),))
         for net in referenced:
             m = re.match(r"^(SLICE_X\d+Y\d+)\.(XOR|CO)\d$", net)
             if m:
@@ -307,17 +421,49 @@ def main():
         other[p[0]].add(".".join(p[1:]))
     for tile in sorted(other):
         for rest in sorted(other[tile]):
-            m = re.match(r"^BUFGCTRL\.(BUFGCTRL_X\d+Y\d+)\.IN_USE$", rest)
+            m = re.match(r"^BUFGCTRL\.BUFGCTRL_(X\d+Y\d+)\.IN_USE$", rest)
             if m:
-                sname = m.group(1)
+                rel = m.group(1)
                 j = fab.tt(fab.ttype(tile))
-                site = [s for s in j["sites"] if fab.site_name(tile, s) == sname][0]
-                feats_b = sorted(x for x in other[tile] if x.startswith("BUFGCTRL.%s." % sname))
+                site = [s for s in j["sites"] if s["type"] == "BUFGCTRL" and s["name"] == rel][0]
+                sname = fab.site_name(tile, site)
+                feats_b = sorted(x for x in other[tile] if x.startswith("BUFGCTRL.BUFGCTRL_%s." % rel))
+                want = ["BUFGCTRL.BUFGCTRL_%s.%s" % (rel, x) for x in
+                        ("IN_USE", "IS_IGNORE1_INVERTED", "ZINV_CE0", "ZINV_S0")]
+                if feats_b != sorted(want):
+                    die("%s: BUFGCTRL configuration %s is not nextpnr's BUFG (I0 -> O)" % (sname, feats_b))
                 for x in feats_b:
                     consumed.add("%s.%s" % (tile, x))
                 cells.append({"name": sname, "kind": "buf", "init": 0,
                               "conn": {"I": walk_pin(tile, site, "I0", "%s I0" % sname)},
                               "outs": {"O": "%s/O" % sname}, "inv": [], "features": feats_b})
+    # BUFHCE (horizontal clock row buffers on the clock route): identity, where a
+    # walk reached its O, with exactly the configuration {IN_USE, ZINV_CE}.
+    def find_site(sname):
+        tile = [t for t, g in fab.grid.items() if sname in g.get("sites", {})][0]
+        j = fab.tt(fab.ttype(tile))
+        return tile, [s for s in j["sites"] if fab.site_name(tile, s) == sname][0]
+    for _ in range(8):
+        srcs = {v["net"] for c in cells for v in c["conn"].values() if "net" in v}
+        new = [n for n in sorted(srcs) if re.match(r"^BUFHCE_X\d+Y\d+/O$", n)
+               and not any(c["name"] == n.split("/")[0] for c in cells)]
+        if not new:
+            break
+        for n in new:
+            sname = n.split("/")[0]
+            tile, site = find_site(sname)
+            rel = site["name"]
+            feats_b = sorted(x for x in other[tile] if x.startswith("BUFHCE.BUFHCE_%s." % rel))
+            want = sorted("BUFHCE.BUFHCE_%s.%s" % (rel, x) for x in ("IN_USE", "ZINV_CE"))
+            if feats_b != want:
+                die("%s: BUFHCE configuration %s not modelled" % (sname, feats_b))
+            for x in feats_b:
+                consumed.add("%s.%s" % (tile, x))
+            cells.append({"name": sname, "kind": "buf", "prim": "BUFHCE", "init": 0,
+                          "conn": {"I": walk_pin(tile, site, "I", "%s I" % sname)},
+                          "outs": {"O": n}, "inv": [], "features": feats_b,
+                          "ce": walk_pin(tile, site, "CE", "%s CE" % sname)})
+
     # BSCAN: an opaque cell wherever a walk reached one of its outputs
     srcs = {v["net"] for c in cells for v in c["conn"].values() if "net" in v}
     for net in sorted(srcs):
@@ -355,6 +501,9 @@ def main():
     for f in left:
         rest = f.split(".", 1)[1] if "." in f else f
         for rx, cat in F2.SITE_OK + [(r"^BUFGCTRL\.", "bufgctrl (unused site default)"),
+                                      (r"^(ENABLE_BUFFER\.HCLK_CK_BUFHCLK\d+|GCLK\d+_ENABLE_(ABOVE|BELOW)|"
+                                       r"CLK_HROW_R_CK_GCLK\d+_ACTIVE|HCLK_CMT_CK_BUFHCLK\d+_USED)$",
+                                       "clock spine enable"),
                                       (r"^SLICE[LM]_X[01]\.PRECYINIT\.C0$", "default")]:
             if re.search(rx, rest):
                 census[cat] += 1
@@ -368,11 +517,16 @@ def main():
     kinds = defaultdict(int)
     for c in cells:
         kinds[c["kind"] if c["kind"] != "opaque" else "opaque:" + c["prim"]] += 1
-    res = {"cells": cells, "outputs": outs, "census": dict(kinds), "zero_lut_reads": zero_reads,
+    fl = Extract3.floats
+    res = {"floats": [list(x) for x in fl], "cells": cells, "outputs": outs, "census": dict(kinds), "zero_lut_reads": zero_reads,
            "leftover_features": dict(census), "untraced_pips": len(unused),
            "active_pips": sum(len(v) for v in ex.active.values())}
     with open(a.json, "w") as f:
         json.dump(res, f, indent=0, sort_keys=True)
+    print("fasm2lean3: %d floating pins (%d after >= 1 active pip)" % (len(fl), sum(1 for x in fl if x[1] > 0)), file=sys.stderr)
+    for x in fl:
+        if x[1] > 0:
+            print("  float after pips: %s" % (x,), file=sys.stderr)
     print("fasm2lean3: %s; %d outputs; %d reads of all-zero LUTs; %d active pips, %d untraced"
           % (dict(kinds), len(outs), len(zero_reads), res["active_pips"], len(unused)), file=sys.stderr)
 

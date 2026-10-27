@@ -5,6 +5,8 @@ from `X0 A B`, and prints `Formal/Net/CapstoneWitnessRun.lean` (chunked certific
 
 open Formal.Net Formal.Net.GcdHw Formal.Net.GcdHw.Gcd Formal.Net.CapNet.Wit
 
+instance : Inhabited TL := ⟨⟨[], [], []⟩⟩
+
 def firstEnabled (x : TL) : Option (Nat × TL) :=
   (List.range rules.length).findSome? fun l => (tstepL x l).map fun y => (l, y)
 

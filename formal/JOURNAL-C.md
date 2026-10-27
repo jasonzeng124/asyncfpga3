@@ -362,7 +362,7 @@ collatz/xorshift/ipow + how-to), 11f (whole-design bitstream import:
 FF/CARRY4/MUXF7/F8), 8w (tcheck verdicts => capstone H_BUNDLE, O6), 10l2
 (diagnose rule K, finish 10l).
 
-### progress 11:50
+### progress 11:46
 Committed after my own build + check.sh audit:
 - aud (2798 decls): audit rows answered in Lean. RingFair proves the
   N(N-1)/2 fair window; RingGen restates ring_three/k_tokens over the

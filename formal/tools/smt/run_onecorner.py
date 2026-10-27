@@ -174,6 +174,27 @@ def sec_arbiter():
         wv(best[1], best[2])
 
 
+def sec_arbiter2():
+    log('# follow-up: zero-fork owner CEX at SLOW/CM. Is it the fast server (Ls=1)?')
+    log('# owner flags an A0 rise while no single grant is high (A0 beats g2 to ua2).')
+    for name, lut in (('SLOW (4,5)', ((4, 5), (4, 5))), ('SLOWp (5,5)', ((5, 5), (5, 5))),
+                      ('CM (3,4)', ((3, 4), (3, 4)))):
+        for Ls in (1, 2, 3, 4):
+            ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, 0), Ls=Ls)
+            t = time.time()
+            d, tr = tsmc.bmc(ts, P['owner'], 55)
+            log('  %s Ls=%d fork 0: owner %s [%.1fs]' % (name, Ls, 'CEX@%s' % d if d is not None else 'none to 55', time.time() - t))
+            if d is None:
+                for k in range(1, 21):
+                    ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, k), Ls=Ls)
+                    d, tr = tsmc.bmc(ts, P['owner'], 55)
+                    if d is not None:
+                        log('  %s Ls=%d: smallest A0->ua2 extra delay with owner CEX: %d (depth %d)' % (name, Ls, k, d))
+                        wv(ts, tr)
+                        break
+                break
+
+
 if __name__ == '__main__':
     secs = sys.argv[1:] or ['tb', 'real', 'arbiter']
     for s in secs:
