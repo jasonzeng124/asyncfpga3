@@ -18,9 +18,12 @@ rise arcs `dr` and fall arcs `df` (`dr ≤ df` on every pin),
 For an isolated edge on one pin this puts the output's rising edge exactly
 `dr` after the input edge and its falling edge exactly `df` after; that is the
 iverilog `specify` behaviour of `cells/sim/bd_prims_sim.v` for isolated edges.
-It is pulse-STRETCHING for high pulses (transport, no inertial rejection),
-which is the "+68 ps stretch each O6 LUT adds to a positive pulse" of
-ARBITER.md. In the handover scenarios below every LUT sees at most one edge
+It is pulse-STRETCHING for high pulses by `df - dr` (transport, no inertial
+rejection). ARBITER.md's "+68 ps stretch each O6 LUT adds to a positive pulse"
+is this with 68 = 124 − 56, which is prjxray's SLOW_MAX − FAST_MAX of ONE O6
+arc (makesdf.py:63), a corner mix, not a measured rise/fall asymmetry; at one
+consistent corner `df = dr` and the stretch is 0 (consistent-corner values:
+`ArbCorners`; see the audit correction below). In the handover scenarios below every LUT sees at most one edge
 per pin that changes its function, so the choice of multi-edge semantics does
 not enter.
 

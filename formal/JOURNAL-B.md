@@ -76,8 +76,12 @@ Findings for the cell owner (not confirmed on a route):
   (cells/verify/arb_fork.py); my earlier note and owner notification saying
   "unchecked" were wrong. 7g proves rule J's condition exact (iff, both
   clients, box version) and finds rule J optimistic by ignoring per-pin
-  site-pin delays (up to ~0.5 ns, not in nextpnr's SDF) and using a flat
-  124 ps LUT arc (68-161 ps the wrong way). Proposed rule J' in
+  site-pin delays (up to ~0.5 ns, not in nextpnr's SDF). [The second reason
+  first given here, "a flat 124 ps LUT arc (68-161 ps the wrong way)", was
+  the corner mix and is withdrawn (audit row 10): at SLOW_MAX the flat 2x124
+  is exact for client 2, and for client 1 26 ps conservative on the identity
+  pin map but 8 ps optimistic with q on A5, as in 3 of 4 routed seeds
+  (ArbCornersPin.ruleJ_seed, audit row 35).] Proposed rule J' in
   formal/notes/B-arb-a0fork.md. Survey raw minimum +618 ps; worst pin
   assignment leaves ~0 across the full box on the tightest route.
 - C-element fork: after seeing the ack the environment must wait out the
@@ -145,8 +149,10 @@ Findings for the cell owner (not confirmed on a route):
   opposite-sense moves give q exactly one clean edge. bd_arb.v's header says
   the reverse. Exact simultaneity is the only deterministic tie. Ties go to
   the previous winner; alternation needs H_Q_BEFORE_REREQ.
-- Bare-cell filtered overlap (8%): an isolated handover overlaps <= 72/94 ps
-  for any request skew, below the filter; the observed events are not the
+- Bare-cell filtered overlap (8%): an isolated handover overlaps <= 26/3 ps
+  at a consistent corner (SLOW_MAX/FAST_MIN) and <= 82/105 ps in the box
+  (ArbCorners.caps_are/box_caps; the earlier 72/94 were corner-mixed; pin-map
+  caveat of audit row 35) for any request skew, below the filter; the observed events are not the
   digital handover overlap.
 
 ## Audit response (claude/audit REPORT.md, read 2026-10-27)
@@ -156,7 +162,8 @@ Rows concerning shard B, and what was done:
   way)", "O6 rise 45-56, fall 100-124". Agreed: prjxray's two groups are
   FAST and SLOW corners (makesdf.py:63). Withdrawn. ArbCorners (Bc) proves
   every old instance is the corner mix and recomputes: rule J's flat 2x124 is
-  exact (client 2) or 26 ps conservative (client 1); its real gap is the
+  exact (client 2) or 26 ps conservative (client 1, identity pin map only;
+  8 ps optimistic with q on A5, audit row 35); its real gap is the
   per-pin site-pin delays (Bp/PinAssign measures them from the bits).
 - Row 24 (OVERSTATED): ArbHeldTimed/ArbHeldTimed2 numeric instances (16 ps
   threshold, 96 ps margin, "112 ps server") are corner-mix artefacts. Agreed;

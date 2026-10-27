@@ -263,7 +263,10 @@ structure AGrant (P G5 G6 : InvolutionPair) (s : ℝ) (r1 r2 x qp y1 y2 g1 g2 : 
 beats the O5 rise, at a `q` fall the O5 fall beats the O6 rise, whenever the
 falling output's history argument is the smaller one. Physical content: each
 output's fall delay is not longer than the other output's rise delay at the same
-history. Test: rise/fall arcs of `ugrant` O5/O6 (SDF, pulse-shrink curves). -/
+history. Test: per-edge (rise/fall) arcs and pulse-shrink curves of `ugrant`
+O5/O6, which need a characterisation: prjxray's SDF has no edge split (its two
+triples are the FAST and SLOW corners, makesdf.py:63; consistent-corner arcs in
+`ArbCorners`). -/
 structure BBM (G5 G6 : InvolutionPair) : Prop where
   H_BBM1 : ∀ x y, -G6.infUp < x → x < y → -G5.infDown < y → G6.down x < G5.up y
   H_BBM2 : ∀ x y, -G5.infUp < x → x < y → -G6.infDown < y → G5.down x < G6.up y

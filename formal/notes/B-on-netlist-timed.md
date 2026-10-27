@@ -183,7 +183,8 @@ B's `H_LOOP_POS` is discharged from the numbers.
      = the same net to the port), so it is the natural next step at about 0.5 day.
    - LinkTimed / PipeTimed.
 6. **One `dl` per site.** `Behaves` gives one LUT window per site, not per (pin, output) arc. The
-   per-arc prjxray data is flat for O6 (all 45/124), but varies for O5 (42 to 157). Per-arc
+   per-arc prjxray data is flat for O6 (all 45/124, FAST_MIN/SLOW_MAX: corners, not rise/fall,
+   makesdf.py:63), but varies for O5 (42 to 157). Per-arc
    windows would tighten the latch numbers slightly.
 7. **Pin-level environment hypotheses.** B's four-phase hypotheses are stated on LUT pin traces.
    Discharging them from a neighbouring stage's output, through its route, is the per-link work

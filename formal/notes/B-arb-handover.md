@@ -290,7 +290,13 @@ is consistent with "one link removes every instance".
   corner, 82/105 ps in the box), for every skew and every routing.
   Assuming, not proving here, that the detector AND adds a +68 ps stretch, the
   raw pulse is at most about 162 ps. That is below the 203 ps minimum
-  threshold of the W = 2 filter.
+  threshold of the W = 2 filter. [The +68 ps (= 124 − 56) is SLOW_MAX −
+  FAST_MAX of one O6 arc (prjxray makesdf.py:63), a corner mix, not a
+  rise/fall stretch. At one consistent corner this channel adds no stretch
+  (rise = fall), so the bound is the cap itself; the box's stretch would be
+  at most SLOW_MAX − FAST_MIN = 124 − 45 = 79 ps, about 105 + 79 = 184 ps,
+  still below 203 (arithmetic, not proved). Consistent-corner caps:
+  `ArbCorners.caps_are`, `box_caps`; per routed seed, B-arb-corners-pin.md.]
 - **What this means for the 8%.** Within this channel model, the structural
   handover mechanism **cannot** produce the 15 filtered copies. This confirms
   ARBITER.md's "predicts no copy should ever fire", and it holds for all skews
@@ -351,7 +357,8 @@ is consistent with "one link removes every instance".
 - No QDI check with explicit fork wires, so which forks must be isochronic is
   not established.
 - The detector LUT's +68 ps stretch is not proved here (it would be one more
-  `LutOut3` lemma).
+  `LutOut3` lemma). [68 is the corner mix SLOW_MAX − FAST_MAX; at a
+  consistent corner the stretch is 0.]
 - Non-isolated or multi-edge behaviour of the channel, and the free-running
   regime of tb_arb_overlap, are not modelled.
 - Not yet ported to shard A's `Formal/Core` channels.
