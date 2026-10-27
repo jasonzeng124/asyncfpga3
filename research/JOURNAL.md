@@ -1018,3 +1018,4 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 - fusion_bench: collatz64 gets 8 seeded random vectors whose trajectory peak exceeds 2^31 (the reason the 64-bit
   kernel exists); simcheck had 3. A first collatz64 routed GLS (placeholders, 3 vectors) is running; it will be rerun
   with the 11.
+  ipow T9 + FF over seeds 29-36: **72.2 ns/iteration (70.3-74.3)** (T9 alone 76.2; pads-only 105.6: 1.46x).
