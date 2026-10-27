@@ -102,6 +102,7 @@ stops = T.storage_nodes(edges)
 timing = T.Timing(edges, stops)
 F = {r[0]: r for r in T.audit_fastfall(edges, back, T.find_chains(edges), timing)}
 
+allstages = []
 rows = []
 for base, (n, names) in sorted(lines.items()):
     c0 = cells[names[0]]
@@ -134,7 +135,7 @@ for base, (n, names) in sorted(lines.items()):
         hop = ic[(prev_pin, f"{nm}/{rp}")]
         tap = ic[(src, f"{nm}/{tp}")]
         f_new = min(tap + iop[(nm, tp, op)], f + hop + iop[(nm, rp, op)])
-        need.append((f + hop - tap + 1, nm, hop, tap, f))
+        need.append((f + hop - tap + 1, nm, hop, tap, f)); allstages.append((hop - tap, nm))
         f = f_new; falls.append(f); prev_pin = f"{nm}/{op}"
     drainF = max(falls)
     worstneed = max(need)
@@ -165,4 +166,5 @@ print(f"worst rule F guarded margin (theirs): {min(o[8] for o in out)}")
 print(f"worst corrected RAW margin (t_reuse - drainC): {min(o[1] for o in out)}")
 print(f"worst corrected GUARDED margin: {min(o[0] for o in out)}")
 print(f"lines where the hop term binds (drainC > flush): {sum(1 for o in out if o[9] > o[4])}")
-print(f"max (hop - tap) over all stages: see column; lines with corrected raw < 0: {sum(1 for o in out if o[1] < 0)}")
+print(f"stages audited {len(allstages)}; with hop > tap: {sum(1 for x in allstages if x[0] > 0)}; max hop-tap {max(allstages)}")
+print(f"lines with corrected raw < 0: {sum(1 for o in out if o[1] < 0)}; corrected guarded < 0: {sum(1 for o in out if o[0] < 0)}")
