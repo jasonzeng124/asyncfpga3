@@ -275,7 +275,7 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_arbcell.grant_skew` | proved | sufficient | no | none |
 | `bd_arbcell.handover_overlap` | proved | exact | no | none |
 | `bd_arbcell.bbm` | proved | sufficient | no | none |
-| `bd_arbcell.settled_exclusion` | proved | exact | no | none |
+| `bd_arbcell.settled_exclusion` | proved | sufficient | no | none |
 | `bd_arbiter.a0_fork_client2` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
 | `bd_arbiter.a0_fork_client1` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
 | `bd_arbiter.rt1` | proved | exact | yes | none |
@@ -311,8 +311,9 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_merge.bundled_z` | proved | sufficient+necessary_at_boundary | yes | A: rule_is_the_check |
 | `bd_merge.bundled_z_data` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 | `bd_merge.isochronic_forks` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
-| `bd_merge.uxa_feedback` | proved | sufficient (strict +1) | yes | none |
-| `bd_merge.uxa_req_latency` | proved | sufficient (strict +1) | yes | none |
+| `bd_merge.uxa_feedback` | proved | not_necessary (strict +1) | yes | none |
+| `bd_merge.uxa_req_latency` | proved | not_necessary (strict +1) | yes | none |
+| `bd_merge.uxa_loop` | proved | exact (strict +1) | yes | none |
 | `bd_merge.reset_first` | proved | sufficient (strict +1) | no | none |
 | `bd_merge.sel_start` | proved | sufficient+necessary_at_boundary | yes | none |
 | `bdc_amerge.bundled_idx_grant` | proved | sufficient+necessary | yes | A: different_condition |

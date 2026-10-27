@@ -565,8 +565,8 @@ add(id="bd_arbcell.grant_skew", cell="bd_arbcell", catalogue_row="R2",
 add(id="bd_arbcell.handover_overlap", cell="bd_arbcell", catalogue_row="R5",
     obligation="bare handover grant overlap (no obligation needed at a consistent corner)",
     inequality="overlap = max 0 (d6 - o5q - w) = 0 at every consistent corner and every w >= 0; box max 0 (37 - w)", forms=[],
-    lean=[L("Cells/ArbHandover", "overlap_duration_r2_to_r1", "exact"), L("Cells/ArbCorners", "overlap_C", "exact"),
-          L("Cells/ArbCorners", "corner_no_overlap", "exact"), L("Cells/ArbCorners", "box_overlap_le", "bound"), L("Cells/ArbCorners", "prj_is_mix", "context", note="the old 16 ps was the corner mix"),
+    lean=[L("Cells/ArbHandover", "overlap_duration_r2_to_r1", "exact_formula", note="closed-form equality for the overlap count (not an iff)"), L("Cells/ArbCorners", "overlap_C", "exact_formula", note="closed form max 0 (d6 - o5q - w) at any corner (an equality, not an iff)"),
+          L("Cells/ArbCorners", "corner_no_overlap", "sufficient", note="no overlap at every consistent corner, every w >= 0"), L("Cells/ArbCorners", "box_overlap_le", "bound"), L("Cells/ArbCorners", "prj_is_mix", "context", note="the old 16 ps was the corner mix"),
           L("Cells/ArbOverlapRace", "grant_cap", "bound", note="Bov: for EVERY digital trace (any request waveforms, fork skew, near ties, runts, q oscillation) every g1 & g2 interval is <= |b5 - b6| = |O5 - O6 arc of q's pin| (b_cancel, H_SHARED_Q_PIN)"),
           L("Cells/ArbOverlapRace", "cell_cap_consistent", "bound", note="<= 33 ps at a consistent corner"), L("Cells/ArbOverlapRace", "cell_cap_box", "bound", note="<= 112 ps in the independent box"),
           L("Cells/ArbOverlapRace", "cell_never_203", "bound", note="the cell cannot pass the board's >= 203 ps filter; the rig's detector site pins can (slow_trace_passes_203, 305 ps at SLOW_MAX with zero SDF skew)")],
@@ -581,7 +581,7 @@ add(id="bd_arbcell.bbm", cell="bd_arbcell", also_applies_to=["bd_arbiter.ugrant"
     site_pins={"needed": False, "roles": []}, rule={"rule": "none", "verdict": "uncheckable_statically"}, corner=CORNER_NA, check_scope="not_static")
 add(id="bd_arbcell.settled_exclusion", cell="bd_arbcell", also_applies_to=["bd_arbiter"], catalogue_row="R1",
     obligation="settled exclusion (structural: g1, g2 read the same q pin)", inequality="none", forms=[],
-    lean=[L("Cells/ArbBinary", "settled_exclusion", "exact"), L("Cells/OnNetlist", "settled_exclusion_bits", "instance", note="on the bits")],
+    lean=[L("Cells/ArbBinary", "settled_exclusion", "sufficient", note="unconditional Boolean identity g1 && g2 = false (not an iff)"), L("Cells/OnNetlist", "settled_exclusion_bits", "instance", note="on the bits")],
     exactness="exact", site_pins={"needed": False, "roles": []}, rule={"rule": "none", "verdict": "none"}, corner=CORNER_NA, check_scope="structural")
 
 # =============================================================== bd_arbiter
@@ -727,7 +727,7 @@ for xa, jn, other in [("uxa", "j0", "uj1"), ("uya", "j1", "uj0")]:
         inequality=f"te + dlmax + dwmax <= tr (te: {jn} and z_ack both low at {xa}'s pins; tr: z_ack re-rise at the pin)",
         forms=[form([[lut(xa, "{I0|I1}", "O6", "dlmax"), fbw(xa, "O6", "I2", "dwmax"), sp(xa, "I2", "feedback")]],
                     [[env("zack_low", f"z_ack low at {xa}.I1 from te to the re-rise tr, min")]], launch=f"te at {xa}'s pins")],
-        lean=[L("Cells/MuxRtzTimed", "rtz_safe", "sufficient"), L("Cells/MuxRtzTimed", "rtz_exact_safe", "exact"),
+        lean=[L("Cells/MuxRtzTimed", "rtz_safe", "sufficient"), L("Cells/MuxRtzTimed", "rtz_exact_safe", "sufficient", note="the safe half of the fixed-delay exactness (w >= dl + dw); the other half is rtz_counter"),
               L("Cells/MuxRtzTimed", "rtz_counter", "counter_trace", note="perpetual runt train, spurious ack"), L("Cells/MuxRtzTimed", "rtz_counter_loop", "counter_trace"),
               L("Cells/MuxRtzTimed", "rtz_inertial_lost", "counter_trace", note="inertial: wrong latch"), L("Cells/MergeMuxSI", "mux_needs_rtz", "necessary", note="untimed")],
         exactness="exact", exactness_note="exact for fixed delays (w >= dl+dw safe; 0 < w < dl+dw oscillates). rtz_safe is stated for any bd_c2 loop with a low j input, so it covers uya too.",
@@ -956,7 +956,7 @@ add(id="bd_mux.bundled_z_data", cell="bd_mux", catalogue_row="X5 (new, B-ops-tim
 
 # =============================================================== bd_steer (P4: B-gcd-cells.md gap 5, 38 instances in gcd_hw; P5: timed, B-ops-timed2.md section (d))
 STEER_UNTIMED = [L("Cells/LibCtlMergeMux", "steer_req0", "function_equality", note="req0 = req . ~s (O5)"), L("Cells/LibCtlMergeMux", "steer_req1", "function_equality", note="req1 = req . s (O6)"),
-                 L("Cells/LibCtlMergeMux", "steer_excl_K", "exact", note="Kleene exclusion"),
+                 L("Cells/LibCtlMergeMux", "steer_excl_K", "context", note="Kleene exclusion of the two branches (a universal fact, not an iff)"),
                  L("Cells/LibCtlMergeMux", "steer_s_x_while_req", "necessary", note="Kleene: s mid-edge while req is high gives x on both outputs"),
                  L("Cells/LibCtlMergeMux", "steer_req_s_together", "necessary", note="req and s moving together gives x"),
                  L("Net/OpsSteer", "steer_op", "sufficient", note="shard C, untimed operator refinement under Held")]
@@ -2235,6 +2235,120 @@ bsx("bd_mux.uya_rtz_env", "sufficient+necessary_at_boundary",
     "Bsx: mirror of uxa_rtz_env with the real uj0 INIT (x_req waiting, s = 0).",
     [(NMR, "claimY0", "sufficient", None), (NMR, "claimY1_false", "counter_trace", None), (NMR, "claimY1_false_1C", "counter_trace", None)])
 
+# --------------------------------------------------------------- probe Bj3: Bmg (NecessityMerge), CElemStrict2 backing, honest `exact` roles (B-self-audit2.md)
+NM = "Cells/NecessityMerge"
+CS2 = "Cells/CElemStrict2"
+BMG = "Bmg (formal/notes/B-necessity-merge.md, NecessityMerge.lean)"
+
+# (1) bd_merge.uxa_loop: H_XA_LOOP / H_YA_LOOP, launched at the ack C-element's own output edge
+def xa_loop(a, c, Wa, Wc, Wz, wh):
+    q = [fbw(a, "O6", "I2", f"{wh}: in Qhi"), sp(a, "I2", "feedback", "in Qhi"), lut(a, "I2", "O6", "Qhi: I2 (feedback) arc, hi")]
+    head = [wire(f"{a}.O6", f"{c[0]} client", f"{Wa}.lo (Xlo)"),
+            env("Eo", f"client {c[0]}: {c[0]}_ack edge seen -> its next {c} edge, min (H_CLIENT)", "Eo")]
+    return [form([q], [head + [wire(c, f"{a}.I0", f"{Wc}.lo"), sp(a, "I0", c), lut(a, "I0", "O6", "Alo: I0 arc, lo")]],
+                 margin=1, launch=f"{a}.O6 edge", note=f"{c} branch: Qhi + 1 <= Xlo + Eo + Alo"),
+            form([q], [head + Kz(c, "I0" if c == "x_req" else "I1") + [wire("z_ack.drv", f"{a}.I1", f"{Wz}.lo"), sp(a, "I1", "z_ack"), lut(a, "I1", "O6", "Blo: I1 arc, lo")]],
+                 margin=1, launch=f"{a}.O6 edge", note="z_ack branch: Qhi + 1 <= Xlo + Eo + K + Blo, K = Kz (min request edge -> z_ack edge)")]
+old = BYID["bd_merge.uxa_feedback"]
+loop = dict(
+    id="bd_merge.uxa_loop", cell="bd_merge", catalogue_row="M4 (Bmg; replaces uxa_feedback and uxa_req_latency)",
+    obligation="H_XA_LOOP / H_YA_LOOP: an ack C-element's own feedback settles before the first next-phase input edge it causes reaches any of its pins; launched at the C-element's OUTPUT edge, so the input wires' spreads cancel",
+    inequality=("wxah + SP(uxa.I2).hi + arc(uxa.I2 -> O6).hi + 1 <= Wxa.lo + Eo + (Wxc.lo + SP(uxa.I0).lo + arc(uxa.I0 -> O6).lo) and "
+                "<= Wxa.lo + Eo + Kz + (Wzx.lo + SP(uxa.I1).lo + arc(uxa.I1 -> O6).lo) (Qhi + 1 <= Xlo + Eo + Alo, Qhi + 1 <= Xlo + Eo + K + Blo); "
+                "uya: wyah, Wya, Wyc, Wzy; Kz = wo + Lor.lo + Dz.lo + Es"),
+    forms=xa_loop("uxa", "x_req", "Wxa", "Wxc", "Wzx", "wxah") + xa_loop("uya", "y_req", "Wya", "Wyc", "Wzy", "wyah"),
+    refers_to=["bd_merge.uxa_feedback", "bd_merge.uxa_req_latency", "bd_merge.isochronic_forks"],
+    lean=[L(NM, "uxa_box_exact", "exact", note="per-pin box (input read maps monotone and independent, feedback map arbitrary, real bd_c2 INIT), env H_CLIENT / H_SERVER: every run is the zero-delay C-element of its reads iff the two inequalities hold with '<='"),
+          L(NM, "uxa_ok", "sufficient"), L(NM, "merge_hhold", "lemma"),
+          L(NM, "cel_box_exact", "exact_inner", note="generic pointwise HHold, any pin count"), L(NM, "uxa_init", "function_equality", note="real bd_c2 INIT = cSpec"),
+          L(NM, "glitch", "counter_trace", note="loop 451 against 450 available: x_ack 1 at 949, 0 at 950"),
+          L(NM, "nonvacuous", "non_vacuity", note="loop 450 (equality): hypotheses hold, a trace exists"),
+          L(NM, "old_imply_new", "redundancy", note="old S_XA_ZA + S_XA_FORK imply H_XA_LOOP: nothing that passed before fails now")] + STRICT_INST,
+    exactness="exact",
+    exact_scope=("binary per-pin box: the exact condition is '<=' (uxa_box_exact); the +1 is Bs's Kleene X window of the release select (CElemStrict), kept on top and not re-proved here. "
+                 "Protocol (which edges the zero-delay C-element has) not covered: bd_merge.seq / isochronic_forks. The uor / delay / server path is one lower bound K. Box necessity takes pins independent."),
+    exactness_note=(BMG + ": exact (uxa_box_exact). Every next input edge at uxa is caused by uxa's own output edge, through the client (x_req) or the client and the server (z_ack); "
+                    "both bounds are measured from that edge, so how late the following input arrived only moves the edge and its spread cancels. The data side is the I2 (feedback) "
+                    "wire, site pin and arc hi; the old forms charged the I1/I0 arc (equal only for flat O6 arcs). Witness: one x token, z_ack K after x_req, client exactly Eo (wit_*)."),
+    site_pins={"needed": True, "roles": ["uxa/uya.I2 hi (feedback)", "uxa/uya.I0 lo", "uxa/uya.I1 lo"]},
+    rule={"rule": "none", "verdict": "none", "detail": "UNCHECKED"},
+    corner=dict(CORNER_1C, note="a box theorem (always sound); per corner realisation it holds with each window collapsed"),
+    check_scope="route_plus_env", status="proved", combine="all",
+    strict={"source": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean)", "backing": "c2_all", "forms": [0, 1, 2, 3], "terms": "all four", "margin_added_ps": 1})
+E.insert(E.index(BYID["bd_merge.uxa_req_latency"]) + 1, loop)
+BYID["bd_merge.uxa_loop"] = loop
+for i, nm, refs in (("bd_merge.uxa_feedback", "S_XA_ZA / S_YA_ZA", [L(NM, "old_not_necessary", "not_necessary", note="box numbers: old S_XA_ZA fails (2948 > 2735), H_XA_LOOP holds (941 <= 1081), uxa_ok makes every run correct")]),
+                    ("bd_merge.uxa_req_latency", "S_XA_R (1), (2)", [L(NM, "old_not_necessary_R", "not_necessary", note="x_req wire [200, 2000]: old S_XA_R (1) fails (3225 > 2551), H_XA_LOOP unchanged, every run correct")])):
+    e = BYID[i]
+    e["exactness"] = "not_necessary"
+    e["replacement"] = "bd_merge.uxa_loop"
+    e["lean"] = e["lean"] + refs + [L(NM, "old_imply_new", "redundancy", note="old S_XA_ZA + old S_XA_FORK imply the replacement")]
+    e["exactness_note"] = (BMG + f": NOT necessary; replaced by bd_merge.uxa_loop (H_XA_LOOP), which is exact (uxa_box_exact). {nm} charge the input wire's spread, which cancels when "
+                           "the race is launched at uxa's output edge. Kept for traceability; a checker evaluates bd_merge.uxa_loop instead. Earlier: " + e["exactness_note"])
+    e.setdefault("refers_to", [])
+    e["refers_to"] = e["refers_to"] + ["bd_merge.uxa_loop"]
+BYID["bd_merge.isochronic_forks"]["exactness_note"] += (" " + BMG + " (argued, NOT proved): the loop term of forms 0/1 (Lxa.hi + wxah) is not needed in y-owned phases (uxa holds 0; the race is the z_ack fall at I1 against the next x_req rise at I0); "
+                                                          "in x phases the loop part is bd_merge.uxa_loop's x_req branch.")
+e = BYID["bd_ctree.node_fork"]
+e["lean"] = e["lean"] + [L(NM, "ctree1_box_exact", "exact_inner", note="one-node tree only (bd_c2 root, two port wires): exact iff Qhi <= E + min(port read lo)"),
+                         L(NM, "cel_box_exact", "exact_inner", note="node level, pointwise"), L(NM, "c2_cspec", "function_equality"), L(NM, "c3_cspec", "function_equality"), L(NM, "c4_cspec", "function_equality")]
+e["exactness_note"] += (" " + BMG + ": NOT necessary for a one-node tree: the row charges the port wires' spread, which cancels, and omits the port read lo on the right; the exact one-node "
+                        "condition is Qhi <= E + min(read_lo(port_i)) (ctree1_box_exact). Depth >= 2 OPEN (proposed, NOT proved: Qhi_n <= dist_min(n -> root) + E + min over children c of "
+                        "(MaxMin(c) + read_lo(c -> n)), MaxMin(leaf) = 0, MaxMin(m) = max_j (MaxMin(j) + read_lo(j -> m))).")
+
+# (2a) CElemStrict2 decides the Facts that were "mechanism (Facts not decided)" (11 rows)
+MECH = {id(r) for r in STRICT_MECH}
+def decided(i, refs, backing):
+    e = BYID[i]
+    e["lean"] = [r for r in e["lean"] if id(r) not in MECH] + refs
+    e["strict"] = dict(e["strict"], backing=backing)
+    e["exactness_note"] = e["exactness_note"].replace("Facts not decided", "Facts decided in CElemStrict2")
+GEN = [L(CS, "env_latency_iff", "exact", note="generic; the Facts for this cell are decided in CElemStrict2"), L(CS, "env_latency_strict", "exact", note="generic, wa = 1"),
+       L(CS, "box_iff", "exact", note="generic, over the delay box"), L(CS, "clean_iff", "exact", note="generic")]
+for c, n, cyc in (("bd_c3", "c3_all", 18), ("bd_c4", "c4_all", 32)):
+    inst = [L(CS2, n, "instance", note=f"AllCycles: the Facts hold on every one of the {cyc} cycles of the real INIT (decide +kernel)"),
+            ] + ([L(CS2, "c4_clean_iff", "exact", note="usage form for every bd_c4 cycle")] if c == "bd_c4" else []) + \
+           [L(CS, "boundary_x", "counter_trace", note="bd_c2 instance of the same mechanism (no c3/c4 trace)")]
+    for o in ("env_latency", "sel_order", "pulse_width"):
+        decided(f"{c}.{o}", GEN + inst, f"{n} (CElemStrict2, all {cyc} cycles)")
+RST2 = [L(CS2, "reset_width_iff", "exact", note="rst as the release pin: safe over D in [Dlo, Dhi] iff Dhi + wa <= P"), L(CS2, "reset_width_strict", "exact", note="wa = 1: Dhi < P"),
+        L(CS2, "reset_width_atomic", "context", note="wa = 0: the old '<=' form"), L(CS2, "rst_boundary_x", "counter_trace", note="bd_c2, P = D: 0 at 419, X at 420"),
+        L(CS2, "rst_strict_clean", "non_vacuity", note="P = D + 1: clean"), L(CS2, "rst_glitch", "counter_trace", note="binary release before the feedback moved: reset lost"),
+        L(CS2, "rst_powerup_x", "counter_trace", note="power-up X start"), L(CS2, "rst_powerup_strict_clean", "non_vacuity")]
+RST_DEC = {"bd_c2": [L(CS2, "c2_rst_dec", "instance"), L(CS2, "c2_rst_race", "lemma"), L(CS2, "c2_rst_forced", "lemma"), L(CS2, "c2_rst_classes", "context")],
+           "bd_c2n": [L(CS2, "c2n_rst_dec", "instance"), L(CS2, "c2n_rst_race", "lemma"), L(CS2, "c2n_rst_classes", "context"), L(CS2, "rst_boundary_x_c2n", "counter_trace")],
+           "bd_c3": [L(CS2, "c3_rst_dec", "instance")], "bd_c4": [L(CS2, "c4_rst_dec", "instance")]}
+for c, refs in RST_DEC.items():
+    decided(f"{c}.reset_width", RST2 + refs, f"{refs[0]['name']} (CElemStrict2: rst-release Facts decided at every hold vector, start values not equal to the reset value incl. X)")
+decided("design.rst_hold", RST2 + RST_DEC["bd_c2"][:1] + RST_DEC["bd_c2n"][:1] + RST_DEC["bd_c3"] + RST_DEC["bd_c4"] +
+        [L(CS2, "c2set_rst_dec", "instance"), L(CS2, "c2nset_rst_dec", "instance"), L(CS2, "latrst0_rst_dec", "instance"), L(CS2, "latrst1_rst_dec", "instance")],
+        "*_rst_dec (CElemStrict2) for c2, c2_set, c2n, c2n_set, c3, c4, latch_rst; uj0 / uj1: mechanism (their rst Facts are not decided)")
+
+# (2b) an iff for the strictness race INSIDE an entry is `exact_inner`, not `exact`; keep `exact` only where the race is the entry
+OWN_RACE = {f"{c}.{o}" for c in ("bd_c2", "bd_c2n", "bd_c3", "bd_c4") for o in ("env_latency", "pulse_width", "reset_width")} | {"design.rst_hold"}
+n_inner = 0
+for e in E:
+    if e["id"] in OWN_RACE:
+        continue
+    new = []
+    for r in e["lean"]:
+        if r["role"] == "exact" and r["file"].endswith(("/CElemStrict.lean", "/CElemStrict2.lean")):
+            r = dict(r, role="exact_inner"); n_inner += 1
+        new.append(r)
+    e["lean"] = new
+
+# (2c) older non-iff theorems relabelled at their definitions above; rows that relied on them
+e = BYID["bd_arbcell.settled_exclusion"]
+e["exactness"] = "sufficient"
+e["exactness_note"] = ("Bj3: unconditional structural fact (g1 && g2 = false for every input and q; no timing condition, so nothing to be necessary). "
+                       "Earlier labelled exact, but settled_exclusion is a Boolean identity, not an iff.")
+BYID["bd_arbcell.handover_overlap"]["exact_scope"] = ("closed form, not an iff: overlap = max 0 (d6 - o5q - w) (overlap_duration_r2_to_r1, overlap_C), so zero overlap iff d6 <= o5q + w; "
+                                                      "at every consistent corner and every w >= 0 that holds (corner_no_overlap)")
+for i, sf, nc in (("bd_arbiter.rt1", "rt1_exclusion", "rt1_counter_minserver"), ("bd_arbiter.rt1b", "rt1_exclusion2", "rt1_counter2_minserver")):
+    BYID[i]["exact_scope"] = f"with a server answering in exactly smin, from two theorems (no single iff): {sf} (sufficient) and {nc} (necessary); the *_iff theorems cited are reductions of the rule form"
+for i in ("bd_mux.uxa_rtz", "bd_mux.uya_rtz"):
+    BYID[i]["exact_scope"] = "fixed delays, from two theorems (no single iff): rtz_exact_safe (w >= dl + dw: safe) and rtz_counter (0 < w < dl + dw: oscillates)"
+
 # =============================================================== global hypotheses (not inequalities)
 HYP = [
     {"id": "H_LUT_FIFO / H_PIN_FIFO / H_TREE_FIFO", "catalogue_row": "C4", "cells": ["every handshake LUT"],
@@ -2243,7 +2357,7 @@ HYP = [
      "check": "none on this silicon; fidelity grade B (NMOS-only tree, mid-rail select while equal legs rise)"},
     {"id": "metastability (no deadline)", "catalogue_row": "C8/R3", "cells": ["bd_c*", "bd_arbcell", "bd_arbiter"],
      "statement": "a runt width that never resolves always exists under an involution channel; no fixed read time is safe",
-     "lean": [L("Cells/CElemInvolution", "c2_eternal", "exact"), L("Cells/ArbInvolution", "arb_grants_eternal", "context")],
+     "lean": [L("Cells/CElemInvolution", "c2_eternal", "counter_trace", note="existence of a runt width whose every solution oscillates for ever (an existential, not an iff)"), L("Cells/ArbInvolution", "arb_grants_eternal", "context")],
      "check": "not static; MTBF needs tau_r, T0 measured (analog tier frozen by the north star)"},
     {"id": "H_LUT62_SHARED_READ", "catalogue_row": "11", "cells": ["every LUT6_2 with O5 and O6 used (bd_arbiter.ugrant/ustate, bd_latch pair, bd_steer, bd_datamux pair)"],
      "statement": "O5 and O6 of one LUT6_2 read each shared physical pin A1..A5 at the same time (one input buffer per pin; residual skew inside the mux tree ignored); grant/overlap results that cancel q's route and site pin rely on it",
@@ -2308,7 +2422,8 @@ doc = {
         "exact_scope": "optional text: which forms or parts of an 'exact' entry are exact; the rest of the entry is sufficient only (e.g. bdc_muxn.s_setup: decode form exact, data LUT5 form sufficient).",
         "necessity_scope": "optional text: where the necessity half of an entry's exactness holds (a consumer kind, or a subset of its forms).",
         "informational": "true: the entry is implied by the entries in refers_to; a checker that evaluates those need not evaluate it.",
-        "replacement": "for exactness 'not_necessary': the named hypothesis (hypotheses_not_inequalities) that is the needed condition in its place.",
+        "replacement": "for exactness 'not_necessary': the named hypothesis (hypotheses_not_inequalities) or the constraint id that is the needed condition in its place (bd_merge.uxa_feedback / uxa_req_latency -> bd_merge.uxa_loop; kept for traceability, a checker evaluates the replacement).",
+        "lean_roles": "role of each citation. 'exact': the theorem's statement is an iff (contains '↔'; the validator checks this) for the entry's inequality or a named part of it (see exact_scope). 'exact_inner': an iff for a race, sub-case or special case INSIDE the entry (e.g. CElemStrict's own-feedback race behind the strict +1 of a composed entry, or the one-node bd_ctree case); it does not make the entry exact. 'exact_formula': a closed-form equality for a quantity (e.g. an overlap duration), not an iff. Other roles: sufficient, necessary, counter_trace, non_vacuity, instance, lemma, definition, context, not_necessary*, redundancy, ... (as named).",
         "exact_under": "optional list of named side conditions: the entry's 'exact' holds only under them; outside them it is sufficient only.",
         "strictness": "Bs (formal/notes/B-celem-strict.md, Formal/Cells/CElemStrict.lean): in the per-pin Kleene mux-tree model (H_TREE, H_MUX_KLEENE: a moving select reads X on [s, s + wa), wa >= 1 tick; H_FB_PURE) the own-feedback race is clean iff dlmax + dwmax + wa <= dlmin + E (env_latency_iff), so with the grid minimum wa = 1 ps every own-feedback race entry reads L + 1 <= R (env_latency_strict; at equality bd_c2 reads X, boundary_x) and every held width >= Dmax + 1. Entries carrying `strict` have margin_ps raised by 1 on the forms it lists; their earlier '<=' theorems are proved with instantaneous selects (wa = 0, env_latency_atomic) and remain sufficient. The 1 ps is the model's minimum, NOT a measured slew: the physical margin is the departing select's X width (with SDF 50% arrival times about half the sum of the two select slews), which nothing here measures. `strict_pending` marks input-against-input orders where the same mechanism may apply but has not been checked; they stay '<='.",
         "guards_in_rules": "tighten.py A, D, F, H, I, K, L add req_guard = max(0.2 t, 200 ps); skew.py (E) and arb_fork.py (J) use 0.772 early / 1.155 late (GUARD_LO/GUARD_HI).",
@@ -2336,6 +2451,7 @@ doc = {
 }
 doc["produced_by"] += ". Updated by probe Bj (2026-10-27) from B-celem-strict.md (CElemStrict: own-feedback race entries strict, L + 1 <= R, field `strict`; input-against-input orders marked `strict_pending`), B-lib-gap.md (LibGapSteer: bd_steer select setup/hold exact per pin; bd_fork/bd_join delegation rows) B-fork-data.md (ForkData: bd_fork.branch_data, bd_fork.branch_data_edge, bdc_amerge.idx_bundle; edge-sampling caveat on the amerge index races), B-lib-gap-mux.md (LibGapMux: bd_mux select setup/hold exact per join), B-lib-gap-delay.md (LibGapDelay: bd_delay_gated.gate exact under side conditions) and B-rig-idx.md (RigIdx: gcd_rig.idx_setup proved exact); no new Lean, no route"
 doc["produced_by"] += ". Updated by probe Bj2 (2026-10-27) from B-lib-gap-muxn.md (LibGapMuxN: bdc_muxn.s_setup decode form and s_hold exact per decode and index bit, field exact_scope; new informational bdc_muxn.no_third_branch), B-lib-gap-latch.md (LibGapLatch: the nine bd_latch setup_data / setup_pulse / hold rows exact per pin; hold strict), B-necessity.md (NecessityReset, NecessityMuxRtz: reset-width rows necessary, reset-width forms of bd_c*.reset_width and design.rst_hold made box-exact with the I_rst arc on both sides, design.rst_release_skew not necessary, bd_mux rtz_env tight at the boundary) and B-reset-gcd-wave.md (ResetGcdWave: H_NO_RETURN proved for the reset-release window); no new Lean, no route"
+doc["produced_by"] += ". Updated by probe Bj3 (2026-10-27) from B-necessity-merge.md (NecessityMerge: new exact bd_merge.uxa_loop (H_XA_LOOP, launched at the ack C-element's output); uxa_feedback and uxa_req_latency not_necessary with replacement bd_merge.uxa_loop; bd_ctree.node_fork not necessary for a one-node tree, depth >= 2 open), B-celem-strict2.md (CElemStrict2: the 11 'mechanism (Facts not decided)' strict rows now cite the decided Facts c3_all, c4_all, *_rst_dec, reset_width_iff) and B-self-audit2.md (citation roles: exact only for an iff; exact_inner, exact_formula; non-iff theorems relabelled); no new Lean, no route"
 json.dump(doc, open(OUT, "w"), indent=1)
 print(len(E), "constraints")
 

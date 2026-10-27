@@ -298,3 +298,152 @@ Not applied. I re-tested it on scratch copies of the final generator and validat
 Bk2's text replaces CORNER_1C's rule, and CORNER_RST is built from CORNER_1C, so the reset rows
 pick up the new text. The patch should be regenerated (not hand-applied) before it lands, because
 of the fuzz.
+
+---
+
+# Update (probe Bj3): bd_merge.uxa_loop exact, CElemStrict2 backing, honest `exact` citation roles
+
+Files changed: `formal/out/cell_constraints.gen.py`, `formal/out/cell_constraints.validate.py`, and,
+through the generator, `formal/out/cell_constraints.json` and the entry table of
+`formal/out/cell_constraints.md` (no hand edits to the md). No Lean changed. Before editing, the
+unchanged generator reproduced the committed JSON byte for byte.
+
+Most of the logic is in one new generator section ("probe Bj3", just before the global hypotheses),
+which runs after Bj2's section. The generator reads no scratch file. Five citation roles were
+relabelled where they are defined (see section 3).
+
+## Checks
+
+| check | result |
+|---|---|
+| `python3 -I cell_constraints.validate.py cell_constraints.json` | 130 constraints, 8 hypotheses, 1511 Lean references in 71 files, strict 63, strict_pending 18, **errors: 0** |
+| new validator on the OLD json | 11 errors: 9 non-iff `exact` citations (the 7 theorems below; two of them are cited twice), and `bd_arbiter.rt1` / `rt1b` are exact with no exact citation and no `exact_scope` |
+| negative control (scratch copy with 5 faults: `settled_exclusion` back to `exact`, unknown role `exactt`, a replacement that is itself not_necessary, `exact_scope` removed from `bd_mux.uxa_rtz`, CElemStrict* citations removed from the strict `bd_c4.reset_width`) | 5 errors, one for each fault |
+
+`NecessityMerge.lean` and `CElemStrict2.lean` are git-tracked. Every cited name resolves through
+the validator's declaration grep.
+
+New and changed validator checks:
+- **The `exact` role needs an iff.** The theorem's statement, from the declaration to the first
+  `:=`, must contain `↔`. Exceptions go in `EXACT_NOT_IFF`, which is empty. 125 `exact`
+  citations pass.
+- **Roles come from a fixed set.** A role outside the vocabulary `ROLES` is an error. The set
+  includes the new roles `exact_inner` and `exact_formula`.
+- **`exact` entries without an exact citation are listed.** An `exact` entry with no `exact`
+  citation must carry `exact_scope` or `exact_under` that says why. Five entries qualify:
+  `bd_arbcell.handover_overlap`, `bd_arbiter.rt1`, `rt1b`, `bd_mux.uxa_rtz` and `uya_rtz`.
+- **`not_necessary` replacements.** `replacement` may now be a constraint id as well as a
+  hypothesis id. A replacement must not itself be `not_necessary`.
+- **The strict citation check accepts CElemStrict2.lean.**
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries | 129 | 130 (+ `bd_merge.uxa_loop`) |
+| proved / unproved | 128 / 1 | 129 / 1 |
+| exact entries | 31 | 31 (+ uxa_loop, − settled_exclusion) |
+| sufficient | 51 | 50 |
+| not_necessary | 1 | 3 |
+| strict (+1) | 62 | 63 |
+| citations with role `exact` | 238 | 125 |
+| `exact_inner` / `exact_formula` | 0 / 0 | 114 / 2 |
+
+## 1. bd_merge (Bmg, NecessityMerge)
+
+**New row `bd_merge.uxa_loop` (H_XA_LOOP / H_YA_LOOP), exactness `exact`.**
+- Four forms: for uxa and uya, an x_req/y_req branch and a z_ack branch. Each is launched at the
+  C-element's own O6 edge.
+- Data side: the feedback wire, plus the I2 site pin hi and the I2 arc hi.
+- Request side, x_req branch: Wxa.lo + Eo + (Wxc.lo + SP[I0].lo + I0 arc lo).
+- Request side, z_ack branch: Wxa.lo + Eo + Kz + (Wzx.lo + SP[I1].lo + I1 arc lo).
+- margin_ps 1, as strict +1 with backing c2_all.
+- `exact_scope` says the binary iff (`uxa_box_exact`) is `<=`, and that the +1 is Bs's Kleene
+  window on top. It also lists what is not covered: the protocol, the single bound K, and pins
+  taken as independent.
+- Citations:
+
+| role | theorems |
+|---|---|
+| exact | `uxa_box_exact` |
+| sufficient | `uxa_ok` |
+| lemma | `merge_hhold` |
+| exact_inner | `cel_box_exact` |
+| function_equality | `uxa_init` |
+| counter_trace | `glitch` |
+| non_vacuity | `nonvacuous` |
+| redundancy | `old_imply_new` |
+| Bs's strict citations (role exact_inner) | the STRICT_INST list |
+
+**The old rows are kept for traceability.** `bd_merge.uxa_feedback` and `uxa_req_latency` become
+`not_necessary`, with `replacement: bd_merge.uxa_loop`. They cite:
+- `old_not_necessary` and `old_not_necessary_R` (role `not_necessary`);
+- `old_imply_new` (role `redundancy`).
+
+Their `refers_to` includes the new row.
+
+**Other bd_merge and bd_ctree notes.**
+- `bd_merge.isochronic_forks` gets Bmg's note that the loop term is not needed in y phases. This
+  is argued, NOT proved.
+- `bd_ctree.node_fork` stays `sufficient`. It gets a note, with citations `ctree1_box_exact` and
+  `cel_box_exact` (both `exact_inner`) and `c2/c3/c4_cspec`. The note says:
+  - the row is not necessary for a one-node tree: it charges the port-wire spread, which cancels,
+    and it omits the port read lo;
+  - depth >= 2 is open. The proposed MaxMin condition is quoted as NOT proved.
+
+## 2. CElemStrict2 backing (B-self-audit2 finding 2a)
+
+The 11 rows with backing "mechanism (Facts not decided)" lose the STRICT_MECH citations and now
+cite the decided facts:
+
+| rows | new citations | new backing |
+|---|---|---|
+| bd_c3 and bd_c4: `env_latency`, `sel_order`, `pulse_width` | CElemStrict's generic iffs (`env_latency_iff`, `env_latency_strict`, `box_iff`, `clean_iff`); `c3_all` / `c4_all` (instance); `c4_clean_iff` (bd_c4); `boundary_x` (counter_trace) | "c3_all (CElemStrict2, all 18 cycles)" / "c4_all ... 32 cycles" |
+| `bd_c{2,2n,3,4}.reset_width` | `reset_width_iff` and `reset_width_strict` (exact); `reset_width_atomic` (context); `rst_boundary_x`, `rst_glitch` and `rst_powerup_x` (counter_trace); `rst_strict_clean` and `rst_powerup_strict_clean` (non_vacuity); `c2_rst_dec` / `c2n_rst_dec` / `c3_rst_dec` / `c4_rst_dec` (instance); `c2_rst_race`, `c2_rst_forced`, `c2n_rst_race`, `c2_rst_classes`, `c2n_rst_classes`, `rst_boundary_x_c2n` | `<cell>_rst_dec` |
+| `design.rst_hold` | the same reset citations, plus `c2set`, `c2nset` and `latrst0/1_rst_dec` | the decided cells are listed; uj0 / uj1 still mechanism (CElemStrict2 does not decide them) |
+
+## 3. Honest `exact` roles (findings 2b, 2c)
+
+**`exact_inner` (2b).** Every CElemStrict / CElemStrict2 citation with role `exact` becomes
+`exact_inner`. There are 114 of them. The exception is rows where the race IS the entry:
+`bd_c{2,2n,3,4}.env_latency`, `.pulse_width`, `.reset_width` and `design.rst_hold`. Everywhere
+else the iff is for the strictness race inside the entry, not for the entry's inequality. The new
+convention `conventions.lean_roles` defines `exact`, `exact_inner` and `exact_formula`.
+
+**Non-iff theorems relabelled (2c).** I read each statement:
+
+| theorem | statement | new role |
+|---|---|---|
+| ArbHandover `overlap_duration_r2_to_r1` | count = max 0 (...) | `exact_formula` |
+| ArbCorners `overlap_C` | count = max 0 (d6 − o5q − w) | `exact_formula` |
+| ArbCorners `corner_no_overlap` | ∀ t, g1 && g2 = false | `sufficient` |
+| ArbBinary `settled_exclusion` | Boolean identity | `sufficient` |
+| MuxRtzTimed `rtz_exact_safe` | the safe half only | `sufficient` |
+| LibCtlMergeMux `steer_excl_K` | ¬(both t) | `context` |
+| CElemInvolution `c2_eternal` (hypothesis "metastability") | an ∃ statement | `counter_trace` |
+
+None of them is an iff.
+
+Effects on the rows:
+- `bd_arbcell.settled_exclusion` becomes `sufficient`. It is an unconditional structural fact,
+  with no condition that could be necessary.
+- `handover_overlap`, `bd_mux.uxa_rtz` / `uya_rtz` and `bd_arbiter.rt1` / `rt1b` stay `exact`,
+  with an `exact_scope` that names the exactness argument:
+  - the closed form;
+  - rtz_exact_safe + rtz_counter;
+  - rt1_exclusion + rt1_counter_minserver (rt1b: rt1_exclusion2 + rt1_counter2_minserver).
+
+  These are pairs of theorems, not a single iff.
+
+## Bk2's kappa_check.patch
+
+Not applied. I re-tested it on scratch copies of the final generator and validator, with
+`patch -p0` from a scratch root:
+- it still applies: hunk 2 at offset +753, hunk 3 with fuzz 2 (its trailing context is the
+  conventions `exactness` line), and the validator hunk cleanly. My `lean_roles` convention
+  survives;
+- the patched generator runs: 130 entries, each with `kappa_check`, including `bd_merge.uxa_loop`;
+- the patched validator (REPO pointed at the repo) gives 468 errors, all "ConstraintsKappa.lean is
+  untracked".
+
+As before, regenerate the patch rather than hand-apply it.

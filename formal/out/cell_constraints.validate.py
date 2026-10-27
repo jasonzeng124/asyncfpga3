@@ -67,7 +67,7 @@ for e in doc["constraints"]:
         for k in st.get("forms", []):
             if k >= len(e["forms"]) or e["forms"][k]["margin_ps"] < st["margin_added_ps"]:
                 errs.append(f"{e['id']}: strict form {k} margin below {st['margin_added_ps']}")
-        if st.get("margin_added_ps") and not any(r["file"].endswith("CElemStrict.lean") for r in e["lean"]):
+        if st.get("margin_added_ps") and not any(r["file"].endswith(("CElemStrict.lean", "CElemStrict2.lean")) for r in e["lean"]):
             errs.append(f"{e['id']}: strict without a CElemStrict citation")
         if "strict_pending" in e:
             errs.append(f"{e['id']}: both strict and strict_pending")
@@ -76,15 +76,45 @@ for e in doc["constraints"]:
             errs.append(f"{e['id']}: refers_to unknown id {r}")
 # scope fields (Bj2)
 hyp_ids = {h["id"] for h in doc["hypotheses_not_inequalities"]}
+BYID = {e["id"]: e for e in doc["constraints"]}
 for e in doc["constraints"]:
     if "exact_scope" in e and e["exactness"] != "exact":
         errs.append(f"{e['id']}: exact_scope on a non-exact entry")
-    if e["exactness"] == "not_necessary" and e.get("replacement") not in hyp_ids:
-        errs.append(f"{e['id']}: not_necessary without a replacement hypothesis id")
+    if e["exactness"] == "not_necessary" and e.get("replacement") not in hyp_ids | set(ids):
+        errs.append(f"{e['id']}: not_necessary without a replacement (hypothesis or constraint id)")
+    if e["exactness"] == "not_necessary" and e.get("replacement") in ids and BYID[e["replacement"]]["exactness"] == "not_necessary":
+        errs.append(f"{e['id']}: replacement {e['replacement']} is itself not_necessary")
     if e.get("informational") and not e.get("refers_to"):
         errs.append(f"{e['id']}: informational without refers_to")
     if e["exactness"] == "not_necessary" and not any(r["role"].startswith("not_necessary") for r in e["lean"]):
         errs.append(f"{e['id']}: not_necessary without a not_necessary citation")
+# citation roles (Bj3): known vocabulary; role 'exact' only for a statement with an iff
+ROLES = {"sufficient", "exact", "exact_inner", "exact_formula", "necessary", "counter_trace", "non_vacuity", "instance", "lemma", "definition", "context",
+         "corner", "function_equality", "exact_fixed_transport", "reduction", "relation", "not_necessary", "not_necessary_at_instance", "rule_as_coded",
+         "uses", "bound", "twin", "checker_exactness", "redundancy", "necessary_loop_terms", "necessary_loop_term", "kleene", "partial", "exact_first_edge",
+         "mirror", "exact_replacement_counter_trace"}
+# explicit exceptions: (file, name) cited as 'exact' although the statement has no '↔' (none at present)
+EXACT_NOT_IFF = {}
+def statement(r):
+    t = text(r)
+    if t is None:
+        return None
+    m = re.search(rf"^\s*(private |protected )?(theorem|lemma|def|structure|abbrev|inductive) {re.escape(r['name'])}\b", t, re.M)
+    if not m:
+        return None
+    s = t[m.start():]
+    k = s.find(":=")
+    return s[:k] if k >= 0 else s[:4000]
+role_count = Counter()
+for e in doc["constraints"] + doc["hypotheses_not_inequalities"]:
+    for r in e["lean"]:
+        role_count[r["role"]] += 1
+        if r["role"] not in ROLES:
+            errs.append(f"{e['id']}: unknown citation role {r['role']} ({r['name']})")
+        if r["role"] == "exact" and (r["file"], r["name"]) not in EXACT_NOT_IFF:
+            st = statement(r)
+            if st is not None and "↔" not in st:
+                errs.append(f"{e['id']}: {r['name']} cited as exact but its statement has no '↔'")
 C = doc["constraints"]
 print(f"constraints={len(C)} hypotheses={len(doc['hypotheses_not_inequalities'])} lean_refs={nref} files={len(cache)}")
 print("status", Counter(e["status"] for e in C))
@@ -93,6 +123,12 @@ print("rule verdicts", Counter(e["rule"]["verdict"] for e in C))
 print("site pins needed", sum(e["site_pins"]["needed"] for e in C))
 print("cells", Counter(e["cell"] for e in C))
 print("strict", sum(bool(e.get("strict", {}).get("margin_added_ps")) for e in C), "strict_pending", sum("strict_pending" in e for e in C))
+print("citation roles: exact", role_count["exact"], "exact_inner", role_count["exact_inner"], "exact_formula", role_count["exact_formula"])
+noex = [e["id"] for e in C if e["exactness"] == "exact" and not any(r["role"] == "exact" for r in e["lean"])]
+print("exact entries without an 'exact' citation (exact_scope says why):", len(noex), noex)
+for i in noex:
+    if "exact_scope" not in BYID[i] and "exact_under" not in BYID[i]:
+        errs.append(f"{i}: exact entry with no 'exact' citation and no exact_scope")
 print("errors:", len(errs))
 for x in errs:
     print("  ", x)
