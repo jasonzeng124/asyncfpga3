@@ -127,3 +127,12 @@ Pass: `flow.sh PASS`, exit 0. If it passes there and fails in the cloud
 (`Unable to find legal placement ... rdly_chain`), the difference is the chipdb
 or the build, not the patch. If it fails there too, the committed
 nextpnr-xilinx-rloc-group.patch is not the one PR #1's routed numbers came from.
+
+## Owner-side data request (no board needed): the August n=128 ring raw data
+The board-fidelity GLS (PROGRAM.md, "THE priority") has to be validated ring by ring. The repo has the ring
+summary (76/128 slower than the SDF, offset ~+988 ps) but not the per-ring board periods, nor the August
+`ro_many_top` routed.json/SDF/bit they were measured on (that route predates the lut-perm-sink patch and cannot be
+rebuilt). If they still exist on the owner's machine, commit them under `research/board/ro_many_aug/`:
+the raw `g*.log` (or whatever ro_many_measure.py read), `ro_many_top_routed.json`, `ro_many_top.sdf`, the `.bit`,
+and its toolchain.txt. Self-check: `python3 cells/gls/fid/ring_predict.py --help` names the inputs it needs;
+`md5sum` of the .bit should match any md5 recorded in the JOURNAL for that build.
