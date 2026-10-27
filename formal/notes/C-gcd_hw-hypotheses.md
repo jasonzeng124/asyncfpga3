@@ -184,3 +184,16 @@ table in `formal/notes/C-10k-fbfirst.md`, data in
   credit open). Xi adds H_OR_IDLE.
 - Still unchecked: X4 ctl_req->uj fork, M3, C7.
 Every row passes at sdf, fast and slow; all remaining failures are band-only.
+
+## Status update after probe 8r (lead, merged)
+
+- H_SRC is too weak for safety as modelled: with a free-running `start`
+  source, H_CUT is false for runs H_CELLS allows (a second start token
+  reaches a loop header while the first is still in the loop; a=12, b=18).
+  Replace it by **H_START_ONCE** (the environment offers `start` once per
+  result; the rig's env ring does this). Grade B; GLS test: count start_req
+  rises before the first res_req.
+- H_CUT and H_CM_FORCED are now proved (`gcd_hw_cut`, `gcd_hw_forced`) from
+  H_CELLS + H_BUNDLE + H_START_ONCE + **H_WALK** (a property of the token
+  run alone: each control_merge label names the input the spine token
+  arrives on; checked on 32 vectors in Wip/C8r/walkcheck.py, not proved).
