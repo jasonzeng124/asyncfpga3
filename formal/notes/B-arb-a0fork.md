@@ -24,7 +24,12 @@ a "fall" mixed corners. The Lean theorems of this file are unaffected (they are
 generic in the delays). The corrected arc values are `ArbCorners.ruleJ_arcs`
 (B-arb-corners.md): the early side's two arcs are 248 ps (SLOW_MAX) / 90 ps
 (FAST_MIN) for client 2 and 274 / 87 for client 1. Rule J's flat 2 x 124 is
-therefore exact for client 2 and 26 ps conservative for client 1 at SLOW_MAX;
+therefore exact for client 2 and 26 ps conservative for client 1 at SLOW_MAX
+[under the identity pin map only. On the routed link_arb seeds q enters ugrant
+(CLBLM_R SLICEM) on A5 in S1, S3, S4 (A5 -> O5 48/116 ps) and on A3 in S2
+(43/148): client 1's early arcs are 240 / 93 (S1, S3, S4: rule J 8 ps
+OPTIMISTIC) and 272 / 88 (S2: 24 ps conservative); `ArbCornersPin.ruleJ_seed`,
+`ruleJ_A5_iff`, `ruleJ_optimistic_run`, B-arb-corners-pin.md];
 the "68-161 ps" bias is withdrawn. Rule J's real gaps are the per-pin site-pin
 delays (item 2 below, CONFIRMED by the audit) and the corner flip of the raw
 sign (`ArbCorners.client{1,2}_corner_flip`, `ruleJ_raw_window`); guarded rule J
@@ -122,7 +127,10 @@ would put A0 on ustate A5 and ua_k A2, q on ugrant A3, and g_k on ua_k A1.
 Constraints: ustate and ugrant are LUT6_2 with I5 = 1, so their A6 is tied
 high and A0/q land on A1..A5. ua_k is a 4-input LUT6 and may use A6. The
 router's chipdb gives every LUT pin the same delay, so the choice is
-effectively arbitrary. No routed JSON or SDF is on disk in this container (the
+effectively arbitrary. [Update: the pins of the four routed link_arb seeds are
+now proved from the bits (`PinAssign`, B-pin-assign.md): q is on ugrant's A5 in
+S1, S3, S4 and on A3 in S2; per-seed arcs in `ArbCornersPin`.] No routed JSON
+or SDF is on disk in this container (the
 toolchain is absent), so the pins of any real route could not be read. The
 survey rows (`research/data/ruleJ_survey/rows.json.gz`) do not record them.
 
@@ -157,6 +165,9 @@ being long (the survey's tail is exactly the long-A0 routes).
    At a consistent SLOW_MAX corner the true sum is 248 ps for client 2 (two O6
    arcs: exact) and 274 ps for client 1 (O6 + O5 I2: rule J is 26 ps
    conservative); at FAST_MIN it is 90 / 87 ps (`ArbCorners.ruleJ_arcs`).
+   [Identity pin map only. Per routed seed (q's physical ugrant pin):
+   client 1 is 240 ps in S1, S3, S4 (rule J 8 ps optimistic) and 272 ps in S2
+   (24 ps conservative); FAST_MIN 93 / 88 ps (`ArbCornersPin.ruleJ_seed`).]
    [Withdrawn: "client 2 = ustate fall + ugrant O6 rise = 145-180 ps, so -68
    to -103 ps; client 1 = 87-117 ps, so -131 to -161 ps": corner mix.] ua_k's
    arcs cancel (theorem: `aC` drops out), and rule J's equal flat values
@@ -217,8 +228,9 @@ JSON's connections are physical A1..A6):
   site-pin delay, fast-min and slow-max.
 * `ARC`: prjxray `CLBLL_L.sdf` / `CLBLM_*.sdf` per pin, fast-min. prjxray has
   no rise/fall split (makesdf.py:63), so the "fall"/"rise" labels above only
-  name the edge; the value is the FAST_MIN arc of that output/pin (O6 45 ps,
-  O5 I2 42 ps).
+  name the edge; the value is the FAST_MIN arc of that output/pin (O6 45 ps;
+  O5 from the physical pin's line of the site's own SDF cell, e.g. CLBLL_L
+  SLICEL A3 42 ps, CLBLM_R SLICEM A3 43 ps, A5 48 ps).
 * Drop ua_k's IOPATH from both sides: it is common (the theorem). With nextpnr
   it cancels anyway, but a future per-pin SDF that folds site delays into the
   IOPATH must then keep both sides' ua_k arcs instead of the SP terms.
@@ -261,7 +273,9 @@ on the real INITs, in core Lean in about 2 s.
      0.5 ns, the same order as the smallest observed raw margin), which bias
      rule J optimistic. [Withdrawn after the audit: "flat 124 ps arcs (biased
      unsafe by 68-161 ps)". At a consistent corner the flat arcs are exact
-     (client 2) or 26 ps conservative (client 1), `ArbCorners.ruleJ_arcs`.]
+     (client 2) or 26 ps conservative (client 1), `ArbCorners.ruleJ_arcs`;
+     with the routed pins, client 1 is 8 ps optimistic in 3 of 4 seeds,
+     `ArbCornersPin.ruleJ_seed`.]
 
 ## Fidelity per primitive
 

@@ -216,9 +216,15 @@ makesdf.py:63, see the audit correction):
 
 Everything in this subsection is the corner mix. Corrected:
 `ArbCorners.arcs_slowMax`, `arcs_fastMin`, `slow_arc_only`, `fast_arc_only`,
-`box_7h`.
+`box_7h` (identity pin map, SLICEL); per routed seed, with each O5 arc from its
+physical pin's `CLBLM_R.sdf` SLICEM line: `ArbCornersPin.parts_slowMax` /
+`parts_fastMin`.
 
-The R0 and g1 fall arcs from I0 are both 152, so they cancel. The conditions
+The R0 (ustate O5) and g1 (ugrant O5) arcs from I0 are both 152 here (that is
+the SLOW_MAX of `CLBLL_L.sdf` SLICEL A1/A2 -> O5, not a fall arc), so they
+cancel. That cancellation also assumes the identity pin map: on the four routed
+seeds ustate's and ugrant's r1 pins differ and the two O5 arcs differ by -32 to
++2 ps (`ArbCornersPin.parts_slowMax`, B-arb-corners-pin.md). The conditions
 reduce to:
 
 | condition | reduced form |

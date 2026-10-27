@@ -22,6 +22,30 @@ No shared definitions were added; everything is local to the file:
 - 7g: `cellJ`, `wireJ`;
 - witnesses: `x0`, `Dslow`, `Dfast`, `W1s`, `W2s`, `W1f`, `W2f`.
 
+## Pin-map correction (audit P3 rows 1-2; probe Bc2, B-arb-corners-pin.md)
+
+Every O5 number in this note is ONE prjxray line, `CLBLL_L.sdf` SLICEL A5LUT,
+under the identity pin map (q on A3, 42/150 ps). The routed link_arb arbiters
+put ustate and ugrant in CLBLM_R SLICEM A LUTs, and nextpnr chose the pins
+(proved from the bits in `PinAssign`): q enters ugrant on A5 in S1, S3, S4
+(`CLBLM_R.sdf` SLICEM A5 -> O5 48/116 ps) and on A3 in S2 (43/148). With the
+routed pins (`ArbCornersPin`):
+- RT1 is structural at SLOW_MAX and RT1b at FAST_MIN in S1, S3, S4; S2 has this
+  note's pattern (RT1b at SLOW_MAX, RT1 at FAST_MIN). Exact condition:
+  `gQ ≤ o6` / `o6 ≤ gQ` (`rt1_structural_iff`, `rt1b_structural_iff`).
+- Rule J's flat 248 is 8 ps OPTIMISTIC for client 1 in S1, S3, S4 (true 240) and
+  24 ps conservative in S2 (272), not "26 ps conservative"; a run that raw rule
+  J passes and that acknowledges early is exhibited (`ruleJ_optimistic_run`).
+- Skew caps at SLOW_MAX are 8 / 0 (S1, S3, S4) and 0 / 24 (S2), not 0 / 26; at
+  FAST_MIN 0 / 3 and 2 / 0.
+- `windows_exist_p10` is identity-pin specific: with ustate's q on A5 the pulse
+  conditions have Af/As = 0.414 > 0.37.
+- Guarded rule J's single-wire-ratio result is replaced by a per-wire band
+  statement; the measured band [0.37, 0.82] is too wide for guarded rule J to
+  cover FAST_MIN at any early-routing floor (`guard_band_fails`).
+The tables below are kept as the identity-pin values; per-seed values are in
+B-arb-corners-pin.md.
+
 ## Verdict
 
 **Works.** All four items are done, and every number below is a Lean theorem unless it is
@@ -41,7 +65,8 @@ marked "arithmetic".
 
 **Two corrections to B-gls-compare's table.** It assumed "all arcs equal d", but O5 and O6
 differ within one corner.
-- The skew caps are **not** 0/0. They are 0/26 ps at SLOW_MAX and 3/0 ps at FAST_MIN.
+- The skew caps are **not** 0/0. They are 0/26 ps at SLOW_MAX and 3/0 ps at FAST_MIN
+  [identity pin map; routed seeds: 8/0 or 0/24 at SLOW_MAX, `ArbCornersPin.caps_seed`].
 - The "consistent corner" of 7j's tightest margin is not "margin grows by d + 16". It is
   exactly `wfa2 ≤ smin + o5q + wa0s + wfb`, that is +150 ps at SLOW_MAX and +42 ps at
   FAST_MIN.
@@ -106,14 +131,14 @@ Ratios:
 | condition | arc part (general) | old (mix) | **SLOW_MAX** | **FAST_MIN** | box worst |
 |---|---|---|---|---|---|
 | RT1 race | 2·o6 + d6 | 180 | 248 | 90 | −18 |
-| RT1 structural (`g1fq ≤ g2r`) | o6 − o5q − d5q | — (false) | −26 (false) | **+3: RT1 is structural at FAST_MIN** (`rt1_fast_structural`) | — |
+| RT1 structural (`g1fq ≤ g2r`) | o6 − o5q − d5q | — (false) | −26 (false) | **+3: RT1 is structural at FAST_MIN** (`rt1_fast_structural`; identity pins only, routed S1/S3/S4: −3) | — |
 | RT2 pulse | o5q | 52 | 150 | 42 | −37 |
 | RT2 g1 | o5q | 52 | 150 | 42 | −145 |
 | RT2 forkA | o6 + o5q | 108 | 274 | 87 | +8 |
 | RT2 forkG | o6 + o5q | 108 | 274 | 87 | −100 |
 | A0Fork (7g) | 2·o6 + d6 | 180 | 248 | 90 | +90 |
 | RT1b race | o5a + o5q + d5a − d6 | 136 | 302 | 86 | +7 |
-| RT1b structural (`g2f ≤ g1rq`) | o5q − o6 − d6 | false | **+26: RT1b is structural at SLOW_MAX** (`rt1b_slow_structural`) | −3 (`rt1b_fast_race`) | — |
+| RT1b structural (`g2f ≤ g1rq`) | o5q − o6 − d6 | false | **+26: RT1b is structural at SLOW_MAX** (`rt1b_slow_structural`; identity pins only, routed S1/S3/S4: −8) | −3 (`rt1b_fast_race`) | — |
 | RT2b pulse2 | o5q − d6 | **−16** | **150** | **42** | −37 |
 | RT2b g2 | o5a + o5q − o6 + d5a − 2·d6 | 12 | 178 | 41 | −117 |
 | RT2b forkA2 | o6 + o5q − d6 | 40 | 274 | 87 | +8 |
@@ -183,7 +208,9 @@ margin's signed wire sum.
 - `no_flip_nonneg`: arcs ≥ 0 and wire part ≥ 0 means no flip.
 
 **RT1/RT2 (7h/7j).**
-- Every condition has `Af/As` between 0.23 and 0.363, below the p10 wire ratio 0.37.
+- Every condition has `Af/As` between 0.23 and 0.363, below the p10 wire ratio 0.37
+  [identity pin map; on the routed seeds up to 0.44, so at k = 0.37 several
+  windows are empty, `ArbCornersPin.windows_seed`].
   `windows_exist_median` and `windows_exist_p10` prove the windows are non-empty at
   k = 0.55 and at k = 0.37.
 - Every condition CAN change sign. The SLOW_MAX-margin windows are below (ps; the upper
@@ -226,6 +253,9 @@ margin's signed wire sum.
   and 274 / 87 for client 1 (SLOW_MAX / FAST_MIN). The box is [90, 248] and [87, 274],
   not 145–180 / 87–117. Rule J's flat 2 × 124 is therefore exact for client 2 and 26 ps
   conservative for client 1 at SLOW_MAX. 7g's "biased unsafe by 68–161 ps" is withdrawn.
+  [Identity pin map only. With q's routed ugrant pin, client 1 is 240 ps in S1, S3,
+  S4 (rule J **8 ps optimistic**) and 272 ps in S2 (24 ps conservative):
+  `ArbCornersPin.ruleJ_seed`, `ruleJ_A5_iff`, `ruleJ_optimistic_run`.]
 - 7g's worst-case totals, redone (arithmetic, combining with 7g's unchanged pin term
   −337 / −498):
 
@@ -239,7 +269,12 @@ margin's signed wire sum.
   for client 2 is `0 ≤ M < 248 − 90/k`, 84 ps at k = 0.55. `ruleJ_raw_window` checks
   B-gls-compare's worked example: +133 at SLOW_MAX becomes about +27 at FAST_MIN, outside
   the window.
-- **Guarded rule J does cover FAST_MIN** (`ruleJ_guard_covers_fast`), when:
+- **Guarded rule J does cover FAST_MIN** (`ruleJ_guard_covers_fast`), when
+  [under ONE wire ratio for the whole signed wire sum; with per-wire ratios in
+  the measured band [0.37, 0.82] it does not: the audit's E = 600, L = 525 route
+  passes the guard and has a −118.5 ps FAST_MIN margin, and for that band a
+  failing guarded route exists above every early-routing floor.
+  `ArbCornersPin.perwire_exact`, `guard_band_fails`, `audit_cex`]:
   - the guard passes, `1155·(L + 124) < 772·(E + 372)` (arb_fork.py's 0.772/1.155 on
     nextpnr's flat arcs);
   - E ≥ 114 ps of early routing;
@@ -276,6 +311,8 @@ Every edge was derived by hand from the instant formulas. Examples:
   - Per-wire ratio scatter (p10 0.37 to p90 0.82 on different wires of one margin) is not
     modelled. It would be the box applied to wires: each wire's fast value in
     `[0.37, 0.82] ×` its slow value. That is linear and routine, about 1 h.
+    [Done for guarded rule J in `ArbCornersPin` §6 (B-arb-corners-pin.md); the
+    7h/7j flip windows under a per-wire band are still not done.]
   - Site-pin delays sit inside 7h's routes but scale like cells (about 0.33–0.40), not
     like wires. Splitting them out needs the physical pins of a routed arbiter. No routed
     JSON/SDF is on disk.

@@ -222,8 +222,9 @@ Counter-traces:
 ### `prj` (corner-mixed) form
 
 The constants in this table come from reading FAST_MAX/SLOW_MAX as rise/fall
-(makesdf.py:63). Consistent-corner arc parts (`ArbCorners.arcs_slowMax` /
-`arcs_fastMin`): RT1b 302 / 86, pulse 150 / 42, g2 178 / 41, forkA 274 / 87,
+(makesdf.py:63). Consistent-corner arc parts, identity pin map
+(`ArbCorners.arcs_slowMax` / `arcs_fastMin`; per routed seed:
+`ArbCornersPin.parts_slowMax` / `parts_fastMin`, B-arb-corners-pin.md): RT1b 302 / 86, pulse 150 / 42, g2 178 / 41, forkA 274 / 87,
 forkG 302 / 86, A0Fork2 274 / 87 (old 136, −16, 12, 40, 68, 108).
 
 The theorems are `prj_RT1b`, `prj_RT2b`, `prj_fork2`, `prj_arc_only2` and

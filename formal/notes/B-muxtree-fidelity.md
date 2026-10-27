@@ -101,8 +101,11 @@ Nothing is unproved in the claimed file. Not attempted:
   (45/56 ps FAST_MIN/FAST_MAX, 100/124 ps SLOW_MIN/SLOW_MAX, both edges; first
   written here as "rise"/"fall", corrected after the audit, REPORT row 10:
   prjxray `makesdf.py:63` writes `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`;
-  consistent-corner arbiter values in `ArbCorners`, B-arb-corners.md), so the per-pin difference lives entirely
-  in these site-pin delays (up to ~0.5 ns at slow max). Worth checking that
+  consistent-corner arbiter values in `ArbCorners`, B-arb-corners.md), so for O6
+  the per-pin difference lives entirely in these site-pin delays. The O5 arcs
+  are NOT uniform: they vary by pin, LUT letter and tile (e.g. `CLBLM_R.sdf`
+  SLICEM A5LUT: A1 44/150, A3 43/148, A5 48/116 ps FAST_MIN/SLOW_MAX;
+  B-arb-corners-pin.md) (up to ~0.5 ns at slow max). Worth checking that
   the research GLS's delay calculator includes them; nextpnr's SDF used today
   sets every `TA_iO6` to the same nominal value.
 

@@ -303,8 +303,11 @@ theorem sym_edge (s : Nat → Sig) (N lo hi : Nat) (hlh : lo ≤ hi)
 window `[lo, hi]`, input `a` at `u` except on a pulse `[T, T + w - 1]`
 with `w ≤ hi - lo` (and `0 < T`): the constant output `u` satisfies the gate relation.
 (Physically: a buffer whose edge for the pulse's leading polarity is
-slower than the trailing one by more than `w` -- e.g. distinct rise and
-fall arcs, 56..152 ps in sim/bd_prims_sim.v -- swallows it.) -/
+slower than the trailing one by more than `w` swallows it. A rise/fall
+asymmetry of that size is not measured: prjxray has no edge split, and the
+56..152 ps pairs once read here from sim/bd_prims_sim.v are FAST_MAX/SLOW_MAX
+of one arc (makesdf.py:63; `ArbCorners.RF`). The window `[lo, hi]` here is
+the delay's uncertainty, e.g. its corner spread.) -/
 theorem buf_pulse_lost (a : Sig) (u : Bool) (lo hi T w : Nat) (hlh : lo ≤ hi)
     (hw : w ≤ hi - lo) (hT : 0 < T) (ha : ∀ t, (t < T ∨ T + w ≤ t) → a t = u) :
     Gate BUF [(a, lo, hi)] (fun _ => u) := by
