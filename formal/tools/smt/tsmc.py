@@ -223,6 +223,6 @@ def wave(ts, tr, sigs, fmt=None):
             elif isinstance(v, str):
                 cs.append(v)
             else:
-                cs.append(str(v % 36) if v < 10 else chr(ord('a') + v - 10) if v < 36 else '#')
+                cs.append('-' if v < 0 else str(v) if v < 10 else chr(ord('a') + v - 10) if v < 36 else '#')
         lines.append('%-10s %s' % (lab, ''.join(cs)))
     return '\n'.join(lines)

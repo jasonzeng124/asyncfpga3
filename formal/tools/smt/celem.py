@@ -20,10 +20,9 @@ z last changed (saturating at dl_hi).
 Properties:
     P_follow : cnt >= dl_hi  ->  O == z        (settles within the LUT delay
                                                  and holds)
-    P_mono   : O == O(t-1)  or  O == z          (O never moves away from the
-                                                 spec value: no hazard; checked
-                                                 from tick dl_hi on, i.e. once
-                                                 the power-up history is flushed)
+    P_mono   : O makes exactly the transitions z makes, in order, lagging
+               by at most one (no hazard, no extra or lost transition);
+               checked from tick dl_hi on (power-up history flushed)
 Ternary variant (kleene=True): every signal is {0,1,X}, the LUT is lutK, the
 channels are kwin; env still binary unless xin > 0, in which case every
 input change may pass through X for up to xin ticks (a slow / runt edge).
@@ -110,7 +109,7 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
         ts.trans(lambda S, N: N['Op'] == S['O'])
         ts.init(lambda S: S['Op'] == S['O'])
         Pf = lambda S: z3.Implies(S['cnt'] >= dl[1], S['O'] == S['z'])
-        Pm = lambda S: z3.Or(S['rc'] < min(dl[1], R), S['O'] == S['Op'], S['O'] == S['z'])
+        ochg = lambda S, N: N['O'] != S['O']
         ts.show = ['rst', 'a', 'b', 'z', 'O', 'qp', 'cnt']
     else:
         def pin(S, n):
@@ -148,11 +147,25 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
                                      S['axc'] == 0, S['bxc'] == 0))
         Pf = lambda S: z3.Implies(S['cnt'] >= dl[1],
                                   z3.And(z3.Not(S['O.x']), S['O.v'] == S['z']))
-        Pm = lambda S: z3.Or(S['rc'] < min(dl[1], R), C.keq(C.kval(S, 'O'), C.kval(S, 'Opk')),
-                             C.keq(C.kval(S, 'O'), C.kof(S['z'])))
+        ochg = lambda S, N: z3.Not(C.keq(C.kval(N, 'O'), C.kval(S, 'O')))
         ts.show = ['rst', 'a', 'b', 'z',
                    ('O', lambda r: C.kfmt(r, 'O')), ('qp', lambda r: C.kfmt(r, 'qp')), 'cnt']
         if xin:
             ts.show[1:3] = [('a', lambda r: 'X' if r['aX'] else ('1' if r['a'] else '_')),
                             ('b', lambda r: 'X' if r['bX'] else ('1' if r['b'] else '_'))]
+    # P_mono: O makes exactly the spec's transitions and no others.  dz =
+    # (# z changes) - (# O changes) since the power-up history was flushed
+    # (tick dl_hi, when O == z == 0 under reset); it must stay in {0, 1}.
+    # (Ternary: any change of the ternary value counts, so 0 -> X -> 1 is
+    # two changes and fails: X counts as a hazard.)
+    ts.int('dz', -2, 3)
+    ts.init(lambda S: S['dz'] == 0)
+    fl = min(dl[1], R - 1)
+
+    def dz_tr(S, N):
+        nd = S['dz'] + z3.If(N['z'] != S['z'], 1, 0) - z3.If(ochg(S, N), 1, 0)
+        nd = z3.If(nd > 3, 3, z3.If(nd < -2, -2, nd))
+        return N['dz'] == z3.If(N['rc'] <= fl, 0, nd)
+    ts.trans(dz_tr)
+    Pm = lambda S: z3.Or(S['rc'] < fl, S['dz'] == 0, S['dz'] == 1)
     return ts, {'follow': Pf, 'mono': Pm}

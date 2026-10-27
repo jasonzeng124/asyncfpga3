@@ -67,7 +67,7 @@ d = json.load(open(p))
 d["modules"] = {n: m for n, m in d["modules"].items()
                 if str(m.get("attributes", {}).get("top", "0")).strip("0")}
 d["target"] = tgt
-json.dump(d, open(p, "w"), indent=1, sort_keys=True)
+json.dump(d, open(p, "w"), indent=1)
 PY
   rm -f "$out/$name.log"
 }

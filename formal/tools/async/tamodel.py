@@ -15,6 +15,12 @@ Semantics (one timed automaton per node):
   * x may fire (x := !x) once c_x >= lo, and time may not pass while some
     excited node has c_x == hi.  Rise and fall have separate [lo,hi].
     hi = None means no deadline (a free environment move).
+  * mode="transport" instead: FIFO pure delay.  A queue of K in-flight edges
+    with one clock each; a zero-width reversal is cancelled; an edge that is
+    due while the head is still pending annihilates with it (pulse
+    shrinkage under asymmetric rise/fall).  ovf_x flags queue overflow
+    (results exact only where it is unreachable); mlt_x flags a second edge
+    queued behind an undelivered one (a runt at x's input).
   * time advances in integer ticks (one synchronous 'tick' command).  For
     closed timed automata with integer bounds, reachability under the digital
     clock semantics equals reachability under dense time (Henzinger, Manna,

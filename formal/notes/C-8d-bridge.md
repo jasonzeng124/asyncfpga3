@@ -1,4 +1,4 @@
-# C-8d: bridge from SI interleavings to timed traces (WIP, notes kept current)
+# C-8d: bridge from SI interleavings to timed traces
 
 ## Verdict
 

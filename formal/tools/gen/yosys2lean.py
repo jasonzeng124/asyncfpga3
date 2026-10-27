@@ -24,8 +24,9 @@ primitive the library and the fixtures synthesize to:
 
 Everything else is an import ERROR (exit 1), as are: x/z constants, multiply
 driven nets, read-but-undriven nets, a pin set that does not match the
-primitive, an INIT that is not 2^k binary digits, any IS_*_INVERTED = 1 on a
-flip-flop or latch, and a combinational cycle the cut below does not break.
+primitive, an INIT that is not 2^k binary digits, an IS_*_INVERTED parameter on
+anything but a flip-flop/latch input pin (those are modelled: the pin is read
+inverted), and a combinational cycle the cut below does not break.
 
 State (the nets whose values are the netlist's state, see Netlist.lean):
   1. the Q (and synthetic M) nets of every flip-flop / latch primitive;
@@ -202,15 +203,24 @@ def convert(path):
         if not opaque and set(conn) != set(ipins) | set(opins):
             die(f"{path}: cell {cname} ({typ}): pins {sorted(conn)} != {sorted(ipins + opins)}")
         init = 0
-        if iw is not None:
+        if typ in SEQ and str(params.get("INIT", "")).strip() in ("x", "z", ""):
+            init = 2          # FF/latch power-up value undefined (INIT = x)
+        elif iw is not None:
             s = params.get("INIT")
             if s is None or len(s) != iw or set(s) - {"0", "1"}:
                 die(f"{path}: cell {cname}: INIT {s!r} is not {iw} binary digits")
             init = int(s, 2)
-        if typ in SEQ:
-            for pn, pv in params.items():
-                if pn.startswith("IS_") and pn.endswith("_INVERTED") and set(str(pv)) - {"0"}:
-                    die(f"{path}: {cname}: {pn}={pv}: inverted pins are not modelled")
+        inv = []
+        for pn, pv in sorted(params.items()):
+            if pn.startswith("IS_") and pn.endswith("_INVERTED"):
+                pin = pn[3:-9]
+                if typ not in SEQ or pin not in ipins:
+                    die(f"{path}: {cname}: {pn} on {typ} is not modelled")
+                v = str(pv)
+                if set(v) - {"0", "1"}:
+                    die(f"{path}: {cname}: {pn}={pv!r}")
+                if int(v, 2) == 1:
+                    inv.append(pin)
         if opaque:
             ins, outs = [], []
             for p in ipins:
@@ -241,7 +251,7 @@ def convert(path):
         cells.append(dict(name=cname, typ=typ, kind=kind, init=init, iw=iw,
                           keep=int(str(attrs.get("keep", "0")), 2) == 1,
                           ins=ins, outs_p=outs, outs=[b for _, b in outs],
-                          seq=typ in SEQ, opaque=opaque,
+                          seq=typ in SEQ, opaque=opaque, inv=inv,
                           src=norm_src(attrs.get("src", ""))))
     inputs, outputs = [], []
     for pname, p in m["ports"].items():          # declaration order
@@ -275,9 +285,20 @@ def convert(path):
             if isinstance(b, int):
                 names.setdefault(b, []).append(nn if len(nb) == 1 else f"{nn}[{i}]")
 
+    portname = {}
+    for label, b in inputs:
+        portname.setdefault(b, label)
+    for label, s in outputs:
+        if s.startswith(".net"):
+            portname.setdefault(int(s.split()[1]), label)
+
     def best(b):
+        """Input port name, else output port name, else the shortest public
+        net name, else the shortest internal one."""
         if b in synth_names:
             return best(synth_names[b]) + "$master"
+        if b in portname:
+            return portname[b]
         cand = names.get(b, [f"${b}"])
         pub = [c for c in cand if not c.startswith("$")]
         return sorted(pub or cand, key=lambda s: (len(s), s))[0]
@@ -341,7 +362,8 @@ def emit(mods):
             w(f"    -- {c['typ']}  {c['src'] or 'no src (inserted by synthesis)'}")
             w(f"    {{ name := {lean_str(c['name'])}, kind := {c['kind']}, "
               f"init := {init}, keep := {'true' if c['keep'] else 'false'},")
-            w(f"      conn := [{', '.join(conn)}] }}{sep}")
+            invs = f", inv := [{', '.join('.' + p for p in c['inv'])}]" if c["inv"] else ""
+            w(f"      conn := [{', '.join(conn)}]{invs} }}{sep}")
         w("  ]")
         w("")
     w("/-- Every generated netlist, in targets.txt order. -/")

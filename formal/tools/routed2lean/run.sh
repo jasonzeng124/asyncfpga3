@@ -43,8 +43,8 @@ done
 cat > "$B/ax.lean" <<'LEAN'
 import Formal.Timing.RoutedCePair
 LEAN
-grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/WinArray.lean Formal/Timing/RoutedCePair.lean \
-  | sed 's/.*theorem /#print axioms Formal.Timing./' >> "$B/ax.lean"
+grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/WinArray.lean | sed 's/.*theorem /#print axioms Formal.Timing./' >> "$B/ax.lean"
+grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/RoutedCePair.lean | sed 's/.*theorem /#print axioms Formal.Timing.Routed./' >> "$B/ax.lean"
 ../slot.sh lean "$B/ax.lean" > "$B/ax.log" 2>&1
 if grep -q "sorryAx\|ofReduceBool\|ofReduceNat\|error" "$B/ax.log" || grep "depends on axioms" "$B/ax.log" \
      | sed 's/.*\[\(.*\)\]/\1/' | tr ',' '\n' | tr -d ' ' | grep -qv '^\(propext\|Quot.sound\|Classical.choice\)$'; then

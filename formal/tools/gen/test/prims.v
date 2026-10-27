@@ -10,12 +10,24 @@ module prims_add (input wire [3:0] a, input wire [3:0] b, input wire ci,
     assign s = a + b + ci;
 endmodule
 
+// synth_xilinx does not infer MUXF7/MUXF8 by default (-widemux 0), so they
+// are instantiated, as a cell author would.
 module prims_mux8 (input wire [7:0] d, input wire [2:0] sel, output wire z);
-    assign z = d[sel];
+    wire lo = d[{1'b0, sel[1:0]}];
+    wire hi = d[{1'b1, sel[1:0]}];
+    MUXF7 m (.I0(lo), .I1(hi), .S(sel[2]), .O(z));
 endmodule
 
-module prims_mux16 (input wire [15:0] d, input wire [3:0] sel, output wire z);
-    assign z = d[sel];
+module prims_muxf8 (input wire [3:0] d, input wire [1:0] sel, output wire z);
+    wire [3:0] l;
+    wire m0, m1;
+    genvar i;
+    generate for (i = 0; i < 4; i = i + 1) begin : b
+        (* keep *) LUT1 #(.INIT(2'h2)) u (.I0(d[i]), .O(l[i]));
+    end endgenerate
+    MUXF7 u0 (.I0(l[0]), .I1(l[1]), .S(sel[0]), .O(m0));
+    MUXF7 u1 (.I0(l[2]), .I1(l[3]), .S(sel[0]), .O(m1));
+    MUXF8 u2 (.I0(m0), .I1(m1), .S(sel[1]), .O(z));
 endmodule
 
 module prims_ff (input wire c, input wire ce, input wire r, input wire d,
