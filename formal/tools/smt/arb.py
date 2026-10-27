@@ -270,7 +270,7 @@ def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
 
         def tr(S, N, n=n, en=en, L=L):
             moved = N[n] != S[n]
-            ok = z3.Or(S['rc'] >= rl, n == 'A0')   # clients idle during reset
+            ok = S['rc'] >= rl                     # env idle during reset
             return z3.And(
                 z3.Implies(moved, z3.And(en(S), S[n + '#w'] >= L - 1, ok)),
                 N[n + '#w'] == z3.If(moved, 0, z3.If(en(S), z3.If(S[n + '#w'] < L, S[n + '#w'] + 1, L), 0)))
