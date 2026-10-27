@@ -1032,3 +1032,17 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 - P1 (R5 + link fast fall) on 8 routes (d, 3-9): every audit clean, fasm_audit PASS, routed GLS 16/16 at nominal on
   8, corners on 6, 17% scatter on 2; vec 6 50.0 laps (46-52) vs 45.75 without. Written up as BOARD-QUEUE #3. #2's
   entry now says to check routed.json/sdf md5s, since the .bit md5 is not reproducible (header bytes).
+### progress 01:12 (sizing ratchet is now a tool: bdc/size_kernel.py)
+- `bdc/size_kernel.py` (+ 11 tests) replaces the scratch loops and `research/data/collatz_ratchet_merge.py`: ratchet
+  (per-cell max of T<k>, tighten --emit, rule E asks as current+N+1, dut.v default fallback; never lowers), stops
+  NOT CONVERGED instead of padding when F/J fail or a merge changes nothing; `--headroom` (+1 link per compute cell);
+  `--fresh-seeds` validation. Enforces A/B/C/F/H/I/K/L, E, J and routed GLS fast+stalled; D reported only. Its merge
+  reproduces the scratch xorshift T1-T3 byte for byte on the scratch inputs.
+- xorshift from placeholders, seeds 1-4, defaults (no FF): converged at it4 (4/4 clean); T4H on fresh seeds 9-12
+  every enforced rule 0, GLS pass: **66.5 ns/round (65.1-67.6)**; T3 on the same 4 fresh seeds 64.4. 4 seeds per arm
+  cannot split headroom from scatter. Data: `research/data/size_kernel_xorshift/`.
+- **Routed GLS passed on every route of it1-it3, where static audits found 2-9 violations per seed** (short delays):
+  GLS is not a substitute for the audits, again.
+- Method weakness, not fixed: UCONTROL_MERGE1 went 12 -> 1 (it0 proposals) -> 32 (tighten prices rule-A padding with
+  the 124 ps cell arc rather than the ~419 ps per-link hop) and "never lower" keeps 32 although routes then say 4.
+  Costs nothing measurable on training seeds (64.9 vs 65.4) -- inference, not proof that it is off the critical cycle.
