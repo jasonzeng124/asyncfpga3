@@ -300,3 +300,9 @@ residuals per seed, 0 structural. Negative controls fail as required. xaudit cer
 one transaction (n=2) only at slowmax w=0 with a 10 ps step (weaker than gcd). How-to:
 out/HOWTO-new-kernel.md. Fixed tools-A/xaudit/build.sh (Parse missing from MINE).
 xevents7 on collatz next (Events7 is now committed).
+### progress 12:17
+K2: xevents7 on collatz, 16 rows, identical verdicts/residuals to xevents5 (collatz
+has no guarded delay lines, no select partitions, no >2-arm merges, so the Events7
+extensions are vacuous there): slow/fast CLEAN on all 4 seeds; gb seed 5 rig env
+uenv1 -9 ps / uenv0 0 ps; indep 3/3/2/5. Negative controls fail. Mathlib build:
+2529 oleans at 12:17.

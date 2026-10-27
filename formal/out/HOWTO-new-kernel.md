@@ -10,7 +10,7 @@ Two tools come out of this. Each answers a different question, and neither repla
 | tool | input | question | engine (proved) / front end (untrusted) |
 |---|---|---|---|
 | `xaudit` | flattened routed netlist, per-arc bands, a stimulus | for this ONE stimulus, can any storage node see X or a hazard, for any delays in the bands and any power-up state? | `Formal/Core/XAudit/{Design,Untimed,Fast}.lean` / `Main.lean` parser + printer (trusted) |
-| `xevents5` | the control skeleton of that netlist, its bands, a certificate | for EVERY behaviour of the routed netlist (any environment choices), does every control stage obey the event-count (handshake) discipline? | `Events6*.lean`, `Events5.lean` / `cert6.py` (untrusted: Lean re-checks it) |
+| `xevents7` (preferred; `xevents5` is its predecessor) | the control skeleton of that netlist, its bands, a certificate | for EVERY behaviour of the routed netlist (any environment choices), does every control stage obey the event-count (handshake) discipline? | `Events7*.lean` (`Events6*`, `Events5` for xevents5) / `cert7.py` (`cert6.py`) (untrusted: Lean re-checks it) |
 
 All script paths below are relative to `formal/tools-A/xaudit/`. The collatz scripts in `k2/`
 are the worked example; copy them and change the names marked **[kernel]**.
@@ -167,6 +167,33 @@ Negative control (must fail). Add 1500 ps to one arbiter's own-feedback arc and 
 Make the defect larger than that stage's measured margin. On collatz, +1500 ps (gcd's value) left
 the stage CLEAN at margin 554 ps, and +3000 ps gave `RESIDUAL ... margin -946`. Also mutate the
 certificate (`qi := ri` on one node): Recog6 must print `RECOG-FAIL` and `NOT RECOGNISED`.
+
+## 5b. xevents7: the preferred event-level checker
+
+    k2/run_events7_k2.sh      # skel.py -> events7/cert7.py -> xevents7, --fuel 256, at most 2 jobs at once
+    # xevents7 = lean --run Formal/Core/XAudit/Events7Main.lean on the olean overlay
+    #   (compile Events7{Core,Excl,Cert,Beh} into it with ../lean.sh after mk_k2.sh)
+
+**Prefer xevents7** (`Events7.design_verdict7`). On gcd_hw and collatz it certified every row xevents5 certified. It also
+handles four shapes that left gcd_hw with 45 structural residual items under xevents5:
+
+- labels through reconverging merges (U3);
+- n-ary merges;
+- the arbiter cascade;
+- guarded multi-copy delay-line pins.
+
+Its extra hypothesis is **SelPart**: the pattern groups of one multi-bit select are never true
+together. The run prints `select partitions (SelPart): [...]`. When the list is empty, the
+hypothesis is vacuous.
+
+Verdict lines read as in §5: CLEAN, RECOGNISED with RESIDUAL n, or NOT RECOGNISED. Also check that
+the output says `derivation log ... accepted by runLog: true`.
+
+On collatz, xevents5 and xevents7 gave identical rows, because collatz has none of those shapes.
+On gcd_hw only xevents7 reaches CLEAN.
+
+Run at most 2 `lean --run` jobs at once. Parallel runs have produced empty outputs. Check that
+every output file is non-empty.
 
 ## 6. xaudit: one transaction, X/hazard verdict
 

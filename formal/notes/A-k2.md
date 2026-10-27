@@ -155,7 +155,7 @@ Notes on these:
   the 3-way merge, the cascade, guarded multi-copy pins). On collatz it leaves none. The newer
   xevents7, which closes those classes on gcd, is described in `notes/A-events7.md`, but its
   `Events7Cert/Beh/Main.lean` are not in the tree (only `Events7Core`/`Events7Excl`;
-  `git log --all` has no `Events7Main.lean`). So xevents5 is the strongest checker that can be run.
+  `git log --all` has no `Events7Main.lean`). At the time of §2, therefore, xevents5 was the strongest checker that could be run. They have since been rebuilt (E7r); see §5.
 
 **What a CLEAN row is.** It is a theorem instance of `Events6.design_verdict` about every
 behaviour of the parsed routed netlist: every real control node's output is the phase of its
@@ -251,6 +251,43 @@ for any band of non-zero width.**
 - **The cells audits** need `tighten.py --osc dhk --osc invhk`, as `tighten_loop.sh` passes for
   gcd_hw. Without it they abort on the housekeeping ring.
 
+## 5. xevents7 on collatz (added after the Events7 rebuild, E7r)
+
+`k2/run_events7_k2.sh`; results `k2/results/xe7_*.txt`, `cert7_*.txt`, `table7.txt`.
+
+- **How it was run.** The pipeline is `skel.py` → `events7/cert7.py` (untrusted) → `xevents7`.
+  - xevents7 runs as `lean --run Formal/Core/XAudit/Events7Main.lean` on `~/k2olean`, through
+    slot.sh, at most 2 jobs at once, with `--fuel 256`.
+  - `Events7{Core,Excl,Cert,Beh}` were compiled into that overlay with `lean.sh`. All exited 0,
+    with no error or sorry in the logs.
+  - All 18 outputs are non-empty. The full batch took 5 min.
+- **Verdicts.** They are identical to xevents5 on every row, with the same residual items, names
+  and margins, row by row:
+  - slow and fast: CLEAN on d, 4, 5 and 6;
+  - gb: CLEAN on d, 4 and 6; seed 5 has RESIDUAL 2 (`urig.uenv1` −9, `urig.uenv0` 0);
+  - mixed: RESIDUAL 3 / 3 / 2 / 5.
+- **What every row prints.**
+  - `Net4.OK7 true; guarded delay-line pins 0`;
+  - `select partitions (SelPart): []`, so the SelPart hypothesis is vacuous here;
+  - the derivation log is accepted by `runLog`;
+  - merges 11/11, 0 of them with more than 2 arms;
+  - cert7 errors 0.
+- **Negative controls.**
+  - NEG-fb3000 gives `RESIDUAL Back urig.udut.ucontrol_merge0.uarb1.ua2.u pin1: margin -946`,
+    `RESIDUAL 1`.
+  - NEG-recog gives `RECOG-FAIL urig.udut.ucmpi2.ujoin…` and `NOT RECOGNISED`.
+  - Both fail, as they must.
+- **Reading.** Collatz's control has none of the shapes xevents7 adds over xevents5: U3 labels
+  through reconverging merges, n-ary merges, the cascade, and guarded multi-copy pins. So on this
+  kernel the two checkers certify the same rows.
+  - A CLEAN row from xevents7 is an instance of `Events7.design_verdict7`.
+  - Its hypotheses are per-pin SatPin, H_ARB (HARB7), SelOK, SelPart (vacuous here), GuardOK and
+    the reset pulse.
+  - It does not cover the datapath, the answer, metastability or other routes.
+- **Which checker to prefer.** Use xevents7 for any new kernel. On gcd_hw and collatz it certified
+  every row xevents5 certified (an observation, not a theorem), and it also closes the gcd_hw
+  classes. Run xevents5 only as a cross-check.
+
 ## Files
 
 | file | status |
@@ -260,6 +297,7 @@ for any band of non-zero width.**
 | `k2/bands_k2.sh` | xray_delay + routed2x at slow / fast / indep / gb |
 | `k2/run_events_k2.sh` | skel → cert6 → xevents5 (`--fuel 256`, one slot) + ana5 + negative controls |
 | `k2/run_xaudit_k2.sh` | xaudit runs + analyze.py + fbrace |
+| `k2/run_events7_k2.sh` | skel → cert7 → xevents7 (≤ 2 jobs, `--fuel 256`) + NEG-fb3000 / NEG-recog |
 | `k2/negctl_k2.py` | NEG-fb with the feedback pin found from the netlist |
 | `k2/mk_k2.sh` | oleans without lake build; `NATIVE=1` native xaudit |
 | `k2/v1_220ns.stim.json`, `v1_120ns.stim.json` | stimuli |
