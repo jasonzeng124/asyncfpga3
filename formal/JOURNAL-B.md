@@ -131,3 +131,15 @@ In: 7j ArbHeldTimed2 (non-vacuity witness for both directions), Lib1, Lib2
 corner-mix finding verified, owner notified). Launched Bc (consistent-corner
 re-instantiation, corner sign changes), Bh (iverilog runs of the
 predictions), Lib3 (merge/mux handshake). Running also: 7c, 7d, 6e.
+
+### progress 04:06
+In: 6e PipeTimed (2-stage pipe, FIFO channel, witness), 5d CElemCore
+(lake-checked against Core), 7d ArbResolve (Mathlib: e^(-t/tau) law,
+probability and MTBF bounds, no_deadline), Bh notes (iverilog runs: all six
+predictions match on the real cells; the GLS is one LUT arc more permissive
+than the formal transport thresholds on loops, so formal numbers stay the
+gates; iverilog ICBUF delay lost on a net that is both input and output of
+one instance in the gate build).
+MergeMuxSI (Lib3) is being split: its 2000-state check takes 7 GB / 160 s,
+too heavy for a claimed file in every shard's lake build; it goes to Wip.
+Running: 7c (analog), Bc (corners), 6f (pipe general N), Lib3 split.
