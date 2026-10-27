@@ -1,0 +1,11 @@
+claim 3: latch, D arc 124, en arc 124, I2 arc 124, loop wire 295 ps
+  Td=1000 Toff=1345: rule I raw margin +50 (guarded -150); output edges [1124, 1469, 1543, 1888, 1962, 2307, 2381, 2726] -> CORRUPT: a runt circulates in the loop for ever (transport model)
+  Td=1000 Toff=1418: rule I raw margin +123 (guarded -77); output edges [1124, 1542, 1543, 1961, 1962, 2380, 2381, 2799] -> CORRUPT: a runt circulates in the loop for ever (transport model)
+  Td=1000 Toff=1419: rule I raw margin +124 (guarded -76); output edges [1124] -> clean capture
+  Td=1000 Toff=1545: rule I raw margin +250 (guarded +50); output edges [1124] -> clean capture
+
+claim 4: FASTFALL N=3, arcs 124, chain hop 600, side tap 295; matched rise latency 1867 ps
+  per-stage output fall times [419, 419, 419]; rule F t_flush = 419
+  input re-rises at 420 (rule F raw margin +1): tail first rises at 839 = input + 419 ps (SKIPS links)
+  input re-rises at 619 (rule F raw margin +200): tail first rises at 1038 = input + 419 ps (SKIPS links)
+  input re-rises at 725 (rule F raw margin +306): tail first rises at 2592 = input + 1867 ps (matched)

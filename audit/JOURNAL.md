@@ -20,3 +20,11 @@ sample-at-fire reproduction, rules J/I/F reproduction. #1 bitstream sha256 match
 Toolchain restored (nextpnr sha256 9c732bc6303458df = committed toolchain.txt). BQ#1 route rebuild started in
 clean worktree wt-rb1 (19a93c1). BQ#3 "~9%" found OVERSTATED from their own tables (8-seed vs 4-seed mean);
 see audit/findings/research-stats.md.
+
+### progress 03:41
+Subagent results in: GLS findings (4 CONFIRMED, research prims.v "identical timestamps" comment OVERSTATED),
+rules J/I/F (shard B's "68-161 ps wrong way" REFUTED: fast/slow corners misread as rise/fall; I verified in
+prjxray makesdf.py; research bd_prims_sim.v has the same misreading -> REFUTED), shard C (3 OVERSTATED, rest
+CONFIRMED, 10/10 mutants break), transcription (0 mismatches). BQ#1 rebuilt from clean: sdf md5 and bit payload
+identical; routed.json md5 not reproducible (embedded paths). Still running: shard A and B statement audits;
+formal lake build (Mathlib).
