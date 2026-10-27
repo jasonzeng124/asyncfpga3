@@ -56,6 +56,14 @@ Findings for the cell owner (not confirmed on a route):
   cover FAST_MIN (84 ps flip window at wire/cell ratio 0.55), guarded rule J
   does given >= 114 ps early routing. Every SLOW_MAX-only margin needs an
   added guard As - Af/k against a corner flip (exact per condition).
+- FEEDBACK PIN ORDER (Bq, FifoFidelity): the timed pipe's FIFO assumption
+  holds for bd_link_ctl iff (besides FIFO pin buffers and tree) the
+  feedback reaches its mux select before the first departing req/ack does:
+  w_hi + pq.hi <= E_tau + min(pr.lo, pa.lo). The per-pin term is up to
+  ~+0.43 ns with feedback on A1 (slow corner); the flat 25 ps/pin SDF hides it
+  from every rule and from the GLS (which satisfies FIFO by construction).
+  Counterexample run oscillates. Fixtures suggest feedback does land on A1 in
+  some seeds (unverified reading). Fix: a FASM-pin gate, or LOCK_PINS.
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
