@@ -25,7 +25,7 @@ drift as DRIFT.
 ## Run
 
 ```
-formal/tools/gen/gen.sh --check        # drift check: re-synth all 63 targets (~7 min on a loaded
+formal/tools/gen/gen.sh --check        # drift check: re-synth all 63 targets (7.5 min, "no drift", on a loaded
                                        # 4-core box), diff JSON + Lean, check module coverage
 formal/tools/gen/gen.sh --check-json   # generator only, from committed JSON (seconds, no yosys)
 formal/tools/gen/gen.sh                # regenerate (writes json/*.json and Formal/Gen/Cells.lean)
