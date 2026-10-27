@@ -102,6 +102,7 @@ class Prjx:
         self.nets = {}
         self.cache = {}
         self.inpin = {}
+        self.hops = {}       # C-10h: (src, dst) -> (driver hop, sink hop), 4 corners
 
     def lut(self, inst):
         c = self.cells.get(inst)
@@ -142,6 +143,62 @@ class Prjx:
                     self._rbel[(st, inst, m.group(1).upper())] = [float(x) for x in m.groups()[1:]]
         return self._mux
 
+    def site_tables(self):
+        """C-10h: every ROUTING_BEL INTERCONNECT (site-internal hop) and every CARRY4*
+        IOPATH of prjxray-db slicel/slicem.sdf, as 4-corner ps lists.  Keys:
+          hop[(sitetype, from, to)]  (to of an *L instance, e.g. amuxl/affl, folded
+                                       onto amux/aff: the HULL over both, since which
+                                       one a site uses is not decoded here)
+          c4[(sitetype, from, to)]   (hull over every CARRY4* celltype: CARRY4,
+                                       CARRY4_AX.., _O5, _LFF, _LBOTH: the DI source and
+                                       output-load variants are not decoded either)"""
+        if hasattr(self, "_hop"):
+            return self._hop, self._c4
+        self._hop, self._c4 = {}, {}
+        num = r"\(([\d.]*)::([\d.]*)\)\(([\d.]*)::([\d.]*)\)"
+
+        def hull(tab, k, v):
+            if k in tab:
+                o = tab[k]
+                v = [min(o[0], v[0]), max(o[1], v[1]), min(o[2], v[2]), max(o[3], v[3])]
+            tab[k] = v
+        for st in ("slicel", "slicem"):
+            txt = open(os.path.join(self.F.DB, "timings", st + ".sdf")).read()
+            for cell in re.findall(r"\(CELL\s*(.*?)\n    \)", txt, re.S):
+                ct = re.search(r'CELLTYPE "(\S+)"', cell).group(1)
+                for kind, a, b, *ns in re.findall(r"\((IOPATH|INTERCONNECT)\s+(\S+)\s+(\S+)\s+" + num, cell):
+                    v = [float(x) * 1e3 for x in ns]
+                    if ct == "ROUTING_BEL" and kind == "INTERCONNECT":
+                        bb = b[:-1] if re.match(r"^[a-d](mux|5?ff)l$", b) else b
+                        hull(self._hop, (st, a, bb), v)
+                    elif ct.startswith("CARRY4") and kind == "IOPATH":
+                        hull(self._c4, (st, a, b), v)
+        return self._hop, self._c4
+
+    def site(self, inst):
+        """-> (tile, site json, bel name) for a placed SLICE cell, or None."""
+        c = self.cells.get(inst)
+        m = c and re.match(r"(SLICE_X\d+Y\d+)/(\w+)$", c["attributes"].get("NEXTPNR_BEL", ""))
+        if not m or m.group(1) not in self.site_at:
+            return None
+        tile, s = self.site_at[m.group(1)]
+        return tile, s, m.group(2)
+
+    def drv_bel(self, si, sp):
+        """The site-internal source name prjxray uses for a cell output (a6lut, a5lut,
+        carry4_o0, carry4_co3, f7amux, f8mux), or None."""
+        S = self.site(si)
+        if not S:
+            return None
+        b = S[2]
+        if re.match(r"^[A-D][56]LUT$", b):
+            return b.lower()
+        if b == "CARRY4" and re.match(r"^C?O[0-3]$", sp):
+            return "carry4_" + sp.lower()
+        if re.match(r"^F[78][AB]?MUX$", b) or re.match(r"^[A-D]5?FF$", b):
+            return b.lower()
+        return None
+
     def bel(self, inst):
         c = self.cells.get(inst)
         m = c and re.match(r"(SLICE_X\d+Y\d+)/(\w+)$", c["attributes"].get("NEXTPNR_BEL", ""))
@@ -171,6 +228,11 @@ class Prjx:
         di, dp = dst.rsplit("/", 1)
         if dp == "OUT":
             return self.mux_arc(src, dst)
+        S = self.site(di)
+        if S and S[2] == "CARRY4" and si == di:      # C-10h: CARRY4 cell arcs
+            _hop, c4 = self.site_tables()
+            v = c4.get((S[1]["type"].lower(), sp, dp))
+            return list(v) if v else None
         L = self.lut(si)
         if si != di or not L or not re.match(r"A[1-6]$", sp) or dp not in ("O6", "O5"):
             return None
@@ -190,11 +252,39 @@ class Prjx:
         si, _sp = src.rsplit("/", 1)
         if dp in ("0", "1"):
             return self.mux_arc(src, dst)
+        hop, _c4 = self.site_tables()
+        sink_hop = None              # C-10h: site-internal hop after the site input pin
         L = self.lut(di)
-        if not L or not re.match(r"A[1-6]$", dp):
-            return None
-        tile, s, letter, _k = L
-        sp_name = letter + dp[1]
+        if L and re.match(r"A[1-6]$", dp):
+            tile, s, letter, _k = L
+            sp_name = letter + dp[1]
+        else:
+            S = self.site(di)
+            if not S:
+                return None
+            tile, s, b = S
+            st = s["type"].lower()
+            SS = self.site(si)
+            same = SS is not None and SS[0] == tile and SS[1]["x_coord"] == s["x_coord"]
+            if re.match(r"^F7AMUX|F7BMUX|F8MUX$", b) and dp == "S0":
+                # the select of a wide mux enters through AX / CX / BX (no db hop)
+                sp_name = {"F7AMUX": "AX", "F7BMUX": "CX", "F8MUX": "BX"}[b]
+            elif b == "CARRY4" and re.match(r"^(DI|S)[0-3]$", dp):
+                x = "abcd"[int(dp[-1])]
+                db_ = self.drv_bel(si, _sp)
+                if same and db_ and re.match(r"^[a-d][56]lut$", db_):
+                    # LUT O6 -> S#, LUT O5 -> DI#: a site-internal hop only
+                    v = hop.get((st, db_, "carry4"))
+                    if v is None or db_[0] != x:
+                        return None
+                    return list(v)
+                if dp.startswith("S"):
+                    return None
+                sp_name, sink_hop = x.upper() + "X", hop.get((st, x + "x", "di" + dp[-1]))
+                if sink_hop is None:
+                    return None
+            else:
+                return None
         if sp_name not in s["site_pins"]:
             return None
         wire = s["site_pins"][sp_name]["wire"]
@@ -221,7 +311,23 @@ class Prjx:
             return None
         self.inpin[(src, dst)] = n.inpins.get((tile, wire))
         r = n.sink(tile, wire)
-        return r[0] if r else None
+        if not r:
+            return None
+        # C-10h: the site-internal hop from the driving BEL to its site output pin
+        # (a5lut -> amux, carry4_o0 -> amux, f7amux -> amux, ...; a6lut -> a is 0).
+        # 10e/10g left it out, which was optimistic for every non-O6 driver.
+        db_ = self.drv_bel(si, _sp)
+        if db_ is None:
+            return None
+        if ppin.lower() == db_[0] and db_.endswith("6lut"):
+            dh = [0.0, 0.0, 0.0, 0.0]
+        else:
+            dh = hop.get((psite["type"].lower(), db_, ppin.lower()))
+            if dh is None:
+                return None
+        sh = sink_hop if sink_hop is not None else [0.0, 0.0, 0.0, 0.0]
+        self.hops[(src, dst)] = (dh, sh)
+        return [a + b + c for a, b, c in zip(r[0], dh, sh)]
 
     def split(self, src, dst_a, dst_b):
         """C-10g, rule J: the EXACT shared part of one routed net.  The two sinks'
@@ -244,7 +350,10 @@ class Prjx:
         def tot(els):
             rc = sum(e.get_rc_delay() or 0.0 for e in els) * 1e3
             return [sum(R.pick(e.get_intrinsic_delays(), k) for e in els) * 1e3 + rc for k in range(4)]
-        return tot(ea[:n]), tot(ea[n:]), tot(eb[n:])
+        (dh, sha), (_dh, shb) = self.hops[(src, dst_a)], self.hops[(src, dst_b)]
+        add = lambda x, y: [a + b for a, b in zip(x, y)]  # noqa: E731
+        # C-10h: the driver's site-internal hop is shared, each sink hop is its own
+        return add(tot(ea[:n]), dh), add(tot(ea[n:]), sha), add(tot(eb[n:]), shb)
 
 
 def intervals(d, c):
