@@ -597,21 +597,31 @@ def audit_fastfall(edges, back, chains, timing):
             if out is None or not ins:
                 fall = None
                 break
-            cand = []
+            cand, ripple_in, tap_in = [], [], []
             for ip in ins:
                 arc = arc_of(ip, out)
                 if arc is None:
                     continue
                 for sp in back.get(ip, ()):
                     if i > 0 and sp == prev:            # the ripple
-                        cand.append(fall + (arc_of(sp, ip) or 0) + arc)
+                        ripple_in.append(fall + (arc_of(sp, ip) or 0))
+                        cand.append(ripple_in[-1] + arc)
                     elif sp == src:                     # the side tap
-                        cand.append((arc_of(sp, ip) or 0) + arc)
+                        tap_in.append(arc_of(sp, ip) or 0)
+                        cand.append(tap_in[-1] + arc)
                     elif i == 0 and ip in late:         # the head's input
                         cand.append(late[ip] + arc)
             if not cand:
                 fall = None
                 break
+            # A value still in flight on the ripple wire: until the fall has
+            # reached this stage's ripple input, a re-rise arriving at its side
+            # tap passes straight through and the rise skips the links before
+            # it.  So the input may rise again only once the ripple input is
+            # low by the time the tap sees the rise: input fall + (ripple
+            # arrival - tap delay), latest ripple against the fastest tap.
+            if ripple_in and tap_in:
+                t_flush = max(t_flush, max(ripple_in) - min(tap_in))
             # an AND falls on its EARLIER input; the head (LUT1) has one
             fall, prev = min(cand), out
             t_flush = max(t_flush, fall)

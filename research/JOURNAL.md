@@ -1202,3 +1202,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
     harmless on that route (functions ignore the pin), but the checker must classify it; handed to the F5 subagent.
   - GLS "sample at fire" early edge and inertial LUT paths (CONFIRMED defects): F3 subagent builds an opt-in
     transport per-pin LUT model and reproduces the audit's 1130->1244 and XOR3 examples.
+### progress 06:16 (rule F: the fall still in flight on the ripple wire)
+- Audit rules.md #4 (CONFIRMED gap): rule F's t_flush was the latest stage OUTPUT fall, but a re-rise that reaches
+  stage i's side tap before the fall has crossed the ripple wire into stage i passes straight through and skips the
+  links before it. tighten.py now also takes, per stage, latest ripple-input arrival minus fastest side tap. The
+  audit's example (arcs 124, hop 600, tap 295) gives t_flush 724 instead of 419. 2 new tests fail on the old code;
+  one old test asserted a pass on exactly such a line (1000 ps ripple, 10 ps taps) and is now a failing case.
+  cells/verify tests 92/92.
+- **Not yet re-run on routes**: no claimed fast-fall route is on disk after the container restart. BQ#3's route is
+  being rebuilt by the F5 subagent; rule F on it (and the fast-fall table's gcd/collatz/xorshift/ipow routes) must
+  be re-checked before BQ#3 stands. Until then BQ#3's "rule F worst +888 ps" is the old rule's number.

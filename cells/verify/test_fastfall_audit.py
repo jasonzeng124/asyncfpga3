@@ -39,21 +39,21 @@ def test_lut1_chain_has_no_fastfall_side_arcs():
 
 # ----------------------------------------------------- rule F: the drain
 
-def drained_line(side1, ret):
+def drained_line(side1, ret, ripple=1000, tap=10, arc=10):
     """c (a link's node) -> 3-link FASTFALL rdly -> consumer k -> back to c.
-    Ripple wires 1000 ps, side taps 10 ps except into g[1] (side1); the
-    return path from the tail to c costs `ret`."""
+    Ripple wires `ripple` ps, side taps `tap` ps except into g[1] (side1),
+    LUT arcs `arc`; the return path from the tail to c costs `ret`."""
     edges = defaultdict(list)
     src = "l.ctl.u.u/O6"
     base = "l.rdly"
     prev = src
     for i in range(3):
         inst = f"{base}.chain.g[{i}].u"
-        edges[prev].append((f"{inst}/I0", 10 if i == 0 else 1000))
-        edges[f"{inst}/I0"].append((f"{inst}/O6", 10))
+        edges[prev].append((f"{inst}/I0", tap if i == 0 else ripple))
+        edges[f"{inst}/I0"].append((f"{inst}/O6", arc))
         if i > 0:
-            edges[src].append((f"{inst}/I1", side1 if i == 1 else 10))
-            edges[f"{inst}/I1"].append((f"{inst}/O6", 10))
+            edges[src].append((f"{inst}/I1", side1 if i == 1 else tap))
+            edges[f"{inst}/I1"].append((f"{inst}/O6", arc))
         prev = f"{inst}/O6"
     edges[prev].append(("k.u/I0", ret // 2))
     edges["k.u/I0"].append(("k.u/O6", 10))
@@ -69,15 +69,33 @@ def drained_line(side1, ret):
 
 
 def test_rule_f_passes_a_line_that_drains_with_its_tail():
-    (row,) = drained_line(side1=10, ret=400)
+    (row,) = drained_line(side1=10, ret=400, ripple=100)
     base, n, t_flush, t_reuse, guard, margin = row
     assert base == "l.rdly" and n == 3
-    assert t_flush == 20 and margin > 0
+    # g[1]'s ripple input is low at 20 + 100, its tap sees a rise 10 later
+    assert t_flush == 110 and margin > 0
+
+
+def test_rule_f_fails_a_fall_still_in_flight_on_the_ripple_wire():
+    # Every stage OUTPUT has fallen by 20 ps, but the low takes 1000 ps to
+    # reach g[1]'s ripple input: a re-rise of c at ~420 meets a still-high
+    # ripple input at g[1]'s side tap and rises past g[0].  The pre-fix rule
+    # F passed this line (t_flush 20, margin > 0).
+    (row,) = drained_line(side1=10, ret=400, ripple=1000)
+    assert row[2] == 1010 and row[-1] < 0
+
+
+def test_rule_f_audit_example():
+    # audit/findings/rules.md #4: arcs 124, chain hop 600, tap 295.  Stage
+    # falls are 419; matched only once the raw margin is >= hop - tap = 305.
+    (row,) = drained_line(side1=295, ret=0, ripple=600, tap=295, arc=124)
+    assert row[2] == 419 + 600 - 295
 
 
 def test_rule_f_fails_a_stage_that_is_still_high_when_the_input_returns():
     # g[1]'s side tap is 2 ns late and the ripple is slower still: it falls
-    # at 1030, long after the tail (20) and the return (400) let c rise again.
+    # at 1030, long after the tail (20) and the return (400) let c rise again;
+    # its low then needs 1000 ps more to reach g[2], whose tap is 10 ps.
     (row,) = drained_line(side1=2000, ret=400)
     margin = row[-1]
-    assert row[2] == 1030 and margin < 0
+    assert row[2] == 1030 + 1000 - 10 and margin < 0
