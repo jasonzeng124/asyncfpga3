@@ -250,3 +250,10 @@ no pin constraint exists anywhere in the flow), but NOT reached on shipped
 gcd_hw on 4 seeds in any one-corner model (worst slowE +234 ps; response
 paths are 2-5 LUTs). Only the test rig's bare 2-cell ring is thin (+4 ps).
 This answers my earlier notification: a risk for bare rings, not for gcd_hw.
+
+### progress 06:45
+10h committed: tcheck's Python path-picking replaced by a proved potential
+certificate (pot_sound, cycles allowed); front-end gaps closed; agreement A
+199/200, E 465/472, F 113/116, H 630/632, I 300/300, J 71/72; every residual
+disagreement fails only with the project's own band on prjxray corners and
+passes unguarded. Launched 9c (Muller chain for all n by a local invariant).
