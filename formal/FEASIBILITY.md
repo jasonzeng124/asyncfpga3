@@ -230,6 +230,12 @@ them).
   FASTFALL delay-line contiguity violated on 64 lines (a request can skip its
   bundling delay). All of these need corner mixing, i.e. local scatter, which
   is unmeasured.
+- **Per-pin race checker** (`lake exe xevents2pin`, `Events2Pin*.lean`): sound
+  without the all-pins-at-one-instant assumption (`H_ATOMIC_LUT`); with prjxray
+  per-physical-pin bands, per-pin skew costs 11–79 ps of margin. One corner: no
+  failing pin on ring3/pipe3/gcd_hw (4 seeds). Mixed corners: 1–4 pins per seed
+  on ring3/pipe3, 6–8 on gcd_hw. Site-pin differences (−468..+308 ps) make any
+  SDF-fed race check unreliable.
 - **Event-count domain** (`Core/XAudit/Events*.lean`, `Events2*.lean`;
   `lake exe xevents`): per-wire transition counts with min-plus timing (timed
   marked graph) over the behaviour's own monotone warps. Closed and open

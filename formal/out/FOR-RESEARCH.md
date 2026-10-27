@@ -121,6 +121,15 @@ A restored toolchain cache lacked libtcl8.6 and boost 1.83 at runtime. toolchain
 greps the binary and passed anyway. Add `ldd nextpnr-xilinx | grep 'not found'` (and
 yosys) to it, and a check that can fail on a stripped install.
 
+## 6e. Race checks need per-pin site-pin delays (nextpnr's SDF lacks them)
+`xevents2pin` (`formal/tools-A/xaudit/pin/run.sh`, notes/A-events2pin.md): the
+site-pin delay difference between a C-element's input pin and its feedback pin is
+−468..+308 ps at the slow corner on gcd_hw R5, and goes the unsafe way on ~46% of
+own-feedback pins; the placer's pin permutation puts feedback on A1 (slowest) ~20%
+of the time. Any race/bundling check fed from nextpnr's SDF is wrong by that
+amount. Feed checks from prjxray per physical pin (`xray_delay.py`, mapped through
+`X_ORIG_PORT_A<k>`; `formal/tools-A/xaudit/pinbands.py` does this).
+
 ## 7. Hypotheses each proof rests on, and their tests
 See `formal/notes/A-substrate.md` (graded list) and FEASIBILITY.md's fidelity
 table. The ones only the board can test:
