@@ -48,6 +48,14 @@ Findings for the cell owner (not confirmed on a route):
   assignment leaves ~0 across the full box on the tightest route.
 - C-element fork: after seeing the ack the environment must wait out the
   feedback wire (E >= dwmax + dlmax - dlmin). Unchecked.
+- CORNERS (Bc, ArbCorners): at a consistent corner the bare-cell handover
+  overlap is 0 for every routing (the 16 ps was the corner mix); the held
+  arbiter's "wfa2+16" tightest margin does not exist; rule J's flat 2x124 arc
+  is exact (client 2) or 26 ps conservative (client 1), so 7g's "68-161 ps
+  optimistic" is WITHDRAWN (the site-pin item stands); raw rule J does not
+  cover FAST_MIN (84 ps flip window at wire/cell ratio 0.55), guarded rule J
+  does given >= 114 ps early routing. Every SLOW_MAX-only margin needs an
+  added guard As - Af/k against a corner flip (exact per condition).
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
