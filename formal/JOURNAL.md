@@ -166,3 +166,7 @@ Formal/ dir. Negative control re-run: hidden sorryAx still fails the audit.
 The heartbeat's --committed run was void (check.sh was edited while bash was
 reading it); rerunning. Usage limit hit at ~04:45 (resets 04:50): the gcd_hw xaudit
 probe stopped mid-way and will be resumed.
+### progress 04:59
+`formal/check.sh --committed` (all shards): build 2972 jobs OK, 11582 declarations
+audited, OK. Running: gcd_hw xaudit (resumed), EnvFast bd_mux + merge data path,
+event-time abstraction for loop precision (XAudit/Events).
