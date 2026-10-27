@@ -28,5 +28,6 @@ grep -E "^Hc " "$C/t.out" | sed 's/^Hc /H /' > "$C/thc.out"
 python3 "$FRONT/compare.py" "$C/thi.out" "$C/tighten.log" --tsv "$C/compare_hi.tsv" > "$C/compare_hi.log"
 python3 "$FRONT/compare.py" "$C/thc.out" "$C/tighten.log" --tsv "$C/compare_hc.tsv" > "$C/compare_hc.log"
 python3 "$HERE/compare2k.py" "$C" > "$C/compare2.log"
+python3 "$HERE/constsrc.py" "$P" "$SRC/cells" > "$C/constsrc.tsv" 2> "$C/constsrc.err"
 rm -f "$C/obl.tc.gz"; gzip -f "$C/obl.tc"        # ~100s of MB; kept compressed for diag.py
 echo "seed $SEED: $(grep '^extract:' "$C/extract.log" | tail -1) / $(tail -1 "$C/t.err")"

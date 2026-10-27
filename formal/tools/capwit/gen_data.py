@@ -14,29 +14,37 @@ OUT = os.path.join(sim.ROOT, "formal", "lean", "Formal", "Net", "CapstoneWitness
 def lst(xs): return "[" + ", ".join(str(x) for x in xs) + "]"
 
 
+def rows_of(names, ops, tr, mutate=None):
+    """Lean `CD` literals of a trace; `mutate(c, rq, ak, d0, dt, ax)` may edit one channel's lists."""
+    prod = {}
+    for n, o in enumerate(ops):
+        for c in sim.outs_of(o): prod[c] = n
+    rows = []
+    for c in range(len(names)):
+        rq = sim.toggles([s[0][c] for s in tr])
+        ak = sim.toggles([s[1][c] for s in tr])
+        ds = [s[3][c] for s in tr]
+        dt = sim.dchanges(ds)
+        d0 = ds[0]
+        o = ops[prod[c]]
+        ax = []
+        if o["k"] in sim.NINT:
+            n = prod[c]
+            ax = [sim.toggles([s[2][n][k] for s in tr]) for k in range(sim.NINT[o["k"]])]
+        if mutate: rq, ak, d0, dt, ax = mutate(c, rq, ak, d0, dt, ax)
+        rows.append(f"  ⟨{lst(rq)}, {lst(ak)}, {d0}, [{', '.join(f'({t}, {v})' for t, v in dt)}], "
+                    f"[{', '.join(lst(x) for x in ax)}]⟩")
+    return rows
+
+
 def render(a, b):
     names, ops, out0 = sim.load_net()
     tr = sim.simulate(a, b, names, ops)
     errs, falls = sim.check(a, b, names, ops, out0, tr)
     if errs:
         raise SystemExit(f"run violates the models: {errs[:10]}")
+    rows = rows_of(names, ops, tr)
     NC = len(names)
-    prod = {}
-    for n, o in enumerate(ops):
-        for c in sim.outs_of(o): prod[c] = n
-    rows = []
-    for c in range(NC):
-        rq = sim.toggles([s[0][c] for s in tr])
-        ak = sim.toggles([s[1][c] for s in tr])
-        ds = [s[3][c] for s in tr]
-        dt = sim.dchanges(ds)
-        o = ops[prod[c]]
-        ax = []
-        if o["k"] in sim.NINT:
-            n = prod[c]
-            ax = [sim.toggles([s[2][n][k] for s in tr]) for k in range(sim.NINT[o["k"]])]
-        rows.append(f"  ⟨{lst(rq)}, {lst(ak)}, {ds[0]}, [{', '.join(f'({t}, {v})' for t, v in dt)}], "
-                    f"[{', '.join(lst(x) for x in ax)}]⟩")
     T = len(tr) - 1
     nt = sum(len(sim.toggles([s[0][c] for s in tr])) + len(sim.toggles([s[1][c] for s in tr])) for c in range(NC))
     srq = sim.toggles([s[0][2] for s in tr])

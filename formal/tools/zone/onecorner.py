@@ -197,6 +197,24 @@ def sec_wqg(mode, cors):
                   [0, 8, 16, 24, 40, 80], keys, "HELD wq_s=16")
 
 
+def sec_tp(mode, cors):
+    """slim transport section (HELD only, coarse grids): the full grids of
+    srv/wa/wqg take minutes per row in transport mode."""
+    keys = [k for k in KEYS[mode] if not k.startswith("reach")]
+    for cor in cors:
+        print(f"== {cor} HELD transport: server latency ==", flush=True)
+        sweep(cor, mode, "s_lo", lambda s: dict(srv=(s, s + 20)), [0, 20, 160],
+              keys, "HELD  ")
+        print(f"== {cor} HELD transport: A0 fork ==", flush=True)
+        sweep(cor, mode, "wa", lambda w: dict(wa=(w, w)),
+              [0, 100, 128, 200, 240, 300], keys, "HELD  ")
+        print(f"== {cor} HELD transport: q->ugrant route (wq_s = 0, then 16) ==", flush=True)
+        sweep(cor, mode, "wq_g", lambda w: dict(wq_g=(w, w)), [0, 8, 24, 80, 160],
+              keys, "HELD  ")
+        sweep(cor, mode, "wq_g", lambda w: dict(wq_g=(w, w), wq_s=(16, 16)),
+              [0, 16, 24, 80], keys, "HELD wq_s=16")
+
+
 if __name__ == "__main__":
     t0 = time.time()
     what = sys.argv[1] if len(sys.argv) > 1 else "all"

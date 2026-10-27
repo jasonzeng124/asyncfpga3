@@ -104,7 +104,7 @@ def Cel(cur, vals):
     return vals[0] if all(v == vals[0] for v in vals) else cur
 
 
-def simulate(a, b, names, ops, tmax=100000):
+def simulate(a, b, names, ops, tmax=100000, start_tokens=1):
     NC = len(names)
     prod = {}
     for n, o in enumerate(ops):
@@ -113,6 +113,7 @@ def simulate(a, b, names, ops, tmax=100000):
     it = {n: [False] * NINT.get(o["k"], 0) for n, o in enumerate(ops)}
     latch = {o["o"]: 0 for o in ops if o["k"] == "link"}
     srcdone = {n: False for n, o in enumerate(ops) if o["k"] == "src"}
+    srcleft = {n: (start_tokens if o["which"] == 2 else 1) for n, o in enumerate(ops) if o["k"] == "src"}
     srcv = lambda w: a if w == 0 else (b if w == 1 else 0)
 
     def dats():
@@ -203,7 +204,9 @@ def simulate(a, b, names, ops, tmax=100000):
             elif k == "sink":
                 nack[o["i"]] = req[o["i"]]
         for n, o in enumerate(ops):
-            if o["k"] == "src" and not req[o["z"]] and nreq[o["z"]]: srcdone[n] = True
+            if o["k"] == "src" and not req[o["z"]] and nreq[o["z"]]:
+                srcleft[n] -= 1
+                srcdone[n] = srcleft[n] == 0
         changed = (nreq != req) or (nack != ack) or (nit != it)
         # latch update: new value of link outputs at t+1
         req, ack, it = nreq, nack, nit

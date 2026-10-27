@@ -12,11 +12,13 @@ AND data arcs at the high end of the SAME corner: whether that happens on silico
 local-scatter (kappa) question of the corner model, not a routing defect.  Margin = earliest
 request change - latest data change - setup, min over the row's instances.
 -> results/KERNEL/pointcheck.tsv"""
-import gzip, heapq, pathlib, sys
+import gzip, heapq, os, pathlib, sys
 from collections import defaultdict
 H = pathlib.Path(__file__).resolve().parent
 k = sys.argv[1]
-R = H / "results" / k
+TAG = os.environ.get("KCHECK_TAG", "")
+R = H / "results" / (k + (f"_{TAG}" if TAG else ""))
+CK = "check" + (f"_{TAG}" if TAG else "")
 dis = [l.rstrip("\n").split("\t") for l in open(R / "disagree.tsv")][1:]
 want = defaultdict(set)              # seed -> {(rule-as-in-tc, row)}
 for d in dis:
@@ -66,7 +68,7 @@ def margins(arcs, req, data, setup, pick):
 
 out = ["seed\trule\trow\tfast@min\tfast@max\tslow@min\tslow@max\tinstances"]
 for seed, rows in sorted(want.items()):
-    f = H / "build" / k / f"s{seed}" / "check" / "obl.tc.gz"
+    f = H / "build" / k / f"s{seed}" / CK / "obl.tc.gz"
     res = defaultdict(lambda: defaultdict(list))
     cur = None
     for line in gzip.open(f, "rt"):

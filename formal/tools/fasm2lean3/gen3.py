@@ -60,6 +60,23 @@ def flatten(synth):
         die("no unique top: %s" % top)
     top = top[0]
     ctr = itertools.count(10)          # net ids; 0/1 are never used as nets
+    parent = {}
+    alias_const = {}
+
+    def find(x):
+        while parent.get(x, x) != x:
+            x = parent[x]
+        return x
+
+    def union(x, y):
+        if x in ("0", "1") or y in ("0", "1"):
+            c, o = (x, y) if x in ("0", "1") else (y, x)
+            if o not in ("0", "1"):
+                alias_const[find(o)] = c
+            return
+        rx, ry = find(x), find(y)
+        if rx != ry:
+            parent[max(rx, ry)] = min(rx, ry)
     cells = []                         # (name, type, params, {pin: [id|'0'|'1']})
     outports = {}
 
@@ -92,7 +109,16 @@ def flatten(synth):
                 sb = {}
                 for pn, bits in c["connections"].items():
                     for b, sbit in zip(bits, sub["ports"][pn]["bits"]):
-                        sb[sbit] = gid(b)
+                        g = gid(b)
+                        if sbit in ("0", "1"):
+                            # a submodule port tied to a constant inside: the parent net IS that constant
+                            if g not in ("0", "1"):
+                                alias_const[g] = sbit
+                            continue
+                        if sbit in sb and sb[sbit] != g:
+                            union(sb[sbit], g)     # two parent nets joined through a pass-through port
+                        else:
+                            sb[sbit] = g
                 inst(t, prefix + cn + ".", sb, stack + ((prefix + cn + ".", t),))
                 continue
             if t not in PRIM_IN and t != "BSCANE2":
@@ -102,6 +128,17 @@ def flatten(synth):
                           c.get("attributes", {}).get("src", "")))
         return local
     loc = inst(top, "", {})
+
+    def canon(b):
+        if b in ("0", "1"):
+            return b
+        r = find(b)
+        return alias_const.get(r, r)
+    cells = [(n, t, pr, {pn: [canon(b) for b in bits] for pn, bits in conn.items()}, st, src)
+             for (n, t, pr, conn, st, src) in cells]
+    loc = {k: canon(v) for k, v in loc.items()}
+    print("gen3: flatten: %d nets joined through pass-through ports, %d tied to constants"
+          % (sum(1 for k in parent if parent[k] != k), len(alias_const)), file=sys.stderr)
     for pn, p in mods[top]["ports"].items():
         if p["direction"] == "output":
             outports[pn] = [loc[b] if b not in ("0", "1") else b for b in p["bits"]]
@@ -571,8 +608,7 @@ def main():
         f.write("def insts : List Inst :=\n  %s\n\n" % " ++\n  ".join("C%03d.insts" % ci for ci in range(len(chunks))))
         f.write("theorem all_ok : checkAll rho insts = true := by\n")
         f.write("  simp only [insts, checkAll, List.all_append, Bool.and_eq_true]\n")
-        f.write("  exact %s\n\n" % ("⟨" * (len(chunks) - 1) + ", ".join(
-            "C%03d.ok" % ci + ("⟩" if 0 < ci else "") for ci in range(len(chunks)))))
+        f.write("  exact ⟨%s⟩\n\n" % ", ".join("C%03d.ok" % ci for ci in range(len(chunks))))
         f.write("/-- H_NETLIST for this route (gate level): every instance is sound. -/\n")
         f.write("theorem sound : ∀ i ∈ insts, i.Sound rho := checkAll_sound rho insts all_ok\n\n")
         f.write("end %s\n" % NS)
@@ -588,6 +624,11 @@ def main():
            "max_supp": max(len(supp_of(p, l)) for p, l, _, _ in insts)}
     if a.report:
         json.dump(rep, open(a.report, "w"), indent=1)
+        # debugging aid: names of the logical nets (first flattened name per id) and physical nets
+        lname = {}
+        def walkn(mname, prefix, bind):
+            pass
+        json.dump({"phys": {str(v): k for k, v in pid.items()}}, open(a.report + ".nets.json", "w"))
     print("gen3: %d insts in %d chunks, rho %d, logical %d (%d matched), physical %d (%d unused), %d route-through outputs, max supp %d"
           % (len(insts), len(chunks), len(rho), len(L), len(matched_l), len(pcells), len(unused_p), len(rt), rep["max_supp"]),
           file=sys.stderr)

@@ -6,9 +6,16 @@
    results/KERNEL/disagree.tsv  every disagreement, classified:
         band-only      project PASS, tcheck FAIL at fastG/slowG, but the unguarded prjxray
                        fast AND slow corners pass (the 0.772/1.155 band on prjxray numbers)
-        corner-fail    project PASS, an UNGUARDED prjxray corner fails and no fallback arc on the
-                       deciding instance (candidate real failure: read diag.py)
-        frontend-gap?  as corner-fail, but the deciding instance has fallback (SDF-band) arcs
+        corner-fail    project PASS, an UNGUARDED prjxray corner fails even at a fixed point, no
+                       fallback, no constant source (candidate real failure: read diag.py)
+        frontend-gap(const)    rule A row whose data peak is a constant tie-off driver's route
+                       (tighten.cell_boundary keeps $PACKER_GND/VCC_DRV: a false path, which
+                       tcheck's rule A mirrors; constsrc.py)
+        frontend-gap(fallback) the deciding instance has fallback arcs (SDF band in place of
+                       prjxray numbers, so a prjxray corner is mixed with nextpnr's slow max)
+        spread-only    no fallback, but every fixed point (pointcheck.py: all arcs at fast_min,
+                       fast_max, slow_min or slow_max) passes: the failure needs request arcs at
+                       the low end and data arcs at the high end of ONE corner (no correlation)
         project-only   project FAIL, tcheck PASS (tcheck's prjxray numbers are kinder)
    results/KERNEL/routes.tsv    per seed: flow.sh exit, gate lines, project violation counts,
                                 extract/tcheck summary
@@ -55,7 +62,26 @@ def num(x):
         return None
 
 
+# pointcheck.py (fixed-point margins) and check.sh's constsrc.tsv (rule-A peak taken from a
+# constant tie-off driver), when present, refine the classes
+PC = {}
+if (R / "pointcheck.tsv").exists():
+    for l in list(open(R / "pointcheck.tsv"))[1:]:
+        f = l.rstrip("\n").split("\t")
+        if len(f) >= 7 and f[3] != "-":
+            PC[(f[0], f[1], f[2])] = [num(x) for x in f[3:7]]
+CONST = set()
+for s in seeds:
+    f = B / f"s{s}" / CK / "constsrc.tsv"
+    if f.exists():
+        for l in list(open(f))[1:]:
+            x = l.rstrip("\n").split("\t")
+            if len(x) >= 7 and "PACKER" in x[6]:
+                CONST.add((s, x[0]))
+
+
 def klass(r):
+    """band-only / frontend-gap / spread-only / corner-fail / project-only (see the docstring)"""
     t = r["tc"]
     if r["pv"] == "FAIL" and r["cv"] == "PASS":
         return "project-only"
@@ -64,8 +90,13 @@ def klass(r):
         return "band-only"
     m = re.search(r"fallback=([^ ]*)", r["note"])
     fbs = [x for x in (m.group(1).split(",") if m else []) if x]
+    if r["rule"] == "A" and (r["seed"], r["key"]) in CONST:
+        return "frontend-gap(const)"
     if any(re.match(r"^[1-9]", x) for x in fbs):
-        return "frontend-gap?"
+        return "frontend-gap(fallback)"
+    pc = PC.get((r["seed"], r["fl"], r["key"]))
+    if pc and all(x is not None and x >= 0 for x in pc):
+        return "spread-only"
     return "corner-fail"
 
 
@@ -117,7 +148,7 @@ with open(R / "routes.tsv", "w") as o:
         rd0 = lambda n: (O0 / n).read_text().strip() if (O0 / n).exists() else "-"   # noqa: E731
         rd = lambda n: (O / n).read_text().strip() if (O / n).exists() else "-"   # noqa: E731
         gates = "; ".join(l.strip() for l in open(O0 / "flow.log")
-                          if re.search(r"FAIL|VIOLAT|zero-delay|refus", l))[:300] if (O0 / "flow.log").exists() else "-"
+                          if re.search(r"FAIL|VIOLAT|refus|ABORT|DROPPED", l))[:300] if (O0 / "flow.log").exists() else "-"
         ex = [l.strip() for l in open(O / "extract.log") if l.startswith("extract:")] if (O / "extract.log").exists() else []
         te = rd("t.err").splitlines()[-1:] if (O / "t.err").exists() else []
         sha = rd0("sha.txt").split()[0][:16] if (O0 / "sha.txt").exists() else "NO ROUTE"

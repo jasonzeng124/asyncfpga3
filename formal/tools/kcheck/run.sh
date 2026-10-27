@@ -11,7 +11,8 @@
 #  1. route.sh KERNEL prep, then route.sh KERNEL SEED, at most KCHECK_JOBS (default 2) nextpnr
 #     jobs at once (SKIP_ROUTE=1 reuses existing routes)
 #  2. check.sh KERNEL SEED for every routed seed (KCHECK_JOBS at once)
-#  3. summarize.py KERNEL SEED... -> results/<k>/{agree,disagree,rows,routes}.tsv, summary.txt
+#  3. summarize.py, pointcheck.py (fixed-point margins of the disagreeing rows), summarize.py
+#     again -> results/<k>/{agree,disagree,rows,routes,pointcheck}.tsv, summary.txt
 # Env: KCHECK_FRONT_REV (git rev of tcheck's Python front end to snapshot, default HEAD, or
 #      "worktree"), KCHECK_FREQ (MHz, default 100), KCHECK_FRONT (tcheck front-end dir, default ../tcheck),
 #      KCHECK_EXE (tcheck binary), KCHECK_TAG (suffix for check outputs and results, e.g.
@@ -63,4 +64,6 @@ if [ -z "${SKIP_ROUTE:-}" ]; then
   printf '%s\n' $SEEDS | xargs -P "$JOBS" -I{} "$HERE/route.sh" "$K" {}
 fi
 printf '%s\n' $SEEDS | xargs -P "$JOBS" -I{} "$HERE/check.sh" "$K" {}
+python3 "$HERE/summarize.py" "$K" $SEEDS > /dev/null      # disagree.tsv for pointcheck
+python3 "$HERE/pointcheck.py" "$K" > /dev/null
 python3 "$HERE/summarize.py" "$K" $SEEDS
