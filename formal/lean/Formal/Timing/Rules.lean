@@ -25,9 +25,15 @@ Contents.
 3. The rules as implemented, as arithmetic on SDF numbers, and when they imply
    the interval premise: `ruleE_sound` (under the per-element scatter band
    H_BAND_772_1155 that skew.py's constants claim, plus H_CLEAN_EDGE at the
-   divergence point), `ruleA_band_sound_small` / `ruleA_not_band_sound`
-   (rule A's `max(0.2 t, 200 ps)` is weaker than that band for every
-   `t_data >= 404 ps`).
+   divergence point), `ruleA_band_sound_small` / `ruleA_band_sound_403` /
+   `ruleA_not_band_sound`, summed up by `ruleA_band_threshold`: rule A's
+   `max(0.2 t, 200 ps)` implies the band premise for every margin iff
+   `t_data <= 403 ps` (exact threshold: `383 t < 154400`).
+   Rule A is modelled WITHOUT tighten.py's `SLACK` term
+   (`req_guard = max(int(0.2*t), 200) + SLACK`): `SLACK = 0` unless `--slack`
+   is passed, which only `cells/verify/resize.sh` does (`BD_RESIZE_SLACK`,
+   default 300). A positive SLACK only widens the guard, so the soundness
+   direction carries over; the `>= 404` counterexample is for SLACK = 0.
 4. Counterexample netlists, each with concrete traces that satisfy every arc
    relation (`shift_bd`) and on which the rule passes but `Bundled` fails:
    * `ruleA_counterexample`  (rule A vs the band skew.py adopts),
@@ -280,7 +286,9 @@ instance (R S c : Nat) : Decidable (guardedPass R S c) := by
   unfold guardedPass; infer_instance
 
 /-- tighten.py rule A, not a violation: `t_e - t_l - max(0.2 t_l, 200) >= 0`
-(`rule_a_links` pads only when the margin is negative). -/
+(`rule_a_links` pads only when the margin is negative). tighten.py's
+`req_guard` adds `SLACK` (0 except under `resize.sh --slack`); this model is the
+`SLACK = 0` rule. `tl / 5` is Nat floor = the code's `int(0.2*t)` on integer ps. -/
 def ruleAPass (te tl : Nat) : Prop := tl + max (tl / 5) 200 ≤ te
 
 instance (te tl : Nat) : Decidable (ruleAPass te tl) := by
@@ -342,6 +350,27 @@ theorem ruleA_not_band_sound (tl : Nat) (hs : 404 ≤ tl) :
   by_cases hm : tl / 5 ≤ 200
   · rw [Nat.max_eq_right hm]; omega
   · rw [Nat.max_eq_left (by omega)]; omega
+
+/-- The boundary case left open by the two theorems above: `t_l = 403 ps` is still
+sound (`1155 · 403 = 465465 < 772 · 603 = 465516`). -/
+theorem ruleA_band_sound_403 {te : Nat} (h : ruleAPass te 403) : 1155 * 403 < 772 * te := by
+  unfold ruleAPass at h
+  have : max (403 / 5) 200 = 200 := by decide
+  omega
+
+/-- **Rule A vs the band, exact threshold.** Every passing rule A margin implies the
+band premise `1155 t_l < 772 t_e` iff `t_l ≤ 403 ps` (SLACK = 0). -/
+theorem ruleA_band_threshold (tl : Nat) :
+    (∀ te, ruleAPass te tl → 1155 * tl < 772 * te) ↔ tl ≤ 403 := by
+  constructor
+  · intro h
+    apply Classical.byContradiction; intro hn
+    have ⟨hp, hle⟩ := ruleA_not_band_sound tl (by omega)
+    have := h _ hp; omega
+  · intro hs te hp
+    by_cases h3 : tl = 403
+    · subst h3; exact ruleA_band_sound_403 hp
+    · exact ruleA_band_sound_small hp (by omega)
 
 /-! ## 4. Counterexample netlists -/
 

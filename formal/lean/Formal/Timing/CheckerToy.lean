@@ -24,7 +24,9 @@ here (see section 2 for when it is not).
 
 ## 2. Is interval STA exact or only conservative?
 
-`win_exact` (Checker.lean) says per-node windows are exact in both semantics.
+`win_exact` (Checker.lean) says per-node windows are exact in both semantics,
+over the choice of cell functions (the witness picks OR/AND; with fixed functions
+a window is only an upper bound, `FixedFn.win_exact_needs_free_fn`).
 The *bundling check* compares two windows at once. `corr` is the smallest
 netlist where request and data share an arc with an interval (`0 → 1`, 1..3):
 
@@ -38,6 +40,21 @@ netlist where request and data share an arc with an interval (`0 → 1`, 1..3):
   there is a run in which the shared node glitches (changes at 1, 2 and 3), the
   request takes the early edge and the data the late one: data changes at 7,
   after the request edge at 6. So the check is EXACT for Prelim's channel.
+
+**What that does and does not justify.** The violating run needs the plain wire
+`0 → 1` (a buffer, `g 1 = pin 0`) to turn the ONE launch edge (`launchSig` changes
+only at 0) into a three-edge runt (`glitch`). Prelim's per-event channel admits
+that, but a routing wire does not do it: FEASIBILITY.md's fidelity table has
+pips/RC trees responding monotonically (no glitch), i.e. one delay per edge. So
+`corr_bd_violation` is a fact about the channel model, NOT a physical
+justification of the shared-arc check. Under monotone wires (fixed per-arc
+delay, `FixedRun`) the shared-arc check is CONSERVATIVE (`corr_fixed_safe`; shown
+on this one example only). The sound way to take the shared prefix back is a
+CPPR-style credit under H_CLEAN_EDGE at the divergence node:
+`Formal.Timing.SharedPrefix.pot2_sound` (probe 10l, cyclic netlists) and
+`Rules.race_sound_clean` / `Rules.ruleE_sound` (10b, DAG);
+`Rules.prefix_credit_needs_clean_edge` shows the credit is unsound if the
+divergence node can glitch.
 -/
 
 namespace Formal.Timing
@@ -189,7 +206,11 @@ theorem glitch_bd : BoundedDelay 1 3 launchSig glitch where
 
 /-- **Exact under H_BOUNDED_DELAY.** A run of `corr` (Prelim's bounded-delay
 channel on every arc) in which the data changes at 7, after the request
-changed at 6. -/
+changed at 6. It relies on the wire `0 → 1` emitting three edges (`glitch`) for
+one launch edge, which a monotone (no-glitch) routing wire does not do; under
+fixed per-arc delays `corr` is safe (`corr_fixed_safe`) and the check is only
+conservative. Sound shared-prefix credit: `SharedPrefix.pot2_sound`
+(H_CLEAN_EDGE). -/
 def corrRun : Run corr corrSig where
   pin := fun k => match k with
     | 0 => glitch
@@ -231,6 +252,10 @@ def corrRun : Run corr corrSig where
     | 3 => rfl
     | v + 4 => rfl
 
+/-- Under per-event bounded delays (`Run`), `corr` has a bundling violation. This rests
+on the wire `0 → 1` turning one launch edge into three (`glitch`); under monotone
+wires (fixed per-arc delay) the shared-arc check is conservative (`corr_fixed_safe`),
+and the sound shared-prefix credit is `SharedPrefix.pot2_sound` under H_CLEAN_EDGE. -/
 theorem corr_bd_violation :
     ∃ sig, Nonempty (Run corr sig) ∧ changes (sig 3) 7 ∧ changes (sig 2) 6 ∧ ¬ (7 + 1 ≤ 6) :=
   ⟨corrSig, ⟨corrRun⟩, by unfold changes; decide, by unfold changes; decide, by decide⟩

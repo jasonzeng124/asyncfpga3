@@ -27,6 +27,16 @@ token run's labels (a simulation of the token LTS by the circuit), and (O2) a to
 stream solution built from the token run's per-channel histories; plus (O4) binding the Ops
 gate models to the generated cells. So `gcd_hw_conditional` is conditional, and says so in
 its hypothesis name.
+
+**What `latched_const` / `gcd_hw_conditional` do NOT contain (audit P4).** Both hold for ANY
+network `N`, channels and token equations: nothing in them refers to gcd_hw's graph, its links,
+or the C function. `gcd_hw_conditional` is definitionally `latched_const` with
+`g := Nat.gcd a b` (`a`, `b` occur only inside `O_SOLUTION`; with `b = 0` it states the same for
+any constant). They carry no gcd content; they are the generic "solution => latched values"
+reduction. The theorem that does carry gcd_hw content (gcd_hw's own network `opAt`, its
+channels, the token run of the bdc graph, H_CELLS/H_BUNDLE plus H_START_ONCE and the
+token-level H_WALK) is `Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe''` in
+`Formal/Net/CapstoneCut.lean` (probe C-8r).
 -/
 
 namespace Formal.Net.Capstone
@@ -36,7 +46,9 @@ variable {C O : Type}
 
 /-- End-to-end reduction for any network: a solution whose `out` stream is constantly `g`
 forces every latched `out` token to be `g`, and the latched list at every time to be
-`g, g, ..., g` (one per close so far). -/
+`g, g, ..., g` (one per close so far). Generic: holds for every network, channel map and
+equations; it carries no gcd_hw content (that is `CapNet.Gcd.gcd_hw_circuit_safe''`,
+CapstoneCut.lean). -/
 theorem latched_const (N : Net C O) (ch : C → Chan) (E : O → (C → Nat → Nat) → Prop)
     (hop : ∀ o, OpProto ch (N.ins o) (N.outs o))
     (H_BUNDLE : ∀ c, Held (ch c))
@@ -55,7 +67,15 @@ theorem latched_const (N : Net C O) (ch : C → Chan) (E : O → (C → Nat → 
 
 /-- The capstone statement for gcd_hw, CONDITIONAL on the open premise `O_SOLUTION`
 (see the module doc). For any handshake network whose operators meet their cell specs and
-whose channels are bundled: every value latched on `out0` is `Nat.gcd a b`. -/
+whose channels are bundled: every value latched on `out0` is `Nat.gcd a b`.
+
+NOTE (audit P4): this holds for ANY network `N`, channels `ch` and equations `E`; gcd_hw's
+graph and the C function do not appear, and `a`, `b` enter only through `O_SOLUTION`. It is
+definitionally `latched_const` with `g := Nat.gcd a b`, so it has no gcd content of its own.
+The theorem that carries gcd_hw content is `Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe''`
+(`Formal/Net/CapstoneCut.lean`): over gcd_hw's own operator network, under H_CELLS,
+H_BUNDLE, H_START_ONCE and the token-level H_WALK, every value latched on `out0` is
+`Nat.gcd a b`. -/
 theorem gcd_hw_conditional (a b : Nat) (N : Net C O) (ch : C → Chan)
     (E : O → (C → Nat → Nat) → Prop)
     (H_CELLS : ∀ o, OpProto ch (N.ins o) (N.outs o) ∧ OpData ch (N.ins o) (N.outs o) (E o))

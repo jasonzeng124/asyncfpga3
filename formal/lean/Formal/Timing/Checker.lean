@@ -1,7 +1,7 @@
 import Formal.Timing.Semantics
 
 /-!
-# Interval timing checker, proved sound and per-node exact (probe C-10a)
+# Interval timing checker, proved sound, and per-node exact over free cell functions (probe C-10a)
 
 `win net v` is the switching window `(earliest, latest)` of node `v`
 (`none` = the node never switches): earliest = min over paths of the `lo`-sums,
@@ -18,12 +18,20 @@ Theorems:
 * `check_sound`, `check_stable` soundness of the check: in every run, every data
   change precedes every request change by `≥ setup`, so data is stable from
   `setup` ticks before any request edge on.
-* `win_early_attained`, `win_late_attained`  the windows are exact: for every
-  reachable node there is a run (a fixed-delay one, hence also a `FixedRun`)
-  in which the node switches exactly at its earliest time, and one at its latest.
+* `win_early_attained`, `win_late_attained`  the windows are exact OVER THE CHOICE
+  OF CELL FUNCTIONS: for every reachable node there is a run (a fixed-delay one,
+  hence also a `FixedRun`) in which the node switches exactly at its earliest time,
+  and one at its latest. The witness run picks the node functions itself (OR in
+  `earlyRun`, AND-of-reachable-inputs in `lateRun`). For a netlist whose cell
+  functions are FIXED (real LUT INITs) the window is only an upper bound:
+  `Formal.Timing.FixedFn.win_exact_needs_free_fn` (CheckerFixedFn.lean, an XOR of
+  two `[5,5]` arcs: window `(5,5)`, never switches). Soundness does not depend on
+  this: it holds for every cell function.
 * `check_exact_disjoint`  the check itself is exact (complete) when the request
-  and data cones share only the launch node (`Separated`): a failing check
-  then has a fixed-delay run that really violates bundling (`mixRun`).
+  and data cones share only the launch node (`Separated`), again over the choice
+  of cell functions: a failing check then has a fixed-delay run, with
+  witness-chosen OR/AND node functions (`mixRun`), that really violates bundling.
+  With fixed cell functions a failing check may be a false alarm.
 With shared arcs (correlated delays) see `CheckerToy.lean`: conservative for
 fixed per-arc delays, exact on the example for per-event H_BOUNDED_DELAY.
 -/
@@ -477,23 +485,29 @@ def lateRun (net : Netlist) (hwf : net.WF) : FixedRun net (lateSig net) where
       simp only [lateSig, hcv', decide_eq_true_eq]; omega
 
 /-- **Exactness, earliest.** The earliest time of every reachable node is
-attained by some run (in fact a fixed-delay run). -/
+attained by some run (in fact a fixed-delay run). The run's node functions are
+chosen by the witness (OR, `earlyRun`); with fixed cell functions this is not
+claimed (see `FixedFn.win_exact_needs_free_fn`). -/
 theorem win_early_attained {net : Netlist} (hwf : net.WF) {v e l : Nat}
     (hw : win net v = some (e, l)) :
     ∃ sig, Nonempty (FixedRun net sig) ∧ Nonempty (Run net sig) ∧ changes (sig v) e :=
   ⟨earlySig net, ⟨earlyRun net hwf⟩, ⟨(earlyRun net hwf).toRun⟩, by
     simp only [changes, earlySig, hw]; simp⟩
 
-/-- **Exactness, latest.** -/
+/-- **Exactness, latest.** The witness chooses the node functions (AND of the
+reachable inputs, `lateRun`); with fixed cell functions this is not claimed. -/
 theorem win_late_attained {net : Netlist} (hwf : net.WF) {v e l : Nat}
     (hw : win net v = some (e, l)) :
     ∃ sig, Nonempty (FixedRun net sig) ∧ Nonempty (Run net sig) ∧ changes (sig v) l :=
   ⟨lateSig net, ⟨lateRun net hwf⟩, ⟨(lateRun net hwf).toRun⟩, by
     simp only [changes, lateSig, hw]; simp⟩
 
-/-- **Window exactness, summary.** `win` is the exact switching hull: unreachable
-nodes never switch in any run; a reachable node switches only inside `[e, l]`
-in every run, and both ends are attained by fixed-delay runs. -/
+/-- **Window exactness, summary.** `win` is the exact switching hull OVER ALL LOCAL
+CELL FUNCTIONS: unreachable nodes never switch in any run; a reachable node
+switches only inside `[e, l]` in every run with any cell functions (soundness);
+and both ends are attained by fixed-delay runs whose node functions the witness
+chooses (OR / AND). For a netlist with fixed cell functions only the soundness half
+applies and `[e, l]` is an upper bound (`FixedFn.win_exact_needs_free_fn`). -/
 theorem win_exact {net : Netlist} (hwf : net.WF) (v : Nat) :
     (win net v = none → ∀ sig (_ : Run net sig) t, ¬ changes (sig v) t) ∧
     (∀ e l, win net v = some (e, l) →
@@ -583,7 +597,10 @@ def mixRun (net : Netlist) (hwf : net.WF) (P : Nat → Bool) (hP : Separated net
 /-- **Joint exactness for separated cones.** If the check fails, the request
 reaches the capture point, and request and data cones are separated (share
 only the launch), then some fixed-delay run really violates the bundling
-property. So for such netlists the check is exact (sound and complete). -/
+property. So for such netlists the check is exact (sound and complete) over the
+choice of cell functions: the violating run uses witness-chosen OR/AND node
+functions (`mixRun`), so with fixed cell functions (real LUT INITs) a failing
+check is only a possible violation, not a certain one. -/
 theorem check_exact_disjoint {net : Netlist} (hwf : net.WF) {P : Nat → Bool}
     (hP : Separated net P) {req : Nat} {data : List Nat} {setup : Nat}
     (hreq : P req = false) (hdata : ∀ d ∈ data, P d = true)

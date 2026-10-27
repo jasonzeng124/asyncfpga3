@@ -48,8 +48,14 @@ data token is two wavefronts (its `req↑` and its `req↓`): the reset state wi
 * `k_tokens`: with `D = 2k`, `k ≥ 1`, reachable states are live iff
   `N ≥ 2k+1`. So the "3" is `2·1+1`; `k` loop tokens need `2k+1` stages.
 * `fair_window`: (bounded progress) in any execution where stage `i` never
-  fires, at most `N(N-1)/2` transitions happen; so every window of
-  `N(N-1)/2 + 1` transitions fires every stage.
+  fires, at most `N(N-1)` transitions happen; so every window of
+  `N(N-1) + 1` transitions fires every stage. The tight bound `N(N-1)/2`
+  (window `N(N-1)/2 + 1`) is `fair_window_half` / `every_stage_fires_half` in
+  `Formal/Net/RingFair.lean` (from `nf_dist`).
+* The theorems here are stated over the hand-written `ctl`; the real LUT enters
+  through `excited_gate`. `Formal/Net/RingGen.lean` restates `ring_three` and
+  `k_tokens` over the yosys-generated `Formal.Gen.Cells.bd_c2n`/`bd_c2n_set`
+  netlists, so that a changed INIT breaks the headline theorem itself.
 -/
 
 namespace Formal.Net.Ring
