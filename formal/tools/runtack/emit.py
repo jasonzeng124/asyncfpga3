@@ -99,14 +99,16 @@ def write(rows, certs, path):
             if env:   # A0 / R0 leave the chip (link_arb): the server is the environment
                 for k in (1, 2):
                     r = by[(design, c["inst"], k)]
-                    nr = X.need_rows(r, col)
-                    if nr is None:
+                    cc, x = X.COLS[col], r["x"]
+                    c4 = r["c4"]
+                    if any(x[q] is None for q in ("q5_total", "aRq", "gw", "ga", "aa")) or any(q not in c4 for q in ("dqg", "agq", "cq")):
                         continue
-                    ack, _idx, _b = nr
-                    need = X.late(ack) - X.early0(ack)
+                    late = X.ce(c4["dqg"][cc]) + X.ce(c4["agq"][cc]) + X.ce(x["gw"][cc]) + X.ce(x["ga"][cc])
+                    qpath = X.fl(x["q5_total"][cc] - c4["cq"][cc]) + X.fl(x["aRq"][cc])
+                    need = late - qpath - X.fl(x["aa"][cc])
                     summ.append(dict(design=design, inst=c["inst"], client=k, col=col, kind="ack",
-                                     W=X.W(ack), late=X.late(ack), P=None, margin=None,
-                                     verdict="ENV", need=need, fb=None))
+                                     W=None, late=late, P=None, margin=None,
+                                     verdict="ENV", need=need, fb=r["fallback10"]))
                 continue
             F = dict(e["full"], _src=c["src"])
             tF, idsF = cert_lean(f"{base}_{col}_F", F, [c["a0pin"]["1"], c["a0pin"]["2"]])
@@ -150,6 +152,15 @@ def write(rows, certs, path):
                                          margin=X.early0(z) + Pzx - X.late(z),
                                          margin_fullgraph=X.early0(z) + e["dist_tail_full"][c["tail"]] - X.late(z),
                                          verdict="ok" if okz else "FAIL", fb=e["rise"]["fb"]))
+    # Non-vacuity: the worst live ack row with its server bound removed (P := 0, an
+    # instantaneous server) must FAIL, and okAck_exact + spurious_ack_iff then give a
+    # concrete extra-acknowledge trace at those routed delays.
+    live = [x for x in summ if x["kind"] == "ack" and x["verdict"] == "ok" and x["W"] > 0]
+    if live:
+        w = min(live, key=lambda x: x["margin"])
+        nm = f"{lname(w['design'], w['inst'])}_{w['col']}_c{w['client']}"
+        out.append(f"/-- non-vacuity: `{nm}` (worst live row) with an instantaneous server fails. -/\n"
+                   f"theorem demo_fast_server : okAck {{ {nm} with P := 0 }} = false := by decide\n")
     out.append("end Formal.Timing.RuntAck.Inst\n")
     pathlib.Path(path).write_text("\n".join(out))
     json.dump(summ, open(HERE / "build/summary.json", "w"), indent=1)

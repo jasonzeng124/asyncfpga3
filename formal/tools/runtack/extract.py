@@ -117,7 +117,7 @@ class Graph:
                 if nd < dist.get(v, 1 << 62):
                     dist[v] = nd
                     heapq.heappush(pq, (nd, v))
-        pot = {u: dist[u] for u in done}
+        pot = {u: dist[u] for u in sorted(done)}
         cone, fb = [], 0
         for u in pot:
             for v, sw in self.edges.get(u, ()):
