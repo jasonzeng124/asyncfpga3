@@ -387,6 +387,13 @@ research GLS bug gen.py:494-512 (GLS_SCALE_INST not applied to wire delays
 under wire-mode scatter); fid resolver runts hidden without +META_VERBOSE;
 ranked minimal GLS changes C1-C7 to make B's exact rows GLS tests.
 
+FOR SHARD C (probe Bsrc, notes/B-rig-src.md): RigSrc.gcd_rig_first_env is
+C's gcd_rig_first with H_ENV and the sources' SrcR discharged on B's side
+(rig_cellR gives CellR for every operator incl. sources). In C's hypothesis
+table: Src.H_LUT_SI (channels 0-2) and H_ENV proved by B; Src.dat = H_DAT;
+Src.iz false at release, supplied by preRun. Still open for C: laps >= 2,
+and the rig's sinks K.sink 416 / K.sink 3 as H_SINK_SI.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
