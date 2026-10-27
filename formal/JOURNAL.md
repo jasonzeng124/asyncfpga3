@@ -290,3 +290,13 @@ So notes/A-events7.md's table now stands on committed Lean: slow and fast CLEAN 
 every seed; gb residuals 0/0/0/1 (d/3/4/5); mixed (independent per arc) 9/13/10/8.
 design_verdict7 still assumes GuardOK, SelOK, SelPart, H_ARB; the reader is trusted.
 xevents7 lakefile stanza added. Open: W-E4g (GuardOK).
+### progress 12:08
+K2 done (north-star goal 3, second kernel): collatz rig built with the restored FPGA
+toolchain (toolchain.sh 9/9, nextpnr 9c732bc6303458df), seeds d/4/5/6 (seed 3 failed
+placement), cells audits pass. xevents5 (fuel 256; fuel 64 says NOT RECOGNISED on
+65/73-element pin paths, any fuel is sound): CLEAN at slow and fast on all 4 seeds, gb
+CLEAN 3/4 (seed 5: rig env uenv1 -9 ps, the same rig item as gcd seed 5), mixed 2-5
+residuals per seed, 0 structural. Negative controls fail as required. xaudit certifies
+one transaction (n=2) only at slowmax w=0 with a 10 ps step (weaker than gcd). How-to:
+out/HOWTO-new-kernel.md. Fixed tools-A/xaudit/build.sh (Parse missing from MINE).
+xevents7 on collatz next (Events7 is now committed).

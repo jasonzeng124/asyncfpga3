@@ -111,8 +111,12 @@ Never mix corners inside one analysis, except as the labelled `indep` row.
 
 Neither executable imports Mathlib.
 
-    XAUDIT_OLEAN=~/k2olean k2/mk_k2.sh                          # every dependency, through lean.sh/slot.sh
-    XAUDIT_OUT=~/k2xa XAUDIT_OLEAN=~/k2olean ./build.sh         # native xaudit (lean -c + leanc)
+    XAUDIT_OLEAN=~/k2olean k2/mk_k2.sh              # every dependency, through lean.sh/slot.sh
+    NATIVE=1 XAUDIT_OUT=~/k2xa XAUDIT_OLEAN=~/k2olean k2/mk_k2.sh   # + native xaudit
+
+`build.sh` alone fails to link (`undefined symbol: initialize_formal_Formal_Core_XAudit_Parse`):
+its module list predates `Parse.lean`. `mk_k2.sh NATIVE=1` adds Parse and relinks. Before using
+a native binary, check it: it must reproduce `results/pipe3_slow_corner.txt` byte for byte.
 
 When the lake build has the `[[lean_exe]]` targets, `lake exe xaudit` / `lake exe xevents5`
 replace this. The k2 run scripts use `.lake/build/bin/<exe>` if it exists, and otherwise
@@ -126,6 +130,10 @@ replace this. The k2 run scripts use `.lake/build/bin/<exe>` if it exists, and o
     #   python3 events6/cert6.py skel.json skel_C.bands.json cert_C.json
     #   xevents5 skel.json skel_C.bands.json cert_C.json
     #   python3 events5/ana5.py skel.json skel_C.bands.json      (untrusted, comparison only)
+
+Pass `--fuel F` larger than the longest pin path. The default of 64 is too short for collatz's longest pin
+paths, 65 and 73 elements: collatz printed 4 `RECOG-FAIL` lines and `NOT RECOGNISED` at 64, and
+none at 256. Any fuel is sound, because `Recog6 … fuel` is the hypothesis whatever the value.
 
 The last line of an xevents5 run is the verdict:
 
@@ -156,6 +164,10 @@ Negative control (must fail). Add 1500 ps to one arbiter's own-feedback arc and 
 `events4/negctl.py` hard-codes gcd's pin name. nextpnr permutes LUT pins per route, so
 `negctl_k2.py` finds the feedback pin from the netlist.
 
+Make the defect larger than that stage's measured margin. On collatz, +1500 ps (gcd's value) left
+the stage CLEAN at margin 554 ps, and +3000 ps gave `RESIDUAL ... margin -946`. Also mutate the
+certificate (`qi := ri` on one node): Recog6 must print `RECOG-FAIL` and `NOT RECOGNISED`.
+
 ## 6. xaudit: one transaction, X/hazard verdict
 
     k2/run_xaudit_k2.sh       # SEED=d; slow/fast/slowmax w=0,0.02,0.05; then gcd/fbrace.py
@@ -165,6 +177,10 @@ Negative control (must fail). Add 1500 ps to one arbiter's own-feedback arc and 
 - Stimulus: `{"horizon_ps": H, "init": {"rig_rst": 1, "idx": 1}, "events": [{"t_ps": 20000,
   "set": {"rig_rst": 0}}]}`. Choose H from a concrete run (`gcd/csim.py --mode hi --strobe
   rig_lap`) plus margin. The memory is about (number of wires) × (H / 25 ps) cells.
+- Step size matters on long transactions. Rounding adds up to one step per element, and it
+  accumulates. On collatz, slowmax w = 0 failed to certify at 25 ps and certified at 10 ps
+  (`--unit-ps 10` in routed2x.py, same netlist). Memory scales as wires × steps: 2.25 GB for
+  10.8k wires × 22k steps.
 - What a result means (`A-xaudit.md`): for every delay assignment inside the bands and every
   power-up state, each storage node's value is the printed one outside the printed X windows.
   - "clean" / power-up windows are not flags.
