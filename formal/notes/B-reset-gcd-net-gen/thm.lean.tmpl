@@ -1,0 +1,381 @@
+/-! # Theorems (template `thm.lean.tmpl`, appended by `gen.py lean`) -/
+
+namespace Formal.Cells.ResetGcdRe
+open Formal.Cells Formal.Cells.TernarySound Formal.Cells.ResetContract Formal.Cells.ResetGcd
+
+/-! ## The regenerated network as a `Circ` -/
+
+def rInfo (n : Nat) : NInfo := rTree.get n
+def rNode (n : Nat) : Node := if n < rM then (rInfo n).node else .input
+/-- gcd_hw's control network, from the synthesized netlist. -/
+def rNet : Circ := ⟨rM, rNode⟩
+def rCtl (n : Nat) : Bool := decide (n < rM) && (rInfo n).ctl
+def rRank (n : Nat) : Nat := (rInfo n).rank
+def rR (n : Nat) : Bool := (rInfo n).rv
+
+-- @PART1_BEGIN@
+/-! ## 1. Comparison with the committed term `ResetGcdNet` -/
+
+def lk2 : List (Nat × Nat) → Nat → Option Nat
+  | [], _ => none
+  | (a, b) :: t, i => if a == i then some b else lk2 t i
+
+def lk3 : List (Nat × Nat × Nat) → Nat → Option (Nat × Nat)
+  | [], _ => none
+  | (a, b) :: t, i => if a == i then some b else lk3 t i
+
+/-- Committed data index → the index of the real net that stands for it. -/
+def phi (i : Nat) : Nat := (lk2 phiL i).getD i
+
+def mapSrc : Src → Src
+  | .node i => .node (phi i)
+  | .const b => .const b
+
+/-- A committed node with its data pins renamed by `phi`. -/
+def mapNode : Node → Node
+  | .input => .input
+  | .gate init pins => .gate init (pins.map mapSrc)
+
+def substSrc (a b : Nat) : Src → Src
+  | .node i => if i == a then .node b else .node i
+  | .const c => .const c
+
+/-- Redirect every pin reading node `a` to node `b`. -/
+def substNode (a b : Nat) : Node → Node
+  | .input => .input
+  | .gate init pins => .gate init (pins.map (substSrc a b))
+
+def nodeEqB : Node → Node → Bool
+  | .input, .input => true
+  | .gate i ps, .gate j qs => i == j && ps == qs
+  | _, _ => false
+
+theorem nodeEqB_eq : ∀ {a b : Node}, nodeEqB a b = true → a = b
+  | .input, .input, _ => rfl
+  | .gate i ps, .gate j qs, h => by
+    simp only [nodeEqB, Bool.and_eq_true, beq_iff_eq] at h
+    rw [h.1, h.2]
+  | .input, .gate _ _, h => by simp [nodeEqB] at h
+  | .gate _ _, .input, h => by simp [nodeEqB] at h
+
+/-- What the real network has at a committed index: the committed node, data
+pins through `phi`, and for the `diffT` nodes one pin redirected. -/
+def lkP : List (Nat × List Nat) → Nat → Option (List Nat)
+  | [], _ => none
+  | (a, b) :: t, i => if a == i then some b else lkP t i
+
+/-- Reorder the pins: new pin `k` = old pin `perm[k]`. -/
+def permNode (perm : List Nat) : Node → Node
+  | .input => .input
+  | .gate init pins => .gate init (perm.map fun k => pins.getD k (.const false))
+
+def expect (n : Nat) : Node :=
+  match lk3 diffT n, lkP permT n with
+  | some (a, b), _ => substNode a b (mapNode (gNode n))
+  | none, some pm => permNode pm (mapNode (gNode n))
+  | none, none => mapNode (gNode n)
+
+def sameAt (n : Nat) : Bool := nodeEqB (rNode n) (expect n) && rCtl n == gCtl n
+
+def chunkSame (lo k : Nat) : Bool := (List.range' lo k).all sameAt
+
+theorem chunk_same_mem {lo k : Nat} (h : chunkSame lo k = true) {n : Nat} (h1 : lo ≤ n)
+    (h2 : n < lo + k) : sameAt n = true :=
+  List.all_eq_true.1 h n (List.mem_range'_1.2 ⟨h1, h2⟩)
+
+@CHUNKS_SAME@
+
+theorem all_same (n : Nat) (h : n < oldM) : sameAt n = true := by
+  have hM : oldM = @OLDM@ := rfl
+@ALL_SAME@
+
+/-- **The real control network agrees with the committed term at every
+committed index** (0 .. 3321): same node kind, same INIT, same pin list
+(`[I0, ...]`) and same control flag, once (a) the committed data inputs that
+the synthesized netlist merges are renamed by `phi`, and (b) at the `diffT`
+nodes one pin is redirected. -/
+theorem re_matches (n : Nat) (h : n < oldM) : rNode n = expect n ∧ rCtl n = gCtl n := by
+  have hs := all_same n h
+  simp only [sameAt, Bool.and_eq_true, beq_iff_eq] at hs
+  exact ⟨nodeEqB_eq hs.1, hs.2⟩
+
+/-- The `diffT` nodes really differ from the renamed committed node (the
+redirection is not a no-op). -/
+theorem diff_real : diffT.all (fun t => !nodeEqB (rNode t.1) (mapNode (gNode t.1))) = true ∧
+    permT.all (fun t => !nodeEqB (rNode t.1) (mapNode (gNode t.1))) = true := by
+  decide +kernel
+
+/-- **The real-only nodes**: exactly the indices `oldM .. rM - 1`, each a
+control gate with the listed INIT and pins. -/
+theorem new_nodes : (newT.map (·.1) == List.range' oldM (rM - oldM)) = true ∧
+    newT.all (fun t => nodeEqB (rNode t.1) (.gate t.2.1 t.2.2) && rCtl t.1) = true := by
+  decide +kernel
+
+def srcs : Node → List Src
+  | .input => []
+  | .gate _ ps => ps
+
+def chunkUnread (lo k : Nat) : Bool :=
+  (List.range' lo k).all fun m =>
+    (srcs (rNode m)).all fun s =>
+      match s with
+      | .node i => !unusedL.contains i
+      | .const _ => true
+
+theorem chunk_unread_mem {lo k : Nat} (h : chunkUnread lo k = true) {n : Nat} (h1 : lo ≤ n)
+    (h2 : n < lo + k) : (srcs (rNode n)).all (fun s =>
+      match s with
+      | .node i => !unusedL.contains i
+      | .const _ => true) = true :=
+  List.all_eq_true.1 h n (List.mem_range'_1.2 ⟨h1, h2⟩)
+
+@CHUNKS_READ@
+
+/-- The `unusedL` indices are non-control inputs that no gate of the real
+network reads (they are no node of the real netlist). -/
+theorem unused_ok : unusedL.all (fun n => nodeEqB (rNode n) .input && !rCtl n) = true := by
+  decide +kernel
+
+theorem unused_unread (n : Nat) (h : n < rM) : (srcs (rNode n)).all (fun s =>
+      match s with
+      | .node i => !unusedL.contains i
+      | .const _ => true) = true := by
+  have hM : rM = @M@ := rfl
+@ALL_READ@
+
+-- @PART1_END@
+/-! ## 2. The reset contract, re-checked on the real network -/
+
+/-- `H_LOCAL`/`H_IN` at node `n` of the real network. -/
+def rLocalOK (nd : Nat → Node) (n : Nat) : Bool :=
+  match nd n with
+  | .input => !rCtl n || decide (gA n = K3.ofBool (rR n))
+  | .gate init pins =>
+    !rCtl n ||
+      decide (lutK init (pins.map (srcK (Bst ⟨rM, nd⟩ gA rCtl rRank rR (rRank n))))
+        = K3.ofBool (rR n))
+
+def rPostB (i : Nat) : K3 := if i = 0 then .f else if rCtl i then K3.ofBool (rR i) else .x
+
+def rPostExc (n : Nat) : K3 :=
+  match rNode n with
+  | .input => rPostB n
+  | .gate init pins => lutK init (pins.map (srcK rPostB))
+
+def rRaceB (i : Nat) : K3 := if i = 0 then .x else if rCtl i then K3.ofBool (rR i) else .x
+
+def rRaceExc (n : Nat) : K3 :=
+  match rNode n with
+  | .input => rRaceB n
+  | .gate init pins => lutK init (pins.map (srcK rRaceB))
+
+/-- The same per-node check as `ResetGcd.nodeOK`, with the committed
+`frontierL` and the generator's `rOnesL`. -/
+def rNodeOK (n : Nat) : Bool :=
+  rLocalOK rNode n && (!rCtl n || decide (rRank n ≤ rMaxRank)) &&
+    (!rCtl n || (decide (rPostExc n ≠ .x) &&
+      (decide (n ≠ 0 ∧ rPostExc n ≠ K3.ofBool (rR n)) == frontierL.contains n) &&
+      (rR n == rOnesL.contains n) &&
+      (n == 0 || (decide (rRaceExc n ≠ K3.ofBool (rR n)) == frontierL.contains n))))
+
+def chunkOK (lo k : Nat) : Bool := (List.range' lo k).all rNodeOK
+
+theorem chunk_mem {lo k : Nat} (h : chunkOK lo k = true) {n : Nat} (h1 : lo ≤ n)
+    (h2 : n < lo + k) : rNodeOK n = true :=
+  List.all_eq_true.1 h n (List.mem_range'_1.2 ⟨h1, h2⟩)
+
+@CHUNKS_OK@
+
+theorem all_ok (n : Nat) (h : n < rM) : rNodeOK n = true := by
+  have hM : rM = @M@ := rfl
+@ALL_OK@
+
+/-- The reset-1 set and the maximal rank are the committed ones. -/
+theorem ones_same : rOnesL = onesL := rfl
+theorem maxRank_same : rMaxRank = maxRank := rfl
+
+theorem rCtl_lt {n : Nat} (h : rCtl n = true) : n < rM := by
+  simp only [rCtl, Bool.and_eq_true, decide_eq_true_eq] at h; exact h.1
+
+theorem ok_of_ctl {n : Nat} (hc : rCtl n = true) : rNodeOK n = true := all_ok n (rCtl_lt hc)
+
+theorem local_of_ctl {n : Nat} (hc : rCtl n = true) : rLocalOK rNode n = true := by
+  have h := ok_of_ctl hc
+  simp only [rNodeOK, Bool.and_eq_true] at h
+  exact h.1.1
+
+theorem rank_of_ctl {n : Nat} (hc : rCtl n = true) : rRank n ≤ rMaxRank := by
+  have h := ok_of_ctl hc
+  simp only [rNodeOK, Bool.and_eq_true, hc, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h
+  exact h.1.2
+
+theorem post_of_ctl {n : Nat} (hc : rCtl n = true) :
+    rPostExc n ≠ .x ∧ (decide (n ≠ 0 ∧ rPostExc n ≠ K3.ofBool (rR n)) == frontierL.contains n) = true ∧
+      (rR n == rOnesL.contains n) = true ∧
+      (n == 0 || (decide (rRaceExc n ≠ K3.ofBool (rR n)) == frontierL.contains n)) = true := by
+  have h := ok_of_ctl hc
+  simp only [rNodeOK, Bool.and_eq_true, hc, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h
+  exact ⟨h.2.1.1.1, h.2.1.1.2, h.2.1.2, h.2.2⟩
+
+/-- **The real control network meets the reset specification.** -/
+theorem re_spec : ResetSpec rNet gA rCtl rRank rR where
+  H_IN n hn hc := by
+    have h := local_of_ctl hc
+    have hn' : rNode n = .input := hn
+    simp only [rLocalOK, hn', hc, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h
+    exact h
+  H_LOCAL n init pins hn hc := by
+    have h := local_of_ctl hc
+    have hn' : rNode n = .gate init pins := hn
+    simp only [rLocalOK, hn', hc, Bool.not_true, Bool.false_or, decide_eq_true_eq] at h
+    exact h
+
+/-- **Reset, Kleene, from all-X**, on the real network. -/
+theorem re_reset_ternary (n : Nat) (hc : rCtl n = true) :
+    iter rNet gA (rMaxRank + 2) allX n = K3.ofBool (rR n) :=
+  reset_ternary re_spec (rMaxRank + 1) n hc (by have := rank_of_ctl hc; omega)
+
+/-- **Reset, binary, any power-up state, every bounded run**, on the real
+network. `H_RST_HELD`: rst is 1 on `(0, E]`; data unconstrained. -/
+theorem re_reset_binary {v : Nat → Nat → Bool} (Rn : Run rNet v) {D W : Nat}
+    (hB : Bounded rNet v Rn D W) (E : Nat)
+    (H_RST_HELD : ∀ k, 0 < k → k ≤ E → TernaryPhases.InputsIn rNet v gA k)
+    (n : Nat) (hc : rCtl n = true) :
+    ∀ k, (rMaxRank + 2) * (D + W + 1) ≤ k → k ≤ E → v k n = rR n :=
+  reset_binary re_spec Rn hB E H_RST_HELD (rMaxRank + 1) n hc
+    (by have := rank_of_ctl hc; omega)
+
+/-- **The reset-1 control nodes are the committed 17** (`onesL`). -/
+theorem re_reset_ones (n : Nat) (hc : rCtl n = true) : rR n = true ↔ n ∈ onesL := by
+  have h := (post_of_ctl hc).2.2.1
+  rw [beq_iff_eq] at h
+  rw [h, ones_same, List.contains_iff_mem]
+
+/-- **The frontier is the committed 10 link controllers** (`frontierL`). -/
+theorem re_frontier (n : Nat) (hc : rCtl n = true) :
+    (n ≠ 0 ∧ rPostExc n ≠ K3.ofBool (rR n)) ↔ n ∈ frontierL := by
+  have h := (post_of_ctl hc).2.1
+  rw [beq_iff_eq, ← List.contains_iff_mem] at *
+  constructor
+  · intro hh; rw [← h]; exact decide_eq_true hh
+  · intro hh; rw [← h] at hh; exact of_decide_eq_true hh
+
+def rFrontOK (n r : Nat) : Bool :=
+  rCtl n && rPostExc n == .t && !rR n &&
+    (match rNode n with
+     | .gate init pins => init == I_c2n && pins == [p r, pins.getD 1 (.const false), p n, p 0, k0, k0]
+     | .input => false) &&
+    rR r && rCtl r
+
+/-- Each frontier node is a `bd_c2n` fed by a token, as in `gcd_frontier_fire`. -/
+theorem re_frontier_fire : (frontierL.zip frontierReq).all (fun q => rFrontOK q.1 q.2) = true := by
+  decide +kernel
+
+theorem re_post_definite (n : Nat) (hc : rCtl n = true) : rPostExc n ≠ .x :=
+  (post_of_ctl hc).1
+
+def rCensusOf (i : Nat) : Nat :=
+  (List.range rM).countP fun n =>
+    match rNode n with
+    | .gate init pins => init == i && pins.contains (p 0)
+    | .input => false
+
+def rRstReaders : Nat :=
+  (List.range rM).countP fun n =>
+    match rNode n with
+    | .gate _ pins => pins.contains (p 0)
+    | .input => false
+
+/-- **Census of the real netlist** = the committed one (414 reset cells, 423 rst pins). -/
+theorem re_census :
+    [I_c2, I_c2n, I_c2n_set, I_c3, I_c4, I_uj0, I_uj1, I_arb, I_arb5].map rCensusOf =
+      [153, 185, 1, 10, 14, 21, 21, 9, 9] ∧ rRstReaders = 423 := by
+  decide +kernel
+
+theorem ctl_gate {n : Nat} (hc : rCtl n = true) (h0 : n ≠ 0) :
+    ∃ init pins, rNode n = .gate init pins := by
+  have h := local_of_ctl hc
+  cases hn : rNode n with
+  | gate init pins => exact ⟨init, pins, rfl⟩
+  | input =>
+    simp only [rLocalOK, hn, hc, Bool.not_true, Bool.false_or, decide_eq_true_eq, gA, h0,
+      ite_false] at h
+    cases hr : rR n <;> rw [hr] at h <;> exact absurd h (by decide)
+
+theorem race_hold {n : Nat} (hc : rCtl n = true) (h0 : n ≠ 0) (hf : n ∉ frontierL) :
+    rRaceExc n = K3.ofBool (rR n) := by
+  have h := (post_of_ctl hc).2.2.2
+  have h0' : (n == 0) = false := by simp [h0]
+  rw [h0', Bool.false_or, beq_iff_eq] at h
+  have hf' : frontierL.contains n = false := by
+    cases hh : frontierL.contains n
+    · rfl
+    · exact absurd (List.contains_iff_mem.1 hh) hf
+  rw [hf'] at h
+  exact Classical.byContradiction fun hne => by simp [hne] at h
+
+/-- **Release quiet**, on the real network (same statement as
+`gcd_release_quiet`). -/
+theorem re_release_quiet {v : Nat → Nat → Bool} (Rn : Run rNet v) {W : Nat}
+    (H_WIRE_BOUND : ∀ k j p, k ≤ Rn.rd k j p + W) (k0 T : Nat)
+    (H_SETTLED : ∀ k n, k0 ≤ k + W → k ≤ k0 → rCtl n = true → n ≠ 0 → v k n = rR n)
+    (H_FRONT_HOLD : ∀ k n, n ∈ frontierL → k0 ≤ k → k ≤ T → v k n = rR n) :
+    ∀ k n, k0 ≤ k → k ≤ T → rCtl n = true → n ≠ 0 → v k n = rR n := by
+  have key : ∀ k, k ≤ T → ∀ j, k0 ≤ j + W → j ≤ k →
+      ∀ n, rCtl n = true → n ≠ 0 → v j n = rR n := by
+    intro k
+    induction k with
+    | zero =>
+      intro _ j hj hjk n hc h0
+      exact H_SETTLED j n hj (by omega) hc h0
+    | succ k ih =>
+      intro hT j hj hjk n hc h0
+      rcases Nat.lt_or_ge j (k + 1) with hlt | hge
+      · exact ih (by omega) j hj (by omega) n hc h0
+      have hj' : j = k + 1 := by omega
+      subst hj'
+      by_cases hk0 : k + 1 ≤ k0
+      · exact H_SETTLED (k + 1) n hj hk0 hc h0
+      by_cases hf : n ∈ frontierL
+      · exact H_FRONT_HOLD (k + 1) n hf (by omega) hT
+      obtain ⟨init, pins, hn⟩ := ctl_gate hc h0
+      have hn' : rNet.node n = .gate init pins := hn
+      rcases Rn.gate k n init pins hn' with h | h
+      · rw [h]; exact ih (by omega) k (by omega) (Nat.le_refl k) n hc h0
+      · rw [h]
+        have hr := race_hold hc h0 hf
+        simp only [rRaceExc, hn] at hr
+        have hs := lutK_sound init (pins_forall2 rRaceB (fun p i => v (Rn.rd k n p) i) ?_ pins 0)
+        · rw [hr] at hs; exact (admits_ofBool_iff _ _).1 hs
+        intro q i
+        have h1 := Rn.rd_le k n q
+        have h2 := H_WIRE_BOUND k n q
+        unfold rRaceB
+        by_cases hi : i = 0
+        · simp only [hi, ite_true]; rfl
+        · simp only [hi, ite_false]
+          cases hci : rCtl i
+          · rfl
+          · simp only [ite_true]
+            rw [admits_ofBool_iff]
+            exact ih (by omega) _ (by omega) h1 i hci hi
+  intro k n h1 h2 hc h0
+  exact key k h2 k (by omega) (Nat.le_refl k) n hc h0
+
+/-- **Reset, then release, composed (GMW)**, on the real network (same
+statement as `gcd_reset_release`). -/
+theorem re_reset_release {v : Nat → Nat → Bool} (Rn : Run rNet v) {D W : Nat}
+    (hB : Bounded rNet v Rn D W) (E T : Nat)
+    (H_RST_HELD : ∀ k, 0 < k → k ≤ E → TernaryPhases.InputsIn rNet v gA k)
+    (H_HOLD_LONG : (rMaxRank + 2) * (D + W + 1) + W ≤ E)
+    (H_FRONT_HOLD : ∀ k n, n ∈ frontierL → E ≤ k → k ≤ T → v k n = rR n) :
+    ∀ k n, (rMaxRank + 2) * (D + W + 1) ≤ k → k ≤ T → rCtl n = true → n ≠ 0 →
+      v k n = rR n := by
+  intro k n h1 h2 hc h0
+  by_cases hk : k ≤ E
+  · exact re_reset_binary Rn hB E H_RST_HELD n hc k h1 hk
+  · exact re_release_quiet Rn hB.wire E T
+      (fun j m hj hjE hcm _ => re_reset_binary Rn hB E H_RST_HELD m hcm j (by omega) hjE)
+      H_FRONT_HOLD k n (by omega) h2 hc h0
+
+end Formal.Cells.ResetGcdRe
