@@ -270,4 +270,11 @@ signal 0 at start). Specific to this probe:
 
 ## Check result
 
-(Filled in after the final `check.sh` run; see below.)
+- `../check.sh` on the ten files from Data.lean to MuxData.lean, in the order of "How to check" without
+  Steer.lean:
+  - Result: `[audit] 1433 declarations checked`, `[check] OK`.
+  - Wall 720 s, peak RSS 1.56 GB.
+- `../check.sh Formal/Core/EnvFast/Steer.lean`: `[audit] 689 declarations checked`, `[check] OK`.
+- No `sorry`, `admit`, `axiom`, `native_decide` or `bv_decide`; only `decide +kernel`.
+- After the final run, Gen2 regenerated `Tables2`, `MuxCert`, `MuxDataCert` and `MergeDataCert`
+  byte-identically (`cmp`).
