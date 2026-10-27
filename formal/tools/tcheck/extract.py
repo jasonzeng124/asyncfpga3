@@ -258,7 +258,9 @@ def main():
 
     def ivl(s_, d_, w):
         if (s_, d_) not in W:
-            same = T.pin_split(s_)[0] == T.pin_split(d_)[0]
+            # a cell arc: same instance, input pin -> output pin (an output -> own input
+            # arc is the routed feedback wire, an INTERCONNECT)
+            same = T.pin_split(s_)[0] == T.pin_split(d_)[0] and not T.is_output(s_)
             c = P.iopath(s_, d_) if same else P.interconnect(s_, d_)
             W[(s_, d_)] = (intervals(w, c), c is None)
             nfb[c is None] += 1
@@ -427,7 +429,14 @@ def main():
     print(f"extract: {len(controllers)} controllers, {len(meta)} obligations; "
           f"arcs with prjxray numbers {nfb[0]}, fallback to SDF band {nfb[1]}", file=sys.stderr)
     if a.json:
-        json.dump(meta, open(a.json, "w"), indent=1)
+        kinds = defaultdict(int)
+        for (s_, d_), (_iv, fb) in W.items():
+            if fb:
+                same = T.pin_split(s_)[0] == T.pin_split(d_)[0] and not T.is_output(s_)
+                ct = _ct.get(T.pin_split(d_)[0], "?")
+                kinds[("cell " if same else "net to ") + ct + "/" + re.sub(r"\d+$", "#", T.pin_split(d_)[1])] += 1
+        json.dump({"obligations": meta, "fallback_kinds": dict(sorted(kinds.items(), key=lambda x: -x[1]))},
+                  open(a.json, "w"), indent=1)
 
 
 if __name__ == "__main__":
