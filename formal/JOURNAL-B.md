@@ -8,9 +8,9 @@ Formal/Cells/<F>.lean` (core Lean, no Mathlib). Notes: `formal/notes/B-*.md`.
 
 | track | verdict | evidence | effort to finish | buys |
 |---|---|---|---|---|
-| 5 C-element | **works** | CElemFn (8 INITs = spec; Kleene closed forms), CElemTiming (bounded delay: enabling input >= LUT+feedback delay, tight; four-phase spec with new fork condition), CTree (tree = flat C-element, all shapes, under four-phase with ack wait) | ~1-2 d: port to Core's real-time channels (probe 5d running), inertial/involution regimes, bd_c3/c4 timing | INITs machine-checked; the exact timing condition per cell; the ack wait shown necessary |
-| 6 latch/link | **works** | Latch (mux latch, setup/hold, DACK rule H sufficient), LinkHandshake (four-phase refinement, token conservation, half-token bound, deadlock freedom for any N; exact bundling inequality), Bundling (delay lines; capture condition derived; rules I and F each miss a term) | ~2-3 d: compose C-element + latch into a link stage, W-bit lift, pipe | a derived spec for tighten.py rules H/I/F; reference spec for track 10 |
-| 7 arbiter | **works** (all four probes) | binary: ArbBinary (runt trace, exclusion under named timing, tie to previous winner, runt from same-sense moves); Kleene: ArbKleene + TernarySound/TernaryPhases (exclusion for all 3-valued inputs, X only as (X,X), scenarios lifted to every binary trace under GMW delays, exactness witnesses); analog: ArbAnalog (Buridan/Marino impossibility with continuity proved by Gronwall; repelling equilibrium; bad-timing window between two exponentials) and ArbResolve (e^(-t/tau) law, probability and MTBF bounds, no fixed read time safe); handover: ArbHandover, ArbHeldTimed(2) (exact 16 ps claim, held INIT meets the merge precondition in all interleavings, RT1/RT2 both directions with non-vacuity witness), ArbA0Fork (rule J exact) | rates equal (0.5 d), explicit F (non-vacuity, 1 d), corner-consistent numbers (Bc running), DDE loop | exclusion tiers made exact: structural only for settled q; handover is relative timing; metastable tier provably only probabilistic, rate needs tau_r and T0 measured |
+| 5 C-element | **works** | CElemFn (8 INITs = spec; Kleene closed forms), CElemTiming (bounded delay: enabling input >= LUT+feedback delay, tight; four-phase spec with new fork condition), CTree (tree and flat C-element have equal reachable-state sets, all shapes, atomic-cell model, under four-phase with ack wait — not trace equality) | ~1-2 d: port to Core's real-time channels (probe 5d running), inertial/involution regimes, bd_c3/c4 timing | INITs machine-checked; the exact timing condition per cell; the ack wait shown necessary |
+| 6 latch/link | **works** | Latch (mux latch, setup/hold, DACK rule H sufficient), LinkHandshake (four-phase refinement, token conservation, half-token bound, deadlock freedom for any N in an atomic-gate model with isochronic forks; unequal fork delays only N<=3; bundling inequality SUFFICIENT, necessity shown on one trace only — audit row 20), Bundling (delay lines; capture condition derived; rules I and F each miss a term) | ~2-3 d: compose C-element + latch into a link stage, W-bit lift, pipe | a derived spec for tighten.py rules H/I/F; reference spec for track 10 |
+| 7 arbiter | **works** (all four probes) | binary: ArbBinary (runt trace, exclusion under named timing, tie to previous winner, runt from same-sense moves); Kleene: ArbKleene + TernarySound/TernaryPhases (exclusion for all 3-valued inputs, X only as (X,X), scenarios lifted to every binary trace under GMW delays, exactness witnesses); analog: ArbAnalog (Buridan/Marino impossibility with continuity proved by Gronwall; repelling equilibrium; bad-timing window between two exponentials) and ArbResolve (e^(-t/tau) law, probability and MTBF bounds, no fixed read time safe); handover: ArbHandover, ArbHeldTimed(2), ArbCorners (16 ps overlap is exact only in the simulator's corner-MIXED arc model, 0 at any consistent corner; held INIT meets the merge precondition in all interleavings of a ZERO-WIRE-DELAY model (isochronic A0 fork); RT1/RT2 both directions, numeric instances redone at consistent corners in ArbCorners), ArbA0Fork (rule J exact) | rates equal (0.5 d), explicit F (non-vacuity, 1 d), corner-consistent numbers (Bc running), DDE loop | exclusion tiers made exact: structural only for settled q; handover is relative timing; metastable tier provably only probabilistic, rate needs tau_r and T0 measured |
 
 Library coverage: every LUT INIT in cells/rtl (bd_ce, bd_latch, bd_link,
 bd_arb, bd_ctl, bd_merge, bd_mux, bd_end, bd_mem, bd_mlink) is proved equal
@@ -28,9 +28,12 @@ in mind"):
   first-order model the same holds as Buridan's principle (ArbAnalog, with an
   explicit non-vacuous loop in ArbAnalog2); Kleene shows only (X,X) at the
   grants (ArbKleene); the e^(-t/tau) law and MTBF bound are ArbResolve.
-- Mutual exclusion of a LUT arbiter is NOT unconditionally provable (confirmed
-  three ways: binary runt trace, involution critical gap, analog Buridan);
-  only the probabilistic bound holds, with tau_r and T0 to be measured.
+- Mutual exclusion of a LUT arbiter is NOT unconditionally provable in the
+  digital model: a binary runt trace (ArbBinary) and the involution critical
+  gap (ArbInvolution) both break it; it holds exactly inside derived race
+  windows (request-edge separation vs loop delay, grant skew, BBM on O5/O6).
+  (The analog/MTBF view, ArbAnalog/ArbResolve, agrees but is outside the
+  owner's digital-only north star and gets no further work.)
 - Delay channels: bounded window/pure delay admit all the positive cell
   proofs; pure transport shows runts circulating forever (unphysical);
   inertial decides every runt in bounded time (unphysical); involution gives
@@ -103,6 +106,41 @@ Findings for the cell owner (not confirmed on a route):
 - Bare-cell filtered overlap (8%): an isolated handover overlaps <= 72/94 ps
   for any request skew, below the filter; the observed events are not the
   digital handover overlap.
+
+## Audit response (claude/audit REPORT.md, read 2026-10-27)
+
+Rows concerning shard B, and what was done:
+- Row 10 (REFUTED): "rule J uses a flat 124 ps arc (68-161 ps the wrong
+  way)", "O6 rise 45-56, fall 100-124". Agreed: prjxray's two groups are
+  FAST and SLOW corners (makesdf.py:63). Withdrawn. ArbCorners (Bc) proves
+  every old instance is the corner mix and recomputes: rule J's flat 2x124 is
+  exact (client 2) or 26 ps conservative (client 1); its real gap is the
+  per-pin site-pin delays (Bp/PinAssign measures them from the bits).
+- Row 24 (OVERSTATED): ArbHeldTimed/ArbHeldTimed2 numeric instances (16 ps
+  threshold, 96 ps margin, "112 ps server") are corner-mix artefacts. Agreed;
+  the generic theorems stand. Corrected values are ArbCorners'
+  slow_arc_only/fast_arc_only/box_7h/box_7j (at a consistent corner with
+  zero routing every condition holds for every server delay >= 0, as the
+  audit found). Doc comments and notes of the old files now point there.
+- Row 20 (OVERSTATED): LinkHandshake.setup_iff is an arithmetic unfolding;
+  SETUP is proved sufficient only, necessary on one trace (setup_needed).
+  Agreed; wording fixed (exact only as a worst-case-data condition; the
+  audit's setup_not_necessary shows a passing run violating it).
+- Row 21 (OVERSTATED scope): deadlock freedom for any N assumes atomic gates
+  and isochronic forks (fork delays only N<=3); held_protocol assumes zero
+  wire delay; CTree is equality of reachable-state sets in an atomic-cell
+  model; Latch.hold_of_dack is a single-transaction arithmetic lemma (Bt2's
+  latch_rule_h_net is the windowed form). Agreed; table wording fixed.
+- Row 51 (CONFIRMED) adds a result: drop_env_latency_cex shows the C-element
+  fork condition E >= dwmax + dlmax - dlmin is NECESSARY, not just
+  sufficient. Recorded.
+
+North star (PROGRAM.md, owner, 2026-10-27; I read it late, at ~05:30):
+digital only. The analog probes (ArbAnalog, ArbAnalog2, ArbResolve) are
+outside it: kept as checked files, no further work. The arbiter is treated
+as a digital race (ArbBinary, ArbInvolution, TernaryOnBits). Phase 1 task
+for B: port Cells from Prelim to Core and delete Prelim. Phase 2: the whole
+library against a handshake spec, and formal/out/cell_constraints.json.
 
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
