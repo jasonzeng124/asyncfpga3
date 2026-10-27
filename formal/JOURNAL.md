@@ -209,3 +209,9 @@ Python, rule arithmetic in Lean, Beh4.safe open), contradictions X1/X2/X6 resolv
 (Events2Strict, DataHyp, SteerEnv; xevents2strict exe), gcd_hw_hypotheses.md
 (+ §7b resolutions). Corrected κ claim (pre-patch SDF). Running: Events5 (Beh4.safe +
 seeds 3/4/5 + FASTFALL check), per-pin BackPin checker. --committed check running.
+### progress 08:04 (heartbeat)
+--committed check at ~07:45 green (3094 jobs, 20957 library decls + executables).
+Claimed since last note: xevents2pin (per-pin, no H_ATOMIC_LUT), Events5 (Beh4.safe;
+4 seeds; FASTFALL finding corrected to a rule-F head residual; 4 guardband survivors
+sent to the owner). Running: Events6 (netlist link design_beh4, GuardOK, n-ary merge,
+xevents5 vs ana5 cross-check).
