@@ -28,6 +28,10 @@ xa() {  # xa TIMEFILE args...
 for w in 0 0.02 0.05; do
   [ -e $D/smax_w$w.bands.json ] || python3 -I "$X/routed2x.py" $D/collatz_hw_routed.json --xray-arcs $D/arcs.tsv \
       --corner slowmax --widen $w --out $D/net.json --bands $D/smax_w$w.bands.json > /dev/null
+  # the same bands at a 10 ps step (the netlist is identical; only unit_ps and the rounding change):
+  # at 25 ps the per-element rounding of w = 0 alone accumulates past the rig's margins (A-k2 §3)
+  [ -e $D/smax_w${w}_u10.bands.json ] || python3 -I "$X/routed2x.py" $D/collatz_hw_routed.json --xray-arcs $D/arcs.tsv \
+      --corner slowmax --widen $w --unit-ps 10 --out $D/net_u10.json --bands $D/smax_w${w}_u10.bands.json > /dev/null
 done
 run() {  # name bands stim
   local t0=$(date +%s)
@@ -36,13 +40,19 @@ run() {  # name bands stim
   echo "$1: $(( $(date +%s) - t0 )) s, peak RSS $(awk '/Maximum resident/{print $6}' $D/runs/$1.time) kB" >> "$R/xa_${SEED}_$1.summary.txt"
   echo "== $1"; tail -12 "$R/xa_${SEED}_$1.summary.txt"
 }
-for job in ${JOBS:-slow fast smax0 smaxw02 smaxw05}; do
+[ -e $D/slow_u10.bands.json ] || python3 -I "$X/routed2x.py" $D/collatz_hw_routed.json --xray-arcs $D/arcs.tsv \
+    --corner slow --unit-ps 10 --out $D/net_u10.json --bands $D/slow_u10.bands.json > /dev/null
+for job in ${JOBS:-slow fast smax0 smaxw02 smaxw05 smax0u10 smaxw02u10 smaxw05u10}; do
   case $job in
     slow)    run slow    $D/slow.bands.json        $K2/v1_220ns.stim.json ;;
     fast)    run fast    $D/fast.bands.json        $K2/v1_120ns.stim.json ;;
     smax0)   run smax0   $D/smax_w0.bands.json     $K2/v1_220ns.stim.json ;;
     smaxw02) run smaxw02 $D/smax_w0.02.bands.json  $K2/v1_220ns.stim.json ;;
     smaxw05) run smaxw05 $D/smax_w0.05.bands.json  $K2/v1_220ns.stim.json ;;
+    smax0u10)   run smax0_u10   $D/smax_w0_u10.bands.json     $K2/v1_220ns.stim.json ;;
+    smaxw02u10) run smaxw02_u10 $D/smax_w0.02_u10.bands.json  $K2/v1_220ns.stim.json ;;
+    smaxw05u10) run smaxw05_u10 $D/smax_w0.05_u10.bands.json  $K2/v1_220ns.stim.json ;;
+    slowu10)    run slow_u10    $D/slow_u10.bands.json        $K2/v1_220ns.stim.json ;;
   esac
 done
 for c in slow fast indep; do
