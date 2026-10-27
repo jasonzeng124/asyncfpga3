@@ -1231,3 +1231,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   clean where the rules look. Data: research/data/collatz64_T4_recheck/ (log, seed-1 tighten.log, sdf md5s).
 - Does NOT show: fresh seeds (all 8 were T4's fitting seeds -- the T4H fresh-seed run is still the validation and
   was not repeated); corners; anything on the board.
+### progress 08:23 (xorshift placeholder baseline refitted on the 14-vector set)
+- Replaces the withdrawn 6-vector-vs-14-vector comparison. Placeholder sizes, seeds 1-8, 14 vectors, 9452a14:
+  | xorshift, ns/round, seeds 1-8, 14 vectors | mean | range | n |
+  |---|---|---|---|
+  | placeholders | 105.37 | 103.5-108.6 | 8 |
+  | T3 (journal 1008, same seeds and vectors) | 64.3 | -- | 8 |
+  | T3 + link fast fall (journal 1008) | 60.0 | 58.7-62.1 | 8 |
+  Same-seed, same-vector ratios: **1.64x (T3), 1.76x (T3+FF)**. (The withdrawn figure was 1.71x.)
+- Caveats: the placeholder design itself is NOT clean (rule E 1-6 violated per seed; routed GLS passes), so the
+  baseline is the unsized reference, not a verified design. The T3+FF number predates today's rule F fix and must
+  be re-audited before it is quoted as verified. Tool version differs between the arms (T3 measured at the 10-26
+  tools). Data: research/data/xorshift_placeholder_14vec/.
