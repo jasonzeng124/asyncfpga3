@@ -239,7 +239,7 @@ B files committed after 07:45: vacuity, statement vs note, mutants), Bag
 (A0 fork and RT1/RT2 on gcd_hw's routed arbiters), Bpr (audit row 76 prose:
 rise/fall wording), Blt (library coverage gaps; dctl lt_first).
 
-### progress 11:40
+### progress 11:21
 In (each checked under autoImplicit=false, core olean build; see commit
 messages for statements): Bpr (audit row 76 prose), Blt LibGapSteer
 (bd_steer select timing exact per pin; bd_link_dctl not emitted, lt_first
