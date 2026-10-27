@@ -262,3 +262,11 @@ REPORT.md:48), so a full check.sh fails until it is fixed or moved to Wip; B's r
 model `gNet` and the capstone's `Src` disagree on the initial request value; OpsGen's
 per-cell bindings are not applied to the 367 operators; rule K (C-10l, WIP) fails
 16-26 of 42 rows per route at every corner (meaning unconfirmed).
+### progress 12:15
+GLSdiff done (notes/A-gls-compare-2.md, research 5d535d7): LUT function/X agree on
+43,767 vectors; fid's LUT/MUXF channel = Lean per-pin transport (60/60 + 60/60). GLS
+wrong on four: CARRY4 and latch still sample-at-fire under fid (early edges in carry
+chains); flop treats X on SR/CE as 0 (hides X); FID_RESOLVE splits at TLOOP-WIN/2
+(349 ps of 424) where a Float run of Lean's loop recurrence decides at ~TLOOP/2
+(computation, not a theorem). Bullets added as FOR-RESEARCH §8; fidelity-table GLS
+row updated (was "inertial", stale). Nothing claimed in Lean (Wip #eval only).

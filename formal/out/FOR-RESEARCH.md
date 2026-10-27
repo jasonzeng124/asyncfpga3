@@ -147,3 +147,46 @@ table. The ones only the board can test:
   data. Test: a masked-pin toggle into a fabric edge counter.
 - The involution δ↑/δ↓ per LUT pin and edge. Test: a pulse-width sweep with a TDC.
 - κ on path differences: item 5.
+
+## 8. GLS_MODEL=fid: four primitives still disagree with the model (2026-10-27, research 5d535d7)
+
+Evidence and reproducers: `formal/notes/A-gls-compare-2.md`, `sh formal/tools-A/glsdiff/run_all.sh` (~3 min).
+
+
+- **CARRY4 and SLICE_LATX are still sample-at-fire under GLS_MODEL=fid, so
+  carry-chain edges can arrive early.** Reproducer:
+  `formal/tools-A/glsdiff/tb_carry_saf.v`. O0 rises 23 ps after S0 through a
+  223 ps arc; latch Q rises 40 ps after D through a 100 ps arc.
+  - Proposed fix for `fid_core.vh`: a `FID_CARRY4`. For each output Oi/COi, keep
+    a transport copy of every support pin delayed by that pin's arc to that
+    output minus 1 (`s0_o0 <= #(TS0O0-1) S0`, …). Evaluate the existing
+    `prims.v` equations on the copies, and put each output through `FID_SAMPLE`.
+  - The same for `SLICE_LATX`: per-pin transport copies of D/CK/CE/SR (each
+    TCKQ − 1), then the zero-time latch function.
+  - Acceptance: tb_carry_saf must give O0 at 1223–1233 and 1423.
+- **SLICE_LATX X handling is pessimistic.** Proposed fix in `prims.v`:
+  ```
+  else if (CK === ~GHIGH || CE === 1'b0) q = q;
+  else if (CK === GHIGH && CE === 1'b1) q = D;
+  else q = (q === D) ? q : 1'bx;
+  ```
+  Also, for SR = x: `q = (SRVAL === qn) ? SRVAL : 1'bx`, where `qn` is the
+  value the SR = 0 branch would give. Check: `tb_seq_x.v` L1–L3 should give 0,
+  as Lean `LDCE_INIT` does.
+- **SLICE_FFX hides X on SR and CE (default and fid).** Proposed fix: at
+  posedge CK, `nv = (SR === 1'b1) ? SRVAL : (SR === 1'b0) ? (CE === 1'b1 ? D : CE === 1'b0 ? Q : (D === Q ? Q : 1'bx)) : ((CE===1'b1?D:CE===1'b0?Q:(D===Q?Q:1'bx)) === SRVAL ? SRVAL : 1'bx)`.
+  Check: tb_seq_x F1 and F2 should give x.
+- **FID_RESOLVE's decision point** (from a Float computation of the Lean loop recurrence plus a symmetry argument, not a proved theorem; Lean proves only that the critical gap lies in about (9, 424) ps). The 50% point is TLOOP − WIN/2 (measured
+  at 349 ps for TLOOP 424). Lean's involution OR loop (the same loop as
+  bd_arbcell's state, ArbInvolution `stF_runt`) decides at about TLOOP/2
+  (212–246 ps for τ = 40–200), deterministically on each side.
+  - Proposed fix: `delta = p - TLOOP/2 + noise` (with asymmetric arcs:
+    `p - TLOOP*tf/(tr+tf)`), with `TLOOP/2` exposed as `+META_CENTRE=`.
+  - Re-run tb_f3_meta: with r2 360 ps late, r1 should win about 200/200.
+  - Also fix the `fid_core.vh` comment "rejected: the node never left". The runt
+    is emitted to fanout at full width.
+- **Scatter vs. proofs.** GLS_SCATTER(_REGION) factors are unbounded Gaussians.
+  A scatter run therefore tests delays outside the κ ≤ 0.199 regime where
+  rules E and A are proved sound. Either clip at a stated κ, or say so where
+  scatter results are quoted.
+

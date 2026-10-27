@@ -289,7 +289,7 @@ completed with shard B's cell notes.)
 | routing pip | bounded transport [fast-min, slow-max] per sink arc | all INT_L pips in prjxray zynq7 are buffered; RC tree responds monotonically (no glitch) | band from prjxray via Elmore per sink arc (not summed per pip); shared corner + local scatter (pending) | n=128 ring periods inside summed bands |
 | MUXF7/F8, CARRY4 | settle within hi | only in datapath cones, never in control | "anything before hi" | — |
 | FF (FDRE) | — | only `bd_mlink` and test rigs | standard setup/hold (slow corner only in prjxray) | — |
-| delay model in today's GLS | inertial on cell outputs, one value per arc | disagrees with silicon: swallows runts; ignores the 3–4× band and fanout | — | GLS with transport LUT paths, diffed |
+| delay model in today's GLS (research 5d535d7, notes/A-gls-compare-2.md) | default: sample-at-fire (SAF) on every specify path; `GLS_MODEL=fid`: per-pin transport for LUT and MUXF7/8 (equal to Lean's per-pin transport on 60/60 + 60/60 traces), still SAF for CARRY4, latch, DSP, BUFG | default disagrees with silicon (early edges, swallows runts); fid fixes LUT/MUXF but CARRY4 still propagates edges early (23 ps after the cause through a 223 ps arc) | — | FOR-RESEARCH §8 |
 
 Note: prjxray-db's `timings/*.sdf` triples are (FAST)(SLOW), not rise/fall;
 a standard SDF reader misreads them (A-fidelity).

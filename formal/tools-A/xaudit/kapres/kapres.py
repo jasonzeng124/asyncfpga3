@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """kapres.py -- corner-model sweep of xevents5 (A-events6's checker) over shared-corner cells.
 
-    python3 kapres.py SEED KAPPA [--init N] [--depth D] [--jobs J]
+    python3 kapres.py SEED [--init N] [--depth D] [--jobs J]
 
-For one seed and one scatter kappa, covers the corner interval [0,1] by cells [ca,cb]
+For one seed and each scatter kappa in KAPPAS (descending), covers the corner interval [0,1] by cells [ca,cb]
 (start: N equal cells; a cell whose run has a TIMING residual item -- "margin m" -- is
 bisected, down to width 1/(N*2^D)).  Each cell run is
     cornerband.py (fast, slow, ca, cb, kappa) -> events4/skel.py -> events6/cert6.py (untrusted)
     -> xe5.sh (xevents5 = committed Events5Main.lean, lean --run, through slot.sh)
 At every leaf cell that still has timing items, the two point corners [ca,ca], [cb,cb] are
 also run (a point run that fails shows the item fails AT that corner, not only on the cell).
-Output: runs/<seed>/k<kappa>_<ca>_<cb>.txt (xevents5 stdout) and a JSON summary
-runs/<seed>/sum_k<kappa>.json: cover (list of leaf cells and their items) and point runs.
+Kappas are taken in DESCENDING order and the cover of one kappa is the start of the next: a cell
+that is clean (no timing item) at kappa' is clean at every kappa <= kappa' (its band file contains
+ours arc by arc), so it is not re-run (implied_clean; the summary names the run that covers it).
+Output: runs/<seed>/k<kappa>_<ca>_<cb>.txt (xevents5 stdout; a<b written a-b for fractions) and
+runs/<seed>/summary.json: per kappa the leaf cover, the timing items per leaf, and the point runs.
 Inputs: /tmp/kapres/in/<seed>/{net,fast.bands,slow.bands}.json (see run.sh).
 """
 import concurrent.futures as cf
@@ -49,9 +52,15 @@ def run_cell(seed, kappa, ca, cb):
         with open(w + "/cert.txt", "w") as f:
             py(os.path.join(HERE, "..", "events6", "cert6.py"), w + "/skel.json", w + "/skel_bands.json",
                w + "/cert.json", stdout=f, stderr=subprocess.STDOUT)
-        with open(out + ".part", "w") as f:
-            subprocess.run([os.path.join(HERE, "xe5.sh"), w + "/skel.json", w + "/skel_bands.json",
-                            w + "/cert.json"], stdout=f, stderr=subprocess.STDOUT)
+        for attempt in range(3):     # a run that prints no VERDICT (seen under load) is retried
+            with open(out + ".part", "w") as f:
+                rc = subprocess.run([os.path.join(HERE, "xe5.sh"), w + "/skel.json", w + "/skel_bands.json",
+                                     w + "/cert.json"], stdout=f, stderr=subprocess.STDOUT).returncode
+            txt = open(out + ".part").read()
+            if "VERDICT" in txt:
+                break
+            with open(os.path.join(WORK, "failed.log"), "a") as f:
+                f.write("%s %s attempt %d rc %d: %r\n" % (seed, tag, attempt, rc, txt[-300:]))
         os.replace(out + ".part", out)
         for fn in ("bands.json", "skel_bands.json", "cert.json"):
             try:
@@ -78,42 +87,83 @@ def parse(path):
     return {"timing": timing, "struct": struct, "verdict": verdict, "head": head}
 
 
+KAPPAS = ["0.10", "0.0906", "0.05", "0.02", "0"]
+
+
+def implied_clean(seed, kappa, ca, cb):
+    """A run at (kappa', [ca',cb']) with kappa' >= kappa and [ca',cb'] containing [ca,cb] and no timing
+    item: its bands contain ours arc by arc (cornerband is monotone in kappa and in the cell), so
+    the checker's verdict for it covers our behaviours with the same (structural) residual set."""
+    d = os.path.join(HERE, "runs", seed)
+    for fn in os.listdir(d) if os.path.isdir(d) else []:
+        m = re.match(r"k([\d.]+)_([\d-]+)_([\d-]+)\.txt$", fn)
+        if not m:
+            continue
+        rd = lambda s: Q(*map(int, s.split("-"))) if "-" in s else Q(int(s))
+        k2, a2, b2 = Q(m.group(1)), rd(m.group(2)), rd(m.group(3))
+        if k2 >= Q(kappa) and a2 <= ca and cb <= b2:
+            r = parse(os.path.join(d, fn))
+            if r["verdict"] and not r["timing"]:
+                return fn, r
+    return None
+
+
+def cell(seed, kappa, c):
+    ca, cb = c
+    imp = implied_clean(seed, kappa, ca, cb)
+    if imp:
+        fn, r = imp
+        return c, dict(r, by=fn)
+    r = run_cell(seed, kappa, ca, cb)
+    return c, dict(r, by="k%s_%s_%s.txt" % (kappa, fs(ca), fs(cb)))
+
+
 def main():
-    seed, kappa = sys.argv[1], sys.argv[2]
-    args = sys.argv[3:]
+    seed = sys.argv[1]
+    args = sys.argv[2:]
     opt = lambda k, d: int(args[args.index(k) + 1]) if k in args else d
     N, D, J = opt("--init", 8), opt("--depth", 2), opt("--jobs", 2)
     minw = Q(1, N * 2 ** D)
-    todo = [(Q(i, N), Q(i + 1, N)) for i in range(N)]
-    leaves, points = [], {}
+    cover = [(Q(i, N), Q(i + 1, N)) for i in range(N)]
+    allsum = {"seed": seed, "init": N, "depth": D, "kappas": {}}
     with cf.ThreadPoolExecutor(J) as ex:
-        while todo:
-            res = list(ex.map(lambda c: (c, run_cell(seed, kappa, *c)), todo))
-            todo = []
-            for (ca, cb), r in res:
-                if r["verdict"] is None:
-                    sys.exit("no verdict for %s %s %s-%s" % (seed, kappa, ca, cb))
-                if r["timing"] and cb - ca > minw:
-                    mid = (ca + cb) / 2
-                    todo += [(ca, mid), (mid, cb)]
-                else:
-                    leaves.append(((ca, cb), r))
-        pts = sorted({c for (ca, cb), r in leaves if r["timing"] for c in (ca, cb)})
-        for c, r in ex.map(lambda c: (c, run_cell(seed, kappa, c, c)), pts):
-            points[c] = r
-    leaves.sort()
-    summ = {"seed": seed, "kappa": kappa, "init": N, "depth": D,
-            "cover": [{"ca": str(ca), "cb": str(cb), "timing": r["timing"], "struct": r["struct"],
-                       "verdict": r["verdict"]} for (ca, cb), r in leaves],
-            "points": [{"c": str(c), "timing": r["timing"], "struct": r["struct"]} for c, r in sorted(points.items())]}
-    json.dump(summ, open(os.path.join(HERE, "runs", seed, "sum_k%s.json" % kappa), "w"), indent=1)
-    bad = {}
-    for (ca, cb), r in leaves:
-        for k, m in r["timing"].items():
-            bad.setdefault(k, []).append((str(ca), str(cb), m))
-    print("%s kappa %s: %d leaf cells, %d with timing items; items: %s" % (
-        seed, kappa, len(leaves), sum(1 for _, r in leaves if r["timing"]),
-        {k: min(x[2] for x in v) for k, v in bad.items()}))
+        for kappa in KAPPAS:
+            todo, leaves, points = list(cover), [], {}
+            while todo:
+                res = list(ex.map(lambda c: cell(seed, kappa, c), todo))
+                todo = []
+                for (ca, cb), r in res:
+                    if r["verdict"] is None:
+                        sys.exit("no verdict for %s %s %s-%s" % (seed, kappa, ca, cb))
+                    if r["timing"] and cb - ca > minw:
+                        mid = (ca + cb) / 2
+                        todo += [(ca, mid), (mid, cb)]
+                    else:
+                        leaves.append(((ca, cb), r))
+            leaves.sort()
+            pts = sorted({x for (ca, cb), r in leaves if r["timing"] for x in (ca, cb)})
+            for (x, _), r in ex.map(lambda x: cell(seed, kappa, (x, x)), pts):
+                points[x] = r
+            cover = [c for c, _ in leaves]
+            bad = {}
+            for (ca, cb), r in leaves:
+                for k, m in r["timing"].items():
+                    bad.setdefault(k, []).append([str(ca), str(cb), m])
+            ptbad = {}
+            for x, r in points.items():
+                for k, m in r["timing"].items():
+                    ptbad.setdefault(k, []).append([str(x), m])
+            allsum["kappas"][kappa] = {
+                "cover": [{"ca": str(ca), "cb": str(cb), "by": r["by"], "timing": r["timing"],
+                           "struct": len(r["struct"])} for (ca, cb), r in leaves],
+                "items": bad, "point_fail": ptbad,
+                "struct_union": sorted({s for _, r in leaves for s in r["struct"]})}
+            print("%s kappa %s: %d leaf cells (%d run here), %d with timing items; items %s; failing at a point corner %s" % (
+                seed, kappa, len(leaves), sum(1 for _, r in leaves if r["by"].startswith("k%s_" % kappa)),
+                sum(1 for _, r in leaves if r["timing"]),
+                {k: min(x[2] for x in v) for k, v in bad.items()},
+                {k: [x[0] for x in v] for k, v in ptbad.items()}), flush=True)
+            json.dump(allsum, open(os.path.join(HERE, "runs", seed, "summary.json"), "w"), indent=1)
 
 
 if __name__ == "__main__":

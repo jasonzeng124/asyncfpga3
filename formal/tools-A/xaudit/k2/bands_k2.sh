@@ -18,6 +18,7 @@ OUT=${OUT:-$HOME/k2out}
 XRAY=${XRAY:-$HOME/k2tools/xray_delay.py}
 PYLIB=${PYLIB:-$HOME/k2tools/pylib}
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
+export XRAY_DB=${XRAY_DB:-$TC/openxc7/share/nextpnr/prjxray-db/zynq7}   # xray_delay.py defaults to /root/dev2/lib/xray/...
 for s in "${@:-d 4 5 6}"; do
   for t in $s; do
     D=$OUT/$t

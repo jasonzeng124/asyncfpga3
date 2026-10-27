@@ -13,8 +13,9 @@ for s in d 3 4 5; do
     for c in slow fast; do [ -e $O/$s/$c.bands.json ] || xz -dc $X/events5/inputs/bands_${s}_$c.json.xz > $O/$s/$c.bands.json; done
   fi
 done
-for k in ${KAPPAS:-0 0.0906 0.10 0.05 0.02}; do
-  for s in ${SEEDS:-d 3 4 5}; do
-    python3 "$HERE/kapres.py" $s $k --init ${INIT:-8} --depth ${DEPTH:-2} --jobs ${JOBS:-3}
-  done
+# seeds in parallel (slot.sh bounds the Lean processes); kappas descending inside kapres.py
+for s in ${SEEDS:-d 3 4 5}; do
+  python3 "$HERE/kapres.py" $s --init ${INIT:-8} --depth ${DEPTH:-2} --jobs ${JOBS:-2} > /tmp/kapres/run_$s.log 2>&1 &
 done
+wait
+cat /tmp/kapres/run_*.log
