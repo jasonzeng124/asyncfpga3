@@ -41,7 +41,7 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 |---|---|---|---|---|---|
 | 1 | Toolchain | **works, with a workaround** | `formal/setup.sh`, `check.sh` | done | — |
 | 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity | `Core/Trace/{Discrete,Event,Real}.lean` | discretisation soundness ℝ→ℕ: 1–2 d (probe running) | a common substrate for B and C |
-| 3 | Delay channels | pure: **works**; inertial: **works**; involution: pending | `Core/Delay/{Pure,Inertial}.lean` | involution 2–4 d; corner-correlated bounds (probe running) | sound wire abstraction; exact bundling lemma |
+| 3 | Delay channels | pure, inertial, involution: **all work** | `Core/Delay/{Pure,Inertial,Involution}.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; corner-correlated bounds (probe running) | sound wire abstraction; exact bundling lemma |
 | 4 | Kleene LUT | **works** | `Core/{Kleene,Lut,LutTree,Ternary}.lean` | unify K3 types (probe running) | decidable per-cell hazard/settling check |
 | 5 | C-element | (shard B) | see `JOURNAL-B.md` | | |
 | 6 | Latch / link | (shard B) | | | |
@@ -74,7 +74,15 @@ B3 pulses, B4 inertial, B5 an AND gate in a conjunction circuit):
   composition is `List.map`; but every n-input gate needs an event-list merge
   (200 lines for one 2-input gate); only finitely many transitions in total
   (no free-running ring).
-- **ℝ → Bool**: (pending, `A-trace-real.md`).
+- **ℝ → Bool** (`Core/Trace/Real.lean`, 511 lines, ~1.5 h): all of B0–B5,
+  channel as a strictly increasing time warp (composition ~10 lines; the
+  event-level reading is *proved* from it). B4 carries a named hypothesis
+  `RealComplete` (Mathlib proves it; the module was not built yet). Costs:
+  every "first event" argument needs completeness; concrete waveforms are
+  verbose (ε choices); nothing computes, so no `decide`. Finding: the
+  order-preserving warp can never lose a pulse, which is unsound for runts
+  (w ≤ hi−lo); the over-approximation `Window lo hi` (output at t equals
+  input at some instant in [t−hi, t−lo]) is the sound default for safety.
 Decision so far: ℕ-ps for gate and cell proofs (shards B and C chose it
 independently), ℝ for analog loops and for the fidelity bridge from prjxray.
 
@@ -92,7 +100,19 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   with inertial LUT paths (today's iverilog GLS) cannot show a LUT runt, so it
   is not evidence of runt-freedom; proofs must never use inertial filtering
   as a hypothesis.
-- **Involution** (Függer et al.): pending.
+- **Involution** (`Core/Delay/Involution.lean`, Függer/Najvirt/Nowak/Schmid):
+  all hypotheses are fields of `InvolutionPair`. Consecutive outputs cancel
+  iff t(n+1) − o(n) ≤ −δmin (`cancel_iff`); output pulse width is strictly
+  increasing in input width and shrinks continuously to 0 at the threshold
+  (`pulseWidth_small`: the property that makes the model faithful to
+  short-pulse filtration), in contrast to inertial (`inertial_gap`). Exp
+  channel derived from a first-order RC (exp/log as hypotheses). **Transfer
+  lemma:** with input separation T0 the involution channel is a bounded pure
+  delay in [δ(T0), δ∞) with no cancellation, so cell proofs can use pure delay
+  plus a separation hypothesis and need involution only for runts/hazards.
+  For bd_arb: in the faithful model the arbiter loop has no bounded settling
+  time, so handover exclusion cannot be unconditional (no MTBF: that needs
+  the analog layer, shard B 7c/7d).
 - **Corner correlation**: the independent band [fast-min, slow-max] is 3–4×
   wide (A-fidelity), so no matched-delay (bundling) condition is provable from
   independent bands; a shared-corner + local-scatter model is being probed.
