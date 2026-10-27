@@ -20,3 +20,40 @@ nextpnr 9c732bc6303458df  /root/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilin
 
 TEND=150000 ns  QUIET=200000 ns  -j1
 
+== result ==
+  vector  0  RESULT timeout: vec=0 laps=4834 errs=0 oks=4834
+  vector  1  RESULT timeout: vec=1 laps=3177 errs=0 oks=3177
+  vector  2  RESULT timeout: vec=2 laps=316 errs=0 oks=316
+  vector  3  RESULT timeout: vec=3 laps=271 errs=0 oks=271
+  vector  4  RESULT timeout: vec=4 laps=665 errs=0 oks=665
+  vector  5  RESULT timeout: vec=5 laps=236 errs=0 oks=236
+  vector  6  RESULT timeout: vec=6 laps=51 errs=0 oks=51
+  vector  7  RESULT timeout: vec=7 laps=180 errs=0 oks=180
+  vector  8  RESULT timeout: vec=8 laps=157 errs=0 oks=157
+  vector  9  RESULT timeout: vec=9 laps=128 errs=0 oks=128
+  vector 10  RESULT timeout: vec=10 laps=665 errs=0 oks=665
+  vector 11  RESULT timeout: vec=11 laps=72 errs=0 oks=72
+  vector 12  RESULT timeout: vec=12 laps=42 errs=0 oks=42
+  vector 13  RESULT timeout: vec=13 laps=60 errs=0 oks=60
+  vector 14  RESULT timeout: vec=14 laps=246 errs=0 oks=246
+  vector 15  RESULT timeout: vec=15 laps=156 errs=0 oks=156
+
+Read a FAIL here against the board before believing it.  This simulation is
+more pessimistic than silicon by construction: nextpnr's cell arcs are a flat
+124 ps on O6 where the part's own are 56-152 ps and pin- and edge-dependent
+(verify/tighten.py's header calls these "the weaker half of every number").
+An earlier route failed 11 of 16 here where the board failed 7, so four of
+those were its own pessimism rather than the design's.
+
+On the route stamped 392abe70/aae1011d it fails EXACTLY the board's seven --
+5, 6, 7, 8, 11, 12, 13 -- which is why this is now the place to debug them.
+Two cautions on that match.  It is a match of PASS/FAIL MASKS; nothing on
+disk ties the programmed bitstream to that md5 pair, so it is not proof the
+two ran the same build.  And a failing vector reports laps=0: not one gcd
+ever completes, so "how many laps" cannot rank the failures by severity.
+
+A TIMEOUT here is only meaningful against the design's own timescale.  A
+passing gcd takes ~3.2 us, and rig_rst is re-released at the window edge near
+979 us, so TEND=150000 already gives a failing vector ~300 passing-gcd
+latencies to produce one lap.  Raising TEND past the window edge buys less
+than it looks like it does -- the ring restarts there.
