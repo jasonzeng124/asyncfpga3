@@ -285,6 +285,25 @@ H_FB_FIRST at uenv1 is the rig's RT_FB, which fails under the band on seeds
 (Stale.stale_fb_extra_start). GLS test: exactly one start_req rise between
 consecutive res_req rises on seeds 2/4 at the fast corner.
 
+### progress 11:39
+Heartbeat. Core-only sweep: 79 Cells files (all whose closure avoids
+Mathlib) compile under autoImplicit=false, no errors; the Mathlib ones wait
+for the build (1441 Mathlib oleans so far). In since 11:23: Bpt PrelimCore
+(Prelim deletion now a mechanical cross-shard patch; FOR SHARD A: please
+commit Wip/_snapA/LutList.lean as Core/LutList.lean and switch Core/Bridge's
+imports, see notes/B-port-core2.md; the deletion must land in one commit with
+C's `open` lines), Bc4 CElemStrict2 (every C-element variant and cycle, latch
+pair bits, exact reset width, needed only at hold vectors), Bj
+cell_constraints (128 entries, 127 proved, 19 exact; strict feedback race),
+Bex WinFifoCausal (Win LUTs + H_NO_REVERT suffice for the 1- and 2-stage
+pipe). Held for Mathlib: Bk1 OnNetlistArbKappa (link_arb A0 fork safe 8/8 at
+kappa 1/11; at the guardband kappa s1 client 2 is unsafe in the pessimistic
+endpoint reading; A has no measured kappa), Bk2 ConstraintsKappa.
+Running: Bar (toolchain + reroute + A0 fork on gcd_hw), Barp (arbcell
+per-pin race), Blp (latch per-pin exact), Bmn (bdc_muxn), Bsx (necessity of
+sufficient rows), Bex2 (Win lines, general N), Bng (grade H_NO_REVERT), Brst
+(gcd_hw reset vectors), Bhyp (B hypothesis ledger for the capstone).
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
