@@ -114,3 +114,15 @@ from HEAD; the helper now uses `git reset --keep NEW` (updates every file
 changed upstream, refuses if one has local edits).
 Untracked Formal/Core/{Env,Substrate,XAudit} are probes in progress; they are
 committed only after check.sh passes (Env currently fails: mid-edit).
+### progress 03:58 -- FOR SHARDS B AND C: the Core Substrate has landed
+`import Formal.Core.Substrate` (or `import Formal`). Porting guide, name map and
+graded hypothesis list: formal/notes/A-substrate.md. State delay hypotheses with
+`Win lo hi` (B's WinDelay is literally Win: `win_iff_winDelay` is Iff.rfl); use
+`WinR` only where a quiet start is needed (`runOfWinR` gives C's Run). Corner
+model: `CornerModel`, `Realizes`, `EndpointOK`, `bundle_realizes`; real-time
+soundness `endpoints_sound_real`. Legacy bridges to both Prelims in
+Formal/Core/Substrate/Legacy.lean (not imported by Substrate; it goes away with
+the Prelims). When the Prelims are deleted, A removes the Prelim sections of
+Core/Discretize.lean and Core/Bridge.lean (replacements already in
+Substrate/Real.lean). Weakest hypotheses: H_AFFINE (grade C) and the value of κ (C;
+per-path κ ≥ 0.31 from the rings, difference κ unmeasured: notes/A-kappa.md).
