@@ -1212,3 +1212,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - **Not yet re-run on routes**: no claimed fast-fall route is on disk after the container restart. BQ#3's route is
   being rebuilt by the F5 subagent; rule F on it (and the fast-fall table's gcd/collatz/xorshift/ipow routes) must
   be re-checked before BQ#3 stands. Until then BQ#3's "rule F worst +888 ps" is the old rule's number.
+### progress 06:18 (bd_link_dc uack: classified FASTFALL, so rule F audits it)
+- Audit rules.md side note: in the opt-in bd_link_dc family uack is FASTFALL(1), but tighten.py classed every
+  `.uack` tap as FASTRISE by name, so those lines escaped rule F and were walked with the wrong edge sense. Now a
+  `.uack` is FASTRISE only when its link has no `ctl.ub` (the dc controller). 2 tests; 94/94 in cells/verify.
+  No claimed design uses BD_LINK_DC (only cells/tb and flow.sh's BD_SYN_DEFS), so no claim changes; not run on a
+  routed dc design.

@@ -99,3 +99,36 @@ def test_rule_f_fails_a_stage_that_is_still_high_when_the_input_returns():
     (row,) = drained_line(side1=2000, ret=400)
     margin = row[-1]
     assert row[2] == 1030 + 1000 - 10 and margin < 0
+
+
+def uack_line(dc):
+    """A 3-stage `.uack` chain with side taps from the controller's a node;
+    with dc=True the link also has bd_link_dc's ctl.ub."""
+    edges = defaultdict(list)
+    src = "l.ctl.ua/O6" if dc else "l.ctl.u.u/O6"
+    prev = src
+    for i in range(3):
+        inst = f"l.uack.chain.g[{i}].u"
+        edges[prev].append((f"{inst}/I0", 10))
+        edges[f"{inst}/I0"].append((f"{inst}/O6", 10))
+        if i > 0:
+            edges[src].append((f"{inst}/I1", 10))
+            edges[f"{inst}/I1"].append((f"{inst}/O6", 10))
+        prev = f"{inst}/O6"
+    if dc:
+        edges["l.ctl.ub/O6"].append(("l.ctl.ua/I0", 10))
+    return edges
+
+
+def test_muller_uack_is_fastrise():
+    e = uack_line(dc=False)
+    assert tighten.fastfall_side_arcs(e) == set()
+    assert len(tighten.fastrise_side_arcs(e)) == 2
+
+
+def test_bd_link_dc_uack_is_fastfall():
+    # audit rules.md side observation: bd_link_dc's uack is FASTFALL(1), and
+    # was classified FASTRISE by name, escaping rule F.
+    e = uack_line(dc=True)
+    assert len(tighten.fastfall_side_arcs(e)) == 2
+    assert tighten.fastrise_side_arcs(e) == set()

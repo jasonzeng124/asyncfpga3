@@ -313,21 +313,37 @@ def chain_side_arcs(edges):
     return side
 
 
+def is_fastrise_line(base, insts):
+    """A Muller link's ack-hold line (`<link>.uack`) is FASTRISE.  In the
+    bd_link_dc family (`define BD_LINK_DC, recognised by its `<link>.ctl.ub`)
+    the same name is a FASTFALL line (rtl/bd_link.v), so the name alone is
+    not enough."""
+    if not base.endswith(".uack"):
+        return False
+    return base[:-len(".uack")] + ".ctl.ub" not in insts
+
+
+def _insts(edges):
+    return {pin_split(p)[0] for p in edges}
+
+
 def fastfall_side_arcs(edges):
     """Arcs into fast-fall side pins only carry the falling transition.
 
     A rising request must arrive through the preceding chain stage, so these
-    arcs are excluded from shortest-path request arrivals.  The ack-hold
+    arcs are excluded from shortest-path request arrivals.  The Muller ack-hold
     lines (`.uack`, FASTRISE) are the mirror image and are not in this set.
     """
+    insts = _insts(edges)
     return {arc for arc, base in chain_side_arcs(edges).items()
-            if not base.endswith(".uack")}
+            if not is_fastrise_line(base, insts)}
 
 
 def fastrise_side_arcs(edges):
     """The FASTRISE taps: they carry the rise, so a falling walk omits them."""
+    insts = _insts(edges)
     return {arc for arc, base in chain_side_arcs(edges).items()
-            if base.endswith(".uack")}
+            if is_fastrise_line(base, insts)}
 
 
 # Pin direction, taken from the SDF rather than guessed from the pin's name.
