@@ -37,7 +37,8 @@
   proved conditional on a token-equation solution; hypothesis list in
   formal/notes/C-gcd_hw-hypotheses.md. `gcd_hw_circuit_safe` (8m): every run of the concrete 465-channel
   network latches only Nat.gcd a b on out0 under H_CELLS, H_BUNDLE and
-  H_CM_FORCED (O1, being discharged by 8q). Liveness: pipelines and single
+  H_CM_FORCED, now reduced to H_CUT (8q: req-rise counting; arbiters see
+  no free contention under it); discharging H_CUT: 8r. Liveness: pipelines and single
   rings proved with linear bounds (8n, 8o); gcd_hw liveness needs the
   arbiters to be uncontended (no bounded arbitration time on this fabric). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
@@ -311,3 +312,8 @@ Clean rebuild finished: every claimed shard-C module tracked at its start
 (136, plus Core/Cells deps: 139 modules) compiled from scratch into a fresh
 olean dir with no error, so no result depends on a stale olean copied by a
 probe. (Files claimed since then were each compiled on commit.)
+
+### progress 08:27
+8q committed: H_CM_FORCED -> H_CUT; gcd_hw_protocol needs no forcing
+assumption; no free arbiter contention under H_CUT. Launched 8r (discharge
+H_CUT via the single control-spine token).
