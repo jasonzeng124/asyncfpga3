@@ -242,6 +242,25 @@ def main():
                         return {"k": "lut", "i": i, "out": o}
         return {"k": "opaque", "what": "%s.%s" % (pre, pin)}
 
+    def drv_hop(src):
+        """C-10m: the DRIVER-side site-internal hop (OUTMUX ROUTING_BEL) of a LUT output that
+        leaves its slice through AMUX..DMUX: x6lut -> xmux (O6) or x5lut -> xmux (O5), from
+        prjxray-db slicel/slicem.sdf, HULL over the xMUX and xMUXL instances (the same table
+        as tcheck's extract.py Prjx.site_tables, C-10h).  None for a direct A..D output
+        (a6lut -> A is a wire, 0 in prjxray) and for non-LUT sources (opaque anyway)."""
+        if src[0] != "slice":
+            return None
+        _, tile, site, pin = src
+        c = classify(src)
+        if c["k"] != "lut" or not pin.endswith("MUX"):
+            return None
+        L = pin[0].lower()
+        bel = "%s%slut" % (L, "6" if c["out"] == "O6" else "5")
+        v = outmux_table(a.db, site["type"].lower()).get((bel, L + "mux"))
+        if v is None:
+            real_die("no OUTMUX hop %s -> %smux in %s.sdf" % (bel, L, site["type"].lower()))
+        return ("site hop %s->%smux" % (bel, L), v)
+
     def pipdata(t, p, pseudo, _node=None):
         s2d = p.get("src_to_dst") or {}
         return {"tile": t, "dst": p["dst_wire"], "src": p["src_wire"],
@@ -268,6 +287,7 @@ def main():
             try:
                 src, path = ex.walk(tile, v["wire"], what)
                 pins.append({"pin": "%s%d" % (L, k), "src": classify(src),
+                             "drv_hop": drv_hop(src),
                              "sitepin_delay_ps": F.corners(v.get("delay")),
                              "pips": [pipdata(*q) for q in reversed(path)]})
                 pathinfo[(i, k)] = ex.paths[-1]
@@ -462,6 +482,8 @@ def main():
             return [("route unknown (bits walk failed), H_UNKNOWN_ROUTE", [0, 100000, 0, 100000]),
                     ("site pin %s" % p["pin"], p["sitepin_delay_ps"])]
         el = [("pip %s.%s->%s" % (q["tile"], q["src"], q["dst"]), q["delay_ps"]) for q in p["pips"]]
+        if p.get("drv_hop") and not NO_HOP:
+            el.insert(0, p["drv_hop"])   # C-10m: driver-side OUTMUX hop, before the first pip
         el.append(("wire RC", ("rc", elm(i, k))))
         el.append(("site pin %s" % p["pin"], p["sitepin_delay_ps"]))
         return el
@@ -751,6 +773,30 @@ def main():
         out.append("")
         out.append("end Formal.Timing.Routed.%s" % a.ns)
         open(a.lean, "w").write("\n".join(out) + "\n")
+
+
+def outmux_table(db, sitetype):
+    """C-10m: {(from, xmux): [fast_min, fast_max, slow_min, slow_max] ps} for every ROUTING_BEL
+    INTERCONNECT into AMUX..DMUX of prjxray-db timings/<sitetype>.sdf, hulled over the xMUX and
+    xMUXL instances (which one a site uses is not decoded; the hull contains both)."""
+    key = ("outmux", db, sitetype)
+    if key not in _SDF:
+        txt = open(os.path.join(db, "timings", sitetype + ".sdf")).read()
+        tab = {}
+        num = r"\(([\d.]*)::([\d.]*)\)\(([\d.]*)::([\d.]*)\)"
+        for cell in re.findall(r"\(CELL\s*(.*?)\n    \)", txt, re.S):
+            if 'CELLTYPE "ROUTING_BEL"' not in cell:
+                continue
+            for a_, b_, *ns in re.findall(r"\(INTERCONNECT\s+(\S+)\s+([a-d]mux)l?\s+" + num, cell):
+                v = [int(round(float(x) * 1000)) for x in ns]
+                o = tab.get((a_, b_))
+                tab[(a_, b_)] = v if o is None else [min(o[0], v[0]), max(o[1], v[1]),
+                                                       min(o[2], v[2]), max(o[3], v[3])]
+        _SDF[key] = tab
+    return _SDF[key]
+
+
+NO_HOP = bool(os.environ.get("RTFB_NO_HOP"))   # reproduce the C-10f data (no driver hop)
 
 
 def lut5_arcs(db, tile, slice_, lut):

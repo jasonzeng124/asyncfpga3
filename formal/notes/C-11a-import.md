@@ -5,8 +5,13 @@
 One command synthesizes eleven library cells with the project's own yosys flow, imports the
 `write_json` output into Lean, and fails loudly on drift. A generic interpreter, kernel-checked by
 `decide`, proves that every imported netlist's next-state function equals shard B's cell
-specification. It is also equal to B's own hand-transcribed cell function, so B's theorems carry over
-to the synthesized cells. All of this works for single cells. Whole designs need more primitives in
+specification, where one exists as an independent equation (the binary `_next_spec` theorems:
+`cSpec`/`clr`/`set`/`bmux` and the `bd_arb.v` header equations, written without any INIT). It is
+also equal to B's own hand-transcribed cell function (the `_next_K` / `_next_B` theorems), so B's
+theorems carry over to the synthesized cells. (Audit C2 row 1c: B's Kleene functions are
+`lutK <B's INIT constant> [pins]`, transcriptions of the same INITs, so the Kleene comparisons
+show only "same INIT and same pin order as B's transcription", not agreement with an
+independent behavioural spec. `bd_arbcell` is covered only that way: it has no binary spec.) All of this works for single cells. Whole designs need more primitives in
 the importer (see Effort).
 
 ## Producer (fidelity of the input)
@@ -65,9 +70,10 @@ Namespace `Formal.Net.Import.Proofs`.
   `c2_spec` statement, made about the synthesized netlist.
 - `bd_c2_next_maj`: with rst = 0, the next state is maj(a,b,q).
 - `bd_c2_outs`: the output port shows the state.
-- `bd_c2_next_B`: equals B's `c2B`. `bd_c2_next_K`: equals B's `c2K`, for all K3 inputs.
-- `bd_c2_set`, `bd_c2n`, `bd_c2n_set`: each has a `_next_spec` (binary) and a `_next_K` (equals
-  B's Kleene function).
+- `bd_c2_next_B`: equals B's `c2B`. `bd_c2_next_K`: equals B's `c2K`, for all K3 inputs
+  (same INIT + pin order as B's transcription; not an independent spec).
+- `bd_c2_set`, `bd_c2n`, `bd_c2n_set`: each has a `_next_spec` (binary, independent spec) and a
+  `_next_K` (equals B's Kleene function, i.e. same INIT + pin order as B's transcription).
 - `bd_c3_next_spec`, `bd_c4_next_spec`: binary.
 
 **Latches:**
@@ -78,7 +84,7 @@ Namespace `Formal.Net.Import.Proofs`.
 - `bd_latch_rst_W1_next_spec`.
 
 **Arbiter:**
-- `bd_arbcell_next_K`, `bd_arbcell_outs_K`.
+- `bd_arbcell_next_K`, `bd_arbcell_outs_K` (transcription comparison only; no binary spec).
 - `bd_arbiter_next_spec`, `bd_arbiter_outs_spec`: binary, against the equations in the `bd_arb.v`
   header, with the three loops q, A1, A2.
 - `bd_arbiter_next_K`, `bd_arbiter_outs_K`: all 3^7 Kleene inputs, equal to B's `cK`/`g1K`/`g2K`/

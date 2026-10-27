@@ -326,6 +326,9 @@ def emit_credited(c, I, L, D, pairs, spec_of, meta):
                             lD=lD, lA=lA, potB=min(mB, capB), potA=min(mA, capA),
                             uncredited=min(best0.get(t_, cap0) for t_ in tg) - lD,
                             path0=[p.rsplit("/", 1)[0].replace("urig.udut.", "") for p, ph in path if ph == 0][:40])
+        if meta.get("rule") == "K":     # C-10l2: the whole uncredited late path, both phases
+            meta["x"][v]["pathK"] = [(p.replace("urig.udut.", ""), ph, best0.get((p, ph)))
+                                     for p, ph in path]
         if info is not None:
             meta.setdefault("pick", {})[v] = info
         # write

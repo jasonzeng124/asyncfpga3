@@ -68,6 +68,7 @@ TC = os.environ.get("TC", os.path.expanduser("~/dev2/lib/fpgatoolchain"))
 GUARD_LO, GUARD_HI = 0.772, 1.155
 VARIANTS = ["sdf", "sdfband", "fast", "slow", "fastG", "slowG"]
 INVERTED = [0]      # arcs whose prjxray min > max (hull taken; see intervals)
+NO_DRVHOP = bool(os.environ.get("TCHECK_NO_DRVHOP"))   # C-10m: before/after only
 
 
 def load_rules(cells_dir):
@@ -350,7 +351,11 @@ class Prjx:
         db_ = self.drv_bel(si, _sp)
         if db_ is None:
             return None
-        if ppin.lower() == db_[0] and db_.endswith("6lut"):
+        if NO_DRVHOP and db_.endswith("lut"):
+            # C-10m: TCHECK_NO_DRVHOP=1 reproduces the C-10e/10g model (no OUTMUX hop on
+            # LUT outputs) for before/after tables only; never a verdict
+            dh = [0.0, 0.0, 0.0, 0.0]
+        elif ppin.lower() == db_[0] and db_.endswith("6lut"):
             dh = [0.0, 0.0, 0.0, 0.0]
         else:
             dh = hop.get((psite["type"].lower(), db_, ppin.lower()))
@@ -383,6 +388,15 @@ class Prjx:
             return [sum(R.pick(e.get_intrinsic_delays(), k) for e in els) * 1e3 + rc for k in range(4)]
         (dh, sha), (_dh, shb) = self.hops[(src, dst_a)], self.hops[(src, dst_b)]
         add = lambda x, y: [a + b for a, b in zip(x, y)]  # noqa: E731
+        if n == 0:
+            # C-10m: no common element.  This happens when the two sinks leave the slice
+            # through DIFFERENT output pins of the same LUT (O6 direct on A..D and through
+            # the OUTMUX on AMUX..DMUX: two routed nets, two Net objects).  The branch point
+            # is the LUT output itself: nothing is shared, and each side carries its OWN
+            # driver hop (C-10h took sink a's hop as shared, which credited the OUTMUX hop
+            # to the side that does not have it and dropped it from the side that does).
+            return [0.0] * 4, add(add(tot(ea), dh), sha), add(add(tot(eb), _dh), shb)
+        assert dh == _dh, (src, dst_a, dst_b)
         # C-10h: the driver's site-internal hop is shared, each sink hop is its own
         return add(tot(ea[:n]), dh), add(tot(ea[n:]), sha), add(tot(eb[n:]), shb)
 
