@@ -1286,7 +1286,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   the single-corner bd_prims_sim.v; S2 fixes OUTMUX in xray_delay.py and the A6 GND/VCC class in fasm_equiv.py.
 - build_fid.sh now takes GLS_SDF (re-keyed in place of nextpnr's SDF) and GLS_MODEL=fid, read as gls/build.sh reads
   them; default output unchanged (both only add when set).
-### progress 11:05 (full stack runs on BQ#3; S1 and S2 landed)
+### progress 10:53 (full stack runs on BQ#3; S1 and S2 landed)
 - Routes rebuilt from scratch and reproduced: BQ#3 (sdf 61e14755, routed.json f9c4597d), BQ#1 (sdf 6f8b99e6).
 - **Full stack** = netlist decoded from the .bit (fasm2net) + prjxray RC-tree SDF (xray_delay) + GLS_MODEL=fid
   primitives, on BQ#3's default-seed route, SLOW_MAX column, 150 us per vector: **16/16 vectors, errs=0**, both before
@@ -1297,7 +1297,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - 16133 sink pins get 0 ps interconnect in the re-keyed SDF: 15845 are VCC ties (unused LUT pins), the rest are
   in-site hops (LUT -> F7/F8/CARRY4/FF D) whose delay is in the cell arc or the routing-BEL charge. Recorded, not a gap
   on a live path as far as checked.
-- S2 landed (b3...): xray_delay charges every slice routing-BEL mux from slicel/slicem.sdf (hand check exact at 4
+- S2 landed: xray_delay charges every slice routing-BEL mux from slicel/slicem.sdf (hand check exact at 4
   corners); fasm_equiv: the audit's 3 A6 pins on BQ#1 are HARMLESS, a function that reads one is NOT EQUIVALENT.
 - S1 landed: bd_prims_sim.v at one corner; run_sim suite 27/27 at slow max and fast min, route 0 and 354; 11 negative
   controls fail as intended. Closes the audit's REFUTED bd_prims_sim row. Open from it: bd_pipe_deco (an attempt,
