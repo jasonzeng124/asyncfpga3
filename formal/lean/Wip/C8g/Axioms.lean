@@ -13,5 +13,6 @@ open Formal.Net.Muller Formal.Net.MullerTimed
 #print axioms cx_protocol_broken
 #print axioms cx_glitch
 #print axioms boundary_function_hazard
+#print axioms ok_protocol
 -- uncertified evaluations (compiled code): n = 4 certificate passes
 #eval checkT 4

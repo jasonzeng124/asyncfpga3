@@ -114,24 +114,36 @@ def monitors(ts, g1, g2, OVW=64, GW=64):
 
 
 def arbcell(tick=4, spread=True, route=0, P=20, rst_len=None, settle=None,
-            settled=True, lumped=False, rroute=0):
+            settled=True, lumped=False, rroute=0, sep=0):
     """Bare bd_arbcell; route = interconnect after every LUT output, in ps.
     settled=True: start from any quiescent state (q either value, all nets
     consistent) with rst = 0, instead of simulating reset from power-up.
     lumped=True: the route is added to every LUT arc inside the inertial
     channel, exactly as bd_prims_sim.v's BD_ROUTE_PS does (no separate
-    transport wire).  rroute: transport route on r1/r2 into both LUTs (ps)."""
+    transport wire).  rroute: transport route on r1/r2 into both LUTs (ps).
+    sep: H_SEP -- any two request edges (r1 or r2) are >= sep ticks apart,
+    i.e. no two requests move within the cell's aperture."""
     o6, o5 = arcs(tick, spread)
     R = int(round(route / tick))
     RR = int(round(rroute / tick))
     if lumped:
         add = lambda a: ((a[0][0] + R, a[0][1] + R), (a[1][0] + R, a[1][1] + R))
         o6, o5, R = add(o6), add(o5), 0
-    ts = tsmc.TS('arbcell_t%d_s%d_R%d_P%d_L%d_RR%d' % (tick, spread, R, P, lumped, RR))
+    ts = tsmc.TS('arbcell_t%d_s%d_R%d_P%d_L%d_RR%d_sep%d' % (tick, spread, R, P, lumped, RR, sep))
     net = Net(ts, settled)
     if settled:
         rst_len, settle = 1, 1
     env_free(ts, ['r1', 'r2'], P)
+    if sep:
+        ts.int('sep', 0, sep)
+        ts.init(lambda S: S['sep'] == sep)
+
+        def sep_tr(S, N):
+            ch = z3.Or(N['r1'] != S['r1'], N['r2'] != S['r2'])
+            return z3.And(z3.Not(z3.And(N['r1'] != S['r1'], N['r2'] != S['r2'])),
+                          z3.Implies(ch, S['sep'] >= sep - 1),
+                          N['sep'] == z3.If(ch, 0, z3.If(S['sep'] < sep, S['sep'] + 1, sep)))
+        ts.trans(sep_tr)
     r1 = net.wire('r1R', lambda S: S['r1'], RR)
     r2 = net.wire('r2R', lambda S: S['r2'], RR)
     # rst: start in reset long enough to define q, then 0 forever

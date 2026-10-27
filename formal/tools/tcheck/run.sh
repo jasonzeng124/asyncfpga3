@@ -8,7 +8,7 @@ set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd); cd "$HERE"
 export PATH=$HOME/.elan/bin:$PATH
 ./sync.sh --check || exit 1
-../../slot.sh lake build 2>&1 | grep -E "error|Build completed" || exit 1
+FORMAL_SLOT_CWD=$HERE ../../slot.sh lake build 2>&1 | grep -E "error|Build completed" || exit 1
 EXE=$HERE/.lake/build/bin/tcheck
 $EXE test/toy.tc 2>/dev/null | diff - test/toy.expected && echo "  toy self-test ok" || { echo "  toy self-test FAILED"; exit 1; }
 SEEDS=${*:-d 2 3 4}

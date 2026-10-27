@@ -1,137 +1,72 @@
 # bd_c2: minimum pulse width W (H_ENV_PULSE) per channel kind
 # B (CElemTiming.lean, WinDelay): W >= Dmax = dl_hi + dw_hi is sufficient, and tight for fixed delays
 == win dl=(1, 1) dw=(1, 1) Dmax=2
-   W=2 follow: PROVED (k-induction, k=3)  [12 state bits, 0.04s]
+   W=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.06s]
    counterexample at W=1 (depth 4):
      t          01234
      rst        11___
-     a          __11_
-     b          __1_1
+     a          __111
+     b          __1__
      z          __111
      O          ___1_
      qp         ____1
      cnt        01011
-   W=2 mono: PROVED (k-induction, k=7)  [12 state bits, 0.11s]
-   R=2 follow: PROVED (k-induction, k=3)  [13 state bits, 0.04s]
+   W=2 mono: PROVED (k-induction, k=10)  [15 state bits, 1.03s]
+   R=2 follow: PROVED (k-induction, k=3)  [16 state bits, 0.05s]
 == win dl=(1, 2) dw=(1, 2) Dmax=4
-   W=4 follow: PROVED (k-induction, k=6)  [17 state bits, 0.08s]
+   W=4 follow: PROVED (k-induction, k=6)  [20 state bits, 0.17s]
    counterexample at W=3 (depth 8):
      t          012345678
      rst        1111_____
-     a          ____111_1
-     b          ____1111_
+     a          ____1111_
+     b          ____111_1
      z          ____11111
-     O          11____11_
-     qp         _11_____1
+     O          ______11_
+     qp         ________1
      cnt        012201222
-   W: no proof up to 8
-   R=4 follow: PROVED (k-induction, k=6)  [17 state bits, 0.08s]
+   W=4 mono: PROVED (k-induction, k=16)  [20 state bits, 8.21s]
+   R=4 follow: PROVED (k-induction, k=6)  [20 state bits, 0.17s]
 == win dl=(2, 3) dw=(1, 3) Dmax=6
-   W=6 follow: PROVED (k-induction, k=9)  [19 state bits, 0.14s]
+   W=6 follow: PROVED (k-induction, k=9)  [22 state bits, 0.32s]
    counterexample at W=5 (depth 13):
      t          01234567890123
      rst        111111________
      a          ______11111111
      b          ______11111___
      z          ______11111111
-     O          _1_______1111_
+     O          1_1______1111_
      qp         ____1_______11
      cnt        01233301233333
-   W: no proof up to 10
-   R=6 follow: PROVED (k-induction, k=9)  [20 state bits, 0.21s]
+   W=6 mono: PROVED (k-induction, k=23)  [22 state bits, 36.88s]
+   R=6 follow: PROVED (k-induction, k=9)  [23 state bits, 0.41s]
 == win dl=(1, 3) dw=(2, 2) Dmax=5
-   W=5 follow: PROVED (k-induction, k=9)  [18 state bits, 0.22s]
-   counterexample at W=4 (depth 10):
-     t          01234567890
-     rst        11111______
-     a          _____11111_
-     b          _____1111_1
-     z          _____111111
-     O          ________11_
-     qp         __________1
-     cnt        01233012333
-   W: no proof up to 9
-   R=5 follow: PROVED (k-induction, k=9)  [18 state bits, 0.27s]
-== win dl=(2, 2) dw=(3, 3) Dmax=5
-   W=5 follow: PROVED (k-induction, k=7)  [18 state bits, 0.11s]
-   counterexample at W=4 (depth 11):
-     t          012345678901
-     rst        11111_______
-     a          _____11111_1
-     b          _____1111_1_
-     z          _____1111111
-     O          _______1111_
-     qp         __________11
-     cnt        012220122222
-   W: no proof up to 9
-   R=5 follow: PROVED (k-induction, k=7)  [18 state bits, 0.10s]
-== fifo dl=(1, 1) dw=(1, 1) Dmax=2
-   W=2 follow: PROVED (k-induction, k=3)  [14 state bits, 0.05s]
-   counterexample at W=1 (depth 4):
-     t          01234
-     rst        11___
-     a          __1_1
-     b          __11_
-     z          __111
-     O          ___1_
-     qp         ____1
-     cnt        01011
-   W=2 mono: PROVED (k-induction, k=7)  [14 state bits, 0.15s]
-   R=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.05s]
-== fifo dl=(1, 2) dw=(1, 2) Dmax=4
-   W=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.14s]
-   counterexample at W=3 (depth 8):
-     t          012345678
-     rst        1111_____
-     a          ____111_1
-     b          ____1111_
-     z          ____11111
-     O          ______11_
-     qp         ________1
-     cnt        012201222
-   W: no proof up to 8
-   R=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.11s]
-== fifo dl=(2, 3) dw=(1, 3) Dmax=6
-   W=6 follow: PROVED (k-induction, k=9)  [22 state bits, 0.27s]
-   counterexample at W=5 (depth 13):
-     t          01234567890123
-     rst        111111________
-     a          ______11111_1_
-     b          ______111111_1
-     z          ______11111111
-     O          _11______1111_
-     qp         ____________11
-     cnt        01233301233333
-   W: no proof up to 10
-   R=6 follow: PROVED (k-induction, k=9)  [23 state bits, 0.24s]
-== fifo dl=(1, 3) dw=(2, 2) Dmax=5
-   W=5 follow: PROVED (k-induction, k=9)  [21 state bits, 0.32s]
+   W=5 follow: PROVED (k-induction, k=9)  [21 state bits, 0.37s]
    counterexample at W=4 (depth 10):
      t          01234567890
      rst        11111______
      a          _____111111
      b          _____1111__
      z          _____111111
-     O          _11_____11_
-     qp         ___11_____1
+     O          ________11_
+     qp         __________1
      cnt        01233012333
    W: no proof up to 9
-   R=5 follow: PROVED (k-induction, k=9)  [21 state bits, 0.29s]
-== fifo dl=(2, 2) dw=(3, 3) Dmax=5
-   W=5 follow: PROVED (k-induction, k=7)  [20 state bits, 0.18s]
+   R=5 follow: PROVED (k-induction, k=9)  [21 state bits, 0.46s]
+== win dl=(2, 2) dw=(3, 3) Dmax=5
+   W=5 follow: PROVED (k-induction, k=7)  [21 state bits, 0.21s]
    counterexample at W=4 (depth 11):
      t          012345678901
      rst        11111_______
-     a          _____111111_
-     b          _____1111__1
+     a          _____1111__1
+     b          _____111111_
      z          _____1111111
      O          _______1111_
      qp         __________11
      cnt        012220122222
-   W: no proof up to 9
-   R=5 follow: PROVED (k-induction, k=7)  [20 state bits, 0.14s]
-== inert dl=(1, 1) dw=(1, 1) Dmax=2
-   W=2 follow: PROVED (k-induction, k=3)  [14 state bits, 0.06s]
+   W=5 mono: PROVED (k-induction, k=15)  [21 state bits, 2.65s]
+   R=5 follow: PROVED (k-induction, k=7)  [21 state bits, 0.21s]
+== fifo dl=(1, 1) dw=(1, 1) Dmax=2
+   W=2 follow: PROVED (k-induction, k=3)  [17 state bits, 0.07s]
    counterexample at W=1 (depth 4):
      t          01234
      rst        11___
@@ -139,90 +74,18 @@
      b          __111
      z          __111
      O          ___1_
-     qp         1___1
+     qp         ____1
      cnt        01011
-   W=2 mono: PROVED (k-induction, k=7)  [14 state bits, 0.23s]
-   R=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.06s]
-== inert dl=(1, 2) dw=(1, 2) Dmax=4
-   W=4 follow: PROVED (k-induction, k=5)  [19 state bits, 0.18s]
+   W=2 mono: PROVED (k-induction, k=10)  [17 state bits, 1.09s]
+   R=2 follow: PROVED (k-induction, k=3)  [18 state bits, 0.09s]
+== fifo dl=(1, 2) dw=(1, 2) Dmax=4
+   W=4 follow: PROVED (k-induction, k=6)  [22 state bits, 0.22s]
    counterexample at W=3 (depth 8):
      t          012345678
      rst        1111_____
-     a          ____1111_
-     b          ____111_1
+     a          ____111_1
+     b          ____1111_
      z          ____11111
      O          1_____11_
-     qp         111_____1
+     qp         __1_____1
      cnt        012201222
-   W=4 mono: PROVED (k-induction, k=11)  [19 state bits, 0.71s]
-   R=4 follow: PROVED (k-induction, k=5)  [19 state bits, 0.09s]
-== inert dl=(2, 3) dw=(1, 3) Dmax=6
-   W=5 follow: PROVED (k-induction, k=7)  [19 state bits, 0.12s]
-   counterexample at W=4 (depth 12):
-     t          0123456789012
-     rst        111111_______
-     a          ______111111_
-     b          ______1111__1
-     z          ______1111111
-     O          _________111_
-     qp         1___________1
-     cnt        0123330123333
-   W=5 mono: PROVED (k-induction, k=14)  [19 state bits, 1.48s]
-   R=5 follow: PROVED (k-induction, k=7)  [20 state bits, 0.14s]
-== inert dl=(1, 3) dw=(2, 2) Dmax=5
-   W=5 follow: PROVED (k-induction, k=7)  [19 state bits, 0.27s]
-   counterexample at W=4 (depth 10):
-     t          01234567890
-     rst        11111______
-     a          _____11111_
-     b          _____1111_1
-     z          _____111111
-     O          ________11_
-     qp         11________1
-     cnt        01233012333
-   W=5 mono: PROVED (k-induction, k=13)  [19 state bits, 1.43s]
-   R=5 follow: PROVED (k-induction, k=7)  [19 state bits, 0.12s]
-== inert dl=(2, 2) dw=(3, 3) Dmax=5
-   W=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.11s]
-   counterexample at W=3 (depth 10):
-     t          01234567890
-     rst        11111______
-     a          _____1111__
-     b          _____111_11
-     z          _____111111
-     O          11_____111_
-     qp         __________1
-     cnt        01222012222
-   W=4 mono: PROVED (k-induction, k=12)  [19 state bits, 0.48s]
-   R=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.11s]
-
-# summary: kind dl dw Dmax  W_follow W_mono R_min
-  win   (1, 1) (1, 1)  2   2 2 2
-  win   (1, 2) (1, 2)  4   4 None 4
-  win   (2, 3) (1, 3)  6   6 None 6
-  win   (1, 3) (2, 2)  5   5 None 5
-  win   (2, 2) (3, 3)  5   5 None 5
-  fifo  (1, 1) (1, 1)  2   2 2 2
-  fifo  (1, 2) (1, 2)  4   4 None 4
-  fifo  (2, 3) (1, 3)  6   6 None 6
-  fifo  (1, 3) (2, 2)  5   5 None 5
-  fifo  (2, 2) (3, 3)  5   5 None 5
-  inert (1, 1) (1, 1)  2   2 2 2
-  inert (1, 2) (1, 2)  4   4 4 4
-  inert (2, 3) (1, 3)  6   5 5 5
-  inert (1, 3) (2, 2)  5   5 5 5
-  inert (2, 2) (3, 3)  5   4 4 4
-
-# four-phase environment (two clients, latency >= E after seeing the ack on O)
-# B (c2_four_phase): sufficient E >= dw_hi + (dl_hi - dl_lo)
-== win dl=(1, 1) dw=(1, 1)  B-bound E=1
-  -- client observation: first
-   E=1 follow: PROVED (k-induction, k=9)  [13 state bits, 0.19s]
-   E=1 mono: PROVED (k-induction, k=9)  [13 state bits, 0.19s]
-   => E_min(first) follow=1 mono=1 (B bound 1)
-  -- client observation: stable
-   E=1 follow: PROVED (k-induction, k=3)  [13 state bits, 0.03s]
-   E=1 mono: PROVED (k-induction, k=3)  [13 state bits, 0.03s]
-   => E_min(stable) follow=1 mono=1 (B bound 1)
-== win dl=(1, 2) dw=(1, 2)  B-bound E=3
-  -- client observation: first
