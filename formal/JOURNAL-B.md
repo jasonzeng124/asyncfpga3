@@ -308,3 +308,13 @@ AMerge*/MuxN3* (control_merge and 3-way header, SI), Bc2 ArbCornersPin
 Running: P1 port (Prelim -> Core), Br (obligations on routed gcd_hw, 4
 seeds), Cm2 (timed control_merge obligations), Lt3 (necessity of operator
 obligations).
+
+### progress 07:45
+Audit c27fc04: no new rows on B. P1 port of Prelim onto Core finished in the
+working tree (Prelim now names Core's objects: K3 = Core.K3, lutK = Core's mux
+tree, Trace/WinDelay = Substrate.Sig/Win; 114 importing modules incl. C/A
+compiled by the probe); a full lake build is verifying it before commit.
+P5: cell_constraints.json at 116 entries (110 proved). In: Cm2
+AMergeTimed*, Lt3 OpsCounter (6 value obligations exact on a run; 4 control
+obligations shown unnecessary), Rst ResetContract (pending commit with the
+port).
