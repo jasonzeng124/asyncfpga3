@@ -257,3 +257,9 @@ certificate (pot_sound, cycles allowed); front-end gaps closed; agreement A
 199/200, E 465/472, F 113/116, H 630/632, I 300/300, J 71/72; every residual
 disagreement fails only with the project's own band on prjxray corners and
 passes unguarded. Launched 9c (Muller chain for all n by a local invariant).
+
+### progress 06:50
+10i committed: H_GRANT_FORK is live on 32/40 routed bd_arbiter instances
+(runt up to ~1.2 ns on a grant wire at SLOW_MAX; pin assignment); evidence
+that the handshake survives (runt ends >= 342 ps before A0 can rise), not
+proved. Owner notified, with the 10f follow-up (gcd_hw C-elements safe).
