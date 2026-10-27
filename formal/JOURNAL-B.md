@@ -258,3 +258,12 @@ In: Bt OnNetlistTimed (timed C-element/latch theorems on the 4 routed
 bitstreams; Dmax 569-960 ps by seed). All six running probes (Bp, Bx, 6g,
 5f, Lib4, Bt2) were stopped by an API session limit at ~04:45; resuming them
 from their transcripts.
+
+### progress 05:38
+Read PROGRAM.md's owner updates (north star: digital only; 48-hour phases)
+and the independent audit; responses above. Phase 2: cell_constraints.json
+out (84 entries). In since last note: 7n ArbInvolution2, Bt3 OnNetlistArb,
+audit corrections, Bk RulesKL, 5f CTreeTimed, Bx TernaryOnBits.
+Running: P1 (port Cells from Prelim to Core, non-breaking for C/A's
+importers), P3 (prove the 19 unproved constraint entries), Bov (does a
+digital race explain bd_arbcell's unexplained overlap?), Bx2.
