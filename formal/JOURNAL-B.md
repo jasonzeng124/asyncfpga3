@@ -102,6 +102,20 @@ Findings for the cell owner (not confirmed on a route):
   fast corner once the 0.772/1.155 guardband is applied on top (arithmetic,
   not Lean), while shipped rule J passes all 8. The corner model needs board
   or GLS evidence (A's kappa estimator).
+- ARBCELL 8% NOT EXPLAINED (Bov + Bmt): Bov proved the cell cannot make
+  a >= 203 ps grant overlap in any digital trace, and showed the detector's
+  site pins CAN at SLOW_MAX if the filter threshold is ~203 ps. Bmt rebuilt
+  arb_mtbf (current toolchain, nextpnr 9c732bc6303458df; seed 5 as recorded,
+  plus seeds 1-4, an old-binary route and an RLOC route) and evaluated the
+  proved window per copy: 0/192 copies predicted to fire on every route,
+  because the filter threshold itself, with site pins, is ~1.35 ns (median),
+  not 203 ps. The measured bitstream is not reproducible (no FASM/bit kept;
+  copy overlap with the board's 15 is at chance). My earlier owner
+  notification ("the rig can") is corrected. Side findings: ARBITER.md's
+  "146 copies at 0 ps skew" came from placer estimates (real median 138 ps,
+  234 with site pins); toolchain.sh's dsp-areg fingerprint
+  (ZAREG_2_ACASCREG_1) is also present in the unpatched source
+  (xilinx/fasm.cc:5096), so that check cannot fail (verified).
 - Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
   timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
 - Arbiter runt direction (7a): the runt comes from SAME-sense request moves
