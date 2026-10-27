@@ -2,21 +2,26 @@
 
 ## Verdicts (shard B)
 
-All files under formal/lean/Formal/Cells/ check with `formal/check.sh` (full
-lake build + axiom audit, last run OK after e54d7ca). Notes:
-`formal/notes/B-*.md`. Machine-readable cell constraints:
-`formal/out/cell_constraints.json` (123 entries, 121 tied to proved Lean
-theorems; validator `formal/out/cell_constraints.validate.py`).
+All files under formal/lean/Formal/Cells/ check under the lakefile's options
+(autoImplicit=false). Session 10:48: every core-only Cells file (79 + this
+session's new ones) re-checked by a private olean build; the Mathlib-closure
+files and the full `formal/check.sh` wait for Mathlib to finish building
+here (last full check.sh OK after e54d7ca; RigContract, committed after it
+without a lake check, did not compile and is fixed in 807448a). Notes:
+`formal/notes/B-*.md`; hypothesis ledger `formal/notes/B-hypotheses.md`.
+Machine-readable cell constraints: `formal/out/cell_constraints.json` (129
+entries, 128 tied to proved Lean theorems, 31 exact; validator
+`formal/out/cell_constraints.validate.py`).
 
 | track / phase | verdict | evidence (Lean files) | open |
 |---|---|---|---|
-| 5 C-element | **works** | CElemFn, CElemTiming, CElemCore, CElemInvolution, CTree, CTreeTimed, ConstraintsSel | trace half of the Core port (blocked on A's SteerEnv `Gate`) |
-| 6 latch/link/pipe | **works** | Latch, Bundling, LinkHandshake, LinkTimed, PipeTimed, PipeTimedN, PipePerPin, PipeWitness, RulesKL, FifoFidelity | none blocking; per-pin data bits only on witnesses |
-| 7 arbiter (digital race) | **works** | ArbBinary, ArbKleene, ArbInvolution(2), ArbHandover, ArbHeldTimed(2), ArbA0Fork, ArbCorners(Pin), ArbOverlapRace, TernarySound/Phases/Exact | the board's 8% bd_arbcell overlap is NOT explained (B-arb-mtbf-copies) |
-| Phase 1 port | **done for values** | Prelim now names Core.K3 / Lut.eval / Lut.keval / Core mux tree | delete Prelim (needs A/C import changes); traces half pending A |
-| Phase 2 library | **works** | LibCtlMergeMux, LibEndMemMlink, MergeMuxSI, OpsTimed(2/Mux/Wit), OpsCounter, OpsExact, MuxRtzTimed, AMerge*, AMergeTimed*, MuxN3*, Constraints* | dctl lt_first partial (bd_link_dc is a failed experiment) |
-| Phase 2 on real routes/bits | **works** | OnNetlist, OnNetlistTimed(2), OnNetlistArb, TernaryOnBits(2), PinAssign; notes B-gcd-routes, B-arb-mtbf-copies | corner model (shared vs independent) decides several margins |
-| Phase 3 support | **in progress** | ResetContract, ResetGcd/ResetGcdNet (gcd_hw control network reset and release by decide), GcdCells | first wave after release, rig contract, uniform contracts for C (running) |
+| 5 C-element | **works** | CElemFn, CElemTiming, CElemCore, CElemInvolution, CTree, CTreeTimed, ConstraintsSel, **CElemStrict, CElemStrict2** | own-feedback race exact only STRICT (one-tick select X window) on every variant; physical X width unmeasured |
+| 6 latch/link/pipe | **works** | Latch, Bundling, LinkHandshake, LinkTimed, PipeTimed, PipeTimedN, PipePerPin, PipeWitness, RulesKL, FifoFidelity, **LibGapLatch, ForkData, WinFifo, WinFifoCausal, NoRevert** | FIFO channel hypotheses = Win + H_NO_REVERT (grade B); pipe lines still FIFO; link-stage exact contract running |
+| 7 arbiter (digital race) | **works** | ArbBinary, ArbKleene, ArbInvolution(2), ArbHandover, ArbHeldTimed(2), ArbA0Fork, ArbCorners(Pin), ArbOverlapRace, TernarySound/Phases/Exact | board's 8% bd_arbcell overlap NOT explained; per-pin non-monotone arbcell race running (Barp) |
+| Phase 1 port | **B side done** | Prelim names Core objects; **PrelimCore** proves every Prelim notion equal (or the exact one-way relation) to Core | deletion is a mechanical cross-shard patch (notes/B-port-core2.md), waiting on A's Core/LutList.lean |
+| Phase 2 library | **works, exact for the select/data rows** | LibCtlMergeMux, LibEndMemMlink, MergeMuxSI, OpsTimed*, OpsCounter, OpsExact*, MuxRtzTimed, AMerge*, MuxN3*, Constraints*, **LibGapSteer, LibGapMux, LibGapMuxN, LibGapDelay, NecessityReset, NecessityMuxRtz** | 51 rows still sufficient-only; dctl lt_first partial (not shipped) |
+| Phase 2 on real routes/bits | **works; arbiter safety decided by the corner model** | OnNetlist, OnNetlistTimed(2), OnNetlistArb, TernaryOnBits(2), PinAssign, **OnGcdArb, OnGcdArbA0**; OnNetlistArbKappa, ConstraintsKappa written, unchecked (Mathlib) | gcd_hw arbiters: safe at every consistent corner, fork fails on 15/72 clients in the independent box; kappa unmeasured |
+| Phase 3 support | **in progress** | ResetContract, ResetGcd*, GcdCells, Contracts*, **RigIdx, RigToken** | C's global H_START_ONCE false over a rig run (per-result form proved); rig uenv1 RT_FB fails on seeds 2/4 |
 
 Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
 north star; they check but get no further work.
