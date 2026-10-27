@@ -269,3 +269,24 @@ reported as unproved.
   "Formal-model feasibility", with a running summary. Never merge it.
 - Do not edit `cells/`, `bdc/` or `research/`. Read them only.
 - No usage cap. Run continuously: never end the session on your own.
+
+## Read the independent audit every session (owner, 2026-10-27)
+
+An independent auditor works on branch `claude/audit`. It writes only
+`audit/REPORT.md` and `audit/findings/`. At the start of every session, run
+`git fetch origin && git show origin/claude/audit:audit/REPORT.md`. Fix every
+REFUTED or OVERSTATED row that concerns your files, or answer it in your
+journal with evidence. Never edit the audit branch.
+
+**First, the corner misreading (REFUTED by the audit).** The prjxray SDF
+triples are `(FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)`
+(`prjxray/utils/makesdf.py:63`). They are **fast and slow corners, not rise and
+fall.** So the "O6 rise 45-56 ps, fall 100-124 ps" and the "rise and fall differ
+by 2.2x" figures are wrong: 56 and 124 are the fast-corner and slow-corner
+bounds of one arc. Nothing in prjxray-db separates rise from fall. Never mix
+corners within one analysis (a fast-corner rise with a slow-corner fall);
+use one consistent corner, or the corner model with scatter κ.
+- Shard B: ArbHeldTimed/ArbHeldTimed2 and notes/B-arb-a0fork.md took 56/124
+  (from `bd_prims_sim.v`) as rise/fall. The 16 ps threshold, the 96 ps margin
+  and the "112 ps server" are artefacts of that. Redo them with one
+  consistent corner or the corner model, and correct the journal.
