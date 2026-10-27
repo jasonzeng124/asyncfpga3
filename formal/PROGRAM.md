@@ -70,10 +70,10 @@ no `axiom` (other than Lean/Mathlib's standard ones) and no `native_decide` in
 anything reported as proved.** `formal/check.sh` must build every claimed file
 and fail on any of them. Report unproved goals as unproved.
 
-## Tracks: run them in parallel with about 30 subagents
+## Tracks: run them in parallel with subagents
 
-Spawn roughly 30 subagents, one per probe below (split or merge as you see
-fit). Each subagent writes ONLY its own files under
+Spawn one subagent per probe below (split or merge as you see fit; see
+Shards for which tracks are yours). Each subagent writes ONLY its own files under
 `formal/lean/Formal/<Track>/` and `formal/notes/<track>.md` and never touches
 git. You review, run `formal/check.sh`, commit, and push. Give each subagent:
 the background reading list, this file, its probe, and a time box. It should
@@ -127,6 +127,32 @@ When `FEASIBILITY.md` has a verdict for every track, keep going on the most
 promising track toward a real result: the Kleene cell-library proofs or the
 verified timing checker are the likely candidates. Keep `FEASIBILITY.md`
 current.
+
+## Shards: three sandboxes at once
+
+One sandbox cannot run 30 Lean processes, so the work is split across three
+routines, each a separate sandbox with its own lock. The routine prompt names
+your shard. All three push to `claude/formal`.
+
+| shard | lock | tracks | owns |
+|---|---|---|---|
+| A (lead) | `formal/LOCK` | 1 toolchain, 2 traces, 3 delay channels, 4 Kleene LUT, 13 literature | `formal/setup.sh`, `check.sh`, `slot.sh`, `formal/lean/` project files (lakefile, toolchain, root `Formal.lean`), `Formal/Core/`, `FEASIBILITY.md` |
+| B | `formal/LOCK-B` | 5 C-element, 6 latch/link, 7 arbiter | `Formal/Cells/`, `formal/notes/B-*.md`, `formal/JOURNAL-B.md` |
+| C | `formal/LOCK-C` | 8 composition, 9 ring, 10 timing checker, 11 netlist import, 12 other tools | `Formal/Net/`, `Formal/Timing/`, `formal/tools/`, `formal/notes/C-*.md`, `formal/JOURNAL-C.md` |
+
+- Write only the files your shard owns. Before every push, run `git pull --rebase`.
+  Since no two shards share a file, rebases do not conflict. If one does, you
+  touched a file you do not own: undo that change, don't resolve it.
+- Shards B and C: if `formal/setup.sh` does not exist yet, install Lean and Mathlib
+  yourselves for local use, but don't commit any setup files. Switch to A's
+  `setup.sh` once it exists. Until A's `Formal/Core/` (traces, delay channels,
+  LUT semantics) lands, define what you need in a local `Formal/Cells/Prelim.lean`
+  or `Formal/Net/Prelim.lean`, and port to Core afterwards. Note any mismatches.
+- Each shard uses 10-15 subagents, through its own `formal/slot.sh` cap.
+- Shard A writes `FEASIBILITY.md` from all three journals and the notes. B and C
+  put their verdicts at the top of their journals, in the same form.
+- Lock and journal rules are the same for every shard (B and C use their own
+  lock file and journal).
 
 ## Housekeeping
 
