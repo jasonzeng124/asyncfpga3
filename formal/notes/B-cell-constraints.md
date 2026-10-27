@@ -5,9 +5,10 @@ Shard B, Phase 2 item B, 2026-10-27. Outputs:
   hypotheses);
 - `formal/out/cell_constraints.md` (a short companion with a table of every entry).
 
-**Updated by probe P4 (same day): see the last section.** The counts and the
-"unproved" list below are P2's; the current ones are 87 entries, 82 proved,
-1 partial, 4 unproved.
+**Updated by probe P4 and probe P5 (same day): see the last two sections.**
+The counts and the "unproved" list below are P2's; after P4 they were 87
+entries, 82 proved, 1 partial, 4 unproved; after P5 they are 116 entries,
+110 proved, 1 partial, 5 unproved.
 
 No Lean was edited and no route or measurement was made. No git command that changes
 anything was run.
@@ -316,3 +317,126 @@ Still open:
 
 None of the proved entries is checked on a route by any rule.
 
+## Probe P5 update (2026-10-27): timed operators, control_merge, muxn
+
+**Assumed.** The P5 sources (all committed): B-ops-timed.md, B-ops-timed2.md,
+B-amerge.md, B-amerge-timed.md, B-pipe-witness.md and B-arb-corners-pin.md
+are correct about what their Lean files prove. I re-read the Lean statements
+that every new form transcribes: `MuxStatic`, `MuxTiming`, `MergeStatic`,
+`mux_timing_of_static`, `merge_timing_of_static` (OpsTimedMux),
+`MuxDataStatic`, `MergeDataStatic`, `SteerStatic`, `mux_XA_step`,
+`merge_XA_step` (OpsTimed2), `steer_s_pin_of_wire`, `steer_gap` (OpsTimed),
+`BidxA`, `BidxB`, `IdxAckFork` (AMergeTimed), `RT2C`, `RT2Cb`, `BidxA3`
+(AMergeTimedC).
+
+**Produced.** `formal/out/cell_constraints.json` regenerated from the
+generator: 116 entries (was 87), 110 proved, 1 partial, 5 unproved; 6 global
+hypotheses (one new: NOT_OBLIGATIONS). 708 Lean references in 53 files (was 448 in 40).
+
+**Checked.**
+- The validator reports 0 errors. It checks that each name is declared in the
+  cited file and that the file is git-tracked. The working tree has other
+  agents' uncommitted edits to 10 Lean files, so I also re-ran the
+  declaration check against `HEAD`: 0 missing.
+- Negative control on a scratch copy: a misspelt name, a name cited from a
+  file that does not declare it, and a cite of the untracked
+  `OpsCounter.lean` were all reported (4 errors from 3 defects).
+- The JSON parses.
+
+**Status changes.**
+
+| id | before | after | justifying theorems | exactness |
+|---|---|---|---|---|
+| bd_steer.bundled_s_setup | unproved | proved | OpsTimed2.steer_ok_static, steer_env_of_static (`S_S_SETUP`); OpsTimed.steer_s_pin_of_wire, steer_fwd; SteerWit.static_witness | sufficient (lumped LUT arc; the I1-vs-I0 per-pin arc is charged as an extra arc) |
+| bd_steer.bundled_s_hold | unproved | proved | the same (`S_S_HOLD`); steer_hold_of_ackfall (library contract gives Hs = a round trip) | sufficient |
+| bd_mux.isochronic_forks | unproved, no form | proved | OpsTimedMux.mux_timing_of_static (`S_XA_FORK`, `S_YA_FORK`), mux_ok; MuxWit.static | sufficient; the ctl_req fork needs no condition under FIFO branches |
+| bd_merge.isochronic_forks | unproved, no form | proved | merge_timing_of_static (`S_XA_FORK`, `S_YA_FORK`); OpsTimed2.merge_data_ok (`S_SEL_XA_Z`, `S_SEL_XA_R`) | sufficient, EARLY data protocol only (the broad protocol stays uncovered) |
+
+**New entries.**
+- bd_mux:
+  - `uj_env_latency_req` (`S_J0_X/S_J1_Y`) and `uj_env_latency_ctl` (`S_J0_C/S_J1_C`);
+  - `uxa_join_latency` (`S_XA_J/S_YA_J`);
+  - `reset_first` (the `hRL`/`hRE` hypotheses of `mux_timing_of_static`);
+  - `bundled_z_s` (`MuxDataStatic.S_Z_S0/S1`; this refines `bundled_z`);
+  - `bundled_z_data` (`S_Z_X/S_Z_Y`).
+- bd_merge:
+  - `bundled_z_data` (`S_ZM_X/Y`) and `sel_low_xreq` (`S_SEL_XR`);
+  - `uxa_req_latency` (`S_XA_R/S_YA_R`);
+  - `reset_first` (`hRL`, `hRE`, `H_SEL_START`).
+- bd_merge.bundled_z now carries the `S_ZM_SEL_X` form, with the usel and udat
+  select arcs explicit. bd_merge.uxa_feedback carries `S_XA_ZA/S_YA_ZA`.
+- bdc_amerge (7 amerge2 instances):
+  - `bundled_idx_grant` (`BidxA`, counter `bidx_new_owner_counter`);
+  - `bundled_idx_ack` (`BidxB.ack`, counter `bidx_old_owner_counter`);
+  - `bundled_idx_ack_g` (`BidxB.gack`, combine any, no counter);
+  - `bundled_idx_grant_fall` (`BidxB.grant`, combine any, counter `bidx_old_owner_counter_g`);
+  - `idx_ack_fork` (`IdxAckFork`, counter `idx_ack_fork_counter_minclient`).
+- bdc_amerge3 (1 instance):
+  - `rt2_cascade_{pulse,g1,forkA,forkG,pulse2,g2,forkA2,forkG2}`. These are
+    bd_arbiter's rt2/rt2b forms with `smin` replaced by uarb2's explicit
+    path (`sR` rise, `sF` fall; `cascade_server` is tight). Proved by
+    `rt2_cascade` / `rt2_cascade2`; counter-trace `rt2_cascade_counter`,
+    k = 1 only, and no run is exhibited for it.
+  - `bundled_idx0_grant` (`BidxA3`).
+- bdc_muxn (1 instance): `rtz`, `s_setup`, `s_hold`, `iso_ctl` and `iso_zack`.
+  All are **unproved** because only the SI filter (`muxn3_ok`) exists. Each
+  cites `muxn3_needs_rtz`, `muxn3_needs_hold` or `sel_needs_setup`, or the
+  bd_mux iso counter-runs (which are not muxn3's own). The arc forms are
+  transcribed from B-amerge.md's words.
+
+**Probe Lt3 (coordinator update during P5; `B-ops-counter.md`,
+`OpsCounter.lean`, not yet git-tracked when this was generated).**
+- Not entries:
+  - mux/merge `S_OR` (or_skew) and steer `S_ACK` (ack_or_skew), which Lt
+    proposed;
+  - Lt2's `S_XA_PW` / `S_YA_PW` (ack_pulse_width).
+  Lt3 proves the conclusions without them, from causality alone
+  (`mux_ok_noskew`, `merge_or_step`, `steer_back_noskew`,
+  `mux_ack_pulses_noPW`, `merge_*A_real_step`). I generated them, then
+  removed them. They are recorded once as the `hypotheses_not_inequalities`
+  row `NOT_OBLIGATIONS`, so that a later reader does not re-add them.
+- One-tick counter-runs. `bd_mux.bundled_z_s` (`MuxCex.cex_S_Z_S`),
+  `bd_merge.bundled_z` (`MergeCex.cex_S_ZM_SEL_X`), `bd_merge.bundled_z_data`
+  (`cex_S_ZM_X/Y`) and the x_ack branch of `bd_merge.isochronic_forks`
+  (`cex_S_SEL_XA_Z`) now have exactness `sufficient+necessary_at_boundary`.
+  The coordinator asked for `exact`. I used the schema's term because each
+  counter-run is tight on ONE run (MuxWit.run / MergeWit.run) and is not an
+  iff, and the schema reserves `exact` for an iff.
+- The x_ack branch gains Lt3's node-launched form `S_SEL_XA_N`
+  (`hq + sh + Mz <= Wxa.lo + Eo + Wyo.lo + Lor.lo + Dz.lo`), with combine
+  `all`. `merge_data_ok` under `S_SEL_XA_N` alone is not proved, so the two
+  lumped sufficient forms stay required.
+- `bd_mux.bundled_z_data` stays `sufficient`: `surv_S_Z_X` shows 4 ticks of
+  slack when ctl_req is the join's late input. The exact form is in the note.
+- `bd_merge.sel_low_xreq` is noted as redundant in exact form.
+- Citation. The generator has `OPSCOUNTER_TRACKED = False`, so the OpsCounter
+  theorems appear in notes only. I set it to `True` on a scratch copy: the
+  validator reported only the 17 "untracked" errors, and every name was
+  found.
+
+**Corner rule.** The arbiter-based entries (bdc_amerge*) use `1C`, with every
+O5 arc read from the physical pin the router chose (`ArbCornersPin.pinCol`:
+SLICEM A1-A4 O5 43-46 / 146-150 ps, A5 48 / 116, O6 45 / 124 flat). Cm2's
+`pinA5_delay0` shows why: with DELAY = 0, race 1 fails at SLOW_MAX on A5 and
+at FAST_MIN on the identity pins. The operator entries use `1C` over Lean's
+lumped windows.
+
+**Other additions.**
+- New `cells_pin_maps` rows: bd_datamux, bdc_amerge, bdc_amerge3, bdc_muxn.
+- bd_pipe.{sel_order, lat_lumped, boundary_I, boundary_H, rst_lines, output}
+  and bd_delay[FASTRISE].ack_flush cite PipeWitness W1-W3 as non-vacuity
+  evidence. That evidence is non-degenerate: no tie, DACK = 2, the slowest
+  feedback pin.
+- The bd_arbiter rt*/a0_fork entries list their control_merge instances.
+
+**NOT covered.**
+- The rule mapping of the new entries is 'none' except for these: rule A
+  (`different_condition`) on the index races and the value path, and rule E
+  on the steer and muxn select setup.
+- No timed counter-trace exists for any OpsTimed* obligation (the negative
+  controls only show each term is used), so all of them are `sufficient`.
+- The OpsTimed* model lumps LUT arcs over pins. The steer's and the datamux's
+  per-pin arcs are charged as extra arcs, a choice made here and not proved.
+- `OpsCounter.lean` is untracked: its theorems are cited in text only (see the Lt3 paragraph).
+- The JSON-vs-Lean correspondence is checked by reading, as before.
+- No routed number is new. Cm2's margins are arc-only (routes 0).

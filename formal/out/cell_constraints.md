@@ -18,6 +18,59 @@ New entries: `bd_latch_rst.reset` (proved) and `bd_steer.bundled_s_setup` /
 H_LUT62_SHARED_READ. Validator: 87 constraints, 5 hypotheses, 448 Lean
 references in 40 files, 0 errors. Still no route and no measurement.
 
+**Update (probe P5, 2026-10-27).** Re-generated after the timed operator
+and control_merge Lean files landed (`OpsTimed`, `OpsTimedMux`,
+`OpsTimedWit`, `OpsTimed2`; `AMerge*`, `AMergeTimed{,W,C}`, `MuxN3*`;
+notes `B-ops-timed.md`, `B-ops-timed2.md`, `B-amerge.md`,
+`B-amerge-timed.md`, `B-pipe-witness.md`, `B-arb-corners-pin.md`).
+- Now proved (sufficient, lumped LUT arcs): `bd_steer.bundled_s_setup` /
+  `.bundled_s_hold` (`SteerStatic.S_S_SETUP/S_S_HOLD`, `steer_ok_static`),
+  `bd_mux.isochronic_forks` (`MuxStatic.S_XA_FORK/S_YA_FORK`; the ctl_req
+  fork needs no condition under FIFO branches) and
+  `bd_merge.isochronic_forks` (`MergeStatic.S_XA_FORK/S_YA_FORK`, plus the
+  x_ack branch `S_SEL_XA_Z/S_SEL_XA_R` for the EARLY data protocol only).
+- New operator entries (11): `bd_mux.{uj_env_latency_req,
+  uj_env_latency_ctl, uxa_join_latency, reset_first, bundled_z_s,
+  bundled_z_data}`; `bd_merge.{bundled_z_data, sel_low_xreq,
+  uxa_req_latency, reset_first}`.
+- Probe Lt3 (`B-ops-counter.md`, `OpsCounter.lean`):
+  - The or-skew conditions (mux and merge `S_OR`, steer `S_ACK`) and the ack
+    pulse-width conditions (`S_XA_PW`) are proof-route artefacts. Lt3 proves
+    the conclusions without them (`mux_ok_noskew`, `merge_or_step`,
+    `steer_back_noskew`, `mux_ack_pulses_noPW`, `merge_*A_real_step`).
+  - They are therefore NOT entries. One `hypotheses_not_inequalities` row,
+    `NOT_OBLIGATIONS`, records why.
+  - One-tick counter-runs make `bd_mux.bundled_z_s`, `bd_merge.bundled_z`,
+    `bd_merge.bundled_z_data` and the x_ack branch of
+    `bd_merge.isochronic_forks` `sufficient+necessary_at_boundary`. That is
+    tight on a concrete run, not a general iff. The x_ack branch also gains
+    the node-launched form `S_SEL_XA_N`.
+  - `bd_mux.bundled_z_data` stays `sufficient`: `surv_S_Z_X` shows 4 ticks
+    of slack.
+  - `bd_merge.sel_low_xreq` is redundant in exact form (the re-proof without
+    it is not written).
+  - `OpsCounter.lean` is not yet git-tracked, so it is cited in text only.
+    The generator switch `OPSCOUNTER_TRACKED = True` adds 17 references once
+    it is committed.
+- New cells (19 entries): `bdc_amerge` (bundled_idx_grant, _ack, _ack_g,
+  _grant_fall, idx_ack_fork; Cm2 arc forms, each with a counter-trace except
+  `_ack_g`), `bdc_amerge3` (rt2_cascade_* x8, bundled_idx0_grant),
+  `bdc_muxn` (rtz, s_setup, s_hold, iso_ctl, iso_zack: `unproved`, SI
+  filter form only, `muxn3_ok` + counter-runs).
+- Corner rule for the arbiter-based entries: `1C` with O5 arcs read from the
+  routed physical pin (`ArbCornersPin.pinCol`); with DELAY = 0 the sign of
+  amerge2's race 1 flips with q's pin (`pinA5_delay0`).
+- References added to existing entries: `bd_mux.uxa/uya_rtz_env` (the
+  `S_*_RTZ` fields of the whole-cell theorem), `bd_mux.bundled_s_*`
+  (premise of `mux_ok`), `bd_mux.bundled_z` / `bd_merge.bundled_z`
+  (`mux_data_ok`, `merge_data_ok`), `bd_delay[FASTFALL].flush_per_stage`
+  (`ff_tok`, `mux_ok_fastfall`), the `bd_pipe` entries (PipeWitness W1-W3,
+  non-degenerate witnesses), the `bd_arbiter` entries (instances inside the
+  control_merges).
+Validator: 116 constraints, 6 hypotheses, 708 Lean references in 53 files,
+0 errors (also 0 missing against `HEAD`). Still no route and no measurement;
+every margin quoted from Cm2 is arc-only (routes 0).
+
 ## What one entry says
 
 - `id`, `cell` (RTL module; `bit_kind` for latch bits, `variant` for delay
@@ -60,9 +113,9 @@ every request path ends in. `setup` is `margin_ps`. tcheck's PASS is then
 The checker resolves `env` arcs by walking the routed netlist when the
 neighbour is inside the design. Otherwise they are environment hypotheses.
 
-## Entries (87, plus 5 global hypotheses that are not inequalities)
+## Entries (116, plus 6 global hypotheses that are not inequalities)
 
-Counts: 82 proved, 1 partial (`unproved` + `exactness: partial`), 4 unproved.
+Counts: 110 proved, 1 partial (`unproved` + `exactness: partial`), 5 unproved (all `bdc_muxn`, SI form only).
 
 | id | status | exactness | site pins | rule: verdict |
 |---|---|---|---|---|
@@ -140,13 +193,42 @@ Counts: 82 proved, 1 partial (`unproved` + `exactness: partial`), 4 unproved.
 | `bd_mux.bundled_s_setup` | proved | sufficient | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
 | `bd_mux.bundled_s_hold` | proved | sufficient | yes | none |
 | `bd_mux.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
-| `bd_mux.isochronic_forks` | unproved | sufficient+necessary_untimed | yes | none |
-| `bd_steer.bundled_s_setup` | unproved | sufficient+necessary_untimed | yes | E (skew.py): exact_structure_missing_site_pins |
-| `bd_steer.bundled_s_hold` | unproved | sufficient+necessary_untimed | yes | none |
+| `bd_mux.isochronic_forks` | proved | sufficient | yes | none |
+| `bd_mux.uj_env_latency_req` | proved | sufficient | yes | none |
+| `bd_mux.uj_env_latency_ctl` | proved | sufficient | yes | none |
+| `bd_mux.uxa_join_latency` | proved | sufficient | yes | none |
+| `bd_mux.reset_first` | proved | sufficient | no | none |
+| `bd_mux.bundled_z_s` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
+| `bd_mux.bundled_z_data` | proved | sufficient | yes | A: different_condition |
+| `bd_steer.bundled_s_setup` | proved | sufficient | yes | E (skew.py): exact_structure_missing_site_pins |
+| `bd_steer.bundled_s_hold` | proved | sufficient | yes | none |
 | `bd_merge.seq` | proved | sufficient+necessary | no | none |
-| `bd_merge.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
-| `bd_merge.isochronic_forks` | unproved | sufficient+necessary_untimed | yes | none |
+| `bd_merge.bundled_z` | proved | sufficient+necessary_at_boundary | yes | A: rule_is_the_check |
+| `bd_merge.bundled_z_data` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
+| `bd_merge.sel_low_xreq` | proved | sufficient | yes | none |
+| `bd_merge.isochronic_forks` | proved | sufficient+necessary_at_boundary | yes | none |
 | `bd_merge.uxa_feedback` | proved | sufficient | yes | none |
+| `bd_merge.uxa_req_latency` | proved | sufficient | yes | none |
+| `bd_merge.reset_first` | proved | sufficient | no | none |
+| `bdc_amerge.bundled_idx_grant` | proved | sufficient+necessary | yes | A: different_condition |
+| `bdc_amerge.bundled_idx_ack` | proved | sufficient+necessary | yes | A: different_condition |
+| `bdc_amerge.bundled_idx_ack_g` | proved | sufficient | yes | A: different_condition |
+| `bdc_amerge.bundled_idx_grant_fall` | proved | sufficient+necessary | yes | A: different_condition |
+| `bdc_amerge.idx_ack_fork` | proved | sufficient+necessary | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_g1` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_pulse2` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_g2` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_forkA2` | proved | sufficient | yes | none |
+| `bdc_amerge3.rt2_cascade_forkG2` | proved | sufficient | yes | none |
+| `bdc_amerge3.bundled_idx0_grant` | proved | sufficient+necessary | yes | A: different_condition |
+| `bdc_muxn.rtz` | unproved | sufficient+necessary_untimed | yes | none |
+| `bdc_muxn.s_setup` | unproved | sufficient+necessary_untimed | yes | E (skew.py): exact_structure_missing_site_pins |
+| `bdc_muxn.s_hold` | unproved | sufficient+necessary_untimed | yes | none |
+| `bdc_muxn.iso_ctl` | unproved | sufficient+necessary_untimed | yes | none |
+| `bdc_muxn.iso_zack` | unproved | sufficient+necessary_untimed | yes | none |
 | `bd_mlink.qfb_first` | proved | sufficient+necessary_at_boundary | yes | none |
 | `bd_flink.qfb_first` | proved | sufficient | yes | none |
 | `bd_mem.setup` | proved | sufficient | yes | B: conservative_partial |
@@ -192,6 +274,18 @@ TernaryOnBits2.SiteSync, ArbOverlapRace.Decomp), H_RF_ASYM and H_WIRE_RATIO.
   `qfb_counter`); BRAM clock high width (`MemPort.clk_high_ok`).
 - **partial** (1): dctl `H_LT_FIRST` (`lt_first_window`, LUT level only; its
   link to the untimed schedule `ltFirst` is open).
-- **unproved** (4): mux and merge isochronic forks (need a timed mux/merge
-  trace model); bd_steer select setup and hold (no timed theorem; the
-  untimed Held and the Kleene x at the select are cited).
+- **unproved** (5): the `bdc_muxn` entries (rtz, s_setup, s_hold,
+  iso_ctl, iso_zack). They are proved only as SI scheduling filters
+  (`MuxN3Proof.muxn3_ok`, with counter-runs `muxn3_needs_rtz`,
+  `muxn3_needs_hold` and the Kleene `sel_needs_setup`); there is no timed
+  model of the generated mux. The four entries that were unproved before P5
+  (mux and merge isochronic forks, bd_steer select setup and hold) are now
+  proved sufficient in the OpsTimed* model (lumped LUT arcs; the steer's
+  per-pin I1-vs-I0 arc is charged as an extra arc).
+- **New in P5 and checked by no rule**: every new operator entry (join env
+  latency, select-low, value path) and the
+  control_merge's `idx_ack_fork` (a pure route-skew condition:
+  `wai <= cmin + wr2g + g2f + wgi` at a consistent corner). The
+  control_merge index races are carried by the DELAY line (arc-only margin
+  1514 / 537 ps at DELAY = 12); with the bypass they fail by 3-8 ps at one
+  corner, depending on q's physical pin.
