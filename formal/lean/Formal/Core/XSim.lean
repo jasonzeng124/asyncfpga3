@@ -109,6 +109,47 @@ theorem transport_winCh {lo hi : Nat} {e o : Sig}
   obtain ⟨f, F, hf⟩ := h
   exact fun t => ⟨f t, F.early_le t, F.le_late t, hf t⟩
 
+/-! ### Per-gate exactness of the window -/
+
+theorem wmerge_eq_of_ne_X (g : Nat → K3) (a n : Nat) (h : wmerge g a n ≠ X) :
+    wmerge g a n = g a := by
+  have := wmerge_le g a n a (Nat.le_refl _) (by omega)
+  rcases this with h' | h'
+  · exact absurd h' h
+  · exact h'
+
+theorem wmerge_X (g : Nat → K3) (a : Nat) :
+    ∀ n, wmerge g a n = X → (∀ s, g s ≠ X) →
+      ∃ s1 s2, a ≤ s1 ∧ s1 ≤ a + n ∧ a ≤ s2 ∧ s2 ≤ a + n ∧ g s1 ≠ g s2
+  | 0, h, hg => absurd h (hg a)
+  | n + 1, h, hg => by
+      by_cases hn : wmerge g a n = X
+      · obtain ⟨s1, s2, h1, h2, h3, h4, h5⟩ := wmerge_X g a n hn hg
+        exact ⟨s1, s2, h1, by omega, h3, by omega, h5⟩
+      · refine ⟨a, a + n + 1, Nat.le_refl _, by omega, by omega, by omega, fun he => ?_⟩
+        simp only [wmerge] at h
+        rw [wmerge_eq_of_ne_X g a n hn, he] at h
+        exact hg _ ((merge_self _).symm.trans h)
+
+/-- **The X-window is exact for one gate.** If a window channel's abstract
+output (from exactly known input `e`) is `X` at `t`, two legal outputs differ
+at `t`. So all imprecision of `XSim` comes from composing gates (lost
+correlations), never from the single-gate abstraction. -/
+theorem win_exact (lo hi : Nat) (hlh : lo ≤ hi) (e : Sig) (t : Nat)
+    (h : win lo hi (fun s => ofBool (e s)) t = X) :
+    ∃ o o' : Sig, WinCh lo hi e o ∧ WinCh lo hi e o' ∧ o t ≠ o' t := by
+  obtain ⟨s1, s2, h1, h2, h3, h4, h5⟩ :=
+    wmerge_X _ _ _ h (fun s => ofBool_ne_X (e s))
+  have mk : ∀ s, t - hi ≤ s → s ≤ t - lo →
+      WinCh lo hi e (fun t' => if t' = t then e s else e (t' - lo)) := by
+    intro s hs1 hs2 t'
+    by_cases ht : t' = t
+    · subst ht; exact ⟨s, hs1, hs2, by simp⟩
+    · exact ⟨t' - lo, by omega, Nat.le_refl _, by simp [ht]⟩
+  refine ⟨_, _, mk s1 h1 (by omega), mk s2 h3 (by omega), ?_⟩
+  simp only [ite_true]
+  exact fun he => h5 (by rw [he])
+
 /-- A LUT gate on wires `Fin n`: Core LUT, pin wiring, output wire, delay band. -/
 structure LGate (n : Nat) where
   k : Nat
