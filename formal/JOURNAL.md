@@ -321,3 +321,12 @@ proved. **Data finding:** committed fast band files have FAST_MIN > FAST_MAX on 
 arcs per seed and the checker silently reads such a band as [lo,lo] -- a front-end
 input that should be rejected, not narrowed. Follow-up probe KapRes2: prove cell_band,
 make the band reader reject lo > hi, rerun with xevents7.
+### progress 12:36
+LutList: Formal/Core/LutList.lean claimed (Prelim's list LUT API under Core; check.sh
+with Kleene/Lut/LutTree/Ternary/Bridge: 738 decls OK). Bridge's switch to it is NOT
+committed: it changes statement text (Formal.Cells.X -> Formal.Core.LutList.X, equal
+by rfl/induction in Wip/LutList/PrelimEq.lean), and B's modules that use Bridge are
+untested against that alone; kept as Wip/LutList/Bridge.switched.lean. Deleting Prelim
+needs one coordinated commit (B + C + Bridge); the end-state trial compiled all 189
+Mathlib-free dependents. Recipe and per-file diffs for B and C: notes/A-lutlist.md
+(rerun the switch scripts on the live tree; B's tree has moved).

@@ -14,6 +14,11 @@ for d,_,fs in os.walk(os.path.join(root,'Formal')):
         if p.endswith('Core/LutList.lean') or p.endswith('Core/Bridge.lean'): continue
         t=t.replace('import Formal.Cells.Prelim\n','import Formal.Core.LutList\n')
         t=re.sub(r'\bFormal\.Cells\.'+NAMES+r'\b',r'Formal.Core.LutList.\1',t)
-        t=re.sub(r'^(\s*open Formal\.Cells)(?=[ \n])(?! \()',r'\1 Formal.Core.LutList',t,flags=re.M)
+        # any `open ...` line naming the namespace `Formal.Cells` (not a selective `open X (..)`)
+        def aug(m):
+            line=m.group(0)
+            if '(' in line or 'Formal.Core.LutList' in line: return line
+            return re.sub(r' Formal\.Cells(?=[ \n]|$)',' Formal.Cells Formal.Core.LutList',line,count=1)
+        t=re.sub(r'^\s*open [^\n]*',aug,t,flags=re.M)
         if t!=s: open(p,'w').write(t); ch.append(os.path.relpath(p,root)[:-5].replace('/','.'))
 print(' '.join(sorted(ch)))
