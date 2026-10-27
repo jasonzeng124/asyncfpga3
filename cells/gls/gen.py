@@ -290,11 +290,21 @@ def unesc(s):
 # number in all three, so for its SDF this changes nothing; an SDF from
 # fid/xray_delay.py carries (FAST_MIN : SLOW_MIN : SLOW_MAX) and this picks
 # the corner.  Default "min" keeps the behaviour this file always had.
-SDF_FIELD = {"min": 0, "typ": 1, "max": 2}[os.environ.get("GLS_SDF_FIELD", "min")]
+# GLS_SDF_FIELD=band (F3) reads BOTH ends of an xray_delay.py triple and takes
+#   fast_min + GLS_SDF_BAND * (slow_max - fast_min)
+# -- the board's position inside [fast min, slow max] (F1: 0.35-0.41 on long
+# rings), never a mix of corners within one arc.  On nextpnr's own SDF (all
+# three columns equal) it returns that number unchanged.
+_FIELD = os.environ.get("GLS_SDF_FIELD", "min")
+SDF_FIELD = {"min": 0, "typ": 1, "max": 2, "band": 0}[_FIELD]
+SDF_BAND = float(os.environ.get("GLS_SDF_BAND", "0.38"))
 
 
 def tri(m, first):
     """the selected column of the triple whose min is group `first`"""
+    if _FIELD == "band":
+        lo, hi = int(m.group(first)), int(m.group(first + 2))
+        return int(round(lo + SDF_BAND * (hi - lo)))
     return int(m.group(first + SDF_FIELD))
 
 
@@ -324,6 +334,17 @@ def tri(m, first):
 #                          targeted fault, for proving a check can fail.
 # SETUPHOLD windows are left alone.  The numbers are drawn here, once, so the
 # annotated and the baked netlist carry the same perturbed values.
+#   GLS_SCATTER_REGION=sigma_r  (F3, within-die variation) ALSO multiply every
+#                          arc by one factor per die region, 1 + sigma_r*N(0,1)
+#                          from a stable hash of (seed, region), where a region
+#                          is a GLS_REGION_SLICES x GLS_REGION_SLICES block of
+#                          slice sites (default 10).  Cell arcs take their own
+#                          site's region, interconnect its sink's.  This is the
+#                          CORRELATED part; GLS_SCATTER(_MODE=wire) stays the
+#                          per-wire random part, so "region + wire" is
+#                          GLS_SCATTER_REGION=r GLS_SCATTER=w GLS_SCATTER_MODE=wire.
+#                          Sizing: research/data/fid/f3_model.md.  Unset or 0 =
+#                          the file this was before, byte for byte.
 DELAY_SCALE = float(os.environ.get("GLS_DELAY_SCALE", "1"))
 SCATTER = float(os.environ.get("GLS_SCATTER", "0"))
 _rng = __import__("random").Random(int(os.environ.get("GLS_SCATTER_SEED", "1")))
@@ -335,9 +356,64 @@ SCALE_INST = [(p.rsplit(":", 1)[0], float(p.rsplit(":", 1)[1]))
 n_scaled_inst = 0
 
 
+SCATTER_REGION = float(os.environ.get("GLS_SCATTER_REGION", "0"))
+REGION_SLICES = int(os.environ.get("GLS_REGION_SLICES", "10"))
+_region = None
+n_region = n_region_miss = 0
+
+
+class RegionModel:
+    RE_SITE = re.compile(r"^[A-Z0-9_]*?_X(\d+)Y(\d+)/")
+
+    def __init__(self, json_path, sigma, seed, size):
+        self.cells = json.load(open(json_path))["modules"]["top"]["cells"]
+        self.sigma, self.seed, self.size = sigma, seed, size
+        self.cache = {}
+
+    def key(self, inst):
+        c = self.cells.get(inst)
+        if c is None:
+            return None
+        m = self.RE_SITE.match(c.get("attributes", {}).get("NEXTPNR_BEL", ""))
+        if not m:
+            return None
+        return (int(m.group(1)) // self.size, int(m.group(2)) // self.size)
+
+    def factor_of_key(self, k):
+        if k not in self.cache:
+            import hashlib, math
+            h = hashlib.md5(("region:%s:%d:%d" % (self.seed, k[0], k[1])).encode()).digest()
+            u1 = (int.from_bytes(h[:8], "big") + 1) / 2.0 ** 64
+            u2 = int.from_bytes(h[8:], "big") / 2.0 ** 64
+            self.cache[k] = 1 + self.sigma * math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+        return self.cache[k]
+
+    def factor(self, inst):
+        k = self.key(inst)
+        return None if k is None else self.factor_of_key(k)
+
+
+def region_factor(inst):
+    """1 unless GLS_SCATTER_REGION is set; else the factor of inst's region."""
+    global _region, n_region, n_region_miss
+    if not SCATTER_REGION:
+        return 1
+    if _region is None:
+        _region = RegionModel(JSON, SCATTER_REGION,
+                              os.environ.get("GLS_SCATTER_SEED", "1"), REGION_SLICES)
+    f = _region.factor(inst)
+    if f is None:
+        n_region_miss += 1
+        return 1
+    n_region += 1
+    return f
+
+
 def perturb(ps, inst=""):
     global n_scaled_inst
     f = DELAY_SCALE * (1 + SCATTER * _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
+    if SCATTER_REGION:
+        f *= region_factor(inst)
     if SCATTER and SCATTER_ONLY and not any(
             inst == p[:-1] if p.endswith("=") else inst.startswith(p) for p in SCATTER_ONLY):
         f = DELAY_SCALE
@@ -419,7 +495,7 @@ def perturb_ic(ps, src, dst):
     """INTERCONNECT arcs: per-arc draw (perturb), or the wire model."""
     global _wire, n_wire, n_wire_fallback
     if SCATTER_MODE != "wire" or not SCATTER:
-        return perturb(ps, dst.rpartition("/")[0])
+        return perturb(ps, dst.rpartition("/")[0])   # includes the region factor
     if _wire is None:
         _wire = WireModel(JSON, SCATTER, os.environ.get("GLS_SCATTER_SEED", "1"))
     f = _wire.factor(dst)
@@ -431,6 +507,8 @@ def perturb_ic(ps, src, dst):
     if SCATTER_ONLY and not any(
             inst == p[:-1] if p.endswith("=") else inst.startswith(p) for p in SCATTER_ONLY):
         f = 1
+    if SCATTER_REGION:
+        f *= region_factor(inst)
     return max(0, int(round(ps * DELAY_SCALE * f)))
 
 
@@ -502,8 +580,37 @@ def main():
                          % (n_scaled_inst, os.environ["GLS_SCALE_INST"]))
         if n_scaled_inst == 0:
             sys.exit("GLS_SCALE_INST matched no instance -- the fault was not injected")
+    if SCATTER_REGION:
+        sys.stderr.write("delays: region scatter sigma %g over %dx%d-slice regions: %d arc(s) "
+                         "placed, %d without a site (unscaled)\n"
+                         % (SCATTER_REGION, REGION_SLICES, REGION_SLICES, n_region, n_region_miss))
     sys.stderr.write("SDF claims: %d IOPATH, %d INTERCONNECT, %d SETUPHOLD\n"
                      % (n_io, n_ic, n_sh))
+
+    # ---- GLS_MODEL=fid (F3): state nodes for the metastability resolver ----
+    # A LUT whose output is routed back into one of its own pins is a state
+    # node (C-element, latch, arbiter q).  Its loop delay is that feedback
+    # wire plus the pin's arc to the output; prims.v's GLS_FID SLICE_LUTX
+    # treats an output reversal inside that time as a runt (fid_core.vh).
+    # Loops through more than one cell are NOT detected (stated limitation).
+    # Nothing here runs, and nothing below changes, without GLS_MODEL=fid.
+    fid = os.environ.get("GLS_MODEL", "") == "fid"
+    fid_loop = {}
+    if fid:
+        arcs = {}
+        for cn, lst in iopaths.items():
+            for a, z, ps in lst:
+                arcs[(cn, a, z)] = ps
+        for src, dst, ps in ic:
+            sc, _, sp = src.rpartition("/")
+            dc, _, dp = dst.rpartition("/")
+            if sc == dc and cells.get(sc, {}).get("type") == "SLICE_LUTX" and sp in ("O5", "O6"):
+                L = ps + arcs.get((sc, dp, sp), 124)
+                fid_loop[(sc, sp)] = min(L, fid_loop.get((sc, sp), L))
+        Ls = sorted(fid_loop.values())
+        sys.stderr.write("fid: %d LUT state node(s) with a self-loop; loop delay min/median/max "
+                         "%s ps\n" % (len(Ls), "/".join(str(x) for x in
+                                       (Ls[0], Ls[len(Ls) // 2], Ls[-1])) if Ls else "-"))
 
     # ---- the bijection -----------------------------------------------------
     order = sorted(cells)
@@ -616,6 +723,12 @@ def main():
         tp = [".T%s%s(%d)" % (PORT_RENAME.get((t, a), a), z, ps)
               for a, z, ps in iopaths.get(cname, [])]
         tps = (", " + ", ".join(tp)) if tp else ""
+        if fid and (t == "SLICE_LUTX" or (t == "SLICE_FFX" and attrs.get("X_ORIG_TYPE")
+                                            not in ("LDCE", "LDPE"))):
+            for op in ("O6", "O5"):
+                if (cname, op) in fid_loop:
+                    tps += ", .META%s(1), .TLOOP%s(%d)" % (op[1], op[1], fid_loop[(cname, op)])
+            tps += ", .SEED(%d)" % (int(nn[2:]) + 1)
 
         if t == "SLICE_LUTX":
             out_port = "O6" if conns.get("O6") else "O5"

@@ -73,6 +73,11 @@ fi
     else
         echo "toolchain: UNSTAMPED -- which nextpnr produced this route is not recorded"
     fi
+    # GLS_MODEL=fid: the opt-in silicon-like primitives (fid_core.vh; F3).
+    # Only stamped when set, so a default build's provenance is unchanged.
+    if [ "${GLS_MODEL:-}" = fid ]; then
+        echo "model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region ${GLS_SCATTER_REGION:-0}/${GLS_REGION_SLICES:-10}, band ${GLS_SDF_BAND:-0.38} if column=band)"
+    fi
 } > "$WORK/provenance.txt"
 
 echo "== provenance =="
@@ -99,7 +104,9 @@ iverilog -gspecify -I. -o gate.vvp "$SRC/tb_gate.v" netlist.v "$SRC/prims.v"
 # run_baked.vvp is the same numbers from the same parse, baked in as parameters,
 # so it starts in seconds.  Equivalence is not assumed: a full run of each was
 # diffed and every event timestamp is identical.
-iverilog -gspecify -DGLS_TRANSPORT_IC -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
+FIDDEF=""; [ "${GLS_MODEL:-}" = fid ] && FIDDEF="-DGLS_FID -I$SRC"
+# shellcheck disable=SC2086
+iverilog -gspecify -DGLS_TRANSPORT_IC $FIDDEF -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
     | grep -v 'procedural continuous' || true
 
 cat <<EOF

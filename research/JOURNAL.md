@@ -1243,3 +1243,27 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
   baseline is the unsized reference, not a verified design. The T3+FF number predates today's rule F fix and must
   be re-audited before it is quoted as verified. Tool version differs between the arms (T3 measured at the 10-26
   tools). Data: research/data/xorshift_placeholder_14vec/.
+### progress 08:47 (F3: opt-in silicon-like primitive model GLS_MODEL=fid -- landed except bd_prims_sim)
+- Subagent F3, write-up research/data/fid/f3_model.md. Opt-in (GLS_MODEL=fid / -DGLS_FID); default GLS unchanged:
+  gen.py outputs md5-identical on a fresh arb_mtbf route (json 43e15fb7, sdf 814299ac), also with GLS_SCATTER=0.1 in
+  arc and wire mode, and a 3 us routed GLS with old vs new prims.v has identical histories on all 124,240 signals.
+  Only arb_mtbf was checked this way.
+- LUT/MUXF7/F8 transport per input pin: the audit's examples now come out right (1130 edge lands at 1254, was 1244;
+  XOR3 cone settles 1224, was 1124 -> a request at 1200 has -24 ps, was +76). Narrow pulses and a 30 ps two-input
+  XOR hazard pass. No published 7-series pulse-filter figure found (only Alfke's posts), so every pulse passes.
+- Metastability: same-LUT loops and flops resolve near-simultaneous arrivals randomly with an exponential tail
+  (tau/window ASSUMED: 150 ps LUT loop, 75 ps flop, >= the 57/51/73 ps of Beer et al. ASYNC 2010). Arbiter race x200:
+  default r1 200/200, fid 125/75, no settled double grant (transient overlaps <= 26 ps). Routed arb_mtbf 20 us:
+  99 / 94 resolver events (seeds 1/2), no x.
+- Variation: GLS_SCATTER_REGION (per 10x10-slice block) on top of per-wire scatter; region 0.16 + wire 0.126 gives
+  8.33% median ring scatter on ro_many_top's 128 rings (target 8.5%); per-wire alone 0.65%. The split is not
+  identifiable without the per-ring board data. GLS_SDF_FIELD=band places delays inside an arc's fast/slow range.
+- Library hazard census: every multi-input hazard in cells/rtl state LUTs is excluded by the 4-phase protocol, is
+  the arbitration race, or is the existing bundling constraint; 11 cell tbs under fid: 0 library resolver events.
+- Controls: cells/gls/fid/f3/run_f3.sh -- each tb must FAIL on the default model and PASS on fid; re-run here: all ok.
+- **Held back:** the bd_prims_sim.v one-corner fix (audit REFUTED row) turns check.sh's run_sim gate red
+  (tb_arb_overlap's "hazard must appear arc-only" was a corner-mix artefact; tb_ctl's decoupled ATTEMPT now
+  deadlocks instead of losing data, and the bench waits forever). Sent back to make both benches assert what is true
+  without weakening them. bd_arb.v's "rising grant wins by 16 ps" header is unproven under one corner.
+- Does NOT show: no full kernel (gcd_hw/BQ#3) GLS under fid yet; CARRY4/DSP/latch/BUFG/flop clock pins still
+  sample-at-fire; multi-cell loops get no resolver; taus unmeasured.

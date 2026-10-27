@@ -29,6 +29,9 @@
 
 `timescale 1ps/1ps
 `default_nettype none
+`ifdef GLS_FID
+`include "fid_core.vh"
+`endif
 
 // ---- ICBUF ------------------------------------------- one routed net hop --
 // One instance per INTERCONNECT entry in the routed SDF, i.e. one per sink
@@ -68,6 +71,7 @@ module ICBUF (input wire I, output wire O);
 `endif
 endmodule
 
+`ifndef GLS_FID
 // ---- SLICE_LUTX --------------------------------------------------- 1 LUT --
 // One nextpnr SLICE_LUTX bel drives exactly one of O5/O6 (checked: no cell in
 // this design connects both).  O6 is the full six-input function; O5 is
@@ -79,6 +83,9 @@ module SLICE_LUTX (
     parameter [63:0] INIT = 64'h0;
     parameter TA1O6=124, TA2O6=124, TA3O6=124, TA4O6=124, TA5O6=124, TA6O6=124;
     parameter TA1O5=124, TA2O5=124, TA3O5=124, TA4O5=124, TA5O5=124;
+    // read only by the GLS_FID model; accepted here so one testbench
+    // elaborates against both
+    parameter integer META6 = 0, META5 = 0, TLOOP6 = 0, TLOOP5 = 0, SEED = 1;
 
     wire [31:0] s5 = A6 ? INIT[63:32] : INIT[31:0];
     wire [15:0] s4 = A5 ?   s5[31:16] :   s5[15:0];
@@ -101,6 +108,30 @@ module SLICE_LUTX (
     endspecify
 endmodule
 
+`else
+// GLS_FID (opt-in, cells/gls/fid_core.vh): per-pin TRANSPORT arcs, output =
+// mux tree of the delayed pins, and a metastability resolver on a state node.
+// gen.py (GLS_MODEL=fid) sets META6/META5 = 1 and TLOOP6/TLOOP5 = feedback
+// wire + arc on a LUT whose output is routed back into one of its own pins,
+// and SEED = the cell's index.
+module SLICE_LUTX (
+    input  wire A1, A2, A3, A4, A5, A6,
+    output wire O5, O6
+);
+    parameter [63:0] INIT = 64'h0;
+    parameter TA1O6=124, TA2O6=124, TA3O6=124, TA4O6=124, TA5O6=124, TA6O6=124;
+    parameter TA1O5=124, TA2O5=124, TA3O5=124, TA4O5=124, TA5O5=124;
+    parameter integer META6 = 0, META5 = 0, TLOOP6 = 0, TLOOP5 = 0, SEED = 1;
+    FID_LUT6 #(.INIT(INIT),
+        .T1_6(TA1O6), .T2_6(TA2O6), .T3_6(TA3O6), .T4_6(TA4O6), .T5_6(TA5O6), .T6_6(TA6O6),
+        .T1_5(TA1O5), .T2_5(TA2O5), .T3_5(TA3O5), .T4_5(TA4O5), .T5_5(TA5O5),
+        .TLOOP6(TLOOP6), .TLOOP5(TLOOP5), .SEED(SEED)) u (
+        .A1(A1), .A2(A2), .A3(A3), .A4(A4), .A5(A5), .A6(A6),
+        .EN6(META6 ? 1'b1 : 1'b0), .EN5(META5 ? 1'b1 : 1'b0), .O5(O5), .O6(O6));
+endmodule
+`endif
+
+`ifndef GLS_FID
 // ---- SELMUX2_1 ------------------------------------------ MUXF7 / MUXF8 --
 // The bel's two data pins are named by the bare digits 0 and 1 in both the
 // JSON and the SDF.  gen.py renames them D0/D1 on BOTH sides of the rewrite,
@@ -116,6 +147,17 @@ module SELMUX2_1 (
     endspecify
 endmodule
 
+`else
+module SELMUX2_1 (
+    input  wire D0, D1, S0,
+    output wire OUT
+);
+    parameter TD0OUT=104, TD1OUT=104, TS0OUT=273;
+    FID_MUX2 #(.TD0(TD0OUT), .TD1(TD1OUT), .TS0(TS0OUT)) u (.D0(D0), .D1(D1), .S0(S0), .OUT(OUT));
+endmodule
+`endif
+
+`ifndef GLS_FID
 // ---- SLICE_FFX ------------------------------------------ FDRE and FDSE --
 // Both map to this bel and they differ only in what SR does.  X_ORIG_PORT_SR
 // records which: "R" -> synchronous reset to 0, "S" -> synchronous set to 1.
@@ -136,6 +178,7 @@ module SLICE_FFX (
     // nothing.
     parameter TSU = 0;
     parameter THD = 0;
+    parameter integer SEED = 1;     // read only by the GLS_FID model
     initial Q = INIT;
     time t_ck = 0, t_in = 0;
 
@@ -162,6 +205,90 @@ module SLICE_FFX (
         (posedge CK => (Q +: D)) = TCKQ;
     endspecify
 endmodule
+
+`else
+// GLS_FID: an input change inside the FF's aperture [-TSU, +THD] around a
+// rising CK does not go X; the flop resolves to the old or the new value
+// (offset from the aperture centre plus N(0, ap/4) noise picks which) after
+// an extra t_r = TAU_FF*ln(ap/(2|delta|)), i.e. an exponential tail.  Without
+// a SETUPHOLD in the SDF the aperture is +META_FFW= (default 50 ps), centred.
+// TAU_FF default 75 ps (+META_TAU_FF=): at or above every FPGA flop tau in
+// Beer et al., ASYNC 2010 (57/51/73 ps at 130/90/65 nm); no 28 nm 7-series
+// figure was found, and a longer tau is the pessimistic side.
+module SLICE_FFX (
+    input  wire CK, D, CE, SR,
+    output reg  Q
+);
+    parameter [0:0] INIT  = 1'b0;
+    parameter [0:0] SRVAL = 1'b0;
+    parameter TCKQ = 100;
+    parameter TSU = 0;
+    parameter THD = 0;
+    parameter integer SEED = 1;
+    integer tau, wff, seed, gseed, verbose, tsu, thd, ap, c0, x, noise, delta, ad, trp;
+    integer n_meta;
+    real trr;
+    reg d_last, ce_last, oldv, newv, choose;
+    initial begin
+        Q = INIT;
+        tau = 75; wff = 50; gseed = 0; verbose = 0; n_meta = 0;
+        if ($value$plusargs("META_TAU_FF=%d", tau)) ;
+        if ($value$plusargs("META_FFW=%d", wff)) ;
+        if ($value$plusargs("META_SEED=%d", gseed)) ;
+        if ($value$plusargs("META_VERBOSE=%d", verbose)) ;
+        seed = SEED * 6151 + gseed * 98317 + 29;
+        tsu = (TSU > 0) ? TSU : wff / 2;
+        thd = (THD > 0) ? THD : wff / 2;
+        ap = tsu + thd;
+        c0 = (thd - tsu) / 2;           // aperture centre, ps after CK
+        d_last = 1'bx; ce_last = 1'bx;
+    end
+    time t_ck = 0, t_in = 0;
+
+    task resolve(input integer xoff, input reg vnew, input reg vold, input integer is_hold);
+        begin
+            noise = $dist_normal(seed, 0, (ap > 4) ? ap / 4 : 1);
+            delta = c0 - xoff + noise;      // > 0: input early enough -> new
+            choose = (delta > 0) ? vnew : vold;
+            ad = (delta < 0) ? -delta : delta;
+            if (ad < 1) ad = 1;
+            if (2 * ad < ap) begin
+                trr = tau * $ln((1.0 * ap) / (2.0 * ad));
+                trp = (trr > 40.0 * tau) ? 40 * tau : $rtoi(trr);
+            end else trp = 0;
+            n_meta = n_meta + 1;
+            if (verbose)
+                $display("FFMETA %m t=%0t off=%0d delta=%0d -> %b after +%0d ps%s",
+                         $time, xoff, delta, choose, trp, is_hold ? " (hold)" : "");
+            if (!is_hold || delta > 0) Q <= #(TCKQ + trp) choose;
+        end
+    endtask
+
+    always @(posedge CK) begin
+        if (SR === 1'b1) Q <= #(TCKQ) SRVAL;
+        else if (t_in > 0 && $time - t_in < tsu)
+            resolve(-($time - t_in), CE ? D : Q, ce_last ? d_last : Q, 0);
+        else if (CE) Q <= #(TCKQ) D;
+        t_ck = $time;
+    end
+
+    always @(D or CE) begin
+        if (t_ck > 0 && $time - t_ck < thd && SR !== 1'b1)
+            resolve($time - t_ck, CE ? D : Q, Q, 1);
+        t_in = $time;
+    end
+    // the values before the latest change, for the setup-side "old" choice
+    reg d_now = 1'bx, ce_now = 1'bx;
+    always @(D or CE) begin
+        d_last = d_now; ce_last = ce_now;
+        d_now = D; ce_now = CE;
+    end
+
+    // No specify path: iverilog's module path would schedule Q at
+    // max(CK + TCKQ, resolution) instead of CK + TCKQ + resolution, i.e.
+    // hide every resolution shorter than TCKQ.  Transport CK->Q instead.
+endmodule
+`endif
 
 // ---- SLICE_LATX ---------------------------------------- LDCE and LDPE --
 // A slice storage element in LATCH mode (nextpnr: SLICE_FFX with X_ORIG_TYPE
