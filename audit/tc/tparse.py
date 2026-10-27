@@ -3,7 +3,8 @@
 import re, sys
 PAT = [("A", re.compile(r"^\s+(\S+)\s+\d+ links\s+\S+(?: ps)?\s+req\s+(\d+)\s+peak\s+(\d+)\s+guard\s+(\d+)\s+margin\s+(-?\d+)")),
        ("F", re.compile(r"^\s+(\S+)\s+\d+ links\s+flushed\s+(\d+)\s+reusable\s+(\d+)\s+guard\s+(\d+)\s+margin\s+(-?\d+)")),
-       ("HI", re.compile(r"^\s+(\S+)\s+\d+ links\s+close\s+(\d+)\s+data\s+(\d+)\s+guard\s+(\d+)\s+margin\s+(-?\d+)"))]
+       ("H", re.compile(r"^\s+(\S+)\s+\d+ links\s+enable\s+(\d+)\s+data\s+(\d+)(?: \(\w+\))?\s+guard\s+(\d+)\s+margin\s+(-?\d+)")),
+       ("I", re.compile(r"^\s+(\S+)\s+\d+ links\s+close\s+(\d+)\s+data\s+(\d+)\s+guard\s+(\d+)\s+margin\s+(-?\d+)"))]
 def parse(p):
     out = {}
     for line in open(p):
@@ -11,7 +12,7 @@ def parse(p):
             m = pat.match(line)
             if m:
                 a, b = int(m.group(2)), int(m.group(3))
-                late_req, data = (b, a) if r == "F" else (a, b)
+                late_req, data = (b, a) if r in ("F", "H") else (a, b)
                 out[(r, m.group(1))] = (late_req, data, int(m.group(4)), int(m.group(5)))
     return out
 tag, logs = sys.argv[1], sys.argv[2:]

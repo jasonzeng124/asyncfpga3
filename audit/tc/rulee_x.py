@@ -43,19 +43,7 @@ wt = {}
 
 
 def weights(s, d, w):
-    cs, ps = s.rsplit("/", 1)
-    cd, pd = d.rsplit("/", 1)
-    v = None
-    if cs == cd and not T.is_output(s):
-        if cs in R.cells and re.fullmatch(r"A[1-6]", ps) and "LUT" in R.cells[cs]["type"]:
-            v = R.lut_arc(cs, ps, pd)
-    elif cd in R.cells and cs in R.cells:
-        if re.fullmatch(r"A[1-6]", pd) and "LUT" in R.cells[cd]["type"]:
-            b = R.cells[cd]["connections"][pd][0]
-            if R.driver.get(b) == (cs, ps):
-                n, sk = R.sink_of_cellpin(cd, pd)
-                if sk is not None and n.ok:
-                    v = sk["d"]
+    v = xrc.route_arc(R, s, d)   # LUT pins/arcs, MUXF7/F8 select nets, LUT->F7 hops, MUXF cell arcs
     if v is None:
         nfb[0] += 1
         return (float(w),) * 4, True

@@ -363,3 +363,49 @@ def lut_iopath(X, site, letter, physpin, out):
     tab = site_type_sdf(route_site_type(X, site))
     bel = f"{letter}{'6' if out == 'O6' else '5'}LUT"
     return tab.get((bel, f"A{physpin[1]}", out))
+
+
+# ---- non-LUT extensions (MUXF7/F8 = SELMUX2_1): select pin nets, in-site LUT->F7 / F7->F8 hops, cell arcs ----
+F7PIN = {"F7AMUX": "AX", "F7BMUX": "CX", "F8MUX": "BX"}
+
+
+def _bel(R, cn):
+    return R.cells[cn]["attributes"].get("NEXTPNR_BEL", "/").split("/")
+
+
+def route_arc(R, src, dst):
+    """model value [4] for one SDF arc (src pin -> dst pin), or None when not modelled"""
+    cs, ps = src.rsplit("/", 1)
+    cd, pd = dst.rsplit("/", 1)
+    if cs not in R.cells or cd not in R.cells:
+        return None
+    ts, td = R.cells[cs]["type"], R.cells[cd]["type"]
+    if cs == cd and R.cells[cs]["port_directions"].get(ps) == "input":  # cell arc
+        if "LUT" in ts and re.fullmatch(r"A[1-6]", ps):
+            return R.lut_arc(cs, ps, pd)
+        if ts == "SELMUX2_1" and pd == "OUT":
+            site, bel = _bel(R, cs)
+            return site_type_sdf(route_site_type(R.X, site)).get((bel, ps, "OUT"))
+        return None
+    b = R.cells[cd]["connections"].get(pd, [None])[0]
+    if R.driver.get(b) != (cs, ps):
+        return None
+    if "LUT" in td and re.fullmatch(r"A[1-6]", pd):
+        n, s = R.sink_of_cellpin(cd, pd)
+        return s["d"] if (s is not None and n.ok) else None
+    if td == "SELMUX2_1":
+        site, bel = _bel(R, cd)
+        if pd in ("0", "1"):
+            if "LUT" in ts:  # in-site LUT -> F7 hop (ROUTING_BEL)
+                lb = _bel(R, cs)[1]
+                return site_type_sdf(route_site_type(R.X, site)).get((bel, lb[0].lower() + "6lut", bel.lower()))
+            if ts == "SELMUX2_1":  # F7 -> F8: no db entry (SDF 0)
+                return [0.0] * 4
+            return None
+        if pd == "S0":
+            n = R.net(b)
+            if n is None or not n.ok:
+                return None
+            hits = [s for s in n.sinks if s["pin"] == F7PIN.get(bel) and s["sitewire"].split("/")[1] == site]
+            return hits[0]["d"] if len(hits) == 1 else None
+    return None

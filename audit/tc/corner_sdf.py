@@ -44,14 +44,14 @@ for i, line in enumerate(lines):
         inst = un(m.group(1)); continue
     m = RC.search(line)
     if m:
-        v = ic_val(un(m.group(2)), un(m.group(3))); d = int(m.group(4))
+        v = xrc.route_arc(R, un(m.group(2)), un(m.group(3))); d = int(m.group(4))
         vals.append((i, "ic", m, v, d))
         if v and d > 0:
             for k in range(4): ratios["ic"][k].append(v[k] / d)
         continue
     m = RO.search(line)
     if m and inst is not None:
-        v = io_val(inst, m.group(2), m.group(3)); d = int(m.group(4))
+        v = xrc.route_arc(R, f"{inst}/{m.group(2)}", f"{inst}/{m.group(3)}"); d = int(m.group(4))
         vals.append((i, "io", m, v, d))
         if v and d > 0:
             for k in range(4): ratios["io"][k].append(v[k] / d)
