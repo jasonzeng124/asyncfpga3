@@ -2,7 +2,37 @@
 
 ## Verdicts (shard B)
 
-(pending: tracks 5, 6, 7 in progress)
+All files below check with `formal/check.sh` (lake build of `Formal/`) and
+standalone with `cd formal/lean && LEAN_PATH=.lake/build/lib/lean lean
+Formal/Cells/<F>.lean` (core Lean, no Mathlib). Notes: `formal/notes/B-*.md`.
+
+| track | verdict | evidence | effort to finish | buys |
+|---|---|---|---|---|
+| 5 C-element | **works** | CElemFn (8 INITs = spec; Kleene closed forms), CElemTiming (bounded delay: enabling input >= LUT+feedback delay, tight; four-phase spec with new fork condition), CTree (tree = flat C-element, all shapes, under four-phase with ack wait) | ~1-2 d: port to Core's real-time channels (probe 5d running), inertial/involution regimes, bd_c3/c4 timing | INITs machine-checked; the exact timing condition per cell; the ack wait shown necessary |
+| 6 latch/link | **works** (handshake probe pending) | Latch (mux latch, setup/hold, DACK rule H sufficient), Bundling (delay lines; capture condition derived; rules I and F each miss a term) | ~2-3 d: compose C-element + latch into a link stage, W-bit lift, pipe | a derived spec for tighten.py rules H/I/F; reference spec for track 10 |
+| 7 arbiter | **works for binary/Kleene/handover; analog pending** | ArbKleene (exclusion for all 3-valued inputs; only (X,X) fails), ArbHandover (16 ps claim exact; held INIT meets the merge's counting precondition in all interleavings), MuxTree (fidelity of the Kleene LUT) | analog (7c/7d) pending; RT1/RT2 timed (7h), A0 fork (7g), ternary-sim soundness (7f) running | exclusion tiers made precise: settled q structural; handover with hold is relative timing, not structural; metastable tier only (X,X) |
+
+Fidelity (per primitive, shard B): LUT function exact (real INIT, pin map);
+Kleene LUT = hypothesis on ONE 2:1 pass-transistor mux (MuxTree proves the
+tree then gives closure semantics in any input order), graded B: credible
+for clean or late select edges, doubtful for a mid-rail select while the
+legs move (NMOS-only tree). Delays: bounded window/transport channels on ℕ
+or ℤ ps; no R/C, no buffered vs pass-transistor pip distinction yet; per-pin
+LUT arcs only in 7e. Feedback: a routed wire with an interval.
+
+Findings for the cell owner (not confirmed on a route):
+- tighten.py rule I omits the latch's I2 (feedback) pin arc; rule F omits a
+  value in flight on the FASTFALL chain wire. Lean counter-traces; today the
+  guardband covers both numerically.
+- H_A0_FORK: bd_arbiter's hold needs A0's fall to reach ua2 before
+  A0 -> q -> g2 does. Unchecked by any rule (7g quantifying).
+- C-element fork: after seeing the ack the environment must wait out the
+  feedback wire (E >= dwmax + dlmax - dlmin). Unchecked.
+- Held arbiter: g1/g2 and A1/A2 exclusion across a handover are relative
+  timing (RT1/RT2), contrary to the header's "structural WITH THE HOLD".
+- Bare-cell filtered overlap (8%): an isolated handover overlaps <= 72/94 ps
+  for any request skew, below the filter; the observed events are not the
+  digital handover overlap.
 
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
@@ -36,3 +66,11 @@ before the path A0 -> ustate -> q -> ugrant -> g2 does, or A2 = C(g2, A0)
 fires for a transaction the server never started.
 Untracked files in the tree are probes still being written; they are
 committed only after they check.
+
+### progress 03:07
+In and pushed: 5b CElemTiming, 5c CTree, 6c Bundling, 7e ArbHandover, Bf
+MuxTree. Verdict table at the top. Launched 5d (C-element on A's ℝ-time
+Core channels; inertial/involution), 7f (ternary-sim soundness), 7g (A0
+fork), 7h (RT1/RT2 timed). Running: 6b, 7a, 7c, 7d. Note: A's Core uses ℝ
+time and a FIFO pure delay; 5b's window channel is weaker than FIFO, so its
+positive results transfer and its counter-trace (fixed transport) is FIFO.
