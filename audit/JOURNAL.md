@@ -100,3 +100,6 @@ P5: gcd_hw_circuit_safe'' is about the real network and jointly satisfiable, but
 
 ### progress 11:59
 f4696cc per-module axiom audit hit the 2 h background limit (308 modules, ~30 s each, sequential). Rewrote as audit/tools/axiom_audit_par.sh (resumable, 3 jobs, one .res per module); rerunning.
+
+### progress 12:00
+New heads: formal (RigContract fix 807448a + claim withdrawal 21b1b7c; gcd_hw_circuit_safe3 with H_WALK proved; Events7 'CLEAN at both corners'; ipow/collatz token level), research (bd_prims_sim fixed 5d535d7; BQ#3 full-stack GLS at FAST_MIN/SLOW_MAX/band). Research pass-6 agent launched; formal pass-6 build after the f4696cc axiom audit finishes.
