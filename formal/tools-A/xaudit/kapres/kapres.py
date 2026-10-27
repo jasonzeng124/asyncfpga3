@@ -4,8 +4,9 @@
     python3 kapres.py SEED [--init N] [--depth D] [--jobs J]
 
 For one seed and each scatter kappa in KAPPAS (descending), covers the corner interval [0,1] by cells [ca,cb]
-(start: N equal cells; a cell whose run has a TIMING residual item -- "margin m" -- is
-bisected, down to width 1/(N*2^D)).  Each cell run is
+(start: N equal cells; a cell whose run has a TIMING residual item -- "margin m" -- has its two
+end corners run as point cells; it is bisected, down to width 1/(N*2^D), only if one of its timing
+items passes at both end corners).  Each cell run is
     cornerband.py (fast, slow, ca, cb, kappa) -> events4/skel.py -> events6/cert6.py (untrusted)
     -> xe5.sh (xevents5 = committed Events5Main.lean, lean --run, through slot.sh)
 At every leaf cell that still has timing items, the two point corners [ca,ca], [cb,cb] are
@@ -132,10 +133,18 @@ def main():
             while todo:
                 res = list(ex.map(lambda c: cell(seed, kappa, c), todo))
                 todo = []
+                dirty = [(c, r) for c, r in res if r["timing"] and c[1] - c[0] > minw]
+                ends = sorted({x for c, _ in dirty for x in c} - set(points))
+                for (x, _), r in ex.map(lambda x: cell(seed, kappa, (x, x)), ends):
+                    points[x] = r
                 for (ca, cb), r in res:
                     if r["verdict"] is None:
                         sys.exit("no verdict for %s %s %s-%s" % (seed, kappa, ca, cb))
-                    if r["timing"] and cb - ca > minw:
+                    # bisect only if some timing item of the cell passes at BOTH end corners (it may
+                    # be an artefact of the cell width); an item failing at an end corner fails at
+                    # that corner itself, and no refinement of the cover can discharge it at this kappa
+                    if r["timing"] and cb - ca > minw and any(
+                            k not in points[ca]["timing"] and k not in points[cb]["timing"] for k in r["timing"]):
                         mid = (ca + cb) / 2
                         todo += [(ca, mid), (mid, cb)]
                     else:

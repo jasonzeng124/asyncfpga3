@@ -19,10 +19,10 @@ mkdir -p "$R" "$D/runs"
 export PATH=$HOME/.elan/bin:$PATH
 xa() {  # xa TIMEFILE args...
   local tf=$1; shift
-  if [ -x "$LEAN/.lake/build/bin/xaudit" ]; then
-    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" /usr/bin/time -v -o $tf "$LEAN/.lake/build/bin/xaudit" "$@"
+  if [ -x "${XAUDIT:-$LEAN/.lake/build/bin/xaudit}" ]; then
+    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" /usr/bin/time -v -o $tf "${XAUDIT:-$LEAN/.lake/build/bin/xaudit}" "$@"
   else
-    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" /usr/bin/time -v -o $tf lake env lean --run Formal/Core/XAudit/Main.lean "$@"
+    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" /usr/bin/time -v -o $tf lake env sh -c 'LEAN_PATH="$0:$LEAN_PATH" exec lean --run Formal/Core/XAudit/Main.lean "$@"' "${XAUDIT_OLEAN:-$HOME/k2olean}" "$@"
   fi
 }
 for w in 0 0.02 0.05; do

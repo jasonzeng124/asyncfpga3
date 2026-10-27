@@ -8,6 +8,8 @@
 # Inputs: $OUT/<seed>/{net.json,<corner>.bands.json} from bands_k2.sh.
 # Outputs: k2/results/{xe5,cert6,ana5}_<seed>_<corner>.txt
 #
+# --fuel: Recog6 walks a pin path at most FUEL elements; the default 64 is shorter than collatz's
+# longest pin paths (65, 73 elements: 4 RECOG-FAIL at 64), so 256 (FUEL).  Any fuel is sound.
 # XE5: the compiled lake exe if it exists, else `lean --run Formal/Core/XAudit/Events5Main.lean`
 # (same code, interpreted); either way under formal/slot.sh.
 set -u
@@ -19,10 +21,10 @@ R=${R:-$K2/results}
 mkdir -p "$R"
 export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1 PATH=$HOME/.elan/bin:$PATH
 xe5() {
-  if [ -x "$LEAN/.lake/build/bin/xevents5" ]; then
-    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" "$LEAN/.lake/build/bin/xevents5" "$@"
+  if [ -x "${XEVENTS5:-$LEAN/.lake/build/bin/xevents5}" ]; then
+    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" "${XEVENTS5:-$LEAN/.lake/build/bin/xevents5}" "$@"
   else
-    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" lake env lean --run Formal/Core/XAudit/Events5Main.lean "$@"
+    FORMAL_SLOT_CWD=$LEAN "$LEAN/../slot.sh" lake env sh -c 'LEAN_PATH="$0:$LEAN_PATH" exec lean --run Formal/Core/XAudit/Events5Main.lean "$@"' "${XAUDIT_OLEAN:-$HOME/k2olean}" "$@"
   fi
 }
 for s in ${SEEDS:-d 4 5 6}; do
@@ -30,7 +32,7 @@ for s in ${SEEDS:-d 4 5 6}; do
   for c in ${CORNERS:-slow fast indep gb}; do
     python3 "$X/events4/skel.py" $D/net.json $D/$c.bands.json $D/skel.json $D/skel_$c.bands.json > /dev/null
     python3 "$X/events6/cert6.py" $D/skel.json $D/skel_$c.bands.json $D/cert_$c.json > "$R/cert6_${s}_$c.txt" 2>&1
-    xe5 $D/skel.json $D/skel_$c.bands.json $D/cert_$c.json > "$R/xe5_${s}_$c.txt" 2>&1
+    xe5 $D/skel.json $D/skel_$c.bands.json $D/cert_$c.json --fuel ${FUEL:-256} > "$R/xe5_${s}_$c.txt" 2>&1
     python3 "$X/events5/ana5.py" $D/skel.json $D/skel_$c.bands.json --label ${s}_$c > "$R/ana5_${s}_$c.txt" 2>&1
     echo "$s $c: xevents5: $(tail -1 $R/xe5_${s}_$c.txt | cut -c1-90) | ana5: $(tail -1 $R/ana5_${s}_$c.txt | cut -c1-70)"
   done
@@ -41,6 +43,6 @@ if [ "${NEG:-1}" = 1 ]; then
   python3 "$K2/negctl_k2.py" $D/skel.json $D/skel_slow.bands.json $D/skel_slow_NEGfb.bands.json \
       urig.udut.ucontrol_merge0.uarb1.ua2.u | tee "$R/neg_fb.txt"
   python3 "$X/events6/cert6.py" $D/skel.json $D/skel_slow_NEGfb.bands.json $D/cert_NEGfb.json >> "$R/neg_fb.txt" 2>&1
-  xe5 $D/skel.json $D/skel_slow_NEGfb.bands.json $D/cert_NEGfb.json > "$R/xe5_d_slow_NEGfb.txt" 2>&1
+  xe5 $D/skel.json $D/skel_slow_NEGfb.bands.json $D/cert_NEGfb.json --fuel ${FUEL:-256} > "$R/xe5_d_slow_NEGfb.txt" 2>&1
   echo "NEG-fb: $(tail -1 $R/xe5_d_slow_NEGfb.txt | cut -c1-90)"
 fi
