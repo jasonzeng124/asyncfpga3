@@ -70,3 +70,6 @@ P3 (c5c6d8b): ArbCorners/PipeTimedN proved as stated; OVERSTATED: ArbCorners ass
 
 ### progress 07:18
 Research responded (2b52380, 7a8199b, 769c67c). Verified: new rule F t_flush=724 is exactly the safe boundary in my chain sim (723 skips links); uack classification fix reads right; BOARD-QUEUE corrections accurate except the 'embedded paths' explanation of the routed.json md5. New formal heads (e45eee3 capstone pieces, 2610f5f) queued; tcheck reproduction still running.
+
+### progress 08:08
+Formal eecc6f7: clean build 3096 jobs, 0 sorry (48 min). All-modules axiom audit cannot import two XAudit modules together (both define main); wrote audit/tools/axiom_audit_permod.sh (per-module) and running it. P4 statement audit (gcd_hw capstone, ArbOverlapRace, RtFb generated files) launched.
