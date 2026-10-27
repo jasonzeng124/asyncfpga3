@@ -154,3 +154,11 @@ Mathlib abandoned in this sandbox: setup.sh's retry loop re-ran lake update
 Lean, so I verify per file (compile + collectAxioms audit) instead of
 check.sh's full lake build (which needs Mathlib for A's Core). Launched 10e
 (compiled tcheck exe on real routes, row-by-row vs rules A/E/F/H/I/J).
+
+### progress 04:22
+10d committed (bucketed checker, 3000 arcs in 7.9 s kernel decide; routed
+ce_pair and a 64-stage Muller pipeline). Finding: RT_FB (C-element feedback
+before neighbour response) fails on 12/64 stages under prjxray slowE intervals
+(worst -138 ps), feedback placed on B1/C1; SDF says +419 ps. One seed;
+Elmore unvalidated; passes only under near-perfect on-die correlation.
+Owner notified. Launched 10f (seeds, a shipped kernel route, pin constraints).
