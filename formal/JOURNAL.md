@@ -60,3 +60,24 @@ declarations audited, OK. B and C have both chosen discrete ℕ-ps time for cell
 and network proofs, independently; A's discrete probe recommends the same.
 Running: trace-real, circuit layer, involution, corner-correlated bounds, LUT
 hazard audit. Launching a K3 bridge (LutTree/Ternary K3 ≅ Core.K3).
+### progress 03:20
+Container restarted ~03:12 (disk kept); 4 probes resumed by message, builder restarted.
+Trace/Real: RealComplete discharged (Real.exists_isGLB). Corner, Bridge, Circuit,
+Trace/Bridge claimed (see commits).
+**GLS comparison (notes/A-gls-compare.md, tools-A/gls-compare/run_all.sh).** The
+research GLS (origin/claude/research cells/gls/prims.v, SLICE_LUTX with specify
+paths under iverilog) implements neither inertial nor transport LUT delay but
+"sample at fire": each input change schedules an update at t+d which copies the
+function's value at the moment it fires; nothing is cancelled. Fitted 140/140
+random traces (inertial 48, transport 4). Consequence: an edge that follows an
+earlier change within d reaches the output EARLY, down to a few ps after its
+cause. Reproduced by me with a 10-line tb: a pulse 1000-1120 then a rise at 1130
+gives o6 rising at 1244 (114 ps, arc is 124). So the GLS can make a glitchy data
+cone look settled up to one LUT delay early per glitching LUT: optimistic bundled
+margins, the unsafe direction. Not measured: how often this occurs in a routed
+design. The earlier statement in A-delay-inertial.md that "the GLS can never show
+a LUT runt" holds only for isolated pulses; corrected by this note.
+Agreement: LUT/MUXF7 X-propagation = Core kevalSpec on 43,767/43,767 vectors;
+bd_c2 single-input flips clean. Disagreement: bd_c2 a,b 01→10 at q=0 is a hazard
+in Lean (X), a sharp skew threshold in GLS (no X), and with a transport feedback
+wire oscillates forever.
