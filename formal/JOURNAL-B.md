@@ -382,6 +382,11 @@ depth), Bfw ResetGcdVec2 (per-cell reset model derived from the network
 run; 21 first-wave cells closed). Running: Blink2, Bsx3, Bk3, Bj4, Bwv
 (Wave/Vec on the real nets), Bsrc (rig env as C's Src).
 
+FOR SHARD A (FOR-RESEARCH.md input, probe Bgls, notes/B-gls-vs-exact.md):
+research GLS bug gen.py:494-512 (GLS_SCALE_INST not applied to wire delays
+under wire-mode scatter); fid resolver runts hidden without +META_VERBOSE;
+ranked minimal GLS changes C1-C7 to make B's exact rows GLS tests.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
