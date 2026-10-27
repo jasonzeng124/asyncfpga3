@@ -1,6 +1,7 @@
 import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.ODE.ExistUnique
 import Mathlib.Topology.Order.IntermediateValue
+import Mathlib.Analysis.Calculus.MeanValue
 import Formal.Cells.Prelim
 
 /-!
@@ -414,5 +415,142 @@ theorem aperture_lower_bound (hx : IsSolFamily m S v0 x) {sA sB tw vs sstar : �
   exact sol_dist_le hx s sstar tw htw
 
 end Hold
+
+/-! ## Escape: the upper-bound half of the exponential law -/
+
+/-- Comparison lemma (fencing, `image_le_of_deriv_right_lt_deriv_boundary`): if `y`
+starts at least `d > 0` above `c` and, while it is in `(c, c + r]`, grows at a rate
+strictly above `lam * (y - c)`, then as long as it stays at or below `c + r` it is
+above `c + d * exp (lam * (t - a))`. -/
+theorem grow_lower {y y' : ℝ → ℝ} {a b c d r lam : ℝ}
+    (hy : ContinuousOn y (Icc a b))
+    (hy' : ∀ t ∈ Ico a b, HasDerivWithinAt y (y' t) (Ici t) t)
+    (hd : 0 < d) (h0 : c + d ≤ y a)
+    (hgain : ∀ t ∈ Ico a b, c < y t → y t ≤ c + r → lam * (y t - c) < y' t)
+    (hstay : ∀ t ∈ Icc a b, y t ≤ c + r) :
+    ∀ t ∈ Icc a b, c + d * exp (lam * (t - a)) ≤ y t := by
+  intro t ht
+  have hB : ∀ u, HasDerivAt (fun u => -(c + d * exp (lam * (u - a))))
+      (-(d * (exp (lam * (u - a)) * lam))) u := by
+    intro u
+    have h1 : HasDerivAt (fun u => lam * (u - a)) lam u := by
+      simpa using ((hasDerivAt_id u).sub_const a).const_mul lam
+    exact ((h1.exp.const_mul d).const_add c).neg
+  have key := image_le_of_deriv_right_lt_deriv_boundary (f := fun u => -y u)
+    (f' := fun u => -y' u) hy.neg (fun u hu => (hy' u hu).neg)
+    (by simp only [sub_self, mul_zero, exp_zero, mul_one]; linarith) hB
+    (fun u hu heq => by
+      simp only [neg_inj] at heq
+      have hE := exp_pos (lam * (u - a))
+      have hpos : c < y u := by rw [heq]; nlinarith
+      have hg := hgain u hu hpos (hstay u (Ico_subset_Icc_self hu))
+      rw [heq] at hg
+      simp only [neg_lt_neg_iff]
+      nlinarith)
+    ht
+  simp only [neg_le_neg_iff] at key
+  exact key
+
+section Escape
+variable {m : Loop} {S : Stim} {v0 : ℝ} {x : ℝ → ℝ → ℝ}
+
+/-- **Undecided above `vs` ⇒ started exponentially close (upper-bound half).**
+Hold region from `tw` (H_HOLD_INPUTS). **H_LOCAL_GAIN_UP**: on `(vs, vs + r]` the
+hold transfer exceeds the line of slope `g` through the equilibrium,
+`G v - v > (g - 1) (v - vs)` (loop gain at least `g` near the metastable point;
+test: SPICE/GLS small-signal sweep of the closed loop around `vs`). If the node
+starts above `vs` at `tw` and is still at or below `vs + r` (undecided) at every
+time up to `T`, it started within `r * exp (-(g-1)/tau * (T - tw))` of `vs`. -/
+theorem undecided_near_up (hx : IsSolFamily m S v0 x) {sA sB tw vs r g : ℝ}
+    (htw : 0 ≤ tw) (hH : HoldInputs S sA sB tw) {s : ℝ} (hs : s ∈ Icc sA sB)
+    (H_LOCAL_GAIN_UP : ∀ v ∈ Ioc vs (vs + r), (g - 1) * (v - vs) < m.F 1 1 v - v)
+    (habove : vs < x s tw) {T : ℝ} (hT : tw ≤ T)
+    (hund : ∀ t ∈ Icc tw T, x s t ≤ vs + r) :
+    x s tw - vs ≤ r * exp (-((g - 1) / m.tau * (T - tw))) := by
+  set lam := (g - 1) / m.tau
+  have hg := grow_lower (y := x s) (y' := fun t => m.field 1 1 (x s t))
+    (a := tw) (b := T) (c := vs) (d := x s tw - vs) (r := r) (lam := lam)
+    ((hx.cont s).mono fun y hy => (htw.trans hy.1 : (0 : ℝ) ≤ y))
+    (fun t ht => hold_deriv hx htw hH hs ht.1)
+    (by linarith) (by linarith)
+    (fun t _ h1 h2 => by
+      have := H_LOCAL_GAIN_UP (x s t) ⟨h1, h2⟩
+      simp only [Loop.field, lam, div_mul_eq_mul_div]
+      exact (div_lt_div_iff_of_pos_right m.H_TAU).mpr this)
+    hund T ⟨hT, le_rfl⟩
+  have hTr := hund T ⟨hT, le_rfl⟩
+  have hE : exp (lam * (T - tw)) * exp (-(lam * (T - tw))) = 1 := by
+    rw [← Real.exp_add]; simp
+  have hle : (x s tw - vs) * exp (lam * (T - tw)) ≤ r := by linarith
+  calc x s tw - vs = (x s tw - vs) * exp (lam * (T - tw)) * exp (-(lam * (T - tw))) := by
+        rw [mul_assoc, hE, mul_one]
+    _ ≤ r * exp (-(lam * (T - tw))) :=
+        mul_le_mul_of_nonneg_right hle (exp_pos _).le
+
+/-- Mirror image of `undecided_near_up`, below the equilibrium.
+**H_LOCAL_GAIN_DN**: on `[vs - r, vs)`, `G v - v < (g - 1) (v - vs)`. -/
+theorem undecided_near_dn (hx : IsSolFamily m S v0 x) {sA sB tw vs r g : ℝ}
+    (htw : 0 ≤ tw) (hH : HoldInputs S sA sB tw) {s : ℝ} (hs : s ∈ Icc sA sB)
+    (H_LOCAL_GAIN_DN : ∀ v ∈ Ico (vs - r) vs, m.F 1 1 v - v < (g - 1) * (v - vs))
+    (hbelow : x s tw < vs) {T : ℝ} (hT : tw ≤ T)
+    (hund : ∀ t ∈ Icc tw T, vs - r ≤ x s t) :
+    vs - x s tw ≤ r * exp (-((g - 1) / m.tau * (T - tw))) := by
+  set lam := (g - 1) / m.tau
+  have hg := grow_lower (y := fun t => -x s t) (y' := fun t => -m.field 1 1 (x s t))
+    (a := tw) (b := T) (c := -vs) (d := vs - x s tw) (r := r) (lam := lam)
+    ((hx.cont s).mono fun y hy => (htw.trans hy.1 : (0 : ℝ) ≤ y)).neg
+    (fun t ht => (hold_deriv hx htw hH hs ht.1).neg)
+    (by linarith) (by simp only; linarith)
+    (fun t _ h1 h2 => by
+      simp only at h1 h2 ⊢
+      have := H_LOCAL_GAIN_DN (x s t) ⟨by linarith, by linarith⟩
+      have h3 : (m.F 1 1 (x s t) - x s t) / m.tau < (g - 1) * (x s t - vs) / m.tau :=
+        (div_lt_div_iff_of_pos_right m.H_TAU).mpr this
+      simp only [Loop.field, lam]
+      rw [div_mul_eq_mul_div]
+      have e : (g - 1) * (-x s t - -vs) / m.tau = -((g - 1) * (x s t - vs) / m.tau) := by ring
+      rw [e]; linarith)
+    (fun t ht => by simp only; linarith [hund t ht])
+    T ⟨hT, le_rfl⟩
+  simp only at hg
+  have hTr := hund T ⟨hT, le_rfl⟩
+  have hE : exp (lam * (T - tw)) * exp (-(lam * (T - tw))) = 1 := by
+    rw [← Real.exp_add]; simp
+  have hle : (vs - x s tw) * exp (lam * (T - tw)) ≤ r := by linarith
+  calc vs - x s tw = (vs - x s tw) * exp (lam * (T - tw)) * exp (-(lam * (T - tw))) := by
+        rw [mul_assoc, hE, mul_one]
+    _ ≤ r * exp (-(lam * (T - tw))) :=
+        mul_le_mul_of_nonneg_right hle (exp_pos _).le
+
+/-- **Aperture upper bound (the e^(-t/tau_eff) law, upper half).** Under
+H_HOLD_INPUTS, H_LOCAL_GAIN_UP/DN (gain `g` near `vs`, so `tau_eff = tau/(g-1)`)
+and **H_SPREAD** (the contention window spreads timings apart at `tw`:
+`c |s - s*| ≤ |x s tw - vs|`, i.e. `s ↦ q(tw)` has slope at least `c > 0` at `s*`;
+test: GLS sweep of the request skew, read q at `tw`), a timing `s` whose node is
+still undecided (within `r` of `vs`) at every time up to `T` lies within
+`(r / c) * exp (-(T - tw) / tau_eff)` of `s*`. Together with
+`aperture_lower_bound` this pins the bad-timing window between two exponentials. -/
+theorem aperture_upper_bound (hx : IsSolFamily m S v0 x) {sA sB tw vs r g c sstar : ℝ}
+    (htw : 0 ≤ tw) (hH : HoldInputs S sA sB tw) {s : ℝ} (hs : s ∈ Icc sA sB)
+    (H_LOCAL_GAIN_UP : ∀ v ∈ Ioc vs (vs + r), (g - 1) * (v - vs) < m.F 1 1 v - v)
+    (H_LOCAL_GAIN_DN : ∀ v ∈ Ico (vs - r) vs, m.F 1 1 v - v < (g - 1) * (v - vs))
+    (hc : 0 < c) (H_SPREAD : c * |s - sstar| ≤ |x s tw - vs|)
+    {T : ℝ} (hT : tw ≤ T) (hund : ∀ t ∈ Icc tw T, |x s t - vs| ≤ r) :
+    |s - sstar| ≤ r / c * exp (-((g - 1) / m.tau * (T - tw))) := by
+  have hnear : |x s tw - vs| ≤ r * exp (-((g - 1) / m.tau * (T - tw))) := by
+    rcases lt_trichotomy (x s tw) vs with h | h | h
+    · rw [abs_of_neg (by linarith)]
+      have := undecided_near_dn hx htw hH hs H_LOCAL_GAIN_DN h hT
+        (fun t ht => by have := hund t ht; rw [abs_le] at this; linarith)
+      linarith
+    · have hr : 0 ≤ r := (abs_nonneg _).trans (hund tw ⟨le_rfl, hT⟩)
+      rw [h, sub_self, abs_zero]; positivity
+    · rw [abs_of_pos (by linarith)]
+      exact undecided_near_up hx htw hH hs H_LOCAL_GAIN_UP h hT
+        (fun t ht => by have := hund t ht; rw [abs_le] at this; linarith)
+  rw [div_mul_eq_mul_div, le_div_iff₀ hc, mul_comm]
+  linarith
+
+end Escape
 
 end Formal.Cells.ArbAnalog
