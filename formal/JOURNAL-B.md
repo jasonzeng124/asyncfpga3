@@ -19,6 +19,28 @@ Lib2): no mismatches. Caveat (Lib2): single-X glitch freedom holds for EVERY
 INIT under closure semantics, so the per-cell single-X theorems carry no
 per-cell content; all of it is in H_KLEENE_LUT.
 
+Headline answers to the owner's model (PROGRAM.md "The model the owner has
+in mind"):
+- Metastability comes OUT of the gate model, with no arbiter-specific
+  postulate: under shard A's involution channel the real bd_arbcell INIT has
+  a critical same-sense request gap with eternal oscillation and arbitrarily
+  late resolution nearby (ArbInvolution, CElemInvolution); in the analog
+  first-order model the same holds as Buridan's principle (ArbAnalog, with an
+  explicit non-vacuous loop in ArbAnalog2); Kleene shows only (X,X) at the
+  grants (ArbKleene); the e^(-t/tau) law and MTBF bound are ArbResolve.
+- Mutual exclusion of a LUT arbiter is NOT unconditionally provable (confirmed
+  three ways: binary runt trace, involution critical gap, analog Buridan);
+  only the probabilistic bound holds, with tau_r and T0 to be measured.
+- Delay channels: bounded window/pure delay admit all the positive cell
+  proofs; pure transport shows runts circulating forever (unphysical);
+  inertial decides every runt in bounded time (unphysical); involution gives
+  the faithful unbounded-resolution behaviour.
+- Ternary simulation is sound AND exact for LUT networks under GMW delays
+  (TernarySound, TernaryExact), so Kleene results are statements about every
+  binary trace.
+- The proofs are about the real cells: B's LUT functions equal the LUTs read
+  back from 4 routed bitstreams (OnNetlist).
+
 Fidelity (per primitive, shard B): LUT function exact (real INIT, pin map);
 Kleene LUT = hypothesis on ONE 2:1 pass-transistor mux (MuxTree proves the
 tree then gives closure semantics in any input order), graded B: credible
@@ -173,3 +195,9 @@ Formal.olean was not built (the lakefile globs "Formal.+" do not match the
 root module). Built it with `lake env lean Formal.lean -o` and re-ran the
 audit: 9443 declarations checked, none BAD. For shard A (owner of
 check.sh/lakefile): the root module may need adding to the build.
+
+### progress 04:37
+In: 5e CElemInvolution, 7m ArbInvolution, 7l TernaryExact, 7k ArbAnalog2,
+Bq FifoFidelity, Bn OnNetlist. Headline-answer block added at the top.
+Running: Bp (real pin assignments from FASM), Bt (timed bridge to the
+bits), Bx (ternary checker on the whole routed netlist).
