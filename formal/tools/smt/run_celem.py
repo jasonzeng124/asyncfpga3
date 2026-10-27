@@ -76,9 +76,11 @@ def main(quick=False):
         for dl, dw in delays:
             Eb = dw[1] + dl[1] - dl[0]
             log('== %s dl=%s dw=%s  B-bound E=%d' % (kind, dl, dw, Eb))
-            e = sweep('E', 1, Eb + 4, lambda E: celem.build(kind, dl, dw, env='4ph', E=E, W=1), 'follow')
-            em = sweep('E', 1, Eb + 4, lambda E: celem.build(kind, dl, dw, env='4ph', E=E, W=1), 'mono', show=False)
-            log('   => E_min follow=%s mono=%s (B bound %d)' % (e, em, Eb))
+            for obs in ('first', 'stable'):
+                log('  -- client observation: %s' % obs)
+                e = sweep('E', 1, Eb + 4, lambda E: celem.build(kind, dl, dw, env='4ph', E=E, W=1, obs=obs), 'follow')
+                em = sweep('E', 1, Eb + 4, lambda E: celem.build(kind, dl, dw, env='4ph', E=E, W=1, obs=obs), 'mono', show=False)
+                log('   => E_min(%s) follow=%s mono=%s (B bound %d)' % (obs, e, em, Eb))
 
     log('\n# ternary (Kleene) variant, kwin channels, binary env')
     for dl, dw in delays:

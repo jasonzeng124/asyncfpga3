@@ -106,6 +106,13 @@ def row(label, **kw):
     props = dict(PROPS)
     if kw["mode"] == "transport":
         props["ovf"] = OVF
+        # the same properties restricted to runs with no runt on the decision
+        # node q (no second edge ever queued on q): separates tier 3
+        # (metastable/runt q, not excludable) from the digital races
+        props["ovf_nr"] = "Pmax=? [F !mlt_q & (" + OVF[len("Pmax=? [F "):-1] + ")]"
+        for k in ("mutex", "amutex", "ho", "tx"):
+            inner = PROPS[k][len("Pmax=? [F "):-1]
+            props[k + "_nr"] = f"Pmax=? [F !mlt_q & ({inner})]"
     label = f"[{kw['mode'][:4]}] " + label
     r, ns, nt, sec = check(build(**kw).prism(), props)
     vals = " ".join(f"{k}={v:.0f}" for k, v in r.items())
@@ -126,7 +133,8 @@ if __name__ == "__main__":
             wq_g=(w, w), srv=(40, 45))
     print("== 2. server latency sweep (nominal arcs, zero routing) ==")
     for held in (False, True):
-        for s in (1, 5, 10, 20, 30, 40, 60):
+        for s in ((1, 5, 10, 20, 30, 40, 60) if MODE == "inertial"
+                  else (10, 15, 20, 40)):
             row(f"{'HELD' if held else 'UNHELD'} srv=[{s},{s+5}]",
                 held=held, srv=(s, s + 5))
     print("== 3. HELD: A0 fork skew (A0 reaches ustate.I4 late) ==")
@@ -138,9 +146,9 @@ if __name__ == "__main__":
             held=held, spread=2, wq_g=(0, 8), wq_s=(0, 8), wa=(0, 4),
             srv=(40, 45))
     print("== 5. exact break points ==")
-    for s in range(14, 21):
+    for s in (range(14, 21) if MODE == "inertial" else (14, 15)):
         row(f"HELD srv=[{s},{s+5}]", held=True, srv=(s, s + 5))
-    for w in range(24, 33):
+    for w in (range(24, 33) if MODE == "inertial" else (24, 28, 29, 32)):
         row(f"HELD wa={w} srv=[40,45]", held=True, wa=(w, w), srv=(40, 45))
     for w in range(24, 33, 2):
         row(f"HELD wa={w} wq_g=6 srv=[40,45]", held=True, wa=(w, w),

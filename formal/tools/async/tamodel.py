@@ -141,7 +141,10 @@ class Circuit:
         cancel = f"({push} & {L}>=1 & {clast}=0 & {fp}={prevv})"
         add = f"({push} & !{cancel})"
         ups = [f"(len_{m.name}'={cancel} ? {L}-1 : ({add} ? min({L}+1,{K}) : {L}))",
-               f"(ovf_{m.name}'=ovf_{m.name} | ({add} & {L}>={K}))"]
+               f"(ovf_{m.name}'=ovf_{m.name} | ({add} & {L}>={K}))",
+               # a second edge queued behind an undelivered one: the node's
+               # excitation reversed within its delay (a runt at its input)
+               f"(mlt_{m.name}'=mlt_{m.name} | ({add} & {L}>=1))"]
         for j in range(K):
             v, c = sl[j]
             ups.append(f"(v_{m.name}_{j}'=({add} & {L}={j}) ? {fp} : {v})")
@@ -176,6 +179,7 @@ class Circuit:
             else:
                 L.append(f"  len_{n.name} : [0..{n.K}] init {1 if n.pending0 else 0};")
                 L.append(f"  ovf_{n.name} : bool init false;")
+                L.append(f"  mlt_{n.name} : bool init false;")
                 for j in range(n.K):
                     v0 = "true" if (j == 0 and n.pending0 and not n.init) else "false"
                     L.append(f"  v_{n.name}_{j} : bool init {v0};")
@@ -198,8 +202,23 @@ class Circuit:
                     L.append(f"  [] {guard} -> " + " & ".join(ups) + ";")
             else:
                 h = f"v_{n.name}_0"
+                # the next queued edge already due: it overtakes the head and
+                # the pulse between them is swallowed (pulse shrinkage with
+                # asymmetric rise/fall delays; no zero-width output pulses)
+                nxt = (f"(len_{n.name}>=2 & c_{n.name}_1 >= "
+                       f"(v_{n.name}_1 ? {n.rise[0]} : {n.fall[0]}))")
+                if n.K >= 2:
+                    ann = [f"(len_{n.name}'=len_{n.name}-2)"]
+                    for j in range(n.K):
+                        src = j + 2
+                        v = f"v_{n.name}_{src}" if src < n.K else "false"
+                        c = f"c_{n.name}_{src}" if src < n.K else "0"
+                        ann.append(f"(v_{n.name}_{j}'={v})")
+                        ann.append(f"(c_{n.name}_{j}'={c})")
+                    L.append(f"  [] {nxt} -> " + " & ".join(ann) + ";")
                 guard = (f"len_{n.name}>0 & c_{n.name}_0 >= "
-                         f"({h} ? {n.rise[0]} : {n.fall[0]})")
+                         f"({h} ? {n.rise[0]} : {n.fall[0]})"
+                         + (f" & !{nxt}" if n.K >= 2 else ""))
                 post = {n.name: h}
                 ups = [f"({n.name}'={h})"]
                 ups += self._tp_updates(n, post, self._Qshift(n), h)
@@ -255,7 +274,7 @@ def check(prog_text: str, props: Dict[str, str]):
     return out, model.nr_states, model.nr_transitions, time.time() - t0
 
 
-def witness(prog_text: str, target: str, show, maxlen=400):
+def witness(prog_text: str, target: str, show, maxlen=5000):
     """A run reaching `target` (a PRISM state formula), read off Storm's
     optimal scheduler for Pmax=? [F target].  Returns a list of
     (time, {var: value}) at every change of a variable in `show`."""

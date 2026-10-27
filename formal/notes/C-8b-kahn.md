@@ -17,3 +17,9 @@ its CF/handshake MLIR is in cloud/fixtures/frontend/gcd/comp/. It is BINARY gcd
   producer/consumer, wf_diamond, wf_determinate, node library strict/op1/op2/
   fork/branch/sink/mux, merge counterexample merge_not_determinate, merge_not_wf): checks.
 - next: KahnGcd.lean (graph of the C loop bb9-bb11, cLoop, gcdC = Nat.gcd).
+- KahnGcd.lean: checks (gcdC_eq, cLoop_gcd, G_wf, dataflow_eq_cLoop, dataflow_gcd).
+- KahnGcdCM.lean (control_merge header, Inv = one control token): checks.
+- KahnBounded.lean (capacity-bounded channels, wfB_diamond, cap-1 gcd): checks.
+- Wip/C8b/sim_two_invocations.py: two invocations through the control_merge
+  graph -> output ORDER is schedule-dependent ((1,7) vs (7,1)); values stay right.
+- trying: nested strip loop (bb11) as a real inner dataflow loop.

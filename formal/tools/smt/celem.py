@@ -21,7 +21,9 @@ Properties:
     P_follow : cnt >= dl_hi  ->  O == z        (settles within the LUT delay
                                                  and holds)
     P_mono   : O == O(t-1)  or  O == z          (O never moves away from the
-                                                 spec value: no hazard)
+                                                 spec value: no hazard; checked
+                                                 from tick dl_hi on, i.e. once
+                                                 the power-up history is flushed)
 Ternary variant (kleene=True): every signal is {0,1,X}, the LUT is lutK, the
 channels are kwin; env still binary unless xin > 0, in which case every
 input change may pass through X for up to xin ticks (a slow / runt edge).
@@ -39,14 +41,16 @@ def maj(a, b, c):
 
 
 def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
-          xin=0, env='pulse', E=None):
+          xin=0, env='pulse', E=None, obs='first'):
     """env='pulse': H_ENV_PULSE(W).  env='4ph': two four-phase clients that
     move only after seeing O at their own value; E = min ticks between
-    observing the ack and moving (H_ENV_LATENCY)."""
+    observing the ack and moving (H_ENV_LATENCY).  obs='first': the latency
+    counts from the client's FIRST sight of the ack (B's H_ACK); obs='stable':
+    the client must see the ack E ticks in a row (a glitch restarts it)."""
     Dmax = dl[1] + dw[1]
     if R is None:
         R = Dmax
-    ts = tsmc.TS('c2_%s_%s_%s_W%s_R%s%s%s' % (kind, dl, dw, W, R,
+    ts = tsmc.TS('c2_%s_%s_%s_W%s_R%s_%s%s%s%s%s' % (kind, dl, dw, W, R, env, E if env == '4ph' else '', obs if env == '4ph' else '',
                                               '_K' if kleene else '',
                                               '_x%d' % xin if xin else ''))
     for n in ('a', 'b', 'rst', 'z', 'Op'):
@@ -86,8 +90,13 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
             for n in ('a', 'b'):
                 seen = S['O'] == S[n] if not kleene else \
                     z3.And(z3.Not(S['O.x']), S['O.v'] == S[n])
-                cs.append(N[n + 'w'] == z3.If(seen, z3.If(S[n + 'w'] < E, S[n + 'w'] + 1, E), 0))
-                cs.append(z3.Implies(N[n] != S[n], z3.And(seen, S[n + 'w'] >= E - 1)))
+                if obs == 'stable':     # must see the ack E ticks in a row
+                    sighted = seen
+                else:                   # 'first': first glimpse counts (B's H_ACK)
+                    sighted = z3.Or(seen, S[n + 'w'] > 0)
+                moved = N[n] != S[n]
+                cs.append(N[n + 'w'] == z3.If(moved, 0, z3.If(sighted, z3.If(S[n + 'w'] < E, S[n + 'w'] + 1, E), 0)))
+                cs.append(z3.Implies(moved, z3.And(sighted, S[n + 'w'] >= E - 1)))
         return z3.And(cs)
     ts.trans(env_tr)
     if env == '4ph':
@@ -99,8 +108,9 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
         C.chan(ts, kind, 'O', e, dl[0], dl[1])
         C.chan(ts, kind, 'qp', lambda S: S['O'], dw[0], dw[1])
         ts.trans(lambda S, N: N['Op'] == S['O'])
+        ts.init(lambda S: S['Op'] == S['O'])
         Pf = lambda S: z3.Implies(S['cnt'] >= dl[1], S['O'] == S['z'])
-        Pm = lambda S: z3.Or(S['O'] == S['Op'], S['O'] == S['z'])
+        Pm = lambda S: z3.Or(S['rc'] < min(dl[1], R), S['O'] == S['Op'], S['O'] == S['z'])
         ts.show = ['rst', 'a', 'b', 'z', 'O', 'qp', 'cnt']
     else:
         def pin(S, n):
@@ -116,6 +126,7 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
         C.kvar(ts, 'Opk')
         ts.trans(lambda S, N: C.keq(C.kval(N, 'Opk'), C.kval(S, 'O')))
         ts.trans(lambda S, N: N['Op'] == S['O.v'])
+        ts.init(lambda S: C.keq(C.kval(S, 'Opk'), C.kval(S, 'O')))
         if xin:
             # an input change may be preceded by up to xin ticks of X on that
             # pin (the edge passes through the intermediate band).  a/b hold
@@ -137,7 +148,7 @@ def build(kind='win', dl=(1, 2), dw=(1, 2), W=4, R=None, kleene=False,
                                      S['axc'] == 0, S['bxc'] == 0))
         Pf = lambda S: z3.Implies(S['cnt'] >= dl[1],
                                   z3.And(z3.Not(S['O.x']), S['O.v'] == S['z']))
-        Pm = lambda S: z3.Or(C.keq(C.kval(S, 'O'), C.kval(S, 'Opk')),
+        Pm = lambda S: z3.Or(S['rc'] < min(dl[1], R), C.keq(C.kval(S, 'O'), C.kval(S, 'Opk')),
                              C.keq(C.kval(S, 'O'), C.kof(S['z'])))
         ts.show = ['rst', 'a', 'b', 'z',
                    ('O', lambda r: C.kfmt(r, 'O')), ('qp', lambda r: C.kfmt(r, 'qp')), 'cnt']
