@@ -35,12 +35,13 @@ no active pip, and only when exactly one candidate's source is itself driven.
 That inference is hypothesis H_IMPLICIT (notes/C-11b-fasm.md).
 
 Lean output: one namespace with `luts : List PLut` (index = order of the LUT
-sites, sorted), `outs : List (String x Src)`, `ports`, and `pinDelay`
-intrinsic-sum intervals in ps.  Semantics in Formal/Net/Fasm/Basic.lean.
+sites, sorted), `net : PNet` (LUTs + output map), `ports`, and `pinDelay`
+(fast_min intrinsic, slow_max intrinsic + Elmore) in ps.  Semantics in Formal/Net/Fasm/Basic.lean.
 """
 import argparse
 import csv
 import json
+import math
 import os
 import re
 import sys
@@ -201,6 +202,7 @@ class Extract:
                     continue
             self.site_feats.append(f)
         self.used_pips = set()
+        self.paths = []
 
     def drivers(self, node):
         out = []
@@ -258,6 +260,7 @@ class Extract:
         for _ in range(200):
             src = self.source_pin(node)
             if src:
+                self.paths.append((pips, node, src))
                 return src, pips
             d = self.drivers(node)
             if len(d) > 1:
@@ -272,7 +275,7 @@ class Extract:
                         % (what, sorted(node)[0], len(cand)))
                 d = cand
             t, p, ps = d[0]
-            pips.append((t, p, ps))
+            pips.append((t, p, ps, node))
             self.used_pips.add((t, p["dst_wire"], p["src_wire"]))
             node = self.fab.node(t, p["src_wire"])
         die("%s: route longer than 200 pips" % what, 2)
@@ -358,7 +361,7 @@ def main():
             die("%s: driven by a LUT with no INIT feature (all-zero LUT?)" % what)
         return {"k": "lut", "i": i, "out": o}
 
-    def pipdata(t, p, pseudo):
+    def pipdata(t, p, pseudo, _node=None):
         s2d = p.get("src_to_dst") or {}
         return {"tile": t, "dst": p["dst_wire"], "src": p["src_wire"],
                 "pass": bool(p["is_pass_transistor"]), "pseudo": pseudo,
@@ -399,6 +402,82 @@ def main():
         src, path = ex.walk(tile, site["site_pins"]["O"]["wire"], what)
         outs.append({"port": port, "site": sname, "src": src_term(src, what),
                      "pips": [pipdata(*q) for q in reversed(path)]})
+
+
+    # ---- Elmore RC term per routed sink (prjxray/timing.py's model, lumped
+    # per node): every stage is a driver (site outpin or BUFFERED pip, drive R)
+    # into one node (sum of its tile wires' R and C, pi model) loaded by the
+    # input C of every pip leaving it that is on (explicit or implicit) and of
+    # any site input pin on it.  A pass-transistor pip does not isolate: its R
+    # is in series and the stage continues.  Units: db R [ohm] * C [fF] *1e-3 = ps
+    # (tile.py RESISTANCE_FACTOR = CAPACITANCE_FACTOR = 1e3, time in ns).
+    on = defaultdict(set)   # src (tile, wire) -> in_cap of pips that are on
+    for t, ds in ex.active.items():
+        for d, sw in ds:
+            on[(t, sw)].add((t, d))
+    for t, d, sw in ex.used_pips:
+        on[(t, sw)].add((t, d))
+
+    def node_rc(node):
+        r = c = 0.0
+        for t, w in node:
+            rc = fab.tt(fab.ttype(t))["wires"].get(w)
+            if rc:
+                r += float(rc["res"]); c += float(rc["cap"])
+        return r, c
+
+    def node_load(node):
+        c = 0.0
+        for t, w in node:
+            j = fab.tt(fab.ttype(t))
+            for (_t, d) in on.get((t, w), ()):
+                p = j["_by_name"].get((d, w))
+                if p and not p["is_pass_transistor"]:
+                    c += float((p.get("src_to_dst") or {}).get("in_cap") or 0)
+            sp = j["_sitepin"].get(w)
+            if sp and "cap" in sp[2]:
+                c += float(sp[2]["cap"])
+        return c
+
+    def elmore(pips, src_node, src):
+        """pips: sink-first list of (tile, pip, pseudo, dst node)."""
+        seq = list(reversed(pips))           # source first
+        nodes = [src_node] + [q[3] for q in seq]
+        if src[0] in ("slice", "iob"):
+            v = src[2]["site_pins"][src[3]]
+            r_drv = float(v.get("res") or 0)
+        else:
+            r_drv = 0.0
+        total = 0.0
+        k = 0
+        while k < len(nodes):
+            # one stage: nodes[k] and every node behind a pass pip after it
+            stage = [nodes[k]]
+            m = k
+            while m < len(seq) and seq[m][1]["is_pass_transistor"]:
+                stage.append(nodes[m + 1]); m += 1
+            caps = [node_rc(n)[1] + node_load(n) for n in stage]
+            for idx, n in enumerate(stage):
+                rw, cw = node_rc(n)
+                down = sum(caps[idx + 1:])
+                total += rw * (cw / 2 + node_load(n) + down)
+            total += r_drv * sum(caps)
+            if m < len(seq):
+                r_drv = float((seq[m][1].get("src_to_dst") or {}).get("res") or 0)
+            k = m + 1
+        return total * 1e-3   # ps
+
+    for l in luts:
+        for p in l["pins"]:
+            p["elmore_ps"] = None
+    it = iter(ex.paths)
+    for l in luts:
+        for p in l["pins"]:
+            pips, sn, src = next(it)
+            p["elmore_ps"] = round(elmore(pips, sn, src), 1) if src[0] != "const" else 0.0
+    for o in outs:
+        pips, sn, src = next(it)
+        o["elmore_ps"] = round(elmore(pips, sn, src), 1)
 
     unused = [(t, d, s) for t in ex.active for d, s in ex.active[t] if (t, d, s) not in ex.used_pips]
     ports_in = sorted({p["src"]["name"] for l in luts for p in l["pins"] if p["src"]["k"] == "port"})
@@ -465,13 +544,17 @@ def emit_lean(res, ns):
     L.append("  ⟨[%s], [%s]⟩" % (", ".join("lut%d" % i for i in range(len(res["luts"]))),
                               ", ".join('("%s", %s)' % (o["port"], src(o["src"])) for o in res["outs"])))
     L.append("")
-    L.append("/-- Per LUT pin, the sum of prjxray-db intrinsic delays on its route plus")
-    L.append("    the site-pin delay: (fast_min, slow_max) in ps.  NOT an Elmore delay:")
-    L.append("    the RC term (wire R/C, pip drive R, fanout) is not included. -/")
-    L.append("def pinIntrinsic : List (List (Nat × Nat)) := [")
+    L.append("/-- Per LUT pin `(lo, hi)` in ps, from prjxray-db: `lo` = sum of fast_min")
+    L.append("    intrinsic delays (pips + site pin); `hi` = sum of slow_max intrinsic")
+    L.append("    delays + the Elmore RC term (rounded up), lumped per node, fanout loads")
+    L.append("    included.  Candidate `dw` bounds for `Behaves.H_ROUTE`; not yet")
+    L.append("    cross-checked against prjxray/timing.py or the board (notes/C-11b-fasm.md). -/")
+    L.append("def pinDelay : List (List (Nat × Nat)) := [")
     rows = []
     for l in res["luts"]:
-        rows.append("  [%s]" % ", ".join("(%d, %d)" % ivl(p["pips"], p["sitepin_delay_ps"]) for p in l["pins"]))
+        rows.append("  [%s]" % ", ".join("(%d, %d)" % (ivl(p["pips"], p["sitepin_delay_ps"])[0],
+                                                     ivl(p["pips"], p["sitepin_delay_ps"])[1] + int(math.ceil(p["elmore_ps"])))
+                                         for p in l["pins"]))
     L.append(",\n".join(rows))
     L.append("]")
     L.append("")
