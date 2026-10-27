@@ -477,6 +477,7 @@ def main():
                          "on the cyclic graph (labels Fc, Rc, Hc; certs.py)")
     ap.add_argument("--only", default="", help="C-10h: comma list of rules to emit (e.g. Hc)")
     ap.add_argument("--rules10k", default="", help="C-10k: letters of FZX (rules10k.py: Fd, Z, X)")
+    ap.add_argument("--rules10l", default="", help="C-10l: letters of CK (rules10l.py: credited X/Xi/Xm, X4 ctl fork)")
     a = ap.parse_args()
     bd = pathlib.Path(a.build)
     sdf, routed, fasm = bd / f"{a.top}.sdf", bd / f"{a.top}_routed.json", bd / f"{a.top}.fasm"
@@ -693,7 +694,7 @@ def main():
             sp = certs.spec(ctl, [(dp, ph) for dp in d_pins for ph in (0, 1)],
                             two=1, noFr0=1, swStor=1, blocked=own_st)
             certs.emit_cert(cctx, Ic, L, sp, {"ctl": label, "rule": "Hc"})
-    if a.rules2 or a.rules10k:
+    if a.rules2 or a.rules10k or a.rules10l:
         import rules2                     # noqa: E402  (C-10g: rules A, E, F, J, RT_FB, 8e)
         ctx = dict(T=T, P=P, edges=edges, back=back, stops=stops, ff=ff, fr=fr, timing=timing,
                    ivl=ivl, segment=segment, out=out, meta=meta, sdf=sdf, routed=routed,
@@ -704,6 +705,9 @@ def main():
         if a.rules10k:
             import rules10k               # noqa: E402  (C-10k: Fd, Z, X)
             rules10k.emit_all(ctx, a.rules10k)
+        if a.rules10l:
+            import rules10l               # noqa: E402  (C-10l: credited X/Xi/Xm, K)
+            rules10l.emit_all(ctx, a.rules10l)
     out.close()
     print(f"extract: {len(controllers)} controllers, {len(meta)} obligations; "
           f"arcs with prjxray numbers {nfb[0]}, fallback to SDF band {nfb[1]}, "

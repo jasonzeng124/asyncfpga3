@@ -25,6 +25,13 @@ arcs dropped from the late side, `Tcheck.Late.cut`) and `pair D X PH` (per-pair
 targets: the verdict is then `Tcheck.pverdict`, proved in `Tcheck.pverdict_sound`,
 and the margin is the least pair margin).
 
+C-10l additions (credited instance, verdict `Tcheck.xverdict`, `xverdict_sound`):
+`credit X` (graph pin X, credited in phase 0), `aarc A B LO HI` (the data DAG
+launched at X, node 0 = X), `xpair DD DA X PH` (data node in the D-DAG, the same
+data node in the X-DAG, target), `acap C` / `apot ...` (the X-launched potential;
+`cap`/`pot` are then the potential with X blocked), `maxn V PH S1 P1 ...` (a
+C-element max node and the (pin, phase) sources of its group).
+
 The verdict is `Tcheck.verdict` (= decide WF && 10d's checkArr), proved sound in
 `Tcheck.verdict_sound`; margin is `Tcheck.margin` (= 10a's `slack`).
 -/
@@ -43,6 +50,13 @@ structure Pending where
   pots : Array (Nat × Nat × Nat) := #[]
   -- C-10k: per-pair targets (data node, target pin, phase); empty = cross product
   pairs : Array (Nat × Nat × Nat) := #[]
+  -- C-10l: shared-prefix credit (`credit X`) and max nodes
+  credit : Option Nat := none
+  aarcs : Array Arc := #[]
+  acap : Nat := 0
+  apots : Array (Nat × Nat × Nat) := #[]
+  xpairs : Array (Nat × Nat × Nat × Nat) := #[]
+  maxn : Array (Nat × Nat × List (Nat × Nat)) := #[]
 
 /-- The global routed graph (C-10h): one arc list per corner variant, storage flags. -/
 structure Graph where
@@ -105,6 +119,38 @@ def reportCert (g : Graph) (p : Pending) (vi : Nat) (L : Late) : String :=
   let m := match b with | some x => toString ((x : Int) - late - p.setup) | none => "none"
   let bs := match b with | some x => toString x | none => "none"
   s!"{p.label}\t{tag}\t{m}\treq=[{bs},cert]\tdata_late={late}\tarcs={p.arcs.size}"
+
+/-- C-10l: a credited obligation; the verdict is `Tcheck.xverdict` (`xverdict_sound`).
+Margin = least over the pairs of min(potB - latest data from D, potA - latest data
+from X) - setup; `req=[B=..,A=..]` are those two components of the least pair. -/
+def reportX (g : Graph) (p : Pending) (vi : Nat) (L : Late) (X : Nat) : String :=
+  let size := 2 * (g.nodes + 1) + 2
+  let mk (pots : Array (Nat × Nat × Nat)) (cap : Nat) :=
+    pots.foldl (fun (A : Array Nat) (x, ph, v) => A.setIfInBounds (enc L x ph) v) (Array.replicate size cap)
+  let i : XInst := { dagD := ⟨p.arcs.toList⟩, dagA := ⟨p.aarcs.toList⟩, setup := p.setup, late := L,
+                     e := enc L X 0, potB := mk p.pots p.cap, capB := p.cap,
+                     potA := mk p.apots p.acap, capA := p.acap,
+                     maxg := p.maxn.toList.map (fun (v, ph, ss) => (enc L v ph, ss.map fun (a, b) => enc L a b)),
+                     pairs := p.xpairs.toList }
+  let G := g.arcs.getD vi []
+  let stor := fun x => g.stor.getD x false
+  let wf := decide i.dagD.WF && decide i.dagA.WF
+  let v := xverdict stor G i
+  let tag := if !wf then "ILLFORMED" else if v then "PASS"
+    else if !pot2OKb L stor G i.maxg i.e i.potBf i.potAf then "CERTBAD" else "FAIL"
+  let TD := winTable i.dagD
+  let TA := winTable i.dagA
+  let ms := p.xpairs.toList.map fun (dD, dA, x, ph) =>
+    let t := enc L x ph
+    let b : Int := match getW TD dD with
+      | some (_, l) => (i.potBf t : Int) - l - p.setup | none => 1000000000
+    let a : Int := match getW TA dA with
+      | some (_, l) => (i.potAf t : Int) - l - p.setup | none => 1000000000
+    (min a b, b, a)
+  let (m, bB, bA) := match ms with
+    | [] => (0, 0, 0)
+    | x :: r => r.foldl (fun (acc y : Int × Int × Int) => if y.1 < acc.1 then y else acc) x
+  s!"{p.label}\t{tag}\t{m}\treq=[B={bB},A={bA},pairs={p.xpairs.size},max={p.maxn.size}]\tdata_late=-\tarcs={p.arcs.size}+{p.aarcs.size}"
 
 def flag (s : String) : Bool := s == "1"
 
@@ -185,6 +231,44 @@ partial def loop (h : IO.FS.Stream) (g : Graph) (cur : Option Pending) (n : Nat)
     match parseNat! d, parseNat! x, parseNat! ph with
     | .ok d, .ok x, .ok ph => loop h g (some { p with pairs := p.pairs.push (d, x, ph) }) n out
     | _, _, _ => return .error s!"bad pair line: {line}"
+  | ["credit", x], some p =>
+    match parseNat! x with
+    | .ok x => loop h g (some { p with credit := some x }) n out
+    | .error e => return .error e
+  | ["aarc", a, b, c, d], some p =>
+    match parseNat! a, parseNat! b, parseNat! c, parseNat! d with
+    | .ok a, .ok b, .ok c, .ok d => loop h g (some { p with aarcs := p.aarcs.push ⟨a, b, c, d⟩ }) n out
+    | _, _, _, _ => return .error s!"bad aarc line: {line}"
+  | ["xpair", a, b, x, ph], some p =>
+    match parseNat! a, parseNat! b, parseNat! x, parseNat! ph with
+    | .ok a, .ok b, .ok x, .ok ph => loop h g (some { p with xpairs := p.xpairs.push (a, b, x, ph) }) n out
+    | _, _, _, _ => return .error s!"bad xpair line: {line}"
+  | ["acap", c], some p =>
+    match parseNat! c with
+    | .ok c => loop h g (some { p with acap := c }) n out
+    | .error e => return .error e
+  | "apot" :: xs, some p =>
+    match xs.mapM parseNat! with
+    | .ok ks =>
+      let rec tripA : List Nat → Array (Nat × Nat × Nat) → Option (Array (Nat × Nat × Nat))
+        | [], acc => some acc
+        | a :: b :: c :: r, acc => tripA r (acc.push (a, b, c))
+        | _, _ => none
+      match tripA ks p.apots with
+      | some ps => loop h g (some { p with apots := ps }) n out
+      | none => return .error s!"bad apot line (not tripAles): {line}"
+    | .error e => return .error e
+  | "maxn" :: v :: ph :: xs, some p =>
+    match parseNat! v, parseNat! ph, xs.mapM parseNat! with
+    | .ok v, .ok ph, .ok ks =>
+      let rec prsM : List Nat → List (Nat × Nat) → Option (List (Nat × Nat))
+        | [], acc => some acc.reverse
+        | a :: b :: r, acc => prsM r ((a, b) :: acc)
+        | _, _ => none
+      match prsM ks [] with
+      | some ss => loop h g (some { p with maxn := p.maxn.push (v, ph, ss) }) n out
+      | none => return .error s!"bad maxn line (sources not pairs): {line}"
+    | _, _, _ => return .error s!"bad maxn line: {line}"
   | ["cap", c], some p =>
     match parseNat! c with
     | .ok c => loop h g (some { p with cap := c }) n out
@@ -203,7 +287,9 @@ partial def loop (h : IO.FS.Stream) (g : Graph) (cur : Option Pending) (n : Nat)
   | ["end"], some p =>
     match p.late with
     | none => out.putStrLn (report p)
-    | some (vi, L) => out.putStrLn (reportCert g p vi L)
+    | some (vi, L) => match p.credit with
+      | some X => out.putStrLn (reportX g p vi L X)
+      | none => out.putStrLn (reportCert g p vi L)
     out.flush
     loop h g none (n + 1) out
   | _, _ => return .error s!"unexpected line: {line.trimAscii}"
