@@ -95,3 +95,13 @@ logic (xor_settle_late); only the static bound survives (net_settle_static).
 A GLS run equals the pure-delay run iff every fire copies the value its own
 change set (saf_eq_delay_iff) -- checkable by a monitor in prims.v.
 Running: XSim, Env (protocol environment model).
+### progress 03:37
+PROGRAM.md updated by the owner (arbiter = digital race, primary; 48-h plan).
+Shard A phase 1/2 launched: Core Substrate consolidation (one ℕ-ps API, the
+corner model as the delay model, ℝ bridge), the κ estimator tool, and the
+whole-design X/hazard audit executable (xaudit). SAF (phase 2 item) already done.
+Mathlib builder stopped and Log.Basic dropped from REQUESTS: building
+Analysis.* from source on 4 cores costs hours and risks OOM next to 3 Lean
+slots (one OOM kill already); it only served the optional involution exp/log
+instance, which stays with exp/log as named hypotheses (ExpLog).
+FEASIBILITY.md: verdicts for tracks 1-11 and 13 in; track 12 pending (C).
