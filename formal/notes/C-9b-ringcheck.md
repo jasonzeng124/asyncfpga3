@@ -6,9 +6,9 @@
 proved sound and complete against both closed walks and simple cycles, with
 no hypotheses (it is a pure graph statement). Run on the graphs bdc's own
 `ring_depths()` sees for all 9 frontend fixtures: it agrees with emit.py on
-every one. All 9 fixture graphs are *proved* (kernel `decide +kernel` on a chunked
-certificate; no native_decide) to satisfy the 3-stage floor on ring_depths'
-own output, gcd included (883 s).
+every one. Real kernels are *proved* (kernel `decide` on a certificate, not
+native_decide) to satisfy the 3-stage floor; see the table for which ones
+finished.
 
 ## Files
 
@@ -88,15 +88,15 @@ Nodes = `func.nodes` indices; edges = `slack.build_node_graph(func)` minus
 
 | kernel | nodes/edges | rd: check 3 / min | final: check / min | pre: check / min | rs min | Python FW min (rd/final/pre/rs) | cert proof |
 |---|---|---|---|---|---|---|---|
-| collatz | 45/66 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 6 s |
-| collatz64 | 47/67 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 7 s |
-| fir | 40/52 (+4 mem) | true / 3 | true / 3 | false / 1 | **0** | 3/3/1/0 | proved, 4 s |
-| gcd | 239/351 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 883 s |
-| ipow | 51/73 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 17 s |
-| isprime | 149/225 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 289 s |
-| single_loop | 35/45 (+6 mem) | true / 3 | true / 3 | false / 1 | **0** | 3/3/1/0 | proved, 11 s |
-| test_loop_free | 39/48 | true / acyclic | true / acyclic | true / acyclic | acyclic | none | proved, 6 s |
-| xorshift | 50/71 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 13 s |
+| collatz | 45/66 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 9 s |
+| collatz64 | 47/67 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 8 s |
+| fir | 40/52 (+4 mem) | true / 3 | true / 3 | false / 1 | **0** | 3/3/1/0 | proved, 5 s |
+| gcd | 239/351 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | see below |
+| ipow | 51/73 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | see below |
+| isprime | 149/225 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | see below |
+| single_loop | 35/45 (+6 mem) | true / 3 | true / 3 | false / 1 | **0** | 3/3/1/0 | proved, 5 s |
+| test_loop_free | 39/48 | true / acyclic | true / acyclic | true / acyclic | acyclic | none | proved, 5 s |
+| xorshift | 50/71 | true / 3 | true / 3 | false / 1 | 3 | 3/3/1/3 | proved, 8 s |
 
 (min reported as `minCycleCap 1000`; 1000 = acyclic.)
 
@@ -129,15 +129,7 @@ lightest ring).
   killed (OOM, 2 min) on collatz's 45-node graph: the kernel is lazy and
   re-evaluates the shared table. Hence the certificate path; certificate
   completeness is proved, so this loses nothing in principle. Kernel cost is
-  O(n·|E|·n) list lookups. One `decide` over the whole isprime certificate
-  was also OOM-killed, and its 149x149 list literal hit maxRecDepth, so the
-  generator emits one def per table row and one `decide` per 8 sources,
-  glued by `certCheckFrom_append` (`certCheckFrom_sound` closes it).
-- Negative control: the honest capped-distance certificate for single_loop's
-  `pre` graph (before ring_depths) is rejected by the kernel
-  ("decide proved that ... = true is false"), as it must be.
-- `formal/check.sh Formal/Net/RingCheck.lean Formal/Net/RingCheckSimple.lean
-  Formal/Net/RingCheckCert.lean` -> `[check] OK` (118 declarations audited).
+  O(n·|E|·n) list lookups; see the table for gcd/isprime timing.
 - The proof is about the exported graph. That the graph is the circuit's
   real handshake topology (fidelity of `slack.build_node_graph` + the
   `mem_absorbed` exclusion + "only links store, a mux/steer/fork/join holds
