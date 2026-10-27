@@ -33,8 +33,8 @@ cp "$B"/fork.txt "$B"/loop.txt "$B"/input.txt "$FIX/"
 export PATH=$HOME/.elan/bin:$PATH
 cd "$LEAN"; export LEAN_PATH=$PWD/.lake/build/lib/lean
 O=.lake/build/lib/lean/Formal/Timing
-python3 ../scan.py Formal/Timing/WinArray.lean Formal/Timing/Routed*.lean || fail=1
-for m in WinArray RoutedCePairS1Fork RoutedCePairS1Loop RoutedCePairS1Input RoutedCePair; do
+python3 ../scan.py Formal/Timing/WinArray*.lean Formal/Timing/Routed*.lean || fail=1
+for m in WinArray WinArrayB RoutedCePairS1Fork RoutedCePairS1Loop RoutedCePairS1Input RoutedCePair; do
     s=$(date +%s)
     ../slot.sh lean -o $O/$m.olean Formal/Timing/$m.lean > "$B/$m.log" 2>&1 \
         && echo "  ok  Formal/Timing/$m.lean ($(( $(date +%s) - s )) s incl. slot wait)" \
@@ -43,7 +43,7 @@ done
 cat > "$B/ax.lean" <<'LEAN'
 import Formal.Timing.RoutedCePair
 LEAN
-grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/WinArray.lean | sed 's/.*theorem /#print axioms Formal.Timing./' >> "$B/ax.lean"
+grep -ho '^theorem [A-Za-z0-9_]*' Formal/Timing/WinArray.lean Formal/Timing/WinArrayB.lean | sed 's/.*theorem /#print axioms Formal.Timing./' >> "$B/ax.lean"
 grep -o '^theorem [A-Za-z0-9_]*' Formal/Timing/RoutedCePair.lean | sed 's/.*theorem /#print axioms Formal.Timing.Routed./' >> "$B/ax.lean"
 ../slot.sh lean "$B/ax.lean" > "$B/ax.log" 2>&1
 if grep -q "sorryAx\|ofReduceBool\|ofReduceNat\|error" "$B/ax.log" || grep "depends on axioms" "$B/ax.log" \

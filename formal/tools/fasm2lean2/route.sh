@@ -40,6 +40,16 @@ PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" --part "$PART" \
     --bitread "$TC/openxc7/bin/bitread" "$B.bit" > "$B.fromBit.fasm" 2> "$B.bit2fasm.log"
 echo "bit $(sha256sum "$B.bit" | cut -c1-16)  $(grep -vc '^\s*$' "$B.fromBit.fasm") features read back"
+# The flattened yosys netlist of link_arb, trimmed to the top module (the full
+# JSON carries the cells_sim library, ~10 MB): compose.py checks the Lean
+# composition (LinkArb.insts) of 11a's per-cell netlists against it.
+python3 - "$B.json" > "$FIX/link_arb.synth.json" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1]))["modules"]["link_arb"]
+keep = {n: {k: c[k] for k in ("type", "parameters", "port_directions", "connections")}
+        for n, c in m["cells"].items() if c["type"] != "$scopeinfo"}
+print(json.dumps({"ports": m["ports"], "cells": keep}, indent=1, sort_keys=True))
+PY
 # The placement HINT (cell -> BEL) from nextpnr's routed JSON: used ONLY to
 # propose the state-net renaming `rho` that the Lean proof then checks; the
 # netlist itself is never taken from it (a wrong hint makes the proof fail).

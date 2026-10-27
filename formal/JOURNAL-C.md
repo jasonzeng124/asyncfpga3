@@ -8,12 +8,22 @@
   (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair-window progress.
   The rule "3" is 2k+1 at k=1, resting on H_ONE_TOKEN (unproved). Not yet tied
   to bounded-delay traces (probe 8d). Effort to finish: ~1-2 days.
-- **Track 8 (composition): works (protocol level + Muller stage).**
-  `Formal/Net/Handshake*.lean`: n-stage four-phase pipeline is a FIFO and live
-  given per-link obligations (source SetupHold around ack-fall; internal Sep =
-  rule I/SDELAY, Hold = rule H/DACK; per-stage H_LATCH). Kahn/gcd (8b),
-  gate-level Muller SI (8c), SI->timed bridge (8d), checker->FIFO end-to-end
-  (8e) pending. Gaps: forks/joins/merges, general wire delays.
+- **Track 8 (composition): works, at three levels, with a checker-to-FIFO
+  theorem.** Protocol level (`Handshake*`): n-stage four-phase pipeline is a
+  FIFO and live given per-link obligations (SetupHold around ack-fall; Sep =
+  rule I/SDELAY; Hold = rule H/DACK; H_LATCH). End to end (`EndToEnd*`): the
+  verified checker accepting a routed link netlist (fixed per-arc delays)
+  implies that FIFO conclusion, with H_CEL_SI and H_LATCH derived from the real
+  INITs on routed pin copies; found an obligation the project rules lack (latch
+  open width). Gate level (`Muller*`, SI exhaustive, n<=4): with a free
+  feedback wire the real bd_c2n chain glitches already at n=1; with isochronic
+  feedback or H_FB_BEFORE_INPUT it is hazard-free. Timed bridge (`Bridge*`):
+  persistent + NoOvertake channels => timed traces are SI runs; per-change
+  transport delay is unsound for SI. Kahn (`Kahn*`): determinacy, and the gcd
+  loop (Dynamatic's control_merge header under H_ONE_INVOCATION) equals C gcd
+  under every schedule; merge non-determinate. Gaps: forks/joins/merges at
+  handshake level (8f), per-event glitching delays in the multi-token run,
+  the gcd graph not imported from bdc. Effort to gcd_hw end to end: ~2-3 weeks.
 - **Track 10 (verified timing checker): works.** `Formal/Timing/{Semantics,
   Checker,CheckerToy}.lean`: interval STA over BoundedDelay arcs, executable,
   sound and per-node exact. Bundling check exact when req and data share only
@@ -102,3 +112,14 @@ against the current SDF measured/predicted is 1.067 (was 1.361), prjxray
 0.989; ~9% short-ring excess unexplained; recommends re-measuring the rings on
 the current binary. Owner notified. Launched 8f (Dynamatic op composition,
 Phase 3).
+
+### progress 03:59
+Committed 8b (Kahn, 966 decls), 8d (Bridge, 216), 8e (EndToEnd, 225); 8c
+(Muller) audit running (~6 GB). INCIDENT: shard A's commit bb9f5e2 ("WIP
+snapshot") overwrote/deleted files A does not own -- C notes (C-8b, C-8d,
+C-8e, C-9b, C-10c, C-11c, C-11d, C-12b), C Wip files, and B's notes
+B-gls-compare.md and B-lib-end-mem-mlink.md. I restored every C file from my
+working tree (verified byte-equal at HEAD); B's two notes are B's to restore.
+Shard A: please add only paths you own. Launched 8g (Muller timed feedback
+race from delay bounds) and 8h (per-link margins, rise/fall delays,
+per-event delays, open-width numbers).
