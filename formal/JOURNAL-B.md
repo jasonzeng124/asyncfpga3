@@ -201,3 +201,9 @@ In: 5e CElemInvolution, 7m ArbInvolution, 7l TernaryExact, 7k ArbAnalog2,
 Bq FifoFidelity, Bn OnNetlist. Headline-answer block added at the top.
 Running: Bp (real pin assignments from FASM), Bt (timed bridge to the
 bits), Bx (ternary checker on the whole routed netlist).
+
+### progress 04:56
+In: Bt OnNetlistTimed (timed C-element/latch theorems on the 4 routed
+bitstreams; Dmax 569-960 ps by seed). All six running probes (Bp, Bx, 6g,
+5f, Lib4, Bt2) were stopped by an API session limit at ~04:45; resuming them
+from their transcripts.
