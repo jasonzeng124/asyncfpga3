@@ -35,7 +35,11 @@
   level). Circuit level (`Capstone*`, 8l): every op cell gcd_hw uses has an operator
   theorem; every gcd_hw cycle carries >= 3 links (bdc's placement); safety
   proved conditional on a token-equation solution; hypothesis list in
-  formal/notes/C-gcd_hw-hypotheses.md. Closing it: 8m (safety), 8n (liveness). Muller
+  formal/notes/C-gcd_hw-hypotheses.md. `gcd_hw_circuit_safe` (8m): every run of the concrete 465-channel
+  network latches only Nat.gcd a b on out0 under H_CELLS, H_BUNDLE and
+  H_CM_FORCED (O1, being discharged by 8q). Liveness: pipelines and single
+  rings proved with linear bounds (8n, 8o); gcd_hw liveness needs the
+  arbiters to be uncontended (no bounded arbitration time on this fabric). Muller
   timed (`MullerTimed*`): the feedback condition derived from delay bounds,
   exact (converse witness), n<=3; on shipped placements it is
   placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
@@ -296,3 +300,10 @@ and 10k (unchecked capstone timing hypotheses as tcheck rows on gcd_hw).
 n<=3 by certificates. gcd_hw liveness blocker named: the 8 arbitrated
 control_merges need a no-contention proof (no bounded arbitration time on
 this fabric) -- to follow 8m's O1.
+
+### progress 08:12
+10k committed (capstone timing hypotheses as tcheck rows; all pass at
+sdf/fast/slow; band-only failures listed; status merged into
+C-gcd_hw-hypotheses.md). 8m committed: gcd_hw_circuit_safe (audit 2649).
+Launched 10l (shared-prefix credit, max-node, X4/M3/C7 rows) and 8q (O1).
+Clean rebuild: 139 modules ok, 0 other lines.
