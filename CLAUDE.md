@@ -46,10 +46,11 @@ right and was wrong.
 - 8.5% is the median ring scatter, not a guardband.
 
 ## Simulation is not silicon
-- The post-route rules are heuristics; the intended ground truth is routed GLS
-  on an accurate delay model built from prjxray timing data (see
-  `research/PROGRAM.md`). Until that model is validated against the board's
-  measurements, the rules stay as gates.
+- The post-route rules are heuristics. The ground truth is meant to be a
+  board-fidelity GLS: prjxray delay data, a netlist built from the bitstream,
+  silicon-like glitches and metastability (see `research/PROGRAM.md`). Once it
+  reproduces the board's measurements and failures, passing it is what counts
+  and the rules stop being gates. Until then, the rules stay as gates.
 - Zero-delay RTL sim proves very little here. The strongest evidence available
   without the board is `cells/gls/`: the routed design, simulated with its
   routed delays. It must print `ANNOTATE_DONE` with no SDF warning or error.

@@ -21,7 +21,13 @@ evidence stronger:
   async latch, stale operands) as regression tests, wherever they can be
   reproduced without a board.
 
-## The audits are heuristics; an accurate GLS is the ground truth (owner, 2026-10-27)
+## THE priority: a board-fidelity gate-level simulation (owner, 2026-10-27)
+
+The owner considers this the most important thing for developing without a
+board. It comes before every speed lead. Give it the main thread, and the most
+subagents, until it is done. Other work only fills idle cores.
+
+### The audits are heuristics; an accurate GLS is the ground truth
 
 The post-route rules (A/E/F/H/I/J, `tighten.py`, `skew.py`) are heuristics:
 fast screens that say where to look and propose sizes. The ground truth is
@@ -60,13 +66,45 @@ Build it:
   What is left over becomes the scatter that GLS injects, and the measured
   ring scatter remains a floor.
 
-Once it is validated, a design is verified when routed GLS on the new model
-passes at the slow and fast corners, with the measured residual injected as
-scatter, on at least 8 seeds. A rule violation on a route whose accurate GLS
-passes is no longer a blocker. Record it as a disagreement and work out which
-one is wrong; a negative control that GLS must catch is the way to decide. A
-GLS failure blocks, whatever the rules say. Until the model is validated, keep
-the current gates exactly as they are.
+Delay is not the only gap. A board-fidelity sim also needs:
+- **The netlist the board actually runs.** Build the simulation netlist from
+  the FASM or bitstream (with prjxray-db's segbits; look at existing fasm2bels
+  work first) rather than from nextpnr's routed JSON. Three of the four worst
+  bugs here were in the bitstream, where the netlist, the SDF and every
+  simulation were correct. `fasm_audit.py` checks LUTs and DSPs only. A sim
+  built from the FASM covers routing and every other bit.
+- **Glitches and pulses as silicon has them.** Wires are already transport
+  delays (`prims.v`). LUTs, MUXF7/8 and FF clock/SR pins still use iverilog
+  module-path (inertial) delays, which swallow narrow pulses. A LUT is evaluated
+  as a zero-time mux tree, so its internal hazards on multi-input changes are
+  not modelled. Model what the silicon does (look for published LUT hazard
+  behaviour), or show that no C-element or latch in the library depends on it.
+- **Metastability.** The arbiter and synchronizers resolve in zero time in sim.
+  Model near-simultaneous arrivals: random resolution time, or X, both
+  choices exercised.
+- **Within-die variation.** Use correlated per-region scatter plus per-wire
+  random scatter, both sized from the ring data, not a single global scale.
+
+### Acceptance: the sim must reproduce the board
+Before the sim is trusted, it has to reproduce what silicon already showed,
+from the same bitstreams or rebuilt identical routes:
+- **timings:** the ring periods (n=128) and the board-measured kernel timings,
+  within the measured scatter;
+- **failures:** each August failure that was observed on silicon, simulated
+  from the failing bitstream: gcd's livelock (the lut-pinmap bug), abs going
+  negative, the gcd_bench_gen hang (the async latch corrupting the state
+  register), the DSP products gated to zero, isprime's late read. A sim that
+  passes a bitstream the board failed is not board-fidelity.
+
+Write down each mismatch, then fix the model, not the test.
+
+### Once it passes acceptance
+A design is verified when this sim passes it: slow and fast corners, the
+measured residual as scatter, at least 8 seeds, and derived oracles. **The
+rules then do not matter.** They are possibly-inaccurate heuristics. Use them
+to propose sizes and to say where to look, and never as a gate. Remove rule
+gates from the ship path (keep the scripts as tools). A GLS failure always
+blocks. Until acceptance is met, keep the current gates exactly as they are.
 
 ## Goals, in strict priority order
 
