@@ -1120,3 +1120,18 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   [fast min, slow max] band on long rings, 0.25-0.58 on short ones. A fixed band position reproduces the measured
   0.938 slope and +309 of the +988 ps offset. Model spread is about half the measured ring scatter.
 - Not shown: per-ring agreement, a full GLS run on the new SDF (only ANNOTATE_DONE/0 warnings on ro_top and gcd).
+### progress 03:28 (F2: GLS netlist from the bitstream -- equivalent on BQ#3's route)
+- `cells/gls/fid/fasm2net.py`: .bit -> bitread/bit2fasm (8 s) -> per-sink upstream trace over active pips, pseudo
+  pips, tileconn joins and default IMUX pseudo pips -> nextpnr-shaped JSON that gen.py runs unchanged, plus the
+  SDF re-keyed onto bels. Site models SLICEL/M (LUT6/5, F7/F8, CARRY4, FF), BUFGCTRL, BUFHCE, OLOGIC, IOB33, BSCAN;
+  latch/LUTRAM/DSP/BRAM refused, not guessed. Every configured feature not consumed is listed (none on gcd_hw).
+  fasm2frames/xc7frames2bit of the shipped FASM is byte-identical to the shipped payload.
+- BQ#3 route (bit b40e4e41, json f9c4597d, sdf 61e14755): `fasm_equiv.py` EQUIVALENT -- 10136/10136 LUT functions,
+  all 34975 driver->sink pairs, 12092/12092 nets with the same pip set; GLS from the bits 16/16, all SUMMARY lines
+  byte-identical to the routed-JSON GLS; gate ANNOTATE_DONE, 0 SDF warn/err.
+- Negative control: the *real* unpatched lut-pinmap writer changes 58 INITs on this route but 0 functions (every
+  run-together pin is on GND, on all 19 gcd_hw routes in scratch) -- the August bug cannot recur from today's flow.
+  Injecting its mechanism on live pins (97 pins / 81 LUTs under ucmpi*): fasm_equiv NOT EQUIVALENT (81 functions),
+  FASM-built GLS 0/16 (no gcd completes; the August "absent result" signature) while routed-JSON GLS stays 16/16.
+  Hard-test caveat: an injection, not the August bitstream (none archived).
+- Not shown: delays (still nextpnr's), DSP/latch sites, corners/scatter on the FASM netlist, other designs.
