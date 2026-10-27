@@ -588,6 +588,22 @@ def kernel_vectors(name):
         # 113383 no trajectory leaves int32 (kernels/README.md).
         vecs += [dict(n=rng.randrange(2, 20000))
                  for _ in range(KERNEL_EXTRA_VECTORS)]
+    elif name == "collatz64":
+        # The 64-bit kernel exists for trajectories that leave int32, so draw
+        # n whose trajectory peak exceeds 2^31 (and stays well inside 2^63);
+        # simcheck's three vectors have only one (113383).
+        def peak(n):
+            m = n
+            while n != 1:
+                n = n >> 1 if n % 2 == 0 else 3 * n + 1
+                m = max(m, n)
+            return m
+        extra = []
+        while len(extra) < KERNEL_EXTRA_VECTORS:
+            n = rng.randrange(100000, 3000000)
+            if (1 << 31) < peak(n) < (1 << 60):
+                extra.append(dict(n=n))
+        vecs += extra
     elif name == "isprime":
         vecs += [dict(n=rng.randrange(2, 2000))
                  for _ in range(KERNEL_EXTRA_VECTORS)]
