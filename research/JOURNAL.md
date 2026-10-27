@@ -1063,3 +1063,14 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
 - After the restart `cells/verify/toolchain.sh` failed with its default TC path (resolved to a /home/jayjay
   path); with TC=/root/dev2/lib/fpgatoolchain it passes, nextpnr 9c732bc6303458df, unchanged.
 - collatz64 ratchet restarted at it1 (T1 = it0 merge: rule E 3-6 per seed on all 8, rule A 0).
+### progress 01:47 (skew.py walk fix; strict stays opt-in)
+- skew.py's level walk let a seeded storage output (or the launch at level 0) be re-relaxed through its own cell arc
+  inside the same level, overwriting its tab entry and predecessor; replays then broke and t_c fell back to 0. Fix:
+  skip seeded nodes inside their level (2 tests, both fail with the skip removed). On 96 routes / 12918 walks:
+  t_req, t_sel, t_c, guarded margins and every verdict unchanged; only the padding target (req_knob) moves on 122
+  rows. check.sh's rule E gate output is byte-identical.
+- Consequence: isprime ucond_br16's lap (54 violated rows) now names a knob, so --select-pads would ask 4 links on
+  ulink_n78 (isprime_dsp1_pad5 s21). The subagent recommends making --own-gate-laps-off-strict the default.
+  **Not done:** that would relax a safety audit on static evidence only (no GLS or board test of the lap argument);
+  over-padding only costs isprime latency, which is not a claimed number. Strict stays opt-in until a routed-GLS
+  negative control shows a lap row can be ignored safely.
