@@ -7,7 +7,8 @@
 #   formal/check.sh            # whole project
 #   formal/check.sh --committed   # only git-tracked files under Formal/ (lake build + audit)
 #   formal/check.sh FILE...    # only these files (paths relative to formal/lean),
-#                              # checked with `lake env lean`, then audited
+#                              # checked with `lake env lean` (oleans go to .lake/checkfile,
+#                              # never .lake/build, so lake's traces stay valid), then audited
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 export PATH="$HOME/.elan/bin:$PATH"
@@ -29,8 +30,8 @@ grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] 
 mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g' | sort)
 else
   for f in "${FILES[@]}"; do
-    echo "[check] lean $f"; mkdir -p ".lake/build/lib/lean/$(dirname "$f")"
-    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env lean -o ".lake/build/lib/lean/${f%.lean}.olean" "$f" > ".lake/check-file.log" 2>&1 || { grep -E 'error' .lake/check-file.log | head -20; echo "[check] FAIL: $f"; fail=1; }
+    echo "[check] lean $f"; mkdir -p ".lake/checkfile/$(dirname "$f")"
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/.lake/checkfile:$LEAN_PATH" exec lean -o ".lake/checkfile/${1%.lean}.olean" "$1"' sh "$f" > ".lake/check-file.log" 2>&1 || { grep -E 'error' .lake/check-file.log | head -20; echo "[check] FAIL: $f"; fail=1; }
   done
   mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
 fi
@@ -59,7 +60,7 @@ LEAN
 } > .lake/audit/Audit.lean
 echo "[check] axiom audit"
 if [ $fail -eq 0 ]; then
-  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env lean .lake/audit/Audit.lean || { echo "[check] FAIL: audit"; fail=1; }
+  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/.lake/checkfile:$LEAN_PATH" exec lean .lake/audit/Audit.lean' || { echo "[check] FAIL: audit"; fail=1; }
 fi
 [ $fail -eq 0 ] && echo "[check] OK" || echo "[check] FAILED"
 exit $fail

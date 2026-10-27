@@ -134,3 +134,20 @@ available for bd_arb/bd_merge/bd_mux SI models (A is not modelling the arbiter, 
 leave the digital race to B). Kernel memory limits Env at ~1000 states (2-bit
 link > 6 GB); launched EnvFast (bit-packed Nat states, GMP kernel ops, proved-once
 checker over an untrusted certificate).
+### progress 04:23
+xaudit claimed (Phase 2 A): `lake build xaudit`; `bash formal/tools-A/xaudit/run_all.sh`
+with XAUDIT=formal/lean/.lake/build/bin/xaudit. Verified engine (array simulator proved
+equal to XSim.val; untimed A/B equal to Ternary iterA/iterB; noX_sound); parser and
+compiled code trusted (kernel re-check of the bd_c2 verdict in XAudit/Check.lean).
+pipe3 (bd_pipe W=2 N=3, illustrative ±10% bands) clean at one corner; hold-violation
+negative control flagged; slow own-feedback flags C-element glitches (obligation
+"own feedback < fastest neighbour response", not found as a rule in tighten.py);
+untimed: the Muller pipe is not delay-insensitive (expected). ring3: imprecision after
+one lap (FIFO-aware domain needed). gcd_hw blocked: no routed JSON on disk, no FPGA
+toolchain in this container.
+Build fixes: (1) the root module Formal was never built (lakefile globs "Formal.+"
+does not include Formal itself) -- full-mode check.sh could not have passed its audit
+import; now globs = ["Formal", "Formal.+"]. (2) check.sh file mode wrote hand-built
+oleans into .lake/build, which broke lake's C linking of xaudit; it now writes to
+.lake/checkfile. Clean rebuild: 1540 jobs, 4m37s. Full `formal/check.sh`: 9003
+declarations audited, OK.

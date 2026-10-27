@@ -11,5 +11,7 @@ run pipe3_slow_corner        designs/pipe3.json --stim designs/pipe3.stim.json -
 run pipe3_holdviol_slow_corner designs/pipe3.json --stim designs/pipe3_holdviol.stim.json --bands designs/slow_corner.bands.json
 run pipe3_slowfb             designs/pipe3.json --stim designs/pipe3.stim.json --bands designs/slowfb.bands.json
 run pipe3_default_bands      designs/pipe3.json --stim designs/pipe3.stim.json
+run bd_c2_kcheck             ../../tools/import/json/bd_c2.json --stim designs/bd_c2_kcheck.stim.json --bands designs/kcheck.bands.json
+run pipe3_crosscheck         designs/pipe3.json --stim designs/pipe3.stim.json --bands designs/slow_corner.bands.json --crosscheck
 run ring3_slow_corner        designs/ring3.json --stim designs/ring3.stim.json --bands designs/slow_corner.bands.json
 for j in ../../tools/import/json/*.json; do n=$(basename "$j" .json); "$X" "$j" > "results/cell_$n.txt"; echo "cell $n: exit $? ($(grep -c STORAGE "results/cell_$n.txt") storage)"; done

@@ -15,7 +15,7 @@ mkdir -p "$OUT/c"
 cd "$LEAN_DIR"
 # proved dependencies (already built by lake: only C is emitted here)
 DEPS="Formal/Core/Kleene Formal/Core/Lut Formal/Core/Circuit Formal/Core/Trace/Discrete Formal/Core/XSim Formal/Core/Ternary"
-MINE="Formal/Core/XAudit/Design Formal/Core/XAudit/Untimed Formal/Core/XAudit/Main"
+MINE="Formal/Core/XAudit/Design Formal/Core/XAudit/Untimed Formal/Core/XAudit/Fast Formal/Core/XAudit/Main"
 # The proved dependencies are re-elaborated privately (olean + C into $OL /
 # $OUT) with lake's module setup (package `formal`), so that every module
 # agrees on symbol names; lake's own build tree is only read.
