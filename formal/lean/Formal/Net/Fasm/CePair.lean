@@ -2,6 +2,7 @@ import Formal.Net.Fasm.CePairS1
 import Formal.Net.Fasm.CePairS2
 import Formal.Net.Fasm.CePairS3
 import Formal.Net.Fasm.CePairS4
+import Formal.Net.CoreLut
 
 /-!
 # Track 11b: the ROUTED bd_c2 -> bd_c2n pair, read from the FASM, is the logical pair
@@ -162,6 +163,14 @@ theorem q1_follow_hold_s1_ps {ins : Nat → Trace} {out : Nat → LOut → Trace
 `bd_c2` LUT give the same Kleene value (81 cases). -/
 theorem q1_kleene_s1 (x0 x1 x2 x3 : K3) :
     lutK CePairS1.lut1.init [x0, x1, x2, x3, .f, .f] = lutK INIT_c2 [x3, x2, x0, x1, .f, .f] := by
+  cases x0 <;> cases x1 <;> cases x2 <;> cases x3 <;> decide
+
+/-- `q1_kleene_s1` in shard A's Core Kleene semantics (`Lut.keval` on
+`Formal.Core.K3`, probe 11e). Same 81 cases; this is the form that survives the
+deletion of shard B's Prelim. -/
+theorem q1_kleene_s1_core (x0 x1 x2 x3 : Formal.Core.K3) :
+    Formal.Net.CoreLut.kevalL CePairS1.lut1.init [x0, x1, x2, x3, .zero, .zero] =
+      Formal.Net.CoreLut.kevalL INIT_c2 [x3, x2, x0, x1, .zero, .zero] := by
   cases x0 <;> cases x1 <;> cases x2 <;> cases x3 <;> decide
 
 end Formal.Net.Fasm.CePair

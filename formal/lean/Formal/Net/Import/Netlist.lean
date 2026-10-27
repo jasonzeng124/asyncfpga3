@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Net.CoreLut
 
 /-!
 # Track 11a: imported netlists and their generic interpreter
@@ -13,11 +13,16 @@ pads `synth_xilinx` inserts at a top level, and every pin -> net connection.
 This file is the hand-written half: the data types and ONE interpreter, used
 for every cell, parametric in the value domain:
 
-* `boolSem`   LUTs read by `Formal.Cells.lutB` (binary),
-* `kleeneSem` LUTs read by `Formal.Cells.lutK` (Kleene closure,
-  hypothesis H_KLEENE_LUT of `Formal.Cells.Prelim`).
+* `boolSem`   LUTs read by shard A's Core `Lut.eval` (`Formal.Net.CoreLut.evalL`),
+* `kleeneSem` LUTs read by Core `Lut.keval` (`kevalL`, the Kleene mux tree,
+  hypothesis H_KLEENE_LUT), values in `Formal.Core.K3`.
 
-`LUT6_2` follows `Prelim`: `O6 = lut INIT [I0..I5]`, `O5 = lut (INIT mod 2^32)
+(Probe 11e moved this file off shard B's `Formal.Cells.Prelim`;
+`Formal.Net.CoreLutPrelim` proves the two semantics equal, and
+`Formal.Net.Import.PrelimSem` keeps the Prelim-valued reading for the theorems
+that compare with B's still-Prelim transcriptions.)
+
+`LUT6_2` follows Core's `Lut62`: `O6 = lut INIT [I0..I5]`, `O5 = lut (INIT mod 2^32)
 [I0..I4]`. `IBUF`/`OBUF` are identity (hypothesis **H_PAD_IDENTITY**: a pad
 buffer is a zero-delay wire; it only appears because the cell is synthesized
 as a top level, and in a real design the cell is flattened into its context
@@ -42,7 +47,7 @@ imported netlist is well formed on that input.
 -/
 
 namespace Formal.Net.Import
-open Formal.Cells
+open Formal.Net.CoreLut
 
 /-- Primitive pins (UNISIM names). -/
 inductive Pin where
@@ -90,8 +95,8 @@ structure Sem (V : Type) where
   lut : Nat → List V → V
   const : Bool → V
 
-def boolSem : Sem Bool := ⟨lutB, id⟩
-def kleeneSem : Sem K3 := ⟨lutK, K3.ofBool⟩
+def boolSem : Sem Bool := ⟨evalL, id⟩
+def kleeneSem : Sem Formal.Core.K3 := ⟨kevalL, Formal.Core.K3.ofBool⟩
 
 def inPins : Kind → List Pin
   | .lut k => [Pin.I0, .I1, .I2, .I3, .I4, .I5].take k

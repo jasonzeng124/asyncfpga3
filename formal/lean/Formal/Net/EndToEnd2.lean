@@ -37,7 +37,7 @@ of `ack_out` in `C(req, ~ack)` is in the node function, after the pin.
 -/
 
 namespace Formal.Net.PerLink
-open Formal.Net Formal.Net.Handshake Formal.Net.EndToEnd Formal.Timing Formal.Cells
+open Formal.Net Formal.Net.Handshake Formal.Net.EndToEnd Formal.Timing
 
 /-- Per-run delay bounds of one control path, by edge: rise in `[rl, rh]`,
 fall in `[fl, fh]`. -/

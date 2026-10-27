@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Net.CoreLut
 
 /-!
 # Probe 11d: generated netlists of the whole cell library, and their interpreter
@@ -14,13 +14,20 @@ the library synthesizes to.
 `formal/notes/C-11d-gen.md`)
 
 Every primitive is evaluated through ONE table-lookup function `Sem.lut`, so
-the binary (`lutB`) and Kleene (`lutK`, hypothesis H_KLEENE_LUT of
-`Formal.Cells.Prelim`) readings come from the same code:
+the binary and Kleene readings come from the same code. Both are shard A's Core
+semantics (`Formal.Core.Lut`, read on a Nat INIT and a pin list by
+`Formal.Net.CoreLut`): binary `evalL` (= `Lut.eval`), Kleene `kevalL`
+(= `Lut.keval`, the mux tree with `K3.merge` on an `X` select, hypothesis
+H_KLEENE_LUT), values in `Formal.Core.K3`. (Probe 11e moved this file off shard
+B's `Formal.Cells.Prelim`; `Formal.Net.CoreLutPrelim` proves the two equal and
+`Formal.Gen.PrelimSem` keeps the Prelim-valued reading for the theorems that
+compare with B's still-Prelim transcriptions.)
 
-* `LUTk`, `LUT6_2`: the INIT table (`O5` = lower 32 bits over I0..I4), as in
-  `Formal.Cells.Prelim` (shard B).
+* `LUTk`, `LUT6_2`: the INIT table (`O5` = lower 32 bits over I0..I4), as
+  Core's `Lut62`.
 * `MUXF7`, `MUXF8`: a 2:1 mux `S ? I1 : I0` (table `MUX_INIT`). The Kleene
-  reading is `K3.mux`, which is how H_KLEENE_LUT models a pass-transistor mux.
+  reading is `kmux` (Core's mux-tree node), which is how H_KLEENE_LUT models a
+  pass-transistor mux.
 * `CARRY4`: the cells_sim.v equations, gate by gate: carry-in `CI | CYINIT`,
   `CO[i] = S[i] ? c[i] : DI[i]` (a mux), `O[i] = S[i] xor c[i]`. (H_CARRY4_SIM:
   the silicon's CYINIT is a static mux, not an OR; they agree whenever one of
@@ -59,7 +66,7 @@ certifies that the netlist is well formed there.
 -/
 
 namespace Formal.Gen
-open Formal.Cells
+open Formal.Net.CoreLut
 
 /-- Primitive pins (UNISIM names, multi-bit CARRY4 pins bit-blasted). `M` is
 the synthetic master node of a flip-flop; `other` names an opaque cell's pins. -/
@@ -120,15 +127,10 @@ structure Sem (V : Type) where
   lut : Nat → List V → V
   const : Bool → V
 
-/-- Decidability of `∀` over `K3` (local; `Formal.Cells.Prelim` has none). -/
-instance K3.decForall {P : K3 → Prop} [DecidablePred P] : Decidable (∀ k, P k) :=
-  if h : P .f ∧ P .t ∧ P .x then
-    isTrue (fun k => by cases k <;> simp_all)
-  else
-    isFalse (fun H => h ⟨H _, H _, H _⟩)
-
-def boolSem : Sem Bool := ⟨lutB, id⟩
-def kleeneSem : Sem K3 := ⟨lutK, K3.ofBool⟩
+/-- Binary reading: Core `Lut.eval`. -/
+def boolSem : Sem Bool := ⟨evalL, id⟩
+/-- Kleene reading (H_KLEENE_LUT): Core `Lut.keval` on `Formal.Core.K3`. -/
+def kleeneSem : Sem Formal.Core.K3 := ⟨kevalL, Formal.Core.K3.ofBool⟩
 
 /-! ## Primitive tables -/
 
@@ -152,31 +154,31 @@ def LDPE_INIT : Nat := 0xEFFFEAAA
 
 /-- The tables are the equations of the module doc (checked exhaustively). -/
 theorem prim_tables :
-    (∀ a b s : Bool, lutB MUX_INIT [a, b, s] = (if s then b else a)) ∧
-    (∀ a b : Bool, lutB OR2_INIT [a, b] = (a || b)) ∧
-    (∀ a : Bool, lutB NOT_INIT [a] = !a) ∧
-    (∀ a b : Bool, lutB XOR2_INIT [a, b] = (a ^^ b)) ∧
-    (∀ c ce x d q m : Bool, lutB FFQ_SYNC [c, ce, x, d, q, m] = (if c then m else q)) ∧
-    (∀ c ce d r q m : Bool, lutB FDRE_M [c, ce, d, r, q, m] =
+    (∀ a b s : Bool, evalL MUX_INIT [a, b, s] = (if s then b else a)) ∧
+    (∀ a b : Bool, evalL OR2_INIT [a, b] = (a || b)) ∧
+    (∀ a : Bool, evalL NOT_INIT [a] = !a) ∧
+    (∀ a b : Bool, evalL XOR2_INIT [a, b] = (a ^^ b)) ∧
+    (∀ c ce x d q m : Bool, evalL FFQ_SYNC [c, ce, x, d, q, m] = (if c then m else q)) ∧
+    (∀ c ce d r q m : Bool, evalL FDRE_M [c, ce, d, r, q, m] =
         (if c then m else if r then false else if ce then d else q)) ∧
-    (∀ c ce d s q m : Bool, lutB FDSE_M [c, ce, d, s, q, m] =
+    (∀ c ce d s q m : Bool, evalL FDSE_M [c, ce, d, s, q, m] =
         (if c then m else if s then true else if ce then d else q)) ∧
-    (∀ c ce clr d q m : Bool, lutB FDCE_Q [c, ce, clr, d, q, m] =
+    (∀ c ce clr d q m : Bool, evalL FDCE_Q [c, ce, clr, d, q, m] =
         (if clr then false else if c then m else q)) ∧
-    (∀ c ce clr d q m : Bool, lutB FDCE_M [c, ce, clr, d, q, m] =
+    (∀ c ce clr d q m : Bool, evalL FDCE_M [c, ce, clr, d, q, m] =
         (if clr then false else if c then m else if ce then d else q)) ∧
-    (∀ c ce pre d q m : Bool, lutB FDPE_Q [c, ce, pre, d, q, m] =
+    (∀ c ce pre d q m : Bool, evalL FDPE_Q [c, ce, pre, d, q, m] =
         (if pre then true else if c then m else q)) ∧
-    (∀ c ce pre d q m : Bool, lutB FDPE_M [c, ce, pre, d, q, m] =
+    (∀ c ce pre d q m : Bool, evalL FDPE_M [c, ce, pre, d, q, m] =
         (if pre then true else if c then m else if ce then d else q)) ∧
-    (∀ clr d g ge q : Bool, lutB LDCE_INIT [clr, d, g, ge, q] =
+    (∀ clr d g ge q : Bool, evalL LDCE_INIT [clr, d, g, ge, q] =
         (if clr then false else if g && ge then d else q)) ∧
-    (∀ pre d g ge q : Bool, lutB LDPE_INIT [pre, d, g, ge, q] =
+    (∀ pre d g ge q : Bool, evalL LDPE_INIT [pre, d, g, ge, q] =
         (if pre then true else if g && ge then d else q)) := by
   decide +kernel
 
-/-- The Kleene mux of H_KLEENE_LUT is exactly `K3.mux` (MUXF7/F8, CARRY4's CO). -/
-theorem mux_kleene : ∀ a b s : K3, lutK MUX_INIT [a, b, s] = K3.mux s a b := by
+/-- The Kleene mux of H_KLEENE_LUT is exactly `kmux` (MUXF7/F8, CARRY4's CO). -/
+theorem mux_kleene : ∀ a b s : Formal.Core.K3, kevalL MUX_INIT [a, b, s] = kmux s a b := by
   decide +kernel
 
 /-! ## Pins and the cell function -/

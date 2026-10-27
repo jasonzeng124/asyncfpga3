@@ -1,4 +1,5 @@
 import Formal.Gen.Cells
+import Formal.Gen.PrelimSem
 import Formal.Cells.Latch
 import Formal.Cells.LinkHandshake
 import Formal.Cells.Bundling
@@ -52,7 +53,7 @@ theorem bd_latch_rst_W2_R2_lut :
 
 /-- The odd bit is B's `latK` (LinkHandshake, Kleene) and `bmux` (binary). -/
 theorem bd_latch_W1_gate_K : ∀ d en q : K3,
-    bd_latch_W1.gateN kleeneSem "odd.u" .O [("d", d), ("en", en), ("q", q)] =
+    bd_latch_W1.gateN kleeneSemP "odd.u" .O [("d", d), ("en", en), ("q", q)] =
       some (Formal.Cells.LinkHandshake.latK d en q) := by decide +kernel
 theorem bd_latch_W1_gate_B : ∀ d en q : Bool,
     bd_latch_W1.gateN boolSem "odd.u" .O [("d", d), ("en", en), ("q", q)] = some (bmux en d q) := by
@@ -62,8 +63,8 @@ theorem bd_latch_W1_gate_B : ∀ d en q : Bool,
 one bit's pins never reaches the other (B's `pair_o5_kleene`/`pair_o6_kleene`). -/
 theorem bd_latch_W2_gate_K : ∀ d0 en q0 d1 q1 : K3,
     let env := [("d[0]", d0), ("en", en), ("q[0]", q0), ("d[1]", d1), ("q[1]", q1)]
-    bd_latch_W2.gateN kleeneSem "pair[0].u" .O5 env = some (K3.mux en q0 d0) ∧
-    bd_latch_W2.gateN kleeneSem "pair[0].u" .O6 env = some (K3.mux en q1 d1) := by decide +kernel
+    bd_latch_W2.gateN kleeneSemP "pair[0].u" .O5 env = some (K3.mux en q0 d0) ∧
+    bd_latch_W2.gateN kleeneSemP "pair[0].u" .O6 env = some (K3.mux en q1 d1) := by decide +kernel
 
 theorem latch_iface :
     bd_latch_W3.inputNames = ["d[0]", "d[1]", "d[2]", "en"] ∧
@@ -78,7 +79,7 @@ theorem bd_latch_W3_next : ∀ d0 d1 d2 en q0 q1 q2 : Bool,
     bd_latch_W3.outs boolSem [d0, d1, d2, en] [q0, q1, q2] = some [q0, q1, q2] := by decide +kernel
 
 theorem bd_latch_W2_next_K : ∀ d0 d1 en q0 q1 : K3,
-    bd_latch_W2.next kleeneSem [d0, d1, en] [q0, q1] = some [K3.mux en q0 d0, K3.mux en q1 d1] := by
+    bd_latch_W2.next kleeneSemP [d0, d1, en] [q0, q1] = some [K3.mux en q0 d0, K3.mux en q1 d1] := by
   decide +kernel
 
 theorem bd_latch_rst_W2_R2_next : ∀ d0 d1 en rst q0 q1 : Bool,
@@ -122,11 +123,11 @@ theorem delay_inits_core :
 /-- In steady state every line passes its input, Kleene included (an X on `a`
 is an X on `z`, never a definite value); the gated line passes `a . gate`. -/
 theorem delay_outs : ∀ a g : K3,
-    bd_delay_N0.outs kleeneSem [a] [] = some [a] ∧
-    bd_delay_N3.outs kleeneSem [a] [] = some [a] ∧
-    bd_delay_N3_FF.outs kleeneSem [a] [] = some [a] ∧
-    bd_delay_N3_FR.outs kleeneSem [a] [] = some [a] ∧
-    bd_delay_gated_N3.outs kleeneSem [a, g] [] =
+    bd_delay_N0.outs kleeneSemP [a] [] = some [a] ∧
+    bd_delay_N3.outs kleeneSemP [a] [] = some [a] ∧
+    bd_delay_N3_FF.outs kleeneSemP [a] [] = some [a] ∧
+    bd_delay_N3_FR.outs kleeneSemP [a] [] = some [a] ∧
+    bd_delay_gated_N3.outs kleeneSemP [a, g] [] =
       some [lutK Formal.Cells.Bundling.FF_SIDE [lutK Formal.Cells.Bundling.FF_SIDE [a, g], g]] := by
   decide +kernel
 
@@ -150,7 +151,7 @@ theorem bd_datamux_W3_outs : ∀ a0 a1 a2 b0 b1 b2 s : Bool,
 /-- Kleene, the pair: each bit is `K3.mux s a b`, bits independent. -/
 theorem bd_datamux_W3_pair_K : ∀ s a0 b0 a1 b1 : K3,
     let env := [("s", s), ("a[0]", a0), ("b[0]", b0), ("a[1]", a1), ("b[1]", b1)]
-    bd_datamux_W3.gateN kleeneSem "pair[0].u" .O5 env = some (K3.mux s a0 b0) ∧
-    bd_datamux_W3.gateN kleeneSem "pair[0].u" .O6 env = some (K3.mux s a1 b1) := by decide +kernel
+    bd_datamux_W3.gateN kleeneSemP "pair[0].u" .O5 env = some (K3.mux s a0 b0) ∧
+    bd_datamux_W3.gateN kleeneSemP "pair[0].u" .O6 env = some (K3.mux s a1 b1) := by decide +kernel
 
 end Formal.Gen.ProofsLatch

@@ -1,4 +1,5 @@
 import Formal.Gen.Cells
+import Formal.Gen.PrelimSem
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
 import Formal.Cells.LinkHandshake
@@ -35,7 +36,7 @@ theorem bd_link_ctl_gate_B : ∀ r n c rst : Bool,
     bd_link_ctl.gateN boolSem "u.u" .O [("req_in", r), ("c_next", n), ("c", c), ("rst", rst)] =
       some (ctlB r n c rst) := by decide +kernel
 theorem bd_link_ctl_gate_K : ∀ r n c rst : K3,
-    bd_link_ctl.gateN kleeneSem "u.u" .O [("req_in", r), ("c_next", n), ("c", c), ("rst", rst)] =
+    bd_link_ctl.gateN kleeneSemP "u.u" .O [("req_in", r), ("c_next", n), ("c", c), ("rst", rst)] =
       some (Formal.Cells.CElemFn.c2nK r n c rst) := by decide +kernel
 theorem bd_link_ctl_next : ∀ r n rst c : Bool,
     bd_link_ctl.inputNames = ["req_in", "c_next", "rst"] ∧

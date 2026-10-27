@@ -1,12 +1,14 @@
-import Formal.Cells.Prelim
-import Formal.Cells.CElemFn
+import Formal.Net.CoreLut
+import Formal.Core.LutCells
 
 /-!
 # Track 8, probe 8c: the `bd_pipe` control chain at gate level, speed-independence
 
 Probe 8c asks for composition at GATE level: the project's real C-element
 (`bd_c2n` of `cells/rtl/bd_ce.v`, one LUT6 whose output feeds its own pin I2,
-INIT `0x00B200B200B200B2`, evaluated with shard B's `lutB`) connected into the
+INIT `0x00B200B200B200B2`, evaluated with shard A's Core `Lut.eval`, i.e.
+`Formal.Net.CoreLut.evalL`; probe 11e moved it off shard B's Prelim `lutB`,
+equal by `Formal.Net.CoreLutPrelim.lutB_eq_evalL`) connected into the
 control chain the cells really form.
 
 ## The chain (from `cells/rtl/bd_link.v`, default build, no `BD_LINK_DC`)
@@ -42,8 +44,8 @@ does the finite-state, speed-independent level instead:
   delay: in any state, ANY excited node may fire (flip to its next value),
   one at a time (interleaving). This is speed-independent / delay-insensitive
   semantics: no assumption at all on gate or wire delays. Each node's next
-  value is the real LUT applied to the bits at its pins (`lutB INIT_c2n` for
-  `c`, `lutB 2` for the LUT1).
+  value is the real LUT applied to the bits at its pins (`evalL INIT_bd_c2n` for
+  `c`, `evalL 2` for the LUT1).
 * `Mode`: how the feedback wire is treated.
   - `free`: feedback wire is an ordinary wire with arbitrary delay. EXPECTED
     to fail, and it does (`free_hazard_n1`, `free_hazard_n2`): this is the
@@ -86,7 +88,7 @@ the soundness proof uses.
 -/
 
 namespace Formal.Net.Muller
-open Formal.Cells
+open Formal.Net.CoreLut
 
 /-! ## Nodes -/
 
@@ -106,6 +108,13 @@ inductive Mode where
 
 def get (s i : Nat) : Bool := s.testBit i
 
+/-- The `bd_c2n` INIT, as shard A's `Formal.Core.LutCells` extracts it from
+`cells/rtl/bd_ce.v` (= shard B's `CElemFn.INIT_c2n` and the yosys netlist's:
+`Formal.Gen.ProofsCE.bd_c2n_lut`, `ce_inits_lutcells`). -/
+def INIT_bd_c2n : Nat := Formal.Core.LutCells.bd_c2n_u.init
+
+theorem INIT_bd_c2n_val : INIT_bd_c2n = 0x00B200B200B200B2 := rfl
+
 /-- The LUT1 of `bd_delay` (`INIT 2'h2`): a buffer. -/
 def INIT_buf : Nat := 2
 
@@ -124,8 +133,8 @@ def nextVal (m : Mode) (n s i : Nat) : Bool :=
   else
     let k := (i - 2) / 4
     match (i - 2) % 4 with
-    | 0 => lutB CElemFn.INIT_c2n [pinA s k, pinB n s k, pinQ m s k, false, false, false]
-    | 1 => lutB INIT_buf [get s (c k)]
+    | 0 => evalL INIT_bd_c2n [pinA s k, pinB n s k, pinQ m s k, false, false, false]
+    | 1 => evalL INIT_buf [get s (c k)]
     | 2 => get s (c k)
     | _ => if m = .iso then get s i else get s (c k)
 
@@ -162,7 +171,7 @@ def enabled (m : Mode) (n s i : Nat) : Bool :=
 def Step (m : Mode) (n s s' : Nat) : Prop := ∃ i, enabled m n s i = true ∧ s' = fire s i
 
 /-- Reachable from reset (`rst` pulse leaves every node at 0: `bd_c2n` is a
-clearing cell, `c2n_rst_forced` of `CElemFn`, and the buffers/wires follow). -/
+clearing cell, `c2n_rst_forced` of shard B's `CElemFn`, and the buffers/wires follow). -/
 inductive Reach (m : Mode) (n : Nat) : Nat → Prop
   | init : Reach m n 0
   | step {s s'} : Reach m n s → Step m n s s' → Reach m n s'

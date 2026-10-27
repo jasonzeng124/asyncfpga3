@@ -70,7 +70,7 @@ pin, ...).
 -/
 
 namespace Formal.Net.EndToEnd
-open Formal.Net Formal.Net.Handshake Formal.Timing Formal.Cells
+open Formal.Net Formal.Net.Handshake Formal.Timing Formal.Net.CoreLut
 
 /-! ## Change counts -/
 
@@ -329,9 +329,10 @@ end PinLink
 /-! ## The latch cell -/
 
 /-- `bd_latch`, odd-bit LUT6 (and the O5 half of the pair): INIT `B8B8…`,
-pins `[I0 = d, I1 = en, I2 = q]`. -/
+pins `[I0 = d, I1 = en, I2 = q]`. LUT semantics: shard A's Core `Lut.eval`
+(`Formal.Net.CoreLut`; probe 11e moved it off shard B's Prelim `lutB`). -/
 def INIT_latch : Nat := 0xB8B8B8B8B8B8B8B8
-def latchF (d en q : Bool) : Bool := lutB INIT_latch [d, en, q, false, false, false]
+def latchF (d en q : Bool) : Bool := evalL INIT_latch [d, en, q, false, false, false]
 
 theorem latchF_eq : ∀ d en q : Bool, latchF d en q = if en then d else q := by decide
 
@@ -339,8 +340,8 @@ theorem latchF_eq : ∀ d en q : Bool, latchF d en q = if en then d else q := by
 outputs are the same transparent-latch function, on bits `i` (O5) and `i+1` (O6). -/
 def INIT_latch2 : Nat := 0xFF33CC00B8B8B8B8
 theorem latch_pair : ∀ d0 en q0 d1 q1 : Bool,
-    o5B INIT_latch2 [d0, en, q0, d1, q1, true] = (if en then d0 else q0) ∧
-    o6B INIT_latch2 [d0, en, q0, d1, q1, true] = (if en then d1 else q1) := by decide
+    o5L INIT_latch2 [d0, en, q0, d1, q1, true] = (if en then d0 else q0) ∧
+    o6L INIT_latch2 [d0, en, q0, d1, q1, true] = (if en then d1 else q1) := by decide
 
 /-- One latch bit with enable pin `p (t - g)` and D pin `D (t - w)`: closed by
 a node fall at `e` after an open phase `(r, e]` long enough for the enable pin

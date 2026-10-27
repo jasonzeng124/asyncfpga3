@@ -11,11 +11,21 @@ HERE=$(cd "$(dirname "$0")" && pwd); REPO=$(cd "$HERE/../../.." && pwd)
 S=$1; SRC=$REPO/formal/tools/tcheck/build/tree_$S/cells/build/hw/gcd_hw
 D=$HERE/build/gcd/s$S; mkdir -p "$D"
 grep -q "fasm_audit PASS" "$REPO/formal/tools/tcheck/build/build_$S.log" || { echo "no fasm_audit PASS for seed $S"; exit 1; }
-grep -q "build_hw.sh PASS" "$REPO/formal/tools/tcheck/build/build_$S.log" || { echo "build_hw.sh not PASS for seed $S"; exit 1; }
-for f in gcd_hw.fasm gcd_hw_routed.json gcd_hw.sdf gcd_hw.bit toolchain.txt pnr.log; do cp "$SRC/$f" "$D/"; done
+for f in gcd_hw.fasm gcd_hw_routed.json gcd_hw.sdf toolchain.txt pnr.log; do cp "$SRC/$f" "$D/"; done
+PRJ=$TC/openxc7-src/prjxray; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PART=xc7z010clg400-1
+if grep -q "build_hw.sh PASS" "$REPO/formal/tools/tcheck/build/build_$S.log" && [ -f "$SRC/gcd_hw.bit" ]; then
+    cp "$SRC/gcd_hw.bit" "$D/"
+else
+    # 10e's build stopped after fasm_audit PASS (its bitstream step died): write the bits here,
+    # exactly as build_hw.sh does (fasm2frames -> xc7frames2bit)
+    echo "seed $S: writing the bitstream here (10e's build_hw.sh did not finish)"
+    PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore "$PRJ/utils/fasm2frames.py" \
+        --db-root "$DB" --part "$PART" "$D/gcd_hw.fasm" > "$D/gcd_hw.frames" 2> "$D/frames.log"
+    "$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/$PART/part.yaml" --part_name "$PART" \
+        --frm_file "$D/gcd_hw.frames" --output_file "$D/gcd_hw.bit" > "$D/bit.log" 2>&1
+fi
 cp "$REPO/formal/tools/tcheck/build/build_$S.log" "$D/build.log"
 head -1 "$D/toolchain.txt"
-PRJ=$TC/openxc7-src/prjxray; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PART=xc7z010clg400-1
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" --part "$PART" \
     --bitread "$TC/openxc7/bin/bitread" "$D/gcd_hw.bit" > "$D/gcd_hw.fromBit.fasm" 2> "$D/bit2fasm.log"
 sha256sum "$D"/gcd_hw.fasm "$D"/gcd_hw.fromBit.fasm "$D"/gcd_hw_routed.json "$D"/gcd_hw.sdf > "$D/sha.txt"

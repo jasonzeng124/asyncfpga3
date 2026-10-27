@@ -29,7 +29,7 @@ stopped wire stops every wire (induction both ways along the pipeline);
 -/
 
 namespace Formal.Net.Handshake
-open Formal.Net Formal.Cells
+open Formal.Net
 
 theorem bool_flip : ∀ a c b : Bool, (a == c) = b → ((!a) == c) = b → False := by decide
 

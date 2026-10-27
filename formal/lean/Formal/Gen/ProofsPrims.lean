@@ -16,7 +16,7 @@ yosys's and the fabric's business), nor any timing.
 -/
 
 namespace Formal.Gen.ProofsPrims
-open Formal.Cells Formal.Gen Formal.Gen.Cells
+open Formal.Net.CoreLut Formal.Gen Formal.Gen.Cells
 
 /-- CARRY4 (two of them, the second only for the carry out): `s = a + b + ci`,
 all 512 inputs. -/
@@ -34,10 +34,11 @@ theorem prims_muxf8_spec : ∀ d, d < 16 → ∀ sel, sel < 4 →
     prims_muxf8.outs boolSem (bitsOf 4 d ++ bitsOf 2 sel) [] = some [d.testBit sel] := by
   decide +kernel
 
-/-- The Kleene reading of a MUXF7/MUXF8 is `K3.mux` (H_KLEENE_LUT's mux). -/
-theorem prims_muxf_kleene : ∀ a b s : K3,
-    prims_muxf8.gateN kleeneSem "u0" .O [("l[0]", a), ("l[1]", b), ("sel[0]", s)] = some (K3.mux s a b) ∧
-    prims_muxf8.gateN kleeneSem "u2" .O [("m0", a), ("m1", b), ("sel[1]", s)] = some (K3.mux s a b) := by
+/-- The Kleene reading of a MUXF7/MUXF8 is `kmux` (H_KLEENE_LUT's mux, Core
+`K3`; the pre-port Prelim form is `Formal.Gen.prims_muxf_kleene_prelim`). -/
+theorem prims_muxf_kleene : ∀ a b s : Formal.Core.K3,
+    prims_muxf8.gateN kleeneSem "u0" .O [("l[0]", a), ("l[1]", b), ("sel[0]", s)] = some (kmux s a b) ∧
+    prims_muxf8.gateN kleeneSem "u2" .O [("m0", a), ("m1", b), ("sel[1]", s)] = some (kmux s a b) := by
   decide +kernel
 
 theorem prims_ff_iface :
@@ -45,23 +46,23 @@ theorem prims_ff_iface :
     prims_ff.stateNames = ["qr", "qs", "qc", "qp", "qp$master", "qc$master", "qs$master", "qr$master"] ∧
     prims_ff.cellNames.length = 4 := by decide +kernel
 
-theorem ffq_sync : ∀ c ce x d q m : Bool, lutB FFQ_SYNC [c, ce, x, d, q, m] = (if c then m else q) := by
+theorem ffq_sync : ∀ c ce x d q m : Bool, evalL FFQ_SYNC [c, ce, x, d, q, m] = (if c then m else q) := by
   decide
 theorem fdre_m : ∀ c ce d r q m : Bool,
-    lutB FDRE_M [c, ce, d, r, q, m] = (if c then m else if r then false else if ce then d else q) := by
+    evalL FDRE_M [c, ce, d, r, q, m] = (if c then m else if r then false else if ce then d else q) := by
   decide
 theorem fdse_m : ∀ c ce d s q m : Bool,
-    lutB FDSE_M [c, ce, d, s, q, m] = (if c then m else if s then true else if ce then d else q) := by
+    evalL FDSE_M [c, ce, d, s, q, m] = (if c then m else if s then true else if ce then d else q) := by
   decide
 theorem fdce_q : ∀ c ce clr d q m : Bool,
-    lutB FDCE_Q [c, ce, clr, d, q, m] = (if clr then false else if c then m else q) := by decide
+    evalL FDCE_Q [c, ce, clr, d, q, m] = (if clr then false else if c then m else q) := by decide
 theorem fdce_m : ∀ c ce clr d q m : Bool,
-    lutB FDCE_M [c, ce, clr, d, q, m] = (if clr then false else if c then m else if ce then d else q) := by
+    evalL FDCE_M [c, ce, clr, d, q, m] = (if clr then false else if c then m else if ce then d else q) := by
   decide
 theorem fdpe_q : ∀ c ce pre d q m : Bool,
-    lutB FDPE_Q [c, ce, pre, d, q, m] = (if pre then true else if c then m else q) := by decide
+    evalL FDPE_Q [c, ce, pre, d, q, m] = (if pre then true else if c then m else q) := by decide
 theorem fdpe_m : ∀ c ce pre d q m : Bool,
-    lutB FDPE_M [c, ce, pre, d, q, m] = (if pre then true else if c then m else if ce then d else q) := by
+    evalL FDPE_M [c, ce, pre, d, q, m] = (if pre then true else if c then m else if ce then d else q) := by
   decide
 
 /-- The four flip-flops, one unit step (H_FF_MS: master-slave), by symbolic
@@ -75,10 +76,10 @@ theorem prims_ff_next (c ce r d qr qs qc qp mp mc ms mr : Bool) :
             if c then ms else if r then true else if ce then d else qs,
             if c then mr else if r then false else if ce then d else qr] := by
   have h : prims_ff.next boolSem [c, ce, r, d] [qr, qs, qc, qp, mp, mc, ms, mr] =
-      some [lutB FFQ_SYNC [c, ce, d, r, qr, mr], lutB FFQ_SYNC [c, ce, d, r, qs, ms],
-            lutB FDCE_Q [c, ce, r, d, qc, mc], lutB FDPE_Q [c, ce, r, d, qp, mp],
-            lutB FDPE_M [c, ce, r, d, qp, mp], lutB FDCE_M [c, ce, r, d, qc, mc],
-            lutB FDSE_M [c, ce, d, r, qs, ms], lutB FDRE_M [c, ce, d, r, qr, mr]] := rfl
+      some [evalL FFQ_SYNC [c, ce, d, r, qr, mr], evalL FFQ_SYNC [c, ce, d, r, qs, ms],
+            evalL FDCE_Q [c, ce, r, d, qc, mc], evalL FDPE_Q [c, ce, r, d, qp, mp],
+            evalL FDPE_M [c, ce, r, d, qp, mp], evalL FDCE_M [c, ce, r, d, qc, mc],
+            evalL FDSE_M [c, ce, d, r, qs, ms], evalL FDRE_M [c, ce, d, r, qr, mr]] := rfl
   rw [h, ffq_sync, ffq_sync, fdce_q, fdpe_q, fdpe_m, fdce_m, fdse_m, fdre_m]
 
 /-- **Edge semantics.** Clock low for one step, then high: from ANY state,

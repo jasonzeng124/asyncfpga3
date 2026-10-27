@@ -1,4 +1,5 @@
 import Formal.Net.Import.Cells
+import Formal.Net.Import.PrelimSem
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
 import Formal.Cells.ArbKleene
@@ -25,7 +26,8 @@ transfers to the synthesized netlist by rewriting; `arbiter_kleene_exclusion`
 below does exactly that for the arbiter.
 
 Hypotheses in force (all in the semantics, see `Netlist.lean`):
-* H_KLEENE_LUT (Kleene theorems only) as in `Formal.Cells.Prelim`;
+* H_KLEENE_LUT (Kleene theorems only) as in `Formal.Cells.Prelim` (read through
+  `kleeneSemP`, `Formal.Net.Import.PrelimSem`; = Core `Lut.keval` by `kleeneSemP_lut`);
 * H_PAD_IDENTITY: the IBUF/OBUF that `synth_xilinx` adds at a top level are
   zero-delay wires (they do not exist when the cell is used inside a design);
 * the unit-step reading: `next` is the loop's next-state function with the
@@ -79,22 +81,22 @@ theorem bd_c2_outs : ∀ a b rst q : Bool, bd_c2.outs boolSem [a, b, rst] [q] = 
 theorem bd_c2_next_B : ∀ a b rst q : Bool,
     bd_c2.next boolSem [a, b, rst] [q] = some [c2B a b q rst] := by decide +kernel
 theorem bd_c2_next_K : ∀ a b rst q : K3,
-    bd_c2.next kleeneSem [a, b, rst] [q] = some [c2K a b q rst] := by decide +kernel
+    bd_c2.next kleeneSemP [a, b, rst] [q] = some [c2K a b q rst] := by decide +kernel
 
 theorem bd_c2_set_next_spec : ∀ a b rst q : Bool,
     bd_c2_set.next boolSem [a, b, rst] [q] = some [set rst (cSpec [a, b] q)] := by decide +kernel
 theorem bd_c2_set_next_K : ∀ a b rst q : K3,
-    bd_c2_set.next kleeneSem [a, b, rst] [q] = some [c2setK a b q rst] := by decide +kernel
+    bd_c2_set.next kleeneSemP [a, b, rst] [q] = some [c2setK a b q rst] := by decide +kernel
 
 theorem bd_c2n_next_spec : ∀ a b rst q : Bool,
     bd_c2n.next boolSem [a, b, rst] [q] = some [clr rst (cSpec [a, !b] q)] := by decide +kernel
 theorem bd_c2n_next_K : ∀ a b rst q : K3,
-    bd_c2n.next kleeneSem [a, b, rst] [q] = some [c2nK a b q rst] := by decide +kernel
+    bd_c2n.next kleeneSemP [a, b, rst] [q] = some [c2nK a b q rst] := by decide +kernel
 
 theorem bd_c2n_set_next_spec : ∀ a b rst q : Bool,
     bd_c2n_set.next boolSem [a, b, rst] [q] = some [set rst (cSpec [a, !b] q)] := by decide +kernel
 theorem bd_c2n_set_next_K : ∀ a b rst q : K3,
-    bd_c2n_set.next kleeneSem [a, b, rst] [q] = some [c2nsetK a b q rst] := by decide +kernel
+    bd_c2n_set.next kleeneSemP [a, b, rst] [q] = some [c2nsetK a b q rst] := by decide +kernel
 
 theorem bd_c3_next_spec : ∀ a b c rst q : Bool,
     bd_c3.next boolSem [a, b, c, rst] [q] = some [clr rst (cSpec [a, b, c] q)] := by decide +kernel
@@ -113,7 +115,7 @@ theorem bd_latch_W3_next_spec : ∀ d0 d1 d2 en q0 q1 q2 : Bool,
 /-- W = 2, Kleene: each bit is `K3.mux en q d` (B's `pair_o5_kleene`,
 `pair_o6_kleene`): X on one bit's pins never reaches the other bit. -/
 theorem bd_latch_W2_next_K : ∀ d0 d1 en q0 q1 : K3,
-    bd_latch_W2.next kleeneSem [d0, d1, en] [q0, q1] =
+    bd_latch_W2.next kleeneSemP [d0, d1, en] [q0, q1] =
       some [K3.mux en q0 d0, K3.mux en q1 d1] := by decide +kernel
 
 theorem bd_latch_rst_W1_next_spec : ∀ d en rst q : Bool,
@@ -123,9 +125,9 @@ theorem bd_latch_rst_W1_next_spec : ∀ d en rst q : Bool,
 /-! ## `bd_arb.v` -/
 
 theorem bd_arbcell_next_K : ∀ r1 r2 rst q : K3,
-    bd_arbcell.next kleeneSem [r1, r2, rst] [q] = some [qCellK r1 r2 q rst] := by decide +kernel
+    bd_arbcell.next kleeneSemP [r1, r2, rst] [q] = some [qCellK r1 r2 q rst] := by decide +kernel
 theorem bd_arbcell_outs_K : ∀ r1 r2 rst q : K3,
-    bd_arbcell.outs kleeneSem [r1, r2, rst] [q] = some [g1K r1 r2 q, g2K r1 r2 q] := by decide +kernel
+    bd_arbcell.outs kleeneSemP [r1, r2, rst] [q] = some [g1K r1 r2 q, g2K r1 r2 q] := by decide +kernel
 
 /-- The arbiter's three loops (state `[A1, A2, q]`), binary, against the
 equations of `bd_arb.v`'s header: `q = rst + (A0 ? q : C(r1, ~r2))`, and each
@@ -142,19 +144,19 @@ theorem bd_arbiter_outs_spec : ∀ rst r1 r2 a0 a1 a2 q : Bool,
 
 /-- Kleene, all 3^7 inputs: the synthesized arbiter is B's transcription. -/
 theorem bd_arbiter_next_K : ∀ rst r1 r2 a0 a1 a2 q : K3,
-    bd_arbiter.next kleeneSem [rst, r1, r2, a0] [a1, a2, q] =
+    bd_arbiter.next kleeneSemP [rst, r1, r2, a0] [a1, a2, q] =
       some [cK (g1K r1 r2 q) a0 a1 rst, cK (g2K r1 r2 q) a0 a2 rst, qArbK r1 r2 q rst a0] := by
   decide +kernel
 
 theorem bd_arbiter_outs_K : ∀ rst r1 r2 a0 a1 a2 q : K3,
-    bd_arbiter.outs kleeneSem [rst, r1, r2, a0] [a1, a2, q] =
+    bd_arbiter.outs kleeneSemP [rst, r1, r2, a0] [a1, a2, q] =
       some [a1, a2, r0K r1 r2 q rst a0, g1K r1 r2 q, g2K r1 r2 q] := by decide +kernel
 
 /-- Transfer of a shard-B theorem to the synthesized netlist: whatever the
 (ternary) inputs and state, the imported arbiter's two grant ports are never
 both a definite 1 (B's `kleene_exclusion`, H_KLEENE_LUT). -/
 theorem arbiter_kleene_exclusion (rst r1 r2 a0 a1 a2 q : K3) (vs : List K3)
-    (h : bd_arbiter.outs kleeneSem [rst, r1, r2, a0] [a1, a2, q] = some vs) :
+    (h : bd_arbiter.outs kleeneSemP [rst, r1, r2, a0] [a1, a2, q] = some vs) :
     ¬ (vs[3]? = some .t ∧ vs[4]? = some .t) := by
   rw [bd_arbiter_outs_K] at h
   cases h

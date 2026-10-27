@@ -1,4 +1,5 @@
 import Formal.Gen.Cells
+import Formal.Gen.PrelimSem
 import Formal.Cells.CElemFn
 import Formal.Cells.CTree
 import Formal.Cells.CElemTiming
@@ -63,49 +64,49 @@ theorem bd_c2_gate_B : ∀ a b q rst : Bool,
     bd_c2.gateN boolSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] = some (c2B a b q rst) := by
   decide +kernel
 theorem bd_c2_gate_K : ∀ a b q rst : K3,
-    bd_c2.gateN kleeneSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] = some (c2K a b q rst) := by
+    bd_c2.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] = some (c2K a b q rst) := by
   decide +kernel
 theorem bd_c2_set_gate_B : ∀ a b q rst : Bool,
     bd_c2_set.gateN boolSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2setB a b q rst) := by decide +kernel
 theorem bd_c2_set_gate_K : ∀ a b q rst : K3,
-    bd_c2_set.gateN kleeneSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
+    bd_c2_set.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2setK a b q rst) := by decide +kernel
 theorem bd_c2n_gate_B : ∀ a b q rst : Bool,
     bd_c2n.gateN boolSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2nB a b q rst) := by decide +kernel
 theorem bd_c2n_gate_K : ∀ a b q rst : K3,
-    bd_c2n.gateN kleeneSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
+    bd_c2n.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2nK a b q rst) := by decide +kernel
 theorem bd_c2n_set_gate_B : ∀ a b q rst : Bool,
     bd_c2n_set.gateN boolSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2nsetB a b q rst) := by decide +kernel
 theorem bd_c2n_set_gate_K : ∀ a b q rst : K3,
-    bd_c2n_set.gateN kleeneSem "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
+    bd_c2n_set.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("q", q), ("rst", rst)] =
       some (c2nsetK a b q rst) := by decide +kernel
 theorem bd_c3_gate_B : ∀ a b c q rst : Bool,
     bd_c3.gateN boolSem "u" .O [("a", a), ("b", b), ("c", c), ("q", q), ("rst", rst)] =
       some (c3B a b c q rst) := by decide +kernel
 theorem bd_c3_gate_K : ∀ a b c q rst : K3,
-    bd_c3.gateN kleeneSem "u" .O [("a", a), ("b", b), ("c", c), ("q", q), ("rst", rst)] =
+    bd_c3.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("c", c), ("q", q), ("rst", rst)] =
       some (c3K a b c q rst) := by decide +kernel
 theorem bd_c4_gate_B : ∀ a b c d q rst : Bool,
     bd_c4.gateN boolSem "u" .O [("a", a), ("b", b), ("c", c), ("d", d), ("q", q), ("rst", rst)] =
       some (c4B a b c d q rst) := by decide +kernel
 theorem bd_c4_gate_K : ∀ a b c d q rst : K3,
-    bd_c4.gateN kleeneSem "u" .O [("a", a), ("b", b), ("c", c), ("d", d), ("q", q), ("rst", rst)] =
+    bd_c4.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("c", c), ("d", d), ("q", q), ("rst", rst)] =
       some (c4K a b c d q rst) := by decide +kernel
 theorem bd_c2_norst_gate_B : ∀ a b q : Bool,
     bd_c2_norst.gateN boolSem "u" .O [("a", a), ("b", b), ("q", q)] = some (c2norstB a b q) := by
   decide +kernel
 theorem bd_c2_norst_gate_K : ∀ a b q : K3,
-    bd_c2_norst.gateN kleeneSem "u" .O [("a", a), ("b", b), ("q", q)] = some (c2norstK a b q) := by
+    bd_c2_norst.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("q", q)] = some (c2norstK a b q) := by
   decide +kernel
 theorem bd_c3_norst_gate_B : ∀ a b c q : Bool,
     bd_c3_norst.gateN boolSem "u" .O [("a", a), ("b", b), ("c", c), ("q", q)] =
       some (c3norstB a b c q) := by decide +kernel
 theorem bd_c3_norst_gate_K : ∀ a b c q : K3,
-    bd_c3_norst.gateN kleeneSem "u" .O [("a", a), ("b", b), ("c", c), ("q", q)] =
+    bd_c3_norst.gateN kleeneSemP "u" .O [("a", a), ("b", b), ("c", c), ("q", q)] =
       some (c3norstK a b c q) := by decide +kernel
 
 /-! ## Unit-step reading of each whole netlist = B's specification
@@ -140,9 +141,9 @@ theorem bd_c3_norst_next : ∀ a b c q : Bool,
     bd_c3_norst.next boolSem [a, b, c] [q] = some [cSpec [a, b, c] q] := by decide +kernel
 /-- Kleene, whole netlist (all 3^4 inputs), against B's `c2K`. -/
 theorem bd_c2_next_K : ∀ a b rst q : K3,
-    bd_c2.next kleeneSem [a, b, rst] [q] = some [c2K a b q rst] := by decide +kernel
+    bd_c2.next kleeneSemP [a, b, rst] [q] = some [c2K a b q rst] := by decide +kernel
 theorem bd_c4_next_K : ∀ a b c d rst q : K3,
-    bd_c4.next kleeneSem [a, b, c, d, rst] [q] = some [c4K a b c d q rst] := by decide +kernel
+    bd_c4.next kleeneSemP [a, b, c, d, rst] [q] = some [c4K a b c d q rst] := by decide +kernel
 
 /-! ## Cross-checks with the other INIT constants in the tree -/
 

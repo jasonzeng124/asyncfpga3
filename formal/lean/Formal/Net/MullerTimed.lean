@@ -20,7 +20,7 @@ This file closes the gap: H_FB_BEFORE_INPUT is DERIVED from delay bounds.
 `x : Nat → Nat` (bitmask of node values at each ps). Every node `i` of the
 chain (LUT or wire, environment included) is shard C's inertial channel
 `Bridge.Inertial (lo i) (hi i)` from the zero-delay function
-`nextVal .free n (x t) i` (the real LUT of its pins: `lutB INIT_c2n`, the
+`nextVal .free n (x t) i` (the real LUT of its pins: `evalL INIT_bd_c2n`, the
 LUT1 buffer, a wire's driver; the feedback pin reads the WIRE `f k`, i.e.
 free mode, the physical network) to the node. Reset: `x 0 = 0`.
 
@@ -54,7 +54,7 @@ implies level ≥ j; and statically that every pin driver restricted by
 -/
 
 namespace Formal.Net.MullerTimed
-open Formal.Net Formal.Net.Muller Formal.Cells
+open Formal.Net Formal.Net.Muller
 open Formal.Net.Bridge (Inertial)
 
 /-! ## Node functions -/

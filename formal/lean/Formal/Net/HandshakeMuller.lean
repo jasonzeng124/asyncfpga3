@@ -1,5 +1,5 @@
 import Formal.Net.Handshake
-import Formal.Cells.Prelim
+import Formal.Net.CoreLut
 
 /-!
 # Track 8a: the Muller stage (`bd_link`, default build) meets `StageSpec`
@@ -19,7 +19,9 @@ Gate model of one stage, every assumption a named field of `MullerStage`:
 * `H_RESET`: `c 0 = 0` (rst held, then released; rst is I3 of the LUT and is
   0 for every `t` the model covers).
 * `H_CEL_SI`: at each step the C-element node either keeps its value or takes
-  the value of its LUT function, evaluated with `Formal.Cells.Prelim.lutB` on
+  the value of its LUT function, evaluated with shard A's Core `Lut.eval`
+  (`Formal.Net.CoreLut.evalL`; = shard B's Prelim `lutB` by
+  `Formal.Net.CoreLutPrelim.lutB_eq_evalL`) on
   the REAL INIT of `bd_c2n` (`64'h00B2_00B2_00B2_00B2`, pins
   `I0 = req_in, I1 = ack_out, I2 = c, I3 = rst = 0`). This is the
   speed-independent (unbounded inertial gate delay, zero wire delay) model:
@@ -41,13 +43,13 @@ Gate model of one stage, every assumption a named field of `MullerStage`:
 -/
 
 namespace Formal.Net.Handshake
-open Formal.Net Formal.Cells
+open Formal.Net Formal.Net.CoreLut
 
 /-- `bd_c2n` INIT, verbatim from `cells/rtl/bd_ce.v`. -/
 def INIT_c2n : Nat := 0x00B200B200B200B2
 
 /-- The C-element node function, from the INIT: pins `[req_in, ack_out, c, rst=0]`. -/
-def celN (r a q : Bool) : Bool := lutB INIT_c2n [r, a, q, false, false, false]
+def celN (r a q : Bool) : Bool := evalL INIT_c2n [r, a, q, false, false, false]
 
 /-- The INIT is `C(req_in, ~ack_out)` (majority with feedback). -/
 theorem celN_eq : ∀ r a q : Bool, celN r a q = ((r && !a) || (r && q) || (!a && q)) := by

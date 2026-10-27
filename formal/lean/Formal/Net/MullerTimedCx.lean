@@ -37,7 +37,7 @@ since 916) is withdrawn at 1193 without it firing: a runt on `ack_in`.
 -/
 
 namespace Formal.Net.MullerTimed
-open Formal.Net Formal.Net.Muller Formal.Cells
+open Formal.Net Formal.Net.Muller Formal.Net.CoreLut
 open Formal.Net.Bridge (Inertial)
 
 /-- Bitmask with bit `i` = `g i` for `i < N`. -/
@@ -294,9 +294,9 @@ function hazard `(1, 1, 0) ↦ 0` of the real INIT: a LUT whose I1 switches
 before I2 inside the mux tree can glitch. So the strict inequality is the
 right condition for a mux-tree LUT. -/
 theorem boundary_function_hazard :
-    lutB CElemFn.INIT_c2n [true, false, false, false, false, false] = true ∧
-    lutB CElemFn.INIT_c2n [true, true, true, false, false, false] = true ∧
-    lutB CElemFn.INIT_c2n [true, true, false, false, false, false] = false := by decide
+    evalL INIT_bd_c2n [true, false, false, false, false, false] = true ∧
+    evalL INIT_bd_c2n [true, true, true, false, false, false] = true ∧
+    evalL INIT_bd_c2n [true, true, false, false, false, false] = false := by decide
 
 /-! ## Non-vacuity of the positive theorem
 

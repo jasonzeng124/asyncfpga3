@@ -1,4 +1,5 @@
 import Formal.Gen.Cells
+import Formal.Gen.PrelimSem
 import Formal.Cells.CElemFn
 import Formal.Cells.ArbKleene
 import Formal.Cells.ArbBinary
@@ -80,21 +81,21 @@ def aEnv {V : Type} (r1 r2 q rst a0 a1 a2 g1 g2 : V) : List (String × V) :=
 
 theorem bd_arbiter_gates_K : ∀ r1 r2 q rst a0 : K3,
     let e := aEnv r1 r2 q rst a0 .f .f .f .f
-    bd_arbiter.gateN kleeneSem "ustate" .O6 e = some (qArbK r1 r2 q rst a0) ∧
-    bd_arbiter.gateN kleeneSem "ustate" .O5 e = some (r0K r1 r2 q rst a0) ∧
-    bd_arbiter.gateN kleeneSem "ugrant" .O5 e = some (g1K r1 r2 q) ∧
-    bd_arbiter.gateN kleeneSem "ugrant" .O6 e = some (g2K r1 r2 q) := by decide +kernel
+    bd_arbiter.gateN kleeneSemP "ustate" .O6 e = some (qArbK r1 r2 q rst a0) ∧
+    bd_arbiter.gateN kleeneSemP "ustate" .O5 e = some (r0K r1 r2 q rst a0) ∧
+    bd_arbiter.gateN kleeneSemP "ugrant" .O5 e = some (g1K r1 r2 q) ∧
+    bd_arbiter.gateN kleeneSemP "ugrant" .O6 e = some (g2K r1 r2 q) := by decide +kernel
 
 theorem bd_arbiter_ack_gates_K : ∀ g a0 a rst : K3,
-    bd_arbiter.gateN kleeneSem "ua1.u" .O (aEnv .f .f .f rst a0 a .f g .f) = some (cK g a0 a rst) ∧
-    bd_arbiter.gateN kleeneSem "ua2.u" .O (aEnv .f .f .f rst a0 .f a .f g) = some (cK g a0 a rst) := by
+    bd_arbiter.gateN kleeneSemP "ua1.u" .O (aEnv .f .f .f rst a0 a .f g .f) = some (cK g a0 a rst) ∧
+    bd_arbiter.gateN kleeneSemP "ua2.u" .O (aEnv .f .f .f rst a0 .f a .f g) = some (cK g a0 a rst) := by
   decide +kernel
 
 theorem bd_arbcell_gates_K : ∀ r1 r2 q rst : K3,
     let e := aEnv r1 r2 q rst .f .f .f .f .f
-    bd_arbcell.gateN kleeneSem "ustate.u" .O e = some (qCellK r1 r2 q rst) ∧
-    bd_arbcell.gateN kleeneSem "ugrant" .O5 e = some (g1K r1 r2 q) ∧
-    bd_arbcell.gateN kleeneSem "ugrant" .O6 e = some (g2K r1 r2 q) := by decide +kernel
+    bd_arbcell.gateN kleeneSemP "ustate.u" .O e = some (qCellK r1 r2 q rst) ∧
+    bd_arbcell.gateN kleeneSemP "ugrant" .O5 e = some (g1K r1 r2 q) ∧
+    bd_arbcell.gateN kleeneSemP "ugrant" .O6 e = some (g2K r1 r2 q) := by decide +kernel
 
 /-- Binary, with `rst = 0`: `ArbBinary`, `ArbHandover`, `ArbHeldTimed`. -/
 theorem bd_arb_gates_B : ∀ r1 r2 q a0 : Bool,
@@ -153,23 +154,23 @@ theorem bd_arbiter_outs_spec : ∀ rst r1 r2 a0 a1 a2 q : Bool,
 
 /-- Kleene, all 3^7 inputs. -/
 theorem bd_arbiter_next_K : ∀ rst r1 r2 a0 a1 a2 q : K3,
-    bd_arbiter.next kleeneSem [rst, r1, r2, a0] [a1, a2, q] =
+    bd_arbiter.next kleeneSemP [rst, r1, r2, a0] [a1, a2, q] =
       some [cK (g1K r1 r2 q) a0 a1 rst, cK (g2K r1 r2 q) a0 a2 rst, qArbK r1 r2 q rst a0] := by
   decide +kernel
 
 theorem bd_arbiter_outs_K : ∀ rst r1 r2 a0 a1 a2 q : K3,
-    bd_arbiter.outs kleeneSem [rst, r1, r2, a0] [a1, a2, q] =
+    bd_arbiter.outs kleeneSemP [rst, r1, r2, a0] [a1, a2, q] =
       some [a1, a2, r0K r1 r2 q rst a0, g1K r1 r2 q, g2K r1 r2 q] := by decide +kernel
 
 theorem bd_arbcell_step_K : ∀ r1 r2 rst q : K3,
-    bd_arbcell.next kleeneSem [r1, r2, rst] [q] = some [qCellK r1 r2 q rst] ∧
-    bd_arbcell.outs kleeneSem [r1, r2, rst] [q] = some [g1K r1 r2 q, g2K r1 r2 q] := by
+    bd_arbcell.next kleeneSemP [r1, r2, rst] [q] = some [qCellK r1 r2 q rst] ∧
+    bd_arbcell.outs kleeneSemP [r1, r2, rst] [q] = some [g1K r1 r2 q, g2K r1 r2 q] := by
   decide +kernel
 
 /-- B's `kleene_exclusion`, transferred: the generated arbiter's grant ports
 are never both a definite 1, whatever the ternary inputs and state. -/
 theorem arbiter_kleene_exclusion (rst r1 r2 a0 a1 a2 q : K3) (vs : List K3)
-    (h : bd_arbiter.outs kleeneSem [rst, r1, r2, a0] [a1, a2, q] = some vs) :
+    (h : bd_arbiter.outs kleeneSemP [rst, r1, r2, a0] [a1, a2, q] = some vs) :
     ¬ (vs[3]? = some .t ∧ vs[4]? = some .t) := by
   rw [bd_arbiter_outs_K] at h
   cases h

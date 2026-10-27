@@ -689,7 +689,7 @@ def main():
         open(a.report, "w").write(txt)
     sys.stdout.write("\n".join(rep[:3] + rep[ntab:ntab + 2 * len(variants) + 14]) + "\n")
     if a.json:
-        json.dump({"luts": len(luts), "ces": [{k: e[k] for k in ("site", "fb", "npaths", "slack", "resp_pins",
+        json.dump({"luts": len(luts), "ces": [{k: e[k] for k in ("site", "fb", "npaths", "slack", "dijkstra", "resp_pins",
                                                                  "worst_path", "opaque")} | {"cell": e["ce"]["cell"],
                                                                                             "mod": e["ce"]["mod"]}
                                               for e in entries],
