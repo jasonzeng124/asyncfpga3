@@ -21,13 +21,13 @@ for P in prefixes:
     cur, outpin, tot, n, seen = P + "inv", None, 0.0, 0, set()
     # inverter output pin: the IC whose dst is inside the ring
     while True:
-        nxt = [e for e in ic[cur] if e[0].startswith(P) and e[0] != cur]
+        nxt = [e for e in ic[cur] if e[0].startswith(P) and e[0] != cur and re.match(r"A[1-6]$", e[1])]
         assert len(nxt) == 1, (P, cur, nxt)
         d, dp, sp, ps = nxt[0]
         tot += ps
         outs = [k for k in iop if k[0] == d and k[1] == dp]
         # the output that feeds the next ring cell
-        nn = [e for e in ic[d] if e[0].startswith(P) and e[0] != d]
+        nn = [e for e in ic[d] if e[0].startswith(P) and e[0] != d and re.match(r"A[1-6]$", e[1])]
         o = nn[0][2]
         tot += iop[(d, dp, o)]; n += 1
         cur = d
