@@ -177,6 +177,28 @@ them).
   under bounded staleness; bd_c2's every single-input flip settles with no
   static hazard. This is a decidable, delay-independent per-cell check.
 
+### 4b. Whole-cell and whole-design checks (A, phases 1–2)
+- **Substrate** (`Core/Substrate.lean`, `Substrate/{Chan,CornerNat,Real,Legacy}.lean`;
+  guide `notes/A-substrate.md`): the one API for B and C. Delay relation
+  `Win lo hi` (fixed ⊂ transport ⊂ `WinR` ⊂ `Win`; GLS SAF ⊂ `WinR 1 d`), composes
+  with summed bounds; the corner model in ℕ ps with an endpoint check sound for
+  every real corner and real delay within κ (`endpoints_sound_real`).
+- **Timed ternary simulation** (`Core/XSim.lean`): sound for every behaviour in
+  the bands, feedback allowed; `decide +kernel` verdicts are theorems (130 gates
+  × 200 steps in 180 s).
+- **SI environment model** (`Core/Env.lean`): bd_c2, the bd_latch pair and
+  bd_link (1-bit) are speed-independent under rules H, L and isoEn, each proved
+  necessary. Limit: ~1000 states per kernel certificate (a bit-packed checker,
+  EnvFast, is in progress).
+- **xaudit** (`lake build xaudit`; `formal/tools-A/xaudit/run_all.sh`): a
+  compiled whole-design X/hazard audit whose engine is proved equal to XSim and
+  to Ternary A/B; the JSON parser and the compiler are trusted, one verdict is
+  re-checked by the kernel. On a hand-flattened 3-stage pipeline: clean at one
+  corner, hold-violation control flagged, and a C-element race flagged when
+  the cell's own feedback is slower than a neighbour's response (an obligation
+  not found among tighten.py's rules). Not run on gcd_hw yet (no routed JSON in
+  this sandbox; loops need a FIFO-aware abstract domain for precision).
+
 ### 13. Literature
 `notes/A-lit-1.md` (async/SI/DI verification, involution model,
 metastability-containing logic, arbiter theory; 40 sources) and
