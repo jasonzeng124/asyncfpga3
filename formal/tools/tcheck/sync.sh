@@ -4,7 +4,7 @@
 #   formal/tools/tcheck/sync.sh [--check]
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd); SRC=$HERE/../../lean
-MODS="Formal/Net/Prelim.lean Formal/Timing/Semantics.lean Formal/Timing/Checker.lean Formal/Timing/WinArray.lean"
+MODS="Formal/Net/Prelim.lean Formal/Timing/Semantics.lean Formal/Timing/Checker.lean Formal/Timing/WinArray.lean Formal/Timing/Unroll.lean"
 rc=0
 for m in $MODS; do
   if [ "${1:-}" = --check ]; then

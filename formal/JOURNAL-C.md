@@ -63,7 +63,8 @@
   (BLUT INIT 0x3220.. vs logical 0x00E8..), and moves delay by up to ~0.5 ns.
 - **Track 12 (other tools): works with ~1 day per tool, as a bound-finder,
   not a prover.** UPPAAL/Workcraft/TChecker/PRISM downloads blocked (403);
-  z3/SMT (12a, pending) and Storm (12b): exact delay thresholds and witness
+  z3/SMT (12a: BMC + k-induction + Spacer, unbounded per fixed delay box) and
+  Storm (12b): exact delay thresholds and witness
   traces in seconds for fixed integer delays (C-element: env min response >=
   feedback max; shipped arbiter: server latency >= ~60 ps, A0 rising skew <
   116 ps), but nothing for all delays; pure delay + spread runs out of memory.
