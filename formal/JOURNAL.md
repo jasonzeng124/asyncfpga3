@@ -251,3 +251,14 @@ current research GLS). FEASIBILITY: audit wording rows fixed (RealComplete
 discharged; pulse width limit only at threshold; transfer lemma marked NOT proved;
 rule A 1/11 is for exact division, code limit ≈25/276; 19 INIT constants/23
 theorems; Ternary transport/inertial only prose). Mathlib: cache download attempt.
+### progress 11:55
+Lit3 done (notes/A-lit-3.md; paper hosts unreachable, entries tagged by source quality;
+FEASIBILITY track 13 updated). HypDoc done: out/gcd_hw_hypotheses.md rewritten against
+the Lean (read at file:line; no Lean run, Mathlib still building). Best end-to-end
+statement: C's `gcd_hw_circuit_safe''` (CapstoneCut.lean:535) under H_CELLS, H_BUNDLE,
+H_START_ONCE, H_WALK; safety only, first rig lap only, a,b < 2^31. Findings for B/C
+(not A's files, not edited): RigContract.lean does not compile at HEAD (audit
+REPORT.md:48), so a full check.sh fails until it is fixed or moved to Wip; B's reset
+model `gNet` and the capstone's `Src` disagree on the initial request value; OpsGen's
+per-cell bindings are not applied to the 367 operators; rule K (C-10l, WIP) fails
+16-26 of 42 rows per route at every corner (meaning unconfirmed).
