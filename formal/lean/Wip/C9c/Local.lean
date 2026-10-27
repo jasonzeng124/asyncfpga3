@@ -114,23 +114,29 @@ def chkMid (m : Mode) : Bool :=
   dom.all fun a => (adj m a).all fun b => (adj m b).all fun c => types.all fun t =>
     !lenabled m a b c t ||
       (adm m a (flip b t) && adm m (flip b t) c && followL a b c t &&
-        types.all fun u => u == t || persist m a b (flip b t) c u)
+        types.all fun u => u == t || !valid b u || persist m a b (flip b t) c u)
 
 def chkLeft (m : Mode) : Bool :=
   dom.all fun z => (adj m z).all fun a => (adj m a).all fun b => (adj m b).all fun c =>
-    types.all fun t => !lenabled m a b c t || types.all fun u =>
+    types.all fun t => !lenabled m a b c t || types.all fun u => !valid a u ||
       (!lexc m z a b u || lexc m z a (flip b t) u) &&
       (!lenabled m z a b u || lenabled m z a (flip b t) u)
 
 def chkRight (m : Mode) : Bool :=
   dom.all fun a => (adj m a).all fun b => (adj m b).all fun c => (adj m c).all fun d =>
-    types.all fun t => !lenabled m a b c t || types.all fun u =>
+    types.all fun t => !lenabled m a b c t || types.all fun u => !valid c u ||
       (!lexc m b c d u || lexc m (flip b t) c d u) &&
       (!lenabled m b c d u || lenabled m (flip b t) c d u)
 
 def chkInit (m : Mode) : Bool :=
-  adm m 48 16 && adm m 16 0 && adm m 0 0 && adm m 0 32 && adm m 32 48 && adm m 16 32
+  adm m 48 16 && adm m 16 0 && adm m 0 0 && adm m 0 32 && adm m 32 48 
 
+def cxLeft (m : Mode) :=
+  dom.flatMap fun z => (adj m z).flatMap fun a => (adj m a).flatMap fun b => (adj m b).flatMap fun c =>
+    types.flatMap fun t => if !lenabled m a b c t then [] else types.filterMap fun u =>
+      if !valid a u || (!lexc m z a b u || lexc m z a (flip b t) u) &&
+      (!lenabled m z a b u || lenabled m z a (flip b t) u) then none else some (z,a,b,c,t,u)
+#eval (cxLeft .iso).take 10
 #eval [chkMid .iso, chkLeft .iso, chkRight .iso, chkInit .iso]
 #eval [chkMid .rt, chkLeft .rt, chkRight .rt, chkInit .rt]
 
