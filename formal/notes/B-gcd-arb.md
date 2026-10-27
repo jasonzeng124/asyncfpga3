@@ -8,7 +8,9 @@
 > merge10.uarb1 client 1, `drg` is understated by 75 ps (FMIN) / 211 ps (SMAX):
 > its RT1 margin is about +174 ps, not +249, at FMIN (still positive), and its
 > box need about 594 ps, not 383. The theorems are correct for the rows as
-> given; the rows are optimistic there. Not re-proved with corrected rows yet.
+> given; the rows are optimistic there. Re-proved from the corrected
+> extraction in OnGcdArbFix.lean (notes/B-gcd-arb-fix.md), which supersedes
+> this file's numbers: no corner margin changes sign.
 
 Shard B, 2026-10-27. File: `formal/lean/Formal/Cells/OnGcdArb.lean` (core Lean, 1082 lines,
 generator in the scratchpad `Bag/gen.py`). No route was rebuilt and no committed file was edited.

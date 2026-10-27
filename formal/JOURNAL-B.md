@@ -339,6 +339,22 @@ merge10.uarb1 client 1 drg -75/-211 ps). Corrected split in Bar's scratch
 extractor (a0extract.py); B-gcd-arb.md carries the correction for Bag's RT1.
 Running: Barp, Bex2, Brst, Bj2 (JSON batch 2), Bmg, Blink.
 
+### progress 12:00
+In: Bj2 cell_constraints batch 2 (129 entries, 31 exact; reset-width forms
+fixed: the old form passed at W = 917 where the real bd_c2 loses reset),
+Brst ResetGcdVec (195 of gcd_hw's 414 reset loops are at a hold vector,
+where the reset width binds and is exact; 209 forced, 10 frontier), audit
+pass 5 wording (ResetGcd on the RTL-level network), Bag2 OnGcdArbFix
+(RT1/RT1b re-proved from the corrected extraction, not C's rows: no corner
+margin changes sign; seed 2 merge10.uarb1 RT1 172/238/464/659 ps instead of
+249/333/636/872; worst +53 / +32 ps at FMIN; box need there 596 ps).
+FOR SHARD C (Bag2): C's working-tree extract.py already has the equivalent
+split fix (C-10m); RuntAckInst (16 Row literals), GrantForkInst (24 Box
+literals) and compare5 Jx (12 A0 pairs) need regenerating; no okAck/okT/okI
+verdict flips per Bag2's recomputation. OnGcdArb (old rows) stays as
+committed; OnGcdArbFix supersedes its numbers.
+Running: Barp, Bex2, Bmg, Blink, Bnet, Bsx2.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
