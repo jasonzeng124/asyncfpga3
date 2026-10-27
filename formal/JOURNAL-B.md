@@ -28,6 +28,12 @@ or ℤ ps; no R/C, no buffered vs pass-transistor pip distinction yet; per-pin
 LUT arcs only in 7e. Feedback: a routed wire with an interval.
 
 Findings for the cell owner (not confirmed on a route):
+- CORNER MIX (Bg, verified in prjxray utils/makesdf.py:63): the SDF's two
+  IOPATH groups are FAST and SLOW corners, not rise and fall. Every "56 ps
+  rise / 124 ps fall" number (bd_prims_sim.v, ARBITER.md, 7e/7h/7j/7g
+  instances) mixes corners. Theorems are parametric and stand; the numeric
+  instances are being redone at consistent corners (probe Bc).
+
 - tighten.py rule I omits the latch's I2 (feedback) pin arc; rule F omits a
   value in flight on the FASTFALL chain wire. Lean counter-traces; today the
   guardband covers both numerically.
@@ -118,3 +124,10 @@ until lake builds Core and it checks there.
 Launched: Lib1 (bd_ctl/merge/mux INITs + Kleene), Lib2 (bd_end/mem/mlink),
 7j (held arbiter, client-2 direction + non-vacuity), 6e (N-stage pipe timed).
 Running also: 7c (analog, re-created), 7d (resolution law).
+
+### progress 03:49
+In: 7j ArbHeldTimed2 (non-vacuity witness for both directions), Lib1, Lib2
+(library INIT coverage complete, no mismatches), Bg notes (GLS comparison;
+corner-mix finding verified, owner notified). Launched Bc (consistent-corner
+re-instantiation, corner sign changes), Bh (iverilog runs of the
+predictions), Lib3 (merge/mux handshake). Running also: 7c, 7d, 6e.
