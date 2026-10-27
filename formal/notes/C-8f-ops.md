@@ -9,12 +9,15 @@ SI/DI models of `bd_fork`, `bd_join` (+ every compute unit), `bd_steer`
 assume-guarantee protocol spec and its token-level (Kahn) data spec. Core
 Lean, no Mathlib, no `sorry`/`axiom`/`native_decide`. The mux invariant is a
 132-state reachable set checked by kernel `decide +kernel` (no extra axiom;
-`#print axioms mux_closed` prints none). About 1100 lines, ~3 h.
+`#print axioms mux_closed` prints none). Applied to 8b's gcd-shaped loop graph
+built from these cells: `gcd_circuit` — every token latched on `out` is
+`Nat.gcd a b`. About 1750 lines, ~2 h.
 
-Not done: the gcd-shaped network assembled from these operators (see "Open"),
-merge / control_merge (arbitrated: nondeterministic, needs an oracle stream),
-the link with an initial token, source/sink/constant as proved cells (trivial),
-liveness.
+Not done: merge / control_merge (arbitrated: nondeterministic, needs an oracle
+stream), the link with an initial token (a hypothesis in `gcd_circuit`), the
+N-way mux tree, a non-vacuity witness run, liveness. The gcd graph is 8b's
+hand-drawn one, NOT the graph bdc emits from gcd_hw's MLIR (that one has 13
+control_merges and a 3-way mux).
 
 ## Files
 
@@ -27,22 +30,33 @@ liveness.
 - `formal/lean/Formal/Net/OpsSteer.lean`: `Steer`, `steer_proto`, `steer_op`.
 - `formal/lean/Formal/Net/OpsMux.lean`: `Mux`, `tbl`, `mux_closed`, `mux_guar`,
   `mux_inv`, `mux_proto`, `mux_op`.
+- `formal/lean/Formal/Net/OpsGcd.lean`: `Sink`/`sink_op` (bd_snk), the gcd
+  network `net` (25 channels, 19 operators), its token equations `E`, the
+  explicit solution `refS` + `refS_solves`, and `gcd_circuit`.
+- `formal/lean/Wip/C8f/Axioms.lean`: `#print axioms` script (proves nothing).
 - `formal/lean/Wip/C8f/mux_reach.py`: explicit-state reachability of the mux
   model (finds the 132 states and checks the counter differences are a function
   of the state); `-lean FILE` prints the Lean table. It proves nothing; Lean
   re-checks the closure.
-- `formal/lean/Wip/C8f/MuxTest.lean`: the timing test of `decide +kernel` (scratch).
 
 ## Run
 
     cd /home/user/asyncfpga3/formal/lean && export PATH=$HOME/.elan/bin:$PATH
     export LEAN_PATH=$PWD/.lake/build/lib/lean
-    for f in Ops OpsFork OpsJoin OpsSteer OpsMux; do
+    for f in Ops OpsFork OpsJoin OpsSteer OpsMux OpsGcd; do
       ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/$f.olean Formal/Net/$f.lean; done
+    ../slot.sh lean Wip/C8f/Axioms.lean
+    # audit (file mode of the current check.sh needs the import chain listed too):
+    cd .. && ./check.sh Formal/Net/Prelim.lean Formal/Net/Handshake.lean Formal/Net/KahnLTS.lean \
+      Formal/Net/Kahn.lean Formal/Net/KahnGcd.lean Formal/Net/Ops.lean Formal/Net/OpsFork.lean \
+      Formal/Net/OpsJoin.lean Formal/Net/OpsSteer.lean Formal/Net/OpsMux.lean Formal/Net/OpsGcd.lean
+    # -> [audit] 959 declarations checked, [check] OK
 
 Times: Ops 2 s, Fork 2 s, Join 3 s, Steer 12 s (Bool case splits), Mux 20 s
-(kernel decide). Order matters (Ops first; Steer imports Fork). The lead must
-add the five modules to `Formal.lean` and `check.sh` (I don't own them).
+(kernel decide), Gcd 5 s. Order matters. The lead must add the six modules to
+`Formal.lean` (I don't own it). Note: `check.sh FILE` in its current form
+fails on a file whose `Formal.*` imports are not also listed (Lean resolves the
+`Formal` root in `.lake/checkfile` first); listing the chain works.
 
 ## The model
 
@@ -144,8 +158,9 @@ Notable facts the proofs exposed:
 - `bd_mux`'s `x_ack` can stay high across the NEXT control token (it waits for
   `z_ack↓` of a later y transaction); the model allows it and nothing breaks:
   132 states, no protocol violation, and the counters stay within ±1.
-- `bd_snk` (`ack = req` wire) violates 8a's `RecvStep` if the wire has zero
-  delay (both wires move in one step). With a DI wire (≥ 1 tick) it is fine.
+- `bd_snk` (`ack = req` wire) would violate 8a's `RecvStep` with a zero-delay
+  wire (both wires move in one step; observation, not mechanised). With a DI
+  wire (≥ 1 tick) it is proved fine (`sink_op`).
 
 ## Timing obligations (form for track 10)
 
@@ -169,11 +184,20 @@ race like 8e's `race2_sound`.
 
 ## Open
 
-1. **The gcd-shaped network** (8b's `KahnGcd.G`) assembled from these
-   operators: needs an initial-token buffer for the loop's select tokens (8b's
-   `init` store has `[0]` on `sA`/`sB`; bdc gets the first select from the
-   arbitrated control_merge instead) and a token-level lemma that every
-   solution of the gcd equations has `out 0 = gcd a b`. Est. 0.5-1 day.
+1. **gcd: done for 8b's graph, not for bdc's.** `gcd_circuit` assumes, as
+   named hypotheses: the gate models of the 15 cell instances (H_MUXA/B,
+   H_FORKA/C/AT/BT, H_ISNZ, H_JOINA/B, H_BRA/B, H_SUB, H_MIN, H_SNKA); the
+   environment (H_SRCA/B: protocol + every offered argument is `a`/`b`;
+   H_ENV_OUT); two initial-token buffers H_INITBUFA/B (8b's initial select
+   token `0`; no such cell is proved here, bdc instead gets the first select
+   from an arbitrated control_merge); H_BUNDLE on all 25 channels; the loop's
+   entry condition (b odd, a odd or 0). Proof: `net_refines_close` with an
+   explicit solution (iterates of the C loop, periodic per invocation since
+   the sources repeat). **Not shown: non-vacuity** (a run satisfying all
+   hypotheses that actually delivers a token; the all-quiet run satisfies them
+   vacuously). 8a has such a witness for the pipeline; here it is open
+   (~0.5 day, or via the timed model of 8e). The graph bdc emits for gcd_hw
+   (13 control_merges, 3-way mux) needs items 2 and 4.
 2. **control_merge / merge** (`bdc_amerge` = arbiter cascade + bd_mux):
    nondeterministic. Plan: treat the index output as an oracle stream (any
    value the arbiter picks); data spec relative to it. Determinacy then holds

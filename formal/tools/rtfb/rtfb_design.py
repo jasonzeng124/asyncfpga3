@@ -72,6 +72,112 @@ def ce_lines():
 
 
 class Ex(F.Extract):
+    """fasm2lean's Extract, plus (a) any non-slice site output as an opaque source and
+    (b) BIDIRECTIONAL pips (prjxray is_directional = 0: the long lines LV/LH) taken in
+    the reverse direction: their FASM feature names one fixed orientation, so a node on
+    the `src_wire` side can be driven THROUGH the pip from the `dst_wire` side.  The
+    reverse is used only when the node has no forward driver, and never back into a
+    node already on the walk (fasm2lean itself stops on these nodes as 'floating')."""
+    _rev = {}
+
+    def __init__(self, fab, feats, vecs, port_of_site):
+        super().__init__(fab, feats, vecs, port_of_site)
+        self.n_bidir_fixed = 0
+        if not self.BIDIR:
+            return
+        # a bidirectional pip whose FASM feature is written src.dst relative to the
+        # tile json's orientation is not recognised by fasm2lean (it lands in
+        # site_feats): register it in the json's orientation
+        keep = []
+        for f in self.site_feats:
+            parts = f.split(".")
+            if len(parts) == 3 and parts[0] in self.fab.grid:
+                tile, x, y = parts
+                j = self.fab.tt(self.fab.ttype(tile))
+                p = j["_by_name"].get((y, x))
+                if p and p.get("is_directional") == "0":
+                    self.active[tile].add((y, x)); self.n_bidir_fixed += 1
+                    continue
+            keep.append(f)
+        self.site_feats = keep
+
+    BIDIR = False   # see the notes: the reverse-direction walk was tried and gave shorts
+
+    def drivers(self, node):
+        out = super().drivers(node)
+        if out or not self.BIDIR:
+            return out
+        for t, w in node:
+            j = self.fab.tt(self.fab.ttype(t))
+            for (d, sw) in self.active[t]:
+                if sw != w:
+                    continue
+                p = j["_by_name"].get((d, sw))
+                if p and p.get("is_directional") == "0":
+                    key = (t, d, sw)
+                    if key not in self._rev:
+                        q = dict(p)
+                        q["dst_wire"], q["src_wire"] = sw, d
+                        q["src_to_dst"] = p.get("dst_to_src") or p.get("src_to_dst")
+                        q["is_pass_transistor"] = p["is_pass_transistor"]
+                        self._rev[key] = q
+                    other = self.fab.node(t, d)
+                    if other & self._walking:
+                        continue
+                    if not self._driven(other, set(node) | self._walking, 24):
+                        continue
+                    out.append((t, self._rev[key], False))
+        return out
+
+    def _driven(self, node, avoid, depth):
+        """node has a source not reached through `avoid`: a site output, a forward
+        active pip, or a bidirectional active pip from a node that is itself driven."""
+        if self.source_pin(node) or F.Extract.drivers(self, node):
+            return True
+        if depth == 0:
+            return False
+        for t, w in node:
+            j = self.fab.tt(self.fab.ttype(t))
+            for (d, sw) in self.active[t]:
+                if sw != w:
+                    continue
+                p = j["_by_name"].get((d, sw))
+                if p and p.get("is_directional") == "0":
+                    other = self.fab.node(t, d)
+                    if not (other & avoid) and self._driven(other, avoid | set(node), depth - 1):
+                        return True
+        return False
+
+    _walking = frozenset()
+
+    def walk(self, tile, wire, what):
+        # same as fasm2lean's walk; it records the visited nodes so that a reversed
+        # bidirectional pip never leads back into the walk
+        pips = []
+        node = self.fab.node(tile, wire)
+        self._walking = set(node)
+        for _ in range(200):
+            src = self.source_pin(node)
+            if src:
+                self.paths.append((pips, node, src))
+                return src, pips
+            d = self.drivers(node)
+            if len(d) > 1:
+                F.die("%s: node %s has %d active drivers (a short)" % (what, sorted(node)[0], len(d)))
+            if not d:
+                cand = [(t, p, ps) for t, p, ps in self.pseudo_drivers(node)
+                        if self.is_driven(self.fab.node(t, p["src_wire"]))]
+                if len(cand) != 1:
+                    F.die("%s: node %s is floating (no active pip; %d pseudo candidates)"
+                          % (what, sorted(node)[0], len(cand)))
+                d = cand
+            t, p, ps = d[0]
+            pips.append((t, p, ps, node))
+            self.used_pips.add((t, p["dst_wire"], p["src_wire"]))
+            node = self.fab.node(t, p["src_wire"])
+            self._walking |= node
+        F.die("%s: route longer than 200 pips" % what, 2)
+
     def source_pin(self, node):
         s = super().source_pin(node)
         if s:
@@ -278,13 +384,53 @@ def main():
             n, c = by_bel.get("%s/%s%sLUT" % (l["site"], l["lut"], L), (None, None))
             if c is None:
                 continue
-            port = c["attributes"].get("X_ORIG_PORT_A%d" % k)
-            if port and port in c["connections"]:
-                b = c["connections"][port][0]
-                return bit2net.get(b, str(b))
+            for port in ("A%d" % k, c["attributes"].get("X_ORIG_PORT_A%d" % k)):
+                if port and c["connections"].get(port):
+                    b = c["connections"][port][0]
+                    return bit2net.get(b, str(b))
         return "?"
     errors = [(i, k, "%s [net %s]" % (msg, net_of(i, k))) for i, k, msg in errors]
     err_pins = {(i, k) for i, k, _ in errors}
+    # Fallback for a pin whose bits walk failed (fasm2lean stops on some long-line
+    # LV/LH nodes): its SOURCE is taken from nextpnr's routed JSON (the net's driver
+    # cell and BEL) and its ROUTE is unknown, modelled as [0, 10^5] ps (H_UNKNOWN_ROUTE).
+    # A response arriving over it is therefore credited the earliest possible time,
+    # which is conservative for RT_FB; a FEEDBACK pin must never be one (checked).
+    drv = {}
+    for n, c in cells.items():
+        for port, bits in c["connections"].items():
+            if c.get("port_directions", {}).get(port) == "output":
+                for b in bits:
+                    drv[b] = (n, c, port)
+    site_lut = {(l["site"], l["lut"]): i for i, l in enumerate(luts)}
+    n_fallback = defaultdict(int)
+    for i, k, _ in errors:
+        l = luts[i]
+        b = None
+        for L in ("6", "5"):
+            n, c = by_bel.get("%s/%s%sLUT" % (l["site"], l["lut"], L), (None, None))
+            if c is None:
+                continue
+            for port in ("A%d" % k, c["attributes"].get("X_ORIG_PORT_A%d" % k)):
+                if port and c["connections"].get(port):
+                    b = c["connections"][port][0]
+                    break
+            if b is not None:
+                break
+        src = {"k": "opaque", "what": "walk error, no nextpnr driver"}
+        if isinstance(b, int) and b in drv:
+            n, c, port = drv[b]
+            m = re.match(r"(SLICE_X\d+Y\d+)/([A-D])([56])LUT$", c["attributes"].get("NEXTPNR_BEL", ""))
+            if m and (m.group(1), m.group(2)) in site_lut:
+                src = {"k": "lut", "i": site_lut[(m.group(1), m.group(2))], "out": "O" + m.group(3),
+                       "fallback": n}
+            else:
+                src = {"k": "opaque", "what": "walk error; nextpnr driver %s (%s)" % (n, c["type"])}
+        elif b in ("0", "1"):
+            src = {"k": "const", "v": b == "1"}
+        l["pins"][k - 1]["src"] = src
+        l["pins"][k - 1]["unknown_route"] = True
+        n_fallback[src["k"]] += 1
 
     # ---- LUT-level graph: (j, out) -> [(i, k)]
     sinks = defaultdict(list)
@@ -309,6 +455,9 @@ def main():
     def route_elems(i, k):
         """element list of the route into LUT i pin k: (label, corners | ('rc', E))."""
         p = luts[i]["pins"][k - 1]
+        if p.get("unknown_route"):
+            return [("route unknown (bits walk failed), H_UNKNOWN_ROUTE", [0, 100000, 0, 100000]),
+                    ("site pin %s" % p["pin"], p["sitepin_delay_ps"])]
         el = [("pip %s.%s->%s" % (q["tile"], q["src"], q["dst"]), q["delay_ps"]) for q in p["pips"]]
         el.append(("wire RC", ("rc", elm(i, k))))
         el.append(("site pin %s" % p["pin"], p["sitepin_delay_ps"]))
@@ -322,8 +471,8 @@ def main():
         return {"indep": (fm, sM), "fast": (fm, fM), "fastE": (fm, fM),
                 "slow": (sm, sM), "slowE": (sm, sM)}[var]
 
-    def lo(el):
-        return sum(ivl(c, "indep")[0] for _, c in el)
+    def lo(el, v="indep"):
+        return sum(ivl(c, v)[0] for _, c in el)
 
     def hi(el):
         return sum(ivl(c, "indep")[1] for _, c in el)
@@ -343,13 +492,13 @@ def main():
         return sdf_io.get((("lut", l["site"], l["lut"]), k))
 
     # backward lower-bound distance (H_INDEP lo) from every LUT output to "any pin of ce"
-    def back_dist(ce, targets):
+    def back_dist(ce, targets, v="indep"):
         dist = {}
         pq = []
         for k in targets:
             # entering i's pin k from its source's output
             src = luts[ce]["pins"][k - 1]["src"]
-            d = lo(route_elems(ce, k))
+            d = lo(route_elems(ce, k), v)
             key = (src["i"], src["out"])
             if d < dist.get(key, 1 << 60):
                 dist[key] = d; heapq.heappush(pq, (d, key))
@@ -367,7 +516,7 @@ def main():
                 c = lutarc(j, k, o)
                 if c is None:
                     continue
-                nd = d + ivl(c, "indep")[0] + lo(route_elems(j, k))
+                nd = d + ivl(c, v)[0] + lo(route_elems(j, k), v)
                 key = (s["i"], s["out"])
                 if nd < dist.get(key, 1 << 60):
                     dist[key] = nd; heapq.heappush(pq, (nd, key))
@@ -379,6 +528,8 @@ def main():
     for ce in ces:
         i, fbk = ce["i"], ce["fb"]
         l = luts[i]
+        if luts[i]["pins"][fbk - 1].get("unknown_route"):
+            real_die("%s: feedback pin walk failed" % ce["cell"])
         fb_el = route_elems(i, fbk)
         fb_hi = hi(fb_el)
         targets = [k for k, p in enumerate(l["pins"], 1) if k != fbk and p["src"]["k"] == "lut"]
@@ -386,6 +537,26 @@ def main():
                        for k, p in enumerate(l["pins"], 1) if k != fbk and p["src"]["k"] == "opaque"]
         n_env_opaque += len(opaque_pins)
         dist = back_dist(i, targets)
+        dj = {}
+        for v in variants:
+            if v == "sdf":
+                continue
+            dv = back_dist(i, targets, v)
+            best = None
+            for (j, k) in sinks.get((i, "O6"), ()):
+                if j == i:
+                    if k in targets:
+                        cand = lo(route_elems(j, k), v)
+                        best = cand if best is None else min(best, cand)
+                    continue
+                for out in ("O6", "O5"):
+                    c = lutarc(j, k, out)
+                    if c is None or (j, out) not in dv:
+                        continue
+                    cand = lo(route_elems(j, k), v) + ivl(c, v)[0] + dv[(j, out)]
+                    best = cand if best is None else min(best, cand)
+            fbh = sum(ivl(c, v)[1] for _, c in fb_el)
+            dj[v] = None if best is None else best - fbh
         # tree of simple response paths
         paths = []   # list of element lists, each tagged with (labels..., end pin)
         overflow = False
@@ -451,7 +622,7 @@ def main():
             worst_path = paths[k][1]
         entries.append({"ce": ce, "site": "%s.%sLUT" % (l["site"], l["lut"]), "fb": l["pins"][fbk - 1]["pin"],
                         "nodes": nn[0], "arcs": arcs, "reqs": reqs, "fbn": fbn, "part": part,
-                        "slack": W, "npaths": len(paths), "overflow": overflow, "opaque": opaque_pins,
+                        "slack": W, "dijkstra": dj, "npaths": len(paths), "overflow": overflow, "opaque": opaque_pins,
                         "resp_pins": sorted({luts[i]["pins"][p[2] - 1]["pin"] for p in paths}),
                         "worst_path": worst_path,
                         "fb_route": [lab for lab, _ in fb_el]})
@@ -486,6 +657,16 @@ def main():
         nf = sum(1 for s, _ in sl if s < 0)
         w = min(sl) if sl else None
         rep.append("%-6s failing %d/%d   worst %s" % (v, nf, len(entries), w))
+    for v in variants:
+        if v == "sdf":
+            continue
+        sl = sorted((e["dijkstra"][v], e["site"]) for e in entries if e["dijkstra"][v] is not None)
+        bad = [e for e in entries if e["slack"][v] is not None and e["slack"][v] != e["dijkstra"][v]]
+        bad += [e for e in entries if e["slack"][v] is None and e["dijkstra"][v] is not None and e["dijkstra"][v] < 0]
+        rep.append("unpruned Dijkstra %-6s: failing %d, slack min %s, median %s, %d C-elements with no response at all; "
+                   "disagreements with the tree %d" % (v, sum(1 for x in sl if x[0] < 0), sl[0] if sl else None,
+                                                     sl[len(sl) // 2][0] if sl else None,
+                                                     sum(1 for e in entries if e["dijkstra"][v] is None), len(bad)))
     rep.append("worst slowE paths:")
     for e in sorted(entries, key=lambda e: (e["slack"].get("slowE") is None, e["slack"].get("slowE") or 0))[:12]:
         if e["slack"].get("slowE") is None:
@@ -496,7 +677,8 @@ def main():
     if errors:
         rep.append("walk errors (pins treated as opaque):")
         ce_idx = {ce["i"] for ce in ces}
-        rep.append("  on C-element LUTs: %d" % sum(1 for i, _, _ in errors if i in ce_idx))
+        rep.append("  on C-element LUTs: %d; fallback sources from nextpnr: %s" % (
+            sum(1 for i, _, _ in errors if i in ce_idx), dict(n_fallback)))
         nets = defaultdict(int)
         for _, _, x in errors:
             nets[x.split("[net ")[-1].rstrip("]")] += 1
@@ -505,7 +687,7 @@ def main():
     txt = "\n".join(rep) + "\n"
     if a.report:
         open(a.report, "w").write(txt)
-    sys.stdout.write("\n".join(rep[:3] + rep[ntab:ntab + len(variants) + 15]) + "\n")
+    sys.stdout.write("\n".join(rep[:3] + rep[ntab:ntab + 2 * len(variants) + 14]) + "\n")
     if a.json:
         json.dump({"luts": len(luts), "ces": [{k: e[k] for k in ("site", "fb", "npaths", "slack", "resp_pins",
                                                                  "worst_path", "opaque")} | {"cell": e["ce"]["cell"],

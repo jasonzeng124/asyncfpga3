@@ -234,7 +234,13 @@ def main():
     bd = pathlib.Path(a.build)
     sdf, routed, fasm = bd / f"{a.top}.sdf", bd / f"{a.top}_routed.json", bd / f"{a.top}.fasm"
     T, R, F = load_rules(pathlib.Path(a.cells))
-    edges, back, stops = T.routed_graph(sdf)
+    # tighten.main's order: parse, cut false arcs, storage census, then --osc
+    # (routed_graph would abort on the declared oscillator before --osc applies)
+    edges, _ct, _n1, _n2 = T.parse_sdf(sdf)
+    dead, _ = T.false_arcs(edges, sdf)
+    for src in list(edges):
+        edges[src] = [(d_, w) for d_, w in edges[src] if (src, d_) not in dead]
+    stops = T.storage_nodes(edges)
     for prefix in a.osc:          # as tighten.py --osc: cut every arc sourced in the instrument
         for src in list(edges):
             i = T.pin_split(src)[0]
@@ -267,7 +273,7 @@ def main():
             if p in stops and p != start:
                 continue
             for d_, _ in edges.get(p, ()):
-                if (p, d_) in excl or d_ in fwd:
+                if (p, d_) in excl or d_ in fwd or d_ == start:
                     continue
                 fwd.add(d_); work.append(d_)
         hit = {t for t in targets if t in fwd}
@@ -283,7 +289,7 @@ def main():
             if p in stops and p != start:
                 continue
             for d_, w in edges.get(p, ()):
-                if d_ in bwd and (p, d_) not in excl:
+                if d_ in bwd and d_ != start and (p, d_) not in excl:
                     iv, fb = ivl(p, d_, w)
                     I.add(key(p), key(d_), iv, fb)
         return {t: key(t) for t in hit}

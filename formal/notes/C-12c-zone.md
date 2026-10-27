@@ -1,63 +1,256 @@
-# C-12c: zone-based timed-automata checking (TChecker)
+# C-12c: zone-based (dense-time) timed-automata checking with TChecker
 
-Status: IN PROGRESS (notes kept current as work proceeds).
+Files (mine): `formal/tools/zone/tckmodel.py` (front end + runners),
+`formal/tools/zone/celem.py`, `formal/tools/zone/arb.py`, this note. Build
+output: `formal/tools/zone/build/tchecker/` (gitignored). No Lean in this probe.
+
+## Verdict
+
+**Works.** TChecker builds from a git clone in under 5 min. The 12b
+generator ports to it in ~450 lines. Every C-element and arbiter question
+12b asked is re-answered **exactly in dense time** (thresholds checked at 0.1
+ps and 0.01-tick resolution). Typical checks take 0.05-4 s and use 15-150 MB.
+The one case 12b could not finish (transport + arc spread) is
+**ITEM 2 STATUS: see section "Item 2" below**.
+
+Surprises:
+1. C-element, inertial channel: the spec bound depends on the LUT delay,
+   e_lo > dw_hi - dl_lo. 12b's "independent of dl" was a tick-grid artefact.
+2. Shipped (held) arbiter: **mutex depends on the q->ugrant route, wq_g**.
+   - Inertial: mutex needs wq_g < 56 ps (the ugrant O6 rise arc).
+   - Pure delay: mutex fails for every wq_g > 0, even with no runt on q.
+   - This is a grant-LUT runt that the A0 hold does not cover. 12b's HELD
+     rows never used wq_g >= 56 ps, and used wq_g = 0 in transport.
+   - Cross-checked with 12b's Storm model: 13 ticks holds, 14 ticks (56 ps)
+     fails.
 
 ## Tool acquisition (2026-10-27)
 
-- `git clone --depth 1 https://github.com/ticktac-project/tchecker` into the
-  scratchpad (`$S/ext/tchecker`): **works** (the clone was the route 12b could
-  not try). Commit d711ace9ff754d8d952f5d491a31591115300c7f (2025-12-09).
-- apt: flex 2.6.4, libboost-all-dev 1.83.0, catch2 3.4.0 installed; bison
-  3.8.2, cmake 3.28.3, g++ (Ubuntu 24.04) already present.
-- Build: cmake Release, `make -j2 install` into
-  `formal/tools/zone/build/tchecker/` (gitignored `build/`).
-- Build time 268 s (`make -j2`, LTO); the install step fails only at the
-  doxygen `html` docs, after all four binaries (`tck-reach`, `tck-liveness`,
-  `tck-simulate`, `tck-syntax`) and `libtchecker.a` are installed. Peak RSS of
-  the compile was not measured (no /usr/bin/time); -j2 stayed well inside the
-  cgroup.
+| step | result |
+|---|---|
+| `git clone --depth 1 https://github.com/ticktac-project/tchecker` into `$S/ext/tchecker` | **works**. Commit d711ace9ff754d8d952f5d491a31591115300c7f (2025-12-09). This is the route 12b could not try |
+| apt | flex 2.6.4, libboost-all-dev 1.83.0, catch2 3.4.0 installed. bison 3.8.2, cmake 3.28.3 and g++ 13 (Ubuntu 24.04) were already there |
+| build | `cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=formal/tools/zone/build/tchecker`, then `make -j2 install`. 268 s with LTO. `install` errors only at the doxygen `html` docs, after `tck-reach`, `tck-liveness`, `tck-simulate`, `tck-syntax` and `libtchecker.a` are installed |
+| alternatives | not needed. UPPAAL, IMITATOR, theta and LTSmin were not tried |
 
-## C-element result (item 1), DONE
+`$S` = `/tmp/claude-0/-home-user-asyncfpga3/1e7618db-96c2-5b39-8e46-9778d8fa891b/scratchpad`.
 
-`celem.py thr`: 40 (dl, dw) rows x ~30 e_lo values x 2 properties, 61 s total,
-<= 258 zones per check. Units 1/10 of a 12b tick (re-checked at 1/100: same
-thresholds, identical zone counts -- zones do not grow with the constant
-scale, digital clocks do). Dense-time exact thresholds:
+To rebuild after a fresh checkout:
 
-| channel | spec (O moves only when a=b!=O) | hazard-free |
+```
+git clone --depth 1 https://github.com/ticktac-project/tchecker $S/ext/tchecker
+apt-get install -y flex libboost-all-dev catch2
+mkdir $S/ext/tchecker-build && cd $S/ext/tchecker-build
+cmake $S/ext/tchecker -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/home/user/asyncfpga3/formal/tools/zone/build/tchecker
+make -j2 install
+```
+
+`tckmodel.py` finds the binary at `build/tchecker/bin/tck-reach`, or at
+`$TCK_REACH`.
+
+## Model (`tckmodel.py`): what changed from 12b
+
+The semantics are 12b's `tamodel.py`, per node, with these changes:
+- **Dense time.** Real-valued clocks with integer bounds in any unit (arb.py
+  uses ps, or 0.1 ps with `u=10`). There is no tick, so there is no tie
+  artefact: equal instants are interleaved in both orders, which is exact.
+- **One process per node.**
+  - Inertial: locations S, ER and EF, with invariant `c <= hi` in ER and EF
+    only. The invariants are constant, so TChecker's LU clock bounds stay
+    tight. A non-constant `if` bound would make them MAX_VALUE.
+  - Transport (FIFO): locations `T<x><len>` with one clock per queue slot.
+    In-flight edges alternate in value, so (x, len) determines the whole
+    queue. Delivery shifts the clocks (`c0=c1; c1=c2`). The cancel and
+    annihilate rules are 12b's, and so are the `ovf_x` and `mlt_x` monitors.
+- **Synchronisation.** A node firing is event `f_x`, strongly synchronised
+  with `u_x` edges in every reader. Each reader has an exhaustive set of
+  `u_x` edges from every location, with guards evaluated in the pre-state
+  and x substituted, so the synchronisation never blocks.
+- **Expressions.** TChecker expressions are conjunctions only, so LUTs and
+  monitors are emitted as 0/1 integer terms with nested `if-then-else`, from
+  the same real-INIT Shannon expansion.
+- **Properties.** There are two ways to check them:
+  - (a) A monitor process `ok -> bad{labels:bad}` and `tck-reach -a covreach
+    -l bad`, one run per property.
+  - (b) `explore_all`: ONE full covering-reachability exploration with
+    `-C graph`, then every int-valued state property is evaluated on the
+    distinct discrete states. This is sound because covering only relates
+    nodes with equal locations and ints. One exploration costs about one
+    unreachable-property run, and it answers 16 properties.
+- **Witnesses.** `-C concrete` fails on this model ("concretization failed",
+  probably the clock-copy assignments). `-C symbolic` works, gives the event
+  sequence with zones, and was used for the wq_g witness.
+- **Not usable.** `-a concur19` (local-time zones, the algorithm meant for
+  loosely coupled networks) refuses: "not sound for systems with shared
+  variables". Gate values are shared ints. Moving them into locations would
+  need a sync per reader value, which was not attempted.
+- **Bug found while porting.** TChecker `do:` statements are sequential.
+  Monitor flags must be assigned before the node's own value changes, so that
+  they read the pre-state. The first port got this wrong, and celem's spec
+  then fired on legal moves.
+
+Exactness: closed TA with integer constants, ExtraLU+ abstraction and
+inclusion covering. Reachability is exact for dense time. As in 12b, the
+transport results are exact only where `ovf` (or `ovf_nr`) is unreachable.
+
+## Item 1: C-element (bd_c2, INIT 64'h00E8_00E8_00E8_00E8), DONE
+
+Run: `cd formal/tools/zone && python3 -I celem.py thr`.
+- 61 s in total: 20 (dl, dw) pairs x about 30 e_lo values x 2 channels x 2
+  properties.
+- At most 258 zones and 13 MB per check.
+- `python3 -I celem.py` runs 12b's original table (4 s).
+- Units are 1/10 of a 12b tick. The row dl=(100,100), dw=(100,300) was
+  re-checked at 1/100: same thresholds, **identical zone counts** (22/33/17).
+  Zones do not grow with the constant scale; digital clocks grow linearly.
+
+| channel | spec (O moves only when a = b != O) | hazard-free (no swallowed excitation) |
 |---|---|---|
-| inertial | **e_lo > dw_hi - dl_lo** (strict) | **e_lo > dw_hi** (strict) |
-| transport (FIFO) | **e_lo >= dw_hi** (closed) | n/a (no swallowing) |
+| inertial | **e_lo > dw_hi - dl_lo** (strict; always holds if dw_hi < dl_lo) | **e_lo > dw_hi** (strict) |
+| transport (FIFO) | **e_lo >= dw_hi** (closed) | n/a |
 
-So 12b's "e_lo >= dw_hi, independent of the LUT delay" is exact only for
-transport. For inertial, the spec bound depends on dl_lo: 12b's sweep always
-had dl_lo = 1 tick, which is exactly the tick of the digital grid, so the
-dl_lo term was hidden by the tie rule. The safe (hazard-free / transport)
-bound is dw_hi: strict for inertial (at equality a zero-width excitation is
-swallowed = hz), closed for transport (zero-width reversal cancelled).
+Answer to "is e_lo >= dw_hi exact in dense time?":
+- **Yes for the FIFO transport channel**, as a closed bound. At equality the
+  reversal has zero width and is cancelled.
+- **For inertial, the safe form is strict**: e_lo > dw_hi. At equality there
+  is a zero-width excitation, which is swallowed. That is hazard-free as a
+  spec, but it is an output-persistency violation.
+- The inertial *spec* bound is weaker, e_lo > dw_hi - dl_lo. The LUT has to
+  fire its wrong edge before qp lands.
+- 12b's sweep always used dl_lo = 1 tick = one grid step, so it read
+  "e_lo >= dw_hi, independent of dl" (that is, e_lo > dw_hi - 1 tick).
+- For shard B's Lean target, the FIFO theorem with hypothesis
+  E >= dw_hi is the tight one. B's WinDelay version needs
+  E >= dw_hi + (dl_hi - dl_lo).
 
-## Arbiter thresholds (item 3), DONE -- interim notes
+## Item 3: the two 12b timing conditions, exact in dense time, DONE
 
-Dense time, 0.1 ps resolution (u=10), nominal arcs, zero routing except the
-swept wire, srv window [s_lo, s_lo+20], clients fall [4,24] ps after A.
-Every check < 0.3 s inertial (<= 300 zones), 2-4 s transport (<= 3.5 k zones,
-63 MB).
-- HELD ack exclusion (amutex): inertial holds iff s_lo > 56 ps (strict);
-  transport (no q runt) holds iff s_lo >= 56 ps (closed); tx_nr same in
-  transport. 12b's "~60 ps" (15 ticks) is 56 ps exactly, i.e. the 14-tick
-  boundary 12b saw at "<= 14 fails".
-- A0 fork (HELD): holds iff wa < 112 + c_lo ps, c_lo = client's minimum
-  r-fall response (checked c_lo = 0, 4, 20, 40: thresholds 112, 116, 132, 152).
-  So 12b's 116 ps = O6 rise (A2, 56) + c_lo (4) + O6 rise (q, 56), and the
-  dependence on c_lo is now explicit. Same in transport (_nr).
-- UNHELD grant overlap: mutex iff wq_g > 16 ps (strict). UNHELD ho/tx iff
-  s_lo >= 60 ps fails (59.9 holds).
-- NEW: HELD arbiter, q->ugrant route wq_g: inertial mutex holds iff
-  wq_g < 56 ps; transport (pure delay) mutex fails for EVERY wq_g > 0 (0.1 ps
-  fails) even with no runt on q. Mechanism (witness): r1 alone, q rises, r2
-  rises after q has committed but before the new q reaches ugrant.I2; ugrant
-  sees r2 & ~qg(old) and g2 gets an excitation of width (wq_g - (t_r2 -
-  t_q)); g1 then rises 52 ps after qg arrives while g2 falls only 124 ps
-  after it. The hold does not cover this (A0 is low). 12b never saw it because
-  its HELD rows had wq_g <= 32 ps inertial, and wq_g = 0 in transport except
-  the spread row that OOMed.
+Run:
+- `python3 -I arb.py srv inertial|transport`
+- `python3 -I arb.py wa inertial|transport`
+- `python3 -I arb.py basic inertial|transport` (12b's sections 1-3, in ps)
+
+Setup:
+- Nominal arcs O6 56/124 and O5 52/28 ps. Zero routing except the swept wire.
+- Server window [s_lo, s_lo+20] ps. Clients fall [c_lo, c_lo+20] ps after
+  their A, with c_lo = 4.
+- Resolution 0.1 ps (u=10).
+
+Cost:
+- Inertial: < 0.3 s per check, <= 300 zones, ~16 MB.
+- Transport: 1-8 s per check, <= 9 k zones, <= 100 MB.
+- Server latency 4-24 ps is the slowest case: 45 k zones, 150 MB, 26 s per
+  full exploration.
+
+Results:
+- **Server latency (HELD ack exclusion, amutex):**
+  - inertial: holds iff **s_lo > 56 ps** (strict).
+  - transport, no q runt (amutex_nr, and tx_nr too): holds iff
+    **s_lo >= 56 ps** (closed).
+  - 12b's "about 60 ps" is exactly 56 ps. 12b saw 14 ticks fail, which is
+    the tie.
+  - ho and mutex hold at every s_lo tried, down to 4 ps.
+- **A0 fork, rising edge (HELD):** everything holds iff
+  **wa < 112 + c_lo ps**, where c_lo is the client's minimum r-fall response.
+  - Checked at c_lo = 0, 4, 20 and 40: thresholds 112, 116, 132 and 152. The
+    failure at the bound is closed.
+  - So 12b's 116 ps = A2 O6 rise (56) + c_lo (4) + q O6 rise (56). The new
+    information is the dependence on c_lo: a faster client tightens it.
+  - Same in transport (`*_nr`). `ovf_nr` = 0, so the transport result is
+    exact for K=3.
+- **UNHELD (for completeness):**
+  - mutex iff wq_g > 16 ps (strict). This is the header's 16 ps; 16.0 fails
+    and 16.1 holds.
+  - ho/tx fail iff s_lo >= 60 ps (59.9 holds), inertial.
+- **NEW: the HELD q->ugrant route.**
+  - Inertial: mutex holds iff **wq_g < 56 ps**.
+  - Transport: mutex_nr **fails for every wq_g > 0** (0.1 ps fails). With no
+    runt anywhere (`mutex_nra`), it holds at every wq_g tried (0-32).
+  - Symbolic witness (`-C symbolic`, HELD, spread 8, wq up to 32), as a
+    sequence:
+    1. r1 rises and q rises.
+    2. r2 rises after q has committed (no runt on q), but before the new q
+       reaches ugrant.I2.
+    3. ugrant sees r2 & ~qg(old), so g2 gets an excitation of width
+       <= wq_g. `mlt_g2` is set: a runt at the grant LUT.
+    4. Pure delay passes that pulse and stretches it by the fall-rise
+       asymmetry.
+    5. g1 rises 52 ps after qg arrives, while g2 falls only 124 ps after it.
+  - The A0 hold cannot help, because A0 is low.
+  - Equivalent hypothesis: H_GRANT_FORK. The fork of r1/r2 into ustate and
+    ugrant must be isochronic with respect to q's route to ugrant. That is:
+    no request edge may reach ugrant inside the window in which ustate has
+    committed but ugrant still reads the old q. Under inertial delay the
+    window must be narrower than ugrant's O6 rise arc. Under pure delay it
+    must be empty.
+  - Real routing puts "a full hop" (hundreds of ps, per the header) on that
+    route. So on the chip this is a real race unless the clients' r2 edge is
+    ordered against q by the protocol. It is not: clients are free.
+  - The header's tier table puts handover races in tier 2 and runts on q in
+    tier 3. This one is a runt on the GRANT LUT, caused by routing skew, with
+    a SETTLED q. It belongs in the cell's obligations.
+  - **Not yet checked on board or GLS.** A GLS with the routed delay of
+    q->ugrant.I2 and r2 timed in that window would test it.
+
+## Item 2: HELD transport + arc spread (12b's OOM case)
+
+The row is 12b's section 4: spread ±8 ps on every LUT arc,
+wq_s, wq_g in [0,32] ps, wa in [0,16] ps, srv [160,180] ps. There are 9
+transport nodes with 3 slots each plus 4 environment clocks, so 31 clocks.
+
+(results below)
+
+## TChecker (zones) vs Storm (digital clocks), same models
+
+| model | Storm 2.0 (12b, ticks of 4 ps) | TChecker (this probe, 0.1-1 ps) |
+|---|---|---|
+| C-element, one row | 1-17 k states, 0.02-0.2 s | 11-258 zones, 0.05 s; scale-free |
+| HELD inertial, srv 40-45 ticks | 2.3 k states, 0.3 s (all properties) | 76 zones, 0.01 s per exploration |
+| HELD transport, srv [40,45] ticks | 71 k states, 2.6 s | 1.4 k zones, 0.7 s exploration (1.8 s wall incl. graph print) |
+| HELD transport, wa = 29 ticks | 221 k states, 5 s | 3.2 k zones, 1.4 s |
+| HELD transport, srv [1,6] ticks / [4,24] ps | (not run at this latency) | 45.6 k zones, 26 s, 150 MB |
+| HELD/UNHELD inertial, spread ±2 ticks | 13 k / 257 k states, 0.6 / 6.8 s | (see Item 2 log) |
+| HELD transport + spread | **OOM at 5.3 GB / >20 min** | see Item 2 |
+
+Overall:
+- Zones are 20-70x fewer than digital states and do not grow with time
+  resolution. That is what lets thresholds be found at 0.1 ps.
+- Per check, wall time is similar for small models.
+- TChecker's cost is one run per label. `explore_all` removes that.
+
+## Fidelity of the primitives (unchanged from 12b unless noted)
+
+- **LUT:** real INIT. Boolean function per output, one rise and one fall arc
+  per output (not per pin). No mux-tree glitches, no X. Arcs are from the
+  header's zero-routing trace, not from prjxray-db corners. These are named
+  hypotheses for shard B.
+- **Inertial channel:** optimistic. It swallows any pulse shorter than the
+  rise/fall lo.
+- **Transport channel:** pessimistic. It passes and stretches every pulse.
+  The real LUT lies between the two. The wq_g finding shows the gap matters:
+  56 ps vs 0 ps.
+- **Wires:** same channels. Only the q feedback copies and the A0 fork carry
+  delays; r1/r2 reach both LUTs with zero skew. The r-fork skew is exactly
+  what H_GRANT_FORK is about, and it is not modelled separately.
+- **Environment:** idealised. Free clients; the server is a pure-delay
+  follower of R0.
+- **Dense time:** exact for these TA. There is no digitisation hypothesis
+  any more, unlike 12b's HMP digital-clock argument.
+
+## What this buys / effort to finish
+
+- **For shard B (Lean)**, exact targets with the exact strictness:
+  - C-element FIFO: E >= dw_hi.
+  - Inertial: E > dw_hi - dl_lo for the spec, E > dw_hi hazard-free.
+  - Ack exclusion: s_lo > 56 ps (inertial) / >= 56 ps (FIFO).
+  - A0 fork: wa < O6R(A) + c_lo + O6R(q).
+  - New obligation H_GRANT_FORK, with wq_g < 56 ps inertial.
+- **Tooling:** a dense-time checker usable on whole small cells in seconds,
+  which scales better than digital clocks.
+- **To finish:**
+  - Parametric thresholds, i.e. symbolic in the arcs. That needs IMITATOR
+    (not tried) or a sweep.
+  - Per-pin arcs.
+  - Moving shared ints into locations to try concur19.
+  - About 1 day.

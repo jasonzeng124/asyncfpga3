@@ -31,20 +31,12 @@ axioms used are propext, Classical.choice and Quot.sound.
 
     cd /home/user/asyncfpga3/formal && ./check.sh Formal/Net/MullerTimed.lean \
         Formal/Net/MullerTimedInst.lean Formal/Net/MullerTimedCx.lean
-    # -> [audit] 720 declarations checked, [check] OK  (run 04:2x UTC, about 3 min wall, 1 min CPU)
+    # -> [audit] 724 declarations checked, [check] OK  (final run, all three files, current versions)
 
-The last run above was made before `ok_*` was added to `MullerTimedCx.lean`.
-After that, `check.sh` was changed (it now writes oleans to `.lake/checkfile`)
-and failed on any file that imports an earlier project module: `object file
-.lake/checkfile/Formal/Net/Muller.olean does not exist`. That is a problem in
-check.sh, not in these files. The current files were then checked directly:
+Also checked directly (axiom listing and the n = 4 eval):
 
     cd formal/lean && export PATH=$HOME/.elan/bin:$PATH LEAN_PATH=$PWD/.lake/build/lib/lean
-    ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/MullerTimed.olean Formal/Net/MullerTimed.lean
-    ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/MullerTimedInst.olean Formal/Net/MullerTimedInst.lean  # ~60 s, ~45 s of it checkT_3
-    ../slot.sh lean -o .lake/build/lib/lean/Formal/Net/MullerTimedCx.olean Formal/Net/MullerTimedCx.lean      # ~20 s CPU
     ../slot.sh lean Wip/C8g/Axioms.lean      # #print axioms of every main theorem; #eval checkT 4 = true
-    python3 ../scan.py Formal/Net/MullerTimed*.lean   # clean
 
 All of these pass. Cost: `checkT_3` by `decide +kernel` takes about 42 s
 wall. The memory is moderate; 8c's whole `MullerSI` needs about 6 GB.
@@ -223,6 +215,13 @@ Larger SDELAY (longer delay lines in b) makes the I1 loop longer and helps.
   while req is still high, and the protocol breaks on the input link. The
   source had been excited since 916 to drop req; that excitation is
   withdrawn, so `ack_in` carries a runt.
+- **What is kernel-checked in this timeline.** Only the states in
+  `cx_events` are kernel-checked: at 1077 snk = c0 = 1 and f0 = 0; at
+  1192 src = w0 = 1; at 1193 src = 1 and w0 = 0. The intermediate times
+  (c0 falling at 1122, the swallowed feedback pulse) come from working the
+  delays by hand. They are consistent with the checked states, but no
+  theorem pins them. The `#eval` timeline dump was truncated, so it does not
+  confirm them either.
 - **Proof method.** These are kernel evaluations (`decide +kernel` with
   maxRecDepth 100000) of the simulator. `sim_timed` proves the simulator's
   output is an inertial timed trace, generically.
@@ -314,9 +313,9 @@ Larger SDELAY (longer delay lines in b) makes the I1 loop longer and helps.
   forced to be the full neighbour loop: dropping a node certifies a weaker but
   still valid inequality. The full loops are the strongest ones it accepts;
   wrong or non-causal loops are rejected.
-- Enabledness persistence holds in 8c's rt semantics for n ≤ 4. That is
-  what makes the "persistence relative to RT" bridge work; it was not
-  obvious, because a C-element and its pin driver can be excited together.
-  The check shows they are never both ENABLED.
+- Enabledness persistence holds in 8c's rt semantics: kernel-checked for
+  n ≤ 3, and `#eval` gives true for n = 4. The free network is not
+  persistent, yet the rt-restricted one is, even for enabledness. That is
+  what makes the "persistence relative to RT" bridge work.
 - With 11b's smallest routes, the sink-side loop (234 ps) is shorter than
   every routed feedback except the in-slice ones (71-76 / 283-288 ps).

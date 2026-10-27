@@ -18,7 +18,7 @@ for s in $SEEDS; do
   python3 extract.py "$O" gcd_hw --cells "build/tree_$s/cells" --osc dhk --osc invhk \
       --out build/obl_$s.tc --json build/obl_$s.json 2> build/extract_$s.log || { cat build/extract_$s.log; continue; }
   tail -1 build/extract_$s.log
-  /usr/bin/time -f "  tcheck %es %MkB" $EXE build/obl_$s.tc > build/tcheck_$s.out 2> build/tcheck_$s.err
+  s0=$(date +%s.%N); $EXE build/obl_$s.tc > build/tcheck_$s.out 2> build/tcheck_$s.err; echo "  tcheck $(echo "$(date +%s.%N) - $s0" | bc) s"
   tail -2 build/tcheck_$s.err
   python3 compare.py build/tcheck_$s.out build/tighten_$s.log --tsv build/compare_$s.tsv | grep "^#"
 done
