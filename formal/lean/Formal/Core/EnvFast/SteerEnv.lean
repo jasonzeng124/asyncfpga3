@@ -81,7 +81,7 @@ Signals: `req 0, s 1, rdy 2, r0 3, r1 4, a0 5, a1 6, ack 7` as in
 `u.I1`). Both LUT outputs read `[sq, rq]` (root first, as `steerModel`'s
 `[1, 0]`). -/
 
-def gatesW : List Gate :=
+def gatesW : List Env.Gate :=
   [.wire 8 0, .wire 9 1, .lut 3 bd_steer_u .O5 [9, 8], .lut 4 bd_steer_u .O6 [9, 8],
    .lut 7 bd_steer_uack .O [6, 5]]
 

@@ -220,3 +220,23 @@ xevents5 vs ana5 cross-check).
 Claimed: Events6 (netlist link design_beh4; xevents5; gcd verdict conditional on 45
 residuals per seed). Running: Events7 (U3, guarded delay-line pins, GuardOK, 3-way
 merge, cascade) aiming at a CLEAN slow/fast certificate on one seed.
+
+## Session Tue Oct 27 10:38 UTC 2026 (shard A, lead; session_01HC49FuHh39ZuDhAHxHUAQa)
+### progress 10:55
+Took LOCK (previous A lock 08:46, 112 min stale; B/C locks also ~100 min stale).
+Fresh container: setup.sh running (Lean zip from GitHub, Mathlib from source).
+**Loss, correction:** the previous A session ended before committing the Events7
+Lean modules. `Formal/Core/XAudit/Events7{Core,Excl,Cert,Beh,Main}.lean` are in no
+commit on any branch; only `notes/A-events7.md`, `Wip/Events7.lean` and
+`tools-A/xaudit/events7/` (certs, results) were committed (f4696cc). So the
+"CLEAN at slow/fast on every seed" verdict in notes/A-events7.md is NOT claimed:
+the xe7_*.txt outputs exist, the Lean that produced them does not. Being rebuilt
+(probe E7r). Nothing in FEASIBILITY cited Events7.
+Audit (claude/audit REPORT) rows on A's files, not yet answered: rule A as coded
+(int(0.2*t), max(.,200)) has κ limit 25/276, not 1/11 (Corner.lean proves the
+real-division rule); involution "transfer lemma" overstated (no relation to
+Pure.Chan proved, no instance built, module imported by nothing); Ternary
+soundness for transport/inertial only by prose; minor wording. Probes launched
+for each; FEASIBILITY wording fixed by me.
+For B: qualified `Env.Gate` in Core/EnvFast/SteerEnv.lean (B's request, JOURNAL-B
+08:16), to be checked once Mathlib is built.
