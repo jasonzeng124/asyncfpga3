@@ -114,6 +114,11 @@ errs=0 at nominal on all 8 and at x0.9/x1.1 on d, 3, 6, 7, 8, 9; 17% scatter on 
 Reproduction (2026-10-27): an independent rebuild of the default-seed route gives the same routed.json
 (f9c4597d) and sdf (61e14755) md5s; on it rules A/E/H/I/J 0, gate clean, GLS 16/16 at nominal, x0.9, x1.1 and
 wire scatter 25% (1 draw) and 35% (2 draws).
+Board-fidelity full stack (2026-10-27 session 10:12; research/data/fid/fullstack.md): this route, simulated from the
+netlist decoded from its own .bit, with prjxray RC-tree delays and the fid primitives: 16/16 errs=0 at FAST_MIN,
+SLOW_MAX and band 0.38 (laps vec 6 91 / 33 / 55). At band 0.38 (where the five measured rings sit) the stack predicts
+vec 6 ~55 laps per 150 us window. The same stack fails the unpatched lut-pinmap bitstream on an August-shaped route
+(vectors 5-8, 11-13 never complete), so it can fail. Not yet: 8 seeds, scatter draws (running).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
