@@ -1,4 +1,5 @@
 import Formal.Net.Capstone
+import Formal.Net.CapstoneExcl
 import Formal.Net.OpsLinkWitness
 import Formal.Net.OpsMuxNWitness
 import Formal.Net.CapstoneCM
@@ -19,3 +20,4 @@ import Formal.Net.CapstoneCM
 #print axioms Formal.Net.Ops.Link.link_witness
 #print axioms Formal.Net.Ops.MuxN.muxn_witness
 #print axioms Formal.Net.Capstone.amerge_op_forced
+#print axioms Formal.Net.GcdHw.Gcd.cm_inputs_exclusive

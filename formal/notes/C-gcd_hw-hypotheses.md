@@ -16,9 +16,10 @@ The chain, with each link's status:
 | # | link | Lean | status |
 |---|---|---|---|
 | T1 | the graph bdc emits computes `Nat.gcd` on every schedule and every arbitration; it is live and bounded (token level, unbounded FIFOs) | `GcdHw.Gcd.gcd_hw_graph_computes_gcd`, `gcd_hw_graph_live`, `gcd_hw_graph_no_infinite_run` (C-8i, C-8k) | **proved** |
-| T2 | each cell kind meets the network's protocol and token-equation spec (SI/DI gate models) | `fork_op`, `join_op`, `steer_op`, `mux_op` (8f); `amerge_op` (8j, 2 inputs); `sink_op` (8f); **`Link.link_op`** and **`MuxN.muxn_op`** (8l, new); the 3-input control_merge is two `amerge_op` stages (**`Capstone.amerge3_cascade`**, 8l) | **proved** for every cell kind gcd_hw instantiates, in the Ops SI/DI models (binding to the generated cells: O4) |
+| T2 | each cell kind meets the network's protocol and token-equation spec (SI/DI gate models) | `fork_op`, `join_op`, `steer_op`, `mux_op` (8f); `amerge_op` (8j, 2 inputs); `sink_op` (8f); **`Link.link_op`** and **`MuxN.muxn_op`** (8l, new); the 3-input control_merge is two `amerge_op` stages (**`Capstone.amerge3_cascade`**, 8l); `bd_src` is **`CapstoneSrc.src_op`** (8l) | **proved** for every cell kind gcd_hw instantiates, in the Ops SI/DI models (binding to the generated cells: O4) |
 | T3 | any network of such operators, with every channel bundled, refines every solution of its token equations: at every time, each channel's latched values are a prefix of that solution's stream | `Ops.net_refines`, `net_prefix` (8f) | **proved** (any graph, cycles allowed) |
 | T4 | T3 instantiated on bdc's gcd_hw network, with bdc's link placement | `CapstoneLinks` exports the placement (100 linked channels, 175 stages) | **open**. See §5: O1 (cm winner forcing), O2 (stream solution from the token run) and O4 (binding the Ops SI models to the generated cells). The reduction itself is proved: `Capstone.latched_const` / `gcd_hw_conditional` (if the network's equations have a solution with `out0` constantly `gcd a b`, every latched `out0` value is `gcd a b`) |
+| T2' | non-vacuity of the new cell models | **`Link.link_witness`**, **`MuxN.muxn_witness`**: explicit unit-delay runs meeting every gate-model field and the protocol, delivering a token | **proved** |
 | T5 | storage on every ring (the 8j deadlock cannot recur) | **`gcdhw_ring_ge3`**: every cycle of bdc's gcd_hw graph carries ≥ 3 bd_link stages; `gcdhw_cycle_linked`; `gcdhw_has_cycle` (non-vacuity) | **proved** (structural) |
 | T6 | circuit liveness (a token reaches out0) | none | **open**. See §5, O5 |
 | T7 | every timing obligation of T2 holds on the routed bitstream | tcheck: `pot_sound`, `cverdict_sound` (10h); per-route verdicts on 4 seeds | proved sound for each obligation it checks; per-obligation status in §3 |
@@ -82,7 +83,7 @@ the band"; the unguarded fast and slow corners pass on every one.
 | link capture: Sep + latch setup (8a `Sep`, `SetupHold`; B's L1, L2, P1, P2) | every link stage (175) | **I** | 300/300 (75 per route compared, 104 not comparable) | B. I's request side rests on H_SEGMENT. B's L1 says rule I omits the feedback-pin IOPATH and SP[fb]: a MISSING TERM |
 | link hold (8a `Hold`; B's L3, D4): DACK | every link stage | **H** (Hc cert) | 630/632 (2 band findings: −28/−9, −1/−74) | A for the check (cert, H_EXTRACT_MIN removed); B for the model |
 | latch enable pulse / open width (B's L2, 8e W) | every link stage | **W** | unchecked by the project. tcheck min +346 ps fastG, +832 slowG | B (H_SEGMENT) |
-| FASTFALL / RFAST line drain (B's D2) | `bd_delay_gated` request lines (matched delays) | **F** (Fc cert) | 113/116 (seed d `ucmpi8` −498 fastG; seed 2 `uselect1.udly` −141) | B (H_CONTROLLING argued by hand) |
+| FASTFALL / RFAST line drain (B's D2) | `bd_delay_gated` request lines (matched delays) | **F** (Fc cert) | 113/116: seed d `ucmpi8` (fastG −498, unguarded +941/+2300) and `merge12` on seeds 3 and 4, all band-only. (Seed 2 `uselect1.udly`'s −141 ps is tcheck's looser data side, not a disagreement) | B (H_CONTROLLING argued by hand) |
 | arbiter A0 fork (H_ARB; B's A1) | 8 control_merges (`uarb*`) | **J** (Jx exact shared prefix) | Jx 71/72; J0 57/72 | B (H_ONE_SAMPLE_PER_WIRE) |
 | C-element feedback first (H_CEL_SI's premise; B's C2/C3) | 363 C-elements per route | **R** (Rc cert) | kernel: 0 failures at fast/slow/fastE/slowE (C-10f). Rig `urig.uenv1`: −117/−221 (seed 2), −86/−243 (seed 4) under the band | C: the rig's 2-cell Muller ring is the thinnest real race. Per-pin term (C3) is invisible to the SDF |
 | H_AMERGE_RTZ, H_MUX_RTZ (B's X1) | 8 amerges, 22 muxes, `umux21` | none | UNCHECKED | C |
@@ -122,11 +123,12 @@ unchecked); L1's missing feedback-pin term in rule I; L2 enable pulse width (no 
 
 | id | what | why it is open | estimate |
 |---|---|---|---|
-| O1 | **cm winner forcing.** Each 2-input control_merge's winner stream equals the token run's label stream (H_EXCL_REQ plus the order). `amerge_op`'s equation is relative to the circuit's winner `ω`; for an arbitrary `ω` the stream equations of a loop can have NO solution (`z0 = f(z0)`), so T3 cannot be instantiated without it | needs a circuit-level ring-counting invariant: the offered history of all channels is a reachable cut of the token LTS. That is a simulation, not the Ops time induction | 1-2 days |
+| O1 | **cm winner forcing.** *Interface now fixed in Lean:* `CapstoneCM.amerge_op_forced` restates the control_merge operator with the oracle fixed in advance (the token run's labels `ω`) and the equation restricted to offered tokens, under **H_CM_FORCED** (the circuit's winner of every OFFERED token is `ω`). The unrestricted form could not be used: `winner` is `false` on never-offered indices, so "winners = labels for all k" would be false for every real circuit (a vacuity trap). Its token half is proved: `CapstoneExcl.cm_inputs_exclusive` (in every reachable token store, two control_merge inputs are never both non-empty). What remains open is the circuit half of H_CM_FORCED. In detail: Each 2-input control_merge's winner stream equals the token run's label stream (H_EXCL_REQ plus the order). `amerge_op`'s equation is relative to the circuit's winner `ω`; for an arbitrary `ω` the stream equations of a loop can have NO solution (`z0 = f(z0)`), so T3 cannot be instantiated without it | needs a circuit-level ring-counting invariant: the offered history of all channels is a reachable cut of the token LTS. That is a simulation, not the Ops time induction | 1-2 days |
 | O2 | **a stream solution from the token run.** T3 needs a TOTAL solution `ref : C → Nat → Nat` of every operator's equation. Plan: the complete run's per-channel histories, repeated periodically (one invocation per period, as the sources repeat), satisfy fork/comp/steer/mux/cm equations because the final store is empty except `out0`/`end`. Then `ref out0 k = gcd a b` for all k, and T3 gives "every latched out0 value is gcd" | generic lemma over GcdHwLib's `Rule.fire` (FIFO histories per rule kind) not written | 0.5-1 day |
 | O3 | **3-input control_merge as an Ops operator.** Resolved by composition: `emit_amerge` n = 3 is a cascade of two `bd_arbiter` stages joined by an internal channel `acc` (`R0`/`A0` of `uarb1` = `r1`/`A1` of `uarb2`), so it is two 2-input `AMerge` operators (`Capstone.amerge3_cascade`). bdc's priority index `won2 ? 2 : won1` is a function of the two stage buses at the same tick (H_DATA_COMB) | residual obligations: H_BUNDLE of the virtual `acc` bus (= `won1`; B's H_BUNDLED_IDX), and H_AMERGE_RTZ for stage 1. Stage 1 has NO matched delay between `R0` and `acc_req`, so its race is one C-element LUT (`A0↓ → ua_k → A_k↓`) against `A0↓ → ustate → ugrant → R0`: thinner than stage 2's and unchecked | none for the proof; the stage-1 RTZ race should become a tcheck row |
-| O4 | **binding.** The Ops SI models of fork, join, steer, mux and amerge are hand models of the RTL; B's generated-cell specs are a different formalism (timed, FIFO LUTs). The link is bound directly (`ctlB` = generated LUT); the others are not | a refinement lemma per cell kind from B's timed spec to the Ops gate-model fields | 1 day |
+| O4 | **binding.** Note the subtlety: 8f's H_CEL_SI ("moves only to the value its inputs had ONE TICK earlier") is implied by a bounded-delay gate only under excitation persistence (the inputs do not move while the gate is excited, which is what B's C2 feedback-first buys). So the binding lemma must carry C2, not just the INIT. The Ops SI models of fork, join, steer, mux and amerge are hand models of the RTL; B's generated-cell specs are a different formalism (timed, FIFO LUTs). The link is bound directly (`ctlB` = generated LUT); the others are not | a refinement lemma per cell kind from B's timed spec to the Ops gate-model fields | 1 day |
 | O5 | **circuit liveness.** T5 gives storage on every ring; the token run is live (T1). Missing: (i) a progress model (Ops' SI delays are unbounded, so nothing ever HAS to fire: liveness needs H_BOUNDED_DELAY per gate, or weak fairness); (ii) the simulation of O1 to carry the token schedule to the circuit; (iii) capacity: the token schedule must fit 1 token per link stage. 8a has this for pipelines (`muller_live`), 9 for rings | as listed | 2-3 days |
+| O7 | **zero-delay renames and sources.** 9 GcdHw comp rules are WIRES in the circuit (`_reshape`, `_op_constant`): `constant2`, `constant18` (control-triggered literals) and `trunci0..4`, `extui0/1` (req/ack pass straight through, only the bus changes). Ops needs strictly causal operators, so these must be removed by identifying the two channels' handshake and folding the data map into the consumer (8f's rename note). The consumers are comps (map folds into `g`), `cond_br17`'s data (folds into the steer's `f`) and `mux3`'s input (`extui` of a 0/1 value, the identity on the values that occur). `bd_src` (`req = ¬ack`, LUT1), which heads the source chains collapsed by H_SOURCE_ETERNAL, is now an operator: **`CapstoneSrc.src_op`** (`σ c k = VAL`) | part of the concrete-network bookkeeping | ½ day, included in "concrete network" |
 | O6 | per-route instances of the Ops obligations: tcheck checks tighten's obligation shapes, linked to 8f's H_BUNDLE/H_MUX_SEL by hand (§3 left column) | identification is by hand | 1 day (emit Ops-named obligations from the network) |
 
 ## 6. Tests that would grade the B rows up (one per row family)
@@ -142,3 +144,23 @@ unchecked); L1's missing feedback-pin term in rule I; L2 enable pulse width (no 
   Counting contested grants on the board would test that claim directly.
 - tcheck: add H_AMERGE_RTZ and H_MUX_RTZ as two-path races (they are the only UNCHECKED rows with a
   mux-like shape), and the C3 per-pin term to rule R.
+
+## 7. The capstone statement as it will read once O1 and O2 are closed
+
+For `a, b < 2^31` and every circuit run `ch` (traces of every request, acknowledge and bus of
+bdc's gcd_hw network, link stages included):
+
+* if every operator instance's internal traces satisfy its gate model (`Fork`, `Join`,
+  `Steer`, `Mux`, `MuxN`, `AMerge` ×2 per 3-input cm, `Link`, `Sink`, source/env), which brings
+  in §2's primitive hypotheses and, through O4, B's cell rows of §4;
+* and every channel satisfies H_BUNDLE (§3's per-channel and per-link rows, discharged on the 4
+  routes by tcheck under §3's global hypotheses);
+* and H_CM_FORCED holds for the 8 multi-input control_merges (O1, to be proved, not assumed);
+
+then every value latched on `out0` is `Nat.gcd a b`. With O5, `out0` also latches at least one
+value.
+
+The proof would be `Capstone.latched_const`, applied to the O2 solution (with
+`amerge_op_forced` for the control_merges and the other `*_op` theorems for the remaining
+operators). Everything named in that chain exists and checks except O1, O2 and the concrete
+network term (½ day of bookkeeping once O2 fixes the value conventions).
