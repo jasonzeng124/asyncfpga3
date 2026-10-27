@@ -267,7 +267,7 @@ theorem name. Bk2 ConstraintsKappa written, held until Mathlib builds
 Running: Bk1, Bu, Bpt, Bmx, Bdg, Bj (JSON: strictness, steer, fork rows),
 Bar, Bsw, Bex, Bc4.
 
-### progress 11:55
+### progress 11:23
 In: Bmx LibGapMux (bd_mux select exact at both joins), Bdg LibGapDelay
 (bd_delay_gated flush exact under stated side conditions; false without
 H_LO_ORDER), Bsw (SteerWit finding was misattributed; corrected), Bu
