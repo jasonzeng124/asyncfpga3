@@ -198,6 +198,17 @@ them).
   the cell's own feedback is slower than a neighbour's response (an obligation
   not found among tighten.py's rules). Not run on gcd_hw yet (no routed JSON in
   this sandbox; loops need a FIFO-aware abstract domain for precision).
+- **Event-count domain** (`Core/XAudit/Events*.lean`, `Events2*.lean`;
+  `lake exe xevents`): per-wire transition counts with min-plus timing (timed
+  marked graph) over the behaviour's own monotone warps. Closed and open
+  Muller networks of real-INIT n-input C-elements with delay chains stay
+  binary for all time under explicit decidable obligations (`Back`/`Race`:
+  own feedback hi ≤ the lo-sum of the loop back through each neighbour); ring3
+  and pipe3 period bounds [135, 171] steps, both attained, via exact cycle-ratio
+  certificates. Finding: at an open boundary the race margin is only the port
+  route's lo plus the environment's response minus feedback hi (30 ps + env on
+  illustrative bands, vs 930 ps inside). Choice (mux/steer) and bundling inside
+  loops are the remaining steps toward gcd_hw.
 
 ### 13. Literature
 `notes/A-lit-1.md` (async/SI/DI verification, involution model,
