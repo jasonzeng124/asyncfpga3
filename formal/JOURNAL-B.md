@@ -394,6 +394,30 @@ table: Src.H_LUT_SI (channels 0-2) and H_ENV proved by B; Src.dat = H_DAT;
 Src.iz false at release, supplied by preRun. Still open for C: laps >= 2,
 and the rig's sinks K.sink 416 / K.sink 3 as H_SINK_SI.
 
+### progress 13:02
+Mathlib is built far enough here (CornerNat and the Delay modules compiled
+by setup.sh's lake build, still running for the rest of Formal). Checked
+under the real Mathlib with the lakefile's autoImplicit=false (lean -o into
+a private overlay of lake's build dir): ConstraintsKappa (Bk2),
+OnNetlistArbKappa (Bk1), OnGcdArbKappa (Bk3), and ArbInvolution's comment
+edit; collectAxioms over all 784 theorems of the three kappa files: only
+propext/Classical.choice/Quot.sound. Results:
+- Bk2: the exact corner-model check GenOK for every constraint shape
+  sum(P)+a <= sum(Q)+b (sound; tight under H_DISJ+H_DIV; sandwich within
+  1 ps per arc otherwise). The JSON's "box is always sound" is FALSE for
+  kappa > 0 (box_unsound_with_kappa); a SLOW-only check is unsound even at
+  kappa = 0. kappa_check patch to be regenerated into the JSON next.
+- Bk1 (link_arb A0 fork): safe on 8/8 at kappa = 1/11; at the guardband
+  kappa (0.199) 8/8 in A's literal endpoint reading, 7/8 in the
+  side-pessimistic one (s1 client 2 unsafe from kappa ~ 0.18).
+- Bk3 (gcd_hw, all 36 arbiters x 18 conditions): under A's literal
+  endpoints every condition holds for kappa <= 0.0443 (binding: seed 3
+  merge12.uarb1 RT1b without server credit), 0.0802 with the server
+  credited (binding: seed 2 merge3.uarb1 r2->r1 handover); in the
+  side-pessimistic reading 5 rows on 3 arbiters fail at kappa = 0. So
+  gcd_hw's arbiter safety needs a measured kappa below ~0.044 (A's model).
+Also in since 12:35: Bsx3 Necessity3*, Bsrc RigSrc, Bkx KleeneBox, Bgls.
+
 ## Session Tue Oct 27 02:48:05 UTC 2026
 
 ### progress 02:48
