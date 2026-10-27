@@ -23,7 +23,14 @@
   loop (Dynamatic's control_merge header under H_ONE_INVOCATION) equals C gcd
   under every schedule; merge non-determinate. Gaps: forks/joins/merges at
   handshake level (8f), per-event glitching delays in the multi-token run,
-  the gcd graph not imported from bdc. Effort to gcd_hw end to end: ~2-3 weeks.
+  the gcd graph not imported from bdc. Operator composition (`Ops*`, Phase 3):
+  any network of bdc's op cells refines the token semantics (prefix at every
+  time, determinate), gate-level fork/join/steer/mux; gcd_circuit on the
+  hand-drawn loop (no non-vacuity witness yet; control_merge open). Muller
+  timed (`MullerTimed*`): the feedback condition derived from delay bounds,
+  exact (converse witness), n<=3; on shipped placements it is
+  placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
+  ~2-3 weeks.
 - **Track 10 (verified timing checker): works.** `Formal/Timing/{Semantics,
   Checker,CheckerToy}.lean`: interval STA over BoundedDelay arcs, executable,
   sound and per-node exact. Bundling check exact when req and data share only
@@ -38,6 +45,10 @@
   over-credits). nextpnr's SDF carries slow-corner max only (min=typ=max), so
   "shortest path" checks have no lower bound. Counterexamples are constructed
   netlists, not found in shipped routes (no routed SDF on disk).
+- **Phase 1 Gen: done.** `Formal/Gen/` + `formal/tools/gen/gen.sh --check`:
+  all 36 modules of cells/rtl (63 targets) generated from the project's yosys;
+  163 theorems tie them to every B transcription and A's LutCells INITs; a
+  flipped INIT bit breaks the build. bd_mem's BRAM is opaque.
 - **Track 11 (netlist import): works.** (a) yosys JSON: 11 cells, project's own
   yosys 0.62 flow, generator + drift check (`formal/tools/import/import.sh
   --check`), proved equal to B's binary/Kleene transcriptions; a flipped INIT
@@ -175,3 +186,11 @@ API session limit hit (resets 04:50 UTC): probes 8f, 8g, 8i, 10e, 10f, 11d,
 12c stopped mid-work; their work so far is saved in the tree (Wip/notes
 snapshotted; unchecked Formal/ files left untracked). 12a still running its
 own background jobs. Will resume each probe after the reset.
+
+### progress 05:16
+Resumed the 7 probes after the reset. Committed 11d (Gen), 8f (Ops), 8g
+(MullerTimed) after compiling every dependency myself (new helper builds
+Formal.* deps by mtime) and an axiom audit (Gen 590, Net 1409 decls clean).
+Note for A: check.sh FILE mode (.lake/checkfile) fails on files whose
+Formal.* imports are not also passed (reported by 8f/8g). Launched 8j
+(control_merge, witness, liveness) and 11e (port shard C off Cells.Prelim).
