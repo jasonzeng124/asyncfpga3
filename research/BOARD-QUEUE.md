@@ -58,7 +58,9 @@ feeding-link C node (69ee32b), which flagged R2 on 2 seeds; R3/R4 padded the ask
 route was padded to reach it.
 Branch claude/research. No bitstream is committed (owner, 2026-10-25); build it in the cloud toolchain
 (nextpnr 9c732bc6303458df, patches 789a7120c912d393, yosys v0.62). The default-seed build's md5s were
-bit ce596deb, routed.json 7be3c1cf, sdf a9c4e265; check yours with md5sum before trusting the run:
+bit ce596deb, routed.json 7be3c1cf, sdf a9c4e265; check yours with md5sum before trusting the run
+(the .bit md5 is NOT reproducible on its own -- 3 header bytes differ between builds of one route; compare the
+routed.json and sdf md5s):
 
     cd cells
     BD_SIZES=../research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
@@ -85,6 +87,27 @@ seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement valid
 50 / 48 / 49 / 48 laps, mean 47.3, vs 24-26 unsized), gate clean on each. Per-arc scatter on R5 seeds 3 and 4: 8.5%
 (seed 4), 17%, 25% x2 all 16/16. Its predecessor R2 (same compute sizes, fewer select pads) passed
 nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
+
+## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~9% more laps than #2, every audit and routed GLS clean on 8 routes
+Run only after #2 passes: it is #2 plus one opt-in change (bd_link's request delay and bd_mux's output delay fall
+in one hop; cells/rtl/bd_link.v RFAST, bd_mux.v FASTFALL, committed fdfe098 with tighten.py rule F, which audits
+that a fast-fall line drains before its input can rise again). Same rig, pads, placement, sizes.
+Toolchain as #2. Default-seed md5s: routed.json f9c4597d, sdf 61e14755 (bit f9fb4b19, not reproducible on its own):
+
+    cd cells
+    BD_SIZES=../research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 BDC_LINK_FASTFALL=1 ./hw/build_hw.sh gcd_hw
+    md5sum build/hw/gcd_hw/gcd_hw_routed.json build/hw/gcd_hw/gcd_hw.sdf
+    hw/board.sh python3 hw/gcd_measure.py --program
+    sleep 60
+    hw/board.sh python3 hw/gcd_measure.py; echo "exit $?"
+
+Pass: the same PASS line and exit 0 as #1/#2. Speed: compare gcd_measure.py's per-vector latency with #2's; routed
+GLS predicts ~0.92x of #2 on the loop vectors.
+What it would mean: PASS = the fast request fall is safe on silicon; FAIL while #2 passes = a fall-path hazard that
+rules A/E/F/H/I/J and corner/scatter GLS did not see (send the full output).
+Evidence (JOURNAL 2026-10-26/27): seeds d, 3-9: rules A/E/F/H/I/J 0, fasm_audit PASS, gate clean, routed GLS 16/16
+errs=0 at nominal on all 8 and at x0.9/x1.1 on d, 3, 6, 7, 8, 9; 17% scatter on d and 3. Laps vec 6 mean 50.0
+(46-52) vs 45.75 for #2 on the same 4 seeds; vec 12 40.4, vec 13 58.6. Rule F worst +888 ps (an existing line).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

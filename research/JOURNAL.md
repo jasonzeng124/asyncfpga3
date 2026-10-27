@@ -1025,3 +1025,10 @@ Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-o
   stalled): every value checked was correct, then "req fell out of phase on out0" -- the select-deficit signature
   seen on collatz and isprime. Rule E and routed GLS agree again. Ratchet (rule E pads + rule A sizes, seeds 1-8,
   11 vectors) running; seeds 5-8 at placeholders with 11 vectors also running.
+### progress 00:42 (rule F holds retroactively; P1 -> BOARD-QUEUE #3)
+- Rule F (committed tighten.py) re-run on every route already claimed: gcd_hw R5 (8), BOARD-QUEUE #1 (3 incl. the
+  committed route, sdf md5 6f8b99e6), collatz (12), xorshift (20), ipow (16): **0 violations, worst +463 ps**. No
+  shipped claim changes.
+- P1 (R5 + link fast fall) on 8 routes (d, 3-9): every audit clean, fasm_audit PASS, routed GLS 16/16 at nominal on
+  8, corners on 6, 17% scatter on 2; vec 6 50.0 laps (46-52) vs 45.75 without. Written up as BOARD-QUEUE #3. #2's
+  entry now says to check routed.json/sdf md5s, since the .bit md5 is not reproducible (header bytes).
