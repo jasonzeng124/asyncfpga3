@@ -1,5 +1,6 @@
 import Mathlib.Basic.Real.Basic
 import Mathlib.Tactic.Linarith
+import Mathlib.Algebra.Order.Archimedean.Real.Basic
 
 /-!
 # Trace benchmark, representation (a): continuous time, `ℝ → Bool`
@@ -507,5 +508,19 @@ theorem andChain_follows {lo₁ hi₁ lo₂ hi₂ : ℝ} {a b c m y : Sig}
     (hb : ∀ t, b t = true) (hc : ∀ t, c t = true)
     (h : AndChain lo₁ hi₁ lo₂ hi₂ a b c m y) : TChan (lo₁ + lo₂) (hi₁ + hi₂) a y :=
   tchan_comp (and_follows hb h.1) (and_follows hc h.2)
+
+/-! ## Discharging `RealComplete`
+Mathlib's `Real.exists_isGLB` proves the completeness hypothesis, so the
+inertial results hold unconditionally. -/
+
+theorem realComplete : RealComplete := fun _ hne hbdd => Real.exists_isGLB hne hbdd
+
+theorem inertial_short' {δ a w : ℝ} {y : Sig} (hδ : 0 ≤ δ) (hw : w ≤ δ) (hy : WF y)
+    (h : Inertial δ (pulse a w) y) : ∀ t, y t = false :=
+  inertial_short realComplete hδ hw hy h
+
+theorem inertial_long' {δ a w : ℝ} {y : Sig} (hδ : 0 ≤ δ) (hw : δ < w) (hy : WF y)
+    (h : Inertial δ (pulse a w) y) : y = pulse (a + δ) w :=
+  inertial_long realComplete hδ hw hy h
 
 end Formal.Core.TraceReal
