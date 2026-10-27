@@ -1,7 +1,8 @@
 import Formal.Cells.ResetGcdNet
 
 /-!
-# Probe Rst2 (shard B, gcd_hw capstone): the reset contract on the real control netlist
+# Probe Rst2 (shard B, gcd_hw capstone): the reset contract on the RTL-level control netlist
+(bdc RTL + cells/rtl INITs + gcd_rig.v at default sizes; not the routed netlist)
 
 Notes: `formal/notes/B-reset-gcd.md`. Network: `ResetGcdNet.lean` (generated).
 

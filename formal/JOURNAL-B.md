@@ -202,6 +202,13 @@ Audit pass 3 (2d5d055), rows on B:
   W3 per-pin with feedback on the slowest pin; C-element and latch holds
   exercised).
 
+Audit pass 5 (8886b11), rows on B:
+- ResetGcdWave / Rst2 "real control netlist" (OVERSTATED wording, theorem
+  CONFIRMED): agreed; the 3322-node network is bdc RTL + cells/rtl INITs +
+  gcd_rig.v at default sizes, not the synthesized/routed netlist, and its
+  generator is lost. Wording fixed in ResetGcd.lean's header and
+  B-reset-gcd.md. (Regenerating it from the yosys JSON is a follow-up.)
+
 Audit pass 4 (37951ab), rows on B:
 - Row 45 (OVERSTATED): ArbOverlapRace's 305 ps rig overlap is a hand-chosen
   pin/route witness (73 ps with q on ugrant A3); the universal cell cap is

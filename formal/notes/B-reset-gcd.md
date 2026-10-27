@@ -1,4 +1,6 @@
-# B-reset-gcd: the gcd_hw reset contract on the real control netlist, in Lean
+# B-reset-gcd: the gcd_hw reset contract on the RTL-level control netlist, in Lean
+
+> Scope (audit pass 5, OVERSTATED wording):from bdc's RTL + cells/rtl INITs + gcd_rig.v at default sizes; not the synthesized or routed netlist, nor the board build's parameters; its generator was in a lost scratchpad: audit pass 5.
 
 Probe Rst2 (shard B, gcd_hw capstone), 2026-10-27. This follows
 `B-reset-contract.md`. There, the whole-design facts (414 reset cells, the
@@ -221,7 +223,7 @@ cells' rst is still high: the lost-event hazard, H_NO_RETURN.
 ## Verdict
 
 **Works.**
-- The asked results are proved on the real control netlist:
+- The asked results are proved on the RTL-level control netlist (from bdc's RTL + cells/rtl INITs + gcd_rig.v at default sizes; not the synthesized or routed netlist, nor the board build's parameters; its generator was in a lost scratchpad: audit pass 5):
   - `ResetSpec`, and with it `reset_ternary`/`reset_binary`, for the whole
     gcd_hw control network (3322 nodes, 414 reset cells, real INITs and pin
     maps);
