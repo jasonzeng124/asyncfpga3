@@ -294,14 +294,15 @@ def convert(path):
 
     def best(b):
         """Input port name, else output port name, else the shortest public
-        net name, else the shortest internal one."""
+        net name (top-level names before hierarchical ones), else the shortest
+        internal one."""
         if b in synth_names:
             return best(synth_names[b]) + "$master"
         if b in portname:
             return portname[b]
         cand = names.get(b, [f"${b}"])
         pub = [c for c in cand if not c.startswith("$")]
-        return sorted(pub or cand, key=lambda s: (len(s), s))[0]
+        return sorted(pub or cand, key=lambda s: ("." in s, len(s), s))[0]
 
     # state: 1. sequential outputs, 2. self-read comb outputs, 3. DFS back edges
     st_seq = {b for c in cells if c["seq"] for b in c["outs"]}

@@ -125,6 +125,8 @@ def main():
     ap.add_argument("--belmap", help="write the {cell: bel} map of --routed here")
     ap.add_argument("--hops", type=int, default=10**9,
                     help="expand only LUT outputs at most this many LUT arcs after the launch")
+    ap.add_argument("--no-lap", action="store_true",
+                    help="drop the LUT arcs that close a loop (the pin nodes stay)")
     ap.add_argument("--emit-json", help="write nodes and the per-variant netlists here (for rt_all.py)")
     a = ap.parse_args()
 
@@ -242,6 +244,8 @@ def main():
             c = larcs[i][k + 1]
             sdv = sdf_io.get((("lut", luts[i]["site"], luts[i]["lut"]), k + 1), 0)
             lab = "LUT %s %s(A%d)->O6" % (luts[i]["site"], p["pin"], k + 1)
+            if tgt in onstack and a.no_lap:
+                continue
             if tgt in onstack:
                 ln = node(lname(i) + "@lap")
                 arcs.append((end, ln, c, sdv, lab + " [lap]"))
