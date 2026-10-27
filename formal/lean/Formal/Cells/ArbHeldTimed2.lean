@@ -628,9 +628,12 @@ fall it is 0 and `A1_stuck`'s pulse disjunct is vacuous:
 `ArbCorners.stuck_pulse_vacuous`, `ArbCorners.A1_band_corner`.)
 
 After the window the low hole recirculates through ua1's loop; in this
-rise-fast OR-channel model each round shrinks it by `c1f − c1r` (hand
-analysis, not proved here), so A1 ends latched high with a decaying runt
-train: the C-element runt regime of `CElemTiming`. The silicon outcome of
+rise-fast OR-channel model a hand analysis suggested each round shrinks it
+by `c1f − c1r`; that is wrong in general: at one corner (rise = fall) the
+hole circulates for ever (proved for the boundary runs in
+`Necessity2Arb`, notes/B-necessity2.md), and a simulation also finds a
+non-decaying train with c1r < c1f. The runt regime is that of
+`CElemTiming`. The silicon outcome of
 sub-arc runts is not determined by this model (no inertial rejection). -/
 
 section

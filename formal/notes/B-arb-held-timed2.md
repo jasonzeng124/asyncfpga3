@@ -347,7 +347,9 @@ failure shows up.
 
 **Not proved: the echo train.** After the re-latch window, the hole comes
 round ua1's loop again. By hand, in this rise-fast OR model:
-- each round shrinks the hole by `c1f − c1r`, so A1 ends latched high after
+- [WRONG in general, probe Bsx2: at one corner the hole circulates for ever
+  (Necessity2Arb); a non-decaying train exists in simulation with c1r < c1f]
+  each round shrinks the hole by `c1f − c1r`, so A1 ends latched high after
   `⌈p/68⌉ − 1` runts in total (68 is the corner-mixed `c1f − c1r`; with
   rise = fall the hole does not shrink in this channel, and the asymmetry is
   the unmeasured `ArbCorners.RF`);
