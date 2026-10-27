@@ -1,0 +1,113 @@
+# bd_c2: minimum pulse width W (H_ENV_PULSE) per channel kind
+# B (CElemTiming.lean, WinDelay): W >= Dmax = dl_hi + dw_hi is sufficient, and tight for fixed delays
+== win dl=(1, 1) dw=(1, 1) Dmax=2
+   W=2 follow: PROVED (k-induction, k=3)  [12 state bits, 0.03s]
+   counterexample at W=1 (depth 4):
+     t          01234
+     rst        11___
+     a          __11_
+     b          __1_1
+     z          __111
+     O          ___1_
+     qp         ____1
+     cnt        01011
+   W: no proof up to 6
+   R=2 follow: PROVED (k-induction, k=3)  [13 state bits, 0.02s]
+== win dl=(1, 2) dw=(1, 2) Dmax=4
+   W=4 follow: PROVED (k-induction, k=6)  [17 state bits, 0.08s]
+   counterexample at W=3 (depth 8):
+     t          012345678
+     rst        1111_____
+     a          ____1111_
+     b          ____111_1
+     z          ____11111
+     O          _1____11_
+     qp         ________1
+     cnt        012201222
+   W: no proof up to 8
+   R=4 follow: PROVED (k-induction, k=6)  [17 state bits, 0.08s]
+== fifo dl=(1, 1) dw=(1, 1) Dmax=2
+   W=2 follow: PROVED (k-induction, k=3)  [14 state bits, 0.03s]
+   counterexample at W=1 (depth 4):
+     t          01234
+     rst        11___
+     a          __1_1
+     b          __11_
+     z          __111
+     O          ___1_
+     qp         ____1
+     cnt        01011
+   W: no proof up to 6
+   R=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.03s]
+== fifo dl=(1, 2) dw=(1, 2) Dmax=4
+   W=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.10s]
+   counterexample at W=3 (depth 8):
+     t          012345678
+     rst        1111_____
+     a          ____1111_
+     b          ____111_1
+     z          ____11111
+     O          ______11_
+     qp         ________1
+     cnt        012201222
+   W: no proof up to 8
+   R=4 follow: PROVED (k-induction, k=6)  [19 state bits, 0.10s]
+== inert dl=(1, 1) dw=(1, 1) Dmax=2
+   W=2 follow: PROVED (k-induction, k=3)  [14 state bits, 0.04s]
+   counterexample at W=1 (depth 4):
+     t          01234
+     rst        11___
+     a          __1_1
+     b          __11_
+     z          __111
+     O          ___1_
+     qp         1___1
+     cnt        01011
+   W: no proof up to 6
+   R=2 follow: PROVED (k-induction, k=3)  [15 state bits, 0.05s]
+== inert dl=(1, 2) dw=(1, 2) Dmax=4
+   W=4 follow: PROVED (k-induction, k=5)  [19 state bits, 0.07s]
+   counterexample at W=3 (depth 8):
+     t          012345678
+     rst        1111_____
+     a          ____1111_
+     b          ____111_1
+     z          ____11111
+     O          ______11_
+     qp         11______1
+     cnt        012201222
+   W: no proof up to 8
+   R=4 follow: PROVED (k-induction, k=5)  [19 state bits, 0.09s]
+
+# summary: kind dl dw Dmax  W_follow W_mono R_min
+  win   (1, 1) (1, 1)  2   2 None 2
+  win   (1, 2) (1, 2)  4   4 None 4
+  fifo  (1, 1) (1, 1)  2   2 None 2
+  fifo  (1, 2) (1, 2)  4   4 None 4
+  inert (1, 1) (1, 1)  2   2 None 2
+  inert (1, 2) (1, 2)  4   4 None 4
+
+# four-phase environment (two clients, latency >= E after seeing the ack on O)
+# B (c2_four_phase): sufficient E >= dw_hi + (dl_hi - dl_lo)
+== win dl=(1, 1) dw=(1, 1)  B-bound E=1
+   E=1 follow: PROVED (k-induction, k=3)  [13 state bits, 0.05s]
+   E: no proof up to 5
+   => E_min follow=1 mono=None (B bound 1)
+== win dl=(1, 2) dw=(1, 2)  B-bound E=3
+   E=2 follow: PROVED (k-induction, k=24)  [19 state bits, 8.51s]
+   counterexample at E=1 (depth 7):
+     t          01234567
+     rst        1111____
+     a          ____1111
+     b          ____11__
+     z          ____1111
+     O          11___11_
+     qp         __1____1
+     cnt        01220122
+   E: no proof up to 7
+   => E_min follow=2 mono=None (B bound 3)
+== fifo dl=(1, 1) dw=(1, 1)  B-bound E=1
+   E=1 follow: PROVED (k-induction, k=3)  [15 state bits, 0.03s]
+   E: no proof up to 5
+   => E_min follow=1 mono=None (B bound 1)
+== fifo dl=(1, 2) dw=(1, 2)  B-bound E=3
