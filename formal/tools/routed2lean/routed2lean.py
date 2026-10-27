@@ -123,6 +123,9 @@ def main():
     ap.add_argument("--name", action="append", default=[],
                     help="KEY=NODE: emit `def KEY : Nat` (node index) and `KEY_part : List Nat`")
     ap.add_argument("--belmap", help="write the {cell: bel} map of --routed here")
+    ap.add_argument("--hops", type=int, default=10**9,
+                    help="expand only LUT outputs at most this many LUT arcs after the launch")
+    ap.add_argument("--emit-json", help="write nodes and the per-variant netlists here (for rt_all.py)")
     a = ap.parse_args()
 
     res = json.load(open(a.f2l))
@@ -223,7 +226,7 @@ def main():
     onstack = set()
     done = set()
 
-    def dfs(key, n):
+    def dfs(key, n, h):
         onstack.add(key)
         for kind, i, k, p in sinks.get(key, []):
             if kind == "pin":
@@ -246,12 +249,12 @@ def main():
             else:
                 o = node(lname(i))
                 arcs.append((end, o, c, sdv, lab))
-                if tgt not in done:
-                    dfs(tgt, o)
+                if tgt not in done and h + 1 <= a.hops:
+                    dfs(tgt, o, h + 1)
         onstack.discard(key)
         done.add(key)
     for key, n in start:
-        dfs(key, n)
+        dfs(key, n, 0)
 
     # topological numbering (Kahn, stable)
     succ = defaultdict(list); indeg = {n: 0 for n in nodes}
@@ -297,6 +300,8 @@ def main():
             W[d] = (e, l) if W[d] is None else (min(W[d][0], e), max(W[d][1], l))
         return W
     wins = {v: windows(nets[v]) for v in VARIANTS}
+    if a.emit_json:
+        json.dump({"nodes": order, "nets": nets, "wins": wins}, open(a.emit_json, "w"))
 
     # ---- Lean
     out = []

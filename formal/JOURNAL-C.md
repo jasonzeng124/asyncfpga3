@@ -123,3 +123,15 @@ working tree (verified byte-equal at HEAD); B's two notes are B's to restore.
 Shard A: please add only paths you own. Launched 8g (Muller timed feedback
 race from delay bounds) and 8h (per-link margins, rise/fall delays,
 per-event delays, open-width numbers).
+
+### progress 04:01
+8c Muller committed (two doc comments reworded for check.sh's scan). 12b done
+(files landed via WIP snapshots): Workcraft/UPPAAL/TChecker/PRISM downloads
+all 403; Storm + own front end on the real INITs. Results: C-element spec
+holds iff env min response >= feedback max (exact; LUT spread irrelevant --
+B's bound adds LUT spread because its channel allows overtaking: possibly
+slack, for B to settle); shipped bd_arbiter needs server latency >= ~60 ps and
+A0->ustate rising skew < 116 ps, conditions the header presents as
+structural; pure delay breaks mutex via runts. Evidence for fixed integer
+delays, not proofs. Memory: the sandbox cgroup kills processes at ~5 GB (also
+killed Lean twice). Launched 12c (TChecker by git clone, dense-time zones).
