@@ -278,3 +278,9 @@ and 8n (O4 + bounded-delay liveness).
 9c committed: the gate-level bd_link chain is hazard-free / four-phase / in
 order for every n (iso, rt and timed under FbBound) via a two-position
 adjacency invariant + kernel-checked windows + gluing lemma.
+
+### progress 07:24
+10j committed: the grant-fork runt never breaks the handshake on the 36
+routed gcd_hw arbiters at 4 corners (proved; per-instance kernel verdicts;
+H_CAUSAL_PATH, H_FF_DRAINED). Owner notified. Clean rebuild of every claimed
+shard-C file into a fresh olean dir running (stale-olean check).
