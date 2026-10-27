@@ -99,3 +99,15 @@ Container restarted. Lost: the Mathlib lake build (about 1430 oleans had
 survived; restarted) and all running probes. Resumed 7d, 5d, 7h, 7i, 6d from
 their transcripts; 7c was not resumable and was re-created to continue from
 its files on disk (Wip/Cells/ArbAnalog.lean, notes/B-arb-analog.md).
+
+### progress 03:26
+In: 7h ArbHeldTimed, 6d LinkTimed (stage contract; env latency, enable
+pulse width and reset sequencing unchecked by any rule), 7i TernaryPhases
+(A0-fork early ack is a concrete bounded run; C-element and arbiter-tie X
+shown exact by witness runs). 5d CElemCore (involution: an unresolvable runt
+width always exists; inertial circulation band is [rho, D-rho]) is written
+and was checked by its agent against hand-compiled Core oleans; held back
+until lake builds Core and it checks there.
+Launched: Lib1 (bd_ctl/merge/mux INITs + Kleene), Lib2 (bd_end/mem/mlink),
+7j (held arbiter, client-2 direction + non-vacuity), 6e (N-stage pipe timed).
+Running also: 7c (analog, re-created), 7d (resolution law).
