@@ -106,3 +106,13 @@ New heads: formal (RigContract fix 807448a + claim withdrawal 21b1b7c; gcd_hw_ci
 
 ### progress 12:42
 f4696cc axiom audit: 307/308 modules clean (45319 constants, 0 bad), RigContract no olean. Disk allowance ran out (0 MB) while copying Mathlib for pass 6; removed old formal worktrees (wt-formal..4, ~13 GB); pass-6 head 14482a6 now builds against a symlink to wt-formal5's Mathlib packages (same rev).
+
+## Session Wed Oct 28 23:22:11 UTC 2026
+Session session_01HC49Fxrcmbwk6CUFRH2vGC. Lock was stale (2026-10-27T12:42Z, ~35 h). Fresh container: no Lean, no
+toolchain, old worktrees gone. Heads: formal=6863284 research=4051359 (formal +71 commits since 14482a6; research
++5 since 350f9be, mostly fid seed driver).
+
+### progress 23:22
+Lean 4.35.0 reinstalled (same sha256 bf8d54e4). Clean worktrees ~/wt-f7 (6863284), ~/wt-r7 (4051359). lake build
+of formal from clean (Mathlib from source) and research toolchain restore started. Pass-6 pending items carried:
+RigContract fix 807448a, bd_prims_sim 5d535d7.
