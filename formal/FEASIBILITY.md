@@ -21,26 +21,38 @@ analog resolution), which no proof can discharge and which need GLS or board
 experiments; and (2) **connecting** the proofs to the real routed design
 (netlist import, delay numbers per arc), which is engineering.
 
-## Status against the owner's three goals (2026-10-27 ~12:10 UTC)
+## Status against the owner's three goals (2026-10-28 ~03:00 UTC)
 
 1. **A correct model of the chip.** LUT as mux tree with per-pin delays, per-edge
    bands only where the data has them (prjxray has none: fast/slow corners only),
-   pure/inertial/involution/SAF channels, shared corner plus local scatter κ. Open:
-   the involution transfer lemma (audit: not proved; probe running), ternary soundness
-   for transport/inertial (prose only; probe running), CARRY4/latch/flop fidelity in
-   the research GLS (FOR-RESEARCH §8). What a passing GLS run implies is proved
-   (`Core/Delay/GLSPass.lean`): only SAF silicon at the annotated delays.
+   pure/inertial/involution/SAF channels, shared corner plus local scatter κ.
+   Proved since the last update: the involution transfer lemma (corrected,
+   `InvolutionTransfer`), ternary soundness for transport/inertial channels with a
+   positive lower bound (`TernaryChannels`), what a passing SAF GLS run implies
+   (`GLSPass`). Open (probes running 2026-10-28): full involution trace semantics,
+   MUXF7/F8/CARRY4/LUT6_2 and flop/latch primitives in Core (today only in C's
+   generated files), the per-pin fid GLS model, the CARRY4/latch/flop fidelity gaps of
+   the research GLS (FOR-RESEARCH §8).
 2. **A correct gcd.** Token level: the bdc graph computes the C gcd (C, `GcdHw*`).
-   Circuit level: C's `gcd_hw_circuit_safe3` -- every out0 latch of the concrete
-   network is `Nat.gcd a b` (a, b < 2^31) under H_CELLS, H_BUNDLE, H_START_ONCE
-   (safety only; first rig lap; liveness reduced to two open obligations). Routed
-   timing: A's `Events7.design_verdict7` -- the 4 routed gcd_hw seeds are CLEAN at the
-   slow and at the fast corner under GuardOK, SelOK, SelPart, H_ARB (GuardOK probe
-   running); independent per-arc delays leave 8-13 timing residuals per seed.
-   These pieces are not yet one theorem: see `out/gcd_hw_hypotheses.md`.
+   Circuit level, safety: C's `gcd_hw_circuit_safe''` -- every out0 latch of the
+   concrete network is `Nat.gcd a b` (a, b < 2^31) under H_CELLS, H_BUNDLE,
+   H_START_ONCE, H_WALK (first rig lap; H_BUNDLE on zero-delay traces, the
+   physical -> zero-delay refinement is C's open 8x). Liveness: C's
+   `gcd_hw_live_final` (8z) -- first out0 within an explicit bound, value gcd, under
+   bounded-delay/env hypotheses plus one open network obligation H_NO_DEADLOCK'
+   (8u's `gcd_hw_live` is likely vacuous; not cited). Routed timing: A's
+   `Events8.design_verdict8` -- the 4 routed gcd_hw seeds are CLEAN at the slow and
+   fast corners under SatPin, constant wires/reset, H_ARB, SelOK, SelPart, HDsub
+   (HDsub and the bridges for the others are probes running). Arbiters (B,
+   `OnGcdArbKappa`): all 36 gcd_hw arbiters safe for κ ≤ 16587/374773 ≈ 0.044 in the
+   literal endpoint reading; box and SLOW-only checks unsound for κ > 0
+   (`ConstraintsKappa`). These pieces are not yet one theorem: see
+   `out/gcd_hw_hypotheses.md`.
 3. **Reusable on other designs.** `out/HOWTO-new-kernel.md`. Run on collatz (4 seeds,
-   verified toolchain): xevents5 CLEAN at slow and fast on every seed, 0 structural
-   residuals; xaudit certifies one transaction at slowmax only.
+   verified toolchain): xevents5/7 CLEAN at slow and fast on every seed, 0 structural
+   residuals; xaudit certifies one transaction at slowmax only. ipow and xorshift:
+   probe running. C's capstone generator gives ipow at circuit level
+   (`ipow_circuit_safe3`).
 
 ## How to check
 
