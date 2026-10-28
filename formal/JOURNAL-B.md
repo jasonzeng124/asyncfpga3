@@ -573,3 +573,8 @@ at l.84). FOR SHARD A: qualify it (Env.Gate) and B will redo that half.
 New in the same commit: OpsCounter, OpsExact, MuxN3Timed, ResetContract,
 ResetGcd/ResetGcdNet (gcd_hw control network reset and release, by decide).
 In before that: Br (gcd_hw routes: clean at consistent corners).
+
+## Session Wed Oct 28 02:48:37 UTC 2026
+
+### progress 02:48
+Took LOCK-B (previous B lock 13h46m stale). Running setup.sh; reading the audit.
