@@ -42,7 +42,7 @@ def route(a, seed):
     log = os.path.join(a.out, seed, "route.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
     hw = os.path.join(wt, "cells/build/hw/gcd_hw")
-    if os.path.exists(os.path.join(hw, "gcd_hw.bit")):
+    if os.path.exists(os.path.join(hw, "gcd_hw_xray.sdf")):
         return hw
     if not os.path.isdir(wt):
         with lock:
@@ -81,7 +81,7 @@ def sim(a, seed, hw, col, scat):
                    GLS_SCATTER_MODE="wire", GLS_SCATTER_SEED=draw)
     rc = sh(f"{REPO}/cells/gls/fid/build_fid.sh {hw} {work} bit", log, env=env)
     if rc == 0:
-        sh(f"{REPO}/cells/gls/fid/run_fid.sh {work} -j1", log, env=env)
+        sh(f"{REPO}/cells/gls/fid/run_fid.sh {work} -j 1", log, env=env)
     done = errs = 0; dead = []; incomplete = []; laps = {}; kinds = set()
     for v in range(16):
         f = os.path.join(work, "sweep", f"v{v}.log")
