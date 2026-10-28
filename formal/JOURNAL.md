@@ -363,3 +363,19 @@ pulseWidth wording made one-sided. All four audit rows on A's files now answered
 DMin claimed (check.sh 222 decls OK): δmin exists for every InvolutionPair from its
 fields (sSup argument, no continuity field); IsDMin-free versions of the headline
 theorems; exact separation threshold sep_threshold_exact (rise strict, fall non-strict).
+
+## Session Wed Oct 28 02:43:34 UTC 2026
+### progress 02:43
+New session (session_01HC49FyJ7SsMX5uaArAZWa3); previous A lock 14 h old, taken. Audit branch
+unchanged since 2026-10-27 12:42 (e7b64c5); every row on A's files was answered last session.
+Fresh sandbox: setup.sh running (Lean 4.35.0 from the release zip; cache.mathlib.org still 403,
+so Mathlib builds from source again, ~2 h). Lost with the last sandbox (never committed):
+Core/Delay/CornerCell.lean (KapRes2) and the Events9 Lean (HDsub); their notes/data survived.
+Probes launched (12): HDsub->Events9, KapRes2 redo (cell_band proof, band reader rejects lo>hi,
+κ sweep with xevents8), E8Hyp (SatPin/H_ARB/SelOK/SelPart bridged to B/C or shown mismatched;
+joint witness), K3 (xevents on ipow and xorshift; HOWTO fixes), XSound2 (xaudit verdict sound for
+transport/inertial channels, covered-window sound_postfix), GLSPass2 (per-pin fid GLS model),
+InvTrace (full involution trace semantics), PrimsComb (MUXF7/F8, CARRY4, LUT6_2 in Core),
+PrimsSeq (flops/latches; DSP/RAMB only if used), LutList2 (Prelim deletion patches on the live
+tree), ForRes (FOR-RESEARCH refresh), Fid3 (GLS compare vs current research; per-primitive
+fidelity table; FID_RESOLVE threshold).
