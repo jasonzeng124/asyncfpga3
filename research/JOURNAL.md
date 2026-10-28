@@ -1356,3 +1356,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolc
 - BQ#3 seeds 3-8 rebuilt (sdf b238ca95, a0d20c19, c71ed2cb, a1abd66d, ec9a75df, a81e16ee; seed 9 building);
   full stack at FAST_MIN and SLOW_MAX queued for each, after the scatter draws.
 - Subagent S3: acceptance.py `--stack full`, so the harness itself runs the hard items on the full stack.
+
+(The 2026-10-27 10:12 session ended without a closing note after progress 12:07; its lock went stale at 12:50.
+Its queued 8-seed full-stack runs and the S3 harness change are not on the branch: no results from them exist.)
+
+## Session 2026-10-28 23:11 -- (in progress) board-fidelity GLS: 8-seed full stack on BQ#3, scatter draws, acceptance --stack full
+### progress 23:11 (start)
+- Lock 12:50 on 10-27 (34 h old, dead); taken. 4 cores, 15 GB. Fresh container again: no routes on disk.
+- Audit: no new pass since 10-27 12:42 (pass 6 queued, unpublished); every research row was answered last session.
+- Plan: rebuild BQ#3 seeds d,3-9 (one nextpnr per core, at most 3 vvp-class jobs), full stack at FAST_MIN and
+  SLOW_MAX on each, then region 0.16 + wire 0.126 scatter draws; subagent S3 redoes acceptance.py --stack full.
