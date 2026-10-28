@@ -578,3 +578,21 @@ In before that: Br (gcd_hw routes: clean at consistent corners).
 
 ### progress 02:48
 Took LOCK-B (previous B lock 13h46m stale). Running setup.sh; reading the audit.
+
+### progress 02:52
+Audit (e7b64c5, unchanged since 2026-10-27 12:42): no new rows on B; row 59
+(RigContract) is PENDING the auditor's pass-6 rebuild, fix already in 807448a.
+Fresh sandbox: 4 cores, 15 GB, so formal/slot.sh allows 3 Lean processes; A's
+setup.sh is building Mathlib from source (cache host 403). Probes check through
+a private-olean checker (lean -o into a scratch dir with -DautoImplicit=false, through
+slot.sh, no lake build). Prelim deletion is left to shard A's coordinated
+LutList2 probe (a B-only switch changes statement text that C's files depend on).
+Launched 11 probes: Bnx4 (necessity of the bd_mux/bdc_muxn latency rows), Bnx5
+(remaining sufficient rows: FASTRISE ack_flush, rst_flush, reset_first, settled
+exclusion, token_static), Bsa3 (self-audit of files committed since 12:20), Blap
+(rig laps >= 2, H_SINK_SI), Brz (reset state at the capstone's T0 from B's reset
+run), Bgr (gcd_hw routes: feedback site pins, H_SEL_ORDER, strict feedback race per
+cell), Bshp (shared path prefixes in the arbiter race conditions vs the kappa
+threshold), Bipw (cell contracts for C's ipow_hw capstone), Bj5 (JSON: apply
+KleeneBox, Necessity3, kappa results), Bxw (the X-window width: parametric exact
+form and a test design), Bhyp2 (hypothesis ledger refresh, change list for A).
