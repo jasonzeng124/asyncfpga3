@@ -2,9 +2,12 @@
 """check_bands.py -- validate band files; find and correct the prjxray BRKH_INT fast-corner inversion.
 
     python3 check_bands.py check BANDS.json...
-        every [lo, hi] pair (sections cells / arcs / pins / sitepins, and the summary fields lut /
-        route) must have lo <= hi.  Prints each violation; exit 1 if any.  The Lean reader
-        (XAudit/Parse.toSteps) silently reads lo > hi as [lo, lo]; this is the gate in front of it.
+        every band (sections cells / arcs / pins / sitepins, summary fields lut / route / feedback /
+        pad_steps) must be a JSON array of exactly two naturals [lo, hi] with lo <= hi.  Prints each
+        violation; exit 1 if any.  The Lean reader silently reads lo > hi as [lo, lo]
+        (XAudit/Parse.toSteps) and silently DROPS a malformed entry (XAudit/Parse.pairOf, the arc
+        then gets the default band); this is the gate in front of it.  Its Lean counterpart, with
+        a proved statement of what passing guarantees, is Formal/Core/XAudit/BandCheck.lean.
 
     python3 check_bands.py brkh FAST.json SLOW.json [--skel SKEL_BANDS.json ...]
         lists the arcs whose route crosses a BRKH_INT pip (signature below), with whether each is
@@ -48,17 +51,38 @@ R_CUT = -60
 BRKH_FAST = (202, 105)        # ps, prjxray-db zynq7 BRKH_INT pips: FAST_MIN, FAST_MAX
 SHIFT = BRKH_FAST[0] - BRKH_FAST[1]   # 97
 SECTIONS = ("cells", "arcs", "pins", "sitepins")
+SUMMARY = ("lut", "route", "feedback", "pad_steps")
+
+
+def is_nat(x):
+    return isinstance(x, int) and not isinstance(x, bool) and x >= 0
+
+
+def pair_ok(v):
+    """a band the Lean reader takes as written: a JSON array of exactly two naturals, lo <= hi.
+    (XAudit/Parse.pairOf silently DROPS an entry that is not two naturals -- the arc then gets
+    the default band -- and toSteps narrows lo > hi to [lo, lo]; both are rejected here.)"""
+    return isinstance(v, list) and len(v) == 2 and is_nat(v[0]) and is_nat(v[1]) and v[0] <= v[1]
 
 
 def check(path):
+    """all violations in a band file: (section, key, value).  Mirrors BandCheck.jsonBandsOK."""
     b = json.load(open(path))
     bad = []
+    if not isinstance(b, dict):
+        return [("file", "-", "not a JSON object")]
     for sec in SECTIONS:
-        for k, v in (b.get(sec) or {}).items():
-            if v[0] > v[1]:
-                bad.append((sec, k, v))
-    for k in ("lut", "route"):
-        if k in b and b[k][0] > b[k][1]:
+        v = b.get(sec)
+        if v is None:
+            continue
+        if not isinstance(v, dict):
+            bad.append((sec, "-", "section is not an object"))
+            continue
+        for k, x in v.items():
+            if not pair_ok(x):
+                bad.append((sec, k, x))
+    for k in SUMMARY:
+        if k in b and not pair_ok(b[k]):
             bad.append(("summary", k, b[k]))
     return bad
 
