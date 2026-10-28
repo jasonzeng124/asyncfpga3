@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits (this pass): claude/formal 71ee3e86, claude/research 19a93c1.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -61,8 +61,17 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 | research | 2b52380 | BOARD-QUEUE: compare SDF md5s; BQ#3 "~6% more laps (same 8 routes)"; xorshift 1.71x withdrawn; dsp_areg control is refusal-only | CONFIRMED, one nuance | BQ#1 text says routed.json "embeds absolute paths and does not reproduce"; the audit found paths are not the whole story (BQ#3's routed.json reproduced exactly with the same toolchain path, BQ#1's did not even at their path) |
 
 ## CONFIRMED / UNVERIFIED
+(pass-7 rows first, then earlier passes)
+
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal->research | 7f46f23 (C-10n) on research 4051359 | "tighten.cell_boundary ... times GND/VCC tie-off routes as data (false path, overstates rule-A peak by 0.9-4.2 ns; whole cause of ipow s3 rule-A -59 ps)" | CONFIRMED (research defect, conservative on 4 routes) | audit/findings/P7-onresearch.md #1; audit/r7f/ipow/noconst.py | own ipow T9 seed-3 route: umuli1 -59 ps from $PACKER_GND_DRV; tie-offs dropped -> +4128. Overstatement 2.0-4.2 ns seen (0.9 not seen). Conservative here (adds only to data max; reaches 0/43 request tails), but not guaranteed by the code |
+| formal->research | 95ca2d6 (B) | "gen.py:494-512 never applies GLS_SCALE_INST to wire delays with wire-mode scatter on" | CONFIRMED (still at 4051359) | P7-onresearch.md #2; audit/r7f/gen/scale_wire.py | wire arc 1000->1000 in wire mode vs 1000->3000/3193 otherwise; the "matched no instance" guard still passes, so the wire part of an injected fault is silently dropped |
+| formal->research | 71ea5f3 (A ForRes 4) | "inverted prjxray FAST tuples ... [0.202,0.105,0.231,0.312] ... xray_delay.py propagates them" | CONFIRMED; per-route counts ("2-20 arcs per seed on gcd_hw R5") UNVERIFIED | P7-onresearch.md #3a; auditor re-count (own script over prjxray-db zynq7 tile_type_*.json, string->float): 28 delay tuples with FAST_MIN > FAST_MAX, all BRKH_INT, all that tuple; 0 SLOW inversions | none of the auditor's routes crosses BRKH; research bq3_min has 3 nets through them |
+| formal->research | 71ea5f3 (A ForRes 6/7) | GLS CARRY4 and SLICE_LATX sample-at-fire "even under fid" (O0 rises at 1223 ps); SLICE_LATX X-pessimistic, SLICE_FFX hides X on SR/CE | CONFIRMED at 4051359 | P7-onresearch.md #3c; audit/r7f/glsx/tb_saf.v, tb_x.v | CARRY4/SLICE_LATX are outside the `ifdef GLS_FID` in prims.v |
+| formal->research | 95ca2d6 (B) | "fid resolver runts printed only with +META_VERBOSE; no protocol/overlap/start-count monitor in design runs" | CONFIRMED | P7-onresearch.md #4 | n_meta/n_rej never printed; run_fid.sh passes no META_VERBOSE; tb_run.v checks laps/ERR/OK/deadlock only |
+| formal | 71ea5f3 (A ForRes 5) | tcheck replacement table "1661 of 1900 agree ... 0 rows fail at a fixed corner" | UNVERIFIED (counts); project-side rows spot-CONFIRMED | P7-onresearch.md #3b | |
+| formal | eb346fb (A Events8) | "gcd_hw CLEAN at slow/fast on all 4 seeds; gb seed d fails ENTRY on 3 arbiter guard pins (-51/-94/-68 ps)" | UNVERIFIED | P7-onresearch.md #5 | Events5 gave the same pins -52/-26/-9; Events8 shifts them by ~42 ps uniformly without explanation in A-events8 |
 | research | 19a93c1 | BOARD-QUEUE #2 "vec 6 ... mean 47.3, vs 24-26 unsized" (~1.9x), vec12 38.1, vec13 55.4 | CONFIRMED (arithmetic only) | audit/findings/research-stats.md | means recomputed from per-seed table; per-seed laps themselves not yet reproduced |
 | research | 9a02f6f | collatz64 oracle (11 vectors, trajectories leave int32); fast-fall table (gcd +8.2, collatz -11.8, xorshift -9.0, ipow -5.8 %); ipow T6 1.36x; collatz 1.56x; README 3.7x/6.5x/6.3x | CONFIRMED | audit/findings/r3.md; audit/r3/ (collatz64 C compiled with gcc: 11/11 expected values equal) | 9 of 11 vectors peak above 2^31 (journal says 8; 113383 also does) |
 | research | 19a93c1 | BOARD-QUEUE #2/#3 default seed: sdf md5s a9c4e265 / 61e14755, #3 routed.json f9c4597d, routed GLS 16/16 errs=0 on both, #2 vec6 47 laps, #3 gate clean, #3 rule F worst +888 ps | CONFIRMED | audit/findings/bq23.md; audit/bq23/ (own judge vs C oracle: 16/16 both routes) | corners/scatter not rerun; #2 gate.vvp not rerun |

@@ -1,0 +1,404 @@
+// ---------------------------------------------------------------------------
+// gcd_rig.v -- a compiled kernel, running on silicon, checking its own answers.
+//
+// Everything this project has measured on the board so far has been ONE CELL
+// (ro_top: a delay line; arb_mtbf: bd_arbcell; arb_prot: bd_arbiter inside its
+// protocol).  This is the first design that puts a whole COMPILED KERNEL on
+// the die -- bdc/emit.py's output for dynamatic/integration-test/gcd, 6513
+// occupied LUT sites of it -- and asks whether it computes gcd.
+//
+// -- THE ENVIRONMENT IS A RING, AND THAT IS THE POINT ------------------------
+//
+// The kernel has three input channels (a, b, start) and two output channels
+// (out0, p_end).  This closes them into a single cycle:
+//
+//     c1 --fork--> a, b, start --> [ bdc_gcd ] --> out0 --delay--> c0
+//      ^                                                            |
+//      +------------------------------------------------------------+
+//
+// which is a closed ring, and so the ring invariant applies to it exactly as
+// it applies to anything the compiler emits: occupancy must be strictly
+// between empty and full or it deadlocks at reset, and neither state is a
+// glitch you can wait out.  c1 is therefore a bd_c2n_SET and c0 a plain
+// bd_c2n -- one token, present at reset, in a ring whose other stages all come
+// up empty.  That single token is the whole stimulus.  There is no oscillator
+// here and nothing free-runs: the kernel is asked for a gcd, answers, and is
+// asked again, forever, at whatever rate it can manage.
+//
+// p_end is not in the ring and the env is two nodes rather than one.  Both of
+// those are consequences of how the kernel actually behaves at its boundary,
+// both were found by running it, and both are argued where they are built.
+//
+// One token also means exactly one gcd is ever in flight.  That is a real
+// throughput sacrifice -- the dataflow graph would happily pipeline several --
+// and it is what makes the answer checkable, because it is the only way the
+// (a,b) presented at the input and the g arriving at the output are known to
+// be the same transaction.  The number this measures is therefore LATENCY, not
+// peak throughput, and it is the conservative end.
+//
+// -- WHY THE VECTOR NEVER MOVES WHILE THE RING IS RUNNING --------------------
+//
+// idx selects (a, b, expected) from the table below, combinationally.  It is
+// a top-level input and the contract on it is: it may change ONLY while rst is
+// asserted.  gcd_hw.v honours that by restarting the ring at each window edge.
+//
+// The alternative -- advancing the vector per lap, from a counter clocked off
+// the completion -- was rejected.  The counter would update a BUFG plus a
+// clock-to-out after the result request rose, while the env node re-requests
+// within one LUT of it, so the kernel's next input handshake would begin
+// against operands that were still moving.  That is a bundling violation, not
+// a slow path, and padding the env request to cover it would mean sizing a
+// matched delay against a global-buffer arc.  Holding the vector still for a
+// whole window costs one restart per vector and has no timing content at all.
+//
+// -- HOW THIS SELF-REPORTS ---------------------------------------------------
+//
+// Same doctrine as hw/arb_prot.v, for the same reason: a rig whose result is
+// "a sticky bit stayed at zero" cannot distinguish a correct kernel from a
+// kernel that never ran, and both look identical in a readback.  So the result
+// is a PAIR, built from the same LUT3, the same INIT and the same arm gate:
+//
+//   ok=1, err=0   the kernel answered, and every answer was right
+//   ok=0          it never produced a checkable result; err=0 means nothing
+//   err=1         the finding
+//
+// Both are width-filtered by WFILT links, the same discriminator arb_prot
+// uses.  The filter is the second line of defence only: what actually makes
+// the compare valid is that the request gating it has been padded to trail the
+// data it describes.  See CMPD below.
+//
+// -- THE ABS PROBE, AND WHY IT IS THE ONE MEASUREMENT WORTH TAKING -----------
+//
+// ok/err say WHETHER the kernel was right.  They cannot say WHERE it went
+// wrong, and the whole gcd investigation is now stuck on a where.  A gate-level
+// simulation of the routed netlist says `cmpi sgt(diff, -1)` returns 0 for
+// every positive diff, so `a = -diff` instead of `|diff|`, `a` goes negative,
+// `while (a != 0)` never terminates and no result is ever delivered.  That
+// model predicts the board's failing set exactly.  But it is a MODEL -- it runs
+// through this project's own SDF reader and primitive library -- and the change
+// that provably removed the mechanism it blamed left the board's verdict word
+// bit for bit identical.  Either the model is right about the silicon and wrong
+// about the cause, or it is wrong about the silicon and coincidentally breaks
+// the same vectors.  Nothing in simulation can tell those apart.  The die can.
+//
+// So one internal channel comes out: %138, the result of the `abs` select in
+// bb10.  It is chosen because it carries its own oracle.  |x| is non-negative,
+// so abs_data[31] MUST be 0, always, for every vector, with no reference value
+// to compare against and -- decisively -- NO SECOND CHANNEL TO SAMPLE.  Every
+// cross-channel check on this design has had to argue about iteration skew,
+// because a link output lags its own input by a full handshake and two probes
+// caught at one instant can belong to different trips round the loop.  A
+// one-channel invariant sampled on that channel's own request has no such
+// argument to make.
+//
+// The probe is a TAP.  It drives no acknowledge and closes no loop, so it
+// cannot complete a handshake or take a token; it costs the design fanout on
+// two nets and nothing else.  It does move placement, so a probe build's
+// verdict word is only comparable to another probe build's.
+//
+// abs_req is padded by CMPD for exactly the reason res_req is -- a link's
+// request leads its data by a latch arc, and a sampler on the request EDGE is
+// the one consumer that cares.
+// ---------------------------------------------------------------------------
+
+`default_nettype none
+
+module gcd_rig #(parameter integer IDXW  = 4,
+                 parameter integer WFILT = 2,
+                 parameter integer CMPD  = 16,
+                 parameter integer PRBD  = 2)
+    (input  wire            rst,        // holds the ring; idx may move only here
+     input  wire [IDXW-1:0] idx,        // which vector, stable while rst is low
+     output wire            lap,        // one four-phase cycle per completed gcd
+     output wire            err_flt,    // a wrong answer, width-filtered
+     output wire            ok_flt,     // a right answer, width-filtered
+     output wire            probe,      // liveness sample, meaning is in its variance
+     output wire            abs_neg,    // %138 arrived NEGATIVE -- the finding
+     output wire            abs_seen,   // %138 arrived at all -- without this, abs_neg=0 is void
+     output wire            abs_req,    // %138 valid, padded by CMPD
+     output wire [31:0]     abs_data,   // %138 -- bb10's |a-b|, which cannot be < 0
+     output wire            cmp_bad,    // ucmpi11 disagreed with its own sign bit, padded sample
+     output wire            cmp_bad0,   // the same, sampled on the RAW z_req -- see PRBD
+     output wire            cmp_seen,   // ucmpi11 answered at all
+     output wire            cmp_req,    // ucmpi11's own z_req, padded by CMPD
+     output wire [31:0]     cmp_in,     // ucmpi11's a_data, the value it got wrong
+     output wire            cmp_z,      // ucmpi11's answer, UNFILTERED -- see the capture note
+     output wire [31:0]     res_data);  // the delivered gcd, valid while lap is high
+
+    // ---- the vector table --------------------------------------------------
+    // Sixteen (a, b, expected) triples.  The first six are bdc/simcheck.py's
+    // own vectors, so a hardware disagreement can be replayed in simulation
+    // against a bench that is known to pass.  The rest widen the range the
+    // kernel is asked to cover: the C source's two early returns (a==0, b==0),
+    // equal operands, coprime operands, a pure power of two, and -- vector 6 --
+    // the pair gcd.c's own main() calls the kernel with, which is the only one
+    // that drives the k-loop deeply.
+    //
+    // Every expected value here was produced by bdc/simcheck.py's ref_gcd,
+    // which is a transcription of the C, and independently agrees with
+    // Python's math.gcd on all sixteen.
+    // A function and a continuous assign, NOT an `always @*` block.  The block
+    // is the obvious way to write this and it is wrong in simulation: @* waits
+    // for an edge, idx starts at 0 and a sweep that starts at vector 0 never
+    // gives it one, so the table reads X for the whole first vector and every
+    // compare against it is meaningless.  This bench found that, and the same
+    // shape would have shipped to the board looking fine.
+    function [95:0] vector(input [3:0] i);
+        case (i)
+            4'd0:  vector = {32'h00000005, 32'h00000005, 32'h00000000};
+            4'd1:  vector = {32'h00000007, 32'h00000000, 32'h00000007};
+            4'd2:  vector = {32'h00000006, 32'h00000012, 32'h0000000C};
+            4'd3:  vector = {32'h00000006, 32'h00000012, 32'h00000030};
+            4'd4:  vector = {32'h00000001, 32'h00000001, 32'h00000001};
+            4'd5:  vector = {32'h00000001, 32'h00000005, 32'h00000011};
+            4'd6:  vector = {32'h00000020, 32'h12B87CA0, 32'h00798F20};
+            4'd7:  vector = {32'h00000015, 32'h000001CE, 32'h0000042F};
+            4'd8:  vector = {32'h00000006, 32'h000000C0, 32'h0000010E};
+            4'd9:  vector = {32'h00001000, 32'h00001000, 32'h00010000};
+            4'd10: vector = {32'h00018697, 32'h00018697, 32'h00018697};
+            4'd11: vector = {32'h0000000C, 32'h000C0A14, 32'h0001E240};
+            4'd12: vector = {32'h00000001, 32'h00000002, 32'h7FFFFFFF};
+            4'd13: vector = {32'h00000001, 32'h000F423F, 32'h000F4240};
+            4'd14: vector = {32'h0000000C, 32'h0000003C, 32'h00000024};
+            4'd15: vector = {32'h00000100, 32'h00000300, 32'h00000400};
+        endcase
+    endfunction
+
+    wire [95:0] vec = vector(idx);
+    wire [31:0] a_v = vec[31:0];
+    wire [31:0] b_v = vec[63:32];
+    wire [31:0] g_v = vec[95:64];
+
+    // ---- the kernel --------------------------------------------------------
+    wire a_req, a_ack, b_req, b_ack, start_req, start_ack;
+    wire out0_req, out0_ack, p_end_req, p_end_ack;
+    wire [31:0] out0_data;
+
+    wire abs_req_raw, cmp_req_raw;
+
+    // GCD_DUT_PARAMS: per-cell matched-delay sizes, defined only when
+    // hw/build_hw.sh is given BD_SIZES (see there).  Absent, the kernel builds
+    // at bdc/emit.py's own estimates, as it always has.
+`ifdef GCD_DUT_PARAMS
+    bdc_gcd #(`GCD_DUT_PARAMS) udut (
+`else
+    bdc_gcd udut (
+`endif
+        .rst(rst),
+        .a_req(a_req),         .a_ack(a_ack),         .a_data(a_v),
+        .b_req(b_req),         .b_ack(b_ack),         .b_data(b_v),
+        .start_req(start_req), .start_ack(start_ack),
+        .out0_req(out0_req),   .out0_ack(out0_ack),   .out0_data(out0_data),
+        .p_end_req(p_end_req), .p_end_ack(p_end_ack),
+        .probe_n138_req(abs_req_raw),    .probe_n138_data(abs_data)
+`ifdef GCD_RIG_CMP_PROBE
+        ,
+        .probe_n136_u_req(cmp_req_raw),  .probe_n136_u_data(cmp_z),
+        .probe_n135__2_req(),            .probe_n135__2_data(cmp_in)
+`endif
+        );
+`ifndef GCD_RIG_CMP_PROBE
+    // With op fusion on (bdc/emit.py's default since September) ucmpi11 and
+    // its operand channel %135#2 are folded into select1's fused cell and
+    // there is no net left to tap: emit.py refuses the probe.  The cmp
+    // detectors then see a constant and report cmp_seen = 0, which voids
+    // cmp_bad -- by construction, not by measurement.  hw/build_hw.sh sets
+    // GCD_RIG_CMP_PROBE for a BDC_OP_FUSION=0 build.
+    assign cmp_req_raw = 1'b0;
+    assign cmp_z = 1'b0;
+    assign cmp_in = 32'd0;
+`endif
+
+    // Same padding, same reason, as urdly below: the request must trail the
+    // data it describes before anything samples its edge.
+    bd_delay #(.N(CMPD)) uabsdly (.a(abs_req_raw), .z(abs_req));
+    // PRBD, NOT CMPD, AND THE DIFFERENCE IS THE WHOLE MEASUREMENT.
+    //
+    // CMPD pads out0_req because a link's request LEADS its data and a sampler
+    // on the request edge would otherwise catch the data still moving.  None of
+    // that applies here.  ucmpi11's z_req is the output of the cell's own
+    // matched delay, whose entire job is to trail its datapath -- at z_req both
+    // the operand and the answer are valid by the cell's construction, and no
+    // extra pad is needed.
+    //
+    // Extra pad is in fact HARMFUL, and that is not hypothetical.  bd_join
+    // drives a_ack from z_ack, so the operand is held only until the OUTPUT is
+    // consumed; the consumer here is one link, whose acknowledge comes back in
+    // a couple of LUTs.  A 16-element pad is about 4.4 ns, comfortably longer,
+    // so the sample could land after a_data had already advanced -- and the
+    // reading that produced, "input 0x00000000 with the answer 0", is exactly
+    // what a late sample of an operand that used to be negative looks like.
+    //
+    // So the padded detector keeps a short PRBD, enough to cover routing skew
+    // between the three probe nets and nothing more, and a SECOND detector
+    // samples the raw z_req on the same route.  Their disagreement is the
+    // measurement: both dirty means the comparator is genuinely wrong on the
+    // die; only the padded one dirty means the pad is the artifact and the
+    // comparator was never the fault.
+    bd_delay #(.N(PRBD)) ucmpdly (.a(cmp_req_raw), .z(cmp_req));
+
+    // ---- fork the env request into the three input channels ----------------
+    wire env_c, in_ack;
+    wire [2:0] in_req, in_acks;
+    assign in_acks = {start_ack, b_ack, a_ack};
+    assign {start_req, b_req, a_req} = in_req;
+
+    bd_fork #(.N(3)) ufork (
+        .rst(rst), .req(env_c), .ack(in_ack),
+        .req_out(in_req), .ack_in(in_acks));
+
+    // ---- p_end is NOT part of the result -----------------------------------
+    // It looks like a completion signal and it is not one.  In the compiled
+    // kernel the function's control argument forks straight to the function's
+    // control result:
+    //
+    //     assign n_arg2_req = start_req;                  (gcd_kernel.v)
+    //     bd_fork #(.N(2)) ... .req_out({n0__1_req, n0__0_req})
+    //     assign p_end_req  = n0__0_req;
+    //
+    // so p_end_req IS start_req, combinationally, with no storage between
+    // them.  Joining it into the result and feeding that back to the node that
+    // drives start would close a cycle with zero storage stages in it -- the
+    // env's own version of the mistake bdc/emit.py's ring_depths() exists to
+    // stop.  p_end therefore gets its own sink: ack = delay(req), which is
+    // exactly rtl/bd_end.v's bd_snk, minus the data bus it has no need for.
+    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));
+
+    // ---- the result channel, with its request padded -----------------------
+    // out0_req LEADS out0_data by one latch arc -- rtl/bd_link.v's header says
+    // so and measures it at 152 ps -- which is harmless for a latch consumer
+    // and fatal for anything that samples the request EDGE.  The compare below
+    // is exactly such a consumer, and so is the env node, whose acknowledge
+    // ends the producer's hold window.
+    //
+    // So the request is delayed once, here, and everything downstream uses the
+    // delayed copy.  Delaying only the compare would not work: res_req's high
+    // time is a handful of LUTs (it falls as soon as the env node acknowledges
+    // it), so a gate delayed past that samples nothing at all.  Delaying the
+    // acknowledge too widens the valid window by the same amount it shifts the
+    // gate, which is the whole point.
+    //
+    // CMPD is a matched delay and is sized like one: three elements to cover
+    // the 152 ps latch arc (a bd_delay element is a LUT1 whose RISE arc is
+    // 56 ps), about five more for the 32-bit compare tree's own depth, and the
+    // rest is guardband.  It cost three wrong answers and one right answer
+    // flagged as wrong to find that out.
+    wire res_req, res_ack;
+    bd_delay #(.N(CMPD)) urdly (.a(out0_req), .z(res_req));
+    assign out0_ack = res_ack;
+
+    // ---- the env, which is TWO stages and has to be --------------------------
+    // The kernel acknowledges `start` only when it is finished -- start_ack is
+    // C(p_end_ack, body_ack) and the body's control token threads the whole
+    // computation -- so "the inputs were consumed" and "the result arrived"
+    // are, at this boundary, the SAME instant.
+    //
+    // A single node cannot serve both.  It comes up holding, stays high for
+    // the entire computation because in_ack has not risen yet, and is
+    // therefore already high when the result request arrives; the rise that
+    // was supposed to carry the token back is swallowed, the node falls once,
+    // and nothing ever raises it again.  Measured, not deduced: the one-node
+    // version turned zero laps on all sixteen vectors.
+    //
+    // Two nodes separate the two events.  c0 takes the result back, c1 hands
+    // the next request out, and the token is passed from one to the other
+    // exactly as it is between any two stages of a bd_pipe -- which is what
+    // this is, with the SET on the output stage so the ring starts with one
+    // token in it and c0 empty.
+    wire env_c0;
+    bd_c2n     uenv0 (.a(res_req), .b(env_c),  .rst(rst), .q(env_c0));
+    bd_c2n_set uenv1 (.a(env_c0),  .b(in_ack), .rst(rst), .q(env_c));
+    assign res_ack = env_c0;
+
+    // ---- did it get the right answer? --------------------------------------
+    // res_req high means both result channels have presented, so out0_data has
+    // been stable since before it rose.  Gating the compare on res_req is what
+    // makes that guarantee the compare's guarantee too.
+    wire mism = |(out0_data ^ g_v);
+
+    wire err_raw, ok_raw, err_d, ok_d;
+    (* keep *) LUT2 #(.INIT(4'h8)) uerr_d (.I0(mism), .I1(res_req), .O(err_raw));
+    (* keep *) LUT2 #(.INIT(4'h4)) uok_d  (.I0(mism), .I1(res_req), .O(ok_raw));
+
+    bd_delay #(.N(WFILT)) uerr_w (.a(err_raw), .z(err_d));
+    bd_delay #(.N(WFILT)) uok_w  (.a(ok_raw),  .z(ok_d));
+
+    // (* keep *) is mandatory on both ANDs -- without it an optimiser folds
+    // a & delay(a) back to a and the discriminator silently stops existing.
+    (* keep *) LUT2 #(.INIT(4'h8)) uerr_a (.I0(err_raw), .I1(err_d), .O(err_flt));
+    (* keep *) LUT2 #(.INIT(4'h8)) uok_a  (.I0(ok_raw),  .I1(ok_d),  .O(ok_flt));
+
+    assign lap   = res_req;   // padded out0_req: one rise per delivered gcd
+    assign probe = env_c;
+
+    // The answer itself, so a WRONG one can be captured rather than merely
+    // counted.  err_flt says a vector disagreed with its expected gcd; it does
+    // not say by how much, and "off by a factor of two" and "unrelated garbage"
+    // are different bugs.  Valid on exactly the same terms the compare above is
+    // valid on -- res_req is padded, so out0_data has been stable since before
+    // it rose.
+    assign res_data = out0_data;
+
+    // ---- the abs probe's detector ------------------------------------------
+    // Built from the same parts as err/ok above, in the same order, for the
+    // same reasons: gate the assertion on the padded request, then width-filter
+    // the gated result, and report the finding NEXT TO a witness that the event
+    // was ever observed.  abs_neg=0 on a vector whose abs_seen is also 0 says
+    // nothing at all -- it is the same trap ok_flt exists to close, and on a
+    // livelocking vector it is not hypothetical: if the kernel never reaches
+    // bb10, a detector on bb10 is silent for a reason that has nothing to do
+    // with what it detects.
+    wire absn_raw, abss_raw, absn_d, abss_d;
+    (* keep *) LUT2 #(.INIT(4'h8)) uabsn_d (.I0(abs_data[31]), .I1(abs_req), .O(absn_raw));
+    (* keep *) LUT1 #(.INIT(2'h2)) uabss_d (.I0(abs_req),                    .O(abss_raw));
+
+    bd_delay #(.N(WFILT)) uabsn_w (.a(absn_raw), .z(absn_d));
+    bd_delay #(.N(WFILT)) uabss_w (.a(abss_raw), .z(abss_d));
+
+    (* keep *) LUT2 #(.INIT(4'h8)) uabsn_a (.I0(absn_raw), .I1(absn_d), .O(abs_neg));
+    (* keep *) LUT2 #(.INIT(4'h8)) uabss_a (.I0(abss_raw), .I1(abss_d), .O(abs_seen));
+
+    // ---- the comparator's own oracle ---------------------------------------
+    // The abs probe says bb10 delivers a negative |a-b|.  It does not say which
+    // of the three things on that path is responsible: the comparator that
+    // decides the sign, the subtract that negates, or the select that picks
+    // between them.  This splits off the first.
+    //
+    // ucmpi11 is `sgt(x, -1)`, and for that one comparison there is a
+    // one-inverter reference: x > -1 exactly when x >= 0, exactly when
+    // x[31] == 0.  So the correct answer is ~x[31] and nothing else needs to be
+    // known -- not the operands, not the iteration, not the loop state.
+    //
+    // WHY THIS PAIR CAN BE SAMPLED TOGETHER AND THE OTHERS CANNOT.  cmp_in is
+    // ucmpi11's a_data and cmp_z is its z_data; between them lies the unit's
+    // combinational datapath and its matched delay, and NO STORAGE.  z_req is
+    // that matched delay's output, so when z_req rises, a_data is the operand
+    // this very answer was computed from.  Both probes are therefore the same
+    // iteration by construction.  Every other cross-channel check in this
+    // design has a link in between and has to argue about skew; %136_u is
+    // deliberately the PRE-link bundle so that this one does not.
+    //
+    //   {I2,I1,I0} = {cmp_req, cmp_z, cmp_in[31]}: the fault is req & (z == s),
+    //   i.e. minterms 100 and 111.
+    wire cmpb_raw, cmps_raw, cmpb_d, cmps_d;
+    (* keep *) LUT3 #(.INIT(8'h90)) ucmpb_d (
+        .I0(cmp_in[31]), .I1(cmp_z), .I2(cmp_req), .O(cmpb_raw));
+    (* keep *) LUT1 #(.INIT(2'h2)) ucmps_d (.I0(cmp_req), .O(cmps_raw));
+
+    bd_delay #(.N(WFILT)) ucmpb_w (.a(cmpb_raw), .z(cmpb_d));
+    bd_delay #(.N(WFILT)) ucmps_w (.a(cmps_raw), .z(cmps_d));
+
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmpb_a (.I0(cmpb_raw), .I1(cmpb_d), .O(cmp_bad));
+
+    // The same detector on the unpadded request.  Same LUT3, same INIT, same
+    // filter -- the ONLY difference is which edge it samples on.
+    wire cmpb0_raw, cmpb0_d;
+    (* keep *) LUT3 #(.INIT(8'h90)) ucmpb0_d (
+        .I0(cmp_in[31]), .I1(cmp_z), .I2(cmp_req_raw), .O(cmpb0_raw));
+    bd_delay #(.N(WFILT)) ucmpb0_w (.a(cmpb0_raw), .z(cmpb0_d));
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmpb0_a (.I0(cmpb0_raw), .I1(cmpb0_d), .O(cmp_bad0));
+    (* keep *) LUT2 #(.INIT(4'h8)) ucmps_a (.I0(cmps_raw), .I1(cmps_d), .O(cmp_seen));
+
+endmodule
+
+`default_nettype wire

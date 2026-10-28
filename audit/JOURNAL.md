@@ -124,3 +124,9 @@ only comments and the Netlist constructor `.opaque`; no declarations. Four subag
 6763571 CornerCode, Involution*, TernaryChannels, RigContract), P7-onresearch (tie-off false path, GLS_SCALE_INST,
 inverted FAST tuples, fid monitors, Events8), r7 (BQ#3 full stack + negative control, bd_prims_sim fix, xray_delay
 OUTMUX, seeds_fid INCOMPLETE).
+
+### progress 23:39
+P7-onresearch in: tie-off false path in tighten.cell_boundary CONFIRMED on own ipow s3 route (-59 -> +4128 with
+tie-offs dropped; conservative on the 4 routes but not by construction); GLS_SCALE_INST not applied to wire arcs in
+wire-scatter mode CONFIRMED (silent); 28 inverted FAST tuples (all BRKH_INT) CONFIRMED by my own recount; CARRY4 /
+SLICE_LATX sample-at-fire and FF X-hiding CONFIRMED; fid monitors gap CONFIRMED. Events8 and tcheck counts UNVERIFIED.
