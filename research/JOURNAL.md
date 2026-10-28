@@ -1391,3 +1391,21 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   band 0.38 in a third slot.
 - Note: gls/prims.v and gen.py changed (S4) while the sweep runs from the main tree; gcd_hw has no DSP and the
   default netlist text is unchanged, so runs before and after are comparable.
+### progress 23:53 (DSP gated-logic mode now x; S5 CARRY4/latch transport held until the sweep compiles)
+- 007e895: S4's model assumed a gated multiplier hands the ALU two zero partial products, so the unpatched constpins
+  config (X AND Z on M) gave every product 0 -- contradicted by the board's 965/2016 right. UG479 fixes only their
+  sum, so that case now simulates every output bit as x (MUNK). Re-run: dsp_constpins --good --gls DETECTED, bug
+  bits "vector 1: out0 got xxxxxxxx expected 00000003" in both harnesses, good bits PASS.
+- First full-stack vectors on today's routes: default seed FAST_MIN vec 6 = 91 laps, the same as last session's
+  bq3_min (reproduced); seed 3 FAST_MIN vec 6 = 89; 0 errs so far everywhere, including the first region+wire draw.
+- S5 returned: CARRY4 and SLICE_LATX per-pin transport under GLS_FID (default preprocessed text and a 124k-event
+  VCD byte-identical; tb_f3_carry fails 5/5 on default, tb_f3_latch 2/5, both pass on fid; x-semantics check
+  can fail). NOT applied yet: the running sweep compiles prims.v from this tree, and mixing models inside one
+  8-seed table would make it unreadable. Applied after the last sweep compile.
+  S5 finding: the DEFAULT CARRY4 chains CO1..3/O1..3 off its own path-delayed CO outputs, so every output moves at
+  max(own arc, upstream CO arc): CIN->CO3 lands at 271 ps instead of the SDF's 114. Reading: prjxray's CIN->CO0
+  (271) includes the slice output driver to general routing, while CO3->COUT is the dedicated chain, so 114 < 271 is
+  not acausal; the internal ripple does not pass through the CO0 output pin. So the default GLS is PESSIMISTIC on
+  carry ripple and the fid model (per-pin arcs, as nextpnr's timing analysis) is the faithful one. Not changing the
+  default model (it is the shipped gate; pessimism there is safe).
+- No board-queue change.
