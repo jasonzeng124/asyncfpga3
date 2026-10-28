@@ -379,3 +379,11 @@ InvTrace (full involution trace semantics), PrimsComb (MUXF7/F8, CARRY4, LUT6_2 
 PrimsSeq (flops/latches; DSP/RAMB only if used), LutList2 (Prelim deletion patches on the live
 tree), ForRes (FOR-RESEARCH refresh), Fid3 (GLS compare vs current research; per-primitive
 fidelity table; FID_RESOLVE threshold).
+### progress 02:50
+ForRes done: out/FOR-RESEARCH.md rewritten (15 sections; research tip 350f9be). New: §1 rule A
+times GND/VCC tie-off nets as data (C-10n, unfixed at 350f9be); §3 κ table (B's ConstraintsKappa:
+box and SLOW-only checks unsound for κ>0; gcd_hw arbiters κ ≤ 0.0443; rule A as coded 25/276;
+rule E 0.199); §4 prjxray-db BRKH_INT has 28 FAST tuples with FAST_MIN > FAST_MAX (local scan);
+§5 rules tcheck replaces + front-end gaps. GLS CARRY4/latch SAF early edge and flop X-as-0
+re-observed with iverilog on the current research prims (unchanged since 5d535d7). Nothing new
+claimed in Lean; unverified readings are marked (rule A guard pre-lag, xray_delay fast corner).
