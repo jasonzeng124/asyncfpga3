@@ -116,3 +116,11 @@ toolchain, old worktrees gone. Heads: formal=6863284 research=4051359 (formal +7
 Lean 4.35.0 reinstalled (same sha256 bf8d54e4). Clean worktrees ~/wt-f7 (6863284), ~/wt-r7 (4051359). lake build
 of formal from clean (Mathlib from source) and research toolchain restore started. Pass-6 pending items carried:
 RigContract fix 807448a, bd_prims_sim 5d535d7.
+
+### progress 23:24
+Own textual grep of 6863284 Formal/ for sorry/admit/native_decide/implemented_by/extern/unsafe/csimp/axiom/opaque:
+only comments and the Netlist constructor `.opaque`; no declarations. Four subagents launched: P7-capstone
+(299a16f joint witness, fccbd1b liveness, 8965ea0 ipow, gcd_rig_first, Bnet generator), P7-kappa (861de85 kappa,
+6763571 CornerCode, Involution*, TernaryChannels, RigContract), P7-onresearch (tie-off false path, GLS_SCALE_INST,
+inverted FAST tuples, fid monitors, Events8), r7 (BQ#3 full stack + negative control, bd_prims_sim fix, xray_delay
+OUTMUX, seeds_fid INCOMPLETE).
