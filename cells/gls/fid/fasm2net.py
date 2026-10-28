@@ -49,6 +49,8 @@ PRJXRAY = os.environ.get("PRJXRAY_SRC", os.path.join(TC, "openxc7-src/prjxray"))
 DB_ROOT = os.environ.get("PRJXRAY_DB", os.path.join(TC, "openxc7/share/nextpnr/prjxray-db/zynq7"))
 PART = os.environ.get("PART", "xc7z010clg400-1")
 sys.path.insert(0, PRJXRAY)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import dsp_model  # noqa: E402  (cells/gls/dsp_model.py: the DSP configurations prims.v models)
 from prjxray.db import Database  # noqa: E402
 
 CONST_WIRES = {"VCC_WIRE": 1, "GND_WIRE": 0,
@@ -889,28 +891,32 @@ class Design:
                 format(words["OPMODE"], "07b"), format(words["ALUMODE"], "04b"),
                 format(words["INMODE"], "05b"), format(words["CARRYINSEL"], "03b"),
                 words["CARRYIN"], "CASCADE" if a_cascade else "DIRECT")
-            # ---- the one configuration prims.v models (gen.py dsp_config)
+            # ---- the configurations prims.v models (gen.py dsp_config, dsp_model.py)
             op = words["OPMODE"]
+            cfg, cwhy = dsp_model.config(op, words["ALUMODE"], words["INMODE"],
+                                         words["CARRYINSEL"], words["CARRYIN"])
             undriven = []
             for p in [q for q in c.ins if re.fullmatch(r"(ACIN|PCIN)\d+", q)]:
                 if self.driver_of(c, p)[0] != "float":
                     continue
-                read = (p.startswith("ACIN") and a_cascade and int(p[4:]) < 25) or \
-                       (p.startswith("PCIN") and (op >> 4) != 0)
+                read = (p.startswith("ACIN") and a_cascade and
+                        int(p[4:]) < (30 if "A30" in cfg["reads"] else 25)) or \
+                       (p.startswith("PCIN") and "PCIN" in cfg["reads"])
                 if read:
                     undriven.append(p)
                 c.ins.pop(p)
             if undriven:
                 why.append("%d cascade inputs read by the decoded mode but undriven (%s..%s)"
                            % (len(undriven), undriven[0], undriven[-1]))
-            if (words["INMODE"], words["ALUMODE"], words["CARRYINSEL"], words["CARRYIN"]) != (0, 0, 0, 0):
-                why.append("INMODE=%s ALUMODE=%s CARRYINSEL=%s CARRYIN=%d" % (
-                    format(words["INMODE"], "05b"), format(words["ALUMODE"], "04b"),
-                    format(words["CARRYINSEL"], "03b"), words["CARRYIN"]))
-                if words["INMODE"] & 2:
-                    why.append("INMODE[1]=1: the multiplier's A input is GATED TO ZERO (UG479 Table 1-11)")
-            if op & 0xF != 0b0101 or (op >> 4) not in (0, 1, 5):
-                why.append("OPMODE=%s" % format(op, "07b"))
+            if cwhy:
+                why.append("OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d: %s" % (
+                    format(op, "07b"), format(words["ALUMODE"], "04b"),
+                    format(words["INMODE"], "05b"), format(words["CARRYINSEL"], "03b"),
+                    words["CARRYIN"], "; ".join(cwhy)))
+            elif not dsp_model.is_default(cfg):
+                # modelled (prims.v simulates it); counted so report.txt names it
+                self.problem("NOTE: DSP48E1 outside the default multiply, simulated by dsp_model.py",
+                             "%s: %s" % (c.name, c.attrs["FASM2NET_DSP"]))
             if why:
                 self.problem("REFUSED: DSP48E1 configuration outside the modelled one",
                              "%s: %s" % (c.name, "; ".join(why)))

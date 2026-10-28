@@ -19,7 +19,7 @@ The result is one line per kind:
     SOAK <kind> PASS lat=<per-vector latencies, ps>      or      SOAK <kind> FAIL: <why>
 
 and one verdict line, SOAK_VERDICT PASS|FAIL, exit 0|1.  A REFUSED decode
-(a bit configuration the model does not have, e.g. INMODE[1]=1) is a FAIL.
+(a bit configuration the model does not have, e.g. a registered DSP48E1) is a FAIL.
 """
 import argparse, json, os, re, shutil, subprocess, sys
 from pathlib import Path

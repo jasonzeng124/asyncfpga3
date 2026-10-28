@@ -389,6 +389,22 @@ endmodule
 //   Z      = 0 | PCIN | PCIN>>>17      (ZMUX 0 / 1 / 5)
 //   P = PCOUT = Z + M ;  ACOUT = A_USED
 //
+// Beyond that one configuration (cells/gls/dsp_model.py decides, and is the
+// place the semantics and assumptions are written down): other COMBINATIONAL
+// configurations, still every register off, set by XMUX/YMUX (OPMODE[3:0]),
+// ZMUX (OPMODE[6:4]; 3 = C), ALUMODE, AGATE (INMODE[1]: multiplier A operand
+// gated to zero) and CIN (CARRYIN with CARRYINSEL=000).  M is carried whole on
+// X (Y contributes 0 when it selects M): exact for the arithmetic modes, and
+// dsp_model.py refuses a logic mode that reads a nonzero M.  ZMUX 2/4/6 (P
+// fed back, PREG=0) reach here as 0, only when the output provably does not
+// depend on Z.  The ALU is the carry-save structure of UG479's ALUMODE tables:
+//   Z' = ALUMODE[0] ? ~Z : Z ;  s = X^Y^Z' ;  c = maj(X,Y,Z')
+//   r  = (ALUMODE[3] ? c : s) + ((ALUMODE[2] ? 0 : c) << 1) + CIN
+//   P  = ALUMODE[1] ? ~r : r
+// With the defaults (XMUX=YMUX=1, ALUMODE=0, AGATE=0, CIN=0) the original
+// expression above is used verbatim (generate), so every route that was
+// already accepted simulates exactly as before.
+//
 // The SDF gives every input bit an arc to every output bit and, on this
 // chipdb, one value per (input group, output group) pair, so timing is one
 // parameter per group pair (T<in>_<out>) on a full-connection path: the
@@ -411,22 +427,43 @@ module DSP48E1_DSP48E1 (
 );
     parameter integer ZMUX = 0;
     parameter integer ACASC = 0;
+    parameter integer XMUX = 1, YMUX = 1, ALUMODE = 0, AGATE = 0, CIN = 0;
     parameter TA_P=1000, TA_PCOUT=1000, TA_ACOUT=1000, TACIN_P=1000, TACIN_PCOUT=1000, TACIN_ACOUT=1000, TB_P=1000, TB_PCOUT=1000, TB_ACOUT=1000, TC_P=1000, TC_PCOUT=1000, TC_ACOUT=1000, TPCIN_P=1000, TPCIN_PCOUT=1000, TPCIN_ACOUT=1000, TOPMODE_P=1000, TOPMODE_PCOUT=1000, TOPMODE_ACOUT=1000, TALUMODE_P=1000, TALUMODE_PCOUT=1000, TALUMODE_ACOUT=1000, TCARRYINSEL_P=1000, TCARRYINSEL_PCOUT=1000, TCARRYINSEL_ACOUT=1000, TCARRYIN_P=1000, TCARRYIN_PCOUT=1000, TCARRYIN_ACOUT=1000;
     wire [29:0] a_in = {A29, A28, A27, A26, A25, A24, A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0};
     wire [29:0] acin = {ACIN29, ACIN28, ACIN27, ACIN26, ACIN25, ACIN24, ACIN23, ACIN22, ACIN21, ACIN20, ACIN19, ACIN18, ACIN17, ACIN16, ACIN15, ACIN14, ACIN13, ACIN12, ACIN11, ACIN10, ACIN9, ACIN8, ACIN7, ACIN6, ACIN5, ACIN4, ACIN3, ACIN2, ACIN1, ACIN0};
     wire [17:0] b_in = {B17, B16, B15, B14, B13, B12, B11, B10, B9, B8, B7, B6, B5, B4, B3, B2, B1, B0};
     wire [47:0] pcin = {PCIN47, PCIN46, PCIN45, PCIN44, PCIN43, PCIN42, PCIN41, PCIN40, PCIN39, PCIN38, PCIN37, PCIN36, PCIN35, PCIN34, PCIN33, PCIN32, PCIN31, PCIN30, PCIN29, PCIN28, PCIN27, PCIN26, PCIN25, PCIN24, PCIN23, PCIN22, PCIN21, PCIN20, PCIN19, PCIN18, PCIN17, PCIN16, PCIN15, PCIN14, PCIN13, PCIN12, PCIN11, PCIN10, PCIN9, PCIN8, PCIN7, PCIN6, PCIN5, PCIN4, PCIN3, PCIN2, PCIN1, PCIN0};
+    wire [47:0] c_in = {C47, C46, C45, C44, C43, C42, C41, C40, C39, C38, C37, C36, C35, C34, C33, C32, C31, C30, C29, C28, C27, C26, C25, C24, C23, C22, C21, C20, C19, C18, C17, C16, C15, C14, C13, C12, C11, C10, C9, C8, C7, C6, C5, C4, C3, C2, C1, C0};
     wire [29:0] a_used = ACASC ? acin : a_in;
-    wire signed [24:0] ma = a_used[24:0];
+    wire signed [24:0] ma = AGATE ? 25'sd0 : a_used[24:0];
     wire signed [17:0] mb = b_in;
     wire signed [42:0] m  = ma * mb;
     wire [47:0] z = (ZMUX == 1) ? pcin
+                  : (ZMUX == 3) ? c_in
                   : (ZMUX == 5) ? {{17{pcin[47]}}, pcin[47:17]}
                   : 48'd0;
+    wire [47:0] p_fn;
+    generate
+        if (XMUX == 1 && YMUX == 1 && ALUMODE == 0 && AGATE == 0 && CIN == 0) begin : g_mult
+            assign p_fn = z + {{5{m[42]}}, m};
+        end else begin : g_alu
+            wire [47:0] x = (XMUX == 1) ? {{5{m[42]}}, m}
+                          : (XMUX == 3) ? {a_used, b_in}
+                          : 48'd0;
+            wire [47:0] y = (YMUX == 2) ? {48{1'b1}}
+                          : (YMUX == 3) ? c_in
+                          : 48'd0;
+            wire [47:0] zi = ALUMODE[0] ? ~z : z;
+            wire [47:0] s  = x ^ y ^ zi;
+            wire [47:0] cy = (x & y) | (x & zi) | (y & zi);
+            wire [47:0] r  = (ALUMODE[3] ? cy : s) + {(ALUMODE[2] ? 47'd0 : cy[46:0]), 1'b0} + (CIN ? 48'd1 : 48'd0);
+            assign p_fn = ALUMODE[1] ? ~r : r;
+        end
+    endgenerate
 `ifdef GLS_DSP_FAULT
-    wire [47:0] p = (z + {{5{m[42]}}, m}) ^ (48'd1 << `GLS_DSP_FAULT);
+    wire [47:0] p = p_fn ^ (48'd1 << `GLS_DSP_FAULT);
 `else
-    wire [47:0] p = z + {{5{m[42]}}, m};
+    wire [47:0] p = p_fn;
 `endif
     assign {P47, P46, P45, P44, P43, P42, P41, P40, P39, P38, P37, P36, P35, P34, P33, P32, P31, P30, P29, P28, P27, P26, P25, P24, P23, P22, P21, P20, P19, P18, P17, P16, P15, P14, P13, P12, P11, P10, P9, P8, P7, P6, P5, P4, P3, P2, P1, P0} = p;
     assign {PCOUT47, PCOUT46, PCOUT45, PCOUT44, PCOUT43, PCOUT42, PCOUT41, PCOUT40, PCOUT39, PCOUT38, PCOUT37, PCOUT36, PCOUT35, PCOUT34, PCOUT33, PCOUT32, PCOUT31, PCOUT30, PCOUT29, PCOUT28, PCOUT27, PCOUT26, PCOUT25, PCOUT24, PCOUT23, PCOUT22, PCOUT21, PCOUT20, PCOUT19, PCOUT18, PCOUT17, PCOUT16, PCOUT15, PCOUT14, PCOUT13, PCOUT12, PCOUT11, PCOUT10, PCOUT9, PCOUT8, PCOUT7, PCOUT6, PCOUT5, PCOUT4, PCOUT3, PCOUT2, PCOUT1, PCOUT0} = p;

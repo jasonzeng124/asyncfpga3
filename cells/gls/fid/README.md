@@ -59,7 +59,9 @@ CONTROL <kind> ERROR: <why>   (cannot run, or --good failed)                  ex
 
 DETECTED means the bitstream-built flow did not pass the buggy bitstream:
 - equivalence NOT EQUIVALENT, or
-- GLS FAIL, which includes a decode the model REFUSES.
+- GLS FAIL, which includes a decode the model REFUSES. For dsp_constpins and
+  dsp_constpins_inv the GLS FAIL is now a simulated wrong result (the DSP
+  configuration is modelled), not a refusal.
 
 `soak_fid.py SEEDDIR WORK ref|fasm|bit [--bit B] [--gate]` prints
 `SOAK <kind> PASS lat=...` or `SOAK <kind> FAIL: ...` for each of the stalled
@@ -104,9 +106,21 @@ and fast harnesses, then `SOAK_VERDICT PASS|FAIL`, and exits 0 or 1.
   - A routed pin goes through `ZIS_<pin>_INVERTED` (bit set means not
     inverted).
 
-  Anything outside INMODE=0, ALUMODE=0, CARRYINSEL=0, CARRYIN=0,
-  OPMODE[3:0]=0101, Z in {000, 001, 101}, with all registers off, is REFUSED
-  with the decoded words named. USE_MULT has no bit in prjxray-db and is
+  With all registers off, the decoded words go to `cells/gls/dsp_model.py`,
+  which `gen.py` uses too: it accepts the COMBINATIONAL configurations
+  `prims.v` simulates (any OPMODE X/Y/Z per UG479 except X=P; INMODE[1] A
+  gating; every ALUMODE in UG479's arithmetic and logic tables; CARRYIN with
+  CARRYINSEL=000) and REFUSES the rest with the decoded words named:
+  registers, CARRYINSEL other than 000, INMODE A1/B1/pre-adder bits with A
+  not gated, a logic ALUMODE reading a nonzero multiplier, ALUMODE 10xx,
+  Z=111, and P fed back with PREG=0 unless the output provably does not
+  depend on it (e.g. X AND Z with X=0). A configuration other than the
+  default multiply is listed in `report.txt` as a NOTE. Assumptions (written
+  in `dsp_model.py`): with USE_DPORT=FALSE the pre-adder/D never reach the
+  multiplier; with A gated both partial products are zero; with AREG=BREG=0
+  INMODE[0]/[4] do not matter once A is gated. The unpatched constpins
+  writers decode to INMODE=11111, ALUMODE=1100, OPMODE6=1 and are now
+  SIMULATED (every DSP output 0: X AND Z with M=0), not refused. USE_MULT has no bit in prjxray-db and is
   assumed MULTIPLY. The pattern detector bits (MASK, PATTERN, ...) are
   consumed, but no modelled output reads them.
 * **Latches** (LDCE/LDPE: the four FFs of a slice with `LATCH` set). The latch
@@ -178,6 +192,6 @@ See `research/data/fid/f2_gcd_hw.md`.
   cross-read against f4pga-xc-fasm2bels's `clb_models.py` and checked here only
   by agreement with nextpnr's JSON on one design. A shared misreading (for
   example F7AMUX input order) would be invisible to `fasm_equiv.py`.
-* **A subset.** One DSP configuration; latches checked only on a three-latch
+* **A subset.** Combinational DSP configurations only (`dsp_model.py`); latches checked only on a three-latch
   test design (`research/data/fid/f2_phase2.md`); LUTRAM, async flops and
   BRAM are refused.

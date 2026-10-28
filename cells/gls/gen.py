@@ -39,6 +39,8 @@ SLICE_LUTX INIT expansion is inherited from the previous attempt's mknetlist.py
 expand_lut_init.
 """
 import json, os, re, sys, collections
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import dsp_model  # noqa: E402  (the DSP48E1 configurations prims.v models)
 
 # Where the routed inputs live and the generated files go.  Defaults to
 # this directory so the scripts still work standing alone, but build.sh
@@ -112,7 +114,8 @@ PORT_ORDER = {
 }
 
 # ---- DSP48E1 ----------------------------------------------------------------
-# prims.v models ONE configuration (see its DSP48E1_DSP48E1 header).  These
+# prims.v models the combinational configurations dsp_model.py accepts (see
+# its DSP48E1_DSP48E1 header).  These
 # are its port groups, in the order prims.v declares them; a group of width 0
 # is a scalar pin.
 DSP_T = "DSP48E1_DSP48E1"
@@ -149,15 +152,15 @@ RE_DSP_INV = re.compile(r"^IS_(OPMODE|ALUMODE|INMODE)\[(\d)\]_INVERTED$|^IS_CARR
 
 
 def dsp_config(cname, c, netname):
-    """-> (ZMUX, ACASC) for the routed DSP48E1 `c`, or exit naming what is
-    not modelled.  A control pin's value is its connected constant net, or
+    """-> (ZMUX, ACASC, extra parameter text) for the routed DSP48E1 `c`, or
+    exit naming what is not modelled (dsp_model.config() decides).  A control pin's value is its connected constant net, or
     the tile constant nextpnr recorded in DSP_VCC_PINS / DSP_GND_PINS (pins
     with no interconnect path, patches/nextpnr-xilinx-dsp-constpins.patch),
     XOR its IS_*_INVERTED parameter."""
     def refuse(why):
-        sys.exit("gen.py: DSP48E1 %s: %s -- prims.v models one DSP configuration "
-                 "only (see its DSP48E1_DSP48E1 header); refusing rather than "
-                 "simulating this one as that." % (cname, why))
+        sys.exit("gen.py: DSP48E1 %s: %s -- prims.v models only the combinational "
+                 "configurations of cells/gls/dsp_model.py (see its DSP48E1_DSP48E1 "
+                 "header); refusing rather than simulating this one as another." % (cname, why))
     params, attrs, conns = c.get("parameters", {}), c.get("attributes", {}), c["connections"]
 
     def val(v):
@@ -196,12 +199,12 @@ def dsp_config(cname, c, netname):
         return sum(ctl("%s%d" % (g, i)) << i for i in range(n))
     opmode, alumode, inmode = word("OPMODE", 7), word("ALUMODE", 4), word("INMODE", 5)
     carryinsel, carryin = word("CARRYINSEL", 3), ctl("CARRYIN")
-    if (inmode, alumode, carryinsel, carryin) != (0, 0, 0, 0):
-        refuse("INMODE=%s ALUMODE=%s CARRYINSEL=%s CARRYIN=%d (modelled: all 0)"
-               % (bin(inmode), bin(alumode), bin(carryinsel), carryin))
-    if opmode & 0xF != 0b0101 or (opmode >> 4) not in (0, 1, 5):
-        refuse("OPMODE=%s (modelled: X=Y=M, Z in {000, 001, 101})" % format(opmode, "07b"))
-    zmux = opmode >> 4
+    cfg, why = dsp_model.config(opmode, alumode, inmode, carryinsel, carryin)
+    if why:
+        refuse("OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d: %s"
+               % (format(opmode, "07b"), format(alumode, "04b"), format(inmode, "05b"),
+                  format(carryinsel, "03b"), carryin, "; ".join(why)))
+    zmux = cfg["ZMUX"]
     acasc = {"DIRECT": 0, "CASCADE": 1}.get(params.get("A_INPUT", "DIRECT"))
     if acasc is None:
         refuse("A_INPUT=%s" % params.get("A_INPUT"))
@@ -210,13 +213,18 @@ def dsp_config(cname, c, netname):
             refuse("output %s is connected and not modelled" % pin)
     # The operand pins the function reads must be wired, or the model would
     # multiply tie-offs.
-    need = ["%s%d" % ("ACIN" if acasc else "A", i) for i in range(25)] + \
+    rd = cfg["reads"]
+    need = ["%s%d" % ("ACIN" if acasc else "A", i) for i in range(30 if "A30" in rd else 25)] + \
            ["B%d" % i for i in range(18)] + \
-           (["PCIN%d" % i for i in range(48)] if zmux else [])
+           (["PCIN%d" % i for i in range(48)] if "PCIN" in rd else []) + \
+           (["C%d" % i for i in range(48)] if "C" in rd else [])
     missing = [p for p in need if not conns.get(p)]
     if missing:
         refuse("operand pins %s... are not connected" % ", ".join(missing[:4]))
-    return zmux, acasc
+    # the original configuration keeps its original parameter text
+    extra = "" if dsp_model.is_default(cfg) else "".join(
+        ", .%s(%d)" % (k, cfg[k]) for k in ("XMUX", "YMUX", "ALUMODE", "AGATE", "CIN"))
+    return zmux, acasc, extra
 
 
 RE_ORIG_PORT = re.compile(r"I\d+")
@@ -772,8 +780,8 @@ def main():
             B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s) %s (%s);"
                      % (init, sr_val, tps, nn, ", ".join(conn)))
         elif t == DSP_T:
-            zmux, acasc = dsp_config(cname, c, netname)
-            cfg = ".ZMUX(%d), .ACASC(%d)" % (zmux, acasc)
+            zmux, acasc, extra = dsp_config(cname, c, netname)
+            cfg = ".ZMUX(%d), .ACASC(%d)%s" % (zmux, acasc, extra)
             gp = "".join(", .T%s_%s(%d)" % (ga, gz, ps)
                          for (ga, gz), ps in sorted(dsp_group_ps.get(cname, {}).items()))
             L.append("  %s #(%s) %s (%s);" % (t, cfg, nn, ", ".join(conn)))
