@@ -1,0 +1,76 @@
+# Expected SIG for each kernel's FIXED N=200 batch, as asserted by
+# hw/xsdb_bench_gen.tcl (argv 4 = sig, argv 5/6 = the operand pair) and looked
+# up by run_all_bench.sh.  Columns: kernel, sig, op0, op1.
+#
+# The operand pair is PER KERNEL because one pair does not suit all six: see
+# ipow below, where the historical (48,18) folds to a zero a dead kernel also
+# produces.  Omit op0/op1 and the tcl falls back to (48,18).
+#
+# SIG is {sig[30:0],sig[31]} ^ o_data_capture folded over the batch, so it is a
+# pure function of the RESULT sequence -- no timing, no cycle counts.  It does
+# not move when the route, the seed, the clock rate or the matched-delay sizes
+# change.  It moves only when the kernel computes something different.
+#
+# This exists because no kernel but gcd has an operand oracle in the tcl, and
+# the 200-run repeatability check cannot see a kernel that is deterministically
+# wrong: an under-delayed xorshift build returned the same wrong answer 200
+# times and passed every check in the script.
+#
+# THESE VALUES ARE NOT RECORDED FROM THE BOARD.  Reading a value off hardware
+# and calling it the expected value blesses whatever the hardware does, bug
+# included.  Each is computed from the kernel's own C source in kernels/<k>/,
+# folded in software, and only then compared against silicon.  Derive, then
+# check.  Do not paste a number from a log into this file.  The "checked"
+# column says which have been confirmed on the board and when.
+#
+#   kernel     sig         op0 op1   result   checked
+gcd            0x00000202  48  18  # 6           gcd(48,18)=6, re-checked 2026-08-24 on the BD_SIZES=none estimate build (the tightened one no longer exists)
+collatz        0x000006f9  48  18  # 11          collatz(48)=11 steps (nargs=1, op1 unread)
+collatz64      0x000006f9  48  18  # 11          collatz64(48)=11 steps (nargs=1, op1 unread)
+xorshift       0x03dba483  48  18  # 2863579695  default-path tightened build
+ipow           0x00078179  3   7   # 2187        ipow(3,7)=3**7, the kernel's own main() vector, checked 2026-08-24
+isprime        0x000000ff  47  18  # 1           isprime(47)=1, checked 2026-08-24; 48 is not prime and 0 is the degenerate fold
+#
+# NULL CONTROLS.  The null DUT (gen_bench.py's is_null branch) is a pass-through
+# that XORs its argument WORDS together, so its expected value is derivable the
+# same way a kernel's is -- from the generator's own fold expression, with the
+# same DOMAIN_RESTRICTIONS applied.  These used to be the targets run_all_bench
+# reported as "no expected SIG recorded", i.e. the controls were the only thing
+# in the suite nothing was checking.
+#
+#   target          sig         op0 op1   value   checked
+gcd_null       0x00001e1e  48  18  # 34          48^18, no mask
+ipow_null      0x000003fc  3   7   # 4           3^7, no mask
+collatz_null   0x00001010  48  18  # 48          nargs=1, n masked to 16 bits
+isprime_null   0x00001ae5  47  18  # 47          nargs=1, no mask
+collatz64_null 0x00001010  48  18  # 48          64-bit n, high word masked to 0
+xorshift_null  0x00001e1e  48  18  # 34          48^(18 & 0xFFF)
+#
+# All four with a bitstream were confirmed on the board 2026-08-24, first try.
+# collatz64_null and xorshift_null are DERIVED BUT NOT YET CHECKED -- neither
+# has routed since the generator changed (all six PnR seeds timed out).  They
+# are recorded here so the check happens automatically when they do build; a
+# value that has never been compared against silicon says so in this column.
+#
+# ipow used to be absent from this table: ipow(48,18) is 48^18 mod 2^32 = 0
+# exactly, so its SIG folded to 0x00000000 -- a value a dead kernel, a
+# held-in-reset kernel and a kernel whose output bus reads zero all produce
+# too.  The readback was correct; the VECTOR was degenerate.  Fixed by making
+# the FIXED operands a per-kernel column instead of hardcoding (48,18), and
+# running ipow at (3,7) -> 2187.
+#
+# isprime was absent until the sampling was fixed, and it is worth recording
+# what it caught.  The KERNEL WAS ALWAYS CORRECT: the corruption exercise read
+# isprime(48)=0 and isprime(47)=1 straight off o_data_pl, both right.  But
+# ODATA and SIG read 0x80000000 on every run, because the two paths sampled
+# different things -- mismatch_ref/mismatch_val latched o_data_pl AT RUN
+# COMPLETION, while o_data_capture (what ODATA returns and SIG folds) was read
+# later, in S_NEXT, AFTER this harness had acknowledged.  Past the acknowledge
+# the sender is entitled to return to zero and drop the data, so that read was
+# outside the 4-phase valid window; it worked for five kernels only because
+# their output bus happened to keep holding.  gen_bench.py now captures once,
+# in S_WAIT_RES, on the last edge before bench_o_ack rises, and SIG, the
+# repeatability latch and ODATA all read that one register.
+#
+# isprime is run at op0=47 because isprime(48)=0 and a zero fold is the
+# degenerate case ipow had.  op1 is unread (nargs=1).

@@ -1,0 +1,54 @@
+MODE: explicit -- using measured delay lengths from BD_SIZES=../sizes.vh
+using the generated top ../top.v (module bdc_ipow_top) -> /home/user/asyncfpga3/audit/r7f/ipow/s3
+== synthesis ==
+        1   IBUF
+        9   LUT1
+        1   LUT4
+        1   LUT5
+       20   LUT6
+      136   LUT6_2
+        1   OBUF
+        1   IBUF
+      193   LUT1
+      205   LUT2
+       63   LUT3
+       63   LUT4
+       10   LUT5
+      237   LUT6
+      596   LUT6_2
+        1   OBUF
+yosys: 1534 LUT cells (a LUT6_2 counts once -- it is one site)
+             40 controller candidate(s) matched '^(?P<link>.+)\.ctl\.(?:u\.u|ult|ux|slow_reopen\.uz)$', 0 decoupled
+             28 latch bank(s) grouped around their C node on the spine, 524 latch LUT(s)
+
+== toolchain ==
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== place and route ==
+  "nextpnr-xilinx" -- Next Generation Place and Route (Version 0.9.2-100-gbfdeaf7c)
+  Yosys 0.62 (git sha1 7326bb7d6, g++ 13.3.0-6ubuntu2~24.04.1 -fPIC -O3)
+  seed 3 -- this is a SAMPLE of the route, not the route
+18 cluster(s), 1149 logic slots clustered, 0 group(s) dropped (8 logic slots per tile row, up to 25 rows)
+routed.
+
+FASM:  1484 occupied LUT sites, 0 BRAM lines
+fractured pairs held one site each (596 pair(s) checked, 106 packer-inserted constant driver(s) ignored)
+fasm_audit: 1484 LUT sites (217 multi-name pins, 84 run together), 6 DSP48E1 (12 Z*REG bits, 204 const-only pins)
+fasm_audit PASS
+no global clock buffer in the bitstream, as required
+no zero-delay routed arc (392 in-site F7/F8 mux / CARRY4 S input wire(s) are 0 ps by construction)
+
+routed SDF written to /home/user/asyncfpga3/audit/r7f/ipow/s3/soak.sdf -- run verify/tighten.py to size the
+matched delays against it.
+
+flow.sh PASS
+EXIT 0

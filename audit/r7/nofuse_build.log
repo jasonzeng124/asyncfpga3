@@ -1,0 +1,59 @@
+cmd: BDC_OP_FUSION=0 BD_NO_TIGHTEN=1 BD_RLOC=v4 ./hw/build_hw.sh gcd_hw
+Wed Oct 28 23:25:50 UTC 2026
+build_hw.sh: MODE=BD_NO_TIGHTEN -- building gcd_hw directly, select channels at bdc/emit.py's unmeasured SELECT_PAD estimate
+wrote build/gen/gcd_kernel.v: module bdc_gcd, 385 matched delay(s)
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== synthesis ==
+             SKIPPED $paramod\bdc_select_32\DELAY=s32'00000000000000000000000000010000: instantiated 2x, 0 controller(s) -- one group value cannot name more than one physical cluster
+             SKIPPED $paramod\bdc_shrsi_32\DELAY=s32'00000000000000000000000000100000: instantiated 5x, 0 controller(s) -- one group value cannot name more than one physical cluster
+             SKIPPED $paramod\bdc_subi_32\DELAY=s32'00000000000000000000000000011000: instantiated 2x, 0 controller(s) -- one group value cannot name more than one physical cluster
+        1   BSCANE2
+        5   BUFG
+       21   CARRY4
+      338   FDRE
+       20   FDSE
+       70   LUT1
+      218   LUT2
+       35   LUT3
+      153   LUT4
+       74   LUT5
+      169   LUT6
+        2   OBUF
+        1   BSCANE2
+        5   BUFG
+       60   CARRY4
+      338   FDRE
+       20   FDSE
+     1097   LUT1
+     2433   LUT2
+      262   LUT3
+      512   LUT4
+      165   LUT5
+     1383   LUT6
+     2554   LUT6_2
+        2   OBUF
+
+== place and route ==
+531 cluster(s), 4422 logic slots clustered, 0 group(s) dropped (8 logic slots per tile row, up to 25 rows)
+routed.
+FASM:  9274 occupied LUT sites, 82 global buffer lines
+fasm_audit: 9274 LUT sites (631 multi-name pins, 114 run together), 0 DSP48E1 (0 Z*REG bits, 0 const-only pins)
+fasm_audit PASS
+
+== bitstream ==
+2083860 bytes -> build/hw/gcd_hw/gcd_hw.bit
+routed SDF -> build/hw/gcd_hw/gcd_hw.sdf
+
+build_hw.sh PASS
+EXIT 0
+Wed Oct 28 23:29:17 UTC 2026

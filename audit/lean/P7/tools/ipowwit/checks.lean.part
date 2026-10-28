@@ -1,0 +1,45 @@
+
+-- Auditor checks (pattern of CapstoneWitnessCells, against IpowCap's own opAt/srcV/start/out0)
+theorem cells_all : Formal.Net.IpowCap.ops.all (fun k => kChk cdA (srcV 3 7) k) = true := by decide +kernel
+
+theorem w_cells : ∀ o : Fin Formal.Net.IpowCap.NO, Cell chW (srcV 3 7) (Formal.Net.IpowCap.opAt o) := fun o =>
+  kChk_sound (srcV 3 7) (Formal.Net.IpowCap.opAt o) (List.all_eq_true.mp cells_all _ Formal.Net.IpowCap.getD_mem)
+
+theorem cds_len : cds.length = Formal.Net.IpowCap.NC := by decide +kernel
+theorem held_all : cds.all heldChk = true := by decide +kernel
+
+theorem w_held : ∀ c : Fin Formal.Net.IpowCap.NC, Handshake.Held (chW c) := by
+  intro c
+  apply held_of
+  apply List.all_eq_true.mp held_all
+  unfold cdA
+  have h : c.val < cds.length := by rw [cds_len]; exact c.isLt
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]
+  exact List.getElem_mem h
+
+theorem start_rq : (cdA Formal.Net.IpowCap.start).rq = [startRise, startFall] := by decide +kernel
+theorem w_start_once : ∀ t, Handshake.cnt (Handshake.riseB (chW Formal.Net.IpowCap.start).req) t ≤ 1 :=
+  once_of start_rq (by decide)
+
+theorem w_out0 : Handshake.TokAt (chW Formal.Net.IpowCap.out0) 0 out0Close ∧
+    (chW Formal.Net.IpowCap.out0).dat out0Close = 2187 := by
+  refine ⟨⟨?_, ?_⟩, ?_⟩ <;> decide +kernel
+
+theorem spec37 : Formal.Net.IpowHw.ipowSpec 3 7 = 2187 := by decide
+
+/-- AUDITOR: joint non-vacuity of ipow_circuit_safe3 (b=3, e=7), and the theorem applied to it. -/
+theorem ipow_joint_witness :
+    ∃ ch : Fin Formal.Net.IpowCap.NC → Handshake.Chan,
+      (∀ o, Cell ch (srcV 3 7) (Formal.Net.IpowCap.opAt o)) ∧ (∀ c, Handshake.Held (ch c)) ∧
+      (∀ t, Handshake.cnt (Handshake.riseB (ch Formal.Net.IpowCap.start).req) t ≤ 1) ∧
+      (∃ k e, Handshake.TokAt (ch Formal.Net.IpowCap.out0) k e ∧ (ch Formal.Net.IpowCap.out0).dat e = 2187) :=
+  ⟨chW, w_cells, w_held, w_start_once, ⟨0, out0Close, w_out0⟩⟩
+
+theorem ipow_consistent : (chW Formal.Net.IpowCap.out0).dat out0Close = Formal.Net.IpowHw.ipowSpec 3 7 :=
+  (Formal.Net.IpowCap.ipow_circuit_safe3 3 7 (by decide) chW w_cells w_held w_start_once).1 0 out0Close w_out0.1
+
+#print axioms ipow_joint_witness
+#print axioms ipow_consistent
+#print axioms Formal.Net.IpowCap.ipow_circuit_safe3
+#print axioms Formal.Net.IpowCap.ipow_circuit_safe
+end AuditP7.IpowWit
