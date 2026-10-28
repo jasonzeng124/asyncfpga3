@@ -127,7 +127,7 @@ def main():
             hw = route(a, seed)
         except Exception as e:
             print(f"{seed}\tROUTE_FAIL\t{e}", flush=True); return
-        for col in a.cols.split(","):
+        for col in filter(None, a.cols.split(",")):
             futs.append(sims.submit(sim, a, seed, hw, col, None))
         for sc in filter(None, a.scatter.split(",")):
             col, rest = sc.split("@") if "@" in sc else ("band", sc)
