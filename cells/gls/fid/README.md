@@ -117,10 +117,14 @@ and fast harnesses, then `SOAK_VERDICT PASS|FAIL`, and exits 0 or 1.
   depend on it (e.g. X AND Z with X=0). A configuration other than the
   default multiply is listed in `report.txt` as a NOTE. Assumptions (written
   in `dsp_model.py`): with USE_DPORT=FALSE the pre-adder/D never reach the
-  multiplier; with A gated both partial products are zero; with AREG=BREG=0
-  INMODE[0]/[4] do not matter once A is gated. The unpatched constpins
-  writers decode to INMODE=11111, ALUMODE=1100, OPMODE6=1 and are now
-  SIMULATED (every DSP output 0: X AND Z with M=0), not refused. USE_MULT has no bit in prjxray-db and is
+  multiplier; with AREG=BREG=0 INMODE[0]/[4] do not matter once A is gated.
+  A logic ALUMODE reading a GATED multiplier is simulated as UNKNOWN (every
+  output bit x, `MUNK`): only the sum of the two partial products is known
+  to be 0, not each word. The unpatched constpins writers decode to
+  INMODE=11111, ALUMODE=1100, OPMODE6=1, which is exactly that case: they are
+  SIMULATED with x outputs (the testbenches' `!==` fails on x), not refused.
+  (An earlier version assumed both partial products 0 and gave every product
+  0; the board's 965/2016 correct ipow products contradict that.) USE_MULT has no bit in prjxray-db and is
   assumed MULTIPLY. The pattern detector bits (MASK, PATTERN, ...) are
   consumed, but no modelled output reads them.
 * **Latches** (LDCE/LDPE: the four FFs of a slice with `LATCH` set). The latch

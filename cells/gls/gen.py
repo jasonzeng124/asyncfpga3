@@ -223,7 +223,7 @@ def dsp_config(cname, c, netname):
         refuse("operand pins %s... are not connected" % ", ".join(missing[:4]))
     # the original configuration keeps its original parameter text
     extra = "" if dsp_model.is_default(cfg) else "".join(
-        ", .%s(%d)" % (k, cfg[k]) for k in ("XMUX", "YMUX", "ALUMODE", "AGATE", "CIN"))
+        ", .%s(%d)" % (k, cfg[k]) for k in ("XMUX", "YMUX", "ALUMODE", "AGATE", "CIN", "MUNK"))
     return zmux, acasc, extra
 
 

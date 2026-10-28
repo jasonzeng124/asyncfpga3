@@ -393,7 +393,8 @@ endmodule
 // place the semantics and assumptions are written down): other COMBINATIONAL
 // configurations, still every register off, set by XMUX/YMUX (OPMODE[3:0]),
 // ZMUX (OPMODE[6:4]; 3 = C), ALUMODE, AGATE (INMODE[1]: multiplier A operand
-// gated to zero) and CIN (CARRYIN with CARRYINSEL=000).  M is carried whole on
+// gated to zero) and CIN (CARRYIN with CARRYINSEL=000).  MUNK=1 (a logic
+// ALUMODE reading a gated multiplier) drives every output bit x.  M is carried whole on
 // X (Y contributes 0 when it selects M): exact for the arithmetic modes, and
 // dsp_model.py refuses a logic mode that reads a nonzero M.  ZMUX 2/4/6 (P
 // fed back, PREG=0) reach here as 0, only when the output provably does not
@@ -427,7 +428,7 @@ module DSP48E1_DSP48E1 (
 );
     parameter integer ZMUX = 0;
     parameter integer ACASC = 0;
-    parameter integer XMUX = 1, YMUX = 1, ALUMODE = 0, AGATE = 0, CIN = 0;
+    parameter integer XMUX = 1, YMUX = 1, ALUMODE = 0, AGATE = 0, CIN = 0, MUNK = 0;
     parameter TA_P=1000, TA_PCOUT=1000, TA_ACOUT=1000, TACIN_P=1000, TACIN_PCOUT=1000, TACIN_ACOUT=1000, TB_P=1000, TB_PCOUT=1000, TB_ACOUT=1000, TC_P=1000, TC_PCOUT=1000, TC_ACOUT=1000, TPCIN_P=1000, TPCIN_PCOUT=1000, TPCIN_ACOUT=1000, TOPMODE_P=1000, TOPMODE_PCOUT=1000, TOPMODE_ACOUT=1000, TALUMODE_P=1000, TALUMODE_PCOUT=1000, TALUMODE_ACOUT=1000, TCARRYINSEL_P=1000, TCARRYINSEL_PCOUT=1000, TCARRYINSEL_ACOUT=1000, TCARRYIN_P=1000, TCARRYIN_PCOUT=1000, TCARRYIN_ACOUT=1000;
     wire [29:0] a_in = {A29, A28, A27, A26, A25, A24, A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0};
     wire [29:0] acin = {ACIN29, ACIN28, ACIN27, ACIN26, ACIN25, ACIN24, ACIN23, ACIN22, ACIN21, ACIN20, ACIN19, ACIN18, ACIN17, ACIN16, ACIN15, ACIN14, ACIN13, ACIN12, ACIN11, ACIN10, ACIN9, ACIN8, ACIN7, ACIN6, ACIN5, ACIN4, ACIN3, ACIN2, ACIN1, ACIN0};
@@ -444,8 +445,12 @@ module DSP48E1_DSP48E1 (
                   : 48'd0;
     wire [47:0] p_fn;
     generate
-        if (XMUX == 1 && YMUX == 1 && ALUMODE == 0 && AGATE == 0 && CIN == 0) begin : g_mult
+        if (XMUX == 1 && YMUX == 1 && ALUMODE == 0 && AGATE == 0 && CIN == 0 && MUNK == 0) begin : g_mult
             assign p_fn = z + {{5{m[42]}}, m};
+        end else if (MUNK) begin : g_unknown
+            // logic mode on a gated multiplier's partial products: not
+            // determined by UG479 (dsp_model.py), so every bit is unknown
+            assign p_fn = {48{1'bx}};
         end else begin : g_alu
             wire [47:0] x = (XMUX == 1) ? {{5{m[42]}}, m}
                           : (XMUX == 3) ? {a_used, b_in}

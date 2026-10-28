@@ -29,13 +29,18 @@ cross-read against yosys techlibs/xilinx/cells_sim.v DSP48E1):
 Refused: X=P or Z=P with PREG=0 (a combinational loop) UNLESS the output is
 provably independent of Z (X and Y constants and a logic mode whose result
 does not change between Z=0 and Z=~0, e.g. X AND Z with X=0); a logic mode
-reading the multiplier unless M is identically zero (A gated: ASSUMPTION that
-both partial products are then zero); ALUMODE 10xx (not in UG479's tables);
+reading the multiplier with A not gated.  A logic mode reading a GATED
+multiplier (the unpatched constpins writers' INMODE 11111 / ALUMODE 11xx /
+OPMODE M on X and Y) is simulated as UNKNOWN (MUNK=1: every output bit x):
+the multiplier hands the ALU two partial products whose SUM is A*B, and with
+A gated only the sum is known to be 0, not each word, so X AND Z etc. is not
+determined by UG479.  The board ran this configuration and got 965/2016 ipow
+products right, which "both partial products 0" (every output 0) cannot give; ALUMODE 10xx (not in UG479's tables);
 CARRYINSEL other than 000; CARRYIN=1 in a logic mode; Z=111.
 """
 
 MASK = (1 << 48) - 1
-DEFAULT = {"XMUX": 1, "YMUX": 1, "ALUMODE": 0, "AGATE": 0, "CIN": 0}
+DEFAULT = {"XMUX": 1, "YMUX": 1, "ALUMODE": 0, "AGATE": 0, "CIN": 0, "MUNK": 0}
 
 
 def alu(x, y, z, alumode, cin):
@@ -77,11 +82,14 @@ def config(opmode, alumode, inmode, carryinsel, carryin):
         why.append("ALUMODE=%s logic mode with Y=C (UG479: Y must be 0 or all ones)" % format(alumode, "04b"))
     if logic and carryin:
         why.append("CARRYIN=1 in logic mode ALUMODE=%s" % format(alumode, "04b"))
+    munk = int(logic and X == 1 and bool(agate))
     zmux = Z
-    if Z in (2, 4, 6):
+    if munk and Z in (2, 4, 6):
+        zmux = 0              # every output bit is x whatever Z is
+    elif Z in (2, 4, 6):
         # P fed back with PREG=0: model only if the output cannot depend on Z
-        xc = {0: 0}.get(X, 0 if (X == 1 and agate) else None)
-        yc = {0: 0, 2: MASK}.get(Y, 0 if (Y == 1 and agate) else None)
+        xc = {0: 0}.get(X)
+        yc = {0: 0, 2: MASK}.get(Y)
         if xc is None or yc is None or not logic or \
                 alu(xc, yc, 0, alumode, carryin) != alu(xc, yc, MASK, alumode, carryin):
             why.append("OPMODE Z=%s (P) with PREG=0: output depends on the fed-back P"
@@ -95,7 +103,7 @@ def config(opmode, alumode, inmode, carryinsel, carryin):
     if zmux in (1, 5):
         reads.add("PCIN")
     p = {"XMUX": X, "YMUX": Y, "ZMUX": zmux, "ALUMODE": alumode, "AGATE": agate,
-         "CIN": carryin, "reads": reads}
+         "CIN": carryin, "MUNK": munk, "reads": reads}
     return p, why
 
 
