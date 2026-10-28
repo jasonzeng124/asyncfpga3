@@ -1374,3 +1374,20 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   Default-seed rebuild: sdf 61e14755, BQ#3's recorded md5 (routed.json f1b7814f, path-dependent as recorded).
 - S4 (new): model the DSP48E1 in the configurations the unpatched constpins writers produce instead of refusing
   them, so the dsp hard items fail by a simulated wrong product, not by decoder refusal (audit r3 1).
+### progress 23:40 (S4 landed: DSP constpins items now fail by simulated wrong products; 8 routes up)
+- S4 (14d7b81): the bits-built GLS simulates the combinational DSP48E1 modes the unpatched constpins writers leave
+  (INMODE 11111, ALUMODE 1100, OPMODE6=1) instead of refusing them. ipow T9 seed 29 BD_DSP=1 soak route:
+  dsp_constpins and dsp_constpins_inv DETECTED by GLS FAIL (15/17 vectors wrong, every product 0); good bits PASS
+  with the same latencies; default-configuration gen.py/fasm2net outputs md5-identical to HEAD. Hand check against
+  the UG479 formulas 7680/0 mismatches, fault control 7680/7680 (re-run here).
+  **Hard-item mismatch, recorded:** the board before the patch had 965/2016 ipow products right (48%) and one mult2
+  DSP fully right; the model gives all zeros. Same bug, different route and vector set, so the *fraction* is soft --
+  but "every product 0" cannot give 48%. Either silicon does not compute X AND Z with M=0 here, or the board's ipow
+  used the DSP differently (e.g. some products not routed through the gated A). Next: read the August ipow/mult2
+  records for which DSPs and operands were right; check which of the 5 INMODE/ALUMODE/OPMODE6 pins the board's
+  route actually left without a tile bit (dsp_constpins depends entirely on "no bit reads 1").
+- All 8 BQ#3 routes (d,3-9) built and every build_hw gate passed; xray SDFs complete. Full stack at FAST_MIN and
+  SLOW_MAX running 2 at a time (~2 min per vector); region 0.16 + wire 0.126 (1x) and 0.32 + 0.252 (2x) draws at
+  band 0.38 in a third slot.
+- Note: gls/prims.v and gen.py changed (S4) while the sweep runs from the main tree; gcd_hw has no DSP and the
+  default netlist text is unchanged, so runs before and after are comparable.
