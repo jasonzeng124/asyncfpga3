@@ -298,6 +298,7 @@ endmodule
 // (fasm2net.py): a latch-mode element is open while its post-CLKINV clock is
 // low.  nextpnr's SDF has only CK->Q for this bel; D->Q while open and SR->Q
 // take the same number, an assumption, stated.
+`ifndef GLS_FID
 module SLICE_LATX (
     input  wire CK, D, CE, SR,
     output wire Q
@@ -321,9 +322,57 @@ module SLICE_LATX (
     endspecify
 endmodule
 
+`else
+// GLS_FID: each of CK/D/CE/SR reaches the storage node through its OWN arc as a
+// TRANSPORT delay (every edge kept, so a D pulse narrower than the arc still
+// passes while the latch is open, and an input edge never arrives early), and
+// Q is the same latch function evaluated on the DELAYED pins.  nextpnr's SDF
+// annotates only CK->Q, so D/CE/SR take TCKQ unless TDQ/TCEQ/TSRQ (>= 0) are
+// given -- the same stated assumption as the default model.  The node is
+// evaluated once per time step, 1 ps after the first delayed pin moves (the
+// arcs are shortened by that 1 ps), so two pins whose copies land in the same
+// step cannot leave a zero-width x in the state (x is sticky in a latch).
+// No metastability on gate close: a D change at the closing edge resolves to
+// whichever copy the step order gives (old D if the gate copy closes first).
+module SLICE_LATX (
+    input  wire CK, D, CE, SR,
+    output wire Q
+);
+    parameter [0:0] INIT  = 1'b0;
+    parameter [0:0] SRVAL = 1'b0;
+    parameter [0:0] GHIGH = 1'b1;
+    parameter TCKQ = 100;
+    parameter integer TDQ = -1, TCEQ = -1, TSRQ = -1;   // GLS_FID only; <0 = TCKQ
+    localparam integer AK = TCKQ, AD = (TDQ >= 0) ? TDQ : TCKQ,
+                       AC = (TCEQ >= 0) ? TCEQ : TCKQ, AS = (TSRQ >= 0) ? TSRQ : TCKQ;
+    localparam integer EK = (AK > 0) ? AK - 1 : 0, ED = (AD > 0) ? AD - 1 : 0,
+                       EC = (AC > 0) ? AC - 1 : 0, ES = (AS > 0) ? AS - 1 : 0;
+    reg ck = 1'bx, d = 1'bx, ce = 1'bx, sr = 1'bx;
+    initial begin #0; ck <= #(EK) CK; d <= #(ED) D; ce <= #(EC) CE; sr <= #(ES) SR; end
+    always @(CK) ck <= #(EK) CK;
+    always @(D)  d  <= #(ED) D;
+    always @(CE) ce <= #(EC) CE;
+    always @(SR) sr <= #(ES) SR;
+    reg q, armed = 1'b0;
+    initial q = INIT;
+    always @(ck or d or ce or sr) if (!armed) begin
+        armed = 1'b1;
+        #1;
+        armed = 1'b0;
+        if (sr === 1'b1)                     q = SRVAL;
+        else if (sr !== 1'b0)                q = 1'bx;
+        else if (ck === GHIGH && ce === 1'b1) q = d;
+        else if ((ck !== GHIGH && ck !== ~GHIGH) || ce === 1'bx)
+                                             q = (q === d) ? q : 1'bx;
+    end
+    assign Q = q;
+endmodule
+`endif
+
 // ---- CARRY4 ------------------------------------------------------- 1 bel --
 // Flat scalar bel ports (not UNISIM's buses).  The SDF annotates only the
 // S*/CIN arcs; the DI* arcs it omits keep the nominal below.
+`ifndef GLS_FID
 module CARRY4 (
     input  wire CIN, CYINIT,
     input  wire DI0, DI1, DI2, DI3,
@@ -370,6 +419,241 @@ module CARRY4 (
         (S2 => O2) = TS2O2; (S2 => O3) = TS2O3; (S3 => CO3) = TS3CO3; (S3 => O3) = TS3O3;
     endspecify
 endmodule
+
+`else
+// GLS_FID: per (input pin, output) TRANSPORT arcs, like FID_LUT6.  Each output
+// has its own copy of every pin it depends on, delayed by THAT pin's arc to
+// THAT output (minus the 1 ps FID_SAMPLE adds back), and the output is the
+// carry/xor function above evaluated on its own delayed copies.  So a narrow
+// pulse on S/DI/CIN passes, an edge following an earlier change is not early,
+// and two pins changing together give the hazard their arrival order implies.
+// Same parameter names as the default model (gen.py bakes T<pin><out>).
+// Internal skew beyond the characterised arcs is not modelled.
+module CARRY4 (
+    input  wire CIN, CYINIT,
+    input  wire DI0, DI1, DI2, DI3,
+    input  wire S0, S1, S2, S3,
+    output wire O0, O1, O2, O3,
+    output wire CO0, CO1, CO2, CO3
+);
+    parameter TCINCO0=271, TCINCO1=157, TCINCO2=228, TCINCO3=114;
+    parameter TCINO0=222, TCINO1=334, TCINO2=239, TCINO3=313;
+    parameter TCYINITCO0=271, TCYINITCO1=157, TCYINITCO2=228, TCYINITCO3=114;
+    parameter TCYINITO0=222, TCYINITO1=334, TCYINITO2=239, TCYINITO3=313;
+    parameter TDI0CO0=100, TDI0CO1=100, TDI0CO2=100, TDI0CO3=100;
+    parameter TDI0O1=100, TDI0O2=100, TDI0O3=100, TDI1CO1=100;
+    parameter TDI1CO2=100, TDI1CO3=100, TDI1O2=100, TDI1O3=100;
+    parameter TDI2CO2=100, TDI2CO3=100, TDI2O3=100, TDI3CO3=100;
+    parameter TS0CO0=340, TS0CO1=433, TS0CO2=514, TS0CO3=489;
+    parameter TS0O0=223, TS0O1=400, TS0O2=520, TS0O3=584;
+    parameter TS1CO1=469, TS1CO2=558, TS1CO3=513, TS1O1=205;
+    parameter TS1O2=558, TS1O3=623, TS2CO2=296, TS2CO3=358;
+    parameter TS2O2=228, TS2O3=330, TS3CO3=354, TS3O3=233;
+    localparam integer E_CIN_O0 = (TCINO0 > 0) ? TCINO0 - 1 : 0;
+    localparam integer E_CYINIT_O0 = (TCYINITO0 > 0) ? TCYINITO0 - 1 : 0;
+    localparam integer E_S0_O0 = (TS0O0 > 0) ? TS0O0 - 1 : 0;
+    localparam integer E_CIN_O1 = (TCINO1 > 0) ? TCINO1 - 1 : 0;
+    localparam integer E_CYINIT_O1 = (TCYINITO1 > 0) ? TCYINITO1 - 1 : 0;
+    localparam integer E_S0_O1 = (TS0O1 > 0) ? TS0O1 - 1 : 0;
+    localparam integer E_S1_O1 = (TS1O1 > 0) ? TS1O1 - 1 : 0;
+    localparam integer E_DI0_O1 = (TDI0O1 > 0) ? TDI0O1 - 1 : 0;
+    localparam integer E_CIN_O2 = (TCINO2 > 0) ? TCINO2 - 1 : 0;
+    localparam integer E_CYINIT_O2 = (TCYINITO2 > 0) ? TCYINITO2 - 1 : 0;
+    localparam integer E_S0_O2 = (TS0O2 > 0) ? TS0O2 - 1 : 0;
+    localparam integer E_S1_O2 = (TS1O2 > 0) ? TS1O2 - 1 : 0;
+    localparam integer E_S2_O2 = (TS2O2 > 0) ? TS2O2 - 1 : 0;
+    localparam integer E_DI0_O2 = (TDI0O2 > 0) ? TDI0O2 - 1 : 0;
+    localparam integer E_DI1_O2 = (TDI1O2 > 0) ? TDI1O2 - 1 : 0;
+    localparam integer E_CIN_O3 = (TCINO3 > 0) ? TCINO3 - 1 : 0;
+    localparam integer E_CYINIT_O3 = (TCYINITO3 > 0) ? TCYINITO3 - 1 : 0;
+    localparam integer E_S0_O3 = (TS0O3 > 0) ? TS0O3 - 1 : 0;
+    localparam integer E_S1_O3 = (TS1O3 > 0) ? TS1O3 - 1 : 0;
+    localparam integer E_S2_O3 = (TS2O3 > 0) ? TS2O3 - 1 : 0;
+    localparam integer E_S3_O3 = (TS3O3 > 0) ? TS3O3 - 1 : 0;
+    localparam integer E_DI0_O3 = (TDI0O3 > 0) ? TDI0O3 - 1 : 0;
+    localparam integer E_DI1_O3 = (TDI1O3 > 0) ? TDI1O3 - 1 : 0;
+    localparam integer E_DI2_O3 = (TDI2O3 > 0) ? TDI2O3 - 1 : 0;
+    localparam integer E_CIN_CO0 = (TCINCO0 > 0) ? TCINCO0 - 1 : 0;
+    localparam integer E_CYINIT_CO0 = (TCYINITCO0 > 0) ? TCYINITCO0 - 1 : 0;
+    localparam integer E_S0_CO0 = (TS0CO0 > 0) ? TS0CO0 - 1 : 0;
+    localparam integer E_DI0_CO0 = (TDI0CO0 > 0) ? TDI0CO0 - 1 : 0;
+    localparam integer E_CIN_CO1 = (TCINCO1 > 0) ? TCINCO1 - 1 : 0;
+    localparam integer E_CYINIT_CO1 = (TCYINITCO1 > 0) ? TCYINITCO1 - 1 : 0;
+    localparam integer E_S0_CO1 = (TS0CO1 > 0) ? TS0CO1 - 1 : 0;
+    localparam integer E_S1_CO1 = (TS1CO1 > 0) ? TS1CO1 - 1 : 0;
+    localparam integer E_DI0_CO1 = (TDI0CO1 > 0) ? TDI0CO1 - 1 : 0;
+    localparam integer E_DI1_CO1 = (TDI1CO1 > 0) ? TDI1CO1 - 1 : 0;
+    localparam integer E_CIN_CO2 = (TCINCO2 > 0) ? TCINCO2 - 1 : 0;
+    localparam integer E_CYINIT_CO2 = (TCYINITCO2 > 0) ? TCYINITCO2 - 1 : 0;
+    localparam integer E_S0_CO2 = (TS0CO2 > 0) ? TS0CO2 - 1 : 0;
+    localparam integer E_S1_CO2 = (TS1CO2 > 0) ? TS1CO2 - 1 : 0;
+    localparam integer E_S2_CO2 = (TS2CO2 > 0) ? TS2CO2 - 1 : 0;
+    localparam integer E_DI0_CO2 = (TDI0CO2 > 0) ? TDI0CO2 - 1 : 0;
+    localparam integer E_DI1_CO2 = (TDI1CO2 > 0) ? TDI1CO2 - 1 : 0;
+    localparam integer E_DI2_CO2 = (TDI2CO2 > 0) ? TDI2CO2 - 1 : 0;
+    localparam integer E_CIN_CO3 = (TCINCO3 > 0) ? TCINCO3 - 1 : 0;
+    localparam integer E_CYINIT_CO3 = (TCYINITCO3 > 0) ? TCYINITCO3 - 1 : 0;
+    localparam integer E_S0_CO3 = (TS0CO3 > 0) ? TS0CO3 - 1 : 0;
+    localparam integer E_S1_CO3 = (TS1CO3 > 0) ? TS1CO3 - 1 : 0;
+    localparam integer E_S2_CO3 = (TS2CO3 > 0) ? TS2CO3 - 1 : 0;
+    localparam integer E_S3_CO3 = (TS3CO3 > 0) ? TS3CO3 - 1 : 0;
+    localparam integer E_DI0_CO3 = (TDI0CO3 > 0) ? TDI0CO3 - 1 : 0;
+    localparam integer E_DI1_CO3 = (TDI1CO3 > 0) ? TDI1CO3 - 1 : 0;
+    localparam integer E_DI2_CO3 = (TDI2CO3 > 0) ? TDI2CO3 - 1 : 0;
+    localparam integer E_DI3_CO3 = (TDI3CO3 > 0) ? TDI3CO3 - 1 : 0;
+    reg cin_o0 = 1'bx, cyinit_o0 = 1'bx, s0_o0 = 1'bx;
+    reg cin_o1 = 1'bx, cyinit_o1 = 1'bx, s0_o1 = 1'bx, s1_o1 = 1'bx, di0_o1 = 1'bx;
+    reg cin_o2 = 1'bx, cyinit_o2 = 1'bx, s0_o2 = 1'bx, s1_o2 = 1'bx, s2_o2 = 1'bx, di0_o2 = 1'bx, di1_o2 = 1'bx;
+    reg cin_o3 = 1'bx, cyinit_o3 = 1'bx, s0_o3 = 1'bx, s1_o3 = 1'bx, s2_o3 = 1'bx, s3_o3 = 1'bx, di0_o3 = 1'bx, di1_o3 = 1'bx, di2_o3 = 1'bx;
+    reg cin_co0 = 1'bx, cyinit_co0 = 1'bx, s0_co0 = 1'bx, di0_co0 = 1'bx;
+    reg cin_co1 = 1'bx, cyinit_co1 = 1'bx, s0_co1 = 1'bx, s1_co1 = 1'bx, di0_co1 = 1'bx, di1_co1 = 1'bx;
+    reg cin_co2 = 1'bx, cyinit_co2 = 1'bx, s0_co2 = 1'bx, s1_co2 = 1'bx, s2_co2 = 1'bx, di0_co2 = 1'bx, di1_co2 = 1'bx, di2_co2 = 1'bx;
+    reg cin_co3 = 1'bx, cyinit_co3 = 1'bx, s0_co3 = 1'bx, s1_co3 = 1'bx, s2_co3 = 1'bx, s3_co3 = 1'bx, di0_co3 = 1'bx, di1_co3 = 1'bx, di2_co3 = 1'bx, di3_co3 = 1'bx;
+    initial begin
+        #0;
+        cin_o0 <= #(E_CIN_O0) CIN;
+        cyinit_o0 <= #(E_CYINIT_O0) CYINIT;
+        s0_o0 <= #(E_S0_O0) S0;
+        cin_o1 <= #(E_CIN_O1) CIN;
+        cyinit_o1 <= #(E_CYINIT_O1) CYINIT;
+        s0_o1 <= #(E_S0_O1) S0;
+        s1_o1 <= #(E_S1_O1) S1;
+        di0_o1 <= #(E_DI0_O1) DI0;
+        cin_o2 <= #(E_CIN_O2) CIN;
+        cyinit_o2 <= #(E_CYINIT_O2) CYINIT;
+        s0_o2 <= #(E_S0_O2) S0;
+        s1_o2 <= #(E_S1_O2) S1;
+        s2_o2 <= #(E_S2_O2) S2;
+        di0_o2 <= #(E_DI0_O2) DI0;
+        di1_o2 <= #(E_DI1_O2) DI1;
+        cin_o3 <= #(E_CIN_O3) CIN;
+        cyinit_o3 <= #(E_CYINIT_O3) CYINIT;
+        s0_o3 <= #(E_S0_O3) S0;
+        s1_o3 <= #(E_S1_O3) S1;
+        s2_o3 <= #(E_S2_O3) S2;
+        s3_o3 <= #(E_S3_O3) S3;
+        di0_o3 <= #(E_DI0_O3) DI0;
+        di1_o3 <= #(E_DI1_O3) DI1;
+        di2_o3 <= #(E_DI2_O3) DI2;
+        cin_co0 <= #(E_CIN_CO0) CIN;
+        cyinit_co0 <= #(E_CYINIT_CO0) CYINIT;
+        s0_co0 <= #(E_S0_CO0) S0;
+        di0_co0 <= #(E_DI0_CO0) DI0;
+        cin_co1 <= #(E_CIN_CO1) CIN;
+        cyinit_co1 <= #(E_CYINIT_CO1) CYINIT;
+        s0_co1 <= #(E_S0_CO1) S0;
+        s1_co1 <= #(E_S1_CO1) S1;
+        di0_co1 <= #(E_DI0_CO1) DI0;
+        di1_co1 <= #(E_DI1_CO1) DI1;
+        cin_co2 <= #(E_CIN_CO2) CIN;
+        cyinit_co2 <= #(E_CYINIT_CO2) CYINIT;
+        s0_co2 <= #(E_S0_CO2) S0;
+        s1_co2 <= #(E_S1_CO2) S1;
+        s2_co2 <= #(E_S2_CO2) S2;
+        di0_co2 <= #(E_DI0_CO2) DI0;
+        di1_co2 <= #(E_DI1_CO2) DI1;
+        di2_co2 <= #(E_DI2_CO2) DI2;
+        cin_co3 <= #(E_CIN_CO3) CIN;
+        cyinit_co3 <= #(E_CYINIT_CO3) CYINIT;
+        s0_co3 <= #(E_S0_CO3) S0;
+        s1_co3 <= #(E_S1_CO3) S1;
+        s2_co3 <= #(E_S2_CO3) S2;
+        s3_co3 <= #(E_S3_CO3) S3;
+        di0_co3 <= #(E_DI0_CO3) DI0;
+        di1_co3 <= #(E_DI1_CO3) DI1;
+        di2_co3 <= #(E_DI2_CO3) DI2;
+        di3_co3 <= #(E_DI3_CO3) DI3;
+    end
+    always @(CIN) begin
+        cin_o0 <= #(E_CIN_O0) CIN;
+        cin_o1 <= #(E_CIN_O1) CIN;
+        cin_o2 <= #(E_CIN_O2) CIN;
+        cin_o3 <= #(E_CIN_O3) CIN;
+        cin_co0 <= #(E_CIN_CO0) CIN;
+        cin_co1 <= #(E_CIN_CO1) CIN;
+        cin_co2 <= #(E_CIN_CO2) CIN;
+        cin_co3 <= #(E_CIN_CO3) CIN;
+    end
+    always @(CYINIT) begin
+        cyinit_o0 <= #(E_CYINIT_O0) CYINIT;
+        cyinit_o1 <= #(E_CYINIT_O1) CYINIT;
+        cyinit_o2 <= #(E_CYINIT_O2) CYINIT;
+        cyinit_o3 <= #(E_CYINIT_O3) CYINIT;
+        cyinit_co0 <= #(E_CYINIT_CO0) CYINIT;
+        cyinit_co1 <= #(E_CYINIT_CO1) CYINIT;
+        cyinit_co2 <= #(E_CYINIT_CO2) CYINIT;
+        cyinit_co3 <= #(E_CYINIT_CO3) CYINIT;
+    end
+    always @(DI0) begin
+        di0_o1 <= #(E_DI0_O1) DI0;
+        di0_o2 <= #(E_DI0_O2) DI0;
+        di0_o3 <= #(E_DI0_O3) DI0;
+        di0_co0 <= #(E_DI0_CO0) DI0;
+        di0_co1 <= #(E_DI0_CO1) DI0;
+        di0_co2 <= #(E_DI0_CO2) DI0;
+        di0_co3 <= #(E_DI0_CO3) DI0;
+    end
+    always @(DI1) begin
+        di1_o2 <= #(E_DI1_O2) DI1;
+        di1_o3 <= #(E_DI1_O3) DI1;
+        di1_co1 <= #(E_DI1_CO1) DI1;
+        di1_co2 <= #(E_DI1_CO2) DI1;
+        di1_co3 <= #(E_DI1_CO3) DI1;
+    end
+    always @(DI2) begin
+        di2_o3 <= #(E_DI2_O3) DI2;
+        di2_co2 <= #(E_DI2_CO2) DI2;
+        di2_co3 <= #(E_DI2_CO3) DI2;
+    end
+    always @(DI3) begin
+        di3_co3 <= #(E_DI3_CO3) DI3;
+    end
+    always @(S0) begin
+        s0_o0 <= #(E_S0_O0) S0;
+        s0_o1 <= #(E_S0_O1) S0;
+        s0_o2 <= #(E_S0_O2) S0;
+        s0_o3 <= #(E_S0_O3) S0;
+        s0_co0 <= #(E_S0_CO0) S0;
+        s0_co1 <= #(E_S0_CO1) S0;
+        s0_co2 <= #(E_S0_CO2) S0;
+        s0_co3 <= #(E_S0_CO3) S0;
+    end
+    always @(S1) begin
+        s1_o1 <= #(E_S1_O1) S1;
+        s1_o2 <= #(E_S1_O2) S1;
+        s1_o3 <= #(E_S1_O3) S1;
+        s1_co1 <= #(E_S1_CO1) S1;
+        s1_co2 <= #(E_S1_CO2) S1;
+        s1_co3 <= #(E_S1_CO3) S1;
+    end
+    always @(S2) begin
+        s2_o2 <= #(E_S2_O2) S2;
+        s2_o3 <= #(E_S2_O3) S2;
+        s2_co2 <= #(E_S2_CO2) S2;
+        s2_co3 <= #(E_S2_CO3) S2;
+    end
+    always @(S3) begin
+        s3_o3 <= #(E_S3_O3) S3;
+        s3_co3 <= #(E_S3_CO3) S3;
+    end
+    wire f_o0 = s0_o0 ^ (cin_o0 | cyinit_o0);
+    wire f_o1 = s1_o1 ^ (s0_o1 ? (cin_o1 | cyinit_o1) : di0_o1);
+    wire f_o2 = s2_o2 ^ (s1_o2 ? (s0_o2 ? (cin_o2 | cyinit_o2) : di0_o2) : di1_o2);
+    wire f_o3 = s3_o3 ^ (s2_o3 ? (s1_o3 ? (s0_o3 ? (cin_o3 | cyinit_o3) : di0_o3) : di1_o3) : di2_o3);
+    wire f_co0 = (s0_co0 ? (cin_co0 | cyinit_co0) : di0_co0);
+    wire f_co1 = (s1_co1 ? (s0_co1 ? (cin_co1 | cyinit_co1) : di0_co1) : di1_co1);
+    wire f_co2 = (s2_co2 ? (s1_co2 ? (s0_co2 ? (cin_co2 | cyinit_co2) : di0_co2) : di1_co2) : di2_co2);
+    wire f_co3 = (s3_co3 ? (s2_co3 ? (s1_co3 ? (s0_co3 ? (cin_co3 | cyinit_co3) : di0_co3) : di1_co3) : di2_co3) : di3_co3);
+    FID_SAMPLE s_o0 (.f(f_o0), .o(O0));
+    FID_SAMPLE s_o1 (.f(f_o1), .o(O1));
+    FID_SAMPLE s_o2 (.f(f_o2), .o(O2));
+    FID_SAMPLE s_o3 (.f(f_o3), .o(O3));
+    FID_SAMPLE s_co0 (.f(f_co0), .o(CO0));
+    FID_SAMPLE s_co1 (.f(f_co1), .o(CO1));
+    FID_SAMPLE s_co2 (.f(f_co2), .o(CO2));
+    FID_SAMPLE s_co3 (.f(f_co3), .o(CO3));
+endmodule
+`endif
 
 // ---- DSP48E1_DSP48E1 ----------------------------------------- DSP48E1 --
 // ONE configuration, the one this flow emits for a combinational multiply

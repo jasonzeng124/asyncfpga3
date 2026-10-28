@@ -268,7 +268,103 @@ Which earlier conclusions change:
 - **arb_mtbf.** No simulation of hw/arb_mtbf.v uses bd_prims_sim.v (grep),
   so this fix does not touch it. Its routed GLS is in section 2.
 
+
+## 6. CARRY4 and SLICE_LATX transport (S5, 2026-10-28)
+
+Under `GLS_FID` only, `prims.v` now has transport variants of CARRY4 and
+SLICE_LATX. Without GLS_FID the preprocessed prims.v is identical to the old
+one, so the default model is unchanged (evidence below).
+
+- **CARRY4.** Each output has its own copy of every pin it depends on. Each
+  copy is delayed by that pin's arc to that output (`T<pin><out>`, the names
+  the SDF and gen.py's baked netlist already use; 52 arcs), minus the 1 ps
+  that `FID_SAMPLE` adds back. Each output is the carry/xor expression of the
+  default model, evaluated on its own copies. The code is mechanical (one
+  copy per arc).
+- **SLICE_LATX.** CK, D, CE and SR are each delayed by their own arc. nextpnr's
+  SDF has only CK->Q, so D/CE/SR take TCKQ unless `TDQ/TCEQ/TSRQ` (fid-only
+  parameters, default -1 = TCKQ) are given. That is the same stated
+  assumption as before. The latch function runs on the delayed pins once per
+  time step, 1 ps after the first copy moves, so that two copies landing in
+  the same step cannot leave a zero-width x in the state (x is sticky in a
+  latch). There is NO metastability model for a D change at the gate's
+  closing edge: the result is whatever order the arcs give.
+- **Power-up difference:** fid Q equals INIT from t = 0, while the default
+  model's Q is x for the first TCKQ. On the die the configured INIT is
+  present at start-up.
+
+| check | default model | fid model | transport expectation |
+|---|---|---|---|
+| C1 S0 and S1 rise together, O1 = S1 ^ (S0 ? 1 : 0), TS1O1 205 / TS0O1 400 | pulse 1205-1340 | pulse 1205-1400 | 1205-1400 |
+| C2 50 ps pulse on S2 -> O2 (228) | swallowed | 2228-2278 | passes |
+| C3 S3 pulse 3000-3120, rise 3130 -> O3 (233) | 1 edge, at 3233 | 3233, 3353, 3363 | last edge 3363 |
+| C4 CIN -> CO3 (114) on a propagate chain, plus a 40 ps CIN pulse | edges at 4271, 4871; pulse lost | 4114, 4714, 5114, 5154 | 4114, 4714, 5114, 5154 |
+| C5 one CIN edge -> CO0 (271), O2 (239) | wrong times | 4871, 4839 | 4871, 4839 |
+| L1 open latch, 50 ps D pulse, TCKQ 300 | swallowed | 1300-1350 | passes |
+| L2 D falls at 2120 and rises at 2130, latch open | the 10 ps dip is lost | 2420, 2430 | both edges |
+| L3 D 40 ps before the gate closes | captured at 3300 | captured at 3300 | captured |
+| L4 40 ps async clear while closed | Q 0 at 4300, held | the same | the same |
+| L5 D pulse while closed | no edge | no edge | no edge |
+
+`run_f3.sh` now also runs `tb_f3_carry` (the default model fails 5 of 5) and
+`tb_f3_latch` (the default model fails 2 of 5). Each must FAIL under the default model
+and PASS under fid, and both do. `tb_f3_kleene_c4` checks that x semantics do
+not change: 3000 random vectors with x on 15% of the carry pins (latch pins
+x 2%, SR mostly 0, latch state carried over from one vector to the next)
+give identical settled O/CO/Q under the two models. That check can fail. A
+mutated fid model (`|` -> `&` in CO2's carry-in) differs on 278 lines, and
+one with the latch's x-on-unknown-gate rule removed differs on 288. The x
+draw takes the low 31 bits of $random. (The older tb_f3_kleene uses a signed
+`r % 10 < 3`, so its x rate is about 65%, not 30%. Not changed.)
+
+**The default model's CARRY4 is not its SDF arcs (found here).** Internally,
+CO1..CO3 and O1..O3 read the CO nets, and those nets are the module's own
+path-delayed outputs. So each output moves at max(its own arc, the time the
+CO net it reads moves). For a propagate chain, the default model's CIN->CO3
+is 271 ps (CIN->CO0), not the annotated 114, and that cost is paid on every
+CARRY4 of a ripple chain. S0->CO3 becomes 514 (S0->CO2) instead of 489.
+(Probe: one CIN edge gives CO0..CO3 all at +271, O2 at +271 instead of +239.)
+prjxray's own table has CIN->CO3 (0.114 slow max) shorter than CIN->CO0
+(0.271), which is not causal for a ripple through CO0. It looks like a fitting
+artefact, and nextpnr's STA uses the same numbers. The fid model follows the
+arcs as given, so **on a carry chain fid is FASTER than the default model,
+and it agrees with the SDF and STA rather than with the default GLS.** If the
+real CIN->CO3 is at least CIN->CO0, the default GLS was the closer one and
+fid (and the STA) are optimistic on carry-ripple data. Under the "take the
+longer number" rule, an arc-monotone floor (each CO_k at least CO_(k-1)) would
+be the safe choice. It was NOT added, because it departs from the
+characterised arcs and this is the main thread's decision.
+
+**Library dependence.** No cells/rtl cell uses CARRY4 or a slice latch.
+bd_latch keeps its storage on LUTs (its header gives the reason: the
+LDCE.G clock-pin routing), and no current design instantiates LDCE (journal,
+fasm2net entry). CARRY4 appears only where yosys infers it, in bdc compute
+units (addi/subi/cmpi via alumacc, cmpi as `xa > xb`) and in clocked counters
+in rigs. Those are datapath cones under a bd_delay bundle (or synchronous), so
+correctness depends on the settled value at the request, not on glitch
+freedom. What the model changes is the GLS settle time of those cones. The
+carry-ripple point above is the one that could move a GLS bundling margin,
+in the optimistic direction under fid.
+
+**Default build unchanged.** `iverilog -E` of the old and the new prims.v,
+with no defines and with `-DGLS_TRANSPORT_IC`, gives identical text (blank
+lines and `line markers ignored). A small netlist (16 ICBUFs, 8 LUTs, a
+2-CARRY4 8-bit chain, 8 SLICE_LATX with mixed GHIGH/INIT/SR, 3000 random
+stimulus events) simulated with old and new prims.v under default defines
+gives byte-identical VCD bodies: 123,918 value changes plain and 125,704 with
+GLS_TRANSPORT_IC. `vcd_norm.py` agrees (0 differ). The same bench under fid
+differs, so the bench can tell the models apart.
+
+Not done:
+- No routed GLS with the new CARRY4/latch under fid, and no kernel GLS (no
+  route on disk in this worktree, and nextpnr was not allowed).
+- No latch aperture/metastability.
+- DSP, BUFG and flop CK/SR pins are still sample-at-fire.
+- The carry arc-monotonicity question is open.
+
 ## Files
+- added (S5): `cells/gls/fid/f3/{tb_f3_carry.v, tb_f3_latch.v, tb_f3_kleene_c4.v}`;
+  changed (S5): `prims.v` (GLS_FID CARRY4 and SLICE_LATX), `run_f3.sh`
 - added: `cells/gls/fid_core.vh`, `cells/gls/fid/f3/{run_f3.sh, tb_f3_lut.v,
   tb_f3_meta.v, tb_f3_kleene.v, tb_f3_arbm.v, gen_arbm_sig.py,
   meta_summary.py, vcd_norm.py, ring_scatter.py, test_variation.sh,
@@ -287,8 +383,9 @@ Which earlier conclusions change:
   stated assumptions, chosen to be long.
 - Loops through more than one cell (for example a LUT plus MUXF7, or two
   LUTs) get no resolver. gen.py only detects self-loops.
-- CARRY4, DSP, latch-mode FF, BUFG and the FF SR/CK pins keep iverilog
-  module paths (sample at fire). A flop pin glitch is still inertial.
+- DSP, BUFG and the FF SR/CK pins keep iverilog module paths (sample at
+  fire). A flop pin glitch is still inertial. CARRY4 and the latch-mode FF
+  are transport since S5 (section 6).
 - With fid, a full gcd_hw / kernel routed GLS has not been run (no such
   route in this worktree). The next step is GLS_MODEL=fid on BQ#3's route
   with the 16 vectors.

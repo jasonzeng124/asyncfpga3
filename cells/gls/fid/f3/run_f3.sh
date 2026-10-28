@@ -11,7 +11,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 GLS=$(cd "$HERE/../.." && pwd)
 OUT=${F3_OUT:-$(mktemp -d)}
 rc=0
-for tb in tb_f3_lut tb_f3_meta; do
+for tb in tb_f3_lut tb_f3_meta tb_f3_carry tb_f3_latch; do
     for m in default fid; do
         defs="-DGLS_TRANSPORT_IC"; [ $m = fid ] && defs="$defs -DGLS_FID"
         # shellcheck disable=SC2086
@@ -21,7 +21,7 @@ for tb in tb_f3_lut tb_f3_meta; do
         want=FAIL; [ $m = fid ] && want=PASS
         if [ $got = $want ]; then echo "ok    $tb [$m] $got (expected)"
         else echo "WRONG $tb [$m] $got, expected $want"; rc=1; fi
-        grep -v VIOLATION "$OUT/$tb.$m.log" | grep -E "^ *(T[0-9]|A\.|B\.|  ok|  FAIL|   )" | sed 's/^/        /'
+        grep -v VIOLATION "$OUT/$tb.$m.log" | grep -E "^ *([TCL][0-9]|A\.|B\.|  ok|  FAIL|   )" | sed 's/^/        /'
     done
 done
 # x semantics must not change: settled outputs of 3000 random x-laden vectors
@@ -34,6 +34,16 @@ done
 if cmp -s "$OUT/kleene.default.out" "$OUT/kleene.fid.out" && [ "$(wc -l < "$OUT/kleene.fid.out")" = 3000 ]; then
     echo "ok    tb_f3_kleene: 3000 settled x-laden vectors identical under both models"
 else echo "WRONG tb_f3_kleene: settled values differ between models"; rc=1; fi
+# the same for CARRY4 and SLICE_LATX (latch state carries across vectors)
+for m in default fid; do
+    defs="-DGLS_TRANSPORT_IC"; [ $m = fid ] && defs="$defs -DGLS_FID"
+    # shellcheck disable=SC2086
+    iverilog -gspecify -I"$GLS" $defs -o "$OUT/kc4.$m.vvp" "$HERE/tb_f3_kleene_c4.v" "$GLS/prims.v" && \
+        vvp -n "$OUT/kc4.$m.vvp" | grep -v finish > "$OUT/kleene_c4.$m.out"
+done
+if cmp -s "$OUT/kleene_c4.default.out" "$OUT/kleene_c4.fid.out" && [ "$(wc -l < "$OUT/kleene_c4.fid.out")" = 3000 ]; then
+    echo "ok    tb_f3_kleene_c4: 3000 settled x-laden CARRY4/latch vectors identical under both models"
+else echo "WRONG tb_f3_kleene_c4: settled values differ between models"; rc=1; fi
 if [ "${1:-}" = arbm ]; then
     W=$2
     python3 "$HERE/gen_arbm_sig.py" "$W"
