@@ -48,6 +48,10 @@ def route(a, seed):
         with lock:
             if sh(f"git -C {REPO} worktree add --detach {wt} HEAD", log):
                 raise RuntimeError("worktree " + seed)
+    fe = os.path.join(wt, "build/frontend")
+    if not os.path.isdir(fe):
+        os.makedirs(fe)
+        sh(f"cp -rn {REPO}/cloud/fixtures/frontend/* {fe}/", log)  # as setup-toolchain.sh does
     env = dict(os.environ)
     for kv in a.env:
         k, v = kv.split("=", 1)

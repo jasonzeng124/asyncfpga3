@@ -1366,3 +1366,11 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
 - Audit: no new pass since 10-27 12:42 (pass 6 queued, unpublished); every research row was answered last session.
 - Plan: rebuild BQ#3 seeds d,3-9 (one nextpnr per core, at most 3 vvp-class jobs), full stack at FAST_MIN and
   SLOW_MAX on each, then region 0.16 + wire 0.126 scatter draws; subagent S3 redoes acceptance.py --stack full.
+### progress 23:17 (toolchain up; 8 BQ#3 routes building; S3, S4 out)
+- cloud/setup-toolchain.sh from cache: EXIT 0, all fingerprints ok; patches 789a7120c912d393, nextpnr 9c732bc6303458df.
+  prjxray-db zynq7 re-cloned at 0a0added.
+- cells/gls/fid/seeds_fid.py: worktree per seed, build_hw.sh with the BQ#3 recipe, xray_delay SDF, build_fid +
+  run_fid per column, one row per run; a vector without a SUMMARY line makes the run INCOMPLETE (the OOM lesson).
+  Default-seed rebuild: sdf 61e14755, BQ#3's recorded md5 (routed.json f1b7814f, path-dependent as recorded).
+- S4 (new): model the DSP48E1 in the configurations the unpatched constpins writers produce instead of refusing
+  them, so the dsp hard items fail by a simulated wrong product, not by decoder refusal (audit r3 1).
