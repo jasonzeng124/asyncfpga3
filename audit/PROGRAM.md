@@ -86,9 +86,7 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - Lock: `audit/LOCK` holds `<UTC ISO time> <session id>`. If it is under 90 minutes
   old and names another session, stop. Refresh it at every commit and at least
   every 45 minutes.
-- Use subagents in parallel, one per claim being audited. They never touch git;
-  you commit. Cap concurrent Lean and nextpnr processes to what RAM and cores
-  allow.
+- Cap concurrent Lean and nextpnr processes to what RAM and cores allow.
 - Plain `git commit`, small and frequent, pushed at least every 45 minutes.
-- No usage cap. Run continuously: when a pass is done, re-audit the newest
+- One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
