@@ -5,9 +5,10 @@ import Formal.Cells.Necessity6PipeSel
 /-! P10c item 7: Necessity6* (84bc9e4). -/
 #print axioms Formal.Cells.Necessity6Mux.claimY1_false
 #print axioms Formal.Cells.Necessity6Mux.claimY0
-#print axioms Formal.Cells.Necessity6Mux.N6.passY9
-#print axioms Formal.Cells.Necessity6Mux.N6.failY10
+#print axioms Formal.Cells.Necessity6Mux.passY9
+#print axioms Formal.Cells.Necessity6Mux.failY10
 
+set_option linter.unusedVariables false
 namespace P10c7
 open Formal.Cells Formal.Cells.OpsTimed Formal.Cells.Necessity4Mux Formal.Cells.Necessity6Mux
 /-- ClaimY 0 IS the shipped theorem (mux_ok_staticN at slack 0). -/

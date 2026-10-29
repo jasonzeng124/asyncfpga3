@@ -1,0 +1,26 @@
+MapOK : ChanMap → Prop
+gcd_hw_safe_after_reset_map : ∀ (a b : Nat),
+  a < 2 ^ 31 →
+    b < 2 ^ 31 →
+      ∀ {v : Nat → Nat → Bool} (Rn : Formal.Cells.TernarySound.Run gNet v) {D W : Nat},
+        Formal.Cells.TernarySound.Bounded gNet v Rn D W →
+          ∀ (E : Nat),
+            (∀ (k : Nat), 0 < k → k ≤ E → Formal.Cells.TernaryPhases.InputsIn gNet v gA k) →
+              T0of D W ≤ E →
+                ∀ (r : Fin NC → Formal.Net.Handshake.Chan),
+                  (∀ (c : Fin NC),
+                      (r c).req (T0of D W) = v (T0of D W) (reqL.getD (↑c) 0) ∧
+                        (r c).ack (T0of D W) = v (T0of D W) (ackL.getD (↑c) 0)) →
+                    (∀ (o : Fin NO), CellA r (T0of D W) (Formal.Net.CapNet.srcV a b) (opAt o)) →
+                      (∀ (c : Fin NC), HeldA (r c) (T0of D W)) →
+                        (∀ (t : Nat), T0of D W ≤ t → Formal.Net.Handshake.riseB (r start).req t = false) →
+                          ∀ (e : Nat),
+                            T0of D W ≤ e → Formal.Net.Handshake.fallB (r out0).ack e = true → (r out0).dat e = a.gcd b
+'Formal.Cells.ResetCapstoneMap.names_ok' does not depend on any axioms
+'Formal.Cells.ResetCapstoneMap.μT_ok' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.ResetCapstoneMap.μT_wire' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetCapstoneMap.μW_not_wire' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetCapstoneMap.gcd_hw_safe_after_reset_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetCapstoneMap.reset_capstone_map_nonvac' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetCapstoneMap.hot_rows' does not depend on any axioms
+'audit_mut_mapok' depends on axioms: [propext, Quot.sound]
