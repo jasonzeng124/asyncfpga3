@@ -74,6 +74,13 @@ for step in range(400):
     if not xin:
         print(f"ORIGIN: {typ} {names.get(cell,cell)} output {port} went X at {t0} with all inputs defined; inputs:",
               {p: val(w, t0) for p, w in cd.items() if w.startswith(('w','n'))}); break
+    if born == "never defined":     # follow an input that is itself never defined up to the observation time
+        nd = [(p, w) for s, p, w in xin if not defined_ever(icb.get(w, (w, 0))[0], T)]
+        print("      never-defined inputs:", ", ".join(f"{p}={icb.get(w,(w,0))[0]}({netname.get(icb.get(w,(w,0))[0],'')[:40]})" for p, w in nd))
+        if not nd: print("ORIGIN: every X input was defined at some point before", T); break
+        p, w = nd[0]; src = icb.get(w, (w, 0))[0]
+        if src in seen: print("LOOP back to", src); break
+        seen.add(src); n = src; continue
     s, p, w = max(xin)          # the latest X arrival before the output went X
     src = icb.get(w, (w, 0))[0]
     if (src, s) in seen: print("LOOP at", src, s); break

@@ -289,3 +289,8 @@ re-check. Research efc6538: BQ#3 2x scatter fails seed 9 (self-reported). Pass 1
 ### progress 10:45
 84bc9e4 axiom audit: 503/503 modules, 78333 constants, 0 bad -- fully clean. Pass 11: clean build of formal 54b9e6e in
 ~/wt-f11 started.
+
+### progress 10:54
+r18 in: formal's arb_double_ack reproduced on my own bd_arbiter fid bench (both race directions; up to 37% of resolver
+commits double-ack at server 600 ps; clean only >= ~1.0-1.2 ns); research's arbiter tests don't exercise it. Read
+bd_arb.v:215-232 (metastable tier documented as NOT EXCLUDED). P11a and r17 running; build of 54b9e6e running.

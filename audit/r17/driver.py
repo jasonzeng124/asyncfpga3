@@ -18,7 +18,9 @@ vecs = [int(v) for v in sys.argv[5].split(",")] if len(sys.argv) > 5 else list(r
 work = os.path.expanduser("~/r17work/s9_" + tag)
 if not os.path.exists(work + "/netlist_baked.v"):
     # build_fid also compiles research's run_baked.vvp; we only need gen.py output, but keep the recipe unchanged
-    if heavy(f"{A}/fid_build.sh {HW} {work} {reg} {wire} {draw}", f"{A}/build_{tag}.log"): log("BUILD FAIL " + tag); sys.exit(1)
+    # GEN_ONLY=1: build_fid.sh's fasm2net + gen.py steps (gen_only.sh), skipping research's tb_run compile we do not use
+    bcmd = f"{A}/gen_only.sh {work} {reg} {wire} {draw}" if os.environ.get("GEN_ONLY") == "1" else f"{A}/fid_build.sh {HW} {work} {reg} {wire} {draw}"
+    if heavy(bcmd, f"{A}/build_{tag}.log"): log("BUILD FAIL " + tag); sys.exit(1)
     if os.path.exists(work + "/run_baked.vvp") and os.environ.get("KEEP_RB") != "1": os.remove(work + "/run_baked.vvp")
 if not os.path.exists(work + "/audit.vvp"):
     subprocess.run(f"cd {work} && python3 {J}/mkvh.py routed.json judge.vh && cp {J}/tb_audit.v .", shell=True, check=True)
