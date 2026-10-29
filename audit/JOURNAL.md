@@ -247,3 +247,7 @@ read at fid_core.vh:82); Fid3's rise!=fall remark REFUTED in direction. Build of
 (I ran it) -> fix CONFIRMED. P9 in: RigSrc joint witness CONFIRMED (closes UNVERIFIED row); Necessity5 iffs, KleeneWin,
 IpowCells (contracts assumed), LutFbBridge (narrower than 'every') CONFIRMED; Bj5 JSON fixes CONFIRMED, 2 labels mild.
 Axiom audit of 3e63dc1 running.
+
+### progress 09:03
+3e63dc1 axiom audit: 436 modules, 68113 constants, 0 bad, 1 no result (withdrawn GLSPass). r15 (ring128 summary,
+BQ#2 full stack at 21cae6b) running.
