@@ -417,6 +417,16 @@ def tri(m, first):
 #                          GLS_SCATTER_REGION=r GLS_SCATTER=w GLS_SCATTER_MODE=wire.
 #                          Sizing: research/data/fid/f3_model.md.  Unset or 0 =
 #                          the file this was before, byte for byte.
+#   GLS_SCATTER_LOGN=1     draw every scatter factor (per arc, per pip, per
+#                          region) as exp(sigma*N) instead of 1 + sigma*N: the
+#                          same N, the same median (1), the same first-order
+#                          spread, but a delay can never reach or cross 0, and a
+#                          -2.5 sigma region at sigma 0.32 is 0.45x, not 0.20x.
+#                          The linear form is not clamped in any physical sense:
+#                          max(0, ...) only hides N < -1/sigma, and well before
+#                          that it makes the fast tail far fatter than the slow
+#                          one (1 - 2.5*0.32 = 0.20 vs 1 + 2.5*0.32 = 1.80).
+#                          Unset = the linear form, byte for byte.
 DELAY_SCALE = float(os.environ.get("GLS_DELAY_SCALE", "1"))
 SCATTER = float(os.environ.get("GLS_SCATTER", "0"))
 _rng = __import__("random").Random(int(os.environ.get("GLS_SCATTER_SEED", "1")))
@@ -429,6 +439,13 @@ n_scaled_inst = 0
 
 
 SCATTER_REGION = float(os.environ.get("GLS_SCATTER_REGION", "0"))
+LOGN = os.environ.get("GLS_SCATTER_LOGN", "0") not in ("", "0")
+
+
+def sfactor(sigma, n):
+    """the scatter factor for a standard normal draw n"""
+    import math
+    return math.exp(sigma * n) if LOGN else 1 + sigma * n
 REGION_SLICES = int(os.environ.get("GLS_REGION_SLICES", "10"))
 _region = None
 n_region = n_region_miss = 0
@@ -457,7 +474,7 @@ class RegionModel:
             h = hashlib.md5(("region:%s:%d:%d" % (self.seed, k[0], k[1])).encode()).digest()
             u1 = (int.from_bytes(h[:8], "big") + 1) / 2.0 ** 64
             u2 = int.from_bytes(h[8:], "big") / 2.0 ** 64
-            self.cache[k] = 1 + self.sigma * math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+            self.cache[k] = sfactor(self.sigma, math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2))
         return self.cache[k]
 
     def factor(self, inst):
@@ -483,7 +500,7 @@ def region_factor(inst):
 
 def perturb(ps, inst=""):
     global n_scaled_inst
-    f = DELAY_SCALE * (1 + SCATTER * _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
+    f = DELAY_SCALE * sfactor(SCATTER, _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
     if SCATTER_REGION:
         f *= region_factor(inst)
     if SCATTER and SCATTER_ONLY and not any(
@@ -520,7 +537,7 @@ class WireModel:
         h = hashlib.md5(("%s:%s" % (self.seed, pip)).encode()).digest()
         u1 = (int.from_bytes(h[:8], "big") + 1) / 2.0 ** 64
         u2 = int.from_bytes(h[8:], "big") / 2.0 ** 64
-        return 1 + self.sigma * math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+        return sfactor(self.sigma, math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2))
 
     def parent(self, bit):
         if bit not in self.parents:
