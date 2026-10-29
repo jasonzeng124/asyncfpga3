@@ -108,13 +108,24 @@ def Sseg (p : Prm) (Q : St) (s w : Nat) (t : Nat) : St :=
         s + w + p.R (p.delta w (s + w)) + p.L + 1, s + w + p.R (p.delta w (s + w)), false⟩
 
 /-- A quiet state: output `0`, not busy, window over by `s`, no last edge. -/
-structure Quiet (Q : St) (s : Nat) : Prop where
+structure Quiet (L : Nat) (Q : St) (s : Nat) : Prop where
   o : Q.o = false
   busy : Q.busy = false
   ign : Q.ign ≤ s
-  tl : Q.tl = 0
+  /-- no last edge, or the last edge at least one loop delay before `s` (so the edge at `s`
+  is not a runt, `:78`) -/
+  tl : Q.tl = 0 ∨ Q.tl + L ≤ s
 
-theorem quiet_init (s : Nat) : Quiet (St.init false) s := ⟨rfl, rfl, Nat.zero_le _, rfl⟩
+theorem quiet_init (L s : Nat) : Quiet L (St.init false) s := ⟨rfl, rfl, Nat.zero_le _, Or.inl rfl⟩
+
+/-- An edge at `s` from a quiet state is never a runt. -/
+theorem quiet_noRunt {p : Prm} {Q : St} {s : Nat} (hq : Quiet p.L Q s) (f : Bool) :
+    isRunt p s f Q = false := by
+  unfold isRunt
+  rcases hq.tl with h | h
+  · simp [h]
+  · have : ¬ (s - Q.tl < p.L) := by omega
+    simp [this]
 
 /-- Quiet prefix: if the cell reads `F t false = false` up to `s`, a run from `0` stays in
 the reset state. -/
@@ -136,7 +147,7 @@ theorem grun_quiet {p : Prm} {F : Nat → Bool → Bool} {st : Nat → St} {s : 
 /-- **Wide set** (`x = 1` for at least one loop delay): a clean set at `s`, never a runt. -/
 theorem seg_wide {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat → St} {Q : St}
     {s : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (h : GRun p F v0 st)
-    (hQ : st (s - 1) = Q) (hq : Quiet Q s)
+    (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
     (hF0 : ∀ t, s ≤ t → t < s + p.L → F t false = true)
     (hF1 : ∀ t, s ≤ t → F t true = true) :
@@ -154,7 +165,7 @@ theorem seg_wide {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat →
         rw [hst, hpre (t + 1) (by omega) (by omega), hF0 (t + 1) (by omega) (by omega)]
         have hb : blocked (t + 1) Q = false := by
           simp [blocked, hq.busy]; have := hq.ign; omega
-        have hr : isRunt p (t + 1) true Q = false := by simp [isRunt, hq.tl]
+        have hr : isRunt p (t + 1) true Q = false := by rw [h1]; exact quiet_noRunt hq _
         unfold step
         rw [eval_edge hb (by simp [hq.o]) hr, nba_idle (by simp [hq.busy])]
         simp [Q1, hq.o, hq.busy, h1]
@@ -196,7 +207,7 @@ theorem Sseg_o (p : Prm) (Q : St) (s w t : Nat) (h1 : s ≤ t) :
 window), and `F t true = true` from `s` on. Then the run is `Sseg` up to `ign_until`. -/
 theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat → St} {Q : St}
     {s w : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (hw1 : 1 ≤ w) (hw : w < p.L)
-    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet Q s)
+    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
     (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w))
     (hF1 : ∀ t, s ≤ t → F t true = true) :
@@ -218,7 +229,8 @@ theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat
         rw [hst, hpre (t + 1) (by omega) (by omega), hF0 (t + 1) (by omega) (by omega)]
         have hb : blocked (t + 1) Q = false := by
           simp [blocked, hq.busy]; have := hq.ign; omega
-        have hr : isRunt p (t + 1) (decide (t + 1 < s + w)) Q = false := by simp [isRunt, hq.tl]
+        have hr : isRunt p (t + 1) (decide (t + 1 < s + w)) Q = false := by
+          rw [h1]; exact quiet_noRunt hq _
         unfold step
         rw [eval_edge hb (by simp [hq.o]; omega) hr, nba_idle (by simp [hq.busy])]
         rw [Sseg_pre _ _ _ _ _ (by omega) (by omega)]
@@ -318,7 +330,7 @@ present at `ign_until` is applied there; one that is gone by then leaves no trac
 (`seg_runt_pre` takes the window's inputs arbitrary). -/
 theorem seg_window_end {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat → St} {Q : St}
     {s w : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (hw1 : 1 ≤ w) (hw : w < p.L)
-    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet Q s)
+    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
     (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w))
     (hF1 : ∀ t, s ≤ t → F t true = true) :
@@ -351,7 +363,7 @@ theorem seg_window_end {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : N
 /-- **A set runt from a quiet state, the whole run**: with `x = 0` from `ign_until` on. -/
 theorem seg_runt {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat → St} {Q : St}
     {s w : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (hw1 : 1 ≤ w) (hw : w < p.L)
-    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet Q s)
+    (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
     (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w))
     (hF0' : ∀ t, Iend p s w ≤ t → F t false = false)
@@ -396,7 +408,7 @@ theorem grun_runt {p : Prm} {F : Nat → Bool → Bool} {st : Nat → St} {s w :
   intro t
   by_cases ht : t < s - 1
   · rw [hq t (by omega), Sseg_lt _ _ _ _ _ (by omega)]
-  · exact seg_runt hL hs hw1 hw h (hq (s - 1) (by omega)) (quiet_init s)
+  · exact seg_runt hL hs hw1 hw h (hq (s - 1) (by omega)) (quiet_init p.L s)
       (fun u _ hu => by rw [hq _ hu]; rfl) hF0 hF0' hF1 t (by omega)
 
 /-- From the reset state: quiet before `s`, then a wide set. -/
@@ -410,7 +422,7 @@ theorem grun_wide {p : Prm} {F : Nat → Bool → Bool} {st : Nat → St} {s : N
   intro t
   by_cases ht : t < s
   · rw [hq t ht]; simp [St.init]; omega
-  · rw [seg_wide hL hs h (hq (s - 1) (by omega)) (quiet_init s)
+  · rw [seg_wide hL hs h (hq (s - 1) (by omega)) (quiet_init p.L s)
       (fun u _ hu => by rw [hq _ hu]; rfl) hF0 hF1 t (by omega)]
     simp [Q1]; omega
 
