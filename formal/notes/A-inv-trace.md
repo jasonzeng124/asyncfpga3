@@ -109,7 +109,7 @@ delay D ≥ 0 is the involution channel δ'(T) = D + δ(T+D), δ'min = δmin + D
 - Inputs must be strictly increasing; simultaneous transitions (zero-time glitches at the
   gate output) are not modelled -- a zero-time gate in front would need that.
 - The cancellation comparison is "≤ cancels" (the snippet wording: "out-of-order ...
-  removed"); whether the paper cancels on equality could not be read from the paper
+  removed"); whether the paper cancels on equality could not be read from the paper [Resolved 2026-10-29, A-lit-4 §1, from search snippets only: DATE'15 cancels on equality (t_n+δ_n ≥ t_m+δ_m) and the TCAD lemma gives cancel iff δ_{n+1} ≤ δmin, matching our ≤ rule.]
   itself (fetch blocked). It only changes the boundary case Δ = δ∞↑ − δmin.
 - η-involution channels (adversarial noise) are not covered.
 - No link to `TraceEvent.Sig` / other Core trace types; the output signal is a

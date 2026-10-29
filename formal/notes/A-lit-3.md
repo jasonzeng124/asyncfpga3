@@ -416,7 +416,7 @@ LIPIcs 309, paper 9, arXiv 2407.03685. Code: https://github.com/opencompl/lean-m
   placement is also unproved upstream, so any whole-circuit liveness claim we make on a Dynamatic
   netlist must carry that as a hypothesis.
 
-**5.6 Lean 4 asynchronous circuit work: none found.** Searches for Lean 4 with C-element,
+**5.6 Lean 4 asynchronous circuit work: none found (2026-10-27; superseded 2026-10-29 by A-lit-4 §2: async-lean (KelvinChung2000, SI/QDI, untimed) and MCL (snisimu, relative timing over integer pure delays) exist).** Searches for Lean 4 with C-element,
 delay-insensitive, handshake or asynchronous found only Graphiti and Wavelet (token level) and the
 synchronous items above.
 
