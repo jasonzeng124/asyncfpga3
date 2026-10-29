@@ -2123,6 +2123,360 @@ doc["produced_by"] = (doc["produced_by"].rstrip() +
     "+2W / +3W; *_rst_dec rows UNPROVED) and B-self-audit5.md (a0_fork handover_scope basis, gap_exact role, H_ARB_EXCL basis); the "
     "'probe Bj9' section of cell_constraints.bj5.py.")
 
+
+# ================================================================== probe Bj10 (2026-10-29)
+# Sources: the independent audit (origin/claude/audit audit/findings/P9.md, row on 9372e3b, and REPORT.md): three 'exact' rows with no
+#   iff theorem (bd_arbcell.handover_overlap; bd_arbiter.rt1 / rt1b, whose necessity is conditional on a supplied run) and the
+#   Necessity5 staleness (already merged by Bj6: no change here); B-arb-amerge.md (ArbAMerge, Barb3: early re-request races Q / R / G
+#   per direction as new rows, H_SLOW_REREQ dropped per handover window); B-edge-times.md (EdgeTimes*: no row says edge-time existence
+#   is open, so no change).
+# Label rule applied here: a necessity label needs a CONSTRUCTED violating run (a counter-trace). A theorem of the form "every run that
+# violates the condition fails" with no run built is recorded in necessity_scope, and the row stays 'sufficient' (audit P9).
+LOG.append("---- probe Bj10")
+AM, AT, AT2, AH, AC, KT = "ArbAMerge", "ArbHeldTimed", "ArbHeldTimed2", "ArbHandover", "ArbCorners", "OnGcdArbKappaTight"
+
+def set_exactness(e, new, note):
+    old = e["exactness"]
+    e["exactness"] = new
+    e.pop("exact_scope", None)
+    note_append(e, note)
+    LOG.append(f"{e['id']}: exactness {old} -> {new} (Bj10, audit P9)")
+
+# ---- (1a) bd_arbcell.handover_overlap: exact -> sufficient
+e = BY["bd_arbcell.handover_overlap"]
+assert e["exactness"] == "exact" and not any(r["role"] == "exact" for r in e["lean"])
+add_lean(e, [L(AH, "no_overlap_r2_to_r1", "sufficient", "no grant overlap when qr + w + g1r_q >= g2f, for every Cell trace of the r2 -> r1 handover"),
+             L(AH, "overlap_exists_r2_to_r1", "necessary",
+               "CONDITIONAL: every SUPPLIED Cell trace with a positive deficit (qr + w + g1r_q < g2f) has both grants high at t0 + qr + w + g1r_q; "
+               "no Cell trace is constructed in Lean"),
+             L(AH, "overlap_r2_to_r1", "context",
+               "an iff, but about the overlap WINDOW of one supplied trace (g1 && g2 at t <-> t0 + qr + w + g1r_q <= t < t0 + g2f), not an iff "
+               "for the row's condition")])
+e["necessity_scope"] = ("The deficit form (zero overlap needs d6 <= o5q + w) is necessary only CONDITIONALLY: overlap_exists_r2_to_r1 / "
+                        "overlap_C show that every Cell trace supplied for the r2 -> r1 handover with a deficit overlaps, for max 0 (d6 - o5q - w) "
+                        "ticks; no such trace is constructed, so it is not shown that a violating trace exists. At a consistent corner the "
+                        "deficit is never positive (corner_no_overlap), so the row's claim there is sufficient only.")
+set_exactness(e, "sufficient",
+              "Bj10 (audit P9, row on 9372e3b): 'exact' -> sufficient. The backing is the closed-form EQUALITIES overlap_duration_r2_to_r1 / "
+              "overlap_C (count = max 0 (d6 - o5q - w)) for one handover scenario (r1 held high, r2 falls at t0, q settled low before), plus "
+              "corner_no_overlap (sufficient); no theorem states an iff for the row's condition, and the necessity half needs a supplied Cell "
+              "trace (necessity_scope). The former exact_scope said 'closed form, not an iff'.")
+
+# ---- (1b) bd_arbiter.rt1: exact -> sufficient (necessity conditional, no violating run constructed)
+e = BY["bd_arbiter.rt1"]
+assert e["exactness"] == "exact" and e["exactness_note"] == "exact with a min-response server."
+e["exactness_note"] = ""
+for r in e["lean"]:
+    if r["name"] == "rt1_counter_minserver" and r["file"].endswith("/ArbHeldTimed.lean"):
+        r["note"] = ("CONDITIONAL on a SUPPLIED Run and Scn for the violating D: with a server answering in exactly smin (TA = TR + smin) and "
+                     "not RT1, both grants are high at G2 TA; no Run / Scn with not RT1 is constructed in Lean")
+    if r["name"] == "rt1_counter" and r["file"].endswith("/ArbHeldTimed.lean"):
+        r["note"] = "CONDITIONAL on a supplied Run and Scn (both disjuncts fail for the actual TA): both grants high at G2 TA"
+e["necessity_scope"] = ("CONDITIONAL: rt1_counter_minserver proves that EVERY Run + Scn (7h) with a server answering in exactly smin whose D "
+                        "violates RT1 has both grants high at G2 TA; OnGcdArb.box_tight1 builds violating delay RECORDS D, but no Run / Scn "
+                        "for a violating D is constructed, so that a violating run exists is not shown (audit P9). The *_iff theorems cited "
+                        "(ArbCorners.RT1_iff) are reductions of the rule form, not iffs for exclusion.")
+set_exactness(e, "sufficient",
+              "Bj10 (audit P9): 'exact with a min-response server' -> sufficient. Sufficiency: rt1_exclusion. The necessity half, "
+              "rt1_counter_minserver, is conditional on a supplied run (necessity_scope); no generic construction of a violating run is cited, "
+              "and none for this direction exists in Lean.")
+
+# ---- (1c) bd_arbiter.rt1b: exact -> sufficient+necessary_at_instance (one constructed violating run: OnGcdArbKappaTight.SU)
+e = BY["bd_arbiter.rt1b"]
+assert e["exactness"] == "exact" and not e.get("exactness_note")
+su = [r for r in e["lean"] if r["name"] == "SU_overlap" and r["file"].endswith("/OnGcdArbKappaTight.lean")]
+assert len(su) == 1 and su[0]["role"] == "numbers"
+su[0]["role"] = "counter_trace"
+su[0]["note"] = ("a CONSTRUCTED violating run (Bj10: role numbers -> counter_trace): SU_run / SU_scn are a 7j Run + Scn2 for the record DU, "
+                 "which fails both disjuncts of RT1b with a server answering in exactly smin (DU_not_rt1b, DU_fast); rt1_counter2_minserver "
+                 "then gives g1 and g2 both high at 374043 fs")
+add_lean(e, [L(KT, "SU_run", "counter_run", "7j Run for the violating record DU (gate relations checked for every t)"),
+             L(KT, "SU_scn", "counter_run", "7j Scn2 for DU (settled first handover, server answering in exactly smin)"),
+             L(KT, "DU_not_rt1b", "numbers", "DU fails RT1b (both disjuncts)"),
+             L(KT, "DU_fast", "numbers", "the server answers in exactly smin")])
+for r in e["lean"]:
+    if r["name"] == "rt1_counter2_minserver" and r["file"].endswith("/ArbHeldTimed2.lean"):
+        r["note"] = ("CONDITIONAL on a supplied Run and Scn2 for the violating D (server answering in exactly smin): both grants high at G1b TA; "
+                     "instantiated once, on OnGcdArbKappaTight's SU")
+e["necessity_scope"] = ("At ONE instance: OnGcdArbKappaTight.SU (record DU, a gcd_hw arbiter's corner realization, not a boundary point) is a "
+                        "constructed 7j run that violates RT1b and has both grants high (SU_overlap). For every other violating D, "
+                        "rt1_counter2_minserver proves overlap for every SUPPLIED Run + Scn2 with a min-response server, but no such run is "
+                        "constructed, so it is not a general iff (audit P9). ArbCorners.RT1b_iff is a reduction of the rule form.")
+set_exactness(e, "sufficient+necessary_at_instance",
+              "Bj10 (audit P9): 'exact' -> sufficient+necessary_at_instance. Sufficiency: rt1_exclusion2. Necessity: rt1_counter2_minserver, "
+              "conditional on a supplied run, instantiated on one constructed run (OnGcdArbKappaTight.SU_overlap); see necessity_scope.")
+
+# ---- (3) ArbAMerge (Barb3): early re-request races as new rows; H_SLOW_REREQ per handover window
+RT1C = BY["bd_arbiter.rt1"]["corner"]
+def corner_of(note):
+    c = copy.deepcopy(RT1C)
+    c["mode"] = "1C"
+    c["note"] = note
+    c["kappa"].pop("results", None)
+    c["kappa"].pop("exact_source", None)
+    return c
+
+PIN_ROLE = {"ustate.I4": "A0", "ua1.I1": "A0", "ua2.I1": "A0", "ustate.I2": "q", "ugrant.I2": "q", "ustate.I0": "r1", "ugrant.I0": "r1",
+            "ustate.I1": "r2", "ugrant.I1": "r2"}
+def W(frm, to, sym):
+    return [{"kind": "wire", "from": frm, "to": to, "lean_sym": sym},
+            {"kind": "site_pin", "from": to + "@pip", "to": to, "pin_role": PIN_ROLE[to]}]
+def A(frm, to, sym, note=None):
+    a = {"kind": "lut_arc", "from": frm, "to": to, "lean_sym": sym}
+    if note:
+        a["note"] = note
+    return a
+def CLIENT(k):
+    return {"kind": "env", "name": f"client{k}_rereq",
+            "spec": (f"client {k}'s re-request after its ack A{k} fell: u - T{'1' if k == 1 else '1b'} >= 1 tick (C's SendStep, four-phase: "
+                     f"r{k} rises at u only if A{k} was low at u - 1); the arc form takes the minimum, 1 tick, at zero client reaction time"),
+            "lean_sym": "1"}
+def A0_TO_ACK(k):
+    # A0's fall reaches ua_k's A0 pin and lowers A_k (T1 >= TA + wa0k + ckf: the A0 path is a lower bound of T1's max)
+    return W("A0", f"ua{k}.I1", f"wa0{k}") + [A(f"ua{k}.I1", f"ua{k}.O6", f"c{k}f", f"A{k} fall")]
+
+def q_launch(k):
+    # q's edge after A0's fall: k = 1 (client 1 releases) q FALLS (qf); k = 2 q RISES (qr)
+    return W("A0", "ustate.I4", "wa0s") + [A("ustate.I4", "ustate.O6", "qf" if k == 1 else "qr", "q fall" if k == 1 else "q rise")]
+
+AM_HYP = ["7h / 7j Run (gate relations, real ustate / ugrant / ua_k INITs, rise-fast OR channel, a routed delay per pin), H_SERVER_MIN",
+          "H_M (MB: M bounds every route + arc read offset)",
+          "E1 / E2 window scenario: settled state only on [L, t0), A0's last rise a <= L, R0 high on [a, L + M); the releaser's re-request u FREE "
+          "(any u > t0, also before A0's re-rise): H_SLOW_REREQ dropped",
+          "four-phase releasing client (C's SendStep: T1 < u) for the arc form (races_of_arc1 / races_of_arc2)"]
+AM_FIELDS = ["H_ZLINE / H_DZ (z_req = R0 delayed by dz, 0 <= dz <= smin)", "Rows1 / Rows2 tick rows (RT1 strict, H_TICK_CAUSAL, "
+             "H_GRANT_IN_A0_LOW, H_ZR, the H_AMERGE_RTZ row, H_ACK_IN_PHASE)", "RT2a and the A0 fork (run form)"]
+AM_SCOPE = ("ONE handover window [L, Hz) (client 1 -> 2 or 2 -> 1), inside any run including one from reset (early_nonvacuous); the windows are "
+            "NOT chained into an all-time theorem (the only chain, ArbMultiToken.mt_exclusion, still assumes H_SLOW_REREQ); no window theorem "
+            "for a solo client, an idle release, a grant from idle or the same client winning twice; metastability (requests racing at an "
+            "idle arbiter) out of scope. C's AMerge is NOT instantiated.")
+NONVAC = L(AM, "early_nonvacuous", "non_vacuity",
+           "one from-reset run (Dw, dz = 2, server a pure 3 ps delay) meets every hypothesis of both window theorems for two consecutive "
+           "handovers, both releasers re-requesting before A0 re-rises (38 < 42, 62 < 66)")
+
+def amerge_row(rid, k, race, obligation, inequality, forms, lean, exactness, nscope, note, roles, extra_hyp=()):
+    sp_roles = roles
+    new_row({
+        "id": rid, "cell": "bd_arbiter",
+        "catalogue_row": "none (Barb3, formal/notes/B-arb-amerge.md, Formal/Cells/ArbAMerge.lean)",
+        "obligation": obligation, "inequality": inequality, "forms": forms,
+        "lean": lean, "exactness": exactness, "necessity_scope": nscope, "exactness_note": note,
+        "hypotheses": AM_HYP + list(extra_hyp),
+        "site_pins": {"needed": True, "roles": sp_roles},
+        "rule": {"rule": "none", "verdict": "none",
+                 "detail": "UNCHECKED by any project rule (cells/verify/arb_fork.py checks rule J, the A0 FALL fork to ua_k, only); an A0-fork-"
+                           "type race like J, from A0's fall through ustate against A0's fall through ua_k, the client and r_k's re-rise"},
+        "corner": corner_of("every arc and route of both paths at the SAME corner (H_SHARED_CORNER); the client's reaction is taken at its "
+                            "minimum (1 tick)"),
+        "check_scope": "route_plus_env", "status": "proved", "combine": "all",
+        "handover_scope": AM_SCOPE,
+    })
+
+def req_path(k, tail):
+    return A0_TO_ACK(k) + [CLIENT(k)] + tail
+
+# client 1 releases (direction 1, 1 -> 2 handover; q falls)
+FQ1 = {"launch": "A0 fall at the server's A0 driver (TA)",
+       "data_paths": [q_launch(1) + W("ustate.O6", "ustate.I2", "wfb")],
+       "request_paths": [req_path(1, W("r1", "ustate.I0", "wr1s"))], "margin_ps": 0,
+       "note": "Arc1.q: wa0s + qf + wfb <= wa01 + c1f + 1 + wr1s"}
+FR1 = {"launch": "A0 fall at the server's A0 driver (TA)",
+       "data_paths": [q_launch(1) + W("ustate.O6", "ustate.I2", "wfb") + [A("ustate.I2", "ustate.O5", "Rrq", "R0 via q (rise arc)")]],
+       "request_paths": [req_path(1, W("r1", "ustate.I0", "wr1s") + [A("ustate.I0", "ustate.O5", "Rr1", "R0 via r1 (rise arc)")])],
+       "margin_ps": 0, "note": "Arc1.r: wa0s + qf + wfb + Rrq <= wa01 + c1f + 1 + wr1s + Rr1"}
+FG1r = {"launch": "A0 fall at the server's A0 driver (TA)",
+        "data_paths": [q_launch(1) + W("ustate.O6", "ugrant.I2", "wq") + [A("ugrant.I2", "ugrant.O5", "g1rq", "rise view")]],
+        "request_paths": [req_path(1, W("r1", "ugrant.I0", "wr1g") + [A("ugrant.I0", "ugrant.O5", "g1r1", "rise view")])],
+        "margin_ps": 0, "note": "Arc1.gr (rise view): wa0s + qf + wq + g1rq <= wa01 + c1f + 1 + wr1g + g1r1"}
+FG1f = {"launch": "A0 fall at the server's A0 driver (TA)",
+        "data_paths": [q_launch(1) + W("ustate.O6", "ugrant.I2", "wq") + [A("ugrant.I2", "ugrant.O5", "g1fq", "fall view")]],
+        "request_paths": [req_path(1, W("r1", "ugrant.I0", "wr1g") + [A("ugrant.I0", "ugrant.O5", "g1f1", "fall view")])],
+        "margin_ps": 0, "note": "Arc1.gf (fall view): wa0s + qf + wq + g1fq <= wa01 + c1f + 1 + wr1g + g1f1"}
+# client 2 releases (direction 2, 2 -> 1 handover; q rises)
+FQ2 = {"launch": "A0 fall at the server's A0 driver (TA)",
+       "data_paths": [q_launch(2) + W("ustate.O6", "ustate.I2", "wfb")],
+       "request_paths": [req_path(2, W("r2", "ustate.I1", "wr2s"))], "margin_ps": 0,
+       "note": "Arc2.q: wa0s + qr + wfb <= wa02 + c2f + 1 + wr2s"}
+FR2 = {"launch": "A0 fall at the server's A0 driver (TA)",
+       "data_paths": [q_launch(2) + W("ustate.O6", "ustate.I2", "wfb") + [A("ustate.I2", "ustate.O5", "Rrq", "R0 via q (rise arc)")]],
+       "request_paths": [req_path(2, W("r2", "ustate.I1", "wr2s") + [A("ustate.I1", "ustate.O5", "Rr2", "R0 via r2 (rise arc)")])],
+       "margin_ps": 0, "note": "Arc2.r: wa0s + qr + wfb + Rrq <= wa02 + c2f + 1 + wr2s + Rr2"}
+FG2 = {"launch": "A0 fall at the server's A0 driver (TA)",
+       "data_paths": [q_launch(2) + W("ustate.O6", "ugrant.I2", "wq")],
+       "request_paths": [req_path(2, W("r2", "ugrant.I1", "wr2g"))], "margin_ps": 0,
+       "note": "Arc2.g: wa0s + qr + wq <= wa02 + c2f + 1 + wr2g (g2's arcs are flat over its pins in the model and cancel)"}
+
+COND = ("CONDITIONAL necessity: {lem} proves that EVERY run meeting every other hypothesis of the window and missing this race by exactly "
+        "1 ps{side} violates C's {field}; no such run is constructed, so that the boundary is attained is not shown and the row stays "
+        "'sufficient' (Bj10 label rule, audit P9). Necessity is for C's {field} field only: that grant exclusion fails is NOT shown.")
+RUN_RACE = ("Run form (Lean, ArbAMerge.{d}): {rf}. The row's forms are the ARC form ({arc}), which with the four-phase client (T1 < u) "
+            "implies the run form (races_of_arc{n}).")
+
+amerge_row("bd_arbiter.rereq_Q", 1, "Q",
+    "early re-request race Q (1 -> 2 handover, client 1 releases and may re-request before A0 re-rises): client 1's re-request reaches "
+    "ustate's r1 pin no earlier than q's reset (fall) has come back round q's own feedback pin; protects q, hence g2 (C's H_ARB2)",
+    RUN_RACE.format(d="RQ", rf="QB + wfb <= u + wr1s, QB = TA + wa0s + qf", arc="Arc1.q", n=1),
+    [FQ1],
+    [L(AM, "RQ", "definition", "race Q, run form"), L(AM, "E1", "definition", "the window scenario, u free"),
+     L(AM, "e_exclusion", "sufficient", "grant exclusion on [L, Hz) for every server meeting H_SERVER_MIN, given RT1, races Q, G and H_HOLDQ"),
+     L(AM, "e_fields", "sufficient", "C's H_ARB1, H_ARB2, zr, H_AMERGE_RTZ, xa, ya at every 1 ps tick of [L + M + dz, Hz - 1), given races Q, R, G and the rows"),
+     L(AM, "races_of_arc1", "reduction", "Arc1 + four-phase client => races Q, R, G (run form)"),
+     L(AM, "Arc1", "definition"),
+     L(AM, "cex_Q", "necessary", "CONDITIONAL: every window run missing race Q by 1 ps (qr + wfb >= 2, g2r = g2f) has g2 rise and fall while r2 = 1 "
+                                  "(H_ARB2 fails); no concrete run"),
+     NONVAC],
+    "sufficient",
+    COND.format(lem="ArbAMerge.cex_Q", side=" (side conditions qr + wfb >= 2 and g2r = g2f)", field="H_ARB2"),
+    "Bj10 (Barb3, ArbAMerge): new row. Replaces H_SLOW_REREQ (TA2 + 4M <= u) on a handover window: the releaser may re-request at any u > t0. "
+    "Race R is the separate row bd_arbiter.rereq_R; race G bd_arbiter.rereq_G.",
+    ["ustate.I4 (A0) hi", "ustate.I2 (q feedback) hi", "ua1.I1 (A0) lo", "client 1 ack pin lo", "ustate.I0 (r1) lo"])
+
+amerge_row("bd_arbiter.rereq_R", 1, "R",
+    "early re-request race R (1 -> 2 handover): client 1's re-request seen through R0's r1 arc no earlier than R0 sees q low; protects "
+    "H_HOLDQ (A0's re-rise reaches ustate after q's reset came round its loop) and C's zr field, NOT grant exclusion directly",
+    RUN_RACE.format(d="RRc", rf="RR <= u + wr1s + Rr1, RR = QB + wfb + Rrq (the fall-arc view is implied; B-arb-multi-token.md's "
+                    "QB + wfb + Rfq <= u + wr1s + Rr1 is stronger than needed)", arc="Arc1.r", n=1),
+    [FR1],
+    [L(AM, "RRc", "definition", "race R, run form"), L(AM, "HQ", "definition", "H_HOLDQ: QB + wfb <= TA2 + wa0s, what race R protects"),
+     L(AM, "e_HQ", "lemma", "race R + the server => H_HOLDQ (slack Rrq + smin)"),
+     L(AM, "e_fields", "sufficient", "C's fields on the window, given races Q, R, G and the rows"),
+     L(AM, "e_exclusion", "context", "exclusion takes H_HOLDQ directly, not race R"),
+     L(AM, "races_of_arc1", "reduction", "Arc1 + four-phase client => races Q, R, G (run form)"),
+     L(AM, "Arc1", "definition"),
+     L(AM, "cex_R", "necessary", "CONDITIONAL: every window run missing race R by 1 ps with the z-rise row tight (G2 + 1 = RR + dz) and "
+                                  "smin + wa0s + qf + wfb + Rrq >= 2 has z rise while neither grant is high (zr fails); no concrete run"),
+     NONVAC],
+    "sufficient",
+    COND.format(lem="ArbAMerge.cex_R", side=", with the z-rise row ALSO tight (G2 + 1 = RR + dz) and smin + wa0s + qf + wfb + Rrq >= 2,",
+                field="zr") +
+    " Race R alone is NOT tight for exclusion: at slack -1 R0 rises 1 ps early and merges with the legitimate rise; exclusion needs "
+    "H_HOLDQ, which race R implies with slack Rrq + smin (e_HQ).",
+    "Bj10 (Barb3, ArbAMerge): new row. What race R protects is H_HOLDQ (HQ), not exclusion; its failure is visible only through C's zr field.",
+    ["ustate.I4 (A0) hi", "ustate.I2 (q feedback) hi", "ua1.I1 (A0) lo", "client 1 ack pin lo", "ustate.I0 (r1) lo"],
+    extra_hyp=AM_FIELDS)
+
+amerge_row("bd_arbiter.rereq_G", 1, "G",
+    "early re-request race G (1 -> 2 handover): client 1's re-request reaches g1 (ugrant O5) no earlier than g1's view of q has fallen, "
+    "in both arc views; protects g1 (C's H_ARB1) and grant exclusion",
+    RUN_RACE.format(d="RG", rf="QB + wq + g1rq <= u + wr1g + g1r1 AND QB + wq + g1fq <= u + wr1g + g1f1 (g1 has per-pin arcs, one "
+                    "inequality per arc view)", arc="Arc1.gr, Arc1.gf", n=1),
+    [FG1r, FG1f],
+    [L(AM, "RG", "definition", "race G, run form, both views"),
+     L(AM, "e_exclusion", "sufficient", "grant exclusion on the window, given RT1, races Q, G and H_HOLDQ"),
+     L(AM, "e_fields", "sufficient", "C's fields on the window, given races Q, R, G and the rows"),
+     L(AM, "races_of_arc1", "reduction", "Arc1 + four-phase client => races Q, R, G (run form)"),
+     L(AM, "Arc1", "definition"),
+     L(AM, "cex_G", "necessary", "CONDITIONAL: every window run missing race G by 1 ps in EITHER view has g1 re-rise after q flipped and fall "
+                                  "while r1 = 1 (H_ARB1 fails); no side conditions"),
+     L(AM, "cexG_run", "counter_run", "CONSTRUCTED from-reset run (Dg = Dw with wq = 3, u = T1 + 1 = 38): race G (rise view) and Arc1.gr each "
+                                       "missed by exactly 1 ps, races Q and R, H_HOLDQ, RT1, RT2a, the A0 fork and the client hold; g1 makes a 1 "
+                                       "ps runt at 40 with r1 high (H_ARB1 fails at 40 -> 41)"),
+     NONVAC],
+    "sufficient+necessary_at_boundary",
+    "Form 0 (rise view, Arc1.gr): NECESSARY AT THE BOUNDARY on one constructed from-reset run (cexG_run: run form and arc form each missed by "
+    "exactly 1 ps, every other hypothesis of e_fields met, C's H_ARB1 fails). Form 1 (fall view, Arc1.gf): conditional only (cex_G covers "
+    "every run missing it by 1 ps; no concrete run). Necessity is for C's H_ARB1 field: that grant exclusion fails at slack -1 is NOT shown.",
+    "Bj10 (Barb3, ArbAMerge): new row. The only race with a concrete counter-run (B-arb-amerge.md: the other five lemmas have no concrete run, so "
+    "their joint satisfiability is not shown).",
+    ["ustate.I4 (A0) hi", "ugrant.I2 (q) hi", "ua1.I1 (A0) lo", "client 1 ack pin lo", "ugrant.I0 (r1) lo"])
+
+amerge_row("bd_arbiter.rereq_Q2", 2, "Q2",
+    "early re-request race Q2 (2 -> 1 handover, client 2 releases and may re-request early): client 2's re-request reaches ustate's r2 pin no "
+    "earlier than q's set (rise) has come back round q's feedback pin; protects q, hence g1 (C's H_ARB1)",
+    RUN_RACE.format(d="RQ2", rf="QBb + wfb <= u + wr2s, QBb = TA + wa0s + qr", arc="Arc2.q", n=2),
+    [FQ2],
+    [L(AM, "RQ2", "definition", "race Q2, run form"), L(AM, "E2", "definition", "the mirror window scenario, u free"),
+     L(AM, "f_exclusion", "sufficient", "grant exclusion on the window, given RT1b, races Q2, G2 and H_HOLDQ2"),
+     L(AM, "f_fields", "sufficient", "C's fields on the window, given races Q2, R2, G2 and the rows"),
+     L(AM, "races_of_arc2", "reduction", "Arc2 + four-phase client => races Q2, R2, G2 (run form)"),
+     L(AM, "Arc2", "definition"),
+     L(AM, "cex_Q2", "necessary", "CONDITIONAL: every window run missing race Q2 by 1 ps (qr = qf, g1rq = g1fq, qr + wfb >= 2) has g1 rise and "
+                                   "fall with r1 high (H_ARB1 fails); no concrete run"),
+     NONVAC],
+    "sufficient",
+    COND.format(lem="ArbAMerge.cex_Q2", side=" (side conditions qr = qf, g1rq = g1fq, qr + wfb >= 2)", field="H_ARB1"),
+    "Bj10 (Barb3, ArbAMerge): new row, mirror of bd_arbiter.rereq_Q.",
+    ["ustate.I4 (A0) hi", "ustate.I2 (q feedback) hi", "ua2.I1 (A0) lo", "client 2 ack pin lo", "ustate.I1 (r2) lo"])
+
+amerge_row("bd_arbiter.rereq_R2", 2, "R2",
+    "early re-request race R2 (2 -> 1 handover): client 2's re-request seen through R0's r2 arc no earlier than R0 sees q high; protects "
+    "H_HOLDQ2 and C's zr field, NOT grant exclusion directly",
+    RUN_RACE.format(d="RRc2", rf="RRb <= u + wr2s + Rr2, RRb = QBb + wfb + Rrq", arc="Arc2.r", n=2),
+    [FR2],
+    [L(AM, "RRc2", "definition", "race R2, run form"), L(AM, "HQ2", "definition", "H_HOLDQ2: QBb + wfb <= TA2 + wa0s"),
+     L(AM, "f_HQ", "lemma", "race R2 + the server => H_HOLDQ2"),
+     L(AM, "f_fields", "sufficient", "C's fields on the window, given races Q2, R2, G2 and the rows"),
+     L(AM, "f_exclusion", "context", "exclusion takes H_HOLDQ2 directly, not race R2"),
+     L(AM, "races_of_arc2", "reduction", "Arc2 + four-phase client => races Q2, R2, G2 (run form)"),
+     L(AM, "Arc2", "definition"),
+     L(AM, "cex_R2", "necessary", "CONDITIONAL: every window run missing race R2 by 1 ps with the z-rise row tight (G1b + 1 = RRb + dz) has z "
+                                   "rise while neither grant is high (zr fails); no concrete run"),
+     NONVAC],
+    "sufficient",
+    COND.format(lem="ArbAMerge.cex_R2", side=", with the z-rise row ALSO tight (G1b + 1 = RRb + dz) and smin + wa0s + qr + wfb + Rrq >= 2,",
+                field="zr") + " As for race R, race R2 alone is not tight for exclusion (it protects H_HOLDQ2).",
+    "Bj10 (Barb3, ArbAMerge): new row, mirror of bd_arbiter.rereq_R. Race R2 protects H_HOLDQ2, not exclusion.",
+    ["ustate.I4 (A0) hi", "ustate.I2 (q feedback) hi", "ua2.I1 (A0) lo", "client 2 ack pin lo", "ustate.I1 (r2) lo"],
+    extra_hyp=AM_FIELDS)
+
+amerge_row("bd_arbiter.rereq_G2", 2, "G2",
+    "early re-request race G2 (2 -> 1 handover): client 2's re-request reaches g2 (ugrant O6) no earlier than g2's view of q has risen; "
+    "protects g2 (C's H_ARB2) and grant exclusion",
+    RUN_RACE.format(d="RG2", rf="QBb + wq <= u + wr2g (g2's arcs flat over its pins, they cancel)", arc="Arc2.g", n=2),
+    [FG2],
+    [L(AM, "RG2", "definition", "race G2, run form"),
+     L(AM, "f_exclusion", "sufficient", "grant exclusion on the window, given RT1b, races Q2, G2 and H_HOLDQ2"),
+     L(AM, "f_fields", "sufficient", "C's fields on the window, given races Q2, R2, G2 and the rows"),
+     L(AM, "races_of_arc2", "reduction", "Arc2 + four-phase client => races Q2, R2, G2 (run form)"),
+     L(AM, "Arc2", "definition"),
+     L(AM, "cex_G2", "necessary", "CONDITIONAL: every window run missing race G2 by 1 ps has g2 re-rise after q flipped and fall with r2 high "
+                                   "(H_ARB2 fails); no concrete run"),
+     NONVAC],
+    "sufficient",
+    COND.format(lem="ArbAMerge.cex_G2", side="", field="H_ARB2"),
+    "Bj10 (Barb3, ArbAMerge): new row, mirror of bd_arbiter.rereq_G (no concrete counter-run for this direction).",
+    ["ustate.I4 (A0) hi", "ugrant.I2 (q) hi", "ua2.I1 (A0) lo", "client 2 ack pin lo", "ugrant.I1 (r2) lo"])
+
+# H_SLOW_REREQ on the rows citing ArbMultiToken: per handover window it is no longer needed (ArbAMerge); the all-time chain still has it.
+HS_OLD = "under H_M, H_SLOW_REREQ, H_HOLD and four-phase clients; early re-request, solo / idle / from-reset schedules open."
+HS_NEW = ("under H_M, H_SLOW_REREQ, H_HOLD and four-phase clients. Early re-request (Bj10, Barb3, ArbAMerge): per handover WINDOW "
+          "H_SLOW_REREQ is no longer needed: e_exclusion / f_exclusion assume the settled state only on [L, t0) (no splicing; any run, "
+          "including one from reset: early_nonvacuous) and leave the re-request u free, replacing H_SLOW_REREQ by races Q / G and H_HOLDQ "
+          "(from race R; rows bd_arbiter.rereq_*). The windows are NOT chained: exclusion at every handover of a whole run still rests on "
+          "ArbMultiToken's chain, which assumes H_SLOW_REREQ. Solo / idle / grant-from-idle / same-client-twice schedules open.")
+CC_OLD = ("NOT derived: early re-request (three extra races named in B-arb-multi-token.md, not proved), solo / idle / from-reset schedules, "
+          "H_AMERGE_RTZ (B's model has no z_req), C's initial fields i1 / i2 / ix / iy: C's AMerge is still not instantiated.")
+CC_NEW = ("Bj10 (Barb3, ArbAMerge): on ONE handover WINDOW (settled only on [L, t0), any run, u free: H_SLOW_REREQ not needed there) "
+          "e_exclusion / f_exclusion give grant exclusion and e_fields / f_fields give C's H_ARB1, H_ARB2, zr, H_AMERGE_RTZ, xa, ya at every "
+          "1 ps tick of [L + M + dz, Hz - 1), with z_req modelled (ZLine, H_DZ), under races Q / R / G (rows bd_arbiter.rereq_*) and the "
+          "Rows1 / Rows2 tick rows. NOT derived: C's field at EVERY tick of a run without H_SLOW_REREQ (the windows are not chained; the only "
+          "chain, H_ARB_EXCL_of_mt, keeps H_SLOW_REREQ, so 'extra' is unchanged), solo / idle / grant-from-idle epochs and the hold periods "
+          "between windows, C's initial fields i1 / i2 / ix / iy and dat: C's AMerge is still not instantiated.")
+for rid in ("bd_arbiter.rt1", "bd_arbiter.rt1b"):
+    e = BY[rid]
+    sub(e, "handover_scope", HS_OLD, HS_NEW)
+    cc = e["c_contract"]
+    assert cc["basis"].count(CC_OLD) == 1, rid
+    cc["basis"] = cc["basis"].replace(CC_OLD, CC_NEW)
+    xs = "H_SLOW_REREQ TA2 + 4M <= u"
+    assert cc["extra"].count(xs) == 1, rid
+    cc["extra"] = cc["extra"].replace(xs, xs + " (still needed for the all-time chain; per handover window replaced by races Q / R / G, ArbAMerge)")
+    ex, fx = ("e_exclusion", "e_fields") if rid.endswith("rt1") else ("f_exclusion", "f_fields")
+    add_lean(e, [L(AM, ex, "context", "Bj10: one handover window with free re-request (H_SLOW_REREQ dropped), races Q / G and H_HOLDQ; not chained"),
+                 L(AM, fx, "context", "Bj10: C's H_ARB1, H_ARB2, zr, H_AMERGE_RTZ, xa, ya on the window"),
+                 NONVAC])
+    LOG.append(f"{rid}: handover_scope / c_contract: H_SLOW_REREQ dropped per handover window (ArbAMerge), all-time chain unchanged; H_AMERGE_RTZ on windows")
+doc["conventions"]["exactness"] = (doc["conventions"]["exactness"].rstrip() +
+    " Bj10 (audit P9): a necessity label (sufficient+necessary*, exact) needs a CONSTRUCTED violating run or an iff; a theorem 'every "
+    "supplied run that violates the condition fails' with no run built is recorded in necessity_scope and the row stays sufficient. "
+    "Every 'exact' row cites, with role exact, a theorem whose statement is an iff (validator).")
+
+doc["produced_by"] = (doc["produced_by"].rstrip() +
+    " Updated by probe Bj10 (2026-10-29) from the independent audit (P9, row on 9372e3b: bd_arbcell.handover_overlap -> sufficient, "
+    "bd_arbiter.rt1 -> sufficient, rt1b -> sufficient+necessary_at_instance; validator: every 'exact' row cites an iff with role exact) "
+    "and B-arb-amerge.md (ArbAMerge: new rows bd_arbiter.rereq_Q / R / G / Q2 / R2 / G2, early re-request; H_SLOW_REREQ dropped per "
+    "handover window on rt1 / rt1b); the 'probe Bj10' section of cell_constraints.bj5.py.")
+
 json.dump(doc, open(OUT, "w"), indent=1)
 for x in LOG:
     print(x)

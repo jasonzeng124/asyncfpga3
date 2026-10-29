@@ -1357,3 +1357,18 @@ later-ending segment, so the end-ordered segment rule cannot discharge any OR un
 any dependency bound; closing them needs the time-indexed rule Bfin2 is building
 (told to include OR and mux prefix lemmas). Same limits as before: infinite runs,
 departure bounds as edge-time inequalities, no whole-net witness.
+
+### progress 10:59
+In: Bj10 cell_constraints.json (151 rows, 38 exact; regeneration byte-identical and
+validator 0 errors, re-run by me). Audit P9 rows fixed: bd_arbcell.handover_overlap
+exact -> sufficient (closed-form equalities; its only iff describes one supplied
+trace); bd_arbiter.rt1 exact -> sufficient (necessity only for a supplied run; no
+violating run exists in Lean); rt1b exact -> necessary_at_instance (the constructed
+run OnGcdArbKappaTight.SU). New rule in conventions.exactness: a necessity label
+needs an iff or a constructed run; the validator now requires every exact row to
+cite, with role exact, a theorem whose statement is an iff (it caught exactly these
+three). Six early re-request rows (ArbAMerge races Q/R/G + mirrors): only G's rise
+view is boundary-tight (cexG_run); the others' cex_* lemmas have no constructed run,
+so sufficient; each necessity is for one C field; race R protects H_HOLDQ.
+H_SLOW_REREQ is not needed within one handover window but stays in the all-time
+contract (windows not chained). Necessity5 needed no change (merged at Bj6).

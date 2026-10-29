@@ -274,13 +274,13 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_link_dc.rule_L_corrected` | proved | sufficient+necessary_at_boundary | yes | L: missing_term |
 | `bd_arbcell.req_separation` | proved | sufficient+necessary | no | none |
 | `bd_arbcell.grant_skew` | proved | exact | no | none |
-| `bd_arbcell.handover_overlap` | proved | exact | no | none |
+| `bd_arbcell.handover_overlap` | proved | sufficient | no | none |
 | `bd_arbcell.bbm` | proved | sufficient | no | none |
 | `bd_arbcell.settled_exclusion` | proved | exact | no | none |
 | `bd_arbiter.a0_fork_client2` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
 | `bd_arbiter.a0_fork_client1` | proved | exact (strict pending) | yes | J: exact_arcs_missing_site_pins |
-| `bd_arbiter.rt1` | proved | exact | yes | none |
-| `bd_arbiter.rt1b` | proved | exact | yes | none |
+| `bd_arbiter.rt1` | proved | sufficient | yes | none |
+| `bd_arbiter.rt1b` | proved | sufficient+necessary_at_instance | yes | none |
 | `bd_arbiter.rt2_pulse` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_arbiter.rt2_g1` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_arbiter.rt2_forkA` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
@@ -369,6 +369,12 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_mux.uya_r` | proved | sufficient (strict pending) | yes | none |
 | `bdc_muxn.ua_seq` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
 | `bdc_muxn.ua_r` | proved | sufficient (strict pending) | yes | none |
+| `bd_arbiter.rereq_Q` | proved | sufficient | yes | none |
+| `bd_arbiter.rereq_R` | proved | sufficient | yes | none |
+| `bd_arbiter.rereq_G` | proved | sufficient+necessary_at_boundary | yes | none |
+| `bd_arbiter.rereq_Q2` | proved | sufficient | yes | none |
+| `bd_arbiter.rereq_R2` | proved | sufficient | yes | none |
+| `bd_arbiter.rereq_G2` | proved | sufficient | yes | none |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
 H_TREE_FIFO (C4), metastability with no deadline (C8/R3),

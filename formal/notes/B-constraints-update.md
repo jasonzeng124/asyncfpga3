@@ -1368,3 +1368,101 @@ Every family's text records the pair / width readings (+W / +2W; C-element +W + 
   sequencing): no row change made for those (not in this pass's request; bd_mux.reset_first untouched).
 - The uya / muxn S_A_R boundary runs do not exist; those rows stay sufficient.
 - The new rows' +1 (strict) is not addressed.
+
+# Update (probe Bj10, 2026-10-29): audit P9 'exact' labels, validator iff check, ArbAMerge early re-request rows
+
+Generator-produced: the 'probe Bj10' section of `formal/out/cell_constraints.bj5.py` (run by `cell_constraints.gen.py`);
+JSON never hand-edited. `cd formal/out && python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md`;
+validator 0 errors; a second regeneration is byte-identical (json sha256 738c2b5b..., md ae476503...).
+
+## Counts
+
+| | before (Bj9) | after (Bj10) |
+|---|---|---|
+| constraints | 145 | 151 (+6 new bd_arbiter.rereq_* rows) |
+| exact | 41 | 38 |
+| sufficient | 10 | 17 |
+| sufficient+necessary_at_boundary | 48 | 49 |
+| sufficient+necessary_at_instance | 6 | 7 |
+| exact rows citing an iff (role exact) | 38 of 41 | 38 of 38 |
+| exact rows without an 'exact' citation | 3 | 0 |
+| lean_refs | 3933 | 3995 |
+| validator errors | 0 | 0 |
+
+## 1. Audit P9 (row on 9372e3b): three 'exact' rows without an iff
+
+Label rule used throughout: a necessity label needs an iff or a CONSTRUCTED violating run. A theorem "every supplied run that
+violates the condition fails", with no run built, goes into `necessity_scope`; the row stays sufficient. The rule is in
+`conventions.exactness`.
+
+- **bd_arbcell.handover_overlap: exact -> sufficient.** The backing is closed-form equalities (`overlap_duration_r2_to_r1`,
+  `overlap_C`: count = max 0 (d6 - o5q - w)) for one handover scenario, plus `corner_no_overlap`. No iff for the row's condition
+  exists. `overlap_r2_to_r1` does contain a `↔`, but it describes the overlap window of one supplied trace, so it is cited as
+  context. The necessity half, `overlap_exists_r2_to_r1`, needs a supplied `Cell` trace, and Lean constructs none.
+  New citations: `no_overlap_r2_to_r1` (sufficient), `overlap_exists_r2_to_r1` (necessary, conditional), `overlap_r2_to_r1` (context).
+  exact_scope removed; the necessity_scope gives the reason.
+- **bd_arbiter.rt1: exact -> sufficient.** `rt1_counter_minserver` takes `Run` and `Scn` as hypotheses. `OnGcdArb.box_tight1`
+  builds violating delay RECORDS but no run. I found no Run / Scn with `¬ RT1` anywhere in Formal/.
+- **bd_arbiter.rt1b: exact -> sufficient+necessary_at_instance.** There is one constructed violating run:
+  `OnGcdArbKappaTight.SU_run` / `SU_scn` for the record `DU` (`DU_not_rt1b`, `DU_fast`), and `SU_overlap` applies
+  `rt1_counter2_minserver` to it. SU_overlap's role changes from numbers to counter_trace, and SU_run, SU_scn, DU_not_rt1b and
+  DU_fast are now cited. It is not a boundary point and not a general iff.
+
+## 2. Necessity5 ("JSON stale, under-claims")
+
+No change. That audit row was written at 9372e3b (Bj5). Bj6's "(2) Necessity5*" section has since merged every row in
+B-necessity5.md's table:
+- grant_skew is exact (grant_skew_exact, formA_iff / formB_iff);
+- ack_flush is not_necessary with ack_succ exact (pulse_iff, two_exact);
+- the mem rows are exact (setup / hold / rdata_exact), and clk_high_width is not_necessary with clk_high_width_exact;
+- rst_lines, rule_K / L_corrected and qfb_first are s+n_at_boundary;
+- settled_exclusion is exact on settled_iff.
+Every Necessity5* theorem that this pass does not cite is a helper lemma (trace equalities, `*_sat`, `*_init`).
+
+## 3. ArbAMerge (Barb3): early re-request races, new rows
+
+`bd_arbiter.rereq_Q / rereq_R / rereq_G` cover client 1 releasing. `rereq_Q2 / rereq_R2 / rereq_G2` are the mirror.
+- **Forms.** Each form is the ARC form of its race (`Arc1.q / r / gr / gf`, `Arc2.q / r / g`): A0's fall through ustate
+  (and q's route) against A0's fall through ua_k, A_k's fall, the client's re-request (env, at least 1 tick, from C's
+  four-phase SendStep) and r_k's route. With T1 < u these imply the run-form races (`races_of_arc1 / 2`).
+- **Sufficiency.** `e_exclusion` / `f_exclusion` give grant exclusion from Q, G, H_HOLDQ and RT1. `e_fields` / `f_fields` give
+  C's H_ARB1, H_ARB2, zr, H_AMERGE_RTZ, xa and ya from Q, R, G and the tick rows.
+- **Non-vacuity.** `early_nonvacuous` is a from-reset run in which both releasers re-request before A0 re-rises.
+- **Labels.**
+  - **rereq_G: sufficient+necessary_at_boundary** on its rise view only. `cexG_run` is a constructed from-reset run in which
+    both the run form and Arc1.gr miss by exactly 1 ps, and H_ARB1 fails.
+  - The fall view of G, and **Q, R, Q2, R2 and G2, are labelled sufficient.** Their counter-lemmas `cex_*` are universal over
+    runs at slack -1, but no such run is constructed. This is the defect the audit found in rt1, so I did not call them
+    boundary-tight, although the request said they were.
+  - The necessity is for one C field per race: Q -> H_ARB2, G -> H_ARB1, R -> zr, Q2 -> H_ARB1, G2 -> H_ARB2, R2 -> zr. It is
+    not for exclusion.
+  - Race R protects H_HOLDQ, not exclusion (`e_HQ`; `e_exclusion` takes HQ). At slack -1 its failure shows only through zr, and
+    only when the z-rise row is also tight.
+- **H_SLOW_REREQ** on rt1 / rt1b (the rows citing ArbMultiToken):
+  - On one handover WINDOW it is no longer needed. handover_scope and c_contract.basis now say so and cite e/f_exclusion,
+    e/f_fields and early_nonvacuous as context.
+  - It is NOT dropped from `c_contract.extra`, because the windows are not chained. C's field at every tick still rests on
+    `H_ARB_EXCL_of_mt`, which assumes H_SLOW_REREQ (B-arb-amerge.md, goal 2).
+  - The stale "H_AMERGE_RTZ (B's model has no z_req)" is replaced: z_req is modelled (ZLine, H_DZ) and RTZ is derived on the
+    windows.
+  - bd_arbcell.handover_overlap / settled_exclusion cite ArbMultiToken only as a pointer to the held arbiter. Neither mentions
+    H_SLOW_REREQ, so neither changed.
+
+## 4. EdgeTimes
+
+No row's scope says that edge-time existence (or H_TIMES non-vacuity) is open. The "edge time" hits are the KleeneBox
+"binary-edge times" coordinate system, which is unrelated. No change.
+
+## 5. Validator change (needed for item 1)
+
+New check: every `exactness: exact` row must cite, with role exact, at least one theorem whose statement (the Lean text up to
+`:=`) contains `↔` or `Iff`. On the Bj9 JSON it reports exactly the three audit rows and nothing else. After the
+relabelling: 38 of 38. Mutation tests on a scratch copy:
+- demoting grant_skew's exact citations is caught;
+- misspelling a new row's citation is caught by the existing declared-name check.
+
+## Not done / judgement calls
+
+- No new Lean. Constructing violating runs for rt1, for the Q / R / Q2 / R2 / G2 races and for handover_overlap would upgrade
+  them to boundary or instance labels.
+- The new rows have no project rule (rule J+-style; UNCHECKED). Their client reaction is taken at its minimum, 1 tick.

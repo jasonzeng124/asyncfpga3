@@ -121,6 +121,18 @@ for e in doc["constraints"] + doc["hypotheses_not_inequalities"]:
             st = statement(r)
             if st is not None and "↔" not in st:
                 errs.append(f"{e['id']}: {r['name']} cited as exact but its statement has no '↔'")
+# Bj10 (audit P9): every 'exact' ROW must cite, with role 'exact', at least one theorem whose statement (the Lean text up to ':=')
+# is an iff ('↔' or 'Iff'). Closed-form equalities (exact_formula) or a sufficient theorem plus a necessity theorem conditional on a
+# supplied run do not make a row exact; such rows are labelled sufficient / sufficient+necessary_* with a necessity_scope.
+nexiff = 0
+for e in doc["constraints"]:
+    if e["exactness"] != "exact":
+        continue
+    sts = [statement(r) for r in e["lean"] if r["role"] == "exact"]
+    if any(st is not None and ("↔" in st or re.search(r"\bIff\b", st)) for st in sts):
+        nexiff += 1
+    else:
+        errs.append(f"{e['id']}: exactness 'exact' but no citation with role exact whose Lean statement is an iff (audit P9)")
 # binds_at (Bj4): counts ordered, cited names present in the entry's lean list, design-level by_row sums match the rows
 nbind = 0
 for e in doc["constraints"]:
@@ -283,6 +295,7 @@ for e in doc["constraints"]:
             errs.append(f"{e['id']}: boundary_point ticks_from_row_form != slack + 1, or necessity_scope does not name the '<=' form")
 print(f"rows with a bound under H_W_BOUND: {nwb} (UNPROVED: {nwb_unproved}); rows with c_contract: {ncc}; rows with boundary_point: {nbp}; kappa-exact rows: {nkx}")
 print(f"rows with strict.x_window checked: {nxw}; rows with kleene_dependence: {nkd}")
+print(f"exact rows citing an iff with role exact: {nexiff}")
 print(f"rows with hypotheses: {nhyp}; rows with corner.kappa: {nkap}")
 C = doc["constraints"]
 print(f"binds_at entries: {nbind}")
