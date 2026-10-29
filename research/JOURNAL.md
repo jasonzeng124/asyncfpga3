@@ -1659,3 +1659,6 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
   seed 9: 34/38 draws negative at 1x. Verdict: correct factors, unusable predictor; rule A's one-sided worst case
   cannot separate fail from pass under correlated variation. Rule A stays a proposer, not a judge. Only the GLS
   can rank these draws.
+### progress 21:48 (BQ#2 SLOW_MAX on seeds 6-9 all PASS under the new resolver)
+- BQ#2 seed 8 SLOW_MAX PASS 16/16 laps 31/25/37 (sdf b7733e23); seed 9 SLOW_MAX PASS 16/16 laps 31/25/36
+  (sdf 4a9b218e); both EQUIVALENT. Seeds 8, 9 FAST_MIN running, then BQ#3.
