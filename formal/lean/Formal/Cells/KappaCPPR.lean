@@ -53,7 +53,7 @@ model when arcs are shared). Per-traversal scatter of one arc at different times
 The r prefix delays (not in the extraction; the theorems hold for any value).
 -/
 
-namespace Formal.Cells.KappaCPPRmut
+namespace Formal.Cells.KappaCPPR
 
 open Formal.Core.Substrate
 open Formal.Cells.ConstraintsKappa
@@ -498,7 +498,7 @@ def uF2 : List Y × List Y :=
     fs [.ac, .dS2, .dS1, .es, .ps, .aq, .cq, .qgw, .pqg, .ag2, .gw2, .pg2] ++ ss [.ac2])
 
 /-- Without H_ARC_C its threshold is 121144/604431 ≈ 0.20043 (with it, Bk3: ≈ 0.2165). -/
-theorem split_fork2_safe (k : Kappa) (H_KAPPA : k.num * 604431 ≤ k.den * 121145) :
+theorem split_fork2_safe (k : Kappa) (H_KAPPA : k.num * 604431 ≤ k.den * 121144) :
     AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 :=
   split_safe (by decide) (by decide +kernel) k H_KAPPA
 
@@ -521,10 +521,10 @@ theorem split_fork2_unsafe (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 120
 
 /-- Non-vacuity of the split statements: the bounds are meetable and `yModel` is realised. -/
 theorem split_nonvacuous :
-    (∃ k : Kappa, k.num * 604431 ≤ k.den * 121145) ∧
+    (∃ k : Kappa, k.num * 604431 ≤ k.den * 121144) ∧
     (∃ k : Kappa, k.den * 242303 ≤ k.num * 1208862) ∧
     ∀ (k : Kappa) (v : E → Quad), (yModel k v).Realizes (fun e => ((yModel k v).arc e).F) :=
   ⟨⟨⟨121144, 604431, by decide, by decide⟩, Nat.le_of_eq (Nat.mul_comm _ _)⟩,
     ⟨⟨242303, 1208862, by decide, by decide⟩, Nat.le_of_eq (Nat.mul_comm _ _)⟩, fun _ _ => ⟨_, realizes_fast _⟩⟩
 
-end Formal.Cells.KappaCPPRmut
+end Formal.Cells.KappaCPPR

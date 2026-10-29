@@ -793,3 +793,22 @@ form is tight at slack 1 on its z_ack branch (fail10). uj_env_latency_ctl is
 necessary at the boundary against the shipped mux_ok_static (claimC1_false).
 Binary <= forms; one parameter point each, no iffs. Open: uj1/uya and muxn boundary
 runs, uxa_join_latency, isochronic_forks, iso_zack, bundled_z_data.
+
+### progress 10:30
+In: Bshp KappaCPPR (Mathlib; checked here, axioms standard; notes/B-kappa-cppr.md).
+Common-path pessimism in A's kappa model: common arcs cancel exactly (allOK_net);
+the exact check is GenOK on the symmetric difference under H_DIV
+(allOK_iff_gen_net; sandwich_net without); uncancelled GenOK is pessimistic by
+exactly 2 kappa C_s (genOK_full_iff; a real-data case where it fails while the
+condition holds, naive_pessimistic). Data: OnGcdArbKappa's 18 forms are exactly the
+netted full conditions (fulls_net; shared by identity: the A0 stem = one fall
+event, and the r_k prefix = one edge), so the gcd_hw design threshold does not
+move: safe and tight on the full conditions for any r-prefix delay
+(design_cppr_safe/_tight). Two of Bk3's cancellations are NOT identities (d12 in
+mA/nA pairs an A0 fall with a rise, rise = fall; 7g's H_ARC_C merges two pin arcs on
+equal numbers); undoing them moves fork2 on seed 4 merge12.uarb2 from 0.2165 to
+0.2004 and leaves the design minimum >= 0.0443 (split_*). Missing data: r-prefix
+delays, rise/fall split, LUT-internal stage sharing (an arithmetic bracket moves
+only o1x/o2x).
+Lead's checker had a path bug (proofwidget vs proofwidgets), fixed at 09:45;
+Mathlib-closure files now check.
