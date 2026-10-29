@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.MutFfinit
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"SLICE_X22Y43.F7A", .muxf7, 0x0, false, [(.I0, (.net 6230)), (.I1, (.net 6228)), (.O, (.net 6235)), (.S, (.net 9392))], []⟩,
    some ⟨"urig.udut.ushrsi2.$abc$11319$auto$blifparse.cc:557:parse_blif$11437.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7", (.muxf7), 0x0, false, [(.I0, (.net 11537)), (.I1, (.net 11539)), (.O, (.net 11540)), (.S, (.net 5116))], []⟩,
    [(.O, .O)], [5116, 11537, 11539]⟩,
@@ -159,7 +159,9 @@ def insts : List Inst := [
    [(.O6, .O)], [5094, 5116, 11284, 11306]⟩,
   ⟨⟨"SLICE_X22Y54.F7A", .muxf7, 0x0, false, [(.I0, (.net 6327)), (.I1, (.net 6325)), (.O, (.net 6332)), (.S, (.net 9391))], []⟩,
    some ⟨"urig.udut.ushrsi2.$abc$11319$auto$blifparse.cc:557:parse_blif$11399.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7", (.muxf7), 0x0, false, [(.I0, (.net 11429)), (.I1, (.net 11430)), (.O, (.net 11431)), (.S, (.net 5115))], []⟩,
-   [(.O, .O)], [5115, 11429, 11430]⟩,
+   [(.O, .O)], [5115, 11429, 11430]⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X22Y54.F7B", .muxf7, 0x0, false, [(.I0, (.net 6331)), (.I1, (.net 6329)), (.O, (.net 6333)), (.S, (.net 9391))], []⟩,
    some ⟨"urig.udut.ushrsi2.$abc$11319$auto$blifparse.cc:557:parse_blif$11399.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7", (.muxf7), 0x0, false, [(.I0, (.const false)), (.I1, (.const false)), (.O, (.net 11428)), (.S, (.net 5115))], []⟩,
    [(.O, .O)], [5115]⟩,
@@ -309,7 +311,9 @@ def insts : List Inst := [
    [(.O6, .O6), (.O5, .O5)], [4823, 4825, 4871, 4884, 4885]⟩,
   ⟨⟨"SLICE_X22Y67.BLUT", .lut6_2, 0x550000005500, false, [(.I0, (.net 10724)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 7201)), (.I4, (.net 10725)), (.I5, (.const true)), (.O5, (.net 6430)), (.O6, (.net 6431))], []⟩,
    some ⟨"urig.udut.umux21.$abc$11730$auto$blifparse.cc:557:parse_blif$11731", (.lut 3), 0x10, false, [(.I0, (.net 7888)), (.I1, (.net 7889)), (.I2, (.net 7897)), (.O, (.net 9000))], []⟩,
-   [(.O6, .O)], [7888, 7889, 7897]⟩,
+   [(.O6, .O)], [7888, 7889, 7897]⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X22Y67.CLUT", .lut6_2, 0xF0A0A000F0A0A00, false, [(.I0, (.net 5594)), (.I1, (.const false)), (.I2, (.net 16528)), (.I3, (.net 6433)), (.I4, (.net 6435)), (.I5, (.const false)), (.O5, (.net 6432)), (.O6, (.net 6433))], []⟩,
    some ⟨"urig.udut.umux21.uj2.u", (.lut 6), 0xE800E800E800E8, false, [(.I0, (.net 3710)), (.I1, (.net 9002)), (.I2, (.net 9004)), (.I3, (.net 849)), (.I4, (.const false)), (.I5, (.const false)), (.O, (.net 9004))], []⟩,
    [(.O6, .O)], [849, 3710, 9002, 9004]⟩,
@@ -459,7 +463,9 @@ def insts : List Inst := [
    [(.Q, .Q), (.M, .M)], [42, 102, 762, 1030, 12591]⟩,
   ⟨⟨"SLICE_X22Y78.CLUT", .lut6_2, 0xCCF0AACCCCF0AACC, false, [(.I0, (.net 7282)), (.I1, (.net 7213)), (.I2, (.net 5588)), (.I3, (.net 10724)), (.I4, (.net 10725)), (.I5, (.const true)), (.O5, (.net 6531)), (.O6, (.net 6532))], []⟩,
    some ⟨"urig.udut.umux21.$abc$11730$auto$blifparse.cc:557:parse_blif$11762", (.lut 5), 0xF0AACCF0, false, [(.I0, (.net 3730)), (.I1, (.net 8462)), (.I2, (.net 7966)), (.I3, (.net 7888)), (.I4, (.net 7889)), (.O, (.net 102))], []⟩,
-   [(.O6, .O)], [3730, 7888, 7889, 7966, 8462]⟩,
+   [(.O6, .O)], [3730, 7888, 7889, 7966, 8462]⟩]
+
+def insts3 : List Inst := [
   ⟨⟨"SLICE_X22Y78.DFF", .fdre, 0x0, false, [(.C, (.net 18)), (.CE, (.net 10731)), (.D, (.net 6536)), (.M, (.net 6538)), (.Q, (.net 6537)), (.R, (.const false))], []⟩,
    some ⟨"$auto$ff.cc:337:slice$4363", (.fdre), 0x0, false, [(.C, (.net 1030)), (.CE, (.net 42)), (.D, (.net 126)), (.M, (.net 12579)), (.Q, (.net 646)), (.R, (.const false))], []⟩,
    [(.Q, .Q), (.M, .M)], [42, 126, 646, 1030, 12579]⟩,
@@ -609,7 +615,9 @@ def insts : List Inst := [
    [(.Q, .Q), (.M, .M)], [15, 729, 741, 1019, 12541]⟩,
   ⟨⟨"SLICE_X22Y87.CLUT", .lut6_2, 0xFFFEFFFFFFFEFFFF, false, [(.I0, (.net 5660)), (.I1, (.net 8672)), (.I2, (.net 7391)), (.I3, (.net 8658)), (.I4, (.net 6637)), (.I5, (.const true)), (.O5, (.net 6638)), (.O6, (.net 6639))], []⟩,
    some ⟨"$abc$11768$auto$blifparse.cc:557:parse_blif$12100.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut1", (.lut 5), 0xFFFEFFFF, false, [(.I0, (.net 736)), (.I1, (.net 737)), (.I2, (.net 738)), (.I3, (.net 739)), (.I4, (.net 357)), (.O, (.net 740))], []⟩,
-   [(.O6, .O)], [357, 736, 737, 738, 739]⟩,
+   [(.O6, .O)], [357, 736, 737, 738, 739]⟩]
+
+def insts4 : List Inst := [
   ⟨⟨"SLICE_X22Y87.DLUT", .lut6_2, 0xFF00FF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 8007)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 6642)), (.O6, (.net 6643))], []⟩,
    some ⟨"$abc$11768$auto$blifparse.cc:557:parse_blif$12100.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.lut0", (.lut 1), 0x2, false, [(.I0, (.net 734)), (.O, (.net 735))], []⟩,
    [(.O6, .O)], [734]⟩,
@@ -761,8 +769,9 @@ def insts : List Inst := [
    some ⟨"vec[14].uabsn_s", (.lut 4), 0xEC00, false, [(.I0, (.net 12427)), (.I1, (.net 632)), (.I2, (.net 35)), (.I3, (.net 38)), (.O, (.net 632))], []⟩,
    [(.O6, .O)], [35, 38, 632, 12427]⟩]
 
+def insts : List Inst := insts0 ++ insts1 ++ insts2 ++ insts3 ++ insts4
+
+/-- Negative control: the mutated chunk FAILS the check. -/
 theorem caught : checkAll rho insts = false := by decide +kernel
-
-
 
 end Formal.Net.FasmDesign.GcdD.MutFfinit

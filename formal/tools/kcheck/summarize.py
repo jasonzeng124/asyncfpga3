@@ -84,6 +84,20 @@ for s in seeds:
                 CONST.add((s, x[0]))
 
 
+# C-10m: does the tcheck front end of this pass still start rule A at the tie-off drivers?
+# (front ends from C-10m on drop them unless TCHECK_KEEP_CONST was set; the front-end snapshot
+# directory is named in toolchain.txt)
+CONST_IN_TC = True
+try:
+    import re as _re
+    _fe = _re.findall(r"^front end (\S+?):", open(R / "toolchain.txt").read(), _re.M)
+    if _fe and "KEEP_CONST" in open(pathlib.Path(_fe[-1]) / "rules2.py").read() \
+            and not os.environ.get("TCHECK_KEEP_CONST"):
+        CONST_IN_TC = False
+except OSError:
+    pass
+
+
 def klass(r):
     """band-only / frontend-gap / spread-only / corner-fail / project-only (see the docstring)"""
     t = r["tc"]
@@ -99,7 +113,7 @@ def klass(r):
         return "band-only"
     m = re.search(r"fallback=([^ ]*)", r["note"])
     fbs = [x for x in (m.group(1).split(",") if m else []) if x]
-    if r["rule"] == "A" and (r["seed"], r["key"]) in CONST:
+    if r["rule"] == "A" and (r["seed"], r["key"]) in CONST and CONST_IN_TC:
         return "frontend-gap(const)"
     if any(re.match(r"^[1-9]", x) for x in fbs):
         return "frontend-gap(fallback)"

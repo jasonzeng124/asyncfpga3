@@ -192,7 +192,18 @@ Changes to the tools, all small: check3.py mirrors three conditions the new `Ins
 (`outs` non-empty; an opaque physical cell needs an opaque logical cell; a route-through source
 must be in `supp`; output pins present on both sides); gen3.py emits `List.append_assoc` in
 `all_ok`'s simp set and, in All.lean, `chunks`, `chunks_insts`, `cells_init` (over `chunks`) and
-`binds_count`; check.sh lost a no-op `cp`.
+`binds_count`; check.sh lost a no-op `cp`; mkmut.sh rewritten for the sub-list layout (the mutant
+file keeps the data and states `caught : checkAll rho insts = false` for the whole chunk).
+
+Memory (new). On this machine (15 GB shared by ~12 probes, cgroup OOM killer) a chunk with ONE
+`decide +kernel` over 250 instances was OOM-killed twice (C012 at 3.1 GB, C018); C018 alone, split
+into 5 sub-lists of 50, still peaked at 4.8 GB. The cost is the supp-9 CARRY4s (2^9 valuations x 4
+outputs; one alone is +0.5 GB over the 0.8 GB import baseline). gen3 now cuts each chunk into
+sub-lists of at most 50 instances AND at most 2048 units of work (sum of 2^|supp| x |outs|), one
+`ok<j>` decide each (267 in all for route d), and `ok` is their conjunction. C018 then peaks at
+1.5 GB. Chunks are still 250 instances (`C000..C042`), so instance indices are unchanged.
+Incident: my first chain build fell through to `lake build Formal.Net.FasmGcd` after a failure,
+and lake ran 4 chunk builds in parallel (killed after a few minutes); the chain now stops on error.
 
 Toolchain: restored by the lead; `cells/verify/toolchain.sh` ok, nextpnr sha256 9c732bc6303458df
 (all 9 patch fingerprints ok), the same binary as the fixtures' stamps.

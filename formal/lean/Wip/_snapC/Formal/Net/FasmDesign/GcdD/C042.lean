@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.C042
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"SLICE_X6Y34.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 18062)), (.O6, (.net 18063))], []⟩,
    none,
    [(.O5, .O5), (.O6, .O6)], []⟩,
@@ -159,7 +159,9 @@ def insts : List Inst := [
    [(.O6, .O6)], []⟩,
   ⟨⟨"SLICE_X6Y87.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 18502)), (.O6, (.net 18503))], []⟩,
    none,
-   [(.O6, .O6)], []⟩,
+   [(.O6, .O6)], []⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X6Y89.ALUT", .lut6_2, 0xCCCCCCCCCCCCCCCC, false, [(.I0, (.const true)), (.I1, (.const false)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 18511)), (.O6, (.net 18512))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -309,7 +311,9 @@ def insts : List Inst := [
    [(.O5, .O5)], [9699]⟩,
   ⟨⟨"SLICE_X8Y86.DLUT", .lut6_2, 0xFFFFAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 18269)), (.I5, (.const true)), (.O5, (.net 19556)), (.O6, (.net 19557))], []⟩,
    none,
-   [(.O5, .O5)], [9700]⟩,
+   [(.O5, .O5)], [9700]⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X8Y87.ALUT", .lut6_2, 0xFF00FFCCCCCCCC, false, [(.I0, (.const true)), (.I1, (.const false)), (.I2, (.const true)), (.I3, (.net 18282)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 19562)), (.O6, (.net 19563))], []⟩,
    none,
    [(.O5, .O5)], [9702]⟩,
@@ -398,7 +402,17 @@ def insts : List Inst := [
    none,
    [(.O6, .O6)], []⟩]
 
-theorem ok : checkAll rho insts = true := by decide +kernel
+def insts : List Inst := insts0 ++ insts1 ++ insts2
+
+theorem ok0 : checkAll rho insts0 = true := by decide +kernel
+
+theorem ok1 : checkAll rho insts1 = true := by decide +kernel
+
+theorem ok2 : checkAll rho insts2 = true := by decide +kernel
+
+theorem ok : checkAll rho insts = true := by
+  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]
+  exact ⟨ok0, ok1, ok2⟩
 
 /-- H_CELLS, INIT half: (instance index, Formal.Gen target, cell name there). -/
 def binds : List (Nat × Netlist × String) := []

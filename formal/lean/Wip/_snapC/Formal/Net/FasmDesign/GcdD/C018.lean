@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.C018
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"SLICE_X27Y79.ALUT", .lut6_2, 0xFF55AA00D8D8D8D8, false, [(.I0, (.net 9167)), (.I1, (.net 13046)), (.I2, (.net 9570)), (.I3, (.net 12678)), (.I4, (.net 9571)), (.I5, (.const true)), (.O5, (.net 9570)), (.O6, (.net 9571))], []⟩,
    some ⟨"urig.udut.ulink_n_trueResult_4.many.stage[0].u.lat.pair[12].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 853)), (.I1, (.net 8400)), (.I2, (.net 8405)), (.I3, (.net 828)), (.I4, (.net 8406)), (.I5, (.const true)), (.O5, (.net 8405)), (.O6, (.net 8406))], []⟩,
    [(.O6, .O6), (.O5, .O5)], [828, 853, 8400, 8405, 8406]⟩,
@@ -159,7 +159,9 @@ def insts : List Inst := [
    [(.Q, .Q), (.M, .M)], [22, 208, 267, 1064, 12725]⟩,
   ⟨⟨"SLICE_X27Y92.BLUT", .lut6_2, 0xF0F0AAAAF0F0AAAA, false, [(.I0, (.net 9313)), (.I1, (.const true)), (.I2, (.net 9676)), (.I3, (.const true)), (.I4, (.net 9646)), (.I5, (.const true)), (.O5, (.net 9666)), (.O6, (.net 9667))], []⟩,
    some ⟨"$abc$11768$auto$blifparse.cc:557:parse_blif$11862", (.lut 3), 0xCA, false, [(.I0, (.net 265)), (.I1, (.net 266)), (.I2, (.net 263)), (.O, (.net 267))], []⟩,
-   [(.O6, .O)], [263, 265, 266]⟩,
+   [(.O6, .O)], [263, 265, 266]⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X27Y92.CLUT", .lut6_2, 0x8888888888888888, false, [(.I0, (.net 12745)), (.I1, (.net 13974)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9670)), (.O6, (.net 9671))], []⟩,
    some ⟨"vec[1].ucmpb0_g", (.lut 2), 0x8, false, [(.I0, (.net 1204)), (.I1, (.net 137)), (.O, (.net 12443))], []⟩,
    [(.O6, .O)], [137, 1204]⟩,
@@ -309,7 +311,9 @@ def insts : List Inst := [
    [(.O6, .O)], [9256, 9282]⟩,
   ⟨⟨"SLICE_X28Y16.ALUT", .lut6_2, 0xCC00CC00CC00CC00, false, [(.I0, (.const true)), (.I1, (.net 6114)), (.I2, (.const true)), (.I3, (.net 10468)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9768)), (.O6, (.net 9769))], []⟩,
    some ⟨"urig.udut.uori2.udly.chain.g[17].u", (.lut 2), 0x8, false, [(.I0, (.net 9263)), (.I1, (.net 9256)), (.O, (.net 9264))], []⟩,
-   [(.O6, .O)], [9256, 9263]⟩,
+   [(.O6, .O)], [9256, 9263]⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X28Y16.BLUT", .lut6_2, 0xCCCC0000CCCC0000, false, [(.I0, (.const true)), (.I1, (.net 6114)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 9769)), (.I5, (.const true)), (.O5, (.net 9770)), (.O6, (.net 9771))], []⟩,
    some ⟨"urig.udut.uori2.udly.chain.g[18].u", (.lut 2), 0x8, false, [(.I0, (.net 9264)), (.I1, (.net 9256)), (.O, (.net 9265))], []⟩,
    [(.O6, .O)], [9256, 9264]⟩,
@@ -420,10 +424,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1223, 1257]⟩,
   ⟨⟨"SLICE_X28Y26.BLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12777)), (.I4, (.net 14015)), (.I5, (.const true)), (.O5, (.net 9842)), (.O6, (.net 9843))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10516", (.lut 2), 0x6, false, [(.I0, (.net 1224)), (.I1, (.net 1258)), (.O, (.net 1325))], []⟩,
-   [(.O6, .O)], [1224, 1258]⟩,
+   [(.O6, .O)], [1224, 1258]⟩]
+
+def insts3 : List Inst := [
   ⟨⟨"SLICE_X28Y26.CARRY4", .carry4, 0x0, false, [(.CI, (.const false)), (.CO0, (.net 9846)), (.CO1, (.net 9847)), (.CO2, (.net 9848)), (.CO3, (.net 9849)), (.CYINIT, (.const false)), (.DI0, (.net 9840)), (.DI1, (.net 9842)), (.DI2, (.net 9844)), (.DI3, (.net 9850)), (.O0, (.net 9852)), (.O1, (.net 9853)), (.O2, (.net 9854)), (.O3, (.net 9855)), (.S0, (.net 9841)), (.S1, (.net 9843)), (.S2, (.net 9845)), (.S3, (.net 9851))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[0].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.const false)), (.CO0, (.net 1356)), (.CO1, (.net 1357)), (.CO2, (.net 1358)), (.CO3, (.net 1359)), (.CYINIT, (.const false)), (.DI0, (.net 1223)), (.DI1, (.net 1224)), (.DI2, (.net 1225)), (.DI3, (.net 1226)), (.O0, (.net 1291)), (.O1, (.net 1292)), (.O2, (.net 1293)), (.O3, (.net 1294)), (.S0, (.net 1324)), (.S1, (.net 1325)), (.S2, (.net 1326)), (.S3, (.net 1327))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1223, 1224, 1225, 1226, 1324, 1325, 1326, 1327]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1223, 1224, 1225, 1226, 1324, 1325, 1326, 1327]⟩]
+
+def insts4 : List Inst := [
   ⟨⟨"SLICE_X28Y26.CLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12301)), (.I4, (.net 14392)), (.I5, (.const true)), (.O5, (.net 9844)), (.O6, (.net 9845))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10517", (.lut 2), 0x6, false, [(.I0, (.net 1225)), (.I1, (.net 1259)), (.O, (.net 1326))], []⟩,
    [(.O6, .O)], [1225, 1259]⟩,
@@ -435,10 +443,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1227, 1261]⟩,
   ⟨⟨"SLICE_X28Y27.BLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12300)), (.I4, (.net 14013)), (.I5, (.const true)), (.O5, (.net 9858)), (.O6, (.net 9859))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10520", (.lut 2), 0x6, false, [(.I0, (.net 1228)), (.I1, (.net 1262)), (.O, (.net 1329))], []⟩,
-   [(.O6, .O)], [1228, 1262]⟩,
+   [(.O6, .O)], [1228, 1262]⟩]
+
+def insts5 : List Inst := [
   ⟨⟨"SLICE_X28Y27.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9849)), (.CO0, (.net 9862)), (.CO1, (.net 9863)), (.CO2, (.net 9864)), (.CO3, (.net 9865)), (.CYINIT, (.const false)), (.DI0, (.net 9856)), (.DI1, (.net 9858)), (.DI2, (.net 9860)), (.DI3, (.net 9866)), (.O0, (.net 9868)), (.O1, (.net 9869)), (.O2, (.net 9870)), (.O3, (.net 9871)), (.S0, (.net 9857)), (.S1, (.net 9859)), (.S2, (.net 9861)), (.S3, (.net 9867))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[1].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1359)), (.CO0, (.net 1360)), (.CO1, (.net 1361)), (.CO2, (.net 1362)), (.CO3, (.net 1363)), (.CYINIT, (.const false)), (.DI0, (.net 1227)), (.DI1, (.net 1228)), (.DI2, (.net 1229)), (.DI3, (.net 1230)), (.O0, (.net 1295)), (.O1, (.net 1296)), (.O2, (.net 1297)), (.O3, (.net 1298)), (.S0, (.net 1328)), (.S1, (.net 1329)), (.S2, (.net 1330)), (.S3, (.net 1331))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1227, 1228, 1229, 1230, 1328, 1329, 1330, 1331, 1359]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1227, 1228, 1229, 1230, 1328, 1329, 1330, 1331, 1359]⟩]
+
+def insts6 : List Inst := [
   ⟨⟨"SLICE_X28Y27.CLUT", .lut6_2, 0xF0FF0F0F0F0F0F0, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.net 12297)), (.I3, (.const true)), (.I4, (.net 14018)), (.I5, (.const true)), (.O5, (.net 9860)), (.O6, (.net 9861))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10521", (.lut 2), 0x6, false, [(.I0, (.net 1229)), (.I1, (.net 1263)), (.O, (.net 1330))], []⟩,
    [(.O6, .O)], [1229, 1263]⟩,
@@ -450,10 +462,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1231, 1265]⟩,
   ⟨⟨"SLICE_X28Y28.BLUT", .lut6_2, 0x5555AAAAFFFF0000, false, [(.I0, (.net 14029)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 12294)), (.I5, (.const true)), (.O5, (.net 9874)), (.O6, (.net 9875))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10524", (.lut 2), 0x6, false, [(.I0, (.net 1232)), (.I1, (.net 1266)), (.O, (.net 1333))], []⟩,
-   [(.O6, .O)], [1232, 1266]⟩,
+   [(.O6, .O)], [1232, 1266]⟩]
+
+def insts7 : List Inst := [
   ⟨⟨"SLICE_X28Y28.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9865)), (.CO0, (.net 9878)), (.CO1, (.net 9879)), (.CO2, (.net 9880)), (.CO3, (.net 9881)), (.CYINIT, (.const false)), (.DI0, (.net 9872)), (.DI1, (.net 9874)), (.DI2, (.net 9876)), (.DI3, (.net 9882)), (.O0, (.net 9884)), (.O1, (.net 9885)), (.O2, (.net 9886)), (.O3, (.net 9887)), (.S0, (.net 9873)), (.S1, (.net 9875)), (.S2, (.net 9877)), (.S3, (.net 9883))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[2].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1363)), (.CO0, (.net 1364)), (.CO1, (.net 1365)), (.CO2, (.net 1366)), (.CO3, (.net 1367)), (.CYINIT, (.const false)), (.DI0, (.net 1231)), (.DI1, (.net 1232)), (.DI2, (.net 1233)), (.DI3, (.net 1234)), (.O0, (.net 1299)), (.O1, (.net 1300)), (.O2, (.net 1301)), (.O3, (.net 1302)), (.S0, (.net 1332)), (.S1, (.net 1333)), (.S2, (.net 1334)), (.S3, (.net 1335))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1231, 1232, 1233, 1234, 1332, 1333, 1334, 1335, 1363]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1231, 1232, 1233, 1234, 1332, 1333, 1334, 1335, 1363]⟩]
+
+def insts8 : List Inst := [
   ⟨⟨"SLICE_X28Y28.CLUT", .lut6_2, 0xFFFF00FFFF0000, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 14396)), (.I4, (.net 12774)), (.I5, (.const true)), (.O5, (.net 9876)), (.O6, (.net 9877))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10525", (.lut 2), 0x6, false, [(.I0, (.net 1233)), (.I1, (.net 1267)), (.O, (.net 1334))], []⟩,
    [(.O6, .O)], [1233, 1267]⟩,
@@ -465,10 +481,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1235, 1269]⟩,
   ⟨⟨"SLICE_X28Y29.BLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12779)), (.I4, (.net 14395)), (.I5, (.const true)), (.O5, (.net 9890)), (.O6, (.net 9891))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10528", (.lut 2), 0x6, false, [(.I0, (.net 1236)), (.I1, (.net 1270)), (.O, (.net 1337))], []⟩,
-   [(.O6, .O)], [1236, 1270]⟩,
+   [(.O6, .O)], [1236, 1270]⟩]
+
+def insts9 : List Inst := [
   ⟨⟨"SLICE_X28Y29.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9881)), (.CO0, (.net 9894)), (.CO1, (.net 9895)), (.CO2, (.net 9896)), (.CO3, (.net 9897)), (.CYINIT, (.const false)), (.DI0, (.net 9888)), (.DI1, (.net 9890)), (.DI2, (.net 9892)), (.DI3, (.net 9898)), (.O0, (.net 9900)), (.O1, (.net 9901)), (.O2, (.net 9902)), (.O3, (.net 9903)), (.S0, (.net 9889)), (.S1, (.net 9891)), (.S2, (.net 9893)), (.S3, (.net 9899))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[3].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1367)), (.CO0, (.net 1368)), (.CO1, (.net 1369)), (.CO2, (.net 1370)), (.CO3, (.net 1371)), (.CYINIT, (.const false)), (.DI0, (.net 1235)), (.DI1, (.net 1236)), (.DI2, (.net 1237)), (.DI3, (.net 1238)), (.O0, (.net 1303)), (.O1, (.net 1304)), (.O2, (.net 1305)), (.O3, (.net 1306)), (.S0, (.net 1336)), (.S1, (.net 1337)), (.S2, (.net 1338)), (.S3, (.net 1339))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1235, 1236, 1237, 1238, 1336, 1337, 1338, 1339, 1367]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1235, 1236, 1237, 1238, 1336, 1337, 1338, 1339, 1367]⟩]
+
+def insts10 : List Inst := [
   ⟨⟨"SLICE_X28Y29.CLUT", .lut6_2, 0xF0FF0F0FFFF0000, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.net 14026)), (.I3, (.const true)), (.I4, (.net 12780)), (.I5, (.const true)), (.O5, (.net 9892)), (.O6, (.net 9893))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10529", (.lut 2), 0x6, false, [(.I0, (.net 1237)), (.I1, (.net 1271)), (.O, (.net 1338))], []⟩,
    [(.O6, .O)], [1237, 1271]⟩,
@@ -480,10 +500,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1239, 1273]⟩,
   ⟨⟨"SLICE_X28Y30.BLUT", .lut6_2, 0x66666666AAAAAAAA, false, [(.I0, (.net 12304)), (.I1, (.net 14017)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9906)), (.O6, (.net 9907))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10532", (.lut 2), 0x6, false, [(.I0, (.net 1240)), (.I1, (.net 1274)), (.O, (.net 1341))], []⟩,
-   [(.O6, .O)], [1240, 1274]⟩,
+   [(.O6, .O)], [1240, 1274]⟩]
+
+def insts11 : List Inst := [
   ⟨⟨"SLICE_X28Y30.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9897)), (.CO0, (.net 9910)), (.CO1, (.net 9911)), (.CO2, (.net 9912)), (.CO3, (.net 9913)), (.CYINIT, (.const false)), (.DI0, (.net 9904)), (.DI1, (.net 9906)), (.DI2, (.net 9908)), (.DI3, (.net 9914)), (.O0, (.net 9916)), (.O1, (.net 9917)), (.O2, (.net 9918)), (.O3, (.net 9919)), (.S0, (.net 9905)), (.S1, (.net 9907)), (.S2, (.net 9909)), (.S3, (.net 9915))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[4].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1371)), (.CO0, (.net 1372)), (.CO1, (.net 1373)), (.CO2, (.net 1374)), (.CO3, (.net 1375)), (.CYINIT, (.const false)), (.DI0, (.net 1239)), (.DI1, (.net 1240)), (.DI2, (.net 1241)), (.DI3, (.net 1242)), (.O0, (.net 1307)), (.O1, (.net 1308)), (.O2, (.net 1309)), (.O3, (.net 1310)), (.S0, (.net 1340)), (.S1, (.net 1341)), (.S2, (.net 1342)), (.S3, (.net 1343))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1239, 1240, 1241, 1242, 1340, 1341, 1342, 1343, 1371]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1239, 1240, 1241, 1242, 1340, 1341, 1342, 1343, 1371]⟩]
+
+def insts12 : List Inst := [
   ⟨⟨"SLICE_X28Y30.CLUT", .lut6_2, 0x3333CCCCFFFF0000, false, [(.I0, (.const true)), (.I1, (.net 14386)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 12289)), (.I5, (.const true)), (.O5, (.net 9908)), (.O6, (.net 9909))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10533", (.lut 2), 0x6, false, [(.I0, (.net 1241)), (.I1, (.net 1275)), (.O, (.net 1342))], []⟩,
    [(.O6, .O)], [1241, 1275]⟩,
@@ -495,10 +519,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1243, 1277]⟩,
   ⟨⟨"SLICE_X28Y31.BLUT", .lut6_2, 0x66666666AAAAAAAA, false, [(.I0, (.net 12787)), (.I1, (.net 14025)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9922)), (.O6, (.net 9923))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10536", (.lut 2), 0x6, false, [(.I0, (.net 1244)), (.I1, (.net 1278)), (.O, (.net 1345))], []⟩,
-   [(.O6, .O)], [1244, 1278]⟩,
+   [(.O6, .O)], [1244, 1278]⟩]
+
+def insts13 : List Inst := [
   ⟨⟨"SLICE_X28Y31.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9913)), (.CO0, (.net 9926)), (.CO1, (.net 9927)), (.CO2, (.net 9928)), (.CO3, (.net 9929)), (.CYINIT, (.const false)), (.DI0, (.net 9920)), (.DI1, (.net 9922)), (.DI2, (.net 9924)), (.DI3, (.net 9930)), (.O0, (.net 9932)), (.O1, (.net 9933)), (.O2, (.net 9934)), (.O3, (.net 9935)), (.S0, (.net 9921)), (.S1, (.net 9923)), (.S2, (.net 9925)), (.S3, (.net 9931))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[5].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1375)), (.CO0, (.net 1376)), (.CO1, (.net 1377)), (.CO2, (.net 1378)), (.CO3, (.net 1379)), (.CYINIT, (.const false)), (.DI0, (.net 1243)), (.DI1, (.net 1244)), (.DI2, (.net 1245)), (.DI3, (.net 1246)), (.O0, (.net 1311)), (.O1, (.net 1312)), (.O2, (.net 1313)), (.O3, (.net 1314)), (.S0, (.net 1344)), (.S1, (.net 1345)), (.S2, (.net 1346)), (.S3, (.net 1347))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1243, 1244, 1245, 1246, 1344, 1345, 1346, 1347, 1375]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1243, 1244, 1245, 1246, 1344, 1345, 1346, 1347, 1375]⟩]
+
+def insts14 : List Inst := [
   ⟨⟨"SLICE_X28Y31.CLUT", .lut6_2, 0x33CC33CCFF00FF00, false, [(.I0, (.const true)), (.I1, (.net 14400)), (.I2, (.const true)), (.I3, (.net 12287)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9924)), (.O6, (.net 9925))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10537", (.lut 2), 0x6, false, [(.I0, (.net 1245)), (.I1, (.net 1279)), (.O, (.net 1346))], []⟩,
    [(.O6, .O)], [1245, 1279]⟩,
@@ -510,10 +538,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1247, 1281]⟩,
   ⟨⟨"SLICE_X28Y32.BLUT", .lut6_2, 0x3C3C3C3CF0F0F0F0, false, [(.I0, (.const true)), (.I1, (.net 14391)), (.I2, (.net 12785)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9938)), (.O6, (.net 9939))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10540", (.lut 2), 0x6, false, [(.I0, (.net 1248)), (.I1, (.net 1282)), (.O, (.net 1349))], []⟩,
-   [(.O6, .O)], [1248, 1282]⟩,
+   [(.O6, .O)], [1248, 1282]⟩]
+
+def insts15 : List Inst := [
   ⟨⟨"SLICE_X28Y32.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9929)), (.CO0, (.net 9942)), (.CO1, (.net 9943)), (.CO2, (.net 9944)), (.CO3, (.net 9945)), (.CYINIT, (.const false)), (.DI0, (.net 9936)), (.DI1, (.net 9938)), (.DI2, (.net 9940)), (.DI3, (.net 9946)), (.O0, (.net 9948)), (.O1, (.net 9949)), (.O2, (.net 9950)), (.O3, (.net 9951)), (.S0, (.net 9937)), (.S1, (.net 9939)), (.S2, (.net 9941)), (.S3, (.net 9947))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[6].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1379)), (.CO0, (.net 1380)), (.CO1, (.net 1381)), (.CO2, (.net 1382)), (.CO3, (.net 1383)), (.CYINIT, (.const false)), (.DI0, (.net 1247)), (.DI1, (.net 1248)), (.DI2, (.net 1249)), (.DI3, (.net 1250)), (.O0, (.net 1315)), (.O1, (.net 1316)), (.O2, (.net 1317)), (.O3, (.net 1318)), (.S0, (.net 1348)), (.S1, (.net 1349)), (.S2, (.net 1350)), (.S3, (.net 1351))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1247, 1248, 1249, 1250, 1348, 1349, 1350, 1351, 1379]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1247, 1248, 1249, 1250, 1348, 1349, 1350, 1351, 1379]⟩]
+
+def insts16 : List Inst := [
   ⟨⟨"SLICE_X28Y32.CLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12782)), (.I4, (.net 14022)), (.I5, (.const true)), (.O5, (.net 9940)), (.O6, (.net 9941))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10541", (.lut 2), 0x6, false, [(.I0, (.net 1249)), (.I1, (.net 1283)), (.O, (.net 1350))], []⟩,
    [(.O6, .O)], [1249, 1283]⟩,
@@ -525,10 +557,14 @@ def insts : List Inst := [
    [(.O6, .O)], [1251, 1285]⟩,
   ⟨⟨"SLICE_X28Y33.BLUT", .lut6_2, 0x55AA55AAFF00FF00, false, [(.I0, (.net 14389)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12292)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 9954)), (.O6, (.net 9955))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10544", (.lut 2), 0x6, false, [(.I0, (.net 1252)), (.I1, (.net 1286)), (.O, (.net 1353))], []⟩,
-   [(.O6, .O)], [1252, 1286]⟩,
+   [(.O6, .O)], [1252, 1286]⟩]
+
+def insts17 : List Inst := [
   ⟨⟨"SLICE_X28Y33.CARRY4", .carry4, 0x0, false, [(.CI, (.net 9945)), (.CO0, (.net 9958)), (.CO1, (.net 9959)), (.CO2, (.net 9960)), (.CO3, (.net 9961)), (.CYINIT, (.const false)), (.DI0, (.net 9952)), (.DI1, (.net 9954)), (.DI2, (.net 9956)), (.DI3, (.net 9962)), (.O0, (.net 9964)), (.O1, (.net 9965)), (.O2, (.net 9966)), (.O3, (.net 9967)), (.S0, (.net 9953)), (.S1, (.net 9955)), (.S2, (.net 9957)), (.S3, (.net 9963))], []⟩,
    some ⟨"urig.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$3769.genblk1.slice[7].genblk1.carry4", (.carry4), 0x0, false, [(.CI, (.net 1383)), (.CO0, (.net 1384)), (.CO1, (.net 1385)), (.CO2, (.net 1386)), (.CO3, (.net 1387)), (.CYINIT, (.const false)), (.DI0, (.net 1251)), (.DI1, (.net 1252)), (.DI2, (.net 1253)), (.DI3, (.net 1254)), (.O0, (.net 1319)), (.O1, (.net 1320)), (.O2, (.net 1321)), (.O3, (.net 1322)), (.S0, (.net 1352)), (.S1, (.net 1353)), (.S2, (.net 1354)), (.S3, (.net 1355))], []⟩,
-   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1251, 1252, 1253, 1254, 1352, 1353, 1354, 1355, 1383]⟩,
+   [(.O0, .O0), (.O1, .O1), (.O2, .O2), (.O3, .O3), (.CO0, .CO0), (.CO1, .CO1), (.CO2, .CO2), (.CO3, .CO3)], [1251, 1252, 1253, 1254, 1352, 1353, 1354, 1355, 1383]⟩]
+
+def insts18 : List Inst := [
   ⟨⟨"SLICE_X28Y33.CLUT", .lut6_2, 0xFFFF00FF00FF00, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 12788)), (.I4, (.net 14398)), (.I5, (.const true)), (.O5, (.net 9956)), (.O6, (.net 9957))], []⟩,
    some ⟨"urig.udut.uaddi0.$abc$10514$auto$blifparse.cc:557:parse_blif$10545", (.lut 2), 0x6, false, [(.I0, (.net 1253)), (.I1, (.net 1287)), (.O, (.net 1354))], []⟩,
    [(.O6, .O)], [1253, 1287]⟩,
@@ -678,7 +714,9 @@ def insts : List Inst := [
    [(.O, .O)], [4282, 11045, 11046]⟩,
   ⟨⟨"SLICE_X28Y53.ALUT", .lut6_2, 0xCCCCCCCCCCCCCCCC, false, [(.I0, (.const true)), (.I1, (.net 10099)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 10062)), (.O6, (.net 10063))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_13.many.stage[0].u.rdly.chain.g[0].u", (.lut 1), 0x2, false, [(.I0, (.net 5784)), (.O, (.net 5817))], []⟩,
-   [(.O6, .O)], [5784]⟩,
+   [(.O6, .O)], [5784]⟩]
+
+def insts19 : List Inst := [
   ⟨⟨"SLICE_X28Y53.BLUT", .lut6_2, 0xFFFF0000FFFF0000, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 10063)), (.I5, (.const true)), (.O5, (.net 10064)), (.O6, (.net 10065))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_13.many.stage[0].u.rdly.chain.g[1].u", (.lut 1), 0x2, false, [(.I0, (.net 5817)), (.O, (.net 5818))], []⟩,
    [(.O6, .O)], [5817]⟩,
@@ -761,7 +799,51 @@ def insts : List Inst := [
    some ⟨"urig.udut.ulink_n56.many.stage[0].u.uack.chain.g[0].u", (.lut 1), 0x2, false, [(.I0, (.net 4797)), (.O, (.net 4865))], []⟩,
    [(.O6, .O)], [4797]⟩]
 
-theorem ok : checkAll rho insts = true := by decide +kernel
+def insts : List Inst := insts0 ++ insts1 ++ insts2 ++ insts3 ++ insts4 ++ insts5 ++ insts6 ++ insts7 ++ insts8 ++ insts9 ++ insts10 ++ insts11 ++ insts12 ++ insts13 ++ insts14 ++ insts15 ++ insts16 ++ insts17 ++ insts18 ++ insts19
+
+theorem ok0 : checkAll rho insts0 = true := by decide +kernel
+
+theorem ok1 : checkAll rho insts1 = true := by decide +kernel
+
+theorem ok2 : checkAll rho insts2 = true := by decide +kernel
+
+theorem ok3 : checkAll rho insts3 = true := by decide +kernel
+
+theorem ok4 : checkAll rho insts4 = true := by decide +kernel
+
+theorem ok5 : checkAll rho insts5 = true := by decide +kernel
+
+theorem ok6 : checkAll rho insts6 = true := by decide +kernel
+
+theorem ok7 : checkAll rho insts7 = true := by decide +kernel
+
+theorem ok8 : checkAll rho insts8 = true := by decide +kernel
+
+theorem ok9 : checkAll rho insts9 = true := by decide +kernel
+
+theorem ok10 : checkAll rho insts10 = true := by decide +kernel
+
+theorem ok11 : checkAll rho insts11 = true := by decide +kernel
+
+theorem ok12 : checkAll rho insts12 = true := by decide +kernel
+
+theorem ok13 : checkAll rho insts13 = true := by decide +kernel
+
+theorem ok14 : checkAll rho insts14 = true := by decide +kernel
+
+theorem ok15 : checkAll rho insts15 = true := by decide +kernel
+
+theorem ok16 : checkAll rho insts16 = true := by decide +kernel
+
+theorem ok17 : checkAll rho insts17 = true := by decide +kernel
+
+theorem ok18 : checkAll rho insts18 = true := by decide +kernel
+
+theorem ok19 : checkAll rho insts19 = true := by decide +kernel
+
+theorem ok : checkAll rho insts = true := by
+  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]
+  exact ⟨ok0, ok1, ok2, ok3, ok4, ok5, ok6, ok7, ok8, ok9, ok10, ok11, ok12, ok13, ok14, ok15, ok16, ok17, ok18, ok19⟩
 
 /-- H_CELLS, INIT half: (instance index, Formal.Gen target, cell name there). -/
 def binds : List (Nat × Netlist × String) := [(0, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (1, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (2, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (3, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (83, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (84, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (85, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (86, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (87, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (88, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (89, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (90, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (91, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (92, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (93, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (94, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (95, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (96, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (97, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (98, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (99, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (100, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (101, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (102, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (103, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[0].u"), (104, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (105, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (106, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (107, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (108, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (109, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (110, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (111, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (112, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (113, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (114, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (115, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (116, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (117, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (118, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (119, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (120, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (121, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (122, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (123, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (124, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (125, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (126, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (127, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (128, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (129, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (130, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (131, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (132, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (133, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (134, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (175, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (176, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (177, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (178, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (179, Formal.Gen.Cells.bd_arbiter, "ua1.u"), (180, Formal.Gen.Cells.bd_c2n, "u"), (181, Formal.Gen.Cells.bd_latch_W1, "odd.u"), (182, Formal.Gen.Cells.bd_mux_W2, "uj0"), (183, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (184, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (185, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (186, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (187, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (188, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (189, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (190, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (191, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (192, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (193, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (194, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (195, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (196, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (197, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (198, Formal.Gen.Cells.bd_c2n, "u"), (199, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (200, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (201, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (202, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (203, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (204, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (205, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (206, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (219, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (220, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (222, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (223, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (224, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (235, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (236, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (237, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (238, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (239, Formal.Gen.Cells.bd_c2n, "u"), (240, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (241, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (242, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (243, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (249, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u")]

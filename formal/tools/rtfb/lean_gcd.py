@@ -52,7 +52,7 @@ formal/tools/rtfb/rtfb_design.py.
 C-10f2 (2026-10-29): routes that leave a slice through AMUX..DMUX now carry the driver-side OUTMUX
 hop (prjxray slicel/slicem.sdf, e.g. a6lut -> amux (0.071::0.088)(0.168::0.209) ns), on the
 feedback and on every response net.  C-10f's data had no such hop (audit P4).
-''' % ("--freq %s" % FREQ if FREQ else "no --freq (BOARD-QUEUE #1's command; nextpnr's 12 MHz default)", NPR) + '''
+''' % ("--freq %s" % FREQ if FREQ else "no --freq (BOARD-QUEUE #1's command; the same\nrecipe with --freq 100 gives a byte-identical FASM on all 4 seeds, C-10f2)", NPR) + '''
 Data `RtFbGcdS<seed>`: one entry per C-element (bd_c2/c2n/_set/c3/c4) that has a response path
 whose H_INDEP lower bound is below its feedback's H_INDEP upper bound: the tree of its feedback
 route and every such simple response path through any number of LUTs.  The other C-elements

@@ -401,11 +401,11 @@ theorem step_of {p : Fin NO} {ge : GE} (h : spChk cd (outK (opAt p)) ge = true) 
   rw [evS_gs]
   simp only [Qg, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true'] at hq
   cases v
-  · simp only [cond_false] at he
+  · simp only [Bool.cond_false] at he
     rcases hq.2 with h' | h'
     · rw [he] at h'; cases h'
     · exact h'
-  · simp only [cond_true] at he
+  · simp only [Bool.cond_true] at he
     rcases hq.1 with h' | h'
     · rw [he] at h'; cases h'
     · exact h'
@@ -465,10 +465,10 @@ theorem arb_all (h : ∀ p : Fin NO, p ≠ prodOf start → opStep cd p = true)
     exact this.1
   · intro t hw
     have := hw t (Nat.le_refl _) (by omega)
-    exact ⟨t + 1, by omega, by omega, g1 false t ⟨fun h => by cases h, fun _ => this⟩⟩
+    exact ⟨t + 1, by omega, by omega, g1 false t ⟨fun h => (by cases h), fun _ => this⟩⟩
   · intro t hw
     have := hw t (Nat.le_refl _) (by omega)
-    exact ⟨t + 1, by omega, by omega, g2 false t ⟨fun h => by cases h, fun _ => this⟩⟩
+    exact ⟨t + 1, by omega, by omega, g2 false t ⟨fun h => (by cases h), fun _ => this⟩⟩
 
 /-! ## No deadlock before a given tick -/
 

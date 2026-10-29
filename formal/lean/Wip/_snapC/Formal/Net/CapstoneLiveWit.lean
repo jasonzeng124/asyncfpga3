@@ -46,9 +46,9 @@ theorem l_step : ∀ p : Fin NO, p ≠ prodOf start → opStep cdW p = true := b
   · exact stepR_get lstepD p (by omega) h4 hp
   by_cases h5 : p.val < 300
   · exact stepR_get lstepE p (by omega) h5 hp
-  · exact stepR_get lstepF p (by omega) (by simpa using this) hp
+  · exact stepR_get lstepF p (by omega) p.isLt hp
 
-theorem start_op : opAt (prodOf start) = .src 2 2 0 := by decide +kernel
+theorem start_op : opAt (prodOf start) = .src 2 2 0 := rfl
 
 /-- H_BOUNDED_DELAY' 1 holds for the run. -/
 theorem l_bnd : ∀ p, p ≠ prodOf start → ∀ g ∈ gatesK p (opAt p), BndG 1 (gsAt chL (itrW cdW)) g :=

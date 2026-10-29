@@ -252,6 +252,8 @@ def main():
     ap.add_argument("phys"); ap.add_argument("synth"); ap.add_argument("routed")
     ap.add_argument("outdir"); ap.add_argument("ns")
     ap.add_argument("--chunk", type=int, default=250)
+    ap.add_argument("--sub", type=int, default=50)
+    ap.add_argument("--work", type=int, default=2048)
     ap.add_argument("--report")
     ap.add_argument("--genjson", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "gen", "json"))
     a = ap.parse_args()
@@ -585,15 +587,33 @@ def main():
     for ci, ch in enumerate(chunks):
         with open(os.path.join(a.outdir, "C%03d.lean" % ci), "w") as f:
             f.write("import %s.Rho\nimport Formal.Gen.Cells\n\n" % MOD + hdr + "\nset_option maxRecDepth 20000\n\nnamespace %s.C%03d\nopen Formal.Gen Formal.Net.FasmDesign\n\n" % (NS, ci))
-            f.write("def insts : List Inst := [\n")
             rows = []
             for p, l, outs, opq in ch:
                 rows.append("  ⟨%s,\n   %s,\n   [%s], [%s]⟩" % (
                     pcell_s(p), ("some " + lcell_s(l)) if l else "none",
                     ", ".join("(%s, %s)" % (lpin(x), lpin(y)) for x, y in outs),
                     ", ".join(str(n) for n in supp_of(p, l))))
-            f.write(",\n".join(rows) + "]\n\n")
-            f.write("theorem ok : checkAll rho insts = true := by decide +kernel\n\n")
+            # sub-lists of SUB instances, one `decide` each: the kernel's cache lives per
+            # declaration, so this bounds peak memory (a 250-instance decide was OOM-killed)
+            # (at most SUB instances, and at most WORK = sum of 2^|supp| * |outs| per sub-list,
+            # so the supp-9 CARRY4s get a declaration of their own)
+            subs, cur, w = [], [], 0
+            for r, (p, l, outs, opq) in zip(rows, ch):
+                wi = 2 ** len(supp_of(p, l)) * max(1, len(outs))
+                if cur and (len(cur) >= a.sub or w + wi > a.work):
+                    subs.append(cur); cur, w = [], 0
+                cur.append(r); w += wi
+            if cur:
+                subs.append(cur)
+            for j, sr in enumerate(subs):
+                f.write("def insts%d : List Inst := [\n" % j)
+                f.write(",\n".join(sr) + "]\n\n")
+            f.write("def insts : List Inst := %s\n\n" % " ++ ".join("insts%d" % j for j in range(len(subs))))
+            for j in range(len(subs)):
+                f.write("theorem ok%d : checkAll rho insts%d = true := by decide +kernel\n\n" % (j, j))
+            f.write("theorem ok : checkAll rho insts = true := by\n")
+            f.write("  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]\n")
+            f.write("  exact %s\n\n" % ("ok0" if len(subs) == 1 else "⟨%s⟩" % ", ".join("ok%d" % j for j in range(len(subs)))))
             bl = [(k - ci * a.chunk, bind_of[k]) for k in range(ci * a.chunk, ci * a.chunk + len(ch)) if k in bind_of]
             f.write("/-- H_CELLS, INIT half: (instance index, Formal.Gen target, cell name there). -/\n")
             f.write("def binds : List (Nat × Netlist × String) := [%s]\n\n" % ", ".join(

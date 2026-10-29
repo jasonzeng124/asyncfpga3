@@ -10,9 +10,16 @@ diff <(sed -E 's/GcdDMut[A-Za-z]*/GcdD/g; s/Physical side: [^ ]+/P/' "$M/Rho.lea
      <(sed -E 's/Physical side: [^ ]+/P/' "$LEAN/Formal/Net/FasmDesign/GcdD/Rho.lean") > /dev/null \
   || { echo "mkmut: $k changes the renaming; not handled"; exit 1; }
 mkdir -p "$LEAN/Wip/C11f"
-sed -E "s/^import Formal\.Net\.FasmDesign\.GcdDMut[A-Za-z]*\.Rho/import Formal.Net.FasmDesign.GcdD.Rho/;
-        s/namespace Formal\.Net\.FasmDesign\.GcdDMut[A-Za-z]*\.$c/namespace Formal.Net.FasmDesign.GcdD.$N/;
-        s/end Formal\.Net\.FasmDesign\.GcdDMut[A-Za-z]*\.$c/end Formal.Net.FasmDesign.GcdD.$N/;
-        s/^theorem ok : checkAll rho insts = true/theorem caught : checkAll rho insts = false/;
-        /^\/-- H_CELLS/d; /^def binds/d; /^theorem binds_ok/d" "$M/$c.lean" > "$LEAN/Wip/C11f/$N.lean"
+python3 - "$M/$c.lean" "$LEAN/Wip/C11f/$N.lean" "$c" "$N" <<'PY'
+import re, sys
+src, dst, c, n = sys.argv[1:]
+t = open(src).read()
+t = re.sub(r"^import Formal\.Net\.FasmDesign\.GcdDMut[A-Za-z]*\.Rho", "import Formal.Net.FasmDesign.GcdD.Rho", t, flags=re.M)
+t = re.sub(r"Formal\.Net\.FasmDesign\.GcdDMut[A-Za-z]*\.%s\b" % c, "Formal.Net.FasmDesign.GcdD.%s" % n, t)
+# keep the data, replace every theorem (and the bindings) by the one negative statement
+head = t[:t.index("theorem ok0 ")]
+tail = t[t.index("end Formal.Net.FasmDesign.GcdD.%s" % n):]
+open(dst, "w").write(head + "/-- Negative control: the mutated chunk FAILS the check. -/\n"
+                     "theorem caught : checkAll rho insts = false := by decide +kernel\n\n" + tail)
+PY
 echo "wrote Wip/C11f/$N.lean"

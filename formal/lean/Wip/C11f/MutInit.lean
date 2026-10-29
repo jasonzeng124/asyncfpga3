@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.MutInit
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"BSCAN_X0Y0", (.opaque "BSCAN" []), 0x0, false, [((.other "CAPTURE"), (.net 0)), ((.other "SEL"), (.net 1)), ((.other "SHIFT"), (.net 2)), ((.other "TCK"), (.net 3)), ((.other "TDI"), (.net 4)), ((.other "TDO"), (.net 8051)), ((.other "UPDATE"), (.net 5))], []⟩,
    some ⟨"bscan_i", (.opaque "BSCANE2" []), 0x0, false, [((.other "CAPTURE"), (.net 13)), ((.other "SEL"), (.net 14)), ((.other "SHIFT"), (.net 12)), ((.other "TCK"), (.net 1160)), ((.other "TDI"), (.net 1029)), ((.other "TDO"), (.net 1020)), ((.other "UPDATE"), (.net 259))], []⟩,
    [], []⟩,
@@ -159,7 +159,9 @@ def insts : List Inst := [
    [(.O6, .O)], [1614, 1655]⟩,
   ⟨⟨"SLICE_X0Y39.ALUT", .lut6_2, 0xAFAFA0A0FC0CFC0C, false, [(.I0, (.net 10961)), (.I1, (.net 106)), (.I2, (.net 115)), (.I3, (.net 10960)), (.I4, (.net 107)), (.I5, (.const true)), (.O5, (.net 106)), (.O6, (.net 107))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_87.many.stage[1].u.lat.pair[20].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 7519)), (.I1, (.net 7548)), (.I2, (.net 7561)), (.I3, (.net 7520)), (.I4, (.net 7562)), (.I5, (.const true)), (.O5, (.net 7561)), (.O6, (.net 7562))], []⟩,
-   [(.O6, .O6), (.O5, .O5)], [7519, 7520, 7548, 7561, 7562]⟩,
+   [(.O6, .O6), (.O5, .O5)], [7519, 7520, 7548, 7561, 7562]⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X0Y39.BLUT", .lut6_2, 0xFCFC0C0CFA0AFA0A, false, [(.I0, (.net 108)), (.I1, (.net 109)), (.I2, (.net 115)), (.I3, (.net 10972)), (.I4, (.net 10973)), (.I5, (.const true)), (.O5, (.net 108)), (.O6, (.net 109))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_87.many.stage[1].u.lat.pair[8].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 7537)), (.I1, (.net 7548)), (.I2, (.net 7579)), (.I3, (.net 7538)), (.I4, (.net 7580)), (.I5, (.const true)), (.O5, (.net 7579)), (.O6, (.net 7580))], []⟩,
    [(.O5, .O5), (.O6, .O6)], [7537, 7538, 7548, 7579, 7580]⟩,
@@ -309,7 +311,9 @@ def insts : List Inst := [
    [(.O6, .O)], [7762, 7831]⟩,
   ⟨⟨"SLICE_X0Y58.DLUT", .lut6_2, 0xFFAAFFAAFFAAFFAA, false, [(.I0, (.net 322)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 205)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 206)), (.O6, (.net 207))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_93.many.stage[0].u.uack.chain.g[3].u", (.lut 2), 0xE, false, [(.I0, (.net 7832)), (.I1, (.net 7762)), (.O, (.net 7833))], []⟩,
-   [(.O6, .O)], [7762, 7832]⟩,
+   [(.O6, .O)], [7762, 7832]⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X0Y62.ALUT", .lut6_2, 0xAFAFA0A0ACACACAC, false, [(.I0, (.const false)), (.I1, (.net 208)), (.I2, (.net 217)), (.I3, (.const true)), (.I4, (.net 209)), (.I5, (.const true)), (.O5, (.net 208)), (.O6, (.net 209))], []⟩,
    some ⟨"urig.udut.ulink_n155__1.lat.pair[14].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.const false)), (.I1, (.net 3302)), (.I2, (.net 3309)), (.I3, (.const false)), (.I4, (.net 3310)), (.I5, (.const true)), (.O5, (.net 3309)), (.O6, (.net 3310))], []⟩,
    [(.O6, .O6), (.O5, .O5)], [3302, 3309, 3310]⟩,
@@ -459,7 +463,9 @@ def insts : List Inst := [
    [(.O6, .O6), (.O5, .O5)], [7762, 7767, 7768, 7769, 7770]⟩,
   ⟨⟨"SLICE_X0Y75.BLUT", .lut6_2, 0xCCCCFF00F0F0AAAA, false, [(.I0, (.net 315)), (.I1, (.net 11218)), (.I2, (.net 15796)), (.I3, (.net 316)), (.I4, (.net 322)), (.I5, (.const true)), (.O5, (.net 315)), (.O6, (.net 316))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_93.many.stage[0].u.lat.pair[16].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 7779)), (.I1, (.net 7762)), (.I2, (.net 7780)), (.I3, (.net 7781)), (.I4, (.net 7782)), (.I5, (.const true)), (.O5, (.net 7780)), (.O6, (.net 7782))], []⟩,
-   [(.O6, .O6), (.O5, .O5)], [7762, 7779, 7780, 7781, 7782]⟩,
+   [(.O6, .O6), (.O5, .O5)], [7762, 7779, 7780, 7781, 7782]⟩]
+
+def insts3 : List Inst := [
   ⟨⟨"SLICE_X0Y75.CLUT", .lut6_2, 0xF5F5A0A0EE44EE44, false, [(.I0, (.net 322)), (.I1, (.net 317)), (.I2, (.net 11220)), (.I3, (.net 5097)), (.I4, (.net 318)), (.I5, (.const true)), (.O5, (.net 317)), (.O6, (.net 318))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_93.many.stage[0].u.lat.pair[20].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 7787)), (.I1, (.net 7762)), (.I2, (.net 7788)), (.I3, (.net 7789)), (.I4, (.net 7790)), (.I5, (.const true)), (.O5, (.net 7788)), (.O6, (.net 7790))], []⟩,
    [(.O6, .O6), (.O5, .O5)], [7762, 7787, 7788, 7789, 7790]⟩,
@@ -609,7 +615,9 @@ def insts : List Inst := [
    [(.O6, .O)], [11942, 11949]⟩,
   ⟨⟨"SLICE_X0Y86.BLUT", .lut6_2, 0xAAAA0000AAAA0000, false, [(.I0, (.net 17835)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 410)), (.I5, (.const true)), (.O5, (.net 411)), (.O6, (.net 412))], []⟩,
    some ⟨"urig.udut.ushrsi3.udly.chain.g[18].u", (.lut 2), 0x8, false, [(.I0, (.net 11950)), (.I1, (.net 11942)), (.O, (.net 11951))], []⟩,
-   [(.O6, .O)], [11942, 11950]⟩,
+   [(.O6, .O)], [11942, 11950]⟩]
+
+def insts4 : List Inst := [
   ⟨⟨"SLICE_X0Y86.CLUT", .lut6_2, 0xCCCC0000CCCC0000, false, [(.I0, (.const true)), (.I1, (.net 412)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.net 17835)), (.I5, (.const true)), (.O5, (.net 413)), (.O6, (.net 414))], []⟩,
    some ⟨"urig.udut.ushrsi3.udly.chain.g[19].u", (.lut 2), 0x8, false, [(.I0, (.net 11951)), (.I1, (.net 11942)), (.O, (.net 11952))], []⟩,
    [(.O6, .O)], [11942, 11951]⟩,
@@ -761,8 +769,9 @@ def insts : List Inst := [
    some ⟨"urig.udut.ulink_n127__1.uack.chain.g[2].u", (.lut 2), 0xE, false, [(.I0, (.net 2755)), (.I1, (.net 2689)), (.O, (.net 2756))], []⟩,
    [(.O6, .O)], [2689, 2755]⟩]
 
+def insts : List Inst := insts0 ++ insts1 ++ insts2 ++ insts3 ++ insts4
+
+/-- Negative control: the mutated chunk FAILS the check. -/
 theorem caught : checkAll rho insts = false := by decide +kernel
-
-
 
 end Formal.Net.FasmDesign.GcdD.MutInit

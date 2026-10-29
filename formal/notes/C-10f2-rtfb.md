@@ -25,3 +25,8 @@ Audit row (P4, on 1149aa1): RtFbGcd "0 failures in every one-corner model" is OV
   10d's fixture. RTFB_NO_HOP reproduces C-10f's counts exactly on all 8 seeds (and rt_all.py).
   With the hop (hull): slowE fail 3,2,7,1,5,3,2,8 (C-10f: 12,5,11,5,4,4,7,10). Lean data
   regenerated (RtFbM64S1..8, now ~900 lines each). gcd routes started (seed 4 first).
+- 08:50 gcd_hw routes d,2,3,4 re-done: FASM sha256 IDENTICAL to C-10f's (b73e1ba0, 1ee50d56,
+  855635c4, b56d32b1), fasm_audit PASS, build_hw PASS. With NEXTPNR_FREQ=100 the FASM is
+  byte-identical too (only SDF line order differs). Seed 4: RTFB_NO_HOP reproduces C-10f exactly
+  (uenv1 fast +4, slow +124, fastE +114, slowE +234); WITH the hop uenv1 fast **-16**, slow +51,
+  fastE +94, slowE +161 -> 1 failure in the `fast` variant. Concrete run in build/gcd/uenv1_s4_fast.txt.

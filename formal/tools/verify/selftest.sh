@@ -26,7 +26,7 @@ expect collatz   $P 'token search: PASS'                      -- collatz $Q
 expect xorshift  2  'token search: PASS'                      -- xorshift $Q
 # negative control 1: gcd with subi1's operands swapped (0 - diff -> diff - 0)
 python3 "$HERE/mutate.py" "$FIX/gcd/comp/handshake_transformed.mlir" "$OUT/gcd_subi1.mlir" --swap subi1 2>/dev/null
-expect neg-gcd-subi1 1 'COUNTEREXAMPLE  input'                -- gcd $Q --mlir "$OUT/gcd_subi1.mlir"
+expect neg-gcd-subi1 1 'COUNTEREXAMPLE  input'                -- gcd $Q --mlir "$OUT/gcd_subi1.mlir" --vecs "35,14 12,18 48,180"
 # negative control 2: ipow against a wrong C reference
 expect neg-ipow-wrongC 1 'COUNTEREXAMPLE  input'              -- ipow $Q --c "$HERE/test/ipow_wrong.c" --no-cap
 # negative control 3: ipow with the shift amount constant2 (e >> 1) changed to 2
@@ -37,7 +37,7 @@ expect neg-timing 1 'COUNTEREXAMPLE ROW  toy-fail'            -- ipow --no-lean 
 # equivalent mutant (subi0 swapped: |b-a| = |a-b|): no counterexample may be reported
 python3 "$HERE/mutate.py" "$FIX/gcd/comp/handshake_transformed.mlir" "$OUT/gcd_subi0.mlir" --swap subi0 2>/dev/null
 # (exit 2 = not proved is the honest outcome: the hand proof is syntactic and need not survive)
-expect equiv-gcd-subi0 X 'token search: PASS'                 -- gcd $Q --mlir "$OUT/gcd_subi0.mlir" --no-cap
+expect equiv-gcd-subi0 X 'token search: PASS'                 -- gcd $Q --mlir "$OUT/gcd_subi0.mlir" --no-cap --vecs "12,18 35,14 48,180"
 # the reduction is exact for terminal stores: reduced and full search agree (ipow, small vectors)
 for m in "" "--no-por"; do
   python3 "$HERE/tokensearch.py" "$FIX/ipow/comp/handshake_transformed.mlir" --c "$ROOT/kernels/ipow/ipow.c" \

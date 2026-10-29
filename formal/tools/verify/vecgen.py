@@ -3,8 +3,9 @@
 
     python3 vecgen.py KERNEL MLIR OUTDIR --c C_FILE --vecs "a,b a,b ..."
 
-For each vector v with compiled-C result r (cref.py), writes into OUTDIR/<K>Vec.lean
-(the freshly imported graph + one theorem per vector) and checks with one Lean process:
+For each vector v with compiled-C result r (cref.py), writes into OUTDIR/<K>Vec<i>.lean
+(the freshly imported graph + one theorem per vector; one file and one sequential Lean
+process per vector) and checks:
 
   theorem vec<i> :
       (∃ n, Run (step (graph rules)) (ofL I) n (ofL F)) ∧
@@ -54,6 +55,9 @@ def main():
     ap.add_argument("--c", required=True)
     ap.add_argument("--vecs", required=True)
     ap.add_argument("--timeout", type=int, default=3600)
+    ap.add_argument("--chain", action="store_true",
+                    help="certify the witness with C-8i's chainOK (every intermediate store listed); "
+                         "default: the kernel evaluates execL directly (smaller file)")
     ap.add_argument("--max-steps", type=int, default=600,
                     help="no theorem for a vector whose witness schedule is longer (Lean cost); not a failure")
     a = ap.parse_args()
@@ -67,14 +71,16 @@ def main():
     graph = TS.mlir2lean.lean_graph(g, argparse.Namespace(ns=ns, label=a.kernel, short=a.kernel))
     graph = re.sub(r"^theorem (ins_ok|outs_ok|spine_ok|bounded_ok|spine_nodup) .*$", "", graph, flags=re.M)
     # (the five well-formedness theorems are re-stated below so that each is checked once)
-    out = [graph.replace(f"end {ns}\n", ""),
-           "theorem spine_nodup : spine.Nodup := by decide +kernel",
-           "theorem ins_ok : checkIns rules = true := by decide +kernel",
-           "theorem outs_ok : checkOuts spine rules = true := by decide +kernel",
-           "theorem spine_ok : rules.all (Rule.okP spine) = true := by decide +kernel",
-           "theorem bounded_ok : bounded N rules = true := by decide +kernel", "",
-           "open Formal.Net.Kahn", ""]
-    names, skipped, long_ = [], [], []
+    head = [graph.replace(f"end {ns}\n", ""),
+            "theorem spine_nodup : spine.Nodup := by decide +kernel",
+            "theorem ins_ok : checkIns rules = true := by decide +kernel",
+            "theorem outs_ok : checkOuts spine rules = true := by decide +kernel",
+            "theorem spine_ok : rules.all (Rule.okP spine) = true := by decide +kernel",
+            "theorem bounded_ok : bounded N rules = true := by decide +kernel", "",
+            "open Formal.Net.Kahn", ""]
+    # one file and one (sequential, slot.sh) Lean process per vector: a gcd witness of a few
+    # hundred firings takes ~3 GB in the kernel, and several in one file were OOM-killed
+    files, skipped, long_ = [], [], []
     for i, (v, r) in enumerate(zip(vecs, crefs)):
         R = S.run(v, r)
         tag = ",".join(map(str, v))
@@ -89,54 +95,62 @@ def main():
         sched = [i_ for (_, i_, _, _) in path]
         trace = [t for (_, _, _, t) in path]
         s0 = S.initial(v)
-        out += [f"/-- vector ({tag}): the compiled C returns {r}. -/",
+        out = head + [
+                f"/-- vector ({tag}): the compiled C returns {r}. -/",
                 f"def I{i} : List (List Nat) := {sp(g.N, s0)}",
                 f"def F{i} : List (List Nat) := {sp(g.N, want)}",
                 f"def sched{i} : List Nat := {sched}",
-                f"def trace{i} : List (List (List Nat)) := [" +
-                ",\n  ".join(sp(g.N, t) for t in trace) + "]",
+                *([f"def trace{i} : List (List (List Nat)) := [" +
+                   ",\n  ".join(sp(g.N, t) for t in trace) + "]"] if a.chain else []),
                 f"theorem vec{i} :",
                 f"    (∃ n, Run (step (graph rules)) (ofL I{i}) n (ofL F{i})) ∧",
                 f"    (∀ m t, Run (step (graph rules)) (ofL I{i}) m t → Terminal (step (graph rules)) t →",
                 f"      t = ofL F{i}) := by",
                 f"  have hrun := execL_run bounded_ok sched{i} (by decide +kernel : I{i}.length = N)",
-                f"    (execL_of_chainOK (ms := trace{i}) (l' := F{i}) (by decide +kernel))",
+                (f"    (execL_of_chainOK (ms := trace{i}) (l' := F{i}) (by decide +kernel))" if a.chain else
+                 f"    (by decide +kernel : execL natVI rules I{i} sched{i} = some F{i})"),
                 f"  have hT := terminal_of_dead rules (ofL F{i})",
                 f"    (by decide +kernel : rules.all (Rule.dead (ofL F{i})) = true)",
                 f"  have hinv : Inv spine (ofL I{i}) := by",
                 f"    show cnt spine (ofL I{i}) ≤ 1; decide +kernel",
                 f"  exact ⟨⟨_, hrun⟩, fun m t ht hTt =>",
-                f"    (determinate spine rules spine_nodup ins_ok outs_ok spine_ok hinv hrun hT ht hTt).1⟩", ""]
-        names.append((i, tag, r))
-    out.append(f"end {ns}")
-    out += [f"#print axioms {ns}.vec{i}" for i, _, _ in names]
-    f = os.path.join(a.outdir, f"{K}Vec.lean")
-    open(f, "w").write("\n".join(out) + "\n")
-    print(f"vec: wrote {f} ({len(names)} vector theorems; no theorem (search did not end correctly) for "
-          f"{len(skipped)}: {'; '.join(skipped) or '-'}; not attempted (too long) for {len(long_)}: {'; '.join(long_) or '-'})")
-    if not names:
+                f"    (determinate spine rules spine_nodup ins_ok outs_ok spine_ok hinv hrun hT ht hTt).1⟩", "",
+                f"end {ns}", f"#print axioms {ns}.vec{i}"]
+        f = os.path.join(a.outdir, f"{K}Vec{i}.lean")
+        open(f, "w").write("\n".join(out) + "\n")
+        files.append((i, tag, r, f, len(path)))
+    print(f"vec: wrote {len(files)} file(s) {os.path.join(a.outdir, K + 'Vec<i>.lean')}; no theorem (search did not "
+          f"end correctly) for {len(skipped)}: {'; '.join(skipped) or '-'}; not attempted (too long) for "
+          f"{len(long_)}: {'; '.join(long_) or '-'}")
+    if not files:
         print("VEC FAIL: no vector has a correct terminal store")
         return 1
-    try:
-        r = subprocess.run([os.path.join(ROOT, "formal", "slot.sh"), "lake", "env", "lean", os.path.abspath(f)],
-                           capture_output=True, text=True, timeout=a.timeout)
-    except subprocess.TimeoutExpired:
-        print("VEC FAIL: timeout")
+    failed, axs = [], set()
+    for i, tag, cr, f, n in files:
+        try:
+            r = subprocess.run([os.path.join(ROOT, "formal", "slot.sh"), "lake", "env", "lean", os.path.abspath(f)],
+                               capture_output=True, text=True, timeout=a.timeout)
+            log, rc = r.stdout + r.stderr, r.returncode
+        except subprocess.TimeoutExpired:
+            log, rc = "timeout", -1
+        open(f + ".log", "w").write(log)
+        errs = [l for l in log.split("\n") if ": error" in l]
+        m = re.search(r"'([^']+)' depends on axioms: \[([^\]]*)\]", log)
+        ax = {y.strip() for y in m.group(2).split(",")} if m else None
+        if rc != 0 or errs or "sorry" in log or ax is None or not ax <= AXIOMS_OK:
+            failed.append(tag)
+            print(f"  {ns}.vec{i}: input ({tag}) FAILED to check: exit {rc}, {len(errs)} error(s), axioms {ax}")
+            for l in (errs or log.strip().split("\n"))[:3]:
+                print("     ", l[:300])
+            continue
+        axs |= ax
+        print(f"  {ns}.vec{i}: input ({tag}) -> every complete run ends with out = [{cr % (1 << 32)}] "
+              f"(C: {cr}); witness {n} firings")
+    if failed:
+        print(f"VEC FAIL: {len(failed)} vector theorem(s) did not check")
         return 1
-    log = r.stdout + r.stderr
-    open(f + ".log", "w").write(log)
-    errs = [l for l in log.split("\n") if ": error" in l]
-    axl = re.findall(r"'([^']+)' depends on axioms: \[([^\]]*)\]", log)
-    badax = [n for n, x in axl if not {y.strip() for y in x.split(",")} <= AXIOMS_OK]
-    if r.returncode != 0 or errs or "sorry" in log or len(axl) != len(names) or badax:
-        print(f"VEC FAIL: exit {r.returncode}, {len(errs)} error(s), {len(axl)}/{len(names)} axiom lines, bad {badax}")
-        for l in (errs or log.strip().split("\n"))[:5]:
-            print("   ", l[:300])
-        return 1
-    for i, tag, cr in names:
-        print(f"  {ns}.vec{i}: input ({tag}) -> every complete run ends with out = [{cr % (1 << 32)}] (C: {cr})")
-    print(f"VEC PASS {len(names)}/{len(vecs) - len(long_)} (axioms {sorted({y.strip() for _, x in axl for y in x.split(',')})})"
-          + (" -- some vectors skipped" if skipped else ""))
+    print(f"VEC PASS {len(files)}/{len(vecs) - len(long_)} (axioms {sorted(axs)})"
+          + (" -- some vectors have no theorem (counterexample in stage 2b)" if skipped else ""))
     return 0 if not skipped else 1
 
 

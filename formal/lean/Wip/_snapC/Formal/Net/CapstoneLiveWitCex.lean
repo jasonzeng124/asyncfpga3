@@ -29,9 +29,9 @@ theorem x_step : ∀ p : Fin NO, p ≠ prodOf start → opStep cdX p = true := b
   have := p.isLt
   by_cases h1 : p.val < 180
   · exact stepR_get xstepA p (by omega) h1 hp
-  · exact stepR_get xstepB p (by omega) (by simpa using this) hp
+  · exact stepR_get xstepB p (by omega) p.isLt hp
 
-theorem start_op' : opAt (prodOf start) = .src 2 2 0 := by decide +kernel
+theorem start_op' : opAt (prodOf start) = .src 2 2 0 := rfl
 
 theorem x_bnd : ∀ p, p ≠ prodOf start → ∀ g ∈ gatesK p (opAt p), BndG 1 (gsAt chX (itrW cdX)) g :=
   bnd_all x_step

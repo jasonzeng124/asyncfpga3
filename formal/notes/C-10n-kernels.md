@@ -257,3 +257,58 @@ logs.
   because the lead committed C-10m's WIP between kernel runs and `run.sh` snapshotted "HEAD".
   It was discarded and rerun pinned to `7ad3b5e`, and every pass now records its front-end rev
   and hash in `results/<k>/toolchain.txt`.
+
+## 10m correction (2026-10-29, probe C-10m)
+
+The numbers above stay as they were; the rows they describe are **superseded** by the
+corrected front end below. Full tables: `formal/tools/kcheck/results/<k>_m10/` and
+`formal/notes/C-10m-outmux.md`.
+
+**What changed in tcheck's front end** (C-10m, `formal/tools/tcheck/`):
+1. `rules2.py` rule A drops the constant tie-off starts (`$PACKER_GND_DRV`/`$PACKER_VCC_DRV`)
+   before the common/bundled decision. Reason: a constant never switches, so no run launches a
+   transition there; under 10a's `Run` semantics a node with no changing input never changes,
+   so this is the circuit's behaviour, not a weakening (the false path this note found).
+   `TCHECK_KEEP_CONST=1` restores the old start set for before/after tables only.
+2. `extract.Prjx.split` (Jx): two sinks that leave one LUT through different site pins (A..D
+   direct and AMUX..DMUX) share nothing; each side carries its own OUTMUX hop. This is the
+   `24e47ca` work-in-progress pass above, now final.
+3. The driver-side OUTMUX hop itself was already present at `7ad3b5e` (C-10h); C-10m checked
+   it arc by arc against the auditor's independent model (C-10m-outmux.md section 1).
+
+**Routes:** all 12 rebuilt with `route.sh` (nextpnr sha256 `9c732bc6303458df`, toolchain.sh
+9/9 ok) are byte-identical (SDF sha) to the routes above, so every row compares one to one.
+Run: `SKIP_ROUTE=1 KCHECK_FRONT_REV=worktree KCHECK_TAG=m10 KCHECK_JOBS=1 ./run.sh <k> 1 2 3 4`
+(front-end hash `73a44366152685fe`, tcheck snapshot `33c9d370d363b469`, toy/cert self-tests ok).
+
+**Row changes, final front end against the `24e47ca` pass:** only rule-A rows of the cells whose
+boundary held a tie-off start (collatz `uselect0`; xorshift `ucmpi0`; ipow `ucmpi2`, `umuli1`,
+`uselect0`, `ushrsi0`); every other row (E/E0, F/Fc, H/Hc, I, J0/Jx/Jp) is identical. Against
+`7ad3b5e` (the main tables above) the Jx moves of the `24e47ca` pass are added (4/4/5 of 16).
+
+| kernel | A agree (before -> after) | A verdict flips (tcheck) | disagreement lines (before -> after) |
+|---|---|---|---|
+| collatz | 22/40 -> 25/40 | uselect0 FAIL->PASS on s1, s3, s4 | 42 -> 40 (Jx flip +1, uselect0 -3) |
+| xorshift | 22/44 -> 26/44 | ucmpi0 FAIL->PASS on all 4 seeds | 105 -> 101 |
+| ipow | 25/44 -> 33/44 | ucmpi2, ushrsi0 FAIL->PASS on all 4 seeds | 92 -> 84 |
+
+(Disagreement lines count one line per rule flavour, as disagree.tsv; E and E0 both appear.)
+
+- **"frontend-gap(const)" is gone** (18 lines: ipow 15, xorshift 3). Those rows now either
+  agree (PASS/PASS) or, on ipow `umuli1`/`uselect0`, still fail in tcheck for a different,
+  stated reason: their instances are 99.7% DSP48E1 fallback arcs (no prjxray DSP model), now
+  classed `frontend-gap(fallback)` (7 lines).
+- **ipow s3 `umuli1`** (the one project-rule violation, -59 ps guarded): tcheck's `sdf` margin
+  without the tie-off start is +6973 ps (it was +3484, equal to tighten's raw, while the
+  tie-off was kept). The project FAIL and tcheck FAIL still "agree" in the table, but for
+  different reasons: the project's FAIL is the false path; tcheck's is the DSP fallback in its
+  prjxray variants (fast -5279). **No prjxray verdict exists for this row.**
+- **summarize.py** now classes a project rule-A FAIL whose peak is a tie-off route and that
+  tcheck passes as `project-false-path(const)` (none occur on these routes: the only such
+  project FAIL, ipow s3 umuli1, still fails in tcheck for the DSP reason), and applies
+  `frontend-gap(const)` only to front ends that still keep the tie-off.
+- Unchanged conclusions: every disagreement is still "project PASS, tcheck FAIL"; corner-fail
+  (fails at a fixed point with no fallback): 0 lines; band-only remains the dominant class
+  (collatz 39, xorshift 93, ipow 75 lines); spread-only: xorshift 8, ipow 2.
+- **The project's rule A still contains the false path** (tighten.cell_boundary is not ours to
+  edit); this note's fix recommendation for `cells/verify/tighten.py` stands.

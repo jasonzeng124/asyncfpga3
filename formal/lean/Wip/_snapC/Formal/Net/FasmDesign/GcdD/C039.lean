@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.C039
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"SLICE_X11Y55.BLUT", .lut6_2, 0xCCCCCCCCCCCCCCCC, false, [(.I0, (.const true)), (.I1, (.const false)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 1306)), (.O6, (.net 1307))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -159,7 +159,9 @@ def insts : List Inst := [
    [(.O6, .O6)], []⟩,
   ⟨⟨"SLICE_X13Y46.CLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 2171)), (.O6, (.net 2172))], []⟩,
    none,
-   [(.O6, .O6)], []⟩,
+   [(.O6, .O6)], []⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X13Y46.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 2173)), (.O6, (.net 2174))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -309,7 +311,9 @@ def insts : List Inst := [
    [(.O6, .O6)], []⟩,
   ⟨⟨"SLICE_X15Y53.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 3019)), (.O6, (.net 3020))], []⟩,
    none,
-   [(.O6, .O6)], []⟩,
+   [(.O6, .O6)], []⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X15Y57.BLUT", .lut6_2, 0xCCCCCCCCCCCCCCCC, false, [(.I0, (.const true)), (.I1, (.const false)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 3048)), (.O6, (.net 3049))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -459,7 +463,9 @@ def insts : List Inst := [
    [(.O6, .O6)], []⟩,
   ⟨⟨"SLICE_X18Y48.CLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 4256)), (.O6, (.net 4257))], []⟩,
    none,
-   [(.O6, .O6)], []⟩,
+   [(.O6, .O6)], []⟩]
+
+def insts3 : List Inst := [
   ⟨⟨"SLICE_X18Y48.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 4258)), (.O6, (.net 4259))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -609,7 +615,9 @@ def insts : List Inst := [
    [(.O6, .O6)], []⟩,
   ⟨⟨"SLICE_X20Y55.BLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const false)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 5396)), (.O6, (.net 5397))], []⟩,
    none,
-   [(.O6, .O6)], []⟩,
+   [(.O6, .O6)], []⟩]
+
+def insts4 : List Inst := [
   ⟨⟨"SLICE_X20Y55.DLUT", .lut6_2, 0xAAAAAAAAAAAAAAAA, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 5400)), (.O6, (.net 5401))], []⟩,
    none,
    [(.O6, .O6)], []⟩,
@@ -761,7 +769,21 @@ def insts : List Inst := [
    none,
    [(.O5, .O5), (.O6, .O6)], [190]⟩]
 
-theorem ok : checkAll rho insts = true := by decide +kernel
+def insts : List Inst := insts0 ++ insts1 ++ insts2 ++ insts3 ++ insts4
+
+theorem ok0 : checkAll rho insts0 = true := by decide +kernel
+
+theorem ok1 : checkAll rho insts1 = true := by decide +kernel
+
+theorem ok2 : checkAll rho insts2 = true := by decide +kernel
+
+theorem ok3 : checkAll rho insts3 = true := by decide +kernel
+
+theorem ok4 : checkAll rho insts4 = true := by decide +kernel
+
+theorem ok : checkAll rho insts = true := by
+  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]
+  exact ⟨ok0, ok1, ok2, ok3, ok4⟩
 
 /-- H_CELLS, INIT half: (instance index, Formal.Gen target, cell name there). -/
 def binds : List (Nat × Netlist × String) := []

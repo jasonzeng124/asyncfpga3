@@ -9,7 +9,7 @@ set_option maxRecDepth 20000
 namespace Formal.Net.FasmDesign.GcdD.C036
 open Formal.Gen Formal.Net.FasmDesign
 
-def insts : List Inst := [
+def insts0 : List Inst := [
   ⟨⟨"SLICE_X7Y78.ALUT", .lut6_2, 0x7FFFFFFF, false, [(.I0, (.net 18893)), (.I1, (.net 20012)), (.I2, (.net 18381)), (.I3, (.net 20016)), (.I4, (.net 5091)), (.I5, (.net 17398)), (.O5, (.net 18890)), (.O6, (.net 18891))], []⟩,
    some ⟨"urig.udut.uori3.$abc$10669$auto$blifparse.cc:557:parse_blif$10694", (.lut 6), 0x7FFFFFFF, false, [(.I0, (.net 9363)), (.I1, (.net 9360)), (.I2, (.net 9361)), (.I3, (.net 9362)), (.I4, (.net 9364)), (.I5, (.net 9365)), (.O, (.net 9366))], []⟩,
    [(.O6, .O)], [9360, 9361, 9362, 9363, 9364, 9365]⟩,
@@ -147,7 +147,9 @@ def insts : List Inst := [
    [(.O6, .O)], [5708, 11632, 11636]⟩,
   ⟨⟨"SLICE_X7Y90.ALUT", .lut6_2, 0xFF00AAAACCCCF0F0, false, [(.I0, (.net 18983)), (.I1, (.net 19044)), (.I2, (.net 18982)), (.I3, (.net 18583)), (.I4, (.net 18531)), (.I5, (.const true)), (.O5, (.net 18982)), (.O6, (.net 18983))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_57.many.stage[0].u.lat.pair[22].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 6875)), (.I1, (.net 6846)), (.I2, (.net 6876)), (.I3, (.net 6877)), (.I4, (.net 6878)), (.I5, (.const true)), (.O5, (.net 6876)), (.O6, (.net 6878))], []⟩,
-   [(.O6, .O6), (.O5, .O5)], [6846, 6875, 6876, 6877, 6878]⟩,
+   [(.O6, .O6), (.O5, .O5)], [6846, 6875, 6876, 6877, 6878]⟩]
+
+def insts1 : List Inst := [
   ⟨⟨"SLICE_X7Y90.BLUT", .lut6_2, 0xF0F0FF00CCCCAAAA, false, [(.I0, (.net 18984)), (.I1, (.net 18508)), (.I2, (.net 19647)), (.I3, (.net 18985)), (.I4, (.net 18531)), (.I5, (.const true)), (.O5, (.net 18984)), (.O6, (.net 18985))], []⟩,
    some ⟨"urig.udut.ulink_n_falseResult_57.many.stage[0].u.lat.pair[24].u", (.lut6_2), 0xFF33CC00B8B8B8B8, false, [(.I0, (.net 6879)), (.I1, (.net 6846)), (.I2, (.net 6880)), (.I3, (.net 6881)), (.I4, (.net 6882)), (.I5, (.const true)), (.O5, (.net 6880)), (.O6, (.net 6882))], []⟩,
    [(.O6, .O6), (.O5, .O5)], [6846, 6879, 6880, 6881, 6882]⟩,
@@ -297,7 +299,9 @@ def insts : List Inst := [
    [(.O6, .O)], [9506, 9548]⟩,
   ⟨⟨"SLICE_X8Y14.ALUT", .lut6_2, 0xAA00AA00AA00AA00, false, [(.I0, (.net 19737)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 4972)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 19077)), (.O6, (.net 19078))], []⟩,
    some ⟨"urig.udut.uori4.udly.chain.g[31].u", (.lut 2), 0x8, false, [(.I0, (.net 9529)), (.I1, (.net 9506)), (.O, (.net 9530))], []⟩,
-   [(.O6, .O)], [9506, 9529]⟩,
+   [(.O6, .O)], [9506, 9529]⟩]
+
+def insts2 : List Inst := [
   ⟨⟨"SLICE_X8Y14.BLUT", .lut6_2, 0xFF000000FF000000, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 4972)), (.I4, (.net 19078)), (.I5, (.const true)), (.O5, (.net 19079)), (.O6, (.net 19080))], []⟩,
    some ⟨"urig.udut.uori4.udly.chain.g[32].u", (.lut 2), 0x8, false, [(.I0, (.net 9530)), (.I1, (.net 9506)), (.O, (.net 9531))], []⟩,
    [(.O6, .O)], [9506, 9530]⟩,
@@ -447,7 +451,9 @@ def insts : List Inst := [
    [(.O6, .O6), (.O5, .O5)], [3005, 3006, 3251, 7716, 7717]⟩,
   ⟨⟨"SLICE_X8Y31.BLUT", .lut6_2, 0xAACCAACCAACCAACC, false, [(.I0, (.net 18070)), (.I1, (.net 18012)), (.I2, (.const true)), (.I3, (.net 17989)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 19177)), (.O6, (.net 19178))], []⟩,
    some ⟨"urig.udut.uselect0.$abc$10725$auto$blifparse.cc:557:parse_blif$10772", (.lut 3), 0xCA, false, [(.I0, (.net 2579)), (.I1, (.net 2508)), (.I2, (.net 9610)), (.O, (.net 7235))], []⟩,
-   [(.O6, .O)], [2508, 2579, 9610]⟩,
+   [(.O6, .O)], [2508, 2579, 9610]⟩]
+
+def insts3 : List Inst := [
   ⟨⟨"SLICE_X8Y31.CLUT", .lut6_2, 0xFFF000F0FFF000F0, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.net 18002)), (.I3, (.net 17989)), (.I4, (.net 18702)), (.I5, (.const true)), (.O5, (.net 19179)), (.O6, (.net 19180))], []⟩,
    some ⟨"urig.udut.uselect0.$abc$10725$auto$blifparse.cc:557:parse_blif$10750", (.lut 3), 0xCA, false, [(.I0, (.net 2591)), (.I1, (.net 2520)), (.I2, (.net 9610)), (.O, (.net 7247))], []⟩,
    [(.O6, .O)], [2520, 2591, 9610]⟩,
@@ -570,7 +576,9 @@ def insts : List Inst := [
    [(.O6, .O6), (.O5, .O5)], [2771, 7004, 7005, 7208, 7210]⟩,
   ⟨⟨"SLICE_X8Y45.ALUT", .lut6_2, 0xFF0FF000CACACACA, false, [(.I0, (.net 1206)), (.I1, (.net 19832)), (.I2, (.net 19208)), (.I3, (.net 19833)), (.I4, (.net 1207)), (.I5, (.const true)), (.O5, (.net 19259)), (.O6, (.net 19260))], []⟩,
    some ⟨"urig.udut.umux13.udat.pair[26].u", (.lut6_2), 0xFFAA5500E4E4E4E4, false, [(.I0, (.net 2771)), (.I1, (.net 7020)), (.I2, (.net 7240)), (.I3, (.net 7021)), (.I4, (.net 7242)), (.I5, (.const true)), (.O5, (.net 2726)), (.O6, (.net 2728))], []⟩,
-   [(.O6, .O6), (.O5, .O5)], [2771, 7020, 7021, 7240, 7242]⟩,
+   [(.O6, .O6), (.O5, .O5)], [2771, 7020, 7021, 7240, 7242]⟩]
+
+def insts4 : List Inst := [
   ⟨⟨"SLICE_X8Y45.BLUT", .lut6_2, 0xE4E4E4E4FFAA5500, false, [(.I0, (.net 19208)), (.I1, (.net 657)), (.I2, (.net 19236)), (.I3, (.net 656)), (.I4, (.net 19235)), (.I5, (.const true)), (.O5, (.net 19261)), (.O6, (.net 19262))], []⟩,
    some ⟨"urig.udut.umux13.udat.pair[6].u", (.lut6_2), 0xFFAA5500E4E4E4E4, false, [(.I0, (.net 2771)), (.I1, (.net 7030)), (.I2, (.net 7260)), (.I3, (.net 7031)), (.I4, (.net 7262)), (.I5, (.const true)), (.O5, (.net 2746)), (.O6, (.net 2748))], []⟩,
    [(.O6, .O6), (.O5, .O5)], [2771, 7030, 7031, 7260, 7262]⟩,
@@ -720,7 +728,9 @@ def insts : List Inst := [
    [(.O6, .O)], [1794, 1841]⟩,
   ⟨⟨"SLICE_X8Y68.DLUT", .lut6_2, 0x8888888888888888, false, [(.I0, (.net 19358)), (.I1, (.net 2594)), (.I2, (.const true)), (.I3, (.const true)), (.I4, (.const true)), (.I5, (.const true)), (.O5, (.net 19359)), (.O6, (.net 19360))], []⟩,
    some ⟨"urig.udut.ucmpi8.udly.chain.g[7].u", (.lut 2), 0x8, false, [(.I0, (.net 1842)), (.I1, (.net 1794)), (.O, (.net 1843))], []⟩,
-   [(.O6, .O)], [1794, 1842]⟩,
+   [(.O6, .O)], [1794, 1842]⟩]
+
+def insts5 : List Inst := [
   ⟨⟨"SLICE_X8Y69.ALUT", .lut6_2, 0xFF000000FF000000, false, [(.I0, (.const true)), (.I1, (.const true)), (.I2, (.const true)), (.I3, (.net 19927)), (.I4, (.net 2594)), (.I5, (.const true)), (.O5, (.net 19361)), (.O6, (.net 19362))], []⟩,
    some ⟨"urig.udut.ucmpi8.udly.chain.g[17].u", (.lut 2), 0x8, false, [(.I0, (.net 1824)), (.I1, (.net 1794)), (.O, (.net 1825))], []⟩,
    [(.O6, .O)], [1794, 1824]⟩,
@@ -761,7 +771,23 @@ def insts : List Inst := [
    some ⟨"urig.udut.uselect1.$abc$10783$auto$blifparse.cc:557:parse_blif$10885", (.lut 1), 0x1, false, [(.I0, (.net 9708)), (.O, (.net 9807))], []⟩,
    [(.O6, .O)], [9708]⟩]
 
-theorem ok : checkAll rho insts = true := by decide +kernel
+def insts : List Inst := insts0 ++ insts1 ++ insts2 ++ insts3 ++ insts4 ++ insts5
+
+theorem ok0 : checkAll rho insts0 = true := by decide +kernel
+
+theorem ok1 : checkAll rho insts1 = true := by decide +kernel
+
+theorem ok2 : checkAll rho insts2 = true := by decide +kernel
+
+theorem ok3 : checkAll rho insts3 = true := by decide +kernel
+
+theorem ok4 : checkAll rho insts4 = true := by decide +kernel
+
+theorem ok5 : checkAll rho insts5 = true := by decide +kernel
+
+theorem ok : checkAll rho insts = true := by
+  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]
+  exact ⟨ok0, ok1, ok2, ok3, ok4, ok5⟩
 
 /-- H_CELLS, INIT half: (instance index, Formal.Gen target, cell name there). -/
 def binds : List (Nat × Netlist × String) := [(15, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (16, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (19, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (20, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (21, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (22, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (23, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (24, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (25, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (26, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (45, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (46, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (47, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (48, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (49, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (50, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (51, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (52, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (79, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[0].u"), (80, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (81, Formal.Gen.Cells.bd_c2n, "u"), (82, Formal.Gen.Cells.bd_latch_W1, "odd.u"), (83, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (84, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (85, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (86, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (87, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (88, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (89, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (90, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (91, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (92, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (93, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (94, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (95, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (96, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (97, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (98, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (99, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (100, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (101, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (102, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (103, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[0].u"), (104, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (105, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (106, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (107, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (108, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (109, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (110, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (111, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (112, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (113, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (114, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (115, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (116, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (117, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (118, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (119, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (120, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (121, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (122, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (123, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (124, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (125, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (126, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (127, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (128, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (129, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (130, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (131, Formal.Gen.Cells.bd_c2n, "u"), (132, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (133, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (134, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (135, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (140, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (144, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (147, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (148, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (149, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (150, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (151, Formal.Gen.Cells.bd_c2n, "u"), (152, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (153, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (154, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (155, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (159, Formal.Gen.Cells.bd_c2n, "u"), (160, Formal.Gen.Cells.bd_latch_W1, "odd.u"), (161, Formal.Gen.Cells.bd_mux_W2, "uj0"), (162, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (163, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (164, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (165, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (166, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (167, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (168, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (169, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (170, Formal.Gen.Cells.bd_c2n, "u"), (171, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (172, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (173, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (174, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (175, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (176, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (177, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (178, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (179, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (180, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (181, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (182, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (183, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (184, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (185, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (186, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (187, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (188, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (189, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (190, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (191, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (192, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (193, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (194, Formal.Gen.Cells.bd_datamux_W3, "pair[0].u"), (195, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (196, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (197, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (198, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (199, Formal.Gen.Cells.bd_c2n, "u"), (200, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (201, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (202, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (203, Formal.Gen.Cells.bd_latch_W2, "pair[0].u"), (204, Formal.Gen.Cells.bd_steer, "uack"), (205, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (206, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (207, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (208, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (209, Formal.Gen.Cells.bd_delay_N3_FF, "chain.g[0].u"), (210, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (211, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (212, Formal.Gen.Cells.bd_delay_N3_FR, "chain.g[1].u"), (213, Formal.Gen.Cells.bd_c2n, "u"), (214, Formal.Gen.Cells.bd_latch_W1, "odd.u"), (215, Formal.Gen.Cells.bd_mux_W2, "uj0"), (216, Formal.Gen.Cells.bd_mux_W2, "uj1"), (217, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (218, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (219, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (220, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (221, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (222, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (223, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (224, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (225, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (226, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (227, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (228, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (229, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (230, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (231, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (232, Formal.Gen.Cells.bd_delay_N3, "chain.g[0].u"), (233, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (234, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (235, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (236, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (237, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (238, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (239, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (240, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (241, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[0].u"), (242, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (243, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (244, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (245, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (246, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (247, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u"), (248, Formal.Gen.Cells.bd_delay_gated_N3, "chain.g[1].u")]

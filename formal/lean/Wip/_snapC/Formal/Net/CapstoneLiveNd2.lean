@@ -35,7 +35,7 @@ def StartRel (H : Nat) (c : Chan) : Prop :=
   ∀ t, Win H t (fun u => c.req u = true ∧ c.ack u = true) → Ev H t (fun u => c.req u = false)
 
 /-- Quiescent, with `start`'s release excitation included. -/
-def QuietR (x : GS × Bool) : Prop := QuietS x ∧ ¬ (x.1.rq start = true ∧ x.1.ak start = true)
+def QuietR (x : GS × Bool) : Prop := Live.Nd.QuietS x ∧ ¬ (x.1.rq start = true ∧ x.1.ak start = true)
 
 /-- H_NO_DEADLOCK'' for a run. -/
 def NoDeadlock2 (ch : Fin NC → Chan) (itr : Itr) : Prop :=
