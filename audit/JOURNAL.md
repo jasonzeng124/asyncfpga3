@@ -167,3 +167,9 @@ full stack in progress). Pass-8 research subagent launched on clean worktree ~/w
 ### progress 02:29
 Axiom audit of 6863284 done: 422 modules, 66779 constants, 0 bad, 1 no result (GLSPass, does not compile). Pass 7 on
 formal complete.
+
+### progress 02:33
+r8 in (research 73b08ca): CARRY4/LATX fid transport fix CONFIRMED (X items still open by design); DSP model function
+CONFIRMED but makes the DSP hard item unfalsifiable (x counted as MATCH) -> OVERSTATED; acceptance judge_full counts a
+crashed unpatched run as full 'reproduces the board' (I read acceptance.py:519-538) -> OVERSTATED; BQ#3 seed 3 SLOW_MAX
+reproduced with identical md5s and laps.
