@@ -973,3 +973,16 @@ ipow_safe_of_contractsT: C-8y's safety on timed contracts for any route assignme
 non-vacuous for every pinned bound assignment with lo >= 1 (all-quiet run) plus a
 switching bd_c2 witness. Open: c3/c4/C-tree/uj0-uj1 timed bridges, routed numbers
 (no ipow route exists), network-level environment (Bnet).
+
+### progress 08:44
+In: Bj7 cell_constraints.json (regeneration byte-identical here, validator 0
+errors; 5 negative controls). a0_fork_client1/2 carry the 16 exact link_arb
+thresholds (the row-18 validator check now allows "exact" only there, citing all 8
+exact_* iffs per client); the 12 gcd_hw arbiter rows carry D1 0.0802 (bare cell, not
+four-phase) / D2 0.2166 (held), D1 vs D2 open (H_SETTLED; probe Bbare), and the cons
+failures; rt1b's row hypothesis now H_SERVER_MIN, matching its inequality; four stale
+sentences removed; boundary_point on three +1 rows (refuted point is the <= form, 2
+ticks away); H_SPREAD_CORRELATED noted as the lit model itself; "+W under H_W_BOUND"
+PROVED on the 2 bd_steer rows only, 69 rows say UNPROVED; c_contract records H_ARB_EXCL
+not derivable (4 rows) and H_SEL_STABLE needed (2 rows). No label changed. Not yet
+audited: the other strict boundary rows (bd_mlink.qfb_first first).

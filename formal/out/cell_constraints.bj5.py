@@ -1063,6 +1063,255 @@ doc["produced_by"] = (doc["produced_by"].rstrip() +
     "B-kleene-pess.md (kleene_dependence) and B-gcd-arb-kappa-tight.md (rt1b bracketed, H_SPREAD_CORRELATED); the 'probe Bj6' section "
     "of cell_constraints.bj5.py.")
 
+# ================================================================== probe Bj7 (2026-10-29)
+# Third Bj pass of the day. Applies, from today's committed notes (and JOURNAL-B.md progress 12:10 / 12:50):
+#   B-arb-kappa-exact.md (OnNetlistArbKappaExact), B-gcd-arb-kappa-srv.md (OnGcdArbKappaSrv),
+#   B-self-audit4.md (SelfAuditB7: label / note fixes), B-contract-bridge.md (ContractBridge: H_ARB_EXCL),
+#   B-lutfb-bridge2.md (LutFbBridge2: H_SEL_STABLE, H_PWR_SRC).
+# Every name cited below is declared in the cited file (the validator greps each one).
+LOG.append("---- probe Bj7")
+KX, SRV, SA7, CB, FB2 = "OnNetlistArbKappaExact", "OnGcdArbKappaSrv", "SelfAuditB7", "ContractBridge", "LutFbBridge2"
+
+# ------------------------------------------------------------------ (1) exact link_arb A0-fork thresholds (Bkx18)
+KEX = {1: {("s1", "cons"): "0.2954922", ("s2", "cons"): "0.3356388", ("s3", "cons"): "0.3109273", ("s4", "cons"): "0.2080708",
+           ("s1", "lit"): "0.4784366", ("s2", "lit"): "0.5481793", ("s3", "lit"): "0.5379863", ("s4", "lit"): "0.4148922"},
+       2: {("s1", "cons"): "0.1806787", ("s2", "cons"): "94/325 = 0.2892308", ("s3", "cons"): "0.2440256", ("s4", "cons"): "0.2824745",
+           ("s1", "lit"): "0.4011245", ("s2", "lit"): "0.4963581", ("s3", "lit"): "0.4593934", ("s4", "lit"): "0.4917064"}}
+for k in (1, 2):
+    e = BY[f"bd_arbiter.a0_fork_client{k}"]
+    kap = e["corner"]["kappa"]
+    assert kap["results"][0].startswith("link_arb (4 routed seeds), A0 fork"), k
+    cases = [f"{s} {r} {KEX[k][(s, r)]}" for r in ("cons", "lit") for s in ("s1", "s2", "s3", "s4")]
+    rat = (" s2 cons is rational (94/325), attained at the fast corner: kappa >= 94/325 is unsafe with one fixed fast-corner "
+           "assignment; the other 7 are irrational (root of an explicit integer quadratic P_X, discriminant not a square), approached "
+           "only at an interior corner that moves with kappa and never attained, so safe <-> kappa < kappa_ex <-> kappa <= kappa_ex."
+           if k == 2 else
+           " All 8 are irrational (root of an explicit integer quadratic P_X, discriminant not a square), approached only at an interior "
+           "corner that moves with kappa and never attained, so safe <-> kappa < kappa_ex <-> kappa <= kappa_ex.")
+    aud = (" Audit row 18 CONFIRMED and answered: OnNetlistArbKappa's kappa* = 197/1103 (s1c2 cons) is only the real relaxation's bound; "
+           "at 200/1103 the auditor's own fast-corner assignment meets Scat and is not Safe (audit_s1c2_cons_200), and at 0.1807 every "
+           "fast-corner assignment is safe while the case is unsafe at an interior corner (interior_s1c2_cons)."
+           if k == 2 else " Audit row 18 answered (the s1c2 cons case is on bd_arbiter.a0_fork_client2).")
+    kap["results"][0] = (
+        f"link_arb (4 routed seeds), A0 fork, 7g's condition (no_early_ack_iff), client {k}, two endpoint readings (lit: FAST_MIN..SLOW_MAX "
+        "for every arc; cons: early arcs FAST_MIN..SLOW_MIN, late arc FAST_MAX..SLOW_MAX + Elmore). Bkx18 (B-arb-kappa-exact.md, "
+        "OnNetlistArbKappaExact): EXACT kappa threshold for each of this client's 8 seed x reading cases, in A's whole-ps CornerNat model "
+        "(rational kappa, one rational corner for the die, every arc delay a whole number of ps within 1 +- kappa of its nominal at that "
+        "corner, Scat; one fixed delay per arc per run), gate level on both sides (safe: Safe over every run; unsafe: a corner and an "
+        f"assignment meeting Scat on all ten arcs on which every run acks early): exact_s1c{k}_cons ... exact_s4c{k}_lit state "
+        "'(every corner, every assignment within kappa is Safe) <-> Below_X kappa', restated in A's and Bk1's types by Bridge.exact_*. "
+        f"kappa_ex (float root extraction; Lean carries P_X < 0 with a rational cut u, bracketed to 1e-10 by bracket_*): {'; '.join(cases)}."
+        + rat + " Safe kappas form an initial segment (safe_antitone: Scat bands grow with kappa). Each kappa_ex lies strictly inside "
+        "OnNetlistArbKappa's old gap [kappa*, kappa* + 6/(E+L)). Verdicts: at rule A's 1/11 all 16 cases safe (verdict_κA); at kappaE = "
+        "383/1927 15 of 16 safe, s1 client 2 cons unsafe (verdict_κE); s4 client 1 cons margin 0.2081 - 0.1988." + aud +
+        " NOT covered: delays varying tick to tick, the A0 rise, arbitration (exclusion), Kleene X / metastability, kappa's value "
+        "(unmeasured), the cons endpoints' provenance (Bt3's per-corner windows, not tied to a file).")
+    cl = f"c{k}"
+    refs = [L(KX, f"exact_s{s}{cl}_{r}", "exact", f"seed {s}, client {k}, {r}: all-corner, all-assignment safety iff Below (gate level)")
+            for r in ("cons", "lit") for s in (1, 2, 3, 4)]
+    refs += [L(KX, f"bracket_s{s}{cl}_{r}", "numbers") for r in ("cons", "lit") for s in (1, 2, 3, 4)]
+    refs += [L(KX, "safe_antitone", "lemma", "Scat bands grow with kappa: the safe kappas are an initial segment"),
+             L(KX, "not_safe1", "lemma"), L(KX, "not_safe2", "lemma"),
+             L(KX, "verdict_κA", "corner", "kappa = 1/11: all 16 cases safe"),
+             L(KX, "verdict_κE", "corner", "kappa = 383/1927: 15 of 16 safe")]
+    if k == 2:
+        refs += [L(KX, "audit_s1c2_cons_200", "counter_trace", "the auditor's assignment at 200/1103: Scat holds, not Safe"),
+                 L(KX, "interior_s1c2_cons", "counter_trace", "kappa = 0.1807: every fast-corner assignment safe, an interior corner unsafe")]
+    add_lean(e, refs)
+    kap["exact_source"] = (f"OnNetlistArbKappaExact.exact_s1{cl}_cons .. exact_s4{cl}_lit (Bkx18): the one place where a kappa threshold "
+                           "is called exact (audit row 18 answered); every other kappa result stays a bound / bracket")
+    LOG.append(f"{e['id']}: corner.kappa.results[0] -> exact thresholds (OnNetlistArbKappaExact, 8 cases)")
+cv["kappa"] = cv["kappa"].rstrip() + (
+    " Bj7 (Bkx18, OnNetlistArbKappaExact): the 16 link_arb A0-fork cases (bd_arbiter.a0_fork_client1/2, 4 seeds x 2 clients x lit/cons) "
+    "now have EXACT thresholds in the whole-ps CornerNat model, gate level on both sides (exact_*: safe iff Below_X kappa; corner.kappa."
+    "exact_source); the validator allows the word 'exact' in corner.kappa.results on exactly those two rows. gcd_hw thresholds stay "
+    "bracketed (Bkx19's rt1b, Bsrv's D1 / D2 to 1e-12) or within OnGcdArbKappa's gap: not exact.")
+
+# ------------------------------------------------------------------ (2) gcd_hw arbiters, server credited, gate level (Bsrv)
+SRV_TXT = ("Bsrv (B-gcd-arb-kappa-srv.md, OnGcdArbKappaSrv), lit reading (H_SPREAD_CORRELATED), whole fs, one delay per arc per run, "
+           "server credited (the A0 branch to ustate, ustate's O6 arc, the q prefix and the server's graph path srv are delays of one "
+           "corner-model realization; H_SERVER_GRAPH: the server answers no faster than srv). D1 = OnGcdArbKappa's 16 forms server-credited "
+           "on all 36 arbiters, including ArbPin's BARE cell (A0 held low, H_A0_LOW): gate-level safe for kappa <= 0.080163500491 "
+           "(design_gate_srv) and violated from kappa >= 0.080163500492 (design_srv_tight; binding seed 2 merge3.uarb1 h21, at the slow end, "
+           "1.3e-6 above its kappa*). Its gate counterexample is the bare cell; as a run of 7j's gate relations (h21_7j_bare) it needs "
+           "client 2 to withdraw an unacknowledged request: NOT a four-phase run. D2 = the 12 held-arbiter four-phase forms (7g forks, "
+           "RT2/RT2b with srv, RT1s/RT1bs): gate-level safe for kappa <= 0.216552148868 (design_gate_held), violated from 0.216552148869 "
+           "(design_held_tight; binding seed 4 merge12.uarb2 fork2, a 7g run through 7g's iff fork2_box_iff; the 7g model has no server). "
+           "Which of D1 / D2 is gcd_hw's number depends on whether gcd_hw ever runs the bare race (H_SETTLED: open, not proved from the "
+           "routes). Non-vacuity: design_nonvacuous. cons (H_SPREAD_INDEP): among the 16 server-credited forms the only rows failing at "
+           "kappa = 0 are seed 2 merge3.uarb1 h21 and o1x (cons_srv_neg; pu = 0, so they fail at every kappa): under cons D1 has no safe "
+           "kappa; D2's cons minimum 0.1288 (seed 4 merge12.uarb2 fork2) is the relaxation kappa* from the script, not decided. srv is from "
+           "probe Bar's extraction (UNTRUSTED) and enters neither binding row. Not covered: the server's real latency, the non-binding rows' "
+           "thresholds (certified safe at the design kappa, within 1.8e-5 by OnGcdArbKappa), per-edge scatter, X, metastability.")
+srv_refs = [L(SRV, "design_gate_srv", "corner", "D1: every arbiter, gate level, kappa <= 0.080163500491"),
+            L(SRV, "design_srv_tight", "corner", "D1 violated from 0.080163500492 (bare cell)"),
+            L(SRV, "design_gate_held", "corner", "D2: held four-phase forms, gate level, kappa <= 0.216552148868"),
+            L(SRV, "design_held_tight", "corner", "D2 violated from 0.216552148869 (7g fork2)"),
+            L(SRV, "design_nonvacuous", "non_vacuity"),
+            L(SRV, "cons_srv_neg", "corner", "cons: h21 and o1x of seed 2 merge3.uarb1 fail at kappa = 0")]
+nsrv = 0
+for e in C:
+    k = e["corner"].get("kappa")
+    if not k or not any(r.startswith("gcd_hw (36 routed arbiters") for r in k.get("results", [])):
+        continue
+    assert e["cell"] == "bd_arbiter", e["id"]
+    k["results"].append(SRV_TXT)
+    add_lean(e, srv_refs)
+    nsrv += 1
+assert nsrv == 12, nsrv
+LOG.append(f"{nsrv} bd_arbiter rows: corner.kappa.results + OnGcdArbKappaSrv (D1 0.0802 bare cell, D2 0.2166 held four-phase)")
+add_lean(BY["bd_arbiter.rt1b"], [L(SRV, "h21_gate_unsafe", "counter_trace", "D1's binding h21 (2 -> 1 handover, bare cell): both grants high"),
+                                  L(SRV, "h21_7j_bare", "counter_trace", "the same race as a 7j run: A0 never rises, client 2 withdraws an unacknowledged request"),
+                                  L(SRV, "g2m3_held_rt1bs", "corner", "the same arbiter's held r2 -> r1 handover (RT1bs) safe to kappa 0.769"),
+                                  L(SRV, "h21_safe", "corner"), L(SRV, "h21_unsafe", "corner"), L(SRV, "h21_inside", "numbers")])
+add_lean(BY["bd_arbiter.a0_fork_client2"], [L(SRV, "fork2_safe", "corner"), L(SRV, "fork2_unsafe", "corner"),
+                                             L(SRV, "fork2_inside", "numbers"),
+                                             L(SRV, "fork2_gate_unsafe", "counter_trace", "D2's binding row: a 7g run fires A2 spuriously")])
+
+# ------------------------------------------------------------------ (3) self-audit 4 fixes (Bsa4, SelfAuditB7)
+# (3a) bd_arbiter.rt1b: the row-level 'server-free' hypothesis contradicts the row's own inequality
+e = BY["bd_arbiter.rt1b"]
+SF = "server-free form (smin, A0 route to ustate, ustate O6 not credited)"
+assert SF in e["hypotheses"] and "smin + wa0s + qr" in e["inequality"]
+e["hypotheses"] = [h for h in e["hypotheses"] if h != SF] + [
+    "H_SERVER_MIN (the server answers no faster than smin; the inequality credits smin, the A0 route to ustate wa0s and ustate's O6 arc qr)"]
+e["corner"]["kappa"]["results"].append(
+    "Bsa4 (B-self-audit4.md): the 'RT1b server-free' numbers in this row's kappa results (lit min 16587/374773 ~ 0.0443, Bkx19's "
+    "bracket, rt1b_gate_unsafe) are for OnGcdArbKappa's server-free ARC FORM (smin = wa0s = qr = 0), NOT for this row's inequality, "
+    "which credits smin + wa0s + qr (the server-credited RT1b of ArbHeldTimed2; under kappa that is OnGcdArbKappa's RT1bs, lit min 0.617, "
+    "0.651 on seed 3 merge12.uarb1). Bkx19's kappa_ex - kappa* (~3.9e-6) is NOT proved to be the 1 fs grid.")
+r1 = e["corner"]["kappa"]["results"]
+i1 = [i for i, s in enumerate(r1) if "The whole kappa_ex - kappa* (~3.9e-6) is the 1 fs grid." in s]
+assert len(i1) == 1
+r1[i1[0]] = r1[i1[0]].replace("The whole kappa_ex - kappa* (~3.9e-6) is the 1 fs grid.",
+                              "kappa_ex - kappa* is ~3.9e-6 (that it is the 1 fs grid is NOT proved: Bsa4).")
+LOG.append("bd_arbiter.rt1b: row hypothesis 'server-free form' -> H_SERVER_MIN (matches its inequality); server-free caveat kept on the kappa sub-result")
+
+# (3b) superseded sentences (B-self-audit4.md, JSON table: 'stale' / 'inconsistent' notes)
+for rid, old in (("bd_mux.uj_env_latency_req", " No counter-run."),
+                 ("bd_mux.uj_env_latency_ctl", " Sufficient; necessity not shown (negative controls only show the term is used)."),
+                 ("bdc_muxn.uj_env_latency_req", ", not probed for muxn."),
+                 ("bd_flink.qfb_first", "sufficient; no flink counter-trace.")):
+    new = {"bdc_muxn.uj_env_latency_req": ".", "bd_flink.qfb_first": "sufficient."}.get(rid, "")
+    sub(BY[rid], "exactness_note", old, new)
+    LOG.append(f"{rid}: superseded sentence removed ({old.strip()!r})")
+
+# (3c) boundary labels on +1 forms: the refuted point is the binary '<=' form, 2 ticks from the row's +1 form
+BP = {"refuted_form": "binary '<=' (no strict +1)", "slack": 1, "ticks_from_row_form": 2,
+      "row_form_necessity": "not shown: the row's +1 form is sufficient; its own boundary is not refuted"}
+for rid, thm in (("bd_mux.uj0_env_latency_req_max", "Necessity4Mux.claimX1_false"),
+                 ("bd_mux.uj_env_latency_ctl", "Necessity4MuxC.claimC1_false"),
+                 ("bd_flink.qfb_first", "Necessity5Flink.q1_false")):
+    e = BY[rid]
+    assert e["exactness"] == "sufficient+necessary_at_boundary" and e["strict"]["margin_added_ps"] == 1, rid
+    e["boundary_point"] = dict(BP, refuted_by=thm)
+    add_scope(e, "necessity_scope", "BOUNDARY LABEL (Bsa4): 'necessary_at_boundary' refers to the binary '<=' form; the refuted point "
+              "(slack 1 against '<=') is 2 ticks from this row's +1 form, whose own boundary is NOT refuted")
+    LOG.append(f"{rid}: boundary_point (refuted point = '<=' form, 2 ticks from the +1 form)")
+cv["boundary_point"] = ("optional (Bj7, Bsa4): on a sufficient+necessary_at_boundary row whose form carries the strict +1 but whose counter-run "
+                        "refutes the binary '<=' form: refuted_form, slack, ticks_from_row_form (= slack + 1), refuted_by, and "
+                        "row_form_necessity ('not shown'). Rows without it are not claimed either way (only the three rows Bsa4 checked "
+                        "carry it).")
+
+# (3d) H_SPREAD_CORRELATED is the lit model itself
+hk = [h for h in doc["hypotheses_not_inequalities"] if h["id"] == "H_SHARED_CORNER / H_SCATTER (kappa)"][0]
+hk["statement"] += (" Bsa4 (SelfAuditB7.spread_corr_iff: H_SPREAD_CORRELATED arc <-> arc = litArc): H_SPREAD_CORRELATED IS the lit model "
+                    "itself, a renaming of the lit reading, not an independent hypothesis; spread_correlated_safe is rt1b_safe after subst. "
+                    "Its only content beyond 'use lit' is the physical reading (the within-corner spread is die-wide), which T_SPREAD tests.")
+add_lean(hk, [L(SA7, "spread_corr_iff", "relation", "H_SPREAD_CORRELATED <-> the lit arc model")])
+LOG.append("hypothesis H_SHARED_CORNER / H_SCATTER (kappa): H_SPREAD_CORRELATED = lit model (spread_corr_iff)")
+
+# (3e) '+W under H_W_BOUND' sufficient: proved for bd_steer only
+WB = "Sufficient without the split: +W under H_W_BOUND (c_e + a_l <= W for every race pair)."
+nwb = Counter()
+for e in C:
+    st = e.get("strict")
+    if not st or WB not in st.get("x_window", ""):
+        continue
+    if e["cell"] == "bd_steer":
+        st["x_window"] = st["x_window"].replace(WB, WB[:-1] + ": PROVED for bd_steer (SelfAuditB7.steer_win_bound; non-vacuity "
+                                                "steer_win_bound_witness).")
+        add_lean(e, [L(SA7, "steer_win_bound", "sufficient", "+W under H_W_BOUND (c_e + a_l <= W for every race pair) is sufficient for the steer box"),
+                     L(SA7, "steer_win_bound_witness", "non_vacuity")])
+        nwb["proved"] += 1
+    else:
+        st["x_window"] = st["x_window"].replace(WB, WB[:-1] + ": UNPROVED for this cell (stated by analogy; the only theorem is "
+                                                "bd_steer's, SelfAuditB7.steer_win_bound).")
+        nwb["unproved"] += 1
+assert nwb["proved"] == 2 and nwb["unproved"] == 69, nwb
+LOG.append(f"strict.x_window '+W under H_W_BOUND': proved on {nwb['proved']} bd_steer rows, labelled UNPROVED on {nwb['unproved']}")
+
+# (3f) FASTRISE ack_flush: not necessary for every DACK >= 3
+e = BY["bd_delay[FASTRISE].ack_flush"]
+sub(e, "exactness_note", "NOT necessary for DACK >= 3 (flush_not_necessary, dack3_clean)",
+    "NOT necessary for DACK = 3 (flush_not_necessary, dack3_clean) and for every DACK = m + 1 >= 3 (SelfAuditB7.flush_not_necessary_all: "
+    "line delta k = m + 1 - k, w = 1, point delays; Bsa4 closed the gap from the single DACK = 3 instance)")
+add_lean(e, [L(SA7, "flush_not_necessary_all", "not_necessary", "every DACK = m + 1 >= 3, point delays, line level")])
+LOG.append("bd_delay[FASTRISE].ack_flush: not_necessary for every DACK >= 3 (flush_not_necessary_all)")
+
+# ------------------------------------------------------------------ (4) C's H_ARB_EXCL is not derivable from B's per-pin arbiter (Bbr)
+ARB_CC = {"field": "H_ARB_EXCL (C's AMergeC / IpowCells Contract: no tick with both grants high, every tick of the run)",
+          "status": "not_derivable",
+          "lean": ["ContractBridge.arb_excl_not_derivable", "ContractBridge.arb_excl_of_window"],
+          "basis": ("arb_excl_not_derivable: B's bd_arbcell in its per-pin box (boxS), requests at 100 / 105 ps, has a behaviour with both "
+                    "grants high at a tick, so H_ARB_EXCL as C states it does not follow from B's per-pin arbiter. arb_excl_of_window: "
+                    "inside B's QUIET / COMMIT-without-overlap window it holds (forall n, g1 n && g2 n = false), for ONE arbitration with "
+                    "single-step requests only; C's amerge_inv needs it at every tick, so C's proof does not go through with the window "
+                    "form (a multi-token arbiter theorem, i.e. the board's open 8% overlap question, is missing).")}
+for rid in ("bd_arbcell.settled_exclusion", "bd_arbcell.handover_overlap", "bd_arbiter.rt1", "bd_arbiter.rt1b"):
+    e = BY[rid]
+    e["c_contract"] = copy.deepcopy(ARB_CC)
+    add_lean(e, [L(CB, "arb_excl_not_derivable", "counter_trace", "C's H_ARB_EXCL is not derivable from B's per-pin bd_arbcell (both grants high at a tick)"),
+                 L(CB, "arb_excl_of_window", "partial", "the window-only form: one arbitration, single-step requests")])
+    LOG.append(f"{rid}: c_contract H_ARB_EXCL not_derivable (arb_excl_not_derivable)")
+
+# ------------------------------------------------------------------ (5) LutFbBridge2: H_SEL_STABLE (mux joins), H_PWR_SRC (bd_src)
+SEL_CC = {"field": "C's LutFb / FbFirst for bd_mux uj0 / uj1 (mux_bound's h0, f0 / h1, f1)",
+          "status": "needs_extra_hypothesis", "extra": "H_SEL_STABLE (select constant while ctl_req is high)",
+          "lean": ["LutFbBridge2.muxJ0_lutFb", "LutFbBridge2.muxJ1_lutFb", "LutFbBridge2.sel_glitch_breaks_uj0", "LutFbBridge2.gated_phases"],
+          "basis": ("muxJ0_lutFb / muxJ1_lutFb derive C's premises from B's physical model with EnvG on the effective pins "
+                    "(x_req, ctl_req and not s); gated_phases gives those phases from the request protocol plus H_SEL_STABLE. "
+                    "sel_glitch_breaks_uj0: real uj0 INIT, transport LUT delay 2, wire 1, every channel hypothesis, x_req = ctl_req = 1 "
+                    "and a 1-tick select glitch: LutFb muxJ0F fails, so the request protocols alone are not enough. That this row's "
+                    "pin-level setup / hold implies H_SEL_STABLE is NOT proved in Lean (ContractBridge's H_SETUP_PIN / H_HOLD_PIN route "
+                    "gives C's H_SEL_PIN instead).")}
+for rid in ("bd_mux.bundled_s_setup", "bd_mux.bundled_s_hold"):
+    e = BY[rid]
+    e["c_contract"] = copy.deepcopy(SEL_CC)
+    add_lean(e, [L(FB2, "muxJ0_lutFb", "lemma", "C's LutFb / FbFirst for uj0 from B's model + EnvG"),
+                 L(FB2, "muxJ1_lutFb", "lemma"),
+                 L(FB2, "gated_phases", "lemma", "the gated request's phases from the request protocol + H_SEL_STABLE"),
+                 L(FB2, "sel_glitch_breaks_uj0", "counter_trace", "1-tick select glitch: C's LutFb muxJ0F fails")])
+    LOG.append(f"{rid}: c_contract LutFb needs H_SEL_STABLE (sel_glitch_breaks_uj0)")
+new_h = {"id": "H_SEL_STABLE / H_PWR_SRC (C-bridge LUT premises)", "catalogue_row": "none (Bfb2, formal/notes/B-lutfb-bridge2.md)",
+         "cells": ["bd_mux", "bd_src"],
+         "statement": ("Two hypotheses the bridge from B's physical LUT model to C's LUT premises needs beyond Bfb's (LutFbBridge2). "
+                       "H_SEL_STABLE: the mux select s is constant while ctl_req is high; needed for C's LutFb of the mux joins uj0 / uj1 "
+                       "(sel_glitch_breaks_uj0: with it dropped, a 1-tick select glitch breaks LutFb muxJ0F under every channel hypothesis); "
+                       "gated_phases uses it to give the gated request (r and s == b) its phases. H_PWR_SRC: during the power-up window "
+                       "t < hi, where Win says nothing, bd_src's output may only rise; it replaces Bfb's H_PWR (output 0 until hi), which "
+                       "the source cannot meet because its excitation not-ack is 1 from power-up (src_lutSI; src_witness rises at 1, inside "
+                       "the window, so H_PWR_SRC is used). Neither is a timing inequality of this file; no row derives either. The bridge's "
+                       "environment (Env1 per link) is still assumed network-wide (gcd_hw_safe_phys_links)."),
+         "lean": [L(FB2, "sel_glitch_breaks_uj0", "counter_trace"), L(FB2, "gated_phases", "lemma"),
+                  L(FB2, "muxJ0_lutFb", "lemma"), L(FB2, "muxJ1_lutFb", "lemma"),
+                  L(FB2, "src_lutSI", "sufficient", "bd_src's LutSI premise under H_PWR_SRC"),
+                  L(FB2, "src_witness", "non_vacuity"), L(FB2, "muxJ0_witness", "non_vacuity")],
+         "check": "not statically checkable: H_SEL_STABLE is a property of the control sender's select trace; H_PWR_SRC of bd_src's power-up"}
+assert new_h["id"] not in {h["id"] for h in doc["hypotheses_not_inequalities"]}
+doc["hypotheses_not_inequalities"].append(new_h)
+LOG.append(f"hypotheses_not_inequalities: NEW {new_h['id']}")
+cv["c_contract"] = ("optional (Bj7): how a C-side contract field relates to the row (ContractBridge, LutFbBridge2): field, status = derived | "
+                    "not_derivable | needs_extra_hypothesis, extra (the added hypothesis), lean (File.name, each also in the row's lean "
+                    "list), basis.")
+
+doc["produced_by"] = (doc["produced_by"].rstrip() +
+    " Updated by probe Bj7 (2026-10-29) from B-arb-kappa-exact.md (OnNetlistArbKappaExact: exact thresholds of the 16 link_arb A0-fork "
+    "cases), B-gcd-arb-kappa-srv.md (OnGcdArbKappaSrv: gate-level D1 0.0802 bare cell, D2 0.2166 held four-phase, cons failures), "
+    "B-self-audit4.md (SelfAuditB7: rt1b hypothesis, superseded sentences, boundary_point, spread_corr_iff, steer_win_bound, "
+    "flush_not_necessary_all), B-contract-bridge.md (c_contract H_ARB_EXCL) and B-lutfb-bridge2.md (c_contract H_SEL_STABLE, "
+    "hypothesis H_SEL_STABLE / H_PWR_SRC); the 'probe Bj7' section of cell_constraints.bj5.py.")
+
 json.dump(doc, open(OUT, "w"), indent=1)
 for x in LOG:
     print(x)

@@ -988,3 +988,152 @@ H_SPREAD_CORRELATED / H_SPREAD_INDEP and the T_SPREAD test.
 - **ack_succ's strict_pending.** The new row inherits it from ack_flush (input-against-input order).
 - **No Lean-side check of the new forms.** The max-form JSON forms were transcribed from the Lean
   statements (`pass8`, `fail10`) and the notes, not checked against an emitter.
+
+# Update (probe Bj7, 2026-10-29): OnNetlistArbKappaExact, OnGcdArbKappaSrv, self-audit 4, ContractBridge, LutFbBridge2
+
+Files changed:
+- `formal/out/cell_constraints.bj5.py`: a new "probe Bj7 (2026-10-29)" section at its end, before the
+  final `json.dump`. `cell_constraints.gen.py` is unchanged.
+- `formal/out/cell_constraints.validate.py`: the audit-row-18 check is narrowed, and three small checks
+  are new (below).
+- `formal/out/cell_constraints.json`, regenerated with
+  `cd formal/out && python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md`. The md
+  entry table is unchanged, because no exactness label or rule verdict moved.
+
+No Lean changed and nothing was hand-edited. A second generator run gives the same JSON and md byte
+for byte (sha256 of the JSON 575c6447...145b4).
+
+Sources: B-arb-kappa-exact.md, B-gcd-arb-kappa-srv.md, B-self-audit4.md, B-contract-bridge.md and
+B-lutfb-bridge2.md, plus JOURNAL-B.md progress 12:10 / 12:50.
+
+## Checks
+
+| check | result |
+|---|---|
+| validator on the regenerated JSON | 137 constraints, 11 hypotheses, 2988 Lean references in 106 files, strict 71 / strict_pending 18, 2 kappa-exact rows, 6 rows with c_contract, 3 rows with boundary_point, **errors: 0** |
+| negative controls (scratch copies, one fault each: "exact" in rt1's kappa results; an "exact" results string without the OnNetlistArbKappaExact citation on client 1; exact_s2c2_cons dropped from client 2; one "UNPROVED" removed from an x_window; arb_excl_not_derivable dropped from rt1's lean list while c_contract still cites it) | 5 runs, each fails with exactly the intended error |
+| new validator on the pre-Bj7 JSON | 75 errors: 71 from the H_W_BOUND check, 4 from the two kappa-exact rows |
+
+Every cited name is resolved through the validator's declaration grep, and the five new files are
+git-tracked. The names used only in prose or in `boundary_point.refuted_by` were grepped by hand:
+`Necessity4Mux.claimX1_false`, `Necessity4MuxC.claimC1_false` and `Necessity5Flink.q1_false` are all
+declared.
+
+Validator changes, and why each was made:
+- **Audit-row-18 check (needed).** This check forbade "exact" in every `corner.kappa.results`.
+  `KAPPA_EXACT_ROWS` now exempts exactly `bd_arbiter.a0_fork_client1` and `bd_arbiter.a0_fork_client2`,
+  under three conditions:
+  - the results string itself names OnNetlistArbKappaExact;
+  - the row cites all 8 of its client's `exact_s{1..4}c{k}_{cons,lit}` iffs with role `exact`;
+  - the row carries `corner.kappa.exact_source`.
+
+  Every other results string on every row is still checked, including the gcd_hw strings on the same
+  two rows. That is why the Bsrv text says "bracketed / violated from" and "7g's iff", never "exact".
+- **H_W_BOUND (guard).** Any x_window that claims "+W under H_W_BOUND" must either sit on bd_steer
+  and cite `SelfAuditB7.steer_win_bound`, or say UNPROVED.
+- **c_contract (guard).** `status` must be one of derived, not_derivable or needs_extra_hypothesis,
+  `extra` is required for needs_extra_hypothesis, and every cited name must also be in the row's
+  `lean` list.
+- **boundary_point (guard).** It may appear only on a strict +1 sufficient+necessary_at_boundary row,
+  `ticks_from_row_form` must equal slack + 1, and `necessity_scope` must name the '<=' form.
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries / hypotheses | 137 / 10 | 137 / 11 (+ H_SEL_STABLE / H_PWR_SRC) |
+| exactness labels | unchanged (exact 40, necessary_at_boundary 42, sufficient 12, not_necessary 11, ...) | unchanged |
+| citations with role exact | 190 | 206 (+16 exact_*) |
+| Lean references (files) | 2833 (101) | 2988 (106) |
+| x_window "+W under H_W_BOUND" | 71, unqualified | 2 proved (bd_steer), 69 UNPROVED |
+
+## 1. Exact link_arb A0-fork thresholds (Bkx18, OnNetlistArbKappaExact)
+
+On `bd_arbiter.a0_fork_client1` and `bd_arbiter.a0_fork_client2`, `corner.kappa.results[0]` used to
+describe OnNetlistArbKappa's undecided gap. It is replaced by that client's 8 exact thresholds:
+- the model is A's whole-ps CornerNat model, gate level on both sides;
+- each case cites `exact_sXcK_R` (role exact), `bracket_*`, `safe_antitone`, `not_safe1/2`,
+  `verdict_κA` and `verdict_κE`; client 2 also cites `audit_s1c2_cons_200` and `interior_s1c2_cons`;
+- s2c2 cons is the rational case (94/325, attained at the fast corner);
+- the NOT-covered list is the note's.
+
+The new field `corner.kappa.exact_source` marks these rows. conventions.kappa says that only these
+16 cases are exact; gcd_hw stays bracketed.
+
+## 2. gcd_hw arbiters, server credited (Bsrv, OnGcdArbKappaSrv)
+
+All 12 bd_arbiter rows carrying the gcd_hw kappa text gain one results string and 6 citations
+(`design_gate_srv`, `design_srv_tight`, `design_gate_held`, `design_held_tight`, `design_nonvacuous`,
+`cons_srv_neg`). The string gives:
+- **D1:** gate-level safe for kappa <= 0.080163500491 and violated from 0.080163500492. The
+  counterexample is the bare cell, which as a 7j run (`h21_7j_bare`) is not four-phase.
+- **D2:** held four-phase forms, safe for kappa <= 0.216552148868 and violated from 0.216552148869
+  (fork2, through 7g).
+- Whether gcd_hw ever runs the bare race (H_SETTLED) decides which of the two applies. That
+  question is open.
+- **cons:** h21 and o1x fail at kappa = 0, so D1 has no safe kappa under cons. D2's 0.1288 is not
+  decided.
+
+Further citations: rt1b also cites `h21_*` and `g2m3_held_rt1bs`, and a0_fork_client2 cites
+`fork2_*`.
+
+## 3. Self-audit 4 (Bsa4, SelfAuditB7)
+
+- **bd_arbiter.rt1b.** The row-level hypothesis "server-free form (smin, A0 route to ustate, ustate
+  O6 not credited)" contradicted the row's inequality (`... + smin + wa0s + qr + ...`). It is
+  replaced by H_SERVER_MIN, which names the three credited terms.
+  - A new results string says that the server-free numbers (0.0443, Bkx19's bracket,
+    rt1b_gate_unsafe) belong to OnGcdArbKappa's server-free ARC FORM, not to this row's inequality.
+  - Bkx19's "The whole kappa_ex - kappa* (~3.9e-6) is the 1 fs grid" now reads "NOT proved"
+    (self-audit finding 3; it was in the JSON too).
+- **Superseded sentences removed.**
+  - bd_mux.uj_env_latency_req: "No counter-run."
+  - bd_mux.uj_env_latency_ctl: "Sufficient; necessity not shown (...)."
+  - bdc_muxn.uj_env_latency_req: ", not probed for muxn".
+  - bd_flink.qfb_first: "no flink counter-trace". The self-audit's JSON table also lists this one
+    as stale, so four sentences are removed, not three.
+- **boundary_point** (new field) on bd_mux.uj0_env_latency_req_max, bd_mux.uj_env_latency_ctl and
+  bd_flink.qfb_first:
+  - the refuted point is the binary '<=' form at slack 1;
+  - it is 2 ticks from the row's +1 form;
+  - necessity of the +1 form itself is not shown;
+  - `refuted_by` names claimX1_false / claimC1_false / q1_false;
+  - `necessity_scope` gets the same sentence.
+- **H_SPREAD_CORRELATED.** The kappa hypothesis entry now says it IS the lit model
+  (`SelfAuditB7.spread_corr_iff`, cited): a renaming, not an independent hypothesis.
+- **+W under H_W_BOUND.** On the 2 bd_steer rows this is now PROVED (`steer_win_bound`,
+  `steer_win_bound_witness`, cited). On the other 69 x_window rows it is UNPROVED (by analogy only).
+- **FASTRISE ack_flush.** The row is not necessary for every DACK >= 3
+  (`SelfAuditB7.flush_not_necessary_all`, cited, role not_necessary). Before, it was shown only for
+  DACK = 3.
+
+## 4. H_ARB_EXCL (Bbr, ContractBridge)
+
+The new field `c_contract` is set to `{field: H_ARB_EXCL, status: not_derivable}`, citing
+`arb_excl_not_derivable` (counter_trace) and `arb_excl_of_window` (partial). It is on the four
+grant-exclusion rows: bd_arbcell.settled_exclusion, bd_arbcell.handover_overlap, bd_arbiter.rt1 and
+bd_arbiter.rt1b. The basis text says that the window form covers one arbitration only, and that C's
+amerge_inv needs H_ARB_EXCL at every tick.
+
+## 5. H_SEL_STABLE, H_PWR_SRC (Bfb2, LutFbBridge2)
+
+- **bd_mux.bundled_s_setup / bundled_s_hold.** These rows get `c_contract`: C's LutFb for uj0 / uj1
+  needs H_SEL_STABLE. Citations: `muxJ0_lutFb`, `muxJ1_lutFb`, `gated_phases`, and
+  `sel_glitch_breaks_uj0` (counter_trace). The basis text says that no Lean theorem derives
+  H_SEL_STABLE from these rows' pin setup / hold.
+- **bd_src.** It has no row in this file. So both hypotheses go into a new hypotheses entry,
+  "H_SEL_STABLE / H_PWR_SRC (C-bridge LUT premises)", citing `src_lutSI`, `src_witness` and
+  `muxJ0_witness`.
+
+## Not done / judgement calls
+
+- **Other +1 boundary rows.** Many other sufficient+necessary_at_boundary rows also carry a strict +1
+  (bd_latch_rst, bd_pipe.lat_lumped, the rt2 / amerge3 cascade rows, uxa/uya_rtz_env,
+  bd_merge.isochronic_forks, bd_mlink.qfb_first). Bsa4 did not check them, so they get no
+  boundary_point.
+  - Some rely on CElemStrict's strict boundary_x and may be fine.
+  - bd_mlink.qfb_first looks like flink's twin and should be checked next.
+- **Rows that get c_contract.** H_ARB_EXCL is recorded on the four grant-exclusion rows only, not on
+  the rt2 ack-exclusion rows or bdc_amerge*. H_SEL_STABLE goes on the select setup / hold rows, not on
+  the join env_latency rows.
+- **D2's cons minimum.** 0.1288 is quoted as the script's relaxation kappa*. It is not decided in Lean.

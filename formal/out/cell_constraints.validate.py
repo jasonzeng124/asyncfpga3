@@ -156,7 +156,8 @@ STRICT_IFFS = {("CElemStrict.lean", n) for n in ("env_latency_iff", "env_latency
     {("KleeneBox.lean", n) for n in ("steer_edges_K", "steer_strict_K", "join_edges_K", "join_strict_K", "muxn_edges_K",
                                     "latch_edges_uniform", "latch_strict_uniform")} | \
     {("LinkExact.lean", "strict_edges")}
-nkap = nhyp = 0
+nkap = nhyp = nkx = 0
+KAPPA_EXACT_ROWS = {"bd_arbiter.a0_fork_client1": 1, "bd_arbiter.a0_fork_client2": 2}
 for e in doc["constraints"]:
     st = e.get("strict")
     if e["exactness"] == "exact" and st and st.get("margin_added_ps") and \
@@ -171,8 +172,25 @@ for e in doc["constraints"]:
         nkap += 1
         if k.get("see") not in hyp_ids:
             errs.append(f"{e['id']}: corner.kappa.see is not a hypotheses_not_inequalities id")
-        if "exact" in " ".join(k.get("results", [])).lower().replace("not an exact", "").replace("not exact", ""):
-            errs.append(f"{e['id']}: corner.kappa.results calls a kappa threshold exact (audit row 18)")
+        # Bj7: audit row 18 is answered for the 16 link_arb A0-fork cases only (OnNetlistArbKappaExact); on those two rows a
+        # results string may say 'exact' iff it cites OnNetlistArbKappaExact and the row cites all 8 of its client's exact_* iffs
+        # with role 'exact'.  Every other results string, on every row, still may not call a kappa threshold exact.
+        cl = KAPPA_EXACT_ROWS.get(e["id"])
+        for s in k.get("results", []):
+            if "exact" not in s.lower().replace("not an exact", "").replace("not exact", ""):
+                continue
+            if cl is None or "OnNetlistArbKappaExact" not in s:
+                errs.append(f"{e['id']}: corner.kappa.results calls a kappa threshold exact (audit row 18)")
+        if cl is not None:
+            nkx += 1
+            have = {r["name"] for r in e["lean"] if r["role"] == "exact" and r["file"].endswith("/OnNetlistArbKappaExact.lean")}
+            need = {f"exact_s{s}c{cl}_{rd}" for s in (1, 2, 3, 4) for rd in ("cons", "lit")}
+            if not need <= have:
+                errs.append(f"{e['id']}: kappa-exact row without 'exact' citations {sorted(need - have)} (OnNetlistArbKappaExact)")
+            if "OnNetlistArbKappaExact" not in k.get("exact_source", ""):
+                errs.append(f"{e['id']}: kappa-exact row without corner.kappa.exact_source")
+        elif "exact_source" in k:
+            errs.append(f"{e['id']}: corner.kappa.exact_source on a row outside KAPPA_EXACT_ROWS")
     elif e["corner"]["mode"] in ("1C", "1C_both_corners_required"):
         errs.append(f"{e['id']}: 1C row without corner.kappa")
 # Bj6: KleeneWin (every strict +1 is H_X_UNIFORM at w = 1: the row must say so), KleenePess (kleene_dependence
@@ -205,6 +223,36 @@ for e in doc["constraints"]:
                 errs.append(f"{e['id']}: replacement_rows entry {r} unknown or itself not_necessary")
     if "replacement_scope" in e and e["exactness"] != "not_necessary":
         errs.append(f"{e['id']}: replacement_scope on a non-not_necessary entry")
+# Bj7: '+W under H_W_BOUND' is proved for bd_steer only (SelfAuditB7.steer_win_bound): every other x_window must say UNPROVED;
+# c_contract (status vocabulary, cited names in the row's lean list); boundary_point only on strict +1 boundary rows.
+nwb = ncc = nbp = 0
+CC_STATUS = {"derived", "not_derivable", "needs_extra_hypothesis"}
+for e in doc["constraints"]:
+    xw = (e.get("strict") or {}).get("x_window", "")
+    if "+W under H_W_BOUND" in xw:
+        nwb += 1
+        steer_ok = e["cell"] == "bd_steer" and any(r["name"] == "steer_win_bound" and r["file"].endswith("/SelfAuditB7.lean") for r in e["lean"])
+        if not steer_ok and "UNPROVED" not in xw:
+            errs.append(f"{e['id']}: '+W under H_W_BOUND' claimed without steer_win_bound and not labelled UNPROVED")
+    cc = e.get("c_contract")
+    if cc is not None:
+        ncc += 1
+        names = {f"{r['file'].split('/')[-1][:-5]}.{r['name']}" for r in e["lean"]}
+        if cc.get("status") not in CC_STATUS or not cc.get("basis") or not cc.get("field"):
+            errs.append(f"{e['id']}: c_contract needs field, basis and status in {sorted(CC_STATUS)}")
+        if cc.get("status") == "needs_extra_hypothesis" and not cc.get("extra"):
+            errs.append(f"{e['id']}: c_contract needs_extra_hypothesis without 'extra'")
+        for n in cc.get("lean", []):
+            if n not in names:
+                errs.append(f"{e['id']}: c_contract cites {n}, not in the entry's lean list")
+    bp = e.get("boundary_point")
+    if bp is not None:
+        nbp += 1
+        if e["exactness"] != "sufficient+necessary_at_boundary" or not (e.get("strict") or {}).get("margin_added_ps"):
+            errs.append(f"{e['id']}: boundary_point on a row that is not a strict +1 necessary_at_boundary row")
+        if bp.get("ticks_from_row_form") != bp.get("slack", -1) + 1 or "<=" not in e.get("necessity_scope", ""):
+            errs.append(f"{e['id']}: boundary_point ticks_from_row_form != slack + 1, or necessity_scope does not name the '<=' form")
+print(f"rows with '+W under H_W_BOUND': {nwb}; rows with c_contract: {ncc}; rows with boundary_point: {nbp}; kappa-exact rows: {nkx}")
 print(f"rows with strict.x_window checked: {nxw}; rows with kleene_dependence: {nkd}")
 print(f"rows with hypotheses: {nhyp}; rows with corner.kappa: {nkap}")
 C = doc["constraints"]
