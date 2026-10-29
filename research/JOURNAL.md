@@ -1532,3 +1532,7 @@ blocked on the owner's raw data), so the rule gates stay.
 - The scratch disk reached 92% (each compiled full-stack sim is ~600 MB); 30 finished sims deleted, seeds_fid now
   deletes its .vvp after parsing. A BQ#2 sweep launched during the full-disk window ran twice on one dir and
   produced BUILD_FAIL/INCOMPLETE rows; discarded, relaunched once (default-seed sdf a9c4e265 = BQ#2's record).
+### progress 07:47 (lut-pinmap MATCH at FAST_MIN too; acceptance status table)
+- acceptance --stack full --corner min, lutpinmap_gcd_nofuse: [MATCH], patched 16/16, unpatched 9/16, never
+  complete 5,6,7,8,11,12,13 (same set as SLOW_MAX). research/data/fid/acceptance_status.md summarises every item:
+  all runnable hard items MATCH at both corners; ring128 BLOCKED (owner data), so not accepted and gates stay.
