@@ -13,7 +13,8 @@ run_fid.sh -j1.  Each sim is one vvp (~3.1 GB RSS; its compile ~3.7 GB), so
 --sim-jobs bounds memory.  A run whose log lacks a verdict line for any vector
 is reported INCOMPLETE, never as a pass (an OOM kill truncates silently).
 
-Writes OUTDIR/results.tsv (one row per run) and OUTDIR/<seed>/... logs.
+Writes OUTDIR/results.tsv (one row per run, last column the bits-vs-JSON
+equivalence verdict) and OUTDIR/<seed>/... logs.
 Does not touch git beyond `git worktree add` (detached).
 """
 import argparse, os, re, subprocess, sys, threading, hashlib
@@ -98,9 +99,13 @@ def sim(a, seed, hw, col, scat):
             dead.append(str(v))
     verdict = ("BUILD_FAIL" if rc else "INCOMPLETE" if incomplete
                else "PASS" if done == 16 and errs == 0 else "FAIL")
+    # the bits-vs-routed-JSON check: a NOT EQUIVALENT route's sim result means
+    # nothing until the difference is explained (decoder or toolchain)
+    m = re.search(r"VERDICT: (EQUIVALENT|NOT EQUIVALENT)", open(log).read())
+    equiv = m.group(1).replace(" ", "_") if m else "NO_VERDICT"
     row = [seed, tag, md5(os.path.join(hw, "gcd_hw.sdf")), md5(os.path.join(hw, "gcd_hw_xray.sdf")),
            verdict, f"{done}/16", str(errs), "/".join(str(laps.get(v, "?")) for v in ("6", "12", "13")),
-           ",".join(dead) or "-", ",".join(incomplete) or "-"]
+           ",".join(dead) or "-", ",".join(incomplete) or "-", equiv]
     with lock:
         with open(os.path.join(a.out, "results.tsv"), "a") as f:
             f.write("\t".join(row) + "\n")
