@@ -452,4 +452,134 @@ def DataOK (sv : Nat → Nat) (dv : Fin n → Nat) : K n → Prop
 instance (sv : Nat → Nat) (dv : Fin n → Nat) (k : K n) : Decidable (DataOK sv dv k) := by
   cases k <;> unfold DataOK <;> infer_instance
 
+/-- The all-quiet run with bus values `dv`: no wire ever moves. -/
+def chQ (dv : Fin n → Nat) (c : Fin n) : Chan := ⟨fun _ => false, fun _ => false, fun _ => dv c⟩
+
+/-- A feedback LUT whose pins never move and whose output stays low meets `FbCel`. -/
+theorem fbCel_quiet {α : Type} (F : α → Bool → Bool) (p : Nat → α) (hp : ∀ t, p (t + 1) = p t) :
+    FbCel F p (fun _ => false) :=
+  ⟨fun _ => false, 0, 0, fun _ h => absurd rfl h, ⟨fun _ h => absurd rfl h, fun _ _ _ => rfl⟩, rfl,
+    fun u h => absurd (hp u) h⟩
+
+/-- The idle arbiter grants nothing (generated `ugrant`). -/
+theorem grant_idle :
+    genF bd_arbiter "ugrant" .O5 ["r1", "r2", "q"] [false, false, false] = false ∧
+    genF bd_arbiter "ugrant" .O6 ["r1", "r2", "q"] [false, false, false] = false := by decide +kernel
+
+theorem mem_chQ {dv : Fin n → Nat} {l : List (Fin n)} {o : Chan} (h : o ∈ l.map (chQ dv)) :
+    ∃ c ∈ l, o = chQ dv c := by
+  obtain ⟨c, hc, rfl⟩ := List.mem_map.mp h; exact ⟨c, hc, rfl⟩
+
+/-- **The all-quiet run meets every contract** whose data equations it solves. -/
+theorem quiet_contract (sv : Nat → Nat) (dv : Fin n → Nat) (nx : Nat) (k : K n)
+    (hd : DataOK sv dv k) : Contract (chQ dv) sv nx k := by
+  cases k with
+  | forkG i os =>
+    refine ⟨by simpa using hd.1, fun o ho t h => ?_, fbCel_quiet _ _ (fun t => ?_), fun o ho t => ?_, rfl,
+      fun o ho => ?_⟩
+    · obtain ⟨c, _, rfl⟩ := mem_chQ ho; exact absurd rfl h
+    · simp [chQ, List.map_map, Function.comp_def]
+    · obtain ⟨c, hc, rfl⟩ := mem_chQ ho; exact hd.2 c hc
+    · obtain ⟨c, _, rfl⟩ := mem_chQ ho; rfl
+  | forkH i os l hh d hs =>
+    refine ⟨by simpa using hd.1, fun o ho t h => ?_, fbCel_quiet _ _ (fun t => ?_), fun o ho t => ?_, rfl,
+      fun o ho => ?_⟩
+    · obtain ⟨c, _, rfl⟩ := mem_chQ ho; exact absurd rfl h
+    · simp [chQ, List.map_map, Function.comp_def]
+    · obtain ⟨c, hc, rfl⟩ := mem_chQ ho
+      obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hc
+      exact hd.2 p hp
+    · obtain ⟨c, _, rfl⟩ := mem_chQ ho; rfl
+  | join ins o e js jw =>
+    refine ⟨List.replicate nx (fun _ => false), List.length_replicate .., by simpa using hd.1,
+      fbCel_quiet _ _ (fun t => ?_), fun i hi t h => ?_, fun t => ?_, rfl, fun i hi => ?_⟩
+    · simp [chQ, List.map_map, Function.comp_def]
+    · obtain ⟨c, _, rfl⟩ := mem_chQ hi; exact absurd rfl h
+    · simp only [List.map_map, Function.comp_def, chQ]; exact hd.2
+    · obtain ⟨c, _, rfl⟩ := mem_chQ hi; rfl
+  | bjoin ins o ec ed =>
+    refine ⟨List.replicate nx (fun _ => false), List.length_replicate .., by simpa using hd.1,
+      fbCel_quiet _ _ (fun t => ?_), fun i hi t h => ?_, fun t => ?_, rfl, fun i hi => ?_⟩
+    · simp [chQ, List.map_map, Function.comp_def]
+    · obtain ⟨c, _, rfl⟩ := mem_chQ hi; exact absurd rfl h
+    · simp only [List.map_map, Function.comp_def, chQ]; exact hd.2
+    · obtain ⟨c, _, rfl⟩ := mem_chQ hi; rfl
+  | steerC j t f =>
+    refine ⟨fun b u h => absurd rfl h, fun u h => absurd rfl h, fun b u => ?_, rfl, fun b => rfl⟩
+    cases b
+    · exact hd.2
+    · exact hd.1
+  | steerD j t f fd sw =>
+    refine ⟨fun b u h => absurd rfl h, fun u h => absurd rfl h, fun b u => ?_, rfl, fun b => rfl⟩
+    cases b
+    · exact hd.2
+    · exact hd.1
+  | mux c x y z mw =>
+    exact ⟨fun _ => false, fun _ => false, fbCel_quiet _ _ (fun _ => rfl), fbCel_quiet _ _ (fun _ => rfl),
+      fbCel_quiet _ _ (fun _ => rfl), fbCel_quiet _ _ (fun _ => rfl), fun _ h => absurd rfl h,
+      fun _ h => absurd rfl h, fun _ => hd, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  | muxn c x0 x1 x2 z nw => exact hd.elim
+  | amerge x y z w =>
+    refine ⟨fun _ => false, fun _ => false, fun _ h => absurd rfl h, fun _ h => absurd rfl h,
+      fun _ => rfl, ⟨fun _ => false, fun _ => grant_idle.1.symm, fun _ => grant_idle.2.symm,
+        fun _ h => absurd rfl h⟩, fun _ _ h => by simp [chQ] at h, fbCel_quiet _ _ (fun _ => rfl),
+      fbCel_quiet _ _ (fun _ => rfl), fun _ => ?_, rfl, rfl, rfl, rfl, rfl⟩
+    simp only [chQ, Bool.or_false, Bool.false_eq_true, ↓reduceIte, Mux.b2n]
+    exact hd
+  | link i o =>
+    exact ⟨fun _ => false, fbCel_quiet _ _ (fun _ => rfl), fun _ h => absurd rfl h, fun _ h => absurd rfl h,
+      fun _ h => by simp at h, fun _ _ => rfl, rfl, rfl, rfl⟩
+  | src z which d => exact ⟨fun _ h => absurd rfl h, fun _ => hd, rfl⟩
+  | sink i => exact ⟨fun _ h => absurd rfl h, rfl⟩
+
+/-- Bus values of the witness run (b = 3, e = 7, the C file's own `main` vector): a solution
+of the all-quiet data equations, computed by iterating `qstep` and checked below by the
+kernel (`dataOK_all`), not trusted. -/
+def dvL : List Nat := [3, 7, 0, 0, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 3, 0, 0, 3, 7, 0, 0, 7, 1, 0, 0, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 6, 14, 2, 0, 0, 0, 0, 0, 0, 0]
+
+def dvW (c : Fin NC) : Nat := dvL.getD c.val 0
+
+theorem dataOK_all : ∀ o : Fin NO, DataOK (srcV 3 7) dvW (opAt o) := by decide +kernel
+
+theorem cnt_quiet (t : Nat) : cnt (riseB (fun _ => false)) t = 0 := by
+  induction t with
+  | zero => rfl
+  | succ t ih => simp [cnt, ih, riseB]
+
+/-- **Non-vacuity of `ipow_safe_of_contracts`**: one run (b = 3, e = 7) meets every
+operator contract, H_BUNDLE and H_START_ONCE at once. It is the all-quiet run (as for gcd's
+H_CELLS, no network-level run that delivers `out0` is known: liveness is open). -/
+theorem ipow_contracts_satisfiable :
+    ∃ (b e : Nat) (ch : Fin NC → Chan), e < 2 ^ 32 ∧
+      (∀ o : Fin NO, Contract ch (srcV b e) (extraIn o) (opAt o)) ∧ (∀ c, Held (ch c)) ∧
+      (∀ t, cnt (riseB (ch start).req) t ≤ 1) :=
+  ⟨3, 7, chQ dvW, by decide, fun o => quiet_contract _ _ _ _ (dataOK_all o),
+    fun _ _ _ _ => rfl, fun t => by rw [show (chQ dvW start).req = fun _ => false from rfl, cnt_quiet]; decide⟩
+
+/-- The two-input generated C-element is C-10k's majority-with-feedback `maj`. -/
+theorem cgate2_maj : ∀ a b q : Bool, cgate [a, b] q = Formal.Timing.FbFirstRt.maj (a, b) q := by
+  decide +kernel
+
+/-- **`FbCel` is met by a C-element that really switches**, with its feedback route given in
+B's own channel model: C-10k's run (both inputs rise at 5, output at 6, feedback pin at 7),
+feedback wire = `CElemTiming.WinDelay 1 1` (a transport delay of 1, `transport_winDelay`),
+H_RT_FB at the wire's maximum delay 1. -/
+theorem fbCel_witness :
+    let p : Nat → List Bool := fun t => [(Formal.Timing.FbFirstRt.wp t).1, (Formal.Timing.FbFirstRt.wp t).2]
+    FbCel cgate p Formal.Timing.FbFirstRt.wo ∧
+      CElemTiming.WinDelay 1 1 Formal.Timing.FbFirstRt.wo Formal.Timing.FbFirstRt.wq ∧
+      Formal.Timing.FbFirstRt.wo 6 ≠ Formal.Timing.FbFirstRt.wo 5 := by
+  intro p
+  obtain ⟨hL, _, _, hR, _, hc⟩ := Formal.Timing.FbFirstRt.fbFirst_witness
+  have hW : CElemTiming.WinDelay 1 1 Formal.Timing.FbFirstRt.wo Formal.Timing.FbFirstRt.wq :=
+    CElemTiming.transport_winDelay (Nat.le_refl 1) (Nat.le_refl 1) (fun t => by
+      simp only [Formal.Timing.FbFirstRt.wq, Formal.Timing.FbFirstRt.wo]
+      by_cases h : 6 ≤ t <;> simp [h] <;> omega)
+  refine ⟨fbCel_of_winDelay (fun t h => ?_) hW (fun t h => by omega) rfl (fun u h => hR u ?_), hW, hc⟩
+  · rw [hL t h]; exact (cgate2_maj _ _ _).symm
+  · intro he; apply h; simp only [p, he]
+
 end Formal.Cells.IpowCells

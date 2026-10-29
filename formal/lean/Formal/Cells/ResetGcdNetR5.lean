@@ -13,10 +13,14 @@ delay sizes, the R5 recipe; built by probe Bnet, toolchain.sh ok, nextpnr
 edit by hand; see `formal/notes/B-reset-gcd-net.md`.
 
 3366 indices, 1826 real nodes. Indices below 3322 follow `ResetGcdNet`
-(renumbering by `gen.py match`: an untrusted certificate, checked below node
-by node); the 44 real-only nodes come after. 1540 indices are no node
-of the real network: committed data inputs that the synthesized netlist
-merges into one net (`phiL`). Each `rN` has its node (INIT as a hex literal,
+(renumbering by `gen.py match`: an untrusted certificate; the node-by-node
+comparison with `ResetGcdNet` is NOT in this file (self-audit 3, 2026-10-29));
+the 44 real-only nodes come after. 1540 indices are no node of the real
+network. Their comments say "committed data input identified by phi", but
+about 1511 of them are delay elements removed by the R5 sizes, not merged data
+inputs (self-audit 3); no gate pin reads any of them, so the reset results are
+unaffected. The R5 netlist JSON is not on disk, so the transcription itself is
+unverified here. Each `rN` has its node (INIT as a hex literal,
 straight from the netlist), control flag, and a rank / reset-value
 certificate computed by the generator (Kleene from all-X), re-checked below.
 -/

@@ -687,3 +687,23 @@ removed delay elements as merged data inputs (harmless: no gate pin reads them);
 the R5 transcription is unverifiable here (netlist JSON not on disk). Mutants:
 4/5 fail as they should; a 1-tick in_ack shift passes H_C3 alone (caught by the
 env check as a whole). Nothing refuted.
+
+### progress 08:30
+In: Bipw IpowCells (core; checked here, axioms standard on 30 theorems). Goal 3,
+second kernel: C-8y's H_CELLS for ipow_ps's 83-operator network follows from
+per-cell contracts on the emitted cells (generated LUTs at their real arity; FbCel =
+H_LUT_SI + BoundedDelay feedback route + H_RT_FB on every feedback LUT):
+ipow_cells, and ipow_safe_of_contracts = ipow_circuit_safe3 with H_CELLS replaced by
+the contracts. New: generated N=1..4 C-elements are flat (cgate_eq, decide);
+bd_pipe stage controllers = bd_link's; a join with unmodelled source-chain inputs
+meets C's Join (join_of_contract; was prose); B's WinDelay feedback wire gives C's
+BoundedDelay (the only B-model bridge proved). Remaining hypotheses, NOT derived from
+B's cell theorems (cited only): H_SEL_PIN, H_DELAY_LUMPED, H_CTREE_ATOMIC (once:
+uselect0's 5-input join), arbiter grant fields, data fields incl. the two DSP48E1
+multiplies, which no shard models (needs a DSP primitive model, a function check of
+the mapped multiplier, its delay vs the matched 64/118 delays, glitches). Non-vacuity
+only by an all-quiet run (b=3, e=7) plus a switching FbCel witness. Finding: C's
+network omits 2 bd_src, 2 bd_fork, 4 source-chain constants and 4 join inputs of
+the emitted design (harmless for H_CELLS, proved; matters for liveness). The
+operator-to-Verilog match is by hand from bdc/emit.py output (scratch).
+ResetGcdNetR5 header corrected per self-audit 3 (comment only; file re-checked).
