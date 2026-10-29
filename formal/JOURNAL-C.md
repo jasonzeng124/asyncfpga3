@@ -6,7 +6,15 @@
   one token live iff N>=3 (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair window
   N(N-1)/2 (`RingFair`). `RingGen` restates the headlines over the generated bd_c2n netlist
   (a flipped INIT breaks them). Timed: every stage toggles in every window of N*H (8o).
-  Open: H_ONE_TOKEN (the reset token count) and the lift to bounded-delay gate traces (9d).
+  9d: bdc's reset leaves every ring EMPTY (all ring cells clear on rst, from the INITs;
+  `bdc_closed_ring_empty`), so the token enters through the loop entry: for bdc's shape
+  (bd_mux -> N links -> bd_steer) a kernel-checked reachable set (real LUTs, zero reset, one
+  start token, env hypotheses H_START_ONCE/H_CTL_ENV/H_EXIT_ENV) has exactly one token and no
+  deadlock for N = 3..5 and deadlocks for N = 1, 2 (`RingResetCert`). Timed: `timed_ring_three`
+  (inertial per-stage bounds; iff N >= 3), also for bounded pure FIFO delay (`pure_noOvertake`
+  closes 8d's goal 2); rise-to-rise >= N dmin (>= 6 dmin at N=3), tight; no runt on any stage of
+  a persistent ring (`ring_no_runt`). Not covered: exact cycle time, loop N > 5, other cells on
+  the cycle, a gate-level environment.
 - **Track 8 (composition, gcd_hw): safety proved, liveness reduced, rig first result only.**
   Token level: bdc's gcd_hw graph returns Nat.gcd a b for a, b < 2^31 on every schedule,
   live and bounded without fairness (8i/8k); ipow likewise for all i32; collatz conditional
@@ -430,3 +438,7 @@ hypothesis list's §0 rebuilt against the Lean (47 names grepped), and the
 verdict block above rewritten to say no more than the Lean. FPGA toolchain
 restored from the cache branch; cells/verify/toolchain.sh ok, nextpnr sha256
 9c732bc6303458df, yosys 0.62 runs. Lean module build at 114/163.
+
+### progress 08:06
+9d committed after my own check.sh (4 files, 885 decls, axioms standard only):
+RingReset/RingResetCert/RingTimed/RingTimedPure; see the track-9 verdict.

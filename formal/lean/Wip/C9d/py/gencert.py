@@ -57,5 +57,46 @@ theorem loop{N}_stuck : ∃ s, Reach {N} s ∧ (∀ g, g ∈ gates {N} → excB 
   simp only [Bool.and_eq_true] at h
   exact ⟨_, reach_path Reach.refl h.1, stuck_of h.2⟩
 """)
+# non-vacuity witness for N = 3: entry, loop closes, exit, empty again
+N=3
+s0,S,gates,env=explore(N,True)
+from collections import deque
+par={s0:None}; q=deque([s0]); tgt=None
+while q:
+    s=q.popleft()
+    if not gates(s) and not env(s) and (s>>(N+14))&1: tgt=s; break
+    for t in [s^(1<<g) for g in gates(s)]+env(s):
+        if t not in par: par[t]=s; q.append(t)
+path=[]; s=tgt
+while par[s] is not None: path.append(s); s=par[s]
+path.reverse()
+out.append(f"""def W3 : List Nat := [{", ".join(map(str,path))}]
+
+def doneB (N s : Nat) : Bool := !anyExc N s && (envSucc N s).isEmpty && bit s (EX N) && Dl N s == 0
+
+theorem W3_ok : (pathB 3 (s0 3) W3 && W3.any (fun s => bit s (SM 3) && !bit s (EX 3)) &&
+    doneB 3 (lastOf (s0 3) W3)) = true := by
+  decide +kernel
+
+/-- **Non-vacuity of the environment hypotheses (`N = 3`)**: a run from bdc's reset takes the
+entry, closes the loop (mux select 1, so `Good.looping` applies on the way), takes the exit, and
+ends with no move left, the token gone (`D = 0`). -/
+theorem loop3_exits : ∃ s, Reach 3 s ∧ bit s (EX 3) = true ∧ Dl 3 s = 0 ∧ succ 3 s = [] := by
+  have h := W3_ok
+  simp only [doneB, Bool.and_eq_true, beq_iff_eq, Bool.not_eq_true'] at h
+  obtain ⟨⟨h1, _⟩, ⟨⟨ha, he⟩, hx⟩, hd⟩ := h
+  refine ⟨_, reach_path Reach.refl h1, hx, hd, ?_⟩
+  have := stuck_of (N := 3) (s := lastOf (s0 3) W3)
+  unfold succ
+  have hall : ∀ g, g ∈ gates 3 → excB 3 (lastOf (s0 3) W3) g = false := by
+    intro g hg
+    cases e : excB 3 (lastOf (s0 3) W3) g
+    · rfl
+    · have : (gates 3).any (excB 3 (lastOf (s0 3) W3)) = true := List.any_eq_true.2 ⟨g, hg, e⟩
+      unfold anyExc at ha; rw [this] at ha; exact absurd ha (by decide)
+  rw [List.isEmpty_iff.1 he, List.append_nil,
+    List.filter_eq_nil_iff.2 (fun g hg => by simp [hall g hg])]
+  rfl
+""")
 out.append("end Formal.Net.RingReset\n")
 open(sys.argv[1],'w').write("\n".join(out))
