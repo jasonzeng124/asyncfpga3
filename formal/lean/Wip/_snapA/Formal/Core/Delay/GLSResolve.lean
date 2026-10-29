@@ -445,7 +445,7 @@ theorem out_wide {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 
     (st t).o = decide (t0 ≤ t) := by
   rw [run_wide hL ht0 hw h t]; unfold Swide
   by_cases h1 : t < t0
-  · simp [h1, St.init]; omega
+  · simp [h1, St.init]
   · simp [h1, S1]; omega
 
 theorem out_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
@@ -491,20 +491,17 @@ theorem step_emits (p : Prm) (t : Nat) (f : Bool) (s : St) (hb : blocked t s = f
     (step p t f s).o = f ∨ (isRunt p t f s = true ∧
       resolve ((t - s.tl : Nat) : Int) (p.L : Int) p.win (p.nz t) = .commit ∧
       p.R (p.delta (t - s.tl) t) = 0) := by
+  have hbusy : s.busy = false := by simp [blocked] at hb; exact hb.1
   by_cases hr : isRunt p t f s = true
   · unfold step; rw [eval_runt hb hf hr]
     cases hres : resolve ((t - s.tl : Nat) : Int) (p.L : Int) p.win (p.nz t)
-    · left; simp [nba]
+    · left; simp [nba, hbusy]
     · by_cases hz : p.R (p.delta (t - s.tl) t) = 0
-      · right; exact ⟨rfl, rfl, hz⟩
-      · left; simp [nba]; intro h; omega
-    · left; simp [nba]
-      by_cases hz : p.R (p.delta (t - s.tl) t) = 0 <;> simp [hz]
+      · right; exact ⟨hr, rfl, hz⟩
+      · left; simp [nba, hz]
+    · left; by_cases hz : p.R (p.delta (t - s.tl) t) = 0 <;> simp [nba, hz]
   · have hr' : isRunt p t f s = false := by simpa using hr
-    left; unfold step; rw [eval_edge hb hf hr']; simp [nba]
-    intro hbz; exfalso
-    have : s.busy = false := by simp [blocked] at hb; exact hb.1
-    rw [this] at hbz; exact absurd hbz (by simp)
+    left; unfold step; rw [eval_edge hb hf hr']; simp [nba, hbusy]
 
 /-! ## 5. (2) What a passing run implies, and what it does not -/
 

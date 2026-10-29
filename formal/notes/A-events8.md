@@ -1,5 +1,20 @@
 # A-events8 (probe WE4g): GuardOK discharged into count facts; one new, narrower hypothesis (shard A)
 
+> **CORRECTION (probe E8Mux, 2026-10-29; details in `notes/A-e8mux.md`).** Every band file below
+> was built by research xray_delay.py 99b10a6d, which charges the slice OUTMUX hop only on O6/COUT
+> exits; every O5-, MUXF7/F8- and CARRY4-O/CO-driven arc lacks it (prjxray ROUTING_BEL, e.g.
+> SLICEL AMUX a5lut 62/78/163/202 ps). With the hop added (all 4 seeds rebuilt, md5s = builds.txt):
+> - **d gb fails ENTRY on 2 pins, not 3**: `ucontrol_merge3.uarb1.ua1` (guard `ugrant$LUT5`, an O5
+>   output) is certified (its new ENTRY ≥ 41; the row's min ENTRY is 41 ps). `merge3.uarb1.ua2` −51
+>   and `merge2.uarb1.ua2` −68 are unchanged. d gb is RESIDUAL 2, 61/63 certified.
+> - Every slow and fast row stays CLEAN; 3/4 gb stay CLEAN; 5 gb keeps its one Back residual.
+> - indep: d 12 / 3 17 / 4 **9** / 5 13 uncertified guarded pins; residual totals 21 / 30 / **19** / **22**.
+>   The indep non-guard Line residuals move both ways (some margins 60-80 ps worse); see A-e8mux.
+> - The line "ana's ENTRY rule listed only two of them (−26 and −52)" below is **wrong**:
+>   `events5/ana5_d_gb.txt` lines 6-8 list all three (merge2.ua2 −26, merge3.ua1 −52, merge3.ua2 −9).
+>   The −42 ps shift from those to the Lean numbers is the per-pin LUT band width (A-events6), not new inputs.
+> The original text is kept unchanged below.
+
 ## Verdict
 
 **Partly done.** GuardOK, the value-level hypothesis of `Events7.design_verdict7`, is no longer
@@ -68,10 +83,11 @@ How to read the table:
   | pin | ENTRY margin |
   |---|---|
   | `ucontrol_merge3.uarb1.ua2` pin 0 | −51 ps |
-  | `ucontrol_merge3.uarb1.ua1` pin 0 | −94 ps |
+  | `ucontrol_merge3.uarb1.ua1` pin 0 | −94 ps (**CORRECTED (E8Mux): an input artefact; certified with the O5 OUTMUX hop**) |
   | `ucontrol_merge2.uarb1.ua2` pin 0 | −68 ps |
 
-  ana's ENTRY rule listed only two of them (−26 and −52). The Lean bands use `plo − 1`/`phi − 1`
+  ana's ENTRY rule listed only two of them (−26 and −52). **[CORRECTED (E8Mux): wrong — ana5_d_gb.txt
+  lists all three, −26 / −52 / −9.]** The Lean bands use `plo − 1`/`phi − 1`
   steps and strict margins.
 - **indep (mixed corner): 12 / 17 / 12 / 13 uncertified pins (d / 3 / 4 / 5).**
   - ENTRY failures are 12 / 17 / 11 / 13, down to −1357 ps (d).

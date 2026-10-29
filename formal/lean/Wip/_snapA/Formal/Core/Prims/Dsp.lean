@@ -160,9 +160,21 @@ theorem ipow_cells_zsel :
 /-- The UG479 attribute defaults: AREG = ACASCREG = BREG = BCASCREG = CREG = MREG = PREG =
 INMODEREG = OPMODEREG = ALUMODEREG = CARRYINREG = CARRYINSELREG = ADREG = DREG = 1. -/
 def ug479Default : Cfg :=
-  { base with areg := 1, acascreg := 1, breg := 1, bcascreg := 1, creg := 1, mreg := 1,
-    preg := 1, adreg := 1, dreg := 1, inmodereg := 1, opmodereg := 1, alumodereg := 1,
-    carryinreg := 1, carryinselreg := 1 }
+  { base with
+    areg := 1
+    acascreg := 1
+    breg := 1
+    bcascreg := 1
+    creg := 1
+    mreg := 1
+    preg := 1
+    adreg := 1
+    dreg := 1
+    inmodereg := 1
+    opmodereg := 1
+    alumodereg := 1
+    carryinreg := 1
+    carryinselreg := 1 }
 
 /-- A cell left on the UG479 defaults is registered, so a reader that maps a missing register
 attribute to 0 puts it in the wrong class (audit row on research d4896fe, item b). -/
@@ -215,10 +227,16 @@ theorem sext18_small (b : Nat) (h : b < 2 ^ 17) : sext18 b = b := by
   unfold sext18; split <;> omega
 
 theorem zval_shr (p : Nat) (h : p < 2 ^ 47) : zval .pcinShr17 p = ((p / 2 ^ 17 : Nat) : Int) := by
-  unfold zval sext48; split <;> omega
+  have hm : p % 2 ^ 48 = p := Nat.mod_eq_of_lt (by omega)
+  show sext48 p / 2 ^ 17 = ((p / 2 ^ 17 : Nat) : Int)
+  have hs : sext48 p = (p : Int) := by
+    unfold sext48; rw [hm, if_pos h]
+  rw [hs]
+  omega
 
 theorem zval_pcin (p : Nat) (h : p < 2 ^ 48) : zval .pcin p = (p : Int) := by
-  unfold zval; omega
+  show ((p % 2 ^ 48 : Nat) : Int) = p
+  rw [Nat.mod_eq_of_lt h]
 
 /-- On non-negative operands that fit (A < 2^24, B < 2^17) and a non-negative Z with no
 48-bit overflow, the DSP is the natural-number `Z + A * B`. -/
@@ -252,13 +270,8 @@ def ipowMul (a b : Nat) : Nat := headP a b % 2 ^ 17 + 2 ^ 17 * (tailP a b % 2 ^ 
 def muli32 (a b : Nat) : Nat := (a * b) % 2 ^ 32
 
 theorem mul_lt_of_lt {a b m n : Nat} (ha : a < m) (hb : b < n) : a * b < m * n := by
-  have h := Nat.mul_le_mul (Nat.le_pred_of_lt ha) (Nat.le_pred_of_lt hb)
-  have h2 : (m - 1) * (n - 1) < m * n := by
-    have hm : 0 < m := by omega
-    have hn : 0 < n := by omega
-    have : (m - 1) * (n - 1) ≤ (m - 1) * n := Nat.mul_le_mul_left _ (by omega)
-    have : (m - 1) * n < m * n := Nat.mul_lt_mul_of_pos_right (by omega) hn
-    omega
+  have h1 : a * b ≤ a * n := Nat.mul_le_mul_left a (Nat.le_of_lt hb)
+  have h2 : a * n < m * n := Nat.mul_lt_mul_of_pos_right ha (by omega)
   omega
 
 theorem expand4 (a0 a1 b0 b1 : Nat) :
@@ -273,9 +286,9 @@ theorem ipowMul_eq (a b : Nat) : ipowMul a b = muli32 a b := by
   have hb0 : lo17 b < 2 ^ 17 := Nat.mod_lt _ (by decide)
   have ha1 : hi15 a < 2 ^ 15 := Nat.mod_lt _ (by decide)
   have hb1 : hi15 b < 2 ^ 15 := Nat.mod_lt _ (by decide)
-  have p00 : lo17 a * lo17 b < 2 ^ 34 := mul_lt_of_lt ha0 hb0
-  have p01 : lo17 a * hi15 b < 2 ^ 32 := mul_lt_of_lt ha0 hb1
-  have p10 : hi15 a * lo17 b < 2 ^ 32 := mul_lt_of_lt ha1 hb0
+  have p00 : lo17 a * lo17 b < 2 ^ 17 * 2 ^ 17 := mul_lt_of_lt ha0 hb0
+  have p01 : lo17 a * hi15 b < 2 ^ 17 * 2 ^ 15 := mul_lt_of_lt ha0 hb1
+  have p10 : hi15 a * lo17 b < 2 ^ 15 * 2 ^ 17 := mul_lt_of_lt ha1 hb0
   have hH : headP a b = 0 + lo17 a * lo17 b :=
     pOut_nat .zero _ _ 0 0 (by omega) (by omega) rfl (by omega)
   have hAc : acoutF mid.aCascade 0 (headAc a) = lo17 a := by
