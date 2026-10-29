@@ -1002,3 +1002,11 @@ the physical k-token stage needs a cross-token ack-before-request race that is N
 one of the six bd_link.stage rows, and a multi-token latch capture (EnTok cannot
 express it). Not done: fork/join, steer->mux diamond, rings (gcd_hw's loop has
 initial tokens).
+
+### progress 08:59
+Sweep: every Formal/Cells file re-compiled against the current tree (A's and C's
+pushes of today included) through the private olean build: all OK except
+ArbAnalog and ArbResolve (they import Mathlib analysis modules, e.g.
+Mathlib.Analysis.ODE.ExistUnique, that setup.sh has not built yet in this sandbox:
+not a B failure, re-check when setup finishes) and ResetGcd (failed once during the
+sweep, OK on re-run: transient, likely memory pressure from concurrent probes).
