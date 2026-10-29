@@ -95,6 +95,16 @@
   uenv1 passes by >= +167 ps (Python), so the failure comes from taking one shared hop at max on
   feedback and min on response. 64-stage Muller: slowE 1-8 of 64 stages fail per seed (mean
   3.9, was 7.2). Kernel-checked violating run: gcd4_fast_exact.
+- **Goal 3 tool (vk): works.** `formal/tools/verify/verify.sh <kernel> [--route DIR]`: MLIR
+  import + drift; committed hand proof re-checked against a fresh import; bounded search of
+  every schedule against the compiled C (prints the counterexample schedule or the infinite
+  loop); generated per-vector Lean theorems for any kernel (complete runs end with the C value;
+  no hand proof needed, listed vectors only); circuit-network regeneration check; tcheck on
+  routes with failing rows and arcs printed. PASS on gcd, ipow, collatz; xorshift proved on its
+  vectors; negative controls (swapped operands, changed constant, wrong C, bad timing) FAIL
+  with counterexamples; an equivalent mutant reports NOT PROVED (hand proofs are syntactic).
+  How-to: notes/C-vk-verify.md. ipow routed on 4 seeds: banded rows fail mostly via DSP
+  fallback arcs (known front-end gap).
 - **Gen: done.** All 36 cells/rtl modules generated from the project's yosys and tied to
   B's transcriptions (163 theorems); a flipped INIT breaks the build. bd_mem's BRAM opaque.
 - **Track 11 (netlist import): works for LUTs.** yosys import: binary next-state equal to
@@ -558,3 +568,6 @@ track 11. Routes re-made today byte-identical to the fixtures (nextpnr 9c732bc63
 10l2 committed after my own check.sh (RuleK.lean, 528 decls). Launched 10o (H_CHAIN_SETTLED as
 a timing row on real routes vs rule F) and 11g (whole-design Lean for seeds 2-4, second
 kernel). RingCheck docstring now names H_ONLY_LINKS_STORE (audit C2 3c).
+
+### progress 10:41
+vk committed (tool + note, no Formal files; selftest --quick OK in my run).
