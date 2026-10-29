@@ -1181,3 +1181,38 @@ here): lake build of every committed Formal module (all three shards, incl. ever
 Cells file committed this session up to Necessity7Mux*) and the axiom audit: OK,
 exit 0, no BAD declaration. The two analysis files ArbAnalog/ArbResolve, which the
 private sweep could not check before Mathlib was built, are in it.
+
+### progress 10:12
+In (checked here, axioms standard):
+- Bsa5 self-audit 5 (notes/B-self-audit5.md; SelfAuditB8; 14 mutants in Wip/Bsa5,
+  all FAIL). All 26 in-scope files re-check; gcdnet_gen net/map and the JSON
+  regenerate byte-identical (the map step depends on C's WIP Wip/C8m/netgen.py).
+  Nothing refuted. MAJOR (mine): PhysLink forces the link's request to toggle
+  forever (physLink_req_alternates; a request that eventually stops changing admits
+  no PhysLink), so gcd_hw_safe_phys_links and gcd_hw_safe_chains only apply to runs in
+  which EVERY link handshakes forever; C's witness chW violates their H_LINKS
+  (chW_fails_H_LINKS*), so neither has a joint witness, and a gcd computation that
+  finishes and goes quiet is OUTSIDE both. My earlier entries called this "infinite
+  runs only"; its consequence is that these two theorems say nothing yet about a
+  terminating gcd run. Fix probe (Bfin) launched. Also: WireOK does not pin the
+  table (a 13/14 request swap also meets it: wireOK_not_unique). OVERSTATED (mine):
+  h21_7j_bare's credited 3.8 ns server is inert (A0 never moves in that run);
+  LutFbBridge2's witnesses are fixed-delay with constant select, two join pins carry
+  one trace, muxJ1_lutFb has no witness; "H_ARB_EXCL holds as C states it" holds only
+  from B0 on under perpetual alternating contention (runs from reset excluded);
+  H_REARM's counter-run is a late edge relative to SpecK, not a hazard (reading);
+  reset_capstone_map_nonvac uses the frozen D=40 run, not ResetWitness2's. JSON:
+  a0_fork handover_scope cites Scn2 but its theorems use 7g's ArbA0Fork.Run;
+  gap_exact on bd_c2.env_latency should be context, not exact_inner (next JSON pass).
+- Bseg AssumeGuaranteeEnds{,Net,Cap} (notes/B-assume-guarantee-ends.md):
+  net_closed_gen (per-pin dependency bounds); celG_segK for C-elements with any pin
+  count on the real bd_c2 / bd_c3 / bd_c4 (correction to Bnet: forks N <= 4 are ONE
+  flat LUT, not trees; only forkH5/H6 are trees; join1 is a wire); steer_segK (a
+  branch firing on a token subset, H_SEL_STABLE + enumeration); mixed_closed derives
+  each link's Env1 in any network of link / C-element / steer-branch specs plus
+  contracts. gcd_hw_safe_net: 301/367 operators gate-modelled; contracts remain for
+  the 38 steer uack ORs and all of mux 21, muxn 1, amerge 9, src 3, sink 18, fork
+  trees 3. Trade-off: departure bounds and wire spacing are ASSUMED as edge-time
+  inequalities, so it neither implies nor is implied by gcd_hw_safe_chains. No
+  whole-net witness; the same infinite-handshake limitation very likely applies
+  (link specs alternate forever) -- Bfin to check.
