@@ -683,3 +683,17 @@ effect. iverilog (unmodified research sources): arbiter 120 runs 0 mismatches, 1
 controls fail. Not covered: X, FID_LEVEL_PS != 0, multi-cell loops, closed-loop server, ugrant pin skew; how
 often this can happen in gcd_hw (needs a near tie and a server answering within trp <= ~647 ps). For B: no
 bd_arbiter row bounds the q node's resolution time.
+### progress 10:27
+E8ArbFix done (Lean check pending: Events9Arb.lean, Events9ArbBeh.lean). **Negative: with the corrected arbiter
+core no gcd_hw row is CLEAN.** E8Arb's §4 fix was itself insufficient (shadow grants reading ctl through one (1,1)
+pin do not fix D1: R0 and the grant read q over arcs hundreds of ps apart), so every virtual node now has F=Q=(1,1)
+and the whole read sits in per-reader pin bands (K = min(Dq(g1),Dq(g2),Dq(R0)-2)-2, ...). Lean (claimed after check):
+core_of_settle -- the real bd_arbiter (per-pin model, real INITs) is a behaviour of the corrected core under a settle
+bound H and per-reader B1 (RT1/RT1b), B2 (rise protocol), C (fall protocol); non-vacuous (ho3_fix), and no old-core
+behaviour (settle_not_old). Pipeline (xevents9, E8Mux bands, 16 rows): old mode byte-identical; corrected core
+RESIDUAL >= 54 on every row -- 54 structural (6 per arbiter x 9: grant ctl-pin Back, shadow request-pin Back, A_b
+guard walk), all relying on 'R0 is a merge of the grants', which is false for the real cell; closing them needs a
+lower bound on the grant's count from the shadow's, which no log rule gives. All 830 real Back pins certified as
+before. Recorded runs: old core wrong on 54/64 (N1) runs, corrected core 576/576 arbiter-runs match, mutations
+caught (31/576, 128/576). model.py now builds the corrected core by default (XA_ARB=old for the old one). Probe
+E9Par launched (liveness rule for the shadows).
