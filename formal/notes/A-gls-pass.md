@@ -1,5 +1,11 @@
 # A-gls-pass: what a passing research-GLS run does and does not imply
 
+STATUS (2026-10-29, probe GLSFix): BUILDS. The audit's refutation was right: `skew_fval` used `d` without
+binding it, so the file only elaborated with autoImplicit=true. Fixed by binding it (`{d p w : Nat}`,
+exactly the binder autoImplicit had inserted, so no statement changed). Now passes
+`formal/check.sh Formal/Core/Delay/GLSPass.lean` (autoImplicit=false): 263 declarations, [check] OK.
+See notes/A-glsfix.md.
+
 Probe GLSimp. PROGRAM.md Phase 2, item A, second half: "prove what a passing GLS run does and
 does not imply". The channel itself is in `Formal/Core/Delay/SAF.lean` (notes/A-delay-saf.md).
 This file adds the *run*. Namespace `Formal.Core.GLSPass`. Discrete time (ℕ, 1 step = 1 ps,

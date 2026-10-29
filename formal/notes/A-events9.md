@@ -1,6 +1,13 @@
 # A-events9 (probe HDsub): HDsub proved by a first-reach SUB rule (shard A)
 
-Status: IN PROGRESS (session 2026-10-28). Lean written, being compiled; rows not yet rerun.
+STATUS (2026-10-29, probe HDsub, resumed): IN PROGRESS. Plan: (1) compile the dependency
+chain into a private overlay (Mathlib-free), (2) move Wip/_snapA Events9{Cert,Beh,Main} to
+Formal/Core/XAudit/ and make them check under check.sh, (3) run xevents9 (via `lean --run`
+or a compiled binary) on gcd_hw R5 seeds d/3/4/5 x slow/fast/gb/indep, compare with
+xevents8 on the same committed bands, (4) negative controls, (5) rerun on E8Mux bands if
+notes/A-e8mux.md reports them.
+
+(2026-10-28 text: Lean written, being compiled; rows not yet rerun.)
 
 ## Idea (the rule `dsub9`)
 
