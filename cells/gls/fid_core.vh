@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // fid_core.vh -- the opt-in "silicon-like" primitive core (F3).  Included by
-// gls/prims.v under GLS_FID and by sim/bd_prims_sim.v under BD_FID; nothing
-// here is compiled into the default GLS or the default cell simulation.
+// gls/prims.v under GLS_FID (sim/bd_prims_sim.v has no BD_FID path in the
+// tree; see f3_model.md); nothing here is compiled into the default GLS.
 //
 // research/data/fid/f3_model.md has the measurements and the negative
 // controls.  In short:

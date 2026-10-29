@@ -11,11 +11,11 @@ the same md5s as F1's rebuild).
 | mechanism | where | switch |
 |---|---|---|
 | LUT6/LUT5 and MUXF7/8: transport delay per input pin, output = mux tree of the delayed pins | `cells/gls/fid_core.vh` (`FID_LUT6`, `FID_MUX2`), used by `prims.v` | `-DGLS_FID` (build.sh: `GLS_MODEL=fid`) |
-| metastability on a LUT state node (output routed back into its own pin) | `FID_RESOLVE`; gen.py finds the self-loops and passes `META6/5`, `TLOOP6/5` (feedback wire + arc), `SEED` | same |
+| metastability on a LUT state node (output routed back into its own pin) | `FID_RESOLVE`; gen.py finds the self-loops and passes `META6/5`, `TLOOP6/5` (feedback wire + arc), `FB6/5` (the feedback pin mask, since 055edd7), `SEED` | same |
 | flop aperture: random old/new choice plus extra clock-to-Q | `prims.v` `SLICE_FFX` under `GLS_FID` | same |
 | within-die variation: per-region correlated factor | `gen.py` `GLS_SCATTER_REGION`, `GLS_REGION_SLICES` | env |
 | board position in the corner band | `gen.py` `GLS_SDF_FIELD=band`, `GLS_SDF_BAND` (default 0.38) | env |
-| the same LUT model for the cell testbenches | `cells/sim/bd_prims_sim.v` under `BD_FID` | `BD_SIM_DEFS=-DBD_FID` |
+| the same LUT model for the cell testbenches | **not in the tree**: a `BD_FID` path in `cells/sim/bd_prims_sim.v` was used for section 5's runs from an uncommitted copy and never landed (`git log -S BD_FID` on that file is empty; audit r18 #10). The cell benches cannot run fid from a checkout. | - |
 | single-corner cell arcs (the refuted rise/fall row) | `cells/sim/bd_prims_sim.v` | default slow max, `-DBD_FAST_MIN` |
 
 ### The default build is unchanged
@@ -84,9 +84,13 @@ delta = p - (TLOOP - WIN/2) + N(0, WIN/4) (p = runt width). Then:
 - Otherwise the node resolves to the runt value (delta > 0) or back, after
   t_r = TAU ln(WIN / 2|delta|), clipped at 40 TAU. For a uniformly distributed
   offset this gives P(t_r > t) = exp(-t/TAU).
-- The loop's echo of the runt is ignored until TLOOP after resolution. The
-  node is then re-evaluated, so a genuine input change in that window is late,
-  not lost.
+- Since 055edd7 the feedback pin is evaluated from the node's committed state
+  (FB6/FB5), so a runt has no echo and no input change is ignored; a drive
+  away from the held value during a resolution ends it as an ordinary edge.
+  Before that, the echo was masked by ignoring every change for TLOOP after
+  the runt, which lost genuine follow pulses (audit r16 follow_lost; the
+  regression is fid/f3/tb_f3_follow.v). Every fid result before 055edd7 used
+  the old resolver.
 - `+META_X=1` makes the node x while it resolves.
 
 TAU = WIN = 150 ps for a LUT loop is an **assumption**: no figure was found.
@@ -193,7 +197,8 @@ order. Every hazard it finds falls into one of three classes:
 No library cell's correctness rests on glitch-freedom beyond its protocol and
 bundling obligations. That is a judgement per class, not a proof per instance.
 
-Empirical check: run_sim.sh in a copy of cells/ with `-DBD_FID` (the cell
+Empirical check (from an uncommitted BD_FID copy of bd_prims_sim.v, see the
+table at the top; not reproducible from the tree): run_sim.sh in a copy of cells/ with `-DBD_FID` (the cell
 netlists have direct feedback, so state nodes are detected at run time: a
 pin that followed 3 consecutive output edges and never missed one). With
 `+FID_LIST`, tb_arb lists exactly ua1, ua2, ustate and ucell.ustate. An
