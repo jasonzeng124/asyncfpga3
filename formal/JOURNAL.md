@@ -582,3 +582,15 @@ band rows now rejected by routed2x (or hulled with --inverted hull, reported). N
 required (NEGmux restores -94 exactly). notes/A-events8.md corrected (line-74 claim wrong). Open: Parse.toSteps
 still narrows lo>hi to [lo,lo] (asked XInert, which owns Parse.lean now); events5-7/9, kapres, xaudit-gcd
 results rest on the old bands and need reruns (HDsub and KapRes2 told).
+### progress 08:55
+GLSResolve claimed: Formal/Core/Delay/GLSResolve.lean (check.sh with GLSFid: 665 decls, [check] OK,
+Lean core; file md5 unchanged between check and commit). FID_RESOLVE (research fid_core.vh:47-119 @6524fa3)
+as a per-step state machine on bd_c2's single-cell loop (binary, xmode=0, feedback = o delayed TLOOP,
+FID_LEVEL_PS=0; draws and resolution law free, so for every seed/TAU; runs exist and are unique). Proved:
+a rejected runt is emitted full-swing; a commit with trp>0 gives two rising edges; a run with no RUNT/META
+line = B's CElemTiming.Loop at that point (noRunt_loop), and B's four-phase hypotheses imply the resolver
+never fires; seed dependence for every runt; hides_oscillation; follow_lost (a following wide pulse ending in
+the ignore window is lost forever, vs B's c2_follow_hold). The resolver silently assumes an environment
+hypothesis B does not have (no input change that vanishes within trp+TLOOP+1 after a runt). iverilog on the
+unmodified sources: 480/480 pulses match; META_OFF control 10/12 mismatches. Not covered: X/META_X, multi-cell
+loops, other cells (GLSResolve2 running), FID_LEVEL_PS != 0. FOR-RESEARCH §8 extended.
