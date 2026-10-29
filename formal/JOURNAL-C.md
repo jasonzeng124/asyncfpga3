@@ -27,19 +27,27 @@
   xorshift is new at token level (every seed, every 32-bit rounds) and circuit level
   (`xorshift_circuit_safe`), collatz at circuit level conditional on C termination
   (unconditional 1 <= n < 256). Negative controls (mutated MLIR constant, walk row) fail the
-  build. Witnesses that latch a value: gcd (8t) and ipow (audit) only, not yet collatz/xorshift.
+  build. Witnesses that latch a value (wit): xorshift (seed 2463534242, rounds 4 -> 2008045182),
+  collatz (n=7 -> 16), expected values from gcc on kernels/*.c; `gcd_rig_all_witness`: one rig
+  run (12/18) re-offering start during out0's return-to-zero, latching 6 twice. Unit delays,
+  one input each; the rig witness needs a start high at reset (an all-low start cannot rise
+  under RigEnv).
   Rig (re-offers start): EVERY result (8s3): `gcd_rig_all` -- under H_CELLS (without
   Src.iz), H_BUNDLE, the rig's env gates `RigEnv` (uenv1/uenv0 = C(a,not b), from the INIT)
   and a, b < 2^31, every value out0 offers or latches, in every invocation, is gcd a b.
   Invocations overlap (out0's return-to-zero, a lagging sink branch) harmlessly; the needed
-  env condition H_START_GATE is derived from gcd_rig.v's env cells, not assumed. Witness: only
-  the all-quiet run (no >= 2-invocation run built). Not: liveness, CMPD/compare logic.
+  env condition H_START_GATE is derived from gcd_rig.v's env cells, not assumed. Witness: a
+  two-latch rig run (wit). Not: liveness, CMPD/compare logic.
   Liveness: 8z's open obligation H_NO_DEADLOCK' is FALSE as stated (`nd_counterexample`, 8z2:
   a run meeting the other six hypotheses where start's LUT never releases its request, so
   out0 never closes). Repaired: `gcd_hw_live_final2` -- first out0 within an explicit bound,
   value gcd -- under the same cell/env hypotheses plus H_START_REL (start's request falls
   within H of its ack; shown necessary) and the weaker H_NO_DEADLOCK'' (OPEN; 320 random
-  bounded-delay runs: no deadlock; 8z3 on it). Joint witness for every hypothesis of both
+  bounded-delay runs: no deadlock). 8z3: every gcd_hw gate is persistent under H_CELLS,
+  H_BUNDLE, H_START_ONCE (`gcd_hw_persistent_all`) EXCEPT the 22 mux input-ack C-elements,
+  whose falling excitation can be withdrawn (`mux_full_pers_false`, local; reachable in
+  simulation, never deadlocking), so the confluence route needs repair; 8z4 tries the walk
+  route. Joint witness for every hypothesis of both
   theorems: one run (12/18, H=1) closing out0 at tick 473 with 6. Do not cite 8u's
   `gcd_hw_live` (likely vacuous) or 8z's `gcd_hw_live_final` as a liveness result.
   Physical refinement (8x): under per-arc BoundedDelay semantics (glitches allowed) a node
@@ -49,7 +57,14 @@
   drops H_BUNDLE for per-channel certificates, but needs H_ZD_AGREE (physical trace agrees with
   an Ops trace) and H_DERIVED (376 of 465 channels have no tcheck row): both OPEN (8x2 on
   them). The generated-cell derivation of the gate fields is not yet composed into H_CELLS
-  (O4 on it). Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
+  (O4): done with named gaps -- `gcd_hw_circuit_safe_gen` / `gcd_rig_all_gen` replace H_CELLS by
+  H_GEN (each of the 367 operator instances obeys its yosys-generated netlist, LUT outputs move
+  to their function of the previous tick's inputs) plus three timing conditions shown REAL by
+  kernel-checked counterexamples: H_CHAIN_SETTLED (side-tapped delay chains, incl. bd_link's
+  uack, can emit a runt: `fastfall_hazard`), H_LEAF_PERSIST (two-level C-trees, fork N=5,6),
+  H_WIRE_DI (cells whose req/ack are literally one net need a >= 1-tick route). Data paths,
+  selects, grants, H_R0_ISO stay copied hypotheses; a flipped INIT bit breaks the proof. Joint
+  witness for H_GEN only quiet. No tcheck row checks H_CHAIN_SETTLED yet. Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
   fork (8a); gate level for every n (9c); Muller feedback condition from delay bounds, exact,
   n<=3 (MullerTimed). Hypotheses: notes/C-gcd_hw-hypotheses.md §0.
 - **Track 10 (verified timing checker): works; delay data is the limit.** Interval STA
@@ -518,3 +533,7 @@ underived channels).
 theorems' axioms standard, 0 CERTBAD). Same 16 routes byte-identical. r10l rows regenerated
 with the newer rule K (103 flips): that is 10l2's to interpret. 11f, O4, wit, 8z3 under my
 checks.
+
+### progress 10:36
+Committed after my own check.sh: wit (8 files, 4697 decls), O4 (6 files, 4911), 8z3 (7
+files, 4034); axioms standard. Launched 8z4. 11f's check running.

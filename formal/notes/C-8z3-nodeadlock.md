@@ -27,13 +27,16 @@ all reachable states, then Keller confluence) is now settled, both ways.
      - `z_ack` is low;
      - the back-edge token `y` is already through `j1` and `z_req`.
      Here `x_ack` is excited to fall. If `z_ack` rises first, `x_ack` is no longer excited.
-     The `decide` over the whole table that claimed full persistence was **refuted by the
-     kernel**: an unweakened `mux_pers_tbl` does not check.
+     The kernel also proves that the unweakened claim (all six mux gates persistent over the
+     table) is false: `mux_full_pers_false` in `CapstoneLiveNd3Neg`.
    - Whole network (simulation, untrusted): `Wip/C8z3/persim_slowack.py`.
      - Setup: 8z2's bounded-delay harness, except the mux input acknowledges get delay 300
        and every other gate gets [1, 4].
      - Result for a = 12, b = 18: 8 persistence violations at 8 different loop-header
        muxes, out0 = 6, no deadlock.
+     - The 10 fixed vectors of 8z2's set (incl. 2^31-1 / 2^31-2): 196 violations in total,
+       all at mux input acknowledges. Every run closes out0 with the gcd, none deadlocks
+       (`persim_slowack.out`).
      - So the hazard is reachable under the hypotheses of `gcd_hw_live_final2` with
        H ≥ 300. It takes a whole loop traversal racing one C-element.
    - Consequence: Keller's theorem (persistent ⇒ all maximal runs confluent ⇒ one schedule
@@ -143,8 +146,9 @@ gives the walk position) is excited. Needed:
 
 8u estimated 2-3 days. This probe did not attempt it.
 
-**Evidence that it holds.** C-8z2: 320 random bounded-delay runs. This probe: 3 runs with
-slow mux acknowledges (a = 12/18, 0/5, 7/0). No deadlock in either set.
+**Evidence that it holds.** C-8z2: 320 random bounded-delay runs. This probe: the 10 fixed
+vectors with slow mux acknowledges, which exercise the non-persistent paths 196 times. No
+deadlock in either set.
 
 ## Hypotheses and non-vacuity
 
@@ -162,27 +166,44 @@ models.
 | file | contents |
 |---|---|
 | `formal/lean/Formal/Net/CapstoneLiveNd3Loc.lean` | `AllB`, `send_stay`, `recv_stay`, `src_pers`, `sink_pers`, fork/join/steer lemmas (`f1 f2 j1 j2 st1 st2 st3`, `fork_*_pers`, `join_*_pers`, `steer_*_pers`), `MPers`, **`mux_pers_tbl`**, `mux_step_pers`, **`mux_ack_not_pers`**, `APers`, `GPers`, `amerge_pers_tbl`, **`grant_pers_tbl`**, `amerge_step_pers`, `grant_step_pers`, `LPers`, `link_pers_tbl`, `link_step_pers` |
-| `formal/lean/Formal/Net/CapstoneLiveNd3MuxN.lean` | `NPers`, `NPersAt`, `npers0..3` (kernel, by select), `npers_all`, `muxn_step_pers` |
+| `formal/lean/Formal/Net/CapstoneLiveNd3MuxN.lean`, `...MuxN1.lean`, `...MuxN2.lean` | `NPers`, `NPersAt`, `NPersS`, `npers0` / `npers1` / `npers2`, `npers3` (kernel, one select each; split to bound memory), `npers_all`, `muxn_step_pers` |
 | `formal/lean/Formal/Net/CapstoneLiveNd3Pers.lean` | `Pers`, `PersB`, `ZRise`, `pers_fork/join/steer/link/amerge/mux/src/sink`, **`gcd_hw_persistent`**, **`gcd_hw_mux_persistent`** |
 | `formal/lean/Formal/Net/CapstoneLiveNd3.lean` | `pers_muxn`, **`gcd_hw_muxn_persistent`**, **`gcd_hw_persistent_all`** |
+| `formal/lean/Formal/Net/CapstoneLiveNd3Neg.lean` | `MPersFull`, **`mux_full_pers_false`** (kernel: full local mux persistence is false) |
 | `formal/lean/Wip/C8z3/muxcheck.py`, `muxncheck.py` | Python mirrors of the table checks (which gates fail) |
-| `formal/lean/Wip/C8z3/persim_slowack.py` | 8z2's harness with slow mux acknowledges: whole-network persistence violations |
+| `formal/lean/Wip/C8z3/persim_slowack.py`, `persim_slowack.out` | 8z2's harness with slow mux acknowledges: whole-network persistence violations (10 vectors) |
 | `formal/lean/Wip/C8z3/Axioms.lean` | `#print axioms` |
 
-No existing file was edited. The lead must add the 4 modules to `Formal.lean`.
+No existing file was edited. The lead must add the 7 modules to `Formal.lean`.
 
 ## Commands
 
     cd /home/user/asyncfpga3/formal
-    for m in CapstoneLiveNd3Loc CapstoneLiveNd3MuxN CapstoneLiveNd3Pers CapstoneLiveNd3; do
-      ./slot.sh lake build Formal.Net.$m; done
+    for m in CapstoneLiveNd3Loc CapstoneLiveNd3MuxN CapstoneLiveNd3MuxN1 CapstoneLiveNd3MuxN2 \
+      CapstoneLiveNd3Pers CapstoneLiveNd3 CapstoneLiveNd3Neg; do ./slot.sh lake build Formal.Net.$m; done
     ./check.sh Formal/Net/CapstoneLiveNd3Loc.lean Formal/Net/CapstoneLiveNd3MuxN.lean \
+      Formal/Net/CapstoneLiveNd3MuxN1.lean Formal/Net/CapstoneLiveNd3MuxN2.lean \
       Formal/Net/CapstoneLiveNd3Pers.lean Formal/Net/CapstoneLiveNd3.lean
+    ./check.sh Formal/Net/CapstoneLiveNd3Neg.lean
     ./slot.sh lake env lean Wip/C8z3/Axioms.lean
     cd lean && python3 -I Wip/C8z3/muxcheck.py && python3 -I Wip/C8z3/muxncheck.py
-    python3 -I Wip/C8z3/persim_slowack.py 3 4        # SLOW=300 default; ~2 min
+    python3 -I Wip/C8z3/persim_slowack.py 10 4       # SLOW=300 default; ~15 min
 
-Results: see "Check results" below.
+Check results (2026-10-29):
+- `check.sh` on the 6 main files: `[audit] 4031 declarations checked`, `[check] OK`.
+  On `CapstoneLiveNd3Neg`: `[audit] 1000 declarations checked`, `[check] OK`.
+- Axioms:
+  - `gcd_hw_persistent`, `gcd_hw_mux_persistent`, `gcd_hw_muxn_persistent` and
+    `gcd_hw_persistent_all` use {propext, Classical.choice, Quot.sound};
+  - `mux_pers_tbl`, `grant_pers_tbl` and `npers0` use none;
+  - `mux_ack_not_pers` uses propext.
+- Kernel cost (`lake build`, GNU time):
+  - `CapstoneLiveNd3MuxN` 46 s, 2.8 GB peak;
+  - `CapstoneLiveNd3MuxN1` 39 s, 2.3 GB;
+  - `CapstoneLiveNd3MuxN2` 73 s, 2.3 GB;
+  - `Loc` about 10 s; the rest under 5 s and 0.8 GB.
+  - The 3-way-mux chunks are one select value per `decide`, already the finest split of
+    8l's encoding, and they stay above the 2 GB guideline. Build them one at a time.
 
 ## What it does NOT show
 
