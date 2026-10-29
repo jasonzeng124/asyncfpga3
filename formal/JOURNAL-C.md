@@ -34,8 +34,14 @@
   Invocations overlap (out0's return-to-zero, a lagging sink branch) harmlessly; the needed
   env condition H_START_GATE is derived from gcd_rig.v's env cells, not assumed. Witness: only
   the all-quiet run (no >= 2-invocation run built). Not: liveness, CMPD/compare logic.
-  Liveness: `gcd_hw_live_final` -- first out0 within an explicit bound, value gcd -- open in
-  H_NO_DEADLOCK', no joint witness (8z2). Do not cite 8u's `gcd_hw_live` (likely vacuous).
+  Liveness: 8z's open obligation H_NO_DEADLOCK' is FALSE as stated (`nd_counterexample`, 8z2:
+  a run meeting the other six hypotheses where start's LUT never releases its request, so
+  out0 never closes). Repaired: `gcd_hw_live_final2` -- first out0 within an explicit bound,
+  value gcd -- under the same cell/env hypotheses plus H_START_REL (start's request falls
+  within H of its ack; shown necessary) and the weaker H_NO_DEADLOCK'' (OPEN; 320 random
+  bounded-delay runs: no deadlock; 8z3 on it). Joint witness for every hypothesis of both
+  theorems: one run (12/18, H=1) closing out0 at tick 473 with 6. Do not cite 8u's
+  `gcd_hw_live` (likely vacuous) or 8z's `gcd_hw_live_final` as a liveness result.
   Not covered: the physical -> zero-delay refinement that would let tcheck discharge
   H_BUNDLE (8x); the generated-cell derivation of the gate fields is not yet composed into
   H_CELLS. Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
@@ -477,3 +483,7 @@ every rig result is gcd a b; see the track-8 verdict. Non-vacuity only via the q
 OK (gcd, ipow byte-identical), dfimport/check.sh ok incl. xorshift. Launched O4 (bind the Ops
 models to the generated cells: H_CELLS from LUT/wire hypotheses) and wit (witness runs for
 gcd_rig_all with >= 2 invocations, xorshift, collatz). 12d, 8s3 committed above.
+
+### progress 09:49
+8z2 committed after my own check.sh (17 files, 4328 decls, standard axioms): see the
+liveness lines of the track-8 verdict. Launched 8z3 (prove H_NO_DEADLOCK'').
