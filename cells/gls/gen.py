@@ -287,7 +287,7 @@ RE_INST = re.compile(r"\(INSTANCE\s+(\S*?)\)")
 RE_IO   = re.compile(r"\(IOPATH\s+(\S+)\s+(\S+)\s+\((\d+):(\d+):(\d+)\)")
 RE_IC   = re.compile(r"\(INTERCONNECT\s+(\S+)\s+(\S+)\s+\((\d+):(\d+):(\d+)\)")
 RE_SH   = re.compile(r"\(SETUPHOLD\s+\((\w+)\s+(\w+)\)\s+\((\w+)\s+(\w+)\)"
-                     r"\s+\((\d+):\d+:\d+\)\s+\((\d+):\d+:\d+\)")
+                     r"\s+\((-?\d+):-?\d+:-?\d+\)\s+\((-?\d+):-?\d+:-?\d+\)")
 
 
 def unesc(s):
