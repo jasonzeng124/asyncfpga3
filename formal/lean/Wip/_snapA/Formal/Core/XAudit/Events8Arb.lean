@@ -372,10 +372,8 @@ theorem ho_pin : ArbPin Bho lowc oneS lowc a0h qh R0h lowc g2h := by
     rw [st_eq]
     simp only [lowc, oneS, qh, a0h, Bool.false_or]
     by_cases h : t - 1 < 10
-    · have e : decide (t - 1 < 10) = true := by simp; omega
-      rw [e]; simp; omega
-    · have e : decide (t - 1 < 10) = false := by simp; omega
-      rw [e]; simp; omega
+    · simp only [h, decide_true, ite_true]; rw [Bool.eq_iff_iff]; simp; omega
+    · simp only [h, decide_false, Bool.false_eq_true, ite_false]; rw [Bool.eq_iff_iff]; simp; omega
   · intro t
     show R0h t = o5B ARB_ST [lowc (t - 1), oneS (t - 1), qh (t - 1), lowc (t - 1), a0h (t - 1), true]
     rw [r0_eq]; simp only [lowc, oneS, qh, R0h]; rw [Bool.eq_iff_iff]; simp; omega

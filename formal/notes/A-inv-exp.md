@@ -1,6 +1,6 @@
 # A-inv-exp: the real exp-channel as an involution pair, slope bounds, loop resolution rate (probe InvExp)
 
-STATUS (09:20 UTC): DONE pending the lead's check.sh rerun. File: `formal/lean/Formal/Core/Delay/InvolutionExp.lean`
+STATUS (09:17 UTC): DONE. check.sh OK (below). File: `formal/lean/Formal/Core/Delay/InvolutionExp.lean`
 (Mathlib `Analysis.SpecialFunctions.Log.Basic` + `Analysis.Real.Sqrt`; both oleans present this session).
 Check command and result: see "Check" at the end. `Wip/InvTrace/ExpReal.lean` is superseded by it
 (its `realExpLog'` is `realExpLog` here, its `real_exp_channel_runt` is `expR_pulse_cancel_iff`); the
@@ -129,4 +129,9 @@ resolution-time histogram, A-fid3).
       Formal/Core/Delay/InvolutionExp.lean
 
 (the first six are listed only because their oleans are not in `.lake/build`; none is edited.)
-Result: PENDING (filled in below when the run finishes).
+Result (09:13 UTC): `[audit] 1227 declarations checked` / `[check] OK` (count covers all seven modules).
+The three unused-variable linter warnings of the first compile were removed (unused hypotheses dropped); a warning-free rerun was not separately checked.
+
+Controls (`Wip/InvExp/NegControl.lean`, not claimed, compiled against a scratch overlay): (1) claiming the
+slope lower bound with 2κ from `slope_lower` fails (type mismatch); (2) the threshold pulse Δ = τ ln 2 is
+cancelled: elaborates; (3) the same proof for Δ = 1.01·τ ln 2 fails (application type mismatch at `le_rfl`).

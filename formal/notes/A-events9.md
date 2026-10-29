@@ -1,7 +1,7 @@
 # A-events9 (probe HDsub): HDsub proved by a first-reach SUB rule (shard A)
 
-STATUS (2026-10-29, probe HDsub): Lean DONE in a private overlay (0 errors, no sorry), 16 rows
-rerun; xevents8 comparison and negative controls: see "Runs" (filled in as they finish).
+STATUS (2026-10-29, probe HDsub): DONE. Lean checked (check.sh OK, no sorry), 16 rows on old bands +
+16 rows on E8Mux corrected bands, xevents8 comparison byte-identical, 4 negative + 1 positive control as expected.
 check.sh OK (see "Check").
 
 ## Verdict
@@ -171,3 +171,37 @@ pin 0's BACK-G `dsub` line; outputs `xe9_d_slow_<tag>.txt`):
 
 POSws1 shows the appended-walk machinery is accepted by runLog and WSOK, so NEGwsTok's
 rejection is the token bound and nothing else.
+
+**xevents9 on the E8Mux corrected bands** (OUTMUX hop on O5/MUXF/CARRY4 exits; E8Mux's
+`w/<seed>/new/` skeletons and bands, each band file passed `e8mux/checkbands.py`; run as
+`TAG=_new run9.sh`, outputs `xe9_<seed>_<corner>_new.txt`, table `table9_new.txt`). Every row:
+126/126 dsub lines with a valid wS, log accepted. Each output differs from E8Mux's
+`e8mux/results/xe_<seed>_new_<corner>.txt` (xevents8, same bands) in exactly the same 4 wording
+lines, so every item, margin and residual equals A-e8mux's NEW table:
+
+| seed | corner | guarded certified | min BACK-G / ENTRY / EXIT1 / EXIT2 (ps) | residual guard / all | verdict |
+|---|---|---|---|---|---|
+| d | slow | 63/63 | 5655 / 532 / 3014 / 4916 | 0 / 0 | CLEAN |
+| d | fast | 63/63 | 2772 / 247 / 1284 / 2087 | 0 / 0 | CLEAN |
+| d | indep | 51/63 | 2121 / 60 / 755 / 1284 | 12 / 21 | residual |
+| d | gb | 61/63 | 4258 / 41 / 2077 / 3736 | 2 / 2 | residual |
+| 3 | slow | 63/63 | 5300 / 422 / 1515 / 3470 | 0 / 0 | CLEAN |
+| 3 | fast | 63/63 | 2402 / 184 / 617 / 1448 | 0 / 0 | CLEAN |
+| 3 | indep | 46/63 | 1822 / 451 / 1742 / 5283 | 17 / 30 | residual |
+| 3 | gb | 63/63 | 4145 / 88 / 832 / 2482 | 0 / 0 | CLEAN |
+| 4 | slow | 63/63 | 5911 / 802 / 1877 / 3156 | 0 / 0 | CLEAN |
+| 4 | fast | 63/63 | 2613 / 355 / 798 / 1330 | 0 / 0 | CLEAN |
+| 4 | indep | 54/63 | 2037 / 36 / 63 / 407 | 9 / 19 | residual |
+| 4 | gb | 63/63 | 4560 / 185 / 1297 / 2287 | 0 / 0 | CLEAN |
+| 5 | slow | 63/63 | 5121 / 802 / 2322 / 3820 | 0 / 0 | CLEAN |
+| 5 | fast | 63/63 | 2249 / 343 / 986 / 1574 | 0 / 0 | CLEAN |
+| 5 | indep | 50/63 | 2697 / 64 / 508 / 710 | 13 / 22 | residual |
+| 5 | gb | 63/63 | 3997 / 283 / 1567 / 2827 | 0 / 1 | residual |
+
+Same 11 CLEAN rows as on the old bands; d gb is RESIDUAL 2 (was 3). (H-variant bands not rerun.)
+
+## Next
+
+HDsub is closed. What a CLEAN row still assumes is H_ARB, SelOK, SelPart (probe E8Hyp) and
+the trusted parser/mapping. The indep residuals are real margin failures under the independent
+corner model; the d gb guard residuals (2 on corrected bands) are ENTRY margins.
