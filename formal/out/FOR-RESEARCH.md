@@ -160,7 +160,10 @@ concern cells, the flow and the board.
   # results/<kernel>/summary.txt, disagree.tsv; guide: formal/notes/C-howto-new-kernel.md
   ```
 
-## 6. GLS: early edges in sample-at-fire primitives — PARTLY FIXED
+## 6. GLS: early edges in sample-at-fire primitives — FIXED under GLS_MODEL=fid (78de9c2; default build still SAF)
+
+**Status 2026-10-29 (6524fa3, notes/A-fid3.md):** CARRY4 and SLICE_LATX are per-pin transport under fid; acceptance values met (O0 1223/1233/1423, LQ 3100/3110/3160); multi-pin CARRY4 check 60/60 (default model 2/60, so the check can fail). DSP48E1 still SAF.
+
 - **Finding (proved):** an iverilog `-gspecify` module path is "sample at fire".
   - A change at t schedules an update at t+d, which copies the function value at fire time.
     Nothing is cancelled.
@@ -190,6 +193,9 @@ concern cells, the flow and the board.
   3110 and 3160 (now: 3100 only).
 
 ## 7. GLS: X handling of latch and flop — OPEN
+
+**Status 2026-10-29 (6524fa3):** unchanged in both models (flop reads x on SR/CE as 0; latch X pessimistic). New: `tb_f3_kleene_ff` now codifies the X-hiding flop as correct. Tested fix: `formal/tools-A/glsdiff3/run-1029/patch/prims_x.diff` (L1-L3 = 0, F1/F2 = x in both models; run_f3.sh passes except its negative-control sed, whose target line is gone; retargeted mutation in notes/A-fid3.md §4).
+
 - **Finding** (re-run for this file, default and fid identical; `tb_seq_x.v`):
   - `SLICE_LATX` is pessimistic. Cases L1-L3 give x where the Lean `LDCE_INIT` gives 0.
   - `SLICE_FFX` hides X on SR and CE. Cases F1 and F2 give 1 where the result is x.
@@ -211,6 +217,9 @@ concern cells, the flow and the board.
 - **Test:** `run_all.sh` as in §6. `CASE L1..L3` should print 0, and `F1`, `F2` should print x.
 
 ## 8. GLS: FID_RESOLVE decides at the wrong point; scatter is unbounded — OPEN
+
+**Status 2026-10-29 (6524fa3):** unchanged; the 50% point is exactly TLOOP − WIN/2 (349 ps at TLOOP 424). Proposed change: `formal/tools-A/glsdiff3/run-1029/patch/fid_core_centre.diff` (`+META_CENTRE_PM`, default 500 = TLOOP/2), tb_f3_meta at DT = TLOOP/2, use `+META_X=1` for evidence runs (the involution loop emits a 13-81-edge pulse train while resolving; the GLS holds a clean value). TAU = 150 ps is not pessimistic under involution (TAU_eff 0.5-7 ns in a Float transcription, not a theorem). Only the board settles the centre (hw/arb_mtbf skew sweep + q toggle count). Scatter still unclipped Gaussian.
+
 - **Finding:**
   - `fid_core.vh:28,82` splits at `delta = p − (TLOOP − WIN/2)`, which is 349 ps of a 424 ps
     loop (measured).
