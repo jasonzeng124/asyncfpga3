@@ -1,0 +1,63 @@
+== provenance ==
+design:    gcd_hw
+built:     2026-10-29 06:15:29
+stamped:   2026-10-29 06:18:57
+routed.json md5 9f6f3583fdc3457c5914f14887d121b3  <- /root/r12work/wt-bq1/cells/build/hw/gcd_hw/gcd_hw_routed.json
+routed.sdf  md5 6f8b99e6c49bb7ef8855c881cecabe5c  <- /root/r12work/wt-bq1/cells/build/hw/gcd_hw/gcd_hw.sdf
+delays:    sdf column min, scale 1, scatter sigma 0, seed 1, inst none, mode arc (gen.py)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+
+TEND=150000 ns  QUIET=200000 ns  -j1
+
+== result ==
+  vector  0  RESULT timeout: vec=0 laps=2650 errs=0 oks=2650
+  vector  1  RESULT timeout: vec=1 laps=1888 errs=0 oks=1888
+  vector  2  RESULT timeout: vec=2 laps=164 errs=0 oks=164
+  vector  3  RESULT timeout: vec=3 laps=137 errs=0 oks=137
+  vector  4  RESULT timeout: vec=4 laps=325 errs=0 oks=325
+  vector  5  RESULT timeout: vec=5 laps=119 errs=0 oks=119
+  vector  6  RESULT timeout: vec=6 laps=24 errs=0 oks=24
+  vector  7  RESULT timeout: vec=7 laps=86 errs=0 oks=86
+  vector  8  RESULT timeout: vec=8 laps=77 errs=0 oks=77
+  vector  9  RESULT timeout: vec=9 laps=74 errs=0 oks=74
+  vector 10  RESULT timeout: vec=10 laps=325 errs=0 oks=325
+  vector 11  RESULT timeout: vec=11 laps=34 errs=0 oks=34
+  vector 12  RESULT timeout: vec=12 laps=19 errs=0 oks=19
+  vector 13  RESULT timeout: vec=13 laps=28 errs=0 oks=28
+  vector 14  RESULT timeout: vec=14 laps=134 errs=0 oks=134
+  vector 15  RESULT timeout: vec=15 laps=89 errs=0 oks=89
+
+Read a FAIL here against the board before believing it.  This simulation is
+more pessimistic than silicon by construction: nextpnr's cell arcs are a flat
+124 ps on O6 where the part's own are 56-152 ps and pin- and edge-dependent
+(verify/tighten.py's header calls these "the weaker half of every number").
+An earlier route failed 11 of 16 here where the board failed 7, so four of
+those were its own pessimism rather than the design's.
+
+On the route stamped 392abe70/aae1011d it fails EXACTLY the board's seven --
+5, 6, 7, 8, 11, 12, 13 -- which is why this is now the place to debug them.
+Two cautions on that match.  It is a match of PASS/FAIL MASKS; nothing on
+disk ties the programmed bitstream to that md5 pair, so it is not proof the
+two ran the same build.  And a failing vector reports laps=0: not one gcd
+ever completes, so "how many laps" cannot rank the failures by severity.
+
+A TIMEOUT here is only meaningful against the design's own timescale.  A
+passing gcd takes ~3.2 us, and rig_rst is re-released at the window edge near
+979 us, so TEND=150000 already gives a failing vector ~300 passing-gcd
+latencies to produce one lap.  Raising TEND past the window edge buys less
+than it looks like it does -- the ring restarts there.
+
+real	9m22.015s
+user	8m49.792s
+sys	0m11.344s
