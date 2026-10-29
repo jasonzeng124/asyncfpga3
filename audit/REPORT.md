@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -91,6 +91,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | 84bc9e4 | every claimed module builds and checks with only standard axioms | CONFIRMED (503/503 modules) | clean lake build EXIT 0 (audit/logs/formal_build_84bc9e4.log) + own per-module collectAxioms: 78333 constants, 0 bad, 0 no result (audit/logs/axiom_par_84bc9e4.log) | first head with no failing module |
 | formal | 260e219, 1d2124d | ResetCapstone: "B's GMW reset -> C's gcd_hw safety from T0=23(D+W+1) ... 3-tick virtual glue; H_MAP, H_CELLS_AFTER open"; ResetWitness2 "moving, nonzero-delay GMW reset witness" | CONFIRMED (sound; content thin); witness has D=2, W=1 (answers the D=W=0 note) | audit/findings/P10c.md; audit/lean/P10c/F1.lean (gcd_hw_safe_after_reset applied to the witness itself) | the glue ticks are a proof device (synthetic prefix independent of the run), composition sound. Only RTL->C link is state equality at T0; after T0 C's gate models are assumed. Conclusion vacuous on the witness (C side frozen: out0.ack never falls) |
 | formal | f05a8d1 | ZeroDelayNet: "network half of physical->zero-delay for an N-stage link chain, one token (chain_refines), causality from the closed loop" | CONFIRMED, scope noted | P10c.md; F3.lean (witness fed to chain_refines) | end-stage causality assumed (H_SRC/H_SNK); witness N=2 with constant read maps |
 | formal | 909e64f, d5b7ef2 | ContractBridge (H_CTREE_ATOMIC, H_SEL_PIN, H_DELAY_LUMPED derived; H_ARB_EXCL not derivable); IpowCellsT FbCelT exact | CONFIRMED | P10c.md; F4.lean | H_ARB_EXCL counter-run is the binary model's endless oscillation (no metastability), not evidence silicon overlaps; ipow satisfiability witness all-quiet |

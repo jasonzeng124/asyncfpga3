@@ -285,3 +285,7 @@ Necessity6 all CONFIRMED with scope notes; nothing refuted. Pass 10 subagents do
 Formal advanced again (424e8ee): self-reported refutations -- 9df5915 H_NO_DEADLOCK' false (kernel run), fccd12c HARB7
 false on real arbiter runs so Events8/9 CLEAN covers no real run. Annotated the two affected REPORT rows as pending
 re-check. Research efc6538: BQ#3 2x scatter fails seed 9 (self-reported). Pass 11 after the axiom audit.
+
+### progress 10:45
+84bc9e4 axiom audit: 503/503 modules, 78333 constants, 0 bad -- fully clean. Pass 11: clean build of formal 54b9e6e in
+~/wt-f11 started.
