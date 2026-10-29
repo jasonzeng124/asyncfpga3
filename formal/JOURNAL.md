@@ -524,3 +524,18 @@ Findings: prjxray-db ships no fast-corner setup/hold (makesdf writes SLOW only) 
 H_WINDOW_SLOW_ONLY; fast CK->Q min 112 ps vs slow-only hold 241 ps (fast_hold_mismatch); research
 GLS treats SR as synchronous only (no impact: no FDCE/FDPE used). Not covered: clock runts/min pulse
 width, resolution time (parameter), latch G/GE pins, X on a latch gate, CLR runts.
+### progress 08:44
+PrimsDSP claimed: Formal/Core/Prims/{Dsp,DspData,DspTimed}.lean (check.sh with Xray: 700 decls,
+[check] OK, Lean core only; rerun by the lead). ipow (K3's routed build, nextpnr 9c732bc6): 6 DSP48E1
+= 2 multiplies, each a 3-DSP cascade of 17-bit slices, all *REG=0 (combinational), INMODE/ALUMODE/
+CARRY* = 0, OPMODE X=Y=M with Z per DSP (0, PCIN>>>17, PCIN); netlist->Lean transcription by hand
+(13 fields). Proved: ipowMul_eq -- the cascade under UG479's function of this mode = (a*b) mod 2^32
+for all a, b (algebra); coarse X model (any X input bit -> every output bit X) sound for every gate
+network computing the function, and the most defined such; the sharper low-bits rule needs
+H_DSP_LOWBITS (a Booth cell breaks it). Timing under H_DSP_LUMPED (one lumped stage per port,
+anything during settling): sampling at/after settleHi reads C's product, tight to 1 ps; prjxray
+with zero cascade wire: settleHi 7267 ps slow / 3074 fast. Finding: nextpnr's routed SDF is not
+an arc-by-arc upper bound (B->PCOUT 3850 vs prjxray 3851, PCIN->PCOUT 1710 vs 1713) and gives 5400 ps
+A->ACOUT vs prjxray <= 723. Not covered: H_FASM_DSP (bitstream config), cascade wire delay,
+fabric routes to A/B and from P, kappa, capture-latch setup, other modes. Lean half of the
+mutation control not run.
