@@ -1460,3 +1460,12 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   differs, and it is byte-identical on the other seeds).
 - Lesson: an equivalence verdict of NOT EQUIVALENT on a shipped-recipe route is a stop sign for the sim result,
   whichever side is wrong; seeds_fid.py should put the equivalence verdict in its row (next).
+### progress 03:56 (hard item MATCHED by the harness itself: acceptance.py --stack full)
+- `acceptance.py --stack full --corner max --items lutpinmap_gcd_nofuse` (worktree at 87100ea; nofuse route sdf
+  c647eb1a, xray sdf b2036378, patched bit 951e767b, unpatched 66379152; 126 FASM lines differ):
+  **[MATCH]** patched 16/16 (EQUIVALENT), unpatched 9/16 (NOT EQUIVALENT: LUT FUNCTION DIFFERS), never complete
+  5,6,7,8,11,12,13 -- the same set as last session's hand run and BOARD-QUEUE #1's August list. No hand step.
+  Log and JSON: research/data/fid/acceptance_full_nofuse_max.{log,json}.
+  Note: the patched FASM re-assembled here differs from the build's .bit (the harness used the build's own .bit;
+  bitstreams are known not to be byte-reproducible, see BQ#3 "bit ... not reproducible").
+- Scatter draws resumed for seeds 4,6,8,9,7,5 on the fixed decoder (54f2ce6).
