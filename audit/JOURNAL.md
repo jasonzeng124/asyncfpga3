@@ -202,3 +202,8 @@ check the const-0 assumption against the routed JSON). Worktree ~/wt-r10 = cf1fb
 ### progress 05:11
 Research 6e679a5 (DSP hard items MATCH via x) read: disclosed caveat; my OVERSTATED label stands. d958b9d soft ring
 items 'inside the band' -- noted, not audited yet. Seeds 7/9 FAST_MIN/SLOW_MAX rows posted; r9 still running 4/5.
+
+### progress 05:52
+Research 666ea57: gen.py dropped 1134/1218 SETUPHOLDs (negative side), so the default GLS flop setup/hold check was
+silent on 284 flops in all earlier PASS results. Launched r11 agent (verify counts with own parser, rerun BQ#3, forced-
+violation negative control, FFX/BUFGCTRL fid changes 923305d). Worktree ~/wt-r11 = 2f6dc9b.
