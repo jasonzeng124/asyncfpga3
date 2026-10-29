@@ -17,7 +17,7 @@ Writes OUTDIR/results.tsv (one row per run, last column the bits-vs-JSON
 equivalence verdict) and OUTDIR/<seed>/... logs.
 Does not touch git beyond `git worktree add` (detached).
 """
-import argparse, os, re, subprocess, sys, threading, hashlib
+import argparse, fcntl, os, re, subprocess, sys, tempfile, threading, hashlib
 from concurrent.futures import ThreadPoolExecutor
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -80,7 +80,12 @@ def sim(a, seed, hw, col, scat):
         reg, wire, draw = scat.split(":")
         env.update(GLS_SCATTER_REGION=reg, GLS_SCATTER=wire,
                    GLS_SCATTER_MODE="wire", GLS_SCATTER_SEED=draw)
-    rc = sh(f"{REPO}/cells/gls/fid/build_fid.sh {hw} {work} bit", log, env=env)
+    # One build_fid at a time on the whole machine (every driver shares the
+    # lock): its iverilog compile peaks at ~3.7 GB, and two of them next to
+    # running sims got OOM-killed (the run then reads INCOMPLETE, never PASS).
+    with open(os.path.join(tempfile.gettempdir(), "seeds_fid_compile.lock"), "w") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        rc = sh(f"{REPO}/cells/gls/fid/build_fid.sh {hw} {work} bit", log, env=env)
     if rc == 0:
         sh(f"{REPO}/cells/gls/fid/run_fid.sh {work} -j 1", log, env=env)
     done = errs = 0; dead = []; incomplete = []; laps = {}; kinds = set()
