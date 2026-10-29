@@ -55,8 +55,13 @@
   the sampled VALUE: per channel, `held_dag`/`held_cert` give Ops `Held` on the observed
   channel (under H_TXWIN; witness and necessity example proved). `gcd_hw_circuit_safe_phys`
   drops H_BUNDLE for per-channel certificates, but needs H_ZD_AGREE (physical trace agrees with
-  an Ops trace) and H_DERIVED (376 of 465 channels have no tcheck row): both OPEN (8x2 on
-  them). The generated-cell derivation of the gate fields is not yet composed into H_CELLS
+  an Ops trace) and H_DERIVED (376 of 465 channels have no tcheck row). 8x2: cells relaxed
+  to require data only while the output is busy (`OpsBusy.CellB`; old Cell implies it; capstone
+  re-proved on it), so the observed run is the Ops trace and H_ZD_AGREE is gone
+  (`gcd_hw_circuit_safe_phys2`); fork/join/steer/link/src propagate bundling, so only 31 root
+  channels need certificates (`gcd_hw_circuit_safe_phys3`, at the cost of H_SEND); exactly 2
+  roots lack a tcheck row (chan 463 acc251 bus, chan 415 umux21 select). Open: H_SEND/H_RECV
+  (8x3), H_FN, H_TXWIN. The generated-cell derivation of the gate fields is not yet composed into H_CELLS
   (O4): done with named gaps -- `gcd_hw_circuit_safe_gen` / `gcd_rig_all_gen` replace H_CELLS by
   H_GEN (each of the 367 operator instances obeys its yosys-generated netlist, LUT outputs move
   to their function of the previous tick's inputs) plus three timing conditions shown REAL by
@@ -571,3 +576,8 @@ kernel). RingCheck docstring now names H_ONLY_LINKS_STORE (audit C2 3c).
 
 ### progress 10:41
 vk committed (tool + note, no Formal files; selftest --quick OK in my run).
+
+### progress 11:10
+8x2 committed after my own check.sh (6 files). vk committed. Launched vk2 (automatic
+all-inputs token proofs), O4b (generated-cell binding for every kernel; prove
+H_LEAF/REQ_PERSIST), 8x3 (drop H_SEND/H_RECV by a time-bounded protocol induction).

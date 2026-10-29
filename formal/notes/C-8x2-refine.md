@@ -30,7 +30,7 @@ All six new Lean files pass `./check.sh` (log at the end). No existing file was 
 
 ## Files
 
-| file | what | decls |
+| file | what | |
 |---|---|---|
 | `formal/lean/Formal/Net/OpsBusy.lean` | relaxed structures `ForkB JoinB SteerB MuxB MuxNB AMergeB LinkB SrcB`, `CellB`, `Disj`, **`cell_relax`**, `modC`, `AgrOut`, `winner_congr`, **`proto_of_mod`**, **`data_of_mod`**, `eqn_mod` | |
 | `formal/lean/Formal/Net/OpsBusyLoc.lean` | `loc_fork loc_join loc_steer loc_mux loc_muxn loc_amerge loc_link loc_src`, `latchD`, `forced_mod_amerge`, **`cellB_loc`** | |
@@ -41,7 +41,6 @@ All six new Lean files pass `./check.sh` (log at the end). No existing file was 
 | `formal/lean/Wip/C8x2/classify.py` | channel classification (Held class, rank, what the consumer does with the bus, row needed); writes `classes.tsv`; `--lean` prints the Lean tables | |
 | `formal/lean/Wip/C8x2/classes.tsv`, `lean_tables.txt` | its output (465 rows) | |
 
-The decl counts are in the check log.
 
 ## The Lean, in plain words
 
@@ -248,7 +247,14 @@ replaced by the structural `held_struct` plus each channel's own row.
 
 ## Check log (2026-10-29)
 
-The commands that reproduce it are below; the output is pasted in the next section.
+Output of the six-file run below:
+
+    [check] lean ... (all 6 files, no error; only deprecation warnings)
+    [audit] 4273 declarations checked
+    [check] OK
+
+Axioms ⊆ {propext, Classical.choice, Quot.sound}. No sorry, no native_decide; the table checks are
+kernel `decide +kernel`. Commands:
 
     cd /home/user/asyncfpga3/formal
     ./check.sh Formal/Net/OpsBusy.lean Formal/Net/OpsBusyLoc.lean Formal/Net/OpsBusyHeld.lean \
