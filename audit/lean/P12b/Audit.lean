@@ -29,7 +29,7 @@ theorem w1v_overlap_exactly_1634 :
 
 open ArbCounterRuns in
 theorem w1s_no_overlap : ∀ t : Int, (W1S.g1 t && W1S.g2 t) = false := by
-  intro t; simp [W1S]; omega
+  intro t; simp [W1S] <;> omega
 
 /-! ## C. Segment-form (infinite-run) contracts have the same hole as SelfAuditB9's
 truncated ones: a pinless cell's `Contract` is the bare claim that its node's segments
@@ -86,5 +86,6 @@ end AuditP12b
 #print axioms Formal.Cells.ArbAMergeRun.sep_cex_run
 #print axioms Formal.Cells.AssumeGuaranteeCap.gcd_hw_safe_chains
 #print axioms AuditP12b.w1v_overlap_exactly_1634
+#print axioms AuditP12b.w1s_no_overlap
 #print axioms AuditP12b.contract_nil_iff
 #print axioms AuditP12b.fchain_src_seg_of_clean

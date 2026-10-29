@@ -36,6 +36,7 @@ theorem cnt_bound {f : Nat → Bool} {M : Nat} (h : ∀ t, M ≤ t → f t = fal
   · exact cnt_mono f ht
   · obtain ⟨n, rfl⟩ := Nat.exists_eq_add_of_le ht
     rw [cnt_stable h n]
+    exact Nat.le_refl _
 
 /-- **A `TxWin` forces an offer after every time `M`.** -/
 theorem txwin_inf {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat}
@@ -157,7 +158,7 @@ end P12a
 /-! Independent census of the 176: which `fnOK` passes consult `Formal.Gen` at all. -/
 open Formal.Net.CapNet.Gcd Formal.Net.OpsBusy3 in
 #eval
-  let ks := sampIds.map (fun c => (c, dpOf (ops.getD (prodT.getD c 0).val (K.sink 0))))
+  let ks := sampIds.map (fun c => (c, dpOf (ops.getD (prodT.getD c 0).val (Formal.Net.CapNet.K.sink 0))))
   (ks.length, (ks.filter (fun p => p.2 = DP.wire)).length, (ks.filter (fun p => p.2 = DP.shift)).length,
    (ks.filter (fun p => p.2 = DP.latch)).length, (ks.filter (fun p => p.2 = DP.dmux)).length,
    (ks.filter (fun p => p.2 = DP.open_)).length)

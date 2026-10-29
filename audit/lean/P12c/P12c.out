@@ -1,0 +1,129 @@
+'Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.expR_stat' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.expR_crit' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.bad_not_involution' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.exp_laps' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.exp_resolution' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.exp_laps_log' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.expR_paper' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.slope_lower' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.DelayInvolution.ExpReal.slope_upper' depends on axioms: [propext, Classical.choice, Quot.sound]
+@Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff : ∀ {τ Tp : ℝ} (hτ : 0 < τ) (hTp : 0 < Tp) (a Δ : ℝ),
+  0 < Δ → ((Formal.Core.DelayInvolution.ExpReal.expR τ Tp hτ hTp).channel [a, a + Δ] = [] ↔ Δ ≤ τ * Real.log 2)
+@Formal.Core.DelayInvolution.ExpReal.exp_resolution : ∀ {τ Tp : ℝ} (hτ : 0 < τ) (hTp : 0 < Tp) {s : ℝ},
+  0 < s →
+    s < Tp + τ * Real.log 2 →
+      s ≠
+          Formal.Core.InvolutionLoop.crit (Formal.Core.DelayInvolution.ExpReal.expR τ Tp hτ hTp)
+            (Formal.Core.DelayInvolution.ExpReal.wStar τ Tp) →
+        ∃ m,
+          Formal.Core.InvolutionLoop.Chain (Formal.Core.DelayInvolution.ExpReal.expR τ Tp hτ hTp) s m ∧
+            Formal.Core.InvolutionLoop.wd (Formal.Core.DelayInvolution.ExpReal.expR τ Tp hτ hTp) s m ≤ 0 ∧
+              (m % 2 = 1 ↔
+                Formal.Core.InvolutionLoop.crit (Formal.Core.DelayInvolution.ExpReal.expR τ Tp hτ hTp)
+                    (Formal.Core.DelayInvolution.ExpReal.wStar τ Tp) <
+                  s)
+@Formal.Core.DelayInvolution.ExpReal.bad_not_involution : ∀ {τ Tp : ℝ},
+  0 < τ →
+    0 < Tp →
+      Tp < τ * Real.log 2 →
+        -Formal.Core.DelayInvolution.ExpReal.badDelay τ Tp (-Formal.Core.DelayInvolution.ExpReal.badDelay τ Tp 0) ≠ 0
+'P12c_bad_inst' depends on axioms: [propext, Classical.choice, Quot.sound]
+'P12c_pulse_inst' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.CornerCell.cell_band' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.CornerCell.cell_band_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.CornerCell.cell_band_int' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.CornerCell.cell_band_nat' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.CornerCell.cover_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.BandCheck.readBands_ok_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.BandCheck.readBands_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.BandCheck.readBands_rejects_entry' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.BandCheck.readBands_rejects_field' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.BandCheck.invertedFile_control' depends on axioms: [propext, Classical.choice, Quot.sound]
+"AUDIT inverted file rejected: band file rejected (lo > hi or not two naturals): [arcs a [5,3]]"
+"AUDIT well-formed file accepted"
+'Formal.Core.XAudit.SoundInertial.noXF_sound_inertial' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.valF_sound_inertial' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.constF_sound_inertial' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.settledF_inertial' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.gateOK_verilog' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.widened_wide' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.SoundInertial.checkedSteps_inverted' depends on axioms: [propext]
+'Formal.Core.XAudit.SoundInertial.widenD_eq_of_window' depends on axioms: [propext, Quot.sound]
+Formal.Core.DelayInertial.Inertial : ℝ → Formal.Core.DelayInertial.Sig → Formal.Core.DelayInertial.Sig → Prop
+def Formal.Core.DelayInertial.InertialRD : ℝ →
+  ℝ → Formal.Core.DelayInertial.Sig → Formal.Core.DelayInertial.Sig → Prop :=
+fun ρ Δ x y => Formal.Core.DelayInertial.Filt ρ x fun u => y (u + Δ)
+'Formal.Core.XAudit.Events9Arb.core_of_settle' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Arb.core_of_en' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.Events9Arb.settle_not_old' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Arb.ho3_fix' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Arb.design_verdict9arb' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events8Arb.unc_not_harb' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Prefix.safe8_upto' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.Events9Prefix.design_verdict9_upto' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Prefix.design_verdict9'' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Prefix.causal_close' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.Events9PrefixSel.design_verdict9_selL' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9PrefixSel.design_verdict9_selP' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9PrefixSel.sibling_lag_neg' does not depend on any axioms
+'Formal.Core.XAudit.Events9PrefixExt.link_upto_P' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.Events9SelSplit.design_verdict9_selS' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9SelHold.design_verdict9_selH' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9SelC.design_verdict9_selC' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9Sel.design_verdict9_sel' depends on axioms: [propext, Classical.choice, Quot.sound]
+Formal.Core.XAudit.Events9Arb.core_of_settle : ∀ (B : Formal.Core.XAudit.Events8Arb.ArbBands)
+  {r1 r2 rs a q R0 g1 g2 : Formal.Core.TraceDiscrete.Sig} (fr : Fin 5 → ℕ → ℕ) (f1 f2 : Fin 3 → ℕ → ℕ) (f4 : ℕ → ℕ),
+  Formal.Core.XAudit.Events8Arb.Rd 5 B.r0 fr →
+    Formal.Core.XAudit.Events8Arb.Rd 3 B.g1 f1 →
+      Formal.Core.XAudit.Events8Arb.Rd 3 B.g2 f2 →
+        Formal.Core.TraceDiscrete.Warp (B.st 4).1 (B.st 4).2 f4 →
+          (∀ (t : ℕ),
+              R0 t =
+                Formal.Cells.o5B Formal.Cells.ArbBinary.ARB_ST
+                  [r1 (fr 0 t), r2 (fr 1 t), q (fr 2 t), rs (fr 3 t), a (fr 4 t), true]) →
+            (∀ (t : ℕ),
+                g1 t =
+                  Formal.Cells.o5B Formal.Cells.ArbBinary.GRANT
+                    [r1 (f1 0 t), r2 (f1 1 t), q (f1 2 t), false, false, true]) →
+              (∀ (t : ℕ),
+                  g2 t =
+                    Formal.Cells.o6B Formal.Cells.ArbBinary.GRANT
+                      [r1 (f2 0 t), r2 (f2 1 t), q (f2 2 t), false, false, true]) →
+                ∀ (T0 : ℕ),
+                  (∀ t ≤ T0 + 2, g1 t = false ∧ g2 t = false ∧ R0 t = false) →
+                    1 ≤ (B.g1 0).1 →
+                      1 ≤ (B.g2 1).1 →
+                        3 ≤ (B.r0 0).1 →
+                          3 ≤ (B.r0 1).1 →
+                            2 ≤ Formal.Core.XAudit.Events9Arb.kOf B →
+                              Formal.Core.XAudit.Events9Arb.kOf B + 2 ≤ (B.g1 2).1 →
+                                Formal.Core.XAudit.Events9Arb.kOf B + 2 ≤ (B.g2 2).1 →
+                                  Formal.Core.XAudit.Events9Arb.kOf B + 4 ≤ (B.r0 2).1 →
+                                    (B.g1 2).1 ≤ T0 →
+                                      (B.g2 2).1 ≤ T0 →
+                                        (B.r0 2).1 ≤ T0 + 2 →
+                                          ∀ (H : ℕ),
+                                            (∀ (v : ℕ),
+                                                ∃ v' ≤ v,
+                                                  v ≤ v' + H ∧
+                                                    (v' = 0 ∨
+                                                      Formal.Core.XAudit.Events9Arb.Ok a q f4
+                                                        (v' + 1 - Formal.Core.XAudit.Events9Arb.kOf B))) →
+                                              H + Formal.Core.XAudit.Events9Arb.kOf B + (B.st 4).2 ≤ 10 ^ 12 →
+                                                Formal.Core.XAudit.Events9Arb.RdOK
+                                                    (Formal.Core.XAudit.Events9Arb.Settled a q f4) r1 q g1 (f1 0) (f1 2)
+                                                    T0 →
+                                                  Formal.Core.XAudit.Events9Arb.RdOK
+                                                      (Formal.Core.XAudit.Events9Arb.Settled a q f4) r2 (fun u => !q u)
+                                                      g2 (f2 1) (f2 2) T0 →
+                                                    Formal.Core.XAudit.Events9Arb.RdOK
+                                                        (Formal.Core.XAudit.Events9Arb.Settled a q f4) r1 q
+                                                        (fun t => r1 (fr 0 (t + 2)) && q (fr 2 (t + 2)))
+                                                        (fun t => fr 0 (t + 2)) (fun t => fr 2 (t + 2)) T0 →
+                                                      Formal.Core.XAudit.Events9Arb.RdOK
+                                                          (Formal.Core.XAudit.Events9Arb.Settled a q f4) r2
+                                                          (fun u => !q u)
+                                                          (fun t => r2 (fr 1 (t + 2)) && !q (fr 2 (t + 2)))
+                                                          (fun t => fr 1 (t + 2)) (fun t => fr 2 (t + 2)) T0 →
+                                                        Formal.Core.XAudit.Events9Arb.CoreOf B r1 r2 a R0 g1 g2

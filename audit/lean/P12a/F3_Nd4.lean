@@ -1,5 +1,6 @@
 import Formal.Net.CapstoneLiveNd4Serial
 import Formal.Net.CapstoneLiveNd4Mux
+import Formal.Timing.ChainSettleChain
 
 /-!
 # Audit P12a / F3: 8z4 `serial` -- the "rank is necessary" example is a real necessity example

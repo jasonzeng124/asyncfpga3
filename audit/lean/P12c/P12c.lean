@@ -34,23 +34,30 @@ end
 #check @Formal.Core.DelayInvolution.ExpReal.exp_resolution
 #check @Formal.Core.DelayInvolution.ExpReal.bad_not_involution
 
-/-- Non-vacuity of `bad_not_involution`: its hypotheses hold at τ = 1, T_p = 1/2. -/
-theorem P12c_bad_inst :
-    -Formal.Core.DelayInvolution.ExpReal.badDelay 1 (1/2)
-      (-Formal.Core.DelayInvolution.ExpReal.badDelay 1 (1/2) 0) ≠ 0 :=
-  Formal.Core.DelayInvolution.ExpReal.bad_not_involution one_pos (by norm_num)
-    (by have := Real.log_two_gt_d9; norm_num at this ⊢; linarith)
+theorem P12c_log2_ge : (1:ℝ)/2 ≤ Real.log 2 := by
+  have h := Real.log_le_sub_one_of_pos (show (0:ℝ) < 1/2 by norm_num)
+  rw [one_div, Real.log_inv] at h; linarith
 
-/-- Concrete: with τ = T_p = 1 a pulse of width 1/2 is cancelled (1/2 ≤ ln 2), width 1 is not. -/
+theorem P12c_log2_lt : Real.log 2 < 2 := by
+  have h := Real.log_le_sub_one_of_pos (show (0:ℝ) < 2 by norm_num); linarith
+
+/-- Non-vacuity of `bad_not_involution`: its hypotheses hold at τ = 1, T_p = 1/4. -/
+theorem P12c_bad_inst :
+    -Formal.Core.DelayInvolution.ExpReal.badDelay 1 (1/4)
+      (-Formal.Core.DelayInvolution.ExpReal.badDelay 1 (1/4) 0) ≠ 0 :=
+  Formal.Core.DelayInvolution.ExpReal.bad_not_involution one_pos (by norm_num)
+    (by have := P12c_log2_ge; linarith)
+
+/-- Concrete: with τ = T_p = 1 a pulse of width 1/4 is cancelled (1/4 ≤ ln 2), width 2 is not. -/
 theorem P12c_pulse_inst :
-    (Formal.Core.DelayInvolution.ExpReal.expR 1 1 one_pos one_pos).channel [0, 0 + 1/2] = [] ∧
-    (Formal.Core.DelayInvolution.ExpReal.expR 1 1 one_pos one_pos).channel [0, 0 + 1] ≠ [] := by
+    (Formal.Core.DelayInvolution.ExpReal.expR 1 1 one_pos one_pos).channel [0, 0 + 1/4] = [] ∧
+    (Formal.Core.DelayInvolution.ExpReal.expR 1 1 one_pos one_pos).channel [0, 0 + 2] ≠ [] := by
   constructor
-  · rw [Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff one_pos one_pos 0 (1/2) (by norm_num)]
-    have := Real.log_two_gt_d9; norm_num at this ⊢; linarith
+  · rw [Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff one_pos one_pos 0 (1/4) (by norm_num)]
+    have := P12c_log2_ge; linarith
   · intro h
-    rw [Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff one_pos one_pos 0 1 (by norm_num)] at h
-    have := Real.log_two_lt_d9; norm_num at h this; linarith
+    rw [Formal.Core.DelayInvolution.ExpReal.expR_pulse_cancel_iff one_pos one_pos 0 2 (by norm_num)] at h
+    have := P12c_log2_lt; linarith
 
 #print axioms P12c_bad_inst
 #print axioms P12c_pulse_inst
@@ -126,5 +133,5 @@ example : ∀ {N : Nat} {d : Formal.Core.XAudit.Design} {net : Formal.Core.XAudi
     Formal.Core.XAudit.Events9Arb.HARB7' net b rn x cv → Formal.Core.XAudit.Events7.HARB7 net b rn x cv :=
   fun h => h.1
 
-/-- core_of_settle never mentions ustate's O6 (q) equation: q is an arbitrary signal there. -/
+-- core_of_settle never mentions ustate's O6 (q) equation: q is an arbitrary signal there.
 #check @Formal.Core.XAudit.Events9Arb.core_of_settle

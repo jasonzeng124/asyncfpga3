@@ -323,3 +323,9 @@ r19 in: BQ#3 seed-9 2x-scatter failure CONFIRMED from my own rebuild (sdf 74511c
 2,3,9,11,13,15; threshold between 1.3125x and 1.375x; log-normal still fails; placement/factors confirmed, comparator
 X30 not X30-31). OVERSTATED: BOARD-QUEUE #3 "8/8 seeds pass at 1x, 7/8 at 2x" -- the cited TSV has scatter rows for
 only 4 seeds (I counted the rows myself); no logs. LOGN identity CONFIRMED but quoted md5 ebfb714c not reproduced.
+
+### progress 16:21
+Clean lake build of formal 1fd99ef0: EXIT 0 (3570 jobs). Axiom audit of 1fd99ef0 started (2 jobs). P12b in (I re-ran
+its Audit.lean, rc 0, and read FiniteNet.lean:611 myself): Bfin2 chain derivation OVERSTATED (per-link existential
+chain, witness is a relabelling); SelfAuditB9 CONFIRMED but withdrawal incomplete (same hole in Bnet chains and
+infinite-run forms; status table/docstrings not updated); ArbCounterRuns, ArbAMergeRun, Bj11 CONFIRMED.
