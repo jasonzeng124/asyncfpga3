@@ -656,3 +656,15 @@ does not see data bundling (rule-A-failing seeds are CLEAN here), so it does not
 ipow's DSPs are cut (--cut-type), the datapath is not covered. Finding: the rig's directly coupled env
 C-elements (uenv0/uenv1) are the weakest control element across four kernels (model-level margin, not a
 demonstrated race). HOWTO-new-kernel.md rewritten around k3/ and xevents8.
+### progress 09:47
+HDsub claimed: Formal/Core/XAudit/Events9{Cert,Beh,Main}.lean (check.sh over the 34-file closure: 2743 lib +
+2829 exe decls, [check] OK; NOTE: checked against XInert's uncommitted additive edits to Parse.lean (+2 decls);
+to be re-verified by check.sh --committed once the lake build finishes). HDsub is no longer a hypothesis:
+rule dsub9 (a dsub line must cite an unlabelled S->D walk with <= 1 token), first_reach by strong induction on
+time, dsub9_sound, hdsub_san; design_verdict9 = design_verdict8 without HDsub. The 2026-10-28 snapshot had a
+real bug (dsub9_sound's monotonicity step had its arguments reversed), fixed without changing statements. Runs
+(xevents9 via lake env lean --run): old bands 16 rows, 126/126 valid wS on every row, 11 CLEAN (same residuals
+as Events8: margin failures, not HDsub); xevents8 rerun byte-identical to committed; E8Mux bands: A-e8mux's NEW
+table exactly (d gb RESIDUAL 2). Controls NEGwsEnd/NEGwsTok/NEGwsMissing/NEGnows rejected, POSws1 accepted. A
+CLEAN row now rests on SatPin, constants/reset, H_ARB, SelOK, SelPart -- and H_ARB is refuted in its current
+encoding (E8Arb), so no real run is covered yet. lakefile stanza for xevents9 added.
