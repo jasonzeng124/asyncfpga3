@@ -144,7 +144,8 @@ file's `BD_SZ_URIG_UDUT_<INST>` macros onto the kernel's `DELAY_<INST>` paramete
 - `--inverted hull`: prjxray has rows with FAST_MIN > FAST_MAX on a few pins. routed2x.py now
   rejects them (exit 1) unless `--inverted hull`, which takes [min, max] and lists the rows in the
   report (before E8Mux they were written lo > hi and the Lean reader narrowed them to [lo, lo]).
-  bands_k3.sh passes hull. On ipow/xorshift they occur at the fast corner only, on data-latch arcs.
+  bands_k3.sh passes hull. On ipow/xorshift they occur at the fast corner only, on data-latch or shell arcs, none in the
+  control skeleton.
 - Check the routed2x report:
   - **free inputs** must be exactly the FF-driven operands, the reset, and (with --cut-type) the
     cut cells' outputs. Anything else (a request, an acknowledge) means the environment is not

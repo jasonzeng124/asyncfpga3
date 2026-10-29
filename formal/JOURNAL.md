@@ -643,3 +643,16 @@ INITs), uncontested for every W, with exclusive grants, that no VMerge (any band
 and that no VGrant with loF+lo = 4 matches. So the counterexample is at one admissible band choice; that
 gcd_hw's actual arbiters are affected rests on the untrusted per-seed numbers (11-18/18 grant->R0 pairs).
 Wip/E8Arb/Sufficiency.lean (with sorry) is not claimed.
+### progress 09:32
+K3 done (no Lean; routed-model results, not silicon): xevents8 (and xevents5) on ipow and xorshift, toolchain
+9/9, nextpnr 9c732bc6303458df, --freq 100, one nextpnr at a time, md5s in tools-A/xaudit/k3/out/builds.txt.
+ipow seeds d/3/4/5 (all audits pass): CLEAN on all 12 slow/fast/gb rows; indep residual 7/9/12/1 (all timing
+margins). xorshift: seeds 4/6 did not place, 3/7 fail rule A (and 3 rule I) so are not results; d/5/8/9: 5/8/9
+CLEAN at slow/fast/gb, d RESIDUAL 2 at all three -- both the rig's uenv0/uenv1 C-element pair, not the kernel;
+indep 8/9/9/10. GuardOK not assumed (12/12 guard certificates). Negative controls rejected (entry/exit sized to
+60000 ps for ipow's large margins). Caveats: (1) these are design_verdict8 instances, so they inherit H_ARB, now
+refuted in its current encoding (E8Arb) -- the CLEAN rows cover no real run until E8ArbFix; (2) the event checker
+does not see data bundling (rule-A-failing seeds are CLEAN here), so it does not replace the cells/ gates; (3)
+ipow's DSPs are cut (--cut-type), the datapath is not covered. Finding: the rig's directly coupled env
+C-elements (uenv0/uenv1) are the weakest control element across four kernels (model-level margin, not a
+demonstrated race). HOWTO-new-kernel.md rewritten around k3/ and xevents8.
