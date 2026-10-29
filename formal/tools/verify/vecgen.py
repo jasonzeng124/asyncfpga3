@@ -102,6 +102,8 @@ def main():
                 f"def sched{i} : List Nat := {sched}",
                 *([f"def trace{i} : List (List (List Nat)) := [" +
                    ",\n  ".join(sp(g.N, t) for t in trace) + "]"] if a.chain else []),
+                "-- long witnesses exceed the default 200000 heartbeats in elaboration (gcd, 392 firings)",
+                "set_option maxHeartbeats 0 in",
                 f"theorem vec{i} :",
                 f"    (∃ n, Run (step (graph rules)) (ofL I{i}) n (ofL F{i})) ∧",
                 f"    (∀ m t, Run (step (graph rules)) (ofL I{i}) m t → Terminal (step (graph rules)) t →",

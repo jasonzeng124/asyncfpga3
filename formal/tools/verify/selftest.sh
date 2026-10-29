@@ -36,7 +36,8 @@ python3 "$HERE/mutate.py" "$FIX/ipow/comp/handshake_transformed.mlir" "$OUT/ipow
 expect neg-timing 1 'COUNTEREXAMPLE ROW  toy-fail'            -- ipow --no-lean --no-cap --route "$ROOT/formal/tools/tcheck/test/toy.tc"
 # equivalent mutant (subi0 swapped: |b-a| = |a-b|): no counterexample may be reported
 python3 "$HERE/mutate.py" "$FIX/gcd/comp/handshake_transformed.mlir" "$OUT/gcd_subi0.mlir" --swap subi0 2>/dev/null
-# (exit 2 = not proved is the honest outcome: the hand proof is syntactic and need not survive)
+# (exit 2 = not proved is the honest outcome: the hand proof is syntactic and need not survive;
+#  stage 2d still proves the vectors)
 expect equiv-gcd-subi0 X 'token search: PASS'                 -- gcd $Q --mlir "$OUT/gcd_subi0.mlir" --no-cap --vecs "12,18 35,14 48,180"
 # the reduction is exact for terminal stores: reduced and full search agree (ipow, small vectors)
 for m in "" "--no-por"; do

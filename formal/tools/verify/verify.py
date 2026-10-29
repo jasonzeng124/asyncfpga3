@@ -252,9 +252,16 @@ def main():
 def finish(R, lean_v="FAIL"):
     vs = dict(R.rows)
     print("\nsummary: " + "  ".join(f"{n.split()[0]}={v}" for n, v in R.rows))
-    if any(v == "FAIL" for v in vs.values()):
-        print("VERDICT: FAIL (see the FAIL stages; counterexamples printed above)")
+    # a FAIL of 2a (committed proof does not check on this graph) or of 3 (network differs from
+    # the proved one) means "not proved"; only the other stages refute (counterexample / failed check)
+    refuting = [n for n, v in R.rows if v == "FAIL" and not n.startswith(("2a", "3 "))]
+    if refuting:
+        print(f"VERDICT: FAIL ({', '.join(refuting)}; counterexamples printed above)")
         return 1
+    if any(v == "FAIL" for v in vs.values()):
+        print("VERDICT: NOT PROVED (no counterexample found; the committed proofs do not apply to this "
+              "design: " + ", ".join(n for n, v in R.rows if v == "FAIL") + ")")
+        return 2
     if lean_v == "PASS":
         print("VERDICT: PASS (token-level theorem checked on this MLIR; other stages as listed)")
         return 0

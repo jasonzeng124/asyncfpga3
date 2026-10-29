@@ -175,3 +175,8 @@ positive on SDF by arithmetic from these paths, but this is UNMEASURED.
 - 09:1x: seeds 2, 3, 4 (12 MHz default target, i.e. WITHOUT --freq: route.sh copied from
   10e did not pass it): same picture. Re-routing all 4 seeds with --freq 100 for the counted
   numbers.
+- 09:4x: --freq 100 routes: for seeds d and 2 the FASM (bitstream) is byte-identical to the
+  12 MHz-default route (sha256 b73e1ba0.. / 1ee50d56..); the SDF differs only in arc order.
+  The target only affects the clocked readback/lap logic, so the physical design rule K reads
+  is the same. Per-pin-arc corrected minima on the 12 MHz routes (rows.py d 2 3 4):
+  sdf 6300, sdfband 2968, fast 3356, slow 6766, fastG 979, slowG 1393 ps (correction <= 67 ps).

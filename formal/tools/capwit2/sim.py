@@ -134,6 +134,7 @@ def simulate(vals, names, ops, env, tmax=100000):
         for c in outs_of(o): prod[c] = n
     req = [False] * NC; ack = [False] * NC
     rig = env["mode"] == "rig"
+    noack = env.get("noack", False)   # negative control: uenv1 replaced by an inverter of in_ack
     srcz = [o["z"] for o in ops if o["k"] == "src"]
     if rig:
         envc, inack, rises = True, False, 0
@@ -141,7 +142,8 @@ def simulate(vals, names, ops, env, tmax=100000):
     it = {n: [False] * NINT.get(o["k"], 0) for n, o in enumerate(ops)}
     latch = {o["o"]: 0 for o in ops if o["k"] == "link"}
     srcdone = {n: False for n, o in enumerate(ops) if o["k"] == "src"}
-    srcleft = {n: 1 for n, o in enumerate(ops) if o["k"] == "src"}
+    srcleft = {n: (env.get("start_tokens", 1) if o["z"] == env.get("start") else 1)
+               for n, o in enumerate(ops) if o["k"] == "src"}
     srcv = lambda w: vals[w]
 
     def dats():
@@ -239,7 +241,7 @@ def simulate(vals, names, ops, env, tmax=100000):
                     nack[o["i"]] = req[o["i"]]
         if rig:
             nin = Cel(inack, [ack[z] for z in srcz])
-            ne = Cel(envc, [ack[env["out0"]], not inack])
+            ne = (not inack) if noack else Cel(envc, [ack[env["out0"]], not inack])
             if ne and not envc:
                 if rises + 1 < env["offers"]: rises += 1
                 else: ne = envc
@@ -374,8 +376,7 @@ def check(vals, names, ops, out0, start, tr, env):
 
 def run(net, vals, env):
     names, ops, out0, start = load_net(net)
-    if env["mode"] == "rig":
-        env = dict(env, start=start, out0=out0)
+    env = dict(env, start=start, out0=out0)
     tr = simulate(vals, names, ops, env)
     errs, falls = check(vals, names, ops, out0, start, tr, env)
     return names, ops, out0, start, tr, errs, falls, env
