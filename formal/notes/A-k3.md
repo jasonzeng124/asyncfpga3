@@ -2,8 +2,8 @@
 
 PROGRAM.md north-star goal 3. Session 2026-10-29.
 
-STATUS (08:45): ipow done (16 rows xevents8 + xevents5 + negative controls); xorshift running;
-HOWTO next.
+STATUS (08:45): ipow done (16 rows xevents8 + xevents5 + negative controls); HOWTO rewritten;
+xorshift checker runs in progress (6 routes x 4 corners x 2 checkers, ~1.5 min per Lean run).
 
 ## Progress log
 - **Toolchain.** Restored from `origin/toolchain-cache/d7ce266cff0c8e1e` (= `cloud/toolchain-cache.sh
