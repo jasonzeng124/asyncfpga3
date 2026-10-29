@@ -75,4 +75,57 @@ The keys are the same as `cells` / `arcs` of the band file. Pads are always tran
 
 ## Results
 
-(pending)
+### Byte-identity (ρ = 0)
+
+- `base` is a binary built from the pre-XInert `Main.lean`/`Parse.lean`, copied to scratch and
+  built through a mirror tree. `new` is the binary built from the current files.
+- For all 5 small cases:
+  - `new` with no flag is **cmp-identical** to `base`;
+  - `new` with no flag is also identical to the committed `xaudit/results/*.txt`;
+  - `new --inertial widen --rho 0`, minus its 2 header lines, is **identical** to both.
+  (`inert/results/summary.txt`)
+- gcd seed d, slow, `--inertial widen --rho 0` reports "widened 0 of 47887 gates".
+
+### Inverted bands (negative control)
+
+- `inert/designs/inverted.bands.json` is the pipe3 slow corner with one arc [450, 380].
+  - `base` accepts it silently: exit 0, the arc narrowed to [45, 45] steps.
+  - `new` exits 1: `band of stage[1].u.ctl.u/I0: inverted band [450, 380] ps (lo > hi): NOT RECOGNISED`.
+- The committed pre-E8Mux `gcd/inputs/bands_d_fast.json`, which has 20 inverted arcs, is now
+  rejected at its first one (`results/gcd_old_fast_inverted.txt`).
+
+### pipe3 / ring3 (`inert/run_small.sh`; `inert/results/`)
+
+Window sizes are hand-derived from the bands, not read from a run. pipe3 slow corner,
+unit 10 ps:
+- LUT [99,121] → [9,13] steps, window (13+1−9)·10 = 50 ps;
+- route [360,440] → [36,44], window 90 ps;
+- own feedback [270,330] → [27,33], window 70 ps.
+
+So ρ = 15 or 50 widens nothing, which the runs confirm. ρ = delay:
+- LUT hi becomes 9+13−1 = 21, so [90,210] ps;
+- route hi becomes 79, so [360,790];
+- feedback hi becomes 59, so [270,590].
+
+The runs print exactly these values. "dlut" is ρ = delay on LUTs, with routes transport. That is
+the baked GLS (`-DGLS_TRANSPORT_IC`: inertial LUT specify paths, transport interconnect).
+"dall" is ρ = delay everywhere, which is the annotated GLS.
+
+| case | ρ=0 | ρ=15 ps | ρ=50 ps | ρ=delay, LUT only | ρ=delay, all |
+|---|---|---|---|---|---|
+| pipe3 slow corner (clean) | 0 flagged | same (0 widened) | same (0 widened) | check REFUSED (11 LUTs); widen: **0 flagged, still clean** | check REFUSED (40); widen: **9 flagged, all 9 storage nodes UNRESOLVED from 4.35-8.45 ns** |
+| pipe3 hold-violation control | 10 flagged | same | same | REFUSED; widen: still flagged (4 windows, longer STORED X: stage 0 latch X [5900, 13290]) | REFUSED; widen: 9 flagged |
+| pipe3 slow own-feedback | 22 | same | same | REFUSED; widen: 16 | REFUSED; widen: 12 |
+| pipe3 default bands (unit 25) | 9 | same | same | **check passes** (LUT [45,124] → [1,5], window 125 ≥ 124) | REFUSED (29 routes: 700 > 625); widen: 9 |
+| ring3 slow corner | 5 (UNRESOLVED, the W2 imprecision) | same | same | REFUSED; widen: 4 | REFUSED; widen: 3 |
+
+How to read the flag counts:
+- A flagged run stays flagged. The count can drop because widened X windows merge, for example
+  several GLITCH windows become one STORED/UNRESOLVED window.
+- The one verdict that changes is **pipe3's clean slow-corner run, which is lost under ρ = delay
+  on every gate.** The cause was not classified here. The widened own feedback (hi 590 ps) is
+  still below the fastest neighbour response (3·360+2·99 = 1278 ps), so it is not the known
+  own-feedback race. The likely cause is the window-domain imprecision of A-xaudit ring3 / gcd §4
+  (handshake windows overlap), but this was not checked.
+- Under ρ = delay on LUTs only, the clean verdict survives with the widened bands. So it is sound
+  for an inertial-LUT GLS of these bands.
