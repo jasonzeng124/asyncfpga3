@@ -1174,3 +1174,10 @@ replacement, because the join's fall also waits for ctl_req; the disjunction S_X
 is needed. Binary <= forms, one point each; the pass runs sit at binary equality and
 may not survive a Kleene X window. Open: uya mirrors, muxn S_A_R boundary, muxn J.1
 run, DELAY > 1. JSON next pass.
+
+### progress 10:07
+Full formal/check.sh --committed (setup.sh finished: Mathlib built from source
+here): lake build of every committed Formal module (all three shards, incl. every
+Cells file committed this session up to Necessity7Mux*) and the axiom audit: OK,
+exit 0, no BAD declaration. The two analysis files ArbAnalog/ArbResolve, which the
+private sweep could not check before Mathlib was built, are in it.
