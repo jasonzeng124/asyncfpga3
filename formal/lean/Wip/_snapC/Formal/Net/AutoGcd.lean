@@ -19,14 +19,14 @@ longer. NOT covered: termination of the C (fuelled), that the transcription is t
 cfront's reading (tested against the compiled C), gates, delays, cells.
 
 ## The C transcription, test points
-* test 0 (line 15: ``): `eq(a, 0)`
-* test 1 (line 16: `int gcd(in_int_t a, in_int_t b) {`): `eq(b, 0)`
-* test 2 (line 18: `if (b == 0) return a;                          // bb1`): `eq(andi(ori(a, b), 1), 0)`
-* test 3 (line 23: `k = k + 1;`): `eq((ne(andi(a, 1), 0) ? 1 : slt(a, 1)), 0)`
-* test 4 (line 24: `}`): `eq((ne(andi(b, 1), 0) ? 1 : slt(b, 1)), 0)`
-* test 5 (line 25: `while (!((a & 1) != 0 || a < 1)) a = a >> 1;   // bb5`): `eq(a, 0)`
-* test 6 (line 26: `while (!((b & 1) != 0 || b < 1)) b = b >> 1;   // bb7`): `ne(a, 0)`
-* test 7 (line 29: `int d = a - b;`): `eq((ne(andi(d, 1), 0) ? 1 : slt(d, 1)), 0)`
+* test 0 (line 17: `if (a == 0) return b;                          // bb0`): `eq(a, 0)`
+* test 1 (line 18: `if (b == 0) return a;                          // bb1`): `eq(b, 0)`
+* test 2 (line 20: `while (((a | b) & 1) == 0) {                   // bb2 / bb3`): `eq(andi(ori(a, b), 1), 0)`
+* test 3 (line 25: `while (!((a & 1) != 0 || a < 1)) a = a >> 1;   // bb5`): `eq((ne(andi(a, 1), 0) ? 1 : slt(a, 1)), 0)`
+* test 4 (line 26: `while (!((b & 1) != 0 || b < 1)) b = b >> 1;   // bb7`): `eq((ne(andi(b, 1), 0) ? 1 : slt(b, 1)), 0)`
+* test 5 (line 27: `if (a == 0) return b << k;                     // bb8 -> bb12`): `eq(a, 0)`
+* test 6 (line 31: `while (!((d & 1) != 0 || d < 1)) d = d >> 1; // bb11`): `eq((ne(andi(d, 1), 0) ? 1 : slt(d, 1)), 0)`
+* test 7 (line 34: `} while (a != 0);`): `ne(a, 0)`
 * state: `a, b, k, d`; entry: `a := a, b := b, k := 0, d := 0`, then test 0
 -/
 
@@ -60,21 +60,21 @@ def ce8 : CEdge := { src := 4, br := true, upd := [(.var 0), (.bin .shrsi 32 (.v
 def ce9 : CEdge := { src := 4, br := false, upd := [(.var 0), (.var 1), (.var 2), (.var 3)], dst := some 5, ret := (.lit 0) }
 /-- test 5 true: (no assignment); return shli(b, k) -/
 def ce10 : CEdge := { src := 5, br := true, upd := [(.var 0), (.var 1), (.var 2), (.var 3)], dst := none, ret := (.bin .shli 32 (.var 1) (.var 2)) }
-/-- test 5 false: d := (sgt(subi(a, b), 4294967295) ? subi(a, b) : subi(0, subi(a, b))); to test 7 -/
-def ce11 : CEdge := { src := 5, br := false, upd := [(.var 0), (.var 1), (.var 2), (.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))], dst := some 7, ret := (.lit 0) }
-/-- test 6 true: d := (sgt(subi(a, b), 4294967295) ? subi(a, b) : subi(0, subi(a, b))); to test 7 -/
-def ce12 : CEdge := { src := 6, br := true, upd := [(.var 0), (.var 1), (.var 2), (.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))], dst := some 7, ret := (.lit 0) }
-/-- test 6 false: (no assignment); return shli(b, k) -/
-def ce13 : CEdge := { src := 6, br := false, upd := [(.var 0), (.var 1), (.var 2), (.var 3)], dst := none, ret := (.bin .shli 32 (.var 1) (.var 2)) }
-/-- test 7 true: d := shrsi(d, 1); to test 7 -/
-def ce14 : CEdge := { src := 7, br := true, upd := [(.var 0), (.var 1), (.var 2), (.bin .shrsi 32 (.var 3) (.lit 1))], dst := some 7, ret := (.lit 0) }
-/-- test 7 false: a := d, b := (slt(a, b) ? a : b); to test 6 -/
-def ce15 : CEdge := { src := 7, br := false, upd := [(.var 3), (.sel (.bin (.cmpi .slt) 32 (.var 0) (.var 1)) (.var 0) (.var 1)), (.var 2), (.var 3)], dst := some 6, ret := (.lit 0) }
+/-- test 5 false: d := (sgt(subi(a, b), 4294967295) ? subi(a, b) : subi(0, subi(a, b))); to test 6 -/
+def ce11 : CEdge := { src := 5, br := false, upd := [(.var 0), (.var 1), (.var 2), (.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))], dst := some 6, ret := (.lit 0) }
+/-- test 6 true: d := shrsi(d, 1); to test 6 -/
+def ce12 : CEdge := { src := 6, br := true, upd := [(.var 0), (.var 1), (.var 2), (.bin .shrsi 32 (.var 3) (.lit 1))], dst := some 6, ret := (.lit 0) }
+/-- test 6 false: a := d, b := (slt(a, b) ? a : b); to test 7 -/
+def ce13 : CEdge := { src := 6, br := false, upd := [(.var 3), (.sel (.bin (.cmpi .slt) 32 (.var 0) (.var 1)) (.var 0) (.var 1)), (.var 2), (.var 3)], dst := some 7, ret := (.lit 0) }
+/-- test 7 true: d := (sgt(subi(a, b), 4294967295) ? subi(a, b) : subi(0, subi(a, b))); to test 6 -/
+def ce14 : CEdge := { src := 7, br := true, upd := [(.var 0), (.var 1), (.var 2), (.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))], dst := some 6, ret := (.lit 0) }
+/-- test 7 false: (no assignment); return shli(b, k) -/
+def ce15 : CEdge := { src := 7, br := false, upd := [(.var 0), (.var 1), (.var 2), (.var 3)], dst := none, ret := (.bin .shli 32 (.var 1) (.var 2)) }
 
 def P : CProg where
   entry := [(.var 0), (.var 1), (.lit 0), (.lit 0)]
   start := 0
-  tests := [(.bin (.cmpi .eq) 32 (.var 0) (.lit 0)), (.bin (.cmpi .eq) 32 (.var 1) (.lit 0)), (.bin (.cmpi .eq) 32 (.bin .andi 32 (.bin .ori 32 (.var 0) (.var 1)) (.lit 1)) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 0) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 0) (.lit 1))) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 1) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 1) (.lit 1))) (.lit 0)), (.bin (.cmpi .eq) 32 (.var 0) (.lit 0)), (.bin (.cmpi .ne) 32 (.var 0) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 3) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 3) (.lit 1))) (.lit 0))]
+  tests := [(.bin (.cmpi .eq) 32 (.var 0) (.lit 0)), (.bin (.cmpi .eq) 32 (.var 1) (.lit 0)), (.bin (.cmpi .eq) 32 (.bin .andi 32 (.bin .ori 32 (.var 0) (.var 1)) (.lit 1)) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 0) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 0) (.lit 1))) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 1) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 1) (.lit 1))) (.lit 0)), (.bin (.cmpi .eq) 32 (.var 0) (.lit 0)), (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 3) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 3) (.lit 1))) (.lit 0)), (.bin (.cmpi .ne) 32 (.var 0) (.lit 0))]
   edges := [ce0, ce1, ce2, ce3, ce4, ce5, ce6, ce7, ce8, ce9, ce10, ce11, ce12, ce13, ce14, ce15]
 
 /-- `gcd` as transcribed: `none` = fuel ran out. -/
@@ -158,11 +158,11 @@ theorem hG : ∀ g ∈ GE, ∀ env : List Nat, isT (g.fact.eval env) = g.br →
 
 /-! ## The correspondence (found by co-simulation, checked below) -/
 
-def L : List Nat := [0, 0, 1, 2, 2, 3, 4, 5, 7, 6]
+def L : List Nat := [0, 0, 1, 2, 2, 3, 4, 5, 6, 7]
 def K : List Nat := [0, 2, 3, 4, 5, 6, 7, 8, 9]
 def ρ : List (List E) := [[(.var 0), (.var 1)], [], [(.var 0), (.var 1), (.bin (.cmpi .eq) 32 (.var 1) (.lit 0))], [(.var 0), (.var 1), (.bin (.cmpi .eq) 32 (.bin .andi 32 (.bin .ori 32 (.var 0) (.var 1)) (.lit 1)) (.lit 0)), (.var 2)], [(.var 0), (.var 1), (.var 2), (.bin (.cmpi .eq) 32 (.bin .andi 32 (.bin .ori 32 (.var 0) (.var 1)) (.lit 1)) (.lit 0))], [(.var 0), (.var 2), (.var 1), (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 0) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 0) (.lit 1))), (.bin .shrsi 32 (.var 0) (.lit 1))], [(.var 1), (.var 2), (.var 0), (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 1) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 1) (.lit 1))), (.bin .shrsi 32 (.var 1) (.lit 1))], [(.var 1), (.var 2), (.var 0), (.bin (.cmpi .eq) 32 (.var 0) (.lit 0))], [(.var 3), (.var 2), (.var 0), (.var 1), (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 3) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 3) (.lit 1))), (.bin .shrsi 32 (.var 3) (.lit 1))], [(.var 0), (.var 1), (.bin (.cmpi .eq) 32 (.bin (.cmpi .ne) 32 (.var 0) (.lit 0)) (.lit 0)), (.var 2)]]
 def Is : List (List (E × E)) := [[((.var 2), (.lit 0)), ((.var 3), (.lit 0))], [], [((.var 2), (.lit 0)), ((.var 3), (.lit 0))], [((.var 2), (.lit 0)), ((.var 3), (.lit 0))], [((.var 3), (.lit 0))], [((.var 3), (.lit 0))], [((.var 3), (.lit 0))], [((.var 3), (.lit 0))], [], [((.var 3), (.var 0))]]
-def M : List Match := [⟨0, ce0, g0⟩, ⟨0, ce1, g1⟩, ⟨2, ce2, g2⟩, ⟨2, ce3, g3⟩, ⟨3, ce4, g4⟩, ⟨3, ce5, g5⟩, ⟨4, ce4, g6⟩, ⟨4, ce5, g7⟩, ⟨5, ce6, g9⟩, ⟨5, ce7, g8⟩, ⟨6, ce8, g11⟩, ⟨6, ce9, g10⟩, ⟨7, ce10, g12⟩, ⟨7, ce11, g13⟩, ⟨8, ce14, g15⟩, ⟨8, ce15, g14⟩, ⟨9, ce12, g17⟩, ⟨9, ce13, g16⟩]
+def M : List Match := [⟨0, ce0, g0⟩, ⟨0, ce1, g1⟩, ⟨2, ce2, g2⟩, ⟨2, ce3, g3⟩, ⟨3, ce4, g4⟩, ⟨3, ce5, g5⟩, ⟨4, ce4, g6⟩, ⟨4, ce5, g7⟩, ⟨5, ce6, g9⟩, ⟨5, ce7, g8⟩, ⟨6, ce8, g11⟩, ⟨6, ce9, g10⟩, ⟨7, ce10, g12⟩, ⟨7, ce11, g13⟩, ⟨8, ce12, g15⟩, ⟨8, ce13, g14⟩, ⟨9, ce14, g17⟩, ⟨9, ce15, g16⟩]
 
 theorem cover : Cover P L K 1 GE M = true := by decide +kernel
 
@@ -1230,7 +1230,7 @@ theorem m13 : MatchSem P ρ Is ⟨7, ce11, g13⟩ :=
   matchSem_of (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) o13
 
-/-! ### T8 with C edge 14 (test 7 true) and graph segment 15 -/
+/-! ### T8 with C edge 12 (test 6 true) and graph segment 15 -/
 
 theorem o14_1 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ) [])
     (h : isT (E.eval σ (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 3) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 3) (.lit 1))) (.lit 0))) = true) :
@@ -1330,11 +1330,11 @@ theorem o14 : ∀ σ : List Nat,
     List.map (E.eval σ) [] = List.map (E.eval σ) [] :=
   fun σ hI h => ⟨o14_1 σ hI h, map_cons_eq (o14_2 σ hI h) (map_cons_eq (o14_3 σ hI h) (map_cons_eq (o14_4 σ hI h) (map_cons_eq (o14_5 σ hI h) (map_cons_eq (o14_6 σ hI h) (map_cons_eq (o14_13 σ hI h) (rfl)))))), rfl⟩
 
-theorem m14 : MatchSem P ρ Is ⟨8, ce14, g15⟩ :=
+theorem m14 : MatchSem P ρ Is ⟨8, ce12, g15⟩ :=
   matchSem_of (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) o14
 
-/-! ### T8 with C edge 15 (test 7 false) and graph segment 14 -/
+/-! ### T8 with C edge 13 (test 6 false) and graph segment 14 -/
 
 theorem o15_1 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ) [])
     (h : isT (E.eval σ (.bin (.cmpi .eq) 32 (.sel (.bin (.cmpi .ne) 32 (.bin .andi 32 (.var 3) (.lit 1)) (.lit 0)) (.lit 1) (.bin (.cmpi .slt) 32 (.var 3) (.lit 1))) (.lit 0))) = false) :
@@ -1374,11 +1374,11 @@ theorem o15 : ∀ σ : List Nat,
     List.map (E.eval σ) [(.var 3)] = List.map (E.eval σ) [(.var 3)] :=
   fun σ hI h => ⟨o15_1 σ hI h, map_cons_eq (o15_2 σ hI h) (map_cons_eq (o15_3 σ hI h) (map_cons_eq (o15_4 σ hI h) (map_cons_eq (o15_5 σ hI h) (rfl)))), map_cons_eq (o15_6 σ hI h) (rfl)⟩
 
-theorem m15 : MatchSem P ρ Is ⟨8, ce15, g14⟩ :=
+theorem m15 : MatchSem P ρ Is ⟨8, ce13, g14⟩ :=
   matchSem_of (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) o15
 
-/-! ### T9 with C edge 12 (test 6 true) and graph segment 17 -/
+/-! ### T9 with C edge 14 (test 7 true) and graph segment 17 -/
 
 theorem o16_1 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 3)] = List.map (E.eval σ) [(.var 0)])
     (h : isT (E.eval σ (.bin (.cmpi .ne) 32 (.var 0) (.lit 0))) = true) :
@@ -1476,11 +1476,11 @@ theorem o16 : ∀ σ : List Nat,
     List.map (E.eval σ) [] = List.map (E.eval σ) [] :=
   fun σ hI h => ⟨o16_1 σ hI h, map_cons_eq (o16_2 σ hI h) (map_cons_eq (o16_3 σ hI h) (map_cons_eq (o16_4 σ hI h) (map_cons_eq (o16_5 σ hI h) (map_cons_eq (o16_6 σ hI h) (map_cons_eq (o16_12 σ hI h) (rfl)))))), rfl⟩
 
-theorem m16 : MatchSem P ρ Is ⟨9, ce12, g17⟩ :=
+theorem m16 : MatchSem P ρ Is ⟨9, ce14, g17⟩ :=
   matchSem_of (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) o16
 
-/-! ### T9 with C edge 13 (test 6 false) and graph segment 16 -/
+/-! ### T9 with C edge 15 (test 7 false) and graph segment 16 -/
 
 theorem o17_1 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 3)] = List.map (E.eval σ) [(.var 0)])
     (h : isT (E.eval σ (.bin (.cmpi .ne) 32 (.var 0) (.lit 0))) = false) :
@@ -1504,7 +1504,7 @@ theorem o17 : ∀ σ : List Nat,
     List.map (E.eval σ) [] = List.map (E.eval σ) [] :=
   fun σ hI h => ⟨o17_1 σ hI h, map_cons_eq (o17_2 σ hI h) (rfl), rfl⟩
 
-theorem m17 : MatchSem P ρ Is ⟨9, ce13, g16⟩ :=
+theorem m17 : MatchSem P ρ Is ⟨9, ce15, g16⟩ :=
   matchSem_of (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel) o17
 
@@ -1556,6 +1556,9 @@ theorem final_terminal (r : Nat) : Terminal (step G) (St T1 [r]) := by
   rw [List.all_eq_true]; intro x hx
   rw [St, dead_lmap]
   exact List.all_eq_true.mp (by decide +kernel : rules.all (Rule.dead (ofL T1)) = true) x hx
+
+/-- Non-vacuity of the hypothesis of `auto_computes`: the transcription returns on (12, 18) (value from autoproof's Python run of this automaton; re-checked here by the kernel). -/
+theorem witness : kC 10000 12 18 = some 6 := by decide +kernel
 
 /-- **The imported graph computes the C function `gcd`** (generated proof). -/
 theorem auto_computes {fuel a₀ b₀ r : Nat} (h : kC fuel a₀ b₀ = some r) :

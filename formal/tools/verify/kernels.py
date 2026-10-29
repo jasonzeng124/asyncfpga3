@@ -16,11 +16,14 @@ Everything a new kernel needs is one entry here (see formal/notes/C-vk-verify.md
            vector ({0}, {1} = the inputs as i32 bit patterns) -> Option Nat
   capstone the circuit-level main module and theorem (optional; only kernels capnet.py
            has a PROFILE for can be regenerated)
+  autoc    the C file stage 2e (formal/tools/autoproof) transcribes, if not `c` (optional;
+           gcd: `c` is Euclid, a different algorithm, so 2e uses the binary gcd)
 """
 
 KERNELS = {
     "gcd": dict(
         mlir="gcd", c="formal/tools/verify/ref/gcd.c", func="gcd",
+        autoc="formal/tools/autoproof/ref/gcd_binary.c",
         vectors=[(12, 18), (35, 14), (48, 180), (0, 7), (9, 0), (1071, 462), (17, 5),
                  (64, 24), (100000007, 30000001)],
         domain=lambda v: all(0 <= x < 2 ** 31 for x in v),
@@ -66,6 +69,17 @@ KERNELS = {
         K="XorshiftHw", ns="Formal.Net.XorshiftHw",
         dfargs=["--ns", "Formal.Net.XorshiftHw", "--graph-module", "Formal.Net.XorshiftHw",
                 "--label", "xorshift", "--short", "xorshift"],
+        proof=None, theorem=None, lean_ref=None, capstone=None,
+    ),
+    # added by C-vk2: a kernel with no hand proof, nested loops and early returns; its all-inputs
+    # theorem comes only from stage 2e (generated)
+    "isprime": dict(
+        mlir="isprime", c="kernels/isprime/isprime.c", func="isprime",
+        vectors=[(97,), (91,), (2,), (1,), (7919,), (-5,), (49,)],
+        domain=lambda v: True,
+        K="IsprimeHw", ns="Formal.Net.IsprimeHw",
+        dfargs=["--ns", "Formal.Net.IsprimeHw", "--graph-module", "Formal.Net.IsprimeHw",
+                "--label", "isprime", "--short", "isprime"],
         proof=None, theorem=None, lean_ref=None, capstone=None,
     ),
 }

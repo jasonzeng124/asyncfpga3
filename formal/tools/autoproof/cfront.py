@@ -36,6 +36,7 @@ A test point is a loop condition, or the condition of an `if` that contains a lo
 a `return` or a nested test point. An `if` whose arms are only assignments is
 if-converted into `sel` expressions (pure, so this is exact).
 """
+import os
 import re
 import sys
 
@@ -50,7 +51,7 @@ TOK = re.compile(r"\s*(?:(//[^\n]*|/\*.*?\*/)|(0[xX][0-9a-fA-F]+[uU]?|\d+[uU]?)|
 
 
 def lex(src):
-    src = re.sub(r"^\s*#.*$", "", src, flags=re.M)
+    src = re.sub(r"^[ \t]*#.*$", "", src, flags=re.M)   # keep the newlines: line numbers
     out, i = [], 0
     while i < len(src):
         m = TOK.match(src, i)
@@ -61,7 +62,7 @@ def lex(src):
         i = m.end()
         if m.group(1):
             continue
-        line = src.count("\n", 0, m.start(0)) + 1
+        line = src.count("\n", 0, m.end(0)) + 1
         if m.group(2):
             out.append(("num", m.group(2), line))
         elif m.group(3):
@@ -183,12 +184,12 @@ class Parser:
         if tk[0] == "id" and tk[1] == "do":
             self.eat()
             s = self.stmt()
-            self.eat("while")
+            wtk = self.eat("while")
             self.eat("(")
             c = self.expr()
             self.eat(")")
             self.eat(";")
-            return ("do", s, c, tk[2])
+            return ("do", s, c, wtk[2])
         if tk[0] == "id" and tk[1] == "for":
             self.eat()
             self.eat("(")
@@ -250,8 +251,13 @@ class Parser:
         if tk[0] == "num":
             self.eat()
             s = tk[1].rstrip("uU")
-            v = int(s, 16) if s.lower().startswith("0x") else int(s)
-            return ("num", v, "u" if tk[1][-1] in "uU" or v >= 2 ** 31 else "s")
+            hexa = s.lower().startswith("0x")
+            v = int(s, 16) if hexa else int(s)
+            uns = tk[1][-1] in "uU"
+            if v >= 2 ** 32 or (v >= 2 ** 31 and not uns and not hexa):
+                raise SyntaxError(f"cfront: line {tk[2]}: literal {tk[1]} does not fit int/unsigned "
+                                  "(C would give it a 64-bit type)")
+            return ("num", v, "u" if uns or v >= 2 ** 31 else "s")
         if tk[0] == "id":
             self.eat()
             if self.at("("):
@@ -502,8 +508,29 @@ def declare_all(L, s):
         declare_all(L, s[4])
 
 
+def check_typedefs(path, src):
+    """the parameter types come from typedefs in the included headers (in_int_t): refuse
+    anything that is not a 32-bit int, instead of silently reading it as one"""
+    texts = [src]
+    for inc in re.findall(r'^\s*#\s*include\s+"([^"]+)"', src, re.M):
+        h = os.path.join(os.path.dirname(os.path.abspath(path)), inc)
+        if os.path.exists(h):
+            texts.append(open(h).read())
+    for t in texts:
+        for ty, name in re.findall(r"typedef\s+([\w\s]+?)\s+(\w+)\s*;", t):
+            if name in TYPES:
+                norm = " ".join(ty.split())
+                if norm in ("int", "signed int", "signed"):
+                    TYPES[name] = "s"
+                elif norm in ("unsigned", "unsigned int"):
+                    TYPES[name] = "u"
+                else:
+                    raise SyntaxError(f"cfront: {name} is `{norm}`: only 32-bit int/unsigned are supported")
+
+
 def front(path, func):
     src = open(path).read()
+    check_typedefs(path, src)
     rty, params, body = Parser(lex(src)).func(func)
     L = Lower(rty, params)
     declare_all(L, body)

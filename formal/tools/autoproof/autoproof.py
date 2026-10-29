@@ -25,13 +25,14 @@ How (nothing kernel-specific):
     aligns the two automata step by step (each step consumes exactly one test on both
     sides) and GUESSES: the C test point of each template (`L`), each template variable
     as an expression over the C state there (`rho`, from a pool of C variables, the
-    point's test and the subexpressions of its outgoing code), constant C variables as
-    template invariants (`Is`), and the pairing of C edges with graph edges (`M`).
+    point's test and the subexpressions of its outgoing code), constant C variables and
+    copies as template invariants (`Is`), and the pairing of C edges with graph edges (`M`).
     Guesses are checked numerically on random C states before any Lean is written.
  4. The Lean file instantiates `Formal.Net.Auto.sim_call` (AutoLib.lean, proved once):
     the coverage of the pairing is `decide`d, each pairing's obligation (fact outcome,
-    new environment, invariant) is closed by the generic tactic `auto_match`, the entry
-    by `rfl`/`auto_ops`, and every-schedule determinacy by C-8i's `determinate` /
+    new environment, invariant) is split into component lemmas, each closed by `rfl` or by
+    the generic tactic `auto_ops` after abstraction of numerically equal subterms (`abs_eq`,
+    recursively), the entry by `rfl`/`auto_ops`, and every-schedule determinacy by C-8i's `determinate` /
     `no_longer` (as in the hand proofs). Lean checks everything; the guesses are not
     trusted. A wrong guess or an unprovable obligation makes Lean fail: NOT PROVED.
 
@@ -207,15 +208,17 @@ class Corr:
         P, ga, obs = self.P, self.ga, self.obs
         nT = len(ga.templates)
         self.K = [k for k in range(nT) if k != ga.fin]
-        L = [0] * nT
+        L = [None] * nT
         for k in self.K:
             ps = {o[0] for o in obs[k]}
-            if len(ps) != 1:
-                raise NotProved(f"template T{k}: {'never reached in the co-simulation' if not ps else f'aligned with C test points {sorted(ps)}'}")
-            L[k] = ps.pop()
+            if len(ps) > 1:
+                raise NotProved(f"template T{k}: aligned with C test points {sorted(ps)}")
+            if ps:
+                L[k] = ps.pop()
         self.L = L
         if L[0] != P.start:
             raise NotProved(f"T0 aligns with C test point {L[0]}, but the C starts at {P.start}")
+        self.derived = []          # (k', k, graph edge, C edge): templates never reached by the co-simulation
         self.infer_inv()
         self.infer_rho()
         self.infer_matches()
@@ -228,7 +231,7 @@ class Corr:
         self.Is = []
         for k in range(len(self.ga.templates)):
             I = []
-            if k in self.K:
+            if k in self.K and self.obs[k]:
                 const = set()
                 for i in range(nv):
                     vals = {o[1][i] for o in self.obs[k]}
@@ -270,6 +273,8 @@ class Corr:
         picks among them"""
         self.cands, self.sel = {}, {}
         for k in self.K:
+            if not self.obs[k]:
+                continue
             pool = self.pool(self.L[k])
             for j in range(self.ga.nvars(k)):
                 vals = [(o[1], o[2][j]) for o in self.obs[k]]
@@ -286,7 +291,32 @@ class Corr:
 
     def set_rho(self):
         self.rho = [[self.cands[(k, j)][self.sel[(k, j)]] for j in range(self.ga.nvars(k))]
-                    if k in self.K else [] for k in range(len(self.ga.templates))]
+                    if k in self.K and self.obs[k] else [] for k in range(len(self.ga.templates))]
+        for k2, k, gi, ci in self.derived:
+            self.rho[k2] = [subst(self.rho[k], x) for x in self.ga.edges[gi]["sig"]]
+
+    def polarity(self, k, n=400, seed=5):
+        """does the graph fact out of template k agree with the C test at L[k] (True), or is it
+        its negation (False)? Numerical, on random C states satisfying k's invariant."""
+        rnd = random.Random(seed)
+        nv = len(self.P.vars)
+        fact = [e for e in self.ga.edges if e["src"] == k][0]["fact"]
+        gf = subst(self.rho[k], fact)
+        t = self.P.tests[self.L[k]]
+        fixed = {a[1]: b[1] for a, b in self.Is[k] if b[0] == "lit"}
+        eqs = [(a[1], b[1]) for a, b in self.Is[k] if b[0] == "var"]
+        same = diff = 0
+        for _ in range(n):
+            st = [fixed.get(i, rnd.choice([rnd.randrange(M32), rnd.randrange(40)])) for i in range(nv)]
+            for i, j in eqs:
+                st[i] = st[j]
+            if (ev(t, st) % 2) == (ev(gf, st) % 2):
+                same += 1
+            else:
+                diff += 1
+        if same and diff:
+            raise NotProved(f"T{k}: the graph's branch fact is neither the C test at point {self.L[k]} nor its negation")
+        return diff == 0
 
     def search(self, rounds=200):
         """greedy repair: advance the candidate of a variable a failing obligation blames"""
@@ -307,9 +337,19 @@ class Corr:
         return self.check()
 
     def infer_matches(self):
+        """pair C edges with graph edges, template by template; a template the co-simulation never
+        reached (an infeasible path of the graph, e.g. isprime's first `s <= half` test) is derived
+        from its predecessor: same C test point as the C edge's destination, rho = the segment's
+        sig over the predecessor's rho, provided that edge's C code leaves those variables unchanged"""
         P, ga = self.P, self.ga
         self.M = []
-        for k in self.K:
+        work = [k for k in self.K if self.obs[k]]
+        done = set()
+        while work:
+            k = work.pop(0)
+            if k in done:
+                continue
+            done.add(k)
             outs = [(ci, ce) for ci, ce in enumerate(P.edges) if ce[0] == self.L[k]]
             gout = [e for e in ga.edges if e["src"] == k]
             seen = {}
@@ -318,21 +358,41 @@ class Corr:
                 if len(gs) > 1:
                     raise NotProved(f"T{k}: C edge {ci} pairs with several graph edges {sorted(gs)}")
                 if gs:
-                    seen[ci] = gs.pop()
+                    seen[ci] = next(iter(gs))
             for ci, ce in outs:
                 if ci not in seen:
                     other = [c for c in seen if c != ci]
-                    if not other:
-                        raise NotProved(f"T{k}: C edge {ci} (test point {ce[0]}, {ce[1]}) never exercised")
-                    go = ga.edges[seen[other[0]]]
-                    cand = [e for e in gout if e["br"] != go["br"]]
+                    if other:
+                        go = ga.edges[seen[other[0]]]
+                        cand = [e for e in gout if e["br"] != go["br"]]
+                    else:
+                        same = self.polarity(k)
+                        cand = [e for e in gout if e["br"] == (ce[1] if same else not ce[1])]
                     seen[ci] = cand[0]["i"]
                 g = ga.edges[seen[ci]]
                 if ce[3] is None and g["dst"] != ga.fin:
                     raise NotProved(f"T{k}: C edge {ci} returns but graph edge {g['i']} goes to T{g['dst']}")
-                if ce[3] is not None and (g["dst"] == ga.fin or self.L[g["dst"]] != ce[3]):
+                if ce[3] is not None and g["dst"] == ga.fin:
+                    raise NotProved(f"T{k}: C edge {ci} goes to test point {ce[3]}, graph edge {g['i']} returns")
+                if ce[3] is not None and self.L[g["dst"]] is None:
+                    k2 = g["dst"]
+                    keep = {i for i, x in enumerate(ce[2]) if x == ("var", i)}
+                    r2 = [subst(self.rho[k], x) for x in g["sig"]]
+                    if any(v[1] not in keep for x in r2 for v in vars_of(x)):
+                        raise NotProved(f"T{k2}: never reached in the co-simulation, and not derivable from T{k} "
+                                        f"(C edge {ci} changes a variable it depends on)")
+                    self.L[k2] = ce[3]
+                    self.Is[k2] = [(a_, b_) for a_, b_ in self.Is[k]
+                                   if all(v[1] in keep for v in vars_of(a_) + vars_of(b_))]
+                    self.derived.append((k2, k, g["i"], ci))
+                    self.set_rho()
+                    work.append(k2)
+                if ce[3] is not None and self.L[g["dst"]] != ce[3]:
                     raise NotProved(f"T{k}: C edge {ci} goes to test point {ce[3]}, graph edge {g['i']} to T{g['dst']}")
                 self.M.append((k, ci, g["i"]))
+        missing = [k for k in self.K if k not in done]
+        if missing:
+            raise NotProved(f"templates {missing} are neither reached by the co-simulation nor derivable")
 
     # ---- obligations in substituted form, and their numerical check ----
     def obligation(self, m):
@@ -677,7 +737,7 @@ def emit(C, opt, P, cpath):
         w(f"  · exact edge (Ti := T{g['src']}) (Tj := T{g['dst']}) lenT{g['src']} seg{g['i']} env (fact1 hf)")
     w("")
     w("/-! ## The correspondence (found by co-simulation, checked below) -/\n")
-    w(f"def L : List Nat := {C.L}")
+    w(f"def L : List Nat := {[x if x is not None else 0 for x in C.L]}")
     w(f"def K : List Nat := {C.K}")
     w("def ρ : List (List E) := [" + ", ".join(lst(r) for r in C.rho) + "]")
     w("def Is : List (List (E × E)) := [" + ", ".join(
@@ -741,6 +801,11 @@ def emit(C, opt, P, cpath):
     w("  rw [List.all_eq_true]; intro x hx")
     w("  rw [St, dead_lmap]")
     w(f"  exact List.all_eq_true.mp (by decide +kernel : rules.all (Rule.dead (ofL T{ga.fin})) = true) x hx\n")
+    if opt.witness:
+        wv, wr = opt.witness
+        w(f"/-- Non-vacuity of the hypothesis of `auto_computes`: the transcription returns on "
+          f"{wv} (value from autoproof's Python run of this automaton; re-checked here by the kernel). -/")
+        w(f"theorem witness : kC 10000 {' '.join(str(x % M32) for x in wv)} = some {wr} := by decide +kernel\n")
     w(f"/-- **The imported graph computes the C function `{opt.func}`** (generated proof). -/")
     w(f"theorem auto_computes {{fuel {args} r : Nat}} (h : kC fuel {args} = some r) :")
     w(f"    (∃ n, Run (step G) (St T0 {argl}) n (St T{ga.fin} [r])) ∧")
@@ -774,6 +839,8 @@ def main():
     ap.add_argument("--combined", help="write graph + segments + proof in ONE file")
     ap.add_argument("--vecs", default="")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--corr-from", help="negative controls: guess the correspondence on THIS (reference) MLIR, "
+                    "then emit the proof for the MLIR given as first argument (implies --force)")
     ap.add_argument("--force", action="store_true",
                     help="negative controls: write the Lean file even if the numerical check fails")
     a = ap.parse_args()
@@ -784,7 +851,17 @@ def main():
         ga = GA(a.mlir)
         if ga.nargs != len(P.params):
             raise NotProved(f"the graph has {ga.nargs} data inputs, the C function {len(P.params)}")
-        C = Corr(ga, P, vecs, a.seed)
+        if a.corr_from:
+            a.force = True
+            C = Corr(GA(a.corr_from), P, vecs, a.seed)
+            C.infer()
+            if len(ga.edges) != len(C.ga.edges) or any(
+                    (x["src"], x["br"], x["dst"]) != (y["src"], y["br"], y["dst"]) for x, y in zip(ga.edges, C.ga.edges)):
+                raise NotProved("--corr-from: the two graphs' template automata differ")
+            C.ga = ga
+            C.cex = None
+        else:
+            C = Corr(ga, P, vecs, a.seed)
     except (NotProved, SyntaxError) as e:
         print(f"AUTOPROOF NOT PROVED: {e}")
         return 2
@@ -795,7 +872,10 @@ def main():
               f"returns {gr} after {ng} segments, C returns {cr} after {nc} tests")
         return 1
     try:
-        C.infer()
+        if not a.corr_from:
+            C.infer()
+        else:
+            C.bad = C.check()
     except NotProved as e:
         print(f"AUTOPROOF NOT PROVED: {e}")
         return 2
@@ -813,6 +893,12 @@ def main():
             print("AUTOPROOF NOT PROVED: a guessed correspondence fails on some C state (see above)")
             return 2
         print("autoproof: --force: writing the Lean file anyway (negative control: Lean must reject it)")
+    a.witness = None
+    for v in (vecs or [tuple(range(1, len(P.params) + 1))]):
+        r, _ = cfront.run(P, [x % M32 for x in v], 5000)
+        if r is not None:
+            a.witness = (v, r)
+            break
     body = emit(C, a, P, a.cfile)
     if a.combined:
         import tempfile

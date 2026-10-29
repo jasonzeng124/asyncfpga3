@@ -77,7 +77,12 @@ def plan(ops, L):
     return P
 
 
-def simulate(vals, names, ops, L=LEN, tmax=200000):
+def simulate(vals, names, ops, L=LEN, tmax=200000, mut=None, delay=None):
+    """`mut` (negative controls only): {'slowhead': (op, D)} gives chain A's first node of operator
+    `op` an inertial delay of D ticks; {'init5': (op, pat)} flips one INIT bit of fork `op`'s N = 5 chunk
+    C-element (leaves a0..a3 = pat with q = 0 sets m)."""
+    mut = mut or {}
+    pend = {}
     NC = len(names)
     prod = {}
     for n, o in enumerate(ops):
@@ -164,6 +169,8 @@ def simulate(vals, names, ops, L=LEN, tmax=200000):
                 if N <= 4: nack[o["i"]] = cel(r, a)
                 elif N == 5:
                     nmm[n][0] = cel(mm[n][0], a[:4]); nack[o["i"]] = cel(r, [mm[n][0], a[4]])
+                    if mut.get("init5", (None,))[0] == n and a[:4] == mut["init5"][1] and not mm[n][0]:
+                        nmm[n][0] = True
                 else:
                     nmm[n][0] = cel(mm[n][0], a[:4]); nmm[n][1] = cel(mm[n][1], a[4:])
                     nack[o["i"]] = cel(r, [mm[n][0], mm[n][1]])
@@ -220,6 +227,11 @@ def simulate(vals, names, ops, L=LEN, tmax=200000):
                                                                (req if endA(n)[0] == "req" else ack)[endA(n)[1]])
                 for kk in range(1, N + 1):
                     v = sG(st[kk - 1], xa)
+                    if kk == 1 and mut.get("slowhead", (None,))[0] == n:
+                        cur = xa(1)
+                        pend[n] = pend.get(n, 0) + 1 if v != cur else 0
+                        if v != cur and pend[n] < mut["slowhead"][1]: v = cur
+                        elif v != cur: pend[n] = 0
                     if kk < N: nca[n][kk - 1] = v
                     else:
                         if endA(n)[0] == "req": nreq[endA(n)[1]] = v
@@ -231,10 +243,30 @@ def simulate(vals, names, ops, L=LEN, tmax=200000):
                     v = xb(kk - 1)
                     if kk < N: ncb[n][kk - 1] = v
                     else: nreq[endB(n)] = v
+        excited = False
+        if delay is not None:
+            # inertial delays (exploration only): a node takes its new value only once the
+            # excitation has persisted delay(key) ticks; otherwise it keeps its old value.
+            def filt(key, old, new):
+                nonlocal excited
+                if new == old:
+                    pend.pop(key, None); return old
+                c = pend.get(key, 0) + 1
+                if c < delay(key):
+                    pend[key] = c; excited = True; return old
+                pend.pop(key, None); return new
+            for c in range(NC):
+                nreq[c] = filt(("r", c), req[c], nreq[c]); nack[c] = filt(("a", c), ack[c], nack[c])
+            for n in range(len(ops)):
+                for k in range(len(it[n])): nit[n][k] = filt(("it", n, k), it[n][k], nit[n][k])
+                if ops[n]["k"] != "amerge":
+                    for k in range(len(mm[n])): nmm[n][k] = filt(("m", n, k), mm[n][k], nmm[n][k])
+                for k in range(len(ca[n])): nca[n][k] = filt(("ca", n, k), ca[n][k], nca[n][k])
+                for k in range(len(cb[n])): ncb[n][k] = filt(("cb", n, k), cb[n][k], ncb[n][k])
         for n, o in enumerate(ops):
             if o["k"] == "src" and not req[o["z"]] and nreq[o["z"]]:
                 srcdone[n] = True
-        changed = (nreq != req) or (nack != ack) or (nit != it) or (nmm != mm) or (nca != ca) or (ncb != cb)
+        changed = excited or (nreq != req) or (nack != ack) or (nit != it) or (nmm != mm) or (nca != ca) or (ncb != cb)
         req, ack, it, mm, ca, cb = nreq, nack, nit, nmm, nca, ncb
         for n, o in enumerate(ops):
             if o["k"] == "link": latch[o["o"]] = D[o["o"]]
@@ -329,9 +361,9 @@ def gen_check(ops, tr, P):
     return errs
 
 
-def run(net, vals, L=LEN):
+def run(net, vals, L=LEN, mut=None, delay=None):
     names, ops, out0, start = sim.load_net(net)
-    tr, P = simulate(vals, names, ops, L)
+    tr, P = simulate(vals, names, ops, L, mut=mut, delay=delay)
     env = {"mode": "once", "start": start, "out0": out0}
     # the lumped Cell check of capwit2 reads (req, ack, it, dat) = the first four components
     errs, falls = sim.check(vals, names, ops, out0, start, [s[:4] for s in tr], env)

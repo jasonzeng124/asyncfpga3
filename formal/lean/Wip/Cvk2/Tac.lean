@@ -1,10 +1,15 @@
 import Formal.Net.AutoLib
 open Formal.Net.GcdHw Formal.Net.Auto
 
+/-! WIP (probe C-vk2): unit tests of `auto_ops` on the rewrites the kernels need. The LAST
+example is false on purpose (abs vs plain subtraction) and must FAIL: this file does not check. -/
+
 -- abs swap (the gcd equivalent mutant)
 example : ∀ σ : List Nat, ([] : List E).map (E.eval σ) = ([] : List E).map (E.eval σ) → isT ((E.lit 1).eval σ) = true →
-    isT ((E.lit 1).eval σ) = true ∧ [(E.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))].map (E.eval σ) = [(E.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 1) (.var 0)) (.lit 4294967295)) (.bin .subi 32 (.var 1) (.var 0)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 1) (.var 0))))].map (E.eval σ) ∧ ([] : List E).map (E.eval σ) = ([] : List E).map (E.eval σ) := by
-  auto_match
+    [(E.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 0) (.var 1)) (.lit 4294967295)) (.bin .subi 32 (.var 0) (.var 1)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 0) (.var 1))))].map (E.eval σ) = [(E.sel (.bin (.cmpi .sgt) 32 (.bin .subi 32 (.var 1) (.var 0)) (.lit 4294967295)) (.bin .subi 32 (.var 1) (.var 0)) (.bin .subi 32 (.lit 0) (.bin .subi 32 (.var 1) (.var 0))))].map (E.eval σ) := by
+  intro σ _ _
+  simp only [List.map, List.cons.injEq, and_true]
+  auto_ops
 
 -- ipow body
 example : ∀ σ : List Nat, ([] : List E).map (E.eval σ) = ([] : List E).map (E.eval σ) → isT ((E.bin (.cmpi .sgt) 32 (.var 2) (.lit 0)).eval σ) = true →

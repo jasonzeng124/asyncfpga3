@@ -7,15 +7,17 @@
 Stages (each prints PASS / FAIL / SKIP, what it proves and what it does not):
   1  import   dfimport (C-8i) exports the graph bdc emits; drift vs the committed Lean
   2a lean     the committed hand proof re-checked on the FRESH import (leanstage.py)
+  2e auto     a GENERATED all-inputs proof, no hand proof (autostage.py -> formal/tools/autoproof)
   2b search   bounded explicit-state search of every schedule against the compiled C
               (tokensearch.py); prints a counterexample schedule on mismatch
   2d vectors  generated Lean theorems, one per vector, for ANY kernel (vecgen.py): every
               complete run ends with exactly the compiled C's value
   2c transcr  the Lean transcription of the C (`#eval`) vs the compiled C on the vectors
+  2f auto-tr  the GENERATED transcription (stage 2e's kC, `#eval`) vs the compiled C on the vectors
   3  circuit  capnet (C-8y) regenerates the circuit network; the committed circuit proof
               covers it iff identical (capstage.py)
   4  timing   tcheck (C-10e) on the route(s); failing rows printed with their arcs (tstage.py)
-Overall: PASS iff no stage FAILs and stage 2a PASSes. Exit 0 PASS, 1 FAIL, 2 not proved.
+Overall: PASS iff no stage refutes and stage 2a or 2e PASSes. Exit 0 PASS, 1 FAIL, 2 not proved.
 """
 import argparse
 import os
@@ -79,6 +81,7 @@ def main():
     ap.add_argument("--out")
     ap.add_argument("--no-lean", action="store_true")
     ap.add_argument("--no-cap", action="store_true")
+    ap.add_argument("--no-auto", action="store_true", help="skip stage 2e (generated all-inputs proof)")
     ap.add_argument("--max-states", type=int, default=300000)
     a = ap.parse_args()
     k = KERNELS[a.kernel]
@@ -166,6 +169,43 @@ def main():
                     "a FAIL here is 'not proved', not 'wrong'; stage 2b looks for a real counterexample")
         lean_v = {"PASS": "PASS", "PARTIAL": "SKIP"}.get(lv, "FAIL")
 
+    # ---- 2e generated all-inputs proof -------------------------------------------------
+    autoref = {}
+    auto_v = "SKIP"
+    if a.no_lean or a.no_auto:
+        R.stage("2e auto", "SKIP", "- (--no-lean/--no-auto)", "-")
+    else:
+        cmd = [PY, os.path.join(HERE, "autostage.py"), a.kernel, mlir, os.path.join(out, "auto"),
+               "--vecs", " ".join(",".join(map(str, v)) for v in vecs)]
+        if a.c:
+            cmd += ["--c", cfile]
+        rc, log = run(cmd, env=env)
+        print(indent("\n".join(l for l in log.split("\n") if not l.startswith("AUTOREF"))))
+        for l in log.split("\n"):
+            m = re.match(r"AUTOREF (\S+) -> (.*)$", l)
+            if m:
+                autoref[m.group(1)] = m.group(2).strip()
+        if rc == 0:
+            auto_v = "PASS"
+            R.stage("2e auto", "PASS",
+                    f"Formal.Net.Auto{K}V.auto_computes, GENERATED (no hand proof): from one token per input, "
+                    "EVERY complete run of the graph imported from THIS MLIR (any schedule, any arbiter outcome) "
+                    "ends with exactly [r] where r is what the generated C transcription `kC` returns, for ALL "
+                    "inputs on which it returns; no run is longer (Lean kernel, axioms audited)",
+                    "that cfront's transcription is the C (2c tests it on the vectors); termination of the C; "
+                    "gates, delays, cells")
+        elif rc == 1:
+            auto_v = "FAIL"
+            R.stage("2e auto", "FAIL",
+                    "a COUNTEREXAMPLE input from autoproof's co-simulation (graph template run vs C "
+                    "transcription, Python semantics; printed above)",
+                    "the Python semantics is a transcription (2b/2d re-check with their own engines)")
+        else:
+            auto_v = "NOTPROVED"
+            R.stage("2e auto", "SKIP",
+                    "nothing: no generated proof (see the reason above)",
+                    "a SKIP here is 'not proved', not 'wrong'")
+
     # ---- 2b search --------------------------------------------------------------------
     rc, log = run([PY, os.path.join(HERE, "tokensearch.py"), mlir, "--c", cfile, "--func", k["func"],
                    "--vecs", " ".join(",".join(map(str, v)) for v in vecs), "--max-states", str(a.max_states)],
@@ -201,6 +241,17 @@ def main():
                     "-")
 
     # ---- 2c transcription vs C --------------------------------------------------------
+    if autoref:
+        bad = []
+        for v, c in zip(vecs, crefs):
+            key = ",".join(map(str, v))
+            want = f"some {c % (1 << 32)}"
+            if autoref.get(key) != want:
+                bad.append(f"({key}): generated transcription {autoref.get(key)}, compiled C {want} (= {c})")
+        R.stage("2f auto-tr", "FAIL" if bad else "PASS",
+                f"the generated C transcription (kC) agrees with the compiled C on all {len(vecs)} vectors"
+                if not bad else "COUNTEREXAMPLE to 'generated transcription = C':\n      " + "\n      ".join(bad),
+                "agreement on other inputs (testing, not proof)")
     if leanref:
         bad = []
         for v, c in zip(vecs, crefs):
@@ -246,7 +297,7 @@ def main():
                 "the front end (extract.py: graph, intervals, obligation choice) is untrusted; one route is "
                 "a sample (>= 4 seeds); prjxray delays are a model")
 
-    return finish(R, lean_v)
+    return finish(R, "PASS" if "PASS" in (lean_v, auto_v) else lean_v)
 
 
 def finish(R, lean_v="FAIL"):
@@ -255,15 +306,20 @@ def finish(R, lean_v="FAIL"):
     # a FAIL of 2a (committed proof does not check on this graph) or of 3 (network differs from
     # the proved one) means "not proved"; only the other stages refute (counterexample / failed check)
     refuting = [n for n, v in R.rows if v == "FAIL" and not n.startswith(("2a", "3 "))]
+    proved_by = [n for n, v in R.rows if v == "PASS" and n.startswith(("2a", "2e"))]
     if refuting:
         print(f"VERDICT: FAIL ({', '.join(refuting)}; counterexamples printed above)")
         return 1
-    if any(v == "FAIL" for v in vs.values()):
+    # a 2a FAIL (the hand proof is syntactic) is excused by a generated 2e PASS; a stage-3 FAIL
+    # (the circuit network differs from the proved one) is not
+    unexcused = [n for n, v in R.rows if v == "FAIL" and not (n.startswith("2a") and "2e auto" in proved_by)]
+    if unexcused:
         print("VERDICT: NOT PROVED (no counterexample found; the committed proofs do not apply to this "
-              "design: " + ", ".join(n for n, v in R.rows if v == "FAIL") + ")")
+              "design: " + ", ".join(unexcused) + ")")
         return 2
     if lean_v == "PASS":
-        print("VERDICT: PASS (token-level theorem checked on this MLIR; other stages as listed)")
+        print(f"VERDICT: PASS (token-level all-inputs theorem checked on this MLIR by {', '.join(proved_by)}; "
+              "other stages as listed)")
         return 0
     if vs.get("2d vectors") == "PASS":
         print("VERDICT: PROVED ON THE LISTED VECTORS ONLY (generated per-vector theorems checked; "

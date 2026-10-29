@@ -23,7 +23,8 @@ P=0; [ -n "$Q" ] && P=2      # without Lean a positive run is "not proved" (exit
 expect gcd       $P 'token search: PASS'                      -- gcd $Q --route "$HERE/test/pass.tc"
 expect ipow      $P 'token search: PASS'                      -- ipow $Q
 expect collatz   $P 'token search: PASS'                      -- collatz $Q
-expect xorshift  2  'token search: PASS'                      -- xorshift $Q
+# xorshift has no hand proof: its all-inputs theorem comes from stage 2e (generated, C-vk2)
+expect xorshift  $P 'token search: PASS'                      -- xorshift $Q
 # negative control 1: gcd with subi1's operands swapped (0 - diff -> diff - 0)
 python3 "$HERE/mutate.py" "$FIX/gcd/comp/handshake_transformed.mlir" "$OUT/gcd_subi1.mlir" --swap subi1 2>/dev/null
 expect neg-gcd-subi1 1 'COUNTEREXAMPLE  input'                -- gcd $Q --mlir "$OUT/gcd_subi1.mlir" --vecs "35,14 12,18 48,180"
@@ -36,9 +37,13 @@ python3 "$HERE/mutate.py" "$FIX/ipow/comp/handshake_transformed.mlir" "$OUT/ipow
 expect neg-timing 1 'COUNTEREXAMPLE ROW  toy-fail'            -- ipow --no-lean --no-cap --route "$ROOT/formal/tools/tcheck/test/toy.tc"
 # equivalent mutant (subi0 swapped: |b-a| = |a-b|): no counterexample may be reported
 python3 "$HERE/mutate.py" "$FIX/gcd/comp/handshake_transformed.mlir" "$OUT/gcd_subi0.mlir" --swap subi0 2>/dev/null
-# (exit 2 = not proved is the honest outcome: the hand proof is syntactic and need not survive;
-#  stage 2d still proves the vectors)
+# The hand proof is syntactic and does not survive (2a FAIL = not proved); the GENERATED proof of
+# stage 2e (C-vk2) proves it for all inputs, so with Lean the run must PASS
+if [ -n "$Q" ]; then
 expect equiv-gcd-subi0 X 'token search: PASS'                 -- gcd $Q --mlir "$OUT/gcd_subi0.mlir" --no-cap --vecs "12,18 35,14 48,180"
+else
+expect equiv-gcd-subi0 0 '2e auto\] PASS'                     -- gcd --mlir "$OUT/gcd_subi0.mlir" --no-cap --vecs "12,18 35,14 48,180"
+fi
 # the reduction is exact for terminal stores: reduced and full search agree (ipow, small vectors)
 for m in "" "--no-por"; do
   python3 "$HERE/tokensearch.py" "$FIX/ipow/comp/handshake_transformed.mlir" --c "$ROOT/kernels/ipow/ipow.c" \

@@ -19,7 +19,7 @@ longer. NOT covered: termination of the C (fuelled), that the transcription is t
 cfront's reading (tested against the compiled C), gates, delays, cells.
 
 ## The C transcription, test points
-* test 0 (line 21: `unsigned x = (unsigned)seed;`): `slt(i, rounds)`
+* test 0 (line 24: `while (i < rounds) {`): `slt(i, rounds)`
 * state: `seed, rounds, x, i`; entry: `seed := seed, rounds := rounds, x := seed, i := 0`, then test 0
 -/
 
@@ -488,6 +488,9 @@ theorem final_terminal (r : Nat) : Terminal (step G) (St T2 [r]) := by
   rw [List.all_eq_true]; intro x hx
   rw [St, dead_lmap]
   exact List.all_eq_true.mp (by decide +kernel : rules.all (Rule.dead (ofL T2)) = true) x hx
+
+/-- Non-vacuity of the hypothesis of `auto_computes`: the transcription returns on (-1831433054, 4) (value from autoproof's Python run of this automaton; re-checked here by the kernel). -/
+theorem witness : kC 10000 2463534242 4 = some 2008045182 := by decide +kernel
 
 /-- **The imported graph computes the C function `xorshift`** (generated proof). -/
 theorem auto_computes {fuel seed₀ rounds₀ r : Nat} (h : kC fuel seed₀ rounds₀ = some r) :

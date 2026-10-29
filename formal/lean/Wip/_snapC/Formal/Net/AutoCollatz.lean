@@ -19,7 +19,7 @@ longer. NOT covered: termination of the C (fuelled), that the transcription is t
 cfront's reading (tested against the compiled C), gates, delays, cells.
 
 ## The C transcription, test points
-* test 0 (line 24: `int collatz(in_int_t n) {`): `ne(n, 1)`
+* test 0 (line 27: `while (n != 1) {`): `ne(n, 1)`
 * state: `n, steps`; entry: `n := n, steps := 0`, then test 0
 -/
 
@@ -142,6 +142,8 @@ theorem o0_8 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 1)] = List.map (E
   simp only [List.map, List.cons.injEq, and_true, E.eval] at hI
   simp only [E.eval] at h r2 ⊢
   try simp only [hI] at h r2 ⊢
+  try rw [lt2_ite _ r2] at h
+  try rw [lt2_ite _ r2]
   auto_ops
 
 theorem o0_6 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 1)] = List.map (E.eval σ) [(.lit 0)])
@@ -212,6 +214,8 @@ theorem o0_18 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 1)] = List.map (
   simp only [List.map, List.cons.injEq, and_true, E.eval] at hI
   simp only [E.eval] at h r2 ⊢
   try simp only [hI] at h r2 ⊢
+  try rw [lt2_ite _ r2] at h
+  try rw [lt2_ite _ r2]
   auto_ops
 
 theorem o0_16 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 1)] = List.map (E.eval σ) [(.lit 0)])
@@ -340,6 +344,8 @@ theorem o2_8 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ
     (h : isT (E.eval σ (.bin (.cmpi .ne) 32 (.var 0) (.lit 1))) = true) (r2 : E.eval σ (.var 2) < 2 ^ 1) :
     E.eval σ (.bin (.cmpi .eq) 1 (.var 2) (.lit 0)) = E.eval σ (.bin (.cmpi .eq) 32 (.var 2) (.lit 0)) := by
   simp only [E.eval] at h r2 ⊢
+  try rw [lt2_ite _ r2] at h
+  try rw [lt2_ite _ r2]
   auto_ops
 
 theorem o2_6 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ) [])
@@ -400,6 +406,8 @@ theorem o2_18 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval �
     (h : isT (E.eval σ (.bin (.cmpi .ne) 32 (.var 0) (.lit 1))) = true) (r2 : E.eval σ (.var 2) < 2 ^ 1) :
     E.eval σ (.bin (.cmpi .eq) 1 (.var 2) (.lit 0)) = E.eval σ (.bin (.cmpi .eq) 32 (.var 2) (.lit 0)) := by
   simp only [E.eval] at h r2 ⊢
+  try rw [lt2_ite _ r2] at h
+  try rw [lt2_ite _ r2]
   auto_ops
 
 theorem o2_16 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ) [])
@@ -516,6 +524,9 @@ theorem final_terminal (r : Nat) : Terminal (step G) (St T1 [r]) := by
   rw [List.all_eq_true]; intro x hx
   rw [St, dead_lmap]
   exact List.all_eq_true.mp (by decide +kernel : rules.all (Rule.dead (ofL T1)) = true) x hx
+
+/-- Non-vacuity of the hypothesis of `auto_computes`: the transcription returns on (6,) (value from autoproof's Python run of this automaton; re-checked here by the kernel). -/
+theorem witness : kC 10000 6 = some 8 := by decide +kernel
 
 /-- **The imported graph computes the C function `collatz`** (generated proof). -/
 theorem auto_computes {fuel n₀ r : Nat} (h : kC fuel n₀ = some r) :

@@ -150,7 +150,7 @@ theorem invH_subst {I : List (E × E)} {σ : List Nat} {s a b : List E}
   exact h
 
 /-- `MatchSem` from an obligation stated on explicit, already-substituted expressions
-(this is what the generated file proves with `auto_match`). -/
+(this is what the generated file proves, component by component). -/
 theorem matchSem_of {P : CProg} {ρ : List (List E)} {Is : List (List (E × E))} {m : Match}
     {t gf : E} {ia ib l1 l2 ja jb : List E}
     (ht : P.tests.getD m.ce.src (.lit 0) = t)
@@ -484,15 +484,5 @@ macro "auto_ops" : tactic => `(tactic| (
   all_goals revert_props
   all_goals (repeat' ite_case)
   all_goals (intros; omega)))
-
-/-- The whole per-match obligation: split the conjunction and the list equality into
-components; each closes by `rfl` (syntactically equal) or `auto_ops`. -/
-macro "auto_match" : tactic => `(tactic| (
-  intro σ hI h
-  simp only [List.map, List.cons.injEq, and_true] at *
-  try simp only [E.eval] at hI h ⊢
-  try simp only [hI] at h ⊢
-  repeat' apply And.intro
-  all_goals first | with_reducible rfl | auto_ops))
 
 end Formal.Net.Auto

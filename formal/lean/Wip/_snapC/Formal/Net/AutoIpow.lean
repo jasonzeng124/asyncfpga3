@@ -19,7 +19,7 @@ longer. NOT covered: termination of the C (fuelled), that the transcription is t
 cfront's reading (tested against the compiled C), gates, delays, cells.
 
 ## The C transcription, test points
-* test 0 (line 21: `int ipow(in_int_t b, in_int_t e) {`): `sgt(e, 0)`
+* test 0 (line 24: `while (e > 0) {`): `sgt(e, 0)`
 * state: `b, e, r`; entry: `b := b, e := e, r := 1`, then test 0
 -/
 
@@ -128,6 +128,8 @@ theorem o0_5 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 2)] = List.map (E
   simp only [List.map, List.cons.injEq, and_true, E.eval] at hI
   simp only [E.eval] at h r3 r4 ⊢
   try simp only [hI] at h r3 r4 ⊢
+  try rw [lt2_ite _ r3] at h
+  try rw [lt2_ite _ r3]
   auto_ops
 
 theorem o0_2 (σ : List Nat) (hI : List.map (E.eval σ) [(.var 2)] = List.map (E.eval σ) [(.lit 1)])
@@ -216,6 +218,8 @@ theorem o2_4 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ
     (h : isT (E.eval σ (.bin (.cmpi .sgt) 32 (.var 1) (.lit 0))) = true) (r3 : E.eval σ (.var 3) < 2 ^ 1) (r4 : E.eval σ (.var 4) < 2 ^ 32) :
     E.eval σ (.sel (.bin (.cmpi .eq) 1 (.var 3) (.lit 0)) (.var 2) (.var 4)) = E.eval σ (.sel (.var 3) (.var 4) (.var 2)) := by
   simp only [E.eval] at h r3 r4 ⊢
+  try rw [lt2_ite _ r3] at h
+  try rw [lt2_ite _ r3]
   auto_ops
 
 theorem o2_2 (σ : List Nat) (hI : List.map (E.eval σ) [] = List.map (E.eval σ) [])
@@ -314,6 +318,9 @@ theorem final_terminal (r : Nat) : Terminal (step G) (St T2 [r]) := by
   rw [List.all_eq_true]; intro x hx
   rw [St, dead_lmap]
   exact List.all_eq_true.mp (by decide +kernel : rules.all (Rule.dead (ofL T2)) = true) x hx
+
+/-- Non-vacuity of the hypothesis of `auto_computes`: the transcription returns on (3, 7) (value from autoproof's Python run of this automaton; re-checked here by the kernel). -/
+theorem witness : kC 10000 3 7 = some 2187 := by decide +kernel
 
 /-- **The imported graph computes the C function `ipow`** (generated proof). -/
 theorem auto_computes {fuel b₀ e₀ r : Nat} (h : kC fuel b₀ e₀ = some r) :

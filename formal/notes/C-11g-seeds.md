@@ -157,3 +157,42 @@ kept.
 
 ## Last run
 (filled in below)
+
+### xorshift: `formal/tools/fasm2lean3/kcheck.sh xorshift` (full, with Lean), 2026-10-29: PASS
+
+    == 0. toolchain ==
+      seed 1: nextpnr 9c732bc6303458df, toolchain.sh ok, flow.sh gates ok, fasm_audit PASS, --freq 100
+      seed 2: nextpnr 9c732bc6303458df, toolchain.sh ok, flow.sh gates ok, fasm_audit PASS, --freq 100
+      seed 3: nextpnr 9c732bc6303458df, toolchain.sh ok, flow.sh gates ok, fasm_audit PASS, --freq 100
+      seed 4: nextpnr 9c732bc6303458df, toolchain.sh ok, flow.sh gates ok, fasm_audit PASS, --freq 100
+    == 1. bits -> physical netlist -> paired with yosys; Python mirror ==
+      seed 1: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 1019, 'muxf8': 2, 'muxf7': 5, 'carry4': 14}; 1 outputs; 0 reads of all-zero LUTs; 10871 active pips, 0 untraced)
+      seed 1: 1043 insts in 5 chunks, rho 1735, logical 988 (988 matched), physical 1040 (0 unused), 108 route-through outputs, max supp 9
+      seed 1: check3: 1043 instances, 0 fail
+      rhoinj: Xorshift1 rho 1735, route-through outputs 108, non-rt nets 1627, logical pin nets 1627, uncovered 0, not on a logical cell 0
+      seed 2: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 1019, 'muxf8': 2, 'muxf7': 5, 'carry4': 14}; 1 outputs; 0 reads of all-zero LUTs; 10881 active pips, 0 untraced)
+      seed 2: 1043 insts in 5 chunks, rho 1735, logical 988 (988 matched), physical 1040 (0 unused), 108 route-through outputs, max supp 9
+      seed 2: check3: 1043 instances, 0 fail
+      rhoinj: Xorshift2 rho 1735, route-through outputs 108, non-rt nets 1627, logical pin nets 1627, uncovered 0, not on a logical cell 0
+      seed 3: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 1019, 'muxf8': 2, 'muxf7': 5, 'carry4': 14}; 1 outputs; 0 reads of all-zero LUTs; 10713 active pips, 0 untraced)
+      seed 3: 1043 insts in 5 chunks, rho 1735, logical 988 (988 matched), physical 1040 (0 unused), 108 route-through outputs, max supp 9
+      seed 3: check3: 1043 instances, 0 fail
+      rhoinj: Xorshift3 rho 1735, route-through outputs 108, non-rt nets 1627, logical pin nets 1627, uncovered 0, not on a logical cell 0
+      seed 4: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 1019, 'muxf8': 2, 'muxf7': 5, 'carry4': 14}; 1 outputs; 0 reads of all-zero LUTs; 11385 active pips, 0 untraced)
+      seed 4: 1043 insts in 5 chunks, rho 1735, logical 988 (988 matched), physical 1040 (0 unused), 108 route-through outputs, max supp 9
+      seed 4: check3: 1043 instances, 0 fail
+      rhoinj: Xorshift4 rho 1735, route-through outputs 108, non-rt nets 1627, logical pin nets 1627, uncovered 0, not on a logical cell 0
+    == 1b. negative controls in the bits (first seed, first lib LUT of chunk C001; Python mirror only) ==
+      init: caught by check3 at SLICE_X17Y53.BLUT (mutate3: CLBLM_L_X12Y53.SLICEL_X1.BLUT.INIT INIT bit 32 flipped)
+      pips: caught by check3 at SLICE_X17Y53.BLUT (mutate3: pin B1: INT_L_X12Y53.IMUX_L14.LOGIC_OUTS_L17 -> INT_L_X12Y53.IMUX_L14.BYP_BOUNCE2)
+    == 2. drift ==
+      FasmDesign/Xorshift1 up to date
+      FasmDesign/Xorshift2 up to date
+      FasmDesign/Xorshift3 up to date
+      FasmDesign/Xorshift4 up to date
+    == 3. Lean == (build.sh Xorshift1..4 one module at a time, peak 1.27 GB; rho + theorem files)
+      [check] lean Formal/Net/FasmXorshift4.lean
+      [check] axiom audit
+      [audit] 2942 declarations checked
+      [check] OK
+    kcheck xorshift PASS

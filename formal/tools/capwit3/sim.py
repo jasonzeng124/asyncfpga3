@@ -78,8 +78,9 @@ NETS = {
     "gcd": os.path.join(ROOT, "formal", "lean", "Formal", "Net", "CapstoneNet.lean"),
     "xorshift": os.path.join(ROOT, "formal", "lean", "Formal", "Net", "XorshiftCapData.lean"),
     "collatz": os.path.join(ROOT, "formal", "lean", "Formal", "Net", "CollatzCapData.lean"),
+    "ipow": os.path.join(ROOT, "formal", "lean", "Formal", "Net", "IpowCapNet.lean"),   # C-witgen
 }
-START = {"gcd": 2}   # gcd's start lives in CapstoneCutSpine; the KCap data files define `start`
+START = {"gcd": 2, "ipow": 2}   # ipow: IpowCapCutSpine.start (C-witgen)   # gcd's start lives in CapstoneCutSpine; the KCap data files define `start`
 
 
 def load_net(net="gcd"):
