@@ -182,15 +182,23 @@ class Block:
         return self.memo[key]
 
     def fac(self, n, k):
-        """e for facOK(bot, n, k, e), or None."""
+        """The largest e with facOK(bot, n, k, e) (Events9SelJ), or None: per copy, through the
+        junction (the copy path ends with bot: e = plo(top) - 1) or lifted from the source
+        (e = loC - phi bot)."""
         sc, bot = self.sc, self.bot
         if sc.nodes[n]["virt"]:
             return None
+        phb = sc.G.phi(bot)
         es = []
         for f in sc.copies(n, k):
-            if len(bot) >= len(f) or f[len(f) - len(bot):] != bot:
+            c = []
+            if len(bot) < len(f) and f[len(f) - len(bot):] == bot:
+                c.append(sc.G.plo(f[:len(f) - len(bot)]) - 1)
+            if sc.G.plo(f) - 1 >= phb:
+                c.append(sc.G.plo(f) - 1 - phb)
+            if not c:
                 return None
-            es.append(sc.G.plo(f[:len(f) - len(bot)]) - 1)
+            es.append(max(c))
         return min(es)
 
     def judgements(self):
@@ -320,9 +328,21 @@ def main():
             probs.append(f"entry {ei} {sc.nodes[n]['name']} pin{k} lit{lit}: no one-leaf ack tree from {ak}")
             ents.append(ent)
             continue
-        ta, na, ka = max(cand, key=lambda c: G.plo(c[2]))
-        stats["ta"] += 1
         tq = sc.and_tree(e["rq"])
+
+        def feasible(c):
+            # every request leaf has a walk to the ack leaf whose (estimated) delay covers
+            # phi(ka) - plo(leaf path) (Events9SelL.ReqLineT)
+            if tq is None:
+                return False
+            for (q, pth) in SelCert.leaves(tq):
+                w = sc.wline(q, c[1], 1)
+                if w is None or w[1] < G.phi(c[2]) - G.plo(pth):
+                    return False
+            return True
+        ok = [c for c in cand if feasible(c)]
+        ta, na, ka = max(ok or cand, key=lambda c: G.plo(c[2]))
+        stats["ta"] += 1
         ent.update(ta=ta, na=na, ka=ka)
         if tq is None:
             probs.append(f"entry {ei}: no request tree from {e['rq']}")

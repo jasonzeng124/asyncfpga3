@@ -35,10 +35,13 @@ Rules of the junction log (`JLn`, conclusions `jconcl`, each proved sound in `jc
   sibling shares it and from the source (minus `phi bot`) when it does not, and the row uses
   the minimum.
 
-`facOK` (decidable) checks `FacP` on the parsed netlist: every copy path of the pin ENDS with
-the list `bot`, and its upper part has `plo ≥ e + 1` (`fac_of_ok`). So for a copy whose read is
-cut at the junction, `top` at its HIGH end and every arm's unshared stretch at its LOW end enter
-the margin: the "min over arms plus the spread of the unshared stretch".
+`facOK` (decidable) checks `FacP` on the parsed netlist (`fac_of_ok`), per copy of the pin:
+either the copy path ENDS with the list `bot` and its upper part has `plo ≥ e + 1` (the copy
+passes the junction), or `e + phi bot ≤ loC` (it does not: it is measured from the source and
+pays the whole upper band of `bot`, since `tau bot t ≥ t − phi bot`). So in a row cut at the
+junction the select copy's `top` enters at its HIGH end, an arm that shares `bot` enters with
+its unshared stretch at its LOW end, and an arm that does not share it enters with its source
+lag minus `phi bot`: the "min over arms plus the spread of the unshared stretch".
 
 **`design_verdict9_selJ`**: `Events9SelL.design_verdict9_selTP` with H_REQ_CNT from checked
 `ReqLineT` lines (as `selT`) and H_ACK_CNT from a checked junction row per copy: the junction
@@ -488,16 +491,21 @@ end
 /-! ## 4. The junction check on the parsed netlist -/
 
 section
-variable {N : Nat} (d : Design) (net : Net4 N) (rn : Fin N → RNode)
+variable {N : Nat} (d : Design) (net : Net4 N) (b : Bands4 net) (rn : Fin N → RNode)
 
-/-- **`facOK`** (decidable): node `n` is real and every copy path of its pin `p` ends with the
-list `bot` (the junction's lower part), with an upper part of `plo ≥ e + 1`. -/
+/-- **`facOK`** (decidable): node `n` is real and every copy of its pin `p` reads `S` through
+the junction, `e` beyond it: either the copy path ENDS with the list `bot` (the junction's lower
+part) and its upper part has `plo ≥ e + 1`, or the copy's lower band end covers `e` plus the
+whole upper band of `bot` (`e + phi bot ≤ loC`: a copy that does not pass the junction, measured
+from the source). -/
 def facOK (bot : Path) (n p e : Nat) : Bool :=
   if h : n < N then if hp : p < net.ar ⟨n, h⟩ then
     decide ((rn ⟨n, h⟩).virt = false) && (List.finRange (net.nc ⟨n, h⟩ ⟨p, hp⟩)).all fun i =>
-      let f := full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val
-      decide (bot.length < f.length) && decide (f.drop (f.length - bot.length) = bot) &&
-        decide (e + 1 ≤ plo d (f.take (f.length - bot.length)))
+      (decide (bot.length < (full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val).length) &&
+        decide ((full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val).drop ((full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val).length - bot.length) = bot) &&
+        decide (e + 1 ≤ plo d ((full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val).take
+          ((full net rn ⟨n, h⟩ ⟨p, hp⟩ i.val).length - bot.length)))) ||
+      decide (e + phi d bot ≤ b.loC ⟨n, h⟩ ⟨p, hp⟩ i)
   else false else false
 
 end
@@ -509,24 +517,27 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → 
 theorem fac_of_ok (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel) (bh : Beh7 net b sel)
     (hG : ∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1))
     (bot : Path) (hbot : pathOK d bot = true) :
-    ∀ n p e, facOK d net rn bot n p e = true → FacP bh (tau hsat bot) n p e := by
+    ∀ n p e, facOK d net b rn bot n p e = true → FacP bh (tau hsat bot) n p e := by
   intro n p e h hn hp i s
-  simp only [facOK, dif_pos hn, dif_pos hp, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
+  simp only [facOK, dif_pos hn, dif_pos hp, Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq,
+    List.all_eq_true] at h
   obtain ⟨hv, hall⟩ := h
-  have hi := hall i (List.mem_finRange i)
-  try simp only [Bool.and_eq_true, decide_eq_true_eq] at hi
-  obtain ⟨⟨_, hdrop⟩, hplo⟩ := hi
-  have hnr := hr.2 ⟨n, hn⟩ hv
-  have hok := (full_ok hr.1 ⟨n, hn⟩ hnr ⟨p, hp⟩ i).1
-  generalize hf : full net rn ⟨n, hn⟩ ⟨p, hp⟩ i.val = f at hdrop hplo hok
-  generalize hc : f.length - bot.length = c at hdrop hplo
-  have htop : pathOK d (f.take c) = true := by
-    unfold pathOK at hok ⊢
-    exact List.all_eq_true.mpr fun e' he => List.all_eq_true.mp hok e' (List.mem_of_mem_take he)
-  rw [hG ⟨n, hn⟩ hv ⟨p, hp⟩ i s, hf, ← List.take_append_drop c f, tau_append, hdrop]
-  have wT := tau_warp hsat _ htop
-  have := wT.le_late (s + 1)
-  exact (tau_warp hsat _ hbot).mono _ _ (by omega)
+  have wB := tau_warp hsat _ hbot
+  rcases hall i (List.mem_finRange i) with ⟨⟨_, hdrop⟩, hplo⟩ | hlift
+  · have hnr := hr.2 ⟨n, hn⟩ hv
+    have hok := (full_ok hr.1 ⟨n, hn⟩ hnr ⟨p, hp⟩ i).1
+    generalize hf : full net rn ⟨n, hn⟩ ⟨p, hp⟩ i.val = f at hdrop hplo hok
+    generalize hc : f.length - bot.length = c at hdrop hplo
+    have htop : pathOK d (f.take c) = true := by
+      unfold pathOK at hok ⊢
+      exact List.all_eq_true.mpr fun e' he => List.all_eq_true.mp hok e' (List.mem_of_mem_take he)
+    rw [hG ⟨n, hn⟩ hv ⟨p, hp⟩ i s, hf, ← List.take_append_drop c f, tau_append, hdrop]
+    have wT := tau_warp hsat _ htop
+    have := wT.le_late (s + 1)
+    exact wB.mono _ _ (by omega)
+  · have h1 := (bh.wG ⟨n, hn⟩ ⟨p, hp⟩ i).le_late s
+    have h2 := wB.early_le (s - e)
+    omega
 
 end
 
@@ -539,7 +550,7 @@ variable {N : Nat} (d : Design) (net : Net4 N) (b : Bands4 net) (rn : Fin N → 
 `src` and lower part `bot` runs, and its line `jw` is a token-free walk judgement of the ack leaf
 `na` whose lag `dj` covers `Dl`: `Dl ≤ dj + plo κa + 1`. -/
 def jrowOK (parts : List (List Nat)) (J : Array Jd) (src : Nat) (bot : Path) (jl : List JLn) (jw na plk Dl : Nat) : Bool :=
-  match runJ net b parts J src (facOK d net rn bot) (decide (bot = [])) (phi d bot) jl with
+  match runJ net b parts J src (facOK d net b rn bot) (decide (bot = [])) (phi d bot) jl with
   | some JJ => if h : jw < JJ.size then
       decide (JJ[jw].u = false) && decide (JJ[jw].c = none) && decide (JJ[jw].a = na) && decide (JJ[jw].t = 0) &&
         decide (Dl ≤ JJ[jw].d + plk + 1)
