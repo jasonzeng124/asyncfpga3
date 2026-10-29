@@ -1293,3 +1293,21 @@ say +W+Wq; 5 reset rows stay UNPROVED. Self-audit 5 JSON items fixed (a0_fork sc
 cites 7g's Run; gap_exact role context; H_ARB_EXCL basis "from B0 on, perpetual
 contention"). Validator: name regex now accepts Lean names ending in a prime and no
 longer lets Foo match Foo.bar; the +W check generalised to the family theorems.
+
+### progress 10:30
+Audit (claude/audit fb4df88, passes 9-10): rows on B are CONFIRMED except:
+- Bj5 JSON (9372e3b): 2 labels mildly OVERSTATED: bd_arbcell.handover_overlap is
+  labelled exact but backed by equality formulas, not an iff; bd_arbiter.rt1/rt1b
+  "exact" with necessity only conditional on a supplied run (pre-existing). Agreed:
+  both to be relabelled in the next JSON pass (Bj10).
+- LutFbBridge "every bd_c2 in OpsGen": scope narrower (not join3, not mux uj0/uj1;
+  disclosed). Since closed by LutFbBridge2 (join3_lutFb, muxJ0/1_lutFb; muxJ1 has no
+  witness, self-audit 5).
+- ArbNoWithdraw: 3 of the 18 arbiter inputs come from forkG (channels 151, 207, 408),
+  not only link/steer/R0 as my 08:xx entry says; and the producer census is a netlist
+  claim, not in Lean. Agreed: correction recorded here; forkG producers are C-element
+  forks, whose no-withdrawal follows from celG (not yet stated as a theorem).
+- ResetCapstone: "content thin" (the RTL -> C link is state equality at T0 only, C's
+  gate models assumed after T0; conclusion vacuous on the witness): agreed, as stated.
+- ContractBridge's H_ARB_EXCL counter-run is the binary model's endless oscillation,
+  not evidence that silicon overlaps: agreed (it is a model counter-run).
