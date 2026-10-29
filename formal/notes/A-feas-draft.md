@@ -344,3 +344,17 @@ CONFIRMED), :333-352 except as noted above.
 3. **gcd_hw κ:** FEASIBILITY:47 (0.0443) vs B 09:50/12:50 (0.0443 server-free; 0.0802 or 0.2166 at
    gate level). Use B's newer reading.
 4. **B's journal times** run ahead of the UTC commit times (see the header note).
+
+---
+
+## 6. Second task (2026-10-29, after the lead pasted §1/§2): applied to FEASIBILITY.md and out/
+
+STATUS: done. Edits made directly in `formal/FEASIBILITY.md` (re-found by text, not by the old
+line numbers) and a rewrite of `formal/out/gcd_hw_hypotheses.md`. The change list is in the
+report to the lead. §5 items resolved in the file:
+1. OUTMUX in tcheck: the driver hop is in `extract.py` since C-10h (`29a164e`, extract.py:354-371);
+   audit row `f4696cc` and C's own `notes/C-10m-outmux.md` (WIP) say so; the audit's PARTLY
+   REFUTED row is against 10g. 10m's cross-check against xrc.py and the full rerun are pending.
+   JOURNAL-C's verdict block is stale on this point (C owns it; not edited).
+2. uenv1 RT_FB: both sources quoted with commits in track row 5 and in the hypotheses file.
+3. B's clock: noted under the goal section; JOURNAL-B not touched.

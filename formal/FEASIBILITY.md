@@ -43,7 +43,11 @@ experiments; and (2) **connecting** the proofs to the real routed design
        `GLSFid`, `GLSPass2`. One run fixes the final values past the STA horizon. The min and max
        runs bracket the band only for acyclic monotone nets with rising inputs;
      - the shared corner plus local scatter κ (`Corner`, `CornerDiff`, `CornerCode`, `CornerNat`).
-       The value of κ is unmeasured.
+       The value of κ is unmeasured;
+     - flops and latches (`Core/Prims/Seq{Next,Flop,Latch,Xray,Gls,Sync}`, PrimsSeq, 845 decls):
+       per-input setup/hold windows, X bounded by cqHi+res then definite (res = named
+       H_FF_RESOLVE, no MTBF), two-flop synchronizer; prjxray ships no fast-corner setup/hold
+       (H_WINDOW_SLOW_ONLY).
    - **From shard B:**
      - `KleeneWin`: each binary edge gets its own X window, and every race gains c + a exactly. This
        drops the assumption H_X_UNIFORM;
@@ -51,12 +55,12 @@ experiments; and (2) **connecting** the proofs to the real routed design
        result transfers to it. Every result that needs a definite output (hold, restore, reset)
        needs pass(v) instead. This answers audit `abe7d25` KleeneBox: "H_KLEENE_LUT is the
        hazard-free extension (optimistic)".
-   - flops and latches (`Core/Prims/Seq*`, PrimsSeq, 845 decls): per-input setup/hold windows, X bounded by cqHi+res then definite, two-flop synchronizer; prjxray ships no fast-corner setup/hold (H_WINDOW_SLOW_ONLY);
-   - **Probes done, waiting for the lead's check.sh (NOT claimed yet):**
-     - PrimsDSP: DSP48E1 as ipow uses it, `Core/Prims/{Dsp,DspData,DspTimed}`;
+     - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
+     - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
+   - **Probe done, waiting for the lead's check.sh (NOT claimed yet):**
      - InvLoop2: the signal-level bridge to B's `loop_orb`.
    - **Open:**
-     - RAMB18E1 is not modelled (bd_mem's BRAM is opaque in Gen);
+     - RAMB18E1 is not modelled (bd_mem's BRAM is opaque in Gen; probe PrimsRam launched);
      - which channel the silicon LUT is (transport, inertial or involution) is a hypothesis, with no
        measured pulse-rejection figure;
      - per-edge windows have no data (prjxray has fast and slow corners only);
@@ -72,7 +76,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
      out0 latch of the concrete 465-channel network is `Nat.gcd a b`, under three hypotheses:
      H_CELLS (the unit-time Ops gate models), H_BUNDLE (`Held`, on zero-delay traces) and
      H_START_ONCE. H_WALK is now a theorem (`gcd_hw_walk`, 8s).
-     - Non-vacuity: `Net/CapstoneWitness.gcd_hw_joint_witness`, one run (a=12, b=18) that latches 6
+     - Non-vacuity: `Net/CapstoneWitness3.gcd_hw_joint_witness3` (and `gcd_hw_witness3_consistent`,
+       which applies `gcd_hw_circuit_safe3` to it): one run (a=12, b=18) that meets all three
+       hypotheses and latches 6. The run is the 8t run of `CapstoneWitness.gcd_hw_joint_witness`
        (audit `299a16f` CONFIRMED: one input, one unit-delay schedule, sources offer once).
      - The audit `f4696cc` row on the capstone confirms it as SAFETY only. H_CELLS is not derived
        from the netlist, and the arbiter model assumes the grants never overlap.
@@ -99,7 +105,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
        - H_START_ONCE is false over a rig run. First result only: `Net/CapstoneRig.gcd_rig_first`,
          and `Cells/RigSrc.gcd_rig_first_env` with the env cells.
        - B now has joint witnesses for the env form (`SelfAuditB6.rig_env_feeds`, degenerate in its
-         delays; `RigSrcWitness`, lagging read maps, urdly 7). This answers audit `ae791b6, 824f130`
+         delays; `RigSrcWitness.gcd_rig_first_env_joint`, lagging read maps, urdly 7). This answers audit `ae791b6, 824f130`
          UNVERIFIED (not re-audited).
        - Every result: `Cells/RigLaps.gcd_rig_every` holds under LapInv. It has no witness, and
          `lap_cut_fails` shows LapInv fails at a close when the p_end loop beats out0's return
@@ -133,7 +139,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
        - The cons reading fails at κ = 0 on two rows.
        - Arc data provenance is UNVERIFIED (audit `7c4df29` ArbPin2). κ itself is unmeasured.
      - **Data path:** H_COMPUTE_FN (the yosys fused units compute bdc's expression) is not proved.
-   - **The hypothesis list is stale.** `out/gcd_hw_hypotheses.md` predates all of the above (see §4).
+   - **Every hypothesis, graded, with the theorem that uses it and the test that would settle it:**
+     `out/gcd_hw_hypotheses.md` (refreshed 2026-10-29 from B's `notes/B-gcd-hyps-for-A.md`,
+     JOURNAL-C and this section).
 
 3. **Reusable on other designs.**
    - **How-to:** `out/HOWTO-new-kernel.md` (A: xaudit, xevents) and `notes/C-howto-new-kernel.md`
@@ -146,7 +154,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
        `ContractBridge.fbCel_iff_si` shows the feedback contract is equivalent to the bare SI step,
        so those contracts carry **no timing content** as stated. B's fix probe Bfc is running.
      - ipow's two multiplies (3 cascaded DSP48E1 each) were unmodelled by every shard until
-       PrimsDSP, which is done but unclaimed.
+       PrimsDSP (`Core/Prims/Dsp*`, claimed 2026-10-29: the cascade computes (a*b) mod 2^32; settle bound 7267/3074 ps prjxray, zero cascade wire).
    - **Token level [L]:** ipow for all i32. Collatz only conditional on C termination
      (unconditional for 1 ≤ n < 256; 8v).
    - **Routed:**
@@ -158,6 +166,11 @@ experiments; and (2) **connecting** the proofs to the real routed design
      - A's K3 (xevents8 on ipow and xorshift) is running. xorshift seeds 4 and 6 did not place.
    - **Not yet:** "proves it correct or prints a counterexample trace" as one tool. C's `vk` (one
      `verify.sh` entry point with counterexample traces) is running.
+
+Note on sources: JOURNAL-B's 2026-10-29 `### progress` times (07:14 .. 12:50) run ahead of the UTC
+commit times of the B commits that carry them (e.g. `af3be4d`, 08:35:30 UTC, carries the "12:50"
+entry), so B's clock was probably not UTC. Times quoted from JOURNAL-B here are B's own; order by
+commit, not by those times.
 
 ## How to check
 
@@ -178,15 +191,15 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 | # | track | verdict | evidence (checks) | effort to finish | buys the project |
 |---|---|---|---|---|---|
 | 1 | Toolchain | **works, with a workaround** | `formal/setup.sh`, `check.sh` | done | — |
-| 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
-| 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel done (`Core/Delay/SAF.lean`); what a passing GLS run implies: `Core/Delay/GLSPass.lean` (audit REFUTED it 2026-10-29 as not compiling under autoImplicit=false; fixed by binding `d` in `skew_fval`, statement unchanged, 263 decls OK under the fixed check.sh) and, for research's current per-pin fid GLS, `Core/Delay/{GLSFid,GLSPass2}.lean` (one run fixes final values past the STA horizon; min/max runs bracket the band only for acyclic monotone nets with rising inputs; counterexamples otherwise) (only SAF silicon at the annotated delays; counterexamples inside the band; one-run-covers-band only for acyclic monotone nets with rising inputs) | sound wire abstraction; exact bundling lemma |
-| 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL, and SI environment models (Env/EnvFast: bd_c2, latch, link W=1,2, merge) | `Core/{Kleene,Lut,LutTree,Ternary,Bridge,LutCells,LutAudit}.lean`, `tools-A/lut_extract.py` | mechanised environment model (which multi-input changes the protocol allows): 1–2 d | decidable per-cell hazard/settling check |
-| 5 | C-element | **works** (B) | [L] `Cells/{CElemFn,CElemTiming,CElemCore,CElemInvolution,CTree,CTreeTimed,ConstraintsSel,CElemStrict,CElemStrict2,KleeneWin,KleenePess,LutFbBridge,LutFbBridge2}.lean`. A: `Core/{Ternary,XSim,LutAudit}` (bd_c2). Constraints data: `python3 formal/out/cell_constraints.validate.py` (137 rows, 40 exact, 0 errors; 6 planted faults → 6 errors) | X-window widths are unmeasured (board test XW-1, B-kleene-win). The Env closure for the network (cell ← Env1 ← neighbours) is done only for the 2-stage pipe. C-trees: tree latency is unchecked on routes. No time estimate in the journals | **INITs:** machine-checked (audit `71ee3e86` CElemFn CONFIRMED). **Own-feedback race:** exact on every variant only in the STRICT form, one tick (H_X_UNIFORM). With per-edge windows it gains +wq (`KleeneWin`). **C-element fork wait** E ≥ dwmax+dlmax−dlmin: sufficient (B) and necessary (audit `drop_env_latency_cex`); no rule checks it. **C's LutFb/FbFirst:** derived from B's physical model for every bd_c2 in OpsGen, bd_c3 and the mux joins. **Routes:** the RT_FB race is real on bare Muller rings (8 seeds, [C] C-10f) but not reached on the gcd_hw kernel. It fails at the rig's `uenv1` under the band on seeds 2 and 4 (audit `1e7947a` CONFIRMED). **Kleene:** the "definite output" results depend on H_KLEENE_LUT; the safety results do not (`KleenePess`) |
+| 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model: `Core/XSim.lean` (timed ternary simulation, sound for every behaviour in the bands, §4b); its soundness for continuous-time transport/inertial channels (probe XSound2, `Core/XSimChan*`, claimed 2026-10-29) | one substrate for B and C; their discrete proofs transfer to real time |
+| 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,InvolutionTransfer,InvolutionDMin,InvolutionTrace,InvolutionLoop,Corner,CornerDiff,CornerCode,SAF,GLSPass,GLSFid,GLSPass2}.lean`, `Core/Fidelity.lean` | Done: full IDM trace semantics with chained cancellation (InvolutionTrace), the involution OR loop (InvolutionLoop), the GLS sample-at-fire channel (SAF), what a passing GLS run implies (GLSPass, fixed for autoImplicit=false, 263 decls; GLSFid/GLSPass2 for research's per-pin fid GLS). Open: the real exp/log instance (Wip/InvTrace/ExpReal.lean, needs Mathlib Log oleans); the signal-level loop bridge (InvLoop2, done, not yet claimed); the GLS resolver's trace semantics (GLSResolve running). No time estimate in the journal | sound wire abstraction; exact bundling lemma; GLSPass/GLSPass2: a passing SAF/fid GLS run covers only SAF/fid silicon at the annotated delays (counterexamples inside the band); one run covers the band only for acyclic monotone nets with rising inputs; metastability as a digital effect (unbounded resolution near a unique critical runt) |
+| 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL, and SI environment models (Env/EnvFast: bd_c2, latch, link W=1,2, merge) | `Core/{Kleene,Lut,LutTree,Ternary,TernaryChannels,Bridge,LutCells,LutAudit,Env}.lean`, `Core/EnvFast/*`, `tools-A/lut_extract.py` | environment models exist for bd_c2, latch, link W=1,2, merge, mux (Env/EnvFast); the remaining cells are not estimated. H_KLEENE_LUT (mid-rail select) is untested on silicon (board test in the fidelity table) | decidable per-cell hazard/settling check |
+| 5 | C-element | **works** (B) | [L] `Cells/{CElemFn,CElemTiming,CElemCore,CElemInvolution,CTree,CTreeTimed,ConstraintsSel,CElemStrict,CElemStrict2,KleeneWin,KleenePess,LutFbBridge,LutFbBridge2}.lean`. A: `Core/{Ternary,XSim,LutAudit}` (bd_c2). Constraints data: `python3 formal/out/cell_constraints.validate.py` (137 rows, 40 exact, 0 errors; 6 planted faults → 6 errors) | X-window widths are unmeasured (board test XW-1, B-kleene-win). The Env closure for the network (cell ← Env1 ← neighbours) is done only for the 2-stage pipe. C-trees: tree latency is unchecked on routes. No time estimate in the journals | **INITs:** machine-checked (audit `71ee3e86` CElemFn CONFIRMED). **Own-feedback race:** exact on every variant only in the STRICT form, one tick (H_X_UNIFORM). With per-edge windows it gains +wq (`KleeneWin`). **C-element fork wait** E ≥ dwmax+dlmax−dlmin: sufficient (B) and necessary (audit `drop_env_latency_cex`); no rule checks it. **C's LutFb/FbFirst:** derived from B's physical model for every bd_c2 in OpsGen, bd_c3 and the mux joins. **Routes:** the RT_FB race is real on bare Muller rings (8 seeds, [C] C-10f) but not reached on the gcd_hw kernel. It fails at the rig's `uenv1` under the band on seeds 2 and 4. Two sources, different tools: C-10h (`aa5919c`, notes/C-10h-tcheck3.md, tcheck with per-pin arcs) seed 2 −117/−221, seed 4 −86/−243 ps (fastG/slowG); the audit's own model (REPORT.md at `83b1290`, row `1e7947a` tcheck routes, CONFIRMED) −114/−219 and −81/−201 ps banded. C-10f2 (rerun with the xMUX hop) is in progress. **Kleene:** the "definite output" results depend on H_KLEENE_LUT; the safety results do not (`KleenePess`) |
 | 6 | Latch / link | **works** (B) | [L] `Cells/{Latch,Bundling,LinkHandshake,LinkTimed,LinkExact,PipeTimed,PipeTimedN,PipePerPin,PipeWitness,RulesKL,FifoFidelity,LibGapLatch,ForkData,WinFifo,WinFifoCausal,NoRevert,ZeroDelayRefine,Necessity5Link,Necessity5Flink}.lean` | The network half of the physical → zero-delay refinement, and multi-token (C-8x running). The FIFO channel hypotheses (Win + H_NO_REVERT) are grade B. No time estimate in the journals | **One exact contract per bd_link stage** (`LinkExact`; audit `69c99a9` CONFIRMED, exact inside `Wf`, which holds 3 timing conditions outside the conjunction). **Physical stage refines C's zero-delay Link iff its six rows hold**, one token (`ZeroDelayRefine.link_ref_iff`; B's self-audit: it is essentially `LinkExact.exact`). **SETUP is proved sufficient only** (audit `71ee3e86` "exact bundling inequality" OVERSTATED). PipeTimedN for every N. Its unit witness was degenerate (audit `c5c6d8b`); `PipeWitness` now gives non-unit and DACK=2 witnesses (not re-audited). **Rules:** tighten.py rule I misses the latch feedback-pin arc (the 200 ps guard covers it), and rule F misses an in-flight value (the guard does not cover it by construction). Both CONFIRMED by audit `71ee3e86`. **FIFO pin-order condition:** with feedback on A1 (up to ~+0.43 ns), it is hidden by the flat SDF |
 | 7 | Arbiter (digital race) | **works**; exclusion is **not unconditionally provable**; it holds exactly inside derived race windows (B) | [L] `Cells/{ArbBinary,ArbKleene,ArbInvolution,ArbInvolution2,ArbHandover,ArbA0Fork,ArbCorners,ArbCornersPin,ArbOverlapRace,ArbOverlapPess,Necessity5Arb,TernarySound,TernaryExact,TernaryOnBits,OnNetlistArb,OnNetlistArbKappa,OnNetlistArbKappaExact,OnGcdArb,OnGcdArbA0,OnGcdArbKappa,OnGcdArbKappaTight,OnGcdArbKappaSrv,ConstraintsKappa,KappaCPPR}.lean` (the Kappa files need Mathlib). A: `Core/LutAudit`, `Core/Discretize` (`mutex_between`), `Core/Delay/InvolutionLoop` | **Open:** whether gcd_hw ever runs the bare (non-four-phase) race, which decides the gcd κ threshold between 0.0802 and 0.2166; H_SETTLED. **Board:** the 8% bd_arbcell overlap is NOT explained (needs the measured bitstream's pin map, not archived); κ is unmeasured. No time estimate in the journals | **Metastability comes out of the gate model** under involution channels: a critical same-sense gap, eternal oscillation, arbitrarily late resolution (`ArbInvolution`, A's `InvolutionLoop`). **Runt direction:** from same-sense moves, contrary to the bd_arb header. **Handover exclusion** is relative timing (RT1/RT2), not structural. `grant_skew_exact`: exclusion iff \|d6−d5\| ≤ L (transport model). **link_arb A0 fork:** exact κ thresholds for all 16 cases (`OnNetlistArbKappaExact.exact_X`, mostly irrational; answers audit `861de85` "exact" OVERSTATED, not re-audited); 16/16 safe at κ = 1/11. **gcd_hw:** see goal 2; the 0.0443 figure is the server-free form only. **Withdrawn numbers:** the ArbHeldTimed numeric instances (16 ps, 96 ps, 112 ps server) are corner-mix artefacts (audit `d420b53` OVERSTATED, `71ee3e86` rule-J row REFUTED). ArbCorners' rule-J and RT1b numbers assume q on A3; real routes put q on A5 in 3/4 seeds, which makes rule J 8 ps optimistic for client 1 (audit `c5c6d8b` OVERSTATED); guarded rule J is withdrawn (per-wire counterexample −118.5 ps). **Pessimistic LUTs** do not explain the 8% (`ArbOverlapPess`); under weak0 the detector itself could fire. **H_A0_FORK** is checked by rule J (arb_fork.py), which lacks per-pin site-pin delays (audit `71ee3e86` CONFIRMED) |
-| 8 | Composition (Kahn, gcd_hw) | **safety works at circuit level; liveness reduced, not proved; rig first result only** (C, with B's bridges) | [L] `Net/{Handshake*,Muller*,MullerTimed,Kahn,GcdHwLive,Ops*,OpsGen,CapstoneWalk,CapstoneWitness,CapstoneRig,CapstoneLiveNdWalk,IpowCapMain}.lean`; B: `Cells/{LutFbBridge2Env,ZeroDelayRefine,ResetCapstone,RigSrc,RigSrcWitness,RigLaps,ContractBridge,IpowCells}.lean`. Network regeneration: `formal/tools/capnet` (byte-identical, audit `8965ea0`) | **Open:** H_NO_DEADLOCK' plus a liveness witness (C-8z2 running); physical → zero-delay, network half (C-8x running); the Env closure over all 175 links; every rig result (C-8s3 running; B: LapInv fails at a close); H_MAP as a wiring table; H_COMPUTE_FN; H_ARB_EXCL from a timed arbiter (not derivable as stated). No time estimate in the journals | **The gcd result:** `gcd_hw_circuit_safe3` + `gcd_hw_joint_witness`: every out0 latch of the real 465-channel network is gcd a b, from 3 named hypotheses, non-vacuous (audits `f4696cc`, `299a16f`). **ipow:** the same at circuit level (`ipow_circuit_safe3`, audit CONFIRMED). **Do not cite:** `Capstone.gcd_hw_conditional` (no gcd content, audit `eecc6f7` OVERSTATED) or 8u's `gcd_hw_live` (likely vacuous, `start_never_closes`). **Negative result:** the hand-drawn gcd graph of 8b/8f deadlocks for every a ≠ 0 (8j). **Pipelines:** FIFO and live given per-link obligations, under H_SI, an isochronic fork and 3 liveness assumptions (audit `71ee3e86` CONFIRMED with caveats); gate-level bd_link chain for every n (9c) |
+| 8 | Composition (Kahn, gcd_hw) | **safety works at circuit level; liveness reduced, not proved; rig first result only** (C, with B's bridges) | [L] `Net/{Handshake*,Muller*,MullerTimed,Kahn,GcdHwLive,Ops*,OpsGen,CapstoneWalk,CapstoneWitness,CapstoneWitness3,CapstoneRig,CapstoneLiveNdWalk,IpowCapMain}.lean`; B: `Cells/{LutFbBridge2Env,ZeroDelayRefine,ResetCapstone,RigSrc,RigSrcWitness,RigLaps,ContractBridge,IpowCells}.lean`. Network regeneration: `formal/tools/capnet` (byte-identical, audit `8965ea0`) | **Open:** H_NO_DEADLOCK' plus a liveness witness (C-8z2 running); physical → zero-delay, network half (C-8x running); the Env closure over all 175 links; every rig result (C-8s3 running; B: LapInv fails at a close); H_MAP as a wiring table; H_COMPUTE_FN; H_ARB_EXCL from a timed arbiter (not derivable as stated). No time estimate in the journals | **The gcd result:** `gcd_hw_circuit_safe3` + `gcd_hw_joint_witness3`: every out0 latch of the real 465-channel network is gcd a b, from 3 named hypotheses, non-vacuous (audits `f4696cc`, `299a16f`). **ipow:** the same at circuit level (`ipow_circuit_safe3`, audit CONFIRMED). **Do not cite:** `Capstone.gcd_hw_conditional` (no gcd content, audit `eecc6f7` OVERSTATED) or 8u's `gcd_hw_live` (likely vacuous, `start_never_closes`). **Negative result:** the hand-drawn gcd graph of 8b/8f deadlocks for every a ≠ 0 (8j). **Pipelines:** FIFO and live given per-link obligations, under H_SI, an isochronic fork and 3 liveness assumptions (audit `71ee3e86` CONFIRMED with caveats); gate-level bd_link chain for every n (9c) |
 | 9 | Ring needs 3 stages | **works** (C) | [L] `Net/{Ring,RingFair,RingGen,RingReset,RingResetCert,RingTimed,RingTimedPure,RingCheck}.lean` | Exact cycle time, N > 5 from reset, other cells on the cycle, a gate-level environment. No time estimate in the journals | **Interleaving model (H_SI):** dead for N ≤ 2, one token live iff N ≥ 3 (`ring_three`), k tokens need N ≥ 2k+1 (`k_tokens`); fair window N(N−1)/2 (`RingFair`, answers audit `71ee3e86` doc row). `RingGen` states them over the generated bd_c2n netlist, so a flipped INIT breaks the headline (answers audit "real INITs" OVERSTATED (mild), not re-audited). **Reset:** bdc's reset leaves every ring empty (`bdc_closed_ring_empty`). From reset with one start token, N = 3..5 have exactly one token and no deadlock, and N = 1, 2 deadlock (`RingResetCert`). **Timed:** `timed_ring_three` (inertial and bounded pure FIFO); rise-to-rise ≥ N·dmin, tight; no runt on a persistent ring. **Bench finding:** tb_ring never varied the token count, and N=4 with two tokens is dead (audit CONFIRMED) |
-| 10 | Verified timing checker | **works on real routes**: core proved sound, front end untrusted Python; the delay data are the limit (C) | [L] `Timing/{Semantics,Checker,CheckerFixedFn,Rules,Unroll,MaxNode,SharedPrefix,FbFirstRt,GrantFork*,RuntAck*,OblBridge}.lean`; [C] `formal/tools/tcheck/` (results per route in `tools/tcheck/results/`) | 10m (OUTMUX and tie-off false path, rerun all rows), 10f2 (RT_FB with the xMUX hop) and 10l2 (rule K) were lost last session and relaunched. Rule K fails 16-24 of 42 rows per route at every corner, undiagnosed. No time estimate in the journals | **Soundness:** `check_sound` CONFIRMED by the audit. "Per-node exact" holds only when the witness may choose the cell functions (`CheckerFixedFn`; answers audit `71ee3e86` OVERSTATED). **Rules:** E/A/J each have a proved counterexample. Rule A under E's band is sound iff tl ≤ 403 (answers audit `d420b53` off-by-one). **On 16 routes** (gcd_hw ×4, collatz/xorshift/ipow ×12): every disagreement is project-PASS/tcheck-FAIL, and none fails at a fixed prjxray point. Rule A and tcheck time GND/VCC tie-offs as data (audit `7f46f23` CONFIRMED). **Grant fork:** the runt never breaks the handshake on the 36 gcd_hw arbiters at 4 corners (`GrantFork*`, 10j); RuntAck 288/288 + 304/304 (audit `f4696cc` CONFIRMED, one corner per row). **Caveat:** the 10g rule-J numbers are PARTLY REFUTED (audit `1e7947a`, OUTMUX missing), and "+490 ps" is a mean. See §5 item 1 on whether 10h includes OUTMUX |
+| 10 | Verified timing checker | **works on real routes**: core proved sound, front end untrusted Python; the delay data are the limit (C) | [L] `Timing/{Semantics,Checker,CheckerFixedFn,Rules,Unroll,MaxNode,SharedPrefix,FbFirstRt,GrantFork*,RuntAck*,OblBridge}.lean`; [C] `formal/tools/tcheck/` (results per route in `tools/tcheck/results/`) | 10m (arc-by-arc OUTMUX cross-check against the auditor's xrc.py, tie-off false path, rerun all rows), 10f2 (RT_FB with the xMUX hop) and 10l2 (rule K) were lost last session and relaunched. Rule K fails 16-24 of 42 rows per route at every corner, undiagnosed. No time estimate in the journals | **Soundness:** `check_sound` CONFIRMED by the audit. "Per-node exact" holds only when the witness may choose the cell functions (`CheckerFixedFn`; answers audit `71ee3e86` OVERSTATED). **Rules:** E/A/J each have a proved counterexample. Rule A under E's band is sound iff tl ≤ 403 (answers audit `d420b53` off-by-one). **On 16 routes** (gcd_hw ×4, collatz/xorshift/ipow ×12): every disagreement is project-PASS/tcheck-FAIL, and none fails at a fixed prjxray point. Rule A and tcheck time GND/VCC tie-offs as data (audit `7f46f23` CONFIRMED). **Grant fork:** the runt never breaks the handshake on the 36 gcd_hw arbiters at 4 corners (`GrantFork*`, 10j); RuntAck 288/288 + 304/304 (audit `f4696cc` CONFIRMED, one corner per row). **OUTMUX hop:** the audit's PARTLY REFUTED row (`1e7947a`, OUTMUX missing) is against C-10g. The driver-side OUTMUX/xMUX hop (a6lut/a5lut/f7amux/f8mux/carry4 → xMUX) has been in tcheck's `extract.py` since C-10h (`_ic`, driver hop `dh`, extract.py:354-371; first in `29a164e`, 2026-10-27 06:18); audit row `f4696cc` (Contracts*/RuntAck) states "OUTMUX hop IS included (tcheck extract.py since C-10h)", and C's probe note `notes/C-10m-outmux.md` (2026-10-29, WIP) says the same. What is still open is 10m's arc-by-arc cross-check against the auditor's xrc.py and the rerun of every row, so JOURNAL-C's verdict block (which calls the hop missing) is out of date on the hop but right that the rows are provisional until 10m lands. "+490 ps" is a mean |
 | 11 | Netlist import | **works for LUTs** (C, B); whole-design bitstream import being rebuilt | [L] `Gen/{Cells,Netlist,Proofs*}.lean` (36 cells/rtl modules, 163 theorems tying them to B's transcriptions), `Net/Import/*`, `Net/Fasm`, `Net/FasmLink`, B's `Cells/OnNetlist`. Run: `formal/tools/gen/gen.sh --check`, `formal/tools/import/import.sh --check`, `formal/tools/fasm2lean/check.sh` | 11f (FF/CARRY4/F7F8 and whole-design bits) was lost and relaunched. The doc's earlier estimate is 3-5 d to extend fasm2lean to gcd_hw (`out/gcd_hw_hypotheses.md` M5) | **Proofs about generated terms:** a flipped INIT breaks the build. The routed link and arbiter bits (4 seeds) compute the logical cells (audit `d420b53` CONFIRMED). The import's "Kleene spec" equality is same-INIT only (audit `d420b53` OVERSTATED wording). **Pin permutation** after P&R is real and moves delay by up to ~0.5 ns. Research's fasm2net on a gcd_hw route: 11619/11619 LUT functions equal, 3 harmless A6 ties (audit `4a44aef`). B's reset netlist was regenerated from the synthesized netlist (audit `f832d38` CONFIRMED) |
 | 12 | Other tools | **bound-finders, not provers** (C): about 1 day per tool | [C] `formal/tools/{smt,async,zone}` (z3 BMC/k-induction/Spacer, Storm, TChecker by git clone) | The 12a/b/c thresholds used the fast/slow corner pair as rise/fall, so they are **suspect until 12d's one-corner rerun lands** (running). UPPAAL/Workcraft/PRISM downloads were blocked | Exact thresholds and witness traces for fixed integer delays in seconds; nothing for all delays. Find the bound fast, then prove it in Lean. 12c raised H_GRANT_FORK, which 10i/10j then measured and proved harmless on gcd_hw. A's Env/EnvFast is the kernel-checked SI analogue of Workcraft |
 | 13 | Literature | **done** | `notes/A-lit-1.md`, `notes/A-lit-2.md`, `notes/A-lit-3.md` (2026-10-27: paper hosts unreachable from the sandbox, entries tagged abstract/snippet/memory) | — | positioning; nothing like this exists in Lean or any proof assistant (no mechanised involution channels, no verified STA, no async Lean work); κ≈0.1 per arc plausible from 7-series intra-die data (5–8%), 0.2 conservative |
@@ -207,7 +220,7 @@ B3 pulses, B4 inertial, B5 an AND gate in a conjunction circuit):
   all of B0–B5. Non-Zeno for free; ties (simultaneous arrival) exact; `decide`
   does bounded model checks (256 inputs × 10 steps in ~10 s). Rounding to 1 ps
   costs ≤ 1 ps per arc. Weakness: sub-quantum runts are invisible; soundness
-  w.r.t. real time needs a separation hypothesis (probe running).
+  w.r.t. real time needs a separation hypothesis (proved: `Core/Discretize.lean`, §2b).
 - **Event lists** (`Core/Trace/Event.lean`, 625 lines, ℝ times): all of B0–B5;
   composition is `List.map`; but every n-input gate needs an event-list merge
   (200 lines for one 2-input gate); only finitely many transitions in total
@@ -241,8 +254,9 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
 - **Involution** (`Core/Delay/Involution.lean`, Függer/Najvirt/Nowak/Schmid):
   all hypotheses are fields of `InvolutionPair`. Consecutive outputs cancel
   iff t(n+1) − o(n) ≤ −δmin (`cancel_iff`); output pulse width is strictly
-  increasing in input width and tends to 0 as the input width decreases to the threshold (`pulseWidth_small`: right-hand limit 0 at the threshold; continuity elsewhere not stated)
-  (`pulseWidth_small`: the property that makes the model faithful to
+  increasing in input width and tends to 0 as the input width decreases to the
+  threshold (`pulseWidth_small`: right-hand limit 0 at the threshold, continuity
+  elsewhere not stated; the property that makes the model faithful to
   short-pulse filtration), in contrast to inertial (`inertial_gap`). Exp
   channel derived from a first-order RC (exp/log as hypotheses). **Transfer
   lemma, corrected and proved (`Core/Delay/InvolutionTransfer.lean`, answering the
@@ -256,14 +270,26 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   δ(T) = 2 − 1/(T+2)) shows the class is non-vacuous. `Core/Delay/InvolutionDMin.lean` removes the `IsDMin`
   hypothesis (δmin exists for every `InvolutionPair`, from its fields alone) and
   closes the asymmetric gap: S-separated inputs never cancel iff
-  δ∞↑ − δmin < S and δ∞↓ − δmin ≤ S (`sep_threshold_exact`). Not covered: the
-  filtered output under chained cancellation; an exp-channel instance.
-  For bd_arb: in the faithful model the arbiter loop has no bounded settling
-  time, so handover exclusion cannot be unconditional (no MTBF: that needs
-  the analog layer, shard B 7c/7d).
+  δ∞↑ − δmin < S and δ∞↓ − δmin ≤ S (`sep_threshold_exact`).
+  **Trace semantics** (`Core/Delay/InvolutionTrace.lean`, 321 decls): the IDM channel as a
+  map on transition lists (the non-forgetful algorithm as a fold), proved equal to a
+  declarative survivors semantics (`channel_eq`); chained cancellation included, no
+  transition cancels twice; agrees with `transfer_sep` above the separation threshold;
+  a single pulse is cancelled iff width ≤ δ∞↑ − δmin, else the width law holds; exp
+  channel over an abstract `ExpLog`: cancelled iff width ≤ τ ln 2. Not covered: the real
+  exp/log instance, simultaneous transitions, the equality case at the threshold, η-noise.
+  **The arbiter/C-element loop** (`Core/Delay/InvolutionLoop.lean`, 197 decls; B's OR loop
+  with one involution channel, orbit level): a stationary pulse train exists and is unique;
+  the critical runt s* = δ∞↑ − l is the only width in (0, δ∞↑) that never cancels
+  (`crit_unique`); wider runts latch, narrower die; for every N and every time bound there
+  are runts near s* that take more than N transitions / resolve later than the bound
+  (unbounded resolution time, the digital form of metastability); for a symmetric channel
+  s* > δ∞/2 strictly. So handover exclusion cannot be unconditional in this model. Not
+  covered: every signal-level solution (InvLoop2's bridge to B's `loop_orb`, done but not
+  yet claimed), rate law, multi-cell loops.
 - **Corner correlation**: the independent band [fast-min, slow-max] is 3–4×
   wide (A-fidelity), so no matched-delay (bundling) condition is provable from
-  independent bands; a shared-corner + local-scatter model is being probed.
+  independent bands; the shared-corner + local-scatter model that replaces them is §3b.
 
 ### 2b. Circuit layer and discretisation
 - `Core/Circuit.lean`: the owner's layering, representation-independent:
@@ -289,35 +315,44 @@ it at every corner (`bundle_ratio_affine_iff`); monotone nominal delays alone
 are not enough (`monotone_not_enough`). The project's guardbands become exact
 scatter limits: skew.py rule E is sound iff κ ≤ 383/1927 ≈ 19.9% (`ruleE_sound`,
 `ruleE_tight`); rule A *with exact division Pd/5* iff κ ≤ 1/11 ≈ 9.1% (`ruleA_sound_rel`,
-`ruleA_tight`); tighten.py's gate as coded (`max(int(0.2*t),200)`, SLACK = 0) is sound iff κ ≤ 25/276 ≈ 9.06% (`Core/Delay/CornerCode.lean`: `ruleA_code_sound`, `ruleA_code_tight`, worst case t_data 1004, t_req 1204, confirming the audit); with SLACK ≥ 1 (resize.sh's search) it is again κ ≤ 1/11. Assumed, not proved in Lean: Python's `int(0.2*t)` = ⌊t/5⌋ for 0 ≤ t < 2^50 (argument plus scans). Soft evidence that κ can be larger: the 7-link ring ratios
-0.773..1.470 (cells/hw/README.md) imply κ ≥ 31% *if* ring-ratio spread is local
-path scatter (`ring_kappa_lower`); rings measure absolute loop delay, not a
-two-path difference, so this is not a refutation. **Correction (2026-10-27 ~07:00):** the ring ratios behind κ ≥ 0.311 are
-measured/predicted against SDFs written *before*
-`patches/nextpnr-xilinx-lut-perm-sink.patch` (shard C,
-`notes/C-10c-prjxdelay.md`): those SDFs charged 0–150 ps for permuted LUT pins
-where the routed hop is ~295 ps, on ~85% of chain hops. Against corrected
-predictions, comparable rings agree to 1.1% (prjxray median) / 6.7% (current
-SDF), population against population. So the 0.311 bound measures that SDF bug,
-not silicon scatter, and does **not** refute the per-path hypotheses of
-`ruleE_sound`/`ruleA_sound_rel`. κ (per path and on differences) is unmeasured
-on the current toolchain; the per-ring data and bitstreams needed to redo it
-are not in the tree.
-**κ estimator** (`formal/tools-A/kappa/kappa.py`,
-`notes/A-kappa.md`; `python3 kappa.py selftest`, `python3 kappa.py repo`): on
-the 128-ring data the per-path κ ≥ 0.311 (7-link class; no common offset in
-[0, 988] ps lowers it), so the *per-path* hypotheses of `ruleE_sound` and
-`ruleA_sound_rel` are refuted. The rules compare two paths, so what they need
-is κ on a path *difference*, which nothing in the repo measures: whether rules
-E and A are safe is open. `Core/Delay/CornerDiff.lean` makes this exact: both
-rules are sound under a *difference* scatter bound κd with the same limits
-(`ruleE_sound_diff`, `ruleA_sound_diff`, both tight); per-path κ implies κd but
-not conversely (`diff_not_imp_scat`), and the ring pair bound is attained
-(`ring_kappa_iff`), so ring data cannot decide κd either way. Proposed board experiment: a ring with a shared body
-splitting into two tails rejoined at a scan-selected LUT mux (the shared body,
-offset included, cancels), ≥ 64 pairs per class, 4 seeds, two temperatures; or,
-cheaper, commit the `ro_many` per-ring raw logs (`kappa.py rawlogs` parses
-them).
+`ruleA_tight`); tighten.py's gate as coded (`max(int(0.2*t),200)`, SLACK = 0) is sound iff κ ≤ 25/276 ≈ 9.06% (`Core/Delay/CornerCode.lean`: `ruleA_code_sound`, `ruleA_code_tight`, worst case t_data 1004, t_req 1204, confirming the audit); with SLACK ≥ 1 (resize.sh's search) it is again κ ≤ 1/11. Assumed, not proved in Lean: Python's `int(0.2*t)` = ⌊t/5⌋ for 0 ≤ t < 2^50 (argument plus scans). **What the ring data say about κ, theorem by theorem** (this replaces two
+paragraphs that contradicted each other: one said the per-path hypotheses were
+refuted, the correction said they were not):
+- `Corner.ring_kappa_lower` [L]: if two rings on one die both obey the per-path
+  scatter model with a shared scale, then (rᵢ − rⱼ) ≤ κ(rᵢ + rⱼ) for their
+  measured/predicted ratios rᵢ, rⱼ. `CornerDiff.ring_kappa_iff` [L]: that bound is
+  attained, so (r_max − r_min)/(r_max + r_min) is the best lower bound on per-path κ
+  that ratio data alone can give.
+- Applied to the 7-link class of the 128 `ro_many` rings (ratios 0.773..1.470,
+  cells/hw/README.md; `formal/tools-A/kappa/kappa.py repo` [C], no common offset in
+  [0, 988] ps lowers it) this gives per-path κ ≥ 0.311 (`guard_refuted_by_7link_rings`).
+  **But** those ratios are measured against SDFs written before
+  `patches/nextpnr-xilinx-lut-perm-sink.patch` (shard C, `notes/C-10c-prjxdelay.md`),
+  which charged 0–150 ps for permuted LUT pins where the routed hop is ~295 ps, on ~85%
+  of chain hops. So the 0.311 bound measures that SDF bug, not silicon scatter, and does
+  **not** refute the per-path hypotheses of `ruleE_sound`/`ruleA_sound_rel` (correction
+  of 2026-10-27 ~07:00, also at the head of `notes/A-kappa.md`). Against corrected
+  predictions, C-10c finds measured/predicted 1.067 (current SDF) / 0.989 (prjxray) over
+  47 comparable rings; the audit (`55fde94`, OVERSTATED) notes that the 47 are
+  re-routed predictions and only ONE ring (ro_top ring 0, 6293 ps) was measured on
+  silicon for this comparison, and that both numbers rest on one global scale fitted to
+  the 512-ring median (unscaled 0.939/0.605). So these are not a
+  measurement of κ either.
+- `CornerDiff` [L]: rules E and A compare two paths, so what they need is a bound κd on
+  the scatter of a path *difference*. Both rules are sound under κd with the same limits
+  (`ruleE_sound_diff`, `ruleA_sound_diff`, both tight); per-path κ implies κd but not
+  conversely (`diff_not_imp_scat`: per-path scatter beyond any bound with κd = 0), so
+  ring data (one absolute path per ring) cannot decide κd either way.
+- Net: κ (per path) and κd are **unmeasured** on the current toolchain; whether rules E
+  and A are safe on silicon is open; the per-ring data and bitstreams needed to redo the
+  ring analysis are not in the tree.
+- **κ estimator** (`formal/tools-A/kappa/kappa.py`, `notes/A-kappa.md`;
+  `python3 kappa.py selftest`, `python3 kappa.py repo`) [C]: computes the pair bound and
+  the differential κ from any per-route two-path data. Proposed board experiment: a ring
+  with a shared body splitting into two tails rejoined at a scan-selected LUT mux (the
+  shared body, offset included, cancels), ≥ 64 pairs per class, 4 seeds, two
+  temperatures; or, cheaper, commit the `ro_many` per-ring raw logs (`kappa.py rawlogs`
+  parses them).
 
 ### 4. Kleene LUT
 - `Core/Kleene.lean`, `Core/Lut.lean`: shared K3 and LUT API (INIT as
@@ -358,16 +393,15 @@ them).
   × 200 steps in 180 s).
 - **SI environment model** (`Core/Env.lean`): bd_c2, the bd_latch pair and
   bd_link (1-bit) are speed-independent under rules H, L and isoEn, each proved
-  necessary. Limit: ~1000 states per kernel certificate (a bit-packed checker,
-  EnvFast, is in progress).
+  necessary. Limit: ~1000 states per kernel certificate; the bit-packed checker
+  `Core/EnvFast` extends this to link W=1,2, merge and mux (row 4; Findings, bd_mux).
 - **xaudit** (`lake build xaudit`; `formal/tools-A/xaudit/run_all.sh`): a
   compiled whole-design X/hazard audit whose engine is proved equal to XSim and
   to Ternary A/B; the JSON parser and the compiler are trusted, one verdict is
   re-checked by the kernel. On a hand-flattened 3-stage pipeline: clean at one
   corner, hold-violation control flagged, and a C-element race flagged when
   the cell's own feedback is slower than a neighbour's response (an obligation
-  not found among tighten.py's rules). Not run on gcd_hw yet (no routed JSON in
-  this sandbox; loops need a FIFO-aware abstract domain for precision).
+  not found among tighten.py's rules). On gcd_hw: next bullet.
 - **xaudit on the real routed gcd_hw R5** (`notes/A-xaudit-gcd.md`, 4 seeds,
   prjxray per-arc bands via the research branch's `xray_delay.py`; 47,894
   wires, 4,599 storage nodes): with bands ≤ 2% wide it **certifies a whole gcd
@@ -404,7 +438,11 @@ them).
   obligations per seed (branch labels through merges, the 3-way merge, the
   cascaded arbiter, and 6 guarded acks arriving through delay lines whose
   obligation is expected to be false until the domain gets a guarded
-  multi-copy pin kind). No seed is certified yet: about 3 days of work left.
+  multi-copy pin kind). Superseded by **Events8** (`Core/XAudit/Events8Beh.design_verdict8`,
+  goal 2 above): CLEAN at the slow and fast corners on all 4 seeds, conditional on SatPin,
+  constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub (audit `eb346fb`
+  CONFIRMED as conditional, Lean certificates UNVERIFIED; the gb ENTRY claim OVERSTATED,
+  2 of 3 real after E8Mux added the O5/MUXF OUTMUX hop, [C], `notes/A-e8mux.md`).
 - **Per-pin race checker** (`lake exe xevents2pin`, `Events2Pin*.lean`): sound
   without the all-pins-at-one-instant assumption (`H_ATOMIC_LUT`); with prjxray
   per-physical-pin bands, per-pin skew costs 11–79 ps of margin. One corner: no
@@ -446,27 +484,27 @@ Grades: A = measured on this part or fixed by a vendor document; B = documented 
 | **LUT glitch / runt** | transport passes every pulse; inertial and involution channels are available (`Delay/{Inertial,Involution}`); which one is silicon is a hypothesis | every pulse ≥ 1 ps passes (transport) | no 7-series LUT pulse-rejection figure found (research f3_model.md, A-fidelity: estimated 15-50 ps from R·C, not measured) | B / B: transport is the hazard-pessimistic side; it is optimistic only for a proof that needs a narrow pulse to die | pulse-shrink experiment: XOR with a k-LUT-delayed copy into N hops and a toggle counter (A-fidelity R1) |
 | **routing, buffered pips** | `Fidelity.DelayBound` per sink arc [FAST_MIN, SLOW_MAX]; Elmore `rcBound` with κ; shared corner + scatter \|ε\| ≤ κ (`Corner.lean`) | `fid/xray_delay.py`: prjxray `timing.py` RC tree (Buffer per buffered pip, Elmore over the downstream subtree, site-pin delays, fanout C). Transport ICBUF per sink. One SDF column (or `band` = one shared lerp) per run | all 3737 INT_L pips are `is_pass_transistor = 0` (A-fidelity scan of prjxray-db). prjxray's model is ±1.5% from Vivado (not silicon). Board: n=128 ring periods fall inside the summed bands (FEASIBILITY) | B / B for the band. GLS **scatter is unbounded Gaussian**, outside every κ-bounded theorem (FOR-RESEARCH §8, unchanged) | already partly done (ring periods); per-wire scatter from more rings |
 | **routing, pass-transistor pips** | zero-delay alias (`H_alias`) | `PassTransistor(R)` in the RC tree (the only ones are fixed CLB site-pin aliases with `delay=null`, `res=0`) | prjxray-db: pass-transistor pips exist only as fixed tile-wire→site-pin aliases on this part (A-fidelity R2) | B / B (agree) | not separately observable |
-| **MUXF7/F8** | `kmux` (Kleene), settle within hi; `H_muxf_kleene` for S toggles with D0 = D1 | `FID_MUX2`: per-pin transport, Kleene `?:` | structure per UG474; S-toggle with equal data: no source | B / B | board: D0 = D1 = 1, toggle S at ring rate, count OUT falls (expect 0) (A-fidelity M1) |
-| **CARRY4** | Gen/Netlist: UG474 MUXCY/XORCY equations gate by gate, Kleene; band per arc | **per-(pin, output) transport, then the same equations** (78de9c2). E1: 60/60 exact on multi-pin random traces | MUXCY/XORCY structure (UG474); arcs per (pin, site output) from prjxray SDF. Note CARRY4 is read-once (each pin has one path to each output), so per-(pin, output) transport is what a transport cascade gives; the SDF arcs need not be additive (they end at site pins) | B / B (now agree; was GLS C) | carry-chain TDC style: launch an edge into CIN/S, sample the CO taps (standard TDC papers) |
-| **FF (FDRE/FDSE) function and X** | master-slave Kleene tables `FDRE_M`, `FFQ_SYNC` (Gen/Netlist; PrimsSeq probe in progress) | `if (SR)` / `if (CE)` (default), `sr === 1` / `if (ce)` (fid): **x on SR or CE is read as 0** | an x (mid-rail or unknown) SR/CE gives an unknown next state; nothing documents a definite value | B / **C** (GLS wrong, optimistic: hides X). Fix tested: `patch/prims_x.diff` | `run-1029/run.sh` E7: F1, F2 must print x |
-| **FF timing (CK→Q, setup/hold, aperture, min pulse width)** | named hypotheses only (`H_HK_STA`, rig `idx_setup`); no aperture or metastability model in Core | transport CK→Q; SDF SETUPHOLD aperture (negative SETUPHOLDs read since 666ea57) with an old/new choice and t_r = TAU_FF·ln(ap/2\|δ\|), TAU_FF = 75 ps; CK min pulse width TMPW 70 ± 20 ps | SETUPHOLD per pin in prjxray-db (Vivado numbers). Flop τ: Beer et al. ASYNC 2010, 57/51/73 ps at 130/90/65 nm; no 28 nm figure. Min pulse width: none found in prjxray-db (research could not read DS187) | B (timing as hypotheses) / C (TAU_FF, TMPW assumed) | hw/arb_mtbf-style synchroniser sweep (MMCM fine phase shift) for TAU_FF; CK runt sweep for TMPW |
-| **latch (SLICE_LATX, LDCE/LDPE)** | `LDCE_INIT` via `Lut.keval` | per-pin transport (78de9c2); **X pessimistic** (closed + CE = x → x; CLR = x → x even when the result is SRVAL); no metastability at gate close (stated) | UG474: latch-mode storage element, gate on CK, enable CE, async SR. **No design uses LDCE/LDPE**: `bd_latch` stores on LUTs (cells/rtl/bd_latch.v header) | B / C (pessimistic, harmless today). Fix tested: `patch/prims_x.diff` | E7: L1-L3 must print 0 |
-| **LUT state loop: C-element, LUT latch, arbiter q** (metastability) | B: `ArbInvolution` (`stF_runt`), `CElemInvolution.orb`; proved: a critical runt s* exists in (δ∞ − δ(0), δ∞) (`arb_eternal`). Float orbit (§3): s* = 0.50-0.58·TLOOP, deterministic either side; near s* the loop **circulates a pulse train** and resolves with TAU_eff ≈ 1.2-17·TLOOP | `FID_RESOLVE` on self-loop LUTs (gen.py): runt p < TLOOP decided at **TLOOP − WIN/2** (349 of 424 ps), N(0, WIN/4) noise, t_r = TAU·ln(WIN/2\|δ\|), TAU = WIN = 150 ps (assumption). During resolution the node **holds a clean value** (default) or x (`+META_X=1`); one runt reaches fanout, echoes ignored. Multi-cell loops get no resolver | none measured. Without the resolver (`+META_OFF=1`) the GLS's own transport loop circulates the runt forever with period TLOOP (E4: Q 1124↑ 1473↓ 1548↑ 1897↓ …), i.e. the echo is physical and the "rejection" is a modelling choice | B (Lean channel family, unmeasured) / **C** (centre has no derivation; TAU optimistic under involution; clean hold hides the pulse train) | **hw/arb_mtbf**: sweep the r1→r2 skew (MMCM fine phase or IDELAYE2 taps) and record P(r1 wins): the 50% point is at TLOOP/2 (involution) or TLOOP − WIN/2 (GLS), 137 ps apart at TLOOP 424; count q toggles per race with a ripple counter (train vs single runt); resolution-time histogram for TAU |
+| **MUXF7/F8** | `Core/Prims/Muxf` (PrimsComb): Kleene mux under `H_MUXF_PASS`, constant transport per arc with prjxray per-corner numbers (`XrayData`); select change with equal data and any single-input change with unchanged output glitch-free for any delays; select-rises-while-deselected-input-changes glitch forced for every admissible delay pair (≥ 16 ps fast / 22 ps slow) | `FID_MUX2`: per-pin transport, Kleene `?:` | structure per UG474; S-toggle with equal data: no source | B / B | board: D0 = D1 = 1, toggle S at ring rate, count OUT falls (expect 0) (A-fidelity M1) |
+| **CARRY4** | `Core/Prims/Carry` (PrimsComb): MUXCY+XORCY with the PRECYINIT mux, Kleene, band per arc; adder agreement (512 cases), no single-pin hazard on any output, a two-pin (S0, DI0) hazard on CO0 whose order prjxray's bands allow at both corners; equal to C's Gen model except carry-in CI OR CYINIT vs the PRECYINIT mux (equal under every decoded configuration) | **per-(pin, output) transport, then the same equations** (78de9c2). E1: 60/60 exact on multi-pin random traces | MUXCY/XORCY structure (UG474); arcs per (pin, site output) from prjxray SDF. Note CARRY4 is read-once (each pin has one path to each output), so per-(pin, output) transport is what a transport cascade gives; the SDF arcs need not be additive (they end at site pins) | B / B (now agree; was GLS C) | carry-chain TDC style: launch an edge into CIN/S, sample the CO taps (standard TDC papers) |
+| **FF (FDRE/FDSE) function and X** | `Core/Prims/{SeqNext,SeqFlop}` (PrimsSeq): Kleene next state (R beats CE), power-up INIT, CLR priority; `SeqGls`: research's SLICE_FFX has a violation-free run with Q=0 where every Kleene run has Q=X. Census: gcd_hw's kernel has no flops (FDRE/FDSE only in the rig, `bd_flink` in bd_mlink.v, and arb_mtbf) | `if (SR)` / `if (CE)` (default), `sr === 1` / `if (ce)` (fid): **x on SR or CE is read as 0** | an x (mid-rail or unknown) SR/CE gives an unknown next state; nothing documents a definite value | B / **C** (GLS wrong, optimistic: hides X). Fix tested: `patch/prims_x.diff` | `run-1029/run.sh` E7: F1, F2 must print x |
+| **FF timing (CK→Q, setup/hold, aperture, min pulse width)** | `Core/Prims/{SeqFlop,SeqXray,SeqSync}` (PrimsSeq): each input read over its own setup/hold (recovery/removal) window, X if not constant there; Q old until cqLo, new after cqHi; on a violation X up to cqHi+res then one definite unspecified value (res = named `H_FF_RESOLVE`, no MTBF); two-flop synchronizer output definite. prjxray-db ships no fast-corner setup/hold (`H_WINDOW_SLOW_ONLY`; fast CK→Q min 112 ps vs slow-only hold 241 ps, `fast_hold_mismatch`). Not covered: clock runts / min pulse width | transport CK→Q; SDF SETUPHOLD aperture (negative SETUPHOLDs read since 666ea57) with an old/new choice and t_r = TAU_FF·ln(ap/2\|δ\|), TAU_FF = 75 ps; CK min pulse width TMPW 70 ± 20 ps | SETUPHOLD per pin in prjxray-db (Vivado numbers). Flop τ: Beer et al. ASYNC 2010, 57/51/73 ps at 130/90/65 nm; no 28 nm figure. Min pulse width: none found in prjxray-db (research could not read DS187) | B (timing as hypotheses) / C (TAU_FF, TMPW assumed) | hw/arb_mtbf-style synchroniser sweep (MMCM fine phase shift) for TAU_FF; CK runt sweep for TMPW |
+| **latch (SLICE_LATX, LDCE/LDPE)** | `Core/Prims/SeqLatch` (PrimsSeq): transparency, hold, X containment; not covered: latch G/GE pins, X on the gate | per-pin transport (78de9c2); **X pessimistic** (closed + CE = x → x; CLR = x → x even when the result is SRVAL); no metastability at gate close (stated) | UG474: latch-mode storage element, gate on CK, enable CE, async SR. **No design uses LDCE/LDPE**: `bd_latch` stores on LUTs (cells/rtl/bd_latch.v header) | B / C (pessimistic, harmless today). Fix tested: `patch/prims_x.diff` | E7: L1-L3 must print 0 |
+| **LUT state loop: C-element, LUT latch, arbiter q** (metastability) | B: `ArbInvolution` (`stF_runt`), `CElemInvolution.orb`; proved: a critical runt s* exists in (δ∞ − δ(0), δ∞) (`arb_eternal`). A: `Core/Delay/InvolutionLoop` (§3) proves it unique, s* = δ∞↑ − l, s* > δ∞/2 for a symmetric channel, with unbounded resolution time near it (orbit level). Float evaluation (not a theorem): s* = 0.50-0.58·TLOOP (A-fid3 §3 item 3's skew direction is wrong in this model, JOURNAL 08:26, correction pending), deterministic either side; near s* the loop **circulates a pulse train** and resolves with TAU_eff ≈ 1.2-17·TLOOP | `FID_RESOLVE` on self-loop LUTs (gen.py): runt p < TLOOP decided at **TLOOP − WIN/2** (349 of 424 ps), N(0, WIN/4) noise, t_r = TAU·ln(WIN/2\|δ\|), TAU = WIN = 150 ps (assumption). During resolution the node **holds a clean value** (default) or x (`+META_X=1`); one runt reaches fanout, echoes ignored. Multi-cell loops get no resolver | none measured. Without the resolver (`+META_OFF=1`) the GLS's own transport loop circulates the runt forever with period TLOOP (E4: Q 1124↑ 1473↓ 1548↑ 1897↓ …), i.e. the echo is physical and the "rejection" is a modelling choice | B (Lean channel family, unmeasured) / **C** (centre has no derivation; TAU optimistic under involution; clean hold hides the pulse train) | **hw/arb_mtbf**: sweep the r1→r2 skew (MMCM fine phase or IDELAYE2 taps) and record P(r1 wins): the 50% point is at TLOOP/2 (involution) or TLOOP − WIN/2 (GLS), 137 ps apart at TLOOP 424; count q toggles per race with a ripple counter (train vs single runt); resolution-time histogram for TAU |
 | **BUFGCTRL** | not modelled (clock only in rigs) | transport I0→O (fid) | no BUFG min pulse width in prjxray-db | — / B | — |
-| **DSP48E1** | not modelled | combinational and registered modes; still iverilog module paths (SAF) | — | — / C (SAF) | only if a design's bundled cone runs through a DSP |
+| **DSP48E1** | `Core/Prims/{Dsp,DspData,DspTimed}` (PrimsDSP): ipow's combinational mode only; function exact, coarse X sound, one lumped settle band (H_DSP_LUMPED) | combinational and registered modes; still iverilog module paths (SAF) | ipow uses 6 (two multiplies, three cascaded DSP48E1 each, all pipeline registers 0; `notes/A-prims-dsp.md`); gcd_hw uses none | — / C (SAF) | per-unit exhaustive/random vectors on the routed ipow DSP cone; DSP delay vs the matched delay lines (B-ipow-cells) |
 
-### Earlier table
+### Earlier table (2026-10-27; superseded by the 6524fa3 table above, kept for history)
 
-(From `notes/A-fidelity.md`, `A-lut-tree.md`, `A-kleene-lut.md`; to be
-completed with shard B's cell notes.)
+(From `notes/A-fidelity.md`, `A-lut-tree.md`, `A-kleene-lut.md`. Where the two tables
+differ, the one above is current.)
 
 | primitive | model in Lean | fidelity | hypothesis | how to test |
 |---|---|---|---|---|
 | LUT function | Kleene mux tree from INIT | logic exact (INIT = function, proved for all k) | `H_mux_kleene`: a mid-rail select with equal data inputs passes the data, no charge-sharing dip; `H_sram` | board: masked-pin toggle into a fabric edge counter; SPICE |
 | LUT timing | per-mux delays, arbitrary | order of tree (A6 at root per UG474) only affects delays | prjxray LUT arcs are flat; pin dependence is in site-pin delays (A1 slow ≤ 0.516 ns) | per-pin delay ring |
 | routing pip | bounded transport [fast-min, slow-max] per sink arc | all INT_L pips in prjxray zynq7 are buffered; RC tree responds monotonically (no glitch) | band from prjxray via Elmore per sink arc (not summed per pip); shared corner + local scatter (pending) | n=128 ring periods inside summed bands |
-| MUXF7/F8, CARRY4 | settle within hi | only in datapath cones, never in control | "anything before hi" | — |
-| FF (FDRE) | — | only `bd_mlink` and test rigs | standard setup/hold (slow corner only in prjxray) | — |
+| MUXF7/F8, CARRY4 | settle within hi (superseded: `Core/Prims/{Muxf,Carry}`, table above) | "only in datapath cones, never in control" (unchecked; gcd_hw has 857 MUXF7, 343 MUXF8, 59 CARRY4, JOURNAL 2026-10-29 08:11) | "anything before hi" | — |
+| FF (FDRE) | — (superseded: `Core/Prims/Seq*`, table above) | PrimsSeq census: FDRE/FDSE only in the rig, `bd_flink` (bd_mlink.v, not emitted by bdc) and arb_mtbf; none in gcd_hw's kernel | standard setup/hold (slow corner only in prjxray) | — |
 | delay model in the GLS at research 5d535d7 (superseded: see the 6524fa3 table above; CARRY4/latch early edge FIXED under fid in 78de9c2) | default: sample-at-fire (SAF) on every specify path; `GLS_MODEL=fid`: per-pin transport for LUT and MUXF7/8 (equal to Lean's per-pin transport on 60/60 + 60/60 traces), still SAF for CARRY4, latch, DSP, BUFG | default disagrees with silicon (early edges, swallows runts); fid fixes LUT/MUXF but CARRY4 still propagates edges early (23 ps after the cause through a 223 ps arc) | — | FOR-RESEARCH §8 |
 
 Note: prjxray-db's `timings/*.sdf` triples are (FAST)(SLOW), not rise/fall;
@@ -479,7 +517,14 @@ a standard SDF reader misreads them (A-fidelity).
   Muller timed, `H_FB_BEFORE_INPUT` / `FbBound`: feedback hi < lo-sum of each
   neighbour loop, strict) derives the same bound and finds it
   placement-dependent: the shortest LUT-to-LUT route of 11b fails it, the
-  seed-1 route passes. No tighten.py rule checks it.
+  seed-1 route passes. No tighten.py rule checks it. On routes (C-10f, [C] with
+  per-instance Lean certificates `Timing/RtFb*`): real on bare Muller rings (slowE
+  4-12 of 64 stages fail on all 8 seeds, worst −116..−231 ps; feedback on pins 1-3;
+  C-10f2's rerun with the xMUX hop gives 1-8 fails per seed, WIP) but not reached on
+  the shipped gcd_hw kernel (4 seeds, worst slowE +234 ps); the rig's `urig.uenv1`
+  fails it under the band on seeds 2 and 4 (numbers in track row 5). B (PinAssign):
+  the router puts C-element/latch feedback on the slowest site pin in 12/36 fixture
+  pins and 24/64 muller64 stages.
 - **The research GLS's LUT delay can propagate an edge early**
   (`notes/A-gls-compare.md`, `tools-A/gls-compare/run_all.sh`). iverilog
   specify paths on `SLICE_LUTX` behave as "sample at fire": a change at t
@@ -505,8 +550,13 @@ a standard SDF reader misreads them (A-fidelity).
 - **The losing grant can pulse without metastability**
   (`LutAudit.arb_grant_near_tie_runt`): q rising while r2 rises, with routing
   skew between the q branches. A2 = C(g2, A0) absorbs it, but bdc/emit.py's
-  `won = g2 | ack` drives `index` directly, so index sees the pulse: an
-  unchecked bundling margin, not a demonstrated failure.
+  `won = g2 | ack` drives `index` directly, so index sees the pulse. Now checked
+  on gcd_hw: shard C's 10i finds the grant-fork runt live on 32/40 routed bd_arbiter
+  instances (up to ~1.2 ns at SLOW_MAX), and 10j proves it never breaks the handshake
+  on the 36 routed gcd_hw arbiters at 4 corners (`Timing/GrantFork*`, per-instance
+  kernel verdicts, under H_CAUSAL_PATH and H_FF_DRAINED); RuntAck checks 288/288 ack
+  and 304/304 index rows (audit `f4696cc` CONFIRMED; one corner per row, no band;
+  passes depend on server latency and H_FF_DRAINED; routes not the board bitstreams).
 - **bd_mux: three obligations the RTL header does not state**
   (`EnvFast/Mux*.lean`, notes/A-envfast-2.md): return-to-zero (the previous
   token's x_ack/y_ack fall before the next z_ack rises; shard B's H_MUX_RTZ,
@@ -516,4 +566,9 @@ a standard SDF reader misreads them (A-fidelity).
   sound under exclusivity and the matched delay; an earlier `selFast`
   obligation is withdrawn (it only bites while the output window is closed).
 - Shard B (7b): the bd_arbiter A0 hold relies on a fork ordering H_A0_FORK
-  (A0's fall must reach ua2 before A0 → ustate → q → ugrant → g2 does).
+  (A0's fall must reach ua2 before A0 → ustate → q → ugrant → g2 does). It IS
+  checked by the flow's rule J (`cells/verify/arb_fork.py`; B corrected its earlier
+  "unchecked"); 7g proves rule J's condition exact in the box version, and rule J is
+  optimistic only by ignoring per-pin site-pin delays (up to ~0.5 ns, not in
+  nextpnr's SDF; audit `71ee3e86` CONFIRMED). B proposes rule J'
+  (`notes/B-arb-a0fork.md`).
