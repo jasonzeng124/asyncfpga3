@@ -539,3 +539,19 @@ an arc-by-arc upper bound (B->PCOUT 3850 vs prjxray 3851, PCIN->PCOUT 1710 vs 17
 A->ACOUT vs prjxray <= 723. Not covered: H_FASM_DSP (bitstream config), cascade wire delay,
 fabric routes to A/B and from P, kappa, capture-latch setup, other modes. Lean half of the
 mutation control not run.
+### progress 08:46
+XSound2 claimed: Formal/Core/{XSimChan,XSimChanReal,XSimChanTern}.lean, Formal/Core/XAudit/
+{SoundCells,SoundPhys,SoundChain,SoundSteps}.lean (check.sh with Design/Fast/Untimed/Parse as deps:
+1470 decls, [check] OK; SimChanReal/SoundPhys/SimChanTern use Mathlib). xaudit's verdicts are sound for
+continuous time: any time type with a cell map (abstract step k covers every instant of cell k),
+every gate = INIT function then a ChanCells channel with lo >= 1; for R time with cells of width q:
+transport covered when lo*q <= Lo and Hi <= hi*q; bounded inertial (reject window rho) covered iff
+rho <= (hi+1-lo)*q (necessity: inertial_wide_not_chanCells; one-buffer cex: simulator prints 1, the
+inertial behaviour is 0). valF/noXF/constF/settledF restated as continuous-time theorems under
+SatPhys. Parser: lo*u <= L whenever u <= L; a 'raised' arc (L < u) is NOT covered. SoundChain closes
+Wip W1 (covered-window sound_postfix under Stale; phase gaps >= (n+1)D). Finding: notes/A-xaudit.md's
+fidelity row 'no inertial filtering modelled is sound' is FALSE (an inertial channel holds an old
+value after filtering; InertialCex) -- so a clean xaudit run does not imply a clean inertial
+(Verilog-default) GLS; correction and an inertial xaudit option are probe XInert. Wip/XAudit.lean
+chain_phases has an off-by-one (by inspection; superseded by SoundChain). Not covered: involution
+channels, per-pin skew inside a LUT, mid-cell input changes, what D is.
