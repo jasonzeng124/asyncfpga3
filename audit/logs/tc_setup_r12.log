@@ -4,3 +4,33 @@ debconf: delaying package configuration, since apt-utils is not installed
 toolchain cache: branch toolchain-cache/d7ce266cff0c8e1e
 
 == prjxray python
+  fasm: antlr parser did not build; installing the pure-Python package (textX parser)
+/root/audit-tc/openxc7/lib/python/fasm/parser/__init__.py:30: RuntimeWarning: Unable to import fast Antlr4 parser implementation.
+  ImportError: cannot import name 'antlr_to_tuple' from partially initialized module 'fasm.parser' (most likely due to a circular import) (/root/audit-tc/openxc7/lib/python/fasm/parser/__init__.py)
+
+  Falling back to the much slower pure Python textX based parser
+  implementation.
+
+  Getting the faster antlr parser can normally be done by installing the
+  required dependencies and then reinstalling the fasm package with:
+    pip uninstall
+    pip install -v fasm
+
+  warn(
+  fasm parsers: ['textx']
+cp: warning: behavior of -n is non-portable and may change in future; use --update=none instead
+
+== fingerprint
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+toolchain ready: source /root/audit-tc/openxc7/export.sh
+EXIT 0
