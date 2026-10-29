@@ -1,114 +1,49 @@
 # Shard C journal (composition, ring, timing checker, netlist import, other tools)
 
-## Verdicts (shard C)
+## Verdicts (shard C) -- as the Lean says on 2026-10-29 (rewritten from probe aud2's draft)
 
-- **Track 9 (ring needs three stages): works.** `Formal/Net/Ring.lean` (check:
-  `formal/check.sh`). Ring of bd_link_ctl C-elements; `RingGen` restates the
-  headlines over the generated bd_c2n netlist (a flipped INIT breaks them),
-  interleaving semantics (H_SI): dead for N<=2; with one token live iff N>=3
-  (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair window N(N-1)/2
-  transitions (`RingFair`).
-  The rule "3" is 2k+1 at k=1, resting on H_ONE_TOKEN (unproved). Not yet tied
-  to bounded-delay traces (probe 8d). Effort to finish: ~1-2 days.
-- **Track 8 (composition): works, at three levels, with a checker-to-FIFO
-  theorem.** Protocol level (`Handshake*`): n-stage four-phase pipeline is a
-  FIFO and live given per-link obligations (SetupHold around ack-fall; Sep =
-  rule I/SDELAY; Hold = rule H/DACK; H_LATCH). End to end (`EndToEnd*`): the
-  verified checker accepting a routed link netlist (fixed per-arc delays)
-  implies that FIFO conclusion, with H_CEL_SI and H_LATCH derived from the real
-  INITs on routed pin copies; found an obligation the project rules lack (latch
-  open width). Gate level (`Muller*`; for EVERY n via `MullerAll*`, 9c): with a free
-  feedback wire the real bd_c2n chain glitches already at n=1; with isochronic
-  feedback or H_FB_BEFORE_INPUT it is hazard-free. Timed bridge (`Bridge*`):
-  persistent + NoOvertake channels => timed traces are SI runs; per-change
-  transport delay is unsound for SI. Kahn (`Kahn*`): determinacy, and the gcd
-  loop (Dynamatic's control_merge header under H_ONE_INVOCATION) equals C gcd
-  under every schedule; merge non-determinate. Gaps: forks/joins/merges at
-  handshake level (8f), per-event glitching delays in the multi-token run,
-  the gcd graph not imported from bdc. Operator composition (`Ops*`, Phase 3):
-  any network of bdc's op cells refines the token semantics (prefix at every
-  time, determinate), gate-level fork/join/steer/mux, arbitrated merge; gcd_circuit on the
-  hand-drawn loop is VACUOUS for a != 0 (proved deadlock: that graph has no
-  storage on its data loop), so the real bdc graph is required: done (`GcdHw*`, 8i): the graph bdc
-  emits for gcd_hw, imported from bdc's own code with a drift check, ends every
-  complete run on every schedule/arbiter outcome with exactly the C function's
-  result (one-invocation invariant proved); with 8k: = Nat.gcd for a, b <
-  2^31, every partial run completes, bounded, no fairness assumption (token
-  level). Circuit level (`Capstone*`, 8l): every op cell gcd_hw uses has an operator
-  theorem; every gcd_hw cycle carries >= 3 links (bdc's placement); safety
-  proved conditional on a token-equation solution; hypothesis list in
-  formal/notes/C-gcd_hw-hypotheses.md. `gcd_hw_circuit_safe` (8m): every run of the concrete 465-channel
-  network latches only Nat.gcd a b on out0 under H_CELLS, H_BUNDLE and
-  H_CM_FORCED, now reduced to H_CUT (8q: req-rise counting; arbiters see
-  no free contention under it); H_CUT and H_CM_FORCED proved (8r) from H_START_ONCE
-  (start offered once per result; a free-running start source breaks it)
-  and H_WALK, now proved for all a, b < 2^31 (8s): `gcd_hw_circuit_safe3`
-  needs only H_CELLS, H_BUNDLE, H_START_ONCE. Caveats: H_START_ONCE ("start
-  rises once, ever") is false for the rig, which re-offers start after every
-  result (8s2 is proving the first-result/per-invocation version); H_BUNDLE is
-  stated on zero-delay traces, so tcheck discharges it only through a
-  physical -> zero-delay refinement that is not yet proved (8w finding; 8x).
-  Joint witness (8t): one explicit run satisfies all four hypotheses and
-  latches gcd 12 18 = 6. Rig: first result proved (8s2); every result open. Liveness: pipelines and single rings proved
-  with linear bounds (8n, 8o); gcd_hw: arbiters provably never contested, so
-  an uncontested-only settle bound suffices (8u); `gcd_hw_live_final` (8z):
-  first out0 within an explicit bound, value gcd, resting on one open
-  network obligation H_NO_DEADLOCK' (8u's earlier `gcd_hw_live` is likely
-  vacuous: do not cite it).
-  Other kernels (8v): ipow's bdc graph = b^e mod 2^32 on every schedule for
-  all i32 inputs, live; collatz conditional on C termination (unconditional
-  1 <= n < 256). ipow also at circuit level (ipow_circuit_safe3, 8y). Muller
-  timed (`MullerTimed*`): the feedback condition derived from delay bounds,
-  exact (converse witness), n<=3; on shipped placements it is
-  placement-dependent and unchecked by the flow. Effort to gcd_hw end to end:
-  ~2-3 weeks.
-- **Track 10 (verified timing checker): works.** `Formal/Timing/{Semantics,
-  Checker,CheckerToy}.lean`: interval STA over BoundedDelay arcs, executable,
-  sound; per-node exact only over the choice of cell functions (fixed LUT
-  functions: `win` is an upper bound, CheckerFixedFn). Bundling check exact
-  in that same sense when req and data share only the launch; with a shared
-  arc it is conservative under fixed delays (one example); the old
-  "justified under per-event delays" needs a wire to glitch, which monotone
-  routing rules out (audit C.md #2). Sound shared-prefix credit:
-  SharedPrefix.pot2_sound under H_CLEAN_EDGE (10l). Known front-end gap: the
-  prjxray model omits the slice OUTMUX hop (audit; 10m re-running all rows). Rules
-  (array version, prjxray per-pip intervals, CPPR): ~1-2 weeks.
-  Rules E/A/J (`Formal/Timing/Rules.lean`): a verified checker makes them exact
-  relative to a stated delay model, not to silicon; the blocker is delay DATA.
-  Each rule has a proved counterexample (E: SDF charges a flat ~25 ps per LUT
-  pin, prjxray says A1 516 ps vs A6 5 ps slow max; A: sound under E's band only
-  for data paths <= 403 ps, exactly (ruleA_band_threshold); J: the pip-count estimate of the shared A0 route
-  over-credits). nextpnr's SDF carries slow-corner max only (min=typ=max), so
-  "shortest path" checks have no lower bound. Counterexamples are constructed
-  netlists, not found in shipped routes (no routed SDF on disk).
-- **Phase 1 Gen: done.** `Formal/Gen/` + `formal/tools/gen/gen.sh --check`:
-  all 36 modules of cells/rtl (63 targets) generated from the project's yosys;
-  163 theorems tie them to every B transcription and A's LutCells INITs; a
-  flipped INIT bit breaks the build. bd_mem's BRAM is opaque.
-- **Track 11 (netlist import): works.** (a) yosys JSON: 11 cells, project's own
-  yosys 0.62 flow, generator + drift check (`formal/tools/import/import.sh
-  --check`), proved equal to B's independent binary specs (the Kleene
-  comparisons only show the same INIT and pin order); a flipped INIT
-  bit fails the build. (b) bitstream: `formal/tools/fasm2lean/check.sh`;
-  bd_c2->bd_c2n routed on 4 seeds, FASM read back from the .bit, physical INIT
-  + pip-walked pin map proved to compute the logical cells; mutated INIT/pips
-  caught (which fasm_audit cannot see for re-pointed pips). (c) routed bd_link W=3 + bd_arbiter on 4 seeds: bits == yosys
-  import up to a checked renaming (`Formal/Net/FasmLink`, `formal/tools/
-  fasm2lean2/check.sh`), grant exclusion of the routed bits. LUT6/LUT6_2 only;
-  FF/CARRY4/F7F8 semantics ~3-5 days, whole designs ~2-3 weeks. Finding: the placer's pin permutation is real
-  (BLUT INIT 0x3220.. vs logical 0x00E8..), and moves delay by up to ~0.5 ns.
-- **Track 12 (other tools): works with ~1 day per tool, as a bound-finder,
-  not a prover.** UPPAAL/Workcraft/TChecker/PRISM downloads blocked (403);
-  z3/SMT (12a: BMC + k-induction + Spacer, unbounded per fixed delay box) and
-  Storm (12b): exact delay thresholds and witness
-  traces in seconds for fixed integer delays (C-element: env min response >=
-  feedback max; shipped arbiter: server latency >= ~60 ps, A0 rising skew <
-  116 ps -- CAVEAT: 12a/12b/12c took prjxray's fast/slow corner pair 56/124
-  as rise/fall, so these thresholds may be artefacts; 12d is redoing them at
-  one consistent corner), but nothing for all delays; pure delay + spread
-  runs out of memory.
-  Best use: find the bound, then prove it in Lean. Zone-based dense time
-  (12c, TChecker by git clone): done, same corner caveat.
+- **Track 9 (rings): works.** Interleaving model (H_SI), bd_link_ctl ring: dead for N<=2;
+  one token live iff N>=3 (`ring_three`); k tokens need N>=2k+1 (`k_tokens`); fair window
+  N(N-1)/2 (`RingFair`). `RingGen` restates the headlines over the generated bd_c2n netlist
+  (a flipped INIT breaks them). Timed: every stage toggles in every window of N*H (8o).
+  Open: H_ONE_TOKEN (the reset token count) and the lift to bounded-delay gate traces (9d).
+- **Track 8 (composition, gcd_hw): safety proved, liveness reduced, rig first result only.**
+  Token level: bdc's gcd_hw graph returns Nat.gcd a b for a, b < 2^31 on every schedule,
+  live and bounded without fairness (8i/8k); ipow likewise for all i32; collatz conditional
+  on C termination (8v). Circuit level, concrete 465-channel network from bdc's own graph and
+  link placement: `gcd_hw_circuit_safe3` -- every out0 latch is gcd a b under H_CELLS (Ops
+  gate models), H_BUNDLE (on zero-delay traces) and H_START_ONCE; one explicit run satisfies
+  all three and latches 6 = gcd 12 18 (8t; audit CONFIRMED). ipow: `ipow_circuit_safe3` (8y).
+  Rig (re-offers start): first result only (`gcd_rig_first`, under the env gate H_ENV; no
+  witness); re-arming at a re-offer is proved false, so every later result is open (8s3).
+  Liveness: `gcd_hw_live_final` -- first out0 within an explicit bound, value gcd -- open in
+  H_NO_DEADLOCK', no joint witness (8z2). Do not cite 8u's `gcd_hw_live` (likely vacuous).
+  Not covered: the physical -> zero-delay refinement that would let tcheck discharge
+  H_BUNDLE (8x); the generated-cell derivation of the gate fields is not yet composed into
+  H_CELLS. Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
+  fork (8a); gate level for every n (9c); Muller feedback condition from delay bounds, exact,
+  n<=3 (MullerTimed). Hypotheses: notes/C-gcd_hw-hypotheses.md §0.
+- **Track 10 (verified timing checker): works; delay data is the limit.** Interval STA
+  sound (audit CONFIRMED); per-node exact only over the choice of cell functions (an upper
+  bound for fixed LUT functions, CheckerFixedFn). Shared-prefix credit sound under
+  H_CLEAN_EDGE (10l). Rules E/A/J each have a proved counterexample on constructed netlists;
+  rule A under E's band is sound exactly for data paths <= 403 ps (SLACK = 0). nextpnr's SDF
+  carries slow-max only (no lower bounds). tcheck on gcd_hw (4 routes) and collatz/xorshift/
+  ipow (12 routes): every disagreement with the project rules is project-PASS/tcheck-FAIL,
+  none at a fixed prjxray point; rule A and tcheck both time GND/VCC tie-offs as data (false
+  path). Known front-end gap (audit): the slice OUTMUX hop is missing, so the row numbers are
+  provisional until 10m's rerun; RT_FB numbers likewise until 10f2.
+- **Gen: done.** All 36 cells/rtl modules generated from the project's yosys and tied to
+  B's transcriptions (163 theorems); a flipped INIT breaks the build. bd_mem's BRAM opaque.
+- **Track 11 (netlist import): works for LUTs.** yosys import: binary next-state equal to
+  independent specs (Kleene: same INIT and pin order as B only). Bitstream: physical INIT +
+  pip-walked pin map of routed bd_c2/bd_link/bd_arbiter (4 seeds) computes the logical cells;
+  mutated INIT/pips caught. The placer's pin permutation is real and moves delay by up to
+  ~0.5 ns. FF/CARRY4/F7F8 and whole designs: 11f (rebuilding; last session's work was lost).
+- **Track 12 (other tools): bound-finders, not provers (~1 day per tool).** z3/Storm/TChecker
+  give exact thresholds and witness traces for fixed integer delays, nothing for all delays;
+  the 12a/b/c thresholds used the fast/slow corner pair as rise/fall and are suspect until
+  12d's one-corner rerun lands. UPPAAL/Workcraft downloads were blocked.
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 

@@ -160,6 +160,10 @@ No pre-existing file was edited. The lead has to add `Formal.Net.CapstoneRigTime
 ## What it does NOT show
 
 - **Only the first result.** Not the second and later ones, for the rig.
+- **No Lean witness** for `gcd_rig_first`'s hypotheses (CellR + H_BUNDLE + H_ENV). 8t's run is a
+  witness for `gcd_hw_circuit_safe''`/`3`, not for this theorem: its `start` rises once before
+  `out0` is acknowledged, which H_ENV forbids (not checked in Lean). Audit row ae791b6/824f130:
+  non-vacuity "partly argued" (aud2 note, 2026-10-29).
 - **Safety only.** It does not show that `out0` is ever offered. The all-quiet run meets
   every hypothesis (O5 is still open).
 - **Nothing at cell or timing level.** H_CELLS and H_BUNDLE are unchanged.

@@ -173,6 +173,13 @@ checks INIT against nextpnr's own pin map; this checks the pins against the
 pips. And B's cell theorems now apply to the routed instance, with the
 feedback-route bound taken from the actual route.
 
+## Non-vacuity (added by aud2, 2026-10-29)
+
+The tree has no witness for `q1_follow_hold_s1_ps`. The audit's (C2.md 2d,
+`Fasm_audit.lean::audit_behaves_witness`) discharges every hypothesis, but with constant-false
+traces: it shows the hypotheses are consistent, not that the routed C-element ever switches. A
+witness where an 833 ps input pulse actually sets q1 is open.
+
 ## Surprises / notes for the lead
 
 - The sandbox was missing `libboost_python312/filesystem/program_options 1.83`

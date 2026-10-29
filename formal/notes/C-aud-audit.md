@@ -105,3 +105,62 @@ Edited: `Formal/Timing/Checker.lean` (doc), `Formal/Timing/CheckerToy.lean` (doc
 * `Wip/Caud/RingGenMut.lean`: exit 1, 1 error (`decide` proved `∀ a b q, stepOf bd_c2n_m a b q false = ctl a b q` false);
   `ring_three_gen`/`k_tokens_gen` depend on `sorryAx` there. `Wip/Caud/RingGenCtl.lean`: exit 0, axioms
   `[propext, Classical.choice, Quot.sound]`. scan.py is clean on both Wip files.
+
+## Session 2026-10-29: probe aud2 (every REPORT.md row on shard C, re-checked)
+
+Source: `git show origin/claude/audit:audit/REPORT.md` (150 lines), findings `C.md`, `C2.md`,
+`P4.md`, `P5.md`, `P7-capstone.md`, `tcheck.md`, `p2-python.md`. Shard-C rows are those whose
+claim is in JOURNAL-C.md, `formal/notes/C-*.md`, `Formal/{Net,Timing,Gen}` or `formal/tools`.
+Rows on `Formal/Cells` (ArbPin2, OnGcdArbKappa, OnNetlistArbKappa, ArbCorners, PipeTimedN,
+ArbHeldTimed, ArbOverlapRace, ResetGcdWave, ResetGcdVec2, Bnet, RigSrc, Contracts, CTreeExact JSON)
+are shard B's and are not listed. Each claim below was checked against the Lean statement
+(grep + read) before rewording. Only notes were edited; no Lean, no tool, no JOURNAL-C.md.
+
+### OVERSTATED / REFUTED rows
+
+| REPORT row (commit: claim) | verdict | answered? | what was done / still to do |
+|---|---|---|---|
+| 71ee3e86: `win_exact` "per-node exact" | OVERSTATED | yes (aud, 10-27: CheckerFixedFn) | nothing |
+| 71ee3e86: `corr_bd_violation` "justified under per-event delays" | OVERSTATED | yes (aud, CheckerToy docs) | nothing |
+| 71ee3e86: Ring header N(N-1)/2 | OVERSTATED (doc) | yes (aud, RingFair) | nothing |
+| 71ee3e86: ring_three/k_tokens "with real bd_c2n INITs" | OVERSTATED (mild) | yes (aud, RingGen) | nothing |
+| d420b53: rule A "sound only for data paths <= 402 ps" | OVERSTATED by 1 ps | yes (aud, `ruleA_band_threshold`: <= 403) | nothing |
+| d420b53 / bea8b55: imported cells "proved equal to B's binary/Kleene specs" | OVERSTATED (wording) | yes: C-11a fixed (aud); JOURNAL-C.md Track 11 verdict now reads "independent binary specs (the Kleene comparisons only show the same INIT and pin order)" | the commit message cannot be changed; cite as in the aud table |
+| 55fde94 (C-10c): "measured/predicted over 47 comparable rings 1.361 / 1.067 / 0.989" | OVERSTATED (numbers confirmed) | **now** | C-10c verdict bullet and §3 reworded: one measured ring; the 47 are re-routed predictions from another design; 1.067/0.989 depend on a population scale fitted to silicon (unscaled 0.939/0.605; 7-link scale 1.144/1.076, auditor's numbers, not re-run by me) |
+| 1e7947a (C-10g): rule J "verdict agreement ... J 67/70"; model omits slice OUTMUX | PARTLY REFUTED | partly: C-10h (06:2x 10-27, after 1e7947a) added the driver-side hop (a5lut→amux, …) and gives Jx 71/72 | numbers: probe 10m (rerun of all rows). C-10g wording: 10m owns C-10g. Outside C-10g only C-10h cites J counts, and those already include the hop. JOURNAL-C.md:255 (session log) keeps the old sentence; the verdict block cites the OUTMUX gap with "10m re-running all rows" |
+| 1e7947a (C-10g): "+490 ps on A1" (a mean); J over-credit "~95 ps avg (max 211)"; F ucmpi8 "from SDF-fallback arcs" | OVERSTATED / misattributed | partly: C-10h already re-classifies ucmpi8 as a band finding (guard weaker than band, as the audit says) | "+490"/"95 ps" appear only in C-10g (10m's) and JOURNAL-C.md:255/374 (session log, historical). No other C note repeats them (grep). 10m to fix C-10g |
+| eecc6f7: `gcd_hw_conditional` "every value latched on out0 is gcd a b" | OVERSTATED | yes (aud, Capstone docstrings); **now** also C-8l verdict (qualifier: any network, no gcd content, cite `gcd_hw_circuit_safe3`) | nothing |
+| eecc6f7 (1149aa1, RtFbGcd*): RT_FB "0 failures in every one-corner model" | OVERSTATED (likely) | partly | numbers: probe 10f2 (C-10f is 10f2's). **Now**: C-gcd_hw-hypotheses §3 R row cites C-10h's R/Rc (hop included; failures only at the rig's urig.uenv1, band only; kernel min seed d +23/+19) and flags C-10f's claim as pre-hop. No other C note repeats "every one-corner model" for gcd_hw (grep) |
+| eecc6f7 (2610f5f): gcd_hw_hypotheses N12 "Negative inputs genuinely loop"; §0 stale about C-8l | OVERSTATED (minor) | **now** | checked `gcdC` (Net/GcdHwProof.lean:72-74): `b = 0` returns `some a` at once, so `gcdC (2^32-1) 0` returns; `(INT_MIN, INT_MIN)` from the audit. C-gcd_hw-hypotheses H_INPUT_RANGE row and §0.2 "range" row reworded; C-8k:105-106 and :115-116 reworded ("exhaust the fuel tried", non-termination not proved). §0 rewritten (Task 2). formal/out/gcd_hw_hypotheses.md (shard A) already says it no longer claims it (its row 44) |
+| f4696cc (71f12a8): `gcd_hw_circuit_safe''` capstone | CONFIRMED as SAFETY only; liveness / non-vacuity UNVERIFIED | yes: non-vacuity by 8t (`gcd_hw_joint_witness`, audit 299a16f CONFIRMED); liveness reduced (8z) | recorded in C-gcd_hw-hypotheses §0 (T4w, T6) |
+
+### CONFIRMED rows with a caveat on shard C
+
+| REPORT row | caveat | answered? | done / to do |
+|---|---|---|---|
+| fccbd1b: `gcd_hw_live_final` | conditional; no joint witness (8t violates H_BOUNDED_DELAY'); 2092f12 correction (8u not to be cited) confirmed | yes in JOURNAL-C | **now**: C-8u carries a correction banner; C-gcd_hw-hypotheses §0 T6/T6x and register say "no witness" / "likely vacuous" |
+| ae791b6 (8s2) / 824f130 (B): `gcd_rig_first`(`_env`) | non-vacuity partly argued / UNVERIFIED | **now** (wording) | C-8s2 "does NOT show" gets "no Lean witness; 8t's run is not one (start rises before out0 is acknowledged; not checked in Lean)". A witness is open |
+| eecc6f7: gcdhw_ring_ge3 etc. | "8j's deadlock cannot occur" is an argument, not a theorem; FEASIBILITY row 8 stale | **now** for the note | C-gcd_hw-hypotheses T5 reworded. FEASIBILITY is shard A's |
+| d420b53: 11b `q1_follow_hold_s1_ps` | non-vacuity witness constant-false (consistency only) | **now** | C-11b new "Non-vacuity" section: no witness in the tree; the audit's is constant-false; a switching witness is open |
+| d420b53: 9b RingCheck | H_ONLY_LINKS_STORE not named in RingCheck.lean (notes only) | no (Lean) | C-9b already names it. To do (Lean owner / lead): one docstring line in `Formal/Net/RingCheck*.lean` naming H_ONLY_LINKS_STORE. Not done here (Lean is out of my scope) |
+| f4696cc: RuntAck 288/288 + 304/304 (3e2c968, C-10j) | routes not the board bitstreams, not on disk; one corner per row (no band); depends on server latency and H_FF_DRAINED | **now** | C-10j verdict gets a one-paragraph scope qualifier (H_SRV and H_FF_DRAINED were already listed under "Hypotheses") |
+| 1e7947a: tcheck E/F/H band-only, A artefact, RT_FB worse (seed 2 −114/−219, seed 4 −81/−201) | RT_FB at the rig is worse than 10g said | yes: C-10h already reports −117/−221 and −86/−243 with the hop | nothing |
+| 7f46f23 (C-10n): tie-off false path | CONFIRMED; "0.9 ns" not seen by the auditor (2.0-4.2) | no | C-10n is 10m's; 10m to qualify "0.9-4.2" |
+| 71ee3e86: muller_pipeline / muller_live | needs H_SI, isochronic fork, 3 liveness assumptions the journal sentence omits | partly in C-8a (lines 125-210 state the isochronic fork on c and DELAY = DACK = 0) | the JOURNAL-C Track 8 sentence "given per-link obligations" could add "under H_SI and an isochronic fork" (lead) |
+| 299a16f, 8965ea0, 861de85…: joint witness, ipow_circuit_safe3, Ring, checker soundness, mutation tests, builds | CONFIRMED | — | nothing |
+
+### Files edited (notes only, all wording)
+
+`notes/C-gcd_hw-hypotheses.md` (new §0; H_INPUT_RANGE, H_MUXN_SEL, §3 R row, §5 status line,
+§7 marked historical), `notes/C-8k-gcdnat.md`, `notes/C-10c-prjxdelay.md`, `notes/C-8u-live.md`
+(banner), `notes/C-8s2-rig.md`, `notes/C-8l-capstone.md`, `notes/C-11b-fasm.md`,
+`notes/C-10j-runtack.md`, this note. Not touched (other probes): C-10g, C-10n (10m), C-10f
+(10f2), C-12a/b/c and C-10i (12d), C-11f (11f).
+
+### Found while checking (not audit rows)
+
+* C-gcd_hw-hypotheses §2 said H_MUXN_SEL is checked by rule E on `umux21`; 8w found no rule-E
+  row for it on any of the 4 routes. Reworded to "unchecked".
+* None of the 8m-8z modules (CapstoneSafe … CapstoneLiveNdWalk, CapstoneRig, CapstoneWitness3)
+  is imported by `Formal.lean`. That is expected (lakefile globs every module under Formal/;
+  Formal.lean imports only Core), not a gap.

@@ -2,6 +2,14 @@
 
 Shard C, probe 8u, 2026-10-27. Core Lean only, no sorry/axiom/native-decide.
 
+**CORRECTION (8z, 2026-10-27; banner added by aud2 2026-10-29): do not cite `gcd_hw_live`.** Its
+hypothesis set is likely vacuous: `CapstoneLiveNdStart.start_never_closes` proves that H_CELLS +
+H_BUNDLE + H_START_ONCE + H_BOUNDED_DELAY (on `start`'s source LUT) force `start`'s acknowledge
+never to fall (the step to "out0 never closes" is argued, not mechanised), and H_FIRING_BOUND as
+stated counts state no gate model constrains (argued in C-8z). The repaired theorem is
+`CapNet.Live.Nd.gcd_hw_live_final` (C-8z), open only in H_NO_DEADLOCK'. The arbiter step
+(`gcd_hw_arb_settle`) and `rank_live` below are unaffected.
+
 **Status: PARTIAL.** gcd_hw circuit liveness is REDUCED to two named network obligations
 (H_NO_DEADLOCK, H_FIRING_BOUND). Neither is proved. Everything else is proved: the
 arbiter "key step", the ranking argument, and the bound together with the gcd value. The full

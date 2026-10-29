@@ -103,8 +103,10 @@ semantics, unbounded FIFO channels at token level, and H_SOURCE_ETERNAL for the 
 H_ONE_INVOCATION is proved from the initial store. The C-8i notes give the fidelity of each.
 
 The input range `a, b < 2^31`, i.e. non-negative i32, is a hypothesis of the theorem statements, not
-a model assumption. It cannot be dropped: (-6, 4) loops forever in the C (C-8i #eval), and by C-8i
-the graph does too.
+a model assumption. It cannot simply be dropped: (-6, 4) and (4, -6) exhaust 200 fuel in the C (C-8i #eval;
+the audit saw two pairs exhaust 5000), and no theorem says what the graph does there. It is not
+that every negative input loops: `gcdC (2^32-1) 0` returns at once (the `b = 0` branch) and the audit
+reports `(INT_MIN, INT_MIN)` returns too (aud2 wording fix, 2026-10-29).
 
 Liveness here is token-level only. Hardware liveness (handshake progress, finite link capacity, no
 metastable arbiter hang) is the track-8a gap listed in C-8b and C-8i.
@@ -112,8 +114,8 @@ metastable arbiter hang) is the track-8a gap listed in C-8b and C-8i.
 ## What does not work / open
 
 * Nothing open within the probe's scope.
-* Not done: liveness and correctness for negative inputs. The function is genuinely non-terminating
-  there.
+* Not done: liveness and correctness for negative inputs. Some of them exhaust every fuel tried;
+  non-termination is not proved, and some negative pairs do return (see above).
 * Not done: the BitVec equality of `Ops` (C-8i lists it, about 1 h).
 * Not done: capacity-bounded channels. KahnBounded transfers determinacy, but not liveness, because
   a bounded run can deadlock where the unbounded one cannot. That would need the schedule to fit

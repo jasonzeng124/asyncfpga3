@@ -1,33 +1,12 @@
 # gcd_hw end to end: shard C's hypothesis list
 
-Shard C, probe 8l, 2026-10-27. This is shard C's input to the all-shard list
+Shard C. First written by probe 8l (2026-10-27). §0 rewritten by probe aud2 (2026-10-29)
+against the Lean on `claude/formal` at 16e798d: every theorem name below was grepped and its
+statement read. This is shard C's input to the all-shard list
 `formal/out/gcd_hw_hypotheses.md`. Shard C does not write that file. Rows owned by shard B
 (cells) and shard A (LUT, delay and corner model) are cited by their IDs, not restated; their
-grades are the owners' grades.
-
-## 0. The target statement and how far the Lean chain reaches
-
-**Target.** The routed gcd_hw (`cells/hw/gcd_hw.v` → `gcd_rig.v` → `bdc_gcd`, emitted by `bdc/emit.py`
-from Dynamatic's gcd fixture). For every input `0 <= a, b < 2^31`, every value the circuit latches on
-`out0` is `Nat.gcd a b`, and the circuit does latch one.
-
-The chain, with each link's status:
-
-| # | link | Lean | status |
-|---|---|---|---|
-| T1 | the graph bdc emits computes `Nat.gcd` on every schedule and every arbitration; it is live and bounded (token level, unbounded FIFOs) | `GcdHw.Gcd.gcd_hw_graph_computes_gcd`, `gcd_hw_graph_live`, `gcd_hw_graph_no_infinite_run` (C-8i, C-8k) | **proved** |
-| T2 | each cell kind meets the network's protocol and token-equation spec (SI/DI gate models) | `fork_op`, `join_op`, `steer_op`, `mux_op` (8f); `amerge_op` (8j, 2 inputs); `sink_op` (8f); **`Link.link_op`** and **`MuxN.muxn_op`** (8l, new); the 3-input control_merge is two `amerge_op` stages (**`Capstone.amerge3_cascade`**, 8l); `bd_src` is **`CapstoneSrc.src_op`** (8l) | **proved** for every cell kind gcd_hw instantiates, in the Ops SI/DI models (binding to the generated cells: O4) |
-| T3 | any network of such operators, with every channel bundled, refines every solution of its token equations: at every time, each channel's latched values are a prefix of that solution's stream | `Ops.net_refines`, `net_prefix` (8f) | **proved** (any graph, cycles allowed) |
-| T4 | T3 instantiated on bdc's gcd_hw network, with bdc's link placement | `CapstoneLinks` exports the placement (100 linked channels, 175 stages) | **open**. See §5: O1 (cm winner forcing), O2 (stream solution from the token run) and O4 (binding the Ops SI models to the generated cells). The reduction itself is proved: `Capstone.latched_const` / `gcd_hw_conditional` (if the network's equations have a solution with `out0` constantly `gcd a b`, every latched `out0` value is `gcd a b`) |
-| T2' | non-vacuity of the new cell models | **`Link.link_witness`**, **`MuxN.muxn_witness`**: explicit unit-delay runs meeting every gate-model field and the protocol, delivering a token | **proved** |
-| T5 | storage on every ring (the 8j deadlock cannot recur) | **`gcdhw_ring_ge3`**: every cycle of bdc's gcd_hw graph carries ≥ 3 bd_link stages; `gcdhw_cycle_linked`; `gcdhw_has_cycle` (non-vacuity) | **proved** (structural) |
-| T6 | circuit liveness (a token reaches out0) | none | **open**. See §5, O5 |
-| T7 | every timing obligation of T2 holds on the routed bitstream | tcheck: `pot_sound`, `cverdict_sound` (10h); per-route verdicts on 4 seeds | proved sound for each obligation it checks; per-obligation status in §3 |
-| T8 | each cell's gates are the synthesized netlist's LUTs | Gen (11d): every cell generated from the RTL and equal to B's specs; `bd_link_ctl_gate_B` = `ctlB`, which `OpsLink` uses directly | **proved** for the INITs. The Ops SI models of fork, join, steer and mux are hand models. Their equality to B's generated-cell specs is not mechanised (O4) |
-
-So no end-to-end theorem exists yet. What exists is every token-level and cell-level piece, the
-generic glue (T3), and the structural ring fact. The missing middle (T4, T6) is listed in §5 with
-estimates.
+grades are the owners' grades. §0 is authoritative. §§1-6 are 8l's per-primitive detail and
+are still valid unless §0 says otherwise (stale points are marked in place).
 
 Grades (as in the fidelity tables):
 - **A**: exact, or strictly more general than the fabric (proved, or true by construction).
@@ -35,11 +14,90 @@ Grades (as in the fidelity tables):
 - **C**: a known idealisation or a known gap. It can be false in some regime, or it is an
   obligation with failing instances on some route or corner.
 
+## 0. What the Lean says today (2026-10-29)
+
+**Target.** The routed gcd_hw (`cells/hw/gcd_hw.v` → `gcd_rig.v` → `bdc_gcd`, emitted by
+`bdc/emit.py` from Dynamatic's gcd fixture). For every input `0 <= a, b < 2^31`, every value
+the circuit latches on `out0` is `Nat.gcd a b`, and the circuit does latch one, on every
+invocation the rig makes.
+
+**Where the Lean stands, in one paragraph.** Safety is proved for the concrete 465-channel,
+367-operator network that bdc emits (`gcd_hw_circuit_safe3`), under three hypotheses: the gate
+models (H_CELLS), bundling on zero-delay traces (H_BUNDLE) and "start offered at most once"
+(H_START_ONCE). One explicit run satisfies all three and latches 6 = gcd 12 18 (8t), so the
+theorem is not vacuous. For the real rig, which re-offers start, only the FIRST result is
+proved (`gcd_rig_first`, under the rig's env gate model H_ENV); every later result is open, and
+the obvious re-arming route is proved to fail. Liveness of the first result is reduced to one
+open network obligation, H_NO_DEADLOCK' (`gcd_hw_live_final`), with no witness that its
+hypothesis set is jointly satisfiable. Nothing yet connects the zero-delay traces of
+H_CELLS/H_BUNDLE to the physical, routed timing that tcheck checks (8w finding; probe 8x never
+landed).
+
+### 0.1 The chain
+
+| # | link | Lean (file:line) | status |
+|---|---|---|---|
+| T1 | bdc's gcd_hw graph computes `Nat.gcd` on every schedule and arbitration, live, bounded (token level, unbounded FIFOs), for `a, b < 2^31` | `Formal.Net.GcdHw.Gcd.gcd_hw_graph_computes_gcd` (Net/GcdHwLive.lean:47), `gcd_hw_graph_live` (:66), `gcd_hw_graph_no_infinite_run` (:94); `gcdC_nonneg31` (Net/GcdHwNat.lean:344) | **proved** |
+| T2 | every cell kind gcd_hw instantiates has an Ops operator theorem (fork, join, steer, mux, muxN, 2-input amerge, 3-input cm as a cascade, link, src, sink) | `Link.link_op` (Net/OpsLink.lean:242), `MuxN.muxn_op` (Net/OpsMuxNOp.lean:155), `CapstoneSrc.src_op` (Net/CapstoneSrc.lean:28), `Capstone.amerge3_cascade` (Net/Capstone.lean:96), 8f/8j `*_op` | **proved** in the Ops SI/DI gate models |
+| T3 | any network of Ops operators with every channel bundled refines every total solution of its token equations | `Ops.net_refines` (Net/Ops.lean:272) | **proved** |
+| T4 | T3 on bdc's concrete gcd_hw network: every out0 latch is `gcd a b` | `CapNet.Gcd.gcd_hw_circuit_safe` (Net/CapstoneSafe.lean:47, needs H_CM_FORCED; 8m) → `gcd_hw_circuit_safe'` (Net/CapstoneO1.lean:70, needs H_CUT; 8q) → `gcd_hw_circuit_safe''` (Net/CapstoneCut.lean:535, needs H_START_ONCE + H_WALK; 8r) → **`gcd_hw_circuit_safe3`** (Net/CapstoneWalk.lean:636, H_WALK proved by `gcd_hw_walk` :627; 8s) | **proved** under H_CELLS, H_BUNDLE, H_START_ONCE, `a, b < 2^31`. Cite `gcd_hw_circuit_safe3`; the three earlier forms are superseded (still true, more hypotheses) |
+| T4w | joint non-vacuity of T4 | `CapNet.Wit.gcd_hw_joint_witness` (Net/CapstoneWitness.lean:62), `gcd_hw_joint_witness3` (Net/CapstoneWitness3.lean:15), consistency `gcd_hw_witness_consistent` / `gcd_hw_witness3_consistent` | **proved**: one run, a = 12, b = 18, unit delays, zero-delay buses, sources offer once; out0 closes with 6. One input, one schedule |
+| T4r | the rig (re-offers start after each result) | `gcd_hw_window` (Net/CapstoneRig.lean:133), `gcd_hw_first` (:182), **`gcd_rig_first`** (:267), `gcd_rig_window` (:299), `gcd_hw_window_from` (:326); negative: **`rearm_fails_at_reoffer`** (:355). Shard B's `gcd_rig_first_env` (Cells/RigSrc.lean:500) discharges H_ENV from the env cells | **first result proved** (under CellR, H_BUNDLE, H_ENV). Every later result **open**; re-arming at a re-offer is **proved false**. No Lean witness for `gcd_rig_first` |
+| T5 | storage on every ring | `gcdhw_ring_ge3` (Net/CapstoneRing.lean:108), `gcdhw_cycle_linked` (:111), `gcdhw_has_cycle` (:160) | **proved** (structural: every cycle has >= 3 bd_link stages). That 8j's hand-loop deadlock cannot recur in the circuit is an argument from this, not a theorem |
+| T6 | circuit liveness of the first result | `CapNet.Live.Nd.gcd_hw_live_final` (Net/CapstoneLiveNdWalk.lean:120): first out0 close within `(1168(8·Lrun y + 23) + 1)(H + 1)` ticks, value `gcd a b`. Pieces: `gcd_hw_arb_settle` (Net/CapstoneLiveArb.lean:176), `gcd_hw_never_contested` (:161), `rank_live` (Net/CapstoneLiveRank.lean:97), `firing_bound` (Net/CapstoneLiveNd.lean:316), `gcd_hw_offers_bounded` (Net/CapstoneLiveNdOff.lean:473), `walk_ends` (Net/CapstoneLiveNdWalk.lean:95) | **reduced** to H_NO_DEADLOCK' (open). **No witness** for the hypothesis set (the 8t run violates H_BOUNDED_DELAY': its sources stop; audit AuditP7 `witness_not_bounded`) |
+| T6x | 8u's `gcd_hw_live` (Net/CapstoneLive.lean:237) | — | **superseded, likely vacuous: do not cite.** `start_never_closes` (Net/CapstoneLiveNdStart.lean:84) proves its H_CELLS + H_BUNDLE + H_START_ONCE + H_BOUNDED_DELAY force `start`'s ack never to fall; the step to "out0 never closes" is argued, not mechanised |
+| T7 | each timing obligation on the routed bitstream | tcheck: `pot_sound` (tools/tcheck/Formal/Timing/Unroll.lean:95), `Tcheck.verdict_sound` (tools/tcheck/Tcheck/Sound.lean:38), `cverdict_sound` (tools/tcheck/Tcheck/Cert.lean:119); physical channel bridge `Timing.Obl.held_of_tx` / `held_of_cert` (Timing/OblBridge.lean:82/149, under TxCover) | each verdict **sound** for its obligation; 4 routes in §3. **Gap:** H_BUNDLE in T4 is on zero-delay traces; the physical → zero-delay refinement is **not proved** |
+| T8 | gates are the synthesized LUTs | Gen (11d) INITs; `OpsGen.fork_of_gen`, `join_of_gen`, `link_of_gen`, `src_of_gen` (Net/OpsGen.lean:427-460) and the `*_bound` lemmas derive the Ops gate fields from the generated cells under H_FB_FIRST (8n) | **proved per cell kind**; **not composed** into T4's H_CELLS (T4 still takes the hand Ops models) |
+
+Older forms not to cite as gcd results: `Capstone.latched_const` / `gcd_hw_conditional`
+(Net/Capstone.lean:52/79) hold for ANY network and carry no gcd content (audit P4; docstrings
+fixed); `gcd_circuit` (Net/OpsGcd.lean:387) on the hand-drawn loop is vacuous for a != 0
+(`gcd_stuck`, Net/OpsLive.lean:144).
+
+### 0.2 Hypothesis register (the hypotheses of the theorems in 0.1)
+
+"Witness" means a Lean term that satisfies the hypothesis jointly with the others of the same
+theorem.
+
+| id | exact Lean form, location | used by | grade | GLS / board test that would test it | witness |
+|---|---|---|---|---|---|
+| range | `a < 2^31`, `b < 2^31` (explicit premises) | T1, T4, T4r, T6 | A (precondition, not a model). Outside it: `gcdC` returns on some negative pairs (`gcdC (2^32-1) 0`, `b = 0` branch of `gcdC`, Net/GcdHwProof.lean:72-74; audit: also `(INT_MIN, INT_MIN)`) and exhausts fuel on others ((−6, 4), (4, −6) at 200, C-8i); no theorem covers negative inputs either way | none needed | yes (8t: 12, 18) |
+| H_CELLS | `∀ o : Fin NO, Cell ch (srcV a b) (opAt o)` (`Cell`: Net/CapstoneNetDef.lean:373); 8u/8z use `CellI` (Net/CapstoneLive.lean:141) with internal traces explicit | T4, T4w, T6 | **C** as a whole: contains H_CEL_SI (A for protocol), H_LUT_SI (B), H_DATA_COMB and H_LATCH_COMB (C, zero-delay data), unit-time hand gate models (T8 not composed) | routed GLS of gcd_hw on the 4 seeds, both corners, transport LUTs; per-cell premises: tcheck Rc (H_FB_FIRST), Z, X, Fd rows | yes (8t) |
+| CellR | `CellR` = H_CELLS without `Src.iz` (Net/CapstoneRigTime.lean:438) | T4r | as H_CELLS | as H_CELLS | none in Lean |
+| H_BUNDLE | `∀ c, Held (ch c)` (`Held`: Net/Ops.lean:81), on the zero-delay traces of H_CELLS | T4, T4r, T6 | **C**: discharged per channel only for the PHYSICAL bus (`held_of_tx`/`held_of_cert` under TxCover); the refinement to T4's traces is missing | tcheck rows A, E, I, H, W on the 4 routes (§3; 1212 obligations matched in 8w); routed GLS | yes (8t, zero-delay buses) |
+| H_START_ONCE | `∀ t, cnt (riseB (ch start).req) t ≤ 1` | T4, T6 | **C for the rig** (false on its full trace: it re-offers start after every result); A for a single-invocation harness. Without it T4 is false for a free-running start source (8r scenario, a = 12, b = 18) | GLS of the rig: count start_req rises; the rig violates it by design, which is why T4r exists | yes (8t) |
+| H_ENV | `∀ t, riseB start.req t → out0.ack t` (Net/CapstoneRig.lean:260): uenv1 = bd_c2n_set(out0_ack, in_ack) | T4r | B (H_CEL_SI-style gate model of uenv1; discharged from cells by B's `gcd_rig_first_env` under its own env hypotheses) | rig GLS: start_req rises only while res_ack is high | none in Lean |
+| H_START_AFTER_RESULT | `∀ r2, OffAt start 1 r2 → ∃ r < r2, OffAt out0 0 r` | `gcd_hw_first` | B; derived from H_ENV in `gcd_rig_first` | as H_ENV | none |
+| H_REARM T | the gate models hold for the run shifted to T | `gcd_hw_window_from` | **false at every re-offer** (`rearm_fails_at_reoffer`) | n/a | refuted |
+| H_BOUNDED_DELAY' H | `∀ p ≠ prodOf start, ∀ g ∈ gatesK p, BndG H (gsAt ch itr) g` (`BndG`: Net/CapstoneLive.lean:133) | T6 | B (every non-arbiter gate settles within H ticks once excited for H; includes the free-running a/b sources) | GLS: max settle time per gate; STA max arcs | none (8t violates it) |
+| H_START_ENV H | `StartEnv H (ch start)` (Net/CapstoneLiveNd.lean:196): before its first offer, start is offered within H of being enabled | T6 | B | rig GLS after reset | none |
+| H_ARB_UNCONTESTED_BOUNDED H | `ArbUnc H …` (Net/CapstoneLiveArb.lean:71): grants settle within H when the other request is low | T6 | B (no metastability without contest). Contest never occurs (`gcd_hw_never_contested`); `stall_not_settle` (:233) shows the bound alone is useless under contest | board: count contested grants on the 9 arbiter stages (expected 0); arbiter MTBF rig | none |
+| H_NO_DEADLOCK' | `∀ t, cnt (fallB out0.ack) t = 0 → ¬(Quiet2 (gsAt ch itr t) ∧ (no start offer yet → start.ack t = false → start.req t))` | T6 | **open proof obligation** (not a silicon hypothesis). Evidence only: 56 random-delay simulations (Wip/C8z/ndsim.py), no deadlock | n/a (prove it) | none |
+| H_WALK, H_WALK_ENDS | `WalkOK` (Net/CapstoneCutSpine.lean:102); `walk_ends` | — | **proved** (`gcd_hw_walk`, `walk_ok`; `walk_ends`) | — | — |
+| H_CUT, H_CM_FORCED | 8q/8m premises | — | **proved** (`gcd_hw_cut`, `gcd_hw_forced` Net/CapstoneCut.lean:507/492; `gcd_hw_forced3` Net/CapstoneWalk.lean:645) | — | — |
+| H_FIRING_BOUND (8z form) | projected state `pj` | — | **proved** (`firing_bound`, `gcd_hw_offers_bounded`: every channel offers <= 4L + 11) | — | — |
+| 8u's H_NO_DEADLOCK, H_FIRING_BOUND, H_BOUNDED_DELAY | `gcd_hw_live` premises | T6x | **likely jointly vacuous** (`start_never_closes`, mechanised; and 8u's firing bound counted unconstrained state, argued in C-8z, not mechanised) | — | none possible as stated |
+| tcheck model hypotheses | H_NETLIST, H_ONE_CORNER (+ band κ), H_RC_EXACT, H_FALLBACK_BAND, run semantics (§3 second table) | T7 | B (H_FALLBACK_BAND C) | §3 | — |
+
+Cell-level rows (shard B: C1-C8, L1-L5, P1-P5, D1-D4, R1-R5, A1-A7, X1-X6, B-amerge) and the
+LUT/corner rows (shard A) enter through H_CELLS and T7; see §4.
+
+### 0.3 What is open, ranked
+
+1. **Physical → zero-delay refinement** for H_CELLS/H_BUNDLE (8w finding). Without it no tcheck
+   verdict discharges T4's H_BUNDLE. 8x was launched and never landed.
+2. **Every rig result**, not just the first (T4r). The re-arming route is refuted; needs a periodic
+   token run with overlapping invocations, or a per-invocation cut argument.
+3. **H_NO_DEADLOCK'** (T6), then a joint witness for `gcd_hw_live_final`'s hypotheses
+   (8z2 was launched and never landed).
+4. **Composing T8** (8n's `*_of_gen`) into T4's H_CELLS, carrying H_FB_FIRST as a named premise.
+5. Witnesses for `gcd_rig_first` (CellR + H_ENV) and for any timed hypothesis set.
+
 ## 1. Token level (shard C; T1)
 
 | id | statement | where | grade | test |
 |---|---|---|---|---|
-| H_INPUT_RANGE | `a, b < 2^31` (non-negative i32) | precondition of T1, not a hypothesis | n/a | negative inputs loop in the C and in the graph (C-8i `#eval`) |
+| H_INPUT_RANGE | `a, b < 2^31` (non-negative i32) | precondition of T1, not a hypothesis | n/a | Outside the range nothing is proved either way. Some negative pairs return (`gcdC (2^32-1) 0` by `gcdC`'s `b = 0` branch; `(INT_MIN, INT_MIN)` per audit P4); others exhaust the fuel tried ((−6, 4), (4, −6) at 200 in C-8i; two pairs at 5000 in the audit). "Negative inputs loop" was overstated (audit, 2610f5f N12). |
 | H_OPS_VERILOG | each op's Nat-mod-2^w semantics is bdc's Verilog (`compute.BINARY`/`CMPI`); equal to MLIR `arith` wherever MLIR is defined | `GcdHw.Ops` | A (by construction; shifts ≥ w follow Verilog) | `bdc/test_compute.py`-style exhaustive vectors on the generated cell |
 | H_FUSED_EXACT | a fused region is one strict node computing its expression DAG | `Rule.comp` | A at token level | GLS of the fused cell against its expression |
 | H_SOURCE_ETERNAL | 4 source→fork→constant chains (plus bdc's absorbed pairs) are always-valid literals. 9 of bdc's linked values sit on these chains and are not channels in the model (`CapstoneLinks` header) | importer (C-8i) | B (it is a wire with `bd_src` holding req high) | GLS on gcd_hw: those bd_src req nets stay high; the links on them fill once and never drain |
@@ -65,7 +123,7 @@ structure (`Fork`, `Join`, `Steer`, `Mux`, `MuxN`, `AMerge`, `Link`, `Sink`).
 | H_ARB, H_ARB_EXCL | arbiter grant moves only to its request, rises only with the other grant and A0 low; never both grants | B's R1, R2, A1-A6 | rule J; B-amerge (`amerge2_ok`, `amerge3_ok`) |
 | H_AMERGE_RTZ (8j) | the previous winner's A_k falls before z_req rises again | C: unchecked by every rule | none yet; a tcheck obligation is easy to add (two-path race from A0↓) |
 | H_EXCL_REQ(m) | a 2-input loop-header control_merge never has both requests high | an open proof obligation (O1), not a silicon hypothesis | follows at token level from H_ONE_INVOCATION |
-| H_MUXN_SEL (new) | the index `s` of bdc_muxn3 is held by H_BUNDLE of its control channel. Values ≥ 3 select nothing (modelled; safe) | as H_MUX_SEL | rule E on `umux21`'s select (fed by `ULINK_N_INDEX_97`, DELAY 8) |
+| H_MUXN_SEL (new) | the index `s` of bdc_muxn3 is held by H_BUNDLE of its control channel. Values ≥ 3 select nothing (modelled; safe) | as H_MUX_SEL | intended: rule E on `umux21`'s select (fed by `ULINK_N_INDEX_97`, DELAY 8). **8w found no rule-E row for it on the 4 routes: unchecked** |
 | H_RESET | every channel starts at req = ack = 0 and every C-element node at 0 | B (B's C5, P4: reset long enough) | testbench reset is µs scale |
 | H_SRC / H_ENV_OUT | the rig offers `a`, `b`, `start` by the four-phase protocol and acknowledges `out0`/`end` | B (the rig's `uenv0/uenv1` are a bare Muller ring: thinnest RT_FB, see §3 R) | board: gcd_hw's measured results; GLS of the rig |
 
@@ -79,13 +137,13 @@ the band"; the unguarded fast and slow corners pass on every one.
 | obligation (Ops/8a name) | where in gcd_hw | tcheck rule | 4-route result | grade |
 |---|---|---|---|---|
 | H_BUNDLE at a compute/fused-region output (H_COMPUTE_DELAY): data cone settles before the matched delay's request | every comp rule (29) | **A** (bundled: H_BUNDLED_T0) | 199/200 agree. Seed 3 `shrsi1`: fastG −339 ps, unguarded fast +2512 | C until H_BUNDLED_T0 is composed with the upstream rule (open) |
-| H_MUX_SEL / H_STEER_SEL / H_MUXN_SEL: select settled at the join/steer LUT pins before the request | 22 mux, 38 branch, `umux21` | **E** (skew.py; E0 = no credit) | E 465/472, E0 460/472; failures band-only | B. E needs H_LEVEL and H_CLEAN_EDGE at X (252 X's are LUT outputs) |
+| H_MUX_SEL / H_STEER_SEL / H_MUXN_SEL: select settled at the join/steer LUT pins before the request | 22 mux, 38 branch, `umux21` (no E row for `umux21` on any route, 8w: unchecked) | **E** (skew.py; E0 = no credit) | E 465/472, E0 460/472; failures band-only | B. E needs H_LEVEL and H_CLEAN_EDGE at X (252 X's are LUT outputs) |
 | link capture: Sep + latch setup (8a `Sep`, `SetupHold`; B's L1, L2, P1, P2) | every link stage (175) | **I** | 300/300 (75 per route compared, 104 not comparable) | B. I's request side rests on H_SEGMENT. B's L1 says rule I omits the feedback-pin IOPATH and SP[fb]: a MISSING TERM |
 | link hold (8a `Hold`; B's L3, D4): DACK | every link stage | **H** (Hc cert) | 630/632 (2 band findings: −28/−9, −1/−74) | A for the check (cert, H_EXTRACT_MIN removed); B for the model |
 | latch enable pulse / open width (B's L2, 8e W) | every link stage | **W** | unchecked by the project. tcheck min +346 ps fastG, +832 slowG | B (H_SEGMENT) |
 | FASTFALL / RFAST line drain (B's D2) | `bd_delay_gated` request lines (matched delays) | **F** (Fc cert) | 113/116: seed d `ucmpi8` (fastG −498, unguarded +941/+2300) and `merge12` on seeds 3 and 4, all band-only. (Seed 2 `uselect1.udly`'s −141 ps is tcheck's looser data side, not a disagreement) | B (H_CONTROLLING argued by hand) |
 | arbiter A0 fork (H_ARB; B's A1) | 8 control_merges (`uarb*`) | **J** (Jx exact shared prefix) | Jx 71/72; J0 57/72 | B (H_ONE_SAMPLE_PER_WIRE) |
-| C-element feedback first (H_CEL_SI's premise; B's C2/C3) | 363 C-elements per route | **R** (Rc cert) | kernel: 0 failures at fast/slow/fastE/slowE (C-10f). Rig `urig.uenv1`: −117/−221 (seed 2), −86/−243 (seed 4) under the band | C: the rig's 2-cell Muller ring is the thinnest real race. Per-pin term (C3) is invisible to the SDF |
+| C-element feedback first (H_CEL_SI's premise; B's C2/C3) | 363 C-elements per route | **R** (Rc cert) | C-10h R/Rc (driver-side LUT→xMUX hop included): the only failures are the rig's `urig.uenv1`, −117/−221 (seed 2) and −86/−243 (seed 4) at fastG/slowG, band only; kernel minimum on seed d +23/+19 (`ucontrol_merge10.uarb1.ua2`). C-10f's "0 failures in every one-corner model" predates that hop (audit P4, 1149aa1; probe 10f2 is redoing it) | C: the rig's 2-cell Muller ring is the thinnest real race. Per-pin term (C3) is invisible to the SDF |
 | H_AMERGE_RTZ, H_MUX_RTZ (B's X1) | 8 amerges, 22 muxes, `umux21` | none | UNCHECKED | C |
 | mux isochrony (B's X4: z_ack→{uxa,uya,ctl}, ctl_req→{uj0,uj1}); merge M3 | every mux | none | UNCHECKED | C |
 | H_FORK_DATA (data wire vs req wire per fork branch) | forks not fused away | covered by A or I wherever the branch ends at a cell or a link | no separate row | B |
@@ -121,6 +179,12 @@ unchecked); L1's missing feedback-pin term in rule I; L2 enable pulse width (no 
 
 ## 5. What stays open between the pieces (proof obligations, not silicon hypotheses)
 
+**Status 2026-10-29 (aud2):** O1 closed (8q arbiter half, 8r H_CUT/H_CM_FORCED, 8s H_WALK). O2
+and O7 closed (8m). O3 resolved (8l). O4 done per cell kind (8n `OpsGen.*_of_gen`, under
+H_FB_FIRST) but not composed into the capstone's H_CELLS. O5 reduced to H_NO_DEADLOCK' (8u, 8z).
+O6 done as data (8w: 1212 obligations, 4500 of 4572 tcheck rows matched). The table below is 8l's
+original text.
+
 | id | what | why it is open | estimate |
 |---|---|---|---|
 | O1 | **cm winner forcing.** *Interface now fixed in Lean:* `CapstoneCM.amerge_op_forced` restates the control_merge operator with the oracle fixed in advance (the token run's labels `ω`) and the equation restricted to offered tokens, under **H_CM_FORCED** (the circuit's winner of every OFFERED token is `ω`). The unrestricted form could not be used: `winner` is `false` on never-offered indices, so "winners = labels for all k" would be false for every real circuit (a vacuity trap). Its token half is proved: `CapstoneExcl.cm_inputs_exclusive` (in every reachable token store, two control_merge inputs are never both non-empty). What remains open is the circuit half of H_CM_FORCED. In detail: Each 2-input control_merge's winner stream equals the token run's label stream (H_EXCL_REQ plus the order). `amerge_op`'s equation is relative to the circuit's winner `ω`; for an arbitrary `ω` the stream equations of a loop can have NO solution (`z0 = f(z0)`), so T3 cannot be instantiated without it | needs a circuit-level ring-counting invariant: the offered history of all channels is a reachable cut of the token LTS. That is a simulation, not the Ops time induction | 1-2 days |
@@ -145,7 +209,9 @@ unchecked); L1's missing feedback-pin term in rule I; L2 enable pulse width (no 
 - tcheck: add H_AMERGE_RTZ and H_MUX_RTZ as two-path races (they are the only UNCHECKED rows with a
   mux-like shape), and the C3 per-pin term to rule R.
 
-## 7. The capstone statement as it will read once O1 and O2 are closed
+## 7. (historical, 8l) The capstone statement as it was planned before O1 and O2 closed
+
+Superseded: the statement as proved is `gcd_hw_circuit_safe3` (§0). Kept for the derivation.
 
 For `a, b < 2^31` and every circuit run `ch` (traces of every request, acknowledge and bus of
 bdc's gcd_hw network, link stages included):
@@ -165,7 +231,7 @@ The proof would be `Capstone.latched_const`, applied to the O2 solution (with
 operators). Everything named in that chain exists and checks except O1, O2 and the concrete
 network term (½ day of bookkeeping once O2 fixes the value conventions).
 
-## Status update after probe 10k (lead, merged)
+## Status update after probe 10k (lead, merged; folded into §0/§3)
 
 The timing hypotheses this list marked "no tcheck rule checks this yet" are now
 rows of the proved checker on the 4 gcd_hw routes (d, 2, 3, 4); full per-row
@@ -185,7 +251,7 @@ table in `formal/notes/C-10k-fbfirst.md`, data in
 - Still unchecked: X4 ctl_req->uj fork, M3, C7.
 Every row passes at sdf, fast and slow; all remaining failures are band-only.
 
-## Status update after probe 8r (lead, merged)
+## Status update after probe 8r (lead, merged; superseded by §0: H_WALK is proved, 8s)
 
 - H_SRC is too weak for safety as modelled: with a free-running `start`
   source, H_CUT is false for runs H_CELLS allows (a second start token

@@ -22,6 +22,9 @@ There is no sorry, axiom or native_decide in `Formal/`.
    - Proved: the end-to-end reduction `latched_const` / `gcd_hw_conditional`. If the circuit
      network's token equations have a solution whose `out0` stream is constantly
      `Nat.gcd a b`, then every value the circuit ever latches on `out0` is `Nat.gcd a b`.
+     (Audit P4, aud2 wording 2026-10-29: this holds for ANY network and is definitionally
+     `latched_const` with g := `Nat.gcd a b`; it carries no gcd content. The gcd_hw theorem is
+     `CapNet.Gcd.gcd_hw_circuit_safe3`, C-8s.)
    - Open: that premise. Two pieces are missing:
      - **O1:** the control_merges' circuit winner streams must equal the token run's labels.
        This is a circuit-to-LTS simulation. Its interface is fixed in Lean

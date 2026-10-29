@@ -15,6 +15,10 @@ Files (all mine):
 
 **Works.** The handshake is safe on all 36 routed gcd_hw `bd_arbiter` instances. This is
 proved in the model, at all four consistent prjxray corners.
+(Scope, per audit P5 row 3e2c968; aud2 wording 2026-10-29: the routes are gcd_hw seeds d, 2, 3, 4
+built for C-10e, not the board bitstreams, and are not on disk; each row uses one consistent
+corner, without the 0.772/1.155 band; the passes depend on the server latency (H_SRV) and, for
+the index rows, on H_FF_DRAINED.)
 - **Acknowledge.** There are 195 corner rows where the runt exists (W > 0, out of 288). On
   every one of them the runt has ended at ua_k's core before A0 can arrive there.
   - The worst margin is **+468 ps**: gcd_hw_d merge12.uarb1, client 1, FMIN. The runt ends at

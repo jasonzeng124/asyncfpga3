@@ -17,9 +17,15 @@ not mention the patch. When the pre-patch SDF is emulated on fresh routes:
 
 - **Ring 0 (+35%):** its SDF of 4674 ps is exactly a value the emulation gives
   for a compact 7-link ring: the corrected SDF is 6704 ps for the same
-  placement. Against comparable rings (n=47), the corrected SDF predicts the
-  measured 6293 ps to within 6.7%, the prjxray model (median) to within 1.1%,
-  and the pre-patch SDF misses by 36%.
+  placement. Only ONE ring was measured (ring 0, 6293 ps); the "comparable
+  rings" (n=47) are re-routed `ro_many_top` look-alikes, i.e. predictions, not
+  measurements. After a population scale fitted so each predictor's median over
+  all 512 rings equals silicon's 0.989, the corrected SDF is within 6.7% of
+  ring 0, the prjxray model (median) within 1.1%, the pre-patch SDF 36% off.
+  Those two percentages come from that fitted scale: unscaled, measured/predicted
+  is 0.939 (current SDF) and 0.605 (prjxray slow_max); with a scale fitted on
+  7-link rings only, 1.144 and 1.076 (audit p2-python.md A3/A3a, re-derived by
+  the auditor; aud2 wording fix 2026-10-29).
 - **The "+988 ps per loop" offset and the short-ring excess:** reproduced
   mostly by the patch alone, with the prjxray model adding a little more
   (table below).
@@ -161,6 +167,13 @@ scale:
 | pre-patch SDF (what the repo used) | 4623 (4336..5196) | **1.361** |
 | current SDF | 5896 (5896..6271) | 1.067 |
 | prjxray slow_max | 6360 (4489..7341) | 0.989 |
+
+These ratios compare one measured ring with the median of 47 simulated
+look-alikes from a different design (ro_many_top, mux-leg tap; ring 0 is
+ro_top, BUFG tap), after the global scale fitted to silicon above; they are
+not absolute predictions, and any prjxray corner does as well after scaling
+(audit p2-python.md A3a, A3b). The 1.361 for the pre-patch SDF is nearly
+scale-free (unscaled 1.346).
 
 So ring 0's +35% is the lut-perm-sink bug first and site pins second.
 prjxray's range of 4.5-7.3 ns is the physical-pin lottery that the SDF cannot
