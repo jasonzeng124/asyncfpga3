@@ -103,6 +103,9 @@ def sim(a, seed, hw, col, scat):
     # nothing until the difference is explained (decoder or toolchain)
     m = re.search(r"VERDICT: (EQUIVALENT|NOT EQUIVALENT)", open(log).read())
     equiv = m.group(1).replace(" ", "_") if m else "NO_VERDICT"
+    for f in ("run_baked.vvp", "gate.vvp"):      # ~600 MB each; the logs are the result
+        if os.path.exists(os.path.join(work, f)):
+            os.remove(os.path.join(work, f))
     row = [seed, tag, md5(os.path.join(hw, "gcd_hw.sdf")), md5(os.path.join(hw, "gcd_hw_xray.sdf")),
            verdict, f"{done}/16", str(errs), "/".join(str(laps.get(v, "?")) for v in ("6", "12", "13")),
            ",".join(dead) or "-", ",".join(incomplete) or "-", equiv]
