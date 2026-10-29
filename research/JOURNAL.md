@@ -1424,3 +1424,11 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
 - seed d band_s0.32-0.252-1: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 50/39/59
 - seed 3 min: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 89/72/103
 - seed 3 max: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 32/26/38
+### progress 02:00 (S3 landed: acceptance.py --stack full; end-to-end lut-pinmap run started)
+- 87100ea: acceptance.py --stack full (bits netlist + prjxray SDF at --corner min/max/band + fid primitives);
+  test_acceptance 16/16; refusal-only detection reported as MATCH (WEAK); identical bitstreams or an unchanged
+  writer can never MATCH. Default stack unchanged on the paths that run without routes.
+- Nofuse route rebuilt by S3: sdf c647eb1a (the journal's), bit 951e767b. Running now from a worktree at 87100ea:
+  `acceptance.py --stack full --corner max --items lutpinmap_gcd_nofuse` (expected several hours, one vvp).
+  Last session's hand run on this route: patched 16/16, unpatched 9/16 with 5-8,11-13 never complete.
+- Sweep: 9/32 runs done, all PASS.
