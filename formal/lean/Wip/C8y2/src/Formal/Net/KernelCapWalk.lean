@@ -205,7 +205,7 @@ theorem texec_two {x2 x3 : TS} {l : Nat} {ls : List Nat} (h1 : tstep x2 l = some
   simp [texec, h1, h2]
 
 theorem cm_idx {x x2 : TS} {g res idx l0 i kk : Nat} (hR2 : RI a b x2)
-    (hr0 : rules[l0]? = some (Rule.cm i res idx kk)) (hres : res ∈ spine) (h3 : 3 ≤ res)
+    (hr0 : rules[l0]? = some (Rule.cm i res idx kk)) (hres : res ∈ spine) (h3 : nIn ≤ res)
     (hg : g ∈ spine) (hne : x.s g ≠ []) (hgr : res ≠ g) (hRx : GcdHw.Inv spine x.s)
     (hsp : ∀ h ∈ spine, x2.s h = x.s h ∧ x2.cn h = x.cn h) :
     (x2.pr idx).length = (x.cn res).length := by
@@ -539,23 +539,23 @@ theorem rel_x0 : Rel (x0 a b) (walk (σY a b y) 0) := by
   · intro c h
     simp only [walk, Option.some.injEq] at h; subst h
     rw [grp_start]
-    show init a b 2 ≠ []
-    rw [show init a b 2 = [0] from (init_store a b).2.2.1]; simp
+    show init a b (nIn - 1) ≠ []
+    rw [init_start]; simp
   · intro h; simp [walk] at h
   · intro c' hc'
     show 0 + bn (some start == some c') = A (x0 a b) c' + Bo (some (gr start)) (grp c') (rho c') (adj c')
     rw [A_x0]
     have := List.all_eq_true.mp init_chk _ (rec_mem hc')
     simp only [beq_iff_eq] at this
-    have hgs : gr start = (2, rhoL.getD 2 0) := by rw [gr, grp_start]; rfl
+    have hgs : gr start = (nIn - 1, rhoL.getD start.val 0) := by rw [gr, grp_start]; rfl
     rw [hgs, ← this]
     by_cases e : c' = start
-    · subst e; simp [start]
+    · subst e; simp
     · have e1 : (some start == some c') = false := by simp [Ne.symm e]
-      have e2 : (c'.val == 2) = false := by
+      have e2 : (c'.val == start.val) = false := by
         simp; intro h; exact e (Fin.ext h)
       rw [e1, e2]
-  · intro h; simp [walk, start, acc] at h
+  · intro h; simp [walk] at h; exact absurd h start_acc
 
 /-- **The simulation**: every walk step is matched by a state of the run on its path. -/
 theorem walk_sim {ls : List Nat} (hex : texec (x0 a b) ls = some y) :

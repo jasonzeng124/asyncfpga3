@@ -29,8 +29,8 @@ KERNELS = {
         theorem="Formal.Net.GcdHw.Gcd.gcd_hw_graph_computes_gcdC",
         lean_ref="Formal.Net.GcdHw.Gcd.gcdC 100000 {0} {1}",
         capstone=dict(profile="gcd", module="Formal.Net.CapstoneWalk",
-                      theorem="Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe3",
-                      committed=["CapstoneLinks.lean", "CapstoneNet.lean"]),
+                      theorem="Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe3", compat=True,
+                      gen=[("links", "CapstoneLinks.lean"), ("net", "CapstoneNet.lean")]),
     ),
     "ipow": dict(
         mlir="ipow", c="kernels/ipow/ipow.c", func="ipow",
@@ -43,8 +43,9 @@ KERNELS = {
         theorem="Formal.Net.IpowHw.ipow_hw_graph_computes_ipowC",
         lean_ref="Formal.Net.IpowHw.ipowC 100 {0} {1}",
         capstone=dict(profile="ipow", module="Formal.Net.IpowCapMain",
-                      theorem="Formal.Net.IpowCap.ipow_circuit_safe3",
-                      committed=["IpowCapLinks.lean", "IpowCapRing.lean", "IpowCapNet.lean"]),
+                      theorem="Formal.Net.IpowCap.ipow_circuit_safe3", compat=False,
+                      gen=[("links", "IpowCapLinks.lean"), ("ring", "IpowCapRing.lean"),
+                           ("net", "IpowCapNet.lean")]),
     ),
     "collatz": dict(
         mlir="collatz", c="kernels/collatz/collatz.c", func="collatz",

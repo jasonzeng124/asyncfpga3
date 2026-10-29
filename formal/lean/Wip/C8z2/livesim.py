@@ -15,7 +15,10 @@ Lean gate lists (`gatesE`, same order as `gatesK ++ grantsK`) to
   * check the step property "excited at t => output = target at t+1" for every gate but
     start's (this is what makes BndG 1 / ArbUnc 1 hold),
   * find, for every t before out0's close, one excited gate (the H_NO_DEADLOCK' certificate).
-Usage: python3 -I livesim.py a b [--emit]   (--emit writes the generated Lean data files)
+Usage: python3 -I livesim.py a b [--emit] [--hold]
+  --emit writes the generated Lean data file; --hold makes the COUNTEREXAMPLE run instead:
+  start's LUT never releases its request (allowed by gcd_hw_live_final's hypotheses), and
+  out0 never closes.
 """
 import os, sys, math
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +29,7 @@ import sim  # noqa: E402
 from sim import ev, jval, sel2, selD, outs_of, NINT, Cel  # noqa: E402
 
 
-def simulate(a, b, names, ops, tmax=100000):
+def simulate(a, b, names, ops, tmax=100000, hold=False):
     NC = len(names)
     prod = {}
     for n, o in enumerate(ops):
@@ -105,7 +108,8 @@ def simulate(a, b, names, ops, tmax=100000):
                 nack[i] = c; nreq[oo] = c
             elif k == "src":
                 z = o["z"]
-                if o["which"] == 2 and started and not req[z]: pass   # start: one offer only
+                if o["which"] == 2 and started and (hold or not req[z]): pass   # start: one offer only
+                # (hold: the counterexample run, start's LUT never releases its request)
                 else: nreq[z] = not ack[z]
             elif k == "sink":
                 nack[o["i"]] = req[o["i"]]
@@ -236,7 +240,8 @@ def main():
     a = int(sys.argv[1]) if len(sys.argv) > 1 else 12
     b = int(sys.argv[2]) if len(sys.argv) > 2 else 18
     names, ops, out0 = sim.load_net()
-    tr = simulate(a, b, names, ops)
+    hold = "--hold" in sys.argv
+    tr = simulate(a, b, names, ops, hold=hold)
     T = len(tr) - 1
     errs, falls, sp_bad, cert, pstart = analyse(a, b, names, ops, out0, tr)
     nt = sum(len(sim.toggles([s[0][c] for s in tr])) + len(sim.toggles([s[1][c] for s in tr]))
@@ -250,7 +255,12 @@ def main():
     print(f"max offers on a channel: {max(rises)} ({names[rises.index(max(rises))]}); a,b src offers {rises[0]}, {rises[1]}")
     if "--emit" in sys.argv:
         import emit
-        emit.emit(a, b, names, ops, out0, tr, falls, cert)
+        if hold: emit.emit_cex(a, b, names, ops, out0, tr)
+        else: emit.emit(a, b, names, ops, out0, tr, falls, cert)
+    if hold:
+        ok = not errs and not sp_bad and not falls
+        print("counterexample run (start never released):", "OK" if ok else "FAIL")
+        return 0 if ok else 1
     ok = not errs and not sp_bad and falls and all(c is not None for c in cert) and \
         tr[falls[0]][3][out0] == math.gcd(a, b)
     print("OK" if ok else "FAIL")

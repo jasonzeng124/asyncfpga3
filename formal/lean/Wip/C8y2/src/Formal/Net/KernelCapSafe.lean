@@ -46,7 +46,7 @@ theorem cm_oracle_exists {a b : Nat} (hd : dom a b) : ∃ y, Good a b y :=
   good_exists hd
 
 /-- **Circuit-level safety of gcd_hw** (modulo H_CM_FORCED, obligation O1). -/
-theorem kernel_circuit_safe (a b : Nat) (ch : Fin NC → Chan)
+theorem kernel_circuit_safe_cm (a b : Nat) (ch : Fin NC → Chan)
     (H_CELLS : ∀ o : Fin NO, Cell ch (srcVal a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))
     (H_CM_FORCED : ∃ y, Good a b y ∧ ∀ o : Fin NO, Forced ch (omOf a b y) (opAt o)) :
@@ -116,7 +116,7 @@ theorem kernel_circuit_safe' (a b : Nat) (ch : Fin NC → Chan)
     (∀ t, closedVals (ch out0) t = List.replicate (cnt (fallB (ch out0).ack) t) (spec a b)) := by
   obtain ⟨y, hy, hc⟩ := H_CUT
   have hp := kernel_protocol a b ch H_CELLS H_BUNDLE
-  exact kernel_circuit_safe a b ch H_CELLS H_BUNDLE
+  exact kernel_circuit_safe_cm a b ch H_CELLS H_BUNDLE
     ⟨y, hy, fun o => forced_of_cut ch (omOf a b y) (srcVal a b) (opAt o) (H_CELLS o) (hc o) hp⟩
 
 /-- H_CUT implies H_CM_FORCED (so `kernel_circuit_safe'` is 8m's theorem with a hypothesis

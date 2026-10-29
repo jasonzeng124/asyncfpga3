@@ -35,7 +35,7 @@ theorem zdEval_ne (net : Netlist) (g : Nat → (Nat → Bool) → Bool) (b : Boo
     (hv : v ≠ 0) : zdEval net g b v = g v (fun k => match net.arcs[k]? with
       | some a => if a.src < v then zdEval net g b a.src else false
       | none => false) := by
-  rw [zdEval]; simp only [hv, dite_false]
+  rw [zdEval]; simp only [hv]
   congr 1
 
 /-! ## R2: settling to the zero-delay value -/
@@ -75,5 +75,176 @@ theorem settled_of_quiet {net : Netlist} (hwf : net.WF) {sig : Nat → Trace} (r
   have hc := const_from hq (max t (1 + v * hmaxL net.arcs)) (Nat.le_max_left _ _)
   rw [← hc]
   exact run_settles hwf r v _ (Nat.le_max_right _ _)
+
+/-! ## Bus encoding -/
+
+/-- `n` bits, bit `j` = `f j`, as a number. -/
+def bv : Nat → (Nat → Bool) → Nat
+  | 0, _ => 0
+  | n + 1, f => bv n f + (if f n then 2 ^ n else 0)
+
+theorem bv_congr : ∀ (n : Nat) {f f' : Nat → Bool}, (∀ j, j < n → f j = f' j) → bv n f = bv n f'
+  | 0, _, _, _ => rfl
+  | n + 1, f, f', h => by
+    simp only [bv]
+    rw [bv_congr n (fun j hj => h j (by omega)), h n (by omega)]
+
+/-! ## Per channel, many transactions -/
+
+/-- H_TXWIN for a physical channel `P` and one obligation: `sig k` is the `k`-th transaction's
+single-launch run (data nodes `data`, bit `j` of the bus at capture pin `data[j]`), `R k v` =
+"a request (target) node of run `k` changes at run time `v`". -/
+structure TxWin (P : Chan) (sig : Nat → Nat → Trace) (data : List Nat) (R : Nat → Nat → Prop) where
+  τ : Nat → Nat
+  idle : ∀ k, P.req (τ k) = false ∧ P.ack (τ k) = false
+  count : ∀ k, cnt (riseB P.req) (τ k) = k
+  reqIn : ∀ k r, OffAt P k r → R k (r - τ k)
+  win : ∀ k u, τ k ≤ u → u < τ (k + 1) →
+    P.dat u = bv data.length (fun j => sig k (data.getD j 0) (u - τ k))
+
+/-- The zero-delay bus value of transaction `k`. -/
+def zdBus {net : Netlist} {sig : Nat → Nat → Trace} (runs : ∀ k, Run net (sig k))
+    (data : List Nat) (k : Nat) : Nat :=
+  bv data.length (fun j => zdEval net (runs k).g (sig k 0 1) (data.getD j 0))
+
+/-- The offer of transaction `k` lies in `[τ k, τ (k+1))`. -/
+theorem off_in_win {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {R : Nat → Nat → Prop}
+    (X : TxWin P sig data R) {k r : Nat} (ho : OffAt P k r) : X.τ k ≤ r ∧ r < X.τ (k + 1) := by
+  have h1 := cnt_succ_of ho.1
+  rw [ho.2] at h1
+  constructor
+  · apply Classical.byContradiction; intro h
+    have := cnt_mono (riseB P.req) (show r + 1 ≤ X.τ k by omega)
+    rw [h1, X.count k] at this; omega
+  · apply Classical.byContradiction; intro h
+    have := cnt_mono (riseB P.req) (show X.τ (k + 1) ≤ r by omega)
+    rw [ho.2, X.count (k + 1)] at this; omega
+
+/-- **Sampled value = zero-delay value (generic separation).** If every data change of run `k`
+is no later than every request change of run `k` (`hsep`), then at every instant `t` of the
+`k`-th transaction (after the offer `r`, the channel busy on `(r, t]`) the physical bus equals
+the zero-delay bus value of run `k`. -/
+theorem sampled_eq_zd {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    {k r t : Nat} (ho : OffAt P k r) (hrt : r < t)
+    (hbusy : ∀ s, r < s → s ≤ t → inTx P s = true) :
+    P.dat t = zdBus runs data k := by
+  obtain ⟨h1, h2⟩ := off_in_win X ho
+  have h3 : t < X.τ (k + 1) := by
+    apply Classical.byContradiction; intro h
+    have hb := hbusy (X.τ (k + 1)) (by omega) (by omega)
+    simp [inTx, (X.idle (k + 1)).1, (X.idle (k + 1)).2] at hb
+  rw [X.win k t (by omega) h3, zdBus]
+  apply bv_congr
+  intro j hj
+  have hd : data.getD j 0 ∈ data := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; exact List.getElem_mem hj
+  have hR := X.reqIn k r ho
+  exact settled_of_quiet hwf (runs k) (fun s hs => by
+    have := hsep k _ hR _ hd s hs; omega)
+
+/-! ## The observed channel is bundled (Ops `Held`) -/
+
+/-- Between a launch and the next offer the channel stays idle (receiver rule). -/
+theorem idle_until {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {R : Nat → Nat → Prop}
+    (X : TxWin P sig data R) (hrecv : ∀ t, RecvStep P t) {k r : Nat} (ho : OffAt P k r) :
+    ∀ n, X.τ k + n ≤ r → P.req (X.τ k + n) = false ∧ P.ack (X.τ k + n) = false := by
+  intro n
+  induction n with
+  | zero => intro _; exact X.idle k
+  | succ n ih =>
+    intro hn
+    obtain ⟨hr, ha⟩ := ih (by omega)
+    have hreq : P.req (X.τ k + n + 1) = false := by
+      cases hq : P.req (X.τ k + n + 1) with
+      | false => rfl
+      | true =>
+        exfalso
+        have hrise : riseB P.req (X.τ k + n) = true := by simp [riseB, hr, hq]
+        have := cnt_mono (riseB P.req) (show X.τ k + n + 1 ≤ r by omega)
+        rw [cnt_succ_of hrise, ho.2] at this
+        have := cnt_mono (riseB P.req) (show X.τ k ≤ X.τ k + n by omega)
+        rw [X.count k] at this; omega
+    refine ⟨hreq, ?_⟩
+    cases hq : P.ack (X.τ k + n + 1) with
+    | false => rfl
+    | true =>
+      exfalso
+      have := hrecv (X.τ k + n) (by rw [hq, ha]; decide)
+      rw [ha, hr] at this; exact this rfl
+
+/-- Every busy instant belongs to a transaction: some offer `r < t` with the channel busy on
+`(r, t]`. -/
+theorem busy_cover {P : Chan} (hinit : Init P) (hrecv : ∀ t, RecvStep P t) :
+    ∀ t, inTx P t = true → ∃ k r, OffAt P k r ∧ r < t ∧ ∀ s, r < s → s ≤ t → inTx P s = true := by
+  intro t
+  induction t with
+  | zero => intro h; simp [inTx, hinit.1, hinit.2] at h
+  | succ t ih =>
+    intro h
+    by_cases hb : inTx P t = true
+    · obtain ⟨k, r, ho, hr, hs⟩ := ih hb
+      refine ⟨k, r, ho, by omega, fun s h1 h2 => ?_⟩
+      rcases Nat.lt_or_eq_of_le h2 with h2 | h2
+      · exact hs s h1 (by omega)
+      · rw [h2]; exact h
+    · have hr0 : P.req t = false := by simp [inTx] at hb; exact hb.1
+      have ha0 : P.ack t = false := by simp [inTx] at hb; exact hb.2
+      have ha1 : P.ack (t + 1) = false := by
+        cases hq : P.ack (t + 1) with
+        | false => rfl
+        | true =>
+          exfalso
+          have := hrecv t (by rw [hq, ha0]; decide)
+          rw [ha0, hr0] at this; exact this rfl
+      have hr1 : P.req (t + 1) = true := by simpa [inTx, ha1] using h
+      refine ⟨cnt (riseB P.req) t, t, ⟨by simp [riseB, hr0, hr1], rfl⟩, by omega, fun s h1 h2 => ?_⟩
+      rw [show s = t + 1 by omega]; exact h
+
+/-- **The observed channel satisfies the Ops H_BUNDLE.** -/
+theorem held_of_txwin {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    (hinit : Init P) (hrecv : ∀ t, RecvStep P t) : Held P := by
+  intro t h0 h1
+  obtain ⟨k, r, ho, hr, hs⟩ := busy_cover hinit hrecv (t + 1) h1
+  rcases Nat.lt_or_eq_of_le (show r ≤ t by omega) with hlt | heq
+  · rw [sampled_eq_zd hwf runs X hsep ho (by omega) hs,
+      sampled_eq_zd hwf runs X hsep ho hlt (fun s a b => hs s a (by omega))]
+  · -- the offer is at `t`, but the channel was busy at `t`: impossible after a launch
+    exfalso
+    subst heq
+    obtain ⟨h1', _⟩ := off_in_win X ho
+    obtain ⟨hr0, ha0⟩ := idle_until X hrecv ho (r - X.τ k) (by omega)
+    rw [show X.τ k + (r - X.τ k) = r by omega] at hr0 ha0
+    simp [inTx, hr0, ha0] at h0
+
+/-- **The k-th token's value (Ops convention, `P.dat (r+1)`) is run `k`'s zero-delay bus.** -/
+theorem zd_token {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    {k r : Nat} (ho : OffAt P k r) : P.dat (r + 1) = zdBus runs data k := by
+  apply sampled_eq_zd hwf runs X hsep ho (by omega)
+  intro s h1 h2
+  rw [show s = r + 1 by omega]
+  have : P.req (r + 1) = true := by
+    have h := ho.1; simp only [riseB, Bool.and_eq_true, Bool.not_eq_true'] at h; exact h.2
+  simp [inTx, this]
+
+/-- **The value a latch captures at the close (`ack↓`, `TokAt`) is the zero-delay value**, for a
+channel obeying the protocol. -/
+theorem zd_close {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    (hp : Protocol P) {k e : Nat} (he : TokAt P k e) : P.dat e = zdBus runs data k := by
+  obtain ⟨r, _, ho⟩ := tok_off hp he
+  have hh := held_of_txwin hwf runs X hsep hp.1 (fun t => (hp.2 t).2)
+  rw [close_val hp hh he ho]
+  exact zd_token hwf runs X hsep ho
 
 end Formal.Net.CapstoneRefine

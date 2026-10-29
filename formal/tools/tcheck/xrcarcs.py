@@ -55,16 +55,17 @@ for s, lst in edges.items():
             dh = P.hops.get((s, d), ([0] * 4, None))[0]
             db_ = P.drv_bel(*s.rsplit("/", 1)) or "?"
             if any(x > 0 for x in dh):
-                cls = f"net via OUTMUX ({re.sub(r'^[a-d]', 'x', db_)})"
+                cls = f"net via OUTMUX ({re.sub(r'^[a-d](?=[56])', 'x', db_)})"
             else:
-                cls = "net direct (" + re.sub(r"^[a-d]", "x", db_) + ")"
+                cls = "net direct (" + re.sub(r"^[a-d](?=[56]|ff)", "x", db_) + ")"
         diff = [a - b for a, b in zip(tc, xr)]
         stats[cls].append(diff)
         if any(abs(x) > 15 for x in diff):
             outl.append((cls, s, d, w, [round(x) for x in tc], [round(x) for x in xr], [round(x) for x in diff]))
 
 o = open(H / f"results/xrcarcs_{tag}.tsv", "w")
-o.write(f"# arcs: tcheck resolves {n_tc}, xrc resolves {n_x}, both {n_both}; XRC_NOMUX={os.environ.get('XRC_NOMUX', '')}\n")
+o.write(f"# arcs: tcheck resolves {n_tc}, xrc resolves {n_x}, both {n_both}; XRC_NOMUX={os.environ.get('XRC_NOMUX', '')} "
+        f"TCHECK_HOP_NOL={os.environ.get('TCHECK_HOP_NOL', '')} TCHECK_NO_DRVHOP={os.environ.get('TCHECK_NO_DRVHOP', '')}\n")
 o.write("class\tn\twithin15(all 4 corners)\tmean diff fmin/fmax/smin/smax (tc-xrc)\tmax |diff|\n")
 for cls, D in sorted(stats.items(), key=lambda x: -len(x[1])):
     o.write(f"{cls}\t{len(D)}\t{sum(all(abs(x) <= 15 for x in d) for d in D)}\t"

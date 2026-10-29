@@ -244,7 +244,42 @@ theorem sound_steerD (hy : Good a b y) (hR : RankOK T) (hnf : 0 < T.nf) {j t f :
       cases bb
       · exact ⟨sw.gf, sw.df, hdf, by rw [Hh_pr hgf, hpf, idm, List.map_id]; rfl, rfl⟩
       · exact ⟨sw.gt, sw.dt, hdt, by rw [Hh_pr hgt, hpt, idm, List.map_id]; rfl, rfl⟩
-    · obtain ⟨hlt, hlf, hnt, hnf', hgt', hgf', hdt, hdf⟩ := hfold
+    · rcases hfold with ⟨hlt, hlf, hnt, hnf', hgt', hgf', hdt, hdf⟩ |
+        ⟨rfl, rfl, hlt, hnt, hgt', hdt, hdf, hcf⟩
+      rotate_left
+      · -- one-sided fold (C-8y2): the false output is the steered constant, fixed by `fd`
+        cases bb
+        · refine ⟨sw.gf, sw.df, hdf, ?_, rfl⟩
+          have hD : ∀ v ∈ y.cn sw.gd, fd.eval [v] = v := by
+            rcases hjd' : sw.jd with p d | l1 p g1 d e1 | l1 g1 e1 <;> rw [hjd'] at hcf hjd
+            · exact absurd hcf id
+            · exact absurd hcf id
+            · obtain ⟨hr1, hvf, hne, hge⟩ := hjd
+              obtain ⟨n1, -, hpr⟩ := hy.cp l1 [g1] sw.gd e1 hr1
+              have hcp : y.cn sw.gd = y.pr sw.gd := by rw [← Hh_cn hy hne.1 hne.2, Hh_pr hge]
+              intro v hv
+              rw [hcp, hpr] at hv
+              obtain ⟨jj, -, rfl⟩ := List.mem_map.mp hv
+              rw [evf_eval e1 _ hvf]
+              exact hcf
+          rw [Hh_pr hgf, hpf]
+          have hsub : ∀ v ∈ selL false (y.cn sw.gc) (y.cn sw.gd), v ∈ y.cn sw.gd := by
+            intro v hv
+            unfold selL at hv
+            obtain ⟨pp, hpp, hpv⟩ := List.mem_filterMap.mp hv
+            split at hpv
+            · cases hpv; exact (List.of_mem_zip hpp).2
+            · cases hpv
+          show selL false (y.cn sw.gc) (y.cn sw.gd) =
+            (selL false (y.cn sw.gc) (y.cn sw.gd)).map (fun v => fd.eval [v])
+          conv => lhs; rw [← List.map_id (selL false (y.cn sw.gc) (y.cn sw.gd))]
+          exact List.map_congr_left (fun v hv => (hD v (hsub v hv)).symm)
+        · refine ⟨gt', sw.dt, hdt, ?_, rfl⟩
+          obtain ⟨n2, hn2, hp2⟩ := hy.cp lt [sw.gt] gt' fd hlt
+          have e2 : n2 = (y.cn sw.gt).length := (hn2 sw.gt (by simp)).symm
+          rw [Hh_pr hgt', hp2, e2]
+          simp only [List.map_cons, List.map_nil]
+          rw [map_range_getD (fun v => fd.eval [v]), ← Hh_cn hy hnt.1 hnt.2, Hh_pr hgt, hpt]; rfl
       cases bb
       · refine ⟨gf', sw.df, hdf, ?_, rfl⟩
         obtain ⟨n2, hn2, hp2⟩ := hy.cp lf [sw.gf] gf' fd hlf

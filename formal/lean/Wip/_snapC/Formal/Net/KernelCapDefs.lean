@@ -118,12 +118,27 @@ def JOK (T : Tab) (ins : List Nat) (gm : Nat) : J → Prop
 instance (T : Tab) (ins : List Nat) (gm : Nat) (j : J) : Decidable (JOK T ins gm j) := by
   cases j <;> unfold JOK NoEnd <;> infer_instance
 
+/-- The steered data is a constant that the data function `fd` fixes (C-8y2: xorshift's
+one-sided fold, where only the true output carries the reshape). -/
+def ConstFix (j : J) (fd : E) : Prop :=
+  match j with
+  | .const _ _ e1 => fd.eval [e1.eval []] = e1.eval []
+  | _ => False
+
+instance (j : J) (fd : E) : Decidable (ConstFix j fd) := by
+  cases j <;> unfold ConstFix <;> infer_instance
+
+/-- The zero-delay reshape (extui) folded into a data steer: on both outputs (C-8m, gcd/ipow),
+or (C-8y2) on the true output only, `lf = lt` and `gf' = gf` marking it, when the steered data
+is a constant fixed by the reshape (so the untouched false output carries the same values). -/
 def FoldOK (T : Tab) (t f : Nat) (fd : E) (sw : SW) : Option (Nat × Nat × Nat × Nat) → Prop
   | none => fd = .var 0 ∧ T.d t = .hist sw.gt sw.dt ∧ T.d f = .hist sw.gf sw.df
-  | some (lt, lf, gt', gf') => rules[lt]? = some (.comp [sw.gt] gt' fd) ∧
+  | some (lt, lf, gt', gf') => (rules[lt]? = some (.comp [sw.gt] gt' fd) ∧
       rules[lf]? = some (.comp [sw.gf] gf' fd) ∧
       NoEnd sw.gt ∧ NoEnd sw.gf ∧ nIn ≤ gt' ∧ nIn ≤ gf' ∧ T.d t = .hist gt' sw.dt ∧
-      T.d f = .hist gf' sw.df
+      T.d f = .hist gf' sw.df) ∨
+    (lf = lt ∧ gf' = sw.gf ∧ rules[lt]? = some (.comp [sw.gt] gt' fd) ∧ NoEnd sw.gt ∧
+      nIn ≤ gt' ∧ T.d t = .hist gt' sw.dt ∧ T.d f = .hist sw.gf sw.df ∧ ConstFix sw.jd fd)
 
 instance (T : Tab) (t f : Nat) (fd : E) (sw : SW) (o : Option (Nat × Nat × Nat × Nat)) :
     Decidable (FoldOK T t f fd sw o) := by

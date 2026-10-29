@@ -584,6 +584,14 @@ def rule_K(c):
                 pairs = [(r[p], sp, 1) for sp in sel_pins[ji]]
                 m2 = dict(meta, C=C, join=ji, cand=[q.rsplit("/", 1)[1] for q in cand],
                           sel=[q.rsplit("/", 1)[1] for q in sel_pins[ji]])
+                # C-10l2 (rulek copy): the join's per-pin LUT arcs, which B's exact form charges
+                # (pc = ... + arc(I1->O6) at hi, ps = ... + arc(I2->O6) at lo); evidence only
+                Gk = _graph(c)
+                jo_ = f"{ji}/O6"
+                def _arc(pin, k):
+                    return {v: next((iv[v][k] for d_, iv in Gk.succ.get(pin, ()) if d_ == jo_), None)
+                            for v in c["VARIANTS"]}
+                m2["pinarc"] = {"ctl_hi": _arc(p, 1), "s_lo": {sp.rsplit("/", 1)[1]: _arc(sp, 0) for sp in sel_pins[ji]}}
                 emit_credited(c, I, L, C, pairs, lambda v: (base, maxn, None), m2)
                 n_ok += 1
                 # C-10l2 diagnosis only (K10L_ABLATE=1; never in run10l.sh): the same row
@@ -596,7 +604,8 @@ def rule_K(c):
                            "Kold": ({(C, 1): maxn[(C, 1)]}, dict(base, blocked0=set()))}
                     for tag, (mx, bs) in abl.items():
                         emit_credited(c, _relabel(I, tag), L, C, pairs,
-                                      lambda v, mx=mx, bs=bs: (bs, mx, None), dict(m2, rule=tag))
+                                      lambda v, mx=mx, bs=bs: (bs, mx, None),
+                                      dict(m2, rule=tag, x={}, tried={}, pick={}))   # C-10l2 (rulek copy): own meta per tag
         if not n_ok:
             meta["skip"] = "ctl route not walkable"
             c["meta"].append(meta)

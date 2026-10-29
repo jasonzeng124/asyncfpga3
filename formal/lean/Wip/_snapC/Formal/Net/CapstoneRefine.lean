@@ -239,6 +239,18 @@ theorem sampled_eq_zd {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → N
   exact settled_of_quiet hwf (runs k) (fun s hs => by
     have := hsep k _ hR _ hd s hs; omega)
 
+/-- **Latch capture window** (H_LATCH_WINDOW): a capture latch that closes at `tc` with setup
+`su` and hold `hd` margins, its whole window `[tc - su, tc + hd]` after the offer and inside
+the transaction, sees the zero-delay value, constant, over the whole window. -/
+theorem capture_window {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    {k r tc su hd : Nat} (ho : OffAt P k r) (hopen : r < tc - su)
+    (hbusy : ∀ s, r < s → s ≤ tc + hd → inTx P s = true) :
+    ∀ s, tc - su ≤ s → s ≤ tc + hd → P.dat s = zdBus runs data k :=
+  fun s h1 h2 => sampled_eq_zd hwf runs X hsep ho (by omega) (fun u a b => hbusy u a (by omega))
+
 /-! ## The observed channel is bundled (Ops `Held`) -/
 
 /-- Between a launch and the next offer the channel stays idle (receiver rule). -/
@@ -325,7 +337,8 @@ theorem zd_token {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat �
   apply sampled_eq_zd hwf runs X hsep ho (by omega)
   intro s h1 h2
   rw [show s = r + 1 by omega]
-  have : P.req (r + 1) = true := by simp [riseB] at ho; exact ho.1.2
+  have : P.req (r + 1) = true := by
+    have h := ho.1; simp only [riseB, Bool.and_eq_true, Bool.not_eq_true'] at h; exact h.2
   simp [inTx, this]
 
 /-- **The value a latch captures at the close (`ack↓`, `TokAt`) is the zero-delay value**, for a

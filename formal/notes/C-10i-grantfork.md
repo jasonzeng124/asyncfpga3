@@ -1,5 +1,25 @@
 # C-10i: is the arbiter grant-fork race live on shipped routes? (H_GRANT_FORK)
 
+> **Corner check (2026-10-29, probe C-12d; `C-12d-corner.md`).** This probe did NOT use the
+> "rise 56 / fall 124" corner mix: `extract.py` prices every element as one per-pin delay
+> per prjxray column (no rise/fall split), and the verdicts are per consistent corner
+> (FMIN, FMAX, SMIN, SMAX points; `fast`/`slow` = every element inside ONE corner's band).
+> `GrantFork.lean` / `GrantForkInst.lean` need no restating. Two things are corrected or added:
+> - The comparison with C-12c's "wq_g < 56 ps" (inertial) used a corner-mixed number. At one
+>   corner the inertial bound on the shared-copy cell is wq_g < min{lo(O5) if hi(O5) > lo(O6);
+>   lo(O6) if hi(O6) > lo(O5)}: 42 ps at FAST, 100 at SLOW, 56 at FAST_MAX points, 150 at
+>   SLOW_MAX (C-12d, TChecker, fitted to every row). The structural point of the comparison
+>   (on real routes the inertial window is about the transport window) is unchanged.
+> - **Corner model (A's shared corner c + scatter kappa), from the committed data**
+>   (`formal/tools/grantfork/kappa.py`, exact rationals, arithmetic not Lean): transport
+>   H_GRANT_FORK passes on 23 / 7 / 4 of 80 instance-clients at kappa = 0 / 1/11 / 0.1988 in
+>   the `lit` reading (F = FMIN, S = SMAX), and 7 / 4 / 1 in the `cons` reading. The race is
+>   open on at least 57 of 80 at kappa = 0, so the verdict "live on shipped routes" stands and
+>   gets stronger with scatter. Per-instance kappa* are in C-12d-corner.md.
+> - The ackcheck "mixed" row below (SMAX arbiter legs vs 0.772 x SDF server, -198 ps) was
+>   already flagged here as a corner-mix artefact; the consistent pricing (+342 ps minimum) is
+>   the one to use.
+
 Shard C, probe 10i, 2026-10-27. Files (mine): `formal/tools/grantfork/{extract,ackcheck,summarize}.py`,
 `check.sh` (outputs in `formal/tools/grantfork/build/`), `formal/lean/Formal/Timing/GrantFork.lean`
 (theory and checkers), `formal/lean/Formal/Timing/GrantForkInst.lean` (generated: 560 boxes,

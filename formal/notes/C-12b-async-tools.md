@@ -1,5 +1,29 @@
 # C-12b: async-circuit and timed-automata tools (Workcraft, UPPAAL, ...)
 
+> **Correction (2026-10-29, probe C-12d; details and logs in `C-12d-corner.md`).**
+> The arbiter arcs below ("O6 rise 56 / fall 124, O5 rise 52 / fall 28 ps") mix corners:
+> 56 and 124 are prjxray's FAST_MAX and SLOW_MAX of ONE arc (`makesdf.py:63`), prjxray has no
+> rise/fall split, and the O5 "fall 28 ps" has no prjxray source at all. Re-run at one
+> consistent corner (`formal/tools/async/onecorner.py`, every arc one interval for both
+> edges; cross-checked in dense time by `formal/tools/zone/onecorner.py`):
+> - **"server latency >= ~60 ps (56 ps) for HELD ack exclusion": ARTEFACT.** At FAST, SLOW,
+>   and every rise = fall point corner, amutex/ho/tx hold for every server latency >= 0
+>   (agrees with B's ArbCorners). The 56 ps came from the 28 ps R0 fall. Under the corner
+>   model with scatter kappa a new, small condition appears: ack exclusion at server latency
+>   s needs 2 s >= max(2 h6, h5 + h6) - 2 l5 - l6 (arc lo/hi of O5/O6 at the die's corner;
+>   fitted to every TChecker row, not proved); at s = 0 it holds iff kappa <= 0.069 (cons
+>   reading, c = 0) ... 0.215 (lit, c = 1).
+> - **"A0-rise fork breaks iff the ustate.I4 branch is >= 116 ps slower": the FORM stands, the
+>   number is a corner value.** It breaks iff wa >= O6lo(ua2) + c_lo + O6lo(q): 94 ps at FAST
+>   (band), 204 at SLOW, 116 at FAST_MAX points (the old number: both arcs in it were rise
+>   arcs = 56 = FAST_MAX, consistent by luck), 252 at SLOW_MAX.
+> - **UNHELD "16 ps" handover: ARTEFACT** (no overlap at zero routing at any corner).
+>   UNHELD "ho/tx iff srv >= 80 ps": artefact (in a corner band they fail at every
+>   latency; at rise = fall points iff srv >= 36 ps at FAST_MAX, 25 at FAST_MIN, always at
+>   SLOW_MAX). UNHELD is not shipped.
+> - C-element results: unaffected (symmetric intervals, never mixed corners).
+> - The "Lean targets" listed below are replaced by the corrected ones in C-12d-corner.md.
+
 Files (all mine): `formal/tools/async/tamodel.py`, `celem.py`, `arb.py`,
 `meta_dtmc.py`, and this note. No Lean in this probe.
 

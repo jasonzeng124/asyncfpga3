@@ -134,7 +134,8 @@ def sec_real():
     log('# C-12a (mixed): mutex CEX at routes 0/48/100; aperture 152 ps at 48 ps.')
     tick = 8
     D = dict(CORNERS)
-    for name in ('FAST', 'SLOW', 'cons c=0 k=1/11', 'cons c=1 k=1/11'):
+    names = os.environ.get('REAL_CORNERS', 'FAST,SLOW,cons c=0 k=1/11,cons c=1 k=1/11').split(',')
+    for name in names:
         cor = D[name]
         CUR = cor
         for route in (0, 48):
@@ -220,6 +221,22 @@ def sec_fork():
                 lo = mid + 1
         log('  => %s: smallest A0->ua2 extra delay with an early ack: %d units' % (name, best[0]))
         wv(best[1], best[2])
+
+
+def sec_fork2():
+    log('# SLOW one corner, deeper BMC (depth 90): sec_fork found no early ack up to 24 extra')
+    log('# units at depth 60, too shallow for SLOW (one transaction ~ 30 ticks).  Prediction by')
+    log('# the FAST trace: early ack iff 1 + k >= (route + q + route + g2 + route) + ua2 arc, i.e.')
+    log('# k >= 3*lut_lo + 2*route = 14 at SLOW (4,5), 8 at FAST (2,2).')
+    name, l6, l5 = ARB_UNITS[1]
+    for k in (14, 13):
+        ts, P = arb.arbiter(lut=l6, lut5=l5, route=1, a0fork=(0, 0, k), Ls=4)
+        t = time.time()
+        d, tr = tsmc.bmc(ts, P['tx'], 90)
+        log('  %-7s A0->ua2 extra %2d: tx %s [%d bits, %.1fs]' % (
+            name, k, 'CEX@%s' % d if d is not None else 'none to 90', ts.nbits(), time.time() - t))
+        if d is not None:
+            wv(ts, tr)
 
 
 if __name__ == '__main__':

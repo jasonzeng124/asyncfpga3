@@ -13,7 +13,7 @@ statements agree up to unfolding); the only real work is `opchk_conv` / `spok_co
 generic source case `which + 1 < nIn` vs gcd's literal `which = 0 ∨ which = 1`).
 
 `gcd_hw_circuit_safe_generic` is `kernel_circuit_safe` at this instance; its statement is
-`CapNet.Gcd.gcd_hw_circuit_safe3`'s, word for word (checked by `gcd_generic_eq_existing`).
+`CapNet.Gcd.gcd_hw_circuit_safe3`'s, word for word (checked by `gcd_existing_same_statement`).
 -/
 
 namespace Formal.Net.KCap.GcdInst
@@ -154,7 +154,7 @@ theorem gcd_hw_circuit_safe_generic (a b : Nat) (ha : a < 2 ^ 31) (hb : b < 2 ^ 
   kernel_circuit_safe a b ⟨ha, hb⟩ ch H_CELLS H_BUNDLE H_START_ONCE
 
 /-- The generic instance and the existing gcd_hw theorem state the same thing. -/
-theorem gcd_generic_eq_existing :
+theorem gcd_existing_same_statement :
     (∀ (a b : Nat) (ha : a < 2 ^ 31) (hb : b < 2 ^ 31) (ch : Fin CapNet.Gcd.NC → Chan)
       (H_CELLS : ∀ o : Fin CapNet.Gcd.NO, Cell ch (CapNet.srcV a b) (CapNet.Gcd.opAt o))
       (H_BUNDLE : ∀ c, Held (ch c))

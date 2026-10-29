@@ -6,7 +6,7 @@ import Formal.Net.CapstoneLiveWitStepD
 import Formal.Net.CapstoneLiveWitStepE
 import Formal.Net.CapstoneLiveWitStepF
 import Formal.Net.CapstoneLiveWitNd
-import Formal.Net.CapstoneLiveNdWalk
+import Formal.Net.CapstoneLiveNd2
 
 /-!
 # Probe C-8z2 (5): `gcd_hw_live_final` is not vacuous
@@ -90,5 +90,32 @@ theorem gcd_hw_live_witness_consistent :
   refine ⟨gcd_hw_live_final 12 18 1 (by decide) (by decide) chL (itrW cdW) l_cells l_held l_start_once
     l_bnd l_start_env l_arb l_nd, l_out0.1, ?_⟩
   rw [l_out0.2]; decide
+
+theorem lstart_ak : (cdW start).ak = [98, 196] := by decide +kernel
+
+/-- H_START_REL 1 (the repair's release bound) holds for the run. -/
+theorem l_start_rel : Live.Nd2.StartRel 1 (chL start) :=
+  start_rel lstart_rq lstart_ak (by decide) (by decide) (by decide)
+
+/-- **Joint non-vacuity of the repaired `gcd_hw_live_final2`**: the same run meets all eight of
+its hypotheses (H_NO_DEADLOCK'' from H_NO_DEADLOCK', `nd2_of_nd'`). -/
+theorem gcd_hw_live2_joint_witness :
+    ∃ (ch : Fin NC → Chan) (itr : Itr),
+      (∀ p : Fin NO, CellI ch (srcV 12 18) itr p (opAt p)) ∧
+      (∀ c, Held (ch c)) ∧
+      (∀ t, cnt (riseB (ch start).req) t ≤ 1) ∧
+      (∀ p, p ≠ prodOf start → ∀ g ∈ gatesK p (opAt p), BndG 1 (gsAt ch itr) g) ∧
+      StartEnv 1 (ch start) ∧ Live.Nd2.StartRel 1 (ch start) ∧
+      (∀ p x u z w, opAt p = .amerge x u z w → ArbUnc 1 (ch x) (ch u) (ch z) (itr p 0) (itr p 1)) ∧
+      Live.Nd2.NoDeadlock2 ch itr ∧
+      (∃ e, TokAt (ch out0) 0 e ∧ (ch out0).dat e = 6) :=
+  ⟨chL, itrW cdW, l_cells, l_held, l_start_once, l_bnd, l_start_env, l_start_rel, l_arb,
+    Live.Nd2.nd2_of_nd' l_nd, ⟨closeL, l_out0⟩⟩
+
+theorem gcd_hw_live2_witness_consistent :
+    ∃ y, Good 12 18 y ∧ ∃ e, e < (1168 * (8 * Lrun y + 23) + 1) * (1 + 1) ∧ TokAt (chL out0) 0 e ∧
+      (chL out0).dat e = Nat.gcd 12 18 :=
+  Live.Nd2.gcd_hw_live_final2 12 18 1 (by decide) (by decide) chL (itrW cdW) l_cells l_held l_start_once
+    l_bnd l_start_env l_start_rel l_arb (Live.Nd2.nd2_of_nd' l_nd)
 
 end Formal.Net.CapNet.LiveWit

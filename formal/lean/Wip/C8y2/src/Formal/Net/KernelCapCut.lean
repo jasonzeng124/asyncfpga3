@@ -522,7 +522,7 @@ theorem kernel_circuit_safe'' (a b : Nat) (ch : Fin NC → Chan)
     (∀ k e, TokAt (ch out0) k e → (ch out0).dat e = spec a b) ∧
     (∀ t, closedVals (ch out0) t = List.replicate (cnt (fallB (ch out0).ack) t) (spec a b)) := by
   obtain ⟨y, hy, hw⟩ := H_WALK
-  exact kernel_circuit_safe a b ch H_CELLS H_BUNDLE
+  exact kernel_circuit_safe_cm a b ch H_CELLS H_BUNDLE
     ⟨y, hy, kernel_forced a b ch y hy H_CELLS H_BUNDLE H_START_ONCE hw⟩
 
 /-- **No free contention at any arbiter stage**, without H_CUT. -/

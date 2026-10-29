@@ -20,6 +20,9 @@ A  (tighten.py rule A, `check` / `check_bundled`).  Per request site (`request_s
        entered through a "lag" node that is the hull of the upstream links'
        controller -> latch-output segments (tighten's upstream_data_lag, per variant).
        label `A <cell> bundled`.
+     C-10m: the packer's constant tie-off drivers ($PACKER_GND_DRV/$PACKER_VCC_DRV) are
+     removed from the start set (they never switch: false path).  tighten keeps them, so
+     a project rule-A row may differ from tcheck's for that reason alone (C-10n).
 E  (skew.py rule E).  Per select gate and per launch skew.py would pick (cand[:4] plus
    the (3) C nodes; ported verbatim), the LEVEL-UNROLLED DAG: node (k, pin) = pin
    reached after exactly k storage crossings, crossings by any non-feedback input

@@ -69,6 +69,7 @@ GUARD_LO, GUARD_HI = 0.772, 1.155
 VARIANTS = ["sdf", "sdfband", "fast", "slow", "fastG", "slowG"]
 INVERTED = [0]      # arcs whose prjxray min > max (hull taken; see intervals)
 NO_DRVHOP = bool(os.environ.get("TCHECK_NO_DRVHOP"))   # C-10m: before/after only
+HOP_NOL = bool(os.environ.get("TCHECK_HOP_NOL"))       # C-10m: xrc cross-check only
 
 
 def load_rules(cells_dir):
@@ -201,6 +202,10 @@ class Prjx:
                 for kind, a, b, *ns in re.findall(r"\((IOPATH|INTERCONNECT)\s+(\S+)\s+(\S+)\s+" + num, cell):
                     v = [float(x) * 1e3 for x in ns]
                     if ct == "ROUTING_BEL" and kind == "INTERCONNECT":
+                        if HOP_NOL and re.match(r"^[a-d](mux|5?ff)l$", b):
+                            # C-10m: cross-check only (TCHECK_HOP_NOL=1): the plain AMUX..DMUX
+                            # entry alone, as the auditor's xrc.py reads it; never a verdict
+                            continue
                         bb = b[:-1] if re.match(r"^[a-d](mux|5?ff)l$", b) else b
                         hull(self._hop, (st, a, bb), v)
                     elif ct.startswith("CARRY4") and kind == "IOPATH":

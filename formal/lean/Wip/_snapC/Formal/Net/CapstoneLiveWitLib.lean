@@ -565,6 +565,48 @@ theorem start_env {L : List Nat} (hL : (cd start).rq = 0 :: L) (hf : ∀ e ∈ L
     have h2 : cnt (riseB (wch cd start).req) 1 = 1 := by simp [cnt, riseB, hr0, hr1]
     omega
 
+/-! ## One-toggle requests, and an out0 that never closes -/
+
+/-- A request whose toggle list is `[r]` rises at most once. -/
+theorem once_of1 {L : List Nat} {r : Nat} (hL : L = [r]) :
+    ∀ t, Handshake.cnt (riseB (bv L)) t ≤ 1 := by
+  apply cnt_le_one (t1 := r)
+  intro e he
+  have hmv : bv L (e + 1) ≠ bv L e := by
+    simp only [riseB, Bool.and_eq_true, Bool.not_eq_true'] at he; rw [he.1, he.2]; decide
+  have hm := mem_of_ne hmv
+  subst hL
+  simpa using hm
+
+theorem bv_one {e u : Nat} (h : e < u) : bv [e] u = true := by
+  simp [bv, cntLt, h]
+
+theorem never_close (h : (cd out0).ak = []) : ∀ t, cnt (fallB (wch cd out0).ack) t = 0 := by
+  have hb : ∀ u, (wch cd out0).ack u = false := fun u => by
+    show bv (cd out0).ak u = false
+    rw [h]; rfl
+  intro t
+  induction t with
+  | zero => rfl
+  | succ t ih => simp [cnt, fallB, hb, ih]
+
+theorem bv_two {r f u : Nat} (h : r < f) : bv [r, f] u = (decide (r < u) && !decide (f < u)) := by
+  unfold bv cntLt cntLt cntLt
+  by_cases h1 : r < u <;> by_cases h2 : f < u <;> simp [h1, h2] <;> omega
+
+/-- The release half of `start`'s LUT, for a request toggled at `r` and `f` and an
+acknowledge toggled at `a` and `g`, with the request released right after the acknowledge. -/
+theorem start_rel {r f a g : Nat} (hr : (cd start).rq = [r, f]) (ha : (cd start).ak = [a, g])
+    (hrf : r < f) (hag : a < g) (hfa : f ≤ a + 1) :
+    ∀ t, Win 1 t (fun u => (wch cd start).req u = true ∧ (wch cd start).ack u = true) →
+      Ev 1 t (fun u => (wch cd start).req u = false) := by
+  intro t hw
+  have h1 := hw t (Nat.le_refl _) (by omega)
+  have h2 := hw (t + 1) (by omega) (Nat.le_refl _)
+  simp only [wch, CD.ch, hr, ha, bv_two hrf, bv_two hag, Bool.and_eq_true, Bool.not_eq_true',
+    decide_eq_true_eq, decide_eq_false_iff_not] at h1 h2
+  omega
+
 /-! ## H_CELLS with the internal traces explicit -/
 
 theorem cellI_of (sv : Nat → Nat) (p : Fin NO) (h : kChk cd sv (opAt p) = true) :

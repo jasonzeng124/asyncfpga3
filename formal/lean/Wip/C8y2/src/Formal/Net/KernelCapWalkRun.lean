@@ -128,10 +128,15 @@ theorem pres_lab : Pres (fun x => ((x.pr cidx).filter (fun v => v % 4 != 2)).len
           cases hs : x.s i with
           | nil => exact absurd hs hne
           | cons _ _ => simp
+        have hri : cidx ≠ cres := by
+          intro e
+          have h0 := List.all_eq_true.mp cmPair_chk _ (List.mem_of_getElem? r154)
+          simp [cmPairOK, e] at h0
+        have q12 := cq12; have q31 := cq31; have q32 := cq32
         rcases hl with (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩) | ⟨rfl, rfl⟩
-        · simp [popOf, ht] <;> omega
-        · simp [popOf, ht] <;> omega
-        · simp [popOf] <;> omega
+        · simp [popOf, ht, hri, q12, Ne.symm q12] <;> omega
+        · simp [popOf, ht, hri, q12, Ne.symm q12] <;> omega
+        · simp [popOf, hri, Ne.symm q31, Ne.symm q32] <;> omega
       | _ => simp at this
   · rw [out_none hr hf ho]
     have n13 : cq1 ∉ r.insL := by
