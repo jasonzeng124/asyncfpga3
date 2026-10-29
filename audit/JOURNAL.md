@@ -329,3 +329,11 @@ Clean lake build of formal 1fd99ef0: EXIT 0 (3570 jobs). Axiom audit of 1fd99ef0
 its Audit.lean, rc 0, and read FiniteNet.lean:611 myself): Bfin2 chain derivation OVERSTATED (per-link existential
 chain, witness is a relabelling); SelfAuditB9 CONFIRMED but withdrawal incomplete (same hole in Bnet chains and
 infinite-run forms; status table/docstrings not updated); ArbCounterRuns, ArbAMergeRun, Bj11 CONFIRMED.
+
+### progress 16:21
+P12a in. Main finding (I read CapstoneRefine.lean:191 and compiled F1_TxWin.lean myself, rc 0, standard axioms):
+TxWin.count quantifies over ALL k, so a channel with a TxWin is offered infinitely often; on any terminating gcd run
+the dag/cert certificates are impossible (only exempt = assumed Held) and phys5_cls/_gen hypotheses are false
+(out0 infinitely often from one start). phys4/5 "root certificates with tcheck rows" and "data fields from tcheck
+rows" OVERSTATED. H_FN 176/221 OVERSTATED (96 really checked); 10o "9 lines" miscount (11); O4b fix only frozen-run
+witnesses. phys2/phys4 Lean, ChainSettle iff, 8z4 CONFIRMED.
