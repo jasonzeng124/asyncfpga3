@@ -337,6 +337,7 @@ theorem outList_one : P.outList 1 t = [t 0 + P.infUp] := by
   have hs : P.Surv 1 t 0 := ⟨by omega, fun h => by have := h.1; omega, fun m hm => by omega⟩
   simp [outList, survIdx, hs, tent_zero']
 
+omit ht in
 /-- Two transitions: the pulse is cancelled (output `[]`) if `tent 1 ≤ tent 0`,
 otherwise the output is `[tent 0, tent 1]`. -/
 theorem outList_two :
@@ -455,12 +456,14 @@ def shiftPair (D : ℝ) (hD : 0 ≤ D) : InvolutionPair where
   up_causal := by
     have h0 : -P.infDown < (0 : ℝ) := by linarith [P.infDown_pos]
     rcases lt_or_eq_of_le hD with h | h
-    · have := P.up_strictMono 0 D h0 h; linarith [P.up_causal]
+    · have := P.up_strictMono 0 D h0 h
+      show 0 < D + P.up (0 + D); rw [zero_add]; linarith [P.up_causal]
     · rw [← h]; simp [P.up_causal]
   down_causal := by
     have h0 : -P.infUp < (0 : ℝ) := by linarith [P.infUp_pos]
     rcases lt_or_eq_of_le hD with h | h
-    · have := P.down_strictMono 0 D h0 h; linarith [P.down_causal]
+    · have := P.down_strictMono 0 D h0 h
+      show 0 < D + P.down (0 + D); rw [zero_add]; linarith [P.down_causal]
     · rw [← h]; simp [P.down_causal]
 
 variable {P}
@@ -516,7 +519,7 @@ theorem cnt_eq_countP (N : ℕ) (u : ℕ → ℝ) (s : ℝ) :
   | succ N ih =>
     rw [List.range_succ, List.countP_append, ← ih]
     unfold cnt
-    rw [Finset.range_succ, Finset.filter_insert]
+    rw [Finset.range_add_one, Finset.filter_insert]
     by_cases h : u N ≤ s
     · rw [if_pos h, Finset.card_insert_of_notMem (by simp)]
       simp [h]
@@ -606,13 +609,11 @@ theorem rat_memory : ratPair.outList 3 ratIn = [89 / 13] := by
   have e0 : ratPair.tent ratIn 0 = 2 := by
     show ratIn 0 + 2 = 2; norm_num [ratIn]
   have e1 : ratPair.tent ratIn 1 = 1 / 2 := by
-    rw [tent_succ', e0]
-    show ratIn 1 + ratDelay (ratIn 1 - 2) = 1 / 2
-    norm_num [ratIn, ratDelay]
+    show ratIn 1 + ratDelay (ratIn 1 - ratPair.tent ratIn 0) = 1 / 2
+    rw [e0]; norm_num [ratIn, ratDelay]
   have e2 : ratPair.tent ratIn 2 = 89 / 13 := by
-    rw [tent_succ', e1]
-    show ratIn 2 + ratDelay (ratIn 2 - 1 / 2) = 89 / 13
-    norm_num [ratIn, ratDelay]
+    show ratIn 2 + ratDelay (ratIn 2 - ratPair.tent ratIn 1) = 89 / 13
+    rw [e1]; norm_num [ratIn, ratDelay]
   have c0 : ratPair.CN 3 ratIn 0 := ⟨by omega, by rw [e0, e1]; norm_num⟩
   have s0 : ¬ ratPair.Surv 3 ratIn 0 := fun h => h.2.1 c0
   have s1 : ¬ ratPair.Surv 3 ratIn 1 := fun h => h.2.2 0 rfl c0
@@ -953,24 +954,25 @@ theorem rat_delayAt (n : ℕ) : ratPair.delayAt n = ratDelay := by
 
 /-- **(d) A runt is cancelled** (computed through the algorithm, not through the theorems). -/
 theorem rat_runt_cancelled : ratPair.channel [0, 1 / 2] = [] := by
-  simp only [InvolutionPair.channel, List.foldl, InvolutionPair.step, rat_delayAt]
-  show (if (0 : ℝ) + 2 < 1 / 2 + ratDelay (1 / 2 - (0 + 2)) then _ else _).reverse = []
-  rw [if_neg (by norm_num [ratDelay])]
-  rfl
+  have h : ¬ ((0 : ℝ) + 2 < 1 / 2 + ratDelay (1 / 2 - (0 + 2))) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 1 / 2 + ratDelay (1 / 2 - (0 + 2))
+    then [1 / 2 + ratDelay (1 / 2 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = []
+  rw [if_neg h]; rfl
 
 /-- A wider pulse passes, shrunk: `[0, 3/2] ↦ [2, 17/6]` (width 3/2 ↦ 5/6). -/
 theorem rat_pulse_shrunk : ratPair.channel [0, 3 / 2] = [2, 17 / 6] := by
-  simp only [InvolutionPair.channel, List.foldl, InvolutionPair.step, rat_delayAt]
-  show (if (0 : ℝ) + 2 < 3 / 2 + ratDelay (3 / 2 - (0 + 2)) then _ else _).reverse = _
-  rw [if_pos (by norm_num [ratDelay])]
+  have h : (0 : ℝ) + 2 < 3 / 2 + ratDelay (3 / 2 - (0 + 2)) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 3 / 2 + ratDelay (3 / 2 - (0 + 2))
+    then [3 / 2 + ratDelay (3 / 2 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = _
+  rw [if_pos h]
   norm_num [ratDelay]
 
 /-- At the threshold width `δ∞ - δmin = 1` the pulse is still cancelled. -/
 theorem rat_threshold_cancelled : ratPair.channel [0, 1] = [] := by
-  simp only [InvolutionPair.channel, List.foldl, InvolutionPair.step, rat_delayAt]
-  show (if (0 : ℝ) + 2 < 1 + ratDelay (1 - (0 + 2)) then _ else _).reverse = []
-  rw [if_neg (by norm_num [ratDelay])]
-  rfl
+  have h : ¬ ((0 : ℝ) + 2 < 1 + ratDelay (1 - (0 + 2))) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 1 + ratDelay (1 - (0 + 2))
+    then [1 + ratDelay (1 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = []
+  rw [if_neg h]; rfl
 
 /-- The same three results from the general theorem `channel_pulse` (consistency of the
 algorithm with the threshold `δ∞↑ - δmin`). -/

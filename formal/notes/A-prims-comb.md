@@ -2,8 +2,10 @@
 
 Probe PrimsComb, shard A, session 2026-10-29. North-star goal 1.
 
-STATUS: in progress. Census done; Xray/XrayData/Muxf compile (check.sh pending for Carry,
-Lut62, Hops, GenCheck).
+STATUS: DONE (2026-10-29). All seven files pass
+`formal/check.sh Formal/Core/Prims/Xray.lean Formal/Core/Prims/XrayData.lean Formal/Core/Prims/Muxf.lean Formal/Core/Prims/Carry.lean Formal/Core/Prims/Lut62.lean Formal/Core/Prims/Hops.lean Formal/Net/CoreLut.lean Formal/Gen/Netlist.lean Formal/Core/Prims/GenCheck.lean`
+-> `[audit] 1331 declarations checked` / `[check] OK` (CoreLut and Gen/Netlist are shard C's,
+listed only so GenCheck's imports have oleans; not edited).
 
 ## 1. Census: which primitives the routed designs use
 
@@ -104,3 +106,25 @@ CARRY4 all 8 outputs = `kout` with c0 = CI or CYINIT (`carry4_eq`). **One mismat
 on decoded bitstreams: C's c0 = CI OR CYINIT vs the silicon's PRECYINIT mux; equal for every
 configuration under C-11f's tie (unused one = 0) (`carry4_c0`), different if both driven
 (`carry4_c0_differs`).
+
+## 5. Negative controls / checks that can fail
+- `xray2lean.py --check` passes on the real SDFs and reports DRIFT after one SDF number is
+  mutated (SLICEL F7AMUX S0 fast min 0.085 -> 0.065; run 2026-10-29). That mutation makes
+  S0.lo (65) < I0.hi (67), which would falsify `sel_slowest`; the Lean side of that control
+  was NOT run (would need a rebuild against the mutated data).
+- `support_matches_xray` would fail if the chain model gained or lost a dependency (e.g.
+  O0 reading DI0), since it is an iff checked against prjxray's arc list.
+- `two_pin_hazard`, `aoMux_hazard`, `carry4_c0_differs` are proved negative results.
+
+## 6. For the lead
+- Add the seven modules to `Formal.lean` (Xray, XrayData, Muxf, Carry, Lut62, Hops, GenCheck).
+  GenCheck imports shard C's `Formal.Gen.Netlist` (Core -> Gen import; no cycle: Gen imports
+  only Net.CoreLut -> Core.Lut). If an upward import from Core is unwanted, move GenCheck to
+  Formal/Gen/ (C's dir) or Formal/Core/Prims stays leaf.
+- The generator lives in `Wip/PrimsComb/xray2lean.py` (my allowed dir); move it to
+  formal/tools-A if you want it beside the other tools, and pin the prjxray-db commit
+  (compare the master SDFs above with the toolchain/research copy 0a0added).
+- `abbrev Time := Int` broke `omega` in Lean 4.35 (it does not see through the abbrev); the
+  Muxf draft used it. Muxf/Carry now use `Int` directly.
+- Suggested next probe: per-rank LUT tree timing for LUT6_2 (O5 vs O6 skew of a shared read
+  from `lut5Arc`/`lut6Arc`), and putting `Hops` site arcs into the xevents band builder (E8Mux).
