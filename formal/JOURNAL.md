@@ -420,3 +420,15 @@ K3 (xevents8 on ipow and xorshift; HOWTO), E8Hyp (bridges for design_verdict8's 
 B/C; joint witness), Fid3 (per-primitive fidelity table vs research 6524fa3). Not relaunched:
 LutList2 (Prelim deletion needs B and C in one commit; patches stay in Wip/LutList2).
 tools-A/snap.sh: lock refresh + WIP snapshot every 40 min (A files only).
+### progress 07:43
+Fid3 done (no Lean; iverilog/Float experiments on research 6524fa3, notes/A-fid3.md, rerun:
+tools-A/glsdiff3/run-1029/run.sh): CARRY4 and latch early edge FIXED under GLS_MODEL=fid
+(78de9c2; multi-pin CARRY4 60/60, default model 2/60); flop still reads x on SR/CE as 0 in both
+models (research's new tb_f3_kleene_ff now requires it), latch X still pessimistic (harmless:
+no design uses LDCE/LDPE); FID_RESOLVE still decides at exactly TLOOP - WIN/2; a Float
+transcription of the involution OR loop puts the critical width at 0.50-0.58 TLOOP and shows a
+pulse train while resolving (not a theorem). Tested patches for research in run-1029/patch/.
+FEASIBILITY fidelity table replaced (6524fa3), FOR-RESEARCH §6 FIXED-for-fid, §7/§8 updated.
+**For shard B:** does bd_arbiter's A0 hold tolerate the involution pulse train on q
+(A-fid3 §3)? Next probe launched: InvLoop (the symmetric fixed point s* and unbounded laps
+near it, in Lean).
