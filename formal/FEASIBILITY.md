@@ -57,8 +57,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
        hazard-free extension (optimistic)".
      - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
      - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
-   - **Probe done, waiting for the lead's check.sh (NOT claimed yet):**
-     - InvLoop2: the signal-level bridge to B's `loop_orb`.
+     - the arbiter loop at signal level (`Core/Delay/InvolutionLoop{Bridge,Signal,Rate}`, InvLoop2, 994 decls): for every solution q latches iff s > s*, loses iff s < s*, oscillates forever iff s = s*; laps to resolution between two logarithmic bounds under channel slope bounds;
    - **Open:**
      - RAMB18E1 is not modelled (bd_mem's BRAM is opaque in Gen; probe PrimsRam launched);
      - which channel the silicon LUT is (transport, inertial or involution) is a hypothesis, with no
@@ -285,7 +284,7 @@ independently), ℝ for analog loops and for the fidelity bridge from prjxray.
   are runts near s* that take more than N transitions / resolve later than the bound
   (unbounded resolution time, the digital form of metastability); for a symmetric channel
   s* > δ∞/2 strictly. So handover exclusion cannot be unconditional in this model. Not
-  covered: every signal-level solution (InvLoop2's bridge to B's `loop_orb`, done but not
+  covered: every signal-level solution (InvLoop2's bridge to B's `loop_orb`, claimed 2026-10-29; formerly done but not
   yet claimed), rate law, multi-cell loops.
 - **Corner correlation**: the independent band [fast-min, slow-max] is 3–4×
   wide (A-fidelity), so no matched-delay (bundling) condition is provable from

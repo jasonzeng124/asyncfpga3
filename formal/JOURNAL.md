@@ -555,3 +555,16 @@ value after filtering; InertialCex) -- so a clean xaudit run does not imply a cl
 (Verilog-default) GLS; correction and an inertial xaudit option are probe XInert. Wip/XAudit.lean
 chain_phases has an off-by-one (by inspection; superseded by SoundChain). Not covered: involution
 channels, per-pin skew inside a LUT, mid-cell input changes, what D is.
+### progress 08:50
+InvLoop2 claimed: Formal/Core/Delay/InvolutionLoop{Bridge,Signal,Rate}.lean (check.sh with B's
+CElemInvolution/ArbInvolution as deps: 994 decls, [check] OK; Mathlib). Bridge: A's orbit = B's orb,
+B's Osc <-> all widths positive, any eternal gap = s*. Signal level (arb_trichotomy), under B's ALoop
+hypotheses, 0 < s < dinf_up and the stationary train: for EVERY solution of the arbiter loop q is
+eventually 1 iff s > s*, eventually 0 iff s < s*, oscillates after every time iff s = s*; arb_threshold
+builds the train itself and shows a solution exists for every gap; B's arb_eternal gap = dinf_up - l*.
+Rate law (slope bounds kappa <= delta' <= K on the channel): first-cancellation index m between
+log(g/|s-s*|)/log(1+K) - 1 and log(max dinf/|s-s*|)/log(1+kappa) (power form in Lean); B's QuantHyp
+holds at A's s* (quantHyp_of_stat), and laps_upper is new (B has no upper bound). Not proved: that a
+real LUT+route satisfies the slope bounds (kappa = 0 gives no upper bound), noise, multi-cell loops,
+InvTrace's channel as the loop semantics (B's loop_orb used instead; reason in notes). A-fid3 §3
+corrected (skew direction; proved forms cited).
