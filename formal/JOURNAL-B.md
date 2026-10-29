@@ -1264,3 +1264,20 @@ tokens (2t+1 tight; N=4 with two tokens satisfies no hypothesis). This is the
 project's "a ring needs three storage stages" rule proved on the real INITs under
 bounded delays. Open: run existence for every 0 < D < N (shown on 2 witnesses),
 the per-pin box-model ring (H_REARM), necessity of the timing rows, X power-up.
+
+### progress 10:26
+In: Barb3 ArbAMerge (core; checked here, axioms standard; notes/B-arb-amerge.md).
+The held bd_arbiter's one-handover analysis on windows with the releaser's
+re-request time FREE (H_SLOW_REREQ gone): exclusion on [L, Hz) for every server
+under three exact races per direction (Q at ustate QB+wfb <= u+wr1s; R at R0;
+G at the grant, two views; mirrors) (e_exclusion, f_exclusion). With z_req = R0
+through a dz <= smin line, C's H_ARB1, H_ARB2, zr, H_AMERGE_RTZ, xa, ya hold in
+OpsCM.AMerge's exact shapes at every 1 ps tick of each window under named run-form
+rows (e_fields, f_fields). Each race has a slack -1 counter lemma breaking one of C's
+fields; race G also a concrete from-reset counter-run (cexG_run; joint
+satisfiability of the other five counter lemmas' hypotheses not shown). Race R is
+not tight for exclusion: it protects H_HOLDQ. Non-vacuity: one run from reset, two
+handovers, both re-requests before A0's re-rise, all delays 1 ps. C's AMerge still
+NOT instantiated: reset/idle/solo/same-winner epochs, window stitching, init fields
+and dat are open; idle-arbiter request races (metastability) need a separation
+hypothesis that is not modelled.
