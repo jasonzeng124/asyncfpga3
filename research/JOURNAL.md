@@ -1491,3 +1491,12 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   the board itself showed 25% route-to-route at 7 links). SOFT (across routes; the measured routes are gone), and
   0.38 was fitted to these same rings last session, so the band agreement is a consistency check, not a prediction.
   Logs: research/data/fid/acceptance_full_ring5_{min,max,band}.log.
+### progress 05:40 (S6 landed; gen.py SETUPHOLD bug fixed: the default flop check was silent on 284/326 flops)
+- 923305d (S6): under fid, SLICE_FFX input pins are transport, CK runts judged against an ASSUMED 70 ps min pulse
+  width (no source: prjxray-db has no WIDTH check; DS187 unreachable), SR inside the aperture is resolved
+  metastably; BUFGCTRL I0->O transport. run_f3 all ok (tb_f3_ff 8/8 fail default, pass fid; mutated control
+  differs 318/3000); default preprocessed text identical.
+- 666ea57: gen.py's SETUPHOLD regex dropped every line with a negative number, i.e. all D and CE checks (84 of
+  1218 parsed on BQ#3 d). Fixed; BQ#3 default seed, default GLS: 16/16, no violations, laps 51/42/60 (record).
+  Every gen.py-based gate is now stricter on flops; other kernels' gates not yet re-run.
+- DSP items at FAST_MIN: both MATCH too (good bits PASS, bug bits x).
