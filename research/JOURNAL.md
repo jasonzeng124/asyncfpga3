@@ -1585,3 +1585,17 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
 - The session's worker restarted (~12:05); the detached sweep drivers survived, S11's background jobs did not
   (asked to resume). BQ#2: 5 FAST_MIN 88/71/102, 6 SLOW_MAX 33/27/39, both PASS (10/16 runs, all PASS).
   BQ#3 seed 5 1x scatter PASS.
+
+## Session 2026-10-29 14:41 -- (in progress) fid resolver: explicit feedback (audit r16 follow_lost fixed); r18 double-ack open
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7,8,9 routing)
+- Lock 12:07 (2 h 34 min, dead); taken. 4 cores, 15 GB. toolchain.sh ok. Audit read (pass 11a, db195be4): two open
+  rows on research files: r16 (FID_RESOLVE "applied late, not lost" REFUTED) and r18 (arb_double_ack CONFIRMED in
+  the fid model; research's arbiter tests blind to it; bd_prims_sim.v has no BD_FID path although f3_model.md and
+  fid_core.vh say it does -- `git log -S BD_FID` on bd_prims_sim.v is empty, so that path was never committed).
+- 055edd7: FID_RESOLVE rewritten so the feedback pin is evaluated from the node's committed state (FB6/FB5 masks
+  from gen.py); no echo window, nothing ignored. A drive away from the held value during a resolution ends it.
+  tb_f3_follow (new, in run_f3.sh): old resolver loses the 200 ps follow pulse 40/40 (the audit's number), new one
+  latches 40/40 (600 and 200 ps) and resolves the 150 ps follow runt both ways (30/10); default model FAILs it.
+  All other F3 benches unchanged (tb_f3_meta A 125/75, B 119/81). Not yet re-run on a routed design.
+- setup-toolchain.sh now clones prjxray-db 0a0added (zynq7) for xray_delay.py (every session re-cloned it by hand;
+  this one lost a first BQ#2 route pass to the missing db).
