@@ -227,3 +227,7 @@ those sinks. 4/8 seeds now independently reproduced.
 r13 in (d4896fe): registered DSP model matches yosys cells_sim on 1270 configs; but the dsp_areg FAIL rests on an
 unverified decoder assumption (AREG=2 reading), and gen.py:173 defaults missing DSP register params to 0 (primitive
 default 1) -- I read it. BQ#1/#2 re-run (r12) still running.
+
+### progress 07:09
+r12 in: BQ#1 and BQ#2 rebuilt (SDF md5s match) and re-run under the fixed SETUPHOLD check: 16/16, 0 violations, laps
+identical, hold margins >= 425 ps; forced violation fails the run. All three board candidates' default-GLS passes stand.
