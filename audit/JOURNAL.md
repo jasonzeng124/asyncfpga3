@@ -183,3 +183,8 @@ heads (heartbeat).
 ### progress 03:10
 Both branches idle (formal 6863284, research 6edd071). Launched ev8 agent: reproduce Events8 gcd_hw slow/fast CLEAN and
 gb seed-d ENTRY failures (UNVERIFIED row) with own route + own computation.
+
+### progress 03:30
+ev8 in: all 4 gcd_hw R5 seeds rebuilt (SDF md5s = recorded). Events8 slow/fast CLEAN CONFIRMED (ENTRY); gb seed-d
+3 failures OVERSTATED: ua1 (-94) passes (+45) once prjxray a5lut->AMUX is charged (formal bands omit it on all 10,223
+O5 arcs); -42 ps Events5->8 shift = per-pin LUT delay; A-events8.md:74 misstates Events5 (all 3 were listed, verified).
