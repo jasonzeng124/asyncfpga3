@@ -32,4 +32,5 @@ sys.argv = [str(TCHECK / "extract.py")] + args + ["--no-hi", "--only", "none",
 extract.main()
 if rows:
     json.dump(rulesU.ROWS, open(rows, "w"), indent=1, default=str)
+    json.dump(rulesU.WIRE, open(rows.replace("rows_", "wire_"), "w"), indent=1, default=str)
 print(f"chainck: {len(rulesU.ROWS)} chains", file=sys.stderr)

@@ -22,9 +22,8 @@ bd_link `uack` FASTRISE: OR stages):
    fall).
    T is the late side of rule Fd / Fc: src's next change >= the tail's earliest change
    (phase 0: no storage crossed; FASTFALL rows: no FASTRISE tap) + the shortest routed
-   path from the tail back to src (any arc; H_REUSE_CAUSAL).  Endpoints are affine in T
-   (starts fixed, ends + T), so more merges happen at a larger T: PASS at the lower bound
-   T is PASS for every larger T (argued here, not in Lean).  `T*` = least T that passes
+   path from the tail back to src (any arc; H_REUSE_CAUSAL).  PASS at the lower bound T
+   is PASS for every later return (ChainSettleChain.settled_mono_T).  `T*` = least T that passes
    (binary search), `margin_exact = T - T*`.
    `margin_stage` = min over side-tapped stages of the per-stage overlap (B's H_GFLUSH,
    C-10k Fd in this calculus): T + lo(src->tap pin->out) - (start(prev) + hi(prev->chain
@@ -276,12 +275,51 @@ def emit_all(c, which):
                 else:
                     lo_ = mid + 1
             ms = stage_margin(I, L, stages, S, v, Tv)
+            tb = exact_row(I, L, v, max(lo_ - 1, 1), tail_key)[1]
+            why = ("gap" if len(tb) > 1 else "empty" if not tb else
+                   "short(end<T+Lrip)" if tb[0][1] < max(lo_ - 1, 1) + Lr else "?")
             row["v"][v] = {"T": Tv, "Lrip": Lr, "pass": ok, "tail": tz, "Tstar": lo_,
-                           "margin_exact": Tv - lo_, "margin_stage": ms,
+                           "margin_exact": Tv - lo_, "margin_stage": ms, "binding": why,
                            "fallback": sum(fb for *_, fb in I.arcs)}
         ROWS.append(row)
+    wire_di(c)
     if "U" in which:
         rule_Fu(c)
+
+
+WIRE = {}
+
+
+def wire_di(c):
+    """H_WIRE_DI (O4): every route that copies one net to a reading pin lags >= 1 tick.
+    Checked over EVERY routed INTERCONNECT arc of the graph (a superset of the fork
+    req_out / join ack_out / mux ctl_ack / snk ack / DELAY=0 link nets O4 names): per
+    variant, the number of arcs whose lower bound is 0 ps, with examples."""
+    T = c["T"]
+    G = K._graph(c)
+    for v in c["VARIANTS"]:
+        n, zero, ex, mn = 0, 0, [], None
+        for s_, d_, iv in G.arcs:
+            if T.pin_split(s_)[0] == T.pin_split(d_)[0] and not T.is_output(s_):
+                continue                      # a cell arc, not a route
+            if T.is_const(s_):
+                continue                      # tie-off: never switches
+            n += 1
+            lo = iv[v][0]
+            mn = lo if mn is None else min(mn, lo)
+            if lo == 0:
+                zero += 1
+                import re as _re
+                si, sp_ = T.pin_split(s_); di, dp = T.pin_split(d_)
+                key = (_re.sub(r"[\[\]0-9]+", "#", si.split(".")[-1]) + "/" + sp_ + " -> " +
+                       _re.sub(r"[\[\]0-9]+", "#", di.split(".")[-1]) + "/" + _re.sub(r"\d+", "#", dp)
+                       + (" [fallback]" if K._W(c, s_, d_) is not None and c["ivl"](s_, d_, K._W(c, s_, d_))[1] else ""))
+                ex.append(key)
+        cnt = {}
+        for k in ex:
+            cnt[k] = cnt.get(k, 0) + 1
+        WIRE[v] = {"routes": n, "zero_lo": zero, "min_lo": mn,
+                   "kinds": sorted(cnt.items(), key=lambda x: -x[1])[:40]}
 
 
 def rule_Fu(c):

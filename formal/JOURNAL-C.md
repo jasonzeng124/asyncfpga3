@@ -102,7 +102,15 @@
   shortcut), not a race: with the fixed rule all 42 rows pass on 4 seeds in all 6 corner
   models (worst +979 ps with per-pin arcs). Rule K actually checks B's X3 hold half
   (bd_mux.bundled_s_hold), not X4. `RuleK.mux_joins_ruleK`/`ruleK_exact` tie the fork form to
-  the real join INITs; H_ROUND_TRIP not derived from the netlist. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
+  the real join INITs; H_ROUND_TRIP not derived from the netlist.
+  Chain settling (10o, O4's H_CHAIN_SETTLED): exact iff condition proved for AND/OR delay
+  chains under per-arc bounded delay (`ChainSettle.settled_iff`, converse `runt_of_gap`). On
+  16 routes (gcd_hw 4 seeds, collatz/xorshift/ipow 4 each): the 744 new bd_link uack rows pass
+  in all six corner models (worst +12 ps); 9 FASTFALL lines fail under the band only (worst
+  -589 ps, gcd s4 ucontrol_merge12); rule F passes all 9 (it is evaluated at the SDF point only)
+  and never checks the uack lines, so it does not cover the condition. C-10k's Fd rows miss a
+  LUT pin-delay term (2 rows Fd +26/+21 vs exact -5/-10). Chainck's interval code is untrusted
+  Python mirroring the Lean lemmas. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
   FASM): the audit row is right -- on gcd_hw seed 4 the rig's uenv1 C-element fails RT_FB by
   -16 ps in the per-element fast model (was +4); the kernel alone still has 0 failures in every
   one-corner model on all 4 seeds (worst fast +70). With every element at one common corner end
@@ -597,3 +605,7 @@ O4b committed after my own check.sh (7 files).
 ### progress 11:29
 8x3 committed after my own check.sh (6 files, 4447 decls). Launched 8x4 (data fields derived
 inside the capstone) and witgen (active run under H_GEN).
+
+### progress 11:30
+10o committed after my own check.sh (ChainSettle*, 197 decls); tool results committed, the
+74 MB regenerable obligation files ignored.
