@@ -278,7 +278,8 @@ theorem treeOK_spec {e : SelEnt} {ta tq : AT} {na : Fin N} {κa : Path} (h : tre
 replaced by `treeOK` (gate-tree identities of the ack and request wires) and the count facts
 stated for the tree leaves: H_SEL_O and H_REQ_CNT per request leaf, H_ACK_CNT for the ack leaf
 at its read `tau κa σ`. Proved: SelOK of the realisation and the link of every real LUT wire at
-every time. -/
+every time; the realisation's real copy warps are exposed (`G = tau full (· + 1)`, as
+`design_beh8_svG`) for `Events9SelJ`. -/
 theorem design_verdict9_selTP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7)
     {parts : List (List Nat)} {log : List Ln} {J : Array Jd} (hJ : runLog net b parts log = some J)
     (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
@@ -304,6 +305,7 @@ theorem design_verdict9_selTP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.O
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
       (∀ j p s, bh.gc j p s = gcnt net sel j p (bh.cm j p s)) ∧
+      (∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1)) ∧
       (SelPart sel parts →
         (∀ j p s (i : Fin (net.nc j p)), (rn j).virt = true → net.pk j p = PK.filt →
           bh.M (bh.G j p i s) (net.src j p) % 2 = 1 →
@@ -337,7 +339,7 @@ theorem design_verdict9_selTP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.O
         bh.SelOK ∧ ∀ t j, (rn j).virt = false →
           x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) := by
   obtain ⟨bh, hc, hgc, hreal, hsv, hG⟩ := design_beh8_svG hsat h0 h1 hT hrst hr hOK harb sel
-  refine ⟨bh, hc, hgc, fun hp hvirt R O hheld hO hRq hAk hsetup hwin hsel rB rX rL rG => ?_⟩
+  refine ⟨bh, hc, hgc, hG, fun hp hvirt R O hheld hO hRq hAk hsetup hwin hsel rB rX rL rG => ?_⟩
   have hpre : ∀ t0, (∀ s, s < t0 → SelAt bh s) → Link bh t0 := fun t0 hs =>
     verdict9_upto bh hOK hp hJ back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg
       (fun j p s _ => hgc j p s) t0 (fun j p s _ => rB j p s) (fun m s _ => rX m s)
@@ -474,7 +476,7 @@ theorem design_verdict9_selT (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
         (∀ j p, net.pk j p = PK.guard → cg j p = false → GuardPin bh j p) →
         bh.SelOK ∧ ∀ t j, (rn j).virt = false →
           x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) := by
-  obtain ⟨bh, hc, hgc, H⟩ := design_verdict9_selTP hr hOK hJ back line xS xw xa hl gd cp cxm cl cg
+  obtain ⟨bh, hc, hgc, _, H⟩ := design_verdict9_selTP hr hOK hJ back line xS xw xa hl gd cp cxm cl cg
     hcp hcx hcl hcg m cut Dl ta tq na κa (fun j p sb hv hk hs => ⟨(hm j p sb hv hk hs).1, (hm j p sb hv hk hs).2.1⟩)
     (fun j p sb i hv hk hs => (hrow j p sb i hv hk hs).1) hsat h0 h1 hT hrst harb sel
   refine ⟨bh, hc, hgc, fun hp hvirt R O hheld hO hsetup hwin hsel rB rX rL rG => ?_⟩
