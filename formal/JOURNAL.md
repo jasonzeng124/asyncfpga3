@@ -432,3 +432,20 @@ FEASIBILITY fidelity table replaced (6524fa3), FOR-RESEARCH §6 FIXED-for-fid, �
 **For shard B:** does bd_arbiter's A0 hold tolerate the involution pulse train on q
 (A-fid3 §3)? Next probe launched: InvLoop (the symmetric fixed point s* and unbounded laps
 near it, in Lean).
+### progress 08:01
+GLSPass2 claimed: Formal/Core/Delay/{GLSFid,GLSPass2}.lean (check.sh, autoImplicit=false:
+249 decls, [check] OK; Lean core only). GLSFid transcribes research 6524fa3's fid LUT channel
+(fid_core.vh:122-227, prims.v:51-54,112-132): per-pin transport then the zero-time mux tree
+(= INIT lookup for every INIT), +1 ps sampler; cross-checked against iverilog on the unmodified
+source. GLSPass2: a fid run is one band behaviour; acyclic nets: past an STA horizon one run
+gives the final values for the whole band (nothing before it); acyclic monotone nets with
+rising inputs: the all-min and all-max runs bracket every band behaviour (existence of the two
+corner runs assumed, not proved). Counterexamples: XOR with two pins at different points of
+the band glitches for hi-lo while every consistent-corner run passes -- NOTE this is in the
+independent per-arc band; under the κ corner model the glitch is bounded by the local scatter
+only, not claimed here; AND with a falling input breaks bracket; a buffer with rise ≠ fall
+loses a w-ps pulse that every fixed-delay fid run passes. Not covered: resolver trace
+semantics (probe GLSResolve launched), CARRY4/FF/latch fid variants, feedback, real time.
+Finding: a "rejected" runt on a state node is still emitted as a full-swing pulse to fanout
+(fid_core.vh:30's comment is about the node's later value). For B: B-gls-vs-exact.md §3.1 is
+stale (CARRY4, flops, latches and BUFGCTRL have fid transport variants at 6524fa3).
