@@ -64,6 +64,8 @@ theorem widenHi_ge (u lo hi ρ : ℕ) : hi ≤ widenHi u lo hi ρ := Nat.le_max_
 
 theorem widenHi_lo (u lo hi ρ : ℕ) : lo ≤ widenHi u lo hi ρ + 1 := by
   have h : lo + (ρ + u - 1) / u - 1 ≤ widenHi u lo hi ρ := Nat.le_max_right _ _
+  generalize (ρ + u - 1) / u = c at h
+  generalize widenHi u lo hi ρ = w at h ⊢
   omega
 
 theorem widenHi_window {u : ℕ} (hu : 0 < u) (lo hi ρ : ℕ) :

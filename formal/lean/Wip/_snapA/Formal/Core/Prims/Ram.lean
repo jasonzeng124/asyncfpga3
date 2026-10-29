@@ -333,7 +333,9 @@ theorem wnext_sound {aw dw : Nat} (rdis : Bool) {we : K3} {a : Fin aw → K3} {d
     (hd : Consistent din bdin) (hm : MLe m (ofBMem bm)) :
     MLe (wnext rdis we a din m) (ofBMem (bwnext bwe bv bdin bm)) := by
   intro w j
-  have h := wnext_mono rdis hwe ha hd hm w j
+  have h : wnext rdis we a din m w j ⊑
+      wnext rdis (ofBool bwe) (ofBoolVec bv) (ofBoolVec bdin) (ofBMem bm) w j :=
+    wnext_mono rdis hwe ha hd hm w j
   refine K3.le_trans h ?_
   by_cases hw : w = bv
   · subst hw
