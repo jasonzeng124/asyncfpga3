@@ -508,3 +508,19 @@ each output in its window; ratPair examples incl. a cancelled runt shortening th
 width <= tau ln 2. Not covered: gates/feedback (InvLoop2), simultaneous transitions, the equality
 case at the threshold (paper text unreadable here; affects only the exact threshold), eta-noise,
 the real exp/log instance (Wip/InvTrace/ExpReal.lean, needs Mathlib Log oleans).
+### progress 08:38
+PrimsSeq claimed: Formal/Core/Prims/Seq{Next,Flop,Latch,Xray,Gls,Sync}.lean (check.sh: 845 decls,
+[check] OK, Lean core only; rerun by the lead). Census: gcd_hw's core has no flops; FDRE/FDSE only
+in the rig, bd_flink (not emitted by bdc) and arb_mtbf; FDCE/FDPE/LDCE/LDPE in no design; ipow's
+DSP48E1 combinational (AREG=0); RAMB18E1 in bd_mem (probe PrimsRam launched). FlopRel: each input
+read over its own setup/hold (recovery/removal) window, X if not constant there; Kleene next state
+(R beats CE); Q old until cqLo, merge inside the CK->Q band, new after cqHi; on a violation X up
+to cqHi+res then one definite unspecified value (res = named H_FF_RESOLVE; no MTBF). Proved:
+capture/hold/reset, X only in the window and contained after cqHi+res, a D change inside its window
+really gives X, power-up INIT, CLR priority, non-vacuity (sim_rel); latch transparency/hold/X
+containment; two-flop synchronizer output definite (sync_two_flop). GLS counterexample: research's
+SLICE_FFX has a violation-free run with Q=0 where every Kleene run has Q=X (completion CE=1 gives 1).
+Findings: prjxray-db ships no fast-corner setup/hold (makesdf writes SLOW only) -> named
+H_WINDOW_SLOW_ONLY; fast CK->Q min 112 ps vs slow-only hold 241 ps (fast_hold_mismatch); research
+GLS treats SR as synchronous only (no impact: no FDCE/FDPE used). Not covered: clock runts/min pulse
+width, resolution time (parameter), latch G/GE pins, X on a latch gate, CLR runts.
