@@ -364,3 +364,14 @@ both sides of a race (mixed corners: -769 ps, 2/18); hold-window ">= 399 ps" is 
 ### progress 17:05
 Axiom audit of 1fd99ef0: 487/722 modules, 0 bad, 0 no-result so far. Formal head unchanged (1fd99ef0); research
 b726f74b (progress only: new resolver reproduces BQ#2 seed 6 laps).
+
+### progress 19:47
+r22 in: BQ#2 seeds 6/7 full stack SLOW_MAX under the new resolver CONFIRMED from own builds and own gcd judge
+(33/27/39, 31/25/36; old resolver byte-identical) -- but the resolver never fires on these runs, so the identity
+tests nothing about it; negative control works and shows lap counts alone miss wrong results.
+Axiom audit of 1fd99ef0 was interrupted (process gone; container apparently restarted ~17:33): 487/722 modules,
+75477 constants, 0 bad, 0 no-result (audit/logs/axiom_par_1fd99ef0_partial.txt). The remaining 235 modules are
+UNVERIFIED for this commit (all earlier commits were fully clean).
+NOTE: list_triggers shows every scheduled task on the account (this audit routine, formal A/B/C, research, and my
+own check-in) was disabled at 17:33 UTC. I take that as the owner pausing the program: I am not re-arming check-ins
+or starting new long jobs. Lock released below. Session ends here with the branch pushed.
