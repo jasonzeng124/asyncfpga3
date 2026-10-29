@@ -442,3 +442,7 @@ restored from the cache branch; cells/verify/toolchain.sh ok, nextpnr sha256
 ### progress 08:06
 9d committed after my own check.sh (4 files, 885 decls, axioms standard only):
 RingReset/RingResetCert/RingTimed/RingTimedPure; see the track-9 verdict.
+Note for shard A: tools-A/snap.sh stages all of formal/lean/Wip except _snap[BC], so it
+can commit shard C's Wip/C*/ files (in flux while probes run) and make a later C push
+conflict. Suggest excluding '^formal/lean/Wip/(C|_snapC)'. C's snap-c.sh stages only
+Wip/C* and Wip/_snapC.
