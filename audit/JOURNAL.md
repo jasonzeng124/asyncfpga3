@@ -188,3 +188,7 @@ gb seed-d ENTRY failures (UNVERIFIED row) with own route + own computation.
 ev8 in: all 4 gcd_hw R5 seeds rebuilt (SDF md5s = recorded). Events8 slow/fast CLEAN CONFIRMED (ENTRY); gb seed-d
 3 failures OVERSTATED: ua1 (-94) passes (+45) once prjxray a5lut->AMUX is charged (formal bands omit it on all 10,223
 O5 arcs); -42 ps Events5->8 shift = per-pin LUT delay; A-events8.md:74 misstates Events5 (all 3 were listed, verified).
+
+### progress 03:50
+Branches idle. Launched r9: own full-stack BQ#3 seeds 4 and 5 at SLOW_MAX/FAST_MIN, ready to compare with research's
+8-seed table when posted.
