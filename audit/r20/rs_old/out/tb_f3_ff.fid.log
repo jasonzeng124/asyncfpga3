@@ -1,0 +1,25 @@
+  qa t=1300 1
+  qb t=1300 0
+  qb t=1500 1
+  qa t=1540 0
+  qb t=1800 0
+  qb t=2500 1
+  qb t=2700 0
+F1: 2 qa edges at 1300, 1540 (transport: 2, 1300 and 1540)
+  ok   F1 120 ps CK runt clocks; 240 ps Q pulse kept
+F2: 0 qa edges after a 30 ps CK runt (MPW model: 0)
+  ok   F2 CK runt below the minimum pulse width does not clock
+F4: 3 qb edges, 1300->0, 1500->1, 1800->0 (transport: 3, 1300->0, 1500->1, 1800->0)
+  ok   F4 40 ps SR pulse through a 100 ps arc resets; next edge 200 ps on sets
+F5: 2 qb edges, 2500->1, 2700->0 (transport: 2, 2500->1, 2700->0)
+  ok   F5 CE edge 20 ps after another: the dip holds, later edges both reach Q
+F7: q at 1500 = 1 (SR arc 200 > CK arc 1: the edge loads D = 1)
+  ok   F7 SR delayed by its own arc misses the edge
+G1: 2 BUFG O edges at 1200, 1320 (transport: 2, 1200 and 1320); flop Q 1 at 1500 (1500)
+  ok   G1 120 ps pulse through a 200 ps BUFG clocks the flop
+F3: 200 CK runts of 70 ps (band 50..90): got 1 97, got 0 103, X 0
+  ok   F3 runt at the minimum pulse width resolves either way, no X
+F6: 200 SR rises 10 ps before CK (window -40/+40): got 1 59, got 0 141, X 0
+  ok   F6 SR change in the aperture resolves either way, no X
+tb_f3_ff PASS
+/home/user/asyncfpga3/audit/r20/rs_old/gls/fid/f3/tb_f3_ff.v:149: $finish called at 2422000 (1ps)

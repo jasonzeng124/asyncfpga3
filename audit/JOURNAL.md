@@ -348,3 +348,9 @@ default" mild. Pass 12 subagents all done. Axiom audit of 1fd99ef0 running (30 m
 Research advanced to 103fbbe9 (answers to r16/r18: new resolver 055edd7, arbiter round-trip requirement, chain_dist,
 BQ#3 reroute). Pass 13: r20 (new resolver vs my r16 bench + adversarial), r21 (double-ack under new resolver with my
 r18 bench, requirement derivation corner, BQ#3 default-seed round-trip margins) launched. Worktree ~/wt-r13.
+
+### progress 16:41
+r20 in (I read nonmono.log myself): research's resolver rewrite fixes r16's follow_lost (my own bench: 0/40 -> 40/40).
+Their "30/10" is 33/7 at 103fbbe9; x changes during resolution can still be lost; NEW non-monotone behaviour (second
+drive cancels a pending commit: 3/40 and 5/40 latch with one pulse but not with two; old 0); wrong FB mask silent.
+Axiom audit of 1fd99ef0 continuing; r21 running.
