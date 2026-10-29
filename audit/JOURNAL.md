@@ -251,3 +251,10 @@ Axiom audit of 3e63dc1 running.
 ### progress 09:03
 3e63dc1 axiom audit: 436 modules, 68113 constants, 0 bad, 1 no result (withdrawn GLSPass). r15 (ring128 summary,
 BQ#2 full stack at 21cae6b) running.
+
+### progress 09:13
+Formal advanced to 84bc9e4 (+60 commits: GLSPass fixed, exact kappa thresholds, OUTMUX in Events8 bands, gcdnet
+generator, Core/Prims, Involution trace/loop, ResetCapstone, ZeroDelayNet, ContractBridge, GLSResolve on research fid).
+Clean build of 84bc9e4 in ~/wt-f10 (Mathlib packages moved from wt-f7, same manifest; wt-f7 removed). Agents P10a
+(responses), P10b (A prims/involution/XSound2), P10c (B/C reset, zero-delay, ring), r16 (GLSResolve/GLSFid on research)
+launched; r15 running.
