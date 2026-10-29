@@ -731,3 +731,16 @@ edits to Parse.lean, re-verify with --committed after the lake build):
 - E8ArbFix: Events9Arb.lean (core_of_settle: the real bd_arbiter is a behaviour of the corrected core under a
   settle bound H and per-reader B1/B2/C; ho3_fix non-vacuous; settle_not_old) and Events9ArbBeh.lean (HARB7' =
   HARB7 and FixShape, design_verdict9arb).
+### progress 11:14
+KapRes2 claimed (partial): Formal/Core/Delay/CornerCell.lean (Mathlib, 23 decls) and Formal/Core/XAudit/BandCheck.lean
+(32 decls) -- check.sh with Design/Parse: 1672 decls, [check] OK (Parse checked as on disk incl. XInert's edits).
+cell_band (A-kapres's cover lemma, now proved, without 0 <= ca / cb <= 1): every delay the corner model allows at any
+corner in [ca,cb] lies in cornerband2.py's integer band; cell_band_nat for CornerNat; cover_mem. readBands =
+parseBands behind jsonBandsOK: accepts exactly the checked files, then nothing dropped or narrowed; lo > hi rejected
+(control: parseBands reads [202,105] as [202,202] silently); on real data it rejects the committed seed-d fast file
+(20 inverted arcs) and accepts all 221 sweep files. Sweep (Events8Main, OLD arbiter core pinned with XA_ARB=old;
+E8Mux bands): discharged on all of c in [0,1] by a cell cover for every seed at kappa = 0 and seeds 3/4 at kappa <=
+0.06; seeds d/5 above 0 undetermined (cover unfinished; every point corner passes at 0.06). Point-corner failures:
+d guard ENTRY merge2/merge3.uarb1.ua2 at 0.10/0.12; 5 rig uenv1 at 0.10/0.12 (0.08 at c=1, -2 ps); 3 one grant line
+at 0.12, c=1; 4 none; none at kappa <= 0.06. All inherit Events8's hypotheses incl. the refuted HARB7. Todo: switch
+Events*Main to readBands (one line each).
