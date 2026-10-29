@@ -78,9 +78,9 @@ theorem mut_toggle : Formal.Net.CapNet.Gcd.ops.all
 
 /-! ## 8z: the 8t witness does NOT meet gcd_hw_live_final's H_BOUNDED_DELAY' -/
 
-theorem src_a_op : opAt (187 : Fin NO) = .src 0 0 0 := by decide
+theorem src_a_op : opAt (187 : Fin NO) = .src 0 0 0 := by rfl
 theorem src_a_ne : (187 : Fin NO) ≠ prodOf start := by decide
-theorem cdA0 : Formal.Net.CapNet.Wit.cdA 0 = ⟨[0, 41], [40, 138], 12, [], []⟩ := by decide +kernel
+theorem cdA0 : Formal.Net.CapNet.Wit.cdA 0 = ⟨[0, 41], [40, 138], 12, [], []⟩ := by rfl
 
 theorem a_quiet (t : Nat) (h : 139 ≤ t) :
     (Formal.Net.CapNet.Wit.chW 0).req t = false ∧ (Formal.Net.CapNet.Wit.chW 0).ack t = false := by
@@ -125,3 +125,7 @@ theorem step0_only_src : (List.range 465).all (fun c =>
       !(x.dt.map Prod.fst).contains 0 && x.ax.all (fun l => !l.contains 0)) = true := by decide +kernel
 
 end AuditP7
+#print axioms AuditP7.mut_src
+#print axioms AuditP7.mut_toggle
+#print axioms AuditP7.witness_not_env
+#print axioms AuditP7.step0_only_src

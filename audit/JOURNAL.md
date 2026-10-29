@@ -141,3 +141,11 @@ disk). audit/tools/run_p7k.sh waits for the build, then runs P7kAudit.lean + 7 m
 r7 in: BQ#3 full stack 16/16 at FAST_MIN/SLOW_MAX/band reproduced from a clean rebuild (sdf md5s match; I re-checked),
 oracle matches gcd.c 16/16, unpatched-bits negative control fails exactly 5-8,11-13; bd_prims_sim fix, xray_delay
 OUTMUX/FFMUX, seeds_fid INCOMPLETE logic CONFIRMED. No research refutation this pass.
+
+### progress 01:56
+Clean lake build of 6863284: EXIT 1. (a) Formal.Core.Delay.GLSPass (2a17ddf) does not compile: `d` unbound in
+skew_fval (autoImplicit=false) -> REFUTED as checked. Root cause: formal/check.sh per-file mode runs `lake env lean`,
+which ignores the lakefile's autoImplicit=false. (b) Formal.Net.MullerSI exit 137 = OOM (mine: too many concurrent
+lean jobs); rebuilding alone. RigContract now builds -> CONFIRMED. P7k Lean: audit file compiles, 43 axiom lists
+clean, 7/7 mutants fail (I diffed 3: real one-line semantic mutations). Killed the queued axiom audit (would have
+raced the rebuild).

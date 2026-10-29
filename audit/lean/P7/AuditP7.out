@@ -1,0 +1,70 @@
+Wit.gcd_hw_joint_witness : ∃ ch,
+  (∀ (o : Fin NO), Cell ch (srcV 12 18) (opAt o)) ∧
+    (∀ (c : Fin NC), Held (ch c)) ∧
+      (∀ (t : Nat), cnt (riseB (ch start).req) t ≤ 1) ∧
+        (∃ y, CapSafe.Good 12 18 y ∧ WalkOK (σY 12 18 y) (omOf 12 18 y)) ∧
+          ∃ k e, TokAt (ch out0) k e ∧ (ch out0).dat e = 6
+gcd_hw_circuit_safe'' : ∀ (a b : Nat) (ch : Fin NC → Chan),
+  (∀ (o : Fin NO), Cell ch (srcV a b) (opAt o)) →
+    (∀ (c : Fin NC), Held (ch c)) →
+      (∀ (t : Nat), cnt (riseB (ch start).req) t ≤ 1) →
+        (∃ y, CapSafe.Good a b y ∧ WalkOK (σY a b y) (omOf a b y)) →
+          (∀ (k e : Nat), TokAt (ch out0) k e → (ch out0).dat e = a.gcd b) ∧
+            ∀ (t : Nat), closedVals (ch out0) t = List.replicate (cnt (fallB (ch out0).ack) t) (a.gcd b)
+Live.Nd.gcd_hw_live_final : ∀ (a b H : Nat),
+  a < 2 ^ 31 →
+    b < 2 ^ 31 →
+      ∀ (ch : Fin NC → Chan) (itr : Live.Itr),
+        (∀ (p : Fin NO), Live.CellI ch (srcV a b) itr p (opAt p)) →
+          (∀ (c : Fin NC), Held (ch c)) →
+            (∀ (t : Nat), cnt (riseB (ch start).req) t ≤ 1) →
+              (∀ (p : Fin NO),
+                  p ≠ prodOf start → ∀ (g : Live.Gate), g ∈ Live.gatesK p (opAt p) → Live.BndG H (Live.gsAt ch itr) g) →
+                Live.Nd.StartEnv H (ch start) →
+                  (∀ (p : Fin NO) (x u z : Fin NC) (w : Nat),
+                      opAt p = K.amerge x u z w → Live.ArbUnc H (ch x) (ch u) (ch z) (itr p 0) (itr p 1)) →
+                    (∀ (t : Nat),
+                        cnt (fallB (ch out0).ack) t = 0 →
+                          ¬(Live.Nd.Quiet2 (Live.gsAt ch itr t) ∧
+                              (cnt (riseB (ch start).req) t = 0 →
+                                (ch start).ack t = false → (ch start).req t = true))) →
+                      ∃ y,
+                        CapSafe.Good a b y ∧
+                          ∃ e,
+                            e < (1168 * (8 * Live.Nd.Lrun y + 23) + 1) * (H + 1) ∧
+                              TokAt (ch out0) 0 e ∧ (ch out0).dat e = a.gcd b
+IpowCap.ipow_circuit_safe3 : ∀ (b e : Nat),
+  e < 2 ^ 32 →
+    ∀ (ch : Fin IpowCap.NC → Chan),
+      (∀ (o : Fin IpowCap.NO), Cell ch (srcV b e) (IpowCap.opAt o)) →
+        (∀ (c : Fin IpowCap.NC), Held (ch c)) →
+          (∀ (t : Nat), cnt (riseB (ch IpowCap.start).req) t ≤ 1) →
+            (∀ (k v : Nat), TokAt (ch IpowCap.out0) k v → (ch IpowCap.out0).dat v = IpowHw.ipowSpec b e) ∧
+              ∀ (t : Nat),
+                closedVals (ch IpowCap.out0) t =
+                  List.replicate (cnt (fallB (ch IpowCap.out0).ack) t) (IpowHw.ipowSpec b e)
+IpowHw.ipowSpec : Nat → Nat → Nat
+gcd_rig_first : ∀ (a b : Nat),
+  a < 2 ^ 31 →
+    b < 2 ^ 31 →
+      ∀ (ch : Fin NC → Chan),
+        (∀ (o : Fin NO), CellR ch (srcV a b) (opAt o)) →
+          (∀ (c : Fin NC), Held (ch c)) →
+            H_ENV ch →
+              (∀ (r : Nat), OffAt (ch out0) 0 r → (ch out0).dat (r + 1) = a.gcd b) ∧
+                ∀ (e : Nat), TokAt (ch out0) 0 e → (ch out0).dat e = a.gcd b
+H_ENV : (Fin NC → Chan) → Prop
+Formal.Cells.RigSrc.gcd_rig_first_env : ∀ (a b : Nat),
+  a < 2 ^ 31 →
+    b < 2 ^ 31 →
+      ∀ (ch : Fin NC → Chan) (e k q : Trace) (β φ1 φ0 : Nat → Nat) (γ : Fin NC → Nat → Nat),
+        (∀ (o : Fin NO), isSrcK (opAt o) = false → Cell ch (srcV a b) (opAt o)) →
+          (∀ (c : Fin NC), Held (ch c)) →
+            (∀ (o : Fin NO) (z : Fin NC) (w d : Nat), opAt o = K.src z w d → ∀ (t : Nat), (ch z).req t = e t) →
+              (∀ (o : Fin NO) (z : Fin NC) (w d : Nat), opAt o = K.src z w d → ∀ (t : Nat), (ch z).dat t = srcV a b w) →
+                e 0 = true ∧ k 0 = false →
+                  q 0 = false →
+                    (∀ (t : Nat), (ch out0).ack t = q t) →
+                      (∀ (t t' : Nat), t ≤ t' → β t ≤ β t') →
+                        (∀ (t : Nat), β t ≤ t) →
+                          (∀ (z : F
