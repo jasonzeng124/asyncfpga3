@@ -1409,3 +1409,11 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   carry ripple and the fid model (per-pin arcs, as nextpnr's timing analysis) is the faithful one. Not changing the
   default model (it is the shipped gate; pessimism there is safe).
 - No board-queue change.
+### progress 00:27 (sweep restarted on 78de9c2 from a frozen worktree; first rows)
+- Stopped the sweep after ~30 min and restarted it from a detached worktree at 78de9c2 (S5's CARRY4/latch transport
+  in), so every row of the 8-seed table is one model and later commits cannot change it mid-run.
+- Rows so far (full stack: bits netlist + prjxray SDF + fid; laps vec 6/12/13 per 150 us):
+  | seed | column | sdf / xray sdf | verdict | laps 6/12/13 |
+  |---|---|---|---|---|
+  | d | SLOW_MAX | 61e14755 / ef6d6e77 | PASS 16/16 errs 0 | 33/27/39 (identical to last session's, before S5) |
+  | d | band 0.38, region 0.16 + wire 0.126, draw 1 | same | PASS 16/16 errs 0 | 53/42/62 (no scatter: 55/45/64) |
