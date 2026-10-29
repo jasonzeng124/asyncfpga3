@@ -424,6 +424,20 @@ theorem step_all {p : Fin NO} (h : opStep cd p = true) :
   obtain ⟨ge, hge, rfl⟩ := mem_gatesE hg
   exact step_of (List.all_eq_true.mp h ge hge)
 
+/-- Per-operator checks over the operator range `[lo, hi)`, `start`'s producer excepted. -/
+def stepR (cd : Fin NC → CD) (lo hi : Nat) : Bool :=
+  (List.range' lo (hi - lo)).all (fun i => if h : i < NO then (i == (prodOf start).val) || opStep cd ⟨i, h⟩
+    else true)
+
+theorem stepR_get {lo hi : Nat} (h : stepR cd lo hi = true) (p : Fin NO) (h1 : lo ≤ p.val) (h2 : p.val < hi)
+    (hp : p ≠ prodOf start) : opStep cd p = true := by
+  have hm : p.val ∈ List.range' lo (hi - lo) := List.mem_range'_1.mpr ⟨h1, by omega⟩
+  have := List.all_eq_true.mp h p.val hm
+  simp only [p.isLt, dite_true, Bool.or_eq_true, beq_iff_eq] at this
+  rcases this with e | e
+  · exact absurd (Fin.ext e) hp
+  · exact e
+
 /-- H_BOUNDED_DELAY' with `H = 1`, from the per-operator checks. -/
 theorem bnd_all (h : ∀ p : Fin NO, p ≠ prodOf start → opStep cd p = true) :
     ∀ p, p ≠ prodOf start → ∀ g ∈ gatesK p (opAt p), BndG 1 (gsAt (wch cd) (itrW cd)) g :=

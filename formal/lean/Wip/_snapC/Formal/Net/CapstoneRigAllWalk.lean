@@ -369,4 +369,390 @@ theorem hin_oneR {c i : Fin NC} (hcs : c ≠ start) (hce : c ≠ eEnd)
   · intro h; exact hins d hs (nxt_in σ (nxtR_of σ h hcs).1)
   · intro h; subst h; exact nxtR_eq σ (hn k) hce
 
+/-! ## The circuit induction for repeated invocations -/
+
+theorem ne_eEnd_in {i : Fin NC} {o : Fin NO} (hi : i ∈ (opAt o).insC)
+    (hk : ∀ j, opAt o ≠ .sink j) : i ≠ eEnd := by
+  intro e; subst e
+  have := cons_in o eEnd hi
+  exact hk eEnd (by rw [← this]; rfl)
+
+theorem ne_eEnd_out {c : Fin NC} {o : Fin NO} (hc : c ∈ (opAt o).outsC)
+    (hk : ∀ i os, opAt o ≠ .forkG i os) : c ≠ eEnd := by
+  intro e; subst e
+  have := prod_out o eEnd hc
+  exact hk zEnd [eEnd, 413] (by rw [← this]; rfl)
+
+section
+variable (a b : Nat) (ch : Fin NC → Chan) (y : TS)
+
+/-- The circuit's offer counts on the spine (except the dead end `eEnd`) are the periodic
+walk's visit counts after `p` steps. -/
+def InvR (t : Nat) : Prop :=
+  ∃ p, ∀ c, sp c = true → c ≠ eEnd → cnt (riseB (ch c).req) t = (walkR (σY a b y) p).W c
+
+/-- **H_START_GATE** (environment): `start` is offered for the `(k+1)`-th time only after the
+control token has left the last arbiter stage `k` times (`z251` offered `k` times). -/
+def H_START_GATE : Prop :=
+  ∀ t, riseB (ch start).req t = true → cnt (riseB (ch start).req) t ≤ cnt (riseB (ch zEnd).req) t
+
+end
+
+section mainR
+variable {a b : Nat} {ch : Fin NC → Chan} {y : TS}
+variable (hy : Good a b y)
+variable (H_CELLS : ∀ o : Fin NO, Cell ch (srcV a b) (opAt o))
+variable (H_BUNDLE : ∀ c, Held (ch c))
+variable (H_GATE : H_START_GATE ch)
+variable (H_WALKR : WalkOKR (σY a b y) (omOf a b y))
+
+theorem am_ne {o : Fin NO} {x u z : Fin NC} {w : Nat} (ho : opAt o = .amerge x u z w) :
+    x ≠ eEnd ∧ u ≠ eEnd ∧ z ≠ eEnd := by
+  refine ⟨ne_eEnd_in (o := o) (by rw [ho]; simp [K.insC]) (by intro j; rw [ho]; simp),
+    ne_eEnd_in (o := o) (by rw [ho]; simp [K.insC]) (by intro j; rw [ho]; simp),
+    ne_eEnd_out (o := o) (by rw [ho]; simp [K.outsC]) (by intro i os; rw [ho]; simp)⟩
+
+include H_WALKR in
+theorem am_countsR {o : Fin NO} {x u z : Fin NC} {w : Nat} (ho : opAt o = .amerge x u z w) (p : Nat) :
+    (walkR (σY a b y) p).W u = cnt (omOf a b y w) ((walkR (σY a b y) p).W z) +
+        bn (((walkR (σY a b y) p).cur == z) && omOf a b y w ((walkR (σY a b y) p).W z)) ∧
+      (walkR (σY a b y) p).W x = cnt (fun i => !omOf a b y w i) ((walkR (σY a b y) p).W z) +
+        bn (((walkR (σY a b y) p).cur == z) && !omOf a b y w ((walkR (σY a b y) p).W z)) := by
+  have hs := spok o
+  rw [ho] at hs
+  simp only [SpOK, Bool.and_eq_true, bne_iff_ne, ne_eq] at hs
+  have hd := ops_ok o
+  rw [ho] at hd
+  have hzo : prodOf z = o := prod_out o z (by rw [ho]; simp [K.outsC])
+  have hxo : consOf x = o := cons_in o x (by rw [ho]; simp [K.insC])
+  have huo : consOf u = o := cons_in o u (by rw [ho]; simp [K.insC])
+  have hzs : z ≠ start := ne_start (by intro z' w' d'; rw [hzo, ho]; simp)
+  have hze := (am_ne ho).2.2
+  apply am_sideR (σY a b y) (omOf a b y w) hs.2 (Ne.symm hd.2.1) (Ne.symm hd.2.2) hzs
+  · intro d k hsd _
+    constructor
+    · intro h
+      have := nxt_in _ (nxtR_of _ h hzs).1
+      rw [hzo, ho] at this; simpa [K.insC] using this
+    · intro h
+      rcases h with h | h <;> subst h
+      · exact nxtR_eq _ (nxt_amerge _ (by rw [hxo, ho])) hze
+      · exact nxtR_eq _ (nxt_amerge _ (by rw [huo, ho])) hze
+  · intro p hd'
+    rcases hd' with e | e
+    · have := H_WALKR p x u z w (by rw [e, hxo, ho]); rw [this]
+    · have := H_WALKR p x u z w (by rw [e, huo, ho]); rw [this]
+
+include H_CELLS H_BUNDLE H_WALKR in
+theorem forc_atR (t : Nat) (hinv : InvR a b ch y t) (hf : ForcB a b ch y t) : ForcB a b ch y (t + 1) := by
+  intro o x u z w ho k r hr hoff
+  rcases Nat.lt_or_ge r t with hlt | hge
+  · exact hf o x u z w ho k r hlt hoff
+  have hrt : r = t := by omega
+  subst hrt
+  have hp := gcd_hw_protocol a b ch H_CELLS H_BUNDLE
+  obtain ⟨p, hp'⟩ := hinv
+  have hs := spok o
+  rw [ho] at hs
+  simp only [SpOK, Bool.and_eq_true, bne_iff_ne, ne_eq] at hs
+  obtain ⟨hxe, hue, hze⟩ := am_ne ho
+  have hc := H_CELLS o
+  rw [ho] at hc
+  obtain ⟨g1, g2, M⟩ := hc
+  obtain ⟨py, px⟩ := offer_pending M (hp x) (hp u) (hp z) hoff
+  have hk : cnt (riseB (ch z).req) r = k := hoff.2
+  have hpre : ∀ i, i < k → CM.winner (ch z) i = omOf a b y w i := by
+    intro i hi
+    obtain ⟨r', hr'⟩ := Capstone.offered_below hoff hi
+    exact hf o x u z w ho i r' (off_before hoff hr' hi) hr'
+  have c1 : cnt (CM.winner (ch z)) k = cnt (omOf a b y w) k := CM.cnt_congr_lt k hpre
+  have c0 : cnt (fun i => !CM.winner (ch z) i) k = cnt (fun i => !omOf a b y w i) k :=
+    CM.cnt_congr_lt k (fun i hi => by rw [hpre i hi])
+  obtain ⟨ey, ex⟩ := am_countsR H_WALKR ho p
+  have hzk : (walkR (σY a b y) p).W z = k := by rw [← hp' z hs.1.2 hze, hk]
+  rw [hzk] at ey ex
+  rw [← hp' u hs.1.1.2 hue] at ey
+  rw [← hp' x hs.1.1.1 hxe] at ex
+  cases hwk : CM.winner (ch z) k
+  · have := px hwk; rw [c0] at this
+    cases hω : omOf a b y w k
+    · rfl
+    · rw [hω] at ex; simp [bn] at ex; omega
+  · have := py hwk; rw [c1] at this
+    cases hω : omOf a b y w k
+    · rw [hω] at ey; simp [bn] at ey; omega
+    · rfl
+
+include H_CELLS H_BUNDLE H_GATE H_WALKR in
+/-- A spine channel other than `eEnd` can rise at `t` only if it is the periodic walk's next
+channel. -/
+theorem rise_curR (t p : Nat)
+    (hinv : ∀ c, sp c = true → c ≠ eEnd → cnt (riseB (ch c).req) t = (walkR (σY a b y) p).W c)
+    (hag : Agree ch (σY a b y) t) (hf : ForcB a b ch y (t + 1))
+    (c : Fin NC) (hsc : sp c = true) (hce : c ≠ eEnd) (hr : riseB (ch c).req t = true) :
+    (walkR (σY a b y) p).cur = c := by
+  have hp := gcd_hw_protocol a b ch H_CELLS H_BUNDLE
+  have hct : cnt (riseB (ch c).req) (t + 1) = (walkR (σY a b y) p).W c + 1 := by
+    rw [cnt_succ_of hr, hinv c hsc hce]
+  let o := prodOf c
+  have hco : c ∈ (opAt o).outsC := prod_mem c
+  have hs := spok o
+  have hc := H_CELLS o
+  have hnes : ∀ (K' : K NC), opAt o = K' → (∀ z w d, K' ≠ .src z w d) → c ≠ start := by
+    intro K' hK hK'; apply ne_start; intro z w d e; exact hK' z w d (hK ▸ e)
+  cases hk : opAt o with
+  | forkG i os =>
+    rw [hk] at hco hs hc
+    simp only [K.outsC] at hco
+    have hsi : sp i = true := by
+      cases hsi : sp i
+      · simp only [SpOK, hsi, Bool.false_eq_true, ite_false, List.all_eq_true] at hs
+        have := hs c hco; simp [hsc] at this
+      · rfl
+    simp only [SpOK, hsi, ite_true, beq_iff_eq] at hs
+    have hio : consOf i = o := cons_in o i (by rw [hk]; simp [K.insC])
+    have hie : i ≠ eEnd := ne_eEnd_in (o := o) (by rw [hk]; simp [K.insC]) (by intro j; rw [hk]; simp)
+    have hb := fork_strict hc (hp i) (fun o' ho' => by
+      obtain ⟨c', _, e⟩ := List.mem_map.mp ho'; rw [← e]; exact hp c') (List.mem_map_of_mem hco) hr
+    rw [hct, hinv i hsi hie] at hb
+    have hcs := hnes _ hk (by intros; simp)
+    have hin := hin_oneR (σY a b y) (c := c) (i := i) hcs hce
+      (by intro d _ hd; rw [show prodOf c = o from rfl, hk] at hd; simpa [K.insC] using hd)
+      (fun k => by rw [nxt_forkG _ (by rw [hio, hk])]; exact find_one hs hco hsc)
+    apply cur_of_boundR _ hcs
+    rw [in_cpR _ hin]; exact hb
+  | link i o' =>
+    rw [hk] at hco hs hc
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco
+    simp only [SpOK, beq_iff_eq] at hs
+    have hsi : sp i = true := by rw [hs]; exact hsc
+    have hio : consOf i = o := cons_in o i (by rw [hk]; simp [K.insC])
+    have hie : i ≠ eEnd := ne_eEnd_in (o := o) (by rw [hk]; simp [K.insC]) (by intro j; rw [hk]; simp)
+    obtain ⟨cc, L⟩ := hc
+    have hb := link_strict L (hp i) (hp c) hr
+    rw [hct, hinv i hsi hie] at hb
+    have hcs := hnes _ hk (by intros; simp)
+    have hin := hin_oneR (σY a b y) (c := c) (i := i) hcs hce
+      (by intro d _ hd; rw [show prodOf c = o from rfl, hk] at hd; simpa [K.insC] using hd)
+      (fun k => nxt_link _ (by rw [hio, hk]) hsc)
+    apply cur_of_boundR _ hcs
+    rw [in_cpR _ hin]; exact hb
+  | bjoin ins o' ec ed =>
+    rw [hk] at hco hs hc
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco
+    simp only [SpOK, hsc, Bool.not_true, Bool.false_or] at hs
+    match ins, hs, hc, hk with
+    | [cd, i], hs, hc, hk =>
+      simp only [Bool.and_eq_true, Bool.not_eq_true'] at hs
+      have hio : consOf i = o := cons_in o i (by rw [hk]; simp [K.insC])
+      have hie : i ≠ eEnd := ne_eEnd_in (o := o) (by rw [hk]; simp [K.insC]) (by intro j; rw [hk]; simp)
+      have hb := join_strict hc (hp c) (fun i' hi' => by
+        obtain ⟨c', _, e⟩ := List.mem_map.mp hi'; rw [← e]; exact hp c') (i := ch i) (by simp) hr
+      rw [hct, hinv i hs.2 hie] at hb
+      have hcs := hnes _ hk (by intros; simp)
+      have hin := hin_oneR (σY a b y) (c := c) (i := i) hcs hce
+        (by
+          intro d hd hd'
+          rw [show prodOf c = o from rfl, hk] at hd'
+          simp only [K.insC, List.mem_cons, List.not_mem_nil, or_false] at hd'
+          rcases hd' with e | e
+          · subst e; rw [hs.1] at hd; exact absurd hd (by decide)
+          · exact e)
+        (fun k => nxt_bjoin _ (by rw [hio, hk]) hsc)
+      apply cur_of_boundR _ hcs
+      rw [in_cpR _ hin]; exact hb
+  | steerC j tt ff =>
+    rw [hk] at hco hs hc
+    simp only [SpOK, Bool.and_eq_true, beq_iff_eq, bne_iff_ne, ne_eq] at hs
+    obtain ⟨⟨htj, hfj⟩, htf⟩ := hs
+    simp only [K.outsC, List.mem_cons, List.not_mem_nil, or_false] at hco
+    have hjo : consOf j = o := cons_in o j (by rw [hk]; simp [K.insC])
+    have hje : j ≠ eEnd := ne_eEnd_in (o := o) (by rw [hk]; simp [K.insC]) (by intro j; rw [hk]; simp)
+    have hsj : sp j = true := by
+      rcases hco with e | e
+      · rw [← htj, ← e]; exact hsc
+      · rw [← hfj, ← e]; exact hsc
+    have hst : sp tt = true := by rw [htj]; exact hsj
+    obtain ⟨bb, hbb⟩ : ∃ bb : Bool, c = (bif bb then tt else ff) := by
+      rcases hco with e | e
+      · exact ⟨true, e⟩
+      · exact ⟨false, e⟩
+    have hb := steer_strict hc (hp j) (fun b' => hp _) (H_BUNDLE j) bb (by rw [← hbb]; exact hr)
+    rw [← hbb, hct] at hb
+    have hsel : selOff sel2 (ch j) bb t =
+        cnt (fun i => sel2 (σY a b y j i) == bb) (cnt (riseB (ch j).req) t) :=
+      cnt_offers (σ := σY a b y j) (fun v => sel2 v == bb)
+        (fun i u hu ho => hag j i u hu ho) t (Nat.le_refl _)
+    rw [hsel, hinv j hsj hje] at hb
+    have hcs := hnes _ hk (by intros; simp)
+    have hin : ∀ d k, sp d = true → d ≠ eEnd →
+        (nxtR (σY a b y) d k = c ↔ d = j ∧ sel2 (σY a b y j k) = bb) := by
+      intro d k hsd _
+      constructor
+      · intro h
+        have h' := (nxtR_of _ h hcs).1
+        have hd := nxt_in _ h'
+        rw [show prodOf c = o from rfl, hk] at hd
+        simp only [K.insC, List.mem_singleton] at hd
+        subst hd
+        rw [nxt_steerC _ (by rw [hjo, hk]) hst] at h'
+        simp only [Option.some.injEq] at h'
+        refine ⟨rfl, ?_⟩
+        rw [hbb] at h'
+        cases hb1 : sel2 (σY a b y d k) <;> cases bb <;> simp [hb1] at h' ⊢ <;>
+          exact htf (by first | exact h' | exact h'.symm)
+      · rintro ⟨e, hsl⟩
+        subst e
+        apply nxtR_eq _ _ hce
+        rw [nxt_steerC _ (by rw [hjo, hk]) hst]
+        simp [hsl, hbb]
+    apply cur_of_boundR _ hcs
+    rw [in_stR _ hin]; exact hb
+  | amerge x u z w =>
+    rw [hk] at hco hs hc
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco
+    obtain ⟨g1, g2, M⟩ := hc
+    obtain ⟨hxe, hue, -⟩ := am_ne hk
+    have hsx : sp x = true := by simp only [SpOK, Bool.and_eq_true] at hs; exact hs.1.1.1
+    have hsu : sp u = true := by simp only [SpOK, Bool.and_eq_true] at hs; exact hs.1.1.2
+    have hoff : OffAt (ch c) (walkR (σY a b y) p |>.W c) t := ⟨hr, hinv c hsc hce⟩
+    have hw := hf o x u c w hk _ t (Nat.lt_succ_self _) hoff
+    obtain ⟨py, px⟩ := offer_pending M (hp x) (hp u) (hp c) hoff
+    have hpre : ∀ i, i < (walkR (σY a b y) p).W c → CM.winner (ch c) i = omOf a b y w i := by
+      intro i hi
+      obtain ⟨r', hr'⟩ := Capstone.offered_below hoff hi
+      exact hf o x u c w hk i r' (by have := off_before hoff hr' hi; omega) hr'
+    have c1 := CM.cnt_congr_lt _ hpre
+    have c0 : cnt (fun i => !CM.winner (ch c) i) ((walkR (σY a b y) p).W c) =
+        cnt (fun i => !omOf a b y w i) ((walkR (σY a b y) p).W c) :=
+      CM.cnt_congr_lt _ (fun i hi => by rw [hpre i hi])
+    obtain ⟨ey, ex⟩ := am_countsR H_WALKR hk p
+    rw [← hinv u hsu hue] at ey
+    rw [← hinv x hsx hxe] at ex
+    cases hω : omOf a b y w ((walkR (σY a b y) p).W c)
+    · have := px (by rw [hw, hω]); rw [c0] at this
+      rw [hω] at ex
+      cases hq : ((walkR (σY a b y) p).cur == c)
+      · rw [hq] at ex; simp [bn] at ex; omega
+      · simpa using hq
+    · have := py (by rw [hw, hω]); rw [c1] at this
+      rw [hω] at ey
+      cases hq : ((walkR (σY a b y) p).cur == c)
+      · rw [hq] at ey; simp [bn] at ey; omega
+      · simpa using hq
+  | src z which d =>
+    rw [hk] at hco hs hc
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco
+    have hcs : c = start := by
+      by_cases hw2 : which = 2
+      · subst hw2; simpa [SpOK, hsc] using hs
+      · simp [SpOK, hsc, hw2] at hs
+    subst hcs
+    have hg := H_GATE t hr
+    rw [hinv start hsc hce, hinv zEnd zEnd_sp (Ne.symm eEnd_ne_zEnd)] at hg
+    have hf' := flowR (σY a b y) p start
+    rw [tr_startR] at hf'
+    cases hq : ((walkR (σY a b y) p).cur == start)
+    · rw [hq] at hf'; simp [bn] at hf'; omega
+    · simpa using hq
+  | forkH i os l h d hs' =>
+    rw [hk] at hco hs
+    simp only [K.outsC, List.mem_map] at hco
+    obtain ⟨pr, hpr, e⟩ := hco
+    simp only [SpOK, List.all_eq_true] at hs
+    have := hs pr hpr; rw [e] at this; simp [hsc] at this
+  | join ins o' e js jw =>
+    rw [hk] at hco hs
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco; simp [SpOK, hsc] at hs
+  | steerD j tt ff fd sw =>
+    rw [hk] at hco hs
+    simp only [K.outsC, List.mem_cons, List.not_mem_nil, or_false] at hco
+    simp only [SpOK, Bool.and_eq_true, Bool.not_eq_true'] at hs
+    rcases hco with e | e <;> subst e
+    · rw [hs.1] at hsc; exact absurd hsc (by decide)
+    · rw [hs.2] at hsc; exact absurd hsc (by decide)
+  | mux cc xx yy zz mw =>
+    rw [hk] at hco hs
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco; simp [SpOK, hsc] at hs
+  | muxn cc x0 x1 x2 zz nw =>
+    rw [hk] at hco hs
+    simp only [K.outsC, List.mem_singleton] at hco
+    subst hco; simp [SpOK, hsc] at hs
+  | sink i =>
+    rw [hk] at hco
+    simp [K.outsC] at hco
+
+include hy H_CELLS H_BUNDLE H_GATE H_WALKR in
+/-- **The joint induction on time, for repeated invocations.** -/
+theorem mainR : ∀ t, InvR a b ch y t ∧ ForcB a b ch y t ∧ Agree ch (σY a b y) t := by
+  intro t
+  induction t with
+  | zero =>
+    refine ⟨⟨0, fun c _ _ => rfl⟩, fun _ _ _ _ _ _ _ _ h _ => absurd h (Nat.not_lt_zero _),
+      fun _ _ _ h _ => absurd h (Nat.not_lt_zero _)⟩
+  | succ t ih =>
+    obtain ⟨hinv, hf, hag⟩ := ih
+    have hf' := forc_atR H_CELLS H_BUNDLE H_WALKR t hinv hf
+    have hag' := agr_at hy H_CELLS H_BUNDLE t hag hf'
+    refine ⟨?_, hf', hag'⟩
+    obtain ⟨p, hp⟩ := hinv
+    have hrc := rise_curR H_CELLS H_BUNDLE H_GATE H_WALKR t p hp hag hf'
+    by_cases hex : ∃ c, sp c = true ∧ c ≠ eEnd ∧ riseB (ch c).req t = true
+    · obtain ⟨c, hsc, hce, hr⟩ := hex
+      have hcur := hrc c hsc hce hr
+      refine ⟨p + 1, fun d hsd hde => ?_⟩
+      rw [W_succR, cnt_succ', hp d hsd hde, hcur]
+      by_cases hdc : d = c
+      · subst hdc; simp [hr, bn]
+      · have h1 : riseB (ch d).req t = false := by
+          cases h : riseB (ch d).req t
+          · rfl
+          · have := hrc d hsd hde h; rw [hcur] at this; exact absurd this.symm hdc
+        have h2 : (c == d) = false := by simp [Ne.symm hdc]
+        rw [h1, h2]
+    · refine ⟨p, fun d hsd hde => ?_⟩
+      rw [cnt_succ', hp d hsd hde]
+      have : riseB (ch d).req t = false := by
+        cases h : riseB (ch d).req t
+        · rfl
+        · exact absurd ⟨d, hsd, hde, h⟩ hex
+      rw [this]; rfl
+
+end mainR
+
+/-- **H_CM_FORCED for repeated invocations**: under H_CELLS, H_BUNDLE, H_START_GATE and the
+periodic walk condition, every arbiter stage's winner of every offered token (in every
+invocation) is the token run's label. -/
+theorem gcd_hw_forcedR (a b : Nat) (ch : Fin NC → Chan) (y : TS) (hy : Good a b y)
+    (H_CELLS : ∀ o : Fin NO, Cell ch (srcV a b) (opAt o))
+    (H_BUNDLE : ∀ c, Held (ch c))
+    (H_GATE : H_START_GATE ch)
+    (H_WALKR : WalkOKR (σY a b y) (omOf a b y)) :
+    ∀ o : Fin NO, Forced ch (omOf a b y) (opAt o) := by
+  intro o
+  cases hk : opAt o with
+  | amerge x u z w =>
+    intro k r hoff
+    exact (mainR hy H_CELLS H_BUNDLE H_GATE H_WALKR (r + 1)).2.1 o x u z w hk k r
+      (Nat.lt_succ_self _) hoff
+  | _ => trivial
+
+/-- **Circuit safety for repeated invocations, given the periodic walk condition.** -/
+theorem gcd_hw_circuit_safeR (a b : Nat) (ch : Fin NC → Chan)
+    (H_CELLS : ∀ o : Fin NO, Cell ch (srcV a b) (opAt o))
+    (H_BUNDLE : ∀ c, Held (ch c))
+    (H_GATE : H_START_GATE ch)
+    (H_WALKR : ∃ y, Good a b y ∧ WalkOKR (σY a b y) (omOf a b y)) :
+    (∀ k e, TokAt (ch out0) k e → (ch out0).dat e = Nat.gcd a b) ∧
+    (∀ t, closedVals (ch out0) t = List.replicate (cnt (fallB (ch out0).ack) t) (Nat.gcd a b)) := by
+  obtain ⟨y, hy, hw⟩ := H_WALKR
+  exact gcd_hw_circuit_safe a b ch H_CELLS H_BUNDLE
+    ⟨y, hy, gcd_hw_forcedR a b ch y hy H_CELLS H_BUNDLE H_GATE hw⟩
+
 end Formal.Net.CapNet.Gcd

@@ -143,6 +143,12 @@ theorem nc_step_chg {x : Nat → Ring.State} {i t : Nat} (hi : i < n) (hc : x (t
 /-- Wavefront at stage `i` at time 0, as a number. -/
 def δ (n : Nat) (x : Nat → Ring.State) (i : Nat) : Nat := Ring.b2n (Ring.tok n (x 0) i)
 
+theorem final_eq : ∀ (L : List Nat) (s : Ring.State), Ring.final s L = Bridge.final s L := by
+  intro L
+  induction L with
+  | nil => intro s; rfl
+  | cons i L ih => intro s; exact ih _
+
 theorem b2n_le (b : Bool) : Ring.b2n b ≤ 1 := by unfold Ring.b2n; split <;> omega
 
 /-- **Timed balance law** (9a's `balance` through 8d's bridge): a wavefront enters stage
@@ -152,7 +158,7 @@ theorem balance_t (hn : 3 ≤ n) {hi : Nat → Nat} {x : Nat → Ring.State}
     nc n K x j u + Ring.b2n (Ring.tok n (x u) j) = nc n K x (Ring.prv n j) u + δ n x j := by
   obtain ⟨hr, hf⟩ := timed_runF (ring_persistent n K (x 0)) hx rfl 0 u
   have := Ring.balance hn hj _ _ (run_ring hr)
-  rw [hf, Nat.zero_add] at this
+  rw [final_eq, hf, Nat.zero_add] at this
   exact this
 
 /-! ## Inertial causality -/
@@ -315,7 +321,7 @@ theorem fk_succ {j m : Nat} (hj : j < n) (hm : m < n) : fk n j (m + 1) = Ring.nx
 theorem fk_zero {j : Nat} (hj : j < n) : fk n j 0 = j := by
   unfold fk; simp [hj]
 
-theorem fk_n {j : Nat} (hj : j < n) : fk n j n = j := by
+theorem fk_n {j : Nat} (_hj : j < n) : fk n j n = j := by
   unfold fk; have : ¬ j + n < n := by omega
   simp only [this, ite_false]; omega
 
@@ -386,12 +392,11 @@ theorem bk_sum (g : Nat → Nat) {j : Nat} (hj : j < n) :
 
 theorem fk_sum (g : Nat → Nat) {j : Nat} (hj : j < n) :
     Ring.sumTo (fun k => g (fk n j (k + 1))) n = Ring.sumTo g n := by
-  have hn : n = (n - j - 1) + (j + 1) := by omega
-  have hn' : n = (j + 1) + (n - j - 1) := by omega
-  conv => lhs; rw [hn]
-  rw [sumTo_add]
-  conv => rhs; rw [hn', sumTo_add g]
-  rw [Nat.add_comm]
+  have e1 := sumTo_add (fun k => g (fk n j (k + 1))) (n - j - 1) (j + 1)
+  have e2 := sumTo_add g (j + 1) (n - j - 1)
+  rw [show n - j - 1 + (j + 1) = n by omega] at e1
+  rw [show j + 1 + (n - j - 1) = n by omega] at e2
+  rw [e1, e2, Nat.add_comm]
   congr 1
   · exact sumTo_congr (fun k hk => by
       unfold fk
@@ -576,5 +581,38 @@ theorem ring_no_runt {hi : Nat → Nat} {x : Nat → Ring.State} (hx : TimedF (r
   rw [xs] at a
   revert a b; cases Ring.gate n K false (x u) j <;> cases Ring.gate n K false (x t) j <;>
     cases x t j <;> simp
+
+/-! ## The lower bounds are attained (unit delay, `d = 1`)
+
+`unitTrace` is an inertial trace with `lo = hi = 1` (`Bridge.unit_timed`). On it the bounds
+of `gap_two_n3`, `gap_two` and `gap_three` are met with equality, so none of them can be
+improved in general. -/
+
+/-- `N = 3`: stage 0 changes at steps 1 and 4: gap `3 = 3·d`. -/
+theorem tight_n3 :
+    unitTrace (ringNet 3 1) (Ring.resetState 1) 2 0 ≠ unitTrace (ringNet 3 1) (Ring.resetState 1) 1 0 ∧
+    unitTrace (ringNet 3 1) (Ring.resetState 1) 5 0 ≠ unitTrace (ringNet 3 1) (Ring.resetState 1) 4 0 := by
+  decide +kernel
+
+/-- `N = 4`: stage 0 changes at steps 1 and 3: gap `2 = 2·d`; and 1, 3, 5: span `4 = N·d`. -/
+theorem tight_n4 :
+    unitTrace (ringNet 4 1) (Ring.resetState 1) 2 0 ≠ unitTrace (ringNet 4 1) (Ring.resetState 1) 1 0 ∧
+    unitTrace (ringNet 4 1) (Ring.resetState 1) 4 0 ≠ unitTrace (ringNet 4 1) (Ring.resetState 1) 3 0 ∧
+    unitTrace (ringNet 4 1) (Ring.resetState 1) 6 0 ≠ unitTrace (ringNet 4 1) (Ring.resetState 1) 5 0 := by
+  decide +kernel
+
+/-- `N = 5`: stage 0 changes at steps 1, 4, 6: span `5 = N·d`. -/
+theorem tight_n5 :
+    unitTrace (ringNet 5 1) (Ring.resetState 1) 2 0 ≠ unitTrace (ringNet 5 1) (Ring.resetState 1) 1 0 ∧
+    unitTrace (ringNet 5 1) (Ring.resetState 1) 5 0 ≠ unitTrace (ringNet 5 1) (Ring.resetState 1) 4 0 ∧
+    unitTrace (ringNet 5 1) (Ring.resetState 1) 7 0 ≠ unitTrace (ringNet 5 1) (Ring.resetState 1) 6 0 := by
+  decide +kernel
+
+/-- Non-vacuity of the window theorems' hypotheses: the unit-delay trace from reset is an
+inertial trace with `d = 1 ≤ lo i`. -/
+theorem unit_hyps (n K : Nat) :
+    Timed (ringNet n K) (fun _ => 1) (fun _ => 1) (unitTrace (ringNet n K) (Ring.resetState K)) ∧
+    (∀ i, i < n → 1 ≤ (fun _ => 1) i) :=
+  ⟨unit_timed _ _, fun _ _ => Nat.le_refl _⟩
 
 end Formal.Net.RingTimed

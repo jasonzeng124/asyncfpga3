@@ -1,7 +1,8 @@
 """witness1c.py -- probe C-12d: symbolic witness (event sequence + zones) for
 one onecorner.py configuration, via tck-reach -a reach -C symbolic.
 
-Usage: python3 -I witness1c.py CORNER MODE PROP [key=lo,hi ...] [unheld]
+Usage: python3 -I witness1c.py CORNER MODE PROP [key=lo,hi ...] [unheld] [-z]
+(-z: also print each zone)
   e.g. python3 -I witness1c.py CM0k20 inertial amutex srv=0,20
        python3 -I witness1c.py FAST transport mutex_nr wq_g=24,24
 Prints, per step, the synchronised event (the node that fired), the int
@@ -19,7 +20,12 @@ from arb import props  # noqa: E402
 from tckmodel import TCK  # noqa: E402
 
 
+ZONES = "-z" in sys.argv
+
+
 def main():
+    if ZONES:
+        sys.argv.remove("-z")
     cor, mode, prop = sys.argv[1:4]
     kw = {}
     for a in sys.argv[4:]:
@@ -57,9 +63,10 @@ def main():
         ch = {k: v for k, v in iv.items() if prev.get(k) != v}
         names = [k for k in ch if not k.startswith(("mlt_", "ovf_", "hz_"))]
         print("  ", " ".join(f"{k}={ch[k]}" for k in names) or "-",
-              "| zone:", a.get("zone", ""))
+              *(("| zone:", a.get("zone", "")) if ZONES else ()))
         prev = iv
         if cur not in edges:
+            print("   final node, labels:", a.get("labels", ""))
             break
         nxt, ea = edges[cur]
         ev = re.findall(r'f_(\w+)', ea.get("vedge", ""))

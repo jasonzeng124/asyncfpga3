@@ -17,6 +17,10 @@
                        fast_max, slow_min or slow_max) passes: the failure needs request arcs at
                        the low end and data arcs at the high end of ONE corner (no correlation)
         project-only   project FAIL, tcheck PASS (tcheck's prjxray numbers are kinder)
+        project-false-path(const)  (C-10m) project rule-A FAIL whose peak is a tie-off route;
+                       tcheck's rule A no longer starts at constant drivers (rules2.py), so it
+                       passes: the project row times a false path
+        (after C-10m, frontend-gap(const) can only appear with TCHECK_KEEP_CONST=1)
    results/KERNEL/routes.tsv    per seed: flow.sh exit, gate lines, project violation counts,
                                 extract/tcheck summary
    results/KERNEL/summary.txt   the tables above, printed
@@ -84,6 +88,11 @@ def klass(r):
     """band-only / frontend-gap / spread-only / corner-fail / project-only (see the docstring)"""
     t = r["tc"]
     if r["pv"] == "FAIL" and r["cv"] == "PASS":
+        # C-10m: tcheck's rule A drops the constant tie-off starts (a false path); the
+        # project's tighten.cell_boundary keeps them, so a project FAIL whose peak is a
+        # tie-off route is the project's false path, not a tcheck miss
+        if r["rule"] == "A" and (r["seed"], r["key"]) in CONST:
+            return "project-false-path(const)"
         return "project-only"
     f, sl = num(t["fast"]), num(t["slow"])
     if f is not None and sl is not None and f >= 0 and sl >= 0:

@@ -20,3 +20,8 @@ Audit row (P4, on 1149aa1): RtFbGcd "0 failures in every one-corner model" is OV
   still run as a cross-check of the RTFB_NO_HOP model.
 - gcd routes: own `route_gcd.sh` (copy of C-10e's tcheck/route.sh, into rtfb/build) because 10m
   owns tcheck/build this session.
+- 07:55 toolchain.sh PASS (nextpnr sha256 9c732bc6303458df, same as C-10f). Muller seeds 1..8
+  re-routed: FASM sha256 prefixes IDENTICAL to C-10f's table, seed-1 read-back byte-identical to
+  10d's fixture. RTFB_NO_HOP reproduces C-10f's counts exactly on all 8 seeds (and rt_all.py).
+  With the hop (hull): slowE fail 3,2,7,1,5,3,2,8 (C-10f: 12,5,11,5,4,4,7,10). Lean data
+  regenerated (RtFbM64S1..8, now ~900 lines each). gcd routes started (seed 4 first).

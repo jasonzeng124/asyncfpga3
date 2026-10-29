@@ -53,8 +53,6 @@ EOF
     then echo "  seed $s: same physical netlist from nextpnr's FASM and from the .bit ($(grep -o "{'lut6_2.*" "$TMP/x$s.log"))"
     else echo "  seed $s: FASM and .bit DISAGREE"; fail=1; fi
     NS=GcdS$s; [ "$s" = d ] && NS=GcdD
-    # same file basenames as the committed generation (gen3 names them in a header comment)
-    [ "$s" = d ] && cp "$TMP/phys_$s.json" "$TMP/phys_d.json"
     python3 "$HERE/gen3.py" "$TMP/phys_$s.json" "$TMP/gcd_hw_$s.json" "$TMP/gcd_hw_$s.routed.json" "$TMP/lean_$s" $NS \
         --report "$TMP/report_$s.json" > "$TMP/g$s.log" 2>&1 || { tail -5 "$TMP/g$s.log"; fail=1; continue; }
     echo "  seed $s: $(grep '^gen3: [0-9]' "$TMP/g$s.log" | sed 's/^gen3: //')"

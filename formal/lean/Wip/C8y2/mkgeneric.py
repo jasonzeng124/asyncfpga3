@@ -17,7 +17,7 @@ class S:
         c = s.t.count(old)
         if c != k: raise SystemExit(f"{s.n}: expected {k} x {old!r}, found {c}")
         s.t = s.t.replace(old, new)
-    def x(s, pat, new, k=1, fl=re.M | re.S):
+    def x(s, pat, new, k=1, fl=re.M):
         c = len(re.findall(pat, s.t, fl))
         if c != k: raise SystemExit(f"{s.n}: expected {k} x /{pat}/, found {c}")
         s.t = re.sub(pat, new, s.t, flags=fl)
@@ -81,7 +81,7 @@ s.x(r"  \| src z which d =>\n.*?(?=  \| sink i => trivial)",
     "    · subst hw\n"
     "      show refT T (Hh a b y) z.val k = srcVal a b (nIn - 1)\n"
     "      rw [src_start]\n"
-    "      exact ref_zero T _ hd hnf k\n")
+    "      exact ref_zero T _ hd hnf k\n", 1, re.M | re.S)
 out("Sound", "import Formal.Net.KernelCapHist\n",
     "/-!\n# Kernel-parametric: the checker is sound (from C-8m's CapstoneNetDef / CapstoneNetSound)\n-/\n", s)
 
@@ -114,7 +114,7 @@ out("Safe", "import Formal.Net.KernelCapSound\nimport Formal.Net.Capstone\nimpor
 s = S(rd("CutSpine"), "CutSpine"); fix_ns(s, "Formal.Net.CapNet.Gcd")
 s.x(r"^def spL : List Bool := .*?^theorem sp_start : sp start = true := by decide\n",
     "variable [KD] [KP]\n\n"
-    "theorem noloop' (c : Fin NC) : prodOf c ≠ consOf c := noloop c\n", 1)
+    "theorem noloop' (c : Fin NC) : prodOf c ≠ consOf c := noloop c\n", 1, re.M | re.S)
 s.x(r"^def bn \(b : Bool\) : Nat := if b then 1 else 0\n", "")
 out("CutSpine", "import Formal.Net.KernelCapSafe\nimport Formal.Net.CapstoneCutCells\n",
     "/-!\n# Kernel-parametric: the control spine and the token's walk (from C-8r's CapstoneCutSpine)\n-/\n", s)

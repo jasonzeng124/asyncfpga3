@@ -57,6 +57,8 @@ class KD where
   /-- The circuit network (capnet net: bdc's graph + bdc's link placement). -/
   NC : Nat
   NO : Nat
+  nzC : NeZero NC
+  nzO : NeZero NO
   ops : List (K NC)
   tab : Tab
   prodT : List (Fin NO)
@@ -86,6 +88,8 @@ class KD where
   cl2 : Nat
 
 open KD
+
+attribute [instance] KD.nzC KD.nzO
 
 section defs
 variable [KD]

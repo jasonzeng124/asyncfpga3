@@ -9,6 +9,13 @@ bound with ps numbers: O = LUT6 O6 arc, qp = the routed feedback.
   CM    dl, dw = (1 -+ k) * lerp(FAST_MAX, SLOW_MAX, c), c = 0.5, k = 0.2
 12c's claims: transport spec iff e_lo >= dw_hi; inertial spec iff
 e_lo > dw_hi - dl_lo; inertial hazard-free iff e_lo > dw_hi.
+C-12d fix: the environment's response window is [e_lo, inf) (independent
+inputs, no upper bound).  The first version used [e_lo, e_lo + 30] ps; with
+dl_lo > 30 ps the two inputs could then never be skewed by more than the LUT's
+own delay, which hid the hazard (spec "held" for every e_lo: an artefact).
+Corner model rows: dl from the O6 arc, dw from the assumed route bands above,
+lit = [(1-k) D, (1+k) D], D = lerp(FAST_MIN, SLOW_MAX, c); cons = scatter on top
+of the corner windows (B-arb-kappa readings).
 Run:  python3 -I celem1c.py      (units 1 ps)
 """
 import os
@@ -20,13 +27,24 @@ from celem import build, props  # noqa: E402
 from tckmodel import reach  # noqa: E402
 
 
-def cm(f, s, c=0.5, k=0.2):
-    d = f + c * (s - f)
-    return (int((1 - k) * d), int(-(-(1 + k) * d // 1)))
+import math
 
 
-CASES = [("FAST", (45, 56), (60, 80)), ("SLOW", (100, 124), (150, 200)),
-         ("CM c=.5 k=.2", cm(56, 124), cm(80, 200))]
+def lit(F, S, c, k):
+    d = F + c * (S - F)
+    return (math.floor((1 - k) * d), math.ceil((1 + k) * d))
+
+
+def cons(fw, sw, c, k):
+    return (math.floor((1 - k) * (fw[0] + c * (sw[0] - fw[0]))),
+            math.ceil((1 + k) * (fw[1] + c * (sw[1] - fw[1]))))
+
+
+DLF, DLS, DWF, DWS = (45, 56), (100, 124), (60, 80), (150, 200)
+CASES = [("FAST", DLF, DWF), ("SLOW", DLS, DWS)]
+for _c in (0, 1):
+    CASES.append((f"lit c={_c} k=1/11", lit(DLF[0], DLS[1], _c, 1 / 11), lit(DWF[0], DWS[1], _c, 1 / 11)))
+    CASES.append((f"cons c={_c} k=1/11", cons(DLF, DLS, _c, 1 / 11), cons(DWF, DWS, _c, 1 / 11)))
 
 if __name__ == "__main__":
     t0 = time.time()
@@ -38,13 +56,15 @@ if __name__ == "__main__":
                 lo, hi = 0, dw[1] + 2          # bisection on e_lo (monotone)
                 while lo < hi:
                     mid = (lo + hi) // 2
-                    c = build(dl, dw, (mid, mid + 30), R=20, mode=mode)
-                    if reach(c.tck(props(mode)[k]))["reachable"]:
+                    c = build(dl, dw, (mid, None), R=20, mode=mode)
+                    rr = reach(c.tck(props(mode)[k]))["reachable"]
+                    assert rr is not None, (name, mode, k, mid)
+                    if rr:
                         lo = mid + 1
                     else:
                         hi = mid
                 first_ok[k] = lo
-            print(f"{name:13} {mode:9} dl={dl} dw={dw}: " +
+            print(f"{name:16} {mode:9} dl={dl} dw={dw}: " +
                   " ".join(f"{k} holds iff e_lo >= {v}" for k, v in first_ok.items()) +
                   f"   (dw_hi={dw[1]}, dw_hi-dl_lo={dw[1]-dl[0]})", flush=True)
     print(f"total {time.time()-t0:.1f}s")

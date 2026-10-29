@@ -23,10 +23,10 @@ def parse(path):
     hdr = None
     for line in open(path):
         f = line.split()
-        if f and f[0] == "LUT":
+        if f and f[0] == "LUT" and "indep" in f:
             hdr = f
             continue
-        if hdr and f and f[0].startswith("SLICE"):
+        if hdr and f and f[0].startswith("SLICE") and len(f) == len(hdr):
             d = dict(zip(hdr, f))
             rows.append(d)
     return hdr, rows
