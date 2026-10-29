@@ -1460,7 +1460,7 @@ In (checked here, axioms standard):
   that its node is clean (fcellOK_nil_iff), and a link fed by two such cells gets
   FEnv1 from them alone (flink_env1_local). So gcd_hw_safe_fin_net / _net3 do NOT
   enforce that any link's environment comes from the gate models. CORRECTION to my
-  entries 11:05 .. "contracts remain ONLY on muxn's |j, 3 sources, 9 amerges" (Bmn,
+  Bseg/Bmux2/Bmn/Bor3 entries: "contracts remain ONLY on muxn's |j, 3 sources, 9 amerges" (Bmn,
   Bor3) and Bseg/Bmux2's "gate-modelled" counts: they describe the INTENDED
   elaboration, not what the theorem enforces. Fix probe (Belab: bind every pin's
   driver to the generated netlist) launched. Also: the fin_chains witness on chW is
