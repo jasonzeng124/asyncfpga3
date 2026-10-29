@@ -17,10 +17,10 @@ open Formal.Net Formal.Net.CapNet Formal.Net.CapNet.Wit Formal.Net.CapNet.Gcd
 
 set_option maxRecDepth 100000
 
-abbrev A0 : Nat := 12
-abbrev B0 : Nat := 18
+abbrev RA : Nat := 12
+abbrev RB : Nat := 18
 
-def cds : List CD := [
+def rcds : List CD := [
   ⟨[0, 100, 433], [40, 140, 473], 12, [], []⟩,
   ⟨[0, 100, 433], [40, 140, 473], 18, [], []⟩,
   ⟨[0, 100, 433], [98, 198], 0, [], []⟩,
@@ -488,7 +488,7 @@ def cds : List CD := [
   ⟨[415, 458], [419, 462], 0, [(414, 3), (463, 0)], [[], [414, 457]]⟩
 ]
 
-def cdA (c : Fin NC) : CD := cds.getD c.val ⟨[], [], 0, [], []⟩
+def rcd (c : Fin NC) : CD := rcds.getD c.val ⟨[], [], 0, [], []⟩
 
 /-- Toggle steps of the fork's c3 output `k` (in_ack). -/
 def kL : List Nat := [99, 199]

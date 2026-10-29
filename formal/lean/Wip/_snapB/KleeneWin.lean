@@ -123,7 +123,7 @@ theorem rE_reqW (R F aR cR aF cF : Int) (h1 : 0 ≤ aR + cR) (h2 : R + cR ≤ F 
 
 /-- The same shape as a select carrying `v = 1`: definite 1 between its
 windows. -/
-theorem rE_stab (S0 S1 aS0 cS0 aS1 cS1 : Int) (h2 : S0 + cS0 ≤ S1 - aS1) (h1 : 0 ≤ aS0 + cS0) :
+theorem rE_stab (S0 S1 aS0 cS0 aS1 cS1 : Int) (h1 : 0 ≤ aS0 + cS0) :
     StabK true (S0 + cS0) (S1 - aS1) (rE S0 S1 aS0 cS0 aS1 cS1) := by
   intro x hx1 hx2
   unfold rE
@@ -169,18 +169,21 @@ theorem steer_win_uniform (b v : Bool) (Rlo Rhi Slo Shi R F S0 S1 a c : Int)
   omega
 
 /-- **The split matters.** Every edge has a window of width exactly 1 in both
-cases. (i) Windows of the select outside its binary window and of the request
-inside its pulse (`cS0 = aR = cF = aS1 = 0`): binary-edge EQUALITY
-(`800 + 500 = 1000 + 300`, `3000 + 300 = 3000 + 300`) is safe. (ii) The
-opposite split (`cS0 = aR = cF = aS1 = 1`): a margin that is strict by one
-tick (`800 + 500 < 1001 + 300`) is unsafe. So KleeneBox's "+w, strict at
-w = 1" is neither necessary nor sufficient without H_X_UNIFORM. -/
+cases (select read in 500 ps, request in 300 ps). (i) The request's windows
+inside its pulse (rise `(0, 1)`, fall `(1, 0)`) and the select's outside its
+binary window (entry `cS0 = 0`, exit `aS1 = 0`): binary-edge EQUALITY on both
+sides (`800 + 500 = 1000 + 300`, `3000 + 300 = 2800 + 500`) is safe. (ii) The
+opposite split on the setup pair (`cS0 = aR = 1`): a setup margin that is
+strict by one tick in binary-edge times (`800 + 500 < 1001 + 300`) is unsafe.
+So KleeneBox's "+w, strict at w = 1" is neither necessary nor sufficient
+without H_X_UNIFORM. -/
 theorem steer_split_matters (b v : Bool) :
-    SteerW b v 300 300 500 500 1000 3000 0 1 0 1 800 0 3300 0 ∧
+    SteerW b v 300 300 500 500 1000 3000 0 1 1 0 800 0 2800 0 ∧
+    ((800 : Int) + 500 = 1000 + 300 ∧ (3000 : Int) + 300 = 2800 + 500) ∧
     ¬ SteerW b v 300 300 500 500 1001 3000 1 0 1 0 800 1 4500 1 ∧
     ((800 : Int) + 500 < 1001 + 300 ∧ (3000 : Int) + 300 < 4500 + 500) := by
-  refine ⟨?_, ?_, by decide⟩
-  · exact (steer_win_exact b v 300 300 500 500 1000 3000 0 1 0 1 800 0 3300 0 (by decide) (by decide)
+  refine ⟨?_, by decide, ?_, by decide⟩
+  · exact (steer_win_exact b v 300 300 500 500 1000 3000 0 1 1 0 800 0 2800 0 (by decide) (by decide)
       (by decide) (by decide) (by decide)).mpr (by decide)
   · rw [steer_win_exact b v 300 300 500 500 1001 3000 1 0 1 0 800 1 4500 1 (by decide) (by decide)
       (by decide) (by decide) (by decide)]
@@ -197,7 +200,7 @@ theorem steer_ct_split_x :
       = .x ∧
     kgate (rE 1001 3000 1 0 1 0 ((Rd.const 300).σ 1300)) (true == false) = .f := by
   refine ⟨rE_reqW _ _ _ _ _ _ (by decide) (by decide) (by decide),
-    rE_stab _ _ _ _ _ _ (by decide) (by decide), by decide, by decide⟩
+    rE_stab _ _ _ _ _ _ (by decide), by decide, by decide⟩
 
 /-- **Non-vacuity (steer)**: a different split on every edge (request rise
 `(2, 0)`, fall `(0, 3)`; select rise `(1, 1)`, fall `(0, 2)`), strict margins,
@@ -211,7 +214,7 @@ theorem steer_witness_W :
     outK true (rE 1000 3000 2 0 0 3 ((Rd.const 300).σ 1400)) (rE 500 4000 1 1 0 2 ((Rd.const 450).σ 1400))
       = .t := by
   have hr := rE_reqW 1000 3000 2 0 0 3 (by decide) (by decide) (by decide)
-  have hs := rE_stab 500 4000 1 1 0 2 (by decide) (by decide)
+  have hs := rE_stab 500 4000 1 1 0 2 (by decide)
   have hW : ∀ b, SteerW b true 200 400 300 600 1000 3000 2 0 0 3 500 1 4000 0 := fun b =>
     (steer_win_exact b true 200 400 300 600 1000 3000 2 0 0 3 500 1 4000 0 (by decide) (by decide)
       (by decide) (by decide) (by decide)).mpr (by decide)
@@ -267,7 +270,7 @@ theorem join_witness_W :
     ReqW 1000 3000 0 2 1 1 (rE 1000 3000 0 2 1 1) ∧ StabK true (500 + 1) (4000 - 1) (rE 500 4000 2 1 1 0) ∧
     (∀ t, wjW false t = .f) ∧ wjW true 1400 = .t := by
   have hc := rE_reqW 1000 3000 0 2 1 1 (by decide) (by decide) (by decide)
-  have hs := rE_stab 500 4000 2 1 1 0 (by decide) (by decide)
+  have hs := rE_stab 500 4000 2 1 1 0 (by decide)
   have hW : ∀ b, JoinW b true 0 0 300 300 450 450 100 100 1000 3000 0 2 1 1 500 1 4000 1 := fun b =>
     (join_win_exact b true 0 0 300 300 450 450 100 100 1000 3000 0 2 1 1 500 1 4000 1 (by decide)
       (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).mpr
@@ -462,12 +465,12 @@ theorem prefix_okW (L : LoopW F I0 IX I1 RX R1 v tb wb s wa D wq i qp G)
           intro k _
           rw [hread]
           by_cases h : t < D + k
-          · simp only [h, ↓reduceIte]; exact Or.inl rfl
+          · simp only [h, ↓reduceIte]; simp
           · simp only [h, ↓reduceIte]
             unfold edge
             by_cases h4 : t - (D + k) < tb
-            · simp only [h4, ↓reduceIte]; exact Or.inl rfl
-            · simp only [h4, ↓reduceIte, show t - (D + k) < tb + wb by omega]; exact Or.inr rfl
+            · simp only [h4, ↓reduceIte]; simp
+            · simp only [h4, ↓reduceIte, show t - (D + k) < tb + wb by omega]; simp
         simp only [h1, h2, ↓reduceIte, edge]
         rcases hq with h | h <;> rw [h]
         · exact H.win_v
@@ -513,13 +516,13 @@ theorem hazardW (L : LoopW F I0 IX I1 RX R1 v tb wb s wa D wq i qp G)
     apply winRd_last
     unfold rdG
     by_cases h : s < D + wq
-    · simp only [h, ↓reduceIte]; exact Or.inl rfl
+    · simp only [h, ↓reduceIte]; simp
     · simp only [h, ↓reduceIte]
       rw [prefix_okW L H hD (s - (D + wq)) (by omega)]
       unfold edge
       by_cases h4 : s - (D + wq) < tb
-      · simp only [h4, ↓reduceIte]; exact Or.inl rfl
-      · simp only [h4, ↓reduceIte, show s - (D + wq) < tb + wb by omega]; exact Or.inr rfl
+      · simp only [h4, ↓reduceIte]; simp
+      · simp only [h4, ↓reduceIte, show s - (D + wq) < tb + wb by omega]; simp
   have hn : K3.ofBool v ≠ K3.ofBool n := fun h => H.ne (ofBool_inj h)
   by_cases h5 : s < s + wa
   · simp only [h5, ↓reduceIte]

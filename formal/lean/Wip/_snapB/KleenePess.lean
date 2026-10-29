@@ -127,7 +127,7 @@ theorem mux_X_ofBool (a b : K3) (v : Bool) :
   cases a <;> cases b <;> cases v <;> decide
 
 theorem Pol.le_kle (p : Pol) : p.Le kle := ⟨fun _ => rfl, fun _ => rfl⟩
-theorem Pol.strict_le (p : Pol) : strict.Le p := ⟨fun h => nomatch h, fun h => nomatch h⟩
+theorem Pol.strict_le (p : Pol) : strict.Le p := ⟨fun h => (nomatch h), fun h => (nomatch h)⟩
 theorem Pol.le_refl (p : Pol) : p.Le p := ⟨id, id⟩
 
 /-! ## 2. Trees under a per-pin policy -/
@@ -148,11 +148,11 @@ theorem evalP_mono {pol pol' : Nat → Pol} (hp : ∀ i, (pol i).Le (pol' i))
     evalP pol ins T ⊑ evalP pol' ins' T := by
   induction T with
   | leaf b => exact Formal.Core.K3.le_refl _
-  | node i lo hi ihl ihh => exact muxP_mono (hp i) (hi i) ihl ihh
+  | node i lo hi' ihl ihh => exact muxP_mono (hp i) (hi i) ihl ihh
 
 /-- The LUT as the tree that splits on `order` (head = output mux). -/
 def lutP (pol : Nat → Pol) (order : List Nat) (init : Nat) (ins : List K3) : K3 :=
-  (build (lutB init) order (List.replicate ins.length false)).evalP pol ins
+  evalP pol ins (build (lutB init) order (List.replicate ins.length false))
 
 /-- Uniform policy. -/
 abbrev U (p : Pol) : Nat → Pol := fun _ => p
@@ -163,6 +163,7 @@ theorem bracket (pol : Nat → Pol) (order : List Nat) (init : Nat) (ins : List 
     (hnd : order.Nodup) (hcov : ∀ j, j ∈ order ↔ j < ins.length) :
     lutP (U strict) order init ins ⊑ lutP pol order init ins ∧
       lutP pol order init ins ⊑ lutK init ins := by
+  unfold lutP
   refine ⟨evalP_mono (fun i => Pol.strict_le _) (fun _ => Formal.Core.K3.le_refl _) _, ?_⟩
   rw [← build_evalK_eq_lutK init ins order hnd hcov, ← evalP_kle]
   exact evalP_mono (fun i => Pol.le_kle _) (fun _ => Formal.Core.K3.le_refl _) _
@@ -171,7 +172,7 @@ theorem bracket (pol : Nat → Pol) (order : List Nat) (init : Nat) (ins : List 
 
 theorem evalP_build_def (pol : Nat → Pol) (ins : List K3) (G : List Bool → Bool) (v : Bool) :
     ∀ (o : List Nat) (acc : List Bool),
-      (build G o acc).evalP pol ins = K3.ofBool v ↔
+      evalP pol ins (build G o acc) = K3.ofBool v ↔
         (build G o acc).evalK ins = K3.ofBool v ∧
           ∀ j ∈ o, ins.getD j .X = .X → (pol j).pass (K3.ofBool v) = true := by
   intro o
@@ -211,9 +212,8 @@ theorem lutP_definite (pol : Nat → Pol) (order : List Nat) (init : Nat) (ins :
 
 /-- The closed form: Kleene value if every `x` pin passes it, else `x`. -/
 def lutM (pol : Nat → Pol) (init : Nat) (ins : List K3) : K3 :=
-  match lutK init ins with
-  | .X => .X
-  | k => if (List.range ins.length).all (fun j => ins.getD j .X != .X || (pol j).pass k) then k else .X
+  if lutK init ins ≠ .X ∧ ∀ j, j < ins.length → ins.getD j .X = .X → (pol j).pass (lutK init ins) = true
+  then lutK init ins else .X
 
 theorem lutM_definite (pol : Nat → Pol) (init : Nat) (ins : List K3) (v : Bool) :
     lutM pol init ins = K3.ofBool v ↔
@@ -221,16 +221,17 @@ theorem lutM_definite (pol : Nat → Pol) (init : Nat) (ins : List K3) (v : Bool
         ∀ j, j < ins.length → ins.getD j .X = .X → (pol j).pass (K3.ofBool v) = true := by
   unfold lutM
   generalize lutK init ins = k
-  cases k <;> cases v <;> simp [List.all_eq_true, Bool.or_eq_true]
-  all_goals
+  split
+  · rename_i hc
     constructor
-    · intro h j hj hx; rcases h j hj with h | h
-      · exact absurd hx h
-      · exact h
-    · intro h j hj
-      by_cases hx : ins.getD j .X = .X
-      · exact Or.inr (h j hj hx)
-      · exact Or.inl hx
+    · intro h; subst h; exact ⟨rfl, hc.2⟩
+    · rintro ⟨h1, _⟩; exact h1
+  · rename_i hc
+    constructor
+    · intro h; exact absurd h.symm (Formal.Core.K3.ofBool_ne_X v)
+    · rintro ⟨h1, h2⟩
+      subst h1
+      exact absurd ⟨Formal.Core.K3.ofBool_ne_X v, h2⟩ hc
 
 theorem k3_ext {a b : K3} (h : ∀ v : Bool, a = K3.ofBool v ↔ b = K3.ofBool v) : a = b := by
   have h0 := h false; have h1 := h true
@@ -293,8 +294,8 @@ theorem lutR_between (pol : Nat → Pol) (init : Nat) (ins : List K3) (prev : K3
     lutM pol init ins ⊑ lutR pol init ins prev ∧ lutR pol init ins prev ⊑ lutK init ins := by
   unfold lutR
   by_cases h : lutK init ins = prev
-  · rw [if_pos h, ← h]; exact ⟨lutM_le_lutK _ _ _, Formal.Core.K3.le_refl _⟩
-  · rw [if_neg h]; exact ⟨Formal.Core.K3.le_refl _, lutM_le_lutK _ _ _⟩
+  · simp only [h, ite_true]; rw [← h]; exact ⟨lutM_le_lutK _ _ _, Formal.Core.K3.le_refl _⟩
+  · simp only [h, ite_false]; exact ⟨Formal.Core.K3.le_refl _, lutM_le_lutK _ _ _⟩
 
 end KleenePess
 end Formal.Cells
