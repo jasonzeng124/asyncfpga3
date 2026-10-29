@@ -1442,3 +1442,21 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
 - seed 3 band_s0.32-0.252-1: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 53/43/63
 - seed 5 max: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 34/27/40
 - seed 5 min: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 93/76/109
+### progress 03:53 (seed 7 "livelock" was a decoder bug, fixed: 54f2ce6)
+- BQ#3 seed 7 (sdf ec9a75df) full stack: vector 1 never completed (0 laps, errs 0) at FAST_MIN and SLOW_MAX; the
+  bits-vs-JSON check said NOT EQUIVALENT (17 LUT functions differ, all $PACKER_GND_NET$LUT$* LUT1 buffers).
+  Traced: nextpnr routes GND out of an UNUSED LUT (GND_WIRE -> SITEWIRE/SLICE_X18Y95/A -> always-on
+  CLBLL_LOGIC_OUTS12 ppip -> SE6/EE2 -> IMUX1 -> the GND LUT's A3). The pips are in the bits; the source LUT and
+  its whole tile have no bits, so fasm2net never decoded the slice, the source node floated, and the IMUX fell back
+  to its VCC default ("pip driven from a floating node", 65 on seed 7, 8 on seed 5, 0 on d/3/4/6/8). The GND LUTs
+  then output 1. A decoder defect, not a design or toolchain one: on silicon an LUT with no INIT bit outputs 0,
+  which is what nextpnr relies on.
+- Fix: decode every CLB tile; an unconfigured LUT6's O6 resolves to constant 0 (const/unused-lut). fasm_equiv also
+  folds a json-only always-ppip that only feeds dead-route pips into that dead route. Seed 7: EQUIVALENT; seed d
+  decode md5-identical before/after; lut_pinmap and lut_pinmap_live controls on seed 7 still DETECTED with the good
+  bits passing. The nofuse acceptance route had no floating pips (unaffected).
+- Seed 7's old rows (FAIL 15/16, vector 1) and seed 5's (PASS) are kept in the scratch dirs as *_olddecoder and
+  are superseded; both seeds re-run on a frozen worktree at 54f2ce6 (same fid model as 78de9c2; only the decoder
+  differs, and it is byte-identical on the other seeds).
+- Lesson: an equivalence verdict of NOT EQUIVALENT on a shipped-recipe route is a stop sign for the sim result,
+  whichever side is wrong; seeds_fid.py should put the equivalence verdict in its row (next).
