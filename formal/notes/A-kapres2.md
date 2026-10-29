@@ -1,7 +1,7 @@
 # A-kapres2 (shard A, probe KapRes2, session 2026-10-29)
 
-STATUS: done for Lean (CornerCell, BandCheck checked) and for the κ sweep on the E8Mux bands at
-coarse resolution (cells of 1/4, five point corners per κ; κ = 0 refined to 1/16, see §3.3).
+STATUS: PARTIAL. Lean done (CornerCell, BandCheck checked). κ sweep on the E8Mux bands done at
+coarse resolution (cells of 1/4, five point corners per κ; then refined (§3.3): κ = 0 on all seeds, κ = 0.06 on seeds 3, 4; d, 5 at 0.06 unfinished).
 Residual-at-cell items that pass at every point corner are NOT resolved (cell-width artefacts or
 real failures between the point corners; §3.4). Old-band sweep stopped after κ = 0.12 (comparison).
 
@@ -19,7 +19,8 @@ Summary of the sweep (xevents8 = committed `Events8Main`, E8Mux corrected bands,
   - seed 4: none.
 - **No item fails at any point corner run at κ ≤ 0.06**, on any seed.
 - **Discharged on the whole corner interval [0,1]** (a cover by cells, CornerCell.cover_mem +
-  cell_band_nat): seed 4 at κ ≤ 0.06 (after refining to 1/8). For d, 3, 5 see §3.3.
+  cell_band_nat): all four seeds at κ = 0; seeds 3 and 4 for every κ ≤ 0.06; seeds d and 5
+  above κ = 0 not determined (refinement at 0.06 unfinished; all their point corners pass there).
 - No structural residual item anywhere (xevents8 has none left on gcd_hw; HDsub, H_ARB, SelOK,
   SelPart, SatPin stay hypotheses of `design_verdict8`).
 
@@ -139,3 +140,53 @@ and where it FAILS at a point corner. Margins ps, strict. Prefix `urig.udut.` dr
   interval** (no residual item of `design_verdict8` on any cell).
 - **κ = 0.06, seed 4** (`summary_refine.json`): 7 cells (1/8, one 1/4), all clean -> seed 4 is
   discharged on [0,1] for every κ ≤ 0.06.
+- **κ = 0.06, seed 3** (`summary_lorefine.json`): 9 cells, all clean -> seed 3 is discharged on
+  [0,1] for every κ ≤ 0.06.
+- **κ = 0.06, seeds d and 5: NOT finished** (stopped at the time box). d: 26 runs, residual items
+  remain on cells of width 1/8 and 1/16 (4 cells of 1/16 already clean); 5: 23 runs, 3 cells of
+  1/16 clean. Every point corner run at κ = 0.06 (c = 0, 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1 for
+  5; 0, 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 1 for d) is clean. Resuming is `KAPPAS="0.06 0.04 0.02"
+  python3 kapres2.py <s> --init 4 --depth 3 --tag _e8` (all outputs are cached by cell name).
+
+### 3.4 Reading the results
+- **The κ at which every gcd_hw seed is discharged on all of c ∈ [0,1]** (a cell cover, so a
+  statement about every shared corner, CornerCell.cover_mem + realizes_cell): κ = 0 for all four
+  seeds; κ ≤ 0.06 for seeds 3 and 4; for d and 5 between 0 and 0.06 not determined (≤ 0.06 is
+  suggested by every point corner passing, not shown).
+- **Above 0.06 the failures are at real corners**: d's three arbiter guard ENTRY items (the
+  re-arm items of A-events5/7/8; E8Mux's real d-gb ENTRY failures are merge3.ua2 and merge2.ua2,
+  here with merge3.ua1 too because κ = 0.12/0.10 scatter is wider than gb at those corners), and
+  seed 5's rig `uenv1` (as in A-kapres: fails at κ = 0.10, passes at the point corners at 0.06;
+  at 0.08 only c = 1 fails, by 2 ps). Seed 3's arb merge12 grant line fails only at κ = 0.12, c = 1.
+- **Items residual on a cell but passing at its end corners** are not resolved at 1/4 cells; the
+  refinements of 3.3 show that most are cell-width artefacts (each one that was refined
+  disappeared). Not every one was refined.
+- **Old bands (99b10a6d, no OUTMUX hop) for comparison** (`runs/`, `table2.txt`, κ = 0.12 only,
+  1/8 cells; the κ = 0.10 runs there were stopped when E8Mux arrived): the same point-corner
+  failures on d (merge2.ua2, merge3.ua2), merge3.ua1 WORSE (−139..−173 vs −85..−29 new: the
+  OUTMUX hop helps it, as E8Mux found at gb), plus merge11.ua1 at c = 0 (−8, not failing with the
+  new bands); seed 3 arb merge12 grant at c = 3/4..1 (−7..−61; new: c = 1, 0); seed 5 `uenv1`
+  identical (−25..−95).
+
+### 3.5 What this does NOT cover
+- "Discharged" = not a residual item of `design_verdict8` for the cell band files; it inherits all
+  of Events8's hypotheses (per-pin SatPin, H_ARB = HARB7 with the OLD virtual arbiter core, which
+  `Events8Arb.unc_not_harb` refutes on uncontested runs (E8ArbFix) -- so every verdict here is
+  conditional on that refuted-in-part hypothesis; SelOK, SelPart, HDsub).
+- "Fails at a corner" = the checker cannot discharge it there; not a counterexample trace.
+- The corner model's own hypotheses (H-affine, one shared corner, symmetric κ, no additive θ,
+  endpoints only as known as prjxray's [MIN, MAX]); the ring data allow per-path κ up to 0.31.
+- The sub-ps `lo = 0 -> 1` raise of the reader (flagged) as before.
+- Point corners are a finite sample; a cover is what makes a statement about the continuum.
+
+## Files
+| file | what |
+|---|---|
+| `formal/lean/Formal/Core/Delay/CornerCell.lean` | cell_band and the cover lemmas (claim) |
+| `formal/lean/Formal/Core/XAudit/BandCheck.lean` | rejecting band reader `readBands` + spec (claim) |
+| `formal/lean/Wip/KapRes2/CornerCellQ.lean` | Mathlib-free ℚ version (checked, Wip) |
+| `formal/lean/Wip/KapRes2/BandCheckRun.lean` | driver: `readBands` on band files |
+| `formal/tools-A/kappa/kapres2/` | `kapres2.py` (sweep), `cornerband2.py`, `check_bands.py`, `table2.py`, `mk.sh` (overlay), `xe8.sh`, `run.sh`, `mkexe.sh` (native build; not used, slot contention), `runs/` (old bands), `runs_e8/` (E8Mux bands, `summary*.json`), `table2.txt`, `table2_e8.txt`, `bandcheck_run.txt` |
+
+Runs: 116 xevents8 runs on the old bands, 209 on the E8Mux bands, all through slot.sh,
+`lean --run` on the overlay; 2 launches with no output (killed by me) were re-run.
