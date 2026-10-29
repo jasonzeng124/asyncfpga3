@@ -262,3 +262,7 @@ launched; r15 running.
 ### progress 09:20
 r16 in: formal's GLSResolve findings on research fid reproduced with own C-element bench; fid_core.vh:35-37 'applied
 late, not lost' REFUTED (read the lines myself; follow pulses <= TLOOP lost 40/40). GLSFid transcription CONFIRMED.
+
+### progress 09:27
+r15 in: ring128_summary soft MISMATCH reproduced exactly from 8 rebuilt routes (md5s match), grading correct; unstated
+~1/3 false-fail rate of the all-7-inside criterion. BQ#2 full stack SLOW_MAX 16/16 reproduced. P10a/b/c running.
