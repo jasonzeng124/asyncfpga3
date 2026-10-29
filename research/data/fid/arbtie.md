@@ -302,5 +302,8 @@ arb_roundtrip.py, prjxray SDF column 0 (FAST_MIN), BQ#2 recipe (R5 sizes, v4 pla
 | BQ#2 seed 7 | 0 of 18 | 1168 ps | merge12.uarb2 ua2 |
 | BQ#2 seed 8 | 0 of 18 | 1020 ps | merge9.uarb1 ua1 |
 | BQ#2 seed 9 | 0 of 18 | 1035 ps | merge9.uarb1 ua2 |
+| BQ#3 (FASTFALL) seeds d,3,4,5,6,7,8,9 | 0 of 18 on each | 691 / 720 / 845 / 1213 / 1241 / 1090 / 866 / 1335 ps | merge12.uarb2 or merge9.uarb1 |
 
-Worst over 4 routes: 878 ps (5.9 TAU at the assumed TAU 150).
+BQ#3 default-seed SDF md5 61e14755 reproduces the BOARD-QUEUE record. Worst over 12 routes: 691 ps (BQ#3 seed
+d, 4.6 TAU at the assumed TAU 150). The link fast fall shortens arbiter round trips (BQ#3 minimum 691 vs BQ#2
+878) but stays clear in the model.
