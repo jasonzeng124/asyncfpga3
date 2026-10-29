@@ -76,7 +76,11 @@ theorem lut62_o5_eq (c : Cell) (hk : c.kind = .lut6_2) (hinv : c.inv = [])
       some (L62.o5Tree (lut62Of c.init) (kvec [a0, a1, a2, a3, a4, a5] 6)) := by
   rw [L62.o5Tree_eq_keval, lut62Of_o5]
   simp only [Cell.out, hk, hinv, List.isEmpty_nil, ite_true, kleeneSem]
-  rfl
+  show some ((lutOf (c.init % 2 ^ 32) 5).keval (kvec [a0, a1, a2, a3, a4] 5)) = _
+  congr 2
+  funext i
+  match i with
+  | ⟨0, _⟩ | ⟨1, _⟩ | ⟨2, _⟩ | ⟨3, _⟩ | ⟨4, _⟩ => rfl
 
 /-! ## CARRY4 -/
 

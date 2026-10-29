@@ -170,10 +170,6 @@ def parseHLn9 (j : Json) : HLn9 :=
       (((jget j "wS").bind jnat).getD 1000000000)
   | _ => .copy (gNat j "i")
 
-def HLn9.isD : HLn9 → Bool
-  | .dsub .. => true
-  | .copy _ => false
-
 def parseParts (j : Json) : List (List Nat) :=
   (gArr j "parts").toList.map fun p => match p.getArr? with
     | .ok a => a.toList.map (fun e => e.getNat?.toOption.getD 0)

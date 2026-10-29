@@ -91,8 +91,9 @@ theorem winFold_const {x : KSig} {a : Nat} {v : K3} :
   | 0, h => by simpa [winFold] using h 0 (Nat.le_refl 0)
   | n + 1, h => by
     simp only [winFold]
-    rw [winFold_const n (fun i hi => h i (by omega)), h (n + 1) (Nat.le_refl _)]
-    · simp [merge]
+    have hl : x (a + n + 1) = v := h (n + 1) (Nat.le_refl _)
+    rw [winFold_const n (fun i hi => h i (by omega)), hl]
+    simp [merge]
 
 theorem winFold_eq_ofBool {x : KSig} {a : Nat} {v : Bool} :
     ∀ n, winFold x a n = ofBool v ↔ ∀ i, i ≤ n → x (a + i) = ofBool v
@@ -173,9 +174,9 @@ structure FFTiming where
   res : Nat
   deriving Repr, DecidableEq
 
-/-- Well-formed windows: each window nonempty, SR removal ≤ 0 (prjxray: -248 ps). -/
+/-- Well-formed: each window nonempty, SR removal ≤ 0 (prjxray: -248 ps), CK->Q band ordered. -/
 def FFTiming.Ok (T : FFTiming) : Prop :=
-  T.dLo ≤ T.dHi ∧ T.ceLo ≤ T.ceHi ∧ T.srLo ≤ T.srHi ∧ T.srHi ≤ 0
+  T.dLo ≤ T.dHi ∧ T.ceLo ≤ T.ceHi ∧ T.srLo ≤ T.srHi ∧ T.srHi ≤ 0 ∧ T.cqLo ≤ T.cqHi
 
 /-- Window end point `e + off`, truncated at 0. -/
 def wpt (e : Nat) (off : Int) : Nat := ((e : Int) + off).toNat
@@ -335,7 +336,7 @@ theorem lastRise_none {ck : Sig} : ∀ {t}, (∀ u, u < t → ¬ rises ck u) →
   | 0, _ => rfl
   | t + 1, h => by
     have h1 : ¬ (ck t = false ∧ ck (t + 1) = true) := h t (Nat.lt_succ_self t)
-    simp only [lastRise, h1, if_false, lastRise_none (t := t) (fun u hu => h u (by omega)),
+    simp only [lastRise, h1, ite_false, lastRise_none (t := t) (fun u hu => h u (by omega)),
       Option.map_none]
 
 theorem lastRise_some {ck : Sig} {e : Nat} : ∀ {t}, rises ck e → e < t → NoRise ck e t →
@@ -345,10 +346,10 @@ theorem lastRise_some {ck : Sig} {e : Nat} : ∀ {t}, rises ck e → e < t → N
     by_cases hte : e = t
     · subst hte
       have : ck e = false ∧ ck (e + 1) = true := he
-      exact ⟨het, by simp only [lastRise, this, and_self, if_true]⟩
+      exact ⟨het, by simp only [lastRise, this, and_self, ite_true]⟩
     · have h1 : ¬ (ck t = false ∧ ck (t + 1) = true) := hn t (by omega) (by omega)
       obtain ⟨h', hl⟩ := lastRise_some (t := t) he (by omega) (fun u h1 h2 => hn u h1 (by omega))
-      exact ⟨het, by simp only [lastRise, h1, if_false, hl, Option.map_some]⟩
+      exact ⟨het, by simp only [lastRise, h1, ite_false, hl, Option.map_some]⟩
 
 /-- The canonical behaviour: the rules read as a definition (resolution picks 0; where no
 rule applies, X). -/
@@ -419,16 +420,18 @@ theorem sim_clocked {async rv init : Bool} {ck : Sig} {r ce d : KSig} {e t : Nat
   obtain ⟨hx1, hx2⟩ := guard_excl T hsr he het hg
   obtain ⟨_, hl⟩ := lastRise_some he het hn
   rw [sim_eq]
-  simp only [hx1, hx2, if_false, hl]
+  simp only [hx1, hx2, ite_false, hl]
   classical
-  simp only [hg, if_true, nextAt]
+  simp only [hg, ite_true, nextAt]
+  congr
 
 /-- **Non-vacuity**: `sim` satisfies the relation, for every input and every parameter set
 with `srHi ≤ 0`. -/
 theorem sim_rel (async rv init : Bool) (ck : Sig) (r ce d : KSig) (hok : T.Ok) :
     FlopRel T async rv init ck r ce d (sim T async rv init ck r ce d) := by
   classical
-  have hsr : T.srHi ≤ 0 := hok.2.2.2
+  have hsr : T.srHi ≤ 0 := hok.2.2.2.1
+  have hcq : T.cqLo ≤ T.cqHi := hok.2.2.2.2
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro t hno hr
     have hx1 : ¬ (async = true ∧ T.sqHi ≤ t ∧ EqOn r one (t - T.sqHi) t) := by
@@ -439,36 +442,36 @@ theorem sim_rel (async rv init : Bool) (ck : Sig) (r ce d : KSig) (hok : T.Ok) :
       rintro ⟨ha, f, _, hft, h1, _, _⟩
       have := hr ha f (Nat.zero_le _) hft
       rw [h1 f (by omega) (Nat.le_refl _)] at this; exact absurd this (by decide)
-    rw [sim_eq]
-    simp only [hx1, hx2, if_false, lastRise_none hno, hr, if_true]
-    simp [hr]
+    rw [sim_eq, if_neg hx1, if_neg hx2]
+    simp only [lastRise_none hno]
+    rw [if_pos hr]
   · intro e t he het hn hg h1
-    rw [sim_clocked T hsr he het hn hg]; simp only [h1, if_true]
+    rw [sim_clocked T hsr he het hn hg]; simp only [h1, ite_true]
   · intro e t he het hn hg h1 h2
     rw [sim_clocked T hsr he het hn hg]
-    simp only [show ¬ t ≤ e + T.cqLo by omega, h2, if_true, if_false]
+    simp only [show ¬ t ≤ e + T.cqLo by omega, h2, ite_true, ite_false]
   · intro e t he het hn hg h1 hx
     rw [sim_clocked T hsr he het hn hg]
-    simp only [show ¬ t ≤ e + T.cqLo by omega, show ¬ t ≤ e + T.cqHi by omega, if_false]
+    simp only [show ¬ t ≤ e + T.cqLo by omega, show ¬ t ≤ e + T.cqHi by omega, ite_false]
     simp [hx]
   · intro e t he het hn hg hx h1 h2
     rw [sim_clocked T hsr he het hn hg]
-    simp only [show ¬ t ≤ e + T.cqLo by omega, show ¬ t ≤ e + T.cqHi by omega, if_false, hx,
-      h2, if_true]
+    simp only [show ¬ t ≤ e + T.cqLo by omega, show ¬ t ≤ e + T.cqHi by omega, ite_false, hx,
+      h2, ite_true]
     simp
   · intro e he hx
     refine ⟨false, fun t ht hn hg => ?_⟩
     rw [sim_clocked T hsr he (by omega) hn hg]
     simp only [show ¬ t ≤ e + T.cqLo by omega, show ¬ t ≤ e + T.cqHi by omega,
-      show ¬ t ≤ e + T.cqHi + T.res by omega, if_false, hx]
+      show ¬ t ≤ e + T.cqHi + T.res by omega, ite_false, hx]
     simp
   · intro ha t ht hr
     rw [sim_eq]; simp [ha, ht, hr]
   · intro ha f t hf
     rw [sim_eq]
     by_cases h1 : async = true ∧ T.sqHi ≤ t ∧ EqOn r one (t - T.sqHi) t
-    · simp only [h1, and_self, if_true]
-    · simp only [h1, if_false]; simp [ha]; exact Or.inr ⟨f, hf⟩
+    · simp only [h1, and_self, ite_true]
+    · simp only [h1, ite_false]; simp [ha]; exact Or.inr ⟨f, hf⟩
 
 /-- So the relation is inhabited for every input (it constrains, it does not exclude). -/
 theorem flopRel_inhabited (async rv init : Bool) (ck : Sig) (r ce d : KSig) (hok : T.Ok) :

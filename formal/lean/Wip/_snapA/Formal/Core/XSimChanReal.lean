@@ -4,7 +4,6 @@ import Mathlib.Algebra.Order.Archimedean.Real.Basic
 import Formal.Core.XSimChan
 import Formal.Core.Delay.Pure
 import Formal.Core.Delay.Inertial
-import Formal.Core.TernaryChannels
 
 /-!
 # Formal.Core.XSimChanReal — `XSim`/`xaudit` cells over continuous time: transport and inertial
@@ -37,10 +36,9 @@ the `Core/Delay` ones:
   behaviour is `0`.
 * `PhysChan q lo hi`: a gate channel that is transport with band `[L, H]` or
   bounded inertial with band `[L, H]` and window `ρ`, under the side conditions
-  above. `physChan_chanCells` feeds `sound_cells`;
-  `physChan_nodeChan` places it inside `TernaryChannels.NodeChan (lo q) (hi q)`,
-  i.e. the same channels for which the untimed ternary analysis is sound
-  (`TernaryChannels.rcausal_of_nodeChan`).
+  above. `physChan_chanCells` feeds `sound_cells`; `XSimChanTern.physChan_nodeChan`
+  places it inside `TernaryChannels.NodeChan (lo q) (hi q)`, the class for which
+  the untimed ternary analysis is sound (`TernaryChannels.rcausal_of_nodeChan`).
 * `sound_real`: soundness of `XSim.val` for ℝ-time networks of `PhysChan`
   gates (`1 ≤ lo` on every gate, so every lower delay bound is `≥ q > 0`;
   `TernaryChannels.zero_delay_chan_unsound`/`zero_delay_inertial_unsound`
@@ -259,14 +257,6 @@ theorem physChan_chanCells {q : ℝ} {c : ℝ → ℕ} (hc : CellMap q c) (hq : 
   rcases h with ⟨L, H, h1, h2, h⟩ | ⟨ρ, L, H, h1, h2, h3, h⟩
   · exact chanCells_of_follows hc hq h1 h2 (chan_follows h)
   · exact boundedInertial_chanCells hc hq h1 h2 h3 h
-
-/-- The same channels are `TernaryChannels.NodeChan (lo q) (hi q)`: the class
-for which the untimed ternary analysis is sound (`rcausal_of_nodeChan`). -/
-theorem physChan_nodeChan {q : ℝ} {lo hi : ℕ} {e o : ℝ → Bool} (h : PhysChan q lo hi e o) :
-    TernaryChannels.NodeChan ((lo : ℝ) * q) ((hi : ℝ) * q) e o := by
-  rcases h with ⟨L, H, h1, h2, h⟩ | ⟨ρ, L, H, h1, h2, _, h⟩
-  · exact Or.inl ⟨L, H, h1, h2, h⟩
-  · exact Or.inr ⟨ρ, L, H, h1, h2, h⟩
 
 /-- `1 ≤ lo` makes every lower delay bound at least one cell, `q > 0`. -/
 theorem physChan_lower_pos {q : ℝ} (hq : 0 < q) {lo : ℕ} (hlo : 1 ≤ lo) : 0 < (lo : ℝ) * q :=

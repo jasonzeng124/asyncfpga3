@@ -914,7 +914,7 @@ to `0` at the threshold (`pulseWidth_small'`). -/
 theorem channel_pulse (a Δ : ℝ) (hΔ : 0 < Δ) :
     P.channel [a, a + Δ] = if Δ ≤ P.infUp - P.dmin then []
       else [a + P.infUp, a + P.infUp + P.pulseWidth Δ] := by
-  have hs : [a, a + Δ].Pairwise (· < ·) := by simp; linarith
+  have hs : [a, a + Δ].Pairwise (· < ·) := by simpa using (by linarith : a < a + Δ)
   rw [channel_eq_extend hs]
   have h0 : extend [a, a + Δ] 0 = a := extend_agree _ 0 (by simp)
   have h1 : extend [a, a + Δ] 1 = a + Δ := extend_agree _ 1 (by simp)
@@ -985,7 +985,6 @@ theorem rat_pulse_general (Δ : ℝ) (hΔ : 0 < Δ) :
 /-- **Chained history on lists**: `[0, 1/2, 5] ↦ [89/13]` (`rat_memory` via the
 algorithm): the cancelled runt still shortens the next delay to `24/13 < δ∞`. -/
 theorem rat_memory_channel : ratPair.channel [0, 1 / 2, 5] = [89 / 13] := by
-  have hs : [(0 : ℝ), 1 / 2, 5].Pairwise (· < ·) := by simp; norm_num
   rw [channel_eq [0, 1 / 2, 5] InvolutionPair.ratIn (fun n h => by
     simp only [List.length_cons, List.length_nil] at h
     rcases n with _ | _ | _ | n
@@ -994,6 +993,29 @@ theorem rat_memory_channel : ratPair.channel [0, 1 / 2, 5] = [89 / 13] := by
     · norm_num [InvolutionPair.ratIn]
     · omega) InvolutionPair.ratIn_mono]
   exact InvolutionPair.rat_memory
+
+end
+
+/-! ## 10. The exp-channel (first-order RC + pure delay `T_p`), on traces
+
+`ExpLog` abstracts `exp`/`log` by named hypotheses (`Involution.lean`); the real instance
+`E x = e^{x/τ}`, `L y = τ ln y` needs `Mathlib.Analysis.SpecialFunctions.Log.Basic`
+(Wip/InvTrace/ExpReal.lean). -/
+
+noncomputable section
+
+theorem exp_dmin_eq (X : ExpLog) (Tp : ℝ) (hTp : 0 < Tp) : (X.expPair Tp hTp).dmin = Tp :=
+  ((X.expPair Tp hTp).isDMin_iff.mp (X.exp_dmin Tp hTp)).symm
+
+/-- **(d) exp-channel**: an isolated pulse `[a, a + Δ]` is cancelled iff `Δ ≤ τ ln 2`
+(here `X.L 2`); otherwise it comes out `T_p + τ ln 2` later with width `pulseWidth Δ`. -/
+theorem exp_channel_pulse (X : ExpLog) (Tp : ℝ) (hTp : 0 < Tp) (a Δ : ℝ) (hΔ : 0 < Δ) :
+    (X.expPair Tp hTp).channel [a, a + Δ] = if Δ ≤ X.L 2 then []
+      else [a + (Tp + X.L 2), a + (Tp + X.L 2) + (X.expPair Tp hTp).pulseWidth Δ] := by
+  rw [channel_pulse a Δ hΔ, exp_dmin_eq]
+  show (if Δ ≤ Tp + X.L 2 - Tp then _ else _) = _
+  rw [show Tp + X.L 2 - Tp = X.L 2 by ring]
+  rfl
 
 end
 

@@ -155,6 +155,10 @@ inductive HLn9 where
   | dsub (a xm S ab : Nat) (arms : List Arm) (w1 w2 wS : Nat)
   deriving Repr, Inhabited
 
+def HLn9.isD : HLn9 → Bool
+  | .dsub .. => true
+  | .copy _ => false
+
 /-- The first-reach witness check: log line `w` is an unlabelled walk `S → a` with at most
 one token. -/
 def WSOK (J : Array Jd) (S a w : Nat) : Prop :=

@@ -80,33 +80,25 @@ theorem first5_snoc5 {α : Type} (y : Fin 5 → α) (b : α) : first5 (snoc5 y b
 
 theorem snoc5_5 {α : Type} (y : Fin 5 → α) (b : α) : snoc5 y b 5 = b := rfl
 
-theorem snoc5_eta {α : Type} (x : Fin 6 → α) : snoc5 (first5 x) (x 5) = x := by
-  funext i
-  unfold snoc5 first5
-  split
-  · rfl
-  · next h => congr 1; ext; simp; omega
-
 theorem addr_split : ∀ x : Fin 6 → Bool, addr x = addr (first5 x) + 32 * (x 5).toNat := by
   decide
 
 theorem lo5_entry (L : Lut62) {a : Nat} (h : a < 32) : (lo5 L).entry a = L.init.getLsbD a := by
-  simp [lo5, Lut62.o5, Lut.entry, BitVec.getLsbD_setWidth, h]
+  simp [lo5, Lut62.o5, Lut.entry, h]
 
 theorem hi5_entry (L : Lut62) {a : Nat} (h : a < 32) : (hi5 L).entry a = L.init.getLsbD (32 + a) := by
-  simp [hi5, Lut.entry, BitVec.getLsbD_setWidth, BitVec.getLsbD_ushiftRight, h]
+  simp [hi5, Lut.entry, BitVec.getLsbD_ushiftRight, h]
 
 /-- Boolean `O6` splits on `A6`. -/
 theorem o6_eval_split (L : Lut62) (x : Fin 6 → Bool) :
     L.o6.eval x = bmux (x 5) ((lo5 L).eval (first5 x)) ((hi5 L).eval (first5 x)) := by
   have ha := addr_lt (first5 x)
-  simp only [Lut.eval, Lut62.o6, Lut.entry, addr_split x]
+  show L.init.getLsbD (addr x) = bmux (x 5) ((lo5 L).entry (addr (first5 x)))
+    ((hi5 L).entry (addr (first5 x)))
+  rw [addr_split x, lo5_entry L ha, hi5_entry L ha]
   cases x 5
-  · simp [bmux, ← lo5_entry L ha, Lut.entry]
-  · simp only [bmux, Bool.toNat_true, ite_true]
-    rw [← Lut.entry, ← Lut.entry, hi5_entry L ha]
-    · show L.init.getLsbD _ = _
-      congr 1; omega
+  · simp [bmux]
+  · simp [bmux, Nat.add_comm]
 
 theorem consistent_split {v : Fin 6 → K3} {x : Fin 6 → Bool} :
     Consistent v x ↔ Consistent (first5 v) (first5 x) ∧ v 5 ⊑ ofBool (x 5) := by
@@ -118,7 +110,7 @@ theorem consistent_split {v : Fin 6 → K3} {x : Fin 6 → Bool} :
       simp only [first5] at this
       have e : (⟨i.val, by omega⟩ : Fin 6) = i := Fin.ext rfl
       rw [e] at this; exact this
-    · have e : i = 5 := Fin.ext (by have := i.isLt; simp; omega)
+    · have e : i = 5 := Fin.ext (by have := i.isLt; show i.val = 5; omega)
       rw [e]; exact h2
 
 /-- A Kleene value is determined by which Booleans it equals. -/

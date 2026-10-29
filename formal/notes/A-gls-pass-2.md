@@ -1,12 +1,21 @@
 # A-gls-pass-2: what a passing board-fidelity (GLS_MODEL=fid) GLS run implies
 
-Probe GLSPass2, shard A, session 2026-10-29. STATUS: IN PROGRESS (Lean written; check
-results below are updated as they come in).
+Probe GLSPass2, shard A, session 2026-10-29. STATUS: DONE (both files check).
 Files: `formal/lean/Formal/Core/Delay/GLSFid.lean`, `formal/lean/Formal/Core/Delay/GLSPass2.lean`.
-Scratch only: `formal/lean/Wip/GLSPass2/MuxTest.lean` (the mux-tree lemma's first try; superseded).
 Research side read at `origin/claude/research` tip `6524fa3` (read-only `git show`), written
 `R:<path>:<line>`. Lean core only (no Mathlib). Imports `Trace.Discrete` and `Delay.SAF`
 (both already have oleans); does NOT import `GLSPass.lean` (being fixed by GLSFix).
+
+## What checks
+
+    cd /home/user/asyncfpga3/formal
+    ./check.sh Formal/Core/Delay/GLSFid.lean Formal/Core/Delay/GLSPass2.lean
+    -> [audit] 249 declarations checked
+    -> [check] OK
+
+(check.sh per-file mode, so `-DautoImplicit=false`; no errors, no warnings in the last
+`lake env lean` run; no sorry/axiom/native_decide; GLSFid is passed first only because it
+has no olean in .lake/build yet.)
 
 ## 1. The fid LUT channel, as the Verilog implements it
 
@@ -96,6 +105,64 @@ included). Hypotheses `Topo` (acyclic, topologically numbered) and `Local`.
   (`w + lo ≤ hi`) never raises the output. `buf_inertial_loses`: inertial `δ ≥ w` loses it
   at every point while every fid run shows it.
 
-## 3. Comparison with B's notes/B-gls-vs-exact.md
+Plain-language problem statements.
+- `bracket`: ASSUMES an acyclic netlist of positive-unate cells, primary inputs that only
+  rise, and that the two corner fid runs exist. PROVES every band behaviour lies between
+  the slow-corner run and the fast-corner run at every signal and time. DOES NOT cover
+  feedback (every C-element, latch, arbiter), falling inputs (`and_*` shows it fails), XOR
+  data paths, X values, or inertial silicon.
+- `band_agree_sta`: ASSUMES acyclic, local cells and a static horizon. PROVES all band
+  behaviours agree and are constant from the horizon. DOES NOT say anything about glitches
+  or values before the horizon, which is where bundled-data margins live.
+- counterexamples: each is a concrete circuit, stimulus and pair of delay assignments;
+  they show that the fid run set {min, typ, max, band(α), scaled} is not a cover of the
+  band for non-monotone logic (`xor`), for monotone logic with mixed-direction inputs
+  (`and`), and that even ALL fixed-delay runs are not a cover of the per-edge envelope
+  (`buf`). They do not say how often such shapes occur in gcd_hw.
 
-(see §5 once written)
+## 3. Comparison with B's notes/B-gls-vs-exact.md (read-only, written at research 7f6c724)
+
+- B §1 "within one run, the fid GLS is one realisation of B's per-pin model with window
+  width 0, rise = fall": now a theorem (`fidO6_perPin`, `fid_in_band`).
+- B §3.2 "box/band terms (rise/fall spread) are not reachable by the GLS": formalised by
+  `buf_every_point_passes` + `buf_band_loses`: no fixed-delay run, at any point, reaches a
+  per-edge behaviour, and there are properties whose truth depends on it.
+- B §3.2 "A-gls-pass (c)'s bracketing needs monotone acyclic logic, and every one of these
+  cells has feedback": agrees. `bracket` is now per-pin (the fid shape) and covers
+  edge-varying behaviours, but still needs acyclic monotone logic with rising inputs.
+- B §1 "FID_RESOLVE counters invisible": agreed, and stronger: a "rejected" runt is still
+  emitted on the output (iverilog, §1 above), so the counters alone would undercount what
+  downstream saw.
+- B §3.1 says CARRY4 and SLICE_LATX are SAF even under fid. That is stale at 6524fa3:
+  `R:cells/gls/prims.v:209-215,459-465,557-562,1025-1028` now give FFs, latches, CARRY4 and
+  BUFGCTRL per-pin transport fid variants. CARRY4 has the same per-(pin,output) shape as
+  `perPin`, but this probe did not transcribe it.
+
+## 4. For the research branch (suggestions only)
+
+1. A fid pass at min/max/band corners is NOT a band pass for non-monotone logic
+   (`xor_consistent_pass`/`xor_band_fail`): the consistent-corner runs keep every
+   equal-band skew at 0. Add mixed-corner runs aimed at reconvergent pins (one pin min,
+   the other max), or use the formal X/hazard audit, which covers the band.
+2. `GLS_SCATTER` draws do give nonzero skews, so they can find the XOR case, but only with
+   skew > δ under inertial silicon; they sample, they do not cover.
+3. No fid run models rise ≠ fall; properties that need a pulse to arrive (two-phase
+   enables, runt-sensitive loops) are not covered by any number of fid runs (`buf_*`).
+4. `fid_core.vh:30` comment: a rejected runt is not invisible; print the resolver
+   counters (B's C1) AND count runts emitted.
+5. The time-0 X window [0, max T_k) is real in the fid LUT; harmless if reset outlasts it.
+
+## 5. Not done
+- Full trace model of FID_RESOLVE (event scheduling, kick, ignore windows); only the
+  decision rule.
+- CARRY4 / FF / latch fid variants; multi-cell loops.
+- A unate (per-signal polarity) generalisation of `bracket`; nets with feedback.
+- Existence of fid runs on general acyclic nets (hypothesis in `bracket`; existence shown
+  for the counterexample nets: `twoPinRun_is`, `buf_run_exists`).
+- Real time (the 1 ps quantum is iverilog's timescale, so discrete is faithful to the sim,
+  not to silicon).
+
+## For the lead
+- Lakefile: no change (glob). Optionally add `import Formal.Core.Delay.GLSFid` and
+  `import Formal.Core.Delay.GLSPass2` to `Formal.lean`.
+- No Wip files.

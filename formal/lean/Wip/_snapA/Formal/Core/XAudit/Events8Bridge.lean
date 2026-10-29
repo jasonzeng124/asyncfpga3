@@ -30,7 +30,15 @@ or a non-vacuity result.
 * §5 **SelPart by construction.** `selPart_of_value`: groups that are indicators of distinct
   patterns of ONE value sequence per partition satisfy `SelPart`.
 
-NOT here: H_ARB (no shard-B/C statement implies `HARB7`; see the notes), HDsub (probe HDsub),
+  `sel_read_hold` / `selOK_of_hold`: the same with an open-ended hold (no transaction end
+  needed; `hold_of_window` turns B's finite window into it).
+* §6 **H_ARB, gap only.** `nd7_follow`, `nd7_steady`: a virtual stage (a grant) follows its
+  pin reads with no hold of its own, so with steady reads it is steady after `hiF` (bounded
+  response). B's digital race theorems (`ArbInvolution.arb_grants_eternal`, `ArbBinary` §4)
+  exhibit grants that pulse for ever with steady requests: HARB7 can hold only on traces
+  without that contest. No B / C statement implies `HARB7`.
+
+NOT here: HDsub (probe HDsub),
 a joint witness of HARB7/SelOK/HDsub on gcd_hw (the gcd_hw netlist is not a Lean term).
 -/
 
@@ -427,5 +435,101 @@ theorem selPart_of_value (sel : Nat → Nat → Bool) (parts : List (List Nat))
   rw [hsel P hP g2 h2, decide_eq_true_eq] at c
   exact hinj P hP g1 h1 g2 h2 hne (by rw [a, c])
 
+
+/-! ### SelOK with an open-ended hold (a run may end inside a transaction) -/
+
+/-- **One select read, hold form.** As `sel_read_of_steer`, but the hold is stated against
+every time the source is in transaction `k` (no transaction end `F k` is needed, so a run
+that stays in transaction `k` for ever is covered): the select is `v k` at every `t ≥ S0 k`
+with `t + Slo ≤ u + Rhi` for some `u` at which the source count is `2k+1`. Elementary. -/
+theorem sel_read_hold {Rlo Rhi Slo Shi : Nat} {gR gS : Nat → Nat}
+    (wR : Warp Rlo Rhi gR) (wS : Warp Slo Shi gS) (M : Nat → Nat) (hM0 : M 0 = 0)
+    (xs : Sig) (v : Nat → Bool) (R S0 : Nat → Nat)
+    (hwin : ∀ u k, M u = 2 * k + 1 → R k ≤ u)
+    (hsetup : ∀ k, S0 k + Shi ≤ R k + Rlo)
+    (hstab : ∀ k t u, M u = 2 * k + 1 → S0 k ≤ t → t + Slo ≤ u + Rhi → xs t = v k) :
+    ∀ s k, M (gR s) = 2 * k + 1 → xs (gS s) = v k := by
+  intro s k hm
+  have hlh := warp_lo_le_hi wS
+  have hlo : Rlo ≤ s := by
+    rcases Nat.lt_or_ge s Rlo with hc | hc
+    · have : gR s = 0 := by have := wR.le_late s; omega
+      rw [this, hM0] at hm; omega
+    · exact hc
+  have a1 := wR.le_late s; have a2 := wR.early_le s
+  have b1 := wS.le_late s; have b2 := wS.early_le s
+  have hR := hwin _ k hm; have hS := hsetup k
+  exact hstab k _ (gR s) hm (by omega) (by omega)
+
+/-- B's finite form gives the hold form: stable on `[S0 k, S1 k)`, the transaction inside
+`[R k, F k)`, and B's H_HOLD_PIN `F k + Rhi ≤ S1 k + Slo`. -/
+theorem hold_of_window {Rhi Slo : Nat} (M : Nat → Nat) (xs : Sig) (v : Nat → Bool)
+    (F S0 S1 : Nat → Nat) (hwin : ∀ u k, M u = 2 * k + 1 → u < F k)
+    (hstab : ∀ k t, S0 k ≤ t → t < S1 k → xs t = v k) (hhold : ∀ k, F k + Rhi ≤ S1 k + Slo) :
+    ∀ k t u, M u = 2 * k + 1 → S0 k ≤ t → t + Slo ≤ u + Rhi → xs t = v k := by
+  intro k t u hm h1 h2
+  have := hwin u k hm; have := hhold k
+  exact hstab k t h1 (by omega)
+
+/-- **SelOK, hold form** (multi-bit selects, open-ended hold). -/
+theorem selOK_of_hold {N : Nat} {net : Net4 N} {b : Bands4 net} {sel : Nat → Nat → Bool}
+    (bh : Beh7 net b sel)
+    (nb : (j : Fin N) → Fin (net.ar j) → Nat)
+    (φ : (j : Fin N) → (p : Fin (net.ar j)) → (Fin (nb j p) → Bool) → Bool)
+    (xs : (j : Fin N) → (p : Fin (net.ar j)) → Fin (nb j p) → Sig)
+    (gS : (j : Fin N) → (p : Fin (net.ar j)) → Fin (nb j p) → Nat → Nat)
+    (Slo Shi : (j : Fin N) → (p : Fin (net.ar j)) → Fin (nb j p) → Nat)
+    (wS : ∀ j p q, Warp (Slo j p q) (Shi j p q) (gS j p q))
+    (hsv : ∀ j p s, net.pk j p = PK.filt → bh.sv j p s = φ j p (fun q => xs j p q (gS j p q s)))
+    (R : (j : Fin N) → Fin (net.ar j) → Nat → Nat)
+    (S0 : (j : Fin N) → (p : Fin (net.ar j)) → Fin (nb j p) → Nat → Nat)
+    (vb : (j : Fin N) → (p : Fin (net.ar j)) → Fin (nb j p) → Nat → Bool)
+    (hwin : ∀ j p u k, net.pk j p = PK.filt → bh.M u (net.src j p) = 2 * k + 1 → R j p k ≤ u)
+    (hsetup : ∀ j p q (i : Fin (net.nc j p)) k, net.pk j p = PK.filt →
+      S0 j p q k + Shi j p q ≤ R j p k + b.loC j p i)
+    (hstab : ∀ j p q (i : Fin (net.nc j p)) k t u, net.pk j p = PK.filt →
+      bh.M u (net.src j p) = 2 * k + 1 → S0 j p q k ≤ t → t + Slo j p q ≤ u + b.hiC j p i →
+      xs j p q t = vb j p q k)
+    (hsel : ∀ j p k, net.pk j p = PK.filt → sel (net.grp j p) k = φ j p (fun q => vb j p q k)) :
+    bh.SelOK := by
+  intro j p s i hk hodd
+  have hk2 : bh.M (bh.G j p i s) (net.src j p) = 2 * (bh.M (bh.G j p i s) (net.src j p) / 2) + 1 := by
+    omega
+  rw [hsv j p s hk, hsel j p _ hk]
+  congr 1
+  funext q
+  exact sel_read_hold (bh.wG j p i) (wS j p q) (fun u => bh.M u (net.src j p))
+    (bh.M_zero _) (xs j p q) (vb j p q) (R j p) (S0 j p q)
+    (fun u k h => hwin j p u k hk h) (fun k => hsetup j p q i k hk)
+    (fun k t u h1 h2 h3 => hstab j p q i k t u hk h1 h2 h3) s _ hk2
+
+/-! ## §6 H_ARB: what HARB7 asserts that no B / C theorem gives -/
+
+/-- **What HARB7 asserts about a virtual stage (an arbiter grant).** Its value at `t` is
+fixed by its pin reads at `F t` whenever they agree (and reset is off): it follows them,
+with no hold of its own. -/
+theorem nd7_follow {N : Nat} {net : Net4 N} {b : Bands4 net} {cc : Fin N → Sig} {j : Fin N}
+    (nd : ND7 net b cc j) (hm : net.mg j = false) (t : Nat) (y : Bool)
+    (hr : nd.r (nd.F t) = false) (hall : ∀ p, (nd.pin p (nd.F t) ^^ net.neg j p) = y) :
+    cc j t = y := by
+  rw [nd.hc t]
+  simp only [hm, Bool.false_eq_true, ite_false, hr]
+  exact Events2.cel_all _ _ _ (net.ar_pos j) hall
+
+/-- **Bounded response (no eternal oscillation).** If from `t0` on reset is off and every
+pin read of a virtual stage is steady at `y`, the stage is `y` from `t0 + hiF` on. A grant's
+pins are its request and `ctl` filtered by the free select `sv` (σ); with SelOK on that pin
+σ is fixed per `ctl` transaction, so with steady requests and a steady `ctl` the virtual
+grants are steady. B's `ArbInvolution.arb_grants_eternal` (the decision element's grants
+pulse forever at the critical request gap, requests steady) is not such a behaviour:
+HARB7 + SelOK can hold only on traces where that contest does not occur. -/
+theorem nd7_steady {N : Nat} {net : Net4 N} {b : Bands4 net} {cc : Fin N → Sig} {j : Fin N}
+    (nd : ND7 net b cc j) (hm : net.mg j = false) (y : Bool) (t0 : Nat)
+    (hr : ∀ s, t0 ≤ s → nd.r s = false)
+    (hp : ∀ s, t0 ≤ s → ∀ p, (nd.pin p s ^^ net.neg j p) = y) :
+    ∀ t, t0 + b.hiF j ≤ t → cc j t = y := by
+  intro t ht
+  have := nd.wF.early_le t
+  exact nd7_follow nd hm t y (hr _ (by omega)) (hp _ (by omega))
 
 end Formal.Core.XAudit.Events8Bridge

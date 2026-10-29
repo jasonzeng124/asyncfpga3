@@ -413,6 +413,19 @@ theorem buf_every_point_passes (D : Nat → Nat → Nat) (p w : Nat) (hw : 1 ≤
   rw [Formal.Core.DelaySAF.pulse_false_eq]
   simp; omega
 
+/-- The fid run of `bufNet` exists (so `buf_every_point_passes` is not vacuous). -/
+theorem buf_run_exists (D : Nat → Nat → Nat) (x : Sig) :
+    FidRun bufNet D (fun _ => x) (fun k t => if k = 0 then x t else if k = 1 then x (t - D 1 0)
+      else false) := by
+  refine ⟨fun i hi => ?_, fun k hk => ?_⟩
+  · have : i = 0 := by simp [bufNet] at hi; omega
+    subst this; rfl
+  · have hk0 : k ≠ 0 := by simp [bufNet] at hk; omega
+    funext t
+    by_cases h1 : k = 1
+    · subst h1; simp [perPin, bufNet]
+    · simp [perPin, bufNet, hk0, h1]
+
 /-- **Buffer, the band loses the pulse.** If the pin's band is at least `w` wide
 (`w + lo ≤ hi`), some band behaviour (rise delayed by `hi`, fall by `lo`) never raises the
 buffer output. -/
@@ -429,7 +442,7 @@ theorem buf_band_loses (lo hi p w : Nat) (hp : 1 ≤ p) (hw : w + lo ≤ hi) :
     by_cases h1 : k = 1
     · simp only [h1, ite_true]
       show false = pulse false p w (f t)
-      exact (he t).symm
+      rw [← he t]
     · simp [h1]
   · simp
 
