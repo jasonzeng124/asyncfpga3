@@ -51,6 +51,8 @@ open Formal.Core.XAudit.Events9PrefixSel
 open Formal.Core.XAudit.Events9SelL
 open Formal.Core.XAudit.Events9SelJ
 
+instance instOK7 {N : Nat} (net : Net4 N) : Decidable net.OK7 := by unfold Net4.OK7; exact inferInstance
+
 /-! ## Certificate reader (copied verbatim from `Events9Main`) -/
 
 structure PinD where
