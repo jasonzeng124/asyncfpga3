@@ -289,7 +289,7 @@ surviving output transitions has the parity of `n`.  So the output (which starts
 and toggles at each survivor) makes, at `tent n`, exactly the transition of input
 transition `n`: rising for even `n`, falling for odd `n`. -/
 theorem surv_parity {N n : ℕ} (h : P.Surv N t n) : P.survBelow N t n % 2 = n % 2 := by
-  have := survBelow_parity t ht N n (le_of_lt h.1)
+  have := survBelow_parity (P := P) t ht N n (le_of_lt h.1)
   rw [if_neg (fun ⟨m, hm, hc⟩ => h.2.2 m hm hc)] at this
   simpa using this
 
@@ -864,7 +864,7 @@ theorem channel_sorted {l : List ℝ} (hs : l.Pairwise (· < ·)) :
 
 theorem outList_length_parity (t : ℕ → ℝ) (ht : ∀ n, t n < t (n + 1)) (N : ℕ) :
     (P.outList N t).length % 2 = N % 2 := by
-  have h := survBelow_parity t ht N N le_rfl
+  have h := survBelow_parity (P := P) t ht N N le_rfl
   rw [if_neg (fun ⟨m, hm, hc⟩ => by have := hc.1; omega)] at h
   simpa [InvolutionPair.survBelow, InvolutionPair.outList, InvolutionPair.survIdx] using h
 

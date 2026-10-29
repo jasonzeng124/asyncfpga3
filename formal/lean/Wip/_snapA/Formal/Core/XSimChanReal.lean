@@ -29,7 +29,7 @@ the `Core/Delay` ones:
   `ChanCells c lo hi` when `lo q ≤ L`, `H ≤ hi q` and the rejection window is
   no wider than the abstract window, `ρ ≤ (hi + 1 - lo) q`.
 * `inertial_wide_not_chanCells`: and that side condition is necessary. For
-  every `q > 0`, `1 ≤ lo ≤ hi` and `ρ > (hi + 1 - lo) q` there is an input and
+  every `q > 0`, `lo ≤ hi` and `ρ > (hi + 1 - lo) q` there is an input and
   a `BoundedInertial ρ (lo q) (hi q)` output (the filtered pulse) that is NOT
   `ChanCells ⌊·/q⌋₊ lo hi`. `cex_real` is the end-to-end failure on a
   one-buffer network: the abstract simulation prints `1`, the inertial
@@ -65,7 +65,8 @@ theorem cellMap_floor {q : ℝ} (hq : 0 < q) : CellMap q (fun t => ⌊t / q⌋�
   · have := Nat.lt_floor_add_one (t / q)
     calc t = t / q * q := (div_mul_cancel₀ t hq.ne').symm
       _ < _ := mul_lt_mul_of_pos_right this hq
-  · have hpos : 0 ≤ t / q := by
+  · simp only at h1
+    have hpos : 0 ≤ t / q := by
       by_contra hn
       have := Nat.floor_of_nonpos (le_of_lt (lt_of_not_ge hn))
       omega
@@ -210,7 +211,7 @@ theorem boundedInertial_chanCells {q : ℝ} {c : ℝ → ℕ} (hc : CellMap q c)
 `ChanCells` channel.** The input is `1` exactly on the instants of the window
 cells `[1, hi + 1 - lo]` of cell `k = hi + 1`; the inertial channel filters
 this pulse (it is shorter than `ρ`) and outputs `0` throughout. -/
-theorem inertial_wide_not_chanCells {q ρ : ℝ} (hq : 0 < q) {lo hi : ℕ} (hlo : 1 ≤ lo)
+theorem inertial_wide_not_chanCells {q ρ : ℝ} (hq : 0 < q) {lo hi : ℕ}
     (hlh : lo ≤ hi) (hρ : ((hi : ℝ) + 1 - lo) * q < ρ) :
     ∃ x y : ℝ → Bool, DelayInertial.BoundedInertial ρ (lo * q) (hi * q) x y ∧
       ¬ ChanCells (fun t => ⌊t / q⌋₊) lo hi x y := by

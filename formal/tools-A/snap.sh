@@ -13,6 +13,7 @@ git ls-files -mo --exclude-standard $L/Formal/Core | while read -r f; do
 git add formal/LOCK
 git ls-files -mo --exclude-standard formal/notes formal/tools-A $L/Wip formal/out/FOR-RESEARCH.md formal/out/HOWTO-new-kernel.md | grep -vE '\.vvp$|/\.lake/|formal/notes/[BC]-' | while read -r f; do
   [ -f "$f" ] && [ "$(stat -c %s "$f")" -lt 5000000 ] && git add "$f"; done
+git ls-files -d formal/tools-A formal/lean/Wip formal/notes | grep -vE "_snap[BC]/|formal/notes/[BC]-" | xargs -r git rm -q --cached --
 git commit -qm "formal A: WIP snapshot of running probes (notes, tools-A, Wip/_snapA copies of unreviewed Core files; nothing claimed), lock
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
