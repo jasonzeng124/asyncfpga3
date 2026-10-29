@@ -1100,3 +1100,30 @@ two handovers per period. Open: early re-request (H_SLOW_REREQ excludes it; thre
 extra races named in the note, not proved), H_AMERGE_RTZ (B's model has no z_req),
 runs from reset/idle/solo client, so C's AMerge is still not instantiated. M is
 coarse: H_SLOW_REREQ and H_HOLD are sufficient, not tight.
+
+### progress 09:36
+In (checked here, axioms standard):
+- Bzd3 ZeroDelayTok{,Chain,Wit} (notes/B-zero-delay-tok.md). k tokens through
+  bd_link: ONE new cross-token row H_REARM (Fb1_j + Bhi <= Ra1_{j+1} + Ahi: the node
+  must surely see the previous ack fall when it surely sees the next request rise;
+  otherwise the real INIT holds 0). Rises need no new feedback race, the latch no
+  new row (latch_tok_ok, per-token windows). sufficientK (six rows per token +
+  H_REARM -> k-token spec); exact_rearm (SafeK iff H_REARM, given the six rows and the
+  necessity scope GapK); 1-ps counter-run on 2 tokens (rearm_breaks). chain_specK:
+  the closed N-stage chain meets the k-token spec under a new cross-stage hold
+  H_DATA_LOOP_K; witness 2 stages x 2 tokens. NOT a full iff (the six rows'
+  necessity inside k >= 2 is open: data must alternate); the k-token abstract C-Link
+  run and rings not written. H_REARM is a new cell_constraints row
+  (bd_link.stage_rearm, form in the note): JSON next pass.
+- Bnet AssumeGuarantee{,Links,Fork,Cap} (notes/B-assume-guarantee.md). The cell /
+  environment circle is closed by a strictly causal assume-guarantee rule (ag_time;
+  measure = each node segment's end time); without strictness it is unsound
+  (zero_delay_cex: two zero-delay buffers in a loop). Proved: every link's Env1 for
+  a chain of any length between source/sink contracts (chain_env1, chain_lutFb), and
+  for link + 2-way fork (fork_env1*, fork_envCF), live witnesses with real cells.
+  ring_dead: any closed all-link ring of reset-0 links is 0 forever (a live ring
+  needs a _set stage, which B's Stage does not model). gcd_hw: the 175 links form 100
+  chains, no all-link cycle (census by decide); gcd_hw_safe_chains derives every
+  link's Env1 from chain-end contracts (InChain). Open: the 200 chain-end contracts
+  (steer 43, mux 72, join 32, forks 44, amerge 5, muxn 4) have no segment lemma;
+  existence of solutions to H_TIMES not proved; infinite runs only.
