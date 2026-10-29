@@ -1500,3 +1500,13 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   1218 parsed on BQ#3 d). Fixed; BQ#3 default seed, default GLS: 16/16, no violations, laps 51/42/60 (record).
   Every gen.py-based gate is now stricter on flops; other kernels' gates not yet re-run.
 - DSP items at FAST_MIN: both MATCH too (good bits PASS, bug bits x).
+### progress 06:25 (S7 landed: dsp_areg is a property test; decoder rule narrowed)
+- d4896fe (S7): registered DSP48E1 decode + model; on verify/fasm/probe.v's route the patched FASM's AREG=1 DSP
+  simulates 1 A stage, the unpatched writer's decodes AREG=2/ACASCREG=1 with CEA1 tied 0 (yosys's AREG=1 mapping),
+  so A never loads and P is 0 every cycle (full GLS vs a probe.v oracle: 197/197 vs 102/197). Mutant decoder and
+  mutant model each break it, so the property can fail both ways. S7's reading of the board record: the August
+  A/B on the areg patch ran while constpins gated A to 0, so the board could not see AREG at all -- the
+  "bit-identical before/after" is explained by that, not by "read ms later". Still unverified on silicon.
+- 2nd decoder fix (after S7 flagged it): an all-zero LUT is const 0 only in a slice with no configuration; a real
+  LUT whose INIT expands to 0 stays a cell. ipow --good passes again; seeds 5/7 still EQUIVALENT; d identical.
+- Sweep: 26 rows, all PASS; seed 5 FAST_MIN 93/76/109 on the fixed decoder.
