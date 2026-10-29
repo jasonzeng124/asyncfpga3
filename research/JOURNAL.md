@@ -1634,3 +1634,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
   farther chains survived the same draw. Distance alone does not rank failures; next: weight by rule A's margin
   and datapath delay (the exposure is margin / (delay x regional speed difference)).
 - BQ#2 seeds 6, 7 SLOW_MAX: 13/16 vectors done each, all completed with errs 0 so far.
+### progress 16:43 (first routed results under the 055edd7 resolver: unchanged)
+- BQ#2 full stack, SLOW_MAX, new resolver: seed 6 PASS 16/16 errs 0 laps 33/27/39 (EQUIVALENT) -- identical
+  to last session's old-resolver row (33/27/39); seed 7 PASS 16/16 laps 31/25/36. FAST_MIN and seeds 8/9 running,
+  then BQ#3 x8 x2 corners on the new resolver.
+- S13 started: region/wire scatter applied to the nextpnr-named SDF, then rule A, as a static predictor of the
+  seed-9 2x-scatter failure (rule A was blind to it on the unscaled SDF: uori2 +1510 ps).
