@@ -207,3 +207,8 @@ items 'inside the band' -- noted, not audited yet. Seeds 7/9 FAST_MIN/SLOW_MAX r
 Research 666ea57: gen.py dropped 1134/1218 SETUPHOLDs (negative side), so the default GLS flop setup/hold check was
 silent on 284 flops in all earlier PASS results. Launched r11 agent (verify counts with own parser, rerun BQ#3, forced-
 violation negative control, FFX/BUFGCTRL fid changes 923305d). Worktree ~/wt-r11 = 2f6dc9b.
+
+### progress 06:12
+r11 in: SETUPHOLD drop CONFIRMED (my own grep: 1218 lines, 1134 negative, rest SR); forced-violation control fires only
+with fixed gen.py; BQ#3 still passes with margin. Historical default-GLS passes OVERSTATED on flop timing; BQ#1/#2
+unverified under the fix. 923305d fid flop/BUFG changes CONFIRMED.

@@ -1,0 +1,20 @@
+-- T1 D 0->1 50 ps before CK (inside every window)
+FF SETUP VIOLATION tb.a at 3050 (input moved 50 ago)
+FF SETUP VIOLATION tb.b at 3050 (input moved 50 ago)
+   qa=x qb=x qc=1
+-- T2 D 1->0 150 ps after CK (inside D hold 241/262, outside SR's 100)
+FF HOLD VIOLATION tb.a at 5200 (CK rose 150 ago)
+   qa=x qb=1 qc=1
+-- T3 CE 1->0 80 ps after CK (CE hold is -9 in the SDF: legal; model flags it)
+FF HOLD VIOLATION tb.b at 11130 (CK rose 80 ago)
+FF HOLD VIOLATION tb.a at 11130 (CK rose 80 ago)
+   qa=x qb=x qc=0
+FF SETUP VIOLATION tb.b at 13050 (input moved 0 ago)
+FF SETUP VIOLATION tb.a at 13050 (input moved 0 ago)
+FF SETUP VIOLATION tb.b at 17050 (input moved 0 ago)
+FF SETUP VIOLATION tb.a at 17050 (input moved 0 ago)
+-- T4 SR 0->1 10 ps before CK (inside SR's 100/100 window): Q=1 before
+   qa=0 qb=0 qc=0
+-- T5 SR 1->0 20 ps after CK
+   qa=0 qb=0 qc=0
+tb_shdef.v:28: $finish called at 25060 (1ps)
