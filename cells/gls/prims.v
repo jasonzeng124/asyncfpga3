@@ -86,6 +86,8 @@ module SLICE_LUTX (
     // read only by the GLS_FID model; accepted here so one testbench
     // elaborates against both
     parameter integer META6 = 0, META5 = 0, TLOOP6 = 0, TLOOP5 = 0, SEED = 1;
+    parameter [5:0] FB6 = 6'b0;
+    parameter [4:0] FB5 = 5'b0;
 
     wire [31:0] s5 = A6 ? INIT[63:32] : INIT[31:0];
     wire [15:0] s4 = A5 ?   s5[31:16] :   s5[15:0];
@@ -111,9 +113,9 @@ endmodule
 `else
 // GLS_FID (opt-in, cells/gls/fid_core.vh): per-pin TRANSPORT arcs, output =
 // mux tree of the delayed pins, and a metastability resolver on a state node.
-// gen.py (GLS_MODEL=fid) sets META6/META5 = 1 and TLOOP6/TLOOP5 = feedback
-// wire + arc on a LUT whose output is routed back into one of its own pins,
-// and SEED = the cell's index.
+// gen.py (GLS_MODEL=fid) sets META6/META5 = 1, TLOOP6/TLOOP5 = feedback
+// wire + arc and FB6/FB5 = the feedback pin mask on a LUT whose output is
+// routed back into one of its own pins, and SEED = the cell's index.
 module SLICE_LUTX (
     input  wire A1, A2, A3, A4, A5, A6,
     output wire O5, O6
@@ -122,10 +124,12 @@ module SLICE_LUTX (
     parameter TA1O6=124, TA2O6=124, TA3O6=124, TA4O6=124, TA5O6=124, TA6O6=124;
     parameter TA1O5=124, TA2O5=124, TA3O5=124, TA4O5=124, TA5O5=124;
     parameter integer META6 = 0, META5 = 0, TLOOP6 = 0, TLOOP5 = 0, SEED = 1;
+    parameter [5:0] FB6 = 6'b0;
+    parameter [4:0] FB5 = 5'b0;
     FID_LUT6 #(.INIT(INIT),
         .T1_6(TA1O6), .T2_6(TA2O6), .T3_6(TA3O6), .T4_6(TA4O6), .T5_6(TA5O6), .T6_6(TA6O6),
         .T1_5(TA1O5), .T2_5(TA2O5), .T3_5(TA3O5), .T4_5(TA4O5), .T5_5(TA5O5),
-        .TLOOP6(TLOOP6), .TLOOP5(TLOOP5), .SEED(SEED)) u (
+        .TLOOP6(TLOOP6), .TLOOP5(TLOOP5), .FB6(FB6), .FB5(FB5), .SEED(SEED)) u (
         .A1(A1), .A2(A2), .A3(A3), .A4(A4), .A5(A5), .A6(A6),
         .EN6(META6 ? 1'b1 : 1'b0), .EN5(META5 ? 1'b1 : 1'b0), .O5(O5), .O6(O6));
 endmodule

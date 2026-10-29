@@ -173,6 +173,22 @@ EOF
 mkdir -p "$REPO/build/frontend"
 cp -rn "$REPO/cloud/fixtures/frontend/"* "$REPO/build/frontend/"
 
+# The board-fidelity GLS (cells/gls/fid/xray_delay.py, acceptance.py) reads
+# prjxray-db zynq7 at the revision every recorded xray SDF md5 was made with,
+# not the toolchain's 0.8.2 copy.  Not part of the toolchain fingerprint; a
+# failed clone only disables the full-stack sim, so it warns and goes on.
+XRAY_DB_REV=0a0added
+XRAY_DB_DIR=$HOME/dev2/lib/xray/prjxray-db
+if [ ! -f "$XRAY_DB_DIR/zynq7/mapping/devices.yaml" ]; then
+    log "prjxray-db $XRAY_DB_REV (zynq7, sparse) for the fid GLS"
+    mkdir -p "$(dirname "$XRAY_DB_DIR")"
+    { [ -d "$XRAY_DB_DIR/.git" ] || git clone -q --filter=blob:none --no-checkout \
+          https://github.com/f4pga/prjxray-db.git "$XRAY_DB_DIR"; } &&
+        git -C "$XRAY_DB_DIR" sparse-checkout set zynq7 &&
+        git -C "$XRAY_DB_DIR" checkout -q "$XRAY_DB_REV" ||
+        echo "prjxray-db $XRAY_DB_REV: clone FAILED (xray_delay.py / the fid full stack will not run)"
+fi
+
 log "fingerprint"
 TC="$TC" "$REPO/cells/verify/toolchain.sh"
 echo "toolchain ready: source $PREFIX/export.sh"

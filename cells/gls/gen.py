@@ -685,6 +685,7 @@ def main():
     # Nothing here runs, and nothing below changes, without GLS_MODEL=fid.
     fid = os.environ.get("GLS_MODEL", "") == "fid"
     fid_loop = {}
+    fid_fb = {}     # (cell, output) -> mask of the pins it feeds back into
     if fid:
         arcs = {}
         for cn, lst in iopaths.items():
@@ -696,6 +697,9 @@ def main():
             if sc == dc and cells.get(sc, {}).get("type") == "SLICE_LUTX" and sp in ("O5", "O6"):
                 L = ps + arcs.get((sc, dp, sp), 124)
                 fid_loop[(sc, sp)] = min(L, fid_loop.get((sc, sp), L))
+                if not re.fullmatch(r"A[1-6]", dp) or (sp == "O5" and dp == "A6"):
+                    sys.exit("gen.py: fid: %s feeds back into pin %s" % (src, dp))
+                fid_fb[(sc, sp)] = fid_fb.get((sc, sp), 0) | (1 << (int(dp[1]) - 1))
         Ls = sorted(fid_loop.values())
         sys.stderr.write("fid: %d LUT state node(s) with a self-loop; loop delay min/median/max "
                          "%s ps\n" % (len(Ls), "/".join(str(x) for x in
@@ -819,7 +823,8 @@ def main():
                                             not in ("LDCE", "LDPE"))):
             for op in ("O6", "O5"):
                 if (cname, op) in fid_loop:
-                    tps += ", .META%s(1), .TLOOP%s(%d)" % (op[1], op[1], fid_loop[(cname, op)])
+                    tps += ", .META%s(1), .TLOOP%s(%d), .FB%s(%d)" % (
+                        op[1], op[1], fid_loop[(cname, op)], op[1], fid_fb[(cname, op)])
             tps += ", .SEED(%d)" % (int(nn[2:]) + 1)
 
         if t == "SLICE_LUTX":

@@ -19,7 +19,7 @@ module tb_f3_meta;
     parameter integer DT = 360, NTRIAL = 200, OFFSET = 20, FB = 300;
     reg r1 = 0, r2 = 0, rst = 1;
     wire q, q_fb, q_g, g1, g2;
-    SLICE_LUTX #(.INIT(64'h00B2_00B2_00B2_00B2), .META6(1), .TLOOP6(FB + 124), .SEED(11)) ustate (
+    SLICE_LUTX #(.INIT(64'h00B2_00B2_00B2_00B2), .META6(1), .TLOOP6(FB + 124), .FB6(6'b000100), .SEED(11)) ustate (
         .A1(r1), .A2(r2), .A3(q_fb), .A4(rst), .A5(1'b0), .A6(1'b0), .O5(), .O6(q));
     ICBUF #(.D(FB)) ufb (.I(q), .O(q_fb));
     ICBUF #(.D(FB)) ug  (.I(q), .O(q_g));

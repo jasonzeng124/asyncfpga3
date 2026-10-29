@@ -11,7 +11,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 GLS=$(cd "$HERE/../.." && pwd)
 OUT=${F3_OUT:-$(mktemp -d)}
 rc=0
-for tb in tb_f3_lut tb_f3_meta tb_f3_carry tb_f3_latch tb_f3_ff; do
+for tb in tb_f3_lut tb_f3_meta tb_f3_follow tb_f3_carry tb_f3_latch tb_f3_ff; do
     for m in default fid; do
         defs="-DGLS_TRANSPORT_IC"; [ $m = fid ] && defs="$defs -DGLS_FID"
         # shellcheck disable=SC2086
