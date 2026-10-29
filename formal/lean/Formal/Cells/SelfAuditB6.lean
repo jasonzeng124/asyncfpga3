@@ -234,7 +234,7 @@ theorem cell_sh1 {n : Nat} {ch : Fin n → Chan} {sv : Nat → Nat} (k : K n) (h
   | link i o =>
     obtain ⟨c, L⟩ := hc
     exact ⟨rtT (shf 1) c, link_sh L (hR i) (hA o)⟩
-  | src z which d => exact absurd hk (by decide)
+  | src z which d => simp [isSrcK] at hk
   | sink i => exact sink_sh hc (hR i)
 
 /-! ## 2. The rig-env run of C's network -/
@@ -341,23 +341,23 @@ theorem w_rel0 : qS 0 = false := by decide +kernel
 theorem w_uenv1 : ∀ t, eS (t + 1) ≠ eS t → kS (id t) = !eS (t + 1) := by
   intro t hne
   have := stepS envOK_parts.1 hne
-  simpa [kS, eS] using this
+  exact beq_iff_eq.mp this
 
 theorem w_c3 : ∀ o z w d, opAt o = .src z w d → ∀ t, kS (t + 1) ≠ kS t →
     (chS z).ack ((fun _ => id) z t) = kS (t + 1) := by
   intro o z w d h t hne
   have := stepS (src_facts h).2.2.2 hne
-  simpa [kS] using this
+  exact beq_iff_eq.mp this
 
 theorem w_m1 : ∀ t, eS (t + 1) ≠ eS t → qS (id t) = eS (t + 1) := by
   intro t hne
   have := stepS envOK_parts.2.1 hne
-  simpa [qS, eS] using this
+  exact beq_iff_eq.mp this
 
 theorem w_m0 : ∀ t, qS (t + 1) ≠ qS t → eS (id t) = !qS (t + 1) := by
   intro t hne
   have := stepS envOK_parts.2.2 hne
-  simpa [qS, eS] using this
+  exact beq_iff_eq.mp this
 
 /-- out0's first token closes (its acknowledge falls) at tick 474 of `chS`, carrying 6. -/
 theorem rig_env_latch : TokAt (chS out0) 0 474 ∧ (chS out0).dat 474 = 6 := by

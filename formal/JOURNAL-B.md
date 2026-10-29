@@ -669,3 +669,21 @@ transition data; the research GLS has w = 0 by construction and an assumed
 WIN = 150 ps), adversarial per-token windows, muxn unselected Cover. Test XW-1
 (notes/B-kleene-win.md): MMCM-phase-swept bd_c2 race with a held-level outcome; the
 mixed band width W̄ replaces +1 in every strict row and calibrates the GLS's WIN.
+
+### progress 08:15
+In: Bsa3 self-audit 3 (notes/B-self-audit3.md; SelfAuditB6 + generated
+SelfAuditB6Data, both checked here, axioms standard). Audit row 824f130 (joint
+env+network non-vacuity of RigSrc.gcd_rig_first_env, UNVERIFIED) closed: one
+unit-delay rig-environment run of C's 465-channel gcd_hw network (a=12, b=18)
+discharges every hypothesis of gcd_rig_first_env, decided by the kernel and fed
+into the theorem (rig_env_feeds); out0 latches 6 at tick 474, the env's second lap
+starts at 432 (rig_env_latch/relap). Needed a generic lemma cell_sh1 (one-tick
+left shift keeps every non-source cell model). The witness is degenerate in its
+delays (identity read maps, urdly 0, unit gates): probe Bjw redirected to a
+non-identity / nonzero-delay witness. Reset contracts on ResetGcdNetRe/R5 now have
+all-zero-start witnesses (D = W = 0). OVERSTATED (mine): ResetGcdNetR5's generated
+header says "checked node by node" but that part is omitted, and it labels ~1511
+removed delay elements as merged data inputs (harmless: no gate pin reads them);
+the R5 transcription is unverifiable here (netlist JSON not on disk). Mutants:
+4/5 fail as they should; a 1-tick in_ack shift passes H_C3 alone (caught by the
+env check as a whole). Nothing refuted.
