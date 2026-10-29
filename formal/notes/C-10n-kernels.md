@@ -273,8 +273,11 @@ corrected front end below. Full tables: `formal/tools/kcheck/results/<k>_m10/` a
 2. `extract.Prjx.split` (Jx): two sinks that leave one LUT through different site pins (A..D
    direct and AMUX..DMUX) share nothing; each side carries its own OUTMUX hop. This is the
    `24e47ca` work-in-progress pass above, now final.
-3. The driver-side OUTMUX hop itself was already present at `7ad3b5e` (C-10h); C-10m checked
-   it arc by arc against the auditor's independent model (C-10m-outmux.md section 1).
+3. The driver-side OUTMUX hop itself was already present at `7ad3b5e` (C-10h). C-10m checked
+   it arc by arc against the auditor's independent model (C-10m-outmux.md section 1). That
+   includes collatz s2: all 17,800 common arcs agree within 11 ps once the xMUX/xMUXL hull is
+   set aside (`TCHECK_HOP_NOL=1`). With the hull, 867 arcs are higher, by at most 34 ps at slow
+   max.
 
 **Routes:** all 12 rebuilt with `route.sh` (nextpnr sha256 `9c732bc6303458df`, toolchain.sh
 9/9 ok) are byte-identical (SDF sha) to the routes above, so every row compares one to one.

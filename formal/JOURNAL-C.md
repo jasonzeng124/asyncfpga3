@@ -60,8 +60,14 @@
   carries slow-max only (no lower bounds). tcheck on gcd_hw (4 routes) and collatz/xorshift/
   ipow (12 routes): every disagreement with the project rules is project-PASS/tcheck-FAIL,
   none at a fixed prjxray point; rule A and tcheck both time GND/VCC tie-offs as data (false
-  path). Known front-end gap (audit): the slice OUTMUX hop is missing, so the row numbers are
-  provisional until 10m's rerun. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
+  path). OUTMUX (10m): the audit read C-10g; C-10h already had the hop. tcheck's prjxray arcs
+  equal the auditor's independent xrc.py on all 86,037 common arcs (gcd_hw s4) and 17,800
+  (collatz s2) within 11 ps (hull of xMUX/xMUXL aside: <= 34 ps high, safe side). One leftover
+  OUTMUX bug in the J shared-path split fixed: all 72 J clients now match xrc within 15 ps;
+  BQ#1 merge6#1 passes, s4 merge12.uarb2#2 fails only under the band (-116/-204). Tie-off
+  (GND/VCC) starts dropped from rule A as a false path (H_FALSE_CONST): gcd_hw verdicts
+  unchanged; kernel rule-A rows with tie-off starts flip FAIL->PASS. No row anywhere fails at a
+  consistent corner without the band. ipow's DSP48E1 arcs still fall back to the SDF band. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
   FASM): the audit row is right -- on gcd_hw seed 4 the rig's uenv1 C-element fails RT_FB by
   -16 ps in the per-element fast model (was +4); the kernel alone still has 0 failures in every
   one-corner model on all 4 seeds (worst fast +70). With every element at one common corner end
@@ -506,3 +512,9 @@ underived channels).
 
 ### progress 10:15
 10f2 committed after my own check.sh (15 RtFb files, 481 decls, standard axioms): see track 10.
+
+### progress 10:33
+10m committed (tools, results, notes; no Lean claimed; tcheck binary rebuilt, its 12 checker
+theorems' axioms standard, 0 CERTBAD). Same 16 routes byte-identical. r10l rows regenerated
+with the newer rule K (103 flips): that is 10l2's to interpret. 11f, O4, wit, 8z3 under my
+checks.

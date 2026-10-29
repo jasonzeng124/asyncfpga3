@@ -373,3 +373,43 @@ The project's c, against the exact branch-point fraction in SDF units (Jx), over
   Each one is a valid lower bound on up's next fall, so keeping them is sound.
 - **No Lean was edited.** The lake build is a no-op. `run2.sh` passes `FORMAL_SLOT_CWD`
   (`SKIP_BUILD=1` was used once, while the slot semaphore was held by other shards).
+
+## 10m correction (2026-10-29, probe C-10m)
+
+The numbers above are kept as they were. Where they conflict with this section they are
+**superseded**. Full tables are in `formal/notes/C-10m-outmux.md` and
+`formal/tools/tcheck/results/`.
+
+- **Finding M (audit, `audit/findings/tcheck.md`) applies to this probe's model.** The prjxray
+  front end of 10e/10g omitted the slice OUTMUX hop: A..D LUT -> AMUX..DMUX, for example
+  a6lut->amux 0.071/0.088/0.168/0.209 ns, and the O5 path a5lut->amux. It was added in C-10h.
+  - C-10m checked it arc by arc against the auditor's independent `xrc.py`. On gcd_hw seed 4
+    the two models agree on all 86,037 common arcs within 11 ps when the xMUX/xMUXL hull is set
+    aside; the hull costs at most +34 ps at slow max.
+  - The remaining OUTMUX bug, in the Jx shared split, is fixed. All 72 J clients now match xrc
+    within 15 ps.
+- **"J 67/70" is superseded by 71/72** (C-10h's tally; C-10m keeps it with corrected margins).
+  | row | before (10g) | now |
+  |---|---|---|
+  | seed d merge6.uarb1#1 (BQ#1) | -10/-8 FAIL | **PASS**, 370/885/102/262; xrc 372/887/107/266. The 10g FAIL was an artefact of the missing hop. |
+  | seed 2 merge12.uarb1#1 | -35/-86 FAIL | PASS, thin: 222/523/16/44 |
+  | seed 4 merge12.uarb2#2 | -9 fastG | **FAIL**, worse: 142/383/-116/-204; xrc -111/-201. A0 reaches ua2 through DMUX. Band-only. |
+- **"SDF low by +490 ps on A1"** was a mean, without the OUTMUX hop, at the slow corner only.
+  With the hop, on a 4000-net sample of seed d, the mean is **+609**: p10 404, p90 772, max 2204;
+  nets through an xMUX alone +696. At FAST_MIN the SDF is *high* by 200-557 ps mean per pin.
+- **"J's estimate over-credits about 95 ps on average, permissive on 69/70"** is superseded.
+  With the hop:
+  - mean 28-66 ps per seed, max 88-162;
+  - the pip estimate **under**-credits on 1-4 clients per seed, down to -353 ps (seed d merge9).
+  - This matches the audit.
+- **RT_FB uenv1 on seeds 2 and 4.** The 10g values (-7/+25 and -37/-95) are superseded by
+  C-10h's, which C-10m confirms: seed 2 44/162/-117/-221 (xrc -114/-219), seed 4
+  94/161/-86/-243 (xrc -81/-201; the difference is the hull). Band-only.
+- **The F seed d ucmpi8 "fallback, front-end gap" explanation is superseded** (audit row 6). It
+  is a guard-versus-band row: -498/-497 banded, +941/+2300 unbanded (C-10h).
+- **Rule A false path (C-10n finding).** Rule A in rules2.py mirrored
+  `tighten.cell_boundary`, which keeps the GND/VCC tie-off drivers as starts.
+  - It now drops them. On these routes this raises 18 A rows (ucmpi2/3, uori2/3/4), with no
+    verdict change.
+- **Unchanged:** every remaining disagreement is band-only on a prjxray corner. The
+  algorithm-agreement statements (sdf columns equal the rules' raw margins) still hold.
