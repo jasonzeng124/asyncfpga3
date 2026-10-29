@@ -1,4 +1,5 @@
 import Lean.Data.Json
+import Std.Data.HashMap
 import Formal.Core.XAudit.Design
 
 /-!
@@ -161,10 +162,19 @@ def isFF (ty : String) : Bool :=
   ["FDRE", "FDSE", "FDCE", "FDPE", "LDCE", "LDPE", "FDRE_1", "SRL16E", "SRLC32E", "RAMB18E1",
     "RAMB36E1", "DSP48E1"].contains ty
 
+/-- `toSteps`, but an inverted band (`lo > hi` ps) is REJECTED instead of being
+narrowed to `[lo, lo]` (probe E8Mux finding; spec: `SoundInertial.checkedSteps_ok`,
+`checkedSteps_inverted`, `toSteps_hi_ceil`). Well-formed bands: same as `toSteps`. -/
+def checkedSteps (u : Nat) (b : Nat × Nat) : Except String (Nat × Nat × Bool) :=
+  if b.2 < b.1 then .error s!"inverted band [{b.1}, {b.2}] ps (lo > hi): NOT RECOGNISED"
+  else .ok (toSteps u b)
+
 def bandFor (B : Bands) (key : String) (dflt : Nat × Nat) (alts : List (String × (Nat × Nat))) :
     M (Nat × Nat) := do
   let b := (alts.lookup key).getD dflt
-  let (lo, hi, r) := toSteps B.unit b
+  let (lo, hi, r) ← match checkedSteps B.unit b with
+    | .ok v => pure v
+    | .error e => throw s!"band of {key}: {e}"
   if r then modify fun s => { s with raised := key :: s.raised }
   pure (lo, hi)
 
@@ -296,6 +306,122 @@ def buildDesign (B : Bands) (top : Json) : Except String Built := do
   let inputs := inBits.reverse.filterMap (fun (n, k) => (s.netW.lookup k).map (n, ·))
   pure { d := { m := s.nw - 1, gates := gates.toList }, info, wname := s.names,
          inputs, raised := s.raised.reverse, unit := B.unit }
+
+/-! ## Inertial gate channels (probe XInert, additive; `formal/notes/A-xinert.md`)
+
+Optional. A gate may be an inertial channel with rejection window `ρ` ps
+(`DelayInertial.BoundedInertial ρ L H`). `XSimChanReal.boundedInertial_chanCells`
+covers it with step band `[lo, hi]` iff (`inertial_wide_not_chanCells`)
+`ρ ≤ (hi + 1 - lo) · unit`. `widenHi` is the least `hi' ≥ hi` meeting that;
+`XAudit.SoundInertial` proves the widened design's verdicts sound. With `ρ = 0`
+nothing changes (`SoundInertial.widenHi_zero`). Nothing here is used unless
+the executable is given `--inertial`. -/
+
+/-- A rejection window: a number of ps, or `delay` = the gate's own delay
+(Verilog/iverilog default inertial: reject limit = path delay), taken at its
+largest value, the band's `hi` in ps. -/
+inductive RhoSpec where
+  | ps (n : Nat)
+  | delay
+  deriving Repr, BEq, Inhabited
+
+def RhoSpec.val : RhoSpec → Nat → Nat
+  | .ps n, _ => n
+  | .delay, H => H
+
+def RhoSpec.show : RhoSpec → String
+  | .ps n => s!"{n} ps"
+  | .delay => "delay"
+
+/-- Rejection windows per gate kind, with per-cell / per-arc overrides (same keys
+as `Bands.cells` / `Bands.arcs`). Pads are always transport. -/
+structure Inert where
+  lut : RhoSpec := .ps 0
+  route : RhoSpec := .ps 0
+  feedback : Option RhoSpec := none
+  cells : List (String × RhoSpec) := []
+  arcs : List (String × RhoSpec) := []
+
+def rhoOf (j : Json) : Option RhoSpec :=
+  match j.getStr? with
+  | .ok "delay" => some .delay
+  | _ => (jnat j).map .ps
+
+/-- The `inertial` entry of a band file: a number / `"delay"` (every LUT and
+route), or `{lut, route, feedback, cells{}, arcs{}}`. Absent: all 0. -/
+def parseInert (j : Json) : Inert :=
+  match jget j "inertial" with
+  | none => {}
+  | some ij =>
+      match rhoOf ij with
+      | some r => { lut := r, route := r }
+      | none =>
+          { lut := ((jget ij "lut").bind rhoOf).getD (.ps 0)
+            route := ((jget ij "route").bind rhoOf).getD (.ps 0)
+            feedback := (jget ij "feedback").bind rhoOf
+            cells := ((jget ij "cells").map jobj).getD [] |>.filterMap (fun (k, v) => (rhoOf v).map (k, ·))
+            arcs := ((jget ij "arcs").map jobj).getD [] |>.filterMap (fun (k, v) => (rhoOf v).map (k, ·)) }
+
+/-- The least `hi' ≥ hi` with `ρ ≤ (hi' + 1 - lo) · u`: `max hi (lo + ⌈ρ/u⌉ - 1)`. -/
+def widenHi (u lo hi ρ : Nat) : Nat := max hi (lo + (ρ + u - 1) / u - 1)
+
+def widenGate (u : Nat) (g : GSpec) (ρ : Nat) : GSpec := { g with hi := widenHi u g.lo g.hi ρ }
+
+/-- The design the executable simulates under `--inertial`: gate `g` with window
+`ρ` gets `hi := widenHi u g.lo g.hi ρ`. -/
+def widenD (u m : Nat) (ps : List (GSpec × Nat)) : Design :=
+  { m := m, gates := ps.map (fun p => widenGate u p.1 p.2) }
+
+/-- First-match lookup table of an association list (as `List.lookup`). -/
+def tbl {α : Type} (l : List (String × α)) : Std.HashMap String α :=
+  l.reverse.foldl (fun m (k, v) => m.insert k v) {}
+
+/-- Apply the inertial windows: the widened `Built` (same wires, names, storage
+flags; only `hi` changes) and the list of widened gates `(name, lo, hi, hi', ρ)`.
+The ps band and window of each gate are reconstructed from the band file exactly
+as `buildDesign` chose the band (LUT: key `cell` or `cell/O6|O5`; route: key
+`cell/pin`, own-feedback default when the arc's net is driven by the same cell);
+pads keep `ρ = 0`. Fails if a reconstructed band does not round to the gate's step
+band. -/
+def applyInertial (B : Bands) (I : Inert) (bt : Built) :
+    Except String (Built × List (String × Nat × Nat × Nat × Nat)) := do
+  let gs := bt.d.gates.toArray
+  let bc := tbl B.cells
+  let ba := tbl B.arcs
+  let ic := tbl I.cells
+  let ia := tbl I.arcs
+  -- the cell driving each wire (LUT outputs only)
+  let mut drv : Array String := Array.replicate bt.d.n ""
+  for j in [0:gs.size] do
+    if bt.info[j]!.kind == "lut" && gs[j]!.out < drv.size then
+      drv := drv.set! gs[j]!.out bt.info[j]!.cell
+  let mut rs : Array Nat := #[]
+  let mut ch := []
+  for i in [0:gs.size] do
+    let g := gs[i]!
+    let inf := bt.info[i]!
+    let pr : Option (String × (Nat × Nat) × Nat) :=
+      if inf.kind == "lut" then
+        let key := if inf.pin == "O" then inf.cell else s!"{inf.cell}/{inf.pin}"
+        let b := bc.getD key B.lut
+        some (key, b, (ic.getD key I.lut).val b.2)
+      else if inf.kind == "route" then
+        let key := s!"{inf.cell}/{inf.pin}"
+        let own := drv[g.ins.headD 0]?.getD "" == inf.cell
+        let b := ba.getD key (if own then B.feedback.getD B.route else B.route)
+        some (key, b, (ia.getD key (if own then I.feedback.getD I.route else I.route)).val b.2)
+      else none
+    match pr with
+    | none => rs := rs.push 0
+    | some (key, b, r) =>
+        let (lo, hi, _) := toSteps B.unit b
+        if lo != g.lo || hi != g.hi then
+          throw s!"inertial: band reconstruction mismatch on {g.name} (key {key}): {b} ps -> [{lo},{hi}], gate has [{g.lo},{g.hi}]"
+        rs := rs.push r
+        let h' := widenHi B.unit g.lo g.hi r
+        if h' != g.hi then ch := (g.name, g.lo, g.hi, h', r) :: ch
+  let d' := widenD B.unit bt.d.m (bt.d.gates.zip rs.toList)
+  pure ({ bt with d := d' }, ch.reverse)
 
 /-! ## Command line and file helpers -/
 

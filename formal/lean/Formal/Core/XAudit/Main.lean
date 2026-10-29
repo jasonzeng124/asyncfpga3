@@ -154,6 +154,24 @@ def emitLean (bt : Built) (si : StimIn) : String :=
 
 def usage : String :=
   "usage: xaudit NETLIST.json [--top T] [--bands BANDS.json] [--stim STIM.json] [--xmax PS] [--all] [--emit-lean] [--kernel-sim | --crosscheck] [--timed-only]"
+  ++ "\n       [--inertial widen|check [--rho R] [--rho-lut R] [--rho-route R] [--rho-feedback R]]   (R = ps or 'delay')"
+
+/-- `--rho*` options (probe XInert): override the band file's `inertial` entry. -/
+def rhoArg (args : List String) (k : String) : Except String (Option RhoSpec) :=
+  match getArg args k with
+  | none => pure none
+  | some "delay" => pure (some .delay)
+  | some s => match s.toNat? with
+    | some n => pure (some (.ps n))
+    | none => throw s!"{k}: expected a number of ps or 'delay', got {s}"
+
+def inertOfArgs (args : List String) (I : Inert) : Except String Inert := do
+  let mut I := I
+  if let some r ← rhoArg args "--rho" then I := { I with lut := r, route := r }
+  if let some r ← rhoArg args "--rho-lut" then I := { I with lut := r }
+  if let some r ← rhoArg args "--rho-route" then I := { I with route := r }
+  if let some r ← rhoArg args "--rho-feedback" then I := { I with feedback := some r }
+  pure I
 
 
 def run (args : List String) : IO UInt32 := do
@@ -164,7 +182,33 @@ def run (args : List String) : IO UInt32 := do
     | some p => pure (parseBands (← readJson p))
     | none => pure ({} : Bands)
   let (tname, top) ← IO.ofExcept (pickTop j (getArg args "--top"))
-  let bt ← IO.ofExcept (buildDesign B top)
+  let bt0 ← IO.ofExcept (buildDesign B top)
+  -- `--inertial` (probe XInert): absent = the transport audit, unchanged
+  let inMode := getArg args "--inertial"
+  let mut inertLines : List String := []
+  let mut bt := bt0
+  if let some mode := inMode then
+    if mode != "widen" && mode != "check" then
+      IO.eprintln s!"xaudit: --inertial takes widen or check, not {mode}"; return 2
+    let I0 ← match getArg args "--bands" with
+      | some p => pure (parseInert (← readJson p))
+      | none => pure ({} : Inert)
+    let I ← IO.ofExcept (inertOfArgs args I0)
+    let (bt1, ch) ← IO.ofExcept (applyInertial B I bt0)
+    let fb := match I.feedback with | some r => r.show | none => "as route"
+    let hdr := s!"inertial ({mode}): reject window LUT {I.lut.show}, route {I.route.show}, own feedback {fb} ({I.cells.length} cell, {I.arcs.length} arc entries); pads transport. Sound by SoundInertial (gate hi widened to max hi (lo + ceil(rho/unit) - 1))"
+    let maxW := ch.foldl (fun a (_, _, h, h', _) => max a (h' - h)) 0
+    let ex := (ch.take 5).map (fun (n, lo, h, h', r) => s!"{n} [{lo},{h}]->[{lo},{h'}] (rho {r} ps)")
+    if mode == "check" then
+      if ch.isEmpty then
+        inertLines := [hdr, s!"  check: rho <= (hi+1-lo)*unit on every gate: covered with the bands as given"]
+      else
+        IO.println hdr
+        IO.println s!"  check REFUSED: {ch.length} gates have rho > (hi+1-lo)*unit (not covered: XSimChanReal.inertial_wide_not_chanCells); max widening needed {maxW} steps; e.g. {ex}"
+        return 4
+    else
+      bt := bt1
+      inertLines := [hdr, s!"  widened {ch.length} of {bt0.d.gates.length} gates, by up to {maxW} steps{if ch.isEmpty then "" else "; e.g. " ++ toString ex}"]
   let sj ← match getArg args "--stim" with
     | some p => readJson p
     | none => pure (Json.mkObj [])
@@ -182,6 +226,7 @@ def run (args : List String) : IO UInt32 := do
   let stor := (List.range ng).filter (fun i => bt.info[i]!.storage)
   IO.println s!"xaudit: {net} top {tname}: {d.n} wires, {ng} gates ({nl} LUT outputs, {nr} routed arcs), {stor.length} storage nodes (LUTs with own feedback)"
   IO.println s!"bands: 1 step = {u} ps; LUT {B.lut} ps, route {B.route} ps, own feedback {B.feedback.getD B.route} ps (defaults unless overridden: {B.cells.length} cell, {B.arcs.length} arc entries); pads {B.pad} steps"
+  for l in inertLines do IO.println l
   if !bt.raised.isEmpty then
     IO.println s!"  NOTE lo < 1 step raised to 1 step (sub-unit delay not modelled) on: {bt.raised}"
   IO.println s!"inputs: {bt.inputs.map (·.1)}"

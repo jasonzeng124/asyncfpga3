@@ -744,3 +744,17 @@ E8Mux bands): discharged on all of c in [0,1] by a cell cover for every seed at 
 d guard ENTRY merge2/merge3.uarb1.ua2 at 0.10/0.12; 5 rig uenv1 at 0.10/0.12 (0.08 at c=1, -2 ps); 3 one grant line
 at 0.12, c=1; 4 none; none at kappa <= 0.06. All inherit Events8's hypotheses incl. the refuted HARB7. Todo: switch
 Events*Main to readBands (one line each).
+### progress 11:24
+XInert claimed: Formal/Core/XAudit/SoundInertial.lean (new) and additive edits to Parse.lean/Main.lean (check.sh
+with the XSimChan/Sound chain: 1273 lib + Main 1116 decls, [check] OK; md5s unchanged). xaudit gains an inertial
+option (band key 'inertial', CLI --inertial widen|check --rho*): widen sets hi' = max(hi, lo + ceil(rho/u) - 1),
+check refuses with exit 4; without the option output is byte-identical (5 small cases). Parse.checkedSteps rejects
+lo > hi ('NOT RECOGNISED') -- the one non-additive edit; checkedSteps_ok/_inverted, toSteps_hi_ceil (no
+narrowing). Proved: gates transport or bounded-inertial with window <= rho inside their step band => widened
+design meets SatPhys, so noXF/const/fixpoint verdicts hold at every real instant (noXF_sound_inertial);
+Verilog-default inertial covered (gateOK_verilog); widening happens only in the case XSound2 showed unsound
+(widened_wide). Results: pipe3/ring3 unchanged at rho 15/50; gcd_hw seed d (E8Mux bands): rho 15 passes check
+everywhere, rho 50 keeps the smax w0/w0.02 certificates, rho >= 75 loses smax w0 (likely window imprecision, not
+sampled); the rho = delay-on-every-gate runs were killed (too slow), not results. Caveat: 2334 gcd arcs are raised
+to 1 step, so no gcd verdict is covered by the continuous-time theorems at any rho (discrete model only). Fixed
+tools-A/xaudit/build.sh compile order (Design before Parse). notes/A-xaudit.md fidelity row corrected.
