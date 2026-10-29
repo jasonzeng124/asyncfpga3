@@ -1246,3 +1246,21 @@ C's files, so this is handed over: FOR SHARD A (lead) / C: apply both patches in
 commit (git apply --check passes on the current tree; if not, regenerate with
 Wip/Bpd/tools/mkpatch.py), then lake build + check.sh. B will not apply its half
 alone.
+
+### progress 10:19
+In: Bring RingPhys{Stage,,Wit,Wit2} (core; checked here, axioms standard;
+notes/B-ring-phys.md). Track 9 at gate level: bd_c2n_set is bd_c2n under complement
+of pins and node (exS_dual, decide on the INITs), so its segment contract
+(set_segK) and token offer at reset release (set_reset_hold) follow from a
+generalised link_segK'. Mixed-polarity rings in B's bounded-delay model with NO
+environment hypothesis: every node circulates forever (ring_nodes via ag_time,
+ring_inf); the hypotheses force 3 <= N and 0 < D < N, i.e. C's live condition, so
+physical timing adds no condition to C's (ring_k_tokens: 2t+1 <= N); with no
+C-excited stage (N <= 2, D in {0, N}) the ring is frozen for every trace
+(ring_frozen; ring2_dead: N = 2 is dead, not a hazard). Refinement onto C's Ring:
+every toggle is a C-excited firing, every sampled state is Ring.Reach, D conserved.
+Converse of ring_dead: ring_reset_live; witnesses N=3/K=1 (two laps) and N=5 with 2
+tokens (2t+1 tight; N=4 with two tokens satisfies no hypothesis). This is the
+project's "a ring needs three storage stages" rule proved on the real INITs under
+bounded delays. Open: run existence for every 0 < D < N (shown on 2 witnesses),
+the per-pin box-model ring (H_REARM), necessity of the timing rows, X power-up.
