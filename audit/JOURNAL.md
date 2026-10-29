@@ -217,3 +217,8 @@ unverified under the fix. 923305d fid flop/BUFG changes CONFIRMED.
 Research 82660cb: BQ#3 8 seeds x 2 corners 16/16. I recomputed every mean/range from the TSV: exact. Caveat: run on
 fid 78de9c2 + 54f2ce6, before the SETUPHOLD fix, 923305d and 2nd decoder fix. Also new: d4896fe registered DSP48E1
 model + dsp_areg property test (not yet audited). r9 (seeds 4/5) and r12 (BQ#1/#2 under fixed SETUPHOLD) running.
+
+### progress 06:36
+r9 in: BQ#3 seeds 4 and 5 at FAST_MIN/SLOW_MAX reproduced from clean, identical to research's TSV (md5s, laps). Seed 5
+old-decoder PASS was luck of vector coverage (8 floating pips, unexercised ushrsi2 inputs); new decoder correct for
+those sinks. 4/8 seeds now independently reproduced.
