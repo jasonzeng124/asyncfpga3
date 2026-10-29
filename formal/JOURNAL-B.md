@@ -1216,3 +1216,17 @@ In (checked here, axioms standard):
   inequalities, so it neither implies nor is implied by gcd_hw_safe_chains. No
   whole-net witness; the same infinite-handshake limitation very likely applies
   (link specs alternate forever) -- Bfin to check.
+
+### progress 10:18
+In: Bwb KleeneWinBound (core; checked here, axioms standard;
+notes/B-kleene-win-bound.md). Generic races_suff/races_need on KleeneWin's race-list
+iff shape: under the pair reading of H_W_BOUND (every pair term c_e + a_l <= W) a
++W margin is sufficient and needed (a pair at exactly W fails at W-1) for steer, the
+mux join, the muxn selected join and the latch, each with a non-uniform-split
+witness. The reading matters: a per-edge width bound with non-negative halves gives
++2W (tight); with halves of free sign no finite margin suffices even at width 0
+(join_width_unbounded). C-element own-feedback race: the exact term is cf + wq + ar,
+so the bound is +W+Wq (cel_env_win_bound/need), +2W at Wq = W, +3W under the width
+reading; real bd_c2 (W=2, wq=1) clean at margin 3, hazard at 2. So the JSON's "+W"
+text on the 51 C-element-backed rows is sufficient only at wq = 0 (H_FB_PURE): to fix
+in the next JSON pass. The 5 *_rst_dec reset rows stay UNPROVED. W, Wq unmeasured.
