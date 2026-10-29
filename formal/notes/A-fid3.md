@@ -56,7 +56,7 @@ measured on this part; **C** = a stated assumption with no source, or known to b
 | **FF (FDRE/FDSE) function and X** | master-slave Kleene tables `FDRE_M`, `FFQ_SYNC` (Gen/Netlist; PrimsSeq probe in progress) | `if (SR)` / `if (CE)` (default), `sr === 1` / `if (ce)` (fid): **x on SR or CE is read as 0** | an x (mid-rail or unknown) SR/CE gives an unknown next state; nothing documents a definite value | B / **C** (GLS wrong, optimistic: hides X). Fix tested: `patch/prims_x.diff` | `run-1029/run.sh` E7: F1, F2 must print x |
 | **FF timing (CK→Q, setup/hold, aperture, min pulse width)** | named hypotheses only (`H_HK_STA`, rig `idx_setup`); no aperture or metastability model in Core | transport CK→Q; SDF SETUPHOLD aperture (negative SETUPHOLDs read since 666ea57) with an old/new choice and t_r = TAU_FF·ln(ap/2\|δ\|), TAU_FF = 75 ps; CK min pulse width TMPW 70 ± 20 ps | SETUPHOLD per pin in prjxray-db (Vivado numbers). Flop τ: Beer et al. ASYNC 2010, 57/51/73 ps at 130/90/65 nm; no 28 nm figure. Min pulse width: none found in prjxray-db (research could not read DS187) | B (timing as hypotheses) / C (TAU_FF, TMPW assumed) | hw/arb_mtbf-style synchroniser sweep (MMCM fine phase shift) for TAU_FF; CK runt sweep for TMPW |
 | **latch (SLICE_LATX, LDCE/LDPE)** | `LDCE_INIT` via `Lut.keval` | per-pin transport (78de9c2); **X pessimistic** (closed + CE = x → x; CLR = x → x even when the result is SRVAL); no metastability at gate close (stated) | UG474: latch-mode storage element, gate on CK, enable CE, async SR. **No design uses LDCE/LDPE**: `bd_latch` stores on LUTs (cells/rtl/bd_latch.v header) | B / C (pessimistic, harmless today). Fix tested: `patch/prims_x.diff` | E7: L1-L3 must print 0 |
-| **LUT state loop: C-element, LUT latch, arbiter q** (metastability) | B: `ArbInvolution` (`stF_runt`), `CElemInvolution.orb`; proved: a critical runt s* exists in (δ∞ − δ(0), δ∞) (`arb_eternal`). Float orbit (§3): s* = 0.50-0.58·TLOOP, deterministic either side; near s* the loop **circulates a pulse train** and resolves with TAU_eff ≈ 1.2-17·TLOOP | `FID_RESOLVE` on self-loop LUTs (gen.py): runt p < TLOOP decided at **TLOOP − WIN/2** (349 of 424 ps), N(0, WIN/4) noise, t_r = TAU·ln(WIN/2\|δ\|), TAU = WIN = 150 ps (assumption). During resolution the node **holds a clean value** (default) or x (`+META_X=1`); one runt reaches fanout, echoes ignored. Multi-cell loops get no resolver | none measured. Without the resolver (`+META_OFF=1`) the GLS's own transport loop circulates the runt forever with period TLOOP (E4: Q 1124↑ 1473↓ 1548↑ 1897↓ …), i.e. the echo is physical and the "rejection" is a modelling choice | B (Lean channel family, unmeasured) / **C** (centre has no derivation; TAU optimistic under involution; clean hold hides the pulse train) | **hw/arb_mtbf**: sweep the r1→r2 skew (MMCM fine phase or IDELAYE2 taps) and record P(r1 wins): the 50% point is at TLOOP/2 (involution) or TLOOP − WIN/2 (GLS), 137 ps apart at TLOOP 424; count q toggles per race with a ripple counter (train vs single runt); resolution-time histogram for TAU |
+| **LUT state loop: C-element, LUT latch, arbiter q** (metastability) | B: `ArbInvolution` (`stF_runt`), `CElemInvolution.orb`; proved: a critical runt s* exists in (δ∞ − δ(0), δ∞) (`arb_eternal`); A: it is unique, s* = δ∞↑ − l* (`crit_unique`), = TLOOP − w* with 2w* = δ(−w*) for δ↑ = δ↓, and every solution latches iff s > s*, is lost iff s < s* (`InvolutionLoopSignal.arb_trichotomy`). Float value of that formula (§3): s* = 0.50-0.58·TLOOP, deterministic either side; near s* the loop **circulates a pulse train** and resolves with TAU_eff ≈ 1.2-17·TLOOP | `FID_RESOLVE` on self-loop LUTs (gen.py): runt p < TLOOP decided at **TLOOP − WIN/2** (349 of 424 ps), N(0, WIN/4) noise, t_r = TAU·ln(WIN/2\|δ\|), TAU = WIN = 150 ps (assumption). During resolution the node **holds a clean value** (default) or x (`+META_X=1`); one runt reaches fanout, echoes ignored. Multi-cell loops get no resolver | none measured. Without the resolver (`+META_OFF=1`) the GLS's own transport loop circulates the runt forever with period TLOOP (E4: Q 1124↑ 1473↓ 1548↑ 1897↓ …), i.e. the echo is physical and the "rejection" is a modelling choice | B (Lean channel family, unmeasured) / **C** (centre has no derivation; TAU optimistic under involution; clean hold hides the pulse train) | **hw/arb_mtbf**: sweep the r1→r2 skew (MMCM fine phase or IDELAYE2 taps) and record P(r1 wins): the 50% point is at TLOOP/2 (involution) or TLOOP − WIN/2 (GLS), 137 ps apart at TLOOP 424; count q toggles per race with a ripple counter (train vs single runt); resolution-time histogram for TAU |
 | **BUFGCTRL** | not modelled (clock only in rigs) | transport I0→O (fid) | no BUFG min pulse width in prjxray-db | — / B | — |
 | **DSP48E1** | not modelled | combinational and registered modes; still iverilog module paths (SAF) | — | — / C (SAF) | only if a design's bundled cone runs through a DSP |
 
@@ -81,13 +81,26 @@ lap.
 1. Symmetry (exact for any channel with δ↑ = δ↓): a circulating pattern "high s, low TLOOP − s"
    maps to "low s, high TLOOP − s" under 0/1 exchange. So if s grows lap by lap, TLOOP − s shrinks,
    and s = TLOOP/2 is the fixed point between latching and dying.
-2. Lean's involution OR loop (Float transcription of `CElemInvolution.orb` with the exp channel
-   `expDelay`; `run-1029/py/orb_tau.py`, E6; a computation, not a theorem): s*/TLOOP =
+2. Lean's involution OR loop. Proved (InvLoop, `Formal/Core/Delay/InvolutionLoop.lean`): for every
+   involution pair the stationary train `Stat h l` (`δ↑(-h) = h + l = δ↓(-l)`) exists and is unique
+   (`stat_exists`, `stat_unique`), and the critical runt is **`s* = δ∞↑ − l`** (`crit`, `wd_crit`); it
+   is the ONLY width in (0, δ∞↑) that never cancels (`crit_unique`): wider latches (`latch`), narrower
+   is lost (`lost`). At signal level, for every solution of B's arbiter loop: latched iff s > s*, lost
+   iff s < s*, eternal iff s = s* (InvLoop2, `InvolutionLoopSignal.arb_trichotomy`). Symmetric channel:
+   `h = l = w*` with `2w* = δ(−w*)` (`Sym.fixed`), so **s* = TLOOP − w*** reading δ∞ = TLOOP, and
+   `TLOOP/2 < s* < TLOOP − δmin/2` (`Sym.crit_gt_half`, `Sym.crit_lt`). The numbers s*/TLOOP =
    0.500 / 0.502 / 0.514 / 0.543 / 0.581 for τ = 40 / 60 / 100 / 150 / 200 ps at TLOOP 424, and
-   0.500-0.534 at TLOOP 624. The upward drift comes from the first lap, which starts from a long
-   low history. Outside ±1 ps of s* the outcome is deterministic.
-3. Rise ≠ fall would shift the centre to TLOOP·δ↓/(δ↑+δ↓) (from the symmetry argument; not
-   computed here). prjxray gives no split, so TLOOP/2 is the reading of the data.
+   0.500-0.534 at TLOOP 624, are this formula evaluated in Float for the exp channel (a computation,
+   not a theorem). The upward drift comes from the first lap, which starts from a long low history
+   (delay δ∞) while the train circulates with the shorter delay δ(−w*).
+3. Rise ≠ fall. Proved: `asym_iff`: `h < l ⇔ δ↑(−h) < δ↓(−h) ⇔ s* < δ∞↑ − (h+l)/2` (which side of the
+   train's mid-point the centre falls is decided by which edge is faster at the train's operating
+   point), with `δ∞↑ − (h+l) < s* < δ∞↑` (`crit_bounds`). The earlier guess "TLOOP·δ↓/(δ↑+δ↓)" was
+   wrong in direction. Float check (InvLoop `asym.py`, skewed family `δ↑(T) = δ(T−a)+a`,
+   `δ↓(T) = δ(T+a)−a`, exp δ, TLOOP 424, τ 100; a computation, not a theorem): a = −40/−20/−10/0/+10/
+   +20/+40 ps gives s* = 58/105/149/218/291/343/407 ps: a **slower rise moves s* UP**, by about
+   **70 ps per 10 ps of skew** near a = 0. prjxray gives no split, so TLOOP/2 is the reading of the
+   symmetric data, and the centre is fragile against an unmeasured rise/fall skew.
 
 **Proposed threshold justification for research** (the patch `run-1029/patch/fid_core_centre.diff`
 adds `+META_CENTRE_PM=` in per-mille of TLOOP, default 500; `-1` restores the old rule exactly,
@@ -99,7 +112,11 @@ E3):
 - **TAU is not on the pessimistic side under the involution model.** Near s* the orbit resolves
   with t_r ≈ TAU_eff·ln(1/|s − s*|), where TAU_eff = 503 / 799 / 1741 / 7242 ps for τ = 200 / 150 / 100 / 60
   (1.2-17 × TLOOP). That is because the per-lap gain is the slope δ′ of the channel at a pulse of
-  about TLOOP/2, which is small when the pulse is wide compared with the slew. Real noise
+  about TLOOP/2, which is small when the pulse is wide compared with the slew. Proved form (InvLoop2,
+  `InvolutionLoopRate.laps_two_sided`): if the delay slopes lie in [κ, K] on the relevant domain,
+  the first cancellation index m satisfies `(1+K)^(N+1)|s − s*| < g ⇒ m > N` and
+  `max δ∞ ≤ (1+κ)^(N+1)|s − s*| ⇒ m ≤ N`, i.e. m is logarithmic in 1/|s − s*| with per-edge gain
+  between 1+κ and 1+K; the TAU_eff numbers above are Float values of that gain, not theorems. Real noise
   (lap-to-lap jitter) will shorten this, by an amount nobody has measured. Proposal: quote any
   fid MTBF number as "TAU = 150 ps assumed; the involution model gives ≥ 3× longer", or run with
   TAU = TLOOP as the pessimistic bracket.

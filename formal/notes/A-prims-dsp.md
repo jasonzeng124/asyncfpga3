@@ -2,8 +2,10 @@
 
 Probe PrimsDSP, shard A, session 2026-10-29. North-star goal 1 ("DSP48E1 ... if a design uses them").
 
-STATUS: Lean written (Formal/Core/Prims/{Dsp,DspData,DspTimed}.lean); checking in progress.
-(Updated at the end with the check.sh results.)
+STATUS: DONE (2026-10-29). `formal/check.sh Formal/Core/Prims/Xray.lean Formal/Core/Prims/DspData.lean
+Formal/Core/Prims/Dsp.lean Formal/Core/Prims/DspTimed.lean` -> `[audit] 700 declarations checked`,
+`[check] OK` (Xray is PrimsComb's, listed only so DspData's import has an olean; not edited).
+Lean core only, no Mathlib, no bv_decide/native_decide. Only warnings: deprecated `if_pos`/`if_neg`.
 
 ## 1. Census: how ipow uses the DSP48E1
 
@@ -136,6 +138,14 @@ arrive at the capture latch no earlier than (latest operand arrival at the DSP p
 (slow corner, prjxray, cascade wires 0) + (P→capture route max) + capture setup, under one
 consistent corner. compute.py's routed peaks (14295–16785 ps data arrival) include the fabric
 routes; this is the DSP-internal part only.
+
+## Negative controls
+- `dsp2lean.py --check` passes on the real SDFs and reports DRIFT (exit 1) after one number is
+  mutated (DSP_L/R PCIN→P slow max 1.518 → 1.418 ns, copy in scratchpad/PrimsDSP/mut). That
+  mutation would change `settle_px`'s 7267 to 7167, so the Lean theorem would fail; the Lean side
+  of the control was NOT run (needs a rebuild against the mutated data).
+- `lumped_tight` and `booth_breaks_lowBits` are proved negative results; `ug479_default_registered`
+  shows `Cfg.supported` can be false.
 
 ## 4. NOT modelled / hypotheses
 - H_FASM_DSP (bitstream = yosys config), H_DSP_UG479 (function), H_DSP_LUMPED (timing),

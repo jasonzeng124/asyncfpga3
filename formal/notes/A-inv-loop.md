@@ -4,14 +4,57 @@ Probe InvLoop, shard A, session 2026-10-29. File: `formal/lean/Formal/Core/Delay
 (imports only A's `Involution` plus `Mathlib.Algebra.Order.Archimedean.Real.Basic` for `sSup`; no
 topology library). Scratch: `scratchpad/InvLoop/{ws.py,asym.py}` (Float checks, not theorems).
 
-STATUS: done. `InvolutionLoop.lean` checked: `formal/check.sh Formal/Core/Delay/InvolutionLoop.lean` → `[audit] 197 declarations checked`, `[check] OK` (docstring-only edit after). Bridge to B's `orb` written but unchecked: `Wip/InvLoop/Bridge.lean` (needs Mathlib topology).
+STATUS (InvLoop, first probe): done. `InvolutionLoop.lean` checked: `formal/check.sh Formal/Core/Delay/InvolutionLoop.lean` → `[audit] 197 declarations checked`, `[check] OK` (docstring-only edit after). Bridge to B's `orb` written but unchecked: `Wip/InvLoop/Bridge.lean` (needs Mathlib topology).
 
 ## InvLoop2 (session 2026-10-29, second probe)
 
-STATUS InvLoop2: in progress. Plan: (1) compile `Wip/InvLoop/Bridge.lean` as
-`Formal/Core/Delay/InvolutionLoopBridge.lean` (B's oleans checked first with check.sh); (2) signal-level
-latch / lost / eternal for every `ALoop` solution; (3) a lap-count rate law from the expansion of the
-half-lap map; (4) correct A-fid3 §3 item 3.
+STATUS InvLoop2: done (pending the lead's check.sh rerun). Files (all `formal/lean/Formal/Core/Delay/`):
+`InvolutionLoopBridge.lean` (the old `Wip/InvLoop/Bridge.lean`, unchanged proofs), `InvolutionLoopSignal.lean`,
+`InvolutionLoopRate.lean`. They import B's `Formal.Cells.CElemInvolution` / `ArbInvolution` read-only
+(Mathlib topology). Checked: `formal/check.sh Formal/Cells/CElemInvolution.lean Formal/Cells/ArbInvolution.lean
+Formal/Core/Delay/InvolutionLoop.lean Formal/Core/Delay/InvolutionLoopBridge.lean
+Formal/Core/Delay/InvolutionLoopSignal.lean Formal/Core/Delay/InvolutionLoopRate.lean` (B's two files are
+listed only because their oleans were not in `.lake/build`; they are not edited). `Wip/InvLoop/Bridge.lean`
+is superseded (the lead may delete it).
+
+Trace semantics used: B's `loop_orb` / `arb_q_orb` (B's signal-level `InvChanF` fragment), not InvTrace's
+`channel : List ℝ → List ℝ`. Reason: the loop's fixed point is already solved at signal level by B (every
+solution's `q` = `den (orb P s)` truncated at the first cancellation, and a solution exists, `arb_exists`),
+so the bridge is `lo = orb` (`rfl` recursion) plus picking the cancellation index. Bridging to InvTrace would
+need a fixed-point existence/uniqueness proof for a feedback loop over an infinite trace, i.e. new work;
+it is a natural next probe (does `channel` agree with B's `InvChanF` fragment on the loop's traces?).
+
+### What is proved (plain language)
+- **Bridge** (`InvolutionLoopBridge`): `lo_eq_orb`: A's orbit is B's `orb`; `osc_iff`: B's `Osc` = all A
+  widths positive; `arb_crit`: an `Osc` gap in (0, δ∞↑) equals `crit P l = δ∞↑ − l`.
+- **Signal level** (`InvolutionLoopSignal`). Assumed: B's `ALoop P s r1 r2 x qp` (r1 rises at 0, r2 at s,
+  the real `bd_c2n_set` INIT in zero time, LUT + route one involution channel in B's `InvChanF` fragment),
+  `0 < s < δ∞↑`, `Stat P h l`. Proved `arb_trichotomy`: for EVERY solution, `Latched q` (eventually 1)
+  ⇔ s > s*, `Lost q` (eventually 0) ⇔ s < s*, `Eternal q` (both values after every time) ⇔ s = s*.
+  `arb_threshold`: the same with (h, l) produced by `stat_exists`, s* ∈ (lft, δ∞↑), and a solution exists
+  for every gap. `arb_eternal_gap` / `arb_eternal_is_crit`: B's `arb_eternal` gap is exactly δ∞↑ − l*;
+  `osc_iff_crit`: B's `crit_exists` gap too; `lft_lt_crit`.
+- **Rate law** (`InvolutionLoopRate`). e_n = |wd s n − wd s* n|. Under `H_LIP` (slopes of δ↑, δ↓ ≤ K on
+  [−M, ∞), g ≤ min(h,l), max(h,l)+g ≤ M): `dev_lower`: e_j ≤ (1+K)^(j+1)|s−s*|, and
+  (1+K)^(N+1)|s−s*| < g ⇒ the first N+1 widths are positive; `time_lower`: with 2(...) < g, the N-th
+  transition is after δ∞↑ + N g/2. Under `H_SLOPE` (slopes ≥ κ ≥ 0 on (−δ∞, 0], the arguments widths
+  reach): `dev_upper`: while cancellation-free e_j ≥ (1+κ)^(j+1)|s−s*|; `laps_upper` /
+  `not_chain_of_big`: (1+κ)^(N+1)|s−s*| ≥ max(δ∞↑, δ∞↓) ⇒ a cancellation among the first N+1 widths.
+  `laps_two_sided`: for the first cancellation index m, both implications. So m is between
+  log(g/|s−s*|)/log(1+K) − 1 and log(max δ∞/|s−s*|)/log(1+κ) (power form in Lean, no log).
+- **Comparison with B**: `quantHyp_of_stat`: under `H_LIP` with those margins, B's `QuantHyp P s* K M g`
+  holds, so B's `window_lower` applies at A's s*. B's hypothesis `2(1+2K)^N(1+K)|s−s*| < g` (on transition
+  times) is stronger than ours `(1+K)^(N+1)|s−s*| < g` (on widths, a 1-D map); B's gives a time bound
+  δ∞↑ + Ng − g/2, ours (`time_lower`) δ∞↑ + Ng/2. B has no upper bound; `laps_upper` is new.
+
+### Not proved / not covered
+- That a real LUT + route satisfies `H_LIP` or `H_SLOPE` with κ > 0 (for A's exp channel the slope is
+  bounded and positive on (−δ∞+ε, 0]; not proved here). With κ = 0 `laps_upper` is vacuous-ish (gives
+  only the trivial bound); B's `H_LIP` with M ≥ δ∞ is unsatisfiable (δ → −∞ at the domain edge), so M
+  must be taken below δ∞.
+- Gaps outside (0, δ∞↑); noise/jitter; multi-cell loops; the channel being an involution channel (B's
+  `H_CH`); InvTrace's `channel` as the loop semantics.
+- `InvolutionLoopRate` has eight deprecation warnings (`if_pos`/`if_neg`), no errors.
 
 ## The setting (what is assumed)
 
@@ -106,9 +149,5 @@ In the lumped single-channel involution model of a LUT state loop:
 ## Status
 
 - Claimed: `formal/lean/Formal/Core/Delay/InvolutionLoop.lean` (no sorry/axiom; check.sh OK, 197 decls).
-- Not claimed: `formal/lean/Wip/InvLoop/Bridge.lean` (`lo = orb`, `Osc ↔ ∀ n, 0 < wd`, B's
-  eternal gap = `crit`). It is not compiled because B's `CElemInvolution` imports Mathlib topology
-  modules that were unbuilt. Once they are built, check it and move it to `Formal/`.
-- Not proved: a rate (how many laps as a function of `|s - s*|`, the TAU_eff of A-fid3). B's `window_lower`
-  covers that under its `QuantHyp`. Signal-level latch/lost statements for every solution go through B's
-  `loop_orb` plus the bridge (not done here).
+- Bridge: now `Formal/Core/Delay/InvolutionLoopBridge.lean` (InvLoop2, above). Signal-level latch/lost and a
+  rate law: `InvolutionLoopSignal.lean`, `InvolutionLoopRate.lean` (InvLoop2, above).

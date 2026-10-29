@@ -599,11 +599,11 @@ theorem lastE_spec (O : Sig) : ∀ t, lastE O t ≤ t ∧ (0 < lastE O t → O (
   | zero => simp [lastE]
   | succ t ih =>
     by_cases he : O (t + 1) = O t
-    · simp only [lastE, he, if_true]; exact ⟨by omega, ih.2⟩
-    · simp only [lastE, he, if_false]; exact ⟨by omega, fun _ => by simpa using he⟩
+    · simp only [lastE, he, ite_true]; exact ⟨by omega, ih.2⟩
+    · simp only [lastE, he, ite_false]; exact ⟨by omega, fun _ => by simpa using he⟩
 
 theorem spaced_identity {p : Prm} {a b rst : Sig} {v0 : Bool} {st : Nat → St} {O : Sig}
-    (h : Run p a b rst v0 st) (hO0 : O 0 = v0)
+    (hL : 1 ≤ p.L) (h : Run p a b rst v0 st) (hO0 : O 0 = v0)
     (hrec : ∀ t, O (t + 1) = fC2 (a (t + 1)) (b (t + 1)) (O (t + 1 - p.L)) (rst (t + 1)))
     (hsp : Spaced p.L O) :
     ∀ t, st t = ⟨O t, false, lastV O v0 t, lastE O t, 0, 0, v0⟩ := by
