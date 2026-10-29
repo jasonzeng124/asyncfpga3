@@ -207,14 +207,45 @@ module SLICE_FFX (
 endmodule
 
 `else
-// GLS_FID: an input change inside the FF's aperture [-TSU, +THD] around a
-// rising CK does not go X; the flop resolves to the old or the new value
-// (offset from the aperture centre plus N(0, ap/4) noise picks which) after
-// an extra t_r = TAU_FF*ln(ap/(2|delta|)), i.e. an exponential tail.  Without
-// a SETUPHOLD in the SDF the aperture is +META_FFW= (default 50 ps), centred.
-// TAU_FF default 75 ps (+META_TAU_FF=): at or above every FPGA flop tau in
-// Beer et al., ASYNC 2010 (57/51/73 ps at 130/90/65 nm); no 28 nm 7-series
-// figure was found, and a longer tau is the pessimistic side.
+// GLS_FID: every pin is TRANSPORT and the flop decides on its own copies.
+//
+// Pins (S6).  CK, D, CE and SR each reach the flop's capture node through
+// their own transport arc (every edge kept, nothing arrives early), and Q
+// leaves the node a transport TCKQ - TCKI later.  nextpnr's SDF has only CK->Q
+// and a SETUPHOLD per pin, so the pin->node arcs are not characterised: TCKI
+// (CK) defaults to 1 ps and TDI/TCEI/TSRI to TCKI, which keeps the SDF's
+// aperture where the SDF puts it and makes the external CK->Q exactly TCKQ.
+// They are fid-only parameters for exploring internal skew.  Data copies land
+// 1 ps before their arc, so a copy and the CK copy never share a time step (a
+// change at the same instant as CK is a 1 ps-setup aperture event).
+//
+// Aperture.  A D, CE or SR change inside [-TSU, +THD] around a rising CK does
+// not go X; the flop resolves to the old or the new next state (offset from
+// the aperture centre plus N(0, ap/4) noise picks which) after an extra
+// t_r = TAU_FF*ln(ap/(2|delta|)), i.e. an exponential tail.  SR is in the
+// aperture since S6 (the SDF has SETUPHOLD SR 100/100 on the FDSE/FDRE that
+// use it).  Without a SETUPHOLD in the SDF the aperture is +META_FFW= (default
+// 50 ps), centred.  TAU_FF default 75 ps (+META_TAU_FF=): at or above every
+// FPGA flop tau in Beer et al., ASYNC 2010 (57/51/73 ps at 130/90/65 nm); no
+// 28 nm 7-series figure was found, and a longer tau is the pessimistic side.
+//
+// Minimum pulse width (S6).  A CK pulse is never swallowed by the model's own
+// mechanics.  A clean high pulse of width p (or a low gap of width p before a
+// rise) is judged against TMPW with the runt law of FID_RESOLVE:
+//   delta = p - TMPW + N(0, WMPW/4);  delta <= -WMPW/2: no capture (high
+//   runt: the flop keeps its pre-edge state; low runt: the master never
+//   tracked D, the edge re-captures the state it holds);  otherwise the new
+//   value if delta > 0, else the old one, after TAU_FF*ln(WMPW/(2|delta|)).
+// No minimum pulse width for a slice FF was found: prjxray-db's timings/*.sdf
+// carry no WIDTH/PERIOD check, and the 7-series data sheet could not be read
+// from here.  TMPW = 70 / WMPW = 40 ps (+FF_MPW=, +FF_MPW_WIN=, 0 = off) are an
+// ASSUMPTION, chosen so the band [50, 90] ends below the fastest CK->Q in the
+// SDFs used here (99 ps): the decision then precedes Q.  If a high runt is
+// judged after Q already moved (TMPW + WMPW/2 > TCKQ - TCKI), Q shows a
+// glitch back to the outcome -- pessimistic, stated.
+//
+// Q is driven from a token queue ({capture generation, value}, transport), so
+// a capture undone by a runt decision can be cancelled before it reaches Q.
 module SLICE_FFX (
     input  wire CK, D, CE, SR,
     output reg  Q
@@ -225,68 +256,170 @@ module SLICE_FFX (
     parameter TSU = 0;
     parameter THD = 0;
     parameter integer SEED = 1;
-    integer tau, wff, seed, gseed, verbose, tsu, thd, ap, c0, x, noise, delta, ad, trp;
-    integer n_meta;
+    parameter integer TCKI = -1, TDI = -1, TCEI = -1, TSRI = -1;  // GLS_FID only
+    parameter integer TMPW = -1, WMPW = -1;                       // GLS_FID only
+    localparam integer AK = (TCKI >= 0) ? TCKI : 1;
+    localparam integer AD = (TDI >= 0) ? TDI : AK, AC = (TCEI >= 0) ? TCEI : AK,
+                       AS = (TSRI >= 0) ? TSRI : AK;
+    localparam integer ED = (AD > 0) ? AD - 1 : 0, EC = (AC > 0) ? AC - 1 : 0,
+                       ES = (AS > 0) ? AS - 1 : 0;
+    localparam integer LQ = (TCKQ > AK) ? TCKQ - AK : 0;     // node -> Q
+    integer tau, wff, seed, gseed, verbose, tsu, thd, ap, c0, noise, delta, ad, trp;
+    integer mpw, wm, n_meta, n_runt, gen, g_rise, lq_rise, dl, p;
     real trr;
-    reg d_last, ce_last, oldv, newv, choose;
+    reg choose, st, pre_rise, nw, od, rise_clean, outc;
+    reg [63:0] cancelv = 64'b0;
     initial begin
-        Q = INIT;
-        tau = 75; wff = 50; gseed = 0; verbose = 0; n_meta = 0;
+        Q = INIT; st = INIT;
+        tau = 75; wff = 50; gseed = 0; verbose = 0; n_meta = 0; n_runt = 0; gen = 0;
+        mpw = (TMPW >= 0) ? TMPW : 70;
+        wm  = (WMPW >= 0) ? WMPW : 40;
         if ($value$plusargs("META_TAU_FF=%d", tau)) ;
         if ($value$plusargs("META_FFW=%d", wff)) ;
         if ($value$plusargs("META_SEED=%d", gseed)) ;
         if ($value$plusargs("META_VERBOSE=%d", verbose)) ;
+        if ($value$plusargs("FF_MPW=%d", mpw)) ;
+        if ($value$plusargs("FF_MPW_WIN=%d", wm)) ;
+        if (wm < 2) wm = 2;
         seed = SEED * 6151 + gseed * 98317 + 29;
         tsu = (TSU > 0) ? TSU : wff / 2;
         thd = (THD > 0) ? THD : wff / 2;
         ap = tsu + thd;
         c0 = (thd - tsu) / 2;           // aperture centre, ps after CK
-        d_last = 1'bx; ce_last = 1'bx;
     end
-    time t_ck = 0, t_in = 0;
+    time t_ck = 0, t_in = 0, t_rise = 0, t_fall = 0;
 
+    // the pin copies (an initial sample too: a tie-off produces no event)
+    reg ck = 1'bx, d = 1'bx, ce = 1'bx, sr = 1'bx;
+    initial begin #0; ck <= #(AK) CK; d <= #(ED) D; ce <= #(EC) CE; sr <= #(ES) SR; end
+    always @(CK) ck <= #(AK) CK;
+    always @(D)  d  <= #(ED) D;
+    always @(CE) ce <= #(EC) CE;
+    always @(SR) sr <= #(ES) SR;
+
+    // Q: transport token queue
+    reg [32:0] tok = 33'bx;
+    task launch(input integer dly, input integer g, input reg v);
+        tok <= #(dly) {g[31:0], v};
+    endtask
+    always @(tok) if (cancelv[tok[6:1]] !== 1'b1) Q = tok[0];
+    task newgen;
+        begin gen = gen + 1; cancelv[gen % 64] = 1'b0; end
+    endtask
+
+    // offset -> (choose, trp) over a window w centred at 0
+    task law(input integer dlt, input integer w, input reg vnew, input reg vold);
+        begin
+            choose = (dlt > 0) ? vnew : vold;
+            ad = (dlt < 0) ? -dlt : dlt;
+            if (ad < 1) ad = 1;
+            if (2 * ad < w) begin
+                trr = tau * $ln((1.0 * w) / (2.0 * ad));
+                trp = (trr > 40.0 * tau) ? 40 * tau : $rtoi(trr);
+            end else trp = 0;
+        end
+    endtask
     task resolve(input integer xoff, input reg vnew, input reg vold, input integer is_hold);
         begin
             noise = $dist_normal(seed, 0, (ap > 4) ? ap / 4 : 1);
             delta = c0 - xoff + noise;      // > 0: input early enough -> new
-            choose = (delta > 0) ? vnew : vold;
-            ad = (delta < 0) ? -delta : delta;
-            if (ad < 1) ad = 1;
-            if (2 * ad < ap) begin
-                trr = tau * $ln((1.0 * ap) / (2.0 * ad));
-                trp = (trr > 40.0 * tau) ? 40 * tau : $rtoi(trr);
-            end else trp = 0;
+            law(delta, ap, vnew, vold);
             n_meta = n_meta + 1;
             if (verbose)
                 $display("FFMETA %m t=%0t off=%0d delta=%0d -> %b after +%0d ps%s",
                          $time, xoff, delta, choose, trp, is_hold ? " (hold)" : "");
-            if (!is_hold || delta > 0) Q <= #(TCKQ + trp) choose;
+        end
+    endtask
+    // runt law: p against mpw; sets choose/trp, returns via 'outc' and trp
+    task runt(input integer pw, input reg vnew, input reg vold, input integer is_low);
+        begin
+            noise = $dist_normal(seed, 0, (wm > 4) ? wm / 4 : 1);
+            delta = pw - mpw + noise;
+            if (delta <= -(wm / 2)) begin outc = vold; trp = 0; end
+            else begin law(delta, wm, vnew, vold); outc = choose; end
+            n_runt = n_runt + 1;
+            if (verbose)
+                $display("FFRUNT %m t=%0t %s pulse %0d ps (mpw %0d) delta=%0d -> %b after +%0d ps",
+                         $time, is_low ? "low" : "high", pw, mpw, delta, outc, trp);
         end
     endtask
 
-    always @(posedge CK) begin
-        if (SR === 1'b1) Q <= #(TCKQ) SRVAL;
-        else if (t_in > 0 && $time - t_in < tsu)
-            resolve(-($time - t_in), CE ? D : Q, ce_last ? d_last : Q, 0);
-        else if (CE) Q <= #(TCKQ) D;
-        t_ck = $time;
+    // next state from (sr, ce, d) and a held state q, as the default model
+    // reads it: SR wins only at 1; CE merges D and q when x
+    function nsf(input s, input c, input dd, input q);
+        nsf = (s === 1'b1) ? SRVAL : (c ? dd : q);
+    endfunction
+    reg sr_last = 1'bx, ce_last = 1'bx, d_last = 1'bx;
+    reg sr_now = 1'bx, ce_now = 1'bx, d_now = 1'bx;
+
+    reg ckp = 1'bx;
+    always @(ck) begin
+        if ((ckp === 1'b0 && ck !== 1'b0) || (ckp !== 1'b0 && ckp !== 1'b1 && ck === 1'b1)) begin
+            // ---- rising edge on the node
+            newgen;
+            pre_rise = st;
+            trp = 0;
+            if (ckp === 1'b0 && ck === 1'b1 && mpw > 0 && t_fall > 0
+                    && $time - t_fall < mpw + wm / 2
+                    && (sr === 1'b1 || ce) && nsf(sr, ce, d, st) !== st) begin
+                // low runt: did the master track the new inputs?
+                runt($time - t_fall, nsf(sr, ce, d, st), st, 1);
+                st = outc;
+                launch(LQ + trp, gen, outc);
+            end else if (t_in > 0 && $time - t_in < tsu) begin
+                nw = nsf(sr, ce, d, st);
+                od = nsf(sr_last, ce_last, d_last, st);
+                if (nw === od && (nw === 1'b0 || nw === 1'b1)) begin
+                    st = nw; launch(LQ, gen, nw);
+                end else begin
+                    resolve(-($time - t_in), nw, od, 0);
+                    st = choose;
+                    launch(LQ + trp, gen, choose);
+                end
+            end else if (sr === 1'b1) begin
+                st = SRVAL; launch(LQ, gen, SRVAL);
+            end else if (ce) begin
+                st = d; launch(LQ, gen, d);
+            end
+            g_rise = gen; lq_rise = LQ + trp;
+            t_ck = $time;
+            rise_clean = (ckp === 1'b0 && ck === 1'b1);
+            t_rise = rise_clean ? $time : 0;
+        end else if ((ckp === 1'b1 && ck !== 1'b1) || (ckp !== 1'b0 && ckp !== 1'b1 && ck === 1'b0)) begin
+            // ---- falling edge: was the high pulse wide enough?
+            if (ckp === 1'b1 && ck === 1'b0 && mpw > 0 && t_rise > 0
+                    && $time - t_rise < mpw + wm / 2 && st !== pre_rise && g_rise == gen) begin
+                p = $time - t_rise;
+                runt(p, st, pre_rise, 0);
+                if (!(outc === st && trp == 0)) begin
+                    cancelv[g_rise % 64] = 1'b1;
+                    newgen;
+                    st = outc;
+                    dl = t_rise + lq_rise + trp - $time;
+                    launch((dl > 0) ? dl : 0, gen, outc);
+                end
+            end
+            t_fall = (ckp === 1'b1 && ck === 1'b0) ? $time : 0;
+        end
+        ckp = ck;
     end
 
-    always @(D or CE) begin
-        if (t_ck > 0 && $time - t_ck < thd && SR !== 1'b1)
-            resolve($time - t_ck, CE ? D : Q, Q, 1);
+    always @(d or ce or sr) begin
+        if (t_ck > 0 && $time - t_ck < thd) begin
+            nw = nsf(sr, ce, d, pre_rise);
+            if (!(nw === st && (nw === 1'b0 || nw === 1'b1))) begin
+                resolve($time - t_ck, nw, st, 1);
+                if (delta > 0) begin
+                    st = nw;
+                    launch(LQ + trp, g_rise, nw);
+                end
+            end
+        end
         t_in = $time;
+        // the values before the latest change, for the setup-side "old"
+        sr_last = sr_now; ce_last = ce_now; d_last = d_now;
+        sr_now = sr; ce_now = ce; d_now = d;
     end
-    // the values before the latest change, for the setup-side "old" choice
-    reg d_now = 1'bx, ce_now = 1'bx;
-    always @(D or CE) begin
-        d_last = d_now; ce_last = ce_now;
-        d_now = D; ce_now = CE;
-    end
-
-    // No specify path: iverilog's module path would schedule Q at
-    // max(CK + TCKQ, resolution) instead of CK + TCKQ + resolution, i.e.
-    // hide every resolution shorter than TCKQ.  Transport CK->Q instead.
 endmodule
 `endif
 
@@ -793,6 +926,7 @@ endmodule
 // All three came from a plain BUFG (X_ORIG_TYPE), with IS_S1/IS_CE1/
 // IS_IGNORE1_INVERTED set so the I1 half of the glitchless mux is permanently
 // deselected.  Modelled as the buffer that configuration reduces to.
+`ifndef GLS_FID
 module BUFGCTRL (
     input  wire I0, I1, S0, S1, CE0, CE1, IGNORE0, IGNORE1,
     output wire O
@@ -801,6 +935,23 @@ module BUFGCTRL (
     assign O = I0;
     specify (I0 => O) = TI0O; endspecify
 endmodule
+
+`else
+// GLS_FID (S6): I0 -> O is a TRANSPORT delay, like a routed wire (ICBUF under
+// GLS_TRANSPORT_IC): every edge kept, a pulse narrower than TI0O still comes
+// out.  No pulse-width filter on the buffer itself (no BUFG minimum pulse
+// width in prjxray-db; the flop's own TMPW judges a runt at the sink).
+module BUFGCTRL (
+    input  wire I0, I1, S0, S1, CE0, CE1, IGNORE0, IGNORE1,
+    output wire O
+);
+    parameter TI0O = 200;
+    reg o = 1'bx;
+    initial begin #0; o <= #(TI0O) I0; end
+    always @(I0) o <= #(TI0O) I0;
+    assign O = o;
+endmodule
+`endif
 
 // ---- BSCAN ------------------------------------------------------ BSCANE2 --
 // Passive stub: SEL low, so the JTAG user-DR machine never activates, gcd_hw's

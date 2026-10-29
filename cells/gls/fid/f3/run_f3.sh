@@ -11,7 +11,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 GLS=$(cd "$HERE/../.." && pwd)
 OUT=${F3_OUT:-$(mktemp -d)}
 rc=0
-for tb in tb_f3_lut tb_f3_meta tb_f3_carry tb_f3_latch; do
+for tb in tb_f3_lut tb_f3_meta tb_f3_carry tb_f3_latch tb_f3_ff; do
     for m in default fid; do
         defs="-DGLS_TRANSPORT_IC"; [ $m = fid ] && defs="$defs -DGLS_FID"
         # shellcheck disable=SC2086
@@ -21,7 +21,7 @@ for tb in tb_f3_lut tb_f3_meta tb_f3_carry tb_f3_latch; do
         want=FAIL; [ $m = fid ] && want=PASS
         if [ $got = $want ]; then echo "ok    $tb [$m] $got (expected)"
         else echo "WRONG $tb [$m] $got, expected $want"; rc=1; fi
-        grep -v VIOLATION "$OUT/$tb.$m.log" | grep -E "^ *([TCL][0-9]|A\.|B\.|  ok|  FAIL|   )" | sed 's/^/        /'
+        grep -v VIOLATION "$OUT/$tb.$m.log" | grep -E "^ *([TCLFG][0-9]|A\.|B\.|  ok|  FAIL|   )" | sed 's/^/        /'
     done
 done
 # x semantics must not change: settled outputs of 3000 random x-laden vectors
@@ -44,6 +44,23 @@ done
 if cmp -s "$OUT/kleene_c4.default.out" "$OUT/kleene_c4.fid.out" && [ "$(wc -l < "$OUT/kleene_c4.fid.out")" = 3000 ]; then
     echo "ok    tb_f3_kleene_c4: 3000 settled x-laden CARRY4/latch vectors identical under both models"
 else echo "WRONG tb_f3_kleene_c4: settled values differ between models"; rc=1; fi
+# the same for SLICE_FFX and BUFGCTRL (S6), plus a negative control: a mutated
+# fid flop (x on CE loads D) must differ, or the check could not fail
+sed "s/end else if (ce) begin/end else if (ce !== 1'b0) begin/" "$GLS/prims.v" > "$OUT/prims_mut_ff.v"
+for m in default fid mut; do
+    defs="-DGLS_TRANSPORT_IC"; p="$GLS/prims.v"
+    [ $m != default ] && defs="$defs -DGLS_FID"; [ $m = mut ] && p="$OUT/prims_mut_ff.v"
+    # shellcheck disable=SC2086
+    iverilog -gspecify -I"$GLS" $defs -o "$OUT/kff.$m.vvp" "$HERE/tb_f3_kleene_ff.v" "$p" && \
+        vvp -n "$OUT/kff.$m.vvp" | grep -v finish > "$OUT/kleene_ff.$m.out"
+done
+nmut=$(diff "$OUT/kleene_ff.default.out" "$OUT/kleene_ff.mut.out" | grep -c "^<")
+if cmp -s "$OUT/kleene_ff.default.out" "$OUT/kleene_ff.fid.out" && [ "$(wc -l < "$OUT/kleene_ff.fid.out")" = 3000 ]; then
+    echo "ok    tb_f3_kleene_ff: 3000 settled x-laden SLICE_FFX/BUFGCTRL vectors identical under both models"
+else echo "WRONG tb_f3_kleene_ff: settled values differ between models"; rc=1; fi
+if cmp -s "$OUT/prims_mut_ff.v" "$GLS/prims.v" || [ "$nmut" -lt 1 ]; then
+    echo "WRONG tb_f3_kleene_ff negative control: the mutated fid flop was not caught"; rc=1
+else echo "ok    tb_f3_kleene_ff negative control: mutated fid flop (x CE loads D) differs on $nmut of 3000 lines"; fi
 if [ "${1:-}" = arbm ]; then
     W=$2
     python3 "$HERE/gen_arbm_sig.py" "$W"

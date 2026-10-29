@@ -359,10 +359,126 @@ Not done:
 - No routed GLS with the new CARRY4/latch under fid, and no kernel GLS (no
   route on disk in this worktree, and nextpnr was not allowed).
 - No latch aperture/metastability.
-- DSP, BUFG and flop CK/SR pins are still sample-at-fire.
+- DSP, BUFG and flop CK/SR pins are still sample-at-fire (BUFG and the flop
+  pins: transport since S6, section 7).
 - The carry arc-monotonicity question is open.
 
+## 7. SLICE_FFX pins and BUFGCTRL transport (S6, 2026-10-29)
+
+Under `GLS_FID` only. Without it the preprocessed prims.v is identical to
+HEAD's (evidence below).
+
+What the fid flop was before S6: Q was already a transport CK->Q (S1; section
+2), so a Q pulse narrower than TCKQ was kept, but CK/D/CE/SR were read at the
+CK event with no arc, any CK pulse however narrow clocked the flop, and SR
+was outside the aperture. BUFGCTRL was the default specify path (a pulse
+narrower than TI0O swallowed).
+
+- **Pin arcs.** CK, D, CE, SR each reach the capture node through their own
+  transport arc (`TCKI`, `TDI`, `TCEI`, `TSRI`, fid-only parameters), and Q
+  leaves it TCKQ - TCKI later through a token queue (so a capture undone by a
+  runt decision is cancelled before Q moves). The SDF has only CK->Q plus a
+  SETUPHOLD per pin, so the pin->node arcs are not characterised: TCKI
+  defaults to 1 ps and the others to TCKI. External CK->Q stays exactly TCKQ
+  and the SDF aperture stays where the SDF puts it. Data copies land 1 ps
+  before their arc so that a copy and the CK copy never share a time step;
+  an input moving at the same instant as CK is a 1 ps-setup aperture event.
+  This shifts tb_f3_meta B by 1 ps (116/84 -> 119/81 captures of 1/0).
+- **SR in the aperture.** SR changes are now aperture events like D and CE
+  (the SDF has `SETUPHOLD SR 100/100` on the flops that use SR). The resolve
+  chooses between the old and new next state `SR ? SRVAL : CE ? D : Q`;
+  when they are the same 0/1 value, nothing is resolved.
+- **Minimum pulse width.** A clean CK high pulse (or a low gap before a
+  rise) of width p is judged with FID_RESOLVE's runt law:
+  delta = p - TMPW + N(0, WMPW/4). If delta <= -WMPW/2 there is no capture
+  (high runt: the flop keeps its pre-edge state; low runt: the edge
+  re-captures the state the master held). Otherwise the result is new if
+  delta > 0, else old, after TAU_FF ln(WMPW/2|delta|). **Source: none.**
+  prjxray-db's `timings/*.sdf` have no WIDTH or PERIOD check for any cell,
+  and the 7-series data sheet (DS187) could not be fetched from this session.
+  TMPW = 70, WMPW = 40 ps (`+FF_MPW=`, `+FF_MPW_WIN=`, 0 = off) is an
+  assumption, chosen so that the band [50, 90] ends below the fastest CK->Q
+  in the SDFs here (99 ps), so the decision comes before Q moves. If a user
+  sets TMPW + WMPW/2 > TCKQ - TCKI, a high runt judged after Q moved gives a
+  Q glitch back to the outcome (pessimistic, stated).
+- **BUFGCTRL.** I0->O is a transport delay (`TI0O`, the baked name),
+  like ICBUF under GLS_TRANSPORT_IC. It has no pulse filter: no BUFG minimum
+  pulse width is in prjxray-db, and the sink flop's TMPW judges a runt.
+- Parameter names the baked netlist uses (`INIT, SRVAL, TCKQ, TSU, THD,
+  SEED`; `TI0O`) are unchanged. The new parameters exist only under GLS_FID,
+  so a testbench that sets them wraps them in `ifdef GLS_FID` (tb_f3_ff).
+
+**tb_f3_ff** (TCKQ 300; run_f3.sh requires FAIL default, PASS fid):
+
+| check | default | fid HEAD (pre-S6) | fid S6 |
+|---|---|---|---|
+| F1 120 ps CK runt, next rise 240 ps later: Q 1300 / 1540 | no Q edge (both swallowed) | ok | ok |
+| F2 30 ps CK runt (below the band): no capture | captures | captures | ok |
+| F3 70 ps runt x200: both outcomes, no X | 1 every time | 1 every time | 97 / 103, X 0 |
+| F4 arcs 100: 40 ps SR pulse at a rise, then two rises 200 ps apart: 1300->0, 1500->1, 1800->0 | 1 edge (1800) | ok | ok |
+| F5 arcs 100: CE dips 1990-2010 around a rise (CE edge 20 ps after CE edge): hold, then 2500->1, 2700->0 | no edge | ok | ok |
+| F6 SR rises 10 ps before CK (window +-40) x200: both outcomes | 0 every time | 0 every time | 59 / 141, X 0 |
+| F7 TSRI 200 vs TCKI 1: SR 50 ps before CK misses that edge | SR seen | n/a (no arcs) | ok |
+| G1 120 ps pulse into a 200 ps BUFG clocks the flop behind it | swallowed, no clock | swallowed | ok (O 1200/1320, Q 1500) |
+
+The "fid HEAD" column ran with a copy of tb_f3_ff that has the
+`ifdef GLS_FID` parameter overrides deleted. F1, F4 and F5 already passed
+there, because the pre-S6 Q path was transport. What S6 adds is shown by F2,
+F3, F6, F7 and G1.
+
+**tb_f3_kleene_ff:** 3000 random vectors, x on D 15%, CE 10%, SR 4%, CK x
+on 3% of pulses, four flops (one behind a BUFGCTRL), state carried across
+vectors. The settled Q is identical under default and fid. A mutated fid
+flop (x on CE loads D, made by a sed in run_f3.sh) differs on 318 lines, so
+the check can fail.
+
+**Default build unchanged.** `iverilog -E` of HEAD's and the new prims.v,
+with no defines and with `-DGLS_TRANSPORT_IC`, are identical (blank lines and
+`line markers ignored, as in section 6). A small netlist (12 ICBUFs, a
+BUFGCTRL, 8 LUTs feeding 8 SLICE_FFX with mixed INIT/SRVAL, SR/CE driven,
+TSU 60 / THD 40, 4000 random events, 152 violation lines) gives
+byte-identical VCDs (all but `$date`) with the old and the new prims.v:
+65,107 value-change lines plain and 66,503 with GLS_TRANSPORT_IC. The logs
+are identical apart from the dumpfile path. Under fid the same bench
+differs.
+
+**Found here: gen.py drops negative SETUPHOLD values.** `RE_SH` matches
+`\((\d+):...`, so `(SETUPHOLD (posedge D) (posedge CK) (-60:...) (241:...))`
+and CE's `(109) (-5)` never match. On the bq3 seed-3 route (min column), 42
+of 326 baked flops have TSU/THD, and they are exactly the 42 with an SR
+SETUPHOLD (100/100). The other 284 flops get no aperture: the default model
+checks nothing, and fid uses the 50 ps `+META_FFW` default. The 42 get the
+SR window, not D's (-60/+241). It was NOT fixed: the fix changes the default
+baked netlist and the gate's numbers, so it is the main thread's decision.
+The model already treats TSU/THD <= 0 as "use the default", which would also
+need a decision for a genuinely negative setup.
+
+**Library and rig dependence.**
+- `bd_flink` (`cells/rtl/bd_mlink.v`, not integrated) clocks an FDRE bank
+  from a LUT, `ck = ~rst & (done ^ ack_out)`. A done/ack_out race there is
+  exactly a CK runt. Under default the LUT path swallowed it. Under fid HEAD
+  any runt clocked the bank. Under S6 the TMPW law decides, so its GLS
+  verdict depends on the assumed TMPW.
+- `bd_mem` (USE_BUFG=1) puts a BUFG between the strobe and RAMB18 CLK. prims.v
+  has no RAMB model, so the BUFG change does not reach it in GLS.
+- Rigs with synchronisers or async-fed flops (arb_mtbf `sync1/sync2`, the
+  FDSE `rst_sr` chains in gcd_hw and other `*_ps` rigs, BUFG-clocked counters)
+  see behaviour change only on an aperture or runt event. The SR-in-aperture
+  rule is new for the reset synchronisers.
+- No other cells/rtl cell has a flop or a BUFG (bd_latch keeps its storage in
+  LUTs).
+
+Not done (S6): no routed GLS under fid with the new flop and BUFG (nextpnr was
+not allowed, and the machine is nearly full); no per-pin skew derived from
+the per-pin SETUPHOLD centres (TDI/TCEI/TSRI default to TCKI); no async
+SR (FDCE/FDPE are not emitted by this flow; gen.py would need a mode); no
+BUFG minimum pulse width or CE/S glitchless-mux model (I1 is permanently
+deselected here); the cell-simulation stand-ins (`cells/sim/bd_prims_sim.v`,
+its BUFG; it has no flop model) were not touched; DSP left alone.
+
 ## Files
+- added (S6): `cells/gls/fid/f3/{tb_f3_ff.v, tb_f3_kleene_ff.v}`; changed (S6):
+  `prims.v` (GLS_FID SLICE_FFX and BUFGCTRL), `run_f3.sh`
 - added (S5): `cells/gls/fid/f3/{tb_f3_carry.v, tb_f3_latch.v, tb_f3_kleene_c4.v}`;
   changed (S5): `prims.v` (GLS_FID CARRY4 and SLICE_LATX), `run_f3.sh`
 - added: `cells/gls/fid_core.vh`, `cells/gls/fid/f3/{run_f3.sh, tb_f3_lut.v,
@@ -383,9 +499,12 @@ Not done:
   stated assumptions, chosen to be long.
 - Loops through more than one cell (for example a LUT plus MUXF7, or two
   LUTs) get no resolver. gen.py only detects self-loops.
-- DSP, BUFG and the FF SR/CK pins keep iverilog module paths (sample at
-  fire). A flop pin glitch is still inertial. CARRY4 and the latch-mode FF
-  are transport since S5 (section 6).
+- DSP keeps iverilog module paths (sample at fire). CARRY4 and the
+  latch-mode FF are transport since S5 (section 6); SLICE_FFX pins and
+  BUFGCTRL since S6 (section 7). The flop minimum pulse width (70 +- 20 ps)
+  is an assumption, not a measurement.
+- gen.py drops every SETUPHOLD with a negative number (section 7), so most
+  flops get no SDF aperture. Fixing it changes the default baked netlist.
 - With fid, a full gcd_hw / kernel routed GLS has not been run (no such
   route in this worktree). The next step is GLS_MODEL=fid on BQ#3's route
   with the 16 vectors.
