@@ -212,3 +212,8 @@ violation negative control, FFX/BUFGCTRL fid changes 923305d). Worktree ~/wt-r11
 r11 in: SETUPHOLD drop CONFIRMED (my own grep: 1218 lines, 1134 negative, rest SR); forced-violation control fires only
 with fixed gen.py; BQ#3 still passes with margin. Historical default-GLS passes OVERSTATED on flop timing; BQ#1/#2
 unverified under the fix. 923305d fid flop/BUFG changes CONFIRMED.
+
+### progress 06:32
+Research 82660cb: BQ#3 8 seeds x 2 corners 16/16. I recomputed every mean/range from the TSV: exact. Caveat: run on
+fid 78de9c2 + 54f2ce6, before the SETUPHOLD fix, 923305d and 2nd decoder fix. Also new: d4896fe registered DSP48E1
+model + dsp_areg property test (not yet audited). r9 (seeds 4/5) and r12 (BQ#1/#2 under fixed SETUPHOLD) running.
