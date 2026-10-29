@@ -60,8 +60,13 @@
   re-proved on it), so the observed run is the Ops trace and H_ZD_AGREE is gone
   (`gcd_hw_circuit_safe_phys2`); fork/join/steer/link/src propagate bundling, so only 31 root
   channels need certificates (`gcd_hw_circuit_safe_phys3`, at the cost of H_SEND); exactly 2
-  roots lack a tcheck row (chan 463 acc251 bus, chan 415 umux21 select). Open: H_SEND/H_RECV
-  (8x3), H_FN, H_TXWIN. The generated-cell derivation of the gate fields is not yet composed into H_CELLS
+  roots lack a tcheck row (chan 463 acc251 bus, chan 415 umux21 select). 8x3:
+  `gcd_hw_circuit_safe_phys4` -- every out0 latch is gcd from H_CELLS_B (relaxed gate models on
+  the observed run), H_START_ONCE and tcheck certificates on 26 root channels only (all have an
+  A row); protocol and Held on all 465 channels derived by one joint induction over time
+  (`OpsBusy2.net_joint`), so H_SEND/H_RECV are gone; `amergeB_held` makes 5 arbiter stages
+  structural. Witness: 8t's run (roots `exempt`). Open: deriving H_CELLS_B's data fields from
+  the netlist (H_FN, H_LAUNCH; cell-level lemma for join/fork/steer only; 8x4), H_TXWIN. The generated-cell derivation of the gate fields is not yet composed into H_CELLS
   (O4): done with named gaps -- `gcd_hw_circuit_safe_gen` / `gcd_rig_all_gen` replace H_CELLS by
   H_GEN (each of the 367 operator instances obeys its yosys-generated netlist, LUT outputs move
   to their function of the previous tick's inputs) plus three timing conditions shown REAL by
@@ -588,3 +593,7 @@ H_LEAF/REQ_PERSIST), 8x3 (drop H_SEND/H_RECV by a time-bounded protocol inductio
 
 ### progress 11:20
 O4b committed after my own check.sh (7 files).
+
+### progress 11:29
+8x3 committed after my own check.sh (6 files, 4447 decls). Launched 8x4 (data fields derived
+inside the capstone) and witgen (active run under H_GEN).
