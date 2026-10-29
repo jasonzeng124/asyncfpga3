@@ -1329,3 +1329,17 @@ window is met at width 0 (lo = hi = 1), not at a prjxray band. Open: the network
 closure in finite form (finite chain_env1 / mixed_closed): a quiet run's last
 segments never end, so ag_time's end-time measure fails; needs time-truncated segK
 lemmas. So the link Env1 is still assumed per link in the finite theorem.
+
+### progress 10:48
+In: Bedge EdgeTimes{,Net,Ring} (core; checked here, axioms standard;
+notes/B-edge-times.md). The edge-time equations now have CONSTRUCTED solutions:
+chains (chain_solution / chain_exists): for every N and every constant per-gate
+delay inside the bands meeting ChainT, a transport run on the real bd_c2n INIT
+satisfies all of Chain/ChainT, with edges = the max-plus schedule; so chain_env1 is
+non-vacuous for all such delays (chain_env1_solution). chain_as_net derives, for link
+chains, the departure bounds and H_SP that AssumeGuaranteeEndsNet assumed. Rings
+(ring_solution, ring_run_iff): for every N and reset pattern b, a run with PRing and
+PRingT exists IFF 0 < D < N (closes RingPhys's existence gap; recursion ordered by a
+potential rising by D / falling by N - D across channels). Open: the exact ring edge
+time (proved within one tick of cph + d), no cycle-time theorem, departure bounds for
+mixed networks (forks/joins/steers), edge-to-edge varying delays, uniqueness.
