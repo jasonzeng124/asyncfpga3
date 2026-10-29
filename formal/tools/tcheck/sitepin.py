@@ -25,7 +25,8 @@ for s, d, w in arcs[:N]:
     by[d.rsplit("/", 1)[1]].append((w, c[3], c[0], sp[3], mux))
 TAG = os.environ.get("SITEPIN_TAG", "_")   # C-10m: e.g. "10m_" -> results/sitepin10m_SEED.tsv
 out = open(H / f"results/sitepin{TAG}{seed}.tsv", "w")
-out.write("pin\tn\tsdf_mean\tslow_max_mean\tfast_min_mean\tsitepin_slow_max\tdelta(slow_max-sdf)_mean\tdelta_p10\tdelta_p90\n")
+out.write("pin\tn\tsdf_mean\tslow_max_mean\tfast_min_mean\tsitepin_slow_max\tdelta(slow_max-sdf)_mean\tdelta_p10\tdelta_p90"
+          "\tdelta_max\tfast_min-sdf_mean\tn_via_outmux\tdelta_mean_via_outmux\n")
 for p in sorted(by):
     xs = by[p]
     ds = sorted(x[1] - x[0] for x in xs)

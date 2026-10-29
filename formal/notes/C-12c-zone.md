@@ -1,5 +1,25 @@
 # C-12c: zone-based (dense-time) timed-automata checking with TChecker
 
+> **Correction (2026-10-29, probe C-12d; details in `C-12d-corner.md`).** The arbiter rows
+> below use "O6 56/124, O5 52/28 ps" as rise/fall: a corner mix (56/124 are FAST_MAX/SLOW_MAX of
+> one arc, prjxray has no rise/fall split, 28 has no prjxray source). Re-run with this
+> probe's own model at one consistent corner (`formal/tools/zone/onecorner.py`, one interval
+> per output for both edges; 15 corner settings incl. A's corner model, 264 s total):
+> - **Server latency s_lo > 56 ps (amutex): ARTEFACT.** Holds for every s_lo >= 0 at FAST,
+>   SLOW and every rise = fall point. New under the corner model: 2 s_lo >= max(2 h6, h5+h6)
+>   - 2 l5 - l6 (fits every row; at s = 0 holds iff kappa <= 0.069..0.215 by reading/corner).
+> - **A0 fork wa < 112 + c_lo: form stands as wa < 2 O6lo + c_lo**: 94 ps FAST, 204 SLOW,
+>   116 FAST_MAX points (the old number), 252 SLOW_MAX; c_lo dependence confirmed (+36 at c_lo = 40).
+> - **HELD q->ugrant route "wq_g < 56 ps": form changes** to wq_g < min{l5 if h5 > l6; l6 if
+>   h6 > l5}: 42 FAST, 100 SLOW, 56 FAST_MAX points, 150 SLOW_MAX. H_GRANT_FORK itself stands.
+> - **UNHELD 16 ps: ARTEFACT** (no overlap at zero routing at any consistent corner).
+> - **Transport "mutex_nr fails for every wq_g > 0": stands** at one corner (reachable at
+>   0.1 ps at FAST_MAX/SLOW_MAX/FAST_MIN points; the overlap is |O6 - O5|, not stretching).
+>   The holding transport rows (`*_nr`, ovf_nr = 0) could NOT be re-established: at rise = fall
+>   every unreachable exploration timed out (>= 200 s, > 550 MB) where the mixed arcs took
+>   0.7-5 s -- with no asymmetry, pure delay never shrinks runts. Treat them as corner-mix results.
+> - C-element (item 1): unaffected (symmetric arcs); per-corner numbers in C-12d.
+
 Files (mine): `formal/tools/zone/tckmodel.py` (front end + runners),
 `formal/tools/zone/celem.py`, `formal/tools/zone/arb.py`, this note. Build
 output: `formal/tools/zone/build/tchecker/` (gitignored). No Lean in this probe.

@@ -63,8 +63,53 @@ Check it:
     step);
   - liveness, unless proved separately (`GcdHwLive`, `IpowHwLive`).
 
-  The gcd_hw circuit-level chain (`Capstone*`, `gcd_hw_circuit_safe''`) has not been redone for
-  any other kernel.
+  The circuit-level step is §1b.
+
+Worked examples of step 1: gcd_hw (C-8i/8k), ipow and collatz (C-8v), xorshift (C-8y2:
+`XorshiftHwProof.lean`, about 250 lines, unconditional for every i32 `rounds`). For a new
+kernel also add its two `mlir2lean.py` lines to `formal/tools/dfimport/check.sh` (drift check).
+
+## 1b. Circuit-level safety through the generic capstone (`formal/tools/capnet`, probe C-8y2)
+
+One theorem, `Formal.Net.KCap.kernel_circuit_safe` (`Formal/Net/KernelCap.lean`), covers every
+kernel: for `[KD] [KP]` (data and obligations, `KernelCapDefs.lean`) and every input in the
+kernel's domain, every run of the kernel's circuit network meeting H_CELLS (gate models),
+H_BUNDLE (bundling) and H_START_ONCE (start offered once) latches on `out0` only `spec a b`.
+Instances: gcd_hw (`KernelCapGcd`), ipow (`KernelCapIpow`), collatz (`KernelCapCollatz`),
+xorshift (`KernelCapXorshift`). A new kernel needs NO copied proof text:
+
+    # 1. data: network (bdc's graph + bdc's link placement), spine, walk tables, in one file
+    #    (add a 6-line profile to PROFILES in capnet.py: copy "collatz", change the names)
+    python3 formal/tools/capnet/capnet.py --kernel <k> kdata -o formal/lean/Formal/Net/<K>CapData.lean
+    python3 formal/tools/capnet/capnet.py --kernel <k> summary     # channels, operators, links
+    # 2. instance: copy formal/lean/Formal/Net/KernelCapCollatz.lean (or KernelCapXorshift.lean
+    #    for a two-argument kernel) to KernelCap<K>.lean and change:
+    #    - the token-level names (rules, spine, St/T0/T<final>, init_store, final_store, the
+    #      graph theorem) to the kernel's step-1 module;
+    #    - spec / dom: the C result and the inputs on which the token theorem holds (a partial C
+    #      function takes the fuel as the second argument, as collatz does);
+    #    - srcVal (one data argument: `srcC`; two: `CapNet.srcV`);
+    #    - the cascade constants cq1 cq2 cres cidx cl1 cl2: the inputs, result, index and rules
+    #      of a 2-input control_merge (grep `.cm` in <K>Hw.lean), cq3 any non-channel, acc = 0
+    #      if circuit channel 0 is not on the spine (check spN in <K>CapData.lean);
+    #    every data obligation is `by decide +kernel` (through KernelCapChk's `*_of` lemmas).
+    # 3. check
+    cd formal && ./check.sh Formal/Net/<K>CapData.lean Formal/Net/KernelCap<K>.lean
+
+- **What the instance theorem proves:** `<k>_circuit_safe`: every value the concrete network
+  latches on `out0` is the C result, for every run meeting H_CELLS, H_BUNDLE, H_START_ONCE
+  (the gcd_hw hypothesis list, `notes/C-gcd_hw-hypotheses.md`, unchanged).
+- **What it does not cover:** liveness (all-quiet runs satisfy every hypothesis), O4 (the Ops
+  hand models vs B's generated cells), H_BUNDLE's zero-delay statement, a re-offered start,
+  DSP48E1 (combinational model), any bdc knob other than the defaults.
+- **Shapes the tool accepts** (asserted by capnet.py; anything else is refused with a message):
+  `n >= 2` arguments on channels `0 .. n-1`, the last one start; one result and one end
+  token; control_merges with 1-3 inputs; muxes with 2-3 data inputs; zero-delay reshapes
+  (extui) on both outputs of a data steer, or on the true output only when the steered data
+  is a constant the reshape fixes (xorshift). Memory kernels (fir, single_loop) are refused by
+  the importer (no `mem_controller` model).
+- **Negative controls:** `formal/lean/Wip/C8y2/negctl.sh` (a mutated MLIR constant, a wrong C
+  reference, a mutated walk row: each must fail the build).
 
 ## 2. Generated cells (`formal/tools/gen`)
 

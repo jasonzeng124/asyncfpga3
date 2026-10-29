@@ -198,7 +198,12 @@ def main():
         # strongest counterexamples first: rows that also fail at an UNGUARDED prjxray corner
         unguarded = {strip_variant(x[0]) for x in rows if len(x) > 1 and x[1] != "PASS"
                      and variant(x[0]) in ("fast", "slow")}
-        bad.sort(key=lambda x: (strip_variant(x[0]) not in unguarded, int(x[2]) if x[2].lstrip("-").isdigit() else 0))
+        # then rows with no SDF-fallback arcs (prjxray numbers only) before fallback-dominated ones
+        def nfb(lab):
+            m = re.search(r"fallback=(\d+)/", lab)
+            return int(m.group(1)) if m else 0
+        bad.sort(key=lambda x: (strip_variant(x[0]) not in unguarded, nfb(x[0]) > 0,
+                                int(x[2]) if x[2].lstrip("-").isdigit() else 0))
         print(f"  verdict rows (fastG/slowG): {len(bad)} not PASS; of their obligations, "
               f"{len({strip_variant(x[0]) for x in bad} & unguarded)} also fail at an unguarded corner (fast/slow)")
         if not bad:

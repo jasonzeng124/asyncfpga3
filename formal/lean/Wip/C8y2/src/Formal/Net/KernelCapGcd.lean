@@ -1,4 +1,5 @@
 import Formal.Net.KernelCap
+import Formal.Net.KernelCapChk
 import Formal.Net.CapstoneWalk
 
 /-!
@@ -10,7 +11,9 @@ network (C-8m, `CapNet.Gcd.ops` ..) and the walk certificate (C-8s, `CapNet.Gcd.
 `gcdKP` discharges every obligation, almost all by the EXISTING per-kernel theorem of the same
 statement (the generic definitions are the gcd ones with constants turned into fields, so the
 statements agree up to unfolding); the only real work is `opchk_conv` / `spok_conv` (the
-generic source case `which + 1 < nIn` vs gcd's literal `which = 0 ∨ which = 1`).
+generic source case `which + 1 < nIn` vs gcd's literal `which = 0 ∨ which = 1`, and the
+generic `FoldOK`'s extra one-sided case); `spok` is re-checked by `decide` on the generic `SpOK`
+(its `bjoin` case compiles to a different matcher, so the old theorem does not unify).
 
 `gcd_hw_circuit_safe_generic` is `kernel_circuit_safe` at this instance; its statement is
 `CapNet.Gcd.gcd_hw_circuit_safe3`'s, word for word (checked by `gcd_existing_same_statement`).
@@ -73,10 +76,12 @@ theorem opchk_conv (k : K CapNet.Gcd.NC) (h : CapNet.OpChk CapNet.Gcd.tab k) :
     · exact Or.inl ⟨by decide, hd⟩
     · exact Or.inl ⟨by decide, hd⟩
     · exact Or.inr ⟨rfl, hd⟩
-  | _ => exact h
-
-theorem spok_conv (k : K CapNet.Gcd.NC) (h : CapNet.Gcd.SpOK k = true) : KCap.SpOK k = true := by
-  cases k with
+  | steerD j t f fd sw =>
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+    refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_⟩
+    rcases hf : sw.fold with _ | ⟨lt, lf, gt', gf'⟩
+    · exact h11
+    · exact Or.inl h11
   | _ => exact h
 
 theorem init_src' (a b w : Nat) (hw : w + 1 < 3) : GcdHw.Gcd.init a b w = [CapNet.srcV a b w] := by
@@ -116,7 +121,7 @@ theorem gcdKP : KP where
   prod_mem := CapNet.Gcd.prod_mem
   cons_mem := CapNet.Gcd.cons_mem
   out0_desc := CapNet.Gcd.out0_desc
-  spok o := spok_conv _ (CapNet.Gcd.spok o)
+  spok := spok_of CapNet.Gcd.ops_len (by decide +kernel)
   noloop := CapNet.Gcd.noloop
   sp_start := CapNet.Gcd.sp_start
   prod_start := CapNet.Gcd.prod_start

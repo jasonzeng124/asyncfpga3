@@ -1,4 +1,5 @@
 import Formal.Net.KernelCap
+import Formal.Net.KernelCapChk
 import Formal.Net.IpowCapMain
 
 /-!
@@ -70,10 +71,12 @@ theorem opchk_conv (k : K IpowCap.NC) (h : IpowCap.OpChk IpowCap.tab k) :
     · exact Or.inl ⟨by decide, hd⟩
     · exact Or.inl ⟨by decide, hd⟩
     · exact Or.inr ⟨rfl, hd⟩
-  | _ => exact h
-
-theorem spok_conv (k : K IpowCap.NC) (h : IpowCap.SpOK k = true) : KCap.SpOK k = true := by
-  cases k with
+  | steerD j t f fd sw =>
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+    refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_⟩
+    rcases hf : sw.fold with _ | ⟨lt, lf, gt', gf'⟩
+    · exact h11
+    · exact Or.inl h11
   | _ => exact h
 
 theorem init_src' (a b w : Nat) (hw : w + 1 < 3) : IpowHw.init a b w = [CapNet.srcV a b w] := by
@@ -113,7 +116,7 @@ theorem ipowKP : KP where
   prod_mem := IpowCap.prod_mem
   cons_mem := IpowCap.cons_mem
   out0_desc := IpowCap.out0_desc
-  spok o := spok_conv _ (IpowCap.spok o)
+  spok := spok_of IpowCap.ops_len (by decide +kernel)
   noloop := IpowCap.noloop
   sp_start := IpowCap.sp_start
   prod_start := IpowCap.prod_start

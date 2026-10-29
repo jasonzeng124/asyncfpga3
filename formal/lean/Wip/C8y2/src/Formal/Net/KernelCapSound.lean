@@ -245,16 +245,19 @@ theorem sound_steerD (hy : Good a b y) (hR : RankOK T) (hnf : 0 < T.nf) {j t f :
       · exact ⟨sw.gf, sw.df, hdf, by rw [Hh_pr hgf, hpf, idm, List.map_id]; rfl, rfl⟩
       · exact ⟨sw.gt, sw.dt, hdt, by rw [Hh_pr hgt, hpt, idm, List.map_id]; rfl, rfl⟩
     · rcases hfold with ⟨hlt, hlf, hnt, hnf', hgt', hgf', hdt, hdf⟩ |
-        ⟨rfl, rfl, hlt, hnt, hgt', hdt, hdf, hcf⟩
+        ⟨-, -, hlt, hnt, hgt', hdt, hdf, hcf⟩
       rotate_left
       · -- one-sided fold (C-8y2): the false output is the steered constant, fixed by `fd`
         cases bb
         · refine ⟨sw.gf, sw.df, hdf, ?_, rfl⟩
           have hD : ∀ v ∈ y.cn sw.gd, fd.eval [v] = v := by
-            rcases hjd' : sw.jd with p d | l1 p g1 d e1 | l1 g1 e1 <;> rw [hjd'] at hcf hjd
-            · exact absurd hcf id
-            · exact absurd hcf id
-            · obtain ⟨hr1, hvf, hne, hge⟩ := hjd
+            revert hcf hjd
+            cases sw.jd with
+            | direct _ _ => intro _ hcf; cases hcf
+            | fold _ _ _ _ _ => intro _ hcf; cases hcf
+            | const l1 g1 e1 =>
+              intro hjd hcf
+              obtain ⟨hr1, hvf, hne, hge⟩ := hjd
               obtain ⟨n1, -, hpr⟩ := hy.cp l1 [g1] sw.gd e1 hr1
               have hcp : y.cn sw.gd = y.pr sw.gd := by rw [← Hh_cn hy hne.1 hne.2, Hh_pr hge]
               intro v hv

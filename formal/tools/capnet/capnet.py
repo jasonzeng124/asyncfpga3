@@ -45,6 +45,11 @@ PROFILES = {
                  nopen="Formal.Net Formal.Net.GcdHw\nopen Formal.Net.CapNet hiding R Hh Hh_pr Hh_cn NoEnd JOK FoldOK OpChk"),
     # C-8y2: kernels that go through the kernel-parametric capstone (KernelCap*) only need the
     # data file `kdata` (network + spine + walk tables); no proof text is copied.
+    "xorshift": dict(mlir="xorshift", label="xorshift", G="XorshiftHw", gns="Formal.Net.XorshiftHw", gmod="Formal.Net.XorshiftHw",
+                    lns="Formal.Net.XorshiftCap", nns="Formal.Net.XorshiftCap", nimport="Formal.Net.KernelCapDefs",
+                    lgen="formal/tools/capnet/capnet.py links", ngen="formal/tools/capnet/capnet.py kdata",
+                    lmod="Formal.Net.XorshiftCapLinks", pre="xorshifthw",
+                    nopen="Formal.Net Formal.Net.GcdHw\nopen Formal.Net.CapNet hiding R Hh Hh_pr Hh_cn NoEnd JOK FoldOK OpChk"),
     "collatz": dict(mlir="collatz", label="collatz", G="CollatzHw", gns="Formal.Net.CollatzHw", gmod="Formal.Net.CollatzHw",
                     lns="Formal.Net.CollatzCap", nns="Formal.Net.CollatzCap", nimport="Formal.Net.KernelCapDefs",
                     lgen="formal/tools/capnet/capnet.py links", ngen="formal/tools/capnet/capnet.py kdata",
@@ -398,12 +403,22 @@ class Net:
                         else ("direct", 1)
                     ops.append(("bjoin", [cin, din], j, jc, jd, (l, c, d)))
                     ft = [fold_prod.get(cc) for cc in (sinkch(src_of[t]), sinkch(src_of[f]))]
-                    if ft[0] is None:
-                        assert ft[1] is None
+                    if ft[0] is None and ft[1] is None:
                         fold = None; fd = ("var", 0)
-                    else:
-                        assert ft[1] is not None and rules[ft[0][0]][3] == rules[ft[1][0]][3]
+                    elif ft[0] is not None and ft[1] is not None:
+                        assert rules[ft[0][0]][3] == rules[ft[1][0]][3]
                         fold = (ft[0][0], ft[1][0], hch[src_of[t]], hch[src_of[f]]); fd = rules[ft[0][0]][3]
+                    else:
+                        # C-8y2: a reshape on the TRUE output only (xorshift's cond_br2 -> extui0), allowed
+                        # when the steered data is a constant the reshape fixes (Lean: FoldOK's second
+                        # case, `lf = lt`, `gf' = gf`, `ConstFix`). Anything else is refused.
+                        assert ft[0] is not None and ft[1] is None, ("reshape on the false output only", l)
+                        assert jd[0] == "const", ("one-sided reshape of non-constant data", l)
+                        cv = ev(jd[3], [])
+                        fd = rules[ft[0][0]][3]
+                        assert ev(fd, [cv]) == cv, ("one-sided reshape changes the constant", l)
+                        assert hch[src_of[f]] == f, ("false output of a one-sided fold is folded", l)
+                        fold = (ft[0][0], ft[0][0], hch[src_of[t]], f)
                     ops.append(("steerD", j, first(t), first(f), fd, l, c, d, t, f, jc, jd, fold))
             elif k == "mux":
                 s, ds, o, iw = r[1], r[2], r[3], r[4]

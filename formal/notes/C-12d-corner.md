@@ -195,7 +195,9 @@ the window [e_lo, inf).
   - So 12c's transport exactness monitors (ovf_nr = 0) are corner-mix results too.
 - The full banded sweep (`onecorner.py tp transport FAST,...`) was started and stopped: its
   first exploration was still running after 20 min.
-- PENDING: tpquick rows 7 (A0 fork at threshold, transport) and 4-6 (FASTp).
+- The A0-rise fork's failing side is the same under pure delay: tx_nr is REACHABLE at
+  wa = 2·O6 + c_lo exactly at FASTp (116 ps), SLOWp (252) and FMINp (94), in about 3 s each.
+  The holding side just below could not be explored (timeouts, as above).
 
 ## Results: Storm (12b's model, digital clocks, 4 ps ticks, bounds rounded outward)
 
@@ -226,10 +228,16 @@ and TChecker's dense-time edges are the exact ones.
 |---|---|---|---|
 | FAST | max, and interval | **PROVED unbounded** | k = 15, 1.3 s |
 | SLOW | max, and interval | **PROVED unbounded** | k = 19, 3-3.5 s |
-| lit / cons at c ∈ {0, 0.5, 1}, κ ∈ {1/11, 0.1988} | max, and interval | **PROVED unbounded** | k = 14-23 |
+| every lit / cons setting at c ∈ {0, 0.5, 1} with κ = 1/11; lit with κ = 0.1988 | max, and interval | **PROVED unbounded** | k = 14-23 |
+| cons, κ = 0.1988, c = 0.5 and c = 1 | max | **PROVED unbounded** | |
+| cons, κ = 0.1988, c = 0.5 and c = 1 | interval | **CEX** at depth 15 / 21 | |
 
-(Interval rows allow rise != fall inside the band.) So the 16 ps race is an artefact.
-This agrees with B's `ArbCorners.corner_no_overlap`.
+(Interval rows allow rise != fall inside the band.)
+- So the 16 ps race is an artefact at every consistent corner. This agrees with B's
+  `ArbCorners.corner_no_overlap`.
+- It comes back only when the scatter is box-like: O6 hi exceeds q (O6 lo) + g1 (O5 lo),
+  with 8 ps outward rounding on top. That is B's box overlap (`box_overlap_le`); TChecker's
+  cons1kE UNHELD row also shows it.
 
 ### (b) Shipped bd_arbiter, four-phase clients and server
 
@@ -258,8 +266,11 @@ that gives an early acknowledge (tx).
 - In general the condition is late >= early + ua2 arc, i.e. 1 + k >= (route + q + route +
   g2 + route) + ua2, so k >= 3·lut + 2·route. This is the same form as 12a and B (rule J).
 - 12a's k >= 10 was this form with q's corner-mixed fall arc (4) instead of its rise arc (2).
-- SLOW: no counterexample to depth 60 for k <= 24. Depth 60 is too shallow for SLOW (one
-  transaction is about 30 ticks). The depth-90 run at the predicted k = 14 / 13 is PENDING.
+- **SLOW: k >= 14**, exactly the predicted 3·4 + 2·1. At depth 60 there was no
+  counterexample for any k <= 24, because depth 60 is too shallow (one SLOW transaction is
+  about 30 ticks). The depth-90 run (`results/onecorner_fork2.txt`) gives a counterexample
+  for k = 14 at depth 63 (178 s), and none to depth 90 for k = 13 (1200 s; bounded, not a
+  proof).
 - Caveat: with a fork of 24 units the FAST run gave a counterexample at depth 20. That is
   shorter than reset (11) plus the wire (25), so it is a power-up wire-history artefact. The
   threshold rows (k = 7, 8, 9, 12) have counterexamples at depth 40, after every history
@@ -305,13 +316,13 @@ Instance-clients (of 80) passing:
 
 | old claim | source | status |
 |---|---|---|
-| bare-cell handover overlap 16 ps at route 0; exclusion needs route >= 16 ps (tb semantics) | 12a 2a, 12b, 12c UNHELD | **ARTEFACT**: no overlap at any consistent corner. SMT proved it at 14 corner settings; TChecker agrees |
+| bare-cell handover overlap 16 ps at route 0; exclusion needs route >= 16 ps (tb semantics) | 12a 2a, 12b, 12c UNHELD | **ARTEFACT**: no overlap at any consistent corner. SMT proved it unbounded at FAST, SLOW and every corner-model setting except cons κ = 0.1988 (box-like scatter); TChecker agrees |
 | HELD ack exclusion needs server latency >= ~60 ps (56 ps exact) | 12b, 12c | **ARTEFACT**: it came from the sourceless 28 ps R0 fall. It holds for every latency at one corner. Under the corner model there is a NEW small condition (above) |
 | A0-rise fork breaks at wa >= 116 ps (= 56 + 4 + 56) | 12b, 12c | **form stands** (2·O6lo + c_lo). 116 is the FAST_MAX point value, since both arcs in it were rise arcs = FAST_MAX. FAST band 94, SLOW 204, SLOW_MAX 252 |
 | HELD mutex needs q->ugrant route wq_g < 56 ps (inertial) | 12c | **form changes**: min{l5 if h5 > l6, l6 if h6 > l5}. 56 is the FAST_MAX point value; FAST band 42, SLOW 100 |
 | pure delay: mutex_nr fails for every wq_g > 0 | 12c | **stands** at one corner (overlap = arc difference, not asymmetry stretching) |
 | transport `*_nr` rows exact (ovf_nr = 0), server/fork bounds equal to inertial | 12b, 12c | **not re-established**: explorations do not finish at one corner (runts no longer shrink) |
-| early ack (A0-fall fork) needs k >= 10 units | 12a 2d | **number artefact, form stands**: k >= 3·lut + 2·route, 8 at FAST |
+| early ack (A0-fall fork) needs k >= 10 units | 12a 2d | **number artefact, form stands**: k >= 3·lut + 2·route; 8 at FAST, 14 at SLOW (25 ps units) |
 | UNHELD ho/tx iff server >= 60 ps / 80 ps | 12b, 12c | **ARTEFACT** (corner dependent; always fails in a band) |
 | C-element E >= dw_hi (FIFO), e_lo > dw_hi - dl_lo (inertial spec) | 12a/12b/12c | **not affected** (symmetric arcs); numbers per corner above |
 | aperture 152 ps at 48 ps routing; mutex fails at every routing (transport routes) | 12a 2b | PENDING |

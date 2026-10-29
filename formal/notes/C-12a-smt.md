@@ -1,5 +1,24 @@
 # C-12a: the C-element and arbiter checks in a SAT/SMT model checker
 
+> **Correction (2026-10-29, probe C-12d; details in `C-12d-corner.md`).** The arbiter
+> sections use prjxray's FAST_MAX/SLOW_MAX pair as rise/fall ("O6 rise 56 / fall 124", and
+> in 2d rise (2,2) / fall (4,5)): a corner mix. Re-run at one consistent corner
+> (`formal/tools/smt/run_onecorner.py`, one interval per output for both edges):
+> - **2a, the 16 ps handover race / "route >= 16 ps proved": ARTEFACT.** At route 0 mutex is
+>   PROVED unbounded (k-induction) at FAST, SLOW and every corner-model setting with
+>   kappa <= 1/11 (`results/onecorner_tb.txt`). It returns only with box-like scatter (cons,
+>   kappa = 0.1988), which is B's box overlap.
+> - **2d, early ack needs k >= 10: the number is an artefact, the form stands.** Early ack iff
+>   late >= early + ua2 arc, i.e. k >= 3 lut + 2 route: k >= 8 at FAST (2,2), CEX trace in
+>   `results/onecorner_fork.txt`; 10 came from q's mixed fall arc. Also: the `owner` monitor
+>   flags a fast server answering before g2 is up (not a protocol error); `arb.py` now has
+>   12b's `tx` token monitor, which finds no violation at fork 0 at FAST/SLOW (depth 60).
+> - **2b, transport routes / aperture 152 ps:** see C-12d (rerun at FAST/SLOW).
+> - **2c (Kleene) caveat** "ternary exclusion is not evidence of binary exclusion when
+>   rise != fall": the rise != fall in question was the corner mix; at one corner the binary
+>   handover race is gone too, so the ternary and binary verdicts agree there.
+> - Section (1), C-element: unaffected (symmetric delay intervals, never mixed corners).
+
 Track 12 (other tools), probe a. Files: `formal/tools/smt/` (all of it) and
 this note. No Lean in this probe.
 

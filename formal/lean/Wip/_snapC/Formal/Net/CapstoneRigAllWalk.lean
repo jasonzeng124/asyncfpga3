@@ -51,20 +51,21 @@ def liveOK (c : Fin NC) : Bool :=
   | .amerge _ _ _ _ => true
   | _ => false
 
-def liveOKn (n : Nat) : Bool := if h : n < NC then (n == 417 || liveOK ⟨n, h⟩) else true
+def liveOKn (n : Nat) : Bool :=
+  if h : n < NC then (!(spL.getD n false) || n == 417 || liveOK ⟨n, h⟩) else true
 
-theorem liveOK_chk : spN.all liveOKn = true := by decide +kernel
+theorem liveOK_chk : (List.range NC).all liveOKn = true := by decide +kernel
 
 theorem liveOK_of {c : Fin NC} (hs : sp c = true) (he : c ≠ eEnd) : liveOK c = true := by
-  have hm := sp_mem hs
-  have := List.all_eq_true.mp liveOK_chk c.val hm
+  have := List.all_eq_true.mp liveOK_chk c.val (List.mem_range.mpr c.isLt)
   simp only [liveOKn, c.isLt, dite_true] at this
+  have hs' : spL.getD c.val false = true := hs
   have hne : (c.val == 417) = false := by
     cases h : c.val == 417
     · rfl
-    · exfalso; apply he; apply Fin.ext; simpa using h
-  rw [hne, Bool.false_or] at this
-  exact this
+    · exfalso; apply he; apply Fin.ext; have := beq_iff_eq.mp h; exact this
+  rw [hs', hne] at this
+  simpa using this
 
 variable (σ : Fin NC → Nat → Nat)
 
@@ -78,7 +79,7 @@ theorem nxt_some_of_live {c : Fin NC} (hs : sp c = true) (he : c ≠ eEnd) (k : 
   · rename_i heq; rw [heq]
     cases h : List.find? sp _ with
     | none => rw [h] at hl; simp at hl
-    | some e => exact ⟨e, rfl⟩
+    | some e => exact ⟨e, by simp [h]⟩
   · rename_i heq; rw [heq]; simp [hl]
   · rename_i heq; rw [heq]; simp [hl]
   · rename_i heq; rw [heq]; simp

@@ -33,7 +33,8 @@ and H_DERIVED for the channels no row covers. The physical → zero-delay refine
 |---|---|
 | `formal/lean/Formal/Net/CapstoneRefine.lean` | `zdEval`, **`run_settles`**, **`settled_of_quiet`**, `settled_of_win`, **`dag_settled`**, **`cert_settled`**, `bv`, `TxWin` (H_TXWIN), `zdBus`, `off_in_win`, **`sampled_eq_zd`**, `capture_window`, `idle_until`, `busy_cover`, **`held_of_txwin`**, `zd_token`, `zd_close`, `sep_dag`/`sep_cert`, **`sampled_eq_zd_dag`**, **`held_dag`**, **`sampled_eq_zd_cert`**, **`held_cert`** |
 | `formal/lean/Formal/Net/CapstoneRefineWit.lean` | non-vacuity `refine_witness`; necessity `stale_without_check` |
-| `formal/lean/Formal/Net/CapstoneRefineNet.lean` | `BCert`, `held_of_bcert`, `obsCh`, `held_of_agree`, **`held_net`**, `gcd_hw_init`, **`gcd_hw_circuit_safe_phys`**, `gcd_hw_phys_witness` |
+| `formal/lean/Formal/Net/CapstoneRefineNet.lean` | `BCert`, `held_of_bcert`, `obsCh`, `held_of_agree`, **`held_net`** (any network) |
+| `formal/lean/Formal/Net/CapstoneRefineGcd.lean` | `gcd_hw_init`, **`gcd_hw_circuit_safe_phys`**, `gcd_hw_phys_witness` (needs CapstoneWalk + CapstoneWitness3 oleans) |
 | `formal/lean/Wip/C8x/T1.lean`, `T2.lean`, `T3.lean` | scratch copies used to compile parts before the WinArray/Unroll oleans existed. Not claimed; may be deleted |
 | `formal/lean/Wip/C8x/Axioms.lean`, `RankGen.lean` | the dead first 8x (refer to missing files; do not compile) |
 

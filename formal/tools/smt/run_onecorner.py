@@ -242,7 +242,7 @@ def sec_fork2():
 if __name__ == '__main__':
     secs = sys.argv[1:] or ['tb', 'real', 'arbiter', 'fork']
     for s in secs:
-        LOG = open(os.path.join(OUT, 'onecorner_%s.txt' % s), 'w')
+        LOG = open(os.path.join(OUT, 'onecorner_%s%s.txt' % (s, os.environ.get('SFX', ''))), 'w')
         t0 = time.time()
         globals()['sec_' + s]()
         log('section %s: %.1fs' % (s, time.time() - t0))

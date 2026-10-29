@@ -54,6 +54,8 @@ def main():
     ap.add_argument("--c", required=True)
     ap.add_argument("--vecs", required=True)
     ap.add_argument("--timeout", type=int, default=3600)
+    ap.add_argument("--max-steps", type=int, default=600,
+                    help="no theorem for a vector whose witness schedule is longer (Lean cost); not a failure")
     a = ap.parse_args()
     k = KERNELS[a.kernel]
     os.makedirs(a.outdir, exist_ok=True)
@@ -61,7 +63,7 @@ def main():
     vecs = [tuple(int(x) for x in v.split(",")) for v in a.vecs.split()]
     crefs = c_reference(a.c, k["func"], vecs)
     g = TS.mlir2lean.Graph(a.mlir)
-    S = TS.Search(g)
+    S = TS.Search(g, max_states=50000)
     graph = TS.mlir2lean.lean_graph(g, argparse.Namespace(ns=ns, label=a.kernel, short=a.kernel))
     graph = re.sub(r"^theorem (ins_ok|outs_ok|spine_ok|bounded_ok|spine_nodup) .*$", "", graph, flags=re.M)
     # (the five well-formedness theorems are re-stated below so that each is checked once)
@@ -72,7 +74,7 @@ def main():
            "theorem spine_ok : rules.all (Rule.okP spine) = true := by decide +kernel",
            "theorem bounded_ok : bounded N rules = true := by decide +kernel", "",
            "open Formal.Net.Kahn", ""]
-    names, skipped = [], []
+    names, skipped, long_ = [], [], []
     for i, (v, r) in enumerate(zip(vecs, crefs)):
         R = S.run(v, r)
         tag = ",".join(map(str, v))
@@ -81,6 +83,9 @@ def main():
             continue
         want = R["want"]
         path = S.path(R["parent"], want)
+        if len(path) > a.max_steps:
+            long_.append(f"({tag}): witness {len(path)} firings > --max-steps {a.max_steps}")
+            continue
         sched = [i_ for (_, i_, _, _) in path]
         trace = [t for (_, _, _, t) in path]
         s0 = S.initial(v)
@@ -107,7 +112,8 @@ def main():
     out += [f"#print axioms {ns}.vec{i}" for i, _, _ in names]
     f = os.path.join(a.outdir, f"{K}Vec.lean")
     open(f, "w").write("\n".join(out) + "\n")
-    print(f"vec: wrote {f} ({len(names)} vector theorems; skipped {len(skipped)}: {'; '.join(skipped) or '-'})")
+    print(f"vec: wrote {f} ({len(names)} vector theorems; no theorem (search did not end correctly) for "
+          f"{len(skipped)}: {'; '.join(skipped) or '-'}; not attempted (too long) for {len(long_)}: {'; '.join(long_) or '-'})")
     if not names:
         print("VEC FAIL: no vector has a correct terminal store")
         return 1
@@ -129,7 +135,7 @@ def main():
         return 1
     for i, tag, cr in names:
         print(f"  {ns}.vec{i}: input ({tag}) -> every complete run ends with out = [{cr % (1 << 32)}] (C: {cr})")
-    print(f"VEC PASS {len(names)}/{len(vecs)} (axioms {sorted({y.strip() for _, x in axl for y in x.split(',')})})"
+    print(f"VEC PASS {len(names)}/{len(vecs) - len(long_)} (axioms {sorted({y.strip() for _, x in axl for y in x.split(',')})})"
           + (" -- some vectors skipped" if skipped else ""))
     return 0 if not skipped else 1
 
