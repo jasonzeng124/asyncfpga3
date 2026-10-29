@@ -6,6 +6,9 @@ Shard C, probe 12d, 2026-10-29. Files (mine):
 - `formal/tools/async/onecorner.py` (Storm);
 - `formal/tools/zone/onecorner.py`, `celem1c.py`, `witness1c.py`, `tpquick.py` (TChecker);
 - `formal/tools/grantfork/kappa.py` (10i under the corner model);
+- logs: `formal/tools/zone/results/*`, `formal/tools/async/results/onecorner.log`,
+  `formal/tools/grantfork/results/kappa.log`. The stale `smt/results/onecorner_arbiter{2,3}.txt`
+  from a lost earlier 12d run (`owner`-monitor artefacts) were removed;
 - this note, and dated correction sections at the top of C-12a-smt.md,
   C-12b-async-tools.md, C-12c-zone.md and C-10i-grantfork.md.
 - No Lean (see "Lean" at the end). `formal/lean/Wip/C12d/` is not created.
@@ -19,20 +22,28 @@ their form with corner-dependent numbers; 10i was already corner-consistent.**
   - the "16 ps" bare-cell / UNHELD handover race (12a tb, 12b, 12c);
   - "server latency >= ~60 ps (exactly 56 ps)" for held ack exclusion (12b, 12c);
   - 12a's "early ack needs k >= 10" number;
-  - UNHELD "ho/tx iff server >= 60-80 ps".
+  - UNHELD "ho/tx iff server >= 60-80 ps";
+  - 12a's transport-route numbers: the aperture of 152 ps is 72 ps at FAST (bounded), SLOW
+    needs none at 48 ps, and route 0 is clean to depth 60.
 - **Same form, numbers per corner:**
   - A0-rise fork: breaks iff wa >= 2·O6lo + c_lo, i.e. 94 ps FAST, 204 ps SLOW; the old
     116 = FAST_MAX points;
   - q->ugrant route: mutex iff wq_g < 42 ps FAST, 100 ps SLOW; 56 at FAST_MAX points;
-  - A0-fall fork: early ack iff late >= early + ua2 arc;
+  - A0-fall fork: early ack iff late >= early + ua2 arc, i.e. k >= 8 units FAST, 14 SLOW
+    (25 ps units);
   - C-element: e_lo vs feedback (never mixed corners).
 - **New under the corner model** (scatter κ on top of one corner): a small held-arbiter
   ack-exclusion condition on the server latency, 2s >= max(2 h6, h5 + h6) - 2 l5 - l6. At
   s = 0 it holds iff κ <= 0.069-0.107 (cons reading) or 0.176-0.215 (lit reading).
 - **H_GRANT_FORK (10i)** stays open on >= 57/80 routed instance-clients at κ = 0, and on
   73/80 at κ = 1/11.
-- **Effort:** the redo cost about 10 CPU-minutes of tool time and about 3 h of work. B's
-  Lean redo of the same instances (ArbCorners) was a full probe.
+- **Not re-established:** 12c's pure-delay "holds" rows (`*_nr`, ovf_nr = 0). At rise =
+  fall their explorations no longer finish. The failing side (mutex_nr for any wq_g > 0;
+  the A0-rise fork bound) is reproduced.
+- **Effort:** about 3 h of work.
+  - Tool time: TChecker plus Storm about 9 CPU-minutes for every arbiter question at 15 + 6
+    corner settings; z3 about 2 CPU-hours (coarse BMC of the full arbiter, the aperture).
+  - B's Lean redo of the same instances (ArbCorners) was a full probe.
 - **Track 12:** the tools are good bound-finders and corner sweepers, but they carried the
   corner misreading silently because the delays are inputs to them.
 
@@ -82,7 +93,9 @@ bind. That was checked numerically, not proved.
 ## Results: TChecker (dense time, 12c's model), the authoritative numbers
 
 Commands (from `formal/tools/zone`; tck-reach rebuilt from the same commit as 12c,
-d711ace9, into `build/tchecker`):
+d711ace9, into `build/tchecker`; logs in `formal/tools/zone/results/`: `onecorner_inertial.log`,
+`celem1c.log`, `witnesses_onecorner.txt`, `tpquick.log`). `$VENV` below is a venv with
+`pip install z3-solver stormpy==2.0.0` (z3 5.3.2, stormpy 2.0.0):
 
     python3 -I onecorner.py all inertial FAST,SLOW,FASTp,SLOWp,FMINp,cons0k11,cons1k11,lit0k11,lit1k11,cons0kE,cons1kE,lit0kE,lit1kE,cons0.5k11,lit0.5k11
     python3 -I celem1c.py
@@ -104,7 +117,7 @@ Inertial channel, HELD (shipped) bd_arbiter:
 | A0-rise fork (A0 into ustate.I4 late by wa) | wa < 116 ps (c_lo = 4) | **wa < 94** | **< 204** | < 116 | < 252 | < 94 | k11: cons 85.8 / 185.8; lit 85.8 / 229.4. kE: cons 76 / 164.2; lit 76 / 202.6 | wa < 2·l6 + c_lo |
 | same, slow client c_lo = 40 | (152) | < 130 | < 240 | < 152 | < 288 | < 130 | (all +36) | wa < 2·l6 + c_lo |
 | q->ugrant route (mutex) | wq_g < 56 ps | **< 42** | **< 100** | < 56 | < 150 | < 45 | k11: cons 38.1 / 90.9; lit 38.1 / 138.1. kE: cons 33.6 / 80.1; lit 33.6 / 99.3 | wq_g < min{ l5 if h5 > l6 ; l6 if h6 > l5 } |
-| ho, tx, mutex at zero routing, any server | hold | hold | hold | hold | hold | hold | hold (cons1kE: amutex/tx also fail at wq_g >= 154.7) | -- |
+| mutex, ho, tx at zero routing, any server latency | hold | hold | hold | hold | hold | hold | hold (amutex: row 1; cons1kE also loses amutex/tx at wq_g >= 154.7) | -- |
 
 Notation: l6/h6 and l5/h5 are the lo/hi of the O6 and O5 arc at that corner, and c_lo is
 the client's minimum r-fall response. "any" means no violation at any s_lo in {0, 4, 20, ...,
@@ -127,7 +140,7 @@ UNHELD (not shipped):
 - amutex/ho/tx fail at every server latency in every band.
 - At points, ho/tx fail iff s_lo >= 36 ps (FASTp), >= 25 (FMINp), or always (SLOWp).
 
-### Witnesses (TChecker symbolic, event order; `witness1c.py`, log `$S/witnesses_in.txt`)
+### Witnesses (TChecker symbolic, event order; `witness1c.py`, log `formal/tools/zone/results/witnesses_onecorner.txt`)
 
 **A0-rise fork, FAST, wa = 94** (the scenario of 12b's 116 ps witness):
 1. r2 and r1 rise; g2, R0, A0 rise and A2 rises; the token is used.
@@ -204,7 +217,7 @@ the window [e_lo, inf).
     cd formal/tools/async && $VENV/bin/python -I onecorner.py FAST,SLOW,cons0k11,cons1k11,lit0k11,lit1k11
 
 This was 384 checks in 245 s, with 1-275 k states per check. Log:
-`$S/storm_onecorner.log`.
+`formal/tools/async/results/onecorner.log`.
 
 | question | FAST | SLOW | cons0k11 | cons1k11 | lit0k11 | lit1k11 |
 |---|---|---|---|---|---|---|
@@ -278,10 +291,37 @@ that gives an early acknowledge (tx).
 
 ### (c) Bare arbcell, transport routes, free requests, and the aperture
 
-    REAL_CORNERS=FAST,SLOW $VENV/bin/python run_onecorner.py real   -> results/onecorner_real.txt
+    REAL_CORNERS=FAST $VENV/bin/python run_onecorner.py real            -> results/onecorner_real.txt
+    SFX=_slow REAL_CORNERS=SLOW $VENV/bin/python run_onecorner.py real  -> results/onecorner_real_slow.txt
+    $VENV/bin/python run_onecorner.py real_slow_routes                  -> results/onecorner_real_slow_routes.txt
 
-PENDING. 12a found mutex violated at every routing, and an aperture of 152 ps at 48 ps
-routing.
+Setup: 8 ps ticks, arcs rounded outward, one band for both edges, the same transport route
+on q and on r1/r2 into both LUTs, and free requests with a minimum level time of 400 ps.
+
+12a (corner mix) found mutex violated at routes 0, 48 and 100 ps, and an aperture of
+152 ps at 48 ps.
+
+| corner | route 0 | route 48 ps | aperture at 48 ps | other routes |
+|---|---|---|---|---|
+| FAST | none to depth 60 | CEX at depth 23 | **72 ps** (9 ticks; bounded, depth 50). k-induction at 9 ticks did not finish in about 60 min under load | -- |
+| SLOW | none to depth 60 | none to depth 60 | not needed (no violation) | 96 ps: CEX at depth 52; 104 ps: CEX at 54; 160 ps: none to 60 (depth probably too shallow; inconclusive) |
+
+- **The FAST route-48 counterexample is the grant-fork runt** (12c's wq_g / 10i's
+  H_GRANT_FORK):
+  1. r1 rises; r2 rises 48 ps later.
+  2. q rises at ustate before r2 arrives there.
+  3. r2 reaches ugrant while ugrant still reads the old q, so g2 fires (O6).
+  4. g1 rises when the new q arrives, and the two overlap.
+- This happens because the q route (48 ps) is longer than the arc that would swallow the
+  runt (O5 lo 42 at FAST, rounded down to 40 ps). At SLOW the arcs are 96-120 ps, so the
+  route must be about 96 ps or more. That matches TChecker's closed form (wq_g < 42 FAST,
+  100 SLOW) in the tick rounding.
+- **Corrections to 12a:**
+  - At one corner, route 0 shows no violation to depth 60 (bounded only). 12a's route-0
+    near-tie needed the mixed asymmetry.
+  - The aperture at 48 ps is 72 ps at FAST, not 152. At SLOW none is needed at 48 ps.
+  - 12a's 152 ps was a box-like mixed reading (rise 45-56 with fall 100-124 on the same
+    arc).
 
 ## H_GRANT_FORK (10i) under the corner model
 
@@ -310,7 +350,7 @@ Instance-clients (of 80) passing:
   0.231 / 0.118 and g3_merge9.uarb1 c2 at 0.201 / 0.102.
 - So only the near-isochronic merge3/merge9/merge12 forks survive rule E's κ. The
   conclusion "the race is live on shipped routes" is strengthened.
-- Per-instance table: `python3 -I kappa.py` (log `$S/gf_kappa.log`).
+- Per-instance table: `python3 -I kappa.py` (log `formal/tools/grantfork/results/kappa.log`).
 
 ## Which old numbers were artefacts
 
@@ -325,7 +365,7 @@ Instance-clients (of 80) passing:
 | early ack (A0-fall fork) needs k >= 10 units | 12a 2d | **number artefact, form stands**: k >= 3·lut + 2·route; 8 at FAST, 14 at SLOW (25 ps units) |
 | UNHELD ho/tx iff server >= 60 ps / 80 ps | 12b, 12c | **ARTEFACT** (corner dependent; always fails in a band) |
 | C-element E >= dw_hi (FIFO), e_lo > dw_hi - dl_lo (inertial spec) | 12a/12b/12c | **not affected** (symmetric arcs); numbers per corner above |
-| aperture 152 ps at 48 ps routing; mutex fails at every routing (transport routes) | 12a 2b | PENDING |
+| aperture 152 ps at 48 ps routing; mutex fails at every routing (transport routes) | 12a 2b | **ARTEFACT as numbers**: FAST aperture 72 ps (bounded); SLOW needs none at 48 ps; route 0 clean to depth 60 at both. The failures that remain are the grant-fork runt (route >= O-arc lo) |
 | H_GRANT_FORK open on 32/40 instances | 10i | **not affected** (already per corner); stronger under κ |
 | 12b DTMC resolution law | 12b | not affected (no arcs) |
 

@@ -7,15 +7,12 @@ pair is prjxray's FAST_MAX and SLOW_MAX of one arc (makesdf.py:63:
 rise from fall; 28 has no prjxray source at all.  Here every LUT output gets
 ONE delay interval used for both edges:
 
-  arcs   O6 (ugrant g2, ustate q, ua1/ua2)   O5 (ugrant g1, ustate R0)
-  FAST   [45, 56]                           [42, 55]
-  SLOW   [100, 124]                         [121, 152]
-  FASTp  56 (point)                         52 (point; the q pin I2)
-  SLOWp  124 (point)                        150 (point; I2)
-  CM(c,k) [(1-k)D6(c), (1+k)D6(c)]           [(1-k)D5(c), (1+k)D5(c)]
-          D6(c) = lerp(56, 124, c), D5(c) = lerp(55, 152, c)
-          (A's corner model: shared corner c, local scatter k; bounds rounded
-          outward to 0.1 ps)
+  FAST   every arc in [FAST_MIN, FAST_MAX]: O6 [45, 56], O5 [42, 55]
+  SLOW   every arc in [SLOW_MIN, SLOW_MAX]: O6 [100, 124], O5 [121, 152]
+  FASTp / SLOWp / FMINp   points FAST_MAX (56/52), SLOW_MAX (124/150), FAST_MIN (45/42)
+  lit<c><k>   A's corner model, F = FAST_MIN, S = SLOW_MAX: [(1-k) D(c), (1+k) D(c)]
+  cons<c><k>  scatter on the corner windows: [(1-k) lerp(FMIN,SMIN,c), (1+k) lerp(FMAX,SMAX,c)]
+          k11 = 1/11 (rule A), kE = 383/1927 (rule E); c in {0, 0.5, 1}
 
 Interval rows draw each transition's delay independently in the interval, so
 they allow rise != fall INSIDE one corner's band (a superset of rise = fall).
@@ -27,9 +24,10 @@ environment: clients fall [c_lo, c_lo+20] after A, c_lo = 4; server follows
 R0 after [s_lo, s_lo+20]; reset release [0, 8]).  Each configuration is ONE
 full zone exploration (tckmodel.explore_all) answering every property.
 
-Run:  python3 -I onecorner.py <section> [inertial|transport]
+Run:  python3 -I onecorner.py <section> [inertial|transport] [corner,...]
   sections: srv (server latency), wa (A0 fork, rising edge), wqg (q->ugrant
-  route, HELD and UNHELD), all.   Results go to stdout.
+  route, HELD and UNHELD), all, tp (slim transport).  Results go to stdout
+  (C-12d's run: results/onecorner_inertial.log).
 """
 import math
 import os

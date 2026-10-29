@@ -223,6 +223,17 @@ def sec_fork():
         wv(best[1], best[2])
 
 
+def sec_real_slow_routes():
+    global CUR
+    log('# SLOW band, bare arbcell, transport routes on q and r1/r2 (same route on all), tick 8 ps, free env P=50')
+    CUR = SLOW
+    for route in (96, 104, 160):
+        ts, P = arb.arbcell(tick=8, spread=True, route=route, rroute=route, P=50)
+        t = time.time()
+        d, tr = tsmc.bmc(ts, P['mutex'], 60)
+        log('SLOW route %d ps: mutex %s [%.1fs]' % (route, 'CEX@%s' % d if d is not None else 'none to 60', time.time() - t))
+
+
 def sec_fork2():
     log('# SLOW one corner, deeper BMC (depth 90): sec_fork found no early ack up to 24 extra')
     log('# units at depth 60, too shallow for SLOW (one transaction ~ 30 ticks).  Prediction by')

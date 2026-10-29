@@ -13,7 +13,10 @@
 >   `results/onecorner_fork.txt`; 10 came from q's mixed fall arc. Also: the `owner` monitor
 >   flags a fast server answering before g2 is up (not a protocol error); `arb.py` now has
 >   12b's `tx` token monitor, which finds no violation at fork 0 at FAST/SLOW (depth 60).
-> - **2b, transport routes / aperture 152 ps:** see C-12d (rerun at FAST/SLOW).
+> - **2b, transport routes / aperture 152 ps: numbers are artefacts.** At one corner route 0
+>   shows no violation to depth 60 (FAST, SLOW); at 48 ps FAST fails through the grant-fork
+>   runt (q route > O5 arc) with a bounded aperture of 72 ps (not 152), SLOW does not fail
+>   (it needs a route of about 96 ps or more). `results/onecorner_real*.txt`.
 > - **2c (Kleene) caveat** "ternary exclusion is not evidence of binary exclusion when
 >   rise != fall": the rise != fall in question was the corner mix; at one corner the binary
 >   handover race is gone too, so the ternary and binary verdicts agree there.

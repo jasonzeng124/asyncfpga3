@@ -48,10 +48,16 @@
   pip-walked pin map of routed bd_c2/bd_link/bd_arbiter (4 seeds) computes the logical cells;
   mutated INIT/pips caught. The placer's pin permutation is real and moves delay by up to
   ~0.5 ns. FF/CARRY4/F7F8 and whole designs: 11f (rebuilding; last session's work was lost).
-- **Track 12 (other tools): bound-finders, not provers (~1 day per tool).** z3/Storm/TChecker
-  give exact thresholds and witness traces for fixed integer delays, nothing for all delays;
-  the 12a/b/c thresholds used the fast/slow corner pair as rise/fall and are suspect until
-  12d's one-corner rerun lands. UPPAAL/Workcraft downloads were blocked.
+- **Track 12 (other tools): bound-finders and corner sweepers, not provers (~1 day per
+  tool).** 12d redid 12a/b/c at one consistent corner and under the corner model: the 16 ps
+  handover race, the 56-60 ps server latency, 12a's 152 ps aperture and k >= 10 were corner-mix
+  artefacts (gone at every consistent corner). Surviving forms, corner-dependent (TChecker):
+  A0-rise fork breaks iff wa >= 2 O6lo + c_lo (94 ps FAST / 204 ps SLOW; old 116 was a FAST_MAX
+  point); q->ugrant route mutex iff wq_g < 42 / 100 ps; A0-fall fork k >= 3 lut + 2 route.
+  C-element bounds unaffected. New: a kappa-dependent held-ack server condition (fitted on
+  every tool row, not proved). Not re-established: 12c's pure-delay "holds" rows (zones do not
+  finish at rise = fall). UPPAAL/Workcraft/PRISM still 403; IMITATOR binary fetched but not
+  run (unvetted download).
 
 ## Session Tue Oct 27 02:58:16 UTC 2026
 
@@ -446,3 +452,8 @@ Note for shard A: tools-A/snap.sh stages all of formal/lean/Wip except _snap[BC]
 can commit shard C's Wip/C*/ files (in flux while probes run) and make a later C push
 conflict. Suggest excluding '^formal/lean/Wip/(C|_snapC)'. C's snap-c.sh stages only
 Wip/C* and Wip/_snapC.
+
+### progress 09:22
+12d committed (notes and tools only, no Lean claimed): see the track-12 verdict. Its
+closed forms are tool fits on every row (0.1-0.2 ps), not theorems; z3 k-induction for the
+FAST aperture stopped bounded at depth 50 under load.
