@@ -463,3 +463,8 @@ and its H_FIRING_BOUND counted unconstrained traces, so it could not hold.
 Use gcd_hw_live_final, not gcd_hw_live. No Lean witness yet that 8z's
 hypothesis set is jointly satisfiable. Launching 8z2 (H_NO_DEADLOCK' +
 witness).
+
+## Session Thu Oct 29 07:22:22 UTC 2026
+
+### progress 07:22
+Took LOCK-C (previous lock 2026-10-27T13:01, stale). Previous session's running probes (10m, 12d, 10n-fix, 11f, 10l2, 8x, 8z2, 8s3, 8y2) never landed; checking for leftovers.
