@@ -4,7 +4,7 @@ Probe InvLoop, shard A, session 2026-10-29. File: `formal/lean/Formal/Core/Delay
 (imports only A's `Involution` plus `Mathlib.Algebra.Order.Archimedean.Real.Basic` for `sSup`; no
 topology library). Scratch: `scratchpad/InvLoop/{ws.py,asym.py}` (Float checks, not theorems).
 
-STATUS: see the last section (updated at the end of the probe).
+STATUS: done. `InvolutionLoop.lean` checked: `formal/check.sh Formal/Core/Delay/InvolutionLoop.lean` → `[audit] 197 declarations checked`, `[check] OK` (docstring-only edit after). Bridge to B's `orb` written but unchecked: `Wip/InvLoop/Bridge.lean` (needs Mathlib topology).
 
 ## The setting (what is assumed)
 
@@ -98,4 +98,10 @@ In the lumped single-channel involution model of a LUT state loop:
 
 ## Status
 
-(see below)
+- Claimed: `formal/lean/Formal/Core/Delay/InvolutionLoop.lean` (no sorry/axiom; check.sh OK, 197 decls).
+- Not claimed: `formal/lean/Wip/InvLoop/Bridge.lean` (`lo = orb`, `Osc ↔ ∀ n, 0 < wd`, B's
+  eternal gap = `crit`). It is not compiled because B's `CElemInvolution` imports Mathlib topology
+  modules that were unbuilt. Once they are built, check it and move it to `Formal/`.
+- Not proved: a rate (how many laps as a function of `|s - s*|`, the TAU_eff of A-fid3). B's `window_lower`
+  covers that under its `QuantHyp`. Signal-level latch/lost statements for every solution go through B's
+  `loop_orb` plus the bridge (not done here).

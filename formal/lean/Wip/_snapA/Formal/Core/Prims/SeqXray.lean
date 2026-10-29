@@ -55,69 +55,68 @@ inductive XCorner where
   | slow
   deriving DecidableEq, Repr
 
+/-- The value at a corner: `cs c fast slow`. -/
+def cs : XCorner → Nat → Nat → Nat
+  | .fast, f, _ => f
+  | .slow, _, s => s
+
 /-- AFF..DFF (`REG_INIT_FF`); `rv` selects the QL (reset, `false`) or QH (set, `true`) arcs. -/
 def regFF (c : XCorner) (rv : Bool) (res : Nat) : FFTiming :=
-  { cqLo := match c with | .fast => 112 | .slow => 274
-    cqHi := match c with | .fast => 139 | .slow => 340
+  { cqLo := cs c 112 274
+    cqHi := cs c 139 340
     dLo := 45, dHi := 241
     ceLo := -109, ceHi := -9
     srLo := if rv then -358 else -404, srHi := -248
-    sqLo := match c, rv with | .fast, false => 246 | .slow, false => 662
-                           | .fast, true => 195 | .slow, true => 476
-    sqHi := match c, rv with | .fast, false => 306 | .slow, false => 821
-                           | .fast, true => 243 | .slow, true => 591
+    sqLo := if rv then cs c 195 476 else cs c 246 662
+    sqHi := if rv then cs c 243 591 else cs c 306 821
     res := res }
 
 /-- A5FF..D5FF (`FF_INIT`). -/
 def ff5 (c : XCorner) (rv : Bool) (res : Nat) : FFTiming :=
-  { cqLo := match c with | .fast => 99 | .slow => 244
-    cqHi := match c with | .fast => 124 | .slow => 303
+  { cqLo := cs c 99 244
+    cqHi := cs c 124 303
     dLo := 46, dHi := 225
     ceLo := -109, ceHi := -9
     srLo := if rv then -358 else -404, srHi := -248
-    sqLo := match c, rv with | .fast, false => 233 | .slow, false => 616
-                           | .fast, true => 182 | .slow, true => 445
-    sqHi := match c, rv with | .fast, false => 290 | .slow, false => 764
-                           | .fast, true => 227 | .slow, true => 552
+    sqLo := if rv then cs c 182 445 else cs c 233 616
+    sqHi := if rv then cs c 227 552 else cs c 290 764
     res := res }
 
 /-- LDCE (`rv = false`) / LDPE (`rv = true`), `REG_INIT_LAT`. The gate band is the wider
 of CLK->Q and CE->Q (H_LAT_GATE); `hLo = -dqHi(slow) = -264` (H_LAT_WINDOW: it also covers
 `-SETUP_MAX = +56`), `hHi = HOLD_MAX = 241`. -/
 def lat (c : XCorner) (rv : Bool) (res : Nat) : LatTiming :=
-  { gqLo := match c with | .fast => 129 | .slow => 357
-    gqHi := match c with | .fast => 162 | .slow => 507
-    dqLo := match c with | .fast => 73 | .slow => 213
-    dqHi := match c with | .fast => 92 | .slow => 264
+  { gqLo := cs c 129 357
+    gqHi := cs c 162 507
+    dqLo := cs c 73 213
+    dqHi := cs c 92 264
     hLo := -264, hHi := 241
-    sqLo := match c, rv with | .fast, false => 198 | .slow, false => 638
-                           | .fast, true => 164 | .slow, true => 487
-    sqHi := match c, rv with | .fast, false => 246 | .slow, false => 791
-                           | .fast, true => 204 | .slow, true => 604
+    sqLo := if rv then cs c 164 487 else cs c 198 638
+    sqHi := if rv then cs c 204 604 else cs c 246 791
     res := res }
 
 /-- Every prjxray flop instance is well formed, so `sim_rel`/`capture` apply to it. -/
 theorem regFF_ok (c : XCorner) (rv : Bool) (res : Nat) : (regFF c rv res).Ok := by
-  cases c <;> cases rv <;> decide
+  cases c <;> cases rv <;> simp [regFF, cs, FFTiming.Ok]
 
 theorem ff5_ok (c : XCorner) (rv : Bool) (res : Nat) : (ff5 c rv res).Ok := by
-  cases c <;> cases rv <;> decide
+  cases c <;> cases rv <;> simp [ff5, cs, FFTiming.Ok]
 
 /-- Bands are nonempty and ordered at both corners. -/
 theorem regFF_bands (c : XCorner) (rv : Bool) (res : Nat) :
     (regFF c rv res).cqLo ≤ (regFF c rv res).cqHi ∧ (regFF c rv res).sqLo ≤ (regFF c rv res).sqHi := by
-  cases c <;> cases rv <;> decide
+  cases c <;> cases rv <;> simp [regFF, cs]
 
 theorem lat_bands (c : XCorner) (rv : Bool) (res : Nat) :
     (lat c rv res).dqLo ≤ (lat c rv res).dqHi ∧ (lat c rv res).hLo ≤ (lat c rv res).hHi ∧
       (lat c rv res).gqLo ≤ (lat c rv res).gqHi := by
-  cases c <;> cases rv <;> decide
+  cases c <;> cases rv <;> simp [lat, cs]
 
 /-- The D aperture of an AFF..DFF flop is `[e + 45, e + 241]`: it spans 196 ps (197 grid
 steps) and starts 45 ps AFTER the clock edge. -/
 theorem regFF_d_window (c : XCorner) (rv : Bool) (res : Nat) :
     (regFF c rv res).dHi - (regFF c rv res).dLo = 196 ∧ (regFF c rv res).dLo = 45 := by
-  cases c <;> cases rv <;> decide
+  cases c <;> cases rv <;> simp [regFF, cs]
 
 /-- The prjxray flop is non-vacuous at every corner. -/
 theorem regFF_inhabited (c : XCorner) (async rv init : Bool) (res : Nat) (ck : Substrate.Sig)
@@ -131,6 +130,7 @@ corner it would not (`274 > 241`). So either fast-corner holds are shorter than 
 ones (likely, not in the database) or every such pair needs ≥ 130 ps of wire. -/
 theorem fast_hold_mismatch (res : Nat) :
     ((regFF .fast false res).cqLo : Int) < (regFF .fast false res).dHi ∧
-      (regFF .slow false res).dHi < ((regFF .slow false res).cqLo : Int) := by decide
+      (regFF .slow false res).dHi < ((regFF .slow false res).cqLo : Int) := by
+  simp [regFF, cs]
 
 end Formal.Core.Prims.Seq

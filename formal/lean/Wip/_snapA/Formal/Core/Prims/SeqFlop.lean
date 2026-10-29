@@ -58,8 +58,9 @@ The relation is not vacuous: `sim` builds, for EVERY input, an output satisfying
 * `violation_X`: a D change inside its window (CE = 1, R = 0) does produce X.
 * `clr_priority`: CLR/PRE held ⇒ `rv` whatever the clock and D do.
 * `power_up`: INIT before the first edge.
-* `gls_vs_kleene`: the research GLS's `SLICE_FFX` (X on CE read as 0) has a violation-free
-  run with Q = 0 where every Kleene run has Q = X (FOR-RESEARCH §7, notes/A-forres.md).
+* In `SeqGls`, `gls_vs_kleene_ce`/`_sr`: the research GLS's `SLICE_FFX` (X on CE/SR read
+  as 0) has a violation-free run with Q = 0 where every run of this model has Q = X
+  (FOR-RESEARCH §7, notes/A-forres.md). In `SeqSync`, the two-flop synchronizer.
 
 ## What is NOT modelled
 

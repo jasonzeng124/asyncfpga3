@@ -38,7 +38,8 @@ says that then `q` is constant after `lo s (m-1)`: equal to 1 if `m` is odd
 * Symmetric channel (`Sym`): `sym_stat`: `h = l = w*` with `2 w* = δ(-w*)`;
   `sym_crit_gt_half`: `s* = δ∞ - w* > δ∞/2`; `sym_crit_lt`: `s* < δ∞ - δmin/2`;
   `exp_crit_lt` for A's exp-channel: `s* < τ ln 2 + T_p/2` (i.e. `δ∞ - T_p/2`).
-* Asymmetric: `asym_up_le_down`: `δ↑ ≤ δ↓` on `(-δ↓(0), 0)` gives `h ≤ l`, hence
+* Asymmetric: `asym_iff`: `h < l ⇔ δ↑(-h) < δ↓(-h) ⇔ s* < δ∞↑ - (h+l)/2` (exact);
+  `asym_up_le_down`: `δ↑ ≤ δ↓` on `(-δ↓(0), 0)` gives `h ≤ l`, hence
   `s* ≤ δ∞↑ - (h+l)/2`; `asym_down_le_up` the reverse.  `crit_bounds`:
   `δ∞↑ - (h+l) < s* < δ∞↑` and `h + l < min(δ↑(0), δ↓(0))` in general.
 -/
@@ -873,7 +874,7 @@ theorem asym_up_le_down (S : Stat P h l)
   rw [S.up_eq] at e hupI
   have hhl : h ≤ l := by
     by_contra hc; push Not at hc
-    have := P.down_strictMono (-h) (-l) (by linarith) (by linarith)
+    have := P.down_strictMono (-h) (-l) (by linarith [S.l_pos]) (by linarith)
     rw [S.down_eq] at this
     linarith
   unfold crit
@@ -890,7 +891,7 @@ theorem asym_down_le_up (S : Stat P h l)
   rw [S.down_eq] at e hdnI
   have hlh : l ≤ h := by
     by_contra hc; push Not at hc
-    have := P.up_strictMono (-l) (-h) (by linarith) (by linarith)
+    have := P.up_strictMono (-l) (-h) (by linarith [S.h_pos]) (by linarith)
     rw [S.up_eq] at this
     linarith
   unfold crit

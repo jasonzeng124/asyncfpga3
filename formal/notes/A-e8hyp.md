@@ -1,14 +1,23 @@
 # A-e8hyp (probe E8Hyp): design_verdict8's hypotheses against shards B and C
 
-STATUS (2026-10-29): partial. `Formal/Core/XAudit/Events8Bridge.lean` typechecks with no error
-and no warning against a private overlay of the Events chain; the check.sh run is in §7.
-Bridges: reset (time shift), SelOK (from B's steer theorem), SelPart (by construction).
-Gaps proved in Lean: SatPin vs C/B's window channel (time origin, overtaking). H_ARB: no
-B/C statement implies it, and B's own theorems REFUTE it under a contested runt (§3.4).
-Joint witness: SatPin + constants + reset proved jointly satisfiable iff a reset fixpoint
-exists (Lean); gcd_hw has one on all 4 seeds (untrusted script, matches B's Lean reset values
-name for name). HARB7 / SelOK / SelPart / HDsub jointly on a gcd_hw run: not proved
-(untrusted evidence only, §5).
+STATUS (2026-10-29): done within the time box, partial as a discharge. Two Lean files:
+`Formal/Core/XAudit/Events8Bridge.lean` (check.sh OK, §7) and
+`Formal/Core/XAudit/Events8BridgeSel.lean` (check pending, §7).
+- Bridges: reset (time shift `satPin_shift` onto B's reset window), SelOK (from B's
+  `LibGapSteer.steer_pin_ok`; instantiated on design_verdict8 itself as `design_verdict8_sel`),
+  SelPart (by construction).
+- Gaps proved in Lean: SatPin vs C/B's window channel (time origin, overtaking); SatPin's hidden
+  time-0 fixpoint assumption (`satPin_origin`, `ringD_unsat`).
+- H_ARB: no B / C statement implies HARB7. HARB7 asserts a bounded grant response
+  (`nd7_steady`), while B's digital race results show the decision element, under a contested
+  runt, pulsing its grants for ever with steady requests (different model: involution channels).
+  So HARB7 is not a property of the cell; it needs "never contested" on A's traces, which only
+  exists in C's Ops model.
+- Joint witness: SatPin + constants + reset are jointly satisfiable iff a reset fixpoint exists
+  (Lean, `core_hyps_exist` / `satPin_exists_iff`); gcd_hw's skeleton has one on all 4 seeds
+  (untrusted script; its 16 ones match B's `gcd_reset_ones` by name). HARB7 / SelOK / SelPart /
+  HDsub jointly on a gcd_hw run: not proved; untrusted evidence only (§5).
+- Nothing found jointly unsatisfiable.
 
 ## 1. What design_verdict8 assumes (read in the Lean)
 
@@ -39,7 +48,7 @@ there is one.
 | **SatPin** (per-pin monotone transport, from t = 0) | C: `Fasm.Behaves` (Net/Fasm/Basic.lean:106; a HYPOTHESIS: LUT core and each pin route are B's `CElemTiming.WinDelay` windows; built for link_arb / CePair only, not gcd_hw). B: `WinDelay`, `Loop`, `FifoFidelity.PinLut`, the `Rd` read maps of LibGap* (not monotone) | `transport_win`: A's channel ⊆ `WinDelay`. So B/C theorems over `WinDelay` apply to A's behaviours; the converse direction, which a discharge needs, fails | (1) time origin, `win_origin_gap`: `WinDelay` leaves `[0, hi)` free; A reads the input's time-0 value there. (2) FIFO, `win_overtake_gap`: `WinDelay 1 3` turns the clean step `2 ≤ t` into `F F F T F T T…` (a runt) with a quiet origin; no monotone warp does (B's H_LUT_FIFO / NoOvertake, S3). (3) no Lean map from A's parsed skeleton `d` (routed JSON, trusted reader) to C's `PNet` (FASM). No shard derives SatPin: it is the model | B (model); open by nature |
 | **constants** (wires 0 / 1) | C: `Behaves.H_TIE` (tie pins constant from configuration) | none needed: same content | only the d ↔ PNet net map (as above) | A (tie-offs) |
 | **reset** (rst = `t < T`) and, through SatPin, the **time-0 state** | B: `ResetGcd.gcd_reset_binary` (gNet: 3322-node RTL-level control net, GMW `Bounded D W` runs, ANY power-up, rst held on `(0, E]`: every control node at its reset value on `[(21+2)(D+W+1), E]`); `ResetGcdWave.gcd_boot` / `gcd_clean_release` (release) | `satPin_origin`: SatPin makes time 0 a combinational fixpoint (so A silently assumes a settled power-up). `satPin_shift`: a physical trace obeying the per-pin relation from `t0` (monotone reads) and quiet on `[t0 - H, t0]` (H ≥ every band end) is, shifted to `t0`, a SatPin behaviour. B's reset theorem supplies exactly the quiet window (control nodes constant at reset value), with `t0 = (21+2)(D+W+1) + H ≤ E` | (1) gNet ↔ d: no Lean map. Untrusted: A's skeleton fixpoint has the same 16 ones as `gcd_reset_ones`, 4 seeds (§5). (2) B's GMW reads are not monotone, so `PhysPin` (monotone) is the SatPin FIFO gap again. (3) A's reset is ONE clean release, never re-asserted; B allows any rst behaviour in a window (B more general, so this direction is fine). (4) `T` must come after the quiet window: release at `t0 + T`, `E ≥ t0 + T`. | B; discharged modulo (1), (2) |
-| **H_ARB** (`HARB7`) | B: `ArbHeldTimed.rt1_exclusion` / `rt2_*` (handover scenario `Scn`, horizon `Hz`), `OnGcdArbFix` / `OnGcdArbA0` / `OnGcdArbKappa` (the 36 routed gcd_hw arbiters, one corner or κ), `ArbA0Fork` (no early ack). C: `OpsCM.AMerge` fields H_ARB1/2/EXCL (Ops-model HYPOTHESES), `CapstoneCut.gcd_hw_arbiters_uncontended'` (Ops model: no free contest) | none. `nd7_follow` / `nd7_steady` (Lean) state what HARB7 adds: bounded response | (1) content: HARB7 is a refinement (each grant = C(r_b, ctl·[σ = b]) through warps in bands, `R0` = OR with taps); B proves exclusion, one consequence, in one handover scenario up to `Hz`. (2) time base: C's are SI tick relations, unbounded delay, on Ops channels, not on A's wires. (3) HARB7 asserts a BOUNDED decision: the virtual grant's band is the grant LUT band (`tools-A/xaudit/events4/model.py:275`); only `ctl` may wait (up to 10^12 ps after A0 falls, :263). Under a contested runt B proves the real cell can do what no virtual core does: `ArbInvolution.arb_grants_eternal` (both grants pulse forever at the critical gap), `ArbBinary` §4 (a forever-circulating pulse, overlapping grants), `ArbResolve.no_deadline`. So HARB7 is FALSE on contested traces and can only be justified from "never contested" ON A'S TRACES. C's uncontended theorem is in the Ops model, not linked to A's wires. | B on uncontested traces; C (false) on contested ones; open |
+| **H_ARB** (`HARB7`) | B: `ArbHeldTimed.rt1_exclusion` / `rt2_*` (handover scenario `Scn`, horizon `Hz`), `OnGcdArbFix` / `OnGcdArbA0` / `OnGcdArbKappa` (the 36 routed gcd_hw arbiters, one corner or κ), `ArbA0Fork` (no early ack). C: `OpsCM.AMerge` fields H_ARB1/2/EXCL (Ops-model HYPOTHESES), `CapstoneCut.gcd_hw_arbiters_uncontended'` (Ops model: no free contest) | none. `nd7_follow` / `nd7_steady` (Lean) state what HARB7 adds: bounded response | (1) content: HARB7 is a refinement (each grant = C(r_b, ctl·[σ = b]) through warps in bands, `R0` = OR with taps); B proves exclusion, one consequence, in one handover scenario up to `Hz`. (2) time base: C's are SI tick relations, unbounded delay, on Ops channels, not on A's wires. (3) HARB7 asserts a BOUNDED decision: the virtual grant's band is the grant LUT band (`tools-A/xaudit/events4/model.py:275`); only `ctl` may wait (up to 10^12 ps after A0 falls, :263). Under a contested runt B proves the real cell can do what no virtual core does: `ArbInvolution.arb_grants_eternal` (both grants pulse forever at the critical gap), `ArbBinary` §4 (a forever-circulating pulse, overlapping grants), `ArbResolve.no_deadline`. So HARB7 excludes behaviours that B proves the cell has under a contested runt (in B's involution-channel model, not A's), and can only be justified from "never contested" ON A'S TRACES. C's uncontended theorem is in the Ops model, not linked to A's wires. | B on uncontested traces; C on contested ones; open |
 | **SelOK** | B: `LibGapSteer.steer_pin_ok` / `steer_box_exact` (one token; select stable on `[S0, S1)` = H_S_STABLE; setup `S0 + Shi ≤ R + Rlo`, hold `F + Rhi ≤ S1 + Slo`; iff for fixed delays), `KleeneBox` (K3 versions; same right sides), `LibGapMux.join_box_exact`, `LibGapMuxN` (decode), `OpsTimed2.steer_hold_of_ackfall` (hold from the sender's ack-fall contract). C: tcheck rule E (setup only; 465/472 agree, band-only failures, C-10h); hold: no rule | `sel_read_of_steer`: one select read, PROVED BY B's `steer_pin_ok` through the embedding `rdOf` / `extZ` (A's truncated ℕ warp as B's ℤ read map; the time-0 value extended to negative time). `selOK_of_steer`: `Beh7.SelOK` for multi-bit selects from, per filtered pin and select bit, B's H_S_STABLE plus B's setup / hold against every copy's band. `selOK_of_hold`: the same with an open-ended hold (B's finite form needs a transaction end `F k`, which a run stuck inside a transaction does not have; `hold_of_window` converts) | (1) H_S_STABLE is a data-path fact (the select latch holds through each transaction: C's H_BUNDLE / H_LATCH_HOLD of the select channel); A's skeleton cuts the 32 select nets into free inputs, so it is outside A's model. (2) hold half: no checker (C has rule E for setup only). (3) DONE in `Events8BridgeSel.design_verdict8_sel`: design_verdict8 with `bh.SelOK` replaced, at every REAL filtered pin, by B's H_S_STABLE (open-ended hold) and H_SETUP_PIN on the select WIRES of the parsed netlist, with explicit bands `selLo` / `selHi` (steer gate + `top` path + stage LUT, or the stage LUT alone; `svOf_shape`, `sel_warp`). (4) virtual filtered pins (each grant's `ctl·[σ=b]` pin): their select is HARB7's σ, so SelOK there is part of H_ARB | B; bridged at netlist level (`design_verdict8_sel`), data-path premise open |
 | **SelPart** | none in B / C (a token-level fact: one select value per transaction) | `selPart_of_value`: if every group of a partition is the indicator of its own pattern of ONE value sequence, SelPart holds. Choosing `sel` that way (the user chooses `sel`) discharges it | that the three decode gates of `umux21` read the same 2 bits in the same transaction is part of SelOK (per-bit windows); the partition reading `[16, 56, 57]` is trusted (cert8.py) | A by construction (given SelOK for that `sel`) |
 | HDsub | — | — | probe HDsub | — |
@@ -176,4 +185,26 @@ gcd_hw netlist is not a Lean term; xevents8 reads it at run time).
 
 ## 7. Check
 
-(pending)
+No Events oleans were in `.lake/build`, so every dependency is listed (Mathlib-free). From
+`formal/lean`:
+
+    ../check.sh Formal/Core/Kleene.lean Formal/Core/Lut.lean Formal/Core/Circuit.lean \
+      Formal/Core/Trace/Discrete.lean Formal/Core/XSim.lean Formal/Core/XAudit/Design.lean \
+      Formal/Core/XAudit/Events.lean Formal/Core/XAudit/EventsRing.lean Formal/Core/XAudit/EventsDesign.lean \
+      Formal/Core/XAudit/Events2.lean Formal/Core/XAudit/Events2Time.lean Formal/Core/LutCells.lean \
+      Formal/Core/XAudit/Events2Design.lean Formal/Core/XAudit/Events2Strict.lean \
+      Formal/Core/XAudit/Events2PinDesign.lean Formal/Core/XAudit/Events3.lean Formal/Core/XAudit/Events4.lean \
+      Formal/Core/XAudit/Events5Line.lean Formal/Core/XAudit/Events5.lean Formal/Core/XAudit/Events6Gate.lean \
+      Formal/Core/XAudit/Events6Cert.lean Formal/Core/XAudit/Events6Design.lean Formal/Core/XAudit/Events6Beh.lean \
+      Formal/Core/XAudit/Events7Core.lean Formal/Core/XAudit/Events7Excl.lean Formal/Core/XAudit/Events7Cert.lean \
+      Formal/Core/XAudit/Events7Beh.lean Formal/Core/XAudit/Events8Core.lean Formal/Core/XAudit/Events8Cert.lean \
+      Formal/Core/XAudit/Events8Beh.lean Formal/Cells/Prelim.lean Formal/Cells/CElemTiming.lean \
+      Formal/Net/Fasm/Basic.lean Formal/Cells/LibCtlMergeMux.lean Formal/Cells/LibGapSteer.lean \
+      Formal/Core/XAudit/Events8Bridge.lean [Formal/Core/XAudit/Events8BridgeSel.lean]
+
+- Run 1 (up to `Events8Bridge.lean`; its docstring was reworded after this run, no code change):
+  textual scan passes, `[audit] 2910 declarations checked`, **`[check] OK`**, no error line.
+- Run 2 (with `Events8BridgeSel.lean`): pending.
+
+No sorry, admit, axiom, native_decide in either file. Untrusted scripts: `Wip/E8Hyp/fix0.py`,
+`Wip/E8Hyp/sim0.py` (run with `python3 -I`, inputs from `tools-A/xaudit/events7/rerun/prep.sh`).

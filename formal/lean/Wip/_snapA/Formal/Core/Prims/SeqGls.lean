@@ -141,9 +141,9 @@ theorem gls_vs_kleene_sr (T : FFTiming) (hok : T.Ok) (hb : T.cqLo < T.cqHi) (tck
   rfl
 
 /-- At the prjxray AFF..DFF flop, both corners (any `res`). -/
-theorem gls_vs_kleene_prjxray (c : XCorner) (res tckq tsu thd : Nat) :
+theorem gls_vs_kleene_prjxray (c : XCorner) (res : Nat) :
     ∀ q, FlopRel (regFF c false res) false false false ck1000 (fun _ => zero) (fun _ => X)
       (fun _ => one) q → q (1000 + (regFF c false res).cqHi) = X :=
-  fun _ h => kleene_ce_X _ (regFF_ok c false res) (by cases c <;> decide) h
+  fun _ h => kleene_ce_X _ (regFF_ok c false res) (by cases c <;> simp [regFF, cs]) h
 
 end Formal.Core.Prims.Seq

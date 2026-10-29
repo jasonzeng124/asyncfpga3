@@ -4,7 +4,7 @@ Probe PrimsSeq, shard A. Started 2026-10-28 (session died, draft in
 `Wip/_snapA/Formal/Core/Prims/SeqNext.lean`); redone 2026-10-29 from 07:20 UTC.
 North-star goal 1 ("the flops and latches, DSP48E1 and RAMB18E1 if a design uses them").
 
-STATUS: in progress (census done; Lean being written: SeqNext recovered, SeqTimed, SeqLatch).
+STATUS: done for flops and latches (6 Mathlib-free files compile; check.sh run pending at 08:40 UTC, see §7). RAMB18E1 not modelled (next probe).
 
 ## Plan
 1. `Formal/Core/Prims/SeqNext.lean`: next-state functions, exact Kleene extension,
@@ -15,6 +15,7 @@ STATUS: in progress (census done; Lean being written: SeqNext recovered, SeqTime
    (`Substrate.Sig`/`KSig`, 1 ps grid): aperture sampling, CK->Q band, bounded-X resolution,
    INIT, async CLR/PRE; theorems: capture, X-containment, priority, GLS trace counterexample.
 4. `Formal/Core/Prims/SeqLatch.lean`: LDCE/LDPE: transparency, hold, closing-edge window.
+5. (added) `SeqGls.lean` (GLS trace counterexample), `SeqSync.lean` (two-flop synchronizer).
 
 ## 1. Census: which sequential primitives the designs use
 

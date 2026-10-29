@@ -87,7 +87,7 @@ structure LatchRel (rv init : Bool) (g d clr q : KSig) : Prop where
   xwin : ∀ c t, LClosed T g clr c t → held T d c = X → t ≤ T.xend c → q t = X
   resolve : ∀ c, held T d c = X → ∃ b : Bool, ∀ t, T.xend c < t → LClosed T g clr c t →
     q t = ofBool b
-  clr : ∀ t, T.sqHi ≤ t → EqOn clr one (t - T.sqHi) t → q t = ofBool rv
+  clrHeld : ∀ t, T.sqHi ≤ t → EqOn clr one (t - T.sqHi) t → q t = ofBool rv
   rel : ∀ f t, LReleased T g clr f t → q t = ofBool rv
 
 /-! ## Transparency, hold, containment -/
@@ -101,7 +101,7 @@ theorem latch_transparent {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv
 /-- **Transparency is the substrate's window channel, in K3**: while open, Q refines D at
 every step of `[t - dqHi, t - dqLo]` (if Q is definite it IS D's value there). -/
 theorem latch_transparent_le {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv init g d clr q)
-    {t s : Nat} (hle : T.dqLo ≤ T.dqHi) (ho : LOpen T g clr t)
+    {t s : Nat} (ho : LOpen T g clr t)
     (h1 : t - T.dqHi ≤ s) (h2 : s ≤ t - T.dqLo) : q t ⊑ d s := by
   rw [h.opn t ho]
   cases hw : winVal d (t - T.dqHi) (t - T.dqLo) with
@@ -140,7 +140,7 @@ theorem latch_violation_X {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv
 /-- **CLR/PRE priority** over the gate. -/
 theorem latch_clr_priority {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv init g d clr q)
     {t : Nat} (ht : T.sqHi ≤ t) (hr : EqOn clr one (t - T.sqHi) t) : q t = ofBool rv :=
-  h.clr t ht hr
+  h.clrHeld t ht hr
 
 /-- **INIT** while the gate and CLR have been low since power-up. -/
 theorem latch_power_up {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv init g d clr q)
@@ -151,9 +151,8 @@ theorem latch_power_up {rv init : Bool} {g d clr q : KSig} (h : LatchRel T rv in
 
 theorem lclosed_unique {g clr : KSig} {c c' t : Nat} (h : LClosed T g clr c t)
     (h' : LClosed T g clr c' t) : c = c' := by
-  obtain ⟨_, _, _, hz, _⟩ := h
+  obtain ⟨_, _, ho, hz, _⟩ := h
   obtain ⟨_, _, ho', hz', _⟩ := h'
-  obtain ⟨_, _, ho, _, _⟩ := h
   apply Classical.byContradiction; intro hne
   rcases Nat.lt_or_gt_of_ne hne with hlt | hlt
   · have := hz c' (by omega) (by omega); rw [ho' c' (by omega) (Nat.le_refl _)] at this

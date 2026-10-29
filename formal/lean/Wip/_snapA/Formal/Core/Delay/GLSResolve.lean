@@ -273,7 +273,8 @@ theorem run_wide {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 
       · by_cases h2 : t + 1 = t0
         · subst h2
           have h3 : t + 1 - p.L < t + 1 := by omega
-          simp [Swide, h3, step, eval, blocked, St.init, nba, isRunt, S1]
+          simp [Swide, h3, step, eval, blocked, St.init, nba, isRunt, S1,
+            show 0 < w by omega]
         · have h3 : ¬ t < t0 := by omega
           have hf : (decide (t0 ≤ t + 1 ∧ t + 1 < t0 + w) || (Swide t0 (t + 1 - p.L)).o) = true := by
             by_cases h4 : t + 1 < t0 + w
@@ -283,8 +284,41 @@ theorem run_wide {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 
           rw [hf]
           simp [Swide, h1, h3, step, eval, blocked, nba, S1]
 
-theorem run_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
-    (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st) :
+theorem nba_c (t T' I : Nat) :
+    nba (t + 1) ⟨decide (T' ≤ t), decide (t < T'), false, 0, I, T', true⟩ =
+      ⟨decide (T' ≤ t + 1), decide (t + 1 < T'), false, 0, I, T', true⟩ := by
+  unfold nba
+  by_cases h : t + 1 = T'
+  · subst h; simp
+  · by_cases h' : t < T'
+    · have : t + 1 < T' := by omega
+      simp [h', this, show ¬ T' ≤ t by omega, show ¬ T' ≤ t + 1 by omega, show T' ≠ t + 1 by omega]
+    · simp [h', show T' ≤ t by omega, show T' ≤ t + 1 by omega, show ¬ t + 1 < T' by omega]
+
+theorem nba_b (t T' I : Nat) :
+    nba (t + 1) ⟨false, decide (t < T'), false, 0, I, T', false⟩ =
+      ⟨false, decide (t + 1 < T'), false, 0, I, T', false⟩ := by
+  unfold nba
+  by_cases h : t + 1 = T'
+  · subst h; simp
+  · by_cases h' : t < T'
+    · have : t + 1 < T' := by omega
+      simp [h', this, show T' ≠ t + 1 by omega]
+    · simp [h', show ¬ t + 1 < T' by omega]
+
+/-- End of the ignore window after the decision at `t0 + w` (`:89,107`): `ign_until`. -/
+def Iend (p : Prm) (t0 w : Nat) : Nat :=
+  t0 + w + (match resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) with
+    | .reject => 0 | _ => p.R (p.delta w (t0 + w))) + p.L + 1
+
+/-- **The runt run, exactly**, for every noise draw and every resolution-time law. `b` is the
+pulse `[t0, t0 + w)` up to the decision, ARBITRARY inside the ignore window
+`(t0 + w, Iend)`, and `0` from `Iend` on. Every run is `Srunt`: the window's input changes
+leave no trace at all. -/
+theorem run_runt_gen {p : Prm} {t0 w : Nat} {b : Sig} {st : Nat → St} (hL : 1 ≤ p.L)
+    (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w) (hw : w < p.L)
+    (hb1 : ∀ t, t ≤ t0 + w → b t = bPulse t0 w t) (hb2 : ∀ t, Iend p t0 w ≤ t → b t = false)
+    (h : Run p aOne b rstZero false st) :
     ∀ t, st t = Srunt p t0 w t := by
   intro t
   induction t using Nat.strongRecOn with
@@ -293,18 +327,22 @@ theorem run_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 
     | zero => rw [h.zero]; simp [Srunt, show 0 < t0 by omega]
     | succ t =>
       rw [h.succ t, ih t (by omega), ih (t + 1 - p.L) (by omega)]
-      simp only [aOne, rstZero, fC2_or, bPulse]
+      simp only [aOne, rstZero, fC2_or]
       by_cases h1 : t + 1 < t0
       · have h2 : t < t0 := by omega
         have h3 : t + 1 - p.L < t0 := by omega
-        simp [Srunt, h1, h2, h3, step, eval, blocked, St.init, nba]
+        rw [hb1 (t + 1) (by omega)]
+        simp [bPulse, Srunt, h1, h2, h3, step, eval, blocked, St.init, nba]
       · by_cases h2 : t + 1 = t0
         · subst h2
           have h3 : t + 1 - p.L < t + 1 := by omega
-          simp [Srunt, h3, step, eval, blocked, St.init, nba, isRunt, S1, show t < t + 1 + w by omega]
+          rw [hb1 (t + 1) (by omega)]
+          simp [bPulse, Srunt, h3, step, eval, blocked, St.init, nba, isRunt, S1,
+            show 0 < w by omega]
         · by_cases h4 : t + 1 < t0 + w
           · have h3 : t + 1 - p.L < t0 := by omega
-            simp [Srunt, h1, h3, h4, show ¬ t < t0 by omega, show t < t0 + w by omega,
+            rw [hb1 (t + 1) (by omega)]
+            simp [bPulse, Srunt, h1, h3, h4, show ¬ t < t0 by omega, show t < t0 + w by omega,
               step, eval, blocked, nba, S1, show t0 ≤ t + 1 by omega]
           · by_cases h5 : t + 1 = t0 + w
             · -- the decision step
@@ -312,79 +350,181 @@ theorem run_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 
               have hst : Srunt p t0 w t = S1 t0 := by
                 simp [Srunt, show ¬ t < t0 by omega, show t < t0 + w by omega]
               have hq : Srunt p t0 w (t + 1 - p.L) = St.init false := by simp [Srunt, h3]
-              rw [hst, hq, h5]
-              have hf : (decide (t0 ≤ t0 + w ∧ t0 + w < t0 + w) || (St.init false).o) = false := by
-                simp [St.init]
+              rw [hb1 (t + 1) (by omega), hst, hq, h5]
+              have hf : (bPulse t0 w (t0 + w) || (St.init false).o) = false := by
+                simp [bPulse, St.init]
               rw [hf]
               have hr : isRunt p (t0 + w) false (S1 t0) = true := by
-                simp [isRunt, S1]; omega
+                simp [isRunt, S1, show 0 < t0 by omega]; omega
               have hwe : t0 + w - (S1 t0).tl = w := by simp [S1]
               unfold step
               rw [eval_runt (by simp [blocked, S1]) (by simp [S1]) hr, hwe]
               cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) with
-              | reject => simp [Srunt, hres, nba, S1]
+              | reject => simp [Srunt, hres, nba, S1, show ¬ t0 + w < t0 by omega]
               | commit =>
-                simp only [Srunt, hres, show ¬ t0 + w < t0 by omega, show ¬ t0 + w < t0 + w by omega,
-                  if_false]
+                simp only [Srunt, hres, show ¬ t0 + w < t0 by omega,
+                  show ¬ t0 + w < t0 + w by omega, ite_false]
                 by_cases hz : p.R (p.delta w (t0 + w)) = 0
                 · simp [nba, S1, hz]
                 · simp [nba, S1, hz]; omega
               | back =>
-                simp only [Srunt, hres, show ¬ t0 + w < t0 by omega, show ¬ t0 + w < t0 + w by omega,
-                  if_false]
+                simp only [Srunt, hres, show ¬ t0 + w < t0 by omega,
+                  show ¬ t0 + w < t0 + w by omega, ite_false]
                 by_cases hz : p.R (p.delta w (t0 + w)) = 0
                 · simp [nba, S1, hz]
                 · simp [nba, S1, hz]; omega
             · -- after the decision
               have h6 : t0 + w < t + 1 := by omega
-              have hb : decide (t0 ≤ t + 1 ∧ t + 1 < t0 + w) = false := by simp; omega
-              rw [hb, Bool.false_or]
               cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) with
               | reject =>
+                have hIe : Iend p t0 w = t0 + w + p.L + 1 := by simp [Iend, hres]
                 have hS : ∀ u, t0 + w ≤ u → Srunt p t0 w u =
                     ⟨false, false, false, 0, t0 + w + p.L + 1, 0, false⟩ := by
-                  intro u hu; simp [Srunt, hres, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
+                  intro u hu
+                  simp [Srunt, hres, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
                 rw [hS t (by omega), hS (t + 1) (by omega)]
                 by_cases hI : t + 1 < t0 + w + p.L + 1
                 · simp [step, eval, blocked, hI, nba]
-                · rw [hS (t + 1 - p.L) (by omega)]
+                · rw [hS (t + 1 - p.L) (by omega), hb2 (t + 1) (by omega)]
                   simp [step, eval, blocked, hI, nba]
               | commit =>
-                generalize hT : p.R (p.delta w (t0 + w)) = T
+                have hIe : Iend p t0 w = t0 + w + p.R (p.delta w (t0 + w)) + p.L + 1 := by
+                  simp [Iend, hres]
+                generalize hT : p.R (p.delta w (t0 + w)) = T at hIe
                 have hS : ∀ u, t0 + w ≤ u → Srunt p t0 w u =
                     ⟨decide (t0 + w + T ≤ u), decide (u < t0 + w + T), false, 0,
                       t0 + w + T + p.L + 1, t0 + w + T, true⟩ := by
-                  intro u hu; simp [Srunt, hres, hT, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
+                  intro u hu
+                  simp [Srunt, hres, hT, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
                 rw [hS t (by omega), hS (t + 1) (by omega)]
+                unfold step
                 by_cases hI : t + 1 < t0 + w + T + p.L + 1
-                · by_cases hc : t + 1 = t0 + w + T
-                  · simp [step, eval, blocked, hI, nba, hc]
-                  · by_cases hc2 : t + 1 < t0 + w + T
-                    · simp [step, eval, blocked, hI, nba, hc, hc2, show t < t0 + w + T by omega,
-                        show ¬ t0 + w + T ≤ t by omega, show ¬ t0 + w + T ≤ t + 1 by omega]
-                    · simp [step, eval, blocked, hI, nba, hc, show ¬ t < t0 + w + T by omega,
-                        show t0 + w + T ≤ t by omega, show t0 + w + T ≤ t + 1 by omega,
-                        show ¬ t + 1 < t0 + w + T by omega]
-                · rw [hS (t + 1 - p.L) (by omega)]
-                  simp [step, eval, blocked, hI, nba, show ¬ t < t0 + w + T by omega,
-                    show t0 + w + T ≤ t by omega, show t0 + w + T ≤ t + 1 - p.L by omega,
-                    show t0 + w + T ≤ t + 1 by omega, show ¬ t + 1 < t0 + w + T by omega]
+                · rw [eval_blocked (by simp [blocked, hI])]; exact nba_c t _ _
+                · rw [hS (t + 1 - p.L) (by omega), hb2 (t + 1) (by omega)]
+                  rw [eval_same (by simp; omega)]; exact nba_c t _ _
               | back =>
-                generalize hT : p.R (p.delta w (t0 + w)) = T
+                have hIe : Iend p t0 w = t0 + w + p.R (p.delta w (t0 + w)) + p.L + 1 := by
+                  simp [Iend, hres]
+                generalize hT : p.R (p.delta w (t0 + w)) = T at hIe
                 have hS : ∀ u, t0 + w ≤ u → Srunt p t0 w u =
                     ⟨false, decide (u < t0 + w + T), false, 0,
                       t0 + w + T + p.L + 1, t0 + w + T, false⟩ := by
-                  intro u hu; simp [Srunt, hres, hT, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
+                  intro u hu
+                  simp [Srunt, hres, hT, show ¬ u < t0 by omega, show ¬ u < t0 + w by omega]
                 rw [hS t (by omega), hS (t + 1) (by omega)]
+                unfold step
                 by_cases hI : t + 1 < t0 + w + T + p.L + 1
-                · by_cases hc : t + 1 = t0 + w + T
-                  · simp [step, eval, blocked, hI, nba, hc]
-                  · by_cases hc2 : t + 1 < t0 + w + T
-                    · simp [step, eval, blocked, hI, nba, hc, hc2, show t < t0 + w + T by omega]
-                    · simp [step, eval, blocked, hI, nba, hc, show ¬ t < t0 + w + T by omega,
-                        show ¬ t + 1 < t0 + w + T by omega]
-                · rw [hS (t + 1 - p.L) (by omega)]
-                  simp [step, eval, blocked, hI, nba, show ¬ t < t0 + w + T by omega,
-                    show ¬ t + 1 < t0 + w + T by omega]
+                · rw [eval_blocked (by simp [blocked, hI])]; exact nba_b t _ _
+                · rw [hS (t + 1 - p.L) (by omega), hb2 (t + 1) (by omega)]
+                  rw [eval_same (by simp)]; exact nba_b t _ _
+
+/-- The plain runt: `b` is exactly the pulse. -/
+theorem run_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st) :
+    ∀ t, st t = Srunt p t0 w t :=
+  run_runt_gen hL ht0 hw1 hw (fun _ _ => rfl)
+    (fun t ht => by simp [bPulse]; unfold Iend at ht; omega) h
+
+/-! ### What fanout sees (the output wire `o`, i.e. what every fanout pin and the feedback copy) -/
+
+/-- The resolution time used by the run (`0` for a rejection, which schedules nothing). -/
+def trpOf (p : Prm) (t0 w : Nat) : Nat :=
+  match resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) with
+  | .reject => 0 | _ => p.R (p.delta w (t0 + w))
+
+/-- **(1) The output of the bd_c2 node for a pulse of width `w` on `b`, for every width,
+every noise draw and every resolution-time law.**
+* `w ≥ L`: a clean set at `t0`;
+* `w < L`, outcome `reject` or `back`: `o` is the FULL-SWING pulse `[t0, t0 + w)`, then `0`;
+* `w < L`, outcome `commit`: `o` is `1` on `[t0, t0 + w)`, `0` on `[t0 + w, t0 + w + trp)`,
+  then `1` forever (for `trp = 0` the gap is empty: a clean set).
+So every fanout sees the runt in full in every case: "rejected" (`:29`, "the node never
+left") is true of the node's final value only. -/
+theorem out_wide {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw : p.L ≤ w) (h : Run p aOne (bPulse t0 w) rstZero false st) (t : Nat) :
+    (st t).o = decide (t0 ≤ t) := by
+  rw [run_wide hL ht0 hw h t]; unfold Swide
+  by_cases h1 : t < t0
+  · simp [h1, St.init]; omega
+  · simp [h1, S1]; omega
+
+theorem out_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st) (t : Nat) :
+    (st t).o = decide (t0 ≤ t ∧ (t < t0 + w ∨
+      (resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit ∧
+        t0 + w + trpOf p t0 w ≤ t))) := by
+  rw [run_runt hL ht0 hw1 hw h t]; unfold Srunt trpOf
+  by_cases h1 : t < t0
+  · simp [h1, St.init]; omega
+  · by_cases h2 : t < t0 + w
+    · simp [h1, h2, S1]; omega
+    · cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) <;> simp [h1, h2] <;> omega
+
+/-- The rejected (and the "back") runt is a full-swing pulse of width `w` on the output. -/
+theorem rejected_runt_emitted {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L)
+    (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st)
+    (hr : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) ≠ .commit) :
+    (st (t0 - 1)).o = false ∧ (∀ t, t0 ≤ t → t < t0 + w → (st t).o = true) ∧
+      ∀ t, t0 + w ≤ t → (st t).o = false := by
+  refine ⟨?_, ?_, ?_⟩
+  · rw [out_runt hL ht0 hw1 hw h]; simp; omega
+  · intro t h1 h2; rw [out_runt hL ht0 hw1 hw h]; simp; omega
+  · intro t h1; rw [out_runt hL ht0 hw1 hw h]; simp [hr]; omega
+
+/-- A committed runt with `trp > 0` is seen by fanout as `1`, a `0` gap of width `trp`, then
+`1`: two rising edges for one set event. -/
+theorem commit_gap {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L)
+    (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st)
+    (hr : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit) :
+    (∀ t, t0 + w ≤ t → t < t0 + w + p.R (p.delta w (t0 + w)) → (st t).o = false) ∧
+      ∀ t, t0 + w + p.R (p.delta w (t0 + w)) ≤ t → (st t).o = true := by
+  have ht : trpOf p t0 w = p.R (p.delta w (t0 + w)) := by simp [trpOf, hr]
+  refine ⟨?_, ?_⟩
+  · intro t h1 h2; rw [out_runt hL ht0 hw1 hw h, ht]; simp [hr]; omega
+  · intro t h1; rw [out_runt hL ht0 hw1 hw h, ht]; simp [hr]; omega
+
+/-- **Every non-blocked edge reaches the output in the same step**, runt or not, in ANY run of
+the resolver (any input, not only bd_c2): the output equals the new `f` unless the edge is a
+runt that commits with `trp = 0` (then the 0-width reversal is invisible at end of step). -/
+theorem step_emits (p : Prm) (t : Nat) (f : Bool) (s : St) (hb : blocked t s = false)
+    (hf : f ≠ s.o) :
+    (step p t f s).o = f ∨ (isRunt p t f s = true ∧
+      resolve ((t - s.tl : Nat) : Int) (p.L : Int) p.win (p.nz t) = .commit ∧
+      p.R (p.delta (t - s.tl) t) = 0) := by
+  by_cases hr : isRunt p t f s = true
+  · unfold step; rw [eval_runt hb hf hr]
+    cases hres : resolve ((t - s.tl : Nat) : Int) (p.L : Int) p.win (p.nz t)
+    · left; simp [nba]
+    · by_cases hz : p.R (p.delta (t - s.tl) t) = 0
+      · right; exact ⟨rfl, rfl, hz⟩
+      · left; simp [nba]; intro h; omega
+    · left; simp [nba]
+      by_cases hz : p.R (p.delta (t - s.tl) t) = 0 <;> simp [hz]
+  · have hr' : isRunt p t f s = false := by simpa using hr
+    left; unfold step; rw [eval_edge hb hf hr']; simp [nba]
+    intro hbz; exfalso
+    have : s.busy = false := by simp [blocked] at hb; exact hb.1
+    rw [this] at hbz; exact absurd hbz (by simp)
+
+/-! ## 5. (2) What a passing run implies, and what it does not -/
+
+/-- **Seed dependence.** For every runt width `w < L` and every `win ≥ 2` (and every loop
+delay, every law), there are noise draws under which the same circuit with the same delays
+and inputs ends at `0` (rejected) and at `1` (committed). A run with one `META_SEED` decides
+nothing about the others (Gaussian noise: every draw has positive density). -/
+theorem seed_dependence (L : Nat) (win : Int) (R : Int → Nat) {t0 w : Nat} (hL : 1 ≤ L)
+    (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w) (hw : w < L) (hwin : 2 ≤ win) :
+    ∃ n0 n1 : Int,
+      (∀ st, Run ⟨L, win, fun _ => n0, R⟩ aOne (bPulse t0 w) rstZero false st →
+        ∀ t, t0 + w ≤ t → (st t).o = false) ∧
+      (∀ st, Run ⟨L, win, fun _ => n1, R⟩ aOne (bPulse t0 w) rstZero false st →
+        ∃ T, ∀ t, T ≤ t → (st t).o = true) := by
+  obtain ⟨⟨n0, h0⟩, ⟨n1, h1⟩, _⟩ := Formal.Core.GLSFid.resolve_all_outcomes (w : Int) (L : Int) win hwin
+  refine ⟨n0, n1, ?_, ?_⟩
+  · intro st h t ht
+    exact (rejected_runt_emitted (p := ⟨L, win, fun _ => n0, R⟩) hL ht0 hw1 hw h
+      (by simp [h0])).2.2 t ht
+  · intro st h
+    exact ⟨_, (commit_gap (p := ⟨L, win, fun _ => n1, R⟩) hL ht0 hw1 hw h (by simpa using h1)).2⟩
 
 end Formal.Core.GLSResolve

@@ -18,6 +18,7 @@ as point cells; it is bisected (down to width 1/(N*2^D)) only if one of its timi
 both end corners; an item failing at an end corner fails AT that corner and no refinement can
 discharge it.  Timing items: Back / Line (margin m) and Guard (margin = min of BACK-G, ENTRY,
 EXIT1, EXIT2).  Any other residual line is reported as structural.
+DEPTHS="0.12:0" overrides D per kappa (finest width 1/(N*2^depth) at that kappa).
 implied_clean: a cell inside a cell that had NO residual item at a kappa' >= kappa is not re-run
 (CornerCell.cellLo_anti / cellHi_mono: its band file contains ours arc by arc).
 Output: runs<TAG>/<seed>/k<kappa>_<ca>_<cb>.txt (xevents8 stdout) and runs<TAG>/<seed>/summary.json.
@@ -144,12 +145,13 @@ def main():
     if "--tag" in args:
         TAG = args[args.index("--tag") + 1]
     kappas = os.environ.get("KAPPAS", " ".join(KAPPAS)).split()
-    minw = Q(1, N * 2 ** D)
     cover = [(Q(i, N), Q(i + 1, N)) for i in range(N)]
     os.makedirs(os.path.join(HERE, "runs" + TAG, seed), exist_ok=True)
     allsum = {"seed": seed, "init": N, "depth": D, "checker": "xevents8 (Events8Main)", "kappas": {}}
     with cf.ThreadPoolExecutor(J) as ex:
         for kappa in kappas:
+            dk = dict(x.split(":") for x in os.environ.get("DEPTHS", "").split() if ":" in x)
+            minw = Q(1, N * 2 ** int(dk.get(kappa, D)))
             todo, leaves, points = list(cover), [], {}
             while todo:
                 res = list(ex.map(lambda c: cell(seed, kappa, c), todo))
@@ -180,7 +182,7 @@ def main():
             for x, r in sorted(points.items()):
                 for k, m in r["timing"].items():
                     ptbad.setdefault(k, []).append([str(x), m])
-            allsum["kappas"][kappa] = {
+            allsum["kappas"][kappa] = {"minw": str(minw),
                 "cover": [{"ca": str(ca), "cb": str(cb), "by": r["by"], "timing": r["timing"],
                            "struct": r["struct"], "verdict": r["verdict"]} for (ca, cb), r in leaves],
                 "points": {str(x): {"by": r["by"], "timing": r["timing"]} for x, r in sorted(points.items())},

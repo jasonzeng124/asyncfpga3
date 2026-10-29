@@ -2,7 +2,7 @@
 
 PROGRAM.md north-star goal 3. Session 2026-10-29.
 
-STATUS (08:10): toolchain restored and verified; 8+2 routes built and audited; bands built; Lean
+STATUS (08:20): toolchain restored and verified; 8+2 routes built and audited; bands built; Lean
 overlay compiling; checker runs next.
 
 ## Progress log
@@ -36,8 +36,17 @@ overlay compiling; checker runs next.
   rig_rst and 6 select-data nets). Without --cut-type routed2x_k3.py is byte-identical to
   routed2x.py (cmp of net.json and slow bands on xorshift d).
 - xray_delay = research 7dc5dde (md5 3e69bf6a), which already charges the slice OUTMUX hop
-  (`sitepip_charged_xOUTMUX 1092` on ipow d); see the E8Mux note below for whether that reaches
-  the bands.
+  (`sitepip_charged_xOUTMUX 1092` on ipow d). E8Mux (notes/A-e8mux.md) reports its fixed
+  calculator equals 7dc5dde on all 40083 comb->comb IC rows of gcd_hw d, so **these k3 bands
+  already carry the O5/F7/F8 OUTMUX hop** the audit found missing from gcd_hw's 99b10a6d bands.
+- prjxray rows with lo > hi (E8Mux's finding): routed2x.py now rejects them unless `--inverted hull`;
+  bands_k3.sh passes hull and regenerates routed2x_k3.py from the live routed2x.py
+  (`k3/mk_routed2x_k3.py`). Hulled rows: fast corner only, ipow 4 (4 rows), ipow 5 (2), xorshift d,
+  3 (2 each), all data-latch arcs (ulink_*.lat.pair[*]) outside the control skeleton.
+- Lean: `k3/mk_k3.sh` compiled the 34 Mathlib-free modules of xaudit/xevents5/xevents8 into
+  ~/k3olean via lean.sh/slot.sh; all "ok", no log mentions error or sorry.
+- First xevents8 row: ipow d slow **VERDICT CLEAN** (`Events8.design_verdict8`; HDsub 24 judgements;
+  176/176 Back, 23/23 line, 14/14 merges, 12/12 guarded pins).
 
 ## Plan
 1. Restore the toolchain from `origin/toolchain-cache/d7ce266cff0c8e1e` (read with `git cat-file`,

@@ -64,8 +64,8 @@ survives iff `t n + δmin < tent n < t (n+1) + δmin` (`surv_lo`, `surv_hi`,
    tentative output if it is after the previous tentative one, else remove the pending
    output) equals the declarative `outList` (`channel_eq`, via `outList_step`,
    `accOut_reverse`); `surv_of_cancel`: a removal always finds a pending output.
-8. On lists: `channel_sorted`, `channel_length_parity`, `channel_mem` (well-formedness,
-   causality windows, direction), `channel_of_sep` (agreement with `tent` under the exact
+8. On lists: `channel_sorted`, `channel_length_parity`, `channel_mem`,
+   `channel_getElem?_dir` (well-formedness: increasing, alternating, causality windows), `channel_of_sep` (agreement with `tent` under the exact
    separation threshold), `channel_pulse`, `channel_pulse_mono` (single pulses).
 9. `ratPair` computed through the algorithm: `rat_runt_cancelled` (`[0,1/2] ↦ []`),
    `rat_threshold_cancelled` (`[0,1] ↦ []`), `rat_pulse_shrunk` (`[0,3/2] ↦ [2,17/6]`),
@@ -909,6 +909,54 @@ theorem channel_mem {l : List ℝ} (hs : l.Pairwise (· < ·)) {s : ℝ} (hsm : 
     rw [extend_agree l n hsv.1] at this; rw [← e]; exact this
   · have := surv_hi (extend l) (extend_mono hs) hsv h'
     rw [extend_agree l (n + 1) h'] at this; rw [← e]; exact this
+
+/-- **(c) Alternation, by position**: the `k`-th output transition is the tentative
+output of an input transition `n` with `n ≡ k (mod 2)`.  The output starts low and toggles,
+so output transition `k` is rising iff `k` is even iff input transition `n` is rising. -/
+theorem outList_getElem?_dir (t : ℕ → ℝ) (ht : ∀ n, t n < t (n + 1)) :
+    ∀ N k s, (P.outList N t)[k]? = some s → ∃ n < N, s = P.tent t n ∧ n % 2 = k % 2 := by
+  intro N
+  rcases N with _ | N
+  · intro k s h; simp [outList_zero] at h
+  induction N with
+  | zero =>
+    intro k s h
+    rw [outList_one, List.getElem?_singleton] at h
+    by_cases hk : k = 0
+    · rw [if_pos hk] at h
+      refine ⟨0, by omega, ?_, by omega⟩
+      rw [tent_zero']; exact (Option.some.inj h).symm
+    · rw [if_neg hk] at h; simp at h
+  | succ n ih =>
+    intro k s h
+    rw [outList_step t ht n] at h
+    by_cases hlt : P.tent t n < P.tent t (n + 1)
+    · rw [if_pos hlt] at h
+      by_cases hk : k < (P.outList (n + 1) t).length
+      · rw [List.getElem?_append_left hk] at h
+        obtain ⟨m, hm, e, hp⟩ := ih k s h
+        exact ⟨m, by omega, e, hp⟩
+      · rw [List.getElem?_append_right (by omega), List.getElem?_singleton] at h
+        by_cases hk0 : k - (P.outList (n + 1) t).length = 0
+        · rw [if_pos hk0] at h
+          refine ⟨n + 1, by omega, (Option.some.inj h).symm, ?_⟩
+          have hpar := outList_length_parity (P := P) t ht (n + 1)
+          omega
+        · rw [if_neg hk0] at h; simp at h
+    · rw [if_neg hlt, List.getElem?_dropLast] at h
+      by_cases hk : k < (P.outList (n + 1) t).length - 1
+      · rw [if_pos hk] at h
+        obtain ⟨m, hm, e, hp⟩ := ih k s h
+        exact ⟨m, by omega, e, hp⟩
+      · rw [if_neg hk] at h; simp at h
+
+/-- **(c) Alternation on lists**: output transition `k` of `channel l` comes from an input
+transition `n` of the same parity (same direction). -/
+theorem channel_getElem?_dir {l : List ℝ} (hs : l.Pairwise (· < ·)) {k : ℕ} {s : ℝ}
+    (h : (P.channel l)[k]? = some s) :
+    ∃ n < l.length, s = P.tent (extend l) n ∧ n % 2 = k % 2 := by
+  rw [channel_eq_extend hs] at h
+  exact outList_getElem?_dir (extend l) (extend_mono hs) l.length k s h
 
 /-- **(a) Agreement with `InvolutionTransfer`/`InvolutionDMin` under separation**: on an
 `S`-separated list with `S` above the exact threshold, nothing is cancelled and the
