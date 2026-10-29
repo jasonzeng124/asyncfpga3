@@ -1159,3 +1159,18 @@ multi-token run hypotheses), bare-cell rows stay not_derivable; IpowCellsT.gap_e
 cited on the env_latency rows. Validator fix (mine): the audit-row-18 check now
 matches the WORD "exact" only, so names like LinkExact or exact_* no longer trip it;
 the probe had worked around it by writing "Blink's" for "LinkExact's", now reverted.
+
+### progress 10:05
+In: Bnx7 Necessity7Mux{,Runs,RunsN,N,NRuns} (core; checked here, axioms standard;
+notes/B-necessity7.md). bd_mux and bdc_muxn re-proved with Lt5's gate-aware
+cel_run_g (mux_ok_g/gs, muxn3_ok_g/gs). The new static set drops S_XA_FORK, S_XA_J.1
+and S_OR and adds S_XA_SEQ (Wzx.hi <= Kc + W0x.lo, order only) and S_XA_R = client
+loop OR (FORK AND J.1); the shipped set implies it (staticG_of_static). Passing runs
+on the real INITs violate the shipped S_XA_FORK (passA5, passN5), S_XA_J.1 (passB) and
+bdc_muxn S_A_FORK (passN7): those are NOT necessary. S_XA_SEQ, S_XA_R and S_A_SEQ
+are boundary-tight (failSEQ6, failR6, failSEQ8). Correction to Bnx6's unproved
+analysis (07:52-08:xx note "pure order condition"): the client loop alone is not the
+replacement, because the join's fall also waits for ctl_req; the disjunction S_XA_R
+is needed. Binary <= forms, one point each; the pass runs sit at binary equality and
+may not survive a Kleene X window. Open: uya mirrors, muxn S_A_R boundary, muxn J.1
+run, DELAY > 1. JSON next pass.
