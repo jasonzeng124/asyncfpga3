@@ -2,6 +2,36 @@
 
 Shard C, probe 10f (track 10), 2026-10-27.
 
+## Correction (2026-10-29, probe C-10f2; see notes/C-10f2-rtfb.md)
+
+The audit (P4, row on 1149aa1) was right: `rtfb_design.py` had no driver-side LUT -> xMUX hop.
+Every route leaving a slice through AMUX..DMUX was short by the prjxray ROUTING_BEL hop, for
+example `a6lut -> amux (0.071::0.088)(0.168::0.209)` ns. This applied to the feedback and to the
+responses alike.
+
+C-10f2 added the hop, re-routed all 12 routes (FASM-byte-identical to the ones below), and
+regenerated every RtFb Lean file. Theorem names are kept; their numbers changed.
+
+- **WITHDRAWN: "gcd_hw: 0 failures in fast, slow, fastE and slowE".** On seed 4 the rig's
+  `urig.uenv1.u` fails the `fast` variant at **−16 ps**; this section originally reported +4.
+  - Kernel-checked: `gcd4_pass` (fast 9 of 10) and `gcd4_fast_exact`, which gives a violating
+    fixed-delay run.
+  - slow, fastE and slowE still have 0 failures on all 4 seeds. uenv1 on seed 4: +51 / +94 / +161
+    (was +124 / +114 / +234). On seed 2: fast +14, slowE +162 (was +109 / +375).
+  - **The kernel alone (without uenv0/uenv1) still has 0 failures in every one-corner variant on
+    every seed.** Worst: fast +70, slowE +530.
+  - The −16 comes from charging uenv1's one shared CMUX hop at its max on the feedback and its min
+    on the response. The per-element window model always does this. With either single prjxray
+    instance (xMUX or xMUXL) the slack is −13.
+  - With every element at one common corner end, the rig still passes by at least +167 ps (seeds 2
+    and 4; Python evidence).
+- **Muller pipeline.** The race is still real on all 8 seeds, but smaller.
+  - slowE: 1 to 8 of 64 fail (mean 3.9; was 4 to 12, mean 7.2). Worst slack −4 to −218.
+  - fastE: 0 to 5 fail.
+  - Common corner: 2 of 8 seeds fail (was 5 of 8). Seed 3's −112 is gone; seed 8 has −68.
+- **The tables below are the no-hop model.** RTFB_NO_HOP=1 reproduces them exactly. Do not cite
+  them as current.
+
 ## Verdict
 
 **Works. The race is real on the bare Muller pipeline, on every seed. It is not reached on

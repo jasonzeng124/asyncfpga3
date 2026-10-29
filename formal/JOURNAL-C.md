@@ -61,7 +61,13 @@
   ipow (12 routes): every disagreement with the project rules is project-PASS/tcheck-FAIL,
   none at a fixed prjxray point; rule A and tcheck both time GND/VCC tie-offs as data (false
   path). Known front-end gap (audit): the slice OUTMUX hop is missing, so the row numbers are
-  provisional until 10m's rerun; RT_FB numbers likewise until 10f2.
+  provisional until 10m's rerun. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
+  FASM): the audit row is right -- on gcd_hw seed 4 the rig's uenv1 C-element fails RT_FB by
+  -16 ps in the per-element fast model (was +4); the kernel alone still has 0 failures in every
+  one-corner model on all 4 seeds (worst fast +70). With every element at one common corner end
+  uenv1 passes by >= +167 ps (Python), so the failure comes from taking one shared hop at max on
+  feedback and min on response. 64-stage Muller: slowE 1-8 of 64 stages fail per seed (mean
+  3.9, was 7.2). Kernel-checked violating run: gcd4_fast_exact.
 - **Gen: done.** All 36 cells/rtl modules generated from the project's yosys and tied to
   B's transcriptions (163 theorems); a flipped INIT breaks the build. bd_mem's BRAM opaque.
 - **Track 11 (netlist import): works for LUTs.** yosys import: binary next-state equal to
@@ -497,3 +503,6 @@ liveness lines of the track-8 verdict. Launched 8z3 (prove H_NO_DEADLOCK'').
 8x committed after my own check.sh (4 files + witness chain, 4088 decls, standard axioms).
 Launched 8x2 (relaxed Ops data fields so H_ZD_AGREE becomes trivial; classify the 376
 underived channels).
+
+### progress 10:15
+10f2 committed after my own check.sh (15 RtFb files, 481 decls, standard axioms): see track 10.
