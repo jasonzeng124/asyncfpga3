@@ -1391,3 +1391,19 @@ node), the end contracts hold because their conclusions hold on chW, and all del
 are unit. gcd_hw_safe_fin_net also gate-models the 38 steer ORs, but has no joint
 witness (chW has channel traces, not internal nodes). Still contracts: mux acks,
 sources, muxn, amerge, fork trees N >= 5; departure bounds and H_ORD assumed.
+
+### progress 11:28
+In: Bcr ArbCounterRuns{,AM} (core; checked here, axioms standard;
+notes/B-arb-counter-runs.md). Constructed violating runs (real INITs, every gate and
+server relation for all t, nonzero delays, missing the condition by exactly 1 ps, the
+existing counter lemma applied) for bd_arbiter.rt1 (race disjunct; record inside the
+routed box of gd_merge9_uarb1 with a free A0 route / ustate arc / server: 170 ps
+server overlaps 1 ps, 171 ps excludes), bd_arbcell.handover_overlap (a Cell trace for
+every arc record, so the 7e condition is an iff on constructed runs; the SLOW_MAX
+instance needs a 171 ps O6 rise/fall asymmetry H_RF_ASYM, unmeasured, so at
+consistent corners the overlap stays 0), and the six re-request race forms Q, R, G
+(fall view), Q2, R2, G2 from reset. Findings: Q2's runt circulates in ustate's hold
+loop when qr = qf (both acks high for 12 ps on its four-phase continuation); Q's run
+ends only because qf > qr; G's fall view needs a q-pin rise/fall difference. Race
+records are a 1-4 ps grid, not routed numbers. JSON next pass (labels to
+boundary-tight per field).
