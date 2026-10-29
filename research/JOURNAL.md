@@ -1483,3 +1483,11 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   contradicts a fraction. dsp_constpins still rests on "a control pin with no tile bit reads 1".
 - Seed 7 FAST_MIN on the fixed decoder: PASS 16/16, laps 87/70/101. Seed 9: SLOW_MAX 32/26/38, FAST_MIN 88/71/103.
 - Running: acceptance lut-pinmap at FAST_MIN; seed 7 SLOW_MAX and seed 5 re-runs; scatter draws.
+### progress 05:04 (soft ring items through the harness: inside the band, band 0.38 within a few %)
+- ro_top rebuilt today (sdf 4875ce2b; ring periods from the xray SDF of the bits-decoded netlist, no sim), acceptance
+  ring5_a/ring5_b --stack full at min/max/band: every measured period lies inside [FAST_MIN, SLOW_MAX] (min under-
+  predicts by 33-54%, max over-predicts by 39-99%); at band 0.38 the long rings land within +-4% (127 links: +1.8%
+  route A; 63 links: +1.3% / -3.6%), short rings -18.5..+16.7% (7 and 31 links, where per-route scatter is largest:
+  the board itself showed 25% route-to-route at 7 links). SOFT (across routes; the measured routes are gone), and
+  0.38 was fitted to these same rings last session, so the band agreement is a consistency check, not a prediction.
+  Logs: research/data/fid/acceptance_full_ring5_{min,max,band}.log.
