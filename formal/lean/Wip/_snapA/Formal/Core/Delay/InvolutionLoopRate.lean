@@ -181,7 +181,7 @@ theorem dev_lower {h l s K M g : ℝ} (S : Stat P h l) (hK : 0 ≤ K)
       have hw : wd P s j ≤ M := by
         have := (abs_le.mp i0).2; linarith [(hwc j).2]
       rw [wd_succ, wd_succ]
-      have h1 := lip_half (f := P.delayAt j) (hL j) hw (by linarith [(hwc j).2])
+      have h1 := lip_half (f := P.delayAt j) (v := wd P c j) (hL j) hw (by linarith [(hwc j).2])
       calc _ ≤ (1 + K) * |wd P s j - wd P c j| := h1
         _ ≤ (1 + K) * ((1 + K) ^ (j + 1) * A) := mul_le_mul_of_nonneg_left i0 (by linarith)
         _ = (1 + K) ^ (j + 1 + 1) * A := by ring

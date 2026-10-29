@@ -4,7 +4,7 @@ Probe PrimsSeq, shard A. Started 2026-10-28 (session died, draft in
 `Wip/_snapA/Formal/Core/Prims/SeqNext.lean`); redone 2026-10-29 from 07:20 UTC.
 North-star goal 1 ("the flops and latches, DSP48E1 and RAMB18E1 if a design uses them").
 
-STATUS: done for flops and latches (6 Mathlib-free files compile; check.sh run pending at 08:40 UTC, see §7). RAMB18E1 not modelled (next probe).
+STATUS: done for flops and latches (6 Mathlib-free files, check.sh OK 08:34 UTC, §7). RAMB18E1 not modelled (next probe).
 
 ## Plan
 1. `Formal/Core/Prims/SeqNext.lean`: next-state functions, exact Kleene extension,
@@ -184,3 +184,18 @@ shown: that any design here drives X into a CE/SR pin; a GLS pass simply cannot 
   primitives.
 - A refinement theorem between the K3 relation and a binary nondeterministic flop (every
   binary run is covered by the K3 run) is stated in prose only.
+
+## 7. Check
+
+```
+formal/check.sh Formal/Core/Prims/SeqNext.lean Formal/Core/Prims/SeqFlop.lean \
+  Formal/Core/Prims/SeqLatch.lean Formal/Core/Prims/SeqXray.lean \
+  Formal/Core/Prims/SeqGls.lean Formal/Core/Prims/SeqSync.lean
+...
+[audit] 845 declarations checked
+[check] OK
+```
+(2026-10-29 08:34 UTC; per-file mode with `-DautoImplicit=false`; 845 = these files plus
+their imports. SeqNext alone: 131. Remaining compiler output: deprecation warnings for
+`if_pos`/`if_neg` only.) No Wip files (nothing left unproved). Not yet in `Formal.lean`
+or `lake build`: the lead adds the six modules.

@@ -7,9 +7,9 @@ import Mathlib.Data.Rat.Cast.Order
 /-!
 # Corner cells: a finite grid of corner intervals covers the continuum
 
-Probe A / KapRes2. The KapRes sweep (`formal/tools-A/xaudit/kapres2/`) does not run the
+Probe A / KapRes2. The KapRes sweep (`formal/tools-A/kappa/kapres2/`) does not run the
 timing checker at every corner `c ∈ [0,1]`; it runs it on finitely many corner CELLS
-`[ca, cb]`, each with one band file whose band for arc `e` is (`kapres2/cornerband2.py`)
+`[ca, cb]`, each with one band file whose band for arc `e` is (`tools-A/kappa/kapres2/cornerband2.py`)
 
     [ ⌊(1-κ)·min(lerp(f0,s0,ca), lerp(f0,s0,cb))⌋ ,  ⌈(1+κ)·max(lerp(f1,s1,ca), lerp(f1,s1,cb))⌉ ]
 
@@ -27,7 +27,7 @@ This file proves that this cell band contains every delay the corner model
 
 If a band file has `f0 > f1` (the committed FAST files do, `formal/notes/A-kapres2.md`) the
 hypothesis `f0 ≤ F ≤ f1` is unsatisfiable and the theorems say nothing about that arc: the
-band-file validator (`kapres2/check_bands.py`, `Formal.Core.XAudit.BandCheck`) is what makes
+band-file validator (`tools-A/kappa/kapres2/check_bands.py`, `Formal.Core.XAudit.BandCheck.readBands`) is what makes
 them non-vacuous.
 
 ## What is proved
