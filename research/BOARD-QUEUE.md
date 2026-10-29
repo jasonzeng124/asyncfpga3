@@ -118,7 +118,13 @@ Board-fidelity full stack (2026-10-27 session 10:12; research/data/fid/fullstack
 netlist decoded from its own .bit, with prjxray RC-tree delays and the fid primitives: 16/16 errs=0 at FAST_MIN,
 SLOW_MAX and band 0.38 (laps vec 6 91 / 33 / 55). At band 0.38 (where the five measured rings sit) the stack predicts
 vec 6 ~55 laps per 150 us window. The same stack fails the unpatched lut-pinmap bitstream on an August-shaped route
-(vectors 5-8, 11-13 never complete), so it can fail. Not yet: 8 seeds, scatter draws (running).
+(vectors 5-8, 11-13 never complete), so it can fail. 
+8 seeds (2026-10-29, research/data/fid/bq3_fullstack_8seed.tsv): seeds d,3-9, each simulated from its own .bit
+(fid model 78de9c2 + decoder fix 54f2ce6): 16/16 errs=0 at FAST_MIN on 8/8 (laps vec 6 mean 89.6, 83-94) and at
+SLOW_MAX on 8/8 (vec 6 mean 32.8, worst seed 4: 31); band 0.38 with region 0.16 + wire 0.126 scatter (the measured
+8.5% median ring scatter) and with 2x that, so far on seeds d,3,4,6: 8/8 pass, vec 6 47-54 (1x), 44-53 (2x).
+The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
+prediction.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

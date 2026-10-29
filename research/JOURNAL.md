@@ -1510,3 +1510,14 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
 - 2nd decoder fix (after S7 flagged it): an all-zero LUT is const 0 only in a slice with no configuration; a real
   LUT whose INIT expands to 0 stays a cell. ipow --good passes again; seeds 5/7 still EQUIVALENT; d identical.
 - Sweep: 26 rows, all PASS; seed 5 FAST_MIN 93/76/109 on the fixed decoder.
+### progress 06:28 (BQ#3: 8 seeds x 2 corners on the full stack, 16/16 PASS each)
+| BQ#3 full stack (bits netlist + prjxray SDF + fid) | n | pass | laps vec 6 mean (range) | vec 12 | vec 13 |
+|---|---|---|---|---|---|
+| FAST_MIN | 8 | 8 | 89.6 (83-94) | 72.6 (66-76) | 104.9 (98-109) |
+| SLOW_MAX | 8 | 8 | 32.8 (31-34) | 26.2 (24-28) | 38.5 (36-40) |
+| band 0.38 + region 0.16/wire 0.126 | 4 (d,3,4,6) | 4 | 51.5 (47-54) | 41.0 | 60.2 |
+| band 0.38 + 2x scatter (0.32/0.252) | 4 (d,3,4,6) | 4 | 49.0 (44-53) | 38.8 | 57.5 |
+Seeds: d,3,4,5,6,7,8,9. nextpnr-SDF nominal on the same 8 routes (BQ#3 record): vec 6 mean 50.0. Worst seed at
+SLOW_MAX: 4 (31/24/36). Data research/data/fid/bq3_fullstack_8seed.tsv; BOARD-QUEUE #3 updated.
+Does NOT show: silicon; scatter on seeds 5,7,8,9 (running); the board-fidelity sim is not yet accepted (ring128
+blocked on the owner's raw data), so the rule gates stay.
