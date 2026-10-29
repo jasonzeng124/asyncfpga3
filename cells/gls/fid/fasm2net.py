@@ -324,6 +324,14 @@ class Design:
         cands = []
         for d in self.drivers(nid):
             if d[0] == "site":
+                lut = self.cells.get(d[3][0])
+                if lut is not None and lut.type == "SLICE_LUTX" and \
+                        int(lut.params.get("INIT", "1"), 2) == 0 and lut.name.endswith("6LUT"):
+                    # an UNCONFIGURED LUT (no INIT bit at all, both halves):
+                    # nextpnr's GND source (GND_WIRE -> SITEWIRE/<slice>/A);
+                    # O6 is 0 for every input, so it is the constant 0
+                    cands.append((("const", 0, "unused-lut"), [], d))
+                    continue
                 cands.append((("drv", d[3], (d[1], d[2])), [], d))
             elif d[0] == "const":
                 cands.append((("const", d[1], "tile"), [], d))
@@ -361,6 +369,13 @@ class Design:
 
     # ------------------------------------------------------------- sites
     def decode(self):
+        # Every CLB tile, even one with no bits at all: an unused LUT used as
+        # a GND source reaches routing through an always-on ppip
+        # (CLBLL_LOGIC_OUTS* <- CLBLL_*_A), which carries no bits, so its tile
+        # may be absent from the FASM (see decode_clb).
+        for tile, tt in self.fab.ttype.items():
+            if tt.startswith("CLBL") and tile not in self.feats:
+                self.feats[tile] = {}
         for tile in sorted(self.feats):
             tt = self.fab.ttype[tile]
             if tt.startswith("CLBL"):
@@ -388,8 +403,12 @@ class Design:
         fs = self.feats[tile]
         for s, sname in self.fab.sites(tile):
             pfx = "%s_X%d." % (s["type"], s["x_coord"])
-            if not any(f.startswith(pfx) for f in fs):
-                continue
+            # Every slice is decoded, configured or not: nextpnr uses an
+            # UNUSED LUT (no INIT bits, so O6 = 0) as a GND source
+            # (GND_WIRE -> SITEWIRE/<slice>/A in the routed JSON).  Skipping a
+            # slice with no slice features left that output floating, and the
+            # IMUX it feeds fell back to its VCC default.  Cells nothing reads
+            # are dropped later as before.
             self.decode_slice(tile, sname, pfx, s["type"],
                               {p: v["wire"] for p, v in s["site_pins"].items() if v})
 

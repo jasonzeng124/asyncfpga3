@@ -499,6 +499,17 @@ def main():
                 A = {p for p in A if p[0] not in cw}
                 B = {p for p in B if p[0] not in cw}
             dead = (A - B) & stub
+            # a json-only pip whose far end feeds nothing but such dead pips is
+            # the head of the same dead route (e.g. the always-on CLBLL_L_C ->
+            # LOGIC_OUTS ppip, which has no bits and so is never a stub)
+            grew = True
+            while dead and grew:
+                feeds = collections.defaultdict(set)
+                for p in A:
+                    feeds[p[0]].add(p)
+                more = {p for p in (A - B) - dead if feeds[p[1]] and feeds[p[1]] <= dead}
+                grew = bool(more)
+                dead |= more
             if dead:
                 n_dead += 1
                 flag("json pips that ARE in the bits but reach no live sink (routing to a dead bel)",
