@@ -24,8 +24,7 @@ evidence stronger:
 ## THE priority: a board-fidelity gate-level simulation (owner, 2026-10-27)
 
 The owner considers this the most important thing for developing without a
-board. It comes before every speed lead. Give it the main thread, and the most
-subagents, until it is done. Other work only fills idle cores.
+board. It comes before every speed lead. Give it the main thread until it is done. Other work only fills idle cores.
 
 ### The audits are heuristics; an accurate GLS is the ground truth
 
@@ -157,32 +156,13 @@ blocks. Until acceptance is met, keep the current gates exactly as they are.
 
 ## Budget
 
-No usage cap (the owner lifted it on 2026-10-25). Run continuously: never end a
+One session starts per day (owner, 2026-10-29). Run continuously: never end a
 session on your own. When one lead is done or blocked, journal it and start the
-next one; the leads under goal 2 and the journal's `Next:` lines are never empty. A new session starts every hour and the lock keeps there from
-being two at once, so:
+next one; the leads under goal 2 and the journal's `Next:` lines are never empty. The lock keeps there from being two sessions at once, so:
 - Refresh `research/LOCK` (commit and push) at least every 45 minutes. A lock
   older than 90 minutes counts as dead.
 - Background processes die with the session. Commit before starting anything
   long, so that a killed session loses only the job that was running.
-
-### Use far more parallelism (owner, 2026-10-26)
-So far the routine has used about 4% of the owner's weekly limit. The
-bottleneck is wall time, not budget. Sessions mostly sit idle, waiting on one
-or two hour-long builds. Do not wait on a single lead:
-- Check `nproc` and `free -g` at session start. Keep the machine full: as many
-  concurrent nextpnr/GLS jobs as cores and RAM allow (one nextpnr per core,
-  leave ~2 GB headroom each), each in its own git worktree under the scratchpad.
-- Run several leads at once. While a build runs, spawn subagents on independent
-  tracks: a routed GLS rig for each kernel besides gcd_hw, rule A/E/J audits on
-  other benches, speed analysis (tightening slack, chain lengths, critical
-  cycles), literature or web research on bundled-data timing. Subagents never
-  touch git in the main tree; they work in their own worktrees and report back,
-  and you commit their results.
-- A finished background job is a cue to start the next one immediately, not to
-  write a long summary and stop.
-- The priority order still holds: parallelism is for getting more verified
-  results per hour, never for skipping a gate.
 
 ## Each session
 
