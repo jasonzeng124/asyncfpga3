@@ -237,3 +237,7 @@ New heads: formal 3e63dc1 (+24 commits: check.sh per-file now passes -DautoImpli
 withdrawn; kappa exact/tight withdrawn; Bj5 JSON; RigSrc joint witness; Necessity5, LutFbBridge, IpowCells, KleeneWin;
 Fid3 GLS table), research 072f5f9 (acceptance status). Clean build of 3e63dc1 started in ~/wt-f9 (Mathlib packages
 copied from wt-f7, same manifest). Agents: P9 (formal claims), r14 (Fid3 reproduction). Freed 5 GB of old work dirs.
+
+### progress 08:06
+r14 in: formal Fid3 GLS table reproduced (17 rows CONFIRMED, incl. resolver centre bias TLOOP-WIN/2 vs ~TLOOP/2, which I
+read at fid_core.vh:82); Fid3's rise!=fall remark REFUTED in direction. Build of 3e63dc1 and P9 still running.
