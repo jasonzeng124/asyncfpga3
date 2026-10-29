@@ -149,3 +149,7 @@ which ignores the lakefile's autoImplicit=false. (b) Formal.Net.MullerSI exit 13
 lean jobs); rebuilding alone. RigContract now builds -> CONFIRMED. P7k Lean: audit file compiles, 43 axiom lists
 clean, 7/7 mutants fail (I diffed 3: real one-line semantic mutations). Killed the queued axiom audit (would have
 raced the rebuild).
+
+### progress 01:59
+Rebuild of 6863284: every module except Formal.Core.Delay.GLSPass now builds (MullerSI OK alone; only GLSPass fails).
+Per-module axiom audit (audit/tools/axiom_audit_par.sh, 2 jobs) started over all Formal modules.
