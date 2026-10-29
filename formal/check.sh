@@ -31,13 +31,19 @@ mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g'
 else
   # per-run directory: concurrent runs (probes use check.sh too) must not share it,
   # and stale oleans there would shadow lake's (it is first on LEAN_PATH)
+  # `lake env lean` does NOT apply the lakefile's [leanOptions] (audit, 2026-10-29: a file
+  # using an unbound variable passed here and failed `lake build`). Pass them explicitly;
+  # keep this list equal to lakefile.toml's [leanOptions].
+  export LEANOPTS="-DautoImplicit=false"
   CHK=".lake/checkfile.$$"; rm -rf "$CHK"; trap 'rm -rf "$CHK" "$CHK.log"' EXIT; export CHK
   # Lean takes Formal.* from the first LEAN_PATH entry that has a Formal/ dir, so CHK
   # must be a full overlay: symlinks to lake's oleans, replaced by each file checked.
   mkdir -p "$CHK"; [ -d .lake/build/lib/lean/Formal ] && cp -rs "$PWD/.lake/build/lib/lean/Formal" "$CHK/"
   for f in "${FILES[@]}"; do
     echo "[check] lean $f"; mkdir -p "$CHK/$(dirname "$f")"; rm -f "$CHK/${f%.lean}.olean" "$CHK/${f%.lean}.ilean"
-    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/$CHK:$LEAN_PATH" exec lean -o "$CHK/${1%.lean}.olean" "$1"' sh "$f" > "$CHK.log" 2>&1 || { grep -E 'error' "$CHK.log" | head -20; echo "[check] FAIL: $f"; fail=1; }
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/$CHK:$LEAN_PATH" exec lean $LEANOPTS -o "$CHK/${1%.lean}.olean" "$1"' sh "$f" > "$CHK.log" 2>&1 || { grep -E 'error' "$CHK.log" | head -20; echo "[check] FAIL: $f"; fail=1; }
+    # lean can exit 0 after error recovery in some configurations; any error line fails
+    grep -qE '(^|: )error' "$CHK.log" && { grep -E 'error' "$CHK.log" | head -5; echo "[check] FAIL (error in log): $f"; fail=1; }
   done
   mods=$(printf '%s\n' "${FILES[@]}" | sed 's|\.lean$||; s|/|.|g')
 fi

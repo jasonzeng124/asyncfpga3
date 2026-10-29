@@ -387,3 +387,23 @@ rule E 0.199); §4 prjxray-db BRKH_INT has 28 FAST tuples with FAST_MIN > FAST_M
 §5 rules tcheck replaces + front-end gaps. GLS CARRY4/latch SAF early edge and flop X-as-0
 re-observed with iverilog on the current research prims (unchanged since 5d535d7). Nothing new
 claimed in Lean; unverified readings are marked (rule A guard pre-lag, xray_delay fast corner).
+
+## Session Thu Oct 29 07:12:24 UTC 2026
+### progress 07:25
+New session (session_01HC49Fwiv93CFgTH6CuFfLh); previous A lock 28 h old, taken. The
+2026-10-28 session died about 10 minutes after launching its 12 probes; only their WIP
+snapshot (fe4e8c0: Wip/_snapA, notes, tools) survived, nothing from it is claimed.
+Audit (83b1290) has two new rows on A's files:
+- **GLSPass REFUTED as a checked result** (module fails `lake build`: `skew_fval` uses an
+  unbound `d`, which only elaborates with autoImplicit=true). Root cause is in check.sh:
+  its per-file mode ran `lake env lean`, which does not apply the lakefile's
+  `[leanOptions]`, so every single-file "check.sh OK" was checked under a weaker
+  standard than the lake build. Fixed now: per-file mode passes `-DautoImplicit=false`
+  and fails on any `error` line in the log. GLSPass is withdrawn as a claim until it
+  builds under `lake build` (probe GLSFix). The auditor's clean build found it the only
+  one of 422 modules failing, so other single-file claims stand on the lake build.
+- **Events8 seed d gb ENTRY: 2 of 3 reproduce** (ua1 passes at +45 ps in the auditor's
+  model). Our bands (xray_delay 99b10a6d) omit prjxray's a5lut->AMUX hop (62/78/163/202
+  ps) on every O5-driven arc. Also A-events8.md:74 was wrong (ana5 listed all three).
+  Probe E8Mux: add the OUTMUX hop to the band builder, rerun xevents8, correct the note.
+Fresh sandbox again: setup.sh running (Mathlib from source, ~2 h).
