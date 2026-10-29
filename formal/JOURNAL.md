@@ -568,3 +568,17 @@ holds at A's s* (quantHyp_of_stat), and laps_upper is new (B has no upper bound)
 real LUT+route satisfies the slope bounds (kappa = 0 gives no upper bound), noise, multi-cell loops,
 InvTrace's channel as the loop semantics (B's loop_orb used instead; reason in notes). A-fid3 §3
 corrected (skew direction; proved forms cited).
+### progress 08:52
+E8Mux done (no Lean; the unchanged xevents8 rerun on corrected bands) -- answers the audit's Events8
+OVERSTATED row: CONFIRMED, seed d gb fails ENTRY on 2 pins, not 3. Cause: research xray_delay 99b10a6d
+charged the slice OUTMUX hop only on O6/COUT exits; every O5, MUXF7/F8, CARRY4 O/CO and x5FF exit got 0.
+Fix tools-A/xaudit/e8mux/xray_delay_e8mux.py (prjxray ROUTING_BEL hop, e.g. a5lut->AMUX 62/78/163/202 ps;
+unknown OUTMUX source = hard error; equals research 7dc5dde on all 40,083 comb->comb arcs; OUTMUX numbers
+equal Core/Prims/XrayData to the ps). Toolchain restored (toolchain.sh 9/9, nextpnr 9c732bc6303458df), 4
+seeds rebuilt, all 8 md5s = events5/builds.txt. d gb: RESIDUAL 3 -> 2 (merge3.uarb1.ua2 -51, merge2.uarb1.ua2
+-68 still fail; merge3.uarb1.ua1, an O5 guard, passes at ENTRY >= 41; auditor +45); slow/fast CLEAN on all
+seeds; indep residuals 21/30/19/22; not uniformly favourable (some indep Line margins 4-78 ps worse). lo>hi
+band rows now rejected by routed2x (or hulled with --inverted hull, reported). Negative controls fail as
+required (NEGmux restores -94 exactly). notes/A-events8.md corrected (line-74 claim wrong). Open: Parse.toSteps
+still narrows lo>hi to [lo,lo] (asked XInert, which owns Parse.lean now); events5-7/9, kapres, xaudit-gcd
+results rest on the old bands and need reruns (HDsub and KapRes2 told).
