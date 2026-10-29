@@ -1432,3 +1432,13 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   `acceptance.py --stack full --corner max --items lutpinmap_gcd_nofuse` (expected several hours, one vvp).
   Last session's hand run on this route: patched 16/16, unpatched 9/16 with 5-8,11-13 never complete.
 - Sweep: 9/32 runs done, all PASS.
+### progress 02:31 (12/32 sweep rows PASS; acceptance retried after an OOM)
+- The first --stack full acceptance run died in the fid compile (iverilog exit 137, OOM: three 2.5 GB vvps plus the
+  3.7 GB compile). The harness reported ERROR, not a pass. Paused the scatter driver (seeds d and 3 done, both
+  draws) to make room; retried; it is in its ANNOTATE gate now. Scatter for seeds 4-9 resumes after.
+- seed 4 max: sdf a0d20c19 xray e9bb3663 PASS 16/16 errs 0 laps 31/24/36
+- seed 3 band_s0.16-0.126-1: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 54/43/63
+- seed 4 min: sdf a0d20c19 xray e9bb3663 PASS 16/16 errs 0 laps 83/66/98
+- seed 3 band_s0.32-0.252-1: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 53/43/63
+- seed 5 max: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 34/27/40
+- seed 5 min: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 93/76/109
