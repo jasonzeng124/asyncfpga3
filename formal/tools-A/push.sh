@@ -21,4 +21,8 @@ git reset -q --mixed "$new"
 for f in "${theirs[@]}"; do
   if git cat-file -e "$new:$f" 2>/dev/null; then git checkout -q "$new" -- "$f"; else rm -f "$f"; fi
 done
+# other shards' snapshot files that their later commits removed linger as untracked copies
+# here: move them aside (never delete) so the tree matches HEAD
+ST=/tmp/formal-push-stale; mkdir -p $ST
+git ls-files -o --exclude-standard formal/lean/Wip/_snapB formal/lean/Wip/_snapC | while read -r f; do mkdir -p "$ST/$(dirname "$f")"; mv "$f" "$ST/$f"; done
 echo "[push] rebased onto $up, pushed $new (${#theirs[@]} files from others refreshed)"
