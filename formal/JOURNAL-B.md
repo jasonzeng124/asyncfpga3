@@ -3,25 +3,24 @@
 ## Verdicts (shard B)
 
 All files under formal/lean/Formal/Cells/ check under the lakefile's options
-(autoImplicit=false). Session 10:48: every core-only Cells file (79 + this
-session's new ones) re-checked by a private olean build; the Mathlib-closure
-files and the full `formal/check.sh` wait for Mathlib to finish building
-here (last full check.sh OK after e54d7ca; RigContract, committed after it
-without a lake check, did not compile and is fixed in 807448a). Notes:
-`formal/notes/B-*.md`; hypothesis ledger `formal/notes/B-hypotheses.md`.
-Machine-readable cell constraints: `formal/out/cell_constraints.json` (129
-entries, 128 tied to proved Lean theorems, 31 exact; validator
-`formal/out/cell_constraints.validate.py`).
+(autoImplicit=false). Session 2026-10-29: every file committed this session was
+re-checked by the lead through a private olean build (lean -DautoImplicit=false -o,
+real Mathlib where imported) with #print axioms (only propext / Classical.choice /
+Quot.sound); a full lake build / check.sh waits for setup.sh's Mathlib build in
+this sandbox. Notes: `formal/notes/B-*.md`; hypothesis ledger
+`formal/notes/B-hypotheses.md` (rewritten 2026-10-29). Machine-readable cell
+constraints: `formal/out/cell_constraints.json` (137 entries, 40 exact, generator
+`cell_constraints.gen.py` + `cell_constraints.bj5.py`, validator 0 errors).
 
 | track / phase | verdict | evidence (Lean files) | open |
 |---|---|---|---|
-| 5 C-element | **works** | CElemFn, CElemTiming, CElemCore, CElemInvolution, CTree, CTreeTimed, ConstraintsSel, **CElemStrict, CElemStrict2** | own-feedback race exact only STRICT (one-tick select X window) on every variant; physical X width unmeasured |
-| 6 latch/link/pipe | **works** | Latch, Bundling, LinkHandshake, LinkTimed, PipeTimed, PipeTimedN, PipePerPin, PipeWitness, RulesKL, FifoFidelity, **LibGapLatch, ForkData, WinFifo, WinFifoCausal, NoRevert** | FIFO channel hypotheses = Win + H_NO_REVERT (grade B); pipe lines still FIFO; link-stage exact contract running |
-| 7 arbiter (digital race) | **works** | ArbBinary, ArbKleene, ArbInvolution(2), ArbHandover, ArbHeldTimed(2), ArbA0Fork, ArbCorners(Pin), ArbOverlapRace, TernarySound/Phases/Exact | board's 8% bd_arbcell overlap NOT explained; per-pin non-monotone arbcell race running (Barp) |
-| Phase 1 port | **B side done** | Prelim names Core objects; **PrelimCore** proves every Prelim notion equal (or the exact one-way relation) to Core | deletion is a mechanical cross-shard patch (notes/B-port-core2.md), waiting on A's Core/LutList.lean |
-| Phase 2 library | **works, exact for the select/data rows** | LibCtlMergeMux, LibEndMemMlink, MergeMuxSI, OpsTimed*, OpsCounter, OpsExact*, MuxRtzTimed, AMerge*, MuxN3*, Constraints*, **LibGapSteer, LibGapMux, LibGapMuxN, LibGapDelay, NecessityReset, NecessityMuxRtz** | 51 rows still sufficient-only; dctl lt_first partial (not shipped) |
-| Phase 2 on real routes/bits | **works; arbiter safety decided by the corner model** | OnNetlist, OnNetlistTimed(2), OnNetlistArb, TernaryOnBits(2), PinAssign, **OnGcdArb, OnGcdArbA0**; OnNetlistArbKappa, ConstraintsKappa written, unchecked (Mathlib) | gcd_hw arbiters: safe at every consistent corner, fork fails on 15/72 clients in the independent box; kappa unmeasured |
-| Phase 3 support | **in progress** | ResetContract, ResetGcd*, GcdCells, Contracts*, **RigIdx, RigToken** | C's global H_START_ONCE false over a rig run (per-result form proved); rig uenv1 RT_FB fails on seeds 2/4 |
+| 5 C-element | **works** | CElemFn, CElemTiming, CElemCore, CElemInvolution, CTree, CTreeTimed, CTreeExact, CElemStrict(2), **KleeneWin, KleenePess** | the "+1 strict" rows rest on H_X_UNIFORM (KleeneWin: per-edge windows give c(first)+a(after) exactly; feedback window wq makes the strict point a hazard); X widths unmeasured (test XW-1); hold/restore results need per-pin pass(v) under pessimistic LUTs (KleenePess) |
+| 6 latch/link/pipe | **works** | Latch, Bundling, LinkHandshake, LinkTimed, LinkExact, PipeTimed(N), PipePerPin, PipeWitness, RulesKL, FifoFidelity, LibGapLatch, ForkData, WinFifo(Causal), NoRevert, **ZeroDelayRefine** | link stage refines C's zero-delay Link/Held iff its six rows (one token, per cell); network half and multi-token running (Bzd2) |
+| 7 arbiter (digital race) | **works** | ArbBinary, ArbKleene, ArbInvolution(2), ArbHandover, ArbHeldTimed(2), ArbA0Fork, ArbCorners(Pin), ArbPin(2), ArbOverlapRace, **ArbOverlapPess**, Ternary* | board's 8% bd_arbcell overlap NOT explained (also not by pessimistic LUTs; a weak-0 detector pin could fire the filter falsely); multi-token held-arbiter exclusion running (Barb2) |
+| Phase 1 port | **B side done** | Prelim names Core objects; PrelimCore | deletion is a cross-shard patch (notes/B-port-core2.md) |
+| Phase 2 library | **works; 40 exact, 42 boundary-tight, 12 sufficient, 11 not necessary (with exact replacements)** | Lib*, Ops*, AMerge*, MuxN3*, Constraints*, Necessity*, **Necessity4Mux*, Necessity5*** | remaining sufficient rows: H_RST_SEL, uxa_join_latency, isochronic_forks, iso_zack, bundled_z_data, rst_flush, bbm |
+| Phase 2 on real routes/bits | **works; arbiter safety decided by the corner model, exact thresholds** | OnNetlist*, OnNetlistArb, TernaryOnBits(2), PinAssign, OnGcdArb*, **OnNetlistArbKappaExact, OnGcdArbKappaTight(A), OnGcdArbKappaSrv, KappaCPPR** | link_arb: exact kappa per case (irrational, 0.18-0.55). gcd_hw at gate level with the server credited: 0.0802 if the bare non-four-phase race can occur, else 0.2166 (four-phase held forms) -- decided by Bbare (running). kappa unmeasured; gcd_hw arcs from an unarchived extraction (provenance UNVERIFIED) |
+| Phase 3 support | **in progress: bridges to C's capstone** | ResetContract, ResetGcd*, GcdCells, Contracts*, Rig*, **RigLaps, RigSrcWitness, ResetCapstone*, LutFbBridge(2,2Env), ContractBridge, IpowCells, SelfAuditB6/B7** | Bhyp2: no B cell hypothesis is a Lean hypothesis of C's capstone; bridges now: LutFb/LutSI derived per cell kind; gcd_hw_safe_phys_links (175 links physical, Env1 still assumed: network circle running, Bnet); reset -> capstone with H_MAP (too weak as stated; Bmap) and H_CELLS_AFTER open; rig every-result blocked (LapInv fails under H_PEND_FAST); ipow contracts timing-free (FbCel = SI step; Bfc fixing); H_ARB_EXCL not derivable as C states it |
 
 Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
 north star; they check but get no further work.
