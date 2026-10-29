@@ -1542,3 +1542,10 @@ blocked on the owner's raw data), so the rule gates stay.
   (51/41/59, 46/37/53). seeds_fid now serialises compiles machine-wide (the BQ#2 relaunch).
 - S9 (new): a distribution-level ring128 check from the published per-length summary quantiles (formal branch's
   ro_many_2026-08-23_summary.csv); the per-ring table is still missing.
+### progress 08:31 (ring128 at the distribution level: soft MISMATCH, and a re-reading of "short rings are slow")
+S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH against the published 128-ring
+  quantiles (4/7 vs the emulated August denominator, 6/7 vs today's nextpnr). The 7-link "slower than predicted"
+  effect reappears for every delay model once the old nextpnr's in-tile under-charge is emulated in the
+  denominator, so it is most likely an artefact of the August SDF, not silicon; and with that denominator the F3
+  region scatter (0.16) looks double-counted (wire-only fits the shape). Not acted on yet: region 0.16 stays the
+  injected scatter (too much scatter only makes GLS stricter); revisit when the per-ring data arrives.
