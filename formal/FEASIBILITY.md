@@ -29,7 +29,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
    Proved since the last update: the involution transfer lemma (corrected,
    `InvolutionTransfer`), ternary soundness for transport/inertial channels with a
    positive lower bound (`TernaryChannels`), what a passing SAF GLS run implies
-   (`GLSPass`). Open (probes running 2026-10-28): full involution trace semantics,
+   (`GLSPass`, withdrawn 2026-10-29 until it builds, see track 3). Open (probes running 2026-10-28): full involution trace semantics,
    MUXF7/F8/CARRY4/LUT6_2 and flop/latch primitives in Core (today only in C's
    generated files), the per-pin fid GLS model, the CARRY4/latch/flop fidelity gaps of
    the research GLS (FOR-RESEARCH §8).
@@ -74,7 +74,7 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 |---|---|---|---|---|---|
 | 1 | Toolchain | **works, with a workaround** | `formal/setup.sh`, `check.sh` | done | — |
 | 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
-| 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel done (`Core/Delay/SAF.lean`); what a passing GLS run implies proved in `Core/Delay/GLSPass.lean` (only SAF silicon at the annotated delays; counterexamples inside the band; one-run-covers-band only for acyclic monotone nets with rising inputs) | sound wire abstraction; exact bundling lemma |
+| 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel done (`Core/Delay/SAF.lean`); what a passing GLS run implies: `Core/Delay/GLSPass.lean` **withdrawn as a claim (audit REFUTED 2026-10-29: fails `lake build` under autoImplicit=false; check.sh's per-file mode did not apply the lakefile options, fixed; re-check pending)** (only SAF silicon at the annotated delays; counterexamples inside the band; one-run-covers-band only for acyclic monotone nets with rising inputs) | sound wire abstraction; exact bundling lemma |
 | 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL, and SI environment models (Env/EnvFast: bd_c2, latch, link W=1,2, merge) | `Core/{Kleene,Lut,LutTree,Ternary,Bridge,LutCells,LutAudit}.lean`, `tools-A/lut_extract.py` | mechanised environment model (which multi-input changes the protocol allows): 1–2 d | decidable per-cell hazard/settling check |
 | 5 | C-element | **works** (B) | `Cells/{CElemFn,CElemTiming,CTree}.lean`; A: `Core/{Ternary,XSim,LutAudit}` bd_c2 results | 1–2 d: port to Core, inertial/involution regimes, c3/c4 timing | INITs machine-checked; exact timing condition per cell (enabling input ≥ LUT + feedback delay, tight); the ack wait shown necessary |
 | 6 | Latch / link | **works** (B) | `Cells/{Latch,LinkHandshake,Bundling}.lean` | 2–3 d: link stage = C-element + latch, W-bit lift | derived spec for tighten.py rules H/I/F (rules I and F each miss a term; guardband covers them today) |
