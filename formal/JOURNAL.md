@@ -486,3 +486,12 @@ which side of δ∞↑ − (h+l)/2 s* lies. Float evaluation of the formula repr
 is a modelling choice. Correction pending (InvLoop2): A-fid3 §3 item 3's skew direction is
 wrong in this model (slower rise moves s* up; Float only). InvLoop2 launched (signal-level
 bridge to B's loop_orb/arb_eternal, rate law; needs Mathlib Topology oleans).
+### progress 08:35
+GLSFix done -- answers the audit's GLSPass REFUTED row: one-line fix, skew_fval {p w} -> {d p w}
+(binds exactly the implicit autoImplicit added; the lemma holds for every d since skewA d w's wire
+delays do not depend on d); check.sh 263 decls OK under autoImplicit=false. Sweep: all 79
+Mathlib-free Core modules plus their 8 dependencies in B/C re-elaborated from source with
+-DautoImplicit=false in one check.sh call: no error; 5934 library decls + the 9 XAudit executables
+audited clean. Not covered: the 18 Mathlib-dependent Core modules (the lake build covers them once
+Mathlib is built) and this session's new Core files (each probe's check.sh run is their check).
+GLSPass reinstated in FEASIBILITY, GLSPass2 added.

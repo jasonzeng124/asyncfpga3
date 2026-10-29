@@ -332,7 +332,7 @@ def skewA (d w : Nat) : Asg := ⟨fun _ => d, fun _ j => if j = 1 then w else 0�
 def skewIn (p : Nat) : Nat → Sig := fun _ => step p
 
 /-- The skewed XOR LUT's function value is the hazard pulse `[p, p+w)`. -/
-theorem skew_fval {p w : Nat} (hp : 1 ≤ p) :
+theorem skew_fval {d p w : Nat} (hp : 1 ≤ p) :
     (fun t => xor (delay ((skewA d w).w 2 0) (skewIn p 0) t)
       (delay ((skewA d w).w 2 1) (skewIn p 1) t)) = pulse false p w := by
   funext t
