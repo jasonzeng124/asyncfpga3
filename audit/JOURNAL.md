@@ -136,3 +136,8 @@ P7-kappa in (statement reading + own Python; Lean not yet run, build at ~3140/32
 Involution*, TernaryChannels CONFIRMED by reading; OnNetlistArbKappa "exact per-pair thresholds" OVERSTATED (gap not
 decided; own gap witness written); OnGcdArbKappa arithmetic reproduced, arc data vs route UNVERIFIED (routes not on
 disk). audit/tools/run_p7k.sh waits for the build, then runs P7kAudit.lean + 7 mutants.
+
+### progress 01:51
+r7 in: BQ#3 full stack 16/16 at FAST_MIN/SLOW_MAX/band reproduced from a clean rebuild (sdf md5s match; I re-checked),
+oracle matches gcd.c 16/16, unpatched-bits negative control fails exactly 5-8,11-13; bd_prims_sim fix, xray_delay
+OUTMUX/FFMUX, seeds_fid INCOMPLETE logic CONFIRMED. No research refutation this pass.
