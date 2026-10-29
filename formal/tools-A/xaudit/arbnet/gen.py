@@ -41,6 +41,28 @@ def rpin(below):
     return d
 
 
+def sp_lo(n, src, dst):
+    """Least lower delay (ps) of any LUT path from net src to net dst (arc lo + LUT lo per hop):
+    an UNTRUSTED lower bound for an edge of dst caused by an edge of src (rows B2a / C-lo)."""
+    import heapq
+    dist = {src: 0}
+    h = [(0, src)]
+    while h:
+        du, u = heapq.heappop(h)
+        if u == dst:
+            return du
+        if du > dist.get(u, 1 << 60):
+            continue
+        for (cn, i) in n.readers.get(u, []):
+            c = n.cells[cn]
+            v = c["out"]
+            dv = du + max(1, n.arcband(cn, i)[0]) + max(1, n.lutband(cn)[0])
+            if dv < dist.get(v, 1 << 60):
+                dist[v] = dv
+                heapq.heappush(h, (dv, v))
+    return None
+
+
 def main():
     skel, bands, certp, outp = sys.argv[1:5]
     C = Cert(skel, bands)
@@ -80,11 +102,36 @@ def main():
             i = ix(X, net)
             e["i" + key] = i
             e["p" + key] = pth(X, i)
+        cn = json.load(open(certp))["nodes"] if not hasattr(main, "_cn") else main._cn
+        main._cn = cn
         for b, (g, r) in enumerate(((gs[0], r1), (gs[1], r2))):
             d = rpin(C.below(r))
+            # copy order: the certificate's (model.py leaf order), matched by band (Lean re-checks)
+            vp = cn[e["jg1" if b == 0 else "jg2"]]["pins"][0]
+            if not d["st"] and len(d["paths"]) > 1:
+                lo = lambda P: sum(C.eband(x)[0] for x in P)  # noqa: E731
+                hi = lambda P: sum(C.eband(x)[1] for x in P)  # noqa: E731
+                best = None
+                for P0 in d["paths"]:
+                    c0, c1 = vp["lo"][0] - lo(P0), vp["hi"][0] - hi(P0)
+                    left, order = list(d["paths"]), []
+                    for i in range(len(vp["lo"])):
+                        m = [P for P in left if lo(P) + c0 == vp["lo"][i] and hi(P) + c1 == vp["hi"][i]]
+                        if not m:
+                            break
+                        order.append(m[0]); left.remove(m[0])
+                    if len(order) == len(d["paths"]):
+                        best = order
+                        break
+                if best is None:
+                    print(f"  {qc} request {b + 1}: no copy order matches the certificate's bands")
+                else:
+                    d["paths"] = best
             d["wbuf"] = f"{g}/I{ix(g, r)}"
+            d["w_env"] = sp_lo(n, a0, r)
             d["srcname"] = d.pop("src")
             e[f"rq{b + 1}"] = d
+        e["w_r0a0"] = sp_lo(n, n.cells[R]["out"], a0)
         out.append(e)
     json.dump({"arbs": out}, open(outp, "w"), indent=1)
     print(f"gen.py: {len(out)} arbiters ({len(M.arbs)} in the model)")

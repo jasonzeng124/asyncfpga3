@@ -1,6 +1,6 @@
 import Lean.Data.Json
 import Formal.Core.XAudit.Parse
-import Formal.Core.XAudit.Events9ArbNet
+import Formal.Core.XAudit.Events9ArbNetRows
 
 /-!
 # `xarbnet` — check the arbiter link of a ROUTED netlist (executable main)
@@ -188,6 +188,10 @@ def parseReq (gix : Std.HashMap String Nat) (d : Design) (j : Json) : Except Str
   pure { w, rp := { ip := 0, fold := [], st, paths, top, sg, sci := gNat j "sci",
                     ssel := parseSel ((jget j "ssel").getD (Json.arr #[])), bot } }
 
+/-- The environment lower bound of a request (gen.py `w_env`: least lower delay of any LUT path from
+the A0 net to the request net; UNTRUSTED). -/
+def wEnv (j : Json) : Option Nat := (jget j "w_env").bind jnat
+
 def parseArb (N : Nat) (gix : Std.HashMap String Nat) (d : Design) (j : Json) : Except String (ArbD N) := do
   let fin (k : String) : Except String (Fin N) :=
     let v := gNat j k
@@ -274,9 +278,13 @@ def run (args : List String) : IO UInt32 := do
     let aj ← readJson arbp
     let mut AS : Array (ArbD N) := #[]
     let mut anames : Array String := #[]
+    let mut wenv : Array (Option Nat × Option Nat) := #[]
+    let mut w30 : Array (Option Nat) := #[]
     for x in gArr aj "arbs" do
       AS := AS.push (← IO.ofExcept (parseArb N gix d x))
       anames := anames.push (gStr x "name")
+      wenv := wenv.push (wEnv ((jget x "rq1").getD Json.null), wEnv ((jget x "rq2").getD Json.null))
+      w30 := w30.push ((jget x "w_r0a0").bind jnat)
     let K := AS.size
     IO.println s!"[xarbnet] {d.gates.length} gates, {N} nodes ({(A.filter (·.virt)).size} virtual), {K} arbiters, fuel {fuel}, 1 ps steps"
     let mut nOK := 0
@@ -289,6 +297,25 @@ def run (args : List String) : IO UInt32 := do
       if !ok then
         for (nm, v) in diag d net b rn fuel rw a do
           if !v then IO.println s!"  FAIL {nm}"
+      -- part 2: the rows
+      let DA := B.st 4
+      let DqR := B.r0 2
+      let wcert := r0Read net b a.jA a.jR
+      let w34 := match wcert with | some v => some v | none => w30[k]!
+      let (we1, we2) := wenv[k]!
+      let mut line := s!"  rows (ps; >= 0 holds): hMax {hMax d a}; R0 -> A0 lower delay {match w34 with | some v => toString v | none => "-"} ({if wcert.isSome then "certificate pin band" else "gen.py path, untrusted"})"
+      IO.println line
+      for (nm, r) in readers d a do
+        let we := if nm == "g1" || nm == "s1" then we1 else we2
+        let w3 := w34.getD 0
+        let b2a := match we with | some w => toString (rowB2a DA w r) | none => "-"
+        let clo := match we with | some w => toString (rowClo DA w r) | none => "-"
+        let nn := match we with | some w => toString (rowN DA w r) | none => "-"
+        let b2b := if w34.isSome then toString (rowB2b DqR DA w3 r) else "-"
+        let b2c := if w34.isSome then toString (rowB2c DA w3 r) else "-"
+        let chi := if w34.isSome then toString (rowChi DA w3 r) else "-"
+        line := s!"  ROW {anames[k]!} {nm}: B1 {rowB1 r} B2a {b2a} B2b {b2b} B2c {b2c} Clo {clo} Chi {chi} | N {nn} | need w {needW DA r}, w_env {match we with | some w => toString w | none => "-"}"
+        IO.println line
     -- the owner map, reset classes, shape
     let asF : Fin AS.size → ArbD N := fun k => AS[k.val]'k.isLt
     let own : Fin N → Option (Fin AS.size) := fun jj => (allFin AS.size).find? (fun k => decide (jj ∈ (asF k).nodes))
