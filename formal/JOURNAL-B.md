@@ -1169,7 +1169,7 @@ loop OR (FORK AND J.1); the shipped set implies it (staticG_of_static). Passing 
 on the real INITs violate the shipped S_XA_FORK (passA5, passN5), S_XA_J.1 (passB) and
 bdc_muxn S_A_FORK (passN7): those are NOT necessary. S_XA_SEQ, S_XA_R and S_A_SEQ
 are boundary-tight (failSEQ6, failR6, failSEQ8). Correction to Bnx6's unproved
-analysis (07:52-08:xx note "pure order condition"): the client loop alone is not the
+analysis (the Bnx6 entry above, "pure order condition"): the client loop alone is not the
 replacement, because the join's fall also waits for ctl_req; the disjunction S_XA_R
 is needed. Binary <= forms, one point each; the pass runs sit at binary equality and
 may not survive a Kleene X window. Open: uya mirrors, muxn S_A_R boundary, muxn J.1
