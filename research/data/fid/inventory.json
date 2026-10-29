@@ -217,9 +217,18 @@
     "patches/nextpnr-xilinx-dsp-areg.patch:10-17",
     "cells/flow.sh:238-246"
    ],
-   "provenance": "August",
-   "reproducible": "emulated (verify/fasm/check.sh)",
-   "runnable": false
+   "provenance": "August (board A/B on the patch, owner's machine; no bitstream archived). Reproduced here as the PROPERTY on cells/verify/fasm/probe.v's route (seed 1, --freq 50): AREG=1/ACASCREG=1, AREG=2/ACASCREG=2 and AREG=0 DSPs",
+   "reproducible": "emulated, as a property: acceptance.py runs dsp_latency.py on the bits of probe.v's route (patched, and fasm_audit.py --write-unpatched areg). That the unpatched bits mean AREG=2 on silicon is the patch's statement, taken by fasm2net.py's decoder as an ASSUMPTION (cells/gls/fid/README.md, DSP48E1); no board readback of it exists",
+   "runnable": true,
+   "property": "dsp_latency",
+   "bug": "areg",
+   "route_dir": "build/fid/dsp_probe",
+   "design": "probe",
+   "route_build": [
+    "cells/verify/toolchain.sh",
+    "cells/verify/fasm/check.sh",
+    "mkdir -p build/fid/dsp_probe && cp cells/build/verify/fasm/probe.fasm cells/build/verify/fasm/probe.sdf cells/build/verify/fasm/probe_routed.json build/fid/dsp_probe/"
+   ]
   },
   {
    "id": "bench_hang",

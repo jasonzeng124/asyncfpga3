@@ -1,0 +1,24 @@
+... dsp_areg (property, hard)
+
+GLS configuration: {"stack": "full", "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)", "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist", "model": "GLS_MODEL=fid", "corner": "max", "gls_env": {"GLS_MODEL": "fid", "GLS_SDF_FIELD": "max"}}
+
+==== HARD (1) ==================================================
+
+[MATCH] dsp_areg: DSP48E1 AREG=1 written as AREG=2 (nextpnr-xilinx-dsp-areg.patch)
+    source: patches/nextpnr-xilinx-dsp-areg.patch:10-17, cells/flow.sh:238-246
+    reproduces the property: the patched bits simulate the routed AREG/BREG stage counts; the unpatched bits decode AREG=2 on DSP48_X1Y14/DSP48E1 and simulate A_STAGES=NEVER B_STAGES=NEVER
+      (this item reads the BITS, decoded by fasm2net.py --bit, whatever the configuration's netlist; it reads no SDF)
+      unpatched FASM: 6 line(s) differ
+      patched bit: <scratch>/acc_full/dsp_areg/bit_patched/x.bit (assembled from the route's FASM)
+      md5: routed_json 9a619efb  fasm ba85c884  unpatched_fasm 2f19962e  patched_bit efecf4e4  unpatched_bit a9331fa5  patched_payload 2083b1c7  unpatched_payload 2bc09674
+      patched   DSPLAT_VERDICT PASS (3 DSP(s) tested)  [from the .bit]
+                DSP48_X1Y14/DSP48E1: decoded AREG=1 ACASCREG=1 BREG=1 BCASCREG=1; A_STAGES=1 B_STAGES=1; ref AREG=1 BREG=1: PASS
+                DSP48_X1Y16/DSP48E1: decoded AREG=2 ACASCREG=2 BREG=2 BCASCREG=2; A_STAGES=2 B_STAGES=2; ref AREG=2 BREG=2: PASS
+                DSP48_X1Y18/DSP48E1: decoded AREG=0 ACASCREG=0 BREG=0 BCASCREG=0; A_STAGES=0 B_STAGES=0; ref AREG=0 BREG=0: PASS
+                equivalence (information): VERDICT: EQUIVALENT (only the benign kinds above)
+      unpatched DSPLAT_VERDICT FAIL (3 DSP(s) tested)  [from the .bit]
+                DSP48_X1Y14/DSP48E1: decoded AREG=2 ACASCREG=1 BREG=2 BCASCREG=1; A_STAGES=NEVER B_STAGES=NEVER; ref AREG=1 BREG=1: FAIL
+                DSP48_X1Y16/DSP48E1: decoded AREG=2 ACASCREG=1 BREG=2 BCASCREG=1; A_STAGES=2 B_STAGES=2; ref AREG=2 BREG=2: PASS
+                DSP48_X1Y18/DSP48E1: decoded AREG=0 ACASCREG=0 BREG=0 BCASCREG=0; A_STAGES=0 B_STAGES=0; ref AREG=0 BREG=0: PASS
+                equivalence (information): VERDICT: NOT EQUIVALENT: DSP CONFIGURATION DIFFERS
+      board: {"board": "bit-identical before and after the patch"}

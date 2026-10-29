@@ -71,7 +71,18 @@ THE ITEMS (kind in inventory.json):
                    verify/fasm_audit.py --write-unpatched.  The sim must PASS
                    the patched FASM (the board did, after the fix) and FAIL the
                    unpatched one (the board did, before it).
-  property / record  not simulated: the oracle, its source line and why.
+  property         with runnable and property "dsp_latency" (dsp_areg): on
+                   a build_hw-style route dir (cells/verify/fasm/check.sh's
+                   probe.v route, copied as inventory 'route_build' says),
+                   the patched FASM and --write-unpatched <bug>'s are
+                   assembled to .bits, decoded by fasm2net.py --bit, and
+                   dsp_latency.py simulates each registered DSP of both.
+                   MATCH iff the patched bits give every DSP the routed
+                   JSON's AREG/BREG stages and the unpatched bits fail on a
+                   DSP whose routed AREG/BREG=1 decodes as 2.  A writer that
+                   changes no line is BLOCKED; identical bitstreams, an
+                   ERROR.  The bits are read in both stacks; no delay is.
+  property / record  otherwise not simulated: the oracle, its source and why.
 
 Every item's oracle is quoted with its source line from inventory.json.
 Exit 0 when no HARD item mismatches (BLOCKED is not a pass; it is reported).
@@ -279,6 +290,19 @@ class Config:
 
 def md5(path):
     return hashlib.md5(Path(path).read_bytes()).hexdigest()
+
+
+SYNC = b"\xaa\x99\x55\x66"
+
+
+def bit_payload_md5(path):
+    """md5 of a .bit from its sync word on.  The header before it names the
+    frames file xc7frames2bit read (a path), so two assemblies of the SAME
+    FASM in different dirs differ as files; only the payload says whether two
+    bitstreams configure the same thing."""
+    b = Path(path).read_bytes()
+    i = b.find(SYNC)
+    return hashlib.md5(b[i:] if i >= 0 else b).hexdigest()
 
 
 # ----------------------------------------------------------------- the items
@@ -571,16 +595,18 @@ def run_bitstream_bug_full(item, cfg, vectors):
     pbit_asm = to_bit(fasm, work / "bit_patched")
     if built.exists():
         pbit = built
+        same = bit_payload_md5(pbit_asm) == bit_payload_md5(built)
         out["patched_bit"] = (f"{built} (the build's; the FASM re-assembled "
-                              f"{'is byte-identical' if pbit_asm.read_bytes() == built.read_bytes() else 'DIFFERS'})")
+                              f"{'is byte-identical' if same else 'DIFFERS'} from the sync word on)")
     else:
         pbit = pbit_asm
         out["patched_bit"] = f"{pbit_asm} (no .bit in the route: assembled from its FASM)"
     ubit = to_bit(bad_fasm, work / "bit_unpatched")
     out["md5s"] = {"routed_json": md5(routed), "nextpnr_sdf": md5(sdf0), "xray_sdf": md5(sdf),
-                   "patched_bit": md5(pbit), "unpatched_bit": md5(ubit)}
-    if md5(pbit) == md5(ubit):
-        raise RuntimeError("the unpatched bitstream is byte-identical to the patched one")
+                   "patched_bit": md5(pbit), "unpatched_bit": md5(ubit),
+                   "patched_payload": bit_payload_md5(pbit), "unpatched_payload": bit_payload_md5(ubit)}
+    if bit_payload_md5(pbit) == bit_payload_md5(ubit):
+        raise RuntimeError("the unpatched bitstream is byte-identical to the patched one (from the sync word on)")
     env = cfg.gls_env()
     runs = {}
     for tag, bit in (("patched", pbit), ("unpatched", ubit)):
@@ -607,6 +633,153 @@ def run_bitstream_bug_full(item, cfg, vectors):
     out["runs"] = runs
     out["ok"], out["weak"], out["verdict"] = judge_full(runs)
     return out
+
+
+# ------------------------------------------------- property items (dsp_areg)
+
+RE_DSPLAT = re.compile(r"DSPLAT (\S+) (.*?) CE/RST=\{[^}]*\} : (.*)$")
+
+
+def dsp_latency(netlist_json, routed, work):
+    """dsp_latency.py NETLIST --ref ROUTED: each registered DSP of the netlist
+    simulated alone, its A/B stage count against the routed JSON's AREG/BREG.
+    -> {rc, verdict line, dsps: [{bel, decoded {REG: n}, stages, ref, verdict}]}"""
+    r = subprocess.run([sys.executable, str(HERE / "dsp_latency.py"), str(netlist_json), "--work", str(work),
+                        "--ref", str(routed)], capture_output=True, text=True)
+    Path(str(work) + ".txt").write_text(r.stdout + r.stderr)
+    return parse_dsplat(r.returncode, r.stdout)
+
+
+def parse_dsplat(rc, text):
+    dsps = []
+    for ln in text.splitlines():
+        m = RE_DSPLAT.match(ln)
+        if not m:
+            continue
+        rest = m.group(3)
+        ref = re.search(r"ref AREG=(\d) BREG=(\d)", rest)
+        dsps.append({"bel": m.group(1), "line": ln,
+                     "decoded": {k: int(v) for k, v in re.findall(r"(\w+)=(\d+)", m.group(2))},
+                     "stages": " ".join(re.findall(r"[AB]_STAGES=\S+", rest)),
+                     "ref": {"AREG": int(ref.group(1)), "BREG": int(ref.group(2))} if ref else None,
+                     "verdict": rest.rsplit(" : ", 1)[-1] if rest.endswith(("PASS", "FAIL")) else rest})
+    v = [ln for ln in text.splitlines() if ln.startswith("DSPLAT_VERDICT")]
+    return {"rc": rc, "verdict": v[0] if v else f"no DSPLAT_VERDICT (rc {rc})", "dsps": dsps}
+
+
+def judge_property(runs):
+    """-> (ok, weak, verdict) for the dsp_areg property.  MATCH iff
+      patched:   dsp_latency PASS (exit 0): every registered DSP decoded from
+                 the patched bits simulates the routed JSON's AREG/BREG stages;
+      unpatched: dsp_latency FAIL (exit 1) on at least one DSP whose routed
+                 AREG (BREG) is 1 and whose bits decode to AREG (BREG) = 2 --
+                 the silicon property the patch states.
+    Anything else (NONE, an error, a failure of another kind) is not a match.
+    An unpatched failure seen only as a decoder refusal is WEAK."""
+    good, bad = runs["patched"]["dsplat"], runs["unpatched"]["dsplat"]
+    if good["rc"] == 2 or bad["rc"] == 2:
+        return None, False, ("NOT TESTED: dsp_latency.py found no registered DSP to test or could not run "
+                             f"(patched: {good['verdict']}; unpatched: {bad['verdict']})")
+    if good["rc"] != 0:
+        return False, False, ("MISS: the patched bits do not simulate the routed AREG/BREG stage counts: "
+                              + good["verdict"])
+    if bad["rc"] == 0:
+        return False, False, ("MISS: the unpatched bits simulate the routed AREG/BREG stage counts "
+                              "(AREG=2 is not modelled): " + bad["verdict"])
+    hit = [d for d in bad["dsps"] if d["verdict"] == "FAIL" and d["ref"] and any(
+        d["ref"][r] == 1 and d["decoded"].get(r) == 2 for r in ("AREG", "BREG"))]
+    if not hit:
+        return False, False, ("MISS: the unpatched bits fail the property, but on no DSP whose routed "
+                              "AREG/BREG=1 decodes as 2 (not the failure the patch states): " + bad["verdict"])
+    if runs["unpatched"].get("refused"):
+        return True, True, ("reproduces the property ONLY BY REFUSAL (WEAK): "
+                            + "; ".join(runs["unpatched"]["refused"])[:200])
+    return True, False, ("reproduces the property: the patched bits simulate the routed AREG/BREG stage "
+                         "counts; the unpatched bits decode AREG=2 on %s and simulate %s"
+                         % (", ".join(d["bel"] for d in hit), "; ".join(d["stages"] for d in hit)))
+
+
+def run_property(item, cfg):
+    """dsp_areg: verify/fasm_audit.py --write-unpatched <bug> (the real
+    unpatched writer, emulated) on a build_hw-style route dir (<d>.fasm,
+    <d>_routed.json, <d>.sdf; d = item 'design'), both FASMs assembled by
+    the build's tools, decoded by fasm2net.py --bit, and dsp_latency.py on
+    each against the routed JSON (judge_property).  The property reads the
+    BITS in both stacks (it is a statement about them); it reads no delays,
+    and prims.v's DSP48E1 has no GLS_FID variant, so --stack full changes
+    only which .bit the patched run decodes (the route's own, if it has one)."""
+    import fasm_audit as fa
+    if item.get("property") != "dsp_latency":
+        raise RuntimeError(f"no runner for property {item.get('property')!r}")
+    rd = REPO / item["route_dir"]
+    d = item.get("design", rd.name)
+    routed, sdf0, fasm, built = rd / f"{d}_routed.json", rd / f"{d}.sdf", rd / f"{d}.fasm", rd / f"{d}.bit"
+    for f in (routed, sdf0, fasm):
+        if not f.exists():
+            return {"route": str(rd), "ok": None, "blocked": True,
+                    "verdict": f"BLOCKED: {f} is missing; produce the route with: "
+                               + " ; ".join(item.get("route_build", []))}
+    out = {"route": str(rd), "stack": cfg.stack, "property": "dsp_latency"}
+    for f, want in item.get("expect_md5", {}).items():
+        got = md5(rd / f)[:8]
+        out.setdefault("md5", {})[f] = f"{got} ({'matches' if got == want else 'DIFFERS from'} {want})"
+    work = cfg.work / item["id"]
+    work.mkdir(parents=True, exist_ok=True)
+    bad_fasm = work / "unpatched.fasm"
+    nchanged = fa.write_unpatched(item["bug"], str(routed), str(fasm), str(bad_fasm))
+    out["unpatched_lines_changed"] = nchanged
+    if nchanged == 0:
+        out.update(ok=None, blocked=True, verdict="BLOCKED: the unpatched writer changes no FASM line on "
+                   "this route (no AREG/BREG=1 DSP?), so the two bitstreams are the same: nothing to test")
+        return out
+    pbit_asm = to_bit(fasm, work / "bit_patched")
+    if cfg.stack == "full" and built.exists():
+        pbit = built
+        same = bit_payload_md5(pbit_asm) == bit_payload_md5(built)
+        out["patched_bit"] = (f"{built} (the build's; the FASM re-assembled "
+                              f"{'is byte-identical' if same else 'DIFFERS'} from the sync word on)")
+    else:
+        pbit = pbit_asm
+        out["patched_bit"] = f"{pbit_asm} (assembled from the route's FASM)"
+    ubit = to_bit(bad_fasm, work / "bit_unpatched")
+    out["md5s"] = {"routed_json": md5(routed), "fasm": md5(fasm), "unpatched_fasm": md5(bad_fasm),
+                   "patched_bit": md5(pbit), "unpatched_bit": md5(ubit),
+                   "patched_payload": bit_payload_md5(pbit), "unpatched_payload": bit_payload_md5(ubit)}
+    if bit_payload_md5(pbit) == bit_payload_md5(ubit):
+        raise RuntimeError("the unpatched bitstream is byte-identical to the patched one (from the sync word on)")
+    runs = {}
+    for tag, bit in (("patched", pbit), ("unpatched", ubit)):
+        dec = decode_bits(bit, routed, sdf0, work / f"fid_{tag}")
+        runs[tag] = {"tag": tag, "from_bits": True, "bit_md5": md5(bit), "equivalence": dec["equiv"],
+                     "refused": dec["refused"], "dsplat": dsp_latency(dec["json"], routed, work / f"dsplat_{tag}")}
+    out["runs"] = runs
+    out["ok"], out["weak"], out["verdict"] = judge_property(runs)
+    return out
+
+
+def print_property(r):
+    print("      (this item reads the BITS, decoded by fasm2net.py --bit, whatever the configuration's "
+          "netlist; it reads no SDF)")
+    for k, v in r.get("md5", {}).items():
+        print(f"      {k} md5 {v}")
+    print(f"      unpatched FASM: {r['unpatched_lines_changed']} line(s) differ")
+    if "patched_bit" in r:
+        print(f"      patched bit: {r['patched_bit']}")
+    if "md5s" in r:
+        print("      md5: " + "  ".join(f"{k} {v[:8]}" for k, v in r["md5s"].items()))
+    for tag in ("patched", "unpatched"):
+        x = r.get("runs", {}).get(tag)
+        if not x:
+            continue
+        print(f"      {tag:9} {x['dsplat']['verdict']}  [from the .bit]")
+        for dd in x["dsplat"]["dsps"]:
+            regs = " ".join(f"{k}={dd['decoded'][k]}" for k in ("AREG", "ACASCREG", "BREG", "BCASCREG")
+                            if k in dd["decoded"])
+            ref = f"ref AREG={dd['ref']['AREG']} BREG={dd['ref']['BREG']}" if dd["ref"] else "no ref"
+            print(f"                {dd['bel']}: decoded {regs}; {dd['stages'] or '-'}; {ref}: {dd['verdict']}")
+        print(f"                equivalence (information): {x['equivalence']}")
+        if x.get("refused"):
+            print(f"                refused: {'; '.join(x['refused'])[:200]}")
 
 
 # ------------------------------------------------------------------- report
@@ -653,6 +826,8 @@ def main():
                 r = run_ring_population(it, cfg, a.ro_many_data, a.ring_tol)
             elif kind == "bitstream_bug":
                 r = run_bitstream_bug(it, cfg, vectors)
+            elif kind == "property" and it.get("runnable"):
+                r = run_property(it, cfg)
             else:
                 r = {"verdict": "not simulated: " + it.get("reproducible", ""), "ok": None,
                      "not_run": True}
@@ -708,6 +883,8 @@ def print_report(rep):
                           f"silicon slower than model on {r['rings_slower_than_model']}")
             if r["kind"] == "bitstream_bug" and "runs" in r and r.get("stack") == "full":
                 print_full_bug(r)
+            elif r["kind"] == "property" and r.get("property"):
+                print_property(r)
             elif r["kind"] == "bitstream_bug" and "runs" in r:
                 for k, v in r.get("md5", {}).items():
                     print(f"      {k} md5 {v}")

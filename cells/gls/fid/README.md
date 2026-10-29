@@ -86,6 +86,25 @@ An unpatched bitstream caught only because the decoder refuses it prints
 `MATCH (WEAK: by refusal)`; a dirty ANNOTATE gate makes the item INVALID.
 Without `--stack` the harness is unchanged.
 
+**`acceptance.py --items dsp_areg`** (either stack) runs the dsp_areg
+PROPERTY on probe.v's route at inventory `route_dir` (`build/fid/dsp_probe`;
+produce it with the `route_build` commands in `inventory.json`:
+`cells/verify/toolchain.sh`, `cells/verify/fasm/check.sh`, then copy
+`cells/build/verify/fasm/probe.{fasm,sdf}` and `probe_routed.json` there).
+Both FASMs (the route's, and `--write-unpatched areg`'s) are assembled,
+decoded by `fasm2net.py --bit`, and `dsp_latency.py --ref` runs on each.
+MATCH iff the patched bits PASS (every registered DSP simulates the routed
+AREG/BREG stages) and the unpatched bits FAIL on a DSP whose routed AREG/BREG=1
+decodes as 2. A writer that changes no line is BLOCKED; identical bitstreams
+are an ERROR. The item reads the bits whatever the configuration's netlist,
+and no SDF; prims.v's DSP48E1 has no GLS_FID variant, so `--stack full` only
+prefers the route's own `.bit` (probe has none). "Identical" is judged from
+the sync word on: xc7frames2bit writes the frames file's path into the .bit
+header, so two assemblies of one FASM in two dirs differ as files (this also
+applies to the full-stack bitstream items' guard).
+`research/data/fid/inventory.md` is generated: `cells/gls/fid/inventory_md.py`
+(`--check` to test it is current).
+
 ## What comes from where
 
 * **Connectivity and every LUT function come from the bits only.** Each sink

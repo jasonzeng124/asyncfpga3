@@ -261,3 +261,155 @@ def test_print_report_marks_weak(capsys):
     A.print_report({"config": {}, "results": [r]})
     out = capsys.readouterr().out
     assert "[MATCH (WEAK: by refusal)]" in out and "refused: 1 REFUSED" in out
+
+
+# --------------------------------------------------- dsp_areg (property item)
+
+def dsplat_line(bel, areg, ref_areg, verdict, stages="A_STAGES=1 B_STAGES=1 (P = A(t-2)*B(t-2), MREG+PREG=1)"):
+    """a line in dsp_latency.py's own format"""
+    regs = "AREG=%d ACASCREG=%d BREG=1 BCASCREG=1 CREG=0 MREG=1 PREG=0" % (areg, min(areg, 1))
+    return "DSPLAT %s %s CE/RST={CEA1=0 CEA2=1} : %s : ref AREG=%d BREG=1 : %s" % (
+        bel, regs, stages, ref_areg, verdict)
+
+
+GOOD_TXT = "\n".join([dsplat_line("DSP48_X1Y14/DSP48E1", 1, 1, "PASS"),
+                      dsplat_line("DSP48_X1Y16/DSP48E1", 2, 2, "PASS",
+                                  "A_STAGES=2 B_STAGES=1 (P = A(t-3)*B(t-2), MREG+PREG=1)"),
+                      "DSPLAT_VERDICT PASS (2 DSP(s) tested)"])
+BAD_TXT = "\n".join([dsplat_line("DSP48_X1Y14/DSP48E1", 2, 1, "FAIL",
+                                 "A_STAGES=NEVER B_STAGES=NEVER (P = 0 on every cycle: an operand register never loads)"),
+                     dsplat_line("DSP48_X1Y16/DSP48E1", 2, 2, "PASS",
+                                 "A_STAGES=2 B_STAGES=1 (P = A(t-3)*B(t-2), MREG+PREG=1)"),
+                     "DSPLAT_VERDICT FAIL (2 DSP(s) tested)"])
+
+
+def prun(rc, txt, refused=()):
+    return {"dsplat": A.parse_dsplat(rc, txt), "refused": list(refused)}
+
+
+def test_parse_dsplat_reads_dsp_latency_lines():
+    p = A.parse_dsplat(1, BAD_TXT)
+    assert p["verdict"].startswith("DSPLAT_VERDICT FAIL")
+    d = p["dsps"][0]
+    assert d["bel"] == "DSP48_X1Y14/DSP48E1" and d["decoded"]["AREG"] == 2 and d["ref"] == {"AREG": 1, "BREG": 1}
+    assert d["verdict"] == "FAIL" and d["stages"] == "A_STAGES=NEVER B_STAGES=NEVER"
+
+
+def test_judge_property():
+    ok, weak, v = A.judge_property({"patched": prun(0, GOOD_TXT), "unpatched": prun(1, BAD_TXT)})
+    assert ok is True and weak is False and "DSP48_X1Y14" in v
+    # negative control: a sim that does not see the bits passes both -> MISMATCH, never MATCH
+    ok, _, v = A.judge_property({"patched": prun(0, GOOD_TXT), "unpatched": prun(0, GOOD_TXT)})
+    assert ok is False and "AREG=2 is not modelled" in v
+    ok, _, v = A.judge_property({"patched": prun(1, BAD_TXT), "unpatched": prun(1, BAD_TXT)})
+    assert ok is False and "patched bits do not" in v
+    # the unpatched run fails, but not on an AREG=1 DSP decoded as 2: not the stated property
+    other = BAD_TXT.replace("AREG=2 ACASCREG=1", "AREG=1 ACASCREG=1")
+    ok, _, v = A.judge_property({"patched": prun(0, GOOD_TXT), "unpatched": prun(1, other)})
+    assert ok is False and "not the failure the patch states" in v
+    ok, _, v = A.judge_property({"patched": prun(2, "DSPLAT_VERDICT NONE"), "unpatched": prun(1, BAD_TXT)})
+    assert ok is None and "NOT TESTED" in v
+    ok, weak, v = A.judge_property({"patched": prun(0, GOOD_TXT), "unpatched": prun(1, BAD_TXT, ["1 REFUSED: DSP"])})
+    assert ok is True and weak is True
+
+
+def fake_probe(tmp_path):
+    rd = tmp_path / "dsp_probe"
+    rd.mkdir()
+    for f, t in (("probe_routed.json", "{}"), ("probe.sdf", "sdf"), ("probe.fasm", "GOOD\n")):
+        (rd / f).write_text(t)
+    return rd
+
+
+def wire_property(monkeypatch, changed=1, assembler=None, decoder_sees_bits=True):
+    calls = []
+    wire_fakes(monkeypatch, None, changed=changed, assembler=assembler)
+
+    def decode(bit, routed, sdf, out):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "fasm_routed.json").write_text(Path(bit).read_text() if decoder_sees_bits else "GOOD\n")
+        return {"json": out / "fasm_routed.json", "sdf": out / "fasm.sdf", "refused": [], "equiv": "VERDICT: ?"}
+    monkeypatch.setattr(A, "decode_bits", decode)
+
+    def lat(net, routed, work):
+        good = Path(net).read_text().startswith("GOOD")
+        calls.append(good)
+        return A.parse_dsplat(0, GOOD_TXT) if good else A.parse_dsplat(1, BAD_TXT)
+    monkeypatch.setattr(A, "dsp_latency", lat)
+    return calls
+
+
+def prop_item(rd):
+    return {"id": "dsp_areg", "kind": "property", "property": "dsp_latency", "bug": "areg",
+            "runnable": True, "route_dir": str(rd), "design": "probe", "route_build": ["build it"]}
+
+
+@pytest.mark.parametrize("stack", ["default", "full"])
+def test_property_item_runs_both_bitstreams(tmp_path, monkeypatch, stack):
+    rd = fake_probe(tmp_path)
+    calls = wire_property(monkeypatch)
+    c = A.Config(args(stack=stack), tmp_path / "work")
+    r = A.run_property(prop_item(rd), c)
+    assert calls == [True, False] and r["ok"] is True and r["weak"] is False
+    assert r["md5s"]["patched_bit"] != r["md5s"]["unpatched_bit"]
+
+
+def test_property_item_negative_controls(tmp_path, monkeypatch):
+    """Never a MATCH when nothing reaches the bits."""
+    rd = fake_probe(tmp_path)
+    it = prop_item(rd)
+    # the writer changes no line: BLOCKED
+    wire_property(monkeypatch, changed=0)
+    r = A.run_property(it, A.Config(args(), tmp_path / "w1"))
+    assert r["ok"] is None and r["blocked"]
+    # an assembler that ignores its input: identical bitstreams, an error
+    wire_property(monkeypatch, assembler=lambda f: "GOOD\n")
+    with pytest.raises(RuntimeError, match="byte-identical"):
+        A.run_property(it, A.Config(args(), tmp_path / "w2"))
+    # a decoder that ignores the bits: both sims pass -> MISMATCH
+    wire_property(monkeypatch, decoder_sees_bits=False)
+    r = A.run_property(it, A.Config(args(), tmp_path / "w3"))
+    assert r["ok"] is False
+    # no route yet: BLOCKED, and the row says how to build it
+    r = A.run_property(prop_item(tmp_path / "nowhere"), A.Config(args(), tmp_path / "w4"))
+    assert r["ok"] is None and r["blocked"] and "build it" in r["verdict"]
+
+
+def test_property_item_report(tmp_path, monkeypatch, capsys):
+    rd = fake_probe(tmp_path)
+    wire_property(monkeypatch)
+    r = A.run_property(prop_item(rd), A.Config(args(), tmp_path / "w"))
+    A.print_report({"config": {}, "results": [{"id": "dsp_areg", "grade": "hard", "kind": "property",
+                                               "title": "t", "sources": ["s"], "oracle": {"board": "b"}, **r}]})
+    out = capsys.readouterr().out
+    assert "[MATCH] dsp_areg" in out and "decoded AREG=2 ACASCREG=1" in out and "ref AREG=1" in out
+
+
+def test_inventory_dsp_areg_is_runnable_and_md_is_generated():
+    inv = json.load(open(os.path.join(HERE, "../../../research/data/fid/inventory.json")))
+    it = next(i for i in inv["items"] if i["id"] == "dsp_areg")
+    assert it["runnable"] and it["route_dir"] and it["route_build"] and it["property"] == "dsp_latency"
+    r = subprocess.run([sys.executable, os.path.join(HERE, "inventory_md.py"), "--check"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout
+
+
+def test_identical_payloads_are_identical_whatever_the_header(tmp_path, monkeypatch):
+    """xc7frames2bit writes the frames file's PATH into the .bit header, so two
+    assemblies of one FASM in two dirs differ as files: the guard must compare
+    from the sync word on, or it can never fire on the real tools."""
+    rd = fake_probe(tmp_path)
+    n = [0]
+
+    def asm(f):     # same payload, a different header each call
+        n[0] += 1
+        return "hdr%d/" % n[0] + "SYNC" + "GOOD\n"
+    monkeypatch.setattr(A, "SYNC", b"SYNC")      # the fakes write text
+    wire_property(monkeypatch, assembler=asm)
+    with pytest.raises(RuntimeError, match="byte-identical"):
+        A.run_property(prop_item(rd), A.Config(args(), tmp_path / "w"))
+    gd = fake_gcd_route(tmp_path)
+    wire_fakes(monkeypatch, tmp_path, assembler=asm)
+    with pytest.raises(RuntimeError, match="byte-identical"):
+        A.run_bitstream_bug({"id": "lutpinmap_x", "route_dir": str(gd), "bug": "pinmap"},
+                            full_cfg(tmp_path, monkeypatch), [0])
