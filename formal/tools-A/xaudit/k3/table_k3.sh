@@ -10,7 +10,7 @@ printf "%-5s %-6s | %-12s %-6s %-6s %-22s | %-12s | %s\n" seed corner xevents8 B
 for s in ${2:-d 3 4 5}; do for c in slow fast indep gb; do
   f8=$R/xe8_${s}_$c.txt; f5=$R/xe5_${s}_$c.txt
   printf "%-5s %-6s | %-12s %-6s %-6s %-22s | %-12s | %s\n" $s $c "$(v $f8)" "$(m $f8 Back)" "$(m $f8 line)" "$(g $f8)" "$(v $f5)" \
-    "$(tail -1 $R/ana5_${s}_$c.txt | cut -c1-40)"
+    "$(tail -1 $R/ana5_${s}_$c.txt | sed "s/.*): //" | cut -c1-40)"
 done; done
 echo; echo "RESIDUAL items (xevents8):"
 for s in ${2:-d 3 4 5}; do for c in slow fast indep gb; do
