@@ -9,7 +9,8 @@ For each seed (d = no NEXTPNR_SEED): a git worktree at OUTDIR/wt-<seed> of the
 current HEAD, `hw/build_hw.sh gcd_hw` there with --env (the BQ recipe) and
 NEXTPNR_SEED, then xray_delay.py's prjxray SDF of that route, then, per column
 (and per scatter draw), build_fid.sh from the .bit with GLS_MODEL=fid and
-run_fid.sh -j1.  Each sim is one vvp (~3.1 GB RSS; its compile ~3.7 GB), so
+run_fid.sh -j1.  Each sim is one vvp (~3.1 GB RSS; its compile ~3.7 GB; since the 055edd7
+resolver ~3.7 GB and ~5.5 GB on gcd_hw: use --sim-jobs 2 on 15 GB), so
 --sim-jobs bounds memory.  A run whose log lacks a verdict line for any vector
 is reported INCOMPLETE, never as a pass (an OOM kill truncates silently).
 

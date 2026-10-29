@@ -1599,3 +1599,14 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
   All other F3 benches unchanged (tb_f3_meta A 125/75, B 119/81). Not yet re-run on a routed design.
 - setup-toolchain.sh now clones prjxray-db 0a0added (zynq7) for xray_delay.py (every session re-cloned it by hand;
   this one lost a first BQ#2 route pass to the missing db).
+### progress 15:11 (first routed run of the new resolver OOM-killed; relaunched at 2 sims)
+- BQ#2 seeds 6-9 routed (build_hw PASS incl. fasm_audit; xray SDFs made). gen.py finds 4711 LUT state nodes on
+  seed 6 (loop delay 125/330/1742 ps). The first full-stack compile under 055edd7 was OOM-killed: iverilog now
+  peaks ~5.5 GB (was ~3.7) and each vvp ~3.7 GB (was ~3.1), from the forced-feedback trees on every state node.
+  Relaunched with --sim-jobs 2 (seeds_fid docstring updated). No result yet.
+- chain_dist.py (7833f62): matched delays vs their datapath on BQ#2 routes: far distance median 14-16, p90 26-35,
+  max 51-63 slices; uori2 (the seed-9 BQ#3 bundle) is 16 on seed 6. A screen, gates nothing.
+- Literature (a9a409b, meta_sources.md): no 7-series source for TAU/WIN, TAU_FF, aperture, CK MPW or LUT pulse
+  rejection. Measured flop tau 35-75 ps at 130-65 nm puts TAU_FF 75 at the slow (pessimistic) end. A datasheet
+  CK minimum pulse width (~0.5 ns, unconfirmed) would make 70-500 ps CK runts spec violations; not acted on.
+- Running: S12 (arbiter near-tie double-ack under the new resolver + gcd_hw grant->A0 round trips); BQ#3 8 reroutes.
