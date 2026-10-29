@@ -317,3 +317,9 @@ Events9Sel/Prefix/Arb, CornerCell/BandCheck, XInert) launched.
 ### progress 15:32
 Toolchain restore EXIT 0 (cache branch; nextpnr sha 9c732bc6303458df). Lean build still in Mathlib (~2780 jobs).
 r19 (BQ#3 seed-9 2x scatter) launched; P12a/b/c reading statements, writing findings as they go.
+
+### progress 16:12
+r19 in: BQ#3 seed-9 2x-scatter failure CONFIRMED from my own rebuild (sdf 74511ca2 matches; exactly vectors
+2,3,9,11,13,15; threshold between 1.3125x and 1.375x; log-normal still fails; placement/factors confirmed, comparator
+X30 not X30-31). OVERSTATED: BOARD-QUEUE #3 "8/8 seeds pass at 1x, 7/8 at 2x" -- the cited TSV has scatter rows for
+only 4 seeds (I counted the rows myself); no logs. LOGN identity CONFIRMED but quoted md5 ebfb714c not reproduced.
