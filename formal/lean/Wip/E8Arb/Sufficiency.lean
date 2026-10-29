@@ -29,16 +29,12 @@ The hypotheses the construction needs (each is used by one of the three `EnOK` c
 * settled reset: all outputs low on `[0, T0 + 2]`, `T0 ≥` every `q`-pin band.
 -/
 
-namespace Formal.Core.XAudit.Events9Arb.Wip
-open Formal.Core.TraceDiscrete (Sig Warp)
-open Formal.Core.XAudit.Events8Arb
-open Formal.Core.XAudit.Events9Arb
-
-/-- OPEN (the round construction). Statement shape only: the protocol and RT1 hypotheses are
-abstracted as `Hyp`; a usable version must spell them out (see the module doc). -/
-theorem en_exists (B : ArbBands) (r1 r2 rs a q R0 g1 g2 : Sig) (W : Nat)
-    (hP : ArbPin B r1 r2 rs a q R0 g1 g2) (hU : Unc W r1 r2 g1 g2) (Hyp : Prop) (hH : Hyp) :
-    CoreOf B r1 r2 a R0 g1 g2 := by
-  sorry
-
-end Formal.Core.XAudit.Events9Arb.Wip
+/-
+UPDATE (E8ArbFix, later the same session): the round construction above is now PROVED as
+`Events9Arb.core_of_settle` (canonical ctl `ctlc`, σ = q), modulo `hstall` and the per-reader
+conditions `RdOK` (B1 = RT1/RT1b, B2 = P-rise, C = P-fall). What remains open, and is NOT stated
+here as a theorem (a statement with abstracted hypotheses would be a placeholder, not a target):
+deriving `hstall` and `RdOK` from `Unc W`, B's `bd_arbiter.rt1`/`.rt1b` and the environment's
+port protocol on gcd_hw (each one edge-time inequality per reader), and the prefix-closed verdict
+that would supply the protocol without circularity (notes/A-e8arb.md §4, A-e8arbfix.md §1).
+-/

@@ -3,7 +3,8 @@
 # overlay $OL) on the E8Mux-corrected bands, gcd_hw R5 seeds d 3 4 5 x slow fast gb indep.
 #   inputs: $W/<seed>/new/{skel.json, skel_<corner>.bands.json, cert_<corner>.json, net.json}
 #           (tools-A/xaudit/e8mux/bands.sh + run.sh outputs; cert = cert8.py on that band file)
-#   outputs: results/map_<seed>.json, results/xs_<seed>_<corner>.txt, results/table.txt
+#   outputs: results/map_<seed>.json, results/xs_<seed>_<corner>.txt (xselhold), results/cc_<seed>_<corner>.txt
+#            (untrusted crosscheck.py); then table.sh -> results/table.txt
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 S=${S:-/tmp/claude-0/-home-user-asyncfpga3/e4887bac-6d7b-51e8-a617-7dbd05e5b307/scratchpad}
@@ -25,6 +26,8 @@ for s in ${SEEDS:-d 3 4 5}; do
       'LEAN_PATH="$0:$LEAN_PATH" exec lean -DautoImplicit=false --run Formal/Core/XAudit/Events9SelMain.lean "$@"' \
       "$OL" $o/skel.json ${BANDS:-$o/skel_$c.bands.json} $o/cert_$c.json "$HERE/results/map_$s.json" ) 2>&1 \
       | grep -v '^\[slot\]' > "$HERE/results/xs_${s}_$c${TAG:-}.txt"
+    python3 -I "$HERE/crosscheck.py" $o/skel.json ${BANDS:-$o/skel_$c.bands.json} $o/cert_$c.json \
+      "$HERE/results/map_$s.json" > "$HERE/results/cc_${s}_$c${TAG:-}.txt"
     echo "$s $c: $(grep -h '^\[xselhold\] literals' "$HERE/results/xs_${s}_$c${TAG:-}.txt") | $(tail -1 "$HERE/results/xs_${s}_$c${TAG:-}.txt")"
   done
 done

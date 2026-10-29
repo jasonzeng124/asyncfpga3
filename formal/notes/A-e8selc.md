@@ -1,7 +1,8 @@
 # A-e8selc (probe E8SelC): the select wires of the routed verdict — C's H_BUNDLE, setup, hold (shard A)
 
-STATUS (2026-10-29 ~10:30 UTC): Lean done (5 files elaborate against an overlay, no sorry);
-16-row run in progress; check.sh pending (see §6).
+STATUS (2026-10-29 10:35 UTC): DONE. 5 Lean files, check.sh OK (3171 + 3461 declarations
+audited, §6). 16 rows run (§4), 2 + 1 controls (§5). One named trace hypothesis is left open:
+H_ACK_LAG (§3.3).
 
 ## 0. Summary
 
@@ -171,29 +172,115 @@ with a margin of 19079 ps. So the identity of the ack wire is TRUSTED map data, 
 channel name. `xselhold` takes the SHORTEST path from the given ack (Bellman-Ford; minimality is
 not proved), so the lag it assumes is the smallest that any path from that ack gives.
 
-## 4. Results (E8Mux-corrected bands; `tools-A/xaudit/selhold/run.sh`)
+## 4. Results (E8Mux-corrected bands; `tools-A/xaudit/selhold/run.sh`, `table.sh`)
 
-PENDING — table filled from `results/xs_<seed>_<corner>.txt`.
+How the results were produced:
+- Inputs: E8Mux's `w/<seed>/new/` skeleton, the `skel_<corner>.bands.json` band files
+  (xray_delay_e8mux, OUTMUX hop included) and the `cert_<corner>.json` node lists.
+- The map comes from `mkmap.py` (`results/map_<seed>.json`). The certificate node lists are
+  checked to be identical across the 4 corners.
+- `xselhold` is run with `lean --run` on the probe's overlay (oleans compiled from the working
+  tree with `-DautoImplicit=false`).
+- Outputs: `results/xs_<seed>_<corner>.txt`, with one line per literal and the full path
+  description.
 
-Untrusted Python recomputation (`crosscheck.py`, independent band rebuild and Dijkstra), min
-margins in ps, source-anchored / split:
+Columns:
+- "src" is the source-anchored row (`design_verdict9_selH`).
+- "split" is the junction-anchored row (`design_verdict9_selS`).
+- The last column is the untrusted `crosscheck.py` recomputation. It rebuilds the bands
+  independently and runs Dijkstra; it equals xselhold on all 16 rows.
 
-| seed | slow | fast | gb | indep |
-|---|---|---|---|---|
-| d | 927 / 1125 | 419 / 481 | 296 / 741 | −4246 / −56 |
-| 3 | 699 / 982 | 294 / 411 | −139 / 630 | −5635 / −124 |
-| 4 | 648 / 1055 | 301 / 476 | −701 / 744 | −5224 / 73 |
-| 5 | 788 / 1077 | 357 / 475 | 103 / 733 | −5268 / 26 |
+| seed | corner | literals | entOK | src rows pass | min src margin (ps) | split rows pass | min split margin (ps) | verdict | crosscheck src / split |
+|---|---|---|---|---|---|---|---|---|---|
+| d | slow | 126 | 126 | 126 | 927 | 126 | 1125 | CLEAN | 927 / 1125 |
+| d | fast | 126 | 126 | 126 | 419 | 126 | 481 | CLEAN | 419 / 481 |
+| d | gb | 126 | 126 | 126 | 296 | 126 | 741 | CLEAN | 296 / 741 |
+| d | indep | 126 | 126 | 62 | -4246 | 124 | -56 | SELHOLD(split) RESIDUAL 2 | -4246 / -56 |
+| 3 | slow | 126 | 126 | 126 | 699 | 126 | 982 | CLEAN | 699 / 982 |
+| 3 | fast | 126 | 126 | 126 | 294 | 126 | 411 | CLEAN | 294 / 411 |
+| 3 | gb | 126 | 126 | 124 | -139 | 126 | 630 | CLEAN | -139 / 630 |
+| 3 | indep | 126 | 126 | 59 | -5635 | 124 | -124 | SELHOLD(split) RESIDUAL 2 | -5635 / -124 |
+| 4 | slow | 126 | 126 | 126 | 648 | 126 | 1055 | CLEAN | 648 / 1055 |
+| 4 | fast | 126 | 126 | 126 | 301 | 126 | 476 | CLEAN | 301 / 476 |
+| 4 | gb | 126 | 126 | 120 | -701 | 126 | 744 | CLEAN | -701 / 744 |
+| 4 | indep | 126 | 126 | 62 | -5224 | 126 | 73 | CLEAN | -5224 / 73 |
+| 5 | slow | 126 | 126 | 126 | 788 | 126 | 1077 | CLEAN | 788 / 1077 |
+| 5 | fast | 126 | 126 | 126 | 357 | 126 | 475 | CLEAN | 357 / 475 |
+| 5 | gb | 126 | 126 | 126 | 103 | 126 | 733 | CLEAN | 103 / 733 |
+| 5 | indep | 126 | 126 | 62 | -5268 | 126 | 26 | CLEAN | -5268 / 26 |
 
-## 5. Negative controls (seed d slow)
+Reading:
+- **Split rows are CLEAN on 12 of the 12 slow/fast/gb rows.** The minimum split margin is
+  411 ps (seed 3 fast). They are also clean on indep for seeds 4 and 5.
+- **The indep rows for seeds d and 3 have 2 residual literals each**:
+  - d: `merge:ucond_br14.uack` pin1 −47 and `merge:ucond_br40.uack` pin1 −56;
+  - 3: `merge:ucond_br36.uack` pin0 −124 and `merge:ucond_br46.uack` pin0 −4.
+- In all four the acknowledge IS the stage's own output (the steer-ack merge node). Its lag path
+  to the junction is the same three gates as the copy read (merge LUT, route, steer LUT), so
+  the margin is `selLo + lo(rg)` minus the lo–hi spread of those three gates. Under indep that
+  spread is large. These rows are likely pessimistic, but that is argued, not proved; they are
+  reported as residual.
+- **The source-anchored rows fail on gb for seeds 3 and 4** (2 and 6 literals, down to −701 ps)
+  and on every indep row (about 64 literals, down to −5.6 ns). All of these are the mux-join /
+  decode pins (`umuxN.ujK`, `umux21`), whose copy path runs through the select link's own
+  request delay line. This is the common-path pessimism of §3.2, and the split row removes it.
+- Every select literal maps (126 per seed, 58 channels on seed d; `results/map_table_d.txt`),
+  and `entOK` holds for 126 of 126 on every row.
 
-- NEGhold: the stage-pin arc `ulink_n_falseResult_77.ctl.u.u/I3` has its hi raised by 5000 ps.
-  Python predicts margin −4073 / split −2149, so that row must FAIL.
-- NEGmap: entry (node 6, pin 0, lit 4) has its bus port swapped (`sel_72861` → `sel_62896`), so
-  `entOK` must be false.
-- NEGack: a literal's ack is replaced by an unrelated request wire. Expected to PASS; this is the
-  finding of §3.3, not a control.
+## 5. Negative controls (seed d slow; `neg.sh`, `mkneg.py`, outputs `results/xs_d_slow_NEG*.txt`)
+
+| control | mutation | expected | got |
+|---|---|---|---|
+| NEGhold | hi of the stage-pin arc `ulink_n_falseResult_77.ctl.u.u/I3` raised by 5000 ps (1012/1227 → 1012/6227) | that literal FAILS both rows; Python predicts −4073 / −2149 | `RESIDUAL(src) … margin -4073`, `RESIDUAL(split) … -2149`; SELHOLD RESIDUAL 1 / 1 |
+| NEGmap | bus port of entry (node 6 `umux14.uj1`, pin 0, lit 4) swapped `sel_72861` → `sel_62896` | `entOK` false, that literal FAILS | `entOK false`; RESIDUAL 1 / 1 |
+| NEGack | ack of entry 1 (`ulink_n_trueResult_60` stage0, lit 1) replaced by an unrelated request wire `uori2.udly.chain.g[18].u/O` | sensitivity probe, expected PASS | PASS: CLEAN / CLEAN (Python: margin 19079). `chainOK` does NOT authenticate the ack (§3.3) |
 
 ## 6. Check
 
-PENDING.
+The lead's `.lake/build` had no oleans yet for Events2PinDesign, Events4..9 or Events8Bridge*, so
+check.sh was run on every file of the closure missing from `.lake/build` (24 files, in dependency
+order; the last five are this probe's). From `formal/lean`:
+
+    ../check.sh Formal/Core/XAudit/Events2PinDesign.lean Formal/Core/XAudit/Events4.lean \
+      Formal/Core/XAudit/Events5Line.lean Formal/Core/XAudit/Events5.lean Formal/Core/XAudit/Events6Gate.lean \
+      Formal/Core/XAudit/Events6Cert.lean Formal/Core/XAudit/Events6Design.lean Formal/Core/XAudit/Events6Beh.lean \
+      Formal/Core/XAudit/Events7Core.lean Formal/Core/XAudit/Events7Excl.lean Formal/Core/XAudit/Events7Cert.lean \
+      Formal/Core/XAudit/Events7Beh.lean Formal/Core/XAudit/Events8Core.lean Formal/Core/XAudit/Events8Cert.lean \
+      Formal/Core/XAudit/Events8Beh.lean Formal/Core/XAudit/Events8Bridge.lean Formal/Core/XAudit/Events8BridgeSel.lean \
+      Formal/Core/XAudit/Events9Cert.lean Formal/Core/XAudit/Events9Beh.lean Formal/Core/XAudit/Events9Sel.lean \
+      Formal/Core/XAudit/Events9SelC.lean Formal/Core/XAudit/Events9SelHold.lean Formal/Core/XAudit/Events9SelSplit.lean \
+      Formal/Core/XAudit/Events9SelMain.lean
+    ...
+    [audit] 3171 declarations checked
+    [check] audit (executable) Formal.Core.XAudit.Events9SelMain
+    [audit] 3461 declarations checked
+    [check] OK
+
+File md5s at check time:
+
+    32eadbdcf8dcbf354ac8dd5d3fd7877d  Formal/Core/XAudit/Events9Sel.lean
+    66620f23476e82e7abdde1cad142ea12  Formal/Core/XAudit/Events9SelC.lean
+    940a12ecdd77321f947980caab7a910c  Formal/Core/XAudit/Events9SelHold.lean
+    6338bc38f30dac2631c3216074e96c3a  Formal/Core/XAudit/Events9SelMain.lean
+    6cc67cf3393b93a334b328db13362878  Formal/Core/XAudit/Events9SelSplit.lean
+
+No error line in the log. No sorry / admit / axiom / native_decide in the five files. Once lake
+has built Events9Beh and Events8BridgeSel, the short form is
+`../check.sh Formal/Core/XAudit/Events9Sel.lean Formal/Core/XAudit/Events9SelC.lean
+Formal/Core/XAudit/Events9SelHold.lean Formal/Core/XAudit/Events9SelSplit.lean
+Formal/Core/XAudit/Events9SelMain.lean`.
+The modules Formal.Net.Prelim, Handshake and Ops (C's, imported read-only) came from `.lake/build`.
+
+## 7. For the lead
+
+- Lakefile stanza (NOT added; I do not own the lakefile):
+  `[[lean_exe]] name = "xselhold"  root = "Formal.Core.XAudit.Events9SelMain"`.
+  Root imports, if wanted: `Events9Sel`, `Events9SelC`, `Events9SelHold`, `Events9SelSplit`.
+  Do not add `Events9SelMain`: it defines `main`.
+- `Events9SelSplit.topP` / `botP` take an unused `d` argument (a linter warning, not an error).
+- Suggested next probe, **E8Causal**: a time-inductive form of `safe8` ("SelOK on samples < s
+  gives the count/wire link at times < s + 1"). With it, H_ACK_LAG(_w) becomes a theorem along
+  the certificate path (each gate on it waits on the path input for its fall), and the
+  remaining trace hypotheses on a split-CLEAN row are H_BUNDLE (C) and H_SEL_SETUP.
+- H_SEL_SETUP is the natural place to connect C's tcheck rule E (setup) to A, as a decidable
+  row like `holdBand` anchored at the channel's request.

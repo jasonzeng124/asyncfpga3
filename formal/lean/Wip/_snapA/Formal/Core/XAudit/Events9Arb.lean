@@ -29,14 +29,26 @@ Proved here:
   core in A's per-pin model (`Events8Arb.ArbPin`'s equations, real INITs) whose four readers
   satisfy `EnOK` against one `ctl` (a `VCtl` of `A0`) is a behaviour of the corrected core
   (`CoreFix`, bands from the real per-pin bands by the formulas of model.py).
-* `ho2`: an uncontested handover of the real cell (scaled `Events8Arb.ho`: R0 rises 10 steps
+* `ho2` (§4): an uncontested handover of the real cell (scaled `Events8Arb.ho`: R0 rises 10 steps
   BEFORE the grant) that IS a corrected-core behaviour (`ho2_fix`, with model.py's bands) and is
-  NOT an old-core behaviour for ANY bands (`ho2_not_old`).
+  NOT an old-core behaviour for ANY bands (`ho2_not_old`, `fix_not_old`).
+* §5, **`core_of_settle`** (sufficiency modulo three per-reader timing conditions): the enable is
+  CONSTRUCTED from the real traces (`ctlc`: ustate's A0 read shifted by `K`, stalled until `q` has
+  settled in the A0-low phase; `σ` = `q`). It is a `VCtl` (`ctlc_vctl`) when no phase stays
+  unsettled for longer than `H` (`hstall`, the "no contest" hypothesis in the form the core
+  needs), and the enable conditions reduce to `RdOK` per reader: (B1) a reader never loses its
+  state term while it reads its request high unless it was already low (RT1 / RT1b); (B2) a
+  reader rises only from settled reads (the corrected port protocol, rise side); (C) a request
+  fall is read only at unsettled times (fall side).
+* §6: `ho3` satisfies every hypothesis of `core_of_settle` (`ho3_fix`) and is no old-core
+  behaviour (`settle_not_old`): the theorem is not vacuous, in exactly the D1 situation.
 
-NOT proved: that `Unc W` + B's RT1 / RT1b + a port protocol give a `ctl` and `σ` with `EnOK`
-(the round construction; statement in `Wip/E8Arb/Sufficiency.lean`), the link from `CoreFix` to
-`Events7.HARB7` over a parsed `Net4` (the netlist-level wrapper is `Events9ArbBeh`), and that
-the corrected core's certificates exist (they do not, with the Events7 log rules: notes §4).
+NOT proved: that `Unc W` + B's RT1 / RT1b + the port protocol of the environment give
+`hstall` and `RdOK` (each is one inequality between edge times; the gcd_hw instances are not
+discharged; `arbfix/member.py` checks the same construction on recorded runs, untrusted), the
+link from `CoreOf` to `Events7.HARB7` over a parsed `Net4` (`Events9ArbBeh` states `HARB7'` as
+`HARB7` on a certificate of the corrected shape), and that the corrected core's certificates
+exist (they do not, with the Events7 log rules: notes §4).
 -/
 
 namespace Formal.Core.XAudit.Events9Arb
@@ -731,8 +743,9 @@ theorem ho3_fix : CoreOf Bho3 lowc oneS a0h R0h3 lowc g2h3 := by
   · intro t _
     refine ⟨fun _ h => ?_, fun _ h hn => ?_, fun h => by simp [oneS] at h⟩
     · simp [qh3] at h; simp [oneS, qh3]; omega
-    · simp [qh3] at h
-      exact absurd ((hS _).2 (by omega)) hn
+    · have hn' : ¬ Settled a0h qh3 (fun t => t - 6) (t + 2 - 6) := hn
+      simp [qh3] at h
+      exact absurd ((hS _).2 (by omega)) hn'
 
 theorem ho3_not_old (loF hiF lo1 hi1 lo2 hi2 : Nat) : ¬ VMerge loF hiF lo1 hi1 lo2 hi2 lowc g2h3 R0h3 := by
   intro hv
