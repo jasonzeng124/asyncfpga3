@@ -2,8 +2,8 @@
 
 PROGRAM.md north-star goal 3. Session 2026-10-29.
 
-STATUS (08:20): toolchain restored and verified; 8+2 routes built and audited; bands built; Lean
-overlay compiling; checker runs next.
+STATUS (08:45): ipow done (16 rows xevents8 + xevents5 + negative controls); xorshift running;
+HOWTO next.
 
 ## Progress log
 - **Toolchain.** Restored from `origin/toolchain-cache/d7ce266cff0c8e1e` (= `cloud/toolchain-cache.sh
@@ -61,3 +61,42 @@ overlay compiling; checker runs next.
 
 Artefacts: big files in ~/k3out (outside the repo); md5s, small logs, verdict text in
 `formal/tools-A/xaudit/k3/out/`.
+
+## ipow: xevents8 / xevents5 (`k3/run_events_k3.sh ipow`; `k3/out/ipow/`, table `k3/out/ipow/table.txt`)
+
+Every row: `Design.WF true; Recog6 node failures 0; Net4.OK7 true`, `select partitions (SelPart): []`
+(vacuous), derivation log accepted by runLog, cert8 errors 0, `--fuel 256`. Skeleton 484 LUTs
+(86 storage with reset), 104 nodes (8 virtual = H_ARB, the two control_merge arbiters), 14 merges
+(none n-ary), 176 Back pins, 23 line pins, **12 guarded pins**, HDsub = 24 judgements.
+
+| seed | slow | fast | gb | indep (mixed) |
+|---|---|---|---|---|
+| d | **CLEAN** | **CLEAN** | **CLEAN** | RESIDUAL 7 (xe5: 8) |
+| 3 | **CLEAN** | **CLEAN** | **CLEAN** | RESIDUAL 9 (xe5: 5) |
+| 4 | **CLEAN** | **CLEAN** | **CLEAN** | RESIDUAL 12 (xe5: 10) |
+| 5 | **CLEAN** | **CLEAN** | **CLEAN** | RESIDUAL 1 (xe5: 4) |
+
+- xevents5 gives CLEAN on the same 12 rows (its CLEAN assumes GuardOK; xevents8's does not).
+- Min margins (ps, strict) at slow / fast / gb: Back 307..1510 / 177..790 / 126..1086; line ≥ 783;
+  guard ENTRY ≥ 280, EXIT1 ≥ 1516. The lowest Back pin on d slow is the rig's `urig.uenv0` (307).
+- **indep residuals are all timing margins ≤ 0, none structural** (every item has a certificate
+  shape; only the number fails): the rig's uenv0/uenv1 (d), the `ulink_n_index_15` /
+  `ucontrol_merge1_f` line pair (d, 3), `ucond_br*_j` lines (3, 4), link stages (3, 4) and the
+  arbiter guard ENTRY bounds `ucontrol_merge{0,1}.uarb1.ua{1,2}` (−20..−481 ps; seed 4 has one at
+  ENTRY **0**, a FAIL because margins are strict). These are the same arbiter re-arm items as
+  gcd_hw's d-gb ENTRY failures (A-events8), here only at the mixed corner.
+- xevents8 vs xevents5 at indep: xevents8 certifies 4 line pins that xevents5 leaves (d: 21/23 vs
+  17/23 lines; `ucond_br2..5_j` −473 at xe5), because cert7/cert8 try every R3 candidate; it adds
+  the guard items that xevents5 does not check (GuardOK is its hypothesis). Net: d 7 vs 8, 5 1 vs 4,
+  3 9 vs 5 and 4 12 vs 10 (the extra ones are the guard items).
+
+**Negative controls** (seed d slow; `out/ipow/neg.txt`, `xe8_d_slow_NEG*.txt`):
+- NEG-fb5000 (+5000 ps on `ucontrol_merge0.uarb1.ua2.u/I4`, its own feedback found by negctl_k2.py):
+  `RESIDUAL Back …ucontrol_merge0.uarb1.ua2.u pin1: margin -3139`, RESIDUAL 1. Rejected.
+- NEG-recog (cert: `ucmpi2.ujoin` qi := ri): `RECOG-FAIL`, `VERDICT NOT RECOGNISED`. Rejected.
+- NEGnoguard (`cert8.py --no-guard`): 0/12 guarded certified, RESIDUAL 12. Rejected.
+- NEGentry / NEGexit on `umux3.uya.u` pin1 with gcd's neg8.sh defects (+5000 both bounds of the
+  guarded arc / +18000 on the guard arc's hi): **still CLEAN — those defects are smaller than this
+  pin's margins** (ENTRY 8312, EXIT2 37219 ps, read off the rerun below; the ENTRY margin includes
+  the S→D walk). With +60000 ps: NEGentry `RESIDUAL Guard …umux3.uya.u pin1: … ENTRY -51688`,
+  NEGexit `… EXIT2 -22781`, each RESIDUAL 1. Rejected. run_events_k3.sh now uses GPS=60000.

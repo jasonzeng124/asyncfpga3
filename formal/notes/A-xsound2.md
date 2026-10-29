@@ -1,10 +1,17 @@
 # A-xsound2: xaudit's timed verdict is sound for continuous-time transport/inertial channels (probe XSound2, shard A)
 
-STATUS: in progress (session 2026-10-29, 07:50 UTC). Checked so far (check.sh, deps in order):
-`Formal/Core/XSimChan.lean` + `Formal/Core/XAudit/SoundCells.lean` ([audit] 650 decls, OK).
-Written, being checked: `XAudit/SoundChain.lean` (W1), `XAudit/SoundSteps.lean`,
-`XSimChanReal.lean`, `XAudit/SoundPhys.lean`, `XSimChanTern.lean`. Nothing below is claimed
-until its file is listed as checked.
+STATUS: done (session 2026-10-29, 08:40 UTC). All seven files check, no Wip left:
+
+    cd formal/lean && ../check.sh Formal/Core/XSimChan.lean Formal/Core/XSimChanReal.lean \
+      Formal/Core/XSimChanTern.lean Formal/Core/XAudit/Design.lean Formal/Core/XAudit/Fast.lean \
+      Formal/Core/XAudit/SoundCells.lean Formal/Core/XAudit/SoundPhys.lean \
+      Formal/Core/XAudit/Untimed.lean Formal/Core/XAudit/SoundChain.lean \
+      Formal/Core/XAudit/Parse.lean Formal/Core/XAudit/SoundSteps.lean
+    # -> [audit] 1470 declarations checked, [check] OK  (Design/Fast/Untimed/Parse are listed only
+    #    because their oleans were not yet in .lake/build; they are unchanged)
+
+Mathlib-free: XSimChan, SoundCells, SoundChain, SoundSteps. Mathlib: XSimChanReal, SoundPhys,
+XSimChanTern. The 2026-10-28 drafts in Wip/_snapA (XSimChan, SoundCells) are superseded.
 
 ## The question
 
@@ -64,8 +71,10 @@ window; no in general for inertial.**
 5. **Untimed phase chaining, Wip W1** (`Formal/Core/XAudit/SoundChain.lean`, Mathlib-free):
    `stale_cover_window` (covered-window `sound_postfix` under `Stale D`),
    `stale_settle_window`, `chain_phases`, `chain_noGlitch`, `chain_settles`, with the
-   executable's indexing (`prevIn`). Wip/XAudit.lean's statement had an off-by-one indexing
-   (its `r (i+1)` is the B row INTO `vs (i+1)` but is claimed to cover phase `i`).
+   executable's indexing (`prevIn`). Wip/XAudit.lean's statement has an off-by-one indexing
+   (its `r (i+1)` is the B row INTO `vs (i+1)` but is claimed to cover phase `i`); by
+   inspection it is false (one buffer node with `vs i ≠ vs (i+1)`), not proved false in Lean.
+   Hypotheses: `Stale D` only (no `Causal`), gaps `T i + (n+1) D ≤ T (i+1)`, binary inputs.
 6. **Relation to TernaryChannels** (`Formal/Core/XSimChanTern.lean`): `PhysChan` ⊆
    `NodeChan (lo q) (hi q)` and reads the past by `lo q > 0`; positive lower delay is
    necessary (`zero_delay_chan_unsound`, `zero_delay_inertial_unsound`). `NodeChan` has no

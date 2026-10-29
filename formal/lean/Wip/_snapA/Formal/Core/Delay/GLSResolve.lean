@@ -659,4 +659,196 @@ theorem bloop_exists {L : Nat} (a b rst : Sig) (v0 : Bool) (hL : 1 ≤ L) :
         simp [show ¬ t < L by omega]
       H_LOOP_POS := by omega }
 
+theorem Srunt_o (p : Prm) (t0 w t : Nat) :
+    (Srunt p t0 w t).o = decide (t0 ≤ t ∧ (t < t0 + w ∨
+      (resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit ∧
+        t0 + w + trpOf p t0 w ≤ t))) := by
+  unfold Srunt trpOf
+  by_cases h1 : t < t0
+  · simp [h1, St.init]; omega
+  · by_cases h2 : t < t0 + w
+    · simp [h1, h2, S1]; omega
+    · cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) <;> simp [h1, h2] <;> omega
+
+/-- After the decision the resolver output is constant: `1` iff the draw committed. -/
+theorem out_final {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st) :
+    ∀ t, t0 + w + trpOf p t0 w ≤ t →
+      (st t).o = decide (resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit) := by
+  intro t ht
+  rw [out_runt hL ht0 hw1 hw h]
+  by_cases hc : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit <;> simp [hc] <;> omega
+
+/-- **(2c) A passing run hides the transport loop's perpetual oscillation.** Same cell, same
+pins, same loop delay. Every resolver run (every draw, every law) has a constant output from
+`t0 + w + trp` on (at most three output edges in all, `out_runt`). At the same delay point
+B's gate relations (`CElemTiming.Loop`, LUT delay 0, wire `TLOOP`) admit B's trace `OR`, which
+switches forever with period `TLOOP` (`CElemTiming.runt_loop`, `runt_oscillates`). That trace
+is also what the fid GLS itself prints with the resolver off (`+META_OFF=1`; notes §3).
+So any property of the form "q settles" or "q has at most k edges" passes every resolver
+run and fails a behaviour of the transport model. -/
+theorem hides_oscillation {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L)
+    (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w) (hw : w < p.L) (h : Run p aOne (bPulse t0 w) rstZero false st) :
+    (∀ t, t0 + w + trpOf p t0 w ≤ t → (st t).o = (st (t0 + w + trpOf p t0 w)).o) ∧
+    Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne (bPulse t0 w) rstZero
+      (Formal.Cells.CElemTiming.OR 0 p.L w t0) (Formal.Cells.CElemTiming.qpR 0 p.L w t0)
+      0 0 p.L p.L ∧
+    (∀ n, Formal.Cells.CElemTiming.OR 0 p.L w t0 (t0 + p.L * n) = true ∧
+      Formal.Cells.CElemTiming.OR 0 p.L w t0 (t0 + p.L * n + w) = false) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro t ht
+    rw [out_final hL ht0 hw1 hw h t ht, out_final hL ht0 hw1 hw h _ (Nat.le_refl _)]
+  · exact Formal.Cells.CElemTiming.runt_loop 0 p.L w t0 (by omega) (by omega)
+  · intro n
+    have := (Formal.Cells.CElemTiming.runt_oscillates 0 p.L w t0 (by omega) (by omega)).2.2 n
+    simpa using this
+
+/-- Two pulses on `b`. -/
+def bTwo (t0 w t1 w2 : Nat) : Sig := fun t => bPulse t0 w t || bPulse t1 w2 t
+
+/-- **(2d)/(3) A genuine set event is LOST, contradicting B's `c2_follow_hold`.** A runt of
+width `w < L` whose draw does not commit, then a second pulse on `b` of width `w2 ≥ TLOOP`
+(B's `H_PULSE` at this delay point) that starts after the decision and ends inside the
+ignore window (`t1 + w2 ≤ Iend`). Then
+* every resolver run keeps `o = 0` forever after `t0 + w`: the C-element with `a = 1` never
+  acknowledges `b`;
+* every behaviour of B's `Loop` at the same delay point with the same pins has `O = 1` from
+  `t1` on (B's `c2_follow_hold`, which makes no assumption on the loop's state), and there is
+  such a behaviour.
+`fid_core.vh:36-37` says an input change inside the window "is applied late, not lost";
+that is true only for a change still present at `Iend` (the kick re-reads `f` once). -/
+theorem follow_lost {p : Prm} {t0 w t1 w2 : Nat} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w)
+    (hw : w < p.L) (h01 : t0 + w < t1) (hw2 : p.L ≤ w2) (hend : t1 + w2 ≤ Iend p t0 w)
+    (hr : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) ≠ .commit) :
+    (∀ st, Run p aOne (bTwo t0 w t1 w2) rstZero false st → ∀ t, t0 + w ≤ t → (st t).o = false) ∧
+    (∀ O qp, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne
+        (bTwo t0 w t1 w2) rstZero O qp 0 0 p.L p.L → ∀ t, t1 ≤ t → O t = true) ∧
+    (∃ O qp, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne
+        (bTwo t0 w t1 w2) rstZero O qp 0 0 p.L p.L) := by
+  refine ⟨?_, ?_, bloop_exists _ _ _ false hL⟩
+  · intro st h t ht
+    have hI : t0 + w < Iend p t0 w := by unfold Iend; omega
+    have e := run_runt_gen hL ht0 hw1 hw
+      (fun u hu => by simp [bTwo, bPulse]; omega)
+      (fun u hu => by simp [bTwo, bPulse]; omega) h t
+    rw [e, Srunt_o]; simp [hr]; omega
+  · intro O qp L t ht
+    have := Formal.Cells.CElemTiming.c2_follow_hold L true t1 t
+      (fun s h1 h2 => ⟨rfl, by simp [bTwo, bPulse]; omega, rfl⟩)
+      (fun _ _ _ => rfl) (fun _ _ _ => Or.inl rfl)
+    exact this.1 t (by omega) (by omega)
+
+/-- The window always admits such a pulse: `t1 = t0 + w + 1`, `w2 = TLOOP`, for EVERY runt
+`w < L` and every draw that does not commit (rejections included). -/
+theorem follow_lost_always {p : Prm} {t0 w : Nat} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0) (hw1 : 1 ≤ w)
+    (hw : w < p.L) (hr : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) ≠ .commit) :
+    (∀ st, Run p aOne (bTwo t0 w (t0 + w + 1) p.L) rstZero false st →
+      ∀ t, t0 + w ≤ t → (st t).o = false) ∧
+    (∀ O qp, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne
+        (bTwo t0 w (t0 + w + 1) p.L) rstZero O qp 0 0 p.L p.L →
+        ∀ t, t0 + w + 1 ≤ t → O t = true) :=
+  let r := follow_lost hL ht0 hw1 hw (by omega) (Nat.le_refl _) (by unfold Iend; omega) hr
+  ⟨r.1, r.2.1⟩
+
+/-! ## 7. B's four-phase discipline makes the resolver the identity -/
+
+/-- A strictly increasing phase sequence brackets every time after `c 0`. -/
+theorem bracket_c {c : Nat → Nat} (hc : ∀ k, c k < c (k + 1)) {u : Nat} (hu : c 0 ≤ u) :
+    ∃ k, c k ≤ u ∧ u < c (k + 1) := by
+  have hge : ∀ n, n + c 0 ≤ c n := by
+    intro n; induction n with
+    | zero => omega
+    | succ n ih => have := hc n; omega
+  have : ∀ n, u < c n → ∃ k, c k ≤ u ∧ u < c (k + 1) := by
+    intro n; induction n with
+    | zero => intro h; omega
+    | succ n ih =>
+      intro h
+      by_cases h' : u < c n
+      · exact ih h'
+      · exact ⟨n, by omega, h⟩
+  exact this (u + 1) (by have := hge (u + 1); omega)
+
+theorem mono_c {c : Nat → Nat} (hc : ∀ k, c k < c (k + 1)) : ∀ j k, j < k → c j < c k := by
+  intro j k hjk
+  induction k with
+  | zero => omega
+  | succ k ih =>
+    by_cases h : j < k
+    · have := ih h; have := hc k; omega
+    · have : j = k := by omega
+      subst this; exact hc j
+
+/-- **(3) Under B's four-phase hypotheses (`CElemTiming.c2_four_phase`, at the run's delay point:
+LUT delay 0, wire `TLOOP`, `H_ENV_LATENCY : TLOOP ≤ E`), the resolver never fires: the
+resolver run equals the transport fid loop.** `O` is the transport loop (`+META_OFF=1`),
+quiet before the first phase (`hpre`), its reset value a fixed point (`hinit`). B's
+hypotheses are copied verbatim with `dlmin = dlmax = 0`, `dwmin = dwmax = TLOOP`. -/
+theorem fourphase_identity {p : Prm} {a b rst : Sig} {v0 : Bool} {st : Nat → St} {O : Sig}
+    (hL : 1 ≤ p.L) (h : Run p a b rst v0 st) (hO0 : O 0 = v0)
+    (hinit : fC2 (a 0) (b 0) v0 (rst 0) = v0)
+    (hrec : ∀ t, O (t + 1) = fC2 (a (t + 1)) (b (t + 1)) (O (t + 1 - p.L)) (rst (t + 1)))
+    (V : Nat → Bool) (c : Nat → Nat) (E : Nat)
+    (hpre : ∀ t, t < c 0 → O t = v0)
+    (H_ALT : ∀ k, V (k + 1) = !V k)
+    (H_ORDER : ∀ k, c k < c (k + 1))
+    (H_BOTH : ∀ k, a (c k) = V k ∧ b (c k) = V k)
+    (H_NEXT : ∀ k s, c k ≤ s → s < c (k + 1) → a s = V k ∨ b s = V k)
+    (H_NORST : ∀ s, c 0 ≤ s → rst s = false)
+    (H_ACK : ∀ k s, c k ≤ s → (a s ≠ V k ∨ b s ≠ V k) →
+        ∃ u, c k ≤ u ∧ u + E ≤ s ∧ O u = V k)
+    (H_ENV_LATENCY : 0 + p.L ≤ 0 + E) :
+    ∀ t, st t = ⟨O t, false, lastV O v0 t, lastE O t, 0, 0, v0⟩ := by
+  -- O, with qp = O (· - L), is a B loop at (0, 0, L, L)
+  have LB : Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 a b rst O
+      (fun t => O (t - p.L)) 0 0 p.L p.L :=
+    { H_LUT := by
+        intro t _
+        refine ⟨t, by omega, by omega, ?_⟩
+        show O t = Formal.Cells.CElemTiming.exc _ (a t) (b t) (O (t - p.L)) (rst t)
+        rw [← fC2_eq_exc]
+        cases t with
+        | zero => simp [hO0]; exact hinit.symm
+        | succ t => exact hrec t
+      H_FB := fun t _ => ⟨t - p.L, by omega, by omega, rfl⟩
+      H_LOOP_POS := by omega }
+  have FP := Formal.Cells.CElemTiming.c2_four_phase LB V c E H_ALT H_ORDER H_BOTH H_NEXT
+    H_NORST H_ACK H_ENV_LATENCY (fun u h1 h2 => by omega)
+  -- edges of O are exactly at phase starts
+  have edge : ∀ u, O (u + 1) ≠ O u → ∃ k, u + 1 = c k := by
+    intro u hu
+    by_cases h0 : u + 1 < c 0
+    · exact absurd ((hpre (u + 1) h0).trans (hpre u (by omega)).symm) hu
+    · by_cases h1 : u + 1 = c 0
+      · exact ⟨0, h1⟩
+      · obtain ⟨k, hk1, hk2⟩ := bracket_c H_ORDER (show c 0 ≤ u by omega)
+        by_cases h2 : u + 1 < c (k + 1)
+        · exact absurd (((FP k).1 (u + 1) (by omega) (by omega)).trans
+            ((FP k).1 u (by omega) (by omega)).symm) hu
+        · exact ⟨k + 1, by omega⟩
+  -- consecutive phase starts are at least E apart (B's H_ACK at the next phase start)
+  have gap : ∀ j, c j + E ≤ c (j + 1) := by
+    intro j
+    have hb := H_BOTH (j + 1)
+    rw [H_ALT j] at hb
+    obtain ⟨u, hu1, hu2, _⟩ := H_ACK j (c (j + 1)) (Nat.le_of_lt (H_ORDER j))
+      (Or.inl (by rw [hb.1]; cases V j <;> simp))
+    omega
+  have hsp : Spaced p.L O := by
+    intro u v huv eu ev
+    obtain ⟨j, hj⟩ := edge u eu
+    obtain ⟨k, hk⟩ := edge v ev
+    have hjk : j < k := by
+      apply Classical.byContradiction; intro hn
+      by_cases he : j = k
+      · subst he; omega
+      · have := mono_c H_ORDER k j (by omega); omega
+    have h1 := gap j
+    have h2 : c (j + 1) ≤ c k := by
+      by_cases he : j + 1 = k
+      · subst he; exact Nat.le_refl _
+      · exact Nat.le_of_lt (mono_c H_ORDER (j + 1) k (by omega))
+    omega
+  exact spaced_identity hL h hO0 hrec hsp
+
 end Formal.Core.GLSResolve

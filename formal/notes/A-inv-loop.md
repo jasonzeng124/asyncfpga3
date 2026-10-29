@@ -8,7 +8,7 @@ STATUS (InvLoop, first probe): done. `InvolutionLoop.lean` checked: `formal/chec
 
 ## InvLoop2 (session 2026-10-29, second probe)
 
-STATUS InvLoop2: done (pending the lead's check.sh rerun). Files (all `formal/lean/Formal/Core/Delay/`):
+STATUS InvLoop2: done. check.sh (command below) → `[audit] 994 declarations checked`, `[check] OK`. Files (all `formal/lean/Formal/Core/Delay/`):
 `InvolutionLoopBridge.lean` (the old `Wip/InvLoop/Bridge.lean`, unchanged proofs), `InvolutionLoopSignal.lean`,
 `InvolutionLoopRate.lean`. They import B's `Formal.Cells.CElemInvolution` / `ArbInvolution` read-only
 (Mathlib topology). Checked: `formal/check.sh Formal/Cells/CElemInvolution.lean Formal/Cells/ArbInvolution.lean
