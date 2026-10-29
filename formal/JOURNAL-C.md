@@ -46,8 +46,11 @@
   bounded-delay runs: no deadlock). 8z3: every gcd_hw gate is persistent under H_CELLS,
   H_BUNDLE, H_START_ONCE (`gcd_hw_persistent_all`) EXCEPT the 22 mux input-ack C-elements,
   whose falling excitation can be withdrawn (`mux_full_pers_false`, local; reachable in
-  simulation, never deadlocking), so the confluence route needs repair; 8z4 tries the walk
-  route. Joint witness for every hypothesis of both
+  simulation, never deadlocking), so the confluence route needs repair. 8z4: generic timed->interleaving serialization theorem
+  (`serial`, `trace_nodead`; rank hypothesis necessary: `arb_not_reach`) and `mux_out_not_mux`
+  (no mux output feeds a mux, so a rank exists); its other premise (`hex`) not instantiated for
+  gcd_hw. Exhaustive interleaving search (Python): no deadlock in ~2.7 M states, incomplete. The
+  walk route needs a combined well-founded measure (data arrival + return-to-zero waits). Joint witness for every hypothesis of both
   theorems: one run (12/18, H=1) closing out0 at tick 473 with 6. Do not cite 8u's
   `gcd_hw_live` (likely vacuous) or 8z's `gcd_hw_live_final` as a liveness result.
   Physical refinement (8x): under per-arc BoundedDelay semantics (glitches allowed) a node
@@ -609,3 +612,7 @@ inside the capstone) and witgen (active run under H_GEN).
 ### progress 11:30
 10o committed after my own check.sh (ChainSettle*, 197 decls); tool results committed, the
 74 MB regenerable obligation files ignored.
+
+### progress 11:31
+8z4 committed after my own check.sh (2 files, 3069 decls); H_NO_DEADLOCK'' remains OPEN.
+10o committed. Launched 10o2 (ChainSettle -> O4 bridge, Lean checker for chainck).

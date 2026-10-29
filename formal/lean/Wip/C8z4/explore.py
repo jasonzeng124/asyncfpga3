@@ -208,6 +208,7 @@ def build(names, ops, out0, abstract, a=0, b=0):
 
 
 SEEDS = 12
+STOP1 = True
 HOLD = '--hold' in sys.argv   # negative control: start never released (8z2's counterexample)
 
 def explore(M, ops, out0, maxstates, names):
@@ -267,15 +268,17 @@ def explore(M, ops, out0, maxstates, names):
     H = lambda x: hashlib.blake2b(x, digest_size=16).digest()
     seen = {H(s0): None}
     stack = [s0]
-    dead = []; nst = 0; t0 = time.time(); maxen = 0; contested = 0
+    dead = []; nst = 0; nterm = 0; t0 = time.time(); maxen = 0; contested = 0
     while stack:
         s = stack.pop(); nst += 1
         en = enabled(s)
         if not en:
             # out0's first token closed? (req low, ack high: the sink would now lower ack)
-            if not (s[NC + out0] and not s[out0]):
+            if s[NC + out0] and not s[out0]:
+                nterm += 1
+            else:
                 dead.append(s)
-                if len(dead) >= 3: break
+                if len(dead) >= 1 and STOP1: break
             continue
         maxen = max(maxen, len(en))
         best = [len(en) + 1]
@@ -295,9 +298,10 @@ def explore(M, ops, out0, maxstates, names):
                         seen[h2] = (hs, gi, ci); stack.append(s2)
         if nst % 1000 == 0:
             print(f"  {nst} expanded, {len(seen)} seen, stack {len(stack)}, maxen {maxen}, "
-                  f"{time.time() - t0:.0f}s", flush=True)
+                  f"out0-closed leaves {nterm}, {time.time() - t0:.0f}s", flush=True)
         if len(seen) > maxstates:
-            print("STATE LIMIT"); return dict(complete=False, seen=len(seen), dead=dead, seenmap=seen)
+            print("STATE LIMIT"); return dict(complete=False, seen=len(seen), dead=dead, seenmap=seen, H=H)
+    print(f"out0-closed leaves {nterm}")
     return dict(complete=not stack, seen=len(seen), dead=dead, seenmap=seen, expanded=nst, H=H)
 
 
