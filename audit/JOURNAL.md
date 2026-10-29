@@ -266,3 +266,8 @@ late, not lost' REFUTED (read the lines myself; follow pulses <= TLOOP lost 40/4
 ### progress 09:27
 r15 in: ring128_summary soft MISMATCH reproduced exactly from 8 rebuilt routes (md5s match), grading correct; unstated
 ~1/3 false-fail rate of the all-7-inside criterion. BQ#2 full stack SLOW_MAX 16/16 reproduced. P10a/b/c running.
+
+### progress 09:46
+P10b in: Core/Prims arcs CONFIRMED (506/506 vs prjxray); Seq flop windows SLICEL-only -- SLICEM hold 262 > model 241 (I
+checked slicem.sdf:618) -> OVERSTATED; 'X then definite' assumed; DSP and XSound2 minor overstatements; Involution
+trace/loop CONFIRMED.

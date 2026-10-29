@@ -34,6 +34,7 @@ open Formal.Core.DelayInvolution Formal.Core.DelayInvolutionTransfer
 theorem my_channel4 : ratPair.channel [0, 1 / 2, 5, 6] = [89 / 13, 107 / 15] := by
   simp only [InvolutionPair.channel, List.foldl, InvolutionPair.step,
     InvolutionPair.rat_delayAt, ratDelay]
+  rw [show ratPair.infUp = (2 : ℝ) from rfl]
   norm_num
 
 /-! ## Own instance of the loop threshold for ratPair (symmetric, δ∞ = 2):
@@ -43,7 +44,7 @@ open Formal.Core.InvolutionLoop in
 theorem rat_crit_bounds {h l : ℝ} (S : Stat ratPair h l) :
     1.35 < crit ratPair l ∧ crit ratPair l < 1.4 := by
   have Y : Sym ratPair := ⟨fun _ => rfl, rfl⟩
-  have hl : h = l := Sym.duty ratPair Y S
+  have hl : h = l := Sym.duty Y S
   subst hl
   have e := S.up_eq
   have h0 := S.h_pos

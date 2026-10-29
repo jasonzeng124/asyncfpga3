@@ -9,6 +9,7 @@ open Formal.Core.DelayInvolution Formal.Core.DelayInvolutionTransfer Formal.Core
 theorem m1 : ratPair.channel [0, 1 / 2, 5] = [7] := by
   simp only [InvolutionPair.channel, List.foldl, InvolutionPair.step,
     InvolutionPair.rat_delayAt, ratDelay]
+  rw [show ratPair.infUp = (2 : ℝ) from rfl]
   norm_num
 
 /-- M2: the guaranteed F7/F8 glitch width bound raised from 16 to 17 ps (fast). -/
