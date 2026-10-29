@@ -1311,3 +1311,21 @@ Audit (claude/audit fb4df88, passes 9-10): rows on B are CONFIRMED except:
   gate models assumed after T0; conclusion vacuous on the witness): agreed, as stated.
 - ContractBridge's H_ARB_EXCL counter-run is the binary model's endless oscillation,
   not evidence that silicon overlaps: agreed (it is a model counter-run).
+
+### progress 10:45
+In: Bfin FiniteRuns{,Wit,WitData} (core; checked here, axioms standard;
+notes/B-finite-runs.md). Confirms gcd_hw_safe_net has the same restriction as the
+two link theorems (gcdNetOK_req_alternates; chW meets no GcdNetOK, chW_no_gcdNet).
+Finite forms: FEnv1 / FEnvG / FPhysLink are Env1 / EnvG / PhysLink with finite edge
+counts (0 allowed; each pin constant after its last edge; same per-phase timing);
+the bridge is re-proved (flink_lutFb, fcelG_lutFb, flink_link_env, link_of_fphys).
+gcd_hw_safe_fin_links = gcd_hw_safe_phys_links with FPhysLink per link, and it now
+has a JOINT non-vacuity witness on a real terminating gcd run: C's chW (a=12, b=18,
+quiet after 476 ticks, out0 latches 6) meets FPhysLink on all 175 links (34 never
+see a request), kernel-checked through a checker with proved soundness, together with
+C's H_CELLS for the other 192 operators, H_BUNDLE and H_CM_FORCED
+(gcd_hw_fin_links_witness). Caveat: chW is C's unit-delay simulation, so every B
+window is met at width 0 (lo = hi = 1), not at a prjxray band. Open: the network
+closure in finite form (finite chain_env1 / mixed_closed): a quiet run's last
+segments never end, so ag_time's end-time measure fails; needs time-truncated segK
+lemmas. So the link Env1 is still assumed per link in the finite theorem.
