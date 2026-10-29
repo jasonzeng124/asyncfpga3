@@ -697,3 +697,16 @@ lower bound on the grant's count from the shadow's, which no log rule gives. All
 before. Recorded runs: old core wrong on 54/64 (N1) runs, corrected core 576/576 arbiter-runs match, mutations
 caught (31/576, 128/576). model.py now builds the corrected core by default (XA_ARB=old for the old one). Probe
 E9Par launched (liveness rule for the shadows).
+### progress 11:04
+InvExp claimed: Formal/Core/Delay/InvolutionExp.lean (check.sh with the involution chain: 1227 decls, [check] OK;
+Mathlib Log/Sqrt). expR: a real exp/log InvolutionPair, delta(T) = T_p + tau ln(2 - e^{-(T+T_p)/tau}) (= the paper
+form delta_inf + tau ln(1 - e^{-(T+delta_inf)/tau}), expR_paper), delta_inf = T_p + tau ln 2, dmin = T_p; a pulse is
+cancelled iff width <= tau ln 2. **The formula in my probe brief was not an involution** (bad_not_involution, for
+0 < T_p < tau ln 2); I wrote it from memory and the paper's full text is not reachable here. Stationary train in
+closed form w* = tau ln x, x = (sqrt(1+8e^{T_p/tau}) - 1)/2, unique, 0 < w* < T_p; s* = T_p + tau ln(2/x). Slope
+bounds kappa = q/(2-q) (q = e^{-T_p/tau}) on (-delta_inf, 0] and K(M) = r/(2-r) on [-M, inf) (no global K: delta'
+blows up at the domain edge); laps_two_sided instantiated with every hypothesis discharged (exp_laps, exp_laps_log,
+exp_resolution: for s != s* the first cancellation index m exists and is odd iff s > s*). Numeric table (Float,
+the model, not silicon, TLOOP 424 ps read as delta_inf): time per e-fold of 1/|s-s*| 42460 / 1728 / 514 ps at tau
+40 / 100 / 200 ps, matching A-fid3's TAU_eff by a second method and 3.4x-280x the research GLS's TAU = 150 ps. Bounds
+are loose (global minimum slope, not the local gain).
