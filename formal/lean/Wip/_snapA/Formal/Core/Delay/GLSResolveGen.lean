@@ -209,8 +209,7 @@ theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat
     {s w : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (hw1 : 1 ≤ w) (hw : w < p.L)
     (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
-    (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w))
-    (hF1 : ∀ t, s ≤ t → F t true = true) :
+    (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w)) :
     ∀ t, s - 1 ≤ t → t < Iend p s w → st t = Sseg p Q s w t := by
   intro t
   induction t using Nat.strongRecOn with
@@ -332,11 +331,10 @@ theorem seg_window_end {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : N
     {s w : Nat} (hL : 1 ≤ p.L) (hs : 1 ≤ s) (hw1 : 1 ≤ w) (hw : w < p.L)
     (h : GRun p F v0 st) (hQ : st (s - 1) = Q) (hq : Quiet p.L Q s)
     (hpre : ∀ t, s ≤ t → t - p.L < s → (st (t - p.L)).o = false)
-    (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w))
-    (hF1 : ∀ t, s ≤ t → F t true = true) :
+    (hF0 : ∀ t, s ≤ t → t ≤ s + w → F t false = decide (t < s + w)) :
     (st (Iend p s w)).o = F (Iend p s w) (finalS p s w) ∧
     (st (Iend p s w - 1)).o = finalS p s w := by
-  have pre := seg_runt_pre hL hs hw1 hw h hQ hq hpre hF0 hF1
+  have pre := seg_runt_pre hL hs hw1 hw h hQ hq hpre hF0
   have hIe := Iend_eq p s w
   have hlast : st (Iend p s w - 1) = Sseg p Q s w (Iend p s w - 1) := pre _ (by omega) (by omega)
   have hfb : (st (Iend p s w - p.L)).o = finalS p s w := by
@@ -369,7 +367,7 @@ theorem seg_runt {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat →
     (hF0' : ∀ t, Iend p s w ≤ t → F t false = false)
     (hF1 : ∀ t, s ≤ t → F t true = true) :
     ∀ t, s - 1 ≤ t → st t = Sseg p Q s w t := by
-  have pre := seg_runt_pre hL hs hw1 hw h hQ hq hpre hF0 hF1
+  have pre := seg_runt_pre hL hs hw1 hw h hQ hq hpre hF0
   have hIe := Iend_eq p s w
   intro t
   induction t using Nat.strongRecOn with
@@ -466,5 +464,282 @@ theorem run_runt_gen' {p : Prm} {t0 w : Nat} {b : Sig} {st : Nat → St} (hL : 1
     rw [hb1 u h2]; simp [bPulse]; omega
   · intro u hu; simp only [c2F, aOne, rstZero, fC2_or, Bool.or_false]; exact hb2 u hu
   · intro u _; simp only [c2F, aOne, rstZero, fC2_or, Bool.or_true]
+
+/-! ## 3. bd_c2n (`bd_ce.v:49`, C(a, ~b), comes up at 0) -/
+
+/-- The fid LUT function of bd_c2n on its real INIT (pins `I0 a, I1 b, I2 q, I3 rst`). -/
+def fC2n (a b q r : Bool) : Bool := lut6 Formal.Cells.CElemTiming.INIT_c2n (pins a b q r)
+
+theorem fC2n_eq (a b q r : Bool) :
+    fC2n a b q r = (!r && ((a && !b) || (a && q) || (!b && q))) := by
+  cases a <;> cases b <;> cases q <;> cases r <;> decide
+
+/-- The fid mux tree and B's `Prelim.lutB` agree on bd_c2n (B's `CElemTiming.c2n_eq`). -/
+theorem fC2n_eq_exc (a b q r : Bool) :
+    fC2n a b q r = Formal.Cells.CElemTiming.exc Formal.Cells.CElemTiming.INIT_c2n a b q r := by
+  rw [fC2n_eq, Formal.Cells.CElemTiming.c2n_eq]
+
+def c2nF (a b rst : Sig) : Nat → Bool → Bool := fun t q => fC2n (a t) (b t) q (rst t)
+
+theorem c2nF_lut (a b rst : Sig) :
+    c2nF a b rst = lutF Formal.Cells.CElemTiming.INIT_c2n 2 (fun t => pins (a t) (b t) false (rst t)) := by
+  funext t q
+  simp only [c2nF, fC2n, lutF]
+  congr 1
+  funext i
+  rcases i with _ | _ | _ | _ | n <;> simp [pins]
+
+def bZero : Sig := fun _ => false
+
+/-- **bd_c2n, a runt on `a` with `b = 0`** (`C(a, ~0) = a ∨ q`): the output for every width
+`w < TLOOP`, every draw, every law; the same three shapes as bd_c2 (`out_runt`): the
+"rejected" runt is emitted in full, a commit has a gap of width `trp`. -/
+theorem c2n_out_runt {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw1 : 1 ≤ w) (hw : w < p.L) (h : GRun p (c2nF (bPulse t0 w) bZero rstZero) false st) (t : Nat) :
+    (st t).o = decide (t0 ≤ t ∧ (t < t0 + w ∨
+      (resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) = .commit ∧ t0 + w + trpS p t0 w ≤ t))) := by
+  refine grun_runt_o hL ht0 hw1 hw h ?_ ?_ ?_ ?_ t
+  · intro u _ hu; simp [c2nF, fC2n_eq, bZero, rstZero, bPulse]; omega
+  · intro u h1 h2; simp [c2nF, fC2n_eq, bZero, rstZero, bPulse]; omega
+  · intro u hu; rw [Iend_eq] at hu; simp [c2nF, fC2n_eq, bZero, rstZero, bPulse]; omega
+  · intro u _; simp [c2nF, fC2n_eq, bZero, rstZero]
+
+/-- bd_c2n, a pulse on `a` at least one loop delay wide: a clean set. -/
+theorem c2n_out_wide {p : Prm} {t0 w : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw : p.L ≤ w) (h : GRun p (c2nF (bPulse t0 w) bZero rstZero) false st) (t : Nat) :
+    (st t).o = decide (t0 ≤ t) := by
+  refine grun_wide hL ht0 h ?_ ?_ ?_ t
+  · intro u _ hu; simp [c2nF, fC2n_eq, bZero, rstZero, bPulse]; omega
+  · intro u h1 h2; simp [c2nF, fC2n_eq, bZero, rstZero, bPulse]; omega
+  · intro u _; simp [c2nF, fC2n_eq, bZero, rstZero]
+
+/-! ## 4. The arbiter's state node (`bd_arb.v:245-247`, `ustate` O6) -/
+
+/-- `bd_arbiter.ustate`, verbatim (`bd_arb.v:245`; `Gen/Cells.lean:1193`; B's
+`ArbHandover.INIT_HELD` / `ArbA0Fork.ST_INIT`). -/
+def INIT_ARB : Nat := 0xFFF0FFB2ACACACAC
+
+/-- Pin map of `ustate`: `I0 r1, I1 r2, I2 q, I3 rst, I4 A0, I5 1`. -/
+def pinsArb (r1 r2 q rst a0 : Bool) : Nat → Bool
+  | 0 => r1 | 1 => r2 | 2 => q | 3 => rst | 4 => a0 | _ => true
+
+/-- The fid LUT function of the arbiter's q (O6 of `ustate`). -/
+def fArb (r1 r2 q rst a0 : Bool) : Bool := lut6 INIT_ARB (pinsArb r1 r2 q rst a0)
+
+theorem fArb_eq (r1 r2 q rst a0 : Bool) :
+    fArb r1 r2 q rst a0 =
+      (rst || (if a0 then q else ((r1 && !r2) || (r1 && q) || (!r2 && q)))) := by
+  cases r1 <;> cases r2 <;> cases q <;> cases rst <;> cases a0 <;> decide
+
+/-- The fid mux tree and B's `o6B` agree on the held node (B's `ArbHandover.held_q_eqn`). -/
+theorem fArb_eq_B (r1 r2 q rst a0 : Bool) :
+    fArb r1 r2 q rst a0 =
+      Formal.Cells.o6B Formal.Cells.ArbHandover.INIT_HELD [r1, r2, q, rst, a0, true] := by
+  rw [fArb_eq, Formal.Cells.ArbHandover.held_q_eqn]
+
+def arbF (r1 r2 rst a0 : Sig) : Nat → Bool → Bool := fun t q => fArb (r1 t) (r2 t) q (rst t) (a0 t)
+
+theorem arbF_lut (r1 r2 rst a0 : Sig) :
+    arbF r1 r2 rst a0 = lutF INIT_ARB 2 (fun t => pinsArb (r1 t) (r2 t) false (rst t) (a0 t)) := by
+  funext t q
+  simp only [arbF, fArb, lutF]
+  congr 1
+  funext i
+  rcases i with _ | _ | _ | _ | _ | n <;> simp [pinsArb]
+
+/-- A rising step at `T`. -/
+def stepS (T : Nat) : Sig := fun t => decide (T ≤ t)
+
+/-- **The arbiter's near tie under the resolver.** `q = 0` and the node quiet (`hq`, `hpre`:
+e.g. after a client-2 transaction), `rst = 0`; at ustate's mux `r1` rises at `T0`, `r2` at
+`T0 + w` with `w < TLOOP`, both stay up (four-phase clients waiting); `A0` low up to the
+decision and ARBITRARY afterwards. Then for every draw and every law
+`q = [T0 ≤ t ∧ (t < T0 + w ∨ (commit ∧ T0 + w + trp ≤ t))]`: whatever `A0` does after the
+decision (the hold included) has no effect on q. -/
+theorem arb_near_tie {p : Prm} {v0 : Bool} {st : Nat → St} {Q : St} {T0 w : Nat} {A0 : Sig}
+    (hL : 1 ≤ p.L) (hT0 : 1 ≤ T0) (hw1 : 1 ≤ w) (hw : w < p.L)
+    (h : GRun p (arbF (stepS T0) (stepS (T0 + w)) rstZero A0) v0 st)
+    (hQ : st (T0 - 1) = Q) (hq : Quiet p.L Q T0)
+    (hpre : ∀ t, T0 ≤ t → t - p.L < T0 → (st (t - p.L)).o = false)
+    (hA0 : ∀ t, t ≤ T0 + w → A0 t = false) :
+    ∀ t, T0 ≤ t → (st t).o = decide (t < T0 + w ∨
+      (resolve (w : Int) (p.L : Int) p.win (p.nz (T0 + w)) = .commit ∧ T0 + w + trpS p T0 w ≤ t)) := by
+  intro t ht
+  rw [seg_runt hL hT0 hw1 hw h hQ hq hpre ?_ ?_ ?_ t (by omega), Sseg_o _ _ _ _ _ ht]
+  · intro u h1 h2
+    simp only [arbF, fArb_eq, stepS, rstZero, hA0 u h2]
+    by_cases hu : u < T0 + w <;> simp [hu, show T0 ≤ u by omega] <;> omega
+  · intro u hu
+    rw [Iend_eq] at hu
+    simp only [arbF, fArb_eq, stepS, rstZero]
+    cases A0 u <;> simp; omega
+  · intro u hu
+    simp only [arbF, fArb_eq, stepS, rstZero]
+    cases A0 u <;> simp [show T0 ≤ u by omega]
+
+/-- The grants at the ack C-elements' pins: `ugrant` (`bd_arb.v:249`, B's `g1F`/`g2F` on the
+real INIT) reads `r_k` and `q` with ONE delay `D_k` (pin arcs + routes to its output, plus the
+grant route to `ua_k`'s pin). The fid `ugrant` has no resolver (no self-loop): a transport mux. -/
+def gA1 (stq : Nat → St) (T0 D1 : Nat) : Sig := fun t =>
+  Formal.Cells.ArbHandover.g1F (stepS T0 (t - D1)) false (stq (t - D1)).o
+def gA2 (stq : Nat → St) (T0 w D2 : Nat) : Sig := fun t =>
+  Formal.Cells.ArbHandover.g2F false (stepS (T0 + w) (t - D2)) (stq (t - D2)).o
+
+/-- **Counterexample: a committed near tie acknowledges BOTH clients under ONE A0 pulse.**
+The q node as in `arb_near_tie`, started from a quiet reset at `q = 0`, and the draw commits
+(client 1 wins). A0 (the server's acknowledge) rises ONCE and stays high: at `ua_k`'s A0 pin
+at `sA_k`. `ua1`, `ua2` are bd_c2 resolver runs (`I0` grant, `I1` A0). If A0 reaches ua2 while
+ua2's grant shows the commit gap for at least ua2's loop delay
+(`T0 + w + D2 ≤ sA2`, `sA2 + L2 ≤ T0 + w + trp + D2`), and reaches ua1 inside the gap too
+(`T0 + w + D1 ≤ sA1 ≤ T0 + w + trp + D1`), then from `T0 + w + trp + D1` on `A1 = A2 = 1`
+while A0 is high: two clients acknowledged for one server transaction, the failure the A0
+hold exists to prevent (`bd_arb.v` header, "Client 2 is acknowledged ... for a transaction
+the server never began"). The grants are exclusive at every instant throughout
+(`g1F_eqn`, `g2F_eqn`: they read one q), and A0 is a single clean step, so neither a grant-
+exclusion check nor an X check flags the run. -/
+theorem arb_double_ack {pq p1 p2 : Prm} {stq st1 st2 : Nat → St} {T0 w D1 D2 sA1 sA2 : Nat}
+    {A0q : Sig}
+    (hLq : 1 ≤ pq.L) (hL1 : 1 ≤ p1.L) (hL2 : 1 ≤ p2.L) (hT0 : 1 ≤ T0) (hw1 : 1 ≤ w) (hw : w < pq.L)
+    (hq : GRun pq (arbF (stepS T0) (stepS (T0 + w)) rstZero A0q) false stq)
+    (hA0q : ∀ t, t ≤ T0 + w → A0q t = false)
+    (hc : resolve (w : Int) (pq.L : Int) pq.win (pq.nz (T0 + w)) = .commit)
+    (h1 : GRun p1 (c2F (gA1 stq T0 D1) (stepS sA1) rstZero) false st1)
+    (h2 : GRun p2 (c2F (gA2 stq T0 w D2) (stepS sA2) rstZero) false st2)
+    (hs1 : T0 + w + D1 ≤ sA1) (hs1' : sA1 ≤ T0 + w + trpS pq T0 w + D1)
+    (hs2 : T0 + w + D2 ≤ sA2) (hs2' : sA2 + p2.L ≤ T0 + w + trpS pq T0 w + D2) :
+    ∀ t, T0 + w + trpS pq T0 w + D1 ≤ t →
+      (st1 t).o = true ∧ (st2 t).o = true ∧ stepS sA1 t = true ∧ stepS sA2 t = true := by
+  -- the q node
+  have hqq := grun_quiet hLq hq (s := T0) (fun u _ hu => by
+    simp only [arbF, fArb_eq, stepS, rstZero]; cases A0q u <;> simp <;> omega)
+  have qo := arb_near_tie hLq hT0 hw1 hw hq (hqq (T0 - 1) (by omega)) (quiet_init pq.L T0)
+    (fun u _ hu => by rw [hqq _ hu]; rfl) hA0q
+  have qv : ∀ u, (stq u).o = decide (T0 ≤ u ∧ (u < T0 + w ∨ T0 + w + trpS pq T0 w ≤ u)) := by
+    intro u
+    by_cases hu : T0 ≤ u
+    · rw [qo u hu]; simp [hc, hu]
+    · rw [hqq u (by omega)]; simp [St.init, hu]
+  generalize hR : trpS pq T0 w = R at qv hs1' hs2' ⊢
+  intro t ht
+  refine ⟨?_, ?_, by simp [stepS]; omega, by simp [stepS]; omega⟩
+  · -- ua1: a wide set at T0 + w + R + D1
+    refine grun_wide hL1 (by omega) h1 ?_ ?_ ?_ t |>.trans (by simp; omega)
+    · intro u _ hu
+      simp only [c2F, fC2_eq, gA1, Formal.Cells.ArbHandover.g1F_eqn, stepS, rstZero, qv]
+      by_cases ha : sA1 ≤ u
+      · simp [ha]; omega
+      · simp [ha]
+    · intro u h1' _
+      simp only [c2F, fC2_eq, gA1, Formal.Cells.ArbHandover.g1F_eqn, stepS, rstZero, qv]
+      simp; omega
+    · intro u hu
+      simp only [c2F, fC2_eq, gA1, Formal.Cells.ArbHandover.g1F_eqn, stepS, rstZero]
+      simp; omega
+  · -- ua2: a wide set at sA2
+    refine grun_wide hL2 (by omega) h2 ?_ ?_ ?_ t |>.trans (by simp; omega)
+    · intro u _ hu
+      simp only [c2F, fC2_eq, gA2, Formal.Cells.ArbHandover.g2F_eqn, stepS, rstZero]
+      simp [show ¬ sA2 ≤ u by omega]
+    · intro u h1' h2'
+      simp only [c2F, fC2_eq, gA2, Formal.Cells.ArbHandover.g2F_eqn, stepS, rstZero, qv]
+      simp; omega
+    · intro u hu
+      simp only [c2F, fC2_eq, gA2, Formal.Cells.ArbHandover.g2F_eqn, stepS, rstZero]
+      simp; omega
+
+/-- The harmless side of a commit: if A0 reaches ua2 only after ua2's grant has closed the
+gap (`T0 + w + trp + D2 ≤ sA2`), ua2 never moves (A2 = 0 forever), whatever ua2's draws.
+(Without a commit client 2 wins and A2 rises legitimately.) -/
+theorem arb_gap_closed {pq p2 : Prm} {stq st2 : Nat → St} {T0 w D2 sA2 : Nat} {A0q : Sig}
+    (hLq : 1 ≤ pq.L) (hL2 : 1 ≤ p2.L) (hT0 : 1 ≤ T0) (hw1 : 1 ≤ w) (hw : w < pq.L)
+    (hq : GRun pq (arbF (stepS T0) (stepS (T0 + w)) rstZero A0q) false stq)
+    (hA0q : ∀ t, t ≤ T0 + w → A0q t = false)
+    (hc : resolve (w : Int) (pq.L : Int) pq.win (pq.nz (T0 + w)) = .commit)
+    (h2 : GRun p2 (c2F (gA2 stq T0 w D2) (stepS sA2) rstZero) false st2)
+    (hs2 : T0 + w + trpS pq T0 w + D2 ≤ sA2) :
+    ∀ t, (st2 t).o = false := by
+  have hqq := grun_quiet hLq hq (s := T0) (fun u _ hu => by
+    simp only [arbF, fArb_eq, stepS, rstZero]; cases A0q u <;> simp <;> omega)
+  have qo := arb_near_tie hLq hT0 hw1 hw hq (hqq (T0 - 1) (by omega)) (quiet_init pq.L T0)
+    (fun u _ hu => by rw [hqq _ hu]; rfl) hA0q
+  intro t
+  have e := grun_quiet hL2 h2 (s := t + 1) (fun u _ _ => by
+    simp only [c2F, fC2_eq, gA2, Formal.Cells.ArbHandover.g2F_eqn, stepS, rstZero]
+    by_cases ha : sA2 ≤ u
+    · rw [qo (u - D2) (by omega)]
+      simp [ha, hc]; omega
+    · simp [ha]) t (by omega)
+  rw [e]; rfl
+
+/-! ## 5. The late runt (b still high when the window ends) -/
+
+/-- **A pulse that is still present at `ign_until` is applied there, and its end becomes a
+new runt.** bd_c2 with `a = 1`, `rst = 0`, empty; `b` = a runt `[t0, t0 + w)` whose draw does
+not commit, then a pulse `[t1, t1 + w2)` that starts inside the ignore window
+(`t1 ≤ I = ign_until`) and ends less than TLOOP after it (`I < t1 + w2 < I + TLOOP`). Then
+`q` rises at `I` (late), and the fall of `b` at `t1 + w2` is a runt of width
+`w' = t1 + w2 - I`, decided by the draw at `t1 + w2`: from then on
+`q = [commit' ∧ t1 + w2 + trp' ≤ t]`. When that draw does not commit, the pulse ends with
+`q = 0` forever, although every behaviour of B's `Loop` at the same delay point has `O = 1`
+from `t1` on whenever `w2 ≥ TLOOP` (B's `c2_follow_hold`). -/
+theorem late_runt {p : Prm} {t0 w t1 w2 : Nat} {st : Nat → St} (hL : 1 ≤ p.L) (ht0 : 1 ≤ t0)
+    (hw1 : 1 ≤ w) (hw : w < p.L) (h01 : t0 + w < t1)
+    (hI1 : t1 ≤ Iend p t0 w) (hI2 : Iend p t0 w < t1 + w2) (hI3 : t1 + w2 < Iend p t0 w + p.L)
+    (hr : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) ≠ .commit)
+    (h : Run p aOne (bTwo t0 w t1 w2) rstZero false st) :
+    (∀ t, Iend p t0 w ≤ t → t < t1 + w2 → (st t).o = true) ∧
+    (∀ t, t1 + w2 ≤ t → (st t).o = decide
+      (resolve ((t1 + w2 - Iend p t0 w : Nat) : Int) (p.L : Int) p.win (p.nz (t1 + w2)) = .commit ∧
+        t1 + w2 + trpS p (Iend p t0 w) (t1 + w2 - Iend p t0 w) ≤ t)) := by
+  have hg := (run_iff_grun p aOne (bTwo t0 w t1 w2) rstZero false st).1 h
+  have F_eq : ∀ u q, c2F aOne (bTwo t0 w t1 w2) rstZero u q = (bTwo t0 w t1 w2 u || q) := by
+    intro u q; simp only [c2F, aOne, rstZero, fC2_or]
+  have hIe := Iend_eq p t0 w
+  -- segment 1, up to the end of its window
+  have hq0 := grun_quiet hL hg (s := t0) (fun u _ hu => by
+    rw [F_eq]; simp [bTwo, bPulse]; omega)
+  have pre1 := seg_runt_pre hL ht0 hw1 hw hg (hq0 (t0 - 1) (by omega)) (quiet_init p.L t0)
+    (fun u _ hu => by rw [hq0 _ hu]; rfl)
+    (fun u h1 h2 => by
+      rw [F_eq]; by_cases hu : u < t0 + w <;> simp [bTwo, bPulse, hu, h1] <;> omega)
+  have hT : trpS p t0 w = (match resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) with
+      | .reject => 0 | _ => p.R (p.delta w (t0 + w))) := rfl
+  generalize hI : Iend p t0 w = I at hI1 hI2 hI3 hIe pre1 ⊢
+  -- the state at I - 1: decided at 0, not busy, window ends at I, no last edge
+  have hfin : ∀ u, t0 + w + trpS p t0 w ≤ u → u < I → (st u).o = false := by
+    intro u h1 h2
+    rw [pre1 u (by omega) h2, Sseg_final _ _ _ _ _ h1]; simp [finalS, hr]
+  have hQ2 : Quiet p.L (st (I - 1)) I := by
+    rw [pre1 (I - 1) (by omega) (by omega)]
+    unfold Sseg trpS at *
+    cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (t0 + w)) <;> simp [hres] at hIe hr ⊢ <;>
+      refine ⟨?_, ?_, ?_, ?_⟩ <;>
+      simp [show ¬ I - 1 < t0 by omega, show ¬ I - 1 < t0 + w by omega] <;> omega
+  -- segment 2: a set runt of width w' = t1 + w2 - I starting at I
+  have seg2 := seg_runt (s := I) (w := t1 + w2 - I) hL (by omega) (by omega) (by omega) hg rfl hQ2
+    (fun u h1 h2 => hfin _ (by omega) (by omega))
+    (fun u h1 h2 => by
+      rw [F_eq]; by_cases hu : u < I + (t1 + w2 - I) <;> simp [bTwo, bPulse, hu] <;> omega)
+    (fun u hu => by rw [F_eq, Iend_eq] at *; simp [bTwo, bPulse]; omega)
+    (fun u _ => by rw [F_eq]; simp)
+  refine ⟨fun t h1 h2 => ?_, fun t h1 => ?_⟩
+  · rw [seg2 t (by omega), Sseg_o _ _ _ _ _ h1]; simp; omega
+  · rw [seg2 t (by omega), Sseg_o _ _ _ _ _ (by omega)]
+    rw [show I + (t1 + w2 - I) = t1 + w2 by omega]
+    simp [show ¬ t < t1 + w2 by omega]
+
+/-- B's side of the same scenario: with `w2 ≥ TLOOP`, every `Loop` behaviour at the
+resolver run's delay point has `O = 1` from `t1` on, and one exists. -/
+theorem late_runt_B {L t0 w t1 w2 : Nat} (hL : 1 ≤ L) (hw2 : L ≤ w2) :
+    (∀ O qp, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne
+        (bTwo t0 w t1 w2) rstZero O qp 0 0 L L → ∀ t, t1 ≤ t → O t = true) ∧
+    (∃ O qp, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 aOne
+        (bTwo t0 w t1 w2) rstZero O qp 0 0 L L) := by
+  refine ⟨?_, bloop_exists _ _ _ false hL⟩
+  intro O qp LB t ht
+  have := Formal.Cells.CElemTiming.c2_follow_hold LB true t1 t
+    (fun s h1 h2 => ⟨rfl, by simp [bTwo, bPulse]; omega, rfl⟩)
+    (fun _ _ _ => rfl) (fun _ _ _ => Or.inl rfl)
+  exact this.1 t (by omega) (by omega)
 
 end Formal.Core.GLSResolveGen
