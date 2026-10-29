@@ -313,3 +313,7 @@ audit/tools/kwgrep.py (comment/string-aware): 722 files under Formal/, 1 hit = N
 (identifier, not the keyword); catches a planted `sorry`. Subagents P12a (shard C phys2-5, O4b, ChainSettle, 8z4),
 P12b (shard B FiniteNet, SelfAuditB9, ArbCounterRuns, ArbAMergeRun, MuxN, Bj11), P12c (shard A InvolutionExp,
 Events9Sel/Prefix/Arb, CornerCell/BandCheck, XInert) launched.
+
+### progress 15:32
+Toolchain restore EXIT 0 (cache branch; nextpnr sha 9c732bc6303458df). Lean build still in Mathlib (~2780 jobs).
+r19 (BQ#3 seed-9 2x scatter) launched; P12a/b/c reading statements, writing findings as they go.
