@@ -67,6 +67,16 @@ DETECTED means the bitstream-built flow did not pass the buggy bitstream:
 `SOAK <kind> PASS lat=...` or `SOAK <kind> FAIL: ...` for each of the stalled
 and fast harnesses, then `SOAK_VERDICT PASS|FAIL`, and exits 0 or 1.
 
+**`acceptance.py --stack full --corner min|typ|max|band`** runs the bitstream
+items on the full stack with no hand steps: the patched run decodes the
+build's `.bit`, the unpatched run the `--write-unpatched` FASM assembled with
+`bit_control.to_bit`; both use `xray_delay.py`'s SDF of the route (re-keyed by
+`fasm2net.py`), `GLS_SDF_FIELD=<corner>` and `GLS_MODEL=fid`. gcd items run the
+16 vectors one at a time (one ~3 GB vvp); soak items run `soak_fid.py ... bit`.
+An unpatched bitstream caught only because the decoder refuses it prints
+`MATCH (WEAK: by refusal)`; a dirty ANNOTATE gate makes the item INVALID.
+Without `--stack` the harness is unchanged.
+
 ## What comes from where
 
 * **Connectivity and every LUT function come from the bits only.** Each sink
