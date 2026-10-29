@@ -1536,3 +1536,9 @@ blocked on the owner's raw data), so the rule gates stay.
 - acceptance --stack full --corner min, lutpinmap_gcd_nofuse: [MATCH], patched 16/16, unpatched 9/16, never
   complete 5,6,7,8,11,12,13 (same set as SLOW_MAX). research/data/fid/acceptance_status.md summarises every item:
   all runnable hard items MATCH at both corners; ring128 BLOCKED (owner data), so not accepted and gates stay.
+### progress 08:01 (BQ#2 full stack started passing; BQ#3 scatter on seed 8)
+- BQ#2 default seed (sdf a9c4e265, BQ#2's recorded md5), full stack SLOW_MAX: PASS 16/16, EQUIVALENT, laps
+  31/25/36 (BQ#3 same seed: 33/27/39, so fast fall is +6% at SLOW_MAX too). BQ#3 seed 8: 1x and 2x scatter PASS
+  (51/41/59, 46/37/53). seeds_fid now serialises compiles machine-wide (the BQ#2 relaunch).
+- S9 (new): a distribution-level ring128 check from the published per-length summary quantiles (formal branch's
+  ro_many_2026-08-23_summary.csv); the per-ring table is still missing.
