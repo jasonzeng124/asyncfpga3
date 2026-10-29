@@ -1127,3 +1127,21 @@ In (checked here, axioms standard):
   link's Env1 from chain-end contracts (InChain). Open: the 200 chain-end contracts
   (steer 43, mux 72, join 32, forks 44, amerge 5, muxn 4) have no segment lemma;
   existence of solutions to H_TIMES not proved; infinite runs only.
+
+### progress 09:42
+In: Bset ArbSettled (Mathlib; checked here, axioms standard; notes/B-arb-settled.md).
+7h/7j's H_SETTLED compared A0 at q's output with r_k at its driver; the exact
+condition for the q trace is H_PIN (ta + wa0s <= t0 + wr_ks, compared at ustate's
+pins; the flat O6 arc cancels). Re-proved on the real INIT with the whole RT1/RT2
+exclusion chain on ScnP/Scn2P; implied by H_SETTLED and strictly weaker
+(strict_witness); necessary for the q trace (q_glitch2 on every record; q_glitch
+when qr = qf). Not shown: that a violated H_PIN breaks exclusion (counter-traces stop
+at q's early edge). gcd_hw: the client latency it needs is <= 502.361 ps (was 1590.934
+under H_SETTLED), positive on 21 of 72 clients (was 65), certified at kappa <= kappa_S2,
+exact to 10 fs (settledP_safe, setTbl2_max, settledP_tight). Link-driven clients:
+discharged with NO latency hypothesis on 18 of 20 instances from LinkExact's controller
+model plus its O6 arc at the shared corner (design_link_discharged1/2; H_SAME_CORNER,
+H_LUT6_O6); seed 3 / seed 4 merge2.uarb1 client 2 still need the unextracted ack wire
+into the controller (residual 37.6 / 89.7 ps). Steer (16) and R0 (2) clients stay
+conditional on unmodelled release loops. Proposed rule J+ (rise-side twin of rule J)
+in the note.
