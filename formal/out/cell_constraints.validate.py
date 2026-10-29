@@ -177,7 +177,8 @@ for e in doc["constraints"]:
         # with role 'exact'.  Every other results string, on every row, still may not call a kappa threshold exact.
         cl = KAPPA_EXACT_ROWS.get(e["id"])
         for s in k.get("results", []):
-            if "exact" not in s.lower().replace("not an exact", "").replace("not exact", ""):
+            # the word 'exact' only: identifiers such as LinkExact / exact_s1c1_lit and 'exactly' do not count
+            if not re.search(r"(?<![a-z_])exact(?![a-z_])", s.lower().replace("not an exact", "").replace("not exact", "")):
                 continue
             if cl is None or "OnNetlistArbKappaExact" not in s:
                 errs.append(f"{e['id']}: corner.kappa.results calls a kappa threshold exact (audit row 18)")

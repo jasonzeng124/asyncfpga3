@@ -1137,3 +1137,129 @@ amerge_inv needs H_ARB_EXCL at every tick.
   the rt2 ack-exclusion rows or bdc_amerge*. H_SEL_STABLE goes on the select setup / hold rows, not on
   the join env_latency rows.
 - **D2's cons minimum.** 0.1288 is quoted as the script's relaxation kappa*. It is not decided in Lean.
+
+# Update (probe Bj8, 2026-10-29): Necessity6*, ZeroDelayTok (H_REARM), ArbNoWithdraw / ArbSettled (H_SETTLED, H_PIN), ArbMultiToken, IpowCellsT
+
+The JSON is patched by the "probe Bj8 (2026-10-29)" section of `formal/out/cell_constraints.bj5.py`
+(before its final `json.dump`), run by `cell_constraints.gen.py`. The validator is unchanged: no new
+check was needed. Every cited name was grepped in its file, and the validator greps each one again.
+Two regenerations give byte-identical JSON and MD. Validator: **errors: 0**.
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries / hypotheses | 137 / 11 | 139 / 11 (+ bd_link.stage_rearm, bd_arbiter.settled_rise) |
+| sufficient+necessary_at_boundary | 42 | 45 |
+| exact | 40 | 41 (+ stage_rearm) |
+| sufficient | 12 | 10 (-3 relabelled, +1 settled_rise) |
+| boundary_point rows | 3 | 6 |
+| c_contract rows | 6 | 6 (2 arbiter rows changed status) |
+| Lean references (files) | 2988 (106) | 3223 (117) |
+| citations with role exact / exact_inner | 206 / 299 | 207 / 300 |
+| rule verdict none | 98 | 100 |
+
+## 1. Necessity6 (Bnx6)
+
+- **bd_mux.uj1_env_latency_req_max**: sufficient -> sufficient+necessary_at_boundary. It cites
+  `ClaimY`, `claimY0`, `failY10` (counter_run), `claimY1_false` (counter_trace) and `passY9`
+  (non_vacuity). `boundary_point` is refuted_by `Necessity6Mux.claimY1_false`. The stale "uj1
+  boundary run NOT built" sentence is removed.
+- **bdc_muxn.uj_env_latency_req_max**: sufficient -> sufficient+necessary_at_boundary. It cites
+  `ClaimN`, `claimN0`, `failN` and `claimN1_false`. `boundary_point` is refuted_by
+  `claimN1_false`. The stale "boundary NOT shown for muxn" sentence is removed.
+- **bd_pipe.rst_lines**: sufficient -> sufficient+necessary_at_boundary. It cites `TimingS`,
+  `claim0`, `rst_sel_boundary`, `a_false` .. `d_false` and `a_viol` .. `d_viol`. In
+  `necessity_scope`, the per-pin H_RST_SEL terms are now boundary-tight. For (a), (c) and (d) the
+  Lean form is the JSON form; (b) is 2 ticks from the +1. `boundary_point` is refuted_by `b_false`,
+  the strict loop term of the representative form 0. The two "row stays sufficient" sentences are
+  marked superseded.
+- **bd_mux.uxa_join_latency** stays sufficient. A new optional field `boundary_tight_terms` (in
+  conventions) records that S_XA_J.2 is boundary-tight (`claimJ1_false`, binary '<=', 2 ticks from
+  the +1). S_XA_J.1 and uya are untouched. It cites `ClaimJ`, `claimJ0`, `failJ` and
+  `claimJ1_false`.
+- All three boundary_points carry the Bsa4 convention: the refuted point is the '<=' form, 2 ticks
+  from the +1 form. Necessity of the +1 form itself is not shown.
+
+## 2. bd_link.stage_rearm (Bzd3), NEW
+
+The row uses the note's form: H_REARM `Fb1_j + Bhi <= Ra1_{j+1} + Ahi`, refers_to bd_link.stage and
+bd_c2n.env_latency, informational. It is labelled **exact**, with `exact_scope` "iff for H_REARM
+alone, given WfK, GapK and the six rows at every token (exact_rearm); NOT the full k-token iff".
+- Citations: `exact_rearm` (exact; its statement has the iff), `sufficientK`, `need_rearm`,
+  `rearm_breaks` (counter_trace), `rearm_one_tick` and `witness2`. The chain theorems (`chain_specK`,
+  `chain2_witness`) are cited as context / non_vacuity.
+- kleene_dependence is copied from bd_link.stage, marked inferred.
+- bd_link.stage gets a context citation and a note that points to the new row.
+
+## 3. H_SETTLED (Bbare) in its sharp form H_PIN (Bset), NEW bd_arbiter.settled_rise
+
+The lead asked for this addition mid-probe: ArbSettled (B-arb-settled.md) was committed while this
+probe was running.
+
+- **Inequality.** H_PIN `ta + wa0s <= t0 + wr_ks`. From causality it follows from H_ARC_P
+  (`wa0s <= wa0k + ckr + L_k + wr_ks`, `settledP*_of_causal`). It is implied by H_SETTLED
+  (`ofScn`, `ofScn2`) and strictly weaker (`strict_witness`).
+- **Forms.** There are two forms, one per client: A0@div -> ustate.I4, against
+  A0@div -> ua_k -> A_k -> env L_k -> r_k -> ustate's request pin.
+- **Label: sufficient.** `necessity_scope` says that H_PIN is necessary for the q trace
+  (`J.q_glitch2` on every record, `H.q_glitch` when qr = qf). Necessity for exclusion is NOT shown:
+  the counter-traces stop at q's early edge.
+- **Citations.**
+  - 7h / 7j's re-proved exclusion chain: `rt1_exclusion`, `rt2_exclusion_arcs`, `rt1_exclusion2`
+    and `rt2_exclusion2_arcs` of ArbSettled.
+  - The table: `settledP_safe`, `set2_cert`, `setTbl2_max` (502.361 ps), `setTbl2_pos` (21/72)
+    and `settledP_tight`.
+  - The link discharge: `link_pin1/2`, `design_link_discharged1/2` (18/20) and `link_short`
+    (counter_trace).
+  - Bbare's coarser form for comparison: `settled*_of_causal`, `settled_safe`,
+    `settled_L0_fails` (1.59 ns, 65/72).
+- **rule: none.** The detail says that no project rule checks it (arb_fork.py is the fall side),
+  and that rule J+ is a proposal in B-arb-settled.md, not a project rule.
+- **corner.** The mode is 1C, with corner.kappa results that hold the setTbl2 numbers.
+- **D2's dependence.** A results string on the 12 rows that carry Bsrv's D1 / D2 says that
+  D2 = 0.2166 needs (a) no withdrawal and (b) H_PIN.
+  - (a) The rows involved are the steer select rows (`steer_withdraws`, `steer_no_withdraw`),
+    links (`link_no_withdraw`) and C's model (`gcd_hw_arb_no_withdraw`).
+  - (b) H_PIN is discharged for 18/20 link instances, and steer / R0 clients are open.
+  - bd_steer.bundled_s_setup / s_hold get context citations and a note.
+- **Handover scope.** A new optional field `handover_scope` (in conventions) is set on the 13
+  bd_arbiter rows backed by 7h / 7j. It records the FIRST-HANDOVER scope (`scn_excludes_caus` /
+  `scn2_excludes_caus`, cited as context).
+  - On rt1 / rt1b it also points to ArbMultiToken's windowed and multi-token grant exclusion.
+  - On the RT2 / fork rows it says they are not re-proved for repeated handovers.
+
+## 4. c_contract H_ARB_EXCL (Barb2)
+
+- **bd_arbiter.rt1 / rt1b**: not_derivable -> **needs_extra_hypothesis**. The basis says
+  "DERIVABLE as C states it for the held arbiter (H_ARB_EXCL_of_mt)", and `extra` = MTRun
+  (H_SLOW_REREQ, H_HOLD, four-phase clients, ...) + H_M + the RT arc forms.
+  - Citations: `H_ARB_EXCL_of_mt`, `mt_exclusion`, `H_ARB12_of_mt`, `win1/2`, `splice_run` and
+    `mt_nonvacuous`.
+  - I used needs_extra_hypothesis rather than derived because the theorem takes environment
+    hypotheses beyond the row (same convention as Bj7's H_SEL_STABLE).
+  - Not derived: early re-request, other schedules, H_AMERGE_RTZ and C's initial fields.
+- **bd_arbcell.settled_exclusion / handover_overlap** stay **not_derivable** (bare cell). The
+  basis now says that the held arbiter's H_ARB_EXCL is derivable, and the stale "multi-token
+  theorem missing" clause is removed. `H_ARB_EXCL_of_mt` is cited as context.
+
+## 5. RT_FB (Bfc, IpowCellsT)
+
+The rows that concern feedback route timing are bd_c2 / bd_c2n / bd_c3 / bd_c4 `env_latency`
+(their rule detail names C-10d RT_FB). Each now cites `IpowCellsT.gap_exact` (Gap.gap_exact:
+`FbCelT <-> d <= g`, tcheck Rc's `fb_hi <= resp_lo`), plus `gap_reject` (counter_trace) and
+`si_not_fbCelT` (context).
+- On bd_c2.env_latency, `gap_exact` has role **exact_inner**: it is an iff for the C-side RT_FB
+  sub-case on the 2-input C-element, and it does not make the row exact.
+- On c2n / c3 / c4 it has role **context**: proved for the 2-input `cgate` only.
+
+## Not done / judgement calls
+
+- **settled_rise is not labelled sufficient+necessary.** Its necessity is for the q trace, not for
+  the exclusion obligation.
+- **No boundary_point on uxa_join_latency.** Its label is unchanged; the validator allows
+  boundary_point only on boundary rows, so it gets `boundary_tight_terms` instead.
+- **Rows not touched.** isochronic_forks, iso_zack, bundled_z_data, rst_flush and bbm: Bnx6 has no
+  results for them.
+- **Not catalogued.** H_DATA_LOOP_K (a closed-loop hypothesis only) and the k-token six-row iff
+  (open).

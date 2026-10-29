@@ -266,7 +266,7 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_pipe.lat_lumped` | proved | sufficient+necessary_at_boundary (strict +1) | no | none |
 | `bd_pipe.boundary_I` | proved | sufficient+necessary_at_boundary | yes | I: missing_term |
 | `bd_pipe.boundary_H` | proved | sufficient+necessary_at_boundary | yes | H: conservative_arcs_missing_site_pins |
-| `bd_pipe.rst_lines` | proved | sufficient (strict +1) | yes | none |
+| `bd_pipe.rst_lines` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_pipe.data_lead` | proved | sufficient+necessary_at_boundary | yes | A: conservative |
 | `bd_pipe.output` | proved | sufficient+necessary_at_boundary | no | consumer's own rule (I at the next stage; B/D/E at an edge-sampling consumer): different_condition |
 | `bd_link_dctl.lt_first` | unproved | partial | yes | none |
@@ -357,10 +357,12 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bdc_amerge.idx_bundle` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 | `bd_link.stage` | proved | exact | yes | none |
 | `bd_mux.uj0_env_latency_req_max` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
-| `bd_mux.uj1_env_latency_req_max` | proved | sufficient (strict +1) | yes | none |
-| `bdc_muxn.uj_env_latency_req_max` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uj1_env_latency_req_max` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
+| `bdc_muxn.uj_env_latency_req_max` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
 | `bd_delay[FASTRISE].ack_succ` | proved | exact (strict pending) | yes | none |
 | `bd_mem.clk_high_width_exact` | proved | exact | no | none |
+| `bd_link.stage_rearm` | proved | exact | yes | none |
+| `bd_arbiter.settled_rise` | proved | sufficient | yes | none |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
 H_TREE_FIFO (C4), metastability with no deadline (C8/R3),

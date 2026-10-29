@@ -1145,3 +1145,17 @@ H_LUT6_O6); seed 3 / seed 4 merge2.uarb1 client 2 still need the unextracted ack
 into the controller (residual 37.6 / 89.7 ps). Steer (16) and R0 (2) clients stay
 conditional on unmodelled release loops. Proposed rule J+ (rise-side twin of rule J)
 in the note.
+
+### progress 09:45
+In: Bj8 cell_constraints.json (139 rows: 41 exact, 45 boundary-tight, 10
+sufficient; validator 0 errors; regeneration byte-identical, re-run by me).
+Necessity6 rows applied; new rows bd_link.stage_rearm (H_REARM; exact for H_REARM
+alone given WfK, GapK and the six rows, not the full k-token iff) and
+bd_arbiter.settled_rise (H_PIN, sufficient; necessary for the q trace only; rule:
+none, J+ proposed); new field handover_scope on the 13 held-arbiter rows built on
+7h/7j (first handover only; rt1/rt1b point to ArbMultiToken); c_contract H_ARB_EXCL on
+rt1/rt1b now needs_extra_hypothesis (derivable for the held arbiter under the
+multi-token run hypotheses), bare-cell rows stay not_derivable; IpowCellsT.gap_exact
+cited on the env_latency rows. Validator fix (mine): the audit-row-18 check now
+matches the WORD "exact" only, so names like LinkExact or exact_* no longer trip it;
+the probe had worked around it by writing "Blink's" for "LinkExact's", now reverted.

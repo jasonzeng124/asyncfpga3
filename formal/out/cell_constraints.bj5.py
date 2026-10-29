@@ -1312,6 +1312,390 @@ doc["produced_by"] = (doc["produced_by"].rstrip() +
     "flush_not_necessary_all), B-contract-bridge.md (c_contract H_ARB_EXCL) and B-lutfb-bridge2.md (c_contract H_SEL_STABLE, "
     "hypothesis H_SEL_STABLE / H_PWR_SRC); the 'probe Bj7' section of cell_constraints.bj5.py.")
 
+# ================================================================== probe Bj8 (2026-10-29)
+# Fourth Bj pass of the day. Applies, from today's committed notes (and JOURNAL-B.md progress 09:05 / 09:11 / 09:31 / 09:36):
+#   B-necessity6.md (Necessity6Mux / Necessity6MuxN / Necessity6MuxJ / Necessity6PipeSel),
+#   B-zero-delay-tok.md (ZeroDelayTok*: new row bd_link.stage_rearm, H_REARM),
+#   B-arb-no-withdraw.md (ArbNoWithdraw: new row bd_arbiter.settled_rise, H_SETTLED; D2's no-withdrawal dependence;
+#     7h/7j first-handover scope), B-arb-settled.md (ArbSettled: the row's sharp form H_PIN, lead's addition), B-arb-multi-token.md (ArbMultiToken: c_contract H_ARB_EXCL derivable for the held arbiter),
+#   B-ipow-cells-t.md (IpowCellsT: Gap.gap_exact, the exact form of the RT_FB feedback contract).
+# Every name cited below is declared in the cited file (the validator greps each one).
+LOG.append("---- probe Bj8")
+N6M, N6N, N6J, N6P = "Necessity6Mux", "Necessity6MuxN", "Necessity6MuxJ", "Necessity6PipeSel"
+ZD, ZDC, ZDW, NW, MT, ICT = "ZeroDelayTok", "ZeroDelayTokChain", "ZeroDelayTokWit", "ArbNoWithdraw", "ArbMultiToken", "IpowCellsT"
+BP8 = {"refuted_form": "binary '<=' (no strict +1)", "slack": 1, "ticks_from_row_form": 2,
+       "row_form_necessity": "not shown: the row's +1 form is sufficient; its own boundary is not refuted"}
+BP8_SCOPE = ("BOUNDARY LABEL (Bsa4 convention): 'necessary_at_boundary' refers to the binary '<=' form; the refuted point (slack 1 "
+             "against '<=') is 2 ticks from this row's +1 form, whose own boundary is NOT refuted")
+
+# ------------------------------------------------------------------ (1) Necessity6 (Bnx6)
+e = relabel("bd_mux.uj1_env_latency_req_max", "sufficient+necessary_at_boundary",
+            [L(N6M, "ClaimY", "definition", "MuxStaticN with S_J1_YR weakened by s, every other hypothesis verbatim"),
+             L(N6M, "claimY0", "sufficient", "ClaimY 0 = mux_ok_staticN's hypothesis set"),
+             L(N6M, "failY10", "counter_run", "N6.run 10 (uj0 net 1, uj1 net 10): every other MuxStaticN field holds, S_J1_YR off by exactly 1; the max is the z_ack branch"),
+             L(N6M, "claimY1_false", "counter_trace", "not ClaimY 1: y_req's fall reaches uj1 at 57, j1 = 0 at 58 inside [48, 61), z_req = 0 at 61 inside [51, 64)"),
+             L(N6M, "passY9", "non_vacuity", "the same family at 9 ticks passes with equality")],
+            "Bnx6 (B-necessity6.md, Necessity6Mux): the uj1 boundary run is now built (claimY1_false, z_ack branch binding); "
+            "the earlier 'uj1 boundary run NOT built' is superseded.", old_ok=("sufficient",))
+sub(e, "exactness_note", "the uj1 boundary run is the symmetric statement, NOT built. ", "")
+add_scope(e, "necessity_scope", "the z_ack branch (form 1), one parameter point (N6.run 10, unit delays, uj1 feedback net 10), binary "
+          "'<=' at slack 1; form 0 (the j branch) has no boundary run of its own; " + BP8_SCOPE)
+e["boundary_point"] = dict(BP8, refuted_by=f"{N6M}.claimY1_false")
+
+e = relabel("bdc_muxn.uj_env_latency_req_max", "sufficient+necessary_at_boundary",
+            [L(N6N, "ClaimN", "definition", "MN3StaticN with S_J_XR weakened by s, every other hypothesis verbatim"),
+             L(N6N, "claimN0", "sufficient", "ClaimN 0 = muxn3_ok_staticN's hypothesis set"),
+             L(N6N, "failN", "counter_run", "Mn6.run: unit delays, 10-tick feedback nets, Ec = 2 so S_J_C holds with equality while the max form is off by 1"),
+             L(N6N, "claimN1_false", "counter_trace", "not ClaimN 1: in_0_req's fall reaches uj_0 at 41, j_0 = 0 at 42 inside [32, 43)")],
+            "Bnx6 (B-necessity6.md, Necessity6MuxN): the boundary is now shown with a control sender one tick slower than Mn3Wit's "
+            "(S_J_C holds with equality, the max form alone off by 1; claimN1_false); the earlier 'boundary NOT shown for muxn' is "
+            "superseded. DELAY > 1 not covered.", old_ok=("sufficient",))
+sub(e, "exactness_note", " Its boundary is NOT shown for muxn: in Mn3Wit's run S_J_C has the same right side (10), so violating the max form "
+    "by 1 also breaks S_J_C; an isolated counter-run needs a slower control sender.", "")
+add_scope(e, "necessity_scope", "one parameter point (Mn6.run, N = 1, DELAY = 1, input 0's join), binary '<=' at slack 1; " + BP8_SCOPE)
+e["boundary_point"] = dict(BP8, refuted_by=f"{N6N}.claimN1_false")
+
+e = relabel("bd_pipe.rst_lines", "sufficient+necessary_at_boundary",
+            [L(N6P, "TimingS", "definition", "PipePerPin's TimingP with each of the four H_RST_SEL terms weakened separately"),
+             L(N6P, "claim0", "sufficient", "Claim 0 0 0 0 = nodes_clean under TimingP"),
+             L(N6P, "rst_sel_boundary", "counter_trace", "Claim 0 0 0 0 and not Claim (one term weakened by 1), for each of (a)-(d); N = 1, real bd_c2n INIT"),
+             L(N6P, "a_false", "counter_trace", "(a) R0 + pr.hi <= R + ps.lo off by 1: power-up request garbage fires the node at 6, before tau 0 0 = 12"),
+             L(N6P, "b_false", "counter_trace", "(b) out.hi + wh + pq.hi <= R + ps.lo off by 1: stale feedback fires the node at 6, before tau 0 0 = 9"),
+             L(N6P, "c_false", "counter_trace", "(c) R + ps.hi <= rho0 + pr.lo off by 1: the node rises one tick late"),
+             L(N6P, "d_false", "counter_trace", "(d) R0 + pa.hi <= rho0 + pr.lo off by 1: the node rises one tick early"),
+             L(N6P, "a_viol", "numbers"), L(N6P, "b_viol", "numbers"), L(N6P, "c_viol", "numbers"), L(N6P, "d_viol", "numbers")],
+            "Bnx6 (B-necessity6.md, Necessity6PipeSel): the four per-pin H_RST_SEL terms (the row's representative form) are now "
+            "necessary at the boundary too (rst_sel_boundary), so every term of the row has a boundary run and the row is "
+            "relabelled. (a), (b) guard real early fires from power-up garbage; (c), (d) only shift the first edge by one tick (data "
+            "correctness under (c) / (d) violated not examined). N >= 2 and Kleene X at the selects not covered.", old_ok=("sufficient",))
+sub(e, "exactness_note", " the row stays 'sufficient' because its representative per-pin H_RST_SEL form has no necessity result.",
+    " (Bj8: superseded, see Bnx6 below.)")
+sub(e, "exactness_note", "; the row stays 'sufficient' because the other terms are not.", " (Bj8: superseded, every term now has a boundary run).")
+e["necessity_scope"] = e["necessity_scope"].replace(
+    "The per-pin (6g) H_RST_SEL terms (PipePerPin; the row's representative form) have no necessity result",
+    "The per-pin (6g) H_RST_SEL terms (PipePerPin; the row's representative form) are necessary at the boundary (Bnx6, "
+    "Necessity6PipeSel.rst_sel_boundary: a_false .. d_false, one parameter point each, N = 1); for (a), (c), (d) the Lean form is the "
+    "JSON form (no strict), for (b) the Lean '<=' form is 2 ticks from the JSON +1 form")
+assert "rst_sel_boundary" in e["necessity_scope"]
+add_scope(e, "necessity_scope", BP8_SCOPE + " (applies to the strict loop terms, among them (b), the representative form 0)")
+e["boundary_point"] = dict(BP8, refuted_by=f"{N6P}.b_false")
+
+e = BY["bd_mux.uxa_join_latency"]
+assert e["exactness"] == "sufficient"
+add_lean(e, [L(N6J, "ClaimJ", "definition", "MuxStatic with S_XA_J.2 weakened by s, every other field (S_XA_J.1, S_YA_J) verbatim"),
+             L(N6J, "claimJ0", "sufficient", "ClaimJ 0 = mux_ok's hypothesis set"),
+             L(N6J, "failJ", "counter_run", "J.run: unit delays, 12-tick j0 -> uxa wire, tight partners, reset to 14; S_XA_J.2 off by exactly 1 (14 = 13 + 1)"),
+             L(N6J, "claimJ1_false", "counter_trace", "not ClaimJ 1: j0's fall reaches uxa at 57, z_ack's next rise at 58; x_ack = 1 at 60 inside [59, 67)")])
+sub(e, "exactness_note", " Sufficient; necessity not shown (negative controls only show the term is used).",
+    " Sufficient. Bnx6 (B-necessity6.md, Necessity6MuxJ): the second conjunct S_XA_J.2 (uxa, W0x.hi + Lxa.hi + wxah <= 2 Kz + Kc + "
+    "Wzx.lo) is necessary at the boundary (claimJ1_false: a slow j0 -> uxa wire, x_ack oscillates through the next y transaction); "
+    "S_XA_J.1 and the uya mirror have no result, so the row stays 'sufficient' (Bnx6's unproved analysis: S_XA_J.1 is probably not "
+    "necessary as written).")
+e["boundary_tight_terms"] = [{"term": "S_XA_J.2 (form 1, uxa)", "refuted_by": f"{N6J}.claimJ1_false", "form": "binary '<='",
+                              "ticks_from_row_form": 2, "untouched": "S_XA_J.1 (form 0), uya forms 2 / 3"}]
+LOG.append("bd_mux.uxa_join_latency: stays sufficient; boundary_tight_terms S_XA_J.2 (claimJ1_false)")
+cv["boundary_tight_terms"] = ("optional (Bj8): on a row that stays 'sufficient', the terms (conjuncts) that ARE necessary at the boundary: term, "
+                              "refuted_by (File.theorem, a NOT Claim(weakened by 1)), form refuted, ticks_from_row_form, and the terms untouched. "
+                              "It does not change the row's label.")
+
+# ------------------------------------------------------------------ (2) bd_link.stage_rearm (Bzd3, ZeroDelayTok)
+st = BY["bd_link.stage"]
+new_row({
+    "id": "bd_link.stage_rearm",
+    "cell": "bd_link",
+    "catalogue_row": "none (Bzd3, formal/notes/B-zero-delay-tok.md)",
+    "obligation": ("one bd_link stage carrying k >= 2 tokens (bd_c2n + one bd_latch bit, real INITs, open loop): between tokens j and j+1 "
+                   "the controller surely reads the previous ack_out fall no later than it surely reads the next req_in rise"),
+    "inequality": ("H_REARM Fb1_j + Bhi <= Ra1_{j+1} + Ahi (ack_out fall window end of token j plus the ack pin's slow read, against req_in "
+                   "rise window end of token j+1 plus the req pin's slow read); together with bd_link.stage's six rows at every token. "
+                   "Closed-loop form (ZeroDelayTokChain): V1_{i+1,j} + Bhi_i <= U1_{i,j+1}"),
+    "forms": [],
+    "refers_to": ["bd_link.stage", "bd_c2n.env_latency"],
+    "informational": True,
+    "lean": [L(ZD, "exact_rearm", "exact", "under WfK, GapK and bd_link.stage's six rows at every token: SafeK P <-> forall j, H_REARM j. The full "
+               "iff SafeK <-> RowsK is NOT proved (the six rows' necessity inside a k-token env is open)"),
+             L(ZD, "sufficientK", "sufficient", "WfK + six rows per token + H_REARM => SpecK for every behaviour (no GapK)"),
+             L(ZD, "need_rearm", "necessary", "needs GapK j and token j+1's H_RACE_UP"),
+             L(ZD, "rearm_breaks", "counter_trace", "P2 2979: 2 tokens, P0 box, H_REARM violated by exactly 1 ps (rearm_one_tick), all else met"),
+             L(ZD, "rearm_one_tick", "numbers", "P2 2979 violates H_REARM by exactly 1 ps, every other row met"),
+             L(ZD, "witness2", "non_vacuity", "P2 3500: all rows hold, SafeK, a simulated behaviour (data 1 then 0) meets SpecK"),
+             L(ZD, "latch_tok_ok", "lemma", "multi-token latch capture per token window (no new latch row)"),
+             L(ZD, "WfK", "definition"), L(ZD, "GapK", "definition", "necessity scope only: Fa1 j + Ahi <= U0 (j+1), V1 j + Qhi <= U0 (j+1)"),
+             L(ZD, "RowsK", "definition"), L(ZD, "SpecK", "definition"), L(ZD, "SafeK", "definition"),
+             L(ZDC, "chain_specK", "context", "closed N-stage chain, k tokens: every stage meets SpecK under H_LOOP_K, H_WIRE_POS, H_RST_SEEN, H_DATA_LOOP_K"),
+             L(ZDC, "chain_rstK", "lemma"), L(ZDC, "chain_tokK", "lemma"),
+             L(ZDW, "chain2_witness", "non_vacuity", "2 stages x 2 tokens, nonzero reads, coupled behaviour meets the 2-token spec")],
+    "exactness": "exact",
+    "exact_scope": ("iff for H_REARM ALONE: SafeK <-> forall j, H_REARM j, given WfK (LinkExact's Wf per token, k >= 1, H_NEXT ordered env "
+                    "pulses), GapK (the necessity scope: the previous request fall and the node's own fall are surely read before the next "
+                    "request can be read rising) and bd_link.stage's six rows at every token (exact_rearm). NOT the full k-token iff: the six "
+                    "rows' necessity inside a k >= 2 environment is open (it must quantify over data sequences: with vs (j-1) = vs j, "
+                    "setup_pulse of token j is not necessary). Sufficiency (sufficientK) needs no GapK. Binary '<=' in definite-window "
+                    "times; no strict +1 claimed. NOT covered: rings with initial tokens (bd_c2n_set), C's k-token Link run, correlated "
+                    "corners, a W-bit bus, zero-delay inter-stage reads."),
+    "exactness_note": ("Bzd3 (B-zero-delay-tok.md, ZeroDelayTok): the only new cross-token row. If it fails, at U1 (j+1) the node reads request "
+                       "1, acknowledge 1 (still token j's) and its own 0, and the real INIT holds 0 (c2nK 1 1 0 0 = 0) where the spec demands 1. "
+                       "The rise of token j+1 has no new feedback race (c_follow1), the low phase of token j extends to U0 (j+1) from H_RACE_DN, "
+                       "and the latch has no new row (latch_tok_ok). In the closed loop both sides are caused by stage i's own fall (through "
+                       "the downstream request pin, and through the upstream ack pin and back), so it is a genuine race of the loop. "
+                       "H_DATA_LOOP_K (cross-stage hold Tn_{i+1,j} <= U0_{i,j+1} + Elo_i) is a closed-loop hypothesis, sufficient only, not a "
+                       "row of this file."),
+    "hypotheses": ["H_CTL_READ / H_PIN_READ (non-monotone)", "H_KLEENE_LUT", "H_BOX", "EnvK (k four-phase tokens, open loop)",
+                   "WfK: LinkExact's Wf per token + H_NEXT", "GapK (necessity of H_REARM only)"],
+    "site_pins": {"needed": True, "roles": ["req pin hi (Ahi)", "ack pin hi (Bhi)"]},
+    "rule": {"rule": "none", "verdict": "none", "detail": "UNCHECKED: no rule compares a link's ack-fall read with the next request-rise read"},
+    "corner": {"mode": "n/a", "rule": "see refers_to (pins independent in the box, as in bd_link.stage)"},
+    "check_scope": "route_plus_env",
+    "evidence": "illustrative numbers only (P2 2979 breaks by 1 ps, P2 3500 passes); no route",
+    "status": "proved",
+    "combine": "all",
+    "kleene_dependence": {"needs": st["kleene_dependence"]["needs"],
+                          "basis": "same model as bd_link.stage (LinkExact's Kleene box, real bd_c2n INIT); " + st["kleene_dependence"]["basis"]
+                                   + " ZeroDelayTok is not re-run under KleenePess.",
+                          "inferred": True},
+})
+add_lean(st, [L(ZD, "exact_rearm", "context", "k >= 2 tokens: the one new cross-token row is bd_link.stage_rearm (H_REARM)")])
+note_append(st, "Bj8 (Bzd3, ZeroDelayTok): with k >= 2 tokens the six rows apply per token (latch_tok_ok) plus ONE new row, "
+            "bd_link.stage_rearm (H_REARM, exact_rearm); this row's iff stays the one-token one.")
+
+# ------------------------------------------------------------------ (3) H_SETTLED (Bbare, ArbNoWithdraw) in its sharp form H_PIN (Bset, ArbSettled)
+AS = "ArbSettled"
+ref = BY["bd_arbiter.rt2_pulse"]
+def settled_form(k):
+    # client k: data side = A0 rise to ustate's hold pin I4; request side = A0 -> ua_k -> A_k -> client release loop -> r_k -> ustate's request pin
+    upin = "ustate.I0" if k == 1 else "ustate.I1"
+    return {"launch": f"A0 rise at the divergence point of ustate's and ua{k}'s branches of the A0 net (shared A0 prefix ac + dS_k cancels)",
+            "data_paths": [[{"kind": "wire", "from": "A0@div", "to": "ustate.I4", "lean_sym": "dS2 + es" if k == 1 else "dS1 + es"},
+                            {"kind": "site_pin", "from": "ustate.I4@pip", "to": "ustate.I4", "pin_role": "A0", "lean_sym": "ps"}]],
+            "request_paths": [[{"kind": "wire", "from": "A0@div", "to": f"ua{k}.A0", "lean_sym": f"d12 + e{k}"},
+                               {"kind": "site_pin", "from": f"ua{k}.A0@pip", "to": f"ua{k}.A0", "pin_role": "A0", "lean_sym": f"p{k}"},
+                               {"kind": "lut_arc", "from": f"ua{k}.A0", "to": f"ua{k}.O6", "lean_sym": f"ac{k}"},
+                               {"kind": "env", "name": f"L{k}", "spec": (f"client {k}'s release loop: A{k} driver -> client ack pin (wire + site pin, NOT "
+                                "extracted) -> client cell -> r_k driver (H_CLIENT_LAT, min). link client: the controller's O6 arc x (H_ACK_READ, "
+                                "H_LUT6_O6, LinkExact Conj); steer client: join C-element + uack OR + cond_br arcs (no model with arcs); R0 client: "
+                                "the downstream arbiter's A0 C-join"), "lean_sym": "L"},
+                               {"kind": "wire", "from": f"r{k} driver", "to": upin, "lean_sym": f"rs{k} (H_RK_ROUTE: rs{k} <= wr{k}s; the prefix before the branch is >= 0, dropped)"}]],
+            "margin_ps": 0}
+SET_RES = ("Bset (B-arb-settled.md, ArbSettled), lit reading (H_SPREAD_CORRELATED; Real7), Bar's UNTRUSTED extraction, sharp form H_ARC_P "
+           "(fsh1 / fsh2): with setTbl2's per-client latency L, H_PIN holds for every realization at kappa <= kappaS2 = 0.216552148868 "
+           "(OnGcdArbKappaSrv's D2 bound) on all 72 clients (settledP_safe; kernel certificate set2_cert). Largest L 502.361 ps (seed 2 "
+           "merge12.uarb2 client 2, setTbl2_max), positive on 21 of 72 clients (setTbl2_pos: 3 link, 16 steer, 2 R0); for each positive entry "
+           "and every kappa >= kappaS2 a realization violates the form at L - 10 fs (settledP_tight), so L = 0 fails on precisely those 21 "
+           "(settledP_L0_fails). Link clients: discharged on 18 of 20 instances from LinkExact's controller model plus the controller's O6 arc "
+           "at the same corner, no latency hypothesis (link_pin1 / link_pin2, design_link_discharged1 / 2); seed 3 and seed 4 merge2.uarb1 "
+           "client 2 stay conditional (link_short; they need the unextracted ack wire, >= 37.6 / 89.7 ps). Steer and R0 clients: not "
+           "discharged. Bbare's coarser H_SETTLED form (wa0s + qf <= wa0k + ckr + L) needed up to 1.59 ns and failed at L = 0 on 65 of 72 "
+           "clients (settled_safe, settled_L0_fails).")
+new_row({
+    "id": "bd_arbiter.settled_rise",
+    "cell": "bd_arbiter",
+    "catalogue_row": "none (Bbare, formal/notes/B-arb-no-withdraw.md; sharp form Bset, formal/notes/B-arb-settled.md)",
+    "obligation": ("H_SETTLED of 7h / 7j in its sharp pin form H_PIN (the rise-side twin of rule J): A0's rise reaches ustate's hold pin I4 no "
+                   "later than the releasing client's r_k fall reaches ustate's request pin; the release starts from A0 -> ua_k -> A_k -> "
+                   "client and returns to r_k"),
+    "inequality": ("H_PIN (client k): ta + wa0s <= t0 + wr_ks (A0's rise at ustate.I4 vs r_k's fall at ustate's r_k pin). From causality "
+                   "(settledP1_of_causal / settledP2_of_causal) it holds as soon as H_ARC_P: wa0s <= wa0k + ckr + L_k + wr_ks, L_k = client k's "
+                   "release latency (A_k rise at ua_k's output -> r_k fall at its driver); on the routed data (Real7, H_RK_ROUTE rs_k <= wr_ks) "
+                   "fsh_k: dS_other + es + ps <= d12 + e_k + p_k + ac_k + rs_k + L_k. H_PIN is implied by 7h / 7j's H_SETTLED (ta + wa0s + qf "
+                   "<= t0 and ta + wa0k + ckf <= t0; H.ofScn, J.ofScn2) and strictly weaker (strict_witness); H_SETTLED's second conjunct is "
+                   "used by no exclusion theorem"),
+    "forms": [settled_form(1), settled_form(2)],
+    "lean": [L(AS, "rt1_exclusion", "sufficient", "H.rt1_exclusion: 7h's grant exclusion re-proved on ScnP (H_SETTLED replaced by H_PIN)"),
+             L(AS, "rt2_exclusion_arcs", "sufficient", "H.rt2_exclusion_arcs on ScnP"),
+             L(AS, "rt1_exclusion2", "sufficient", "J.rt1_exclusion2 on Scn2P"),
+             L(AS, "rt2_exclusion2_arcs", "sufficient", "J.rt2_exclusion2_arcs on Scn2P"),
+             L(AS, "q_hi", "lemma", "H.q_hi: q stays 1 under H_PIN (FS_r1q / FS_hold on ustate's real INIT; the flat O6 arc cancels)"),
+             L(AS, "q_lo2", "lemma", "J.q_lo2: the 7j mirror"),
+             L(AS, "q_glitch2", "counter_trace", "J.q_glitch2, every record: t0 + wr2s < ta + wa0s (H_PIN violated) and A0 low there => q rises at "
+               "t0 + wr2s + qr, before QBb (necessary for the q trace; that the early q edge breaks exclusion is NOT shown)"),
+             L(AS, "q_glitch", "counter_trace", "H.q_glitch: q falls early when t0 + wr1s + qf < ta + wa0s + qr; with qr = qf (every Real7 record) "
+               "this is exactly not H_PIN"),
+             L(AS, "ScnP", "definition"), L(AS, "Scn2P", "definition"),
+             L(AS, "ofScn", "lemma", "H.ofScn: H_SETTLED => H_PIN"), L(AS, "ofScn2", "lemma"),
+             L(AS, "strict_witness", "non_vacuity", "W1p / W2p (7j's W1 / W2 with A0 rising at -50) meet ScnP / Scn2P while both conjuncts of "
+               "H_SETTLED fail: H_PIN is strictly weaker (D0 corner-mixed: satisfiability only)"),
+             L(AS, "settledP1_of_causal", "sufficient", "Caus1 + H_ARC_P => H_PIN"),
+             L(AS, "settledP2_of_causal", "sufficient"),
+             L(AS, "settledP1_nonvacuous", "non_vacuity", "on W1c at L = 0"),
+             L(AS, "settledP_safe", "corner", "setTbl2's L: H_PIN for every realization at kappa <= kappaS2, 72 clients"),
+             L(AS, "set2_cert", "numbers"), L(AS, "setTbl2_max", "numbers", "502361 fs"), L(AS, "setTbl2_pos", "numbers", "21 positive entries"),
+             L(AS, "settledP_tight", "corner", "each positive entry violated at L - 10 fs for every kappa >= kappaS2"),
+             L(AS, "settledP_L0_fails", "corner", "L = 0 fails on exactly the 21"),
+             L(AS, "design_gate_held_sharp", "corner", "OnGcdArbKappaSrv's four handover conclusions on ScnP / Scn2P"),
+             L(AS, "design_gate_held_sharp_causal", "corner", "the same with H_PIN from a causal run at latency >= setTbl2 + H_RK_ROUTE"),
+             L(AS, "link_pin1", "sufficient", "link clients (merge10 client 1, 4 seeds): H_PIN for every kappa <= kappaS2, no latency hypothesis"),
+             L(AS, "link_pin2", "sufficient", "link clients, client 2 (14 instances)"),
+             L(AS, "design_link_discharged1", "corner", "A- and g-exclusion handover conclusions for the discharged link instances"),
+             L(AS, "design_link_discharged2", "corner"),
+             L(AS, "link_short", "counter_trace", "seed 3 / seed 4 merge2.uarb1 client 2: the O6 arc alone (zero ack route) violates the form at kappaS2"),
+             L(AS, "link_caus1_nonvacuous", "non_vacuity", "LinkExact's P0 witness composed with W1c shifted by 5244 ps, latency 45"),
+             L(NW, "settled1_of_causal", "sufficient", "Bbare's coarser form: Caus1 + H_ARC (wa0s + qf <= wa01 + c1r + L) + H_ARC2 => 7h's H_SETTLED"),
+             L(NW, "settled2_of_causal", "sufficient"),
+             L(NW, "A1_rise_after", "lemma", "from ua1's real INIT: A1's rise is >= ta + wa01 + c1r"),
+             L(NW, "A2_rise_after", "lemma"),
+             L(NW, "settled1_nonvacuous", "non_vacuity"),
+             L(NW, "settled_safe", "corner", "coarse form: setTbl's L (max about 1.59 ns)"),
+             L(NW, "setTbl_max", "numbers"),
+             L(NW, "settled_L0_fails", "corner", "coarse form: L = 0 fails for 65 of 72 clients"),
+             L(NW, "design_gate_held_causal", "context", "OnGcdArbKappaSrv's D2 with H_SETTLED discharged by L >= setTbl"),
+             L(NW, "scn_excludes_caus", "context", "7h's Scn asserts its settled state on the whole past: the derivation uses a separate causal run")],
+    "exactness": "sufficient",
+    "necessity_scope": ("H_PIN is NECESSARY FOR THE q TRACE (J.q_glitch2, every record; H.q_glitch, exactly not H_PIN when qr = qf, i.e. on "
+                        "every Real7 record): violated, q moves early in every run. That the early q edge goes on to break grant / ack "
+                        "exclusion is NOT shown, so for the row's obligation (exclusion) H_PIN is sufficient only. 7h with qr < qf: the gap "
+                        "between H_PIN and the necessary condition is not decided. The gcd_hw latency table is tight to 10 fs "
+                        "(settledP_tight) as a statement about the form, not about exclusion."),
+    "exactness_note": ("Bbare (ArbNoWithdraw) derived 7h / 7j's H_SETTLED from causality (H_ARC: wa0s + qf <= wa0k + ckr + L) and found it "
+                       "NOT implied by the extracted arcs (L up to 1.59 ns, 65 / 72 clients at L = 0). Bset (ArbSettled) replaces it by the "
+                       "sharp pin form H_PIN (exact for the q trace, strictly weaker, implied by H_SETTLED) and re-proves 7h / 7j's whole "
+                       "exclusion chain on it: need at most 502.361 ps on 21 / 72 clients, discharged for 18 of 20 link instances. It is "
+                       "one of the two conditions under which D2 (0.2166) rather than D1 (0.0802) is gcd_hw's threshold. Missing arcs: the "
+                       "routed interconnect A_k driver -> client ack pin and its site pin (every client), H_LUT6_O6 (link), the steer "
+                       "release loop (cond_br, join, uack OR, H_SRC_HOLD) and the R0 clients' A0 C-join (H_A0_CJOIN)."),
+    "hypotheses": ["7h / 7j Run (gate relations, real ustate / ua_k INITs), H_SERVER_MIN", "H_A0_LOW_BEFORE (A0 low on ua_k's A0-view window before ta)",
+                   "H_CLIENT_LAT (client releases at t0 >= T + L_k)", "H_RK_ROUTE (rs_k <= wr_ks)",
+                   "links: LinkExact Wf / Conj, H_ACK_RB, H_ACK_READ, H_SAME_CORNER, H_LUT6_O6",
+                   "lit reading (H_SPREAD_CORRELATED) for the kappa results"],
+    "site_pins": {"needed": True, "roles": ["ustate.I4 (A0) hi", "ua_k A0 pin lo", "client ack pin lo", "ustate.I0 / I1 (r_k) lo"]},
+    "rule": {"rule": "none", "verdict": "none",
+             "detail": ("UNCHECKED by any project rule (cells/verify/arb_fork.py checks rule J, the A0 FALL fork, only). Proposed in "
+                        "B-arb-settled.md as rule J+ (rise-side twin of J: one linear row per client, LOOP_k's arcs summed at their lower "
+                        "bounds, setTbl2's L_k as the required latency for clients without a cell model); not a project rule")},
+    "corner": {"mode": "1C", "rule": ref["corner"]["rule"], "note": "every arc, LOOP_k's included, at the SAME corner (H_SHARED_CORNER / H_SAME_CORNER)",
+               "kappa": dict(copy.deepcopy({k: v for k, v in ref["corner"]["kappa"].items() if k != "results"}), results=[SET_RES])},
+    "check_scope": "route_plus_env",
+    "evidence": "setTbl2 (ps, kappaS2, seeds 2/3/4/d) in B-arb-settled.md section 2; Bar's extraction UNTRUSTED; no routed SDF / FASM of gcd_hw on this machine",
+    "status": "proved",
+    "combine": "all",
+})
+
+# D2's dependence on no-withdrawal (steer rows) and H_SETTLED, on the 12 rows carrying Bsrv's D1 / D2
+D2_DEP = ("Bbare (B-arb-no-withdraw.md, ArbNoWithdraw): D2 (0.2166) is gcd_hw's threshold only CONDITIONALLY. (a) No client may withdraw an "
+          "unacknowledged request: in C's network model none does (gcd_hw_arb_no_withdraw, a corollary of C's gcd_hw_protocol; one instant, "
+          "one wire, so nothing about pin skew); at gate level links do not withdraw under LinkExact's Conj (link_no_withdraw), steers under "
+          "bd_steer.bundled_s_setup / bundled_s_hold plus the named H_SRC_HOLD (steer_no_withdraw), R0 clients only if their own clients do; a "
+          "violated steer select setup row produces precisely D1's withdrawn request (steer_withdraws, a 100 ps pulse). The steer rows' routed "
+          "status is not re-checked. (b) H_SETTLED, sharp form H_PIN (bd_arbiter.settled_rise; ArbSettled): not implied by the extracted arcs "
+          "(settledP_L0_fails: 21 of 72 clients need up to 502 ps), discharged for 18 of 20 link instances (design_link_discharged1 / 2). "
+          "design_gate_held_sharp_causal is D2 with H_PIN discharged by L >= setTbl2. Neither (a) nor (b) is established on the routes.")
+nd2 = 0
+for e in C:
+    k = e["corner"].get("kappa")
+    if not k or not any(s.startswith("Bsrv (B-gcd-arb-kappa-srv.md") for s in k.get("results", [])):
+        continue
+    k["results"].append(D2_DEP)
+    add_lean(e, [L(NW, "steer_withdraws", "counter_trace", "a violated steer setup row: a 100 ps unacknowledgeable request (D1's withdrawn r2)"),
+                 L(NW, "steer_no_withdraw", "lemma", "steer branch held until TA + pr.lo under H_SETUP_PIN / H_HOLD_PIN / H_SRC_HOLD"),
+                 L(NW, "link_no_withdraw", "lemma", "link ctl request held until ack_out's rise can be read, under LinkExact's Conj"),
+                 L(NW, "gcd_hw_arb_no_withdraw", "context", "C's network model: no arbiter request withdraws"),
+                 L(NW, "design_gate_held_causal", "corner", "D2 with H_SETTLED discharged by L >= setTbl"),
+                 L(AS, "design_gate_held_sharp_causal", "corner", "D2 with the sharp H_PIN discharged by L >= setTbl2"),
+                 L(AS, "settledP_L0_fails", "corner", "H_PIN at L = 0 fails on 21 of 72 clients"),
+                 L(AS, "design_link_discharged1", "corner"), L(AS, "design_link_discharged2", "corner")])
+    nd2 += 1
+assert nd2 == 12, nd2
+LOG.append(f"{nd2} bd_arbiter rows: corner.kappa.results + D2's no-withdrawal / H_SETTLED dependence (ArbNoWithdraw)")
+for rid in ("bd_steer.bundled_s_setup", "bd_steer.bundled_s_hold"):
+    e = BY[rid]
+    add_lean(e, [L(NW, "steer_withdraws", "context", "gcd_hw: a violated steer setup row is exactly D1's withdrawn arbiter request (100 ps pulse)"),
+                 L(NW, "steer_no_withdraw", "context", "with the per-pin rows and H_SRC_HOLD the selected branch never withdraws")])
+    note_append(e, "Bj8 (Bbare, ArbNoWithdraw): in gcd_hw 9 steers drive arbiter requests; a violated select row makes the unselected "
+                "branch a short request no arbiter can acknowledge (steer_withdraws), which is the race behind D1 = 0.0802; D2 = 0.2166 "
+                "needs these rows on the routes (not re-checked).")
+    LOG.append(f"{rid}: note + steer_withdraws / steer_no_withdraw (D2 dependence)")
+
+# 7h / 7j first-handover scope on the held-arbiter rows
+SCN = {"ArbHeldTimed.lean": ("scn_excludes_caus", "7h's Scn"), "ArbHeldTimed2.lean": ("scn2_excludes_caus", "7j's Scn2")}
+nhs = 0
+for e in C:
+    if e["cell"] != "bd_arbiter":
+        continue
+    used = sorted({r["file"].split("/")[-1] for r in e["lean"]} & set(SCN))
+    if not used:
+        continue
+    names = [SCN[f][0] for f in used]
+    e["handover_scope"] = (
+        "FIRST HANDOVER (Bbare, ArbNoWithdraw." + " / ".join(names) + "): " + " and ".join(SCN[f][1] for f in used) +
+        " assert the settled initial state on the WHOLE past (e.g. A1 low for every t < t0), so no trace in which that client was ever "
+        "acknowledged before t0 meets them: the theorems behind this row cover the first handover from reset, not repeated ones. "
+        + ("Repeated handovers: ArbMultiToken (Barb2) splices a stylised settled past onto the run (splice_run) and gives windowed "
+           "one-handover theorems (win1, win2) and grant exclusion over infinitely many alternating handovers (mt_exclusion), under H_M, "
+           "H_SLOW_REREQ, H_HOLD and four-phase clients; early re-request, solo / idle / from-reset schedules open."
+           if e["id"] in ("bd_arbiter.rt1", "bd_arbiter.rt1b") else
+           "Not re-proved for repeated handovers (ArbMultiToken uses RT2 / A0 forks only internally, not packaged as a theorem)."))
+    add_lean(e, [L(NW, n, "context", "the scenario's settled state is asserted on the whole past: first handover only") for n in names])
+    nhs += 1
+assert nhs >= 12, nhs
+LOG.append(f"{nhs} bd_arbiter rows: handover_scope (7h / 7j first handover, scn_excludes_caus)")
+cv["handover_scope"] = ("optional (Bj8): on rows backed by 7h / 7j (ArbHeldTimed / ArbHeldTimed2): which handovers the cited theorems cover. "
+                        "Scn / Scn2 assert the settled state on the whole past (ArbNoWithdraw.scn_excludes_caus), so they cover the first "
+                        "handover from reset; ArbMultiToken's windowed theorems extend grant exclusion (RT1 / RT1b) to alternating contention.")
+
+# ------------------------------------------------------------------ (4) c_contract H_ARB_EXCL: held arbiter derivable (Barb2)
+MT_REFS = [L(MT, "H_ARB_EXCL_of_mt", "sufficient", "C's H_ARB_EXCL verbatim on Nat traces n -> g(sigma n), any sampling sigma >= B0, held arbiter"),
+           L(MT, "mt_exclusion", "sufficient", "(g1 t && g2 t) = false for every t >= B0, over infinitely many handovers"),
+           L(MT, "H_ARB12_of_mt", "lemma", "C's H_ARB1, H_ARB2, H_ARB_EXCL at 1 ps ticks, under CX (strict RT1, one-tick causality, H_GRANT_IN_A0_LOW)"),
+           L(MT, "win1", "lemma", "windowed one-handover theorem, client 1 releases"), L(MT, "win2", "lemma"),
+           L(MT, "splice_run", "lemma"),
+           L(MT, "mt_nonvacuous", "non_vacuity", "periodic 48 ps run over Z, every delay nonzero, two handovers per period, CX included")]
+HELD_CC = {"field": "H_ARB_EXCL (C's AMergeC / IpowCells Contract: no tick with both grants high, every tick of the run)",
+           "status": "needs_extra_hypothesis",
+           "extra": ("MTRun (H_ORD, H_SLOW_REREQ TA2 + 4M <= u, H_HOLD u + 2M <= t0 (k+1), H_A0, four-phase clients without withdrawal "
+                     "H_REQ1 / H_REQ2, settled H_INIT / H_R0_INIT) and H_M (M bounds every route + arc read offset), with RT1, RT2, RT1b, RT2b "
+                     "in arc form"),
+           "lean": ["ArbMultiToken.H_ARB_EXCL_of_mt", "ArbMultiToken.mt_exclusion", "ArbMultiToken.H_ARB12_of_mt",
+                    "ArbMultiToken.mt_nonvacuous", "ContractBridge.arb_excl_not_derivable"],
+           "basis": ("DERIVABLE as C states it for the HELD bd_arbiter (what gcd_hw instantiates): H_ARB_EXCL_of_mt, from mt_exclusion "
+                     "(induction over handovers on windowed one-handover theorems), under the extra hypotheses; H_ARB1 / H_ARB2 also at 1 ps "
+                     "ticks under CX (H_ARB12_of_mt). This does not contradict ContractBridge.arb_excl_not_derivable, which concerns the BARE "
+                     "bd_arbcell (no hold) in B's per-pin box. H_SLOW_REREQ and H_HOLD use the coarse M: sufficient, not tight. NOT derived: "
+                     "early re-request (three extra races named in B-arb-multi-token.md, not proved), solo / idle / from-reset schedules, "
+                     "H_AMERGE_RTZ (B's model has no z_req), C's initial fields i1 / i2 / ix / iy: C's AMerge is still not instantiated.")}
+for rid in ("bd_arbiter.rt1", "bd_arbiter.rt1b"):
+    e = BY[rid]
+    assert e["c_contract"]["status"] == "not_derivable", rid
+    add_lean(e, MT_REFS)
+    e["c_contract"] = copy.deepcopy(HELD_CC)
+    LOG.append(f"{rid}: c_contract H_ARB_EXCL not_derivable -> needs_extra_hypothesis (derivable for the held arbiter, H_ARB_EXCL_of_mt)")
+for rid in ("bd_arbcell.settled_exclusion", "bd_arbcell.handover_overlap"):
+    e = BY[rid]
+    cc = e["c_contract"]
+    assert cc["status"] == "not_derivable", rid
+    add_lean(e, [L(MT, "H_ARB_EXCL_of_mt", "context", "the HELD arbiter (bd_arbiter) does give C's H_ARB_EXCL under MTRun; the bare cell does not")])
+    cc["lean"].append("ArbMultiToken.H_ARB_EXCL_of_mt")
+    cc["basis"] = cc["basis"].replace(" (a multi-token arbiter theorem, i.e. the board's open 8% overlap question, is missing).",
+                                      ".") + (" Bj8 (Barb2): this row is the BARE cell, for which H_ARB_EXCL stays NOT derivable "
+                                              "(arb_excl_not_derivable). For the held bd_arbiter it IS derivable as C states it under "
+                                              "multi-token hypotheses (ArbMultiToken.H_ARB_EXCL_of_mt; see bd_arbiter.rt1 / rt1b's "
+                                              "c_contract). The bare cell's overlap question is out of that theorem's scope.")
+    assert "Bj8 (Barb2)" in cc["basis"]
+    LOG.append(f"{rid}: c_contract stays not_derivable (bare cell); basis points to H_ARB_EXCL_of_mt for the held arbiter")
+
+# ------------------------------------------------------------------ (5) RT_FB: IpowCellsT's Gap.gap_exact (Bfc)
+GAP = [L(ICT, "gap_exact", "exact_inner", "Gap.gap_exact: the exact form of C's timed feedback contract FbCelT (H_RT_FB on a pinned route): "
+         "2-input C-element, environment answering g ticks after the output edge, transport feedback route of delay d >= 1: FbCelT <-> d <= g "
+         "(tcheck Rc's fb_hi <= resp_lo), while the SI step and the old FbCel hold for every g"),
+       L(ICT, "gap_reject", "counter_trace", "Gap.gap_reject: no route with hi > g meets FbCelT"),
+       L(ICT, "si_not_fbCelT", "context", "Gap.si_not_fbCelT: at g = 0 the SI step holds but no route meets FbCelT")]
+for rid in ("bd_c2.env_latency", "bd_c2n.env_latency", "bd_c3.env_latency", "bd_c4.env_latency"):
+    e = BY[rid]
+    assert "RT_FB" in e["rule"]["detail"], rid
+    refs = copy.deepcopy(GAP)
+    if rid != "bd_c2.env_latency":
+        refs[0]["role"] = "context"
+        refs[0]["note"] += " (proved for the 2-input cgate only; for this cell an analogy, not a theorem)"
+    add_lean(e, refs)
+    note_append(e, "Bj8 (Bfc, IpowCellsT): C-side RT_FB. IpowCells' FbCel had no timing content (ContractBridge.fbCel_iff_si); "
+                "FbCelT pins the route, and Gap.gap_exact is its exact form (FbCelT <-> d <= g, fb_hi <= resp_lo) on the gap run"
+                + ("." if rid == "bd_c2.env_latency" else ", proved for the 2-input C-element only."))
+    LOG.append(f"{rid}: RT_FB exact form IpowCellsT.gap_exact ({refs[0]['role']})")
+
+doc["produced_by"] = (doc["produced_by"].rstrip() +
+    " Updated by probe Bj8 (2026-10-29) from B-necessity6.md (Necessity6*: uj1 / muxn max forms and rst_lines boundary-tight, S_XA_J.2), "
+    "B-zero-delay-tok.md (new row bd_link.stage_rearm, H_REARM), B-arb-no-withdraw.md + B-arb-settled.md (new row bd_arbiter.settled_rise, H_SETTLED in its sharp form H_PIN; D2's "
+    "no-withdrawal dependence; handover_scope), B-arb-multi-token.md (c_contract H_ARB_EXCL derivable for the held arbiter) and "
+    "B-ipow-cells-t.md (RT_FB: gap_exact); the 'probe Bj8' section of cell_constraints.bj5.py.")
+
 json.dump(doc, open(OUT, "w"), indent=1)
 for x in LOG:
     print(x)
