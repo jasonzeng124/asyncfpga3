@@ -1,0 +1,33 @@
+@skew_fval : ∀ {d p w : Nat},
+  1 ≤ p →
+    (fun t => delay ((skewA d w).w 2 0) (skewIn p 0) t ^^ delay ((skewA d w).w 2 1) (skewIn p 1) t) = pulse false p w
+@ce_skew : ∀ {p d w d' lo : Nat},
+  1 ≤ p →
+    w < d →
+      1 ≤ d' →
+        d' ≤ w →
+          lo ≤ d →
+            (∀ (s : Nat → Sig), GLSRun (lut2 xor) (skewA d w) (skewIn p) s → ∀ (t : Nat), s 2 t = false) ∧
+              (∀ (s : Nat → Sig), GLSRun (lut2 xor) (skewA d' w) (skewIn p) s → s 2 (p + d') = true) ∧
+                (∀ (s : Nat → Sig), SemRun Sem.transport (lut2 xor) (skewA d w) (skewIn p) s → s 2 (p + d) = true) ∧
+                  ∃ s, BandRun (lut2 xor) (skewA lo w) (skewA d w) (skewIn p) s ∧ s 2 (p + lo) = true
+'Formal.Core.GLSPass.run_unique' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.gls_pass_of_saf_silicon' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.gls_pass_transport_of_faithful' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.gls_in_envelope' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.ce_skew' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_skew_inertial_hides' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_skew_124' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_skew_kappa' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_capture' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_capture_124' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_c2' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.ce_c2_124' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.annotated_ne_baked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.GLSPass.gls_unique_time' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.mono_saf_is_transport' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.band_bracket_hi' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.band_bracket_lo' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.gls_mono_settle_band' depends on axioms: [propext, Quot.sound]
+'Formal.Core.GLSPass.gls_mono_bundle' depends on axioms: [propext, Quot.sound]
+'audit_gls_run_exists' depends on axioms: [propext, Quot.sound]

@@ -1,0 +1,33 @@
+rt1b_safe : ∀ (k : Kappa), k.num * 749546000000 ≤ k.den * 33176932320 → AllOK (litModel k) P7 Q7 0 0
+rt1b_unsafe : ∀ (k : Kappa),
+  k.den * 33176932321 ≤ k.num * 749546000000 → ∃ d, (litModel k).Realizes d ∧ pathDelay d Q7 < pathDelay d P7
+rt1b_gate_unsafe : ∀ (k : Kappa),
+  k.den * 33176932321 ≤ k.num * 749546000000 →
+    ∃ d D s,
+      (litModel k).Realizes d ∧
+        Formal.Cells.OnGcdArbFix.Real2 (qOf7 d) 0 0 D ∧
+          D.smin = 0 ∧
+            D.wa0s = 0 ∧
+              D.qr = 0 ∧
+                (qOf7 d).m2 = -1 ∧
+                  Formal.Cells.ArbHeldTimed.Run D s ∧
+                    (∀ (Hz : Int), 259353 < Hz → Formal.Cells.ArbHeldTimed2.Scn2 D s 0 (-1) 259352 259353 Hz) ∧
+                      ∃ t, s.g1 t = true ∧ s.g2 t = true
+'Formal.Cells.OnGcdArbKappaTight.rt1b_safe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.rt1b_unsafe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.rt1b_not_allOK' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.kS_kU_inside' does not depend on any axioms
+'Formal.Cells.OnGcdArbKappaTight.kex_bracket' does not depend on any axioms
+'Formal.Cells.OnGcdArbKappaTight.rt1b_safe_nonvacuous' depends on axioms: [propext]
+'Formal.Cells.OnGcdArbKappaTight.rt1b_gate_safe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.rt1b_gate_unsafe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.SU_overlap' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.spread_correlated_safe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.OnGcdArbKappaTight.spread_indep_fails' depends on axioms: [propext]
+'Formal.Cells.OnGcdArbKappaTight.cons_rows_k0' does not depend on any axioms
+/home/user/asyncfpga3/audit/lean/P10a/Tight.lean:21:60: error: Tactic `decide` proved that the proposition
+  kU.num * 749546000000 ≤ kU.den * 33176932320
+is false
+/home/user/asyncfpga3/audit/lean/P10a/Tight.lean:23:54: error: Tactic `decide` proved that the proposition
+  pathDelay dU Q7 + 2 = pathDelay dU P7
+is false

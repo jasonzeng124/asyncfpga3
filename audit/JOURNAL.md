@@ -258,3 +258,7 @@ generator, Core/Prims, Involution trace/loop, ResetCapstone, ZeroDelayNet, Contr
 Clean build of 84bc9e4 in ~/wt-f10 (Mathlib packages moved from wt-f7, same manifest; wt-f7 removed). Agents P10a
 (responses), P10b (A prims/involution/XSound2), P10c (B/C reset, zero-delay, ring), r16 (GLSResolve/GLSFid on research)
 launched; r15 running.
+
+### progress 09:20
+r16 in: formal's GLSResolve findings on research fid reproduced with own C-element bench; fid_core.vh:35-37 'applied
+late, not lost' REFUTED (read the lines myself; follow pulses <= TLOOP lost 40/40). GLSFid transcription CONFIRMED.
