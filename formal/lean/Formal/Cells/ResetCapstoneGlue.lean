@@ -149,10 +149,11 @@ def preR (c : Fin NC) (t : Nat) : Bool :=
   decide (c.val < 3 ∧ 1 ≤ t) || decide (c.val < 7 ∧ 2 ≤ t)
 
 /-- **The RTL reset state, in C's channel terms** (`AtS r T0`): requests 1 exactly on
-channels 0..6, acknowledge 1 exactly on channel 3 (the p_end sink has consumed). -/
+channels 0..6, every acknowledge 0 except possibly channel 3's (the p_end sink; in the RTL
+it is 1: `urig.upsnk` has already consumed). -/
 structure AtS (r : Fin NC → Chan) (T0 : Nat) : Prop where
   req : ∀ c, (r c).req T0 = hot c
-  ack : ∀ c, (r c).ack T0 = decide (c.val = 3)
+  ack : ∀ c, c.val ≠ 3 → (r c).ack T0 = false
 
 /-- The glued channel: 3 virtual ticks, then `r` from `T0`. Data in the prefix is `r`'s at
 `T0`. -/
@@ -210,10 +211,10 @@ theorem ack_step_pre (hS : AtS r T0) (c : Fin NC) {t : Nat} (ht : t < 3)
   rcases tsplit t with h | rfl | ⟨s, rfl⟩
   · rw [gl_ack_lt c (by omega), gl_ack_lt c ht] at hm; exact absurd rfl hm
   · refine ⟨?_, rfl⟩
-    rw [show (2 : Nat) + 1 = 0 + 3 from rfl, gl_ack_s, Nat.zero_add, hS.ack, gl_ack_lt c ht] at hm
+    rw [show (2 : Nat) + 1 = 0 + 3 from rfl, gl_ack_s, Nat.zero_add, gl_ack_lt c ht] at hm
     by_cases h : c.val = 3
     · exact h
-    · simp [h] at hm
+    · rw [hS.ack c h] at hm; exact absurd rfl hm
   · omega
 
 theorem glT_step_pre {x : Trace} (hx : x T0 = false) {t : Nat} (ht : t < 3) :
@@ -239,7 +240,7 @@ theorem gl_ack_pre (hS : AtS r T0) (c : Fin NC) (hc : c.val ≠ 3) {t : Nat} (ht
     (gl r T0 c).ack t = false := by
   by_cases h : t < 3
   · exact gl_ack_lt c h
-  · rw [show t = 0 + 3 by omega, gl_ack_s, Nat.zero_add, hS.ack]; simp [hc]
+  · rw [show t = 0 + 3 by omega, gl_ack_s, Nat.zero_add, hS.ack c hc]
 
 end glue
 
@@ -672,7 +673,7 @@ theorem glue_amerge (hS : AtS r T0) (x y z : Fin NC) (g1 g2 : Trace)
     intro t
     by_cases ht : t < 3
     · have e := A.dat T0 (Nat.le_refl _)
-      rw [A.i2, hS.ack y, show decide (y.val = 3) = false by simpa using ne3_ne hy] at e
+      rw [A.i2, hS.ack y (ne3_ne hy)] at e
       rw [gl_dat_lt z ht, gl_dat_lt x ht, gl_dat_lt y ht, glT_lt g2 ht, gl_ack_lt y ht]
       exact e
     · obtain ⟨s, rfl⟩ := shift_of ht
@@ -755,8 +756,12 @@ theorem glue_sink (hS : AtS r T0) (i : Fin NC) (A : SinkA r T0 i) : Ops.Gcd.Sink
     intro t hm
     by_cases ht : t < 3
     · obtain ⟨h3, rfl⟩ := ack_step_pre hS i ht hm
-      rw [show (2 : Nat) + 1 = 0 + 3 from rfl, gl_ack_s, Nat.zero_add, hS.ack, gl_req_lt i (by decide)]
-      simp [preR, h3]
+      rw [gl_ack_lt (t := 2) i (by decide)] at hm
+      rw [gl_req_lt (t := 2) i (by decide)]
+      have : preR i 2 = true := by simp [preR, h3]
+      rw [this]; cases h : (gl r T0 i).ack (2 + 1)
+      · rw [h] at hm; exact absurd rfl hm
+      · rfl
     · obtain ⟨s, rfl⟩ := shift_of ht
       rw [show s + 3 + 1 = (s + 1) + 3 by omega] at hm ⊢
       simp only [gl_req_s, gl_ack_s, s1] at hm ⊢

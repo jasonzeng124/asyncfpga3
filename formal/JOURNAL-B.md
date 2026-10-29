@@ -812,3 +812,41 @@ delays, rise/fall split, LUT-internal stage sharing (an arithmetic bracket moves
 only o1x/o2x).
 Lead's checker had a path bug (proofwidget vs proofwidgets), fixed at 09:45;
 Mathlib-closure files now check.
+
+### progress 11:05
+In (checked here, axioms standard):
+- Brz ResetCapstone{,Glue,Wit} (notes/B-reset-capstone.md): B's reset connected
+  to C's safety capstone. C's initial state lives in the init* fields of H_CELLS:
+  all 465 channels idle at t = 0 (cap_idle0). The RTL never reaches that state:
+  uenv1 and upsnk are 1 on [23(D+W+1), E] in every bounded GMW run with rst held
+  (rtl_not_idle). The RTL reset state AtS (requests on channels 0..6, channel 3
+  acked) is C-reachable in 3 virtual ticks (glue_cells, per cell type, side_chk
+  decided for 367 operators). gcd_hw_safe_after_reset: B's GMW reset + H_MAP (C
+  channel -> gNet node map) + C's gate models / bundling / start from T0 =
+  23(D+W+1) give gcd a b on every out0 latch from T0. Open, named: H_MAP has no
+  mechanised table (Rst2's generator is lost; only hot channels evidenced by rfl);
+  H_CELLS_AFTER assumed, not derived from GMW (C's O4); H_START_AFTER inherits the
+  rig re-offer caveat; the 9 bd_src-fed frontier links have no C channel; per-pin
+  wire lags vs C's one trace per wire; liveness not glued. Witnesses: joint (frozen
+  C family, so vacuous conclusion), C side with a result (8t run from T0 = 2,
+  latches 6), and nonvac_net2 (D=40, W=1, H_STEER_HOLD live on 6 steps) replacing
+  the degenerate D=W=0 reset witness.
+- Bzd ZeroDelayRefine (notes/B-zero-delay-refine.md): cell half of bridge Br2 /
+  C-8x, one token. Every physical behaviour of a bd_link stage, bd_steer and the
+  bd_mux join (B's per-pin models) refines, by a monotone retiming of event windows,
+  an explicit zero-delay run satisfying C's own Link/Steer/Mux, Protocol and Held,
+  with the latched value equal at capture. Link exact: all behaviours refine iff
+  the six bd_link.stage rows (link_ref_iff under Wf/Split/Causal); each 1-tick row
+  violation has a non-refining behaviour. Steer/mux setup/hold counter-runs refute
+  every retiming (unselected silence holds in every C run). Extra named hypotheses:
+  Causal/SCausal/MCausal (environment causality), H_JOIN_RACE (sufficient), widths.
+  C's handshake fields are images; its zero-delay data fields hold only as captured
+  values (argued). Open: the network half, multi-token, mux zr/xa/ya/ca nodes.
+- Bj6 cell_constraints.json (generator-produced; regeneration byte-identical,
+  validator 0 errors, 6 planted faults -> 6 errors): 137 rows, 40 exact, 42
+  boundary, 12 sufficient, 11 not_necessary (with replacement rows), 1 structural.
+  Necessity4/5 applied; every strict +1 row records that it rests on H_X_UNIFORM
+  (w = 1 unmeasured) with the per-edge form and wq = 0 (KleeneWin); new field
+  kleene_dependence on 72 rows (KleenePess: 64 need both pass values, 6 the reset
+  value, 2 pass0; safety/exclusion rows need none); rt1b kappa bracketed to 1.3e-12
+  with the server-free caveat and H_SPREAD_CORRELATED.

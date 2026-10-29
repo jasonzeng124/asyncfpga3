@@ -175,6 +175,37 @@ for e in doc["constraints"]:
             errs.append(f"{e['id']}: corner.kappa.results calls a kappa threshold exact (audit row 18)")
     elif e["corner"]["mode"] in ("1C", "1C_both_corners_required"):
         errs.append(f"{e['id']}: 1C row without corner.kappa")
+# Bj6: KleeneWin (every strict +1 is H_X_UNIFORM at w = 1: the row must say so), KleenePess (kleene_dependence
+# vocabulary; every K3-model row carries it), replacement_rows / replacement_scope (several rows replace one).
+KDEP = {"pass0", "pass1", "both", "pass(reset value)", "none"}
+nxw = nkd = 0
+for e in doc["constraints"]:
+    st = e.get("strict")
+    k3 = any(h.startswith(("H_KLEENE_LUT", "H_MUX_KLEENE")) for h in e.get("hypotheses", []))
+    if st and st.get("margin_added_ps"):
+        k3 = True
+        nxw += 1
+        if not st.get("x_window"):
+            errs.append(f"{e['id']}: strict +1 without strict.x_window (KleeneWin: the +1 is H_X_UNIFORM)")
+        if not any(h.startswith("H_X_UNIFORM") for h in e.get("hypotheses", [])):
+            errs.append(f"{e['id']}: strict +1 without H_X_UNIFORM in hypotheses")
+    kd = e.get("kleene_dependence")
+    if kd is not None:
+        nkd += 1
+        if kd.get("needs") not in KDEP or not kd.get("basis"):
+            errs.append(f"{e['id']}: kleene_dependence needs one of {sorted(KDEP)} and a basis")
+    elif k3:
+        errs.append(f"{e['id']}: K3-model row (H_KLEENE_LUT / H_MUX_KLEENE / strict +1) without kleene_dependence")
+    rr = e.get("replacement_rows")
+    if rr is not None:
+        if e["exactness"] != "not_necessary" or e.get("replacement") not in rr:
+            errs.append(f"{e['id']}: replacement_rows on a non-not_necessary entry, or without its replacement")
+        for r in rr:
+            if r not in ids or BYID[r]["exactness"] == "not_necessary":
+                errs.append(f"{e['id']}: replacement_rows entry {r} unknown or itself not_necessary")
+    if "replacement_scope" in e and e["exactness"] != "not_necessary":
+        errs.append(f"{e['id']}: replacement_scope on a non-not_necessary entry")
+print(f"rows with strict.x_window checked: {nxw}; rows with kleene_dependence: {nkd}")
 print(f"rows with hypotheses: {nhyp}; rows with corner.kappa: {nkap}")
 C = doc["constraints"]
 print(f"binds_at entries: {nbind}")

@@ -815,3 +815,176 @@ setup_pulse, setup_data and hold) cite `LinkExact.no_cross` as context, with the
 - No Kleene result for node_loop / uxa_loop.
 - No K3 Cover for bdc_muxn's unselected joins.
 - No closed-loop or several-token LinkExact.
+
+# Update (probe Bj6, 2026-10-29): Necessity4Mux*, Necessity5*, KleeneWin, KleenePess, OnGcdArbKappaTight
+
+Files changed:
+- `formal/out/cell_constraints.bj5.py`: a new "probe Bj6" section at its end, before the final
+  `json.dump`. `cell_constraints.gen.py` is unchanged, because it already runs bj5.py after its own
+  pass.
+- `formal/out/cell_constraints.validate.py`: new checks (below).
+- `formal/out/cell_constraints.json` and the md entry table, both regenerated with
+  `cd formal/out && python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md`.
+
+No Lean changed and nothing was hand-edited. A second generator run into a scratch file gives the
+same JSON byte for byte.
+
+Sources: B-necessity4.md, B-necessity5.md, B-kleene-win.md, B-kleene-pess.md and
+B-gcd-arb-kappa-tight.md. B-lutfb-bridge.md was read too, but no row of this file concerns C's
+LutFb / FbFirst premises, so nothing was added for it.
+
+## Checks
+
+| check | result |
+|---|---|
+| validator on the regenerated JSON | 137 constraints, 10 hypotheses, 2833 Lean references in 101 files, strict 71, strict_pending 18, 71 rows with strict.x_window, 72 rows with kleene_dependence, **errors: 0** |
+| negative control (scratch JSON with 6 faults: x_window removed, H_X_UNIFORM removed, kleene_dependence removed, a bad `needs` value, an unknown replacement_rows id, a misspelt Necessity5Arb name) | 6 errors, one per fault |
+| new validator on the pre-Bj6 JSON | 190 errors, all from the new x_window / H_X_UNIFORM / kleene_dependence checks |
+
+The validator resolves every cited name through its declaration grep, and every cited file is
+git-tracked. The Lean-like names in the section's prose were also grepped (mux_ok, dc_capture,
+lit_srv_min, strict_clean, orn_hold_true, ...), and all of them are declared.
+
+New validator checks, and why each is needed:
+- **x_window and H_X_UNIFORM.** A strict +1 row must carry `strict.x_window` and an `H_X_UNIFORM...`
+  entry in `hypotheses`. KleeneWin shows the +1 is H_X_UNIFORM at w = 1, not a property of the
+  cells, so a later pass must not silently drop that dependence.
+- **kleene_dependence.** Every K3-model row (H_KLEENE_LUT, H_MUX_KLEENE, or a strict +1) must carry
+  `kleene_dependence`, with `needs` taken from a fixed vocabulary.
+- **replacement_rows.** It may appear only on a not_necessary entry and must contain its
+  `replacement`. Each listed row must be known and must not itself be not_necessary. The existing
+  check takes only a single id.
+- **replacement_scope.** It may appear only on a not_necessary entry.
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries | 132 | 137 (+5 new rows) |
+| exact | 33 | 40 |
+| sufficient+necessary_at_boundary | 38 | 42 |
+| sufficient | 24 | 12 |
+| not_necessary | 6 | 11 |
+| structural (new label) | 0 | 1 |
+| strict / strict_pending | 68 / 17 | 71 / 18 |
+| rows with `hypotheses` / with corner.kappa | 24 / 124 | 85 / 129 |
+| citations with role exact / exact_inner | 177 / 116 | 190 / 299 |
+| Lean references (files) | 1956 (88) | 2833 (101) |
+
+## 1. Necessity4Mux* (Bnx4)
+
+- `bd_mux.uj_env_latency_req`: sufficient -> **not_necessary**. This holds in the box sense:
+  `mux_ok_staticN` proves the max form sufficient over every run, and at `pass8`'s parameter point
+  the shipped S_J0_X fails by 3 (by 4 in strict form) while every run passes.
+  - `replacement` is the uj0 row; `replacement_rows` lists both new rows.
+  - New row `bd_mux.uj0_env_latency_req_max`: sufficient+necessary_at_boundary (`fail10`,
+    `claimX1_false`). It is tight on the z_ack branch only.
+  - New row `bd_mux.uj1_env_latency_req_max`: sufficient. The symmetric uj1 run was not built.
+  - Each new row has two forms with `combine: any`: (a) the shipped j branch, (b) the z_ack branch
+    j -> uor -> line -> server -> z_ack -> ack C-element. One row per join is needed because the old
+    row's `combine: all` spans both joins.
+- `bdc_muxn.uj_env_latency_req`: -> **not_necessary** (`Nec4.pass8`). Replacement: the new row
+  `bdc_muxn.uj_env_latency_req_max`, sufficient only (`muxn3_ok_staticN`; no boundary run for
+  muxn).
+- `bd_mux.uj_env_latency_ctl`: -> **sufficient+necessary_at_boundary** (`claimC1_false` against the
+  shipped `mux_ok_static`). Only the S_J0_C form; S_J1_C is not built.
+- All of these are binary `<=` results. The JSON forms keep the Bs strict +1, so a refuted point at
+  slack 1 lies 2 ticks from the JSON form. Every row says this.
+
+## 2. Necessity5* (Bnx5)
+
+- `bd_arbcell.grant_skew`: -> **exact**. `grant_skew_exact`, `formA_iff` and `formB_iff` hold over
+  the whole transport model, and supersede Bsx3's boundary label. exact_scope lists what is not
+  covered: Kleene X on q, q-branch skew, request routing skew, and involution channels.
+- `bd_arbcell.settled_exclusion`: -> **exact** on its precondition (`settled_iff`). The inequality
+  field now states the precondition, and the hypothesis H_SAME_Q is recorded.
+- `bd_delay[FASTRISE].ack_flush`: -> **not_necessary** (`flush_not_necessary`, `dack3_clean`).
+  - necessity_scope: exact at DACK = 2 (`two_exact`, boundary run `dack2_glitch`); not necessary
+    for DACK >= 3.
+  - Replacement: new row `bd_delay[FASTRISE].ack_succ`, **exact** at line level with point delays
+    (`pulse_iff`, Succ).
+  - The replacement's exact_scope says that Succ is NOT proved sufficient for window delays (keep
+    H_ACK_FLUSH there), and that no PipeTimedN theorem takes Succ as a hypothesis.
+- `bd_pipe.rst_lines`: stays **sufficient**.
+  - Its necessity_scope now names all four PipeTimedN terms as boundary-tight: H_RST_LONG and the
+    request line (Bsx3), plus DACK and guard (`dack_false`, `guard_false`).
+  - The row's representative form is the per-pin H_RST_SEL term, which has no necessity result.
+    That is why the label stays sufficient.
+- `bd_link_dc.rule_K_corrected` and `rule_L_corrected`: -> **sufficient+necessary_at_boundary**
+  (`k1_false`, `l1_false`). This is binary `<=` at guard 0.
+- `bd_flink.qfb_first`: -> **sufficient+necessary_at_boundary** (`q1_false`). The JSON's strict +1
+  is not addressed.
+- `bd_mem.setup` and `bd_mem.hold`: -> **exact** in the event model (`setup_exact`, `hold_exact`).
+- `bd_mem.rdata_before_ack`: -> **exact** for the `tCO <= dcLo` part only (`rdata_exact`).
+  exact_scope says the H_RDATA_ROUTE term is not in the Lean, so with it the row is sufficient only.
+- `bd_mem.clk_high_width`: -> **not_necessary** (`clk_high_not_necessary`). Replacement: new row
+  `bd_mem.clk_high_width_exact`, `tPWH <= dcLo + dsLoF`, **exact** (`clk_high_exact`). Its twin
+  `clk_low_exact` is cited as context.
+- Reclassifications that need no new Lean:
+  - `bd_merge.reset_first`: -> **not_necessary**. Replacement H_NO_RETURN, with a new field
+    `replacement_scope`: it replaces only the H_RST_EARLY form; the loop and wire terms (form 0)
+    stay required. The H_NO_RETURN step is cell level (`early_request_ok`), and the note says that
+    no merge-level theorem uses H_NO_RETURN.
+  - `gcd_rig.token_static`: -> **structural**. This is a new exactness label, added to
+    conventions.exactness.
+
+## 3. KleeneWin (Bxw)
+
+Every strict +1 row (71 rows) now has:
+- `strict.x_window`: the +1 is H_X_UNIFORM at w = 1.
+  - With per-edge windows the exact term is c(first) + a(after).
+  - Without the uniform split, "+1, strict" is neither necessary nor sufficient
+    (`steer_split_matters`, `steer_ct_split_x`).
+  - Without the split, a sufficient form is +W under H_W_BOUND. W is unmeasured (board test XW-1).
+- An H_X_UNIFORM entry in `hypotheses`.
+- Citations by row type:
+  - every strict row: `steer_split_matters` (context) and `steer_win_uniform` (reduction);
+  - select rows: `steer_win_exact`, `join_win_exact` or `muxn_win_exact` (role kleene);
+  - latch rows: `latch_win_exact` and `latch_fbwin_iff`;
+  - own-feedback rows: `cel_env_iff`, `cel_env_win_iff` and `clean_iffW` (exact_inner),
+    `c2_fbwin_hazard` (context) and `loopW_exists`.
+- On 65 own-feedback and latch-loop rows, the hypothesis "H_FB_WIN: wq = 0 assumed (= H_FB_PURE)".
+- On exact strict rows, exact_scope now says the +1 form is exact only under H_X_UNIFORM, with
+  wq = 0 on a feedback pin.
+
+## 4. KleenePess (Bpess)
+
+The new field `kleene_dependence` = {needs, basis, inferred} is on 72 rows: every strict row plus
+bd_link.stage. Its convention is in conventions.kleene_dependence.
+
+| needs | rows | basis |
+|---|---|---|
+| pass0 | 2 | bd_steer select rows: `steer_edges_weak1` survives; `steer_fails_M` |
+| pass(reset value) | 6 | bd_c*.reset_width, design.rst_hold (`c2M_rst`; inferred except bd_c2), bd_latch_rst.reset (`rstM_reset`) |
+| both | 64 | bd_mux select rows (`join_fails_weak1`, `join_fails_weak0`); latch rows and bd_link.stage (`latch_pin_ok_M`, `latch_fails_M`); own-feedback races (`c2M_restore`, `c2M_11x`, `c2nM_restore`; inferred except bd_c2 / bd_c2n); bdc_muxn select rows and latch_facts loops (inferred) |
+
+Safety and exclusion results need nothing (`transfer`, `excl_M`, `arb_acks_safe`). The arbiter
+rows are binary and carry no field. This is recorded in the H_KLEENE_LUT / H_X_UNIFORM hypothesis
+entry, which also cites `bracket`, `lutP_definite` and `strict_iff`. The H_LUT_FIFO entry notes
+that the NMOS-only tree is weak1.
+
+## 5. OnGcdArbKappaTight (Bkx19)
+
+`bd_arbiter.rt1b`'s corner.kappa.results gain the following, with 22 citations:
+- The binding row is bracketed to 1.3e-12: safe up to 33176.932320/749546, unsafe from
+  33176.932321/749546 (`rt1b_safe`, `rt1b_unsafe`, and the bridge `A_rt1b_safe`, `A_rt1b_unsafe`).
+- The gate-level counterpart is `rt1b_gate_unsafe`. Its caveat: the overlap needs zero server,
+  zero A0 route to ustate and zero ustate O6 arc. Credited, the threshold is 0.651 and the design
+  minimum is 0.0802, so 0.0443 is the server-free form's number.
+- The lit reading needs H_SPREAD_CORRELATED; under H_SPREAD_INDEP the row fails at every kappa.
+
+The word "exact" is avoided in the results text (the audit row 18 check), and the threshold is
+called bracketed. The other 11 arbiter kappa rows get one sentence (lit verdicts carry
+H_SPREAD_CORRELATED, the gap is unchanged) and that hypothesis. The kappa hypothesis entry states
+H_SPREAD_CORRELATED / H_SPREAD_INDEP and the T_SPREAD test.
+
+## Not done / judgement calls
+
+- **bd_mux.reset_first.** It has the same H_RST_EARLY / H_NO_RETURN situation as
+  bd_merge.reset_first. It was not relabelled, because Bnx5 did not list it.
+- **"The three reclassifications".** Read as bd_merge.reset_first, gcd_rig.token_static and
+  bd_arbcell.settled_exclusion: the three B-necessity5 rows whose label changes with no new
+  theorem about their inequality.
+- **ack_succ's strict_pending.** The new row inherits it from ack_flush (input-against-input order).
+- **No Lean-side check of the new forms.** The max-form JSON forms were transcribed from the Lean
+  statements (`pass8`, `fail10`) and the notes, not checked against an emitter.
