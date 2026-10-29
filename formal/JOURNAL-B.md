@@ -850,3 +850,24 @@ In (checked here, axioms standard):
   kleene_dependence on 72 rows (KleenePess: 64 need both pass values, 6 the reset
   value, 2 pass0; safety/exclusion rows need none); rt1b kappa bracketed to 1.3e-12
   with the server-free caveat and H_SPREAD_CORRELATED.
+
+### progress 11:30
+In: Bbr ContractBridge (core; checked here, axioms standard; notes/B-contract-bridge.md).
+CORRECTION to my 08:30 IpowCells entry: FbCel was described as "H_LUT_SI +
+BoundedDelay feedback route + H_RT_FB". Bbr proves fbCel_iff_si: FbCel is EQUIVALENT
+to the plain SI step, because its feedback-route and H_RT_FB fields are existential
+and the ideal feedback (qp = o, lo = hi = 0) always satisfies them. So IpowCells'
+feedback contracts carry NO timing content as stated; ipow_cells /
+ipow_safe_of_contracts stand as theorems but their contracts are timing-free SI
+assumptions. Fix probe (Bfc) launched: pin qp/lo/hi to the routed feedback.
+Bridges proved (contract_of_contractB: ContractB implies IpowCells.Contract, so C's
+proof is unchanged; ipow_safe_of_contracts' non-vacuous on the quiet run):
+H_CTREE_ATOMIC from CTreeExact.tree_suff + H_CTREE_LOOP + read lower bound >= 1 +
+H_RUN (any tree shape; covers ipow's 5-input join and gcd's N=5/6 fork acks);
+H_SEL_PIN for steer (LibGapSteer.steer_tokens + per-pin setup/hold, H_SEL_DEC from
+H_BUNDLE) and mux; ungated H_DELAY_LUMPED from a FIFO read map + H_PULSE_WIDTH
+(fails for non-monotone maps, lumped_needs_fifo). H_ARB_EXCL as stated is NOT
+derivable from B's per-pin arbiter (arb_excl_not_derivable via su_osc: both grants
+high at some tick); it holds per arbitration inside B's QUIET/COMMIT window only,
+which C's amerge proof (exclusion at every tick) cannot use. Open: H_ARB1/2,
+H_AMERGE_RTZ multi-token, gated delay line.
