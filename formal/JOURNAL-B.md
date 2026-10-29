@@ -1442,3 +1442,11 @@ metastability filter. Non-vacuity: amerge_witness, one from-reset run covering e
 epoch kind, checked at all t. Open: client-2 / q = 0 mirrors (the class is one-sided),
 a waiter arriving mid-release, counter runs for H_SEP's R/G clauses and the rows;
 epoch hypotheses are numeric per epoch, not derived from arcs; the server reads R0.
+
+### progress 11:33
+In: Bj11 cell_constraints.json (151 rows; 38 exact, 56 boundary-tight, 10
+sufficient; regeneration byte-identical, validator 0 errors, re-run by me): rt1 (race
+disjunct only; free A0 route / ustate arc / server noted), handover_overlap (needs
+H_RF_ASYM; at consistent corners still 0) and the five re-request rows Q/R/Q2/R2/G2 ->
+boundary-tight on their constructed runs (one C field each); rereq_G's fall view now
+has a run too.

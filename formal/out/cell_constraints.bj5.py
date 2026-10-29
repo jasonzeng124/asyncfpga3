@@ -2477,6 +2477,161 @@ doc["produced_by"] = (doc["produced_by"].rstrip() +
     "and B-arb-amerge.md (ArbAMerge: new rows bd_arbiter.rereq_Q / R / G / Q2 / R2 / G2, early re-request; H_SLOW_REREQ dropped per "
     "handover window on rt1 / rt1b); the 'probe Bj10' section of cell_constraints.bj5.py.")
 
+# ================================================================== probe Bj11 (2026-10-29)
+# Source: B-arb-counter-runs.md (probe Bcr; Formal/Cells/ArbCounterRuns.lean, ArbCounterRunsAM.lean): CONSTRUCTED violating runs
+#   (closed theorems: the run is built, every gate relation checked for all t, the existing counter-lemma applied to it) for
+#   bd_arbiter.rt1 (race disjunct), bd_arbcell.handover_overlap and the six early re-request races rereq_Q / R / G (fall view) /
+#   Q2 / R2 / G2. Under the Bj10 label rule (a necessity label needs an iff or a constructed violating run) each becomes
+#   sufficient+necessary_at_boundary, with the slack-0 side and the caveats in necessity_scope.
+# Every name cited below is declared in the cited file (the validator greps each one).
+LOG.append("---- probe Bj11")
+CR, CRA = "ArbCounterRuns", "ArbCounterRunsAM"
+
+def bj11_label(rid, old_ok, refs, nscope, note):
+    e = BY[rid]
+    old = e["exactness"]
+    assert old == old_ok, (rid, old)
+    e["exactness"] = "sufficient+necessary_at_boundary"
+    add_lean(e, refs)
+    e["necessity_scope"] = nscope
+    note_append(e, note)
+    LOG.append(f"{rid}: exactness {old} -> sufficient+necessary_at_boundary (Bj11, constructed counter-run)")
+    return e
+
+def bj11_renote(e, file, name, txt):
+    hit = [r for r in e["lean"] if r["name"] == name and r["file"].endswith("/" + file + ".lean")]
+    assert len(hit) == 1, (e["id"], name)
+    hit[0]["note"] = txt
+
+# ---- (1) bd_arbiter.rt1: sufficient -> sufficient+necessary_at_boundary, race disjunct only
+e = bj11_label("bd_arbiter.rt1", "sufficient",
+    [L(CR, "rt1_counter_run", "counter_run",
+       "CONSTRUCTED violating run: record D1V in OnGcdArb.BoxReal1 of the routed gd_merge9_uarb1 (FMIN..SMAX box, worst point, m1 = -395), "
+       "every delay nonzero (AllPos); RT1's race disjunct missed by exactly 1 ps, structural disjunct failing (g1fq = 120 > g2r = 45); W1V is a "
+       "7h Run for all t, meets Scn for every horizon past 1781, server answering in exactly smin; rt1_counter_minserver gives g1 and g2 both "
+       "high at 1634"),
+     L(CR, "rt1_boundary_run", "non_vacuity",
+       "slack-0 side: same record with smin = 171 (D1S): RT1 holds with equality in the race disjunct, W1S is a Run meeting Scn, and "
+       "rt1_exclusion gives no overlap below every horizon"),
+     L(CR, "D1V_box", "numbers", "D1V lies in gd_merge9_uarb1's independent box (BoxReal1 lo9 hi9)"),
+     L(CR, "D1V_slack", "numbers", "race disjunct: wr1g + g1f1 = right side + 1; structural disjunct: g2r < g1fq"),
+     L(CR, "D1V_not_rt1", "numbers", "not RT1 D1V"),
+     L(CR, "D1V_fast", "numbers", "the server answers in exactly smin (TA = TR + smin)")],
+    "AT THE BOUNDARY, for the RACE disjunct only (form 0), on one constructed run (ArbCounterRuns.rt1_counter_run): the 7h record D1V "
+    "lies in the routed box of gd_merge9_uarb1 (OnGcdArb.BoxReal1 between its FMIN and SMAX rows, at the box's worst point, server-free "
+    "margin m1 = -395); its in-box fields are the routed numbers, while the fields outside that box are FREE choices, not routed numbers: "
+    "A0's route to ustate (wa0s = 100), ustate's O6 arc (qf = 124, the SMAX value) and the server (smin = 170). The race disjunct is missed "
+    "by exactly 1 ps (smin + wa0s + qf = 394 vs 395); W1V is a 7h Run for all t meeting Scn, and rt1_counter_minserver gives both grants high "
+    "at 1634 (a 1 ps overlap). The slack-0 side: rt1_boundary_run (smin = 171: RT1 holds, rt1_exclusion on the constructed run W1S). The "
+    "STRUCTURAL disjunct (form 1, g1fq <= g2r) is NOT shown tight: on the counter-run it fails by 75 ps (g1fq = 120, g2r = 45). One box, "
+    "one direction (1 -> 2); not a general iff. The *_iff theorems cited (ArbCorners.RT1_iff) are reductions of the rule form, not iffs for "
+    "exclusion. rt1b keeps its own instance (OnGcdArbKappaTight.SU_run).",
+    "Bj11 (B-arb-counter-runs.md, ArbCounterRuns): sufficient -> sufficient+necessary_at_boundary for the race disjunct: rt1_counter_run is "
+    "a constructed violating run in gd_merge9_uarb1's routed box (A0 route, ustate O6 arc and server free), rt1_boundary_run the slack-0 "
+    "side; the structural disjunct is not tight (necessity_scope).")
+bj11_renote(e, "ArbHeldTimed", "rt1_counter_minserver",
+            "CONDITIONAL on a SUPPLIED Run and Scn for the violating D (server answering in exactly smin, not RT1): both grants high at G2 TA; "
+            "Bj11: instantiated on the constructed run ArbCounterRuns.rt1_counter_run (record D1V, run W1V)")
+
+# ---- (2) bd_arbcell.handover_overlap: sufficient -> sufficient+necessary_at_boundary (needs H_RF_ASYM)
+e = bj11_label("bd_arbcell.handover_overlap", "sufficient",
+    [L(CR, "ho_cell", "counter_run",
+       "for EVERY 7e Arcs record and every t0, hoTrace is a Cell trace of the r2 -> r1 handover (r1 held high, r2 falls at t0, q low before)"),
+     L(CR, "ho_overlap_iff", "necessary",
+       "on that constructed run, for every Arcs record: an overlap exists iff qr + w + g1r_q < g2f (an iff for the deficit form on the "
+       "constructed trace family; not the row's corner claim)"),
+     L(CR, "ho_counter_run", "counter_run",
+       "SLOW_MAX, w = wfb = 20, O6 rise/fall asymmetry d6 = o5q + w + 1 = 171 (H_RF_ASYM): both grants high at t0 + 294, overlap count 1 ps "
+       "(overlap_C)"),
+     L(CR, "ho_boundary_run", "non_vacuity", "slack-0 side: d6 = o5q + w = 170, the constructed Cell trace has no overlap at any instant")],
+    "AT THE BOUNDARY, for the deficit form (zero overlap needs d6 <= o5q + w, i.e. qr + w + g1r_q >= g2f), on constructed runs: "
+    "ArbCounterRuns.ho_cell builds a Cell trace of the r2 -> r1 handover for EVERY 7e Arcs record, and ho_overlap_iff shows that on it an "
+    "overlap exists iff qr + w + g1r_q < g2f. ho_counter_run: at SLOW_MAX with w = wfb = 20 and d6 = 171 (1 ps past) both grants are high at "
+    "t0 + 294 for exactly 1 ps (overlap_C); ho_boundary_run: at d6 = 170 none. The violating run NEEDS H_RF_ASYM: a 171 ps O6 rise/fall "
+    "asymmetry (d6), unmeasured. At every consistent corner the overlap is 0 (corner_no_overlap), so the row's '= 0 at every consistent "
+    "corner' claim is sufficient only and the counter-run is not a claim about the board; the necessity is of the deficit inequality in "
+    "7e's arc model, for one handover scenario.",
+    "Bj11 (B-arb-counter-runs.md, ArbCounterRuns): sufficient -> sufficient+necessary_at_boundary: ho_cell / ho_overlap_iff (constructed "
+    "Cell trace for every arc record, overlap iff deficit), ho_counter_run (1 ps past, d6 = 171, H_RF_ASYM) and ho_boundary_run (slack 0). "
+    "At consistent corners the overlap stays 0 (corner_no_overlap).")
+bj11_renote(e, "ArbHandover", "overlap_exists_r2_to_r1",
+            "CONDITIONAL on a SUPPLIED Cell trace with a positive deficit (qr + w + g1r_q < g2f): both grants high at t0 + qr + w + g1r_q; "
+            "Bj11: instantiated on the constructed trace ArbCounterRuns.ho_cell (ho_overlap_iff, ho_counter_run)")
+
+# ---- (3) the six early re-request rows (ArbCounterRunsAM)
+RR_GRID = ("Caveats: the run's delay record is a small-integer grid (ArbMultiToken.Dw, every arc 1 ps and smin 3, with two to five fields "
+           "raised to 2 to 4 ps), NOT routed numbers; it runs from reset (FromReset), every route, arc and smin nonzero (AllPos), dz >= 1, the "
+           "four-phase client re-requesting at its minimum u = T1 + 1, and meets every other hypothesis of {th} (Run for all t, MB, {E} on "
+           "[12, Hz), ZLine, {rows}, the two other races in run form, {hq}, {rt}, RT2a, the A0 fork, the other {arc} fields). Necessity is for C's "
+           "{field} field only: that grant exclusion fails at slack -1 is NOT shown. The sufficient side keeps e_fields / f_fields and "
+           "early_nonvacuous (no new slack-0 run is built for the races).")
+D1 = dict(th="e_fields", E="E1", rows="Rows1", hq="H_HOLDQ", rt="RT1", arc="Arc1")
+D2 = dict(th="f_fields", E="E2", rows="Rows2", hq="H_HOLDQ2", rt="RT1b", arc="Arc2")
+RRNOTE = "Bj11 (B-arb-counter-runs.md, ArbCounterRunsAM): sufficient -> sufficient+necessary_at_boundary on the constructed run {th}."
+
+def rereq(rid, k, field, thm, what, extra, cex, d, old="sufficient", note=None):
+    e = bj11_label(rid, old, [L(CRA, thm, "counter_run", what)],
+                   (f"AT THE BOUNDARY on one CONSTRUCTED from-reset run (ArbCounterRunsAM.{thm}): the race is missed by exactly 1 ps in BOTH "
+                    f"its run form and its {d['arc']} field (the row's arc form), and ArbAMerge.{cex} applied to that run gives {what}. "
+                    + extra + " " + RR_GRID.format(field=field, **d)),
+                   note or RRNOTE.format(th=thm))
+    bj11_renote(e, "ArbAMerge", cex, f"CONDITIONAL over runs missing the race by 1 ps; Bj11: instantiated on the constructed run "
+                                     f"ArbCounterRunsAM.{thm}")
+    return e
+
+rereq("bd_arbiter.rereq_Q", 1, "H_ARB2", "rereqQ_counter_run",
+      "g2 falling while r2 is high (C's H_ARB2 fails)",
+      "Finding: the ending run needs qf > qr (record qf = 2, qr = 1): at slack -1 the q runt sits in ustate's hold loop; with qr = qf it "
+      "would circulate for ever, with qf = qr + 1 the rise-fast OR channel shrinks the low runt by 1 ps per lap until it dies.",
+      "cex_Q", D1)
+rereq("bd_arbiter.rereq_R", 1, "zr", "rereqR_counter_run",
+      "z rising while neither grant is high (C's zr fails)",
+      "As cex_R requires, the run has the z-rise row ALSO tight (G2 + 1 = RR + dz). Race R alone is NOT tight for exclusion: it protects "
+      "H_HOLDQ (e_HQ), which holds on this run.",
+      "cex_R", D1)
+rereq("bd_arbiter.rereq_Q2", 2, "H_ARB1", "rereqQ2_counter_run",
+      "g1 falling while r1 is high (C's H_ARB1 fails)",
+      "Finding (hold-loop runt): cex_Q2 itself assumes qr = qf (and g1rq = g1fq), so the pulse-shrinking fix of race Q is unavailable: the "
+      "4 ps high runt on q circulates in ustate's hold loop with period wfb + qr = 5 for as long as both clients request. The run is ended "
+      "past the window horizon (Hz = 52) by a legal four-phase continuation: A0 high, A2 latches on a g2 pulse (51), client 2 drops r2 (52), "
+      "the server drops A0 on a low sample of R0 (60), q is forced to 1 and client 1 holds. On the way both ACKS A1 and A2 are high on "
+      "[51, 63) (last conjunct of the theorem): race Q2 at slack -1 also breaks ack exclusion on this run (past the window, so outside "
+      "f_fields' scope); that GRANT exclusion fails is still not shown.",
+      "cex_Q2", D2)
+rereq("bd_arbiter.rereq_R2", 2, "zr", "rereqR2_counter_run",
+      "z rising while neither grant is high (C's zr fails)",
+      "As cex_R2 requires, the run has the z-rise row ALSO tight (G1b + 1 = RRb + dz). Race R2 alone is not tight for exclusion (it "
+      "protects H_HOLDQ2, which holds on this run).",
+      "cex_R2", D2)
+rereq("bd_arbiter.rereq_G2", 2, "H_ARB2", "rereqG2_counter_run",
+      "g2 falling while r2 is high (C's H_ARB2 fails)", "", "cex_G2", D2,
+      note="Bj11 (B-arb-counter-runs.md, ArbCounterRunsAM): sufficient -> sufficient+necessary_at_boundary on the constructed run "
+           "rereqG2_counter_run; the Bj10 remark 'no concrete counter-run for this direction' is superseded.")
+
+# rereq_G: already sufficient+necessary_at_boundary (rise view, cexG_run); now the fall view has a constructed run too
+e = BY["bd_arbiter.rereq_G"]
+assert e["exactness"] == "sufficient+necessary_at_boundary"
+add_lean(e, [L(CRA, "rereqGf_counter_run", "counter_run",
+               "CONSTRUCTED from-reset run, fall view: race G's fall view and Arc1.gf missed by exactly 1 ps while the rise view holds "
+               "(slack 0) and Arc1.gr holds; needs g1fq = 2 > g1rq = 1 (H_RF_ASYM on ugrant O5's q pin); cex_G (Or.inr) gives g1 falling "
+               "while r1 is high (H_ARB1 fails)")])
+bj11_renote(e, "ArbAMerge", "cex_G", "CONDITIONAL over runs missing race G by 1 ps in EITHER view (no side conditions); instantiated on "
+                                    "cexG_run (rise view) and, Bj11, on ArbCounterRunsAM.rereqGf_counter_run (fall view)")
+e["necessity_scope"] = (
+    "AT THE BOUNDARY in BOTH views, each on one constructed from-reset run. Form 0 (rise view, Arc1.gr): ArbAMerge.cexG_run (run form and "
+    "arc form each missed by exactly 1 ps, every other hypothesis of e_fields met, C's H_ARB1 fails). Form 1 (fall view, Arc1.gf): "
+    "ArbCounterRunsAM.rereqGf_counter_run (Bj11): the fall view missed by exactly 1 ps in run form and Arc1.gf while the rise view holds at "
+    "slack 0; the fall view can fail alone only with ugrant O5's q-pin rise and fall arcs differing (g1fq = 2 > g1rq = 1), i.e. it needs "
+    "H_RF_ASYM. " + RR_GRID.format(field="H_ARB1", **D1))
+note_append(e, "Bj11 (B-arb-counter-runs.md, ArbCounterRunsAM): the fall view now has a constructed counter-run too (rereqGf_counter_run, "
+               "needs H_RF_ASYM); the Bj10 remark 'the only race with a concrete counter-run' is superseded: every rereq_* race has one.")
+LOG.append("bd_arbiter.rereq_G: fall view constructed (rereqGf_counter_run); label unchanged (sufficient+necessary_at_boundary)")
+
+doc["produced_by"] = (doc["produced_by"].rstrip() +
+    " Updated by probe Bj11 (2026-10-29) from B-arb-counter-runs.md (ArbCounterRuns / ArbCounterRunsAM: constructed violating runs; "
+    "bd_arbiter.rt1 (race disjunct), bd_arbcell.handover_overlap and bd_arbiter.rereq_Q / R / Q2 / R2 / G2 -> "
+    "sufficient+necessary_at_boundary, rereq_G's fall view constructed); the 'probe Bj11' section of cell_constraints.bj5.py.")
+
 json.dump(doc, open(OUT, "w"), indent=1)
 for x in LOG:
     print(x)

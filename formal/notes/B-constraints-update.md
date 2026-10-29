@@ -1466,3 +1466,68 @@ relabelling: 38 of 38. Mutation tests on a scratch copy:
 - No new Lean. Constructing violating runs for rt1, for the Q / R / Q2 / R2 / G2 races and for handover_overlap would upgrade
   them to boundary or instance labels.
 - The new rows have no project rule (rule J+-style; UNCHECKED). Their client reaction is taken at its minimum, 1 tick.
+
+# Update (probe Bj11, 2026-10-29): constructed counter-runs for rt1, handover_overlap and the re-request races
+
+Generator-produced: the 'probe Bj11' section of `formal/out/cell_constraints.bj5.py` (run by `cell_constraints.gen.py`);
+JSON never hand-edited. `cd formal/out && python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md`;
+validator 0 errors; a second regeneration is byte-identical (json sha256 dc023062..., md b2778b64...).
+Source: `formal/notes/B-arb-counter-runs.md` (probe Bcr; `Formal/Cells/ArbCounterRuns.lean`, `ArbCounterRunsAM.lean`, both
+tracked). Every cited name was checked: it is declared in the cited file (the validator greps each one; a mutation test that
+misspells `rereqQ2_counter_run` is caught). Validator unchanged: no new check was needed.
+
+## Counts
+
+| | before (Bj10) | after (Bj11) |
+|---|---|---|
+| constraints | 151 | 151 |
+| exact | 38 | 38 |
+| sufficient | 17 | 10 |
+| sufficient+necessary_at_boundary | 49 | 56 |
+| sufficient+necessary_at_instance | 7 | 7 |
+| exact rows citing an iff (role exact) | 38 of 38 | 38 of 38 |
+| lean_refs | 3995 | 4011 |
+| validator errors | 0 | 0 |
+
+## 1. bd_arbiter.rt1: sufficient -> sufficient+necessary_at_boundary, race disjunct only
+
+- New citations: `rt1_counter_run` (counter_run), `rt1_boundary_run` (non_vacuity, the slack-0 side), `D1V_box`, `D1V_slack`,
+  `D1V_not_rt1`, `D1V_fast` (numbers). `rt1_counter_minserver`'s note now says it is instantiated on that run.
+- The record `D1V` lies in the routed box of `gd_merge9_uarb1` (`OnGcdArb.BoxReal1`, FMIN..SMAX, worst point, `m1 = -395`).
+  Only its in-box fields are routed numbers. The A0 route to ustate (100), ustate's O6 arc (124) and the server (`smin = 170`)
+  are FREE choices. necessity_scope says so.
+- The race disjunct misses by exactly 1 ps. The structural disjunct (`g1fq <= g2r`) fails by 75 ps, so it is NOT shown tight.
+  One box, one direction; rt1b keeps its instance label.
+
+## 2. bd_arbcell.handover_overlap: sufficient -> sufficient+necessary_at_boundary
+
+- New citations: `ho_cell`, `ho_counter_run` (counter_run), `ho_overlap_iff` (necessary), `ho_boundary_run` (non_vacuity).
+- For every 7e arc record, the constructed r2 -> r1 trace overlaps iff `qr + w + g1r_q < g2f`. At SLOW_MAX with `w = 20`,
+  `d6 = 171` gives a 1 ps overlap and `d6 = 170` none.
+- H_RF_ASYM dependence recorded: the violating run needs a 171 ps O6 rise/fall asymmetry. At every consistent corner the
+  overlap is 0 (`corner_no_overlap`). So the row's "= 0 at every consistent corner" stays sufficient. The necessity is of the
+  deficit inequality in 7e's arc model, and is not a claim about the board.
+
+## 3. The six re-request rows
+
+- **rereq_Q, R, Q2, R2, G2: sufficient -> sufficient+necessary_at_boundary.** Each on its `rereq*_counter_run`, for its one C
+  field: Q -> H_ARB2, R -> zr, Q2 -> H_ARB1, R2 -> zr, G2 -> H_ARB2. That grant exclusion fails is not shown.
+- **rereq_G: label unchanged.** The fall view (form 1) now has `rereqGf_counter_run`, which needs H_RF_ASYM (`g1fq = 2 > g1rq = 1`).
+- In each run the race misses by exactly 1 ps, in run form AND in the Arc field, and every other hypothesis of e/f_fields
+  holds. The `cex_*` notes now say where each lemma is instantiated.
+- Grid caveat (in every necessity_scope): the records are a 1 to 4 ps grid built on `ArbMultiToken.Dw`, not routed numbers.
+- R / R2 caveat: their runs also have the z-rise row tight, as `cex_R` / `cex_R2` require.
+- Q finding: the ending run needs `qf > qr`.
+- **Q2 hold-loop runt finding.**
+  - `cex_Q2` assumes `qr = qf`, so the 4 ps q runt circulates in ustate's hold loop (period 5) while both clients request.
+  - A four-phase continuation past Hz = 52 ends the run.
+  - On that run, A1 and A2 are both high on [51, 63). This is ack exclusion, past the window, so outside f_fields.
+- The Bj10 remarks "the only race with a concrete counter-run" (G) and "no concrete counter-run for this direction" (G2) are
+  marked superseded.
+
+## Not done / judgement calls
+
+- No slack-0 run was built for the races. Their sufficient side is still e/f_fields and early_nonvacuous.
+- No run is chained into C's AMerge.
+- `ho_overlap_iff` is cited as `necessary`, not `exact`. It is an iff over the constructed trace family for the deficit form,
+  not for the row's corner claim, and the row is not labelled exact.
