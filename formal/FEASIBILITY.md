@@ -48,6 +48,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
        per-input setup/hold windows, X bounded by cqHi+res then definite (res = named
        H_FF_RESOLVE, no MTBF), two-flop synchronizer; prjxray ships no fast-corner setup/hold
        (H_WINDOW_SLOW_ONLY).
+     - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
+     - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
+     - the arbiter loop at signal level (`Core/Delay/InvolutionLoop{Bridge,Signal,Rate}`, InvLoop2, 994 decls): for every solution q latches iff s > s*, loses iff s < s*, oscillates forever iff s = s*; laps to resolution between two logarithmic bounds under channel slope bounds;
    - **From shard B:**
      - `KleeneWin`: each binary edge gets its own X window, and every race gains c + a exactly. This
        drops the assumption H_X_UNIFORM;
@@ -55,9 +58,6 @@ experiments; and (2) **connecting** the proofs to the real routed design
        result transfers to it. Every result that needs a definite output (hold, restore, reset)
        needs pass(v) instead. This answers audit `abe7d25` KleeneBox: "H_KLEENE_LUT is the
        hazard-free extension (optimistic)".
-     - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
-     - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
-     - the arbiter loop at signal level (`Core/Delay/InvolutionLoop{Bridge,Signal,Rate}`, InvLoop2, 994 decls): for every solution q latches iff s > s*, loses iff s < s*, oscillates forever iff s = s*; laps to resolution between two logarithmic bounds under channel slope bounds;
    - **Open:**
      - RAMB18E1 is not modelled (bd_mem's BRAM is opaque in Gen; probe PrimsRam launched);
      - which channel the silicon LUT is (transport, inertial or involution) is a hypothesis, with no
