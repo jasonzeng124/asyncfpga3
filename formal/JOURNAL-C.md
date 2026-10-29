@@ -22,8 +22,12 @@
   link placement: `gcd_hw_circuit_safe3` -- every out0 latch is gcd a b under H_CELLS (Ops
   gate models), H_BUNDLE (on zero-delay traces) and H_START_ONCE; one explicit run satisfies
   all three and latches 6 = gcd 12 18 (8t; audit CONFIRMED). ipow: `ipow_circuit_safe3` (8y).
-  Rig (re-offers start): first result only (`gcd_rig_first`, under the env gate H_ENV; no
-  witness); re-arming at a re-offer is proved false, so every later result is open (8s3).
+  Rig (re-offers start): EVERY result (8s3): `gcd_rig_all` -- under H_CELLS (without
+  Src.iz), H_BUNDLE, the rig's env gates `RigEnv` (uenv1/uenv0 = C(a,not b), from the INIT)
+  and a, b < 2^31, every value out0 offers or latches, in every invocation, is gcd a b.
+  Invocations overlap (out0's return-to-zero, a lagging sink branch) harmlessly; the needed
+  env condition H_START_GATE is derived from gcd_rig.v's env cells, not assumed. Witness: only
+  the all-quiet run (no >= 2-invocation run built). Not: liveness, CMPD/compare logic.
   Liveness: `gcd_hw_live_final` -- first out0 within an explicit bound, value gcd -- open in
   H_NO_DEADLOCK', no joint witness (8z2). Do not cite 8u's `gcd_hw_live` (likely vacuous).
   Not covered: the physical -> zero-delay refinement that would let tcheck discharge
@@ -457,3 +461,7 @@ Wip/C* and Wip/_snapC.
 12d committed (notes and tools only, no Lean claimed): see the track-12 verdict. Its
 closed forms are tool fits on every row (0.1-0.2 ps), not theorems; z3 k-induction for the
 FAST aperture stopped bounded at depth 50 under load.
+
+### progress 09:23
+8s3 committed after my own check.sh (3 files, 3718 decls, standard axioms): gcd_rig_all,
+every rig result is gcd a b; see the track-8 verdict. Non-vacuity only via the quiet run.

@@ -1,7 +1,8 @@
 # C-8s3: every result of gcd_rig (per-invocation safety under the real rig)
 
-Shard C, probe 8s3, 2026-10-29. Status: written, waiting on the lead's dependency build
-to compile (see the bottom of this note for the current check state).
+Shard C, probe 8s3, 2026-10-29. **Status: DONE (safety, every invocation).** All three files
+check (`check.sh` OK, 3718 declarations audited); `gcd_rig_all` uses only
+[propext, Classical.choice, Quot.sound].
 
 ## Question
 
@@ -10,7 +11,7 @@ that re-arming fails at every re-offer: `out0`'s handshake is still open, so the
 never back in its reset state. Is EVERY result `gcd a b`? If so, what must the environment
 guarantee, and does `gcd_rig.v` guarantee it? If not, what is the trace?
 
-## Answer (as written; see check state)
+## Answer (proved)
 
 Every result is `gcd a b`. **The overlap is real but harmless**, and no quiescence or reset
 between invocations is needed. The rig overlaps invocations in two ways:
@@ -84,3 +85,38 @@ prepended run (`rig_gate`).
 - One window only: `idx`, and so `a, b`, are fixed. Window changes go through `rig_rst`.
   Shard B's RigContract (`idx` moves only while `rig_rst` is high, H_RESULT_FRESH) covers the
   clocked side. Composing the two is not done here.
+
+## Theorems (all proved)
+
+- `CapstoneRigAllWalk`: `walkR`, `WalkOKR`, `H_START_GATE`, `mainR`, `gcd_hw_forcedR`,
+  `gcd_hw_circuit_safeR` (H_CELLS, H_BUNDLE, H_START_GATE, periodic H_WALK).
+- `CapstoneRigAllPer`: `push_le_pop`, `quiet0`, `end_counts`, `sel_period`, `om_period`,
+  `walk_okR`, and **`gcd_hw_circuit_safe_all`** (H_CELLS, H_BUNDLE, H_START_GATE, a, b < 2^31).
+- `CapstoneRigAll`: `RigEnv`, `env_inv`, `env_at_rise`, `req_ack_cnt`, `out0_le_zEnd`,
+  `rig_gate`, and **`gcd_rig_all`**: under `CellR` (H_CELLS without `Src.iz`), H_BUNDLE, `RigEnv`
+  and a, b < 2^31, every value `out0` offers (bus right after each request rise) and every value
+  it latches (at each acknowledge fall), in every invocation, is `gcd a b`.
+
+## Witness with two or more invocations: not built
+
+8t's single-invocation witness (one explicit 465-channel run) took a full probe. A run with two
+invocations would also have to satisfy `RigEnv`, run the out0 return-to-zero concurrently with
+the second invocation's entry, and repeat the whole token schedule. That is estimated at about
+a day, beyond this probe's time box. So `RigEnv` together with H_CELLS and H_BUNDLE has only the
+trivial witness (the all-quiet run), as for every capstone theorem (O5).
+
+## Commands (run 2026-10-29)
+
+    cd /home/user/asyncfpga3/formal && export PATH=$HOME/.elan/bin:$PATH
+    ./check.sh Formal/Net/CapstoneRigAllWalk.lean Formal/Net/CapstoneRigAllPer.lean \
+      Formal/Net/CapstoneRigAll.lean          # [audit] 3718 declarations checked, [check] OK
+    ./slot.sh lake env lean Wip/C8s3/Axioms.lean   # needs the three oleans (lake build)
+
+## Files (all new)
+
+| file | what |
+|---|---|
+| `formal/lean/Formal/Net/CapstoneRigAllWalk.lean` | Periodic walk, its generic lemmas, the circuit induction `mainR`. |
+| `formal/lean/Formal/Net/CapstoneRigAllPer.lean` | `push_le_pop`, spine quiet after the end, periods, `walk_okR`, `gcd_hw_circuit_safe_all`. |
+| `formal/lean/Formal/Net/CapstoneRigAll.lean` | Rig environment gates, `out0_le_zEnd`, `rig_gate`, `gcd_rig_all`. |
+| `formal/lean/Wip/C8s3/Axioms.lean` | `#print axioms` only. |
