@@ -1,0 +1,40 @@
+tb_ctl -- pipeline controller conformance
+  consumers sample 380 ps after req-rise: 4 stages of request-leads-data, plus guard
+
+  controller      OCC   FAST  SLOWA SLOWR SLOWS PROTO
+  --------------------------------------------------
+  simple          2/2    ok    ok    ok    ok    ok 
+  semi (attempt)  4/4   FAIL  FAIL  FAIL   ok    ok 
+  decoupled      12/4   FAIL  FAIL  FAIL  FAIL   ok 
+  bd_link_dc      4/4    ok    ok    ok    ok    ok 
+
+  wrong tokens out of 20 -- FAST/SLOWA/SLOWR/SLOWS
+    simple          0 / 0 / 0 / 0
+    semi (attempt)  17 / 18 / 18 / 0
+    decoupled       20 / 20 / 20 / 20
+    bd_link_dc      0 / 0 / 0 / 0  (slow sender AND slow release 0)
+  attempt, isolating the slow-sender case:
+    long setup only (TSU=6000)   0 wrong
+    long gap only   (GAP=6000)   0 wrong
+    slow sender AND slow release  1 wrong
+  delivered out of 20
+    simple          20 / 20 / 20 / 20
+    semi (attempt)  20 / 20 / 20 / 20
+
+  The attempt holds its token count and its protocol and still
+  loses data, from EITHER side, for the same reason: it does not
+  control when its own latch closes.
+    trigger 1  a sender that turns round quickly -- the stage
+               upstream reopens before this one has closed
+    trigger 2  a consumer slow to drop its acknowledge -- the
+               outgoing request cannot rise, so the latch cannot
+               close at all
+  Slack on either side hides it, which is why a hand-driven
+  sweep found only half of it.  See verify/attempts/.
+
+  At fast min, BD_ROUTE_PS=0, both triggers fire.  Trigger 1 needs
+  short arcs: it is gone at slow max and with routing.
+  Trigger 2 survives every regime.  It is structural, and it is
+  the reason this cell can never ship.
+tb_ctl PASS
+tb/tb_ctl.v:571: $finish called at 7581960 (1ps)

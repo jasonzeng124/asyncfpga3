@@ -1,0 +1,70 @@
+cmd: GLS_SDF=/root/r7work/hw_nfbug/gcd_hw/gcd_hw_xray.sdf GLS_SDF_FIELD=max GLS_MODEL=fid ~/wt-r7x/cells/gls/fid/build_fid.sh /root/r7work/hw_nfbug/gcd_hw /root/r7work/nf_bug_max bit
+Thu Oct 29 00:02:47 UTC 2026
+== fasm2net (bit) ==
+source: /root/r7work/hw_nfbug/gcd_hw/gcd_hw.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 75034   nodes touched: 255918
+cells: 13674  {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 60, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 1176, 'SLICE_FFX': 358, 'SLICE_LUTX': 12068}
+sinks traced: 173060
+sink roots: {'drv': 43686, 'const/default': 28443, 'const/tile': 2385}
+sdf: cell arcs for a bel this netlist does not have                         1
+sdf: cells re-keyed                                                         13674
+sdf: interconnects re-keyed                                                 54942
+sdf: sinks with no nextpnr interconnect (0 ps)                              22999
+
+PROBLEMS (1 kinds):
+       5  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL8_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL2_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL0_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL1_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL3_O
+
+CONFIGURED FEATURES NOT CONSUMED: 0 kinds (0 all-zero encodings ignored)
+
+note: 48 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 14035 routed-JSON net names attached by driver bel pin, 1 whose driver has no net here
+== equivalence against the routed JSON (information; the sim runs regardless) ==
+1. CELLS  routed JSON 13673 bels, bitstream 13672 bels, common 13672
+2. CONFIG  compared {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 60, 'SLICE_FFX': 358} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+3. CONNECTIVITY  39173 pins with the same driver on both sides
+4. LUT FUNCTIONS  12068 LUTs compared, 12048 identical over every input assignment
+5. ROUTING  14036 nets with identical pip sets, 0 differ (1 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+VERDICT: NOT EQUIVALENT: LUT FUNCTION DIFFERS
+design:    gcd_hw  (FASM-BUILT netlist: fasm2net.py from the bit)
+stamped:   2026-10-29 00:03:33
+md5 f0299d31b156653a74018488aba4ce6c  /root/r7work/hw_nfbug/gcd_hw/gcd_hw.bit
+md5 a6dffc41e4afc7c062e28eda1e67ad0b  /root/r7work/hw_nfbug/gcd_hw/gcd_hw.fasm
+md5 73871058e780002248e831e5fafde86d  /root/r7work/hw_nfbug/gcd_hw/gcd_hw_routed.json
+md5 c647eb1a8a0f011b72e428503b5a0753  /root/r7work/hw_nfbug/gcd_hw/gcd_hw.sdf
+connectivity/LUTs from: bit;  names + delays from: routed JSON + SDF (re-keyed)
+delays:    scale 1, scatter sigma 0, seed 1, mode arc (gen.py)
+sdf:       b2036378c95d3c05ff212882a6d12314  /root/r7work/hw_nfbug/gcd_hw/gcd_hw_xray.sdf, column max
+model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region 0/10, band 0.38 if column=band)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== gen.py on the FASM-built netlist ==
+delays: SDF column max, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 49126 IOPATH, 77941 INTERCONNECT, 84 SETUPHOLD
+fid: 4959 LUT state node(s) with a self-loop; loop delay min/median/max 384/945/2458 ps
+cells         : 13674
+icbufs        : 77941
+nets          : 14101 (+77941 icbuf outputs)
+IOPATH  claimed 127067 -> emitted 127067 (incl. 77941 icbuf)
+SETUPHOLD claimed 84 -> 42 flops check them in netlist_baked.v
+handshake wires: 608  data buses: 191
+resolved 14 signals -> signals.vh
+== compiling ==
+built /root/r7work/nf_bug_max
+EXIT 0
+Thu Oct 29 00:07:38 UTC 2026
