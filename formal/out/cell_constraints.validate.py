@@ -11,6 +11,9 @@ KINDS = {"lut_arc", "site_pin", "wire", "feedback_wire", "line", "env", "cell_pa
 REQ = ["id", "cell", "obligation", "inequality", "forms", "lean", "exactness", "site_pins", "rule", "corner", "status", "check_scope", "combine"]
 tracked = set(subprocess.run(["git", "-C", REPO, "ls-files", "formal/lean"], capture_output=True, text=True).stdout.split())
 cache = {}
+# Bj9: end of a declared name. Lean identifiers may end in a prime (KleeneWinBound.steer_win_bound'), after which '\b' cannot match
+# before a space; so: no further identifier character (word character, prime, dot) follows.
+NAME_END = r"(?![\w'.])"
 
 def text(ref):
     key = (ref.get("branch"), ref["file"])
@@ -33,7 +36,7 @@ def chk_lean(where, refs):
         t = text(r)
         if t is None:
             errs.append(f"{where}: file missing {r['file']}"); continue
-        if not re.search(rf"^\s*(private |protected )?(theorem|lemma|def|structure|abbrev|inductive) {re.escape(r['name'])}\b", t, re.M):
+        if not re.search(rf"^\s*(private |protected )?(theorem|lemma|def|structure|abbrev|inductive) {re.escape(r['name'])}{NAME_END}", t, re.M):
             errs.append(f"{where}: {r['name']} not declared in {r['file']}")
         if not r.get("branch") and r["file"] not in tracked:
             errs.append(f"{where}: {r['file']} is untracked")
@@ -102,7 +105,7 @@ def statement(r):
     t = text(r)
     if t is None:
         return None
-    m = re.search(rf"^\s*(private |protected )?(theorem|lemma|def|structure|abbrev|inductive) {re.escape(r['name'])}\b", t, re.M)
+    m = re.search(rf"^\s*(private |protected )?(theorem|lemma|def|structure|abbrev|inductive) {re.escape(r['name'])}{NAME_END}", t, re.M)
     if not m:
         return None
     s = t[m.start():]
@@ -222,19 +225,44 @@ for e in doc["constraints"]:
         for r in rr:
             if r not in ids or BYID[r]["exactness"] == "not_necessary":
                 errs.append(f"{e['id']}: replacement_rows entry {r} unknown or itself not_necessary")
+    cg = e.get("combine_groups")
+    if cg is not None:
+        # Bj9: a disjunction of conjunctions of forms; only with combine 'any', groups disjoint and covering every form
+        flat = [i for grp in cg for i in grp]
+        if e["combine"] != "any" or sorted(flat) != list(range(len(e["forms"]))) or not all(cg):
+            errs.append(f"{e['id']}: combine_groups needs combine 'any' and non-empty groups partitioning the form indices")
     if "replacement_scope" in e and e["exactness"] != "not_necessary":
         errs.append(f"{e['id']}: replacement_scope on a non-not_necessary entry")
 # Bj7: '+W under H_W_BOUND' is proved for bd_steer only (SelfAuditB7.steer_win_bound): every other x_window must say UNPROVED;
 # c_contract (status vocabulary, cited names in the row's lean list); boundary_point only on strict +1 boundary rows.
-nwb = ncc = nbp = 0
+# Bj9 (Bwb, KleeneWinBound): the bound is now proved per row family. A row whose x_window speaks of a bound under H_W_BOUND and does not
+# say UNPROVED must cite, from KleeneWinBound (or SelfAuditB7.steer_win_bound for steer), a bound theorem (role sufficient / bound) AND one of
+# its necessity theorems (role necessary); a row citing the C-element bound must state '+W + Wq' and that '+W' holds only at 'wq = 0'.
+nwb = nwb_unproved = ncc = nbp = 0
 CC_STATUS = {"derived", "not_derivable", "needs_extra_hypothesis"}
+WB_NEED = {"steer_win_bound'": {"steer_win_need_setup", "steer_win_need_hold"}, "join_win_bound": {"join_win_need_setup", "join_win_need_hold"},
+           "muxn_win_bound": {"muxn_win_need"}, "latch_win_bound": {"latch_win_need_pulse", "latch_win_need_data", "latch_win_need_hold"},
+           "cel_env_win_bound": {"cel_env_win_need"}}
 for e in doc["constraints"]:
     xw = (e.get("strict") or {}).get("x_window", "")
-    if "+W under H_W_BOUND" in xw:
+    if "H_W_BOUND" in xw:
         nwb += 1
-        steer_ok = e["cell"] == "bd_steer" and any(r["name"] == "steer_win_bound" and r["file"].endswith("/SelfAuditB7.lean") for r in e["lean"])
-        if not steer_ok and "UNPROVED" not in xw:
-            errs.append(f"{e['id']}: '+W under H_W_BOUND' claimed without steer_win_bound and not labelled UNPROVED")
+        if "UNPROVED" in xw:
+            nwb_unproved += 1
+        else:
+            wbr = [r for r in e["lean"] if r["file"].endswith("/KleeneWinBound.lean")]
+            bounds = {r["name"] for r in wbr if r["name"] in WB_NEED and r["role"] in ("sufficient", "bound")}
+            if e["cell"] == "bd_steer" and any(r["name"] == "steer_win_bound" and r["file"].endswith("/SelfAuditB7.lean") and r["role"] == "sufficient"
+                                               for r in e["lean"]):
+                bounds.add("steer_win_bound'")
+            needs = {r["name"] for r in wbr if r["role"] == "necessary"}
+            if not bounds:
+                errs.append(f"{e['id']}: bound 'under H_W_BOUND' claimed without a KleeneWinBound / SelfAuditB7 bound theorem and not labelled UNPROVED")
+            for b in bounds:
+                if not WB_NEED[b] & needs:
+                    errs.append(f"{e['id']}: bound {b} cited without one of its necessity theorems {sorted(WB_NEED[b])} (role necessary)")
+            if "cel_env_win_bound" in bounds and not ("+W + Wq" in xw and "wq = 0" in xw):
+                errs.append(f"{e['id']}: C-element bound cited but x_window does not state '+W + Wq' and that '+W' holds only at 'wq = 0'")
     cc = e.get("c_contract")
     if cc is not None:
         ncc += 1
@@ -253,7 +281,7 @@ for e in doc["constraints"]:
             errs.append(f"{e['id']}: boundary_point on a row that is not a strict +1 necessary_at_boundary row")
         if bp.get("ticks_from_row_form") != bp.get("slack", -1) + 1 or "<=" not in e.get("necessity_scope", ""):
             errs.append(f"{e['id']}: boundary_point ticks_from_row_form != slack + 1, or necessity_scope does not name the '<=' form")
-print(f"rows with '+W under H_W_BOUND': {nwb}; rows with c_contract: {ncc}; rows with boundary_point: {nbp}; kappa-exact rows: {nkx}")
+print(f"rows with a bound under H_W_BOUND: {nwb} (UNPROVED: {nwb_unproved}); rows with c_contract: {ncc}; rows with boundary_point: {nbp}; kappa-exact rows: {nkx}")
 print(f"rows with strict.x_window checked: {nxw}; rows with kleene_dependence: {nkd}")
 print(f"rows with hypotheses: {nhyp}; rows with corner.kappa: {nkap}")
 C = doc["constraints"]

@@ -299,10 +299,10 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_mux.bundled_s_setup` | proved | exact (strict +1) | yes | E (skew.py), D (screen): exact_structure_missing_site_pins |
 | `bd_mux.bundled_s_hold` | proved | exact (strict +1) | yes | none |
 | `bd_mux.bundled_z` | proved | sufficient | yes | A: rule_is_the_check |
-| `bd_mux.isochronic_forks` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.isochronic_forks` | proved | not_necessary (strict +1) | yes | none |
 | `bd_mux.uj_env_latency_req` | proved | not_necessary (strict +1) | yes | none |
 | `bd_mux.uj_env_latency_ctl` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
-| `bd_mux.uxa_join_latency` | proved | sufficient (strict +1) | yes | none |
+| `bd_mux.uxa_join_latency` | proved | not_necessary (strict +1) | yes | none |
 | `bd_mux.reset_first` | proved | sufficient (strict +1) | no | none |
 | `bd_mux.bundled_z_s` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
 | `bd_mux.bundled_z_data` | proved | sufficient+necessary_at_boundary | yes | A: different_condition |
@@ -336,7 +336,7 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bdc_muxn.s_hold` | proved | exact (strict +1) | yes | none |
 | `bdc_muxn.no_third_branch` | proved | exact | yes | none |
 | `bdc_muxn.iso_ctl` | proved | sufficient (strict +1) | yes | none |
-| `bdc_muxn.iso_zack` | proved | sufficient (strict +1) | yes | none |
+| `bdc_muxn.iso_zack` | proved | not_necessary (strict +1) | yes | none |
 | `bdc_muxn.bundled_z_data` | proved | sufficient | yes | A: different_condition |
 | `bdc_muxn.uj_env_latency_req` | proved | not_necessary (strict +1) | yes | none |
 | `bd_mlink.qfb_first` | proved | sufficient+necessary_at_boundary (strict +1) | yes | none |
@@ -363,6 +363,12 @@ Counts: 127 proved (19 exact, 64 sufficient; 59 with a strict +1 ps margin, 20 s
 | `bd_mem.clk_high_width_exact` | proved | exact | no | none |
 | `bd_link.stage_rearm` | proved | exact | yes | none |
 | `bd_arbiter.settled_rise` | proved | sufficient | yes | none |
+| `bd_mux.uxa_seq` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bd_mux.uxa_r` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bd_mux.uya_seq` | proved | sufficient (strict pending) | yes | none |
+| `bd_mux.uya_r` | proved | sufficient (strict pending) | yes | none |
+| `bdc_muxn.ua_seq` | proved | sufficient+necessary_at_boundary (strict pending) | yes | none |
+| `bdc_muxn.ua_r` | proved | sufficient (strict pending) | yes | none |
 
 Global hypotheses (`hypotheses_not_inequalities`): H_LUT_FIFO / H_PIN_FIFO /
 H_TREE_FIFO (C4), metastability with no deadline (C8/R3),

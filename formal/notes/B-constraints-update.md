@@ -1263,3 +1263,108 @@ The rows that concern feedback route timing are bd_c2 / bd_c2n / bd_c3 / bd_c4 `
   results for them.
 - **Not catalogued.** H_DATA_LOOP_K (a closed-loop hypothesis only) and the k-token six-row iff
   (open).
+
+# Update (probe Bj9, 2026-10-29): Necessity7* (gate-aware mux forks), KleeneWinBound (+W per family), self-audit 5 JSON items
+
+The JSON is patched by the "probe Bj9 (2026-10-29)" section of `formal/out/cell_constraints.bj5.py`
+(before its final `json.dump`), run by `cell_constraints.gen.py`. Two regenerations give byte-identical
+JSON and MD (JSON sha256 71065f5b...). Validator: **errors: 0**. The validator was changed in two
+places (section 4).
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries / hypotheses | 139 / 11 | 145 / 11 (+ bd_mux.uxa_seq, uxa_r, uya_seq, uya_r, bdc_muxn.ua_seq, ua_r) |
+| sufficient+necessary_at_boundary | 45 | 48 (+ uxa_seq, uxa_r, ua_seq) |
+| not_necessary | 11 | 14 (+ isochronic_forks, uxa_join_latency, iso_zack) |
+| sufficient | 10 | 10 (-3 relabelled, + uya_seq, uya_r, ua_r) |
+| exact | 41 | 41 |
+| strict / strict_pending | 71 / 18 | 71 / 24 (the 6 new rows are binary '<=', strict_pending) |
+| rows with a bound under H_W_BOUND (UNPROVED) | 71 (69) | 71 (5: the *_rst_dec rows) |
+| Lean references (files) | 3223 (117) | 3933 (123) |
+| citations with role exact / exact_inner | 207 / 300 | 207 / 299 (gap_exact re-roled) |
+| rule verdict none | 100 | 106 |
+
+## 1. Necessity7 (Bnx7)
+
+- **bd_mux.isochronic_forks: sufficient -> not_necessary.** Cited `passA5`, `passN5` (role
+  not_necessary) with `mux_ok_gs`: the shipped S_XA_FORK fails at those points and every run there passes.
+  `replacement` = bd_mux.uxa_seq; `replacement_rows` = uxa_seq, uxa_r, uya_seq, uya_r. The untimed
+  `mux_needs_iso_*` (MergeMuxSI) are re-roled necessary -> context: they concern the untimed
+  isochronic-fork assumption, not the timed inequality.
+- **New rows.**
+  - `bd_mux.uxa_seq` (S_XA_SEQ `Wzx.hi <= Kc + W0x.lo`): **sufficient+necessary_at_boundary**
+    (`mux_ok_gs`; `failSEQ6` counter_run, `claimSEQ1_false` counter_trace; `passA5` non_vacuity).
+  - `bd_mux.uxa_r` (S_XA_R = S_XA_N OR (S_XA_FORK AND S_XA_J.1)): **sufficient+necessary_at_boundary**
+    (`failR6`, `claimR1_false`; shown on the S_XA_N disjunct at a point where the fork disjunct also
+    fails). Three binary forms, `combine: any` with the new `combine_groups: [[0], [1, 2]]`.
+  - `bd_mux.uya_seq`, `bd_mux.uya_r`: the uya mirrors, **sufficient** only (stated in MuxStaticG, no
+    run). Bnx7's table names S_XA_SEQ / S_XA_R only; I gave the mirrors their own rows (as Bj6 did for
+    uj1) instead of folding them into boundary rows they have no run for.
+- **bd_mux.uxa_join_latency: sufficient -> not_necessary** (`passB`, with `mux_ok_gs`), with
+  `replacement_scope`: forms 0 / 2 (S_XA_J.1, S_YA_J.1) replaced by uxa_r / uya_r; forms 1 / 3
+  (S_XA_J.2, S_YA_J.2) still required. `boundary_tight_terms` (S_XA_J.2, claimJ1_false) kept, its
+  `untouched` text updated. The label follows the bd_merge.reset_first precedent (a not_necessary row
+  whose replacement_scope keeps the other forms required).
+- **bdc_muxn.iso_zack: sufficient -> not_necessary** (`passN7`), replacement rows `bdc_muxn.ua_seq`
+  (S_A_SEQ, **boundary**, `failSEQ8` / `claimSEQn1_false`) and `bdc_muxn.ua_r` (S_A_R, **sufficient**
+  only: no muxn boundary run, no S_A_J.1 pass run). `replacement_scope`: forms 0 / 1 (S_A_FORK, S_A_J.1)
+  replaced, form 2 (S_A_J.2) still required. `mux_needs_iso_za` re-roled context.
+- The new rows have binary '<=' forms (margin 0) and `strict_pending`: the +1 was not re-proved for them,
+  and Bnx7's pass runs sit at binary equality (likely X under a Kleene window). Hypotheses include
+  MuxRstG (mux) / the line flush and 1 <= N (muxn), as `mux_ok_gs` / `muxn3_ok_gs` take them.
+
+## 2. KleeneWinBound (Bwb): '+W under H_W_BOUND' per row family
+
+`strict.x_window` of all 71 strict rows rewritten per family (`wb_family`, asserted counts):
+- **steer (2)**: the existing PROVED text plus `steer_win_bound'` (sufficient), `steer_win_need_setup`
+  / `_hold` (necessary), `steer_bound_pair_witness`.
+- **bd_mux join (2)**: `join_win_bound` (sufficient), `join_win_need_setup` / `_hold` (necessary),
+  `join_bound_pair_witness`; width reading `join_edge_bound` / `join_edge_need` (+2W),
+  `join_width_unbounded` (context).
+- **bdc_muxn selected join (2)**: `muxn_win_bound`, `muxn_win_need`, `muxn_bound_witness`.
+- **bd_latch (9)**: `latch_win_bound`, `latch_win_need_pulse` / `_data` / `_hold` (by row),
+  `latch_bound_pair_witness`; width reading `latch_edge_bound` / `latch_edge_need` (+2W).
+- **C-element own-feedback race (51)**: text now says NOT +W but **+W + Wq** under the pair reading
+  and H_FBW_BOUND (`cel_env_win_bound` role bound, `cel_env_win_need` necessary), "+W" only at wq = 0,
+  +2W at Wq <= W (`cel_env_win_bound_2W`), width reading +2W + Wq = +3W at Wq = W
+  (`cel_env_edge_bound` / `_need`, context); counter-runs `cel_win_ct`, `c2_win_ct`, `c2_win_clean`.
+  The note's caveat is in the text: that each row's inequality instantiates the Facts race is the row's
+  existing backing, not re-proved. bd_fork.branch_data also cites `latch_win_bound` as context.
+- **\*_rst_dec (5)**: stay **UNPROVED**; the stale "by analogy" wording now says why (no Facts cycle,
+  no per-edge reset iff).
+Every family's text records the pair / width readings (+W / +2W; C-element +W + Wq / +3W).
+`conventions.strictness` has a Bj9 sentence with the family table.
+
+## 3. Self-audit 5 (Bsa5) JSON items
+
+- **bd_arbiter.a0_fork_client1 / 2 handover_scope**: basis is now 7g's `ArbA0Fork.Run` (A0 falls
+  once, `A 0 = false`, `q 0 = q0`): one handover by construction. The 7h / 7j citation (rt2_exclusion*_arcs,
+  'uses') is named as first-handover too. `ArbA0Fork.Run` cited as definition.
+- **bd_c2.env_latency**: `IpowCellsT.gap_exact` exact_inner -> **context** (one run family with
+  identical C-element inputs, about C's FbCelT), with a note.
+- **bd_arbiter.rt1 / rt1b c_contract basis**: "DERIVABLE as C states it" -> "DERIVABLE ... FROM B0 ON,
+  UNDER PERPETUAL ALTERNATING CONTENTION; RUNS FROM RESET EXCLUDED" (status unchanged:
+  needs_extra_hypothesis). The same phrase in bd_arbcell.settled_exclusion / handover_overlap's basis
+  (pointer to the held arbiter) is corrected the same way (not in the request; the same overstatement).
+
+## 4. Validator changes (and why)
+
+- **Name regex.** Each cited name was matched with `name\b`. A Lean name ending in a prime
+  (`KleeneWinBound.steer_win_bound'`) can never match that, since `\b` after `'` fails before a space,
+  so a correctly declared name was rejected. Now `NAME_END = (?![\w'.])`, which also no longer lets
+  `Foo` match a declaration `Foo.bar` (no existing citation relied on that: 0 errors).
+- **The Bj7 '+W' check** accepted only SelfAuditB7.steer_win_bound. With KleeneWinBound this is wrong for
+  the other families. Now any x_window mentioning H_W_BOUND without UNPROVED must cite a family bound
+  theorem (role sufficient / bound) AND one of its necessity theorems (role necessary), and a row citing
+  `cel_env_win_bound` must state "+W + Wq" and "wq = 0". New: `combine_groups` must go with combine
+  'any' and partition the form indices. Mutation test (scratch): removing a need theorem, the "+W + Wq"
+  text, a bound theorem, or breaking a group each gives the intended error; a misspelled name is caught.
+
+## Not done / judgement calls
+
+- MuxStaticG also drops S_OR and H_CTL_SEQ / H_OR_SKEW, and mux_ok_gs uses MuxRstG (its own reset
+  sequencing): no row change made for those (not in this pass's request; bd_mux.reset_first untouched).
+- The uya / muxn S_A_R boundary runs do not exist; those rows stay sufficient.
+- The new rows' +1 (strict) is not addressed.

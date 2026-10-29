@@ -1696,6 +1696,433 @@ doc["produced_by"] = (doc["produced_by"].rstrip() +
     "no-withdrawal dependence; handover_scope), B-arb-multi-token.md (c_contract H_ARB_EXCL derivable for the held arbiter) and "
     "B-ipow-cells-t.md (RT_FB: gap_exact); the 'probe Bj8' section of cell_constraints.bj5.py.")
 
+# ================================================================== probe Bj9 (2026-10-29)
+# Fifth Bj pass of the day. Applies, from today's committed notes (and JOURNAL-B.md progress 10:05 / 10:12 / 10:18):
+#   B-necessity7.md (Necessity7Mux / Necessity7MuxRuns / Necessity7MuxRunsN / Necessity7MuxN / Necessity7MuxNRuns: gate-aware H_DEP,
+#     S_XA_FORK / S_XA_J.1 / S_A_FORK not necessary, replacement rows S_XA_SEQ, S_XA_R, S_A_SEQ, S_A_R),
+#   B-kleene-win-bound.md (KleeneWinBound: '+W under H_W_BOUND' backed per row family; C-element rows +W + Wq),
+#   B-self-audit5.md (SelfAuditB8, JSON items: a0_fork handover_scope basis, gap_exact role, rt1 / rt1b c_contract basis).
+# Every name cited below is declared in the cited file (the validator greps each one).
+LOG.append("---- probe Bj9")
+N7, N7R, N7RN, N7N, N7NR, WB = ("Necessity7Mux", "Necessity7MuxRuns", "Necessity7MuxRunsN", "Necessity7MuxN", "Necessity7MuxNRuns",
+                               "KleeneWinBound")
+N7_BIN = ("Binary '<=' model (OpsTimedMux / MuxN3Timed: H_LUT_FIFO lumped LUT arcs, FIFO wires, line FIFO, port-level causal partners "
+          "with minimum latencies, real INITs), with Lt5's gate-aware C-element run (cel_run_g: H_DEP asked only in gate-on tokens, an "
+          "ORDER fact after a gate-off token). No strict +1 claimed (strict_pending). Every boundary is one parameter point, binary "
+          "'<=' at slack 1; none is an iff.")
+N7_PEND = ("input-against-input order / own-feedback race of a replacement form (Bnx7): the +1 of CElemStrict was NOT re-proved for "
+           "these forms; Bnx7's pass runs sit at binary equality (passA5, passN5, passN7) and with a Kleene X window a same-tick "
+           "hand-over is likely X. A checker may add +1 (sufficient, stronger than the '<=' form), not shown necessary.")
+iso = BY["bd_mux.isochronic_forks"]
+ujl = BY["bd_mux.uxa_join_latency"]
+izk = BY["bdc_muxn.iso_zack"]
+assert iso["exactness"] == ujl["exactness"] == izk["exactness"] == "sufficient"
+
+def bin_form(f, note):
+    g = copy.deepcopy(f)
+    g["margin_ps"] = 0
+    g["note"] = note
+    return g
+
+def seq_form(fork, ack, pin_note):
+    g = copy.deepcopy(fork)
+    g["data_paths"] = [g["data_paths"][0][:2]]
+    assert g["data_paths"][0][0]["kind"] == "wire" and g["data_paths"][0][1]["kind"] == "site_pin", ack
+    g["launch"] = "z_ack edge at its driver (the fall that ends the previous token of another input)"
+    g["margin_ps"] = 0
+    g["note"] = pin_note
+    return g
+
+def n_form(ack, lut_sym, fb_sym, ack_wire, client, env, envspec, req_wire, req_pin, join, jlut, jwire, jpin):
+    lp = f"{ack}.{{I0|I1}}"
+    return {"launch": f"the edge at {ack}'s inputs that moves its node (node-launched: the client loop)",
+            "data_paths": [[{"kind": "lut_arc", "from": lp, "to": f"{ack}.O6", "lean_sym": f"{lut_sym}.hi"},
+                            {"kind": "feedback_wire", "from": f"{ack}.O6", "to": f"{ack}.I2", "lean_sym": fb_sym},
+                            {"kind": "site_pin", "from": f"{ack}.I2@pip", "to": f"{ack}.I2", "pin_role": "feedback"}]],
+            "request_paths": [[{"kind": "lut_arc", "from": lp, "to": f"{ack}.O6", "lean_sym": f"{lut_sym}.lo"},
+                               {"kind": "wire", "from": f"{ack}.O6", "to": client, "lean_sym": f"{ack_wire}.lo"},
+                               {"kind": "env", "name": env, "spec": envspec, "lean_sym": env},
+                               {"kind": "wire", "from": req_pin[0], "to": f"{join}.I0", "lean_sym": f"{req_wire}.lo"},
+                               {"kind": "site_pin", "from": f"{join}.I0@pip", "to": f"{join}.I0", "pin_role": req_pin[1]},
+                               {"kind": "lut_arc", "from": f"{join}.I0", "to": f"{join}.O6", "lean_sym": f"{jlut}.lo"},
+                               {"kind": "wire", "from": jwire[0], "to": f"{ack}.I0", "lean_sym": f"{jwire[1]}.lo"},
+                               {"kind": "site_pin", "from": f"{ack}.I0@pip", "to": f"{ack}.I0", "pin_role": jpin}]],
+            "margin_ps": 0}
+
+def n7_row(base, rid, obligation, inequality, forms, lean, exactness, note, scope=None, combine="all", groups=None, extra_hyp=()):
+    r = {"id": rid, "cell": base["cell"], "catalogue_row": "none (Bnx7, formal/notes/B-necessity7.md)",
+         "obligation": obligation, "inequality": inequality, "forms": forms, "lean": lean, "exactness": exactness,
+         "exactness_note": note + " " + N7_BIN,
+         "site_pins": copy.deepcopy(base["site_pins"]), "rule": {"rule": "none", "verdict": "none", "detail": "UNCHECKED"},
+         "corner": copy.deepcopy(base["corner"]), "check_scope": "route_plus_env", "status": "proved", "combine": combine,
+         "strict_pending": N7_PEND,
+         "hypotheses": ["H_LUT_FIFO (lumped LUT arcs)", "port-level causal partners, minimum latencies (MuxCausal / MN3Causal)",
+                        "real INITs", "server latency Es >= 1"] + list(extra_hyp)}
+    if groups is not None:
+        r["combine_groups"] = groups
+    if scope:
+        r["necessity_scope"] = scope
+    if "also_applies_to" in base:
+        r["also_applies_to"] = copy.deepcopy(base["also_applies_to"])
+    return r
+
+MUX_SUFF = [L(N7, "mux_ok_gs", "sufficient", "mux_ok's whole conclusion (MuxConcl: joins, z_req, both acks in both indexings, order) from "
+              "MuxGates + MuxEnv + MuxCausal + 1 <= Es + MuxStaticG + MuxRstG"),
+            L(N7, "mux_timing_g_of_static", "sufficient", "MuxTimingG from MuxCausal + MuxStaticG + reset"),
+            L(N7, "mux_ok_g", "sufficient", "event form: H_DEP_XA / YA asked only in the owner's tokens, H_SEQ_XA / YA added"),
+            L(N7, "MuxStaticG", "definition", "MuxStatic minus S_XA_FORK, S_XA_J.1, S_OR (and y mirrors), plus S_XA_SEQ, S_XA_R"),
+            L(N7, "MuxTimingG", "definition"), L(N7, "MuxRstG", "definition", "reset sequencing: only z_ack's first edge must follow reset release at uxa / uya"),
+            L(N7, "staticG_of_static", "lemma", "the shipped MuxStatic implies MuxStaticG"),
+            L(N7, "MuxTiming.g", "lemma", "the old event form implies the gate-aware one"),
+            {"file": "formal/lean/Formal/Cells/OpsTimedMux.lean", "name": "MuxCausal", "role": "definition"}]
+MUXN_SUFF = [L(N7N, "muxn3_ok_gs", "sufficient", "MN3Concl (muxn3_ok's whole conclusion) from the gates, env, MN3Causal, MN3StaticG; FASTFALL line "
+               "flush and 1 <= N taken as given"),
+             L(N7N, "muxn3_timing_g_of_static", "sufficient"), L(N7N, "muxn3_ok_g", "sufficient", "event form, H_DEP_A only in input i's tokens, H_SEQ_A added"),
+             L(N7N, "MN3StaticG", "definition", "MN3Static minus S_A_FORK, S_A_J.1, plus S_A_SEQ, S_A_R"), L(N7N, "MN3TimingG", "definition"),
+             L(N7N, "staticG_of_static", "lemma", "the shipped MN3Static implies MN3StaticG"), L(N7N, "MN3Timing.g", "lemma"),
+             {"file": "formal/lean/Formal/Cells/MuxN3Timed.lean", "name": "MN3Causal", "role": "definition"}]
+
+# ---- bd_mux: S_XA_SEQ / S_XA_R (boundary), S_YA_SEQ / S_YA_R (sufficient)
+KC = "Kc = Wzc.lo + Ec + wc + lj"
+MUX_RST = ["MuxRstG (reset sequencing: only z_ack's first edge must follow reset release at uxa / uya)"]
+KZ = "Kz = wo + Lor.lo + Dz.lo + Es"
+mux_rows = {}
+for a in ("x", "y"):
+    A, ack, j, J = a.upper(), f"u{a}a", ("j0" if a == "x" else "j1"), ("uj0" if a == "x" else "uj1")
+    Wz, La, wh, Wj, Wa, E, Wr, Lj = (("Wzx", "Lxa", "wxah", "W0x", "Wxa", "Ex", "Wx", "Lj0") if a == "x" else
+                                     ("Wzy", "Lya", "wyah", "W1y", "Wya", "Ey", "Wy", "Lj1"))
+    fk = iso["forms"][0 if a == "x" else 1]
+    j1f = ujl["forms"][0 if a == "x" else 2]
+    assert fk["note"] == f"S_{A}A_FORK" and j1f["note"].startswith(f"S_{A}A_J (1)"), (fk["note"], j1f["note"])
+    other = "y" if a == "x" else "x"
+    seq = n7_row(iso, f"bd_mux.u{a}a_seq",
+                 f"S_{A}A_SEQ (Necessity7Mux.MuxStaticG): across a {other} -> {a} hand-over, z_ack's fall (end of the {other} token) reaches "
+                 f"{ack} no later than the {a} token's {j} rise, launched by the same fall through the control sender (order only, no loop term)",
+                 f"{Wz}.hi <= Kc + {Wj}.lo; {KC}",
+                 [seq_form(fk, ack, f"S_{A}A_SEQ")], [], "sufficient", "", extra_hyp=MUX_RST)
+    rr = n7_row(ujl, f"bd_mux.u{a}a_r",
+                f"S_{A}A_R (Necessity7Mux.MuxStaticG): in a {a} token, {ack}'s loop settles before {j}'s next REAL edge reaches {ack}, "
+                f"through the {a} client (S_{A}A_N, node-launched) or through the control sender (the shipped pair S_{A}A_FORK and "
+                f"S_{A}A_J.1); the same edge is causally after BOTH paths because the join waits for ctl_req too",
+                f"S_{A}A_N OR (S_{A}A_FORK AND S_{A}A_J.1): S_{A}A_N {La}.hi + {wh} <= {La}.lo + {Wa}.lo + {E} + {Wr}.lo + {Lj}.lo + {Wj}.lo; "
+                f"S_{A}A_FORK {Wz}.hi + {La}.hi + {wh} <= Kc + {Wj}.lo; S_{A}A_J.1 {Wj}.hi + {La}.hi + {wh} <= Kz + Kc + {Wj}.lo; {KC}, {KZ}",
+                [n_form(ack, La, wh, Wa, f"{a} client", E, f"{a} client: ack edge seen -> request edge (MuxCausal), min", Wr,
+                        (f"{a}_req", f"{a}_req"), J, Lj, (j, Wj), j) | {"note": f"S_{A}A_N (group 0)"},
+                 bin_form(fk, f"S_{A}A_FORK, binary (group 1, with form 2)"),
+                 bin_form(j1f, f"S_{A}A_J.1, binary (group 1, with form 1)")],
+                [], "sufficient", "", combine="any", groups=[[0], [1, 2]], extra_hyp=MUX_RST)
+    mux_rows[a] = (seq, rr)
+
+sx, rx = mux_rows["x"]
+sx["lean"] = MUX_SUFF + [
+    L(N7R, "ClaimSEQ", "definition", "mux_ok_gs with S_XA_SEQ weakened by s (MuxStaticW ... s 0), every other hypothesis verbatim"),
+    L(N7R, "MuxStaticW", "definition"), L(N7R, "claimSEQ0", "sufficient", "ClaimSEQ 0 = mux_ok_gs's hypothesis set"),
+    L(N7R, "failSEQ6", "counter_run", "RA.run 6 uW (z_ack -> uxa wire 6 ticks, every other LUT / wire 1, Ex = Ey = Ec = Es = 1, reset on [0, 12), "
+      "x / y alternating, period 23): every field of MuxStaticW ... 1 0 holds, S_XA_SEQ off by exactly 1 (6 = 5 + 1)"),
+    L(N7R, "claimSEQ1_false", "counter_trace", "not ClaimSEQ 1: z_ack (still high from y token 1) and j0 (x token 2) both high at uxa at 69; "
+      "x_ack = 1 at 71 inside [XA 2, XA 3) = [57, 72)"),
+    L(N7R, "passA5", "non_vacuity", "RA.run 5 uW meets MuxStaticG with S_XA_SEQ at equality (5 <= 5) and the whole conclusion")]
+sx["exactness"] = "sufficient+necessary_at_boundary"
+sx["necessity_scope"] = ("one parameter point (RA.run 6, unit delays elsewhere, open-loop periodic environment), binary '<=' at slack 1; no "
+                         "strict +1 claimed (strict_pending)")
+sx["exactness_note"] = ("Bnx7 (B-necessity7.md): replacement (with bd_mux.uxa_r) of bd_mux.isochronic_forks' S_XA_FORK. Sufficient "
+                        "(mux_ok_gs) and necessary at the boundary (claimSEQ1_false). The hand-over order the shipped fork form implied "
+                        "(staticG_of_static: S_XA_FORK implies S_XA_SEQ). " + N7_BIN)
+rx["lean"] = MUX_SUFF + [
+    L(N7R, "ClaimR", "definition", "mux_ok_gs with every inequality of S_XA_R weakened by s (MuxStaticW ... 0 s)"),
+    L(N7R, "claimR0", "sufficient", "ClaimR 0 = mux_ok_gs's hypothesis set"),
+    L(N7RN, "failR6", "counter_run", "RN.run 6 (uxa feedback net 6 ticks, tight clients): every field of MuxStaticW ... 0 1 holds; S_XA_R false "
+      "(S_XA_N off by exactly 1, 7 = 6 + 1; S_XA_FORK off by 3)"),
+    L(N7RN, "claimR1_false", "counter_trace", "not ClaimR 1: j0's fall reaches uxa at 33 before the feedback shows x_ack's rise (node at 28); "
+      "x_ack = 0 at 35 inside [XA 0, XA 1) = [29, 44)"),
+    L(N7RN, "passN5", "non_vacuity", "RN.run 5 meets S_XA_N with equality (6 <= 6) while S_XA_FORK fails (1 + 6 <= 5 false): passes"),
+    L(N7RN, "passB", "non_vacuity", "RB.run (j0 -> uxa wire 1 tick on rises, 8 on falls): S_XA_J.1 fails, S_XA_N holds with 4 ticks of slack: passes")]
+rx["exactness"] = "sufficient+necessary_at_boundary"
+rx["necessity_scope"] = ("shown on the S_XA_N disjunct (group 0), at a point where the fork disjunct (group 1) also fails (failR6: S_XA_FORK off "
+                         "by 3), so it refutes the weakened DISJUNCTION; one parameter point, binary '<=' at slack 1; whether a finer max "
+                         "form (which input of uxa is late) is exact was not examined; no strict +1 claimed")
+rx["exactness_note"] = ("Bnx7 (B-necessity7.md): replacement of bd_mux.isochronic_forks' S_XA_FORK and of bd_mux.uxa_join_latency's S_XA_J.1 "
+                        "(which survive only as the conjunction inside this disjunction). Correction to Bnx6's unproved analysis: the client "
+                        "loop alone is not the replacement, because in an x token j0's next edge is also causally after z_ack through the "
+                        "control sender (the join waits for ctl_req's fall), so the shipped pair stays a valid sufficient branch. Sufficient "
+                        "(mux_ok_gs), necessary at the boundary (claimR1_false). " + N7_BIN)
+sy, ry = mux_rows["y"]
+for r, nm in ((sy, "S_YA_SEQ"), (ry, "S_YA_R")):
+    r["lean"] = MUX_SUFF + [L(N7R, "passA5", "non_vacuity", "MuxStaticG (both mirrors) holds on RA.run 5 uW")]
+    r["exactness"] = "sufficient"
+    r["exactness_note"] = (f"Bnx7 (B-necessity7.md): the uya mirror ({nm}), stated in MuxStaticG and covered by mux_ok_gs; NO run (no boundary, "
+                           f"no pass run violating the shipped S_YA_FORK / S_YA_J.1): the uxa results apply by symmetry only. " + N7_BIN)
+for r in (sx, rx, sy, ry):
+    new_row(r)
+
+e = relabel("bd_mux.isochronic_forks", "not_necessary",
+            [L(N7R, "passA5", "not_necessary", "RA.run 5 uW: S_XA_FORK reads 5 + 2 <= 5 (false; by 3 in the strict form), MuxStaticG holds "
+               "(S_XA_SEQ with equality) and mux_ok's whole conclusion follows (mux_ok_gs): every run at this point passes"),
+             L(N7RN, "passN5", "not_necessary", "RN.run 5: S_XA_FORK 1 + 6 <= 5 false, S_XA_N with equality: passes"),
+             L(N7, "mux_ok_gs", "sufficient", "the replacement's sufficiency"), L(N7, "staticG_of_static", "lemma", "the shipped form implies the replacement")],
+            "Bnx7 (B-necessity7.md, Necessity7Mux*): NOT necessary, in the box sense: MuxStaticG (without S_XA_FORK / S_YA_FORK) is sufficient "
+            "over every run (mux_ok_gs), and at passA5's / passN5's parameter points S_XA_FORK fails while every run passes. Replacement rows: "
+            "bd_mux.uxa_seq (S_XA_SEQ, boundary, claimSEQ1_false), bd_mux.uxa_r (S_XA_R, boundary, claimR1_false) and the uya mirrors "
+            "bd_mux.uya_seq / uya_r (sufficient, no run). S_YA_FORK's own non-necessity is by symmetry only. The untimed "
+            "mux_needs_iso_* concern the isochronic-fork assumption of MergeMuxSI, not this timed inequality (re-roled context). "
+            + N7_BIN, old_ok=("sufficient",))
+e["replacement"] = "bd_mux.uxa_seq"
+e["replacement_rows"] = ["bd_mux.uxa_seq", "bd_mux.uxa_r", "bd_mux.uya_seq", "bd_mux.uya_r"]
+for r in e["lean"]:
+    if r["name"].startswith("mux_needs_iso") and r["role"] == "necessary":
+        r["role"] = "context"
+        r["note"] = (r.get("note", "") + " (Bj9: untimed isochronic-fork assumption; the timed S_XA_FORK is not necessary, Bnx7)").strip()
+
+e = relabel("bd_mux.uxa_join_latency", "not_necessary",
+            [L(N7RN, "passB", "not_necessary", "RB.run (j0 -> uxa wire 1 on rises, 8 on falls): S_XA_J.1 reads 8 + 2 <= 4 + 4 + 1 (false; by 2 in "
+               "the strict form), MuxStaticG holds (S_XA_N 4 ticks of slack, S_XA_J.2 10 <= 13): passes"),
+             L(N7, "mux_ok_gs", "sufficient", "the replacement's sufficiency"), L(N7, "MuxStaticG", "definition", "S_XA_J.1 only inside S_XA_R")],
+            "Bnx7 (B-necessity7.md): the first conjunct S_XA_J.1 is NOT necessary (passB with mux_ok_gs); it survives only inside the "
+            "disjunct of bd_mux.uxa_r (S_XA_R). The second conjunct S_XA_J.2 is unchanged and still required (Bnx6: necessary at the "
+            "boundary, claimJ1_false; boundary_tight_terms). The uya mirror S_YA_J.1 is replaced by bd_mux.uya_r (weaker, sufficient) by "
+            "symmetry, no run; S_YA_J.2 still required. This supersedes Bnx6's 'S_XA_J.1 probably not necessary' (now proved). " + N7_BIN,
+            old_ok=("sufficient",))
+e["replacement"] = "bd_mux.uxa_r"
+e["replacement_rows"] = ["bd_mux.uxa_r", "bd_mux.uya_r"]
+e["replacement_scope"] = ("replaces forms 0 and 2 (S_XA_J.1, S_YA_J.1) only; forms 1 and 3 (S_XA_J.2, S_YA_J.2) are still required: a checker "
+                          "evaluates forms 1 and 3 AND bd_mux.uxa_r / uya_r (with bd_mux.uxa_seq / uya_seq and the RTZ rows)")
+btt = e["boundary_tight_terms"]
+assert len(btt) == 1 and btt[0]["untouched"] == "S_XA_J.1 (form 0), uya forms 2 / 3"
+btt[0]["untouched"] = ("uya forms 2 / 3 (S_YA_J.1 replaced by bd_mux.uya_r, S_YA_J.2 no run); S_XA_J.1 (form 0) is not necessary (Bnx7, "
+                       "passB), replaced by bd_mux.uxa_r")
+
+# ---- bdc_muxn: S_A_SEQ (boundary), S_A_R (sufficient)
+fk, j1f = izk["forms"][0], izk["forms"][1]
+assert fk["note"] == "S_A_FORK, per i" and j1f["note"].startswith("S_A_J (1)")
+KCN = "Kc = Wzc.lo + Ec + (wc + ls + wsj + lj)"
+sn = n7_row(izk, "bdc_muxn.ua_seq",
+            "S_A_SEQ (Necessity7MuxN.MN3StaticG), per i: a token of input i after a token of another input: z_ack's fall reaches ua_i no "
+            "later than j_i's rise, launched by the same fall through the control sender (order only)",
+            f"Wza(i).hi <= Kc + Wja(i).lo; {KCN}", [seq_form(fk, "ua_i", "S_A_SEQ, per i")],
+            MUXN_SUFF + [
+                L(N7NR, "ClaimSEQn", "definition", "muxn3_ok_gs with S_A_SEQ weakened by s (MN3StaticW ... s 0), every other hypothesis verbatim"),
+                L(N7NR, "MN3StaticW", "definition"), L(N7NR, "claimSEQn0", "sufficient", "ClaimSEQn 0 = muxn3_ok_gs's hypothesis set"),
+                L(N7NR, "failSEQ8", "counter_run", "Mn7.run 8 (unit delays, DELAY = 1, all three z_ack -> ua_i wires 8 ticks, reset on [0, 9), token "
+                  "k selects k % 3, period 27): every field of MN3StaticW ... 1 0 holds, S_A_SEQ off by exactly 1 (8 = 7 + 1)"),
+                L(N7NR, "claimSEQn1_false", "counter_trace", "not ClaimSEQn 1: z_ack's fall of token 0 reaches ua_1 at 61, j_1's rise of token "
+                  "1 at 60; in1_ack = 1 at 62 inside [XA 1 0, XA 1 1) = [46, 63)"),
+                L(N7NR, "passN7", "non_vacuity", "Mn7.run 7: MN3StaticG with S_A_SEQ at equality and MN3Concl")],
+            "sufficient+necessary_at_boundary",
+            "Bnx7 (B-necessity7.md, Necessity7MuxN*): replacement (with bdc_muxn.ua_r) of bdc_muxn.iso_zack's S_A_FORK. Sufficient "
+            "(muxn3_ok_gs), necessary at the boundary (claimSEQn1_false). DELAY > 1 not covered.",
+            scope="one parameter point (Mn7.run 8, N = 1, DELAY = 1, input 1), binary '<=' at slack 1; no strict +1 claimed",
+            extra_hyp=["FASTFALL line flush and 1 <= N taken as given"])
+rn = n7_row(izk, "bdc_muxn.ua_r",
+            "S_A_R (Necessity7MuxN.MN3StaticG), per i: in a token of input i, ua_i's loop settles before j_i's next real edge reaches ua_i, "
+            "through client i (S_A_N, node-launched) or through the control sender (the shipped S_A_FORK and S_A_J.1)",
+            "S_A_N OR (S_A_FORK AND S_A_J.1), per i: S_A_N La(i).hi + wah(i) <= La(i).lo + Wak(i).lo + Ex + Wx(i).lo + Lj(i).lo + Wja(i).lo; "
+            "S_A_FORK Wza(i).hi + La(i).hi + wah(i) <= Kc + Wja(i).lo; S_A_J.1 Wja(i).hi + La(i).hi + wah(i) <= Kz + Kc + Wja(i).lo; "
+            f"{KCN}, Kz = wo + Lo.lo + Dl + Es",
+            [n_form("ua_i", "La", "wah", "Wak", "client i", "Ex", "client i: ack edge seen -> request edge (MN3Causal), min", "Wx",
+                    ("in_i_req", "in_i_req"), "uj_i", "Lj", ("uj_i.O6", "Wja"), "j") | {"note": "S_A_N, per i (group 0)"},
+             bin_form(fk, "S_A_FORK, per i, binary (group 1, with form 2)"),
+             bin_form(j1f, "S_A_J.1, per i, binary (group 1, with form 1)")],
+            MUXN_SUFF + [L(N7NR, "passN7", "non_vacuity", "MN3StaticG holds on Mn7.run 7 (S_A_FORK fails there, 7 + 2 <= 7, so S_A_R holds "
+                                                          "through its S_A_N disjunct)")],
+            "sufficient",
+            "Bnx7 (B-necessity7.md): replacement of bdc_muxn.iso_zack's S_A_FORK and S_A_J.1 (now only a disjunct). Sufficient only: no "
+            "muxn boundary run (it needs an environment with tight clients), and no pass run violating S_A_J.1 (it needs a spread Wja "
+            "wire); neither was built.",
+            combine="any", groups=[[0], [1, 2]], extra_hyp=["FASTFALL line flush and 1 <= N taken as given"])
+new_row(sn); new_row(rn)
+e = relabel("bdc_muxn.iso_zack", "not_necessary",
+            [L(N7NR, "passN7", "not_necessary", "Mn7.run 7: S_A_FORK reads 7 + 2 <= 7 (false; by 3 in the strict form), MN3StaticG holds "
+               "(S_A_SEQ with equality) and MN3Concl follows (muxn3_ok_gs): every run at this point passes"),
+             L(N7N, "muxn3_ok_gs", "sufficient", "the replacement's sufficiency"), L(N7N, "staticG_of_static", "lemma", "the shipped form implies the replacement")],
+            "Bnx7 (B-necessity7.md, Necessity7MuxN*): S_A_FORK is NOT necessary (passN7 with muxn3_ok_gs). Replacement rows: bdc_muxn.ua_seq "
+            "(S_A_SEQ, boundary, claimSEQn1_false) and bdc_muxn.ua_r (S_A_R = S_A_N OR (S_A_FORK AND S_A_J.1), sufficient only). S_A_J.1 is "
+            "now only a disjunct of S_A_R (its own non-necessity has no muxn run); S_A_J.2 unchanged (sufficient, no boundary run). The cited "
+            "untimed mux_needs_iso_za is bd_mux's isochronic-fork assumption (re-roled context). " + N7_BIN, old_ok=("sufficient",))
+e["replacement"] = "bdc_muxn.ua_seq"
+e["replacement_rows"] = ["bdc_muxn.ua_seq", "bdc_muxn.ua_r"]
+e["replacement_scope"] = ("replaces forms 0 and 1 (S_A_FORK, S_A_J.1) only; form 2 (S_A_J.2) is still required: a checker evaluates form 2 AND "
+                          "bdc_muxn.ua_seq AND bdc_muxn.ua_r")
+for r in e["lean"]:
+    if r["name"] == "mux_needs_iso_za" and r["role"] == "necessary":
+        r["role"] = "context"
+        r["note"] = r.get("note", "") + " (Bj9: untimed isochronic-fork assumption; the timed S_A_FORK is not necessary, Bnx7)"
+cv["combine"] = cv["combine"].rstrip() + (" Bj9: optional combine_groups (with 'any'): a list of groups of form indices; the obligation holds "
+                                          "if EVERY form of ONE group holds (a disjunction of conjunctions: bd_mux.uxa_r = S_XA_N OR (S_XA_FORK "
+                                          "AND S_XA_J.1)). Without it each form is its own group.")
+cv["boundary_tight_terms"] = cv["boundary_tight_terms"].rstrip() + (" Bj9: also on a not_necessary row with replacement_scope, for the "
+                                                                    "terms that stay required (bd_mux.uxa_join_latency: S_XA_J.2).")
+
+# ------------------------------------------------------------------ (2) '+W under H_W_BOUND' per row family (Bwb, KleeneWinBound)
+WB_OLD = ("Sufficient without the split: +W under H_W_BOUND (c_e + a_l <= W for every race pair): UNPROVED for this cell (stated by analogy; "
+          "the only theorem is bd_steer's, SelfAuditB7.steer_win_bound).")
+WB_STEER_OLD = ("Sufficient without the split: +W under H_W_BOUND (c_e + a_l <= W for every race pair): PROVED for bd_steer "
+                "(SelfAuditB7.steer_win_bound; non-vacuity steer_win_bound_witness).")
+WB_SRC = "Bwb, B-kleene-win-bound.md: KleeneWinBound"
+WB_PAIR = ("pair reading: c_e + a_l <= W for every race pair, whatever the split")
+WB_WIDTH_J = ("Width reading (H_W_EDGE: each edge's window contains its binary edge, 0 <= a_T, c_T, a_T + c_T <= W): a pair term can reach "
+              "2W, so +2W is sufficient and needed (%s); with halves of free sign no finite margin suffices, even at width 0 "
+              "(join_width_unbounded). So 'every window has width <= W' does NOT give +W.")
+WB_GEN = [L(WB, "races_suff", "lemma", "generic: every race term <= W => binary-edge margins of +W are sufficient"),
+          L(WB, "races_need", "lemma", "generic: a race term = W => a binary-edge margin below W on that race is unsafe (the iff's necessity half)")]
+def wb_family(e):
+    b, rid = e["strict"].get("backing", ""), e["id"]
+    if "rst_dec" in b:
+        return "rst"
+    if rid.startswith("bd_steer."):
+        return "steer"
+    if rid.startswith("bd_mux.bundled_s_"):
+        return "join"
+    if rid.startswith("bdc_muxn.s_"):
+        return "muxn"
+    if rid.startswith("bd_latch[") and rid.split(".")[-1] in ("setup_pulse", "setup_data", "hold"):
+        return "latch"
+    assert b.startswith(("c2_all", "c2n_c8g", "c3_all", "c4_all", "latch_facts")), (rid, b)
+    return "cel"
+fam = Counter()
+for e in C:
+    st = e.get("strict")
+    if not st or not st.get("margin_added_ps"):
+        continue
+    f = wb_family(e)
+    fam[f] += 1
+    xw = st["x_window"]
+    if f == "steer":
+        assert WB_STEER_OLD in xw, e["id"]
+        k = "hold" if e["id"].endswith("hold") else "setup"
+        new = (WB_STEER_OLD[:-1] + f"; {WB_SRC}.steer_win_bound'). Needed: a race pair whose term is exactly W makes a binary-edge "
+               f"margin of W - 1 unsafe (steer_win_need_{k}; witness steer_bound_pair_witness, W = 2, non-uniform split). This is the "
+               + WB_PAIR + ". " + (WB_WIDTH_J % "proved for the mux join and the latch: join_edge_bound / join_edge_need, latch_edge_bound / "
+                                   "latch_edge_need; not stated for steer"))
+        st["x_window"] = xw.replace(WB_STEER_OLD, new)
+        add_lean(e, WB_GEN + [L(WB, "steer_win_bound'", "sufficient", "+W under the pair reading of H_W_BOUND (= SelfAuditB7.steer_win_bound)"),
+                              L(WB, f"steer_win_need_{k}", "necessary", "a pair at exactly W: margin W - 1 unsafe"),
+                              L(WB, "steer_bound_pair_witness", "non_vacuity", "W = 2, non-uniform split: safe at W, unsafe at W - 1"),
+                              L(WB, "steer_races", "lemma", "steer's KleeneWin iff as a race list")])
+        continue
+    assert xw.count(WB_OLD) == 1, e["id"]
+    if f == "rst":
+        new = ("Sufficient without the split: +W under H_W_BOUND: UNPROVED for this row (Bwb, B-kleene-win-bound.md: the *_rst_dec backing is a Boolean "
+               "reset-release decision, not a Facts cycle, and no per-edge reset iff exists, so races_suff does not apply; the earlier "
+               "'by analogy' reading is not a theorem).")
+    elif f == "join":
+        k = "hold" if e["id"].endswith("hold") else "setup"
+        new = ("Sufficient without the split: +W under H_W_BOUND (" + WB_PAIR + "): PROVED for the mux join (" + WB_SRC + ".join_win_bound); "
+               f"needed: a pair at exactly W makes a binary-edge margin of W - 1 unsafe (join_win_need_{k}; witness join_bound_pair_witness, "
+               "W = 2, non-uniform split). " + (WB_WIDTH_J % "join_edge_bound, join_edge_need: split c_e = a_l = W"))
+        refs = [L(WB, "join_win_bound", "sufficient", "+W under the pair reading of H_W_BOUND"),
+                L(WB, f"join_win_need_{k}", "necessary", "a pair at exactly W: margin W - 1 unsafe"),
+                L(WB, "join_bound_pair_witness", "non_vacuity", "W = 2, non-uniform split: safe at W, unsafe at W - 1"),
+                L(WB, "join_races", "lemma"),
+                L(WB, "join_edge_bound", "context", "width reading: +2W sufficient"), L(WB, "join_edge_need", "context", "width reading: +2W needed"),
+                L(WB, "join_width_unbounded", "context", "halves of free sign: no finite margin, even at width 0")]
+    elif f == "muxn":
+        new = ("Sufficient without the split: +W under H_W_BOUND (" + WB_PAIR + "): PROVED for the selected join (" + WB_SRC + ".muxn_win_bound, "
+               "its 4 race pairs); needed: any of the 4 pairs at exactly W makes margin W - 1 unsafe (muxn_win_need; witness "
+               "muxn_bound_witness, k = 1, W = 2). Unselected joins not covered. " + (WB_WIDTH_J % "proved for the mux join and the latch "
+                                                                                      "only, not stated for bdc_muxn"))
+        refs = [L(WB, "muxn_win_bound", "sufficient", "+W under the pair reading, 4 race pairs of the selected join"),
+                L(WB, "muxn_win_need", "necessary", "any of the 4 pairs at exactly W: margin W - 1 unsafe"),
+                L(WB, "muxn_bound_witness", "non_vacuity", "k = 1, W = 2"), L(WB, "muxn_races", "lemma")]
+    elif f == "latch":
+        k = {"setup_pulse": "pulse", "setup_data": "data", "hold": "hold"}[e["id"].split(".")[-1]]
+        new = ("Sufficient without the split: +W under H_W_BOUND (" + WB_PAIR + "): PROVED for the latch (" + WB_SRC + ".latch_win_bound: "
+               f"pulse, data, hold); needed: a pair at exactly W makes margin W - 1 unsafe (latch_win_need_{k}; witness "
+               "latch_bound_pair_witness, W = 3, non-uniform split). " + (WB_WIDTH_J % "latch_edge_bound, latch_edge_need"))
+        refs = [L(WB, "latch_win_bound", "sufficient", "+W under the pair reading (pulse, data, hold)"),
+                L(WB, f"latch_win_need_{k}", "necessary", "a pair at exactly W: margin W - 1 unsafe"),
+                L(WB, "latch_bound_pair_witness", "non_vacuity", "W = 3, non-uniform split"), L(WB, "latch_races", "lemma"),
+                L(WB, "latch_edge_bound", "context", "width reading: +2W sufficient"), L(WB, "latch_edge_need", "context", "width reading: +2W needed")]
+    else:
+        new = ("Sufficient without the split: NOT +W. The own-feedback race's exact term is cf + wq + ar (cel_env_win_iff: the follow pin's "
+               "trailing half, the feedback pin's own window wq, the release pin's leading half), and wq belongs to no race pair. Under "
+               "H_W_BOUND (" + WB_PAIR + ") and H_FBW_BOUND (wq <= Wq) the bound is +W + Wq, sufficient and tight (" + WB_SRC +
+               ".cel_env_win_bound: dlmax + dwmax + W + Wq <= dlmin + E; cel_env_win_need: for any split with cf + ar = W a margin below "
+               "W + Wq is unsafe; explicit counter-run on any Facts cycle cel_win_ct; on the real bd_c2 INIT c2_win_ct / c2_win_clean: W = 2, "
+               "wq = 1, clean at margin 3, hazard at 2). '+W' alone is sufficient only at wq = 0 (H_FB_PURE); +2W if Wq <= W is assumed "
+               "(cel_env_win_bound_2W). Width reading (H_W_EDGE, 0 <= a_T, c_T, a_T + c_T <= W): +2W + Wq, i.e. +3W at Wq = W, sufficient and "
+               "tight (cel_env_edge_bound, cel_env_edge_need). Caveat (not proved): that this row's inequality IS an instance of the Facts "
+               "race (which edge is follow / release, what E is) is the row's existing strict.backing; composite rows carry it only as far "
+               "as that mapping does.")
+        refs = [L(WB, "cel_env_win_bound", "bound", "+W + Wq under the pair reading of H_W_BOUND and H_FBW_BOUND (wq <= Wq), any Facts cycle"),
+                L(WB, "cel_env_win_need", "necessary", "of the window term: for any split with cf + ar = W, a margin below W + Wq is unsafe"),
+                L(WB, "cel_env_win_bound_2W", "bound", "the special case Wq = W: +2W"),
+                L(WB, "cel_env_edge_bound", "context", "width reading: +2W + Wq sufficient"),
+                L(WB, "cel_env_edge_need", "context", "width reading: +2W + Wq needed"),
+                L(WB, "cel_win_ct", "counter_trace", "every split, loop delay D = d + 1 and wq: margin cf + ar + wq - 1 wrong at the release window's start"),
+                L(WB, "c2_win_ct", "counter_trace", "real bd_c2 INIT, W = 2, wq = 1, D = 420: hazard at margin 2"),
+                L(WB, "c2_win_clean", "non_vacuity", "the same run clean at margin 3")]
+        if e["id"] == "bd_fork.branch_data":
+            refs.append(L(WB, "latch_win_bound", "context", "by the row's description (it is bd_latch.setup_data launched at the producer) the "
+                          "latch bound applies too; that identification is the row's, not re-proved"))
+    st["x_window"] = xw.replace(WB_OLD, new)
+    if f != "rst":
+        add_lean(e, WB_GEN + refs)
+assert fam == Counter({"cel": 51, "latch": 9, "rst": 5, "steer": 2, "join": 2, "muxn": 2}), fam
+LOG.append("strict.x_window '+W under H_W_BOUND' per family: " + ", ".join(f"{k} {v}" for k, v in sorted(fam.items())) +
+           " (cel: +W + Wq; rst: stays UNPROVED)")
+cv["strictness"] = cv["strictness"].rstrip() + (
+    " Bj9 (Bwb, KleeneWinBound): '+W under H_W_BOUND' in strict.x_window is backed per row family under the PAIR reading (c_e + a_l <= W "
+    "for every race pair): sufficient and needed for bd_steer (steer_win_bound', steer_win_need_*), the bd_mux join (join_win_bound, "
+    "join_win_need_*), the bdc_muxn selected join (muxn_win_bound, muxn_win_need) and bd_latch (latch_win_bound, latch_win_need_*). The 51 "
+    "C-element-backed (Facts own-feedback race) rows need +W + Wq (cel_env_win_bound / cel_env_win_need, Wq bounding the feedback pin's own "
+    "window; '+W' only at wq = 0). Under the WIDTH reading (H_W_EDGE, halves non-negative) the bounds are +2W (join, latch: *_edge_bound / "
+    "*_edge_need) and +2W + Wq = +3W at Wq = W (C-element); with halves of free sign no finite margin suffices (join_width_unbounded). The 5 "
+    "rows backed by *_rst_dec keep 'UNPROVED' (not Facts cycles). W and Wq are unmeasured.")
+
+# ------------------------------------------------------------------ (3) self-audit 5 (Bsa5) JSON items
+A0F = "ArbA0Fork"
+for k in (1, 2):
+    e = BY[f"bd_arbiter.a0_fork_client{k}"]
+    old_hs = e["handover_scope"]
+    assert old_hs.startswith("FIRST HANDOVER (Bbare, ArbNoWithdraw.scn"), e["id"]
+    other = ("7j's rt2_exclusion2_arcs (cited as 'uses', A0Fork2) runs on Scn2" if k == 1 else "7h's rt2_exclusion_arcs (cited as 'uses', A0Fork) runs on Scn")
+    e["handover_scope"] = (
+        f"ONE HANDOVER (7g, ArbA0Fork.Run; Bsa5 correction of Bj8's basis): this row's exact theorems (no_early_ack_iff, client{k}_iff, "
+        "box_safe_iff) and counter-traces are about ArbA0Fork.Run: A0 high from t = 0 and falling ONCE at T0 > 0, kept low (H_A0_FALL), "
+        "client k's ack low at t = 0 (H_A_INIT), ustate holding the previous winner (H_Q_INIT). One handover by construction of the run, "
+        "not because of 7h / 7j's Scn / Scn2. " + other + ", which is also first-handover only (ArbNoWithdraw." +
+        ("scn2_excludes_caus" if k == 1 else "scn_excludes_caus") + "). Not re-proved for repeated handovers (ArbMultiToken uses RT2 / A0 "
+        "forks only internally, not packaged as a theorem).")
+    add_lean(e, [L(A0F, "Run", "definition", "7g's run: A0 falls once (H_A0_FALL), A 0 = false (H_A_INIT): one handover")])
+    LOG.append(f"{e['id']}: handover_scope basis -> 7g's ArbA0Fork.Run (Bsa5)")
+cv["handover_scope"] = cv["handover_scope"].rstrip() + (" Bj9 (Bsa5): on bd_arbiter.a0_fork_client1 / 2 the basis is 7g's ArbA0Fork.Run "
+                                                        "(A0 falls once, A 0 = false), not Scn / Scn2.")
+
+e = BY["bd_c2.env_latency"]
+g = [r for r in e["lean"] if r["name"] == "gap_exact" and r["file"].endswith("/IpowCellsT.lean")]
+assert len(g) == 1 and g[0]["role"] == "exact_inner"
+g[0]["role"] = "context"
+g[0]["note"] += (" (Bj9, Bsa5: context, not exact_inner: it is one run family in which both C-element pins carry the SAME trace, so the "
+                 "C-element acts as a buffer (cgate_dup), and it is about C's FbCelT, not an iff over this row's box)")
+note_append(e, "Bj9 (Bsa5): IpowCellsT.gap_exact re-roled exact_inner -> context (one run family, identical C-element inputs, C's FbCelT).")
+LOG.append("bd_c2.env_latency: IpowCellsT.gap_exact exact_inner -> context (Bsa5)")
+
+MT_OLD = "DERIVABLE as C states it for the HELD bd_arbiter (what gcd_hw instantiates): H_ARB_EXCL_of_mt"
+MT_NEW = ("DERIVABLE for the HELD bd_arbiter (what gcd_hw instantiates) FROM B0 ON, UNDER PERPETUAL ALTERNATING CONTENTION; RUNS FROM "
+          "RESET EXCLUDED (Bsa5 correction of 'as C states it': C's field covers every tick of a run from reset, H_ARB_EXCL_of_mt covers the "
+          "samples sigma n >= B0 of an MTRun, which starts settled with both clients requesting at B0 and holds H_HOLD for every k): "
+          "H_ARB_EXCL_of_mt")
+for rid in ("bd_arbiter.rt1", "bd_arbiter.rt1b"):
+    cc = BY[rid]["c_contract"]
+    assert cc["basis"].count(MT_OLD) == 1, rid
+    cc["basis"] = cc["basis"].replace(MT_OLD, MT_NEW)
+    LOG.append(f"{rid}: c_contract basis 'as C states it' -> from B0 on, perpetual alternating contention, runs from reset excluded (Bsa5)")
+AC_OLD = "For the held bd_arbiter it IS derivable as C states it under multi-token hypotheses"
+AC_NEW = ("For the held bd_arbiter it IS derivable from B0 on, under perpetual alternating contention (runs from reset excluded; Bj9, "
+          "Bsa5), under multi-token hypotheses")
+for rid in ("bd_arbcell.settled_exclusion", "bd_arbcell.handover_overlap"):
+    cc = BY[rid]["c_contract"]
+    assert cc["basis"].count(AC_OLD) == 1, rid
+    cc["basis"] = cc["basis"].replace(AC_OLD, AC_NEW)
+    LOG.append(f"{rid}: c_contract basis pointer to the held arbiter: same Bsa5 correction")
+
+doc["produced_by"] = (doc["produced_by"].rstrip() +
+    " Updated by probe Bj9 (2026-10-29) from B-necessity7.md (Necessity7*: bd_mux.isochronic_forks, bd_mux.uxa_join_latency (S_XA_J.1) and "
+    "bdc_muxn.iso_zack not_necessary; new rows bd_mux.uxa_seq / uxa_r (boundary), uya_seq / uya_r, bdc_muxn.ua_seq (boundary), ua_r; "
+    "combine_groups), B-kleene-win-bound.md (strict.x_window '+W under H_W_BOUND' backed per family; C-element rows +W + Wq; width reading "
+    "+2W / +3W; *_rst_dec rows UNPROVED) and B-self-audit5.md (a0_fork handover_scope basis, gap_exact role, H_ARB_EXCL basis); the "
+    "'probe Bj9' section of cell_constraints.bj5.py.")
+
 json.dump(doc, open(OUT, "w"), indent=1)
 for x in LOG:
     print(x)

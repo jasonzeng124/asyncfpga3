@@ -1281,3 +1281,15 @@ handovers, both re-requests before A0's re-rise, all delays 1 ps. C's AMerge sti
 NOT instantiated: reset/idle/solo/same-winner epochs, window stitching, init fields
 and dat are open; idle-arbiter request races (metastability) need a separation
 hypothesis that is not modelled.
+
+### progress 10:29
+In: Bj9 cell_constraints.json (145 rows; regeneration byte-identical and validator
+0 errors, re-run by me). Necessity7 applied: bd_mux.isochronic_forks,
+uxa_join_latency (J.1) and bdc_muxn.iso_zack not_necessary with replacement rows
+uxa_seq/uxa_r/ua_seq (boundary) and uya_seq/uya_r/ua_r (sufficient; the uya rows are
+mirrors without runs). KleeneWinBound applied: "+W under H_W_BOUND" now backed on
+steer/join/muxn/latch rows (sufficient + needed, pair reading), the 51 C-element rows
+say +W+Wq; 5 reset rows stay UNPROVED. Self-audit 5 JSON items fixed (a0_fork scope
+cites 7g's Run; gap_exact role context; H_ARB_EXCL basis "from B0 on, perpetual
+contention"). Validator: name regex now accepts Lean names ending in a prime and no
+longer lets Foo match Foo.bar; the +W check generalised to the family theorems.
