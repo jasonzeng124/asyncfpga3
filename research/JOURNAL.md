@@ -1668,3 +1668,7 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
   rebased on top, not a lock conflict. From here: the main thread stays on the full-stack GLS, no new subagents
   unless a lead needs one; background sims keep the machine busy.
 - BQ#2 seed 8 FAST_MIN PASS 16/16 laps 87/70/102. Seed 9 FAST_MIN 12/16 vectors, then BQ#3.
+### progress 23:56 (BQ#2 full stack complete: 8 seeds x 2 corners PASS)
+- BQ#2 seed 9 FAST_MIN PASS 16/16 laps 86/69/100. With last session's d,3,4,5 (old resolver): BQ#2 passes the full
+  stack on 8 seeds at both corners (16/16 runs). BOARD-QUEUE #2 updated; data bq2_fullstack_s6-9.tsv.
+- The chain now runs BQ#3 x8 x2 corners on the new resolver (~1.5 h per pair of sims, ~12 h).

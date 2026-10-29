@@ -89,6 +89,13 @@ seeds d, 3, 4, 5, 6, 7, 8, 9 (seed 2 did not place: nextpnr post-placement valid
 (seed 4), 17%, 25% x2 all 16/16. Its predecessor R2 (same compute sizes, fewer select pads) passed
 nominal/corner GLS on 8 seeds and per-arc scatter to 25% (wire mode to 35%) on two routes.
 
+Board-fidelity full stack (bits-decoded netlist + prjxray SDF + fid primitives), 8 seeds x 2 corners: seeds
+d,3,4,5 (2026-10-29 early session, old resolver) and 6,7,8,9 (2026-10-29 14:41 session, resolver 055edd7;
+research/data/fid/bq2_fullstack_s6-9.tsv): 16/16 errs=0 and bits EQUIVALENT on all 16 runs. Laps vec 6 SLOW_MAX
+28-33 (6-9: 31-33), FAST_MIN 77-93 (6-9: 86-93). The resolver change reproduced seed 6 SLOW_MAX exactly (33/27/39).
+Arbiter near-tie round trips (research/data/fid/arbtie.md): 0 of 18 ack C-elements below the model's requirement on
+seeds 6-9, worst margin 878 ps. Not yet run on BQ#2: within-die scatter draws.
+
 ## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~6% more laps than #2 (same 8 routes), every audit and routed GLS clean on 8 routes
 Run only after #2 passes: it is #2 plus one opt-in change (bd_link's request delay and bd_mux's output delay fall
 in one hop; cells/rtl/bd_link.v RFAST, bd_mux.v FASTFALL, committed fdfe098 with tighten.py rule F, which audits
