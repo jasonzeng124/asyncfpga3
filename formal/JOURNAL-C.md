@@ -69,7 +69,13 @@
   A row); protocol and Held on all 465 channels derived by one joint induction over time
   (`OpsBusy2.net_joint`), so H_SEND/H_RECV are gone; `amergeB_held` makes 5 arbiter stages
   structural. Witness: 8t's run (roots `exempt`). Open: deriving H_CELLS_B's data fields from
-  the netlist (H_FN, H_LAUNCH; cell-level lemma for join/fork/steer only; 8x4), H_TXWIN. The generated-cell derivation of the gate fields is not yet composed into H_CELLS
+  the netlist (H_FN, H_LAUNCH), H_TXWIN. 8x4: `fieldOf_row` for every cell kind (handshake
+  half + protocol + Held + a tcheck Row => the data field); `gcd_hw_circuit_safe_phys5` needs
+  per-operator handshake halves, per sampled output a Row or (ghost) the field, H_START_ONCE,
+  26 root certificates; `phys5_gen` discharges H_FN by decide against Formal.Gen on 176 of 221
+  sampled channels (H_FN assumed on 45: bjoin, compute join, extui steer, out0). CAVEAT: on
+  gcd_hw the only witness takes every channel as ghost, so the Row form is witnessed only on a
+  toy; a routed witness is the job of probe cap. The generated-cell derivation of the gate fields is not yet composed into H_CELLS
   (O4): done with named gaps -- `gcd_hw_circuit_safe_gen` / `gcd_rig_all_gen` replace H_CELLS by
   H_GEN (each of the 367 operator instances obeys its yosys-generated netlist, LUT outputs move
   to their function of the previous tick's inputs) plus three timing conditions shown REAL by
@@ -616,3 +622,7 @@ inside the capstone) and witgen (active run under H_GEN).
 ### progress 11:31
 8z4 committed after my own check.sh (2 files, 3069 decls); H_NO_DEADLOCK'' remains OPEN.
 10o committed. Launched 10o2 (ChainSettle -> O4 bridge, Lean checker for chainck).
+
+### progress 12:10
+8x4 committed after my own check.sh (5 files, 5061 decls). Launched cap (phys5 instantiated
+on route d's imported netlist and certified tcheck rows).
