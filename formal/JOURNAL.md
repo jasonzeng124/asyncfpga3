@@ -449,3 +449,23 @@ semantics (probe GLSResolve launched), CARRY4/FF/latch fid variants, feedback, r
 Finding: a "rejected" runt on a state node is still emitted as a full-swing pulse to fanout
 (fid_core.vh:30's comment is about the node's later value). For B: B-gls-vs-exact.md §3.1 is
 stale (CARRY4, flops, latches and BUFGCTRL have fid transport variants at 6524fa3).
+### progress 08:11
+PrimsComb claimed: Formal/Core/Prims/{Xray,XrayData,Muxf,Carry,Lut62,Hops,GenCheck}.lean
+(check.sh with C's CoreLut/Gen.Netlist as deps: 1331 decls, [check] OK, Lean core only; rerun
+by the lead). Delay numbers generated (Wip/PrimsComb/xray2lean.py) from prjxray-db master
+zynq7/timings/slicel.sdf/slicem.sdf (sha256 in XrayData; fast/slow corners, one corner per
+statement; --check reports DRIFT after a mutated number). Proved: MUXF7/F8 Kleene mux (under
+H_MUXF_PASS, constant transport per arc) monotone, X-containing, most-defined; select change
+with equal data and any single-input change with unchanged output glitch-free for any delays;
+the select-rises-while-deselected-input-changes glitch is forced for every admissible delay
+pair (>= 16 ps fast / 22 ps slow; select arc slowest of all six muxes). CARRY4 (MUXCY+XORCY,
+PRECYINIT mux): Boolean agreement, X containment, adder with S=a^b, DI=a (512 cases); no
+single-pin hazard on any output; a two-pin (S0, DI0) hazard on CO0 whose order prjxray's bands
+allow at both corners. LUT6_2: A6-rooted tree = Core's Lut62 for every INIT; O5 the lower
+subtree. Site hops add per corner; a5lut->AMUX (62::78)(163::202) ps (the E8Mux audit
+number). Equal to C's Gen models except one benign mismatch: C's carry-in is CI OR CYINIT,
+silicon a PRECYINIT mux; equal under every decoded configuration (C-11f tie-off). Census:
+gcd_hw uses LUT6_2, 857 MUXF7, 343 MUXF8, 59 CARRY4; collatz/xorshift/ipow use MUXF7 and
+CARRY4 (from C's tcheck census, counts not exact here); ipow uses DSP48E1 -> probe PrimsDSP
+launched. Not covered: slews, charge sharing, pulse filtering, CARRY4 internal stage timing,
+LUT-tree per-rank skew. Mutation control: Lean half not run.
