@@ -621,7 +621,7 @@ Bxw (non-uniform X windows), Bhyp2 (ledger for the capstone), Brz (reset ->
 capstone initial state), Bipw (ipow cell contracts), Blap (rig every lap), Bshp
 (shared-arc cancellation in kappa checks), Bj5 (JSON update + audit label fixes).
 
-### progress 07:32
+### progress 07:28
 In: Bhyp2 (notes only). B-hypotheses.md rewritten for the current capstone
 (gcd_hw_circuit_safe3, gcd_rig_first, gcd_hw_live_final); B-gcd-hyps-for-A.md is
 the paste block for out/gcd_hw_hypotheses.md. Finding: the capstone's import
@@ -635,7 +635,7 @@ which has no joint witness. Contest-freedom does not discharge H_ARB_EXCL (still
 A0 fork + RT1/RT2 + server: per corner proved, C in the box and for kappa >
 0.0443). 16 B/C/A ledger contradictions listed (K1-K16).
 
-### progress 07:50
+### progress 07:34
 In: Bj5 (data, no Lean). cell_constraints.json: 132 entries, 131 proved, 33 exact,
 validator 0 errors (negative control: 5 planted faults -> 5 errors). KleeneBox makes
 the six select setup/hold rows of bd_steer/bd_mux/bdc_muxn strict (+1) in
@@ -652,7 +652,7 @@ Wf + Split). The validator now rejects an exact row whose +1 has no strict-form 
 The patch pass is committed as out/cell_constraints.bj5.py and run by
 cell_constraints.gen.py (regeneration reproduces the JSON; md table re-rendered).
 
-### progress 08:05
+### progress 07:39
 In: Bxw KleeneWin (core; checked under autoImplicit=false, axioms standard on 33
 theorems, re-run by me). H_X_UNIFORM dropped: each binary edge has its own X window
 [T-a, T+c), and every race gains c(edge that must come first) + a(edge that must come
@@ -669,7 +669,7 @@ WIN = 150 ps), adversarial per-token windows, muxn unselected Cover. Test XW-1
 (notes/B-kleene-win.md): MMCM-phase-swept bd_c2 race with a held-level outcome; the
 mixed band width W̄ replaces +1 in every strict row and calibrates the GLS's WIN.
 
-### progress 08:15
+### progress 07:43
 In: Bsa3 self-audit 3 (notes/B-self-audit3.md; SelfAuditB6 + generated
 SelfAuditB6Data, both checked here, axioms standard). Audit row 824f130 (joint
 env+network non-vacuity of RigSrc.gcd_rig_first_env, UNVERIFIED) closed: one
@@ -687,7 +687,7 @@ the R5 transcription is unverifiable here (netlist JSON not on disk). Mutants:
 4/5 fail as they should; a 1-tick in_ack shift passes H_C3 alone (caught by the
 env check as a whole). Nothing refuted.
 
-### progress 08:30
+### progress 07:48
 In: Bipw IpowCells (core; checked here, axioms standard on 30 theorems). Goal 3,
 second kernel: C-8y's H_CELLS for ipow_ps's 83-operator network follows from
 per-cell contracts on the emitted cells (generated LUTs at their real arity; FbCel =
@@ -707,7 +707,7 @@ the emitted design (harmless for H_CELLS, proved; matters for liveness). The
 operator-to-Verilog match is by hand from bdc/emit.py output (scratch).
 ResetGcdNetR5 header corrected per self-audit 3 (comment only; file re-checked).
 
-### progress 09:10
+### progress 07:52
 All of the following re-checked here (private olean build, autoImplicit=false;
 axioms only propext/Classical.choice/Quot.sound).
 - Bnx5 Necessity5{Arb,Delay,PipeRst,Link,Flink,Mem} (notes/B-necessity5.md):
@@ -749,7 +749,7 @@ axioms only propext/Classical.choice/Quot.sound).
   monotone phi0). cell_sh1 duplicates SelfAuditB6.cell_sh1 (separate namespaces;
   to dedupe later). Open: H_SINK_SI in general, time-varying lags.
 
-### progress 09:50
+### progress 07:54
 In (checked here, axioms standard):
 - Bkx19 OnGcdArbKappaTight (core) + OnGcdArbKappaTightA (Mathlib bridge to
   OnGcdArbKappa's objects; checks now that Mathlib's needed part is built). Audit
@@ -780,7 +780,7 @@ In (checked here, axioms standard):
   every-result needs a re-entrant window theorem (C's). gcd_rig_every has no
   witness.
 
-### progress 10:15
+### progress 08:00
 In: Bnx4 Necessity4Mux/MuxC/MuxN (core, checked here, axioms standard;
 notes/B-necessity4.md). bd_mux.uj_env_latency_req and bdc_muxn.uj_env_latency_req
 are NOT necessary: the ack C-element also waits for z_ack, so the real return path
@@ -793,7 +793,7 @@ necessary at the boundary against the shipped mux_ok_static (claimC1_false).
 Binary <= forms; one parameter point each, no iffs. Open: uj1/uya and muxn boundary
 runs, uxa_join_latency, isochronic_forks, iso_zack, bundled_z_data.
 
-### progress 10:30
+### progress 08:04
 In: Bshp KappaCPPR (Mathlib; checked here, axioms standard; notes/B-kappa-cppr.md).
 Common-path pessimism in A's kappa model: common arcs cancel exactly (allOK_net);
 the exact check is GenOK on the symmetric difference under H_DIV
@@ -812,7 +812,7 @@ only o1x/o2x).
 Lead's checker had a path bug (proofwidget vs proofwidgets), fixed at 09:45;
 Mathlib-closure files now check.
 
-### progress 11:05
+### progress 08:15
 In (checked here, axioms standard):
 - Brz ResetCapstone{,Glue,Wit} (notes/B-reset-capstone.md): B's reset connected
   to C's safety capstone. C's initial state lives in the init* fields of H_CELLS:
@@ -850,7 +850,7 @@ In (checked here, axioms standard):
   value, 2 pass0; safety/exclusion rows need none); rt1b kappa bracketed to 1.3e-12
   with the server-free caveat and H_SPREAD_CORRELATED.
 
-### progress 11:30
+### progress 08:21
 In: Bbr ContractBridge (core; checked here, axioms standard; notes/B-contract-bridge.md).
 CORRECTION to my 08:30 IpowCells entry: FbCel was described as "H_LUT_SI +
 BoundedDelay feedback route + H_RT_FB". Bbr proves fbCel_iff_si: FbCel is EQUIVALENT
@@ -871,7 +871,7 @@ high at some tick); it holds per arbitration inside B's QUIET/COMMIT window only
 which C's amerge proof (exclusion at every tick) cannot use. Open: H_ARB1/2,
 H_AMERGE_RTZ multi-token, gated delay line.
 
-### progress 12:10
+### progress 08:32
 In (checked here, axioms standard):
 - Bkx18 OnNetlistArbKappaExact (Mathlib; notes/B-arb-kappa-exact.md). Audit row 18
   answered: the gap is decided for all 16 link_arb A0-fork cases (4 seeds x 2
@@ -903,7 +903,7 @@ In (checked here, axioms standard):
   bitstream's pin map, not archived). Board test: an AND(raw, unfoldable 0) control
   LUT per copy with locked pins.
 
-### progress 12:50
+### progress 08:35
 In (checked here, axioms standard):
 - Bsrv OnGcdArbKappaSrv (Mathlib; notes/B-gcd-arb-kappa-srv.md). gcd_hw arbiters at
   gate level with the server, A0 branch, ustate O6 arc and q prefix credited as
@@ -950,3 +950,11 @@ In (checked here, axioms standard):
   Contract copies C's Cell fields; ZeroDelayRefine's link_ref_iff is essentially
   LinkExact.exact (LinkRef's env fields copy Beh.env); KappaCPPR's "full" conditions
   are hand-transcribed. OnGcdArbKappaTight(+A) headers corrected (bridge checks).
+
+
+### progress 08:38
+Correction: the progress headings from 07:28 to 08:35 in this session were first
+written with wrong times (not taken from `date -u`); they are now the commit times.
+Cross-references inside entries to those wrong times ("08:30 IpowCells entry",
+"10:15/09:10", "09:50", "11:05") mean the entries now headed 07:48, 07:52/08:00,
+07:54 and 08:15.
