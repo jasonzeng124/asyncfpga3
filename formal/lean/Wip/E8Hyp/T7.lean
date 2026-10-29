@@ -93,7 +93,10 @@ theorem selFn_congr (l : List (Nat × Bool)) {v w : Nat → Bool} (h : ∀ sb �
     match l, hl with
     | [a], _ => exact h a (List.mem_singleton_self a)
   · unfold foldM
-    exact List.all_congr rfl (fun sb hsb => by rw [h sb hsb])
+    rw [Bool.eq_iff_iff, List.all_eq_true, List.all_eq_true]
+    constructor
+    · intro H sb hsb; rw [← h sb hsb]; exact H sb hsb
+    · intro H sb hsb; rw [h sb hsb]; exact H sb hsb
 
 end
 
@@ -125,14 +128,14 @@ theorem sel_warp (hwf : d.WF) (j : Fin N) (hn : NodeR d net b rn rank rw fuel j)
   unfold selLo selHi selGate selBase
   by_cases h : (rpin net rn j p).st = true
   · obtain ⟨_, _, hsg, _, hssel, _, htop, _, _⟩ := hst h
-    have hmem : sb ∈ (rpin net rn j p).ssel := by unfold selLits at hsb; rwa [if_pos h] at hsb
+    have hmem : sb ∈ (rpin net rn j p).ssel := by unfold selLits at hsb; simpa [h] using hsb
     simp only [h, ↓reduceIte]
     have w0 := shift1 (wf_warp hsat hlut hip) hlo1
     have w1 := Events5.warp_comp (tau_warp hsat _ (chkT_pathOK _ _ _ _ _ htop)) w0
     exact Events5.warp_comp (wf_warp hsat hsg (hssel sb hmem)) w1
   · have h' : (rpin net rn j p).st = false := by simpa using h
     obtain ⟨_, hfold, _, _⟩ := hnst h'
-    have hmem : sb ∈ (rpin net rn j p).fold := by unfold selLits at hsb; rwa [if_neg h] at hsb
+    have hmem : sb ∈ (rpin net rn j p).fold := by unfold selLits at hsb; simpa [h] using hsb
     simp only [h', Bool.false_eq_true, ↓reduceIte]
     exact shift1 (wf_warp hsat hlut (hfold sb hmem)) hlo1
 

@@ -17,6 +17,10 @@ Progress log:
   298 CARRY4-driven and 264 FF(x5FF)-driven IC rows; 0 O6-driven rows. The 236 unchanged O5 rows are
   all O5 -> CARRY4 DI inside the slice (no OUTMUX). Shift at SLOW_MAX: O5 +202..+231 ps,
   MUXF +173..+195. new == research 7dc5dde (3e69bf6a) on all 40083 comb->comb IC rows.
+  Seeds 3/4/5: the same (old = committed bands key for key except the 7 / 8 / 2 lo > hi fast arcs;
+  nets 1d655434 / 8da9f6cf / 1537cb0a = builds.txt; 0 O6 rows changed; new == r7 on 40083 rows).
+- xevents8 overlay built (e8mux/mkolean.sh, 26 modules, 0 errors). Reproduction: old bands, seed d
+  gb -> results/xe_d_old_gb.txt is byte-identical to events8/xe8_d_gb.txt.
 
 ## Plan
 1. Band pipeline: routed JSON + SDF -> research xray_delay.py 99b10a6d (arcs TSV) -> routed2x.py

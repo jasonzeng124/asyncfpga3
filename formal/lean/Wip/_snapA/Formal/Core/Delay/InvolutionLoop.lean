@@ -895,6 +895,25 @@ theorem asym_down_le_up (S : Stat P h l)
   unfold crit
   exact ⟨hlh, by linarith⟩
 
+/-- **(4) Exact criterion.** The train has less high than low time iff, at the train's
+own operating point `T = -h`, rising is faster than falling; equivalently the critical
+runt is below `δ∞↑ - (h + l)/2`.  (`h = l` iff `δ↑(-h) = δ↓(-h)`.) -/
+theorem asym_iff (S : Stat P h l) :
+    (h < l ↔ P.up (-h) < P.down (-h)) ∧
+      (crit P l < P.infUp - (h + l) / 2 ↔ h < l) := by
+  have hdom : -P.infUp < -h := by
+    have := P.up_lt (-h) (by linarith [S.h_lt]); rw [S.up_eq] at this; linarith [S.l_pos]
+  refine ⟨⟨fun hc => ?_, fun hc => ?_⟩, ⟨fun hc => ?_, fun hc => ?_⟩⟩
+  · have := P.down_strictMono (-l) (-h) (by linarith [S.l_lt]) (by linarith)
+    rw [S.down_eq] at this; rw [S.up_eq]; exact this
+  · rw [S.up_eq, ← S.down_eq] at hc
+    by_contra hn; push Not at hn
+    rcases eq_or_lt_of_le hn with e | e
+    · rw [e] at hc; exact lt_irrefl _ hc
+    · have := P.down_strictMono (-h) (-l) hdom (by linarith); linarith
+  · unfold crit at hc; linarith
+  · unfold crit; linarith
+
 end asym
 
 end Formal.Core.InvolutionLoop

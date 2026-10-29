@@ -1,4 +1,4 @@
-import Mathlib.Data.Real.Basic
+import Mathlib.Basic.Real.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Algebra.Order.Archimedean.Real.Basic
 import Formal.Core.XSimChan
