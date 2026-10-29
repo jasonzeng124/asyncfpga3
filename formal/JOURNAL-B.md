@@ -621,3 +621,17 @@ Bnx4 (mux/muxn rows necessity), Bnx5 (other sufficient rows), Bsa3 (self-audit),
 Bxw (non-uniform X windows), Bhyp2 (ledger for the capstone), Brz (reset ->
 capstone initial state), Bipw (ipow cell contracts), Blap (rig every lap), Bshp
 (shared-arc cancellation in kappa checks), Bj5 (JSON update + audit label fixes).
+
+### progress 07:32
+In: Bhyp2 (notes only). B-hypotheses.md rewritten for the current capstone
+(gcd_hw_circuit_safe3, gcd_rig_first, gcd_hw_live_final); B-gcd-hyps-for-A.md is
+the paste block for out/gcd_hw_hypotheses.md. Finding: the capstone's import
+closure (69 modules) contains from B only LinkHandshake's `ctlB` (a definition),
+so NO B cell hypothesis is a Lean hypothesis of any capstone theorem: B's rows
+enter only through four unmechanised bridges (OpsGen bindings / LutFb not derived
+from any B lemma; 8x physical -> zero-delay; M6 SI discretisation; reset -> init,
+probe Brz). Exception: RigSrc.gcd_rig_first_env, whose env binders are real
+hypotheses (uenv1's H_UENV1_B/M1 graded C: fails under the band on seeds 2/4) and
+which has no joint witness. Contest-freedom does not discharge H_ARB_EXCL (still
+A0 fork + RT1/RT2 + server: per corner proved, C in the box and for kappa >
+0.0443). 16 B/C/A ledger contradictions listed (K1-K16).

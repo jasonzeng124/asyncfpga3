@@ -1,830 +1,646 @@
-# B-hypotheses: the ledger of physical hypotheses under shard B's part of the gcd_hw argument
+# B-hypotheses: shard B's hypotheses under the gcd_hw capstone (refresh)
 
-Probe Bhyp (shard B), 2026-10-27, about 11:40 UTC. Read-only. No Lean was written or run;
-no route, board or toolchain was used.
+Probe Bhyp2 (shard B), 2026-10-29. Notes only: no Lean was written or run, and no route, board or
+toolchain was used. This replaces the 2026-10-27 11:40 ledger (probe Bhyp). That ledger's rows
+are kept where they still hold, renumbered, and re-pointed at the capstone theorems as they
+stand at `398ee1d`.
 
-Sources:
-- JOURNAL-B.md: verdict block, findings, and the session starting 10:48 (progress 10:54-11:23).
-- The B notes changed since 10:48: B-celem-strict(2), B-win-fifo(-causal), B-lib-gap(-mux,
-  -delay), B-fork-data, B-rig-idx, B-rig-contract (correction block), B-rig-token, B-gcd-arb,
-  B-arb-kappa, B-constraints-kappa, B-constraints-update, B-self-audit, B-port-core2.
-- Older B notes where a row still rests on them: B-gcd-routes, B-gcd-cells, B-reset-gcd(-wave),
-  B-obligations.
-- `formal/out/cell_constraints.json`: 128 entries and 8 `hypotheses_not_inequalities`.
-- For context: shard A's `formal/out/gcd_hw_hypotheses.md` (the 10:54 file, "rewritten at about
-  11:00"), C-10h and C-10k.
+Sources read:
+- the capstone files: `Formal/Net/Capstone*.lean`, `GcdHw*.lean`, `OpsGen.lean`, `Ops*.lean`;
+- B's files that touch them: `Cells/RigSrc.lean`, `RigToken.lean`, `LinkHandshake.lean`, and
+  every B file cited below at the line given;
+- `notes/C-gcd_hw-hypotheses.md` (C-8l, plus the 10k and 8r updates);
+- `out/gcd_hw_hypotheses.md` (A, 2026-10-27 11:00);
+- `FEASIBILITY.md` ("Fidelity per primitive" and the status block);
+- the verdict blocks of JOURNAL-B and JOURNAL-C, and the latest session of each;
+- `out/cell_constraints.json` (131 entries; 8 `hypotheses_not_inequalities`).
 
-**Name check.** Every Lean name below as `File:line name` was grepped as a
-`theorem|def|structure` declaration in that file in the working tree at about 11:35.
-- Hypothesis names (H_*) were grepped as text in the files listed. Where a name exists only in
-  prose (a note or a docstring), the row says **prose only**.
-- Three files are in the tree but no probe has reported them yet: `OnGcdArbA0.lean` (probe Bar),
-  `LibGapMuxN.lean` (Bmn) and `NecessityReset.lean` (Bsx), plus `LibGapLatch.lean`. Their
-  contents are marked **in progress, not claimed**: I did not check them and no journal entry
-  claims them.
+Name check: every `File:line name` below was grepped as a `theorem|def|structure` declaration in
+the working tree. Hypothesis names (H_*) were grepped as text. Where a name exists only in a note
+or a docstring, the row says **prose only**.
 
-Grades follow shard A's doc:
-- **A**: proved, true by construction, or measured.
-- **B**: credible and physically motivated, untested on this silicon.
-- **C**: doubtful, contradicted, or failing on some route or corner.
+Grades, as the probe brief defines them:
+- **A**: follows from data or is proved.
+- **B**: a credible physical hypothesis, not yet tested on this silicon.
+- **C**: doubtful, contradicted, failing on some route or corner, or resting on an unmeasured value
+  that the verdict depends on.
 
-Status words:
-- **proved-on-routes**: a Lean theorem instantiated on routed gcd_hw numbers;
-- **rule-checked**: a tcheck/cells-verify rule passes on the gcd_hw routes;
-- **unchecked**: nothing evaluates it on gcd_hw;
-- **failing**: some route or corner gives a negative margin.
+"Discharged" names the theorem that derives the row. "Open" means nothing derives it.
 
-Routes. Two sets are in play and are not interchangeable:
-- C-10e/10h **tcheck routes**: seeds d, 2, 3, 4, no `--freq`. Bag and Bar use these.
-- Br's **`--freq 100` routes**: seeds 1-4 (B-gcd-routes).
+---
 
-Both were built with nextpnr 9c732bc6303458df. Neither is the board bitstream
-`gcd_hw_03e82630.bit`. All the route artefacts except Bar's rebuild are gone from this
-container (B-gcd-arb "Blocked").
+## 0. The structural fact: where B's hypotheses enter the capstone
 
-gcd_hw instance counts (B-gcd-cells, B-gcd-routes):
+**What the capstone chain imports from B.** I computed the import closure of `CapstoneWalk`,
+`CapstoneLiveNdWalk`, `CapstoneRig`, `CapstoneCut`, `CapstoneWitness` and `CapstoneWitness3`:
+69 modules, with the scratch script `/tmp/claude-0/probes/Bhyp2/clos.py`. It contains exactly one
+B module, `Formal.Cells.LinkHandshake` (plus `Formal.Cells.Prelim`, which LinkHandshake imports).
+From that module the chain uses one **definition**, `LinkHandshake.lean:65 ctlB`: the bd_link_ctl
+LUT function inside `Link.H_CEL_SI`. That definition carries no hypothesis.
 
-| cell | instances |
-|---|---|
-| C-elements per route | 363: 185 bd_c2n, 153 bd_c2, 14 bd_c4, 10 bd_c3, 1 bd_c2n_set (the rig's uenv1) |
-| bd_latch | 184 |
-| bd_delay | 287 |
-| bd_delay_gated | 29 |
-| bd_steer | 38 |
-| bd_mux | 21 |
-| bdc_muxn3 | 1 |
-| bd_arbiter | 9 (7 amerge2 + 2 amerge3 stages) |
-| bd_fork | 52 |
-| bd_join | 38 |
-| fused compute units | 20 |
-| bd_link | 46 |
-| bd_pipe | 63 |
+**So no B cell hypothesis is a Lean hypothesis of any capstone theorem.** The Lean hypotheses are
+C's:
+- `H_CELLS`: the gate models;
+- `H_BUNDLE`: `Held`;
+- `H_START_ONCE`;
+- `H_ENV`;
+- for liveness, `H_BOUNDED_DELAY'`, `H_START_ENV`, `H_ARB_UNCONTESTED_BOUNDED` and
+  `H_NO_DEADLOCK'`.
+
+B's hypotheses are what a physical discharge of C's hypotheses would rest on. That discharge goes
+through four bridges. **None of the four is mechanised:**
+
+| bridge | what it would prove | Lean today |
+|---|---|---|
+| **Br1** (C's O4) | each of the 367 operators' gate-model fields from the real LUTs | `OpsGen.lean` binds the cell kinds `fork2_cel` :166, `join2_cel` :181, `steer_bound` :257, `mux_bound` :309, `muxn_bound` :344, `amerge_ack_bound` :379, `link_bound` :405 and `src_bound` :413. Each assumes the physical step form `LutFb` :86 / `LutSI` :90 and `FbFirst` :95. These bindings are not instantiated on `CapstoneNet`. No B file derives `LutFb`/`LutSI` from a timed or Kleene LUT model (grep: no B file mentions `LutFb` or `OpsGen`). Not bound at all: forks with N ≥ 3, C-trees with N ≥ 4, and the arbiter grants `H_ARB1/2`, `H_ARB_EXCL`. |
+| **Br2** (C's 8x) | physical circuit → the zero-delay traces on which `Held` and the `dat`/`H_LATCH_*` fields are stated | `CapstoneBundle.lean` (8w): on those traces `Held` is a protocol consequence cell by cell, so tcheck verdicts cannot discharge it directly. 8x exists only as `Wip/C8x` (unclaimed). |
+| **Br3** (A's M6, H_SEP) | a physical run sampled on ticks is an SI run | `Bridge*`: proved for persistent NoOvertake networks; not applied to `CapstoneNet` |
+| **Br4** (probe Brz, running) | the B reset run (`gNet`) gives the Ops initial state (`init*`, `i*`, `ic`, `io`, …) | none. A different model (gNet, 3322 nodes) |
+
+**The one B theorem that is on a capstone chain:** `RigSrc.lean:500 gcd_rig_first_env`. It is
+C's `gcd_rig_first` (`CapstoneRig.lean:267`) with `H_ENV` and the three sources' `SrcR`
+discharged from the rig's env cells, through `rig_cellR` :404 and `env_H_ENV` :342. Its B
+hypotheses are listed in row **BH24**. They are real Lean hypotheses of a capstone-chain theorem.
+
+### 0.1 The capstone theorems and their Lean hypotheses
+
+| id | theorem | Lean hypotheses | conclusion | non-vacuity |
+|---|---|---|---|---|
+| S | `CapstoneWalk.lean:636 gcd_hw_circuit_safe3` | `a, b < 2^31`; `H_CELLS : ∀ o, Cell …`; `H_BUNDLE : ∀ c, Held (ch c)`; `H_START_ONCE` | every out0 latch is `Nat.gcd a b` | `CapstoneWitness3.lean:15 gcd_hw_joint_witness3` (a = 12, b = 18, one unit-delay run) |
+| R | `CapstoneRig.lean:267 gcd_rig_first` | `H_CELLS_R` (`CellR`: `Src` without `iz`), `H_BUNDLE`, `H_ENV` | first out0 offer and first latch are gcd | **no joint witness** found |
+| R' | `RigSrc.lean:500 gcd_rig_first_env` (B) | `H_KER` (C's `Cell` on non-source operators), `H_BUNDLE`, the env hypotheses of BH24 | as R | **no joint witness**. `RigSrc.W.env_nonvacuous` covers only the env lemmas, not the kernel together with the env |
+| L | `CapstoneLiveNdWalk.lean:120 gcd_hw_live_final` | `CellI`, `H_BUNDLE`, `H_START_ONCE`, `H_BOUNDED_DELAY'`, `H_START_ENV`, `H_ARB_UNCONTESTED_BOUNDED`, **`H_NO_DEADLOCK'` (open)** | first out0 token within `(1168(8·Lrun+23)+1)(H+1)` ticks, carrying gcd | **none** (C-8z). Its predecessor, 8u's `gcd_hw_live`, is likely vacuous (`CapstoneLiveNdStart.lean:84 start_never_closes`). |
+| U | `gcd_hw_arbiters_uncontended3` (CapstoneWalk), `CapstoneLiveArb.lean:161 gcd_hw_never_contested` | as S | no arbiter stage ever faces a free contest | via S's witness |
+
+**Fields of `H_CELLS`** (`CapstoneNetDef.lean:373 Cell`), each with the B rows that would
+discharge it physically:
+
+| structure | fields | B rows (via Br1/Br2) |
+|---|---|---|
+| `Fork.Fork` (OpsFork:29) | `wire`, `cel`, `dat`, `initA`, `initO` | BH6, BH7 (cel); BH3 (wire, FIFO); BH8 (dat, via Br2); BH9 (init, via Br4) |
+| `Join.Join` (OpsJoin:35) | `cel`, `wire`, `dat`, inits | BH6, BH7; BH8/BH14 (dat) |
+| `Steer.Steer` (OpsSteer:39) | `lut` (request and select read at the same tick), `orr`, `dat`, inits | BH10, BH4, BH5 |
+| `Mux.Mux` (OpsMux:257) | `cj0`/`cj1` (isochronic ctl_req fork), `zr`, `xa`, `ya`, `ca`, `dat`, inits | BH11, BH13, BH15 |
+| `MuxN.MuxN` (OpsMuxNOp:35) | `cj`, `zr`, `xa`, `ca`, `dat` | BH12, BH13 |
+| `CM.AMerge` (OpsCM:163) | `H_ARB1`, `H_ARB2`, `H_ARB_EXCL`, `zr`, `H_AMERGE_RTZ`, `xa`, `ya`, `dat` | BH17-BH20, BH13, BH14 |
+| `Link.Link` (OpsLink:130) | `H_CEL_SI` (= `ctlB`), `H_ACK_DI`, `H_REQ_DI`, `H_LATCH_OPEN`, `H_LATCH_HOLD`, `ic`, `ii`, `io` | BH1 (ctlB, discharged), BH6, BH8, BH9, BH16 |
+| `Capstone.Src` (CapstoneSrc:19) | `H_LUT_SI`, `dat`, `iz` | BH24 (rig form: `SrcR` proved by `rig_cellR`; `iz` false, `iz_fails` :647) |
+| `Ops.Gcd.Sink` (OpsGcd:43) | `wire`, `init` | H_SINK_SI (**prose only**, B-rig-src; open) |
 
 ---
 
 ## 1. The ledger
 
-There is one row per physical assumption. Every name used for that assumption is listed in the
-row.
+Column key:
+- **chain**: the capstone hypothesis the row would discharge, and through which bridge;
+- **side**: the row is used only by results that are not on the capstone's Lean path.
 
 ### 1a. LUT and primitive fidelity
 
-**BH1. The LUT computes its INIT function on its real pin map.**
-- *Names:* H_LUT_FN (implicit), M4/M5 in A's doc.
-- *Lean:* CElemFn, Latch, LinkHandshake, ArbKleene, Lib1/Lib2 (INIT = header equation);
-  OnNetlist (the INITs equal those read back from 4 link/arb bitstreams).
-- *gcd_hw use:* every control LUT.
-- *Grade:* A for the cells and the 4 read-back bitstreams. For gcd_hw itself, M5 is B (C's
-  fasm2lean covers only link and arbiter).
-- *Status:* proved (cells). gcd_hw bits: research's fasm2net has 11619/11619 LUT functions equal
-  (audit row 23).
-- *Test:* extend fasm2lean to gcd_hw (C-11c).
-
-**BH2. Kleene pass-transistor mux.** A single 2:1 mux with a mid-rail select passes equal legs.
-More generally, each mux is Kleene-sound at every instant.
-- *Names:* H_KLEENE_LUT; A's `H_mux_kleene`; B's H_MUX_KLEENE (per-pin, timed form); JSON
-  `H_LUT_FIFO / H_PIN_FIFO / H_TREE_FIFO` (catalogue C4), whose "statement" is this hypothesis.
-- *Lean:* `Core/LutTree.lean:279 H_mux_kleene` (A); `Cells/MuxTree.lean:101 muxTree_eq_lutK`,
-  `:290 evalK_order_indep` (every pin order gives the same value); CElemStrict's H_MUX_KLEENE
-  (text in `CElemStrict.lean`).
-- *gcd_hw use:*
-  - every ternary/Kleene result: the ResetGcd ternary certificates, TernaryOnBits, Fd's "held
-    controlling 0";
-  - the strict feedback race (BH6);
-  - the `_K` forms of LibGapSteer/LibGapMux.
-- *Grade:* B. Credible for clean or late selects; doubtful for a mid-rail select while the legs
-  move (NMOS-only tree).
-- *Status:* unchecked on silicon. Note: under closure semantics single-X glitch freedom holds for
-  every INIT (Lib2), so all per-cell glitch content sits in this one hypothesis.
-- *Test:* board glitch counter on a LUT with equal legs and a slow select ramp, or a LUT ring
-  counting extra edges per revolution.
-
-**BH3. One input edge gives one output edge: no revert inside the uncertainty zone.**
-This is FIFO / no overtaking.
-- *Names:*
-  - H_NO_REVERT (`NoRevertI`);
-  - B's FIFO family, all one form (`PipeTimed.Ret`): H_LUT_FIFO, H_WIRE_FIFO, H_LINE_FIFO,
-    H_PIN_FIFO, H_TREE_FIFO, H_REQ_LINE/H_ACK_LINE;
-  - A's `NoOvertake` and S3 ("H_LUT_FIFO / NoOvertake");
-  - catalogue C4, P5.
+**BH1. The LUT computes its INIT on its real pin map** (H_LUT_FN; A's M4/M5).
 - *Lean:*
-  - `WinFifo.lean:151 win_glitch_not_fifo`: no spacing makes `Win` FIFO once `hi ≥ lo+2`;
-  - `:395 win_fifo_of_no_revert`, `:405 no_revert_of_ret`: under H_SPREAD_PULSE, FIFO ⟺ `Win`
-    + H_NO_REVERT;
-  - `spread_of_loop`;
-  - `WinFifoCausal.lean:438 stage_fifo`, `:810 pipe_fifo`: H_LUT_FIFO derived for one stage and
-    the 2-stage pipe from `Win` + H_NO_REVERT;
-  - `:1127 no_revert_needed`: it cannot be dropped;
-  - `PipeTimed.lean:264 Ctl` (the consumer).
-- *gcd_hw use:*
-  - B's timed cell theorems: PipeTimed(N), OpsTimed* (SteerGates), OpsTimedMux, ContractsTruncCel
-    (the contract route, A's §7);
-  - `RigToken.set_move` / `rig_token` (uenv0/uenv1 and their wires);
-  - not the capstone's H_CELLS, which is SI (`LutSI`/`LutFb`).
-- *Grade:* B. It is an inertial-type property: a single-input CMOS chain given one monotone edge
-  makes one edge. It is not derivable from `Win` (A, and Bw).
-- *Status:*
-  - The FIFO hypotheses are reduced to H_NO_REVERT for the two pipe LUTs and the steer's H_WQ.
-  - The pipe's lines and PipeTimedN are not done.
-  - H_TREE_FIFO is not reducible: the select excitation is glitchy (`sel_runt`, `ce_not_fifo`).
-  - The power-up prefix is excluded, except where reset forces the excitation (`witness1`).
-  - Unchecked on silicon.
-- *Test:*
-  - a LUT ring or chain with transport-per-level GLS (`GLS_MODEL=fid`): count output edges per
-    input edge;
-  - board: a LUT ring never shows an extra edge per revolution.
+  - `LinkHandshake.lean:65 ctlB` (used by `Link.H_CEL_SI`);
+  - `OpsGen.lean:397 link_gate`: the generated bd_link_ctl LUT equals `ctlB`;
+  - CElemFn, Latch, ArbKleene, Lib1/Lib2 (each INIT equals its header equation);
+  - `Formal/Gen` (163 theorems; `formal/tools/gen/gen.sh --check`);
+  - OnNetlist (link/arb bits read back on 4 seeds).
+- *Statement:* each control LUT's output is its INIT's function of its physical pins.
+- *Grade:* A per cell. B for the whole gcd_hw bitstream (M5: research's `fasm2net` reports
+  11619/11619 LUT functions equal; that check is not in Lean).
+- *Status:* discharged for `ctlB` (`link_gate`, kernel decide); open for the whole bitstream.
+- *Use:* **chain** (`Link.H_CEL_SI`'s function; Br1 for the other kinds).
+- *Test:* `formal/tools/gen/gen.sh --check`. Extend `formal/tools/fasm2lean2/check.sh` to the
+  gcd_hw FASM (3-5 d).
+- *Vacuity:* none (a function identity).
 
-**BH4. LUT6_2 shared read.** O5 and O6 read each shared physical pin at one instant.
-- *Names:* H_LUT62_SHARED_READ; A's S2; `SiteSync`.
-- *Lean:* `TernaryOnBits2.lean:325 SiteSync`; ArbOverlapRace `Decomp`; `Latch.pair_o5_kleene`.
-- *gcd_hw use:* bd_steer (38), the bd_latch pairs, the arbiter's ugrant/ustate, bd_datamux.
+**BH2. H_KLEENE_LUT: one 2:1 pass-transistor mux with a mid-rail select passes equal legs.**
+- *Lean:*
+  - `Core/LutTree.lean:279 H_mux_kleene` (A), with `node_sound` :296 and `root_sound` :323;
+  - `MuxTree.lean:101 muxTree_eq_lutK` (tree = closure semantics in any pin order);
+  - the timed per-pin form H_MUX_KLEENE (text in `CElemStrict`, `CElemStrict2`, `LibGapLatch`,
+    `NoRevert`);
+  - KleeneBox `*_K` (the select boxes are unchanged in K3).
+- *Statement:* a mux whose select is X and whose legs agree outputs the legs' value.
+- *Grade:* B. Credible for clean or late selects. Doubtful for a mid-rail select while the legs
+  move. Audit row 88: the "optimistic hazard-free extension" (probe Bpess running).
+- *Status:* open (unmeasured).
+- *Use:* **side**. It is used by the ternary reset certificates (ResetGcd*), by KleeneBox, by
+  tcheck's Fd/H_CLEAN_EDGE arguments, and by A's Events8. It sits under Br1/Br3 only as hazard
+  freedom.
+- *Note:* it does NOT give H_NO_REVERT (`NoRevert.lean:561 kleene_revert`: one moving pin, the
+  root shows `0,1,0,1`).
+- *Test:* a board glitch counter on a LUT with equal legs and a slowly ramped select.
+- *Vacuity:* A's exact Kleene timed tree meets it (`NoRevert.exact_mux_mono`, A's
+  `sic_glitch_free`).
+
+**BH3. H_NO_REVERT and the FIFO family: one input edge gives one output edge.**
+- *Names:*
+  - H_NO_REVERT: `WinFifoCausal.lean:64 NoRevertI` and `WinFifo.NoRevert`;
+  - the FIFO hypotheses H_LUT_FIFO, H_PIN_FIFO, H_TREE_FIFO, H_WIRE_FIFO (`PipeTimed.Ret` form);
+  - H_MUX_MONO + H_PIN_MONO (`NoRevert.lean:517 root_mono`), a sufficient per-mux form;
+  - A's NoOvertake;
+  - the monotone causal read maps (`Mono`, `hβm`/`hγm`/`hφ*m`) of the per-pin box files and of
+    RigSrc.
+- *Statement:* inside one input edge's uncertainty zone, once the output shows the new value it
+  keeps it. Pins and wires deliver edges in order.
+- *Lean:*
+  - `WinFifo.lean:151 win_glitch_not_fifo`: `Win` alone is never FIFO once `hi ≥ lo + 2`;
+  - `:405 no_revert_of_ret`;
+  - `WinFifoCausal.lean:438 stage_fifo`, `:810 pipe_fifo`, `:1127 no_revert_needed`;
+  - `WinFifoN.lean:623 pipe_ctl_w`;
+  - the NoRevert channel table: inertial, transport and event channels give it; `Win` and C's
+    `BoundedDelay` do not.
+- *Grade:* B (an inertial-type CMOS property).
+- *Status:* open on silicon. It is reduced to `Win` + H_NO_REVERT for the pipe LUTs and the
+  steer. H_TREE_FIFO is not reducible (the select excitation glitches).
+- *Use:*
+  - **chain**: R' (the env read maps of `gcd_rig_first_env` are monotone, i.e. H_PIN_FIFO /
+    H_WIRE_FIFO on uenv0, uenv1 and c3; `RigSrc.c3_move` also needs H_LUT_FIFO);
+  - Br1/Br3 (Bridge needs NoOvertake);
+  - **side**: every B timed cell theorem (PipeTimedN, OpsTimed*, ContractsTruncCel, CTreeExact,
+    ArbPin2, NecessityMerge, ConstraintsSel).
+- *Test:* a LUT-ring or chain edge count (no extra edge per revolution). Routed GLS with
+  `GLS_MODEL=fid` (transport per level): count output edges per input edge.
+- *Vacuity:* `NoRevert.lean:256 transport_witness`.
+
+**BH4. H_LUT62_SHARED_READ: O5 and O6 read a shared pin at one instant.**
+- *Lean:* `TernaryOnBits2.lean:325 SiteSync`; ArbOverlapRace `Decomp`.
 - *Grade:* B.
-- *Status:* unchecked. CElemStrict2's `pair_o5_clean_iff` / `pair_o6_clean_iff` do not need it for
-  the latch setup race: each output is exact on its own pins.
-- *Test:* CARRY4 TDC on O5 vs O6 skew from one pin.
+- *Status:* open. CElemStrict2's per-output latch theorems do not need it.
+- *Use:* **chain via Br1**, for the steer `lut` field (bd_steer is a LUT6_2 pair) and the
+  arbiter's ustate/ugrant. Otherwise side.
+- *Test:* a CARRY4 TDC on the O5 vs O6 skew from one pin.
+- *Vacuity:* none known.
 
-**BH5. Atomic LUT read, or select X width.** Either all pins of a LUT are read at one instant
-(atomic), or each moving select is X for a window `wa ≥ 1`.
-- *Names:* H_ATOMIC_LUT (A: `Events*.Beh.hc`); the zero-width-select assumption under every
-  B `≤` race theorem; `wa`.
+**BH5. The select X window: H_ATOMIC_LUT, `wa`, H_X_UNIFORM.**
 - *Lean:*
-  - `CElemStrict.lean:288 env_latency_iff` (the exact condition with `wa`);
-  - `:297 env_latency_strict` (`wa = 1`, so `<`); `env_latency_atomic` (`wa = 0`, so `≤`);
-  - `:388 boundary_x`, `binary_glitch` (the counter-traces);
-  - A's `Events2Strict.lean:374 safe_strict` agrees (A-contradictions X2).
-- *gcd_hw use:* every own-feedback race (BH6, BH7, BH13, the reset width BH20).
-- *Grade:* B. One tick is the grid minimum, not a measured slew; the physical margin is the
-  departing select's X width.
-- *Status:*
-  - Resolved in the model in favour of the strict form.
-  - The JSON carries `strict` on 59 entries and `strict_pending` on 20.
-  - No route margin on gcd_hw is near 1 ps (kernel Rc worst is +55 ps guarded, Br), so no
-    verdict flips.
-- *Test:* none needed for gcd_hw's verdicts. To measure the slew, use a TDC on a LUT select ramp.
-
-### 1b. C-element and latch races (own feedback)
-
-**BH6. The C-element's feedback arrives first.**
-- *Statement:* the C-element's own feedback reaches its select before any response the output
-  provokes arrives back at a non-feedback pin. Strictly: `dlmax + dwmax + wa ≤ dlmin + E`. Per
-  pin: `w_hi + SP[fb].hi ≤ E_τ + min(SP[req].lo, SP[ack].lo)`.
-- *Names:*
-  - B: H_ENV_LATENCY (C2), H_FB_FAST, H_SEL_ORDER / H_SELORD (C3, per pin), "C-element fork
-    wait" (`E ≥ dwmax + dlmax − dlmin`, audit row 84);
-  - C: H_FB_FIRST (`FbFirst`), RT_FB, tcheck rule R/Rc;
-  - JSON: `bd_c{2,2n,3,4}.env_latency`, `.sel_order`, `bd_ctree.node_fork`, the C-element parts
-    of the `bd_mux`/`bd_merge`/`bdc_muxn`/arbiter entries.
-- *Lean:*
-  - `CElemTiming.lean:399 c2_four_phase`;
-  - `FifoFidelity.lean:173 sel_phase`;
-  - `ConstraintsSel.lean:272 sel_order_of_lat_gen`;
-  - PipePerPin `pipe_ctl`;
-  - the CElemStrict family (BH5): `clean_iff :219`; `CElemStrict2.lean:323 c2n_all`; `c3_all`,
-    `c4_all`, `c2set_all` (every cycle of every C-element INIT);
-  - C: `Net/OpsGen.lean:95 FbFirst`, `Timing/FbFirstRt.lean:136 fbFirst_of_resp` (under
-    H_RESP_ONLY), `OpsGen.lean:216 fb_stale_breaks`.
-- *gcd_hw use:* all 363 C-elements: link controllers, C-trees of forks and joins, the mux joins
-  `uj0/uj1`, the arbiter's `ua_k`, and the rig's uenv0/uenv1.
+  - `CElemStrict.lean:288 env_latency_iff` (exact, with `wa`), `:297 env_latency_strict`
+    (`wa = 1`), `:306 env_latency_atomic` (`wa = 0`);
+  - KleeneBox **H_X_UNIFORM** (text, `KleeneBox.lean:29`): every binary edge carries an X window
+    `[T−a, T+c)` with the same `w = a + c` on every edge. Then every setup and hold gains `+w`:
+    `:195 steer_edges_K`, `:401 join_edges_K`, `:520 latch_edges_uniform`.
+- *Statement:* a moving select is X for a window of width `w ≥ 1` tick, the same width at every
+  edge.
 - *Grade:*
-  - kernel: B (rule-checked with margin);
-  - rig uenv1: **C**.
-- *Status:*
-  - Kernel: Rc passes on all kernel C-elements, 4 tcheck routes, fast/slow/fastG/slowG (C-10h,
-    C-10k).
-  - Br, per pin with site pins, on the `--freq 100` routes: 0 negative at any one-corner reading;
-    box reading 5-10 negative per seed (worst −585 ps).
-  - **uenv1: failing.** banded Rc on tcheck seed 2 is −117 (fastG) / −221 (slowG) ps; seed 4 is
-    −86 / −243 ps. Unguarded it is +44/+162 and +94/+161 (C-10h:168-170, which includes the
-    LUT→xMUX hop).
-  - `RigToken.lean:765 stale_fb_extra_start` shows what that failure allows: 3 start offers
+  - B for "some `w ≥ 1` tick exists";
+  - **C for "uniform"** (the slew differs per net and is unmeasured; probe Bxw on non-uniform
+    windows is running).
+- *Status:* open. No gcd_hw margin is within a few ps of 0, so no verdict depends on `w`
+  (Rc worst +55 ps guarded, Br).
+- *Use:* **side**. It decides only `≤` vs `<` in B's exact iffs, which sit under Br1/Br2.
+- *Test:* a TDC on a LUT select ramp, to measure the X width per net.
+- *Vacuity:* `KleeneBox.lean:278 steer_witness_K` and `join_witness_K` (X on every edge, strict).
+
+### 1b. C-element and latch races
+
+**BH6. Feedback first: H_FB_FIRST / H_ENV_LATENCY / H_SEL_ORDER / RT_FB.**
+- *Lean:*
+  - C: `OpsGen.lean:95 FbFirst`, `Timing/FbFirstRt.lean:136 fbFirst_of_resp` (from RT_FB under
+    H_RESP_ONLY, **prose**), `fbFirst_witness` :193, `OpsGen.fb_stale_breaks` :216;
+  - B: the exact strict race `CElemStrict.env_latency_iff` and `CElemStrict2.lean:323 c2n_all`
+    (with `c3_all`, `c4_all`, `c2set_all`);
+  - per pin: `ConstraintsSel.lean:237` (H_SEL_ORDER as a hypothesis), `:272 sel_order_of_lat_gen`,
+    `FifoFidelity.lean:173 sel_phase`.
+- *Statement:* when a C-element's output changes, its own feedback reaches its select before any
+  response the output provokes reaches a non-feedback pin. Strict form:
+  `dlmax + dwmax + wa ≤ dlmin + E`. Per pin: `w_hi + SP[fb].hi ≤ E + min SP[dep].lo`.
+- *Grade:*
+  - kernel C-elements: B (tcheck Rc passes on all 363 per route at fast, slow, fastG and slowG);
+  - **rig uenv1: C**. The banded Rc is −117/−221 ps on seed 2 and −86/−243 ps on seed 4
+    (C-10h:168-170).
+- *Status:* discharged per route by tcheck Rc, modulo hand identification (8w matches it as data).
+  Open at uenv1.
+- *Use:*
+  - **chain**: Br1, for every `cel`, `H_CEL_SI` and `cj` field;
+  - R', where it appears as the step-form hypotheses `H_UENV1_B` and `M1`. These are false when
+    uenv1's feedback is stale: `RigToken.lean:765 stale_fb_extra_start` gives 3 start offers
     against 1 result.
-  - JOURNAL-B's findings block quotes −114/−219 and −81/−201. Those numbers are stale; C-10h is
-    the source.
 - *Test:*
-  - GLS of `gcd_rig` on seeds 2 and 4 at the fast corner: exactly one `start_req` rise between
-    consecutive `res_req` rises;
-  - T2 (own feedback vs neighbour response, board + GLS);
-  - fix candidate: LOCK_PINS uenv1's feedback to A5/A6.
+  - `formal/tools/tcheck/run10k.sh d 2 3 4` (Rc rows);
+  - routed GLS of `gcd_rig` on seeds 2 and 4 at the fast corner: exactly one `start_req` rise
+    between consecutive `res_req` rises;
+  - the fix candidate: LOCK_PINS uenv1's feedback to A5/A6.
+- *Vacuity:* the hypotheses are witnessed (`fbFirst_witness`; CElemStrict2's per-INIT runs).
 
-**BH7. C-element pulse width, C-tree depth latency, atomic tree.**
-- *Statement:* an enabling combination is held for `Dmax` (+1, strict). Each tree node's latency
-  fits inside the root's environment latency (C7). The tree acts as one C-element.
-- *Names:* H_PULSE (C1); `bd_c*.pulse_width`; C7 LatOK; C6; C's H_CTREE_ATOMIC.
-- *Lean:* `CTreeTimed.lean:1174 tree_four_phase`; `CTree.lean:802 reachable_eq_flat` (an atomic
-  cell model only); `c3_all` / `c4_all` (node races, strict).
-- *gcd_hw use:* 3 bd_ctree; the fork and join C-trees (52 + 38; N ≥ 4 for the large forks).
+**BH7. C-tree latency and atomicity: H_CTREE_ATOMIC vs H_CTREE_LOOP.**
+- *Lean:*
+  - C: H_CTREE_ATOMIC is **prose only** (`OpsFork.lean:13`, OpsJoin, OpsGen). The model treats a
+    C-tree as one C-element.
+  - B: `CTreeExact.lean:969 tree_box_exact` (any shape and depth, real bd_c2/c3/c4 INITs, per-pin
+    box). It is exact iff **H_CTREE_LOOP**: for every node n and child c,
+    `Qhi(n) ≤ dist_min(n→root) + E + MaxMin(c) + lo(c→n)`.
+  - `CTreeTimed.lean:1174 tree_four_phase` (sufficient).
 - *Grade:* B.
-- *Status:*
-  - pulse width: implied inside a four-phase run;
-  - C7: **unchecked** on routes (no tcheck row);
-  - H_CTREE_ATOMIC: proved only as reachable-set equality.
-- *Test:* a tcheck row for tree depth (A's doc, "C7; not done").
+- *Status:* exact in Lean, **unchecked on every route**. 8w: C7 has no tcheck rule.
+- *Use:* **chain via Br1**, for the forks with N ≥ 3 and the joins with N ≥ 4. OpsGen does not
+  bind these.
+- *Test:* a tcheck row for H_CTREE_LOOP per tree node (from `bd_ctree` instances in the routed
+  netlist).
+- *Vacuity:* `tree_box_exact` has both sides witnessed (B-ctree-exact).
 
-**BH8. Latch capture: setup data, setup pulse, hold, loop bound.**
-- *Statement:*
-  - setup data: `Td + dhi + fhi ≤ Tr + rlo + wlo + elo` (+1 strict);
-  - setup pulse: `ehi + fhi ≤ wlo + elo` (+1);
-  - hold: `ehi ≤ alo + dlo`;
-  - loop bound: `1 ≤ loop ≤ L`.
-- *Names:*
-  - B: H_SETUP (L1), H_PW (L2), H_HOLD / H_RULE_H (L3), H_LOOP_MIN/MAX (L4);
-  - B's fork forms: H_FORK_DATA, H_FORK_DATA_W, H_FORK_PULSE, H_FORK_HOLD (old A row C14);
-  - C: H_LATCH_OPEN / H_LATCH_HOLD;
-  - JSON: `bd_latch[*].setup_data/_pulse/hold`, `bd_latch.loop_bound`, `bd_fork.branch_data`,
-    `_edge`, `bd_pipe.boundary_I/_H`.
+**BH8. Latch capture: setup data, setup pulse, hold, loop bound, fork data.**
+- *Names:* H_SETUP/H_PW/H_HOLD/H_LOOP (L1-L4); `H_FORK_DATA_W`; C's H_LATCH_OPEN/H_LATCH_HOLD.
 - *Lean:*
   - `Bundling.lean:601 capture`;
+  - `ForkData.lean:140 fork_capture`, `:235 fork_data_needed` (a 1 ps violation leaves the latch
+    stale);
   - `OnNetlistTimed2.lean:82 latch_rule_h_net`;
-  - `ForkData.lean:140 fork_capture`;
-  - `:235 fork_data_needed` (H_FORK_DATA_W exact: 1 ps violation gives a stale latch);
-  - `edge_form_not_needed` (C-8f's "data before req" is sufficient, not needed);
-  - `CElemStrict.latch_facts`; `CElemStrict2` `pair_o5_clean_iff` / `pair_o6_clean_iff`
-    (strict, per output).
-- *gcd_hw use:* 184 bd_latch. Census of fork branches: 53 end at link/pipe latches, 59 at joins,
-  12 at nested forks, 6 at bd_snk, 9 are control-only.
+  - LibGapLatch (box exact);
+  - LinkExact `exact` :804 (one link stage, scope `Wf`/`Split`);
+  - KleeneBox `latch_edges_uniform`.
+- *Statement:*
+  - setup data: `Td + dhi + fhi ≤ Tr + rlo + wlo + elo` (+1 strict);
+  - setup pulse: `ehi + fhi ≤ wlo + elo`;
+  - hold: `ehi ≤ alo + dlo`.
 - *Grade:* B.
-- *Status:*
-  - rule-checked per tcheck route: I 300/300, H 630/632 (2 band-only), W min +346 ps fastG.
-  - Rule I lacks the latch's I2 feedback-pin arc (covered by the guard).
-  - Br, corrected with site pins: rule I ≥ +1288 ps guarded; rule H +40 ps guarded (thinnest).
-  - Setup-pulse has no project rule; tcheck W covers it.
-- *Test:* the tcheck I/H/W rows with the I2 arc added (rule I').
+- *Status:* rule-checked per tcheck route: I 300/300, H 630/632 (2 band-only), W min +346 ps
+  fastG. Rule I lacks the latch's I2 feedback-pin arc (audit row 82; covered by the guard band).
+- *Use:* **chain via Br2**: the zero-delay `Link.H_LATCH_OPEN/HOLD` and `Held` downstream of a
+  latch. This is NOT a direct discharge of `H_BUNDLE` (8w).
+- *Test:* `formal/tools/tcheck/run10k.sh` (I/H/W rows), with the I2 arc added (rule I').
+- *Vacuity:* LinkExact `witness` :917.
 
-### 1c. Select and bundling at the steer, mux and muxn
-
-**BH9. Steer select at the pins.**
-- *Statement:* the steer's `s` pin is settled before the request is read, and held until the
-  request falls as read, per pin and per output: `S0 + Shi ≤ R + Rlo` and `F + Rhi ≤ S1 + Slo`.
-- *Names:* C: H_SEL_PIN; B: H_SETUP_PIN / H_HOLD_PIN, H_BUNDLED_S_PIN (X3), H_STEER_SEL; JSON
-  `bd_steer.bundled_s_setup` / `_hold` (exact since Bj).
+**BH9. Reset: per-cell width and the design reset.**
+- *Names:* H_RST_PULSE / H_RST_LONG (C5); H_RST_HELD; H_HOLD_LONG; H_RST_LOW; H_RST_BEFORE_LOOP;
+  H_STEER_HOLD; H_NO_RETURN.
 - *Lean:*
-  - `LibGapSteer.lean:188 steer_box_exact` (iff over the box);
-  - `steer_pin_exact`, `setup_needed :139`, `:154 hold_needed`;
-  - `spurious_token`: setup short by 100 ps sends a token down the wrong loop exit;
-  - `steer_pin_ok_K`.
-- *gcd_hw use:* 38 bd_steer, on every loop exit.
+  - `CElemStrict2.lean:510 reset_width_iff`, `:519 reset_width_strict`;
+  - `ResetGcd.lean:199 gcd_reset_binary`;
+  - `ResetGcdWave.lean:447 gcd_first_wave` (H_NO_RETURN for the release window, for every rst
+    waveform);
+  - `:694 gcd_loop_late`, `:726 gcd_clean_release`;
+  - `ResetGcdVec2.lean:734 gcd_reset_vec_of_net`;
+  - NecessityReset.
+- *Grade:*
+  - B. In `gcd_hw.v`, rst is `~por_done | rst_sr[15]`, about 16 hk cycles or 121 ns, against a
+    23(D+W+1)+W step bound.
+  - The residual H_RST_BEFORE_LOOP (`W < 34` GMW steps) is unchecked.
+- *Status:* proved in **gNet**, a different model. **Not linked** to the Ops `init*`/`i*`
+  fields (Br4; probe Brz running).
+- *Use:*
+  - **chain via Br4**: every init field of `H_CELLS`;
+  - otherwise side.
+- *Test:* routed SDF: max rst-pin delay < 34 fast-min LUT+wire steps on
+  `ulink_n1__1 → ucmpi0 → join → steer`; GLS of the housekeeping logic (`por_done` never rises
+  on the edge where `rst_sr[15]` falls).
+- *Vacuity:* `SelfAuditB2.wave_witness`.
+
+### 1c. Select, RTZ and index at the steer, mux, muxn and amerge
+
+**BH10. Steer select at the pins (setup and hold).**
+- *Lean:* `LibGapSteer.lean:188 steer_box_exact` (iff: `S0 + Shi ≤ R + Rlo` and
+  `F + Rhi ≤ S1 + Slo`), `:224 spurious_token`; KleeneBox `steer_box_exact_K`.
 - *Grade:* B.
 - *Status:*
-  - setup: rule E, 465/472 agree (band-only disagreements). Rule E omits site pins: in the box it
-    is optimistic by up to `SP[s].hi − SP[req].lo` plus the arc difference;
-  - **hold: unchecked**, no rule.
-- *Test:* rule E' with site pins from FASM; a hold rule (no tcheck row yet).
+  - setup: rule E 465/472, band-only failures. Rule E has no site pins, so it is optimistic in
+    the box by up to `SP[s].hi − SP[req].lo`.
+  - **hold: no rule** (unchecked).
+- *Use:* **chain via Br1/Br2**: `Steer.lut` reads the request and the select at the same tick.
+- *Test:* `cells/verify/skew.py` (rule E) with FASM site pins (E'); a new steer-hold row in
+  tcheck.
+- *Vacuity:* `steer_witness_K`.
 
-**BH10. Mux join select and the ctl_req fork.**
-- *Statement:* at each mux join, `s` is settled before `ctl_req` is read and held past its fall,
-  per pin (the request and feedback pins drop out). The `ctl_req` fork to uj0/uj1 is weakly
-  isochronic.
-- *Names:*
-  - C: H_SEL_PIN (mux part), Mux `cj0`/`cj1`, rule K;
-  - B: X3, X4 (`mux_needs_iso_cr`);
-  - JSON: `bd_mux.bundled_s_setup/_hold` (exact), `bd_mux.isochronic_forks`, `bdc_muxn.s_setup`,
-    `s_hold`, `iso_ctl`.
-- *Lean:*
-  - `LibGapMux.lean:393 join_box_exact`, `join_pin_exact`, `dev_iff`, `mux_joins`;
-  - `wrong_branch_latched`;
-  - muxn: `LibGapMuxN.lean:321 join_exact_fixed` (in progress, not claimed; adds **H_YOSYS_MAP**,
-    the inferred decode LUT3 INITs).
-- *gcd_hw use:* 21 bd_mux, 1 bdc_muxn3.
-- *Grade:* select B; ctl_req fork **C pending**.
-- *Status:*
-  - setup: rule E (no site pins);
-  - hold: unchecked;
-  - **ctl_req fork: failing.** Rule K FAILs 16-26/42 per route at every corner (C-10l, WIP).
-    Whether this is a real isochrony violation or over-conservatism is undecided.
-- *Test:* GLS monitor at `umux*.uj0/uj1`: the ctl_req pulse has ended before `s` changes; finish
-  C-10l's verdict.
+**BH11. Mux join select and the ctl_req fork (X3, X4).**
+- *Lean:* `LibGapMux.lean:393 join_box_exact` (the request and feedback pins drop out),
+  `:439 wrong_branch_latched`; KleeneBox `join_box_exact_K`.
+- *Statement:* `s` is settled before `ctl_req` is read at uj0/uj1, and held past its fall. The
+  `ctl_req` fork to uj0/uj1 is (weakly) isochronic, as `Mux.cj0/cj1` model it.
+- *Grade:* **C pending**.
+- *Status:* rule K (C-10l, WIP) FAILS 16-26 of 42 rows per seed at every corner, unguarded too,
+  worst about −5.9..−9 ns. Undiagnosed (10l2 has not landed).
+- *Use:* **chain via Br1** (`Mux.cj0/cj1`).
+- *Test:* `formal/tools/tcheck/run10l.sh` (rule K); a GLS monitor at each `umux*.uj0/uj1` (the
+  ctl_req pulse has ended before `s` changes).
+- *Vacuity:* n/a. Note that an over-conservative late side and a real violation are both still
+  possible readings of rule K.
 
-**BH11. Return to zero at the mux and arbiter ack C-elements.**
-- *Statement:* `z_ack`'s low pulse at the ack C-element outlasts that C-element's own fall.
-- *Names:* B: H_RTZ / H_MUX_RTZ (X1), A3 "pulse"; C: Mux/AMerge `xa`/`ya`, rules X, Xi, Xc, Xic,
-  Xm; JSON `bd_mux.uxa_rtz(_env)`, `uya_rtz(_env)`, `bdc_muxn.rtz`.
-- *Lean:* `MuxRtzTimed.lean:113 rtz_safe`, `mux_rtz_env_safe`.
-- *gcd_hw use:* 63 ack C-elements per route.
+**BH12. bdc_muxn3 select and decode.**
+- *Names:* H_MUXN_SEL; **H_YOSYS_MAP** (the inferred decode LUT3 INITs).
+- *Lean:* `LibGapMuxN.lean:324 join_exact_fixed`; KleeneBox `muxn_sel_box_exact_K`.
 - *Grade:* B.
-- *Status:* rule-checked. X has 0 fails unguarded; the band fails only on steer-OR'ed muxes.
-  Xc/Xm have 1-2 band fails (`umux11`, −350 slowG) (C-10k, C-10l WIP).
-- *Test:* GLS monitor: x_ack and y_ack low at every z_ack↑.
+- *Status:* **unchecked**. 8w found no rule-E row for `umux21`'s select, although C's ledger says
+  rule E covers it.
+- *Use:* **chain via Br1** (`MuxN.cj`).
+- *Test:* add `umux21` (select from `ULINK_N_INDEX_97`) to the rule-E/tcheck rows.
+- *Vacuity:* none known.
 
-**BH12. Control_merge index bundling.** The amerge index (`won = g2 | in1_ack`) is settled
-before the consumer closes.
-- *Names:*
-  - H_AMERGE_IDX (= BidxA ∧ BidxB ∧ IdxAckFork); C's H_BUNDLED_IDX; old A row C11;
-  - JSON `bdc_amerge.idx_bundle`, `bundled_idx_*`, `idx_ack_fork`, `bdc_amerge3.bundled_idx0_grant`.
-- *Lean:* `ForkData.lean:360 amerge_idx_sufficient`, `amerge_idx_necessary`; AMergeTimed (Cm2).
-- *gcd_hw use:* 8 control_merges. All have width 0, so only the index matters. Every index goes
-  through the `_f` fork into Muller links.
+**BH13. Return to zero at the mux and amerge ack C-elements.**
+- *Names:* H_MUX_RTZ (X1); A3; C's `Mux.xa/ya` and `AMerge.H_AMERGE_RTZ`.
+- *Lean:* `MuxRtzTimed.lean:113 rtz_safe`, `mux_rtz_env_safe`; NecessityMuxRtz.
 - *Grade:* B.
 - *Status:*
-  - At gcd_hw's consumers the exact form is BH8's H_FORK_DATA_W with `Td` = index settle time;
-    Cm2's legs are sufficient there.
-  - Rule Z passes on all 9 stages (C-10k); rule I covers link consumers.
-  - `idx_ack_fork`: no shipped rule.
-- *Test:* tcheck Z / I rows.
+  - X and Xi: 0 failures unguarded; band failures on the steer-OR muxes.
+  - Z: all 9 stages pass, worst +383 ps (C-10k).
+  - Xc/Xm: 1-2 band failures (`umux11`).
+- *Use:* **chain via Br1**.
+- *Test:* `run10k.sh` (X, Z); `run10l.sh` (Xc, Xic, Xm); a GLS monitor that x_ack and y_ack are
+  low at every z_ack↑.
+- *Vacuity:* none known.
+
+**BH14. Amerge index bundling (`won = g2 | in1_ack`).**
+- *Names:* H_AMERGE_IDX = H_BUNDLED_IDX.
+- *Lean:* `ForkData.lean:360 amerge_idx_sufficient`, `:384 amerge_idx_necessary`.
+- *Grade:* B.
+- *Status:* rule Z passes. `idx_ack_fork` has no rule. 8w: the stage-1 bus `acc251` of the
+  amerge3 cascade has no rule.
+- *Use:* **chain via Br2** (`AMerge.dat`, `Held` on the index channels).
+- *Test:* `run10k.sh` (Z); a new row for `acc251`.
+- *Vacuity:* none known.
 
 ### 1d. Matched delay lines
 
-**BH13. Gated delay flush.**
-- *Statement:* the gate's low phase flushes each stage before the next token, per pin:
-  - stage 1: `F + r0.hi + r1.hi + (p 1).hi ≤ T + (q 1).lo`;
-  - stage i: `F + (q(i−1)).hi + (p i).hi ≤ T + (q i).lo`.
-- *Names:*
-  - B: H_GFLUSH i (`GF i`), D2, side conditions H_BAL_HI, H_LO_ORDER, H_START, H_SHORT;
-  - C: H_FF_DRAINED, rule Fd;
-  - JSON `bd_delay_gated.gate` (exact, with `exact_under`).
+**BH15. Gated delay flush.**
+- *Names:* H_GFLUSH; H_LO_ORDER; H_BAL_HI; H_START; H_SHORT; C's H_FF_DRAINED.
 - *Lean:*
   - `GcdCells.lean:151 no_early`;
-  - `LibGapDelay.lean:282 flush_of_gflush` (sufficient for any maps);
-  - `:490 box_exact_flushed`, `box_exact_no_early` (exact under the side conditions);
-  - `:571 rescue_flushed`: without H_LO_ORDER per-stage H_GFLUSH is not necessary;
-  - `real_bad`: a 1 ps shortfall gives an early request 620 ps ahead.
-- *gcd_hw use:* 29 bd_delay_gated, on the fused compute units' matched delays.
-- *Grade:* B unguarded; **C** under the band.
+  - `LibGapDelay.lean:282 flush_of_gflush`;
+  - `:490 box_exact_flushed` (exact under the side conditions);
+  - `:571 rescue_flushed` (per-stage H_GFLUSH is not necessary without H_LO_ORDER).
+- *Grade:* B unguarded; **C under the band**.
 - *Status:*
-  - Fd passes 29/29 per route unguarded.
-  - Band fails: `ucontrol_merge12` (seed 3 −343, seed 4 −522 slowG) and `ushrsi3` (seed 4 −160).
-  - Rule F lacks the in-flight term `(p i).hi − (q i).lo`.
-  - H_LO_ORDER is unchecked on every route.
-- *Test:* T1 (decides the band); a per-route H_LO_ORDER check.
+  - Fd: 29/29 per route unguarded.
+  - Band failures: `ucontrol_merge12` (seed 3 −343, seed 4 −522 ps slowG) and `ushrsi3`
+    (seed 4 −160).
+  - H_LO_ORDER: unchecked on every route.
+  - Rule F is not sufficient (C-10k).
+- *Use:* **chain via Br1/Br2** (`Mux.zr`/`AMerge.zr` is H_DELAY_LUMPED, grade A by construction;
+  the flush is what makes the physical request not early).
+- *Test:* `run10k.sh` (Fd); a per-route H_LO_ORDER row; T1 for the band.
+- *Vacuity:* none known.
 
-**BH14. FASTFALL and FASTRISE line flush in links.**
-- *Names:* H_FLUSH (D2 uniform and per stage), H_ACK_FLUSH (P3), H_RST_LINES (P4); JSON
-  `bd_delay[FASTFALL].flush_*`, `[FASTRISE].ack_flush`, `bd_pipe.rst_lines`.
-- *Lean:* `Bundling.slow_not_early`; PipeTimed / PipeTimedN `H_ACK_FLUSH`, `H_RST_LINES`;
-  ConstraintsFastFall.
-- *gcd_hw use:* 287 bd_delay in links and pipes.
+**BH16. FASTFALL / FASTRISE line flush in links.**
+- *Names:* H_FLUSH; H_ACK_FLUSH; H_RST_LINES.
+- *Lean:* `Bundling.slow_not_early`; PipeTimedN; ConstraintsFastFall.
 - *Grade:* B.
-- *Status:* rule F (missing term) passes on Br's routes (min +463). FASTRISE: **unchecked**.
-  `strict_pending`.
-- *Test:* rule F with the in-flight term; a FASTRISE dual rule.
+- *Status:* rule F lacks the in-flight term (audit row 83). FASTRISE is **unchecked**.
+- *Use:* **chain via Br1** (`Link.H_ACK_DI`/`H_REQ_DI` are A by construction; the flush is the
+  physical premise).
+- *Test:* rule F with the in-flight term; a FASTRISE dual row.
+- *Vacuity:* none known.
 
-### 1e. Arbiter (digital race only)
+### 1e. Arbiter
 
-**BH15. A0 fork: A0's fall reaches ua_k before A0 → ustate → q → ugrant → g_k does.**
-- *Names:* H_A0_FORK (A1), rule J / J' / Jx; JSON `bd_arbiter.a0_fork_client1/2`.
+These rows are the physical content of `AMerge.H_ARB1`, `H_ARB2` and `H_ARB_EXCL`. None of the
+three is bound in OpsGen.
+
+**BH17. H_A0_FORK: A0's fall reaches ua_k before A0 → ustate → q → ugrant → g_k does.**
 - *Lean:*
-  - `ArbA0Fork.lean:258 no_early_ack_iff`, `box_safe_iff`;
-  - `ArbCornersPin.ruleJ_seed`;
-  - κ model, on link_arb: `OnNetlistArbKappa.lean:80 fork_le_of_endpoint`, `:174 counter_core`,
-    `verdict_s1c2_cons_κE`;
-  - gcd_hw: `OnGcdArbA0.lean gcd_corner_all`, `fork1_box_iff` (in progress, not claimed).
-- *gcd_hw use:* 9 bd_arbiter × 2 clients.
-- *Grade:* B at one consistent corner; C in the independent box.
-- *Status:*
-  - rule-checked: Jx passes 72/72 clients within each column; guarded worst −9 ps (seed 4
-    merge12.uarb2 client 2, fastG).
-  - Rule J lacks site pins, and is 8 ps optimistic with q on A5.
-  - On link_arb under A's κ model: safe on 8/8 at κ = 1/11. At κE = 0.1988, 7/8 in the
-    side-pessimistic reading (s1 c2 unsafe from κ* = 197/1103 ≈ 0.1786).
-  - In progress (Bar): seed d corner rows all safe; 3 of 9 box rows have the client-1 fork
-    negative.
-- *Test:* T5 (handover on one die, q on A3 vs A5); a κ measurement on the A0-branch vs
-  ustate/ugrant tails (is κ < 0.178?).
+  - `ArbA0Fork.lean:258 no_early_ack_iff`, `:398 box_safe_iff`;
+  - gcd_hw: `OnGcdArbA0.lean:175 fork1_box_iff`, `fork2_box_iff`, and
+    `:2963 gcd_corner_srv` (every corner row: both forks safe);
+  - κ: `OnGcdArbKappa.lean:3052 design_lit_safe` (`H_KAPPA : κ ≤ 16587/374773 ≈ 0.0443`, lit
+    reading).
+- *Grade:* B at one consistent corner. **C** in the independent box (the client-1 fork is
+  negative on some rows; `boxRows_okSrv_count` = 20/36) and for κ > 0.0443 (κ is unmeasured).
+- *Status:* **proved on the routed gcd_hw numbers at each corner** (36 arbiters × 4 corners;
+  untrusted extraction `Bar/a0extract.py`). Jx 72/72 unguarded, 71/72 under the band.
+- *Use:* **chain via Br1** (`H_ARB_EXCL`, `H_ARB1/2`); **side**: OnGcdArbKappa.
+- *Test:* `cells/verify/arb_fork.py` (rule J) with site pins (J'); T5 (arbiter handover on one
+  die, q on A3 vs A5); a κ measurement on the A0-branch vs ustate/ugrant tails.
+- *Vacuity:* `design_gate_nonvacuous` :3352, `row_safe_nonvacuous` :245. Audit row 19: "tight" is
+  mildly OVERSTATED and is withdrawn.
 
-**BH16. RT1/RT1b grant exclusion across a handover.**
-- *Names:* RT1 (A2), RT1b (A4); H_R_SHARED, H_Q_PREFIX, H_FLAT_O6 (Bag's modelling names); JSON
-  `bd_arbiter.rt1`, `rt1b`; C's H_ARB_EXCL (part).
-- *Lean:* `OnGcdArb.lean:782 gcd_rt1_all`, `:790 gcd_rt1b_all`, `rt1_iff`, `:281 box_rt1`,
-  `allRows_sat`; `ArbHeldTimed.rt1_exclusion`, `ArbHeldTimed2.rt1_exclusion2`.
-- *gcd_hw use:* 9 bd_arbiter.
-- *Grade:* A at one corner (proved on routed numbers, server-free); C in the box.
-- *Status:*
-  - **proved-on-routes**: 36 arbiters × 4 tcheck routes × FMIN/FMAX/SMIN/SMAX, worst +33 ps
-    (seed 3 merge12.uarb1 RT1b FMIN).
-  - The data is C's RuntAckInst rows, extracted by an untrusted front end.
-  - Box: negative on 64/72 rows server-free. It needs server + A0 branch + ustate arc + q prefix
-    ≥ 711 ps (exact).
-- *Test:* the corner model (T1); a lower bound on the server path.
+**BH18. RT1/RT1b: grant exclusion across a handover.**
+- *Lean:* `OnGcdArbFix.lean:1080 gcd_rt1_all`, `:1088 gcd_rt1b_all` (every server);
+  `ArbHeldTimed.rt1_exclusion`, `ArbHeldTimed2.rt1_exclusion2`; OnGcdArbKappa `rt1_gate`.
+- *Grade:* A at one corner (proved on routed numbers). C in the box (server-free negative on most
+  box rows; the box needs a server path ≥ 711 ps).
+- *Status:* proved per corner, 36 × 4 × 2 directions. Seed 2 `merge10.uarb1` RT1 is the
+  thinnest (172 ps FMIN).
+- *Use:* **chain via Br1** (`H_ARB_EXCL`).
+- *Test:* T5; a lower bound on the routed server path.
+- *Vacuity:* as BH17.
 
-**BH17. RT2/RT2b ack exclusion, and the server minimum.**
-- *Names:* RT2 (A3), RT2b; H_SERVER_MIN (A5); `Scn.H_SETTLED`; H_REQ_STEADY; JSON
-  `bd_arbiter.rt2_*`, `rt2b_*`, `server_min`, `bdc_amerge3.rt2_cascade_*`.
-- *Lean:* `ArbHeldTimed.rt2_exclusion_arcs`; `OnGcdArbA0.rt2_box_iff` (in progress).
-- *gcd_hw use:* 9 arbiters, plus the amerge3 cascade.
+**BH19. RT2/RT2b and the server minimum.**
+- *Names:* H_SERVER_MIN; H_SERVER_GRAPH (`srv`); `Scn`.
+- *Lean:* `OnGcdArbA0.lean:437 rt2_box_iff`; `gcd_corner_srv` (needs `r.srv ≤ D.smin`); 
+  `cornerRows_allOk_count` = 141/144 server-free, `cornerRows_okSrv_count` = 144/144 with the
+  server bound.
 - *Grade:* B.
-- *Status:* unchecked on gcd_hw until Bar is claimed (Bar: corner rows `allOk` 36/36 for seed d,
-  for every server). H_SERVER_MIN is an environment hypothesis.
-- *Test:* T5.
+- *Status:* proved per corner row with the graph server bound. The bound `srv ≤ D.smin` is
+  itself an environment hypothesis that is not checked on the route.
+- *Use:* **chain via Br1** (`H_ARB_EXCL`, `H_ARB1/2`).
+- *Test:* a routed number for the ustate O5 → A0 driver path, against `srv`; T5.
+- *Vacuity:* row witnesses in OnGcdArbA0.
 
-**BH18. No free contest.**
-- *Statement:* the request-edge separation, the break-before-make of O5/O6, and metastability are
-  never exercised.
-- *Names:* H_REQ_SEP, H_GRANT_SKEW, H_BBM1/2 (R2, R4); the metastability tier R3; H_EXCL_REQ;
-  H_Q_BEFORE_REREQ (A6).
-- *Lean:* `ArbBinary.lean:435 exclusion_transport`, `arbiter_alternates`; `CElemInvolution.c2_eternal`,
+**BH20. No free contest (the request-separation, tie and metastability tier).**
+- *Names:* H_REQ_SEP; H_GRANT_SKEW; H_BBM1/2; H_EXCL_REQ; the R3 tier.
+- *Lean:* `ArbBinary.lean:435 exclusion_transport`; `CElemInvolution.c2_eternal`,
   `ArbInvolution.arb_grants_eternal` (why no deadline exists).
-- *gcd_hw use:* 9 arbiters.
-- *Grade:* A within the model: C's `gcd_hw_arbiters_uncontended'` (`CapstoneCut.lean:547`) shows
-  no free contest, so none of these is needed for the safety theorem. Physically B: it rests on
-  the model's SI discretisation (A's M6 / D2 H_SEP).
-- *Status:* discharged by proof in the model.
-- *Test:* board: count contested grants; a GLS monitor for both requests high with no grant held.
+- *Grade:* A within the model.
+- *Status:* **discharged in the model** by U (`gcd_hw_arbiters_uncontended3`,
+  `gcd_hw_never_contested`). This removes only this tier: the handover rows BH17-BH19 are still
+  needed for `H_ARB_EXCL`. Physically the discharge rests on Br3 (A's D2 H_SEP).
+- *Liveness counterpart:* `H_ARB_UNCONTESTED_BOUNDED` (`CapstoneLiveArb.lean:71 ArbUnc`): an
+  uncontested request is granted within `H`. B has no separate theorem for it. It follows from
+  bounded LUT delays.
+- *Use:* chain (S and U conclusions; L's hypothesis).
+- *Test:* board: count contested grants; GLS monitor for both requests high with no grant held.
+  `cells/hw/arb_mtbf.v` + `arb_mtbf_measure.py` for the tier itself.
+- *Vacuity:* n/a.
 
-### 1f. Delay and corner model
+### 1f. Delay and corner model (under every numeric row above)
 
-**BH19. One corner, the band, and κ.**
-- *Statement:* every delay of a margin sits at one die corner, with per-arc scatter `1 ± κ`
-  around the corner's interpolated nominal. The independent box is the pessimistic alternative.
-- *Names:*
-  - H_ONE_CORNER, H_DIE_SLOW/FAST, H_INDEP (box);
-  - A's H_SHARED_CORNER, H_SCATTER κ, H_ENDPOINTS, H_AFFINE (D11, D12, D15);
-  - B's H_DISJ, H_DIV;
-  - H_SAME_TRAVERSAL (**prose only**, ConstraintsKappa note);
-  - H_WIRE_RATIO (D16, withdrawn for A-model checks).
+**BH21. One shared corner, per-arc scatter κ, endpoints.**
+- *Names:* H_SHARED_CORNER; H_SCATTER κ; H_ENDPOINTS; H_AFFINE; H_DISJ; H_DIV; H_ONE_CORNER; the
+  band 0.772/1.155.
 - *Lean:*
-  - `ConstraintsKappa.lean:310 allOK_iff_gen` (exact under H_DISJ + H_DIV), `:329 allOK_cancel`;
-  - `:450 box_unsound_with_kappa`, `:458 one_corner_unsound_with_kappa`, `slow_only_unsound`,
-    `endpointNat_not_sufficient`;
-  - `Core/Delay/Corner.lean:342 guard_kappa_iff` (band 0.772/1.155 ⟺ κ = 383/1927);
-  - OnNetlistArbKappa.
-  - These files import CornerNat, so they need Mathlib. Bk1 and Bk2 checked them only through
-    core mirrors with 4 sorried CornerNat lemmas; neither is lake-checked yet.
-- *gcd_hw use:* every numeric margin of every row above.
-- *Grade:* B, contested. κ is unmeasured on the current toolchain (A withdrew 0.311).
-- *Status:*
-  - Every unguarded tcheck row passes except rule K.
-  - Every residual C is band-only: Rc uenv1, Fd cm12/ushrsi3, Xc umux11, Jx merge12, A shrsi1.
-  - **The JSON's corner rule is stale.** It still says "box … always sound", which is false under
-    A's model for κ > 0 (Bk2's `kappa_check.patch` is not applied).
-- *Test:* T1 (on-die differential two-path), which gives κ and decides every band-only C.
+  - `Core/Substrate/CornerNat.lean:21-23, :118` (A);
+  - `ConstraintsKappa.lean:310 allOK_iff_gen` (exact under H_DISJ + H_DIV);
+  - `:450 box_unsound_with_kappa`, `:458 one_corner_unsound_with_kappa`, `:470 slow_only_unsound`;
+  - OnNetlistArbKappa (link_arb); OnGcdArbKappa (gcd_hw).
+- *Statement:* every arc of a margin sits at one die corner, within `1 ± κ` of its interpolated
+  nominal.
+- *Grade:* B for the form. **C for the value**: κ is unmeasured, one silicon ring was measured,
+  A withdrew 0.311.
+- *Status:* open.
+  - Every residual C of this ledger is band- or κ-only: Rc uenv1, Fd cm12/ushrsi3, Xc umux11,
+    Jx merge12, A shrsi1.
+  - Audit row 18: the link_arb "exact per-pair thresholds" are OVERSTATED, because the gap
+    κ*..κ*+6/(E+L) is undecided (probe Bkx18 running).
+  - `out/cell_constraints.json` `conventions.corner_rule` still says the box is "always sound".
+    That is false for κ > 0 (stale; probe Bj5).
+- *Use:* under every numeric verdict (chain via Br1/Br2); side for the κ files.
+- *Test:* T1, an on-die differential two-path measurement. It gives κ and decides every band-only
+  C row.
+- *Vacuity:* `design_gate_nonvacuous`.
 
-**BH20. Site pins and the pin permutation.**
-- *Statement:* each physical LUT input adds its own site-pin delay (up to about 0.5 ns, pin 1
-  slowest). This is not in nextpnr's SDF.
-- *Names:* A's S6; H_PIN_READ (B's per-pin read-map model); "flat 25 ps site pip".
-- *Lean:* LibGapSteer/LibGapMux/LibGapDelay `Rd` maps; PinAssign; ArbCornersPin.
-- *gcd_hw use:* every row. Feedback is on pin 1 for 12/36 fixtures (Bp), and for uenv1 on every
-  seed.
-- *Grade:* A as a fact (measured from the bits). The rules that ignore it (J, E, I, H) are
-  optimistic or conservative per row.
-- *Status:* tcheck uses prjxray site pins. The shipped rules J and E do not.
-- *Test:* a site-pin table in arb_fork.py/skew.py with pins read from FASM (about 0.5 d), or
-  LOCK_PINS.
+**BH22. Site pins and the pin permutation.**
+- *Names:* H_PIN_READ (`Rd` maps); A's S6.
+- *Lean:* LibGap* `Rd`; PinAssign; ArbCornersPin; OnGcdArbA0 (physical pin per element).
+- *Grade:* A as a fact (read from the bits).
+- *Status:* tcheck and Bar use prjxray site pins. The shipped rules J and E do not.
+- *Use:* every numeric row.
+- *Test:* LOCK_PINS, or a FASM-pin site-pin table in `arb_fork.py`/`skew.py` (about 0.5 d).
+- *Vacuity:* n/a.
 
-**BH21. Rise = fall within a corner column.**
-- *Names:* H_RF_ASYM (A's D7/S7).
-- *Lean:* named in MuxRtzTimed, ArbHandover, ArbHeldTimed, ArbCorners (text).
-- *gcd_hw use:* all.
+**BH23. H_RF_ASYM: rise = fall within a corner column.**
+- *Lean:* text in MuxRtzTimed, ArbHandover, ArbHeldTimed, ArbCorners.
+- *Grade:* B. Unmeasured.
+- *Use:* every numeric row.
+- *Test:* a CARRY4 TDC.
+
+### 1g. The rig environment (on the R' chain)
+
+**BH24. The env ring as the source model.**
+The hypotheses of `RigSrc.lean:500 gcd_rig_first_env`, all real Lean binders:
+
+| binder | plain statement | grade | discharged? |
+|---|---|---|---|
+| `H_FORK_WIRE` | a/b/start req = `env_c` (`bd_fork #(3)` is wires) | A (RTL: the fork's req outputs are wires) | by construction; not checked in Lean against the netlist |
+| `H_DAT` | the a/b buses are constant `srcV a b` | B (the idx-under-rst contract; `RigIdx.lean:314 idx_setup_iff` exact) | open on a route (margin about 16 hk cycles) |
+| `H_REL`, `H_REL0` | at release `env_c = 1`, `in_ack = 0`, `env_c0 = 0` | B (`RigToken.uenv1_release`, `uenv0_release`, under H_UENV1_HOLD exact: `:663 short_rst_many_starts`) | proved from the reset hypotheses, which are open (BH9) |
+| `H_OUT0_ACK` | `out0.ack = env_c0` | A (RTL wire) | by construction |
+| `H_UENV1_B`, `M1`, `M0` | uenv1/uenv0 move only to their C-element function of pins read through monotone causal maps | B for the form. **C at uenv1**, whose feedback-first race (BH6) fails under the band on seeds 2 and 4 | open |
+| `H_C3` | the fork's `bd_c3` moves to its inputs read through monotone maps (`c3_move`, under H_LUT_FIFO, H_FB_FIRST, H_RST_ONE_FALL) | B | open |
+| monotonicity/causality of `β, γ, φ1, φ0` | H_PIN_FIFO / H_WIRE_FIFO (BH3) | B | open |
+
+- *Not covered:*
+  - laps ≥ 2. C proves re-arming fails at every re-offer (`CapstoneRig.rearm_fails_at_reoffer`);
+    probe Blap is running.
+  - **H_SINK_SI** (**prose only**): the rig's out0 capture against C's `Sink` model.
+  - `Src.iz` is false at release (`RigSrc.lean:647 iz_fails`). C's `preRun` supplies it, so this
+    is not a gap.
+- *Vacuity:* **no joint witness for `gcd_rig_first_env`**. `W.env_nonvacuous` witnesses only the
+  env lemmas. A witness would be C's `chW` re-timed with an env lap (estimate ½ d).
+- *Test:* routed GLS of `gcd_rig` on seeds 2 and 4 at the fast corner (one `start_req` rise
+  between consecutive `res_req` rises); board #1, `cells/hw/board.sh python3
+  cells/hw/gcd_measure.py` (16/16 vectors, `err_sticky=0`).
+
+**BH25. Rig idx setup and verdict hygiene.**
+- *Names:* H_IDX_SETUP; H_ARM_BEFORE_IDX; H_RESULT_FRESH; C_STALE.
+- *Lean:* `RigIdx.idx_setup_iff`; `RigContract.verdict_current`.
 - *Grade:* B.
-- *Status:* unmeasured.
-- *Test:* CARRY4 TDC.
+- *Status:* open on a route.
+- *Use:* **side** (measurement, outside the theorem).
+- *Test:* routed SDF of idx → d pins vs 16 hk periods; GLS of the errv capture.
 
-### 1g. Reset and the first wave (gNet, the elaborated RTL; not linked to the Ops model)
+### 1h. Contract route (side only)
 
-**BH22. The reset source and its hold.**
-- *Statement:* rst is 1 from power-up for at least `23(D+W+1) + W` GMW steps. It has one clean
-  falling edge, then stays 0 through the first wave.
-- *Names:* H_RST_HELD, H_HOLD_LONG, H_RST_CLEAN, H_RST_LOW, H_RST_HIGH; JSON `design.rst_hold`
-  (strict) and `design.rst_flush`.
-- *Lean:*
-  - `ResetGcd.lean:198 gcd_reset_binary`;
-  - `ResetGcdWave.lean:572 gcd_boot`, `:726 gcd_clean_release`, `:586 rst_reads_low`;
-  - `SelfAuditB2.wave_witness`.
-- *gcd_hw use:* all 423 rst pins of the kernel and the rig.
-- *Grade:* B. In `gcd_hw.v` rst is `~por_done | rst_sr[15]`, held for 16 hk cycles (≈ 121 ns),
-  against a 23-step bound.
-- *Status:*
-  - The hold margin is unchecked but huge.
-  - H_RST_CLEAN can fail only if `por_done` rises on the edge where `rst_sr[15]` falls.
-- *Test:* GLS of the housekeeping logic; check that `por_done` never rises on that edge.
-
-**BH23. Per-cell reset width.**
-- *Statement:* rst at each pin is held at least `Dhi + wa` (strict `Dhi < P`). The race is real
-  where the cell's data pins sit at a hold vector at release. For gcd_hw's 185 bd_c2n link
-  controllers (req = ack = 0) they do.
-- *Names:* H_RST_PULSE, H_RST_LONG (C5), H_UENV1_HOLD (the rig instance), H_IN_HELD; JSON
-  `bd_c*.reset_width`, `bd_mux/bd_merge.reset_first`.
-- *Lean:*
-  - `CElemStrict2.lean:510 reset_width_iff`, `:519 reset_width_strict`, `rst_boundary_x`;
-  - `CElemTiming.c2_reset`;
-  - `NecessityReset.lean ResetOK` (in progress, not claimed).
-- *gcd_hw use:* every rst-carrying C-element and link controller.
-- *Grade:* B (exact in the model).
-- *Status:* unchecked per pin. The margin is about 16 hk cycles against one LUT loop.
-- *Test:* routed SDF: max rst-pin loop bound vs the reset width.
-
-**BH24. Release skew and lost events.**
-- *Statement:* nothing is still held in reset when the loop starts. The physical form: max rst-net
-  wire delay < 34 GMW steps (one step ≤ the minimum LUT+wire delay) along the 34-LUT path
-  `ulink_n1__1 → ucmpi0 → join → steer`.
-- *Names:*
-  - H_NO_RETURN, H_RST_SKEW, H_RST_BEFORE_LOOP (`W < 34`);
-  - `Bounded D W` = H_GATE_BOUND + H_WIRE_BOUND; H_GMW_GATE; H_SETTLED;
-  - H_STEER_HOLD (the segment end, not physical);
-  - JSON `design.rst_release_skew`, and H_NO_RETURN under `hypotheses_not_inequalities`.
-- *Lean:* `ResetGcd.lean:341 gcd_release_quiet`; `ResetGcdWave.lean:447 gcd_first_wave`,
-  `:694 gcd_loop_late`.
-- *gcd_hw use:* the whole control network.
-- *Grade:* B.
-- *Status:*
-  - H_NO_RETURN is **proved for the reset-release window** (`gcd_first_wave`, any rst waveform).
-    The residual is `W < 34`, which is unchecked (no routed number).
-  - **The JSON's H_NO_RETURN entry is stale.** It says "argued, not proved" and cites only
-    `gcd_release_quiet`.
-  - Bsa caveat: for D+W > 0, H_STEER_HOLD past `F + 34` is an assumption.
-- *Test:* routed SDF: max over the rst pins (slow) vs 34 fast-min LUT+wire delays on that path,
-  guardbanded.
-
-**BH25. No read before first write.**
-- *Statement:* data latches are not reset. Every reader of an unreset latch is a guard that is
-  definite at the reset value, or the next latch closed.
-- *Names:* NRBW (JSON `hypotheses_not_inequalities`); H_GUARD_MAP (not needed, B-reset-gcd).
-- *Lean:* Rst2 / ResetGcd ternary certificates (`gcd_reset_ternary`).
-- *gcd_hw use:* 184 latches.
-- *Grade:* A for (a) GUARD (decided on the imported network); B for (b) write-before-read
-  (the latch rows).
-- *Status:* decided (a); rule-checked via I (b).
-- *Test:* none extra.
-
-### 1h. The rig (outside the Ops network; it realises H_START_ONCE and the measurement)
-
-**BH26. The env ring gives one start per result.**
-- *Statement:*
-  - uenv1 is held in reset for its loop bound;
-  - the kernel does not ack before it sees start;
-  - rst does not come back;
-  - each cell is a FIFO LUT; the wires are FIFO;
-  - uenv1's feedback wins (BH6).
-  - Then: the ring releases with `start.req = 1` in any rst order, and
-    `#start ≤ #results + 1` for every lap.
-- *Names:*
-  - H_UENV1_HOLD (exact), H_ACK_QUIET, H_RST1_ONE_FALL, H_UENV0_FORCE, H_RES_QUIET;
-  - H_FB_FIRST (uenv1), H_LUT_FIFO, H_WIRE_FIFO;
-  - H_ENV_REFINES_SRC (**prose only**, B-rig-token: uenv1 + fork c3 refine C's `Src`);
-  - C: H_START_ONCE; old A row C16 ("uenv1 release order").
-- *Lean:*
-  - `RigToken.lean:409 uenv1_release`, `uenv0_release`, `ring_alternation`, `:236 set_move`;
-  - `:355 start_per_result`, `:381 start_once_prefix`, `:463 rig_token`, `rig_token_nonvacuous`;
-  - `:663 short_rst_many_starts` (H_UENV1_HOLD exact), `no_rst_no_token`;
-  - `:765 stale_fb_extra_start`.
-- *gcd_hw use:* `urig.uenv0`, `urig.uenv1`, `ufork`, and `in_ack`'s bd_c3.
-- *Grade:* B. **C** for its H_FB_FIRST leg.
-- *Status:*
-  - The env side is proved.
-  - H_FB_FIRST at uenv1 fails under the band on seeds 2 and 4 (BH6).
-  - Missing bridges to C's global H_START_ONCE: (1) a T-bounded capstone; (2) laps ≥ 2; (3) the
-    time origin (`start.req = 1` at release vs `Src.iz`); (4) H_ENV_REFINES_SRC. None is
-    mechanised.
-  - H_START_ONCE as stated is false over a whole rig run.
-- *Test:* GLS: one `start_req` rise between consecutive `res_req` rises, seeds 2 and 4, fast
-  corner.
-
-**BH27. Rig operand setup.**
-- *Statement:* the vector reaches the frontier latch `su` before F opens:
-  `vhi + su ≤ 16·Tlo + rlo + dlmin + enlo`. The reset outlasts F's loop. The token is needed only
-  until F's first fire.
-- *Names:* H_IDX_SETUP, H_RST_LONG (H_RST_LONG_EN), H_HK_PERIOD, H_PATH_RST, H_PATH_IDX, H_EN,
-  H_RST_ONE_FALL, H_TOKEN_FIRST (replaces H_TOKEN_STATIC); JSON `gcd_rig.idx_setup` (exact),
-  `gcd_rig.token_static`.
-- *Lean:*
-  - `RigIdx.lean:145 idx_setup_suff`, `:314 idx_setup_iff`, `:171 idx_fire`, `cex_rig`,
-    `idx_nonvacuous`;
-  - `RigContract.lean:512 idx_setup`: superseded. Its H_TOKEN_STATIC is false in the running
-    ring.
-- *gcd_hw use:* `ulink_n1__1` (F), `ucmpi0`.
-- *Grade:* B. The margin is about 118 ns on illustrative bands.
-- *Status:* unchecked on a route; it would take a gross error to fail.
-- *Test:* routed SDF of idx → d pins vs 16 hk periods.
-
-**BH28. Rig verdict hygiene.**
-- *Statement:* the arm reaches every sticky before an idx-derived change does. No pre-reset result
-  survives. The result is bundled. The hold bits are static. Synchronisers resolve. The steady
-  paths do not glitch.
-- *Names:* H_ARM_BEFORE_IDX, H_RESULT_FRESH, H_NOGLITCH_STEADY (Lean text); H_RES_BUNDLED,
-  H_HOLD_STATIC, H_SYNC_RESOLVES (**prose only**, B-rig-contract §3); C_STALE (unproved).
-- *Lean:* `RigContract.lean:425 verdict_current`, `verdict_attrib`, `stale_window`;
-  `SelfAuditB3.idx_setup_witness`.
-- *gcd_hw use:* the rig's stickies, `errv`, the vector ROM.
-- *Grade:* B. H_SYNC_RESOLVES is excluded by the digital-only north star.
-- *Status:*
-  - `verdict_current` is confirmed (Bsa).
-  - "Refuted / explained exactly" is downgraded to "excluded given H_RESULT_FRESH".
-  - The `errv` capture race (`err_flt` rise + setup ≤ BUFG insertion) is unverified and may fail.
-    It affects only the diagnostic word.
-- *Test:* EndpointOK on H_ARM_BEFORE_IDX (margin about one hk period); GLS of the errv capture.
-
-### 1i. Contract route only (A's §7; not on the capstone's path)
-
-**BH29. Contract-route hypotheses.**
-- *Names:*
-  - H_X_LEAD (`ContractsLink.link_x_lead`, no rule checks it);
-  - H_ROUT / H_AIN;
-  - the mux identification hypotheses;
-  - `Port`'s infinite edge sequences (gap G4);
-  - ContractsTrunc's edge times given up front (liveness assumed, Bsa).
-- *Lean:* `Contracts.net_refines_ports`, `ContractsTrunc.net_refines_causal`;
-  `SelfAuditB.net_refines_causal_witness`, `SelfAuditB4.steer_contract_witness`.
-- *gcd_hw use:* not applied to gcd_hw.
-- *Grade:* B.
-- *Status:* the witnesses exist. `ContractsMux.mux_contract`'s "joint witness" wording is
-  OVERSTATED: two select traces drive one physical `s` net.
-- *Test:* —
+**BH26.** These are not applied to gcd_hw:
+- `Contracts.net_refines_ports`, `ContractsTrunc.net_refines_causal`;
+- the hypotheses they add: H_X_LEAD, H_ROUT/H_AIN, the mux identification hypotheses, and
+  `Port`'s infinitely many edges (gap G4: under H_START_ONCE, `start` has one token).
+- Grade B. **Side.**
 
 ---
 
-## 2. Findings for B's own files (not edits; for the lead)
+## 2. Summary: chain vs side
 
-1. **The JSON `hypotheses_not_inequalities` H_NO_RETURN entry is stale.** It says "argued, not
-   proved". `ResetGcdWave.gcd_first_wave` proves it for the reset-release window. The residual is
-   H_RST_BEFORE_LOOP (`W < 34`).
-2. **The JSON `conventions.corner_rule` still says the box is "always sound".** That is false for
-   κ > 0 under A's model (`box_unsound_with_kappa`). It also says a SLOW_MAX-only check plus the
-   guard works, which is the H_WIRE_RATIO model only (`slow_only_unsound`). Bk2's patch applies
-   cleanly (Bj) but is held until ConstraintsKappa is lake-checked.
-3. **JOURNAL-B's uenv1 RT_FB numbers (−114/−219, −81/−201) do not match C-10h:168-170**
-   (−117/−221, −86/−243). B-rig-token already uses C-10h's.
-4. **The JSON `rule` fields mean the shipped cells/verify rules.** For gcd_hw, tcheck's
-   Rc/Z/Fd/X/W rows check several entries marked "UNCHECKED": `bd_c*.env_latency`/`sel_order`
-   (Rc), `bdc_amerge` (Z), `bd_delay_gated.gate` (Fd), `bd_mux.uxa_rtz` (X), latch
-   `setup_pulse` (W). A `tcheck_rule` field per entry would stop readers taking "UNCHECKED"
-   literally for gcd_hw.
-5. **Four files are in the tree but no probe has reported them** (`OnGcdArbA0`, `LibGapMuxN`,
-   `NecessityReset`, `LibGapLatch`). Nothing above depends on them.
+| row | chain (bridge) | side only |
+|---|---|---|
+| BH1 | yes (`ctlB` discharged; Br1 for the rest) | |
+| BH2 | (Br1/Br3, hazard freedom) | reset certificates, KleeneBox, tcheck Fd, A's Events8 |
+| BH3 | **R' (Lean binders)**, Br1/Br3 | all timed cell files |
+| BH4 | Br1 (steer, arbiter) | |
+| BH5 | | yes (`≤` vs `<` only) |
+| BH6 | Br1; **R' (`H_UENV1_B`, `M1`)** | |
+| BH7, BH10-BH19 | Br1/Br2 | the κ files |
+| BH8, BH14 | Br2 | |
+| BH9 | Br4; R' (`H_REL`) | ResetGcd* (gNet) |
+| BH20 | discharged in model (U); L's `H_ARB_UNCONTESTED_BOUNDED` | |
+| BH21-BH23 | under every numeric verdict | |
+| BH24 | **R' (Lean binders)** | |
+| BH25, BH26 | | yes |
+
+Open Lean work that would put B rows on a Lean chain, cheapest first:
+1. a joint witness for R' (½ d);
+2. a B lemma deriving OpsGen's `LutFb` from `Win` + H_NO_REVERT + FbFirst for one bd_c2n, which
+   is the first step of Br1;
+3. H_SINK_SI;
+4. Br4 (probe Brz).
 
 ---
 
-## 3. Changes for gcd_hw_hypotheses.md
+## 3. Contradictions between B's ledger and C's (and A's `out/gcd_hw_hypotheses.md`)
 
-The ids below are the current file's. It is the 10:54 rewrite: §2.x rows by hypothesis name,
-§3 by obligation, §5 S*/D* (kept from the 06:40 draft). The 06:40 ids that B notes still cite
-map as follows:
-- C11 → §2.4 H_BUNDLED_IDX;
-- C14 → §2.4 latch row (H_FORK_DATA);
-- C16 → §2.6 H_START_ONCE;
-- "X1/X2 (§7)" → A-contradictions X1/X2, now §5 S3/S4;
-- N* → no B content.
+K1. **Where B's rows sit.** C-ledger §2/§4 and A's tree (§1) draw "⇐" arrows from B's C1-C4 and
+L1-L5 to `H_CELLS`, through O4. In Lean the capstone imports only `ctlB` from B. The OpsGen
+bindings are not instantiated, and no B theorem derives their premise `LutFb`/`LutSI`. Those
+arrows are unmechanised (§0, Br1).
 
-**§0.3 item 7 (rig), §3 last row ("rig sticky race, idx setup"), §8 row 48, §9 "Dropped as
-evidence: RigContract".** All four are stale: RigContract compiles now.
-- §0.3 item 7, replacement: "The rig. Result capture, `ok`/`err` and the vector ROM are not
-  composed with §0.1. `RigContract.lean` compiles under the lakefile options since the 10:54 fix
-  of `stale_window`'s auto-bound `e` (JOURNAL-B 10:54; Bsa: 19 B files OK). `verdict_current` is
-  confirmed. `RigContract.idx_setup` assumes H_TOKEN_STATIC, which the running ring breaks, and
-  is superseded by `RigIdx.idx_setup_iff` (exact: `vhi + su ≤ 16·Tlo + rlo + dlmin + enlo`).
-  'Refuted' in B-rig-contract reads 'excluded given H_RESULT_FRESH'. The env ring's start
-  discipline is `RigToken` (§2.6)."
-- §3 last row, replacement: `| rig idx setup; verdict | outside §0.1 | RigIdx / RigContract |
-  idx_setup exact, unevaluated on a route (margin about 16 hk cycles); verdict_current proved;
-  C_STALE and the errv capture race unproved | B | open |`.
-- §8 row 48 status, replacement: "Fixed at 10:54 (autoImplicit). Compiles; claims corrected in
-  B-rig-contract's correction block."
+K2. **H_BUNDLE.**
+- The claim: C-ledger §3 and A's tree say "H_BUNDLE ⇐ rules A, E, I, H, W, F/Fd, X".
+- The conflict: C's own 8w (the `CapstoneBundle.lean` header) says tcheck cannot discharge
+  `Held` on the capstone's zero-delay traces. There it is a protocol consequence, and the timing
+  content is in the 8x refinement (WIP, unclaimed).
+- B's capture and select theorems (BH8, BH10, BH11, BH14) feed that refinement, not `Held`
+  directly.
 
-**§2.2 H_FB_FIRST row.** Append to evidence:
-- "B's exact form is strict. In the per-pin Kleene model the race is clean iff
-  `dlmax + dwmax + wa ≤ dlmin + E` with `wa ≥ 1` tick (`CElemStrict.env_latency_iff`,
-  `env_latency_strict`). It holds on every cycle of every C-element INIT (`CElemStrict2.c2n_all`,
-  `c3_all`, `c4_all`). No kernel margin is within 1 ps.
-- Per pin with site pins on Br's `--freq 100` seeds 1-4: 0 negative at any one corner; 5-10 per
-  seed negative in the independent box.
-- The uenv1 failure is formal in its consequence: `RigToken.stale_fb_extra_start` gives 3 start
-  offers against 1 result."
+K3. **H_START_ONCE is stale as the rig's hypothesis.**
+- The claim: A's §2.6 says "env ring not modelled; Lean: model the env ring (~0.5 d)", and C's
+  8r update says the same.
+- The conflict: C's `gcd_rig_first` replaces H_START_ONCE by `H_ENV` for the first result. B's
+  `RigSrc.gcd_rig_first_env` discharges `H_ENV` and the sources' `SrcR` from the env cells.
+- What remains open: laps ≥ 2 and H_SINK_SI.
 
-Grade unchanged.
+K4. **uenv1.** A's §2.2 says uenv1's RT_FB failure "hits H_START_ONCE's realisation, not
+H_CELLS". On R' it hits the Lean binders `H_UENV1_B`/`M1` of `gcd_rig_first_env`, so it is a
+capstone-chain hypothesis, graded C.
 
-**§2.2 H_SEL_PIN row.** Replace "The hold half is unchecked (B's `bundled_s_hold`)" with:
-- "Setup and hold are exact per pin and per output:
-  - `LibGapSteer.steer_box_exact`: `S0 + Shi ≤ R + Rlo` and `F + Rhi ≤ S1 + Slo`;
-  - counter-trace `spurious_token`: a token goes down the wrong loop exit.
-- For bd_mux joins, `LibGapMux.join_box_exact`: the request and feedback pins drop out of the
-  exact condition.
-- Rule E checks setup without site pins. In the box it is optimistic by up to
-  `SP[s].hi − SP[req].lo` plus the arc difference.
-- The hold half has an exact theorem but no rule.
-- bdc_muxn3: `LibGapMuxN` in progress, adding H_YOSYS_MAP."
+K5. **H_AMERGE_RTZ.**
+- C-ledger §2: grade C, "unchecked by every rule". C-ledger §3: "UNCHECKED".
+- C's 10k update in the same file: rule Z passes on all 9 stages (worst +383 ps). A grades it B.
+- The body of C's ledger is stale. B: grade B.
 
-Rule K text unchanged.
+K6. **The X4 ctl_req fork.** C-ledger §3 says "UNCHECKED". Rule K exists (10l) and FAILS 16-26
+of 42 per seed, unguarded too. B grades it C pending (BH11).
 
-**§2.2 H_LUT_SI row.** Append:
-- "B's WinFifo: `Win` alone never gives FIFO for a band ≥ 2 ticks (`win_glitch_not_fifo`). Under
-  the protocol spacing, FIFO ⟺ `Win` + **H_NO_REVERT** (`win_fifo_of_no_revert`,
-  `no_revert_of_ret`), and H_NO_REVERT cannot be dropped (`WinFifoCausal.no_revert_needed`).
-- A derivation of `LutSI` from a window channel will likely need the same inertial-type premise.
-  H_NO_REVERT is the candidate name for the physical row."
+K7. **H_MUXN_SEL.** C-ledger §2 says rule E covers `umux21`'s select. C's 8w found no rule-E row
+for it. B: unchecked (BH12).
 
-**§2.2 H_CTREE_ATOMIC row.** Append:
-- "Timed tree latency: `CTreeTimed.tree_four_phase` (C7, sufficient). Node races strict:
-  `CElemStrict2.c3_all`/`c4_all`. Still no route row."
+K8. **Reset.**
+- C-ledger §2 H_RESET says "testbench reset is µs scale". gcd_hw's rst is about 16 hk cycles
+  (≈ 121 ns; B-reset-gcd).
+- C grades the init fields B without noting that they are not linked to any reset proof. B's
+  proofs are in gNet (Br4 open).
+- `Src.iz` is false for the rig (`iz_fails`).
 
-**§2.3 arbiter row.** Replace the evidence after "RT1/RT2 and H_GRANT_FORK." with:
-- "RT1/RT1b are **proved on the routed gcd_hw numbers**. `OnGcdArb.gcd_rt1_all`/`gcd_rt1b_all`
-  cover 36 arbiters × 4 tcheck routes × 4 one-corner readings, for every server, worst +33 ps.
-  In the independent box they need an on-chip server path of up to 711 ps (exact, `box_rt1` +
-  `_cex`).
-- A0 fork: Jx 72/72 within each column; guarded worst −9 ps (seed 4 merge12.uarb2 c2).
-  `OnGcdArbA0` (in progress) instantiates 7g's exact condition per pin.
-- Under A's κ model on link_arb (not gcd_hw), `OnNetlistArbKappa`: safe on 8/8 at κ = 1/11. At
-  κE = 0.1988 it is 7/8 in the side-pessimistic reading, with s1 c2 unsafe from κ* ≈ 0.1786.
-  Not yet lake-checked (needs Mathlib)."
+K9. **"FIFO LUT" under H_CEL_SI.**
+- C-ledger §2 says the C-element model holds of the real LUT under B's C1-C4, citing
+  H_KLEENE_LUT as the test of H_LUT_SI.
+- B: the FIFO premise (C4) is H_NO_REVERT. It is not derivable from `Win`
+  (`win_glitch_not_fifo`) and not implied by H_KLEENE_LUT (`kleene_revert`).
+- It needs its own test (a LUT-ring edge count), separate from the glitch counter.
 
-Then keep the rule J / H_GRANT_FORK sentences.
+K10. **The arbiter.**
+- A's §2.3 says "contention: discharged by proof", and C-ledger §2 says H_ARB_EXCL rests on
+  "rule J".
+- B: contest-freedom (U) removes only the tie and metastability tier (BH20).
+- `H_ARB_EXCL` still needs the handover rows A0 fork, RT1/RT1b, RT2/RT2b and the server bound.
+  These are proved per corner on the routed numbers (OnGcdArbFix; OnGcdArbA0 `gcd_corner_srv`,
+  144/144 with `srv`, 141/144 server-free).
+- They are C in the box (`okSrv` 20/36) and for κ > 16587/374773.
 
-**§2.4 latch row.** Append:
-- "Setup data and pulse are strict (+1 tick; `CElemStrict.latch_facts`,
-  `CElemStrict2.pair_o5_clean_iff`/`pair_o6_clean_iff`).
-- At fork branches, the exact obligation is H_FORK_DATA_W
-  (`Td + dhi + fhi ≤ Tr + rlo + wlo + elo`, `ForkData.fork_capture`, `fork_data_needed`). That is
-  rule I's form. C-8f's 'data before req' is sufficient only (`edge_form_not_needed`).
-- Br, with site pins at a consistent corner: rule I ≥ +1288 ps guarded; rule H +40 ps guarded on
-  its worst bit."
+K11. **The Jx count.** C says 71/72; B's old ledger said 72/72. Same data: 72/72 unguarded and
+71/72 under the band (guarded worst −9 ps, seed 4 merge12.uarb2 client 2).
 
-**§2.4 H_BUNDLED_IDX row.** Append:
-- "gcd_hw's control_merges are width 0, so the index is the only data. Its consumers are Muller
-  links through the `_f` fork. There the exact condition is H_FORK_DATA_W with `Td` = index
-  settle time (`ForkData.amerge_idx_sufficient`/`_necessary`). Cm2's edge-sampling legs are
-  sufficient there."
+K12. **Rule F vs Fd.** C-ledger §3 grades the drain row through rule F ("113/116"). C-10k shows F
+is not sufficient for H_FF_DRAINED (incomparable to Fd). B's `no_early` premise is Fd's form, and
+its exact version needs H_LO_ORDER, which is unchecked. Cite Fd.
 
-**§2.5 initial state row.** Replace "One routed check remains: rst wire delay W < 34 LUT steps" with:
-- "H_NO_RETURN is proved for the reset-release window (`gcd_first_wave`, every rst waveform). The
-  remaining routed check is H_RST_BEFORE_LOOP, max rst-net delay < 34 GMW steps (`gcd_loop_late`,
-  `rst_reads_low`).
-- Per-cell reset width is exact and strict (`CElemStrict2.reset_width_iff`/`_strict`). It binds
-  for the 185 bd_c2n link controllers, whose reset vector is a hold vector."
+K13. **C3 per pin.** C-ledger §4 says "C3 is unchecked". tcheck's Rc uses prjxray site pins, and
+Br found 0 per-pin negatives at one corner on the `--freq 100` routes. C3 is covered within
+tcheck's site-pin model, and still open at the box and the band.
 
-Add: "The uenv1 token (1) is produced in any rst order (`RigToken.uenv1_release`). The time-origin
-correspondence (`start.req = 1` at release vs `Src.iz`) is stated in B-rig-token §4.3 and not
-mechanised."
+K14. **The corner rule.** C-ledger §3 grades H_ONE_CORNER plus the band as B. The JSON (B's own
+file) still calls the box "always sound". Under A's model, the box, one-corner and SLOW-only checks
+are all unsound for κ > 0 (`ConstraintsKappa`). The JSON field is stale (probe Bj5).
 
-**§2.6 H_START_ONCE row.** Replace the evidence with:
-- "Necessary with `Src` (C-8r, argued).
-- B proves the rig's form: `RigToken.start_once_prefix` (H_START_ONCE before the first returned
-  result) and `start_per_result` (`#start ≤ #results + 1` on every lap). The premises are
-  H_UENV1_HOLD (exact: `short_rst_many_starts`), H_ACK_QUIET, H_RST1_ONE_FALL, H_FB_FIRST at
-  uenv1, FIFO LUTs and wires.
-- The global form is false over a whole rig run.
-- Missing bridges: a T-bounded capstone, laps ≥ 2, the time origin, H_ENV_REFINES_SRC (prose).
-- uenv1's H_FB_FIRST fails under the band on seeds 2 and 4."
+K15. **RigContract.** A's §0.3 item 7, §3 last row and §8 row 48 say RigContract "does not
+compile". It was fixed in 807448a and Bsa confirmed it. Still stale in A's doc.
 
-Grade: B for lap 1, **C** while uenv1's RT_FB fails under the band. Test unchanged, plus "on seeds
-2 and 4 at the fast corner".
+K16. **The headline theorem.** A's §0.1 has `gcd_hw_circuit_safe''` with H_WALK. The current
+theorems are `gcd_hw_circuit_safe3` (H_WALK proved), `gcd_rig_first` / `gcd_rig_first_env` and
+`gcd_hw_live_final` (§0.1 here).
 
-**§3 "matched-delay drain" row.** Append:
-- "B's exact form: `LibGapDelay.box_exact_flushed` / `box_exact_no_early`, under H_BAL_HI,
-  H_LO_ORDER, H_START, H_SHORT.
-- Per-stage H_GFLUSH is not necessary without H_LO_ORDER (`rescue_flushed`).
-- Rule F lacks the in-flight term `(p i).hi − (q i).lo`.
-- H_LO_ORDER is unchecked on every route."
+---
 
-**§3 "merge M3, C-tree depth (C7), steer select hold" row.** Replace with:
-- "C-tree depth (C7, `CTreeTimed.tree_four_phase`); steer and mux select hold (exact:
-  `steer_box_exact`, `join_box_exact`); M3 (bdc emits no bd_merge, so not in gcd_hw). No rule for
-  any of them. UNCHECKED, grade B."
+## 4. B-side findings (for the lead; no edits made)
 
-**§3 new row.**
-- `| arbiter RT1/RT1b | H_ARB_EXCL (grant part) | Lean on routed rows (OnGcdArb) | 144/144
-  one-corner rows proved, worst +33; box needs server ≥ 711 ps | A one corner / C box | proved
-  per route (one corner) |`
-
-**§5 D12 H_ONE_CORNER.** Append:
-- "ConstraintsKappa: a one-corner (κ = 0) check is unsound for κ > 0
-  (`one_corner_unsound_with_kappa`). Under A's model the box is unsound too, unless κ is applied
-  (`box_unsound_with_kappa`). A SLOW-only check is unsound even at κ = 0. The exact closed form is
-  `GenOK` (`allOK_iff_gen`, under H_DISJ + H_DIV); a shared prefix cancels (`allOK_cancel`)."
-
-**§5 D15.** Append: "The band is exactly κ = 383/1927 under A's model (`Corner.guard_kappa_iff`)."
-
-**§5 D11.** Append: "B's arbiter verdicts at κ = 1/11 and κE (link_arb, OnNetlistArbKappa) need
-κ < 0.178 on the A0 tails."
-
-**§5 S1 H_KLEENE_LUT.** Append:
-- "Its timed per-pin form (H_MUX_KLEENE, X for `wa ≥ 1`) is what makes every own-feedback race
-  strict (CElemStrict).
-- A's statement is `Core/LutTree.lean:279 H_mux_kleene`; MuxTree reduces the tree to it."
-
-**§5 S3 H_LUT_FIFO / NoOvertake.** Replace "B's timed cells and contracts (§7)" with:
-- "B's timed cells and contracts (§7), and RigToken.
-- Not derivable from `Win` (`win_glitch_not_fifo`). Equivalent to `Win` + H_NO_REVERT under the
-  protocol spacing. Derived for the pipe LUTs (`WinFifoCausal.pipe_fifo`), not for the lines or
-  H_TREE_FIFO.
-- Grade B (inertial-type)."
-
-**§5 S4 H_ZERO_DELAY_FN / H_ATOMIC_LUT.** Append: "B: with atomic selects (`wa = 0`) equality is
-safe; otherwise only the strict form is (`env_latency_atomic` vs `env_latency_strict`, agreeing
-with A's `safe_strict`)."
-
-**§5 S6 site pins.** Append: "Rule E optimism quantified per pin (LibGapSteer note §3). Feedback
-on pin 1 at uenv1 on every seed (B-gcd-routes)."
-
-**§6 tests.** Add:
-- rig GLS: one `start_req` rise between consecutive `res_req` rises on seeds 2 and 4 at the fast
-  corner (H_START_ONCE, H_FB_FIRST at uenv1);
-- routed SDF check of H_RST_BEFORE_LOOP (max rst-pin delay < 34 fast-min LUT+wire steps on
-  `ulink_n1__1 → ucmpi0 → join → steer`);
-- per-route H_LO_ORDER on the 29 gated lines;
-- rule E' and J' with FASM site pins (or LOCK_PINS on feedback and select pins);
-- a LUT-ring edge count for H_NO_REVERT.
-
-**§7.** Add:
-- "B's FIFO fields reduce to `Win` + H_NO_REVERT (WinFifo, WinFifoCausal).
-- Non-vacuity of `net_refines_causal` on a 1-channel net (`SelfAuditB.net_refines_causal_witness`)
-  and of `steer_contract` (`SelfAuditB4.steer_contract_witness`).
-- `mux_contract`'s 'joint witness' drives two select traces for one physical `s` net (Bsa:
-  OVERSTATED wording)."
-
-**§9.** Add: "B since 10:48:
-- strict feedback race (CElemStrict/2);
-- per-pin exact steer, mux and gated-delay conditions (LibGap*);
-- fork data (ForkData);
-- FIFO ⟺ Win + H_NO_REVERT (WinFifo*);
-- RT1/RT1b proved on gcd_hw routes (OnGcdArb);
-- κ verdicts (OnNetlistArbKappa, ConstraintsKappa; Mathlib pending);
-- rig start discipline (RigToken) and idx setup (RigIdx);
-- RigContract compiles."
+1. **`cell_constraints.json` `conventions.corner_rule` is still stale** ("box … always sound").
+   The `H_NO_RETURN` entry is now current (it cites `gcd_first_wave`).
+2. **No joint witness exists for `gcd_rig_first_env`.** It is the only B theorem on a capstone
+   chain. It is the cheapest Lean item here.
+3. **No B lemma reaches OpsGen's `LutFb`/`LutSI`.** Until one does, B's cell theorems support the
+   capstone only through prose.
