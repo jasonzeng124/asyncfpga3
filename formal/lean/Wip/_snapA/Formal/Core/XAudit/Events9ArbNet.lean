@@ -332,7 +332,7 @@ shape (virtual, stage, reset 0, two pins, no bubbles, `F = Q = (1,1)`), pin 0 = 
 window), pin 1 = the filtered ctl pin (source `jc`, branch `brc`, band `[lc, hc]`). -/
 def RdNodeOK (j jc s : Fin N) (brc : Bool) (lr hr lc hc : Nat) (R : ReqD) : Prop :=
   (rn j).virt = true ∧ net.mg j = false ∧ net.v j = false ∧ net.ar j = 2 ∧
-  b.loF j = 1 ∧ b.hiF j = 1 ∧ b.loQ j = 1 ∧ b.hiQ j = 1 ∧
+  b.loF j = 1 ∧ b.hiF j = 1 ∧ b.loQ j = 1 ∧ b.hiQ j = 1 ∧ 1 ≤ lr ∧ 1 ≤ lc ∧
   ∀ p : Fin (net.ar j), net.neg j p = false ∧
     (p.val = 0 → net.src j p = s ∧
       ReqOK d rn fuel s (net.pk j p) (net.inv j p) (net.op j p) (net.nc j p) (net.br j p) R ∧
@@ -352,7 +352,7 @@ instance (j jc s : Fin N) (brc : Bool) (lr hr lc hc : Nat) (R : ReqD) :
 /-- **ctl**: virtual, stage, reset 0, one plain inverted pin from `jA` (real), band `[lo, 10^12]`. -/
 def CtlOK (jc jA : Fin N) (lo : Nat) : Prop :=
   (rn jc).virt = true ∧ (rn jc).hasW = false ∧ net.mg jc = false ∧ net.v jc = false ∧ net.ar jc = 1 ∧
-  b.loF jc = 1 ∧ b.hiF jc = 1 ∧ b.loQ jc = 1 ∧ b.hiQ jc = 1 ∧ (rn jA).virt = false ∧
+  b.loF jc = 1 ∧ b.hiF jc = 1 ∧ b.loQ jc = 1 ∧ b.hiQ jc = 1 ∧ (rn jA).virt = false ∧ 1 ≤ lo ∧
   ∀ p : Fin (net.ar jc), net.src jc p = jA ∧ net.pk jc p = PK.plain ∧ net.inv jc p = true ∧
     net.neg jc p = false ∧ net.nc jc p = 1 ∧ ∀ i : Fin (net.nc jc p), b.loC jc p i = lo ∧ b.hiC jc p i = 10 ^ 12
 
@@ -573,10 +573,12 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → 
   {x : Fin d.n → Sig} (hsat : SatPin d plG x) {cv : Fin N → Sig}
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   (hW : ∀ s, (rn s).virt = true → (rn s).hasW = true → ∀ t, x (d.wire (rn s).ow) t = cv s t)
-include h0 h1 hW
+
 
 theorem ccOf_virt {j : Fin N} (h : (rn j).virt = true) (t : Nat) : ccOf rn x cv j t = cv j t := by
   unfold ccOf; rw [if_pos h]
+
+include hsat h0 h1 hW
 
 /-- **A reader node**: a `VRdR` (the corrected core's grant / shadow, reset `ρ`) on the request
 wire `R.w`, at a node passing `RdNodeOK` with the ctl branch `!br`, is an `ND7` behaviour with
@@ -586,30 +588,11 @@ theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ c
     (hcj : ∀ t, cv j t = y t) (hcc : ∀ t, cv jc t = ctl t) (hvc : (rn jc).virt = true)
     (hv : VRdR lr hr lc hc br ρ (x (d.wire R.w)) ctl y) :
     Nonempty {nd : ND7 net b (ccOf rn x cv) j // nd.r = ρ} := by
-  obtain ⟨hvj, hmg, hv0, har, hF1, hF2, hQ1, hQ2, hp⟩ := hn
+  obtain ⟨hvj, hmg, hv0, har, hF1, hF2, hQ1, hQ2, hlr, hlc, hp⟩ := hn
   obtain ⟨F, GR, GC, Q, sv, wF, wGR, wGC, wQ, hr0, hra, heq⟩ := hv
   have hpv : ∀ p : Fin (net.ar j), p.val = 0 ∨ p.val = 1 := fun p => by have := p.isLt; omega
-  refine ⟨⟨{
-    pin := fun p u => if p.val = 0 then x (d.wire R.w) (GR u) else (ctl (GC u) && ((!sv u) == !br))
-    q := fun u => ccOf rn x cv j (Q u)
-    r := ρ
-    sv := fun p u => if p.val = 0 then svR hsat R (GR u) else !sv u
-    F := F
-    G := fun p i u => if p.val = 0 then tau hsat (R.rp.copies.getD i.val []) (GR u) else GC u
-    Q := Q
-    wF := by rw [hF1, hF2]; exact wF
-    wG := ?_
-    wQ := by rw [hQ1, hQ2]; exact wQ
-    loF1 := by rw [hF1]; exact Nat.le_refl 1
-    loC1 := ?_
-    loQ1 := by rw [hQ1]; exact Nat.le_refl 1
-    hc := ?_
-    hpin := ?_
-    hq := fun t => rfl
-    r0 := hr0
-    ranti := hra
-    hskew := ?_ }, rfl⟩⟩
-  · -- wG
+  have hwG : ∀ (p : Fin (net.ar j)) (i : Fin (net.nc j p)), Warp (b.loC j p i) (b.hiC j p i)
+      (fun u => if p.val = 0 then tau hsat (R.rp.copies.getD i.val []) (GR u) else GC u) := by
     intro p i
     rcases hpv p with e | e
     · obtain ⟨_, h0', -⟩ := hp p
@@ -631,18 +614,36 @@ theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ c
       have e0 : p.val ≠ 0 := by omega
       simp only [e0, ite_false]
       rw [(hb i).1, (hb i).2]; exact wGC
+  refine ⟨⟨{
+    pin := fun p u => if p.val = 0 then x (d.wire R.w) (GR u) else (ctl (GC u) && ((!sv u) == !br))
+    q := fun u => ccOf rn x cv j (Q u)
+    r := ρ
+    sv := fun p u => if p.val = 0 then svR hsat R (GR u) else !sv u
+    F := F
+    G := fun p i u => if p.val = 0 then tau hsat (R.rp.copies.getD i.val []) (GR u) else GC u
+    Q := Q
+    wF := by rw [hF1, hF2]; exact wF
+    wG := ?_
+    wQ := by rw [hQ1, hQ2]; exact wQ
+    loF1 := by rw [hF1]; exact Nat.le_refl 1
+    loC1 := ?_
+    loQ1 := by rw [hQ1]; exact Nat.le_refl 1
+    hc := ?_
+    hpin := ?_
+    hq := fun t => rfl
+    r0 := hr0
+    ranti := hra
+    hskew := ?_ }, rfl⟩⟩
+  · exact hwG
   · -- loC1
     intro p i
     rcases hpv p with e | e
     · obtain ⟨_, h0', -⟩ := hp p
       obtain ⟨_, _, hb, _⟩ := h0' e
-      rw [(hb i).1]
-      have := wGR.le_late 0
-      sorry
+      rw [(hb i).1]; omega
     · obtain ⟨_, -, h1'⟩ := hp p
       obtain ⟨_, _, _, _, _, hb⟩ := h1' e
-      rw [(hb i).1]
-      sorry
+      rw [(hb i).1]; exact hlc
   · -- hc
     intro t
     rw [ccOf_virt (cv := cv) hvj, hcj t, heq t, hmg]
@@ -656,7 +657,9 @@ theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ c
           (fun p : Fin (net.ar j) => (fun k : Nat => if k = 0 then x (d.wire R.w) (GR (F t)) else
           (ctl (GC (F t)) && (sv (F t) == br))) p.val) := by
         funext p; rw [hneg p, beq_not]; simp
-      rw [hfun, cel_reidx2 har]
+      rw [hfun]
+      exact (cel_reidx2 har (fun k : Nat => if k = 0 then x (d.wire R.w) (GR (F t)) else
+        (ctl (GC (F t)) && (sv (F t) == br))) _).symm
   · -- hpin
     intro p t
     rcases hpv p with e | e
@@ -676,10 +679,359 @@ theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ c
     rcases hpv p with e | e
     · obtain ⟨_, h0', -⟩ := hp p
       obtain ⟨_, _, _, hdw⟩ := h0' e
-      sorry
+      obtain ⟨d1, d2⟩ := hdw i i' hii
+      exact ⟨skew_of_bands (hwG p i) (hwG p i') d1 s', skew_of_bands (hwG p i') (hwG p i) d2 s'⟩
     · obtain ⟨_, -, h1'⟩ := hp p
       obtain ⟨_, _, _, hnc, _, _⟩ := h1' e
       have := i'.isLt; have := i.isLt; rw [hnc] at *; omega
+
+
+/-- **ctl**: a `VCtl` of the A0 source wire at a node passing `CtlOK` is an `ND7` behaviour. -/
+theorem nd7_ctl {jc jA : Fin N} {lo : Nat} {ctl : Sig} (hn : CtlOK net b rn jc jA lo)
+    (hcc : ∀ t, cv jc t = ctl t) (hv : VCtl lo (10 ^ 12) (x (d.wire (rn jA).ow)) ctl) :
+    Nonempty (ND7 net b (ccOf rn x cv) jc) := by
+  obtain ⟨hvj, _, hmg, hv0, har, hF1, hF2, hQ1, hQ2, hAr, hlo, hp⟩ := hn
+  obtain ⟨F, G, Q, r, wF, wG, wQ, hr0, hra, heq⟩ := hv
+  refine ⟨{
+    pin := fun _ u => !(x (d.wire (rn jA).ow) (G u))
+    q := fun u => ccOf rn x cv jc (Q u)
+    r := r
+    sv := fun _ _ => false
+    F := F
+    G := fun _ _ => G
+    Q := Q
+    wF := by rw [hF1, hF2]; exact wF
+    wG := fun p i => by rw [((hp p).2.2.2.2.2 i).1, ((hp p).2.2.2.2.2 i).2]; exact wG
+    wQ := by rw [hQ1, hQ2]; exact wQ
+    loF1 := by rw [hF1]; exact Nat.le_refl 1
+    loC1 := fun p i => by rw [((hp p).2.2.2.2.2 i).1]; exact hlo
+    loQ1 := by rw [hQ1]; exact Nat.le_refl 1
+    hc := ?_
+    hpin := ?_
+    hq := fun t => rfl
+    r0 := hr0
+    ranti := hra
+    hskew := ?_ }⟩
+  · intro t
+    rw [ccOf_virt (cv := cv) hvj, hcc t, heq t, hmg]
+    simp only [Bool.false_eq_true, ite_false, hv0]
+    split
+    · rfl
+    · rw [ccOf_virt (cv := cv) hvj, hcc]
+      have hneg : ∀ p : Fin (net.ar jc), net.neg jc p = false := fun p => (hp p).2.2.2.1
+      have hfun : (fun p : Fin (net.ar jc) => (!(x (d.wire (rn jA).ow) (G (F t)))) ^^ net.neg jc p) =
+          (fun _ : Fin (net.ar jc) => !(x (d.wire (rn jA).ow) (G (F t)))) := by
+        funext p; rw [hneg p]; simp
+      rw [hfun]
+      exact (cel_reidx1 har _ _).symm
+  · intro p t
+    obtain ⟨hs, hpk, hinv, _, hnc, _⟩ := hp p
+    simp only [hpk, hinv, hs]
+    have hcA : ∀ u, ccOf rn x cv jA u = x (d.wire (rn jA).ow) u := fun u => by
+      unfold ccOf; rw [hAr]; rfl
+    simp only [hcA]
+    rw [fany_const (by rw [hnc]; exact Nat.zero_lt_one)]
+    simp
+  · intro p i i' hii _
+    have := i'.isLt; have := i.isLt; rw [(hp p).2.2.2.2.1] at *; omega
+
+/-- **R0**: a `(1,1)` merge of the two shadow signals at a node passing `MgOK` is an `ND7` behaviour. -/
+theorem nd7_mg {jR js1 js2 : Fin N} {ow : Nat} {s1 s2 : Sig} (hn : MgOK net b rn jR js1 js2 ow)
+    (h1v : (rn js1).virt = true) (h2v : (rn js2).virt = true)
+    (hc1 : ∀ t, cv js1 t = s1 t) (hc2 : ∀ t, cv js2 t = s2 t) (hcR : ∀ t, cv jR t = x (d.wire ow) t)
+    (hv : VMerge 1 1 1 1 1 1 s1 s2 (x (d.wire ow))) :
+    Nonempty (ND7 net b (ccOf rn x cv) jR) := by
+  obtain ⟨hvj, _, _, hmg, _, har, hF1, hF2, hQ1, hQ2, hp⟩ := hn
+  obtain ⟨F, G1, G2, wF, w1, w2, heq⟩ := hv
+  have hpv : ∀ p : Fin (net.ar jR), p.val = 0 ∨ p.val = 1 := fun p => by have := p.isLt; omega
+  refine ⟨{
+    pin := fun p u => if p.val = 0 then s1 (G1 u) else s2 (G2 u)
+    q := fun u => ccOf rn x cv jR (u - 1)
+    r := fun _ => true
+    sv := fun _ _ => false
+    F := F
+    G := fun p _ u => if p.val = 0 then G1 u else G2 u
+    Q := fun u => u - 1
+    wF := by rw [hF1, hF2]; exact wF
+    wG := ?_
+    wQ := by rw [hQ1, hQ2]; exact shiftW1
+    loF1 := by rw [hF1]; exact Nat.le_refl 1
+    loC1 := fun p i => by rw [((hp p).2.2.2.2.2.2 i).1]; exact Nat.le_refl 1
+    loQ1 := by rw [hQ1]; exact Nat.le_refl 1
+    hc := ?_
+    hpin := ?_
+    hq := fun t => rfl
+    r0 := rfl
+    ranti := fun _ _ _ _ => rfl
+    hskew := ?_ }⟩
+  · intro p i
+    rw [((hp p).2.2.2.2.2.2 i).1, ((hp p).2.2.2.2.2.2 i).2]
+    rcases hpv p with e | e
+    · simp only [e, ite_true]; exact w1
+    · have e0 : p.val ≠ 0 := by omega
+      simp only [e0, ite_false]; exact w2
+  · intro t
+    rw [ccOf_virt (cv := cv) hvj, hcR t, heq t, hmg]
+    simp only [ite_true]
+    exact (fany_reidx2 har (fun k : Nat => if k = 0 then s1 (G1 (F t)) else s2 (G2 (F t)))).symm
+  · intro p t
+    obtain ⟨hinv, _, hpk, hnc, hs1, hs2, _⟩ := hp p
+    simp only [hpk, hinv, Bool.false_xor]
+    rcases hpv p with e | e
+    · simp only [e, ite_true, hs1 e]
+      rw [ccOf_virt (cv := cv) h1v, hc1]
+      exact (fany_const (by rw [hnc]; exact Nat.zero_lt_one) _).symm
+    · have e0 : p.val ≠ 0 := by omega
+      simp only [e0, ite_false, hs2 e]
+      rw [ccOf_virt (cv := cv) h2v, hc2]
+      exact (fany_const (by rw [hnc]; exact Nat.zero_lt_one) _).symm
+  · intro p i i' hii _
+    have := i'.isLt; have := i.isLt; rw [(hp p).2.2.2.1] at *; omega
+
+end
+
+
+/-! ## 5. All arbiters: `HARB7'` and `HRst` -/
+
+/-- The six virtual nodes of an arbiter. -/
+def ArbD.nodes {N : Nat} (a : ArbD N) : List (Fin N) := [a.jc, a.jg1, a.jg2, a.js1, a.js2, a.jR]
+
+/-- **The owner map** (decidable): `own j = some k` iff `j` is one of arbiter `k`'s six virtual
+nodes (so the arbiters' node sets are disjoint), and every virtual node has an owner. -/
+def OwnOK {N K : Nat} (rn : Fin N → RNode) (as : Fin K → ArbD N) (own : Fin N → Option (Fin K)) : Prop :=
+  (∀ j k, own j = some k ↔ j ∈ (as k).nodes) ∧ ∀ j, (rn j).virt = true → own j ≠ none
+
+instance {N K : Nat} (rn : Fin N → RNode) (as : Fin K → ArbD N) (own : Fin N → Option (Fin K)) :
+    Decidable (OwnOK rn as own) := by
+  unfold OwnOK; exact inferInstance
+
+/-- **The reset classes are readers** (decidable): every node with `rs j ≠ 0` is a grant or a
+shadow of some arbiter. -/
+def RsOK {N K : Nat} (as : Fin K → ArbD N) (rs : Nat → Nat) : Prop :=
+  ∀ j : Fin N, rs j.val ≠ 0 → ∃ k, j = (as k).jg1 ∨ j = (as k).jg2 ∨ j = (as k).js1 ∨ j = (as k).js2
+
+instance {N K : Nat} (as : Fin K → ArbD N) (rs : Nat → Nat) : Decidable (RsOK as rs) := by
+  unfold RsOK; exact inferInstance
+
+/-- The virtual signals: an arbiter's ctl and shadows from the core, the real wires elsewhere. -/
+def cvOf {N K : Nat} {d : Design} (x : Fin d.n → Sig) (rn : Fin N → RNode) (as : Fin K → ArbD N)
+    (own : Fin N → Option (Fin K)) (ctlK s1K s2K : Fin K → Sig) (j : Fin N) : Sig :=
+  match own j with
+  | some k => if j = (as k).jc then ctlK k else if j = (as k).js1 then s1K k else
+      if j = (as k).js2 then s2K k else x (d.wire (rn j).ow)
+  | none => x (d.wire (rn j).ow)
+
+section
+variable {N K : Nat} {d : Design} {x : Fin d.n → Sig} {rn : Fin N → RNode} {as : Fin K → ArbD N}
+  {own : Fin N → Option (Fin K)} {ctlK s1K s2K : Fin K → Sig}
+
+theorem cvOf_jc {k : Fin K} (h : own (as k).jc = some k) :
+    cvOf x rn as own ctlK s1K s2K (as k).jc = ctlK k := by
+  unfold cvOf; rw [h]; simp
+
+theorem cvOf_js1 {k : Fin K} (h : own (as k).js1 = some k) (h1 : (as k).js1 ≠ (as k).jc) :
+    cvOf x rn as own ctlK s1K s2K (as k).js1 = s1K k := by
+  unfold cvOf; rw [h]; simp [h1]
+
+theorem cvOf_js2 {k : Fin K} (h : own (as k).js2 = some k) (h1 : (as k).js2 ≠ (as k).jc)
+    (h2 : (as k).js2 ≠ (as k).js1) :
+    cvOf x rn as own ctlK s1K s2K (as k).js2 = s2K k := by
+  unfold cvOf; rw [h]; simp [h1, h2]
+
+theorem cvOf_wire {j : Fin N} {k : Fin K} (h : own j = some k) (h1 : j ≠ (as k).jc) (h2 : j ≠ (as k).js1)
+    (h3 : j ≠ (as k).js2) : cvOf x rn as own ctlK s1K s2K j = x (d.wire (rn j).ow) := by
+  unfold cvOf; rw [h]; simp [h1, h2, h3]
+
+end
+
+section
+variable {N K : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+
+include hsat h0 h1 in
+/-- **`harb_of_arbs`**: if every virtual node of the certificate belongs to exactly one arbiter
+(`OwnOK`), every arbiter passes `ArbOK` and satisfies its trace conditions `ArbCond` (one quiet
+start `T0`, settle bounds `H k`), the certificate has the corrected shape (`FixShape`) and its
+reset classes are readers (`RsOK`), then there are virtual signals `cv` with `HARB7'` and `HRst`
+(all readers reset by `decide (u < T0)`). -/
+theorem harb_of_arbs (as : Fin K → ArbD N) (own : Fin N → Option (Fin K)) (rs : Nat → Nat)
+    (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
+    (hfs : Events9Arb.FixShape net b rn)
+    (T0 : Nat) (H : Fin K → Nat) (hc : ∀ k, ArbCond hsat rn (as k) T0 (H k)) :
+    ∃ cv, Events9Arb.HARB7' net b rn x cv ∧ Events9Par.HRst net b rn x cv rs := by
+  have hcore := fun k => arb_core hsat h0 h1 (hA k) (hc k)
+  -- the core's ctl and shadows, per arbiter
+  let ctlK : Fin K → Sig := fun k => Classical.choose (hcore k)
+  let s1K : Fin K → Sig := fun k => Classical.choose (Classical.choose_spec (hcore k))
+  let s2K : Fin K → Sig := fun k => Classical.choose (Classical.choose_spec (Classical.choose_spec (hcore k)))
+  have hspec : ∀ k, VCtl (loCtl (bandsOf d (as k))) (10 ^ 12) (aS (x := x) rn (as k)) (ctlK k) ∧
+      VRdR (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).loR
+        (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).hiR
+        (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).loC
+        (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).hiC true
+        (fun u => decide (u < T0)) (r1S (x := x) (as k)) (ctlK k) (g1S (x := x) (as k)) ∧
+      VRdR (rdG ((bandsOf d (as k)).g2 1) ((bandsOf d (as k)).g2 2) (kOf (bandsOf d (as k)))).loR
+        (rdG ((bandsOf d (as k)).g2 1) ((bandsOf d (as k)).g2 2) (kOf (bandsOf d (as k)))).hiR
+        (rdG ((bandsOf d (as k)).g2 1) ((bandsOf d (as k)).g2 2) (kOf (bandsOf d (as k)))).loC
+        (rdG ((bandsOf d (as k)).g2 1) ((bandsOf d (as k)).g2 2) (kOf (bandsOf d (as k)))).hiC false
+        (fun u => decide (u < T0)) (r2S (x := x) (as k)) (ctlK k) (g2S (x := x) (as k)) ∧
+      VRdR (rdS ((bandsOf d (as k)).r0 0) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).loR
+        (rdS ((bandsOf d (as k)).r0 0) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).hiR
+        (rdS ((bandsOf d (as k)).r0 0) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).loC
+        (rdS ((bandsOf d (as k)).r0 0) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).hiC true
+        (fun u => decide (u < T0)) (r1S (x := x) (as k)) (ctlK k) (s1K k) ∧
+      VRdR (rdS ((bandsOf d (as k)).r0 1) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).loR
+        (rdS ((bandsOf d (as k)).r0 1) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).hiR
+        (rdS ((bandsOf d (as k)).r0 1) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).loC
+        (rdS ((bandsOf d (as k)).r0 1) ((bandsOf d (as k)).r0 2) (kOf (bandsOf d (as k)))).hiC false
+        (fun u => decide (u < T0)) (r2S (x := x) (as k)) (ctlK k) (s2K k) ∧
+      VMerge 1 1 1 1 1 1 (s1K k) (s2K k) (R0S (x := x) (as k)) :=
+    fun k => Classical.choose_spec (Classical.choose_spec (Classical.choose_spec (hcore k)))
+  let cv := cvOf x rn as own ctlK s1K s2K
+  -- facts per arbiter
+  have hmem : ∀ k j, j ∈ (as k).nodes → own j = some k := fun k j h => ((hown.1 j k).2 h)
+  have hnd : ∀ k, [(as k).jc, (as k).jg1, (as k).jg2, (as k).js1, (as k).js2, (as k).jR].Nodup :=
+    fun k => (hA k).2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hW : ∀ s, (rn s).virt = true → (rn s).hasW = true → ∀ t, x (d.wire (rn s).ow) t = cv s t := by
+    intro s hv hw t
+    obtain ⟨k, hk⟩ : ∃ k, own s = some k := by
+      cases h : own s with
+      | none => exact absurd h (hown.2 s hv)
+      | some k => exact ⟨k, rfl⟩
+    obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, hctl, _, _, _, _, _, _, _, _, hs1, hs2, _⟩ := hA k
+    have n1 : s ≠ (as k).jc := fun e => by rw [e, hctl.2.1] at hw; exact absurd hw (by decide)
+    have n2 : s ≠ (as k).js1 := fun e => by rw [e, hs1] at hw; exact absurd hw (by decide)
+    have n3 : s ≠ (as k).js2 := fun e => by rw [e, hs2] at hw; exact absurd hw (by decide)
+    show _ = cvOf x rn as own ctlK s1K s2K s t
+    rw [cvOf_wire hk n1 n2 n3]
+  -- the node behaviours of arbiter k's nodes
+  have hND : ∀ k, (Nonempty (ND7 net b (ccOf rn x cv) (as k).jc)) ∧
+      Nonempty {nd : ND7 net b (ccOf rn x cv) (as k).jg1 // nd.r = fun u => decide (u < T0)} ∧
+      Nonempty {nd : ND7 net b (ccOf rn x cv) (as k).jg2 // nd.r = fun u => decide (u < T0)} ∧
+      Nonempty {nd : ND7 net b (ccOf rn x cv) (as k).js1 // nd.r = fun u => decide (u < T0)} ∧
+      Nonempty {nd : ND7 net b (ccOf rn x cv) (as k).js2 // nd.r = fun u => decide (u < T0)} ∧
+      Nonempty (ND7 net b (ccOf rn x cv) (as k).jR) := by
+    intro k
+    obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, hnd', hctl, hg1, hg2, hs1, hs2, hw1, hw1o,
+      hw2, hw2o, hs1w, hs2w, hmg, _⟩ := hA k
+    obtain ⟨sc, sg1, sg2, ss1, ss2, sm⟩ := hspec k
+    have hnd'' := hnd'
+    simp only [List.nodup_cons, List.mem_cons, List.not_mem_nil, or_false, not_or] at hnd''
+    obtain ⟨⟨c1, c2, c3, c4, c5⟩, ⟨g1a, g1b, g1c, g1d⟩, ⟨g2a, g2b, g2c⟩, ⟨s1a, s1b⟩, s2a, _⟩ := hnd''
+    have m : ∀ j, j ∈ (as k).nodes → own j = some k := hmem k
+    have ojc := m (as k).jc (by simp [ArbD.nodes])
+    have ojg1 := m (as k).jg1 (by simp [ArbD.nodes])
+    have ojg2 := m (as k).jg2 (by simp [ArbD.nodes])
+    have ojs1 := m (as k).js1 (by simp [ArbD.nodes])
+    have ojs2 := m (as k).js2 (by simp [ArbD.nodes])
+    have ojR := m (as k).jR (by simp [ArbD.nodes])
+    have ecc : ∀ t, cv (as k).jc t = ctlK k t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _; rw [cvOf_jc ojc]
+    have ecg1 : ∀ t, cv (as k).jg1 t = g1S (x := x) (as k) t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _
+      rw [cvOf_wire ojg1 (Ne.symm c1) g1b g1c]; unfold g1S; rw [hw1o]
+    have ecg2 : ∀ t, cv (as k).jg2 t = g2S (x := x) (as k) t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _
+      rw [cvOf_wire ojg2 (Ne.symm c2) g2a g2b]; unfold g2S; rw [hw2o]
+    have ecs1 : ∀ t, cv (as k).js1 t = s1K k t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _; rw [cvOf_js1 ojs1 (Ne.symm c3)]
+    have ecs2 : ∀ t, cv (as k).js2 t = s2K k t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _; rw [cvOf_js2 ojs2 (Ne.symm c4) (Ne.symm s1a)]
+    have ecR : ∀ t, cv (as k).jR t = x (d.wire (gt d (as k).gR).out) t := fun t => by
+      show cvOf x rn as own ctlK s1K s2K _ t = _
+      rw [cvOf_wire ojR (Ne.symm c5) (Ne.symm s1b) (Ne.symm s2a)]; rw [hmg.2.2.1]
+    have hvc : (rn (as k).jc).virt = true := hctl.1
+    refine ⟨nd7_ctl hsat h0 h1 hW hctl ecc sc, nd7_rd hsat h0 h1 hW hg1 ecg1 ecc hvc sg1,
+      nd7_rd hsat h0 h1 hW hg2 ecg2 ecc hvc sg2, nd7_rd hsat h0 h1 hW hs1 ecs1 ecc hvc ss1,
+      nd7_rd hsat h0 h1 hW hs2 ecs2 ecc hvc ss2,
+      nd7_mg hsat h0 h1 hW hmg hs1.1 hs2.1 ecs1 ecs2 ecR sm⟩
+  refine ⟨cv, ⟨⟨?_, ?_, ?_⟩, hfs⟩, ⟨fun _ u => decide (u < T0), ?_⟩⟩
+  · intro j hv
+    obtain ⟨k, hk⟩ : ∃ k, own j = some k := by
+      cases h : own j with
+      | none => exact absurd h (hown.2 j hv)
+      | some k => exact ⟨k, rfl⟩
+    have hj := (hown.1 j k).1 hk
+    simp only [ArbD.nodes, List.mem_cons, List.not_mem_nil, or_false] at hj
+    obtain ⟨n1, n2, n3, n4, n5, n6⟩ := hND k
+    rcases hj with e | e | e | e | e | e <;> subst e
+    · exact n1
+    · obtain ⟨nd⟩ := n2; exact ⟨nd.val⟩
+    · obtain ⟨nd⟩ := n3; exact ⟨nd.val⟩
+    · obtain ⟨nd⟩ := n4; exact ⟨nd.val⟩
+    · obtain ⟨nd⟩ := n5; exact ⟨nd.val⟩
+    · exact n6
+  · intro j hv hw t; exact hW j hv hw t
+  · intro j hv hm
+    obtain ⟨k, hk⟩ : ∃ k, own j = some k := by
+      cases h : own j with
+      | none => exact absurd h (hown.2 j hv)
+      | some k => exact ⟨k, rfl⟩
+    have hj := (hown.1 j k).1 hk
+    simp only [ArbD.nodes, List.mem_cons, List.not_mem_nil, or_false] at hj
+    obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, hctl, hg1, hg2, hs1, hs2, _, _,
+      _, _, _, _, hmg, _⟩ := hA k
+    rcases hj with e | e | e | e | e | e <;> subst e
+    · rw [hctl.2.2.1] at hm; exact absurd hm (by decide)
+    · rw [hg1.2.1] at hm; exact absurd hm (by decide)
+    · rw [hg2.2.1] at hm; exact absurd hm (by decide)
+    · rw [hs1.2.1] at hm; exact absurd hm (by decide)
+    · rw [hs2.2.1] at hm; exact absurd hm (by decide)
+    · rw [← hW _ hv hmg.2.1 0, hmg.2.2.1]
+      exact ((hc k).low 0 (Nat.zero_le _)).2.2
+  · intro j hj
+    obtain ⟨k, e | e | e | e⟩ := hrs j hj <;> subst e
+    · exact (hND k).2.1
+    · exact (hND k).2.2.1
+    · exact (hND k).2.2.2.1
+    · exact (hND k).2.2.2.2.1
+
+end
+
+
+/-! ## 6. The design verdict with the arbiter link checked -/
+
+section
+open Formal.Core.XAudit.Events8 Formal.Core.XAudit.Events9 Formal.Core.XAudit.Events9Par
+variable {N K : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
+  {rw fuel : Nat} {x : Fin d.n → Sig}
+
+/-- **`design_verdict9arbnet`**: `Events9Par.design_verdict9par` with its two arbiter hypotheses
+`HARB7'` and `HRst` replaced by CHECKED data (`ArbOK` per arbiter, `OwnOK`, `RsOK`, `FixShape`)
+and the per-arbiter trace conditions `ArbCond` (quiet start `T0`, settle bounds `H k`, B1/B2/C on
+the four readers). Same conclusion, for SOME virtual signals `cv` (the corrected core's ctl and
+shadows, built from the real traces). -/
+theorem design_verdict9arbnet (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7)
+    {parts : List (List Nat)} {rs : Nat → Nat} {log : List LnP} {J : Array Jd}
+    (hJ : runLogP net b rs parts log = some J)
+    (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
+    (hl : List HLn9) (gd : (j : Fin N) → Fin (net.ar j) → GD)
+    (cp : (j : Fin N) → Fin (net.ar j) → Bool) (cxm : Fin N → Bool) (cl : (j : Fin N) → Fin (net.ar j) → Bool)
+    (cg : (j : Fin N) → Fin (net.ar j) → Bool)
+    (hcp : ∀ j p, cp j p = true → backOK7 net b J j p (back j p) = true)
+    (hcx : ∀ m, cxm m = true → exclOK7 net b parts J m (xS m) (xa m) (xw m) = true)
+    (hcl : ∀ j p, cl j p = true → lineOK7 net b J j p (line j p) = true)
+    (hcg : ∀ j p, cg j p = true → guardOK8 net b parts J (hl.map (san J)) j p (gd j p) = true)
+    (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
+    (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
+    (hfs : Events9Arb.FixShape net b rn)
+    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
+    (T0 : Nat) (H : Fin K → Nat) (hc : ∀ k, ArbCond hsat rn (as k) T0 (H k))
+    (sel : Nat → Nat → Bool) :
+    ∃ cv : Fin N → Sig, ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
+      (∀ j p s, bh.gc j p s = gcnt net sel j p (bh.cm j p s)) ∧
+      (SelPart sel parts → bh.SelOK →
+        (∀ j p s, net.mg j = false → net.pk j p ≠ PK.guard → cp j p = false → bh.P j p s ≤ bh.M (bh.Q j s) j + 1) →
+        (∀ m s, net.mg m = true → cxm m = false → fodd (net.ar m) (fun p => bh.P m p s) ≤ 1) →
+        (∀ j p s, net.pk j p = PK.multi → cl j p = false → ContigF (net.nc j p) (bh.cm j p s)) →
+        (∀ j p, net.pk j p = PK.guard → cg j p = false → GuardPin bh j p) →
+        ∀ t j, (rn j).virt = false →
+          x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) := by
+  obtain ⟨cv, harb, hR⟩ := harb_of_arbs hsat h0 h1 as own rs hA hown hrs hfs T0 H hc
+  exact ⟨cv, design_verdict9par hr hOK hJ back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg
+    hsat h0 h1 hT hrst harb hR sel⟩
 
 end
 
