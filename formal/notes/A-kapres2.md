@@ -1,7 +1,27 @@
 # A-kapres2 (shard A, probe KapRes2, session 2026-10-29)
 
-STATUS: PARTIAL -- Lean done (CornerCell, BandCheck checked); κ sweep with xevents8 RUNNING
-(results below are filled in as seeds finish; see "Sweep").
+STATUS: done for Lean (CornerCell, BandCheck checked) and for the κ sweep on the E8Mux bands at
+coarse resolution (cells of 1/4, five point corners per κ; κ = 0 refined to 1/16, see §3.3).
+Residual-at-cell items that pass at every point corner are NOT resolved (cell-width artefacts or
+real failures between the point corners; §3.4). Old-band sweep stopped after κ = 0.12 (comparison).
+
+Summary of the sweep (xevents8 = committed `Events8Main`, E8Mux corrected bands, corner model
+`[(1-κ)·min lerp, (1+κ)·max lerp]` cell bands, κ ∈ {0.12, 0.10, …, 0}):
+- **Fails at point corners** (a real corner where the checker cannot discharge the item; not a
+  counterexample, the checker is conservative):
+  - seed d: Guard ENTRY `ucontrol_merge2.uarb1.ua2` pin0 and `ucontrol_merge3.uarb1.ua2` pin0 at
+    κ = 0.12 and 0.10 (every point corner at 0.12; −7..−15 and −8..−48 ps at 0.10);
+    `ucontrol_merge3.uarb1.ua1` pin0 at κ = 0.12 (all corners) and 0.10 (c = 0 only, −18).
+    At κ ≤ 0.08 all three pass at every point corner run.
+  - seed 3: Line `arb:ucontrol_merge12.uarb2.ugrant` at κ = 0.12, c = 1 only (margin 0, strict).
+  - seed 5: Back `urig.uenv1.u` pin1 (rig environment, as in A-kapres) at κ = 0.12 (all corners,
+    −25..−95), 0.10 (all, −5..−48), 0.08 (c = 1, −2). At κ ≤ 0.06 it passes at every point run.
+  - seed 4: none.
+- **No item fails at any point corner run at κ ≤ 0.06**, on any seed.
+- **Discharged on the whole corner interval [0,1]** (a cover by cells, CornerCell.cover_mem +
+  cell_band_nat): seed 4 at κ ≤ 0.06 (after refining to 1/8). For d, 3, 5 see §3.3.
+- No structural residual item anywhere (xevents8 has none left on gcd_hw; HDsub, H_ARB, SelOK,
+  SelPart, SatPin stay hypotheses of `design_verdict8`).
 
 ## 1. `Formal/Core/Delay/CornerCell.lean` (cell_band, Mathlib)
 
@@ -60,10 +80,3 @@ executable). Until then, the sweep runs `Wip/KapRes2/BandCheckRun.lean` (`readBa
 On real data: the committed seed-d fast band file is REJECTED (20 inverted arcs), slow / indep
 accepted.
 
-## 3. Sweep (xevents8) -- see below
-
-The BRKH correction (`check_bands.py fix`: fast hull `[FAST_MIN-97k, FAST_MAX+97k]` on the
-22/7/8/2 BRKH_INT arcs of seeds d/3/4/5) touches no arc of the control skeleton
-(`check_bands.py brkh --skel`), so it cannot change an xevents8 verdict.
-Sanity: cell `[1,1]`, κ = 0 on seed d reproduces the committed `xaudit/events8/xe8_d_slow.txt`
-byte for byte.
