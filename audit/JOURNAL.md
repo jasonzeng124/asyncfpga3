@@ -231,3 +231,9 @@ default 1) -- I read it. BQ#1/#2 re-run (r12) still running.
 ### progress 07:09
 r12 in: BQ#1 and BQ#2 rebuilt (SDF md5s match) and re-run under the fixed SETUPHOLD check: 16/16, 0 violations, laps
 identical, hold margins >= 425 ps; forced violation fails the run. All three board candidates' default-GLS passes stand.
+
+### progress 07:55
+New heads: formal 3e63dc1 (+24 commits: check.sh per-file now passes -DautoImplicit=false -- read, will test; GLSPass
+withdrawn; kappa exact/tight withdrawn; Bj5 JSON; RigSrc joint witness; Necessity5, LutFbBridge, IpowCells, KleeneWin;
+Fid3 GLS table), research 072f5f9 (acceptance status). Clean build of 3e63dc1 started in ~/wt-f9 (Mathlib packages
+copied from wt-f7, same manifest). Agents: P9 (formal claims), r14 (Fid3 reproduction). Freed 5 GB of old work dirs.
