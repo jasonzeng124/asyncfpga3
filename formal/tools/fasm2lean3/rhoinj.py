@@ -48,7 +48,7 @@ def emit_check(f, name, pred, trie, d, total):
     """`theorem <name>_ok : kvAll pred trie 1 0 = true`, one `decide` per depth-SPLIT subtree."""
     s = split(d)
     for _, path, a, b in subs_of(s):
-        f.write("theorem %s_%s : kvAll (%s) %s_%s %d %d = true := by decide +kernel\n\n" % (name, path, pred, trie, path, a, b))
+        f.write("theorem ck_%s_%s : kvAll (%s) %s_%s %d %d = true := by decide +kernel\n\n" % (name, path, pred, trie, path, a, b))
     f.write("theorem %s_ok : kvAll (%s) %s 1 0 = true := by\n  unfold %s\n  exact %s\n\n" % (name, pred, trie, trie, proof(s, name)))
 
 

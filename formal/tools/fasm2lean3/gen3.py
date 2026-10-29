@@ -35,11 +35,12 @@ PRIM_IN = {
     "CARRY4": ["CI", "CYINIT", "DI", "S"],
     "FDRE": ["C", "CE", "D", "R"], "FDSE": ["C", "CE", "D", "S"],
     "FDCE": ["C", "CE", "CLR", "D"], "FDPE": ["C", "CE", "PRE", "D"],
-    "BUFG": ["I"], "INV": ["I"], "OBUF": ["I"],
+    "BUFG": ["I"], "INV": ["I"], "OBUF": ["I"], "IBUF": ["I"],
 }
 PRIM_OUT = {"LUT6_2": ["O5", "O6"], "MUXF7": ["O"], "MUXF8": ["O"], "CARRY4": ["O", "CO"],
             "FDRE": ["Q"], "FDSE": ["Q"], "FDCE": ["Q"], "FDPE": ["Q"], "BUFG": ["O"],
-            "INV": ["O"], "OBUF": ["O"]}
+            "INV": ["O"], "OBUF": ["O"], "IBUF": ["O"]}
+INPORTS = {}    # top input port -> its flattened net ids (C-11g: designs with an input pad)
 for k in range(1, 7):
     PRIM_IN["LUT%d" % k] = ["I%d" % i for i in range(k)]
     PRIM_OUT["LUT%d" % k] = ["O"]
@@ -142,6 +143,8 @@ def flatten(synth):
     for pn, p in mods[top]["ports"].items():
         if p["direction"] == "output":
             outports[pn] = [loc[b] if b not in ("0", "1") else b for b in p["bits"]]
+        elif p["direction"] == "input":
+            INPORTS[pn] = [loc[b] if b not in ("0", "1") else b for b in p["bits"]]
     return cells, outports, ctr
 
 
@@ -217,7 +220,7 @@ def logical_cell(name, t, params, conn, ctr):
         for p in BSCAN_PINS:
             if conn.get(p) and conn[p][0] not in ("0", "1") or p == "TDO":
                 c["conn"][p] = lsrc(conn[p][0])
-    elif t == "OBUF":
+    elif t in ("OBUF", "IBUF"):
         c["kind"] = None
         c["conn"]["I"] = lsrc(conn["I"][0]); c["conn"]["O"] = lsrc(conn["O"][0])
     else:
@@ -263,6 +266,7 @@ def main():
 
     lcells_raw, outports, ctr = flatten(S)
     obufs = {}
+    ibufs = {}      # C-11g: input pads; the IOB input path is read as identity (H_IBUF)
     L = {}
     for name, t, params, conn, stack, src in lcells_raw:
         c = logical_cell(name, t, params, conn, ctr)
@@ -271,6 +275,9 @@ def main():
         c["src"] = m.group(1) if m else None
         if t == "OBUF":
             obufs[c["conn"]["O"]] = c
+            continue
+        if t == "IBUF":
+            ibufs[c["conn"]["I"]] = c
             continue
         if name in L:
             die("duplicate flattened name %s" % name)
@@ -305,7 +312,7 @@ def main():
         t = v["type"]
         at = v.get("attributes", {})
         bel = at.get("NEXTPNR_BEL", "")
-        if t in ("PAD", "IOB33_OUTBUF", "PSEUDO_VCC", "PSEUDO_GND"):
+        if t in ("PAD", "IOB33_OUTBUF", "IOB33_INBUF_EN", "PSEUDO_VCC", "PSEUDO_GND"):
             continue
         site, b = bel.split("/")[0], bel.split("/")[-1]
         if t == "SLICE_LUTX":
@@ -376,6 +383,15 @@ def main():
             good.append((ppin, lpin))
         insts.append((p, l, good, False))
     matched_l = {ln for (_, ln) in pairs}
+    # input pads (C-11g): the physical net "port:<p>" (fasm2lean3: a fabric pin reached the IOB
+    # of port p) renames to the logical IBUF's output. Nothing of the kind on gcd_hw.
+    for port, bits in sorted(INPORTS.items()):
+        if "port:" + port not in pid:
+            continue
+        ib = ibufs.get(("net", bits[0]))
+        if ib is None:
+            die("input %s: read physically, but no IBUF in the logical netlist" % port)
+        rho[pid["port:" + port]] = ib["conn"]["O"]
 
     # ---- route-throughs / constants / buffers: physical outputs read by something, not yet renamed
     def renamed_ins(p):
