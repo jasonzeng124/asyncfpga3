@@ -80,7 +80,14 @@ def die(msg):
     sys.exit(1)
 
 
-def load_xray(path, corner, widen=0.0):
+INVERTED = []   # E8Mux: (kind, src, dst, lo, hi) rows read with lo > hi
+
+
+def load_xray(path, corner, widen=0.0, inverted="reject"):
+    """E8Mux (formal/notes/A-e8mux.md): a row whose band has lo > hi (prjxray FAST_MIN > FAST_MAX
+    on a few LUT pins) is REJECTED (exit 1) unless --inverted hull, which takes [min, max] of the
+    two and lists the row in the report.  Before E8Mux such a row was written as lo > hi and the
+    Lean reader Parse.toSteps narrowed it to [lo, lo]."""
     lo_c, hi_c = COLS[corner]
     ic, io = {}, collections.defaultdict(list)
     with open(path) as f:
@@ -89,6 +96,12 @@ def load_xray(path, corner, widen=0.0):
         for line in f:
             r = line.rstrip("\n").split("\t")
             band = (float(r[lo_c]) * (1 - widen), float(r[hi_c]))
+            if band[0] > band[1]:
+                if inverted != "hull":
+                    die("band lo %g > hi %g on %s %s -> %s (use --inverted hull to take [min, max])"
+                        % (band[0], band[1], r[0], r[1], r[2]))
+                INVERTED.append((r[0], r[1], r[2], band[0], band[1]))
+                band = (band[1], band[0])
             if r[0] == "IC":
                 ic[(r[1], r[2])] = band
             else:
@@ -120,6 +133,8 @@ def main():
     ap.add_argument("--corner", default="indep", choices=sorted(COLS))
     ap.add_argument("--widen", type=float, default=0.0,
                     help="lo := lo*(1-W) (precision sweep: --corner slowmax --widen W is [(1-W)*SLOW_MAX, SLOW_MAX])")
+    ap.add_argument("--inverted", choices=("reject", "hull"), default="reject",
+                    help="a prjxray row with lo > hi: reject (default, exit 1) or take the hull [min, max]")
     ap.add_argument("--sdf")
     ap.add_argument("--kappa", default="0.35,1.0",
                     help="SDF fallback band [KLO*d, KHI*d]; default 0.35 = median prjxray FAST_MIN/SLOW_MAX")
@@ -130,7 +145,7 @@ def main():
     a = ap.parse_args()
     cut_nets = set(a.cut_net if a.cut_net is not None else ["rig_rst"])
     if a.xray_arcs:
-        ic, io = load_xray(a.xray_arcs, a.corner, a.widen)
+        ic, io = load_xray(a.xray_arcs, a.corner, a.widen, a.inverted)
         src = "xray_delay.py arcs %s, corner %s, lo widened by %g" % (a.xray_arcs, a.corner, a.widen)
     elif a.sdf:
         klo, khi = map(float, a.kappa.split(","))
@@ -448,6 +463,9 @@ def main():
            "cells": out_cells, "netnames": netnames}
     json.dump({"creator": "routed2x.py", "modules": {"gcd_ctl": top}}, open(a.out, "w"))
     allb = [v for v in bands_arcs.values()]
+    for kk, vv in list(bands_cells.items()) + list(bands_arcs.items()):
+        if vv[0] > vv[1]:
+            die("emitted band %s = %s has lo > hi" % (kk, vv))
     json.dump({"comment": "per-arc bands from %s; see routed2x.py" % src, "unit_ps": U,
                "lut": [45, 124], "route": [0, max(v[1] for v in allb)],
                "cells": bands_cells, "arcs": bands_arcs}, open(a.bands, "w"))
@@ -463,6 +481,9 @@ def main():
         rep.append("  %-28s %s" % (name(b), why))
     rep.append("observed outputs into the shell (%d): %s" % (len(outs), " ".join(sorted(outs))))
     rep.append("pulled-in cells outside the prefix (%d), first 20: %s" % (len(pulled), pulled[:20]))
+    rep.append("prjxray rows with lo > hi read as the hull [min, max] (--inverted hull): %d" % len(INVERTED))
+    for r in INVERTED[:20]:
+        rep.append("  %s %s -> %s lo %.1f > hi %.1f" % r)
     rep.append("elements with lo < 1 unit (xaudit raises to 1 step): %d" % len(sub_lo))
     for k, v in sorted(sub_lo, key=lambda kv: kv[1])[:10]:
         rep.append("  %-90s lo %.1f ps" % (k[-90:], v))

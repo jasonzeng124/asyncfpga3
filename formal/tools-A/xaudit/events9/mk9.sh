@@ -5,7 +5,7 @@
 #   mk9.sh Formal/Core/XAudit/Design.lean ...      (or: mk9.sh --deps  = the Events8Main closure)
 export PATH=$HOME/.elan/bin:$PATH
 cd /home/user/asyncfpga3/formal/lean
-OL=/tmp/events9/olean
+OL=${OL:-/tmp/events9/olean}
 mkdir -p /tmp/events9/log $OL
 [ -d $OL/Formal ] || cp -rs "$PWD/.lake/build/lib/lean/Formal" $OL/
 if [ "${1:-}" = "--deps" ]; then
@@ -28,7 +28,7 @@ fi
 for f in "$@"; do
   o=$OL/${f%.lean}.olean
   mkdir -p $(dirname $o); rm -f $o ${o%.olean}.ilean
-  FORMAL_SLOT_CWD=$PWD ../slot.sh lake env sh -c 'LEAN_PATH="/tmp/events9/olean:$LEAN_PATH" exec lean -DautoImplicit=false -o "$1" "$2"' sh "$o" "$f" > /tmp/events9/log/mk_$(basename $f).log 2>&1
+  FORMAL_SLOT_CWD=$PWD ../slot.sh lake env sh -c 'LEAN_PATH="$OL:$LEAN_PATH" exec lean -DautoImplicit=false -o "$1" "$2"' sh "$o" "$f" > /tmp/events9/log/mk_$(basename $f).log 2>&1
   rc=$?
   echo "$f rc=$rc errors=$(grep -c 'error' /tmp/events9/log/mk_$(basename $f).log)"
   [ $rc = 0 ] || { head -30 /tmp/events9/log/mk_$(basename $f).log; break; }

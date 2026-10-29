@@ -1,7 +1,10 @@
 # A-xsound2: xaudit's timed verdict is sound for continuous-time transport/inertial channels (probe XSound2, shard A)
 
-STATUS: in progress (session 2026-10-29, restarted from the 2026-10-28 WIP snapshot
-Wip/_snapA; nothing claimed yet). Plan:
+STATUS: in progress (session 2026-10-29, 08:10 UTC). Checked so far (check.sh, deps in order):
+`Formal/Core/XSimChan.lean` + `Formal/Core/XAudit/SoundCells.lean` ([audit] 650 decls, OK).
+Written, being checked: `XAudit/SoundChain.lean` (W1), `XAudit/SoundSteps.lean`; written, waiting
+for Mathlib: `XSimChanReal.lean`. Finding: inertial filtering is NOT "only fewer behaviours"
+than transport (A-xaudit.md fidelity row is wrong), see `XSimChan.InertialCex`. Plan:
 1. `Formal/Core/XSimChan.lean` (Mathlib-free): XSim soundness for an ARBITRARY time type
    with a cell map `c : τ → ℕ` (abstract step k covers every instant of cell k), for any
    channel satisfying the step-level property `ChanCells`.

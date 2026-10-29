@@ -1,5 +1,5 @@
 import Formal.Core.Kleene
-import Formal.Core.Prims.Xray
+import Formal.Core.Prims.XrayData
 
 /-!
 # Formal.Core.Prims.Muxf — MUXF7 / MUXF8 as the slice's 2:1 pass-transistor mux
@@ -18,9 +18,9 @@ and one `F8MUX` (over the two F7 outputs), each `O = S ? I1 : I0`
   `1` passes `I1`, and a select that is `X` (mid-rail, in transit) passes the
   common value when `I0 = I1` and gives `X` otherwise (`K3.merge`). This is the
   same node as Core's LUT `kevalT` and shard C's `Formal.Net.CoreLut.kmux`
-  (equality checked in `Formal.Core.Prims.GenCheck`).
+  (equality with shard C's model checked in `Formal.Core.Prims.GenCheck`).
 * timing: **per-pin transport** arcs `I0 -> O`, `I1 -> O`, `S -> O` from
-  prjxray-db (`Xray.f7amux`, `f7bmux`, `f8mux`), one band per arc for both edges
+  prjxray-db (`XrayData.selmux st fm`, generated), one band per arc for both edges
   (prjxray has no rise/fall split), corners never mixed. `MuxTimed.H` asks the
   output to be at least as defined as `mux2` of the three pins, each delayed by
   its own arc; `MuxTimed.exact` is the instance where it is equal (pure transport
@@ -46,7 +46,7 @@ and one `F8MUX` (over the two F7 outputs), each `O = S ? I1 : I0`
   deselected data pin I0 changes at the same pin instant. Then for EVERY
   admissible delay pair of F7AMUX, F7BMUX or F8MUX at EITHER corner, the output
   shows the wrong value on `[d0, dS)`, which is never empty because prjxray's select arc
-  is always slower than its data arcs (`Xray.sel_slowest`). The mirror case
+  is always slower than its data arcs (`sel_slowest`, all six SLICEL/SLICEM muxes). The mirror case
   (`late_select_no_glitch`: the newly selected pin changes with S) never glitches
   at any admissible delays.
 * MUXF8 tree (two MUXF7 under one MUXF8, as yosys maps an 8:1 mux, see shard C's
@@ -68,8 +68,9 @@ and one `F8MUX` (over the two F7 outputs), each `O = S ? I1 : I0`
 
 Slews, charge sharing, metastable select dwell (any select waveform is allowed;
 only the output's soundness is assumed), the routing into and out of the mux
-(the routing-BEL arcs `a6lut -> f7amux` etc. are in prjxray as separate
-`ROUTING_BEL` entries, 9-24 ps; they are wires and belong to the wire model).
+(the routing-BEL arcs `a6lut -> f7amux` etc. are separate prjxray `ROUTING_BEL`
+entries, 9-24 ps, `XrayData.f7Hop`; they add to the data arcs and are charged in
+`Formal.Core.Prims.Hops`, not here).
 -/
 
 namespace Formal.Core.Prims
@@ -142,20 +143,18 @@ theorem aoMux_hazard :
 
 /-! ## Timed model: per-pin transport arcs -/
 
-/-- Time in ps. -/
-abbrev Time := Int
-
-/-- A 3-valued waveform. -/
-abbrev Wave := Time → K3
+/-- A 3-valued waveform over integer time (ps). (Plain `Int`, not an abbreviation:
+`omega` does not see through one.) -/
+abbrev Wave := Int → K3
 
 /-- A timed slice mux: pin waveforms, the three arc delays, and the output. -/
 structure MuxTimed where
   i0 : Wave
   i1 : Wave
   s : Wave
-  d0 : Time
-  d1 : Time
-  dS : Time
+  d0 : Int
+  d1 : Int
+  dS : Int
   y : Wave
 
 namespace MuxTimed
@@ -168,10 +167,10 @@ def H : Prop :=
   ∀ τ, mux2 (M.s (τ - M.dS)) (M.i0 (τ - M.d0)) (M.i1 (τ - M.d1)) ⊑ M.y τ
 
 /-- The exact instance: the output IS the Kleene mux of the delayed pins. -/
-def exact (i0 i1 s : Wave) (d0 d1 dS : Time) : MuxTimed :=
+def exact (i0 i1 s : Wave) (d0 d1 dS : Int) : MuxTimed :=
   ⟨i0, i1, s, d0, d1, dS, fun τ => mux2 (s (τ - dS)) (i0 (τ - d0)) (i1 (τ - d1))⟩
 
-theorem exact_H (i0 i1 s : Wave) (d0 d1 dS : Time) : (exact i0 i1 s d0 d1 dS).H :=
+theorem exact_H (i0 i1 s : Wave) (d0 d1 dS : Int) : (exact i0 i1 s d0 d1 dS).H :=
   fun _ => le_refl _
 
 /-- A static `K3` value abstracts a waveform: the waveform is always at least as
@@ -185,12 +184,12 @@ theorem abs_const (b : Bool) : Abs (ofBool b) (fun _ => ofBool b) := fun _ => le
 /-- Soundness for ANY delays: every instant is at least as defined as the static
 Kleene mux of the pins' abstractions. -/
 theorem sound (h : M.H) {v0 v1 vs : K3} (h0 : Abs v0 M.i0) (h1 : Abs v1 M.i1)
-    (hs : Abs vs M.s) (τ : Time) : mux2 vs v0 v1 ⊑ M.y τ :=
+    (hs : Abs vs M.s) (τ : Int) : mux2 vs v0 v1 ⊑ M.y τ :=
   le_trans (mux2_mono (hs _) (h0 _) (h1 _)) (h τ)
 
 /-- A defined static value forces the output, at every instant. -/
 theorem forced (h : M.H) {v0 v1 vs : K3} (h0 : Abs v0 M.i0) (h1 : Abs v1 M.i1)
-    (hs : Abs vs M.s) {c : Bool} (hc : mux2 vs v0 v1 = ofBool c) (τ : Time) :
+    (hs : Abs vs M.s) {c : Bool} (hc : mux2 vs v0 v1 = ofBool c) (τ : Int) :
     M.y τ = ofBool c := by
   have := M.sound h h0 h1 hs τ
   rw [hc] at this
@@ -199,7 +198,7 @@ theorem forced (h : M.H) {v0 v1 vs : K3} (h0 : Abs v0 M.i0) (h1 : Abs v1 M.i1)
 /-- **Select change, equal data: no glitch, for any delays.** The select may do
 anything (switch either way, dwell mid-rail, ring); `I0 = I1 = c` throughout. -/
 theorem sel_change_glitch_free (h : M.H) (c : Bool) (h0 : ∀ τ, M.i0 τ = ofBool c)
-    (h1 : ∀ τ, M.i1 τ = ofBool c) (τ : Time) : M.y τ = ofBool c :=
+    (h1 : ∀ τ, M.i1 τ = ofBool c) (τ : Int) : M.y τ = ofBool c :=
   M.forced h (v0 := ofBool c) (v1 := ofBool c) (vs := .X)
     (fun τ => by rw [h0]; exact le_refl _) (fun τ => by rw [h1]; exact le_refl _)
     (abs_X _) (by cases c <;> rfl) τ
@@ -207,7 +206,7 @@ theorem sel_change_glitch_free (h : M.H) (c : Bool) (h0 : ∀ τ, M.i0 τ = ofBo
 /-- The deselected data pin may do anything: the output follows nothing but the
 selected one. -/
 theorem unselected_glitch_free (h : M.H) (c : Bool) (hs : ∀ τ, M.s τ = .zero)
-    (h0 : ∀ τ, M.i0 τ = ofBool c) (τ : Time) : M.y τ = ofBool c :=
+    (h0 : ∀ τ, M.i0 τ = ofBool c) (τ : Int) : M.y τ = ofBool c :=
   M.forced h (v0 := ofBool c) (v1 := .X) (vs := .zero)
     (fun τ => by rw [h0]; exact le_refl _) (abs_X _)
     (fun τ => by rw [hs]; exact le_refl _) rfl τ
@@ -215,7 +214,7 @@ theorem unselected_glitch_free (h : M.H) (c : Bool) (hs : ∀ τ, M.s τ = .zero
 /-- `K3` abstraction of a single-input change `old → new` of one pin. -/
 def hull (a b : Bool) : K3 := if a = b then ofBool a else .X
 
-theorem abs_hull {a b : Bool} {w : Wave} (hw : ∀ τ, w τ = ofBool a ∨ w τ = ofBool b ∨ w τ = .X)
+theorem abs_hull {a b : Bool} {w : Wave} (_hw : ∀ τ, w τ = ofBool a ∨ w τ = ofBool b ∨ w τ = .X)
     (hab : a = b → ∀ τ, w τ = ofBool a) : Abs (hull a b) w := by
   intro τ
   unfold hull
@@ -238,7 +237,7 @@ theorem sic_glitch_free (h : M.H) (s a b s' a' b' : Bool)
     (hone : (s = s' ∧ a = a') ∨ (s = s' ∧ b = b') ∨ (a = a' ∧ b = b'))
     (hsame : bmux s a b = bmux s' a' b')
     (hS : Abs (hull s s') M.s) (h0 : Abs (hull a a') M.i0) (h1 : Abs (hull b b') M.i1)
-    (τ : Time) : M.y τ = ofBool (bmux s a b) :=
+    (τ : Int) : M.y τ = ofBool (bmux s a b) :=
   M.forced h h0 h1 hS (mux2_sic s a b s' a' b' hone hsame) τ
 
 end MuxTimed
@@ -246,13 +245,13 @@ end MuxTimed
 /-! ## The hazard: data first -/
 
 /-- A pin that steps from `a` to `b` at pin time `t`. -/
-def step (a b : Bool) (t : Time) : Wave := fun τ => if τ < t then ofBool a else ofBool b
+def step (a b : Bool) (t : Int) : Wave := fun τ => if τ < t then ofBool a else ofBool b
 
 /-- **Proved glitch trace.** I1 holds `v`; S rises (deselecting I0) and I0 changes
 `v → ¬v`, both at pin time 0. Old and new outputs are both `v`, but the static
 abstraction (S = X, I0 = X) is `X`, and in the exact per-pin transport model the
 output shows `¬v` on the whole interval `[d0, dS)`. -/
-theorem data_first_glitch (v : Bool) (d0 d1 dS : Time) (h : d0 < dS) :
+theorem data_first_glitch (v : Bool) (d0 d1 dS : Int) (h : d0 < dS) :
     let M := MuxTimed.exact (step v (!v) 0) (fun _ => ofBool v) (step false true 0) d0 d1 dS
     mux2 .X .X (ofBool v) = .X ∧
     (∀ τ, τ < d0 → M.y τ = ofBool v) ∧
@@ -272,27 +271,45 @@ theorem data_first_glitch (v : Bool) (d0 d1 dS : Time) (h : d0 < dS) :
     have e2 : ¬ τ - dS < 0 := by omega
     simp [MuxTimed.exact, step, e2, mux2]
 
-/-- With prjxray's arcs this glitch is unavoidable: for F7AMUX, F7BMUX and F8MUX,
-at either corner, EVERY admissible pair `(d0, dS)` has `d0 < dS`, so the glitch
-of `data_first_glitch` is at least `S.lo - I0.hi` wide (≥ 18 ps fast,
-≥ 32 ps slow on F7AMUX). -/
-theorem data_first_glitch_xray (m : MuxArcs) (hm : m = f7amux ∨ m = f7bmux ∨ m = f8mux)
-    (c : Corner) (d0 dS : Time) (h0 : m.i0.In c d0) (hS : m.s.In c dS) :
-    m.s.lo c - m.i0.hi c ≤ dS - d0 ∧ 0 < dS - d0 := by
-  have := (sel_slowest m hm c).1
+/-- In every slice mux (F7AMUX, F7BMUX, F8MUX of SLICEL and SLICEM), at both
+corners, the select arc is the slowest: its minimum exceeds both data arcs' maxima. -/
+theorem sel_slowest (st : SiteType) (fm : FMux) (c : Corner) :
+    (selmux st fm).i0.hi c < (selmux st fm).s.lo c ∧
+    (selmux st fm).i1.hi c < (selmux st fm).s.lo c := by
+  cases st <;> cases fm <;> cases c <;> decide
+
+/-- Every generated mux band is well formed. -/
+theorem selmux_ok : ∀ st fm, ((selmux st fm).i0.ok && (selmux st fm).i1.ok &&
+    (selmux st fm).s.ok) = true := by
+  intro st fm; cases st <;> cases fm <;> decide
+
+/-- With prjxray's arcs this glitch is unavoidable: for every slice mux, at
+either corner, EVERY admissible pair `(d0, dS)` has `d0 < dS`, so the glitch of
+`data_first_glitch` is at least `S.lo - I0.hi` wide. -/
+theorem data_first_glitch_xray (st : SiteType) (fm : FMux) (c : Corner) (d0 dS : Int)
+    (h0 : (selmux st fm).i0.In c d0) (hS : (selmux st fm).s.In c dS) :
+    (selmux st fm).s.lo c - (selmux st fm).i0.hi c ≤ dS - d0 ∧ 0 < dS - d0 := by
+  have := (sel_slowest st fm c).1
   obtain ⟨_, h0'⟩ := h0
   obtain ⟨hS', _⟩ := hS
   omega
 
-theorem f7amux_glitch_width :
-    f7amux.s.lo .fast - f7amux.i0.hi .fast = 18 ∧ f7amux.s.lo .slow - f7amux.i0.hi .slow = 32 := by
-  decide
+/-- The guaranteed glitch widths (`S.lo - I0.hi`), ps: SLICEL F7AMUX 18 fast / 32 slow;
+the smallest over all six muxes is 16 (fast; SLICEL and SLICEM F7BMUX) and 22 (slow;
+SLICEL F7BMUX). (The mirror case, S falling while I1 changes, has `S.lo - I1.hi`,
+as small as 12 fast / 16 slow on SLICEL F7BMUX; not stated as a theorem here.) -/
+theorem glitch_width_table :
+    (selmux .slicel .f7a).s.lo .fast - (selmux .slicel .f7a).i0.hi .fast = 18 ∧
+    (selmux .slicel .f7a).s.lo .slow - (selmux .slicel .f7a).i0.hi .slow = 32 ∧
+    (∀ st fm, 16 ≤ (selmux st fm).s.lo .fast - (selmux st fm).i0.hi .fast) ∧
+    (∀ st fm, 22 ≤ (selmux st fm).s.lo .slow - (selmux st fm).i0.hi .slow) := by
+  refine ⟨by decide, by decide, ?_, ?_⟩ <;> intro st fm <;> cases st <;> cases fm <;> decide
 
 /-- The mirror case does not glitch at prjxray delays: S rises and the newly
 selected pin I1 changes `¬v → v`, both at pin time 0, I0 holds `v`. Whenever
-`d1 < dS` (true for every admissible pair, `Xray.sel_slowest`), the output is `v`
+`d1 < dS` (true for every admissible pair, `sel_slowest`), the output is `v`
 throughout. -/
-theorem late_select_no_glitch (v : Bool) (d0 d1 dS : Time) (h : d1 < dS) (τ : Time) :
+theorem late_select_no_glitch (v : Bool) (d0 d1 dS : Int) (h : d1 < dS) (τ : Int) :
     (MuxTimed.exact (fun _ => ofBool v) (step (!v) v 0) (step false true 0) d0 d1 dS).y τ =
       ofBool v := by
   by_cases e2 : τ - dS < 0
@@ -326,7 +343,7 @@ theorem sound (F : F8Timed) (ha : F.ma.H) (hb : F.mb.H) (h8 : F.m8.H)
     {vs8 vsa vsb va vb vc vd : K3}
     (hs8 : Abs vs8 F.m8.s) (hsa : Abs vsa F.ma.s) (hsb : Abs vsb F.mb.s)
     (hA : Abs va F.ma.i0) (hB : Abs vb F.ma.i1) (hC : Abs vc F.mb.i0) (hD : Abs vd F.mb.i1)
-    (τ : Time) : mux4K vs8 vsa vsb va vb vc vd ⊑ F.m8.y τ := by
+    (τ : Int) : mux4K vs8 vsa vsb va vb vc vd ⊑ F.m8.y τ := by
   have h0 : Abs (mux2 vsa va vb) F.m8.i0 := fun τ => by
     rw [F.wa]; exact F.ma.sound ha hA hB hsa τ
   have h1 : Abs (mux2 vsb vc vd) F.m8.i1 := fun τ => by
@@ -358,7 +375,7 @@ theorem sic_glitch_free (F : F8Timed) (ha : F.ma.H) (hb : F.mb.H) (h8 : F.m8.H)
     (hs8 : Abs (hull s8 s8') F.m8.s) (hsa : Abs (hull sa sa') F.ma.s)
     (hsb : Abs (hull sb sb') F.mb.s)
     (hA : Abs (hull a a') F.ma.i0) (hB : Abs (hull b b') F.ma.i1)
-    (hC : Abs (hull c c') F.mb.i0) (hD : Abs (hull d d') F.mb.i1) (τ : Time) :
+    (hC : Abs (hull c c') F.mb.i0) (hD : Abs (hull d d') F.mb.i1) (τ : Int) :
     F.m8.y τ = ofBool (bmux4 s8 sa sb a b c d) := by
   have := F.sound ha hb h8 hs8 hsa hsb hA hB hC hD τ
   rw [mux4K_sic s8 sa sb a b c d s8' sa' sb' a' b' c' d' hone hsame] at this

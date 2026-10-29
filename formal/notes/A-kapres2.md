@@ -12,3 +12,13 @@ Plan (this session):
 
 Previous session's substance kept: the committed FAST band files have lo > hi on 2-20 arcs per
 seed (prjxray-db BRKH_INT pips with FAST_MIN > FAST_MAX); `Parse.toSteps` reads them as [lo, lo].
+
+## Progress (2026-10-29)
+- BandCheck.lean: `readBands` (rejecting reader) + spec written; compiles clean against the
+  private overlay (lean -DautoImplicit=false). `Wip/KapRes2/BandCheckRun.lean` (readBands on files):
+  seed d slow and indep files OK, committed fast file REJECTED (20 inverted arcs) as expected.
+- Overlay of the committed xevents8 chain built (tools-A/kappa/kapres2/mk.sh). Sanity: cell [1,1],
+  κ = 0 on seed d reproduces the committed `xaudit/events8/xe8_d_slow.txt` byte for byte.
+- BRKH-corrected fast bands: 22/7/8/2 arcs (d/3/4/5); none of them is in the control skeleton
+  (check_bands.py brkh --skel), so the fix cannot change any xevents8 verdict.
+- Sweep running (κ 0.12 … 0, init 8 cells, finest 1/32).

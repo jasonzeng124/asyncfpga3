@@ -12,12 +12,22 @@ silent behaviours on bad input:
   with no flag. The committed FAST band files have such bands on 2–20 arcs per gcd_hw seed
   (prjxray-db's BRKH_INT pips have FAST_MIN > FAST_MAX, `formal/notes/A-kapres2.md`).
 
-`jsonBandsOK` is a decidable check on the raw JSON that rejects both. This file proves what
-passing it guarantees (`checked_complete`, `checked_ordered`, `checked_steps`): every entry of
-the file is read, with exactly the file's band (only `lo = 0` is changed, to 1, and that is
-flagged, as before). The committed executables do not call it (they are shared modules this
-probe does not edit); the same check runs as `kapres2/check_bands.py check` in front of them,
-and the lead may wire `jsonBandsOK` into `Parse` / the `run` functions (notes, "For the lead").
+`jsonBandsOK` is a decidable check on the raw JSON that rejects both, and `readBands` is the
+band reader behind it (`parseBands` if the check passes, an error naming every violation
+otherwise). Proved:
+* `readBands_ok_iff`: it accepts exactly the checked files and then returns `parseBands j`;
+* `readBands_spec` (from `checked_complete`, `checked_ordered`, `checked_steps`): on an accepted
+  file every entry is read, with exactly the file's band (only `lo = 0` is changed, to 1, and
+  that is flagged, as before); no band is narrowed;
+* `readBands_rejects_entry`, `readBands_rejects_field`: a `cells`/`arcs` entry or summary field
+  with `lo > hi`, or not two naturals, makes it return an error;
+* `invertedFile_control` (negative control): on a file with one `[202, 105]` arc, `parseBands`
+  keeps the arc and `toSteps` narrows it to `[202, 202]` unflagged, `readBands` rejects it.
+
+The committed executables (`Events*Main`) still call `parseBands` (they are modules this probe
+does not own). The KapRes2 sweep runs `readBands` on every band file it feeds them
+(`formal/lean/Wip/KapRes2/BandCheckRun.lean`) and the mirror `kapres2/check_bands.py check`; the
+lead may switch the `run` functions to `readBands` (one line each).
 
 TRUSTED, as `Parse` is: that `Lean.Json`'s parser reads the file's text faithfully.
 NOT covered: whether the numbers in the file are right (that is the data's provenance).
@@ -260,5 +270,103 @@ theorem checked_steps {j : Json} (h : jsonBandsOK j = true) :
   simp only at h0 ⊢
   subst h0
   exact toSteps_zero
+
+/-! ## The rejecting reader -/
+
+/-- **The checked band reader**: `Parse.parseBands` behind the check. It returns the parsed
+bands exactly when the file passes `jsonBandsOK`, and otherwise an error naming every
+violation. -/
+def readBands (j : Json) : Except String Bands :=
+  if jsonBandsOK j then .ok (parseBands j)
+  else .error s!"band file rejected (lo > hi or not two naturals): {violations j}"
+
+/-- Spec, acceptance: `readBands` accepts exactly the checked files, and what it returns is
+`parseBands`' reading (so every theorem about `parseBands` applies unchanged). -/
+theorem readBands_ok_iff {j : Json} {B : Bands} :
+    readBands j = .ok B ↔ jsonBandsOK j = true ∧ B = parseBands j := by
+  unfold readBands
+  by_cases h : jsonBandsOK j = true
+  · simp only [h, ite_true, true_and]
+    constructor
+    · intro e; cases e; rfl
+    · intro e; rw [e]
+  · simp only [h, Bool.false_eq_true, ite_false, false_and, iff_false]
+    intro e; cases e
+
+/-- Spec, what an accepted file gives: every raw `cells`/`arcs` entry is read with its own
+band, every band read has `lo ≤ hi`, and the step bands are the file's bands (only `lo = 0`
+changed, flagged). -/
+theorem readBands_spec {j : Json} {B : Bands} (h : readBands j = .ok B) :
+    (∀ kv ∈ rawSec j "cells", ∃ b, pairOf kv.2 = some b ∧ (kv.1, b) ∈ B.cells) ∧
+    (∀ kv ∈ rawSec j "arcs", ∃ b, pairOf kv.2 = some b ∧ (kv.1, b) ∈ B.arcs) ∧
+    (∀ kb ∈ B.cells, kb.2.1 ≤ kb.2.2) ∧ (∀ kb ∈ B.arcs, kb.2.1 ≤ kb.2.2) ∧
+    B.lut.1 ≤ B.lut.2 ∧ B.route.1 ≤ B.route.2 ∧ B.pad.1 ≤ B.pad.2 ∧
+    (∀ b, B.feedback = some b → b.1 ≤ b.2) ∧
+    (∀ kb ∈ B.cells ++ B.arcs,
+      (1 ≤ kb.2.1 → toSteps 1 kb.2 = (kb.2.1, kb.2.2, false)) ∧
+      (kb.2.1 = 0 → toSteps 1 kb.2 = (1, max 1 kb.2.2, true))) := by
+  obtain ⟨hok, rfl⟩ := readBands_ok_iff.mp h
+  obtain ⟨c1, c2⟩ := checked_complete hok
+  obtain ⟨o1, o2, o3, o4, o5, o6⟩ := checked_ordered hok
+  exact ⟨c1, c2, o1, o2, o3, o4, o5, o6, checked_steps hok⟩
+
+/-- An entry the reader would narrow (`lo > hi`) or drop (not two naturals) fails `entryOK`. -/
+theorem readBands_of_false {j : Json} (hj : jsonBandsOK j = false) :
+    ∃ e, readBands j = .error e := by
+  unfold readBands; rw [hj]; exact ⟨_, rfl⟩
+
+theorem entryOK_false_of_inverted {v : Json} {lo hi : Nat} (hp : pairOf v = some (lo, hi))
+    (h : hi < lo) : entryOK v = false := by
+  unfold entryOK; rw [hp]; simp [bandOK]; omega
+
+theorem sectionOK_false {j : Json} {k : String} {kv : String × Json} (hm : kv ∈ rawSec j k)
+    (hb : entryOK kv.2 = false) : sectionOK j k = false := by
+  cases h : sectionOK j k with
+  | false => rfl
+  | true => have := sectionOK_entries h kv hm; rw [hb] at this; cases this
+
+/-- **Spec, rejection (cells/arcs).** If some `cells` or `arcs` entry of the file is a band
+with `lo > hi`, or is not a pair of naturals, `readBands` returns an error. -/
+theorem readBands_rejects_entry {j : Json} {k : String} (hk : k = "cells" ∨ k = "arcs")
+    {kv : String × Json} (hm : kv ∈ rawSec j k)
+    (hbad : (∃ lo hi, pairOf kv.2 = some (lo, hi) ∧ hi < lo) ∨ pairOf kv.2 = none) :
+    ∃ e, readBands j = .error e := by
+  have hb : entryOK kv.2 = false := by
+    rcases hbad with ⟨lo, hi, hp, hlt⟩ | hn
+    · exact entryOK_false_of_inverted hp hlt
+    · unfold entryOK; rw [hn]
+  have hs := sectionOK_false hm hb
+  have hj : jsonBandsOK j = false := by
+    unfold jsonBandsOK
+    rcases hk with rfl | rfl <;> simp [hs]
+  exact readBands_of_false hj
+
+/-- **Spec, rejection (summary fields).** An inverted or malformed `lut` / `route` /
+`feedback` / `pad_steps` field is rejected too. -/
+theorem readBands_rejects_field {j : Json} {k : String}
+    (hk : k = "lut" ∨ k = "route" ∨ k = "feedback" ∨ k = "pad_steps") {v : Json}
+    (hv : jget j k = some v) (hb : entryOK v = false) : ∃ e, readBands j = .error e := by
+  have hf : fieldOK j k = false := by unfold fieldOK; rw [hv]; exact hb
+  have hj : jsonBandsOK j = false := by
+    unfold jsonBandsOK
+    rcases hk with rfl | rfl | rfl | rfl <;> simp [hf]
+  exact readBands_of_false hj
+
+/-! ## Negative control: the plain reader narrows, the checked one rejects -/
+
+/-- A band file with one inverted arc band `[202, 105]` (the BRKH_INT shape). -/
+def invertedFile : Json :=
+  Json.mkObj [("arcs", Json.mkObj [("a", Json.arr #[(202 : Nat), (105 : Nat)])])]
+
+/-- The plain reader keeps the inverted arc and `toSteps` narrows it to `[202, 202]` with no
+flag; the checked reader rejects the file. -/
+theorem invertedFile_control :
+    (parseBands invertedFile).arcs = [("a", (202, 105))] ∧
+    toSteps 1 (202, 105) = (202, 202, false) ∧
+    (∃ e, readBands invertedFile = .error e) := by
+  have hraw : rawSec invertedFile "arcs" = [("a", Json.arr #[(202 : Nat), (105 : Nat)])] := rfl
+  refine ⟨rfl, by decide, ?_⟩
+  exact readBands_rejects_entry (k := "arcs") (Or.inr rfl) (kv := ("a", Json.arr #[(202 : Nat), (105 : Nat)]))
+    (by rw [hraw]; exact List.mem_singleton.mpr rfl) (Or.inl ⟨202, 105, rfl, by decide⟩)
 
 end Formal.Core.XAudit.BandCheck

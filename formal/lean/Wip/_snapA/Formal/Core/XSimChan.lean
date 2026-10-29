@@ -39,6 +39,7 @@ namespace Formal.Core.XSimChan
 
 open Formal.Core K3
 open Formal.Core.XSim
+open Formal.Core.TraceDiscrete (Sig delay)
 
 section Gen
 variable {τ : Type} {n : Nat}
@@ -146,5 +147,114 @@ theorem sound_of_cells {n : Nat} (gs : List (LGate n)) (u : Fin n → Nat → K3
     ∀ t w, val gs u a0 t w ⊑ ofBool (x w t) :=
   sound_cells gs u a0 id hlo x (fun g hg => chanCells_of_winCh (hsat g hg)) hin
     (fun g hg t ht => by simp only [id] at ht; subst ht; exact h0 g hg)
+
+
+/-! ## Inertial channels: covered with a widened band, NOT with their edge delay
+
+Discrete-time (Mathlib-free) instance of the inertial question. The Core
+discrete inertial filter `TraceDiscrete.inertial r` (Verilog default inertial:
+reject width = delay) copies the input once it has held for the last `r + 1`
+samples; `delay d` after it gives a channel whose surviving edges all arrive
+exactly `d + r` steps late (`dinertial_passes`).
+
+* `dinertial_chanCells`: the channel `delay d ∘ inertial r` is a `ChanCells id`
+  channel with the WIDENED band `[d, d + r]` (lower bound the pure part, upper
+  bound edge delay; the rejection window is folded into the abstract window).
+  So `sound_cells` covers it with that band.
+* `InertialCex`: with the band equal to its edge delay `[d + r, d + r]` it is
+  NOT covered: one buffer, a 1-step input pulse, `r = 2`, `d = 1`. The abstract
+  simulation prints `1` at step 8 while the inertial behaviour is `0` there
+  (`cex_unsound`). The rejection window (`r + 1 = 3` samples) is wider than the
+  abstract window (`hi - lo + 1 = 1` step). Inertial filtering does NOT only
+  remove transport behaviours: it holds an old value, which no transport
+  channel with the same band can.
+-/
+
+section DInertial
+open Formal.Core.TraceDiscrete (inertial stab stab_iff pulse inertial_filters inertial_passes)
+
+theorem inertial_of_stab {r t : Nat} {e : Sig} (h : stab e r t = true) : inertial r e t = e t := by
+  cases t with
+  | zero => rfl
+  | succ t => simp only [inertial, h, ite_true]
+
+/-- **Inertial is covered with the widened band `[d, d + r]`.** -/
+theorem dinertial_chanCells (d r : Nat) (e : Sig) :
+    ChanCells id d (d + r) e (delay d (inertial r e)) := by
+  intro k _ v he t ht
+  simp only [id] at ht
+  have hs : ∀ j, j ≤ r → e (t - d - j) = v := fun j hj => he _ (by simp only [id]; omega)
+    (by simp only [id]; omega)
+  have hst : stab e r (t - d) = true :=
+    stab_iff.2 (fun j hj => by rw [hs j hj, ← hs 0 (Nat.zero_le _), Nat.sub_zero])
+  show inertial r e (t - d) = v
+  rw [inertial_of_stab hst, ← Nat.sub_zero (t - d)]
+  exact hs 0 (Nat.zero_le _)
+
+/-- Edges of pulses wider than `r` arrive exactly `d + r` steps late. -/
+theorem dinertial_passes {d r p w : Nat} {a : Bool} (hp : 1 ≤ p) (hw : r < w) :
+    ∀ t, delay d (inertial r (pulse a p w)) t = pulse a (p + r + d) w t := by
+  intro t
+  simp only [delay]
+  rw [inertial_passes hp hw]
+  simp only [pulse]
+  repeat' split
+  all_goals first | rfl | omega
+
+end DInertial
+
+namespace InertialCex
+open Formal.Core.TraceDiscrete (inertial pulse inertial_filters)
+
+/-- One routed buffer `0 → 1` whose band is the inertial edge delay `[3, 3]`. -/
+def g : LGate 2 :=
+  { k := 1, lut := Init.delay_buf, ins := fun _ => 0, out := 1, lo := 3, hi := 3 }
+
+def net : List (LGate 2) := [g]
+
+/-- The input: `1` at step 5 only. -/
+def e : Sig := pulse false 5 1
+
+def u : Fin 2 → Nat → K3 := fun _ t => ofBool (e t)
+
+/-- The inertial behaviour: `d = 1`, `r = 2` (edge delay 3). -/
+def x : Fin 2 → Nat → Bool := fun w => if w = 0 then e else delay 1 (inertial 2 e)
+
+theorem excT_g : excT g x = e := by
+  funext t
+  show Init.delay_buf.eval (fun _ => e t) = e t
+  cases h : e t <;> rfl
+
+/-- The output is the inertial channel `delay 1 ∘ inertial 2` of the excitation. -/
+theorem x_out : x g.out = delay 1 (inertial 2 (excT g x)) := by
+  rw [excT_g]; rfl
+
+/-- The pulse is filtered: the output is `0` at every step. -/
+theorem x_out_zero (t : Nat) : x 1 t = false := by
+  show delay 1 (inertial 2 e) t = false
+  simp only [delay]
+  exact inertial_filters (by decide) (by decide) _
+
+/-- The abstract simulation prints `1` at step 8 for the output. -/
+theorem val_8 : val net u (fun _ => X) 8 1 = one := by decide
+
+/-- **Not covered.** The behaviour satisfies every other hypothesis of
+`sound_cells` (`c = id`, `lo = 3 ≥ 1`, inputs exact, all-X power-up), its
+gate is `delay 1 ∘ inertial 2`, which delays every surviving edge by exactly 3
+(`dinertial_passes`), yet the abstract value `1` does not cover the concrete
+`0`. So `ChanCells id 3 3` fails for it, and soundness fails. -/
+theorem cex_unsound : ¬ (val net u (fun _ => X) 8 1 ⊑ ofBool (x 1 8)) := by
+  rw [val_8, x_out_zero]; decide
+
+theorem cex_not_chanCells : ¬ ChanCells id g.lo g.hi (excT g x) (x g.out) := by
+  intro h
+  have := h 8 (by decide) true (fun s h1 h2 => by
+    rw [excT_g]; simp only [id, g] at h1 h2
+    have : s = 5 := by omega
+    subst this; rfl) 8 rfl
+  rw [show g.out = 1 from rfl, x_out_zero] at this
+  exact Bool.noConfusion this
+
+end InertialCex
 
 end Formal.Core.XSimChan

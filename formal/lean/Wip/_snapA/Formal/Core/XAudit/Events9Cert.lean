@@ -125,10 +125,10 @@ theorem first_reach_two_tok_neg :
     rcases (show u = 0 ∨ u = 1 ∨ 2 ≤ u by omega) with h | h | h
     · subst h; simp
     · subst h; simp [f2]
-    · rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), f3]
+    · rw [if_neg (by omega), if_neg (by omega), if_neg (by omega), f3]; omega
   · intro v; simp only [Dc, Sc]; split <;> split <;> (try split) <;> omega
   · intro h; have := h 1; simp [Dc, Sc] at this
-  · simp only [fb, Dc, A, σ]; rw [t2]; decide
+  · simp only [fb, Dc, A, σ]; decide
 
 /-- NEGATIVE CONTROL (why HDsub is not a count fact at one time; A-events8's finding):
 counts at ONE time that satisfy `w1` (`t1 = 0`), the other arm's U-bound and even the
@@ -204,8 +204,7 @@ theorem dsub9_sound {J : Array Jd} (hJ : AllH x J) (a xm S ab : Nat) (arms : Lis
             let XM : Fin N := ⟨xm, h⟩
             let AB : Fin (net.ar XM) := ⟨ab, hab⟩
             let lab : Fin (net.ar XM) → Lab := fun i => labA arms i.val
-            let d1 := J[w1].d
-            let σ : Nat → Nat := fun u => x.F XM (u - d1)
+            let σ : Nat → Nat := fun u => x.F XM (u - J[w1].d)
             let A : Nat → Nat := fun s => x.P XM AB s
             let O : Nat → Nat := fun s => fsum (net.ar XM) (fun i => if i = AB then 0 else x.P XM i s)
             let R : Nat → Nat := fun n => fsum (net.ar XM) (fun i => if i = AB then 0 else
@@ -215,9 +214,9 @@ theorem dsub9_sound {J : Array Jd} (hJ : AllH x J) (a xm S ab : Nat) (arms : Lis
               (Mn_zero x a) (fun _ _ hac => Mn_mono x a hac)
               (fun u hu => by
                 simp only [σ]
-                rcases Nat.eq_zero_or_pos (u - d1) with h0 | h0
+                rcases Nat.eq_zero_or_pos (u - J[w1].d) with h0 | h0
                 · rw [h0, x.F_zero]; omega
-                · have := x.F_lt XM (u - d1) h0; omega)
+                · have := x.F_lt XM (u - J[w1].d) h0; omega)
               (fun a c hac => (x.wF XM).mono _ _ (by omega))
               (fun a c hac => x.P_mono XM AB hac)
               (fun a c hac => fsum_mono _ _ _ (fun i => by
@@ -230,11 +229,11 @@ theorem dsub9_sound {J : Array Jd} (hJ : AllH x J) (a xm S ab : Nat) (arms : Lis
                 simp only [fb, R]; omega)
               (fun u => by
                 have hw := hw1 u
-                rcases Nat.eq_zero_or_pos (u - d1) with hv0 | hv1
+                rcases Nat.eq_zero_or_pos (u - J[w1].d) with hv0 | hv1
                 · rw [hv0, Mn_zero] at hw; omega
-                · have hMn : Mn x (u - d1) xm = x.M (u - d1) XM := Mn_fin x _ XM
+                · have hMn : Mn x (u - J[w1].d) xm = x.M (u - J[w1].d) XM := Mn_fin x _ XM
                   rw [hMn, x.M_merge XM hm _ hv1] at hw
-                  have hsp := fsum_split _ (fun i => x.P XM i (x.F XM (u - d1))) AB
+                  have hsp := fsum_split _ (fun i => x.P XM i (x.F XM (u - J[w1].d))) AB
                   simp only [A, O, σ]; omega)
               (fun s => fsum_mono _ _ _ (fun i => by
                 by_cases hi : i = AB
@@ -248,16 +247,17 @@ theorem dsub9_sound {J : Array Jd} (hJ : AllH x J) (a xm S ab : Nat) (arms : Lis
             refine ⟨haN, hbb, fun u => ?_⟩
             show filt (sel (labA arms ab).1) (labA arms ab).2 (Mn x u a) ≤
               Mn x (u - (J[w1].d + b.loF XM + b.loP XM AB + J[w2].d)) J[w2].bb + (J[w1].t + J[w2].t)
-            have k1 := key u
-            simp only [fb, A, σ, lab] at k1
-            have hpa := x.P_merge_le hOK XM hm AB (x.F XM (u - d1))
-            have a1 := (x.wF XM).le_late (u - d1)
-            have h3 := x.M_mono (x.F XM (u - d1) - b.loP XM AB) (net.src XM AB)
-              (u - d1 - b.loF XM - b.loP XM AB) (by omega)
-            have h4 := hw2 (u - d1 - b.loF XM - b.loP XM AB)
-            rw [Mn_fin] at h4
-            have e : u - d1 - b.loF XM - b.loP XM AB - J[w2].d =
-                u - (J[w1].d + b.loF XM + b.loP XM AB + J[w2].d) := by simp only [d1]; omega
+            have k1 : filt (sel (labA arms ab).1) (labA arms ab).2 (Mn x u a) ≤
+                x.P XM AB (x.F XM (u - J[w1].d)) + J[w1].t := key u
+            have hpa := x.P_merge_le hOK XM hm AB (x.F XM (u - J[w1].d))
+            have a1 : x.F XM (u - J[w1].d) ≤ u - J[w1].d - b.loF XM := (x.wF XM).le_late (u - J[w1].d)
+            have h3 := x.M_mono (u - J[w1].d - b.loF XM - b.loP XM AB) (net.src XM AB)
+              (x.F XM (u - J[w1].d) - b.loP XM AB) (Nat.sub_le_sub_right a1 _)
+            have h4 : x.M (u - J[w1].d - b.loF XM - b.loP XM AB) (net.src XM AB) ≤
+                Mn x (u - J[w1].d - b.loF XM - b.loP XM AB - J[w2].d) J[w2].bb + J[w2].t := by
+              have := hw2 (u - J[w1].d - b.loF XM - b.loP XM AB); rw [Mn_fin] at this; exact this
+            have e : u - J[w1].d - b.loF XM - b.loP XM AB - J[w2].d =
+                u - (J[w1].d + b.loF XM + b.loP XM AB + J[w2].d) := by omega
             rw [e] at h4
             omega
           · simp at hc
@@ -280,7 +280,6 @@ theorem hdsub_san {J : Array Jd} (hJ : AllH x J) (hl : List HLn9) :
     · simp only [san, hw, ite_true] at hc
       exact dsub9_sound x hOK hp hJ a xm S ab arms w1 w2 wS hw hc
     · simp only [san, hw, Bool.false_eq_true, ite_false, HLn.isD] at hd
-      exact absurd hd (by decide)
 
 end
 

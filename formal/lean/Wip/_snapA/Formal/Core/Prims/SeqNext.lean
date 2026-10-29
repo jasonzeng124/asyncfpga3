@@ -12,7 +12,7 @@ What a 7-series slice flop computes at a clock edge (UG474, prjxray fuzzer 011):
 One function covers all four: `bnext rv r ce d s = if r then rv else if ce then d else s`
 (`rv` is the reset/set value, `r` the SR pin read at the edge). Whether SR is synchronous
 (FDRE/FDSE) or asynchronous (FDCE/FDPE) is a matter of *when* it is read; that is the timed
-model in `Formal.Core.Prims.Flop`.
+model in `Formal.Core.Prims.SeqFlop`.
 
 ## Kleene extension
 

@@ -2,7 +2,42 @@
 
 PROGRAM.md north-star goal 3. Session 2026-10-29.
 
-STATUS (07:20): started. Fresh sandbox: no FPGA toolchain yet, Mathlib compiling from source.
+STATUS (08:10): toolchain restored and verified; 8+2 routes built and audited; bands built; Lean
+overlay compiling; checker runs next.
+
+## Progress log
+- **Toolchain.** Restored from `origin/toolchain-cache/d7ce266cff0c8e1e` (= `cloud/toolchain-cache.sh
+  key`) by `git cat-file blob` of its one part (no ref written, unlike `toolchain-cache.sh fetch`,
+  which does `git fetch` + `update-ref`). apt: zstd iverilog libtcl8.6 libboost-{python,filesystem,
+  program-options}1.83.0. `cells/verify/toolchain.sh`: 9/9 ok, nextpnr sha256 **9c732bc6303458df**
+  (the gcd_hw/collatz binary), yosys 0.62. Re-run by build_k3.sh before every seed (out/*/toolchain_*.txt).
+- **Builds** (`k3/build_k3.sh`, ONE nextpnr at a time via `flock /tmp/nextpnr.lock`, `--freq 100`
+  through build_hw.sh's NEXTPNR_FREQ, BD_DSP default 1, sizes as in the script header):
+  - ipow: seeds d 3 4 5 all routed; 1808 LUT sites, 6 DSP48E1, 74 RLOC clusters 0 dropped, fasm_audit PASS.
+    17 of the kernel's 67 DELAY_ parameters are not in the T9 sizes file and keep emit.py's defaults
+    (non-compute links, DELAY 0 / UACK 6 / SDELAY 3); all 50 sized names match a parameter.
+  - xorshift: seeds d 3 5 routed; **4 and 6 did not place** (`post-placement validity check failed for
+    Bel 'SLICE_X0Y50/A5FF'` / `SLICE_X0Y34/A5FF`, the known nextpnr legality failure); 7, 8, 9 routed.
+    1357 LUT sites, 0 DSP, 59 clusters 0 dropped, fasm_audit PASS.
+  - bitstream step fails (no textx); no bitstream is needed or used.
+- **cells audits** (`k3/audit_k3.sh`: tighten.py --osc dhk --osc invhk, skew.py, arb_fork.py):
+  - ipow d 3 4 5: rules A H I F B C 0, rule D 8 (the one-sided screen; ucond_br2..9), rule E 24/24
+    measured 0 violated, arb_fork 4 ok. PASS.
+  - xorshift d 5 8 9: the same. PASS.
+  - **xorshift 3: rule A FAIL** (`umux0` margin −52 ps) and **rule I FAIL**
+    (`ulink_n_falseResult_1.many.stage[1]` −177 ps); **xorshift 7: rule A FAIL** (`umux0` −339 ps).
+    2 of 6 placed xorshift routes violate rule A, as CLAUDE.md says of rebuilds of the shipped
+    xorshift (2 in 8). These two routes are NOT results; the xorshift set is d 5 8 9. 3 and 7 are
+    kept only as a comparison (does the control-level checker see anything there? it is not meant
+    to: rule A/I are data-vs-request bundling, which the event checkers take as SelOK / outside).
+- **Netlist** (`k3/bands_k3.sh` -> `k3/routed2x_k3.py`): ipow needs `--cut-type DSP48E1_DSP48E1`
+  (routed2x.py rejects DSP48E1 as not combinational); its 6 DSPs' P outputs become 64+ free
+  inputs. `k3/skel_dsp_check.py`: the control skeleton reads none of them (its 7 inputs are
+  rig_rst and 6 select-data nets). Without --cut-type routed2x_k3.py is byte-identical to
+  routed2x.py (cmp of net.json and slow bands on xorshift d).
+- xray_delay = research 7dc5dde (md5 3e69bf6a), which already charges the slice OUTMUX hop
+  (`sitepip_charged_xOUTMUX 1092` on ipow d); see the E8Mux note below for whether that reaches
+  the bands.
 
 ## Plan
 1. Restore the toolchain from `origin/toolchain-cache/d7ce266cff0c8e1e` (read with `git cat-file`,
