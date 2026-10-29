@@ -1417,3 +1417,10 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   |---|---|---|---|---|
   | d | SLOW_MAX | 61e14755 / ef6d6e77 | PASS 16/16 errs 0 | 33/27/39 (identical to last session's, before S5) |
   | d | band 0.38, region 0.16 + wire 0.126, draw 1 | same | PASS 16/16 errs 0 | 53/42/62 (no scatter: 55/45/64) |
+### progress 01:15 (6/32 full-stack runs, all PASS)
+- seed d max: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 33/27/39
+- seed d band_s0.16-0.126-1: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 53/42/62
+- seed d min: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 91/75/108
+- seed d band_s0.32-0.252-1: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 50/39/59
+- seed 3 min: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 89/72/103
+- seed 3 max: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 32/26/38
