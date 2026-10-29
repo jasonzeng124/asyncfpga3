@@ -636,3 +636,10 @@ g2), so it is no witness. Consequence: design_verdict8/9's CLEAN rows currently 
 file being checked; FEASIBILITY, gcd_hw_hypotheses and A-e8hyp corrected. Probe E8ArbFix launched
 (corrected core, sufficiency theorem ArbOK + Unc W + RT1/RT1b => HARB7', reruns). No contested gcd_hw
 schedule was found (weak evidence).
+### progress 09:26
+E8Arb claimed: Formal/Core/XAudit/Events8Arb.lean (check.sh with Events/Events2: 879 decls, [check] OK).
+Precise reading of unc_not_harb: there EXIST arbiter bands B and a real-cell behaviour (ArbPin B, real
+INITs), uncontested for every W, with exclusive grants, that no VMerge (any bands with loF+lo >= 1) matches
+and that no VGrant with loF+lo = 4 matches. So the counterexample is at one admissible band choice; that
+gcd_hw's actual arbiters are affected rests on the untrusted per-seed numbers (11-18/18 grant->R0 pairs).
+Wip/E8Arb/Sufficiency.lean (with sorry) is not claimed.
