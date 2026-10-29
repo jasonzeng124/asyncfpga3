@@ -198,3 +198,7 @@ Research new: 54f2ce6 fasm2net decodes unused GND-source LUTs (seed-7 false live
 cf1fbf4 acceptance lut-pinmap MATCH. I read the MATCH json: genuine 7-vector non-completion, same dead set as my r7
 reproduction -> CONFIRMED. Forwarded the decoder fix to the r9 agent (seeds 4/5 are affected: rerun with both decoders,
 check the const-0 assumption against the routed JSON). Worktree ~/wt-r10 = cf1fbf4.
+
+### progress 05:11
+Research 6e679a5 (DSP hard items MATCH via x) read: disclosed caveat; my OVERSTATED label stands. d958b9d soft ring
+items 'inside the band' -- noted, not audited yet. Seeds 7/9 FAST_MIN/SLOW_MAX rows posted; r9 still running 4/5.
