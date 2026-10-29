@@ -958,3 +958,18 @@ written with wrong times (not taken from `date -u`); they are now the commit tim
 Cross-references inside entries to those wrong times ("08:30 IpowCells entry",
 "10:15/09:10", "09:50", "11:05") mean the entries now headed 07:48, 07:52/08:00,
 07:54 and 08:15.
+
+### progress 08:37
+In: Bfc IpowCellsT (core; checked here, axioms standard; notes/B-ipow-cells-t.md).
+Repairs the timing-free FbCel (ContractBridge.fbCel_iff_si): FbCelT pins the feedback
+route <qp, lo, hi> as a parameter with 1 <= lo and H_RT_FB on hi; it implies C's SI
+step, H_FB_FIRST on the routed pin, and FbCel. Its timing content is real and exact
+(Gap.gap_exact): for a C-element whose inputs answer g ticks after its output edge,
+a transport route of delay d >= 1 meets it iff d <= g (tcheck rule Rc's form), while
+SI and FbCel hold for every g; at g = 0 no route meets it (si_not_fbCelT). Derived
+from B's physical model for bd_c2 and the link controller (c2_fbCelT, link_fbCelT;
+H_RT_FB derived) under three new named hypotheses H_WIRE_POS, H_FB_PWR, H_IN_RST.
+ipow_safe_of_contractsT: C-8y's safety on timed contracts for any route assignment;
+non-vacuous for every pinned bound assignment with lo >= 1 (all-quiet run) plus a
+switching bd_c2 witness. Open: c3/c4/C-tree/uj0-uj1 timed bridges, routed numbers
+(no ipow route exists), network-level environment (Bnet).
