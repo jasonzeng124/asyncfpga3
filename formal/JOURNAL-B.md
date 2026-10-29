@@ -1343,3 +1343,17 @@ PRingT exists IFF 0 < D < N (closes RingPhys's existence gap; recursion ordered 
 potential rising by D / falling by N - D across channels). Open: the exact ring edge
 time (proved within one tick of cph + d), no cycle-time theorem, departure bounds for
 mixed networks (forks/joins/steers), edge-to-edge varying delays, uniqueness.
+
+### progress 10:55
+In: Bmux2 AssumeGuaranteeMux{,Or,Net} (core; checked here, axioms standard;
+notes/B-assume-guarantee-mux.md). bd_mux's uj0/uj1 (muxj_segK; gated control +
+token enumeration), uxa/uya (muxa_segK: hold through the other input's z_ack tokens
+under exactly H_SNDZ and H_ZFALL, muxa_conds_tight), the udly buffers and bd_src
+(src_segK, H_PWR_SRC) are gate-level cell specs on the real LUTs with witnesses;
+bd_snk has no cell (a wire). gcd_hw_safe_net2: contracts remain only for the 59 ORs
+(38 steer uack, 21 mux uor), muxn 1, amerge 9 and the 3 fork trees (op_classes2).
+NEGATIVE: or_not_causal -- an OR's low segment needs a prefix of the idle branch's
+later-ending segment, so the end-ordered segment rule cannot discharge any OR under
+any dependency bound; closing them needs the time-indexed rule Bfin2 is building
+(told to include OR and mux prefix lemmas). Same limits as before: infinite runs,
+departure bounds as edge-time inequalities, no whole-net witness.
