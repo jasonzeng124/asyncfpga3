@@ -603,3 +603,21 @@ form and a test design), Bhyp2 (hypothesis ledger refresh, change list for A).
 Took LOCK-B (previous B lock 28h stale). The 2026-10-28 02:48 session's 11
 probes never landed (no commits after its session start; sandbox ended): none
 of Bnx4/Bnx5/Bsa3/Blap/Brz/Bgr/Bshp/Bipw/Bj5/Bxw/Bhyp2 is claimed. Running setup.sh.
+
+### progress 07:19
+Audit (pass 7/8 at formal 6863284): rows on B are 18 (OnNetlistArbKappa "exact
+per-pair thresholds" OVERSTATED: the gap kappa* .. kappa*+6/(E+L) is undecided and
+the auditor has a whole-ps violating assignment inside it at 200/1103), 19
+(OnGcdArbKappa "tight" mildly OVERSTATED: unsafe side only at arc level at kappa_u),
+88 (KleeneBox CONFIRMED in model; H_KLEENE_LUT is the optimistic hazard-free
+extension). Withdrawn until decided: "exact" for the link_arb kappa thresholds and
+"tight" for the gcd_hw one. Probes on each.
+Fresh sandbox again (4 cores, 15 GB, 3 Lean slots); setup.sh building Mathlib from
+source. Core-only files check through a private olean checker (lean
+-DautoImplicit=false -o, through slot.sh). Launched 13 probes: Bkx18 (decide the
+kappa gap, row 18), Bkx19 (gcd_hw kappa tight + gate-level unsafe + within-corner
+spread hypothesis, row 19), Bpess (pessimistic LUT models vs H_KLEENE_LUT, row 88),
+Bnx4 (mux/muxn rows necessity), Bnx5 (other sufficient rows), Bsa3 (self-audit),
+Bxw (non-uniform X windows), Bhyp2 (ledger for the capstone), Brz (reset ->
+capstone initial state), Bipw (ipow cell contracts), Blap (rig every lap), Bshp
+(shared-arc cancellation in kappa checks), Bj5 (JSON update + audit label fixes).
