@@ -1,7 +1,8 @@
 # A-e8causal (probe E8Causal, shard A): the verdict prefix by prefix
 
-STATUS (2026-10-29 ~11:00 UTC): Lean for tasks 1 and 2 written and elaborating (2 files,
-no sorry); check.sh over the closure running (§6). Task 3: written up (§4), no Lean yet.
+STATUS (2026-10-29): PARTIAL-DONE. 3 Lean files, check.sh OK (3274 declarations, §6). Task 1
+done; task 2 done in Lean, with no row evaluated (needs new certificate log lines) and only at a
+source-anchored lag; task 3 partly in Lean (prefix behaviours), with the arbiter side open.
 
 ## 0. Summary
 
@@ -80,7 +81,9 @@ at samples `< σ`. `causal_close` is the strong induction on `s`.
   (`bufPath_val`: `x rq t = x (out nq) (tau κ t)`).
 - `inTx_of_cnt`: ack reads `A`, req reads `R` (reset 0), `2k+1 ≤ R ≤ A + 1`, `A ≤ 2k+1` ⇒
   `req ∨ ack`.
-- **H_SEL_O**: `2k+1 ≤ M (tau κ (O k)) nq`. **H_REQ_CNT**: `M (tau κ v) nq ≤ M v na + 1`.
+- **H_SEL_O**: for every transaction `k` the source reaches (`M u src = 2k+1` for some `u`),
+  `2k+1 ≤ M (tau κ (O k)) nq` (restricted to reached tokens so that a run with finitely many
+  tokens can satisfy it; an earlier draft quantified over all `k`, which would have been vacuous). **H_REQ_CNT**: `M (tau κ v) nq ≤ M v na + 1`.
   **H_ACK_CNT(Dl)**: `M (tau bot r) src = 2k+1 → σ < r + Dl → M σ na ≤ 2k+1`.
 - **`design_verdict9_selP`**: `design_verdict9_selS` with H_ACK_LAG_w replaced by `ackOK`
   (checked), H_SEL_O, H_REQ_CNT, H_ACK_CNT(Dl), and `holdBandS` at lag `Dl` (checked; no
@@ -182,4 +185,26 @@ come from `harb.1`). What exists now and what is missing:
 - No file of E8SelC / E8ArbFix / HDsub was edited.
 
 ## 6. Check
-(filled in when check.sh finishes)
+
+The lead's `.lake/build` has no oleans for Events5..Events9Sel*, so check.sh was run on the
+whole missing closure (E8SelC's 23 files minus Events9SelMain, plus my three), from formal/lean:
+
+    ../check.sh Formal/Core/XAudit/{Events2PinDesign,Events4,Events5Line,Events5,Events6Gate,Events6Cert,
+      Events6Design,Events6Beh,Events7Core,Events7Excl,Events7Cert,Events7Beh,Events8Core,Events8Cert,
+      Events8Beh,Events8Bridge,Events8BridgeSel,Events9Cert,Events9Beh,Events9Sel,Events9SelC,
+      Events9SelHold,Events9SelSplit,Events9Prefix,Events9PrefixSel,Events9PrefixExt}.lean
+    ...
+    [check] axiom audit
+    [audit] 3274 declarations checked
+    [check] OK
+
+Once lake has built Events9SelSplit, the short form is
+`../check.sh Formal/Core/XAudit/Events9Prefix.lean Formal/Core/XAudit/Events9PrefixSel.lean Formal/Core/XAudit/Events9PrefixExt.lean`.
+md5s at check time (unchanged after):
+
+    58f8b6dcc75405a145b5957358a8a3e5  Formal/Core/XAudit/Events9Prefix.lean
+    f993626f23b5cd2c4d33aec7cde732e7  Formal/Core/XAudit/Events9PrefixExt.lean
+    9a04f599af082fcb98f83ba5221bc007  Formal/Core/XAudit/Events9PrefixSel.lean
+
+Warnings only: unused simp args (copied from Events7Core's pin_val), deprecated if_pos/if_neg
+in Events9PrefixExt. Root imports if wanted: the three modules (none defines `main`).

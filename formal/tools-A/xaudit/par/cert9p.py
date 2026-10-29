@@ -1,6 +1,6 @@
 """cert9p.py -- emit the CERTIFICATE that xevents9par (Events9ParMain.lean) checks (UNTRUSTED).
 
-    python3 cert9p.py SKEL.json BANDS.json OUT.json [--no-par] [--neg-lag=K] [--neg-pair] [cert9 flags]
+    python3 cert9p.py SKEL.json BANDS.json OUT.json [--no-par] [--neg-lag=K] [--neg-pair] [--neg-rc] [cert9 flags]
 
 Probe E9Par: events9/cert9.py (cert8's Cert7 + first-reach wS) plus walks through PARALLEL pairs
 (Events9Par.ParOK / par_fact).  For every arbiter of the corrected core (events4/model.py
@@ -21,7 +21,9 @@ hypothesis line is a `copy` of the result.
 Controls: --no-par (no parallel steps: the cert9 certificate, 54 structural residuals);
 --neg-lag=K (every par line claims a lag K ps smaller than computed: ParOK must fail, every par
 line degrades); --neg-pair (pair grant b with the shadow of the OTHER branch: different source
-and label, ParOK must fail).
+and label, ParOK must fail); --neg-rc (the shadows get reset classes of their own: ParOK must
+fail).  Every node of an arbiter's four readers gets the field "rc" = its reset class (arbiter
+k -> k + 1), the premise of the hypothesis HRst.
 Everything here is search; the Lean checker re-checks every line and every item.
 """
 import json
@@ -40,11 +42,12 @@ NEG_INF = float("-inf")
 
 
 class CertP(Cert7):
-    def __init__(self, netp, bandp, par=True, neg_lag=0, neg_pair=False, **kw):
+    def __init__(self, netp, bandp, par=True, neg_lag=0, neg_pair=False, neg_rc=False, **kw):
         super().__init__(netp, bandp, **kw)
-        self.par_enabled, self.neg_lag, self.neg_pair = par, neg_lag, neg_pair
+        self.par_enabled, self.neg_lag, self.neg_pair, self.neg_rc = par, neg_lag, neg_pair, neg_rc
         self._par_on = False
         self.pairs = {}        # z -> list of (y, e, tp, pm)
+        self.rclass = {}       # node -> reset class (Events9Par.HRst): arbiter k -> k + 1
         self.npar_steps = 0
         self.par_err = []
         self._mk_pairs()
@@ -86,10 +89,17 @@ class CertP(Cert7):
 
     def _mk_pairs(self):
         N = self.M.nodes
-        for qc, a in getattr(self.M, "arbs", {}).items():
+        for k, (qc, a) in enumerate(sorted(getattr(self.M, "arbs", {}).items())):
             if a.get("mode") != "fix":
                 continue
             R = a["R0"]
+            for g in a["grants"]:
+                if "arb:" + g in N:
+                    self.rclass["arb:" + g] = k + 1
+            for sh in a["shadows"]:
+                # control --neg-rc: the shadows get a class of their own (HRst then says nothing
+                # about grant vs shadow, and ParOK must fail)
+                self.rclass[sh] = (k + 1 + 1000) if self.neg_rc else (k + 1)
             byb = {}
             for g in a["grants"]:
                 v = "arb:" + g
@@ -270,9 +280,13 @@ def main():
         if f.startswith("--neg-lag="):
             neg_lag = int(f.split("=", 1)[1])
     C = CertP(a[0], a[1], par="--no-par" not in sys.argv, neg_lag=neg_lag, neg_pair="--neg-pair" in sys.argv,
+              neg_rc="--neg-rc" in sys.argv,
               u3="--no-u3" not in sys.argv, nary="--no-nary" not in sys.argv,
               gline="--no-gline" not in sys.argv, guard="--no-guard" not in sys.argv)
     out = C.run7()
+    for e in out["nodes"]:
+        if e["name"] in C.rclass:
+            e["rc"] = C.rclass[e["name"]]
     nws, bad = (0, []) if "--no-ws" in sys.argv else add_ws(out)
     out["errors"] += bad + C.par_err
     out["pairs"] = {C.idx[z]: [[C.idx[y], e, tp] for (y, e, tp, pm) in v] for z, v in C.pairs.items()}
@@ -283,7 +297,7 @@ def main():
     es = sorted(e for v in C.pairs.values() for (_, e, _, _) in v)
     print(f"model: virtual arbiter core = {out.get('arb_core')}, parallel pairs {sum(len(v) for v in C.pairs.values())} "
           f"(lag e min {es[0] if es else '-'} max {es[-1] if es else '-'} ps){' NEG-LAG ' + str(neg_lag) if neg_lag else ''}"
-          f"{' NEG-PAIR' if C.neg_pair else ''}{' NO-PAR' if not C.par_enabled else ''}")
+          f"{' NEG-PAIR' if C.neg_pair else ''}{' NEG-RC' if C.neg_rc else ''}{' NO-PAR' if not C.par_enabled else ''}")
     print(f"cert9p: {len(out['nodes'])} nodes, log {len(out['log'])} lines ({npar} par, {nd9} dsub9), back {len(out['back'])}, "
           f"lines {len(out['lines'])}, excl {len(out['excl'])}, guards {len(out['guards'])}, groups {out['groups']}, "
           f"parts {out['parts']}, dsub {nd} (wS given {nws}), errors {len(out['errors'])}")

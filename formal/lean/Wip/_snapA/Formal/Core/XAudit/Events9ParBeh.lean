@@ -7,12 +7,11 @@ parallel-pair lines (probe E9Par, shard A)
 
 See `formal/notes/A-e9par.md`.
 
-* **`HRst`** (NAMED HYPOTHESIS, part of the arbiter hypothesis): the nodes of `rs` (in
-  `xevents9par`: the virtual two-pin C-elements of the corrected arbiter core — grants and
-  shadows) have node behaviours (`ND7`) with ONE common reset signal `ρ`. In the cell-level
-  sufficiency proof (`Events9Arb.core_of_en` via `and_cel`) every reader is built with the reset
-  `fun u => decide (u < T0)` for the same `T0`; `Events9ParBeh.and_cel_rst` below restates
-  `and_cel` with that reset made explicit.
+* **`HRst`** (NAMED HYPOTHESIS, part of the arbiter hypothesis): the nodes of each reset class
+  (in `xevents9par`: the four readers of one arbiter of the corrected core — two grants, two
+  shadows) have node behaviours (`ND7`) with ONE common reset signal. In the cell-level
+  sufficiency proof every reader of an arbiter is built with the reset `fun u => decide (u < T0)`
+  for the same `T0` (`Events9ParRst.core_of_en_rst`).
 * `ndAllP`, **`design_behP`**: as `Events8.design_beh8`, with the virtual nodes of `rs` realised
   by the common-reset node behaviours; the realisation satisfies `RstSync`.
 * **`design_verdict9par`** (what `xevents9par` checks): `Events9Arb.design_verdict9arb` with the
@@ -33,11 +32,11 @@ open Formal.Core.XAudit.Events8
 open Formal.Core.XAudit.Events9
 open Formal.Core.XAudit.Events9Arb
 
-/-- **`HRst`** (named hypothesis): the nodes of `rs` have node behaviours with one common reset
-signal. -/
+/-- **`HRst`** (named hypothesis): the nodes of each reset class `k ≠ 0` (`rs j = k`) have node
+behaviours with one common reset signal `ρ k`. -/
 def HRst {N : Nat} {d : Design} (net : Net4 N) (b : Bands4 net) (rn : Fin N → RNode) (x : Fin d.n → Sig)
-    (cv : Fin N → Sig) (rs : Nat → Bool) : Prop :=
-  ∃ ρ : Sig, ∀ j : Fin N, rs j.val = true → Nonempty {nd : ND7 net b (ccOf rn x cv) j // nd.r = ρ}
+    (cv : Fin N → Sig) (rs : Nat → Nat) : Prop :=
+  ∃ ρ : Nat → Sig, ∀ j : Fin N, rs j.val ≠ 0 → Nonempty {nd : ND7 net b (ccOf rn x cv) j // nd.r = ρ (rs j.val)}
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
@@ -45,14 +44,14 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → 
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig} (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7) (harb : HARB7 net b rn x cv)
-  {rs : Nat → Bool} (hR : HRst net b rn x cv rs)
+  {rs : Nat → Nat} (hR : HRst net b rn x cv rs)
 
 include hsat h0 h1 hT hrst hr hOK harb hR
 
 /-- The node behaviours: the `rs` nodes from `HRst` (common reset), every other node as
 `Events7.ndAll7`. -/
 noncomputable def ndAllP (j : Fin N) : ND7 net b (ccOf rn x cv) j :=
-  if h : rs j.val = true then (Classical.choice (hR.choose_spec j h)).val
+  if h : rs j.val ≠ 0 then (Classical.choice (hR.choose_spec j h)).val
   else ndAll7 hsat h0 h1 hT hrst hr hOK harb j
 
 /-- **`design_behP`**: `Events8.design_beh8` with the `rs` nodes realised by `HRst`'s node
@@ -71,8 +70,9 @@ theorem design_behP (sel : Nat → Nat → Bool) :
   · intro z y hz hy s
     show (ndAllP hsat h0 h1 hT hrst hr hOK harb hR z).r s = (ndAllP hsat h0 h1 hT hrst hr hOK harb hR y).r s
     unfold ndAllP
-    rw [dif_pos hz, dif_pos hy, (Classical.choice (hR.choose_spec z hz)).property,
-      (Classical.choice (hR.choose_spec y hy)).property]
+    have hz' : rs z.val ≠ 0 := by rw [hz]; exact hy
+    rw [dif_pos hz', dif_pos hy, (Classical.choice (hR.choose_spec z hz')).property,
+      (Classical.choice (hR.choose_spec y hy)).property, hz]
 
 end
 
@@ -82,15 +82,15 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → 
 
 /-- **`design_verdict9par`** (what a run of `xevents9par` means). The executable checks
 `Recog6`, `Net4.OK7`, that the derivation log `LnP` is accepted (`runLogP … rs … = some J`,
-`rs` = its reset-synchronous node set) and, per item, `backOK7` / `exclOK7` / `lineOK7` /
+`rs` = its reset classes) and, per item, `backOK7` / `exclOK7` / `lineOK7` /
 `guardOK8` (against the sanitized hypothesis lines). Then for every per-pin behaviour `x` of the
 parsed netlist (constant wires, reset high until `T`, the corrected arbiter hypothesis `HARB7'`,
-and `HRst`: the `rs` nodes have node behaviours with one common reset) and every select sequence
+and `HRst`: the nodes of each reset class have node behaviours with one common reset) and every select sequence
 there is a `Beh7` realising `x`, whose guarded count is `gcnt`, such that under SelPart, SelOK and
 the residual obligations of the items NOT certified, every real LUT wire is its reset value flipped
 `M t j` times at every time. -/
 theorem design_verdict9par (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7)
-    {parts : List (List Nat)} {rs : Nat → Bool} {log : List LnP} {J : Array Jd}
+    {parts : List (List Nat)} {rs : Nat → Nat} {log : List LnP} {J : Array Jd}
     (hJ : runLogP net b rs parts log = some J)
     (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
     (hl : List HLn9) (gd : (j : Fin N) → Fin (net.ar j) → GD)

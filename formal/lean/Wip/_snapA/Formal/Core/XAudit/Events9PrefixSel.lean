@@ -261,8 +261,9 @@ items, `entOK` of the map, SatPin, constants, reset, H_ARB), except:
   reset-0 node `na`, its request wire a buffer chain `κ` from the LUT output of the real
   reset-0 node `nq`;
 * H_ACK_LAG_w (a WIRE statement) is replaced by three statements about the realisation's
-  COUNTS: **H_SEL_O** (`2k+1 ≤ M (tau κ (O k)) nq`: by `O k` the request has reached
-  transaction `k`), **H_REQ_CNT** (`M (tau κ v) nq ≤ M v na + 1`), **H_ACK_CNT**
+  COUNTS: **H_SEL_O** (for every transaction `k` the source reaches, `2k+1 ≤ M (tau κ (O k)) nq`:
+  by `O k` the request has reached transaction `k`; only reached transactions, so a run with
+  finitely many tokens can satisfy it), **H_REQ_CNT** (`M (tau κ v) nq ≤ M v na + 1`), **H_ACK_CNT**
   (`M σ na ≤ 2k+1` whenever the junction shows transaction `k` at some `r` with `σ < r + Dl`).
 Proved: SelOK of the realisation AND the link of every real LUT wire at every time. The
 circularity of E8SelC §3.3 is removed by `causal_close`: SelOK at a sample `s` uses the
@@ -299,7 +300,8 @@ theorem design_verdict9_selP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
           (O : (j : Fin N) → Fin (net.ar j) → Nat → Nat → Nat),
         (∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
           Formal.Net.Ops.Held ((m j p sb.1).ch x)) →
-        (∀ j p (sb : Nat × Bool) k, (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
+        (∀ j p (sb : Nat × Bool) k u, (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
+          bh.M u (net.src j p) = 2 * k + 1 →
           2 * k + 1 ≤ bh.M (tau hsat (κ j p sb.1) (O j p sb.1 k)) (nq j p sb.1)) →
         (∀ j p (sb : Nat × Bool) v, (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
           bh.M (tau hsat (κ j p sb.1) v) (nq j p sb.1) ≤ bh.M v (na j p sb.1) + 1) →
@@ -359,7 +361,7 @@ theorem design_verdict9_selP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
         show x (d.wire (m j p sb.1).rq) σ = _
         rw [bufPath_val hsat h0 h1 hκ σ, ← hreal _ hnqv, hlink _ (by omega), hnqv0]
       refine inTx_of_cnt (k := k) hack hreq ?_ ?_ (hRq j p sb σ hvf hk hsb)
-      · exact Nat.le_trans (hO j p sb k hvf hk hsb)
+      · exact Nat.le_trans (hO j p sb k _ hvf hk hsb hu)
           (bh.M_mono _ _ _ (wκ.mono _ _ hσ1))
       · exact hAk j p sb i k r σ hvf hk hsb hu (by omega)
     -- H_BUNDLE holds the bus over that interval; the route arc carries it to the pin
@@ -473,7 +475,8 @@ theorem design_verdict9_selL (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
           (O : (j : Fin N) → Fin (net.ar j) → Nat → Nat → Nat),
         (∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
           Formal.Net.Ops.Held ((m j p sb.1).ch x)) →
-        (∀ j p (sb : Nat × Bool) k, (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
+        (∀ j p (sb : Nat × Bool) k u, (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
+          bh.M u (net.src j p) = 2 * k + 1 →
           2 * k + 1 ≤ bh.M (tau hsat (κ j p sb.1) (O j p sb.1 k)) (nq j p sb.1)) →
         (∀ j p (sb : Nat × Bool) (i : Fin (net.nc j p)) k, (rn j).virt = false → net.pk j p = PK.filt →
           sb ∈ selLits net rn j p →

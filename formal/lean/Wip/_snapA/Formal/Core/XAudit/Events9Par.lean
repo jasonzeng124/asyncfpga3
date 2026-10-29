@@ -17,11 +17,11 @@ that the matching pin of `z` reads (through a LOWER band end), then `y` at time 
 everything `z` saw at `v`, provided `y`'s reset is not still holding it low.
 
 * `ParOK` (decidable, per ordered pair `z → y`, from the certificate's bands): `z`, `y` non-merge
-  stages in the reset-synchronous set `rs`; a pin map `pm` sending each pin `q` of `y` to a pin
-  `p` of `z` with the same source, compatible kinds (plain / line on both, or filtered with the
-  same label on both), `off z p ≤ off y q + tp`, and for every copy `i`
-  `hiF y + hiC y q i ≤ e + loF z + loP z p` (and `hiF y ≤ e + loF z`).
-* **`par_fact`**: under `ParOK` and `RstSync` (the nodes of `rs` have one common reset signal),
+  stages in the same reset class (`rs z = rs y ≠ 0`); a pin map `pm` sending each pin `q` of `y` to a
+  PARALLEL pin `p` of `z` (`PinPar`: same source, same kind — not guarded —, same label if
+  filtered, same operator if a line, same number of copies), `off z p ≤ off y q + tp`,
+  `hiF y ≤ e + loF z`, and copy by copy `hiF y + hiC y q i ≤ e + loF z + loC z p i`.
+* **`par_fact`**: under `ParOK` and `RstSync` (the nodes of a reset class have one reset signal),
   `M v z ≤ M (v + e) y + tp` for every `v` — a NEGATIVE-delay walk `z → y`.
 * the log `LnP`: the Events7 lines (`base`), a first-reach `dsub` line in the LOG (sound by
   `Events9.dsub9_sound` when its `wS` is valid), and **`par w1 w2 z y e tp pm`**: from a walk
@@ -72,17 +72,18 @@ instance (z : Fin N) (p : Fin (net.ar z)) (y : Fin N) (q : Fin (net.ar y)) :
   unfold PinPar; exact inferInstance
 
 /-- **The parallel-pair check** `z ⇝ y` with lag `e` and `tp` tokens (decidable; every band
-inequality is checked on the certificate's own bands): `z`, `y` are non-merge stages of `rs`;
+inequality is checked on the certificate's own bands): `z`, `y` are non-merge stages of one
+reset class (`rs z = rs y ≠ 0`);
 pin `q` of `y` is parallel to pin `pm q` of `z`, with `off z ≤ off y + tp`, and copy `i` of `y`'s
 pin reads no earlier than copy `i` of `z`'s: `hiF y + hiC y q i ≤ e + loF z + loC z (pm q) i`. -/
-def ParOK (rs : Nat → Bool) (z y : Fin N) (e tp : Nat) (pm : List Nat) : Prop :=
-  rs z.val = true ∧ rs y.val = true ∧ net.mg z = false ∧ net.mg y = false ∧ b.hiF y ≤ e + b.loF z ∧
+def ParOK (rs : Nat → Nat) (z y : Fin N) (e tp : Nat) (pm : List Nat) : Prop :=
+  rs z.val = rs y.val ∧ rs y.val ≠ 0 ∧ net.mg z = false ∧ net.mg y = false ∧ b.hiF y ≤ e + b.loF z ∧
   ∀ q : Fin (net.ar y), ∃ hp : pm.getD q.val 0 < net.ar z,
     PinPar net z ⟨pm.getD q.val 0, hp⟩ y q ∧ net.off z ⟨pm.getD q.val 0, hp⟩ ≤ net.off y q + tp ∧
     ∀ i : Fin (net.nc y q), ∃ hi : i.val < net.nc z ⟨pm.getD q.val 0, hp⟩,
       b.hiF y + b.hiC y q i ≤ e + b.loF z + b.loC z ⟨pm.getD q.val 0, hp⟩ ⟨i.val, hi⟩
 
-instance (rs : Nat → Bool) (z y : Fin N) (e tp : Nat) (pm : List Nat) :
+instance (rs : Nat → Nat) (z y : Fin N) (e tp : Nat) (pm : List Nat) :
     Decidable (ParOK net b rs z y e tp pm) := by
   unfold ParOK; exact inferInstance
 
@@ -98,7 +99,7 @@ inductive LnP where
 def degr (k : Nat) : Option Jd := if k < N then some ⟨false, k, none, k, 0, 0⟩ else none
 
 /-- The conclusion of a `par` line (or `none` if a check fails). -/
-def parJ (rs : Nat → Bool) (J : Array Jd) (w1 w2 z y e tp : Nat) (pm : List Nat) : Option Jd :=
+def parJ (rs : Nat → Nat) (J : Array Jd) (w1 w2 z y e tp : Nat) (pm : List Nat) : Option Jd :=
   if hz : z < N then if hy : y < N then if h1 : w1 < J.size then if h2 : w2 < J.size then
     if ParOK net b rs ⟨z, hz⟩ ⟨y, hy⟩ e tp pm ∧ J[w1].u = false ∧ J[w1].bb = z ∧
         J[w2].u = false ∧ J[w2].c = none ∧ J[w2].a = y ∧ e ≤ J[w1].d + J[w2].d
@@ -106,7 +107,7 @@ def parJ (rs : Nat → Bool) (J : Array Jd) (w1 w2 z y e tp : Nat) (pm : List Na
     else none else none else none else none else none
 
 /-- **The conclusion of a log line.** -/
-def conclP (rs : Nat → Bool) (parts : List (List Nat)) (J : Array Jd) : LnP → Option Jd
+def conclP (rs : Nat → Nat) (parts : List (List Nat)) (J : Array Jd) : LnP → Option Jd
   | .base l => concl net b parts J l
   | .dsub a xm S ab arms w1 w2 wS =>
     if wsOK J S a wS then
@@ -119,13 +120,13 @@ def conclP (rs : Nat → Bool) (parts : List (List Nat)) (J : Array Jd) : LnP �
     | some j => some j
     | none => degr (N := N) y
 
-def runFromP (rs : Nat → Bool) (parts : List (List Nat)) (J : Array Jd) : List LnP → Option (Array Jd)
+def runFromP (rs : Nat → Nat) (parts : List (List Nat)) (J : Array Jd) : List LnP → Option (Array Jd)
   | [] => some J
   | ln :: l => match conclP net b rs parts J ln with
     | some j => runFromP rs parts (J.push j) l
     | none => none
 
-def runLogP (rs : Nat → Bool) (parts : List (List Nat)) (log : List LnP) : Option (Array Jd) :=
+def runLogP (rs : Nat → Nat) (parts : List (List Nat)) (log : List LnP) : Option (Array Jd) :=
   runFromP net b rs parts #[] log
 
 end
@@ -135,9 +136,10 @@ end
 section
 variable {N : Nat} {net : Net4 N} {b : Bands4 net} {sel : Nat → Nat → Bool} (x : Beh7 net b sel)
 
-/-- **`RstSync`**: the nodes of `rs` share one reset signal. -/
-def RstSync (rs : Nat → Bool) : Prop :=
-  ∀ z y : Fin N, rs z.val = true → rs y.val = true → ∀ s, x.r z s = x.r y s
+/-- **`RstSync`**: the nodes of one reset class (`rs j ≠ 0`; in xevents9par one class per
+arbiter) share one reset signal. -/
+def RstSync (rs : Nat → Nat) : Prop :=
+  ∀ z y : Fin N, rs z.val = rs y.val → rs y.val ≠ 0 → ∀ s, x.r z s = x.r y s
 
 /-- **Parallel pins**: if every copy of `z`'s pin samples its source no later than the same
 copy of `y`'s pin, `z`'s pin count is at most `y`'s (same kind, label, operator: the count of a
@@ -178,11 +180,11 @@ theorem pin_par (z : Fin N) (p : Fin (net.ar z)) (y : Fin N) (q : Fin (net.ar y)
     · simp only [ite_true]; unfold andCnt; omega
 
 /-- **`par_fact`** (the parallel C-element rule, semantic form): if `z ⇝ y` passes `ParOK` and
-the nodes of `rs` share their reset, then `y`'s count at `v + e` is at least `z`'s at `v`, up to
+the two nodes (one reset class) share their reset, then `y`'s count at `v + e` is at least `z`'s at `v`, up to
 `tp` tokens. No induction: a stage's count is the minimum of its pins' counts (`M_eq`); every copy
 of every pin of `y` reads its source no earlier than the matching copy of `z` (the band
 inequality), and `y`'s reset has ended when `z`'s has (`RstSync`, `hiF y ≤ e + loF z`). -/
-theorem par_fact (hOK : net.OK7) {rs : Nat → Bool} (hrs : RstSync x rs) {z y : Fin N} {e tp : Nat}
+theorem par_fact (hOK : net.OK7) {rs : Nat → Nat} (hrs : RstSync x rs) {z y : Fin N} {e tp : Nat}
     {pm : List Nat} (h : ParOK net b rs z y e tp pm) : ∀ v, x.M v z ≤ x.M (v + e) y + tp := by
   obtain ⟨hrz, hry, hmz, hmy, hF, hpins⟩ := h
   intro v
@@ -231,7 +233,7 @@ theorem degr_sound {k : Nat} {j : Jd} (h : degr (N := N) k = some j) : Holds x j
 variable (hOK : net.OK7)
 include hOK
 
-theorem parJ_sound {rs : Nat → Bool} (hrs : RstSync x rs) {J : Array Jd} (hJ : AllH x J)
+theorem parJ_sound {rs : Nat → Nat} (hrs : RstSync x rs) {J : Array Jd} (hJ : AllH x J)
     {w1 w2 z y e tp : Nat} {pm : List Nat} {j : Jd} (hc : parJ net b rs J w1 w2 z y e tp pm = some j) :
     Holds x j := by
   unfold parJ at hc
@@ -282,7 +284,7 @@ variable {parts : List (List Nat)} (hp : SelPart sel parts)
 include hp
 
 /-- **Soundness of one line.** -/
-theorem conclP_sound {rs : Nat → Bool} (hrs : RstSync x rs) {J : Array Jd} (hJ : AllH x J) (ln : LnP)
+theorem conclP_sound {rs : Nat → Nat} (hrs : RstSync x rs) {J : Array Jd} (hJ : AllH x J) (ln : LnP)
     {j : Jd} (hc : conclP net b rs parts J ln = some j) : Holds x j := by
   cases ln with
   | base l => exact concl_sound x hOK hp hJ l hc
@@ -302,7 +304,7 @@ theorem conclP_sound {rs : Nat → Bool} (hrs : RstSync x rs) {J : Array Jd} (hJ
       cases hc; exact parJ_sound x hOK hrs hJ hj'
     · exact degr_sound x hc
 
-theorem runFromP_sound {rs : Nat → Bool} (hrs : RstSync x rs) :
+theorem runFromP_sound {rs : Nat → Nat} (hrs : RstSync x rs) :
     ∀ (l : List LnP) {J J' : Array Jd}, AllH x J → runFromP net b rs parts J l = some J' → AllH x J'
   | [], J, J', hJ, h => by simp only [runFromP, Option.some.injEq] at h; subst h; exact hJ
   | ln :: l, J, J', hJ, h => by
@@ -313,8 +315,8 @@ theorem runFromP_sound {rs : Nat → Bool} (hrs : RstSync x rs) :
       · simp at h
 
 /-- **`runLogP_sound`**: every judgement of an accepted log holds, for every behaviour whose
-`rs` nodes share their reset (under `Net4.OK7` and SelPart). -/
-theorem runLogP_sound {rs : Nat → Bool} (hrs : RstSync x rs) {log : List LnP} {J : Array Jd}
+reset classes share their reset (under `Net4.OK7` and SelPart). -/
+theorem runLogP_sound {rs : Nat → Nat} (hrs : RstSync x rs) {log : List LnP} {J : Array Jd}
     (h : runLogP net b rs parts log = some J) : AllH x J :=
   runFromP_sound x hOK hp hrs log (J := #[]) (fun i hi => absurd hi (by simp)) h
 
@@ -327,7 +329,7 @@ variable {N : Nat} {net : Net4 N} {b : Bands4 net} {sel : Nat → Nat → Bool} 
 
 /-- **`verdict9par`**: `Events9.verdict9` for the log `LnP` (parallel-pair and first-reach lines
 in the log). Same item checks and residual obligations, plus `RstSync x rs`. -/
-theorem verdict9par (hOK : net.OK7) {parts : List (List Nat)} (hp : SelPart sel parts) {rs : Nat → Bool}
+theorem verdict9par (hOK : net.OK7) {parts : List (List Nat)} (hp : SelPart sel parts) {rs : Nat → Nat}
     (hrs : RstSync x rs) {log : List LnP} {J : Array Jd} (hJ : runLogP net b rs parts log = some J)
     (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
     (hl : List HLn9) (gd : (j : Fin N) → Fin (net.ar j) → GD)

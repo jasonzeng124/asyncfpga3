@@ -73,6 +73,7 @@ structure NodeD where
   rn : RNode := { virt := false, ow := 0 }
   F : Nat × Nat := (1, 1)
   Q : Nat × Nat := (1, 1)
+  rc : Nat := 0
   deriving Inhabited
 
 def gStr (j : Json) (k : String) : String := ((jget j k).bind (·.getStr?.toOption)).getD ""
@@ -137,7 +138,8 @@ def parseNode (gix : Std.HashMap String Nat) (d : Design) (j : Json) : Except St
       let rp ← parsePath gix ((jget j "rp").getD (Json.arr #[]))
       pure { virt := false, ow := (gt d lut).out, lut, qi := gNat j "qi", ri := gNat j "ri", qp, rp,
              pins := (pins.map (·.rp)).toList }
-  pure { name := gStr j "name", v := gBool j "v", mg := gBool j "mg", virt, pins, rn, F := pr "F", Q := pr "Q" }
+  pure { name := gStr j "name", v := gBool j "v", mg := gBool j "mg", virt, pins, rn, F := pr "F", Q := pr "Q",
+         rc := gNat j "rc" }
 
 /-! ## The log -/
 
@@ -186,7 +188,7 @@ def parseParts (j : Json) : List (List Nat) :=
 /-- Diagnostic run of the log: a rejected line gets the default judgement; returns
 the judgements and the first rejected line. (Not used for any certification:
 an item is certified only from `runLog`'s result.) -/
-def runLogD {N : Nat} (net : Net4 N) (b : Bands4 net) (rs : Nat → Bool) (parts : List (List Nat))
+def runLogD {N : Nat} (net : Net4 N) (b : Bands4 net) (rs : Nat → Nat) (parts : List (List Nat))
     (log : Array LnP) : Array Jd × Option Nat × Nat × Nat × Nat × Nat := Id.run do
   let mut J : Array Jd := #[]
   let mut bad : Option Nat := none
@@ -300,14 +302,15 @@ def run (args : List String) : IO UInt32 := do
     let parts := parseParts cj
     IO.println s!"[xevents9par] select partitions (SelPart): {parts}"
     let logA : Array LnP := (gArr cj "log").map parseLnP
-    let rs : Nat → Bool := fun k => if k < N then (A[k]!.virt && !A[k]!.mg && A[k]!.pins.size == 2) else false
-    let nrs := (List.range N).filter rs |>.length
+    let rs : Nat → Nat := fun k => if k < N then (if A[k]!.virt && !A[k]!.mg then A[k]!.rc else 0) else 0
+    let nrs := ((List.range N).filter (fun k => rs k != 0)).length
+    let ncls := ((List.range N).map rs |>.filter (· != 0) |>.eraseDups).length
     let acc := runLogP net b rs parts logA.toList
     let (JD, bad, nP, nPbad, nD9, nD9bad) := runLogD net b rs parts logA
     let accepted := acc.isSome
     let J : Array Jd := acc.getD JD
     IO.println s!"[xevents9par] derivation log: {logA.size} lines, accepted by runLogP: {accepted}{match bad with | some i => s!" (first rejected line {i})" | none => ""}"
-    IO.println s!"[xevents9par] parallel-pair lines (par): {nP}, {nP - nPbad} pass ParOK, {nPbad} degraded; first-reach log lines (dsub9): {nD9}, {nD9 - nD9bad} valid, {nD9bad} degraded; reset-synchronous nodes (HRst set): {nrs}"
+    IO.println s!"[xevents9par] parallel-pair lines (par): {nP}, {nP - nPbad} pass ParOK, {nPbad} degraded; first-reach log lines (dsub9): {nD9}, {nD9 - nD9bad} valid, {nD9bad} degraded; reset classes (HRst): {ncls} with {nrs} nodes"
     -- certificates
     let backJ := (jget cj "back").getD Json.null
     let lineJ := (jget cj "lines").getD Json.null
@@ -436,7 +439,7 @@ def run (args : List String) : IO UInt32 := do
     IO.println s!"[xevents9par] (cert9.py reported {errs.size} items it could not certify)"
     let recog := wf && recogBad.isEmpty && ok && accepted
     let clean := recog && resid.isEmpty
-    IO.println s!"VERDICT {if clean then "CLEAN" else if recog then "RECOGNISED, RESIDUAL " ++ toString resid.size else "NOT RECOGNISED"} (Events9Par.design_verdict9par; hypotheses: per-pin SatPin, HARB7' (corrected arbiter core), HRst (common reset of the {nrs} grant/shadow nodes), SelOK, SelPart{if resid.isEmpty then "" else ", the residual items"}{if gres.isEmpty then "" else s!" (GuardOK for {gres.size} uncertified guarded pins)"})"
+    IO.println s!"VERDICT {if clean then "CLEAN" else if recog then "RECOGNISED, RESIDUAL " ++ toString resid.size else "NOT RECOGNISED"} (Events9Par.design_verdict9par; hypotheses: per-pin SatPin, HARB7' (corrected arbiter core), HRst (one reset per class: {ncls} classes, {nrs} nodes), SelOK, SelPart{if resid.isEmpty then "" else ", the residual items"}{if gres.isEmpty then "" else s!" (GuardOK for {gres.size} uncertified guarded pins)"})"
     return (if clean then 0 else if recog then 1 else 3)
   else
     IO.eprintln "empty certificate"; return 2
