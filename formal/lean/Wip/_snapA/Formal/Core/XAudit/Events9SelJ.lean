@@ -24,11 +24,16 @@ Rules of the junction log (`JLn`, conclusions `jconcl`, each proved sound in `jc
 * `juT n p e`: the same for a filtered pin, as a U-bound in the pin's label;
 * `jwalk w r` / `juW w r`: a walk line `w` of the ACCEPTED main log (`a → X`) followed by a
   junction judgement of `X`;
+* `jlift w`: a walk or U-bound line `w` of the main log ending at `S` with delay `d ≥ phb`
+  (`phb = phi bot`, so `t − phb ≤ gB t`) trails the junction by `d − phb`: an arm that does NOT
+  pass the junction is measured to the source and pays the whole upper band of `bot`;
 * `jr3 xm arms`: a merge whose arms carry pairwise exclusive labels, each arm either a filtered
   pin of `xm` itself through the junction (lag `e`) or a junction U-bound of the arm's source
-  (lag `loP + d`): the merge trails the junction by `loF + MIN over arms`. This is the rule
-  `sibling_lag_neg` asks for: a token routed to the sibling branch is bounded by the SIBLING
-  arm's own (shorter) lag, and the row uses the minimum.
+  (lag `loP + d`, the U-bound from `juT`, `juW` or `jlift`): the merge trails the junction by
+  `loF + MIN over arms`. This is the rule `sibling_lag_neg` asks for: a token routed to the
+  sibling branch is bounded by the SIBLING arm's own lag, measured through the junction when the
+  sibling shares it and from the source (minus `phi bot`) when it does not, and the row uses
+  the minimum.
 
 `facOK` (decidable) checks `FacP` on the parsed netlist: every copy path of the pin ENDS with
 the list `bot`, and its upper part has `plo ≥ e + 1` (`fac_of_ok`). So for a copy whose read is
@@ -124,13 +129,14 @@ inductive JLn where
   | jwalk (w r : Nat)
   | juW (w r : Nat)
   | jr3 (xm : Nat) (arms : List JArm)
+  | jlift (w : Nat)
   deriving Repr, Inhabited
 
 def labJ (arms : List JArm) (i : Nat) : Lab := ((arms.getD i default).g, (arms.getD i default).b)
 
 section
 variable {N : Nat} (net : Net4 N) (b : Bands4 net) (parts : List (List Nat)) (J : Array Jd)
-  (S : Nat) (fc : Nat → Nat → Nat → Bool) (idok : Bool)
+  (S : Nat) (fc : Nat → Nat → Nat → Bool) (idok : Bool) (phb : Nat)
 
 /-- The lag of arm `i` of merge `xm` beyond the junction, or `none`. -/
 def armJ (JJ : Array Jd) (xm : Fin N) (i : Fin (net.ar xm)) (a : JArm) : Option Nat :=
@@ -187,15 +193,20 @@ def jconcl (JJ : Array Jd) : JLn → Option Jd
       if net.mg ⟨xm, h⟩ = true ∧ ArmsJ net b parts S fc JJ ⟨xm, h⟩ arms
       then some ⟨false, xm, none, S, b.loF ⟨xm, h⟩ + dminJ net b S fc JJ ⟨xm, h⟩ arms, 0⟩ else none
     else none
+  | .jlift w =>
+    if hw : w < J.size then
+      if J[w].bb = S ∧ phb ≤ J[w].d ∧ (J[w].u = true ∨ J[w].c = none)
+      then some ⟨J[w].u, J[w].a, J[w].c, S, J[w].d - phb, J[w].t⟩ else none
+    else none
 
 def runJFrom (JJ : Array Jd) : List JLn → Option (Array Jd)
   | [] => some JJ
-  | ln :: l => match jconcl net b parts J S fc idok JJ ln with
+  | ln :: l => match jconcl net b parts J S fc idok phb JJ ln with
     | some j => runJFrom (JJ.push j) l
     | none => none
 
 /-- Run a junction log: `some JJ` iff every line is accepted. -/
-def runJ (l : List JLn) : Option (Array Jd) := runJFrom net b parts J S fc idok #[] l
+def runJ (l : List JLn) : Option (Array Jd) := runJFrom net b parts J S fc idok phb #[] l
 
 end
 
@@ -230,9 +241,9 @@ theorem allJ_push {JJ : Array Jd} {j : Jd} (hJ : AllJ x S gB JJ) (hj : HoldsJ x 
   · exact hj
 
 variable {S gB} (hgB : Mono gB) {fc : Nat → Nat → Nat → Bool} (hfc : ∀ n p e, fc n p e = true → FacP x gB n p e)
-  {idok : Bool} (hid : idok = true → ∀ v, v ≤ gB v)
+  {idok : Bool} (hid : idok = true → ∀ v, v ≤ gB v) {phb : Nat} (hphb : ∀ v, v - phb ≤ gB v)
   (hOK : net.OK7) {parts : List (List Nat)} (hp : SelPart sel parts) {J : Array Jd} (hA : AllH x J)
-include hgB hfc hid hOK hp hA
+include hgB hfc hid hphb hOK hp hA
 
 theorem cm_le_fac {n : Fin N} {p : Fin (net.ar n)} {e : Nat} (hf : fc n.val p.val e = true) (s : Nat)
     (i : Fin (net.nc n p)) (hs : (net.src n p).val = S) :
@@ -251,7 +262,7 @@ theorem armJ_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (xm : Fin N) (hm : net
     · rename_i hc
       obtain ⟨hk, hg, hb, hs, ho, hf⟩ := hc
       cases h
-      have := P_filt_le_of x xm i hk s _ (fun c => cm_le_fac x hgB hfc hid hOK hp hA hf s c hs)
+      have := P_filt_le_of x xm i hk s _ (fun c => cm_le_fac x hgB hfc hid hphb hOK hp hA hf s c hs)
       rw [hg, hb, ho] at this; omega
     · simp at h
   · split at h
@@ -272,7 +283,7 @@ theorem armJ_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (xm : Fin N) (hm : net
 
 /-- **Soundness of one junction line.** -/
 theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
-    (hc : jconcl net b parts J S fc idok JJ ln = some j) : HoldsJ x S gB j := by
+    (hc : jconcl net b parts J S fc idok phb JJ ln = some j) : HoldsJ x S gB j := by
   cases ln with
   | jrefl =>
     simp only [jconcl] at hc
@@ -299,7 +310,7 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
           rw [hMn]
           have h1 := x.M_le_pin ⟨n, h⟩ hm ⟨p, hp'⟩ u
           have h2 := P_le_of x ⟨n, h⟩ ⟨p, hp'⟩ hk (x.F ⟨n, h⟩ u) _
-            (fun c => cm_le_fac x hgB hfc hid hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
+            (fun c => cm_le_fac x hgB hfc hid hphb hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
           have a1 := (x.wF ⟨n, h⟩).le_late u
           have h3 := Mn_mono x S (hgB (x.F ⟨n, h⟩ u - e) (u - (b.loF ⟨n, h⟩ + e)) (by omega))
           omega
@@ -323,7 +334,7 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
           rw [hMn]
           have h1 := x.M_le_pin ⟨n, h⟩ hm ⟨p, hp'⟩ u
           have h2 := P_filt_le_of x ⟨n, h⟩ ⟨p, hp'⟩ hk (x.F ⟨n, h⟩ u) _
-            (fun c => cm_le_fac x hgB hfc hid hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
+            (fun c => cm_le_fac x hgB hfc hid hphb hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
           have a1 := (x.wF ⟨n, h⟩).le_late u
           have h3 := filt_mono (sel (net.grp ⟨n, h⟩ ⟨p, hp'⟩)) (net.br ⟨n, h⟩ ⟨p, hp'⟩)
             (Mn_mono x S (hgB (x.F ⟨n, h⟩ u - e) (u - (b.loF ⟨n, h⟩ + e)) (by omega)))
@@ -401,7 +412,7 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
             filt (sel (labJ arms i.val).1) (labJ arms i.val).2 m0 := by
           intro i
           obtain ⟨dl, hdl⟩ := Option.isSome_iff_exists.mp (hAr i)
-          have hb1 := armJ_sound x hgB hfc hid hOK hp hA hJJ ⟨xi, h⟩ hm i _ dl hdl (x.F ⟨xi, h⟩ u)
+          have hb1 := armJ_sound x hgB hfc hid hphb hOK hp hA hJJ ⟨xi, h⟩ hm i _ dl hdl (x.F ⟨xi, h⟩ u)
           have hdm : dminJ net b S fc JJ ⟨xi, h⟩ arms ≤ dl := by
             have := fminL_le _ (armJl net b S fc JJ ⟨xi, h⟩ arms i)
               (List.mem_map.mpr ⟨i, List.mem_finRange i, rfl⟩)
@@ -415,22 +426,62 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
         omega
       · simp at hc
     · simp at hc
+  | jlift w =>
+    simp only [jconcl] at hc
+    split at hc
+    · rename_i hw
+      split at hc
+      · rename_i hcd
+        obtain ⟨hbb, hd, huc⟩ := hcd
+        cases hc
+        obtain ⟨ha, _, hs⟩ := hA w hw
+        refine ⟨ha, ?_⟩
+        show HoldsJC x S gB J[w].u J[w].c J[w].a (J[w].d - phb) J[w].t
+        rw [hbb] at hs
+        cases hu : J[w].u with
+        | false =>
+          have hcn : J[w].c = none := by
+            rcases huc with h | h
+            · rw [hu] at h; cases h
+            · exact h
+          rw [hu, hcn] at hs; rw [hcn]
+          intro u
+          have h1 := hs u
+          have h2 := hphb (u - (J[w].d - phb))
+          have h3 := Mn_mono x S (show u - J[w].d ≤ gB (u - (J[w].d - phb)) by omega)
+          show Mn x u J[w].a ≤ Mn x (gB (u - (J[w].d - phb))) S + J[w].t
+          omega
+        | true =>
+          rw [hu] at hs
+          cases hcc : J[w].c with
+          | none => rw [hcc] at hs; exact absurd hs (by simp [HoldsC])
+          | some gb =>
+            obtain ⟨g, β⟩ := gb
+            rw [hcc] at hs
+            intro u
+            have h1 := hs u
+            have h2 := hphb (u - (J[w].d - phb))
+            have h3 := filt_mono (sel g) β (Mn_mono x S (show u - J[w].d ≤ gB (u - (J[w].d - phb)) by omega))
+            show Mn x u J[w].a ≤ filt (sel g) β (Mn x (gB (u - (J[w].d - phb))) S)
+            omega
+      · simp at hc
+    · simp at hc
 
 theorem runJFrom_sound : ∀ (l : List JLn) {JJ JJ' : Array Jd}, AllJ x S gB JJ →
-    runJFrom net b parts J S fc idok JJ l = some JJ' → AllJ x S gB JJ'
+    runJFrom net b parts J S fc idok phb JJ l = some JJ' → AllJ x S gB JJ'
   | [], JJ, JJ', hJ, h => by simp only [runJFrom, Option.some.injEq] at h; subst h; exact hJ
   | ln :: l, JJ, JJ', hJ, h => by
       simp only [runJFrom] at h
       split at h
       · rename_i j hj
-        exact runJFrom_sound l (allJ_push x _ _ hJ (jconcl_sound x hgB hfc hid hOK hp hA hJ ln hj)) h
+        exact runJFrom_sound l (allJ_push x _ _ hJ (jconcl_sound x hgB hfc hid hphb hOK hp hA hJ ln hj)) h
       · simp at h
 
 /-- **`runJ_sound`**: every line of an accepted junction log holds, for every behaviour, every
 monotone `gB` through which the checked pins' copies read `S`. -/
-theorem runJ_sound {l : List JLn} {JJ : Array Jd} (h : runJ net b parts J S fc idok l = some JJ) :
+theorem runJ_sound {l : List JLn} {JJ : Array Jd} (h : runJ net b parts J S fc idok phb l = some JJ) :
     AllJ x S gB JJ :=
-  runJFrom_sound x hgB hfc hid hOK hp hA l (fun i hi => absurd hi (by simp)) h
+  runJFrom_sound x hgB hfc hid hphb hOK hp hA l (fun i hi => absurd hi (by simp)) h
 
 end
 
@@ -488,7 +539,7 @@ variable {N : Nat} (d : Design) (net : Net4 N) (b : Bands4 net) (rn : Fin N → 
 `src` and lower part `bot` runs, and its line `jw` is a token-free walk judgement of the ack leaf
 `na` whose lag `dj` covers `Dl`: `Dl ≤ dj + plo κa + 1`. -/
 def jrowOK (parts : List (List Nat)) (J : Array Jd) (src : Nat) (bot : Path) (jl : List JLn) (jw na plk Dl : Nat) : Bool :=
-  match runJ net b parts J src (facOK d net rn bot) (decide (bot = [])) jl with
+  match runJ net b parts J src (facOK d net rn bot) (decide (bot = [])) (phi d bot) jl with
   | some JJ => if h : jw < JJ.size then
       decide (JJ[jw].u = false) && decide (JJ[jw].c = none) && decide (JJ[jw].a = na) && decide (JJ[jw].t = 0) &&
         decide (Dl ≤ JJ[jw].d + plk + 1)
@@ -596,7 +647,7 @@ theorem design_verdict9_selJ (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
           (fun hid v => by
             have e := of_decide_eq_true hid
             rw [e]; exact Nat.le_refl _)
-          hOK hp hA hrun
+          wB.early_le hOK hp hA hrun
         obtain ⟨_, hH⟩ := hall (jw j p i.val sb.1) hjw
         rw [hu', hc''] at hH
         have h1 := hH (tau hsat (κa j p sb.1) σ)

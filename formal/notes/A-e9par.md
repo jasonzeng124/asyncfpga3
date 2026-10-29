@@ -1,7 +1,10 @@
 # A-e9par (probe E9Par, shard A): a log rule for parallel virtual C-elements
 
-STATUS (2026-10-29 ~11:00): Lean DONE in the probe overlay (4 files compile; check.sh pending, §6);
-generator DONE; d slow CLEAN with the new rule; 16-row rerun and controls in progress (§4, §5).
+STATUS (2026-10-29 ~11:45): DONE. Lean: new rule `par` (Events9Par.par_fact, runLogP_sound,
+verdict9par), design_verdict9par (new named hypothesis HRst: one reset per arbiter's readers),
+core_of_en_rst; check.sh OK on the import closure (§6). Generator tools-A/xaudit/par/. 16 rows: all 54
+structural items certified on 10 rows (d/3/4/5 slow+fast, 3/4 gb: CLEAN), 51 / 53 on d gb / 5 gb,
+28–36 on indep (lag > walk delay). Controls behave as predicted (§5; NEGpair vacuous).
 
 ## 1. Plain statement
 
@@ -118,9 +121,20 @@ passes ParOK (0 degraded), all 18 dsub9 lines valid, 9 reset classes / 36 nodes.
   4 919/400/553, 5 186/107/−61 for slow/fast/gb); cert9p only adds parallel steps to items whose
   search without them failed.
 
-## 5. Negative controls (seed d slow)
-(in progress)
+## 5. Negative controls (seed d slow, `par/neg.sh`, outputs `par/results/xe9p_d_slow_<TAG>.txt`)
+Positive: CLEAN, 54/54 par lines pass.
 
+| control | mutation | expected (from the rule) | result |
+|---|---|---|---|
+| NOPAR | `cert9p.py --no-par` | the E8ArbFix certificate: RESIDUAL 54 | 0 par lines; 830/866, 45/63; RESIDUAL 54 |
+| NEGlag1 | every par line claims lag e − 1 | every line whose least lag is ≥ 1 degrades (one pair, merge2 g2 → shadow, has least lag 0, clamped) | 53 of 54 degrade; RESIDUAL 53 |
+| NEGrc | shadows in reset classes of their own | `rs z = rs y` fails: all degrade | 54/54 degrade; RESIDUAL 54 |
+| NEGsrc | every par line's pin map swapped (request ↔ ctl) | `PinPar` (source) fails: all degrade | 54/54 degrade; RESIDUAL 54 |
+| NEGband | merge4.uarb1 shadow/0's request pin (4-copy delay line) band lowered by its slack + 1 = **1 ps** (`mutband.py … 0 auto`) | `mutband.py` recomputes ParOK: exactly lines 3388, 3406 (shadow/0 → grant) must fail | exactly 2 degrade; RESIDUAL 2 = that grant's ctl-pin Back and ua1's guard (the two items using shadow → grant) |
+| NEGpair | `--neg-pair` (grant b with the other branch's shadow) | — | VACUOUS: the search finds no walk, no par line reaches the checker (RESIDUAL 54 for that reason only) |
+
+Every degraded line leaves the log accepted (the degrade semantics), so these controls show the
+checker re-derives each line from the certificate's bands and structure.
 ## 6. Check
 The lead's .lake/build had XAudit oleans up to Events7Cert (+ Events5/6) this session, so check.sh was
 run on the not-yet-built import closure of my files, in dependency order (the last four are mine):

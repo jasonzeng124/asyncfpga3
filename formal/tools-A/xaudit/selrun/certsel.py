@@ -217,6 +217,23 @@ class Block:
                         i = self.add({"k": "juT", "n": n, "p": k, "e": e}, (True, n, lab, d))
                         if (n, lab) not in ub or ub[(n, lab)][1] < d:
                             ub[(n, lab)] = (i, d)
+        # arms that do not pass the junction: the main log's uT line of a filtered pin of S, lifted
+        # (jlift: lag d - phi bot)
+        phb = sc.G.phi(self.bot)
+        for n, nd in enumerate(sc.nodes):
+            if nd["virt"] or nd["mg"]:
+                continue
+            for k, p in enumerate(nd["pins"]):
+                if p["src"] != S or p["pk"] != "filt" or sc.off(n, k):
+                    continue
+                d = 1 + sc.loP(n, k)
+                if d < phb:
+                    continue
+                w = sc.C.line({"k": "uT", "T": n, "q": k})
+                lab = (p["grp"], p["br"])
+                i = self.add({"k": "jlift", "w": w}, (True, n, lab, d - phb))
+                if (n, lab) not in ub or ub[(n, lab)][1] < d - phb:
+                    ub[(n, lab)] = (i, d - phb)
         # merges: every arm a filtered pin through the junction or a U-bound of its source
         for xm, nd in enumerate(sc.nodes):
             if nd["virt"] or not nd["mg"]:

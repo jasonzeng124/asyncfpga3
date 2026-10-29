@@ -249,6 +249,7 @@ def parseJLn (j : Json) : JLn :=
   | "jwalk" => .jwalk (gNat j "w") (gNat j "r")
   | "juW" => .juW (gNat j "w") (gNat j "r")
   | "jr3" => .jr3 (gNat j "xm") ((gArr j "arms").toList.map parseJArm)
+  | "jlift" => .jlift (gNat j "w")
   | _ => .jpin 1000000000 0 0
 
 def natList (j : Json) (k : String) : List Nat := (gArr j k).toList.map (fun e => e.getNat?.toOption.getD 1000000000)
@@ -391,7 +392,7 @@ def run (args : List String) : IO UInt32 := do
                   let jw := gNat jc "jw"
                   let bot := botP d net rn jj p c.val cut
                   let lines := blocks[blk]?.getD []
-                  let JJ := (runJ net b parts J src.val (facOK d net rn bot) (decide (bot = [])) lines).getD #[]
+                  let JJ := (runJ net b parts J src.val (facOK d net rn bot) (decide (bot = [])) (phi d bot) lines).getD #[]
                   let dj : Nat := if h : jw < JJ.size then JJ[jw].d else 0
                   let DlJ := dj + plo d ka + 1
                   let hJ := accepted && jrowOK d net b rn parts J src.val bot lines jw naN (plo d ka) DlJ &&
