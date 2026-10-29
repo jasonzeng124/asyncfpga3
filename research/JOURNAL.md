@@ -1549,3 +1549,11 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
   denominator, so it is most likely an artefact of the August SDF, not silicon; and with that denominator the F3
   region scatter (0.16) looks double-counted (wire-only fits the shape). Not acted on yet: region 0.16 stays the
   injected scatter (too much scatter only makes GLS stricter); revisit when the per-ring data arrives.
+### progress 09:21 (first full-stack failure: BQ#3 seed 9 under 2x within-die scatter)
+- BQ#3 scatter draws done: 1x (region 0.16 + wire 0.126) PASS on all 8 seeds; 2x (0.32 + 0.252) PASS on d,3,4,
+  5,6,7,8 and **FAIL on seed 9** (sdf 74511ca2, draw 1): vectors 2,3,9,11,13,15 each produce lap 1 with
+  "mism=x", OK then ERR 120 ps later, then no further lap in 150 us; errs 6. Bits EQUIVALENT. Not yet known
+  whether this is a genuine bundling margin at the 2x tail (the "which margin fails first" PROGRAM asks for) or a
+  model artefact (e.g. 1 + 0.32 N clamped at 0 for N < -3.1). Subagent S10 is tracing the X back.
+  Until explained, BQ#3's claim is "1x scatter clean on 8 seeds, 2x clean on 7 of 8".
+- Draft PR #2 description updated. BQ#1 8-seed full stack queued behind the scatter driver (now starting).
