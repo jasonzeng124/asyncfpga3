@@ -222,3 +222,8 @@ model + dsp_areg property test (not yet audited). r9 (seeds 4/5) and r12 (BQ#1/#
 r9 in: BQ#3 seeds 4 and 5 at FAST_MIN/SLOW_MAX reproduced from clean, identical to research's TSV (md5s, laps). Seed 5
 old-decoder PASS was luck of vector coverage (8 floating pips, unexercised ushrsi2 inputs); new decoder correct for
 those sinks. 4/8 seeds now independently reproduced.
+
+### progress 06:52
+r13 in (d4896fe): registered DSP model matches yosys cells_sim on 1270 configs; but the dsp_areg FAIL rests on an
+unverified decoder assumption (AREG=2 reading), and gen.py:173 defaults missing DSP register params to 0 (primitive
+default 1) -- I read it. BQ#1/#2 re-run (r12) still running.
