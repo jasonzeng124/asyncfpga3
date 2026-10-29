@@ -707,3 +707,45 @@ network omits 2 bd_src, 2 bd_fork, 4 source-chain constants and 4 join inputs of
 the emitted design (harmless for H_CELLS, proved; matters for liveness). The
 operator-to-Verilog match is by hand from bdc/emit.py output (scratch).
 ResetGcdNetR5 header corrected per self-audit 3 (comment only; file re-checked).
+
+### progress 09:10
+All of the following re-checked here (private olean build, autoImplicit=false;
+axioms only propext/Classical.choice/Quot.sound).
+- Bnx5 Necessity5{Arb,Delay,PipeRst,Link,Flink,Mem} (notes/B-necessity5.md):
+  bd_arbcell.grant_skew EXACT for every delay triple in the transport model
+  (grant_skew_exact: exclusion iff |d6-d5| <= L); settled exclusion exact on its
+  shared-q precondition (settled_iff). FASTRISE H_ACK_FLUSH exact for DACK=2 and NOT
+  necessary for DACK>=3 at line level (pulse_iff; the real DACK=3 chain is clean
+  while violating it by 1); bd_pipe rst_lines DACK/guard terms boundary-tight, so
+  with Bsx3 every PipeTimedN reset/line term is; bd_link_dc K'/L' and bd_flink
+  qfb_first boundary-tight (Lean <= at guard 0); bd_mem setup/hold/rdata/clk_low
+  exact in the event model, clk_high's shipped bound not necessary (exact: tPWH <=
+  dcLo + dsLoF). JSON not yet updated (next Bj pass). Open: rst_flush, bbm,
+  H_RST_SEL, pipe-level ack_flush, the Kleene +1 on these rows.
+- Bfb LutFbBridge (notes/B-lutfb-bridge.md): bridge Br1 closed per cell kind. C's
+  OpsGen premises LutFb/FbFirst (imported verbatim) follow from B's physical model
+  (Win LUT + H_NO_REVERT, WinDelay feedback wire) plus the four-phase environment
+  Env1/EnvC with Timing1, H_LUT_POS (1 <= lo) and H_PWR, for the link controller
+  bd_c2n (link_lutFb -> Link.H_CEL_SI) and every bd_c2 C-element in OpsGen (fork2,
+  join2, muxN, arbiter ua1/ua2, mux uxa/uya). Witnesses with LUT bands [1,3]/[1,2],
+  wire 1. Counter-runs: without H_NO_REVERT both premises fail; an ideal transport
+  loop with a one-tick input runt breaks LutFb, so it is a cell+environment fact.
+  Open: mux uj0/uj1, bd_c3, C-trees, LutSI premises, deriving Env from neighbours
+  on gcd_hw, instantiation on CapstoneNet.
+- Bpess KleenePess (notes/B-kleene-pess.md): pessimistic bracket below
+  H_KLEENE_LUT (audit row 88). Per-pin X-select policies <p0,p1> (kle, weak1 NMOS
+  weak 1, weak0, strict) and output retention; strict <= model <= lutK for any tree
+  order (bracket); exact: output definite v iff closure = v and every X pin passes v
+  (lutP_definite; tree/pin order irrelevant). Every exclusion/safety result
+  transfers (excl_M, arb_acks_safe). Every hold/restore/reset becomes "needs pass(v)":
+  C2(1,1,X)=1 iff p1; latch hold of q needs pass q; RST0 needs p0, RST1 p1;
+  under weak1 the arbiter reset leaves q = X. KleeneBox: steer +w survives weak1,
+  fails without pass-0; join +w fails under every pessimistic model (explicit runs).
+  So the "definite output" results depend on H_KLEENE_LUT, the safety ones do not.
+  Deciding test: board runt-flag pass matrix (6 pins x 2 values, FDCE async flag).
+- Bjw RigSrcWitness(+Data) (notes/B-rig-src-witness.md): second joint witness of
+  gcd_rig_first_env with every read map lagging (beta=t-3, phi1=t-5, phi0=t-4,
+  gamma=t-2/3/5) and urdly = 7; out0 offered 438, latches 6 at 489; c3/uenv1/uenv0
+  holds exercised (w_nondegenerate). A latch needs lap 2 offered first (M0 with
+  monotone phi0). cell_sh1 duplicates SelfAuditB6.cell_sh1 (separate namespaces;
+  to dedupe later). Open: H_SINK_SI in general, time-varying lags.
