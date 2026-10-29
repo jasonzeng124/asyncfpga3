@@ -114,8 +114,9 @@ PORT_ORDER = {
 }
 
 # ---- DSP48E1 ----------------------------------------------------------------
-# prims.v models the combinational configurations dsp_model.py accepts (see
-# its DSP48E1_DSP48E1 header).  These
+# prims.v models the configurations dsp_model.py accepts -- combinational,
+# and since S7 registered (AREG/BREG/CREG/MREG/PREG; see its DSP48E1_DSP48E1
+# header and dsp_model.reg_config).  These
 # are its port groups, in the order prims.v declares them; a group of width 0
 # is a scalar pin.
 DSP_T = "DSP48E1_DSP48E1"
@@ -132,8 +133,15 @@ def _dsp_pins(groups):
 PORT_ORDER[DSP_T] = _dsp_pins(DSP_IN) + _dsp_pins(DSP_OUT)
 
 
+# A REGISTERED cell (dsp_model.reg_config) also connects these, and only
+# those its registers read; a combinational cell never does, so its instance
+# text is what it always was.
+DSP_REG_IN = [(p, 0) for p in ("CLK", "CEA1", "CEA2", "CEB1", "CEB2", "CEC", "CEM", "CEP",
+                               "RSTA", "RSTB", "RSTC", "RSTM", "RSTP")]
+
+
 def dsp_group(pin):
-    for g, n in DSP_IN + DSP_OUT:
+    for g, n in DSP_IN + DSP_REG_IN + DSP_OUT:
         if pin == g if n == 0 else (pin.startswith(g) and pin[len(g):].isdigit()):
             return g
     return None
@@ -143,12 +151,27 @@ def dsp_group(pin):
 # have for the modelled configuration (None = checked separately).  Anything
 # else -- a parameter not listed, or a listed one with another value -- is
 # refused: an unmodelled DSP mode would otherwise simulate as this one.
-DSP_PARAMS = {"AREG": 0, "ACASCREG": 0, "BREG": 0, "BCASCREG": 0, "CREG": 0,
-              "DREG": 0, "ADREG": 0, "MREG": 0, "PREG": 0, "INMODEREG": 0,
+DSP_PARAMS = {"AREG": None, "ACASCREG": None, "BREG": None, "BCASCREG": None, "CREG": None,
+              "DREG": 0, "ADREG": 0, "MREG": None, "PREG": None, "INMODEREG": 0,
               "OPMODEREG": 0, "ALUMODEREG": 0, "CARRYINREG": 0,
               "CARRYINSELREG": 0, "USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48",
-              "USE_DPORT": "FALSE", "B_INPUT": "DIRECT", "A_INPUT": None}
+              "USE_DPORT": "FALSE", "B_INPUT": "DIRECT", "A_INPUT": None,
+              "IS_CLK_INVERTED": None}
 RE_DSP_INV = re.compile(r"^IS_(OPMODE|ALUMODE|INMODE)\[(\d)\]_INVERTED$|^IS_CARRYIN_INVERTED$")
+
+
+def dsp_regs(c):
+    """-> (rp, pins, why) of the DSP48E1 `c`'s register parameters
+    (dsp_model.reg_config): pins = the CLK/CE/RST pins a registered cell
+    connects, [] for a combinational one."""
+    params = c.get("parameters", {})
+
+    def iv(v):
+        if isinstance(v, int):
+            return v
+        return int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else 0
+    return dsp_model.reg_config({k: iv(params.get(k, 0))
+                                 for k in dsp_model.REGS + dsp_model.REGS_REFUSED})
 
 
 def dsp_config(cname, c, netname):
@@ -158,7 +181,7 @@ def dsp_config(cname, c, netname):
     with no interconnect path, patches/nextpnr-xilinx-dsp-constpins.patch),
     XOR its IS_*_INVERTED parameter."""
     def refuse(why):
-        sys.exit("gen.py: DSP48E1 %s: %s -- prims.v models only the combinational "
+        sys.exit("gen.py: DSP48E1 %s: %s -- prims.v models only the "
                  "configurations of cells/gls/dsp_model.py (see its DSP48E1_DSP48E1 "
                  "header); refusing rather than simulating this one as another." % (cname, why))
     params, attrs, conns = c.get("parameters", {}), c.get("attributes", {}), c["connections"]
@@ -174,8 +197,26 @@ def dsp_config(cname, c, netname):
             refuse("parameter %s=%s is not one this model knows" % (k, v))
         elif DSP_PARAMS[k] is not None and val(v) != DSP_PARAMS[k]:
             refuse("%s=%s (modelled: %s)" % (k, v, DSP_PARAMS[k]))
+    rp, rpins, rwhy = dsp_regs(c)
+    if rwhy:
+        refuse("; ".join(rwhy))
+    reg = dsp_model.registered(rp)
+    clkinv = val(params.get("IS_CLK_INVERTED", 0) or 0)
+    clkinv = clkinv & 1 if isinstance(clkinv, int) else None
+    if clkinv is None:
+        refuse("IS_CLK_INVERTED=%s" % params.get("IS_CLK_INVERTED"))
     vcc = set(attrs.get("DSP_VCC_PINS", "").split())
     gnd = set(attrs.get("DSP_GND_PINS", "").split())
+    if reg:
+        # the clock must be a live net; CE/RST may be live or constant, but
+        # must be wired (no tie-off is assumed for a register control)
+        for pin in rpins:
+            if not conns.get(pin) and pin not in vcc and pin not in gnd:
+                refuse("registered (%s) but %s is not connected" %
+                       (" ".join("%s=%d" % kv for kv in sorted(rp.items()) if kv[1]), pin))
+        cn = netname.get(conns["CLK"][0], "")
+        if cn in ("$PACKER_VCC_NET", "$PACKER_GND_NET"):
+            refuse("registered but CLK is the constant %s" % cn)
 
     def ctl(pin):
         bl = conns.get(pin)
@@ -199,7 +240,7 @@ def dsp_config(cname, c, netname):
         return sum(ctl("%s%d" % (g, i)) << i for i in range(n))
     opmode, alumode, inmode = word("OPMODE", 7), word("ALUMODE", 4), word("INMODE", 5)
     carryinsel, carryin = word("CARRYINSEL", 3), ctl("CARRYIN")
-    cfg, why = dsp_model.config(opmode, alumode, inmode, carryinsel, carryin)
+    cfg, why = dsp_model.config(opmode, alumode, inmode, carryinsel, carryin, rp if reg else None)
     if why:
         refuse("OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d: %s"
                % (format(opmode, "07b"), format(alumode, "04b"), format(inmode, "05b"),
@@ -224,7 +265,30 @@ def dsp_config(cname, c, netname):
     # the original configuration keeps its original parameter text
     extra = "" if dsp_model.is_default(cfg) else "".join(
         ", .%s(%d)" % (k, cfg[k]) for k in ("XMUX", "YMUX", "ALUMODE", "AGATE", "CIN", "MUNK"))
+    if reg:
+        extra += "".join(", .%s(%d)" % (k, cfg[k]) for k in dsp_model.REG_PARAMS)
+        extra += ", .CLKINV(%d)" % clkinv
+    elif clkinv:
+        pass    # no register reads the clock: its inversion changes nothing
     return zmux, acasc, extra
+
+
+def dsp_reg_conn(c):
+    """-> [(port, fixed value or None)] the extra ports a registered DSP48E1
+    instance connects: None = through arg() (its routed net), else a tile
+    constant from DSP_VCC_PINS / DSP_GND_PINS.  [] for a combinational one."""
+    rp, pins, why = dsp_regs(c)
+    if why or not dsp_model.registered(rp):
+        return []
+    attrs, conns = c.get("attributes", {}), c["connections"]
+    vcc = set(attrs.get("DSP_VCC_PINS", "").split())
+    out = []
+    for p in pins:
+        if conns.get(p):
+            out.append((p, None))
+        else:
+            out.append((p, "1'b1" if p in vcc else "1'b0"))   # dsp_config() refused anything else
+    return out
 
 
 RE_ORIG_PORT = re.compile(r"I\d+")
@@ -725,6 +789,9 @@ def main():
             if v is None:
                 continue
             conn.append(".%s(%s)" % (PORT_RENAME.get((t, p), p), v))
+        if t == DSP_T:
+            for p, fixed in dsp_reg_conn(c):
+                conn.append(".%s(%s)" % (p, fixed if fixed else arg(p)))
 
         # timing parameters for the baked netlist, straight off this cell's own
         # SDF arcs; every arc the SDF does not mention keeps prims.v's nominal.

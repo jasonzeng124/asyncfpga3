@@ -12,8 +12,17 @@ KIND (F4 acceptance inventory names):
   dsp_constpins_inv  ... constpins-inv: the bussed IS_<pin>[i]_INVERTED lookup
                      never flips, so the tile bit carries the net, not the value
   dsp_areg           ... areg: ZAREG/ZBREG_2_*CASCREG_1 written as !ACASCREG.
-                     Harmless whenever ACASCREG=0 (every route of this flow), so
-                     the control then INJECTS the mechanism: those bits cleared
+                     On a route with a registered DSP (cells/verify/fasm/
+                     probe.v's, AREG=1/ACASCREG=1) the REAL writer is used and
+                     the hard PROPERTY is checked: dsp_latency.py simulates each
+                     registered DSP of the bitstream-built netlist and its A/B
+                     register stage count must equal the routed JSON's AREG/
+                     BREG (patched: AREG=1 -> 1 stage; unpatched: decoded
+                     AREG=2 -> not 1).  Harmless whenever ACASCREG=0 (every
+                     combinational route of this flow, e.g. ipow), so the
+                     control then INJECTS the mechanism: those bits cleared --
+                     WEAK, caught only by decoder refusal of a state the old
+                     writer never produced
   lut_pinmap         ... pinmap: the run-together X_ORIG_PORT parse.  Harmless
                      when every run-together pin is GND-tied (gcd_hw today), so
                      the control then injects the mechanism on live pins
@@ -95,7 +104,8 @@ def main():
         sys.exit(code)
 
     def check(bitfile, tag):
-        """-> (equivalent?, equiv summary, gls verdict or None, gls summary)"""
+        """-> (equivalent?, equiv summary, gls verdict or None, gls summary,
+            dsp_areg property verdict or None, property summary)"""
         out = work / tag
         out.mkdir(exist_ok=True)
         rc, txt = sh([sys.executable, str(HERE / "fasm2net.py"), "--bit", str(bitfile), "--out", str(out / "fid"),
@@ -108,6 +118,19 @@ def main():
         refused = [l.strip() for l in (out / "fid/report.txt").read_text().splitlines()
                    if re.match(r"\s+\d+\s+REFUSED", l)]
         gls = gsum = None
+        prop = psum = None
+        if a.kind == "dsp_areg" and real_areg[0]:
+            # the hard property: simulated register stages vs the netlist's AREG/BREG
+            rc3, pl = sh([sys.executable, str(HERE / "dsp_latency.py"), str(out / "fid/fasm_routed.json"),
+                          "--work", str(out / "dsplat"), "--ref", str(routed)], out / "dsplat.txt")
+            vl = [l for l in pl.splitlines() if l.startswith("DSPLAT_VERDICT")]
+            prop = {0: True, 1: False}.get(rc3)
+            short = []
+            for l in pl.splitlines():
+                m = re.match(r"DSPLAT (\S+) AREG=(\d) .*?: (A_STAGES=\S+ B_STAGES=\S+).*: (ref AREG=\d BREG=\d) : (PASS|FAIL)$", l)
+                if m:
+                    short.append("%s decoded AREG=%s, simulated %s, %s %s" % m.groups())
+            psum = "; ".join(short + (vl or ["DSPLAT_VERDICT missing: " + pl[-200:]]))
         if a.gls:
             if not soak:
                 raise RuntimeError("--gls is implemented for soak routes; use build_fid.sh/run_fid.sh here")
@@ -115,18 +138,24 @@ def main():
                          "--bit", str(bitfile)], out / "gls.txt", cwd=str(CELLS.parent / "bdc"))
             gls = rc2 == 0
             gsum = " / ".join(l for l in g.splitlines() if l.startswith("SOAK"))[:400]
-        return rc == 0, ((v[0] if v else "no verdict") + ("; " + "; ".join(refused) if refused else "")), gls, gsum
+        return rc == 0, ((v[0] if v else "no verdict") + ("; " + "; ".join(refused) if refused else "")), \
+            gls, gsum, prop, psum
 
+    # dsp_areg: does the REAL unpatched writer change any bit on this route?
+    # (decided before --good, which then also checks the property)
+    real_areg = [False]
     try:
-        if a.good:
-            (work / "good").mkdir(exist_ok=True)
-            gbit = to_bit(fasm, work / "good")
-            ok, esum, gls, gsum = check(gbit, "good")
-            if not ok or gls is False:
-                say("ERROR", "the GOOD bitstream does not pass: %s %s" % (esum, gsum or ""), 2)
         bug = work / "bug.fasm"
         rc, out = sh([sys.executable, str(CELLS / "verify/fasm_audit.py"), str(routed), str(fasm),
                       "--write-unpatched", WRITER[a.kind], str(bug)])
+        real_areg[0] = a.kind == "dsp_areg" and \
+            sorted(open(bug).read().split()) != sorted(open(fasm).read().split())
+        if a.good:
+            (work / "good").mkdir(exist_ok=True)
+            gbit = to_bit(fasm, work / "good")
+            ok, esum, gls, gsum, prop, psum = check(gbit, "good")
+            if not ok or gls is False or prop is False:
+                say("ERROR", "the GOOD bitstream does not pass: %s %s %s" % (esum, gsum or "", psum or ""), 2)
         how = "real unpatched writer (fasm_audit --write-unpatched %s)" % WRITER[a.kind]
         if a.kind == "lut_pinmap_live":
             rc, out = sh([sys.executable, str(HERE / "inject_pinmap.py"), str(routed), str(fasm), str(bug)])
@@ -142,7 +171,9 @@ def main():
                     say("ERROR", "no DSP on this route: nothing to inject", 2)
                 open(bug, "w").write("\n".join(lines) + "\n")
                 how = ("real writer HARMLESS here (ACASCREG=0 everywhere); injected: every "
-                       "Z[AB]REG_2_[AB]CASCREG_1 bit cleared; caught only by decoder refusal, the real AREG=2 bug is not modelled")
+                       "Z[AB]REG_2_[AB]CASCREG_1 bit cleared; WEAK: caught only by decoder refusal of a state "
+                       "the old writer never produced (AREG=0 with the AREG=2 conjunction); the real bug "
+                       "is tested, as a property, on a route with a registered DSP (cells/verify/fasm/probe.v)")
             elif a.kind == "lut_pinmap":
                 rc, out = sh([sys.executable, str(HERE / "inject_pinmap.py"), str(routed), str(fasm), str(bug)])
                 if rc:
@@ -154,11 +185,14 @@ def main():
             how += " (if every changed LUT is GND-tied the control is expected to be MISSED)"
         (work / "bug").mkdir(exist_ok=True)
         bbit = to_bit(bug, work / "bug")
-        ok, esum, gls, gsum = check(bbit, "bug")
+        ok, esum, gls, gsum, prop, psum = check(bbit, "bug")
     except (RuntimeError, OSError) as e:
         say("ERROR", str(e), 2)
-    caught = (not ok) or (gls is False)
-    msg = "%s | equivalence: %s%s" % (how, esum, (" | GLS: " + gsum) if gsum else "")
+    caught = (not ok) or (gls is False) or (prop is False)
+    msg = "%s | equivalence: %s%s%s" % (how, esum, (" | GLS: " + gsum) if gsum else "",
+                                        (" | PROPERTY (dsp_latency.py, %s): %s" % (
+                                            {True: "PASS", False: "FAIL", None: "untestable"}[prop], psum))
+                                        if real_areg[0] else "")
     say("DETECTED" if caught else "MISSED", msg, 0 if caught else 1)
 
 

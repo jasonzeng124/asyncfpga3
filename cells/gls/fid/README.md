@@ -18,6 +18,7 @@ GATE=1 build_fid.sh ...  &&  (cd WORK && vvp gate.vvp)                 # ANNOTAT
 | `fasm_equiv.py` | compares the routed JSON with the bits: cell set, config, every pin's driver, every LUT's function over every input assignment, and every net's pip set |
 | `inject_pinmap.py` | negative control: the lut-pinmap bug's mechanism applied to live LUT pins |
 | `bit_control.py` | one deterministic bitstream bug re-applied to a route; prints one CONTROL line (interface below) |
+| `dsp_latency.py` | each registered DSP48E1 of a routed-shaped JSON simulated alone; A/B register stages fitted against P = A(t-LA)*B(t-LB); `--ref` compares them with the routed JSON's AREG/BREG (the dsp_areg property) |
 | `soak_fid.py` | routed GLS of a fusion_bench/flow.sh soak route (e.g. ipow, BD_DSP=1) on the routed JSON (`ref`) or on the bits (`fasm`, `bit`), built the way `fusion_bench.simulate_route()` builds it |
 | `build_fid.sh`, `run_fid.sh` | the `gls/build.sh` and `gls/run.sh` equivalents for the gcd_hw rig |
 
@@ -31,7 +32,7 @@ cells/gls/fid/bit_control.py ROUTE_DIR KIND [--work DIR] [--good] [--gls]
 |---|---|
 | `dsp_constpins` | `fasm_audit.py --write-unpatched constpins-packer`: INMODE0..4, ALUMODE2/3 and OPMODE6 get no tile-constant bit |
 | `dsp_constpins_inv` | `--write-unpatched constpins-inv`: the tile bit carries the net, not the logical value |
-| `dsp_areg` | `--write-unpatched areg`. If that changes no bit (ACASCREG=0 everywhere, which is every route of this flow), the mechanism is INJECTED instead: every Z[AB]REG_2_[AB]CASCREG_1 bit is cleared. **Weak control (audit r3.md 1):** that injected state is one the old writer never produced, and it is caught only because the decoder REFUSES it. The real bug (AREG=1/ACASCREG=1 written as no bit, so silicon AREG=2) is not modelled, and the decoder refuses every registered DSP, so on a route where the bug matters the good bitstream would be refused too. Not a hard acceptance test. |
+| `dsp_areg` | `--write-unpatched areg`. **On a route with a registered DSP** (cells/verify/fasm/probe.v's: AREG=1/ACASCREG=1, AREG=2/ACASCREG=2, AREG=0, all MREG=1) the real writer is used and the hard PROPERTY is checked by `dsp_latency.py`: each registered DSP of the bitstream-built netlist is simulated alone (the instance gen.py writes, its decoded CE/RST constants) and its simulated A/B register stage count must equal the routed JSON's AREG/BREG. Patched bits: AREG=1 decoded, 1 stage, PASS; unpatched: AREG=2/ACASCREG=1 decoded, and with yosys's AREG=1 wiring (CEA1=0) the A1 register never loads, so P=0 on every cycle: FAIL. Equivalence also flags DSP CONFIGURATION DIFFERS. If that writer changes no bit (ACASCREG=0 everywhere: every combinational route, e.g. ipow), the mechanism is INJECTED instead: every Z[AB]REG_2_[AB]CASCREG_1 bit cleared. **That fallback stays WEAK (audit r3.md 1):** the injected state (AREG=0 with the conjunction asserted) is one the old writer never produced, and it is caught only because the decoder REFUSES it. |
 | `lut_pinmap` | `--write-unpatched pinmap`. If that changes no bit, `inject_pinmap.py` is used on live pins. If it changes only GND-tied pins it is functionally harmless, and the line says MISSED |
 | `lut_pinmap_live` | always `inject_pinmap.py`: one live pin per comparator LUT is read as I0 |
 
@@ -61,7 +62,15 @@ DETECTED means the bitstream-built flow did not pass the buggy bitstream:
 - equivalence NOT EQUIVALENT, or
 - GLS FAIL, which includes a decode the model REFUSES. For dsp_constpins and
   dsp_constpins_inv the GLS FAIL is now a simulated wrong result (the DSP
-  configuration is modelled), not a refusal.
+  configuration is modelled), not a refusal; or
+- (dsp_areg with the real writer) PROPERTY FAIL: `dsp_latency.py` simulated
+  a register stage count other than the routed JSON's AREG/BREG. The line
+  then carries `| PROPERTY (dsp_latency.py, PASS|FAIL): ...`, and `--good`
+  also requires the property to PASS on the unmodified bitstream.
+  Example (probe route, seed 1; see the S7 commit):
+  `cells/gls/fid/bit_control.py <probe dir> dsp_areg --good` prints
+  DETECTED with `DSP48_X1Y14/DSP48E1 decoded AREG=2, simulated
+  A_STAGES=NEVER ..., ref AREG=1 ... FAIL`.
 
 `soak_fid.py SEEDDIR WORK ref|fasm|bit [--bit B] [--gate]` prints
 `SOAK <kind> PASS lat=...` or `SOAK <kind> FAIL: ...` for each of the stalled
@@ -99,12 +108,28 @@ Without `--stack` the harness is unchanged.
   (`FASM2NET_ALIAS`). The SDF is re-keyed onto bel-named cells. If the bits say
   a sink has a different driver than the SDF arc, `report.txt` counts a
   DRIVER MISMATCH.
-* **DSP48E1** (one configuration, the one `prims.v` models) is decoded from
+* **DSP48E1** (the configurations `prims.v` models) is decoded from
   the bits:
   - `AREG_0/AREG_2` (no bit means 1);
   - `Z<x>REG[0]` set means that register is off;
   - `ZAREG_2_ACASCREG_1` set means NOT (AREG=2 and ACASCREG=1);
   - `A_INPUT[0]`, `B_INPUT[0]`, `USE_DPORT[0]` and `USE_SIMD_*`.
+
+  A/B registers (`dsp_reg_bits()`; S7): AREG_0 -> 0/0; neither bit with Z
+  set -> AREG=1/ACASCREG=1; AREG_2 with Z set -> 2/2, clear -> 2/1; NEITHER
+  bit with Z CLEAR (what the unpatched writer wrote for AREG=1) -> 2/1, with
+  a NOTE in report.txt. That last row is an ASSUMPTION taken from
+  `patches/nextpnr-xilinx-dsp-areg.patch` ("silicon reads it as AREG=2"):
+  no board readback of it exists, and the board A/B on that patch ran while
+  the constpins bug gated A to zero, so it could not have seen it. AREG_0
+  with Z clear, or both bits, is refused. Registered DSPs (AREG/BREG 0/1/2,
+  CREG, MREG, PREG; CLK with ZIS_CLK_INVERTED, CEA1/CEA2/CEB1/CEB2/CEC/CEM/
+  CEP, RSTA/RSTB/RSTC/RSTM/RSTP resolved through routing) are modelled
+  (`dsp_model.py` has the UG479 semantics; `gls/tb_dsp_reg.v` hand-checks
+  the pipeline); ADREG/DREG/INMODEREG/OPMODEREG/ALUMODEREG/CARRYINREG/
+  CARRYINSELREG=1 are still refused. nextpnr writes NO SDF arc for a
+  registered DSP48E1, so its clock-to-out is a nominal 1000 ps parameter and
+  its register inputs have no setup/hold check.
 
   Every control pin is resolved through routing like any other input, and the
   control words are formed from the result:
@@ -116,7 +141,7 @@ Without `--stack` the harness is unchanged.
   - A routed pin goes through `ZIS_<pin>_INVERTED` (bit set means not
     inverted).
 
-  With all registers off, the decoded words go to `cells/gls/dsp_model.py`,
+  The decoded words go to `cells/gls/dsp_model.py`,
   which `gen.py` uses too: it accepts the COMBINATIONAL configurations
   `prims.v` simulates (any OPMODE X/Y/Z per UG479 except X=P; INMODE[1] A
   gating; every ALUMODE in UG479's arithmetic and logic tables; CARRYIN with
@@ -148,7 +173,7 @@ Without `--stack` the harness is unchanged.
   - a 5FF in a latch slice;
   - LUTRAM/SRL and BRAM;
   - ILOGIC in ISERDES/IDDR mode, and OLOGIC in any mode other than D1 to OQ;
-  - a DSP outside its subset;
+  - a DSP outside its subset (see above; registered A/B/C/M/P are modelled);
   - a BUFGCTRL that does not reduce to O = I0.
 
   ILOGIC passthrough (ZINV_D) and the IOB33 input buffer are decoded. Every configured feature the decoder did not
@@ -206,6 +231,6 @@ See `research/data/fid/f2_gcd_hw.md`.
   cross-read against f4pga-xc-fasm2bels's `clb_models.py` and checked here only
   by agreement with nextpnr's JSON on one design. A shared misreading (for
   example F7AMUX input order) would be invisible to `fasm_equiv.py`.
-* **A subset.** Combinational DSP configurations only (`dsp_model.py`); latches checked only on a three-latch
+* **A subset.** DSP configurations of `dsp_model.py` only (combinational, and registered A/B/C/M/P with nominal clock-to-out timing); latches checked only on a three-latch
   test design (`research/data/fid/f2_phase2.md`); LUTRAM, async flops and
   BRAM are refused.

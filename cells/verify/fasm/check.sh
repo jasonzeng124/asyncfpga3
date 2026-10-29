@@ -18,6 +18,14 @@
 # (fasm_audit.py --write-unpatched), must FAIL the audit.  An emulation, not
 # an unpatched binary -- there is none to run -- written line for line from
 # the unpatched fasm.cc / pack_dsp_xc7.cc.
+#
+# $WORK's probe.fasm, probe_routed.json and probe.sdf also make a route dir
+# for cells/gls/fid/bit_control.py (which wants them in a dir named "probe":
+# `mkdir -p D/probe && ln -s $WORK/probe.fasm $WORK/probe.sdf
+# $WORK/probe_routed.json D/probe/`); `bit_control.py D/probe dsp_areg
+# --good` runs the dsp_areg PROPERTY (dsp_latency.py: the bitstream-built sim must give
+# the AREG=1 DSP one A register stage from the patched bits, and not one
+# from the unpatched ones).
 set -uo pipefail
 
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
@@ -46,7 +54,7 @@ write_json $WORK/probe.json
 "$TC/openxc7/bin/nextpnr-xilinx" --chipdb "$TC/openxc7/xc7z010clg400.bin" \
     --xdc "$WORK/probe.xdc" --seed 1 --freq 50 \
     --json "$WORK/probe.json" --write "$WORK/probe_routed.json" \
-    --fasm "$WORK/probe.fasm" > "$WORK/pnr.log" 2>&1 \
+    --fasm "$WORK/probe.fasm" --sdf "$WORK/probe.sdf" > "$WORK/pnr.log" 2>&1 \
     || { echo "PNR FAILED"; tail -20 "$WORK/pnr.log"; exit 1; }
 
 echo "== the installed nextpnr =="

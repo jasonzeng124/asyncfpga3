@@ -829,6 +829,19 @@ endmodule
 // annotated build gets each per-bit IOPATH from the SDF (iverilog matches
 // them pair by pair), the baked build the same numbers as parameters.
 // `GLS_DSP_FAULT=<k>` flips P[k] and PCOUT[k]: the negative control.
+//
+// REGISTERED configurations (S7; dsp_model.py reg_config() decides and
+// documents the UG479 semantics): AREG/ACASCREG, BREG/BCASCREG, CREG, MREG,
+// PREG as parameters, clocked by CLK (CLKINV = IS_CLK_INVERTED), with
+// CEA1/CEA2/CEB1/CEB2/CEC/CEM/CEP and synchronous RSTA/RSTB/RSTC/RSTM/RSTP
+// (reset over enable; every register powers up 0).  ASEL1/BSEL1 are
+// INMODE[0]/[4]: the multiplier reads A1/B1 instead of A2/B2.  gen.py
+// connects CLK/CE/RST only on a registered cell; with every register
+// parameter 0 (the default) the g_comb branch below is the combinational
+// model above, unchanged, and those ports are never connected.  Timing of
+// the registered outputs: one CLK->group parameter (TCLK_<out>), a NOMINAL
+// 1000 ps unless the SDF carries the arc -- nextpnr writes no arc at all for
+// a registered DSP48E1 -- and no setup/hold check on the register inputs.
 module DSP48E1_DSP48E1 (
     input  wire A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24, A25, A26, A27, A28, A29,
     input  wire ACIN0, ACIN1, ACIN2, ACIN3, ACIN4, ACIN5, ACIN6, ACIN7, ACIN8, ACIN9, ACIN10, ACIN11, ACIN12, ACIN13, ACIN14, ACIN15, ACIN16, ACIN17, ACIN18, ACIN19, ACIN20, ACIN21, ACIN22, ACIN23, ACIN24, ACIN25, ACIN26, ACIN27, ACIN28, ACIN29,
@@ -839,6 +852,7 @@ module DSP48E1_DSP48E1 (
     input  wire ALUMODE0, ALUMODE1, ALUMODE2, ALUMODE3,
     input  wire CARRYINSEL0, CARRYINSEL1, CARRYINSEL2,
     input  wire CARRYIN,
+    input  wire CLK, CEA1, CEA2, CEB1, CEB2, CEC, CEM, CEP, RSTA, RSTB, RSTC, RSTM, RSTP,
     output wire P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P37, P38, P39, P40, P41, P42, P43, P44, P45, P46, P47,
     output wire PCOUT0, PCOUT1, PCOUT2, PCOUT3, PCOUT4, PCOUT5, PCOUT6, PCOUT7, PCOUT8, PCOUT9, PCOUT10, PCOUT11, PCOUT12, PCOUT13, PCOUT14, PCOUT15, PCOUT16, PCOUT17, PCOUT18, PCOUT19, PCOUT20, PCOUT21, PCOUT22, PCOUT23, PCOUT24, PCOUT25, PCOUT26, PCOUT27, PCOUT28, PCOUT29, PCOUT30, PCOUT31, PCOUT32, PCOUT33, PCOUT34, PCOUT35, PCOUT36, PCOUT37, PCOUT38, PCOUT39, PCOUT40, PCOUT41, PCOUT42, PCOUT43, PCOUT44, PCOUT45, PCOUT46, PCOUT47,
     output wire ACOUT0, ACOUT1, ACOUT2, ACOUT3, ACOUT4, ACOUT5, ACOUT6, ACOUT7, ACOUT8, ACOUT9, ACOUT10, ACOUT11, ACOUT12, ACOUT13, ACOUT14, ACOUT15, ACOUT16, ACOUT17, ACOUT18, ACOUT19, ACOUT20, ACOUT21, ACOUT22, ACOUT23, ACOUT24, ACOUT25, ACOUT26, ACOUT27, ACOUT28, ACOUT29
@@ -846,6 +860,9 @@ module DSP48E1_DSP48E1 (
     parameter integer ZMUX = 0;
     parameter integer ACASC = 0;
     parameter integer XMUX = 1, YMUX = 1, ALUMODE = 0, AGATE = 0, CIN = 0, MUNK = 0;
+    parameter integer AREG = 0, ACASCREG = 0, BREG = 0, BCASCREG = 0, CREG = 0, MREG = 0, PREG = 0;
+    parameter integer ASEL1 = 0, BSEL1 = 0, CLKINV = 0;
+    parameter TCLK_P = 1000, TCLK_PCOUT = 1000, TCLK_ACOUT = 1000;
     parameter TA_P=1000, TA_PCOUT=1000, TA_ACOUT=1000, TACIN_P=1000, TACIN_PCOUT=1000, TACIN_ACOUT=1000, TB_P=1000, TB_PCOUT=1000, TB_ACOUT=1000, TC_P=1000, TC_PCOUT=1000, TC_ACOUT=1000, TPCIN_P=1000, TPCIN_PCOUT=1000, TPCIN_ACOUT=1000, TOPMODE_P=1000, TOPMODE_PCOUT=1000, TOPMODE_ACOUT=1000, TALUMODE_P=1000, TALUMODE_PCOUT=1000, TALUMODE_ACOUT=1000, TCARRYINSEL_P=1000, TCARRYINSEL_PCOUT=1000, TCARRYINSEL_ACOUT=1000, TCARRYIN_P=1000, TCARRYIN_PCOUT=1000, TCARRYIN_ACOUT=1000;
     wire [29:0] a_in = {A29, A28, A27, A26, A25, A24, A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0};
     wire [29:0] acin = {ACIN29, ACIN28, ACIN27, ACIN26, ACIN25, ACIN24, ACIN23, ACIN22, ACIN21, ACIN20, ACIN19, ACIN18, ACIN17, ACIN16, ACIN15, ACIN14, ACIN13, ACIN12, ACIN11, ACIN10, ACIN9, ACIN8, ACIN7, ACIN6, ACIN5, ACIN4, ACIN3, ACIN2, ACIN1, ACIN0};
@@ -861,7 +878,10 @@ module DSP48E1_DSP48E1 (
                   : (ZMUX == 5) ? {{17{pcin[47]}}, pcin[47:17]}
                   : 48'd0;
     wire [47:0] p_fn;
+    wire [29:0] acout_fn;
     generate
+      if (AREG == 0 && BREG == 0 && CREG == 0 && MREG == 0 && PREG == 0) begin : g_comb
+        assign acout_fn = a_used;
         if (XMUX == 1 && YMUX == 1 && ALUMODE == 0 && AGATE == 0 && CIN == 0 && MUNK == 0) begin : g_mult
             assign p_fn = z + {{5{m[42]}}, m};
         end else if (MUNK) begin : g_unknown
@@ -881,6 +901,68 @@ module DSP48E1_DSP48E1 (
             wire [47:0] r  = (ALUMODE[3] ? cy : s) + {(ALUMODE[2] ? 47'd0 : cy[46:0]), 1'b0} + (CIN ? 48'd1 : 48'd0);
             assign p_fn = ALUMODE[1] ? ~r : r;
         end
+      end else begin : g_reg
+        // ---- the registered pipeline (dsp_model.py: UG479 semantics) ----
+        wire clk_i = CLKINV ? ~CLK : CLK;
+        reg [29:0] a1r = 30'd0, a2r = 30'd0;
+        reg [17:0] b1r = 18'd0, b2r = 18'd0;
+        reg [47:0] cr = 48'd0, pr = 48'd0;
+        reg [42:0] mr = 43'd0;
+        wire [29:0] a1 = (AREG == 0) ? a_used : a1r;
+        wire [29:0] a2 = (AREG == 0) ? a_used : a2r;
+        wire [17:0] b1 = (BREG == 0) ? b_in : b1r;
+        wire [17:0] b2 = (BREG == 0) ? b_in : b2r;
+        wire [29:0] amux = ASEL1 ? a1 : a2;
+        wire signed [24:0] rma = AGATE ? 25'sd0 : amux[24:0];
+        wire signed [17:0] rmb = BSEL1 ? b1 : b2;
+        wire signed [42:0] rm = rma * rmb;
+        wire [42:0] mv = MREG ? mr : rm;
+        wire [47:0] cv = CREG ? cr : c_in;
+        wire [47:0] zr = (ZMUX == 1) ? pcin
+                       : (ZMUX == 2) ? pr
+                       : (ZMUX == 3) ? cv
+                       : (ZMUX == 5) ? {{17{pcin[47]}}, pcin[47:17]}
+                       : (ZMUX == 6) ? {{17{pr[47]}}, pr[47:17]}
+                       : 48'd0;
+        wire [47:0] x = (XMUX == 1) ? {{5{mv[42]}}, mv}
+                      : (XMUX == 2) ? pr
+                      : (XMUX == 3) ? {a2, b2}
+                      : 48'd0;
+        wire [47:0] y = (YMUX == 2) ? {48{1'b1}}
+                      : (YMUX == 3) ? cv
+                      : 48'd0;
+        wire [47:0] zi = ALUMODE[0] ? ~zr : zr;
+        wire [47:0] s  = x ^ y ^ zi;
+        wire [47:0] cy = (x & y) | (x & zi) | (y & zi);
+        wire [47:0] r  = (ALUMODE[3] ? cy : s) + {(ALUMODE[2] ? 47'd0 : cy[46:0]), 1'b0} + (CIN ? 48'd1 : 48'd0);
+        wire [47:0] alu = MUNK ? {48{1'bx}} : (ALUMODE[1] ? ~r : r);
+        // a rising edge is a clean 0 -> 1: a clock leaving x/z at the start of
+        // simulation is not an edge (silicon leaves configuration with every
+        // register 0 and no edge), or a PREG feedback would hold x forever
+        reg clk_q;                       // x until the clock has had a value
+        always @(clk_i) clk_q <= clk_i;
+        always @(posedge clk_i) if (clk_q === 1'b0 && clk_i === 1'b1) begin
+            if (AREG != 0) begin
+                if (RSTA) begin a1r <= 30'd0; a2r <= 30'd0; end
+                else begin
+                    if (CEA1) a1r <= a_used;
+                    if (CEA2) a2r <= (AREG == 2) ? a1r : a_used;
+                end
+            end
+            if (BREG != 0) begin
+                if (RSTB) begin b1r <= 18'd0; b2r <= 18'd0; end
+                else begin
+                    if (CEB1) b1r <= b_in;
+                    if (CEB2) b2r <= (BREG == 2) ? b1r : b_in;
+                end
+            end
+            if (CREG != 0) begin if (RSTC) cr <= 48'd0; else if (CEC) cr <= c_in; end
+            if (MREG != 0) begin if (RSTM) mr <= 43'd0; else if (CEM) mr <= rm; end
+            if (PREG != 0) begin if (RSTP) pr <= 48'd0; else if (CEP) pr <= alu; end
+        end
+        assign p_fn = PREG ? pr : alu;
+        assign acout_fn = (AREG == 2 && ACASCREG == 1) ? a1r : a2;
+      end
     endgenerate
 `ifdef GLS_DSP_FAULT
     wire [47:0] p = p_fn ^ (48'd1 << `GLS_DSP_FAULT);
@@ -889,7 +971,7 @@ module DSP48E1_DSP48E1 (
 `endif
     assign {P47, P46, P45, P44, P43, P42, P41, P40, P39, P38, P37, P36, P35, P34, P33, P32, P31, P30, P29, P28, P27, P26, P25, P24, P23, P22, P21, P20, P19, P18, P17, P16, P15, P14, P13, P12, P11, P10, P9, P8, P7, P6, P5, P4, P3, P2, P1, P0} = p;
     assign {PCOUT47, PCOUT46, PCOUT45, PCOUT44, PCOUT43, PCOUT42, PCOUT41, PCOUT40, PCOUT39, PCOUT38, PCOUT37, PCOUT36, PCOUT35, PCOUT34, PCOUT33, PCOUT32, PCOUT31, PCOUT30, PCOUT29, PCOUT28, PCOUT27, PCOUT26, PCOUT25, PCOUT24, PCOUT23, PCOUT22, PCOUT21, PCOUT20, PCOUT19, PCOUT18, PCOUT17, PCOUT16, PCOUT15, PCOUT14, PCOUT13, PCOUT12, PCOUT11, PCOUT10, PCOUT9, PCOUT8, PCOUT7, PCOUT6, PCOUT5, PCOUT4, PCOUT3, PCOUT2, PCOUT1, PCOUT0} = p;
-    assign {ACOUT29, ACOUT28, ACOUT27, ACOUT26, ACOUT25, ACOUT24, ACOUT23, ACOUT22, ACOUT21, ACOUT20, ACOUT19, ACOUT18, ACOUT17, ACOUT16, ACOUT15, ACOUT14, ACOUT13, ACOUT12, ACOUT11, ACOUT10, ACOUT9, ACOUT8, ACOUT7, ACOUT6, ACOUT5, ACOUT4, ACOUT3, ACOUT2, ACOUT1, ACOUT0} = a_used;
+    assign {ACOUT29, ACOUT28, ACOUT27, ACOUT26, ACOUT25, ACOUT24, ACOUT23, ACOUT22, ACOUT21, ACOUT20, ACOUT19, ACOUT18, ACOUT17, ACOUT16, ACOUT15, ACOUT14, ACOUT13, ACOUT12, ACOUT11, ACOUT10, ACOUT9, ACOUT8, ACOUT7, ACOUT6, ACOUT5, ACOUT4, ACOUT3, ACOUT2, ACOUT1, ACOUT0} = acout_fn;
     specify
         (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24, A25, A26, A27, A28, A29 *> P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P37, P38, P39, P40, P41, P42, P43, P44, P45, P46, P47) = TA_P;
         (A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22, A23, A24, A25, A26, A27, A28, A29 *> PCOUT0, PCOUT1, PCOUT2, PCOUT3, PCOUT4, PCOUT5, PCOUT6, PCOUT7, PCOUT8, PCOUT9, PCOUT10, PCOUT11, PCOUT12, PCOUT13, PCOUT14, PCOUT15, PCOUT16, PCOUT17, PCOUT18, PCOUT19, PCOUT20, PCOUT21, PCOUT22, PCOUT23, PCOUT24, PCOUT25, PCOUT26, PCOUT27, PCOUT28, PCOUT29, PCOUT30, PCOUT31, PCOUT32, PCOUT33, PCOUT34, PCOUT35, PCOUT36, PCOUT37, PCOUT38, PCOUT39, PCOUT40, PCOUT41, PCOUT42, PCOUT43, PCOUT44, PCOUT45, PCOUT46, PCOUT47) = TA_PCOUT;
@@ -918,6 +1000,9 @@ module DSP48E1_DSP48E1 (
         (CARRYIN *> P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P37, P38, P39, P40, P41, P42, P43, P44, P45, P46, P47) = TCARRYIN_P;
         (CARRYIN *> PCOUT0, PCOUT1, PCOUT2, PCOUT3, PCOUT4, PCOUT5, PCOUT6, PCOUT7, PCOUT8, PCOUT9, PCOUT10, PCOUT11, PCOUT12, PCOUT13, PCOUT14, PCOUT15, PCOUT16, PCOUT17, PCOUT18, PCOUT19, PCOUT20, PCOUT21, PCOUT22, PCOUT23, PCOUT24, PCOUT25, PCOUT26, PCOUT27, PCOUT28, PCOUT29, PCOUT30, PCOUT31, PCOUT32, PCOUT33, PCOUT34, PCOUT35, PCOUT36, PCOUT37, PCOUT38, PCOUT39, PCOUT40, PCOUT41, PCOUT42, PCOUT43, PCOUT44, PCOUT45, PCOUT46, PCOUT47) = TCARRYIN_PCOUT;
         (CARRYIN *> ACOUT0, ACOUT1, ACOUT2, ACOUT3, ACOUT4, ACOUT5, ACOUT6, ACOUT7, ACOUT8, ACOUT9, ACOUT10, ACOUT11, ACOUT12, ACOUT13, ACOUT14, ACOUT15, ACOUT16, ACOUT17, ACOUT18, ACOUT19, ACOUT20, ACOUT21, ACOUT22, ACOUT23, ACOUT24, ACOUT25, ACOUT26, ACOUT27, ACOUT28, ACOUT29) = TCARRYIN_ACOUT;
+        (CLK *> P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, P32, P33, P34, P35, P36, P37, P38, P39, P40, P41, P42, P43, P44, P45, P46, P47) = TCLK_P;
+        (CLK *> PCOUT0, PCOUT1, PCOUT2, PCOUT3, PCOUT4, PCOUT5, PCOUT6, PCOUT7, PCOUT8, PCOUT9, PCOUT10, PCOUT11, PCOUT12, PCOUT13, PCOUT14, PCOUT15, PCOUT16, PCOUT17, PCOUT18, PCOUT19, PCOUT20, PCOUT21, PCOUT22, PCOUT23, PCOUT24, PCOUT25, PCOUT26, PCOUT27, PCOUT28, PCOUT29, PCOUT30, PCOUT31, PCOUT32, PCOUT33, PCOUT34, PCOUT35, PCOUT36, PCOUT37, PCOUT38, PCOUT39, PCOUT40, PCOUT41, PCOUT42, PCOUT43, PCOUT44, PCOUT45, PCOUT46, PCOUT47) = TCLK_PCOUT;
+        (CLK *> ACOUT0, ACOUT1, ACOUT2, ACOUT3, ACOUT4, ACOUT5, ACOUT6, ACOUT7, ACOUT8, ACOUT9, ACOUT10, ACOUT11, ACOUT12, ACOUT13, ACOUT14, ACOUT15, ACOUT16, ACOUT17, ACOUT18, ACOUT19, ACOUT20, ACOUT21, ACOUT22, ACOUT23, ACOUT24, ACOUT25, ACOUT26, ACOUT27, ACOUT28, ACOUT29) = TCLK_ACOUT;
     endspecify
 endmodule
 

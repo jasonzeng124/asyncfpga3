@@ -312,6 +312,8 @@ def main():
         cas = wj.get("A_INPUT") == "CASCADE"
         read = ["%s%d" % ("ACIN" if cas else "A", i) for i in range(25)] + ["B%d" % i for i in range(18)] + \
                (["PCIN%d" % i for i in range(48)] if z else [])
+        # a registered DSP (S7): its clock and the CE/RST pins its registers read
+        read += gen.dsp_regs(j)[1]
         bj = {cn: bel(c, cn) for cn, c in jc.items()}
         bf = {cn: bel(c, cn) for cn, c in fc.items()}
         for p in read:

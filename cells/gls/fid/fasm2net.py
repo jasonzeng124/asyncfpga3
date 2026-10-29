@@ -784,6 +784,11 @@ class Design:
             c = Cell("%s/DSP48E1" % sname, "DSP48E1_DSP48E1", root=True)
             for p in self._bus(self.DSP_IN) + self._bus(self.DSP_CTL):
                 c.ins[p] = ("route", tile, pins[p], sname, p)
+            # a REGISTERED DSP (S7) also reads its clock and the CE/RST pins of
+            # the registers that are on; a combinational one never gets them
+            reg, _notes, _why = self.dsp_reg_bits(tile, pfx)
+            for p in dsp_model.reg_config(reg)[1]:
+                c.ins[p] = ("route", tile, pins[p], sname, p)
             c.outs = self._bus(self.DSP_OUT)
             self.add(c)
             for p, v in s["site_pins"].items():
@@ -795,6 +800,57 @@ class Design:
             # that only if the decoded mode READS them
             c._float_ok = {p for p in c.ins if p in self.dsp_const_only(side)
                            or re.fullmatch(r"(ACIN|PCIN)\d+", p)}
+
+    def dsp_reg_bits(self, tile, pfx):
+        """-> (reg, notes, why): the register parameters the bits configure.
+
+        A/B (prjxray fuzzers/100-dsp-mskpat: AREG_0 = (AREG==0), AREG_2 =
+        (AREG==2), ZAREG_2_ACASCREG_1 present = NOT (AREG==2 and ACASCREG==1)):
+            AREG_0 AREG_2 Z    AREG ACASCREG
+              1      0    1     0      0
+              0      0    1     1      1
+              0      1    1     2      2
+              0      1    0     2      1
+              0      0    0     2      1   <- what the UNPATCHED writer
+                                               wrote for AREG=1/ACASCREG=1
+              1      .    0     refused (AREG=0 contradicts the conjunction)
+              1      1    .     refused
+        The fifth row is the dsp-areg bug: patches/nextpnr-xilinx-dsp-areg.
+        patch says silicon reads it as AREG=2 (the conjunction bit is CLEAR,
+        i.e. "AREG=2 and ACASCREG=1" is asserted).  ASSUMPTION: that the
+        conjunction bit, not the absent AREG_2 bit, decides -- no board
+        readback of this row exists (the board A/B on this patch ran with A
+        gated to zero by the constpins bug, so it could not see it).
+        Other registers: Z<r>[0] present = off."""
+        def has(f):
+            m = re.fullmatch(r"(.*)\[(\d+)\]", f)
+            if m:
+                return bool((self.val(tile, pfx + m.group(1)) >> int(m.group(2))) & 1)
+            return self.has(tile, pfx + f)
+        reg, notes, why = {}, [], []
+        for X in "AB":
+            r0, r2, z = has("%sREG_0" % X), has("%sREG_2" % X), has("Z%sREG_2_%sCASCREG_1" % (X, X))
+            if r0 and r2:
+                why.append("%sREG_0 and %sREG_2 both set" % (X, X))
+                reg[X + "REG"], reg[X + "CASCREG"] = None, None
+            elif r0:
+                reg[X + "REG"] = 0
+                reg[X + "CASCREG"] = 0 if z else None
+                if not z:
+                    why.append("%sREG=0 with Z%sREG_2_%sCASCREG_1 CLEAR" % (X, X, X))
+            elif r2:
+                reg[X + "REG"], reg[X + "CASCREG"] = 2, (2 if z else 1)
+            elif z:
+                reg[X + "REG"], reg[X + "CASCREG"] = 1, 1
+            else:
+                reg[X + "REG"], reg[X + "CASCREG"] = 2, 1
+                notes.append("%sREG: no %sREG_0/%sREG_2 bit and Z%sREG_2_%sCASCREG_1 CLEAR -- the unpatched "
+                             "writer's %sREG=1, decoded as silicon %sREG=2/%sCASCREG=1 "
+                             "(patches/nextpnr-xilinx-dsp-areg.patch)" % ((X,) * 8))
+        for r in ("ADREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG", "CREG", "DREG",
+                  "INMODEREG", "MREG", "OPMODEREG", "PREG"):
+            reg[r] = 0 if has("Z%s[0]" % r) else 1
+        return reg, notes, why
 
     def dsp_const_only(self, side):
         """Pins prjxray reaches ONLY through a DSP_GND/DSP_VCC tile bit."""
@@ -830,22 +886,19 @@ class Design:
             co = self.dsp_const_only(side)
             why = []
             # ---- configuration bits
-            reg = {}
-            for X in "AB":
-                r = [v for v in (0, 2) if has("%sREG_%d" % (X, v))]
-                reg[X + "REG"] = r[0] if len(r) == 1 else (1 if not r else None)
-                cas_bit = has("Z%sREG_2_%sCASCREG_1" % (X, X))
-                if reg[X + "REG"] == 0 and cas_bit:
-                    reg[X + "CASCREG"] = 0
-                else:
-                    reg[X + "CASCREG"] = None
-                    why.append("%sREG=%s with Z%sREG_2_%sCASCREG_1 %s" % (
-                        X, reg[X + "REG"], X, X, "set" if cas_bit else "CLEAR"))
-            for r in ("ADREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG", "CREG", "DREG",
-                      "INMODEREG", "MREG", "OPMODEREG", "PREG"):
-                reg[r] = 0 if has("Z%s[0]" % r) else 1
-                if reg[r]:
-                    why.append("%s=1 (Z%s[0] clear)" % (r, r))
+            # registers (S7): dsp_reg_bits() decodes, dsp_model.reg_config()
+            # decides which prims.v models; a combinational DSP decodes and
+            # is checked exactly as before
+            reg, rnotes, rwhy = self.dsp_reg_bits(tile, pfx)
+            why.extend(rwhy)
+            if None not in reg.values():
+                rp, rpins, rcwhy = dsp_model.reg_config(reg)
+                why.extend(rcwhy)
+                regd = dsp_model.registered(rp)
+            else:
+                rp, rpins, regd = None, [], False
+            for nt in rnotes:
+                self.problem("NOTE: DSP48E1 register decode", "%s: %s" % (c.name, nt))
             a_cascade = has("A_INPUT[0]")
             if has("B_INPUT[0]"):
                 why.append("B_INPUT=CASCADE")
@@ -857,7 +910,9 @@ class Design:
             for f in self.feats[tile]:
                 if f.startswith(pfx) and re.search(r"\.(MASK|PATTERN|SEL_MASK|AUTORESET)", f):
                     self.used.add((tile, f))      # pattern detector: no modelled output reads it
-            has("ZIS_CLK_INVERTED")               # clock: every register is off
+            clk_not_inv = has("ZIS_CLK_INVERTED")   # read (consumed) whatever the registers
+            if regd and not clk_not_inv:
+                c.params["IS_CLK_INVERTED"] = "1"
             # ---- control pins
             words = {}
             for g, w in self.DSP_CTL:
@@ -912,8 +967,14 @@ class Design:
                 words["CARRYIN"], "CASCADE" if a_cascade else "DIRECT")
             # ---- the configurations prims.v models (gen.py dsp_config, dsp_model.py)
             op = words["OPMODE"]
+            if regd:
+                c.attrs["FASM2NET_DSP"] += " " + " ".join("%s=%d" % (k, rp[k]) for k in dsp_model.REGS)
+                # the clock must come from somewhere live; CE/RST are whatever
+                # the routing gives (constants through the IMUX default, or nets)
+                if self.driver_of(c, "CLK")[0] != "drv":
+                    why.append("registered but CLK is %s" % (self.driver_of(c, "CLK"),))
             cfg, cwhy = dsp_model.config(op, words["ALUMODE"], words["INMODE"],
-                                         words["CARRYINSEL"], words["CARRYIN"])
+                                         words["CARRYINSEL"], words["CARRYIN"], rp if regd else None)
             undriven = []
             for p in [q for q in c.ins if re.fullmatch(r"(ACIN|PCIN)\d+", q)]:
                 if self.driver_of(c, p)[0] != "float":
