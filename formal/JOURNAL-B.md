@@ -1022,3 +1022,29 @@ gate delays 1, 2 and 3 observed (delays_vary). It meets H_RST_CLEAN, H_HOLD_LONG
 gcd_hw_safe_after_reset jointly (reset_capstone_nonvac2). Still: the C side of that
 joint witness is the frozen family with the degenerate map muW, so the headline's
 conclusion is vacuous on it; the delay family is one periodic-sampling family.
+
+### progress 09:05
+In: Bbare ArbNoWithdraw (Mathlib; checked here, axioms standard;
+notes/B-arb-no-withdraw.md). D1 vs D2 for gcd_hw's arbiters, decided CONDITIONALLY:
+in C's network model no arbiter request ever withdraws (gcd_hw_arb_no_withdraw, a
+corollary of gcd_hw_protocol; C's cells read request and select at one instant, so
+this says nothing about pin skew). At gate level the 9 arbiter stages' requests come
+from link controllers, steer branches or other arbiters' R0: links do not withdraw
+under LinkExact's rows (link_no_withdraw), steers under LibGapSteer's per-pin rows
+plus a named H_SRC_HOLD (steer_unsel_silent, steer_no_withdraw), and a violated
+steer setup row produces exactly D1's withdrawn request (steer_withdraws: a 100 ps
+pulse). So D2 = 0.2166 needs the steer rows on the routes (not re-checked) AND
+H_SETTLED. H_SETTLED follows from causality given a client latency L
+(settled1/2_of_causal: wa0s+qf <= wa0k+ckr+L), but on the routed arcs L = 0 fails
+for 65/72 clients and the need is up to 1.59 ns (settled_safe at setTbl, max
+1590.934 ps; settled_L0_fails). The client-loop arcs (A_k -> client -> r_k) are not
+extracted, so D2 is undecided on the routes. H_SETTLED is the rise-side twin of rule
+J and NO project rule checks it (finding for the cell owner). design_gate_held_causal
+= D2 with H_SETTLED discharged by L >= setTbl.
+SCOPE FINDING (mine, ArbHeldTimed/ArbHeldTimed2): 7h/7j's Scn/Scn2 assert the settled
+state on the whole past (H_A1_init: A1 low for every t < t0), so they cover only a
+handover before which that client was never acknowledged, i.e. effectively the first
+handover from reset (scn_excludes_caus). They are not vacuous, but every "held
+arbiter" result built on them (RT1/RT2 exclusion, OnGcdArbKappaSrv D2,
+design_gate_held) is about that one handover, not repeated ones. Barb2 (multi-token,
+running) told to build a windowed Scn.
