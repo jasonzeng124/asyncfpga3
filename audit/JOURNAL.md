@@ -159,3 +159,7 @@ P7-capstone in: gcd_hw_joint_witness CONFIRMED (out0 latches 6 = gcd 12 18; fed 
 mutants rejected) -- P5's open non-vacuity point closed. gcd_hw_live_final conditional (H_NO_DEADLOCK' open), no joint
 witness. ipow_circuit_safe3 CONFIRMED with own overflow witness. Bnet generator reproduced from RTL (netlist sha256
 matches). Pass 7 subagent work complete; axiom audit of 6863284 still running.
+
+### progress 02:01
+Research advanced to 73b08ca (CARRY4/LATX fid transport fix 78de9c2, DSP modes, acceptance --stack full, 8-seed BQ#3
+full stack in progress). Pass-8 research subagent launched on clean worktree ~/wt-r8 (73b08ca). Formal unchanged.
