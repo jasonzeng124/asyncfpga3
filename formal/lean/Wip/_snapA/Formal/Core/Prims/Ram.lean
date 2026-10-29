@@ -354,4 +354,302 @@ theorem onext_sound {aw dw : Nat} (md : WMode) {we : K3} {a : Fin aw → K3} {di
   refine K3.le_trans h ?_
   cases md <;> cases bwe <;> simp [onext, bonext, kread_def, ofBMem, ofBoolVec] <;> exact le_refl _
 
+/-! ## 5. Timing parameters and the trace relation -/
+
+/-- The timing of port A at ONE corner, integer ps, at the BRAM pins (**H_BRAM_PINREF**).
+Window offsets are relative to the CLKARDCLK rising edge: `lo = -setup`, `hi = hold`. -/
+structure RamTiming where
+  /-- CLKARDCLK -> DOADO band (`DOA_REG = 0`). -/
+  cqLo : Nat
+  cqHi : Nat
+  /-- ADDRARDADDR window. -/
+  aLo : Int
+  aHi : Int
+  /-- WEA window. -/
+  weLo : Int
+  weHi : Int
+  /-- DIADI window (depends on `WRITE_MODE_A` in prjxray). -/
+  dLo : Int
+  dHi : Int
+  deriving Repr, DecidableEq
+
+/-- Well-formed: every window nonempty and the CK->DO band ordered. -/
+def RamTiming.Ok (T : RamTiming) : Prop :=
+  T.aLo ≤ T.aHi ∧ T.weLo ≤ T.weHi ∧ T.dLo ≤ T.dHi ∧ T.cqLo ≤ T.cqHi
+
+section Timed
+variable {aw dw : Nat} (T : RamTiming)
+
+/-- The address read over its window at the edge `e`. -/
+def rA (a : Fin aw → KSig) (e : Nat) : Fin aw → K3 := fun i => ap (a i) e T.aLo T.aHi
+/-- WE read over its window. -/
+def rWE (we : KSig) (e : Nat) : K3 := ap we e T.weLo T.weHi
+/-- DI read over its window. -/
+def rD (din : Fin dw → KSig) (e : Nat) : KWord dw := fun j => ap (din j) e T.dLo T.dHi
+
+/-- **The RAM port.** `ck` = CLKARDCLK, `a` = ADDRARDADDR (word bits), `we` = WEA,
+`din` = DIADI, `m` = the array (a hidden state signal), `dout` = DOADO. -/
+structure RamRel (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw) (ck : Sig)
+    (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) (m : Nat → Mem aw dw)
+    (dout : Fin dw → KSig) : Prop where
+  minit : ∀ t, (∀ u, u < t → ¬ rises ck u) → m t = init
+  mstep : ∀ e t, rises ck e → e < t → NoRise ck e t →
+    m t = wnext rdis (rWE T we e) (rA T a e) (rD T din e) (m e)
+  oinit : ∀ t, (∀ u, u < t → ¬ rises ck u) → ∀ j, dout j t = initA j
+  ohold : ∀ e t, rises ck e → e < t → NoRise ck e t → t ≤ e + T.cqLo → ∀ j, dout j t = dout j e
+  oband : ∀ e t, rises ck e → e < t → NoRise ck e t → e + T.cqLo < t → t ≤ e + T.cqHi → ∀ j,
+    dout j t = merge (dout j e)
+      (onext md (rWE T we e) (rA T a e) (rD T din e) (m e) (fun i => dout i e) j)
+  osettle : ∀ e t, rises ck e → e < t → NoRise ck e t → e + T.cqHi < t → ∀ j,
+    dout j t = onext md (rWE T we e) (rA T a e) (rD T din e) (m e) (fun i => dout i e) j
+
+/-- Address `v` held on its window at `e`. -/
+def AddrOn (a : Fin aw → KSig) (v : BAddr aw) (e : Nat) : Prop :=
+  ∀ i, EqOn (a i) (ofBool (v i)) (wpt e T.aLo) (wpt e T.aHi)
+/-- WE = `b` on its window. -/
+def WeOn (we : KSig) (b : Bool) (e : Nat) : Prop := EqOn we (ofBool b) (wpt e T.weLo) (wpt e T.weHi)
+/-- DI = `d` on its window. -/
+def DataOn (din : Fin dw → KSig) (d : Fin dw → Bool) (e : Nat) : Prop :=
+  ∀ j, EqOn (din j) (ofBool (d j)) (wpt e T.dLo) (wpt e T.dHi)
+
+variable {T}
+
+theorem rA_of {a : Fin aw → KSig} {v : BAddr aw} {e : Nat} (hok : T.Ok) (h : AddrOn T a v e) :
+    rA T a e = ofBoolVec v := funext fun i => winVal_const (wpt_le hok.1) (h i)
+theorem rWE_of {we : KSig} {b : Bool} {e : Nat} (hok : T.Ok) (h : WeOn T we b e) :
+    rWE T we e = ofBool b := winVal_const (wpt_le hok.2.1) h
+theorem rD_of {din : Fin dw → KSig} {d : Fin dw → Bool} {e : Nat} (hok : T.Ok)
+    (h : DataOn T din d e) : rD T din e = ofBoolVec d :=
+  funext fun j => winVal_const (wpt_le hok.2.2.1) (h j)
+
+variable {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord dw} {ck : Sig}
+  {a : Fin aw → KSig} {we : KSig} {din : Fin dw → KSig} {m : Nat → Mem aw dw}
+  {dout : Fin dw → KSig}
+
+/-! ## 6. Correct write and read when the windows are respected -/
+
+/-- **Write.** A clean write of `d` to `v` at `e`: until the next edge, word `v` is `d` and
+every other word keeps its contents. -/
+theorem mem_write (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} {d : Fin dw → Bool} (he : rises ck e) (het : e < t)
+    (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we true e) (hD : DataOn T din d e) :
+    m t v = ofBoolVec d ∧ ∀ w, w ≠ v → m t w = m e w := by
+  rw [h.mstep e t he het hn, rA_of hok hA, rWE_of hok hW, rD_of hok hD]
+  exact ⟨by rw [wnext_self]; rfl, fun w hw => wnext_other rdis true _ _ hw⟩
+
+/-- **A clean read does not change the array.** -/
+theorem mem_read_keeps (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hA : AddrOn T a v e) (hW : WeOn T we false e) : m t = m e := by
+  rw [h.mstep e t he het hn, rA_of hok hA, rWE_of hok hW]
+  exact wnext_read rdis v _ _
+
+/-- Without read disturb, WE = 0 alone keeps the array (whatever the address does). -/
+theorem mem_read_keeps_nd (hok : T.Ok) (h : RamRel T md false init initA ck a we din m dout)
+    {e t : Nat} (he : rises ck e) (het : e < t) (hn : NoRise ck e t) (hW : WeOn T we false e) :
+    m t = m e := by
+  rw [h.mstep e t he het hn, rWE_of hok hW]
+  exact wnext_read_nd _ _ _
+
+/-- **Read.** A clean read of `v` at `e` (any write mode): after `cqHi`, until the next
+edge, DOADO is the word stored at `v` just before the edge. -/
+theorem read_out (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hA : AddrOn T a v e) (hW : WeOn T we false e) (ht : e + T.cqHi < t) (j : Fin dw) :
+    dout j t = m e v j := by
+  rw [h.osettle e t he het hn ht j, rA_of hok hA, rWE_of hok hW]
+  exact congrFun (onext_read md v _ _ _) j
+
+/-- **WRITE_FIRST read-during-write returns the new data.** WE = 1 and DI = `d` on their
+windows: after `cqHi` DOADO = `d`. No hypothesis on the address at all (DOADO follows DI
+in WRITE_FIRST even if the address window is violated). -/
+theorem wf_read_during_write (hok : T.Ok)
+    (h : RamRel T .writeFirst rdis init initA ck a we din m dout)
+    {e t : Nat} {d : Fin dw → Bool} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hW : WeOn T we true e) (hD : DataOn T din d e) (ht : e + T.cqHi < t) (j : Fin dw) :
+    dout j t = ofBool (d j) := by
+  rw [h.osettle e t he het hn ht j, rWE_of hok hW, rD_of hok hD]; rfl
+
+/-- READ_FIRST read-during-write returns the OLD contents. -/
+theorem rf_read_during_write (hok : T.Ok)
+    (h : RamRel T .readFirst rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hA : AddrOn T a v e) (ht : e + T.cqHi < t) (j : Fin dw) : dout j t = m e v j := by
+  rw [h.osettle e t he het hn ht j, rA_of hok hA]
+  exact congrFun (onext_rf _ v _ _ _) j
+
+/-- NO_CHANGE: a clean write leaves DOADO as it was, at every time until the next edge. -/
+theorem nc_keeps_out (hok : T.Ok) (h : RamRel T .noChange rdis init initA ck a we din m dout)
+    {e t : Nat} (he : rises ck e) (het : e < t) (hn : NoRise ck e t) (hW : WeOn T we true e)
+    (j : Fin dw) : dout j t = dout j e := by
+  by_cases h1 : t ≤ e + T.cqLo
+  · exact h.ohold e t he het hn h1 j
+  have hnx : onext .noChange (rWE T we e) (rA T a e) (rD T din e) (m e) (fun i => dout i e) j
+      = dout j e := by rw [rWE_of hok hW]; rfl
+  by_cases h2 : t ≤ e + T.cqHi
+  · rw [h.oband e t he het hn (by omega) h2 j, hnx, merge_self]
+  · rw [h.osettle e t he het hn (by omega) j, hnx]
+
+/-- **Write then read** (consecutive edges `e1 < e2`, both clean, same address): DOADO after
+`e2 + cqHi` is the data written at `e1`. Holds in every write mode. -/
+theorem write_then_read (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e1 e2 t : Nat} {v : BAddr aw} {d : Fin dw → Bool} (he1 : rises ck e1) (he2 : rises ck e2)
+    (h12 : e1 < e2) (hn1 : NoRise ck e1 e2) (hn2 : NoRise ck e2 t)
+    (hA1 : AddrOn T a v e1) (hW1 : WeOn T we true e1) (hD1 : DataOn T din d e1)
+    (hA2 : AddrOn T a v e2) (hW2 : WeOn T we false e2) (ht : e2 + T.cqHi < t) (j : Fin dw) :
+    dout j t = ofBool (d j) := by
+  rw [read_out hok h he2 (by omega) hn2 hA2 hW2 ht j, (mem_write hok h he1 h12 hn1 hA1 hW1 hD1).1]
+  rfl
+
+/-- **Power-up**: before the first edge the array is INIT and DOADO is INIT_A. -/
+theorem power_up (h : RamRel T md rdis init initA ck a we din m dout) {t : Nat}
+    (hno : ∀ u, u < t → ¬ rises ck u) : m t = init ∧ ∀ j, dout j t = initA j :=
+  ⟨h.minit t hno, h.oinit t hno⟩
+
+/-! ## 7. X containment -/
+
+/-- **X stays inside the address cube.** At ANY edge (violations, X on WE/ADDR/DI, read
+disturb on or off), every word whose address is not consistent with the sampled address
+keeps its contents. In particular a clean address (`AddrOn`) protects every other word. -/
+theorem x_outside_cube (h : RamRel T md rdis init initA ck a we din m dout) {e t : Nat}
+    {w : BAddr aw} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hw : ¬ Consistent (rA T a e) w) : m t w = m e w := by
+  rw [h.mstep e t he het hn]; exact wnext_outside rdis _ _ _ hw
+
+/-- A clean address `v` makes every other word unreachable at that edge, whatever WE and DI
+do (only `v` can be written, possibly with X). -/
+theorem x_only_addressed (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v w : BAddr aw} (he : rises ck e) (het : e < t) (hn : NoRise ck e t)
+    (hA : AddrOn T a v e) (hw : w ≠ v) : m t w = m e w := by
+  refine x_outside_cube h he het hn ?_
+  rw [rA_of hok hA]; exact fun hc => hw (consistent_ofBoolVec.1 hc)
+
+/-- **X in DOADO does not stick**: a clean read of a definite word gives a definite DOADO
+after `cqHi`, whatever DOADO was before (X included). -/
+theorem x_flushed_by_read (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} {c : Fin dw → Bool} (he : rises ck e) (het : e < t)
+    (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we false e)
+    (hc : m e v = ofBoolVec c) (ht : e + T.cqHi < t) (j : Fin dw) : dout j t = ofBool (c j) := by
+  rw [read_out hok h he het hn hA hW ht j, hc]; rfl
+
+/-- **X in the array does not stick**: a clean write makes the word definite. -/
+theorem x_flushed_by_write (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t : Nat} {v : BAddr aw} {d : Fin dw → Bool} (he : rises ck e) (het : e < t)
+    (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we true e)
+    (hD : DataOn T din d e) (j : Fin dw) : m t v j ≠ X := by
+  rw [(mem_write hok h he het hn hA hW hD).1]; exact ofBool_ne_X _
+
+/-- **A DI violation produces X** (the model is not optimistic): clean address and WE = 1,
+but DI bit `j` takes two values inside its window. Then the stored bit is X, and in
+WRITE_FIRST so is DOADO bit `j` after `cqHi`. -/
+theorem di_violation_X (hok : T.Ok) (h : RamRel T .writeFirst rdis init initA ck a we din m dout)
+    {e t s1 s2 : Nat} {v : BAddr aw} {j : Fin dw} (he : rises ck e) (het : e < t)
+    (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we true e)
+    (h1a : wpt e T.dLo ≤ s1) (h1b : s1 ≤ wpt e T.dHi) (h2a : wpt e T.dLo ≤ s2)
+    (h2b : s2 ≤ wpt e T.dHi) (hne : din j s1 ≠ din j s2) :
+    m t v j = X ∧ (e + T.cqHi < t → dout j t = X) := by
+  have hx : rD T din e j = X := winVal_X_of_ne h1a h1b h2a h2b hne
+  refine ⟨?_, fun ht => ?_⟩
+  · rw [h.mstep e t he het hn, rA_of hok hA, rWE_of hok hW]
+    have := congrFun (wnext_self rdis true v (rD T din e) (m e)) j
+    simp only [ite_true] at this; rw [this, hx]
+  · rw [h.osettle e t he het hn ht j, rWE_of hok hW]; exact hx
+
+/-- **A WE violation produces X where old and new differ**: clean address and data, WE
+changes inside its window, the stored bit differed from the data: the stored bit is X. -/
+theorem we_violation_X (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
+    {e t s1 s2 : Nat} {v : BAddr aw} {d : Fin dw → Bool} {j : Fin dw} (he : rises ck e)
+    (het : e < t) (hn : NoRise ck e t) (hA : AddrOn T a v e) (hD : DataOn T din d e)
+    (h1a : wpt e T.weLo ≤ s1) (h1b : s1 ≤ wpt e T.weHi) (h2a : wpt e T.weLo ≤ s2)
+    (h2b : s2 ≤ wpt e T.weHi) (hne : we s1 ≠ we s2) (hold : m e v j ≠ ofBool (d j)) :
+    m t v j = X := by
+  have hx : rWE T we e = X := winVal_X_of_ne h1a h1b h2a h2b hne
+  rw [h.mstep e t he het hn, rA_of hok hA, rD_of hok hD, hx]
+  have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) v = X) := fun h' => sel_ne_X_of_def v v h'.2
+  simp only [wnext, hX, ite_false, sel_self]
+  show merge (ofBool (d j)) (m e v j) = X
+  unfold merge; rw [if_neg (Ne.symm hold)]
+
+end Timed
+
+/-! ## 8. Non-vacuity: every input has a memory and an output satisfying the relation -/
+
+section Sim
+variable {aw dw : Nat} (T : RamTiming)
+
+/-- The canonical array trace. -/
+def simM (rdis : Bool) (init : Mem aw dw) (ck : Sig) (a : Fin aw → KSig) (we : KSig)
+    (din : Fin dw → KSig) (t : Nat) : Mem aw dw :=
+  match lastRise ck t with
+  | none => init
+  | some ⟨e, _⟩ => wnext rdis (rWE T we e) (rA T a e) (rD T din e) (simM rdis init ck a we din e)
+termination_by t
+
+/-- The canonical DOADO trace. -/
+def simO (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw) (ck : Sig)
+    (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) (t : Nat) : KWord dw :=
+  match lastRise ck t with
+  | none => initA
+  | some ⟨e, _⟩ =>
+    if t ≤ e + T.cqLo then simO md rdis init initA ck a we din e
+    else if t ≤ e + T.cqHi then fun j => merge (simO md rdis init initA ck a we din e j)
+      (onext md (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e)
+        (simO md rdis init initA ck a we din e) j)
+    else onext md (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e)
+        (simO md rdis init initA ck a we din e)
+termination_by t
+
+theorem simM_none {rdis : Bool} {init : Mem aw dw} {ck : Sig} {a : Fin aw → KSig} {we : KSig}
+    {din : Fin dw → KSig} {t : Nat} (hno : ∀ u, u < t → ¬ rises ck u) :
+    simM T rdis init ck a we din t = init := by
+  rw [simM, lastRise_none hno]
+
+theorem simM_some {rdis : Bool} {init : Mem aw dw} {ck : Sig} {a : Fin aw → KSig} {we : KSig}
+    {din : Fin dw → KSig} {e t : Nat} (he : rises ck e) (het : e < t) (hn : NoRise ck e t) :
+    simM T rdis init ck a we din t =
+      wnext rdis (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e) := by
+  obtain ⟨_, hl⟩ := lastRise_some he het hn
+  rw [simM, hl]
+
+theorem simO_none {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord dw} {ck : Sig}
+    {a : Fin aw → KSig} {we : KSig} {din : Fin dw → KSig} {t : Nat}
+    (hno : ∀ u, u < t → ¬ rises ck u) : simO T md rdis init initA ck a we din t = initA := by
+  rw [simO, lastRise_none hno]
+
+theorem simO_some {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord dw} {ck : Sig}
+    {a : Fin aw → KSig} {we : KSig} {din : Fin dw → KSig} {e t : Nat} (he : rises ck e)
+    (het : e < t) (hn : NoRise ck e t) :
+    simO T md rdis init initA ck a we din t =
+      (if t ≤ e + T.cqLo then simO T md rdis init initA ck a we din e
+       else if t ≤ e + T.cqHi then fun j => merge (simO T md rdis init initA ck a we din e j)
+         (onext md (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e)
+           (simO T md rdis init initA ck a we din e) j)
+       else onext md (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e)
+           (simO T md rdis init initA ck a we din e)) := by
+  obtain ⟨_, hl⟩ := lastRise_some he het hn
+  rw [simO, hl]
+
+/-- **Non-vacuity**: the canonical traces satisfy `RamRel`, for every input, every write
+mode, both read-disturb settings, and every timing (no well-formedness needed). -/
+theorem ramSim_rel (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw) (ck : Sig)
+    (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) :
+    RamRel T md rdis init initA ck a we din (simM T rdis init ck a we din)
+      (fun j t => simO T md rdis init initA ck a we din t j) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t hno; exact simM_none T hno
+  · intro e t he het hn; exact simM_some T he het hn
+  · intro t hno j; rw [simO_none T hno]
+  · intro e t he het hn h1 j; rw [simO_some T he het hn, if_pos h1]
+  · intro e t he het hn h1 h2 j
+    rw [simO_some T he het hn, if_neg (by omega), if_pos h2]
+  · intro e t he het hn h1 j
+    rw [simO_some T he het hn, if_neg (by omega), if_neg (by omega)]
+
+theorem ramRel_inhabited (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw)
+    (ck : Sig) (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) :
+    ∃ m dout, RamRel T md rdis init initA ck a we din m dout :=
+  ⟨_, _, ramSim_rel T md rdis init initA ck a we din⟩
+
+end Sim
+
 end Formal.Core.Prims.Ram

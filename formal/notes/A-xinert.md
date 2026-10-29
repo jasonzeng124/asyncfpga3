@@ -1,6 +1,6 @@
 # A-xinert: an inertial option for xaudit (probe XInert, shard A)
 
-STATUS: in progress (session 2026-10-29, started 08:40 UTC). Nothing claimed yet.
+STATUS: in progress (09:05 UTC). Code written (Parse/Main additive, SoundInertial.lean); checking; runs pending.
 
 ## Plan
 1. Band format: optional `inertial` object (global ρ per gate kind, per cell, per arc; the value
