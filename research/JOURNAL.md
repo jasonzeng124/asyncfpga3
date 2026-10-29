@@ -1469,3 +1469,6 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
   Note: the patched FASM re-assembled here differs from the build's .bit (the harness used the build's own .bit;
   bitstreams are known not to be byte-reproducible, see BQ#3 "bit ... not reproducible").
 - Scatter draws resumed for seeds 4,6,8,9,7,5 on the fixed decoder (54f2ce6).
+### progress 04:35 (sweep 19/32 + re-runs; still no real failure)
+- Seed 8 SLOW_MAX 34/28/40, FAST_MIN 94/76/109, both PASS; seed 4 region+wire 1x PASS 47/37/55; seed 9 decodes
+  EQUIVALENT with no floating pips (its rows on the 78de9c2 decoder stand). Seeds 5 and 7 re-running.
