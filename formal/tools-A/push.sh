@@ -24,5 +24,5 @@ done
 # other shards' snapshot files that their later commits removed linger as untracked copies
 # here: move them aside (never delete) so the tree matches HEAD
 ST=/tmp/formal-push-stale; mkdir -p $ST
-git ls-files -o --exclude-standard formal/lean/Wip/_snapB formal/lean/Wip/_snapC | while read -r f; do mkdir -p "$ST/$(dirname "$f")"; mv "$f" "$ST/$f"; done
+git ls-files -o --exclude-standard formal/lean/Wip | grep -E '^formal/lean/Wip/(_snap[BC]|B[a-z0-9]|C[a-z0-9])' | while read -r f; do mkdir -p "$ST/$(dirname "$f")"; mv "$f" "$ST/$f"; done
 echo "[push] rebased onto $up, pushed $new (${#theirs[@]} files from others refreshed)"
