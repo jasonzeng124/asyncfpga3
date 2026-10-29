@@ -231,6 +231,7 @@ class Design:
         self.fab, self.feats = fab, feats
         self.cells = {}
         self.siteout = {}            # (tile, wire) -> drvkey  (site output pin)
+        self.unused_slices = set()   # slices with no configured feature at all
         self.sitepin_of = {}         # (tile, wire) -> (site, pin name)
         self.used = set()            # (tile, feature) consumed
         self.problems = collections.Counter()
@@ -326,10 +327,14 @@ class Design:
             if d[0] == "site":
                 lut = self.cells.get(d[3][0])
                 if lut is not None and lut.type == "SLICE_LUTX" and \
+                        lut.name.split("/")[0] in self.unused_slices and \
                         int(lut.params.get("INIT", "1"), 2) == 0 and lut.name.endswith("6LUT"):
-                    # an UNCONFIGURED LUT (no INIT bit at all, both halves):
-                    # nextpnr's GND source (GND_WIRE -> SITEWIRE/<slice>/A);
-                    # O6 is 0 for every input, so it is the constant 0
+                    # a LUT in a slice with NO configuration at all: nextpnr's
+                    # GND source (GND_WIRE -> SITEWIRE/<slice>/A); O6 is 0 for
+                    # every input, so it is the constant 0.  A zero-INIT LUT in
+                    # a configured slice stays a cell: nextpnr may have placed
+                    # a real LUT there whose expanded INIT is 0 (tied pins), and
+                    # either way it simulates as 0.
                     cands.append((("const", 0, "unused-lut"), [], d))
                     continue
                 cands.append((("drv", d[3], (d[1], d[2])), [], d))
@@ -409,6 +414,8 @@ class Design:
             # slice with no slice features left that output floating, and the
             # IMUX it feeds fell back to its VCC default.  Cells nothing reads
             # are dropped later as before.
+            if not any(f.startswith(pfx) and v for f, v in fs.items()):
+                self.unused_slices.add(sname)
             self.decode_slice(tile, sname, pfx, s["type"],
                               {p: v["wire"] for p, v in s["site_pins"].items() if v})
 
