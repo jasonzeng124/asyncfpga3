@@ -121,7 +121,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
        - Per-obligation tcheck rows, matched to the Ops fields by hand (8w: 4500/4572 rows
          matched).
        - A's `Core/XAudit/Events8Beh.design_verdict8`: CLEAN at the slow and fast corners on the 4
-         seeds, under SatPin, constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub.
+         seeds, under SatPin, constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub. **2026-10-29: HDsub is discharged (`Events9.design_verdict9`), but H_ARB as encoded (HARB7) is FALSE on real uncontested bd_arbiter runs (`Core/XAudit/Events8Arb.unc_not_harb`: R0 can rise before the grant from ustate's own q read; the virtual grant is 2 steps late), and C's untimed `Unc 0` is not enough (`noFree_not_harb`). So the CLEAN verdict currently covers no real run. A corrected virtual core and the sufficiency proof are probe E8ArbFix.**
          Audit `eb346fb` CONFIRMED it conditional on those hypotheses; its Lean certificates are
          UNVERIFIED. The gb ENTRY claim was OVERSTATED: E8Mux reran it with the OUTMUX hop, and 2 of
          3 failures are real ([C], same Lean checker).

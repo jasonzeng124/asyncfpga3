@@ -622,3 +622,17 @@ arb_grants_eternal and A's arb_trichotomy show a contested arbiter can pulse for
 Joint satisfiability: SatPin + constants + reset jointly satisfiable iff the netlist has a reset fixpoint
 (Lean); untrusted fix0.py: 1747/1747 LUTs definite under rst=1 on all 4 seeds (no-rst control 0/1747).
 HARB7+SelOK+HDsub jointly on one gcd_hw run: not shown; nothing found jointly unsatisfiable.
+### progress 09:25
+**E8Arb: negative result on the gcd_hw routed-timing verdict.** H_ARB as encoded (HARB7, the virtual
+arbiter core in events4/model.py and cert6/cert8) is FALSE on real uncontested bd_arbiter runs:
+Events8Arb.unc_not_harb (real INITs in A's per-pin semantics, B's ArbBinary read-only) gives a handover
+trace, uncontested for every window W, with exclusive grants, that the virtual core cannot match -- D1:
+the virtual R0 is the OR of the grants read after them, the real R0 = r1 q + r2 ~q is computed in ustate
+from its own q read and can rise before the grant; D2: the virtual grant is 2 steps late (cert8's lo_c does
+not subtract the two (1,1) bands). noFree_not_harb: C's untimed 'uncontended' (Unc 0) is not enough (a
+contested runt trace pulses g2 forever with C's predicate true). Untrusted numbers: D1 outside the virtual
+band on 11-18 of 18 grant->R0 pairs per seed/corner; E8Hyp's sim0 run violates HARB7 (R0 453 ps before
+g2), so it is no witness. Consequence: design_verdict8/9's CLEAN rows currently cover no real run. Lean
+file being checked; FEASIBILITY, gcd_hw_hypotheses and A-e8hyp corrected. Probe E8ArbFix launched
+(corrected core, sufficiency theorem ArbOK + Unc W + RT1/RT1b => HARB7', reruns). No contested gcd_hw
+schedule was found (weak evidence).

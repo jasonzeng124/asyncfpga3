@@ -168,7 +168,7 @@ events, quiescent from 57.9 ns. On both runs the two grants of every arbiter are
 together and there is no free contest (both requests high with no grant held: 0). With constant
 selects SelOK and SelPart hold for `sel` = the constant decode (argued, not mechanised: needs the
 `svOf` exposure of §4). The runs stop early (the skeleton with frozen selects deadlocks), so
-they are weak witnesses: a quiescent tail satisfies every count condition trivially. HARB7
+**[Correction 2026-10-29, E8Arb: the sim0 run violates HARB7 (R0 rises 453 ps before g2; g2 rises 1450 ps after A0 falls where the virtual core needs >= 1452), so it is NOT a witness, even a weak one, for the verdict's hypotheses. See notes/A-e8arb.md.]** they are weak witnesses: a quiescent tail satisfies every count condition trivially. HARB7
 (ND7 existence) and HDsub were not checked on them.
 
 **Not done:** a Lean joint witness of HARB7, SelOK, SelPart and HDsub on a gcd_hw run (the
