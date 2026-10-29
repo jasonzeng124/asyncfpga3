@@ -1578,3 +1578,6 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
   chain/datapath distance (report it, rank by it), (b) place each bd_delay chain next to its datapath (RLOC /
   placement), never shortening it; (c) run every candidate at a fixed set of region draws with log-normal factors
   and report the scale at which it first fails (a margin in units of the calibrated scatter).
+### progress 11:30 (BQ#2 full stack 7/16 runs PASS; BQ#3 seed 7 passes 2x)
+- BQ#2: d/3/4 at both corners and 5 SLOW_MAX: all PASS 16/16, EQUIVALENT (vec 6 SLOW_MAX 28-32, FAST_MIN 77-86).
+- BQ#3 seed 7 at 2x scatter: PASS (59/47/70). Seed 5 scatter running; then BQ#1's sweep.
