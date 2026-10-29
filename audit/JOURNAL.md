@@ -343,3 +343,8 @@ P12c in: InvolutionExp, Prefix, BandCheck/CornerCell CONFIRMED (own sympy + inde
 count 20/37928). Events9Sel/Arb OVERSTATED: corrected arbiter core leaves q free, design_verdict9arb gets HARB7 from
 HARB7' by projection; FEASIBILITY:438-443 still says CLEAN without the refutation (I read it). XInert "Verilog
 default" mild. Pass 12 subagents all done. Axiom audit of 1fd99ef0 running (30 modules so far).
+
+### progress 16:23
+Research advanced to 103fbbe9 (answers to r16/r18: new resolver 055edd7, arbiter round-trip requirement, chain_dist,
+BQ#3 reroute). Pass 13: r20 (new resolver vs my r16 bench + adversarial), r21 (double-ack under new resolver with my
+r18 bench, requirement derivation corner, BQ#3 default-seed round-trip margins) launched. Worktree ~/wt-r13.
