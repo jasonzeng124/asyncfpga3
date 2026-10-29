@@ -69,7 +69,11 @@
   uack, can emit a runt: `fastfall_hazard`), H_LEAF_PERSIST (two-level C-trees, fork N=5,6),
   H_WIRE_DI (cells whose req/ack are literally one net need a >= 1-tick route). Data paths,
   selects, grants, H_R0_ISO stay copied hypotheses; a flipped INIT bit breaks the proof. Joint
-  witness for H_GEN only quiet. No tcheck row checks H_CHAIN_SETTLED yet. Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
+  witness for H_GEN only quiet. No tcheck row checks H_CHAIN_SETTLED yet. O4b: generic over kernels
+  (`CellBind.K.kernel_circuit_safe_gen`; gcd_hw, ipow, collatz, xorshift instances); found O4
+  missed the 3-input compute join (O4's H_GEN is provably unsatisfiable on ipow and collatz:
+  `ipow_O4_vacuous`), now covered; H_LEAF_PERSIST and H_REQ_PERSIST PROVED by a joint induction
+  with the protocol (`PersistK.kernel_circuit_safe_genP`). Quiet witnesses only (no ipow run). Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
   fork (8a); gate level for every n (9c); Muller feedback condition from delay bounds, exact,
   n<=3 (MullerTimed). Hypotheses: notes/C-gcd_hw-hypotheses.md §0.
 - **Track 10 (verified timing checker): works; delay data is the limit.** Interval STA
@@ -581,3 +585,6 @@ vk committed (tool + note, no Formal files; selftest --quick OK in my run).
 8x2 committed after my own check.sh (6 files). vk committed. Launched vk2 (automatic
 all-inputs token proofs), O4b (generated-cell binding for every kernel; prove
 H_LEAF/REQ_PERSIST), 8x3 (drop H_SEND/H_RECV by a time-bounded protocol induction).
+
+### progress 11:20
+O4b committed after my own check.sh (7 files).

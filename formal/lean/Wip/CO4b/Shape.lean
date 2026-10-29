@@ -18,3 +18,10 @@ def hist (l : List String) : List (String × Nat) :=
 #eval hist (Formal.Net.CollatzCap.ops.map kind)
 #eval hist (Formal.Net.IpowCap.ops.map kind)
 #eval hist (Formal.Net.CapNet.Gcd.ops.map kind)
+def isj3 {n : Nat} : K n → Bool
+  | .join ins _ _ _ _ => ins.length == 3 | _ => false
+def j3idx {n : Nat} (l : List (K n)) : List Nat :=
+  (List.range l.length).filter (fun i => match l[i]? with | some k => isj3 k | none => false)
+#eval j3idx Formal.Net.IpowCap.ops
+#eval j3idx Formal.Net.CollatzCap.ops
+#eval Formal.Net.IpowCap.NO
