@@ -1230,3 +1230,19 @@ so the bound is +W+Wq (cel_env_win_bound/need), +2W at Wq = W, +3W under the wid
 reading; real bd_c2 (W=2, wq=1) clean at margin 3, hazard at 2. So the JSON's "+W"
 text on the 51 C-element-backed rows is sufficient only at wq = 0 (H_FB_PURE): to fix
 in the next JSON pass. The 5 *_rst_dec reset rows stay UNPROVED. W, Wq unmeasured.
+
+### progress 10:19
+In: Bpd (Phase 1, Prelim deletion; notes/B-port-core3.md; Wip/Bpd/{B.patch,AC.patch,
+PrelimLutList.lean,tools/}). Every Prelim declaration has a Core/LutList namesake
+(PrelimLutList: definitions equal, the 11 theorem statements the same proposition;
+axioms propext/Quot.sound). With Prelim deleted, all 338 modules of its reverse-import
+closure (196 Cells, 142 A/C) compile as patched copies (HEAD 0af7392; the 12 MB of
+copies are kept in scratch, not committed; regenerate with Wip/Bpd/tools). Negative:
+B's patch ALONE (Prelim kept, A/C unpatched) fails in 7 modules by constant mismatch
+(Formal.Cells.X vs Formal.Core.LutList.X are distinct constants), so B.patch (90
+files + rm Prelim) and AC.patch (17 A/C files: Core/Bridge, Core/Delay/GLSResolveGen,
+Core/XAudit/Events8Arb and 14 of C's) must land in ONE commit. B cannot edit A's or
+C's files, so this is handed over: FOR SHARD A (lead) / C: apply both patches in one
+commit (git apply --check passes on the current tree; if not, regenerate with
+Wip/Bpd/tools/mkpatch.py), then lake build + check.sh. B will not apply its half
+alone.
