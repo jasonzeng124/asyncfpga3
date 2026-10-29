@@ -1,11 +1,11 @@
 # A-gls-resolve: the trace semantics of research's FID_RESOLVE on the bd_c2 loop
 
-Probe GLSResolve, shard A, session 2026-10-29. STATUS: DONE pending the final check.sh run
-(see "What checks" for the exact command and its last lines).
+Probe GLSResolve, shard A, session 2026-10-29. STATUS: DONE (the file checks; nothing unproved).
 
 File: `formal/lean/Formal/Core/Delay/GLSResolve.lean` (core Lean, no Mathlib). Imports
 `Formal.Core.Delay.GLSFid` (A; no olean in .lake/build yet, so check.sh is given it first) and
-`Formal.Cells.CElemTiming` (B, read-only, core Lean, has an olean). No Wip files.
+`Formal.Cells.CElemTiming` (B, read-only, core Lean, has an olean). No Wip Lean; the iverilog
+cross-check is kept in `formal/lean/Wip/GLSResolve/sim/` (`run.sh`, testbenches, checker).
 
 Research side read-only at `origin/claude/research` tip `6524fa3`: `cells/gls/fid_core.vh`
 (md5 2422ccea…, unchanged since 5567170), `cells/gls/prims.v` (md5 3e7423cb…), `cells/gls/gen.py`.
@@ -15,7 +15,10 @@ Written `R:<file>:<line>`.
 
     cd /home/user/asyncfpga3/formal
     ./check.sh Formal/Core/Delay/GLSFid.lean Formal/Core/Delay/GLSResolve.lean
-    (last lines: see the report; filled in at the end of this note)
+    -> [audit] 665 declarations checked   (includes the imported GLSFid, SAF, Discrete, B's Prelim/CElemTiming)
+    -> [check] OK
+    (autoImplicit=false; a plain `lake env lean` of the file prints no error and no warning;
+    no sorry/axiom/native_decide; file md5 54d0bef8…, 854 lines.)
 
 ## 0. The model (what `FID_RESOLVE` is, as a trace)
 
@@ -129,7 +132,8 @@ Plain-language problem statements:
 
 ## 3. iverilog cross-check (unmodified research sources, scratch only)
 
-Scratch dir `/tmp/claude-0/-home-user-asyncfpga3/e4887bac-6d7b-51e8-a617-7dbd05e5b307/scratchpad/GLSResolve/sim/`:
+Rerun: `sh formal/lean/Wip/GLSResolve/sim/run.sh` (about 1 min; takes the research files with
+`git show` into a temp dir). Files:
 `fid_core.vh`, `prims.v` from `git show origin/claude/research:cells/gls/…` (md5s above);
 `tb_c2.v` = bd_c2 as the baked fid build makes it (`SLICE_LUTX` under `-DGLS_FID`, INIT
 `00E8…`, q → transport `ICBUF` (`-DGLS_TRANSPORT_IC`, TW = 100) → A3 (arc 100), other arcs
