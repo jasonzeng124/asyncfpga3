@@ -24,6 +24,24 @@ from arb import (INIT_STATE_HELD, INIT_STATE_UNHELD, INIT_GRANT, INIT_C2,
 CORNERS = {"FAST": dict(o6=(11, 14), o5=(10, 14)),
            "SLOW": dict(o6=(25, 31), o5=(30, 38))}
 
+# corner model (A's Corner.lean; B-arb-kappa readings), rounded outward to 4 ps ticks
+PRJ = dict(o6=(45, 56, 100, 124), o5=(42, 55, 121, 152))
+
+
+def _tk(lo, hi):
+    import math
+    return (math.floor(lo / 4 + 1e-9), math.ceil(hi / 4 - 1e-9))
+
+
+for _c in (0, 1):
+    for _kn, _k in (("k11", 1 / 11), ("kE", 383 / 1927)):
+        CORNERS[f"lit{_c}{_kn}"] = {n: _tk((1 - _k) * (v[0] + _c * (v[3] - v[0])),
+                                           (1 + _k) * (v[0] + _c * (v[3] - v[0])))
+                                    for n, v in PRJ.items()}
+        CORNERS[f"cons{_c}{_kn}"] = {n: _tk((1 - _k) * (v[0] + _c * (v[2] - v[0])),
+                                            (1 + _k) * (v[1] + _c * (v[3] - v[1])))
+                                     for n, v in PRJ.items()}
+
 
 def build(arcs, held=True, wq_s=(0, 0), wq_g=(0, 0), wa=(0, 0),
           srv=(40, 45), cli=(1, 6)):
@@ -69,7 +87,9 @@ def row(cor, label, **kw):
 
 if __name__ == "__main__":
     t0 = time.time()
-    for cor in CORNERS:
+    cors = sys.argv[1].split(",") if len(sys.argv) > 1 else list(CORNERS)
+    print({c: CORNERS[c] for c in cors})
+    for cor in cors:
         print(f"== {cor}: server latency (ticks of 4 ps), zero routing ==")
         for held in (True, False):
             for s in (0, 1, 2, 5, 10, 15, 20, 30, 40):

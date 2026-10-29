@@ -44,22 +44,38 @@ from arb import (INIT_STATE_HELD, INIT_STATE_UNHELD, INIT_GRANT, INIT_C2,
 U = 10          # model units per ps (0.1 ps resolution)
 
 
-def cm(c, k):
-    d6 = 56 + c * (124 - 56)
-    d5 = 55 + c * (152 - 55)
-    return dict(o6=((1 - k) * d6, (1 + k) * d6), o5=((1 - k) * d5, (1 + k) * d5))
+PRJ = dict(o6=(45, 56, 100, 124),       # (FAST_MIN, FAST_MAX, SLOW_MIN, SLOW_MAX), ps
+           o5=(42, 55, 121, 152))       # O5: union over pins I0..I2 (B-arb-corners table)
+K11, KE = 1 / 11, 383 / 1927            # rule A / rule E kappa limits (Formal/Core/Delay/Corner)
+
+
+def lerp(f, s, c):
+    return f + c * (s - f)
+
+
+def lit(c, k):
+    """A's corner model, literal endpoints F = FAST_MIN, S = SLOW_MAX."""
+    return {n: ((1 - k) * lerp(v[0], v[3], c), (1 + k) * lerp(v[0], v[3], c))
+            for n, v in PRJ.items()}
+
+
+def cons(c, k):
+    """corner model on top of prjxray's per-corner windows (B-arb-kappa 'cons')."""
+    return {n: ((1 - k) * lerp(v[0], v[2], c), (1 + k) * lerp(v[1], v[3], c))
+            for n, v in PRJ.items()}
 
 
 CORNERS = {
     "FAST": dict(o6=(45, 56), o5=(42, 55)),
     "SLOW": dict(o6=(100, 124), o5=(121, 152)),
-    "FASTp": dict(o6=(56, 56), o5=(52, 52)),
-    "SLOWp": dict(o6=(124, 124), o5=(150, 150)),
-    "CM0k20": cm(0, 0.2),
-    "CM.5k20": cm(0.5, 0.2),
-    "CM1k20": cm(1, 0.2),
-    "CM.5k085": cm(0.5, 0.085),
+    "FASTp": dict(o6=(56, 56), o5=(52, 52)),      # FAST_MAX points (O5: q pin I2)
+    "SLOWp": dict(o6=(124, 124), o5=(150, 150)),  # SLOW_MAX points
+    "FMINp": dict(o6=(45, 45), o5=(42, 42)),      # FAST_MIN points
 }
+for _c in (0, 0.5, 1):
+    for _kn, _k in (("k11", K11), ("kE", KE)):
+        CORNERS[f"lit{_c:g}{_kn}"] = lit(_c, _k)
+        CORNERS[f"cons{_c:g}{_kn}"] = cons(_c, _k)
 
 
 def S(x):

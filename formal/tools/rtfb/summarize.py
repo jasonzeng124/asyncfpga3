@@ -42,11 +42,11 @@ def main():
         allrows.append((r, rows))
         cells = []
         for v in VARIANTS:
-            sl = [int(x[v]) for x in rows]
+            sl = [int(x[v]) for x in rows if x[v] != "-"]
             nf = sum(1 for s in sl if s < 0)
             fails[v].append(nf); worst[v].append(min(sl))
             cells.append("%3d/%-3d %5d" % (nf, len(rows), min(sl)))
-        print("%-28s %s" % (os.path.basename(r).replace(".rt.txt", ""), "  ".join("%13s" % c for c in cells)))
+        print("%-28s %s" % (re.sub(r"\.rtd?0?\.txt$", "", os.path.basename(r)), "  ".join("%13s" % c for c in cells)))
     print("failing C-elements: mean [min..max]; worst slack ps: mean [min..max]")
     for v in VARIANTS:
         f, w = fails[v], worst[v]
@@ -57,7 +57,7 @@ def main():
     nb_fail = Counter()
     sitepin = defaultdict(set)
     for r, rows in allrows:
-        js = r.replace(".rt.txt", ".f2l.json")
+        js = re.sub(r"\.rtd?0?\.txt$", ".f2l.json", r)
         if os.path.exists(js):
             for l in json.load(open(js))["luts"]:
                 for p in l["pins"]:
@@ -65,9 +65,9 @@ def main():
         for x in rows:
             k = x["fb"][1]
             pin_all[k] += 1
-            if int(x["slowE"]) < 0:
+            if x["slowE"] != "-" and int(x["slowE"]) < 0:
                 pin_fail[k] += 1
-                for n in x["neighbours"].split(","):
+                for n in x.get("neighbours", x.get("resp_pins", "")).split(","):
                     nb_fail[n[1]] += 1
     print("feedback physical pin (all C-elements / failing at slowE), and prjxray site-pin delay "
           "[fast_min fast_max slow_min slow_max] ps")

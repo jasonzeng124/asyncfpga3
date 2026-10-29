@@ -177,3 +177,12 @@ No pre-existing file was edited.
 
 ## Last run
 (filled in below)
+
+### 2026-10-29 rebuild (in progress)
+- The tools under formal/tools/fasm2lean3/ were NOT lost (they were in the lead's WIP snapshot,
+  commits e4b7998..bef1849); the Lean was. Rebuilt: Formal/Net/FasmDesign/Basic.lean (compiles,
+  hand-written from the data format gen3 emits and the statements above), FasmGcd.lean.
+- gen3 regenerates route d exactly as recorded: 10629 insts / 43 chunks, rho 13907, 9622/9623
+  logical matched, 1139 route-through outputs (1130 LUT + 9 BUFHCE), 5645/5645 bound, max supp 9.
+- toolchain restored by the lead: cells/verify/toolchain.sh ok, nextpnr sha256 9c732bc6303458df.
+

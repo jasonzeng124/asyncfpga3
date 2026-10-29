@@ -48,9 +48,11 @@ J  (arb_fork.py rule J).  Per arbiter and client k:
 """
 import heapq
 import math
+import os
 import re
 from collections import defaultdict
 
+KEEP_CONST = bool(os.environ.get("TCHECK_KEEP_CONST"))   # C-10m: before/after only
 ZERO = None   # set in emit_all: {variant: (0, 0)}
 
 
@@ -112,6 +114,19 @@ def rule_A(c):
         upstream_links = T.upstream_bd_links(parent_srcs)
         region = (parent,) + upstream_links
         srcs = T.cell_boundary(edges, back, stops, region)
+        # C-10m: FALSE PATH.  tighten.cell_boundary() keeps the packer's constant tie-off
+        # drivers ($PACKER_GND_DRV / $PACKER_VCC_DRV) as boundary starts (C-10n finding).
+        # A constant never switches, so no run of the circuit launches a transition from
+        # it: a path that starts there is false, whether it would set the latest data
+        # (the 3-5 ns tie-off routes C-10n saw) or the earliest request.  Under 10a's Run
+        # semantics a node with no changing input never changes (H_QUIESCENT), so dropping
+        # these starts is exactly the circuit's behaviour, not a weakening; the starts are
+        # dropped BEFORE the common/bundled decision, so a constant can never be the
+        # "common source" either.  TCHECK_KEEP_CONST=1 restores the old (project-equal)
+        # start set, for before/after tables only.
+        nconst = sum(1 for s in srcs if T.is_const(s))
+        if not KEEP_CONST:
+            srcs = {s for s in srcs if not T.is_const(s)}
         confine = region if upstream_links else parent
         prefixes = (confine,) if isinstance(confine, str) else confine
 
@@ -133,7 +148,8 @@ def rule_A(c):
                     continue
                 I.req = rr[tail]
                 I.data = set(rd.values())
-                n += _emit(c, I, L, {"rule": "A", "ctl": parent, "pairing": "common", "src": s})
+                n += _emit(c, I, L, {"rule": "A", "ctl": parent, "pairing": "common", "src": s,
+                                     "const_dropped": 0 if KEEP_CONST else nconst})
             continue
         # bundled channel
         I = Inst(f"A {parent} bundled")
@@ -173,7 +189,7 @@ def rule_A(c):
             rd = seg(I, ("d", s), ("ds", s), s, set(peers), set(), inside)
             I.data |= set(rd.values())
         _emit(c, I, V, {"rule": "A", "ctl": parent, "pairing": "bundled",
-                        "lag": lagkey != V})
+                        "lag": lagkey != V, "const_dropped": 0 if KEEP_CONST else nconst})
 
 
 # ------------------------------------------------------------------------- E

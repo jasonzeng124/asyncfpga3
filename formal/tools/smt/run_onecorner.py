@@ -38,19 +38,42 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'results')
 os.makedirs(OUT, exist_ok=True)
 LOG = None
 
-FAST = dict(o6=(45, 56), o5=(42, 55))
-SLOW = dict(o6=(100, 124), o5=(121, 152))
+# prjxray CLBLL_L.sdf (B-arb-corners.md table), ps: (FAST_MIN, FAST_MAX, SLOW_MIN, SLOW_MAX)
+PRJ = dict(o6=(45, 56, 100, 124),       # A6LUT A1..A6 -> O6 (flat)
+           o5=(42, 55, 121, 152))       # A5LUT -> O5, union over pins I0..I2
+FAST = {k: (v[0], v[1]) for k, v in PRJ.items()}
+SLOW = {k: (v[2], v[3]) for k, v in PRJ.items()}
+K11, KE = 1 / 11, 383 / 1927            # rule A's and rule E's kappa limits (Corner.lean)
 
 
-def cm(c, k):
+def lerp(f, s, c):
+    return f + c * (s - f)
+
+
+def lit(c, k):
+    """A's corner model, literal endpoints (B-arb-kappa 'lit'): F = FAST_MIN,
+    S = SLOW_MAX; arc in [(1-k) D(c), (1+k) D(c)]."""
+    return {n: ((1 - k) * lerp(v[0], v[3], c), (1 + k) * lerp(v[0], v[3], c)) for n, v in PRJ.items()}
+
+
+def cons(c, k):
+    """Corner model on top of prjxray's corner windows (B-arb-kappa 'cons'):
+    arc in [(1-k) lerp(FMIN, SMIN, c), (1+k) lerp(FMAX, SMAX, c)].  k = 0, c = 0/1
+    are exactly the FAST / SLOW bands."""
+    return {n: ((1 - k) * lerp(v[0], v[2], c), (1 + k) * lerp(v[1], v[3], c)) for n, v in PRJ.items()}
+
+
+def cm(c, k):          # kept for the earlier (unlogged) run: lerp(FAST_MAX, SLOW_MAX)
     d6 = 56 + c * (124 - 56)
     d5 = 55 + c * (152 - 55)
     return dict(o6=((1 - k) * d6, (1 + k) * d6), o5=((1 - k) * d5, (1 + k) * d5))
 
 
-CORNERS = [('FAST', FAST), ('SLOW', SLOW), ('CM c=0 k=0.2', cm(0, 0.2)),
-           ('CM c=0.5 k=0.2', cm(0.5, 0.2)), ('CM c=1 k=0.2', cm(1, 0.2)),
-           ('CM c=0.5 k=0.085', cm(0.5, 0.085))]
+CORNERS = [('FAST', FAST), ('SLOW', SLOW)]
+for _c in (0, 0.5, 1):
+    for _kn, _k in (('1/11', K11), ('kE', KE)):
+        CORNERS.append(('lit c=%g k=%s' % (_c, _kn), lit(_c, _k)))
+        CORNERS.append(('cons c=%g k=%s' % (_c, _kn), cons(_c, _k)))
 CUR = FAST
 
 
@@ -110,7 +133,9 @@ def sec_real():
     log('# corner intervals (rise = fall band), free requests (P = min level time).')
     log('# C-12a (mixed): mutex CEX at routes 0/48/100; aperture 152 ps at 48 ps.')
     tick = 8
-    for name, cor in CORNERS[:2] + CORNERS[3:4]:
+    D = dict(CORNERS)
+    for name in ('FAST', 'SLOW', 'cons c=0 k=1/11', 'cons c=1 k=1/11'):
+        cor = D[name]
         CUR = cor
         for route in (0, 48):
             mk = lambda sep=0, P=50: arb.arbcell(tick=tick, spread=True, route=route,
@@ -144,77 +169,61 @@ def sec_real():
                 wv(last[1], last[2])
 
 
+ARB_UNITS = [  # 1 unit = 25 ps, nearest rounding (coarse; dense-time answers are zone/onecorner.py)
+    ('FAST', ((2, 2), (2, 2)), ((2, 2), (2, 2))),   # O6 45-56 -> 1.8-2.24; O5 42-55 -> 1.7-2.2
+    ('SLOW', ((4, 5), (4, 5)), ((5, 6), (5, 6))),   # O6 100-124 -> 4-4.96; O5 121-152 -> 4.8-6.1
+    ('MIX12a', ((2, 2), (4, 5)), ((2, 2), (4, 5))),  # C-12a's rise (2,2) / fall (4,5): the corner mix
+]
+PROPS = ('mutex', 'ackmutex', 'tx')
+
+
 def sec_arbiter():
-    log('# shipped bd_arbiter, four-phase clients and server, route 1, units ~25 ps.')
-    log('# C-12a used rise (2,2) fall (4,5) (mixed). One corner: (2,2) both edges ~ FAST')
-    log('# (45-56 ps), (4,5) both edges ~ SLOW (100-124 ps); CM c=0.5 k=0.2: (3,4).')
-    for name, lut in (('FAST (2,2)', ((2, 2), (2, 2))), ('SLOW (4,5)', ((4, 5), (4, 5))),
-                      ('CM (3,4)', ((3, 4), (3, 4)))):
-        def early(k):
-            ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, k))
+    log('# shipped bd_arbiter, four-phase clients (Lc=1) and server (latency >= Ls), route 1 unit')
+    log('# on every net, 1 unit = 25 ps, one interval per output used for BOTH edges (O6: q, g2,')
+    log('# A1, A2; O5: R0, g1).  Properties: mutex g1&g2, ackmutex A1&A2, tx (12b: an A_k rise')
+    log('# with no A0 rise since the last acknowledge).  BMC depth 60.')
+    for name, l6, l5 in ARB_UNITS:
+        for Ls in (1, 2, 4):
+            ts, P = arb.arbiter(lut=l6, lut5=l5, route=1, Ls=Ls)
+            for pr in PROPS:
+                t = time.time()
+                d, tr = tsmc.bmc(ts, P[pr], 60)
+                log('  %-7s Ls=%d fork 0: %-8s %s [%d bits, %.1fs]' % (
+                    name, Ls, pr, 'CEX@%s' % d if d is not None else 'none to 60', ts.nbits(), time.time() - t))
+                if d is not None:
+                    wv(ts, tr)
+
+
+def sec_fork():
+    log('# A0 fork, falling edge (12a 2d / B ArbA0Fork): extra delay k on the A0 branch into ua2;')
+    log('# smallest k with an early/extra acknowledge (tx).  Ls = 4 (slow-enough server), BMC 60.')
+    for name, l6, l5 in ARB_UNITS:
+        def bad(k):
+            ts, P = arb.arbiter(lut=l6, lut5=l5, route=1, a0fork=(0, 0, k), Ls=4)
             t = time.time()
-            d, tr = tsmc.bmc(ts, P['owner'], 55)
-            log('  %s A0->ua2 extra %2d: owner/early-ack %s [%d bits, %.1fs]' % (
-                name, k, 'CEX@%s' % d if d is not None else 'none to 55', ts.nbits(), time.time() - t))
+            d, tr = tsmc.bmc(ts, P['tx'], 60)
+            log('  %-7s A0->ua2 extra %2d: tx %s [%d bits, %.1fs]' % (
+                name, k, 'CEX@%s' % d if d is not None else 'none to 60', ts.nbits(), time.time() - t))
             return d is not None, ts, tr
-        lo, hi, best = 0, 20, None
-        bad, ts, tr = early(hi)
-        if not bad:
-            log('  %s: no early ack up to %d' % (name, hi))
+        hi = 24
+        b, ts, tr = bad(hi)
+        if not b:
+            log('  => %s: no early ack up to %d' % (name, hi))
             continue
-        best = (hi, ts, tr)
+        lo, best = 0, (hi, ts, tr)
         while lo < hi:
             mid = (lo + hi) // 2
-            bad, ts, tr = early(mid)
-            if bad:
+            b, ts, tr = bad(mid)
+            if b:
                 hi, best = mid, (mid, ts, tr)
             else:
                 lo = mid + 1
-        log('  => %s: smallest A0->ua2 extra delay with an early ack: %d' % (name, best[0]))
+        log('  => %s: smallest A0->ua2 extra delay with an early ack: %d units' % (name, best[0]))
         wv(best[1], best[2])
 
 
-def sec_arbiter2():
-    log('# follow-up: zero-fork owner CEX at SLOW/CM. Is it the fast server (Ls=1)?')
-    log('# owner flags an A0 rise while no single grant is high (A0 beats g2 to ua2).')
-    for name, lut in (('SLOW (4,5)', ((4, 5), (4, 5))), ('SLOWp (5,5)', ((5, 5), (5, 5))),
-                      ('CM (3,4)', ((3, 4), (3, 4)))):
-        for Ls in (1, 2, 3, 4):
-            ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, 0), Ls=Ls)
-            t = time.time()
-            d, tr = tsmc.bmc(ts, P['owner'], 55)
-            log('  %s Ls=%d fork 0: owner %s [%.1fs]' % (name, Ls, 'CEX@%s' % d if d is not None else 'none to 55', time.time() - t))
-            if d is None:
-                for k in range(1, 21):
-                    ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, k), Ls=Ls)
-                    d, tr = tsmc.bmc(ts, P['owner'], 55)
-                    if d is not None:
-                        log('  %s Ls=%d: smallest A0->ua2 extra delay with owner CEX: %d (depth %d)' % (name, Ls, k, d))
-                        wv(ts, tr)
-                        break
-                break
-
-
-def sec_arbiter3():
-    log('# SLOW one corner, deeper BMC (depth 90): the depth-55 search of arbiter2 found')
-    log('# no early ack at any extra delay 1..20 for SLOW/SLOWp, which may be depth, not safety.')
-    log('# B-style prediction (inertial): early ack iff late >= early + ua2 rise arc,')
-    log('# early = 1 + ustate + 1 + ugrant + 1 (route 1 per net).')
-    for name, lut, Ls, ks in (('SLOWp (5,5)', ((5, 5), (5, 5)), 1, (14, 16, 17, 18)),
-                              ('SLOW (4,5)', ((4, 5), (4, 5)), 2, (12, 14, 16))):
-        for k in ks:
-            ts, P = arb.arbiter(lut=lut, route=1, a0fork=(0, 0, k), Ls=Ls)
-            t = time.time()
-            d, tr = tsmc.bmc(ts, P['owner'], 90)
-            log('  %s Ls=%d extra %2d: owner %s [%d bits, %.1fs]' % (
-                name, Ls, k, 'CEX@%s' % d if d is not None else 'none to 90', ts.nbits(), time.time() - t))
-            if d is not None:
-                wv(ts, tr)
-                break
-
-
 if __name__ == '__main__':
-    secs = sys.argv[1:] or ['tb', 'real', 'arbiter']
+    secs = sys.argv[1:] or ['tb', 'real', 'arbiter', 'fork']
     for s in secs:
         LOG = open(os.path.join(OUT, 'onecorner_%s.txt' % s), 'w')
         t0 = time.time()

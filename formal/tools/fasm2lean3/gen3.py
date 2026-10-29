@@ -607,16 +607,23 @@ def main():
         f.write("/-- Every instance of the routed design (%d). -/\n" % len(insts))
         f.write("def insts : List Inst :=\n  %s\n\n" % " ++\n  ".join("C%03d.insts" % ci for ci in range(len(chunks))))
         f.write("theorem all_ok : checkAll rho insts = true := by\n")
-        f.write("  simp only [insts, checkAll, List.all_append, Bool.and_eq_true]\n")
+        f.write("  simp only [insts, checkAll, List.append_assoc, List.all_append, Bool.and_eq_true]\n")
         f.write("  exact ⟨%s⟩\n\n" % ", ".join("C%03d.ok" % ci for ci in range(len(chunks))))
         f.write("/-- H_NETLIST for this route (gate level): every instance is sound. -/\n")
         f.write("theorem sound : ∀ i ∈ insts, i.Sound rho := checkAll_sound rho insts all_ok\n\n")
-        f.write("/-- H_CELLS (INIT half) for this route: every bound library-cell LUT has the kind and\n"
+        f.write("/- H_CELLS (INIT half) for this route: every bound library-cell LUT has the kind and\n"
                 "INIT of the Formal.Gen cell generated from the same line of cells/rtl (%d of %d). -/\n"
                 % (len(bind_of), lib_luts))
-        f.write("theorem cells_init : %s :=\n  ⟨%s⟩\n\n" % (
-            " ∧\n    ".join("bindsOk C%03d.insts C%03d.binds = true" % (ci, ci) for ci in range(len(chunks))),
-            ", ".join("C%03d.binds_ok" % ci for ci in range(len(chunks)))))
+        f.write("/-- The chunks: (instances, library-cell bindings), in order. -/\n")
+        f.write("def chunks : List (List Inst × List (Nat × Netlist × String)) :=\n  [%s]\n\n" % ",\n   ".join(
+            "(C%03d.insts, C%03d.binds)" % (ci, ci) for ci in range(len(chunks))))
+        f.write("theorem chunks_insts : (chunks.map Prod.fst).flatten = insts := by\n"
+                "  simp only [chunks, insts, List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil,\n"
+                "    List.append_nil, List.append_assoc]\n\n")
+        f.write("theorem cells_init : chunks.all (fun c => bindsOk c.1 c.2) = true := by\n")
+        f.write("  simp only [chunks, List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true]\n")
+        f.write("  exact ⟨%s⟩\n\n" % ", ".join("C%03d.binds_ok" % ci for ci in range(len(chunks))))
+        f.write("theorem binds_count : (chunks.map (fun c => c.2.length)).sum = %d := by decide +kernel\n\n" % len(bind_of))
         f.write("end %s\n" % NS)
 
     rep = {"lib_luts": lib_luts, "bound": len(bind_of), "unbound_by_src": dict(unbound), "dangling_logical": dangling, "logical_cells": len(L), "logical_matched": len(matched_l), "logical_unmatched": unmatched_l[:50],

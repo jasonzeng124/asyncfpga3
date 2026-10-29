@@ -223,7 +223,7 @@ def arbcellK(lut=(1, 2), route=1, P=6, tie_stable=None):
     return ts, props
 
 
-def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
+def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None, lut5=None):
     """Shipped bd_arbiter with two four-phase clients and a four-phase server.
     lut: ((rise lo,hi),(fall lo,hi)) in ticks for every LUT output (default
     coarse units 1 tick ~ 25 ps: rise (2,2), fall (4,5)).
@@ -231,6 +231,7 @@ def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
     A0 branch to (ustate.I4, ua1.I1, ua2.I1).  fb: C-element feedback wire.
     Lc/Ls: minimum client / server reaction latency (no maximum)."""
     lut = lut or ((2, 2), (4, 5))
+    lut5 = lut5 or lut          # C-12d: separate O5 arc (R0, g1); default = O6's
     ts = tsmc.TS('arbiter_%s_R%d_A0%s_fb%d' % (lut, route, a0fork, fb))
     net = Net(ts)
     rl = 3 * (lut[1][1] + route + fb) + 2
@@ -250,11 +251,11 @@ def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
     qR = lambda S: sig['qR'](S)
     pins_s = [r1, r2, qR, rst, A0s, True]
     q = net.lut('q', INIT_ARB_STATE, pins_s, lut)
-    R0 = net.lut('R0', C.o5(INIT_ARB_STATE), pins_s[:5], lut)
+    R0 = net.lut('R0', C.o5(INIT_ARB_STATE), pins_s[:5], lut5)
     net.wire('qR', q, route)
     net.wire('R0R', R0, route)
     pins_g = [r1, r2, qR, False, False, True]
-    g1 = net.lut('g1', C.o5(INIT_GRANT), pins_g[:5], lut)
+    g1 = net.lut('g1', C.o5(INIT_GRANT), pins_g[:5], lut5)
     g2 = net.lut('g2', INIT_GRANT, pins_g, lut)
     net.wire('g1R', g1, route)
     net.wire('g2R', g2, route)
@@ -292,6 +293,16 @@ def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
     for n in ('A0', 'A1', 'A2'):
         ts.bool(n + 'p')
     ts.init(lambda S: z3.And(S['own'] == 0, z3.Not(S['A0p']), z3.Not(S['A1p']), z3.Not(S['A2p'])))
+    # C-12d: transaction token (12b's 'tx'): set by an A0 rise, consumed by an
+    # A1/A2 rise; an acknowledge rise with no token is an early/extra ack.
+    ts.bool('tok')
+    ts.bool('tokp')
+    ts.init(lambda S: z3.And(z3.Not(S['tok']), z3.Not(S['tokp'])))
+    ts.trans(lambda S, N: N['tokp'] == S['tok'])
+    ts.trans(lambda S, N: N['tok'] == z3.If(z3.And(N['A0'], z3.Not(S['A0'])), True,
+                                            z3.If(z3.Or(z3.And(N['A1'], z3.Not(S['A1'])),
+                                                        z3.And(N['A2'], z3.Not(S['A2']))),
+                                                  False, S['tok'])))
 
     def mon(S, N):
         rise0 = z3.And(N['A0'], z3.Not(S['A0']))
@@ -300,11 +311,14 @@ def arbiter(lut=None, route=0, a0fork=(0, 0, 0), fb=0, Lc=1, Ls=1, tick=None):
         return z3.And(N['own'] == z3.If(rise0, who, z3.If(fall0, 0, S['own'])),
                       N['A0p'] == S['A0'], N['A1p'] == S['A1'], N['A2p'] == S['A2'])
     ts.trans(mon)
-    ts.show = ['rst', 'r1', 'r2', 'q', 'g1', 'g2', 'R0', 'A0', 'A0s', 'A0a', 'A0b', 'A1', 'A2', 'own']
+    ts.show = ['rst', 'r1', 'r2', 'q', 'g1', 'g2', 'R0', 'A0', 'A0s', 'A0a', 'A0b', 'A1', 'A2', 'own', 'tok']
     live = lambda S: S['rc'] >= rl
     props = {
         'mutex': lambda S: z3.Implies(live(S), z3.Not(z3.And(g1(S), g2(S)))),
         'ackmutex': lambda S: z3.Implies(live(S), z3.Not(z3.And(S['A1'], S['A2']))),
+        'tx': lambda S: z3.Implies(live(S), z3.And(
+            z3.Implies(z3.And(S['A1'], z3.Not(S['A1p'])), S['tokp']),
+            z3.Implies(z3.And(S['A2'], z3.Not(S['A2p'])), S['tokp']))),
         'owner': lambda S: z3.Implies(live(S), z3.And(
             S['own'] != 3,
             z3.Implies(z3.And(S['A1'], z3.Not(S['A1p'])), S['own'] == 1),

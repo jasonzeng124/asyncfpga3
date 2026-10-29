@@ -136,6 +136,8 @@ def ren(rho, s):
 
 def check(rho, p, l, outs, supp):
     if p["kind"].startswith("opaque"):
+        if l is None or not l["kind"].startswith("opaque"):
+            return "opaque physical cell without an opaque logical cell"
         for q, s in p["conn"].items():
             if ren(rho, s) != l["conn"].get(q):
                 return "opaque pin %s: %s vs %s" % (q, ren(rho, s), l["conn"].get(q))
@@ -158,11 +160,15 @@ def check(rho, p, l, outs, supp):
         ins = [val(env, s) for _, s in srcs]
         ins = [(not v) if q in c["inv"] else v for (q, _), v in zip(srcs, ins)]
         return out(c["kind"], c["init"], pin, ins)
+    if not outs:
+        return "no output pairs"
     if l is None:
         for pp, _ in outs:
-            s = ren(rho, p["conn"][pp])
+            s = ren(rho, p["conn"][pp]) if pp in p["conn"] else None
             if s is None:
                 return "rt out not renamed"
+            if s[0] == "net" and s[1] not in supp:
+                return "rt source outside supp"
             for bits in itertools.product([False, True], repeat=len(supp)):
                 env = dict(zip(supp, bits))
                 if ev(p, psrc, pp, env) != val(env, s):
@@ -184,7 +190,7 @@ def check(rho, p, l, outs, supp):
         elif pk != lk or (pk.startswith("fd") and p["init"] != l["init"]):
             return "kind/init %s %s %s %s" % (pk, lk, p["init"], l["init"])
     for pp, lp in outs:
-        if ren(rho, p["conn"][pp]) != l["conn"].get(lp):
+        if pp not in p["conn"] or lp not in l["conn"] or ren(rho, p["conn"][pp]) != l["conn"].get(lp):
             return "out %s->%s renamed %s, logical %s" % (pp, lp, ren(rho, p["conn"][pp]), l["conn"].get(lp))
     for bits in itertools.product([False, True], repeat=len(supp)):
         env = dict(zip(supp, bits))
