@@ -122,4 +122,24 @@ passes ParOK (0 degraded), all 18 dsub9 lines valid, 9 reset classes / 36 nodes.
 (in progress)
 
 ## 6. Check
-(pending)
+The lead's .lake/build had XAudit oleans up to Events7Cert (+ Events5/6) this session, so check.sh was
+run on the not-yet-built import closure of my files, in dependency order (the last four are mine):
+
+    formal/check.sh Formal/Core/XAudit/Events8Arb.lean Formal/Core/XAudit/Events9Arb.lean \
+      Formal/Core/XAudit/Events9ParRst.lean Formal/Core/XAudit/Events7Beh.lean Formal/Core/XAudit/Events8Core.lean \
+      Formal/Core/XAudit/Events8Cert.lean Formal/Core/XAudit/Events8Beh.lean Formal/Core/XAudit/Events9Cert.lean \
+      Formal/Core/XAudit/Events9Beh.lean Formal/Core/XAudit/Events9ArbBeh.lean Formal/Core/XAudit/Events9Par.lean \
+      Formal/Core/XAudit/Events9ParBeh.lean Formal/Core/XAudit/Events9ParMain.lean
+    ...
+    [audit] 3073 declarations checked
+    [check] audit (executable) Formal.Core.XAudit.Events9ParMain
+    [audit] 2900 declarations checked
+    [check] OK
+
+Once lake has built Events9ArbBeh and Events9Arb: `formal/check.sh Formal/Core/XAudit/Events9Par.lean
+Formal/Core/XAudit/Events9ParBeh.lean Formal/Core/XAudit/Events9ParRst.lean Formal/Core/XAudit/Events9ParMain.lean`.
+Root imports if wanted: `Formal.Core.XAudit.Events9Par`, `…Events9ParBeh`, `…Events9ParRst` (not
+Events9ParMain, which defines `main`). Lakefile stanza (NOT added):
+`[[lean_exe]] name = "xevents9par" root = "Formal.Core.XAudit.Events9ParMain"`.
+The runs used the overlay `$S/E9Par/ov2` (oleans compiled from the same sources with
+-DautoImplicit=false by `$S/E9Par/lc2.sh`, from the sources as checked).

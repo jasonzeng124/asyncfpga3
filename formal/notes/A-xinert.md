@@ -1,6 +1,6 @@
 # A-xinert: an inertial option for xaudit (probe XInert, shard A)
 
-STATUS: partial (09:45 UTC). Lean checks (see Check). Small runs done; gcd runs in progress.
+STATUS: done (11:25 UTC). Lean checks (see Check); all planned runs done except the two gcd ρ=delay-everywhere simulations (killed, see below).
 
 ## The problem
 
@@ -147,3 +147,108 @@ How to read the flag counts:
   (handshake windows overlap), but this was not checked.
 - Under ρ = delay on LUTs only, the clean verdict survives with the widened bands. So it is sound
   for an inertial-LUT GLS of these bands.
+
+### gcd_hw seed d (`inert/run_gcd.sh`; `inert/results/gcd/`)
+
+**Inputs.**
+- The netlist is md5 5c0830d5, the same as the committed `gcd/inputs/net_d`.
+- The bands are the **E8Mux-corrected** ones (OUTMUX hop, `--inverted hull`):
+  `scratchpad/e8mux/w/d/new/{slow,fast,gb}.bands.json`.
+  - `smax_w0` / `smax_w0.02` were regenerated here with `routed2x.py --corner slowmax --widen w
+    --inverted hull` from E8Mux's `arcs_new.tsv` and route. `checkbands.py`: 47887 bands, 0 bad.
+  - `gb` is `--corner slowmax --widen 0.332`.
+- Unit 25 ps; vector 1 (answer 7, from C); `--timed-only --all`.
+- The ρ = 0 rows are the new baselines on the corrected bands. They are not the old A-xaudit-gcd
+  numbers: smax w0 now certifies with rig_lap 1 from 83.80 ns, against 83.15 ns before.
+
+**Check mode** (`check_summary.txt`; 1-step stimulus, refusal counts only):
+
+| corner | ρ=15 ps | ρ=50 ps | ρ=delay, LUT only | ρ=delay, all |
+|---|---|---|---|---|
+| slow | passes | REFUSED: 1996 gates, widen ≤ 1 step | REFUSED: 9807 (every LUT output), ≤ 6 steps | REFUSED: 45553, ≤ 245 steps |
+| fast | passes | 1996, ≤ 1 | 923, ≤ 1 | 36669, ≤ 137 |
+| gb (slowmax −33.2%) | passes | 1996, ≤ 1 | 9807, ≤ 5 | 45553, ≤ 190 |
+| smax w0 | passes | 3408, ≤ 1 | 9807, ≤ 8 | 45553, ≤ 285 |
+| smax w0.02 | passes | 1996, ≤ 1 | 9807, ≤ 8 | 45553, ≤ 279 |
+
+Notes on the check table:
+- ρ = 15 ps passes everywhere because ρ ≤ unit never widens (`widenHi_eq_of_le_unit`). So the
+  ρ = 15 verdicts ARE the ρ = 0 verdicts, with the inertial gates covered.
+- The 1996 gates refused at ρ = 50 are 1-step arcs ([1,1]: MUXF dedicated inputs, CARRY4
+  internals, mostly raised ones).
+
+**Widen mode** (simulations):
+
+| corner / ρ | widened | control storage clean / STORED / UNRESOLVED | rig_lap = 1 with res = 7? | wall s |
+|---|---|---|---|---|
+| slow, 0 | 0 | 307 / 4 / 103 | no (X from 69.9 ns) | 1303 |
+| slow, delay LUT | 9807 | 307 / 3 / 104 | no (X from 69.9) | 1353 |
+| fast (70 ns), 0 | 0 | 190 / 3 / 221 | no (X from 39.3) | 484 |
+| fast, delay LUT | 923 | 190 / 3 / 221 (observables identical to ρ=0) | no | 402 |
+| gb, 0 | 0 | 243 / 11 / 160 | no (X from 60.4) | 1029 |
+| gb, delay LUT | 9807 | 241 / 13 / 160 | no | 1335 |
+| **smax w0, 0** | 0 | 387 / 27 / 0 | **yes, 83.80 ns, res = 7**; ok = 1 [87.2, 95.1]; err = 0 [15.3, 96.0] | 535 |
+| **smax w0, 50 ps** | 3408 (+1 step) | 387 / 27 / 0 | **yes, 83.83 ns, res = 7**; ok = 1 [87.25, 95.1]; err = 0 [15.3, 96.0] | 649 |
+| smax w0, 75 ps | 43997 (≤ +2) | 386 / 9 / 19 | **no** (X from 79.7; first flag `ulink_n8__1` stage 1 at 37.2 ns) | 641 |
+| smax w0, 100 ps | 44615 (≤ +3) | 386 / 10 / 18 | **no** (first flag `ucond_br11_j` at 32.7 ns) | 757 |
+| smax w0, delay LUT | 9807 (≤ +8) | 386 / 7 / 21 | **no** (first flag `ulink_n8__1` stage 0 at 35.2 ns) | 1016 |
+| **smax w0.02, 0** | 0 | 386 / 26 / 2 (after the lap) | **yes, 83.80 ns, res = 7** | 490 |
+| **smax w0.02, 50 ps** | 1996 | identical observables to ρ=0 | **yes, 83.80 ns, res = 7** | 495 |
+| slow / smax w0, delay all | — | KILLED by hand after 40 / 24 min | — | — |
+
+The two "delay all" runs were killed because windows of up to 285 steps make each step about 5×
+dearer. Their outcome is not a result. Since "delay LUT only" already loses the smax
+certificate, and slow / gb / fast flag at ρ = 0, the expected outcome is "flagged". That is NOT
+proved: XSim's monotonicity in the band was not used or proved here.
+
+**Which verdicts change.**
+- **ρ ≤ 50 ps (the physically plausible range, A-fidelity R1): no verdict changes.**
+  - The smax w0 / w0.02 transaction certificate holds with every gate inertial at ρ = 50. Only
+    windows move, by ≤ 25 ps.
+  - The flagged corners stay flagged.
+- **ρ = 75 / 100 ps on every gate, and ρ = delay on LUTs (the baked-GLS inertial semantics),
+  lose the smax w0 certificate.** The first flags are the same nodes as the A-xaudit-gcd §4
+  mechanism (`ucond_br11_j`, `ulink_n8__1` stage 0), so this is most likely the window-domain
+  imprecision getting worse with wider windows (W2), not a found race. That was not checked by
+  sampling.
+- **Consequence for the GLS:** a transport-band xaudit certificate does NOT imply a clean
+  inertial-LUT GLS (`dlut` refuses on every LUT). With the widened bands, xaudit at the narrow
+  smax bands cannot certify the inertial-LUT GLS's behaviour set.
+
+**Caveat on every gcd row (pre-existing, not inertial).**
+- The gcd runs have **2334 raised arcs**, with lo < 25 ps raised to 1 step: MUXF dedicated
+  inputs and CARRY4 internals (A-xaudit-gcd §5).
+- For those arcs `GateOK` fails (`SoundSteps.toSteps_raised_lo`). So **none of the gcd verdicts,
+  at any ρ, is covered by the continuous-time theorems** (`SoundPhys`, `SoundInertial`). They are
+  theorems of the discrete model only.
+- A finer unit (5-10 ps) removes this. With it, the ρ ≤ unit rule also changes: ρ = 15 would then
+  need checking.
+
+## What is NOT covered
+
+- Pads (always transport).
+- Raised arcs.
+- Involution channels.
+- Per-pin skew inside a LUT.
+- Analog runts.
+- The parser and `applyInertial` (TRUSTED). `applyInertial`'s reconstruction self-check guards
+  the ps band and its rounding, but not the window lookup itself.
+- `"delay"` uses the band's hi as ρ. For a gate whose reject limit is its actual delay Δ ≤ H that
+  is `gateOK_verilog`. A reject limit larger than H is not covered.
+- Whether the widened-band flags (pipe3 dall, smax w0 at ρ ≥ 75) are real races or imprecision.
+
+## Files
+
+- `formal/lean/Formal/Core/XAudit/SoundInertial.lean`: new, proved.
+- `formal/lean/Formal/Core/XAudit/Parse.lean`:
+  - additive: `RhoSpec`, `Inert`, `parseInert`, `widenHi`, `widenGate`, `widenD`, `tbl`,
+    `applyInertial`;
+  - `checkedSteps`, used by `bandFor` (rejects lo > hi);
+  - `import Std.Data.HashMap`.
+- `formal/lean/Formal/Core/XAudit/Main.lean`: additive (`--inertial`, `--rho*`, usage line).
+- `formal/tools-A/xaudit/inert/`:
+  - `run_small.sh`, `run_gcd.sh`;
+  - `designs/inverted.bands.json` (negative control), `designs/gcd_1step.stim.json`;
+  - `results/`, which holds the small runs, `summary.txt` and `gcd/`: summaries, headers, times,
+    `.out.xz`, `check_summary.txt`. The ρ=15 check outputs are trimmed.
+- `formal/notes/A-xaudit.md`: the LUT-delay fidelity row is corrected.
