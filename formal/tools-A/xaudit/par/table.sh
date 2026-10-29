@@ -13,7 +13,7 @@ echo "seed corner | par lines (pass/all) | Back cert | guards cert | structural 
 for s in d 3 4 5; do for c in slow fast indep gb; do
   f=$X/arbfix/results/xe9_${s}_${c}_fix.txt; p=$H/results/xe9p_${s}_${c}${TAG:-}.txt
   [ -s $p ] || { echo "$s $c | (no run)"; continue; }
-  pl=$(grep -o 'parallel-pair lines (par): [0-9]*, [0-9]* pass' $p | awk '{print $6"/"$4}' | tr -d ,)
+  pl=$(grep -o 'parallel-pair lines (par): [0-9]*, [0-9]* pass' $p | awk '{print $5"/"$4}' | tr -d ,)
   bk=$(grep -o 'Back pins [0-9]*/[0-9]*' $p | cut -d' ' -f3); gd=$(grep -o 'guarded pins [0-9]*/[0-9]*' $p | cut -d' ' -f3)
   cnt() { grep '^  RESIDUAL' $1 | grep -cE "$2"; }
   fa=$(cnt $f "$A"); fb=$(cnt $f "$B"); fc=$(cnt $f "$C")

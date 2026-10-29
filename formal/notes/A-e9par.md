@@ -75,8 +75,48 @@ No existing file or statement changed. Lakefile/Formal.lean untouched.
   `--neg-pair`, `--neg-rc`; `mutband.py` (NEGband).
 - `xe9p.sh` (lean --run on an overlay `$OL`), `run.sh` (16 rows), `table.sh`, `neg.sh`.
 
-## 4. Runs (16 gcd_hw rows, E8Mux corrected bands)
-(in progress)
+## 4. Runs (16 gcd_hw rows, E8Mux corrected bands, xevents9par via lean --run on overlay ov2)
+`par/run.sh` (inputs as arbfix/run.sh: `$S/e8mux/w/<seed>/new/skel.json` + band files passing
+e8mux/checkbands.py), outputs `par/results/xe9p_<s>_<c>.txt`, `cert9p_<s>_<c>.txt`, table
+`par/results/table.txt` (`par/table.sh`: "structural" = E8ArbFix's 54 items (a) grant ctl-pin
+Back, (b) shadow request-pin Back, (c) ack guard; certified = residual in arbfix/results
+xe9_*_fix.txt and not residual here). Every row: log accepted by runLogP, every emitted par line
+passes ParOK (0 degraded), all 18 dsub9 lines valid, 9 reset classes / 36 nodes.
+
+| seed corner | par lines pass/emitted | Back cert | guards cert | structural certified (a)+(b)+(c) | residual fix -> par |
+|---|---|---|---|---|---|
+| d slow | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| d fast | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| d indep | 43/43 | 852/866 | 50/63 | 16+12+7 = 35/54 | 67 -> 32 (RECOGNISED, RESIDUAL 32) |
+| d gb | 53/53 | 866/866 | 60/63 | 18+18+15 = 51/54 | 54 -> 3 (RECOGNISED, RESIDUAL 3) |
+| 3 slow | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 3 fast | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 3 indep | 42/42 | 851/866 | 46/63 | 15+12+1 = 28/54 | 69 -> 41 (RECOGNISED, RESIDUAL 41) |
+| 3 gb | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 4 slow | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 4 fast | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 4 indep | 43/43 | 850/866 | 52/63 | 15+13+8 = 36/54 | 67 -> 31 (RECOGNISED, RESIDUAL 31) |
+| 4 gb | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 5 slow | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 5 fast | 54/54 | 866/866 | 63/63 | 18+18+18 = 54/54 | 54 -> 0 (CLEAN) |
+| 5 indep | 42/42 | 852/866 | 49/63 | 15+13+4 = 32/54 | 66 -> 34 (RECOGNISED, RESIDUAL 34) |
+| 5 gb | 53/53 | 865/866 | 62/63 | 18+18+17 = 53/54 | 57 -> 4 (RECOGNISED, RESIDUAL 4) |
+
+- **10 of 16 rows CLEAN** (d/3/4/5 slow and fast, 3/4 gb): all 54 structural items certified.
+  Under design_verdict9par those rows rest on SatPin, constants/reset, HARB7', HRst, SelOK,
+  SelPart. They are exactly the rows that were CLEAN with the old (refuted) core in A-events9's
+  corrected-band table (E8ArbFix: none CLEAN with the corrected core and the Events7 rules).
+- d gb: 51/54; the 3 left are guards: ua2 of merge3/merge2 fail their ENTRY margin (−53, −70 ps;
+  these are the 2 ENTRY residuals the old-core run already had), merge12.uarb2.ua2 has no walk
+  (its pair lag 3099 ps > the walk's 2822 ps: the request pin is a delay line).
+- 5 gb: 53/54 (merge12.uarb2.ua2 guard, same reason) + uenv1 Back −61 and the two Line −90/−70
+  of E8ArbFix (not structural).
+- indep rows: 28–36 of 54; the lag (band widths under independent corners, 580–5734 ps) exceeds
+  the walk delay for the rest (cert9p reports `lag e > walk delay`), plus the margin failures
+  the indep rows always had. These are real margin failures of the rule, not search failures.
+- Real nodes unchanged: the min real Back margins equal E8ArbFix's (d 937/423/526, 3 748/332/416,
+  4 919/400/553, 5 186/107/−61 for slow/fast/gb); cert9p only adds parallel steps to items whose
+  search without them failed.
 
 ## 5. Negative controls (seed d slow)
 (in progress)

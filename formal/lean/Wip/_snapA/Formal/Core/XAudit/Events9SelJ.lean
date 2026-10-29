@@ -54,7 +54,8 @@ open Formal.Core.TraceDiscrete (Sig Warp Mono)
 open Formal.Core.XAudit.Events (ph)
 open Formal.Core.XAudit.Events2Pin (SatPin)
 open Formal.Core.XAudit.Events3 (filt filt_mono)
-open Formal.Core.XAudit.Events4 (filt_le)
+open Formal.Core.XAudit.Events2 (fmin fmin_mem)
+open Formal.Core.XAudit.Events4 (filt_le andCnt orCnt)
 open Formal.Core.XAudit.Events5
 open Formal.Core.XAudit.Events6
 open Formal.Core.XAudit.Events7
@@ -220,6 +221,14 @@ def FacP (n p e : Nat) : Prop :=
   ∀ (h : n < N) (hp : p < net.ar ⟨n, h⟩) (i : Fin (net.nc ⟨n, h⟩ ⟨p, hp⟩)) s,
     x.G ⟨n, h⟩ ⟨p, hp⟩ i s ≤ gB (s - e)
 
+theorem allJ_push {JJ : Array Jd} {j : Jd} (hJ : AllJ x S gB JJ) (hj : HoldsJ x S gB j) :
+    AllJ x S gB (JJ.push j) := by
+  intro i hi
+  rw [Array.getElem_push]
+  split
+  · exact hJ i _
+  · exact hj
+
 variable {S gB} (hgB : Mono gB) {fc : Nat → Nat → Nat → Bool} (hfc : ∀ n p e, fc n p e = true → FacP x gB n p e)
   {idok : Bool} (hid : idok = true → ∀ v, v ≤ gB v)
   (hOK : net.OK7) {parts : List (List Nat)} (hp : SelPart sel parts) {J : Array Jd} (hA : AllH x J)
@@ -286,7 +295,8 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
           cases hc
           refine ⟨h, fun u => ?_⟩
           show Mn x u n ≤ Mn x (gB (u - (b.loF ⟨n, h⟩ + e))) S + 0
-          rw [show n = (⟨n, h⟩ : Fin N).val from rfl, Mn_fin]
+          have hMn : Mn x u n = x.M u ⟨n, h⟩ := Mn_fin x u ⟨n, h⟩
+          rw [hMn]
           have h1 := x.M_le_pin ⟨n, h⟩ hm ⟨p, hp'⟩ u
           have h2 := P_le_of x ⟨n, h⟩ ⟨p, hp'⟩ hk (x.F ⟨n, h⟩ u) _
             (fun c => cm_le_fac x hgB hfc hid hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
@@ -309,7 +319,8 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
           refine ⟨h, fun u => ?_⟩
           show Mn x u n ≤ filt (sel (net.grp ⟨n, h⟩ ⟨p, hp'⟩)) (net.br ⟨n, h⟩ ⟨p, hp'⟩)
             (Mn x (gB (u - (b.loF ⟨n, h⟩ + e))) S)
-          rw [show n = (⟨n, h⟩ : Fin N).val from rfl, Mn_fin]
+          have hMn : Mn x u n = x.M u ⟨n, h⟩ := Mn_fin x u ⟨n, h⟩
+          rw [hMn]
           have h1 := x.M_le_pin ⟨n, h⟩ hm ⟨p, hp'⟩ u
           have h2 := P_filt_le_of x ⟨n, h⟩ ⟨p, hp'⟩ hk (x.F ⟨n, h⟩ u) _
             (fun c => cm_le_fac x hgB hfc hid hOK hp hA (n := ⟨n, h⟩) (p := ⟨p, hp'⟩) hf _ c hs)
@@ -379,7 +390,8 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
         cases hc
         refine ⟨h, fun u => ?_⟩
         show Mn x u xi ≤ Mn x (gB (u - (b.loF ⟨xi, h⟩ + dminJ net b S fc JJ ⟨xi, h⟩ arms))) S + 0
-        rw [show xi = (⟨xi, h⟩ : Fin N).val from rfl, Mn_fin]
+        have hMn : Mn x u xi = x.M u ⟨xi, h⟩ := Mn_fin x u ⟨xi, h⟩
+        rw [hMn]
         rcases Nat.eq_zero_or_pos u with hu0 | hu1
         · subst hu0; rw [x.M_zero]; exact Nat.zero_le _
         rw [x.M_merge ⟨xi, h⟩ hm u hu1]
@@ -404,14 +416,6 @@ theorem jconcl_sound {JJ : Array Jd} (hJJ : AllJ x S gB JJ) (ln : JLn) {j : Jd}
       · simp at hc
     · simp at hc
 
-theorem allJ_push {JJ : Array Jd} {j : Jd} (hJ : AllJ x S gB JJ) (hj : HoldsJ x S gB j) :
-    AllJ x S gB (JJ.push j) := by
-  intro i hi
-  rw [Array.getElem_push]
-  split
-  · exact hJ i _
-  · exact hj
-
 theorem runJFrom_sound : ∀ (l : List JLn) {JJ JJ' : Array Jd}, AllJ x S gB JJ →
     runJFrom net b parts J S fc idok JJ l = some JJ' → AllJ x S gB JJ'
   | [], JJ, JJ', hJ, h => by simp only [runJFrom, Option.some.injEq] at h; subst h; exact hJ
@@ -419,7 +423,7 @@ theorem runJFrom_sound : ∀ (l : List JLn) {JJ JJ' : Array Jd}, AllJ x S gB JJ 
       simp only [runJFrom] at h
       split at h
       · rename_i j hj
-        exact runJFrom_sound l (allJ_push x hJ (jconcl_sound x hgB hfc hid hOK hp hA hJ ln hj)) h
+        exact runJFrom_sound l (allJ_push x _ _ hJ (jconcl_sound x hgB hfc hid hOK hp hA hJ ln hj)) h
       · simp at h
 
 /-- **`runJ_sound`**: every line of an accepted junction log holds, for every behaviour, every
@@ -459,7 +463,7 @@ theorem fac_of_ok (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel) 
   simp only [facOK, dif_pos hn, dif_pos hp, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
   obtain ⟨hv, hall⟩ := h
   have hi := hall i (List.mem_finRange i)
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hi
+  try simp only [Bool.and_eq_true, decide_eq_true_eq] at hi
   obtain ⟨⟨_, hdrop⟩, hplo⟩ := hi
   have hnr := hr.2 ⟨n, hn⟩ hv
   have hok := (full_ok hr.1 ⟨n, hn⟩ hnr ⟨p, hp⟩ i).1
@@ -478,8 +482,7 @@ end
 /-! ## 5. The verdict with junction-anchored ack lags -/
 
 section
-variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} {cv : Fin N → Sig}
+variable {N : Nat} (d : Design) (net : Net4 N) (b : Bands4 net) (rn : Fin N → RNode)
 
 /-- **The junction row of one copy and literal** (decidable): the junction log `jl` of source
 `src` and lower part `bot` runs, and its line `jw` is a token-free walk judgement of the ack leaf
@@ -491,6 +494,12 @@ def jrowOK (parts : List (List Nat)) (J : Array Jd) (src : Nat) (bot : Path) (jl
         decide (Dl ≤ JJ[jw].d + plk + 1)
     else false
   | none => false
+
+end
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
+  {rw fuel : Nat} {x : Fin d.n → Sig} {cv : Fin N → Sig}
 
 /-- **`design_verdict9_selJ`: the select verdict with junction-anchored, causally derived ack
 lags.** As `Events9SelL.design_verdict9_selT`, but the lag `Dl` of each copy and literal is
@@ -588,13 +597,13 @@ theorem design_verdict9_selJ (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
             have e := of_decide_eq_true hid
             rw [e]; exact Nat.le_refl _)
           hOK hp hA hrun
-        obtain ⟨_, hH⟩ := hall jw hjw
+        obtain ⟨_, hH⟩ := hall (jw j p i.val sb.1) hjw
         rw [hu', hc''] at hH
         have h1 := hH (tau hsat (κa j p sb.1) σ)
         rw [ha', ht', Mn_fin, Mn_fin] at h1
         have wκ := tau_warp hsat _ hκp
         have h2 := wκ.le_late σ
-        have h3 := bh'.M_mono _ _ _ (wB.mono (tau hsat (κa j p sb.1) σ - JJ[jw].d) r (by omega))
+        have h3 := bh'.M_mono _ (net.src j p) _ (wB.mono (tau hsat (κa j p sb.1) σ - JJ[jw j p i.val sb.1].d) r (by omega))
         omega
       · simp at hjr
     · simp at hjr

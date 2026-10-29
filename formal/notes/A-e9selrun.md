@@ -1,6 +1,7 @@
 # A-e9selrun (probe E9SelRun, shard A): running design_verdict9_selL, and a junction-anchored lag
 
-STATUS (2026-10-29, start): IN PROGRESS. Nothing claimed yet.
+STATUS (2026-10-29 11:50 UTC): IN PROGRESS. Lean: Events9SelL.lean and Events9SelJ.lean elaborate
+(no sorry) against a private overlay; check.sh not yet run. Generator / executable: in progress.
 
 Plan:
 1. Own copy of the generator under formal/tools-A/xaudit/selrun/: emit ackOK / ReqLine / AckLine
