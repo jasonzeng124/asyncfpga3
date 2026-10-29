@@ -710,3 +710,24 @@ exp_resolution: for s != s* the first cancellation index m exists and is odd iff
 the model, not silicon, TLOOP 424 ps read as delta_inf): time per e-fold of 1/|s-s*| 42460 / 1728 / 514 ps at tau
 40 / 100 / 200 ps, matching A-fid3's TAU_eff by a second method and 3.4x-280x the research GLS's TAU = 150 ps. Bounds
 are loose (global minimum slope, not the local gain).
+### progress 11:10
+Claimed after one consolidated check.sh over the XAudit closure (3690 lib decls + Events9Main 2829 + Events9SelMain
+3461, [check] OK; md5s unchanged between check and commit; NOTE: checked against XInert's uncommitted additive
+edits to Parse.lean, re-verify with --committed after the lake build):
+- E8SelC: Events9Sel{,C,Hold,Split,Main}.lean. design_verdict9_sel (SelOK at real pins from B's stability/setup);
+  design_verdict9_selC (stability from C's H_BUNDLE through a checked channel map chanOf/entOK; 126/126 select
+  literals map on all 4 seeds; name matching to C's channels is untrusted mkmap.py); hold rows holdBand/holdBandS
+  proved = B's H_HOLD_PIN; with H_ACK_LAG -> design_verdict9_selH/selS. Results (E8Mux bands; Lean and Python agree):
+  split rows CLEAN on all 12 slow/fast/gb rows (min 411 ps) and indep seeds 4/5; indep d and 3 have 2 residual
+  literals each (-47/-56, -124/-4 ps, steer-ack merge pins); source-anchored rows fail gb 3/4 and all indep.
+  Controls NEGhold/NEGmap fail as predicted. Finding NEGack: chainOK does not authenticate the ack wire. xselhold
+  exe stanza added.
+- E8Causal: Events9Prefix{,Sel,Ext}.lean. safe8_upto / design_verdict9_upto (prefix verdict, lag 0), the all-times
+  theorems re-derived as corollaries; causal_close; design_verdict9_selL replaces H_ACK_LAG by checked rows
+  ackOK/ReqLine/AckLine at a SOURCE-anchored lag (not yet generated or run: probe E9SelRun). Finding
+  sibling_lag_neg: E8SelC's split lag does not follow from causality for tokens routed to the sibling branch (min
+  over arms needed) -- the split rows rest on a named hypothesis, not a causal consequence. Beh7P/ext/link_upto_P
+  for the arbiter side; design-level prefix H_ARB still missing.
+- E8ArbFix: Events9Arb.lean (core_of_settle: the real bd_arbiter is a behaviour of the corrected core under a
+  settle bound H and per-reader B1/B2/C; ho3_fix non-vacuous; settle_not_old) and Events9ArbBeh.lean (HARB7' =
+  HARB7 and FixShape, design_verdict9arb).
