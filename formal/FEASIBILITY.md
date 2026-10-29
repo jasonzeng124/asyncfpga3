@@ -21,38 +21,143 @@ analog resolution), which no proof can discharge and which need GLS or board
 experiments; and (2) **connecting** the proofs to the real routed design
 (netlist import, delay numbers per arc), which is engineering.
 
-## Status against the owner's three goals (2026-10-28 ~03:00 UTC)
+## Status against the owner's three goals (2026-10-29 ~08:40 UTC; drafted by probe FeasDraft from all three journals and the audit, reviewed by the lead)
 
-1. **A correct model of the chip.** LUT as mux tree with per-pin delays, per-edge
-   bands only where the data has them (prjxray has none: fast/slow corners only),
-   pure/inertial/involution/SAF channels, shared corner plus local scatter κ.
-   Proved since the last update: the involution transfer lemma (corrected,
-   `InvolutionTransfer`), ternary soundness for transport/inertial channels with a
-   positive lower bound (`TernaryChannels`), what a passing SAF GLS run implies
-   (`GLSPass`, fixed 2026-10-29; `GLSPass2` for the per-pin fid model). Open (probes running 2026-10-28): full involution trace semantics,
-   MUXF7/F8/CARRY4/LUT6_2 and flop/latch primitives in Core (today only in C's
-   generated files), the per-pin fid GLS model, the CARRY4/latch/flop fidelity gaps of
-   the research GLS (FOR-RESEARCH §8).
-2. **A correct gcd.** Token level: the bdc graph computes the C gcd (C, `GcdHw*`).
-   Circuit level, safety: C's `gcd_hw_circuit_safe''` -- every out0 latch of the
-   concrete network is `Nat.gcd a b` (a, b < 2^31) under H_CELLS, H_BUNDLE,
-   H_START_ONCE, H_WALK (first rig lap; H_BUNDLE on zero-delay traces, the
-   physical -> zero-delay refinement is C's open 8x). Liveness: C's
-   `gcd_hw_live_final` (8z) -- first out0 within an explicit bound, value gcd, under
-   bounded-delay/env hypotheses plus one open network obligation H_NO_DEADLOCK'
-   (8u's `gcd_hw_live` is likely vacuous; not cited). Routed timing: A's
-   `Events8.design_verdict8` -- the 4 routed gcd_hw seeds are CLEAN at the slow and
-   fast corners under SatPin, constant wires/reset, H_ARB, SelOK, SelPart, HDsub
-   (HDsub and the bridges for the others are probes running). Arbiters (B,
-   `OnGcdArbKappa`): all 36 gcd_hw arbiters safe for κ ≤ 16587/374773 ≈ 0.044 in the
-   literal endpoint reading; box and SLOW-only checks unsound for κ > 0
-   (`ConstraintsKappa`). These pieces are not yet one theorem: see
-   `out/gcd_hw_hypotheses.md`.
-3. **Reusable on other designs.** `out/HOWTO-new-kernel.md`. Run on collatz (4 seeds,
-   verified toolchain): xevents5/7 CLEAN at slow and fast on every seed, 0 structural
-   residuals; xaudit certifies one transaction at slowmax only. ipow and xorshift:
-   probe running. C's capstone generator gives ipow at circuit level
-   (`ipow_circuit_safe3`).
+1. **A correct model of the chip.**
+   - **Checked in Lean (A, this session):**
+     - the LUT as an A6-rooted mux tree with per-pin transport (`Core/LutTree`, `Events2Pin`);
+     - LUT6_2, MUXF7/F8, CARRY4 and the slice OUTMUX/site hops, with prjxray-db numbers generated
+       per corner (`Core/Prims/{Xray,XrayData,Muxf,Carry,Lut62,Hops,GenCheck}`, PrimsComb, 1331
+       decls). MUXF Kleene mux: a select change with equal data is glitch-free for any delays, and
+       the select-rises-while-deselected-input-changes glitch is forced for every admissible delay
+       pair. CARRY4: no single-pin hazard, and a two-pin (S0, DI0) hazard on CO0 whose order the
+       prjxray bands allow at both corners;
+     - pure, inertial, involution and SAF channels. New this session:
+       - the full IDM trace semantics with chained cancellation (`Core/Delay/InvolutionTrace`, 321
+         decls; the real exp/log instance is not checked);
+       - the involution OR loop: a unique critical runt s*, unbounded resolution time near it, and
+         s* > δ∞/2 strictly for symmetric channels (`Core/Delay/InvolutionLoop`, `crit_unique`; at
+         orbit level, not yet every signal solution);
+     - what a passing GLS run implies: `GLSPass`, fixed for autoImplicit=false, which answers audit
+       `6863284` "GLSPass ... OK" REFUTED (not re-audited). For research's per-pin fid GLS:
+       `GLSFid`, `GLSPass2`. One run fixes the final values past the STA horizon. The min and max
+       runs bracket the band only for acyclic monotone nets with rising inputs;
+     - the shared corner plus local scatter κ (`Corner`, `CornerDiff`, `CornerCode`, `CornerNat`).
+       The value of κ is unmeasured.
+   - **From shard B:**
+     - `KleeneWin`: each binary edge gets its own X window, and every race gains c + a exactly. This
+       drops the assumption H_X_UNIFORM;
+     - `KleenePess`: a pessimistic bracket strict ≤ model ≤ H_KLEENE_LUT. Every safety and exclusion
+       result transfers to it. Every result that needs a definite output (hold, restore, reset)
+       needs pass(v) instead. This answers audit `abe7d25` KleeneBox: "H_KLEENE_LUT is the
+       hazard-free extension (optimistic)".
+   - flops and latches (`Core/Prims/Seq*`, PrimsSeq, 845 decls): per-input setup/hold windows, X bounded by cqHi+res then definite, two-flop synchronizer; prjxray ships no fast-corner setup/hold (H_WINDOW_SLOW_ONLY);
+   - **Probes done, waiting for the lead's check.sh (NOT claimed yet):**
+     - PrimsDSP: DSP48E1 as ipow uses it, `Core/Prims/{Dsp,DspData,DspTimed}`;
+     - InvLoop2: the signal-level bridge to B's `loop_orb`.
+   - **Open:**
+     - RAMB18E1 is not modelled (bd_mem's BRAM is opaque in Gen);
+     - which channel the silicon LUT is (transport, inertial or involution) is a hypothesis, with no
+       measured pulse-rejection figure;
+     - per-edge windows have no data (prjxray has fast and slow corners only);
+     - κ is unmeasured;
+     - the research GLS's flop reads x on SR/CE as 0, and its resolver centre has no derivation
+       (Fid3, [C]).
+
+2. **A correct gcd.**
+   - **Token level [L]:** bdc's gcd_hw graph returns `Nat.gcd a b` for a, b < 2^31 on every
+     schedule, live and bounded without fairness (`Net/GcdHwLive.gcd_hw_graph_computes_gcd`,
+     8i/8k).
+   - **Circuit level, safety [L]: `Net/CapstoneWalk.gcd_hw_circuit_safe3`.** For a, b < 2^31, every
+     out0 latch of the concrete 465-channel network is `Nat.gcd a b`, under three hypotheses:
+     H_CELLS (the unit-time Ops gate models), H_BUNDLE (`Held`, on zero-delay traces) and
+     H_START_ONCE. H_WALK is now a theorem (`gcd_hw_walk`, 8s).
+     - Non-vacuity: `Net/CapstoneWitness.gcd_hw_joint_witness`, one run (a=12, b=18) that latches 6
+       (audit `299a16f` CONFIRMED: one input, one unit-delay schedule, sources offer once).
+     - The audit `f4696cc` row on the capstone confirms it as SAFETY only. H_CELLS is not derived
+       from the netlist, and the arbiter model assumes the grants never overlap.
+   - **What is still open on the way to "the routed gcd_hw":**
+     - **Cells → H_CELLS.**
+       - B's own ledger (Bhyp2) found that no B cell hypothesis is a Lean hypothesis of any
+         capstone theorem. B's rows enter only through unmechanised bridges.
+       - Since then, B proved:
+         - `LutFbBridge`/`LutFbBridge2`: C's LutFb/FbFirst premises follow from B's physical
+           model plus a four-phase environment;
+         - `Cells/LutFbBridge2Env.gcd_hw_safe_phys_links`: H_CELLS for the 175 links is replaced by
+           B's physical link model. Its statement still takes H_CM_FORCED (read in the Lean), and
+           each link's environment Env1 is assumed. The circle cell ← Env1 ← neighbours is not
+           closed for the network;
+         - `ContractBridge`: H_CTREE_ATOMIC, H_SEL_PIN (steer and mux) and ungated H_DELAY_LUMPED
+           from B's models.
+       - **H_ARB_EXCL as stated is not derivable from B's per-pin arbiter**
+         (`ContractBridge.arb_excl_not_derivable`). It holds per arbitration only, inside B's
+         QUIET/COMMIT window.
+     - **Physical → zero-delay (C-8x).** B proved the cell half for one token
+       (`ZeroDelayRefine`: a bd_link stage refines iff its six rows hold, `link_ref_iff`). Steer and
+       mux are also covered. The network half and multi-token are open. C's 8x is running.
+     - **Laps.**
+       - H_START_ONCE is false over a rig run. First result only: `Net/CapstoneRig.gcd_rig_first`,
+         and `Cells/RigSrc.gcd_rig_first_env` with the env cells.
+       - B now has joint witnesses for the env form (`SelfAuditB6.rig_env_feeds`, degenerate in its
+         delays; `RigSrcWitness`, lagging read maps, urdly 7). This answers audit `ae791b6, 824f130`
+         UNVERIFIED (not re-audited).
+       - Every result: `Cells/RigLaps.gcd_rig_every` holds under LapInv. It has no witness, and
+         `lap_cut_fails` shows LapInv fails at a close when the p_end loop beats out0's return
+         (H_PEND_FAST, expected on silicon).
+     - **Liveness:** `Net/CapstoneLiveNdWalk.gcd_hw_live_final`. The first out0 token comes within
+       (1168(8 Lrun+23)+1)(H+1) ticks, carrying gcd, under H_CELLS, H_BUNDLE, H_START_ONCE,
+       H_BOUNDED_DELAY', H_START_ENV, H_ARB_UNCONTESTED_BOUNDED and the open H_NO_DEADLOCK'. Audit
+       `fccbd1b` CONFIRMED it as conditional: there is no witness, because the 8t run violates
+       H_BOUNDED_DELAY'. C's 8z2 is running.
+     - **Reset:** `Cells/ResetCapstone.gcd_hw_safe_after_reset` connects B's GMW reset to C's safety
+       from T0 = 23(D+W+1). H_MAP has no mechanised table, and B's self-audit 4 found MapOK too weak
+       (it admits a non-wiring map). H_CELLS_AFTER is assumed.
+     - **Routed timing:**
+       - Per-obligation tcheck rows, matched to the Ops fields by hand (8w: 4500/4572 rows
+         matched).
+       - A's `Core/XAudit/Events8Beh.design_verdict8`: CLEAN at the slow and fast corners on the 4
+         seeds, under SatPin, constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub.
+         Audit `eb346fb` CONFIRMED it conditional on those hypotheses; its Lean certificates are
+         UNVERIFIED. The gb ENTRY claim was OVERSTATED: E8Mux reran it with the OUTMUX hop, and 2 of
+         3 failures are real ([C], same Lean checker).
+     - **Arbiters vs κ:**
+       - B's `OnGcdArbKappa` is safe for κ ≤ 16587/374773 ≈ 0.0443. That is the server-free arc
+         form, tight on the 1 fs grid for its binding row (`OnGcdArbKappaTight.rt1b_safe` /
+         `rt1b_unsafe`; answers audit `861de85` "tight" mildly OVERSTATED, not re-audited). It is
+         **not** a gate-level threshold of the routed design.
+       - With the server, the A0 branch and the ustate arc credited (`OnGcdArbKappaSrv`):
+         - D1 (the bare cell) is safe to κ ≈ 0.0802, but its counterexample needs a
+           non-four-phase withdrawal;
+         - D2 (the 12 held four-phase forms) is safe to κ ≈ 0.2166.
+       - Which of D1 and D2 applies to gcd_hw is open.
+       - The cons reading fails at κ = 0 on two rows.
+       - Arc data provenance is UNVERIFIED (audit `7c4df29` ArbPin2). κ itself is unmeasured.
+     - **Data path:** H_COMPUTE_FN (the yosys fused units compute bdc's expression) is not proved.
+   - **The hypothesis list is stale.** `out/gcd_hw_hypotheses.md` predates all of the above (see §4).
+
+3. **Reusable on other designs.**
+   - **How-to:** `out/HOWTO-new-kernel.md` (A: xaudit, xevents) and `notes/C-howto-new-kernel.md`
+     (C: tcheck).
+   - **Second kernel at circuit level [L]:** `Net/IpowCapMain.ipow_circuit_safe3`. Every out0
+     latch of the concrete ipow network is `ipowSpec b e`. Audit `8965ea0` CONFIRMED it, incl.
+     non-vacuity (3^7 and a wrapping vector; the spec uses i32 wrap). It has the same hypothesis
+     shape as gcd (H_CELLS, H_BUNDLE, H_START_ONCE).
+     - B's `IpowCells.ipow_safe_of_contracts` replaces H_CELLS by per-cell contracts. But
+       `ContractBridge.fbCel_iff_si` shows the feedback contract is equivalent to the bare SI step,
+       so those contracts carry **no timing content** as stated. B's fix probe Bfc is running.
+     - ipow's two multiplies (3 cascaded DSP48E1 each) were unmodelled by every shard until
+       PrimsDSP, which is done but unclaimed.
+   - **Token level [L]:** ipow for all i32. Collatz only conditional on C termination
+     (unconditional for 1 ≤ n < 256; 8v).
+   - **Routed:**
+     - tcheck on 12 collatz/xorshift/ipow routes (10n, [C] front end, proved core). No disagreement
+       is a fixed-point prjxray failure. Finding for research: rule A times GND/VCC tie-offs as data
+       (audit `7f46f23` CONFIRMED).
+     - Collatz: xevents5/7 CLEAN at slow and fast on 4 seeds (A-k2); xaudit certifies one
+       transaction at slowmax only.
+     - A's K3 (xevents8 on ipow and xorshift) is running. xorshift seeds 4 and 6 did not place.
+   - **Not yet:** "proves it correct or prints a counterexample trace" as one tool. C's `vk` (one
+     `verify.sh` entry point with counterexample traces) is running.
 
 ## How to check
 
@@ -76,14 +181,14 @@ fails it (`..._native.native_decide.ax_1_1`). Work in progress lives in
 | 2 | Trace representation | **works (all three)**; ℕ-ps discrete chosen for gate/cell proofs, ℝ for analog and fidelity; discretisation proved sound | `Core/Trace/{Discrete,Event,Real,Bridge}.lean`, `Core/Discretize.lean`, `Core/Circuit.lean` | ternary discrete model without separation: ~1 d (XSim probe running) | one substrate for B and C; their discrete proofs transfer to real time |
 | 3 | Delay channels | pure, inertial, involution, corner-correlated: **all work** | `Core/Delay/{Pure,Inertial,Involution,Corner}.lean`, `Core/Fidelity.lean` | involution exp/log instance 1 h, full trace semantics 1–2 d; GLS sample-at-fire channel done (`Core/Delay/SAF.lean`); what a passing GLS run implies: `Core/Delay/GLSPass.lean` (audit REFUTED it 2026-10-29 as not compiling under autoImplicit=false; fixed by binding `d` in `skew_fval`, statement unchanged, 263 decls OK under the fixed check.sh) and, for research's current per-pin fid GLS, `Core/Delay/{GLSFid,GLSPass2}.lean` (one run fixes final values past the STA horizon; min/max runs bracket the band only for acyclic monotone nets with rising inputs; counterexamples otherwise) (only SAF silicon at the annotated delays; counterexamples inside the band; one-run-covers-band only for acyclic monotone nets with rising inputs) | sound wire abstraction; exact bundling lemma |
 | 4 | Kleene LUT | **works**, incl. a hazard audit of all 43 cell LUTs generated from the RTL, and SI environment models (Env/EnvFast: bd_c2, latch, link W=1,2, merge) | `Core/{Kleene,Lut,LutTree,Ternary,Bridge,LutCells,LutAudit}.lean`, `tools-A/lut_extract.py` | mechanised environment model (which multi-input changes the protocol allows): 1–2 d | decidable per-cell hazard/settling check |
-| 5 | C-element | **works** (B) | `Cells/{CElemFn,CElemTiming,CTree}.lean`; A: `Core/{Ternary,XSim,LutAudit}` bd_c2 results | 1–2 d: port to Core, inertial/involution regimes, c3/c4 timing | INITs machine-checked; exact timing condition per cell (enabling input ≥ LUT + feedback delay, tight); the ack wait shown necessary |
-| 6 | Latch / link | **works** (B) | `Cells/{Latch,LinkHandshake,Bundling}.lean` | 2–3 d: link stage = C-element + latch, W-bit lift | derived spec for tighten.py rules H/I/F (rules I and F each miss a term; guardband covers them today) |
-| 7 | Arbiter | **works** for binary race, Kleene, handover (B); digital race is the primary model (PROGRAM.md item 4, owner 2026-10-27) | `Cells/{ArbBinary,ArbKleene,ArbHandover,...}.lean`; A: `Core/LutAudit` (same-sense tie hazard), `Core/Discretize` (`mutex_between`) | race windows for every property (B, phase 2) | exclusion tiers made precise; header claims corrected (runt from same-sense moves; handover exclusion is relative timing) |
-| 8 | Composition | **works** at protocol level + Muller stage (C) | `Net/Handshake*.lean` | Kahn/gcd, forks/joins/merges (phase 3) | n-stage four-phase pipeline is a live FIFO given per-link obligations = rules I/H |
-| 9 | Ring needs 3 stages | **works** (C) | `Net/Ring.lean` (`ring_three`, `k_tokens`: N ≥ 2k+1) | 1–2 d: tie to bounded-delay traces; H_ONE_TOKEN | the project's rule proved, and generalised to k tokens |
-| 10 | Verified timing checker | **works** on toy netlists (C) | `Timing/{Semantics,Checker,CheckerToy,Rules}.lean` | 1–2 weeks for routed designs (phase 2); blocker is delay *data* (nextpnr SDF has slow max only) | rules E/A/J each get a proved counterexample; a checker makes them exact relative to a stated delay model |
-| 11 | Netlist import | **works** (C): yosys JSON for 11 cells, and FASM read back from the bitstream for bd_c2/bd_c2n | `formal/tools/import/import.sh --check`, `formal/tools/fasm2lean/check.sh` | whole designs 2–3 weeks | proofs about generated terms: a flipped INIT bit fails the build; placer pin permutation is real and moves delay by up to ~0.5 ns |
-| 12 | Other tools | **works as a bound-finder, not a prover** (C): ~1 day per tool | z3/SMT and Storm give exact delay thresholds and witness traces in seconds for fixed integer delays (C-element: env min response ≥ feedback max; arbiter: server latency ≥ ~60 ps); nothing for all delays; UPPAAL/Workcraft/PRISM downloads blocked | zone-based dense time (TChecker) pending | find the bound fast, then prove it in Lean; A's Env/EnvFast is the kernel-checked SI analogue of Workcraft (~1000s of states vs 10^6+) |
+| 5 | C-element | **works** (B) | [L] `Cells/{CElemFn,CElemTiming,CElemCore,CElemInvolution,CTree,CTreeTimed,ConstraintsSel,CElemStrict,CElemStrict2,KleeneWin,KleenePess,LutFbBridge,LutFbBridge2}.lean`. A: `Core/{Ternary,XSim,LutAudit}` (bd_c2). Constraints data: `python3 formal/out/cell_constraints.validate.py` (137 rows, 40 exact, 0 errors; 6 planted faults → 6 errors) | X-window widths are unmeasured (board test XW-1, B-kleene-win). The Env closure for the network (cell ← Env1 ← neighbours) is done only for the 2-stage pipe. C-trees: tree latency is unchecked on routes. No time estimate in the journals | **INITs:** machine-checked (audit `71ee3e86` CElemFn CONFIRMED). **Own-feedback race:** exact on every variant only in the STRICT form, one tick (H_X_UNIFORM). With per-edge windows it gains +wq (`KleeneWin`). **C-element fork wait** E ≥ dwmax+dlmax−dlmin: sufficient (B) and necessary (audit `drop_env_latency_cex`); no rule checks it. **C's LutFb/FbFirst:** derived from B's physical model for every bd_c2 in OpsGen, bd_c3 and the mux joins. **Routes:** the RT_FB race is real on bare Muller rings (8 seeds, [C] C-10f) but not reached on the gcd_hw kernel. It fails at the rig's `uenv1` under the band on seeds 2 and 4 (audit `1e7947a` CONFIRMED). **Kleene:** the "definite output" results depend on H_KLEENE_LUT; the safety results do not (`KleenePess`) |
+| 6 | Latch / link | **works** (B) | [L] `Cells/{Latch,Bundling,LinkHandshake,LinkTimed,LinkExact,PipeTimed,PipeTimedN,PipePerPin,PipeWitness,RulesKL,FifoFidelity,LibGapLatch,ForkData,WinFifo,WinFifoCausal,NoRevert,ZeroDelayRefine,Necessity5Link,Necessity5Flink}.lean` | The network half of the physical → zero-delay refinement, and multi-token (C-8x running). The FIFO channel hypotheses (Win + H_NO_REVERT) are grade B. No time estimate in the journals | **One exact contract per bd_link stage** (`LinkExact`; audit `69c99a9` CONFIRMED, exact inside `Wf`, which holds 3 timing conditions outside the conjunction). **Physical stage refines C's zero-delay Link iff its six rows hold**, one token (`ZeroDelayRefine.link_ref_iff`; B's self-audit: it is essentially `LinkExact.exact`). **SETUP is proved sufficient only** (audit `71ee3e86` "exact bundling inequality" OVERSTATED). PipeTimedN for every N. Its unit witness was degenerate (audit `c5c6d8b`); `PipeWitness` now gives non-unit and DACK=2 witnesses (not re-audited). **Rules:** tighten.py rule I misses the latch feedback-pin arc (the 200 ps guard covers it), and rule F misses an in-flight value (the guard does not cover it by construction). Both CONFIRMED by audit `71ee3e86`. **FIFO pin-order condition:** with feedback on A1 (up to ~+0.43 ns), it is hidden by the flat SDF |
+| 7 | Arbiter (digital race) | **works**; exclusion is **not unconditionally provable**; it holds exactly inside derived race windows (B) | [L] `Cells/{ArbBinary,ArbKleene,ArbInvolution,ArbInvolution2,ArbHandover,ArbA0Fork,ArbCorners,ArbCornersPin,ArbOverlapRace,ArbOverlapPess,Necessity5Arb,TernarySound,TernaryExact,TernaryOnBits,OnNetlistArb,OnNetlistArbKappa,OnNetlistArbKappaExact,OnGcdArb,OnGcdArbA0,OnGcdArbKappa,OnGcdArbKappaTight,OnGcdArbKappaSrv,ConstraintsKappa,KappaCPPR}.lean` (the Kappa files need Mathlib). A: `Core/LutAudit`, `Core/Discretize` (`mutex_between`), `Core/Delay/InvolutionLoop` | **Open:** whether gcd_hw ever runs the bare (non-four-phase) race, which decides the gcd κ threshold between 0.0802 and 0.2166; H_SETTLED. **Board:** the 8% bd_arbcell overlap is NOT explained (needs the measured bitstream's pin map, not archived); κ is unmeasured. No time estimate in the journals | **Metastability comes out of the gate model** under involution channels: a critical same-sense gap, eternal oscillation, arbitrarily late resolution (`ArbInvolution`, A's `InvolutionLoop`). **Runt direction:** from same-sense moves, contrary to the bd_arb header. **Handover exclusion** is relative timing (RT1/RT2), not structural. `grant_skew_exact`: exclusion iff \|d6−d5\| ≤ L (transport model). **link_arb A0 fork:** exact κ thresholds for all 16 cases (`OnNetlistArbKappaExact.exact_X`, mostly irrational; answers audit `861de85` "exact" OVERSTATED, not re-audited); 16/16 safe at κ = 1/11. **gcd_hw:** see goal 2; the 0.0443 figure is the server-free form only. **Withdrawn numbers:** the ArbHeldTimed numeric instances (16 ps, 96 ps, 112 ps server) are corner-mix artefacts (audit `d420b53` OVERSTATED, `71ee3e86` rule-J row REFUTED). ArbCorners' rule-J and RT1b numbers assume q on A3; real routes put q on A5 in 3/4 seeds, which makes rule J 8 ps optimistic for client 1 (audit `c5c6d8b` OVERSTATED); guarded rule J is withdrawn (per-wire counterexample −118.5 ps). **Pessimistic LUTs** do not explain the 8% (`ArbOverlapPess`); under weak0 the detector itself could fire. **H_A0_FORK** is checked by rule J (arb_fork.py), which lacks per-pin site-pin delays (audit `71ee3e86` CONFIRMED) |
+| 8 | Composition (Kahn, gcd_hw) | **safety works at circuit level; liveness reduced, not proved; rig first result only** (C, with B's bridges) | [L] `Net/{Handshake*,Muller*,MullerTimed,Kahn,GcdHwLive,Ops*,OpsGen,CapstoneWalk,CapstoneWitness,CapstoneRig,CapstoneLiveNdWalk,IpowCapMain}.lean`; B: `Cells/{LutFbBridge2Env,ZeroDelayRefine,ResetCapstone,RigSrc,RigSrcWitness,RigLaps,ContractBridge,IpowCells}.lean`. Network regeneration: `formal/tools/capnet` (byte-identical, audit `8965ea0`) | **Open:** H_NO_DEADLOCK' plus a liveness witness (C-8z2 running); physical → zero-delay, network half (C-8x running); the Env closure over all 175 links; every rig result (C-8s3 running; B: LapInv fails at a close); H_MAP as a wiring table; H_COMPUTE_FN; H_ARB_EXCL from a timed arbiter (not derivable as stated). No time estimate in the journals | **The gcd result:** `gcd_hw_circuit_safe3` + `gcd_hw_joint_witness`: every out0 latch of the real 465-channel network is gcd a b, from 3 named hypotheses, non-vacuous (audits `f4696cc`, `299a16f`). **ipow:** the same at circuit level (`ipow_circuit_safe3`, audit CONFIRMED). **Do not cite:** `Capstone.gcd_hw_conditional` (no gcd content, audit `eecc6f7` OVERSTATED) or 8u's `gcd_hw_live` (likely vacuous, `start_never_closes`). **Negative result:** the hand-drawn gcd graph of 8b/8f deadlocks for every a ≠ 0 (8j). **Pipelines:** FIFO and live given per-link obligations, under H_SI, an isochronic fork and 3 liveness assumptions (audit `71ee3e86` CONFIRMED with caveats); gate-level bd_link chain for every n (9c) |
+| 9 | Ring needs 3 stages | **works** (C) | [L] `Net/{Ring,RingFair,RingGen,RingReset,RingResetCert,RingTimed,RingTimedPure,RingCheck}.lean` | Exact cycle time, N > 5 from reset, other cells on the cycle, a gate-level environment. No time estimate in the journals | **Interleaving model (H_SI):** dead for N ≤ 2, one token live iff N ≥ 3 (`ring_three`), k tokens need N ≥ 2k+1 (`k_tokens`); fair window N(N−1)/2 (`RingFair`, answers audit `71ee3e86` doc row). `RingGen` states them over the generated bd_c2n netlist, so a flipped INIT breaks the headline (answers audit "real INITs" OVERSTATED (mild), not re-audited). **Reset:** bdc's reset leaves every ring empty (`bdc_closed_ring_empty`). From reset with one start token, N = 3..5 have exactly one token and no deadlock, and N = 1, 2 deadlock (`RingResetCert`). **Timed:** `timed_ring_three` (inertial and bounded pure FIFO); rise-to-rise ≥ N·dmin, tight; no runt on a persistent ring. **Bench finding:** tb_ring never varied the token count, and N=4 with two tokens is dead (audit CONFIRMED) |
+| 10 | Verified timing checker | **works on real routes**: core proved sound, front end untrusted Python; the delay data are the limit (C) | [L] `Timing/{Semantics,Checker,CheckerFixedFn,Rules,Unroll,MaxNode,SharedPrefix,FbFirstRt,GrantFork*,RuntAck*,OblBridge}.lean`; [C] `formal/tools/tcheck/` (results per route in `tools/tcheck/results/`) | 10m (OUTMUX and tie-off false path, rerun all rows), 10f2 (RT_FB with the xMUX hop) and 10l2 (rule K) were lost last session and relaunched. Rule K fails 16-24 of 42 rows per route at every corner, undiagnosed. No time estimate in the journals | **Soundness:** `check_sound` CONFIRMED by the audit. "Per-node exact" holds only when the witness may choose the cell functions (`CheckerFixedFn`; answers audit `71ee3e86` OVERSTATED). **Rules:** E/A/J each have a proved counterexample. Rule A under E's band is sound iff tl ≤ 403 (answers audit `d420b53` off-by-one). **On 16 routes** (gcd_hw ×4, collatz/xorshift/ipow ×12): every disagreement is project-PASS/tcheck-FAIL, and none fails at a fixed prjxray point. Rule A and tcheck time GND/VCC tie-offs as data (audit `7f46f23` CONFIRMED). **Grant fork:** the runt never breaks the handshake on the 36 gcd_hw arbiters at 4 corners (`GrantFork*`, 10j); RuntAck 288/288 + 304/304 (audit `f4696cc` CONFIRMED, one corner per row). **Caveat:** the 10g rule-J numbers are PARTLY REFUTED (audit `1e7947a`, OUTMUX missing), and "+490 ps" is a mean. See §5 item 1 on whether 10h includes OUTMUX |
+| 11 | Netlist import | **works for LUTs** (C, B); whole-design bitstream import being rebuilt | [L] `Gen/{Cells,Netlist,Proofs*}.lean` (36 cells/rtl modules, 163 theorems tying them to B's transcriptions), `Net/Import/*`, `Net/Fasm`, `Net/FasmLink`, B's `Cells/OnNetlist`. Run: `formal/tools/gen/gen.sh --check`, `formal/tools/import/import.sh --check`, `formal/tools/fasm2lean/check.sh` | 11f (FF/CARRY4/F7F8 and whole-design bits) was lost and relaunched. The doc's earlier estimate is 3-5 d to extend fasm2lean to gcd_hw (`out/gcd_hw_hypotheses.md` M5) | **Proofs about generated terms:** a flipped INIT breaks the build. The routed link and arbiter bits (4 seeds) compute the logical cells (audit `d420b53` CONFIRMED). The import's "Kleene spec" equality is same-INIT only (audit `d420b53` OVERSTATED wording). **Pin permutation** after P&R is real and moves delay by up to ~0.5 ns. Research's fasm2net on a gcd_hw route: 11619/11619 LUT functions equal, 3 harmless A6 ties (audit `4a44aef`). B's reset netlist was regenerated from the synthesized netlist (audit `f832d38` CONFIRMED) |
+| 12 | Other tools | **bound-finders, not provers** (C): about 1 day per tool | [C] `formal/tools/{smt,async,zone}` (z3 BMC/k-induction/Spacer, Storm, TChecker by git clone) | The 12a/b/c thresholds used the fast/slow corner pair as rise/fall, so they are **suspect until 12d's one-corner rerun lands** (running). UPPAAL/Workcraft/PRISM downloads were blocked | Exact thresholds and witness traces for fixed integer delays in seconds; nothing for all delays. Find the bound fast, then prove it in Lean. 12c raised H_GRANT_FORK, which 10i/10j then measured and proved harmless on gcd_hw. A's Env/EnvFast is the kernel-checked SI analogue of Workcraft |
 | 13 | Literature | **done** | `notes/A-lit-1.md`, `notes/A-lit-2.md`, `notes/A-lit-3.md` (2026-10-27: paper hosts unreachable from the sandbox, entries tagged abstract/snippet/memory) | — | positioning; nothing like this exists in Lean or any proof assistant (no mechanised involution channels, no verified STA, no async Lean work); κ≈0.1 per arc plausible from 7-series intra-die data (5–8%), 0.2 conservative |
 
 ### 1. Toolchain
