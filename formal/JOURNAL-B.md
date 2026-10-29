@@ -1048,3 +1048,21 @@ handover from reset (scn_excludes_caus). They are not vacuous, but every "held
 arbiter" result built on them (RT1/RT2 exclusion, OnGcdArbKappaSrv D2,
 design_gate_held) is about that one handover, not repeated ones. Barb2 (multi-token,
 running) told to build a windowed Scn.
+
+### progress 09:07
+In: Bmap (checked here, axioms standard; notes/B-reset-capstone-map.md). New
+directory formal/tools-B/ (shard B's generators; no other shard writes there):
+gcdnet_gen.py regenerates gNet from bdc's emitted Verilog with a small Verilog front
+end (vsub.py; yosys is not on PATH here) and reproduces ResetGcdNet.lean BYTE FOR
+BYTE (3322 nodes; re-run by me: IDENTICAL; a one-pin mutation shows as a one-line
+diff). This closes audit P5 / row 60 (lost generator) for the RTL network, which is
+still the RTL, not a routed netlist. gcdnet_gen.py map builds the C-channel -> gNet
+table via C's own netgen (output equal to the committed CapstoneNet.lean).
+ResetCapstoneMap(+Data): names_ok (C's 465 channels, in order), mu_T_ok (H_MAP is a
+theorem), gcd_hw_safe_after_reset_map (Brz's headline without H_MAP), joint
+non-vacuity (C side still the frozen family: vacuous conclusion). Strengthened
+WireOK (injective on wires except where the RTL makes two C wires one net: fork
+output reqs, join input acks, kernel sink ack = req, mux select ack, zero-delay
+links, the rig's three source reqs): mu_T_wire holds, mu_W_not_wire shows MapOK was
+too weak. Open: that row c is the RTL driver of C's wire c is the generator's claim,
+not a Lean theorem; H_MAP_T0, H_CELLS_AFTER (O4), H_START_AFTER, liveness.
