@@ -1424,3 +1424,21 @@ line are not segment-causal (gstage_not_causal) but are carried by the time rule
 stop) leaves ONLY muxn's |j (a 3-input OR), the 3 sources and the 9 amerges. No joint
 witness of either network theorem yet (Bfin3); tree / decode truncated witnesses are
 infinite runs only; departure bounds still edge-time inequalities.
+
+### progress 11:33
+In: Barb4 ArbAMergeRun{,Stitch,Wit} (core; checked here, axioms standard;
+notes/B-arb-amerge-run.md). C's OpsCM.AMerge is INSTANTIATED for the held bd_arbiter
+with all 13 fields at 1 ps ticks (amerge_of_plan), for any schedule in the class Plan
+(reset; grant from idle; handovers with early re-request; solo / same-client
+re-request; release to idle; the idle race; hold), with dat the one remaining
+hypothesis (H_DAT: B has no data-mux model). New windows WG/WR/WX/hold with a generic
+stitching lemma (stitch_run, win_step, run_fields); init fields from the reset epoch.
+Two new races: RA1 (ua1 feedback vs the re-request's grant; cex_RA1 breaks xa at
+slack -1, universal only, no run) and H_SEP for an idle arbiter (requests separated by
+more than the loop at ustate, R0 and g1): sep_cex_run is a from-reset run missing H_SEP
+by 1 ps in which q, g1, g2 make runts and both H_ARB1 and H_ARB2 fail -- the digital
+form of "an arbiter needs its requests separated, or it can glitch", with no
+metastability filter. Non-vacuity: amerge_witness, one from-reset run covering every
+epoch kind, checked at all t. Open: client-2 / q = 0 mirrors (the class is one-sided),
+a waiter arriving mid-release, counter runs for H_SEP's R/G clauses and the rows;
+epoch hypotheses are numeric per epoch, not derived from arcs; the server reads R0.
