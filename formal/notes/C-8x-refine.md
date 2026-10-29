@@ -6,7 +6,9 @@ refer to `Formal/Net/CapstonePhysSafe.lean` and `CapstonePhysRefine.lean`, which
 disk, so nothing of that attempt was reusable except the idea of a combinational rank.
 That idea is not used here.
 
-STATUS: see "Check log" at the end for what actually compiled.
+STATUS: per-channel refinement DONE (proved, witness, necessity). Network lift DONE as a
+conditional theorem; the refinement of H_CELLS (H_ZD_AGREE) and H_DERIVED remain open.
+All four claimed files pass `./check.sh` (log at the end).
 
 ## Verdict
 
@@ -35,7 +37,6 @@ and H_DERIVED for the channels no row covers. The physical → zero-delay refine
 | `formal/lean/Formal/Net/CapstoneRefineWit.lean` | non-vacuity `refine_witness`; necessity `stale_without_check` |
 | `formal/lean/Formal/Net/CapstoneRefineNet.lean` | `BCert`, `held_of_bcert`, `obsCh`, `held_of_agree`, **`held_net`** (any network) |
 | `formal/lean/Formal/Net/CapstoneRefineGcd.lean` | `gcd_hw_init`, **`gcd_hw_circuit_safe_phys`**, `gcd_hw_phys_witness` (needs CapstoneWalk + CapstoneWitness3 oleans) |
-| `formal/lean/Wip/C8x/T1.lean`, `T2.lean`, `T3.lean` | scratch copies used to compile parts before the WinArray/Unroll oleans existed. Not claimed; may be deleted |
 | `formal/lean/Wip/C8x/Axioms.lean`, `RankGen.lean` | the dead first 8x (refer to missing files; do not compile) |
 
 ## The Lean (statements in plain words)
@@ -174,6 +175,16 @@ The theorems:
    A-type row per derived channel (launch = upstream latch enable, data = latch Q to capture
    pins, req = through the fork/steer C-element). Then `BCert.dag` covers all 465 and `exempt`
    disappears.
+   **A cleaner route (recommended).** Relax the Ops data fields: require `o.dat t = g (inputs at
+   t)` only at the instants where the output channel `o` is busy, and likewise for the link's
+   H_LATCH_OPEN/HOLD. The physical observation `obsCh` could then serve directly as the Ops
+   trace, with no separate zero-delay `ch`. H_ZD_AGREE would become trivial, and H_BUNDLE would
+   be exactly `held_net`.
+   - The cell equations would reduce to per-transaction value equations. Those are what
+     `sampled_eq_zd` (the output bus is `zdBus`) plus H_FN plus the inputs' own `sampled_eq_zd`
+     give: the inputs are busy while the output is busy, by `JInv`/`FInv`/`SInv`.
+   - Cost: re-checking that the capstone's operator proofs (`OpData`, `cell_op`) use the data
+     fields only at busy instants of the output. I did not check this.
 4. **H_RECV.** Kept as in 8w. Deriving it from H_CELLS would need a time-bounded
    `net_protocol` (`OpProto.ag` consumes `Held` at all times), and that would mean re-proving
    every `cell_proto`.
@@ -192,6 +203,28 @@ The theorems:
 | `TxWin` | B as a hypothesis | how tcheck's single-launch obligations are meant to tile a multi-token run; H_QUIESCENT per launch is the weak point |
 | `BCert.exempt`, H_ZD_AGREE | C | open; see "What remains" |
 
-## Check log
+## Check log (2026-10-29)
 
-(filled below)
+The lead's full `lake build` OOM-killed `CapstoneNetChk` and `CapstoneWitnessRun` (exit 137) and
+never produced `CapstoneWitness*.olean`. So check.sh is given the witness chain too; it compiles
+the chain into its private overlay, and no file of the chain is edited.
+
+    cd /home/user/asyncfpga3/formal
+    ./check.sh Formal/Net/CapstoneRefine.lean Formal/Net/CapstoneRefineWit.lean \
+      Formal/Net/CapstoneRefineNet.lean Formal/Net/CapstoneWitnessData.lean \
+      Formal/Net/CapstoneWitnessCells.lean Formal/Net/CapstoneWitnessWalk.lean \
+      Formal/Net/CapstoneWitness.lean Formal/Net/CapstoneWitness3.lean \
+      Formal/Net/CapstoneRefineGcd.lean
+
+Output:
+
+    [check] lean ... (all 9 files, no error)
+    [audit] 4088 declarations checked
+    [check] OK
+
+Axioms are ⊆ {propext, Classical.choice, Quot.sound}. There is no sorry or native_decide;
+`wcheck` and `bnet_reject` are kernel `decide`. An earlier run, `./check.sh
+Formal/Timing/WinArray.lean Formal/Timing/Unroll.lean Formal/Net/CapstoneRefine.lean
+Formal/Net/CapstoneRefineWit.lean`, gave `[audit] 469 declarations checked`, `[check] OK`.
+Once the lake build has the oleans, the first three files alone suffice (`CapstoneRefine`,
+`Wit`, `Net` import only WinArray, Unroll and Ops).

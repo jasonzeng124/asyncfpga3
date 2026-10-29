@@ -1,5 +1,63 @@
-import Formal.Timing.Checker
+import Formal.Timing.WinArray
+import Formal.Timing.Unroll
 import Formal.Net.Ops
+
+/-!
+# Probe C-8x: physical (bounded-delay) channel ⇒ zero-delay observation (per channel)
+
+Core Lean only. Links the two trace models that probe 8w found the capstone mixes up:
+
+* tcheck's **run semantics** (`Formal.Timing.Run`, 10a): one launch at time 0, per-arc
+  `BoundedDelay lo hi` pins (the delay may differ from event to event, pure delay, glitches
+  pass), quiescent start, zero-delay node functions `g v` on the pins;
+* the **Ops channel model** (`Chan`, `Held`, `OffAt`): one req/ack/bus per channel, many
+  transactions.
+
+## R2: a settled node equals its zero-delay value (`run_settles`, `settled_of_quiet`)
+
+`zdEval net g b v` evaluates the netlist with ALL delays set to zero, the launch node at `b`
+and the run's own node functions `g`. In every run of a well-formed netlist, every node equals
+`zdEval` of the launch's new value `sig 0 1` from time `1 + v * hmaxL net.arcs` on
+(`run_settles`); hence any node that does not change at or after `t` already equals it at `t`
+(`settled_of_quiet`). No glitch-freedom or monotonicity is assumed: whatever the node did
+before, once it is quiet it holds the zero-delay value.
+
+## R1+R2 per run: tcheck's verdicts give the value, not only the order
+
+* `dag_settled`  (DAG verdict, `checkArr`: rules A, E, F, J): from the moment the request node
+  changes (minus `setup`) on, every data node holds its zero-delay value.
+* `cert_settled` (cert verdict, `potOK` + `winArr`: rules Hc, Rc, Fd, Z, X): the same, with the
+  request change taken from the late-side run.
+
+## Per channel, many transactions (`TxWin`, `sampled_eq_zd`, `held_of_txwin`)
+
+`TxWin P sig data R` (H_TXWIN) windows the physical channel `P` (req/ack at the capture cell's
+pins, `P.dat` = the bus at the capture pins, as a number of `data.length` bits, `bv`) into
+single-launch runs: transaction `k` is launched at `τ k` with the channel idle and `k` offers
+made (H_LAUNCH_AFTER_CLOSE, as 8w's `TxCover`), its offer is a request change of run `k`
+(H_REQ_IN_RUN), and on `[τ k, τ (k+1))` the physical bus IS run `k`'s data nodes, shifted by
+`τ k` (H_DATA_IS_RUN; stronger than 8w's `datIn`, which only attributed changes). Then:
+
+* `sampled_eq_zd`: at EVERY instant `t` of transaction `k` (after its offer `r`, before the
+  channel goes idle again) the observed bus equals `bv` of run `k`'s ZERO-DELAY data values.
+  So a capture latch that closes anywhere inside the transaction (H_SAMPLE_IN_TX: its closing
+  instant lies in that window) captures the zero-delay value.
+* `held_of_txwin`: the observed channel satisfies the Ops `Held` (H_BUNDLE), given physical
+  reset (`Init`) and the receiver rule (`RecvStep`, H_RECV, as in 8w).
+* `zd_token`: the k-th token value (`P.dat (r+1)`, the Ops token convention) is the zero-delay
+  value of run `k`.
+* `*_dag`, `*_cert`: the same with the separation supplied by tcheck's DAG or cert verdict.
+
+## What is NOT shown here
+
+* That a physical channel meets `TxWin` (the gate/timing-model correspondence, H_TXWIN): that
+  the bus between two launches is the response of the obligation netlist to its launch, with
+  the netlist at rest at `τ k` (H_QUIESCENT at every launch).
+* That `zdEval` of the obligation netlist is the Ops cell's function of its input tokens
+  (H_FN: the LUT functions on the netlist implement the operator) and that its launch value is
+  the upstream latch content (R3). These are what an Ops trace satisfying `H_CELLS` needs.
+-/
+
 namespace Formal.Net.CapstoneRefine
 open Formal.Net Formal.Net.Handshake Formal.Net.Ops Formal.Timing
 
@@ -76,6 +134,42 @@ theorem settled_of_quiet {net : Netlist} (hwf : net.WF) {sig : Nat → Trace} (r
   rw [← hc]
   exact run_settles hwf r v _ (Nat.le_max_right _ _)
 
+/-- Window form: past the late end of its tcheck window a node holds its zero-delay value. -/
+theorem settled_of_win {net : Netlist} (hwf : net.WF) {sig : Nat → Trace} (r : Run net sig)
+    {v t : Nat} (hw : ∀ e l, winArr net v = some (e, l) → l < t) :
+    sig v t = zdEval net r.g (sig 0 1) v := by
+  apply settled_of_quiet hwf r
+  intro s hs
+  obtain ⟨e, l, h, _, h2⟩ := changes_in_winArr hwf r v s hs
+  have := hw e l h; omega
+
+/-! ## Per run: tcheck PASS ⇒ data nodes hold their zero-delay values at the request -/
+
+/-- **DAG verdict** (`Tcheck.verdict = decide net.WF && checkArr ..`): once the request node has
+changed at `v`, every data node holds its zero-delay value from `v + 1 - setup` on. -/
+theorem dag_settled {net : Netlist} (hwf : net.WF) {req : Nat} {data : List Nat} {setup : Nat}
+    (hc : checkArr net req data setup = true) {sig : Nat → Trace} (r : Run net sig)
+    {v : Nat} (hv : changes (sig req) v) {d : Nat} (hd : d ∈ data) {t : Nat}
+    (ht : v + 1 ≤ t + setup) : sig d t = zdEval net r.g (sig 0 1) d :=
+  settled_of_quiet hwf r (fun s hs => by
+    have := checkArr_sound hwf hc r d hd s v hs hv; omega)
+
+/-- **Cert verdict** (the four conjuncts of `Tcheck.cverdict`, as in 8w's `held_of_cert`): a
+request change of the late-side run at `v` (a target `q`) ⇒ every data node of the data-side
+run holds its zero-delay value from `v + 1 - setup` on. -/
+theorem cert_settled {dag late : Netlist} (hwf : dag.WF) {pot : Nat → Nat}
+    (hpot : potOK late.arcs pot = true) {data targets : List Nat} {setup : Nat}
+    (hnz : ∀ q ∈ targets, q ≠ 0)
+    (hwin : ∀ d ∈ data, ∀ e l, winArr dag d = some (e, l) → ∀ q ∈ targets, l + setup ≤ pot q)
+    {sigD sigL : Nat → Trace} (rD : Run dag sigD) (rL : Run late sigL)
+    {q v : Nat} (hq : q ∈ targets) (hv : changes (sigL q) v) {d : Nat} (hd : d ∈ data) {t : Nat}
+    (ht : v + 1 ≤ t + setup) : sigD d t = zdEval dag rD.g (sigD 0 1) d := by
+  apply settled_of_win hwf rD
+  intro e l hw
+  have h1 := hwin d hd e l hw q hq
+  have h2 := potOK_sound hpot rL v q (hnz q hq) hv
+  omega
+
 /-! ## Bus encoding -/
 
 /-- `n` bits, bit `j` = `f j`, as a number. -/
@@ -144,6 +238,18 @@ theorem sampled_eq_zd {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → N
   have hR := X.reqIn k r ho
   exact settled_of_quiet hwf (runs k) (fun s hs => by
     have := hsep k _ hR _ hd s hs; omega)
+
+/-- **Latch capture window** (H_LATCH_WINDOW): a capture latch that closes at `tc` with setup
+`su` and hold `hd` margins, its whole window `[tc - su, tc + hd]` after the offer and inside
+the transaction, sees the zero-delay value, constant, over the whole window. -/
+theorem capture_window {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat → Trace}
+    {data : List Nat} {R : Nat → Nat → Prop} (runs : ∀ k, Run net (sig k))
+    (X : TxWin P sig data R)
+    (hsep : ∀ k v, R k v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v)
+    {k r tc su hd : Nat} (ho : OffAt P k r) (hopen : r < tc - su)
+    (hbusy : ∀ s, r < s → s ≤ tc + hd → inTx P s = true) :
+    ∀ s, tc - su ≤ s → s ≤ tc + hd → P.dat s = zdBus runs data k :=
+  fun s h1 h2 => sampled_eq_zd hwf runs X hsep ho (by omega) (fun u a b => hbusy u a (by omega))
 
 /-! ## The observed channel is bundled (Ops `Held`) -/
 
@@ -246,5 +352,65 @@ theorem zd_close {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → Nat �
   have hh := held_of_txwin hwf runs X hsep hp.1 (fun t => (hp.2 t).2)
   rw [close_val hp hh he ho]
   exact zd_token hwf runs X hsep ho
+
+/-! ## Instantiations with tcheck's verdicts -/
+
+/-- Separation from the DAG verdict. -/
+theorem sep_dag {net : Netlist} (hwf : net.WF) {req : Nat} {data : List Nat} {setup : Nat}
+    (hc : checkArr net req data setup = true) {sig : Nat → Nat → Trace}
+    (runs : ∀ k, Run net (sig k)) :
+    ∀ k v, changes (sig k req) v → ∀ d ∈ data, ∀ s, changes (sig k d) s → s ≤ v :=
+  fun k v hv d hd s hs => by have := checkArr_sound hwf hc (runs k) d hd s v hs hv; omega
+
+/-- **tcheck DAG PASS ⇒ every sample inside a transaction is the zero-delay value.** -/
+theorem sampled_eq_zd_dag {net : Netlist} (hwf : net.WF) {req : Nat} {data : List Nat}
+    {setup : Nat} (hc : checkArr net req data setup = true) {P : Chan} {sig : Nat → Nat → Trace}
+    (runs : ∀ k, Run net (sig k)) (X : TxWin P sig data (fun k v => changes (sig k req) v))
+    {k r t : Nat} (ho : OffAt P k r) (hrt : r < t)
+    (hbusy : ∀ s, r < s → s ≤ t → inTx P s = true) : P.dat t = zdBus runs data k :=
+  sampled_eq_zd hwf runs X (sep_dag hwf hc runs) ho hrt hbusy
+
+/-- **tcheck DAG PASS ⇒ Ops H_BUNDLE of the observed channel.** -/
+theorem held_dag {net : Netlist} (hwf : net.WF) {req : Nat} {data : List Nat}
+    {setup : Nat} (hc : checkArr net req data setup = true) {P : Chan} {sig : Nat → Nat → Trace}
+    (runs : ∀ k, Run net (sig k)) (X : TxWin P sig data (fun k v => changes (sig k req) v))
+    (hinit : Init P) (hrecv : ∀ t, RecvStep P t) : Held P :=
+  held_of_txwin hwf runs X (sep_dag hwf hc runs) hinit hrecv
+
+/-- Separation from the cert verdict (data-side runs `sigD`, late-side runs `sigL`). -/
+theorem sep_cert {dag late : Netlist} (hwf : dag.WF) {pot : Nat → Nat}
+    (hpot : potOK late.arcs pot = true) {data targets : List Nat} {setup : Nat}
+    (hnz : ∀ q ∈ targets, q ≠ 0)
+    (hwin : ∀ d ∈ data, ∀ e l, winArr dag d = some (e, l) → ∀ q ∈ targets, l + setup ≤ pot q)
+    {sigD sigL : Nat → Nat → Trace} (rD : ∀ k, Run dag (sigD k)) (rL : ∀ k, Run late (sigL k)) :
+    ∀ k v, (∃ q ∈ targets, changes (sigL k q) v) → ∀ d ∈ data, ∀ s, changes (sigD k d) s → s ≤ v :=
+  fun k v ⟨q, hq, hv⟩ d hd s hs => by
+    have hb := potOK_sound hpot (rL k) v q (hnz q hq) hv
+    obtain ⟨e, l, hw, _, hul⟩ := changes_in_winArr hwf (rD k) d s hs
+    have := hwin d hd e l hw q hq
+    omega
+
+/-- **tcheck cert PASS ⇒ every sample inside a transaction is the zero-delay value.** -/
+theorem sampled_eq_zd_cert {dag late : Netlist} (hwf : dag.WF) {pot : Nat → Nat}
+    (hpot : potOK late.arcs pot = true) {data targets : List Nat} {setup : Nat}
+    (hnz : ∀ q ∈ targets, q ≠ 0)
+    (hwin : ∀ d ∈ data, ∀ e l, winArr dag d = some (e, l) → ∀ q ∈ targets, l + setup ≤ pot q)
+    {P : Chan} {sigD sigL : Nat → Nat → Trace} (rD : ∀ k, Run dag (sigD k))
+    (rL : ∀ k, Run late (sigL k))
+    (X : TxWin P sigD data (fun k v => ∃ q ∈ targets, changes (sigL k q) v))
+    {k r t : Nat} (ho : OffAt P k r) (hrt : r < t)
+    (hbusy : ∀ s, r < s → s ≤ t → inTx P s = true) : P.dat t = zdBus rD data k :=
+  sampled_eq_zd hwf rD X (sep_cert hwf hpot hnz hwin rD rL) ho hrt hbusy
+
+/-- **tcheck cert PASS ⇒ Ops H_BUNDLE of the observed channel.** -/
+theorem held_cert {dag late : Netlist} (hwf : dag.WF) {pot : Nat → Nat}
+    (hpot : potOK late.arcs pot = true) {data targets : List Nat} {setup : Nat}
+    (hnz : ∀ q ∈ targets, q ≠ 0)
+    (hwin : ∀ d ∈ data, ∀ e l, winArr dag d = some (e, l) → ∀ q ∈ targets, l + setup ≤ pot q)
+    {P : Chan} {sigD sigL : Nat → Nat → Trace} (rD : ∀ k, Run dag (sigD k))
+    (rL : ∀ k, Run late (sigL k))
+    (X : TxWin P sigD data (fun k v => ∃ q ∈ targets, changes (sigL k q) v))
+    (hinit : Init P) (hrecv : ∀ t, RecvStep P t) : Held P :=
+  held_of_txwin hwf rD X (sep_cert hwf hpot hnz hwin rD rL) hinit hrecv
 
 end Formal.Net.CapstoneRefine

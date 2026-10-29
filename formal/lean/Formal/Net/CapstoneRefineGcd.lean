@@ -1,5 +1,6 @@
 import Formal.Net.CapstoneRefineNet
 import Formal.Net.CapstoneWalk
+import Formal.Net.CapstoneWitness3
 
 /-!
 # Probe C-8x: the capstone with H_BUNDLE replaced by physical bundling certificates
@@ -42,3 +43,22 @@ theorem gcd_hw_circuit_safe_phys (a b : Nat) (ha : a < 2 ^ 31) (hb : b < 2 ^ 31)
 
 end Formal.Net.CapNet.Gcd
 
+namespace Formal.Net.CapNet.Wit
+open Formal.Net Formal.Net.Handshake Formal.Net.Ops Formal.Net.CapNet Formal.Net.CapNet.Gcd
+open Formal.Net.CapstoneRefine
+
+/-- **Joint consistency** of the hypotheses of `gcd_hw_circuit_safe_phys` (8t's witness run,
+observed bus = Ops bus, every channel `exempt`). It does NOT exercise the tcheck constructors;
+`Formal.Net.CapstoneRefine.Wit.refine_witness` does, on one channel. -/
+theorem gcd_hw_phys_witness :
+    (∀ o : Fin NO, Cell chW (srcV 12 18) (opAt o)) ∧
+    (∀ t, Handshake.cnt (riseB (chW start).req) t ≤ 1) ∧
+    (∀ c t, RecvStep (chW c) t) ∧
+    (∀ c t, inTx (chW c) t = true → (chW c).dat t = (fun c => (chW c).dat) c t) ∧
+    (∀ c, BCert (obsCh chW (fun c => (chW c).dat) c)) :=
+  ⟨w_cells, w_start_once,
+   fun c t => ((gcd_hw_protocol 12 18 chW w_cells w_held c).2 t).2,
+   fun _ _ _ => rfl,
+   fun c => BCert.exempt (w_held c)⟩
+
+end Formal.Net.CapNet.Wit

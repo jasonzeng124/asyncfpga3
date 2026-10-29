@@ -42,9 +42,14 @@
   bounded-delay runs: no deadlock; 8z3 on it). Joint witness for every hypothesis of both
   theorems: one run (12/18, H=1) closing out0 at tick 473 with 6. Do not cite 8u's
   `gcd_hw_live` (likely vacuous) or 8z's `gcd_hw_live_final` as a liveness result.
-  Not covered: the physical -> zero-delay refinement that would let tcheck discharge
-  H_BUNDLE (8x); the generated-cell derivation of the gate fields is not yet composed into
-  H_CELLS. Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
+  Physical refinement (8x): under per-arc BoundedDelay semantics (glitches allowed) a node
+  quiet from t already holds its zero-delay value (`run_settles`), so a tcheck PASS row fixes
+  the sampled VALUE: per channel, `held_dag`/`held_cert` give Ops `Held` on the observed
+  channel (under H_TXWIN; witness and necessity example proved). `gcd_hw_circuit_safe_phys`
+  drops H_BUNDLE for per-channel certificates, but needs H_ZD_AGREE (physical trace agrees with
+  an Ops trace) and H_DERIVED (376 of 465 channels have no tcheck row): both OPEN (8x2 on
+  them). The generated-cell derivation of the gate fields is not yet composed into H_CELLS
+  (O4 on it). Pipelines: FIFO + live given per-link obligations, under H_SI and an isochronic
   fork (8a); gate level for every n (9c); Muller feedback condition from delay bounds, exact,
   n<=3 (MullerTimed). Hypotheses: notes/C-gcd_hw-hypotheses.md §0.
 - **Track 10 (verified timing checker): works; delay data is the limit.** Interval STA
@@ -487,3 +492,8 @@ gcd_rig_all with >= 2 invocations, xorshift, collatz). 12d, 8s3 committed above.
 ### progress 09:49
 8z2 committed after my own check.sh (17 files, 4328 decls, standard axioms): see the
 liveness lines of the track-8 verdict. Launched 8z3 (prove H_NO_DEADLOCK'').
+
+### progress 09:54
+8x committed after my own check.sh (4 files + witness chain, 4088 decls, standard axioms).
+Launched 8x2 (relaxed Ops data fields so H_ZD_AGREE becomes trivial; classify the 376
+underived channels).
