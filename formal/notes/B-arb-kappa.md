@@ -169,7 +169,7 @@ in §5. Nothing was re-routed. Generator: `scratchpad/Bk1/gen.py` (plus `data.py
 
 ## Check status
 
-- **Real file: NOT yet checked.** It imports `Formal.Core.Substrate.CornerNat`, which needs
+- **Real file: checked against the real Mathlib on 2026-10-29 (probe Bkx18).** It imports `Formal.Core.Substrate.CornerNat`, which needs
   Mathlib, and Mathlib was not built (`.lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean`
   absent; `lake build` pid 1333 still running). Check command, once Mathlib is built:
   `cd formal/lean && ../slot.sh lake env lean -DautoImplicit=false Formal/Cells/OnNetlistArbKappa.lean`.

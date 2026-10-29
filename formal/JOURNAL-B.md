@@ -871,3 +871,35 @@ derivable from B's per-pin arbiter (arb_excl_not_derivable via su_osc: both gran
 high at some tick); it holds per arbitration inside B's QUIET/COMMIT window only,
 which C's amerge proof (exclusion at every tick) cannot use. Open: H_ARB1/2,
 H_AMERGE_RTZ multi-token, gated delay line.
+
+### progress 12:10
+In (checked here, axioms standard):
+- Bkx18 OnNetlistArbKappaExact (Mathlib; notes/B-arb-kappa-exact.md). Audit row 18
+  answered: the gap is decided for all 16 link_arb A0-fork cases (4 seeds x 2
+  clients x lit/cons). In A's whole-ps CornerNat model (rational kappa and corner,
+  Nat delays; Bridge restates it in A's types), exact_X: all-corner,
+  all-assignment safety iff Below_X kappa, at gate level on both sides. For 15 cases
+  the threshold kappa_ex is irrational (root of an explicit integer quadratic,
+  approached only at an interior corner that moves with kappa, never attained); s2c2
+  cons is 94/325 at the fast corner. Safe kappas form an interval (safe_antitone).
+  cons: .2955 .1807 .3356 94/325 .3109 .2440 .2081 .2825; lit: .4784 .4011 .5482
+  .4964 .5380 .4594 .4149 .4917 (brackets decided to 1e-10). The auditor's point is
+  CONFIRMED: s1c2 cons is unsafe at 200/1103 with the auditor's assignment
+  (audit_s1c2_cons_200), and also at 0.1807 where every fast-corner assignment is
+  still safe (interior_s1c2_cons). Verdicts unchanged: 16/16 safe at 1/11, 15/16 at
+  kappa_E. OnNetlistArbKappa itself now compiles against the real Mathlib. Not
+  covered: per-tick delay variation, the A0 rise, X/metastability, kappa's value,
+  the cons endpoints' provenance.
+- Bov2 ArbOverlapPess (core; notes/B-arb-overlap-pess.md). The pessimistic LUT
+  models do NOT explain the board's 8% bd_arbcell filtered overlap: with zero-width
+  edges every policy collapses to Bov's binary rig model (w0_rig), so Bov/Bmt's
+  0/192 stands under all four. With a 1 ps edge window and upwand's raw pin failing
+  to pass 0 (weak0/strict), an explicit full-copy trace (real INITs, SLOW_MAX,
+  Dw = 1348 ps) sets the FILTERED output from a single 305 ps raw run, with no
+  overlap of the measured size (pess_fires; exactly: firing possible iff an upwand
+  pin fails pass-0, fires_iff; control ctrl_kle_clean). So under weak0 the detector
+  itself, not the arbiter, would produce false events. Under weak1 one request edge
+  into a both-high hold puts X on q and both grants (weak1_chain); its timed
+  duration is open. Not explained: the 15/192 selectivity (needs the measured
+  bitstream's pin map, not archived). Board test: an AND(raw, unfoldable 0) control
+  LUT per copy with locked pins.
