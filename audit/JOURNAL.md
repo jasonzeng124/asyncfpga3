@@ -360,3 +360,7 @@ r21 in (I read arb_roundtrip.py's single-column design myself): their arbiter nu
 my rebuilt BQ#3 seed d (sdf 61e14755; 0/18, worst 691, own script exact). OVERSTATED: the 1200->1095 shift is bench
 wiring, not the resolver (my r18 bench unchanged under the new core); "static lower bounds" uses one SDF column for
 both sides of a race (mixed corners: -769 ps, 2/18); hold-window ">= 399 ps" is 19 ps on BQ#3 seed d.
+
+### progress 17:05
+Axiom audit of 1fd99ef0: 487/722 modules, 0 bad, 0 no-result so far. Formal head unchanged (1fd99ef0); research
+b726f74b (progress only: new resolver reproduces BQ#2 seed 6 laps).
