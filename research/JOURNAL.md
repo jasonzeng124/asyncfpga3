@@ -1581,3 +1581,7 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
 ### progress 11:30 (BQ#2 full stack 7/16 runs PASS; BQ#3 seed 7 passes 2x)
 - BQ#2: d/3/4 at both corners and 5 SLOW_MAX: all PASS 16/16, EQUIVALENT (vec 6 SLOW_MAX 28-32, FAST_MIN 77-86).
 - BQ#3 seed 7 at 2x scatter: PASS (59/47/70). Seed 5 scatter running; then BQ#1's sweep.
+### progress 12:07 (worker restart; sweeps survived)
+- The session's worker restarted (~12:05); the detached sweep drivers survived, S11's background jobs did not
+  (asked to resume). BQ#2: 5 FAST_MIN 88/71/102, 6 SLOW_MAX 33/27/39, both PASS (10/16 runs, all PASS).
+  BQ#3 seed 5 1x scatter PASS.
