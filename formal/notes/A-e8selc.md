@@ -1,17 +1,11 @@
 # A-e8selc (probe E8SelC): select-wire premises of the routed verdict (shard A)
 
-STATUS (2026-10-29 09:25 UTC): started. Nothing claimed yet.
+STATUS (2026-10-29 ~09:55 UTC): in progress. Lean files written, being compiled; runs pending.
 
-Plan:
-1. `Formal/Core/XAudit/Events9Sel.lean`: `design_verdict9_sel` = design_verdict9 with SelOK at
-   every real filtered pin replaced by B's H_S_STABLE + setup on the select wires (port of
-   Events8BridgeSel.design_verdict8_sel), so HDsub stays discharged.
-2. Compose the select-wire premise with C's H_BUNDLE / H_LATCH_HOLD: which C hypothesis, which
-   channel, which A wire; channel -> wire map as data + a checked consistency predicate.
-3. Hold half: a checker over the corrected bands (tools-A/xaudit/e8mux/) computing per select pin
-   the hold margin, proved sound against B's hold condition; run on 4 seeds x slow/fast/gb/indep.
-
-Progress 09:40: Lean drafted (not yet compiled): Events9Sel.lean (task 1), Events9SelC.lean
-(task 2: chanOf map, held_const, route_hold, entOK, stab_of_held, design_verdict9_selC),
-Events9SelHold.lean (task 3: chainOK, holdBand, tx_of_lag, hold_pin_of_band,
-design_verdict9_selH). Overlay build of the import closure running.
+Plan / files:
+1. `Formal/Core/XAudit/Events9Sel.lean`: `design_verdict9_sel` (task 1). Compiled OK (overlay).
+2. `Formal/Core/XAudit/Events9SelC.lean`: C channel -> A wire map, H_BUNDLE -> select stability,
+   `design_verdict9_selC` (task 2).
+3. `Formal/Core/XAudit/Events9SelHold.lean`: hold band check + soundness, `design_verdict9_selH`
+   (task 3); `Formal/Core/XAudit/Events9SelMain.lean`: the `xselhold` executable.
+4. `tools-A/xaudit/selhold/mkmap.py` (untrusted map builder), `run.sh` (16 rows).

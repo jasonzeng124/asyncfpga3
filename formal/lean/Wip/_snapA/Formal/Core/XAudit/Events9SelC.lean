@@ -11,7 +11,7 @@ bit's PIN wire (the input of the steer gate / stage LUT, after its routed arc) h
 over an open-ended window. This file derives that premise from C's H_BUNDLE
 (`Formal.Net.Ops.Held`) of ONE channel of C's model, read off A's wires:
 
-* `busVal`, `chanOf`: C's `Handshake.Chan` built from three things on A's trace: the
+* `busVal`, `chanOf`: C's `Formal.Net.Handshake.Chan` built from three things on A's trace: the
   request wire, the acknowledge wire and the list of bus-bit wires (LSB first).
   `chanOf` IS the explicit map from a C channel to A's parsed wires.
 * `held_const`: H_BUNDLE keeps the bus constant over any interval on which the channel
@@ -73,19 +73,25 @@ theorem busVal_inj : ∀ {l1 l2 : List Bool}, l1.length = l2.length → busVal l
   | a :: r, b :: s, hl, h => by
     simp only [List.length_cons, Nat.add_right_cancel_iff] at hl
     simp only [busVal] at h
-    have hab : a = b := by cases a <;> cases b <;> simp at h <;> omega
+    have hab : a = b := by
+      cases a <;> cases b
+      · rfl
+      · simp only [Bool.false_eq_true, ite_false, ite_true] at h; omega
+      · simp only [Bool.false_eq_true, ite_false, ite_true] at h; omega
+      · rfl
     subst hab
-    have : busVal r = busVal s := by cases a <;> simp at h <;> omega
+    have : busVal r = busVal s := by
+      cases a <;> simp only [Bool.false_eq_true, ite_false, ite_true] at h <;> omega
     rw [busVal_inj hl this]
 
-/-- **The map from a C channel to A's wires**: C's `Handshake.Chan` whose request and
+/-- **The map from a C channel to A's wires**: C's `Formal.Net.Handshake.Chan` whose request and
 acknowledge are A's wires `rq`, `ak` and whose bus is the bits of the wires `ws`. -/
-def chanOf {n : Nat} (x : Fin n → Sig) (rq ak : Fin n) (ws : List (Fin n)) : Handshake.Chan :=
+def chanOf {n : Nat} (x : Fin n → Sig) (rq ak : Fin n) (ws : List (Fin n)) : Formal.Net.Handshake.Chan :=
   ⟨x rq, x ak, fun t => busVal (ws.map (fun w => x w t))⟩
 
 /-- H_BUNDLE holds the bus over every interval that is mid-transaction at every step. -/
-theorem held_const {c : Handshake.Chan} (h : Ops.Held c) {a e : Nat}
-    (htx : ∀ s, a ≤ s → s ≤ e → Ops.inTx c s = true) : ∀ t, a ≤ t → t ≤ e → c.dat t = c.dat a := by
+theorem held_const {c : Formal.Net.Handshake.Chan} (h : Formal.Net.Ops.Held c) {a e : Nat}
+    (htx : ∀ s, a ≤ s → s ≤ e → Formal.Net.Ops.inTx c s = true) : ∀ t, a ≤ t → t ≤ e → c.dat t = c.dat a := by
   intro t
   induction t with
   | zero => intro ha _; have : a = 0 := by omega
@@ -99,8 +105,8 @@ theorem held_const {c : Handshake.Chan} (h : Ops.Held c) {a e : Nat}
 
 /-- Every listed bus wire is constant on such an interval. -/
 theorem held_wire {n : Nat} {x : Fin n → Sig} {rq ak : Fin n} {ws : List (Fin n)}
-    (h : Ops.Held (chanOf x rq ak ws)) {a e : Nat}
-    (htx : ∀ s, a ≤ s → s ≤ e → Ops.inTx (chanOf x rq ak ws) s = true)
+    (h : Formal.Net.Ops.Held (chanOf x rq ak ws)) {a e : Nat}
+    (htx : ∀ s, a ≤ s → s ≤ e → Formal.Net.Ops.inTx (chanOf x rq ak ws) s = true)
     {w : Fin n} (hw : w ∈ ws) {t : Nat} (ha : a ≤ t) (he : t ≤ e) : x w t = x w a := by
   have hd := held_const h htx t ha he
   simp only [chanOf] at hd
@@ -129,7 +135,7 @@ theorem route_hold {rg : Nat} (hg : rg < d.gates.length) (hb : isBuf (gt d rg)) 
     (hin : ∀ s, a ≤ s → s ≤ e → x (d.wire ((gt d rg).ins.getD 0 0)) s = v)
     {t : Nat} (ha : a + (gt d rg).hi ≤ t) (he : t ≤ e + (gt d rg).lo) :
     x (d.wire (gt d rg).out) t = v := by
-  have w := wf_warp hsat hg (by rw [hb.1]; omega)
+  have w := wf_warp (i := 0) hsat hg (by rw [hb.1]; omega)
   rw [buf_read hsat h0 h1 hg hb t]
   apply hin
   · have := w.early_le t; omega
@@ -152,7 +158,7 @@ structure SelEnt where
   deriving Repr, Inhabited
 
 /-- The entry's channel, on A's trace. -/
-def SelEnt.ch {d : Design} (e : SelEnt) (x : Fin d.n → Sig) : Handshake.Chan :=
+def SelEnt.ch {d : Design} (e : SelEnt) (x : Fin d.n → Sig) : Formal.Net.Handshake.Chan :=
   chanOf x (d.wire e.rq) (d.wire e.ak) (e.ws.map d.wire)
 
 section
@@ -193,20 +199,23 @@ gate's input wire equals `dw`'s value at `O k` from `O k + hi(rg)` on, over exac
 theorem stab_of_held {e : SelEnt} {L : Nat} {i : Nat}
     (hg : e.rg < d.gates.length) (hb : isBuf (gt d e.rg)) (hin : (gt d e.rg).ins.getD 0 0 = e.dw)
     (hout : (gt d e.rg).out = (gt d L).ins.getD i 0) (hw : e.dw ∈ e.ws)
-    (hheld : Ops.Held (e.ch x)) (M : Nat → Nat) (O : Nat → Nat) (sLo cHi : Nat)
+    (hheld : Formal.Net.Ops.Held (e.ch x)) (M : Nat → Nat) (O : Nat → Nat) (sLo cHi : Nat)
     (htx : ∀ k u s, M u = 2 * k + 1 → O k ≤ s → s + sLo + (gt d e.rg).lo ≤ u + cHi →
-      Ops.inTx (e.ch x) s = true) :
+      Formal.Net.Ops.inTx (e.ch x) s = true) :
     ∀ k t u, M u = 2 * k + 1 → O k + (gt d e.rg).hi ≤ t → t + sLo ≤ u + cHi →
       x (d.wire ((gt d L).ins.getD i 0)) t = x (d.wire e.dw) (O k) := by
   intro k t u hu ht htu
-  have hlh := warp_lo_le_hi (wf_warp hsat hg (by rw [hb.1]; omega))
+  have hlh := warp_lo_le_hi (wf_warp (i := 0) hsat hg (by rw [hb.1]; omega))
   rw [← hout]
-  refine route_hold hsat h0 h1 hg hb (a := O k) (e := t - (gt d e.rg).lo) ?_ ht (by omega)
-  intro s hs1 hs2
-  rw [hin]
   have hmem : d.wire e.dw ∈ e.ws.map d.wire := List.mem_map.mpr ⟨e.dw, hw, rfl⟩
-  exact held_wire (rq := d.wire e.rq) (ak := d.wire e.ak) hheld
-    (fun s' h1' h2' => htx k u s' hu h1' (by omega)) hmem hs1 hs2
+  have hinF : ∀ s, O k ≤ s → s ≤ t - (gt d e.rg).lo →
+      x (d.wire ((gt d e.rg).ins.getD 0 0)) s = x (d.wire e.dw) (O k) := by
+    intro s hs1 hs2
+    rw [hin]
+    exact held_wire (rq := d.wire e.rq) (ak := d.wire e.ak) hheld
+      (fun s' h1' h2' => htx k u s' hu h1' (by omega)) hmem hs1 hs2
+  have hle : t ≤ t - (gt d e.rg).lo + (gt d e.rg).lo := by omega
+  exact route_hold hsat h0 h1 hg hb hinF ht hle
 
 end
 
@@ -221,7 +230,7 @@ hypotheses as `design_verdict9` (HDsub proved), plus a select map `m` whose entr
 `entOK` on the parsed netlist (checked by `xselhold`), except that `bh.SelOK` is replaced by:
 * SelOK at the VIRTUAL filtered pins (part of H_ARB);
 * for every REAL filtered pin `(j, p)` and select literal `sb` (entry `e = m j p sb.1`):
-  - **C's H_BUNDLE** `Ops.Held (e.ch x)` of the mapped channel, on A's trace;
+  - **C's H_BUNDLE** `Formal.Net.Ops.Held (e.ch x)` of the mapped channel, on A's trace;
   - **H_SEL_TX**: that channel is mid-transaction at every `s ≥ O k` with
     `s + selLo + lo(rg) ≤ u + hiC` for every copy and every `u` at which the source shows
     transaction `k` (the hold half; `Events9SelHold`);
@@ -253,11 +262,11 @@ theorem design_verdict9_selC (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
         ∀ (R : (j : Fin N) → Fin (net.ar j) → Nat → Nat)
           (O : (j : Fin N) → Fin (net.ar j) → Nat → Nat → Nat),
         (∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
-          Ops.Held ((m j p sb.1).ch x)) →
+          Formal.Net.Ops.Held ((m j p sb.1).ch x)) →
         (∀ j p (sb : Nat × Bool) (i : Fin (net.nc j p)) k u s, (rn j).virt = false →
           net.pk j p = PK.filt → sb ∈ selLits net rn j p → bh.M u (net.src j p) = 2 * k + 1 →
           O j p sb.1 k ≤ s → s + selLo d net rn j p + (gt d (m j p sb.1).rg).lo ≤ u + b.hiC j p i →
-          Ops.inTx ((m j p sb.1).ch x) s = true) →
+          Formal.Net.Ops.inTx ((m j p sb.1).ch x) s = true) →
         (∀ j p (sb : Nat × Bool) (i : Fin (net.nc j p)) k, (rn j).virt = false → net.pk j p = PK.filt →
           sb ∈ selLits net rn j p →
           O j p sb.1 k + (gt d (m j p sb.1).rg).hi + selHi d net rn j p ≤ R j p k + b.loC j p i) →

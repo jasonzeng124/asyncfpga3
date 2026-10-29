@@ -202,7 +202,11 @@ theorem core_of_en (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4 : S
       (by simp only [kOf] at hq3 ⊢; omega) (by omega) (fun t => rfl)
       (fun t ht => by
         have := hR0e (t + 2); rw [(hlow (t + 2) (by omega)).2.2] at this
-        cases h1 : r1 (fr 0 (t + 2)) <;> cases h2 : q (fr 2 (t + 2)) <;> simp_all) e3
+        show (r1 (fr 0 (t + 2)) && q (fr 2 (t + 2))) = false
+        revert this
+        generalize r1 (fr 0 (t + 2)) = x1; generalize q (fr 2 (t + 2)) = x2
+        generalize r2 (fr 1 (t + 2)) = x3
+        cases x1 <;> cases x2 <;> cases x3 <;> decide) e3
     simp only [rdS]
     have e1' : (B.r0 0).1 - 2 - 1 = (B.r0 0).1 - 3 := by omega
     have e2' : (B.r0 0).2 - 2 - 1 = (B.r0 0).2 - 3 := by omega
@@ -213,7 +217,11 @@ theorem core_of_en (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4 : S
       (by omega) (by simp only [kOf] at hq3 ⊢; omega) (by omega) (fun t => rfl)
       (fun t ht => by
         have := hR0e (t + 2); rw [(hlow (t + 2) (by omega)).2.2] at this
-        cases h1 : r2 (fr 1 (t + 2)) <;> cases h2 : q (fr 2 (t + 2)) <;> simp_all) e4
+        show (r2 (fr 1 (t + 2)) && !q (fr 2 (t + 2))) = false
+        revert this
+        generalize r1 (fr 0 (t + 2)) = x1; generalize q (fr 2 (t + 2)) = x2
+        generalize r2 (fr 1 (t + 2)) = x3
+        cases x1 <;> cases x2 <;> cases x3 <;> decide) e4
     simp only [rdS]
     have e1' : (B.r0 1).1 - 2 - 1 = (B.r0 1).1 - 3 := by omega
     have e2' : (B.r0 1).2 - 2 - 1 = (B.r0 1).2 - 3 := by omega
@@ -227,7 +235,145 @@ theorem core_of_en (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4 : S
       simp only [h]
     · rw [(hlow t (by omega)).2.2]
       have := hR0e (t - 1 - 1 + 2); rw [(hlow (t - 1 - 1 + 2) (by omega)).2.2] at this
-      cases h1 : r1 (fr 0 (t - 1 - 1 + 2)) <;> cases h2 : q (fr 2 (t - 1 - 1 + 2)) <;>
-        cases h3 : r2 (fr 1 (t - 1 - 1 + 2)) <;> simp_all
+      show false = ((r1 (fr 0 (t - 1 - 1 + 2)) && q (fr 2 (t - 1 - 1 + 2))) ||
+        (r2 (fr 1 (t - 1 - 1 + 2)) && !q (fr 2 (t - 1 - 1 + 2))))
+      exact this
+
+/-! ## 4. The scaled handover: refutes the old core, is a corrected-core behaviour -/
+
+/-- The handover `ho` of `Events8Arb` at a scale where the corrected core's offsets fit: every
+read takes 5 steps except `ugrant`'s `q` pin for `g2` (15). Request 2 waits from time 0, request 1
+never asks, `A0` falls at 10; `q` falls at 15, `R0` rises at 20, `g2` at 30 (R0 10 steps BEFORE
+the grant: D1). -/
+def qh2 : Sig := fun t => decide (t < 15)
+def R0h2 : Sig := fun t => decide (20 ≤ t)
+def g2h2 : Sig := fun t => decide (30 ≤ t)
+
+def Bho2 : ArbBands where
+  st := fun _ => (5, 5)
+  r0 := fun _ => (5, 5)
+  g1 := fun _ => (5, 5)
+  g2 := fun i => if i.val = 2 then (15, 15) else (5, 5)
+
+theorem ho2_pin : ArbPin Bho2 lowc oneS lowc a0h qh2 R0h2 lowc g2h2 := by
+  refine ⟨⟨fun _ t => t - 5, fun _ => shift_w 5, ?_⟩, ⟨fun _ t => t - 5, fun _ => shift_w 5, ?_⟩,
+    ⟨fun _ t => t - 5, fun _ => shift_w 5, ?_⟩,
+    ⟨fun i => if i.val = 2 then (fun t => t - 15) else (fun t => t - 5), ?_, ?_⟩⟩
+  · intro t
+    show qh2 t = o6B ARB_ST [lowc (t - 5), oneS (t - 5), qh2 (t - 5), lowc (t - 5), a0h (t - 5), true]
+    rw [st_eq]
+    simp only [lowc, oneS, qh2, a0h, Bool.false_or]
+    by_cases h : t - 5 < 10
+    · simp only [h, decide_true, ite_true]; rw [Bool.eq_iff_iff]; simp; omega
+    · simp only [h, decide_false, Bool.false_eq_true, ite_false]; rw [Bool.eq_iff_iff]; simp; omega
+  · intro t
+    show R0h2 t = o5B ARB_ST [lowc (t - 5), oneS (t - 5), qh2 (t - 5), lowc (t - 5), a0h (t - 5), true]
+    rw [r0_eq]; simp only [lowc, oneS, qh2, R0h2]; rw [Bool.eq_iff_iff]; simp; omega
+  · intro t
+    show lowc t = o5B GRANT [lowc (t - 5), oneS (t - 5), qh2 (t - 5), false, false, true]
+    rw [g1_eq]; rfl
+  · intro i
+    by_cases h : i.val = 2
+    · simp only [Bho2, h, if_true]; exact shift_w 15
+    · simp only [Bho2, h, if_false]; exact shift_w 5
+  · intro t
+    show g2h2 t = o6B GRANT [lowc (t - 5), oneS (t - 5), qh2 (t - 15), false, false, true]
+    rw [g2_eq]; simp only [oneS, qh2, g2h2]; rw [Bool.eq_iff_iff]; simp; omega
+
+/-- `ho2` is uncontested for every window (request 1 is never pending). -/
+theorem ho2_unc (W : Nat) : Unc W lowc oneS lowc g2h2 := fun u _ h _ => by
+  simp [Pend, lowc] at h
+
+/-- **No old-core R0 matches `ho2`, for ANY bands**: the old virtual R0 is a merge of the grants,
+and `R0` rises at 20 while no grant is high before 30. -/
+theorem ho2_not_old (loF hiF lo1 hi1 lo2 hi2 : Nat) : ¬ VMerge loF hiF lo1 hi1 lo2 hi2 lowc g2h2 R0h2 := by
+  intro hv
+  rcases vmerge_needs_grant hv (t := 20) (by decide) with ⟨u, _, hu⟩ | ⟨u, hu1, hu⟩
+  · simp [lowc] at hu
+  · simp [g2h2] at hu; omega
+
+theorem kOf_ho2 : kOf Bho2 = 1 := by decide
+theorem loCtl_ho2 : loCtl Bho2 = 5 := by decide
+
+/-- The corrected core's ctl for `ho2`: rises at 16 = (q flip 15) + K. -/
+def ctl2 : Sig := fun t => decide (16 ≤ t)
+def svF : Sig := fun _ => false
+
+theorem ctl2_v : VCtl 5 (10 ^ 12) a0h ctl2 := by
+  refine ⟨fun t => t - 1, fun t => t - 5, fun t => t - 1, fun u => decide (u = 0), shift1,
+    ⟨fun a b hab => by omega, fun t => by omega, fun t => by
+      have : (10 : Nat) ^ 12 = 1000000000000 := by decide
+      rw [this]; omega⟩, shift1, by decide, fun x y hxy h => by simp at h ⊢; omega, fun t => ?_⟩
+  by_cases h : t - 1 = 0
+  · simp only [h, decide_true, ite_true, ctl2]; simp; omega
+  · simp only [h, decide_false, Bool.false_eq_true, ite_false, cel1, ctl2, a0h]
+    rw [Bool.eq_iff_iff]; simp; omega
+
+def f2h : Fin 3 → Nat → Nat := fun i => if i.val = 2 then (fun t => t - 15) else (fun t => t - 5)
+
+theorem f2h_rd : Rd 3 Bho2.g2 f2h := by
+  intro i
+  by_cases h : i.val = 2
+  · simp only [Bho2, f2h, h, if_true]; exact shift_w 15
+  · simp only [Bho2, f2h, h, if_false]; exact shift_w 5
+
+theorem en_none (s e y : Sig) (wr wq : Nat → Nat) (K : Nat) (ctl : Sig) (hs : ∀ t, s t = false)
+    (hy : ∀ t, y t = false) : EnOK s e y wr wq K ctl svF true := by
+  intro t
+  refine ⟨fun h => by simp [En, svF] at h, fun h => by rw [hs] at h; exact absurd h (by decide),
+    fun _ h => by simp [En, svF] at h⟩
+
+/-- **`ho2` IS a corrected-core behaviour**, with model.py's bands computed from its per-pin bands
+(`CoreOf Bho2`: `K = 1`, ctl band `[5, 10^12]`), via `core_of_en`: ctl rises at 16 = q flip + K,
+`σ` = request 2 throughout. -/
+theorem ho2_fix : CoreOf Bho2 lowc oneS a0h R0h2 lowc g2h2 := by
+  have hk := kOf_ho2
+  have hc : VCtl (loCtl Bho2) (10 ^ 12) a0h ctl2 := by rw [loCtl_ho2]; exact ctl2_v
+  refine core_of_en Bho2 (q := qh2) (rs := lowc) (ctl := ctl2) (sv1 := svF) (sv2 := svF) (sv3 := svF)
+    (sv4 := svF) (fun _ t => t - 5) (fun _ t => t - 5) f2h
+    (fun _ => shift_w 5) (fun _ => shift_w 5) f2h_rd ?_ ?_ ?_ 15 ?_
+    (by decide) (by decide) (by decide) (by decide) (by rw [hk]; decide) (by rw [hk]; decide)
+    (by rw [hk]; decide) (by decide) (by decide) (by decide) hc ?_ ?_ ?_ ?_
+  · intro t
+    show R0h2 t = o5B ARB_ST [lowc (t - 5), oneS (t - 5), qh2 (t - 5), lowc (t - 5), a0h (t - 5), true]
+    rw [r0_eq]; simp only [lowc, oneS, qh2, R0h2]; rw [Bool.eq_iff_iff]; simp; omega
+  · intro t
+    show lowc t = o5B GRANT [lowc (t - 5), oneS (t - 5), qh2 (t - 5), false, false, true]
+    rw [g1_eq]; rfl
+  · intro t
+    show g2h2 t = o6B GRANT [lowc (t - 5), oneS (t - 5), qh2 (t - 15), false, false, true]
+    rw [g2_eq]; simp only [oneS, qh2, g2h2]; rw [Bool.eq_iff_iff]; simp; omega
+  · intro t ht
+    refine ⟨rfl, ?_, ?_⟩
+    · show decide (30 ≤ t) = false
+      simp; omega
+    · show decide (20 ≤ t) = false
+      simp; omega
+  · exact en_none _ _ _ _ _ _ _ (fun _ => rfl) (fun _ => rfl)
+  · intro t
+    rw [hk]
+    refine ⟨fun h => ?_, fun _ h => ?_, fun h => by simp [oneS] at h⟩
+    · have e : f2h 2 t = t - 15 := rfl
+      simp only [En, e, ctl2, svF] at h ⊢
+      show (!decide (t - 15 < 15)) = true
+      simp at h ⊢; omega
+    · have e : f2h 2 t = t - 15 := rfl
+      simp only [En, e, ctl2, svF] at h ⊢
+      show (!decide (t - 15 < 15)) = decide (30 ≤ t - 2)
+      simp at h; rw [Bool.eq_iff_iff]; simp; omega
+  · exact en_none _ _ _ _ _ _ _ (fun _ => rfl) (fun _ => by simp [lowc])
+  · intro t
+    rw [hk]
+    refine ⟨fun h => ?_, fun _ h => ?_, fun h => by simp [oneS] at h⟩
+    · simp [En, ctl2, svF, qh2] at h ⊢; omega
+    · simp [En, ctl2, svF, qh2, oneS] at h ⊢; omega
+
+/-- **The correction matters, in Lean**: an uncontested behaviour of the real cell that is a
+corrected-core behaviour and, for every choice of bands, not an old-core (R0 = merge of the
+grants) behaviour. -/
+theorem fix_not_old : ∃ (B : ArbBands) (r1 r2 rs a q R0 g1 g2 : Sig),
+    ArbPin B r1 r2 rs a q R0 g1 g2 ∧ (∀ W, Unc W r1 r2 g1 g2) ∧ CoreOf B r1 r2 a R0 g1 g2 ∧
+    ∀ loF hiF lo1 hi1 lo2 hi2, ¬ VMerge loF hiF lo1 hi1 lo2 hi2 g1 g2 R0 :=
+  ⟨Bho2, lowc, oneS, lowc, a0h, qh2, R0h2, lowc, g2h2, ho2_pin, ho2_unc, ho2_fix, ho2_not_old⟩
 
 end Formal.Core.XAudit.Events9Arb
