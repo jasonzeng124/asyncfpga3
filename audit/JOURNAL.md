@@ -300,3 +300,16 @@ P11a in: gcd_hw_live_final NOT vacuous (joint witness), but H_NO_DEADLOCK' hid s
 H_NO_DEADLOCK''. Events8/9 CLEAN OVERSTATED (rests on HARB7, unsound abstraction); gcd_hw_circuit_safe_phys moves
 H_BUNDLE rather than discharging it; gcd_rig_all, KCap confirmed. Build of 54b9e6e had 2 OOM kills (concurrent lean);
 rebuilding.
+
+## Session Thu Oct 29 14:32:35 UTC 2026
+Session session_01HC49Fw3HukeyddasJhP17A. Lock was stale (2026-10-29T12:10Z, ~2.4 h). Fresh container again: no Lean,
+no worktrees. Heads: formal=1fd99ef0 (+48 since 54b9e6e; last non-WIP 6f76d839), research=034636b2 (+5 since efc6538).
+Carried: build/axiom audit of 54b9e6e never finished (OOM); r17 never reported.
+
+### progress 14:37
+Lean 4.35.0 reinstalled (sha256 bf8d54e4, same). Worktrees ~/wt-f12 (formal 1fd99ef0), ~/wt-r12 (research 034636b2).
+Clean lake build of 1fd99ef0 and research toolchain restore (JOBS=2) running. New own keyword scanner
+audit/tools/kwgrep.py (comment/string-aware): 722 files under Formal/, 1 hit = Netlist constructor named `opaque`
+(identifier, not the keyword); catches a planted `sorry`. Subagents P12a (shard C phys2-5, O4b, ChainSettle, 8z4),
+P12b (shard B FiniteNet, SelfAuditB9, ArbCounterRuns, ArbAMergeRun, MuxN, Bj11), P12c (shard A InvolutionExp,
+Events9Sel/Prefix/Arb, CornerCell/BandCheck, XInert) launched.
