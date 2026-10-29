@@ -108,7 +108,7 @@ theorem pres_lab : Pres (fun x => ((x.pr cidx).filter (fun v => v % 4 != 2)).len
   have hl := List.all_eq_true.mp lab_chk r (List.mem_of_getElem? hr)
   have hcp := List.all_eq_true.mp cmPair_chk r (List.mem_of_getElem? hr)
   by_cases ho : cidx ∈ r.outsL
-  · -- r is a control_merge with index 249 (the producers of 249, by cmPair on rule 154)
+  · -- r is a control_merge with index cidx (the producers of cidx, by cmPair on rule cl1)
     have h154 := List.all_eq_true.mp cmPair_chk _ (List.mem_of_getElem? r154)
     simp only [cmPairOK, Bool.and_eq_true, List.all_eq_true] at h154
     have := h154.2 r (List.mem_of_getElem? hr)

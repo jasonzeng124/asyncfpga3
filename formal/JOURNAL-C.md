@@ -22,6 +22,12 @@
   link placement: `gcd_hw_circuit_safe3` -- every out0 latch is gcd a b under H_CELLS (Ops
   gate models), H_BUNDLE (on zero-delay traces) and H_START_ONCE; one explicit run satisfies
   all three and latches 6 = gcd 12 18 (8t; audit CONFIRMED). ipow: `ipow_circuit_safe3` (8y).
+  Generic (8y2): `KCap.kernel_circuit_safe` proved once for any kernel given as data [KD] plus
+  46 decidable/C-reference obligations [KP]; gcd_hw and ipow are instances (same statements),
+  xorshift is new at token level (every seed, every 32-bit rounds) and circuit level
+  (`xorshift_circuit_safe`), collatz at circuit level conditional on C termination
+  (unconditional 1 <= n < 256). Negative controls (mutated MLIR constant, walk row) fail the
+  build. Witnesses that latch a value: gcd (8t) and ipow (audit) only, not yet collatz/xorshift.
   Rig (re-offers start): EVERY result (8s3): `gcd_rig_all` -- under H_CELLS (without
   Src.iz), H_BUNDLE, the rig's env gates `RigEnv` (uenv1/uenv0 = C(a,not b), from the INIT)
   and a, b < 2^31, every value out0 offers or latches, in every invocation, is gcd a b.
@@ -465,3 +471,9 @@ FAST aperture stopped bounded at depth 50 under load.
 ### progress 09:23
 8s3 committed after my own check.sh (3 files, 3718 decls, standard axioms): gcd_rig_all,
 every rig result is gcd a b; see the track-8 verdict. Non-vacuity only via the quiet run.
+
+### progress 09:28
+8y2 committed after my own check.sh (19 files, 4795 decls, standard axioms), capnet/check.sh
+OK (gcd, ipow byte-identical), dfimport/check.sh ok incl. xorshift. Launched O4 (bind the Ops
+models to the generated cells: H_CELLS from LUT/wire hypotheses) and wit (witness runs for
+gcd_rig_all with >= 2 invocations, xorshift, collatz). 12d, 8s3 committed above.

@@ -396,7 +396,7 @@ theorem step_main (p : Nat) (x : TS) (hx : OnPath a b y x) (hR : Rel x (walk (σ
     have hn : nxt (σY a b y) c ((walk (σY a b y) p).W c) = some z := by simp [nxt, hop]
     simp only [Bool.or_eq_true, Bool.and_eq_true] at hok
     rcases hok with ⟨hs, hA⟩ | ⟨hT, hM⟩
-    · -- inside group 251: acc251 → z251
+    · -- inside the cascade group cres: acc → z
       refine ⟨⟨x, hx, rel_stay _ hc hR hn hs⟩, ?_⟩
       intro xx' yy' z' w' e
       injection e with e1 e2 e3 e4
@@ -605,14 +605,14 @@ theorem good_run' {a b : Nat} (hd : dom a b) :
   · intro c hc; exact P (np_pres c hc) rfl
   · intro c hc; exact P (nc_pres c hc) rfl
 
-/-- **H_WALK, proved** for every `a, b < 2^31`. -/
+/-- **H_WALK, proved** for every input in `dom`. -/
 theorem kernel_walk (a b : Nat) (hd : dom a b) :
     ∃ y, Good a b y ∧ WalkOK (σY a b y) (omOf a b y) := by
   obtain ⟨y, ls, hy, hex⟩ := good_run' hd
   exact ⟨y, hy, walk_ok hy hex⟩
 
-/-- **Circuit-level safety of gcd_hw from the gate models, bundling and a one-invocation
-environment only**: for `a, b < 2^31`, every run of the concrete 465-channel network whose
+/-- **Circuit-level safety of the kernel from the gate models, bundling and a one-invocation
+environment only**: for `dom a b`, every run of the concrete network whose
 operators meet their gate models (H_CELLS), whose channels are bundled (H_BUNDLE) and whose
 `start` channel is offered at most once (H_START_ONCE) latches only `spec a b` on `out0`. -/
 theorem kernel_circuit_safe3 (a b : Nat) (hd : dom a b) (ch : Fin NC → Chan)

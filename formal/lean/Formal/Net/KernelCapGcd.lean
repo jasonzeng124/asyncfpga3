@@ -79,7 +79,7 @@ theorem opchk_conv (k : K CapNet.Gcd.NC) (h : CapNet.OpChk CapNet.Gcd.tab k) :
   | steerD j t f fd sw =>
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
     refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, ?_⟩
-    rcases hf : sw.fold with _ | ⟨lt, lf, gt', gf'⟩
+    rcases hf : sw.fold with _ | ⟨lt, lf, gt', gf'⟩ <;> rw [hf] at h11
     · exact h11
     · exact Or.inl h11
   | _ => exact h
@@ -156,7 +156,7 @@ theorem gcd_hw_circuit_safe_generic (a b : Nat) (ha : a < 2 ^ 31) (hb : b < 2 ^ 
     (∀ k e, TokAt (ch CapNet.Gcd.out0) k e → (ch CapNet.Gcd.out0).dat e = Nat.gcd a b) ∧
     (∀ t, closedVals (ch CapNet.Gcd.out0) t =
       List.replicate (Handshake.cnt (fallB (ch CapNet.Gcd.out0).ack) t) (Nat.gcd a b)) :=
-  kernel_circuit_safe a b ⟨ha, hb⟩ ch H_CELLS H_BUNDLE H_START_ONCE
+  kernel_circuit_safe a b (⟨ha, hb⟩ : a < 2 ^ 31 ∧ b < 2 ^ 31) ch H_CELLS H_BUNDLE H_START_ONCE
 
 /-- The generic instance and the existing gcd_hw theorem state the same thing. -/
 theorem gcd_existing_same_statement :

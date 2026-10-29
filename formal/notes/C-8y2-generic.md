@@ -1,7 +1,6 @@
 # C-8y2: the circuit-safety capstone, generic in the kernel; xorshift and collatz through it
 
-**Status: see the verdict; numbers in "Commands that check" are from 2026-10-29.**
-Shard C, probe 8y2, 2026-10-29, 07:25 to about 10:00 UTC. Core Lean only (no Mathlib). No sorry,
+**Status: DONE.** Shard C, probe 8y2, 2026-10-29, 07:25 to 09:25 UTC. Core Lean only (no Mathlib). No sorry,
 no axiom, no native_decide.
 
 ## Verdict
@@ -9,12 +8,13 @@ no axiom, no native_decide.
 1. **One theorem for every kernel: `Formal.Net.KCap.kernel_circuit_safe`** (`KernelCap.lean`).
    A kernel is two type classes: `[KD]` (data: bdc's token graph, the C reference as the token
    run's initial/final stores and spec value, the generated circuit network with bdc's link
-   placement, the walk certificate) and `[KP]` (54 obligations, each a decidable check on the
+   placement, the walk certificate) and `[KP]` (46 obligations, each a decidable check on the
    data or one of the C-reference facts). The proof is C-8m/8q/8r/8s's gcd proof transcribed
    ONCE over the classes (`KernelCap{Defs,Hist,Sound,Safe,CutSpine,Cut,WalkRun,Walk}.lean`,
-   about 2950 lines), replacing gcd's ~3000-line text copy per kernel (C-8y).
+   about 3400 lines with the Boolean-check lemmas), replacing gcd's ~3000-line text copy per kernel (C-8y).
 2. **gcd_hw and ipow are instances** (`KernelCapGcd`, `KernelCapIpow`): every obligation is
-   discharged by the EXISTING per-kernel theorem of the same statement (the generic
+   discharged by the EXISTING per-kernel theorem of the same statement (except `spok`, re-checked by `decide` on the generic `SpOK`: its `bjoin` case
+   compiles to a different matcher, so the old theorem does not unify) (the generic
    definitions are gcd's with constants turned into fields, so they agree up to unfolding);
    `gcd_hw_circuit_safe_generic` / `ipow_circuit_safe_generic` have exactly the statements of
    `gcd_hw_circuit_safe3` / `ipow_circuit_safe3`. Their existing theorems are untouched.
@@ -127,6 +127,21 @@ cd formal && ./check.sh Formal/Net/KernelCapDefs.lean Formal/Net/KernelCapChk.le
 formal/lean/Wip/C8y2/negctl.sh       # N0 sanity checks; N1 graph, N2 C reference, N3 walk rejected
 ```
 
+Results, 2026-10-29: `check.sh` on the 19 files: `[audit] 4795 declarations checked`, `[check] OK`
+(5 min, mostly slot waits); `capnet/check.sh`: `[capnet] OK`; `dfimport/check.sh`: 8 files ok;
+both `kdata` diffs empty; `negctl.sh`: `[negctl] PASS`. Build times on one slot: each
+KernelCap* file under 20 s, the collatz/xorshift instances 35 s (the `decide +kernel` checks),
+the gcd instance 45 s.
+
+**What the negative controls show, exactly.** N1: the MLIR with constant4 = 2 goes through
+bdc's parser and capnet; the regenerated network's join expressions no longer match the
+committed token graph, and kernel `decide` refutes a network check (the error is "decide
+proved that the proposition ... is false"). N3: kernel `decide` refutes a walk-table check.
+N2 (spec off by one): the instance's `good_run` proof fails (`show` mismatch). That is a
+failure of the proof script, not a refutation; the obligation is in fact false, because the
+token graph is determinate (C-8i's `determinate`: the only terminal store reachable is
+`final r` with the C result `r`, and `final (r + 1) ≠ final r` on `out0`).
+
 ## Files
 
 | file | what |
@@ -141,7 +156,7 @@ formal/lean/Wip/C8y2/negctl.sh       # N0 sanity checks; N1 graph, N2 C referenc
 | `Formal/Net/XorshiftHwProof.lean` | NEW. xorshift token level |
 | `formal/tools/capnet/capnet.py` | EDITED: n-argument environments (start = last argument), the one-sided fold, profiles collatz/xorshift, `kdata`, `CAPNET_MLIR_<k>` override (negative controls only). gcd/ipow outputs byte-identical (check.sh). |
 | `formal/tools/dfimport/check.sh` | EDITED: xorshift added; names the fixture when `build/frontend` holds a byte-identical copy (the header records the path: the restored `build/frontend` made every file report a false drift) |
-| `formal/lean/Wip/C8y2/{mkgeneric.py,lc.sh,negctl.sh}` | WIP tools: draft generator, private-olean compile, negative controls |
+| `formal/lean/Wip/C8y2/{mkgeneric.py,lc.sh,negctl.sh}` | WIP tools: the one-off draft generator (its drafts are now the committed files), a private-olean compile helper, the negative controls. The previous 8y2 probe's `T1.lean` was deleted (superseded). |
 
 The lead has to add the new modules to `Formal.lean` (I do not own it).
 
@@ -149,9 +164,9 @@ The lead has to add the new modules to `Formal.lean` (I do not own it).
 
 | part | lines |
 |---|---|
-| generic proof (`KernelCap{Defs,Chk,Hist,Sound,Safe,CutSpine,Cut,WalkRun,Walk,}`) | about 3100 |
-| per kernel, hand-written: the instance file | gcd 175, ipow 170, collatz 190, xorshift 190 (most of it the 54-field record) |
+| generic proof (`KernelCap{Defs,Chk,Hist,Sound,Safe,CutSpine,Cut,WalkRun,Walk,}`) | 3442 |
+| per kernel, hand-written: the instance file | gcd 172, ipow 166, collatz 190, xorshift 187 (most of it the data record and the 46-field obligation record) |
 | per kernel, generated: `capnet.py kdata` | one file |
-| per kernel, token level (step 1 of the howto) | xorshift: about 250 lines |
+| per kernel, token level (step 1 of the howto) | xorshift: 300 lines |
 
 C-8y's per-kernel cost was a 3081-line text copy driven by a ~45-site substitution table.

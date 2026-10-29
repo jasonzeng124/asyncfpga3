@@ -511,9 +511,9 @@ theorem kernel_cut (a b : Nat) (ch : Fin NC → Chan) (y : TS) (hy : Good a b y)
         cases omOf a b y w (cnt (riseB (ch z).req) t) <;> simp [bn, Mux.b2n]
   | _ => trivial
 
-/-- **Circuit-level safety of gcd_hw without H_CUT / H_CM_FORCED**: under the gate models
+/-- **Circuit-level safety of the kernel without H_CUT / H_CM_FORCED**: under the gate models
 (H_CELLS), per-channel bundling (H_BUNDLE), a one-invocation environment (H_START_ONCE) and
-the token-level H_WALK, every value the circuit ever latches on `out0` is `gcd a b`. -/
+the token-level H_WALK, every value the circuit ever latches on `out0` is `spec a b`. -/
 theorem kernel_circuit_safe'' (a b : Nat) (ch : Fin NC → Chan)
     (H_CELLS : ∀ o : Fin NO, Cell ch (srcVal a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))

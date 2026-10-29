@@ -45,7 +45,7 @@ theorem out0_hist {a b : Nat} {y : TS} (hy : Good a b y) : Hh a b y chOut = [spe
 theorem cm_oracle_exists {a b : Nat} (hd : dom a b) : ∃ y, Good a b y :=
   good_exists hd
 
-/-- **Circuit-level safety of gcd_hw** (modulo H_CM_FORCED, obligation O1). -/
+/-- **Circuit-level safety of the kernel** (modulo H_CM_FORCED, obligation O1). -/
 theorem kernel_circuit_safe_cm (a b : Nat) (ch : Fin NC → Chan)
     (H_CELLS : ∀ o : Fin NO, Cell ch (srcVal a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))
@@ -107,7 +107,7 @@ theorem kernel_protocol (a b : Nat) (ch : Fin NC → Chan)
   net_protocol net ch (fun o => cell_proto ch (srcVal a b) (opAt o) (H_CELLS o) (dist_of _ (ops_ok o)))
     H_BUNDLE
 
-/-- **Circuit-level safety of gcd_hw, with H_CM_FORCED replaced by the count bound H_CUT.** -/
+/-- **Circuit-level safety of the kernel, with H_CM_FORCED replaced by the count bound H_CUT.** -/
 theorem kernel_circuit_safe' (a b : Nat) (ch : Fin NC → Chan)
     (H_CELLS : ∀ o : Fin NO, Cell ch (srcVal a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))
