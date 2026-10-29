@@ -1626,3 +1626,11 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
   the comment's rule is too weak).
 - BQ#2 seeds 6/7 SLOW_MAX under the new resolver: vectors 0-1 PASS so far (seed 6 laps 3070/1907); ~3.5 min per
   vector, 8 sims at 2 at a time, ~4 h. BQ#3 8 reroutes in progress (for the same re-run).
+### progress 16:12 (BQ#3 rerouted, md5 reproduced; arbiter check on 12 routes; chain distance alone does not predict)
+- BQ#3 8 seeds rerouted (all build_hw PASS; default sdf 61e14755 = the record). arb_roundtrip: 0/18 below the
+  arbiter requirement on all 8 (worst 691 ps, seed d; BQ#2 worst 878).
+- chain_dist on the 8 BQ#3 routes: far median 11-18, p90 27-43. Seed 9's uori2 (the 2x-scatter failure) is 33,
+  the largest uori2 of the 8 seeds, with the traced bbox X34-35 Y21-23, but only 7th on its own route: six
+  farther chains survived the same draw. Distance alone does not rank failures; next: weight by rule A's margin
+  and datapath delay (the exposure is margin / (delay x regional speed difference)).
+- BQ#2 seeds 6, 7 SLOW_MAX: 13/16 vectors done each, all completed with errs 0 so far.
