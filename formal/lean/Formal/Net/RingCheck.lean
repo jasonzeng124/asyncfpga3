@@ -27,6 +27,11 @@ Main theorem: `check_iff : check g k = true ↔ AllCyclesGe g k`.
 No modelling hypotheses: this is a pure graph statement.  What it does *not*
 say: that the graph exported from bdc is the circuit (see the exporter,
 `formal/tools/ringcheck/export.py`) or that 3 is the right floor (track 9a).
+Applying it to a circuit rests on the named hypothesis **H_ONLY_LINKS_STORE**:
+only the stages counted in the edge weights (bd_link stages, as `ring_depths`
+counts them) hold a token; every other cell on a cycle is storage-free.  It is
+a modelling hypothesis about bdc's cells, not proved here (notes/C-9b-ringcheck.md;
+probe 9d's `RingResetCert` checks it for the mux -> links -> steer loop shape).
 -/
 
 namespace Formal.Net.RingCheck
