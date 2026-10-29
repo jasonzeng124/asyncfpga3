@@ -1557,3 +1557,24 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
   model artefact (e.g. 1 + 0.32 N clamped at 0 for N < -3.1). Subagent S10 is tracing the X back.
   Until explained, BQ#3's claim is "1x scatter clean on 8 seeds, 2x clean on 7 of 8".
 - Draft PR #2 description updated. BQ#1 8-seed full stack queued behind the scatter driver (now starting).
+### progress 10:21 (seed 9 at 2x scatter: a GENUINE bundling violation from correlated variation; rules blind to it)
+- S10 traced the X (vector 13): ucond_br23..27 steer on select n74_data, the output of fused unit urig.udut.uori2;
+  in the draw the request n74_req rose at 449409 ps and n74_data settled at 452494 (request led data by 3085 ps;
+  at the five steer pins the select is late by 1646-2940 ps). bd_steer computes req & s with no storage, so the X
+  (the select's datapath had not yet computed) enters the C-elements/latches and the handshake stays X. On
+  silicon: a token steered on a stale select. Not clamping (one clamped arc, on a VCC-tied pin), not the
+  metastability resolver (META_X off), no flops involved. Data-dependent: 6 of 16 vectors.
+- Mechanism: region factors are one die map (md5(seed, region), route-independent). Seed 9 placed uori2's matched
+  delay (BD_SZ_URIG_UDUT_UORI2 = 19, X34-35 Y21-23, region factor 0.20 at 2x) ~30 slice rows from the comparator's
+  CARRY4 chain it tracks (X30-31 Y50-52, factor 1.45). Bisection on the same draw: margin roughly linear in scale;
+  1x -1449 ps (safe), 1.3125x -82 ps, 1.375x +195 ps (fails) -> **threshold ~1.33x the calibrated scatter**
+  (region sigma ~0.21), i.e. a ~2.8x speed ratio between the two regions. Log-normal factors at 2x: still fails.
+- The rules do not see it: rule A gives uori2 +1510 ps after its guard (17th of 50); rule A's tightest line is
+  ushli0 (+289 ps) and it did not fail in this draw (why: not determined). None of the rules model correlated
+  variation between a chain and a distant datapath.
+- Reading: the 2x point (2.8-3.5x region speed ratio on one die) is beyond what the ring data supports, and S9
+  suggests even 1x region scatter is double-counted; so BQ#3 stays queued. But it exposes a real robustness
+  weakness: **matched delays placed far from the datapath they track.** Next leads: (a) a post-route screen for
+  chain/datapath distance (report it, rank by it), (b) place each bd_delay chain next to its datapath (RLOC /
+  placement), never shortening it; (c) run every candidate at a fixed set of region draws with log-normal factors
+  and report the scale at which it first fails (a margin in units of the calibrated scatter).
