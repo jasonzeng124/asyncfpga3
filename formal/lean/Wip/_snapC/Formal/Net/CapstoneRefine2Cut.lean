@@ -58,38 +58,6 @@ variable (H_BUNDLE : ∀ c, Held (ch c))
 variable (H_START_ONCE : ∀ t, cnt (riseB (ch start).req) t ≤ 1)
 variable (H_WALK : WalkOK (σY a b y) (omOf a b y))
 
-include H_WALK in
-/-- The arbiter's input counts along the walk (`am_side` instantiated). -/
-theorem am_counts {o : Fin NO} {x u z : Fin NC} {w : Nat} (ho : opAt o = .amerge x u z w) (p : Nat) :
-    (walk (σY a b y) p).W u = cnt (omOf a b y w) ((walk (σY a b y) p).W z) +
-        bn (((walk (σY a b y) p).cur == some z) && omOf a b y w ((walk (σY a b y) p).W z)) ∧
-      (walk (σY a b y) p).W x = cnt (fun i => !omOf a b y w i) ((walk (σY a b y) p).W z) +
-        bn (((walk (σY a b y) p).cur == some z) && !omOf a b y w ((walk (σY a b y) p).W z)) := by
-  have hs := spok o
-  rw [ho] at hs
-  simp only [SpOK, Bool.and_eq_true, bne_iff_ne, ne_eq] at hs
-  have hd := ops_ok o
-  rw [ho] at hd
-  have hzo : prodOf z = o := prod_out o z (by rw [ho]; simp [K.outsC])
-  have hxo : consOf x = o := cons_in o x (by rw [ho]; simp [K.insC])
-  have huo : consOf u = o := cons_in o u (by rw [ho]; simp [K.insC])
-  apply am_side (σY a b y) (omOf a b y w) hs.2 (Ne.symm hd.2.1) (Ne.symm hd.2.2)
-  · exact ne_start (by intro z' w' d'; rw [hzo, ho]; simp)
-  · intro d k hsd
-    constructor
-    · intro h
-      have := nxt_in _ h
-      rw [hzo, ho] at this; simpa [K.insC] using this
-    · intro h
-      rcases h with h | h <;> subst h
-      · exact nxt_amerge _ (by rw [hxo, ho])
-      · exact nxt_amerge _ (by rw [huo, ho])
-  · intro p d h hd'
-    apply H_WALK p d x u z w h
-    rcases hd' with e | e <;> subst e
-    · rw [hxo, ho]
-    · rw [huo, ho]
-
 include H_CELLS_B H_BUNDLE H_WALK in
 /-- Forcing at time `t`, from `Inv t` and the forcing before `t`. -/
 theorem forc_atB (t : Nat) (hinv : Inv a b ch y t) (hf : ForcB a b ch y t) : ForcB a b ch y (t + 1) := by

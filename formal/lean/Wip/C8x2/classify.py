@@ -71,8 +71,32 @@ for l in open(os.path.join(ROOT, 'tools/oblgen/out/obligations.tsv')):
     if f[1].startswith('H_BUNDLE('):
         c = int(re.match(r'chan (\d+)', f[2])[1]); obl[c] = (f[3], f[4])
 CAPT = {'link', 'steerC', 'steerD', 'mux', 'muxn', 'sink'}
+# per-operator obligations (I rows per link stage, E rows per steer/mux select)
+opobl = {}
+for l in open(os.path.join(ROOT, 'tools/oblgen/out/obligations.tsv')):
+    f = l.rstrip('\n').split('\t')
+    m = re.match(r'op (\d+)', f[2]) if len(f) > 2 else None
+    if m: opobl.setdefault(int(m[1]), []).append((f[1].split('(')[0], f[4]))
+def need_row(c):
+    pk = P[prod[c]][0]; co = cons[c]; ck = P[co][0]
+    if c in root:
+        return 'BCert root: ' + ('A row (exists)' if obl[c][1] == 'A' else 'NEW ROW NEEDED (no tcheck row)')
+    if ck == 'link':
+        kinds = [e for (n_, e) in opobl.get(co, []) if n_ == 'Sep+SetupHold']
+        if any(e.startswith('vacuous') for e in kinds): return 'ghost (W=0 control stage: no data pins)'
+        if any(e == 'I' for e in kinds): return 'field backed by I/H row of the stage (exists)'
+        return 'latch-D, NO ROW FOUND'
+    if ck in ('steerC', 'steerD'):
+        kinds = [e for (n_, e) in opobl.get(co, []) if n_ == 'H_STEER_SEL']
+        return 'field backed by E row of the steer select (exists)' if kinds else 'steer select, NO ROW FOUND'
+    if ck == 'mux' and P[co][1][0] == c:
+        kinds = [e for (n_, e) in opobl.get(co, []) if n_ == 'H_MUX_SEL']
+        return 'field backed by E row of the mux select (exists)' if kinds else 'mux select, NO ROW FOUND'
+    if ck == 'muxn' and P[co][1][0] == c:
+        return 'NEW ROW NEEDED (muxn select: no E row on any route)'
+    return 'ghost (consumer does not sample the bus)'
 with open(os.path.join(HERE, 'classes.tsv'), 'w') as w:
-    w.write('chan\tprod\tcons\tinstance\t8w_expect\theld_class\trank\tcapture\n')
+    w.write('chan\tprod\tcons\tinstance\t8w_expect\theld_class\trank\tcapture\trow_need\n')
     for c in range(NC):
         pk = P[prod[c]][0]; ck = P[cons[c]][0]
         hc = 'BCERT' if c in root else 'structural:' + {'forkG':'forkB_held','forkH':'forkB_held','join':'joinB_held','bjoin':'joinB_held','steerC':'steerB_held','steerD':'steerB_held','link':'linkB_held','src':'srcB_held'}[pk]
@@ -84,7 +108,7 @@ with open(os.path.join(HERE, 'classes.tsv'), 'w') as w:
         elif ck == 'sink': cap = 'environment'
         else: cap = 'comb (' + ck + ')'
         inst, exp = obl.get(c, ('?', '?'))
-        w.write(f'{c}\t{pk}\t{ck}\t{inst}\t{exp}\t{hc}\t{rank[c]}\t{cap}\n')
+        w.write(f'{c}\t{pk}\t{ck}\t{inst}\t{exp}\t{hc}\t{rank[c]}\t{cap}\t{need_row(c)}\n')
 from collections import Counter
 print('disjointness violations:', bad)
 print('BCERT roots:', len(root), Counter(P[prod[c]][0] for c in root))
@@ -95,6 +119,8 @@ print('structural by producer:', Counter(P[prod[c]][0] for c in range(NC) if c n
 print('8w derived/ghost (376) now structural:', sum(1 for c in range(NC) if c not in root and (obl[c][1].startswith('derived') or obl[c][1].startswith('ghost'))))
 print('8w A-class now structural:', [c for c in range(NC) if c not in root and obl[c][1]=='A'])
 print('capture kinds:', Counter(l.split('\t')[7].strip() for l in open(os.path.join(HERE,'classes.tsv')).readlines()[1:]))
+print('row need:'); [print('  %4d  %s' % (v, k)) for k, v in Counter(need_row(c) for c in range(NC)).most_common()]
+print('NEW ROWS:', [(c, obl[c][0], need_row(c)) for c in range(NC) if 'NEW' in need_row(c) or 'NO ROW' in need_row(c)])
 if '--lean' in sys.argv:
     print('rootL:', [1 if c in root else 0 for c in range(NC)])
     print('rankL:', [rank[c] for c in range(NC)])
