@@ -1407,3 +1407,20 @@ loop when qr = qf (both acks high for 12 ps on its four-phase continuation); Q's
 ends only because qf > qr; G's fall view needs a q-pin rise/fall difference. Race
 records are a 1-4 ps grid, not routed numbers. JSON next pass (labels to
 boundary-tight per field).
+
+### progress 11:30
+In: Bmn AssumeGuaranteeMuxN{,Tree,Fin,FinWit,Net} (core; checked here, axioms
+standard; notes/B-assume-guarantee-muxn.md). muxn and the fork trees are cell specs:
+decode LUT3 (dec_segK / tdec; per-bit H_SEL_STABLE, H_S_RANGE, named H_YOSYS_MAP for
+the inferred LUT3), joins = bd_c2, acks via MuxASpec plus a new truncated tmuxa that
+also closes bd_mux's uxa/uya (H_ZFALL now requires the earlier z_ack fall to have
+happened). Fork trees: every node a CelSpec / FCelSpec, inner departure bounds derived
+from the leaves' bound relative to the root (sufficient, not CTreeExact's exact form);
+bd_fork_N5's LUTs kernel-checked; N=6's node INITs from the bd_ctree RTL recursion
+(named H_TREE6_MAP, no generated netlist). The 11 FASTFALL stages of muxn's delay
+line are not segment-causal (gstage_not_causal) but are carried by the time rule
+(tand, under H_SAME / H_OVL). gcd_hw_safe_net3 (segment form) leaves contracts on the
+59 ORs, muxn's |j and 11 stages, and the amerges; gcd_hw_safe_fin_net3 (runs that
+stop) leaves ONLY muxn's |j (a 3-input OR), the 3 sources and the 9 amerges. No joint
+witness of either network theorem yet (Bfin3); tree / decode truncated witnesses are
+infinite runs only; departure bounds still edge-time inequalities.
