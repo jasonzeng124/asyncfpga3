@@ -1521,3 +1521,14 @@ Seeds: d,3,4,5,6,7,8,9. nextpnr-SDF nominal on the same 8 routes (BQ#3 record): 
 SLOW_MAX: 4 (31/24/36). Data research/data/fid/bq3_fullstack_8seed.tsv; BOARD-QUEUE #3 updated.
 Does NOT show: silicon; scatter on seeds 5,7,8,9 (running); the board-fidelity sim is not yet accepted (ring128
 blocked on the owner's raw data), so the rule gates stay.
+### progress 06:50 (dsp_areg acceptance MATCH; disk filled and was cleaned; BQ#2 8-seed full stack started)
+- 781eeae (S8): acceptance.py --items dsp_areg runs the property on verify/fasm/probe.v's route: **[MATCH]** in both
+  stacks (patched X1Y14 1/1 stage; unpatched decodes AREG=2/BREG=2 with CE*1 tied 0, no product). Also: .bit md5
+  guards now compare payloads from the sync word (xc7frames2bit writes the frames path into the header, so the
+  old "bitstreams identical" guard could never fire). inventory.md now has a generator (inventory_md.py --check).
+- Hard acceptance items on the full stack, as of now: lutpinmap_gcd_nofuse MATCH (SLOW_MAX; FAST_MIN running),
+  dsp_constpins MATCH x2 corners, dsp_constpins_inv MATCH x2, dsp_areg MATCH (property, one route), ring128 BLOCKED
+  (owner's raw per-ring data), lutpinmap_gcd (BQ#1 fusion route, where the bug is harmless) not run.
+- The scratch disk reached 92% (each compiled full-stack sim is ~600 MB); 30 finished sims deleted, seeds_fid now
+  deletes its .vvp after parsing. A BQ#2 sweep launched during the full-disk window ran twice on one dir and
+  produced BUILD_FAIL/INCOMPLETE rows; discarded, relaunched once (default-seed sdf a9c4e265 = BQ#2's record).
