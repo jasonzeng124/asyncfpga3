@@ -201,14 +201,88 @@ FAST_MIN, which is 5.9 TAU at the assumed TAU of 150. In silicon terms that is
 about exp(-(647+878)/150) ≈ 4e-5 per metastable event still failing. It is an
 MTBF figure, and it rests on an assumed TAU.
 
+## Hold release (S12 follow-up, 2026-10-29)
+
+The idle-start sweep above never raced a request against A0's fall, which is
+where the hold on q opens. This section sweeps that case.
+
+**What was swept.** I used `tb_f3_arbtie.v` with `MODE=1`, plus
+`f3/arbhold_sweep.sh`. MODE 0 is unchanged: it still gives 41 violations at
+S=600 and PASSes at S=1200. A trial runs like this:
+1. The holder is client 1 for QP=0 or client 2 for QP=1. It takes the
+   resource.
+2. The other client's request comes up and waits. The hold keeps its grant
+   low.
+3. The holder drops its request, so R0 falls and A0 falls S later.
+4. The holder re-raises its request at offset D from the A0 fall at the server.
+
+Details of the sweep:
+- D runs in 1 ps steps. For A it covers -215..824; for B it covers -215..600.
+  The offset is measured as `off=`, and is 15 ps less than W for QP=1.
+- Configs A and B, 8 seeds, S ∈ {600, 1200, 3000}. I added 905/915/1080/1095
+  to locate the threshold.
+- The checks are the same as in the idle sweep, with `acyc` starting at 1
+  because the holder's ack is already in the current A0 cycle.
+
+**Which offsets a four-phase client may produce.**
+- A trial is **legal** when the holder's old ack was already low at the moment
+  it re-raised. That needs D ≥ d(A0 → ua_h) + arc, which is 394 ps in A and
+  190 ps in B.
+- Smaller D is a client re-requesting while its own ack is still high. It is a
+  forced protocol violation, and I report it only as a proxy for A0 being
+  routed late to ustate.
+- Client 2 abandoning its waiting request was **not swept**: four-phase does
+  not let a request fall before its ack.
+
+**Where the race is.** At ustate, q's release edge is followed by the
+re-request. If the re-request arrives less than TLOOP after that edge, it is a
+runt of width D. So the hold release does open the same kind of race, in the
+band D ≈ TLOOP-300..TLOOP. A client with zero turnaround reaches the legal end
+of that band: D 355..422 in A and 157..194 in B.
+
+| config, S | trials (legal) | legal violations | illegal violations (no event / META / rejected runt) |
+|---|---|---|---|
+| A, 600 | 16400 (7080) | **100** (all META, D 355..422) | 3088 / 214 / 88 |
+| A, 905 / 915 / 1080 / **1095** | 16400 (7080) each | 8 / 13 / 2 / **0** | varies with S |
+| A, 1200 and 3000 | 16400 (7080) each | **0** | 3088 / 0 / 88 |
+| B, 600 | 12816 (6760) | **7** (all META, D 157..194) | 1608 / 1409 / 109, and 144 hangs |
+| B, 905 / **915** / 1080 / 1095 | 12816 (6760) each | 1 / **0** / 0 / 0 | |
+| B, 1200 and 3000 | 12816 (6760) each | **0** | 2928 / 19 / 109, and 144 hangs |
+
+Every legal violation is the idle-start mechanism: a double ack from a META on
+q while A0 returns. No trial had a grant overlap beyond the decode skew, an x
+at the end, or a BREAK. All 144 hangs are illegal trials in B.
+
+**The requirement is unchanged.** The legal threshold falls exactly where the
+idle formula predicts: violations at 1080 and none at 1095 for A (predicted
+1088), violations at 905 and none at 915 for B (predicted 909). That is
+expected from the mechanism. In the band, R0 rises with the re-request edge
+that ends q's runt, and the server's round trip again starts before q has
+decided. The rate per legal trial is 1.4% for A at S=600 (100/7080). It is
+lower than the idle start's 3.3% (303/9200) because only the top ~30 ps (A)
+or ~10 ps (B) of the band is legally reachable.
+
+**Is the race reachable in gcd_hw?** Whether a real client reaches the band
+depends on its turnaround. The race is reachable when
+
+    d(A0→ua_h)+arc + [A_h → … → r_h at ustate] + arc  <  d(A0→ustate)+arc + TLOOP
+
+`cells/gls/fid/arb_holdreach.py` checks this on the bq2/wt-6 gcd_hw route,
+using the prjxray FAST_MIN column and naive shortest paths. Naive paths are a
+lower bound on the re-request path, so a positive slack is robust. Every
+holder's re-request arrives at least **399 ps** after the window closes; the
+tightest is merge4.uarb1 h2, then merge10.uarb1 h1 at 430 and
+merge6.uarb1/merge10.uarb1 h2 at 521. So in this route the hold-release race
+cannot be reached at all. It is one route at one corner, and the scatter
+(GLS_SCATTER) was not applied.
+
 ## What this does NOT show
 
 - The bench uses one hand-built topology: uniform arcs, chosen wires and an
   ideal transport server. It is not a GLS of the routed arbiter. The formula
   is what carries over to a route, and it was checked only against this bench.
-- The races all start from idle. A request coincident with A0-fall (the
-  hold's release, bd_arb.v "the hold does not even relocate that race") is
-  not swept.
+- The idle-start races miss the hold release. The section above covers it,
+  with the same requirement.
 - trp_max = 647 is the model's clip. TAU = WIN = 150 is assumed. There is no
   PVT scatter (GLS_SCATTER) in the bench.
 - The gcd_hw check is static, on one route at one corner column per row. RT

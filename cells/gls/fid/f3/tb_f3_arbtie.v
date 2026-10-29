@@ -43,6 +43,15 @@ module tb_f3_arbtie;
     parameter integer T = 124, T5D = 28, TFB = 300, TW = 250, S = 600, CD = 200;
     parameter integer WMIN = -50, WMAX = 524, WSTEP = 1;
     parameter integer TOL = -1;                 // <0: |T5D| + 2
+    // MODE 0: near tie from idle (above).  MODE 1: hold release -- the holder
+    // (client 1 for QP=0, client 2 for QP=1) owns the resource, the other's
+    // request is up and waiting, the holder drops its request (so A0 falls,
+    // releasing q's hold) and RE-RAISES it at W ps relative to the predicted
+    // A0 fall at the server (measured: off=).  legal=1 iff the holder's old
+    // ack was already low when it re-raised (a four-phase client may);
+    // legal=0 stands for a client that is faster than its own ack, or
+    // equivalently A0 routed late to ustate.
+    parameter integer MODE = 0;
     localparam integer TL = TFB + T;            // TLOOP of q and of ua1/ua2
     localparam integer TOLV = (TOL >= 0) ? TOL : ((T5D < 0) ? -T5D : T5D) + 2;
 
@@ -122,6 +131,23 @@ module tb_f3_arbtie;
     // ---- four-phase clients (disable-able, so a hung trial can be cleared) ----
     reg go1 = 0, go2 = 0;
     integer done1 = 0, done2 = 0;
+    // MODE 1: the holder's re-raise
+    reg goh = 0, legal = 1'b1;
+    integer hq = 0, nv_legal = 0, n_legal = 0;
+    time trise = 0, ta0f = 0;
+    always @(posedge goh) begin : hr
+        #(TW + T + T5D + S + W);
+        trise = $time;
+        if (hq == 0) begin
+            legal = (A1 === 1'b0); r1 = 1'b1; wait (A1 === 1'b0); wait (A1 === 1'b1);
+            #(CD) r1 = 1'b0; wait (A1 === 1'b0); done1 = done1 + 1;
+        end else begin
+            legal = (A2 === 1'b0); r2 = 1'b1; wait (A2 === 1'b0); wait (A2 === 1'b1);
+            #(CD) r2 = 1'b0; wait (A2 === 1'b0); done2 = done2 + 1;
+        end
+        goh = 0;
+    end
+    always @(negedge A0) if (live && ta0f == 0) ta0f = $time;
     always @(posedge go1) begin : c1
         r1 = 1'b1; wait (A1 === 1'b1); #(CD) r1 = 1'b0; wait (A1 === 1'b0);
         done1 = done1 + 1; go1 = 0;
@@ -145,7 +171,7 @@ module tb_f3_arbtie;
     endtask
     task reset_all;
         begin
-            disable c1; disable c2; go1 = 0; go2 = 0; r1 = 1'b0; r2 = 1'b0;
+            disable c1; disable c2; disable hr; go1 = 0; go2 = 0; goh = 0; r1 = 1'b0; r2 = 1'b0;
             #2000 rst = 1'b1; #3000 rst = 1'b0; #6000;
         end
     endtask
@@ -160,6 +186,18 @@ module tb_f3_arbtie;
         #6000;
         for (QP = 0; QP < 2; QP = QP + 1)
             for (W = WMIN; W <= WMAX; W = W + WSTEP) begin
+              if (MODE == 1) begin
+                if (QP == 0) begin r1 = 1'b1; wait (A1 === 1'b1); go2 = 1; end
+                else begin r2 = 1'b1; wait (A2 === 1'b1); go1 = 1; end
+                #2000;
+                nsrv = 0; nack = 0; acyc = 1; dbl = 0; novg = 0; xs = 0; inov = 0; gwid = 0;
+                m0 = `RS(n_meta); b0 = `RS(n_break); j0 = `RS(n_rej);
+                a0m = `RA(n_meta) + `RA(n_rej);
+                d1 = done1; d2 = done2; ta0f = 0;
+                live = 1;
+                if (QP == 0) r1 = 1'b0; else r2 = 1'b0;
+                hq = QP; goh = 1;
+              end else begin
                 if (QP == 0) lone(2); else lone(1);          // q -> QP
                 if (q !== QP) begin n_prep = n_prep + 1; reset_all; if (QP == 0) lone(2); else lone(1); end
                 nsrv = 0; nack = 0; acyc = 0; dbl = 0; novg = 0; xs = 0; inov = 0; gwid = 0;
@@ -173,6 +211,7 @@ module tb_f3_arbtie;
                 end else begin
                     if (QP == 0) begin go2 = 1; #(-W) go1 = 1; end else begin go1 = 1; #(-W) go2 = 1; end
                 end
+              end
                 tst = $time; hang = 0;
                 while (!(done1 == d1 + 1 && done2 == d2 + 1) && !hang) begin
                     #100; if ($time - tst > 200000) hang = 1;
@@ -190,21 +229,23 @@ module tb_f3_arbtie;
                 if (!hang && (nack != 2 || nsrv != 2)) begin n_cnt = n_cnt + 1; v = 1; end
                 if (hang) begin n_hang = n_hang + 1; v = 1; end
                 if (anyx) begin n_xend = n_xend + 1; v = 1; end
+                if (MODE == 1 && legal) n_legal = n_legal + 1;
                 if (v) begin
                     nviol = nviol + 1;
+                    if (MODE == 1 && legal) nv_legal = nv_legal + 1;
                     if (dm) nv_meta = nv_meta + 1;
                     if (db) nv_brk = nv_brk + 1;
                     if (dj && !dm) nv_rej = nv_rej + 1;
                     if (!dm && !db && !dj) nv_none = nv_none + 1;
                 end
                 if (v || verbose)
-                    $display("%s QP=%0d W=%0d meta=%0d break=%0d rej=%0d ua_ev=%0d srv=%0d ack=%0d dbl=%0d ovg=%0d gw=%0t x=%0d xend=%b hang=%0d trp=%0d delta=%0d",
+                    $display("%s QP=%0d W=%0d meta=%0d break=%0d rej=%0d ua_ev=%0d srv=%0d ack=%0d dbl=%0d ovg=%0d gw=%0t x=%0d xend=%b hang=%0d trp=%0d delta=%0d legal=%b off=%0d",
                              v ? "V" : "T", QP, W, dm, db, dj, da, nsrv, nack, dbl, novg, gwid, xs, anyx, hang,
-                             `RS(trp), `RS(delta));
+                             `RS(trp), `RS(delta), legal, (MODE == 1) ? $signed(trise - ta0f) : 0);
                 if (hang || anyx) reset_all;
             end
-        $display("SUM TLOOP=%0d S=%0d T=%0d trials=%0d meta_trials=%0d viol=%0d (dblack=%0d ovg=%0d count=%0d hang=%0d xend=%0d) viol_meta=%0d viol_break=%0d viol_rejonly=%0d viol_noevent=%0d widest_overlap=%0t tol=%0d prepfail=%0d",
-                 TL, S, T, ntr, n_tmeta, nviol, n_dbl, n_ovg, n_cnt, n_hang, n_xend, nv_meta, nv_brk, nv_rej, nv_none, wmax_g, TOLV, n_prep);
+        $display("SUM TLOOP=%0d S=%0d T=%0d trials=%0d meta_trials=%0d viol=%0d (dblack=%0d ovg=%0d count=%0d hang=%0d xend=%0d) viol_meta=%0d viol_break=%0d viol_rejonly=%0d viol_noevent=%0d widest_overlap=%0t tol=%0d prepfail=%0d mode=%0d legal_trials=%0d viol_legal=%0d",
+                 TL, S, T, ntr, n_tmeta, nviol, n_dbl, n_ovg, n_cnt, n_hang, n_xend, nv_meta, nv_brk, nv_rej, nv_none, wmax_g, TOLV, n_prep, MODE, n_legal, nv_legal);
         if (pass_max >= 0) begin
             if (nviol <= pass_max && n_tmeta > 0) $display("tb_f3_arbtie PASS");
             else $display("tb_f3_arbtie FAIL (violations %0d > %0d, or no resolver event: %0d)", nviol, pass_max, n_tmeta);
