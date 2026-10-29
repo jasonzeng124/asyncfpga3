@@ -1010,3 +1010,15 @@ ArbAnalog and ArbResolve (they import Mathlib analysis modules, e.g.
 Mathlib.Analysis.ODE.ExistUnique, that setup.sh has not built yet in this sandbox:
 not a B failure, re-check when setup finishes) and ResetGcd (failed once during the
 sweep, OK on re-run: transient, likely memory pressure from concurrent probes).
+
+### progress 09:02
+In: Bwit ResetWitness2(+Data) (core; checked here, axioms standard; notes/
+B-reset-witness2.md; mutant Wip/Bwit/M1 fails). Closes self-audit 4's "frozen reset
+witness" finding: a GMW run of the real gNet with D = 2, W = 1 from a pseudo-random
+power-up (1593 control nodes wrong) that settles to the reset values and moves again
+after release (link_moves: ulink_n68__1.ctl 1,1,0 at steps 0..2, rises at 95), with
+gate delays 1, 2 and 3 observed (delays_vary). It meets H_RST_CLEAN, H_HOLD_LONG
+(tight), H_RST_LOW and H_STEER_HOLD (tight at E = 158) and every hypothesis of
+gcd_hw_safe_after_reset jointly (reset_capstone_nonvac2). Still: the C side of that
+joint witness is the frozen family with the degenerate map muW, so the headline's
+conclusion is vacuous on it; the delay family is one periodic-sampling family.
