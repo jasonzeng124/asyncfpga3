@@ -1082,3 +1082,21 @@ JSON forms are 2 ticks from each refuted point. Open, with an unproved analysis 
 they are NOT necessary as written: isochronic_forks, iso_zack, S_XA_J.1 (bookkeeping
 edges of gated-off tokens; needs a gate-aware cel_run). Not attempted: rst_flush,
 bbm, muxn bundled_z_data.
+
+### progress 09:31
+In: Barb2 ArbMultiToken (core; checked here, axioms standard;
+notes/B-arb-multi-token.md). Multi-token grant exclusion of the HELD bd_arbiter:
+mt_exclusion (grants never both high at any t >= B0, over infinitely many
+handovers, induction over handovers). The first-handover-only Scn/Scn2 of 7h/7j are
+reused unchanged by splicing a stylised settled past onto the run (splice_run),
+giving windowed one-handover theorems win1/win2. Hypotheses: 7h/7j's RT1/RT2/RT1b/RT2b
+arc forms, H_M (M bounds every route + arc read offset), four-phase clients without
+withdrawal, H_SLOW_REREQ (TA2 + 4M <= u), H_HOLD (sustained alternating contention).
+C's H_ARB_EXCL holds AS C STATES IT for the held arbiter (H_ARB_EXCL_of_mt; the
+ContractBridge counter-run concerns the bare cell only), and H_ARB1/H_ARB2 at 1 ps
+ticks under CX (strict RT1, one-tick causality, H_GRANT_IN_A0_LOW)
+(H_ARB12_of_mt). Witness: a periodic 48 ps run over all of Z, every delay nonzero,
+two handovers per period. Open: early re-request (H_SLOW_REREQ excludes it; three
+extra races named in the note, not proved), H_AMERGE_RTZ (B's model has no z_req),
+runs from reset/idle/solo client, so C's AMerge is still not instantiated. M is
+coarse: H_SLOW_REREQ and H_HOLD are sufficient, not tight.
