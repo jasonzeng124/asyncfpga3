@@ -168,11 +168,13 @@ theorem E_le_ζ0 (hE0 : Enum (fun k => !P.sv k) P.κ0) (hE1 : Enum P.sv P.κ1)
   have hs := Cs.H_SRV j
   unfold MuxRun.Z orEdges at hs
   unfold MuxRun.O0 at hs
-  rw [hs0] at hs; simp only [Bool.not_false, ite_true] at hs
-  have a := fl P.W0o hE
-  have b := fl P.Lor (c := P.W0o.fst (P.E j)) (by omega)
-  have c := fl P.Dz (c := P.Lor.fst (P.W0o.fst (P.E j))) (by omega)
-  omega
+  have hc : (fun k => !P.sv k) (j / 2) = true := by simp [hs0]
+  split at hs
+  · have a := fl P.W0o hE
+    have b := fl P.Lor (c := P.W0o.fst (P.E j)) (by omega)
+    have c := fl P.Dz (c := P.Lor.fst (P.W0o.fst (P.E j))) (by omega)
+    omega
+  · contradiction
 
 /-- In a token selecting y the server's edge follows j1's edge through `W1o`. -/
 theorem E_le_ζ1 (hE0 : Enum (fun k => !P.sv k) P.κ0) (hE1 : Enum P.sv P.κ1)
@@ -183,11 +185,13 @@ theorem E_le_ζ1 (hE0 : Enum (fun k => !P.sv k) P.κ0) (hE1 : Enum P.sv P.κ1)
   have hs := Cs.H_SRV j
   unfold MuxRun.Z orEdges at hs
   unfold MuxRun.O1 at hs
-  rw [hs1] at hs; simp only [Bool.not_true, Bool.false_eq_true, ite_false] at hs
-  have a := fl P.W1o hE
-  have b := fl P.Lor (c := P.W1o.fst (P.E j)) (by omega)
-  have c := fl P.Dz (c := P.Lor.fst (P.W1o.fst (P.E j))) (by omega)
-  omega
+  have hc : ¬ (fun k => !P.sv k) (j / 2) = true := by simp [hs1]
+  split at hs
+  · contradiction
+  · have a := fl P.W1o hE
+    have b := fl P.Lor (c := P.W1o.fst (P.E j)) (by omega)
+    have c := fl P.Dz (c := P.Lor.fst (P.W1o.fst (P.E j))) (by omega)
+    omega
 
 theorem ζ_le_EN (hE0 : Enum (fun k => !P.sv k) P.κ0) (hE1 : Enum P.sv P.κ1)
     (Cs : MuxCausal P Wzc Ex Ey Ec Es) (S : MuxStaticN P Wzc Ex Ey Ec Es lj wc wo s0 s1) (j : Nat) :
@@ -423,8 +427,10 @@ def ClaimX (s0 : Nat) : Prop :=
     MuxEnv P rst x y ctl za sx0 sx1 R → MuxCausal P Wzc Ex Ey Ec Es →
     MuxStaticN P Wzc Ex Ey Ec Es lj wc wo s0 0 → MuxRst P R → MuxConcl P j0 j1 zr xak yak
 
-theorem claimX0 : ClaimX 0 := fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-    _ _ G V Cs S hR => mux_ok_staticN G V Cs S hR
+theorem claimX0 : ClaimX 0 := by
+  intro P Wzc Ex Ey Ec Es lj wc wo R rst x y ctl za xj yj cj0 cj1 sx0 sx1 j0 q0 j1 q1 e0 e1 ei zr j0x
+    j1y zx zy xa qa ya qb xak yak G V Cs S hR
+  exact mux_ok_staticN G V Cs S hR
 
 /-! ## 2. A run family: a passing run that violates `S_J0_X`, and the counter-run
 
@@ -565,14 +571,16 @@ theorem gates (W : Nat) (J : Trace) (hJ : JoinEq W J) :
   H_WC0 _ _ := rfl
   H_WC1 _ _ := rfl
   H_UJ0 t ht := hJ t ht
-  H_UJ0_FB := fun t ht => ⟨t - W, by show t ≤ t - W + W; omega, by show t - W + W ≤ t; omega, rfl⟩
+  H_UJ0_FB := fun t ht => by
+    have h : W ≤ t := ht
+    exact ⟨t - W, by show t ≤ t - W + W; omega, by show t - W + W ≤ t; omega, rfl⟩
   H_UJ0_POS := by show 1 ≤ 1 + W; omega
   H_UJ1 t ht := by
     match t, ht with
     | 1, _ => rfl
     | t + 2, _ => rfl
   H_UJ1_FB := win11 (fun _ _ => rfl)
-  H_UJ1_POS := by decide
+  H_UJ1_POS := Nat.le_of_ble_eq_true rfl
   H_W0O _ _ := rfl
   H_W1O _ _ := rfl
   H_UOR _ _ := rfl
@@ -586,13 +594,13 @@ theorem gates (W : Nat) (J : Trace) (hJ : JoinEq W J) :
     | 1, _ => rfl
     | t + 2, _ => rfl
   H_UXA_FB := win11 (fun _ _ => rfl)
-  H_UXA_POS := by decide
+  H_UXA_POS := Nat.le_of_ble_eq_true rfl
   H_UYA t ht := by
     match t, ht with
     | 1, _ => rfl
     | t + 2, _ => rfl
   H_UYA_FB := win11 (fun _ _ => rfl)
-  H_UYA_POS := by decide
+  H_UYA_POS := Nat.le_of_ble_eq_true rfl
   H_WXA _ _ := rfl
   H_WYA _ _ := rfl
 

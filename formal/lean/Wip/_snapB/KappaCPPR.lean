@@ -58,6 +58,9 @@ namespace Formal.Cells.KappaCPPR
 open Formal.Core.Substrate
 open Formal.Cells.ConstraintsKappa
 
+-- the decided data checks and the row unfoldings of §3-§4 recurse deeply (as in Bk3).
+set_option maxRecDepth 200000
+
 /-! ## 1. Generic: common arcs cancel exactly -/
 
 section Generic
@@ -96,27 +99,27 @@ theorem net_P : ∀ P Q : List A, P.Perm ((net P Q).1 ++ (net P Q).2.1)
   | [], Q => by simp [net]
   | e :: P, Q => by
     by_cases h : e ∈ Q
-    · simp only [net, if_pos h]
+    · simp only [net, h, ↓reduceIte]
       exact (net_P P (Q.erase e)).cons e
-    · simp only [net, if_neg h]
+    · simp only [net, h, ↓reduceIte]
       exact ((net_P P Q).cons e).trans List.perm_middle.symm
 
 theorem net_Q : ∀ P Q : List A, Q.Perm ((net P Q).1 ++ (net P Q).2.2)
   | [], Q => by simp [net]
   | e :: P, Q => by
     by_cases h : e ∈ Q
-    · simp only [net, if_pos h]
+    · simp only [net, h, ↓reduceIte]
       exact (List.perm_cons_erase h).trans ((net_Q P (Q.erase e)).cons e)
-    · simp only [net, if_neg h]
+    · simp only [net, h, ↓reduceIte]
       exact net_Q P Q
 
 theorem net_sub : ∀ P Q : List A, (net P Q).2.2.Sublist Q
   | [], Q => by simp [net]
   | e :: P, Q => by
     by_cases h : e ∈ Q
-    · simp only [net, if_pos h]
+    · simp only [net, h, ↓reduceIte]
       exact (net_sub P (Q.erase e)).trans List.erase_sublist
-    · simp only [net, if_neg h]
+    · simp only [net, h, ↓reduceIte]
       exact net_sub P Q
 
 /-- After netting no id is on both sides (H_DISJ holds by construction). -/
@@ -124,9 +127,9 @@ theorem net_disj : ∀ P Q : List A, Disj (net P Q).2.1 (net P Q).2.2
   | [], Q => by intro x hx; simp [net] at hx
   | e :: P, Q => by
     by_cases h : e ∈ Q
-    · simp only [net, if_pos h]
+    · simp only [net, h, ↓reduceIte]
       exact net_disj P (Q.erase e)
-    · simp only [net, if_neg h]
+    · simp only [net, h, ↓reduceIte]
       intro x hx
       rcases List.mem_cons.1 hx with rfl | hx
       · exact fun hq => h ((net_sub P Q).subset hq)
@@ -193,6 +196,35 @@ theorem genOK_net_of_full (M : CornerModel A) (P Q : List A) (a b : ℕ)
   intro s
   have := (genOK_full_iff M P Q a b).1 h s
   omega
+
+/-- Closed-form endpoint certificate `κ ≤ p/q` on two arcs (cf. OnGcdArbKappa.certFor). -/
+def certG (D R : CArc) (a b p q : ℕ) : Bool :=
+  decide (p * (ep false R + ep false D) + q * (ep false D + a) ≤ q * (ep false R + b)) &&
+  decide (p * (ep true R + ep true D) + q * (ep true D + a) ≤ q * (ep true R + b))
+
+theorem gen_of_certG {k : Kappa} {D R : CArc} {a b p q : ℕ} (hq : 0 < q)
+    (hc : certG D R a b p q = true) (H_KAPPA : k.num * q ≤ k.den * p) : GenOK k D R a b := by
+  unfold certG at hc
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+  rw [genOK_iff_ep]
+  intro s
+  cases s
+  · exact OnGcdArbKappa.safe_arith hq k.num_le H_KAPPA hc.1
+  · exact OnGcdArbKappa.safe_arith hq k.num_le H_KAPPA hc.2
+
+/-- Unsafe certificate at endpoint `s`: `pu/qu ≥ (R_s + b − D_s − a + n)/(R_s + D_s)`. -/
+def certGU (D R : CArc) (a b n pu qu : ℕ) (s : Bool) : Bool :=
+  decide (qu * (ep s R + b + n) ≤ pu * (ep s R + ep s D) + qu * (ep s D + a))
+
+theorem not_allOK_of_certGU (M : CornerModel A) {P Q : List A} {a b pu qu : ℕ}
+    {s : Bool} (hd : Disj P Q) (hqu : 0 < qu) (hn : 0 < P.length + Q.length)
+    (hc : certGU (M.path P) (M.path Q) a b (P.length + Q.length) pu qu s = true)
+    (H_KAPPA : M.κ.den * pu ≤ M.κ.num * qu) : ¬ AllOK M P Q a b := by
+  intro h
+  have hrel := (sandwich M hd).2 h s
+  unfold certGU at hc
+  simp only [decide_eq_true_eq] at hc
+  exact OnGcdArbKappa.unsafe_arith hqu hn M.κ.den_pos M.κ.num_le H_KAPPA hc hrel
 
 end Generic
 
@@ -339,18 +371,19 @@ theorem design_cppr_tight (k : Kappa) (H_KAPPA : k.den * 33181 ≤ k.num * 74954
     (cr : Bool → CArc) :
     ¬ AllOK (xModel k v_g3_merge12_uarb1 cr) uRT1b.P uRT1b.Q 0 0 := by
   rw [full_iff uRT1b_mem]
-  intro h
-  have hd : Disj (ee F_rt1b.P) (ee F_rt1b.Q) := disj_lift (disj_of F_rt1b (by decide))
-  have hrel := (sandwich (xModel k v_g3_merge12_uarb1 cr) hd).2 h false
-  rw [xpath_e, xpath_e] at hrel
-  have hcu : R_g3_merge12_uarb1_lit_rt1b.certUnsafe = true := by decide
-  unfold Row.certUnsafe at hcu
-  simp only [decide_eq_true_eq] at hcu
-  have e1 : (litModel k v_g3_merge12_uarb1).path F_rt1b.P = R_g3_merge12_uarb1_lit_rt1b.D := rfl
-  have e2 : (litModel k v_g3_merge12_uarb1).path F_rt1b.Q = R_g3_merge12_uarb1_lit_rt1b.R := rfl
-  have e3 : (ee F_rt1b.P).length + (ee F_rt1b.Q).length = R_g3_merge12_uarb1_lit_rt1b.n := rfl
-  rw [e1, e2, e3] at hrel
-  exact unsafe_arith (by decide) (by decide) k.den_pos k.num_le H_KAPPA hcu hrel
+  show ¬ AllOK (xModel k v_g3_merge12_uarb1 cr) (ee F_rt1b.P) (ee F_rt1b.Q) 0 0
+  have hd : Disj (ee F_rt1b.P) (ee F_rt1b.Q) := disj_lift (disj_of F_rt1b (by decide +kernel))
+  have hn : 0 < (ee F_rt1b.P).length + (ee F_rt1b.Q).length := by decide +kernel
+  have hc : certGU (pathArc (F_rt1b.P.map (fun e => mkArc (v_g3_merge12_uarb1 e).1
+      (v_g3_merge12_uarb1 e).2.2.2))) (pathArc (F_rt1b.Q.map (fun e => mkArc
+      (v_g3_merge12_uarb1 e).1 (v_g3_merge12_uarb1 e).2.2.2))) 0 0
+      ((ee F_rt1b.P).length + (ee F_rt1b.Q).length) 33181 749546 false = true := by
+    decide +kernel
+  have hc' : certGU ((xModel k v_g3_merge12_uarb1 cr).path (ee F_rt1b.P))
+      ((xModel k v_g3_merge12_uarb1 cr).path (ee F_rt1b.Q)) 0 0
+      ((ee F_rt1b.P).length + (ee F_rt1b.Q).length) 33181 749546 false = true := by
+    rw [xpath_e, xpath_e]; exact hc
+  exact not_allOK_of_certGU _ hd (by decide) hn hc' H_KAPPA
 
 /-- Non-vacuity: κ = 16587/374773 meets `H_KAPPA`, and every `xModel` is realised (at the
 fast endpoint), whatever `cr`. -/
@@ -422,25 +455,6 @@ def splits : List (List Y × List Y) := [
 theorem splits_common : splits.map (fun u => (net u.1 u.2).1) =
     [fs [.ac, .dS1], fs [.ac, .dS2], fs [.ac, .dS1], fs [.ac, .dS2]] := by decide +kernel
 
-/-- Closed-form endpoint certificate `κ ≤ p/q` on two arcs (cf. OnGcdArbKappa.certFor). -/
-def certG (D R : CArc) (a b p q : ℕ) : Bool :=
-  decide (p * (ep false R + ep false D) + q * (ep false D + a) ≤ q * (ep false R + b)) &&
-  decide (p * (ep true R + ep true D) + q * (ep true D + a) ≤ q * (ep true R + b))
-
-theorem gen_of_certG {k : Kappa} {D R : CArc} {a b p q : ℕ} (hq : 0 < q)
-    (hc : certG D R a b p q = true) (H_KAPPA : k.num * q ≤ k.den * p) : GenOK k D R a b := by
-  unfold certG at hc
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
-  rw [genOK_iff_ep]
-  intro s
-  cases s
-  · exact safe_arith hq k.num_le H_KAPPA hc.1
-  · exact safe_arith hq k.num_le H_KAPPA hc.2
-
-/-- Unsafe certificate at endpoint `s`: `pu/qu ≥ (R_s + b − D_s − a + n)/(R_s + D_s)`. -/
-def certGU (D R : CArc) (a b n pu qu : ℕ) (s : Bool) : Bool :=
-  decide (qu * (ep s R + b + n) ≤ pu * (ep s R + ep s D) + qu * (ep s D + a))
-
 theorem split_safe {v : E → Quad} {P Q : List Y} {a b p q : ℕ} (hq : 0 < q)
     (hc : certG (pathArc ((net P Q).2.1.map (yArc v))) (pathArc ((net P Q).2.2.map (yArc v)))
       a b p q = true)
@@ -480,8 +494,13 @@ theorem split_fork2_safe (k : Kappa) (H_KAPPA : k.num * 604431 ≤ k.den * 12114
   split_safe (by decide) (by decide +kernel) k H_KAPPA
 
 theorem split_fork2_unsafe (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862) :
-    ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 :=
-  split_unsafe (s := false) (by decide) (by decide +kernel) (by decide +kernel) k H_KAPPA
+    ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 := by
+  have hn : 0 < (net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length := by decide +kernel
+  have hc : certGU (pathArc ((net uF2.1 uF2.2).2.1.map (yArc v_g4_merge12_uarb2)))
+      (pathArc ((net uF2.1 uF2.2).2.2.map (yArc v_g4_merge12_uarb2))) 0 0
+      ((net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length) 242303 1208862 false = true := by
+    decide +kernel
+  exact split_unsafe (by decide) hn hc k H_KAPPA
 
 /-- Non-vacuity of the split statements: the bounds are meetable and `yModel` is realised. -/
 theorem split_nonvacuous :
