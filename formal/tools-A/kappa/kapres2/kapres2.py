@@ -11,6 +11,9 @@ Per seed and each scatter kappa in KAPPAS (DESCENDING), covers the corner interv
       the Lean check itself is run on every kept skel band file by Wip/KapRes2/BandCheckRun.lean)
     xaudit/events8/cert8.py (UNTRUSTED certificate)                 -> cert.json
     xe8.sh = committed Events8Main (xevents8), native build or lean --run on the private overlay
+XA_ARB=old is forced: the virtual arbiter core that Events8 (HARB7) and every committed xevents8 run
+used (events4/model.py at 591cd51 defaults to the E8ArbFix "fix" core, made for Events9Arb).  $XA
+selects the xaudit tool tree (run.sh: a snapshot of the committed events4/6/7/8 python at 591cd51).
 A run is accepted only if its header says Design.WF true, Recog6 node failures 0, Net4.OK7 true and
 log accepted by runLog: true (else the script stops).
 Refinement rule (A-kapres sec. 2): a cell with a TIMING residual item has its two end corners run
@@ -34,7 +37,7 @@ import sys
 from fractions import Fraction as Q
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-XA = os.path.join(HERE, "..", "..", "xaudit")
+XA = os.environ.get("XA", os.path.join(HERE, "..", "..", "xaudit"))
 KR = os.environ.get("KR", "/tmp/claude-0/-home-user-asyncfpga3/e4887bac-6d7b-51e8-a617-7dbd05e5b307/scratchpad/KapRes2")
 RES = re.compile(r"^\s+RESIDUAL (\S+) (.*?): (margin (-?\d+).*|BACK-G (-?\d+) ENTRY (-?\d+) EXIT1 (-?\d+) EXIT2 (-?\d+).*|.*)$")
 KAPPAS = ["0.12", "0.10", "0.08", "0.06", "0.04", "0.02", "0"]
@@ -60,7 +63,7 @@ def run_cell(seed, kappa, ca, cb):
     if not (os.path.exists(out) and "VERDICT" in open(out).read()):
         w = os.path.join(KR, "work" + TAG, seed, tag)
         os.makedirs(w, exist_ok=True)
-        env = dict(os.environ, PYTHONHASHSEED="0", PYTHONDONTWRITEBYTECODE="1")
+        env = dict(os.environ, PYTHONHASHSEED="0", PYTHONDONTWRITEBYTECODE="1", XA_ARB="old")
         py = lambda *a, **kw: subprocess.run(["python3"] + list(a), check=True, env=env, **kw)
         py(os.path.join(HERE, "cornerband2.py"), "%s/fix%s/%s/fast.bands.json" % (KR, TAG, seed),
            "%s/in%s/%s/slow.bands.json" % (KR, TAG, seed), str(ca), str(cb), kappa, w + "/bands.json")
@@ -81,6 +84,8 @@ def run_cell(seed, kappa, ca, cb):
                 if not ("Design.WF true" in txt and "Recog6 node failures 0" in txt and "Net4.OK7 true" in txt
                         and "accepted by runLog: true" in txt):
                     sys.exit("%s %s: run not recognised / log not accepted" % (seed, tag))
+                if "nodes (36 virtual, H_ARB)" not in txt:
+                    sys.exit("%s %s: unexpected virtual-node count (arbiter core?)" % (seed, tag))
                 break
             with open(os.path.join(KR, "failed%s.log" % TAG), "a") as f:
                 f.write("%s %s attempt %d rc %d: %r\n" % (seed, tag, attempt, rc, txt[-300:]))

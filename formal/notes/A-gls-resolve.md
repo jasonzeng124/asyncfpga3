@@ -184,18 +184,135 @@ is itself a runt, rejected: a 300 ps (≥ TLOOP) input pulse ends with q = 0.
 
 ---
 
-# Probe GLSResolve2 (shard A, session 2026-10-29): generalisation, bd_c2n, the arbiter's q loop
+# Probe GLSResolve2 (shard A, session 2026-10-29): any single-cell loop, bd_c2n, the arbiter's q
 
-STATUS: IN PROGRESS (plan written first; this section is updated as results check).
+STATUS: DONE. One new file checks; GLSResolve.lean is unchanged (md5 54d0bef8…, every existing
+statement kept). Nothing unproved in the claimed file. (§5's "generalising Run", "other state
+nodes" and "the late-application runt" items are done here.)
 
-Plan:
-1. `Formal/Core/Delay/GLSResolveGen.lean` (new, imports GLSResolve; GLSResolve.lean unchanged):
-   `GRun p F v0` for any single-cell loop `f t = F t (o (t - L))`, `F` = the cell's LUT with the
-   feedback pin replaced (`lutF INIT k pins`); `Run` (bd_c2) is `GRun` at `fC2` (`run_iff_grun`).
-   Generic segment theorems (a set runt / a wide set from a quiet state), the "applied late"
-   lemma at the window end, and bd_c2 / bd_c2n / arbiter q as instances.
-2. bd_arbiter: the near-tie runt on q (r1 then r2 within TLOOP) under the resolver, for every
-   A0 after the decision; downstream ugrant (transport) and ua1/ua2 (resolver runs): a commit
-   with trp larger than the server's response gives BOTH A1 and A2 high under one A0 pulse.
-3. The iverilog-only late runt (b still high at ign_until -> its fall is a new runt).
-4. iverilog cross-checks in `formal/lean/Wip/GLSResolve/sim/` (scratch copies of research).
+File: `formal/lean/Formal/Core/Delay/GLSResolveGen.lean` (745 lines, md5 ca8d052e…, core Lean).
+Imports GLSResolve (A) and B's `Formal.Cells.ArbHandover` (read-only, olean present).
+
+    cd /home/user/asyncfpga3/formal
+    ./check.sh Formal/Core/Delay/GLSFid.lean Formal/Core/Delay/GLSResolve.lean Formal/Core/Delay/GLSResolveGen.lean
+    -> [audit] 979 declarations checked
+    -> [check] OK          (a plain lean -DautoImplicit=false of the file: no error, no warning)
+
+## 1. The generalisation (task 1)
+
+* `GRun p F v0 st`: a resolver run of ANY single-cell loop, `f t = F t (o (t - TLOOP))`;
+  `grun_exists`, `grun_unique`. `lutF INIT k P` = the fid mux tree `GLSFid.lut6` of a cell's
+  INIT with pin `k` the feedback and `P t i` the other pins.
+* `run_iff_grun`: GLSResolve's `Run` (bd_c2) IS `GRun p (c2F a b rst)`; `c2F_lut`: `c2F` is
+  `lutF INIT_c2 2 …`. So every theorem of GLSResolve is a statement about the bd_c2 instance.
+* Generic set-event theorems, for any cell that reads `F t false = x t` (`x` the set pulse) and
+  `F t true = true` along the run, from a `Quiet` state `Q` at `s - 1` (q = 0, not busy, window
+  over, last edge none or ≥ TLOOP before `s`) with `q = 0` one loop back:
+  `seg_wide` (`x = 1` for ≥ TLOOP: clean set), `seg_runt_pre` (runt `w < TLOOP`: the exact
+  state `Sseg` up to `ign_until`, inputs ARBITRARY in the window), `seg_runt` (whole run when
+  `x = 0` from `ign_until`), `seg_window_end` (**at `ign_until` the output is `F Iend final`:
+  a change still present at `ign_until` is applied exactly there, one that is gone leaves no
+  trace** — the precise form of `fid_core.vh:36-37`), `grun_quiet`, `grun_runt`, `grun_wide`,
+  `grun_runt_o` (from the reset state at 0).
+* `run_runt_gen'`: GLSResolve's `run_runt_gen`, word for word, re-derived from `grun_runt`
+  (`Srunt_eq_Sseg`): the generic theorems specialise to the old ones.
+
+## 2. Instances (task 2)
+
+* bd_c2n (INIT `00B2…`, `bd_ce.v:49` = `Gen/Cells.lean:59` by text = B's `CElemTiming.INIT_c2n`):
+  `fC2n_eq` (= `!r ∧ maj(a, ¬b, q)`, decide), `fC2n_eq_exc` (= B's `exc`, via B's `c2n_eq`),
+  `c2nF_lut`; `c2n_out_runt`, `c2n_out_wide` (runt on `a` with `b = 0`): the same three shapes
+  as bd_c2 (rejected runt emitted in full; commit gap of width trp).
+* arbiter q (`ustate` O6, INIT `FFF0_FFB2_ACAC_ACAC`, pins I0 r1 I1 r2 I2 q I3 rst I4 A0 I5 1,
+  `bd_arb.v:245` = `Gen/Cells.lean:1193` by text): `fArb_eq` (`rst ∨ (A0 ? q : maj(r1,¬r2,q))`),
+  `fArb_eq_B` (= B's `o6B INIT_HELD`, via `ArbHandover.held_q_eqn`), `arbF_lut`.
+  In fid, `ustate` is split into two SLICE_LUTX (O6 q with META6=1, O5 R0 without: no self-loop,
+  `R:gen.py:661-682`, `R:prims.v:76`).
+* `arb_near_tie`: q = 0 and quiet, rst = 0, at ustate's mux r1 rises at T0, r2 at T0 + w
+  (`w < TLOOP`), both stay up, A0 low up to the decision and ARBITRARY after it. For every
+  draw and law: `q = [T0 ≤ t ∧ (t < T0+w ∨ (commit ∧ T0+w+trp ≤ t))]`. Nothing A0 does after the
+  decision (the hold included) changes q: the resolver ignores every pin until `ign_until`.
+
+## 3. Does the A0 hold tolerate the commit gap and the lost follow? (task 2, decided)
+
+**Commit gap: NO. Counterexample `arb_double_ack` (proved).** Assumed: the q node as in
+`arb_near_tie` from a quiet reset at q = 0, the draw commits (client 1 wins); `ugrant`
+(transport, real INIT via B's `g1F`/`g2F`) reads `r_k` and q with one delay `D_k` to
+`ua_k`'s pin; `ua1`, `ua2` are bd_c2 resolver runs from reset; A0 rises ONCE and stays high,
+at `ua_k`'s pin at `sA_k`, with `T0+w+D2 ≤ sA2`, `sA2 + L2 ≤ T0+w+trp+D2`,
+`T0+w+D1 ≤ sA1 ≤ T0+w+trp+D1`. Proved: from `max(T0+w+trp+D1, sA2)` on, `A1 = A2 = 1` with A0
+high: two clients acknowledged for one server transaction (`bd_arb.v` header: the failure the
+hold exists to prevent). Mechanism: during the commit gap q = 0, so g2 = r2·¬q is a clean
+full-swing 1 for `trp` ps, A0 arrives, ua2 sets; then q lands at 1 WHILE A0 IS HIGH (the hold
+is a pin function, the resolver's scheduled `o_r <= #trp` ignores it), g1 rises, ua1 sets.
+Grants are exclusive at every instant (one q), A0 is one clean step, no X: neither a grant-
+exclusion check nor an X check flags it. `arb_gap_closed` (proved, commit case): if A0 reaches
+ua2 only after the gap (`T0+w+trp+D2 ≤ sA2`), A2 stays 0 for every ua2 draw.
+Realisability: needs a server whose A0 reaches ua2 within `trp + w + D2 − L2` of the decision;
+at the defaults (TAU = WIN = 150) `trp ≤ τ ln(WIN/2) ≈ 647 ps`. iverilog (below) shows it with a
+`A0 <= #100..300 R0` server. NOT a contradiction of B's rows: the near tie violates
+`bd_arbcell.req_separation` (H_REQ_SEP, necessary for exclusion, an environment rate that
+arbitration cannot assume), i.e. it is the header's "metastable q: NOT EXCLUDED" tier. What is
+new: (i) the fid GLS renders that tier as a clean, definite, X-free double acknowledge after a
+"resolved" META line; (ii) the header's consumer rule "must not read a grant within ONE LOOP
+DELAY of the decision" is met in every double-ack run (A0 reaches ua2 230-450 ps after the
+q decision, TLOOP = 200) and still fails: under the resolver the rule would have to be "within trp_max + TLOOP".
+(iii) In B's transport model the same near tie circulates forever (`hides_oscillation`'s
+shape: `f = maj(1,0,q(t−L)) = q(t−L)` once both requests are up, A0 high or low), so B's model
+also breaks exclusion there; the resolver replaces that with one specific bad behaviour.
+
+**Lost follow: tolerated for the arbiter under the four-phase discipline (argued from a proved
+lemma; the protocol step is not proved).** `seg_window_end` (proved, generic): a change of the
+cell function still present at `ign_until` is applied there. In the arbiter a set/reset
+condition `r1·¬r2·¬A0` / `¬r1·r2·¬A0` can disappear only if a request falls (a full
+acknowledge cycle of that client inside the window, `trp + TLOOP + 1` ≤ ~850 ps at the
+defaults), the other request rises (tie: q holds by the function too), or A0 rises (hold: q holds
+by the function too). In the near tie itself (`arb_near_tie`) the function is `q` after the
+decision whatever A0 does, so there is nothing to lose. Not proved: that four-phase clients and
+server keep a condition up until q moves (no closed-loop arbiter+server+clients model here).
+
+## 4. The late runt (task 3)
+
+`late_runt` (proved, bd_c2, a = 1): a runt `[t0, t0+w)` whose draw does not commit, then a
+pulse `[t1, t1+w2)` with `t0+w < t1 ≤ I = ign_until < t1+w2 < I + TLOOP`. Then q = 1 on
+`[I, t1+w2)` (applied late at I), and the fall of b at `t1+w2` is a runt of width
+`t1+w2−I` decided by the draw at `t1+w2`: from then on `q = [commit' ∧ t1+w2+trp' ≤ t]`.
+`late_runt_B`: with `w2 ≥ TLOOP` every B `Loop` behaviour at that point has O = 1 from t1 on
+(B's `c2_follow_hold`), and one exists. So a 300 ps pulse with a non-committing second draw
+ends with q = 0 (the notes' seed-2 trace).
+
+## 5. iverilog cross-check (unmodified research sources: `git show origin/claude/research:…`,
+fid_core.vh md5 2422ccea… = 6524fa3; iverilog 12, `-DGLS_FID -DGLS_TRANSPORT_IC`)
+
+`sh formal/lean/Wip/GLSResolve/sim/run.sh` (≈ 3 min). New: `tb_arb.v` (bd_arbiter as fid builds
+it: ustate split O6/O5, ugrant, ua1/ua2, transport ICBUFs, TLOOP 200 everywhere, D1 = D2 = 300,
+server `A0 <= #SMIN R0`; one client-2 transaction first so the near tie starts from q = 0),
+`check_arb.py`; `tb_late.v`, `check_late.py`. Expected edges from the Lean closed forms; only
+the printed decisions and A0's rise (environment) are read from the logs.
+* arbiter, W ∈ {130,150,170} × SMIN ∈ {100,300,500,800} × 10 seeds = 120 runs:
+  `cases: back 27, gap_closed 52, double_ack 3, ua2_runt_commit 1, ua2_runt_nocommit 7,
+  {back,commit}_A0_before_grant 9/21 (A0 overlaps the first runt: q checked only, outside the
+  theorems) — mismatches: 0`. 12 of the 120 runs end with A1 = A2 = 1 under one A0 pulse
+  (e.g. W=150 SMIN=300 seed 2: META delta=6 → 1 after 378 ps; q 11700↑ 11850↓ 12228↑; A2↑ 12300,
+  A1↑ 12528). In the `ua2_runt` cases the ua2 runt is emitted on A2 in full (`A2 = 1` on
+  `[sA, G1)`, checked): an acknowledge pulse of tens of ps to client 2.
+  Negative control `+META_OFF=1`: q has 201 edges, mismatches: 1.
+* late runt, W = 140, gap 1, W2 ∈ {250,300,350,400} × 40 seeds = 160 runs: `first_commit 112,
+  follow_lost 35, late_runt_reject 7, late_runt_back 4, late_runt_commit 2 — mismatches: 0`;
+  negative control `CHK_L=210` (wrong loop delay in the checker): 13 mismatches.
+
+## 6. Not covered
+X (`+META_X=1`), `FID_LEVEL_PS ≠ 0`, multi-cell loops; reset-direction runts (q falling) are
+not instantiated (the arbiter's handover runt needs H_Q_BEFORE_REREQ to fail); the ugrant
+single-delay hypothesis (real pin skew can add hazard pulses; not needed for a counterexample);
+A0 as an open-loop environment trace (no closed server model); how often the double ack occurs
+in gcd_hw (it needs a near tie AND a server faster than trp).
+
+## For the lead
+* Add `import Formal.Core.Delay.GLSResolveGen` to Formal.lean (after GLSFid, GLSResolve).
+* For FOR-RESEARCH: the resolver's commit gap turns a near tie into a clean double acknowledge
+  when the server answers within trp; `bd_arb.v`'s consumer rule ("one loop delay") is not
+  enough under the resolver; `fid_core.vh:36-37` holds exactly for changes still present at
+  `ign_until` (`seg_window_end`) and a pulse straddling `ign_until` becomes a new runt.
+* B (read-only for me): `bd_arbiter` rows carry no row for the q node's resolution time; the
+  natural new hypothesis is "A0 reaches ua_k later than trp_max + TLOOP after a q decision".

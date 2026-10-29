@@ -434,7 +434,7 @@ class Cert7(Cert):
         parts = [sorted(P) for P in self.parts.values() if len(P) > 1]
         log = [self.enc(ln) for ln in self.log]
         return dict(nodes=nodes, rank=base["rank"], log=log, parts=parts, back=back, lines=lines, excl=excl,
-                    guards=guards, hyp=self.hyp, errors=errs, groups=len(self.grp))
+                    guards=guards, hyp=self.hyp, errors=errs, groups=len(self.grp), arb_core=base["arb_core"])
 
     @staticmethod
     def enc(ln):

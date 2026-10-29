@@ -491,8 +491,9 @@ class Cert:
                     excl[str(self.idx[j])] = dict(g=g, a0=a0, a1=a1, D=self.build(w[2], S, None), u0=u0, u1=u1)
                 except Unsup as ex:
                     errs.append(f"excl {j}: {ex}")
+        from model import ARB_MODE
         return dict(nodes=nodes, rank=[rank[x] for x in self.names], back=back, lines=lines, excl=excl,
-                    errors=errs, groups=len(self.grp))
+                    errors=errs, groups=len(self.grp), arb_core=ARB_MODE)
 
 
 def gate_fn_eval(n, cn, live, vals):

@@ -9,6 +9,12 @@ KR=${KR:-/tmp/claude-0/-home-user-asyncfpga3/e4887bac-6d7b-51e8-a617-7dbd05e5b30
 TAG=${TAG:-}
 I=$KR/in$TAG; FX=$KR/fix$TAG
 export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1 KR
+# pin the untrusted python tooling: a snapshot of the committed events4/6/7/8 at 591cd51 (other
+# probes edit xaudit/ live); kapres2.py forces XA_ARB=old (the Events8 virtual arbiter core)
+export XA=$KR/xa
+for d in events4 events6 events7 events8; do mkdir -p $XA/$d
+  for f in $(git -C "$HERE" ls-tree --name-only 591cd51 ../../xaudit/$d/ | grep '\.py$'); do
+    git -C "$HERE" show 591cd51:formal/tools-A/xaudit/$d/$(basename $f) > $XA/$d/$(basename $f); done; done
 for s in ${SEEDS:-d 3 4 5}; do
   mkdir -p $I/$s
   if [ $s = d ]; then src=$X/gcd/inputs; nf=$src/net_d.json.xz; else src=$X/events5/inputs; nf=$src/net_$s.json.xz; fi

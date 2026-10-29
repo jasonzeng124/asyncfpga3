@@ -73,6 +73,7 @@ class Model:
             if m["kind"] == "cel":
                 self.build_cel(cn, m)
         self.build_arbs()
+        print(f"model: virtual arbiter core = {ARB_MODE} ({len(self.arbs)} arbiters)")
 
     # ---- expression -> pin -------------------------------------------------
     def leaf(self, net, band):

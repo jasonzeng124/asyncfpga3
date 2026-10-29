@@ -591,7 +591,7 @@ The q node as in `arb_near_tie`, started from a quiet reset at `q = 0`, and the 
 at `sA_k`. `ua1`, `ua2` are bd_c2 resolver runs (`I0` grant, `I1` A0). If A0 reaches ua2 while
 ua2's grant shows the commit gap for at least ua2's loop delay
 (`T0 + w + D2 ≤ sA2`, `sA2 + L2 ≤ T0 + w + trp + D2`), and reaches ua1 inside the gap too
-(`T0 + w + D1 ≤ sA1 ≤ T0 + w + trp + D1`), then from `T0 + w + trp + D1` on `A1 = A2 = 1`
+(`T0 + w + D1 ≤ sA1 ≤ T0 + w + trp + D1`), then from `max (T0 + w + trp + D1) sA2` on `A1 = A2 = 1`
 while A0 is high: two clients acknowledged for one server transaction, the failure the A0
 hold exists to prevent (`bd_arb.v` header, "Client 2 is acknowledged ... for a transaction
 the server never began"). The grants are exclusive at every instant throughout
@@ -607,7 +607,7 @@ theorem arb_double_ack {pq p1 p2 : Prm} {stq st1 st2 : Nat → St} {T0 w D1 D2 s
     (h2 : GRun p2 (c2F (gA2 stq T0 w D2) (stepS sA2) rstZero) false st2)
     (hs1 : T0 + w + D1 ≤ sA1) (hs1' : sA1 ≤ T0 + w + trpS pq T0 w + D1)
     (hs2 : T0 + w + D2 ≤ sA2) (hs2' : sA2 + p2.L ≤ T0 + w + trpS pq T0 w + D2) :
-    ∀ t, T0 + w + trpS pq T0 w + D1 ≤ t →
+    ∀ t, T0 + w + trpS pq T0 w + D1 ≤ t → sA2 ≤ t →
       (st1 t).o = true ∧ (st2 t).o = true ∧ stepS sA1 t = true ∧ stepS sA2 t = true := by
   -- the q node
   have hqq := grun_quiet hLq hq (s := T0) (fun u _ hu => by
@@ -620,10 +620,10 @@ theorem arb_double_ack {pq p1 p2 : Prm} {stq st1 st2 : Nat → St} {T0 w D1 D2 s
     · rw [qo u hu]; simp [hc, hu]
     · rw [hqq u (by omega)]; simp [St.init, hu]
   generalize hR : trpS pq T0 w = R at qv hs1' hs2' ⊢
-  intro t ht
+  intro t ht ht2
   refine ⟨?_, ?_, by simp [stepS]; omega, by simp [stepS]; omega⟩
   · -- ua1: a wide set at T0 + w + R + D1
-    refine grun_wide hL1 (by omega) h1 ?_ ?_ ?_ t |>.trans (by simp; omega)
+    refine (grun_wide (s := T0 + w + R + D1) hL1 (by omega) h1 ?_ ?_ ?_ t).trans (by simp; omega)
     · intro u _ hu
       simp only [c2F, fC2_eq, gA1, Formal.Cells.ArbHandover.g1F_eqn, stepS, rstZero, qv]
       by_cases ha : sA1 ≤ u
@@ -636,7 +636,7 @@ theorem arb_double_ack {pq p1 p2 : Prm} {stq st1 st2 : Nat → St} {T0 w D1 D2 s
       simp only [c2F, fC2_eq, gA1, Formal.Cells.ArbHandover.g1F_eqn, stepS, rstZero]
       simp; omega
   · -- ua2: a wide set at sA2
-    refine grun_wide hL2 (by omega) h2 ?_ ?_ ?_ t |>.trans (by simp; omega)
+    refine (grun_wide (s := sA2) hL2 (by omega) h2 ?_ ?_ ?_ t).trans (by simp; omega)
     · intro u _ hu
       simp only [c2F, fC2_eq, gA2, Formal.Cells.ArbHandover.g2F_eqn, stepS, rstZero]
       simp [show ¬ sA2 ≤ u by omega]
