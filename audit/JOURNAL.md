@@ -354,3 +354,9 @@ r20 in (I read nonmono.log myself): research's resolver rewrite fixes r16's foll
 Their "30/10" is 33/7 at 103fbbe9; x changes during resolution can still be lost; NEW non-monotone behaviour (second
 drive cancels a pending commit: 3/40 and 5/40 latch with one pulse but not with two; old 0); wrong FB mask silent.
 Axiom audit of 1fd99ef0 continuing; r21 running.
+
+### progress 16:47
+r21 in (I read arb_roundtrip.py's single-column design myself): their arbiter numbers reproduce on their bench and on
+my rebuilt BQ#3 seed d (sdf 61e14755; 0/18, worst 691, own script exact). OVERSTATED: the 1200->1095 shift is bench
+wiring, not the resolver (my r18 bench unchanged under the new core); "static lower bounds" uses one SDF column for
+both sides of a race (mixed corners: -769 ps, 2/18); hold-window ">= 399 ps" is 19 ps on BQ#3 seed d.

@@ -169,3 +169,21 @@ for col, trps in ((0, False), (2, False), (2, True)):
     print("col %d trp %s: worst break-even derate %.1f%% (%s ua%d); next %s" % (
         col, "scaled" if trps else "647", 100 * res[0][0], res[0][1], res[0][2],
         ", ".join("%.1f%% %s ua%d" % (100 * r[0], r[1], r[2]) for r in res[1:4])))
+
+# ---- mixed corner with the shared request wire cancelled (physically one pin)
+out = []
+for p in arbs:
+    st6, st5 = p + ".ustate$LUT6", p + ".ustate$LUT5"
+    a0n = cells[st6]["connections"][lpin(st6, "I4")][0]
+    skx = min(a(st5, lpin(st5, lg), "O5", 0) - a(st6, lpin(st6, lg), "O6", 2) for lg in ("I0", "I1"))
+    for k, (gc, go) in ((1, (p + ".ugrant$LUT5", "O5")), (2, (p + ".ugrant$LUT6", "O6"))):
+        u = p + ".ua%d.u" % k; gn = cells[gc]["connections"][go][0]
+        ap, gp = pins_on(u, a0n)[0], pins_on(u, gn)[0]; qp = lpin(gc, "I2")
+        RTc = rt(p + ".ustate$LUT5/O5", u + "/" + ap, p)
+        GP2 = w(st6 + "/O6", gc + "/" + qp, 2) + a(gc, qp, go, 2) + w(gc + "/" + go, u + "/" + gp, 2)
+        m = RTc + a(u, ap, "O6", 0) + skx - TRP - GP2 - a(u, gp, "O6", 2)
+        out.append((m, p.replace("urig.udut.", ""), k))
+out.sort()
+print("mixed corner, wire-cancelled skew: worst %.0f (%s ua%d); below 0: %d of %d; next %s" % (
+    out[0][0], out[0][1], out[0][2], sum(o[0] < 0 for o in out), len(out),
+    ", ".join("%.0f %s ua%d" % o for o in out[1:4])))
