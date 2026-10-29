@@ -6,6 +6,13 @@ topology library). Scratch: `scratchpad/InvLoop/{ws.py,asym.py}` (Float checks, 
 
 STATUS: done. `InvolutionLoop.lean` checked: `formal/check.sh Formal/Core/Delay/InvolutionLoop.lean` → `[audit] 197 declarations checked`, `[check] OK` (docstring-only edit after). Bridge to B's `orb` written but unchecked: `Wip/InvLoop/Bridge.lean` (needs Mathlib topology).
 
+## InvLoop2 (session 2026-10-29, second probe)
+
+STATUS InvLoop2: in progress. Plan: (1) compile `Wip/InvLoop/Bridge.lean` as
+`Formal/Core/Delay/InvolutionLoopBridge.lean` (B's oleans checked first with check.sh); (2) signal-level
+latch / lost / eternal for every `ALoop` solution; (3) a lap-count rate law from the expansion of the
+half-lap map; (4) correct A-fid3 §3 item 3.
+
 ## The setting (what is assumed)
 
 The loop of B's `CElemInvolution` / `ArbInvolution.stF_runt`: the zero-time OR of a runt `b = [0, s)`

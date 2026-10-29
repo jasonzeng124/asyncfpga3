@@ -469,3 +469,20 @@ gcd_hw uses LUT6_2, 857 MUXF7, 343 MUXF8, 59 CARRY4; collatz/xorshift/ipow use M
 CARRY4 (from C's tcheck census, counts not exact here); ipow uses DSP48E1 -> probe PrimsDSP
 launched. Not covered: slews, charge sharing, pulse filtering, CARRY4 internal stage timing,
 LUT-tree per-rank skew. Mutation control: Lean half not run.
+### progress 08:26
+InvLoop claimed: Formal/Core/Delay/InvolutionLoop.lean (check.sh, Mathlib
+Archimedean.Real only: 197 decls, [check] OK). Model: B's OR loop (zero-time OR of a runt
+[0,s) with q, one InvolutionPair channel); the pulse-width ORBIT recurrence (B's orb copied),
+not yet every signal-level solution (that is InvLoop2's bridge). Proved: half-lap maps strictly
+decreasing and expanding; a stationary train (h, l) exists and is unique for every involution
+pair; critical runt s* = δ∞↑ − l is the only width in (0, δ∞↑) that never cancels
+(crit_unique); wider latches (pulses grow by a fixed c per lap), narrower dies; for every N
+and ε there are runts within ε of s* on each side that take > N transitions, and for every
+time B a latching runt whose last q edge is after B (digital metastability: unbounded
+resolution time). Symmetric channel: duty exactly 50%, s* = δ∞ − w* with 2w* = δ(−w*), so
+s* > δ∞/2 strictly (the goal "s* = δ∞/2" was wrong; corrected). Asymmetric: exact iff for
+which side of δ∞↑ − (h+l)/2 s* lies. Float evaluation of the formula reproduces A-fid3's
+0.500-0.581 TLOOP spread. Not covered: rate law, noise, multi-cell loops; reading TLOOP as δ∞
+is a modelling choice. Correction pending (InvLoop2): A-fid3 §3 item 3's skew direction is
+wrong in this model (slower rise moves s* up; Float only). InvLoop2 launched (signal-level
+bridge to B's loop_orb/arb_eternal, rate law; needs Mathlib Topology oleans).
