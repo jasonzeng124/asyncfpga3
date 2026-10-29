@@ -468,3 +468,23 @@ witness).
 
 ### progress 07:22
 Took LOCK-C (previous lock 2026-10-27T13:01, stale). Previous session's running probes (10m, 12d, 10n-fix, 11f, 10l2, 8x, 8z2, 8s3, 8y2) never landed; checking for leftovers.
+
+### progress 07:27
+Lean 4.35.0 via setup.sh; its Mathlib from-source build stopped (shard C's
+195-module closure imports no Mathlib; checked by walking imports). Targeted
+`lake build` of every tracked Net/Timing/Gen module running. FPGA toolchain
+restore (cloud/setup-toolchain.sh) running. Audit re-read: rows 24-27, 38, 39,
+53, 60 answered last session (C-aud-audit.md, 8t joint witness = row 70
+CONFIRMED); still open for C: OUTMUX hop in tcheck (rows 13, 49, 50),
+RtFbGcd xMUX hop (row 54), hypotheses N12 wording (row 55). Lost last
+session (never committed): 11f's tools/Lean (only its note survives), 10m,
+12d, 10l2, 8x, 8z2, 8s3, 8y2.
+Launched 12 probes: 10m (OUTMUX + tie-off false path in tcheck, rerun all
+rows, compare with the auditor's xrc.py), 10f2 (RT_FB with the xMUX hop),
+12d (12a/b/c/10i at one consistent corner), 8x (physical -> zero-delay
+refinement so tcheck discharges H_BUNDLE), 8z2 (H_NO_DEADLOCK' + joint
+witness for gcd_hw_live_final), 8s3 (every rig result), 8y2 (kernel-generic
+capstone + a third kernel), 11f (rebuild whole-design bitstream import), 10l2
+(rule K failures), 9d (ring: H_ONE_TOKEN from reset, timed lift), vk (one
+verify.sh entry point with counterexample traces), aud2 (audit wording,
+hypothesis list refresh).
