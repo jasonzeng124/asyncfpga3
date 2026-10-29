@@ -407,3 +407,16 @@ Audit (83b1290) has two new rows on A's files:
   ps) on every O5-driven arc. Also A-events8.md:74 was wrong (ana5 listed all three).
   Probe E8Mux: add the OUTMUX hop to the band builder, rerun xevents8, correct the note.
 Fresh sandbox again: setup.sh running (Mathlib from source, ~2 h).
+### progress 07:17
+12 probes launched (common brief: probes never touch git, write only their files, all Lean
+through slot.sh, check with the fixed check.sh): GLSFix (GLSPass under autoImplicit=false;
+re-check every Mathlib-free Core module with the fixed check.sh), E8Mux (OUTMUX hop in the
+bands, band reader rejects lo>hi, rerun xevents8; audit row), HDsub (Events9 from the
+snapshot), KapRes2 (CornerCell.cell_band, BandCheck, κ sweep with xevents8), InvTrace (full
+involution trace semantics with chained cancellation), PrimsComb (LUT6_2, MUXF7/F8, CARRY4,
+OUTMUX arcs), PrimsSeq (flops/latches; DSP/RAMB only if used), XSound2 (xaudit sound for
+continuous-time channels), GLSPass2 (research's current fid GLS channel; what a pass implies),
+K3 (xevents8 on ipow and xorshift; HOWTO), E8Hyp (bridges for design_verdict8's hypotheses to
+B/C; joint witness), Fid3 (per-primitive fidelity table vs research 6524fa3). Not relaunched:
+LutList2 (Prelim deletion needs B and C in one commit; patches stay in Wip/LutList2).
+tools-A/snap.sh: lock refresh + WIP snapshot every 40 min (A files only).
