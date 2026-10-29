@@ -153,3 +153,9 @@ raced the rebuild).
 ### progress 01:59
 Rebuild of 6863284: every module except Formal.Core.Delay.GLSPass now builds (MullerSI OK alone; only GLSPass fails).
 Per-module axiom audit (audit/tools/axiom_audit_par.sh, 2 jobs) started over all Formal modules.
+
+### progress 02:01
+P7-capstone in: gcd_hw_joint_witness CONFIRMED (out0 latches 6 = gcd 12 18; fed into the safety capstone itself;
+mutants rejected) -- P5's open non-vacuity point closed. gcd_hw_live_final conditional (H_NO_DEADLOCK' open), no joint
+witness. ipow_circuit_safe3 CONFIRMED with own overflow witness. Bnet generator reproduced from RTL (netlist sha256
+matches). Pass 7 subagent work complete; axiom audit of 6863284 still running.
