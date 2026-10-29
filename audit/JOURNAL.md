@@ -294,3 +294,9 @@ re-check. Research efc6538: BQ#3 2x scatter fails seed 9 (self-reported). Pass 1
 r18 in: formal's arb_double_ack reproduced on my own bd_arbiter fid bench (both race directions; up to 37% of resolver
 commits double-ack at server 600 ps; clean only >= ~1.0-1.2 ns); research's arbiter tests don't exercise it. Read
 bd_arb.v:215-232 (metastable tier documented as NOT EXCLUDED). P11a and r17 running; build of 54b9e6e running.
+
+### progress 12:10
+P11a in: gcd_hw_live_final NOT vacuous (joint witness), but H_NO_DEADLOCK' hid start-release; final2 conditional on open
+H_NO_DEADLOCK''. Events8/9 CLEAN OVERSTATED (rests on HARB7, unsound abstraction); gcd_hw_circuit_safe_phys moves
+H_BUNDLE rather than discharging it; gcd_rig_all, KCap confirmed. Build of 54b9e6e had 2 OOM kills (concurrent lean);
+rebuilding.

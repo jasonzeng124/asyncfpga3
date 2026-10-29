@@ -30,8 +30,8 @@ example : CollatzHw.collatzC 300 255 = some 47 := by decide +kernel
 example : CollatzHw.collatzC 300 871 = some 178 := by decide +kernel
 -- MUTATION: a one-round spec with the right shift 17 changed to 16 differs at the C vector.
 def roundM (x : Nat) : Nat :=
-  let x1 := Ops.xori 32 x (Ops.shli 32 x 13)
-  let x2 := Ops.xori 32 x1 (Ops.shrui 32 x1 16)
-  Ops.xori 32 x2 (Ops.shli 32 x2 5)
+  let x1 := GcdHw.Ops.xori 32 x (GcdHw.Ops.shli 32 x 13)
+  let x2 := GcdHw.Ops.xori 32 x1 (GcdHw.Ops.shrui 32 x1 16)
+  GcdHw.Ops.xori 32 x2 (GcdHw.Ops.shli 32 x2 5)
 example : Nat.repeat roundM 4 2463534242 ≠ 2008045182 := by decide +kernel
 end P11a
