@@ -1,6 +1,6 @@
 # A-xinert: an inertial option for xaudit (probe XInert, shard A)
 
-STATUS: in progress (09:00 UTC). Code written (Parse/Main additive, SoundInertial.lean); checking; runs pending.
+STATUS: partial (09:45 UTC). Lean checks (see Check). Small runs done; gcd runs in progress.
 
 ## The problem
 
@@ -50,6 +50,24 @@ The keys are the same as `cells` / `arcs` of the band file. Pads are always tran
   `toSteps` narrow it to [lo, lo].
 - `bandFor` now uses it. This is the one non-additive edit, and it changes behaviour only on
   inverted bands.
+
+## Check
+
+    cd formal/lean && ../check.sh Formal/Core/XAudit/Design.lean Formal/Core/XAudit/Parse.lean \
+      Formal/Core/XSimChan.lean Formal/Core/XSimChanReal.lean Formal/Core/XAudit/Fast.lean \
+      Formal/Core/XAudit/SoundCells.lean Formal/Core/XAudit/SoundPhys.lean \
+      Formal/Core/XAudit/SoundSteps.lean Formal/Core/XAudit/SoundInertial.lean \
+      Formal/Core/XAudit/Untimed.lean Formal/Core/XAudit/Main.lean
+    # -> [audit] 1273 declarations checked; [check] audit (executable) Formal.Core.XAudit.Main
+    #    [audit] 1116 declarations checked; [check] OK
+
+The other files are listed only because their oleans are not in `.lake/build` yet. Of these,
+only Parse and Main changed. No new executable, so no lakefile stanza.
+
+Binary: `tools-A/xaudit/build.sh`, run from a mirror tree. **`build.sh` has an order bug.** Its
+MINE list compiles `Parse` before `Design`, and Parse imports Design, so a fresh `$XAUDIT_OLEAN`
+fails with "Design.olean: No such file". The fix is to put Design first. I fixed it only in my
+scratch copy, because build.sh is not mine.
 
 ## Lean: `Formal/Core/XAudit/SoundInertial.lean` (Mathlib, ℝ)
 

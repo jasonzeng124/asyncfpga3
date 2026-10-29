@@ -10,3 +10,8 @@ Plan:
    channel, which A wire; channel -> wire map as data + a checked consistency predicate.
 3. Hold half: a checker over the corrected bands (tools-A/xaudit/e8mux/) computing per select pin
    the hold margin, proved sound against B's hold condition; run on 4 seeds x slow/fast/gb/indep.
+
+Progress 09:40: Lean drafted (not yet compiled): Events9Sel.lean (task 1), Events9SelC.lean
+(task 2: chanOf map, held_const, route_hold, entOK, stab_of_held, design_verdict9_selC),
+Events9SelHold.lean (task 3: chainOK, holdBand, tx_of_lag, hold_pin_of_band,
+design_verdict9_selH). Overlay build of the import closure running.

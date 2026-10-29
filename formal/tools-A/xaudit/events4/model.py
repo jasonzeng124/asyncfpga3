@@ -12,8 +12,16 @@ Pins (what a node reads; delays are summed along the path: routed arcs + statele
 All delays in ps from the routed2x band file (per arc, per LUT).
 """
 import itertools
+import os
+import sys
 from netlib import Net
 from classify import Skel, gate_fn, live_pins, evalf
+
+
+# Which virtual arbiter core (H_ARB) to build (probe E8ArbFix, notes/A-e8arbfix.md):
+#   "fix" (default): the CORRECTED core (build_arb_fix);  "old": the original (build_arb_old),
+#   refuted by Events8Arb.unc_not_harb; select it with XA_ARB=old or a --arb-old argument.
+ARB_MODE = "old" if (os.environ.get("XA_ARB") == "old" or "--arb-old" in sys.argv) else "fix"
 
 
 class Pin:
@@ -249,40 +257,127 @@ class Model:
             if len(set(gmap.values())) != 2:
                 self.unrec.append((qc, "arbiter grants not one per request"))
                 continue
-            ctl = "vctl:" + qc
-            # ctl reads ~A0 through A0 -> state LUT arc + state LUT + q -> grant arc (H_ARB);
-            # it may wait arbitrarily long (contention): hi unbounded
-            i_a0 = st["ins"].index(a0)
-            g0 = gr[0]
-            i_q = n.cells[g0]["ins"].index(q)
-            lo = n.arcband(qc, i_a0)[0] + n.lutband(qc)[0] + n.arcband(g0, i_q)[0]
-            a0src = n.drv.get(a0)
-            if a0src not in self.nodes:
-                self.unrec.append((qc, "arbiter A0 not a stage output"))
+            if ARB_MODE == "old":
+                self.build_arb_old(qc, st, gr, r0, gmap, a0, q)
+            else:
+                self.build_arb_fix(qc, st, gr, r0, gmap, a0, q)
+
+    def build_arb_old(self, qc, st, gr, r0, gmap, a0, q):
+        """The ORIGINAL virtual core (HARB7 as cert6/cert8 used it until probe E8ArbFix).
+        REFUTED on uncontested runs (Events8Arb.unc_not_harb, notes/A-e8arb.md D1, D2); kept
+        only for comparison (XA_ARB=old or --arb-old)."""
+        n = self.n
+        if True:
+                ctl = "vctl:" + qc
+                # ctl reads ~A0 through A0 -> state LUT arc + state LUT + q -> grant arc (H_ARB);
+                # it may wait arbitrarily long (contention): hi unbounded
+                i_a0 = st["ins"].index(a0)
+                g0 = gr[0]
+                i_q = n.cells[g0]["ins"].index(q)
+                lo = n.arcband(qc, i_a0)[0] + n.lutband(qc)[0] + n.arcband(g0, i_q)[0]
+                a0src = n.drv.get(a0)
+                if a0src not in self.nodes:
+                    self.unrec.append((qc, "arbiter A0 not a stage output"))
+                    return
+                self.nodes[ctl] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
+                                       pins=[Pin("tap", a0src, [(lo, 10 ** 12)], inv=1)])
+                for b, g in enumerate(sorted(gmap, key=lambda g: gr.index(g))):
+                    r = gmap[g]
+                    i_r = n.cells[g]["ins"].index(r)
+                    try:
+                        x = self.leaf(r, n.arcband(g, i_r))
+                        pr = self.mkpin(x, 0)
+                    except Unrec as e:
+                        self.unrec.append((g, f"arbiter request: {e}"))
+                        continue
+                    pc = Pin("tap", ctl, [(1, 1)], filt=(("arb", qc), (b,)))
+                    self.nodes["arb:" + g] = dict(kind="cel", v=0, F=n.lutband(g), Q=(0, 0), virtual=True,
+                                                  pins=[pr, pc], grant=b)
+                # R0 = merge of the two grants; tap band = real (r -> R0) minus real (r -> g)
+                R = r0[0]
+                taps = []
+                for g, r in gmap.items():
+                    i_r = n.cells[R]["ins"].index(r)
+                    j_r = n.cells[g]["ins"].index(r)
+                    lo = max(1, n.arcband(R, i_r)[0] - n.arcband(g, j_r)[1] - n.lutband(g)[1])
+                    hi = max(lo, n.arcband(R, i_r)[1] - n.arcband(g, j_r)[0] - n.lutband(g)[0])
+                    taps.append(Pin("tap", "arb:" + g, [(lo, hi)]))
+                self.nodes["arb:" + R] = dict(kind="merge", v=0, F=n.lutband(R), Q=None, pins=taps,
+                                              virtual=True, mutex=True)
+                self.arbs[qc] = dict(ctl=ctl, grants=list(gmap), R0=R, A0=a0src)
+
+
+    def build_arb_fix(self, qc, st, gr, r0, gmap, a0, q):
+        """The CORRECTED virtual core (probe E8ArbFix; notes/A-e8arbfix.md section 2).
+
+        Readers X of the arbiter state q: the two grant LUTs g_b (ugrant O5/O6) and R0 (ustate O5).
+        Real per-pin model: X reads q through its own warp, band Dq(X) = arc(q->X) + lut(X), and its
+        request through Dr(X) = leaf path + arc(r->X) + lut(X).
+          * every virtual node has stage band F = (1,1) (the whole read sits in the pin: a common
+            stage warp cannot factor two independent per-pin reads, notes section 2);
+          * ctl = ~A0 through [lo_ctl, 10^12], lo_ctl = DA0_lo + K - 1, DA0 = arc(A0->ustate) +
+            lut(ustate), K = min_X (Dq(X)_lo - e_X) - 2, e_X = 2 for R0 (merge stage + tap), 0
+            for a grant;
+          * grant g_b: request pin Dr(g_b) - 1, ctl pin (filtered, label (ctl, b)) Dq(g_b) - K - 1;
+          * shadow grant vsh:R0/b (no wire): request pin Dr(R0 via r_b) - 3, ctl pin Dq(R0) - K - 3;
+          * R0 = merge of the two shadows, F (1,1), taps (1,1).
+        So a q-caused edge of X at tq + Dq(X) is the virtual edge of X read from a ctl edge at
+        tq + K, for EVERY reader at once (D1), and the lower end A0 -> X equals the real one, not
+        2 steps later (D2)."""
+        n = self.n
+        R = r0[0]
+        ctl = "vctl:" + qc
+
+        def dq(X):
+            i = n.cells[X]["ins"].index(q)
+            a, l = n.arcband(X, i), n.lutband(X)
+            return (a[0] + l[0], a[1] + l[1])
+        a0src = n.drv.get(a0)
+        if a0src not in self.nodes:
+            self.unrec.append((qc, "arbiter A0 not a stage output"))
+            return
+        i_a0 = st["ins"].index(a0)
+        da0 = n.arcband(qc, i_a0)[0] + n.lutband(qc)[0]
+        K = min([dq(g)[0] for g in gr] + [dq(R)[0] - 2]) - 2
+        lo_ctl = da0 + K - 1
+        if lo_ctl < 1:
+            self.unrec.append((qc, f"corrected core: ctl lower band {lo_ctl} < 1"))
+            return
+        self.nodes[ctl] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
+                               pins=[Pin("tap", a0src, [(lo_ctl, 10 ** 12)], inv=1)], K=K)
+
+        def shifted(pin, X, e):
+            """pin taps (leaf band up to X's input) + lut(X) - 1 - e"""
+            l = n.lutband(X)
+            pin.taps = [(a + l[0] - 1 - e, b + l[1] - 1 - e) for a, b in pin.taps]
+            if min(t[0] for t in pin.taps) < 1:
+                raise Unrec(f"corrected core: request band of {X} < 1 after shift {e}")
+            if pin.kind == "multi":
+                pin.win = pin.win + (l[1] - l[0])
+            return pin
+
+        shadows = []
+        for b, g in enumerate(sorted(gmap, key=lambda g: gr.index(g))):
+            r = gmap[g]
+            try:
+                x = self.leaf(r, n.arcband(g, n.cells[g]["ins"].index(r)))
+                pr = shifted(self.mkpin(x, 0), g, 0)
+                xs = self.leaf(r, n.arcband(R, n.cells[R]["ins"].index(r)))
+                ps = shifted(self.mkpin(xs, 0), R, 2)
+            except Unrec as e:
+                self.unrec.append((g, f"arbiter request: {e}"))
                 continue
-            self.nodes[ctl] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
-                                   pins=[Pin("tap", a0src, [(lo, 10 ** 12)], inv=1)])
-            for b, g in enumerate(sorted(gmap, key=lambda g: gr.index(g))):
-                r = gmap[g]
-                i_r = n.cells[g]["ins"].index(r)
-                try:
-                    x = self.leaf(r, n.arcband(g, i_r))
-                    pr = self.mkpin(x, 0)
-                except Unrec as e:
-                    self.unrec.append((g, f"arbiter request: {e}"))
-                    continue
-                pc = Pin("tap", ctl, [(1, 1)], filt=(("arb", qc), (b,)))
-                self.nodes["arb:" + g] = dict(kind="cel", v=0, F=n.lutband(g), Q=(0, 0), virtual=True,
-                                              pins=[pr, pc], grant=b)
-            # R0 = merge of the two grants; tap band = real (r -> R0) minus real (r -> g)
-            R = r0[0]
-            taps = []
-            for g, r in gmap.items():
-                i_r = n.cells[R]["ins"].index(r)
-                j_r = n.cells[g]["ins"].index(r)
-                lo = max(1, n.arcband(R, i_r)[0] - n.arcband(g, j_r)[1] - n.lutband(g)[1])
-                hi = max(lo, n.arcband(R, i_r)[1] - n.arcband(g, j_r)[0] - n.lutband(g)[0])
-                taps.append(Pin("tap", "arb:" + g, [(lo, hi)]))
-            self.nodes["arb:" + R] = dict(kind="merge", v=0, F=n.lutband(R), Q=None, pins=taps,
-                                          virtual=True, mutex=True)
-            self.arbs[qc] = dict(ctl=ctl, grants=list(gmap), R0=R, A0=a0src)
+            dg, dR = dq(g), dq(R)
+            pc = Pin("tap", ctl, [(dg[0] - K - 1, dg[1] - K - 1)], filt=(("arb", qc), (b,)))
+            self.nodes["arb:" + g] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
+                                          pins=[pr, pc], grant=b)
+            pcs = Pin("tap", ctl, [(dR[0] - K - 3, dR[1] - K - 3)], filt=(("arb", qc), (b,)))
+            sh = f"vsh:{R}/{b}"
+            self.nodes[sh] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
+                                  pins=[ps, pcs], grant=b, shadow=True)
+            shadows.append(sh)
+        taps = [Pin("tap", sh, [(1, 1)]) for sh in shadows]
+        self.nodes["arb:" + R] = dict(kind="merge", v=0, F=(1, 1), Q=None, pins=taps,
+                                      virtual=True, mutex=True)
+        self.arbs[qc] = dict(ctl=ctl, grants=list(gmap), R0=R, A0=a0src, shadows=shadows, K=K,
+                             lo_ctl=lo_ctl, mode="fix")
