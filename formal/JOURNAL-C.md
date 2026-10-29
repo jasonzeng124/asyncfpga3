@@ -423,3 +423,10 @@ capstone + a third kernel), 11f (rebuild whole-design bitstream import), 10l2
 (rule K failures), 9d (ring: H_ONE_TOKEN from reset, timed lift), vk (one
 verify.sh entry point with counterexample traces), aud2 (audit wording,
 hypothesis list refresh).
+
+### progress 07:38
+aud2 committed (docs only): audit wording fixes in 9 shard-C notes, the
+hypothesis list's §0 rebuilt against the Lean (47 names grepped), and the
+verdict block above rewritten to say no more than the Lean. FPGA toolchain
+restored from the cache branch; cells/verify/toolchain.sh ok, nextpnr sha256
+9c732bc6303458df, yosys 0.62 runs. Lean module build at 114/163.
