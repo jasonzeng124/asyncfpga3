@@ -215,9 +215,7 @@ theorem lsim_rel (rv init : Bool) (g d clr : KSig) :
     have hex : ∃ c, LClosed T g clr c t := ⟨c, hcl⟩
     have hch : Classical.choose hex = c := lclosed_unique T (Classical.choose_spec hex) hcl
     unfold lsim
-    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex]
-    simp only [hch, hx, ite_false, not_false_eq_true, ite_true]
-    exact if_pos hx
+    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex, hch, if_pos hx]
   · intro c t hc hx ht
     have hcl := hc
     obtain ⟨hct, _, hgo, hgz, hrz⟩ := hc
@@ -233,8 +231,8 @@ theorem lsim_rel (rv init : Bool) (g d clr : KSig) :
     have hex : ∃ c, LClosed T g clr c t := ⟨c, hcl⟩
     have hch : Classical.choose hex = c := lclosed_unique T (Classical.choose_spec hex) hcl
     unfold lsim
-    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex]
-    simp only [hch, hx, ne_eq, not_true_eq_false, ite_false, ht, ite_true]
+    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex, hch, if_neg (fun h => h hx),
+      if_pos ht]
   · intro c hx
     refine ⟨false, fun t ht hc => ?_⟩
     have hcl := hc
@@ -251,8 +249,8 @@ theorem lsim_rel (rv init : Bool) (g d clr : KSig) :
     have hex : ∃ c, LClosed T g clr c t := ⟨c, hcl⟩
     have hch : Classical.choose hex = c := lclosed_unique T (Classical.choose_spec hex) hcl
     unfold lsim
-    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex]
-    simp only [hch, hx, ne_eq, not_true_eq_false, ite_false, show ¬ t ≤ T.xend c by omega]
+    rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4, dif_pos hex, hch, if_neg (fun h => h hx),
+      if_neg (show ¬ t ≤ T.xend c by omega)]
     rfl
   · intro t ht hr
     unfold lsim; rw [if_pos ⟨ht, hr⟩]

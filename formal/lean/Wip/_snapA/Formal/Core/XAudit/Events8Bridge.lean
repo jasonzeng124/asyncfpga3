@@ -26,20 +26,19 @@ or a non-vacuity result.
 * §4 **SelOK from B's steer theorem.** `sel_read_of_steer` derives one select read from
   `LibGapSteer.steer_pin_ok` (B's H_S_STABLE, H_SETUP_PIN, H_HOLD_PIN) through an embedding
   of A's ℕ warps as B's ℤ read maps (`rdOf`, `extZ`); `selOK_of_steer` lifts it to
-  `Beh7.SelOK` for multi-bit selects.
+  `Beh7.SelOK` for multi-bit selects. `sel_read_hold` / `selOK_of_hold`: the same with an
+  open-ended hold (no transaction end needed; `hold_of_window` turns B's finite window into
+  it). `Events8BridgeSel.design_verdict8_sel` instantiates it on design_verdict8's realisation.
 * §5 **SelPart by construction.** `selPart_of_value`: groups that are indicators of distinct
   patterns of ONE value sequence per partition satisfy `SelPart`.
-
-  `sel_read_hold` / `selOK_of_hold`: the same with an open-ended hold (no transaction end
-  needed; `hold_of_window` turns B's finite window into it).
 * §6 **H_ARB, gap only.** `nd7_follow`, `nd7_steady`: a virtual stage (a grant) follows its
   pin reads with no hold of its own, so with steady reads it is steady after `hiF` (bounded
   response). B's digital race theorems (`ArbInvolution.arb_grants_eternal`, `ArbBinary` §4)
   exhibit grants that pulse for ever with steady requests: HARB7 can hold only on traces
   without that contest. No B / C statement implies `HARB7`.
 
-NOT here: HDsub (probe HDsub),
-a joint witness of HARB7/SelOK/HDsub on gcd_hw (the gcd_hw netlist is not a Lean term).
+NOT here: HDsub (probe HDsub); a joint witness of HARB7 / SelOK / HDsub on gcd_hw (the
+gcd_hw netlist is not a Lean term; see the notes for the untrusted evidence).
 -/
 
 namespace Formal.Core.XAudit.Events8Bridge

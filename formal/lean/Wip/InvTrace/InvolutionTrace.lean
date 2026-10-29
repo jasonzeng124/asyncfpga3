@@ -60,6 +60,18 @@ survives iff `t n + δmin < tent n < t (n+1) + δmin` (`surv_lo`, `surv_hi`,
    band `[min (δ↑ T0) (δ↓ T0), max δ∞↑ δ∞↓]`, `T0 = S - max δ∞↑ δ∞↓`.
 6. A chained-history example on `ratPair` (`rat_memory`): a cancelled pulse still
    shortens the delay of the next transition.
+7. The paper's algorithm (`step`, folded by `channel : List ℝ → List ℝ`: append the new
+   tentative output if it is after the previous tentative one, else remove the pending
+   output) equals the declarative `outList` (`channel_eq`, via `outList_step`,
+   `accOut_reverse`); `surv_of_cancel`: a removal always finds a pending output.
+8. On lists: `channel_sorted`, `channel_length_parity`, `channel_mem` (well-formedness,
+   causality windows, direction), `channel_of_sep` (agreement with `tent` under the exact
+   separation threshold), `channel_pulse`, `channel_pulse_mono` (single pulses).
+9. `ratPair` computed through the algorithm: `rat_runt_cancelled` (`[0,1/2] ↦ []`),
+   `rat_threshold_cancelled` (`[0,1] ↦ []`), `rat_pulse_shrunk` (`[0,3/2] ↦ [2,17/6]`),
+   `rat_memory_channel` (`[0,1/2,5] ↦ [89/13]`).
+10. The exp-channel over abstract `exp`/`log` (`ExpLog`): `exp_channel_pulse`, cancelled iff
+   `Δ ≤ τ ln 2`.
 
 ## What is NOT covered
 * The relation to `TraceEvent.Sig` (Core's event-list trace type) is not made; the
@@ -67,6 +79,11 @@ survives iff `t n + δmin < tent n < t (n+1) + δmin` (`surv_lo`, `surv_hi`,
 * Only one channel, no circuit (no feedback, no zero-time gates); the circuit-level
   SPF impossibility theorem of the paper is not attempted.
 * Continuity of the output in the input times is not stated.
+* Inputs must be strictly increasing (simultaneous input transitions are not modelled);
+  the input starts low (start high = swap `δ↑`/`δ↓`).
+* The η-involution (adversarial noise) channel is not covered; one fixed pair `P`.
+* The real `exp`/`log` instance of the exp-channel is not in this file (needs
+  `Mathlib.Analysis.SpecialFunctions.Log.Basic`; Wip/InvTrace/ExpReal.lean).
 -/
 
 namespace Formal.Core.DelayInvolution.InvolutionPair
@@ -620,7 +637,7 @@ theorem rat_memory : ratPair.outList 3 ratIn = [89 / 13] := by
   have s2 : ratPair.Surv 3 ratIn 2 :=
     ⟨by omega, fun h => by have := h.1; omega, fun m hm h => by
       rw [show m = 1 by omega] at h; have := h.2; rw [e1, e2] at this; norm_num at this⟩
-  simp [InvolutionPair.tent, outList, survIdx, List.range_succ, s0, s1, s2, e2]
+  simp [outList, survIdx, List.range_succ, s0, s1, s2, e2]
 
 end
 

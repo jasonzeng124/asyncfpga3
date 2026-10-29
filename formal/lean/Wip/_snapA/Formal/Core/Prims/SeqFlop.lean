@@ -471,7 +471,7 @@ theorem sim_rel (async rv init : Bool) (ck : Sig) (r ce d : KSig) (hok : T.Ok) :
     rw [sim_eq]
     by_cases h1 : async = true ∧ T.sqHi ≤ t ∧ EqOn r one (t - T.sqHi) t
     · simp only [h1, and_self, ite_true]
-    · simp only [h1, ite_false]; simp [ha]; exact Or.inr ⟨f, hf⟩
+    · rw [if_neg h1, if_pos ⟨ha, f, hf⟩]
 
 /-- So the relation is inhabited for every input (it constrains, it does not exclude). -/
 theorem flopRel_inhabited (async rv init : Bool) (ck : Sig) (r ce d : KSig) (hok : T.Ok) :

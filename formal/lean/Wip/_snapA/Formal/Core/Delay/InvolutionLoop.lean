@@ -456,7 +456,7 @@ theorem loc_cont {g : ℝ → ℝ} {L I : ℝ}
   have l2 : T0 < T2 := by
     by_contra hc; push Not at hc
     rcases eq_or_lt_of_le hc with e | e
-    · rw [← e] at e2; linarith
+    · rw [e] at e2; linarith
     · have := hmono T2 T0 hT2 e; linarith
   refine ⟨min (T0 - T1) (T2 - T0), lt_min (by linarith) (by linarith), fun T hT => ?_⟩
   have q1 : min (T0 - T1) (T2 - T0) ≤ T0 - T1 := min_le_left _ _
@@ -759,7 +759,7 @@ theorem stat_exists : ∃ h l, Stat P h l ∧ h < P.down 0 := by
     have := P.down_strictMono 0 (P.down 0) (by linarith [P.infUp_pos]) hd0
     linarith
   obtain ⟨c, hc0, hc1, hc⟩ := ivt (G := fun x => F P x - x) (le_of_lt hd0) hcont G0 G1
-  have hFc : F P c = c := by simp only at hc; linarith
+  have hFc : F P c = c := by linarith [show F P c - c = 0 from hc]
   have hlI := fu_lt P (le_of_lt hc0) (by linarith)
   have hl : 0 < fu P c := by
     by_contra hn; push Not at hn
@@ -776,13 +776,14 @@ theorem stat_exists : ∃ h l, Stat P h l ∧ h < P.down 0 := by
 
 /-! ## 10. Symmetric channel: 50% duty, `s* = δ∞ - w*` -/
 
+variable (P) in
 /-- Symmetric involution pair: `δ↑ = δ↓`. -/
 structure Sym : Prop where
   up_eq_down : ∀ T, P.up T = P.down T
   inf_eq : P.infUp = P.infDown
 
 section sym
-variable {P} {h l w : ℝ}
+variable {h l w : ℝ}
 
 theorem Sym.swap (Y : Sym P) (S : Stat P h l) : Stat P l h :=
   ⟨S.l_pos, S.h_pos, by rw [← Y.inf_eq]; exact S.l_lt, by rw [Y.inf_eq]; exact S.h_lt,
@@ -848,7 +849,7 @@ theorem exp_crit (X : ExpLog) (Tp : ℝ) (hTp : 0 < Tp) :
 /-! ## 11. Asymmetric channel: where `s*` moves -/
 
 section asym
-variable {P} {h l : ℝ}
+variable {h l : ℝ}
 
 /-- General bounds: `s* = δ∞↑ - l` with `δ∞↑ - (h + l) < s* < δ∞↑`, and the train period
 `h + l` is below both zero-gap delays. -/

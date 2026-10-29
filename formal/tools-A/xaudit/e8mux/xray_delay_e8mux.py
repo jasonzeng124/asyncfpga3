@@ -14,8 +14,10 @@ tool every formal shard-A gcd_hw band file was built with) plus ONE change, prob
   The same numbers and naming as research 7dc5dde's xray_delay.py (md5 3e69bf6a), which charges
   every slice routing BEL; the other 7dc5dde changes (FFMUX, CLK/CE/SR) are NOT taken, so on the
   combinational LUT->LUT arcs the formal bands use, the two must agree (checked: A-e8mux.md).
-  --rb-o5 hull  (sensitivity) takes, for an O5 source, the hull of the x5lut and the
-  database's unexplained 'o5' entry (AMUX o5 59/74/141/175): min of the MIN columns, max of MAX.
+  --rb-o5 hull  takes, for an O5 (O6) source, the hull of the x5lut (the O6 pseudo-pip = x6lut)
+  and the database's unexplained 'o5' ('o6') entry (AMUX o5 59/74/141/175, o6 61/76/149/185): min
+  of the MIN columns, max of the MAX columns -- the same hull as Formal/Core/Prims/Hops.lean
+  outMuxHull (probe PrimsComb).  slicel/slicem.sdf here have the same sha256 as PrimsComb's copy.
   An xOUTMUX source with no ROUTING_BEL entry is a hard error (exit 2), not 0.
 
 (The original docstring follows.)
@@ -522,7 +524,15 @@ class NetTiming(object):
             hit = self.xdb.pipmap(tt).get((srcpin, pins.get(L + "MUX")))
             if hit and hit[0].timing is not None:
                 self.stats["sitepip_outmux_charged"] += 1
-                return d4(hit[0].timing.delays)
+                v = d4(hit[0].timing.delays)
+                if RB_MODE == "hull" and src.endswith("6LUT_O6"):
+                    # E8Mux hull: also admit the database's 'o6' entry for this OUTMUX
+                    w = ROUTINGBELS.arc(st, L + "MUX", "o6")
+                    if w is None:
+                        sys.stderr.write("xray_delay_e8mux: FAIL -- no ROUTING_BEL o6 for %s\n" % pip)
+                        sys.exit(2)
+                    v = (min(v[0], w[0]), max(v[1], w[1]), min(v[2], w[2]), max(v[3], w[3]))
+                return v
             self.stats["sitepip_outmux_nopseudo"] += 1
         elif m:
             # E8Mux: every other xOUTMUX source (O5, F7/F8, CARRY4 O/CO) -> ROUTING_BEL arc

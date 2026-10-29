@@ -40,7 +40,7 @@ there is one.
 | **constants** (wires 0 / 1) | C: `Behaves.H_TIE` (tie pins constant from configuration) | none needed: same content | only the d ↔ PNet net map (as above) | A (tie-offs) |
 | **reset** (rst = `t < T`) and, through SatPin, the **time-0 state** | B: `ResetGcd.gcd_reset_binary` (gNet: 3322-node RTL-level control net, GMW `Bounded D W` runs, ANY power-up, rst held on `(0, E]`: every control node at its reset value on `[(21+2)(D+W+1), E]`); `ResetGcdWave.gcd_boot` / `gcd_clean_release` (release) | `satPin_origin`: SatPin makes time 0 a combinational fixpoint (so A silently assumes a settled power-up). `satPin_shift`: a physical trace obeying the per-pin relation from `t0` (monotone reads) and quiet on `[t0 - H, t0]` (H ≥ every band end) is, shifted to `t0`, a SatPin behaviour. B's reset theorem supplies exactly the quiet window (control nodes constant at reset value), with `t0 = (21+2)(D+W+1) + H ≤ E` | (1) gNet ↔ d: no Lean map. Untrusted: A's skeleton fixpoint has the same 16 ones as `gcd_reset_ones`, 4 seeds (§5). (2) B's GMW reads are not monotone, so `PhysPin` (monotone) is the SatPin FIFO gap again. (3) A's reset is ONE clean release, never re-asserted; B allows any rst behaviour in a window (B more general, so this direction is fine). (4) `T` must come after the quiet window: release at `t0 + T`, `E ≥ t0 + T`. | B; discharged modulo (1), (2) |
 | **H_ARB** (`HARB7`) | B: `ArbHeldTimed.rt1_exclusion` / `rt2_*` (handover scenario `Scn`, horizon `Hz`), `OnGcdArbFix` / `OnGcdArbA0` / `OnGcdArbKappa` (the 36 routed gcd_hw arbiters, one corner or κ), `ArbA0Fork` (no early ack). C: `OpsCM.AMerge` fields H_ARB1/2/EXCL (Ops-model HYPOTHESES), `CapstoneCut.gcd_hw_arbiters_uncontended'` (Ops model: no free contest) | none. `nd7_follow` / `nd7_steady` (Lean) state what HARB7 adds: bounded response | (1) content: HARB7 is a refinement (each grant = C(r_b, ctl·[σ = b]) through warps in bands, `R0` = OR with taps); B proves exclusion, one consequence, in one handover scenario up to `Hz`. (2) time base: C's are SI tick relations, unbounded delay, on Ops channels, not on A's wires. (3) HARB7 asserts a BOUNDED decision: the virtual grant's band is the grant LUT band (`tools-A/xaudit/events4/model.py:275`); only `ctl` may wait (up to 10^12 ps after A0 falls, :263). Under a contested runt B proves the real cell can do what no virtual core does: `ArbInvolution.arb_grants_eternal` (both grants pulse forever at the critical gap), `ArbBinary` §4 (a forever-circulating pulse, overlapping grants), `ArbResolve.no_deadline`. So HARB7 is FALSE on contested traces and can only be justified from "never contested" ON A'S TRACES. C's uncontended theorem is in the Ops model, not linked to A's wires. | B on uncontested traces; C (false) on contested ones; open |
-| **SelOK** | B: `LibGapSteer.steer_pin_ok` / `steer_box_exact` (one token; select stable on `[S0, S1)` = H_S_STABLE; setup `S0 + Shi ≤ R + Rlo`, hold `F + Rhi ≤ S1 + Slo`; iff for fixed delays), `KleeneBox` (K3 versions; same right sides), `LibGapMux.join_box_exact`, `LibGapMuxN` (decode), `OpsTimed2.steer_hold_of_ackfall` (hold from the sender's ack-fall contract). C: tcheck rule E (setup only; 465/472 agree, band-only failures, C-10h); hold: no rule | `sel_read_of_steer`: one select read, PROVED BY B's `steer_pin_ok` through the embedding `rdOf` / `extZ` (A's truncated ℕ warp as B's ℤ read map; the time-0 value extended to negative time). `selOK_of_steer`: `Beh7.SelOK` for multi-bit selects from, per filtered pin and select bit, B's H_S_STABLE plus B's setup / hold against every copy's band. `selOK_of_hold`: the same with an open-ended hold (B's finite form needs a transaction end `F k`, which a run stuck inside a transaction does not have; `hold_of_window` converts) | (1) H_S_STABLE is a data-path fact (the select latch holds through each transaction: C's H_BUNDLE / H_LATCH_HOLD of the select channel); A's skeleton cuts the 32 select nets into free inputs, so it is outside A's model. (2) hold half: no checker (C has rule E for setup only). (3) shape hypothesis `hsv` (the pin's select = φ(bits read through warps)): true by definition for design_verdict8's realisation (`Events6Beh.svOf`: the select wires read through `wf`, `tau`, warps by `wf_warp` / `tau_warp`), but design_verdict8 does not expose it; a variant exposing it is ~2 h. (4) virtual filtered pins (each grant's `ctl·[σ=b]` pin): their select is HARB7's σ, so SelOK there is part of H_ARB | B; bridged at Beh7 level, data-path premise open |
+| **SelOK** | B: `LibGapSteer.steer_pin_ok` / `steer_box_exact` (one token; select stable on `[S0, S1)` = H_S_STABLE; setup `S0 + Shi ≤ R + Rlo`, hold `F + Rhi ≤ S1 + Slo`; iff for fixed delays), `KleeneBox` (K3 versions; same right sides), `LibGapMux.join_box_exact`, `LibGapMuxN` (decode), `OpsTimed2.steer_hold_of_ackfall` (hold from the sender's ack-fall contract). C: tcheck rule E (setup only; 465/472 agree, band-only failures, C-10h); hold: no rule | `sel_read_of_steer`: one select read, PROVED BY B's `steer_pin_ok` through the embedding `rdOf` / `extZ` (A's truncated ℕ warp as B's ℤ read map; the time-0 value extended to negative time). `selOK_of_steer`: `Beh7.SelOK` for multi-bit selects from, per filtered pin and select bit, B's H_S_STABLE plus B's setup / hold against every copy's band. `selOK_of_hold`: the same with an open-ended hold (B's finite form needs a transaction end `F k`, which a run stuck inside a transaction does not have; `hold_of_window` converts) | (1) H_S_STABLE is a data-path fact (the select latch holds through each transaction: C's H_BUNDLE / H_LATCH_HOLD of the select channel); A's skeleton cuts the 32 select nets into free inputs, so it is outside A's model. (2) hold half: no checker (C has rule E for setup only). (3) DONE in `Events8BridgeSel.design_verdict8_sel`: design_verdict8 with `bh.SelOK` replaced, at every REAL filtered pin, by B's H_S_STABLE (open-ended hold) and H_SETUP_PIN on the select WIRES of the parsed netlist, with explicit bands `selLo` / `selHi` (steer gate + `top` path + stage LUT, or the stage LUT alone; `svOf_shape`, `sel_warp`). (4) virtual filtered pins (each grant's `ctl·[σ=b]` pin): their select is HARB7's σ, so SelOK there is part of H_ARB | B; bridged at netlist level (`design_verdict8_sel`), data-path premise open |
 | **SelPart** | none in B / C (a token-level fact: one select value per transaction) | `selPart_of_value`: if every group of a partition is the indicator of its own pattern of ONE value sequence, SelPart holds. Choosing `sel` that way (the user chooses `sel`) discharges it | that the three decode gates of `umux21` read the same 2 bits in the same transaction is part of SelOK (per-bit windows); the partition reading `[16, 56, 57]` is trusted (cert8.py) | A by construction (given SelOK for that `sel`) |
 | HDsub | — | — | probe HDsub | — |
 
@@ -106,9 +106,29 @@ Imports `Events8Beh`, `Net.Fasm.Basic` (C; gives B's `CElemTiming.WinDelay`), `C
 | `selPart_of_value` | SelPart for indicator groups of one value sequence |
 | `nd7_follow`, `nd7_steady` | H_ARB gap: a virtual stage (grant) follows its agreeing pin reads with no hold; steady reads ⇒ steady from `t0 + hiF` (bounded response) |
 
-What it does NOT cover: HARB7 (gap only), HDsub, the d ↔ gNet and d ↔ PNet node maps, the
-exposure of `svOf` in design_verdict8 (so `selOK_of_steer` is not yet instantiated on the gcd_hw
-realisation), the data-path stability premise H_S_STABLE.
+`formal/lean/Formal/Core/XAudit/Events8BridgeSel.lean` (imports `Events8Bridge`):
+
+| theorem | statement (plain) |
+|---|---|
+| `chkT_pathOK` | a successful tree check of one path is a path of existing gate inputs |
+| `selLits`, `selGate`, `selLo`, `selHi`, `selFn`, `selFn_congr` | per real filtered pin: its select literals, the gate reading them, the band of each bit read, the pattern function |
+| `selBase`, `svOf_shape`, `sel_warp` | the realised select `svOf` is `selFn` of the bit wires, each read through a warp in `[selLo, selHi]` |
+| `design_beh8_sv` | `design_beh8`, also exposing `bh.sv = svOf` at real nodes |
+| **`design_verdict8_sel`** | `design_verdict8` with `bh.SelOK` replaced by: SelOK at the VIRTUAL filtered pins only (part of H_ARB), and at the real ones, per select literal: transaction `k` starts no earlier than `R j p k`; the select wire is `vb … k` from `S0 … k` on while the source was in transaction `k` at most `hiC − selLo` before; setup `S0 + selHi ≤ R + loC` for every copy; `sel` = `selFn` of the bit values |
+
+Plain language for `design_verdict8_sel`. Assumed: everything design_verdict8 assumes except
+SelOK; SelOK at the arbiter grants' virtual σ pins; and at every real steer / mux-join / decode
+pin, that each select bit's wire is stable at a per-transaction value from a time `S0` with
+B's setup margin against the request copies, until the request copy can no longer show that
+transaction. Proved: the same conclusion as design_verdict8. Not covered: why the select wires
+are stable (they are free inputs of A's skeleton: the data path), the virtual pins' SelOK.
+Non-vacuity of the new premises (argued, not mechanised): with select inputs constant from the
+time-0 fixpoint, every select-bit wire is constant (SatPin), so `S0 = 0`, `vb` = that constant,
+`R j p k` = the first time the source count is `2k+1` satisfy them provided no transaction
+starts before `selHi − loC` (true when `T ≥ max selHi`, since counts stay 0 under reset).
+
+What neither file covers: HARB7 (gap only), HDsub, the d ↔ gNet and d ↔ PNet node maps, the
+data-path stability premise H_S_STABLE.
 
 ## 5. Joint non-vacuity
 
@@ -124,9 +144,11 @@ d af88a1eb97c8, 3 080423e23154, 4 c8bbbde45f15, 5 e1c128d599c3): Kleene iteratio
 rst = 1, constants, and the 32 free select inputs X ends with all 1747 LUT outputs definite (4
 sweeps) on every seed. So a binary time-0 fixpoint exists for EVERY choice of the selects (Kleene
 soundness), i.e. the hypothesis of `core_hyps_exist` holds on gcd_hw (modulo the reader).
-- The 16 LUTs at 1 are, by name, B's `gcd_reset_ones` list: the 9 arbiter `ustate` q, the 4
-  `usource*`, `uenv1`, and the 2 `upsnk` elements. Two independent routes (B's Lean on gNet, this
-  script on A's routed skeleton) agree.
+- The 16 LUTs at 1 are, by name, B's `gcd_reset_ones` set minus rst (names as listed in
+  B-reset-gcd.md:161; the Lean list `ResetGcd.onesL` is gNet indices): the 9 arbiter `ustate` q
+  (`ucontrol_merge2/3/4/6/9/10/11/12.uarb1`, `12.uarb2`), `usource3/5/7/13`, `uenv1`, and both
+  `upsnk` elements. Two independent routes (B's Lean on gNet, this script on A's routed
+  skeleton) agree.
 - The grants and `R0` are 0 at the fixpoint, consistent with HARB7's time-0 conjunct.
 - Negative control `--norst`: with rst X, 0/1747 outputs are definite.
 
@@ -144,9 +166,9 @@ they are weak witnesses: a quiescent tail satisfies every count condition trivia
 gcd_hw netlist is not a Lean term; xevents8 reads it at run time).
 
 ## 6. Suggested next probes
-1. **E8Sel** (~2 h): a variant of `design_verdict8` that exposes the realised `sv` (`svOf`) and
-   instantiates `selOK_of_steer`, so SelOK becomes "select nets stable per transaction + B's
-   setup / hold at the band ends" for the gcd_hw verdict.
+1. **E8SelC** (~0.5 d): compose `design_verdict8_sel`'s select-wire premises with C's
+   H_BUNDLE / H_LATCH_HOLD of the select channels (the data latch holds while its consumer's
+   request is up), and add a rule-E-style checker row for the hold half (`t + selLo ≤ u + hiC`).
 2. **E8Arb** (~1 d): "never contested" on A's traces from A's own counts (the spine-token
    argument of C-8r at count level), then an uncontested `bd_arbiter` as a virtual-core behaviour
    in the per-pin model. Without both, H_ARB stays the open hypothesis it is.

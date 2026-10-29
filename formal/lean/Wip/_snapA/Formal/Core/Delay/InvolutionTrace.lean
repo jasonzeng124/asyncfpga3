@@ -60,13 +60,30 @@ survives iff `t n + δmin < tent n < t (n+1) + δmin` (`surv_lo`, `surv_hi`,
    band `[min (δ↑ T0) (δ↓ T0), max δ∞↑ δ∞↓]`, `T0 = S - max δ∞↑ δ∞↓`.
 6. A chained-history example on `ratPair` (`rat_memory`): a cancelled pulse still
    shortens the delay of the next transition.
+7. The paper's algorithm (`step`, folded by `channel : List ℝ → List ℝ`: append the new
+   tentative output if it is after the previous tentative one, else remove the pending
+   output) equals the declarative `outList` (`channel_eq`, via `outList_step`,
+   `accOut_reverse`); `surv_of_cancel`: a removal always finds a pending output.
+8. On lists: `channel_sorted`, `channel_length_parity`, `channel_mem` (well-formedness,
+   causality windows, direction), `channel_of_sep` (agreement with `tent` under the exact
+   separation threshold), `channel_pulse`, `channel_pulse_mono` (single pulses).
+9. `ratPair` computed through the algorithm: `rat_runt_cancelled` (`[0,1/2] ↦ []`),
+   `rat_threshold_cancelled` (`[0,1] ↦ []`), `rat_pulse_shrunk` (`[0,3/2] ↦ [2,17/6]`),
+   `rat_memory_channel` (`[0,1/2,5] ↦ [89/13]`).
+10. The exp-channel over abstract `exp`/`log` (`ExpLog`): `exp_channel_pulse`, cancelled iff
+   `Δ ≤ τ ln 2`.
 
 ## What is NOT covered
-* The relation to `TraceEvent.Sig` (Core's event-list trace type) and to the inertial
-  channel is in `InvolutionTraceSig.lean`.
+* The relation to `TraceEvent.Sig` (Core's event-list trace type) is not made; the
+  output is related to `DelayPure.Sig` only (through `listSig`).
 * Only one channel, no circuit (no feedback, no zero-time gates); the circuit-level
   SPF impossibility theorem of the paper is not attempted.
 * Continuity of the output in the input times is not stated.
+* Inputs must be strictly increasing (simultaneous input transitions are not modelled);
+  the input starts low (start high = swap `δ↑`/`δ↓`).
+* The η-involution (adversarial noise) channel is not covered; one fixed pair `P`.
+* The real `exp`/`log` instance of the exp-channel is not in this file (needs
+  `Mathlib.Analysis.SpecialFunctions.Log.Basic`; Wip/InvTrace/ExpReal.lean).
 -/
 
 namespace Formal.Core.DelayInvolution.InvolutionPair
@@ -86,6 +103,11 @@ def CN (N : ℕ) (t : ℕ → ℝ) (n : ℕ) : Prop := n + 1 < N ∧ P.tent t (n
 with its successor nor with its predecessor. -/
 def Surv (N : ℕ) (t : ℕ → ℝ) (n : ℕ) : Prop :=
   n < N ∧ ¬ P.CN N t n ∧ ∀ m, n = m + 1 → ¬ P.CN N t m
+
+/-- `Surv` is not decidable (it quantifies over reals and indices); the trace is a
+noncomputable function, so we use classical decidability. -/
+noncomputable instance survDecidable (N : ℕ) (t : ℕ → ℝ) (n : ℕ) : Decidable (P.Surv N t n) :=
+  Classical.propDecidable _
 
 /-- Indices of the surviving transitions, increasing. -/
 def survIdx (N : ℕ) (t : ℕ → ℝ) : List ℕ := (List.range N).filter (fun n => decide (P.Surv N t n))
@@ -248,6 +270,7 @@ theorem survBelow_succ (N n : ℕ) :
   rw [List.range_succ, List.filter_append, List.length_append]
   by_cases h : P.Surv N t n <;> simp [h]
 
+open scoped Classical in
 /-- The parity invariant behind alternation. -/
 theorem survBelow_parity (N : ℕ) :
     ∀ n, n ≤ N →
@@ -283,7 +306,7 @@ surviving output transitions has the parity of `n`.  So the output (which starts
 and toggles at each survivor) makes, at `tent n`, exactly the transition of input
 transition `n`: rising for even `n`, falling for odd `n`. -/
 theorem surv_parity {N n : ℕ} (h : P.Surv N t n) : P.survBelow N t n % 2 = n % 2 := by
-  have := survBelow_parity t ht N n (le_of_lt h.1)
+  have := survBelow_parity (P := P) t ht N n (le_of_lt h.1)
   rw [if_neg (fun ⟨m, hm, hc⟩ => h.2.2 m hm hc)] at this
   simpa using this
 
@@ -331,6 +354,7 @@ theorem outList_one : P.outList 1 t = [t 0 + P.infUp] := by
   have hs : P.Surv 1 t 0 := ⟨by omega, fun h => by have := h.1; omega, fun m hm => by omega⟩
   simp [outList, survIdx, hs, tent_zero']
 
+omit ht in
 /-- Two transitions: the pulse is cancelled (output `[]`) if `tent 1 ≤ tent 0`,
 otherwise the output is `[tent 0, tent 1]`. -/
 theorem outList_two :
@@ -449,12 +473,14 @@ def shiftPair (D : ℝ) (hD : 0 ≤ D) : InvolutionPair where
   up_causal := by
     have h0 : -P.infDown < (0 : ℝ) := by linarith [P.infDown_pos]
     rcases lt_or_eq_of_le hD with h | h
-    · have := P.up_strictMono 0 D h0 h; linarith [P.up_causal]
+    · have := P.up_strictMono 0 D h0 h
+      show 0 < D + P.up (0 + D); rw [zero_add]; linarith [P.up_causal]
     · rw [← h]; simp [P.up_causal]
   down_causal := by
     have h0 : -P.infUp < (0 : ℝ) := by linarith [P.infUp_pos]
     rcases lt_or_eq_of_le hD with h | h
-    · have := P.down_strictMono 0 D h0 h; linarith [P.down_causal]
+    · have := P.down_strictMono 0 D h0 h
+      show 0 < D + P.down (0 + D); rw [zero_add]; linarith [P.down_causal]
     · rw [← h]; simp [P.down_causal]
 
 variable {P}
@@ -510,7 +536,7 @@ theorem cnt_eq_countP (N : ℕ) (u : ℕ → ℝ) (s : ℝ) :
   | succ N ih =>
     rw [List.range_succ, List.countP_append, ← ih]
     unfold cnt
-    rw [Finset.range_succ, Finset.filter_insert]
+    rw [Finset.range_add_one, Finset.filter_insert]
     by_cases h : u N ≤ s
     · rw [if_pos h, Finset.card_insert_of_notMem (by simp)]
       simp [h]
@@ -600,20 +626,415 @@ theorem rat_memory : ratPair.outList 3 ratIn = [89 / 13] := by
   have e0 : ratPair.tent ratIn 0 = 2 := by
     show ratIn 0 + 2 = 2; norm_num [ratIn]
   have e1 : ratPair.tent ratIn 1 = 1 / 2 := by
-    rw [tent_succ', e0]
-    show ratIn 1 + ratDelay (ratIn 1 - 2) = 1 / 2
-    norm_num [ratIn, ratDelay]
+    show ratIn 1 + ratDelay (ratIn 1 - ratPair.tent ratIn 0) = 1 / 2
+    rw [e0]; norm_num [ratIn, ratDelay]
   have e2 : ratPair.tent ratIn 2 = 89 / 13 := by
-    rw [tent_succ', e1]
-    show ratIn 2 + ratDelay (ratIn 2 - 1 / 2) = 89 / 13
-    norm_num [ratIn, ratDelay]
+    show ratIn 2 + ratDelay (ratIn 2 - ratPair.tent ratIn 1) = 89 / 13
+    rw [e1]; norm_num [ratIn, ratDelay]
   have c0 : ratPair.CN 3 ratIn 0 := ⟨by omega, by rw [e0, e1]; norm_num⟩
   have s0 : ¬ ratPair.Surv 3 ratIn 0 := fun h => h.2.1 c0
   have s1 : ¬ ratPair.Surv 3 ratIn 1 := fun h => h.2.2 0 rfl c0
   have s2 : ratPair.Surv 3 ratIn 2 :=
     ⟨by omega, fun h => by have := h.1; omega, fun m hm h => by
       rw [show m = 1 by omega] at h; have := h.2; rw [e1, e2] at this; norm_num at this⟩
-  simp [InvolutionPair.tent, outList, survIdx, List.range_succ, s0, s1, s2, e2]
+  simp [outList, survIdx, List.range_succ, s0, s1, s2, e2]
+
+end
+
+
+/-! ## 7. The paper's channel algorithm, and agreement with `outList`
+
+The channel algorithm of Függer/Nowak/Schmid ("non-forgetful" channel; Függer,
+Najvirt, Nowak, Schmid, "A faithful binary circuit model", IEEE TCAD 39(10), 2020,
+and "Unfaithful glitch propagation in existing binary circuit models", IEEE TC 2016,
+Alg. "non-forgetful channel"): process the input transitions in order; transition `n`
+at time `t` computes `T = t - t'` against the previous *tentative* output `t'`
+(whether or not that one was cancelled), and the candidate output `o = t + δ(T)`.  If
+`o > t'` it is appended to the output; otherwise the pending output at `t'` is removed
+and `o` is not added.  `step` is that rule, `channel` folds it over an input list. -/
+
+noncomputable section
+
+variable {P : InvolutionPair}
+
+section Step
+
+variable (t : ℕ → ℝ)
+
+theorem CN_succ_iff {N k : ℕ} (hk : k + 1 < N) : P.CN (N + 1) t k ↔ P.CN N t k := by
+  constructor
+  · rintro ⟨-, h⟩; exact ⟨hk, h⟩
+  · rintro ⟨-, h⟩; exact ⟨by omega, h⟩
+
+theorem surv_succ_of_lt {N m : ℕ} (hm : m + 1 < N) : P.Surv (N + 1) t m ↔ P.Surv N t m := by
+  constructor
+  · rintro ⟨-, h1, h2⟩
+    exact ⟨by omega, fun hc => h1 ((CN_succ_iff t hm).mpr hc),
+      fun k hk hc => h2 k hk ((CN_succ_iff t (by omega)).mpr hc)⟩
+  · rintro ⟨-, h1, h2⟩
+    exact ⟨by omega, fun hc => h1 ((CN_succ_iff t hm).mp hc),
+      fun k hk hc => h2 k hk ((CN_succ_iff t (by omega)).mp hc)⟩
+
+/-- The previously last transition `n`, once transition `n+1` arrives. -/
+theorem surv_last_iff (n : ℕ) :
+    P.Surv (n + 1 + 1) t n ↔ P.Surv (n + 1) t n ∧ P.tent t n < P.tent t (n + 1) := by
+  constructor
+  · rintro ⟨-, h1, h2⟩
+    refine ⟨⟨by omega, fun hc => by have := hc.1; omega,
+      fun k hk hc => h2 k hk ((CN_succ_iff t (by omega)).mpr hc)⟩, ?_⟩
+    by_contra hc; push_neg at hc; exact h1 ⟨by omega, hc⟩
+  · rintro ⟨⟨-, -, h2⟩, hlt⟩
+    exact ⟨by omega, fun hc => by linarith [hc.2],
+      fun k hk hc => h2 k hk ((CN_succ_iff t (by omega)).mp hc)⟩
+
+/-- The new transition `n+1` survives (so far) iff it does not cancel with `n`. -/
+theorem surv_new_iff (n : ℕ) :
+    P.Surv (n + 1 + 1) t (n + 1) ↔ P.tent t n < P.tent t (n + 1) := by
+  constructor
+  · rintro ⟨-, -, h2⟩
+    by_contra hc; push_neg at hc; exact h2 n rfl ⟨by omega, hc⟩
+  · intro hlt
+    refine ⟨by omega, fun hc => by have := hc.1; omega, fun k hk hc => ?_⟩
+    have hkn : k = n := by omega
+    subst hkn
+    linarith [hc.2]
+
+variable (ht : ∀ n, t n < t (n + 1))
+include ht
+
+/-- When transition `n+1` cancels with `n`, the transition `n` was pending (it was a
+survivor of the first `n+1` transitions): "remove the pending output" is well defined.
+This is the paper's remark that an output event is deleted in the next iteration or
+never; here it is `cancel_no_chain`. -/
+theorem surv_of_cancel (n : ℕ) (hc : P.tent t (n + 1) ≤ P.tent t n) : P.Surv (n + 1) t n := by
+  refine ⟨by omega, fun h => by have := h.1; omega, fun k hk hck => ?_⟩
+  subst hk
+  have h1 := cancel_no_chain t ht k hck.2
+  have e : P.tent t (k + 2) = P.tent t (k + 1 + 1) := rfl
+  linarith
+
+theorem survIdx_step (n : ℕ) :
+    P.survIdx (n + 1 + 1) t =
+      if P.tent t n < P.tent t (n + 1) then P.survIdx (n + 1) t ++ [n + 1]
+      else (P.survIdx (n + 1) t).dropLast := by
+  have hpre : ∀ m ∈ List.range n,
+      decide (P.Surv (n + 1 + 1) t m) = decide (P.Surv (n + 1) t m) := by
+    intro m hm
+    simp only [List.mem_range] at hm
+    simp only [surv_succ_of_lt t (N := n + 1) (show m + 1 < n + 1 by omega)]
+  have hA : P.survIdx (n + 1 + 1) t =
+      (List.range n).filter (fun m => decide (P.Surv (n + 1) t m)) ++
+        ((if P.Surv (n + 1 + 1) t n then [n] else []) ++
+          (if P.Surv (n + 1 + 1) t (n + 1) then [n + 1] else [])) := by
+    unfold InvolutionPair.survIdx
+    rw [List.range_succ, List.range_succ, List.filter_append, List.filter_append,
+      List.filter_congr hpre, List.append_assoc]
+    by_cases h1 : P.Surv (n + 1 + 1) t n <;> by_cases h2 : P.Surv (n + 1 + 1) t (n + 1) <;>
+      simp [h1, h2]
+  have hB : P.survIdx (n + 1) t =
+      (List.range n).filter (fun m => decide (P.Surv (n + 1) t m)) ++
+        (if P.Surv (n + 1) t n then [n] else []) := by
+    unfold InvolutionPair.survIdx
+    rw [List.range_succ, List.filter_append]
+    by_cases h1 : P.Surv (n + 1) t n <;> simp [h1]
+  by_cases hlt : P.tent t n < P.tent t (n + 1)
+  · rw [if_pos hlt, hA, hB, if_pos ((surv_new_iff t n).mpr hlt), List.append_assoc]
+    by_cases hs : P.Surv (n + 1) t n
+    · rw [if_pos ((surv_last_iff t n).mpr ⟨hs, hlt⟩), if_pos hs]
+    · rw [if_neg (fun h => hs ((surv_last_iff t n).mp h).1), if_neg hs]
+  · rw [if_neg hlt, hA, hB, if_neg (fun h => hlt ((surv_new_iff t n).mp h)),
+      if_neg (fun h => hlt ((surv_last_iff t n).mp h).2),
+      if_pos (surv_of_cancel t ht n (le_of_not_gt hlt))]
+    simp
+
+/-- **One step of the trace semantics**: when transition `n+1` arrives, its output is
+appended if it is after the previous tentative output, otherwise the last output
+(which is transition `n`'s, `surv_of_cancel`) is removed. -/
+theorem outList_step (n : ℕ) :
+    P.outList (n + 1 + 1) t =
+      if P.tent t n < P.tent t (n + 1) then P.outList (n + 1) t ++ [P.tent t (n + 1)]
+      else (P.outList (n + 1) t).dropLast := by
+  unfold InvolutionPair.outList
+  rw [survIdx_step t ht n]
+  split_ifs <;> simp [List.map_dropLast]
+
+end Step
+
+variable (P) in
+/-- Output so far (reversed: most recent first) after the first `n` input transitions,
+by the paper's algorithm on the tentative times. -/
+def accOut (t : ℕ → ℝ) : ℕ → List ℝ
+  | 0 => []
+  | 1 => [P.tent t 0]
+  | n + 2 => if P.tent t n < P.tent t (n + 1) then P.tent t (n + 1) :: accOut t (n + 1)
+             else (accOut t (n + 1)).tail
+
+theorem accOut_step (t : ℕ → ℝ) (n : ℕ) :
+    P.accOut t (n + 1 + 1) = if P.tent t n < P.tent t (n + 1)
+      then P.tent t (n + 1) :: P.accOut t (n + 1) else (P.accOut t (n + 1)).tail := rfl
+
+theorem outList_zero (t : ℕ → ℝ) : P.outList 0 t = [] := by
+  simp [InvolutionPair.outList, InvolutionPair.survIdx]
+
+theorem accOut_reverse (t : ℕ → ℝ) (ht : ∀ n, t n < t (n + 1)) (N : ℕ) :
+    (P.accOut t N).reverse = P.outList N t := by
+  rcases N with _ | N
+  · rw [outList_zero]; rfl
+  induction N with
+  | zero =>
+    rw [outList_one]; rfl
+  | succ n ih =>
+    rw [accOut_step, outList_step t ht n]
+    split_ifs
+    · rw [List.reverse_cons, ih]
+    · rw [← List.dropLast_reverse, ih]
+
+variable (P) in
+/-- **The paper's channel algorithm, one step.**  State: number of input transitions
+seen, previous tentative output time, output so far (most recent first).  The first
+transition gets `δ∞↑` (input initially low, `T = ∞`); transition `k+1` gets
+`δ(x - o)` with `δ = δ↑` for even `k+1`, `δ↓` for odd, against the previous tentative
+output `o`; its output is added if after `o`, otherwise the pending output is
+removed. -/
+def step : ℕ × ℝ × List ℝ → ℝ → ℕ × ℝ × List ℝ
+  | (0, _, _), x => (1, x + P.infUp, [x + P.infUp])
+  | (k + 1, o, out), x =>
+      (k + 1 + 1, x + P.delayAt (k + 1) (x - o),
+        if o < x + P.delayAt (k + 1) (x - o) then (x + P.delayAt (k + 1) (x - o)) :: out
+        else out.tail)
+
+variable (P) in
+/-- **The involution channel as a function on transition lists**: input transition
+times (input initially low, alternating rising/falling) to output transition times
+(output initially low, toggling at each). -/
+def channel (l : List ℝ) : List ℝ := (l.foldl P.step (0, 0, [])).2.2.reverse
+
+variable (P) in
+/-- Previous tentative output after `n` transitions (`0` is a dummy for `n = 0`). -/
+def prevTent (t : ℕ → ℝ) : ℕ → ℝ
+  | 0 => 0
+  | k + 1 => P.tent t k
+
+theorem foldl_step (t : ℕ → ℝ) (l : List ℝ) (hl : ∀ n (h : n < l.length), t n = l[n]) :
+    l.foldl P.step (0, 0, []) = (l.length, P.prevTent t l.length, P.accOut t l.length) := by
+  induction l using List.reverseRecOn with
+  | nil => rfl
+  | append_singleton l x ih =>
+    have hl' : ∀ n (h : n < l.length), t n = l[n] := fun n h => by
+      rw [hl n (by simp; omega)]; exact List.getElem_append_left h
+    have hx : t l.length = x := by rw [hl l.length (by simp)]; simp
+    rw [List.foldl_append, ih hl', List.length_append, List.length_singleton]
+    cases hlen : l.length with
+    | zero =>
+      rw [hlen] at hx
+      show P.step (0, 0, []) x = (0 + 1, P.tent t 0, [P.tent t 0])
+      rw [tent_zero', hx]; rfl
+    | succ k =>
+      rw [hlen] at hx
+      show P.step (k + 1, P.tent t k, P.accOut t (k + 1)) x =
+        (k + 1 + 1, P.tent t (k + 1), P.accOut t (k + 1 + 1))
+      rw [accOut_step, tent_succ', hx]
+      rfl
+
+/-- **Agreement of the algorithm with the declarative trace semantics**: on a strictly
+increasing input, `channel` is the list of surviving tentative outputs (`outList`),
+for any extension `t` of the list to a strictly increasing sequence. -/
+theorem channel_eq (l : List ℝ) (t : ℕ → ℝ) (hl : ∀ n (h : n < l.length), t n = l[n])
+    (ht : ∀ n, t n < t (n + 1)) : P.channel l = P.outList l.length t := by
+  unfold InvolutionPair.channel
+  rw [foldl_step t l hl]
+  exact accOut_reverse t ht l.length
+
+/-- Extension of a finite list to a sequence (unit steps after the last element). -/
+def extend (l : List ℝ) (n : ℕ) : ℝ :=
+  if h : n < l.length then l[n] else l.getD (l.length - 1) 0 + ((n : ℝ) - l.length + 1)
+
+theorem extend_agree (l : List ℝ) : ∀ n (h : n < l.length), extend l n = l[n] :=
+  fun n h => by simp [extend, h]
+
+theorem extend_mono {l : List ℝ} (hs : l.Pairwise (· < ·)) : ∀ n, extend l n < extend l (n + 1) := by
+  intro n
+  unfold extend
+  by_cases h1 : n + 1 < l.length
+  · rw [dif_pos (by omega : n < l.length), dif_pos h1]
+    exact List.pairwise_iff_getElem.mp hs n (n + 1) (by omega) h1 (by omega)
+  · rw [dif_neg h1]
+    by_cases h0 : n < l.length
+    · rw [dif_pos h0]
+      have e1 : l.length - 1 = n := by omega
+      have e2 : (l.length : ℝ) = n + 1 := by exact_mod_cast (show l.length = n + 1 by omega)
+      rw [e1, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h0, Option.getD_some, e2]
+      push_cast; linarith
+    · rw [dif_neg h0]; push_cast; linarith
+
+/-! ## 8. Properties of `channel` on lists -/
+
+/-- `channel` on a strictly increasing list is `outList` of its extension. -/
+theorem channel_eq_extend {l : List ℝ} (hs : l.Pairwise (· < ·)) :
+    P.channel l = P.outList l.length (extend l) :=
+  channel_eq l (extend l) (extend_agree l) (extend_mono hs)
+
+/-- **(c) Well-formed output, order**: strictly increasing output times. -/
+theorem channel_sorted {l : List ℝ} (hs : l.Pairwise (· < ·)) :
+    (P.channel l).Pairwise (· < ·) := by
+  rw [channel_eq_extend hs]
+  exact outList_sorted (extend l) (extend_mono hs) l.length
+
+theorem outList_length_parity (t : ℕ → ℝ) (ht : ∀ n, t n < t (n + 1)) (N : ℕ) :
+    (P.outList N t).length % 2 = N % 2 := by
+  have h := survBelow_parity (P := P) t ht N N le_rfl
+  rw [if_neg (fun ⟨m, hm, hc⟩ => by have := hc.1; omega)] at h
+  simpa [InvolutionPair.survBelow, InvolutionPair.outList, InvolutionPair.survIdx] using h
+
+/-- **(c) Well-formed output, final value**: cancellations remove transitions in pairs,
+so the output makes as many transitions as the input modulo 2: after the last output
+transition the output equals the input's final value. -/
+theorem channel_length_parity {l : List ℝ} (hs : l.Pairwise (· < ·)) :
+    (P.channel l).length % 2 = l.length % 2 := by
+  rw [channel_eq_extend hs]
+  exact outList_length_parity (extend l) (extend_mono hs) l.length
+
+/-- **(c) Causality**: every output transition is the tentative output of some input
+transition `n`, more than `δmin` after it, and (if `n` is not last) less than `δmin`
+after input transition `n+1`; and the number of earlier output transitions has the
+parity of `n`, so it has the direction of input transition `n` (`surv_parity`). -/
+theorem channel_mem {l : List ℝ} (hs : l.Pairwise (· < ·)) {s : ℝ} (hsm : s ∈ P.channel l) :
+    ∃ n, ∃ h : n < l.length, s = P.tent (extend l) n ∧ l[n] + P.dmin < s ∧
+      (∀ h' : n + 1 < l.length, s < l[n + 1] + P.dmin) ∧
+      P.survBelow l.length (extend l) n % 2 = n % 2 := by
+  rw [channel_eq_extend hs] at hsm
+  obtain ⟨n, hsv, e⟩ := (mem_outList (extend l) (extend_mono hs)).mp hsm
+  refine ⟨n, hsv.1, e.symm, ?_, fun h' => ?_, surv_parity (extend l) (extend_mono hs) hsv⟩
+  · have := surv_lo (extend l) (extend_mono hs) hsv
+    rw [extend_agree l n hsv.1] at this; rw [← e]; exact this
+  · have := surv_hi (extend l) (extend_mono hs) hsv h'
+    rw [extend_agree l (n + 1) h'] at this; rw [← e]; exact this
+
+/-- **(a) Agreement with `InvolutionTransfer`/`InvolutionDMin` under separation**: on an
+`S`-separated list with `S` above the exact threshold, nothing is cancelled and the
+output is exactly the tentative outputs `tent 0, ..., tent (N-1)`, which those files
+show to be a `DelayPure.Chan δmin (max δ∞↑ δ∞↓)` behaviour (`trace_transfer_exact`). -/
+theorem channel_of_sep {S : ℝ} (hup : P.infUp - P.dmin < S) (hdn : P.infDown - P.dmin ≤ S)
+    (t : ℕ → ℝ) (ht : ∀ n, t n + S ≤ t (n + 1)) (N : ℕ) :
+    P.channel ((List.range N).map t) = (List.range N).map (P.tent t) := by
+  have ht' : ∀ n, t n < t (n + 1) := by
+    have := P.dmin_lt_infUp; intro n; linarith [ht n]
+  rw [channel_eq ((List.range N).map t) t (fun n h => by simp) ht', List.length_map,
+    List.length_range]
+  exact (trace_transfer_exact hup hdn t ht N).1
+
+/-- **(b) A single input pulse** `[a, a + Δ]` (`Δ > 0`, input initially low): the output
+is empty iff `Δ ≤ δ∞↑ - δmin`; otherwise it is the pulse
+`[a + δ∞↑, a + δ∞↑ + Δ']` with `Δ' = pulseWidth Δ = (Δ - δ∞↑) + δ↓(Δ - δ∞↑)`, which is
+strictly increasing in `Δ` (`pulseWidth_strictMono`), positive exactly above the
+threshold (`pulse_cancel_iff'`), below `Δ + (δ∞↓ - δ∞↑)` (`pulseWidth_lt`), and tends
+to `0` at the threshold (`pulseWidth_small'`). -/
+theorem channel_pulse (a Δ : ℝ) (hΔ : 0 < Δ) :
+    P.channel [a, a + Δ] = if Δ ≤ P.infUp - P.dmin then []
+      else [a + P.infUp, a + P.infUp + P.pulseWidth Δ] := by
+  have hs : [a, a + Δ].Pairwise (· < ·) := by simpa using (by linarith : a < a + Δ)
+  rw [channel_eq_extend hs]
+  have h0 : extend [a, a + Δ] 0 = a := extend_agree _ 0 (by simp)
+  have h1 : extend [a, a + Δ] 1 = a + Δ := extend_agree _ 1 (by simp)
+  obtain ⟨hc, hp⟩ := pulse_out a Δ hΔ (extend [a, a + Δ]) h0 h1
+  show P.outList 2 _ = _
+  split_ifs with h
+  · exact hc h
+  · exact hp (lt_of_not_ge h)
+
+/-- **(b) Monotone relation**: wider input pulses give wider output pulses
+(as long as the narrower one survives); every surviving output width is positive. -/
+theorem channel_pulse_mono {Δ₁ Δ₂ : ℝ} (h1 : P.infUp - P.dmin < Δ₁) (h12 : Δ₁ < Δ₂) :
+    0 < P.pulseWidth Δ₁ ∧ P.pulseWidth Δ₁ < P.pulseWidth Δ₂ := by
+  have hpos : 0 < Δ₁ := by linarith [P.dmin_lt_infUp]
+  refine ⟨?_, pulseWidth_strictMono hpos h12⟩
+  by_contra hc; push_neg at hc
+  have := (pulse_cancel_iff' hpos).mp hc
+  linarith
+
+end
+
+/-! ## 9. Concrete instance: `ratPair` (δ(T) = 2 - 1/(T+2), δ∞ = 2, δmin = 1)
+
+Expected values are computed by hand from `ratDelay`, not from a run:
+* `[0, 1/2]`: tent 0 = 0 + 2 = 2, tent 1 = 1/2 + δ(1/2 - 2) = 1/2 + 2 - 2 = 1/2 ≤ 2:
+  the runt (width 1/2 ≤ δ∞ - δmin = 1) is cancelled, output `[]`.
+* `[0, 3/2]`: tent 1 = 3/2 + δ(-1/2) = 3/2 + 2 - 2/3 = 17/6 > 2: output `[2, 17/6]`,
+  a pulse of width 5/6 < 3/2 (pulse shrinking).
+* `[0, 1]` is exactly at the threshold: tent 1 = 1 + δ(-1) = 2 = tent 0, cancelled.
+-/
+
+noncomputable section
+
+theorem rat_delayAt (n : ℕ) : ratPair.delayAt n = ratDelay := by
+  unfold InvolutionPair.delayAt; split_ifs <;> rfl
+
+/-- **(d) A runt is cancelled** (computed through the algorithm, not through the theorems). -/
+theorem rat_runt_cancelled : ratPair.channel [0, 1 / 2] = [] := by
+  have h : ¬ ((0 : ℝ) + 2 < 1 / 2 + ratDelay (1 / 2 - (0 + 2))) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 1 / 2 + ratDelay (1 / 2 - (0 + 2))
+    then [1 / 2 + ratDelay (1 / 2 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = []
+  rw [if_neg h]; rfl
+
+/-- A wider pulse passes, shrunk: `[0, 3/2] ↦ [2, 17/6]` (width 3/2 ↦ 5/6). -/
+theorem rat_pulse_shrunk : ratPair.channel [0, 3 / 2] = [2, 17 / 6] := by
+  have h : (0 : ℝ) + 2 < 3 / 2 + ratDelay (3 / 2 - (0 + 2)) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 3 / 2 + ratDelay (3 / 2 - (0 + 2))
+    then [3 / 2 + ratDelay (3 / 2 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = _
+  rw [if_pos h]
+  norm_num [ratDelay]
+
+/-- At the threshold width `δ∞ - δmin = 1` the pulse is still cancelled. -/
+theorem rat_threshold_cancelled : ratPair.channel [0, 1] = [] := by
+  have h : ¬ ((0 : ℝ) + 2 < 1 + ratDelay (1 - (0 + 2))) := by norm_num [ratDelay]
+  show List.reverse (if (0 : ℝ) + 2 < 1 + ratDelay (1 - (0 + 2))
+    then [1 + ratDelay (1 - (0 + 2)), (0 : ℝ) + 2] else List.tail [(0 : ℝ) + 2]) = []
+  rw [if_neg h]; rfl
+
+/-- The same three results from the general theorem `channel_pulse` (consistency of the
+algorithm with the threshold `δ∞↑ - δmin`). -/
+theorem rat_pulse_general (Δ : ℝ) (hΔ : 0 < Δ) :
+    ratPair.channel [0, Δ] = if Δ ≤ 1 then [] else [2, 2 + ratPair.pulseWidth Δ] := by
+  have := channel_pulse (P := ratPair) 0 Δ hΔ
+  rw [zero_add] at this
+  rw [this, InvolutionPair.rat_dmin_eq]
+  show (if Δ ≤ 2 - 1 then _ else [0 + 2, 0 + 2 + _]) = _
+  norm_num
+
+/-- **Chained history on lists**: `[0, 1/2, 5] ↦ [89/13]` (`rat_memory` via the
+algorithm): the cancelled runt still shortens the next delay to `24/13 < δ∞`. -/
+theorem rat_memory_channel : ratPair.channel [0, 1 / 2, 5] = [89 / 13] := by
+  rw [channel_eq [0, 1 / 2, 5] InvolutionPair.ratIn (fun n h => by
+    simp only [List.length_cons, List.length_nil] at h
+    rcases n with _ | _ | _ | n
+    · simp [InvolutionPair.ratIn]
+    · simp [InvolutionPair.ratIn]
+    · norm_num [InvolutionPair.ratIn]
+    · omega) InvolutionPair.ratIn_mono]
+  exact InvolutionPair.rat_memory
+
+end
+
+/-! ## 10. The exp-channel (first-order RC + pure delay `T_p`), on traces
+
+`ExpLog` abstracts `exp`/`log` by named hypotheses (`Involution.lean`); the real instance
+`E x = e^{x/τ}`, `L y = τ ln y` needs `Mathlib.Analysis.SpecialFunctions.Log.Basic`
+(Wip/InvTrace/ExpReal.lean). -/
+
+noncomputable section
+
+theorem exp_dmin_eq (X : ExpLog) (Tp : ℝ) (hTp : 0 < Tp) : (X.expPair Tp hTp).dmin = Tp :=
+  ((X.expPair Tp hTp).isDMin_iff.mp (X.exp_dmin Tp hTp)).symm
+
+/-- **(d) exp-channel**: an isolated pulse `[a, a + Δ]` is cancelled iff `Δ ≤ τ ln 2`
+(here `X.L 2`); otherwise it comes out `T_p + τ ln 2` later with width `pulseWidth Δ`. -/
+theorem exp_channel_pulse (X : ExpLog) (Tp : ℝ) (hTp : 0 < Tp) (a Δ : ℝ) (hΔ : 0 < Δ) :
+    (X.expPair Tp hTp).channel [a, a + Δ] = if Δ ≤ X.L 2 then []
+      else [a + (Tp + X.L 2), a + (Tp + X.L 2) + (X.expPair Tp hTp).pulseWidth Δ] := by
+  rw [channel_pulse a Δ hΔ, exp_dmin_eq]
+  show (if Δ ≤ Tp + X.L 2 - Tp then _ else _) = _
+  rw [show Tp + X.L 2 - Tp = X.L 2 by ring]
+  rfl
 
 end
 
