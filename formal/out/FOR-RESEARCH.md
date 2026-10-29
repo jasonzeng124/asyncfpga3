@@ -341,3 +341,8 @@ Graded list: `formal/notes/A-substrate.md`; fidelity table: FEASIBILITY.md.
 - **Slice OUTMUX/FFMUX hops in the fid delay calculator:** 7dc5dde (audit r5 row).
 - **Dropped: LUT mux-tree order in prims.v** (A6 at the leaves). It has no logic, X or timing
   effect in the GLS (internal wires are zero-delay; audit CONFIRMED; `LutTree.evalTree_swap`).
+
+
+## 16. iverilog RAMB18E1 stand-in has no hold check and does not poison — OPEN (2026-10-29)
+
+`cells/sim/bd_prims_sim.v`'s RAMB18E1 uses one 2454 ps CLK->DO point (prjxray band: fast 585..1098, slow 1353..2454 ps), has no hold check, and on a setup violation only prints, though its header says it poisons the output. `formal/lean/Formal/Core/Prims/Ram.lean` (A, checked) gives the windows (slow corner only in prjxray: ADDR [-566,+360], WE [-532,+197], DI WRITE_FIRST [-737,+667] ps) and shows a DI/WE change inside its window gives X. Change (research GLS, since cells/ is frozen): band the CLK->DO arc, add hold checks, set DO to X on any violation. Only testbenches and board rigs use bd_mem today.

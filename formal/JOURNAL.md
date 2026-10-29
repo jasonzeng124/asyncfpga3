@@ -594,3 +594,18 @@ the ignore window is lost forever, vs B's c2_follow_hold). The resolver silently
 hypothesis B does not have (no input change that vanishes within trp+TLOOP+1 after a runt). iverilog on the
 unmodified sources: 480/480 pulses match; META_OFF control 10/12 mismatches. Not covered: X/META_X, multi-cell
 loops, other cells (GLSResolve2 running), FID_LEVEL_PS != 0. FOR-RESEARCH §8 extended.
+### progress 09:23
+PrimsRam claimed: Formal/Core/Prims/{Ram,RamXray,RamBd}.lean (check.sh with Seq* deps: 1018 decls, [check] OK,
+Lean core; my first run failed only because I omitted SeqFlop from the dependency list). RAMB18E1 as
+bd_mem instantiates it (checked against cells/rtl/bd_mem.v: TDP port A x18, port B tied off, DOA_REG=0,
+WRITE_FIRST, 1024x16, no INIT). RamRel in SeqFlop's style: per-pin windows, Kleene address decode
+(H_BRAM_DECODE_KLEENE), X only on words consistent with the sampled address and bits where old/new differ,
+never resolved until a clean access. Proved: Boolean agreement + soundness; correct write/read/write-then-read
+with clean windows; WRITE_FIRST read-during-write returns new data; X containment; data/WE change inside
+its window gives X; non-vacuity. Bundled-data obligation at one corner: req->CLKARDCLK >= payload + setup
+(bd_mem slow: +737 ps DI) and ack > clock wire max + 2454 ps CLK->DO (fast +1098); necessity of the ack
+condition by an admissible counter-placement. prjxray gaps: slow-corner windows only; TDP data only for the
+upper RAMB18 (H_BRAM_LU_SAME); no min period (H_BRAM_PERIOD). Census: no kernel in kernels/ and not gcd_hw;
+only testbenches/board rigs. For FOR-RESEARCH: cells/sim/bd_prims_sim.v's RAMB18E1 has no hold check, one
+2454 ps point and does not poison on setup violation despite its header. For B: MemPort (LibEndMemMlink)
+measures dcLo from the clock rise with <=; the real obligation needs the ram_clk-to-pin route max and <.
