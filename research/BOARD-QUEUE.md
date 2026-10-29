@@ -123,7 +123,10 @@ vec 6 ~55 laps per 150 us window. The same stack fails the unpatched lut-pinmap 
 (fid model 78de9c2 + decoder fix 54f2ce6): 16/16 errs=0 at FAST_MIN on 8/8 (laps vec 6 mean 89.6, 83-94) and at
 SLOW_MAX on 8/8 (vec 6 mean 32.8, worst seed 4: 31); band 0.38 with region 0.16 + wire 0.126 scatter (the measured
 8.5% median ring scatter): 8/8 seeds pass, vec 6 47-54; with 2x that: 7/8 pass, and seed 9 FAILS (draw 1: six
-vectors give one lap with an X in the result compare, then stall; under investigation, JOURNAL 2026-10-29).
+vectors give one lap with an X in the result compare, then stall). Root cause (JOURNAL 2026-10-29): uori2's matched
+delay sits ~30 slice rows from the comparator it tracks; the failing draw makes their regions differ ~2.8x in
+speed at its threshold (~1.33x the calibrated scatter). Beyond what the ring data supports, so #3 stays queued;
+if the board fails vectors 2,3,9,11,13,15 with the rest passing, suspect this bundle first.
 The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
 prediction.
 
