@@ -173,3 +173,9 @@ r8 in (research 73b08ca): CARRY4/LATX fid transport fix CONFIRMED (X items still
 CONFIRMED but makes the DSP hard item unfalsifiable (x counted as MATCH) -> OVERSTATED; acceptance judge_full counts a
 crashed unpatched run as full 'reproduces the board' (I read acceptance.py:519-538) -> OVERSTATED; BQ#3 seed 3 SLOW_MAX
 reproduced with identical md5s and laps.
+
+### progress 02:43
+P8 (formal B 10-27 commits) in: Necessity rows, KleeneBox, LinkExact, ResetGcdVec2 CONFIRMED with scope notes; CTree
+JSON 'exact' label mildly OVERSTATED; ArbPin2 per-arbiter numbers' provenance unverifiable (extraction not committed).
+All audit files compiled against the 6863284 build, axioms clean, mutants fail. Both branches idle; next: wait for new
+heads (heartbeat).
