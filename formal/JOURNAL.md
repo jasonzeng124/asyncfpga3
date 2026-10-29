@@ -495,3 +495,16 @@ Mathlib-free Core modules plus their 8 dependencies in B/C re-elaborated from so
 audited clean. Not covered: the 18 Mathlib-dependent Core modules (the lake build covers them once
 Mathlib is built) and this session's new Core files (each probe's check.sh run is their check).
 GLSPass reinstated in FEASIBILITY, GLSPass2 added.
+### progress 08:35
+InvTrace claimed: Formal/Core/Delay/InvolutionTrace.lean (check.sh with Pure/Involution/
+InvolutionTransfer/InvolutionDMin: 321 decls, [check] OK). The IDM channel as a trace map
+channel : List R -> List R (the non-forgetful algorithm of Fuegger/Nowak/Schmid as a fold; T measured
+from the previous tentative output even if cancelled), proved equal to a declarative survivors
+semantics (channel_eq); no transition cancels twice. Agreement with InvolutionTransfer under the
+exact separation threshold; single pulse cancelled iff width <= dinf_up - dmin, else the output
+width law with strict monotonicity; output strictly increasing, alternating, same final value,
+each output in its window; ratPair examples incl. a cancelled runt shortening the next delay
+(89/13 vs 7 for a forgetful channel); exp channel over an abstract ExpLog: cancelled iff
+width <= tau ln 2. Not covered: gates/feedback (InvLoop2), simultaneous transitions, the equality
+case at the threshold (paper text unreadable here; affects only the exact threshold), eta-noise,
+the real exp/log instance (Wip/InvTrace/ExpReal.lean, needs Mathlib Log oleans).
