@@ -1640,3 +1640,11 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
   then BQ#3 x8 x2 corners on the new resolver.
 - S13 started: region/wire scatter applied to the nextpnr-named SDF, then rule A, as a static predictor of the
   seed-9 2x-scatter failure (rule A was blind to it on the unscaled SDF: uori2 +1510 ps).
+### progress 19:46 (BQ#2 seeds 6, 7 both corners PASS under the new resolver)
+| BQ#2 full stack, 055edd7 resolver | sdf | xray sdf | verdict | laps v6/v12/v13 |
+|---|---|---|---|---|
+| seed 6 SLOW_MAX | c4ec8664 | 1f7f03ea | PASS 16/16 errs 0, EQUIVALENT | 33/27/39 |
+| seed 6 FAST_MIN | c4ec8664 | 1f7f03ea | PASS 16/16 errs 0, EQUIVALENT | 93/76/109 |
+| seed 7 SLOW_MAX | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 31/25/36 |
+| seed 7 FAST_MIN | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 86/69/100 |
+FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x2 corners.
