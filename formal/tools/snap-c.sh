@@ -11,7 +11,7 @@ git ls-files -mo --exclude-standard $L/Formal/Net $L/Formal/Timing $L/Formal/Gen
   d=$L/Wip/_snapC/${f#$L/}; mkdir -p "$(dirname "$d")"; cp "$f" "$d"; done
 git add formal/LOCK-C
 { git ls-files -mo --exclude-standard formal/notes | grep 'formal/notes/C-'
-  git ls-files -mo --exclude-standard formal/tools $L/Wip | grep -vE '\.vvp$|/\.lake/|^formal/lean/Wip/_snap[AB]/|^formal/lean/Wip/(Cells|[AB])'; } |
+  git ls-files -mo --exclude-standard formal/tools $L/Wip | grep -vE '\.vvp$|\.olean$|\.ilean$|\.c$|/obj/|/\.lake/|^formal/lean/Wip/_snap[AB]/|^formal/lean/Wip/(Cells|[AB])'; } |
 while read -r f; do [ -f "$f" ] && [ "$(stat -c %s "$f")" -lt 5000000 ] && git add "$f"; done
 git commit -qm "formal C: WIP snapshot of running probes (notes, tools, Wip/_snapC copies of unreviewed Formal files; nothing claimed), lock
 
