@@ -179,3 +179,7 @@ P8 (formal B 10-27 commits) in: Necessity rows, KleeneBox, LinkExact, ResetGcdVe
 JSON 'exact' label mildly OVERSTATED; ArbPin2 per-arbiter numbers' provenance unverifiable (extraction not committed).
 All audit files compiled against the 6863284 build, axioms clean, mutants fail. Both branches idle; next: wait for new
 heads (heartbeat).
+
+### progress 03:10
+Both branches idle (formal 6863284, research 6edd071). Launched ev8 agent: reproduce Events8 gcd_hw slow/fast CLEAN and
+gb seed-d ENTRY failures (UNVERIFIED row) with own route + own computation.
