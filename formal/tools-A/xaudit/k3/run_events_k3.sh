@@ -10,8 +10,10 @@
 # Negative controls on seed $NS (default d) slow, each MUST be rejected:
 #   NEG-fb5000 : +5000 ps on both bounds of ucontrol_merge0.uarb1.ua2's own-feedback arc (negctl_k2.py)
 #   NEG-recog  : certificate edit, one real node's feedback input claimed to be its reset input
-#   NEGentry   : +5000 ps on both bounds of the first umux guarded pin's arc  -> that guard residual
-#   NEGexit    : +18000 ps on the upper bound of that stage's guard-pin arc      -> that guard residual
+#   NEGentry   : +GPS ps (60000) on both bounds of the first umux guarded pin's arc -> that guard residual
+#   NEGexit    : +GPS ps on the upper bound of that stage's guard-pin arc             -> that guard residual
+#   (gcd's neg8.sh used +5000 / +18000; on ipow d +5000 on umux3.uya pin1 left it CLEAN -- the ENTRY
+#    margin includes the S->D walk dW, many ns -- so the defect is now larger than any transaction walk)
 #   NEGnoguard : cert8.py --no-guard                                             -> every guard residual
 #   k3/run_events_k3.sh <kernel>     SEEDS="d 3 4 5" CORNERS="slow fast indep gb" CHK="8 5" NEG=1
 # Inputs $OUT/<seed>/{net.json,<corner>.bands.json} (bands_k3.sh).  Outputs $R/{xe8,xe5,cert8,cert6,ana5}_<seed>_<corner>.txt
@@ -29,6 +31,7 @@ xe() {  # main skel bands cert out
 }
 rows=()
 for s in ${SEEDS:-d 3 4 5}; do
+  [ "$s" = none ] && continue
   D=$OUT/$s
   for c in ${CORNERS:-slow fast indep gb}; do
     python3 "$X/events4/skel.py" $D/net.json $D/$c.bands.json $D/skel.json $D/skel_$c.bands.json > "$R/skel_${s}_$c.txt"
@@ -56,14 +59,14 @@ print("NEG-recog:", n["name"])
 json.dump(c, open(sys.argv[2], "w"))
 PY
   rows+=("8 $D/skel.json $D/skel_slow.bands.json $D/cert8_NEGrecog.json $R/xe8_${NS}_slow_NEGrecog.txt")
-  python3 -I - $D/cert8_slow.json $D/skel_slow.bands.json $D >> $N <<'PY'
+  python3 -I - $D/cert8_slow.json $D/skel_slow.bands.json $D ${GPS:-60000} >> $N <<'PY'
 import json, sys
-c = json.load(open(sys.argv[1])); src, od = sys.argv[2], sys.argv[3]
+c = json.load(open(sys.argv[1])); src, od, G = sys.argv[2], sys.argv[3], int(sys.argv[4])
 k = next(k for k in c["guards"] if "umux" in c["nodes"][int(k.split("/")[0])]["name"])
 j, p = map(int, k.split("/")); n = c["nodes"][j]
 gd = n["pins"][p]["paths"][0][0][0]; gg = n["pins"][n["pins"][p]["gp"]]["paths"][0][0][0]
 open(f"{od}/NEG_guard_target.txt", "w").write(f"{n['name']} pin{p}\n")
-for tag, arc, dlo, dhi in (("NEGentry", gd, 5000, 5000), ("NEGexit", gg, 0, 18000)):
+for tag, arc, dlo, dhi in (("NEGentry", gd, G, G), ("NEGexit", gg, 0, G)):
     b = json.load(open(src)); lo, hi = b["arcs"][arc]; b["arcs"][arc] = [lo + dlo, hi + dhi]
     print(f"{tag}: guard {k} = {n['name']} pin{p}: {arc} {lo},{hi} -> {lo+dlo},{hi+dhi}")
     json.dump(b, open(f"{od}/skel_slow_{tag}.bands.json", "w"))

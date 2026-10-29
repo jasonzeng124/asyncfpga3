@@ -123,7 +123,7 @@ at ONE corner; at all other times it may be anything (wrong words, X, any number
 - `settle_px` (cascade wires 0): **settleHi = 7267 ps slow / 3074 ps fast**, settleLo = 1310 /
   571 ps. The critical path is a[16:0] → head A→PCOUT → mid PCIN→PCOUT → tail PCIN→P
   (4036 + 1713 + 1518 slow). A per-cell lumping (hull of each cell's arcs) would give 11728 ps
-  slow, so the per-path bound matters.
+  slow (hand arithmetic, not in Lean), so the per-path bound matters.
 - `settle_np`: with nextpnr's routed-SDF values the same paths give 12310 ps (its A→ACOUT is
   5400 ps against prjxray's ≤ 723). `nextpnr_vs_prjxray`: the nextpnr SDF is ABOVE prjxray's
   slow max on 6 arcs and BELOW it on two (B→PCOUT 3850 < 3851, PCIN→PCOUT 1710 < 1713): the SDF

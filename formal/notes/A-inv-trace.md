@@ -1,9 +1,17 @@
 # A-inv-trace: full trace semantics of the involution channel (probe InvTrace)
 
-STATUS (07:40 UTC): Lean written (Wip/InvTrace/InvolutionTrace.lean, 1000 lines: last
-session's draft + the paper's algorithm + list-level theorems + ratPair examples), NOT yet
-checked: Mathlib is still building (336 oleans). Will move to
-Formal/Core/Delay/InvolutionTrace.lean once check.sh passes.
+STATUS (08:32 UTC): DONE. `formal/lean/Formal/Core/Delay/InvolutionTrace.lean` checks:
+
+    formal/check.sh Formal/Core/Delay/Pure.lean Formal/Core/Delay/Involution.lean \
+      Formal/Core/Delay/InvolutionTransfer.lean Formal/Core/Delay/InvolutionDMin.lean \
+      Formal/Core/Delay/InvolutionTrace.lean
+    -> [audit] 321 declarations checked / [check] OK
+
+(321 counts all five modules; the deps' oleans were not in .lake/build, so check.sh
+compiled them in its overlay.) Unchecked leftover: Wip/InvTrace/ExpReal.lean (the real
+exp/log instance; needs Mathlib.Analysis.SpecialFunctions.Log.Basic, not built yet).
+Negative controls (scratch, not committed): claiming `ratPair.channel [0, 101/100] = []`
+or `ratPair.channel [0, 3/2] = [2, 3]` fails to elaborate, as it must.
 
 ## The paper's construction (sources)
 
@@ -44,3 +52,77 @@ Two points of the formalization follow it and are stated explicitly in Lean:
 - Operational semantics (`step`, `channel : List ℝ → List ℝ`): the paper's algorithm as a
   left fold over the input list. `channel_eq`: equal to `outList` (for any strictly
   increasing extension; `extend` gives one).
+
+## What is proved (plain language)
+
+Assumed throughout: one involution channel, i.e. an `InvolutionPair` P (named fields:
+δ↑, δ↓ strictly increasing on their domains, bounded by δ∞↑, δ∞↓, the two involution
+identities, strict causality). Input initially low; input transition times strictly
+increasing. δmin = `P.dmin` (exists by InvolutionDMin, no extra hypothesis).
+
+Semantics (two definitions, proved equal):
+- `channel P : List ℝ → List ℝ` -- the paper's algorithm as a left fold (`step`): transition
+  k+1 at time x gets candidate o' = x + δ(x − o), with δ = δ↑ for even k+1, δ↓ for odd,
+  and o the previous *tentative* output (cancelled or not); the first gets x + δ∞↑. If
+  o < o' the candidate is appended, else the last output is removed. o' becomes the new o
+  either way.
+- `outList P N t` -- declarative: survivors of the pairwise cancellation rule.
+- `channel_eq`: on a strictly increasing list, `channel l = outList l.length t` for every
+  strictly increasing extension `t` (`extend l` is one).
+- `cancel_no_chain` / `surv_of_cancel`: a removal always removes the output of the
+  immediately preceding transition, which is still pending (the paper's "deleted in the
+  next iteration or never"); no transition takes part in two cancellations.
+
+(a) Agreement with InvolutionTransfer/InvolutionDMin:
+- `outList_of_noCancel`: if no cancellation event occurs, the output is exactly
+  `tent 0, ..., tent (N−1)` (the objects of the earlier files).
+- `channel_of_sep`, `trace_transfer_exact`, `trace_transfer_sep`: S-separated input with
+  δ∞↑ − δmin < S and δ∞↓ − δmin ≤ S (the exact threshold of `sep_threshold_exact`): output
+  list = tentative times, and the output signal is a `DelayPure.Chan δmin (max δ∞↑ δ∞↓)`
+  behaviour of the input; with S > max δ∞ − δmin also the narrower band of transfer_sep.
+  `trace_transfer_comp`: then composes with a following bounded pure-delay channel.
+
+(b) Single pulse (`channel_pulse`, `pulse_out`): `channel [a, a+Δ]` (Δ > 0) is `[]` iff
+Δ ≤ δ∞↑ − δmin, else `[a + δ∞↑, a + δ∞↑ + Δ']` with Δ' = (Δ − δ∞↑) + δ↓(Δ − δ∞↑)
+(`pulseWidth`). `channel_pulse_mono`: above threshold Δ' > 0 and Δ ↦ Δ' strictly
+increasing; from earlier files: Δ' < Δ + (δ∞↓ − δ∞↑), and Δ' → 0 as Δ ↓ threshold.
+
+(c) Well-formed output: `channel_sorted` (strictly increasing), `channel_getElem?_dir`
+(output transition k comes from an input transition n ≡ k mod 2: alternation, same
+direction as its cause), `channel_length_parity` (final output value = final input value),
+`channel_mem` (each output s comes from an input n with l[n] + δmin < s < l[n+1] + δmin).
+
+(d) Instances: `ratPair` (δ(T) = 2 − 1/(T+2), δ∞ = 2, δmin = 1), evaluated through the
+algorithm with hand-derived values: `rat_runt_cancelled` [0, 1/2] ↦ [];
+`rat_threshold_cancelled` [0, 1] ↦ [] (exact threshold, cancelled);
+`rat_pulse_shrunk` [0, 3/2] ↦ [2, 17/6] (width 3/2 → 5/6); `rat_memory_channel`
+[0, 1/2, 5] ↦ [89/13] (the cancelled runt shortens the next delay to 24/13; a channel that
+forgot it would give 7). Exp-channel (abstract exp/log `ExpLog`, δ(T) = T_p +
+τ ln(2 − e^{−(T+T_p)/τ})): `exp_channel_pulse`, a pulse is cancelled iff Δ ≤ τ ln 2.
+Also `outList_shift_input` (time invariance) and `outList_shiftPair` (involution then pure
+delay D ≥ 0 is the involution channel δ'(T) = D + δ(T+D), δ'min = δmin + D).
+
+## What is NOT covered
+- Only one channel; no gates, no feedback, no circuit; the paper's bounded-SPF
+  impossibility (continuity of circuit traces) is not attempted.
+- Continuity of the output in the input times is not stated.
+- Inputs must be strictly increasing; simultaneous transitions (zero-time glitches at the
+  gate output) are not modelled -- a zero-time gate in front would need that.
+- The cancellation comparison is "≤ cancels" (the snippet wording: "out-of-order ...
+  removed"); whether the paper cancels on equality could not be read from the paper
+  itself (fetch blocked). It only changes the boundary case Δ = δ∞↑ − δmin.
+- η-involution channels (adversarial noise) are not covered.
+- No link to `TraceEvent.Sig` / other Core trace types; the output signal is a
+  `DelayPure.Sig` via `listSig`.
+- Real exp/log instance: Wip/InvTrace/ExpReal.lean, unchecked.
+
+## For the lead
+- Root import if wanted: `import Formal.Core.Delay.InvolutionTrace` (lakefile glob already
+  builds it). Imports Involution, InvolutionTransfer, InvolutionDMin.
+- Wip/_snapA/Formal/Core/Delay/InvolutionTrace.lean is superseded (the claimed file extends
+  it; the draft did not compile as-is: missing Decidable instance for `Surv`, implicit `P`
+  in two calls, `Finset.range_succ` renamed `range_add_one`, two causal proofs, rat_memory).
+- `Wip/DelayInvolution.lean`'s `filtered_output_trace` stub (sorry) is superseded by
+  `channel`/`channel_eq`.
+- Many deprecation warnings (if_pos/if_neg/push_neg) but no errors; same style as the
+  existing Involution files.

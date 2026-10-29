@@ -309,7 +309,6 @@ theorem ipowMul_eq (a b : Nat) : ipowMul a b = muli32 a b := by
       = (lo17 a * lo17 b + 131072 * (lo17 a * hi15 b + hi15 a * lo17 b)
           + 131072 * (131072 * (hi15 a * hi15 b))) % 2 ^ 32 := by
     rw [Nat.mul_mod, hsplit a, hsplit b, expand4]
-    omega
   unfold ipowMul muli32
   rw [hprod, hT, hM, hH]
   omega

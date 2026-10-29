@@ -524,4 +524,139 @@ theorem seed_dependence (L : Nat) (win : Int) (R : Int → Nat) {t0 w : Nat} (hL
   · intro st h
     exact ⟨_, (commit_gap (p := ⟨L, win, fun _ => n1, R⟩) hL ht0 hw1 hw h (by simpa using h1)).2⟩
 
+/-! ### No runt: the resolver is the identity, and the run is a B behaviour -/
+
+/-- The LUT value the resolver sees at step `t` (`FID_SAMPLE` output). -/
+def fIn (p : Prm) (a b rst : Sig) (st : Nat → St) (t : Nat) : Bool :=
+  fC2 (a t) (b t) (st (t - p.L)).o (rst t)
+
+/-- The run never takes the runt branch (`:77-78`): it prints no `RUNT`/`META` line
+(`:85-86,101-103` with `+META_VERBOSE=2`), i.e. `n_rej = n_meta = 0`. -/
+def NoRunt (p : Prm) (a b rst : Sig) (st : Nat → St) : Prop :=
+  ∀ t, isRunt p (t + 1) (fIn p a b rst st (t + 1)) (st t) = false
+
+theorem noRunt_free {p : Prm} {a b rst : Sig} {v0 : Bool} {st : Nat → St}
+    (h : Run p a b rst v0 st) (hn : NoRunt p a b rst st) :
+    ∀ t, (st t).busy = false ∧ (st t).ign = 0 ∧ (0 < t → (st t).o = fIn p a b rst st t) := by
+  intro t
+  induction t with
+  | zero => rw [h.zero]; simp [St.init]
+  | succ t ih =>
+    obtain ⟨hb, hi, _⟩ := ih
+    have hbl : blocked (t + 1) (st t) = false := by simp [blocked, hb, hi]
+    have e := h.succ t
+    have hf : fC2 (a (t + 1)) (b (t + 1)) (st (t + 1 - p.L)).o (rst (t + 1)) =
+        fIn p a b rst st (t + 1) := rfl
+    rw [hf] at e
+    by_cases hs : fIn p a b rst st (t + 1) = (st t).o
+    · rw [e]; unfold step; rw [eval_same hs, nba_idle hb]; exact ⟨hb, hi, fun _ => hs.symm⟩
+    · rw [e]; unfold step; rw [eval_edge hbl hs (hn t), nba_idle (by simp [hb])]
+      exact ⟨hb, hi, fun _ => rfl⟩
+
+/-- **(2a) A run with no runt is exactly B's loop at the run's delay point.** If the run
+printed no RUNT/META line, its output `O = o` and feedback pin `qp = o (· - TLOOP)` satisfy
+B's gate relations `CElemTiming.Loop` for bd_c2 with LUT delay `0` (the pin arcs are in the
+pin traces) and wire delay `TLOOP`, so every theorem of `CElemTiming` about `Loop` (follow and
+hold, reset, the four-phase theorem) applies to the run, at that one delay point. `hinit`:
+the reset value is a fixed point of the cell at time 0. -/
+theorem noRunt_loop {p : Prm} {a b rst : Sig} {v0 : Bool} {st : Nat → St} (hL : 1 ≤ p.L)
+    (h : Run p a b rst v0 st) (hn : NoRunt p a b rst st)
+    (hinit : fC2 (a 0) (b 0) v0 (rst 0) = v0) :
+    Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 a b rst
+      (fun t => (st t).o) (fun t => (st (t - p.L)).o) 0 0 p.L p.L where
+  H_LUT := by
+    intro t _
+    refine ⟨t, by omega, by omega, ?_⟩
+    show (st t).o = Formal.Cells.CElemTiming.exc _ (a t) (b t) (st (t - p.L)).o (rst t)
+    rw [← fC2_eq_exc]
+    cases t with
+    | zero => simp [h.zero, St.init]; exact hinit.symm
+    | succ t => exact (noRunt_free h hn (t + 1)).2.2 (by omega)
+  H_FB := by
+    intro t ht
+    exact ⟨t - p.L, by omega, by omega, rfl⟩
+  H_LOOP_POS := by omega
+
+/-- **(2b) Sufficient condition for "no runt": L-spaced edges.** If the transport fid loop
+(the resolver off, `+META_OFF=1`: `O t = F(pins t, O (t - L))`) has no two edges closer than
+`TLOOP`, the resolver run IS that transport run: same output, never busy. -/
+def Spaced (L : Nat) (O : Sig) : Prop :=
+  ∀ u v, u < v → O (u + 1) ≠ O u → O (v + 1) ≠ O v → L ≤ v - u
+
+/-- Time of the last edge of `O` up to `t` (`0` if none). -/
+def lastE (O : Sig) : Nat → Nat
+  | 0 => 0
+  | t + 1 => if O (t + 1) = O t then lastE O t else t + 1
+
+/-- The value before that edge (`v_before`). -/
+def lastV (O : Sig) (v0 : Bool) : Nat → Bool
+  | 0 => v0
+  | t + 1 => if O (t + 1) = O t then lastV O v0 t else O t
+
+theorem lastE_spec (O : Sig) : ∀ t, lastE O t ≤ t ∧ (0 < lastE O t → O (lastE O t - 1 + 1) ≠ O (lastE O t - 1)) := by
+  intro t
+  induction t with
+  | zero => simp [lastE]
+  | succ t ih =>
+    by_cases he : O (t + 1) = O t
+    · simp only [lastE, he, if_true]; exact ⟨by omega, ih.2⟩
+    · simp only [lastE, he, if_false]; exact ⟨by omega, fun _ => by simpa using he⟩
+
+theorem spaced_identity {p : Prm} {a b rst : Sig} {v0 : Bool} {st : Nat → St} {O : Sig}
+    (h : Run p a b rst v0 st) (hO0 : O 0 = v0)
+    (hrec : ∀ t, O (t + 1) = fC2 (a (t + 1)) (b (t + 1)) (O (t + 1 - p.L)) (rst (t + 1)))
+    (hsp : Spaced p.L O) :
+    ∀ t, st t = ⟨O t, false, lastV O v0 t, lastE O t, 0, 0, v0⟩ := by
+  intro t
+  induction t using Nat.strongRecOn with
+  | _ t ih =>
+    cases t with
+    | zero => rw [h.zero]; simp [St.init, hO0, lastV, lastE]
+    | succ t =>
+      rw [h.succ t, ih t (by omega), ih (t + 1 - p.L) (by omega)]
+      simp only
+      rw [← hrec t]
+      unfold step
+      by_cases he : O (t + 1) = O t
+      · rw [eval_same he, nba_idle rfl]; simp [lastV, lastE, he]
+      · have hr : isRunt p (t + 1) (O (t + 1)) ⟨O t, false, lastV O v0 t, lastE O t, 0, 0, v0⟩
+            = false := by
+          have hs := lastE_spec O t
+          by_cases h0 : lastE O t = 0
+          · simp [isRunt, h0]
+          · have hsp' := hsp (lastE O t - 1) t (by omega) (hs.2 (by omega)) (fun e => he e)
+            simp [isRunt]; intro _ _; omega
+        rw [eval_edge (by simp [blocked]) he hr, nba_idle rfl]
+        simp [lastV, lastE, he]
+
+/-! ## 6. Counterexamples: behaviours of the transport / band model that a passing resolver
+run hides -/
+
+/-- B's loop at a given delay point exists for every input (causal recursion). -/
+def bG (L : Nat) (a b rst : Sig) (v0 : Bool) : Nat → (Nat → Bool) → Bool :=
+  fun t h => fC2 (a t) (b t) (if t < L then v0 else h (t - L)) (rst t)
+
+theorem bG_causal {L : Nat} (a b rst : Sig) (v0 : Bool) (hL : 1 ≤ L) : Causal (bG L a b rst v0) := by
+  intro t h h' e
+  simp only [bG]
+  by_cases ht : t < L
+  · simp [ht]
+  · simp [ht, e (t - L) (by omega)]
+
+theorem bloop_exists {L : Nat} (a b rst : Sig) (v0 : Bool) (hL : 1 ≤ L) :
+    ∃ O qp : Sig, Formal.Cells.CElemTiming.Loop Formal.Cells.CElemTiming.INIT_c2 a b rst O qp 0 0 L L := by
+  refine ⟨cr (bG L a b rst v0), fun t => if t < L then v0 else cr (bG L a b rst v0) (t - L), ?_⟩
+  exact
+    { H_LUT := by
+        intro t _
+        refine ⟨t, by omega, by omega, ?_⟩
+        rw [cr_eq (bG_causal a b rst v0 hL) t]
+        simp only [bG]
+        rw [fC2_eq_exc]
+      H_FB := by
+        intro t ht
+        refine ⟨t - L, by omega, by omega, ?_⟩
+        simp [show ¬ t < L by omega]
+      H_LOOP_POS := by omega }
+
 end Formal.Core.GLSResolve
