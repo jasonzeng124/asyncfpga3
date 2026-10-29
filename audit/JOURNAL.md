@@ -271,3 +271,8 @@ r15 in: ring128_summary soft MISMATCH reproduced exactly from 8 rebuilt routes (
 P10b in: Core/Prims arcs CONFIRMED (506/506 vs prjxray); Seq flop windows SLICEL-only -- SLICEM hold 262 > model 241 (I
 checked slicem.sdf:618) -> OVERSTATED; 'X then definite' assumed; DSP and XSound2 minor overstatements; Involution
 trace/loop CONFIRMED.
+
+### progress 09:58
+Formal 84bc9e4 clean lake build EXIT 0 -- first fully clean build (GLSPass fixed). P10a: all five answers to audit rows
+CONFIRMED (exact link_arb thresholds incl. my 200/1103 point; gcd arb bracket; E8Mux agrees with my ev8 signs; gcdnet
+generator byte-identical). Axiom audit of 84bc9e4 running; P10c running.
