@@ -62,7 +62,7 @@ The relation is not vacuous: `ramSim` builds, for EVERY input, a memory and an o
 satisfying it (`ramSim_rel`).
 
 ## Main theorems
-* `kread_def`, `wnext_def`, `onext_wf_write`: on definite inputs the K3 RAM is the Boolean
+* `kread_def`, `wnext_self`, `wnext_other`, `onext_wf_write`: on definite inputs the K3 RAM is the Boolean
   RAM; WRITE_FIRST returns the data written whatever the address.
 * `wnext_sound`, `onext_sound`, `kread_mono`, `wnext_mono`, `onext_mono`: every Boolean
   completion of the sampled inputs gives a result covered by the K3 one (X is sound).
@@ -117,12 +117,6 @@ theorem sel_other {aw : Nat} {v w : BAddr aw} (h : w ≠ v) : sel (ofBoolVec v) 
   have h2 : ¬ Consistent (ofBoolVec v) w := fun h' => h (consistent_ofBoolVec.1 h')
   simp [sel, h1, h2]
 
-theorem sel_ofBoolVec {aw : Nat} (v w : BAddr aw) :
-    sel (ofBoolVec v) w = if w = v then one else zero := by
-  by_cases h : w = v
-  · subst h; simp [sel_self]
-  · simp [sel_other h, h]
-
 /-- Outside the address cube the wordline is 0. -/
 theorem sel_not_consistent {aw : Nat} {a : Fin aw → K3} {w : BAddr aw} (h : ¬ Consistent a w) :
     sel a w = zero := by
@@ -130,7 +124,9 @@ theorem sel_not_consistent {aw : Nat} {a : Fin aw → K3} {w : BAddr aw} (h : ¬
 
 /-- A definite address never gives an X wordline. -/
 theorem sel_ne_X_of_def {aw : Nat} (v w : BAddr aw) : sel (ofBoolVec v) w ≠ X := by
-  rw [sel_ofBoolVec]; split <;> decide
+  by_cases h : w = v
+  · subst h; rw [sel_self]; decide
+  · rw [sel_other h]; decide
 
 /-- Refinement order on address vectors: `a'` refines `a` pointwise. -/
 theorem consistent_of_le {aw : Nat} {a a' : Fin aw → K3} {w : BAddr aw} (h : VLe a a')
@@ -237,22 +233,29 @@ theorem onext_nc_write {aw dw : Nat} (a : Fin aw → K3) (din : KWord dw) (m : M
     (dold : KWord dw) : onext .noChange one a din m dold = dold := by
   funext j; rfl
 
-/-- The write with definite WE and address: the addressed word gets `din`, the others keep
-their contents. -/
-theorem wnext_def {aw dw : Nat} (rdis we : Bool) (v : BAddr aw) (din : KWord dw)
-    (m : Mem aw dw) (w : BAddr aw) :
-    wnext rdis (ofBool we) (ofBoolVec v) din m w = if we = true ∧ w = v then din else m w := by
+/-- The write with definite WE and address, at the addressed word: `din` if WE = 1. -/
+theorem wnext_self {aw dw : Nat} (rdis we : Bool) (v : BAddr aw) (din : KWord dw)
+    (m : Mem aw dw) : wnext rdis (ofBool we) (ofBoolVec v) din m v = if we then din else m v := by
+  funext j
+  have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) v = X) := fun h => sel_ne_X_of_def v v h.2
+  simp only [wnext, hX, ite_false, sel_self]
+  cases we <;> simp [K3.and, ofBool, kmux]
+
+/-- ... and at every other word: unchanged. -/
+theorem wnext_other {aw dw : Nat} (rdis : Bool) (we : Bool) {v w : BAddr aw} (din : KWord dw)
+    (m : Mem aw dw) (hw : w ≠ v) : wnext rdis (ofBool we) (ofBoolVec v) din m w = m w := by
   funext j
   have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) w = X) := fun h => sel_ne_X_of_def v w h.2
-  simp only [wnext, hX, ite_false]
-  by_cases hw : w = v
-  · subst hw; rw [sel_self]; cases we <;> simp [K3.and, ofBool, kmux]
-  · rw [sel_other hw]; cases we <;> simp [K3.and, ofBool, kmux, hw]
+  simp only [wnext, hX, ite_false, sel_other hw]
+  cases we <;> simp [K3.and, ofBool, kmux]
 
 /-- WE = 0 (definite) with a definite address leaves the array unchanged. -/
 theorem wnext_read {aw dw : Nat} (rdis : Bool) (v : BAddr aw) (din : KWord dw) (m : Mem aw dw) :
     wnext rdis zero (ofBoolVec v) din m = m := by
-  funext w; have := wnext_def rdis false v din m w; simpa using this
+  funext w
+  by_cases hw : w = v
+  · subst hw; have := wnext_self rdis false w din m; simpa using this
+  · exact wnext_other rdis false din m hw
 
 /-- WE = 0 (definite) and no read disturb: the array is unchanged whatever the address. -/
 theorem wnext_read_nd {aw dw : Nat} (a : Fin aw → K3) (din : KWord dw) (m : Mem aw dw) :
@@ -319,14 +322,17 @@ theorem wnext_sound {aw dw : Nat} (rdis : Bool) {we : K3} {a : Fin aw → K3} {d
     {bm : BAddr aw → Fin dw → Bool} (hwe : we ⊑ ofBool bwe) (ha : Consistent a bv)
     (hd : Consistent din bdin) (hm : MLe m (ofBMem bm)) :
     MLe (wnext rdis we a din m) (ofBMem (bwnext bwe bv bdin bm)) := by
-  have := wnext_mono rdis hwe ha hd hm
   intro w j
-  have h := this w j
-  rw [wnext_def] at h
+  have h := wnext_mono rdis hwe ha hd hm w j
   refine K3.le_trans h ?_
   by_cases hw : w = bv
-  · subst hw; cases bwe <;> simp [ofBMem, bwnext, ofBoolVec, isAddr_ofBoolVec] <;> exact le_refl _
-  · cases bwe <;> simp [ofBMem, bwnext, ofBoolVec, isAddr_ofBoolVec, hw] <;> exact le_refl _
+  · subst hw
+    rw [wnext_self]
+    have hi : IsAddr (ofBoolVec w) w := isAddr_ofBoolVec.2 rfl
+    cases bwe <;> simp [ofBMem, bwnext, hi, ofBoolVec] <;> exact le_refl _
+  · rw [wnext_other rdis bwe _ _ hw]
+    have hi : ¬ IsAddr (ofBoolVec bv) w := fun h => hw (isAddr_ofBoolVec.1 h)
+    simp [ofBMem, bwnext, hi] ; exact le_refl _
 
 /-- The Boolean DOADO. -/
 def bonext {aw dw : Nat} (md : WMode) (we : Bool) (v : BAddr aw) (din : Fin dw → Bool)
