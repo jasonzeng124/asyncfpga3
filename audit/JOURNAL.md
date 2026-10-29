@@ -276,3 +276,7 @@ trace/loop CONFIRMED.
 Formal 84bc9e4 clean lake build EXIT 0 -- first fully clean build (GLSPass fixed). P10a: all five answers to audit rows
 CONFIRMED (exact link_arb thresholds incl. my 200/1103 point; gcd arb bracket; E8Mux agrees with my ev8 signs; gcdnet
 generator byte-identical). Axiom audit of 84bc9e4 running; P10c running.
+
+### progress 09:59
+P10c in: ResetCapstone/ResetWitness2 (D=2,W=1), ZeroDelayNet, ContractBridge, IpowCellsT, ArbNoWithdraw, C-9d rings,
+Necessity6 all CONFIRMED with scope notes; nothing refuted. Pass 10 subagents done; axiom audit of 84bc9e4 running.
