@@ -1610,3 +1610,19 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
   rejection. Measured flop tau 35-75 ps at 130-65 nm puts TAU_FF 75 at the slow (pessimistic) end. A datasheet
   CK minimum pulse width (~0.5 ns, unconfirmed) would make 70-500 ps CK runts spec violations; not acted on.
 - Running: S12 (arbiter near-tie double-ack under the new resolver + gcd_hw grant->A0 round trips); BQ#3 8 reroutes.
+### progress 15:25 (audit r18 answered with data: model requirement derived, gcd_hw's arbiters clear it)
+- 089d00e + 7d21f37 (S12): bd_arbiter near tie re-measured under the 055edd7 resolver (tb_f3_arbtie, own bench
+  built the gen.py way). Double acks persist, rarer: TLOOP 424 S=600 303/9200 (r18 old resolver 1097/10440),
+  clean from S=1095 (was 1200); TLOOP 200 clean from 915 (was 1000). Grants never overlap. Requirement derived
+  and checked: RT + a >= trp_max + GP + c - skew (predicts 1088/909 vs measured 1080-1095/905-915), so
+  bd_arb.v's "one loop delay" consumer obligation is NOT sufficient in the model. The hold-release race
+  (re-request at A0-fall) gives the same failure and the same threshold.
+  On BQ#2 seed 6 (prjxray FAST_MIN; static lower bounds; arb_roundtrip.py / arb_holdreach.py): all 18 ack
+  C-elements of the 9 arbiters clear it, worst margin 878 ps (merge9.uarb1); re-requests clear the hold window
+  by >= 399 ps. --naive negative control flags 3. run_f3.sh +3 arms, rc 0.
+  Reading for r18: the mechanism is real in the model and silicon-plausible; its cutoff rests on the assumed
+  TAU (878 ps ~ 5.9 TAU); gcd_hw is not exposed on this route. bd_arb.v's comment is now known to understate
+  the obligation; cells/rtl is frozen, so the correction lives in arbtie.md (no RTL change: the cell is fine,
+  the comment's rule is too weak).
+- BQ#2 seeds 6/7 SLOW_MAX under the new resolver: vectors 0-1 PASS so far (seed 6 laps 3070/1907); ~3.5 min per
+  vector, 8 sims at 2 at a time, ~4 h. BQ#3 8 reroutes in progress (for the same re-run).
