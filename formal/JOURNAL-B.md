@@ -749,3 +749,34 @@ axioms only propext/Classical.choice/Quot.sound).
   holds exercised (w_nondegenerate). A latch needs lap 2 offered first (M0 with
   monotone phi0). cell_sh1 duplicates SelfAuditB6.cell_sh1 (separate namespaces;
   to dedupe later). Open: H_SINK_SI in general, time-varying lags.
+
+### progress 09:50
+In (checked here, axioms standard):
+- Bkx19 OnGcdArbKappaTight (core) + OnGcdArbKappaTightA (Mathlib bridge to
+  OnGcdArbKappa's objects; checks now that Mathlib's needed part is built). Audit
+  row 19 closed for the binding row (g3 merge12.uarb1 RT1b, server-free form, lit
+  reading, A's CornerNat restated field for field, whole-fs delays): safe for
+  kappa <= 33176.932320/749546 (rt1b_safe, a certificate sound for every rational
+  corner), unsafe for kappa >= that + 1/749546000000 (rt1b_unsafe; the binding corner
+  is interior, c = 27/5295104). The whole kappa_ex - kappa* (~3.9e-6) is the 1 fs grid.
+  Gate level (rt1b_gate_unsafe): a full 7j run (real INITs, all t, server included)
+  overlaps g1/g2 for every kappa >= kappa_U, BUT only with zero server delay, zero A0
+  route to ustate and zero ustate O6 arc (what the server-free form allows). With
+  those delays credited as corner-model arcs this arbiter's threshold is 0.651 and
+  the design minimum becomes 0.0802 (g2 merge3 h21). So "0.0443" is the server-free
+  form's number, not a gate-level threshold of the routed design. Lit safety now
+  carries the named hypothesis H_SPREAD_CORRELATED; under H_SPREAD_INDEP (cons) the
+  row fails at every kappa incl. 0 (-46.8 ps). Board test T_SPREAD in the note.
+  Other rows keep their gap (<= 1.8e-5). Arc numbers still from Bar's extraction
+  (routes not on disk: provenance UNVERIFIED, as the audit says).
+- Blap RigLaps (notes/B-rig-laps.md): lap contract from the env cells (lap_offer:
+  at start's k-th re-offer out0.ack has risen k times and is still high; lap_close;
+  order consume(k-1) < offer(k) < close(k-1) < consume(k)). H_SINK_SI PROVED with a
+  FIFO read map (sink_si, out0_sink_si_cells, pend_sink_si); dropping monotonicity
+  alone breaks it (CXS.nonfifo_breaks_sink). For C: gcd_rig_every (every out0 result
+  is gcd a b) given LapInv (CellR on shiftRun) at release and after every close;
+  lapinv_at_close leaves only H_KER_REARM; but lap_cut_fails: LapInv fails at a close
+  whenever the p_end loop beats out0's return (H_PEND_FAST, expected on silicon:
+  2 LUTs vs 16 delay elements). With C's rearm_fails_at_reoffer neither cut works;
+  every-result needs a re-entrant window theorem (C's). gcd_rig_every has no
+  witness.

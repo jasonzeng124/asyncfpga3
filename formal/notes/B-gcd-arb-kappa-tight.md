@@ -190,3 +190,6 @@ board can.
   prefix 'ProofWidgets'" (ConstraintsKappa too). Once the checker path is fixed, check the
   bridge and move it to `Formal/Cells/`. Proof-script risk: `cases e <;> rfl` on `arc_eq` and
   the 35 `decide`s of `dE_realizes`.
+
+
+**Update (lead, 2026-10-29 09:50):** the Mathlib bridge OnGcdArbKappaTightA.lean now checks (the checker path bug was fixed: proofwidgets) and is in Formal/Cells/.
