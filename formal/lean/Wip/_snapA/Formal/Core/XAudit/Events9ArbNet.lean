@@ -57,6 +57,8 @@ open Formal.Core.XAudit.Events6
 open Formal.Core.XAudit.Events7
 open Formal.Core.XAudit.Events8Arb
 open Formal.Core.XAudit.Events9Arb
+open Formal.Cells (o5B o6B)
+open Formal.Cells.ArbBinary (ARB_ST GRANT)
 
 /-! ## 1. Small lemmas -/
 
@@ -82,6 +84,9 @@ theorem fany_const {n : Nat} (hn : 0 < n) (c : Bool) : fany n (fun _ : Fin n => 
       | zero => rfl
       | succ m ih => simp only [fany, Bool.false_or]; exact ih (Nat.succ_pos _)
     · rfl
+
+theorem shiftW1 : Warp 1 1 (fun t : Nat => t - 1) :=
+  ⟨fun a b hab => by omega, fun t => by omega, fun t => by omega⟩
 
 theorem beq_not (a b : Bool) : ((!a) == !b) = (a == b) := by cases a <;> cases b <;> rfl
 
@@ -476,9 +481,6 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → 
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
-theorem shiftW1 : Warp 1 1 (fun t : Nat => t - 1) :=
-  ⟨fun a b hab => by omega, fun t => by omega, fun t => by omega⟩
-
 /-- **`arb_core`**: under the per-pin semantics of `d`, an `ArbOK` arbiter satisfying its trace
 conditions is a behaviour of the corrected core `CoreOf (bandsOf d a)`, with the common reader
 reset `decide (u < T0)` (`CoreOfR`), on the wires of `d`. -/
@@ -486,8 +488,8 @@ theorem arb_core {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T0 H : Nat}
     (hc : ArbCond hsat rn a T0 H) :
     CoreOfR (bandsOf d a) (fun u => decide (u < T0)) (r1S (x := x) a) (r2S (x := x) a)
       (aS (x := x) rn a) (R0S (x := x) a) (g1S (x := x) a) (g2S (x := x) a) := by
-  obtain ⟨r11, r1q, s1, r22, r2q, s2, rR1, rR2, rRq, sR, hgQ, _, _, _, _, rQA, _, _, _, _, _, _,
-    _, _, _, _, _, _, hb1, hb2, hb3, hb4, hK2, hq1, hq2, hq3⟩ := hA
+  obtain ⟨r11, r1q, s1, r22, r2q, s2, rR1, rR2, rRq, sR, _hgQ, _, _, _, _, rQA, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, hb1, hb2, hb3, hb4, hK2, hq1, hq2, hq3⟩ := hA
   -- warps
   have wP : ∀ {gi i w : Nat} {p : Path}, RdP d fuel gi i p w → Warp (plo d ((gi, i) :: p)) (phi d ((gi, i) :: p))
       (tau hsat ((gi, i) :: p)) := fun h => tau_warp hsat _ h.2.2.1
@@ -554,10 +556,130 @@ theorem arb_core {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T0 H : Nat}
     simp only [loCtl]; exact hcv
   have hb1' : ∀ u : Bool, u = (u == true) := fun u => by cases u <;> rfl
   have hb2' : ∀ u : Bool, (!u) = (u == false) := fun u => by cases u <;> rfl
-  exact core_of_en_rst (bandsOf d a) (frOf hsat a) (f1Of hsat a) (f2Of hsat a) hfr hf1 hf2 hR0 hg1 hg2 T0
-    hc.low hb1 hb2 hb3 hb4 hq1 hq2 hq3 hc.t1 hc.t2 hc.t3 hc'
-    (enOK_of_rd hK2 (fun u => hb1' _) hc.e1) (enOK_of_rd hK2 (fun u => hb2' _) hc.e2)
-    (enOK_of_rd hK2 (fun u => hb1' _) hc.e3) (enOK_of_rd hK2 (fun u => hb2' _) hc.e4)
+  have E1 := enOK_of_rd (br := true) hK2 (fun u => hb1' (qS (x := x) a u)) hc.e1
+  have E2 := enOK_of_rd (br := false) hK2 (fun u => hb2' (qS (x := x) a u)) hc.e2
+  have E3 := enOK_of_rd (br := true) hK2 (fun u => hb1' (qS (x := x) a u)) hc.e3
+  have E4 := enOK_of_rd (br := false) hK2 (fun u => hb2' (qS (x := x) a u)) hc.e4
+  exact core_of_en_rst (rs := fun _ => false) (a := aS (x := x) rn a) (q := qS (x := x) a)
+    (bandsOf d a) (frOf hsat a) (f1Of hsat a) (f2Of hsat a) hfr hf1 hf2 hR0 hg1 hg2 T0
+    hc.low hb1 hb2 hb3 hb4 hq1 hq2 hq3 hc.t1 hc.t2 hc.t3 hc' E1 E2 E3 E4
+
+end
+
+/-! ## 4. Node behaviours (`ND7`) of the six virtual nodes -/
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPin d plG x) {cv : Fin N → Sig}
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+  (hW : ∀ s, (rn s).virt = true → (rn s).hasW = true → ∀ t, x (d.wire (rn s).ow) t = cv s t)
+include h0 h1 hW
+
+theorem ccOf_virt {j : Fin N} (h : (rn j).virt = true) (t : Nat) : ccOf rn x cv j t = cv j t := by
+  unfold ccOf; rw [if_pos h]
+
+/-- **A reader node**: a `VRdR` (the corrected core's grant / shadow, reset `ρ`) on the request
+wire `R.w`, at a node passing `RdNodeOK` with the ctl branch `!br`, is an `ND7` behaviour with
+reset `ρ` (the select of the ctl pin is the negated core select: the certificate's labels). -/
+theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ ctl y : Sig}
+    (hn : RdNodeOK d net b rn fuel j jc s (!br) lr hr lc hc R)
+    (hcj : ∀ t, cv j t = y t) (hcc : ∀ t, cv jc t = ctl t) (hvc : (rn jc).virt = true)
+    (hv : VRdR lr hr lc hc br ρ (x (d.wire R.w)) ctl y) :
+    Nonempty {nd : ND7 net b (ccOf rn x cv) j // nd.r = ρ} := by
+  obtain ⟨hvj, hmg, hv0, har, hF1, hF2, hQ1, hQ2, hp⟩ := hn
+  obtain ⟨F, GR, GC, Q, sv, wF, wGR, wGC, wQ, hr0, hra, heq⟩ := hv
+  have hpv : ∀ p : Fin (net.ar j), p.val = 0 ∨ p.val = 1 := fun p => by have := p.isLt; omega
+  refine ⟨⟨{
+    pin := fun p u => if p.val = 0 then x (d.wire R.w) (GR u) else (ctl (GC u) && ((!sv u) == !br))
+    q := fun u => ccOf rn x cv j (Q u)
+    r := ρ
+    sv := fun p u => if p.val = 0 then svR hsat R (GR u) else !sv u
+    F := F
+    G := fun p i u => if p.val = 0 then tau hsat (R.rp.copies.getD i.val []) (GR u) else GC u
+    Q := Q
+    wF := by rw [hF1, hF2]; exact wF
+    wG := ?_
+    wQ := by rw [hQ1, hQ2]; exact wQ
+    loF1 := by rw [hF1]; exact Nat.le_refl 1
+    loC1 := ?_
+    loQ1 := by rw [hQ1]; exact Nat.le_refl 1
+    hc := ?_
+    hpin := ?_
+    hq := fun t => rfl
+    r0 := hr0
+    ranti := hra
+    hskew := ?_ }, rfl⟩⟩
+  · -- wG
+    intro p i
+    rcases hpv p with e | e
+    · obtain ⟨_, h0', -⟩ := hp p
+      obtain ⟨_, ⟨_, _, _, hpaths, _⟩, hb, _⟩ := h0' e
+      simp only [e, ite_true]
+      rw [(hb i).1, (hb i).2]
+      have hmem : R.rp.copies.getD i.val [] ∈ R.rp.copies ∨ R.rp.copies.getD i.val [] = [] := by
+        rw [List.getD_eq_getElem?_getD]
+        cases hh : R.rp.copies[i.val]? with
+        | none => right; rfl
+        | some π => left; exact List.mem_of_getElem? hh
+      have hok : pathOK d (R.rp.copies.getD i.val []) = true := by
+        rcases hmem with hm | hm
+        · exact hpaths _ hm
+        · rw [hm]; rfl
+      exact warp_comp (tau_warp hsat _ hok) wGR
+    · obtain ⟨_, -, h1'⟩ := hp p
+      obtain ⟨_, _, _, _, _, hb⟩ := h1' e
+      have e0 : p.val ≠ 0 := by omega
+      simp only [e0, ite_false]
+      rw [(hb i).1, (hb i).2]; exact wGC
+  · -- loC1
+    intro p i
+    rcases hpv p with e | e
+    · obtain ⟨_, h0', -⟩ := hp p
+      obtain ⟨_, _, hb, _⟩ := h0' e
+      rw [(hb i).1]
+      have := wGR.le_late 0
+      sorry
+    · obtain ⟨_, -, h1'⟩ := hp p
+      obtain ⟨_, _, _, _, _, hb⟩ := h1' e
+      rw [(hb i).1]
+      sorry
+  · -- hc
+    intro t
+    rw [ccOf_virt (cv := cv) hvj, hcj t, heq t, hmg]
+    simp only [Bool.false_eq_true, ite_false, hv0]
+    split
+    · rfl
+    · rw [ccOf_virt (cv := cv) hvj, hcj]
+      have hneg : ∀ p : Fin (net.ar j), net.neg j p = false := fun p => (hp p).1
+      have hfun : (fun p : Fin (net.ar j) => (if p.val = 0 then x (d.wire R.w) (GR (F t)) else
+          (ctl (GC (F t)) && ((!sv (F t)) == !br))) ^^ net.neg j p) =
+          (fun p : Fin (net.ar j) => (fun k : Nat => if k = 0 then x (d.wire R.w) (GR (F t)) else
+          (ctl (GC (F t)) && (sv (F t) == br))) p.val) := by
+        funext p; rw [hneg p, beq_not]; simp
+      rw [hfun, cel_reidx2 har]
+  · -- hpin
+    intro p t
+    rcases hpv p with e | e
+    · obtain ⟨_, h0', -⟩ := hp p
+      obtain ⟨hs, hR, _, _⟩ := h0' e
+      simp only [e, ite_true]
+      rw [req_val hsat h0 h1 hW hR (GR t), hs]
+      cases net.pk j p <;> rfl
+    · obtain ⟨_, -, h1'⟩ := hp p
+      obtain ⟨hs, hpk, hinv, hnc, hbr, _⟩ := h1' e
+      have e0 : p.val ≠ 0 := by omega
+      simp only [e0, ite_false, hpk, hinv, Bool.false_xor, hs, hbr]
+      rw [ccOf_virt (cv := cv) hvc, hcc]
+      exact (fany_const (by rw [hnc]; exact Nat.zero_lt_one) _).symm
+  · -- hskew
+    intro p i i' hii s'
+    rcases hpv p with e | e
+    · obtain ⟨_, h0', -⟩ := hp p
+      obtain ⟨_, _, _, hdw⟩ := h0' e
+      sorry
+    · obtain ⟨_, -, h1'⟩ := hp p
+      obtain ⟨_, _, _, hnc, _, _⟩ := h1' e
+      have := i'.isLt; have := i.isLt; rw [hnc] at *; omega
 
 end
 

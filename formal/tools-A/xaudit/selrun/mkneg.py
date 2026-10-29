@@ -39,6 +39,9 @@ ent = [e for e in cert["sel"]["entries"] if e["node"] == n and e["pin"] == k and
 S = sc.nodes[n]["pins"][k]["src"]
 f = sc.copies(n, k)[0]
 cut = 2
+# continue the certificate's own log (its appended select lines included)
+sc.C.log = list(cert["log"])
+sc.C.memo = {json.dumps(ln, sort_keys=True): i for i, ln in enumerate(sc.C.log)}
 B = Block(sc, S, f[cut + 1:])
 B.judgements()
 r = B.lag(ent["na"])

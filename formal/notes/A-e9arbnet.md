@@ -1,6 +1,7 @@
 # A-e9arbnet (probe E9ArbNet, shard A): lifting the cell-level arbiter core to the netlist
 
-STATUS (2026-10-29, start): IN PROGRESS. Nothing claimed yet.
+STATUS (2026-10-29 12:35): IN PROGRESS. Events9ArbNet.lean: req_val, ArbOK (decidable), ArbCond, arb_core
+(SatPin + ArbOK + ArbCond => CoreOfR on the wires of d) compile (overlay); ND7 lift next. Nothing claimed yet.
 
 Plan
 1. ArbNet check: for each arbiter named in the certificate, a decidable check over A's parsed

@@ -1,7 +1,7 @@
 # A-e9selrun (probe E9SelRun, shard A): running the causal select verdict on gcd_hw
 
-STATUS (2026-10-29 11:45 UTC): DONE (runs being tabulated, §4/§5 filled at the end). 3 Lean files,
-check.sh OK (3435 + 3732 declarations, §6). Generator + executable + 16 rows + 6 controls.
+STATUS (2026-10-29 12:40 UTC): DONE. 3 Lean files, check.sh OK (3435 + 3732 declarations, §6).
+Generator + executable, 16 gcd_hw rows (§4), 6 controls (§5).
 
 ## 0. Summary
 
@@ -121,11 +121,79 @@ Margin of a row: `Dl + selLo + lo(rg) − phi(top)` ps.
 
 ## 4. Results
 
-(filled in below from `tools-A/xaudit/selrun/results/table.txt`)
+Produced by `tools-A/xaudit/selrun/run.sh` then `table.sh` (`results/table.txt`). The inputs are
+E8Mux's `w/<seed>/new/` skeleton and band files plus E8SelC's maps. `certsel.py` runs with
+XA_ARB=old: it rebuilds the cert9 certificate with E8Mux's node list (checked with `--ref`) and
+appends its lines to the log. `xselL` (Events9SelLMain) runs with `lean --run` on an overlay
+compiled from the working tree. Outputs: `results/xl_<seed>_<corner>.txt`, one line per
+literal with the cut, junction wire, lag and margin of each row.
+
+Columns:
+- "recog+log" means `Recog6`, `OK7` and `runLog` acceptance were all evaluated and true.
+- "selL pass" counts literals whose E8Causal rows all hold (ackOK, ReqLine, AckLine, holdBandS).
+- The last-but-one column is E8SelC's rows, for comparison: src, and split under the assumed
+  H_ACK_LAG_w.
+
+| seed | corner | recog+log | literals | entOK | treeOK | reqOK | selL pass | selT pass | selT min (ps) | selJ pass | selJ min (ps) | E8SelC src / split min (ps) | verdict (selJ) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| d | slow | ok | 126 | 126 | 126 | 126 | 30 | 126 | 928 | 126 | 928 | 927 / 1125 | CLEAN |
+| d | fast | ok | 126 | 126 | 126 | 126 | 30 | 126 | 420 | 126 | 420 | 419 / 481 | CLEAN |
+| d | gb | ok | 126 | 126 | 126 | 126 | 30 | 126 | 297 | 126 | 297 | 296 / 741 | CLEAN |
+| d | indep | ok | 126 | 126 | 126 | 126 | 24 | 78 | -4245 | 103 | -940 | -4246 / -56 | RESIDUAL 23 |
+| 3 | slow | ok | 126 | 126 | 126 | 126 | 30 | 126 | 700 | 126 | 700 | 699 / 982 | CLEAN |
+| 3 | fast | ok | 126 | 126 | 126 | 126 | 30 | 126 | 295 | 126 | 295 | 294 / 411 | CLEAN |
+| 3 | gb | ok | 126 | 126 | 126 | 126 | 30 | 124 | -138 | 126 | 134 | -139 / 630 | CLEAN |
+| 3 | indep | ok | 126 | 126 | 126 | 126 | 20 | 70 | -5634 | 97 | -1125 | -5635 / -124 | RESIDUAL 29 |
+| 4 | slow | ok | 126 | 126 | 126 | 126 | 30 | 126 | 649 | 126 | 649 | 648 / 1055 | CLEAN |
+| 4 | fast | ok | 126 | 126 | 126 | 126 | 30 | 126 | 302 | 126 | 302 | 301 / 476 | CLEAN |
+| 4 | gb | ok | 126 | 126 | 126 | 126 | 30 | 125 | -33 | 125 | -33 | -701 / 744 | RESIDUAL 1 |
+| 4 | indep | ok | 126 | 126 | 126 | 126 | 28 | 81 | -5223 | 105 | -1303 | -5224 / 73 | RESIDUAL 21 |
+| 5 | slow | ok | 126 | 126 | 126 | 126 | 30 | 126 | 789 | 126 | 789 | 788 / 1077 | CLEAN |
+| 5 | fast | ok | 126 | 126 | 126 | 126 | 30 | 126 | 358 | 126 | 358 | 357 / 475 | CLEAN |
+| 5 | gb | ok | 126 | 126 | 126 | 126 | 30 | 126 | 226 | 126 | 226 | 103 / 733 | CLEAN |
+| 5 | indep | ok | 126 | 126 | 126 | 126 | 24 | 73 | -5267 | 97 | -1036 | -5268 / 26 | RESIDUAL 29 |
+
+Reading:
+- **selJ is CLEAN on 11 of the 12 slow/fast/gb rows.** The exception is seed 4 gb: 1 literal,
+  `ulink_n_falseResult_43.ctl` pin0, at −33 ps, a steer row.
+- **selT (source-anchored) is CLEAN on 10 of those 12.** It fails seed 3 gb on 2 literals and
+  seed 4 gb on 1.
+- **selJ improves on selT exactly where the arms share a stretch.**
+  - Mux rows (48 per seed): the gain is +720…+3446 ps on d gb and +1376…+6844 ps on d indep. No
+    mux literal is residual on any row.
+  - Steer rows: the gain is 0…+862 ps.
+- **All selJ residuals are steer / merge-ack literals.** There are 23, 29, 21 and 29 on the
+  indep rows of seeds d, 3, 4, 5, plus the one on 4 gb. They are not request-walk failures:
+  `reqOK` holds on every literal of every row once certsel picks the ack path that satisfies
+  `ReqLineT`.
+  - There the causal lag is the sibling arm's, measured from the source (§0 item 4).
+  - E8SelC's split rows showed these literals as CLEAN or near-CLEAN only through the own-arm lag
+    that `sibling_lag_neg` refutes.
+  - The residual is the band spread of the two separate steer paths under independent bands.
+    Only a correlated-corner model (κ) could narrow it, not a sharper rule.
+- **selL holds for at most 30 literals per row**, because of `ackOK` (§1). Its margins on the
+  literals it does cover equal selT's up to the `plo κa` credit.
+- The other items of `design_verdict9` (Back, lines, merges, guards) are untouched. The base log
+  is byte-identical to E8Mux's `cert_slow.json` log (checked on d slow: all certificate keys
+  equal), and the select lines are only appended, so xevents9's verdicts on these certificates are
+  HDsub's on the E8Mux bands (not rerun here). Those rows use the OLD arbiter core, whose H_ARB is
+  refuted (E8Arb), so no row here covers a real run yet.
 
 ## 5. Negative controls
 
-(filled in below)
+Seed d slow; `selrun/neg.sh`, `mkneg.py`; outputs `results/xl_d_slow_<tag>.txt`.
+
+| control | mutation | expected | got |
+|---|---|---|---|
+| NEGack | E8SelC's NEGack: ack of map entry 1 (`ulink_n_trueResult_60` stage0, lit 1) → `uori2.udly.chain.g[18].u/O`; certificate regenerated | that literal FAILS (no one-leaf positive tree from an AND) | treeOK false; selT / selJ RESIDUAL 1 (that literal). E8SelC's rows had PASSED this mutation |
+| NEGackS | the same map, unmutated certificate | FAILS (tree root ≠ ack wire) | treeOK false; RESIDUAL 1 / 1 |
+| NEGtok | entry 1's request walk replaced by a walk q→na→q→na (≥ 2 tokens), log still accepted | reqOK false, FAILS | reqOK false; RESIDUAL 1 / 1; log accepted |
+| NEGhold | E8SelC's NEGhold bands (`ulink_n_falseResult_77.ctl/I3` hi + 5000 ps) | that literal FAILS; Python: 928 − 5000 = −4072 | margin −4072 in selL, selT and selJ; RESIDUAL 1 |
+| NEGsib | junction row of `ulink_n_falseResult_77.ctl` pin1 lit2 at cut 3/4 (junction `ucond_br40.u$LUT5/I1`); the merge's sibling arm (direct filtered pin, not through that arc) claims the own arm's lag e = 1204 instead of 681 | `facOK` false, junction log rejected, that literal FAILS selJ | RESIDUAL(selJ) 1, dj 0 (runJ rejected); selT unaffected |
+| POSsib | the same row with the honest lifted lag e = 681 | PASSES | selJ CLEAN |
+
+NEGsib is `sibling_lag_neg` on the routed netlist: the lag E8SelC's split row used for this
+literal (Dw 2606 ps through the own arm) is not derivable.
 
 ## 6. Check
 
@@ -151,3 +219,17 @@ md5s at check time:
     798acaa77d3460fb0e65d5682d7902d9  Formal/Core/XAudit/Events9SelL.lean
     79d819272aeebc03a32c41c33c415860  Formal/Core/XAudit/Events9SelJ.lean
     539a626058f5d889a07fcf57fecaaaa7  Formal/Core/XAudit/Events9SelLMain.lean
+
+## 7. For the lead
+
+- Lakefile stanza (NOT added): `[[lean_exe]] name = "xselL" root = "Formal.Core.XAudit.Events9SelLMain"`.
+  Root imports, if wanted: `Events9SelL`, `Events9SelJ` (do not add Events9SelLMain: it defines `main`).
+- The check depended on the uncommitted files Events9Sel*, Events9Prefix*, Events8Bridge*
+  and Events9Cert/Beh (read-only, unchanged; md5 of Events9PrefixSel 9a04f599…). Parse.lean
+  has uncommitted edits (XInert) that the overlay olean was built from.
+- Warnings only: an unused auto-included section variable in `Events9SelJ.cm_le_fac`, and
+  deprecated `dif_pos`.
+- Suggested next probe: (a) rerun selJ with the CORRECTED arbiter core once E9Par gives a node
+  list and map for it (the map must be regenerated); (b) H_SEL_O / H_SEL_SETUP as checked
+  rows anchored at the request (C's rule E); (c) the indep steer residuals need correlated
+  bands (κ), not a sharper rule.
