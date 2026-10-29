@@ -130,3 +130,9 @@ P7-onresearch in: tie-off false path in tighten.cell_boundary CONFIRMED on own i
 tie-offs dropped; conservative on the 4 routes but not by construction); GLS_SCALE_INST not applied to wire arcs in
 wire-scatter mode CONFIRMED (silent); 28 inverted FAST tuples (all BRKH_INT) CONFIRMED by my own recount; CARRY4 /
 SLICE_LATX sample-at-fire and FF X-hiding CONFIRMED; fid monitors gap CONFIRMED. Events8 and tcheck counts UNVERIFIED.
+
+### progress 01:33
+P7-kappa in (statement reading + own Python; Lean not yet run, build at ~3140/3270): ConstraintsKappa, CornerCode,
+Involution*, TernaryChannels CONFIRMED by reading; OnNetlistArbKappa "exact per-pair thresholds" OVERSTATED (gap not
+decided; own gap witness written); OnGcdArbKappa arithmetic reproduced, arc data vs route UNVERIFIED (routes not on
+disk). audit/tools/run_p7k.sh waits for the build, then runs P7kAudit.lean + 7 mutants.
