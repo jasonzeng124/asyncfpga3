@@ -609,3 +609,16 @@ upper RAMB18 (H_BRAM_LU_SAME); no min period (H_BRAM_PERIOD). Census: no kernel 
 only testbenches/board rigs. For FOR-RESEARCH: cells/sim/bd_prims_sim.v's RAMB18E1 has no hold check, one
 2454 ps point and does not poison on setup violation despite its header. For B: MemPort (LibEndMemMlink)
 measures dcLo from the clock rise with <=; the real obligation needs the ram_clk-to-pin route max and <.
+### progress 09:24
+E8Hyp claimed: Formal/Core/XAudit/Events8Bridge{,Sel}.lean (check.sh over the 35-file Mathlib-free closure:
+2926 decls, [check] OK). Partial discharge of design_verdict8's hypotheses (mapping table in
+notes/A-e8hyp.md §2): SelOK bridged at every real filtered pin from B's LibGapSteer.steer_pin_ok
+(design_verdict8_sel; the select wires' stability and the hold half stay open -> probe E8SelC); SelPart
+discharged by construction (selPart_of_value); reset/time origin bridged by satPin_shift (gaps: no map from
+B's gNet to A's d; B's reads not monotone). Mismatches with exact gaps: SatPin is the model itself (A's
+channel is a B/C WinDelay but not conversely: win_origin_gap, win_overtake_gap; no map from d to C's FASM
+netlist); H_ARB (HARB7) is not implied by any B/C theorem and needs 'never contested' (B's
+arb_grants_eternal and A's arb_trichotomy show a contested arbiter can pulse forever) -> probe E8Arb.
+Joint satisfiability: SatPin + constants + reset jointly satisfiable iff the netlist has a reset fixpoint
+(Lean); untrusted fix0.py: 1747/1747 LUTs definite under rst=1 on all 4 seeds (no-rst control 0/1747).
+HARB7+SelOK+HDsub jointly on one gcd_hw run: not shown; nothing found jointly unsatisfiable.
