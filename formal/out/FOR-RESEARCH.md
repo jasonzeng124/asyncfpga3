@@ -222,6 +222,8 @@ concern cells, the flow and the board.
 
 **Also (2026-10-29, `formal/lean/Formal/Core/Delay/GLSResolve.lean`, proved on bd_c2's loop, binary, xmode=0, every seed/TAU; iverilog cross-check 480/480 pulses):** (1) `fid_core.vh:29` ("the node never left") holds only for the final value: a rejected runt is emitted full-swing to fanout (`rejected_runt_emitted`), and a commit with trp > 0 gives fanout two rising edges for one set (`commit_gap`). (2) `fid_core.vh:36-37` ("applied late, not lost") is false: after a non-committing runt, a following pulse of width ≥ TLOOP that ends inside the ignore window is lost forever (`follow_lost`), where the transport/C-element model forces O = 1. (3) Every resolver run settles within 3 edges; the transport loop at the same point can oscillate forever (`hides_oscillation`). (4) A run that printed no RUNT/META line equals the plain transport loop at that delay point, so the C-element theorems cover exactly those runs. Change: report every emitted runt in evidence runs, treat any RUNT/META line as a failed run, and fix the two comments.
 
+**Also (GLSResolveGen, proved; iverilog 120/120 arbiter runs, 12 end with A1 = A2 = 1):** under the resolver a near tie that commits late gives the server's A0 a window in which BOTH arbiter clients are acknowledged for one transaction, with exclusive grants and no X, so no run check flags it (`arb_double_ack`). bd_arb.v's one-loop-delay consumer rule is met in these runs and still fails; under the resolver the rule would need trp_max + TLOOP. Change: flag any A0 edge reaching ua_k within trp of a q decision, or run evidence with `+META_X=1`.
+
 - **Finding:**
   - `fid_core.vh:28,82` splits at `delta = p − (TLOOP − WIN/2)`, which is 349 ps of a 424 ps
     loop (measured).

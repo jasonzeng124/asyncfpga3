@@ -668,3 +668,18 @@ as Events8: margin failures, not HDsub); xevents8 rerun byte-identical to commit
 table exactly (d gb RESIDUAL 2). Controls NEGwsEnd/NEGwsTok/NEGwsMissing/NEGnows rejected, POSws1 accepted. A
 CLEAN row now rests on SatPin, constants/reset, H_ARB, SelOK, SelPart -- and H_ARB is refuted in its current
 encoding (E8Arb), so no real run is covered yet. lakefile stanza for xevents9 added.
+### progress 09:47
+GLSResolve2 claimed: Formal/Core/Delay/GLSResolveGen.lean (check.sh with GLSFid/GLSResolve: 979 decls, [check]
+OK; md5s unchanged between check and commit; GLSResolve.lean untouched). GRun: the resolver on any single-cell
+loop (feedback pin k of a fid mux tree); bd_c2's Run is an instance (run_iff_grun); bd_c2n and the arbiter's q
+(ustate O6, equal to B's held_q_eqn) instantiated. seg_window_end makes fid_core.vh:36-37 precise. **Finding:
+arb_double_ack** -- under the resolver, a near tie (r2 < TLOOP after r1) that commits late, with A0 reaching
+ua2/ua1 inside the commit gap, acknowledges BOTH clients for one server transaction (A1 = A2 = 1 while A0 is
+high), with exclusive grants at every instant and no X, so no check flags it; arb_gap_closed: if A0 arrives after
+the gap, A2 stays 0 for every draw. Outside B's exclusion rows (the near tie violates H_REQ_SEP; bd_arb.v's
+'metastable q' tier), but bd_arb.v's 'one loop delay' consumer rule is met and still fails: under the resolver it
+needs trp_max + TLOOP. Lost follow: tolerated only argued. late_runt / late_runt_B formalise the iverilog-only
+effect. iverilog (unmodified research sources): arbiter 120 runs 0 mismatches, 12 end A1=A2=1; late runt 160/160;
+controls fail. Not covered: X, FID_LEVEL_PS != 0, multi-cell loops, closed-loop server, ugrant pin skew; how
+often this can happen in gcd_hw (needs a near tie and a server answering within trp <= ~647 ps). For B: no
+bd_arbiter row bounds the q node's resolution time.
