@@ -58,6 +58,40 @@ open Formal.Core.XAudit.SoundCells
 open Formal.Core.XAudit.SoundPhys
 open Formal.Core.XAudit.Parse
 
+/-! ## 0. Inverted bands are rejected (`Parse.checkedSteps`, used by `Parse.bandFor`) -/
+
+/-- An accepted band is not inverted, and is rounded by `toSteps`. -/
+theorem checkedSteps_ok {u : ℕ} {b : ℕ × ℕ} {r : ℕ × ℕ × Bool}
+    (h : checkedSteps u b = .ok r) : b.1 ≤ b.2 ∧ r = toSteps u b := by
+  unfold checkedSteps at h
+  by_cases hb : b.2 < b.1
+  · rw [if_pos hb] at h; cases h
+  · rw [if_neg hb] at h; cases h; exact ⟨Nat.le_of_not_lt hb, rfl⟩
+
+/-- An inverted band (`lo > hi`) is rejected. -/
+theorem checkedSteps_inverted {u : ℕ} {b : ℕ × ℕ} (h : b.2 < b.1) :
+    ∃ e, checkedSteps u b = .error e := by
+  unfold checkedSteps; rw [if_pos h]; exact ⟨_, rfl⟩
+
+/-- For a non-inverted band the step `hi` is `⌈H/u⌉` (at least 1): the `max` with
+`lo` in `toSteps` never narrows it. -/
+theorem toSteps_hi_ceil {u L H : ℕ} (hu : 0 < u) (hLH : L ≤ H) :
+    (toSteps u (L, H)).2.1 = max 1 ((H + u - 1) / u) := by
+  rw [SoundSteps.toSteps_snd]
+  have : L / u ≤ (H + u - 1) / u := Nat.div_le_div_right (by omega)
+  generalize L / u = a at this ⊢
+  generalize (H + u - 1) / u = c at this ⊢
+  omega
+
+/-- An accepted band with `u ≤ L` (not raised): its ps band lies inside the step
+band, `lo·u ≤ L ≤ H ≤ hi·u`, and `1 ≤ lo ≤ hi`. -/
+theorem checkedSteps_inside {u : ℕ} (hu : 0 < u) {L H : ℕ} {r : ℕ × ℕ × Bool}
+    (h : checkedSteps u (L, H) = .ok r) (hL : u ≤ L) :
+    r.1 * u ≤ L ∧ L ≤ H ∧ H ≤ r.2.1 * u ∧ 1 ≤ r.1 ∧ r.1 ≤ r.2.1 := by
+  obtain ⟨hLH, rfl⟩ := checkedSteps_ok h
+  exact ⟨SoundSteps.toSteps_lo_le hu hL, hLH, SoundSteps.toSteps_hi_ge hu,
+    SoundSteps.toSteps_lo_pos u L H, SoundSteps.toSteps_lo_le_hi u L H⟩
+
 /-! ## 1. The widening, in ℕ -/
 
 theorem widenHi_ge (u lo hi ρ : ℕ) : hi ≤ widenHi u lo hi ρ := Nat.le_max_left _ _

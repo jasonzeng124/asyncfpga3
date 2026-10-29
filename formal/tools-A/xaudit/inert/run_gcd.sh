@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Probe XInert: gcd_hw seed d (formal/notes/A-xaudit-gcd.md inputs) under xaudit --inertial.
-#   XAUDIT=<binary> W=<scratch dir with net_d.json, bands_d_*.json decompressed from ../gcd/inputs> \
+#   XAUDIT=<binary> W=<dir with net_d.json, bands_d_<corner>.json: the E8Mux-corrected (OUTMUX hop, --inverted hull) seed-d files, see notes/A-xinert.md> \
 #     ./run_gcd.sh check            # every (corner, rho) in check mode: refusal counts only (no simulation)
 #     ./run_gcd.sh widen CORNER VAR # one simulation, VAR in rho0 rho15 rho50 dlut dall
 set -uo pipefail
@@ -12,7 +12,7 @@ var() { case $1 in rho0) echo "--rho 0";; rho15) echo "--rho 15";; rho50) echo "
   dlut) echo "--rho-lut delay --rho-route 0";; dall) echo "--rho delay";; esac; }
 stim() { case $1 in fast) echo "$G/inputs/v1_70ns.stim.json";; *) echo "$G/inputs/v1_100ns.stim.json";; esac; }
 if [ "$1" = check ]; then
-  for c in slow fast smax_w0 smax_w0.02; do for v in rho15 rho50 dlut dall; do
+  for c in ${CORNERS:-slow fast gb smax_w0 smax_w0.02}; do for v in rho15 rho50 dlut dall; do
     "$X" "$W/net_d.json" --bands "$W/bands_d_$c.json" --stim "$(stim $c)" --timed-only --all \
       --inertial check $(var $v) > "$R/d_${c}__$v.check.txt"; e=$?
     echo "$c $v: exit $e $(grep -o 'check REFUSED: [0-9]* gates.*max widening needed [0-9]* steps' "$R/d_${c}__$v.check.txt")$(grep -o 'check: rho.*' "$R/d_${c}__$v.check.txt")"

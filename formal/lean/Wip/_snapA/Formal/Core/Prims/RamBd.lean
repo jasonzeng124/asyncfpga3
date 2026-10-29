@@ -105,7 +105,7 @@ theorem access_ok (hok : T.Ok) (h : RamRel T .writeFirst rdis init initA ck a we
 /-- DOADO keeps the access's value through the next edge's `cqLo`: valid on
 `(e + cqHi, e2 + cqLo]` when the next edge is at `e2 > e + cqHi`. -/
 theorem out_until_next (h : RamRel T .writeFirst rdis init initA ck a we din m dout)
-    {e e2 t : Nat} {x : KWord dw} (he2 : rises ck e2) (hlt : e2 < t) (hn2 : NoRise ck e2 t)
+    {e2 t : Nat} {x : KWord dw} (he2 : rises ck e2) (hlt : e2 < t) (hn2 : NoRise ck e2 t)
     (ht : t ≤ e2 + T.cqLo) (hval : ∀ j, dout j e2 = x j) (j : Fin dw) : dout j t = x j := by
   rw [h.ohold e2 t he2 hlt hn2 ht j, hval j]
 
@@ -148,15 +148,15 @@ theorem bram_hold_le_cq (c : XCorner) :
 
 /-- **The clock-to-out obligation is necessary.** If `cLo ≤ wHi + cqHi`, take the admissible
 placement `e = b + wHi` (slowest clock wire) and `k = b + cLo` (fastest ack). On the first
-access after power-up (no edge before `e`), with `INIT_A` bit `j` = 0 and a clean WRITE_FIRST
-write of a 1 to bit `j`, EVERY run of the model has DOADO bit `j` ≠ 1 at `ack`: the old 0
+access after power-up (no edge before `e`), with `INIT_A` bit `j` = 0 and a WRITE_FIRST write
+of a 1 to bit `j` with WE and DI clean (any address), EVERY run of the model has DOADO bit `j` ≠ 1 at `ack`: the old 0
 up to `e + cqLo`, X in the band. (Runs exist: `ramSim_rel`.) -/
 theorem co_necessary (hok : T.Ok) (h : RamRel T .writeFirst rdis init initA ck a we din m dout)
-    {b wHi cLo : Nat} {v : BAddr aw} {d : Fin dw → Bool} {j : Fin dw}
+    {b wHi cLo : Nat} {d : Fin dw → Bool} {j : Fin dw}
     (hbad : cLo ≤ wHi + T.cqHi)
     (he : rises ck (b + wHi)) (hfirst : ∀ u, u < b + wHi → ¬ rises ck u)
     (hn : NoRise ck (b + wHi) (b + cLo + 1))
-    (hA : AddrOn T a v (b + wHi)) (hW : WeOn T we true (b + wHi))
+    (hW : WeOn T we true (b + wHi))
     (hD : DataOn T din d (b + wHi)) (hinit : initA j = zero) (hdj : d j = true) :
     dout j (b + cLo) ≠ one := by
   have h0 : dout j (b + wHi) = zero := by rw [h.oinit _ hfirst j, hinit]

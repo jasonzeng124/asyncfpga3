@@ -180,3 +180,22 @@ is itself a runt, rejected: a 300 ps (≥ TLOOP) input pulse ends with q = 0.
   (`rejected_runt_emitted`, `follow_lost`); counters undercount what fanout saw; evidence runs
   should report runts emitted, and a run that printed any RUNT/META line is not covered by
   B's theorems (only runs with none are, `noRunt_loop`).
+
+
+---
+
+# Probe GLSResolve2 (shard A, session 2026-10-29): generalisation, bd_c2n, the arbiter's q loop
+
+STATUS: IN PROGRESS (plan written first; this section is updated as results check).
+
+Plan:
+1. `Formal/Core/Delay/GLSResolveGen.lean` (new, imports GLSResolve; GLSResolve.lean unchanged):
+   `GRun p F v0` for any single-cell loop `f t = F t (o (t - L))`, `F` = the cell's LUT with the
+   feedback pin replaced (`lutF INIT k pins`); `Run` (bd_c2) is `GRun` at `fC2` (`run_iff_grun`).
+   Generic segment theorems (a set runt / a wide set from a quiet state), the "applied late"
+   lemma at the window end, and bd_c2 / bd_c2n / arbiter q as instances.
+2. bd_arbiter: the near-tie runt on q (r1 then r2 within TLOOP) under the resolver, for every
+   A0 after the decision; downstream ugrant (transport) and ua1/ua2 (resolver runs): a commit
+   with trp larger than the server's response gives BOTH A1 and A2 high under one A0 pulse.
+3. The iverilog-only late runt (b still high at ign_until -> its fall is a new runt).
+4. iverilog cross-checks in `formal/lean/Wip/GLSResolve/sim/` (scratch copies of research).

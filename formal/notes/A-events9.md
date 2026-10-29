@@ -2,7 +2,7 @@
 
 STATUS (2026-10-29, probe HDsub): Lean DONE in a private overlay (0 errors, no sorry), 16 rows
 rerun; xevents8 comparison and negative controls: see "Runs" (filled in as they finish).
-check.sh: see "Check" below.
+check.sh OK (see "Check").
 
 ## Verdict
 
@@ -96,6 +96,26 @@ which defines `main`). Until the stanza exists, `tools-A/xaudit/events9/xe9.sh` 
 `lake env lean --run Formal/Core/XAudit/Events9Main.lean` against an overlay `$OL` of oleans
 (built by `mk9.sh`, or here by the probe's scratch `bdeps.sh`; the lead's `.lake/build` had no
 XAudit oleans yet this session).
+
+## Check
+
+The lead's `.lake/build` had no XAudit oleans this session, so check.sh was run on the whole
+Mathlib-free import closure (34 files, in dependency order; the last three are this probe's):
+
+    formal/check.sh Formal/Core/Kleene.lean Formal/Core/Lut.lean Formal/Core/Circuit.lean \
+      Formal/Core/Trace/Discrete.lean Formal/Core/XSim.lean Formal/Core/XAudit/{Design,Parse,Events,
+      EventsRing,EventsDesign,Events2,Events2Time}.lean Formal/Core/LutCells.lean
+      Formal/Core/XAudit/{Events2Design,Events2Strict,Events2PinDesign,Events3,Events4,Events5Line,
+      Events5,Events6Gate,Events6Cert,Events6Design,Events6Beh,Events7Core,Events7Excl,Events7Cert,
+      Events7Beh,Events8Core,Events8Cert,Events8Beh,Events9Cert,Events9Beh,Events9Main}.lean
+    ...
+    [audit] 2741 declarations checked
+    [check] audit (executable) Formal.Core.XAudit.Events9Main
+    [audit] 2827 declarations checked
+    [check] OK
+
+Once lake has built Events8Beh, the short form is
+`formal/check.sh Formal/Core/XAudit/Events9Cert.lean Formal/Core/XAudit/Events9Beh.lean Formal/Core/XAudit/Events9Main.lean`.
 
 ## Runs
 All runs 2026-10-29, `lean --run` on the probe overlay (oleans compiled from the working tree

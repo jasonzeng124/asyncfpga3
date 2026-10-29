@@ -362,9 +362,13 @@ theorem onext_sound {aw dw : Nat} (md : WMode) {we : K3} {a : Fin aw → K3} {di
     (ho : Consistent dold bdold) :
     Consistent (onext md we a din m dold) (bonext md bwe bv bdin bm bdold) := by
   intro j
-  have h := onext_mono md hwe ha hd hm ho j
-  refine K3.le_trans h ?_
-  cases md <;> cases bwe <;> simp [onext, bonext, kread_def, ofBMem, ofBoolVec] <;> exact le_refl _
+  have h : onext md we a din m dold j ⊑
+      onext md (ofBool bwe) (ofBoolVec bv) (ofBoolVec bdin) (ofBMem bm) (ofBoolVec bdold) j :=
+    onext_mono md hwe ha hd hm ho j
+  have e : onext md (ofBool bwe) (ofBoolVec bv) (ofBoolVec bdin) (ofBMem bm) (ofBoolVec bdold) j
+      = ofBool (bonext md bwe bv bdin bm bdold j) := by
+    cases md <;> cases bwe <;> simp only [onext, bonext, kread_def] <;> rfl
+  rw [e] at h; exact h
 
 /-! ## 5. Timing parameters and the trace relation -/
 
@@ -642,9 +646,9 @@ theorem simO_some {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord d
   rw [simO]; simp only [hl]
 
 /-- **Non-vacuity**: the canonical traces satisfy `RamRel`, for every input, every write
-mode, both read-disturb settings, and every timing (no well-formedness needed). -/
+mode, both read-disturb settings, and every timing with an ordered CK->DO band. -/
 theorem ramSim_rel (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw) (ck : Sig)
-    (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) :
+    (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) (hcq : T.cqLo ≤ T.cqHi) :
     RamRel T md rdis init initA ck a we din (simM T rdis init ck a we din)
       (fun j t => simO T md rdis init initA ck a we din t j) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -659,9 +663,9 @@ theorem ramSim_rel (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord 
       if_neg (show ¬ t ≤ e + T.cqHi by omega)]
 
 theorem ramRel_inhabited (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw)
-    (ck : Sig) (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) :
+    (ck : Sig) (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) (hcq : T.cqLo ≤ T.cqHi) :
     ∃ m dout, RamRel T md rdis init initA ck a we din m dout :=
-  ⟨_, _, ramSim_rel T md rdis init initA ck a we din⟩
+  ⟨_, _, ramSim_rel T md rdis init initA ck a we din hcq⟩
 
 end Sim
 

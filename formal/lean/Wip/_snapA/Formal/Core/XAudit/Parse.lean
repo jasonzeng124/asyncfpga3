@@ -162,10 +162,19 @@ def isFF (ty : String) : Bool :=
   ["FDRE", "FDSE", "FDCE", "FDPE", "LDCE", "LDPE", "FDRE_1", "SRL16E", "SRLC32E", "RAMB18E1",
     "RAMB36E1", "DSP48E1"].contains ty
 
+/-- `toSteps`, but an inverted band (`lo > hi` ps) is REJECTED instead of being
+narrowed to `[lo, lo]` (probe E8Mux finding; spec: `SoundInertial.checkedSteps_ok`,
+`checkedSteps_inverted`, `toSteps_hi_ceil`). Well-formed bands: same as `toSteps`. -/
+def checkedSteps (u : Nat) (b : Nat × Nat) : Except String (Nat × Nat × Bool) :=
+  if b.2 < b.1 then .error s!"inverted band [{b.1}, {b.2}] ps (lo > hi): NOT RECOGNISED"
+  else .ok (toSteps u b)
+
 def bandFor (B : Bands) (key : String) (dflt : Nat × Nat) (alts : List (String × (Nat × Nat))) :
     M (Nat × Nat) := do
   let b := (alts.lookup key).getD dflt
-  let (lo, hi, r) := toSteps B.unit b
+  let (lo, hi, r) ← match checkedSteps B.unit b with
+    | .ok v => pure v
+    | .error e => throw s!"band of {key}: {e}"
   if r then modify fun s => { s with raised := key :: s.raised }
   pure (lo, hi)
 

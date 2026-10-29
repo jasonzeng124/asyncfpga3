@@ -1,0 +1,27 @@
+xaudit: designs/ring3.json top ring3: 18 wires, 15 gates (3 LUT outputs, 12 routed arcs), 3 storage nodes (LUTs with own feedback)
+bands: 1 step = 10 ps; LUT (99, 121) ps, route (360, 440) ps, own feedback (270, 330) ps (defaults unless overridden: 0 cell, 0 arc entries); pads (1, 1) steps
+inertial (widen): reject window LUT delay, route delay, own feedback as route (0 cell, 0 arc entries); pads transport. Sound by SoundInertial (gate hi widened to max hi (lo + ceil(rho/unit) - 1))
+  widened 15 of 15 gates, by up to 35 steps; e.g. [st[0].u/I0 [36,44]->[36,79] (rho 440 ps), st[0].u/I1 [36,44]->[36,79] (rho 440 ps), st[0].u/I2 [27,33]->[27,59] (rho 330 ps), st[0].u/I3 [36,44]->[36,79] (rho 440 ps), st[0].u/O [9,13]->[9,21] (rho 121 ps)]
+inputs: [rst]
+
+TIMED (XSim: Fast.auditF, = XSim.val by auditF_eq; horizon 2000 steps = 20000 ps; power-up all X)
+  end state: FIXED POINT (inputs constant from 2000 ps, last 80 rows equal): binary values hold forever (settled_forever)
+  STORAGE st[0].u/O (wire 7 'c[0]'): final X, 1 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [2900, 20000] ps: after 1, UNRESOLVED to the horizon: X cannot be excluded
+  STORAGE st[1].u/O (wire 5 'c[1]'): final X, 1 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [2450, 2990] ps: transition 0 -> 1 (550 ps of timing uncertainty)
+    X [3350, 20000] ps: after 1, UNRESOLVED to the horizon: X cannot be excluded
+  STORAGE st[2].u/O (wire 3 'c[2]'): final X, 1 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [3350, 20000] ps: after 0, UNRESOLVED to the horizon: X cannot be excluded
+
+UNTIMED (Eichelberger A/B, Formal.Core.Ternary; any gate and wire delays)
+  phase 0 @ 0 ps: inputs held at init (power-up X state): 0 of 3 storage nodes flagged
+  phase 1 @ 2000 ps: inputs [rst-]: 3 of 3 storage nodes flagged
+    st[0].u/O: start 1 A X B X: NO SETTLE (B = X: final value not determined)
+    st[1].u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+    st[2].u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+
+SUMMARY: timed: 3 flagged X windows on 3 storage nodes; untimed: 3 flagged (node, phase) pairs
