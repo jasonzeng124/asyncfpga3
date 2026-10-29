@@ -337,3 +337,9 @@ the dag/cert certificates are impossible (only exempt = assumed Held) and phys5_
 (out0 infinitely often from one start). phys4/5 "root certificates with tcheck rows" and "data fields from tcheck
 rows" OVERSTATED. H_FN 176/221 OVERSTATED (96 really checked); 10o "9 lines" miscount (11); O4b fix only frozen-run
 witnesses. phys2/phys4 Lean, ChainSettle iff, 8z4 CONFIRMED.
+
+### progress 16:22
+P12c in: InvolutionExp, Prefix, BandCheck/CornerCell CONFIRMED (own sympy + independent loop sim; own inverted-arc
+count 20/37928). Events9Sel/Arb OVERSTATED: corrected arbiter core leaves q free, design_verdict9arb gets HARB7 from
+HARB7' by projection; FEASIBILITY:438-443 still says CLEAN without the refutation (I read it). XInert "Verilog
+default" mild. Pass 12 subagents all done. Axiom audit of 1fd99ef0 running (30 modules so far).
