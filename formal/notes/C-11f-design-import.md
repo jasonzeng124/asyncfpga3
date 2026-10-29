@@ -224,4 +224,27 @@ committed, today's are in build/rerun/ (not committed). So the fixtures are this
   init (C000[104], SLICE_X0Y63.ALUT, O6 differs), pips (A2 IMUX re-pointed SR1BEG_S0 -> EE2END1,
   same instance), ffinit (C012[78], SLICE_X22Y62.AFF, kind/init 1 vs 0), clkinv (same FF, Q differs).
 
-Lean (route d only; routes 2, 3, 4 are Python-mirror only): see the PASS/FAIL line below.
+Lean, route d only (routes 2, 3, 4 are checked by the Python mirror only, not in Lean):
+Basic + GcdD (Rho, C000..C042, All) + FasmGcd built one module at a time (`slot.sh lake build
+Formal.Net.FasmDesign.GcdD.Cxxx`), 6-99 s and 0.82-1.25 GB peak per chunk (C018 1.5 GB), Rho 79 s.
+
+**Last run: 2026-10-29, `formal/tools/fasm2lean3/check.sh` (full, with Lean): PASS.**
+
+    == 3. Lean ==
+    Build completed successfully (53 jobs).
+      [check] lean Formal/Net/FasmDesign/Basic.lean
+      [check] lean Formal/Net/FasmDesign/GcdD/All.lean
+      [check] lean Formal/Net/FasmGcd.lean
+      [check] axiom audit
+      [audit] 1612 declarations checked
+      [check] OK
+    == 4. negative controls in the bits (seed d) ==
+      init:   caught by check3 at C000[104]; Lean proves checkAll rho insts = false (Wip/C11f/MutInit.lean)
+      pips:   caught by check3 at C000[104]; Lean proves ... = false (Wip/C11f/MutPips.lean)
+      ffinit: caught by check3 at C012[78];  Lean proves ... = false (Wip/C11f/MutFfinit.lean)
+      clkinv: caught by check3 at C012[78];  Lean proves ... = false (Wip/C11f/MutClkinv.lean)
+    fasm2lean3 check PASS
+
+`formal/scan.py` on Basic, GcdD/*.lean and FasmGcd.lean: clean. The axiom audit of All.lean and
+FasmGcd.lean is transitive, so it covers every chunk's `ok<j>`/`binds_ok` (only propext,
+Classical.choice, Quot.sound allowed). The Mut*.lean files are negative controls, not claims.

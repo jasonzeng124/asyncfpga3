@@ -95,7 +95,13 @@
   independent specs (Kleene: same INIT and pin order as B only). Bitstream: physical INIT +
   pip-walked pin map of routed bd_c2/bd_link/bd_arbiter (4 seeds) computes the logical cells;
   mutated INIT/pips caught. The placer's pin permutation is real and moves delay by up to
-  ~0.5 ns. FF/CARRY4/F7F8 and whole designs: 11f (rebuilding; last session's work was lost).
+  ~0.5 ns. Whole design (11f, rebuilt): the routed gcd_hw (kernel +
+  rig, 9623 cells; FF/CARRY4/MUXF7/F8/route-through/constant LUTs decoded) read back from its
+  .bit; Lean proves for route d that all 10629 physical instances compute their renamed yosys
+  cells (`gcd_hw_d_netlist`) and that all 5645 library-cell LUTs have the INIT of the
+  Formal.Gen cell (`gcd_hw_d_cells_init`); seeds 2, 3, 4 pass the Python mirror only. Mutated
+  INIT/pip/FF init/clock inversion caught. Trusted, not proved: FASM site decoding, yosys
+  flattening, the FF/CARRY4 Gen models; rho not proved injective; functions only, no timing.
 - **Track 12 (other tools): bound-finders and corner sweepers, not provers (~1 day per
   tool).** 12d redid 12a/b/c at one consistent corner and under the corner model: the 16 ps
   handover race, the 56-60 ps server latency, 12a's 152 ps aperture and k >= 10 were corner-mix
@@ -537,3 +543,7 @@ checks.
 ### progress 10:36
 Committed after my own check.sh: wit (8 files, 4697 decls), O4 (6 files, 4911), 8z3 (7
 files, 4034); axioms standard. Launched 8z4. 11f's check running.
+
+### progress 10:36
+11f committed after my own check.sh (Basic + GcdD/All + FasmGcd; standard axioms): see
+track 11. Routes re-made today byte-identical to the fixtures (nextpnr 9c732bc6303458df).
