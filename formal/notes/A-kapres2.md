@@ -80,3 +80,62 @@ executable). Until then, the sweep runs `Wip/KapRes2/BandCheckRun.lean` (`readBa
 On real data: the committed seed-d fast band file is REJECTED (20 inverted arcs), slow / indep
 accepted.
 
+
+## 3. κ sweep with xevents8
+
+### 3.1 Pipeline (`formal/tools-A/kappa/kapres2/`)
+Per seed and cell `[ca,cb]`, κ descending: `cornerband2.py` (cell band = CornerCell `cellLo`/`cellHi`,
+exact ℚ, outward rounding; inputs validated, lo > hi REJECTED) -> `events4/skel.py` ->
+`check_bands.check` on both files -> `events8/cert8.py` (untrusted) -> committed `Events8Main`
+(`lean --run` on a private olean overlay of the committed chain, `mk.sh`). A run is accepted only
+with `Design.WF true`, `Recog6 node failures 0`, `Net4.OK7 true`, log `accepted by runLog: true` and
+`501 nodes (36 virtual, H_ARB)`. Refinement rule and `implied_clean` reuse as A-kapres §2 (a
+cell inside a CLEAN cell of a larger-or-equal κ is not re-run: CornerCell.cellLo_anti/cellHi_mono).
+- **Arbiter core pinned.** At 09:33 `events4/model.py` (commit 591cd51) switched its default to
+  the E8ArbFix "fix" virtual arbiter core (519 nodes, 54 virtual), made for Events9Arb, not for
+  Events8's HARB7. Every run here uses the Events8 core: kapres2.py forces `XA_ARB=old` and runs a
+  snapshot of the committed events4/6/7/8 python (`$KR/xa`, from 591cd51). Checked: on the seed-d
+  slow skeleton, 591cd51 + `XA_ARB=old` gives a byte-identical certificate to 591cd51^ (the tools
+  every committed xevents8 result used); the "fix" default does not. All 116 old-band and all
+  E8Mux-band outputs print `501 nodes (36 virtual` (no run used the fix core).
+- **Bands.** E8Mux NEW bands (`tools-A/xaudit/e8mux/`, scratch `e8mux/w/<s>/new/`: slice OUTMUX hop on
+  O5/MUXF/CARRY4/x5FF exits; lo > hi rows hulled by routed2x `--inverted hull`), plus
+  `check_bands.py fix` (BRKH_INT fast hull, 14/3/6/2 arcs d/3/4/5). No BRKH arc is in the control
+  skeleton (same netlists), so neither treatment changes a verdict.
+- **Sanity.** Cell `[1,1]` at κ = 0 gives exactly the slow band file (all 4 seeds, old and new
+  bands); on the old seed-d bands the xevents8 output is byte-identical to the committed
+  `xaudit/events8/xe8_d_slow.txt`.
+- **Lean band check.** `Wip/KapRes2/BandCheckRun.lean` (`BandCheck.readBands`) on all 221 band files
+  the sweep used (every skeleton band file fed to xevents8, the corrected fast and the slow
+  inputs): `221 files, 0 rejected` (`kapres2/bandcheck_run.txt`). On the committed (uncorrected)
+  seed-d fast file it rejects (negative control on real data).
+
+### 3.2 Results, E8Mux bands (`runs_e8/`, `table2_e8.txt`; depth-0 sweep: 4 cells of 1/4, end corners)
+Per item: largest κ in {0.12 … 0} at which it is absent from every cell of the cover ("best"),
+and where it FAILS at a point corner. Margins ps, strict. Prefix `urig.udut.` dropped.
+
+| seed | item | best κ (1/4 cells) | fails at point corners |
+|---|---|---|---|
+| d | Guard `ucontrol_merge2.uarb1.ua2` pin0 | none (cells to κ=0) | κ .12: all 5 (−57..−123); κ .10: all 5 (−7..−15) |
+| d | Guard `ucontrol_merge3.uarb1.ua2` pin0 | none | κ .12: all 5 (−114..−130); κ .10: c=0..3/4 (−48..−8) |
+| d | Guard `ucontrol_merge3.uarb1.ua1` pin0 | none | κ .12: all 5 (−85..−29); κ .10: c=0 (−18) |
+| d | Guard `merge11.uarb1.ua1` p0 / `merge2.uarb1.ua1` p0 / `merge9.uarb1.ua1` p0 / `merge11.uarb1.ua2` p1 | .02 / .04 / .04 / .08 | none |
+| d | Line `arb:ucontrol_merge12.uarb2.ugrant` | .06 | none |
+| 3 | Guard `ucontrol_merge9.uarb1.ua2` pin1 | none (cells to κ=0, −4 at 0) | none |
+| 3 | Line `arb:ucontrol_merge12.uarb2.ugrant` | 0 | κ .12: c=1 (0) |
+| 3 | Line `arb:merge4.uarb1.ugrant`; Guards merge10.ua1, merge11.ua2, merge6.ua2 | .04 | none |
+| 3 | Guards merge12.uarb1.ua2, merge4.ua1 / merge10.ua2, merge12.uarb2.ua2, merge3.ua1 / Back `ulink_n_falseResult_77` p1 | .06 / .08 / .10 | none |
+| 4 | Guard `ucontrol_merge3.uarb1.ua2` pin0 | 0 (refined: .06) | none |
+| 4 | Guard `merge3.uarb1.ua1` p1 / Line `arb:merge12` grant | .10 / .08 | none |
+| 5 | Back `urig.uenv1.u` pin1 (rig env) | none (cells to κ=0) | κ .12: all 5 (−25..−95); κ .10: all 5 (−5..−48); κ .08: c=1 (−2) |
+| 5 | Line `arb:merge12` grant / Back `ulink_n_trueResult_28` s0 p1, Guards merge2.ua1, merge4.ua2 / Guard merge3.ua1 | .02 / .06 / .08 | none |
+
+"none (cells to κ=0)" at 1/4 resolution only: see 3.3.
+
+### 3.3 Refinement (cells to 1/8 and 1/16)
+- **κ = 0, seeds d, 3, 5** (`summary_k0refine.json`): every item disappears; covers d 6 cells,
+  3 5 cells, 5 7 cells (widths 1/8 and 1/4), contiguous [0,1], 0 cells with residual items. With
+  seed 4 (clean at 1/4): **at κ = 0 every gcd_hw seed is discharged on the whole corner
+  interval** (no residual item of `design_verdict8` on any cell).
+- **κ = 0.06, seed 4** (`summary_refine.json`): 7 cells (1/8, one 1/4), all clean -> seed 4 is
+  discharged on [0,1] for every κ ≤ 0.06.
