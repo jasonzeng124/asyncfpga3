@@ -986,3 +986,19 @@ ticks away); H_SPREAD_CORRELATED noted as the lit model itself; "+W under H_W_BO
 PROVED on the 2 bd_steer rows only, 69 rows say UNPROVED; c_contract records H_ARB_EXCL
 not derivable (4 rows) and H_SEL_STABLE needed (2 rows). No label changed. Not yet
 audited: the other strict boundary rows (bd_mlink.qfb_first first).
+
+### progress 08:55
+In: Bzd2 ZeroDelayNet{,Phys,Wit,Tok} (core; checked here, axioms standard;
+notes/B-zero-delay-net.md). Network half of the physical -> zero-delay bridge for an
+N-stage bd_link CHAIN: one global retiming key(lo, depth) is monotone for free;
+the closed loop with reads >= 0 gives Bzd's Causal at every stage (chain_causal,
+given end causality H_SRC/H_SNK; a negative read delay breaks it with all six rows
+met, negdelay_breaks_causal); every stage meets LinkExact's Spec inside the loop
+(chain_spec) and chain_refines gives one zero-delay C run (Link/Protocol/Held on
+every channel) with window images and captures; witness: two coupled stages, reads
+380-900 ps. New hypotheses: H_WIRE_POS (>= 1 ps), H_RST_SEEN (a closed loop's wires
+are not quiet at power-up), H_DATA_LOOP. One token only: k-token Link not proved;
+the physical k-token stage needs a cross-token ack-before-request race that is NOT
+one of the six bd_link.stage rows, and a multi-token latch capture (EnTok cannot
+express it). Not done: fork/join, steer->mux diamond, rings (gcd_hw's loop has
+initial tokens).
