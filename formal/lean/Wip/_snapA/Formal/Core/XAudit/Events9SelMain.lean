@@ -1,6 +1,6 @@
 import Lean.Data.Json
 import Formal.Core.XAudit.Parse
-import Formal.Core.XAudit.Events9SelHold
+import Formal.Core.XAudit.Events9SelSplit
 
 /-!
 # `xselhold` — check the select map and the hold rows of a ROUTED netlist (executable main)
@@ -19,6 +19,12 @@ Per REAL filtered pin `(j, p)` and select literal `i` it
   output wire (Bellman-Ford over the parsed design; minimality NOT proved), evaluates
   **`chainOK`** and **`holdBand`** (Events9SelHold) and prints the hold margin of every copy
   (`holdMargin`): `plo π + selLo + lo(rg) - hiC - 1` ps.
+* per copy, the junction-anchored row of `Events9SelSplit`: among the cuts `n` whose bottom
+  part is a chain of 1-input buffers and whose junction wire `junW` the acknowledge reaches,
+  the one with the best margin; the path from the acknowledge to `junW`, **`chainOK`** and
+  **`holdBandS`** (margin `plo π + selLo + lo(rg) - (phi top - 1) - 1` ps). SELHOLD(split)
+  CLEAN = every literal has `entOK` and passing split rows on every copy (the checked premises
+  of `design_verdict9_selS`); SELHOLD(src) is the source-anchored `design_verdict9_selH` row.
 Every map row is printed with its wire names, so the trusted name correspondence (C channel
 name ↔ request / acknowledge / bus wires) can be read off.
 
@@ -41,6 +47,7 @@ open Formal.Core.XAudit.Events9
 open Formal.Core.XAudit.Events8Bridge
 open Formal.Core.XAudit.Events9SelC
 open Formal.Core.XAudit.Events9SelHold
+open Formal.Core.XAudit.Events9SelSplit
 
 /-! ## Certificate reader (copied verbatim from `Events9Main`) -/
 
@@ -268,6 +275,10 @@ def run (args : List String) : IO UInt32 := do
     let mut minM : Int := 1000000000
     let mut minAt := ""
     let mut fails : Array String := #[]
+    let mut nS := 0
+    let mut minS : Int := 1000000000
+    let mut minSAt := ""
+    let mut failsS : Array String := #[]
     let mut cache : Std.HashMap Nat (Array Nat × Array (Option (Nat × Nat))) := {}
     for (jj, pv, i) in lits do
       if hp : pv < net.ar jj then
@@ -284,8 +295,7 @@ def run (args : List String) : IO UInt32 := do
             | none => d.n
           let ws : List Nat := (gArr e "ws").toList.map fun w =>
             (bt.inputs.lookup ((w.getStr?.toOption).getD "")).getD d.n
-          let se : SelEnt := { name := gStr e "name", rq := gw "rq", ak := gw "ak", ws,
-            dw := (gt d rg).ins.getD 0 0, rg }
+          let se : SelEnt := SelEnt.mk (gStr e "name") (gw "rq") (gw "ak") ws ((gt d rg).ins.getD 0 0) rg
           let eok := entOK d net rn jj p i se
           if eok then nEnt := nEnt + 1
           let srcW := (gt d (rn (net.src jj p)).lut).out
@@ -311,13 +321,47 @@ def run (args : List String) : IO UInt32 := do
           if cok && mmin < minM then
             minM := mmin
             minAt := lab
-          IO.println s!"  {if ok then "OK  " else "FAIL"} {lab} chan {se.name} req {wname se.rq} ack {wname se.ak} bus {se.ws.map wname} sel-arc {(gt d rg).name} [{(gt d rg).lo},{(gt d rg).hi}] entOK {eok} | D {D} ({π.length} hops) selLo {selLo d net rn jj p} hiC {hiCmax} chain {cok} hold {hok} margin {mmin}"
+          -- split (junction-anchored) rows: per copy, the best cut whose bottom is a buffer chain
+          let isBufB (g : Nat) : Bool := (gt d g).k == 1 && decide (InitSpec (gt d g) (fun v => v 0))
+          let mut sok := eok && !srcVirt
+          let mut smin : Int := 1000000000
+          let mut sdesc := ""
+          for c in allFin (net.nc jj p) do
+            let fp := full net rn jj p c.val
+            let mut best : Option (Int × Nat × Nat) := none
+            for n in [0:fp.length] do
+              if (fp.drop (n + 1)).all (fun e => isBufB e.1) then
+                let w := junW d net rn jj p c.val n
+                if w < d.n && dist[w]! < 1000000000000 then
+                  let mg : Int := (dist[w]! : Int) + selLo d net rn jj p + (gt d rg).lo -
+                    ((phi d (topP d net rn jj p c.val n) : Int) - 1) - 1
+                  if best.all (fun bb => bb.1 < mg) then best := some (mg, n, w)
+            match best with
+            | none => sok := false; sdesc := sdesc ++ s!" c{c.val}:nocut"
+            | some (_, n, w) =>
+              let πs := pathTo d prev se.ak w
+              let cs := chainOK d se.ak w πs
+              let hs := holdBandS d net rn jj p se c.val n (plo d πs)
+              let mg : Int := (plo d πs : Int) + selLo d net rn jj p + (gt d rg).lo -
+                    ((phi d (topP d net rn jj p c.val n) : Int) - 1) - 1
+              if !(cs && hs) then sok := false
+              if mg < smin then smin := mg
+              sdesc := sdesc ++ s!" c{c.val}:cut{n + 1}/{fp.length} w={wname w} Dw {plo d πs} topHi {phi d (topP d net rn jj p c.val n) - 1} m {mg}{if cs && hs then "" else " FAIL"}"
+          if sok then nS := nS + 1
+          if smin < minS then
+            minS := smin
+            minSAt := lab
+          IO.println s!"  {if ok then "OK  " else "FAIL"} {lab} chan {se.name} req {wname se.rq} ack {wname se.ak} bus {se.ws.map wname} sel-arc {(gt d rg).name} [{(gt d rg).lo},{(gt d rg).hi}] entOK {eok} | SRC D {D} ({π.length} hops) selLo {selLo d net rn jj p} hiC {hiCmax} chain {cok} hold {hok} margin {mmin} | SPLIT {if sok then "OK" else "FAIL"} min {smin}{sdesc}"
           if !ok then fails := fails.push s!"{lab}: entOK {eok} chainOK {cok} holdBand {hok} srcVirt {srcVirt} margin {mmin}"
+          if !sok then failsS := failsS.push s!"{lab}: split min {smin}{sdesc}"
     IO.println s!"[xselhold] literals {lits.size}: entOK {nEnt}, chainOK {nChain}, holdBand {nHold}, all three {nOK}; min hold margin {minM} ps at {minAt}"
-    for f in fails do IO.println s!"  RESIDUAL {f}"
-    IO.println (if nOK == lits.size then "SELHOLD CLEAN: every real select literal has a checked map entry and a passing hold row"
-      else s!"SELHOLD RESIDUAL {lits.size - nOK}")
-    return (if nOK == lits.size then 0 else 1)
+    IO.println s!"[xselhold] split rows: {nS} of {lits.size} literals pass (entOK, chainOK, holdBandS on every copy); min split margin {minS} ps at {minSAt}"
+    for f in fails do IO.println s!"  RESIDUAL(src) {f}"
+    for f in failsS do IO.println s!"  RESIDUAL(split) {f}"
+    IO.println (if nOK == lits.size then "SELHOLD(src) CLEAN" else s!"SELHOLD(src) RESIDUAL {lits.size - nOK}")
+    IO.println (if nS == lits.size then "SELHOLD(split) CLEAN: every real select literal has a checked map entry and passing split hold rows"
+      else s!"SELHOLD(split) RESIDUAL {lits.size - nS}")
+    return (if nS == lits.size then 0 else 1)
   else
     IO.eprintln "no nodes"; return 2
 
