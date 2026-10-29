@@ -2691,6 +2691,10 @@ doc["produced_by"] += (". Updated by probe Bj4 (2026-10-27) from B-necessity2.md
                        "bd_fork.branch_data_edge not_necessary), B-ctree-exact.md (CTreeExact: new exact bd_ctree.node_loop, node_fork not_necessary) and "
                        "B-reset-gcd-vec.md / B-reset-gcd-vec2.md (ResetGcdVec, ResetGcdVec2: field binds_at on the reset-width rows)")
 json.dump(doc, open(OUT, "w"), indent=1)
+# probe Bj5 (2026-10-29): second pass (KleeneBox, Necessity3, kappa, audit P8 label fixes)
+import os, subprocess
+subprocess.run([sys.executable, "-I", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cell_constraints.bj5.py"), OUT, OUT], check=True)
+doc = json.load(open(OUT)); E = doc["constraints"]
 print(len(E), "constraints")
 
 # optional: python3 -I cell_constraints.gen.py cell_constraints.json cell_constraints.md re-renders the md's entry table

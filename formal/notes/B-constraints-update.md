@@ -626,3 +626,192 @@ Not applied. I re-tested it on scratch copies of the final generator and validat
   untracked". None of them is from the new `binds_at` check.
 
 As before, regenerate the patch rather than hand-apply it.
+
+# Update (probe Bj5, 2026-10-29): KleeneBox, Necessity3*, kappa, LinkExact; exact rows checked against their iffs
+
+Files changed: `formal/out/cell_constraints.json` and `formal/out/cell_constraints.validate.py`.
+No Lean changed.
+
+The generator `cell_constraints.gen.py` and the md entry table were NOT changed: neither was in
+this probe's write set. So the generator alone no longer reproduces the JSON. What does reproduce it
+(checked byte for byte) is the generator followed by the patch script:
+`python3 -I cell_constraints.gen.py tmp.json && python3 -I /tmp/claude-0/probes/Bj5/bj5.py tmp.json cell_constraints.json`.
+The script is written as one pass, so it can be pasted into the generator as a "probe Bj5" section.
+The md table still shows the Bj4 labels. Do both before the next generator run, or this update is lost.
+
+## Checks
+
+| check | result |
+|---|---|
+| `python3 -I cell_constraints.validate.py cell_constraints.json` | 132 constraints, 10 hypotheses, 1956 Lean references in 88 files, strict 68, strict_pending 17, binds_at 5, rows with corner.kappa 124, **errors: 0** |
+| negative control (scratch JSON, 5 faults: node_loop given back its strict +1, H_X_UNIFORM removed from a KleeneBox row, "exact" in a kappa result, a 1C row without corner.kappa, a misspelt KleeneBox name) | 5 errors, one for each fault |
+| the new validator on the PRE-Bj5 JSON, kappa errors aside | exactly the 4 mismatches below (node_loop, uxa_loop, uxa_rtz, uya_rtz) |
+
+Every cited name resolves through the validator's declaration grep, and every cited file is
+git-tracked. The prose names were also grepped against the Lean (e.g. the `verdict_*_κ*`
+names use κ). The one name that is not in this repo, `P7kAudit.s1c2_gap_unsafe_at_200`, is on
+origin/claude/audit and is quoted as the auditor's.
+
+New validator checks, and why each was needed:
+- `strict` may be backed by `KleeneBox.lean`. Before, only CElemStrict counted, and KleeneBox is
+  the backing of the six select rows.
+- A row whose strict source is KleeneBox must list H_KLEENE_LUT and H_X_UNIFORM in its new
+  `hypotheses` field.
+- STRICT_IFFS (audit P8): an `exact` row that carries a strict +1 must cite as `exact` an iff
+  that states the +1 form. That is a Kleene X-window iff, listed explicitly, not only a binary
+  `<=` iff. This check found the 4 mismatches below on the old JSON.
+- `hypotheses` must be a list of strings.
+- Every 1C / 1C_both row needs `corner.kappa`, whose `see` must be a hypothesis id.
+- No `corner.kappa.results` text may call a threshold exact (audit row 18).
+
+## Counts
+
+|  | before | after |
+|---|---|---|
+| entries | 131 | 132 (+ `bd_link.stage`) |
+| proved / unproved | 130 / 1 | 131 / 1 |
+| exact | 32 | 33 |
+| sufficient | 31 | 24 |
+| sufficient+necessary_at_boundary | 31 | 38 |
+| strict (+1) / strict_pending | 64 / 18 | 68 / 17 |
+| hypotheses_not_inequalities | 8 | 10 |
+| citations with role `exact` / `exact_inner` | 132 / 118 | 177 / 116 |
+
+## 1. KleeneBox (Bkx, B-kleene-box.md)
+
+These six rows are now `strict`: margin_ps + 1 on forms[0], and the +1 is written into the
+inequality.
+- `bd_steer.bundled_s_setup`, `bd_steer.bundled_s_hold`: backed by `steer_strict_K`.
+- `bd_mux.bundled_s_setup`, `bd_mux.bundled_s_hold`: backed by `join_strict_K`.
+- `bdc_muxn.s_setup`, `bdc_muxn.s_hold`: backed by `muxn_edges_K` at a + c = 1.
+
+The three hold rows lose `strict_pending`.
+
+Each inequality now states both coordinate systems:
+- In binary-edge times, under H_KLEENE_LUT + H_X_UNIFORM with w = 1, the form is `+1`. It is
+  exact (`*_edges_K`, `*_strict_K`).
+- In definite-window times the binary `<=` form is exact (`*_box_exact`, `*_box_exact_K`).
+
+`hypotheses` = [H_KLEENE_LUT, H_X_UNIFORM, H_PIN_READ]. The new hypothesis row
+"H_KLEENE_LUT / H_X_UNIFORM" carries audit P8's caveats:
+- lutK is the hazard-free, OPTIMISTIC ternary extension, and its silicon fidelity is
+  unverified;
+- w = 1 is the grid minimum;
+- with unequal splits only the definite-window form applies.
+
+bdc_muxn: the K3 results cover the SELECTED join only. The unselected joins' Cover is binary
+(`unsel_box_exact`), and exact_scope says so.
+
+The nine bd_latch rows also cite `latch_edges_uniform` / `latch_strict_uniform`, the any-split
+form, and list their hypotheses.
+
+## 2. Necessity3* (Bsx3, B-necessity3.md)
+
+These rows move from `sufficient` to `sufficient+necessary_at_boundary`. Each has, for its one
+hypothesis or for each of its forms, an explicit run that misses that hypothesis or form by 1
+tick and refutes the shipped claim:
+- `bd_pipe.boundary_I` (`I_false`), `boundary_H` (`H_false`), `data_lead` (`L_false`: the Lean
+  DataN form; the classic form stays not necessary) and `output` (`out_false`). All are N = 2
+  runs with a unit control and point windows.
+- `bd_pipe.lat_lumped` (`lat_false`, N = 1). The note records that the run refutes `<=` at
+  slack 1, so the JSON's +1 form is 2 ps from the refuted point.
+- `bd_arbcell.grant_skew`: both forms (`formA_false`, `formB_false`). The skew bound of
+  `opposite_sense_exclusion` is cited as context, because it is tight too.
+- `bdc_amerge.bundled_idx_ack_g` (`gack_counter`, general; `gack1_false`, one run). Its
+  edge_sampling_consumer_only necessity_scope is kept.
+
+`bd_pipe.rst_lines` stays `sufficient`. Its `necessity_scope` says what is covered:
+- the loop term (H_RST_LONG) and the request-line term are necessary at the boundary
+  (`long_false`, `lines_false`);
+- the DACK, guard and per-pin H_RST_SEL terms have no necessity result.
+
+Each new citation uses one of these roles: sufficient (`*0`), counter_trace (`*_false`),
+numbers (`*_viol`, `*_exc`, `*_overlap`), or counter_run (`dataS_*`, `timing_*`, `*_sat`,
+`W2G_run`).
+
+## 3. kappa (ConstraintsKappa, OnNetlistArbKappa, OnGcdArbKappa)
+
+The new hypothesis row "H_SHARED_CORNER / H_SCATTER (kappa)" covers H_ENDPOINTS, H_AFFINE,
+H_SHARED_CORNER and H_SCATTER kappa. It records that kappa is UNMEASURED and that the 0.311
+was withdrawn. It cites:
+- the CornerNat definitions;
+- `allOK_of_gen`, `allOK_iff_gen` (H_DISJ + H_DIV), `sandwich` and `allOK_cancel`;
+- the counter-examples `box_unsound_with_kappa`, `one_corner_unsound_with_kappa`,
+  `slow_only_unsound` and `endpointNat_not_sufficient`.
+
+Its check text also carries the audit's remark: in the `lit` reading, small-kappa safety
+assumes that the within-corner spread is die-wide correlated.
+
+All 124 rows in mode 1C / 1C_both now carry `corner.kappa`: the hypotheses, "unmeasured", the
+GenOK check, and `see`. Their shared `corner.rule` was wrong in two places and is rewritten:
+- it said "box ... is always sound", which is false in A's model for kappa > 0;
+- it required a SLOW_MAX-only guard, which belongs to H_WIRE_RATIO only.
+
+`conventions.corner_rule` and a new `conventions.kappa` say the same. Bk2's per-entry
+`kappa_check` patch (a GenOK formula for every form) is still not applied; this update records
+the model, not per-form formulas.
+
+Per-row results (`corner.kappa.results` plus citations with role `corner`):
+- `bd_arbiter.a0_fork_client1/2` (OnNetlistArbKappa, link_arb). Safe for kappa <= kappa*.
+  Unsafe is proved only for kappa >= kappa* + 6/(E+L), and the gap is NOT decided, so kappa*
+  is NOT called exact (audit row 18; the audit's in-gap violation is quoted as the auditor's
+  theorem). At 1/11 all 16 cases are safe; at kappaE only s1 c2 cons fails.
+- `a0_fork_client1/2`, `rt1`, `rt1b`, `rt2_*`, `rt2b_*` (OnGcdArbKappa, gcd_hw):
+  - safe for kappa <= kappa* (`row_safe`);
+  - unsafe at the ARC-FORM level only, from kappa_u, with the gap < 1e-4 (`rows_gap`);
+  - the design value 0.0443 (`lit_min`, `design_lit_safe`, `design_gate_lit`), and 0.0802
+    with the server credited;
+  - the cons rows that fail at kappa = 0 (`cons_neg`);
+  - per-condition minima, quoted from the note's table.
+  ArbPin2's h12/h21/o1x/o2x have no JSON row.
+
+## 4. Exact rows: does the inequality equal the Lean iff's form?
+
+All 32 exact rows were checked. Four mismatches were found and fixed:
+
+| row | mismatch | fix |
+|---|---|---|
+| `bd_ctree.node_loop` (audit P8) | inequality `... + 1 <=`, but `tree_box_exact` is the binary `<=` form; the scope did not name the monotone restriction | inequality now `<=` (margin 1 -> 0); the +1 moves to `strict_pending` (not proved for the tree); exact_scope names H_PIN_FIFO (TreeOK quantifies over Mono read maps) and H_ACK (relative to the ideal root edge: open loop; the closed loop is argued, not proved); `hypotheses` added |
+| `bd_merge.uxa_loop` | the same: `uxa_box_exact` is `<=` with `Mono pa`, `Mono pb` | the same fix (margins on forms 0-3: 1 -> 0, `strict_pending`, H_PIN_FIFO in exact_scope) |
+| `bd_mux.uxa_rtz`, `bd_mux.uya_rtz` | inequality `+1`, but exact_scope cited only the binary fixed-delay pair `rtz_exact_safe` / `rtz_counter` (`<=` form) | the inequality is kept, because it IS CElemStrict's `box_iff` / `clean_iff` at wa = 1 for the bd_c2 race at uxa's pins (te = tb + wb, tr = slo + wa); `box_iff`'s role goes exact_inner -> exact, `clean_iff` is added, and exact_scope says which theorem gives which form (the composed mux is not re-proved in K3) |
+
+Checked and consistent (no change, or a scope note only):
+- `bd_c{2,2n,3,4}.pulse_width`: the +1 is `box_iff` at wa = 1. exact_scope was added to say so,
+  and that the binary exact form is `>= Dmax`.
+- The 9 bd_latch rows: `box_exact_edges` / `strict_edges` carry the `we`.
+- `bd_delay_gated.gate` (exact_under).
+- `bd_arbiter.a0_fork_client1/2` (`<=`, strict_pending).
+- `bd_arbiter.rt1`, `rt1b` and `bd_arbcell.handover_overlap`: there is no iff, and exact_scope
+  already says so.
+- The bd_mux, bd_steer and bdc_muxn select rows (section 1).
+- `bdc_muxn.no_third_branch`, `gcd_rig.idx_setup`, `bd_ctree.ack_wait` (reachable-set iff,
+  scope stated).
+
+Judgement call: for node_loop and uxa_loop I made the inequality equal the exact `<=` form
+rather than keep the +1 and weaken the label. A checker that wants the extra 1 ps guard can
+apply strict_pending's +1; that is sufficient but not shown necessary.
+
+## 5. LinkExact (Blink, B-link-exact.md)
+
+New row `bd_link.stage`:
+- exact; informational, with refers_to the five per-cell rows it composes, because `no_cross`
+  shows the per-cell conditions at the substituted times are all the stage needs; forms: none;
+- inequality: the six conjuncts, `<=` in definite-window times and strict in binary-edge times
+  (`strict_edges`);
+- exact_scope and hypotheses record the scope Wf: the ordered windows, H_RST_EARLY,
+  H_RST_EARLY_ACK and H_ACK_ORDER, none of which is in Conj;
+- also recorded: Split (H_REL_SPLIT), needed only for H_RACE_UP's necessity, which is undecided
+  at the tie; the en = c data path; and that it is open loop with one token;
+- citations: `exact`, `no_cross`, `strict_edges`, `sufficient`, `need_*`, `Wf`, `Split`,
+  `witness`, `Pv_one_tick`, `Pv_breaks`, `out_port`.
+
+The five referred rows (`bd_c2n.reset_width`, `bd_c2n.env_latency`, and `bd_latch[odd]`'s
+setup_pulse, setup_data and hold) cite `LinkExact.no_cross` as context, with the scope in its note.
+
+## Not done
+
+- The generator and the md table (outside the write set; see the top of this section).
+- Bk2's per-form `kappa_check` formulas.
+- No Kleene result for node_loop / uxa_loop.
+- No K3 Cover for bdc_muxn's unselected joins.
+- No closed-loop or several-token LinkExact.

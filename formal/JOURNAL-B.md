@@ -635,3 +635,20 @@ hypotheses (uenv1's H_UENV1_B/M1 graded C: fails under the band on seeds 2/4) an
 which has no joint witness. Contest-freedom does not discharge H_ARB_EXCL (still
 A0 fork + RT1/RT2 + server: per corner proved, C in the box and for kappa >
 0.0443). 16 B/C/A ledger contradictions listed (K1-K16).
+
+### progress 07:50
+In: Bj5 (data, no Lean). cell_constraints.json: 132 entries, 131 proved, 33 exact,
+validator 0 errors (negative control: 5 planted faults -> 5 errors). KleeneBox makes
+the six select setup/hold rows of bd_steer/bd_mux/bdc_muxn strict (+1) in
+binary-edge times under H_KLEENE_LUT + H_X_UNIFORM (w = 1 tick, grid minimum); the
+'<=' form stays exact in definite-window times. Necessity3 lifts 7 rows (bd_pipe
+boundary_I/boundary_H/data_lead/output/lat_lumped, bd_arbcell.grant_skew,
+bdc_amerge.bundled_idx_ack_g) to necessary at the 1-ps boundary; bd_pipe.rst_lines
+stays sufficient. Every corner-model row records kappa (unmeasured); the corner rule's
+"box always sound" corrected (false for kappa > 0). Audit row 18: link_arb kappa*
+recorded as a safe bound, not exact. Audit P8: bd_ctree.node_loop and
+bd_merge.uxa_loop now state the binary '<=' form their iffs prove (scope H_PIN_FIFO;
+the +1 is strict_pending); new informational row bd_link.stage (LinkExact, scope
+Wf + Split). The validator now rejects an exact row whose +1 has no strict-form iff.
+The patch pass is committed as out/cell_constraints.bj5.py and run by
+cell_constraints.gen.py (regeneration reproduces the JSON; md table re-rendered).
