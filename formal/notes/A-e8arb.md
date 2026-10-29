@@ -1,6 +1,10 @@
 # A-e8arb (probe E8Arb, shard A): H_ARB (HARB7) from "uncontested" + B's cell conditions
 
-STATUS (2026-10-29, start): in progress. Nothing claimed yet.
+STATUS (2026-10-29, in progress): `Formal/Core/XAudit/Events8Arb.lean` checks (check.sh with
+Events, Events2: 855 decls, [check] OK): necessity results (contested runt trace, C's instantaneous
+predicate insufficient, `Unc W`). Finding under verification: HARB7's virtual R0 (OR of grants
+through cert8 tap bands) is violated by q-caused R0 edges on all 18 gcd_hw grant->R0 relations
+(seed d slow), so HARB7 fails even on UNCONTESTED runs (see §3 when written).
 
 Plan
 1. Read HARB7's virtual core (Events7Beh `ND7`, events4/model.py vctl/arb:g/arb:R0) and the

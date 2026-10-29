@@ -222,7 +222,7 @@ theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat
         unfold step
         rw [eval_edge hb (by simp [hq.o]; omega) hr, nba_idle (by simp [hq.busy])]
         rw [Sseg_pre _ _ _ _ _ (by omega) (by omega)]
-        simp [Q1, hq.o, hq.busy, h1, show t + 1 < s + w by omega]
+        simp [Q1, hq.o, hq.busy, h1, show 0 < w by omega]
       · rw [ih t (by omega) (by omega) (by omega)]
         by_cases h4 : t + 1 < s + w
         · -- inside the pulse

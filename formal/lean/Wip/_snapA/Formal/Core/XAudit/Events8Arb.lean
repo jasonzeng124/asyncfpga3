@@ -272,4 +272,158 @@ theorem noFree_not_harb : ∃ (B : ArbBands) (r1 r2 rs a q R0 g1 g2 : Sig),
   ⟨Bct, r1c, r2c, lowc, lowc, qc, R0c, g1c, g2c, ct_pin, ct_excl, ct_unc0, ct_not_unc1,
     fun _ _ _ _ br ctl h7 h12 => ct_not_virtual br ctl h7 h12⟩
 
+/-! ## 5. An UNCONTESTED handover that is not a virtual-core behaviour (HARB7's encoding) -/
+
+/-- **The virtual ctl node** `vctl:` (events4/model.py; `ND7` of a non-merge node with ONE
+inverted plain pin from `A0`'s source `a`, band `[lo, hi]`, stage band `(1,1)`, own-value band
+`(1,1)`, reset value 0). -/
+def VCtl (lo hi : Nat) (a ctl : Sig) : Prop :=
+  ∃ (F G Q : Nat → Nat) (r : Sig), Warp 1 1 F ∧ Warp lo hi G ∧ Warp 1 1 Q ∧ r 0 = true ∧
+    (∀ x y, x ≤ y → r y = true → r x = true) ∧
+    ∀ t, ctl t = if r (F t) then false else cel (fun _ : Fin 1 => !(a (G (F t)))) (ctl (Q (F t)))
+
+/-- **The virtual R0 node** `arb:R0` (`ND7` of a merge node, two plain one-copy pins from the
+two virtual grants, tap bands `[lo1, hi1]`, `[lo2, hi2]`, stage band `[loF, hiF]`). -/
+def VMerge (loF hiF lo1 hi1 lo2 hi2 : Nat) (g1 g2 R0 : Sig) : Prop :=
+  ∃ (F G1 G2 : Nat → Nat), Warp loF hiF F ∧ Warp lo1 hi1 G1 ∧ Warp lo2 hi2 G2 ∧
+    ∀ t, R0 t = (g1 (G1 (F t)) || g2 (G2 (F t)))
+
+theorem cel1 (v q : Bool) : cel (fun _ : Fin 1 => v) q = v := by
+  unfold cel; cases v <;> simp
+
+theorem cel2_all (x : Fin 2 → Bool) (q : Bool) (h : cel x q = true) (hq : q = false) :
+    x 0 = true ∧ x 1 = true := by
+  unfold cel at h
+  split at h
+  · rename_i h'; exact ⟨h' 0, h' 1⟩
+  · split at h
+    · simp at h
+    · rw [hq] at h; simp at h
+
+/-- **A virtual R0 edge needs an earlier grant**: virtual `R0` high at `t` means some grant was
+high at a time at most `t - (loF + min lo1 lo2)`. -/
+theorem vmerge_needs_grant {loF hiF lo1 hi1 lo2 hi2 : Nat} {g1 g2 R0 : Sig}
+    (hv : VMerge loF hiF lo1 hi1 lo2 hi2 g1 g2 R0) {t : Nat} (h : R0 t = true) :
+    (∃ u, u ≤ t - (loF + lo1) ∧ g1 u = true) ∨ (∃ u, u ≤ t - (loF + lo2) ∧ g2 u = true) := by
+  obtain ⟨F, G1, G2, wF, w1, w2, hc⟩ := hv
+  rw [hc t] at h
+  have := wF.le_late t; have := w1.le_late (F t); have := w2.le_late (F t)
+  cases e : g1 (G1 (F t))
+  · rw [e] at h; simp at h
+    exact Or.inr ⟨G2 (F t), by omega, h⟩
+  · exact Or.inl ⟨G1 (F t), by omega, e⟩
+
+/-- **A virtual grant's first rise needs `A0` low `loF + lo + 2` steps earlier**: if the virtual
+grant `g` (stage band `[loF, hiF]`) reading a virtual `ctl` (pin band `[lo, hi]`) is high at
+`t > 0` and low before, then `A0`'s source `a` was low at some time `≤ t - (loF + lo + 2)`:
+the two `(1,1)` bands (ctl's stage, the filtered pin) add 2 steps to every grant rise. -/
+theorem vgrant_rise_ctl {loF hiF loR hiR lo hi : Nat} {br : Bool} {s a ctl g : Sig}
+    (hc : VCtl lo hi a ctl) (hg : VGrant loF hiF loR hiR br s ctl g) {t : Nat} (ht : 0 < t)
+    (h1 : g t = true) (h0 : ∀ u, u < t → g u = false) : ∃ u, u ≤ t - (loF + lo + 2) ∧ a u = false := by
+  obtain ⟨Fc, Gc, Qc, rc, wFc, wGc, _wQc, _rc0, _rcanti, hcc⟩ := hc
+  obtain ⟨F, GR, GC, Q, r, sv, wF, _wR, wC, wQ, _r0, _ranti, hgc⟩ := hg
+  have hFt := wF.le_late t
+  have hQ := wQ.le_late (F t)
+  have hC1 := wC.le_late (F t)
+  rw [hgc t] at h1
+  have hr : r (F t) = false := by
+    cases e : r (F t)
+    · rfl
+    · rw [e] at h1; simp at h1
+  rw [hr] at h1
+  simp only [Bool.false_eq_true, ite_false] at h1
+  have hq0 : g (Q (F t)) = false := h0 _ (by omega)
+  obtain ⟨_, hp1⟩ := cel2_all _ _ h1 hq0
+  simp only [Fin.isValue, show ((1 : Fin 2).val = 0) = False from by decide, ite_false,
+    Bool.and_eq_true] at hp1
+  have hct := hp1.1
+  rw [hcc] at hct
+  have hrc : rc (Fc (GC (F t))) = false := by
+    cases e : rc (Fc (GC (F t)))
+    · rfl
+    · rw [e] at hct; simp at hct
+  rw [hrc] at hct
+  simp only [Bool.false_eq_true, ite_false, cel1, Bool.not_eq_eq_eq_not, Bool.not_true] at hct
+  have := wFc.le_late (GC (F t)); have := wGc.le_late (Fc (GC (F t)))
+  exact ⟨_, by omega, hct⟩
+
+/-- The handover trace `ho`: request 2 is waiting (high from 0), request 1 never asks; `A0` is
+high until 10 (the server is still acknowledging the previous client) and then falls. Every
+read takes 1 step except `ugrant`'s `q` pin for `g2` (3 steps). Then `q` falls at 11 (A0 read
+low, r2 alone), `R0 = r2·¬q` rises at 12, `g2 = r2·¬q` rises at 14. -/
+def oneS : Sig := fun _ => true
+def a0h : Sig := fun t => decide (t < 10)
+def qh : Sig := fun t => decide (t ≤ 10)
+def R0h : Sig := fun t => decide (12 ≤ t)
+def g2h : Sig := fun t => decide (14 ≤ t)
+
+def Bho : ArbBands where
+  st := fun _ => (1, 1)
+  r0 := fun _ => (1, 1)
+  g1 := fun _ => (1, 1)
+  g2 := fun i => if i.val = 2 then (3, 3) else (1, 1)
+
+theorem ho_pin : ArbPin Bho lowc oneS lowc a0h qh R0h lowc g2h := by
+  refine ⟨⟨fun _ t => t - 1, fun _ => shift_w 1, ?_⟩, ⟨fun _ t => t - 1, fun _ => shift_w 1, ?_⟩,
+    ⟨fun _ t => t - 1, fun _ => shift_w 1, ?_⟩,
+    ⟨fun i => if i.val = 2 then (fun t => t - 3) else (fun t => t - 1), ?_, ?_⟩⟩
+  · intro t
+    show qh t = o6B ARB_ST [lowc (t - 1), oneS (t - 1), qh (t - 1), lowc (t - 1), a0h (t - 1), true]
+    rw [st_eq]
+    simp only [lowc, oneS, qh, a0h, Bool.false_or]
+    by_cases h : t - 1 < 10
+    · have e : decide (t - 1 < 10) = true := by simp; omega
+      rw [e]; simp; omega
+    · have e : decide (t - 1 < 10) = false := by simp; omega
+      rw [e]; simp; omega
+  · intro t
+    show R0h t = o5B ARB_ST [lowc (t - 1), oneS (t - 1), qh (t - 1), lowc (t - 1), a0h (t - 1), true]
+    rw [r0_eq]; simp only [lowc, oneS, qh, R0h]; rw [Bool.eq_iff_iff]; simp; omega
+  · intro t
+    show lowc t = o5B GRANT [lowc (t - 1), oneS (t - 1), qh (t - 1), false, false, true]
+    rw [g1_eq]; rfl
+  · intro i
+    by_cases h : i.val = 2
+    · simp only [Bho, h, if_true]; exact shift_w 3
+    · simp only [Bho, h, if_false]; exact shift_w 1
+  · intro t
+    show g2h t = o6B GRANT [lowc (t - 1), oneS (t - 1), qh (t - 3), false, false, true]
+    rw [g2_eq]; simp only [oneS, qh, g2h]; rw [Bool.eq_iff_iff]; simp; omega
+
+/-- `ho` is uncontested for every window (request 1 is never pending). -/
+theorem ho_unc (W : Nat) : Unc W lowc oneS lowc g2h := fun u _ h _ => by
+  simp [Pend, lowc] at h
+
+/-- **The real R0 rises before the grant** in `ho`, so no virtual R0 (any bands whose stage
+lower end plus tap lower end is at least 1, as every cert8 band is) matches it. -/
+theorem ho_not_vmerge {loF hiF lo1 hi1 lo2 hi2 : Nat} (h1 : 1 ≤ loF + lo1) (h2 : 1 ≤ loF + lo2) :
+    ¬ VMerge loF hiF lo1 hi1 lo2 hi2 lowc g2h R0h := by
+  intro hv
+  rcases vmerge_needs_grant hv (t := 12) (by decide) with ⟨u, _, hu⟩ | ⟨u, hu1, hu⟩
+  · simp [lowc] at hu
+  · simp [g2h] at hu; omega
+
+/-- **The virtual ctl band is 2 steps too late** in `ho`: with cert8's choice of bands, the
+virtual stage band plus the ctl pin band lower ends sum to the real lower path
+`A0 -> ustate -> q -> ugrant` (here `1 + 3 = 4`, all lower ends), and no virtual ctl / grant pair
+matches the real `g2` rise at 14 = 10 + 4. -/
+theorem ho_not_vctl {loF hiF loR hiR lo hi : Nat} (br : Bool) (s ctl : Sig) (hsum : loF + lo = 4)
+    (hc : VCtl lo hi a0h ctl) : ¬ VGrant loF hiF loR hiR br s ctl g2h := by
+  intro hg
+  obtain ⟨u, hu, ha⟩ := vgrant_rise_ctl hc hg (t := 14) (by decide) (by decide)
+    (fun u hu => by simp [g2h]; omega)
+  simp [a0h] at ha; omega
+
+/-- **HARB7's virtual core is refuted by an UNCONTESTED handover of the real cell.** There is a
+behaviour of the real `bd_arbiter` core (real INITs, per-pin semantics), uncontested for every
+window `W`, with exclusive grants, whose `R0` is no virtual R0 (bands with lower ends summing to
+`≥ 1`) and whose `g2` is no virtual grant over any virtual ctl with cert8's lower-band split. -/
+theorem unc_not_harb : ∃ (B : ArbBands) (r1 r2 rs a q R0 g1 g2 : Sig),
+    ArbPin B r1 r2 rs a q R0 g1 g2 ∧ (∀ t, (g1 t && g2 t) = false) ∧ (∀ W, Unc W r1 r2 g1 g2) ∧
+    (∀ loF hiF lo1 hi1 lo2 hi2, 1 ≤ loF + lo1 → 1 ≤ loF + lo2 → ¬ VMerge loF hiF lo1 hi1 lo2 hi2 g1 g2 R0) ∧
+    (∀ loF hiF loR hiR lo hi br ctl, loF + lo = 4 → VCtl lo hi a ctl → ¬ VGrant loF hiF loR hiR br r2 ctl g2) :=
+  ⟨Bho, lowc, oneS, lowc, a0h, qh, R0h, lowc, g2h, ho_pin, fun t => by simp [lowc], ho_unc,
+    fun _ _ _ _ _ _ h1 h2 => ho_not_vmerge h1 h2,
+    fun _ _ _ _ _ _ br ctl hs hc => ho_not_vctl br oneS ctl hs hc⟩
+
 end Formal.Core.XAudit.Events8Arb
