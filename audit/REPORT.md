@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca (running).
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -69,6 +69,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | 6863284 | (implicit in every claim) all claimed modules check with only standard axioms | CONFIRMED for 421/422 modules | clean lake build (audit/logs/formal_build_6863284*.log) + own per-module collectAxioms audit (audit/tools/axiom_audit_par.sh, catches planted sorry/native_decide per JOURNAL 10-27 08:39): 66779 constants, 0 using anything beyond propext/Classical.choice/Quot.sound; audit/logs/axiom_par_6863284.log | GLSPass has no olean (does not compile; REFUTED row) |
 | formal | fccbd1b | gcd_hw_live_final: "first out0 closes within (1168(8 Lrun+23)+1)(H+1) ticks with value gcd a b, under ... H_NO_DEADLOCK' (open)" | CONFIRMED as conditional; joint satisfiability UNVERIFIED | P7-capstone.md; AuditP7 `witness_not_bounded` | H_NO_DEADLOCK' is not the conclusion restated (proof shows no livelock, bound, value) but assumes the deadlock-freedom half of liveness. The 8t witness violates H_BOUNDED_DELAY' (source stops), so no witness for this theorem. 2092f12 correction (8u gcd_hw_live not to be cited) CONFIRMED |
 | formal | 8965ea0 | ipow_circuit_safe3: every out0 latch of the concrete ipow network is ipowSpec b e | CONFIRMED incl. non-vacuity | P7-capstone.md; audit/lean/P7/IpowWit.lean (3^7=2187), IpowWit2.lean (0xFFFFFFFF^3 wraps) latch on out0; e=8 mutant rejected | ipowSpec = ipow.c with 32-bit wrap on 6014 vectors (C signed overflow is UB; spec uses i32 wrap = hardware). capnet.py regenerates IpowCapNet byte-identical |
 | formal | ae791b6, 824f130 | gcd_rig_first / gcd_rig_first_env: first value offered and latched on out0 is gcd a b (with H_ENV, sources discharged) | CONFIRMED (statement, axioms); non-vacuity partly argued (ae791b6), UNVERIFIED (824f130 joint env+network) | P7-capstone.md `witness_not_env`, `step0_only_src` | first result only (stated) |
