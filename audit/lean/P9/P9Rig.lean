@@ -33,16 +33,21 @@ example : True := by
 theorem mut_b_conclusion : ¬ (∀ e', TokAt (chS out0) 0 e' → (chS out0).dat e' = Nat.gcd 12 17) := by
   intro h; have := h 474 rig_env_latch.1; rw [rig_env_latch.2] at this; exact absurd this (by decide)
 
-/-- Mutation of the env data: shifting the in_ack fall by one tick breaks envOK. -/
-theorem mut_env : envOK [99, 200] = false := by decide +kernel
+/-- Finding: delaying in_ack's fall by one tick (199 -> 200) is NOT rejected: both checks
+still pass (H_C3 / H_UENV1_B constrain k only at its own changes and at e's changes). -/
+theorem shift_k_passes : envOK [99, 200] = true ∧ srcOK RA RB [99, 200] = true := by
+  constructor <;> decide +kernel
+/-- Mutations that ARE rejected: k never falls (env cannot re-offer), k rises before the acks. -/
+theorem mut_k_nofall : envOK [99] = false := by decide +kernel
+theorem mut_k_early : srcOK RA RB [30, 199] = false := by decide +kernel
 
 /-- Timeline facts (my own): e starts high, falls at 99, re-rises at 432;
 out0.ack rises before 432 and falls at 474 (the first fall). -/
 theorem timeline :
     eS 0 = true ∧ fallB eS 99 = true ∧ riseB eS 432 = true ∧
     cnt (riseB eS) 474 = 1 ∧ cnt (fallB eS) 474 = 1 ∧
-    qS 431 = true ∧ qS 474 = true ∧ qS 475 = false ∧ cnt (fallB qS) 474 = 0 ∧
+    qS 432 = true ∧ qS 431 = false ∧ qS 474 = true ∧ qS 475 = false ∧ cnt (fallB qS) 474 = 0 ∧
     eS 473 = true := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> decide +kernel
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> decide +kernel
 
 end P9Rig

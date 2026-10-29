@@ -11,9 +11,9 @@ open Formal.Net Formal.Net.Handshake Formal.Net.CapNet Formal.Cells.IpowCells
 
 /-- The all-quiet witness latches nothing: the conclusion of ipow_safe_of_contracts is
 vacuous on it (my check). -/
-theorem quiet_no_token (dv : Fin NC → Nat) : ∀ k v, ¬ TokAt (chQ dv out0) k v := by
+theorem quiet_no_token (dv : Fin IpowCap.NC → Nat) : ∀ k v, ¬ TokAt (chQ dv IpowCap.out0) k v := by
   intro k v h; exact absurd h.1 (by simp [fallB, chQ])
 
 /-- Mutation: the quiet data solution is specific to (b, e) = (3, 7). -/
-theorem mut_data : ¬ (∀ o : Fin NO, DataOK (srcV 3 8) dvW (opAt o)) := by decide +kernel
+theorem mut_data : ¬ (∀ o : Fin IpowCap.NO, DataOK (srcV 3 8) dvW (IpowCap.opAt o)) := by decide +kernel
 end P9Ipow

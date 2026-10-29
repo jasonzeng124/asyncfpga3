@@ -241,3 +241,9 @@ copied from wt-f7, same manifest). Agents: P9 (formal claims), r14 (Fid3 reprodu
 ### progress 08:06
 r14 in: formal Fid3 GLS table reproduced (17 rows CONFIRMED, incl. resolver centre bias TLOOP-WIN/2 vs ~TLOOP/2, which I
 read at fid_core.vh:82); Fid3's rise!=fall remark REFUTED in direction. Build of 3e63dc1 and P9 still running.
+
+### progress 08:31
+3e63dc1: clean build EXIT 1 only on withdrawn GLSPass (still under Formal/). Their fixed check.sh now FAILS GLSPass
+(I ran it) -> fix CONFIRMED. P9 in: RigSrc joint witness CONFIRMED (closes UNVERIFIED row); Necessity5 iffs, KleeneWin,
+IpowCells (contracts assumed), LutFbBridge (narrower than 'every') CONFIRMED; Bj5 JSON fixes CONFIRMED, 2 labels mild.
+Axiom audit of 3e63dc1 running.
