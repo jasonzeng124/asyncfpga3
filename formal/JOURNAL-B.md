@@ -1450,3 +1450,36 @@ disjunct only; free A0 route / ustate arc / server noted), handover_overlap (nee
 H_RF_ASYM; at consistent corners still 0) and the five re-request rows Q/R/Q2/R2/G2 ->
 boundary-tight on their constructed runs (one C field each); rereq_G's fall view now
 has a run too.
+
+### progress 11:51
+In (checked here, axioms standard):
+- Bsa6 self-audit 6 (notes/B-self-audit6.md; SelfAuditB9; 10 mutants in Wip/Bsa6,
+  all FAIL). All 35 in-scope files re-check; JSON byte-identical. Nothing refuted.
+  MAJOR (mine, Lean): FGcdNetOK / FGcdNetOK3 fix tied cells' PIN traces but NOT
+  their drivers, and the cell set is free; a pinless cell's contract is the bare claim
+  that its node is clean (fcellOK_nil_iff), and a link fed by two such cells gets
+  FEnv1 from them alone (flink_env1_local). So gcd_hw_safe_fin_net / _net3 do NOT
+  enforce that any link's environment comes from the gate models. CORRECTION to my
+  entries 11:05 .. "contracts remain ONLY on muxn's |j, 3 sources, 9 amerges" (Bmn,
+  Bor3) and Bseg/Bmux2's "gate-modelled" counts: they describe the INTENDED
+  elaboration, not what the theorem enforces. Fix probe (Belab: bind every pin's
+  driver to the generated netlist) launched. Also: the fin_chains witness on chW is
+  a re-labelling (single-link chains whose end nodes are the link's own pins one tick
+  early; per-link chains share nothing); ring_run_iff's 0 < D half is the hypothesis
+  H_TOK (htok_iff_D; only D < N derived); the validator's iff check is syntactic
+  (3 JSON mutants citing unrelated iffs pass; sampled 12 exact rows are fine).
+  amerge_of_plan CONFIRMED (C's own AMerge, H_DAT the only extra; one unit-grid
+  inhabitant).
+- Bfin3 FiniteNetWit2{Lib,Data,Chk,} + FiniteNetSrc (notes/B-finite-net-wit2.md).
+  gcd_hw_safe_fin_net has a joint witness on chW (gcd_hw_fin_net_witness: 377 tied
+  cells' node traces simulated on the real LUTs and kernel-checked), but degenerate
+  exactly as Bsa6 says: the non-link cells' nodes drive nothing. And it CANNOT be
+  wired on chW: chW_steer_unwired (C's gates take one tick channel to channel; a B
+  LUT plus wire take at least two, so 38 of 53 firing steer branches cannot be driven
+  by any real bd_steer node). tsrc proved; chW_src_unwired: a real bd_src never lets
+  a gcd run stop (its LUT asks for another token), so sources stay contracts on
+  terminating runs. Python only (not Lean): B's gate network at LUT delay 2, wires 1-3
+  (3 seeds) computes out0 = 6 and passes C's step checks (negative control flagged).
+- Bor3 FiniteOrN: n-branch truncated OR (tor_exN; 2-branch tor_ex as a corollary);
+  the muxn |j LUT3 8'hFE is the 3-OR for every pin order and the only LUT3 INIT that
+  is (or3_init_unique); gcd_hw_safe_fin_net3' adds it (same elaboration caveat).
