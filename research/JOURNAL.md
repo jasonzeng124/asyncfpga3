@@ -1662,3 +1662,9 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
 ### progress 21:48 (BQ#2 SLOW_MAX on seeds 6-9 all PASS under the new resolver)
 - BQ#2 seed 8 SLOW_MAX PASS 16/16 laps 31/25/37 (sdf b7733e23); seed 9 SLOW_MAX PASS 16/16 laps 31/25/36
   (sdf 4a9b218e); both EQUIVALENT. Seeds 8, 9 FAST_MIN running, then BQ#3.
+### progress 23:19 (owner's PROGRAM change ea7dafa read and followed)
+- Owner commit ea7dafa (one session a day; the "use far more parallelism"/"most subagents" text removed) landed
+  mid-session; my lock push was rejected as non-fast-forward, the remote LOCK was still this session's, so it was
+  rebased on top, not a lock conflict. From here: the main thread stays on the full-stack GLS, no new subagents
+  unless a lead needs one; background sims keep the machine busy.
+- BQ#2 seed 8 FAST_MIN PASS 16/16 laps 87/70/102. Seed 9 FAST_MIN 12/16 vectors, then BQ#3.
