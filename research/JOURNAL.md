@@ -1472,3 +1472,14 @@ Its queued 8-seed full-stack runs and the S3 harness change are not on the branc
 ### progress 04:35 (sweep 19/32 + re-runs; still no real failure)
 - Seed 8 SLOW_MAX 34/28/40, FAST_MIN 94/76/109, both PASS; seed 4 region+wire 1x PASS 47/37/55; seed 9 decodes
   EQUIVALENT with no floating pips (its rows on the 78de9c2 decoder stand). Seeds 5 and 7 re-running.
+### progress 05:02 (DSP hard items MATCH on the full stack, non-weak)
+- `acceptance.py --stack full --corner max --items dsp_constpins,dsp_constpins_inv` (worktree dc2f93f; ipow T9
+  seed 29 BD_DSP=1 soak route, routed.json e7a27380, sdf 5ef854a9, xray sdf bc6cb638): **both [MATCH], not WEAK**:
+  good bits PASS both harnesses; the unpatched writers' bits FAIL with "vector 1: out0 got xxxxxxxx expected
+  00000003" (dsp_model MUNK: a logic ALUMODE on a gated multiplier is unknown). Before today these were detected
+  only by the decoder refusing the configuration (audit r3 1, graded weak). Data:
+  research/data/fid/acceptance_full_dsp_max.{log,json}.
+  Still soft: the board's 965/2016 correct products; the model now says "unknown", which neither predicts nor
+  contradicts a fraction. dsp_constpins still rests on "a control pin with no tile bit reads 1".
+- Seed 7 FAST_MIN on the fixed decoder: PASS 16/16, laps 87/70/101. Seed 9: SLOW_MAX 32/26/38, FAST_MIN 88/71/103.
+- Running: acceptance lut-pinmap at FAST_MIN; seed 7 SLOW_MAX and seed 5 re-runs; scatter draws.
