@@ -1,7 +1,9 @@
 # C-10l2: diagnosing rule K (10l's "X4 ctl_req fork" rows on gcd_hw)
 
 Shard C, probe 10l2, 2026-10-29. Core Lean only; no sorry, axiom or native_decide.
-STATUS: diagnosis done; Lean checked; counted routes (with --freq) being re-run (see Results).
+STATUS: done. Lean checked (check.sh OK). Counted routes: 4 seeds (d 2 3 4) routed with
+--freq 100, nextpnr sha256 9c732bc6303458df (cells/verify/toolchain.sh ok, 9 patch
+fingerprints), BDC_SELECT_PADS + BD_RLOC=v4 as C-10e.
 
 ## Verdict
 
@@ -80,7 +82,10 @@ Seed 2, sdf, row `umux20.uj1`; late path from `pathK` in build/out/k_2.json:
 | Kold | yes | no | no | +2225 (fails under bands) | C -> own latch Q (the closing edge, no real change) -> uj1/A3 -> uj1 -> uor -> udly(12) -> n165 ctl -> uack -> C/A1 -> phase 1 -> latch -> s: 11.34 ns |
 | K | yes | yes | yes | **+10518 uncredited, PASS credited** | C -> rdly(14) -> uj0/A1 (selected join) -> uj0 -> uor -> udly(12) -> n165 ctl -> uack -> C/A1 -> phase 1 -> C -> latch -> s: 19.63 ns |
 
-Counts per seed (FAIL rows of 42; sdf/sdfband/fast/slow/fastG/slowG), 12 MHz-default routes:
+Counts per seed (FAIL rows of 42; sdf/sdfband/fast/slow/fastG/slowG). The --freq 100 routes
+(tree_SEEDf, the counted ones) have byte-identical FASMs to the 12 MHz-default routes
+(fasm sha256 d b73e1ba0e4cba92f, 2 1ee50d56638ef0b3, 3 855635c4ebed15e5, 4 b56d32b1eecdaed9),
+and every rule-K verdict and margin is identical on all 4 seeds (diffed):
 
 | seed | K | Kold = Knoblk | Knocmax |
 |---|---|---|---|
@@ -172,6 +177,8 @@ positive on SDF by arithmetic from these paths, but this is UNMEASURED.
 ## Progress log
 - 07:4x: read B's Lean; mislabel found (above). No gcd_hw SDF on disk: re-routing.
 - 08:2x: seed d: K passes, Knocmax = the 3f8eed9 code exactly.
+- 10:4x: --freq 100 runs done (run.sh df 2f 3f 4f; rows.py -> results/k_rows.tsv): identical
+  to the 12 MHz numbers on all 4 seeds.
 - 09:1x: seeds 2, 3, 4 (12 MHz default target, i.e. WITHOUT --freq: route.sh copied from
   10e did not pass it): same picture. Re-routing all 4 seeds with --freq 100 for the counted
   numbers.

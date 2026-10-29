@@ -82,7 +82,13 @@
   BQ#1 merge6#1 passes, s4 merge12.uarb2#2 fails only under the band (-116/-204). Tie-off
   (GND/VCC) starts dropped from rule A as a false path (H_FALSE_CONST): gcd_hw verdicts
   unchanged; kernel rule-A rows with tie-off starts flip FAIL->PASS. No row anywhere fails at a
-  consistent corner without the band. ipow's DSP48E1 arcs still fall back to the SDF band. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
+  consistent corner without the band. ipow's DSP48E1 arcs still fall back to the SDF band.
+  Rule K (10l2): the 16-24 failing rows per seed were a front-end bug (the control C-element's
+  maximum-node arc pinned to req_in, ignoring the wait for z_ack to fall; plus a latch-output
+  shortcut), not a race: with the fixed rule all 42 rows pass on 4 seeds in all 6 corner
+  models (worst +979 ps with per-pin arcs). Rule K actually checks B's X3 hold half
+  (bd_mux.bundled_s_hold), not X4. `RuleK.mux_joins_ruleK`/`ruleK_exact` tie the fork form to
+  the real join INITs; H_ROUND_TRIP not derived from the netlist. RT_FB with the OUTMUX hop (10f2; same routes, byte-identical
   FASM): the audit row is right -- on gcd_hw seed 4 the rig's uenv1 C-element fails RT_FB by
   -16 ps in the per-element fast model (was +4); the kernel alone still has 0 failures in every
   one-corner model on all 4 seeds (worst fast +70). With every element at one common corner end
@@ -547,3 +553,8 @@ files, 4034); axioms standard. Launched 8z4. 11f's check running.
 ### progress 10:36
 11f committed after my own check.sh (Basic + GcdD/All + FasmGcd; standard axioms): see
 track 11. Routes re-made today byte-identical to the fixtures (nextpnr 9c732bc6303458df).
+
+### progress 10:38
+10l2 committed after my own check.sh (RuleK.lean, 528 decls). Launched 10o (H_CHAIN_SETTLED as
+a timing row on real routes vs rule F) and 11g (whole-design Lean for seeds 2-4, second
+kernel). RingCheck docstring now names H_ONLY_LINKS_STORE (audit C2 3c).
