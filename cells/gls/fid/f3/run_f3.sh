@@ -24,6 +24,22 @@ for tb in tb_f3_lut tb_f3_meta tb_f3_follow tb_f3_carry tb_f3_latch tb_f3_ff; do
         grep -v VIOLATION "$OUT/$tb.$m.log" | grep -E "^ *([TCLFG][0-9]|A\.|B\.|  ok|  FAIL|   )" | sed 's/^/        /'
     done
 done
+# bd_arbiter near tie (research/data/fid/arbtie.md): with TLOOP 424 the fid
+# model needs a server round trip S >= 1088 ps.  S = 1200 must be clean (and
+# see resolver events); S = 600 must double-ack (the negative control: a
+# server 490 ps too fast); the default model must fail (it has no resolver).
+for arm in "fid 1200 PASS" "fid 600 FAIL" "default 1200 FAIL"; do
+    read -r am aS aw <<< "$arm"
+    defs="-DGLS_TRANSPORT_IC"; [ "$am" = fid ] && defs="$defs -DGLS_FID"
+    # shellcheck disable=SC2086
+    iverilog -gspecify -I"$GLS" $defs -Ptb_f3_arbtie.S="$aS" -o "$OUT/arbtie.$am.$aS.vvp" \
+        "$HERE/tb_f3_arbtie.v" "$GLS/prims.v" || { rc=1; continue; }
+    vvp -n "$OUT/arbtie.$am.$aS.vvp" +PASS_MAX=0 > "$OUT/arbtie.$am.$aS.log" 2>&1
+    if grep -q "tb_f3_arbtie PASS" "$OUT/arbtie.$am.$aS.log"; then got=PASS; else got=FAIL; fi
+    if [ $got = "$aw" ]; then echo "ok    tb_f3_arbtie [$am S=$aS] $got (expected)"
+    else echo "WRONG tb_f3_arbtie [$am S=$aS] $got, expected $aw"; rc=1; fi
+    grep "^SUM" "$OUT/arbtie.$am.$aS.log" | cut -d' ' -f2-7 | sed 's/^/        /'
+done
 # x semantics must not change: settled outputs of 3000 random x-laden vectors
 for m in default fid; do
     defs="-DGLS_TRANSPORT_IC"; [ $m = fid ] && defs="$defs -DGLS_FID"
