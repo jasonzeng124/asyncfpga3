@@ -1,6 +1,11 @@
 # A-e9setup (probe E9Setup, shard A): select rows on the corrected arbiter core, setup rows, design_verdict9_full
 
-STATUS (2026-10-29, start): IN PROGRESS. Nothing claimed yet.
+STATUS (2026-10-29 12:25 UTC): IN PROGRESS. Events9Setup.lean compiles in my overlay (not yet
+check.sh). Map regenerated on the corrected-core certificates (identical content, 126/126 per seed).
+Early finding (untrusted Python estimate, old core, d): with O = the request wire's rise (the earliest
+time C's H_BUNDLE holds the bus), the junction-anchored setup row passes 81/126 literals at slow,
+77 fast, 39 gb, 11 indep; the source-anchored form fails ~all (−15 ns: common-path pessimism on the
+request delay line).
 
 ## Plan
 1. Regenerate the select channel map (copy of selhold/mkmap.py, selrun/certsel.py into

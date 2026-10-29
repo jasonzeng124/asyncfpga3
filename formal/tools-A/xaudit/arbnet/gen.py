@@ -108,7 +108,7 @@ def main():
             d = rpin(C.below(r))
             # copy order: the certificate's (model.py leaf order), matched by band (Lean re-checks)
             vp = cn[e["jg1" if b == 0 else "jg2"]]["pins"][0]
-            if not d["st"] and len(d["paths"]) > 1:
+            if not d["st"] and len(d["paths"]) > 1 and "--neg-noorder" not in sys.argv:
                 lo = lambda P: sum(C.eband(x)[0] for x in P)  # noqa: E731
                 hi = lambda P: sum(C.eband(x)[1] for x in P)  # noqa: E731
                 best = None
@@ -133,6 +133,13 @@ def main():
             e[f"rq{b + 1}"] = d
         e["w_r0a0"] = sp_lo(n, n.cells[R]["out"], a0)
         out.append(e)
+    # negative controls (each must make xarbnet's verdict fail, see neg.sh)
+    if "--neg-swap" in sys.argv and out:      # grant gates swapped in arbiter 0: INIT checks must fail
+        out[0]["gG1"], out[0]["gG2"] = out[0]["gG2"], out[0]["gG1"]
+    if "--neg-drop" in sys.argv and out:      # arbiter 0 left out: OwnOK and RsOK must fail
+        out = out[1:]
+    if "--neg-ip" in sys.argv and out:        # g1's q read named at its request input: read / INIT checks fail
+        out[0]["iqg1"] = out[0]["i1g1"]
     json.dump({"arbs": out}, open(outp, "w"), indent=1)
     print(f"gen.py: {len(out)} arbiters ({len(M.arbs)} in the model)")
 
