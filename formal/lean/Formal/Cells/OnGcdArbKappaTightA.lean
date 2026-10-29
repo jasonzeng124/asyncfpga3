@@ -4,7 +4,7 @@ import Formal.Cells.OnGcdArbKappaTight
 /-!
 # Probe Bkx19, bridge: the exact threshold on `OnGcdArbKappa`'s own objects
 
-Shard B, 2026-10-29. Needs Mathlib (through `CornerNat`). WIP: NOT checked (see the note). Note: `formal/notes/B-gcd-arb-kappa-tight.md`.
+Shard B, 2026-10-29. Needs Mathlib (through `CornerNat`). Checked against the real Mathlib on 2026-10-29 (lead, private olean build, autoImplicit=false). Note: `formal/notes/B-gcd-arb-kappa-tight.md`.
 
 `OnGcdArbKappaTight` is core-only and restates A's `CornerNat` definitions. This file shows the
 restatement is definitional (`scat_iff` is `Iff.rfl`) and transfers the headline results to

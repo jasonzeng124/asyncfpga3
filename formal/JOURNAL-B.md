@@ -903,3 +903,51 @@ In (checked here, axioms standard):
   duration is open. Not explained: the 15/192 selectivity (needs the measured
   bitstream's pin map, not archived). Board test: an AND(raw, unfoldable 0) control
   LUT per copy with locked pins.
+
+### progress 12:50
+In (checked here, axioms standard):
+- Bsrv OnGcdArbKappaSrv (Mathlib; notes/B-gcd-arb-kappa-srv.md). gcd_hw arbiters at
+  gate level with the server, A0 branch, ustate O6 arc and q prefix credited as
+  corner-model delays (lit reading, exact on the 1 fs grid to 1e-12): (D1)
+  OnGcdArbKappa's 16 forms in their server-credited versions on all 36 arbiters are
+  safe for kappa <= 0.080163500491 and fail just above (binding: seed 2
+  merge3.uarb1 h21). The gate counterexample is ArbPin's BARE cell (A0 held low):
+  as a run of 7j's gate relations with every delay realised (server 3.8 ns) the
+  overlap needs client 2 to withdraw an unacknowledged request, i.e. it is NOT a
+  four-phase run; in 7j's four-phase handover the same arbiter is safe to 0.769.
+  (D2) the 12 held-arbiter four-phase forms: safe for kappa <= 0.216552148868, tight
+  via 7g's exact fork2_box_iff (seed 4 merge12.uarb2). cons: exactly merge3.uarb1
+  h21 and o1x fail at kappa = 0 (proved). A0's driver is the ack-join C-element of
+  the fork after each merge (synth netlists); srv comes from Bar's extraction (same
+  untrusted provenance) and enters no binding row. Open: H_SETTLED; whether gcd_hw
+  ever runs the bare (non-four-phase) race, which decides D1 vs D2.
+- Bfb2 LutFbBridge2 + LutFbBridge2Env (notes/B-lutfb-bridge2.md): a C-element bridge
+  for any pin count (celG_lutFb; three LUT laws decided per real INIT) gives C's
+  LutFb/FbFirst for bd_c3 and bd_mux uj0/uj1; LutSI for bd_steer and bd_src (src
+  needs new H_PWR_SRC); a 1-tick select glitch breaks uj0's LutFb under every
+  channel hypothesis (H_SEL_STABLE needed). Environment from neighbours, per channel:
+  link_link_env, fork_env. End to end: gcd_hw_safe_phys_links = C's
+  gcd_hw_circuit_safe with H_CELLS for all 175 links replaced by B's physical model
+  (deriving H_CEL_SI, both DI wires, inits) -- BUT each link's Env1 is still
+  assumed: the circle (cell behaviour <- own Env1 <- neighbours' behaviour) is not
+  closed for the network (done only for the 2-stage pipe); 150 of 350 link channel
+  ends are link-to-link; C-trees open; infinite runs only.
+- Bsa4 self-audit 4 (notes/B-self-audit4.md; SelfAuditB7; 18 mutants in Wip/Bsa4,
+  all FAIL). All of today's files re-check; JSON regeneration byte-identical. Nothing
+  refuted. Closed: H_ACK_FLUSH not necessary for EVERY DACK >= 3
+  (flush_not_necessary_all); "+W under H_W_BOUND" proved for bd_steer only
+  (steer_win_bound). OVERSTATED in this journal (corrections, mine):
+  (1) "join +w fails under every pessimistic model" (10:15/09:10): shown for uniform
+  policies only, not per-pin ones; (2) "kappa_ex - kappa* is the 1 fs grid" (09:50):
+  not proved; (3) "the RTL never reaches C's idle state" (11:05): proved only for
+  shifts T0 in [23(D+W+1), E] with rst held; (4) nonvac_net2 is NOT non-degenerate:
+  it is frozen until E (wv_frozen); no reset witness has both moving state and
+  nonzero delays; (5) H_MAP's witness map is not a wiring map: MapOK is met by a map
+  reading two channels from one node (mu_W_not_wiring), so MapOK is too weak (Bmap
+  told to strengthen it); (6) JSON boundary labels on +1 forms are 2 ticks from the
+  refuted point (disclosed in notes); (7) bd_arbiter.rt1b's "server-free" row note
+  contradicts its own inequality; (8) H_SPREAD_CORRELATED is the lit model itself
+  (spread_corr_iff), i.e. a renaming, not an independent hypothesis. Also: IpowCells'
+  Contract copies C's Cell fields; ZeroDelayRefine's link_ref_iff is essentially
+  LinkExact.exact (LinkRef's env fields copy Beh.env); KappaCPPR's "full" conditions
+  are hand-transcribed. OnGcdArbKappaTight(+A) headers corrected (bridge checks).

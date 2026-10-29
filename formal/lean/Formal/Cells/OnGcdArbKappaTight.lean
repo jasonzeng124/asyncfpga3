@@ -22,8 +22,8 @@ violation from `κu = 33181/749546`; in between it was not decided (audit: gap 1
 `Formal.Core.Substrate.CornerNat` imports Mathlib, which is not built here, so §1 restates its
 definitions verbatim (`Kappa`, `CArc`, `Corner`, `nom`, `Scat`, `RealizesAt`, `Realizes`,
 `pathDelay`, and ConstraintsKappa's `AllOK`): same fields, same formulas, so the bridge to A's
-objects is definitional (`Wip/Bkx19/OnGcdArbKappaTightA.lean`, written, NOT checked: the checker cannot load
-Mathlib's ProofWidgets yet).
+objects is definitional (`OnGcdArbKappaTightA.lean`, checked against the real Mathlib on
+2026-10-29).
 Hypotheses: H_ENDPOINTS (the prjxray numbers below, UNTRUSTED extraction of probe Bar, copied from
 `OnGcdArbKappa.v_g3_merge12_uarb1`), H_AFFINE, H_SHARED_CORNER, H_SCATTER κ, one whole-fs delay per
 arc per run (rise = fall).
