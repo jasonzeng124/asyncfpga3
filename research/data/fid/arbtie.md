@@ -292,3 +292,15 @@ cannot be reached at all. It is one route at one corner, and the scatter
   checked.
 - The fast-server, rejected-runt double ack is a model pessimism. Whether a
   real LUT passes a 1-50 ps runt is unknown.
+
+## More routes (main session, 2026-10-29)
+arb_roundtrip.py, prjxray SDF column 0 (FAST_MIN), BQ#2 recipe (R5 sizes, v4 placement), nextpnr 9c732bc6:
+
+| route | ack C-elements below the requirement | worst margin | where |
+|---|---|---|---|
+| BQ#2 seed 6 | 0 of 18 | 878 ps | merge9.uarb1 ua2 |
+| BQ#2 seed 7 | 0 of 18 | 1168 ps | merge12.uarb2 ua2 |
+| BQ#2 seed 8 | 0 of 18 | 1020 ps | merge9.uarb1 ua1 |
+| BQ#2 seed 9 | 0 of 18 | 1035 ps | merge9.uarb1 ua2 |
+
+Worst over 4 routes: 878 ps (5.9 TAU at the assumed TAU 150).
