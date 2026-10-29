@@ -652,3 +652,20 @@ the +1 is strict_pending); new informational row bd_link.stage (LinkExact, scope
 Wf + Split). The validator now rejects an exact row whose +1 has no strict-form iff.
 The patch pass is committed as out/cell_constraints.bj5.py and run by
 cell_constraints.gen.py (regeneration reproduces the JSON; md table re-rendered).
+
+### progress 08:05
+In: Bxw KleeneWin (core; checked under autoImplicit=false, axioms standard on 33
+theorems, re-run by me). H_X_UNIFORM dropped: each binary edge has its own X window
+[T-a, T+c), and every race gains c(edge that must come first) + a(edge that must come
+after), exactly (iffs: steer_win_exact, join_win_exact, muxn_win_exact,
+latch_win_exact, cel_edges_iff/cel_env_iff for every C-element Facts cycle). New
+H_FB_WIN: the feedback pin's own window wq adds +wq to the own-feedback race
+(clean_iffW, box_iffW, cel_env_win_iff, latch_fbwin_iff); on the real bd_c2 INIT,
+CElemStrict's strict_clean point becomes a hazard at wq = 1 (c2_fbwin_hazard).
+steer_split_matters: with width-1 windows on every edge, binary equality can be safe
+and a 1-tick-strict margin unsafe, so "+1 strict" comes from H_X_UNIFORM, not from
+the cells. Not covered: window values (no data bounds w: prjxray/SDF carry no
+transition data; the research GLS has w = 0 by construction and an assumed
+WIN = 150 ps), adversarial per-token windows, muxn unselected Cover. Test XW-1
+(notes/B-kleene-win.md): MMCM-phase-swept bd_c2 race with a held-level outcome; the
+mixed band width W̄ replaces +1 in every strict row and calibrates the GLS's WIN.
