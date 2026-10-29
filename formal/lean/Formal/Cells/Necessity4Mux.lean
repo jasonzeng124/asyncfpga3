@@ -1,7 +1,7 @@
 import Formal.Cells.OpsTimedWit
 
 /-!
-# Necessity4Mux: `bd_mux.uj_env_latency_req` is NOT necessary; its exact replacement
+# Necessity4Mux: `bd_mux.uj_env_latency_req` is NOT necessary; its max-form replacement
 
 Probe Bnx4 (shard B). The row `bd_mux.uj_env_latency_req` is the
 `MuxStatic` field pair `S_J0_X` / `S_J1_Y` (`OpsTimedMux`):
@@ -39,7 +39,7 @@ B-ops-exact.md section 5, not proved there).
   and violates the strict original by 4.
 * `fail10`: **the max form is necessary at the boundary, on its new z_ack
   branch.** The same run family with a 10-tick feedback net (`N4.run 10`):
-  every `MuxStaticN 0 1` field holds (the max form weakened by ONE tick),
+  every `MuxStaticN … 1 0` field holds (the max form weakened by ONE tick),
   `S_J0_XR` itself fails by exactly 1 (`11 ≤ 10`), every other hypothesis of
   `mux_ok_staticN` holds, and the conclusion fails: j0 drops at 32 inside its
   token-0 window [22, 35) (x_req's fall reaches uj0 at 31, one tick before
@@ -47,10 +47,11 @@ B-ops-exact.md section 5, not proved there).
   [25, 38). In this run `W0o.lo + Lor.lo + Dz.lo + Es + Wzx.lo = 5 > W0x.lo
   = 1`: the max is taken by the z_ack branch, which the shipped form omits.
 
-So the row's label should be **sufficient (not necessary)**, with the exact
+So the row's label should be **sufficient (not necessary)**, with the
 replacement `S_J0_XR` / `S_J1_YR` labelled **sufficient +
 necessary_at_boundary** (x branch; the y branch is the symmetric statement,
-its counter-run not built).
+its counter-run not built). This is one parameter point, not an iff over the
+box. `bd_mux.uj_env_latency_ctl` is in Necessity4MuxC.
 
 ## Which form
 
@@ -828,10 +829,12 @@ theorem pass8 :
   exact mux_ok_staticN (gates 8 j0p j0p_eq) (env 8) (causal 8) (staticN 8 0 (by omega) (by omega))
     (rstOK 8 (by omega))
 
-/-- The passing run is not degenerate: x's token 0 is acknowledged, y's
-token 1 too, z_req carries both, the x request falls while the long
-feedback net still shows j0 = 0 at times before j0's loop has settled
-(x_req at uj0 is low at 31, j0 rose at 22, so the 8-tick net shows it from 30). -/
+/-- The passing run is not degenerate: x's token 0 and y's token 1 are
+acknowledged, z_req carries both, and the race the shipped `S_J0_X` is
+about is live: j0 rises at 22, its 8-tick net shows that from 30, x_req is
+already low at uj0's pin at 31 (one tick of margin: the return from the node
+edge is 9 ticks, through z_ack, where `S_J0_X` counts 5), and j0 holds
+until 35. -/
 theorem pass8_values :
     xak j0p 30 = true ∧ yak 30 = false ∧ xak j0p 56 = false ∧ yak 56 = true ∧
     zr j0p 30 = true ∧ zr j0p 56 = true ∧ j0p 22 = true ∧ j0p 21 = false ∧ xj 31 = false ∧

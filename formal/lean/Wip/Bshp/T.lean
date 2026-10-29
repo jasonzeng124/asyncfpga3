@@ -53,7 +53,7 @@ model when arcs are shared). Per-traversal scatter of one arc at different times
 The r prefix delays (not in the extraction; the theorems hold for any value).
 -/
 
-namespace Formal.Cells.KappaCPPR
+namespace Formal.Cells.KappaCPPRmut
 
 open Formal.Core.Substrate
 open Formal.Cells.ConstraintsKappa
@@ -365,6 +365,15 @@ theorem design_cppr_safe {v : E → Quad} (hv : v ∈ arbs) {u : Full} (hu : u �
 
 theorem uRT1b_mem : uRT1b ∈ fulls := List.mem_of_getElem? (i := 11) rfl
 
+/-- The arithmetic core of `design_cppr_tight` (Bk2's `sandwich` on the netted binding form). -/
+theorem tight_core (k : Kappa) (H_KAPPA : k.den * 33181 ≤ k.num * 749546) (cr : Bool → CArc)
+    (hc : certGU ((xModel k v_g3_merge12_uarb1 cr).path (ee F_rt1b.P))
+      ((xModel k v_g3_merge12_uarb1 cr).path (ee F_rt1b.Q)) 0 0
+      ((ee F_rt1b.P).length + (ee F_rt1b.Q).length) 33181 749546 false = true)
+    (hd : Disj (ee F_rt1b.P) (ee F_rt1b.Q)) (hn : 0 < (ee F_rt1b.P).length + (ee F_rt1b.Q).length) :
+    ¬ AllOK (xModel k v_g3_merge12_uarb1 cr) (ee F_rt1b.P) (ee F_rt1b.Q) 0 0 :=
+  not_allOK_of_certGU _ hd (by decide) hn hc H_KAPPA
+
 /-- **And tight**: from κ ≥ 33181/749546 (≈ 0.044267) the binding FULL condition fails on
 some realization, whatever the r2 prefix arc. So the CPPR threshold is 0.0443, as in Bk3. -/
 theorem design_cppr_tight (k : Kappa) (H_KAPPA : k.den * 33181 ≤ k.num * 749546)
@@ -383,14 +392,14 @@ theorem design_cppr_tight (k : Kappa) (H_KAPPA : k.den * 33181 ≤ k.num * 74954
       ((xModel k v_g3_merge12_uarb1 cr).path (ee F_rt1b.Q)) 0 0
       ((ee F_rt1b.P).length + (ee F_rt1b.Q).length) 33181 749546 false = true := by
     rw [xpath_e, xpath_e]; exact hc
-  exact not_allOK_of_certGU _ hd (by decide) hn hc' H_KAPPA
+  exact tight_core k H_KAPPA cr hc' hd hn
 
 /-- Non-vacuity: κ = 16587/374773 meets `H_KAPPA`, and every `xModel` is realised (at the
 fast endpoint), whatever `cr`. -/
 theorem design_cppr_nonvacuous :
     ∃ k : Kappa, k.num * 374773 ≤ k.den * 16587 ∧ ∀ (v : E → Quad) (cr : Bool → CArc),
       (xModel k v cr).Realizes (fun e => ((xModel k v cr).arc e).F) :=
-  ⟨⟨16587, 374773, by decide, by decide⟩, Nat.le_refl _, fun _ _ => ⟨_, realizes_fast _⟩⟩
+  ⟨⟨16587, 374773, by decide, by decide⟩, Nat.le_of_eq (Nat.mul_comm _ _), fun _ _ => ⟨_, realizes_fast _⟩⟩
 
 /-! ### The uncancelled check is strictly pessimistic (real data) -/
 
@@ -489,29 +498,33 @@ def uF2 : List Y × List Y :=
     fs [.ac, .dS2, .dS1, .es, .ps, .aq, .cq, .qgw, .pqg, .ag2, .gw2, .pg2] ++ ss [.ac2])
 
 /-- Without H_ARC_C its threshold is 121144/604431 ≈ 0.20043 (with it, Bk3: ≈ 0.2165). -/
-theorem split_fork2_safe (k : Kappa) (H_KAPPA : k.num * 604431 ≤ k.den * 121144) :
+theorem split_fork2_safe (k : Kappa) (H_KAPPA : k.num * 604431 ≤ k.den * 121145) :
     AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 :=
   split_safe (by decide) (by decide +kernel) k H_KAPPA
 
-theorem V1 (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862) :
+theorem fork2_unsafe_core (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862)
+    (hn : 0 < (net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length)
+    (hc : certGU (pathArc ((net uF2.1 uF2.2).2.1.map (yArc v_g4_merge12_uarb2)))
+      (pathArc ((net uF2.1 uF2.2).2.2.map (yArc v_g4_merge12_uarb2))) 0 0
+      ((net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length) 242303 1208862 false = true) :
+    ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 :=
+  split_unsafe (by decide) hn hc k H_KAPPA
+
+theorem split_fork2_unsafe (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862) :
     ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 := by
   have hn : 0 < (net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length := by decide +kernel
-  sorry
-
-theorem V2 (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862) :
-    ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 := by
   have hc : certGU (pathArc ((net uF2.1 uF2.2).2.1.map (yArc v_g4_merge12_uarb2)))
       (pathArc ((net uF2.1 uF2.2).2.2.map (yArc v_g4_merge12_uarb2))) 0 0
       ((net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length) 242303 1208862 false = true := by
     decide +kernel
-  sorry
+  exact fork2_unsafe_core k H_KAPPA hn hc
 
-theorem V3 (k : Kappa) (H_KAPPA : k.den * 242303 ≤ k.num * 1208862)
-  (hn : 0 < (net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length)
-  (hc : certGU (pathArc ((net uF2.1 uF2.2).2.1.map (yArc v_g4_merge12_uarb2)))
-      (pathArc ((net uF2.1 uF2.2).2.2.map (yArc v_g4_merge12_uarb2))) 0 0
-      ((net uF2.1 uF2.2).2.1.length + (net uF2.1 uF2.2).2.2.length) 242303 1208862 false = true) :
-    ¬ AllOK (yModel k v_g4_merge12_uarb2) uF2.1 uF2.2 0 0 := by
-  exact split_unsafe (by decide) hn hc k H_KAPPA
+/-- Non-vacuity of the split statements: the bounds are meetable and `yModel` is realised. -/
+theorem split_nonvacuous :
+    (∃ k : Kappa, k.num * 604431 ≤ k.den * 121145) ∧
+    (∃ k : Kappa, k.den * 242303 ≤ k.num * 1208862) ∧
+    ∀ (k : Kappa) (v : E → Quad), (yModel k v).Realizes (fun e => ((yModel k v).arc e).F) :=
+  ⟨⟨⟨121144, 604431, by decide, by decide⟩, Nat.le_of_eq (Nat.mul_comm _ _)⟩,
+    ⟨⟨242303, 1208862, by decide, by decide⟩, Nat.le_of_eq (Nat.mul_comm _ _)⟩, fun _ _ => ⟨_, realizes_fast _⟩⟩
 
-end Formal.Cells.KappaCPPR
+end Formal.Cells.KappaCPPRmut

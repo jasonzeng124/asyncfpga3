@@ -17,6 +17,8 @@ structure Kappa where
 namespace Kappa
 def lo (k : Kappa) : Nat := k.den - k.num
 def hi (k : Kappa) : Nat := k.den + k.num
+/-- No scatter. -/
+def zero : Kappa := ⟨0, 1, by decide, by decide⟩
 end Kappa
 
 structure CArc where
@@ -364,5 +366,39 @@ theorem cover_sound {A : Tab} {un ud : Nat} {sp : List (List Nat)} {l : List Pt}
   refine chain_sound hA hun hud hk hS l (1, 0) q hchain ?_ ?_
   · unfold PLe; simp
   · rw [hlast]; unfold LeP Corner.W; simp
+
+/-! ## 4. Eliminating the corner; Bernstein products -/
+
+/-- Two half-planes through the origin in `(w0, w1)` with `b1 > 0`, `a2 > 0` meet in the
+closed positive quadrant only if `a2·b1 ≤ a1·b2`. -/
+theorem elim2 {w0 w1 a1 b1 a2 b2 : Int} (hw0 : 0 ≤ w0) (hw1 : 0 ≤ w1) (hw : 0 < w0 + w1)
+    (hb1 : 0 < b1) (ha2 : 0 < a2) (h1 : w0 * a1 + w1 * b1 ≤ 0) (h2 : w0 * a2 + w1 * b2 ≤ 0) :
+    a2 * b1 ≤ a1 * b2 := by
+  by_cases hb2 : 0 < b2
+  · exfalso
+    have p1 : 0 ≤ w1 * b2 := Int.mul_nonneg hw1 (Int.le_of_lt hb2)
+    have p2 : 0 ≤ w0 * a2 := Int.mul_nonneg hw0 (Int.le_of_lt ha2)
+    rcases Int.lt_or_eq_of_le hw0 with h0 | h0
+    · have := Int.mul_pos h0 ha2; omega
+    · subst h0
+      have : 0 < w1 := by omega
+      have := Int.mul_pos this hb2; omega
+  · have nb2 : 0 ≤ -b2 := by omega
+    have e1 := Int.mul_le_mul_of_nonneg_left h1 nb2
+    have e2 := Int.mul_le_mul_of_nonneg_left h2 (Int.le_of_lt hb1)
+    have e3 : w0 * (a2 * b1 - a1 * b2) ≤ 0 := by grind
+    rcases Int.lt_or_eq_of_le hw0 with h0 | h0
+    · apply Classical.byContradiction; intro hx
+      have := Int.mul_pos h0 (show 0 < a2 * b1 - a1 * b2 by omega); omega
+    · subst h0
+      have : 0 < w1 := by omega
+      have := Int.mul_pos this hb1; omega
+
+/-- The three Bernstein products of `t = N/D ∈ [p0/q0, p1/q1]`. -/
+theorem bern (N D : Int) {p0 q0 p1 q1 : Int} (h0 : p0 * D ≤ q0 * N) (h1 : q1 * N ≤ p1 * D) :
+    0 ≤ (q0 * N - p0 * D) * (q0 * N - p0 * D) ∧ 0 ≤ (q0 * N - p0 * D) * (p1 * D - q1 * N) ∧
+      0 ≤ (p1 * D - q1 * N) * (p1 * D - q1 * N) :=
+  ⟨Int.mul_nonneg (by omega) (by omega), Int.mul_nonneg (by omega) (by omega),
+    Int.mul_nonneg (by omega) (by omega)⟩
 
 end Formal.Cells.OnNetlistArbKappaExact

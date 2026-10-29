@@ -780,3 +780,16 @@ In (checked here, axioms standard):
   2 LUTs vs 16 delay elements). With C's rearm_fails_at_reoffer neither cut works;
   every-result needs a re-entrant window theorem (C's). gcd_rig_every has no
   witness.
+
+### progress 10:15
+In: Bnx4 Necessity4Mux/MuxC/MuxN (core, checked here, axioms standard;
+notes/B-necessity4.md). bd_mux.uj_env_latency_req and bdc_muxn.uj_env_latency_req
+are NOT necessary: the ack C-element also waits for z_ack, so the real return path
+is max(W0x.lo, W0o.lo+Lor.lo+Dz.lo+Es+Wzx.lo); the max form is proved sufficient
+(mux_ok_staticN, muxn3_ok_staticN; the shipped form implies it), and runs on the
+real INITs violate the shipped form by 3 ticks while meeting the full spec (pass8;
+non-necessity over the box since sufficiency covers every run). On bd_mux the max
+form is tight at slack 1 on its z_ack branch (fail10). uj_env_latency_ctl is
+necessary at the boundary against the shipped mux_ok_static (claimC1_false).
+Binary <= forms; one parameter point each, no iffs. Open: uj1/uya and muxn boundary
+runs, uxa_join_latency, isochronic_forks, iso_zack, bundled_z_data.

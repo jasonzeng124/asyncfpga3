@@ -331,13 +331,13 @@ theorem pass8 :
   refine ⟨fun _ _ => by show ¬ (1 + 8 ≤ 1 + 1 + 1 + 1 + 1 + 1); decide, fun _ _ => Nat.le_of_ble_eq_true rfl, W8.staticN, h.1, h.2.1,
     fun i hi => (h.2.2 i hi).1⟩
 
-/-- The run is not degenerate: each input is acknowledged in its own token
-and its join's long loop is exercised (j_0 rises at 32 and is still high at
-40, after in_0_req fell at its pin at 41 - 1). -/
+set_option maxRecDepth 100000 in
+/-- The run is not degenerate: each input is acknowledged in its own token,
+and j_0 rises at 32 (it was 0 at 31). -/
 theorem pass8_values :
     W8.ak 0 40 = true ∧ W8.ak 1 40 = false ∧ W8.ak 1 60 = true ∧ W8.ak 2 80 = true ∧
     W8.line 1 35 = true ∧ W8.line 1 55 = true ∧ W8.jW 0 32 = true ∧ W8.jW 0 31 = false := by
-  decide +kernel
+  decide
 
 end Nec4
 end Formal.Cells.MuxN3Timed
