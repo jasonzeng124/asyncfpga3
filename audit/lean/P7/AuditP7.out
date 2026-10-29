@@ -67,4 +67,52 @@ Formal.Cells.RigSrc.gcd_rig_first_env : ∀ (a b : Nat),
                     (∀ (t : Nat), (ch out0).ack t = q t) →
                       (∀ (t t' : Nat), t ≤ t' → β t ≤ β t') →
                         (∀ (t : Nat), β t ≤ t) →
-                          (∀ (z : F
+                          (∀ (z : Fin NC) (t t' : Nat), t ≤ t' → γ z t ≤ γ z t') →
+                            (∀ (z : Fin NC) (t : Nat), γ z t ≤ t) →
+                              (∀ (t t' : Nat), t ≤ t' → φ1 t ≤ φ1 t') →
+                                (∀ (t : Nat), φ1 t ≤ t) →
+                                  (∀ (t t' : Nat), t ≤ t' → φ0 t ≤ φ0 t') →
+                                    (∀ (t : Nat), φ0 t ≤ t) →
+                                      (∀ (t : Nat), e (t + 1) ≠ e t → k (β t) = !e (t + 1)) →
+                                        (∀ (o : Fin NO) (z : Fin NC) (w d : Nat),
+                                            opAt o = K.src z w d →
+                                              ∀ (t : Nat), k (t + 1) ≠ k t → (ch z).ack (γ z t) = k (t + 1)) →
+                                          (∀ (t : Nat), e (t + 1) ≠ e t → q (φ1 t) = e (t + 1)) →
+                                            (∀ (t : Nat), q (t + 1) ≠ q t → e (φ0 t) = !q (t + 1)) →
+                                              (∀ (r : Nat), OffAt (ch out0) 0 r → (ch out0).dat (r + 1) = a.gcd b) ∧
+                                                ∀ (e' : Nat), TokAt (ch out0) 0 e' → (ch out0).dat e' = a.gcd b
+Formal.Cells.ResetGcdRe.re_matches : ∀ (n : Nat),
+  n < Formal.Cells.ResetGcdRe.oldM →
+    Formal.Cells.ResetGcdRe.rNode n = Formal.Cells.ResetGcdRe.expect n ∧
+      Formal.Cells.ResetGcdRe.rCtl n = Formal.Cells.ResetGcd.gCtl n
+Formal.Cells.ResetGcdRe.re_reset_ternary : ∀ (n : Nat),
+  Formal.Cells.ResetGcdRe.rCtl n = true →
+    Formal.Cells.TernarySound.iter Formal.Cells.ResetGcdRe.rNet Formal.Cells.ResetGcd.gA
+        (Formal.Cells.ResetGcdRe.rMaxRank + 2) Formal.Cells.ResetContract.allX n =
+      Formal.Cells.K3.ofBool (Formal.Cells.ResetGcdRe.rR n)
+'Formal.Net.CapNet.Wit.gcd_hw_joint_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Wit.gcd_hw_witness_consistent' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Wit.gcd_hw_joint_witness3' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe''' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Gcd.gcd_hw_circuit_safe3' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Live.Nd.gcd_hw_live_final' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Live.Nd.walk_ends' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.IpowCap.ipow_circuit_safe3' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.IpowCap.ipow_circuit_safe' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CapNet.Gcd.gcd_rig_first' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.RigSrc.gcd_rig_first_env' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetGcdRe.re_matches' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.ResetGcdRe.re_reset_ternary' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetGcdRe.re_reset_binary' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetGcdRe.re_reset_release' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.ResetGcdRe.re_census' does not depend on any axioms
+'AuditP7.joint_feeds_safety' depends on axioms: [propext, Classical.choice, Quot.sound]
+'AuditP7.witness_not_bounded' depends on axioms: [propext, Quot.sound]
+'AuditP7.mut_src' depends on axioms: [propext]
+'AuditP7.mut_toggle' depends on axioms: [propext]
+'AuditP7.witness_not_env' depends on axioms: [propext]
+'AuditP7.step0_only_src' depends on axioms: [propext]
+
+real	0m25.080s
+user	0m14.917s
+sys	0m10.190s

@@ -122,7 +122,7 @@ theorem w_cells : ∀ o : Fin Formal.Net.IpowCap.NO, Cell chW (srcV 3 7) (Formal
 theorem cds_len : cds.length = Formal.Net.IpowCap.NC := by decide +kernel
 theorem held_all : cds.all heldChk = true := by decide +kernel
 
-theorem w_held : ∀ c : Fin Formal.Net.IpowCap.NC, Handshake.Held (chW c) := by
+theorem w_held : ∀ c : Fin Formal.Net.IpowCap.NC, Formal.Net.Ops.Held (chW c) := by
   intro c
   apply held_of
   apply List.all_eq_true.mp held_all
@@ -144,7 +144,7 @@ theorem spec37 : Formal.Net.IpowHw.ipowSpec 3 7 = 2187 := by decide
 /-- AUDITOR: joint non-vacuity of ipow_circuit_safe3 (b=3, e=7), and the theorem applied to it. -/
 theorem ipow_joint_witness :
     ∃ ch : Fin Formal.Net.IpowCap.NC → Handshake.Chan,
-      (∀ o, Cell ch (srcV 3 7) (Formal.Net.IpowCap.opAt o)) ∧ (∀ c, Handshake.Held (ch c)) ∧
+      (∀ o, Cell ch (srcV 3 7) (Formal.Net.IpowCap.opAt o)) ∧ (∀ c, Formal.Net.Ops.Held (ch c)) ∧
       (∀ t, Handshake.cnt (Handshake.riseB (ch Formal.Net.IpowCap.start).req) t ≤ 1) ∧
       (∃ k e, Handshake.TokAt (ch Formal.Net.IpowCap.out0) k e ∧ (ch Formal.Net.IpowCap.out0).dat e = 2187) :=
   ⟨chW, w_cells, w_held, w_start_once, ⟨0, out0Close, w_out0⟩⟩
