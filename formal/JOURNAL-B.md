@@ -1372,3 +1372,22 @@ view is boundary-tight (cexG_run); the others' cex_* lemmas have no constructed 
 so sufficient; each necessity is for one C field; race R protects H_HOLDQ.
 H_SLOW_REREQ is not needed within one handover window but stays in the all-time
 contract (windows not chained). Necessity5 needed no change (merged at Bj6).
+
+### progress 11:11
+In: Bfin2 FiniteNet{,Cells,Mixed,Wit} (core; checked here, axioms standard;
+notes/B-finite-net.md). The strict-causality induction re-timed from segment ends to
+TIME: ag_trunc (pins clean on [0,T) => node clean on [0,T+lo), lo >= 1, induction on
+T; unsound at lo = 0 on the zero-delay loop). One notion GPhT covers finite and
+infinite runs (gph_fin_iff, gph_inf_iff). Truncated cell lemmas need no spacing and no
+H_WAIT: tnode, twire, tlink, tcelG/tcelX, tgated/tsteer/tmuxj, and the OR cells
+tor_ex/tuack/tuor (the end-ordered rule could not carry them, or_not_causal; under the
+time rule they close given H_ORD; H_LATER gone). fchain_env1 DERIVES each link's FEnv1
+on runs that stop; gcd_hw_safe_fin_chains replaces FPhysLink by FInChain, and C's
+terminating run chW (a=12, b=18, out0 = 6) meets ALL its hypotheses jointly
+(gcd_hw_fin_chains_witness). So this is the first B theorem with derived link
+environments that has a joint witness on a real gcd run. Degenerate in three ways
+(disclosed): each witness chain is a single link (producer node -> link -> consumer
+node), the end contracts hold because their conclusions hold on chW, and all delays
+are unit. gcd_hw_safe_fin_net also gate-models the 38 steer ORs, but has no joint
+witness (chW has channel traces, not internal nodes). Still contracts: mux acks,
+sources, muxn, amerge, fork trees N >= 5; departure bounds and H_ORD assumed.
