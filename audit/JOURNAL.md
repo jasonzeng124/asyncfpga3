@@ -280,3 +280,8 @@ generator byte-identical). Axiom audit of 84bc9e4 running; P10c running.
 ### progress 09:59
 P10c in: ResetCapstone/ResetWitness2 (D=2,W=1), ZeroDelayNet, ContractBridge, IpowCellsT, ArbNoWithdraw, C-9d rings,
 Necessity6 all CONFIRMED with scope notes; nothing refuted. Pass 10 subagents done; axiom audit of 84bc9e4 running.
+
+### progress 09:59
+Formal advanced again (424e8ee): self-reported refutations -- 9df5915 H_NO_DEADLOCK' false (kernel run), fccd12c HARB7
+false on real arbiter runs so Events8/9 CLEAN covers no real run. Annotated the two affected REPORT rows as pending
+re-check. Research efc6538: BQ#3 2x scatter fails seed 9 (self-reported). Pass 11 after the axiom audit.
