@@ -67,6 +67,18 @@ THE ITEMS (kind in inventory.json):
                    ro_many_top_routed.json, ro_many_top.sdf.  Without it the
                    item is BLOCKED, and today's rebuild's predicted
                    distribution is printed for reference only.
+  ring_summary     ring128_summary: the same 128 rings at the DISTRIBUTION level,
+                   runnable today (ring128_summary.py).  On N rebuilt routes
+                   (--ro-many-routes DIR: one subdir per build_hw.sh
+                   ro_many_top route), P_model/P_nextpnr per ring under THIS
+                   configuration's delays (--stack full: xray_delay.py at
+                   --corner/--band; default: nextpnr's SDF) plus whatever
+                   GLS_SCATTER* the environment sets, drawn --ring-draws
+                   times, summarised as hw/ro_many_measure.py summarises the
+                   board and compared with the August summary.  ACROSS
+                   routes, so soft; MATCH iff every graded statistic
+                   (ring128_summary.GRADED) is inside the routes x draws
+                   95% spread against the emulated pre-patch denominator.
   bitstream_bug    a deterministic FASM-writer bug re-applied to a FASM by
                    verify/fasm_audit.py --write-unpatched.  The sim must PASS
                    the patched FASM (the board did, after the fix) and FAIL the
@@ -380,6 +392,36 @@ def run_ring_population(item, cfg, data, tol=5.0):
                median_by_length=bylen, rings_slower_than_model=slower,
                ok=ok, verdict="per-ring comparison on the measured route: " + "; ".join(why))
     return out
+
+
+SCATTER_KEYS = ("GLS_SCATTER", "GLS_SCATTER_MODE", "GLS_SCATTER_REGION", "GLS_REGION_SLICES")
+
+
+def run_ring_summary(item, cfg, routes_dir=None, draws=16):
+    import ring128_summary as R
+    rd = Path(routes_dir) if routes_dir else REPO / item["routes_dir"]
+    dirs = sorted(d for d in rd.glob("*") if (d / "ro_many_top_routed.json").exists()) \
+        if rd.exists() else []
+    if not dirs:
+        return {"verdict": f"BLOCKED: no ro_many_top routes under {rd} ({item['needs']})",
+                "ok": None, "blocked": True}
+    if cfg.sdf_cmd or cfg.netlist_cmd:
+        return {"verdict": "ERROR: ring_summary reads nextpnr's or xray_delay.py's SDF only "
+                "(--stack default or full, no hooks)", "ok": None, "error": True}
+    which = "xray" if cfg.stack == "full" else "nextpnr"
+    env = {"GLS_SDF_FIELD": cfg.corner if cfg.stack == "full" else "min"}
+    if cfg.corner == "band":
+        env["GLS_SDF_BAND"] = repr(cfg.band)
+    env.update({k: os.environ[k] for k in SCATTER_KEYS if k in os.environ})
+    routes = [R.Route(d, XRAY_DB) for d in dirs]
+    v = R.verdict(R.run_env(routes, which, env, draws))
+    prim = v["arms"][R.PRIMARY]
+    return {"routes": [str(d) for d in dirs], "env": env, "draws": draws, **v,
+            "graded": R.GRADED,
+            "verdict": f"across {len(dirs)} rebuilt route(s), not the measured one: "
+                       f"{len(prim['inside'])} of {len(R.GRADED)} graded statistics inside the "
+                       f"model's 95% spread vs P_{R.PRIMARY}"
+                       + (f" (outside: {', '.join(prim['outside'])})" if prim["outside"] else "")}
 
 
 def gls_gcd(netlist_json, sdf, work, vectors, env_extra=None):
@@ -799,6 +841,9 @@ def main():
     ap.add_argument("--ro-many-data")
     ap.add_argument("--ring-tol", type=float, default=5.0,
                     help="ring128 pass band for the median errors, percent")
+    ap.add_argument("--ro-many-routes", help="ring128_summary: a directory of ro_many_top route dirs")
+    ap.add_argument("--ring-draws", type=int, default=16,
+                    help="ring128_summary: scatter draws per route")
     ap.add_argument("--work", type=Path, default=REPO / "build/fid/acceptance")
     ap.add_argument("--vectors", default="0-15")
     ap.add_argument("--report", type=Path)
@@ -824,6 +869,8 @@ def main():
                 r = run_ring_route(it, cfg, inv)
             elif kind == "ring_population":
                 r = run_ring_population(it, cfg, a.ro_many_data, a.ring_tol)
+            elif kind == "ring_summary":
+                r = run_ring_summary(it, cfg, a.ro_many_routes, a.ring_draws)
             elif kind == "bitstream_bug":
                 r = run_bitstream_bug(it, cfg, vectors)
             elif kind == "property" and it.get("runnable"):
@@ -881,6 +928,15 @@ def print_report(rep):
                           f"p05 {r['p05']:+.1f}%  p95 {r['p95']:+.1f}%  by length "
                           f"{ {k: round(v, 1) for k, v in r['median_by_length'].items()} }  "
                           f"silicon slower than model on {r['rings_slower_than_model']}")
+            if r["kind"] == "ring_summary" and "arms" in r:
+                print(f"      model env {json.dumps(r['env'])}, {r['draws']} draw(s) per route")
+                for dn, arm in r["arms"].items():
+                    print(f"      vs P_{dn}: {len(arm['inside'])}/{len(r['graded'])} graded inside "
+                          f"({arm['n_samples']} samples)")
+                    for k in r["graded"]:
+                        lo, med, hi, au, ok = arm["table"][k]
+                        print(f"        {k:>11}  model {lo:.3f} .. {med:.3f} .. {hi:.3f}   "
+                              f"August {au:.3f}  {'in' if ok else 'OUT'}")
             if r["kind"] == "bitstream_bug" and "runs" in r and r.get("stack") == "full":
                 print_full_bug(r)
             elif r["kind"] == "property" and r.get("property"):

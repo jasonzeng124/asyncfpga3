@@ -30,6 +30,61 @@
    "route_dir": "build/fid/ro_many_top"
   },
   {
+   "id": "ring128_summary",
+   "kind": "ring_summary",
+   "title": "ring128 at the distribution level: the August per-length summary vs P_model/P_nextpnr on today's rebuilt routes",
+   "grade": "soft",
+   "grade_reason": "the oracle is ring128's (hard) summary, but the comparison is ACROSS routes (the measured route is gone), its denominator -- the pre-lut-perm-sink nextpnr SDF -- can only be emulated (ring128_summary.py P_pre), and the scatter the model carries was sized on this same population's median spread (f3_model.md section 3); it tests the shape of the distribution, never a ring",
+   "oracle": {
+    "per_length_ratio_vs_aug_sdf": {
+     "7": {
+      "median": 1.176,
+      "p90": 1.438,
+      "p99": 1.47,
+      "max": 1.47,
+      "min": 0.773
+     },
+     "15": {
+      "median": 0.987,
+      "p90": 1.117,
+      "p99": 1.203,
+      "max": 1.203
+     },
+     "31": {
+      "median": 0.959,
+      "p90": 1.085,
+      "p99": 1.142,
+      "max": 1.142
+     },
+     "63": {
+      "median": 0.969,
+      "p90": 1.059,
+      "p99": 1.134,
+      "max": 1.134
+     }
+    },
+    "all": {
+     "median": 0.989,
+     "p90": 1.252,
+     "p99": 1.457,
+     "max": 1.47
+    },
+    "slower_than_scaled_model": "76/128 (residual after measured = 0.9616 x predicted through the origin, > 0)",
+    "graded": "all.median, median7/median63, slower, p90/median per length; inside the 2.5-97.5% spread of routes x draws vs P_pre"
+   },
+   "sources": [
+    "cells/hw/README.md:296-301",
+    "cells/hw/README.md:309",
+    "cells/hw/README.md:321-323",
+    "cells/hw/README.md:353",
+    "cells/hw/ro_many_measure.py:305-311,670-673,750-754,835-841"
+   ],
+   "provenance": "summary as ring128; routes rebuilt today (research/data/fid/ring128_summary.md)",
+   "reproducible": "the summary yes (it is the oracle); the August route no. The runnable part is today's routes",
+   "needs": "rebuilt routes: for s in default 1 2 3 4 5 6 7: (cd cells && BD_NO_TIGHTEN=1 BD_RLOC=none [NEXTPNR_SEED=$s] hw/build_hw.sh ro_many_top) and copy build/hw/ro_many_top/ro_many_top_routed.json + ro_many_top.sdf into build/fid/ro_many_seeds/<s>/; run with GLS_SCATTER_REGION=0.16 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire acceptance.py --stack full --corner band --items ring128_summary",
+   "routes_dir": "build/fid/ro_many_seeds"
+  },
+  {
    "id": "ring5_a",
    "kind": "ring_route",
    "title": "ro_top five rings, route A (2026-08-03)",

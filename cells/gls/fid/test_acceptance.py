@@ -54,7 +54,7 @@ def test_inventory_is_well_formed():
     for it in inv["items"]:
         assert it["grade"] in ("hard", "soft", "excluded"), it["id"]
         assert it["sources"] and it["grade_reason"], it["id"]
-        assert it["kind"] in ("ring_route", "ring_population", "bitstream_bug",
+        assert it["kind"] in ("ring_route", "ring_population", "ring_summary", "bitstream_bug",
                               "property", "record"), it["id"]
 
 
@@ -413,3 +413,99 @@ def test_identical_payloads_are_identical_whatever_the_header(tmp_path, monkeypa
     with pytest.raises(RuntimeError, match="byte-identical"):
         A.run_bitstream_bug({"id": "lutpinmap_x", "route_dir": str(gd), "bug": "pinmap"},
                             full_cfg(tmp_path, monkeypatch), [0])
+
+
+# ---------------------------------------------------------- ring128_summary
+import ring128_summary as R  # noqa: E402
+
+
+def test_summary_statistics_as_ro_many_measure_computes_them():
+    # 4 rings of one length; pred 1000 each, meas 900, 1000, 1100, 1300.
+    pred = {i: 1000.0 for i in range(4)}
+    meas = {0: 900.0, 1: 1000.0, 2: 1100.0, 3: 1300.0}
+    s = R.summarise(meas, pred, {i: 7 for i in range(4)})
+    d = s["per_length"][7]
+    assert d["median"] == (1.0 + 1.1) / 2 and d["min"] == 0.9 and d["max"] == 1.3
+    # nearest rank: p90 of 4 -> rank round(3.6 + 0.5) = 4 -> the max
+    assert d["p90"] == 1.3
+    # kfit through the origin = mean(meas)/1000 = 1.075; slower = meas > kfit*pred
+    assert abs(s["kfit"] - 1.075) < 1e-12 and s["slower"] == 2
+    # one predicted value: the two-parameter fit is undefined, so it needs spread
+    pred2 = {0: 1000.0, 1: 2000.0}
+    s2 = R.summarise({0: 1500.0, 1: 2500.0}, pred2, {0: 7, 1: 63})
+    assert abs(s2["k2"] - 1.0) < 1e-12 and abs(s2["d2_ps"] - 500) < 1e-9
+    assert abs(s2["short_long"] - 1.5 / 1.25) < 1e-12
+
+
+def test_pre_patch_estimate_follows_the_patch_readme():
+    grid = {"SLICE_X0Y0": ("T00", 10, 50), "SLICE_X1Y0": ("T00", 10, 50),
+            "SLICE_X0Y1": ("T01", 10, 49), "SLICE_X2Y3": ("T13", 13, 47)}
+    assert R.predict_delay("SLICE_X0Y0/A6LUT", "SLICE_X0Y0/A5LUT", grid) == 0
+    assert R.predict_delay("SLICE_X0Y0/A6LUT", "SLICE_X0Y0/B6LUT", grid) == 150
+    assert R.predict_delay("SLICE_X0Y0/A6LUT", "SLICE_X1Y0/A6LUT", grid) == 150
+    assert R.predict_delay("SLICE_X0Y0/A6LUT", "SLICE_X0Y1/A6LUT", grid) == 450 + 90
+    assert R.predict_delay("SLICE_X0Y0/A6LUT", "SLICE_X2Y3/C6LUT", grid) == 450 + 90 * 3 + 45 * 3
+
+
+def test_permuted_means_the_route_never_reaches_the_ports_site_wire():
+    rt = R.Route.__new__(R.Route)
+    rt.cells = {"u": {"type": "SLICE_LUTX", "attributes": {"NEXTPNR_BEL": "SLICE_X3Y51/A6LUT"},
+                      "connections": {"A2": [7], "A3": [8]}},
+                "f": {"type": "SLICE_FFX", "attributes": {"NEXTPNR_BEL": "SLICE_X3Y51/AFF"},
+                      "connections": {"D": [7]}}}
+    rt.routes = {7: "SITEWIRE/SLICE_X3Y51/A1;CLBLL_L_X2Y51/CLBLL_L_A2->SITEWIRE/SLICE_X3Y51/A1;1;",
+                 8: "SITEWIRE/SLICE_X3Y51/A3;CLBLL_L_X2Y51/CLBLL_L_A3->SITEWIRE/SLICE_X3Y51/A3;1;"}
+    assert rt.permuted("u", "A2") is True
+    assert rt.permuted("u", "A3") is False
+    assert rt.permuted("f", "D") is False          # only LUT inputs were estimated
+
+
+def _samples(**over):
+    a = R.aug_rows()
+    return [{**a, **{k: v * f for k, v in over.items()}} for f in (0.9, 1.0, 1.1)]
+
+
+def test_verdict_needs_every_graded_statistic_on_the_primary_arm():
+    a = R.aug_rows()
+    ok = [{**a, **{k: a[k] * f for k in R.GRADED}} for f in (0.95, 1.0, 1.05)]
+    v = R.verdict({"pre": ok, "np": ok})
+    assert v["ok"] is True and v["arms"]["pre"]["outside"] == []
+    # NEGATIVE CONTROL: the board's width sits above everything the model draws
+    narrow = [{**s, "7.w90": a["7.w90"] * 0.8} for s in ok]
+    v = R.verdict({"pre": narrow, "np": ok})
+    assert v["ok"] is False and v["arms"]["pre"]["outside"] == ["7.w90"]
+    # the P_np arm is reported, not graded
+    v = R.verdict({"pre": ok, "np": narrow})
+    assert v["ok"] is True and v["arms"]["np"]["outside"] == ["7.w90"]
+
+
+def test_ring_summary_item_is_blocked_without_routes(tmp_path):
+    it = {"routes_dir": "nonexistent", "needs": "build them"}
+    cfg = A.Config(args(stack="full", corner="band"), tmp_path)
+    r = A.run_ring_summary(it, cfg, routes_dir=tmp_path / "none")
+    assert r["blocked"] and r["ok"] is None and "build them" in r["verdict"]
+
+
+def test_ring_summary_item_passes_this_configuration(tmp_path, monkeypatch):
+    d = tmp_path / "r" / "s1"
+    d.mkdir(parents=True)
+    (d / "ro_many_top_routed.json").write_text("{}")
+    seen = {}
+    monkeypatch.setattr(R, "Route", lambda dd, db: dd)
+
+    def fake_run_env(routes, which, env, draws):
+        seen.update(routes=routes, which=which, env=env, draws=draws)
+        a = R.aug_rows()
+        return {"pre": [a, a], "np": [a, a]}
+    monkeypatch.setattr(R, "run_env", fake_run_env)
+    for k in A.SCATTER_KEYS:
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GLS_SCATTER_REGION", "0.16")
+    cfg = A.Config(args(stack="full", corner="band", band=0.38), tmp_path)
+    r = A.run_ring_summary({"routes_dir": "x", "needs": ""}, cfg, tmp_path / "r", draws=3)
+    assert seen["which"] == "xray" and seen["draws"] == 3 and seen["routes"] == [d]
+    assert seen["env"] == {"GLS_SDF_FIELD": "band", "GLS_SDF_BAND": "0.38", "GLS_SCATTER_REGION": "0.16"}
+    assert r["ok"] is True and "7 of 7" in r["verdict"]
+    cfg = A.Config(args(stack="default", corner="max"), tmp_path)
+    A.run_ring_summary({"routes_dir": "x", "needs": ""}, cfg, tmp_path / "r", draws=3)
+    assert seen["which"] == "nextpnr" and seen["env"]["GLS_SDF_FIELD"] == "min"
