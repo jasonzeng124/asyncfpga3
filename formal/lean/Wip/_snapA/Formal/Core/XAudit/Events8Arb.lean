@@ -121,10 +121,12 @@ theorem vgrant_hold {loF hiF loR hiR : Nat} {br : Bool} {s ctl g : Sig}
     cases hr : r (F t0)
     · rfl
     · rw [hr] at h; simp at h
-  intro u
-  induction u using Nat.strong_induction_on with
-  | _ u ih =>
-    intro hu1 hu2
+  suffices H : ∀ n u, u ≤ n → t0 ≤ u → u ≤ t1 → g u = true from fun u => H u u (Nat.le_refl _)
+  intro n
+  induction n with
+  | zero => intro u hn hu1 _; exact hg u hu1 (by omega)
+  | succ n ih =>
+    intro u hn hu1 hu2
     by_cases hb : u ≤ t0 + hiF
     · exact hg u hu1 hb
     · have hFu := wF.le_late u
@@ -179,27 +181,8 @@ theorem ct_pin : ArbPin Bct r1c r2c lowc lowc qc R0c g1c g2c := by
   · intro t
     show qc t = o6B ARB_ST [r1c (t - 1), r2c (t - 1), qc (t - 10), lowc (t - 1), lowc (t - 1), true]
     rw [st_eq]
-    simp only [lowc, Bool.false_or, Bool.false_eq_true, if_false, qc, r1c, r2c]
-    by_cases h1 : t ≤ 10
-    · have e1 : decide (18 ≤ t - 1) = false := by simp; omega
-      have e2 : decide (10 ≤ t - 1) = false := by simp; omega
-      rw [e1, e2]
-      simp only [Bool.false_and, Bool.not_false, Bool.and_true, Bool.false_or]
-      simp only [decide_eq_decide]; omega
-    · by_cases h2 : t ≤ 18
-      · have e1 : decide (18 ≤ t - 1) = false := by simp; omega
-        have e2 : decide (10 ≤ t - 1) = true := by simp; omega
-        rw [e1, e2]
-        simp only [Bool.not_false, Bool.true_and, Bool.not_true, Bool.and_false, Bool.or_false,
-          decide_eq_true_eq]
-        simp only [decide_eq_decide, Bool.and_false]
-        simp; omega
-      · have e1 : decide (18 ≤ t - 1) = true := by simp; omega
-        have e2 : decide (10 ≤ t - 1) = true := by simp; omega
-        rw [e1, e2]
-        simp only [Bool.not_true, Bool.and_false, Bool.true_and, Bool.not_false, Bool.false_or,
-          Bool.and_true]
-        simp only [decide_eq_decide]; omega
+    simp only [lowc, qc, r1c, r2c, Bool.false_or, Bool.false_eq_true, ite_false]
+    rw [Bool.eq_iff_iff]; simp; omega
   · intro t; show _ = o5B ARB_ST [_, _, _, _, _, true]; rw [r0_eq]; rfl
   · intro t; show _ = o5B GRANT [_, _, _, false, false, true]; rw [g1_eq]; rfl
   · intro t; show _ = o6B GRANT [_, _, _, false, false, true]; rw [g2_eq]; rfl
@@ -225,12 +208,8 @@ theorem ct_g2_osc (k : Nat) :
     (∀ u, 22 + 10 * k ≤ u → u ≤ 29 + 10 * k → g2c u = true) ∧ g2c (30 + 10 * k) = false := by
   constructor
   · intro u h1 h2
-    simp only [g2c, r2c, qc, Bool.and_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
-      decide_eq_true_eq, decide_eq_false_iff_not]
-    omega
-  · simp only [g2c, r2c, qc, Bool.and_eq_false_iff, Bool.not_eq_eq_eq_not, Bool.not_false,
-      decide_eq_true_eq, decide_eq_false_iff_not]
-    right; omega
+    simp [g2c, r2c, qc]; omega
+  · simp [g2c, r2c, qc]; omega
 
 /-- **No virtual grant matches `ct`'s `g2`** (for any `ctl`, any `σ`, any branch label, any
 grant band with `hiF ≤ 7` and request band with `hiF + hiR ≤ 12`, i.e. any band shorter than the

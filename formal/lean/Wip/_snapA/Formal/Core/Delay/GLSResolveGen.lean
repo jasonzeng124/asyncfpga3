@@ -157,7 +157,7 @@ theorem seg_wide {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat →
         have hr : isRunt p (t + 1) true Q = false := by simp [isRunt, hq.tl]
         unfold step
         rw [eval_edge hb (by simp [hq.o]) hr, nba_idle (by simp [hq.busy])]
-        simp [Q1, hq.o, h1]
+        simp [Q1, hq.o, hq.busy, h1]
       · rw [ih t (by omega) (by omega)]
         have hf : F (t + 1) (st (t + 1 - p.L)).o = true := by
           by_cases h2 : t + 1 - p.L < s
@@ -222,7 +222,7 @@ theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat
         unfold step
         rw [eval_edge hb (by simp [hq.o]; omega) hr, nba_idle (by simp [hq.busy])]
         rw [Sseg_pre _ _ _ _ _ (by omega) (by omega)]
-        simp [Q1, show t + 1 < s + w by omega]
+        simp [Q1, hq.o, hq.busy, h1, show t + 1 < s + w by omega]
       · rw [ih t (by omega) (by omega) (by omega)]
         by_cases h4 : t + 1 < s + w
         · -- inside the pulse
@@ -237,11 +237,14 @@ theorem seg_runt_pre {p : Prm} {F : Nat → Bool → Bool} {v0 : Bool} {st : Nat
             rw [hpre (t + 1) (by omega) h3, hF0 (t + 1) (by omega) (by omega),
               Sseg_pre _ _ _ _ _ (by omega) (by omega)]
             simp only [show ¬ t + 1 < s + w by omega, decide_false]
+            have e1 : 0 < s := by omega
+            have e2 : t + 1 - s < p.L := by omega
+            have e3 : ¬ t + 1 < Q.ign := by have := hq.ign; omega
             have hr : isRunt p (t + 1) false (Q1 Q s) = true := by
-              simp [isRunt, Q1]; omega
+              simp [isRunt, Q1, e1, e2]
             have hwe : t + 1 - (Q1 Q s).tl = w := by simp [Q1]; omega
             unfold step
-            rw [eval_runt (by simp [blocked, Q1]; have := hq.ign; omega) (by simp [Q1]) hr, hwe, h5]
+            rw [eval_runt (by simp [blocked, Q1, e3]) (by simp [Q1]) hr, hwe, h5]
             unfold Sseg
             simp only [show ¬ s + w < s by omega, show ¬ s + w < s + w by omega, ite_false]
             cases hres : resolve (w : Int) (p.L : Int) p.win (p.nz (s + w)) with

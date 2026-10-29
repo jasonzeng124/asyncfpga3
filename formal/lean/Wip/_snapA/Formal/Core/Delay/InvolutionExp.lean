@@ -288,7 +288,7 @@ theorem KE_nonneg (hτ : 0 < τ) {M : ℝ} (hM : M < Tp + τ * Real.log 2) : 0 �
   exact le_of_lt (div_pos (Real.exp_pos _) (by linarith))
 
 /-- Difference of delays through `u`. -/
-theorem up_sub {a b : ℝ} (ha : -(Tp + τ * Real.log 2) < a) (hb : -(Tp + τ * Real.log 2) < b) :
+theorem up_sub (a b : ℝ) :
     (expR τ Tp hτ hTp).up b - (expR τ Tp hτ hTp).up a =
       τ * (Real.log (2 - uu τ Tp b) - Real.log (2 - uu τ Tp a)) := by
   rw [expR_up, expR_up]; ring
@@ -300,7 +300,7 @@ theorem slope_lower {a b : ℝ} (ha : -(Tp + τ * Real.log 2) < a) (hab : a ≤ 
   have hua := uu_lt_two hτ ha
   have hub := uu_lt_two hτ hb'
   have hub0 := uu_pos (τ := τ) (Tp := Tp) b
-  rw [up_sub hτ hTp ha hb']
+  rw [up_sub hτ hTp a b]
   obtain ⟨hl, _⟩ := log_sub_bounds (x := 2 - uu τ Tp a) (y := 2 - uu τ Tp b)
     (by linarith) (by linarith)
   -- `u a - u b ≥ u b (b - a)/τ`
@@ -342,7 +342,7 @@ theorem slope_upper {M a b : ℝ} (hM : M < Tp + τ * Real.log 2) (ha : -M ≤ a
   have hub := uu_lt_two hτ hb'
   have hua0 := uu_pos (τ := τ) (Tp := Tp) a
   have hub0 := uu_pos (τ := τ) (Tp := Tp) b
-  rw [up_sub hτ hTp ha' hb']
+  rw [up_sub hτ hTp a b]
   obtain ⟨_, hu⟩ := log_sub_bounds (x := 2 - uu τ Tp a) (y := 2 - uu τ Tp b)
     (by linarith) (by linarith)
   -- `u a - u b ≤ u a (b - a)/τ`, from `1 - e^{-t} ≤ t`
@@ -416,10 +416,10 @@ theorem two_wStar_lt (hτ : 0 < τ) (hTp : 0 < Tp) : 2 * wStar τ Tp < Tp + τ *
 
 /-- **Rate law, exp-channel.** Loop of `InvolutionLoop` (runt `[0, s)` ORed into the real
 exp-channel `expR τ Tp`, fed back), `0 < s < δ∞`, `m` the first cancellation index,
-`0 < g ≤ w*`, `K = K(w* + g)`, `κ = κ(T_p, τ)`.  Then
+`g ≤ w*` (`g > 0` for a non-vacuous first claim), `K = K(w* + g)`, `κ = κ(T_p, τ)`.  Then
 `(1+K)^(N+1)|s - s*| < g → N < m` and `δ∞ ≤ (1+κ)^(N+1)|s - s*| → m ≤ N`. -/
 theorem exp_laps {s g : ℝ} (hs0 : 0 < s) (hsI : s < Tp + τ * Real.log 2)
-    (hg0 : 0 < g) (hgw : g ≤ wStar τ Tp)
+    (hgw : g ≤ wStar τ Tp)
     {m : ℕ} (hcm : Chain (expR τ Tp hτ hTp) s m) (hm : wd (expR τ Tp hτ hTp) s m ≤ 0)
     (N : ℕ) :
     ((1 + KE τ Tp (wStar τ Tp + g)) ^ (N + 1) *
@@ -468,7 +468,7 @@ theorem exp_laps_log {s g : ℝ} (hs0 : 0 < s) (hsI : s < Tp + τ * Real.log 2)
   have hk := kappaE_pos hτ hTp
   have hI : 0 < Tp + τ * Real.log 2 := by
     have : 0 < τ * Real.log 2 := mul_pos hτ (Real.log_pos (by norm_num)); linarith
-  obtain ⟨L1, L2⟩ := exp_laps hτ hTp hs0 hsI hg0 hgw hcm hm N
+  obtain ⟨L1, L2⟩ := exp_laps hτ hTp hs0 hsI hgw hcm hm N
   have pw : ∀ b : ℝ, 0 < b → Real.log (b ^ (N + 1)) = ((N : ℝ) + 1) * Real.log b := fun b _ => by
     rw [Real.log_pow]; push_cast; ring
   refine ⟨fun h => L1 ?_, fun h => L2 ?_⟩
