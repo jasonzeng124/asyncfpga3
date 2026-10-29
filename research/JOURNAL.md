@@ -1648,3 +1648,14 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7
 | seed 7 SLOW_MAX | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 31/25/36 |
 | seed 7 FAST_MIN | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 86/69/100 |
 FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x2 corners.
+### progress 19:47 (NEGATIVE: rule A on a scatter-scaled SDF does not predict the GLS failure)
+- S13 (research/tools/scatter_ruleA/, data scatter_ruleA_seed9_mc.txt): scale_sdf.py imports gen.py and reproduces
+  its scatter factors exactly (draw 1, 2x: 44567/44567 IOPATH, 50148/50148 INTERCONNECT identical to the GLS's
+  annot.sdf), maps them to nextpnr names, and tighten.py (rule A) runs on the scaled xray-band SDF.
+  On BQ#3 seed 9, draw 1, uori2 is the worst rule-A cell and the mechanism matches the GLS (chain 7839 -> 1549 ps,
+  data 5234 -> 5764). But rule A's zero crossing is ~0.74x guarded / ~0.97x raw against the GLS's 1.31-1.38x
+  (same slope, ~1.3 ns pessimistic offset). Across BQ#3 seeds, draw 1: rule A flags 6/8 routes at 1x (GLS passes
+  all 8) and 8/8 at 2x (GLS fails only seed 9); seed 9's raw -3976 overlaps passing seeds 3 and 4. Monte Carlo on
+  seed 9: 34/38 draws negative at 1x. Verdict: correct factors, unusable predictor; rule A's one-sided worst case
+  cannot separate fail from pass under correlated variation. Rule A stays a proposer, not a judge. Only the GLS
+  can rank these draws.
