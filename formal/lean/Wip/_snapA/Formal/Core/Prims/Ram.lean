@@ -120,7 +120,8 @@ theorem sel_other {aw : Nat} {v w : BAddr aw} (h : w ≠ v) : sel (ofBoolVec v) 
 /-- Outside the address cube the wordline is 0. -/
 theorem sel_not_consistent {aw : Nat} {a : Fin aw → K3} {w : BAddr aw} (h : ¬ Consistent a w) :
     sel a w = zero := by
-  simp [sel, h, fun h' => h (isAddr_consistent h')]
+  have h1 : ¬ IsAddr a w := fun h' => h (isAddr_consistent h')
+  unfold sel; rw [if_neg h1, if_neg h]
 
 /-- A definite address never gives an X wordline. -/
 theorem sel_ne_X_of_def {aw : Nat} (v w : BAddr aw) : sel (ofBoolVec v) w ≠ X := by
@@ -158,15 +159,22 @@ theorem kread_def {aw dw : Nat} (m : Mem aw dw) (v : BAddr aw) (j : Fin dw) :
   have hc : ∀ w, Consistent (ofBoolVec v) w ↔ w = v := fun w => consistent_ofBoolVec
   unfold kread
   cases hm : m v j with
-  | one => rw [if_pos]; intro w hw; rw [(hc w).1 hw]; exact hm
+  | one =>
+    have h1 : ∀ w, Consistent (ofBoolVec v) w → m w j = one := fun w hw => by
+      rw [(hc w).1 hw]; exact hm
+    rw [if_pos h1]
   | zero =>
-    rw [if_neg, if_pos]
-    · intro w hw; rw [(hc w).1 hw]; exact hm
-    · intro h; have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
+    have h1 : ¬ ∀ w, Consistent (ofBoolVec v) w → m w j = one := fun h => by
+      have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
+    have h2 : ∀ w, Consistent (ofBoolVec v) w → m w j = zero := fun w hw => by
+      rw [(hc w).1 hw]; exact hm
+    rw [if_neg h1, if_pos h2]
   | X =>
-    rw [if_neg, if_neg]
-    · intro h; have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
-    · intro h; have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
+    have h1 : ¬ ∀ w, Consistent (ofBoolVec v) w → m w j = one := fun h => by
+      have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
+    have h2 : ¬ ∀ w, Consistent (ofBoolVec v) w → m w j = zero := fun h => by
+      have := h v ((hc v).2 rfl); rw [hm] at this; exact absurd this (by decide)
+    rw [if_neg h1, if_neg h2]
 
 /-- Pointwise refinement of arrays. -/
 def MLe {aw dw : Nat} (m m' : Mem aw dw) : Prop := ∀ w j, m w j ⊑ m' w j
@@ -178,7 +186,7 @@ theorem kread_mono {aw dw : Nat} {m m' : Mem aw dw} {a a' : Fin aw → K3} (hm :
   · rw [if_pos h1, if_pos]
     · exact le_refl _
     · intro w hw
-      have := hm w j; rw [h1 w (consistent_of_le ha hw)] at this; exact ofBool_le_iff.1 this
+      have := hm w j; rw [h1 w (consistent_of_le ha hw)] at this; exact (ofBool_le_iff (b := true)).1 this
   · rw [if_neg h1]
     by_cases h2 : ∀ w, Consistent a w → m w j = zero
     · rw [if_pos h2]
@@ -238,16 +246,16 @@ theorem wnext_self {aw dw : Nat} (rdis we : Bool) (v : BAddr aw) (din : KWord dw
     (m : Mem aw dw) : wnext rdis (ofBool we) (ofBoolVec v) din m v = if we then din else m v := by
   funext j
   have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) v = X) := fun h => sel_ne_X_of_def v v h.2
-  simp only [wnext, hX, ite_false, sel_self]
-  cases we <;> simp [K3.and, ofBool, kmux]
+  unfold wnext; rw [if_neg hX, sel_self]
+  cases we <;> rfl
 
 /-- ... and at every other word: unchanged. -/
 theorem wnext_other {aw dw : Nat} (rdis : Bool) (we : Bool) {v w : BAddr aw} (din : KWord dw)
     (m : Mem aw dw) (hw : w ≠ v) : wnext rdis (ofBool we) (ofBoolVec v) din m w = m w := by
   funext j
   have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) w = X) := fun h => sel_ne_X_of_def v w h.2
-  simp only [wnext, hX, ite_false, sel_other hw]
-  cases we <;> simp [K3.and, ofBool, kmux]
+  unfold wnext; rw [if_neg hX, sel_other hw]
+  cases we <;> rfl
 
 /-- WE = 0 (definite) with a definite address leaves the array unchanged. -/
 theorem wnext_read {aw dw : Nat} (rdis : Bool) (v : BAddr aw) (din : KWord dw) (m : Mem aw dw) :
@@ -260,7 +268,9 @@ theorem wnext_read {aw dw : Nat} (rdis : Bool) (v : BAddr aw) (din : KWord dw) (
 /-- WE = 0 (definite) and no read disturb: the array is unchanged whatever the address. -/
 theorem wnext_read_nd {aw dw : Nat} (a : Fin aw → K3) (din : KWord dw) (m : Mem aw dw) :
     wnext false zero a din m = m := by
-  funext w j; simp [wnext, K3.and, kmux]
+  funext w j
+  have hX : ¬ (false = true ∧ sel a w = X) := fun h => absurd h.1 (by decide)
+  unfold wnext; rw [if_neg hX]; rfl
 
 /-- **X containment in space**: a word outside the address cube never changes, whatever WE
 and DI were (violated or not), with or without read disturb. -/
@@ -269,7 +279,7 @@ theorem wnext_outside {aw dw : Nat} (rdis : Bool) (we : K3) {a : Fin aw → K3} 
   funext j
   have hs := sel_not_consistent (w := w) h
   have hX : ¬ (rdis = true ∧ sel a w = X) := fun h' => by rw [hs] at h'; exact absurd h'.2 (by decide)
-  simp only [wnext, hX, ite_false, hs]
+  unfold wnext; rw [if_neg hX, hs]
   cases we <;> rfl
 
 /-! ## 4. Soundness: monotone in the information order -/
@@ -435,7 +445,7 @@ theorem mem_write (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m do
     (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we true e) (hD : DataOn T din d e) :
     m t v = ofBoolVec d ∧ ∀ w, w ≠ v → m t w = m e w := by
   rw [h.mstep e t he het hn, rA_of hok hA, rWE_of hok hW, rD_of hok hD]
-  exact ⟨by rw [wnext_self]; rfl, fun w hw => wnext_other rdis true _ _ hw⟩
+  exact ⟨by rw [wnext_self]; try rfl, fun w hw => wnext_other rdis true _ _ hw⟩
 
 /-- **A clean read does not change the array.** -/
 theorem mem_read_keeps (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
@@ -499,7 +509,7 @@ theorem write_then_read (hok : T.Ok) (h : RamRel T md rdis init initA ck a we di
     (hA2 : AddrOn T a v e2) (hW2 : WeOn T we false e2) (ht : e2 + T.cqHi < t) (j : Fin dw) :
     dout j t = ofBool (d j) := by
   rw [read_out hok h he2 (by omega) hn2 hA2 hW2 ht j, (mem_write hok h he1 h12 hn1 hA1 hW1 hD1).1]
-  rfl
+  try rfl
 
 /-- **Power-up**: before the first edge the array is INIT and DOADO is INIT_A. -/
 theorem power_up (h : RamRel T md rdis init initA ck a we din m dout) {t : Nat}
@@ -530,7 +540,7 @@ theorem x_flushed_by_read (hok : T.Ok) (h : RamRel T md rdis init initA ck a we 
     {e t : Nat} {v : BAddr aw} {c : Fin dw → Bool} (he : rises ck e) (het : e < t)
     (hn : NoRise ck e t) (hA : AddrOn T a v e) (hW : WeOn T we false e)
     (hc : m e v = ofBoolVec c) (ht : e + T.cqHi < t) (j : Fin dw) : dout j t = ofBool (c j) := by
-  rw [read_out hok h he het hn hA hW ht j, hc]; rfl
+  rw [read_out hok h he het hn hA hW ht j, hc]; try rfl
 
 /-- **X in the array does not stick**: a clean write makes the word definite. -/
 theorem x_flushed_by_write (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din m dout)
@@ -566,7 +576,7 @@ theorem we_violation_X (hok : T.Ok) (h : RamRel T md rdis init initA ck a we din
   have hx : rWE T we e = X := winVal_X_of_ne h1a h1b h2a h2b hne
   rw [h.mstep e t he het hn, rA_of hok hA, rD_of hok hD, hx]
   have hX : ¬ (rdis = true ∧ sel (ofBoolVec v) v = X) := fun h' => sel_ne_X_of_def v v h'.2
-  simp only [wnext, hX, ite_false, sel_self]
+  unfold wnext; rw [if_neg hX, sel_self]
   show merge (ofBool (d j)) (m e v j) = X
   unfold merge; rw [if_neg (Ne.symm hold)]
 
@@ -602,19 +612,19 @@ termination_by t
 theorem simM_none {rdis : Bool} {init : Mem aw dw} {ck : Sig} {a : Fin aw → KSig} {we : KSig}
     {din : Fin dw → KSig} {t : Nat} (hno : ∀ u, u < t → ¬ rises ck u) :
     simM T rdis init ck a we din t = init := by
-  rw [simM, lastRise_none hno]
+  rw [simM]; simp only [lastRise_none hno]
 
 theorem simM_some {rdis : Bool} {init : Mem aw dw} {ck : Sig} {a : Fin aw → KSig} {we : KSig}
     {din : Fin dw → KSig} {e t : Nat} (he : rises ck e) (het : e < t) (hn : NoRise ck e t) :
     simM T rdis init ck a we din t =
       wnext rdis (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e) := by
   obtain ⟨_, hl⟩ := lastRise_some he het hn
-  rw [simM, hl]
+  rw [simM]; simp only [hl]
 
 theorem simO_none {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord dw} {ck : Sig}
     {a : Fin aw → KSig} {we : KSig} {din : Fin dw → KSig} {t : Nat}
     (hno : ∀ u, u < t → ¬ rises ck u) : simO T md rdis init initA ck a we din t = initA := by
-  rw [simO, lastRise_none hno]
+  rw [simO]; simp only [lastRise_none hno]
 
 theorem simO_some {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord dw} {ck : Sig}
     {a : Fin aw → KSig} {we : KSig} {din : Fin dw → KSig} {e t : Nat} (he : rises ck e)
@@ -627,7 +637,7 @@ theorem simO_some {md : WMode} {rdis : Bool} {init : Mem aw dw} {initA : KWord d
        else onext md (rWE T we e) (rA T a e) (rD T din e) (simM T rdis init ck a we din e)
            (simO T md rdis init initA ck a we din e)) := by
   obtain ⟨_, hl⟩ := lastRise_some he het hn
-  rw [simO, hl]
+  rw [simO]; simp only [hl]
 
 /-- **Non-vacuity**: the canonical traces satisfy `RamRel`, for every input, every write
 mode, both read-disturb settings, and every timing (no well-formedness needed). -/
@@ -641,9 +651,10 @@ theorem ramSim_rel (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord 
   · intro t hno j; rw [simO_none T hno]
   · intro e t he het hn h1 j; rw [simO_some T he het hn, if_pos h1]
   · intro e t he het hn h1 h2 j
-    rw [simO_some T he het hn, if_neg (by omega), if_pos h2]
+    rw [simO_some T he het hn, if_neg (show ¬ t ≤ e + T.cqLo by omega), if_pos h2]
   · intro e t he het hn h1 j
-    rw [simO_some T he het hn, if_neg (by omega), if_neg (by omega)]
+    rw [simO_some T he het hn, if_neg (show ¬ t ≤ e + T.cqLo by omega),
+      if_neg (show ¬ t ≤ e + T.cqHi by omega)]
 
 theorem ramRel_inhabited (md : WMode) (rdis : Bool) (init : Mem aw dw) (initA : KWord dw)
     (ck : Sig) (a : Fin aw → KSig) (we : KSig) (din : Fin dw → KSig) :

@@ -1,8 +1,8 @@
 # A-e8hyp (probe E8Hyp): design_verdict8's hypotheses against shards B and C
 
 STATUS (2026-10-29): done within the time box, partial as a discharge. Two Lean files:
-`Formal/Core/XAudit/Events8Bridge.lean` (check.sh OK, §7) and
-`Formal/Core/XAudit/Events8BridgeSel.lean` (check pending, §7).
+`Formal/Core/XAudit/Events8Bridge.lean` and
+`Formal/Core/XAudit/Events8BridgeSel.lean`, both check.sh OK (2926 declarations, §7).
 - Bridges: reset (time shift `satPin_shift` onto B's reset window), SelOK (from B's
   `LibGapSteer.steer_pin_ok`; instantiated on design_verdict8 itself as `design_verdict8_sel`),
   SelPart (by construction).
@@ -202,9 +202,9 @@ No Events oleans were in `.lake/build`, so every dependency is listed (Mathlib-f
       Formal/Net/Fasm/Basic.lean Formal/Cells/LibCtlMergeMux.lean Formal/Cells/LibGapSteer.lean \
       Formal/Core/XAudit/Events8Bridge.lean [Formal/Core/XAudit/Events8BridgeSel.lean]
 
-- Run 1 (up to `Events8Bridge.lean`; its docstring was reworded after this run, no code change):
-  textual scan passes, `[audit] 2910 declarations checked`, **`[check] OK`**, no error line.
-- Run 2 (with `Events8BridgeSel.lean`): pending.
+- Run 1 (up to `Events8Bridge.lean`): `[audit] 2910 declarations checked`, `[check] OK`.
+- Run 2 (the final files, with `Events8BridgeSel.lean`): textual scan passes,
+  **`[audit] 2926 declarations checked`, `[check] OK`**, no error line in the log.
 
 No sorry, admit, axiom, native_decide in either file. Untrusted scripts: `Wip/E8Hyp/fix0.py`,
 `Wip/E8Hyp/sim0.py` (run with `python3 -I`, inputs from `tools-A/xaudit/events7/rerun/prep.sh`).

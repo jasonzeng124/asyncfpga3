@@ -96,7 +96,7 @@ def bram (c : XCorner) (md : WMode) : RamTiming :=
     dLo := diLo md, dHi := diHi md }
 
 theorem bram_ok (c : XCorner) (md : WMode) : (bram c md).Ok := by
-  cases c <;> cases md <;> decide
+  cases c <;> cases md <;> (unfold RamTiming.Ok; decide)
 
 /-- The widest-window reading agrees from both ends: `-SETUP_MAX = HOLD_MIN` and
 `HOLD_MAX = -SETUP_MIN`, for every pin used. -/
@@ -109,11 +109,11 @@ theorem windows_symmetric :
 `[-566, 360]`, WE `[-532, 197]`, DI `[-737, 667]`. -/
 theorem bram_slow_wf : bram .slow .writeFirst =
     { cqLo := 1353, cqHi := 2454, aLo := -566, aHi := 360, weLo := -532, weHi := 197,
-      dLo := -737, dHi := 667 } := by decide
+      dLo := -737, dHi := 667 } := rfl
 
 theorem bram_fast_wf : bram .fast .writeFirst =
     { cqLo := 585, cqHi := 1098, aLo := -566, aHi := 360, weLo := -532, weHi := 197,
-      dLo := -737, dHi := 667 } := by decide
+      dLo := -737, dHi := 667 } := rfl
 
 /-- The widest aperture in bd_mem's configuration is DI's, 737 + 667 = 1404 ps: any change
 of the payload in `[e - 737, e + 667]` around the CLKARDCLK edge can corrupt the access. -/

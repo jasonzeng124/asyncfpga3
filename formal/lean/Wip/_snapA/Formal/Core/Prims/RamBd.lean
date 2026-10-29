@@ -93,8 +93,8 @@ theorem access_ok (hok : T.Ok) (h : RamRel T .writeFirst rdis init initA ck a we
   cases w with
   | false =>
     refine ⟨fun j => ?_, ?_, fun u _ => ?_⟩
-    · rw [read_out hok h he het hn hA' hW' ht j]; rfl
-    · rw [mem_read_keeps hok h he het hn hA' hW']; rfl
+    · rw [read_out hok h he het hn hA' hW' ht j]; try rfl
+    · rw [mem_read_keeps hok h he het hn hA' hW']; try rfl
     · rw [mem_read_keeps hok h he het hn hA' hW']
   | true =>
     have hD' : DataOn T din d e := fun j =>
