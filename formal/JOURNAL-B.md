@@ -596,3 +596,10 @@ cell), Bshp (shared path prefixes in the arbiter race conditions vs the kappa
 threshold), Bipw (cell contracts for C's ipow_hw capstone), Bj5 (JSON: apply
 KleeneBox, Necessity3, kappa results), Bxw (the X-window width: parametric exact
 form and a test design), Bhyp2 (hypothesis ledger refresh, change list for A).
+
+## Session Thu Oct 29 07:14:49 UTC 2026
+
+### progress 07:14
+Took LOCK-B (previous B lock 28h stale). The 2026-10-28 02:48 session's 11
+probes never landed (no commits after its session start; sandbox ended): none
+of Bnx4/Bnx5/Bsa3/Blap/Brz/Bgr/Bshp/Bipw/Bj5/Bxw/Bhyp2 is claimed. Running setup.sh.
