@@ -1066,3 +1066,19 @@ output reqs, join input acks, kernel sink ack = req, mux select ack, zero-delay
 links, the rig's three source reqs): mu_T_wire holds, mu_W_not_wire shows MapOK was
 too weak. Open: that row c is the RTL driver of C's wire c is the generator's claim,
 not a Lean theorem; H_MAP_T0, H_CELLS_AFTER (O4), H_START_AFTER, liveness.
+
+### progress 09:11
+In: Bnx6 Necessity6{Mux,MuxN,MuxJ,PipeSel} (core; checked here, axioms standard;
+notes/B-necessity6.md). Boundary counter-runs (one hypothesis off by 1, real INITs,
+every gate relation for all t, open-loop env) for the bd_mux uj1 max form
+(claimY1_false), the bdc_muxn max form (claimN1_false, with a slower control
+sender so S_J_C holds with equality), bd_mux S_XA_J.2 (claimJ1_false: a slow
+j0 -> uxa wire makes x_ack oscillate through the next y transaction) and all four
+per-pin H_RST_SEL terms of bd_pipe.rst_lines (rst_sel_boundary: (a)/(b) real early
+fires from power-up garbage, (c)/(d) only one-tick shifts of the first edge). So
+uj1_req_max, muxn uj_req_max and rst_lines become boundary-tight (JSON next Bj
+pass); uxa_join_latency stays sufficient (S_XA_J.1 open). Binary <= forms; the +1
+JSON forms are 2 ticks from each refuted point. Open, with an unproved analysis that
+they are NOT necessary as written: isochronic_forks, iso_zack, S_XA_J.1 (bookkeeping
+edges of gated-off tokens; needs a gate-aware cel_run). Not attempted: rst_flush,
+bbm, muxn bundled_z_data.
