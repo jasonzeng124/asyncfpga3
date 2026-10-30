@@ -73,6 +73,9 @@ def main():
             need = max(4, int(a.slack * (len(unit) + 3) / 4))          # slices; 4 LUT sites each
             w = max(4, min(10, int(need ** 0.5)))                      # 2-5 CLBs wide
             h = max(2 * a.min_half_h, (need + w - 1) // w)
+            # a CARRY4 chain needs one slice per CARRY4 in a single column
+            ncarry = sum(cells[n]["type"].startswith("CARRY") for n in unit)
+            h = max(h, ncarry + 2)
             x0 = max(0, min(X1 - w + 1, cx - w // 2)); y0 = max(0, min(Y1 - h + 1, cy - h // 2))
             out[base] = {"x0": x0, "x1": x0 + w - 1, "y0": y0, "y1": y0 + h - 1,
                          "cells": unit, "dp_centroid": [cx, cy], "dp_cells": len(dp)}
