@@ -1757,3 +1757,6 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
   parent from the Python API, not probed yet) or a nextpnr patch that pulls a bd_delay chain toward the centroid
   of a named cell set (soft, like the place-weight patch). Not worth it while the only failures are at 2x the
   calibrated scatter, which S9 suggests is already double-counted at 1x.
+### progress 21:43 (chain-region route fails 2x draw 2 as well)
+- Chain-region route (BQ#2 s6 pass 3), 2x draw 2: FAIL errs 2 (laps 50/40/60). With draw 1's FAIL, 0/2 2x draws
+  pass on this route; the unconstrained route's draws 2 and 3 are next for the comparison.
