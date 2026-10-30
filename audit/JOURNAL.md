@@ -434,3 +434,10 @@ Placebo complete: uori4 chain x2.033 -> vectors 7, 8, 12 all still fail (laps=1,
 chain_regions unconstrained row (12.9 / 49.1 / 16 of 50) reproduced with my own Manhattan-centroid code. uori3 is
 not among the most distant chains (20.2), so distance is a weak proxy for the region-straddle exposure (finding
 r23 G). Started: BQ#2 seed 8 route + full 16-vector 2x draw 1 (claimed PASS 46/36/53).
+
+### progress 21:22
+Clean lake build of formal 5a1ee8d2 (Lean sources = 1fd99ef0): EXIT 0, 3570 jobs, 0 errors
+(audit/logs/formal_build_5a1ee8d2.log). Keyword scan (kwgrep.py) of the 722 Formal files: 1 hit, the same Netlist
+constructor named `opaque` as before. Planted-sorry self-test: my collectAxioms check reports "BAD planted uses
+sorryAx". Full per-module axiom audit (722 modules, 2 jobs) started; results go to ~/axres_5a1ee8d2.
+BQ#2 seed 8 route: sdf b7733e23 and xray b93e281a REPRODUCED. 2x draw 1, 16 vectors running (0-3 pass so far).
