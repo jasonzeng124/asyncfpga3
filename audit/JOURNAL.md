@@ -482,3 +482,8 @@ shape, which is unchecked). The other 12 are CONFIRMED with scope notes. REPORT 
 BQ#2 seed 4 SLOW_MAX full stack (own route, sdf b1b4b951): 16/16 PASS errs 0, v6/v12/v13 29/23/34. That fits the
 journal's "28-32" range for d/3/4. No md5 or per-seed laps were recorded to compare against. REPORT row updated.
 Next: BQ#2 seed 7 route + 2x draw 1 (claimed PASS 54/42/63), already queued.
+
+### progress 23:05
+BQ#2 seed 7 route: sdf ae90c9ef and xray 042034d2 REPRODUCED (match the TSV). 2x draw 1 full stack running.
+Summary notification sent to the owner: no refutations this session; BQ#2 2x failure and its cause independently
+confirmed; formal axiom audit clean; P13: 2 mild overstatements.
