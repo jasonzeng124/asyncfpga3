@@ -1731,3 +1731,7 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 - Queued (after the BQ#2 scatter drivers): pass-3 route full stack at both corners + 2x draws 1-3, and the
   unconstrained seed-6 route at 2x draws 2-3, i.e. does the constraint remove 2x failures. Not yet a claim.
 - BQ#2 scatter so far: 1x PASS seeds 6, 7; 2x PASS seed 8, FAIL seed 6 (uori3, confirmed).
+### progress 19:01 (BQ#2 scatter: 2x seed 7 PASS; seed 9 2x OOM-killed, requeued)
+- BQ#2 2x draw 1: seed 7 PASS 16/16 laps 54/42/63; seed 8 1x PASS 49/39/57. Seed 9's 2x compile was OOM-killed
+  (my side builds overlapped two sims; INCOMPLETE, never a pass) and is requeued after the chain-region GLS.
+  Lesson repeated: one compile (5.5 GB) + two vvp (3.7 GB each) is the ceiling on 15 GB; side jobs must wait.
