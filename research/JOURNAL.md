@@ -1739,3 +1739,12 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 - BQ#2 1x (region 0.16 + wire 0.126) draw 1: PASS on seeds 6, 7, 8, 9 (vec 6 laps 51/53/49/50).
 - Chain-region route (BQ#2 seed 6 pass 3, sdf d5cc5f09 reproduces the pass-3 build): SLOW_MAX PASS 16/16 laps
   31/25/37 (unconstrained 33/27/39, -6% on vec 6; one seed).
+### progress 20:38 (NEGATIVE: chain-only regions do not fix the 2x failure -- the datapath moves)
+- Chain-region route (BQ#2 seed 6 pass 3, sdf d5cc5f09): corners PASS (SLOW_MAX 31/25/37, FAST_MIN 85/69/100;
+  unconstrained 33/27/39 and 93/76/109), but 2x draw 1 FAILS (errs 4: vectors 2, 3, 9, 15, uori2's signature from
+  BQ#3 seed 9). Rule A on this draw's exactly scaled SDF: uori2 -804, ushli0 -165, rest positive.
+- Why: the regions are computed from the previous pass's datapath position, and the datapath moves on the next
+  pass. On pass 3, uori3's chain is again 32 slices from its datapath (X8-9 Y55-57 vs X0-5 Y67-81). Iterating
+  does not converge (centroid distance 12.9 -> 9.8 -> 9.0 mean, but per unit it jumps around).
+- Next: constrain each compute unit's chain AND datapath to one rectangle (a per-unit region), so co-location
+  holds by construction; check legality, rule A, corners, then the 2x draws.
