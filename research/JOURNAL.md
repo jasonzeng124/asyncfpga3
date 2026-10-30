@@ -1672,3 +1672,7 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
 - BQ#2 seed 9 FAST_MIN PASS 16/16 laps 86/69/100. With last session's d,3,4,5 (old resolver): BQ#2 passes the full
   stack on 8 seeds at both corners (16/16 runs). BOARD-QUEUE #2 updated; data bq2_fullstack_s6-9.tsv.
 - The chain now runs BQ#3 x8 x2 corners on the new resolver (~1.5 h per pair of sims, ~12 h).
+### progress 01:57 (BQ#3 on the new resolver: first rows identical to the old)
+- BQ#3 d SLOW_MAX PASS 33/27/39 (sdf 61e14755); seed 4 SLOW_MAX PASS 31/24/36 (sdf a0d20c19, xray e9bb3663) --
+  both identical to the old-resolver rows of bq3_fullstack_8seed.tsv. So far the 055edd7 resolver changes no
+  gcd_hw result (6 of 6 comparable runs identical or new passes).
