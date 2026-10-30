@@ -446,3 +446,8 @@ BQ#2 seed 8 route: sdf b7733e23 and xray b93e281a REPRODUCED. 2x draw 1, 16 vect
 Axiom audit 5a1ee8d2: 169/722 modules, bad 0, no-result 0 (snapshot audit/logs/axres_5a1ee8d2.txt). BQ#2 seed 8 2x
 draw 1: vectors 0-6 pass, vec 6 = 46 laps as claimed. Queued next: BQ#2 seed 4 route + SLOW_MAX full stack (one
 of the d,3,4,5 rows with no committed data).
+
+### progress 22:04
+Axiom audit of formal 5a1ee8d2 (Lean identical to 1fd99ef0) COMPLETE: 722/722 modules, 95239 constants, bad 0,
+no-result 0. This closes last session's gap. REPORT row added. BQ#2 seed 8 2x: vectors 0-12 pass (v6 46, v12 36,
+both as claimed); 13-15 running.
