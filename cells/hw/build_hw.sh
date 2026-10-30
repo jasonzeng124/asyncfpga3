@@ -446,8 +446,18 @@ fi
 FREQOPT=""
 [ -n "${NEXTPNR_FREQ:-}" ] && FREQOPT="--freq ${NEXTPNR_FREQ} --timing-allow-fail"
 
+# BD_CHAIN_REGIONS=<regions.json> (opt-in, hw/chain_regions.py): constrain each
+# compute cell's matched-delay chain to a rectangle at its datapath's centroid
+# from an earlier route, so correlated within-die variation moves the two
+# together.  Off unless set; the regions file is recorded in toolchain.txt.
+PREPLACE=""
+if [ -n "${BD_CHAIN_REGIONS:-}" ]; then
+    PREPLACE="--pre-place $(dirname "$0")/chain_regions_preplace.py"
+    export BD_CHAIN_REGIONS
+    echo "chain regions: $BD_CHAIN_REGIONS ($(md5sum < "$BD_CHAIN_REGIONS" | cut -c1-8))" | tee -a "$OUT/toolchain.txt"
+fi
 # shellcheck disable=SC2086
-"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED $FREQOPT \
+"$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $SEED $FREQOPT $PREPLACE \
            --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
