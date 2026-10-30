@@ -441,3 +441,8 @@ Clean lake build of formal 5a1ee8d2 (Lean sources = 1fd99ef0): EXIT 0, 3570 jobs
 constructor named `opaque` as before. Planted-sorry self-test: my collectAxioms check reports "BAD planted uses
 sorryAx". Full per-module axiom audit (722 modules, 2 jobs) started; results go to ~/axres_5a1ee8d2.
 BQ#2 seed 8 route: sdf b7733e23 and xray b93e281a REPRODUCED. 2x draw 1, 16 vectors running (0-3 pass so far).
+
+### progress 21:33
+Axiom audit 5a1ee8d2: 169/722 modules, bad 0, no-result 0 (snapshot audit/logs/axres_5a1ee8d2.txt). BQ#2 seed 8 2x
+draw 1: vectors 0-6 pass, vec 6 = 46 laps as claimed. Queued next: BQ#2 seed 4 route + SLOW_MAX full stack (one
+of the d,3,4,5 rows with no committed data).

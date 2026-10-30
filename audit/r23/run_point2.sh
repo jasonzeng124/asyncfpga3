@@ -6,7 +6,7 @@ source /root/audit-tc/openxc7/export.sh
 HW=${HW:-/root/wt-r14/cells/build/hw/gcd_hw}
 W=/root/r23work/$TAG; L=/home/user/asyncfpga3/audit/r23/$TAG.log
 mkdir -p /root/r23work
-export GLS_SDF=$HW/gcd_hw_xray.sdf GLS_SDF_FIELD=band GLS_MODEL=fid PYTHONPATH=/root/audit-tc/openxc7-src/prjxray:$PYTHONPATH
+export GLS_SDF=$HW/gcd_hw_xray.sdf GLS_SDF_FIELD=${FIELD:-band} GLS_MODEL=fid PYTHONPATH=/root/audit-tc/openxc7-src/prjxray:$PYTHONPATH
 export XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
 if [ "$REG" != 0 ]; then export GLS_SCATTER_REGION=$REG GLS_SCATTER=$WIRE GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=1; fi
 for kv in "$@"; do export "$kv"; done
