@@ -134,6 +134,11 @@ vectors give one lap with an X in the result compare, then stall). Root cause (J
 delay sits ~30 slice rows from the comparator it tracks; the failing draw makes their regions differ ~2.8x in
 speed at its threshold (~1.33x the calibrated scatter). Beyond what the ring data supports, so #3 stays queued;
 if the board fails vectors 2,3,9,11,13,15 with the rest passing, suspect this bundle first.
+Re-run on the 055edd7 resolver (2026-10-30, research/data/fid/bq3_fullstack_newresolver.tsv; audit r16's
+follow-pulse fix): all 16 corner runs PASS 16/16, EQUIVALENT, every laps triple identical to the old-resolver
+table (vec 6 SLOW_MAX mean 32.75, FAST_MIN 89.6); the seed-9 2x-scatter failure reproduces exactly (same six
+vectors). Arbiter near-tie round trips (research/data/fid/arbtie.md): 0 of 18 ack C-elements below the model's
+requirement on all 8 routes, worst margin 691 ps (seed d).
 The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
 prediction.
 

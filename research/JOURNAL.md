@@ -1685,3 +1685,12 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
   (2,3,9,11,13,15: one lap with an error, then stall) as on the old resolver; bits EQUIVALENT. The failure is the
   uori2 bundling violation, not a resolver artefact. BQ#3 new-resolver sweep: 15/16 corner runs PASS so far,
   all identical to the old rows (seed 9 FAST_MIN running).
+### progress 15:18 (BQ#3 full stack on the new resolver: 16/16 corner runs PASS, all identical)
+| BQ#3 full stack, resolver 055edd7 | n | pass | vec 6 laps mean (range) | vs old resolver |
+|---|---|---|---|---|
+| SLOW_MAX | 8 (d,3-9) | 8 | 32.75 (31-34) | identical per seed |
+| FAST_MIN | 8 | 8 | 89.6 (83-94) | identical per seed |
+| 2x scatter, seed 9 draw 1 | 1 | 0 | 53 (vec 13: 1) | same failure, same 6 vectors |
+Reading: the resolver fix (audit r16) changes no gcd_hw result on 20 comparable runs (BQ#2 + BQ#3); resolver
+events evidently never land in the follow-pulse case on these routes. BOARD-QUEUE #3 updated. Data:
+research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatter 1x and 2x, draw 1, seeds 6-9.
