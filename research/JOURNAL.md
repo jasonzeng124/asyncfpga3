@@ -1718,3 +1718,16 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
   both at 2x region scatter with draw 1, both a ~3x speed ratio between a matched chain and its datapath 20-30
   slices away. Neither recipe fails at 1x. Lead (b) from 2026-10-29 now has two data points: keep each matched
   chain inside its datapath's region (placement), never shorten it.
+### progress 18:21 (chain-region placement prototype: routes, rule A clean, chains closer)
+- BD_CHAIN_REGIONS (cells/hw/chain_regions.py + chain_regions_preplace.py) on BQ#2 seed 6: rectangles of
+  +-2 cols / +-3 rows did not legalize (ucmpi1's chain); +-4 / +-6 routes. Iterated from the previous pass's route:
+  | BQ#2 seed 6 | chain-to-datapath centroid distance, mean / max (slices) | chains > 15 slices off |
+  |---|---|---|
+  | unconstrained (sdf c4ec8664) | 12.9 / 49.1 | 16/50 |
+  | pass 2 (regions from unconstrained) | 9.8 / 37.8 | 9/50 |
+  | pass 3 (regions from pass 2; file research/data/fid/chain_regions/) | 9.0 / 25.9 | 11/50 |
+  Rule A on pass 2: 46 cells, none negative, worst +1055 (unconstrained worst +914); rule D screen lines unchanged
+  (38). build_hw + fasm_audit PASS on both. One seed only.
+- Queued (after the BQ#2 scatter drivers): pass-3 route full stack at both corners + 2x draws 1-3, and the
+  unconstrained seed-6 route at 2x draws 2-3, i.e. does the constraint remove 2x failures. Not yet a claim.
+- BQ#2 scatter so far: 1x PASS seeds 6, 7; 2x PASS seed 8, FAIL seed 6 (uori3, confirmed).
