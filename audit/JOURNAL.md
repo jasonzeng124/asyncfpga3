@@ -451,3 +451,9 @@ of the d,3,4,5 rows with no committed data).
 Axiom audit of formal 5a1ee8d2 (Lean identical to 1fd99ef0) COMPLETE: 722/722 modules, 95239 constants, bad 0,
 no-result 0. This closes last session's gap. REPORT row added. BQ#2 seed 8 2x: vectors 0-12 pass (v6 46, v12 36,
 both as claimed); 13-15 running.
+
+### progress 22:15
+BQ#2 seed 8 2x draw 1, full stack, 16/16 PASS errs 0, v6/v12/v13 46/36/53: CONFIRMED exactly. chain_regions
+"unconstrained worst +914" reproduced by running their tighten.py on my reproduced seed-6 SDF (50 cells, umux5
++914). This is reproduction of a quoted number, not independent evidence that rule A is right. Running: BQ#2 seed 4
+route + SLOW_MAX full stack, then seed 7 2x.
