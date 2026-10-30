@@ -15631,3 +15631,51 @@ backends/jny/jny.cc:290:13: warning: '*(Yosys::RTLIL::SigChunk*)((char*)&con + o
 backends/jny/jny.cc:278:19: note: '*(Yosys::RTLIL::SigChunk*)((char*)&con + offsetof(std::pair<Yosys::RTLIL::IdString, Yosys::RTLIL::SigSpec>,std::pair<Yosys::RTLIL::IdString, Yosys::RTLIL::SigSpec>::second.Yosys::RTLIL::SigSpec::<unnamed>)).Yosys::RTLIL::SigChunk::width' was declared here
   278 |         for (auto con : port_cell->connections()) {
       |                   ^~~
+In file included from ./kernel/yosys.h:43,
+                 from ./kernel/log.h:480,
+                 from techlibs/quicklogic/ql_dsp_simd.cc:19:
+In constructor 'Yosys::RTLIL::SigChunk::SigChunk(Yosys::RTLIL::SigChunk&&)',
+    inlined from 'Yosys::RTLIL::SigSpec::SigSpec(Yosys::RTLIL::SigSpec&&)' at ./kernel/rtlil.h:1465:57,
+    inlined from 'Yosys::RTLIL::SigSpec::SigSpec(Yosys::RTLIL::SigSpec&&)' at ./kernel/rtlil.h:1463:2,
+    inlined from 'constexpr std::pair<_T1, _T2>::pair(_U1&&, _U2&&) [with _U1 = const Yosys::RTLIL::IdString&; _U2 = Yosys::RTLIL::SigSpec; typename std::enable_if<(std::_PCC<true, _T1, _T2>::_MoveConstructiblePair<_U1, _U2>() && std::_PCC<true, _T1, _T2>::_ImplicitlyMoveConvertiblePair<_U1, _U2>()), bool>::type <anonymous> = true; _T1 = Yosys::RTLIL::IdString; _T2 = Yosys::RTLIL::SigSpec]' at /usr/include/c++/13/bits/stl_pair.h:688:35,
+    inlined from 'T& Yosys::hashlib::dict<K, T, OPS>::operator[](const K&) [with K = Yosys::RTLIL::IdString; T = Yosys::RTLIL::SigSpec; OPS = Yosys::hashlib::hash_ops<Yosys::RTLIL::IdString>]' at ./kernel/hashlib.h:822:23,
+    inlined from '{anonymous}::QlDspSimdPass::DspConfig {anonymous}::QlDspSimdPass::getDspConfig(Yosys::RTLIL::Cell*, const std::vector<std::pair<Yosys::RTLIL::IdString, Yosys::RTLIL::IdString> >&)' at techlibs/quicklogic/ql_dsp_simd.cc:269:27:
+./kernel/rtlil.h:1283:15: warning: '((__vector(2) int*)((char*)&<unnamed> + offsetof(Yosys::RTLIL::SigSpec, Yosys::RTLIL::SigSpec::<unnamed>)))[4]' may be used uninitialized [-Wmaybe-uninitialized]
+ 1283 | struct RTLIL::SigChunk
+      |               ^~~~~~~~
+In file included from ./kernel/yosys_common.h:158,
+                 from ./kernel/log.h:23:
+./kernel/hashlib.h: In function '{anonymous}::QlDspSimdPass::DspConfig {anonymous}::QlDspSimdPass::getDspConfig(Yosys::RTLIL::Cell*, const std::vector<std::pair<Yosys::RTLIL::IdString, Yosys::RTLIL::IdString> >&)':
+./kernel/hashlib.h:822:60: note: '<anonymous>' declared here
+  822 |                         i = do_insert(std::pair<K, T>(key, T()), hash);
+      |                                                            ^~~
+cp: warning: behavior of -n is non-portable and may change in future; use --update=none instead
+
+== fingerprint
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+toolchain ready: source /root/audit-tc/openxc7/export.sh
+
+== publish toolchain cache
+-rw-r--r-- 1 root root 86171421 Oct 30 20:14 /tmp/tc-cache.19305/toolchain.tar.zst
+gh cannot publish a release; falling back to branch toolchain-cache/d6ab12db3d4f8e30
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+remote: warning: See https://gh.io/lfs for more information.        
+remote: warning: File part-000 is 82.18 MB; this is larger than GitHub's recommended maximum file size of 50.00 MB        
+remote: warning: GH001: Large files detected. You may want to try Git Large File Storage - https://git-lfs.github.com.        
+remote: 
+remote: Create a pull request for 'toolchain-cache/d6ab12db3d4f8e30' on GitHub by visiting:        
+remote:      https://github.com/jasonzeng124/asyncfpga3/pull/new/toolchain-cache/d6ab12db3d4f8e30        
+remote: 
+published branch toolchain-cache/d6ab12db3d4f8e30
+EXIT 0

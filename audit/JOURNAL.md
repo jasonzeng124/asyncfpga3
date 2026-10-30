@@ -382,7 +382,7 @@ fired again, so I read last session's "program paused" note as superseded. Fresh
 formal=5a1ee8d2 (only owner PROGRAM.md/settings changes since 1fd99ef0; Lean sources identical), research=4b922e9b
 (+49 since b726f74b).
 
-### progress 19:40
+### progress 19:23
 Lean 4.35.0 reinstalled (sha256 bf8d54e4, same). Clean lake build of formal 5a1ee8d2 (= 1fd99ef0 Lean) in ~/wt-f13
 running, to finish the axiom audit that was cut off last session (235/722 modules unchecked). Research worktree
 ~/wt-r14 = 4b922e9b. Toolchain: research's cache key no longer matches any cache branch. setup-toolchain.sh now
@@ -395,7 +395,7 @@ Recomputed from the raw TSVs myself: BQ#3 new-resolver table: SLOW_MAX 8/8, vec 
 BQ#2 seeds 6-9: 8/8 PASS, vec 6 31-33 / 86-93 (TSV). For BQ#2 seeds d,3,4,5 there is no committed TSV or log,
 only journal prose ("28-32, 77-86"), so their half of "8 seeds x 2 corners" is UNVERIFIED from data.
 
-### progress 20:30
+### progress 19:35
 Toolchain: fingerprint OK (nextpnr 9c732bc6303458df) on the d7ce266c cache with NO_CACHE setup. r23 (BQ#2 seed-6
 2x-scatter failure, research 70c7237e/f5182bcc): my own route of BQ#2 with NEXTPNR_SEED=6 reproduces sdf c4ec8664
 and xray sdf 1f7f03ea (prjxray-db 0a0added). Region factors recomputed with my own code (audit/r23/regionf6.py):
@@ -408,10 +408,18 @@ S13 MC file: I re-tallied it from the rows: 1x guarded<0 34/38, raw 15/38; 2x 37
 (arithmetic only; the rule-A runs themselves were not reproduced).
 Running: full stack 2x draw 1 on vectors 7,8,12 + control 6. Lean build of 5a1ee8d2 in Mathlib.
 
-### progress 21:15
+### progress 19:50
 r23: BQ#2 seed 6, full stack (bits-decoded netlist, xray SDF band, fid), region 0.32 + wire 0.252, draw 1, resolver
 055edd7 (research 4b922e9b worktree): vectors 7, 8, 12 each give laps=1 errs=1, then nothing to 150 us. Control
 vec 6 passes (48 laps, errs 0). The failure is CONFIRMED exactly (audit/r23/s2x.log; netlist_baked 9657121d).
 Placement from my own extraction (audit/r23/place6.py): uori3 chain = 20 LUTs at X12-13 Y53-55, all in region
 (1,5); datapath = 55 cells at X0-5 Y56-76, in regions (0,5) 27, (0,6) 22, (0,7) 6. CONFIRMED (6 cells sit in
 the 1.03 region). Running: the intervention (uori3.udly x2.033), a placebo (uori4.udly x2.033), then 1x.
+
+### progress 20:23
+(Earlier headings in this session corrected to the real commit times: 19:23/19:35/19:50.)
+r23 1x (0.16/0.126, draw 1) on my seed-6 route: vectors 7/8/12/6 PASS 184/156/42/51 laps, errs 0. That matches
+their "seed 6 1x PASS 51/42/61" for v6/v12. Intervention attempt 1 used a hierarchical prefix and matched 0 arcs
+(fid names are site/BEL). gen.py exits loudly on that, which is a good guard. I rebuilt the list from NEXTPNR_BEL
+(20 BELs -> 159 arcs scaled). Intervention, then the placebo (uori4 chain), are running. Lean 5a1ee8d2 build
+still in Mathlib.
