@@ -77,8 +77,12 @@ def main():
             ncarry = sum(cells[n]["type"].startswith("CARRY") for n in unit)
             h = max(h, ncarry + 2)
             x0 = max(0, min(X1 - w + 1, cx - w // 2)); y0 = max(0, min(Y1 - h + 1, cy - h // 2))
+            # CARRY4 chains are left free: region-constraining a carry cluster did
+            # not legalize (uselect1, uori2 on BQ#2 seed 6); the LUTs that feed
+            # one pull it along
             out[base] = {"x0": x0, "x1": x0 + w - 1, "y0": y0, "y1": y0 + h - 1,
-                         "cells": unit, "dp_centroid": [cx, cy], "dp_cells": len(dp)}
+                         "cells": [n for n in unit if not cells[n]["type"].startswith("CARRY")],
+                         "dp_centroid": [cx, cy], "dp_cells": len(dp)}
             continue
         hh = max(a.min_half_h, (len(members) + 7) // 8 + 1)
         out[base] = {"x0": max(0, cx - a.half_w), "x1": min(X1, cx + a.half_w),
