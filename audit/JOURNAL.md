@@ -464,3 +464,10 @@ placement lead is parked with negative results (2x still fails on the constraine
 self-reported negatives, low priority. BQ#2 seed 4 route: sdf b1b4b951, xray f5fa0f9a. No md5 for this route is
 recorded anywhere on research (git grep), so its reproducibility cannot be checked. SLOW_MAX full stack running
 (claimed only as "28-32" for d/3/4).
+
+### progress 22:29
+Coverage check: 25 theorems named in FEASIBILITY.md are not individually covered in my report (list: grep of
+backticked names vs REPORT/findings, filtered to Lean theorem/lemma names). Subagent P13 launched to audit their
+statements and non-vacuity (gcd_hw_joint_witness3/consistent, gcd_hw_walk, endpoints_sound_real, ruleE_sound_diff,
+diff_not_imp_scat, ring_kappa_iff, LutAudit arb_*, lap_cut_fails, bdc_closed_ring_empty, fast_hold_mismatch,
+stF_runt, arb_eternal). It runs one Lean process at a time. BQ#2 seed 4 SLOW_MAX: vectors 0-2 pass so far.
