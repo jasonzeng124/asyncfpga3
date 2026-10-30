@@ -41,6 +41,10 @@ def main():
     ap.add_argument("routed"); ap.add_argument("out")
     ap.add_argument("--half-w", type=int, default=2)
     ap.add_argument("--min-half-h", type=int, default=3)
+    ap.add_argument("--unit", action="store_true",
+                    help="constrain the whole compute unit (chain + every other cell under <cell>.) to one "
+                         "rectangle of ~--slack x the slices it needs, centred on the unit's centroid")
+    ap.add_argument("--slack", type=float, default=2.0)
     a = ap.parse_args()
     cells = list(json.load(open(a.routed))["modules"].values())[0]["cells"]
     xs = [s[0] for s in map(site, cells.values()) if s]; ys = [s[1] for s in map(site, cells.values()) if s]
@@ -64,6 +68,15 @@ def main():
         if not dp:
             continue
         cx = round(sum(x for x, _ in dp) / len(dp)); cy = round(sum(y for _, y in dp) / len(dp))
+        if a.unit:
+            unit = sorted(n for n in cells if n.startswith(parent + ".") and site(cells[n]))
+            need = max(4, int(a.slack * (len(unit) + 3) / 4))          # slices; 4 LUT sites each
+            w = max(4, min(10, int(need ** 0.5)))                      # 2-5 CLBs wide
+            h = max(2 * a.min_half_h, (need + w - 1) // w)
+            x0 = max(0, min(X1 - w + 1, cx - w // 2)); y0 = max(0, min(Y1 - h + 1, cy - h // 2))
+            out[base] = {"x0": x0, "x1": x0 + w - 1, "y0": y0, "y1": y0 + h - 1,
+                         "cells": unit, "dp_centroid": [cx, cy], "dp_cells": len(dp)}
+            continue
         hh = max(a.min_half_h, (len(members) + 7) // 8 + 1)
         out[base] = {"x0": max(0, cx - a.half_w), "x1": min(X1, cx + a.half_w),
                      "y0": max(0, cy - hh), "y1": min(Y1, cy + hh),
