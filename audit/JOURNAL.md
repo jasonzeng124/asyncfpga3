@@ -375,3 +375,22 @@ UNVERIFIED for this commit (all earlier commits were fully clean).
 NOTE: list_triggers shows every scheduled task on the account (this audit routine, formal A/B/C, research, and my
 own check-in) was disabled at 17:33 UTC. I take that as the owner pausing the program: I am not re-arming check-ins
 or starting new long jobs. Lock released below. Session ends here with the branch pushed.
+
+## Session Fri Oct 30 19:18:20 UTC 2026
+Session session_01HC49FxkHmCaCFxFQ52sz3w. Lock was released by the previous session (2026-10-29T19:47Z). The routine
+fired again, so I read last session's "program paused" note as superseded. Fresh container again. Heads:
+formal=5a1ee8d2 (only owner PROGRAM.md/settings changes since 1fd99ef0; Lean sources identical), research=4b922e9b
+(+49 since b726f74b).
+
+### progress 19:40
+Lean 4.35.0 reinstalled (sha256 bf8d54e4, same). Clean lake build of formal 5a1ee8d2 (= 1fd99ef0 Lean) in ~/wt-f13
+running, to finish the axiom audit that was cut off last session (235/722 modules unchecked). Research worktree
+~/wt-r14 = 4b922e9b. Toolchain: research's cache key no longer matches any cache branch. setup-toolchain.sh now
+has an `XRAY_DB_REV=` line that the key's `^[A-Z_]+_REV=` grep picks up, even though the comment says it is "not
+part of the toolchain fingerprint" (harmless, it only forces a rebuild). I unpacked toolchain-cache/d7ce266c (the
+one I used last session) and am re-running setup with NO_CACHE=1, so cells/verify/toolchain.sh decides whether
+it is valid.
+Recomputed from the raw TSVs myself: BQ#3 new-resolver table: SLOW_MAX 8/8, vec 6 mean 32.75 (31-34); FAST_MIN
+8/8, mean 89.625 (83-94). Every laps triple equals the old-resolver table (last row per seed+column). CONFIRMED.
+BQ#2 seeds 6-9: 8/8 PASS, vec 6 31-33 / 86-93 (TSV). For BQ#2 seeds d,3,4,5 there is no committed TSV or log,
+only journal prose ("28-32, 77-86"), so their half of "8 seeds x 2 corners" is UNVERIFIED from data.
