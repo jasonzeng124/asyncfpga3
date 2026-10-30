@@ -1697,3 +1697,15 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 ### progress 16:34 (BQ#2 within-die scatter: first rows pass; worker restart, drivers survived)
 - BQ#2 band 0.38 + scatter, draw 1, new resolver: seed 6 1x (0.16/0.126) PASS 16/16 laps 51/42/61; seed 8 2x
   (0.32/0.252) PASS 16/16 laps 46/36/53. Remaining seeds running (two serial drivers).
+### progress 17:46 (second full-stack failure: BQ#2 seed 6 at 2x scatter; suspect uori3, same mechanism)
+- BQ#2 seed 6, band 0.38 + region 0.32 / wire 0.252, draw 1 (new resolver): FAIL errs 3, vectors 7, 8, 12 (one lap
+  with mism=x, then stall); bits EQUIVALENT. Same signature as BQ#3 seed 9's uori2 failure (same draw 1).
+- Suspect: urig.udut.uori3. Rule A on this draw's exactly scaled SDF (research/tools/scatter_ruleA) puts uori3 at
+  -3325 ps, far below the next cell (ushrsi0 -1306); uori3's chain (X12-13 Y53-55) is in region (1,5), factor
+  0.49 at 2x, its datapath (X0-5 Y56-76) in regions (0,5)/(0,6) at 1.56/1.54: a ~3.1x speed ratio. chain_dist had
+  it at 28 slices on this route. Running: vectors 12/7/8 with uori3's 20 chain LUTs scaled x2.03 (undoing the
+  region factor) -- if they pass, uori3 is the cause.
+- BQ#2 1x draw 1: seeds 6, 7 PASS (51/42/61, 53/42/61). 2x draw 1: seed 8 PASS (46/36/53), seed 6 FAIL.
+- gen.py quirk found: under GLS_SCATTER_ONLY, a non-matching cell ARC drops its region factor (perturb) but a
+  non-matching INTERCONNECT arc keeps it (wire path), so SCATTER_ONLY does not isolate region effects. Not fixed
+  yet (no result depends on it: SCATTER_ONLY was only used without region scatter).
