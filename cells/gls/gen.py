@@ -501,19 +501,27 @@ def region_factor(inst):
 def perturb(ps, inst=""):
     global n_scaled_inst
     f = DELAY_SCALE * sfactor(SCATTER, _rng.gauss(0, 1)) if SCATTER else DELAY_SCALE
-    if SCATTER_REGION:
-        f *= region_factor(inst)
     if SCATTER and SCATTER_ONLY and not any(
             inst == p[:-1] if p.endswith("=") else inst.startswith(p) for p in SCATTER_ONLY):
         f = DELAY_SCALE
-    for prefix, g in SCALE_INST:
-        if inst.startswith(prefix):
-            f *= g
-            n_scaled_inst += 1
-            break
+    # the region factor is applied after the SCATTER_ONLY reset, as the wire
+    # path below does (it used to be dropped here for a non-matching cell arc)
+    if SCATTER_REGION:
+        f *= region_factor(inst)
+    f *= scale_inst(inst)
     if f == 1:
         return ps
     return max(0, int(round(ps * f)))
+
+
+def scale_inst(inst):
+    """GLS_SCALE_INST's factor for inst (cell arcs and interconnect into it)."""
+    global n_scaled_inst
+    for prefix, g in SCALE_INST:
+        if inst.startswith(prefix):
+            n_scaled_inst += 1
+            return g
+    return 1
 
 
 SCATTER_MODE = os.environ.get("GLS_SCATTER_MODE", "arc")
@@ -598,6 +606,7 @@ def perturb_ic(ps, src, dst):
         f = 1
     if SCATTER_REGION:
         f *= region_factor(inst)
+    f *= scale_inst(inst)     # was missing on this path: wire mode ignored GLS_SCALE_INST on interconnect
     return max(0, int(round(ps * DELAY_SCALE * f)))
 
 
