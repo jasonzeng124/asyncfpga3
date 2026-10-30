@@ -1760,3 +1760,9 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 ### progress 21:43 (chain-region route fails 2x draw 2 as well)
 - Chain-region route (BQ#2 s6 pass 3), 2x draw 2: FAIL errs 2 (laps 50/40/60). With draw 1's FAIL, 0/2 2x draws
   pass on this route; the unconstrained route's draws 2 and 3 are next for the comparison.
+### progress 22:44 (2x draw 2: unconstrained seed 6 errs 15, chain-region route errs 2)
+- BQ#2 seed 6 unconstrained, 2x draw 2: FAIL errs 15 (15 of 16 vectors break in the first laps). Same draw on the
+  chain-region route: FAIL errs 2; draw 3: PASS. Tally so far, 2x: unconstrained 0/2 pass (draws 1,2), chain-
+  region 1/3 (draws 1,2 fail, 3 passes); errs 3+15 vs 4+2+0. Suggestive, n tiny. Draw 3 on the unconstrained
+  route next. At 2x many draws fail on one route; region 0.32 (a ~3x speed spread across one die) is far past the
+  calibrated 0.16, so this is a robustness ranking, not a predicted board failure.
