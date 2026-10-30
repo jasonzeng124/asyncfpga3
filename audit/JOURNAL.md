@@ -428,3 +428,9 @@ still in Mathlib.
 r23 intervention CONFIRMED exactly: uori3 chain x2.033 (159 arcs) -> vectors 12/7/8 PASS 39/175/146, errs 0,
 identical to the research numbers. My placebo (uori4's chain, same factor) still fails vec 7, so the effect is
 specific to uori3. REPORT.md rows added (pass 13). Lean build of 5a1ee8d2 still in Mathlib (~2700 jobs).
+
+### progress 20:56
+Placebo complete: uori4 chain x2.033 -> vectors 7, 8, 12 all still fail (laps=1, errs=1). r23 C fully CONFIRMED.
+chain_regions unconstrained row (12.9 / 49.1 / 16 of 50) reproduced with my own Manhattan-centroid code. uori3 is
+not among the most distant chains (20.2), so distance is a weak proxy for the region-straddle exposure (finding
+r23 G). Started: BQ#2 seed 8 route + full 16-vector 2x draw 1 (claimed PASS 46/36/53).
