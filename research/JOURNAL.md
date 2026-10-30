@@ -1680,3 +1680,8 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
 - The session worker restarted (~03:35); the detached sim chain survived. BQ#3 new-resolver rows so far: d max
   33/27/39, d min 91/75/108, 3 max 32/26/38, 4 max 31/24/36 -- all PASS 16/16, EQUIVALENT, all identical to the
   old-resolver rows.
+### progress 14:28 (BQ#3 seed-9 2x-scatter failure reproduces on the new resolver)
+- BQ#3 seed 9, band 0.38, region 0.32 + wire 0.252, draw 1, resolver 055edd7: FAIL, errs 6, the same six vectors
+  (2,3,9,11,13,15: one lap with an error, then stall) as on the old resolver; bits EQUIVALENT. The failure is the
+  uori2 bundling violation, not a resolver artefact. BQ#3 new-resolver sweep: 15/16 corner runs PASS so far,
+  all identical to the old rows (seed 9 FAST_MIN running).
