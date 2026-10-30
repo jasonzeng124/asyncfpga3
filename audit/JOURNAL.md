@@ -423,3 +423,8 @@ their "seed 6 1x PASS 51/42/61" for v6/v12. Intervention attempt 1 used a hierar
 (fid names are site/BEL). gen.py exits loudly on that, which is a good guard. I rebuilt the list from NEXTPNR_BEL
 (20 BELs -> 159 arcs scaled). Intervention, then the placebo (uori4 chain), are running. Lean 5a1ee8d2 build
 still in Mathlib.
+
+### progress 20:45
+r23 intervention CONFIRMED exactly: uori3 chain x2.033 (159 arcs) -> vectors 12/7/8 PASS 39/175/146, errs 0,
+identical to the research numbers. My placebo (uori4's chain, same factor) still fails vec 7, so the effect is
+specific to uori3. REPORT.md rows added (pass 13). Lean build of 5a1ee8d2 still in Mathlib (~2700 jobs).
