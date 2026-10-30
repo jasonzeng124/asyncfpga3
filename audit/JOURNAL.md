@@ -394,3 +394,16 @@ Recomputed from the raw TSVs myself: BQ#3 new-resolver table: SLOW_MAX 8/8, vec 
 8/8, mean 89.625 (83-94). Every laps triple equals the old-resolver table (last row per seed+column). CONFIRMED.
 BQ#2 seeds 6-9: 8/8 PASS, vec 6 31-33 / 86-93 (TSV). For BQ#2 seeds d,3,4,5 there is no committed TSV or log,
 only journal prose ("28-32, 77-86"), so their half of "8 seeds x 2 corners" is UNVERIFIED from data.
+
+### progress 20:30
+Toolchain: fingerprint OK (nextpnr 9c732bc6303458df) on the d7ce266c cache with NO_CACHE setup. r23 (BQ#2 seed-6
+2x-scatter failure, research 70c7237e/f5182bcc): my own route of BQ#2 with NEXTPNR_SEED=6 reproduces sdf c4ec8664
+and xray sdf 1f7f03ea (prjxray-db 0a0added). Region factors recomputed with my own code (audit/r23/regionf6.py):
+draw 1, 2x: (1,5) 0.4919 (1/f = 2.033), (0,5) 1.5573, (0,6) 1.5409 -> "0.49 / 1.56 / 1.54, x2.03" CONFIRMED.
+Note that the datapath's stated span Y56-76 also covers region (0,7), factor 1.028, which the claim leaves out.
+gen.py 9c39512e read: in arc mode interconnect already went through perturb() (and so through SCALE_INST), so the
+fix changes only wire mode, and only under SCALE_INST or SCATTER_ONLY+REGION. "No result depends on it" is
+plausible. The exact GLS_SCALE_INST prefix for the intervention is not recorded anywhere (journal prose only).
+S13 MC file: I re-tallied it from the rows: 1x guarded<0 34/38, raw 15/38; 2x 37/37, 33/37, matching its SUMMARY
+(arithmetic only; the rule-A runs themselves were not reproduced).
+Running: full stack 2x draw 1 on vectors 7,8,12 + control 6. Lean build of 5a1ee8d2 in Mathlib.
