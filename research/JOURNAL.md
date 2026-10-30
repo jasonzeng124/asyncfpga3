@@ -1709,3 +1709,12 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 - gen.py quirk found: under GLS_SCATTER_ONLY, a non-matching cell ARC drops its region factor (perturb) but a
   non-matching INTERCONNECT arc keeps it (wire path), so SCATTER_ONLY does not isolate region effects. Not fixed
   yet (no result depends on it: SCATTER_ONLY was only used without region scatter).
+### progress 18:13 (BQ#2 seed-6 2x failure CONFIRMED as uori3's chain/datapath region split)
+- Intervention on the failing draw (GLS_SCALE_INST on uori3's 20 chain LUTs x2.03 = 1/0.492, cell arcs AND
+  interconnect, which needed 9c39512): vectors 12, 7, 8 PASS 39/175/146 laps, errs 0 (unfixed: 1 lap, errs 1 each;
+  the first attempt before 9c39512 scaled only the 120 cell arcs and still failed). Only that chain's speed was
+  changed, so uori3 is the cause.
+- Two genuine full-stack failures now, both fused "ori" compute units (uori2 on BQ#3 seed 9, uori3 on BQ#2 seed 6),
+  both at 2x region scatter with draw 1, both a ~3x speed ratio between a matched chain and its datapath 20-30
+  slices away. Neither recipe fails at 1x. Lead (b) from 2026-10-29 now has two data points: keep each matched
+  chain inside its datapath's region (placement), never shorten it.
