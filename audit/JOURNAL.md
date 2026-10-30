@@ -471,3 +471,9 @@ backticked names vs REPORT/findings, filtered to Lean theorem/lemma names). Suba
 statements and non-vacuity (gcd_hw_joint_witness3/consistent, gcd_hw_walk, endpoints_sound_real, ruleE_sound_diff,
 diff_not_imp_scat, ring_kappa_iff, LutAudit arb_*, lap_cut_fails, bdc_closed_ring_empty, fast_hold_mismatch,
 stF_runt, arb_eternal). It runs one Lean process at a time. BQ#2 seed 4 SLOW_MAX: vectors 0-2 pass so far.
+
+### progress 22:50
+P13 in. I re-ran its 6 Lean files myself: rc 0, no errors, no sorry. I read diff_not_imp_scat (CornerDiff.lean:230)
+myself: the witness is degenerate (s=1, Pa=Pb), so OVERSTATED, though the claim is true (the auditor proved a
+non-degenerate version). bdc_closed_ring_empty is mildly OVERSTATED ("every ring" relies on emit.py's output
+shape, which is unchecked). The other 12 are CONFIRMED with scope notes. REPORT updated.
