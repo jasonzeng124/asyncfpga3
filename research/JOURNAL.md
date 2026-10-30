@@ -1735,3 +1735,7 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 - BQ#2 2x draw 1: seed 7 PASS 16/16 laps 54/42/63; seed 8 1x PASS 49/39/57. Seed 9's 2x compile was OOM-killed
   (my side builds overlapped two sims; INCOMPLETE, never a pass) and is requeued after the chain-region GLS.
   Lesson repeated: one compile (5.5 GB) + two vvp (3.7 GB each) is the ceiling on 15 GB; side jobs must wait.
+### progress 20:04 (BQ#2 1x scatter 4/4 PASS; chain-region route SLOW_MAX PASS)
+- BQ#2 1x (region 0.16 + wire 0.126) draw 1: PASS on seeds 6, 7, 8, 9 (vec 6 laps 51/53/49/50).
+- Chain-region route (BQ#2 seed 6 pass 3, sdf d5cc5f09 reproduces the pass-3 build): SLOW_MAX PASS 16/16 laps
+  31/25/37 (unconstrained 33/27/39, -6% on vec 6; one seed).
