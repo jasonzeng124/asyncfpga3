@@ -29,3 +29,50 @@ CONFIGURED FEATURES NOT CONSUMED: 0 kinds (0 all-zero encodings ignored)
 
 note: 48 configured pips lie on no live sink's path (stubs.tsv)
 note: aliases: 12091 routed-JSON net names attached by driver bel pin, 1 whose driver has no net here
+== equivalence against the routed JSON (information; the sim runs regardless) ==
+1. CELLS  routed JSON 11732 bels, bitstream 11731 bels, common 11731
+2. CONFIG  compared {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'SLICE_FFX': 326} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+3. CONNECTIVITY  34845 pins with the same driver on both sides
+4. LUT FUNCTIONS  10136 LUTs compared, 10136 identical over every input assignment
+5. ROUTING  12092 nets with identical pip sets, 0 differ (1 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    gcd_hw  (FASM-BUILT netlist: fasm2net.py from the bit)
+stamped:   2026-10-30 23:05:21
+md5 682d1f145f50ee4dbf8d0a0b5f9a2f9e  /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw.bit
+md5 58c0705475225df2b20e1528b4346608  /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw.fasm
+md5 3c5f027df89f428df14b536a3e701e55  /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw_routed.json
+md5 ae90c9efa0d1894a47303c0af76f75d0  /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw.sdf
+connectivity/LUTs from: bit;  names + delays from: routed JSON + SDF (re-keyed)
+delays:    scale 1, scatter sigma 0.252, seed 1, mode wire (gen.py)
+sdf:       042034d2cae25901076042679273c2e5  /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw_xray.sdf, column band
+model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region 0.32/10, band 0.38 if column=band)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== gen.py on the FASM-built netlist ==
+delays: SDF column band, scale 1, scatter sigma 0.252 (seed 1, mode wire)
+delays: 44489 interconnect arc(s) from the wire model, 21795 fell back to one draw each
+delays: region scatter sigma 0.32 over 10x10-slice regions: 110727 arc(s) placed, 0 without a site (unscaled)
+SDF claims: 44443 IOPATH, 66284 INTERCONNECT, 1218 SETUPHOLD
+fid: 4711 LUT state node(s) with a self-loop; loop delay min/median/max 40/450/2142 ps
+cells         : 11733
+icbufs        : 66284
+nets          : 12153 (+66284 icbuf outputs)
+IOPATH  claimed 110727 -> emitted 110727 (incl. 66284 icbuf)
+SETUPHOLD claimed 1218 -> 326 flops check them in netlist_baked.v
+handshake wires: 542  data buses: 159
+resolved 14 signals -> signals.vh
+== compiling ==
+built /root/r23work/s7_2x
+171ca736ecdfc12e69a9e22fadc76c51  /root/r23work/s7_2x/netlist_baked.v
+vec 0: RESULT timeout: vec=0 laps=5283 errs=0 oks=5283 | SUMMARY vec=0 laps=5283 errs=0 oks=5283 hk=7795 t_end=151000000 t_rst_rel=498663 t_first_lap=523624 t_last_lap=150981394
+vec 1: RESULT timeout: vec=1 laps=3141 errs=0 oks=3141 | SUMMARY vec=1 laps=3141 errs=0 oks=3141 hk=7795 t_end=151000000 t_rst_rel=498663 t_first_lap=535436 t_last_lap=150985396
