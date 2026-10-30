@@ -1766,3 +1766,11 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
   region 1/3 (draws 1,2 fail, 3 passes); errs 3+15 vs 4+2+0. Suggestive, n tiny. Draw 3 on the unconstrained
   route next. At 2x many draws fail on one route; region 0.32 (a ~3x speed spread across one die) is far past the
   calibrated 0.16, so this is a robustness ranking, not a predicted board failure.
+### progress 23:44 (2x draws 1-3 on BQ#2 seed 6: chain regions make no clear difference)
+| BQ#2 seed 6, band 0.38 + region 0.32 / wire 0.252 | draw 1 | draw 2 | draw 3 | corners (vec 6 laps max/min) |
+|---|---|---|---|---|
+| unconstrained (sdf c4ec8664) | FAIL errs 3 (uori3) | FAIL errs 15 | PASS 62/51/73 | 33 / 93 |
+| chain regions pass 3 (sdf d5cc5f09) | FAIL errs 4 (uori2) | FAIL errs 2 | PASS 52/42/60 | 31 / 85 |
+Reading: 1/3 vs 1/3; fewer errors on draw 2 but more on draw 1; the constrained route is 6-16% slower. No
+robustness gain shown, a speed cost shown. Draw 4 on both running; unless it separates them, the chain-only
+region prototype is a negative result.
