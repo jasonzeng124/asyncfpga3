@@ -477,3 +477,8 @@ P13 in. I re-ran its 6 Lean files myself: rc 0, no errors, no sorry. I read diff
 myself: the witness is degenerate (s=1, Pa=Pb), so OVERSTATED, though the claim is true (the auditor proved a
 non-degenerate version). bdc_closed_ring_empty is mildly OVERSTATED ("every ring" relies on emit.py's output
 shape, which is unchecked). The other 12 are CONFIRMED with scope notes. REPORT updated.
+
+### progress 23:02
+BQ#2 seed 4 SLOW_MAX full stack (own route, sdf b1b4b951): 16/16 PASS errs 0, v6/v12/v13 29/23/34. That fits the
+journal's "28-32" range for d/3/4. No md5 or per-seed laps were recorded to compare against. REPORT row updated.
+Next: BQ#2 seed 7 route + 2x draw 1 (claimed PASS 54/42/63), already queued.
