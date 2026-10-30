@@ -457,3 +457,10 @@ BQ#2 seed 8 2x draw 1, full stack, 16/16 PASS errs 0, v6/v12/v13 46/36/53: CONFI
 "unconstrained worst +914" reproduced by running their tighten.py on my reproduced seed-6 SDF (50 cells, umux5
 +914). This is reproduction of a quoted number, not independent evidence that rule A is right. Running: BQ#2 seed 4
 route + SLOW_MAX full stack, then seed 7 2x.
+
+### progress 22:18
+Research moved on (a6ae390e): BQ#2 1x draw 1 PASS seeds 6-9 (seed 6 already reproduced, 51 laps). The chain-region
+placement lead is parked with negative results (2x still fails on the constrained route, draws 1 and 2). These are
+self-reported negatives, low priority. BQ#2 seed 4 route: sdf b1b4b951, xray f5fa0f9a. No md5 for this route is
+recorded anywhere on research (git grep), so its reproducibility cannot be checked. SLOW_MAX full stack running
+(claimed only as "28-32" for d/3/4).
