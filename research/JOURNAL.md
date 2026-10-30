@@ -1748,3 +1748,12 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
   does not converge (centroid distance 12.9 -> 9.8 -> 9.0 mean, but per unit it jumps around).
 - Next: constrain each compute unit's chain AND datapath to one rectangle (a per-unit region), so co-location
   holds by construction; check legality, rule A, corners, then the 2x draws.
+### progress 20:41 (placement lead parked: per-unit regions do not legalize in this nextpnr)
+- chain_regions.py --unit (chain + datapath + control of each compute unit in one rectangle, ~2x the slices it
+  needs) on BQ#2 seed 6: three tries, all "Unable to find legal placement" on a CARRY4 (uselect1, then uori2 with
+  the rectangle >= CARRY4 count + 2 tall, then uselect1 again with every CARRY4 left unconstrained -- the LUTs
+  packed into a carry cluster still constrain it). Chain-only regions legalize but do not converge (above).
+- Parked. What it would take: in the pre-place script, skip every cell of a carry cluster (needs the cluster
+  parent from the Python API, not probed yet) or a nextpnr patch that pulls a bd_delay chain toward the centroid
+  of a named cell set (soft, like the place-weight patch). Not worth it while the only failures are at 2x the
+  calibrated scatter, which S9 suggests is already double-counted at 1x.
