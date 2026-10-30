@@ -1676,3 +1676,7 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
 - BQ#3 d SLOW_MAX PASS 33/27/39 (sdf 61e14755); seed 4 SLOW_MAX PASS 31/24/36 (sdf a0d20c19, xray e9bb3663) --
   both identical to the old-resolver rows of bq3_fullstack_8seed.tsv. So far the 055edd7 resolver changes no
   gcd_hw result (6 of 6 comparable runs identical or new passes).
+### progress 03:38 (worker restart; detached chain survived)
+- The session worker restarted (~03:35); the detached sim chain survived. BQ#3 new-resolver rows so far: d max
+  33/27/39, d min 91/75/108, 3 max 32/26/38, 4 max 31/24/36 -- all PASS 16/16, EQUIVALENT, all identical to the
+  old-resolver rows.
