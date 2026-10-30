@@ -107,14 +107,11 @@ no `axiom` (other than Lean/Mathlib's standard ones) and no `native_decide` in
 anything reported as proved.** `formal/check.sh` must build every claimed file
 and fail on any of them. Report unproved goals as unproved.
 
-## Tracks: run them in parallel with subagents
+## Tracks
 
-Spawn one subagent per probe below (split or merge as you see fit; see
-Shards for which tracks are yours). Each subagent writes ONLY its own files under
-`formal/lean/Formal/<Track>/` and `formal/notes/<track>.md` and never touches
-git. You review, run `formal/check.sh`, commit, and push. Give each subagent:
-the background reading list, this file, its probe, and a time box. It should
-come back with what checks, what doesn't, and why.
+Work the probes below for your shard (see Shards). Each probe writes only its
+own files under `formal/lean/Formal/<Track>/` and `formal/notes/<track>.md`.
+Record what checks, what doesn't, and why.
 
 1. **Toolchain** (you, first): install elan, Lean 4 and Mathlib (use
    `lake exe cache get`; never build Mathlib from source unless that fails).
@@ -122,8 +119,8 @@ come back with what checks, what doesn't, and why.
    timed) and `formal/check.sh`. Lean with a Mathlib import uses several GB of
    RAM per process. Check `nproc`/`free -g` and write `formal/slot.sh`, a
    `flock`-based semaphore that caps concurrent `lean`/`lake` processes at what
-   fits. Every subagent compiles through it. Subagents check single files with
-   `lake env lean <file>`; only you run `lake build`.
+   fits. Every Lean process goes through it. Check single files with
+   `lake env lean <file>` while iterating.
 2. **Trace representations** (3 probes, compete): ℝ → Val; event lists
    (time-sorted transitions); discrete time ℕ with bounded steps. Compare how
    easy the delay-channel lemmas below are in each, then pick one and record why.
@@ -185,7 +182,6 @@ your shard. All three push to `claude/formal`.
   `setup.sh` once it exists. Until A's `Formal/Core/` (traces, delay channels,
   LUT semantics) lands, define what you need in a local `Formal/Cells/Prelim.lean`
   or `Formal/Net/Prelim.lean`, and port to Core afterwards. Note any mismatches.
-- Each shard uses 10-15 subagents, through its own `formal/slot.sh` cap.
 - Shard A writes `FEASIBILITY.md` from all three journals and the notes. B and C
   put their verdicts at the top of their journals, in the same form.
 - Lock and journal rules are the same for every shard (B and C use their own
@@ -263,12 +259,12 @@ reported as unproved.
   session and `### progress HH:MM` notes, the times taken from `date -u`. Say
   what checks, what doesn't, and why. Negative results count.
 - **Commits:** plain `git commit` (no `-c` identity overrides), small and
-  frequent, pushed at least every 45 minutes. Background processes and
-  subagents die with the session, so commit before anything long.
+  frequent, pushed at least every 45 minutes. Background processes die with the session, so commit before anything long.
 - **Draft PR:** keep one draft PR from `claude/formal`, titled
   "Formal-model feasibility", with a running summary. Never merge it.
 - Do not edit `cells/`, `bdc/` or `research/`. Read them only.
-- No usage cap. Run continuously: never end the session on your own.
+- One session per shard starts per day (owner, 2026-10-30). Run continuously:
+  never end the session on your own. Never create scheduled routines or reminders.
 
 ## Read the independent audit every session (owner, 2026-10-27)
 
