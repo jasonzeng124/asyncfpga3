@@ -407,3 +407,11 @@ plausible. The exact GLS_SCALE_INST prefix for the intervention is not recorded 
 S13 MC file: I re-tallied it from the rows: 1x guarded<0 34/38, raw 15/38; 2x 37/37, 33/37, matching its SUMMARY
 (arithmetic only; the rule-A runs themselves were not reproduced).
 Running: full stack 2x draw 1 on vectors 7,8,12 + control 6. Lean build of 5a1ee8d2 in Mathlib.
+
+### progress 21:15
+r23: BQ#2 seed 6, full stack (bits-decoded netlist, xray SDF band, fid), region 0.32 + wire 0.252, draw 1, resolver
+055edd7 (research 4b922e9b worktree): vectors 7, 8, 12 each give laps=1 errs=1, then nothing to 150 us. Control
+vec 6 passes (48 laps, errs 0). The failure is CONFIRMED exactly (audit/r23/s2x.log; netlist_baked 9657121d).
+Placement from my own extraction (audit/r23/place6.py): uori3 chain = 20 LUTs at X12-13 Y53-55, all in region
+(1,5); datapath = 55 cells at X0-5 Y56-76, in regions (0,5) 27, (0,6) 22, (0,7) 6. CONFIRMED (6 cells sit in
+the 1.03 region). Running: the intervention (uori3.udly x2.033), a placebo (uori4.udly x2.033), then 1x.
