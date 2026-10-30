@@ -1694,3 +1694,6 @@ FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x
 Reading: the resolver fix (audit r16) changes no gcd_hw result on 20 comparable runs (BQ#2 + BQ#3); resolver
 events evidently never land in the follow-pulse case on these routes. BOARD-QUEUE #3 updated. Data:
 research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatter 1x and 2x, draw 1, seeds 6-9.
+### progress 16:34 (BQ#2 within-die scatter: first rows pass; worker restart, drivers survived)
+- BQ#2 band 0.38 + scatter, draw 1, new resolver: seed 6 1x (0.16/0.126) PASS 16/16 laps 51/42/61; seed 8 2x
+  (0.32/0.252) PASS 16/16 laps 46/36/53. Remaining seeds running (two serial drivers).
