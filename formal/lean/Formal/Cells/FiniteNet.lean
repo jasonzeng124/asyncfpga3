@@ -642,7 +642,13 @@ theorem fphysLink_of_inChain {ci co : Chan} (h : FInChainC ci co) :
 links replaced by `FInChain`: each link sits in a chain of B's links (finite edge counts)
 whose `FEnv1` is DERIVED by the time-indexed rule (`fchain_env1`). Still assumed: inside
 `FInChain`, each chain's two truncated end contracts; outside, C's `H_CELLS` of the 192
-other operators, H_BUNDLE, H_CM_FORCED. -/
+other operators, H_BUNDLE, H_CM_FORCED.
+CAVEAT (audit P12b, 2026-10-31): the chain hypothesis is a per-link existential. Nothing
+ties one link's chain to another's or to gcd_hw's real producer/consumer cells, and a
+chain-end contract holds whenever its end node is clean (`SelfAuditB9.seg_of_clean`). So
+"Env1 derived" is derived from per-link end contracts whose content equals Env1's; it is
+not a derivation from the netlist. The census chains of `head_classes`/`tail_classes`
+are not used by the proof. -/
 theorem gcd_hw_safe_fin_chains (a b : Nat) (ch : Fin NC → Chan)
     (H_LINKS : ∀ (o : Fin NO) (i o' : Fin NC), opAt o = .link i o' → FInChain ch i o')
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))

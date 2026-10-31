@@ -216,7 +216,15 @@ links discharged by ONE gate-level network of gcd_hw (`GcdNetOK`) in which every
 fork N ≤ 4, 2-input join and steer branch carries B's gate model, and only the cells
 listed in `op_classes` as not tied (plus the steers' acknowledge ORs) carry an assumed
 segment contract. Still assumed: the edge-time departure bounds and H_SP of `GcdNetOK`,
-and C's `H_CELLS` (other 192 operators), H_BUNDLE, H_CM_FORCED. -/
+and C's `H_CELLS` (other 192 operators), H_BUNDLE, H_CM_FORCED.
+CAVEAT (SelfAuditB9; audit P12b, 2026-10-31): the hypothesis does NOT bind the pin
+drivers (`GPin.drv`) or the cell set to gcd_hw's netlist. A pinless cell's contract is
+the bare claim that its node is clean (`fcellOK_nil_iff`), and a link fed by two such
+cells gets its environment from them alone (`flink_env1_local`). So this theorem does not
+enforce that any link's environment comes from the gate models named above; "gate-
+modelled" describes the intended elaboration only. C's `H_CELLS` for the 192 non-link
+operators stays a hypothesis (`H_OTHER`): B's gate models are used only to derive link
+environments, never to discharge an operator contract. Driver-bound form: `FiniteNetBound`. -/
 theorem gcd_hw_safe_net (a b : Nat) (ch : Fin NC → Chan) (N : GcdNet) (H : GcdNetOK ch N)
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))

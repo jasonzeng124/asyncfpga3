@@ -195,7 +195,15 @@ safety with `H_CELLS` of all 175 links discharged by ONE gate-level network (`Gc
 in which every cell carries B's gate model except (segment contracts): the 38 steer `uack`
 and 21 mux `uor` ORs, the muxn's `|j` OR and its 11 FASTFALL line stages, and the cells of
 the 9 amerges. Still assumed: the edge-time departure bounds and H_SP, C's `H_CELLS` of
-the 192 non-link operators, H_BUNDLE, H_CM_FORCED. -/
+the 192 non-link operators, H_BUNDLE, H_CM_FORCED.
+CAVEAT (SelfAuditB9; audit P12b, 2026-10-31): the hypothesis does NOT bind the pin
+drivers (`GPin.drv`) or the cell set to gcd_hw's netlist. A pinless cell's contract is
+the bare claim that its node is clean (`fcellOK_nil_iff`), and a link fed by two such
+cells gets its environment from them alone (`flink_env1_local`). So this theorem does not
+enforce that any link's environment comes from the gate models named above; "gate-
+modelled" describes the intended elaboration only. C's `H_CELLS` for the 192 non-link
+operators stays a hypothesis (`H_OTHER`): B's gate models are used only to derive link
+environments, never to discharge an operator contract. Driver-bound form: `FiniteNetBound`. -/
 theorem gcd_hw_safe_net3 (a b : Nat) (ch : Fin NC → Chan) (N : GcdNet3) (H : GcdNetOK3 ch N)
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))
     (H_BUNDLE : ∀ c, Held (ch c))
@@ -320,7 +328,15 @@ circuit safety with every link's `H_CELLS` discharged by ONE gate-level network
 (`FGcdNetOK3`, finite edge counts) in which every cell carries B's gate model except
 (truncated contracts): the muxn's `|j` OR, the 3 sources, and the cells of the 9 amerges.
 Still assumed: the edge-time bounds of `FGcdNetOK3`, C's `H_CELLS` (other 192 operators),
-H_BUNDLE, H_CM_FORCED. -/
+H_BUNDLE, H_CM_FORCED.
+CAVEAT (SelfAuditB9; audit P12b, 2026-10-31): the hypothesis does NOT bind the pin
+drivers (`GPin.drv`) or the cell set to gcd_hw's netlist. A pinless cell's contract is
+the bare claim that its node is clean (`fcellOK_nil_iff`), and a link fed by two such
+cells gets its environment from them alone (`flink_env1_local`). So this theorem does not
+enforce that any link's environment comes from the gate models named above; "gate-
+modelled" describes the intended elaboration only. C's `H_CELLS` for the 192 non-link
+operators stays a hypothesis (`H_OTHER`): B's gate models are used only to derive link
+environments, never to discharge an operator contract. Driver-bound form: `FiniteNetBound`. -/
 theorem gcd_hw_safe_fin_net3 (a b : Nat) (ch : Fin NC → Chan) (N : FGcdNet3)
     (L : N.ι → Nat → Prop) (n : N.ι → Nat) (H : FGcdNetOK3 ch N L n)
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))

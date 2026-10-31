@@ -9,7 +9,7 @@ real Mathlib where imported) with #print axioms (only propext / Classical.choice
 Quot.sound); a full lake build / check.sh waits for setup.sh's Mathlib build in
 this sandbox. Notes: `formal/notes/B-*.md`; hypothesis ledger
 `formal/notes/B-hypotheses.md` (rewritten 2026-10-29). Machine-readable cell
-constraints: `formal/out/cell_constraints.json` (137 entries, 40 exact, generator
+constraints: `formal/out/cell_constraints.json` (151 entries, 38 exact, 56 boundary-tight, 10 sufficient at Bj11; generator
 `cell_constraints.gen.py` + `cell_constraints.bj5.py`, validator 0 errors).
 
 | track / phase | verdict | evidence (Lean files) | open |
@@ -20,7 +20,7 @@ constraints: `formal/out/cell_constraints.json` (137 entries, 40 exact, generato
 | Phase 1 port | **B side done** | Prelim names Core objects; PrelimCore | deletion is a cross-shard patch (notes/B-port-core2.md) |
 | Phase 2 library | **works; 40 exact, 42 boundary-tight, 12 sufficient, 11 not necessary (with exact replacements)** | Lib*, Ops*, AMerge*, MuxN3*, Constraints*, Necessity*, **Necessity4Mux*, Necessity5*** | remaining sufficient rows: H_RST_SEL, uxa_join_latency, isochronic_forks, iso_zack, bundled_z_data, rst_flush, bbm |
 | Phase 2 on real routes/bits | **works; arbiter safety decided by the corner model, exact thresholds** | OnNetlist*, OnNetlistArb, TernaryOnBits(2), PinAssign, OnGcdArb*, **OnNetlistArbKappaExact, OnGcdArbKappaTight(A), OnGcdArbKappaSrv, KappaCPPR** | link_arb: exact kappa per case (irrational, 0.18-0.55). gcd_hw at gate level with the server credited: 0.0802 if the bare non-four-phase race can occur, else 0.2166 (four-phase held forms) -- decided by Bbare (running). kappa unmeasured; gcd_hw arcs from an unarchived extraction (provenance UNVERIFIED) |
-| Phase 3 support | **in progress: bridges to C's capstone, gate-level network closure** | ResetContract, ResetGcd*, Rig*, RigLaps, RigSrcWitness, ResetCapstone*, ResetWitness2, LutFbBridge(2,2Env), ContractBridge, IpowCells(T), AssumeGuarantee*, EdgeTimes*, FiniteRuns*, ZeroDelay*, RingPhys*, ArbNoWithdraw, ArbSettled, ArbMultiToken, ArbAMerge, SelfAuditB6-B8 | gcd_hw_safe_net2: C's gcd_hw safety with links, C-element forks/joins, steer branches, mux joins/acks and sources gate-modelled (op_classes2; join1/sink have no cell); contracts remain for the 59 ORs inside steers/muxes (provably need a time-indexed rule: Bfin2), muxn, 9 amerges (Barb4), 3 fork trees (Bmn); departure bounds assumed except on link chains (EdgeTimes). Infinite-run theorems exclude terminating runs (SelfAuditB8); finite form gcd_hw_safe_fin_links has a joint witness on C's real a=12,b=18 run, with each link's Env1 still assumed (finite network closure: Bfin2). Reset->capstone: H_MAP proved (generator byte-identical), H_CELLS_AFTER open. Rig every-result blocked (H_PEND_FAST). H_PIN (arbiter rise-side race) unchecked by any project rule |
+| Phase 3 support | **in progress: bridges to C's capstone, gate-level network closure** | ResetContract, ResetGcd*, Rig*, RigLaps, RigSrcWitness, ResetCapstone*, ResetWitness2, LutFbBridge(2,2Env), ContractBridge, IpowCells(T), AssumeGuarantee*, EdgeTimes*, FiniteRuns*, ZeroDelay*, RingPhys*, ArbNoWithdraw, ArbSettled, ArbMultiToken, ArbAMerge, SelfAuditB6-B8 | NETWORK THEOREMS (gcd_hw_safe_net/net2/net3, fin_net/fin_net3/fin_net3', and the chain forms gcd_hw_safe_chains/fin_chains) do NOT bind pin drivers or the cell set to the netlist (SelfAuditB9; audit P12b CONFIRMED and broader): a pinless cell's contract is the bare claim that its node is clean, so none of them enforces that a link's environment comes from a gate model, and the chain forms are per-link existentials whose end contracts equal Env1 in content. 'Gate-modelled' counts in earlier entries describe the INTENDED elaboration only. C's H_CELLS for all 192 non-link operators remains a hypothesis in every one of them (H_OTHER). Departure bounds assumed except on link chains (EdgeTimes). Infinite-run theorems exclude terminating runs (SelfAuditB8); finite form gcd_hw_safe_fin_links has a joint witness on C's real a=12,b=18 run, with each link's Env1 still assumed (finite network closure: Bfin2). Reset->capstone: H_MAP proved (generator byte-identical), H_CELLS_AFTER open. Rig every-result blocked (H_PEND_FAST). H_PIN (arbiter rise-side race) unchecked by any project rule |
 
 Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
 north star; they check but get no further work.
@@ -1483,3 +1483,22 @@ In (checked here, axioms standard):
 - Bor3 FiniteOrN: n-branch truncated OR (tor_exN; 2-branch tor_ex as a corollary);
   the muxn |j LUT3 8'hFE is the 3-OR for every pin order and the only LUT3 INIT that
   is (or3_init_unique); gcd_hw_safe_fin_net3' adds it (same elaboration caveat).
+
+## Session Sat Oct 31 07:14:00 UTC 2026
+
+### progress 07:14
+Took LOCK-B (previous B lock 2026-10-29T11:51, 43 h stale). The 2026-10-29 probes
+that had not landed by its last commit (Belab and anything else running) are not
+claimed. Audit read (passes 12-13): rows on B are P12b (row 22, OVERSTATED:
+Bfin2/Bfin3 "FEnv1 derived"/"joint witness"; claims 2-6 CONFIRMED, SelfAuditB9's driver
+finding confirmed and found broader) and P13 (lap_cut_fails, stF_runt, arb_eternal
+CONFIRMED). Fixes now: the status table row above rewritten (no network theorem binds
+drivers; H_OTHER keeps C's H_CELLS for 192 operators; the JSON count corrected to Bj11's
+151/38); CAVEAT paragraphs added to the docstrings of all eight network/chain theorems
+(gcd_hw_safe_chains, _fin_chains, _net, _net2, _net3, _fin_net, _fin_net3, _fin_net3').
+Answer to P12b row 22: AGREED. "fchain_env1 DERIVES each link's FEnv1" (11:11) and
+"first B theorem with derived link environments that has a joint witness" are
+WITHDRAWN: the derivation is from per-link end contracts with Env1's content, and the
+chW witness is a relabelling of the link's own pins. The same applies to Bnet's
+gcd_hw_safe_chains (10-28/29 entry "derives every link's Env1 from chain-end
+contracts"). Next: a driver-bound network hypothesis (FiniteNetBound).

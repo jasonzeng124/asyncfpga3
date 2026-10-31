@@ -142,7 +142,13 @@ theorem physLink_of_inChain {ch : Fin NC → Chan} {i o : Fin NC} (h : InChain c
 link operators replaced by `InChain`: each link sits in a chain of B's physical links whose
 `Env1` is DERIVED by the assume-guarantee induction (`chain_env1`). Still assumed: `H_CELLS`
 for the other 192 operators, H_BUNDLE, H_CM_FORCED (C's), and, inside `InChain`, each
-chain's two end contracts (the classes of `head_classes` / `tail_classes`). -/
+chain's two end contracts (the classes of `head_classes` / `tail_classes`).
+CAVEAT (audit P12b, 2026-10-31): the chain hypothesis is a per-link existential. Nothing
+ties one link's chain to another's or to gcd_hw's real producer/consumer cells, and a
+chain-end contract holds whenever its end node is clean (`SelfAuditB9.seg_of_clean`). So
+"Env1 derived" is derived from per-link end contracts whose content equals Env1's; it is
+not a derivation from the netlist. The census chains of `head_classes`/`tail_classes`
+are not used by the proof. -/
 theorem gcd_hw_safe_chains (a b : Nat) (ch : Fin NC → Chan)
     (H_LINKS : ∀ (o : Fin NO) (i o' : Fin NC), opAt o = .link i o' → InChain ch i o')
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))
