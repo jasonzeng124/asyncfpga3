@@ -1026,3 +1026,8 @@ the Bwit wording. Link (untrusted mapping): xarbnet's b1Corr lo-end / hi-end mar
 arbOrd_of_transport's four rows for the point behaviours 'every arc at its band's lo end' and 'every arc at its hi
 end'; on gcd_hw slow/fast they hold on every reader of every arbiter (>= 51 / >= 59 ps), so those two point
 behaviours meet ArbOrd. Still not a witness (the rest of the gates' evaluation is not shown for them).
+### progress 14:29
+P15a leftovers answered: near-threshold QQuiet control added (feedback pin at the window edge: 1713/1713
+detected); the GLS run is not shown to be a SatPin(W) behaviour (SDF point delays not shown inside the prjxray
+bands) and ord_static's pairing is a superset, both now stated in glsq/README; FOR-RESEARCH 17 gains the
+no-witness / 'condition on the behaviour' caveat. HOWTO 5b was updated earlier today.

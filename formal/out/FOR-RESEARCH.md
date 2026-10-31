@@ -352,8 +352,9 @@ Graded list: `formal/notes/A-substrate.md`; fidelity table: FEASIBILITY.md.
 ## 17. bd_arbiter: two timing conditions the formal verdict now needs on gcd_hw — OPEN (2026-10-31)
 
 The corrected-core verdict for the routed control skeleton (`Core/XAudit/Events9FullArb.design_verdict9arbnet_ord`,
-checked) holds on 10 of 16 gcd_hw rows (R5, seeds d/3/4/5, slow/fast, gb 3/4) under two arbiter conditions
-that a GLS monitor or a board experiment can test:
+checked) meets every checked premise on 10 of 16 gcd_hw rows (R5, seeds d/3/4/5, slow/fast, gb 3/4); it then
+still assumes, among others, two arbiter conditions that a GLS monitor or a board experiment can test (no joint
+witness of all its hypotheses is known, and ArbOrd is a condition on the delay behaviour, not on the bands):
 
 - **ArbOrd (the grant's request pin vs ustate's request + q path).** At each grant/R0 reader, ustate's read of
   the request at the reader's q-read time must not be later than the reader's own request read 2 ps earlier.
