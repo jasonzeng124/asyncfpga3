@@ -541,3 +541,7 @@ BQ#2 seed 7 2x draw 2: errs 3 on vectors 7, 8, 12 (the same signature as seed 6 
 ### progress 03:38
 No new research claims (BQ#1 8-seed full stack in progress on their side); formal is unchanged since 5a1ee8d2.
 Started BQ#2 seed 3 route + SLOW_MAX full stack to close part of the UNVERIFIED d,3,4,5 row.
+
+### progress 04:28
+BQ#2 seed 3 SLOW_MAX (own route sdf e0d4202b, xray 97de94b9; no md5 recorded on research): 16/16 errs 0, no stalls,
+v6/v12/v13 28/23/32, inside the journal's "28-32". REPORT row updated.
