@@ -1745,3 +1745,29 @@ start once, H_CM_FORCED and out0 = 6 on the arbiter-gate-modelled run, by C's ch
 (kernel). BWit3Lib: combB, a checker for FCombSpec cells on event lists, with soundness
 (combB_spec): H_EXC_CLEAN holds because the excitation is the node one tick early
 (gph_shift of a clean list signal).
+
+### progress 11:58
+Bwit3 done (lake build OK: BWit3NDefs, BWit3NChk alone (728 s, peak RSS 11.0 GB), BWit3Net;
+#print axioms of the witness: propext, Classical.choice, Quot.sound only).
+**Problem, plainly:** is the gcd_hw theorem with the ARBITERS gate-modelled too
+(FiniteNetBoundA: 164 of 175 links bound on both sides) satisfiable by an actual run, or
+could its hypotheses be contradictory? **Answer (Lean):** `BWit3.bwit_okA : FGcdNetOKBA chB
+NBa LB nB` on the gate-timed run chB (a = 12, b = 18, every tied gate LUT 1 + wire 1-3), and
+`gcd_hw_fin_netBA_witness`: jointly with C's H_OTHER, H_BUNDLE, H_CM_FORCED and out0 = 6;
+`gcd_hw_fin_netBA_consistent` applies the theorem. Every arbiter cell on its real LUT:
+ustate q/R0 and ugrant g1/g2 by `combB` (their H_EXC_CLEAN discharged by checking the
+traces), ua1/ua2 by `maB` with a winner table.
+**Changed on the way:** H_ARBA is now FMuxASpec, not FCelSpec GC2. z_ack carries both
+clients' tokens, so ua_k's z_ack edge index must be mapped through the winner table; the
+GC2 form failed by #eval on exactly the 3 arbiters (171, 178, 180) whose z carries tokens
+from both clients on this run (winner tables by #eval: 167 [-], 169 [2], 171 [1,2],
+174 [-], 178 [1,2], 180 [1,2,1], 182 [2], 184 none, 185 [2]; "-" = one client-1 token).
+**Negative controls (#eval, tools-B/bwit/negctl_arb3.lean):** on arbiter 171 the real
+check passes; flipping winner-table entry 0 fails both maB checks; moving q's first edge
++1 tick fails combB qF; checking g1's node against g2's LUT fails.
+**Does NOT show:** a contested grant (no two requests race on this run, so H_EXC_CLEAN is
+never tight; the race-window content of ArbAMergeRun is not used); routed delays (unit
+LUTs, simulator wires); R = 2 only; muxn 4, fork trees 6, source 1 link sides still unbound.
+Memory: a kernel decide over several arbiters at once peaked 8.5 GB for 10 operators, so
+arbChk is one theorem per arbiter (barb_*), with barb_rest checking that every other
+operator passes arbChk trivially.

@@ -10,7 +10,7 @@ As `BWit2NDefs`, with every `bd_arbiter` gate-modelled too: cells `aq o` (`ustat
 `aR o` (`ustate` O5, R0), `ag o b` (`ugrant` g1/g2), `aa o b` (`ua1`/`ua2`); the drivers are
 `FiniteNetBoundA.reqSrcA`/`ackSrcA`; the internal nodes (mux joins, uor, udly[0], q, g1, g2) are
 generated lists, every other node is the channel signal it drives one tick early.
-Definitions and Boolean checks; kernel checks in `BWit2NChk`. Core Lean only.
+Definitions and Boolean checks; kernel checks in `BWit3NChk`. Core Lean only.
 -/
 
 namespace Formal.Cells.BWit3
@@ -297,10 +297,20 @@ def srtChk (o : Fin NO) : Bool :=
   sortedB (md0L.getD o.val []) && sortedB (aqL.getD o.val []) && sortedB (ag1L.getD o.val []) &&
   sortedB (ag2L.getD o.val [])
 
-def opChkB (n : Nat) : Bool :=
+/-- Every check of operator `n` but the arbiter's (checked one arbiter per theorem in
+`BWit3NChk`: a kernel decide over several arbiters at once exceeds this box's memory). -/
+def opChkN (n : Nat) : Bool :=
   if h : n < NO then
     lkChk ⟨n, h⟩ && faChkB ⟨n, h⟩ && jrChkB ⟨n, h⟩ && stChkB ⟨n, h⟩ && muxChk ⟨n, h⟩ &&
-    srtChk ⟨n, h⟩ && arbChk ⟨n, h⟩
+    srtChk ⟨n, h⟩
   else true
+
+def arbChkN (n : Nat) : Bool := if h : n < NO then arbChk ⟨n, h⟩ else true
+
+/-- gcd_hw's arbiters (operator indices); `BWit3NChk.barb_rest` checks the list is complete
+in the sense that every other operator passes `arbChk` trivially. -/
+def arbList : List Nat := [167, 169, 171, 174, 178, 180, 182, 184, 185]
+
+def opChkB (n : Nat) : Bool := opChkN n && arbChkN n
 
 end Formal.Cells.BWit3

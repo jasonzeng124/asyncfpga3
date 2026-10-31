@@ -1,4 +1,4 @@
-# Plan: binding the arbiter (amerge) into the driver-bound network (not done)
+# Plan: binding the arbiter (amerge) into the driver-bound network (done 2026-10-31; see status)
 
 2026-10-31, shard B. `FiniteNetBoundMCensus`: of the 39 link sides still unbound in
 `FiniteNetBoundM`, 28 end at an `amerge` (23 request sides: the arbiter's output `z.req = R0`; 5
@@ -47,3 +47,18 @@ modelled on a terminating run: `FiniteNetSrc.chW_src_unwired`); acknowledge side
 (muxn 4 and the fork trees 6 remain). The network theorem would then carry the arbiter's race
 conditions as explicit hypotheses, which is the digital-race content the owner asked for (PROGRAM
 item 4), now inside the gcd_hw theorem rather than beside it.
+
+## Status (2026-10-31, later the same day)
+
+Done as `FiniteNetBoundA` (theorem) and `BWit3*` (joint witness on one run), with two changes
+to the plan above:
+- `ustate`/`ugrant` are `FiniteNetComb.FCombSpec` cells: their real LUT (decoded from the INIT
+  words, `genF bd_arbiter`) plus ONE named hypothesis each, `H_EXC_CLEAN` (clean pins on
+  `[0, T)` give a clean excitation). The race windows are not split into per-epoch fields;
+  `H_EXC_CLEAN` is where they must be discharged. On the witness it is discharged by checking
+  the traces (`BWit3Lib.combB_spec`), which says nothing about a contested grant.
+- `ua1`/`ua2` are NOT `FCelSpec GC2`: `z_ack` carries both clients' tokens, so the C-element's
+  `z_ack` edge index must be mapped through a winner table (`FMuxASpec`, like a mux's
+  acknowledge). With `FCelSpec GC2` the checker failed on 3 of the 9 arbiters (171, 178, 180,
+  the ones whose `z` carries tokens from both clients on this run).
+Census: 164 of 175 links bound on both sides (request side complete but for the source).
