@@ -773,3 +773,7 @@ The 2x log-normal failure was already reproduced in r19 (s2x_logn). Started: my 
 ### progress 19:26
 Axiom audit of formal 2f2e632d COMPLETE: AUDIT-PAR constants=119323 bad=0 no_result=0 modules=1058. BQ#3 seed 9 route reproduced
 (sdf 74511ca2, xray 7214582a); log-normal 1.5x sim running.
+
+### progress 20:13
+BQ#3 seed 9 log-normal 1.5x: 16/16 errs 0, no stalls. With r19's log-normal 2x FAIL, research's "threshold 1.5-2x" is
+CONFIRMED.
