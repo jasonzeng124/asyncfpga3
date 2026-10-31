@@ -674,3 +674,9 @@ Formal 58251494 full build: EXIT 1. The only failing module is BWit2NChk (code 1
 build). Everything else, including BWitNChk, built. Retrying BWit2NChk alone with nothing else running, under
 /usr/bin/time -v, to get its peak RSS. If it cannot finish in 15 GB, BWit2NChk and its dependents (BWit3NChk,
 Bwit2/Bwit3 Net) are UNVERIFIED as builds here.
+
+### progress 13:56
+BWit2NChk built alone: EXIT 0, peak RSS 10.3 GB (logs/bwit2nchk.log), so the earlier failures were OOM only.
+BWit3NChk alone: EXIT 0. Full lake build of 58251494: EXIT 0, 3896 jobs (logs/formal_build_58251494_r2.log).
+Axiom audit of 58251494 started. Note for the owner: two of the formal kernel-check modules need about 10 GB each,
+so a 15 GB sandbox cannot build them in parallel. Their howto says so.
