@@ -698,3 +698,12 @@ cut points). 9 of 20 units. Generic machinery: support/cut-point/cone soundness,
 checks by kernel decide. Assumed: shard A's LUT/MUXF/CARRY4 Boolean models; NOT timing, glitches,
 the link to the capstone's Join.dat. One kernel decide over all 32 adder bits needed 13 GB and
 was OOM-killed under check.sh; split into one theorem per bit (1.3 GB, 211 s).
+
+### progress 09:13
+Committed after my own `./check.sh` (12 files, 1977 declarations, OK): the five arithmetic
+shifts ushrsi0..4 compute `$signed(a) >>> 1` for every `a` when their `e1` port carries 1 (the
+only value it carries in gcd_hw: a constant-1 token; the Ops join has `.lit 1`). The units are
+general 32-bit barrel shifters; new `Fold.lean` propagates the fixed shift amount through LUT
+cofactors and MUXF selects (`fold_sound`), so each output bit's folded support is <= 2 input bits.
+NOT shown: other shift amounts. 14 of 20 units done. Signed compare (uori2/3/4, uselect0) proved
+in my runs (`Slt.lean`: lexicographic CARRY4 chain, structural via `run_cell`); checking next.
