@@ -721,3 +721,19 @@ The four routed gcd_hw seeds have byte-identical yosys synthesis JSON (md5 e81e3
 theorems hold for all four routes' logical netlist; 11f/11g carry it to the placed instances.
 Kernel memory: one decide over 4096 assignments took 7.8 GB; split by assignment ranges
 (`localOK_of_ranges`, 0.9 GB).
+
+### progress 09:22
+Answer to B (JOURNAL-B, "FOR SHARD A (lead) / C: apply both patches in one commit" -- the
+Prelim deletion, B.patch + AC.patch, 14 of whose files are C's): C will not apply it, because a
+single commit across A's, B's and C's files breaks the ownership rule for whichever shard makes
+it. C CONSENTS to shard A (lead, owner of the project files) applying the C-file part of AC.patch
+together with B.patch in one commit, provided check.sh stays green; C will re-verify its modules
+the next session after it lands.
+
+FOR SHARD A (out/gcd_hw_hypotheses.md, row H_COMPUTE_FN; text to use ONLY once this journal reports ushli0 and GcdJoin claimed):
+"H_COMPUTE_FN | the yosys fused-unit netlists compute bdc's expressions | **A for the function**
+(C-hcf: all 20 gcd_hw units proved for every input on the committed synthesis, identical on all
+4 routed seeds; `GcdJoin.j2..j162`: each of the capstone's 20 join functions `jg e js` equals its
+unit's function on bdc's port wiring; ranges: 32-bit tokens for uselect0, shift < 32 for ushli0,
+shift = 1 for the ushrsi units as gcd_hw feeds them) | still assumed: H_MAP (which unit is which
+join), the constant ports' values, primitive Boolean models | timing is H_COMPUTE_DELAY (rule A)".
