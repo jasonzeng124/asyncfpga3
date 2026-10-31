@@ -80,3 +80,25 @@ the netlist names; C's operator models hold on the same channels; out0 carries 6
 **Not covered:** one run, unit LUT delays, chosen wire delays (no delay band, windows of width 0),
 R = 2; contract cells at untied operators; the theorem still assumes C's H_OTHER for the 192
 non-link operators.
+
+## Muxes too (2026-10-31, later): `FiniteNetBoundM`, witness `BWit2Net`
+
+**Problem statement.** The most common unbound link side was a `bd_mux`. Can the muxes be
+gate-modelled and bound as well, and is the result still satisfiable together with C's
+hypotheses?
+
+**Assumed (`FGcdNetOKBM`).** `FGcdNetOKB`'s fields with the drivers of `reqSrcM`/`ackSrcM`
+(mux output request <- its last `udly` buffer; mux data acknowledges <- `uxa`/`uya`; the control
+acknowledge is `z_ack`, so <- `z`'s driver), plus Bmn's specs of each mux's 7 cells (2 joins, 2
+acknowledges, `uor`, 2 buffers) with their internal pins bound (uor <- joins, udly[0] <- uor,
+udly[1] <- udly[0], uxa/uya <- their join), H_TIMES at existing edges.
+
+**Proved.** `bound_censusM`: 124 of 175 links bound on both sides (25 request only, 25 acknowledge
+only, 1 neither). `gcd_hw_safe_fin_netBM`: C's gcd_hw safety under `FGcdNetOKBM` + C's H_OTHER,
+H_BUNDLE, H_CM_FORCED. `BWit2Net.gcd_hw_fin_netBM_witness`: all of these hold jointly on a
+gate-timed run (`BWit2Data`, from `tools-B/bwit/bsim2.py`; out0 = 6), with every mux cell checked
+on its real LUT function by kernel (`BWit2Lib`: `mjB`, `maB`, `bufB`; `orB` for uor).
+
+**NOT covered.** As for `BWitNet`: one run, unit LUT delays, wire delays 1-3 chosen by the
+simulator, R = 2; contract cells remain at muxn, amerge, sources, sinks, 1-input joins and fork
+trees; C's H_OTHER (192 non-link operators) is still a hypothesis of the theorem.
