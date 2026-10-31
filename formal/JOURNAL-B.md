@@ -1737,3 +1737,11 @@ the mux-extended one (bindings agree wherever M names a driver; the arbiter cell
 from fcomb_spec_cell / fcel_spec_cell); gcd_hw_safe_fin_netBA. NO joint witness yet (Python
 evidence bsim3.py); H_EXC_CLEAN is where the race windows (ArbAMergeRun's H_SEP, RA1, Rows)
 must come in, and it is assumed, not derived, here.
+
+### progress 11:19
+Bwit3 steps 2-3 (lake build OK): BWit3Data (gen_cdata3.py --check ok; bsim3 with q
+powering up 0 and set by reset, as B's model has it) + BWit3Cells: C's H_CELLS, H_BUNDLE,
+start once, H_CM_FORCED and out0 = 6 on the arbiter-gate-modelled run, by C's checkers
+(kernel). BWit3Lib: combB, a checker for FCombSpec cells on event lists, with soundness
+(combB_spec): H_EXC_CLEAN holds because the excitation is the node one tick early
+(gph_shift of a clean list signal).

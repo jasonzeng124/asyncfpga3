@@ -45,7 +45,7 @@ def simulate(a, b, names, ops, tmax=100000):
         if tiedfork(o) or tiedjoin(o): nd[n] = [False]
         if steer(o): nd[n] = [False, False, False]
         if o["k"] == "mux": nd[n] = [False] * 7   # j0 j1 or d0 d1 xa ya
-        if o["k"] == "amerge": nd[n] = [True, False, False, False, False, False]  # q R0 g1 g2 a1 a2 (q reset to 1)
+        if o["k"] == "amerge": nd[n] = [False] * 6  # q R0 g1 g2 a1 a2 (power-up 0; reset sets q)
     jh = {n: [] for n, o in enumerate(ops) if o["k"] == "mux"}   # history of B's j nodes
     ndp = {n: list(v) for n, v in nd.items()}
     latch = {o["o"]: 0 for o in ops if o["k"] == "link"}
@@ -125,7 +125,8 @@ def simulate(a, b, names, ops, tmax=100000):
                 x, y, z = o["x"], o["y"], o["z"]
                 q = nd[n]; p = ndp[n]          # p[0]: the q pin (wire 1 from the q node)
                 r1, r2, A0, qp = req[x], req[y], ack[z], p[0]
-                if A0: nq = q[0]                # frozen while A0 is high (INIT upper half 0xFFF0)
+                if t < 2: nq = True             # rst (rst2: t < 2) sets q (INIT rows with I3 = 1)
+                elif A0: nq = q[0]              # frozen while A0 is high (INIT upper half 0xFFF0)
                 elif r1 and not r2: nq = True
                 elif r2 and not r1: nq = False
                 else: nq = q[0]
