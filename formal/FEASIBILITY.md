@@ -8,7 +8,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
 **2026-10-31 (lead), where things stand** (rewritten after audit pass 15 and the SatPinW change).
-- Whole-project `check.sh` OK (lake build, 73,186 library declarations, standard axioms). Formal/Cells/Prelim is
+- Whole-project `check.sh` OK (lake build, 73,391 library declarations, standard axioms). Formal/Cells/Prelim is
   deleted (Phase 1 done).
 - **gcd correctness is still conditional and not composed end to end.** C's capstone (`gcd_hw_circuit_safe3`: every
   out0 latch is gcd, for the concrete 465-channel network) rests on H_CELLS, H_BUNDLE, H_START_ONCE; B has joint
@@ -16,8 +16,11 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   not yet linked into the capstone). Nothing yet derives H_CELLS/H_BUNDLE from the routed netlist.
 - **Routed control skeleton (A).** The corrected-arbiter-core verdicts (`Core/XAudit/Events9FullArb`) no longer
   assume the refuted HARB7: each arbiter is checked at its real LUTs, and what remains is named: ArbEdge (quiet
-  start, settle bound, the per-reader edge windows; QClean derived from quiet input reads after reset) and, for the
-  gcd_hw form, ArbOrd. The verdicts now take a behaviour WITH its warps (`SatPinW`), so these are conditions on the
+  start, settle bound, the per-reader edge windows) and, for the gcd_hw form, ArbOrd. Reductions proved on 10-31:
+  QClean from quiet input reads after reset (`qcleanFrom_of_quiet`), the quiet start from quiet requests
+  (`arb_low_of_reqlow`), the C window replaced by a pointwise condition (`design_verdict9arbnet_ordSP`), the settle
+  limit raised from ~1 s to ~1000 s (ctl band 10^15). Research-GLS evidence (`tools-A/xaudit/glsq`, untrusted): these
+  hold with margin on seed 4 (the band C window was 5 ps short at one reader; the pointwise form is not). The verdicts now take a behaviour WITH its warps (`SatPinW`), so these are conditions on the
   delay behaviour the user supplies. ipow 3/5 and xorshift 5/8/9 (slow/fast) meet every checked premise of the form
   without ArbOrd. On gcd_hw, 10 rows meet every checked premise of the ArbOrd form; ArbOrd holds for fixed-delay
   behaviours meeting four path rows (`arbOrd_of_transport`), not for every behaviour in the bands, and it failed in
