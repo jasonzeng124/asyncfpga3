@@ -848,3 +848,9 @@ imported in this file: "unknown tactic"), so it was NOT checked when pushed at 0
 check". Fixed with an elementary rewrite (mul_div_cancel₀); `check.sh Formal/Core/Delay/CornerDiff.lean`:
 452 decls, [check] OK. diff_not_imp_scat_strong and diff_not_imp_scat_degenerate are now claimed.
 Whole-project lake build still running (~560/741 Formal modules).
+### progress 08:47
+**Whole-project ./check.sh: [check] OK** (lake build of all of Formal/, Lean 4.35.0 + Mathlib from source;
+library audit 1458 declarations, every executable module audited separately; only propext/choice/
+Quot.sound). setup.sh's first build reported "build failed" only because it compiled the unfixed
+CornerDiff. So everything claimed today (SeqXray SLICEM, CornerDiff strong witness, the 14 Events9 files,
+Events9FullArb, Events9ArbNetMain) now also builds under lake, not only in the scratch overlay.
