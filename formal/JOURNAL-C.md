@@ -686,3 +686,15 @@ equals its MLIR op): survey of gcd_hw's 20 fused units from the synth JSON -- pe
 uori0/1 and ucmpi2/3 depend on <= 2 input bits; the adders/compares/selects/shifts on up to
 64. Writing Formal/Net/Compute/Basic.lean (cell semantics on shard A's CARRY4/MUXF models,
 support soundness, cut-point soundness, exhaustive local checks).
+
+### progress 08:27
+H_COMPUTE_FN started and partly discharged (notes/C-hcf-compute.md). Committed after my own
+`./check.sh` (16 files, 1812 declarations, axioms standard, OK): Formal/Net/Compute/{Basic,Word,
+Adder,EqZero,GcdBitwise,GcdAdd,GcdEqZero} + generated Formal/Gen/Compute/GcdD/* (extractor
+tools/compute/extract.py, drift check tools/compute/gen.sh --check). Proved for EVERY input, on
+the committed yosys synthesis of gcd_hw: uori0/uori1 = e0|e1, ucmpi2/ucmpi3 (1-bit compares),
+ucmpi0/1/8/10 = (e0 == 0), uaddi0 = e0+e1 mod 2^32 (ripple adder with the CARRY4 carry-outs as
+cut points). 9 of 20 units. Generic machinery: support/cut-point/cone soundness, exhaustive local
+checks by kernel decide. Assumed: shard A's LUT/MUXF/CARRY4 Boolean models; NOT timing, glitches,
+the link to the capstone's Join.dat. One kernel decide over all 32 adder bits needed 13 GB and
+was OOM-killed under check.sh; split into one theorem per bit (1.3 GB, 211 s).
