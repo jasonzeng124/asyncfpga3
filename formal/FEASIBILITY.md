@@ -7,7 +7,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
-**2026-10-31 (lead), in one paragraph.** Whole-project `check.sh` OK (lake build, 64,216 library declarations,
+**2026-10-31 (lead), in one paragraph.** Formal/Cells/Prelim is deleted (Phase 1 done; every cell proof is on Core.LutList). Whole-project `check.sh` OK (lake build, 64,216 library declarations,
 standard axioms). The routed-timing verdict on the corrected arbiter core no longer assumes the refuted HARB7:
 the arbiter is checked at its real LUTs, and what remains about it is named (ArbEdge: quiet start, settle bound,
 edge windows, and QClean, now derived from quiet input reads; ArbOrd, the in-corner spread). Under those, every
