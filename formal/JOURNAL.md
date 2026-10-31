@@ -1052,3 +1052,8 @@ NEXT for A, in order of value:
 3. The remaining ArbEdge fields (quiet start, settle bound, edge windows) from checked rows or GLS monitors that
    match the Lean statement exactly (glsq lesson: check the window algebra against the definition first).
 4. Link the skeleton verdict to C's H_BUNDLE/H_CELLS (goal 2 composition).
+### progress 14:33
+Events9ArbB1.arb_low_of_reqlow (check.sh OK): at an ArbOK arbiter, both request wires low on [0, T0+2] give
+ArbEdge's 'low' field (grants and R0 low there) from the real INITs, whatever q is. So the quiet start reduces to
+an environment condition on the requests. (On the corrected GLS run the first grant rises ~40 ns after reset
+release, consistent with this.) The settle bound and the per-reader edge windows remain assumed.

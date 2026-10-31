@@ -710,4 +710,53 @@ theorem arbOrd_of_transport {D : Nat → Nat → Nat} (hD : ∀ gi i t, wf hsat 
 
 end
 
+/-! ## ArbEdge's quiet start from quiet requests -/
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+include hsat h0 h1
+
+/-- **`arb_low_of_reqlow`**: at an `ArbOK` arbiter, if both request wires are low on `[0, T0 + 2]`, then
+the two grants and `R0` are low there (ArbEdge's `low` field), whatever `q` is: `g1 = r1·q`, `g2 = r2·¬q`,
+`R0 = r1·q + r2·¬q` from the real INITs, each request read no later than the reader's time. -/
+theorem arb_low_of_reqlow {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T0 : Nat}
+    (hreq : ∀ t, t ≤ T0 + 2 → r1S (x := x) a t = false ∧ r2S (x := x) a t = false) :
+    ∀ t, t ≤ T0 + 2 → g1S (x := x) a t = false ∧ g2S (x := x) a t = false ∧ R0S (x := x) a t = false := by
+  obtain ⟨r11, r1q, s1, r22, r2q, s2, rR1, rR2, rRq, sR, _⟩ := hA
+  have wP : ∀ {gi i w : Nat} {p : Path}, RdP d fuel gi i p w → Warp (plo d ((gi, i) :: p)) (phi d ((gi, i) :: p))
+      (tau hsat ((gi, i) :: p)) := fun h => tau_warp hsat _ h.2.2.1
+  intro t ht
+  have l1 := (wP r11).le_late t
+  have l2 := (wP r22).le_late t
+  have l3 := (wP rR1).le_late t
+  have l4 := (wP rR2).le_late t
+  have e1 : r1S (x := x) a (tau hsat ((a.gG1, a.i1g1) :: a.p1g1) t) = false := (hreq _ (by omega)).1
+  have e2 : r2S (x := x) a (tau hsat ((a.gG2, a.i2g2) :: a.p2g2) t) = false := (hreq _ (by omega)).2
+  have e3 : r1S (x := x) a (tau hsat ((a.gR, a.i1R) :: a.p1R) t) = false := (hreq _ (by omega)).1
+  have e4 : r2S (x := x) a (tau hsat ((a.gR, a.i2R) :: a.p2R) t) = false := (hreq _ (by omega)).2
+  refine ⟨?_, ?_, ?_⟩
+  · unfold g1S
+    rw [gate_spec hsat h0 h1 r11.1 s1 t]
+    simp only
+    rw [rdP_val hsat h0 h1 r11 t]
+    show (r1S (x := x) a (tau hsat ((a.gG1, a.i1g1) :: a.p1g1) t) && _) = false
+    rw [e1]; rfl
+  · unfold g2S
+    rw [gate_spec hsat h0 h1 r22.1 s2 t]
+    simp only
+    rw [rdP_val hsat h0 h1 r22 t]
+    show (r2S (x := x) a (tau hsat ((a.gG2, a.i2g2) :: a.p2g2) t) && _) = false
+    rw [e2]; rfl
+  · unfold R0S
+    rw [gate_spec hsat h0 h1 rR1.1 sR t]
+    simp only
+    rw [rdP_val hsat h0 h1 rR1 t, rdP_val hsat h0 h1 rR2 t]
+    show ((r1S (x := x) a (tau hsat ((a.gR, a.i1R) :: a.p1R) t) && _) ||
+      (r2S (x := x) a (tau hsat ((a.gR, a.i2R) :: a.p2R) t) && _)) = false
+    rw [e3, e4]; rfl
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet
