@@ -721,3 +721,7 @@ and stopped at 3379/3899; restarted (logs: formal_build_464c5ea7_r2). The P17 su
 transcript; its partial P17.md (summary: SatPinW fix CONFIRMED structurally but ArbOrd still assumed on every gcd_hw
 row; corrected glsq monitors match the Lean windows; Bwit4 and the 173/175 census CONFIRMED; no theorem lost in the
 Prelim deletion) is committed. BQ#1 d 1x was already recorded.
+
+### progress 17:16
+Formal 464c5ea7 build: NChk modules (first log) + resumed full build EXIT 0, 3899 jobs. kwgrep 1 identifier hit. Axiom
+audit of 1058 modules started. P17 subagent still running.

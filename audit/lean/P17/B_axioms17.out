@@ -1,0 +1,56 @@
+Formal.Cells.BWit.bop_all : ∀ (o : Fin Formal.Net.CapNet.Gcd.NO), Formal.Cells.BWit.opChkB ↑o = true
+Formal.Cells.BWit2.bop_all : ∀ (o : Fin Formal.Net.CapNet.Gcd.NO), Formal.Cells.BWit2.opChkB ↑o = true
+Formal.Cells.BWit3.bopN_all : ∀ (o : Fin Formal.Net.CapNet.Gcd.NO), Formal.Cells.BWit3.opChkN ↑o = true
+Formal.Cells.BWit4.bopN_all : ∀ (o : Fin Formal.Net.CapNet.Gcd.NO), Formal.Cells.BWit4.opChkN ↑o = true
+Formal.Cells.BWit4.bw_all : ∀ (c : Fin Formal.Net.CapNet.Gcd.NC), Formal.Cells.BWit4.wireChk ↑c = true
+Formal.Cells.BWit4.barb_all : ∀ (o : Fin Formal.Net.CapNet.Gcd.NO), Formal.Cells.BWit4.arbChk o = true
+'Formal.Cells.BWit.bop_all' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.BWit2.bop_all' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.BWit3.bopN_all' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.BWit4.bopN_all' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.BWit4.bop_k0' depends on axioms: [propext]
+'Formal.Cells.BWit4.bop_k24' depends on axioms: [propext]
+Formal.Cells.BWit4.gcd_hw_fin_netBT_witness : ∃ ch N L n,
+  Formal.Cells.FiniteNetBoundT.FGcdNetOKBT ch N L n ∧
+    (∀ (o : Fin Formal.Net.CapNet.Gcd.NO),
+        Formal.Cells.LutFbBridge2Env.isLink (Formal.Net.CapNet.Gcd.opAt o) = false →
+          Formal.Net.CapNet.Cell ch (Formal.Net.CapNet.srcV 12 18) (Formal.Net.CapNet.Gcd.opAt o)) ∧
+      (∀ (c : Fin Formal.Net.CapNet.Gcd.NC), Formal.Net.Ops.Held (ch c)) ∧
+        (∃ y,
+            Formal.Net.CapSafe.Good 12 18 y ∧
+              ∀ (o : Fin Formal.Net.CapNet.Gcd.NO),
+                Formal.Net.CapNet.Forced ch (Formal.Net.CapNet.Gcd.omOf 12 18 y) (Formal.Net.CapNet.Gcd.opAt o)) ∧
+          ∃ k e,
+            Formal.Net.Handshake.TokAt (ch Formal.Net.CapNet.Gcd.out0) k e ∧ (ch Formal.Net.CapNet.Gcd.out0).dat e = 6
+'Formal.Cells.BWit4.bwit_okT' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.BWit4.gcd_hw_fin_netBT_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.BWit4.gcd_hw_fin_netBT_consistent' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.BWit3.gcd_hw_fin_netBA_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.BWit2.gcd_hw_fin_netBM_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.BWit.gcd_hw_fin_netB_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+Formal.Cells.FiniteNetBoundN.gcd_hw_safe_fin_netBN : ∀ (a b : Nat)
+  (ch : Fin Formal.Net.CapNet.Gcd.NC → Formal.Net.Handshake.Chan) (N : Formal.Cells.FiniteNetBoundN.FGcdNetN)
+  (L : N.ι → Nat → Prop) (n : N.ι → Nat),
+  Formal.Cells.FiniteNetBoundN.FGcdNetOKBN ch N L n →
+    (∀ (o : Fin Formal.Net.CapNet.Gcd.NO),
+        Formal.Cells.LutFbBridge2Env.isLink (Formal.Net.CapNet.Gcd.opAt o) = false →
+          Formal.Net.CapNet.Cell ch (Formal.Net.CapNet.srcV a b) (Formal.Net.CapNet.Gcd.opAt o)) →
+      (∀ (c : Fin Formal.Net.CapNet.Gcd.NC), Formal.Net.Ops.Held (ch c)) →
+        (∃ y,
+            Formal.Net.CapSafe.Good a b y ∧
+              ∀ (o : Fin Formal.Net.CapNet.Gcd.NO),
+                Formal.Net.CapNet.Forced ch (Formal.Net.CapNet.Gcd.omOf a b y) (Formal.Net.CapNet.Gcd.opAt o)) →
+          (∀ (k e : Nat),
+              Formal.Net.Handshake.TokAt (ch Formal.Net.CapNet.Gcd.out0) k e →
+                (ch Formal.Net.CapNet.Gcd.out0).dat e = a.gcd b) ∧
+            ∀ (t : Nat),
+              Formal.Net.Ops.closedVals (ch Formal.Net.CapNet.Gcd.out0) t =
+                List.replicate
+                  (Formal.Net.Handshake.cnt (Formal.Net.Handshake.fallB (ch Formal.Net.CapNet.Gcd.out0).ack) t)
+                  (a.gcd b)
+'Formal.Cells.FiniteNetBoundN.bound_censusN' depends on axioms: [propext]
+'Formal.Cells.FiniteNetBoundN.gcd_hw_safe_fin_netBN' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.FiniteNetBoundN.FGcdNetOKBN.toOKBT' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.FiniteNetBoundT.bound_censusT' depends on axioms: [propext]
+173
+170

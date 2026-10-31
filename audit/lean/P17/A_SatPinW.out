@@ -1,0 +1,42 @@
+SatPinW : (d : Design) → Events2Pin.PinTab → (Fin d.n → Sig) → Type
+@ArbOrd : {N : Nat} → {d : Design} → {x : Fin d.n → Sig} → SatPinW d plG x → ArbD N → Nat → Prop
+@arbOrd_of_transport : ∀ {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) {D : Nat → Nat → Nat},
+  (∀ (gi i t : Nat), wf hsat gi i t = t - D gi i) →
+    ∀ (a : ArbD N) {T0 : Nat},
+      pathD D (P1g1 a) + pathD D (P2g2 a) + pathD D (P1R a) + pathD D (P2R a) + pathD D (P1Q a) + pathD D (P2Q a) +
+                  pathD D (Pqg1 a) +
+                pathD D (Pqg2 a) +
+              pathD D (PqR a) +
+            4 ≤
+          T0 →
+        pathD D (P1g1 a) + 2 ≤ pathD D (P1Q a) + pathD D (Pqg1 a) →
+          pathD D (P2g2 a) + 2 ≤ pathD D (P2Q a) + pathD D (Pqg2 a) →
+            pathD D (P1R a) + 2 ≤ pathD D (P1Q a) + pathD D (PqR a) →
+              pathD D (P2R a) + 2 ≤ pathD D (P2Q a) + pathD D (PqR a) → ArbOrd hsat a T0
+@arb_low_of_reqlow : ∀ {N : Nat} {d : Design} {net : Events5.Net4 N} {b : Events5.Bands4 net} {rn : Fin N → RNode}
+  {fuel rw : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x),
+  (∀ (t : Nat), x (d.wire 0) t = false) →
+    (∀ (t : Nat), x (d.wire 1) t = true) →
+      ∀ {a : ArbD N},
+        ArbOK d net b rn fuel rw a →
+          ∀ {T0 : Nat},
+            (∀ (t : Nat), t ≤ T0 + 2 → r1S a t = false ∧ r2S a t = false) →
+              ∀ (t : Nat), t ≤ T0 + 2 → g1S a t = false ∧ g2S a t = false ∧ R0S a t = false
+'AuditP17A.arbOrd_congr' depends on axioms: [propext]
+'AuditP17A.arbOrd_transport_iff' depends on axioms: [propext, Quot.sound]
+'AuditP17A.arbOrd_lo_iff' depends on axioms: [propext, Quot.sound]
+'AuditP17A.arbOrd_hi_iff' depends on axioms: [propext, Quot.sound]
+'AuditP17A.b1Corr_eq' depends on axioms: [propext]
+'Formal.Core.XAudit.Events9ArbNet.arbOrd_of_transport' depends on axioms: [propext, Quot.sound]
+'Formal.Core.XAudit.Events9ArbNet.arb_low_of_reqlow' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_ord' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_ordq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_ordS' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9_full_arb' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_edge' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
