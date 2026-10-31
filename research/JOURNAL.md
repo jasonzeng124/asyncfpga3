@@ -1805,3 +1805,7 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 - Consequence: stop adding 2x linear draws (the ones running finish). A failure at 2x ranks a route's exposure but
   is not evidence of a board risk. If robustness margins are wanted, scan the scale per draw with log-normal
   factors (GLS_SCATTER_LOGN=1) and report the failing scale, as the 2026-10-29 bisection did for seed 9 (~1.33x).
+### progress 02:53 (2x sweeps stopped; BQ#1 8-seed full stack started)
+- Stopped the remaining 2x linear draws (low value, above). Started BOARD-QUEUE #1 (fusion on, v4, select pads; the
+  first board candidate) on the full stack: seeds d,3-9 x FAST_MIN/SLOW_MAX, resolver 055edd7. Its full-stack
+  record so far is one route (bq1_max 16/12/18 laps, fullstack.md). Default-seed sdf should be 6f8b99e6.
