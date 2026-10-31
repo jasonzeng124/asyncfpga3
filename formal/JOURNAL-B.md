@@ -1845,3 +1845,13 @@ NChk modules rebuilt one at a time: BWitNChk 386 s, BWit2NChk 495 s, BWit3NChk 7
 BWit4NChk 725 s), so the docstring-only commit fe2b0079 builds.
 (3) notes/B-muxn-bind-plan.md: the last unbound gate class is ONE muxn (op 163): its three
 input acknowledges and its control acknowledge (a wire from z.ack, z feeding a sink).
+
+### progress 14:46
+Kernel-check memory: the auditor's full build of 58251494 OOM-killed BWit2NChk (it built
+alone at 10.3 GB), so the import chain alone is not enough when other shards' modules build
+in parallel. Measured (scratch, BWit4 data): one decide over 60 operators peaks 7.1 GB RSS,
+over 20 operators 3.8 GB, the 240-channel wire chunk 2.6 GB, and memory is released between
+declarations. All four NChk modules now check operators in 25 chunks of 15 (bop_k0..bop_k24;
+bop_all by a chunk-index match). Rebuilt in sequence (lake build of the four Net modules,
+EXIT 0, 162 jobs): BWitNChk 405 s, BWit2NChk 458 s, BWit3NChk 652 s, BWit4NChk 708 s; peak
+RSS over the whole build 4.9 GB (was 11.2 GB).
