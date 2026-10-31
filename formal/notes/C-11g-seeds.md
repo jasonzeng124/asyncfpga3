@@ -196,3 +196,58 @@ kept.
       [audit] 2942 declarations checked
       [check] OK
     kcheck xorshift PASS
+
+### gcd_hw d,2,3,4: `formal/tools/fasm2lean3/check.sh` (full, with Lean), 2026-10-31: PASS (rc 0)
+
+    == 0. toolchain ==
+      seed 2: nextpnr 9c732bc6303458df, toolchain.sh ok, 4 clocks PASS at --freq 100, fasm_audit PASS
+      seed 3: nextpnr 9c732bc6303458df, toolchain.sh ok, 4 clocks PASS at --freq 100, fasm_audit PASS
+      seed 4: nextpnr 9c732bc6303458df, toolchain.sh ok, 4 clocks PASS at --freq 100, fasm_audit PASS
+      seed d: nextpnr 9c732bc6303458df, toolchain.sh ok, 4 clocks PASS at --freq 100, fasm_audit PASS
+    == 1. bits -> physical netlist -> paired with yosys; Python mirror of the check ==
+      seed 2: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 8925, 'fdre': 306, 'fdse': 20, 'muxf8': 343, 'muxf7': 857, 'carry4': 59, 'buf': 18, 'opaque:BSCAN': 1}; 2 outputs; 0 reads of all-zero LUT
+      seed 2: 10633 insts in 43 chunks, rho 13911, logical 9623 (9622 matched), physical 10529 (0 unused), 1143 route-through outputs, max supp 9
+      seed 2: check3: 10633 instances, 0 fail
+      seed 3: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 8925, 'fdre': 306, 'fdse': 20, 'muxf8': 343, 'muxf7': 857, 'carry4': 59, 'buf': 16, 'opaque:BSCAN': 1}; 2 outputs; 1 reads of all-zero LUT
+      seed 3: 10631 insts in 43 chunks, rho 13909, logical 9623 (9622 matched), physical 10527 (0 unused), 1141 route-through outputs, max supp 9
+      seed 3: check3: 10631 instances, 0 fail
+      seed 4: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 8925, 'fdre': 306, 'fdse': 20, 'muxf8': 343, 'muxf7': 857, 'carry4': 59, 'buf': 17, 'opaque:BSCAN': 1}; 2 outputs; 0 reads of all-zero LUT
+      seed 4: 10632 insts in 43 chunks, rho 13910, logical 9623 (9622 matched), physical 10528 (0 unused), 1142 route-through outputs, max supp 9
+      seed 4: check3: 10632 instances, 0 fail
+      seed d: same physical netlist from nextpnr's FASM and from the .bit ({'lut6_2': 8925, 'fdre': 306, 'fdse': 20, 'muxf8': 343, 'muxf7': 857, 'carry4': 59, 'buf': 14, 'opaque:BSCAN': 1}; 2 outputs; 0 reads of all-zero LUT
+      seed d: 10629 insts in 43 chunks, rho 13907, logical 9623 (9622 matched), physical 10525 (0 unused), 1139 route-through outputs, max supp 9
+      seed d: check3: 10629 instances, 0 fail
+    == 2. drift (every seed; rho certificates of seed d) ==
+      Formal/Net/FasmDesign/Gcd2/*.lean up to date
+      Formal/Net/FasmDesign/Gcd3/*.lean up to date
+      Formal/Net/FasmDesign/Gcd4/*.lean up to date
+      Formal/Net/FasmDesign/GcdD/*.lean up to date
+      rhoinj: Gcd2 rho 13911, route-through outputs 1143, non-rt nets 12768, logical pin nets 12768, uncovered 0, not on a logical cell 0
+      rhoinj: Gcd3 rho 13909, route-through outputs 1141, non-rt nets 12768, logical pin nets 12768, uncovered 0, not on a logical cell 0
+      rhoinj: Gcd4 rho 13910, route-through outputs 1142, non-rt nets 12768, logical pin nets 12768, uncovered 0, not on a logical cell 0
+      rhoinj: GcdD rho 13907, route-through outputs 1139, non-rt nets 12768, logical pin nets 12768, uncovered 0, not on a logical cell 0
+      Formal/Net/FasmRho{D,2,3,4}*.lean checked against rhoinj.py
+    == 3. Lean ==
+    Gcd2 built
+    Gcd3 built
+    Gcd4 built
+    GcdD built
+      [check] textual scan
+      [check] axiom audit
+      [audit] 5910 declarations checked
+      [check] OK
+    == 4. negative controls in the bits (seed d) ==
+      init: caught by check3 (mutate3: CLBLM_R_X1Y63.SLICEM_X0.ALUT.INIT INIT bit 0 flipped): FAIL C000.lean[104] SLICE_X0Y63.ALUT / urig.udut.ulink_n155__1.ctl.u.u: O6/O differ at {849: False, 2342: False, 3261: False, 3302
+      init: Lean proves checkAll rho insts = false (Wip/C11f/MutInit.lean)
+      pips: caught by check3 (mutate3: pin A2: INT_R_X1Y63.IMUX2.SR1BEG_S0 -> INT_R_X1Y63.IMUX2.EE2END1): FAIL C000.lean[104] SLICE_X0Y63.ALUT / urig.udut.ulink_n155__1.ctl.u.u: O6/O differ at {849: False, 2342: True, 3261: 
+      pips: Lean proves checkAll rho insts = false (Wip/C11f/MutPips.lean)
+      ffinit: caught by check3 (mutate3: toggled CLBLL_L_X16Y62.SLICEL_X0.AFF.ZINI): FAIL C012.lean[78] SLICE_X22Y62.AFF / $auto$ff.cc:337:slice$5408: kind/init fdre fdre 1 0
+      ffinit: Lean proves checkAll rho insts = false (Wip/C11f/MutFfinit.lean)
+      clkinv: caught by check3 (mutate3: CLBLL_L_X16Y62.SLICEL_X0.CLKINV): FAIL C012.lean[78] SLICE_X22Y62.AFF / $auto$ff.cc:337:slice$5408: Q/Q differ at {1019: False, 1127: False, 1128: False, 12778: True}: phys T
+      clkinv: Lean proves checkAll rho insts = false (Wip/C11f/MutClkinv.lean)
+    fasm2lean3 check PASS
+    rc=0
+
+### xorshift 1-4: `kcheck.sh xorshift` re-run 2026-10-31 on the files committed with this note: PASS (rc 0, 2942 declarations)
+
+The generated Lean of this probe (FasmDesign/{Gcd2,Gcd3,Gcd4,Xorshift1-4}, FasmGcd2-4, FasmRho*, FasmXorshift*) is committed as of 2026-10-31, after the two runs above. Before that commit, the 2026-10-29 PASS above was a local run of files not on the branch.

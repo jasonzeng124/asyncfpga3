@@ -783,3 +783,19 @@ operation, on bdc's port wiring (32-bit tokens for uselect0, shift < 32 for ushl
 The FOR SHARD A text at 09:22 is now usable. Still NOT shown: H_MAP (which physical unit
 implements which join), the values on the constant ports, timing (H_COMPUTE_DELAY), and anything
 about the board.
+
+### progress 11:08 -- 11g claimed (bitstream import, all routes, both kernels)
+`tools/fasm2lean3/check.sh` (full, with Lean) passed with rc 0:
+- gcd_hw d,2,3,4: toolchain 9c732bc6303458df, --freq 100, fasm_audit PASS; bits = FASM; check3 0 fail.
+- Drift: up to date. rhoinj: uncovered 0.
+- Lean: 5910 declarations, standard axioms only.
+- Negative controls in the bits (INIT, pips, FF init, CLKINV): each is caught by check3, and Lean
+  proves `checkAll = false` for each.
+
+`kcheck.sh xorshift` passed with rc 0 (seeds 1-4, 2942 declarations).
+
+The generated files are now committed: FasmDesign/{Gcd2,Gcd3,Gcd4,Xorshift1-4}, FasmGcd2-4, FasmRho*,
+FasmXorshift*. Claim, as in notes/C-11g-seeds.md: on every routed seed of gcd_hw and xorshift,
+every physical instance decoded from the bitstream read-back computes its yosys cell under rho,
+and rho is a bijection on nets outside route-throughs. Not shown: routing delays, the primitive
+models themselves, and ipow (DSP48E1 refused).
