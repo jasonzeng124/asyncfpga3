@@ -639,3 +639,10 @@ the FEASIBILITY status paragraph lacks caveats. Statements and numbers otherwise
 f40e003a rebuild (memory free): EXIT 0, 3672 jobs. BWitNChk builds, so the first failure was OOM only. I re-ran
 A_ArbOrd.lean myself: rc 0, no sorry; not_all_witnesses / merge6_instance / b1_without_ord_false use [propext,
 Quot.sound]. Axiom audit of f40e003a (831 modules, 2 jobs) started.
+
+### progress 11:29
+P15bc in. I re-ran BC_GcdJoin/NegNew/Bwit2/BwitNetAx (rc 0, no sorry) and read gcd_kernel.v:933-939 myself. CONFIRMED:
+H_COMPUTE_FN for 20/20 gcd_hw units (own transcription check against fixture and my independent build) and xorshift's
+5; Bwit2 witness (non-degenerate); census classes; negative controls (data-level). OVERSTATED: "1-input join is a wire
+both ways" is false for ushrsi0/1's request (C-element + gated delay), so 134/175 not 136/175; GcdJoin does not link
+H_COMPUTE_FN into the capstone (shard A's text says so correctly; commit message reads otherwise).
