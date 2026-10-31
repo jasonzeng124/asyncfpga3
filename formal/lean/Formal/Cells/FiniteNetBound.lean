@@ -45,9 +45,10 @@ cells), plus the bindings; outside: C's `H_CELLS` for the 192 non-link operators
 (`brC t f b`, the branch `steerF b` fires); the OR is symmetric, so the choice does not
 change its gate.
 
-**NOT covered:** NO joint witness: `FGcdNetOKB` together with C's hypotheses is not shown
-satisfiable. On C's unit-delay run chW it cannot be (steers: `FiniteNetSrc.chW_steer_unwired`),
-so a witness needs a gate-timed run of the whole network that also meets C's `H_CELLS`.
+**Joint witness (2026-10-31):** `BWitNet.gcd_hw_fin_netB_witness`, on a gate-timed run
+(`BWitData`), not on C's unit-delay run chW, where it cannot exist (steers:
+`FiniteNetSrc.chW_steer_unwired`). **NOT covered:** the witness is one run with unit LUT
+delays (see `BWitNet`).
 Contract cells (mux, muxn, amerge, sources, fork trees) may still be pinless: links next to
 them get that side's environment from a contract, as counted by `bound_census`. Core Lean
 only.
@@ -357,7 +358,7 @@ with every link's `H_CELLS` discharged by ONE gate-level network whose tied cell
 wired to the cells the netlist names (`FGcdNetOKB`; `link_env_bound`). Still assumed: the
 edge-time bounds of `FGcdNetOK`, contracts on the untied cells (mux, muxn, amerge,
 sources, fork trees), C's `H_CELLS` for the other 192 operators (`H_OTHER`), H_BUNDLE,
-H_CM_FORCED. NOT shown: that these hypotheses are jointly satisfiable. -/
+H_CM_FORCED. Jointly satisfiable: `BWitNet.gcd_hw_fin_netB_witness`. -/
 theorem gcd_hw_safe_fin_netB (a b : Nat) (ch : Fin NC → Chan) (N : FGcdNet)
     (L : N.ι → Nat → Prop) (n : N.ι → Nat) (H : FGcdNetOKB ch N L n)
     (H_OTHER : ∀ o : Fin NO, isLink (opAt o) = false → Cell ch (srcV a b) (opAt o))
