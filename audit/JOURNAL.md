@@ -550,3 +550,7 @@ v6/v12/v13 28/23/32, inside the journal's "28-32". REPORT row updated.
 BQ#2 seed 5 SLOW_MAX (own route sdf 030c36bd, xray fc056c5b; no recorded md5): 16/16 errs 0, no stalls, 32/25/37.
 7 of 8 BQ#2 SLOW_MAX full-stack rows are now reproduced by me (d r15; 3, 4, 5, 9 here; 6, 7 r22; 8 via 2x and TSV
 -- 8 SLOW_MAX itself not re-run). Remaining UNVERIFIED for BQ#2: FAST_MIN on d,3,4,5 (2 h each) and seed 8 SLOW_MAX.
+
+### progress 06:11
+BQ#2 seed 8 SLOW_MAX: sdf b7733e23 / xray b93e281a (= TSV), 16/16 errs 0, 31/25/37 = TSV, no stalls. All 8 BQ#2
+SLOW_MAX full-stack rows are now reproduced from my own routes. Still UNVERIFIED: FAST_MIN on d,3,4,5.
