@@ -787,3 +787,7 @@ errs 3"). The 1.5x points for both routes are reproduced exactly. Running BQ#2 s
 The text again leans on S9's "double-counted" reading (r23 H caution stands), and calls log-normal "silicon-like
 bounded speed-ups". Log-normal f = exp(sigma N) is never 0 (linear 1+sigma N clamps at 0), but its speed-up 1/f is not
 bounded either; it is just much less likely at the tails.
+
+### progress 22:03
+BQ#2 seed 6 log-normal 2x: errs 3 on vectors 7, 8, 12 (the uori3 signature), others progress to TEND. The research
+log-normal table (95c22cf6) is now fully reproduced: BQ#2 s6 1.5x PASS / 2x FAIL; BQ#3 s9 1.5x PASS / 2x FAIL.
