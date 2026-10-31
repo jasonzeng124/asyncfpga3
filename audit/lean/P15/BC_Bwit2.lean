@@ -4,8 +4,8 @@ import Formal.Cells.FiniteNetBoundMCensus
 reproduced WITHOUT editing formal's tree:
 (1) formal's control: first entry of mux op 37's `uj0` node list +1 -> the mux checker rejects;
 (2) auditor's gate mutation: mux 37's `uj0` checked with the select polarity inverted -> rejects;
-(3) auditor's binding mutation: a channel whose request driver is reached through a 1-input join
-    (channel 109, out of join op 41 = ushrsi0) re-bound to the join's input contract node instead. -/
+(3) observation (not a mutation): the run's delay across the 1-input compute join op 41.
+    See section (3). -/
 open Formal.Cells
 open Formal.Net Formal.Net.Handshake Formal.Net.Ops Formal.Net.CapNet Formal.Net.CapNet.Gcd
 open Formal.Net.CapNet.Wit (CD nv bv)
@@ -32,12 +32,12 @@ open Formal.Cells.BWit2
 #eval ((List.finRange NC).map fun c => (cdB c).rq.length).sum
 #eval ((List.finRange NC).map fun c => (cdB c).rq.foldl max 0).foldl max 0
 #eval ((cdB out0).rq, (cdB out0).ak)
--- muxes whose two internal joins toggle at least once in the run -/
+-- muxes whose two internal joins toggle at least once in the run
 #eval ((List.finRange NO).filter fun o => isMux o && ((mjN o false).length + (mjN o true).length > 0)).length
 #eval ((List.finRange NO).filter fun o => isMux o).length
--- the drivers the witness uses for channels 109 and 113 (outputs of 1-input joins 41, 43) -/
+-- the drivers the witness uses for channels 109 and 113 (outputs of 1-input joins 41, 43)
 #eval (reqSrcM FU ⟨109, by decide⟩, reqSrcM FU ⟨113, by decide⟩)
-#eval (opAt (prodOf ⟨109, by decide⟩) |> fun k => match k with | .join ins o _ _ _ => (ins, o) | _ => ([], ⟨0, by decide⟩))
+#eval (prodOf ⟨109, by decide⟩, prodOf ⟨107, by decide⟩, consOf ⟨107, by decide⟩)
 #eval (mjN ⟨37, by decide⟩ false).take 4
 
 /-! (1) formal's control, reproduced -/
