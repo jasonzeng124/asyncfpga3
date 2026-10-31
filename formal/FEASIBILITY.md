@@ -72,6 +72,14 @@ experiments; and (2) **connecting** the proofs to the real routed design
        (Fid3, [C]).
 
 2. **A correct gcd.**
+   - **2026-10-31 (from JOURNAL-B / JOURNAL-C, not re-checked by A):** B's driver-bound gate-level
+     theorem `gcd_hw_safe_fin_netB` (every tied cell's pins driven by the netlist-named cell) now has a
+     joint witness (`gcd_hw_fin_netB_witness`, one run a=12, b=18, unit LUT delay, wire delays 1-3, out0
+     latches 6); C's H_OTHER for the 192 non-link operators is still a hypothesis. B withdrew "FEnv1
+     derived" and "first joint witness" for Bfin2/Bfin3 (audit P12b). C repaired TxWin (audit P12a row 18:
+     the old form forced infinitely many offers, so phys4/phys5 were vacuous on terminating runs) with a
+     finite witness, and accepted "96 of 221 sampled channels checked against Formal.Gen, H_FN on
+     H_ZD_BITS + H_WIDTH" (row 19). Claimed 8z5: H_NO_DEADLOCK'' narrowed to NoBlock (still open).
    - **Token level [L]:** bdc's gcd_hw graph returns `Nat.gcd a b` for a, b < 2^31 on every
      schedule, live and bounded without fairness (`Net/GcdHwLive.gcd_hw_graph_computes_gcd`,
      8i/8k).
