@@ -383,3 +383,24 @@ make these monitors part of the fid GLS runs (`glsq/gen_qqmon.py`, `gen_lowmon.p
 Commands to regenerate the formal side: `formal/tools-A/xaudit/arbnet/run.sh` (needs the E9Par certificates
 from `par/run.sh` and the bands from `e8mux/bands.sh`, all on gcd_hw R5 rebuilt from `git archive 520a43f`;
 md5s in `events5/builds.txt`).
+
+## 18. GLS changes that would turn shard B's exact cell rows into GLS tests — OPEN (from B's probe Bgls)
+
+Source: `formal/notes/B-gls-vs-exact.md` §4 (shard B; summarised by the lead, 2026-10-31, not re-derived). Ranked by
+cost:
+- **C1 (small):** print FID_RESOLVE `n_meta / n_rej / n_commit` per instance in a `final` block; FAIL a run on any
+  count > 0 at a state node that is not an arbiter ustate. Turns every own-loop row (pulse_width, setup_pulse,
+  reset_width, node_loop, uxa_loop, mux-join hold) into a test at the GLS points. Today resolver runts are printed
+  only with `+META_VERBOSE` (audit 95ca2d6 CONFIRMED).
+- **C6 (small):** tb_run.v counts `start.req` rises per RIG_LAP (must be 1); fix the `GLS_SCALE_INST` bypass in
+  `gen.py:494-512` (wire-mode scatter ignores it; audit 95ca2d6 CONFIRMED); add `GLS_SCALE_PIN=inst/pin:f`.
+- **C5 (medium):** a generated 4-phase protocol monitor per channel; the arb_mtbf overlap monitor on every
+  bd_arbiter.
+- **C7 (medium):** per-instance pin-time monitors generated from `formal/out/cell_constraints.json` that evaluate
+  each exact row on the run's event times and print margins (the row-by-row comparison PROGRAM.md asks for).
+  `formal/tools-A/xaudit/glsq/` is a small instance of this for the arbiter (QQuiet, ArbOrd, quiet start).
+- **C2 (small):** `+FID_XW=w`, an X window on each LUT output edge (w = 1 reproduces B's strict boundary).
+- **C3 (medium):** `GLS_RF_SPLIT`, per-pin rise/fall delays inside the corner interval or κ, keeping transport
+  semantics.
+- **C4 (small, stress only):** `+FID_JITTER=j`, a per-edge random NBA delay (non-FIFO reads).
+Not covered by any of them: multi-cell loops (gen.py does not detect them; the uenv0/uenv1 ring needs C6).
