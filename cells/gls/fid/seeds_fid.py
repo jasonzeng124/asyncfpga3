@@ -73,6 +73,8 @@ def route(a, seed):
 
 def sim(a, seed, hw, col, scat):
     tag = col + ("" if scat is None else "_s" + scat.replace(":", "-"))
+    if scat is not None and os.environ.get("GLS_SCATTER_LOGN") == "1":
+        tag += "_logn"        # same draw, log-normal factors: its own run dir and row
     work = os.path.join(a.out, seed, tag)
     log = os.path.join(a.out, seed, tag + ".log")
     env = dict(os.environ, GLS_SDF=os.path.join(hw, "gcd_hw_xray.sdf"),
