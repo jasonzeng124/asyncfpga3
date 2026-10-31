@@ -365,4 +365,32 @@ theorem bwit_link_env {o : Fin NO} {i o' : Fin NC} (h : opAt o = .link i o') {dr
   rw [cell_eq] at e1 e2 t1 t2 p1 p2
   exact ⟨rp, ap, Es, Ea, S, e1, e2, t1, t2, p1, p2⟩
 
+/-! ## 5. Self-audit: the binding rejects Bfin3's relabelled network -/
+
+namespace Rej
+open Formal.Cells.FiniteNetWit2 (NW LW nW pR)
+
+/-- **Bfin3's chW network does NOT meet the driver-bound hypothesis.** Its link 194 reads
+channel 13, whose request the netlist says is driven by link 193; in Bfin3's network that
+pin is driven by channel 13's pinless contract cell. So `FGcdNetOKB` excludes exactly the
+re-labelling the audit (P12b) objected to, while `FGcdNetOK` admitted it
+(`FiniteNetWit2.fgcdNetOK_chW`). -/
+theorem chW_net_not_bound : ¬ FGcdNetOKB Formal.Net.CapNet.Wit.chW NW LW nW := by
+  intro H
+  have hio : lkIO (opAt ⟨194, by decide⟩) = some (⟨13, by decide⟩, ⟨14, by decide⟩) := by
+    decide +kernel
+  have hop := lkIO_some.1 hio
+  have hr : reqSrc FU ⟨13, by decide⟩ = some (.lk ⟨193, by decide⟩) := by decide +kernel
+  obtain ⟨rp, ap, Es, Ea, S, _, _, _, br, _⟩ := H.H_LINK _ _ _ hop
+  have hp := S.H_PINS
+  change Formal.Cells.FiniteNetWit2.pinsW (.lk ⟨194, by decide⟩) = [rp, ap] at hp
+  simp only [Formal.Cells.FiniteNetWit2.pinsW, hio] at hp
+  have h1 := (List.cons.inj hp).1
+  have e := br _ hr
+  rw [← h1] at e
+  change Cl.rq _ = Cl.lk _ at e
+  cases e
+
+end Rej
+
 end Formal.Cells.BWit

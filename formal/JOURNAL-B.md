@@ -1592,3 +1592,10 @@ because their nodes are clean (at the 112 unbound link sides and every pin drive
 untied operator); C's H_OTHER for the 192 non-link operators is still assumed by the
 theorem and here discharged only on this run by C's checkers. Negative control: channel 20's request wire delay 2 -> 1 in
 BWitNData makes bw_c1 fail by kernel.
+
+### progress 08:32
+In: BWitNet.Rej.chW_net_not_bound (self-audit; axioms: propext): Bfin3's network on chW
+(the one fgcdNetOK_chW witnessed, and the audit called a relabelling) does NOT meet
+FGcdNetOKB: link 194's request pin (channel 13) is driven there by channel 13's pinless
+contract cell, while the netlist names link 193. So the binding excludes exactly that
+degeneracy. Paste block for A updated (notes/B-gcd-hyps-for-A.md).
