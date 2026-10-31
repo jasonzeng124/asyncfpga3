@@ -1,0 +1,37 @@
+j117 : ∀ (v w : Nat), v < 2 ^ 32 → w < 2 ^ 32 → jgAt 117 [v, w] = unitVal Uselect0.cells Uselect0.outs [v, w]
+j162 : ∀ (v w : Nat), w < 32 → jgAt 162 [v, w] = unitVal Ushli0.cells Ushli0.outs [v, w]
+j27 : ∀ (v w : Nat), jgAt 27 [v, w] = unitVal Ucmpi2.cells Ucmpi2.outs [Ops.trunci 1 v, 0]
+j66 : ∀ (v w : Nat), jgAt 66 [v, w] = unitVal Uori2.cells Uori2.outs [v, 1, Ops.trunci 1 w, 1]
+ushli0_fn : ∀ (a k : Nat), k < 32 → unitVal Ushli0.cells Ushli0.outs [a, k] = Ops.shli 32 a k
+uselect0_fn : ∀ (a b : Nat),
+  unitVal Uselect0.cells Uselect0.outs [a, b] = (if Ops.flip 32 a < Ops.flip 32 b then a else b) % 2 ^ 32
+uselect1_fn : ∀ (a b : Nat),
+  unitVal Uselect1.cells Uselect1.outs [a, b] =
+    Ops.select (Ops.cmpi Pred.sgt 32 (Ops.subi 32 a b) 4294967295) (Ops.subi 32 a b) (Ops.subi 32 0 (Ops.subi 32 a b))
+uori2_fn : ∀ (a b c d : Nat),
+  unitVal Uori2.cells Uori2.outs [a, b, c, d] =
+    Ops.ori 1 (Ops.cmpi Pred.ne 1 (Ops.andi 1 c d) 0) (Ops.cmpi Pred.slt 32 a b)
+Xs.xs_ucmpi0_fn : ∀ (a b : Nat),
+  unitVal Formal.Gen.Compute.Xs.Ucmpi0.cells Formal.Gen.Compute.Xs.Ucmpi0.outs [a, b] = Ops.cmpi Pred.sgt 32 a b
+Xs.xs_uxori1_fn : ∀ (a : Nat),
+  unitVal Formal.Gen.Compute.Xs.Uxori1.cells Formal.Gen.Compute.Xs.Uxori1.outs [a] =
+    Ops.xori 32 (Ops.xori 32 a (Ops.shli 32 a 13)) (Ops.shrui 32 (Ops.xori 32 a (Ops.shli 32 a 13)) 17)
+'Formal.Net.Compute.GcdJoin.j2' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdJoin.j27' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdJoin.j66' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdJoin.j117' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdJoin.j135' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdJoin.j162' depends on axioms: [propext, Quot.sound]
+'Formal.Net.Compute.GcdJoin.joins_listed' depends on axioms: [propext]
+'Formal.Net.Compute.GcdD.ushli0_fn' depends on axioms: [propext, Quot.sound]
+'Formal.Net.Compute.GcdD.uselect1_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdD.uori3_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.GcdD.uori4_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.Xs.xs_uaddi0_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.Xs.xs_ucmpi0_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.Xs.xs_ucmpi1_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.Xs.xs_uxori1_fn' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.Xs.xs_uxori2_fn' depends on axioms: [propext, Quot.sound]
+3560
+0
+[]

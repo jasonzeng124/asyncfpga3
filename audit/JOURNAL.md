@@ -620,3 +620,9 @@ kwgrep on f40e003a (831 files): 1 identifier hit, as before. Pass-15 subagents l
 ordS gcd_hw coverage conditional on ArbOrd/QQuiet, and whether the prose says so; glsq monitors on research GLS
 vs the Lean definitions; the scatter-0.10 ArbOrd failure) and P15bc (C: H_COMPUTE_FN 20/20 + GcdJoin link into the
 capstone, xorshift units, Wip negative controls; B: Bwit2 and the 136/175 census).
+
+### progress 11:15
+First lake build of f40e003a: EXIT 1. The only failure is Formal.Cells.BWitNChk, "Lean exited with code 137"
+(SIGKILL, OOM: two subagent Lean processes plus the build). The other 3667 jobs built. Stopped my queued BQ#1
+FAST_MIN GLS to free memory, and re-running lake build (logs/formal_build_f40e003a_r2.log). Not a proof failure
+unless it recurs with memory free.
