@@ -28,4 +28,3 @@ end AuditP14A
 #print axioms Formal.Core.XAudit.Events9FullArb.design_verdict9_full_arb
 #print axioms Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_edge
 #print axioms Formal.Core.XAudit.Events9ArbNet.arbCond_of_edge
-#print axioms Formal.Core.XAudit.Events9ArbNet.grant_fall_after_req_fall

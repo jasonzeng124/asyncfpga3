@@ -93,7 +93,7 @@ theorem drop_nore_false : ¬ (∀ (s e y : Sig) (wr wq fQ : Nat → Nat) (loDr h
     ∀ t, loDr + loQ + loDq + 1 ≤ t → y (t - 1) = true → y t = false →
       ∃ u, wr (t - 1) < u ∧ s u = false ∧ u + min loDr (loQ + loDq) ≤ t) := by
   intro h
-  obtain ⟨_, _, _, _, hc⟩ := x_concl_fails
+  have hc := x_concl_fails.2.2.2
   exact hc (h xs xe xy _ _ _ 1 1 1 1 5 5 x_hy (warpSub 1) (warpSub 1) (warpSub 5) x_flip 16
     (by decide) (by decide) (by decide))
 
@@ -102,3 +102,4 @@ end AuditP14A
 #print axioms AuditP14A.w_concl
 #print axioms AuditP14A.drop_nore_false
 #print axioms AuditP14A.w_rdok_b1_fails
+#print axioms Formal.Core.XAudit.Events9ArbNet.grant_fall_after_req_fall

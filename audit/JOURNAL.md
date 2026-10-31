@@ -587,3 +587,11 @@ SLICEM vs prjxray-db) launched; they compile only after my build finishes, one L
 Clean lake build of formal 0780fd30: EXIT 0, 3636 jobs, 0 errors (audit/logs/formal_build_0780fd30.log). Per-module
 axiom audit of all 795 modules started (2 jobs; live log in scratch, results to ~/axres_0780fd30, snapshots via
 axsnap.sh).
+
+### progress 10:06
+P14a in. I re-ran its 4 Lean files myself (rc 0, no sorry) and checked slicem.sdf (md5 5cdfd60b, hold 0.262).
+CONFIRMED: design_verdict9_full_arb / arbnet_edge (conditional, assumptions listed), "covers no gcd_hw row",
+10 ipow/xorshift rows CLEAN (counts), grant_fall_after_req_fall, the CornerDiff strong witness (mine, credited),
+SeqXray SLICEM. UNVERIFIED: the "md5s reproduce" claims for the 10-31 rebuilds (no record committed). OVERSTATED
+(minor): ArbEdge window wording in FEASIBILITY/HOWTO and the stale "beyond ANY bound" text. Axiom audit of
+0780fd30 running (snapshot audit/logs/axres_0780fd30.txt). P14bc still running.
