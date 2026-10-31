@@ -112,3 +112,11 @@ one-step stable, not needed by this proof.) Not done: instantiating it inside Ar
 **Scope of every "row covered" statement in this note (self-audit, 2026-10-31):** it means the decidable
 premises evaluate to true on that row. No witness shows SatPin + constants/reset + ArbEdge (or QQuiet and the
 rest) + ArbOrd + SelOK + SelPart jointly satisfiable on that route, so no row is shown non-vacuous.
+
+**Untrusted simulation check (2026-10-31; `tools-A/xaudit/arbnet/simq.py`, results `results/simq_1031.txt`).**
+sim0.py's fixed-delay behaviour (slow lo ends, rst at 20 ns, selects frozen at 0 or 1) on the rebuilt
+skeletons, seeds d/3/4/5: grant exclusion OK, ArbOrd (fixed delays) OK on every grant reader, QQuiet "OK". But
+each run has at most ONE q flip before the frozen-select skeleton goes quiet, and the negative control (QQuiet
+window 1e9 ps) is also "OK", i.e. the check could not fail on these runs. So this is **no evidence** for QQuiet;
+it only confirms that ArbOrd holds at fixed lo-end delays (which b1Corr already showed). A useful run needs
+live selects (a select model from the data path), not done.

@@ -906,3 +906,8 @@ Events9FullArb.design_verdict9arbnet_ordq (check.sh OK): ArbEdge's QClean derive
 QQuiet + the checked band fact plo(PqQ) >= 1 (now part of xarbnet's ArbRowsOKS count; still 9/9 on all 16
 gcd_hw rows). For the 10 gcd_hw rows the arbiter assumptions are now: QQuiet, quiet start, settle bound,
 the four per-reader edge windows, ArbOrd at the B1-failing readers.
+### progress 09:38
+Negative result: tools-A/xaudit/arbnet/simq.py (untrusted) checked QQuiet/ArbOrd on sim0's fixed-delay gcd_hw
+skeleton runs (4 seeds x 2 frozen select values). ArbOrd OK; QQuiet "OK" but vacuous: at most one q flip per
+run, and the negative control (window 1e9 ps) also passes, so the check could not fail. Not evidence for
+QQuiet. Needs a run with live selects.
