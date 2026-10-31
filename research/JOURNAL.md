@@ -1815,3 +1815,6 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 ### progress 06:28 (BQ#1 full stack: first 5 runs PASS)
 - BQ#1 (fusion, v4, select pads; resolver 055edd7): d SLOW_MAX 16/12/18 (sdf 6f8b99e6, = the earlier bq1_max row),
   d FAST_MIN 45/35/51, 3 SLOW_MAX 16/12/18, 3 FAST_MIN 46/36/52, 4 SLOW_MAX 16/12/18; all 16/16 errs 0, EQUIVALENT.
+### progress 08:59 (BQ#1 full stack 10/16 runs PASS)
+- Added: 6 SLOW_MAX 15/12/17, 4 FAST_MIN 46/36/52, 7 SLOW_MAX 16/12/18, 6 FAST_MIN 44/34/49, 5 SLOW_MAX 16/12/18,
+  7 FAST_MIN 45/35/52; all 16/16 errs 0 EQUIVALENT. Remaining: 5 min, 8, 9.
