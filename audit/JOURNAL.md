@@ -648,7 +648,7 @@ both ways" is false for ushrsi0/1's request (C-element + gated delay), so 134/17
 H_COMPUTE_FN into the capstone (shard A's text says so correctly; commit message reads otherwise).
 
 ### progress 12:15
-Axiom audit of formal f40e003a COMPLETE: 831/831 modules (module count as run), bad 0, no-result 0. REPORT row added (pass 15).
+Axiom audit of formal f40e003a COMPLETE: 831/831 modules, bad 0, no-result 0. REPORT row added (pass 15).
 BQ#1 d FAST_MIN GLS running.
 
 ### progress 12:15
@@ -705,3 +705,9 @@ here assumed 865 modules; the tree has 1055.) Formal has moved again: A withdrew
 introduced SatPinW explicit warps (19195024), structurally answering P15a; corrected glsq says ArbOrd fails in 3/5
 scatter draws; B added Bwit4 (170/175, answering P16's missing-BWit4Net row) and the N level 173/175 (no witness);
 NChk peak cut to 4.9 GB. Pass 17 next, at the new head.
+
+### progress 15:03
+Pass 17: ~/wt-f14 at formal 464c5ea7 (1058 files); NChk-first build running. Subagent P17 launched: A's SatPinW fix
+of P15a and whether any gcd_hw row now has ArbOrd discharged; corrected glsq monitors vs the Lean definitions; B's
+Bwit4 (170/175), the N level (173/175), and whether NChk chunking changes what is checked; dangling citations after
+the Prelim deletion. Research: BQ#1 1x scatter 3/3 PASS (4a48b6b4), not yet looked at.
