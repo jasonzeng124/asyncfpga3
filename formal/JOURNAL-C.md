@@ -799,3 +799,11 @@ FasmXorshift*. Claim, as in notes/C-11g-seeds.md: on every routed seed of gcd_hw
 every physical instance decoded from the bitstream read-back computes its yosys cell under rho,
 and rho is a bijection on nets outside route-throughs. Not shown: routing delays, the primitive
 models themselves, and ipow (DSP48E1 refused).
+
+### progress 11:10 -- audit P14 row 10 accepted
+Audit P14 row 10 (CapstoneRefineOut0Wit OVERSTATED) is right. The certificate over oNet is a
+relabelling: the data bits are 6 by construction, and BCert.dag ranges over arbitrary netlists.
+The file's title and the out0_dag_witness docstring now say so (check.sh OK, 4346 declarations,
+statements unchanged), and so does notes/C-8x4-refine.md. Commit d63d5221's message omitted it and
+cannot be changed. The FEASIBILITY sentence "phys4/phys5 were vacuous" is shard A's file: FOR SHARD A,
+P12a found only phys5_cls/_gen vacuous (audit P14 row 10).

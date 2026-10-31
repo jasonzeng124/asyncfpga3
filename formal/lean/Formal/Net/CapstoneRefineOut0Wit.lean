@@ -2,7 +2,8 @@ import Formal.Net.CapstoneRefine2Strict
 import Formal.Net.CapstoneRefineFinWit
 
 /-!
-# Audit P12a row 18: a tcheck-row certificate on a channel of the REAL gcd_hw witness run
+# Audit P12a row 18: a DAG-row certificate, over a HAND-MADE obligation netlist, on a channel of
+# C-8t's gcd_hw witness run (a satisfiability check of the repaired route, not a derivation)
 
 Problem statement. The audit showed that, with the old `TxWin`, no channel of a terminating
 gcd_hw run could carry a `dag`/`cert` bundling certificate, so on C-8t's run `chW` (a = 12,
@@ -20,6 +21,10 @@ that occur, this file builds a DAG-row certificate for `out0` ON `chW` itself:
   since `BCert` is a `Prop` and would hide which constructor was used);
 * `out0_dag_witness`: from that row alone (not from `w_held`), out0 of `chW` is `Held` and every
   in-transaction sample is the zero-delay value, `6 = Nat.gcd 12 18`.
+
+Audit P14 row 10 (OVERSTATED, accepted): the certificate is a relabelling. `oNet`'s data
+bits are 0, 1, 1 (= 6) by construction, and `BCert.dag` quantifies over arbitrary netlists, so
+nothing here ties the row to the routed design.
 
 What this does NOT show. `oNet` is a hand-made obligation netlist with fixed delays whose data
 nodes reproduce the observed bus; it is NOT the routed gcd_hw netlist, and its delays are not
@@ -203,7 +208,8 @@ theorem o_zdBus : zdBus orun [1, 2, 3] 0 = 6 := by
     (if zdEval oNet (orun 0).g (oSig 0 0 1) 3 = true then 2 ^ 2 else 0) = 6
   rw [z1, z2, z3]; rfl
 
-/-- **The repaired route is satisfiable on the real gcd_hw witness run.** From the DAG-row
+/-- **The repaired route's hypotheses are satisfiable on C-8t's gcd_hw run `chW`, with the
+hand-made `oNet` (a relabelling; it does not tie the row to the routed netlist, audit P14 row 10).** From the DAG-row
 certificate alone (reset and the receiver rule of `chW`'s out0, both from the run), out0 of
 C-8t's run is bundled (`Held`) and every sample inside its transaction is the zero-delay value
 of the obligation run, which is `6 = Nat.gcd 12 18`. -/

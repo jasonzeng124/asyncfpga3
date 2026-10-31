@@ -23,7 +23,9 @@ file was edited.
   (C-8t's `chW`): `CapstoneRefineOut0Wit.out0_dag_witness` -- out0 (offered once, closes at 473)
   carries a `BCert.dag` (`out0_dag_cert`: the dag hypotheses, stated as an existential), and from
   that row alone out0 is `Held` and every in-transaction sample is `6 = Nat.gcd 12 18`. Its
-  obligation netlist is hand-made (5 nodes, fixed delays, 3 bus bits), NOT the routed one. Still
+  obligation netlist is hand-made (5 nodes, fixed delays, 3 bus bits), NOT the routed one; its data
+  bits are 0,1,1 = 6 by construction, so this is a RELABELLING that checks satisfiability, not a
+  derivation (audit P14 row 10, accepted; the commit message d63d5221 omitted this). Still
   NOT shown: tcheck's real rows meeting `TxWin` on a gcd_hw run; the other 25 roots; phys5's
   `Row` hypotheses on any gcd_hw run; the phys4/phys5 witnesses still use exempt/ghost.
 - **"H_FN decided against Formal.Gen on 176/221" overstated.** `fnOK` returns `true` for `.wire`
