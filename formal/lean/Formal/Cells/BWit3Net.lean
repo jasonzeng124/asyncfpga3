@@ -19,8 +19,9 @@ b = 18; every tied gate, the arbiters' included, LUT 1 + wire 1-3):
 ## Assumed / proved / NOT covered
 
 **Proved:** the items above; nothing assumed. **NOT covered:** one run, unit LUT delays,
-simulator-chosen wire delays, R = 2; the 9 arbiters are uncontested on this run (a contested
-grant, where H_EXC_CLEAN is tight, is not exercised); contract cells at muxn, sources, sinks,
+simulator-chosen wire delays, R = 2; no arbiter race on this run (two arbiters hand a waiting
+request over, but the closest request rises at one arbiter are 36 ticks apart, so
+H_EXC_CLEAN is never tight); contract cells at muxn, sources, sinks,
 fork trees; C's H_OTHER is still a hypothesis of the theorem, discharged here on this run by
 C's checkers. Core Lean only.
 -/
