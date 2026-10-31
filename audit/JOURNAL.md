@@ -498,3 +498,11 @@ Research 53ad0e38/a3111697: on BQ#2 seed 6 at 2x, the unconstrained route fails 
 and passes draw 3. The chain-region route goes 1/3 and is 6-16% slower. Their reading is "no robustness gain".
 Started: re-route seed 6 (md5 check), then 2x draw 2 on all 16 vectors at TEND 30 us (they say the failures
 appear in the first laps), to check "errs 15".
+
+### progress 00:48
+Draw-2 check: my re-route again gives sdf c4ec8664 and xray 1f7f03ea. 2x draw 2 at TEND 30 us gives errs 15 =
+claimed, CONFIRMED. But all 16 vectors stop within 1-4 laps, and vec 0 stalls with errs 0. That exposed a judge
+defect (r23 I): seeds_fid.py:101-107 grades PASS when every vector has >= 1 lap and ends at the timeout with
+summed errs 0, so a stall with no wrong compare passes. The runs I reproduced are unaffected: minimum laps per
+vector are s1x 42, fix_uori3 39, s8_2x 36, s4_max 23, s7_2x 42. PASS rows I did not re-run rest on this judge
+alone. Added as an OVERSTATED row at the top of REPORT.
