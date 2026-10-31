@@ -369,6 +369,14 @@ that a GLS monitor or a board experiment can test:
   input edge at the LUT pins within `phi(PqQ)` after its O6 edge (gcd_hw R5 slow/fast, 72 arbiter-rows: phi(PqQ) from 165 to 1216 ps, median 406; printed by xarbnet as "ustate own-q read band"). Expect
   zero on gcd_hw (no contested schedule was found); any hit is a near tie, which the verdict does not cover.
 
+**Done on the formal side with the research GLS (2026-10-31, `formal/tools-A/xaudit/glsq/`, untrusted
+monitors on the unmodified GLS):** on gcd_hw R5 seeds d/3/4/5 (SDF delays, no scatter), 16/16 vectors each,
+0 QQuiet violations after reset (about 20k q flips per seed). QQuiet does fail during power-up while rst is
+high (X resolution), which is why the Lean form only needs it after S. ArbOrd holds with the GLS's point delays
+(worst 280 ps), and no grant/R0 rises before reset release (vector 6, seed 5). Suggested research change:
+make these monitors part of the fid GLS runs (`glsq/gen_qqmon.py`, `gen_lowmon.py` read only `names.map` and
+`netlist_baked.v`), and run them under scatter.
+
 Commands to regenerate the formal side: `formal/tools-A/xaudit/arbnet/run.sh` (needs the E9Par certificates
 from `par/run.sh` and the bands from `e8mux/bands.sh`, all on gcd_hw R5 rebuilt from `git archive 520a43f`;
 md5s in `events5/builds.txt`).
