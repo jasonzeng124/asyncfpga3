@@ -1789,3 +1789,19 @@ region prototype is a negative result.
 (errs or vec-6 laps). Same pass rate; slower at the corners (-6% SLOW_MAX, -9% FAST_MIN). BD_CHAIN_REGIONS stays
 an off-by-default tool and is not proposed for any candidate. One route only; at 2x half the draws fail on this
 route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the time.
+### progress 02:52 (the 2x region-scatter point is mostly a test of implausible die maps)
+- New rows: BQ#2 seed 7 2x draw 2 FAIL errs 3; BQ#3 seed d 2x draw 2 FAIL errs 15.
+- Region factors at sigma 0.32 (linear 1+sigma N, 5x10 regions on xc7z010), whole-die spread per draw:
+  | draw | min | max | max/min | regions < 0.4 |
+  |---|---|---|---|---|
+  | 1 | 0.20 | 1.68 | 8.3 | 4 |
+  | 2 | 0.23 | 1.69 | 7.3 | 2 |
+  | 3 | 0.12 | 1.59 | 13.1 | 2 |
+  | 4 | 0.45 | 1.58 | 3.5 | 0 |
+  On BQ#2 seed 6, draws 1-2 fail on both routes, draw 4 (the only map without a < 0.4 region) passes on both, draw 3
+  splits by route. The two confirmed failures each had a chain in a 0.2/0.49 region. A 3-13x speed spread on one
+  die is far outside anything measured (the ring data's median scatter is 8.5%); the 2x tail is dominated by
+  regions running 2.5-8x faster than nominal, which the linear model allows and silicon does not.
+- Consequence: stop adding 2x linear draws (the ones running finish). A failure at 2x ranks a route's exposure but
+  is not evidence of a board risk. If robustness margins are wanted, scan the scale per draw with log-normal
+  factors (GLS_SCATTER_LOGN=1) and report the failing scale, as the 2026-10-29 bisection did for seed 9 (~1.33x).
