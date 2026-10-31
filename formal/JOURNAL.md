@@ -785,3 +785,24 @@ sandbox: setup.sh running (Mathlib from source again, ~2 h). Audit read at pass 
 - **XInert (550e5b27, 'Verilog default' mildly overstated).** Agreed: one symmetric delta only (no
   rise/fall, X/Z or PATHPULSE band), and under rho = full gate delay the seed-d smax_w0 certificate
   is lost (it was in notes/A-xinert.md, not in the journal; now it is).
+### progress 07:19
+Lean 4.35.0 installed; Mathlib still building. Mathlib-free modules checked with plain `lean
+-DautoImplicit=false` into a scratch olean dir over a copy of the tree (/tmp, not lake; same
+toolchain and sources) plus check.sh's axiom-audit script. **Claimed** (all axioms standard,
+scan.py clean): SeqXray (SLICEM windows, from the previous entry) and the 14 Events9 files the
+2026-10-29 session left only in Wip/_snapA (it died before claiming them), copied unchanged:
+- E9Par (Events9Par, ParBeh, ParRst, ParMain; notes/A-e9par.md, DONE there): log rule `par`
+  for parallel virtual C-elements, `design_verdict9par` with named HRst. Its run table (10 of 16
+  rows CLEAN on the corrected core) is from 10-29 and was not re-run; those rows still rest on
+  HARB7', HRst, SatPin, constants/reset, SelOK, SelPart.
+- E9SelRun (Events9SelL, SelLMain, SelJ; notes/A-e9selrun.md): design_verdict9_selT / selJ.
+- E9Setup (Events9Setup, Full, FullMain): design_verdict9_full, one realisation for the corrected
+  core + junction select rows + setup rows. No run table committed.
+- E9ArbNet (Events9ArbNet, ArbNetRows, ArbNetEdge, ArbNetMain): design_verdict9arbnet replaces
+  HARB7'/HRst by decidable per-arbiter checks (ArbOK 9/9 on the 10-29 runs) + trace conditions
+  ArbCond; arbCond_of_edge reduces ArbCond to decidable rows ArbRowsOK + edge-window hypotheses
+  (QClean = no metastability, quiet start, settle bound H, per-reader no-re-request/settled/A0-high
+  windows). The printed B1 rows fail on 3 arbiter readers at seed d slow (-2, -190, -32 ps).
+  NOT proved: that the printed rows imply the edge windows; nothing joins ArbNet to Full.
+So no gcd_hw run is verified yet: the arbiter half now rests on ArbEdge instead of HARB7'.
+Next: compose design_verdict9_full with design_verdict9arbnet (one statement, one hypothesis list).

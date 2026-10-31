@@ -1,6 +1,11 @@
 # A-e9setup (probe E9Setup, shard A): select rows on the corrected arbiter core, setup rows, design_verdict9_full
 
-STATUS (2026-10-29 12:25 UTC): IN PROGRESS. Events9Setup.lean compiles in my overlay (not yet
+STATUS (2026-10-31, lead): Events9Setup / Events9Full / Events9FullMain CLAIMED as left on 2026-10-29
+(checked 2026-10-31 by the lead, Lean 4.35.0, autoImplicit=false, scratch overlay; axioms standard). The
+statement is `Events9Full.design_verdict9_full` (header of Events9Full.lean: one realisation for the
+corrected arbiter core, the junction select rows and the setup rows; HARB7', HRst, H_BUNDLE, H_SEL_FN
+remain hypotheses). No run table from the full verdict was committed; the plan below was not finished.
+Earlier status line (2026-10-29 12:25 UTC): IN PROGRESS. Events9Setup.lean compiles in my overlay (not yet
 check.sh). Map regenerated on the corrected-core certificates (identical content, 126/126 per seed).
 Early finding (untrusted Python estimate, old core, d): with O = the request wire's rise (the earliest
 time C's H_BUNDLE holds the bus), the junction-anchored setup row passes 81/126 literals at slow,
