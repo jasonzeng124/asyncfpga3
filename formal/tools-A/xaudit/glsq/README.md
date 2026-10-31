@@ -51,3 +51,9 @@ Scatter (`SIG=0.05 run_scatter.sh seed4`, GLS_SCATTER = 0.05 per arc, unclamped 
 | 3 | 16/16 | 19629 | 0 | 347 ps |
 
 (With the reset pins included, draws 2/3 gave -76 / -262 ps on the reset pin pairs; those pairs are not ArbOrd's.)
+
+σ = 0.10 (seed 4, draws 1-2): 16/16 vectors and 0 QQuiet violations after reset on both draws. ArbOrd: draw 1 worst
+371 ps; **draw 2 FAILS on a real request pin** (`ucontrol_merge6.uarb1` g1 LUT5, pin A1 from `ucond_br26`: Dr 3010,
+DQ 2385, Dq 306, margin -321 ps), yet the run is correct on all 16 vectors. So ArbOrd can fail while the circuit
+works, as `Events9ArbB1.grant_fall_after_req_fall` predicts: it is a condition of the C-element grant abstraction,
+stricter than what the circuit needs. (One draw, one model; the monitor did not look for the q-pin fall itself.)

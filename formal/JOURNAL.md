@@ -933,3 +933,8 @@ design_verdict9arbnet_ordS's QQuiet-after-S and ArbOrd under one delay model; no
 glsq under GLS_SCATTER=0.05 (seed 4, 3 draws): 16/16 vectors each, 0 QQuiet violations after reset, ArbOrd on
 request reads worst 49 ps. Self-correction: ord_static.py first also paired the reset pin (A6), which showed
 -76/-262 ps in two draws; those pairs are not ArbOrd's (fixed: reset/global-driven pins skipped).
+### progress 10:26
+glsq σ=0.10 (seed 4, 2 draws): both 16/16 vectors, 0 QQuiet violations after reset; ArbOrd fails in draw 2 on a real
+request pin (merge6 g1, -321 ps) while the circuit still computes every vector. Evidence that ArbOrd is stricter than
+the circuit needs (abstraction limit), consistent with grant_fall_after_req_fall. A verdict without ArbOrd needs an
+AND-grant node in the corrected core (not done).
