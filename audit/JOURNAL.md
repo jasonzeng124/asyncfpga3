@@ -650,3 +650,10 @@ H_COMPUTE_FN into the capstone (shard A's text says so correctly; commit message
 ### progress 12:15
 Axiom audit of formal f40e003a COMPLETE: 831/831 modules, bad 0, no-result 0. REPORT row added (pass 15).
 BQ#1 d FAST_MIN GLS running.
+
+### progress 12:15
+Research 9ea05a7e: BQ#1 full stack 8 seeds x 2 corners PASS (TSV committed). My recompute from the TSV: SLOW_MAX
+8/8, mean 15.875 (15-16), FAST_MIN 8/8, mean 45.875 (44-48), matching "15.9 / 45.9". Their d row sdf 6f8b99e6 / xray
+357f17cb equals my rebuild. d SLOW_MAX already reproduced exactly; d FAST_MIN running; seed 9 SLOW_MAX (sdf 81d27cf3)
+queued. Formal moved to 58251494 (B: Bwit3 164/175, fork trees 170/175; C: Out0Wit docstrings now say relabelling,
+accepting my P14 row; A: b1_and). That is pass 16, after the BQ#1 runs.
