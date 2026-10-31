@@ -648,7 +648,7 @@ both ways" is false for ushrsi0/1's request (C-element + gated delay), so 134/17
 H_COMPUTE_FN into the capstone (shard A's text says so correctly; commit message reads otherwise).
 
 ### progress 12:15
-Axiom audit of formal f40e003a COMPLETE: 831/831 modules, bad 0, no-result 0. REPORT row added (pass 15).
+Axiom audit of formal f40e003a COMPLETE: 831/831 modules (module count as run), bad 0, no-result 0. REPORT row added (pass 15).
 BQ#1 d FAST_MIN GLS running.
 
 ### progress 12:15
@@ -698,3 +698,10 @@ SLOW_MAX sim 7/16. Axiom audit 58251494: 403/865, bad 0.
 
 ### progress 14:51
 BQ#1 seed 9 SLOW_MAX: 16/16 errs 0, 16/13/19 = TSV, no stalls. CONFIRMED. BQ#1 rows reproduced: d max, d min, 9 max.
+
+### progress 15:02
+Axiom audit of formal 58251494 COMPLETE: 1055/1055 modules, 118806 constants, bad 0, no-result 0. (An earlier note
+here assumed 865 modules; the tree has 1055.) Formal has moved again: A withdrew "10 gcd_hw rows" (5e35b742) and
+introduced SatPinW explicit warps (19195024), structurally answering P15a; corrected glsq says ArbOrd fails in 3/5
+scatter draws; B added Bwit4 (170/175, answering P16's missing-BWit4Net row) and the N level 173/175 (no witness);
+NChk peak cut to 4.9 GB. Pass 17 next, at the new head.

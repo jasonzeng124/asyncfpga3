@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -118,6 +118,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | 58251494 | every module builds; only standard axioms | CONFIRMED | audit/logs/formal_build_58251494.log (EXIT 1: BWit2NChk OOM in parallel), bwit2nchk.log (alone: EXIT 0, peak RSS 10.3 GB), bwit3nchk.log, formal_build_58251494_r2.log (EXIT 0, 3896 jobs); axiom_par_58251494.log + axres_58251494.txt (own collectAxioms, 1055 modules, 118806 constants, bad 0, no-result 0) | NChk modules need ~10 GB each; build them one at a time on 15 GB (B since cut this to 4.9 GB, cacfac9d) |
 | formal | 58251494 (7397f9c5, 6a60a2bb, 8924949a, 58251494, c9ae12c5) | FiniteNetBoundA 164/175; Bwit3 joint witness with winner tables; FiniteNetBoundT 170/175 "no witness yet"; H_DRV_* fields met by both witnesses | CONFIRMED (counts and theorems) | audit/findings/P16.md; B_census16.py (own census 164/170; 162/168 without the ushrsi0/1 join-as-wire step, cf. P15bc), B_arbcheck.py (own bd_arb.v INIT decoding: 0 violations, all 9 winner tables), B_axioms.lean | |
 | formal | 58251494 (3f9444c3) | b1_and: "with a two-copy AND request pin B1 needs only lo Dr <= lo Q + lo Dq, holds on all 16 gcd_hw rows (min 53 ps)" | CONFIRMED (576 margins recomputed, 0 mismatches; min 53 ps seed 3 fast merge12 g1) | audit/lean/P16/A_b1and.py, A_b1and_warp.lean | the "two-copy pin" is a proposed virtual node in the proof core, not a circuit change (the headline alone could be misread); warp-free (no ArbOrd-like hypothesis); not yet used to drop ArbOrd from any verdict |
 | formal | 58251494 (6c95637a, dcfadc75) | 11g bitstream import (gcd_hw seeds 2-4, xorshift 1-4, rho bijection); Out0Wit docstrings now say relabelling | CONFIRMED (scope: bit->FASM decoding trusted Python; routes are build_hw --freq 100 seeds d/2/3/4, not the R5 routes behind A's verdicts; source commit of the routes unrecorded) | audit/lean/P16/C_initcmp.py (8925 LUT INITs = read-back FASM, seeds 2-4), C_modcmp.py (synth = research build JSON, 25/25 modules), C_fasm_axioms.lean | answers audit P14 row 10 |
