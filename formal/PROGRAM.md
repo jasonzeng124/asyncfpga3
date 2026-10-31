@@ -20,6 +20,15 @@ reusable checker (goal 3) are worth doing only where this theorem needs them.
 configured by the target bitstream eventually returns gcd(a, b) on the output
 channel, returns to idle, and accepts the next pair. That is **safety and
 liveness**, for every input, for every assignment of delays allowed below.
+The environment is **not** sequential: it may offer pair k+1 as soon as the
+input handshake of pair k completes, without waiting for its output
+(pipelining, owner 2026-10-31). The board harness ()
+waits for each output, so it is one special case. The theorem must cover the
+general one: the k-th output is gcd of the k-th pair, in order, for any
+number of pairs. If a second pair can enter the loop while the first is
+still in it (through an arbiter at the loop's entry merge, say), the theorem
+must show that this is harmless or that it cannot happen. If it is not
+harmless, that is the counterexample.
 The statement, with every definition it uses, goes in
 `formal/lean/Formal/Target/Spec.lean`. Shard A writes it first, then it is
 frozen: changing it after that needs a journaled reason and an audit row.
