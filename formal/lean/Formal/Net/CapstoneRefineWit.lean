@@ -108,10 +108,13 @@ theorem cnt_wP (u : Nat) : cnt (riseB wP.req) u = u / 20 + (if 5 < u % 20 then 1
     have := key _ hm
     omega
 
+theorem hasOff_wP (k : Nat) : HasOff wP k :=
+  ⟨20 * k + 5, by rw [riseB_wP]; simp [Nat.add_mod], by rw [cnt_wP]; simp; omega⟩
+
 def wX : TxWin wP wsig [1] (fun k v => changes (wsig k 2) v) where
   τ k := 20 * k
-  idle k := by simp [wP, Nat.mul_mod_right]
-  count k := by rw [cnt_wP]; simp [Nat.mul_mod_right]
+  idle k _ := by simp [wP, Nat.mul_mod_right]
+  count k _ := by rw [cnt_wP]; simp [Nat.mul_mod_right]
   reqIn k r ho := by
     have h1 := ho.1
     rw [riseB_wP] at h1
@@ -120,7 +123,8 @@ def wX : TxWin wP wsig [1] (fun k v => changes (wsig k 2) v) where
     rw [cnt_wP, if_neg (by omega)] at h2
     rw [show r - 20 * k = 5 by omega]
     simp [changes, wsig]
-  win k u h1 h2 := by
+  win k u _ h1 h2 := by
+    have h2 := h2 (hasOff_wP (k + 1))
     show bv 1 (fun j => wsig (u / 20) ([1].getD j 0) (u % 20)) = _
     rw [show u / 20 = k by omega, show u % 20 = u - 20 * k by omega]; rfl
 

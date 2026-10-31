@@ -21,7 +21,7 @@ theorem idle_untilT {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {
     ∀ n, X.τ k + n ≤ r → P.req (X.τ k + n) = false ∧ P.ack (X.τ k + n) = false := by
   intro n
   induction n with
-  | zero => intro _; exact X.idle k
+  | zero => intro _; exact X.idle k ⟨r, ho⟩
   | succ n ih =>
     intro hn
     obtain ⟨hr, ha⟩ := ih (by omega)
@@ -34,7 +34,7 @@ theorem idle_untilT {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {
         have := cnt_mono (riseB P.req) (show X.τ k + n + 1 ≤ r by omega)
         rw [cnt_succ_of hrise, ho.2] at this
         have := cnt_mono (riseB P.req) (show X.τ k ≤ X.τ k + n by omega)
-        rw [X.count k] at this; omega
+        rw [X.count k ⟨r, ho⟩] at this; omega
     refine ⟨hreq, ?_⟩
     cases hq : P.ack (X.τ k + n + 1) with
     | false => rfl

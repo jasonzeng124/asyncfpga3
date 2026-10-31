@@ -95,7 +95,13 @@ theorem src_fn : ∀ a : Bool, lutB INIT_src [a] = !a := by decide
 
 /-- **bdc's closed link ring is empty at reset and stays frozen.** Every link bdc emits is
 `bd_c2n`, so with `rst` held every stage drives 0 (`Ring.gate_rst` at `K = 0`); the release
-state `resetState 0` has no wavefront, and every inertial timed trace from it is constant. -/
+state `resetState 0` has no wavefront, and every inertial timed trace from it is constant.
+
+Scope (audit P13 row 13, 2026-10-31): proved only for a CLOSED ring of `bd_c2n` links released
+from the all-zero state. That every ring bdc emits is such a ring rests on `bdc/emit.py` emitting
+no `_set` cell on a ring; Lean does not check that (a `grep _set bdc/*.py` finds no `_set` cell
+name in the emitter; the `bd_c2n_set` cells in `formal/tools-A/xaudit/k*/..._rig.v` belong to
+the hand-written test rigs, not to bdc output). -/
 theorem bdc_closed_ring_empty (n : Nat) {lo hi : Nat → Nat} {x : Nat → Ring.State}
     (hx : Bridge.Timed (Bridge.RingT.ringNet n 0) lo hi x) (h0 : x 0 = Ring.resetState 0) :
     (∀ s i, Ring.gate n 0 true s i = false) ∧ Ring.D n (Ring.resetState 0) = 0 ∧

@@ -1,7 +1,9 @@
 # C-8z5: H_NO_DEADLOCK'' -- spine localisation, no return-to-zero loop, narrowed obligation
 
 Shard C, probe 8z5, 2026-10-29. Core Lean only (no Mathlib), no sorry/axiom/native_decide.
-(Draft saved at 2h50m; final version below may extend it.)
+(Draft saved at 2h50m; the probe never committed. CLAIMED 2026-10-31 by the next C session: the
+three files `CapstoneLiveNd5{Spine,Loop,}.lean` moved from Wip/_snapC to Formal/Net unchanged and
+pass `./check.sh` there; Wip/C8z5/Neg.lean holds the negative controls.)
 
 **Status: PARTIAL.** H_NO_DEADLOCK'' is **still OPEN**. What is new (kernel-checked):
 

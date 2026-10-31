@@ -19,8 +19,13 @@ file was edited.
   `idle`, `count` and `win` need a `k`-th offer, and the last transaction's window is unbounded on
   the right. Every theorem built on `TxWin` re-checks unchanged in statement. Non-vacuity on a
   FINITE channel: `CapstoneRefineFinWit.fin_witness` (a channel offered exactly twice, idle
-  forever after, certified by a real tcheck DAG row, not `exempt`). Still NOT shown: a gcd_hw run
-  meeting phys5's Row hypotheses; the gcd_hw witnesses remain all-ghost/all-exempt.
+  forever after, certified by a real tcheck DAG row, not `exempt`). On the REAL gcd_hw witness run
+  (C-8t's `chW`): `CapstoneRefineOut0Wit.out0_dag_witness` -- out0 (offered once, closes at 473)
+  carries a `BCert.dag` (`out0_dag_cert`: the dag hypotheses, stated as an existential), and from
+  that row alone out0 is `Held` and every in-transaction sample is `6 = Nat.gcd 12 18`. Its
+  obligation netlist is hand-made (5 nodes, fixed delays, 3 bus bits), NOT the routed one. Still
+  NOT shown: tcheck's real rows meeting `TxWin` on a gcd_hw run; the other 25 roots; phys5's
+  `Row` hypotheses on any gcd_hw run; the phys4/phys5 witnesses still use exempt/ghost.
 - **"H_FN decided against Formal.Gen on 176/221" overstated.** `fnOK` returns `true` for `.wire`
   (43 forks) and `.shift` (37 steerD var 0) without consulting `Formal.Gen`. Only 96 (87 latches,
   9 data muxes) are checked against generated cells, at W = 3 only, with each bit pair assumed to

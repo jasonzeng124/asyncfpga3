@@ -664,3 +664,25 @@ xorshift seeds 1-4, rho a bijection). Re-claiming them after my own build/check:
   reconstructed it from the test-point lines AutoGcd.lean quotes; with it gen_claimed.sh
   regenerates all ten Auto* files BYTE-IDENTICAL to the snapshot (AutoLib is hand-written).
 - 11g: drift check needs prjxray-db; FPGA toolchain restore (cache branch) running.
+
+### progress 08:45
+Committed after my own `./check.sh` on 21 files (6801 declarations, axioms standard, OK):
+- TxWin repair (audit row 18) + `CapstoneRefineFinWit.fin_witness` (finite channel, DAG BCert)
+  + `CapstoneRefineOut0Wit.out0_dag_witness`: on C-8t's REAL gcd_hw run `chW`, out0 (offered
+  once) carries a `BCert.dag` whose obligation netlist is hand-made (5 nodes, fixed delays, 3
+  bus bits; NOT the routed netlist); from it alone out0 is Held and every in-transaction sample
+  is 6 = gcd 12 18. The phys4/phys5 witnesses themselves still use exempt/ghost on every root.
+- 8z5 claimed (CapstoneLiveNd5{Spine,Loop,}; Wip/C8z5/Neg.lean negative controls pass):
+  H_NO_DEADLOCK'' <-> NoBlock; spine_local; gcd_hw_no_rtz_loops. H_NO_DEADLOCK'' stays OPEN.
+- vk2 claimed (Auto*: generated all-inputs token-level theorems for gcd, ipow, collatz,
+  xorshift, isprime and the equivalent gcd mutant; AutoLib hand-written once), with the
+  reconstructed `tools/autoproof/ref/gcd_binary.c` (regeneration byte-identical).
+- RingReset docstring scope (audit P13 row 13).
+11g: fasm2lean3 `check.sh --no-lean` passes on all four gcd_hw seeds (bits = FASM, check3 0
+fail on 10629-10633 instances each, no drift, negative controls caught); Lean build of
+Gcd2-4 and Xorshift1-4 running (one module at a time).
+Started H_COMPUTE_FN (open hypothesis: the yosys LUT/CARRY4 netlist of each bdc_fused unit
+equals its MLIR op): survey of gcd_hw's 20 fused units from the synth JSON -- per output bit,
+uori0/1 and ucmpi2/3 depend on <= 2 input bits; the adders/compares/selects/shifts on up to
+64. Writing Formal/Net/Compute/Basic.lean (cell semantics on shard A's CARRY4/MUXF models,
+support soundness, cut-point soundness, exhaustive local checks).

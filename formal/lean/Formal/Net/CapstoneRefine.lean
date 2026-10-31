@@ -185,15 +185,24 @@ theorem bv_congr : ∀ (n : Nat) {f f' : Nat → Bool}, (∀ j, j < n → f j = 
 
 /-! ## Per channel, many transactions -/
 
+/-- Transaction `k` occurs on `P`: the channel makes a `k`-th offer (0-based) at some time. -/
+def HasOff (P : Chan) (k : Nat) : Prop := ∃ r, OffAt P k r
+
 /-- H_TXWIN for a physical channel `P` and one obligation: `sig k` is the `k`-th transaction's
 single-launch run (data nodes `data`, bit `j` of the bus at capture pin `data[j]`), `R k v` =
-"a request (target) node of run `k` changes at run time `v`". -/
+"a request (target) node of run `k` changes at run time `v`".
+
+Indexed by the transactions that OCCUR (audit P12a row 18, 2026-10-31): `idle`/`count` are
+demanded only for `k` with a `k`-th offer (`HasOff P k`), and the window of the LAST transaction
+is unbounded on the right, and `win` too is demanded only for transactions that occur (its premise only bounds `u` by `τ (k+1)` when a `(k+1)`-th offer
+exists). The previous form (`count : ∀ k, ...`) forced infinitely many offers, so no channel of
+a terminating run could meet it (`txwin_finite_witness` below shows a one-offer channel does). -/
 structure TxWin (P : Chan) (sig : Nat → Nat → Trace) (data : List Nat) (R : Nat → Nat → Prop) where
   τ : Nat → Nat
-  idle : ∀ k, P.req (τ k) = false ∧ P.ack (τ k) = false
-  count : ∀ k, cnt (riseB P.req) (τ k) = k
+  idle : ∀ k, HasOff P k → P.req (τ k) = false ∧ P.ack (τ k) = false
+  count : ∀ k, HasOff P k → cnt (riseB P.req) (τ k) = k
   reqIn : ∀ k r, OffAt P k r → R k (r - τ k)
-  win : ∀ k u, τ k ≤ u → u < τ (k + 1) →
+  win : ∀ k u, HasOff P k → τ k ≤ u → (HasOff P (k + 1) → u < τ (k + 1)) →
     P.dat u = bv data.length (fun j => sig k (data.getD j 0) (u - τ k))
 
 /-- The zero-delay bus value of transaction `k`. -/
@@ -201,18 +210,20 @@ def zdBus {net : Netlist} {sig : Nat → Nat → Trace} (runs : ∀ k, Run net (
     (data : List Nat) (k : Nat) : Nat :=
   bv data.length (fun j => zdEval net (runs k).g (sig k 0 1) (data.getD j 0))
 
-/-- The offer of transaction `k` lies in `[τ k, τ (k+1))`. -/
+/-- The offer of transaction `k` lies in `[τ k, τ (k+1))` (no right end for the last one). -/
 theorem off_in_win {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {R : Nat → Nat → Prop}
-    (X : TxWin P sig data R) {k r : Nat} (ho : OffAt P k r) : X.τ k ≤ r ∧ r < X.τ (k + 1) := by
+    (X : TxWin P sig data R) {k r : Nat} (ho : OffAt P k r) :
+    X.τ k ≤ r ∧ (HasOff P (k + 1) → r < X.τ (k + 1)) := by
   have h1 := cnt_succ_of ho.1
   rw [ho.2] at h1
   constructor
   · apply Classical.byContradiction; intro h
     have := cnt_mono (riseB P.req) (show r + 1 ≤ X.τ k by omega)
-    rw [h1, X.count k] at this; omega
-  · apply Classical.byContradiction; intro h
+    rw [h1, X.count k ⟨r, ho⟩] at this; omega
+  · intro hn
+    apply Classical.byContradiction; intro h
     have := cnt_mono (riseB P.req) (show X.τ (k + 1) ≤ r by omega)
-    rw [ho.2, X.count (k + 1)] at this; omega
+    rw [ho.2, X.count (k + 1) hn] at this; omega
 
 /-- **Sampled value = zero-delay value (generic separation).** If every data change of run `k`
 is no later than every request change of run `k` (`hsep`), then at every instant `t` of the
@@ -226,11 +237,13 @@ theorem sampled_eq_zd {net : Netlist} (hwf : net.WF) {P : Chan} {sig : Nat → N
     (hbusy : ∀ s, r < s → s ≤ t → inTx P s = true) :
     P.dat t = zdBus runs data k := by
   obtain ⟨h1, h2⟩ := off_in_win X ho
-  have h3 : t < X.τ (k + 1) := by
+  have h3 : HasOff P (k + 1) → t < X.τ (k + 1) := by
+    intro hn
+    have h2 := h2 hn
     apply Classical.byContradiction; intro h
     have hb := hbusy (X.τ (k + 1)) (by omega) (by omega)
-    simp [inTx, (X.idle (k + 1)).1, (X.idle (k + 1)).2] at hb
-  rw [X.win k t (by omega) h3, zdBus]
+    simp [inTx, (X.idle (k + 1) hn).1, (X.idle (k + 1) hn).2] at hb
+  rw [X.win k t ⟨r, ho⟩ (by omega) h3, zdBus]
   apply bv_congr
   intro j hj
   have hd : data.getD j 0 ∈ data := by
@@ -259,7 +272,7 @@ theorem idle_until {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {R
     ∀ n, X.τ k + n ≤ r → P.req (X.τ k + n) = false ∧ P.ack (X.τ k + n) = false := by
   intro n
   induction n with
-  | zero => intro _; exact X.idle k
+  | zero => intro _; exact X.idle k ⟨r, ho⟩
   | succ n ih =>
     intro hn
     obtain ⟨hr, ha⟩ := ih (by omega)
@@ -272,7 +285,7 @@ theorem idle_until {P : Chan} {sig : Nat → Nat → Trace} {data : List Nat} {R
         have := cnt_mono (riseB P.req) (show X.τ k + n + 1 ≤ r by omega)
         rw [cnt_succ_of hrise, ho.2] at this
         have := cnt_mono (riseB P.req) (show X.τ k ≤ X.τ k + n by omega)
-        rw [X.count k] at this; omega
+        rw [X.count k ⟨r, ho⟩] at this; omega
     refine ⟨hreq, ?_⟩
     cases hq : P.ack (X.τ k + n + 1) with
     | false => rfl

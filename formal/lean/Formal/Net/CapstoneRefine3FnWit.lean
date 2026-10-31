@@ -58,10 +58,13 @@ theorem cnt_wQ (u : Nat) : cnt (riseB wQ.req) u = u / 20 + (if 5 < u % 20 then 1
     have := key _ hm
     omega
 
+theorem hasOff_wQ (k : Nat) : HasOff wQ k :=
+  ⟨20 * k + 5, by rw [riseB_wQ]; simp [Nat.add_mod], by rw [cnt_wQ]; simp; omega⟩
+
 def wXQ : TxWin wQ wsig [1] (fun k v => changes (wsig k 2) v) where
   τ k := 20 * k
-  idle k := by simp [wQ, Nat.mul_mod_right]
-  count k := by rw [cnt_wQ]; simp [Nat.mul_mod_right]
+  idle k _ := by simp [wQ, Nat.mul_mod_right]
+  count k _ := by rw [cnt_wQ]; simp [Nat.mul_mod_right]
   reqIn k r ho := by
     have h1 := ho.1
     rw [riseB_wQ] at h1
@@ -70,7 +73,8 @@ def wXQ : TxWin wQ wsig [1] (fun k v => changes (wsig k 2) v) where
     rw [cnt_wQ, if_neg (by omega)] at h2
     rw [show r - 20 * k = 5 by omega]
     simp [changes, wsig]
-  win k u h1 h2 := by
+  win k u _ h1 h2 := by
+    have h2 := h2 (hasOff_wQ (k + 1))
     show bv 1 (fun j => wsig (u / 20) ([1].getD j 0) (u % 20)) = _
     rw [show u / 20 = k by omega, show u % 20 = u - 20 * k by omega]; rfl
 
