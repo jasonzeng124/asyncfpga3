@@ -148,7 +148,10 @@ def reqSrc(F, c, ops, prod):
     n = prod[c]; o = ops[n]; k = o["k"]
     if k == "link": return ("lk", n)
     if steer(o): return ("sb", n, c == o["t"])
-    if k in ("join", "bjoin"): return ("jr", n) if len(o["ins"]) == 2 else None
+    if k in ("join", "bjoin"):
+        if len(o["ins"]) == 2: return ("jr", n)
+        if len(o["ins"]) == 1: return reqSrc(F - 1, o["ins"][0], ops, prod)   # a 1-input join is a wire
+        return None
     if k in ("forkG", "forkH"): return reqSrc(F - 1, o["i"], ops, prod) if tiedfork(o) else None
     if k == "mux": return ("md", n, 1)
     return None
@@ -158,7 +161,7 @@ def ackSrc(F, c, ops, cons):
     if k == "link": return ("lk", n)
     if steer(o): return ("ao", n)
     if k in ("forkG", "forkH"): return ("fa", n) if tiedfork(o) else None
-    if k in ("join", "bjoin"): return ackSrc(F - 1, o["o"], ops, cons) if len(o["ins"]) == 2 else None
+    if k in ("join", "bjoin"): return ackSrc(F - 1, o["o"], ops, cons) if len(o["ins"]) in (1, 2) else None
     if k == "mux":
         if c == o["c"]: return ackSrc(F - 1, o["z"], ops, cons)
         return ("ma", n, c == o["y"])

@@ -1654,3 +1654,11 @@ In (lake build, 146 jobs, OK): the steer and mux select traces are now bound to 
 FGcdNetOKB.H_STEER and FGcdNetOKBM.H_STEER/H_MUXJ require s = bit 0 of the control
 channel's bus (in FGcdNetOK the select trace s was a free existential). Both witnesses
 meet it by rfl (selB = bit 0 of chB's bus).
+
+### progress 09:59
+In (lake build, 143 jobs, OK): reqSrcM/ackSrcM trace through 1-INPUT JOINS (they have no
+cell; bdc emits them as wires both ways). bound_censusM now 136 of 175 links bound on both
+sides, 15 request side only, 24 acknowledge side only, 0 neither; the remaining unbound
+sides end at an amerge (23 request + 5 acknowledge), muxn (4), fork tree N >= 5 (6) or the
+source (1). The mux-extended witness (BWit2Net) re-checks with the regenerated wire data
+(gen_bdata2.py --check ok; bsim2.py: 657 bound pins, all wired, w 1-3; bsim2.out).

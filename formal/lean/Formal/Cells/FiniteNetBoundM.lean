@@ -13,12 +13,15 @@ every mux pin bound as well:
 * a mux output request is driven by the mux's last `udly` buffer; a mux input acknowledge by
   its `uxa`/`uya`; the control's acknowledge is `z_ack` (a wire), so its driver is `z`'s
   (`reqSrcM`, `ackSrcM`);
+* a 1-input join is a wire both ways in the emitted Verilog (it has no cell), so a request is
+  traced back, and an acknowledge forward, through it;
 * inside the mux: `uor` reads the two join nodes, `udly[0]` reads `uor`, `udly[1]` reads
   `udly[0]`, `uxa`/`uya` read their join's node and `z`'s acknowledge.
 
 ## Assumed / proved / NOT covered
 
-**Proved:** `bound_censusM` (kernel): with muxes, 124 of 175 links are bound on both sides;
+**Proved:** `bound_censusM` (kernel): with muxes and 1-input joins as wires, 136 of 175 links are bound on both sides (the
+remaining sides end at an amerge, muxn, fork tree N >= 5 or source);
 `FGcdNetOKBM.toOK` (the mux cells' truncated contracts follow from their specs:
 `fmuxj_spec_cell`, `fmuxa_spec_cell`, `for_spec_cell`, `fbuf_spec_cell`); `link_env_boundM`;
 `gcd_hw_safe_fin_netBM`: C's gcd_hw circuit safety under `FGcdNetOKBM` plus C's H_OTHER,
@@ -80,8 +83,10 @@ def reqSrcM : Nat → Fin NC → Option DKM
     | .link _ _ => some (.base (.lk o))
     | .steerC _ t _ => some (.base (.sb o (decide (c = t))))
     | .steerD _ t _ _ _ => some (.base (.sb o (decide (c = t))))
-    | .join ins _ _ _ _ => if ins.length = 2 then some (.base (.jr o)) else none
-    | .bjoin ins _ _ _ => if ins.length = 2 then some (.base (.jr o)) else none
+    | .join ins _ _ _ _ => if ins.length = 2 then some (.base (.jr o))
+        else if ins.length = 1 then reqSrcM F (ins.getD 0 d0) else none
+    | .bjoin ins _ _ _ => if ins.length = 2 then some (.base (.jr o))
+        else if ins.length = 1 then reqSrcM F (ins.getD 0 d0) else none
     | .forkG i os => if 2 ≤ os.length ∧ os.length ≤ 4 then reqSrcM F i else none
     | .forkH i os _ _ _ _ => if 2 ≤ os.length ∧ os.length ≤ 4 then reqSrcM F i else none
     | .mux _ _ _ _ _ => some (.md o 1)
@@ -99,8 +104,8 @@ def ackSrcM : Nat → Fin NC → Option DKM
     | .steerD _ _ _ _ _ => some (.base (.ao o))
     | .forkG _ os => if 2 ≤ os.length ∧ os.length ≤ 4 then some (.base (.fa o)) else none
     | .forkH _ os _ _ _ _ => if 2 ≤ os.length ∧ os.length ≤ 4 then some (.base (.fa o)) else none
-    | .join ins z _ _ _ => if ins.length = 2 then ackSrcM F z else none
-    | .bjoin ins z _ _ => if ins.length = 2 then ackSrcM F z else none
+    | .join ins z _ _ _ => if ins.length = 2 ∨ ins.length = 1 then ackSrcM F z else none
+    | .bjoin ins z _ _ => if ins.length = 2 ∨ ins.length = 1 then ackSrcM F z else none
     | .mux cc _ y z _ => if c = cc then ackSrcM F z else some (.ma o (decide (c = y)))
     | _ => none
 
@@ -126,12 +131,16 @@ theorem reqSrcM_tied (N : FGcdNetM) : ∀ (F : Nat) (c : Fin NC) (d : DKM),
       split at h
       · rename_i hl; cases h
         exact Or.inl (Or.inr (Or.inr (Or.inl ⟨prodOf c, ins, by rw [e]; rfl, hl, rfl⟩)))
-      · cases h
+      · split at h
+        · exact reqSrcM_tied N F _ d h
+        · cases h
     · rename_i ins z ec ed e
       split at h
       · rename_i hl; cases h
         exact Or.inl (Or.inr (Or.inr (Or.inl ⟨prodOf c, ins, by rw [e]; rfl, hl, rfl⟩)))
-      · cases h
+      · split at h
+        · exact reqSrcM_tied N F _ d h
+        · cases h
     · split at h
       · exact reqSrcM_tied N F _ d h
       · cases h
@@ -302,16 +311,16 @@ def nNoneM : Nat := ((linkSidesM FU).filter fun p => !p.1 && !p.2).length
 
 set_option maxRecDepth 100000
 
-theorem censusM_both : nBothM = 124 := by decide +kernel
-theorem censusM_req : nReqOnlyM = 25 := by decide +kernel
-theorem censusM_ack : nAckOnlyM = 25 := by decide +kernel
-theorem censusM_none : nNoneM = 1 := by decide +kernel
+theorem censusM_both : nBothM = 136 := by decide +kernel
+theorem censusM_req : nReqOnlyM = 15 := by decide +kernel
+theorem censusM_ack : nAckOnlyM = 24 := by decide +kernel
+theorem censusM_none : nNoneM = 0 := by decide +kernel
 theorem censusM_fuel : linkSidesM FU = linkSidesM (FU + 8) := by decide +kernel
 
-/-- **Census with muxes** (kernel): of gcd_hw's 175 links, 124 bound on both sides, 25 only
-on the request side, 25 only on the acknowledge side, 1 neither; fuel saturated. -/
+/-- **Census with muxes** (kernel): of gcd_hw's 175 links, 136 bound on both sides, 15 only
+on the request side, 24 only on the acknowledge side, 0 neither; fuel saturated. -/
 theorem bound_censusM :
-    nBothM = 124 ∧ nReqOnlyM = 25 ∧ nAckOnlyM = 25 ∧ nNoneM = 1 ∧
+    nBothM = 136 ∧ nReqOnlyM = 15 ∧ nAckOnlyM = 24 ∧ nNoneM = 0 ∧
     linkSidesM FU = linkSidesM (FU + 8) :=
   ⟨censusM_both, censusM_req, censusM_ack, censusM_none, censusM_fuel⟩
 

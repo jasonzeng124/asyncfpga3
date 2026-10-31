@@ -5,7 +5,8 @@ import Formal.Cells.BWit2Cells
 # Probe Bwit2 (shard B): a joint witness of the mux-extended driver-bound gcd_hw theorem
 
 `FiniteNetBoundM.gcd_hw_safe_fin_netBM` (links, forks N ≤ 4, 2-input joins, steers AND every
-`bd_mux` gate-modelled, every tied pin's driver the cell the netlist names; 124 of 175 links
+`bd_mux` gate-modelled, every tied pin's driver the cell the netlist names (through 1-input
+joins, which are wires); 136 of 175 links
 bound on both sides) has a joint witness on the gate-timed run `chB` of `BWit2Data` (a = 12,
 b = 18; every tied gate LUT 1 + wire 1-3; C's mux join traces are B's join nodes 6 ticks late):
 
