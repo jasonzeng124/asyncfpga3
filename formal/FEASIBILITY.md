@@ -7,18 +7,22 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
-**2026-10-31 (lead), in one paragraph** (rewritten after audit pass 15). Formal/Cells/Prelim is deleted (Phase 1 done).
-Whole-project `check.sh` OK (lake build, 73,170 library declarations, standard axioms). The routed-timing verdict on
-the corrected arbiter core no longer assumes the refuted HARB7: the arbiter is checked at its real LUTs, and what
-remains about it is named: ArbEdge (quiet start, settle bound H, and the per-reader edge windows: no re-request
-while switching, the B2 settledness windows after request rises and literal flips, the C window of A0 high around
-request falls; its QClean field now derived from quiet input reads after reset), and, for the gcd_hw form,
-ArbOrd. **No gcd_hw row is covered in a dischargeable way:** ArbOrd is an order on the classically chosen SatPin
-warps, and at a reader whose band row fails (2-6 of 9 arbiters per slow/fast row) some admissible witness violates
-it (audit P15a, `not_all_witnesses`), so it cannot be discharged there as stated; and in the research GLS at
-σ = 0.10 it fails on a real request pin while the circuit computes every vector. ipow 3/5 and xorshift 5/8/9
-(slow/fast) meet every checked premise of `design_verdict9arbnet_edge`, which needs no ArbOrd. No joint witness of
-the hypotheses on any real run. Not yet: a link from this skeleton verdict to C's H_BUNDLE/H_CELLS.
+**2026-10-31 (lead), where things stand** (rewritten after audit pass 15 and the SatPinW change).
+- Whole-project `check.sh` OK (lake build, 73,186 library declarations, standard axioms). Formal/Cells/Prelim is
+  deleted (Phase 1 done).
+- **gcd correctness is still conditional and not composed end to end.** C's capstone (`gcd_hw_circuit_safe3`: every
+  out0 latch is gcd, for the concrete 465-channel network) rests on H_CELLS, H_BUNDLE, H_START_ONCE; B has joint
+  witnesses of the gate-level network theorems on one run; C proved the 20 data-path units' functions (H_COMPUTE_FN,
+  not yet linked into the capstone). Nothing yet derives H_CELLS/H_BUNDLE from the routed netlist.
+- **Routed control skeleton (A).** The corrected-arbiter-core verdicts (`Core/XAudit/Events9FullArb`) no longer
+  assume the refuted HARB7: each arbiter is checked at its real LUTs, and what remains is named: ArbEdge (quiet
+  start, settle bound, the per-reader edge windows; QClean derived from quiet input reads after reset) and, for the
+  gcd_hw form, ArbOrd. The verdicts now take a behaviour WITH its warps (`SatPinW`), so these are conditions on the
+  delay behaviour the user supplies. ipow 3/5 and xorshift 5/8/9 (slow/fast) meet every checked premise of the form
+  without ArbOrd. On gcd_hw, 10 rows meet every checked premise of the ArbOrd form; ArbOrd holds for fixed-delay
+  behaviours meeting four path rows (`arbOrd_of_transport`), not for every behaviour in the bands, and it failed in
+  3 of 5 research-GLS scatter draws while the circuit still computed every vector (an abstraction limit). No joint
+  witness of the hypotheses on any real run.
 
 ## Short answer (provisional)
 
