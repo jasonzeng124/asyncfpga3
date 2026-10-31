@@ -560,3 +560,7 @@ Research a73267f8: BQ#1 full stack first 5 runs PASS (d SLOW_MAX 16/12/18 on sdf
 3 SLOW_MAX/FAST_MIN, 4 SLOW_MAX). BQ#1's full stack has never been reproduced by me, so after the BQ#2 seed 5
 FAST_MIN run I route BQ#1 at the default seed (check sdf 6f8b99e6) and run SLOW_MAX on all 16 vectors with the
 stall check. The seed-5 re-route reproduced 030c36bd/fc056c5b (the build is deterministic).
+
+### progress 08:04
+BQ#2 seed 5 FAST_MIN (route md5s again 030c36bd/fc056c5b): 16/16 errs 0, no stalls, 88/71/102. That equals the
+journal's "5 FAST_MIN 88/71/102" exactly. CONFIRMED. BQ#1 default-seed route + SLOW_MAX starting.
