@@ -177,7 +177,16 @@ experiments; and (2) **connecting** the proofs to the real routed design
        (audit `7f46f23` CONFIRMED).
      - Collatz: xevents5/7 CLEAN at slow and fast on 4 seeds (A-k2); xaudit certifies one
        transaction at slowmax only.
-     - A's K3 (xevents8 on ipow and xorshift) is running. xorshift seeds 4 and 6 did not place.
+     - A's K3 (xevents8 on ipow and xorshift, 10-29). xorshift seeds 4 and 6 did not place.
+     - **2026-10-31, current tool (A):** corrected arbiter core + arbiter link (`k3/run_e9_k3.sh`) on the
+       rebuilt ipow/xorshift (md5s reproduce). On 10 rows (ipow 3/5, xorshift 5/8/9, each at slow and fast)
+       every checked premise of `Events9FullArb.design_verdict9arbnet_edge` holds (xevents9par CLEAN,
+       ArbOK + ArbRowsOK 2/2, OwnOK/RsOK/FixShape). So for those routes the routed control skeleton's
+       verdict rests on SatPin, constants/reset, the per-arbiter edge windows ArbEdge (no metastable runt,
+       quiet start, settle bound, no re-request while switching), SelOK and SelPart, and not on the refuted
+       HARB7. ipow's DSPs are cut (datapath not covered); gb/indep rows fail ArbRowsOK (B1). A boundary
+       negative control (+43 ps passes, +44 ps fails) shows the row is evaluated exactly. gcd_hw has no
+       such row (`notes/A-k3.md`, `notes/A-e9arbnet.md`).
    - **Not yet:** "proves it correct or prints a counterexample trace" as one tool. C's `vk` (one
      `verify.sh` entry point with counterexample traces) is running.
 

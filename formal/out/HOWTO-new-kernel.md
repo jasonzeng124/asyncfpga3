@@ -250,6 +250,19 @@ collatz's NEG-fb at gcd's +1500 ps (stage margin 2054 ps), and ipow's NEGentry/N
 +5000 / +18000 ps (that pin's ENTRY margin was 8312 ps and EXIT2 37219 ps: the margins include
 the walks through the delay lines). The k3 defaults are 5000 ps (feedback) and GPS = 60000 ps.
 
+## 5b. The current verdict: corrected arbiter core + arbiter link (2026-10-31)
+
+    OL=<olean overlay> k3/run_e9_k3.sh <k>   # SEEDS="d 3 4 5" CORNERS="slow fast indep gb"; -> k3/out/<k>/e9/
+
+The overlay must hold the Events9ParMain and Events9ArbNetMain closures. Any lean 4.35 olean dir built
+with -DautoImplicit=false from the committed Formal/ works; lake's own build dir works once lake build
+finishes. Per row, read the last line of `xe9p_*` (CLEAN or RESIDUAL n) and `xan_*`'s "ArbOK and ArbRowsOK
+k/K". A row covered by `Events9FullArb.design_verdict9arbnet_edge` needs CLEAN and K/K (and VERDICT
+ARB-LINK OK). A failing ArbRowsOK prints its negative margins; so far only the B1 rows fail
+(notes/A-e9arbnet.md). Negative control: shift one grant request-pin arc past its B1 margin with
+arbnet/mutband.py, regenerate cert9p + gen.py on the mutated bands, and check that it fails by exactly
+the excess (notes/A-k3.md).
+
 ## 6. xaudit: one transaction, X/hazard verdict
 
     k2/run_xaudit_k2.sh       # SEED=d; slow/fast/slowmax w=0,0.02,0.05; then gcd/fbrace.py
