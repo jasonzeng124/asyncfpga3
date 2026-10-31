@@ -1640,3 +1640,11 @@ environment pins from tied gate-model cells). NB raised to 768 for this run (old
 witnesses re-check). Same limits as Bwit: one run, unit LUT delays, simulator wires 1-3,
 R = 2, contracts at muxn/amerge/sources/sinks/join1/fork trees, H_OTHER still a hypothesis
 of the theorem. Negative control and full lake build next.
+
+### progress 09:25
+formal/check.sh --committed at 4dc79b4b: textual scan, lake build
+"Build completed successfully (3638 jobs)" (Mathlib built from source by setup.sh in this
+sandbox, 6158 s; setup.sh's own build had failed only because I edited files during it),
+axiom audit "[check] OK". So everything committed today is in a green check.sh, not just the
+private olean build. The Bwit2 negative control (one uj0 node edge +1) was killed by the OOM
+killer while lake ran (rc 137); re-run pending.
