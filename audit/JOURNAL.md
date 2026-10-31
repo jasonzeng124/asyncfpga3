@@ -575,3 +575,10 @@ network theorem; C TxWin indexed by occurring transactions (answers my P12a row 
 units, vk2; A Events9FullArb/E9* claims, SeqXray SLICEM windows (answers P10b), CornerDiff strong witness (answers
 P13), "design_verdict9_full_arb covers no gcd_hw row"). Clean worktree ~/wt-f14; Mathlib packages moved from wt-f13
 (same lake-manifest); lake build of 0780fd30 running.
+
+### progress 08:54
+Keyword scan of 0780fd30 (795 Formal files): 1 hit, the same Netlist `opaque` constructor. The lakefile globs build
+every module under Formal/ (Wip/ excluded), so my lake build covers every claimed module. Subagents P14bc (shards
+B+C: TxWin repair, H_COMPUTE_FN 14 units with own netlist spot-check, Bwit/Bwit2 joint witnesses) and P14a (shard A:
+Events9FullArb / arbnet_edge verdicts and coverage, grant_fall_after_req_fall, CornerDiff strong witness, SeqXray
+SLICEM vs prjxray-db) launched; they compile only after my build finishes, one Lean process each.
