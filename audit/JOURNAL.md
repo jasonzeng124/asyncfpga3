@@ -791,3 +791,9 @@ bounded either; it is just much less likely at the tails.
 ### progress 22:03
 BQ#2 seed 6 log-normal 2x: errs 3 on vectors 7, 8, 12 (the uori3 signature), others progress to TEND. The research
 log-normal table (95c22cf6) is now fully reproduced: BQ#2 s6 1.5x PASS / 2x FAIL; BQ#3 s9 1.5x PASS / 2x FAIL.
+
+### progress 23:36
+r23 M: BQ#3 seed 9 log-normal 1.75x reproduced exactly (16/16, errs 0, 50/40/120), but the PASS is double-counted
+glitches. On exactly the six 2x-failing vectors every completion emits two LAP/OK pulses 30 ps apart (lap ratio vs
+1.5x: 1.97-2.00; others 0.98-1.00), and the real period is unchanged. REFUTED as a pass and as "threshold 1.75-2x".
+No other PASS run I reproduced shows double laps (scan of all logs).
