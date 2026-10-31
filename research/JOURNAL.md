@@ -1874,3 +1874,11 @@ calibrated within-die scatter, which S9 already suspects is double-counted. Bise
 - BQ#3 seed 9, log-normal 0.28/0.2205, draw 1: PASS 16/16 errs 0 (laps 50/40/120). Vector 13 ran 120 laps vs ~60
   at the other scales, with every result correct (oks = laps); most likely its critical cycle sits in a region
   this draw makes fast. Noted, not chased. BQ#2 seed 6 at 1.75x running.
+### progress 22:51 (log-normal failing scale bracketed for both known exposures)
+| draw 1, log-normal | 1x | 1.5x | 1.75x | 2x | failing scale |
+|---|---|---|---|---|---|
+| BQ#3 seed 9 (uori2) | PASS | PASS | PASS | FAIL 6 | 1.75-2x |
+| BQ#2 seed 6 (uori3) | PASS | PASS | FAIL 2 | FAIL 3 | 1.5-1.75x |
+Margin over the calibrated within-die scatter, on the worst known route/draw of each candidate: >= 1.5x.
+Next: log-normal 1.5x on draw 2 over all routes (BQ#3 d,3-9; BQ#2 6-9, the routes on disk), to see whether 1.5x
+holds beyond draw 1.
