@@ -1781,3 +1781,11 @@ region prototype is a negative result.
 - BQ#2 seed 9 2x draw 1 PASS 16/16 (49/39/58). Draw 1: 1x PASS 4/4 seeds, 2x PASS 3/4 (seed 6 = uori3). BQ#3's
   record for comparison: 1x 8/8, 2x 7/8. BOARD-QUEUE #2 updated.
 - Chain-region route 2x draw 4 PASS (46/36/53): chain regions 2/4 so far; unconstrained draw 4 running.
+### progress 02:29 (NEGATIVE, final: chain-only regions 2/4 vs unconstrained 2/4 at 2x)
+| BQ#2 seed 6, 2x (0.32/0.252) | d1 | d2 | d3 | d4 | pass |
+|---|---|---|---|---|---|
+| unconstrained | FAIL 3 | FAIL 15 | PASS 62 | PASS 43 | 2/4 |
+| chain regions (pass 3) | FAIL 4 | FAIL 2 | PASS 52 | PASS 46 | 2/4 |
+(errs or vec-6 laps). Same pass rate; slower at the corners (-6% SLOW_MAX, -9% FAST_MIN). BD_CHAIN_REGIONS stays
+an off-by-default tool and is not proposed for any candidate. One route only; at 2x half the draws fail on this
+route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the time.
