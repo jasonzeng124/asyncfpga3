@@ -1709,3 +1709,17 @@ correctness is a race (the arbiter's ustate/ugrant): the real LUT F of its pins 
 excitation with stated edges). fcomb_spec_cell: it meets FCellOK, so such cells can join the
 bound network; fcomb_of_buf: a buffer is an instance (H_EXC_CLEAN = the pin's own
 cleanliness). Building block for notes/B-arb-bind-plan.md; no arbiter instance yet.
+
+### progress 11:13
+Bwit3 step 1 (Python only, UNTRUSTED; tools-B/bwit/bsim3.py, bsim3.out): the ARBITER at
+gate level too. bd_arbiter's four cells from the real INITs (ustate O6 q: frozen while A0
+is high, else set by a sole r1, cleared by a sole r2, held on a tie or no request, reset to 1;
+ustate O5 R0 = q ? r1 : r2; ugrant g1 = r1 & q, g2 = r2 & !q; ua1/ua2 = C(g, A0); decoded
+in Python and checked against the INIT words for all 32 rows, 0 mismatches), LUT 1, the q pin
+a unit wire; C's internal g1/g2 := B's ugrant nodes (no shift: z.req = R0 one tick later
+equals g1 | g2 at the same pins). a=12,b=18: quiescent 716, out0 = 6; C's checker
+0 violations (C's AMerge: H_ARB1/2, exclusion, zr, RTZ, xa/ya); with the arbiters bound
+(z.req <- R0, x/y ack <- ua1/ua2), 728 bound pins, all wire copies of their netlist driver,
+and 164 of 175 links bound on BOTH sides. The arbiters are uncontested on this run, so no
+race window is exercised. Lean for this: FiniteNetComb.FCombSpec for ustate/ugrant (its
+H_EXC_CLEAN is decidable on the run), FCelSpec for ua1/ua2; not done this session.
