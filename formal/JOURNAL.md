@@ -954,5 +954,5 @@ rules (mkpatch.py R1/R3/R5) by hand on the files created after the patch was gen
 AssumeGuaranteeMuxN{,Fin,FinWit} (Formal.Cells.lutB -> Formal.Core.LutList.lutB), A's Events9Arb/ArbNet/
 ArbNetEdge/ArbB1/ParRst (open Formal.Cells (o5B o6B) -> open Formal.Core.LutList (o5B o6B)), comment-only
 renames in C's Net/CoreLut and Timing/Semantics, and R2 (open Formal.Core.LutList) in B's FiniteOrN, the one
-build failure. Whole-project ./check.sh OK (lake build, library audit 65903 declarations, standard axioms).
+build failure. Whole-project ./check.sh OK (lake build, library audit 65903 declarations, standard axioms); re-run after rebasing onto B's Bwit3 commits: [check] OK, 72763 declarations (B's two heavy BWit2NChk/BWit3NChk modules were OOM-killed when lake built them in parallel with the rest, and built fine alone).
 B and C: please re-verify your modules against this commit (B's note said B re-checks the rule set).
