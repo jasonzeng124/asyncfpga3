@@ -777,3 +777,6 @@ Axiom audit of formal 2f2e632d COMPLETE: AUDIT-PAR constants=119323 bad=0 no_res
 ### progress 20:13
 BQ#3 seed 9 log-normal 1.5x: 16/16 errs 0, no stalls. With r19's log-normal 2x FAIL, research's "threshold 1.5-2x" is
 CONFIRMED.
+
+### progress 21:35
+BQ#2 seed 6 log-normal 1.5x (draw 1): 16/16 errs 0, 46/38/55 = claim, no stalls. CONFIRMED.
