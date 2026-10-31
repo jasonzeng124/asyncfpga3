@@ -167,6 +167,7 @@ high or Settled. Inside an A0-low phase, times after the phase's LAST q change a
 not. So `stall` (every time within H of an ok time, H <= 10^12 - K - hi DA) says: in every A0-low phase, the last
 q change comes within H (about 1 s) of the phase's start or of the previous ok time. An idle arbiter (no q change)
 satisfies it; a request that arrives after more than ~1 s of A0-low idling and flips q breaks it. That limit is an
-artefact of the virtual ctl band `[loCtl, 10^12]`, not of the cell; widening the band's hi (or making it
-unbounded in the count semantics) would remove it. Not done.
+artefact of the virtual ctl band `[loCtl, 10^12]`, not of the cell. **Later the same day the band hi was raised
+to 10^15** (all verdicts identical), so the limit is now ~1000 s; making it unbounded in the count semantics would
+remove it entirely (not done).
 Also proved today: `arb_low_of_reqlow` (the quiet start from quiet requests).
