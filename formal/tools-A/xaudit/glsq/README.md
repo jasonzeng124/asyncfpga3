@@ -25,3 +25,15 @@ ArbOrd with the GLS's own fixed delays (`ord_static.py`, seed 5): for every gran
 driver net with ustate$LUT6 (the two requests, and also the reset/A0 pins, so more pairs than ArbOrd needs),
 `Dr + 2 <= DQ + Dq` holds, worst margin 293 ps (`ord_static_seed5.txt`). These are nextpnr SDF point delays, not
 prjxray bands; with independent prjxray bands the row fails on 2-6 arbiters (notes/A-e9arbnet.md).
+
+All four seeds (`run_seed.sh <seed>`; outputs `out/<seed>/`; md5s equal events5/builds.txt; toolchain.sh 9/9 each):
+
+| seed | vectors errs=0 | q flips | QQuiet violations after reset | before reset (power-up) | ArbOrd worst (GLS delays) |
+|---|---|---|---|---|---|
+| d | 16/16 | 20106 | 0 | 96 | 280 ps |
+| 3 | 16/16 | 18669 | 0 | 96 | 293 ps |
+| 4 | 16/16 | 19567 | 0 | 80 | 293 ps |
+| 5 | 16/16 | 20387 | 0 | 144 | 293 ps |
+
+(seed 5 from the first run above; its per-vector logs were not kept beyond `qq_table_seed5_1031.txt`.)
+Still one GLS model (nextpnr SDF, no scatter, default LUT model), no corner sweep.

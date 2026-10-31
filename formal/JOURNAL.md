@@ -924,3 +924,8 @@ fails only during power-up. xarbnet: ArbRowsOKSS (S = T) 9/9 on all 16 gcd_hw ro
 every checked premise of design_verdict9arbnet_ordS. The arbiter's no-metastability content is now 'ustate's input
 reads quiet for one loop delay after each q flip, after reset', which the seed-5 GLS satisfies on 16/16 vectors
 (evidence, one seed, no scatter).
+### progress 10:06
+glsq on all 4 gcd_hw R5 seeds (research routed GLS, SDF delays, no scatter; routes rebuilt, md5s match): 16/16
+vectors errs=0 per seed, 18.7k-20.4k q flips per seed, 0 QQuiet violations after reset on every seed (only
+power-up hits while rst high), ArbOrd with the GLS's point delays worst margin 280 ps. Evidence for
+design_verdict9arbnet_ordS's QQuiet-after-S and ArbOrd under one delay model; not a proof, no scatter sweep.
