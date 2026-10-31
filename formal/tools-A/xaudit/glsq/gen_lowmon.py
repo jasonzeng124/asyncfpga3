@@ -5,7 +5,7 @@ output, on the port the cell actually drives.   python3 -I gen_lowmon.py GLS_WOR
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
-nm, icbuf, cells, drv = load(sys.argv[1])
+nm, icbuf, cells, drv, const = load(sys.argv[1])
 out = ["module lowmon;"]; n = 0
 for name, c in sorted(nm.items()):
     if ".uarb" not in name or not (".ugrant$" in name or name.endswith("ustate$LUT5")): continue

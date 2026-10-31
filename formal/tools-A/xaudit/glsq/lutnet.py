@@ -16,6 +16,11 @@ def load(W):
         pins = dict(re.findall(r"\.(A\d|O5|O6)\(([^)]*)\)", conns))
         op = "O6" if "O6" in pins else ("O5" if "O5" in pins else None)
         ta = {int(k): int(v) for k, v in re.findall(r"\.TA(\d)" + (op or "O6") + r"\((\d+)\)", params)}
-        cells[c] = dict(op=op, out=pins.get(op), pins={k: v for k, v in pins.items() if k.startswith("A")}, ta=ta)
+        mi = re.search(r"\.INIT\(64'h([0-9a-fA-F]+)\)", params)
+        cells[c] = dict(op=op, out=pins.get(op), pins={k: v for k, v in pins.items() if k.startswith("A")}, ta=ta,
+                        init=int(mi.group(1), 16) if mi else None)
     drv = {v["out"]: c for c, v in cells.items() if v["out"]}
-    return nm, icbuf, cells, drv
+    const = {}
+    for m in re.finditer(r"PSEUDO_(GND|VCC)\s+\S+\s+\(\.Y\((\w+)\)\)", net):
+        const[m.group(2)] = 0 if m.group(1) == "GND" else 1
+    return nm, icbuf, cells, drv, const

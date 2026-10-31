@@ -8,7 +8,7 @@ by a LUT output (O5 or O6); this excludes the reset (non-LUT driver) and may inc
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
-nm, icbuf, cells, drv = load(sys.argv[1])
+nm, icbuf, cells, drv, const = load(sys.argv[1])
 inv = {v: k for k, v in nm.items()}
 arbs = sorted({k.rsplit(".", 1)[0] for k in nm if ".uarb" in k and k.endswith(".ustate$LUT6")})
 worst = None; npairs = 0

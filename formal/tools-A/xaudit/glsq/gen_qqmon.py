@@ -14,7 +14,7 @@ one QQ_CTRL per output change: a near-threshold detection control (audit P15a)."
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
-nm, icbuf, cells, drv = load(sys.argv[1])
+nm, icbuf, cells, drv, const = load(sys.argv[1])
 sc = int(os.environ.get("WSCALE", "1"))
 out = ["module qqmon;"]
 for name, c in sorted(nm.items(), key=lambda kv: kv[0]):

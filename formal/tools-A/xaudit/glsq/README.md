@@ -98,3 +98,17 @@ post-reset flips, so a pin change at the edge of the window is detected. Remaini
 GLS run is not shown to be a SatPin(W) behaviour of the Lean model (nextpnr SDF point delays, not shown inside the
 prjxray bands); W is the GLS loop delay, not phi(PqQ); ord_static pairs each reader with every request net it
 shares with ustate (a superset; simq.py's INIT-based choice is exact); raw flip times are not kept.
+
+## ArbEdge's no-re-request window (RdEdge.nore) for the grant readers (`gen_noremon.py`, `out2/nore4/`)
+
+Window algebra from the Lean field (see the script's docstring): after a flip of q away from branch b at tau, the
+request's driver net must be low on [tau - DQ, tau + hi Dq + 2 - lo Dr), with DQ = ustate's ICBUF D + TA on that
+request (GLS point delay) and lo Dr / hi Dq the slow-corner bands xarbnet prints for the same route
+(`arbnet/results/xan_4_slow.txt`). Each grant's own request is picked by evaluating its INIT (q on the branch, the
+other inputs low; GND/VCC ties from PSEUDO_GND/VCC). Seed 4, no scatter, 16 vectors: 18/18 readers mapped,
+**0 violations after reset** (8 per vector before reset, X resolution); windows: 0 empty, 12 end before tau,
+6 extend past it. Controls (vector 6): window +20 ns -> 0 hits (no re-request that soon), +5 us -> 3195 hits, so
+the monitor detects re-requests; from the latter, the earliest re-request after a flip-away is 29.1 ns
+(merge10 g2), a margin of >= 29.4 ns over nore's window on every reader. Not covered: the R0 readers (e3/e4),
+other seeds/corners, scatter; the GLS delays are not shown inside the prjxray bands; the pre-check looks at the
+request's last high interval only.

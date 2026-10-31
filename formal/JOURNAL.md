@@ -1066,3 +1066,8 @@ Corrected-core ctl band hi raised from 10^12 to 10^15 (Events8Arb/9Arb/9ArbB1/9A
 would break it; now ~1000 s. Lean proofs unchanged except one numeral. Reruns: all 16 gcd_hw xevents9par verdicts
 and every xarbnet ArbOK/ArbRowsOK*/VERDICT line identical; xe9p d slow byte-identical; ipow/xorshift e9 outputs
 identical apart from the printed hMax. Whole-project ./check.sh OK (73187 declarations).
+### progress 15:10
+glsq gen_noremon.py (untrusted; window algebra written from RdEdge.nore, request picked from the grant INIT): seed 4
+GLS, 16/16 vectors, 0 nore violations after reset on all 18 grant readers; detection control +5 us fires (3195);
+earliest re-request after a flip-away 29.1 ns vs window end <= 0.28 ns. Evidence only (one seed, grant readers,
+GLS point delays). lutnet.py now also returns INITs and the PSEUDO_GND/VCC nets.
