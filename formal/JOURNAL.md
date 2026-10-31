@@ -901,3 +901,8 @@ plo(PqQ) >= 1, QClean (ArbEdge's no-metastable-runt field) follows from QQuiet: 
 ustate's reads of both requests, the reset and A0 stay constant for phi(PqQ) ps. So ArbEdge's
 metastability field is now a condition on input timing at the real cell; the other fields (quiet start,
 settle bound, edge windows) and ArbOrd remain hypotheses.
+### progress 09:33
+Events9FullArb.design_verdict9arbnet_ordq (check.sh OK): ArbEdge's QClean derived via qclean_of_arb from
+QQuiet + the checked band fact plo(PqQ) >= 1 (now part of xarbnet's ArbRowsOKS count; still 9/9 on all 16
+gcd_hw rows). For the 10 gcd_hw rows the arbiter assumptions are now: QQuiet, quiet start, settle bound,
+the four per-reader edge windows, ArbOrd at the B1-failing readers.
