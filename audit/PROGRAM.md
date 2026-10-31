@@ -90,3 +90,22 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - Plain `git commit`, small and frequent, pushed at least every 45 minutes.
 - One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
+
+## Top priority: the bitstream theorem (owner, 2026-10-31)
+
+The formal shards now have one goal (formal/PROGRAM.md, "THE goal"): a theorem
+that the gcd_hw bitstream in `formal/target/` computes gcd on the board, under
+exactly five allowed hypotheses (H_DECODE, H_DELAY(g), H_PRIM, H_ARB(T),
+H_ENV). Audit it before anything else, every session:
+- the md5s in `formal/target/README.md` match the files, and match the
+  BOARD-QUEUE build they name;
+- `Spec.lean` says what the owner asked (every input, safety AND liveness,
+  every delay in the bands). Check that it is still the frozen version, or
+  that any change has a journaled reason;
+- every hypothesis the current best theorem takes is one of the five, read
+  from the Lean (`#print axioms` and the binder list), not from STATUS.md;
+- the decoder round trip really reproduces the target FASM: run it yourself;
+- the obligations are claimed complete: try to break that claim with a race
+  that the checker misses. A mutated netlist or bands that fail the
+  checker should fail it;
+- any counterexample trace: replay it yourself in the fid GLS.
