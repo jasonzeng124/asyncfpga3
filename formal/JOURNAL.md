@@ -1008,7 +1008,8 @@ XAudit files that took `(hsat : SatPin d plG x)` take `(hsat : SatPinW d plG x)`
 beyond Events6Gate. Whole-project ./check.sh OK (73178 library declarations, standard axioms). Consequence: every
 trace hypothesis stated on `tau hsat` (ArbOrd, ArbEdge, QQuiet) now speaks about the warps of the behaviour the
 user supplies, so for a behaviour whose warps meet the order (e.g. fixed path delays under the corner model with
-κ below the b1Kappa threshold: ord_of_transport + corner_ord) ArbOrd can be discharged. The theorems' strength is
+κ below the b1Kappa threshold) ArbOrd is a condition one can check; the lemma that composed transport path warps
+satisfy it (ord_of_transport is stated for single warps) is not written. The theorems' strength is
 unchanged (ofSat/toSat), so earlier conclusions stand. What this does NOT do: show that the chip's behaviour is
 one of those (κ and the in-corner correlation are unmeasured), or give a witness. The '10 gcd_hw rows' are now
 'covered for every behaviour of the bands whose warps satisfy ArbOrd at the 2-6 B1-failing readers' (plus the
