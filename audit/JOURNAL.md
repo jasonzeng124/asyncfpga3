@@ -510,3 +510,8 @@ alone. Added as an OVERSTATED row at the top of REPORT.
 ### progress 00:50
 Owner notified about the judge defect. BQ#2 seed 9 route: sdf 4a9b218e and xray 0117760c REPRODUCED (= TSV).
 SLOW_MAX full stack running; I check all 16 vectors for stalls, not just errs.
+
+### progress 01:42
+BQ#2 seed 9 SLOW_MAX full stack: 16/16 errs 0, 31/25/36 = TSV, every vector's last lap > 147 us (no stall).
+CONFIRMED. BQ#2 rows I reproduced myself are now: seeds d (r15), 4, 6, 7, 9 at SLOW_MAX (6/7 in r22); seeds 7, 8 2x PASS;
+seed 6 2x draws 1 and 2 FAIL; seed 6 1x PASS.
