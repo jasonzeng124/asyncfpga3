@@ -1623,3 +1623,20 @@ FBufSpec H_TIMES also restricted to existing edges (no producer existed; 5 depen
 re-check). NOT yet: a joint witness of FGcdNetOKBM (Python evidence bsim2.py only; Lean
 needs muxj/muxa/buf checkers and NB >= 691). Until then gcd_hw_safe_fin_netBM is reported
 as possibly vacuous.
+
+### progress 09:01
+In (core Lean; private olean build, 142-module closure, axioms standard): Bwit2 -- the
+MUX-EXTENDED driver-bound theorem FiniteNetBoundM.gcd_hw_safe_fin_netBM has a joint
+witness. BWit2Data (gen_cdata2.py --check ok; run of bsim2.py, every bd_mux cell
+gate-modelled, quiescent 690, out0 = 6) + BWit2Cells (C's checkers by kernel: H_CELLS,
+H_BUNDLE, start once, H_CM_FORCED via yW); BWit2Lib (bufB/mjB/maB with soundness into
+Bmn's FBufSpec/FMuxJSpec/FMuxASpec); BWit2NData (gen_bdata2.py --check ok: wire delays,
+token tables, internal mux node lists uj0/uj1/uor/udly[0]); BWit2NDefs/BWit2NChk (kernel:
+every channel's pins are wires of the reqSrcM/ackSrcM-named driver, every link/fork/join/
+steer/OR and every mux's 7 cells pass their checkers); BWit2Net: bwit_okM, 
+gcd_hw_fin_netBM_witness (with C's H_OTHER, H_BUNDLE, H_CM_FORCED; out0 = 6),
+gcd_hw_fin_netBM_consistent, bwitM_link_env (the 124 both-side-bound links take both
+environment pins from tied gate-model cells). NB raised to 768 for this run (old
+witnesses re-check). Same limits as Bwit: one run, unit LUT delays, simulator wires 1-3,
+R = 2, contracts at muxn/amerge/sources/sinks/join1/fork trees, H_OTHER still a hypothesis
+of the theorem. Negative control and full lake build next.
