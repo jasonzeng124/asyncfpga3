@@ -1826,3 +1826,5 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 | BQ#3 (d,3-9) | 8/8, 32.75 (31-34) | 8/8, 89.6 (83-94) |
 All three board candidates now pass the full stack on 8 seeds at both corners. BOARD-QUEUE #1 updated. Running:
 BQ#1 1x scatter draw 1 on seeds d,3,4,5.
+### progress 13:43 (BQ#1 1x within-die scatter: 3/3 PASS so far)
+- BQ#1 band 0.38 + region 0.16 / wire 0.126, draw 1: d PASS 23/18/26, 6 PASS 23/18/26, 3 PASS 26/21/30.
