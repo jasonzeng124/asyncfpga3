@@ -1,48 +1,36 @@
 #!/usr/bin/env python3
-"""ord_static.py -- UNTRUSTED (lead, 2026-10-31): the ArbOrd row Dr + 2 <= DQ + Dq for every bd_arbiter grant
-reader, with the research GLS's fixed (SDF) delays: D = ICBUF D of the pin + the LUT's TA<pin>O6.
-Dr = the grant LUT's request pin (pins driven by a non-LUT net, i.e. the reset, are skipped), DQ = ustate$LUT6's pin reading the same request net, Dq = the grant's q pin.
-    python3 -I ord_static.py GLS_WORK"""
-import re, sys, os
-W = sys.argv[1]
-nm = {}
-for ln in open(os.path.join(W, "names.map")):
-    p = ln.split()
-    if len(p) == 2: nm[p[1]] = p[0]
-net = open(os.path.join(W, "netlist_baked.v")).read()
-icbuf = {m.group(3): (m.group(2), int(m.group(1))) for m in
-         re.finditer(r"ICBUF #\(\.D\((\d+)\)\) \S+ \(\.I\((\w+)\), \.O\((\w+)\)\);", net)}
-def cell(c):
-    m = re.search(r"SLICE_LUTX #\(([^;]*?)\) " + c + r" \(([^;]*)\);", net)
-    pins = dict(re.findall(r"\.(A\d|O6)\(([^)]*)\)", m.group(2)))
-    ta = {int(k): int(v) for k, v in re.findall(r"\.TA(\d)O6\((\d+)\)", m.group(1))}
-    src = {p: icbuf[v] for p, v in pins.items() if p.startswith("A") and v in icbuf}   # pin -> (driver net, D)
-    return pins, ta, src
+"""ord_static.py -- UNTRUSTED (lead; corrected after audit P15a): the ArbOrd row Dr + 2 <= DQ + Dq for every
+bd_arbiter reader (both grants AND the R0 term ustate$LUT5), with the research GLS's fixed delays
+D = ICBUF D of the pin + the cell's TA<pin>O<5|6>. Dr = the reader's pin on a request net, DQ = ustate$LUT6's pin
+on the same net, Dq = the reader's q pin. A request net = an input net of ustate$LUT6 that is not q and is driven
+by a LUT output (O5 or O6); this excludes the reset (non-LUT driver) and may include A0 if the reader reads it
+(conservative). Prints every pair and WORST.   python3 -I ord_static.py GLS_WORK"""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lutnet import load
+nm, icbuf, cells, drv = load(sys.argv[1])
 inv = {v: k for k, v in nm.items()}
-drv = {}
-for m in re.finditer(r"SLICE_LUTX #\([^;]*?\) (c_\d+) \(([^;]*)\);", net):
-    o = re.search(r"\.O6\((\w+)\)", m.group(2))
-    if o: drv[o.group(1)] = inv.get(m.group(1), m.group(1)).split('udut.')[-1]
-arbs = sorted({k.rsplit(".", 1)[0] for k in nm if ".uarb" in k and ".ustate$LUT6" in k})
-worst = None
+arbs = sorted({k.rsplit(".", 1)[0] for k in nm if ".uarb" in k and k.endswith(".ustate$LUT6")})
+worst = None; npairs = 0
 for a in arbs:
-    sp, sta, ssrc = cell(nm[a + ".ustate$LUT6"])
-    qnet = sp["O6"]
-    for g in ("ugrant$LUT5", "ugrant$LUT6"):
-        if a + "." + g not in nm: continue
-        gp, gta, gsrc = cell(nm[a + "." + g])
-        qpins = [p for p, (n, _) in gsrc.items() if n == qnet]
-        rpins = [p for p, (n, _) in gsrc.items() if n != qnet and any(n == n2 for (n2, _) in ssrc.values())]
-        for qp in qpins:
-            Dq = gsrc[qp][1] + gta.get(int(qp[1]), 0)
-            for rp in rpins:
-                rn = gsrc[rp][0]
-                if rn not in drv: continue   # reset / global nets: not a request read (ArbOrd is about the requests)
-                Dr = gsrc[rp][1] + gta.get(int(rp[1]), 0)
-                for sp_, (n2, d2) in ssrc.items():
-                    if n2 != rn: continue
-                    DQ = d2 + sta.get(int(sp_[1]), 0)
-                    m = DQ + Dq - Dr - 2
+    S = cells[nm[a + ".ustate$LUT6"]]; q = S["out"]
+    ssrc = {p: icbuf[w] for p, w in S["pins"].items() if w in icbuf}
+    reqnets = {n for (n, _) in ssrc.values() if n != q and n in drv}
+    for rd in ("ugrant$LUT5", "ugrant$LUT6", "ustate$LUT5"):
+        if a + "." + rd not in nm: continue
+        R = cells[nm[a + "." + rd]]
+        rsrc = {p: icbuf[w] for p, w in R["pins"].items() if w in icbuf}
+        qp = [p for p, (n, _) in rsrc.items() if n == q]
+        for qpin in qp:
+            Dq = rsrc[qpin][1] + R["ta"].get(int(qpin[1]), 0)
+            for rp, (n, d) in rsrc.items():
+                if n not in reqnets: continue
+                Dr = d + R["ta"].get(int(rp[1]), 0)
+                for sp, (n2, d2) in ssrc.items():
+                    if n2 != n: continue
+                    DQ = d2 + S["ta"].get(int(sp[1]), 0)
+                    m = DQ + Dq - Dr - 2; npairs += 1
                     worst = m if worst is None else min(worst, m)
-                    print(f"{a.split('udut.')[-1]} {g}: pin {rp} (ustate {sp_}, driver {drv.get(rn, rn)}) Dr {Dr} DQ {DQ} Dq {Dq} margin {m} {'ok' if m >= 0 else 'FAIL'}")
-print("WORST", worst)
+                    src = inv.get(drv[n], drv[n]).split("udut.")[-1]
+                    print(f"{a.split('udut.')[-1]} {rd}: pin {rp} (ustate {sp}, from {src}) Dr {Dr} DQ {DQ} Dq {Dq} margin {m} {'ok' if m >= 0 else 'FAIL'}")
+print(f"PAIRS {npairs} WORST {worst}")

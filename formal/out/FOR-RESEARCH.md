@@ -370,7 +370,8 @@ that a GLS monitor or a board experiment can test:
   zero on gcd_hw (no contested schedule was found); any hit is a near tie, which the verdict does not cover.
 
 **Done on the formal side with the research GLS (2026-10-31, `formal/tools-A/xaudit/glsq/`, untrusted
-monitors on the unmodified GLS):** on gcd_hw R5 seeds d/3/4/5 (SDF delays, no scatter), 16/16 vectors each,
+monitors on the unmodified GLS; NOTE: these first numbers came from monitors that checked less than the Lean
+hypotheses, audit P15a; corrected rerun in `glsq/out2/`):** on gcd_hw R5 seeds d/3/4/5 (SDF delays, no scatter), 16/16 vectors each,
 0 QQuiet violations after reset (about 20k q flips per seed). QQuiet does fail during power-up while rst is
 high (X resolution), which is why the Lean form only needs it after S. ArbOrd holds with the GLS's point delays
 (worst 280 ps), and no grant/R0 rises before reset release (vector 6, seed 5). Suggested research change:

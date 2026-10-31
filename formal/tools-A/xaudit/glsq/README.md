@@ -1,5 +1,12 @@
 # glsq: QQuiet monitor on the research routed GLS (lead, 2026-10-31; UNTRUSTED evidence, not a theorem)
 
+**SUPERSEDED (audit P15a, 2026-10-31): the results below came from monitors that checked LESS than the Lean
+hypotheses**: the QQuiet window ignored the pin-to-output delay TA_k (pin changes in (tau - TA_k, tau] and the last
+TA_k of the window were unchecked); lowmon watched .O6 of the LUT5 cells (18 of 27 outputs were dead nets);
+ord_static's reset filter also dropped O5-driven requests and never checked the R0 readers. The scripts are fixed
+(`lutnet.py`, `gen_qqmon.py`, `gen_lowmon.py`, `ord_static.py`) and rerun into `out2/` (`run_all2.sh`); use those
+numbers. The GLS is the 520a43f research GLS (nextpnr SDF points, no fid model), not the current research GLS.
+
 `gen_qqmon.py GLS_WORK` writes a Verilog monitor for every bd_arbiter state LUT (`*.ustate$LUT6`) of a
 `cells/gls/build.sh gcd_hw` work dir: it finds the cell's own-feedback pin (the pin whose ICBUF is driven by
 the cell's O6), the loop delay W = ICBUF D + TA<pin>O6, and flags any change of another pin of the cell within

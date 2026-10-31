@@ -2,7 +2,7 @@
 # glsq: the GLS of the route currently built in $SRC/cells/build/hw/gcd_hw, with GLS_SCATTER=$SIG and draws
 # $DRAWS; per draw: gls/build.sh, QQuiet monitor on 16 vectors, ord_static.   run_scatter.sh <tag>
 set -u
-G="$(cd "$(dirname "$0")" && pwd)"; SRC=${SRC:-$HOME/gcdsrc520}; OUT=${OUT:-$G/out}; tag=$1
+G="$(cd "$(dirname "$0")" && pwd)"; SRC=${SRC:-$HOME/gcdsrc520}; OUT=${OUT:-$G/out2}; tag=$1
 for dr in ${DRAWS:-1 2 3}; do
   o=$OUT/${tag}_s${SIG}_d$dr; mkdir -p $o
   cd $SRC/cells && GLS_SCATTER=$SIG GLS_SCATTER_SEED=$dr bash gls/build.sh gcd_hw > $o/gls_build.log 2>&1
