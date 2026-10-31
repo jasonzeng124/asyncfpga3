@@ -911,3 +911,9 @@ Negative result: tools-A/xaudit/arbnet/simq.py (untrusted) checked QQuiet/ArbOrd
 skeleton runs (4 seeds x 2 frozen select values). ArbOrd OK; QQuiet "OK" but vacuous: at most one q flip per
 run, and the negative control (window 1e9 ps) also passes, so the check could not fail. Not evidence for
 QQuiet. Needs a run with live selects.
+### progress 09:46
+**QQuiet in the research routed GLS** (tools-A/xaudit/glsq, untrusted evidence): gcd_hw R5 seed 5 GLS (SDF,
+no scatter), monitor on all 9 ustate LUTs: 16/16 vectors errs=0, 20387 q flips, 0 QQuiet violations after reset
+release; 9 identical violations per vector at 3-7 ns while rst is still high (power-up settling). Negative
+control WSCALE=20: 100 post-reset violations. Caveat found by this: QQuiet as stated (all times) is FALSE on
+this run before reset; the Lean statement should be from T0 on. Next: qclean from T0.
