@@ -1812,3 +1812,6 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 ### progress 03:27 (container restart again; BQ#1 sims relaunched)
 - Second full container restart (~03:26). BQ#1's 8 routes had completed (default sdf 6f8b99e6 = the BOARD-QUEUE
   record); seed d's two in-flight sims were lost and the sweep was relaunched (routes reused).
+### progress 06:28 (BQ#1 full stack: first 5 runs PASS)
+- BQ#1 (fusion, v4, select pads; resolver 055edd7): d SLOW_MAX 16/12/18 (sdf 6f8b99e6, = the earlier bq1_max row),
+  d FAST_MIN 45/35/51, 3 SLOW_MAX 16/12/18, 3 FAST_MIN 46/36/52, 4 SLOW_MAX 16/12/18; all 16/16 errs 0, EQUIVALENT.
