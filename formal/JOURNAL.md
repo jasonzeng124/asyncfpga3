@@ -831,3 +831,14 @@ its q pin while its own request pin still reads the old high request (ustate saw
 corrected core's grant, a C-element, cannot. So this is an abstraction limit, not a demonstrated circuit
 failure, and no counter-run was built. Net: the combined theorem's checked premises hold on NO gcd_hw row.
 Fix direction: a grant node that may fall from either input. Not a verified run.
+### progress 08:01
+**Goal 3, current tool on two more kernels.** ipow d/3/4/5 and xorshift d/5/8/9 rebuilt at 8eb6e5ff (all
+md5s = K3's builds.txt), new runner k3/run_e9_k3.sh. xevents9par CLEAN and arbiter checks (ArbOK +
+ArbRowsOK) 2/2 on 10 rows: ipow 3/5 and xorshift 5/8/9, each at slow and fast (table in notes/A-k3.md).
+New theorem Events9FullArb.design_verdict9arbnet_edge (checked, overlay, axioms standard) is the
+statement those rows instantiate: design_verdict9par with HARB7'/HRst replaced by the checked arbiter
+link + ArbRowsOK + assumed ArbEdge. So on those rows the routed control skeleton's verdict no longer
+rests on the refuted HARB7; it rests on SatPin, constants/reset, ArbEdge (no metastable runt, quiet
+start, settle bound, edge windows), SelOK, SelPart. ipow's DSPs are cut (datapath not covered); no
+silicon claim. Boundary negative control: +43 ps on a grant request pin passes, +44 fails (B1 -1).
+gcd_hw: still no row (2-6 of 9 arbiters fail B1 at slow/fast). Mathlib build still running.

@@ -143,6 +143,45 @@ theorem design_verdict9_full_arb (hr : Recog6 d net b rn rank rw fuel) (hOK : ne
   exact ⟨cv, design_verdict9_full hr hOK hJ hrsv back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg
     m cut Dl ta tq na κa wq jl jw scut su cs hm hrow hsu hsat h0 h1 hT hrst harb hR sel⟩
 
+
+/-- **`design_verdict9arbnet_edge`** (what `xevents9par` CLEAN plus `xarbnet` "ArbOK and ArbRowsOK
+K/K" with OwnOK, RsOK, FixShape on ONE certificate mean): `Events9ArbNet.design_verdict9arbnet` with
+the per-arbiter trace conditions `ArbCond` replaced by the checked rows `ArbRowsOK` and the edge-window
+hypotheses `ArbEdge` (QClean, quiet start, settle bound, per-reader windows). Plain statement: every
+SatPin behaviour of the parsed netlist with constant wires, the design reset released at `T`, and
+`ArbEdge` at every arbiter, has a Beh7 realisation (for some virtual core signals `cv`) in which, under
+SelPart and SelOK and the residual obligations of uncertified items, every real LUT wire is its reset
+value flipped `M t j` times at every time. HARB7, HARB7' and HRst are not hypotheses. -/
+theorem design_verdict9arbnet_edge (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7)
+    {parts : List (List Nat)} {rs : Nat → Nat} {log : List LnP} {J : Array Jd}
+    (hJ : runLogP net b rs parts log = some J)
+    (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
+    (hl : List HLn9) (gd : (j : Fin N) → Fin (net.ar j) → GD)
+    (cp : (j : Fin N) → Fin (net.ar j) → Bool) (cxm : Fin N → Bool) (cl : (j : Fin N) → Fin (net.ar j) → Bool)
+    (cg : (j : Fin N) → Fin (net.ar j) → Bool)
+    (hcp : ∀ j p, cp j p = true → backOK7 net b J j p (back j p) = true)
+    (hcx : ∀ m, cxm m = true → exclOK7 net b parts J m (xS m) (xa m) (xw m) = true)
+    (hcl : ∀ j p, cl j p = true → lineOK7 net b J j p (line j p) = true)
+    (hcg : ∀ j p, cg j p = true → guardOK8 net b parts J (hl.map (san J)) j p (gd j p) = true)
+    (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
+    (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
+    (hfs : Events9Arb.FixShape net b rn)
+    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
+    (T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOK d (as k) T T0)
+    (he : ∀ k, ArbEdge hsat rn (as k) T0 (H k)) (sel : Nat → Nat → Bool) :
+    ∃ cv : Fin N → Sig, ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
+      (∀ j p s, bh.gc j p s = gcnt net sel j p (bh.cm j p s)) ∧
+      (SelPart sel parts → bh.SelOK →
+        (∀ j p s, net.mg j = false → net.pk j p ≠ PK.guard → cp j p = false → bh.P j p s ≤ bh.M (bh.Q j s) j + 1) →
+        (∀ m s, net.mg m = true → cxm m = false → fodd (net.ar m) (fun p => bh.P m p s) ≤ 1) →
+        (∀ j p s, net.pk j p = PK.multi → cl j p = false → ContigF (net.nc j p) (bh.cm j p s)) →
+        (∀ j p, net.pk j p = PK.guard → cg j p = false → GuardPin bh j p) →
+        ∀ t j, (rn j).virt = false →
+          x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) :=
+  design_verdict9arbnet hr hOK hJ back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg as own hA hown hrs hfs
+    hsat h0 h1 hT hrst T0 H (fun k => arbCond_of_edge hsat h0 h1 (hA k) hrst (hrows k) (he k)) sel
+
 end
 
 end Formal.Core.XAudit.Events9FullArb

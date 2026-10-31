@@ -187,3 +187,40 @@ All rejected. On seed d each control adds exactly its item to the 2 rig items.
 | `k3/out/{ipow,xorshift}/` | xe8_*, xe5_*, cert8_*, cert6_*, ana5_*, skel_*, neg*.txt, table.txt |
 | `k3/out/xorshift_audit_fail_3_7.txt`, `xorshift_3_audit_tighten.txt` | the rule A/I failures |
 | `formal/out/HOWTO-new-kernel.md` | rewritten for k3/ and xevents8 |
+
+## 2026-10-31 (lead): the current pipeline (corrected arbiter core + arbiter link) on ipow and xorshift
+
+Rebuilt with k3/build_k3.sh at 8eb6e5ff (toolchain from the cache branch, toolchain.sh 9/9 before every
+seed, nextpnr 9c732bc6303458df, --freq 100): ipow d/3/4/5 and xorshift d/5/8/9, every SDF and routed-JSON
+md5 equal to out/builds.txt; bands_k3.sh nets/arcs equal to the recorded md5s. New runner
+`k3/run_e9_k3.sh` (skel.py -> par/cert9p.py -> xevents9par -> arbnet/gen.py -> xarbnet, --fuel 256);
+outputs `k3/out/<k>/e9/`.
+
+| kernel seed | slow | fast | gb | indep |
+|---|---|---|---|---|
+| ipow d | CLEAN, arb 1/2 | CLEAN, arb 1/2 | CLEAN, arb 0/2 | RESIDUAL 9, arb 0/2 |
+| ipow 3 | **CLEAN, arb 2/2** | **CLEAN, arb 2/2** | CLEAN, arb 0/2 | RESIDUAL 10, 0/2 |
+| ipow 4 | CLEAN, arb 1/2 | CLEAN, arb 1/2 | CLEAN, arb 0/2 | RESIDUAL 14, 0/2 |
+| ipow 5 | **CLEAN, arb 2/2** | **CLEAN, arb 2/2** | CLEAN, arb 1/2 | RESIDUAL 2, 0/2 |
+| xorshift d | RESIDUAL 2, arb 1/2 | RESIDUAL 2, arb 2/2 | RESIDUAL 2, 0/2 | RESIDUAL 9, 0/2 |
+| xorshift 5 | **CLEAN, arb 2/2** | **CLEAN, arb 2/2** | CLEAN, arb 0/2 | RESIDUAL 9, 0/2 |
+| xorshift 8 | **CLEAN, arb 2/2** | **CLEAN, arb 2/2** | CLEAN, arb 0/2 | RESIDUAL 12, 0/2 |
+| xorshift 9 | **CLEAN, arb 2/2** | **CLEAN, arb 2/2** | CLEAN, arb 0/2 | RESIDUAL 11, 0/2 |
+
+"CLEAN" = xevents9par (all items certified, design_verdict9par); "arb k/2" = arbiters with ArbOK and
+ArbRowsOK (OwnOK, RsOK, FixShape true on every row). On the 10 bold rows every checked premise of
+`Events9FullArb.design_verdict9arbnet_edge` holds. **What that theorem then gives for those rows:** for
+every behaviour of the parsed routed netlist in the per-pin bands (SatPin) with constant wires and the
+design reset, AND the per-arbiter edge windows ArbEdge (QClean = no metastable runt on q, a quiet start,
+a settle bound H, no re-request while the arbiter switches away, settledness/A0-high windows), AND SelOK
+and SelPart, every real LUT wire equals its reset value flipped M t j times, M being the counts of a Beh7
+realisation of the certified skeleton. HARB7 (refuted) is not used. NOT covered: ArbEdge itself (assumed;
+QClean and H exclude near ties by assumption), SelOK/SelPart, the parsers and the untrusted generators
+(whose output is re-checked), the select/setup rows of design_verdict9_full (not run here), ipow's DSP48E1s
+(cut as free inputs: the datapath is not covered), and any claim about silicon (the bands are the model).
+gb rows are CLEAN on the skeleton but fail ArbRowsOK (B1, the grant-falls-via-q abstraction limit,
+notes/A-e9arbnet.md); xorshift d's RESIDUAL 2 is the rig's uenv0/uenv1 pair, as on 10-29.
+
+Negative control (boundary): ipow 3 slow, arc `ucontrol_merge1.uarb1.ugrant$LUT5/I0` (g1's request pin,
+B1 margin 43 ps) shifted by +43 ps: still 2/2 (B1 = 0); by +44 ps: 1/2, `B1 g1 -1`, ArbOK still 2/2
+(certificate and arbiter data regenerated on the mutated bands). Files `k3/out/ipow/e9/xan_3_slow_NEGb1_*.txt`.
