@@ -662,3 +662,9 @@ accepting my P14 row; A: b1_and). That is pass 16, after the BQ#1 runs.
 Pass 16: ~/wt-f14 checked out at formal 58251494. Building the three NChk kernel-check modules one at a time, then
 the rest. Their own howto (51660257) records that building two of them in parallel OOMs on 15 GB, the same as my
 first f40e003a build. The BQ#1 d FAST_MIN GLS is running alongside.
+
+### progress 13:26
+BQ#1 d FAST_MIN: 16/16 errs 0, 45/35/51 (= TSV), no stalls. CONFIRMED. BQ#1 seed d now reproduced at both corners.
+Formal 58251494 build: BWit2NChk was OOM-killed (code 137) twice, even when built alone, with my GLS (~4 GB)
+running. BWit3NChk failed because it rebuilds BWit2NChk. I stopped the queued BQ#1 seed-9 run to free memory; the
+full build continues, and BWit2NChk will be retried alone with nothing else running.
