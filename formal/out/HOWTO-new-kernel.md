@@ -209,7 +209,9 @@ The last line of an xevents8 run is the verdict:
   HDsub (n judgements))`**. This is an instance of `Events8.design_verdict8` about every behaviour
   of the parsed netlist: every real control node's output equals the phase of its event counter.
   Hypotheses:
-  - `SatPin`: each LUT reads each input pin through its own monotone delay in the gate's band,
+  - `SatPin`: each LUT reads each input pin through its own monotone delay in the gate's band
+    (since 2026-10-31 the Events6-9 verdicts take `SatPinW`, the same behaviour WITH its warps, so trace
+    hypotheses on the warps are about the behaviour you supply; `SatPinW.ofSat`/`toSat` convert),
     and each routed arc is in its band. The bands are prjxray's, through the trusted parser;
   - the constant wires and the reset (`hrst`: one held pulse from t = 0);
   - `H_ARB`: the arbiter cores behave as the virtual mux cores (NOT checked);
