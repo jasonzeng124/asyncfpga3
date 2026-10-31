@@ -1828,3 +1828,24 @@ All three board candidates now pass the full stack on 8 seeds at both corners. B
 BQ#1 1x scatter draw 1 on seeds d,3,4,5.
 ### progress 13:43 (BQ#1 1x within-die scatter: 3/3 PASS so far)
 - BQ#1 band 0.38 + region 0.16 / wire 0.126, draw 1: d PASS 23/18/26, 6 PASS 23/18/26, 3 PASS 26/21/30.
+### summary 16:09 (session 2026-10-29 14:41, still running)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, prjxray-db 0a0added   Seeds: d,3-9 (all three BQs)
+Did: fixed the fid state-node resolver (audit r16: explicit feedback, no echo window; 055edd7); answered audit
+r18 with a near-tie bench, a derived round-trip requirement and a per-arbiter static check on 12 routes; fixed two
+gen.py scatter-knob inconsistencies (9c39512); setup-toolchain.sh now fetches prjxray-db; ran every board candidate
+through the full stack on 8 seeds x 2 corners; confirmed a second correlated-variation failure by intervention;
+tried and rejected two placement fixes and a static predictor.
+Measured:
+| candidate | full stack SLOW_MAX / FAST_MIN (8 seeds) | vec 6 laps mean | 1x scatter | 2x scatter |
+|---|---|---|---|---|
+| BQ#1 | 8/8 / 8/8 | 15.9 / 45.9 | 8/8 | not run |
+| BQ#2 | 8/8 / 8/8 | ~32 / ~88 | 4/4 | 3/4 (draw 1), seed 6 also fails draw 2 |
+| BQ#3 | 8/8 / 8/8 (new resolver; identical to old) | 32.75 / 89.6 | 8/8 (old resolver) | 7/8 (draw 1) |
+Arbiters: 0 of 18 ack C-elements under the model's requirement on any of 12 routes, worst 691 ps.
+Does NOT show: silicon; ring128 acceptance (still blocked), so the rule gates stay; that TAU/WIN/the noise are right
+(no 7-series source); that 2x linear region scatter is physical (it is not: 3-13x die-wide speed spreads); a cure
+for the matched-delay/datapath distance exposure.
+Next: (1) ring128 per-ring data from the owner unblocks acceptance; (2) if robustness margins are wanted, a
+log-normal scale scan per draw (the failing scale) instead of fixed 2x draws; (3) skip carry-cluster members in
+the pre-place script, or a soft nextpnr pull toward a datapath centroid, before trying placement again;
+(4) goal 2 leads (RTZ tail, rule E tightening) once the gates may move.

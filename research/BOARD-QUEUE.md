@@ -54,7 +54,8 @@ warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window o
 Board-fidelity full stack, 8 seeds x 2 corners (2026-10-31, resolver 055edd7; research/data/fid/bq1_fullstack_8seed.tsv;
 default-seed sdf 6f8b99e6 reproduced): 16/16 errs=0 and bits EQUIVALENT on all 16 runs; laps vec 6 SLOW_MAX mean
 15.9 (15-16), FAST_MIN 45.9 (44-48). #2 on the same stack: SLOW_MAX ~32, FAST_MIN ~88 (the ~1.9-2x of the
-nominal GLS holds at both corners).
+nominal GLS holds at both corners). Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, draw 1): 8/8 seeds
+PASS (vec 6 laps 23-29).
 
 ## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS; every audit and routed GLS (nominal + corners) clean on 8 routes
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R5.vh`
