@@ -680,3 +680,8 @@ BWit2NChk built alone: EXIT 0, peak RSS 10.3 GB (logs/bwit2nchk.log), so the ear
 BWit3NChk alone: EXIT 0. Full lake build of 58251494: EXIT 0, 3896 jobs (logs/formal_build_58251494_r2.log).
 Axiom audit of 58251494 started. Note for the owner: two of the formal kernel-check modules need about 10 GB each,
 so a 15 GB sandbox cannot build them in parallel. Their howto says so.
+
+### progress 13:57
+Pass-16 subagent P16 launched (B: Bwit3 164/175 and H_EXC_CLEAN, and whether the witness exercises a contested
+arbitration; fork trees 170/175; A: b1_and on a proposed two-copy AND request pin; C: 11g bitstream import
+provenance). BQ#1 seed 9 route + SLOW_MAX restarted.
