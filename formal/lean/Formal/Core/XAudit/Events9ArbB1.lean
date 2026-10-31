@@ -925,4 +925,62 @@ theorem arbCond_of_ordSP {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T S T0 
 
 end
 
+/-! ## The remaining arbiter environment, as one structure -/
+
+section
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) (rn : Fin N → RNode)
+  (a : ArbD N)
+
+/-- **`ArbEnv`**: exactly the arbiter hypotheses that remain once QClean is derived (from QQuiet) and the quiet
+start is derived (from quiet requests): both requests low on `[0, T0 + 2]`; the settle bound; the no-re-request
+and B2 settledness windows of the four readers (`RdEdgeNF`); the four pointwise C conditions. -/
+structure ArbEnv (T0 H : Nat) : Prop where
+  reqlow : ∀ t, t ≤ T0 + 2 → r1S (x := x) a t = false ∧ r2S (x := x) a t = false
+  stall : ∀ v, ∃ v', v' ≤ v ∧ v ≤ v' + H ∧
+    (v' = 0 ∨ Ok (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a)))
+  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 15
+  e1 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r1S (x := x) a) (qS (x := x) a)
+    (tau hsat (P1Q a)) ((bandsOf d a).g1 0).1 ((bandsOf d a).g1 0).2 ((bandsOf d a).g1 2).1 ((bandsOf d a).g1 2).2
+  e2 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r2S (x := x) a) (fun u => !qS (x := x) a u)
+    (tau hsat (P2Q a)) ((bandsOf d a).g2 1).1 ((bandsOf d a).g2 1).2 ((bandsOf d a).g2 2).1 ((bandsOf d a).g2 2).2
+  e3 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r1S (x := x) a) (qS (x := x) a)
+    (tau hsat (P1Q a)) (((bandsOf d a).r0 0).1 - 2) (((bandsOf d a).r0 0).2 - 2)
+    (((bandsOf d a).r0 2).1 - 2) (((bandsOf d a).r0 2).2 - 2)
+  e4 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r2S (x := x) a) (fun u => !qS (x := x) a u)
+    (tau hsat (P2Q a)) (((bandsOf d a).r0 1).1 - 2) (((bandsOf d a).r0 1).2 - 2)
+    (((bandsOf d a).r0 2).1 - 2) (((bandsOf d a).r0 2).2 - 2)
+  c1 : ∀ t, T0 < t → r1S (x := x) a (f1Of hsat a 0 (t - 2)) = true → r1S (x := x) a (f1Of hsat a 0 t) = false →
+    aS (x := x) rn a (f4Of hsat a (f1Of hsat a 2 t)) = true
+  c2 : ∀ t, T0 < t → r2S (x := x) a (f2Of hsat a 1 (t - 2)) = true → r2S (x := x) a (f2Of hsat a 1 t) = false →
+    aS (x := x) rn a (f4Of hsat a (f2Of hsat a 2 t)) = true
+  c3 : ∀ t, T0 < t → r1S (x := x) a (frOf hsat a 0 (t - 2 + 2)) = true → r1S (x := x) a (frOf hsat a 0 (t + 2)) = false →
+    aS (x := x) rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+  c4 : ∀ t, T0 < t → r2S (x := x) a (frOf hsat a 1 (t - 2 + 2)) = true → r2S (x := x) a (frOf hsat a 1 (t + 2)) = false →
+    aS (x := x) rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+
+end
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+include h0 h1
+
+/-- **`arbEdgeSP_of_env`**: at an `ArbOK` arbiter, `ArbEnv` + QQuiet after `S` + q settled just before `S` (+ the
+checked `1 ≤ plo PqQ`) give `ArbEdgeSP`. -/
+theorem arbEdgeSP_of_env {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) (hlo : 1 ≤ plo d (PqQ a)) {S T0 H : Nat}
+    (hbase : ∀ u, S < u + phi d (PqQ a) → u ≤ S → 1 ≤ u → qS (x := x) a (u - 1) = qS (x := x) a u)
+    (hQ : ∀ τ, S < τ → qS (x := x) a (τ - 1) ≠ qS (x := x) a τ → ∀ u, τ ≤ u → u ≤ τ + phi d (PqQ a) →
+      (r1S (x := x) a (tau hsat (P1Q a) u), r2S (x := x) a (tau hsat (P2Q a) u),
+        x (d.wire rw) (tau hsat (PrQ a) u), aS (x := x) rn a (tau hsat (PA a) u)) =
+      (r1S (x := x) a (tau hsat (P1Q a) τ), r2S (x := x) a (tau hsat (P2Q a) τ),
+        x (d.wire rw) (tau hsat (PrQ a) τ), aS (x := x) rn a (tau hsat (PA a) τ)))
+    (he : ArbEnv hsat rn a T0 H) : ArbEdgeSP hsat rn a S T0 H :=
+  { cleanS := cleanS_of_arb hsat h0 h1 hA hlo hbase hQ
+    low := arb_low_of_reqlow hsat h0 h1 hA he.reqlow
+    stall := he.stall, hi := he.hi, e1 := he.e1, e2 := he.e2, e3 := he.e3, e4 := he.e4,
+    c1 := he.c1, c2 := he.c2, c3 := he.c3, c4 := he.c4 }
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet
