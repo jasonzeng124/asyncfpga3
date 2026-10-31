@@ -523,6 +523,25 @@ The hypotheses of `RigSrc.lean:500 gcd_rig_first_env`, all real Lean binders:
   `Port`'s infinitely many edges (gap G4: under H_START_ONCE, `start` has one token).
 - Grade B. **Side.**
 
+### 1i. Gate-level network with netlist-bound drivers (2026-10-31)
+
+**BH27.** `FiniteNetBound.FGcdNetOKB` (hypothesis of `gcd_hw_safe_fin_netB`): B's finite-run
+gate models of every link, 2..4-way fork acknowledge C-element, 2-input join request C-element,
+steer branch and steer acknowledge OR, each pin's driver bound to the cell the netlist names
+(`reqSrc`/`ackSrc`; 63/175 links bound on both sides), wires (`Wire wl wh`), the specs' edge-time
+equations at existing edges only (H_TIMES, weakened 2026-10-31), departure bounds (H_SND/H_RCV),
+finite edge counts, truncated contracts on the untied cells (mux, muxn, amerge, source, sink, wide
+joins, fork trees).
+- *Plain:* every handshake gate B models is its real LUT, wired to the gate the netlist says.
+- *Grade:* B (model; unit-delay witness only).
+- *Witness:* `BWitNet.gcd_hw_fin_netB_witness` (gate-timed run, 12/18, LUT 1, wires 1-3), jointly
+  with C's H_OTHER, H_BUNDLE, H_CM_FORCED; the binding rejects Bfin3's relabelled chW network
+  (`BWitNet.Rej.chW_net_not_bound`).
+- *Test:* routed GLS of gcd_hw with per-arc bands: every tied node's trace inside its LUT window
+  of its pins, every pin inside its wire window of the named driver.
+- *Use:* discharges the links' `H_CELLS` (via `FiniteRuns.gcd_hw_safe_fin_links`); NOT the other
+  192 operators' (`H_OTHER` stays).
+
 ---
 
 ## 2. Summary: chain vs side
@@ -542,6 +561,7 @@ The hypotheses of `RigSrc.lean:500 gcd_rig_first_env`, all real Lean binders:
 | BH21-BH23 | under every numeric verdict | |
 | BH24 | **R' (Lean binders)** | |
 | BH25, BH26 | | yes |
+| BH27 | links' H_CELLS via `gcd_hw_safe_fin_netB` (side theorem with joint witness) | |
 
 Open Lean work that would put B rows on a Lean chain, cheapest first:
 1. a joint witness for R' (½ d);
