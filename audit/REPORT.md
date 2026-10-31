@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -116,6 +116,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | f40e003a | every module builds; only standard axioms | CONFIRMED | audit/logs/formal_build_f40e003a.log (EXIT 1: BWitNChk OOM-killed, code 137) + formal_build_f40e003a_r2.log (EXIT 0, 3672 jobs, memory free); audit/logs/axiom_par_f40e003a.log + axres_f40e003a.txt (own collectAxioms, 831 modules, bad 0, no-result 0); kwgrep 1 identifier hit | incremental build in ~/wt-f14 (lake re-checks changed modules by hash) |
 | formal | f40e003a (502da4fe, e6f97308, d699b3b8) | H_COMPUTE_FN for all 20 gcd_hw units (ushli0 k<32) and xorshift's 5 units, every input | CONFIRMED | audit/findings/P15bc.md; BC_netcmp2.py (own extraction: all 20 gcd_hw units match the fixture AND my independent build cell for cell; xorshift vs fixture only); own simulator 0 mismatches vs bdc Verilog / xorshift.c | k<32 justified from cf.mlir (k <= 31) and stated, not proved in Lean |
 | formal | f40e003a (927ece3d, 85f065da, f5040d10, e722adbf, 076af340) | Wip/Chcf/Neg negative controls; Bwit2 negative control; 39 unbound sides (amerge 28, muxn 4, fork 6, source 1); selects bound to control bit 0 | CONFIRMED (controls test certificate/witness data only) | audit/findings/P15bc.md; BC_NegNew.lean, BC_Bwit2.lean, BC_BwitNetAx.lean (rc 0, re-run by me) | auditor's extra mutants for the new certificate kinds also rejected |
 | formal | f40e003a (4d90e8aa, 2bddffb2, 0df9aeed, 71e72295, 18b0ed47, 32f07056, 4430936c, 75bb774a) | _ordq/qclean_of_quiet/qclean_of_arb; _ordS "ArbRowsOKSS 9/9 on 16 rows"; corner_ord kappa 0.047-0.067; "sigma 0.10 -- ArbOrd fails on a real request pin ... all 16 vectors pass"; QQuiet window 165-1216 median 406; simq vacuous | CONFIRMED (statements/numbers), scope notes | audit/findings/P15a.md | corner_ord links to ArbOrd only under fixed-delay warps (unstated); the sigma 0.10 run is a correct run on which the theorem's hypothesis is false, so the theorem says nothing about it |

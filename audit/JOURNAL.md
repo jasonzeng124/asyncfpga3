@@ -646,3 +646,7 @@ H_COMPUTE_FN for 20/20 gcd_hw units (own transcription check against fixture and
 5; Bwit2 witness (non-degenerate); census classes; negative controls (data-level). OVERSTATED: "1-input join is a wire
 both ways" is false for ushrsi0/1's request (C-element + gated delay), so 134/175 not 136/175; GcdJoin does not link
 H_COMPUTE_FN into the capstone (shard A's text says so correctly; commit message reads otherwise).
+
+### progress 12:15
+Axiom audit of formal f40e003a COMPLETE: 831/831 modules, bad 0, no-result 0. REPORT row added (pass 15).
+BQ#1 d FAST_MIN GLS running.
