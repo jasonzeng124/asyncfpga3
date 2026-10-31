@@ -145,3 +145,9 @@ while the circuit works (σ = 0.10 draw 2). Shape of the fix:
 - Work: the VRd/CoreFix/`core_of_settle` proofs in Events9Arb (B1 clause replaced), the virtual-node bands in
   ArbOK (`rdG`/`rdS` gain the second copy), `par/cert9p.py` + `events4/model.py` (emit the 2-copy pin), and a
   rerun. Expected: ArbRowsOK without the B1 rows, i.e. ArbRowsOKS, on all 16 gcd_hw rows, and no ArbOrd.
+
+**`b1_and` (check.sh OK) and its row on gcd_hw.** With the two-copy request pin, B1 needs only `lo Dr ≤ lo Q + lo Dq`.
+xarbnet prints that margin for every reader of every arbiter: minimum over 4 seeds = slow 148, fast 53, indep 53,
+gb 113 ps, i.e. it holds on ALL 16 gcd_hw rows, in band form, with no correlation assumption. So the AND-grant
+core would remove ArbOrd entirely. The core itself (the B2/C clauses and the EnOK matching with the second copy,
+the cert generator, ArbOK's bands) is still the proposed probe above.

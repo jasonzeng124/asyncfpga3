@@ -941,3 +941,9 @@ AND-grant node in the corrected core (not done).
 ### progress 10:44
 Whole-project ./check.sh OK (lake build; library audit 64823 declarations, standard axioms), covering every
 Lean file claimed today including the from-S arbiter chain (pulled tree incl. B/C's latest commits).
+### progress 10:49
+Events9ArbB1.b1_and (check.sh OK): for a grant whose virtual request input is the AND of its own request read
+and the request as ustate read it at the grant's q-read time, B1 needs only lo Dr <= lo Q + lo Dq. xarbnet:
+that row holds on every reader of every arbiter on all 16 gcd_hw rows (min 53 ps, incl. gb/indep). So the
+proposed AND-grant core would drop ArbOrd with no correlation assumption; building that core is the next probe
+(notes/A-e9arbnet.md).

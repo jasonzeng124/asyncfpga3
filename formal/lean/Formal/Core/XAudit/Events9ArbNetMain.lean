@@ -358,6 +358,7 @@ def run (args : List String) : IO UInt32 := do
       let T0S := max T0 (Trst + max (max (((bandsOf d a).g1 2).2 + 2) (((bandsOf d a).g2 2).2 + 2)) ((bandsOf d a).r0 2).2)
       let okSS := decide (ArbRowsOKSS d a Trst Trst T0S) && decide (1 ≤ plo d (PqQ a))
       if ok && okSS then nRowsSS := nRowsSS + 1
+      IO.println s!"[xarbnet] arbiter {anames[k]!}: lo-to-lo B1 row margins lo Q + lo Dq - lo Dr (Events9ArbB1.b1_and; >= 0 holds): {(b1Corr d a).map (fun p => (p.1, p.2.1 + 2))}"
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbRowsOK {okR} (T {Trst}, T0 {T0}) [Events9ArbNetEdge.arbCond_of_edge / Events9FullArb]"
       if !okR then
         IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"

@@ -630,4 +630,41 @@ theorem cleanS_of_arb {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) (hlo : 1 �
 
 end
 
+/-! ## B1 for the proposed AND-grant core (two-copy request pin) -/
+
+section
+variable {s e y : Sig} {wr wq fQ : Nat → Nat} {loDr hiDr loDq hiDq loQ hiQ T0 : Nat}
+
+/-- **`b1_and`**: B1 for a virtual grant whose request input is the AND of the reader's own request read
+`s (wr t)` and a second copy `s (fQ (wq t))` (the request as ustate read it at the reader's q-read time).
+It needs only the lo-to-lo row `lo Dr ≤ lo Q + lo Dq` (not the band row `hi Dr + 2 ≤ lo Q + lo Dq` of
+`b1_of`), with the flip property and NoReReq. On gcd_hw the lo-to-lo margin is the lo-end `b1Corr` value
+(≥ 51 ps on every reader that fails the band row). Cell-level lemma only: the AND-grant core itself
+(notes/A-e9arbnet.md, proposed probe) is not built. -/
+theorem b1_and (hy : ∀ t, y t = (s (wr t) && e (wq t)))
+    (hwr : Warp loDr hiDr wr) (hwq : Warp loDq hiDq wq) (hfQ : Warp loQ hiQ fQ)
+    (hT : hiDr + hiDq + 2 ≤ T0) (hlorow : loDr ≤ loQ + loDq)
+    (hflip : ∀ τ, T0 < τ + hiDq + 2 → 1 ≤ τ → e (τ - 1) = true → e τ = false → s (fQ τ) = false)
+    (hnore : ∀ τ, 1 ≤ τ → e (τ - 1) = true → e τ = false →
+      ∀ v, fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false) :
+    ∀ t, T0 < t → s (wr t) = true → s (fQ (wq t)) = true → e (wq t) = false → y (t - 2) = false := by
+  intro t ht _ hs2 he
+  rw [hy]
+  cases hs3 : s (wr (t - 2))
+  · rfl
+  · cases he2 : e (wq (t - 2))
+    · rfl
+    · exfalso
+      obtain ⟨τ, h1, h2, h3, h4⟩ := first_fall e he2 he (hwq.mono _ _ (by omega))
+      have a2 := hwq.le_late t
+      have a3 := hwq.early_le (t - 2)
+      have b1 := hfQ.le_late (wq t)
+      have hm := hfQ.mono τ (wq t) h2
+      have l1 := warp_le hwr
+      have hfl := hflip τ (by omega) (by omega) h3 h4
+      have := hnore τ (by omega) h3 h4 (fQ (wq t)) hm (by omega)
+      rw [hs2] at this; exact absurd this (by decide)
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet
