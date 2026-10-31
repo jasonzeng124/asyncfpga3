@@ -650,7 +650,7 @@ Audit read (passes 12-13). Open rows on C files, in order of weight:
   all-zero only; "every bdc ring" rests on emit.py emitting no `_set` cell (grep, not Lean).
 - row 45: Ring.lean header already says N(N-1) / tight N(N-1)/2 in RingFair (fixed earlier).
 
-### progress 08:10
+### progress 07:36
 TxWin repaired (row 18): `idle`/`count`/`win` now need a k-th offer (`HasOff`), last window
 unbounded; `off_in_win`, `sampled_eq_zd`, `idle_until(T)` adapted, statements of every downstream
 theorem unchanged; periodic witnesses wX/wXQ adapted. New `CapstoneRefineFinWit.fin_witness`:
@@ -665,7 +665,7 @@ xorshift seeds 1-4, rho a bijection). Re-claiming them after my own build/check:
   regenerates all ten Auto* files BYTE-IDENTICAL to the snapshot (AutoLib is hand-written).
 - 11g: drift check needs prjxray-db; FPGA toolchain restore (cache branch) running.
 
-### progress 08:45
+### progress 07:50
 Committed after my own `./check.sh` on 21 files (6801 declarations, axioms standard, OK):
 - TxWin repair (audit row 18) + `CapstoneRefineFinWit.fin_witness` (finite channel, DAG BCert)
   + `CapstoneRefineOut0Wit.out0_dag_witness`: on C-8t's REAL gcd_hw run `chW`, out0 (offered
