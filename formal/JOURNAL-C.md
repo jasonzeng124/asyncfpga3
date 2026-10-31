@@ -737,3 +737,10 @@ FOR SHARD A (out/gcd_hw_hypotheses.md, row H_COMPUTE_FN; text to use ONLY once t
 unit's function on bdc's port wiring; ranges: 32-bit tokens for uselect0, shift < 32 for ushli0,
 shift = 1 for the ushrsi units as gcd_hw feeds them) | still assumed: H_MAP (which unit is which
 join), the constant ports' values, primitive Boolean models | timing is H_COMPUTE_DELAY (rule A)".
+
+### progress 09:50
+Committed after my own `./check.sh` (26 files, 2563 declarations, standard axioms, OK): H_COMPUTE_FN
+for uori2/3/4 (signed compare + or), uselect0 (signed-compare mux), uselect1 (abs difference);
+infrastructure Struct/Slt/Ripple and the reworked Word/Adder/Shift (re-checked with GcdAdd,
+GcdBitwise, GcdEqZero, GcdShrsi0-4). 19 of gcd_hw's 20 units are now claimed (ushli0 for k < 32,
+GcdJoin and the xorshift units are under check, not claimed).

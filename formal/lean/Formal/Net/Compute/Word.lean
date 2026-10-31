@@ -43,6 +43,12 @@ theorem testBit_word (f : Nat → Bool) : ∀ n i, (word f n).testBit i = (decid
         · simp [h2, show i < n + 1 by omega]
         · simp [h2, show ¬ i < n + 1 by omega]
 
+/-- The net of output wire `i` (0 if it is not a net). -/
+def outNet (outs : List W) (i : Nat) : Nat :=
+  match outs.getD i .c0 with
+  | .net n => n
+  | _ => 0
+
 /-- The unit's output as a number. -/
 def unitVal (cells : List Cell) (outs : List W) (xs : List Nat) : Nat :=
   word (fun i => eval (inEnv xs) [] cells (outs.getD i .c0)) outs.length
@@ -72,6 +78,15 @@ theorem bitLocal_sound {cells : List Cell} {outs : List W} {S : Nat → List Lea
     have := List.all_eq_true.mp hsup l hl
     simpa using this) env
 
+/-- A net checked exhaustively on its cone (cut set `C`, leaves `S` covering the support). -/
+def NetOK (cells : List Cell) (C : List Nat) (n : Nat) (S : List Leaf) (spec : List Bool → Bool) :
+    Prop :=
+  LocalOK C (filt cells [n]).1 (.net n) S spec ∧ S.Nodup ∧
+    (swOf C (filt cells [n]).1 (.net n)).all (fun l => decide (l ∈ S)) = true
+
+instance (cells : List Cell) (C : List Nat) (n : Nat) (S : List Leaf) (spec : List Bool → Bool) :
+    Decidable (NetOK cells C n S spec) := by unfold NetOK; exact inferInstance
+
 /-- The cut environment: input bits from `env`, cut leaves carry the REAL net values. -/
 def cutEnv (env : Leaf → Bool) (cells : List Cell) : Leaf → Bool := fun l => match l with
   | .inp p k => env (.inp p k)
@@ -91,5 +106,33 @@ theorem cert_val {cells : List Cell} {C : List Nat} {n : Nat} {S : List Leaf}
   have h1 : eval (cutEnv env cells) C cells (.net n) = run env [] cells (fun _ => false) n := hcut
   rw [← h1, eval_filt]
   exact local_sound hok hS (fun l hl => by simpa using List.all_eq_true.mp hsup l hl) _
+
+end Formal.Net.Compute
+
+/-! ## Splitting a large exhaustive check (kernel memory) -/
+
+namespace Formal.Net.Compute
+
+/-- The local check restricted to the assignments `lo, lo+1, …, lo+n-1`. -/
+def LocalOKR (C : List Nat) (cells : List Cell) (w : W) (S : List Leaf)
+    (spec : List Bool → Bool) (lo n : Nat) : Prop :=
+  ∀ m, m < n → eval (envOf S (lo + m)) C cells w = spec (S.map (envOf S (lo + m)))
+
+instance (C : List Nat) (cells : List Cell) (w : W) (S : List Leaf) (spec : List Bool → Bool)
+    (lo n : Nat) : Decidable (LocalOKR C cells w S spec lo n) := by
+  unfold LocalOKR; exact Nat.decidableBallLT _ _
+
+theorem localOK_of_ranges {C : List Nat} {cells : List Cell} {w : W} {S : List Leaf}
+    {spec : List Bool → Bool} (K B : Nat) (hKB : K * B = 2 ^ S.length)
+    (h : ∀ c, c < K → LocalOKR C cells w S spec (c * B) B) : LocalOK C cells w S spec := by
+  intro m hm
+  have hB : 0 < B := by
+    rcases Nat.eq_zero_or_pos B with h0 | h0
+    · rw [h0, Nat.mul_zero] at hKB; exact absurd hKB (Nat.ne_of_lt (Nat.two_pow_pos _))
+    · exact h0
+  have hc : m / B < K := by
+    apply (Nat.div_lt_iff_lt_mul hB).mpr; rw [hKB]; exact hm
+  have := h (m / B) hc (m % B) (Nat.mod_lt _ hB)
+  rwa [Nat.mul_comm, Nat.div_add_mod] at this
 
 end Formal.Net.Compute

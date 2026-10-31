@@ -3,6 +3,11 @@
 Shard C, 2026-10-31. Core Lean only (no Mathlib), no sorry/axiom/native_decide; kernel `decide`
 (`decide +kernel`) for the exhaustive local checks.
 
+STATUS (claimed = committed after `./check.sh`; see JOURNAL-C for each commit): claimed: uori0/1,
+ucmpi0/1/2/3/8/10, uaddi0, ushrsi0-4, and (this commit) uori2/3/4, uselect0, uselect1. PENDING
+CHECK (files present, NOT claimed until a later commit says so): ushli0 (`GcdShli0*`),
+`GcdJoin.lean`, xorshift (`Xs*`, `Sgt`, `BitFn`).
+
 ## Problem statement
 
 The capstone treats every bdc compute unit (`bdc_fused_*`) as an ideal zero-time function of its
@@ -42,9 +47,26 @@ cell under the checked renaming).
 glitches and X; ushli0 for shift amounts `k >= 32` (gcd_hw's `k` stays below 31: a token-level
 fact, not restated here); the shifters ushrsi* for shift amounts other than 1; uselect1's board failure was a
 timing/GLS event, which a function theorem does not address (it only rules out a wrong
-synthesized function as the cause); the link from these unit
-theorems to the capstone's `Join.dat` (the RTL unit <-> Ops join map); the other routes' and
-kernels' syntheses (the extractor runs on any of them).
+synthesized function as the cause); which physical unit implements which capstone join
+(H_MAP; see the next section for the function-level link).
+
+## In the capstone's terms (`GcdJoin.lean`)
+
+The capstone network has exactly 20 joins (`joins_listed`, kernel decide over `ops`). For each,
+`jgAt p` (the join's data function `jg e js`, from bdc's graph) equals `unitVal` of the unit with
+that operation, on bdc's port wiring (constant operands as constant ports, 1-bit ports as
+`trunci 1`): `j2 .. j162`, for every input (ranges: 32-bit tokens for `uselect0`, shift `< 32` for
+`ushli0`). NOT shown: which physical unit implements which join (H_MAP: the RTL-net to
+Ops-channel map is not in Lean; units are paired by operation, identical operations have
+identical netlists here); that the constant ports carry those constants.
+
+## A second kernel: xorshift (`XsUnits.lean`, `XsXor.lean`)
+
+The same machinery, unchanged, on the xorshift soak top's synthesis (four seeds byte-identical,
+md5 9d030789...; `KERNEL=xorshift tools/compute/gen.sh`): uaddi0 = `e0 + 1` (`RipOK`, carry-in 1),
+ucmpi0 = signed `>` (`SgtOK`), ucmpi1 = signed `<` (`SltOK`), uxori2 = `e0 ^ (e0 << 5)`, uxori1 =
+`t = e0 ^ (e0 << 13); t ^ (t >> 17)` (`BitFnOK`: each output bit over its computed support). All
+five of xorshift's compute units, for every input.
 
 ## Method (Formal/Net/Compute/)
 
@@ -56,6 +78,12 @@ kernels' syntheses (the extractor runs on any of them).
 - `Word.lean`: numbers on ports, `unitVal`, `BitLocal`, `cert_val`.
 - `Adder.lean`: `AddOK` + `add_sound` (generic ripple-carry arithmetic proved once).
 - `EqZero.lean`: `EqZOK` + `eqz_sound`.
+- `Fold.lean`: constant folding through LUT cofactors and MUXF selects (`fold_sound`).
+- `Shift.lean`: fixed-leaf checks (`localF_sound`), `ShrOK` (shift by 1), `FixShOK` (shift by `k`).
+- `Struct.lean`: `run_cell` (a cell's equation over the final net values).
+- `Slt.lean` / `Sgt.lean`: signed comparators (`slt_sound`, `sgt_sound`).
+- `Ripple.lean`: general ripple chains (`rip_sound`).
+- `BitFn.lean`: per-bit functions over computed supports (`bitFn_bit`).
 A certificate does not have to be trusted: any cut set is sound, every check is kernel-decided.
 Cost: one 512-assignment slice check takes ~5 s in the kernel; uaddi0 ~2.5 min, the four zero
 tests 15 s together.

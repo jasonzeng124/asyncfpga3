@@ -181,3 +181,117 @@ theorem shr1_sound {cells : List Cell} {outs : List W} (h : ShrOK cells outs) (a
   · simp [hi]
 
 end Formal.Net.Compute
+
+/-! ## Shifts by any fixed amount (one certificate per amount) -/
+
+namespace Formal.Net.Compute
+open Formal.Net.GcdHw
+
+/-- Duplicate-free copy of a leaf list. -/
+def dedup : List Leaf → List Leaf
+  | [] => []
+  | x :: l => if x ∈ dedup l then dedup l else x :: dedup l
+
+theorem mem_dedup : ∀ (l : List Leaf) (x : Leaf), x ∈ dedup l ↔ x ∈ l
+  | [], _ => by simp [dedup]
+  | y :: l, x => by
+    simp only [dedup]
+    split
+    · next h => rw [mem_dedup l x]; constructor
+                · exact fun hx => List.mem_cons_of_mem _ hx
+                · intro hx; rcases List.mem_cons.mp hx with rfl | hx
+                  · exact (mem_dedup l _).mp h
+                  · exact hx
+    · rw [List.mem_cons, List.mem_cons, mem_dedup l x]
+
+theorem nodup_dedup : ∀ l : List Leaf, (dedup l).Nodup
+  | [] => by simp [dedup]
+  | y :: l => by
+    simp only [dedup]
+    split
+    · exact nodup_dedup l
+    · next h => exact List.nodup_cons.mpr ⟨h, nodup_dedup l⟩
+
+/-- Port 1 carries the constant `k`. -/
+def fixK (k : Nat) : Leaf → Option Bool
+  | .inp 1 m => some (k.testBit m)
+  | _ => none
+
+/-- A shift unit with port 1 fixed to `k`: output bit `i` is input bit `src i` of port 0, or 0.
+The enumerated leaves are the folded support itself (deduplicated). -/
+def FixShOK (cells : List Cell) (outs : List W) (k : Nat) (src : Nat → Option Nat) : Prop :=
+  outs.length = 32 ∧
+  ∀ i, i < 32 →
+    let w := outs.getD i .c0
+    let S := dedup (afOf (fixK k) [] (coneW cells w) w).supp
+    LocalOKF [] (coneW cells w) w S (fixK k)
+      (fun l => match src i with
+        | some j => l.getD (S.idxOf (.inp 0 j)) false
+        | none => false) ∧
+    S.all (fun l => (fixK k l).isNone) = true ∧
+    (match src i with
+     | some j => decide (Leaf.inp 0 j ∈ S)
+     | none => true) = true
+
+instance (cells : List Cell) (outs : List W) (k : Nat) (src : Nat → Option Nat) :
+    Decidable (FixShOK cells outs k src) := by
+  unfold FixShOK; exact inferInstance
+
+theorem getD_idxOf_map {S : List Leaf} {f : Leaf → Bool} {l : Leaf} (h : l ∈ S) :
+    (S.map f).getD (S.idxOf l) false = f l := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_map,
+    List.getElem?_eq_getElem (List.idxOf_lt_length_of_mem h)]
+  simp [List.getElem_idxOf]
+
+theorem fixSh_bit {cells : List Cell} {outs : List W} {k : Nat} {src : Nat → Option Nat}
+    (h : FixShOK cells outs k src) (a : Nat) (i : Nat) (hi : i < 32) :
+    eval (inEnv [a, k]) [] cells (outs.getD i .c0) =
+      match src i with
+      | some j => a.testBit j
+      | none => false := by
+  obtain ⟨_, hb⟩ := h
+  obtain ⟨hok, hfree, hmem⟩ := hb i hi
+  have henv : ∀ l b, fixK k l = some b → inEnv [a, k] l = b := by
+    intro l b hf
+    cases l with
+    | inp p m =>
+      simp only [fixK] at hf
+      split at hf <;> simp_all [inEnv]
+    | cut n => simp [fixK] at hf
+  have := localF_sound hok (nodup_dedup _)
+    (fun l hl => by simpa using List.all_eq_true.mp hfree l hl)
+    (fun l hl => (mem_dedup _ _).mpr hl) (inEnv [a, k]) henv
+  rw [eval_coneW, this]
+  cases hs : src i with
+  | none => rfl
+  | some j =>
+    rw [hs] at hmem
+    simp only [decide_eq_true_eq] at hmem
+    simp only
+    rw [getD_idxOf_map hmem]
+    simp [inEnv]
+
+/-- The source bit of a shift left by `k`. -/
+def shlSrc (k i : Nat) : Option Nat := if k ≤ i then some (i - k) else none
+
+theorem shl_bit (a k i : Nat) :
+    (Ops.shli 32 a k).testBit i = (decide (i < 32) && match shlSrc k i with
+      | some j => a.testBit j
+      | none => false) := by
+  rw [Ops.shli, Nat.testBit_mod_two_pow, Nat.testBit_shiftLeft]
+  unfold shlSrc
+  by_cases h : k ≤ i <;> simp [h]
+
+/-- **A certified shift unit computes `a << k`** (32 bits) for every `a`, when port 1 carries `k`. -/
+theorem shl_sound {cells : List Cell} {outs : List W} {k : Nat} (h : FixShOK cells outs k (shlSrc k))
+    (a : Nat) : unitVal cells outs [a, k] = Ops.shli 32 a k := by
+  have hlen := h.1
+  apply Nat.eq_of_testBit_eq
+  intro i
+  rw [testBit_unitVal, hlen, shl_bit]
+  by_cases hi : i < 32
+  · simp only [hi, decide_true, Bool.true_and]
+    exact fixSh_bit h a i hi
+  · simp [hi]
+
+end Formal.Net.Compute

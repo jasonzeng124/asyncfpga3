@@ -35,11 +35,6 @@ def addS (cuts : List Nat) (j : Nat) : List Leaf :=
 
 def cinC (cuts : List Nat) (j : Nat) : List Nat := if j = 0 then [] else [cuts.getD (j - 1) 0]
 
-def outNet (outs : List W) (i : Nat) : Nat :=
-  match outs.getD i .c0 with
-  | .net n => n
-  | _ => 0
-
 /-- One net checked over its slice: local check on its cone, leaf list duplicate-free and
 covering the cone's support. -/
 def SliceOK (cells : List Cell) (cuts : List Nat) (j n : Nat) (spec : List Bool → Bool) : Prop :=
