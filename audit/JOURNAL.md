@@ -757,3 +757,10 @@ filter; plus any work toward the bitstream theorem).
 
 ### progress 18:23
 Formal 2f2e632d build: all NChk EXITMOD 0, full build EXIT 0, 0 failures. Axiom audit started.
+
+### progress 18:38
+P18 in. I re-ran A_bandcheck.py (identical) and A_ArbEnv.lean (rc 0), and grepped the glsq tools for reqlow (none).
+OVERSTATED: the GLS behind the "ArbEnv holds" evidence uses nextpnr point delays mostly outside the bands the
+monitors check against (seed d slow: 59/81 arcs), so it is not a behaviour the theorem covers; reqlow is unchecked;
+"one explicit list" leaves QQuiet/hbase/ArbOrd outside. CONFIRMED: ArbEnv theorem (conditional, stated), pointwise C,
+INIT-support filter. Nothing yet toward the owner's bitstream theorem. Axiom audit of 2f2e632d running.

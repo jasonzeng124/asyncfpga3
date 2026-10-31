@@ -1,0 +1,179 @@
+structure Formal.Core.XAudit.Events9ArbNet.ArbEnv {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+  (rn : Fin N → RNode) (a : ArbD N) (T0 H : Nat) : Prop
+number of parameters: 8
+fields:
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.reqlow : ∀ (t : Nat), t ≤ T0 + 2 → r1S a t = false ∧ r2S a t = false
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.stall : ∀ (v : Nat),
+      ∃ v', v' ≤ v ∧ v ≤ v' + H ∧ (v' = 0 ∨ Ok (aS rn a) (qS a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a)))
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).snd ≤ 10 ^ 15
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.e1 : RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r1S a) (qS a) (tau hsat (P1Q a))
+      ((bandsOf d a).g1 0).fst ((bandsOf d a).g1 0).snd ((bandsOf d a).g1 2).fst ((bandsOf d a).g1 2).snd
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.e2 : RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r2S a) (fun u => !qS a u)
+      (tau hsat (P2Q a)) ((bandsOf d a).g2 1).fst ((bandsOf d a).g2 1).snd ((bandsOf d a).g2 2).fst
+      ((bandsOf d a).g2 2).snd
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.e3 : RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r1S a) (qS a) (tau hsat (P1Q a))
+      (((bandsOf d a).r0 0).fst - 2) (((bandsOf d a).r0 0).snd - 2) (((bandsOf d a).r0 2).fst - 2)
+      (((bandsOf d a).r0 2).snd - 2)
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.e4 : RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r2S a) (fun u => !qS a u)
+      (tau hsat (P2Q a)) (((bandsOf d a).r0 1).fst - 2) (((bandsOf d a).r0 1).snd - 2) (((bandsOf d a).r0 2).fst - 2)
+      (((bandsOf d a).r0 2).snd - 2)
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.c1 : ∀ (t : Nat),
+      T0 < t →
+        r1S a (f1Of hsat a 0 (t - 2)) = true →
+          r1S a (f1Of hsat a 0 t) = false → aS rn a (f4Of hsat a (f1Of hsat a 2 t)) = true
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.c2 : ∀ (t : Nat),
+      T0 < t →
+        r2S a (f2Of hsat a 1 (t - 2)) = true →
+          r2S a (f2Of hsat a 1 t) = false → aS rn a (f4Of hsat a (f2Of hsat a 2 t)) = true
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.c3 : ∀ (t : Nat),
+      T0 < t →
+        r1S a (frOf hsat a 0 (t - 2 + 2)) = true →
+          r1S a (frOf hsat a 0 (t + 2)) = false → aS rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.c4 : ∀ (t : Nat),
+      T0 < t →
+        r2S a (frOf hsat a 1 (t - 2 + 2)) = true →
+          r2S a (frOf hsat a 1 (t + 2)) = false → aS rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+constructor:
+  Formal.Core.XAudit.Events9ArbNet.ArbEnv.mk {N : Nat} {d : Design} {x : Fin d.n → Sig} {hsat : SatPinW d plG x}
+    {rn : Fin N → RNode} {a : ArbD N} {T0 H : Nat}
+    (reqlow : ∀ (t : Nat), t ≤ T0 + 2 → r1S a t = false ∧ r2S a t = false)
+    (stall :
+      ∀ (v : Nat),
+        ∃ v', v' ≤ v ∧ v ≤ v' + H ∧ (v' = 0 ∨ Ok (aS rn a) (qS a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a))))
+    (hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).snd ≤ 10 ^ 15)
+    (e1 :
+      RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r1S a) (qS a) (tau hsat (P1Q a)) ((bandsOf d a).g1 0).fst
+        ((bandsOf d a).g1 0).snd ((bandsOf d a).g1 2).fst ((bandsOf d a).g1 2).snd)
+    (e2 :
+      RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r2S a) (fun u => !qS a u) (tau hsat (P2Q a)) ((bandsOf d a).g2 1).fst
+        ((bandsOf d a).g2 1).snd ((bandsOf d a).g2 2).fst ((bandsOf d a).g2 2).snd)
+    (e3 :
+      RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r1S a) (qS a) (tau hsat (P1Q a)) (((bandsOf d a).r0 0).fst - 2)
+        (((bandsOf d a).r0 0).snd - 2) (((bandsOf d a).r0 2).fst - 2) (((bandsOf d a).r0 2).snd - 2))
+    (e4 :
+      RdEdgeNF (aS rn a) (qS a) (f4Of hsat a) (r2S a) (fun u => !qS a u) (tau hsat (P2Q a))
+        (((bandsOf d a).r0 1).fst - 2) (((bandsOf d a).r0 1).snd - 2) (((bandsOf d a).r0 2).fst - 2)
+        (((bandsOf d a).r0 2).snd - 2))
+    (c1 :
+      ∀ (t : Nat),
+        T0 < t →
+          r1S a (f1Of hsat a 0 (t - 2)) = true →
+            r1S a (f1Of hsat a 0 t) = false → aS rn a (f4Of hsat a (f1Of hsat a 2 t)) = true)
+    (c2 :
+      ∀ (t : Nat),
+        T0 < t →
+          r2S a (f2Of hsat a 1 (t - 2)) = true →
+            r2S a (f2Of hsat a 1 t) = false → aS rn a (f4Of hsat a (f2Of hsat a 2 t)) = true)
+    (c3 :
+      ∀ (t : Nat),
+        T0 < t →
+          r1S a (frOf hsat a 0 (t - 2 + 2)) = true →
+            r1S a (frOf hsat a 0 (t + 2)) = false → aS rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true)
+    (c4 :
+      ∀ (t : Nat),
+        T0 < t →
+          r2S a (frOf hsat a 1 (t - 2 + 2)) = true →
+            r2S a (frOf hsat a 1 (t + 2)) = false → aS rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true) :
+    ArbEnv hsat rn a T0 H
+structure Formal.Core.XAudit.Events9ArbNet.RdEdgeNF (a q : Sig) (f4 : Nat → Nat) (s e : Sig) (fQ : Nat → Nat)
+  (loDr hiDr loDq hiDq : Nat) : Prop
+number of parameters: 10
+fields:
+  Formal.Core.XAudit.Events9ArbNet.RdEdgeNF.nore : ∀ (τ : Nat),
+      1 ≤ τ → e (τ - 1) = true → e τ = false → ∀ (v : Nat), fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false
+  Formal.Core.XAudit.Events9ArbNet.RdEdgeNF.rise : ∀ (σ : Nat),
+      1 ≤ σ →
+        s (σ - 1) = false →
+          s σ = true → ∀ (u : Nat), σ + loDr ≤ u + hiDq → u + loDq < σ + hiDr + 2 → e u = true → Settled a q f4 u
+  Formal.Core.XAudit.Events9ArbNet.RdEdgeNF.flip : ∀ (τ : Nat),
+      1 ≤ τ → e (τ - 1) = false → e τ = true → ∀ (u : Nat), τ ≤ u → u + loDq < τ + hiDq + 2 → Settled a q f4 u
+constructor:
+  Formal.Core.XAudit.Events9ArbNet.RdEdgeNF.mk {a q : Sig} {f4 : Nat → Nat} {s e : Sig} {fQ : Nat → Nat}
+    {loDr hiDr loDq hiDq : Nat}
+    (nore :
+      ∀ (τ : Nat),
+        1 ≤ τ → e (τ - 1) = true → e τ = false → ∀ (v : Nat), fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false)
+    (rise :
+      ∀ (σ : Nat),
+        1 ≤ σ →
+          s (σ - 1) = false →
+            s σ = true → ∀ (u : Nat), σ + loDr ≤ u + hiDq → u + loDq < σ + hiDr + 2 → e u = true → Settled a q f4 u)
+    (flip :
+      ∀ (τ : Nat),
+        1 ≤ τ → e (τ - 1) = false → e τ = true → ∀ (u : Nat), τ ≤ u → u + loDq < τ + hiDq + 2 → Settled a q f4 u) :
+    RdEdgeNF a q f4 s e fQ loDr hiDr loDq hiDq
+@Events9FullArb.design_verdict9arbnet_env : ∀ {N K : Nat} {d : Design} {net : Events5.Net4 N} {b : Events5.Bands4 net}
+  {rn : Fin N → RNode} {rank : Fin N → Nat} {rw fuel : Nat} {x : Fin d.n → Sig},
+  Recog6 d net b rn rank rw fuel →
+    net.OK7 →
+      ∀ {parts : List (List Nat)} {rs : Nat → Nat} {log : List Events9Par.LnP} {J : Array Events7.Jd},
+        Events9Par.runLogP net b rs parts log = some J →
+          ∀ (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Events7.Arm)
+            (hl : List Events9.HLn9) (gd : (j : Fin N) → Fin (net.ar j) → Events8.GD)
+            (cp : (j : Fin N) → Fin (net.ar j) → Bool) (cxm : Fin N → Bool)
+            (cl cg : (j : Fin N) → Fin (net.ar j) → Bool),
+            (∀ (j : Fin N) (p : Fin (net.ar j)), cp j p = true → Events7.backOK7 net b J j p (back j p) = true) →
+              (∀ (m : Fin N), cxm m = true → Events7.exclOK7 net b parts J m (xS m) (xa m) (xw m) = true) →
+                (∀ (j : Fin N) (p : Fin (net.ar j)), cl j p = true → Events7.lineOK7 net b J j p (line j p) = true) →
+                  (∀ (j : Fin N) (p : Fin (net.ar j)),
+                      cg j p = true →
+                        Events8.guardOK8 net b parts J (List.map (Events9.san J) hl) j p (gd j p) = true) →
+                    ∀ (as : Fin K → ArbD N) (own : Fin N → Option (Fin K)),
+                      (∀ (k : Fin K), ArbOK d net b rn fuel rw (as k)) →
+                        OwnOK rn as own →
+                          RsOK as rs →
+                            FixShape net b rn →
+                              ∀ (hsat : SatPinW d plG x),
+                                (∀ (t : Nat), x (d.wire 0) t = false) →
+                                  (∀ (t : Nat), x (d.wire 1) t = true) →
+                                    ∀ {T : Nat},
+                                      1 ≤ T →
+                                        (∀ (t : Nat), x (d.wire rw) t = decide (t < T)) →
+                                          ∀ (S T0 : Nat) (H : Fin K → Nat),
+                                            (∀ (k : Fin K), ArbRowsOKSS d (as k) T S T0) →
+                                              (∀ (k : Fin K), 1 ≤ plo d (PqQ (as k))) →
+                                                (∀ (k : Fin K) (u : Nat),
+                                                    S < u + phi d (PqQ (as k)) →
+                                                      u ≤ S → 1 ≤ u → qS (as k) (u - 1) = qS (as k) u) →
+                                                  (∀ (k : Fin K) (τ : Nat),
+                                                      S < τ →
+                                                        qS (as k) (τ - 1) ≠ qS (as k) τ → ∀ (u : Nat), τ ≤ u → ⋯) →
+                                                    (∀ (k : Fin K), ArbEnv hsat rn (as k) T0 (H k)) →
+                                                      (∀ (k : Fin K), ArbOrd hsat (as k) T0) →
+                                                        ∀ (sel : Nat → Nat → Bool), ∃ cv, Exists ⋯
+@arbEdgeSP_of_env : ∀ {N : Nat} {d : Design} {net : Events5.Net4 N} {b : Events5.Bands4 net} {rn : Fin N → RNode}
+  {fuel rw : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x),
+  (∀ (t : Nat), x (d.wire 0) t = false) →
+    (∀ (t : Nat), x (d.wire 1) t = true) →
+      ∀ {a : ArbD N},
+        ArbOK d net b rn fuel rw a →
+          1 ≤ plo d (PqQ a) →
+            ∀ {S T0 H : Nat},
+              (∀ (u : Nat), S < u + phi d (PqQ a) → u ≤ S → 1 ≤ u → qS a (u - 1) = qS a u) →
+                (∀ (τ : Nat),
+                    S < τ →
+                      qS a (τ - 1) ≠ qS a τ →
+                        ∀ (u : Nat),
+                          τ ≤ u →
+                            u ≤ τ + phi d (PqQ a) →
+                              (r1S a (tau hsat (P1Q a) u), r2S a (tau hsat (P2Q a) u),
+                                  x (d.wire rw) (tau hsat (PrQ a) u), aS rn a (tau hsat (PA a) u)) =
+                                (r1S a (tau hsat (P1Q a) τ), r2S a (tau hsat (P2Q a) τ),
+                                  x (d.wire rw) (tau hsat (PrQ a) τ), aS rn a (tau hsat (PA a) τ))) →
+                  ArbEnv hsat rn a T0 H → ArbEdgeSP hsat rn a S T0 H
+@c_of_pt : ∀ {s e y : Sig} {wr wq : Nat → Nat} {T0 : Nat} {a q : Sig} {f4 : Nat → Nat},
+  (∀ (t : Nat), y t = (s (wr t) && e (wq t))) →
+    (∀ (t : Nat), T0 < t → s (wr (t - 2)) = true → s (wr t) = false → a (f4 (wq t)) = true) →
+      ∀ (t : Nat), T0 < t → s (wr t) = false → Settled a q f4 (wq t) → e (wq t) = true → y (t - 2) = false
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_env' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9FullArb.design_verdict9arbnet_ordSP' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Formal.Core.XAudit.Events9ArbNet.arbEdgeSP_of_env' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9ArbNet.arbCond_of_ordSP' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Core.XAudit.Events9ArbNet.c_of_pt' does not depend on any axioms
+'AuditP18A.pt_of_fall' depends on axioms: [propext, Quot.sound]
+'AuditP18A.c_needed' does not depend on any axioms
+'AuditP18A.pt_is_C_clause' does not depend on any axioms
+'AuditP18A.C_of_pt' depends on axioms: [propext]
+'AuditP18A.env_of_idle' depends on axioms: [propext, Quot.sound]
