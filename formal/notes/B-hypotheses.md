@@ -554,6 +554,9 @@ joins, fork trees).
   - `FiniteNetBoundT.FGcdNetOKBT`: every 5/6-way fork's acknowledge tree (`bd_ctree`: chunk C4,
     chunk C2, top C2, `FCelSpec` each): 170/175 (left: muxn 4 acknowledge sides, source 1
     request side); `BWit4Net.gcd_hw_fin_netBT_witness`.
+  - `FiniteNetBoundN.FGcdNetOKBN`: the muxn's per-input decode (`FDecSpec`, INITs under
+    LibGapMuxN's H_YOSYS_MAP), join (`FCelSpec GC2`) and acknowledge (`FMuxASpec`): 173/175.
+    **No witness** (hypotheses not shown satisfiable at this level).
 
 ---
 
