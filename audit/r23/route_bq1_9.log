@@ -1,0 +1,74 @@
+build_hw.sh: MODE=converge re-entry (BDC_SELECT_PADS=/root/wt-r14/cells/hw/gcd_hw_pads.json) -- building gcd_hw
+wrote build/gen/gcd_kernel.v: module bdc_gcd, 331 matched delay(s)
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== synthesis ==
+             21 group(s) also hold their select consumer's LUTs
+             321 delay chain(s) grouped, 2582 link LUT(s)
+             SKIPPED $paramod\bdc_amerge2_0\DELAY=s32'00000000000000000000000000001100: instantiated 7x, 0 controller(s) -- one group value cannot name more than one physical cluster
+        1   BSCANE2
+        5   BUFG
+       21   CARRY4
+      306   FDRE
+       20   FDSE
+       75   LUT1
+      273   LUT2
+       32   LUT3
+      130   LUT4
+       57   LUT5
+      162   LUT6
+        2   OBUF
+        1   BSCANE2
+        5   BUFG
+       59   CARRY4
+      306   FDRE
+       20   FDSE
+     1046   LUT1
+     2323   LUT2
+      259   LUT3
+      479   LUT4
+      148   LUT5
+     1281   LUT6
+     2458   LUT6_2
+        2   OBUF
+
+== place and route ==
+505 cluster(s), 4927 logic slots clustered, 0 group(s) dropped (8 logic slots per tile row, up to 25 rows)
+routed.
+FASM:  8925 occupied LUT sites, 82 global buffer lines
+fasm_audit: 8925 LUT sites (561 multi-name pins, 56 run together), 0 DSP48E1 (0 Z*REG bits, 0 const-only pins)
+fasm_audit PASS
+
+== bitstream ==
+2083860 bytes -> build/hw/gcd_hw/gcd_hw.bit
+routed SDF -> build/hw/gcd_hw/gcd_hw.sdf
+
+build_hw.sh PASS
+build exit 0
+81d27cf3aaf11ea4111ed530d663f3bc  build/hw/gcd_hw/gcd_hw.sdf
+xray_delay: building prjxray node model (tileconn) ...
+xray_delay: 1188449 nodes in 32 s
+xray_delay: INTERCONNECT 52804, 44091 from prjxray; IOPATH 47222, 47222 from prjxray; 12426 nets, 41 s
+  ic_kept_nextpnr_const                    8709
+  ic_kept_nextpnr_nosink                   4
+  pip_buffer                               75573
+  pip_pass_transistor                      40026
+  pip_pseudo                               18
+  routethru_inpin_charged                  18
+  sitepip_charged_CEUSEDMUX                124
+  sitepip_charged_CLKINV                   162
+  sitepip_charged_SRUSEDMUX                17
+  sitepip_charged_x5FFMUX                  49
+  sitepip_charged_xFFMUX                   270
+  sitepip_charged_xOUTMUX                  5473
+xray exit 0
+7a495c318d53c6bee26d8b388794436e  build/hw/gcd_hw/gcd_hw_xray.sdf

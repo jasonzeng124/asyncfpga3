@@ -685,3 +685,9 @@ so a 15 GB sandbox cannot build them in parallel. Their howto says so.
 Pass-16 subagent P16 launched (B: Bwit3 164/175 and H_EXC_CLEAN, and whether the witness exercises a contested
 arbitration; fork trees 170/175; A: b1_and on a proposed two-copy AND request pin; C: 11g bitstream import
 provenance). BQ#1 seed 9 route + SLOW_MAX restarted.
+
+### progress 14:15
+P16 in. I checked its two overstatements myself: no BWit4Net exists although notes/B-hypotheses.md:544-555 names
+its witness theorem; FiniteNetComb.lean:11 says "(no runt, no hazard)" but B_excclean.lean (rc 0, re-run by me)
+shows a runt passes H_EXC_CLEAN. Arbiter mutual exclusion is still assumed via H_OTHER. CONFIRMED: 164/170 censuses,
+Bwit3 (own INIT decoding), b1_and (576 margins; a proof-side virtual node, not a circuit change), 11g import.
