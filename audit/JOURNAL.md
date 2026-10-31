@@ -764,3 +764,8 @@ OVERSTATED: the GLS behind the "ArbEnv holds" evidence uses nextpnr point delays
 monitors check against (seed d slow: 59/81 arcs), so it is not a behaviour the theorem covers; reqlow is unchecked;
 "one explicit list" leaves QQuiet/hbase/ArbOrd outside. CONFIRMED: ArbEnv theorem (conditional, stated), pointwise C,
 INIT-support filter. Nothing yet toward the owner's bitstream theorem. Axiom audit of 2f2e632d running.
+
+### progress 18:49
+Research 0056e2b0/7dc80477: log-normal scan, BQ#3 seed 9 passes 1x and 1.5x, fails 2x (errs 6, same six vectors).
+The 2x log-normal failure was already reproduced in r19 (s2x_logn). Started: my route of BQ#3 seed 9 (expect sdf
+74511ca2) + log-normal 1.5x (region 0.24 / wire 0.189, draw 1) on all 16 vectors with the stall check.
