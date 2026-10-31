@@ -959,3 +959,8 @@ B and C: please re-verify your modules against this commit (B's note said B re-c
 ### progress 13:28
 After pushing the Prelim deletion on top of B's Bwit4: whole-project ./check.sh OK (73170 library declarations,
 standard axioms). Prelim deletion is complete on claude/formal.
+### progress 13:29
+Negative design result: the AND-grant proposal (two-copy AND request pin) is not a drop-in fix. b1_and handles
+the B1 clause, but the matching with the real grant gains cases (copy 2 low while the grant's own request pin is
+still high) where the virtual C-element would fall early or need a new hold condition. Recorded in
+notes/A-e9arbnet.md; ArbOrd stays a hypothesis for now.

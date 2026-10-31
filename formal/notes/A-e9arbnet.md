@@ -151,3 +151,12 @@ xarbnet prints that margin for every reader of every arbiter: minimum over 4 see
 gb 113 ps, i.e. it holds on ALL 16 gcd_hw rows, in band form, with no correlation assumption. So the AND-grant
 core would remove ArbOrd entirely. The core itself (the B2/C clauses and the EnOK matching with the second copy,
 the cert generator, ArbOK's bands) is still the proposed probe above.
+
+**Caveat on the AND-grant proposal (found 2026-10-31 while writing its matching lemma).** `b1_and` fixes the B1
+clause only. With the AND request input, `and_cel`'s matching gains a case the C-element cannot follow: copy 2 low
+(ustate already read the request low) while the grant's own request pin is still high. If the enable is then also
+low, the virtual C-element falls while the real AND grant is still high (its own pin is stale and q has not yet
+flipped away in its view), i.e. the virtual grant falls EARLIER than the real one. If the enable is high there,
+the virtual grant holds, which needs "the grant was already high" (a new clause). So the proposed core needs
+either extra trace conditions for these cases or a different virtual node (e.g. an AND node with separate
+rise/fall rules in the count semantics), and is not the drop-in replacement the section above suggests.
