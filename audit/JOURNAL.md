@@ -554,3 +554,9 @@ BQ#2 seed 5 SLOW_MAX (own route sdf 030c36bd, xray fc056c5b; no recorded md5): 1
 ### progress 06:11
 BQ#2 seed 8 SLOW_MAX: sdf b7733e23 / xray b93e281a (= TSV), 16/16 errs 0, 31/25/37 = TSV, no stalls. All 8 BQ#2
 SLOW_MAX full-stack rows are now reproduced from my own routes. Still UNVERIFIED: FAST_MIN on d,3,4,5.
+
+### progress 06:33
+Research a73267f8: BQ#1 full stack first 5 runs PASS (d SLOW_MAX 16/12/18 on sdf 6f8b99e6, d FAST_MIN 45/35/51,
+3 SLOW_MAX/FAST_MIN, 4 SLOW_MAX). BQ#1's full stack has never been reproduced by me, so after the BQ#2 seed 5
+FAST_MIN run I route BQ#1 at the default seed (check sdf 6f8b99e6) and run SLOW_MAX on all 16 vectors with the
+stall check. The seed-5 re-route reproduced 030c36bd/fc056c5b (the build is deterministic).
