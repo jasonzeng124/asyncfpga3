@@ -1772,7 +1772,7 @@ Memory: a kernel decide over several arbiters at once peaked 8.5 GB for 10 opera
 arbChk is one theorem per arbiter (barb_*), with barb_rest checking that every other
 operator passes arbChk trivially.
 
-### progress 12:12
+### progress 12:08
 (1) Build order: BWit2NChk now imports BWitNChk and BWit3NChk imports BWit2NChk (import
 used for ordering only), so a fresh `lake build` cannot run the three kernel-check modules
 at once (BWit3NChk alone peaks at 11.0 GB RSS on this 15 GB box; two in parallel were
@@ -1793,3 +1793,35 @@ links bound both sides; the 3 trees (ops 67, 88, 143) toggle (top node 4/2/6 edg
 generated (gen_cdata4.py, gen_bdata4.py -> BWit4Data, BWit4NData), BWit4NDefs builds, and by
 #eval wireChk, opChkB (incl. treeChk) pass everywhere. BWit4Cells/NChk/Net written, not yet
 built (BWit4Net typechecks against a stub of the kernel facts, scratch only).
+
+### progress 12:25
+Bwit4 done (lake build OK: BWit4Cells 16 s; BWit4NChk alone 756 s, peak RSS 11.2 GB;
+BWit4Net; #print axioms of the witness: propext, Classical.choice, Quot.sound only).
+**Problem, plainly:** is the gcd_hw theorem with the fork trees gate-modelled too
+(FiniteNetBoundT: 170 of 175 links bound on both sides) satisfiable by an actual run?
+**Answer (Lean):** `BWit4.bwit_okT : FGcdNetOKBT chB NBt LB nB` on the gate-timed run chB of
+BWit4Data (12/18; muxes, arbiters and the 3 fork trees at gate level, LUT 1 + wire 1-3;
+C's checkers by kernel in BWit4Cells: H_CELLS, H_BUNDLE, start once, H_CM_FORCED,
+out0 = 6), and `gcd_hw_fin_netBT_witness` jointly with C's H_OTHER, H_BUNDLE, H_CM_FORCED;
+`gcd_hw_fin_netBT_consistent` applies the theorem. Every tree cell on its real C-element
+(celB), chunk nodes wired to the top by unit wires, the top driving the fork input's ack.
+**Negative controls (#eval, tools-B/bwit/negctl_tree4.lean):** the three trees pass;
+op 67's chunk C4 node with its first edge +1 tick fails; op 67's top C2 read from leaves
+3, 4 instead of (chunk, leaf 4) fails; op 143's top checked as a C4 of leaves 0..3 fails.
+**Does NOT show:** routed delays, R > 2, a contested arbiter; muxn (4 ack sides) and the
+source (1 req side) remain unbound, and C's H_OTHER remains a hypothesis.
+
+### next (for the next B session)
+- muxn, the last gate-model class (4 ack sides): bdc's generated `bdc_muxn` (decode LUT3s,
+  joins C(x_k req, decoded ctl req), the 3-input request OR, the FASTFALL delay stages
+  FAndSpec, ua_k = C(j_k, z_ack) FMuxASpec). AssumeGuaranteeMuxNFin has FDecSpec, FAndSpec,
+  FMuxASpec, FBufSpec; missing: the 3-input OR in truncated form, the Bool checkers, and
+  a simulator model of the generated netlist (read bdc's emitter for its exact cells).
+- The source request side cannot be gate-modelled on a terminating run
+  (FiniteNetSrc.chW_src_unwired).
+- A CONTESTED arbiter run: every witness so far has uncontested arbiters, so H_EXC_CLEAN is
+  never tight; a run where two requests race (a different a, b or forced timing) would
+  exercise the race hypothesis (combB would then fail where a runt occurs, which is the
+  honest outcome to report).
+- Memory: each NChk module peaks ~11 GB; they are chained by imports (BWit -> 2 -> 3 -> 4) so
+  lake builds them one at a time. A fifth must import BWit4NChk.

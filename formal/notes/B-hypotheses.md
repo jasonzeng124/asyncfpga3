@@ -552,7 +552,7 @@ joins, fork trees).
     uncontested on that run: H_EXC_CLEAN is never tight there).
   - `FiniteNetBoundT.FGcdNetOKBT`: every 5/6-way fork's acknowledge tree (`bd_ctree`: chunk C4,
     chunk C2, top C2, `FCelSpec` each): 170/175 (left: muxn 4 acknowledge sides, source 1
-    request side); witness `BWit4Net.gcd_hw_fin_netBT_witness` (see JOURNAL-B for its state).
+    request side); `BWit4Net.gcd_hw_fin_netBT_witness`.
 
 ---
 
