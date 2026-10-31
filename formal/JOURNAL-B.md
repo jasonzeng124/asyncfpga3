@@ -1553,3 +1553,14 @@ packages them. Mutant (channel 0's first request toggle 0 -> 1) is rejected by t
 check. So chW is not the only C witness, and C's models accept B's gate timing. This is
 C-level only: B's network on chB (FGcdNetOKB with bound drivers) is step 3, which needs
 H_TIMES restricted to existing edges (notes/B-finite-net-bound.md).
+
+### progress 07:42
+In: H_TIMES restricted to EXISTING edges (`∀ j, L c j → ...`) in FiniteNetMixed's four
+finite-run specs FLinkSpec, FCelSpec, FSteerSpec, FOrSpec (was `∀ j`). Edge times past a
+cell's last edge mean nothing physically, and the ∀-form cannot be met by a network whose
+tied cells drive each other (a driver's edge function would have to equal its pin list
+past the end). New gphT_congr (a truncated step signal reads its edge function only at
+existing edges) carries the four cell lemmas and flink_spec_env1; producers adapted
+(FiniteNetWit2Lib, AssumeGuaranteeMuxNFin, SelfAuditB9). This WEAKENS a hypothesis, so
+every theorem using these specs is at least as strong as before. All 12 dependent modules
+re-check (private olean build, 140-module closure).

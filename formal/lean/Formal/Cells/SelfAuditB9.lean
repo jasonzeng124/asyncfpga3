@@ -103,9 +103,9 @@ theorem flink_env1_local (D : GD ι) (L : ι → Nat → Prop) (NW : FNetW D L) 
       rw [pa'.pre t (by by_cases h : n ap.drv = 0; exact Or.inl h; exact Or.inr (h2 (by omega)))]
       rfl
     | succ k => rw [pa'.ph k t (by omega) h1 h2, PipeTimed.Vph_succ, Bool.not_not]
-  · rw [← S.H_TIMES j]
+  · rw [← S.H_TIMES j (hlnk j (by omega) (fun i hi => by omega))]
     exact S.H_SND j (hlnk j (by omega) (fun i hi => by omega)) ((hn _ (j + 1)).2 h1)
-  · rw [← S.H_TIMES j]
+  · rw [← S.H_TIMES j (hlnk j h2 (fun i hi => by omega))]
     exact S.H_RCV j (hlnk j h2 (fun i hi => by omega)) ((hn _ j).2 h1)
 
 /-! ## Rings: `H_TOK` is `0 < D` -/

@@ -25,7 +25,7 @@ assumed TRUNCATED contract; the run may stop.
   contracts remain on the mux cells, the muxn, the 9 amerges, the 3 sources and the 3 fork
   trees (and join1/sink have no cell).
 
-**Assumed (`FGcdNetOK`):** B's gate model of every tied cell, with H_TIMES, the edge-set
+**Assumed (`FGcdNetOK`):** B's gate model of every tied cell, with H_TIMES (at existing edges only, since 2026-10-31), the edge-set
 equations H_CNT, and the departure bounds per existing edge as EDGE-TIME inequalities (as
 Bseg); for the ORs H_ORD/H_DOWN (the branches interleave in token order); H_SEL_STABLE and
 token enumerations; network-wide H_RST, H_WIRE, H_LUT_POS, the wire floors; for each link
@@ -95,7 +95,7 @@ structure FLinkSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (rp ap : GPin
   H_PINS : D.pins c = [rp, ap]
   H_STAGE : Stage rp.P ap.P D.rst (D.O c) (D.qp c) (D.lo c) (D.hi c) (D.fl c) (D.fh c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j = τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)) j
+  H_TIMES : ∀ j, L c j → D.τ c j = τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)) j
   H_CNT : ∀ j, L c j ↔ LnL (L rp.drv) (L ap.drv) j
   H_RST_EARLY : ∀ j, D.R ≤ gE D.τ rp j
   H_SND : ∀ j, L c j → L rp.drv (j + 1) → D.τ c j + Es ≤ gE D.τ rp (j + 1)
@@ -110,7 +110,7 @@ structure FCelSpec {n : Nat} (G : (Fin n → Bool) → Bool → Bool → Bool) (
   H_CEL : CelG G (fun t i => (pv i).P t) D.rst (D.O c) (D.qp c) (D.lo c) (D.hi c) (D.fl c)
     (D.fh c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j =
+  H_TIMES : ∀ j, L c j → D.τ c j =
     nt (D.O c) (D.lo c) (D.hi c) (cmax (fun i => gE D.τ (pv i)) j) (Vph j)
   H_CNT : ∀ j, L c j ↔ ∀ i, L (pv i).drv j
   H_RST_EARLY : ∀ j, L c j → D.R ≤ cmax (fun i => gE D.τ (pv i)) j
@@ -125,7 +125,7 @@ structure FSteerSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (rp : GPin �
   H_LUT_WIN : Win (D.lo c) (D.hi c) (fun t => steerF b (rp.P t, s t)) (D.O c)
   H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (fun t => steerF b (rp.P t, s t)) (D.O c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gc κ (gE D.τ rp) j) (Vph j)
+  H_TIMES : ∀ j, L c j → D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gc κ (gE D.τ rp) j) (Vph j)
   H_CNT : ∀ j, L c j ↔ L rp.drv (sN κ j)
   H_DOWN : ∀ j, L rp.drv (j + 1) → L rp.drv j
   H_INC : ∀ j, L rp.drv (j + 1) → gE D.τ rp j < gE D.τ rp (j + 1)
@@ -146,7 +146,8 @@ structure FOrSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (F : Bool → B
   H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (fun t => F ((ap false).P t) ((ap true).P t))
     (D.O c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ k, D.τ c k = nt (D.O c) (D.lo c) (D.hi c) (oe σ (fun b => gE D.τ (ap b)) k) (Vph k)
+  H_TIMES : ∀ k, L c k → D.τ c k =
+    nt (D.O c) (D.lo c) (D.hi c) (oe σ (fun b => gE D.τ (ap b)) k) (Vph k)
   H_CNT : ∀ k, L c k ↔ Lor σ (fun b => L (ap b).drv) k
   H_KAPPA : ∀ b m, κ b m < κ b (m + 1)
   H_KAPPA_B : ∀ b m, σ (κ b m) = b
@@ -155,6 +156,18 @@ structure FOrSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (F : Bool → B
   H_ORD : ∀ k, Lor σ (fun b => L (ap b).drv) (k + 1) →
     oe σ (fun b => gE D.τ (ap b)) k < oe σ (fun b => gE D.τ (ap b)) (k + 1)
   H_FLOOR : ∀ k, L c k → D.hi c ≤ oe σ (fun b => gE D.τ (ap b)) k + D.lo c
+
+/-- A truncated step signal reads its edge function only at existing edges. -/
+theorem gphT_congr {x : Nat → Bool} {c c' : Nat → Nat} {L : Nat → Prop} {T : Nat}
+    (h : ∀ j, L j → c j = c' j) (g : GPhT x c' L T) : GPhT x c L T :=
+  ⟨fun s hs h0 => g.pre s hs (by
+      rcases h0 with h0 | h0
+      · exact Or.inl h0
+      · by_cases hL : L 0
+        · rw [← h 0 hL]; exact Or.inr h0
+        · exact Or.inl hL),
+    fun j s hs hj a b => g.ph j s hs hj (by rw [← h j hj]; exact a)
+      (fun hj1 => by rw [← h (j + 1) hj1]; exact b hj1)⟩
 
 section cls
 variable {D : GD ι} {L : ι → Nat → Prop} (NW : FNetW D L)
@@ -165,34 +178,36 @@ theorem flink_spec_cell {c : ι} {rp ap : GPin ι} {Es Ea : Nat} (S : FLinkSpec 
   intro T hA
   have hr := hA rp (by rw [S.H_PINS]; simp)
   have ha := hA ap (by rw [S.H_PINS]; simp)
-  have hτ : D.τ c = τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)) :=
-    funext S.H_TIMES
   have hL : L c = LnL (L rp.drv) (L ap.drv) := funext fun j => propext (S.H_CNT j)
-  rw [hτ, hL]
+  refine gphT_congr (c' := τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)))
+    (fun j hj => S.H_TIMES j hj) ?_
+  rw [hL]
   refine tlink (E := min Es Ea) S.H_STAGE NW.H_RST S.H_T.H_RST_LONG S.H_T.H_LAT S.H_PWR
     S.H_RST_EARLY (fun j hj hr' => ?_) (fun j hj ha' => ?_) hr ha
-  · rw [← hτ]; have := S.H_SND j (by rw [hL]; exact hj) hr'; omega
-  · rw [← hτ]; have := S.H_RCV j (by rw [hL]; exact hj) ha'; omega
+  · have hj' : L c j := by rw [hL]; exact hj
+    rw [← S.H_TIMES j hj']; have := S.H_SND j hj' hr'; omega
+  · have hj' : L c j := by rw [hL]; exact hj
+    rw [← S.H_TIMES j hj']; have := S.H_RCV j hj' ha'; omega
 
 theorem fcel_spec_cell {n : Nat} {G : (Fin n → Bool) → Bool → Bool → Bool} {c : ι}
     {pv : Fin n → GPin ι} {E : Nat} (S : FCelSpec G D L c pv E) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c) (cmax (fun i => gE D.τ (pv i))) :=
-    funext S.H_TIMES
-  rw [hτ]
+  refine gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c) (cmax (fun i => gE D.τ (pv i))))
+    (fun j hj => S.H_TIMES j hj) ?_
   exact tcelG S.H_LAW S.H_CEL NW.H_RST S.H_RST_LONG S.H_LAT S.H_PWR
     (ρ := fun i => gE D.τ (pv i)) (Lp := fun i => L (pv i).drv)
     (cmax_arr _) (cmax_last _) S.H_CNT S.H_RST_EARLY
-    (fun i j hj hl => by rw [← S.H_TIMES j]; exact S.H_SND i j hj hl)
+    (fun i j hj hl => by rw [← S.H_TIMES j hj]; exact S.H_SND i j hj hl)
     (fun i => hA (pv i) (by rw [S.H_PINS]; exact List.mem_map.2 ⟨i, List.mem_finRange i, rfl⟩))
 
 omit NW in
 theorem fsteer_spec_cell {c : ι} {rp : GPin ι} {b : Bool} {s σ : Nat → Bool} {κ : Nat → Nat}
     (S : FSteerSpec D L c rp b s σ κ) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c) (gc κ (gE D.τ rp)) := funext S.H_TIMES
   have hL : L c = fun j => L rp.drv (sN κ j) := funext fun j => propext (S.H_CNT j)
-  rw [hτ, hL]
+  refine gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c) (gc κ (gE D.τ rp)))
+    (fun j hj => S.H_TIMES j hj) ?_
+  rw [hL]
   exact tsteer b S.H_LUT_WIN S.H_NO_REVERT S.H_PWR S.H_DOWN S.H_INC S.H_SEL_STABLE S.H_KAPPA
     S.H_KAPPA_B S.H_KAPPA_ALL (fun j hj => S.H_FLOOR j (by rw [hL]; exact hj))
     (hA rp (by rw [S.H_PINS]; simp))
@@ -201,15 +216,15 @@ omit NW in
 theorem for_spec_cell {c : ι} {F : Bool → Bool → Bool} {ap : Bool → GPin ι} {σ : Nat → Bool}
     {κ : Bool → Nat → Nat} (S : FOrSpec D L c F ap σ κ) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c) (oe σ (fun b => gE D.τ (ap b))) :=
-    funext S.H_TIMES
   have hL : L c = Lor σ (fun b => L (ap b).drv) := funext fun j => propext (S.H_CNT j)
   have ex : (fun t => F ((ap false).P t) ((ap true).P t)) =
       fun t => (fun b => (ap b).P) true t || (fun b => (ap b).P) false t :=
     funext fun t => S.H_GATE _ _
   have hW := S.H_LUT_WIN; have hN := S.H_NO_REVERT
   rw [ex] at hW hN
-  rw [hτ, hL]
+  refine gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c) (oe σ (fun b => gE D.τ (ap b))))
+    (fun j hj => S.H_TIMES j hj) ?_
+  rw [hL]
   refine tnode hW hN (tor_ex (a := fun b => (ap b).P) S.H_KAPPA S.H_KAPPA_B S.H_KAPPA_ALL
     S.H_DOWN S.H_ORD (fun b => ?_)) (fun k hk => S.H_FLOOR k (by rw [hL]; exact hk)) S.H_PWR
   cases b
@@ -272,9 +287,9 @@ theorem flink_spec_env1 (D : GD ι) (L : ι → Nat → Prop) (NW : FNetW D L)
       rw [pa'.pre t (by by_cases h : n ap.drv = 0; exact Or.inl h; exact Or.inr (h2 (by omega)))]
       rfl
     | succ k => rw [pa'.ph k t (by omega) h1 h2, PipeTimed.Vph_succ, Bool.not_not]
-  · rw [← S.H_TIMES j]
+  · rw [← S.H_TIMES j (hlnk j (by omega) (fun i hi => by omega))]
     exact S.H_SND j (hlnk j (by omega) (fun i hi => by omega)) ((hn _ (j + 1)).2 h1)
-  · rw [← S.H_TIMES j]
+  · rw [← S.H_TIMES j (hlnk j h2 (fun i hi => by omega))]
     exact S.H_RCV j (hlnk j h2 (fun i hi => by omega)) ((hn _ j).2 h1)
 
 /-! ## 4. gcd_hw as one gate-level network, finite runs, steer ORs gate-modelled -/

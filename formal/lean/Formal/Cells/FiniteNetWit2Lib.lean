@@ -265,7 +265,7 @@ theorem celB_spec {ι : Type} {k : Nat} {G : (Fin k → Bool) → Bool → Bool 
     intro j hj
     exact lmax_congr j _ (fun i _ => by
       rw [hgE]; exact eps_list (hsp i) j (by have := hlp i; omega))
-  refine { H_PINS := hpins, H_LAW := hL, H_CEL := ?_, H_PWR := ?_, H_TIMES := hτ,
+  refine { H_PINS := hpins, H_LAW := hL, H_CEL := ?_, H_PWR := ?_, H_TIMES := fun j _ => hτ j,
            H_CNT := fun j => ?_, H_RST_EARLY := fun j hj => ?_, H_SND := fun i j hj hl => ?_,
            H_RST_LONG := ?_, H_LAT := ?_ }
   · have sw := step_win hstep
@@ -362,7 +362,7 @@ theorem stB_spec {ι : Type} {b : Bool} {r : List Nat} {s : Nat → Bool} {tab :
     simp only [beq_iff_eq] at this
     rw [hO, hP, LutFbBridge2.steerF_gate]; exact this
   have sw := step_win hstep
-  refine { H_PINS := hpins, H_LUT_WIN := ?_, H_NO_REVERT := ?_, H_PWR := ?_, H_TIMES := hτ,
+  refine { H_PINS := hpins, H_LUT_WIN := ?_, H_NO_REVERT := ?_, H_PWR := ?_, H_TIMES := fun j _ => hτ j,
            H_CNT := fun j => ?_, H_DOWN := fun j h => ?_, H_INC := fun j h => ?_,
            H_SEL_STABLE := fun n t h1 h2 h3 => ?_, H_KAPPA := κT_inc htab b,
            H_KAPPA_B := κT_b htab b, H_KAPPA_ALL := κT_all htab b, H_FLOOR := fun j _ => ?_ }
@@ -494,7 +494,7 @@ theorem orB_spec {ι : Type} {tab : List Bool} {a0 a1 Ln : List Nat}
     show gE D.τ (ap (σT tab (k / 2))) (orI tab k) = _
     rw [hgE, eps_list (hsB _) _ hl]; rfl
   refine { H_PINS := hpins, H_GATE := hF, H_LUT_WIN := ?_, H_NO_REVERT := ?_, H_PWR := ?_,
-           H_TIMES := hτ, H_CNT := fun k => ?_, H_KAPPA := κT_inc htab,
+           H_TIMES := fun j _ => hτ j, H_CNT := fun k => ?_, H_KAPPA := κT_inc htab,
            H_KAPPA_B := κT_b htab, H_KAPPA_ALL := κT_all htab, H_DOWN := fun k h => ?_,
            H_ORD := fun k h => ?_, H_FLOOR := fun k _ => ?_ }
   · rw [hlo, hhi]; exact sw.1
@@ -537,7 +537,7 @@ theorem linkB_spec {x y : CD} (h : linkB x y = true) {ι : Type} {D : GD ι} {L 
     rw [hR]; exact congrArg (ash 2) (funext fun j => gE_list haP hal hah haτ j)
   have hτ1 : ∀ j, D.τ c j = FiniteNetWit.τ1 x y j := fun j => by
     rw [hτ, hgr, hga, hO, hlo, hhi]; rfl
-  refine ⟨{ H_PINS := hpins, H_STAGE := ?_, H_PWR := ?_, H_TIMES := hτ, H_CNT := fun j => ?_,
+  refine ⟨{ H_PINS := hpins, H_STAGE := ?_, H_PWR := ?_, H_TIMES := fun j _ => hτ j, H_CNT := fun j => ?_,
             H_RST_EARLY := fun j => ?_, H_SND := fun j h1 h2 => ?_, H_RCV := fun j h1 h2 => ?_,
             H_T := ?_ }, ?_⟩
   · rw [hrP, haP, hrst, hO, hq, hlo, hhi, hfl, hfh]; exact St

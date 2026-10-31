@@ -365,7 +365,7 @@ theorem FCelNoSnd.spec {n : Nat} {G : (Fin n → Bool) → Bool → Bool → Boo
     {L : ι → Nat → Prop} {c : ι} {pv : Fin n → GPin ι} (N : FCelNoSnd G D L c pv) {E : Nat}
     (H_SND : ∀ i j, L c j → L (pv i).drv (j + 1) → D.τ c j + E ≤ gE D.τ (pv i) (j + 1))
     (H_LAT : D.hi c + D.fh c ≤ D.lo c + E) : FCelSpec G D L c pv E :=
-  ⟨N.H_PINS, N.H_LAW, N.H_CEL, N.H_PWR, N.H_TIMES, N.H_CNT, N.H_RST_EARLY, H_SND,
+  ⟨N.H_PINS, N.H_LAW, N.H_CEL, N.H_PWR, fun j _ => N.H_TIMES j, N.H_CNT, N.H_RST_EARLY, H_SND,
     N.H_RST_LONG, H_LAT⟩
 
 theorem fsnd_up {n : Nat} {G : (Fin n → Bool) → Bool → Bool → Bool} {D : GD ι}
