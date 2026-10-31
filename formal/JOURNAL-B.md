@@ -1685,3 +1685,8 @@ forkH5 (4), forkH6 (2). So the arbiter is the one class that matters for full bi
 Bwit2 negative control (re-run alone): the first uj0 node edge of the first mux in
 BWit2NData moved by +1 tick makes BWit2NChk's bop_c1 fail by kernel ("application type
 mismatch" on the decide proof). The checks bite on the internal mux nodes too.
+
+### progress 10:40
+formal/check.sh --committed again on the branch head after all of today's B commits (and the
+other shards' pushes so far): "Build completed successfully (3663 jobs)", axiom audit
+"[check] OK".
