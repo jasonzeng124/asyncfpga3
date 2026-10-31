@@ -133,3 +133,8 @@ Pointwise C (`POINT=1 gen_cwmon.py`, the c_k fields of `Events9ArbB1.ArbEdgeSP`,
 `out2/cwpt4/`): seed 4, 16 vectors, 18 grant readers: **0 violations over 63995 request falls after reset**
 (merge10 g1: A0 read point 244 ps after A0's rise on the lap examined). So the pointwise form, unlike the band
 window, has margin on this run. R0 readers not monitored.
+
+Other seeds (`run_edge.sh <seed>`, outputs `out2/edge_<seed>/`; routes rebuilt, md5s = events5/builds.txt; slow
+xarbnet bands of the same seed): nore 0 violations (d 19962 / 3 18525 / 5 20243 flip-aways after reset), pointwise C
+0 violations (d 66837 / 3 63469 / 5 67193 request falls), 16/16 vectors errs=0 on each. The band C window on seed 5:
+0 violations over 67193 falls, so the 5 ps tightness found on seed 4 (merge10 g1) is route-specific.

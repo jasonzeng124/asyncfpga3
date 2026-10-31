@@ -1086,3 +1086,7 @@ reader's q-read time whenever its request read has just fallen) instead of the b
 POINT=1 monitor): 0 violations over ~64k request falls, where the band window missed by 5 ps at merge10 g1. So the
 tight ArbEdge field has a weaker, comfortably satisfied replacement; the verdict that uses it is _ordSP.
 Whole-project ./check.sh OK after these (73391 library declarations, standard axioms).
+### progress 16:24
+glsq run_edge.sh on seeds d/3/5: nore and pointwise-C monitors 0 violations on every seed (16/16 vectors, ~19-20k
+flip-aways and ~63-67k request falls per seed); band C window on seed 5 also 0 violations, so seed 4's 5 ps miss is
+route-specific. Evidence only (research GLS at 520a43f, SDF points, grant readers only).
