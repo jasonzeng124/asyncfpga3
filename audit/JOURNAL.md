@@ -797,3 +797,8 @@ r23 M: BQ#3 seed 9 log-normal 1.75x reproduced exactly (16/16, errs 0, 50/40/120
 glitches. On exactly the six 2x-failing vectors every completion emits two LAP/OK pulses 30 ps apart (lap ratio vs
 1.5x: 1.97-2.00; others 0.98-1.00), and the real period is unchanged. REFUTED as a pass and as "threshold 1.75-2x".
 No other PASS run I reproduced shows double laps (scan of all logs).
+
+### progress 23:37
+Research 7ceec350 tabulates failing scales: BQ#3 s9 1.75-2x (relies on the 1.75x "PASS" refuted in r23 M, so really
+1.5-1.75x) and BQ#2 s6 1.5-1.75x. Their ">= 1.5x margin on the worst known route/draw" holds on my reproductions
+(both 1.5x runs clean). They start a 1.5x draw-2 sweep next.
