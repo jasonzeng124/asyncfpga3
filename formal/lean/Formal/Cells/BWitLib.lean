@@ -111,7 +111,8 @@ theorem celB_spec' {ι : Type} {k : Nat} {G : (Fin k → Bool) → Bool → Bool
     (hP : ∀ i, (pv i).P = bv (pl i))
     (hgE : ∀ i j, j < (pl i).length → gE D.τ (pv i) j = ε (bv (pl i)) 1 1 (fun j => (pl i).getD j 1) j)
     (hLd : ∀ i, L (pv i).drv = fun j => j < (pl i).length) (hLc : L c = fun j => j < Ln.length)
-    (hτ : ∀ j, j < Ln.length → D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (cmax (fun i => gE D.τ (pv i)) j) (Vph j)) :
+    (hτL : ∀ j, j < Ln.length → D.τ c j = Ln.getD j 1)
+    (htm : (List.range Ln.length).all (fun j => Ln.getD j 1 == celT pl Ln j) = true) :
     FCelSpec G D L c pv 1 := by
   simp only [celB, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, decide_eq_true_eq,
     beq_iff_eq, Bool.not_eq_true'] at hchk
@@ -124,7 +125,7 @@ theorem celB_spec' {ι : Type} {k : Nat} {G : (Fin k → Bool) → Bool → Bool
     have e : (fun i => bv (pl i) t) = (fun i => bv (pl i) NB) :=
       funext fun i => bv_tail (hbp i) t ht
     rw [e, bv_tail hbn (t + 2) (by omega), bv_tail hbn t ht, bv_tail hbn (NB + 2) (by omega)]
-    have hNB : NB = 480 := rfl
+    have hNB : NB = 640 := rfl
     rw [show decide (t < 2) = false from decide_eq_false (by omega),
       show decide (NB < 2) = false from decide_eq_false (by omega)])
   have hstep : ∀ t, D.O c (t + 1) = G (fun i => (pv i).P t) (D.qp c t) (D.rst t) := by
@@ -139,6 +140,12 @@ theorem celB_spec' {ι : Type} {k : Nat} {G : (Fin k → Bool) → Bool → Bool
     intro j hj
     exact lmax_congr j _ (fun i _ => by
       rw [hgE i j (by have := hlp i; omega)]; exact eps_list (hsp i) j (by have := hlp i; omega))
+  have hτ : ∀ j, j < Ln.length →
+      D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (cmax (fun i => gE D.τ (pv i)) j) (Vph j) := by
+    intro j hj
+    have e := List.all_eq_true.1 htm j (List.mem_range.2 hj)
+    simp only [beq_iff_eq] at e
+    rw [hτL j hj, e, hcm j hj, hO, hlo, hhi, nt11]; rfl
   refine { H_PINS := hpins, H_LAW := hL, H_CEL := ?_, H_PWR := ?_, H_TIMES := fun j hj => hτ j (by rw [hLc] at hj; exact hj),
            H_CNT := fun j => ?_, H_RST_EARLY := fun j hj => ?_, H_SND := fun i j hj hl => ?_,
            H_RST_LONG := ?_, H_LAT := ?_ }
@@ -175,12 +182,15 @@ theorem stB_spec' {ι : Type} {b : Bool} {r : List Nat} {s : Nat → Bool} {tab 
     (hpins : D.pins c = [rp]) (hP : rp.P = bv r)
     (hgE : ∀ j, j < r.length → gE D.τ rp j = ε (bv r) 1 1 (fun j => r.getD j 1) j)
     (hLd : L rp.drv = fun j => j < r.length) (hLc : L c = fun j => j < Ln.length)
-    (hτ : ∀ j, j < Ln.length → D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gc (κT tab b) (gE D.τ rp) j) (Vph j)) :
+    (hτL : ∀ j, j < Ln.length → D.τ c j = Ln.getD j 1)
+    (htm : (List.range Ln.length).all (fun j => Ln.getD j 1 ==
+      (if cL Ln (r.getD (sN (κT tab b) j) 1 + 1 + 1) = Vph j then r.getD (sN (κT tab b) j) 1 + 1 + 1
+       else r.getD (sN (κT tab b) j) 1 + 1 + 2)) = true) :
     FSteerSpec D L c rp b s (σT tab) (κT tab b) := by
   simp only [stB, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
     Bool.not_eq_true', decide_eq_false_iff_not] at hchk
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hbr, hbn⟩, hsr⟩, htab⟩, htl⟩, hpw⟩, hlut⟩, hsel⟩, hcnt⟩, hcnt2⟩ := hchk
-  have hNB : NB = 480 := rfl
+  have hNB : NB = 640 := rfl
   have lutA : ∀ t, stQ b r s Ln t = true := all_t NB (List.all_eq_true.2 hlut) (fun t ht => by
     unfold stQ
     rw [bv_tail hbn (t + 2) (by omega), bv_tail hbr t ht, hs t ht, bv_tail hbn (NB + 2) (by omega)])
@@ -191,6 +201,13 @@ theorem stB_spec' {ι : Type} {b : Bool} {r : List Nat} {s : Nat → Bool} {tab 
     simp only [beq_iff_eq] at this
     rw [hO, hP, LutFbBridge2.steerF_gate]; exact this
   have sw := step_win hstep
+  have hτ : ∀ j, j < Ln.length →
+      D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gc (κT tab b) (gE D.τ rp) j) (Vph j) := by
+    intro j hj
+    have hi := hcnt j (List.mem_range.2 hj)
+    have e := List.all_eq_true.1 htm j (List.mem_range.2 hj)
+    simp only [beq_iff_eq] at e
+    rw [hτL j hj, e, AssumeGuaranteeEnds.gc_sN, hgE _ hi, eps_list hsr _ hi, hO, hlo, hhi, nt11]
   refine { H_PINS := hpins, H_LUT_WIN := ?_, H_NO_REVERT := ?_, H_PWR := ?_, H_TIMES := fun j hj => hτ j (by rw [hLc] at hj; exact hj),
            H_CNT := fun j => ?_, H_DOWN := fun j h => ?_, H_INC := fun j h => ?_,
            H_SEL_STABLE := fun n t h1 h2 h3 => ?_, H_KAPPA := κT_inc htab b,
@@ -246,14 +263,16 @@ theorem orB_spec' {ι : Type} {tab : List Bool} {a0 a1 Ln : List Nat}
       gE D.τ (ap b) j = ε (bv (lstB a0 a1 b)) 1 1 (fun j => (lstB a0 a1 b).getD j 1) j)
     (hLd : ∀ b, L (ap b).drv = fun j => j < (lstB a0 a1 b).length)
     (hLc : L c = fun j => j < Ln.length)
-    (hτ : ∀ k, k < Ln.length → D.τ c k = nt (D.O c) (D.lo c) (D.hi c) (oe (σT tab) (fun b => gE D.τ (ap b)) k)
-      (Vph k)) :
+    (hτL : ∀ j, j < Ln.length → D.τ c j = Ln.getD j 1)
+    (htm : (List.range Ln.length).all (fun k => Ln.getD k 1 ==
+      (if cL Ln (orE tab a0 a1 k + 1) = Vph k then orE tab a0 a1 k + 1 else orE tab a0 a1 k + 2))
+      = true) :
     FOrSpec D L c F ap (σT tab) (κT tab) := by
   simp only [orB, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
     Bool.not_eq_true', beq_iff_eq] at hchk
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb0, hb1⟩, hbn⟩, hs0⟩, hs1⟩, htab⟩, hpw⟩, hlut⟩, hl2⟩, hc0⟩, hc1⟩, hcnt⟩,
     hord⟩ := hchk
-  have hNB : NB = 480 := rfl
+  have hNB : NB = 640 := rfl
   have hbB : ∀ b, bnd (lstB a0 a1 b) = true := fun b => by cases b; exact hb0; exact hb1
   have hsB : ∀ b, sortedB (lstB a0 a1 b) = true := fun b => by cases b; exact hs0; exact hs1
   have hcB : ∀ b, (lstB a0 a1 b).length ≤ 2 * cnt (σT tab) b tab.length := fun b => by
@@ -291,6 +310,12 @@ theorem orB_spec' {ι : Type} {tab : List Bool} {a0 a1 Ln : List Nat}
     have hl := (lor k).1 ((hcnt' k).2 hk)
     show gE D.τ (ap (σT tab (k / 2))) (orI tab k) = _
     rw [hgE _ _ hl, eps_list (hsB _) _ hl]; rfl
+  have hτ : ∀ k, k < Ln.length → D.τ c k =
+      nt (D.O c) (D.lo c) (D.hi c) (oe (σT tab) (fun b => gE D.τ (ap b)) k) (Vph k) := by
+    intro k hk
+    have e := List.all_eq_true.1 htm k (List.mem_range.2 hk)
+    simp only [beq_iff_eq] at e
+    rw [hτL k hk, e, hoe k hk, hO, hlo, hhi, nt11]
   refine { H_PINS := hpins, H_GATE := hF, H_LUT_WIN := ?_, H_NO_REVERT := ?_, H_PWR := ?_,
            H_TIMES := fun j hj => hτ j (by rw [hLc] at hj; exact hj), H_CNT := fun k => ?_, H_KAPPA := κT_inc htab,
            H_KAPPA_B := κT_b htab, H_KAPPA_ALL := κT_all htab, H_DOWN := fun k h => ?_,
@@ -324,18 +349,26 @@ theorem linkB_spec' {x y : CD} (h : linkB x y = true) {ι : Type} {D : GD ι} {L
     (hga : ∀ j, j < y.ak.length → gE D.τ ap j = ε (bv y.ak) 1 1 (fun j => y.ak.getD j 1) j)
     (hrL : L rp.drv = fun j => j < x.rq.length) (haL : L ap.drv = fun j => j < y.ak.length)
     (hLc : L c = fun j => j < min x.rq.length (y.ak.length + 1))
-    (hτ : ∀ j, j < min x.rq.length (y.ak.length + 1) → D.τ c j = τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)) j) :
+    (hτL : ∀ j, j < min x.rq.length (y.ak.length + 1) → D.τ c j = y.rq.getD j 1)
+    (htm : (List.range (min x.rq.length (y.ak.length + 1))).all
+      (fun j => y.rq.getD j 1 == FiniteNetWit.τ1 x y j) = true) :
     FLinkSpec D L c rp ap 3 3 ∧ LinkOut D c x.ch y.ch 3 3 := by
   obtain ⟨hak, sx, sy, c0, r0, St, hsnd, hrcv, d1, d2⟩ := FiniteNetWit.linkB_facts h
   have hτ1 : ∀ j, j < min x.rq.length (y.ak.length + 1) → D.τ c j = FiniteNetWit.τ1 x y j := by
     intro j hj
-    rw [hτ j hj]
+    have e := List.all_eq_true.1 htm j (List.mem_range.2 hj)
+    simp only [beq_iff_eq] at e
+    rw [hτL j hj, e]
+  have hτ : ∀ j, j < min x.rq.length (y.ak.length + 1) →
+      D.τ c j = τs (D.O c) (D.lo c) (D.hi c) (gE D.τ rp) (ash D.R (gE D.τ ap)) j := by
+    intro j hj
+    rw [hτ1 j hj]
     unfold FiniteNetWit.τ1 τs cph FiniteNetWit.ρc FiniteNetWit.αc
     rw [hO, hlo, hhi, hgr j (by omega)]
     congr 2
     cases j with
-    | zero => show D.R = 2; exact hR
-    | succ k => show gE D.τ ap k = _; rw [hga k (by omega)]; rfl
+    | zero => show 2 = D.R; exact hR.symm
+    | succ k => show _ = gE D.τ ap k; rw [hga k (by omega)]; rfl
   refine ⟨{ H_PINS := hpins, H_STAGE := ?_, H_PWR := ?_, H_TIMES := fun j hj => hτ j (by rw [hLc] at hj; exact hj), H_CNT := fun j => ?_,
             H_RST_EARLY := fun j => ?_, H_SND := fun j h1 h2 => ?_, H_RCV := fun j h1 h2 => ?_,
             H_T := ?_ }, ?_⟩
