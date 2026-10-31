@@ -160,3 +160,13 @@ flipped away in its view), i.e. the virtual grant falls EARLIER than the real on
 the virtual grant holds, which needs "the grant was already high" (a new clause). So the proposed core needs
 either extra trace conditions for these cases or a different virtual node (e.g. an AND node with separate
 rise/fall rules in the count semantics), and is not the drop-in replacement the section above suggests.
+
+**What ArbEdge's settle bound `stall` says (reading of Events9Arb.Settled/Ok, 2026-10-31, no Lean).** A ustate time u
+is Settled when ustate reads A0 low at u and q keeps its value for as long as that read stays low; Ok = A0 read
+high or Settled. Inside an A0-low phase, times after the phase's LAST q change are settled, times before it are
+not. So `stall` (every time within H of an ok time, H <= 10^12 - K - hi DA) says: in every A0-low phase, the last
+q change comes within H (about 1 s) of the phase's start or of the previous ok time. An idle arbiter (no q change)
+satisfies it; a request that arrives after more than ~1 s of A0-low idling and flips q breaks it. That limit is an
+artefact of the virtual ctl band `[loCtl, 10^12]`, not of the cell; widening the band's hi (or making it
+unbounded in the count semantics) would remove it. Not done.
+Also proved today: `arb_low_of_reqlow` (the quiet start from quiet requests).
