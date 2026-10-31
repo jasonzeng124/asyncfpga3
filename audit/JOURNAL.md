@@ -523,3 +523,9 @@ seed-9 route with a per-vector stall check.
 ### progress 03:03
 BQ#2 seed 9 2x draw 1: 16/16 errs 0, 49/39/58, no stalls. CONFIRMED. All four BQ#2 2x draw-1 rows (6 FAIL; 7, 8, 9
 PASS) are now reproduced from my own routes, so BOARD-QUEUE #2's "2x 3/4" is CONFIRMED.
+
+### progress 03:04
+r23 K: research's 2x region-map spread table reproduced exactly with my code (over all 50 grid regions). Over
+BQ#2 seed 6's 44 occupied regions, draw 3 has no region < 0.4 (its 0.12 region is empty). Failing draws 1-2
+have one, passing 3-4 don't. "Draw 3 splits by route" contradicts their own table (PASS on both): minor
+OVERSTATED. At 1x the occupied spread is already 1.7-2.2x.
