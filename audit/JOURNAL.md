@@ -519,3 +519,7 @@ seed 6 2x draws 1 and 2 FAIL; seed 6 1x PASS.
 ### progress 01:42
 Research d57bd982: BQ#2 seed 9 2x draw 1 "PASS 16/16 (49/39/58)"; BOARD-QUEUE now says 2x 3/4. Running it on my
 seed-9 route with a per-vector stall check.
+
+### progress 03:03
+BQ#2 seed 9 2x draw 1: 16/16 errs 0, 49/39/58, no stalls. CONFIRMED. All four BQ#2 2x draw-1 rows (6 FAIL; 7, 8, 9
+PASS) are now reproduced from my own routes, so BOARD-QUEUE #2's "2x 3/4" is CONFIRMED.
