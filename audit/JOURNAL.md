@@ -695,3 +695,6 @@ Bwit3 (own INIT decoding), b1_and (576 margins; a proof-side virtual node, not a
 ### progress 14:25
 BQ#1 seed 9 route: sdf 81d27cf3 and xray 7a495c31 REPRODUCED (= TSV), so BQ#1's non-default-seed routes reproduce too.
 SLOW_MAX sim 7/16. Axiom audit 58251494: 403/865, bad 0.
+
+### progress 14:51
+BQ#1 seed 9 SLOW_MAX: 16/16 errs 0, 16/13/19 = TSV, no stalls. CONFIRMED. BQ#1 rows reproduced: d max, d min, 9 max.
