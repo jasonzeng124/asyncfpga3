@@ -45,3 +45,10 @@ procedure: what to run, in what order, and what each step checks.
 * `bsim.py --neg` / `bsim2.py --neg` (steer branch drivers swapped): 63 pins flagged.
 * `BWitNData`: channel 20's request wire delay 2 -> 1: `bw_c1` fails by kernel.
 * `BWit2NData`: first entry of one `uj0` node list +1: `BWit2NChk.bop_c1` fails by kernel.
+
+## Memory
+
+`BWitNChk` and `BWit2NChk` each take several GB in the kernel (`decide +kernel` over every
+operator at NB = 768). On the 15 GB sandbox, `lake build` running both at once was OOM-killed
+(exit 137) twice; build them one after the other (`slot.sh lake build Formal.Cells.BWitNChk`,
+then `...BWit2NChk`), then the rest.
