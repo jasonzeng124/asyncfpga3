@@ -90,10 +90,11 @@ theorem j162 (v w : Nat) (hw : w < 32) :
     jgAt 162 [v, w] = unitVal Ushli0.cells Ushli0.outs [v, w] := by
   rw [ushli0_fn v w hw]; rfl
 
+set_option maxRecDepth 100000 in
 /-- The 20 joins of gcd_hw, exactly. -/
 theorem joins_listed : ((List.range ops.length).filter fun p =>
     match ops.getD p (K.sink 0) with | .join .. => true | _ => false) =
     [2, 13, 26, 27, 41, 43, 45, 46, 47, 66, 68, 87, 89, 104, 117, 118, 135, 142, 144, 162] := by
-  decide
+  decide +kernel
 
 end Formal.Net.Compute.GcdJoin

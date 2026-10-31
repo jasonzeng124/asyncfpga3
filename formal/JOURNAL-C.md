@@ -767,3 +767,19 @@ timing, H_MAP for xorshift, or anything about the board.
 LUT in uori0 to AND (INIT 14 -> 8) makes `BitLocal` false, and changing bit 5's XOR LUT in uaddi0 to
 XNOR (INIT 6 -> 9) makes the bit-5 slice check false. So these certificate checks can fail. The
 controls cover two units, not every certificate kind.
+
+### progress 10:36 -- H_COMPUTE_FN: all 20 gcd_hw units + GcdJoin claimed
+Committed after my own `./check.sh`:
+- Gen/Compute/GcdD/Ushli0 and GcdShli0K0-3 compiled under check.sh (chk7, ~13 min per K file).
+- GcdShli0 and GcdJoin passed check.sh: 5879 declarations, standard axioms only, OK. That audit
+  covers K0-3 transitively.
+- `tools/compute/gen.sh --check`: 20 of 20 generated units up to date.
+
+New claims: ushli0 computes `e0 << k` for every e0 and every k < 32. `GcdJoin.j2..j162`: each of
+the capstone network's 20 join functions `jg e js` equals the function of the unit with that
+operation, on bdc's port wiring (32-bit tokens for uselect0, shift < 32 for ushli0).
+`joins_listed`: the capstone has exactly those 20 joins.
+
+The FOR SHARD A text at 09:22 is now usable. Still NOT shown: H_MAP (which physical unit
+implements which join), the values on the constant ports, timing (H_COMPUTE_DELAY), and anything
+about the board.
