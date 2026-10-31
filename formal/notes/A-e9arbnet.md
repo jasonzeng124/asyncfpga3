@@ -78,3 +78,14 @@ opposite ends of their prjxray [MIN, MAX], independently per arc. Whether that s
 H_SPREAD_CORRELATED / κ question of gcd_hw_hypotheses.md) decides it. Under a corner model with a shared
 position inside [MIN, MAX] and a local scatter κ, B1's margin of >= 51 ps over paths of ~1-2 ns suggests a
 κ threshold of a few percent; that threshold is NOT computed or proved here.
+
+**B1 under the corner model (2026-10-31).** Lean (`Events9ArbB1`, check.sh OK): `b1_of_ord` gives B1 from the
+behaviour's own read order `fQ (wq t) ≤ wr (t-2)` (no band row); `ord_of_transport` gives that order for fixed
+path delays with `Dr + 2 ≤ DQ + Dq`; `corner_ord` gives that from delays within `1 ± kn/kd` of shared nominals
+when `(kd+kn) Pr + 2kd ≤ (kd-kn)(PQ+Pq)`. xarbnet prints that threshold κ = (PQ+Pq-Pr-2)/(PQ+Pq+Pr), taken
+at both band ends (`b1Kappa`, untrusted arithmetic; nominals = every arc at the same band end). Smallest
+over the failing readers (`results/b1_kappa_1031.txt`, ×1e-6): slow d/3/4/5 = 0.0597/0.0671/0.0548/0.0613,
+fast 0.0537/0.0547/0.0467/0.0536. So if the in-corner spread is shared and the local path scatter is ≤ ~4.6%,
+B1 holds on every gcd_hw arbiter reader that fails it in band form. This is close to B's server-free arbiter
+threshold 0.0443 (OnGcdArbKappa). NOT done: plugging the corner-model order into arbCond_of_edge (it takes the
+band row ArbRowsOK, not HOrd), and the readers that pass in band form were not re-checked under κ.

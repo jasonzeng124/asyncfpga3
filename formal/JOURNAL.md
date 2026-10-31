@@ -867,3 +867,9 @@ its prjxray band, B1 holds on all 104 failing gcd_hw reader rows (slow/fast, 4 s
 gcd_hw's B1 failures are entirely the within-corner MIN/MAX spread taken as independent per arc. This turns
 the open question into the corner-model one (H_SPREAD_CORRELATED / κ). Next candidate: a Lean corner-model
 version of ArbRowsOK (shared position plus κ) and its κ threshold per arbiter.
+### progress 08:56
+Events9ArbB1 extended (check.sh OK, 3280 decls): b1_of_ord (B1 from the behaviour's read order, no band row),
+ord_of_transport, corner_ord (κ-guarded nominal row gives the order). Untrusted xarbnet print b1Kappa: on
+gcd_hw slow/fast the failing B1 readers hold under a shared-position corner model for κ up to 0.047-0.067
+(min per row in tools-A/xaudit/arbnet/results/b1_kappa_1031.txt; fast seed 4 lowest, 0.0467). Not yet wired
+into arbCond_of_edge (it still takes ArbRowsOK). κ itself is unmeasured (T1 test).

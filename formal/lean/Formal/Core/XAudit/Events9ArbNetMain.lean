@@ -221,6 +221,20 @@ def t0Min {N : Nat} (d : Design) (a : ArbD N) (T : Nat) : Nat :=
     (max (max ((B.r0 0).2 + (B.r0 2).2 + 2) ((B.r0 1).2 + (B.r0 2).2 + 2))
       (max (T + phi d (PrQ a) + (B.g2 2).2 + 2) (T + phi d (PrQ a) + (B.r0 2).2)))
 
+/-- DIAGNOSTIC ONLY: the largest κ (×10^6, floor) such that `(1+κ) Pr + 2 ≤ (1-κ) (PQ + Pq)` at both
+band ends, where `P` are the path delays with every arc at the same band end: the B1 inequality for
+any delays within a factor `1 ± κ` of a shared-position nominal (B1 is linear in the position).
+`κ = (PQ + Pq - Pr - 2) / (PQ + Pq + Pr)`; negative if B1 fails already at κ = 0. -/
+def b1Kappa {N : Nat} (d : Design) (a : ArbD N) : List (String × Int) :=
+  let B := bandsOf d a
+  let z (n : Nat) : Int := n
+  let k1 (q r : Int) : Int := ((q - r - 2) * 1000000) / (q + r)
+  let m (P : Path) (dr dq : Nat × Nat) : Int :=
+    min (k1 (z (plo d P) + z dq.1) (z dr.1)) (k1 (z (phi d P) + z dq.2) (z dr.2))
+  [("g1", m (P1Q a) (B.g1 0) (B.g1 2)), ("g2", m (P2Q a) (B.g2 1) (B.g2 2)),
+   ("s1", m (P1Q a) ((B.r0 0).1 - 2, (B.r0 0).2 - 2) ((B.r0 2).1 - 2, (B.r0 2).2 - 2)),
+   ("s2", m (P2Q a) ((B.r0 1).1 - 2, (B.r0 1).2 - 2) ((B.r0 2).1 - 2, (B.r0 2).2 - 2))]
+
 /-- DIAGNOSTIC ONLY (no theorem): the B1 margins when every arc sits at the SAME end of its band
 (all at lo, all at hi): `lo DrQ + lo Dq - lo Dr - 2` and `hi DrQ + hi Dq - hi Dr - 2`. B1 is linear in a
 shared position, so both >= 0 means B1 holds for every shared position (H_SPREAD_CORRELATED reading). -/
@@ -340,6 +354,7 @@ def run (args : List String) : IO UInt32 := do
       if !okR then
         IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"
         IO.println s!"  B1 with every arc at the same band end (lo-end, hi-end; diagnostic only): {b1Corr d a}"
+        IO.println s!"  B1 kappa threshold per reader, x1e6 (corner model: shared band position, path scatter kappa; diagnostic only): {b1Kappa d a}"
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbOK {ok}; K {kOf B}, ctl lo {loCtl B}; Dq g1/g2/R0 {B.g1 2}/{B.g2 2}/{B.r0 2}, Dr1 g1/R0 {B.g1 0}/{B.r0 0}, Dr2 g2/R0 {B.g2 1}/{B.r0 1}, DA0 {B.st 4}"
       if !ok then
         for (nm, v) in diag d net b rn fuel rw a do

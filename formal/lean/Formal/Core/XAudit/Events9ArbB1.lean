@@ -72,4 +72,74 @@ theorem grant_fall_after_req_fall {s e y : Sig} {wr wq fQ : Nat → Nat}
       have := hnore τ hτ h4 h5 (wr (t - 1)) h (by omega)
       rw [hs1] at this; exact absurd this (by decide)
 
+/-! ## B1 from a per-behaviour ordering (instead of the band row)
+
+`b1_of` needs the BAND row `hi Dr + 2 ≤ lo Q + lo Dq`, i.e. the order for every choice of the
+three delays inside their bands independently. `b1_of_ord` needs only the order on the behaviour
+at hand (`HOrd`: ustate's request read at the grant's q-read time is no later than the grant's
+request read two steps earlier). `ord_of_transport` and `corner_ord` give `HOrd` for fixed
+(transport) path delays inside a corner model: delays within a factor `1 ± kn/kd` of nominals
+`Pr, PQ, Pq` (a SHARED position inside each prjxray band) with `(kd+kn) Pr + 2 kd ≤ (kd-kn)(PQ+Pq)`.
+That is the κ threshold xarbnet prints (`b1Kappa`, diagnostic). NOT covered: that the routed
+design's delays obey this corner model (H_SPREAD_CORRELATED and the value of κ are hypotheses), and
+the other ArbRowsOK conjuncts. -/
+
+section
+variable {s e y : Sig} {wr wq fQ : Nat → Nat} {loDr hiDr loDq hiDq T0 : Nat}
+
+/-- **B1 from the behaviour's own read order.** -/
+theorem b1_of_ord (hy : ∀ t, y t = (s (wr t) && e (wq t)))
+    (hwr : Warp loDr hiDr wr) (hwq : Warp loDq hiDq wq) (hfQm : Mono fQ)
+    (hT : hiDr + hiDq + 2 ≤ T0)
+    (hord : ∀ t, T0 < t → fQ (wq t) ≤ wr (t - 2))
+    (hflip : ∀ τ, T0 < τ + hiDq + 2 → 1 ≤ τ → e (τ - 1) = true → e τ = false → s (fQ τ) = false)
+    (hnore : ∀ τ, 1 ≤ τ → e (τ - 1) = true → e τ = false →
+      ∀ v, fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false) :
+    ∀ t, T0 < t → s (wr t) = true → e (wq t) = false → y (t - 2) = false := by
+  intro t ht hs he
+  rw [hy]
+  cases hs2 : s (wr (t - 2))
+  · rfl
+  · cases he2 : e (wq (t - 2))
+    · rfl
+    · exfalso
+      obtain ⟨τ, h1, h2, h3, h4⟩ := first_fall e he2 he (hwq.mono _ _ (by omega))
+      have a2 := hwq.le_late t
+      have a3 := hwq.early_le (t - 2)
+      have a5 := hwr.le_late (t - 2)
+      have hq := hfQm τ (wq t) h2
+      have l1 := warp_le hwr
+      have ho := hord t ht
+      have hfl := hflip τ (by omega) (by omega) h3 h4
+      have := hnore τ (by omega) h3 h4 (wr (t - 2)) (by omega) (by omega)
+      rw [hs2] at this; exact absurd this (by decide)
+
+/-- Fixed path delays (transport, from `T0` on) give `HOrd` iff the delays are ordered. -/
+theorem ord_of_transport {Dr DQ Dq : Nat} (hDr : ∀ t, wr t = t - Dr) (hDQ : ∀ t, fQ t = t - DQ)
+    (hDq : ∀ t, wq t = t - Dq) (hle : Dr + 2 ≤ DQ + Dq) :
+    ∀ t, T0 < t → fQ (wq t) ≤ wr (t - 2) := by
+  intro t _; rw [hDr, hDQ, hDq]; omega
+
+end
+
+/-- **Corner-model sufficiency for the B1 order.** Delays within a factor `1 ± kn/kd` of shared
+nominals (`kd·D` between `(kd−kn)·P` and `(kd+kn)·P`) with the κ-guarded nominal row give the
+ordered delays `Dr + 2 ≤ DQ + Dq`. -/
+theorem corner_ord {kn kd Pr PQ Pq Dr DQ Dq : Nat} (hkd : 0 < kd)
+    (hr : kd * Dr ≤ (kd + kn) * Pr) (hQ : (kd - kn) * PQ ≤ kd * DQ) (hq : (kd - kn) * Pq ≤ kd * Dq)
+    (hrow : (kd + kn) * Pr + 2 * kd ≤ (kd - kn) * (PQ + Pq)) : Dr + 2 ≤ DQ + Dq := by
+  have e1 : (kd - kn) * (PQ + Pq) = (kd - kn) * PQ + (kd - kn) * Pq := Nat.mul_add _ _ _
+  have e2 : kd * (Dr + 2) = kd * Dr + 2 * kd := by rw [Nat.mul_add, Nat.mul_comm kd 2]
+  have e3 : kd * (DQ + Dq) = kd * DQ + kd * Dq := Nat.mul_add _ _ _
+  have key : kd * (Dr + 2) ≤ kd * (DQ + Dq) := by
+    rw [e2, e3]; rw [e1] at hrow
+    generalize kd * Dr = a at *
+    generalize kd * DQ = b at *
+    generalize kd * Dq = c at *
+    generalize (kd + kn) * Pr = x at *
+    generalize (kd - kn) * PQ = y at *
+    generalize (kd - kn) * Pq = z at *
+    omega
+  exact Nat.le_of_mul_le_mul_left key hkd
+
 end Formal.Core.XAudit.Events9ArbNet
