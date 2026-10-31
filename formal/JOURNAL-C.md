@@ -649,3 +649,18 @@ Audit read (passes 12-13). Open rows on C files, in order of weight:
 - row 13 (P13): bdc_closed_ring_empty scope -- docstring now says closed bd_c2n rings from
   all-zero only; "every bdc ring" rests on emit.py emitting no `_set` cell (grep, not Lean).
 - row 45: Ring.lean header already says N(N-1) / tight N(N-1)/2 in RingFair (fixed earlier).
+
+### progress 08:10
+TxWin repaired (row 18): `idle`/`count`/`win` now need a k-th offer (`HasOff`), last window
+unbounded; `off_in_win`, `sampled_eq_zd`, `idle_until(T)` adapted, statements of every downstream
+theorem unchanged; periodic witnesses wX/wXQ adapted. New `CapstoneRefineFinWit.fin_witness`:
+a channel offered exactly twice, idle forever after tick 32, carries a tcheck DAG `BCert` (not
+`exempt`) and gets Held + zero-delay samples. Building the 14 dependent modules.
+Found three finished probes from 10-29 that never landed (only Wip/_snapC copies): 8z5
+(H_NO_DEADLOCK'' narrowed to `NoBlock`; `spine_local`, `gcd_hw_no_rtz_loops`), vk2 (generated
+all-inputs token proofs, incl. isprime) and 11g (bitstream import on gcd_hw seeds 2-4 and
+xorshift seeds 1-4, rho a bijection). Re-claiming them after my own build/check:
+- vk2: `tools/autoproof/ref/gcd_binary.c` was never committed (gen_claimed.sh failed). I
+  reconstructed it from the test-point lines AutoGcd.lean quotes; with it gen_claimed.sh
+  regenerates all ten Auto* files BYTE-IDENTICAL to the snapshot (AutoLib is hand-written).
+- 11g: drift check needs prjxray-db; FPGA toolchain restore (cache branch) running.
