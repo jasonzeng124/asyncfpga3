@@ -51,6 +51,11 @@ Evidence (all in JOURNAL 2026-10-25 19:21): rule E 0/118 violated on all 4 route
 A/H/I 0 violations (rule D 38 = the documented screen); GLS gate ANNOTATE_DONE with 0 SDF
 warnings/errors on each; 16/16 vectors, errs=0, laps 19-2719 per 150 us window on each.
 
+Board-fidelity full stack, 8 seeds x 2 corners (2026-10-31, resolver 055edd7; research/data/fid/bq1_fullstack_8seed.tsv;
+default-seed sdf 6f8b99e6 reproduced): 16/16 errs=0 and bits EQUIVALENT on all 16 runs; laps vec 6 SLOW_MAX mean
+15.9 (15-16), FAST_MIN 45.9 (44-48). #2 on the same stack: SLOW_MAX ~32, FAST_MIN ~88 (the ~1.9-2x of the
+nominal GLS holds at both corners).
+
 ## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS; every audit and routed GLS (nominal + corners) clean on 8 routes
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R5.vh`
 (220 sizes). History: R2 passed every audit on 8 seeds until rule E learned to launch from the select's

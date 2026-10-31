@@ -1818,3 +1818,11 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 ### progress 08:59 (BQ#1 full stack 10/16 runs PASS)
 - Added: 6 SLOW_MAX 15/12/17, 4 FAST_MIN 46/36/52, 7 SLOW_MAX 16/12/18, 6 FAST_MIN 44/34/49, 5 SLOW_MAX 16/12/18,
   7 FAST_MIN 45/35/52; all 16/16 errs 0 EQUIVALENT. Remaining: 5 min, 8, 9.
+### progress 12:12 (BQ#1 full stack complete: 8 seeds x 2 corners PASS)
+| full stack, resolver 055edd7 | SLOW_MAX pass, vec 6 mean (range) | FAST_MIN pass, vec 6 mean (range) |
+|---|---|---|
+| BQ#1 (d,3-9) | 8/8, 15.9 (15-16) | 8/8, 45.9 (44-48) |
+| BQ#2 (d,3-9; d-5 old resolver) | 8/8, ~31-33 | 8/8, ~77-93 |
+| BQ#3 (d,3-9) | 8/8, 32.75 (31-34) | 8/8, 89.6 (83-94) |
+All three board candidates now pass the full stack on 8 seeds at both corners. BOARD-QUEUE #1 updated. Running:
+BQ#1 1x scatter draw 1 on seeds d,3,4,5.
