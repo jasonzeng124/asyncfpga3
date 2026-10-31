@@ -1118,3 +1118,10 @@ arbiter, bands from xan_5_slow.txt, the same route by md5) on 16 vectors of the 
 transport ICBUF): 16/16 compute, 349,792 checked events, 0 violations (out2/env_5/summary.txt). Controls CTRL_DA=3000
 and CTRL_E=5000000 do fire (vector 6), so the checker can fail. Not shown: the bands (only the GLS point delays),
 the settle bound, scatter. Seeds d/3/4 running.
+
+### A progress 17:05 -- QQuiet with the Lean window phi(PqQ) (audit P17 2a): seed 5, 0 after reset
+gen_qqmon XAN=xan_5_slow.txt sets each arbiter's window W to the hi end of xarbnet's own-q read band, phi(PqQ)
+(409..919 ps here), instead of the GLS loop delay. Seed-5 GLS (same route by md5), 16 vectors: 16/16 compute, 20,387
+q flips, 0 violations after reset release, 112 before (power-up, rst high; the Lean form needs QQuiet only after S).
+Same flip count as the loop-W run (out2/5). Still SDF point delays, one seed; the same-timestamp ordering hole P17
+noted remains.
