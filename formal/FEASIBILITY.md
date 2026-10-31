@@ -52,8 +52,8 @@ experiments; and (2) **connecting** the proofs to the real routed design
        hold is 262 ps against SLICEL's 241 (unsafe side; audit `53d5cc9` P10b OVERSTATED). SLICEM
        numbers added (`SeqXray.regFFM/ff5M/latM`, site-selected `regFFAt`, `slicem_hold_longer`);
        the site type of a placed flop is the named H_FF_SITE.
-     - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
-     - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
+     - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound (7267/3074 ps), tight to 1 ps only for a single generic stage, not for the composed 6-DSP cascade, and with zero cascade wire assumed (audit `8c97528` minor OVERSTATED);
+     - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q (the 'only if' is about the ChanCells cover property; an end-to-end wrong verdict is shown at one point only, audit `9e1499e`);
      - the arbiter loop at signal level (`Core/Delay/InvolutionLoop{Bridge,Signal,Rate}`, InvLoop2, 994 decls): for every solution q latches iff s > s*, loses iff s < s*, oscillates forever iff s = s*; laps to resolution between two logarithmic bounds under channel slope bounds;
    - **From shard B:**
      - `KleeneWin`: each binary edge gets its own X window, and every race gains c + a exactly. This
