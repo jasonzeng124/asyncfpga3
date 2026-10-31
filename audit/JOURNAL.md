@@ -731,3 +731,10 @@ Research 30a80999: BOARD-QUEUE #1 "1x scatter 8/8 PASS (23-29)". No TSV rows; th
 OVERSTATED (documentation), same pattern as r19. The d row was reproduced by me. The session summary repeats the BQ#3
 "1x 8/8" (r19) and the arbiter "worst 691 ps" (r21) claims. Formal 0965e2ad: A cites audit P17 ("ArbOrd fails 1 of
 5 draws, not 3"), so formal already reads P17's partial findings.
+
+### progress 17:18
+P17 final. I re-ran A_SatPinW/B_axioms17/B_arbdump4 (rc 0) and checked R0's INIT support myself (0xACACACAC uses I0-I2
+only). REFUTED: "ArbOrd fails in 3/5 scatter draws". Two of the three failing pairs are the design reset net; the
+truth is 1 of 5. Formal already accepted this from P17's partial findings (44d30983). CONFIRMED: SatPinW structural
+fix (ArbOrd still assumed on every gcd_hw row), corrected QQuiet/quiet-start/ArbOrd monitors (counts), Bwit4 170/175,
+N level 173/175, NChk chunking, Prelim deletion lost no theorem.
