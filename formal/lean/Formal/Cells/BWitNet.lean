@@ -326,7 +326,7 @@ theorem bwit_ok : FGcdNetOKB chB NBn LB nB where
   H_JOIN := h_joinB
   H_STEER o j h b := by
     obtain ⟨t, f, h'⟩ := stJ_of_steerIn h
-    exact ⟨pRB j, selB j, σT (tabOf o), κT (tabOf o) b, sb_specB h' b, rfl, boundR j⟩
+    exact ⟨pRB j, selB j, σT (tabOf o), κT (tabOf o) b, sb_specB h' b, rfl, boundR j, rfl⟩
   H_SOR o j t f h := ⟨apB t f, σT (tabOf o), κT (tabOf o), ao_specB h,
     fun b => ⟨rfl, boundA _⟩⟩
   H_REST c _ := cell_okB c

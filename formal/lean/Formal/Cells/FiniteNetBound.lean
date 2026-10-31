@@ -18,7 +18,8 @@ clean" (`SelfAuditB9.flink_env1_local`). Here the drivers are fixed BY THE NETLI
 * `FGcdNetOKB`: `FGcdNetOK` plus, for every pin of every tied cell (link `rp`/`ap`, fork
   and join C-element pins, steer branch request pin, steer OR pins), `drv` = that cell
   whenever the netlist determines one (`BoundR`/`BoundA`); the steer OR's pins are also
-  tied to C's branch acknowledge traces (absent from `FGcdNetOK`).
+  tied to C's branch acknowledge traces (absent from `FGcdNetOK`), and the steer's select
+  trace is bit 0 of its input channel's bus (absent from `FGcdNetOK`, where it was free).
 
 ## Assumed / proved / NOT covered
 
@@ -251,7 +252,8 @@ structure FGcdNetOKB (ch : Fin NC → Chan) (N : FGcdNet) (L : N.ι → Nat → 
   H_JOIN : ∀ o ins, joinIns (opAt o) = some ins → ins.length = 2 →
     FCelTieB N L (N.jr o) ins (fun c => (ch c).req) (BoundR N)
   H_STEER : ∀ o j, steerIn (opAt o) = some j → ∀ b, ∃ rp s σ κ,
-    FSteerSpec N.D L (N.sb o b) rp b s σ κ ∧ rp.P = (ch j).req ∧ BoundR N j rp
+    FSteerSpec N.D L (N.sb o b) rp b s σ κ ∧ rp.P = (ch j).req ∧ BoundR N j rp ∧
+    s = fun t => (ch j).dat t % 2 == 1
   H_SOR : ∀ o j t f, stJ (opAt o) = some (j, t, f) → ∃ ap σ κ,
     FOrSpec N.D L (N.ao o) (fun a0 a1 => genF bd_steer "uack" .O ["ack0", "ack1"] [a0, a1])
       ap σ κ ∧ ∀ b, (ap b).P = (ch (brC t f b)).ack ∧ BoundA N (brC t f b) (ap b)
@@ -273,7 +275,7 @@ theorem FGcdNetOKB.toOK {ch : Fin NC → Chan} {N : FGcdNet} {L : N.ι → Nat �
   H_FORK := fun o os h h1 h2 => (H.H_FORK o os h h1 h2).toTie
   H_JOIN := fun o ins h h1 => (H.H_JOIN o ins h h1).toTie
   H_STEER := fun o j h b => by
-    obtain ⟨rp, s, σ, κ, S, e, _⟩ := H.H_STEER o j h b
+    obtain ⟨rp, s, σ, κ, S, e, _, _⟩ := H.H_STEER o j h b
     exact ⟨rp, s, σ, κ, S, e⟩
   H_SOR := fun o j h => by
     obtain ⟨t, f, hs⟩ := stJ_of_steerIn h

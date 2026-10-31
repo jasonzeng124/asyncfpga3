@@ -441,11 +441,11 @@ theorem bwit_okM : FGcdNetOKBM chB NBm LB nB where
   H_JOIN := h_joinB
   H_STEER o j h b := by
     obtain ⟨t, f, h'⟩ := stJ_of_steerIn h
-    exact ⟨pRB j, selB j, σT (tabOf o), κT (tabOf o) b, sb_specB h' b, rfl, boundR j⟩
+    exact ⟨pRB j, selB j, σT (tabOf o), κT (tabOf o) b, sb_specB h' b, rfl, boundR j, rfl⟩
   H_SOR o j t f h := ⟨apB t f, σT (tabOf o), κT (tabOf o), ao_specB h,
     fun b => ⟨rfl, boundA _⟩⟩
   H_MUXJ o cc x y z mw h b := ⟨pRB (if b then y else x), pRB cc, selB cc, σT (tabOf o),
-    κT (tabOf o) b, 1, mj_specB (muxC_of h) b, rfl, rfl, boundR _, boundR cc⟩
+    κT (tabOf o) b, 1, mj_specB (muxC_of h) b, rfl, rfl, boundR _, boundR cc, rfl⟩
   H_MUXA o cc x y z mw h b := ⟨pIn (.mj o b), pAB z, κT (tabOf o) b, 1, ma_specB (muxC_of h) b,
     rfl, rfl, boundA z⟩
   H_MUXO o cc x y z mw h := ⟨fun b => pIn (.mj o b), σT (tabOf o), κT (tabOf o),

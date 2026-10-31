@@ -26,7 +26,7 @@ H_BUNDLE, H_CM_FORCED.
 
 **Assumed:** `FGcdNetOKB`'s fields with the extended bindings, plus Bmn's mux specs
 (`FMuxJSpec`, `FMuxASpec`, `FOrSpec` with the real `uor`, `FBufSpec`), H_TIMES at existing
-edges; contracts on muxn, amerge, sources, sinks, wide joins, fork trees.
+edges; every steer's and mux's select trace is bit 0 of its control channel's bus; contracts on muxn, amerge, sources, sinks, wide joins, fork trees.
 
 **NOT covered:** a joint witness of `FGcdNetOKBM` (Python evidence only:
 `tools-B/bwit/bsim2.py`); C's H_OTHER stays for the 192 non-link operators. Core Lean only.
@@ -202,13 +202,15 @@ structure FGcdNetOKBM (ch : Fin NC → Chan) (N : FGcdNetM) (L : N.ι → Nat �
   H_JOIN : ∀ o ins, joinIns (opAt o) = some ins → ins.length = 2 →
     FCelTieB N.toFGcdNet L (N.jr o) ins (fun c => (ch c).req) (BoundRM N)
   H_STEER : ∀ o j, steerIn (opAt o) = some j → ∀ b, ∃ rp s σ κ,
-    FSteerSpec N.D L (N.sb o b) rp b s σ κ ∧ rp.P = (ch j).req ∧ BoundRM N j rp
+    FSteerSpec N.D L (N.sb o b) rp b s σ κ ∧ rp.P = (ch j).req ∧ BoundRM N j rp ∧
+    s = fun t => (ch j).dat t % 2 == 1
   H_SOR : ∀ o j t f, stJ (opAt o) = some (j, t, f) → ∃ ap σ κ,
     FOrSpec N.D L (N.ao o) (fun a0 a1 => genF bd_steer "uack" .O ["ack0", "ack1"] [a0, a1])
       ap σ κ ∧ ∀ b, (ap b).P = (ch (brC t f b)).ack ∧ BoundAM N (brC t f b) (ap b)
   H_MUXJ : ∀ o cc x y z mw, opAt o = .mux cc x y z mw → ∀ b, ∃ xp cp s σ κ E,
     FMuxJSpec N.D L (N.mj o b) xp cp b s σ κ E ∧ xp.P = (ch (if b then y else x)).req ∧
-    cp.P = (ch cc).req ∧ BoundRM N (if b then y else x) xp ∧ BoundRM N cc cp
+    cp.P = (ch cc).req ∧ BoundRM N (if b then y else x) xp ∧ BoundRM N cc cp ∧
+    s = fun t => (ch cc).dat t % 2 == 1
   H_MUXA : ∀ o cc x y z mw, opAt o = .mux cc x y z mw → ∀ b, ∃ ap zp κ E,
     FMuxASpec N.D L (N.ma o b) ap zp κ E ∧ ap.drv = N.mj o b ∧ zp.P = (ch z).ack ∧
     BoundAM N z zp
@@ -229,7 +231,7 @@ theorem FGcdNetOKBM.toOK {ch : Fin NC → Chan} {N : FGcdNetM} {L : N.ι → Nat
   H_FORK := fun o os h h1 h2 => (H.H_FORK o os h h1 h2).toTie
   H_JOIN := fun o ins h h1 => (H.H_JOIN o ins h h1).toTie
   H_STEER := fun o j h b => by
-    obtain ⟨rp, s, σ, κ, S, e, _⟩ := H.H_STEER o j h b
+    obtain ⟨rp, s, σ, κ, S, e, _, _⟩ := H.H_STEER o j h b
     exact ⟨rp, s, σ, κ, S, e⟩
   H_SOR := fun o j h => by
     obtain ⟨t, f, hs⟩ := stJ_of_steerIn h

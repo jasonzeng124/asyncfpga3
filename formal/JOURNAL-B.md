@@ -1648,3 +1648,9 @@ sandbox, 6158 s; setup.sh's own build had failed only because I edited files dur
 axiom audit "[check] OK". So everything committed today is in a green check.sh, not just the
 private olean build. The Bwit2 negative control (one uj0 node edge +1) was killed by the OOM
 killer while lake ran (rc 137); re-run pending.
+
+### progress 09:46
+In (lake build, 146 jobs, OK): the steer and mux select traces are now bound to the data:
+FGcdNetOKB.H_STEER and FGcdNetOKBM.H_STEER/H_MUXJ require s = bit 0 of the control
+channel's bus (in FGcdNetOK the select trace s was a free existential). Both witnesses
+meet it by rfl (selB = bit 0 of chB's bus).
