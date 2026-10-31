@@ -1,4 +1,5 @@
 import Formal.Cells.BWit2NDefs
+import Formal.Cells.BWitNChk  -- build order only: the kernel-check modules must not build in parallel (memory)
 
 /-!
 # Probe Bwit2 (shard B): kernel checks of the mux-extended driver-bound network

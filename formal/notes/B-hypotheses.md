@@ -541,8 +541,18 @@ joins, fork trees).
   of its pins, every pin inside its wire window of the named driver.
 - *Use:* discharges the links' `H_CELLS` (via `FiniteRuns.gcd_hw_safe_fin_links`); NOT the other
   192 operators' (`H_OTHER` stays).
-- *Extension:* `FiniteNetBoundM.FGcdNetOKBM` adds every `bd_mux` (7 cells each, Bmn's specs,
-  internal pins bound): 124/175 links bound on both sides; witness `BWit2Net.gcd_hw_fin_netBM_witness`.
+- *Extensions* (each implies the previous one; each with a joint witness on its own gate-timed
+  run, 12/18, LUT 1, wires 1-3):
+  - `FiniteNetBoundM.FGcdNetOKBM`: every `bd_mux` (7 cells each, Bmn's specs, internal pins
+    bound), 1-input joins as wires: 136/175 links bound on both sides;
+    `BWit2Net.gcd_hw_fin_netBM_witness`.
+  - `FiniteNetBoundA.FGcdNetOKBA`: every `bd_arbiter` (ustate q/R0 and ugrant g1/g2 as
+    `FCombSpec`: real LUT + ONE named race hypothesis H_EXC_CLEAN each; ua1/ua2 as `FMuxASpec`
+    with a winner table): 164/175; `BWit3Net.gcd_hw_fin_netBA_witness` (the 9 arbiters are
+    uncontested on that run: H_EXC_CLEAN is never tight there).
+  - `FiniteNetBoundT.FGcdNetOKBT`: every 5/6-way fork's acknowledge tree (`bd_ctree`: chunk C4,
+    chunk C2, top C2, `FCelSpec` each): 170/175 (left: muxn 4 acknowledge sides, source 1
+    request side); witness `BWit4Net.gcd_hw_fin_netBT_witness` (see JOURNAL-B for its state).
 
 ---
 

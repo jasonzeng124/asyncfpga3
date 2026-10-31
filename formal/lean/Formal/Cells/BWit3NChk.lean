@@ -1,4 +1,5 @@
 import Formal.Cells.BWit3NDefs
+import Formal.Cells.BWit2NChk  -- build order only: the kernel-check modules must not build in parallel (memory)
 
 /-!
 # Probe Bwit3 (shard B): kernel checks of the arbiter-extended driver-bound network

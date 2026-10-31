@@ -1746,7 +1746,7 @@ start once, H_CM_FORCED and out0 = 6 on the arbiter-gate-modelled run, by C's ch
 (combB_spec): H_EXC_CLEAN holds because the excitation is the node one tick early
 (gph_shift of a clean list signal).
 
-### progress 11:58
+### progress 11:50
 Bwit3 done (lake build OK: BWit3NDefs, BWit3NChk alone (728 s, peak RSS 11.0 GB), BWit3Net;
 #print axioms of the witness: propext, Classical.choice, Quot.sound only).
 **Problem, plainly:** is the gcd_hw theorem with the ARBITERS gate-modelled too
@@ -1771,3 +1771,25 @@ LUTs, simulator wires); R = 2 only; muxn 4, fork trees 6, source 1 link sides st
 Memory: a kernel decide over several arbiters at once peaked 8.5 GB for 10 operators, so
 arbChk is one theorem per arbiter (barb_*), with barb_rest checking that every other
 operator passes arbChk trivially.
+
+### progress 12:12
+(1) Build order: BWit2NChk now imports BWitNChk and BWit3NChk imports BWit2NChk (import
+used for ordering only), so a fresh `lake build` cannot run the three kernel-check modules
+at once (BWit3NChk alone peaks at 11.0 GB RSS on this 15 GB box; two in parallel were
+OOM-killed earlier today). Rebuilt in sequence: BWit2NChk 547 s, BWit3NChk 749 s, then
+BWitNet/BWit2Net/BWit3Net OK.
+(2) In (lake build OK): FiniteNetBoundT -- the FORK TREES gate-modelled and bound.
+**Problem, plainly:** a fork with 5 or 6 outputs acknowledges through a tree of C-elements
+(cells/rtl/bd_ce.v bd_ctree: chunks of four, then a top C2), which B had no binding for, so
+6 link acknowledge sides were unbound. **Lean:** FGcdNetT adds tr o (top C2, drives the fork
+input's ack) and tn o 0/1 (chunk C4 of leaves 0..3; chunk C2 of leaves 4, 5 for N = 6);
+FGcdNetOKBT has H_TREE5/H_TREE6 (FCelSpec of each tree cell on its real gate, chunk node
+wired to the top, every leaf the bound ack of its fork output) and H_DRV_TREE;
+FGcdNetOKBT.toOKBA; gcd_hw_safe_fin_netBT; bound_censusT (kernel): 170 of 175 links bound on
+both sides; by #eval the 5 left are the 4 muxn acknowledge sides and the source request side.
+No witness committed yet. Python (UNTRUSTED, bsim4.py): the trees at gate level on the
+12/18 run, C's checker 0 violations, 750 bound pins all wire copies of their driver, 170
+links bound both sides; the 3 trees (ops 67, 88, 143) toggle (top node 4/2/6 edges). Data
+generated (gen_cdata4.py, gen_bdata4.py -> BWit4Data, BWit4NData), BWit4NDefs builds, and by
+#eval wireChk, opChkB (incl. treeChk) pass everywhere. BWit4Cells/NChk/Net written, not yet
+built (BWit4Net typechecks against a stub of the kernel facts, scratch only).
