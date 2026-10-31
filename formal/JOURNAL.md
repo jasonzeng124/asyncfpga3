@@ -929,3 +929,7 @@ glsq on all 4 gcd_hw R5 seeds (research routed GLS, SDF delays, no scatter; rout
 vectors errs=0 per seed, 18.7k-20.4k q flips per seed, 0 QQuiet violations after reset on every seed (only
 power-up hits while rst high), ArbOrd with the GLS's point delays worst margin 280 ps. Evidence for
 design_verdict9arbnet_ordS's QQuiet-after-S and ArbOrd under one delay model; not a proof, no scatter sweep.
+### progress 10:19
+glsq under GLS_SCATTER=0.05 (seed 4, 3 draws): 16/16 vectors each, 0 QQuiet violations after reset, ArbOrd on
+request reads worst 49 ps. Self-correction: ord_static.py first also paired the reset pin (A6), which showed
+-76/-262 ps in two draws; those pairs are not ArbOrd's (fixed: reset/global-driven pins skipped).

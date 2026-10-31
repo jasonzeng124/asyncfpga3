@@ -37,3 +37,17 @@ All four seeds (`run_seed.sh <seed>`; outputs `out/<seed>/`; md5s equal events5/
 
 (seed 5 from the first run above; its per-vector logs were not kept beyond `qq_table_seed5_1031.txt`.)
 Still one GLS model (nextpnr SDF, no scatter, default LUT model), no corner sweep.
+
+**Correction (same day):** the first `ord_static.py` also paired pins driven by the global reset net (A6, ~5 ns
+paths). ArbOrd is about the request reads only, so the script now skips pins whose driver is not a LUT. The
+no-scatter results above were all positive with the extra pairs, so they stand.
+
+Scatter (`SIG=0.05 run_scatter.sh seed4`, GLS_SCATTER = 0.05 per arc, unclamped Gaussian, draws 1-3; seed 4 route):
+
+| draw | vectors errs=0 | q flips | QQuiet violations after reset | ArbOrd worst (requests only) |
+|---|---|---|---|---|
+| 1 | 16/16 | 19637 | 0 | 394 ps |
+| 2 | 16/16 | 19467 | 0 | 49 ps |
+| 3 | 16/16 | 19629 | 0 | 347 ps |
+
+(With the reset pins included, draws 2/3 gave -76 / -262 ps on the reset pin pairs; those pairs are not ArbOrd's.)
