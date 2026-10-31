@@ -745,3 +745,7 @@ The owner pushed an audit PROGRAM change (f33d8da3, 13:30 EDT): top priority is 
 2f2e632d, formal/target/ and Formal/Target/Spec.lean do NOT exist yet (formal PROGRAM's "THE goal", 4ef44a05/95d0784d,
 is from today). Prepared for it: audit/target_ref.md records my own BQ#1 default-seed build md5s (sdf 6f8b99e6, xray
 357f17cb, fasm 1a3909f6), and my rebuilt bitstream payload is byte-identical to research/board/gcd_hw_03e82630.bit.
+
+### progress 18:21
+Axiom audit of formal 464c5ea7 COMPLETE: 1058/1058 modules, 119260 constants, bad 0. Pass 18 at formal 2f2e632d: formal/target
+and Formal/Target present? 0 files.
