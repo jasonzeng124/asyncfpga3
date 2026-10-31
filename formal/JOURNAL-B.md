@@ -1541,3 +1541,15 @@ pins flagged. So the obstruction chW_steer_unwired is a property of C's run chW,
 models: C's operator models are speed-independent and accept B's 2-tick gates. Not yet
 Lean. Lean needs (notes/B-finite-net-bound.md): the checkers of FiniteNetWit2Lib with pin
 wires w in {1,2,3} and bound drivers, and H_TIMES restricted to existing edges.
+
+### progress 07:39
+In: Bwit step 2, BWitData (GENERATED, tools-B/bwit/gen_cdata.py --check ok) + BWitCells
+(core Lean; checked here by private olean build, axioms standard). The gate-timed run chB
+(a=12, b=18; B-tied operators take 2 ticks channel to channel) meets C's capstone
+hypotheses JOINTLY, decided by C's own checkers by kernel: b_cells (H_CELLS, all 367
+operators), b_held (H_BUNDLE), b_start_once, b_forced (H_CM_FORCED via C's
+gcd_hw_forced with C's token walk yW), b_out0 (out0 closes at 585 carrying 6); b_joint
+packages them. Mutant (channel 0's first request toggle 0 -> 1) is rejected by the cells
+check. So chW is not the only C witness, and C's models accept B's gate timing. This is
+C-level only: B's network on chB (FGcdNetOKB with bound drivers) is step 3, which needs
+H_TIMES restricted to existing edges (notes/B-finite-net-bound.md).
