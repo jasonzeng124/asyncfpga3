@@ -21,7 +21,7 @@ analog resolution), which no proof can discharge and which need GLS or board
 experiments; and (2) **connecting** the proofs to the real routed design
 (netlist import, delay numbers per arc), which is engineering.
 
-## Status against the owner's three goals (2026-10-29 ~08:40 UTC; drafted by probe FeasDraft from all three journals and the audit, reviewed by the lead)
+## Status against the owner's three goals (2026-10-29 ~08:40 UTC; drafted by probe FeasDraft from all three journals and the audit, reviewed by the lead; A's rows updated 2026-10-31)
 
 1. **A correct model of the chip.**
    - **Checked in Lean (A, this session):**
@@ -129,6 +129,17 @@ experiments; and (2) **connecting** the proofs to the real routed design
          Audit `eb346fb` CONFIRMED it conditional on those hypotheses; its Lean certificates are
          UNVERIFIED. The gb ENTRY claim was OVERSTATED: E8Mux reran it with the OUTMUX hop, and 2 of
          3 failures are real ([C], same Lean checker).
+     - **Routed timing, 2026-10-31 (A):** the corrected-core verdicts left unclaimed on 10-29 are now
+       claimed (Events9Par, SelL/SelJ, Setup/Full, ArbNet/ArbNetEdge), and one combined statement,
+       `Core/XAudit/Events9FullArb.design_verdict9_full_arb`, removes HARB7'/HRst: they are replaced by
+       decidable checks at the real bd_arbiter LUTs (ArbOK, from the INITs and read paths) plus the rows
+       ArbRowsOK, and by per-arbiter edge-window hypotheses ArbEdge (QClean = no metastable runt; a quiet
+       start; a settle bound; no re-request while switching; A0 high around request falls). gcd_hw R5 was
+       rebuilt (4 seeds, md5s identical to 10-29), and every committed run reproduced byte for byte.
+       **Negative:** ArbRowsOK holds for only 3-7 of 9 arbiters at slow/fast and 0-1 at gb/indep. Only the
+       B1 row fails: the real grant can fall through its q pin before its request pin sees the request
+       fall, and the core's C-element grant cannot. This is an abstraction limit, not a demonstrated
+       failure (`notes/A-e9arbnet.md`). So the combined theorem covers **no** gcd_hw row yet.
      - **Arbiters vs κ:**
        - B's `OnGcdArbKappa` is safe for κ ≤ 16587/374773 ≈ 0.0443. That is the server-free arc
          form, tight on the 1 fs grid for its binding row (`OnGcdArbKappaTight.rt1b_safe` /
