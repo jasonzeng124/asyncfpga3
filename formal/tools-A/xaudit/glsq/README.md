@@ -89,7 +89,9 @@ CORRECTION (audit P17 row 2d): ord_static's old filter ("any LUT-driven ustate i
 the LUT-buffered reset (one net at the ustate of all 9 arbiters) and A0, which R0 = r1 q + r2 !q does not read.
 The scatter-row ord numbers above are P17's recount on the request pairs only (the old 72-pair worst in
 parentheses); the filter now takes the request nets from the R0 INIT's support (54 pairs; OLD=1 restores the
-old filter), and the own rerun of these draws is recorded below when done. P17 also notes the σ 0.05 draw 2 change
+old filter). Own rerun (run_ordscat.sh, seed-4 route by md5, provenance per draw in out2/ordscat/): 298 / 19 / 286
+ps (σ 0.05 draws 1-3), 214 / -346 ps (σ 0.10 draws 1-2) = P17's recount. The -346 draw fails at merge6 g1
+(-346) and R0 (-161), both on r1 from ucond_br26. P17 also notes the σ 0.05 draw 2 change
 49 -> 19 ps came from the O5-arc fix, not the pair filter.
 
 So with the corrected checks: QQuiet after reset holds on every run (0 violations), the quiet start holds (no
@@ -145,3 +147,29 @@ Other seeds (`run_edge.sh <seed>`, outputs `out2/edge_<seed>/`; routes rebuilt, 
 xarbnet bands of the same seed): nore 0 violations (d 19962 / 3 18525 / 5 20243 flip-aways after reset), pointwise C
 0 violations (d 66837 / 3 63469 / 5 67193 request falls), 16/16 vectors errs=0 on each. The band C window on seed 5:
 0 violations over 67193 falls, so the 5 ps tightness found on seed 4 (merge10 g1) is route-specific.
+
+## ArbEnv window fields (gen_evmon.py + check_env.py, run_env.sh)
+
+gen_evmon logs every change of q, A0, r1, r2 of each arbiter's ustate (EV lines) and writes info.json with the
+GLS point delays DA (A0 read), DQ1/DQ2 (ustate's request reads) and per reader Dr/Dq. check_env.py evaluates
+Events9ArbB1.ArbEnv's window fields for a fixed-delay behaviour, at the 4 readers g1, g2, s1, s2 of all 9
+arbiters, with xarbnet's slow bands for the same route (xan_<seed>_slow.txt; R0 bands minus 2 as in ArbEdgeS):
+nore (no re-request after a flip away), rise and flip (every u in the B2 window Settled: A0 read low and q constant
+while it stays low), C (A0 read high at the reader's q-read time after a request fall). Only events after the
+rig's reset release count.
+
+| seed | vectors 16/16 | events | violations |
+|---|---|---|---|
+| 5 | yes | 349,792 | 0 |
+| d | yes | 347,234 | 0 |
+| 3 | yes | 328,020 | 0 |
+| 4 | yes | 333,736 | 0 |
+
+Negative controls (seed 5, vector 6): CTRL_DA=3000 (A0 read 3 ns late) and CTRL_E=5000000 (windows widened)
+both produce many violations. Limits: GLS at 520a43f with SDF point delays (not the bands, no scatter), the
+settle bound H is not monitored, raw EV logs are not kept (only per-vector check_v*.txt and summary.txt).
+
+## QQuiet with the Lean window (XAN=)
+
+gen_qqmon with XAN=xan_5_slow.txt uses W = phi(PqQ) (hi end of the own-q read band, 409..919 ps) instead of the
+GLS loop delay. Seed 5: 16/16, 20,387 q flips, 0 violations after reset release, 112 before (out2/qqphi_5).

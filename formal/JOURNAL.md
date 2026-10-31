@@ -1125,3 +1125,12 @@ gen_qqmon XAN=xan_5_slow.txt sets each arbiter's window W to the hi end of xarbn
 q flips, 0 violations after reset release, 112 before (power-up, rst high; the Lean form needs QQuiet only after S).
 Same flip count as the loop-W run (out2/5). Still SDF point delays, one seed; the same-timestamp ordering hole P17
 noted remains.
+
+### A progress 17:15 -- ArbEnv fields clean on 4 seeds; ArbOrd scatter rerun = P17
+check_env on seeds 5/d/3/4 (16/16 each): 349,792 / 347,234 / 328,020 / 333,736 events, 0 violations in every
+field (nore, rise, flip, C) at all four readers of all 9 arbiters. So, of ArbEnv, only the settle bound H is still
+unmonitored on gcd_hw; all of it is GLS point-delay evidence, not a proof over the bands. ord_static rerun with the
+INIT-support filter on the 5 seed-4 scatter draws: 298/19/286 (σ 0.05), 214/-346 (σ 0.10) ps, equal to P17's
+recount: ArbOrd fails in 1 of 5 draws (merge6 g1 -346, R0 -161, r1 from ucond_br26). Process note: a first
+detached waiter I believed dead had survived, and two reruns interleaved in one GLS work dir; I discarded those
+files and reran alone (provenance per draw now matches the label).
