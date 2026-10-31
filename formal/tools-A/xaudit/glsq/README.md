@@ -90,3 +90,11 @@ rise before release, first rise ~40 ns after), ArbOrd holds at the GLS point del
 per-arc scatter in 3 of 5 draws (the earlier ">= 49 ps at σ 0.05" was an artefact of the dropped pairs) while every
 run computes all 16 vectors: ArbOrd is stricter than the circuit needs. Limitations: GLS model at 520a43f (SDF
 points, no fid), W is the GLS loop delay rather than phi(PqQ), only vector 6 for the quiet start, one route for scatter.
+
+Detection controls for the corrected QQuiet monitor (`out2/negctl.txt`): WSCALE=20 -> 90 post-reset violations
+(weak: it only shows the pipeline prints). CONTROL=1 (near-threshold): the monitor also watches each ustate's own
+feedback pin, whose change lands exactly at the window's end after every flip; on vector 6 it flags 1713 of 1713
+post-reset flips, so a pin change at the edge of the window is detected. Remaining limitations (audit P15a): the
+GLS run is not shown to be a SatPin(W) behaviour of the Lean model (nextpnr SDF point delays, not shown inside the
+prjxray bands); W is the GLS loop delay, not phi(PqQ); ord_static pairs each reader with every request net it
+shares with ustate (a superset; simq.py's INIT-based choice is exact); raw flip times are not kept.

@@ -8,7 +8,9 @@ tau requires no change of pin k at times in (tau - TA_k, tau + W - TA_k]. The mo
     QQ_VIOL <t> <name> A<k> post <dt>   a pin change at t with tau < t <= tau + W - TA_k (dt = t - tau)
     QQ_VIOL <t> <name> A<k> pre <dt>    an output change at t = tau with the pin's last change in (tau - TA_k, tau]
 W is this behaviour's own loop delay (what QClean needs for these fixed delays), not the Lean band hi phi(PqQ).
-WSCALE=k multiplies W (negative control)."""
+WSCALE=k multiplies W (weak negative control). CONTROL=1 also monitors the feedback pin itself (tag QQ_CTRL):
+its change lands exactly at the end of the window (tau + D_icbuf = tau + W - TA_fb), so a working monitor flags
+one QQ_CTRL per output change: a near-threshold detection control (audit P15a)."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
@@ -25,6 +27,9 @@ for name, c in sorted(nm.items(), key=lambda kv: kv[0]):
     out.append(f"  // {name}: cell {c} ({op}), feedback pin {k}, loop W = {W} ps")
     out.append(f"  realtime lf_{c} = -1.0e9;")
     others = [p for p, w in v["pins"].items() if p != k and not w.startswith("1'b")]
+    if os.environ.get("CONTROL") == "1":
+        tak = v["ta"].get(int(k[1]), 0)
+        out.append(f"  always @(tb_run.dut.{v['pins'][k]}) if ($realtime > lf_{c} && $realtime - lf_{c} <= {W - tak}) $display(\"QQ_CTRL %0t {tag} {k} %0t\", $realtime, $realtime - lf_{c});")
     for p in others:
         out.append(f"  realtime lp_{c}_{p} = -1.0e9;")
     chk = " ".join(f"if ($realtime - lp_{c}_{p} < {v['ta'].get(int(p[1]), 0)}) $display(\"QQ_VIOL %0t {tag} {p} pre %0t\", $realtime, $realtime - lp_{c}_{p});" for p in others)
