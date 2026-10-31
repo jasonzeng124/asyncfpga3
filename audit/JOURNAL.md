@@ -506,3 +506,7 @@ defect (r23 I): seeds_fid.py:101-107 grades PASS when every vector has >= 1 lap 
 summed errs 0, so a stall with no wrong compare passes. The runs I reproduced are unaffected: minimum laps per
 vector are s1x 42, fix_uori3 39, s8_2x 36, s4_max 23, s7_2x 42. PASS rows I did not re-run rest on this judge
 alone. Added as an OVERSTATED row at the top of REPORT.
+
+### progress 00:50
+Owner notified about the judge defect. BQ#2 seed 9 route: sdf 4a9b218e and xray 0117760c REPRODUCED (= TSV).
+SLOW_MAX full stack running; I check all 16 vectors for stalls, not just errs.
