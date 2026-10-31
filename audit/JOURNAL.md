@@ -785,4 +785,5 @@ BQ#2 seed 6 log-normal 1.5x (draw 1): 16/16 errs 0, 46/38/55 = claim, no stalls.
 Research 95c22cf6 log-normal table: both known-failing routes pass 1.5x and fail 2x (BQ#2 seed 6 log-normal 2x "FAIL
 errs 3"). The 1.5x points for both routes are reproduced exactly. Running BQ#2 seed 6 log-normal 2x (TEND 30 us).
 The text again leans on S9's "double-counted" reading (r23 H caution stands), and calls log-normal "silicon-like
-bounded speed-ups". The log-normal factor is unbounded above, though speed-ups are bounded by 1.
+bounded speed-ups". Log-normal f = exp(sigma N) is never 0 (linear 1+sigma N clamps at 0), but its speed-up 1/f is not
+bounded either; it is just much less likely at the tails.
