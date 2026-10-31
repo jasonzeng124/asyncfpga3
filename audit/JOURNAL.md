@@ -769,3 +769,7 @@ INIT-support filter. Nothing yet toward the owner's bitstream theorem. Axiom aud
 Research 0056e2b0/7dc80477: log-normal scan, BQ#3 seed 9 passes 1x and 1.5x, fails 2x (errs 6, same six vectors).
 The 2x log-normal failure was already reproduced in r19 (s2x_logn). Started: my route of BQ#3 seed 9 (expect sdf
 74511ca2) + log-normal 1.5x (region 0.24 / wire 0.189, draw 1) on all 16 vectors with the stall check.
+
+### progress 19:26
+Axiom audit of formal 2f2e632d COMPLETE: AUDIT-PAR constants=119323 bad=0 no_result=0 modules=1058. BQ#3 seed 9 route reproduced
+(sdf 74511ca2, xray 7214582a); log-normal 1.5x sim running.

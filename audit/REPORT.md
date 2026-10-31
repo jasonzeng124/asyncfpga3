@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494; pass 17 formal 464c5ea7.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494; pass 17 formal 464c5ea7; pass 18 formal 2f2e632d.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -123,6 +123,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | 2f2e632d | every module builds; only standard axioms | CONFIRMED | audit/logs/formal_build_2f2e632d.log (NChk modules one at a time, then full build EXIT 0); axiom_par_2f2e632d.log + axres_2f2e632d.txt (own collectAxioms, bad 0, no-result 0) | |
 | formal | 2f2e632d (b7ddda59, 44d30983, 5dcf02f8) | pointwise C clause replaces the C window; ord_static request nets from R0's INIT support; ctl band 10^12 -> 10^15 "all verdicts identical" | CONFIRMED (pointwise C is a real weakening: pt_of_fall, c_needed); filter CONFIRMED (matches independently derived grant-INIT delays on all 9 arbiters); band change CONFIRMED for the 16 xarbnet outputs (only hMax lines move), UNVERIFIED for xevents9par/ipow/xorshift (no rerun committed) | audit/findings/P18.md 1e, 2, 4 | the settle-bound artefact moved to ~1000 s, not removed; a bound on idle time conflicts with THE goal's H_ENV (no timing assumption on the harness) |
 | formal | 2f2e632d | work toward THE goal (bitstream theorem: formal/target/, Formal/Target/Spec.lean, decoder round trip) | none yet | audit/findings/P18.md 5; git ls-tree (checked by me) | THE goal was set 2026-10-31 ~17:30 UTC; every ArbEnv field, QQuiet, hbase, ArbOrd is an assumption about the circuit's own behaviour, which THE goal forbids |
 | formal | 464c5ea7 | every module builds; only standard axioms | CONFIRMED | audit/logs/formal_build_464c5ea7.log (NChk modules one at a time, peak RSS 0.8-7.7 GB, all EXITMOD 0) + formal_build_464c5ea7_r2.log (resumed after a container restart: EXIT 0, 3899 jobs); axiom_par_464c5ea7.log + axres_464c5ea7.txt (1058 modules, 119260 constants, bad 0, no-result 0) | |
