@@ -534,3 +534,6 @@ OVERSTATED. At 1x the occupied spread is already 1.7-2.2x.
 The container restarted around 03:20 (disk kept; Lean, toolchain and worktrees intact). BQ#2 seed 7 2x draw 2
 (claimed "FAIL errs 3"): seed-7 route md5s reproduced again. Vectors 0-9 finished before the restart: vec 7 and
 8 fail (laps 1, errs 1); the rest pass at TEND 30 us. Vectors 10-15 relaunched.
+
+### progress 03:37
+BQ#2 seed 7 2x draw 2: errs 3 on vectors 7, 8, 12 (the same signature as seed 6 / uori3), others progress. CONFIRMED.

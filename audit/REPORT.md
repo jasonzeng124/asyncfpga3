@@ -107,6 +107,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| research | a05c4b0e | "BQ#2 seed 7 2x draw 2 FAIL errs 3" | CONFIRMED (errs 3: vectors 7, 8, 12) | audit/r23/route7b.log (md5s again), s7_2x_d2.log (v0-9), s7_2x_d2b.log (v10-15; same netlist_baked e766c66d), TEND 30 us | same 7/8/12 signature as seed 6 draw 1 (uori3); cause on seed 7 not traced. All other vectors run to TEND without stalling |
 | research | d57bd982 | BQ#2 "seed 9 2x draw 1 PASS 16/16 (49/39/58)"; draw 1 "2x PASS 3/4 (seed 6 = uori3)" | CONFIRMED (exactly, no stalls); with seeds 6/7/8 all four 2x draw-1 rows reproduced by me | audit/r23/s9_2x.log (seed-9 route md5s reproduced) | every vector errs 0, last lap > 150.0 us |
 | research | 8101f249 | BQ#2 "seed 9 SLOW_MAX PASS 16/16 laps 31/25/36 (sdf 4a9b218e)" | CONFIRMED (exactly, and no stalls) | audit/r23/route9.log (sdf 4a9b218e, xray 0117760c reproduced), s9_max.log | every vector errs 0 with last lap > 147 us of 150 |
 | research | 53ad0e38 | BQ#2 seed 6 unconstrained 2x draw 2: "FAIL errs 15 (15 of 16 vectors break in the first laps)" | CONFIRMED (errs 15) | audit/r23/route6b.log (md5s again), s6_2x_d2.log (TEND 30 us) | in fact 16/16 vectors stop within 1-4 laps; vec 0 stalls with errs 0 |
