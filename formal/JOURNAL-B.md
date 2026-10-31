@@ -1525,3 +1525,19 @@ In (core Lean; checked here through the private olean build formal/tools-B/privb
 - Blcw RigLapsWit: the auditor's P13 instance of lap_cut_fails taken into the library
   (lap_cut_fails_instance; auditor's construction, credited). Shows consistency of the
   hypotheses on a channel map that is not a gcd_hw run.
+
+### progress 07:35
+Bwit step 1 (Python only, UNTRUSTED; formal/tools-B/bwit/bsim.py, output bsim.out): a
+GATE-TIMED gcd_hw run for the driver-bound network exists in simulation. C's unit-delay
+simulator (tools/capwit/sim.py, imported read-only) with every B-tied operator given an
+explicit node (fork N=2..4 ack C-element, 2-join request C-element, steer branches, steer
+OR: node(t+1) = excitation(t), channel = node one tick later; links already LUT 1 + wire 1):
+a=12,b=18 quiescent at 589, out0 closes at 585 with 6; C's own Python checker (every Cell
+field, Held, start once) 0 violations; all 441 bound tied pins (FiniteNetBound's
+reqSrc/ackSrc re-implemented) are exact delayed copies of their bound driver's node, wire
+delay 1 (362), 2 (74), 3 (5) (fork outputs and join input acks are longer wires).
+Also a=27,b=6 (gcd 3): same. Negative control (--neg, steer branch drivers swapped): 63
+pins flagged. So the obstruction chW_steer_unwired is a property of C's run chW, not of C's
+models: C's operator models are speed-independent and accept B's 2-tick gates. Not yet
+Lean. Lean needs (notes/B-finite-net-bound.md): the checkers of FiniteNetWit2Lib with pin
+wires w in {1,2,3} and bound drivers, and H_TIMES restricted to existing edges.
