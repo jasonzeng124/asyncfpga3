@@ -35,15 +35,12 @@ def mutCells : List Cell := Uori0.cells.set 5 (.lut 6 [.inp 0 5, .inp 1 5] 76)
 /-- The mutated netlist does NOT pass the certificate (kernel). -/
 theorem uori0_mut_rejected : ¬ BitLocal mutCells Uori0.outs orS orSpec := by decide +kernel
 
-/-- ... and the mutated unit really computes something else at a = b = 2^5. -/
+-- ... and the mutated unit really computes something else at a = b = 2^5:
 #eval (unitVal mutCells Uori0.outs [32, 32], unitVal Uori0.cells Uori0.outs [32, 32]) -- expect (0, 32)
 
--- Lean-side evaluation on fixed vectors (compare with BC_netcmp.py / Python values below)
-#eval unitVal Uaddi0.cells Uaddi0.outs [0xFFFFFFFF, 1]          -- expect 0
-#eval unitVal Uaddi0.cells Uaddi0.outs [0x89ABCDEF, 0x76543210] -- expect 0xFFFFFFFF = 4294967295
-#eval unitVal Ushrsi0.cells Ushrsi0.outs [0x80000001, 1]        -- expect 0xC0000000 = 3221225472
-#eval unitVal Ushrsi0.cells Ushrsi0.outs [0x80000001, 4]        -- shift 4 (outside theorem): expect 0xF8000000 = 4160749568
-#eval unitVal Ushrsi0.cells Ushrsi0.outs [0x7FFFFFF0, 3]        -- expect 0x0FFFFFFE = 268435454
-#eval (Ops.shrsi 32 0x80000001 4, Ops.shrsi 32 0x7FFFFFF0 3)
+-- Lean-side evaluation (small units only; the closure-based `run` is exponential under #eval on
+-- the deep shifter/adder cones, so those are covered by the auditor's Python simulator instead)
 #eval unitVal Ucmpi0.cells Ucmpi0.outs [0]                      -- expect 1
 #eval unitVal Ucmpi0.cells Ucmpi0.outs [0x00010000]             -- expect 0
+#eval unitVal Uori1.cells Uori1.outs [0x0F0F0000, 0x000000F0]   -- expect 0x0F0F00F0 = 252641520
+#print axioms uori0_mut_rejected

@@ -38,18 +38,18 @@ def pinCensus : Nat × Nat × Nat × Nat :=
 
 #eval pinCensus
 
-/-- channels whose request / acknowledge driver the netlist leaves to a contract cell -/
+-- channels whose request / acknowledge driver the netlist leaves to a contract cell
 #eval ((List.finRange NC).filter fun c => (reqSrc FU c).isNone).length
 #eval ((List.finRange NC).filter fun c => (ackSrc FU c).isNone).length
 #eval NC
 
-/-- wire delay histogram over all channels (request, acknowledge) -/
+-- wire delay histogram over all channels (request, acknowledge)
 #eval ((List.finRange NC).map fun c => wR c).foldl (fun (a : Nat × Nat × Nat) w =>
   if w = 1 then (a.1 + 1, a.2) else if w = 2 then (a.1, a.2.1 + 1, a.2.2) else (a.1, a.2.1, a.2.2 + 1)) (0, 0, 0)
 #eval ((List.finRange NC).map fun c => wA c).foldl (fun (a : Nat × Nat × Nat) w =>
   if w = 1 then (a.1 + 1, a.2) else if w = 2 then (a.1, a.2.1 + 1, a.2.2) else (a.1, a.2.1, a.2.2 + 1)) (0, 0, 0)
 
-/-- activity: total request edges, number of channels with at least one edge, max edge time -/
+-- activity: total request edges, number of channels with at least one edge, max edge time
 #eval (((List.finRange NC).map fun c => (cdB c).rq.length).foldl (· + ·) 0,
   ((List.finRange NC).filter fun c => (cdB c).rq.length > 0).length,
   ((List.finRange NC).map fun c => (cdB c).rq.getLastD 0).foldl max 0)
@@ -79,3 +79,13 @@ def fork2 : List Nat :=
 #eval fork2.take 5
 
 def GfOr (p : Fin 2 → Bool) (_q : Bool) : Bool := p 0 || p 1
+
+def o0 : Fin NO := ⟨0, by decide⟩
+def outs0 : List (Fin NC) := (forkOuts (opAt o0)).getD []
+#eval outs0
+theorem fork0_orig : celB Gf2 (fun i : Fin 2 => (cdB (outs0.getD i.val d0)).ak) (lstN (.fa o0)) = true := by
+  decide +kernel
+theorem fork0_mut_or : celB GfOr (fun i : Fin 2 => (cdB (outs0.getD i.val d0)).ak) (lstN (.fa o0)) = false := by
+  decide +kernel
+#print axioms mut_20
+#print axioms fork0_mut_or

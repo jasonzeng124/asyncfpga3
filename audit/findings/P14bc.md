@@ -3,11 +3,18 @@
 Code under test: clean checkout of formal commit 0780fd30 in /root/wt-f14 (read only). Auditor
 files: /home/user/asyncfpga3/audit/lean/P14/BC_*. git not touched.
 
-STATUS: in progress (sections are written as each claim is finished).
+STATUS: final. Clean lake build of 0780fd30: EXIT 0, "Build completed successfully (3636 jobs)", 0 `error:` lines
+(audit/logs/formal_build_0780fd30.log). Auditor Lean files compile (rc 0) with `lake env lean`.
 
 ## Summary table
 
-(filled at the end)
+| # | claim | verdict | one-line reason |
+|---|---|---|---|
+| C1 | d63d5221 TxWin indexed by occurring transactions + finite and real-gcd_hw-run DAG witnesses | CONFIRMED (repair) / OVERSTATED ("real-run DAG certificate") | `count`/`idle`/`win` now conditioned on `HasOff`; P12a row 18 obstruction gone; but `out0_dag_witness`'s obligation netlist is invented to reproduce the observed bus (BCert.dag does not bind the netlist), covers 1 of 26 roots, and phys4/phys5 still have only exempt/ghost witnesses (disclosed in journal/note, not in commit message) |
+| C2 | c04f525a/0780fd30 H_COMPUTE_FN for 14/20 units, every input; shifters with e1 = 1 | CONFIRMED | statements `∀ a b`; spec = pre-existing `Ops.*`; own extractor: Lean data = committed fixture AND an independent build, cell for cell; own simulator 0 mismatches; e1 is a constant-1 token in gcd_kernel.v; INIT mutant rejected by kernel. Not linked to capstone `Join.dat` (disclosed); fixture not certified by its sha256 line |
+| B1 | 8bb6d160/e20eb4cb/a0337827 Bwit joint witness of `gcd_hw_safe_fin_netB` | CONFIRMED with precision notes | genuine closed gate-level run (tied nodes drive pins of netlist-named cells, real gate functions, out0 = 6 for a=12, b=18); but one run, unit delays, width-0 windows; binding only where netlist names a B cell: 63/175 links both sides, 223 of 729 tied-cell pins driven by pinless contract cells; "112 link sides" miscount (137 sides); H_OTHER/H_BUNDLE still assumed; negative control only tests data consistency |
+| B2 | fa430509/65522b83 FiniteNetBoundM 124/175, Bwit2 | CONFIRMED | census kernel-checked; no FGcdNetOKBM witness exists, as stated ("possibly vacuous") |
+| B3 | 3aed4ede chW_net_not_bound; 629c4401 caveats | CONFIRMED | real proof (axioms: propext); 8 theorem-docstring caveats present; module headers of FiniteNetMixed/FiniteOrN still carry old wording |
 
 ## C1. d63d5221: "TxWin indexed by the transactions that occur (audit P12a row 18) + finite and real-gcd_hw-run DAG-certificate witnesses"
 
@@ -132,8 +139,14 @@ certificate. The journal/note text discloses both limits.
    n35 via fork n36, ushrsi2 from n67/n68, ushrsi3 from n93/n94, ushrsi4 from n154/n155). So e1 is
    1 in every token gcd_hw offers; at the token level the hypothesis is justified. (The latch
    content before the first token is not 1, but no token is consumed then.)
-5. Lean mutation (BC_ComputeMut.lean, results below): uori0's bit-5 LUT INIT 14 (OR) changed to 6
-   (XOR) is rejected by the kernel certificate.
+5. Lean (BC_ComputeMut.lean, rc 0): `#check` confirms the four statement shapes quoted in (b);
+   axioms of all nine headline theorems checked are within [propext, Classical.choice,
+   Quot.sound]; mutation: uori0's bit-5 LUT INIT 14 (OR) -> 6 (XOR) gives
+   `uori0_mut_rejected : ¬ BitLocal mutCells Uori0.outs orS orSpec` by `decide +kernel` (axioms
+   propext, Quot.sound), and `#eval` shows the mutant computes 0 instead of 32 at a = b = 32.
+   Spot evaluations of the Lean evaluator (ucmpi0, uori1) agree with the Python simulator. (An
+   `#eval` of the shifter/adder cones did not finish in 20 min: `run` is closure-based and
+   exponential under `#eval`; their proofs use cut points, so this does not affect them.)
 
 (d) Wording. "e1 = 1" is stated in the commit message, the journal (09:13) and each
 Compute/GcdShrsi*.lean docstring ("NOT shown: other shift amounts"). notes/C-hcf-compute.md was
@@ -188,7 +201,21 @@ own sha256 line does not certify it (independent build used instead).
   checkers (linkB, celB with cel2/3/4, stB, orB) on the real gate functions. C's checkers (kChk,
   heldChk) give H_OTHER (in fact all 367 operators) and H_BUNDLE on chB.
 
-(c)/(d) Findings. (census numbers from BC_BwitCensus.lean, below)
+(c)/(d) Findings. Census by the auditor (BC_BwitCensus.lean, `#eval` on their definitions, rc 0):
+- tied cells with pins: 391; their pins: 729, of which 506 driven by tied cells and 223 (31%)
+  driven by pinless contract cells; channels whose request driver the netlist leaves to a contract
+  cell: 140 of 465; acknowledge: 123 of 465;
+- wire delays: request 438 x1, 24 x2, 3 x3; acknowledge 377 x1, 86 x2, 2 x3;
+- activity: 1126 request edges in total, 407 of 465 channels toggle, last edge at 584; out0
+  request edges [530, 584], acknowledge [531, 585]: one token, value 6;
+- negative controls (kernel): `orig_20 : wireChk 20 = true`, `mut_20 : wireChk' 20 = false`
+  (channel 20 request wire 2 -> 1, the journal's mutant, reproduced without editing their data);
+  gate mutant: fork op 0 (outputs = channels 3, 4) `fork0_orig : celB Gf2 ... = true` and
+  `fork0_mut_or : celB GfOr ... = false` (the same traces fail when the C-element is replaced by
+  an OR), so the gate checks discriminate the gate function;
+- axioms: gcd_hw_fin_netB_witness, gcd_hw_fin_netB_consistent, bwit_ok, gcd_hw_safe_fin_netB:
+  [propext, Classical.choice, Quot.sound]; Rej.chW_net_not_bound: [propext].
+
 1. Not degenerate in the sense asked. Cells are not "tied to constants": "tied" means a gate-model
    cell whose pins are tied to C's channel traces. In the witness each tied cell's output node IS
    the channel signal it drives, and each of its pins is (kernel-checked) the node of the cell the
@@ -225,8 +252,20 @@ own sha256 line does not certify it (independent build used instead).
    (bw_c1 -> bwit_ok), but it tests only the consistency of the declared wire delay with the
    pre-computed traces; it cannot "break the theorem" (an implication) and it does not test that
    the gate checks or the binding reject a wrong circuit. The binding side is covered by
-   `chW_net_not_bound`; for the gate side I added a mutant (fork acknowledge C-element checked
-   as OR), result below.
+   `chW_net_not_bound`; for the gate side my fork mutant (C-element checked as OR) is rejected.
+
+Plain words of `gcd_hw_fin_netB_witness`: "for a = 12, b = 18 there is ONE concrete set of
+finite channel traces and ONE gate-level elaboration such that: every link / small fork / 2-input
+join / steer cell obeys its LUT gate function with delay exactly 1, reading its inputs through
+wires of fixed delay 1-3 from the cells the netlist names (or from a free contract cell where the
+netlist names a mux, amerge, source, sink, wide join or fork tree); C's operator models and
+bundling hold on the same traces; and out0 delivers one token with value 6."
+
+Verdict B1: CONFIRMED that the driver-bound theorem is jointly satisfiable by a real
+(non-relabelled) gate-level run; OVERSTATED only in details: "112 link sides" (137), and
+FEASIBILITY's "every tied cell's pins driven by the netlist-named cell" without the 63/175 and
+contract-cell (223/729 pins) qualification. The single-run / unit-delay / width-0-window /
+H_OTHER / H_BUNDLE limits are disclosed.
 
 ## B2. fa430509 / 65522b83: FiniteNetBoundM (124/175) and Bwit2
 
@@ -259,3 +298,28 @@ Verdict B2: CONFIRMED (accurately scoped; "Bwit2 step 3" is checker soundness, n
   cell carries B's gate model except ...", "contracts remain on ...") is kept in front of each
   caveat, and the MODULE headers FiniteNetMixed.lean:20-26 and FiniteOrN.lean:28-35 still carry
   it with no caveat in that bullet. Minor. CONFIRMED (with that nit).
+
+## Auditor files and runs
+
+All run after the clean build (EXIT 0) with
+`export PATH=$HOME/audit-lean/lean-4.35.0-linux/bin:$PATH; cd /root/wt-f14/formal/lean && lake env lean <file>`,
+one process at a time. Outputs saved next to each file (`.out`).
+
+| file | purpose | exit |
+|---|---|---|
+| audit/lean/P14/BC_TxWinAxioms.lean | C1: new `TxWin.count` statement, `out0_dag_witness` statement, axioms (out0_dag_witness, fin_witness, out0_dag_cert: propext, Classical.choice, Quot.sound) | 0 |
+| audit/lean/P14/BC_ComputeMut.lean | C2: statement shapes, axioms, uori0 INIT mutant rejected (kernel), Lean-vs-Python spot evaluations | 0 |
+| audit/lean/P14/BC_BwitCensus.lean | B1/B3: axioms, pin/driver census, wire-delay histogram, activity, wire-delay mutant and fork-OR gate mutant (kernel) | 0 |
+| audit/lean/P14/BC_netcmp.py | C2: independent extraction/compare of Lean unit data vs yosys JSON + independent simulation (`python3 -I BC_netcmp.py <synth.json> <GcdD dir> <units...>`), run on the fixture and on /root/wt-r14/cells/build/hw/gcd_hw/gcd_hw.json | 0 |
+
+No sorry, no native_decide in the audited files' axioms (all within propext / Classical.choice /
+Quot.sound).
+
+## Auditor's re-check (main session)
+- Re-ran BC_BwitCensus.lean, BC_ComputeMut.lean, BC_TxWinAxioms.lean: rc 0 each, no errors, no sorry.
+- Read CapstoneRefineOut0Wit.lean:100-235 myself. oNet/oG is a 5-node chain (v1 := false, v2 := p1, v3 := p2,
+  v4 := p3) with oSig fixing data bits 1,2,3 to 0,1,1, so zdBus = 6 by construction (o_zdBus). The certificate
+  netlist is not the gcd_hw datapath, so the relabelling finding is CONFIRMED.
+- The fixture "hash mismatch" in C2 is NOT a defect. trim.py:5/32 writes gcd_hw_<s>.synth.json containing only
+  non-blackbox modules, while the .sha256 json line is the untrimmed nextpnr input, so they cannot match. The fasm
+  and fromBit.fasm hashes match (b73e1ba0, a93664d1). Withdrawn as a caveat.

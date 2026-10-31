@@ -595,3 +595,11 @@ CONFIRMED: design_verdict9_full_arb / arbnet_edge (conditional, assumptions list
 SeqXray SLICEM. UNVERIFIED: the "md5s reproduce" claims for the 10-31 rebuilds (no record committed). OVERSTATED
 (minor): ArbEdge window wording in FEASIBILITY/HOWTO and the stale "beyond ANY bound" text. Axiom audit of
 0780fd30 running (snapshot audit/logs/axres_0780fd30.txt). P14bc still running.
+
+### progress 10:28
+P14bc in. I re-ran its 3 Lean files (rc 0) and read out0_dag_witness myself. OVERSTATED: the "real gcd_hw run"
+DAG certificate uses a hand-made 5-node obligation netlist whose bus value is 6 by construction (a relabelling);
+the TxWin repair itself is CONFIRMED. Bwit joint witness CONFIRMED and not degenerate, but FEASIBILITY's "every tied
+cell's pins driven by the netlist-named cell" drops the 63/175 and contract-cell qualifiers (OVERSTATED).
+H_COMPUTE_FN for 14 units CONFIRMED with my own netlist transcription check. The subagent's "fixture hash
+mismatch" is withdrawn: trim.py makes synth.json a trimmed netlist by design.
