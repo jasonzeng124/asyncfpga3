@@ -699,7 +699,7 @@ checks by kernel decide. Assumed: shard A's LUT/MUXF/CARRY4 Boolean models; NOT 
 the link to the capstone's Join.dat. One kernel decide over all 32 adder bits needed 13 GB and
 was OOM-killed under check.sh; split into one theorem per bit (1.3 GB, 211 s).
 
-### progress 09:13
+### progress 08:50
 Committed after my own `./check.sh` (12 files, 1977 declarations, OK): the five arithmetic
 shifts ushrsi0..4 compute `$signed(a) >>> 1` for every `a` when their `e1` port carries 1 (the
 only value it carries in gcd_hw: a constant-1 token; the Ops join has `.lit 1`). The units are
@@ -707,3 +707,17 @@ general 32-bit barrel shifters; new `Fold.lean` propagates the fixed shift amoun
 cofactors and MUXF selects (`fold_sound`), so each output bit's folded support is <= 2 input bits.
 NOT shown: other shift amounts. 14 of 20 units done. Signed compare (uori2/3/4, uselect0) proved
 in my runs (`Slt.lean`: lexicographic CARRY4 chain, structural via `run_cell`); checking next.
+
+### progress 09:10
+More H_COMPUTE_FN, proved in my runs (check pending): signed compare (`Slt.lean`: lexicographic
+CARRY4 chain; the chain is checked STRUCTURALLY through a new generic `run_cell`: a cell's
+equation over the final net values in a duplicate-free, locally topological netlist) for uori2/3/4
+(`((e2&e3)!=0) | slt(e0,e1)`) and uselect0 (`slt ? e0 : e1`); `Ripple.lean` (general ripple chains:
+operands from any leaves, complements, carry-in) for uselect1 = `d = e0-e1; d > -1 ? d : 0-d` (the
+abs-difference unit where the gcd_rig GLS located the board failure: its synthesized FUNCTION is
+right for every input; the failure was a timing event, not addressed); ushli0 = `e0 << k` for every
+`e0` and every k < 32 (32 fixed-k certificates through the constant folder, ~1 h of kernel time).
+The four routed gcd_hw seeds have byte-identical yosys synthesis JSON (md5 e81e3f53...), so the unit
+theorems hold for all four routes' logical netlist; 11f/11g carry it to the placed instances.
+Kernel memory: one decide over 4096 assignments took 7.8 GB; split by assignment ranges
+(`localOK_of_ranges`, 0.9 GB).

@@ -24,6 +24,14 @@ capstone's integer semantics (`GcdHw.Ops`).
 | ucmpi3 | `(e0 & e1) == 0` (1 b) | `ucmpi3_fn` | exhaustive |
 | ucmpi0, 1, 8, 10 | `e0 == 32'h0` | `ucmpi*_fn` = `Ops.cmpi .eq 32 a 0` | `EqZOK`: 4 groups of 8 bits as cut points |
 | uaddi0 | `e0 + e1` (32 b) | `uaddi0_fn` = `Ops.addi 32` | `AddOK`: ripple adder, the 8 CARRY4 carry-outs as cut points |
+| ushrsi0..4 | `$signed(e0) >>> e1`, with `e1 = 1` (the only value gcd_hw feeds it) | `ushrsi*_fn` = `Ops.shrsi 32 a 1` | `ShrOK`: port 1 fixed to 1 and folded through LUT cofactors / MUXF selects (`Fold.lean`) |
+| uori2, 3, 4 | `((e2 & e3) != 0) \| slt(e0, e1)` | `uori*_fn` | `SltOK` (signed compare: 22 group LUTs exhaustive, CARRY4 chain structural via `run_cell`, final over cuts) + output over the compare net |
+| uselect0 | `slt(e0, e1) ? e0 : e1` | `uselect0_fn` | `SltOK` + per-bit mux over the compare net |
+| ushli0 | `e0 << e1`, every `e0`, every shift amount `k < 32` | `ushli0_fn` = `Ops.shli 32 a k` | 32 `FixShOK` certificates (`e1 = k` folded), `GcdShli0K0..3` |
+| uselect1 | `d = e0 - e1; d > -1 ? d : 0 - d` | `uselect1_fn` | two `RipOK` chains (`a + ~b + 1`; `~d + 1` over the 32 difference nets as cuts), sign test over cuts, per-bit mux |
+
+The four routed gcd_hw seeds (d, 2, 3, 4) have byte-identical synthesis JSON (md5 e81e3f53...),
+so every unit theorem holds for all four routes' logical netlist.
 
 **Assumed:** the Boolean semantics of LUT (its INIT table), MUXF7/8 and CARRY4 (shard A's
 `Formal.Core.Prims` models; CARRY4 `c0 = CI | CYINIT` as in UNISIM); that the netlist is the one
@@ -31,9 +39,10 @@ placed and routed (the bitstream import 11f/11g proves each placed instance comp
 cell under the checked renaming).
 
 **Not covered:** timing (H_COMPUTE_DELAY: the cone settles inside the matched delay, rule A);
-glitches and X; the remaining 11 units (uori2/3/4 and uselect0: signed compare; uselect1:
-abs-difference, where the gcd_rig GLS located the board failure; ushli0, ushrsi0-4: barrel
-shifters, whose `e1` is a full 32-bit port fed by a constant token); the link from these unit
+glitches and X; ushli0 for shift amounts `k >= 32` (gcd_hw's `k` stays below 31: a token-level
+fact, not restated here); the shifters ushrsi* for shift amounts other than 1; uselect1's board failure was a
+timing/GLS event, which a function theorem does not address (it only rules out a wrong
+synthesized function as the cause); the link from these unit
 theorems to the capstone's `Join.dat` (the RTL unit <-> Ops join map); the other routes' and
 kernels' syntheses (the extractor runs on any of them).
 
