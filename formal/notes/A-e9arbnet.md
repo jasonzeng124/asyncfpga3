@@ -129,3 +129,19 @@ evaluates ArbRowsOKSS with S = T: 9/9 on all 16 gcd_hw rows. With xevents9par CL
 meet every checked premise of `design_verdict9arbnet_ordS`, whose arbiter hypotheses are: QQuiet after S and q
 settled just before S (both observed on the seed-5 research GLS, 16 vectors, no scatter), the quiet start,
 settle bound and edge windows (ArbEdgeS minus cleanS), ArbOrd at the B1-failing readers.
+
+## Proposed next probe: AND-grant core (drops ArbOrd) — NOT started
+
+Why: ArbOrd (B1) is a condition of the corrected core's C-element grant, and the research GLS shows it can fail
+while the circuit works (σ = 0.10 draw 2). Shape of the fix:
+- In `Events9Arb.VRd`, give the virtual reader's request input TWO copies, combined by AND (the Events7 node
+  framework already has multi-copy AND pins, `PK.multi` with `op`): copy 1 = the reader's own request read `wr`
+  (band Dr), copy 2 = the request read at ustate's request-read time of the reader's q read, warp `fQ ∘ wq`
+  (band `[lo Q + lo Dq, hi Q + hi Dq]`).
+- Why it matches the real AND grant `s(wr) && e(wq)`: a fall through q comes from a flip away at `τ ≤ wq t`,
+  for which ustate read the request low at `fQ τ ≤ fQ (wq t)`, so with NoReReq copy 2 is already low. A rise
+  needs `e(wq t)` on the branch, set after ustate read the request high at `fQ τ ≤ fQ (wq t)`, so with no
+  withdrawal before the grant copy 2 is high. That is the argument of `grant_fall_after_req_fall`, turned around.
+- Work: the VRd/CoreFix/`core_of_settle` proofs in Events9Arb (B1 clause replaced), the virtual-node bands in
+  ArbOK (`rdG`/`rdS` gain the second copy), `par/cert9p.py` + `events4/model.py` (emit the 2-copy pin), and a
+  rerun. Expected: ArbRowsOK without the B1 rows, i.e. ArbRowsOKS, on all 16 gcd_hw rows, and no ArbOrd.
