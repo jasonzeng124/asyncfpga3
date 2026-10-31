@@ -1674,3 +1674,8 @@ source (1). The mux-extended witness (BWit2Net) re-checks with the regenerated w
 - C's H_OTHER (192 non-link operators) is still a hypothesis of every network theorem; for
   forks, C's Fork.wire relates the fork INPUT request, which no B cell reads (a fork is a
   wire), so it is a modelling choice of C's, not physics B can derive.
+
+### progress 10:01
+In (lake build OK): FiniteNetBoundMCensus (kernel): the 24 unbound request sides end at an
+amerge (23) or the source (1); the 15 unbound acknowledge sides at muxn (4), amerge (5),
+forkH5 (4), forkH6 (2). So the arbiter is the one class that matters for full binding.
