@@ -107,6 +107,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| research | a73267f8 | BQ#1 full stack "d SLOW_MAX 16/12/18 (sdf 6f8b99e6, = the earlier bq1_max row) ... 16/16 errs 0, EQUIVALENT" | CONFIRMED (exactly, no stalls) | audit/r23/route_bq1.sh, route_bq1.log (BOARD-QUEUE #1 command, default seed: sdf 6f8b99e6 reproduced; xray 357f17cb), bq1_d_max.log | every vector errs 0 and progressing to the end; the other 4 rows (d FAST_MIN, 3 both, 4 SLOW_MAX) not re-run |
 | research | a05c4b0e | "BQ#2 seed 7 2x draw 2 FAIL errs 3" | CONFIRMED (errs 3: vectors 7, 8, 12) | audit/r23/route7b.log (md5s again), s7_2x_d2.log (v0-9), s7_2x_d2b.log (v10-15; same netlist_baked e766c66d), TEND 30 us | same 7/8/12 signature as seed 6 draw 1 (uori3); cause on seed 7 not traced. All other vectors run to TEND without stalling |
 | research | d57bd982 | BQ#2 "seed 9 2x draw 1 PASS 16/16 (49/39/58)"; draw 1 "2x PASS 3/4 (seed 6 = uori3)" | CONFIRMED (exactly, no stalls); with seeds 6/7/8 all four 2x draw-1 rows reproduced by me | audit/r23/s9_2x.log (seed-9 route md5s reproduced) | every vector errs 0, last lap > 150.0 us |
 | research | 8101f249 | BQ#2 "seed 9 SLOW_MAX PASS 16/16 laps 31/25/36 (sdf 4a9b218e)" | CONFIRMED (exactly, and no stalls) | audit/r23/route9.log (sdf 4a9b218e, xray 0117760c reproduced), s9_max.log | every vector errs 0 with last lap > 147 us of 150 |

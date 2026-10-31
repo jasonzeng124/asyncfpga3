@@ -564,3 +564,7 @@ stall check. The seed-5 re-route reproduced 030c36bd/fc056c5b (the build is dete
 ### progress 08:04
 BQ#2 seed 5 FAST_MIN (route md5s again 030c36bd/fc056c5b): 16/16 errs 0, no stalls, 88/71/102. That equals the
 journal's "5 FAST_MIN 88/71/102" exactly. CONFIRMED. BQ#1 default-seed route + SLOW_MAX starting.
+
+### progress 08:52
+BQ#1 (top of BOARD-QUEUE) full stack, default seed: my route reproduces sdf 6f8b99e6; xray 357f17cb. SLOW_MAX 16/16
+errs 0, no stalls, 16/12/18: CONFIRMED exactly. This is the first time I have reproduced the BQ#1 full stack.
