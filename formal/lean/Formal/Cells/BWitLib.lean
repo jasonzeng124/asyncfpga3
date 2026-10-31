@@ -125,7 +125,7 @@ theorem celB_spec' {ι : Type} {k : Nat} {G : (Fin k → Bool) → Bool → Bool
     have e : (fun i => bv (pl i) t) = (fun i => bv (pl i) NB) :=
       funext fun i => bv_tail (hbp i) t ht
     rw [e, bv_tail hbn (t + 2) (by omega), bv_tail hbn t ht, bv_tail hbn (NB + 2) (by omega)]
-    have hNB : NB = 640 := rfl
+    have hNB : NB = 768 := rfl
     rw [show decide (t < 2) = false from decide_eq_false (by omega),
       show decide (NB < 2) = false from decide_eq_false (by omega)])
   have hstep : ∀ t, D.O c (t + 1) = G (fun i => (pv i).P t) (D.qp c t) (D.rst t) := by
@@ -190,7 +190,7 @@ theorem stB_spec' {ι : Type} {b : Bool} {r : List Nat} {s : Nat → Bool} {tab 
   simp only [stB, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
     Bool.not_eq_true', decide_eq_false_iff_not] at hchk
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hbr, hbn⟩, hsr⟩, htab⟩, htl⟩, hpw⟩, hlut⟩, hsel⟩, hcnt⟩, hcnt2⟩ := hchk
-  have hNB : NB = 640 := rfl
+  have hNB : NB = 768 := rfl
   have lutA : ∀ t, stQ b r s Ln t = true := all_t NB (List.all_eq_true.2 hlut) (fun t ht => by
     unfold stQ
     rw [bv_tail hbn (t + 2) (by omega), bv_tail hbr t ht, hs t ht, bv_tail hbn (NB + 2) (by omega)])
@@ -272,7 +272,7 @@ theorem orB_spec' {ι : Type} {tab : List Bool} {a0 a1 Ln : List Nat}
     Bool.not_eq_true', beq_iff_eq] at hchk
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hb0, hb1⟩, hbn⟩, hs0⟩, hs1⟩, htab⟩, hpw⟩, hlut⟩, hl2⟩, hc0⟩, hc1⟩, hcnt⟩,
     hord⟩ := hchk
-  have hNB : NB = 640 := rfl
+  have hNB : NB = 768 := rfl
   have hbB : ∀ b, bnd (lstB a0 a1 b) = true := fun b => by cases b; exact hb0; exact hb1
   have hsB : ∀ b, sortedB (lstB a0 a1 b) = true := fun b => by cases b; exact hs0; exact hs1
   have hcB : ∀ b, (lstB a0 a1 b).length ≤ 2 * cnt (σT tab) b tab.length := fun b => by

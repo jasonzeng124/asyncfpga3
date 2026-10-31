@@ -208,7 +208,7 @@ def rst2 (t : Nat) : Bool := decide (t < 2)
 def c2nB (a b q r : Bool) : Bool := !r && ((a && !b) || (a && q) || (!b && q))
 
 /-- A bound past every event of the run (the last is at tick 474). -/
-abbrev NB : Nat := 640
+abbrev NB : Nat := 768
 
 def lutQ (x y : CD) (t : Nat) : Bool :=
   bv y.rq (t + 2) == c2nB (bv x.rq t) (bv y.ak t) (bv y.rq t) (decide (t < 2))
@@ -254,7 +254,7 @@ theorem linkB_sound {x y : CD} (h : linkB x y = true) : FPhysLink x.ch y.ch := b
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hak, bx⟩, by1⟩, by2⟩, bdx⟩, bdy⟩, sx⟩, sy⟩, c0⟩, r0⟩, hlut⟩, hdat⟩, hsnd⟩,
     hrcv⟩ := h
   -- every instant, from the finite checks and the constant tails
-  have hNB : NB = 640 := rfl
+  have hNB : NB = 768 := rfl
   have lutA : ∀ t, lutQ x y t = true := all_t NB hlut (fun t ht => by
     unfold lutQ
     rw [bv_tail by1 (t + 2) (by omega), bv_tail bx t ht, bv_tail by2 t ht, bv_tail by1 t ht,

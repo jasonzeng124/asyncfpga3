@@ -118,7 +118,7 @@ theorem linkB_facts {x y : CD} (h : linkB x y = true) :
   simp only [linkB, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, Bool.not_eq_true'] at h
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hak, bx⟩, by1⟩, by2⟩, bdx⟩, bdy⟩, sx⟩, sy⟩, c0⟩, r0⟩, hlut⟩, hdat⟩, hsnd⟩,
     hrcv⟩ := h
-  have hNB : NB = 640 := rfl
+  have hNB : NB = 768 := rfl
   have lutA : ∀ t, lutQ x y t = true := all_t NB hlut (fun t ht => by
     unfold lutQ
     rw [bv_tail by1 (t + 2) (by omega), bv_tail bx t ht, bv_tail by2 t ht, bv_tail by1 t ht,
