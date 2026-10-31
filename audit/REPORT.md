@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b.
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8.
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## REFUTED / OVERSTATED
@@ -111,6 +111,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| formal | 0780fd30 | every module builds; only propext/Classical.choice/Quot.sound | CONFIRMED | audit/logs/formal_build_0780fd30.log (clean lake build EXIT 0, 3636 jobs); audit/logs/axiom_par_0780fd30.log + axres_0780fd30.txt (own collectAxioms, 795 modules, 103483 constants, bad 0, no-result 0); kwgrep 1 identifier hit | lakefile globs cover all of Formal/ |
 | formal | 0780fd30 (c04f525a, 0780fd30) | "H_COMPUTE_FN for 9 of gcd_hw's 20 compute units ... for every input" + "five shifters ushrsi0-4 ($signed(a) >>> 1 for every a, with e1 = 1)" | CONFIRMED | audit/findings/P14bc.md C2; BC_ComputeMut.lean (rc 0; uori0 INIT mutant rejected); BC_netcmp.py (own extraction: all 14 units match the fixture cell for cell; 5 units also match my independent gcd_hw.json build) | statements are forall a b vs the capstone's Ops (independent spec); own simulator 0 mismatches vs bdc Verilog; e1 = 1 justified (gcd_kernel.v feeds 32'h1) and stated. Not yet linked to the capstone (it still assumes H_COMPUTE_FN); notes/C-hcf-compute.md stale |
 | formal | 0780fd30 (d63d5221) | TxWin indexed by occurring transactions (answers audit P12a row 18) | CONFIRMED (repair) | audit/findings/P14bc.md C1; BC_TxWinAxioms.lean (rc 0) | idle/count/win quantify only over transactions that occur; last window open-ended; fin_witness is a genuine finite-channel dag certificate |
 | formal | 0780fd30 (fa430509, 65522b83) | FiniteNetBoundM "124/175 links bound both sides ... NO witness yet"; Bwit2 meets C's hypotheses | CONFIRMED (as stated, incl. "no witness") | audit/findings/P14bc.md B2 | census kernel-checked 124/25/25/1 |
