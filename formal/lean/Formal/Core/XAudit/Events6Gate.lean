@@ -47,23 +47,52 @@ def gt (d : Design) (gi : Nat) : GSpec := d.gates.getD gi default
 theorem gt_mem (d : Design) {gi : Nat} (h : gi < d.gates.length) : gt d gi ∈ d.gates := by
   unfold gt; rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]; exact List.getElem_mem h
 
-section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+/-- **`SatPinW`**: a per-pin behaviour WITH its warps (data, not just existence): gate number `gi`
+reads input `i` through `f gi i`. Every `SatPin` behaviour has one (`SatPinW.ofSat`, by choice), and
+every `SatPinW` is a `SatPin` behaviour (`SatPinW.toSat`). Trace hypotheses stated on `wf hsat` /
+`tau hsat` (e.g. the arbiter's `ArbOrd`) then speak about the warps the USER supplies, so they can be
+discharged for a chosen behaviour (2026-10-31, audit P15a: with `SatPin` they spoke about a
+classically chosen witness, which no one controls). -/
+structure SatPinW (d : Design) (pl : PinTab) (x : Fin d.n → Sig) where
+  f : Nat → Nat → Nat → Nat
+  warp : ∀ gi, gi < d.gates.length → ∀ i, i < (gt d gi).k →
+    Warp (pl (gt d gi) i).1 (pl (gt d gi) i).2 (f gi i)
+  eval : ∀ gi, gi < d.gates.length → ∀ t, x (d.wire (gt d gi).out) t =
+    (gt d gi).init.testBit (addr (fun p : Fin (gt d gi).k => x (d.wire ((gt d gi).ins.getD p.val 0)) (f gi p.val t)))
 
-/-- The warp with which gate `gi` reads its input `i`. -/
-noncomputable def wf (gi i : Nat) : Nat → Nat :=
-  if h : gi < d.gates.length then Classical.choose (hsat _ (gt_mem d h)) i else id
+theorem gt_idx {d : Design} {g : GSpec} (hg : g ∈ d.gates) : ∃ gi, gi < d.gates.length ∧ gt d gi = g := by
+  obtain ⟨gi, hgi, he⟩ := List.getElem_of_mem hg
+  refine ⟨gi, hgi, ?_⟩
+  unfold gt; rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hgi]; exact he
+
+/-- Every `SatPinW` behaviour is a `SatPin` behaviour. -/
+theorem SatPinW.toSat {d : Design} {pl : PinTab} {x : Fin d.n → Sig} (w : SatPinW d pl x) : SatPin d pl x := by
+  intro g hg
+  obtain ⟨gi, hgi, he⟩ := gt_idx hg
+  subst he
+  exact ⟨w.f gi, w.warp gi hgi, w.eval gi hgi⟩
+
+/-- Every `SatPin` behaviour has warps (by choice). -/
+noncomputable def SatPinW.ofSat {d : Design} {pl : PinTab} {x : Fin d.n → Sig} (h : SatPin d pl x) : SatPinW d pl x where
+  f := fun gi => if hg : gi < d.gates.length then Classical.choose (h _ (gt_mem d hg)) else fun _ t => t
+  warp := fun gi hg i hi => by
+    simp only [dif_pos hg]; exact (Classical.choose_spec (h _ (gt_mem d hg))).1 i hi
+  eval := fun gi hg t => by
+    simp only [dif_pos hg]; exact (Classical.choose_spec (h _ (gt_mem d hg))).2 t
+
+section
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+
+/-- The warp with which gate `gi` reads its input `i` (the behaviour's own warp). -/
+def wf (gi i : Nat) : Nat → Nat := hsat.f gi i
 
 theorem wf_warp {gi i : Nat} (h : gi < d.gates.length) (hi : i < (gt d gi).k) :
-    Warp (gt d gi).lo (gt d gi).hi (wf hsat gi i) := by
-  unfold wf; rw [dif_pos h]
-  exact (Classical.choose_spec (hsat _ (gt_mem d h))).1 i hi
+    Warp (gt d gi).lo (gt d gi).hi (wf hsat gi i) := hsat.warp gi h i hi
 
 theorem wf_eval {gi : Nat} (h : gi < d.gates.length) (t : Nat) :
     x (d.wire (gt d gi).out) t = (gt d gi).init.testBit
-      (addr (fun p : Fin (gt d gi).k => x (d.wire ((gt d gi).ins.getD p.val 0)) (wf hsat gi p.val t))) := by
-  have := (Classical.choose_spec (hsat _ (gt_mem d h))).2 t
-  unfold wf; simp only [dif_pos h]; exact this
+      (addr (fun p : Fin (gt d gi).k => x (d.wire ((gt d gi).ins.getD p.val 0)) (wf hsat gi p.val t))) :=
+  hsat.eval gi h t
 
 /-- A warp with `1 ≤ lo` reads time `0` at `0` and `1`. -/
 theorem warp_pred {lo hi : Nat} {f : Nat → Nat} (w : Warp lo hi f) (h1 : 1 ≤ lo) (t : Nat) : f t = f (t - 1 + 1) := by
@@ -88,7 +117,7 @@ instance (g : GSpec) (spec : (Nat → Bool) → Bool) : Decidable (InitSpec g sp
   unfold InitSpec; exact inferInstance
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -118,7 +147,7 @@ end
 abbrev Path := List (Nat × Nat)
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 /-- The composed warp of a path (the head pair is applied first). -/
 noncomputable def tau : Path → Nat → Nat
@@ -152,7 +181,7 @@ theorem phi_append (d : Design) : ∀ p q : Path, phi d (p ++ q) = phi d p + phi
   | (gi, i) :: r, q => by simp only [List.cons_append, phi, phi_append d r q]; omega
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 theorem tau_warp : ∀ (p : Path), pathOK d p = true → Warp (plo d p) (phi d p) (tau hsat p)
   | [], _ => ⟨fun _ _ h => h, fun t => by simp [plo, tau], fun t => by simp [phi, tau]⟩
@@ -305,7 +334,7 @@ theorem length_one {L : List Nat} (h : L.length = 1) : L = [L.headD 0] := by
   | [a], _ => rfl
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -425,7 +454,7 @@ theorem plo_le_phi {d : Design} (hwf : d.WF) : ∀ (p : Path), pathOK d p = true
       simp only [plo, phi]; omega
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 theorem pairW_sound (hwf : d.WF) (p q : Path) (hp : pathOK d p = true) (hq : pathOK d q = true) (t : Nat) :
     tau hsat p t ≤ tau hsat q t + pairW d p q ∧ tau hsat q t ≤ tau hsat p t + pairW d p q := by

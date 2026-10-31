@@ -119,7 +119,7 @@ theorem held_wire {n : Nat} {x : Fin n → Sig} {rq ak : Fin n} {ws : List (Fin 
 def isBuf (g : GSpec) : Prop := g.k = 1 ∧ InitSpec g (fun v => v 0)
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include hsat h0 h1
 
@@ -186,7 +186,7 @@ end
 /-! ## Stability of a select pin wire from H_BUNDLE -/
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include hsat h0 h1
 
@@ -250,7 +250,7 @@ theorem design_verdict9_selC (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
     (m : (j : Fin N) → Fin (net.ar j) → Nat → SelEnt)
     (hm : ∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
       entOK d net rn j p sb.1 (m j p sb.1) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

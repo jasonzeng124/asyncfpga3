@@ -236,7 +236,7 @@ instance (T T0 : Nat) : Decidable (ArbRowsOK d a T T0) := by unfold ArbRowsOK; e
 end
 
 section
-variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x) (rn : Fin N → RNode)
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) (rn : Fin N → RNode)
   (a : ArbD N)
 
 /-- **The edge-window conditions of one arbiter** (hypotheses on the traces of `d`): `QClean` for
@@ -263,7 +263,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 

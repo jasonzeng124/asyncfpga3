@@ -117,7 +117,7 @@ theorem botP_ok (hr : Recog6 d net b rn rank rw fuel) (j : Fin N) (hvf : (rn j).
 /-- **`selAt_setJ`**: `Events9PrefixSel.selAt_split` with the setup premise anchored at a
 setup cut `scut` of each copy (per literal), instead of the source-anchored pair `hwin` /
 `hsetup`. -/
-theorem selAt_setJ (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel)
+theorem selAt_setJ (hsat : SatPinW d plG x) (hr : Recog6 d net b rn rank rw fuel)
     (bh : Beh7 net b sel)
     (hsv : ∀ j, (rn j).virt = false → ∀ p s, bh.sv j p s = svOf (rn := rn) hsat j p s)
     (hG : ∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1))
@@ -213,23 +213,23 @@ variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {sel : Nat → N
   {x : Fin d.n → Sig}
 
 /-- Every request leaf's read shows (at least) transaction `k` at time `t`. -/
-def ReqUp (bh : Beh7 net b sel) (hsat : SatPin d plG x) (ls : List (Nat × Path)) (k t : Nat) : Prop :=
+def ReqUp (bh : Beh7 net b sel) (hsat : SatPinW d plG x) (ls : List (Nat × Path)) (k t : Nat) : Prop :=
   ∀ l ∈ ls, 2 * k + 1 ≤ Mn bh (tau hsat l.2 t) l.1
 
 open Classical in
 /-- **`Ofirst`**: the first time every request leaf's read shows transaction `k` (0 if never):
 the request wire's rise for transaction `k` in count terms. -/
-noncomputable def Ofirst (bh : Beh7 net b sel) (hsat : SatPin d plG x) (ls : List (Nat × Path)) (k : Nat) : Nat :=
+noncomputable def Ofirst (bh : Beh7 net b sel) (hsat : SatPinW d plG x) (ls : List (Nat × Path)) (k : Nat) : Nat :=
   if h : ∃ t, ReqUp bh hsat ls k t then firstUp (ReqUp bh hsat ls k) 0 (Classical.choose h) else 0
 
-theorem Ofirst_up (bh : Beh7 net b sel) (hsat : SatPin d plG x) (ls : List (Nat × Path)) (k : Nat)
+theorem Ofirst_up (bh : Beh7 net b sel) (hsat : SatPinW d plG x) (ls : List (Nat × Path)) (k : Nat)
     (h : ∃ t, ReqUp bh hsat ls k t) : ReqUp bh hsat ls k (Ofirst bh hsat ls k) := by
   classical
   unfold Ofirst
   rw [dif_pos h]
   exact firstUp_P _ _ 0 (by rw [Nat.zero_add]; exact Classical.choose_spec h)
 
-theorem Ofirst_le (bh : Beh7 net b sel) (hsat : SatPin d plG x) (ls : List (Nat × Path)) (k t : Nat)
+theorem Ofirst_le (bh : Beh7 net b sel) (hsat : SatPinW d plG x) (ls : List (Nat × Path)) (k t : Nat)
     (h : ReqUp bh hsat ls k t) : Ofirst bh hsat ls k ≤ t := by
   classical
   unfold Ofirst
@@ -353,7 +353,7 @@ theorem stage_copies (bh : Beh7 net b sel) (J : Fin N) (q : Fin (net.ar J))
 /-- **`su_sound`**: a passing setup row gives, for `O = Ofirst`, H_SEL_O (if the source ever
 shows transaction `k`, every request leaf is read high at `O k`) and the junction-anchored
 setup inequality of every copy. -/
-theorem su_sound (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel) (bh : Beh7 net b sel)
+theorem su_sound (hsat : SatPinW d plG x) (hr : Recog6 d net b rn rank rw fuel) (bh : Beh7 net b sel)
     (hG : ∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1))
     (j : Fin N) (hvf : (rn j).virt = false) (p : Fin (net.ar j)) (e : SelEnt) (ls : List (Nat × Path))
     (hls : ∀ l ∈ ls, pathOK d l.2 = true) (scut : Nat → Nat) (u : SU)

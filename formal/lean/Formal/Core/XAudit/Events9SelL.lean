@@ -139,7 +139,7 @@ theorem leafOK_spec {n : Nat} (h : leafOK net rn n = true) :
 end
 
 section
-variable {N : Nat} {d : Design} {rn : Fin N → RNode} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {N : Nat} {d : Design} {rn : Fin N → RNode} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 mutual
 /-- **A positive tree reads 1** when every leaf reads 1 at its path-warped time. -/
@@ -300,7 +300,7 @@ theorem design_verdict9_selTP (hr : Recog6 d net b rn rank rw fuel) (hOK : net.O
     (hrow : ∀ j p (sb : Nat × Bool) (i : Fin (net.nc j p)), (rn j).virt = false → net.pk j p = PK.filt →
       sb ∈ selLits net rn j p →
       holdBandS d net rn j p (m j p sb.1) i.val (cut j p i.val) (Dl j p i.val sb.1) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
@@ -446,7 +446,7 @@ theorem design_verdict9_selT (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
       holdBandS d net rn j p (m j p sb.1) i.val (cut j p i.val) (Dl j p i.val sb.1) = true ∧
       decide (AckLineT J (na j p sb.1).val (net.src j p).val (wa j p i.val sb.1) (Dl j p i.val sb.1)
         (phi d (botP d net rn j p i.val (cut j p i.val))) (plo d (κa j p sb.1))) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

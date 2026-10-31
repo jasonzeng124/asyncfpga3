@@ -73,7 +73,7 @@ theorem plo_pos {d : Design} (hwf : d.WF) (p : Path) (hp : pathOK d p = true) (h
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x) {cv : Fin N → Sig}
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) {cv : Fin N → Sig}
 
 /-- Input `i` of gate `L`, read at the gate's time `u`. -/
 noncomputable def vals (L i u : Nat) : Bool := x (d.wire ((gt d L).ins.getD i 0)) (wf hsat L i u)
@@ -96,7 +96,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig}
@@ -456,7 +456,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig} (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK) (harb : HARB net b rn x cv)
@@ -590,7 +590,7 @@ theorem design_verdict (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK)
     (hcp : ∀ j p, cp j p = true → backOK b j p (back j p) = true)
     (hcx : ∀ m, cxm m = true → exclOK b m (xg m) (xa0 m) (xa1 m) (xD m) (xu0 m) (xu1 m) = true)
     (hcl : ∀ j p, cl j p = true → lineOK b j p (line j p) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB net b rn x cv)
     (sel : Nat → Nat → Bool) (gc : (j : Fin N) → Fin (net.ar j) → Nat → Nat)
     (gcmono : ∀ j p a s, a ≤ s → gc j p a ≤ gc j p s) :

@@ -84,7 +84,7 @@ theorem sel_read_split {Rlo Rhi Slo Shi Tlo Thi : Nat} {gR gS gT : Nat → Nat} 
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig} (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7) (harb : HARB7 net b rn x cv)
@@ -130,7 +130,7 @@ def topP (d : Design) (net : Net4 N) (rn : Fin N → RNode) (j : Fin N) (p : Fin
 def botP (d : Design) (net : Net4 N) (rn : Fin N → RNode) (j : Fin N) (p : Fin (net.ar j)) (i n : Nat) : Path :=
   (full net rn j p i).drop (n + 1)
 
-theorem selOK_real_split (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel)
+theorem selOK_real_split (hsat : SatPinW d plG x) (hr : Recog6 d net b rn rank rw fuel)
     (bh : Beh7 net b sel)
     (hsv : ∀ j, (rn j).virt = false → ∀ p s, bh.sv j p s = svOf (rn := rn) hsat j p s)
     (hG : ∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1))
@@ -235,7 +235,7 @@ theorem design_verdict9_selS (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
       sb ∈ selLits net rn j p →
       chainOK d (m j p sb.1).ak (junW d net rn j p i.val (cut j p i.val)) (π j p i.val sb.1) = true ∧
       holdBandS d net rn j p (m j p sb.1) i.val (cut j p i.val) (plo d (π j p i.val sb.1)) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

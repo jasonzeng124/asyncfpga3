@@ -514,7 +514,7 @@ section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
   {rw fuel : Nat} {x : Fin d.n → Sig} {sel : Nat → Nat → Bool}
 
-theorem fac_of_ok (hsat : SatPin d plG x) (hr : Recog6 d net b rn rank rw fuel) (bh : Beh7 net b sel)
+theorem fac_of_ok (hsat : SatPinW d plG x) (hr : Recog6 d net b rn rank rw fuel) (bh : Beh7 net b sel)
     (hG : ∀ j, (rn j).virt = false → ∀ p i s, bh.G j p i s = tau hsat (full net rn j p i.val) (s + 1))
     (bot : Path) (hbot : pathOK d bot = true) :
     ∀ n p e, facOK d net b rn bot n p e = true → FacP bh (tau hsat bot) n p e := by
@@ -595,7 +595,7 @@ theorem design_verdict9_selJ (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
       holdBandS d net rn j p (m j p sb.1) i.val (cut j p i.val) (Dl j p i.val sb.1) = true ∧
       jrowOK d net b rn parts J (net.src j p).val (botP d net rn j p i.val (cut j p i.val)) (jl j p i.val)
         (jw j p i.val sb.1) (na j p sb.1).val (plo d (κa j p sb.1)) (Dl j p i.val sb.1) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

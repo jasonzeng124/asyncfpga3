@@ -127,7 +127,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 /-- The sample-time map before the select gate's own pin warp. -/
 noncomputable def selBase (j : Fin N) (p : Fin (net.ar j)) : Nat → Nat := fun s =>
@@ -170,7 +170,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig} (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7) (harb : HARB7 net b rn x cv)
@@ -222,7 +222,7 @@ theorem design_verdict8_sel (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7
     (hcx : ∀ m, cxm m = true → exclOK7 net b parts J m (xS m) (xa m) (xw m) = true)
     (hcl : ∀ j p, cl j p = true → lineOK7 net b J j p (line j p) = true)
     (hcg : ∀ j p, cg j p = true → guardOK8 net b parts J hl j p (gd j p) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

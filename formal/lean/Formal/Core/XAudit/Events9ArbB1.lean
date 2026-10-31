@@ -204,7 +204,7 @@ theorem rowsS_of_rows {T T0 : Nat} (h : ArbRowsOK d a T T0) : ArbRowsOKS d a T T
 end
 
 section
-variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
 
 /-- **HOrd for the four readers of one arbiter** (a hypothesis on the behaviour's per-pin warps):
 ustate's request read at the reader's q-read time is no later than the reader's request read two
@@ -219,7 +219,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -378,7 +378,7 @@ theorem qclean_of_quiet {α : Type} {F : α → Bool → Bool} {X : Nat → α} 
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -504,7 +504,7 @@ instance (T S T0 : Nat) : Decidable (ArbRowsOKSS d a T S T0) := by unfold ArbRow
 end
 
 section
-variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x) (rn : Fin N → RNode)
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) (rn : Fin N → RNode)
   (a : ArbD N)
 
 /-- `ArbEdge` with `QClean` required only at changes of `q` after `S`. -/
@@ -530,7 +530,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 

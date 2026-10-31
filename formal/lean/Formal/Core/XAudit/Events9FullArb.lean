@@ -100,7 +100,7 @@ theorem design_verdict9_full_arb (hr : Recog6 d net b rn rank rw fuel) (hOK : ne
     (hsu : ∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
       cs j p sb.1 = true →
       suOK d net rn j p (m j p sb.1) (AT.leaves (tq j p sb.1)) (scut j p sb.1) (su j p sb.1) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
@@ -167,7 +167,7 @@ theorem design_verdict9arbnet_edge (hr : Recog6 d net b rn rank rw fuel) (hOK : 
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
     (hfs : Events9Arb.FixShape net b rn)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOK d (as k) T T0)
     (he : ∀ k, ArbEdge hsat rn (as k) T0 (H k)) (sel : Nat → Nat → Bool) :
@@ -203,7 +203,7 @@ theorem design_verdict9arbnet_ord (hr : Recog6 d net b rn rank rw fuel) (hOK : n
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
     (hfs : Events9Arb.FixShape net b rn)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOKS d (as k) T T0)
     (he : ∀ k, ArbEdge hsat rn (as k) T0 (H k)) (ho : ∀ k, ArbOrd hsat (as k) T0) (sel : Nat → Nat → Bool) :
@@ -238,7 +238,7 @@ theorem design_verdict9arbnet_ordq (hr : Recog6 d net b rn rank rw fuel) (hOK : 
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
     (hfs : Events9Arb.FixShape net b rn)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOKS d (as k) T T0)
     (hlo : ∀ k, 1 ≤ plo d (PqQ (as k))) (hqq : ∀ k, QQuiet hsat rw rn (as k))
@@ -276,7 +276,7 @@ theorem design_verdict9arbnet_ordS (hr : Recog6 d net b rn rank rw fuel) (hOK : 
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
     (hfs : Events9Arb.FixShape net b rn)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (S T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOKSS d (as k) T S T0)
     (hlo : ∀ k, 1 ≤ plo d (PqQ (as k)))

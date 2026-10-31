@@ -141,7 +141,7 @@ theorem design_verdict9_selH (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
       entOK d net rn j p sb.1 (m j p sb.1) = true ∧
       chainOK d (m j p sb.1).ak (gt d (rn (net.src j p)).lut).out (π j p sb.1) = true ∧
       holdBand d net b rn j p (m j p sb.1) (plo d (π j p sb.1)) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7 net b rn x cv)
     (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧

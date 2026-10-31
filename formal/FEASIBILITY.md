@@ -167,7 +167,10 @@ experiments; and (2) **connecting** the proofs to the real routed design
        `Events9FullArb.design_verdict9arbnet_ord`. All its checked premises hold on 10 gcd_hw rows
        (slow/fast on all 4 seeds, gb on 3/4), **but ArbOrd cannot be discharged at the B1-failing readers as
        stated** (audit P15a: it constrains the classically chosen SatPin warps, and some admissible witness
-       violates it there), so these rows are NOT covered; a fix needs SatPin with explicit, user-chosen warps. Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
+       violates it there), so these rows are NOT covered for the bands. **Fixed later the same day (SatPinW):** the
+       verdicts now take a behaviour WITH its warps, so ArbOrd is a condition on the user's behaviour; the rows are
+       covered exactly for the behaviours whose warps meet ArbOrd at the B1-failing readers (e.g. fixed delays
+       under the corner model with κ below ~0.047), not for every behaviour in the bands. Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
        (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
        gcd correctness. **Joint satisfiability of these hypotheses on a real gcd_hw/ipow/xorshift run is not
        shown** (no witness), so the rows are conditional, not shown non-vacuous.

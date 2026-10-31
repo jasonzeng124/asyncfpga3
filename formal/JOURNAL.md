@@ -999,3 +999,17 @@ worst 278 ps over 72 reader pairs incl. R0. Under GLS scatter (seed 4): σ 0.05 
 -410/-346 ps (fails on the R0 reader), every run still 16/16 and QQuiet clean. Correction to my earlier entry:
 'σ 0.05 ArbOrd >= 49 ps' was wrong (the filter dropped 26 of 54 pairs and never looked at R0). Point (d), the
 GLS version, stays a limitation.
+### progress 14:21
+**Audit P15a row 12, structural fix: SatPinW.** Core/XAudit/Events6Gate.lean now defines `SatPinW d pl x`, a
+per-pin behaviour WITH its warps (a structure: `f gi i` per gate and input, with the band and evaluation
+facts), `SatPinW.toSat` (every SatPinW is a SatPin behaviour) and `SatPinW.ofSat` (every SatPin behaviour has
+one, by choice). `wf hsat gi i` is now `hsat.f gi i`, the supplied warp, no longer `Classical.choose`. All 22
+XAudit files that took `(hsat : SatPin d plG x)` take `(hsat : SatPinW d plG x)`; no proof needed changing
+beyond Events6Gate. Whole-project ./check.sh OK (73178 library declarations, standard axioms). Consequence: every
+trace hypothesis stated on `tau hsat` (ArbOrd, ArbEdge, QQuiet) now speaks about the warps of the behaviour the
+user supplies, so for a behaviour whose warps meet the order (e.g. fixed path delays under the corner model with
+κ below the b1Kappa threshold: ord_of_transport + corner_ord) ArbOrd can be discharged. The theorems' strength is
+unchanged (ofSat/toSat), so earlier conclusions stand. What this does NOT do: show that the chip's behaviour is
+one of those (κ and the in-corner correlation are unmeasured), or give a witness. The '10 gcd_hw rows' are now
+'covered for every behaviour of the bands whose warps satisfy ArbOrd at the 2-6 B1-failing readers' (plus the
+other named hypotheses), which is a meaningful conditional but not coverage of the bands.

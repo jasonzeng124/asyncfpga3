@@ -141,7 +141,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {rn : Fin N → RNode} {fuel : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x) {cv : Fin N → Sig}
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x) {cv : Fin N → Sig}
 
 /-- The select a steered request net carries at time `u` (`Events6.svOf` with the pin wire `R.w`). -/
 noncomputable def svR (R : ReqD) (u : Nat) : Bool :=
@@ -304,7 +304,7 @@ instance (d : Design) (fuel gi i : Nat) (p : Path) (w : Nat) : Decidable (RdP d 
   unfold RdP; exact inferInstance
 
 section
-variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+variable {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -422,7 +422,7 @@ end
 /-! ### The cell-level signals and warps of an arbiter, and its trace conditions -/
 
 section
-variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPin d plG x) (rn : Fin N → RNode)
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) (rn : Fin N → RNode)
   (a : ArbD N)
 
 /-- The per-pin reads of `R0` (ustate O5), `g1`, `g2` (ugrant O5 / O6) as `core_of_settle` takes
@@ -477,7 +477,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 include h0 h1
 
@@ -570,7 +570,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x) {cv : Fin N → Sig}
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x) {cv : Fin N → Sig}
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   (hW : ∀ s, (rn s).virt = true → (rn s).hasW = true → ∀ t, x (d.wire (rn s).ow) t = cv s t)
 
@@ -846,7 +846,7 @@ end
 
 section
 variable {N K : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
-  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
 
 include hsat h0 h1 in
@@ -1016,7 +1016,7 @@ theorem design_verdict9arbnet (hr : Recog6 d net b rn rank rw fuel) (hOK : net.O
     (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
     (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
     (hfs : Events9Arb.FixShape net b rn)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
     (T0 : Nat) (H : Fin K → Nat) (hc : ∀ k, ArbCond hsat rn (as k) T0 (H k))
     (sel : Nat → Nat → Bool) :

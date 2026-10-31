@@ -110,7 +110,7 @@ end
 
 section
 variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {rank : Fin N → Nat}
-  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  {rw fuel : Nat} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
   (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
   {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
   {cv : Fin N → Sig} (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7) (harb : HARB7 net b rn x cv)
@@ -162,7 +162,7 @@ end
 /-- The bus-open time of a literal: the request wire's rise (`Ofirst`) where the setup row is
 certified (`cs = true`), the free `Ou` otherwise. -/
 noncomputable def Osel {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {sel : Nat → Nat → Bool}
-    {x : Fin d.n → Sig} (bh : Beh7 net b sel) (hsat : SatPin d plG x)
+    {x : Fin d.n → Sig} (bh : Beh7 net b sel) (hsat : SatPinW d plG x)
     (tq : (j : Fin N) → Fin (net.ar j) → Nat → AT) (cs : (j : Fin N) → Fin (net.ar j) → Nat → Bool)
     (Ou : (j : Fin N) → Fin (net.ar j) → Nat → Nat → Nat) (j : Fin N) (p : Fin (net.ar j)) (i k : Nat) : Nat :=
   if cs j p i then Ofirst bh hsat (AT.leaves (tq j p i)) k else Ou j p i k
@@ -214,7 +214,7 @@ theorem design_verdict9_full (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK
     (hsu : ∀ j p (sb : Nat × Bool), (rn j).virt = false → net.pk j p = PK.filt → sb ∈ selLits net rn j p →
       cs j p sb.1 = true →
       suOK d net rn j p (m j p sb.1) (AT.leaves (tq j p sb.1)) (scut j p sb.1) (su j p sb.1) = true)
-    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    (hsat : SatPinW d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
     {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (harb : HARB7' net b rn x cv)
     (hR : HRst net b rn x cv rs) (sel : Nat → Nat → Bool) :
     ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
