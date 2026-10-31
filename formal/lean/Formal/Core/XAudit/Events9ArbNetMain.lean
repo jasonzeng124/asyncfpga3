@@ -344,6 +344,7 @@ def run (args : List String) : IO UInt32 := do
     let mut nOK := 0
     let mut nRows := 0
     let mut nRowsS := 0
+    let mut nRowsSS := 0
     for h : k in [0:AS.size] do
       let a := AS[k]'h.upper
       let ok := decide (ArbOK d net b rn fuel rw a)
@@ -354,6 +355,9 @@ def run (args : List String) : IO UInt32 := do
       if ok && okR then nRows := nRows + 1
       let okS := decide (ArbRowsOKS d a Trst T0) && decide (1 ≤ plo d (PqQ a))
       if ok && okS then nRowsS := nRowsS + 1
+      let T0S := max T0 (Trst + max (max (((bandsOf d a).g1 2).2 + 2) (((bandsOf d a).g2 2).2 + 2)) ((bandsOf d a).r0 2).2)
+      let okSS := decide (ArbRowsOKSS d a Trst Trst T0S) && decide (1 ≤ plo d (PqQ a))
+      if ok && okSS then nRowsSS := nRowsSS + 1
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbRowsOK {okR} (T {Trst}, T0 {T0}) [Events9ArbNetEdge.arbCond_of_edge / Events9FullArb]"
       if !okR then
         IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"
@@ -392,6 +396,7 @@ def run (args : List String) : IO UInt32 := do
     let okFix := decide (FixShape net b rn)
     IO.println s!"[xarbnet] ArbOK {nOK}/{K}; OwnOK {okOwn}; RsOK {okRs}; FixShape {okFix}"
     IO.println s!"[xarbnet] ArbOK and ArbRowsOK {nRows}/{K} (the checked premises of Events9FullArb.design_verdict9_full_arb besides design_verdict9_full's own)"
+    IO.println s!"[xarbnet] ArbOK and ArbRowsOKSS {nRowsSS}/{K} (S = T = {Trst}; Events9FullArb.design_verdict9arbnet_ordS)"
     IO.println s!"[xarbnet] ArbOK and ArbRowsOKS {nRowsS}/{K} (start rows and 1 <= plo PqQ; with ArbOrd assumed: Events9FullArb.design_verdict9arbnet_ord / _ordq)"
     let allOK := nOK == K && okOwn && okRs && okFix
     IO.println s!"VERDICT {if allOK then "ARB-LINK OK" else "ARB-LINK FAILS"} (Events9ArbNet.design_verdict9arbnet: HARB7' and HRst follow from SatPin and the per-arbiter trace conditions ArbCond)"

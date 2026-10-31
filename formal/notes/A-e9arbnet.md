@@ -120,3 +120,12 @@ each run has at most ONE q flip before the frozen-select skeleton goes quiet, an
 window 1e9 ps) is also "OK", i.e. the check could not fail on these runs. So this is **no evidence** for QQuiet;
 it only confirms that ArbOrd holds at fixed lo-end delays (which b1Corr already showed). A useful run needs
 live selects (a select model from the data path), not done.
+
+**From S on (2026-10-31).** The GLS run (tools-A/xaudit/glsq) shows QQuiet false during power-up (3-7 ns, rst high)
+and true after reset. So `Events9ArbB1` adds pointwise flip lemmas (`flipAway1'`/`flipAway2'`),
+`qcleanFrom_of_quiet` (QClean after S from quiet reads after S plus q settled on `(S - hi2, S]`), `ArbRowsOKSS`
+(decidable), `ArbEdgeS`, `arbCond_of_ordS`, `cleanS_of_arb`, and `Events9FullArb.design_verdict9arbnet_ordS`. xarbnet
+evaluates ArbRowsOKSS with S = T: 9/9 on all 16 gcd_hw rows. With xevents9par CLEAN, the same 10 gcd_hw rows
+meet every checked premise of `design_verdict9arbnet_ordS`, whose arbiter hypotheses are: QQuiet after S and q
+settled just before S (both observed on the seed-5 research GLS, 16 vectors, no scatter), the quiet start,
+settle bound and edge windows (ArbEdgeS minus cleanS), ArbOrd at the B1-failing readers.

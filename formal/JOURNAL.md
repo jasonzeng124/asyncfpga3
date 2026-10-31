@@ -917,3 +917,10 @@ no scatter), monitor on all 9 ustate LUTs: 16/16 vectors errs=0, 20387 q flips, 
 release; 9 identical violations per vector at 3-7 ns while rst is still high (power-up settling). Negative
 control WSCALE=20: 100 post-reset violations. Caveat found by this: QQuiet as stated (all times) is FALSE on
 this run before reset; the Lean statement should be from T0 on. Next: qclean from T0.
+### progress 09:53
+Claimed (check.sh OK): Events9ArbB1 from-S chain (flipAway1'/2', qcleanFrom_of_quiet, ArbRowsOKSS, ArbEdgeS,
+arbCond_of_ordS, cleanS_of_arb) and Events9FullArb.design_verdict9arbnet_ordS. Reason: the GLS showed QQuiet
+fails only during power-up. xarbnet: ArbRowsOKSS (S = T) 9/9 on all 16 gcd_hw rows, so the 10 CLEAN rows meet
+every checked premise of design_verdict9arbnet_ordS. The arbiter's no-metastability content is now 'ustate's input
+reads quiet for one loop delay after each q flip, after reset', which the seed-5 GLS satisfies on 16/16 vectors
+(evidence, one seed, no scatter).

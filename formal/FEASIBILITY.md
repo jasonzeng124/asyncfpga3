@@ -164,6 +164,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
        (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
        gcd correctness. **Joint satisfiability of these hypotheses on a real gcd_hw/ipow/xorshift run is not
        shown** (no witness), so the rows are conditional, not shown non-vacuous.
+       QClean was then reduced to quiet input reads (`qclean_of_arb`), and to quiet reads only after reset
+       (`design_verdict9arbnet_ordS`; the research GLS of seed 5 has 0 violations after reset on 16/16
+       vectors, ~20k q flips, but violations during power-up). This is evidence, not a proof.
      - **Arbiters vs κ:**
        - B's `OnGcdArbKappa` is safe for κ ≤ 16587/374773 ≈ 0.0443. That is the server-free arc
          form, tight on the 1 fs grid for its binding row (`OnGcdArbKappaTight.rt1b_safe` /
