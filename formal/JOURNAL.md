@@ -1059,3 +1059,10 @@ an environment condition on the requests. (On the corrected GLS run the first gr
 release, consistent with this.) The settle bound and the per-reader edge windows remain assumed.
 ### progress 14:39
 Whole-project ./check.sh OK (73187 library declarations, standard axioms) including arb_low_of_reqlow.
+### progress 14:52
+Corrected-core ctl band hi raised from 10^12 to 10^15 (Events8Arb/9Arb/9ArbB1/9ArbNet/9ArbNetEdge/9ArbNetRows/
+9ParRst; events4/model.py's ctl tap band). Reason: ArbEdge's settle bound needs H + K + hi DA <= ctl hi, and at
+10^12 an A0-low phase longer than ~1 s before its last q change (e.g. a board run idling >1 s between vectors)
+would break it; now ~1000 s. Lean proofs unchanged except one numeral. Reruns: all 16 gcd_hw xevents9par verdicts
+and every xarbnet ArbOK/ArbRowsOK*/VERDICT line identical; xe9p d slow byte-identical; ipow/xorshift e9 outputs
+identical apart from the printed hMax. Whole-project ./check.sh OK (73187 declarations).

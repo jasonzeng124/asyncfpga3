@@ -54,7 +54,7 @@ def CoreFixR (lo hi : Nat) (bg1 bg2 bs1 bs2 : RdB) (ρ r1 r2 a R0 g1 g2 : Sig) :
     VMerge 1 1 1 1 1 1 s1 s2 R0
 
 def CoreOfR (B : ArbBands) (ρ r1 r2 a R0 g1 g2 : Sig) : Prop :=
-  CoreFixR (loCtl B) (10 ^ 12) (rdG (B.g1 0) (B.g1 2) (kOf B)) (rdG (B.g2 1) (B.g2 2) (kOf B))
+  CoreFixR (loCtl B) (10 ^ 15) (rdG (B.g1 0) (B.g1 2) (kOf B)) (rdG (B.g2 1) (B.g2 2) (kOf B))
     (rdS (B.r0 0) (B.r0 2) (kOf B)) (rdS (B.r0 1) (B.r0 2) (kOf B)) ρ r1 r2 a R0 g1 g2
 
 theorem coreOfR_coreOf {B : ArbBands} {ρ r1 r2 a R0 g1 g2 : Sig} (h : CoreOfR B ρ r1 r2 a R0 g1 g2) :
@@ -110,7 +110,7 @@ theorem core_of_en_rst (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4
     (hb1 : 1 ≤ (B.g1 0).1) (hb2 : 1 ≤ (B.g2 1).1) (hb3 : 3 ≤ (B.r0 0).1) (hb4 : 3 ≤ (B.r0 1).1)
     (hq1 : kOf B + 2 ≤ (B.g1 2).1) (hq2 : kOf B + 2 ≤ (B.g2 2).1) (hq3 : kOf B + 4 ≤ (B.r0 2).1)
     (hT1 : (B.g1 2).1 ≤ T0) (hT2 : (B.g2 2).1 ≤ T0) (hT3 : (B.r0 2).1 ≤ T0 + 2)
-    (hctl : VCtl (loCtl B) (10 ^ 12) a ctl)
+    (hctl : VCtl (loCtl B) (10 ^ 15) a ctl)
     (e1 : EnOK r1 q g1 (f1 0) (f1 2) (kOf B) ctl sv1 true T0)
     (e2 : EnOK r2 (fun u => !q u) g2 (f2 1) (f2 2) (kOf B) ctl sv2 false T0)
     (e3 : EnOK r1 q (fun t => r1 (fr 0 (t + 2)) && q (fr 2 (t + 2))) (fun t => fr 0 (t + 2))

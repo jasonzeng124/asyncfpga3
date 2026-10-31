@@ -349,12 +349,12 @@ instance (j jc s : Fin N) (brc : Bool) (lr hr lc hc : Nat) (R : ReqD) :
     Decidable (RdNodeOK d net b rn fuel j jc s brc lr hr lc hc R) := by
   unfold RdNodeOK; exact inferInstance
 
-/-- **ctl**: virtual, stage, reset 0, one plain inverted pin from `jA` (real), band `[lo, 10^12]`. -/
+/-- **ctl**: virtual, stage, reset 0, one plain inverted pin from `jA` (real), band `[lo, 10^15]`. -/
 def CtlOK (jc jA : Fin N) (lo : Nat) : Prop :=
   (rn jc).virt = true ∧ (rn jc).hasW = false ∧ net.mg jc = false ∧ net.v jc = false ∧ net.ar jc = 1 ∧
   b.loF jc = 1 ∧ b.hiF jc = 1 ∧ b.loQ jc = 1 ∧ b.hiQ jc = 1 ∧ (rn jA).virt = false ∧ 1 ≤ lo ∧
   ∀ p : Fin (net.ar jc), net.src jc p = jA ∧ net.pk jc p = PK.plain ∧ net.inv jc p = true ∧
-    net.neg jc p = false ∧ net.nc jc p = 1 ∧ ∀ i : Fin (net.nc jc p), b.loC jc p i = lo ∧ b.hiC jc p i = 10 ^ 12
+    net.neg jc p = false ∧ net.nc jc p = 1 ∧ ∀ i : Fin (net.nc jc p), b.loC jc p i = lo ∧ b.hiC jc p i = 10 ^ 15
 
 instance (jc jA : Fin N) (lo : Nat) : Decidable (CtlOK net b rn jc jA lo) := by
   unfold CtlOK; exact inferInstance
@@ -458,7 +458,7 @@ structure ArbCond (T0 H : Nat) : Prop where
   t3 : ((bandsOf d a).r0 2).1 ≤ T0 + 2
   stall : ∀ v, ∃ v', v' ≤ v ∧ v ≤ v' + H ∧
     (v' = 0 ∨ Ok (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a)))
-  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 12
+  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 15
   e1 : RdOK (Settled (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a)) (r1S (x := x) a) (qS (x := x) a)
     (g1S (x := x) a) (f1Of hsat a 0) (f1Of hsat a 2) T0
   e2 : RdOK (Settled (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a)) (r2S (x := x) a)
@@ -551,7 +551,7 @@ theorem arb_core {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T0 H : Nat}
     rfl
   -- the canonical ctl, and core_of_en_rst
   have hcv := ctlc_vctl (a := aS (x := x) rn a) (q := qS (x := x) a) hf4 hK2 hc.stall hc.hi
-  have hc' : VCtl (loCtl (bandsOf d a)) (10 ^ 12) (aS (x := x) rn a)
+  have hc' : VCtl (loCtl (bandsOf d a)) (10 ^ 15) (aS (x := x) rn a)
       (ctlc (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (kOf (bandsOf d a))) := by
     simp only [loCtl]; exact hcv
   have hb1' : ∀ u : Bool, u = (u == true) := fun u => by cases u <;> rfl
@@ -688,7 +688,7 @@ theorem nd7_rd {j jc s : Fin N} {R : ReqD} {lr hr lc hc : Nat} {br : Bool} {ρ c
 
 /-- **ctl**: a `VCtl` of the A0 source wire at a node passing `CtlOK` is an `ND7` behaviour. -/
 theorem nd7_ctl {jc jA : Fin N} {lo : Nat} {ctl : Sig} (hn : CtlOK net b rn jc jA lo)
-    (hcc : ∀ t, cv jc t = ctl t) (hv : VCtl lo (10 ^ 12) (x (d.wire (rn jA).ow)) ctl) :
+    (hcc : ∀ t, cv jc t = ctl t) (hv : VCtl lo (10 ^ 15) (x (d.wire (rn jA).ow)) ctl) :
     Nonempty (ND7 net b (ccOf rn x cv) jc) := by
   obtain ⟨hvj, _, hmg, hv0, har, hF1, hF2, hQ1, hQ2, hAr, hlo, hp⟩ := hn
   obtain ⟨F, G, Q, r, wF, wG, wQ, hr0, hra, heq⟩ := hv
@@ -865,7 +865,7 @@ theorem harb_of_arbs (as : Fin K → ArbD N) (own : Fin N → Option (Fin K)) (r
   let ctlK : Fin K → Sig := fun k => Classical.choose (hcore k)
   let s1K : Fin K → Sig := fun k => Classical.choose (Classical.choose_spec (hcore k))
   let s2K : Fin K → Sig := fun k => Classical.choose (Classical.choose_spec (Classical.choose_spec (hcore k)))
-  have hspec : ∀ k, VCtl (loCtl (bandsOf d (as k))) (10 ^ 12) (aS (x := x) rn (as k)) (ctlK k) ∧
+  have hspec : ∀ k, VCtl (loCtl (bandsOf d (as k))) (10 ^ 15) (aS (x := x) rn (as k)) (ctlK k) ∧
       VRdR (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).loR
         (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).hiR
         (rdG ((bandsOf d (as k)).g1 0) ((bandsOf d (as k)).g1 2) (kOf (bandsOf d (as k)))).loC

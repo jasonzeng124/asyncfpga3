@@ -8,7 +8,7 @@ Probe E8Arb. See `formal/notes/A-e8arb.md`.
 
 `design_verdict8` assumes H_ARB (`Events7.HARB7`): every arbiter core is a *virtual* core
 (events4/model.py `vctl:` / `arb:g` / `arb:R0`): a node `ctl = ¬A0` read through a warp in
-`[lo, 10^12]`, two grant C-elements `g_b = C(r_b, ctl·[σ = b])` with the grant LUT band, and
+`[lo, 10^15]`, two grant C-elements `g_b = C(r_b, ctl·[σ = b])` with the grant LUT band, and
 `R0 = g1 + g2`. This file states, at CELL level, the real `bd_arbiter` core in A's per-pin
 semantics (every LUT output reads every pin through its own monotone warp, `PinRel`), with the
 REAL INITs (`ArbBinary.ARB_ST`, `ArbBinary.GRANT`, decoded here by `cases`), the virtual grant

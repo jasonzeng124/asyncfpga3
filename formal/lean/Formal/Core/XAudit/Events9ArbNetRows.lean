@@ -23,7 +23,7 @@ that the rows imply `ArbCond` (the derivation in the notes is informal and uses,
 "q makes clean transitions" and "no re-request within a window", i.e. an uncontested schedule).
 The settle bound has no row: `hstall` needs `H` ≥ the longest stretch of an A0-low phase before
 its q flip, which no band bounds (idle time, and for a near tie no bound exists at all); the only
-number is `hMax`, the largest `H` the corrected core's ctl band `[lo, 10^12]` allows.
+number is `hMax`, the largest `H` the corrected core's ctl band `[lo, 10^15]` allows.
 -/
 
 namespace Formal.Core.XAudit.Events9ArbNet
@@ -120,8 +120,8 @@ def rowN (DA : Nat × Nat) (w : Nat) (r : RdBands) : Int := (w : Int) + lo r.Dr 
 negated). -/
 def needW (DA : Nat × Nat) (r : RdBands) : Int := hi r.Dq + hi DA + 2 - lo r.Dr
 
-/-- The largest settle bound `H` that `ArbCond.hi` (`H + K + hi DA ≤ 10^12`) allows. -/
+/-- The largest settle bound `H` that `ArbCond.hi` (`H + K + hi DA ≤ 10^15`) allows. -/
 def hMax {N : Nat} (d : Design) (a : ArbD N) : Int :=
-  (10 ^ 12 : Int) - kOf (bandsOf d a) - hi ((bandsOf d a).st 4)
+  (10 ^ 15 : Int) - kOf (bandsOf d a) - hi ((bandsOf d a).st 4)
 
 end Formal.Core.XAudit.Events9ArbNet

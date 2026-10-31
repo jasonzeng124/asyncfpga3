@@ -514,7 +514,7 @@ structure ArbEdgeS (S T0 H : Nat) : Prop where
   low : ∀ t, t ≤ T0 + 2 → g1S (x := x) a t = false ∧ g2S (x := x) a t = false ∧ R0S (x := x) a t = false
   stall : ∀ v, ∃ v', v' ≤ v ∧ v ≤ v' + H ∧
     (v' = 0 ∨ Ok (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a)))
-  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 12
+  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 15
   e1 : RdEdge (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r1S (x := x) a) (qS (x := x) a)
     (tau hsat (P1Q a)) ((bandsOf d a).g1 0).1 ((bandsOf d a).g1 0).2 ((bandsOf d a).g1 2).1 ((bandsOf d a).g1 2).2
   e2 : RdEdge (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r2S (x := x) a) (fun u => !qS (x := x) a u)

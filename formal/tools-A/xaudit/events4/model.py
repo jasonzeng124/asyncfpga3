@@ -281,7 +281,7 @@ class Model:
                     self.unrec.append((qc, "arbiter A0 not a stage output"))
                     return
                 self.nodes[ctl] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
-                                       pins=[Pin("tap", a0src, [(lo, 10 ** 12)], inv=1)])
+                                       pins=[Pin("tap", a0src, [(lo, 10 ** 15)], inv=1)])
                 for b, g in enumerate(sorted(gmap, key=lambda g: gr.index(g))):
                     r = gmap[g]
                     i_r = n.cells[g]["ins"].index(r)
@@ -345,7 +345,7 @@ class Model:
             self.unrec.append((qc, f"corrected core: ctl lower band {lo_ctl} < 1"))
             return
         self.nodes[ctl] = dict(kind="cel", v=0, F=(1, 1), Q=(0, 0), virtual=True,
-                               pins=[Pin("tap", a0src, [(lo_ctl, 10 ** 12)], inv=1)], K=K)
+                               pins=[Pin("tap", a0src, [(lo_ctl, 10 ** 15)], inv=1)], K=K)
 
         def shifted(pin, X, e):
             """pin taps (leaf band up to X's input) + lut(X) - 1 - e"""

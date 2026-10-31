@@ -12,7 +12,7 @@ equations of its virtual nodes:
 
 * every virtual node has stage band `F = (1,1)` and own-value band `Q = (1,1)` (the whole read
   sits in the pin bands: a common stage warp cannot factor two independent per-pin reads);
-* `ctl` = `¬A0` through `[lo, 10^12]` (`Events8Arb.VCtl`);
+* `ctl` = `¬A0` through `[lo, 10^15]` (`Events8Arb.VCtl`);
 * each READER of the arbiter state (grant 1, grant 2, and two SHADOW grants, one per R0 term) is a
   virtual two-pin C-element `VRd` (request pin, filtered ctl pin with its OWN band);
 * `R0` = merge of the two shadows, stage and taps `(1,1)` (`Events8Arb.VMerge 1 1 1 1 1 1`).
@@ -103,7 +103,7 @@ def rdS (br bq : Nat × Nat) (K : Nat) : RdB := ⟨br.1 - 3, br.2 - 3, bq.1 - K 
 
 /-- The corrected core of a real cell with per-pin bands `B` (model.py's formulas). -/
 def CoreOf (B : ArbBands) (r1 r2 a R0 g1 g2 : Sig) : Prop :=
-  CoreFix (loCtl B) (10 ^ 12) (rdG (B.g1 0) (B.g1 2) (kOf B)) (rdG (B.g2 1) (B.g2 2) (kOf B))
+  CoreFix (loCtl B) (10 ^ 15) (rdG (B.g1 0) (B.g1 2) (kOf B)) (rdG (B.g2 1) (B.g2 2) (kOf B))
     (rdS (B.r0 0) (B.r0 2) (kOf B)) (rdS (B.r0 1) (B.r0 2) (kOf B)) r1 r2 a R0 g1 g2
 
 /-! ## 2. One reader: an AND term is a virtual C-element under the enable conditions -/
@@ -175,7 +175,7 @@ theorem and_cel {Lr Hr Lq Hq K T0 : Nat} {br : Bool} {s e y ctl sv : Sig} {wr wq
 `fr` (`ustate` O5) and `f1`, `f2` (`ugrant` O5 / O6) in the per-pin bands `B` (as in
 `Events8Arb.ArbPin`), the outputs low on an initial settled segment `[0, T0 + 2]`, and side
 conditions on the bands (lower ends large enough for the offsets). If one `ctl` that is a
-`VCtl (loCtl B) 10^12` of the `A0` source `a`, and selects `sv1 … sv4`, satisfy the enable
+`VCtl (loCtl B) 10^15` of the `A0` source `a`, and selects `sv1 … sv4`, satisfy the enable
 conditions `EnOK` for the four readers (grant b on `r_b`, `q` / `¬q`; shadow b = R0's term b
 two steps later), then the real cell is a behaviour of the corrected core `CoreOf B`. -/
 theorem core_of_en (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4 : Sig}
@@ -188,7 +188,7 @@ theorem core_of_en (B : ArbBands) {r1 r2 rs a q R0 g1 g2 ctl sv1 sv2 sv3 sv4 : S
     (hb1 : 1 ≤ (B.g1 0).1) (hb2 : 1 ≤ (B.g2 1).1) (hb3 : 3 ≤ (B.r0 0).1) (hb4 : 3 ≤ (B.r0 1).1)
     (hq1 : kOf B + 2 ≤ (B.g1 2).1) (hq2 : kOf B + 2 ≤ (B.g2 2).1) (hq3 : kOf B + 4 ≤ (B.r0 2).1)
     (hT1 : (B.g1 2).1 ≤ T0) (hT2 : (B.g2 2).1 ≤ T0) (hT3 : (B.r0 2).1 ≤ T0 + 2)
-    (hctl : VCtl (loCtl B) (10 ^ 12) a ctl)
+    (hctl : VCtl (loCtl B) (10 ^ 15) a ctl)
     (e1 : EnOK r1 q g1 (f1 0) (f1 2) (kOf B) ctl sv1 true T0)
     (e2 : EnOK r2 (fun u => !q u) g2 (f2 1) (f2 2) (kOf B) ctl sv2 false T0)
     (e3 : EnOK r1 q (fun t => r1 (fr 0 (t + 2)) && q (fr 2 (t + 2))) (fun t => fr 0 (t + 2))
@@ -311,10 +311,10 @@ theorem loCtl_ho2 : loCtl Bho2 = 5 := by decide
 def ctl2 : Sig := fun t => decide (16 ≤ t)
 def svF : Sig := fun _ => false
 
-theorem ctl2_v : VCtl 5 (10 ^ 12) a0h ctl2 := by
+theorem ctl2_v : VCtl 5 (10 ^ 15) a0h ctl2 := by
   refine ⟨fun t => t - 1, fun t => t - 5, fun t => t - 1, fun u => decide (u = 0), shift1,
     ⟨fun a b hab => by omega, fun t => by omega, fun t => by
-      have : (10 : Nat) ^ 12 = 1000000000000 := by decide
+      have : (10 : Nat) ^ 15 = 1000000000000000 := by decide
       rw [this]; omega⟩, shift1, by decide, fun x y hxy h => by simp at h ⊢; omega, fun t => ?_⟩
   by_cases h : t - 1 = 0
   · simp only [h, decide_true, ite_true, ctl2]; simp; omega
@@ -336,11 +336,11 @@ theorem en_none (s e y : Sig) (wr wq : Nat → Nat) (K : Nat) (ctl : Sig) (hs : 
     fun _ h => by simp [En, svF] at h⟩
 
 /-- **`ho2` IS a corrected-core behaviour**, with model.py's bands computed from its per-pin bands
-(`CoreOf Bho2`: `K = 1`, ctl band `[5, 10^12]`), via `core_of_en`: ctl rises at 16 = q flip + K,
+(`CoreOf Bho2`: `K = 1`, ctl band `[5, 10^15]`), via `core_of_en`: ctl rises at 16 = q flip + K,
 `σ` = request 2 throughout. -/
 theorem ho2_fix : CoreOf Bho2 lowc oneS a0h R0h2 lowc g2h2 := by
   have hk := kOf_ho2
-  have hc : VCtl (loCtl Bho2) (10 ^ 12) a0h ctl2 := by rw [loCtl_ho2]; exact ctl2_v
+  have hc : VCtl (loCtl Bho2) (10 ^ 15) a0h ctl2 := by rw [loCtl_ho2]; exact ctl2_v
   refine core_of_en Bho2 (q := qh2) (rs := lowc) (ctl := ctl2) (sv1 := svF) (sv2 := svF) (sv3 := svF)
     (sv4 := svF) (fun _ t => t - 5) (fun _ t => t - 5) f2h
     (fun _ => shift_w 5) (fun _ => shift_w 5) f2h_rd ?_ ?_ ?_ 15 ?_
@@ -394,7 +394,7 @@ The enable is built from the real traces alone: ustate time `u` is SETTLED when 
 low at `u` and `q` keeps its value at `u` for as long as that read stays low. ctl follows ustate's
 A0 read (shifted by `K`) at the times that are ok (A0 read high, or settled) and stalls at the
 last ok time otherwise; `σ` = the value of `q` at the reader's q-read time. Then `ctl` is a
-`VCtl (loCtl B) 10^12` of `A0` as soon as every time is within `H` of an ok time (no phase stays
+`VCtl (loCtl B) 10^15` of `A0` as soon as every time is within `H` of an ok time (no phase stays
 unsettled for longer than `H`: the "no contest" hypothesis in the form the core needs), and the
 enable conditions reduce to three conditions per reader (`RdOK`). -/
 
@@ -632,7 +632,7 @@ theorem core_of_settle (B : ArbBands) {r1 r2 rs a q R0 g1 g2 : Sig}
     (hq1 : kOf B + 2 ≤ (B.g1 2).1) (hq2 : kOf B + 2 ≤ (B.g2 2).1) (hq3 : kOf B + 4 ≤ (B.r0 2).1)
     (hT1 : (B.g1 2).1 ≤ T0) (hT2 : (B.g2 2).1 ≤ T0) (hT3 : (B.r0 2).1 ≤ T0 + 2)
     (H : Nat) (hstall : ∀ v, ∃ v', v' ≤ v ∧ v ≤ v' + H ∧ (v' = 0 ∨ Ok a q f4 (v' + 1 - kOf B)))
-    (hhi : H + kOf B + (B.st 4).2 ≤ 10 ^ 12)
+    (hhi : H + kOf B + (B.st 4).2 ≤ 10 ^ 15)
     (e1 : RdOK (Settled a q f4) r1 q g1 (f1 0) (f1 2) T0)
     (e2 : RdOK (Settled a q f4) r2 (fun u => !q u) g2 (f2 1) (f2 2) T0)
     (e3 : RdOK (Settled a q f4) r1 q (fun t => r1 (fr 0 (t + 2)) && q (fr 2 (t + 2)))
@@ -641,7 +641,7 @@ theorem core_of_settle (B : ArbBands) {r1 r2 rs a q R0 g1 g2 : Sig}
       (fun t => fr 1 (t + 2)) (fun t => fr 2 (t + 2)) T0) :
     CoreOf B r1 r2 a R0 g1 g2 := by
   have hc := ctlc_vctl (a := a) (q := q) hf4 hK2 hstall hhi
-  have hc' : VCtl (loCtl B) (10 ^ 12) a (ctlc a q f4 (kOf B)) := by
+  have hc' : VCtl (loCtl B) (10 ^ 15) a (ctlc a q f4 (kOf B)) := by
     simp only [loCtl]; exact hc
   have hb1' : ∀ u : Bool, u = (u == true) := fun u => by cases u <;> rfl
   have hb2' : ∀ u : Bool, (!u) = (u == false) := fun u => by cases u <;> rfl
