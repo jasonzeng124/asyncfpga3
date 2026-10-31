@@ -725,3 +725,9 @@ Prelim deletion) is committed. BQ#1 d 1x was already recorded.
 ### progress 17:16
 Formal 464c5ea7 build: NChk modules (first log) + resumed full build EXIT 0, 3899 jobs. kwgrep 1 identifier hit. Axiom
 audit of 1058 modules started. P17 subagent still running.
+
+### progress 17:17
+Research 30a80999: BOARD-QUEUE #1 "1x scatter 8/8 PASS (23-29)". No TSV rows; the journal gives laps for d, 6, 3 only.
+OVERSTATED (documentation), same pattern as r19. The d row was reproduced by me. The session summary repeats the BQ#3
+"1x 8/8" (r19) and the arbiter "worst 691 ps" (r21) claims. Formal 0965e2ad: A cites audit P17 ("ArbOrd fails 1 of
+5 draws, not 3"), so formal already reads P17's partial findings.
