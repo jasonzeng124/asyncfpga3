@@ -1,0 +1,62 @@
+xaudit: designs/pipe3.json top pipe3: 47 wires, 40 gates (11 LUT outputs, 29 routed arcs), 9 storage nodes (LUTs with own feedback)
+bands: 1 step = 10 ps; LUT (99, 121) ps, route (360, 440) ps, own feedback (270, 330) ps (defaults unless overridden: 0 cell, 0 arc entries); pads (1, 1) steps
+inertial (check): reject window LUT 50 ps, route 50 ps, own feedback as route (0 cell, 0 arc entries); pads transport. Sound by SoundInertial (gate hi widened to max hi (lo + ceil(rho/unit) - 1))
+  check: rho <= (hi+1-lo)*unit on every gate: covered with the bands as given
+inputs: [ack_out, data_in[0], data_in[1], req_in, rst]
+
+TIMED (XSim: Fast.auditF, = XSim.val by auditF_eq; horizon 2400 steps = 24000 ps; power-up all X)
+  end state: FIXED POINT (inputs constant from 19000 ps, last 45 rows equal): binary values hold forever (settled_forever)
+  STORAGE stage[0].u.ctl.u/O (wire 10 'stage[0].u.c'): final 0, 0 flagged
+    X [0, 130] ps: power-up, resolved at 140 ps
+    X [3450, 3560] ps: transition 0 -> 1 (120 ps of timing uncertainty)
+    X [5450, 5560] ps: transition 1 -> 0 (120 ps of timing uncertainty)
+    X [12450, 12560] ps: transition 0 -> 1 (120 ps of timing uncertainty)
+    X [14450, 14560] ps: transition 1 -> 0 (120 ps of timing uncertainty)
+  STORAGE stage[0].u.lat.pair[0].u/O6 (wire 18 'stage[0].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 4130] ps: power-up, resolved at 4140 ps
+    X [12900, 13130] ps: transition 0 -> 1 (240 ps of timing uncertainty)
+  STORAGE stage[0].u.lat.pair[0].u/O5 (wire 15 'stage[0].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 4130] ps: power-up, resolved at 4140 ps
+    X [12900, 13130] ps: transition 1 -> 0 (240 ps of timing uncertainty)
+  STORAGE stage[1].u.ctl.u/O (wire 8 'stage[1].u.c'): final 0, 0 flagged
+    X [0, 130] ps: power-up, resolved at 140 ps
+    X [4350, 4700] ps: transition 0 -> 1 (360 ps of timing uncertainty)
+    X [6350, 6700] ps: transition 1 -> 0 (360 ps of timing uncertainty)
+    X [13350, 13700] ps: transition 0 -> 1 (360 ps of timing uncertainty)
+    X [15350, 15700] ps: transition 1 -> 0 (360 ps of timing uncertainty)
+  STORAGE stage[1].u.lat.pair[0].u/O6 (wire 32 'stage[1].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 5270] ps: power-up, resolved at 5280 ps
+    X [13800, 14270] ps: transition 0 -> 1 (480 ps of timing uncertainty)
+  STORAGE stage[1].u.lat.pair[0].u/O5 (wire 29 'stage[1].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 5270] ps: power-up, resolved at 5280 ps
+    X [13800, 14270] ps: transition 1 -> 0 (480 ps of timing uncertainty)
+  STORAGE stage[2].u.ctl.u/O (wire 23 'stage[2].u.c'): final 0, 0 flagged
+    X [0, 130] ps: power-up, resolved at 140 ps
+    X [5250, 5840] ps: transition 0 -> 1 (600 ps of timing uncertainty)
+    X [9450, 9560] ps: transition 1 -> 0 (120 ps of timing uncertainty)
+    X [14250, 14840] ps: transition 0 -> 1 (600 ps of timing uncertainty)
+    X [17450, 17560] ps: transition 1 -> 0 (120 ps of timing uncertainty)
+  STORAGE stage[2].u.lat.pair[0].u/O6 (wire 45 'stage[2].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 6410] ps: power-up, resolved at 6420 ps
+    X [14700, 15410] ps: transition 0 -> 1 (720 ps of timing uncertainty)
+  STORAGE stage[2].u.lat.pair[0].u/O5 (wire 42 'stage[2].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 6410] ps: power-up, resolved at 6420 ps
+    X [14700, 15410] ps: transition 1 -> 0 (720 ps of timing uncertainty)
+
+UNTIMED (Eichelberger A/B, Formal.Core.Ternary; any gate and wire delays)
+  phase 0 @ 0 ps: inputs held at init (power-up X state): 0 of 9 storage nodes flagged
+  phase 1 @ 2000 ps: inputs [rst-]: 0 of 9 storage nodes flagged
+  phase 2 @ 3000 ps: inputs [req_in+]: 3 of 9 storage nodes flagged
+    stage[0].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+    stage[1].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+    stage[2].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+  phase 3 @ 5000 ps: inputs [req_in-]: 0 of 9 storage nodes flagged
+  phase 4 @ 8000 ps: inputs [data_in[0]-, data_in[1]+]: 0 of 9 storage nodes flagged
+  phase 5 @ 9000 ps: inputs [ack_out+]: 0 of 9 storage nodes flagged
+  phase 6 @ 11000 ps: inputs [ack_out-]: 0 of 9 storage nodes flagged
+  phase 7 @ 12000 ps: inputs [req_in+]: 0 of 9 storage nodes flagged
+  phase 8 @ 14000 ps: inputs [req_in-]: 0 of 9 storage nodes flagged
+  phase 9 @ 17000 ps: inputs [ack_out+]: 0 of 9 storage nodes flagged
+  phase 10 @ 19000 ps: inputs [ack_out-]: 0 of 9 storage nodes flagged
+
+SUMMARY: timed: 0 flagged X windows on 9 storage nodes; untimed: 3 flagged (node, phase) pairs

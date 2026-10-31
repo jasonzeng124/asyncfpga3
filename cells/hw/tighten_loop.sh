@@ -125,6 +125,20 @@ export BD_TIGHTEN_RUNNING=1
 # UNSIZED build, which rule E settles on -- BD_RESUME makes iteration 0 a
 # SIZED build, and then the flag you set is not the flag that ran.
 TOP=${K}_bench_gen
+TARGS=""
+build_k() { ./hw/build_bench.sh "$K"; }
+# gcd_hw: the kernel inside the routed-GLS rig (hw/gcd_rig.v), built by
+# build_hw.sh with BD_SIZES.  Its select pads are a separate, already converged
+# file, so the caller names it (BDC_SELECT_PADS) and rule E is not re-run here;
+# re-run skew.py on whatever this ships.  tighten.py needs the housekeeping
+# rings declared or it aborts on them.
+if [ "$K" = gcd_hw ]; then
+    TOP=gcd_hw
+    TARGS="--osc dhk --osc invhk"
+    [ -n "${BDC_SELECT_PADS:-}" ] || {
+        echo "tighten_loop.sh gcd_hw: set BDC_SELECT_PADS (e.g. \$PWD/hw/gcd_hw_pads.json)"; exit 2; }
+    build_k() { BD_SIZES=${BD_SIZES:-auto} ./hw/build_hw.sh gcd_hw; }
+fi
 SIZES=build/gen/${TOP}_sizes.vh
 SDF=build/hw/${TOP}/${TOP}.sdf
 HIST=build/tighten_loop/$K
@@ -182,9 +196,9 @@ fi
 
 echo "== iteration 0: build with the sizes above (or none) =="
 BD_SIZES="$IT0_SIZES" BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
-    ./hw/build_bench.sh "$K" > "$HIST/build.0.log" 2>&1 || {
+    build_k > "$HIST/build.0.log" 2>&1 || {
     echo "BUILD FAILED"; tail -20 "$HIST/build.0.log"; exit 1; }
-python3 verify/tighten.py "$SDF" > "$HIST/tighten.0.log" 2>&1 || true
+python3 verify/tighten.py "$SDF" $TARGS > "$HIST/tighten.0.log" 2>&1 || true
 report "$HIST/tighten.0.log" "unsized"
 read -r BASE_NS _ _ <<<"$(totals "$HIST/tighten.0.log")"
 [ "$RULE_A" -eq 0 ] || echo "   WARNING: rule A already fails before any sizing"
@@ -195,7 +209,11 @@ LAST=""
 
 for i in $(seq 1 "$MAXIT"); do
     echo "== iteration $i: size from that route, rebuild, re-check =="
-    python3 verify/tighten.py "$SDF" --emit "$SIZES" > "$HIST/emit.$i.log" 2>&1 || true
+    # BD_TIGHTEN_SLACK=<ps>: propose lengths that would still pass with that
+    # much more guardband (tighten.py --slack, resize.sh's knob), so a
+    # proposal survives the reroute it causes.  Default 0, as before.
+    python3 verify/tighten.py "$SDF" $TARGS --emit "$SIZES" ${BD_TIGHTEN_SLACK:+--slack "$BD_TIGHTEN_SLACK"} \
+        > "$HIST/emit.$i.log" 2>&1 || true
     [ -e "$SIZES" ] || { echo "   tighten.py wrote no sizes -- stopping"; break; }
     cp "$SIZES" "$HIST/raw.$i.vh"
     RATCHET=$HIST/ratchet.vh
@@ -244,7 +262,7 @@ RPY
     LAST="$HIST/sizes.$i.vh"
 
     if ! BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
-         ./hw/build_bench.sh "$K" > "$HIST/build.$i.log" 2>&1; then
+         build_k > "$HIST/build.$i.log" 2>&1; then
         echo "   BUILD FAILED with these sizes -- not a candidate"
         if grep -q "NOT CONVERGING" "$HIST/build.$i.log"; then
             echo "   (that is verify/converge.sh -- RULE E -- failing to settle,"
@@ -258,7 +276,7 @@ RPY
         break
     fi
 
-    python3 verify/tighten.py "$SDF" > "$HIST/tighten.$i.log" 2>&1 || true
+    python3 verify/tighten.py "$SDF" $TARGS > "$HIST/tighten.$i.log" 2>&1 || true
     report "$HIST/tighten.$i.log" "sized (pass $i)"
 
     if [ "$RULE_A" -ne 0 ]; then
@@ -271,6 +289,48 @@ RPY
         awk '/^A\. /{a=1;next} /^B\. /{a=0} a' "$HIST/tighten.$i.log" \
             | grep "VIOLATION" | head -3 | sed 's/^/     /'
         continue
+    fi
+
+    # BD_TIGHTEN_SEEDS="2 3 ...": the same sizes must also pass rule A when
+    # routed under each of these seeds.  A length that one route accepts is
+    # short on a fresh route about as often as not (gcd, 2026-10-26: 600 ps
+    # search slack, 0 of 3 fresh seeds); a route that rejects the sizes
+    # contributes its own proposals to the ratchet and the candidate is not
+    # accepted.  Default empty: one route, as before.
+    if [ -n "${BD_TIGHTEN_SEEDS:-}" ]; then
+        fresh_bad=""
+        for fs in $BD_TIGHTEN_SEEDS; do
+            if ! NEXTPNR_SEED=$fs BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
+                 build_k > "$HIST/build.$i.s$fs.log" 2>&1; then
+                fresh_bad="$fresh_bad $fs(build)"
+                continue
+            fi
+            python3 verify/tighten.py "$SDF" $TARGS > "$HIST/tighten.$i.s$fs.log" 2>&1 || true
+            nv=$(awk '/^A\. /{a=1;next} /^B\. /{a=0} a' "$HIST/tighten.$i.s$fs.log" | grep -c VIOLATION || true)
+            if [ "${nv:-0}" -ne 0 ]; then
+                fresh_bad="$fresh_bad $fs($nv)"
+                python3 verify/tighten.py "$SDF" $TARGS --emit "$HIST/raw.$i.s$fs.vh" \
+                    ${BD_TIGHTEN_SLACK:+--slack "$BD_TIGHTEN_SLACK"} > /dev/null 2>&1 || true
+                python3 - "$HIST/raw.$i.s$fs.vh" "$HIST/ratchet.vh" "$SIZES" <<'RPY2'
+import pathlib, re, sys
+raw, acc, out = (pathlib.Path(a) for a in sys.argv[1:4])
+rd = lambda p: {m[1]: int(m[2]) for m in re.finditer(r"^`define (\S+) (\d+)", p.read_text(), re.M)} if p.exists() else {}
+new, merged = rd(raw), rd(acc)
+up = [k for k, v in new.items() if v > merged.get(k, -1)]
+for k in up:
+    merged[k] = new[k]
+txt = "".join(f"`define {k} {merged[k]}\n" for k in sorted(merged))
+acc.write_text(txt); out.write_text(txt)
+print(f"   fresh-seed ratchet: {len(up)} cell(s) raised")
+RPY2
+            fi
+        done
+        if [ -n "$fresh_bad" ]; then
+            echo "   rejected on fresh seed(s):$fresh_bad -- their proposals join the ratchet"
+            LAST=""
+            continue
+        fi
+        echo "   also passes rule A under seed(s) $BD_TIGHTEN_SEEDS"
     fi
 
     read -r built need n <<<"$(totals "$HIST/tighten.$i.log")"
@@ -316,7 +376,7 @@ LOSS
     fi
     rm -f "$SIZES"
     BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
-        ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
+        build_k > "$HIST/build.final.log" 2>&1 || true
 else
     echo "RESULT: best passing build carries ${BEST_NS} ns of matched delay"
     echo "        (unsized baseline was ${BASE_NS} ns)"
@@ -324,8 +384,8 @@ else
         echo "        restoring it and routing again..."
         cp "$BEST" "$SIZES"
         BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
-        ./hw/build_bench.sh "$K" > "$HIST/build.final.log" 2>&1 || true
-        python3 verify/tighten.py "$SDF" > "$HIST/tighten.final.log" 2>&1 || true
+        build_k > "$HIST/build.final.log" 2>&1 || true
+        python3 verify/tighten.py "$SDF" $TARGS > "$HIST/tighten.final.log" 2>&1 || true
         report "$HIST/tighten.final.log" "restored"
         if [ "$RULE_A" -ne 0 ]; then
             echo "   The restored build does NOT pass on the route it just got."
@@ -334,7 +394,7 @@ else
             echo "   unmeasured estimate."
             rm -f "$SIZES"
             BD_SIZES_GATE=0 BD_NO_TIGHTEN=${BD_SKIP_RULE_E:-0} \
-        ./hw/build_bench.sh "$K" > "$HIST/build.fallback.log" 2>&1 || true
+        build_k > "$HIST/build.fallback.log" 2>&1 || true
         fi
     fi
 fi
@@ -346,3 +406,11 @@ else
     echo "final: no sizes applied -- kernel is at bdc/emit.py's estimate"
 fi
 echo "bitstream build/hw/$TOP/$TOP.bit"
+# Rule J (bd_arbiter's A0 fork) on the route that bitstream came from.  Rules
+# A and E above do not look inside an arbiter.
+if ! python3 verify/arb_fork.py "build/hw/$TOP/$TOP.sdf" > "$HIST/arb_fork.log" 2>&1; then
+    echo "rule J FAILS on this route -- not shippable:"
+    grep -E "VIOLATED|NOT RESOLVED" "$HIST/arb_fork.log" | head -5
+    exit 1
+fi
+echo "rule J: $(tail -1 "$HIST/arb_fork.log" | sed 's/^ *//')"

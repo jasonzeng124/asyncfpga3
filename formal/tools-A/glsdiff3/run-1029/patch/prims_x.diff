@@ -1,0 +1,105 @@
+--- src/prims.v	2026-10-29 07:00:51.000000000 +0000
++++ patch/prims.v	2026-10-29 07:29:43.756588331 +0000
+@@ -181,14 +181,22 @@
+     parameter integer SEED = 1;     // read only by the GLS_FID model
+     initial Q = INIT;
+     time t_ck = 0, t_in = 0;
++    // Kleene next state: CE ? D : Q merges D and Q when CE is x (Verilog ?:),
++    // and an x SR gives SRVAL only if the SR=0 result already equals it.
++    function nsk(input s, input c, input dd, input q);
++        reg n0;
++        begin
++            n0 = c ? dd : q;
++            nsk = (s === 1'b1) ? SRVAL : (s === 1'b0) ? n0 : ((n0 === SRVAL) ? SRVAL : 1'bx);
++        end
++    endfunction
+ 
+     always @(posedge CK) begin
+         if (TSU > 0 && t_in > 0 && $time - t_in < TSU) begin
+             $display("FF SETUP VIOLATION %m at %0t (input moved %0t ago)",
+                      $time, $time - t_in);
+             Q <= 1'bx;
+-        end else if (SR) Q <= SRVAL;
+-        else if (CE)     Q <= D;
++        end else Q <= nsk(SR, CE, D, Q);     // Fid3: Kleene (x on SR/CE merges)
+         t_ck = $time;
+     end
+ 
+@@ -347,7 +355,11 @@
+     // next state from (sr, ce, d) and a held state q, as the default model
+     // reads it: SR wins only at 1; CE merges D and q when x
+     function nsf(input s, input c, input dd, input q);
+-        nsf = (s === 1'b1) ? SRVAL : (c ? dd : q);
++        reg n0;
++        begin                                    // Fid3: Kleene in SR too
++            n0 = c ? dd : q;
++            nsf = (s === 1'b1) ? SRVAL : (s === 1'b0) ? n0 : ((n0 === SRVAL) ? SRVAL : 1'bx);
++        end
+     endfunction
+     reg sr_last = 1'bx, ce_last = 1'bx, d_last = 1'bx;
+     reg sr_now = 1'bx, ce_now = 1'bx, d_now = 1'bx;
+@@ -376,10 +388,9 @@
+                     st = choose;
+                     launch(LQ + trp, gen, choose);
+                 end
+-            end else if (sr === 1'b1) begin
+-                st = SRVAL; launch(LQ, gen, SRVAL);
+-            end else if (ce) begin
+-                st = d; launch(LQ, gen, d);
++            end else begin                       // Fid3: x on SR/CE merges
++                nw = nsf(sr, ce, d, st);
++                if (nw !== st) begin st = nw; launch(LQ, gen, nw); end
+             end
+             g_rise = gen; lq_rise = LQ + trp;
+             t_ck = $time;
+@@ -440,14 +451,17 @@
+     parameter [0:0] SRVAL = 1'b0;
+     parameter [0:0] GHIGH = 1'b1;
+     parameter TCKQ = 100;
+-    reg q;
++    reg q, n0;
+     initial q = INIT;
+     always @* begin
+-        if (SR === 1'b1)                     q = SRVAL;
+-        else if (SR !== 1'b0)                q = 1'bx;
+-        else if (CK === GHIGH && CE === 1'b1) q = D;
+-        else if ((CK !== GHIGH && CK !== ~GHIGH) || CE === 1'bx)
+-                                             q = (q === D) ? q : 1'bx;
++        // Fid3: Kleene LDCE/LDPE: open -> D, closed (gate off OR enable 0) -> hold,
++        // else merge; an x SR gives SRVAL only if that result already equals it
++        if (CK === GHIGH && CE === 1'b1)       n0 = D;
++        else if (CK === ~GHIGH || CE === 1'b0) n0 = q;
++        else                                  n0 = (q === D) ? q : 1'bx;
++        if (SR === 1'b1)       q = SRVAL;
++        else if (SR === 1'b0)  q = n0;
++        else                  q = (n0 === SRVAL) ? SRVAL : 1'bx;
+     end
+     assign Q = q;
+     specify
+@@ -486,17 +500,20 @@
+     always @(D)  d  <= #(ED) D;
+     always @(CE) ce <= #(EC) CE;
+     always @(SR) sr <= #(ES) SR;
+-    reg q, armed = 1'b0;
++    reg q, n0, armed = 1'b0;
+     initial q = INIT;
+     always @(ck or d or ce or sr) if (!armed) begin
+         armed = 1'b1;
+         #1;
+         armed = 1'b0;
+-        if (sr === 1'b1)                     q = SRVAL;
+-        else if (sr !== 1'b0)                q = 1'bx;
+-        else if (ck === GHIGH && ce === 1'b1) q = d;
+-        else if ((ck !== GHIGH && ck !== ~GHIGH) || ce === 1'bx)
+-                                             q = (q === d) ? q : 1'bx;
++        // Fid3: Kleene LDCE/LDPE: open -> D, closed (gate off OR enable 0) -> hold,
++        // else merge; an x SR gives SRVAL only if that result already equals it
++        if (ck === GHIGH && ce === 1'b1)       n0 = d;
++        else if (ck === ~GHIGH || ce === 1'b0) n0 = q;
++        else                                  n0 = (q === d) ? q : 1'bx;
++        if (sr === 1'b1)       q = SRVAL;
++        else if (sr === 1'b0)  q = n0;
++        else                  q = (n0 === SRVAL) ? SRVAL : 1'bx;
+     end
+     assign Q = q;
+ endmodule

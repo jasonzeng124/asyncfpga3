@@ -1,0 +1,27 @@
+gcd_hw R5 rebuilds for A-events5 (cells/hw/build_hw.sh, BOARD-QUEUE #2 command, BD_SIZES=research/data/gcd_hw_sizes_R5.vh BDC_SELECT_PADS=hw/gcd_hw_pads.json BD_RLOC=v4, no --freq)
+worktree /tmp/gcdwt2 = detached HEAD 520a43f (removed after use); toolchain.sh before every build: 9/9 patch fingerprints ok, nextpnr sha256 9c732bc6303458df
+each build ~75-80 s; bitstream step fails (python textx missing; not needed)
+
+a9c4e26566621e10399440c2d9a43af3  d/gcd_hw.sdf
+b398103edf54dc95061925152100616e  d/gcd_hw_routed.json
+e0d4202b490ba60147b3a8ae982f7d51  3/gcd_hw.sdf
+ffdc70dd275100a252b9699b9f365ea5  3/gcd_hw_routed.json
+b1b4b951a9fca9e7433a7f1ccb51377d  4/gcd_hw.sdf
+96bc7fa6f6a60931163a749146991b37  4/gcd_hw_routed.json
+030c36bdec2da685cd9788ad06e865e8  5/gcd_hw.sdf
+5aa73a8db135b07cac119cf4dbd71685  5/gcd_hw_routed.json
+
+identical to A-xaudit-gcd's builds (gcd/inputs/builds.txt, worktree cbe4a52): same SDF and routed-JSON md5 on all 4 seeds
+
+xray_delay.py md5 99b10a6d72b58f23406c2e8083185a31 (origin/claude/research:cells/gls/fid/xray_delay.py)
+seed d xray: xray_delay: INTERCONNECT 50025, 41311 from prjxray; IOPATH 44438, 44438 from prjxray; 10943 nets, 44 s
+seed 3 xray: xray_delay: INTERCONNECT 50026, 41311 from prjxray; IOPATH 44445, 44445 from prjxray; 10943 nets, 45 s
+seed 4 xray: xray_delay: INTERCONNECT 50027, 41311 from prjxray; IOPATH 44446, 44446 from prjxray; 10943 nets, 45 s
+seed 5 xray: xray_delay: INTERCONNECT 50027, 41311 from prjxray; IOPATH 44446, 44446 from prjxray; 10943 nets, 45 s
+
+routed2x.py netlists (identical md5 to A-xaudit-gcd's /tmp/gcdx nets):
+  d 5c0830d58a18e89eee9216b88faba18a  net.json
+  3 1d65543415965f519725bde76fb3b638  net.json
+  4 8da9f6cfdaf9968e6697c5ca89eb6bc8  net.json
+  5 1537cb0a34b5bc3a64b328054546bb44  net.json
+bands: slow / fast / indep = routed2x --corner slow|fast|indep; gb = --corner slowmax --widen 0.332 ([0.668*SLOW_MAX, SLOW_MAX], 0.668 = GUARD_LO/GUARD_HI = 0.772/1.155 of cells/verify/skew.py)

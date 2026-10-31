@@ -16,6 +16,18 @@ def norm(pin):
     s = re.sub(r"\$LUT[0-9_]*$", "", s)
     return s.split(".", 2)[-1] if s.startswith("bridge_i.udut.") else s
 
+def is_grouped(name, grouped):
+    """The SDF names a cell by its full instance path; a JSON that was not
+    flattened names it relative to its own module, so match on a suffix at
+    an instance boundary."""
+    if name in grouped:
+        return True
+    while "." in name:
+        name = name.split(".", 1)[1]
+        if name in grouped:
+            return True
+    return False
+
 def stats(v):
     v = sorted(v)
     n = len(v)
@@ -35,9 +47,10 @@ def main():
     g, u, chain = [], [], []
     for m in pat.finditer(sdf):
         src, dst, dl = m.groups()
-        if ".ctl.u.u" not in src:
+        hit = re.search(r"\.ctl\.(?:u\.u|ult)", src)
+        if not hit:
             continue
-        base = src.split(".ctl.u.u")[0]
+        base = src[:hit.start()]
         if not dst.startswith(base):
             continue
         tail = dst[len(base):]
@@ -46,7 +59,7 @@ def main():
         except ValueError:
             continue
         if ".lat" in tail:
-            (g if norm(dst) in grouped else u).append(ps)
+            (g if is_grouped(norm(dst), grouped) else u).append(ps)
         elif ".chain" in tail:
             chain.append(ps)
     print(f"RLOC_GROUP cells in netlist: {len(grouped)}")

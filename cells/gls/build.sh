@@ -59,6 +59,7 @@ cp "$S" "$WORK/routed.sdf"
     echo "stamped:   $(date '+%Y-%m-%d %H:%M:%S')"
     echo "routed.json md5 $(md5sum < "$WORK/routed.json" | cut -d' ' -f1)  <- $J"
     echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- $S"
+    echo "delays:    scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none}, mode ${GLS_SCATTER_MODE:-arc} (gen.py)"
     if [ -f "$HW/toolchain.txt" ]; then
         cat "$HW/toolchain.txt"
     else
@@ -90,7 +91,7 @@ iverilog -gspecify -I. -o gate.vvp "$SRC/tb_gate.v" netlist.v "$SRC/prims.v"
 # run_baked.vvp is the same numbers from the same parse, baked in as parameters,
 # so it starts in seconds.  Equivalence is not assumed: a full run of each was
 # diffed and every event timestamp is identical.
-iverilog -gspecify -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
+iverilog -gspecify -DGLS_TRANSPORT_IC -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
     | grep -v 'procedural continuous' || true
 
 cat <<EOF

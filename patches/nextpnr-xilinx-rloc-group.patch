@@ -1,16 +1,59 @@
+diff --git a/xilinx/arch_place.cc b/xilinx/arch_place.cc
+index 1e0100a4..a1f5401e 100644
+--- a/xilinx/arch_place.cc
++++ b/xilinx/arch_place.cc
+@@ -1273,6 +1273,16 @@ void Arch::fixupPlacement()
+                     out.push_back(tb);
+                     for (auto child : vc->constr_children) {
+                         Loc cloc = ploc;
++                        // A cluster may span tiles (an RLOC_GROUP column):
++                        // honour the child's x/y offsets exactly as the placer
++                        // does, or two members land on one bel and bindBel
++                        // asserts.
++                        if (child->constr_x != child->UNCONSTR)
++                            cloc.x += child->constr_x;
++                        if (child->constr_y != child->UNCONSTR)
++                            cloc.y += child->constr_y;
++                        if (cloc.x < 0 || cloc.y < 0)
++                            return false;
+                         if (child->constr_z != child->UNCONSTR)
+                             cloc.z = child->constr_abs_z ? child->constr_z : (ploc.z + child->constr_z);
+                         work.emplace_back(child, cloc);
+@@ -1327,8 +1337,15 @@ void Arch::fixupPlacement()
+                             bindBel(obels[i], members[i], STRENGTH_WEAK);
+                     }
+                 log_warning("post-place repair: no valid placement for '%s'\n", root->name.c_str(this));
+-            } else
++            } else {
+                 ++fixed;
++                if (getCtx()->verbose) {
++                    Loc nloc = getBelLocation(root->bel);
++                    log_info("post-place repair: '%s' (%s, %d member(s)) moved (%d,%d,z%d) -> (%d,%d,z%d)\n",
++                             root->name.c_str(this), root->type.c_str(this), int(members.size()), oloc.x, oloc.y,
++                             oloc.z, nloc.x, nloc.y, nloc.z);
++                }
++            }
+         }
+         if (fixed)
+             log_info("post-place repair: relocated %d stranded cluster(s)/cell(s) to valid bels\n", fixed);
 diff --git a/xilinx/pack.cc b/xilinx/pack.cc
-index 5c8801c8..4f0b81ea 100644
+index 5c8801c8..b6a3576a 100644
 --- a/xilinx/pack.cc
 +++ b/xilinx/pack.cc
-@@ -21,6 +21,7 @@
+@@ -20,8 +20,12 @@
+ #include "pack.h"
  #include <algorithm>
  #include <boost/optional.hpp>
++#include <cstdlib>
  #include <iterator>
++#include <limits>
 +#include <map>
  #include <queue>
++#include <set>
  #include <unordered_set>
  #include "cells.h"
-@@ -254,6 +255,14 @@ std::vector<std::pair<IdString, IdString>> XilinxPacker::split_lut6_2()
+ #include "chain_utils.h"
+@@ -254,6 +258,14 @@ std::vector<std::pair<IdString, IdString>> XilinxPacker::split_lut6_2()
              // so it's safe to hand that BEL straight to whichever one it is.
              if (ci->attrs.count(id_BEL))
                  half->attrs[id_BEL] = ci->attrs.at(id_BEL);
@@ -19,13 +62,13 @@ index 5c8801c8..4f0b81ea 100644
 +            // whatever group the original instance did.  They are re-paired
 +            // onto one physical LUT by constrain_lut6_2_pairs() below, so the
 +            // group still spends a single slot for the two of them.
-+            IdString rloc = ctx->id("RLOC_GROUP");
-+            if (ci->attrs.count(rloc))
-+                half->attrs[rloc] = ci->attrs.at(rloc);
++            for (IdString a : {ctx->id("RLOC_GROUP"), ctx->id("RLOC_SLOT"), ctx->id("RLOC_COL")})
++                if (ci->attrs.count(a))
++                    half->attrs[a] = ci->attrs.at(a);
              new_cells.push_back(std::move(half));
          };
  
-@@ -338,6 +347,133 @@ void XilinxPacker::constrain_lut6_2_pairs(const std::vector<std::pair<IdString,
+@@ -338,6 +350,330 @@ void XilinxPacker::constrain_lut6_2_pairs(const std::vector<std::pair<IdString,
      }
  }
  
@@ -47,7 +90,11 @@ index 5c8801c8..4f0b81ea 100644
 +// chain is.  An attribute lets a front end say "these belong together" for a
 +// macro nextpnr has never heard of.
 +//
-+// Mechanics.  The first member in name order becomes the cluster root and stays
++// Mechanics.  Members are ordered by their integer `RLOC_SLOT` attribute when
++// they carry one (name order breaks ties and orders the rest), so a front end
++// can lay a group out slot by slot -- a handshake ring in the order its
++// transitions travel, say -- and know which members share a tile.  The first
++// member becomes the cluster root and stays
 +// completely unconstrained.  Every other member is attached as a child at
 +// dx = dy = 0 and a RELATIVE z of one logic slot per member (BEL_6LUT slot
 +// stride is 1<<4 on both xc7 and xcup).  Relative rather than absolute z is
@@ -57,6 +104,19 @@ index 5c8801c8..4f0b81ea 100644
 +// straddle the two SLICEs of one CLB tile depending on where the root lands.
 +// That is the same interconnect tile either way, which is what the delay
 +// follows.
++//
++// Slot-ordered groups may also span COLUMNS: an integer `RLOC_COL` (default 0)
++// names which logic column of the group a member sits in, and `RLOC_SLOT` is
++// then absolute within that column -- row slot/8, logic slot slot%8 -- so a
++// front end can leave gaps to line a column up with its neighbour (a stage's
++// datapath LUTs beside the latch banks they connect, say).  Logic columns are
++// not evenly spaced on the die (CLB pairs sit back to back, interconnect and
++// BRAM/DSP columns come between), so the grid offset of column c is taken
++// from the device: the spacing pattern that the most consecutive logic
++// columns share, with the tightest pattern preferred among those nearly as
++// common.  Anchors where that pattern does not hold are illegal for the
++// cluster and the legaliser moves on, exactly as it does for a column that
++// straddles a row without logic.
 +//
 +// Members already inside a cluster (the LUT5 half of a fractured LUT6_2, a
 +// carry-chain feeder) are resolved to their cluster ROOT and it is the root
@@ -69,25 +129,123 @@ index 5c8801c8..4f0b81ea 100644
 +void XilinxPacker::pack_rloc_groups()
 +{
 +    IdString rloc_id = ctx->id("RLOC_GROUP");
++    IdString slot_id = ctx->id("RLOC_SLOT");
++    IdString col_id = ctx->id("RLOC_COL");
 +
-+    std::map<std::string, std::vector<CellInfo *>> groups;
++    auto int_attr = [](const Property &p) {
++        return p.is_string ? std::atoll(p.as_string().c_str()) : p.as_int64();
++    };
++
++    struct Member
++    {
++        int64_t col, slot;
++        CellInfo *ci;
++    };
++    std::map<std::string, std::vector<Member>> groups;
 +    for (auto cell : sorted(ctx->cells)) {
 +        CellInfo *ci = cell.second;
 +        auto fnd = ci->attrs.find(rloc_id);
 +        if (fnd == ci->attrs.end())
 +            continue;
-+        groups[fnd->second.as_string()].push_back(ci);
++        Member m{0, std::numeric_limits<int64_t>::max(), ci};
++        auto s = ci->attrs.find(slot_id);
++        if (s != ci->attrs.end())
++            m.slot = int_attr(s->second);
++        auto c = ci->attrs.find(col_id);
++        if (c != ci->attrs.end())
++            m.col = int_attr(c->second);
++        groups[fnd->second.as_string()].push_back(m);
 +    }
 +    if (groups.empty())
 +        return;
 +
 +    log_info("Packing RLOC_GROUP relative-placement clusters..\n");
 +
++    // The device's logic columns, for RLOC_COL: every tile x that holds a LUT.
++    // And the tallest unbroken run of logic tiles in any of them, which is how
++    // many rows a column-shaped group can span at all: a taller one has no
++    // legal anchor anywhere.  (xc7z010: 25, one clock region.)
++    std::vector<int> logic_cols;
++    int max_rows = 1;
++    {
++        std::map<int, std::set<int>> ys;
++        for (BelId bel : ctx->getBels())
++            if (ctx->getBelType(bel) == id_SLICE_LUTX) {
++                Loc l = ctx->getBelLocation(bel);
++                ys[l.x].insert(l.y);
++            }
++        for (auto &col : ys) {
++            logic_cols.push_back(col.first);
++            int run = 0, prev = std::numeric_limits<int>::min();
++            for (int y : col.second) {
++                run = (y == prev + 1) ? run + 1 : 1;
++                prev = y;
++                max_rows = std::max(max_rows, run);
++            }
++        }
++    }
++    // Grid dx of each RLOC_COL value a group uses, chosen as described above.
++    // `cols` is the sorted set of column values the group uses (0 included).
++    std::map<std::vector<int64_t>, std::map<int64_t, int>> pattern_cache;
++    auto column_offsets = [&](const std::vector<int64_t> &cols) -> const std::map<int64_t, int> & {
++        auto cached = pattern_cache.find(cols);
++        if (cached != pattern_cache.end())
++            return cached->second;
++        std::map<std::vector<int>, int> count;
++        int lo = int(cols.front()), hi = int(cols.back());
++        for (int i = -lo; i + hi < int(logic_cols.size()); i++) {
++            std::vector<int> pat;
++            for (int64_t c : cols)
++                pat.push_back(logic_cols.at(i + int(c)) - logic_cols.at(i));
++            count[pat]++;
++        }
++        int best = 0;
++        for (auto &kv : count)
++            best = std::max(best, kv.second);
++        // Tightest pattern (by total span) among those at least 60% as
++        // common as the most common one.
++        const std::vector<int> *pick = nullptr;
++        int pick_span = 0;
++        for (auto &kv : count) {
++            if (kv.second * 5 < best * 3)
++                continue;
++            int span = kv.first.back() - kv.first.front();
++            if (pick == nullptr || span < pick_span) {
++                pick = &kv.first;
++                pick_span = span;
++            }
++        }
++        std::map<int64_t, int> &out = pattern_cache[cols];
++        if (pick != nullptr) {
++            for (size_t k = 0; k < cols.size(); k++)
++                out[cols.at(k)] = pick->at(k);
++            std::string desc;
++            for (size_t k = 0; k < cols.size(); k++)
++                desc += (k ? ", " : "") + std::to_string(cols.at(k)) + " -> dx " + std::to_string(pick->at(k));
++            log_info("    RLOC_COL offsets {%s} hold at %d of %d logic columns\n", desc.c_str(), count.at(*pick),
++                     int(logic_cols.size()));
++        }
++        return out;
++    };
++
 +    // Slots available at ONE placer location, for the cell types this
-+    // understands.  A location is one SLICE: four logic slots on xc7
-+    // (z = slot<<4 | BEL_6LUT, slot 0..3), eight on xcup.  A group asking for
-+    // more than that names a z that has no bel and could never place.
-+    const int max_slots = ctx->xc7 ? 4 : 8;
++    // understands.  A location is one logic TILE, eight LUT slots on both
++    // families: z = slot<<4 | BEL_6LUT, slot 0..7, where on xc7 slots 4..7
++    // are the tile's second SLICE (the upper site's bels carry z | 64, see
++    // python/bels.py) and on xcup they are the upper half of the one
++    // SLICE.  A group asking for more is laid out as a COLUMN of tiles --
++    // one row of slots per tile, the rows stacked alternately above and
++    // below the root's (dy = 0, +1, -1, +2, -2, ...) so the root sits
++    // mid-column -- the way a carry chain already spans tiles.  A group whose
++    // members carry RLOC_SLOT is instead stacked in slot order, upwards from
++    // the root's row, so consecutive slots are never more than one tile
++    // apart.  A column can
++    // straddle a row with no logic tile in it; the legaliser then rejects
++    // that anchor and tries the next.  The cap on rows is the device's, not
++    // this code's: max_rows above.  (It was a constant 9 before, which cut a
++    // pipeline of more than three stages into separately floating segments
++    // on a part whose columns are 100 tiles tall.)
++    const int max_slots = 8;
 +
 +    int n_groups = 0, n_members = 0, n_dropped = 0;
 +    std::map<std::string, int> size_hist;
@@ -95,10 +253,16 @@ index 5c8801c8..4f0b81ea 100644
 +        const std::string &key = grp.first;
 +
 +        // Resolve every member to the root of whatever cluster it is already
-+        // in, preserving first-seen order and dropping duplicates.
++        // in, preserving first-seen order and dropping duplicates.  Each root
++        // keeps the (col, slot) of the first member that named it.
 +        std::vector<CellInfo *> roots;
++        std::vector<std::pair<int64_t, int64_t>> root_pos;
 +        const char *reject = nullptr;
-+        for (auto *ci : grp.second) {
++        std::stable_sort(grp.second.begin(), grp.second.end(), [](const Member &a, const Member &b) {
++            return std::make_pair(a.col, a.slot) < std::make_pair(b.col, b.slot);
++        });
++        for (auto &member : grp.second) {
++            CellInfo *ci = member.ci;
 +            if (ci->type != id_SLICE_LUTX) {
 +                reject = "member is not a LUT";
 +                break;
@@ -122,11 +286,65 @@ index 5c8801c8..4f0b81ea 100644
 +                reject = "member already has an absolute-z constraint";
 +                break;
 +            }
-+            if (std::find(roots.begin(), roots.end(), r) == roots.end())
++            if (std::find(roots.begin(), roots.end(), r) == roots.end()) {
 +                roots.push_back(r);
++                root_pos.emplace_back(member.col, member.slot);
++            }
 +        }
-+        if (reject == nullptr && int(roots.size()) > max_slots)
-+            reject = "group needs more logic slots than a tile has";
++        // Slot-ordered: every root carries a slot, no two share a (col, slot),
++        // and the columns used have a grid spacing on this device.
++        bool ordered = reject == nullptr && !root_pos.empty() &&
++                       root_pos.front().second != std::numeric_limits<int64_t>::max();
++        std::vector<int64_t> cols;
++        const std::map<int64_t, int> *dx = nullptr;
++        if (ordered) {
++            for (size_t i = 0; i < root_pos.size(); i++) {
++                if (root_pos.at(i).second == std::numeric_limits<int64_t>::max()) {
++                    reject = "slot-ordered group has a member without RLOC_SLOT";
++                    break;
++                }
++                if (root_pos.at(i).second < 0 || root_pos.at(i).second >= max_slots * max_rows) {
++                    reject = "RLOC_SLOT beyond the tallest logic column on this device";
++                    break;
++                }
++                if (cols.empty() || cols.back() != root_pos.at(i).first)
++                    cols.push_back(root_pos.at(i).first);
++            }
++            // Two roots on one slot (an unpaired LUT6_2, say) cannot both have
++            // it: that column falls back to dense rank order, keeping the
++            // sequence the front end asked for and losing only its gaps.
++            for (size_t i = 0; reject == nullptr && i < root_pos.size(); i++) {
++                if (i == 0 || root_pos.at(i) != root_pos.at(i - 1))
++                    continue;
++                int64_t col = root_pos.at(i).first;
++                size_t lo = i;
++                while (lo > 0 && root_pos.at(lo - 1).first == col)
++                    lo--;
++                size_t hi = i;
++                while (hi + 1 < root_pos.size() && root_pos.at(hi + 1).first == col)
++                    hi++;
++                log_warning("    RLOC_GROUP '%s': duplicate RLOC_SLOT %d in column %d, packing that column densely\n",
++                            key.c_str(), int(root_pos.at(i).second), int(col));
++                for (size_t k = lo; k <= hi; k++)
++                    root_pos.at(k).second = int64_t(k - lo);
++                i = hi;
++            }
++            if (reject == nullptr) {
++                if (!std::binary_search(cols.begin(), cols.end(), int64_t(0)))
++                    cols.insert(std::lower_bound(cols.begin(), cols.end(), int64_t(0)), 0);
++                dx = &column_offsets(cols);
++                if (dx->empty())
++                    reject = "RLOC_COL values have no common spacing on this device";
++            }
++        } else if (reject == nullptr) {
++            if (int(roots.size()) > max_slots * max_rows)
++                reject = "group needs more logic slots than the tallest logic column on this device has";
++            for (auto &rp : root_pos)
++                if (rp.first != 0) {
++                    reject = "RLOC_COL needs RLOC_SLOT on every member";
++                    break;
++                }
++        }
 +        if (reject != nullptr) {
 +            log_warning("    RLOC_GROUP '%s' (%d cells) not applied: %s\n", key.c_str(), int(grp.second.size()),
 +                        reject);
@@ -136,30 +354,52 @@ index 5c8801c8..4f0b81ea 100644
 +        if (roots.size() < 2)
 +            continue; // a group of one is already as close to itself as it gets
 +
++        // The anchor is the lowest slot of the lowest column; every offset is
++        // relative to it.  With absolute slots the anchor's own z is what the
++        // placer picks, so a column that fills its row is legal only where the
++        // anchor lands on slot (anchor_slot % 8) -- the legaliser handles it.
 +        CellInfo *anchor = roots.front();
++        int64_t a_col = root_pos.front().first, a_slot = root_pos.front().second;
++        int rows_used = 1, cols_used = int(cols.size());
 +        for (size_t i = 1; i < roots.size(); i++) {
 +            CellInfo *m = roots.at(i);
 +            anchor->constr_children.push_back(m);
 +            m->constr_parent = anchor;
-+            m->constr_x = 0;
-+            m->constr_y = 0;
 +            m->constr_abs_z = false;
-+            m->constr_z = int(i) << 4;
++            if (ordered) {
++                int64_t col = root_pos.at(i).first, slot = root_pos.at(i).second;
++                m->constr_x = dx->at(col) - dx->at(a_col);
++                m->constr_y = int(slot / max_slots) - int(a_slot / max_slots);
++                m->constr_z = (int(slot % max_slots) - int(a_slot % max_slots)) << 4;
++                rows_used = std::max(rows_used, int(slot / max_slots) + 1);
++            } else {
++                int row = int(i) / max_slots;
++                m->constr_x = 0;
++                m->constr_y = (row % 2) ? (row + 1) / 2 : -(row / 2);
++                m->constr_z = (int(i) % max_slots) << 4;
++                rows_used = row + 1;
++            }
 +        }
 +        ++n_groups;
 +        n_members += int(roots.size());
-+        size_hist[std::to_string(roots.size()) + " slots"]++;
++        size_hist[std::to_string(roots.size()) + " slots" +
++                  (rows_used > 1 || cols_used > 1
++                           ? " in " + std::to_string(rows_used) + " tiles" +
++                                     (cols_used > 1 ? " x " + std::to_string(cols_used) + " columns" : "")
++                           : "") +
++                  (ordered ? ", slot-ordered" : "")]++;
 +    }
 +
 +    for (auto &sh : size_hist)
 +        log_info("    %6d group(s) of %s\n", sh.second, sh.first.c_str());
-+    log_info("    %d cluster(s), %d logic slots clustered, %d group(s) dropped\n", n_groups, n_members, n_dropped);
++    log_info("    %d cluster(s), %d logic slots clustered, %d group(s) dropped (%d logic slots per tile row, up to %d rows)\n",
++             n_groups, n_members, n_dropped, max_slots, max_rows);
 +}
 +
  void XilinxPacker::pack_luts(const std::vector<std::pair<IdString, IdString>> &lut6_2_pairs)
  {
      log_info("Packing LUTs..\n");
-@@ -1419,6 +1555,9 @@ bool Arch::pack()
+@@ -1419,6 +1755,9 @@ bool Arch::pack()
          packer.pack_ffs();
          packer.finalise_muxfs();
          packer.pack_lutffs();
@@ -169,7 +409,7 @@ index 5c8801c8..4f0b81ea 100644
      } else {
          USPacker packer;
          packer.ctx = getCtx();
-@@ -1444,6 +1583,7 @@ bool Arch::pack()
+@@ -1444,6 +1783,7 @@ bool Arch::pack()
          packer.pack_ffs();
          packer.finalise_muxfs();
          packer.pack_lutffs();

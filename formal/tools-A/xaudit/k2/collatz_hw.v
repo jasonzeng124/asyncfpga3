@@ -1,0 +1,200 @@
+// collatz_hw.v -- k2/collatz_rig.v on the die: cells/hw/gcd_hw.v with gcd_rig swapped for
+// collatz_rig and the gcd-only abs/cmp probe instrumentation removed (probe K2).
+//
+// Kept exactly as gcd_hw.v: the BSCANE2 readback, the free-running housekeeping ring
+// (bd_delay(17) + inverter, BUFG) that clocks the window sequencer, the POR shift
+// register, the per-window rig reset (rst_sr, 16 hk cycles), idx stepping each window,
+// the err/ok sticky LUT latches per vector, the lap counter clocked by the rig's lap
+// through a BUFG, and the first-error capture.  So the formal cut (urig.*, free inputs
+// idx[3:0] and rig_rst) has the same shape as on gcd_hw.
+// Not part of cells/; nobody has run this bitstream on a board.
+module collatz_hw (output wire led_red, output wire led_green);
+
+    localparam integer NVEC  = 16;
+    localparam integer IDXW  = 4;
+    localparam integer WFILT = 2;
+    localparam integer CMPD  = 16;
+
+    localparam integer W   = 48;
+    localparam [7:0]   TAG = 8'h6E;   // gcd_hw is 6D
+    localparam integer HKLEN = 17;
+
+    localparam [7:0] NVEC_V  = NVEC;
+    localparam [7:0] CMPD_V  = CMPD;
+    localparam [3:0] HKLEN_V = HKLEN;
+    localparam [3:0] WFILT_V = WFILT;
+
+    wire bs_capture, bs_shift, bs_update, bs_sel;
+    wire bs_tck_raw, bs_tdi;
+    wire sr_tdo;
+
+    (* keep *) BSCANE2 #(.JTAG_CHAIN(1)) bscan_i (
+        .CAPTURE (bs_capture), .DRCK (), .RESET (), .RUNTEST (),
+        .SEL (bs_sel), .SHIFT (bs_shift), .TCK (bs_tck_raw), .TDI (bs_tdi),
+        .TMS (), .UPDATE (bs_update), .TDO (sr_tdo));
+
+    wire tck;
+    BUFG bufg_tck (.I(bs_tck_raw), .O(tck));
+
+    reg  [11:0] hold = 12'h0;
+    wire [4:0]  hold_addr = hold[4:0];
+    wire        hold_run  = hold[5];
+    wire [3:0]  hold_vec  = hold[9:6];
+    wire        hold_pin  = hold[10];
+    wire        hold_clr  = hold[11];
+
+    wire hk_chain, hk_fb;
+    bd_delay #(.N(HKLEN)) dhk (.a(hk_fb), .z(hk_chain));
+    (* keep *) LUT1 #(.INIT(2'h1)) invhk (.I0(hk_chain), .O(hk_fb));
+
+    wire hk_ck;
+    BUFG bg_hk (.I(hk_fb), .O(hk_ck));
+
+    reg  [1:0]  hk_run = 2'b00;
+    reg  [31:0] hk_cnt = 32'h0;
+    reg         hk_ovf = 1'b0;
+    always @(posedge hk_ck) begin
+        hk_run <= {hk_run[0], hold_run};
+        if (hk_run[1])              hk_cnt <= hk_cnt + 32'h1;
+        if (hk_run[1] && (&hk_cnt)) hk_ovf <= 1'b1;
+    end
+
+    reg [23:0] por_sr = 24'h0;
+    always @(posedge hk_ck)
+        por_sr <= {por_sr[22:0], 1'b1};
+    wire por_done = por_sr[23];
+
+    localparam integer WINBITS = 16;
+    reg [WINBITS-1:0] win_cnt = {WINBITS{1'b0}};
+    always @(posedge hk_ck)
+        win_cnt <= win_cnt + 1'b1;
+    wire win_edge = &win_cnt;
+
+    reg win_edge_d = 1'b0;
+    always @(posedge hk_ck)
+        win_edge_d <= win_edge;
+
+    reg [15:0] rst_sr = 16'hFFFF;
+    always @(posedge hk_ck)
+        rst_sr <= win_edge_d ? 16'hFFFF : {rst_sr[14:0], 1'b0};
+
+    reg [IDXW-1:0] idx = {IDXW{1'b0}};
+    always @(posedge hk_ck)
+        if (win_edge_d)
+            idx <= hold_pin ? hold_vec : (idx + 1'b1);
+
+    wire rig_rst = ~por_done | rst_sr[15];
+
+    reg [31:0] arm_sr = 32'h0;
+    always @(posedge hk_ck)
+        if (win_edge_d && por_done)
+            arm_sr <= {arm_sr[30:0], 1'b1};
+
+    reg [15:0] settle_sr = 16'h0;
+    always @(posedge hk_ck)
+        settle_sr <= rig_rst ? 16'h0 : {settle_sr[14:0], 1'b1};
+
+    wire settled = |win_cnt[15:11];
+    wire armed = arm_sr[31] & settle_sr[15] & settled;
+
+    wire rig_lap, rig_err, rig_ok, rig_probe;
+    wire [31:0] rig_res_data;
+
+    collatz_rig #(.IDXW(IDXW), .WFILT(WFILT), .CMPD(CMPD)) urig (
+        .rst(rig_rst), .idx(idx),
+        .lap(rig_lap), .err_flt(rig_err), .ok_flt(rig_ok), .probe(rig_probe),
+        .res_data(rig_res_data));
+
+    wire [NVEC-1:0] err_sticky;
+    wire [NVEC-1:0] ok_sticky;
+    wire sticky_keep = por_done & ~hold_clr;
+
+    genvar vi;
+    generate for (vi = 0; vi < NVEC; vi = vi + 1) begin : vec
+        wire sel = (idx == vi[IDXW-1:0]);
+        wire err_raw, ok_raw;
+        (* keep *) LUT2 #(.INIT(4'h8)) uerr_g (.I0(rig_err), .I1(sel), .O(err_raw));
+        (* keep *) LUT2 #(.INIT(4'h8)) uok_g  (.I0(rig_ok),  .I1(sel), .O(ok_raw));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uerr_s (
+            .I0(err_raw), .I1(err_sticky[vi]), .I2(armed), .I3(sticky_keep),
+            .O(err_sticky[vi]));
+        (* keep *) LUT4 #(.INIT(16'hEC00)) uok_s (
+            .I0(ok_raw),  .I1(ok_sticky[vi]),  .I2(armed), .I3(sticky_keep),
+            .O(ok_sticky[vi]));
+    end endgenerate
+
+    wire lap_ck;
+    BUFG bg_lap (.I(rig_lap), .O(lap_ck));
+
+    reg  [1:0]  lap_run = 2'b00;
+    reg  [31:0] lap_cnt = 32'h0;
+    reg         lap_ovf = 1'b0;
+    always @(posedge lap_ck) begin
+        lap_run <= {lap_run[0], hold_run};
+        if (lap_run[1])               lap_cnt <= lap_cnt + 32'h1;
+        if (lap_run[1] && (&lap_cnt)) lap_ovf <= 1'b1;
+    end
+
+    reg [31:0]     errv       = 32'h0;
+    reg [IDXW-1:0] errv_idx   = {IDXW{1'b0}};
+    reg            errv_valid = 1'b0;
+    always @(posedge lap_ck) begin
+        if (hold_clr) begin
+            errv_valid <= 1'b0;
+        end else if (rig_err && armed && !errv_valid) begin
+            errv       <= rig_res_data;
+            errv_idx   <= idx;
+            errv_valid <= 1'b1;
+        end
+    end
+
+    localparam integer SB_W = 4;
+    wire [SB_W-1:0] sample_bus = {rig_probe, rig_lap, hk_fb, por_done};
+    reg  [SB_W-1:0] rs0 = {SB_W{1'b0}};
+    reg  [SB_W-1:0] rs1 = {SB_W{1'b0}};
+    always @(posedge tck) begin
+        rs0 <= sample_bus;
+        rs1 <= rs0;
+    end
+
+    reg [31:0] mux_d;
+    reg        mux_o;
+    always @* begin
+        mux_d = 32'h0000_0000;
+        mux_o = 1'b0;
+        case (hold_addr)
+            5'd0:  begin mux_d = hk_cnt;  mux_o = hk_ovf;  end
+            5'd1:  begin mux_d = lap_cnt; mux_o = lap_ovf; end
+            5'd2:  mux_d = 32'hDEAD_BEEF;
+            5'd3:  mux_d = 32'h5A5A_1234;
+            5'd4:  mux_d = {NVEC_V, CMPD_V, HKLEN_V, WFILT_V, 8'h0};
+            5'd5:  mux_d = {20'h0, hold_clr, hold_pin, hold_vec, idx, armed, por_done, hold_run};
+            5'd6:  mux_d = {28'h0, rs1};
+            5'd8:  mux_d = {16'h0, err_sticky};
+            5'd9:  mux_d = {16'h0, ok_sticky};
+            5'd18: mux_d = errv;
+            5'd19: mux_d = {24'h0, 3'h0, errv_valid, errv_idx};
+            default: mux_d = 32'h0000_0000;
+        endcase
+    end
+
+    wire is_cnt = (hold_addr <= 5'd1);
+    wire [31:0] cap_data = (is_cnt && hold_run) ? 32'hFFFF_FFFF : mux_d;
+    wire [W-1:0] cap_word = {TAG, 1'b0, mux_o, hold_run, hold_addr, cap_data};
+
+    reg [W-1:0] sr = {W{1'b0}};
+    wire         sr_ce = bs_sel && (bs_capture || bs_shift);
+    wire [W-1:0] sr_d  = bs_capture ? cap_word : {bs_tdi, sr[W-1:1]};
+    always @(posedge tck) begin
+        if (sr_ce) sr <= sr_d;
+    end
+
+    wire hold_ce = bs_sel && bs_update;
+    always @(posedge tck) begin
+        if (hold_ce) hold <= sr[11:0];
+    end
+
+    assign sr_tdo = sr[0];
+    assign led_red   = hold_run;
+    assign led_green = |err_sticky;
+endmodule

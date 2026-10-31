@@ -148,6 +148,22 @@ SPECS = {
                    (lambda rq, ci, cj, ck, r:                     # O5 = C_i
                     (not r) and maj(rq, 1 - cj, ci)))),
 
+    # --- decoupled link controller (bd_link_dctl, an experiment) ----------
+    # Four SR-style state nodes, each `q' = ~rst . (set + q . ~reset)`, from
+    # the equations in bd_link.v's header.  ld comes up 0 and is set by the
+    # first lt.
+    "DC_B":  ("lut6", "req ack ld b rst -",
+              lambda rq, ak, ld, b, r, _5:
+              (not r) and ((rq & ld & (1 - ak)) | (b & (1 - (ak & (1 - ld)))))),
+    "DC_A":  ("lut6", "req b ld a rst -",
+              lambda rq, b, ld, a, r, _5:
+              (not r) and ((rq & b & ld) | (a & (rq | ld)))),
+    "DC_LD": ("lut6", "lt s a ld rst -",
+              lambda lt, s, a, ld, r, _5:
+              (not r) and (1 - a) and ((lt & s) | ld)),
+    "DC_LT": ("lut6", "b a gate - - -",
+              lambda b, a, g, _3, _4, _5: (1 - b) & (1 - a) & (1 - g)),
+
     # --- mux --------------------------------------------------------------
     # The control decode folds into the join: C(x_req, ctl_req.~s) is a
     # function of four wires, one LUT6 with rst.
@@ -196,6 +212,22 @@ SPECS = {
     # to pair with.  Three pins, so it is a whole LUT that happens to use half
     # of one -- which is why odd widths cost the extra half.
     "DATAMUX1": ("lut3", "s a b", lambda s, a, b: b if s else a),
+
+    # --- two-phase (MOUSETRAP) link, rtl/bd_mlink.v --------------------------
+    # Latch enable: open while the stage's request and its successor's
+    # acknowledge agree (both phases seen), forced open in reset.
+    "MT_EN":        ("lut3", "done ack rst",
+                     lambda d, a, r: r | (1 - (d ^ a))),
+    # The same XNOR gated by the delayed reopen s, so closing does not wait
+    # for the reopen delay.
+    "MT_EN_REOPEN": ("lut4", "s done ack rst",
+                     lambda s, d, a, r: s & (r | (1 - (d ^ a)))),
+    # FF-backed variant: the clock is the phase mismatch, held low in reset...
+    "MT_CK":        ("lut3", "done ack rst",
+                     lambda d, a, r: (1 - r) & (d ^ a)),
+    # ...and the request bit is a LUT latch, transparent while ck is low.
+    "MT_REQ_LATCH": ("lut3", "req ck done",
+                     lambda q, ck, d: d if ck else q),
 
     # --- plain gates ------------------------------------------------------
     "OR2":     ("lut2", "a b", lambda a, b: a | b),

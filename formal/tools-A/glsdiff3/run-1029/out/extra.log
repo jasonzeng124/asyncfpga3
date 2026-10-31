@@ -1,0 +1,134 @@
+== E1 CARRY4, 7 live pins, all 8 outputs, random arcs: per-(pin,output) transport
+-- def
+CARRY4 per-(pin,output) transport: 2/60 traces exact (1039 reference output edges)
+first mismatch: in [(1210, 'S2', 1), (1590, 'DI2', 1), (1720, 'DI0', 1), (1870, 'DI1', 1), (2060, 'S2', 0), (2070, 'DI1', 0), (2130, 'S2', 1), (2310, 'S2', 0), (2670, 'DI2', 0), (2730, 'DI1', 1), (2900, 'S1', 1)]
+  output O1 gls [(2223, 1), (3283, 0)]
+  ref [(2143, 1), (3283, 0)]
+-- fid
+CARRY4 per-(pin,output) transport: 60/60 traces exact (1039 reference output edges)
+== E2 FID_RESOLVE 50% point vs TLOOP and WIN (current rule TLOOP - WIN/2)
+-- TLOOP 624 (wire 500), WIN 150: expect 50% near 549
+S 450 q1 1 qx 0 of 200
+S 500 q1 15 qx 0 of 200
+S 530 q1 62 qx 0 of 200
+S 549 q1 99 qx 0 of 200
+S 570 q1 146 qx 0 of 200
+S 600 q1 182 qx 0 of 200
+-- TLOOP 424, +META_WIN=50: expect 50% near 399
+S 340 q1 0 qx 0 of 200
+S 370 q1 1 qx 0 of 200
+S 390 q1 38 qx 0 of 200
+S 399 q1 97 qx 0 of 200
+S 410 q1 163 qx 0 of 200
+S 420 q1 193 qx 0 of 200
+== E3 patched centre (patch/fid_core_centre.diff, default META_CENTRE_PM=500): expect 50% near TLOOP/2
+-- TLOOP 424: expect 50% near 212
+S 100 q1 0 qx 0 of 200
+S 150 q1 8 qx 0 of 200
+S 180 q1 33 qx 0 of 200
+S 200 q1 76 qx 0 of 200
+S 212 q1 99 qx 0 of 200
+S 230 q1 138 qx 0 of 200
+S 250 q1 169 qx 0 of 200
+S 280 q1 194 qx 0 of 200
+S 300 q1 197 qx 0 of 200
+S 360 q1 200 qx 0 of 200
+-- TLOOP 624: expect 50% near 312
+S 250 q1 8 qx 0 of 200
+S 290 q1 57 qx 0 of 200
+S 312 q1 99 qx 0 of 200
+S 340 q1 155 qx 0 of 200
+S 380 q1 194 qx 0 of 200
+-- patched, META_CENTRE_PM=-1 (old rule) at TLOOP 424: must equal the suite's sweep
+S 300 q1 15 qx 0 of 200
+S 349 q1 99 qx 0 of 200
+S 400 q1 182 qx 0 of 200
+== E4 what fanout sees while the node resolves (one loop, TLOOP 424, s = 349 near the current centre)
+-- META_SEED=1
+Q 124 0
+Q 1124 1
+META tb_meta_centre.u0.u.r6 t=1473 runt=349 loop=424 delta=-28 runt_val=1 -> 0 after 147 ps
+Q 1473 0
+S 349 q1 0 qx 0 of 1
+-- META_SEED=2
+Q 124 0
+Q 1124 1
+META tb_meta_centre.u0.u.r6 t=1473 runt=349 loop=424 delta=58 runt_val=1 -> 1 after 38 ps
+Q 1473 0
+Q 1511 1
+S 349 q1 1 qx 0 of 1
+-- META_SEED=3
+Q 124 0
+Q 1124 1
+META tb_meta_centre.u0.u.r6 t=1473 runt=349 loop=424 delta=-27 runt_val=1 -> 0 after 153 ps
+Q 1473 0
+S 349 q1 0 qx 0 of 1
+-- META_X=1, META_SEED=1
+Q 124 0
+Q 1124 1
+META tb_meta_centre.u0.u.r6 t=1473 runt=349 loop=424 delta=-28 runt_val=1 -> 0 after 147 ps
+Q 1473 x
+Q 1620 0
+S 349 q1 0 qx 0 of 1
+-- META_OFF=1 (pure transport loop): first edges
+Q 124 0
+Q 1124 1
+Q 1473 0
+Q 1548 1
+Q 1897 0
+Q 1972 1
+Q 2321 0
+Q 2396 1
+== E5 research tb_f3_meta (arbiter race, 200 trials) with the patched centre: DT = TLOOP/2 = 212 and the test's own DT = 360
+A. 200 races, r2 212 ps after r1, loop 424 ps: r1 won 104, r2 won 96, neither 0, X 0, settled double grant 0
+tb_f3_meta PASS
+A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 200, r2 won 0, neither 0, X 0, settled double grant 0
+  FAIL A: one side always wins
+-- unpatched, DT 212 and 360
+A. 200 races, r2 212 ps after r1, loop 424 ps: r1 won 1, r2 won 199, neither 0, X 0, settled double grant 0
+tb_f3_meta PASS
+A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 125, r2 won 75, neither 0, X 0, settled double grant 0
+tb_f3_meta PASS
+== E6 Lean involution orbit (Float, not a proof): s*, emitted edges, resolution law
+TLOOP 424 ps (delta_inf).  FID_RESOLVE noise-free centre TLOOP-WIN/2 = 349 (WIN 150)
+tau  s*      s*/TLOOP | e(ps): outcome, #edges emitted, t_r(ps) after the runt | TAU_eff fit (ps)  TAU_eff/TLOOP
+ 20  212.27  0.501 | -30:L,18474,3916499  -10:L,57532,12196785  -1:L,160910,34112900  -0.1:O,200002,42400596  -0.01:O,200002,42400600  +0.01:H,198561,42094909  +0.1:H,187517,39753574  +1:H,138343,29328699  +10:H,55421,11749262  +30:H,17959,3807342 | 2285899  5391.27
+ 40  212.10  0.500 | -30:L,202,42846  -10:L,416,88175  -1:L,876,185659  -0.1:L,1336,283150  -0.01:L,1798,381040  +0.01:H,1797,380839  +0.1:H,1337,283350  +1:H,875,185462  +10:H,415,87990  +30:H,203,43081 | 42426  100.06
+ 60  212.88  0.502 | -30:L,46,9753  -10:L,82,17382  -1:L,162,34253  -0.1:L,240,50739  -0.01:L,320,67603  +0.01:H,319,67415  +0.1:H,241,50929  +1:H,161,34063  +10:H,83,17587  +30:H,45,9595 | 7242  17.08
+100  218.00  0.514 | -30:L,14,2946  -10:L,22,4637  -1:L,42,8740  -0.1:L,60,12479  -0.01:L,80,16580  +0.01:H,81,16753  +0.1:H,61,12661  +1:H,41,8562  +10:H,23,4827  +30:H,13,2805 | 1741  4.11
+150  230.21  0.543 | -30:L,6,1305  -10:L,12,2433  -1:L,20,4035  -0.1:L,30,5961  -0.01:L,40,7883  +0.01:H,39,7717  +0.1:H,31,6120  +1:H,21,4203  +10:H,11,2286  +30:H,7,1508 | 799  1.89
+200  246.47  0.581 | -30:L,4,882  -10:L,8,1581  -1:L,14,2671  -0.1:L,22,4047  -0.01:L,28,5139  +0.01:H,27,4988  +0.1:H,21,3906  +1:H,15,2819  +10:H,7,1443  +30:H,5,1068 | 503  1.19
+tau  s*      s*/TLOOP | e(ps): outcome, #edges emitted, t_r(ps) after the runt | TAU_eff fit (ps)  TAU_eff/TLOOP
+ 20  393.74  0.631 | -30:O,200002,62400988  -10:O,200002,62401008  -1:O,200002,62401017  -0.1:O,200002,62401018  -0.01:O,200002,62401018  +0.01:H,199901,62369194  +0.1:H,199003,62089021  +1:H,190245,59356524  +10:H,121299,37845381  +30:H,44621,13921868 | 327097  524.19
+== E7 flop/latch X patch (patch/prims_x.diff): tb_seq_x, expect L1-L3 0 and F1 F2 x (Lean LDCE_INIT, FDRE_M/FFQ_SYNC)
+-- patched def
+CASE L1_closed_ce_x 0
+CASE L2_clr_x_agree 0
+CASE L3_clr_x_closed 0
+CASE F1_r_x_d1 x
+CASE F2_ce_x x
+-- patched fid
+CASE L1_closed_ce_x 0
+CASE L2_clr_x_agree 0
+CASE L3_clr_x_closed 0
+CASE F1_r_x_d1 x
+CASE F2_ce_x x
+-- research run_f3.sh on the X-patched prims.v (original fid_core.vh)
+ok    tb_f3_lut [default] FAIL (expected)
+ok    tb_f3_lut [fid] PASS (expected)
+ok    tb_f3_meta [default] FAIL (expected)
+ok    tb_f3_meta [fid] PASS (expected)
+ok    tb_f3_carry [default] FAIL (expected)
+ok    tb_f3_carry [fid] PASS (expected)
+ok    tb_f3_latch [default] FAIL (expected)
+ok    tb_f3_latch [fid] PASS (expected)
+ok    tb_f3_ff [default] FAIL (expected)
+ok    tb_f3_ff [fid] PASS (expected)
+ok    tb_f3_kleene: 3000 settled x-laden vectors identical under both models
+ok    tb_f3_kleene_c4: 3000 settled x-laden CARRY4/latch vectors identical under both models
+ok    tb_f3_kleene_ff: 3000 settled x-laden SLICE_FFX/BUFGCTRL vectors identical under both models
+WRONG tb_f3_kleene_ff negative control: the mutated fid flop was not caught
+-- settled-value lines changed by the X patch in research's own x-laden vectors (fid)
+   kleene_ff: 408 of 3000; kleene_c4 (CARRY4+latch): 282 of 3000
+-- retargeted negative control: mutate the patched fid nsf so x CE loads D
+   mutated differs from patched default on 275 of 3000 lines (must be > 0)

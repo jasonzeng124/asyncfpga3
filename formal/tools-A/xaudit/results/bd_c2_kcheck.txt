@@ -1,0 +1,21 @@
+xaudit: ../../tools/import/json/bd_c2.json top bd_c2: 14 wires, 9 gates (1 LUT outputs, 4 routed arcs), 1 storage nodes (LUTs with own feedback)
+bands: 1 step = 50 ps; LUT (45, 124) ps, route (100, 300) ps, own feedback (100, 300) ps (defaults unless overridden: 0 cell, 0 arc entries); pads (1, 1) steps
+  NOTE lo < 1 step raised to 1 step (sub-unit delay not modelled) on: [u]
+inputs: [a, b, rst]
+
+TIMED (XSim: Fast.auditF, = XSim.val by auditF_eq; horizon 60 steps = 3000 ps; power-up all X)
+  end state: not a fixed point at the horizon
+  STORAGE u/O (wire 7 '$iopadmap$q'): final 0, 0 flagged
+    X [0, 450] ps: power-up, resolved at 500 ps
+    X [1700, 1950] ps: transition 0 -> 1 (300 ps of timing uncertainty)
+    X [2200, 2950] ps: transition 1 -> 0 (800 ps of timing uncertainty)
+
+UNTIMED (Eichelberger A/B, Formal.Core.Ternary; any gate and wire delays)
+  phase 0 @ 0 ps: inputs held at init (power-up X state): 0 of 1 storage nodes flagged
+  phase 1 @ 500 ps: inputs [rst-]: 0 of 1 storage nodes flagged
+  phase 2 @ 1000 ps: inputs [a+]: 0 of 1 storage nodes flagged
+  phase 3 @ 1500 ps: inputs [b+]: 0 of 1 storage nodes flagged
+  phase 4 @ 2000 ps: inputs [a-]: 0 of 1 storage nodes flagged
+  phase 5 @ 2500 ps: inputs [b-]: 0 of 1 storage nodes flagged
+
+SUMMARY: timed: 0 flagged X windows on 1 storage nodes; untimed: 0 flagged (node, phase) pairs

@@ -1,0 +1,31 @@
+# four-phase environment (two clients, latency >= E after seeing the ack on O)
+# B (c2_four_phase): sufficient E >= dw_hi + (dl_hi - dl_lo)
+== win dl=(1, 1) dw=(1, 1)  B-bound E=1
+   E=1 follow: PROVED (k-induction, k=9)  [16 state bits, 0.31s]
+   => E_min(first) follow=1 (B bound 1)
+   E=1 follow: PROVED (k-induction, k=3)  [16 state bits, 0.03s]
+   => E_min(stable) follow=1 (B bound 1)
+== win dl=(1, 2) dw=(1, 2)  B-bound E=3
+   E=2 follow: PROVED (Spacer/IC3)  [22 state bits, 22.07s]
+   counterexample at E=1 (depth 6):
+     t          0123456
+     rst        1111___
+     a          _1111_1
+     b          _11111_
+     z          ____111
+     O          _1_____
+     qp         __1____
+     cnt        0122012
+   => E_min(first) follow=2 (B bound 3)
+   E=2 follow: PROVED (k-induction, k=7)  [22 state bits, 0.29s]
+   counterexample at E=1 (depth 7):
+     t          01234567
+     rst        1111____
+     a          ____11__
+     b          ____1111
+     z          ____1111
+     O          _1___11_
+     qp         __1____1
+     cnt        01220122
+   => E_min(stable) follow=2 (B bound 3)
+== win dl=(2, 3) dw=(1, 3)  B-bound E=4

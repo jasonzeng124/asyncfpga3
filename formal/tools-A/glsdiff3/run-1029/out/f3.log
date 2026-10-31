@@ -1,0 +1,110 @@
+ok    tb_f3_lut [default] FAIL (expected)
+        T1 buffer: 1 edges, last at 1244 (transport: 3 edges, last 1254)
+          FAIL T1 edge after 1130 arrives at 1254, not 1244
+        T2 XOR3: 1 edges, settles 1124 (transport: 3, 1224); value at request 1200 = 1 (true 0)
+           margin of a request at 1200 against the settle time: 76 ps
+          FAIL T2 XOR3 settles at 1224, margin -24 ps
+          FAIL T3 50 ps pulse passes
+          FAIL T4 30 ps function hazard on XOR2 appears
+          ok   T5 unread pin: no edge
+          FAIL T6 MUXF7 passes a 50 ps pulse
+ok    tb_f3_lut [fid] PASS (expected)
+        T1 buffer: 3 edges, last at 1254 (transport: 3 edges, last 1254)
+          ok   T1 edge after 1130 arrives at 1254, not 1244
+        T2 XOR3: 3 edges, settles 1224 (transport: 3, 1224); value at request 1200 = 0 (true 0)
+           margin of a request at 1200 against the settle time: -24 ps
+          ok   T2 XOR3 settles at 1224, margin -24 ps
+          ok   T3 50 ps pulse passes
+          ok   T4 30 ps function hazard on XOR2 appears
+          ok   T5 unread pin: no edge
+          ok   T6 MUXF7 passes a 50 ps pulse
+ok    tb_f3_meta [default] FAIL (expected)
+        A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 200, r2 won 0, neither 0, X 0, settled double grant 0
+           transient g1&g2 overlaps 0, widest 0 ps (O5/O6 arc difference 28 ps)
+          FAIL A: one side always wins
+        B. 200 captures with D 20 ps before CK (window -60/+40): got 1 0, got 0 0, X 200; slowest CK->Q 300 ps (nominal 300)
+          FAIL B: one value always
+          FAIL B: X captured
+ok    tb_f3_meta [fid] PASS (expected)
+        A. 200 races, r2 360 ps after r1, loop 424 ps: r1 won 125, r2 won 75, neither 0, X 0, settled double grant 0
+           transient g1&g2 overlaps 191, widest 26 ps (O5/O6 arc difference 28 ps)
+        B. 200 captures with D 20 ps before CK (window -60/+40): got 1 119, got 0 81, X 0; slowest CK->Q 593 ps (nominal 300)
+ok    tb_f3_carry [default] FAIL (expected)
+        C1 hazard: 2 edges at 1205, 1340 (transport: 2, 1205 and 1400)
+          FAIL C1 S0/S1 together: O1 hazard 1205-1400
+        C2 pulse: 0 edges at 0, 0 (transport: 2, 2228 and 2278)
+          FAIL C2 50 ps S2 pulse reaches O2
+        C3 close edges: 1 edges, last 3233 (transport: 3, 3363)
+          FAIL C3 S3 edge after 3130 lands at 3363, not early
+        C4 CO3: 2 edges at 4271 4871 0.. (transport: 4, 4114 4714 5114 5154)
+          FAIL C4 CIN edges and a 40 ps CIN pulse reach CO3
+          FAIL C5 CIN reaches CO0 / O2 each by its own arc
+ok    tb_f3_carry [fid] PASS (expected)
+        C1 hazard: 2 edges at 1205, 1400 (transport: 2, 1205 and 1400)
+          ok   C1 S0/S1 together: O1 hazard 1205-1400
+        C2 pulse: 2 edges at 2228, 2278 (transport: 2, 2228 and 2278)
+          ok   C2 50 ps S2 pulse reaches O2
+        C3 close edges: 3 edges, last 3363 (transport: 3, 3363)
+          ok   C3 S3 edge after 3130 lands at 3363, not early
+        C4 CO3: 4 edges at 4114 4714 5114.. (transport: 4, 4114 4714 5114 5154)
+          ok   C4 CIN edges and a 40 ps CIN pulse reach CO3
+          ok   C5 CIN reaches CO0 / O2 each by its own arc
+ok    tb_f3_latch [default] FAIL (expected)
+        L1: 0 edges at 0, 0 (transport: 2, 1300 and 1350)
+          FAIL L1 50 ps D pulse through an open latch
+        L2: 2 edges, last 2800 (transport: 4, 2300 2420 2430 2800)
+          FAIL L2 D 2120/2130 edges both reach Q (2420, 2430)
+        L3: 1 edges, last 3300, q at 3500 = 1, at 3900 = 1 (transport: 1 edge 3300, 1, 1)
+          ok   L3 D 40 ps before close is captured
+        L4: 1 edges, last 4300, q at 4600 = 0 (transport: 1, 4300, 0)
+          ok   L4 40 ps async clear lands and holds
+          ok   L5 closed latch: D pulse gives no edge
+ok    tb_f3_latch [fid] PASS (expected)
+        L1: 2 edges at 1300, 1350 (transport: 2, 1300 and 1350)
+          ok   L1 50 ps D pulse through an open latch
+        L2: 4 edges, last 2800 (transport: 4, 2300 2420 2430 2800)
+          ok   L2 D 2120/2130 edges both reach Q (2420, 2430)
+        L3: 1 edges, last 3300, q at 3500 = 1, at 3900 = 1 (transport: 1 edge 3300, 1, 1)
+          ok   L3 D 40 ps before close is captured
+        L4: 1 edges, last 4300, q at 4600 = 0 (transport: 1, 4300, 0)
+          ok   L4 40 ps async clear lands and holds
+          ok   L5 closed latch: D pulse gives no edge
+ok    tb_f3_ff [default] FAIL (expected)
+        F1: 0 qa edges at 0, 0 (transport: 2, 1300 and 1540)
+          FAIL F1 120 ps CK runt clocks; 240 ps Q pulse kept
+        F2: 1 qa edges after a 30 ps CK runt (MPW model: 0)
+          FAIL F2 CK runt below the minimum pulse width does not clock
+        F4: 1 qb edges, 1800->0, 0->x, 0->x (transport: 3, 1300->0, 1500->1, 1800->0)
+          FAIL F4 40 ps SR pulse through a 100 ps arc resets; next edge 200 ps on sets
+        F5: 0 qb edges, 0->x, 0->x (transport: 2, 2500->1, 2700->0)
+          FAIL F5 CE edge 20 ps after another: the dip holds, later edges both reach Q
+        F7: q at 1500 = 0 (SR arc 200 > CK arc 1: the edge loads D = 1)
+          FAIL F7 SR delayed by its own arc misses the edge
+        G1: 0 BUFG O edges at 0, 0 (transport: 2, 1200 and 1320); flop Q 1 at 0 (1500)
+          FAIL G1 120 ps pulse through a 200 ps BUFG clocks the flop
+        F3: 200 CK runts of 70 ps (band 50..90): got 1 200, got 0 0, X 0
+          FAIL F3 runt at the minimum pulse width resolves either way, no X
+        F6: 200 SR rises 10 ps before CK (window -40/+40): got 1 0, got 0 200, X 0
+          FAIL F6 SR change in the aperture resolves either way, no X
+ok    tb_f3_ff [fid] PASS (expected)
+        F1: 2 qa edges at 1300, 1540 (transport: 2, 1300 and 1540)
+          ok   F1 120 ps CK runt clocks; 240 ps Q pulse kept
+        F2: 0 qa edges after a 30 ps CK runt (MPW model: 0)
+          ok   F2 CK runt below the minimum pulse width does not clock
+        F4: 3 qb edges, 1300->0, 1500->1, 1800->0 (transport: 3, 1300->0, 1500->1, 1800->0)
+          ok   F4 40 ps SR pulse through a 100 ps arc resets; next edge 200 ps on sets
+        F5: 2 qb edges, 2500->1, 2700->0 (transport: 2, 2500->1, 2700->0)
+          ok   F5 CE edge 20 ps after another: the dip holds, later edges both reach Q
+        F7: q at 1500 = 1 (SR arc 200 > CK arc 1: the edge loads D = 1)
+          ok   F7 SR delayed by its own arc misses the edge
+        G1: 2 BUFG O edges at 1200, 1320 (transport: 2, 1200 and 1320); flop Q 1 at 1500 (1500)
+          ok   G1 120 ps pulse through a 200 ps BUFG clocks the flop
+        F3: 200 CK runts of 70 ps (band 50..90): got 1 97, got 0 103, X 0
+          ok   F3 runt at the minimum pulse width resolves either way, no X
+        F6: 200 SR rises 10 ps before CK (window -40/+40): got 1 59, got 0 141, X 0
+          ok   F6 SR change in the aperture resolves either way, no X
+ok    tb_f3_kleene: 3000 settled x-laden vectors identical under both models
+ok    tb_f3_kleene_c4: 3000 settled x-laden CARRY4/latch vectors identical under both models
+ok    tb_f3_kleene_ff: 3000 settled x-laden SLICE_FFX/BUFGCTRL vectors identical under both models
+ok    tb_f3_kleene_ff negative control: mutated fid flop (x CE loads D) differs on 318 of 3000 lines
+logs in /home/user/asyncfpga3/formal/tools-A/glsdiff3/run-1029/work/f3
