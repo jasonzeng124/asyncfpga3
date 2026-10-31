@@ -808,3 +808,9 @@ New tool audit/tools/lapcheck.py: per-vector STALL / DOUBLE (completion pairs < 
 two failure modes the seeds_fid judge misses. Validation: flags exactly vectors 2,3,9,11,13,15 of the 1.75x run
 (lapcheck_bq3_9_logn175.txt), CLEAN on bq3_9_logn15, bq2_6_logn15, s7_2x, bq1_d_1x, and flags all 16 vectors of the
 failing s6_2x_d2. I will run it on every future GLS reproduction.
+
+### progress 23:38
+lapcheck over all 24 of this session's sweep dirs (audit/r23/lapcheck_all.txt): every run graded PASS is CLEAN (incl.
+all BQ#1/BQ#2 SLOW_MAX/FAST_MIN, 2x seeds 7/8/9, the uori3 fix). Flags only on the known FAILs and on the
+1.75x log-normal run. (s7_2x_d2's third flag is vec 10, cut off by the container restart and re-run in s7_2x_d2b.)
+So the judge weakness has not hidden any failure in the rows I re-ran, except r23 M.
