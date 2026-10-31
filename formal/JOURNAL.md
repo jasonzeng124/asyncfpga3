@@ -884,3 +884,9 @@ edge windows), ArbOrd at the B1-failing readers (needs a shared in-corner positi
 <= ~4.7%), SelOK and SelPart has every real LUT wire equal to its reset value flipped M t j times (counts of
 a certified Beh7 realisation). Not a correctness theorem for gcd (that is C's capstone, which needs
 H_BUNDLE/H_CELLS, which this does not yet supply). No silicon claim; κ and the shared position unmeasured.
+### progress 09:22
+Whole-project ./check.sh OK again after the ArbB1/FullArb/ArbNetMain additions (library audit 64216
+declarations; executables separately; axioms standard). Added Events9ArbB1.st_stable (kernel decide, 32
+vectors; check.sh OK): ustate's real ARB_ST INIT is one-step stable, so QClean can fail only if one of
+ustate's other reads changes within the q loop delay of a q change. That tells which hypothesis QClean
+would reduce to; QClean itself is still assumed.

@@ -302,4 +302,16 @@ theorem arbCond_of_ord {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T T0 H : 
 
 end
 
+/-! ## ustate's INIT settles in one step -/
+
+/-- **ustate O6 (the real `ARB_ST` INIT) is one-step stable**: for every value of its five other
+inputs, feeding its own output back as the `q` input reproduces that output. So with all non-`q`
+reads constant, `q` changes at most once and never oscillates; a violation of `QClean` (a `q` runt
+shorter than its own loop) therefore needs one of ustate's other reads (requests, reset, A0) to
+change within the loop delay of a `q` change. Kernel `decide` over 32 input vectors. This does not
+derive `QClean`; it says which hypothesis it reduces to. -/
+theorem st_stable : ∀ r1 r2 q rs a : Bool,
+    o6B ARB_ST [r1, r2, o6B ARB_ST [r1, r2, q, rs, a, true], rs, a, true] =
+      o6B ARB_ST [r1, r2, q, rs, a, true] := by decide
+
 end Formal.Core.XAudit.Events9ArbNet
