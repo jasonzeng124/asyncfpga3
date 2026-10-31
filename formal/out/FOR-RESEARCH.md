@@ -366,7 +366,7 @@ that a GLS monitor or a board experiment can test:
 - **QQuiet (no input change within the q loop).** After each change of `ustate`'s q, its reads of both
   requests, the reset and A0 stay constant for the q own-feedback path's max delay (`Events9ArbB1.qclean_of_arb`:
   this gives the no-metastable-runt condition QClean). Test: GLS monitor on every `uarb*.ustate` LUT: flag any
-  input edge at the LUT pins within `phi(PqQ)` (about 300-450 ps on gcd_hw routes) after its O6 edge. Expect
+  input edge at the LUT pins within `phi(PqQ)` after its O6 edge (gcd_hw R5 slow/fast, 72 arbiter-rows: phi(PqQ) from 165 to 1216 ps, median 406; printed by xarbnet as "ustate own-q read band"). Expect
   zero on gcd_hw (no contested schedule was found); any hit is a near tie, which the verdict does not cover.
 
 Commands to regenerate the formal side: `formal/tools-A/xaudit/arbnet/run.sh` (needs the E9Par certificates

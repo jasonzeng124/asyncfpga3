@@ -359,6 +359,7 @@ def run (args : List String) : IO UInt32 := do
         IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"
         IO.println s!"  B1 with every arc at the same band end (lo-end, hi-end; diagnostic only): {b1Corr d a}"
         IO.println s!"  B1 kappa threshold per reader, x1e6 (corner model: shared band position, path scatter kappa; diagnostic only): {b1Kappa d a}"
+      IO.println s!"[xarbnet] arbiter {anames[k]!}: ustate own-q read band ({plo d (PqQ a)}, {phi d (PqQ a)}) [QQuiet window = hi; qclean_of_arb needs lo >= 1]"
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbOK {ok}; K {kOf B}, ctl lo {loCtl B}; Dq g1/g2/R0 {B.g1 2}/{B.g2 2}/{B.r0 2}, Dr1 g1/R0 {B.g1 0}/{B.r0 0}, Dr2 g2/R0 {B.g2 1}/{B.r0 1}, DA0 {B.st 4}"
       if !ok then
         for (nm, v) in diag d net b rn fuel rw a do
