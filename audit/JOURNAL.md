@@ -492,3 +492,9 @@ confirmed; formal axiom audit clean; P13: 2 mild overstatements.
 BQ#2 seed 7 2x draw 1 full stack: 16/16 PASS errs 0, 54/42/63, CONFIRMED exactly (route md5s reproduced). So
 BQ#2 at 2x draw 1 stands at seeds 7 and 8 PASS and seed 6 FAIL, all three reproduced by me. Seed 9 2x was never
 completed by research (OOM).
+
+### progress 00:29
+Research 53ad0e38/a3111697: on BQ#2 seed 6 at 2x, the unconstrained route fails draws 1 and 2 (draw 2 errs 15)
+and passes draw 3. The chain-region route goes 1/3 and is 6-16% slower. Their reading is "no robustness gain".
+Started: re-route seed 6 (md5 check), then 2x draw 2 on all 16 vectors at TEND 30 us (they say the failures
+appear in the first laps), to check "errs 15".
