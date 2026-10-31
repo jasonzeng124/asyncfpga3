@@ -657,3 +657,8 @@ Research 9ea05a7e: BQ#1 full stack 8 seeds x 2 corners PASS (TSV committed). My 
 357f17cb equals my rebuild. d SLOW_MAX already reproduced exactly; d FAST_MIN running; seed 9 SLOW_MAX (sdf 81d27cf3)
 queued. Formal moved to 58251494 (B: Bwit3 164/175, fork trees 170/175; C: Out0Wit docstrings now say relabelling,
 accepting my P14 row; A: b1_and). That is pass 16, after the BQ#1 runs.
+
+### progress 12:16
+Pass 16: ~/wt-f14 checked out at formal 58251494. Building the three NChk kernel-check modules one at a time, then
+the rest. Their own howto (51660257) records that building two of them in parallel OOMs on 15 GB, the same as my
+first f40e003a build. The BQ#1 d FAST_MIN GLS is running alongside.
