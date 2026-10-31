@@ -606,3 +606,11 @@ mismatch" is withdrawn: trim.py makes synth.json a trimmed netlist by design.
 
 ### progress 10:47
 Axiom audit of formal 0780fd30 COMPLETE: 795/795 modules, 103483 constants, bad 0, no-result 0. REPORT updated (pass 14).
+
+### progress 10:48
+Formal advanced to f40e003a (about 50 more commits). The headline change: shard A design_verdict9arbnet_ord/_ordS
+says "10 gcd_hw rows meet every checked premise with B1 as the behaviour hypothesis ArbOrd", plus "glsq" monitors
+run on research's gcd_hw GLS. Shard C: H_COMPUTE_FN for all 20 gcd_hw units (ushli0 for k<32) + GcdJoin +
+xorshift's 5. Shard B: Bwit2 (mux-extended, 124/175) and 136/175 via 1-input joins. ~/wt-f14 checked out at
+f40e003a, Mathlib unchanged; lake build running (incremental: lake re-checks every module whose inputs changed, by
+hash). Keyword scan of the 831 files: see below.
