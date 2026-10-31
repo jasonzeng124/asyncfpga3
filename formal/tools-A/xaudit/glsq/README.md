@@ -20,3 +20,8 @@ Quiet start (`gen_lowmon.py`, ArbEdge's `low` field): vector 6, same build, all 
 arbiters: the only edges before rig reset release (478.5 ns) are X->0 resolutions at 2.3-4.7 ns; no rise before
 release; the first grant rise is at 610.0 ns (`low_vec6_head.txt`). So `low` holds here for any T0 up to ~607 ns
 after time 0 (the Lean model is binary from t = 0; the GLS starts at X, which the SatPin model does not have).
+
+ArbOrd with the GLS's own fixed delays (`ord_static.py`, seed 5): for every grant LUT and every pin it shares a
+driver net with ustate$LUT6 (the two requests, and also the reset/A0 pins, so more pairs than ArbOrd needs),
+`Dr + 2 <= DQ + Dq` holds, worst margin 293 ps (`ord_static_seed5.txt`). These are nextpnr SDF point delays, not
+prjxray bands; with independent prjxray bands the row fails on 2-6 arbiters (notes/A-e9arbnet.md).
