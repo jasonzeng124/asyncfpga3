@@ -1723,3 +1723,17 @@ equals g1 | g2 at the same pins). a=12,b=18: quiescent 716, out0 = 6; C's checke
 and 164 of 175 links bound on BOTH sides. The arbiters are uncontested on this run, so no
 race window is exercised. Lean for this: FiniteNetComb.FCombSpec for ustate/ugrant (its
 H_EXC_CLEAN is decidable on the run), FCelSpec for ua1/ua2; not done this session.
+
+### progress 11:16
+In (lake build OK): FiniteNetBoundA -- the arbiters gate-modelled and bound. Each amerge is
+bd_arbiter's four real cells from C's generated netlist (ustate O6 q and O5 R0, ugrant
+O5 g1 / O6 g2 as FiniteNetComb.FCombSpec: the real LUT of the bound pins [r1, r2, q(, A0)]
+plus ONE named race hypothesis each, H_EXC_CLEAN; ua1/ua2 as FCelSpec GC2 of the grant and
+z_ack); reqSrcA/ackSrcA = M's drivers or else the arbiter (z.req <- R0, x/y ack <- ua1/ua2)
+through the same wires; the arbiter cells drive z.req and x/y ack (H_DRV_ARB). FCombSpec
+now takes the reset as an input of F. bound_censusA (kernel): 164 of 175 links bound on BOTH
+sides (Python bsim3 agrees). FGcdNetOKBA.toOKBM: the arbiter-extended hypothesis implies
+the mux-extended one (bindings agree wherever M names a driver; the arbiter cells' contracts
+from fcomb_spec_cell / fcel_spec_cell); gcd_hw_safe_fin_netBA. NO joint witness yet (Python
+evidence bsim3.py); H_EXC_CLEAN is where the race windows (ArbAMergeRun's H_SEP, RA1, Rows)
+must come in, and it is assumed, not derived, here.

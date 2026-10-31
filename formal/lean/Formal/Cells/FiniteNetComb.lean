@@ -30,24 +30,25 @@ open Formal.Cells.AssumeGuaranteeEndsNet (GD)
 
 variable {ι : Type}
 
-/-- The excitation of a LUT `F` over its pin list. -/
-def exc (F : List Bool → Bool) (ps : List (GPin ι)) (t : Nat) : Bool := F (ps.map fun p => p.P t)
+/-- The excitation of a LUT `F` over its pin list and the reset. -/
+def exc (F : List Bool → Bool → Bool) (ps : List (GPin ι)) (rst : Nat → Bool) (t : Nat) : Bool :=
+  F (ps.map fun p => p.P t) (rst t)
 
 /-- **A LUT cell with a clean excitation** (truncated form). -/
-structure FCombSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (F : List Bool → Bool)
+structure FCombSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (F : List Bool → Bool → Bool)
     (ps : List (GPin ι)) (e : Nat → Nat) (Le : Nat → Prop) : Prop where
   H_PINS : D.pins c = ps
-  H_LUT_WIN : Win (D.lo c) (D.hi c) (exc F ps) (D.O c)
-  H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (exc F ps) (D.O c)
+  H_LUT_WIN : Win (D.lo c) (D.hi c) (exc F ps D.rst) (D.O c)
+  H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (exc F ps D.rst) (D.O c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
   /-- **H_EXC_CLEAN**: clean pins on `[0, T)` give a clean excitation on `[0, T)`. -/
-  H_EXC_CLEAN : ∀ T, (∀ p ∈ ps, GPhT p.P (gE D.τ p) (L p.drv) T) → GPhT (exc F ps) e Le T
+  H_EXC_CLEAN : ∀ T, (∀ p ∈ ps, GPhT p.P (gE D.τ p) (L p.drv) T) → GPhT (exc F ps D.rst) e Le T
   H_TIMES : ∀ j, L c j → D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (e j) (Vph j)
   H_CNT : ∀ j, L c j ↔ Le j
   H_FLOOR : ∀ j, Le j → D.hi c ≤ e j + D.lo c
 
 /-- **The cell meets its truncated contract.** -/
-theorem fcomb_spec_cell {D : GD ι} {L : ι → Nat → Prop} {c : ι} {F : List Bool → Bool}
+theorem fcomb_spec_cell {D : GD ι} {L : ι → Nat → Prop} {c : ι} {F : List Bool → Bool → Bool}
     {ps : List (GPin ι)} {e : Nat → Nat} {Le : Nat → Prop} (S : FCombSpec D L c F ps e Le) :
     FCellOK D L c := by
   intro T hA
@@ -57,10 +58,10 @@ theorem fcomb_spec_cell {D : GD ι} {L : ι → Nat → Prop} {c : ι} {F : List
   rw [hL]
   exact tnode S.H_LUT_WIN S.H_NO_REVERT hx S.H_FLOOR S.H_PWR
 
-/-- The identity LUT on one pin. -/
-def idF : List Bool → Bool
-  | [b] => b
-  | _ => false
+/-- The identity LUT on one pin (reset ignored). -/
+def idF : List Bool → Bool → Bool
+  | [b], _ => b
+  | _, _ => false
 
 /-- **Non-vacuity of the form**: a 1-pin buffer (`F = id`) is an `FCombSpec` whose
 `H_EXC_CLEAN` is just the pin's cleanliness. -/
