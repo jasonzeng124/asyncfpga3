@@ -580,6 +580,12 @@ K1. **Where B's rows sit.** C-ledger §2/§4 and A's tree (§1) draw "⇐" arrow
 L1-L5 to `H_CELLS`, through O4. In Lean the capstone imports only `ctlB` from B. The OpsGen
 bindings are not instantiated, and no B theorem derives their premise `LutFb`/`LutSI`. Those
 arrows are unmechanised (§0, Br1).
+*Update 2026-10-31:* for the 175 LINKS there is now a mechanised route with B's cell models as
+Lean hypotheses of a theorem with C's gcd_hw safety conclusion: `FiniteNetBoundM.gcd_hw_safe_fin_netBM`
+(B's finite-run models of links, forks N <= 4, 2-input joins, steers, muxes, drivers bound to the
+netlist), jointly satisfiable with C's other hypotheses (`BWit2Net.gcd_hw_fin_netBM_witness`). It is
+not on C's capstone chain (`gcd_hw_circuit_safe3` does not import it); the other 192 operators'
+`H_CELLS` stay C's.
 
 K2. **H_BUNDLE.**
 - The claim: C-ledger §3 and A's tree say "H_BUNDLE ⇐ rules A, E, I, H, W, F/Fd, X".
