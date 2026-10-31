@@ -1,4 +1,4 @@
-# Plan: binding `bdc_muxn` into the driver-bound network (not done)
+# Plan: binding `bdc_muxn` into the driver-bound network (theorem done, witness not)
 
 2026-10-31, shard B. With `FiniteNetBoundT` (170 of 175 links bound on both sides), the 5
 unbound link sides are the source's request side (cannot be gate-modelled on a terminating run:
@@ -48,3 +48,10 @@ Missing:
 
 The request side of the muxn's z needs no new binding for the census (no unbound request
 side ends there), but its cells must still be specified, since `ua_k` reads `z_ack` and `j_k`.
+
+## Status (2026-10-31, later)
+
+Theorem level done: `FiniteNetBoundN` (decode `FDecSpec`, join `FCelSpec GC2`, acknowledge
+`FMuxASpec` per input; the input acknowledges bound; 173 of 175). Not done: items 1-4 above
+(the decode's INIT from a netlist, the OR and delay chain, Bool checkers for FDecSpec, a
+simulator model) and so no witness; the control acknowledge (via the sink) stays unbound.

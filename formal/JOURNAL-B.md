@@ -1855,3 +1855,17 @@ declarations. All four NChk modules now check operators in 25 chunks of 15 (bop_
 bop_all by a chunk-index match). Rebuilt in sequence (lake build of the four Net modules,
 EXIT 0, 162 jobs): BWitNChk 405 s, BWit2NChk 458 s, BWit3NChk 652 s, BWit4NChk 708 s; peak
 RSS over the whole build 4.9 GB (was 11.2 GB).
+
+### progress 15:05
+In (lake build OK): FiniteNetBoundN -- the muxn's per-input cells gate-modelled and its
+INPUT acknowledges bound (theorem level only). **Problem, plainly:** gcd_hw's one muxn
+(op 163) acknowledges its three inputs through cells B had no binding for. **Lean:**
+FGcdNetN adds nd/nj/na o k (decode sel_k as FDecSpec, whose LUT3 INITs are LibGapMuxN's
+H_YOSYS_MAP inference; join uj_k as FCelSpec GC2 with the decode as its b pin; ua_k as
+FMuxASpec driving in_k.ack); FGcdNetOKBN has H_MUXN (per input k: the three specs, pins bound,
+the decode's index bits = the control channel's data bits) and H_DRV_MUXN; FGcdNetOKBN.toOKBT;
+gcd_hw_safe_fin_netBN; bound_censusN (kernel): 173 of 175. The 2 left (by the Python
+re-implementation, not Lean): the muxn's control acknowledge (a wire from z.ack, z feeding a
+sink B does not model) and the source's request side. **NO joint witness** (no simulator
+model of the generated muxn, no Bool checker for FDecSpec): this level is a theorem whose
+hypotheses are not shown satisfiable; the T level (170/175) is the strongest with a witness.
