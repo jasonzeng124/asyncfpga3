@@ -4,7 +4,7 @@ set -u
 TAG=$1; REG=$2; WIRE=$3; VECS=${4:-all}; shift 4 || shift $#
 source /root/audit-tc/openxc7/export.sh
 HW=${HW:-/root/wt-r14/cells/build/hw/gcd_hw}
-W=/root/r23work/$TAG; L=/home/user/asyncfpga3/audit/r23/$TAG.log
+W=/root/r23work/$TAG; L=/root/r23work/$TAG.log; FINAL=/home/user/asyncfpga3/audit/r23/$TAG.log
 mkdir -p /root/r23work
 export GLS_SDF=$HW/gcd_hw_xray.sdf GLS_SDF_FIELD=${FIELD:-band} GLS_MODEL=fid PYTHONPATH=/root/audit-tc/openxc7-src/prjxray:$PYTHONPATH
 export XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
@@ -20,3 +20,4 @@ for kv in "$@"; do export "$kv"; done
   rm -f run_baked.vvp gate.vvp
 } > $L 2>&1
 echo DONE >> $L
+cp $L $FINAL
