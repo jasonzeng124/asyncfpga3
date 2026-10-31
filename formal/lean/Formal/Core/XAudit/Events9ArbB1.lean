@@ -39,7 +39,7 @@ open Formal.Core.XAudit.Events5
 open Formal.Core.XAudit.Events6
 open Formal.Core.XAudit.Events8Arb
 open Formal.Core.XAudit.Events9Arb
-open Formal.Cells (o5B o6B)
+open Formal.Core.LutList (o5B o6B)
 open Formal.Cells.ArbBinary (ARB_ST GRANT)
 
 theorem grant_fall_after_req_fall {s e y : Sig} {wr wq fQ : Nat → Nat}

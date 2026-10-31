@@ -3,6 +3,7 @@ import Formal.Gen.PrelimSem
 import Formal.Cells.LibCtlMergeMux
 import Formal.Core.Lut
 import Formal.Core.LutCells
+open Formal.Core.LutList
 
 /-!
 # 11d: generated steer, protocol converters, merge and mux (`bd_ctl.v`, `bd_merge.v`, `bd_mux.v`)

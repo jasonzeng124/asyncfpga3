@@ -1,5 +1,6 @@
 import Formal.Cells.ResetGcdWave
 import Formal.Cells.CElemStrict2
+open Formal.Core.LutList
 
 /-!
 # Probe Brst (shard B): the data vector every reset cell of gcd_hw sees at reset release

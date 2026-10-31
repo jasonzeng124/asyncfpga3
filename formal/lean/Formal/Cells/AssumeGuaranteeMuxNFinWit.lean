@@ -194,9 +194,9 @@ def GL : List Nat := [4, 12]
 def DL : List Nat := [6, 16]
 def SL : List Nat := [7, 13]
 
-theorem stepG : ∀ t, 1 ≤ t → cL SL t = Formal.Cells.lutB 0x8 [cL DL (t - 1), cL GL (t - 1)] := by
+theorem stepG : ∀ t, 1 ≤ t → cL SL t = Formal.Core.LutList.lutB 0x8 [cL DL (t - 1), cL GL (t - 1)] := by
   have small : ∀ t, t < 30 → 1 ≤ t →
-      cL SL t = Formal.Cells.lutB 0x8 [cL DL (t - 1), cL GL (t - 1)] := by decide
+      cL SL t = Formal.Core.LutList.lutB 0x8 [cL DL (t - 1), cL GL (t - 1)] := by decide
   intro t ht
   by_cases h : t < 30
   · exact small t h ht
@@ -213,9 +213,9 @@ theorem tand_fin_witness :
       (fun j => j < DL.length) T) ∧
     fe (cL SL) 1 1 (xe (fun j => DL.getD j 1) (fun j => GL.getD j 1)) 1 = 13 ∧
     DL.getD 1 1 = 16 ∧ cL SL 13 = false ∧ cL DL 13 = true := by
-  have hW : Win 1 1 (fun t => Formal.Cells.lutB 0x8 [cL DL t, cL GL t]) (cL SL) :=
+  have hW : Win 1 1 (fun t => Formal.Core.LutList.lutB 0x8 [cL DL t, cL GL t]) (cL SL) :=
     fun t ht => ⟨t - 1, by omega, by omega, stepG t ht⟩
-  have hN : NoRevertI 1 1 (fun t => Formal.Cells.lutB 0x8 [cL DL t, cL GL t]) (cL SL) :=
+  have hN : NoRevertI 1 1 (fun t => Formal.Core.LutList.lutB 0x8 [cL DL t, cL GL t]) (cL SL) :=
     noRevertI_shift stepG
   refine ⟨fun T => gphT_mono (tand (T := T) hW hN (fun t h => by
       have : t = 0 := by omega

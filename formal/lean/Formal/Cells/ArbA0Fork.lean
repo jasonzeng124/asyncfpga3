@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Probe 7g: the A0 isochronic-fork obligation of `bd_arbiter` (H_A0_FORK)

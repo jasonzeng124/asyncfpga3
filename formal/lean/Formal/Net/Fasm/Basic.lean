@@ -1,5 +1,6 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
+open Formal.Core.LutList
 
 /-!
 # Track 11b: the physical LUT netlist read from the FASM (the bits the board runs)

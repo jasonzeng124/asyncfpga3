@@ -3,6 +3,7 @@ import Formal.Net.Import.PrelimSem
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
 import Formal.Cells.ArbKleene
+open Formal.Core.LutList
 
 /-!
 # Track 11a: the imported netlists equal the cell specifications

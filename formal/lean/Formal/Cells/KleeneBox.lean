@@ -1,5 +1,6 @@
 import Formal.Cells.LibGapLatch
 import Formal.Cells.LibGapMuxN
+open Formal.Core.LutList
 
 /-!
 # KleeneBox: the per-pin box iffs of `bd_steer`, `bd_mux`'s joins, `bdc_muxn`'s selected join and `bd_latch`, with K3 traces on EVERY pin

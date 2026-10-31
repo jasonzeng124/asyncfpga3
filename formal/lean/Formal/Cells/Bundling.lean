@@ -1,5 +1,6 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.MuxTree
+open Formal.Core.LutList
 
 /-!
 # Track 6c: matched delay lines (`bd_delay`) and the bundling condition (`bd_link`)

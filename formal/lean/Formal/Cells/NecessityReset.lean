@@ -1,6 +1,7 @@
 import Formal.Cells.LibGapMux
 import Formal.Cells.ResetContract
 import Formal.Cells.Latch
+open Formal.Core.LutList
 
 /-!
 # NecessityReset: the reset-width rows, sufficient AND necessary, per pin

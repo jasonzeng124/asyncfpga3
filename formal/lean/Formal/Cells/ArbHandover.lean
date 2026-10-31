@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Probe 7e: the handover-ordering claim and the A0 hold (`cells/rtl/bd_arb.v`)

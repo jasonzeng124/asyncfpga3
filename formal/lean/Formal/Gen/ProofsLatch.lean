@@ -5,6 +5,7 @@ import Formal.Cells.LinkHandshake
 import Formal.Cells.Bundling
 import Formal.Core.Lut
 import Formal.Core.LutCells
+open Formal.Core.LutList
 
 /-!
 # 11d: generated latches, delay lines and the data mux (`bd_latch.v`)

@@ -2,7 +2,7 @@ import Formal.Core.Kleene
 import Formal.Core.Lut
 import Formal.Core.LutTree
 import Formal.Core.Ternary
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.MuxTree
 
 /-!
@@ -24,7 +24,7 @@ keep their own `K3`; they are reached through the maps below.
 | Kleene (canonical) | `Formal.Core.K3` | `zero one X` | `K3.merge`; mux `cmux` (defined here) |
 | LutTree | `Formal.Core.LutTree.K3` | `zero one X` | `LutTree.kmux` |
 | Ternary | `Formal.Core.Ternary.K3` | `zero one X` | `K3.meet`, `K3.sel` |
-| Cells.Prelim (shard B) | `Formal.Cells.K3` | `f t x` | `K3.join`, `K3.mux` |
+| Cells.Prelim (shard B) | `Formal.Core.LutList.K3` | `f t x` | `K3.join`, `K3.mux` |
 
 For each: `toX : Core.K3 → _`, `ofX`, both inverse laws (packaged as a
 `K3Iso`), preservation of `ofBool`, of the information order (Prelim has none:
@@ -93,7 +93,7 @@ abbrev LK := Formal.Core.LutTree.K3
 /-- Ternary's local copy. -/
 abbrev TK := Formal.Core.Ternary.K3
 /-- Shard B's (Cells.Prelim) copy. -/
-abbrev BK := Formal.Cells.K3
+abbrev BK := Formal.Core.LutList.K3
 
 /-- An explicit bijection between the canonical `K3` and a local copy. -/
 structure K3Iso (α : Type) where
@@ -200,23 +200,23 @@ theorem toCells_ofCells (a : BK) : toCells (ofCells a) = a := by cases a <;> rfl
 
 def isoCells : K3Iso BK := ⟨toCells, ofCells, ofCells_toCells, toCells_ofCells⟩
 
-@[simp] theorem toCells_ofBool (b : Bool) : toCells (K3.ofBool b) = Formal.Cells.K3.ofBool b := by
+@[simp] theorem toCells_ofBool (b : Bool) : toCells (K3.ofBool b) = Formal.Core.LutList.K3.ofBool b := by
   cases b <;> rfl
 
 /-- Prelim has no information order; its `admits a b` is "`b` is a Boolean
 refinement of `a`", i.e. Core's `a ⊑ ofBool b`. -/
 theorem toCells_admits (a : CK) (b : Bool) :
-    Formal.Cells.K3.admits (toCells a) b = true ↔ K3.Le a (K3.ofBool b) := by
+    Formal.Core.LutList.K3.admits (toCells a) b = true ↔ K3.Le a (K3.ofBool b) := by
   cases a <;> cases b <;> decide
 
-theorem toCells_merge (a b : CK) : toCells (K3.merge a b) = Formal.Cells.K3.join (toCells a) (toCells b) := by
+theorem toCells_merge (a b : CK) : toCells (K3.merge a b) = Formal.Core.LutList.K3.join (toCells a) (toCells b) := by
   cases a <;> cases b <;> rfl
 
 theorem toCells_cmux (s a b : CK) :
-    toCells (cmux s a b) = Formal.Cells.K3.mux (toCells s) (toCells a) (toCells b) := by
+    toCells (cmux s a b) = Formal.Core.LutList.K3.mux (toCells s) (toCells a) (toCells b) := by
   cases s <;> cases a <;> cases b <;> rfl
 
-theorem toCells_not (a : CK) : toCells (K3.not a) = Formal.Cells.K3.not (toCells a) := by
+theorem toCells_not (a : CK) : toCells (K3.not a) = Formal.Core.LutList.K3.not (toCells a) := by
   cases a <;> rfl
 
 end Cells
@@ -272,9 +272,9 @@ def lsbAddr : List Bool → Nat
   | [] => 0
   | b :: w => b.toNat + 2 * lsbAddr w
 
-theorem lsbAddr_eq_lutIdx : ∀ w : List Bool, lsbAddr w = Formal.Cells.lutIdx w
+theorem lsbAddr_eq_lutIdx : ∀ w : List Bool, lsbAddr w = Formal.Core.LutList.lutIdx w
   | [] => rfl
-  | b :: w => by cases b <;> simp [lsbAddr, Formal.Cells.lutIdx, lsbAddr_eq_lutIdx w]
+  | b :: w => by cases b <;> simp [lsbAddr, Formal.Core.LutList.lutIdx, lsbAddr_eq_lutIdx w]
 
 theorem lsbAddr_ofFn : ∀ {k : Nat} (x : Fin k → Bool), lsbAddr (List.ofFn x) = addr x
   | 0, _ => rfl
@@ -432,31 +432,31 @@ theorem lt_lut6O6_eq_keval (L : Lut 6) (v : Fin 6 → CK) :
 /-! ### Shard B's Cells.Prelim (`muxTree`, `lutK`) -/
 
 theorem cells_muxTree_eq_kevalT : ∀ (k : Nat) (t : Nat → Bool) (v : Fin k → CK),
-    Formal.Cells.muxTree t (List.ofFn (fun i => toCells (v i))) = toCells (kevalT k t v)
-  | 0, t, v => by simp [Formal.Cells.muxTree, kevalT]
+    Formal.Core.LutList.muxTree t (List.ofFn (fun i => toCells (v i))) = toCells (kevalT k t v)
+  | 0, t, v => by simp [Formal.Core.LutList.muxTree, kevalT]
   | k + 1, t, v => by
       rw [kevalT_succ, toCells_cmux, ← cells_muxTree_eq_kevalT k, ← cells_muxTree_eq_kevalT k,
         List.ofFn_succ]
       rfl
 
 theorem cells_muxTree_eq_keval {k : Nat} (L : Lut k) (v : Fin k → CK) :
-    Formal.Cells.muxTree L.init.toNat.testBit (List.ofFn (fun i => toCells (v i))) =
+    Formal.Core.LutList.muxTree L.init.toNat.testBit (List.ofFn (fun i => toCells (v i))) =
       toCells (L.keval v) :=
   cells_muxTree_eq_kevalT k L.entry v
 
 /-- **Shard B's closure semantics `lutK` (hypothesis H_KLEENE_LUT) = Core `keval`
 = Core `kevalSpec`.** -/
 theorem cells_lutK_eq_keval {k : Nat} (L : Lut k) (v : Fin k → CK) :
-    Formal.Cells.lutK L.init.toNat (List.ofFn (fun i => toCells (v i))) = toCells (L.keval v) := by
+    Formal.Core.LutList.lutK L.init.toNat (List.ofFn (fun i => toCells (v i))) = toCells (L.keval v) := by
   rw [← Formal.Cells.MuxTree.muxTree_eq_lutK, cells_muxTree_eq_keval]
 
 theorem cells_lutK_eq_kevalSpec {k : Nat} (L : Lut k) (v : Fin k → CK) :
-    Formal.Cells.lutK L.init.toNat (List.ofFn (fun i => toCells (v i))) = toCells (L.kevalSpec v) := by
+    Formal.Core.LutList.lutK L.init.toNat (List.ofFn (fun i => toCells (v i))) = toCells (L.kevalSpec v) := by
   rw [cells_lutK_eq_keval, Lut.keval_eq_kevalSpec]
 
 theorem cells_lutB_eq_eval {k : Nat} (L : Lut k) (x : Fin k → Bool) :
-    Formal.Cells.lutB L.init.toNat (List.ofFn x) = L.eval x := by
-  simp [Formal.Cells.lutB, ← lsbAddr_eq_lutIdx, lsbAddr_ofFn, Lut.eval, entry_eq_testBit]
+    Formal.Core.LutList.lutB L.init.toNat (List.ofFn x) = L.eval x := by
+  simp [Formal.Core.LutList.lutB, ← lsbAddr_eq_lutIdx, lsbAddr_ofFn, Lut.eval, entry_eq_testBit]
 
 /-! ### LUT6_2 `O5` -/
 

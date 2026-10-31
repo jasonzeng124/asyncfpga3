@@ -2,6 +2,7 @@ import Formal.Cells.CElemStrict
 import Formal.Cells.LibGapMuxN
 import Formal.Cells.LibGapLatch
 import Formal.Cells.NecessityReset
+open Formal.Core.LutList
 /-!
 # Self-audit of shard B (probe Bsa2), part 5: non-degenerate witnesses for the box-exact theorems
 

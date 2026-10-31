@@ -432,7 +432,7 @@ theorem muxn_witness :
 /-! ### A FASTFALL stage of `bd_delay_gated` is not segment-causal -/
 
 /-- The REAL stage LUT2 `4'h8` on `[s[i], gate]`. -/
-def stg (a g : Bool) : Bool := Formal.Cells.lutB 0x8 [a, g]
+def stg (a g : Bool) : Bool := Formal.Core.LutList.lutB 0x8 [a, g]
 theorem stg_eq (a g : Bool) : stg a g = (a && g) := by cases a <;> cases g <;> decide
 
 /-- Period-32 waves, high `w` ticks from `o`, and their edges. -/

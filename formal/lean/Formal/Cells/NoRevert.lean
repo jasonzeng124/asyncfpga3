@@ -2,6 +2,7 @@ import Formal.Cells.WinFifoCausal
 import Formal.Cells.PrelimCore
 import Formal.Net.Prelim
 import Formal.Core.LutTree
+open Formal.Core.LutList
 
 /-!
 # Probe Bng: which delay channels give H_NO_REVERT, and what a LUT needs for it

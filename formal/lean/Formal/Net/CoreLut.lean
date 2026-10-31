@@ -17,7 +17,7 @@ It replaces shard B's `Formal.Cells.Prelim` (`lutB`, `lutK`, `o5B`, `o6B`,
 
 | Prelim (shard B) | here (Core) |
 |---|---|
-| `Formal.Cells.K3` `f t x` | `Formal.Core.K3` `zero one X` |
+| `Formal.Core.LutList.K3` `f t x` | `Formal.Core.K3` `zero one X` |
 | `lutB init ins` | `evalL init ins` = `(lutOf init ins.length).eval (bvec ins ins.length)` |
 | `lutK init ins` (H_KLEENE_LUT) | `kevalL init ins` = `(lutOf init ins.length).keval (kvec ..)` |
 | `o6B` / `o5B` | `o6L` / `o5L` (`Lut62.o6` / `Lut62.o5`) |

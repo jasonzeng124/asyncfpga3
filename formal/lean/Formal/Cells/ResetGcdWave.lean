@@ -1,5 +1,6 @@
 import Formal.Cells.ResetGcd
 import Formal.Cells.TernaryPhases
+open Formal.Core.LutList
 
 /-!
 # Probe Rst3 (shard B, gcd_hw capstone): from release through the first wave

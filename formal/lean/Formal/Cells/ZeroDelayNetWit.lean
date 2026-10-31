@@ -1,4 +1,5 @@
 import Formal.Cells.ZeroDelayNetPhys
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayNetWit: non-vacuity of the closed-loop chain refinement

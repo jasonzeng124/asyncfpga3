@@ -1,4 +1,5 @@
 import Formal.Cells.ResetGcdNet
+open Formal.Core.LutList
 
 /-!
 # Probe Rst2 (shard B, gcd_hw capstone): the reset contract on the RTL-level control netlist

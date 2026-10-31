@@ -1,4 +1,5 @@
 import Formal.Cells.ArbBinary
+open Formal.Core.LutList
 
 /-!
 # Probe Bov: does a digital race trace of `bd_arbcell` explain the 8% overlap?

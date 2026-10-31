@@ -1,4 +1,5 @@
 import Formal.Cells.Bundling
+open Formal.Core.LutList
 
 /-!
 # Probe Bk: tighten.py rules K and L (`bd_link_dc`) against a derivation

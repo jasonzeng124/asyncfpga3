@@ -1,6 +1,7 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.ArbKleene
 import Formal.Cells.TernarySound
+open Formal.Core.LutList
 
 /-!
 # Probe 7i: multi-phase ternary soundness, the remaining 7b scenarios, and a

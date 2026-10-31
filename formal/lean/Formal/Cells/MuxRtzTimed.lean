@@ -1,5 +1,6 @@
 import Formal.Cells.CElemTiming
 import Formal.Cells.LibCtlMergeMux
+open Formal.Core.LutList
 
 /-!
 # Probe Lib4: the `bd_mux` return-to-zero race (H_MUX_RTZ) as a timing inequality

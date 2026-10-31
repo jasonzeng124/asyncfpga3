@@ -1,5 +1,6 @@
 import Formal.Cells.CElemTiming
 import Formal.Cells.CTree
+open Formal.Core.LutList
 
 /-!
 # Track 5, probe 5f: timing of `bd_c3`, `bd_c4` and `bd_ctree`

@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Probe Cm, part 1: every LUT of `bdc_amerge2_0`, `bdc_amerge3_0`, `bdc_muxn3_32`

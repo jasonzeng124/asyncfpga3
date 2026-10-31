@@ -1,8 +1,9 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
 import Formal.Cells.CTreeTimed
 import Formal.Cells.TernarySound
 import Formal.Cells.TernaryPhases
+open Formal.Core.LutList
 
 /-!
 # Probe Rst (shard B, gcd_hw capstone): the design-level reset contract

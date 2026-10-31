@@ -4,6 +4,7 @@ import Formal.Cells.CElemFn
 import Formal.Cells.Latch
 import Formal.Cells.LinkHandshake
 import Formal.Cells.Bundling
+open Formal.Core.LutList
 
 /-!
 # 11d: generated links and pipes (`bd_link.v`)

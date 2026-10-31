@@ -1,4 +1,5 @@
 import Formal.Cells.RulesKL
+open Formal.Core.LutList
 
 /-!
 # Necessity5Link: `bd_link_dc` corrected rules K' and L' are tight to 1 tick

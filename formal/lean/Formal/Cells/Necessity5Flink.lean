@@ -1,4 +1,5 @@
 import Formal.Cells.ConstraintsMore
+open Formal.Core.LutList
 
 /-!
 # Necessity5Flink: `bd_flink.qfb_first` (H_QFB_FIRST_T) is tight to 1 tick

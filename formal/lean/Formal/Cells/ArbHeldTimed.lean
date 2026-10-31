@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Probe 7h: timed exclusion of the HELD `bd_arbiter` (`cells/rtl/bd_arb.v`)

@@ -1,6 +1,7 @@
 import Formal.Cells.Bundling
 import Formal.Cells.LibEndMemMlink
 import Formal.Cells.LinkHandshake
+open Formal.Core.LutList
 
 /-!
 # Probe P3e: H_QFB_FIRST as a timed inequality (`bd_mlink.qfb_first`,

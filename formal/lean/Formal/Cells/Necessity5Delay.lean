@@ -1,4 +1,5 @@
 import Formal.Cells.PipeTimedN
+open Formal.Core.LutList
 
 /-!
 # Necessity5Delay: `bd_delay[FASTRISE].ack_flush` (H_ACK_FLUSH) at the line level

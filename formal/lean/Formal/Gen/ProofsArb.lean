@@ -8,6 +8,7 @@ import Formal.Cells.ArbHeldTimed
 import Formal.Cells.ArbA0Fork
 import Formal.Core.Lut
 import Formal.Core.LutCells
+open Formal.Core.LutList
 
 /-!
 # 11d: the generated arbiter (`bd_arb.v`)

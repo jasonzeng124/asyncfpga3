@@ -1,4 +1,5 @@
 import Formal.Cells.KleeneWin
+open Formal.Core.LutList
 
 /-!
 # KleeneWinBound (probe Bwb): `+W` under H_W_BOUND, sufficient and needed, for every per-edge iff

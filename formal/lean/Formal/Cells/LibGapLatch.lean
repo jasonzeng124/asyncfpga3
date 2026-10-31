@@ -1,5 +1,6 @@
 import Formal.Cells.Latch
 import Formal.Cells.LibGapMux
+open Formal.Core.LutList
 
 /-!
 # LibGapLatch: `bd_latch` setup_data, setup_pulse and hold, per pin, EXACT over the box

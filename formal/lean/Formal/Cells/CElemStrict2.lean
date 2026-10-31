@@ -1,4 +1,5 @@
 import Formal.Cells.CElemStrict
+open Formal.Core.LutList
 
 /-!
 # The strict own-feedback race on every C-element variant, the latch pair, and reset release

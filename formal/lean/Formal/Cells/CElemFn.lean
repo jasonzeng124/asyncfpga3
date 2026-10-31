@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Track 5, probe 5a: the C-elements of `cells/rtl/bd_ce.v`, functional and Kleene

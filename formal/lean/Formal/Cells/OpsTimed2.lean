@@ -1,5 +1,6 @@
 import Formal.Cells.OpsTimedWit
 import Formal.Cells.ConstraintsMux
+open Formal.Core.LutList
 
 /-!
 # Shard B Phase 2, probe Lt2 (part 1): the mux's DATA path, timed

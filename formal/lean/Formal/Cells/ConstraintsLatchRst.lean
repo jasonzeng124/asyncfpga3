@@ -1,5 +1,6 @@
 import Formal.Cells.Bundling
 import Formal.Cells.Latch
+open Formal.Core.LutList
 
 /-!
 # Probe P3b: timed theorems for `bd_latch_rst` (cell_constraints entries

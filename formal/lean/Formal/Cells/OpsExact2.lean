@@ -1,4 +1,5 @@
 import Formal.Cells.OpsExact
+open Formal.Core.LutList
 
 /-!
 # Shard B, probe Lt5: the remaining operator exactness items

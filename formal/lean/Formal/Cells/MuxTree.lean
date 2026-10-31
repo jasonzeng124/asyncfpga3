@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Fidelity of H_KLEENE_LUT: one Kleene 2:1 mux gives the closure semantics

@@ -1,4 +1,5 @@
 import Formal.Cells.ZeroDelayNetPhys
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayTok: one `bd_link` stage carrying `k` tokens: the exact cross-token row

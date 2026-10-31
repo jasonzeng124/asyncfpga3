@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # bd_ctree: a tree of C-elements vs a flat N-input C-element (probe 5c)

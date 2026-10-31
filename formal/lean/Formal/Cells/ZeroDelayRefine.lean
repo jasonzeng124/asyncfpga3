@@ -3,6 +3,7 @@ import Formal.Cells.LibGapMux
 import Formal.Net.OpsLink
 import Formal.Net.OpsSteer
 import Formal.Net.OpsMux
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayRefine: physical cell traces ↦ C's zero-delay traces (cell half of Br2 / C-8x)

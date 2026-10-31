@@ -1,4 +1,5 @@
 import Formal.Cells.LibGapSteer
+open Formal.Core.LutList
 
 /-!
 # LibGapMux: `bd_mux`'s select timing at the joins, per pin, sufficient AND necessary

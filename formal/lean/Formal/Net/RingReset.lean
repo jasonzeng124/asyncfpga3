@@ -1,4 +1,5 @@
 import Formal.Net.BridgeRing
+open Formal.Core.LutList
 
 /-!
 # Probe C-9d (a): what bdc's reset puts in a ring, and the token count from it

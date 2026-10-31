@@ -1,6 +1,7 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
 import Formal.Core.Substrate.Chan
+open Formal.Core.LutList
 
 /-!
 # PrelimCore: every Prelim / CElemTiming notion B's cell files use, against Core
@@ -57,24 +58,24 @@ open Formal.Core
 
 /-! ## 1. Values -/
 
-theorem k3_eq : Formal.Cells.K3 = Formal.Core.K3 := rfl
-theorem f_eq : Formal.Cells.K3.f = Formal.Core.K3.zero := rfl
-theorem t_eq : Formal.Cells.K3.t = Formal.Core.K3.one := rfl
-theorem x_eq : Formal.Cells.K3.x = Formal.Core.K3.X := rfl
-theorem ofBool_eq : Formal.Cells.K3.ofBool = Formal.Core.K3.ofBool := rfl
-theorem join_eq : Formal.Cells.K3.join = Formal.Core.K3.merge := Formal.Cells.K3.join_eq_merge
-theorem not_eq : Formal.Cells.K3.not = Formal.Core.K3.not := Formal.Cells.K3.not_eq_core
+theorem k3_eq : Formal.Core.LutList.K3 = Formal.Core.K3 := rfl
+theorem f_eq : Formal.Core.LutList.K3.f = Formal.Core.K3.zero := rfl
+theorem t_eq : Formal.Core.LutList.K3.t = Formal.Core.K3.one := rfl
+theorem x_eq : Formal.Core.LutList.K3.x = Formal.Core.K3.X := rfl
+theorem ofBool_eq : Formal.Core.LutList.K3.ofBool = Formal.Core.K3.ofBool := rfl
+theorem join_eq : Formal.Core.LutList.K3.join = Formal.Core.K3.merge := Formal.Core.LutList.K3.join_eq_merge
+theorem not_eq : Formal.Core.LutList.K3.not = Formal.Core.K3.not := Formal.Core.LutList.K3.not_eq_core
 
 /-- B's Kleene 2:1 mux is the node of Core's mux tree `kevalT`. -/
 theorem mux_eq (s a b : Formal.Core.K3) :
-    Formal.Cells.K3.mux s a b = match s with
+    Formal.Core.LutList.K3.mux s a b = match s with
       | .zero => a
       | .one => b
-      | .X => Formal.Core.K3.merge a b := Formal.Cells.mux_eq s a b
+      | .X => Formal.Core.K3.merge a b := Formal.Core.LutList.mux_eq s a b
 
 theorem admits_iff_le (a : Formal.Core.K3) (b : Bool) :
-    Formal.Cells.K3.admits a b = true ↔ Formal.Core.K3.Le a (Formal.Core.K3.ofBool b) :=
-  Formal.Cells.K3.admits_iff_le a b
+    Formal.Core.LutList.K3.admits a b = true ↔ Formal.Core.K3.Le a (Formal.Core.K3.ofBool b) :=
+  Formal.Core.LutList.K3.admits_iff_le a b
 
 /-! ## 2. LUTs on arbitrary lists -/
 

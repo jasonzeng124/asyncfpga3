@@ -1,4 +1,5 @@
 import Formal.Cells.ResetGcd
+open Formal.Core.LutList
 
 /-!
 # gcd_hw's control network, regenerated from the SYNTHESIZED netlist (GENERATED)

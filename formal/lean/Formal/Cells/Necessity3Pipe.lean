@@ -1,4 +1,5 @@
 import Formal.Cells.PipeTimedN
+open Formal.Core.LutList
 
 /-!
 # Necessity3Pipe: the data-side `bd_pipe` rows are tight to 1 tick

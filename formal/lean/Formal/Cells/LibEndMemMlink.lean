@@ -1,5 +1,6 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.MuxTree
+open Formal.Core.LutList
 
 /-!
 # Shard B, probe Lib2: `bd_end.v`, `bd_mem.v`, `bd_mlink.v`, and the parts of

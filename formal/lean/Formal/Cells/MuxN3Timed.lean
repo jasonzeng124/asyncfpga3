@@ -1,6 +1,7 @@
 import Formal.Cells.OpsTimedMux
 import Formal.Cells.OpsTimed2
 import Formal.Cells.MuxN3
+open Formal.Core.LutList
 
 /-!
 # Shard B probe Mn: timed `bdc_muxn3_32` (gcd_hw's 3-way loop header)

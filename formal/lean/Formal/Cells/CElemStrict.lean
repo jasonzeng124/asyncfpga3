@@ -1,5 +1,6 @@
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
+open Formal.Core.LutList
 
 /-!
 # The C-element's own-feedback race must be STRICT in a per-pin mux-tree LUT

@@ -1,5 +1,6 @@
 import Formal.Cells.KleeneBox
 import Formal.Cells.CElemStrict
+open Formal.Core.LutList
 
 /-!
 # KleeneWin: per-edge X windows with their own split (no H_X_UNIFORM)

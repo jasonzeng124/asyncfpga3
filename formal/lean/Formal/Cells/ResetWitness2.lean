@@ -1,5 +1,6 @@
 import Formal.Cells.ResetCapstone
 import Formal.Cells.ResetWitness2Data
+open Formal.Core.LutList
 
 /-!
 # Probe Bwit (shard B): a moving, varied-delay witness for gcd_hw's reset theorems

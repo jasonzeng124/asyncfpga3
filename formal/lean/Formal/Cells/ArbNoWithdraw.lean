@@ -2,6 +2,7 @@ import Formal.Net.CapstoneO1
 import Formal.Net.CapstoneWitnessCells
 import Formal.Cells.LinkExact
 import Formal.Cells.OnGcdArbKappaSrv
+open Formal.Core.LutList
 
 /-!
 # Probe Bbare: can a gcd_hw arbiter client withdraw an unacknowledged request?

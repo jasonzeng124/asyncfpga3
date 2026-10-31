@@ -1,5 +1,6 @@
 import Formal.Net.Bridge
 import Formal.Net.Ring
+open Formal.Core.LutList
 
 /-!
 # Probe 8d: the ring theorems of probe 9a, for timed traces
@@ -190,10 +191,10 @@ atomic-gate abstraction `e_i t = f i (x t)` loses nothing on this transition
 
 open Formal.Cells in
 /-- Pin position along its own transition from `v`: `0 = v`, `1 = X`, `2 = !v`. -/
-def pos (v : Bool) : Nat → Formal.Cells.K3
-  | 0 => Formal.Cells.K3.ofBool v
+def pos (v : Bool) : Nat → Formal.Core.LutList.K3
+  | 0 => Formal.Core.LutList.K3.ofBool v
   | 1 => .x
-  | _ => Formal.Cells.K3.ofBool (!v)
+  | _ => Formal.Core.LutList.K3.ofBool (!v)
 
 open Formal.Cells Formal.Cells.CElemFn in
 set_option synthInstance.maxSize 4096 in

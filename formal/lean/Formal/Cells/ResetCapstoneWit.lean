@@ -1,4 +1,5 @@
 import Formal.Cells.ResetGcdVec2
+open Formal.Core.LutList
 
 /-!
 # Probe Brz (shard B): a non-degenerate witness for gcd_hw's network reset theorems

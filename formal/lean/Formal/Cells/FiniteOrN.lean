@@ -1,6 +1,7 @@
 import Formal.Cells.AssumeGuaranteeMuxNNet
 import Formal.Cells.AssumeGuaranteeMuxNFinWit
 import Formal.Cells.AMergeGates
+open Formal.Core.LutList
 
 /-!
 # Probe Bor3 (shard B): the n-branch truncated OR; the muxn's `|j` gate-modelled

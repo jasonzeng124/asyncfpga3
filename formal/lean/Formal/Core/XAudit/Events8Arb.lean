@@ -37,7 +37,7 @@ namespace Formal.Core.XAudit.Events8Arb
 
 open Formal.Core.TraceDiscrete (Sig Warp Mono)
 open Formal.Core.XAudit.Events2 (cel)
-open Formal.Cells (o5B o6B)
+open Formal.Core.LutList (o5B o6B)
 open Formal.Cells.ArbBinary (ARB_ST GRANT)
 
 /-! ## 1. The real cell, from its INITs -/

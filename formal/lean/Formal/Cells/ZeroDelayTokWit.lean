@@ -1,5 +1,6 @@
 import Formal.Cells.ZeroDelayTokChain
 import Formal.Cells.ZeroDelayNetWit
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayTokWit: non-vacuity of the `k`-token closed-loop chain (two stages, two tokens)

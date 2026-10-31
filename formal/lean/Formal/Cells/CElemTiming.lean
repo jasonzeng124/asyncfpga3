@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Track 5, probe 5b: timing of the feedback-LUT C-element under bounded delays

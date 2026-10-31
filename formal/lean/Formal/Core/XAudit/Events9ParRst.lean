@@ -28,7 +28,7 @@ namespace Formal.Core.XAudit.Events9Arb
 open Formal.Core.TraceDiscrete (Sig Warp Mono)
 open Formal.Core.XAudit.Events2 (cel)
 open Formal.Core.XAudit.Events8Arb
-open Formal.Cells (o5B o6B)
+open Formal.Core.LutList (o5B o6B)
 open Formal.Cells.ArbBinary (ARB_ST GRANT)
 
 /-- `VRd` with an explicit reset signal `ρ`. -/

@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Probe 7b: the arbiter in Kleene three-valued logic
@@ -46,7 +47,7 @@ Pin maps (from the RTL):
 
 namespace Formal.Cells.ArbKleene
 open Formal.Cells
-open Formal.Cells.K3
+open Formal.Core.LutList.K3
 
 /-! ## INITs and cells -/
 

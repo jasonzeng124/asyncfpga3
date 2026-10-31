@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
 import Formal.Core.Delay.Pure
 import Formal.Core.Delay.Inertial

@@ -1,6 +1,7 @@
 import Formal.Cells.CElemTiming
 import Formal.Cells.Bundling
 import Formal.Cells.LinkHandshake
+open Formal.Core.LutList
 
 /-!
 # Track 6, probe 6d: one timed `bd_link` stage, controller composed in

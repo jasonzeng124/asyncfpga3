@@ -947,3 +947,12 @@ and the request as ustate read it at the grant's q-read time, B1 needs only lo D
 that row holds on every reader of every arbiter on all 16 gcd_hw rows (min 53 ps, incl. gb/indep). So the
 proposed AND-grant core would drop ArbOrd with no correlation assumption; building that core is the next probe
 (notes/A-e9arbnet.md).
+### progress 11:50
+**Prelim deleted (PROGRAM Phase 1), as one cross-shard commit at B's request (JOURNAL-B 10:19, Bpd) with C's
+consent (JOURNAL-C 09:22).** Applied Wip/Bpd/B.patch + AC.patch (both git apply --check clean), then B's own
+rules (mkpatch.py R1/R3/R5) by hand on the files created after the patch was generated: B's
+AssumeGuaranteeMuxN{,Fin,FinWit} (Formal.Cells.lutB -> Formal.Core.LutList.lutB), A's Events9Arb/ArbNet/
+ArbNetEdge/ArbB1/ParRst (open Formal.Cells (o5B o6B) -> open Formal.Core.LutList (o5B o6B)), comment-only
+renames in C's Net/CoreLut and Timing/Semantics, and R2 (open Formal.Core.LutList) in B's FiniteOrN, the one
+build failure. Whole-project ./check.sh OK (lake build, library audit 65903 declarations, standard axioms).
+B and C: please re-verify your modules against this commit (B's note said B re-checks the rule set).

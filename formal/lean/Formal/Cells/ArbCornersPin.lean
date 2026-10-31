@@ -1,5 +1,6 @@
 import Formal.Cells.ArbCorners
 import Formal.Cells.PinAssign
+open Formal.Core.LutList
 
 /-!
 # Probe Bc2: ArbCorners' numeric results redone with the ROUTED pin of every seed

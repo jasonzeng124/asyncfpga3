@@ -5,6 +5,7 @@ import Formal.Cells.CTree
 import Formal.Cells.CElemTiming
 import Formal.Core.Lut
 import Formal.Core.LutCells
+open Formal.Core.LutList
 
 /-!
 # 11d: generated C-elements (`bd_ce.v`), C-trees, fork and join (`bd_ctl.v`)

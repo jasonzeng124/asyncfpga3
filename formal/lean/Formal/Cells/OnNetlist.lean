@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.MuxTree
 import Formal.Cells.CElemFn
 import Formal.Cells.Latch
@@ -9,6 +9,7 @@ import Formal.Net.FasmLink.S1
 import Formal.Net.FasmLink.S2
 import Formal.Net.FasmLink.S3
 import Formal.Net.FasmLink.S4
+open Formal.Core.LutList
 
 /-!
 # Probe Bn: shard B's cell theorems on the netlist read back from the bits

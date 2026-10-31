@@ -1,5 +1,6 @@
 import Formal.Cells.Bundling
 import Formal.Cells.AMergeTimedW
+open Formal.Core.LutList
 
 /-!
 # Probe Bfd: H_FORK_DATA (fork branch data vs request) and H_AMERGE_IDX

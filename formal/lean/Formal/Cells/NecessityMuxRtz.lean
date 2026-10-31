@@ -1,4 +1,5 @@
 import Formal.Cells.ConstraintsMux
+open Formal.Core.LutList
 
 /-!
 # NecessityMuxRtz: `bd_mux.uxa_rtz_env` / `uya_rtz_env` are tight to 1 ps

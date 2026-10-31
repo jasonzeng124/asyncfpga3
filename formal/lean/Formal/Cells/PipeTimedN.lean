@@ -1,4 +1,5 @@
 import Formal.Cells.PipeTimed
+open Formal.Core.LutList
 
 /-!
 # Track 6, probe 6f: a timed `bd_pipe` with any number of stages `N ≥ 1`

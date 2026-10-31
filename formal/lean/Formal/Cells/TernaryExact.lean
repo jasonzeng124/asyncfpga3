@@ -1,6 +1,7 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.TernarySound
 import Formal.Cells.TernaryPhases
+open Formal.Core.LutList
 
 /-!
 # Probe 7l: exactness of two-phase ternary simulation (Algorithms A and B)

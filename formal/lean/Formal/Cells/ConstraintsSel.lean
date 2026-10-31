@@ -1,4 +1,5 @@
 import Formal.Cells.FifoFidelity
+open Formal.Core.LutList
 
 /-!
 # Probe P3a: per-pin `H_SEL_ORDER` for `bd_c2`, `bd_c3`, `bd_c4` (cell_constraints entries

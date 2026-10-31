@@ -1,4 +1,5 @@
 import Formal.Cells.LibCtlMergeMux
+open Formal.Core.LutList
 
 /-!
 # LibGapSteer: `bd_steer`'s select timing, per pin, sufficient AND necessary

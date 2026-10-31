@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
 import Formal.Cells.ArbA0Fork
 import Formal.Cells.ArbHeldTimed

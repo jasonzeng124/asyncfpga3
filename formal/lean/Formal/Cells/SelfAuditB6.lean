@@ -2,6 +2,7 @@ import Formal.Cells.RigSrc
 import Formal.Cells.SelfAuditB6Data
 import Formal.Cells.ResetGcdNetR5
 import Formal.Cells.ResetGcdNetRe
+open Formal.Core.LutList
 
 /-!
 # Self-audit B6 (probe Bsa3): witnesses for shard B's 10-27 files the audit did not cover

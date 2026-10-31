@@ -1,6 +1,7 @@
 import Formal.Cells.OpsTimed2
 import Formal.Cells.MuxN3Timed
 import Formal.Cells.LinkTimed
+open Formal.Core.LutList
 
 /-!
 # Shard B Phase 3, probe G3: operator data held until the consumer's ack FALL

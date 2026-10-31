@@ -534,7 +534,7 @@ theorem fArb_eq (r1 r2 q rst a0 : Bool) :
 /-- The fid mux tree and B's `o6B` agree on the held node (B's `ArbHandover.held_q_eqn`). -/
 theorem fArb_eq_B (r1 r2 q rst a0 : Bool) :
     fArb r1 r2 q rst a0 =
-      Formal.Cells.o6B Formal.Cells.ArbHandover.INIT_HELD [r1, r2, q, rst, a0, true] := by
+      Formal.Core.LutList.o6B Formal.Cells.ArbHandover.INIT_HELD [r1, r2, q, rst, a0, true] := by
   rw [fArb_eq, Formal.Cells.ArbHandover.held_q_eqn]
 
 def arbF (r1 r2 rst a0 : Sig) : Nat → Bool → Bool := fun t q => fArb (r1 t) (r2 t) q (rst t) (a0 t)

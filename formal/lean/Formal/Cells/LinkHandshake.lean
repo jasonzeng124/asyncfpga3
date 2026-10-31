@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Track 6, probe 6b: `bd_link` / `bd_pipe` four-phase handshake

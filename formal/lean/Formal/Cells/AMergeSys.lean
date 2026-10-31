@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 
 /-!
 # Probe Cm, part 0: a finite speed-independence checker with excitation masks

@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Track 6a: the LUT latch `bd_latch` / `bd_latch_rst` (cells/rtl/bd_latch.v)

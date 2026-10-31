@@ -1,4 +1,4 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.CElemTiming
 import Formal.Cells.Latch
 import Formal.Cells.OnNetlistTimed
@@ -9,6 +9,7 @@ import Formal.Net.FasmLink.S1
 import Formal.Net.FasmLink.S2
 import Formal.Net.FasmLink.S3
 import Formal.Net.FasmLink.S4
+open Formal.Core.LutList
 
 /-!
 # Probe Bt2: finishing the timed bridge on the routed bits (link_arb, 4 seeds)

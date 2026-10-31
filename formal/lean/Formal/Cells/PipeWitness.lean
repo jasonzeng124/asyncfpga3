@@ -1,5 +1,6 @@
 import Formal.Cells.PipeTimedN
 import Formal.Cells.PipePerPin
+open Formal.Core.LutList
 
 /-!
 # Track 6, probe 6h: non-degenerate joint witnesses for the timed pipe

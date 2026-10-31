@@ -18,12 +18,12 @@ namespace Formal.Net.Import
 open Formal.Net.CoreLut Formal.Net.CoreLutPrelim
 
 /-- Kleene reading with shard B's Prelim `lutK` (pre-port `kleeneSem`). -/
-def kleeneSemP : Sem Formal.Cells.K3 := ⟨Formal.Cells.lutK, Formal.Cells.K3.ofBool⟩
+def kleeneSemP : Sem Formal.Core.LutList.K3 := ⟨Formal.Core.LutList.lutK, Formal.Core.LutList.K3.ofBool⟩
 
 /-- Binary reading with Prelim's `lutB`. It IS `boolSem` (`boolSem_eq_boolSemP`,
 `Bool` is shared), so a theorem about one is a theorem about the other; it is
 only here so that proofs by `rfl` against B's `lutB`-valued lemmas keep working. -/
-def boolSemP : Sem Bool := ⟨Formal.Cells.lutB, id⟩
+def boolSemP : Sem Bool := ⟨Formal.Core.LutList.lutB, id⟩
 
 theorem boolSem_eq_boolSemP : boolSem = boolSemP := by
   unfold boolSem boolSemP

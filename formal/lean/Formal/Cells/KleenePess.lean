@@ -2,6 +2,7 @@ import Formal.Cells.MuxTree
 import Formal.Cells.ArbKleene
 import Formal.Cells.Latch
 import Formal.Cells.KleeneBox
+open Formal.Core.LutList
 
 /-!
 # KleenePess: pessimistic LUT models below H_KLEENE_LUT, and which cell results survive

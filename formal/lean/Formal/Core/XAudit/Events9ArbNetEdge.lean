@@ -37,7 +37,7 @@ open Formal.Core.XAudit.Events5
 open Formal.Core.XAudit.Events6
 open Formal.Core.XAudit.Events8Arb
 open Formal.Core.XAudit.Events9Arb
-open Formal.Cells (o5B o6B)
+open Formal.Core.LutList (o5B o6B)
 open Formal.Cells.ArbBinary (ARB_ST GRANT)
 
 /-- Discrete intermediate value: a Boolean signal true at `u` and false at `v ≥ u` has a falling

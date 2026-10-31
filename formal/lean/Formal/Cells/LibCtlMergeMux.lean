@@ -1,4 +1,5 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Lib1: every LUT of `bd_ctl.v`, `bd_merge.v`, `bd_mux.v`, binary and Kleene

@@ -1,5 +1,6 @@
 import Formal.Cells.MuxRtzTimed
 import Formal.Cells.Bundling
+open Formal.Core.LutList
 
 /-!
 # Probe P3d: `bd_mux.uya` return-to-zero race (cell_constraints entry `bd_mux.uya_rtz_env`)

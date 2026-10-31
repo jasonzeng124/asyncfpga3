@@ -2,7 +2,8 @@ import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.ODE.ExistUnique
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Analysis.Calculus.MeanValue
-import Formal.Cells.Prelim
+import Formal.Core.LutList
+open Formal.Core.LutList
 
 /-!
 # Track 7c: the arbiter's state node as an analog loop

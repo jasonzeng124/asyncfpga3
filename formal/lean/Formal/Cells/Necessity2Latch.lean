@@ -1,4 +1,5 @@
 import Formal.Cells.ConstraintsLatchRst
+open Formal.Core.LutList
 
 /-!
 # Necessity2Latch: `bd_latch_rst.setup_pulse` (H_PW) is tight to 1 tick

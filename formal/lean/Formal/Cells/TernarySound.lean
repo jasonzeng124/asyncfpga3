@@ -1,6 +1,7 @@
-import Formal.Cells.Prelim
+import Formal.Core.LutList
 import Formal.Cells.MuxTree
 import Formal.Cells.ArbKleene
+open Formal.Core.LutList
 
 /-!
 # Probe 7f: soundness of two-phase ternary simulation (Eichelberger A/B)

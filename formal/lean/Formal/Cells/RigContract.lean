@@ -1,4 +1,5 @@
 import Formal.Cells.ResetContract
+open Formal.Core.LutList
 
 /-!
 # Probe Rig (shard B, gcd_hw capstone): the rig's own obligations

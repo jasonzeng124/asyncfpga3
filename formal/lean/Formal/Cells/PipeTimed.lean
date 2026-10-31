@@ -1,4 +1,5 @@
 import Formal.Cells.LinkTimed
+open Formal.Core.LutList
 
 /-!
 # Track 6, probe 6e: a timed N-stage `bd_pipe` (N = 2 in full)

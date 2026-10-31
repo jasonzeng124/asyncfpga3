@@ -1,4 +1,5 @@
 import Formal.Cells.ResetGcdWave
+open Formal.Core.LutList
 /-!
 # Self-audit of shard B (probe Bsa), part 2: a joint witness for the gcd_hw reset/wave chain
 

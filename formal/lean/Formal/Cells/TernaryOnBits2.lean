@@ -1,4 +1,5 @@
 import Formal.Cells.TernaryOnBits
+open Formal.Core.LutList
 
 /-!
 # Probe Bx2: more scenarios, shared O5/O6 reads, and a certificate generator

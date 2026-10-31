@@ -1,4 +1,5 @@
 import Formal.Cells.ZeroDelayTok
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayTokChain: the closed-loop `bd_link` chain carrying `k` tokens (physical half)

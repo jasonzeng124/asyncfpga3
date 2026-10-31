@@ -3,6 +3,7 @@ import Formal.Net.Fasm.CePairS2
 import Formal.Net.Fasm.CePairS3
 import Formal.Net.Fasm.CePairS4
 import Formal.Net.CoreLut
+open Formal.Core.LutList
 
 /-!
 # Track 11b: the ROUTED bd_c2 -> bd_c2n pair, read from the FASM, is the logical pair

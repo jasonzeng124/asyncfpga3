@@ -1,4 +1,5 @@
 import Formal.Cells.ArbNoWithdraw
+open Formal.Core.LutList
 
 /-!
 # Probe Bset: the sharp H_SETTLED of the held `bd_arbiter`, its latency table on gcd_hw, and

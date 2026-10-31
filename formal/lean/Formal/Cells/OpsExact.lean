@@ -1,4 +1,5 @@
 import Formal.Cells.OpsCounter
+open Formal.Core.LutList
 
 /-!
 # Shard B, probe Lt4: exact forms of the operator obligations

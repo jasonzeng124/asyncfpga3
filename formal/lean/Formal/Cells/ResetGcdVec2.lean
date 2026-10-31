@@ -1,5 +1,6 @@
 import Formal.Cells.ResetGcdVec
 import Formal.Cells.LibEndMemMlink
+open Formal.Core.LutList
 
 /-!
 # Probe Bfw (shard B): gcd_hw's per-cell reset model derived from the network run, and the first-wave cells

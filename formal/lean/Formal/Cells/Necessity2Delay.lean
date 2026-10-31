@@ -1,4 +1,5 @@
 import Formal.Cells.ConstraintsFastFall
+open Formal.Core.LutList
 
 /-!
 # Necessity2Delay: `bd_delay #(.FASTFALL(1))` flush conditions

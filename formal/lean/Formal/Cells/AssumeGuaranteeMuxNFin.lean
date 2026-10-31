@@ -544,15 +544,15 @@ theorem tand_ex {a g : Nat → Bool} {ρ γ : Nat → Nat} {La Lg : Nat → Prop
 
 /-- **A FASTFALL stage, truncated** (the REAL LUT2 `4'h8` on `[s[i], gate]`). -/
 theorem tand {a g O : Nat → Bool} {lo hi T : Nat} {ρ γ : Nat → Nat} {La Lg : Nat → Prop}
-    (H_LUT_WIN : Win lo hi (fun t => Formal.Cells.lutB 0x8 [a t, g t]) O)
-    (H_NO_REVERT : NoRevertI lo hi (fun t => Formal.Cells.lutB 0x8 [a t, g t]) O)
+    (H_LUT_WIN : Win lo hi (fun t => Formal.Core.LutList.lutB 0x8 [a t, g t]) O)
+    (H_NO_REVERT : NoRevertI lo hi (fun t => Formal.Core.LutList.lutB 0x8 [a t, g t]) O)
     (H_PWR : ∀ t, t < hi → O t = false)
     (H_SAME : ∀ j, Lg j ↔ La j)
     (H_OVL : ∀ j, La (j + 1) → ρ j < γ (j + 1) ∧ γ j < ρ (j + 1))
     (H_FLOOR : ∀ j, La j → hi ≤ xe ρ γ j + lo)
     (ha : GPhT a ρ La T) (hg : GPhT g γ Lg T) :
     GPhT O (fe O lo hi (xe ρ γ)) La (T + lo) := by
-  have ex : (fun t => Formal.Cells.lutB 0x8 [a t, g t]) = fun t => a t && g t :=
+  have ex : (fun t => Formal.Core.LutList.lutB 0x8 [a t, g t]) = fun t => a t && g t :=
     funext fun t => AssumeGuaranteeMuxN.Wit.stg_eq (a t) (g t)
   rw [ex] at H_LUT_WIN H_NO_REVERT
   exact tnode H_LUT_WIN H_NO_REVERT (tand_ex H_SAME H_OVL ha hg) H_FLOOR H_PWR
@@ -561,8 +561,8 @@ theorem tand {a g O : Nat → Bool} {lo hi T : Nat} {ρ γ : Nat → Nat} {La Lg
 pin `gp` (`|j`). -/
 structure FAndSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (ap gp : GPin ι) : Prop where
   H_PINS : D.pins c = [ap, gp]
-  H_LUT_WIN : Win (D.lo c) (D.hi c) (fun t => Formal.Cells.lutB 0x8 [ap.P t, gp.P t]) (D.O c)
-  H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (fun t => Formal.Cells.lutB 0x8 [ap.P t, gp.P t])
+  H_LUT_WIN : Win (D.lo c) (D.hi c) (fun t => Formal.Core.LutList.lutB 0x8 [ap.P t, gp.P t]) (D.O c)
+  H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) (fun t => Formal.Core.LutList.lutB 0x8 [ap.P t, gp.P t])
     (D.O c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
   H_TIMES : ∀ j, D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (xe (gE D.τ ap) (gE D.τ gp) j) (Vph j)

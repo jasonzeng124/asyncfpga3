@@ -1,4 +1,5 @@
 import Formal.Cells.OpsTimed2
+open Formal.Core.LutList
 
 /-!
 # Shard B, probe Lt3: are the operator cells' obligations NECESSARY?

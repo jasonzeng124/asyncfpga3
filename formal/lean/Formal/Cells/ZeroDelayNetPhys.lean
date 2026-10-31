@@ -1,4 +1,5 @@
 import Formal.Cells.ZeroDelayNet
+open Formal.Core.LutList
 
 /-!
 # ZeroDelayNetPhys: the whole physical link chain refines ONE zero-delay run of C's chain

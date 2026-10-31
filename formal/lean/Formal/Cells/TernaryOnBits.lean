@@ -2,6 +2,7 @@ import Formal.Cells.TernarySound
 import Formal.Cells.TernaryPhases
 import Formal.Cells.TernaryExact
 import Formal.Cells.OnNetlist
+open Formal.Core.LutList
 
 /-!
 # Probe Bx: ternary hazard / settling checker on the whole routed netlist

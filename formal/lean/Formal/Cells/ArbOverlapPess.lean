@@ -1,5 +1,6 @@
 import Formal.Cells.KleenePess
 import Formal.Cells.ArbOverlapRace
+open Formal.Core.LutList
 
 /-!
 # Probe Bov2: can a PESSIMISTIC LUT model explain the arbcell 8% filtered overlap?

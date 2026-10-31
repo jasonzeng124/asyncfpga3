@@ -1,4 +1,5 @@
 import Formal.Timing.GrantFork
+open Formal.Core.LutList
 
 /-!
 # C-10j: does the grant-fork runt break the handshake? (H_RUNT_ACK)

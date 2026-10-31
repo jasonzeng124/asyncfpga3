@@ -2,6 +2,7 @@ import Formal.Cells.LibGapLatch
 import Formal.Cells.NecessityReset
 import Formal.Cells.CElemFn
 import Formal.Cells.ContractsTrunc
+open Formal.Core.LutList
 
 /-!
 # LinkExact: ONE exact contract for one `bd_link` stage (controller + latch bit + feedbacks)
