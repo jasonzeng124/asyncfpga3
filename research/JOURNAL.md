@@ -1809,3 +1809,6 @@ route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the t
 - Stopped the remaining 2x linear draws (low value, above). Started BOARD-QUEUE #1 (fusion on, v4, select pads; the
   first board candidate) on the full stack: seeds d,3-9 x FAST_MIN/SLOW_MAX, resolver 055edd7. Its full-stack
   record so far is one route (bq1_max 16/12/18 laps, fullstack.md). Default-seed sdf should be 6f8b99e6.
+### progress 03:27 (container restart again; BQ#1 sims relaunched)
+- Second full container restart (~03:26). BQ#1's 8 routes had completed (default sdf 6f8b99e6 = the BOARD-QUEUE
+  record); seed d's two in-flight sims were lost and the sweep was relaunched (routes reused).
