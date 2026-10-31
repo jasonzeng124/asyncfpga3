@@ -1835,3 +1835,13 @@ closest x/y request rises at any one arbiter are 36 ticks apart (op 180, ticks 3
 against 2 ticks per gate, so no two requests reach the arbiter inside its decision window
 and H_EXC_CLEAN is never tight. Other inputs give no race-closer evidence in this
 simulator: 9 (a, b) pairs tried, all with C's checker clean; none was searched for races.
+
+### progress 14:03
+(1) formal/check.sh --committed on 304b2fe9 (all of today's B Lean, before the lead's Prelim
+deletion was pulled): "Build completed successfully (3897 jobs)", axiom audit "[check] OK".
+(2) After rebasing onto the Prelim deletion (67a08438) and the docstring correction
+(fe2b0079): lake build of every B witness chain OK on the new head (163 jobs; the chained
+NChk modules rebuilt one at a time: BWitNChk 386 s, BWit2NChk 495 s, BWit3NChk 737 s,
+BWit4NChk 725 s), so the docstring-only commit fe2b0079 builds.
+(3) notes/B-muxn-bind-plan.md: the last unbound gate class is ONE muxn (op 163): its three
+input acknowledges and its control acknowledge (a wire from z.ack, z feeding a sink).
