@@ -1099,7 +1099,7 @@ ps), the no-re-request and B2 settledness windows of the 4 readers, the 4 pointw
 readers); ArbOrd at GLS point delays (fails under scatter). Not monitored: B2 windows, R0-reader windows, settle bound.
 Whole-project ./check.sh OK (73409 library declarations).
 
-### A progress 16:50 -- audit P17 rows on A: ord_static filter fixed, "3 of 5" corrected
+### A progress 16:36 -- audit P17 rows on A: ord_static filter fixed, "3 of 5" corrected
 P17 (partial) confirms SatPinW (1a/1b structurally; ArbOrd still assumed on every gcd_hw row), arbOrd_of_transport,
 arb_low_of_reqlow, the corrected QQuiet/lowmon monitors. It REFUTES "ArbOrd fails in 3/5 scatter draws" (2d): the
 -12 and -410 ps pairs were on ustate pin A4 = the LUT-buffered design reset (one net at all 9 ustates), which

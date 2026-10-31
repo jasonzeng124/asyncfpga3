@@ -8,6 +8,8 @@ tau requires no change of pin k at times in (tau - TA_k, tau + W - TA_k]. The mo
     QQ_VIOL <t> <name> A<k> post <dt>   a pin change at t with tau < t <= tau + W - TA_k (dt = t - tau)
     QQ_VIOL <t> <name> A<k> pre <dt>    an output change at t = tau with the pin's last change in (tau - TA_k, tau]
 W is this behaviour's own loop delay (what QClean needs for these fixed delays), not the Lean band hi phi(PqQ).
+XAN=xan_<seed>_<corner>.txt instead takes W = phi(PqQ) = the hi end of xarbnet's "ustate own-q read band" for the
+arbiter, i.e. QQuiet's own window length (audit P17 2a); every arbiter must be found in the file (else exit 1).
 WSCALE=k multiplies W (weak negative control). CONTROL=1 also monitors the feedback pin itself (tag QQ_CTRL):
 its change lands exactly at the end of the window (tau + D_icbuf = tau + W - TA_fb), so a working monitor flags
 one QQ_CTRL per output change: a near-threshold detection control (audit P15a)."""
@@ -16,6 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
 nm, icbuf, cells, drv, const = load(sys.argv[1])
 sc = int(os.environ.get("WSCALE", "1"))
+import re
+PHI = {}
+if os.environ.get("XAN"):
+    for ln in open(os.environ["XAN"]):
+        m = re.search(r"arbiter (\S+)\.ustate\$LUT6: ustate own-q read band \((\d+), (\d+)\)", ln)
+        if m: PHI[m.group(1) + ".ustate$LUT6"] = int(m.group(3))
 out = ["module qqmon;"]
 for name, c in sorted(nm.items(), key=lambda kv: kv[0]):
     if not name.endswith("ustate$LUT6") or ".uarb" not in name: continue
@@ -23,6 +31,9 @@ for name, c in sorted(nm.items(), key=lambda kv: kv[0]):
     fb = [k for k, w in v["pins"].items() if w in icbuf and icbuf[w][0] == o]
     if len(fb) != 1: print(f"// {name}: feedback pins {fb}", file=sys.stderr); continue
     k = fb[0]; W = (icbuf[v["pins"][k]][1] + v["ta"].get(int(k[1]), 0)) * sc
+    if os.environ.get("XAN"):
+        if name not in PHI: sys.exit(f"gen_qqmon: {name} not in XAN")
+        W = PHI[name] * sc
     tag = name.split("udut.")[-1]
     out.append(f"  // {name}: cell {c} ({op}), feedback pin {k}, loop W = {W} ps")
     out.append(f"  realtime lf_{c} = -1.0e9;")
