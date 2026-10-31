@@ -738,9 +738,17 @@ unit's function on bdc's port wiring; ranges: 32-bit tokens for uselect0, shift 
 shift = 1 for the ushrsi units as gcd_hw feeds them) | still assumed: H_MAP (which unit is which
 join), the constant ports' values, primitive Boolean models | timing is H_COMPUTE_DELAY (rule A)".
 
-### progress 09:50
+### progress 09:35 (heading corrected from 09:50: commit 502da4fe is 09:35 UTC)
 Committed after my own `./check.sh` (26 files, 2563 declarations, standard axioms, OK): H_COMPUTE_FN
 for uori2/3/4 (signed compare + or), uselect0 (signed-compare mux), uselect1 (abs difference);
 infrastructure Struct/Slt/Ripple and the reworked Word/Adder/Shift (re-checked with GcdAdd,
 GcdBitwise, GcdEqZero, GcdShrsi0-4). 19 of gcd_hw's 20 units are now claimed (ushli0 for k < 32,
 GcdJoin and the xorshift units are under check, not claimed).
+
+### progress 09:41
+Under my own `./check.sh` now (NOT claimed until a commit says so): ushli0 (Gen Ushli0, GcdShli0K0-3,
+GcdShli0) + GcdJoin; xorshift (Gen Xs/*, Sgt, BitFn, XsUnits, XsFn, XsXor). Negative controls
+(`Wip/Chcf/Neg.lean`: one-bit INIT mutations in uori0 and uaddi0 must make the certificate false)
+are building. The 11g full check (tools/fasm2lean3/check.sh, every seed of gcd + xorshift) has
+passed steps 0-2 (toolchain 9c732bc6303458df, 4 seeds, check3 0 fail, drift up to date, rhoinj
+uncovered 0); its Lean step is still running.
