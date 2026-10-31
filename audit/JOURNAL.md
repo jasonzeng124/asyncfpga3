@@ -668,3 +668,9 @@ BQ#1 d FAST_MIN: 16/16 errs 0, 45/35/51 (= TSV), no stalls. CONFIRMED. BQ#1 seed
 Formal 58251494 build: BWit2NChk was OOM-killed (code 137) twice, even when built alone, with my GLS (~4 GB)
 running. BWit3NChk failed because it rebuilds BWit2NChk. I stopped the queued BQ#1 seed-9 run to free memory; the
 full build continues, and BWit2NChk will be retried alone with nothing else running.
+
+### progress 13:34
+Formal 58251494 full build: EXIT 1. The only failing module is BWit2NChk (code 137, OOM during the parallel full
+build). Everything else, including BWitNChk, built. Retrying BWit2NChk alone with nothing else running, under
+/usr/bin/time -v, to get its peak RSS. If it cannot finish in 15 GB, BWit2NChk and its dependents (BWit3NChk,
+Bwit2/Bwit3 Net) are UNVERIFIED as builds here.
