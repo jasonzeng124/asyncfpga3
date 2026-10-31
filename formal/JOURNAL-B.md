@@ -1679,3 +1679,8 @@ source (1). The mux-extended witness (BWit2Net) re-checks with the regenerated w
 In (lake build OK): FiniteNetBoundMCensus (kernel): the 24 unbound request sides end at an
 amerge (23) or the source (1); the 15 unbound acknowledge sides at muxn (4), amerge (5),
 forkH5 (4), forkH6 (2). So the arbiter is the one class that matters for full binding.
+
+### progress 10:08
+Bwit2 negative control (re-run alone): the first uj0 node edge of the first mux in
+BWit2NData moved by +1 tick makes BWit2NChk's bop_c1 fail by kernel ("application type
+mismatch" on the decide proof). The checks bite on the internal mux nodes too.
