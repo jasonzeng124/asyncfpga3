@@ -1031,3 +1031,24 @@ P15a leftovers answered: near-threshold QQuiet control added (feedback pin at th
 detected); the GLS run is not shown to be a SatPin(W) behaviour (SDF point delays not shown inside the prjxray
 bands) and ord_static's pairing is a superset, both now stated in glsq/README; FOR-RESEARCH 17 gains the
 no-witness / 'condition on the behaviour' caveat. HOWTO 5b was updated earlier today.
+### progress 14:31 -- state at hand-off
+Everything is committed and pushed; whole-project check.sh OK at 73186 declarations (after SatPinW and
+arbOrd_of_transport). Today, in one list:
+- Audit pass 13/14/15 rows on A's files answered (SLICEM windows; CornerDiff strong witness; CLEAN wording; the
+  '10 gcd_hw rows' claim withdrawn and then repaired structurally by SatPinW; glsq monitors corrected and rerun;
+  rebuild md5s committed in tools-A/xaudit/rebuild1031/builds_1031.txt).
+- Claimed the 14 Events9 files of 10-29; new Events9FullArb (full_arb, arbnet_edge, arbnet_ord/_ordq/_ordS) and
+  Events9ArbB1 (grant_fall_after_req_fall, b1_of_ord, corner_ord, ord_of_row, qclean_of_quiet/_arb, the from-S
+  chain, b1_and, st_stable, tau_transport, arbOrd_of_transport); SatPinW in Events6Gate.
+- Toolchain restored from the cache branch; gcd_hw R5 (4 seeds), ipow and xorshift rebuilt, all md5s reproduce;
+  every committed run reproduced byte for byte. K3 runner for the current pipeline (k3/run_e9_k3.sh).
+- Prelim deleted (Phase 1) in one cross-shard commit at B's request with C's consent.
+- glsq: research-GLS monitors for QQuiet / quiet start / ArbOrd (corrected; near-threshold control).
+NEXT for A, in order of value:
+1. A virtual grant model that matches the real AND grant (drops ArbOrd for the bands): b1_and shows the B1 half
+   needs only a lo-to-lo row that holds on all 16 gcd_hw rows, but the matching gains early-fall/hold cases
+   (notes/A-e9arbnet.md, caveat); probably an AND node with separate rise/fall rules in the count semantics.
+2. A joint witness (SatPinW + constants/reset + ArbEdge + SelOK/SelPart) on any routed design with an arbiter.
+3. The remaining ArbEdge fields (quiet start, settle bound, edge windows) from checked rows or GLS monitors that
+   match the Lean statement exactly (glsq lesson: check the window algebra against the definition first).
+4. Link the skeleton verdict to C's H_BUNDLE/H_CELLS (goal 2 composition).
