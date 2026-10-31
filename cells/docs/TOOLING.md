@@ -398,9 +398,9 @@ round 2 then reports umux at −485 ps and the memory's clock-to-out at −59 ps
 The proposal was right about the route it saw and wrong about the route it
 caused.
 
-On this design it settles at `UDEC=1 UMERGE=4 UMUX=4 UMEM_USETUP=5
-UMEM_UCO=12` after 3 sweeps and 13 place-and-route runs. **Two of five lines
-could be tightened at all; eleven of thirteen proposals were reverted.** That
+On this design it settles at `UDEC=16 UMERGE=4 UMUX=2 UMEM_USETUP=2
+UMEM_UCO=9` after 4 sweeps and 25 place-and-route runs. **Four of five lines
+could be tightened at all; seventeen of twenty-four proposals were reverted.** That
 is the result worth keeping: on this fabric and this router a matched delay
 cannot be shaved close to its measured requirement, because shaving it perturbs
 placement by more than the margin the measurement claimed. Budget matched

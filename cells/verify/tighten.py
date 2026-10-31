@@ -49,6 +49,13 @@ D.  THE SELECT MUST BE STABLE BEFORE THE REQUEST THAT SAMPLES IT.  bd_steer
     structurally (see select_consumers), not by matching this design's
     instance names.
 
+F.  A FAST FALL IS A FLUSH.  A FASTFALL line's tail falls on its own side
+    tap, before the fall has rippled through; its next rise is matched only
+    if every stage has fallen by the time the handshake can bring the input
+    back up.  Every stage's latest fall against the tail's earliest fall
+    plus the shortest routed path from the tail back to the input.  No other
+    rule sees this: A, D and E all time the rise from a drained line.
+
 -- how a setup check is actually done ---------------------------------------
 
 Late signal on the SHORTEST path, early signal on the LONGEST.  A request that
@@ -86,6 +93,7 @@ between two of them.  Traversal never passes through a state node, so every
 path considered here is acyclic by construction.
 """
 
+import heapq
 import json
 import math, re, statistics, sys, pathlib
 from collections import defaultdict
@@ -135,6 +143,20 @@ EMIT = None
 if "--emit" in sys.argv:
     EMIT = pathlib.Path(sys.argv[sys.argv.index("--emit") + 1])
     _args = [a for a in _args if a != str(EMIT)]
+# --slack <ps> widens every guardband by that much, for the SEARCH only.  A
+# margin is a property of one route, and the same netlist re-routed under
+# another seed moves a rule H margin at a stage boundary by 150-200 ps either
+# way (bdc/fusion_bench.py's fresh-seed reroutes: -23, -19, +171 on one DACK).
+# A length verify/resize.sh keeps because it passed with 0..274 ps to spare on
+# the routes it saw is therefore short on a fresh one about as often as not.
+# With the slack folded in, a length is kept only if it would still pass had
+# every guardband been that much larger; the audit that gates a build
+# (check.sh, the fresh-seed reroutes) runs without it and measures the
+# physical margin.  Only resize.sh passes it.
+SLACK = 0
+if "--slack" in sys.argv:
+    SLACK = int(sys.argv[sys.argv.index("--slack") + 1])
+    _args = [a for a in _args if a != str(SLACK)]
 # Default is what flow.sh writes; an explicit path lets the gate be pointed at
 # a deliberately under-delayed build to confirm it still has teeth.
 SDF = pathlib.Path(_args[0]) if _args else ROOT / "build/pnr/soak.sdf"
@@ -218,7 +240,7 @@ RE_SEL_LINK = re.compile(r"(?:^|\.)(ulink_[A-Za-z0-9_]+)\.")
 # attributable" when it has exactly the same knob, spelled the same way, under
 # a different instance name.  What actually identifies the knob is the path the
 # launch node sits on: a bd_link's C node is <inst>.ctl.u..., and a bd_pipe's
-# is <inst>.one.u... (N==1) or <inst>.many.cpair[i].u... / <inst>.many.codd.u...
+# is <inst>.one.u... (N==1) or <inst>.many.stage[i].u.ctl.u...
 # Everything before that first hop is the instance carrying DELAY.
 #
 # This is a strictly better test than the name: it CHECKS that the launch is
@@ -269,6 +291,59 @@ def unescape(s):
 def pin_split(pin):
     inst, _, port = pin.rpartition("/")
     return inst, port
+
+
+def chain_side_arcs(edges):
+    """Every arc into a chain stage past the first that does not come from
+    the stage before it: the input-side tap of a FASTFALL or FASTRISE
+    bd_delay, which carries one transition only.  -> {(src, dst): base}"""
+    side = {}
+    for src, links in edges.items():
+        src_inst = pin_split(src)[0]
+        for dst, _ in links:
+            match = RE_LINK.match(pin_split(dst)[0])
+            if not match or int(match.group("i")) < 1:
+                continue
+            if is_output(dst):
+                continue
+            previous = (f"{match.group('base')}.chain.g["
+                        f"{int(match.group('i')) - 1}].u")
+            if src_inst != previous:
+                side[(src, dst)] = match.group("base")
+    return side
+
+
+def is_fastrise_line(base, insts):
+    """A Muller link's ack-hold line (`<link>.uack`) is FASTRISE.  In the
+    bd_link_dc family (`define BD_LINK_DC, recognised by its `<link>.ctl.ub`)
+    the same name is a FASTFALL line (rtl/bd_link.v), so the name alone is
+    not enough."""
+    if not base.endswith(".uack"):
+        return False
+    return base[:-len(".uack")] + ".ctl.ub" not in insts
+
+
+def _insts(edges):
+    return {pin_split(p)[0] for p in edges}
+
+
+def fastfall_side_arcs(edges):
+    """Arcs into fast-fall side pins only carry the falling transition.
+
+    A rising request must arrive through the preceding chain stage, so these
+    arcs are excluded from shortest-path request arrivals.  The Muller ack-hold
+    lines (`.uack`, FASTRISE) are the mirror image and are not in this set.
+    """
+    insts = _insts(edges)
+    return {arc for arc, base in chain_side_arcs(edges).items()
+            if not is_fastrise_line(base, insts)}
+
+
+def fastrise_side_arcs(edges):
+    """The FASTRISE taps: they carry the rise, so a falling walk omits them."""
+    insts = _insts(edges)
+    return {arc for arc, base in chain_side_arcs(edges).items()
+            if is_fastrise_line(base, insts)}
 
 
 # Pin direction, taken from the SDF rather than guessed from the pin's name.
@@ -440,8 +515,9 @@ def walk(edges, start, stops, longest, confine=None):
     passing through a stop pin.  longest=True for the data side of a setup
     check, False for the signal that has to be late.
 
-    `confine` restricts the traversal to one cell's subtree, and it is not an
-    optimisation -- it is the definition.  A matched delay covers combinational
+    `confine` restricts the traversal to one cell's subtree, or to a tuple of
+    instance prefixes, and it is not an optimisation -- it is the definition.
+    A matched delay covers combinational
     logic INSIDE ONE CELL.  Let the walk wander out through the rest of the
     design and back in, and t_data becomes an accumulated arrival from half the
     netlist; 0.2*t_data becomes a guardband on somebody else's path; and every
@@ -451,7 +527,9 @@ def walk(edges, start, stops, longest, confine=None):
         if confine is None:
             return True
         i = pin_split(pin)[0]
-        return i == confine or i.startswith(confine + ".")
+        prefixes = (confine,) if isinstance(confine, str) else confine
+        return any(i == prefix or i.startswith(prefix + ".")
+                   for prefix in prefixes)
 
     best = {start: 0}
     frontier, guard = [start], 0
@@ -473,6 +551,111 @@ def walk(edges, start, stops, longest, confine=None):
                         nxt.append(dst)
         frontier = nxt
     return best
+
+
+def shortest_to(edges, start, target, limit=200000):
+    """Shortest path from `start` to `target` over the WHOLE graph, through
+    state nodes and round cycles: a lower bound on how soon anything that
+    starts at `start` can cause `target` to move, since every causal chain is
+    one path in this graph.  None if `target` is unreachable."""
+    best, heap, n = {start: 0}, [(0, start)], 0
+    while heap:
+        t, pin = heapq.heappop(heap)
+        if pin == target:
+            return t
+        if t > best.get(pin, t):
+            continue
+        n += 1
+        if n > limit:
+            return None
+        for dst, d in edges.get(pin, ()):
+            if dst not in best or t + d < best[dst]:
+                best[dst] = t + d
+                heapq.heappush(heap, (t + d, dst))
+    return None
+
+
+def audit_fastfall(edges, back, chains, timing):
+    """Rule F (see main): -> [(base, links, t_flush, t_reuse, guard, margin)],
+    margin None (and t_flush a reason) when a line could not be traced."""
+    ffside = fastfall_side_arcs(edges)
+    side_by_base = defaultdict(list)
+    for (src, dst) in ffside:
+        m = RE_LINK.match(pin_split(dst)[0])
+        side_by_base[m.group("base")].append((src, dst))
+    arc_of = lambda a, b: max((d for x, d in edges.get(a, ()) if x == b),
+                              default=None)
+    inputs_of, output_of = defaultdict(list), {}
+    for p in set(edges) | set(back):
+        inst = pin_split(p)[0]
+        if not RE_LINK.match(inst):
+            continue
+        if is_output(p):
+            output_of[inst] = p
+        else:
+            inputs_of[inst].append(p)
+    rows = []
+    for base in sorted(side_by_base):
+        links = chains.get(base, [])
+        head, tail = chain_endpoints(edges, back, links)
+        srcs = {src for src, _ in side_by_base[base]}
+        if len(srcs) != 1 or head is None or tail is None:
+            rows.append((base, len(links), f"side taps from {len(srcs)} nets",
+                         None, None, None))
+            continue
+        src = next(iter(srcs))
+        late = timing.late(src)
+        fall = prev = None
+        t_flush = 0
+        for i, inst in enumerate(links):
+            ins = inputs_of.get(inst, ())
+            out = output_of.get(inst)
+            if out is None or not ins:
+                fall = None
+                break
+            cand, ripple_in, tap_in = [], [], []
+            for ip in ins:
+                arc = arc_of(ip, out)
+                if arc is None:
+                    continue
+                for sp in back.get(ip, ()):
+                    if i > 0 and sp == prev:            # the ripple
+                        ripple_in.append(fall + (arc_of(sp, ip) or 0))
+                        cand.append(ripple_in[-1] + arc)
+                    elif sp == src:                     # the side tap
+                        tap_in.append(arc_of(sp, ip) or 0)
+                        cand.append(tap_in[-1] + arc)
+                    elif i == 0 and ip in late:         # the head's input
+                        cand.append(late[ip] + arc)
+            if not cand:
+                fall = None
+                break
+            # A value still in flight on the ripple wire: until the fall has
+            # reached this stage's ripple input, a re-rise arriving at its side
+            # tap passes straight through and the rise skips the links before
+            # it.  So the input may rise again only once the ripple input is
+            # low by the time the tap sees the rise: input fall + (ripple
+            # arrival - tap delay), latest ripple against the fastest tap.
+            if ripple_in and tap_in:
+                t_flush = max(t_flush, max(ripple_in) - min(tap_in))
+            # an AND falls on its EARLIER input; the head (LUT1) has one
+            fall, prev = min(cand), out
+            t_flush = max(t_flush, fall)
+        t_exit = timing.early_fall(src).get(tail)
+        if fall is None or t_exit is None:
+            rows.append((base, len(links), "chain not traceable in the SDF",
+                         None, None, None))
+            continue
+        t_back = shortest_to(edges, tail, src)
+        if t_back is None:
+            rows.append((base, len(links), "no path from the tail back to "
+                         "its input", None, None, None))
+            continue
+        t_reuse = t_exit + t_back
+        guard = req_guard(None, t_flush)
+        rows.append((base, len(links), t_flush, t_reuse, guard,
+                     t_reuse - t_flush - guard))
+    return rows
 
 
 def reaches(edges, start, stops):
@@ -499,9 +682,11 @@ def cell_boundary(edges, back, stops, parent):
     t_data, inflates 0.2*t_data with it, and turns every line in the design
     into a violation.
     """
-    prefix = parent + "."
+    prefixes = (parent,) if isinstance(parent, str) else parent
     inside = {p for p in set(edges) | {d for l in edges.values() for d, _ in l}
-              if pin_split(p)[0] == parent or pin_split(p)[0].startswith(prefix)}
+              if any(pin_split(p)[0] == prefix or
+                     pin_split(p)[0].startswith(prefix + ".")
+                     for prefix in prefixes)}
     starts = set()
     for p in inside:
         for s in back.get(p, ()):
@@ -543,11 +728,25 @@ def starts_reaching(back, pin, stops, limit=20000):
 
 
 class Timing:
-    """Arrival tables, computed on demand and keyed by (start, confinement)."""
+    """Arrival tables keyed by (start, confinement).
+
+    A one-sided bd_delay tap propagates one transition only: the FASTFALL
+    side of a request line carries the fall, the FASTRISE side of an ack-hold
+    line carries the rise.  A shortest walk has to say which edge it is
+    following -- early() is the rising request, early_fall() the falling
+    acknowledge, early_any() a signal of either polarity (data) -- while the
+    longest walk keeps the full graph, since more arcs can only make it later.
+    """
 
     def __init__(self, edges, stops):
         self.edges, self.stops = edges, stops
-        self._late, self._early = {}, {}
+        ff, fr = fastfall_side_arcs(edges), fastrise_side_arcs(edges)
+        without = lambda side: {
+            src: [(dst, delay) for dst, delay in links
+                  if (src, dst) not in side]
+            for src, links in edges.items()}
+        self.early_edges, self.fall_edges = without(ff), without(fr)
+        self._late, self._early, self._fall, self._any = {}, {}, {}, {}
 
     def late(self, s, confine=None):        # longest path: the data side
         k = (s, confine)
@@ -558,8 +757,22 @@ class Timing:
     def early(self, s, confine=None):       # shortest path: the request side
         k = (s, confine)
         if k not in self._early:
-            self._early[k] = walk(self.edges, s, self.stops, False, confine)
+            self._early[k] = walk(self.early_edges, s, self.stops, False,
+                                  confine)
         return self._early[k]
+
+    def early_fall(self, s, confine=None):  # shortest path of a falling edge
+        k = (s, confine)
+        if k not in self._fall:
+            self._fall[k] = walk(self.fall_edges, s, self.stops, False,
+                                 confine)
+        return self._fall[k]
+
+    def early_any(self, s, confine=None):   # shortest path, either polarity
+        k = (s, confine)
+        if k not in self._any:
+            self._any[k] = walk(self.edges, s, self.stops, False, confine)
+        return self._any[k]
 
 
 def check(timing, srcs, late_pins, early_pin, guard_of, confine=None):
@@ -670,15 +883,15 @@ def chain_endpoints(edges, back, links):
 
 
 def request_sites(edges, back, chains):
-    """Every cell whose outgoing request this rule applies to, INCLUDING the
-    ones whose delay line has length zero.
+    """Every OR-anchored cell whose outgoing request this rule applies to.
 
     Finding these by looking for delay chains was the obvious thing and it was
     wrong: bd_delay #(.N(0)) is a bare wire, so a cell with no delay at all --
     the one case that most needs auditing -- left nothing in the netlist to
     find and was silently skipped.  The anchor is instead the request OR that
-    every such cell has, `<cell>.uor`.  The request output is the chain tail
-    if there is a chain, and the OR's own output if there is not.
+    generated compute cells have, `<cell>.uor`.  The request output is the
+    chain tail if there is a chain, and the OR's own output if there is not.
+    A bd_link controller is not a `.uor` anchor and is not found here.
 
     -> [(parent, head, tail, links)]
     """
@@ -706,6 +919,296 @@ def request_sites(edges, back, chains):
     return sites
 
 
+# A bd_link is <link>.ctl.u.u plus <link>.lat.{pair[k],odd}.u; a bd_pipe is
+# one of those under <pipe>.one.u or <pipe>.many.stage[i].u, and the stage
+# is the link rule A folds in.
+RE_UPSTREAM_BD_LINK = re.compile(
+    r"^(.*?)\.(?:ctl\.(?:u\.u|ub|ua|uld|ult)|lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56])$")
+
+# bd_link_dc (rtl/bd_link.v, `define BD_LINK_DC): the controller is four LUT6s
+# under <link>.ctl -- ub (b, the capture node and outgoing request), ua (a,
+# the acknowledge), uld (ld) and ult (lt, the latch enable, combinational in
+# b, a and ack_out).  Everything that names "the controller" of a link below
+# names b: it is the state node whose RISE closes the latch, so it stands
+# where the Muller controller's C node stands in every rule, with the enable
+# arc measured through ult.
+RE_DC_B = re.compile(r"^(.*?)\.ctl\.ub$")
+# What acknowledges a bd_link_dc: the next link's uack chain, or its `a`
+# when that chain is empty.
+RE_DC_ACK = re.compile(r"\.uack\.chain\.g\[\d+\]\.u$|\.ctl\.ua$")
+
+
+def dc_link_of(node):
+    """The bd_link_dc a state node is the capture node of, or None."""
+    m = RE_DC_B.match(pin_split(node)[0])
+    return m.group(1) if m else None
+
+
+def dc_node(edges, link, name):
+    """The output pin of <link>.ctl.<name>, or None."""
+    inst = f"{link}.ctl.{name}"
+    return next((p for p in edges if pin_split(p)[0] == inst and is_output(p)),
+                None)
+
+
+def dc_ack_exit(timing, link, tail, confine=None):
+    """b's rise to the tail of the link's uack chain: through a, a state node
+    the walk stops at, so two legs."""
+    b = dc_node(timing.edges, link, "ub")
+    a = dc_node(timing.edges, link, "ua")
+    if b is None or a is None:
+        return 0
+    t_a = timing.early(b, confine).get(a)
+    t_t = timing.early(a, confine).get(tail)
+    if t_a is None or t_t is None:
+        return 0
+    return t_a + t_t
+RE_LATCH_STOP = re.compile(
+    r"^(?:.*\.)?lat\.(?:pair\[\d+\]|odd)\.u\$LUT[56]$")
+
+
+def upstream_bd_links(srcs):
+    """Link prefixes represented by latch or controller boundary pins."""
+    links = set()
+    for pin in srcs:
+        match = RE_UPSTREAM_BD_LINK.match(pin_split(pin)[0])
+        if match:
+            links.add(match.group(1))
+    return tuple(sorted(links))
+
+
+def upstream_data_lag(timing, back, confine, links, srcs):
+    """Longest controller-to-final-latch path in folded upstream links."""
+    lag = 0
+    for link in links:
+        latch_pins = []
+        for pin in srcs:
+            inst, _ = pin_split(pin)
+            if (inst.startswith(link + ".") and
+                    RE_LATCH_STOP.match(inst.rsplit(link + ".", 1)[-1])):
+                latch_pins.append(pin)
+        for latch_pin in latch_pins:
+            latch_inst, _ = pin_split(latch_pin)
+            input_pins = [
+                pin for pin in timing.edges
+                if pin_split(pin)[0] == latch_inst and not is_output(pin)
+            ]
+            controllers = {
+                source for pin in input_pins
+                for source in back.get(pin, ())
+                if source in timing.stops
+                and pin_split(source)[0].startswith(link + ".")
+                and ".lat." not in pin_split(source)[0]
+            }
+            # A decoupled link's enable is lt, combinational; the launch the
+            # data is measured from is b (through ult -- see latch_enables).
+            for pin in input_pins:
+                for source in back.get(pin, ()):
+                    if pin_split(source)[0].endswith(".ctl.ult"):
+                        b = dc_node(timing.edges,
+                                    pin_split(source)[0][:-len(".ctl.ult")],
+                                    "ub")
+                        if b is not None:
+                            controllers.add(b)
+            if not controllers:
+                print(f"  WARNING: no upstream controller found for "
+                      f"{latch_pin}")
+                continue
+            found = False
+            for ctl in controllers:
+                arrival = timing.late(ctl, confine).get(latch_pin)
+                if arrival is not None:
+                    lag = max(lag, arrival)
+                    found = True
+            if not found:
+                print(f"  WARNING: no controller path reaches {latch_pin}")
+    return lag
+
+
+# ------------------------------------------------------------ H: the hold rule
+
+RE_BD_LATCH = re.compile(r"\.lat\.(?:pair\[\d+\]|odd)\.u(?:\$LUT[56])?$")
+# The bd_delay a link's ack-fall hold lives on, and the DACK knob it is sized
+# by: every stage of a bd_pipe has its own line but the pipe has one knob.
+RE_ACK_CHAIN = re.compile(r"^(.*?)(?:\.(?:one|many\.stage\[\d+\])\.u)?\.uack$")
+
+
+RE_PIPE_STAGE = re.compile(r"^(.*)\.many\.stage\[(\d+)\]\.u$")
+
+
+def ack_knob(base, ctl_inst):
+    """The DACK knob that sizes a controller's ack-fall hold.  Named by the
+    uack chain when there is one; DACK=0 leaves no chain in the netlist, and
+    then the controller's own path names it (<link>.ctl.u.u -> <link>.uack),
+    a pipe stage's line rolling up into the pipe's one knob either way."""
+    if base:
+        return RE_ACK_CHAIN.match(base).group(1) + ".uack"
+    for suffix in (".ctl.u.u", ".ctl.ub"):
+        if ctl_inst.endswith(suffix):
+            link = ctl_inst[:-len(suffix)]
+            return RE_ACK_CHAIN.match(link + ".uack").group(1) + ".uack"
+    return None
+
+
+def stage_delay_knob(up, ctl):
+    """The request line between two link controllers and the knob that sizes
+    it: (knob, chain base), or None when `up` is not a bd_link/bd_pipe stage.
+    Inside a pipe every internal boundary shares the pipe's SDELAY; the last
+    stage's line is the pipe's own DELAY, like a bare link's."""
+    def link_of(node):
+        inst = pin_split(node)[0]
+        for suffix in (".ctl.u.u", ".ctl.ub"):
+            if inst.endswith(suffix):
+                return inst[:-len(suffix)]
+        return None
+
+    link = link_of(up)
+    if link is None:
+        return None
+    base = link + ".rdly"
+    ms = RE_PIPE_STAGE.match(link)
+    mc = RE_PIPE_STAGE.match(link_of(ctl) or "")
+    if ms and mc and ms.group(1) == mc.group(1) \
+            and int(mc.group(2)) == int(ms.group(2)) + 1:
+        return (ms.group(1) + ".sdelay", base)
+    if ms:
+        return (ms.group(1), base)
+    m1 = re.match(r"^(.*)\.one\.u$", link)
+    return (m1.group(1) if m1 else link, base)
+
+
+def latch_enables(edges, ctl):
+    """bd_latch input pins the state node drives directly, with the routed
+    arc to each.  A controller is any state node that is not itself a latch
+    and has some.  A bd_link_dc's b drives its latches through its own ult
+    (one LUT6, no storage), and that path is folded in as b's enable arc;
+    a and ack_out also feed ult but are not controllers of this latch."""
+    inst = pin_split(ctl)[0]
+    if RE_BD_LATCH.search(inst):
+        return []
+    out = [(dst, d) for dst, d in edges.get(ctl, ())
+           if not is_output(dst) and RE_BD_LATCH.search(pin_split(dst)[0])]
+    link = dc_link_of(ctl)
+    if link is not None:
+        ult = link + ".ctl.ult"
+        for lt_in, d1 in edges.get(ctl, ()):
+            if pin_split(lt_in)[0] != ult or is_output(lt_in):
+                continue
+            for lt_out, d2 in edges.get(lt_in, ()):
+                for dst, d3 in edges.get(lt_out, ()):
+                    if not is_output(dst) and \
+                            RE_BD_LATCH.search(pin_split(dst)[0]):
+                        out.append((dst, d1 + d2 + d3))
+    return out
+
+
+def latch_data_pins(back, insts, en_pins):
+    """The latches' inputs that are neither the enable nor their own feedback."""
+    pins = set()
+    for pin, drivers in back.items():
+        inst = pin_split(pin)[0]
+        if inst not in insts or is_output(pin) or pin in en_pins:
+            continue
+        if all(is_const(s) or pin_split(s)[0] == inst for s in drivers):
+            continue
+        pins.add(pin)
+    return pins
+
+
+def loop_wire(edges, inst):
+    """The routed wire from a latch LUT's output back to its own input, in
+    ps.  A mux-latch bit has captured D only once that new value is back at
+    its feedback pin: close the enable before then and the stale value still
+    on the loop is what gets held.  Up to ~700 ps on a route, so it is not
+    a rounding term."""
+    return max((w for o in (inst + "/O5", inst + "/O6")
+                for d, w in edges.get(o, ())
+                if not is_output(d) and pin_split(d)[0] == inst), default=0)
+
+
+def req_guard(p, t):
+    """The review's guardband: a fifth of the data path, floored at 200 ps,
+    plus the search slack (0 outside resize.sh)."""
+    return max(int(0.2 * t), 200) + SLACK
+
+
+def input_lead(timing, back, req_start, data_starts, guard=None):
+    """How far a channel's data must lead its request at a bd_link boundary,
+    in ps -- the sender's half of the bundling constraint, which the link's
+    consumer never audits: its rule A credits the controller-to-latch lag and
+    assumes the data was at the latch's pins when the enable arrived.  Latest
+    data arrival against earliest enable arrival at each latch the request's
+    controllers drive, plus `guard(t_data)`; None when no latch reads it."""
+    req = timing.early(req_start)
+    enables, en_pins, settle = {}, set(), {}
+    for ctl in req:
+        if ctl not in timing.stops:
+            continue
+        for pin, arc in latch_enables(timing.edges, ctl):
+            inst = pin_split(pin)[0]
+            enables[inst] = min(enables.get(inst, math.inf), req[ctl] + arc)
+            en_pins.add(pin)
+            # A bd_link_dc latch is transparent between tokens and CLOSES on
+            # this enable, so its D has to have gone through the LUT and
+            # round the feedback loop by then.  The Muller link's latch
+            # OPENS on it and closes a handshake later; nothing to add.
+            if dc_link_of(ctl) is not None:
+                settle[inst] = loop_wire(timing.edges, inst)
+    pins = latch_data_pins(back, set(enables), en_pins)
+    guard = guard or (lambda t: req_guard(None, t))
+    need = None
+    for start in data_starts:
+        late = timing.late(start)
+        for pin in pins:
+            if pin in late:
+                inst = pin_split(pin)[0]
+                t = late[pin]
+                if inst in settle:
+                    t += settle[inst] + max((a for _, a in
+                                             timing.edges.get(pin, ())),
+                                            default=0)
+                lead = guard(t) - (enables[inst] - t)
+                need = lead if need is None else max(need, lead)
+    return need
+
+
+def earliest_disturbance(timing, start, targets, skip, falls=True):
+    """Shortest arrival at any target pin from `start`, passing THROUGH state
+    nodes -- each assumed to fire the moment it is reached -- except those
+    `skip` names.  Returns (arrival or None, {state node: arrival}).
+
+    Rule A walks stop at storage because a matched delay covers one cell's
+    combinational logic.  Hold is different: the question is how soon the
+    consequences of this node's fall -- the sender's controller firing, its
+    latch opening, the next value rippling through the datapath -- can come
+    back to this node's own latch inputs, and that path crosses storage by
+    definition.  Letting every node fire instantly is the lower bound.
+    """
+    best = {start: 0}
+    heap = [(0, start)]
+    hit = None
+    while heap:
+        t, s = heapq.heappop(heap)
+        if t > best.get(s, t):
+            continue
+        # The node itself FALLS (a Muller C node releasing) or RISES (a
+        # bd_link_dc capture node); what fires downstream of it has no fixed
+        # polarity, so from the second state node on every arc counts.
+        if s == start:
+            table = timing.early_fall(s) if falls else timing.early(s)
+        else:
+            table = timing.early_any(s)
+        for pin, d in table.items():
+            at = t + d
+            if pin in targets and (hit is None or at < hit):
+                hit = at
+            if (pin in timing.stops and pin != s and not skip(pin)
+                    and at < best.get(pin, math.inf)):
+                best[pin] = at
+                heapq.heappush(heap, (at, pin))
+    return hit, best
+
+
 def median_hop(edges):
     """A stand-in for one link's cost when the design has no chain to measure.
     The median ROUTED hop, which is what a link actually costs here."""
@@ -713,7 +1216,155 @@ def median_hop(edges):
     return d[len(d) // 2] if d else 1
 
 
-def false_arcs(edges):
+def chain_link_costs(edges, chains):
+    """What one MORE link costs, per bd_delay chain on this route, in ps.
+
+    Adding a link to a chain adds that link's LUT arc AND the routed hop that
+    now separates it from its neighbour.  A chain of n links is n LUT arcs and
+    n - 1 hops, so its length divided by n -- what rule A used to price a link
+    at -- is not that.  It is short by a hop / n, and at n == 1 it is the bare
+    124 ps LUT arc with no wire at all.  That is how it1 of the xorshift sizing
+    run priced ucontrol_merge1's 3162 ps shortfall at 124 ps a link, asked for
+    27 links where a link on that route costs ~419 ps, and left the cell at 32
+    links that its own later routes said should be 4.
+
+    So: per chain with at least two links, the n - 1 link-to-next steps --
+    the routed hop from link i's output into a pin of link i+1, plus link
+    i+1's LUT arc from THAT pin (not from a FASTFALL/FASTRISE side tap, which
+    the step does not pass through) -- the shortest such step, averaged over
+    the chain.  Read straight off the routed SDF.  A one-link chain has no hop
+    to measure and is not in the result.  Rules A, H, B and C all size a
+    bd_delay chain, and all of them price it from here.
+    -> {base: ps per added link}
+    """
+    where = {inst: (base, i) for base, links in chains.items()
+             for i, inst in enumerate(links)}
+    hop = defaultdict(dict)     # (base, i) -> {pin of link i+1: routed hop}
+    lut = {}                    # input pin of a link -> its LUT arc
+    for src, lst in edges.items():
+        si = pin_split(src)[0]
+        if si not in where:
+            continue
+        base, i = where[si]
+        for dst, w in lst:
+            di = pin_split(dst)[0]
+            if di == si and not is_output(src) and is_output(dst):
+                lut[src] = min(lut.get(src, math.inf), w)
+            elif where.get(di) == (base, i + 1):
+                hop[base, i][dst] = min(hop[base, i].get(dst, math.inf), w)
+    out = {}
+    for base, links in chains.items():
+        steps = []
+        for i in range(len(links) - 1):
+            step = [w + lut[q] for q, w in hop.get((base, i), {}).items()
+                    if q in lut]
+            if not step:
+                break
+            steps.append(min(step))
+        if steps and len(steps) == len(links) - 1:
+            out[base] = sum(steps) / len(steps)
+    return out
+
+
+def line_links(n, margin, own_ps, route_ps, legacy_ps, floor=0):
+    """How many links a bd_delay line needs on this route, for every rule
+    that sizes one (A, H, B, C): the line is n links, and `margin` -- with the
+    guardband already subtracted -- grows by one link's cost per link added.
+
+    own_ps    what one more link costs on THIS line (chain_link_costs), or
+              None when the line is too short to measure a hop on.
+    route_ps  every chain_link_costs value on the route.
+    legacy_ps the rule's old per-link price (line length / n, or a stand-in
+              at n == 0).
+    floor     the fewest links the rule allows (rule C keeps one).
+
+    PADDING is priced at what one more link adds: the line's own link cost
+    when it has a hop to measure, else the cheapest link seen on the route (a
+    cheap link means more of them -- never under-pads).
+
+    TIGHTENING is priced at the dearer of that (own cost, else the route's
+    dearest link) and the legacy price, so it never removes more links than
+    the old price did.  The legacy span is not wrong for removal: taking a
+    line down to zero also removes the hop INTO it, which rule H's t_exit / n
+    carries and a link-to-link step does not.  On gcd_hw routes the own-cost
+    price alone took twelve rule H lines to 0 with less margin than t_exit
+    (wtR2g_s2 ulink_n8__1 stage 1: margin 1575 ps, 419 ps a step, t_exit
+    above 1575).  With no chain on the route at all, the legacy price.
+    -> (links, ps per link used, which price it was)
+    """
+    if margin < 0:
+        if own_ps:
+            per, how = own_ps, "own chain"
+        elif route_ps:
+            per, how = min(route_ps), "route minimum"
+        else:
+            per, how = legacy_ps, "no chain on this route to measure"
+    else:
+        per, how = ((own_ps, "own chain") if own_ps else
+                    (max(route_ps), "route maximum") if route_ps else
+                    (legacy_ps, "no chain on this route to measure"))
+        if legacy_ps and legacy_ps > per:
+            per, how = legacy_ps, "old price, dearer"
+    if margin >= 0:
+        want = max(floor, n - int(margin // per))
+    else:
+        want = n + math.ceil(-margin / per)
+    return want, per, how
+
+
+rule_a_links = line_links
+
+
+# Each rule's legacy price, kept only as line_links' last resort -- and why it
+# is not the price.  Every one of them divided a measured span by n, and every
+# span holds something besides the n - 1 link-to-link steps an added link
+# repeats.
+def rule_h_links(n, margin, own_ps, route_ps, t_exit, t_elem):
+    """Rule H's uack line.  t_exit runs from the controller node to the line's
+    tail, so t_exit / n also carries the hop from the node into the line."""
+    legacy = (t_exit / n) if (n and t_exit) else t_elem
+    return line_links(n, margin, own_ps, route_ps, legacy)
+
+
+def rule_b_links(n, margin, own_ps, route_ps, chain_ps, hop):
+    """Rule B's usetup line.  chain_ps / n is rule A's old price: n LUT arcs
+    and only n - 1 hops."""
+    legacy = (chain_ps / n) if (n and chain_ps) else hop
+    return line_links(n, margin, own_ps, route_ps, legacy)
+
+
+def rule_c_links(n, margin, own_ps, route_ps, best):
+    """Rule C's uco line, which keeps at least one link.  best runs from the
+    RAM's clock pin to the line's tail -- the same net feeds both, so it is
+    the line plus a hop at most, and best / n under-prices a link the way
+    rule A's chain / n did (bd_mem soak route: 337 ps against 436)."""
+    return line_links(n, margin, own_ps, route_ps, best / n, floor=1)
+
+
+def routed_graph(sdf):
+    """The timing graph of a routed SDF as every rule sees it: false arcs cut,
+    the reverse map, and the storage nodes the walks stop at.  Raises on the
+    two netlists no rule can size -- a pruning that removed storage, or a
+    cycle with no storage in it."""
+    edges, _, _, _ = parse_sdf(sdf)
+    dead, _ = false_arcs(edges, sdf)
+    before = len(storage_nodes(edges))
+    for src in list(edges):
+        edges[src] = [(d, w) for d, w in edges[src] if (src, d) not in dead]
+    stops = storage_nodes(edges)
+    if len(stops) != before:
+        raise RuntimeError(f"{sdf}: pruning false arcs removed storage")
+    acyclic = {s: lst for s, lst in edges.items() if s not in stops}
+    if any(is_output(p) for p in state_nodes(acyclic)):
+        raise RuntimeError(f"{sdf}: combinational cycle with no storage")
+    back = defaultdict(set)
+    for src, lst in edges.items():
+        for dst, _ in lst:
+            back[dst].add(src)
+    return edges, back, stops
+
+
+def false_arcs(edges, sdf=None):
     """Arcs the SDF carries that the logic cannot use.
 
     The SDF gives every physical LUT input an arc to the output, because the
@@ -748,7 +1399,8 @@ def false_arcs(edges):
     gate.  nextpnr records the permutation as X_ORIG_PORT_A<k>, and that
     attribute is the only thing that makes the two orders comparable.
     """
-    jpath = SDF.with_name(SDF.stem + "_routed.json")
+    sdf = SDF if sdf is None else pathlib.Path(sdf)
+    jpath = sdf.with_name(sdf.stem + "_routed.json")
     if not jpath.exists():
         return set(), jpath
     top = list(json.loads(jpath.read_text())["modules"].values())[0]
@@ -981,6 +1633,9 @@ def main():
     print(f"routed SDF   {n_io} cell arcs, {n_ic} routed nets")
     print(f"state nodes  {len(stops)} LUT feedback loops -- start and stop points")
     print(f"delay lines  {len(chains)}")
+    if SLACK:
+        print(f"search slack {SLACK} ps added to every guardband below -- a "
+              f"VIOLATION here is a margin under {SLACK} ps, not under zero")
 
     problems = 0
     sized = {}          # instance path -> recommended link count
@@ -991,10 +1646,13 @@ def main():
     print("-" * 78)
     hop = median_hop(edges)
     sites = request_sites(edges, back, chains)
-
-    def req_guard(p, t):
-        """The review's guardband: a fifth of the data path, floored at 200 ps."""
-        return max(int(0.2 * t), 200)
+    # Request-side arcs only, as the chain is timed below: a fast-fall tap is
+    # not a link.
+    link_ps = chain_link_costs(timing.early_edges, chains)
+    if link_ps:
+        print(f"link cost    one more link costs {min(link_ps.values()):.0f}-"
+              f"{max(link_ps.values()):.0f} ps on this route (LUT + routed "
+              f"hop, {len(link_ps)} chains of 2+ links)")
 
     audited = set()
     for parent, head, tail, links in sites:
@@ -1023,8 +1681,12 @@ def main():
                   f"this request to wait for")
             continue
 
-        srcs = cell_boundary(edges, back, stops, parent)
-        res = check(timing, srcs, peers, tail, req_guard, confine=parent)
+        parent_srcs = cell_boundary(edges, back, stops, parent)
+        upstream_links = upstream_bd_links(parent_srcs)
+        region = (parent,) + upstream_links
+        srcs = cell_boundary(edges, back, stops, region)
+        confine = region if upstream_links else parent
+        res = check(timing, srcs, peers, tail, req_guard, confine=confine)
         # A cell whose request and data arrive on different nets -- every
         # generated compute unit -- has no common start point, and used to be
         # skipped here with a message.  Skipping is the one outcome this pass
@@ -1033,26 +1695,35 @@ def main():
         pairing = "common source"
         if res is None:
             res = check_bundled(timing, srcs, peers, tail, req_guard,
-                                confine=parent)
+                                confine=confine)
             pairing = "bundled channel"
         if res is None:
             print(f"  {label:<22} {n:>2} links   nothing outside {parent} "
                   f"reaches its request -- not audited")
             continue
 
+        upstream_lag = (upstream_data_lag(timing, back, confine,
+                                          upstream_links, srcs)
+                        if pairing == "bundled channel" else 0)
         margin, guard, t_e, t_l, pin, s = res[:6]
         late_src = res[6] if len(res) > 6 else s
+        if upstream_lag:
+            margin -= upstream_lag
+            t_l += upstream_lag
         # what the chain itself contributes, on the path being measured
         chain_ps = None
         e_tab = timing.early(s, parent)
         if head in e_tab and tail in e_tab:
             chain_ps = e_tab[tail] - e_tab[head]
-        # One link's cost.  Measured from the chain when there is one; the
-        # median routed hop when there is not, because a zero-length line has
-        # nothing to measure and still has to be sized.
-        per = (chain_ps / n) if (chain_ps and n) else hop
-        want = max(0, n - int(margin // per)) if margin >= 0 \
-               else n + math.ceil(-margin / per)
+        # One link's cost: what ONE MORE link adds on this route, LUT plus hop
+        # (chain_link_costs).  The cell's own chain when it has a hop to
+        # measure; otherwise the route's cheapest link when padding and its
+        # dearest when tightening, so a guess always errs long (line_links).
+        base = next((b for b in chains if b.rpartition(".")[0] == parent),
+                    None) if n else None
+        legacy = (chain_ps / n) if (chain_ps and n) else hop
+        want, per, how = line_links(n, margin, link_ps.get(base),
+                                    list(link_ps.values()), legacy)
 
         if want > n:
             verdict = f"PAD to {want} -- VIOLATION"
@@ -1071,6 +1742,11 @@ def main():
               f"req {t_e:>5}  peak {t_l:>5}  guard {guard:>4}  "
               f"margin {margin:>6}   {verdict}")
         print(f"  {'':<22} latest peer: {pin_split(pin)[0]}")
+        if want != n:
+            print(f"  {'':<22} priced at {per:.0f} ps/link ({how})")
+        if upstream_lag:
+            print(f"  {'':<22} upstream link data lag: "
+                  f"{upstream_lag} ps")
         # Never let the pairing be invisible.  The two rules answer the same
         # question with different amounts of evidence, and which one produced a
         # number changes how much it is worth.
@@ -1081,13 +1757,448 @@ def main():
                   f"source):")
             print(f"  {'':<22}   request from {s}")
             print(f"  {'':<22}   data    from {late_src}")
+        if upstream_links:
+            print(f"  {'':<22} paired through upstream link(s) "
+                  f"{', '.join(upstream_links)} (common source "
+                  f"{s if pairing == 'common source' else 'not shared'})")
 
     for base in sorted(chains):
         parent = base.rpartition(".")[0]
         if parent in audited:
             continue
         print(f"  {base:<22} {len(chains[base]):>2} links   not an outgoing "
-              f"request -- see rule B or C")
+              f"request -- see rule {'H' if base.endswith('.uack') else 'B or C'}")
+
+    # ------------------------------------------------------- H: the hold rule
+    print()
+    print("H. the acknowledge is released after every latch bit has closed")
+    print("-" * 78)
+    t_elem = measure_delay_element(SDF.read_text()) or T_DELAY_RISE_FALLBACK
+    ack_chains = {}
+    for base, links in chains.items():
+        if not base.endswith(".uack"):
+            continue
+        head, tail = chain_endpoints(edges, back, links)
+        for ctl in back.get(head, ()):
+            ack_chains[ctl] = (base, head, tail)
+    controllers = sorted(s for s in stops if latch_enables(edges, s))
+    if not controllers:
+        print("  no bd_latch in this design")
+    for ctl in controllers:
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        label = pin_split(ctl)[0]
+        # The latch closes one arc after the enable lands: the enable's own
+        # path through the LUT to the feedback is what ends transparency.
+        t_en = max(d + max((a for _, a in edges.get(p, ())), default=0)
+                   for p, d in enables)
+        d_pins = latch_data_pins(back, insts, en_pins)
+        if not d_pins:
+            print(f"  {label:<40} {len(insts):>2} latch LUT(s)   no data input "
+                  f"that anything drives -- nothing to hold")
+            continue
+
+        def own(pin, insts=insts):
+            return pin_split(pin)[0] in insts
+
+        dc = dc_link_of(ctl)
+        if dc is not None:
+            # The uack chain hangs off a, not b; find it by the link's name.
+            base = dc + ".uack" if dc + ".uack" in chains else None
+            head, tail = chain_endpoints(edges, back, chains[base]) \
+                if base else (None, None)
+        else:
+            base, head, tail = ack_chains.get(ctl, (None, None, None))
+        n = len(chains[base]) if base else 0
+        if not tail:
+            t_exit = 0
+        elif dc is not None:
+            t_exit = dc_ack_exit(timing, dc, tail, dc)
+        else:
+            t_exit = timing.early_fall(ctl, base[:-len(".uack")]).get(tail, 0)
+        # A Muller controller releases the sender when its node FALLS (the
+        # ack falls with it); a decoupled one when b RISES (a rises one arc
+        # later, and a BROAD=0 sender reopens on the rise).
+        t_int, reached = earliest_disturbance(timing, ctl, d_pins, own,
+                                              falls=dc is None)
+        # Data whose source this node's fall can never reach is coming from
+        # outside the design -- a pin, or the soak harness's spine -- and the
+        # environment may release it the moment the acknowledge leaves.  The
+        # protocol allows exactly that, so credit only the path from where it
+        # enters to the latch.
+        t_ext, ext_src = None, None
+        for dp in d_pins:
+            for s in starts_reaching(back, dp, stops):
+                if s in reached or own(s):
+                    continue
+                at = timing.early(s).get(dp)
+                if at is not None and (t_ext is None or t_exit + at < t_ext):
+                    t_ext, ext_src = t_exit + at, s
+        arrivals = [(t, k) for t, k in ((t_int, "sender"), (t_ext, "outside"))
+                    if t is not None]
+        if not arrivals:
+            print(f"  {label:<40} {len(insts):>2} latch LUT(s)   no path from "
+                  f"this node back to its own data -- not audited")
+            continue
+        t_d, via = min(arrivals)
+        guard = req_guard(None, t_en)
+        margin = t_d - t_en - guard
+        # Priced like rule A (line_links): this line's own link cost when it
+        # has a hop to measure, else the route's cheapest link to pad and its
+        # dearest to tighten.  t_exit / n, the old price, also carries the hop
+        # from the node into the line, which adding a link does not repeat.
+        want, per, how = rule_h_links(n, margin, link_ps.get(base),
+                                      list(link_ps.values()), t_exit, t_elem)
+        knob = ack_knob(base, label)
+        if want > n:
+            verdict = f"PAD to {want} -- VIOLATION" if base else (
+                f"PAD to {want} -- VIOLATION (no DACK line routed; "
+                f"priced at {per:.0f} ps per link)" if knob else
+                "VIOLATION -- no DACK line here to pad")
+            problems += 1
+        elif not base:
+            verdict = "ok"
+        elif want == 0:
+            verdict = "0 links -- the sender is slow enough on its own"
+        elif want < n:
+            verdict = f"tighten to {want}"
+        else:
+            verdict = "already exact"
+        if knob and (base or want > n):
+            sized[knob] = max(sized.get(knob, 0), want)
+        print(f"  {label:<40} {n:>2} links   "
+              f"enable {t_en:>5}  data {t_d:>5} ({via})  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        if via == "outside":
+            print(f"  {'':<40} data released at {ext_src}")
+        if base and want != n:
+            print(f"  {'':<40} priced at {per:.0f} ps/link ({how})")
+
+    # -------------------------------------------------- I: the capture rule
+    # The other half of the hold window.  H asks whether the NEXT value can
+    # reach a latch before it has closed; this asks whether the CURRENT one
+    # has arrived by then.  A latch closes when its node falls, and inside a
+    # pipe the node falls one controller arc after the stage before it fell
+    # -- while the data it is supposed to be holding arrives one LATCH arc
+    # after the stage before it settled.  The latch arc is the slower of the
+    # two (152 against 124 ps in sim/bd_prims_sim.v, before routing), so an
+    # empty pipe filling behind an environment that returns to zero at once
+    # closes each stage a little sooner after its data than the last, and
+    # deep enough it closes on garbage.  The old bd_pipe hid this in
+    # simulation by putting alternate controllers on a LUT6_2's O5, whose
+    # fall arc happens to match the latch's; it was never checked on a route.
+    #
+    # From the upstream node's rise: the earliest its successor can rise,
+    # acknowledge it (FASTRISE, the fast side), let it fall, and fall itself
+    # -- against the latest the data it launched settles through the latch.
+    # Every request line between the two is on the closing path twice (rise
+    # and fall) and on the data path not at all, which is why the request
+    # line is the knob, and why a bd_pipe now carries one on every internal
+    # boundary (SDELAY) instead of relying on the arc it cannot see.
+    print()
+    ffside_all = fastfall_side_arcs(edges)
+    print("I. the stage closes only after the data it holds has arrived")
+    print("-" * 78)
+    for ctl in controllers:
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        label = pin_split(ctl)[0]
+        d_pins = latch_data_pins(back, insts, en_pins)
+        if not d_pins:
+            continue
+        # The bit that closes first: its enable arc plus its own LUT arc.
+        t_close_rel = min(d + min((a for _, a in edges.get(p, ())), default=0)
+                          for p, d in enables)
+        # The upstream stages: controllers whose rise requests this one and
+        # whose own latches feed its data.  Data crosses one storage node on
+        # the way (the sender's latch output), so its arrival is composed:
+        # sender node -> sender latch -> ... -> this latch's D pin.
+        feeders = set()
+        for dp in d_pins:
+            feeders |= {s for s in starts_reaching(back, dp, stops)
+                        if s in stops and RE_BD_LATCH.search(pin_split(s)[0])}
+        ups = [up for up in controllers if up != ctl
+               and ctl in timing.early(up)
+               and any(pin_split(f)[0] in
+                       {pin_split(p)[0] for p, _ in latch_enables(edges, up)}
+                       for f in feeders)]
+        if not ups:
+            print(f"  {label:<40} data enters from outside the design, or "
+                  f"from no link stage that also requests -- not audited")
+            continue
+        worst = None
+        dc = dc_link_of(ctl)
+        for up in ups:
+            t_rise = timing.early(up)[ctl]
+            if dc is not None:
+                # b rises on the request alone and lt falls one arc after:
+                # no acknowledge on the closing path.  The data side keeps
+                # the sender's node -> its enable -> its Q composition, which
+                # for a transparent latch that was open since before its own
+                # request rose overstates how late Q settled -- conservative.
+                t_close = t_rise + t_close_rel
+            else:
+                t_ack = timing.early(ctl).get(up)
+                if t_ack is None:
+                    continue
+                t_fall = timing.early_fall(up).get(ctl)
+                if t_fall is None:
+                    continue
+                t_close = t_rise + t_ack + t_fall + t_close_rel
+            own_lat = {pin_split(p)[0] for p, _ in latch_enables(edges, up)}
+            l_up = timing.late(up)
+            arrivals = []
+            for f in feeders:
+                if pin_split(f)[0] not in own_lat or f not in l_up:
+                    continue
+                l_f = timing.late(f)
+                arrivals += [(l_up[f] + l_f[dp]
+                              + max((a for _, a in edges.get(dp, ())),
+                                    default=0)
+                              + loop_wire(edges, pin_split(dp)[0]), dp)
+                             for dp in d_pins if dp in l_f]
+            if not arrivals:
+                continue
+            t_data, dpin = max(arrivals)
+            guard = req_guard(None, t_data)
+            margin = t_close - t_data - guard
+            if worst is None or margin < worst[0]:
+                worst = (margin, guard, t_close, t_data, up, dpin)
+        if worst is None:
+            print(f"  {label:<40} no upstream node both requests and feeds "
+                  f"this latch -- not audited")
+            continue
+        margin, guard, t_close, t_data, up, dpin = worst
+        knob = stage_delay_knob(up, ctl)
+        n = len(chains.get(knob[1], ())) if knob else 0
+        # One added link delays the close by its rise AND its fall -- unless
+        # the line is FASTFALL (bd_link RFAST), whose fall is one hop whatever
+        # its length: then a link buys its rise only.
+        fast = knob is not None and any(
+            RE_LINK.match(pin_split(d)[0]).group("base") == knob[1]
+            for _, d in ffside_all)
+        per = (1 if fast else 2) * t_elem
+        want = max(0, n - int(margin // per)) if margin >= 0 \
+               else n + math.ceil(-margin / per)
+        # Only a pipe's SDELAY is this rule's own knob.  A bare link's DELAY
+        # is also somebody else's (rule D's select padding, a boundary the
+        # designer padded by hand), so slack found here is reported, never
+        # taken; a deficit is padded wherever the line is.
+        owned = knob is not None and knob[0].endswith(".sdelay")
+        if margin < 0:
+            verdict = f"PAD to {want} -- VIOLATION" if knob else \
+                      "VIOLATION -- no request line between them to pad"
+            problems += 1
+        elif not knob:
+            verdict = "ok"
+        elif want < n:
+            verdict = f"tighten to {want}" if owned else \
+                      f"{n - want} link(s) of slack on {knob[0]}"
+        else:
+            verdict = "already exact"
+        if knob and (owned or want > n):
+            sized[knob[0]] = max(sized.get(knob[0], 0), want)
+        print(f"  {label:<40} {n:>2} links   "
+              f"close {t_close:>5}  data {t_data:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        print(f"  {'':<40} from {pin_split(up)[0]}, latest bit {dpin}")
+
+    # ------------------------------------------- F: a fast fall is a flush
+    # A FASTFALL line (bd_delay #(.FASTFALL(1)), bd_delay_gated) falls at its
+    # TAIL as soon as its own side tap sees the input fall -- it does not wait
+    # for the fall to ripple through.  Its next RISE is matched only if every
+    # stage has fallen by the time the input can rise again: a stage still
+    # high when the input returns lets the rise skip every link in front of
+    # it, and the next token's request outruns its data (or its select) with
+    # nothing in any static walk to show it -- rules A/D/E all measure the
+    # rise from a fully drained line.  The input cannot rise again before the
+    # tail's fall has reached the consumer and the consumer has answered: at
+    # least two LUT arcs (the consumer's node, then the producer's), no wire
+    # credited.  So: every stage's LATEST fall must come before the tail's
+    # EARLIEST fall plus two LUT arcs.  A stage falls on whichever of its two
+    # inputs falls first -- its own side tap or the stage before it -- so the
+    # latest fall is computed with that min, from the longest arcs.
+    f_rows = audit_fastfall(edges, back, chains, timing)
+    if f_rows:
+        print()
+        print("F. a fast-fall line is flushed before its input can rise again")
+        print("-" * 78)
+    f_worst = None
+    for base, n, t_flush, t_reuse, guard, margin in f_rows:
+        if margin is None:
+            print(f"  {base:<40} {t_flush} -- not audited")
+            problems += 1
+            continue
+        if f_worst is None or margin < f_worst[0]:
+            f_worst = (margin, base)
+        if margin < 0:
+            problems += 1
+            print(f"  {base:<40} {n:>2} links   flushed {t_flush:>5}  "
+                  f"reusable {t_reuse:>5}  guard {guard:>4}  margin {margin:>6}   "
+                  f"VIOLATION")
+    for base, n, t_flush, t_reuse, guard, margin in sorted(
+            (r for r in f_rows if r[-1] is not None and r[-1] >= 0),
+            key=lambda r: r[-1])[:3]:
+        print(f"  {base:<40} {n:>2} links   flushed {t_flush:>5}  "
+              f"reusable {t_reuse:>5}  guard {guard:>4}  margin {margin:>6}   ok")
+    if f_rows:
+        print(f"  {len(f_rows)} fast-fall lines audited; worst margin "
+              f"{f_worst[0] if f_worst else 'n/a'} ps"
+              f"{(' (' + f_worst[1] + ')') if f_worst else ''}")
+
+    # ------------------------------------------------- L: the load rule (dc)
+    # bd_link_dc only.  Its latch is transparent between tokens and the next
+    # capture may come as soon as ld says the latch is loaded: lt rises, ld
+    # one arc later, b one more (the request is already up), lt falls one
+    # more, the latch closes one latch arc after that.  Against it: Q has to
+    # have followed D through every bit -- lt's rise to the farthest bit plus
+    # its own arc.  The enable net is on both sides, so its fanout skew mostly
+    # cancels; what is measured is three LUT6 arcs and their wires against one
+    # latch arc.  LDN (rtl/bd_link.v) lengthens the ld path when a route
+    # needs it; no kernel has yet, so there is no knob to size, only a verdict.
+    dcs = [ctl for ctl in controllers if dc_link_of(ctl) is not None]
+    if dcs:
+        print()
+        print("L. the latch has followed its input before it can close again")
+        print("-" * 78)
+    for ctl in dcs:
+        link = dc_link_of(ctl)
+        label = pin_split(ctl)[0]
+        lt = dc_node(edges, link, "ult")
+        ld = dc_node(edges, link, "uld")
+        enables = latch_enables(edges, ctl)
+        insts = {pin_split(p)[0] for p, _ in enables}
+        if lt is None or ld is None or not enables:
+            print(f"  {label:<40} controller incomplete in the SDF -- not audited")
+            problems += 1
+            continue
+        t_ld = timing.early(lt, link).get(ld)
+        t_b = timing.early(ld, link).get(ctl)
+        if t_ld is None or t_b is None:
+            print(f"  {label:<40} lt -> ld -> b path not routed -- not audited")
+            problems += 1
+            continue
+        lat_pins = [p for p, _ in enables]
+        # closing: b -> ult -> the nearest bit, plus that bit's own arc
+        t_close = t_ld + t_b + min(d + min((a for _, a in edges.get(p, ())),
+                                           default=0)
+                                   for p, d in enables)
+        # following: lt -> the farthest bit, plus its arc and its feedback
+        # wire, so Q holds D
+        l_lt = timing.late(lt, link)
+        t_follow = max(l_lt.get(p, 0) + max((a for _, a in edges.get(p, ())),
+                                            default=0)
+                       + loop_wire(edges, pin_split(p)[0])
+                       for p in lat_pins)
+        guard = req_guard(None, t_follow)
+        margin = t_close - t_follow - guard
+        if margin < 0:
+            verdict = "VIOLATION -- add LDN to this link"
+            problems += 1
+        else:
+            verdict = "ok"
+        print(f"  {label:<40} {len(insts):>2} latch LUT(s)   "
+              f"reclose {t_close:>5}  follow {t_follow:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+
+    # ---------------------------------------------- K: the capture rule (dc)
+    # bd_link_dc only, and the rule that decides whether it can be used at
+    # all.  A Muller link's latch is opaque between tokens and OPENS on the
+    # request, so the data has the whole downstream handshake to arrive
+    # (rule I is about the far end of that window).  The dc latch is the
+    # other way round: transparent between tokens and CLOSED by the request,
+    # so every bit has to have come through its LUT and round its feedback
+    # wire before b -> lt -> its enable pin gets there.  That is a setup
+    # check at the receiving link's pins that no other rule makes: rule A
+    # holds at the SENDER's boundary and says nothing about the 32 data
+    # wires and one request wire between the two cells.  Both halves are
+    # taken as launched together from the sender's outputs -- the same
+    # pairing as check_bundled, conservative by the sender's rule A lead --
+    # and the request is whichever ub input shares the most of its name
+    # with the drivers of the data.
+    if dcs:
+        print()
+        print("K. the latch has captured its input before the request closes it")
+        print("-" * 78)
+    for ctl in dcs:
+        link = dc_link_of(ctl)
+        label = pin_split(ctl)[0]
+        enables = latch_enables(edges, ctl)
+        en_pins = {p for p, _ in enables}
+        insts = {pin_split(p)[0] for p in en_pins}
+        d_pins = latch_data_pins(back, insts, en_pins)
+        d_drivers = {s for dp in d_pins for s in back.get(dp, ())
+                     if not is_const(s)}
+        b_inputs = [p for p in back if pin_split(p)[0] == pin_split(ctl)[0]
+                    and not is_output(p)]
+        outside = {s for p in b_inputs for s in back[p]
+                   if not is_const(s) and not pin_split(s)[0].startswith(link + ".")}
+
+        def shared(a, b):
+            n = 0
+            for x, y in zip(a.split("."), b.split(".")):
+                if x != y:
+                    break
+                n += 1
+            return n
+        # The acknowledge is a uack tail or a bare `a`; whatever else feeds
+        # b from outside is the request or the reset, and the reset shares
+        # no name with the data.
+        scored = sorted(((max((shared(pin_split(s)[0], pin_split(d)[0])
+                               for d in d_drivers), default=0), s)
+                         for s in outside
+                         if not RE_DC_ACK.search(pin_split(s)[0])),
+                        reverse=True)
+        top = [s for n, s in scored if scored and n == scored[0][0] and n > 0]
+        if not d_pins or len(top) != 1:
+            print(f"  {label:<40} cannot tell the request from the "
+                  f"acknowledge among b's inputs -- not audited")
+            problems += 1
+            continue
+        req_src = top[0]
+        t_req = timing.early(req_src).get(ctl)
+        if t_req is None:
+            print(f"  {label:<40} {pin_split(req_src)[0]} does not reach b "
+                  f"-- not audited")
+            problems += 1
+            continue
+        worst = None
+        for p, d in enables:
+            inst = pin_split(p)[0]
+            t_close = t_req + d + min((a for _, a in edges.get(p, ())),
+                                      default=0)
+            for dp in d_pins:
+                if pin_split(dp)[0] != inst:
+                    continue
+                for drv in back[dp]:
+                    if is_const(drv):
+                        continue
+                    t_data = (dict(edges[drv]).get(dp, 0)
+                              + max((a for _, a in edges.get(dp, ())),
+                                    default=0)
+                              + loop_wire(edges, inst))
+                    guard = req_guard(None, t_data)
+                    margin = t_close - t_data - guard
+                    if worst is None or margin < worst[0]:
+                        worst = (margin, guard, t_close, t_data, dp)
+        if worst is None:
+            print(f"  {label:<40} no data pin paired with the request "
+                  f"-- not audited")
+            problems += 1
+            continue
+        margin, guard, t_close, t_data, dpin = worst
+        if margin < 0:
+            verdict = (f"VIOLATION -- the request from "
+                       f"{pin_split(req_src)[0]} needs {-margin} ps more lead")
+            problems += 1
+        else:
+            verdict = "ok"
+        print(f"  {label:<40} {len(insts):>2} latch LUT(s)   "
+              f"close {t_close:>5}  data {t_data:>5}  guard {guard:>4}  "
+              f"margin {margin:>6}   {verdict}")
+        print(f"  {'':<40} request {pin_split(req_src)[0]}, latest bit {dpin}")
 
     # ------------------------------------------------ B and C: the RAM boundary
     rams = [i for i, t in celltype.items() if t and "RAMB" in t]
@@ -1110,8 +2221,8 @@ def main():
             port = pin_split(p)[1]
             for k, v in T_SU.items():
                 if port.startswith(k):
-                    return v
-            return 200
+                    return v + SLACK
+            return 200 + SLACK
 
         res = check(timing, srcs, payload, clk, guard_of)
         if res is None:
@@ -1137,23 +2248,23 @@ def main():
             if setup:
                 nn = len(chains[setup])
                 h, t = chain_endpoints(edges, back, chains[setup])
-                per = None
+                chain_ps = None
                 for st in srcs:
                     e = timing.early(st)
                     if h in e and t in e and nn:
-                        per = (e[t] - e[h]) / nn
+                        chain_ps = e[t] - e[h]
                         break
-                per = per or hop
-                want = max(0, nn - int(margin // per)) if margin >= 0 \
-                       else nn + math.ceil(-margin / per)
+                want, per, how = rule_b_links(nn, margin, link_ps.get(setup),
+                                              list(link_ps.values()),
+                                              chain_ps, hop)
                 sized[setup] = want
                 print(f"  {'':<{len(ram)}}  sized for this route: {want} links "
-                      f"(one link is {per:.0f} ps here)")
+                      f"(one link is {per:.0f} ps here, {how})")
 
     print()
     print("C. clock-to-out: the acknowledge must trail the read data")
     print("-" * 78)
-    co = [b for b in chains if b.endswith("uco")]
+    co = [b for b in chains if b.endswith(".uco")]
     if not co:
         print("  no clock-to-out line in this design")
     for base in co:
@@ -1202,17 +2313,17 @@ def main():
         if best is None:
             print(f"  {base}: no path from the RAM clock to the acknowledge")
             continue
-        margin = best - T_CO
-        per = best / len(links)
-        want = len(links) + math.ceil(-margin / per) if margin < 0 \
-               else max(1, len(links) - int(margin // per))
+        margin = best - T_CO - SLACK
+        want, per, how = rule_c_links(len(links), margin, link_ps.get(base),
+                                      list(link_ps.values()), best)
         state = "ok" if margin >= 0 else "VIOLATION"
         if margin < 0:
             problems += 1
         sized[base] = want
         print(f"  {base}: {len(links)} links, ack trails the clock edge by "
               f"{best} ps, t_co {T_CO} -> margin {margin} ps  {state}")
-        print(f"  {'':<{len(base)}}  sized for this route: {want} links")
+        print(f"  {'':<{len(base)}}  sized for this route: {want} links "
+              f"(one link is {per:.0f} ps here, {how})")
 
         # The same number bounds HOLD, which nothing else here audits.
         #

@@ -44,7 +44,7 @@
 
 `default_nettype none
 
-module bd_mux #(parameter W = 8, parameter DELAY = 4)
+module bd_mux #(parameter W = 8, parameter DELAY = 4, parameter FASTFALL = 0)
     (input  wire             rst,
 
      input  wire             x_req,
@@ -75,7 +75,12 @@ module bd_mux #(parameter W = 8, parameter DELAY = 4)
     // Either join makes the output request, after a matched delay.
     wire either;
     LUT2 #(.INIT(4'hE)) uor (.I0(j0), .I1(j1), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    // FASTFALL (default 0) as in bd_link's RFAST and the generated bdc_muxn:
+    // z_req's fall carries no obligation -- x/y/ctl data are held until their
+    // acknowledges fall, which follow the downstream node's fall, which
+    // follows this one -- and the next rise is matched once the line has
+    // drained (verify/tighten.py rule F).  bdc/emit.py: BDC_LINK_FASTFALL=1.
+    bd_delay #(.N(DELAY), .FASTFALL(FASTFALL)) udly (.a(either), .z(z_req));
 
     // Only the join that fired is acknowledged.
     bd_c2 uxa (.a(j0), .b(z_ack), .rst(rst), .q(x_ack));

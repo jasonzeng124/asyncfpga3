@@ -1,0 +1,26 @@
+... dsp_constpins (bitstream_bug, hard)
+... dsp_constpins_inv (bitstream_bug, hard)
+
+GLS configuration: {"stack": "full", "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)", "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist", "model": "GLS_MODEL=fid", "corner": "min", "gls_env": {"GLS_MODEL": "fid", "GLS_SDF_FIELD": "min"}}
+
+==== HARD (2) ==================================================
+
+[MATCH] dsp_constpins: DSP48E1 INMODE/ALUMODE2-3/OPMODE6 left at the tile default: A gated to zero (nextpnr-xilinx-dsp-constpins.patch)
+    source: patches/README.md:98-110
+    reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation
+      unpatched FASM: 48 line(s) differ
+      patched bit: <scratch>/acc_dsp_min/dsp_constpins/bit_patched/x.bit (no .bit in the route: assembled from its FASM)
+      md5: routed_json e7a27380  nextpnr_sdf 5ef854a9  xray_sdf bc6cb638  patched_bit bf6e1a12  unpatched_bit d321f8dc
+      patched   sim PASSES (SOAK stalled PASS lat=13548,40462,163299,114274,80860,124957,157527,158504,165279,160458,121113,202734,203711,163458,194918,161504,84635 / SOAK fast PASS lat=13548,39485,162253,122090,81768,122090,162412,162412,162412,162412,122090,202734,202734,162412,202734,162412,81768 / SOAK_VERDICT PASS)  [from the .bit]
+      unpatched sim FAILS (SOAK stalled FAIL: simulation did not pass FATAL: <scratch>/acc_dsp_min/dsp_constpins/gls_unpatched/tb_stalled.v:217: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK fast FAIL: simulation did not pass FATAL: <scratch>/acc_dsp_min/dsp_constpins/gls_unpatched/tb_fast.v:216: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK_VERDICT FAIL)  [from the .bit]
+      board: {"bit_walk": "A had zero effect -> all correct", "mult2_ps": "1/315 and 315/315 -> 415/415 and 415/415", "mult_ps": "25/430 -> 430/430", "ipow_ps": "965/2016 -> 516/516", "unpatched_expectation": "a multiply's result does not depend on A"}
+
+[MATCH] dsp_constpins_inv: the fasm.cc half of dsp-constpins: a bussed const pin's inversion looked up under a name that never exists
+    source: patches/README.md:79-95
+    reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation
+      unpatched FASM: 92 line(s) differ
+      patched bit: <scratch>/acc_dsp_min/dsp_constpins_inv/bit_patched/x.bit (no .bit in the route: assembled from its FASM)
+      md5: routed_json e7a27380  nextpnr_sdf 5ef854a9  xray_sdf bc6cb638  patched_bit 044d148b  unpatched_bit afe325af
+      patched   sim PASSES (SOAK stalled PASS lat=13548,40462,163299,114274,80860,124957,157527,158504,165279,160458,121113,202734,203711,163458,194918,161504,84635 / SOAK fast PASS lat=13548,39485,162253,122090,81768,122090,162412,162412,162412,162412,122090,202734,202734,162412,202734,162412,81768 / SOAK_VERDICT PASS)  [from the .bit]
+      unpatched sim FAILS (SOAK stalled FAIL: simulation did not pass FATAL: <scratch>/acc_dsp_min/dsp_constpins_inv/gls_unpatched/tb_stalled.v:217: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK fast FAIL: simulation did not pass FATAL: <scratch>/acc_dsp_min/dsp_constpins_inv/gls_unpatched/tb_fast.v:216: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK_VERDICT FAIL)  [from the .bit]
+      board: {"unpatched_expectation": "INMODE/OPMODE6 const bits carry the wrong polarity: wrong products"}

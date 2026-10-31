@@ -1,0 +1,114 @@
+{
+ "config": {
+  "stack": "full",
+  "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)",
+  "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist",
+  "model": "GLS_MODEL=fid",
+  "corner": "max",
+  "gls_env": {
+   "GLS_MODEL": "fid",
+   "GLS_SDF_FIELD": "max"
+  }
+ },
+ "results": [
+  {
+   "id": "lutpinmap_gcd_nofuse",
+   "grade": "hard",
+   "kind": "bitstream_bug",
+   "title": "gcd_hw livelock from the lut-pinmap bug, on the August-like netlist (BDC_OP_FUSION=0: ucmpi11 exists)",
+   "sources": [
+    "patches/README.md:39-44",
+    "patches/README.md:31-35",
+    "cells/gls/README.md:66-80",
+    "bdc/emit.py:2044-2048"
+   ],
+   "oracle": {
+    "patched": "16/16 vectors complete, err_sticky=0x0000",
+    "unpatched": "not all vectors complete; the failure is ABSENT results (livelock), not wrong ones: err=0",
+    "aug_route": "7/16, nine vectors never completing"
+   },
+   "route": "<scratch>/wt-acc/build/fid/gcd_hw_nofuse",
+   "stack": "full",
+   "unpatched_lines_changed": 126,
+   "patched_bit": "<scratch>/wt-acc/build/fid/gcd_hw_nofuse/gcd_hw.bit (the build's; the FASM re-assembled DIFFERS)",
+   "md5s": {
+    "routed_json": "91d26b0a8158ec18797600ec694f5446",
+    "nextpnr_sdf": "c647eb1a8a0f011b72e428503b5a0753",
+    "xray_sdf": "b2036378c95d3c05ff212882a6d12314",
+    "patched_bit": "951e767bf71bcd72cdfd350145c00c71",
+    "unpatched_bit": "663791526f3dbde860ffa88cd05309c1"
+   },
+   "runs": {
+    "patched": {
+     "tag": "patched",
+     "from_bits": true,
+     "bit_md5": "951e767bf71bcd72cdfd350145c00c71",
+     "equivalence": "VERDICT: EQUIVALENT (only the benign kinds above)",
+     "refused": [],
+     "gate_ok": true,
+     "complete": "16/16",
+     "vectors": {
+      "0": "RESULT timeout: vec=0 laps=1669 errs=0 oks=1669",
+      "1": "RESULT timeout: vec=1 laps=1144 errs=0 oks=1144",
+      "2": "RESULT timeout: vec=2 laps=113 errs=0 oks=113",
+      "3": "RESULT timeout: vec=3 laps=95 errs=0 oks=95",
+      "4": "RESULT timeout: vec=4 laps=230 errs=0 oks=230",
+      "5": "RESULT timeout: vec=5 laps=82 errs=0 oks=82",
+      "6": "RESULT timeout: vec=6 laps=17 errs=0 oks=17",
+      "7": "RESULT timeout: vec=7 laps=60 errs=0 oks=60",
+      "8": "RESULT timeout: vec=8 laps=53 errs=0 oks=53",
+      "9": "RESULT timeout: vec=9 laps=49 errs=0 oks=49",
+      "10": "RESULT timeout: vec=10 laps=230 errs=0 oks=230",
+      "11": "RESULT timeout: vec=11 laps=24 errs=0 oks=24",
+      "12": "RESULT timeout: vec=12 laps=13 errs=0 oks=13",
+      "13": "RESULT timeout: vec=13 laps=20 errs=0 oks=20",
+      "14": "RESULT timeout: vec=14 laps=90 errs=0 oks=90",
+      "15": "RESULT timeout: vec=15 laps=59 errs=0 oks=59"
+     },
+     "never_complete": [],
+     "sim_passes": true
+    },
+    "unpatched": {
+     "tag": "unpatched",
+     "from_bits": true,
+     "bit_md5": "663791526f3dbde860ffa88cd05309c1",
+     "equivalence": "VERDICT: NOT EQUIVALENT: LUT FUNCTION DIFFERS",
+     "refused": [],
+     "gate_ok": true,
+     "complete": "9/16",
+     "vectors": {
+      "0": "RESULT timeout: vec=0 laps=1669 errs=0 oks=1669",
+      "1": "RESULT timeout: vec=1 laps=1144 errs=0 oks=1144",
+      "2": "RESULT timeout: vec=2 laps=113 errs=0 oks=113",
+      "3": "RESULT timeout: vec=3 laps=95 errs=0 oks=95",
+      "4": "RESULT timeout: vec=4 laps=230 errs=0 oks=230",
+      "5": "RESULT timeout: vec=5 laps=0 errs=0 oks=0",
+      "6": "RESULT timeout: vec=6 laps=0 errs=0 oks=0",
+      "7": "RESULT timeout: vec=7 laps=0 errs=0 oks=0",
+      "8": "RESULT timeout: vec=8 laps=0 errs=0 oks=0",
+      "9": "RESULT timeout: vec=9 laps=49 errs=0 oks=49",
+      "10": "RESULT timeout: vec=10 laps=230 errs=0 oks=230",
+      "11": "RESULT timeout: vec=11 laps=0 errs=0 oks=0",
+      "12": "RESULT timeout: vec=12 laps=0 errs=0 oks=0",
+      "13": "RESULT timeout: vec=13 laps=0 errs=0 oks=0",
+      "14": "RESULT timeout: vec=14 laps=90 errs=0 oks=90",
+      "15": "RESULT timeout: vec=15 laps=59 errs=0 oks=59"
+     },
+     "never_complete": [
+      5,
+      6,
+      7,
+      8,
+      11,
+      12,
+      13
+     ],
+     "sim_passes": false
+    }
+   },
+   "ok": true,
+   "weak": false,
+   "verdict": "reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation"
+  }
+ ]
+}

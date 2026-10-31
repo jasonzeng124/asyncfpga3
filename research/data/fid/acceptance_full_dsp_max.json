@@ -1,0 +1,107 @@
+{
+ "config": {
+  "stack": "full",
+  "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)",
+  "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist",
+  "model": "GLS_MODEL=fid",
+  "corner": "max",
+  "gls_env": {
+   "GLS_MODEL": "fid",
+   "GLS_SDF_FIELD": "max"
+  }
+ },
+ "results": [
+  {
+   "id": "dsp_constpins",
+   "grade": "hard",
+   "kind": "bitstream_bug",
+   "title": "DSP48E1 INMODE/ALUMODE2-3/OPMODE6 left at the tile default: A gated to zero (nextpnr-xilinx-dsp-constpins.patch)",
+   "sources": [
+    "patches/README.md:98-110"
+   ],
+   "oracle": {
+    "bit_walk": "A had zero effect -> all correct",
+    "mult2_ps": "1/315 and 315/315 -> 415/415 and 415/415",
+    "mult_ps": "25/430 -> 430/430",
+    "ipow_ps": "965/2016 -> 516/516",
+    "unpatched_expectation": "a multiply's result does not depend on A"
+   },
+   "route": "<scratch>/wt-acc2/build/fid/ipow_dsp",
+   "stack": "full",
+   "unpatched_lines_changed": 48,
+   "patched_bit": "<scratch>/acc_dsp/dsp_constpins/bit_patched/x.bit (no .bit in the route: assembled from its FASM)",
+   "md5s": {
+    "routed_json": "e7a273806e152c5b480028ee67965d1f",
+    "nextpnr_sdf": "5ef854a9e5d6ad439416b13fa767d7e4",
+    "xray_sdf": "bc6cb638b49044c584909296cd9912d5",
+    "patched_bit": "d0505395bf36cafa57f310af70baaea7",
+    "unpatched_bit": "5a1678a685db4c7df5199940527c0327"
+   },
+   "runs": {
+    "patched": {
+     "tag": "patched",
+     "from_bits": true,
+     "bit_md5": "d0505395bf36cafa57f310af70baaea7",
+     "status": "SOAK stalled PASS lat=43626,118990,464849,342987,236516,353670,459297,460274,467049,462228,349826,577561,578538,465228,569745,463274,240291 / SOAK fast PASS lat=43626,118013,463803,350803,237424,350803,464182,464182,464182,464182,350803,577561,577561,464182,577561,464182,237424 / SOAK_VERDICT PASS",
+     "refused": [],
+     "sim_passes": true
+    },
+    "unpatched": {
+     "tag": "unpatched",
+     "from_bits": true,
+     "bit_md5": "5a1678a685db4c7df5199940527c0327",
+     "status": "SOAK stalled FAIL: simulation did not pass FATAL: <scratch>/acc_dsp/dsp_constpins/gls_unpatched/tb_stalled.v:217: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK fast FAIL: simulation did not pass FATAL: <scratch>/acc_dsp/dsp_constpins/gls_unpatched/tb_fast.v:216: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK_VERDICT FAIL",
+     "refused": [],
+     "sim_passes": false
+    }
+   },
+   "ok": true,
+   "weak": false,
+   "verdict": "reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation"
+  },
+  {
+   "id": "dsp_constpins_inv",
+   "grade": "hard",
+   "kind": "bitstream_bug",
+   "title": "the fasm.cc half of dsp-constpins: a bussed const pin's inversion looked up under a name that never exists",
+   "sources": [
+    "patches/README.md:79-95"
+   ],
+   "oracle": {
+    "unpatched_expectation": "INMODE/OPMODE6 const bits carry the wrong polarity: wrong products"
+   },
+   "route": "<scratch>/wt-acc2/build/fid/ipow_dsp",
+   "stack": "full",
+   "unpatched_lines_changed": 92,
+   "patched_bit": "<scratch>/acc_dsp/dsp_constpins_inv/bit_patched/x.bit (no .bit in the route: assembled from its FASM)",
+   "md5s": {
+    "routed_json": "e7a273806e152c5b480028ee67965d1f",
+    "nextpnr_sdf": "5ef854a9e5d6ad439416b13fa767d7e4",
+    "xray_sdf": "bc6cb638b49044c584909296cd9912d5",
+    "patched_bit": "878030ee00cdcced1e6c9d2c713244d6",
+    "unpatched_bit": "4ddf7b996729b45dd30a769ece388995"
+   },
+   "runs": {
+    "patched": {
+     "tag": "patched",
+     "from_bits": true,
+     "bit_md5": "878030ee00cdcced1e6c9d2c713244d6",
+     "status": "SOAK stalled PASS lat=43626,118990,464849,342987,236516,353670,459297,460274,467049,462228,349826,577561,578538,465228,569745,463274,240291 / SOAK fast PASS lat=43626,118013,463803,350803,237424,350803,464182,464182,464182,464182,350803,577561,577561,464182,577561,464182,237424 / SOAK_VERDICT PASS",
+     "refused": [],
+     "sim_passes": true
+    },
+    "unpatched": {
+     "tag": "unpatched",
+     "from_bits": true,
+     "bit_md5": "4ddf7b996729b45dd30a769ece388995",
+     "status": "SOAK stalled FAIL: simulation did not pass FATAL: <scratch>/acc_dsp/dsp_constpins_inv/gls_unpatched/tb_stalled.v:217: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK fast FAIL: simulation did not pass FATAL: <scratch>/acc_dsp/dsp_constpins_inv/gls_unpatched/tb_fast.v:216: vector 1: out0 got xxxxxxxx expected 00000003 / SOAK_VERDICT FAIL",
+     "refused": [],
+     "sim_passes": false
+    }
+   },
+   "ok": true,
+   "weak": false,
+   "verdict": "reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation"
+  }
+ ]
+}

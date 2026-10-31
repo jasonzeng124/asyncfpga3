@@ -81,7 +81,16 @@ the route that produced the measurement, and measured on gcd it does not even
 converge.
 """
 
-import json, math, sys, pathlib
+import json, math, re, sys, pathlib
+
+# A bd_pipe stage instance: <link>.many.stage[i].u
+RE_PIPE_STAGE = re.compile(r"^(.*?)\.many\.stage\[(\d+)\]\.u(?:\.|$)")
+# A node on a link's REQUEST side: its rdly chain, or the C node that drives
+# req_out -- of a bare link, or of one bd_pipe stage.
+RE_REQ_SIDE = re.compile(r"^(.*?)(?:\.many\.stage\[(\d+)\]\.u)?\.(?:rdly|ctl)\.")
+# A latch output of a bd_link (or of one bd_pipe stage): <link>.lat.<...>.
+# Its controller's C node is <link>.ctl.u.u/O6.
+RE_LATCH_OUT = re.compile(r"^(.*?)\.lat\.")
 
 _raw = sys.argv[1:]
 VERBOSE = "-v" in _raw
@@ -126,6 +135,24 @@ while "--osc" in _raw:
     OSC.append(_raw[_i + 1])
     del _raw[_i:_i + 2]
 PADS = None
+# --slack <ps>: also attribute and price a fix for gates whose guarded margin
+# is positive but at most <ps> (flagged "SLACK", padded to reach <ps>), so a
+# sizing loop can buy headroom against the next route instead of chasing one
+# short link per route.  The verdict and the exit status still count only
+# guarded margins <= 0.  Default 0: unchanged.
+SLACK = 0
+if "--slack" in _raw:
+    _i = _raw.index("--slack")
+    SLACK = int(_raw[_i + 1])
+    del _raw[_i:_i + 2]
+# --own-gate-laps-off-strict: at a gate where (3) below adds a link's C node as
+# a launch, the REQUEST walks launched from that same link's LATCH OUTPUTS may
+# not pass through the gate being checked.  Every other launch, and every gate
+# where (3) adds nothing, is walked exactly as without the flag.  Opt-in until
+# reviewed; see (4) below for what it removes and why that is a lap.
+STRICT_LAPS = "--own-gate-laps-off-strict" in _raw
+if STRICT_LAPS:
+    _raw.remove("--own-gate-laps-off-strict")
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -213,6 +240,156 @@ GUARD_LO = 0.772          # request may run this fraction of its predicted delay
 GUARD_HI = 1.155          # select may run this multiple of its predicted delay
 
 
+def walk(walked_edges, stops, binc, feed, launch, longest, term=None):
+    """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
+    kept apart deliberately.  Take the extremal over all of them and a
+    longest path granted six crossings simply goes round the handshake
+    loop and comes back -- measured, it reported 44 ns of arrival at a pin
+    two cells away.  Inside one transaction each storage cell fires once,
+    so the signal's real path is the one with the FEWEST crossings and the
+    deeper levels are laps."""
+    better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
+    # Bellman-Ford's bound.  A shortest-path relaxation over positive
+    # weights settles on its own, but a LONGEST-path one does not: on a
+    # cycle whose arcs are all positive, every lap improves every node and
+    # the loop below never runs out of frontier.  Traversal stops at
+    # storage nodes, so any cycle containing one is safe -- which is every
+    # handshake in the library.  A cycle that stores NOTHING has nothing to
+    # stop it, and that is what a free-running ring oscillator is.
+    #
+    # Measured, before this cap existed: verify/soak_top.v has exactly one
+    # such ring (line 130, "the one loop in this design that stores
+    # nothing") and rule E ran for five minutes on a 535-arc design with
+    # two select gates and had to be killed.  It was not slow, it was not
+    # terminating, and as a gate in check.sh it would have hung the whole
+    # check rather than failing it.
+    #
+    # No path can improve more than |pins| times without revisiting a node,
+    # so exceeding that bound IS a positive cycle.  Say which pin, and say
+    # what to do about it -- a hang teaches nothing.
+    # `pred` is kept alongside `out`, ONE PER LEVEL, so the exact walk a
+    # pin's arrival took can be replayed rather than guessed at.  A node's
+    # predecessor is (level, node) -- almost always the same level, except
+    # a stop `o` seeded at the top of a new level, whose predecessor is
+    # the enable pin `ip` back in the PREVIOUS level's table (the single
+    # deliberate hop this docstring describes).  The launch's own entry
+    # at level 0 has predecessor None; nothing else does, since every
+    # other node was relaxed from something.
+    # `term`, when given, is an instance prefix the walk may ARRIVE at but
+    # never leave: a pin under it is recorded and not expanded, and a
+    # storage node under it is never seeded as a crossing.  Only (4)'s
+    # strict request walks pass one; every other walk has term None and
+    # is exactly the walk this function always did.
+    cap = len(walked_edges) + 1
+    out, pred_out = [], []
+    seeds, seed_pred = {launch: 0}, {launch: None}
+    for lvl in range(K + 1):
+        tab, pred = dict(seeds), dict(seed_pred)
+        seeded = set(seeds)
+        frontier = list(seeds)
+        passes = 0
+        while frontier:
+            passes += 1
+            if passes > cap:
+                raise CombinationalCycle(sorted(frontier)[0])
+            nxt = []
+            for pn in frontier:
+                tv = tab[pn]
+                for d, w in walked_edges.get(pn, ()):
+                    if (pn, d) in feed:
+                        continue
+                    # A node SEEDED at this level -- a storage output entered
+                    # by one deliberate crossing, or the launch itself at level
+                    # 0 -- is never relaxed again inside the level.  Reaching
+                    # it here means arriving through its own cell arc, which IS
+                    # a storage crossing, and the next level's seeding already
+                    # counts that one from the same tab[ip] + arc. Relaxing it
+                    # here used to OVERWRITE the seed's tab and pred after the
+                    # seed had been expanded (a stop is never re-expanded), so
+                    # every pin downstream kept the seed's arrival while
+                    # path_to() replayed a chain through the overwriting
+                    # arrival -- a chain that did not produce it. divergence()
+                    # and req_knob() read that chain.  No arrival but the
+                    # seeded stop's own entry changes: nothing was ever
+                    # expanded from the overwritten value.  test_skew_walk.py
+                    # has the minimal case.
+                    if d in seeded:
+                        continue
+                    if d not in tab or better(tv + w, tab[d]):
+                        tab[d] = tv + w
+                        pred[d] = (lvl, pn)
+                        # Record an arrival back at the launch, but never EXPAND
+                        # from it.  (At level 0 the launch is a seed, so the
+                        # check above already skips it there; this is what
+                        # keeps it from being expanded at deeper levels.)  The old condition was "d not in stops or
+                        # d == launch", and that second clause is a lap: it lets
+                        # the walk leave the launch, go round the launch's own
+                        # handshake loop, and set off again with a larger number,
+                        # forever, because every arc is positive and this is a
+                        # LONGEST-path relaxation.  Levels are kept apart precisely
+                        # so laps land at a deeper crossing count instead; the
+                        # clause quietly readmitted them at level 0.
+                        #
+                        # Measured: rule E on verify/soak_top.v -- 535 arcs, two
+                        # select gates -- ran five minutes and had to be killed.
+                        # Not slow: not terminating.  As a gate in check.sh that
+                        # would have hung the check rather than failing it.
+                        if d not in stops and not (term and d.startswith(term)):
+                            nxt.append(d)
+            frontier = nxt
+        out.append(tab)
+        pred_out.append(pred)
+        seeds, seed_pred = {}, {}
+        for o in stops:
+            if o == launch or (term and o.startswith(term)):
+                continue
+            for ip, arc in binc.get(o, ()):
+                if (o, ip) in feed or ip not in tab:
+                    continue
+                v = tab[ip] + arc
+                if o not in seeds or better(v, seeds[o]):
+                    seeds[o] = v
+                    seed_pred[o] = (lvl, ip)
+        if not seeds:
+            break
+    return out, pred_out
+
+
+def path_to(pred_out, level, node):
+    """The exact walk from `launch` to `node` at `level`, as a list of
+    (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
+    predecessor pointers -- not a proxy over what is merely backward-
+    reachable, the concrete route that pin's arrival time came from."""
+    chain = [(level, node)]
+    seen = {(level, node)}
+    p = pred_out[level].get(node)
+    while p is not None:
+        # A predecessor CYCLE is possible and must be caught here.  The
+        # longest-path relaxation is bounded by Bellman-Ford's cap, not by
+        # acyclicity, so on a loop that stores nothing -- a free-running
+        # ring -- the pointers it leaves behind can close on themselves.
+        # A pipeline cannot do this (soak_top.v has exactly one such ring;
+        # gcd has none), which is why this walked fine on every compiled
+        # design and hung only on soak: unguarded, the loop below appends
+        # forever.  Measured, it reached 10.4 GB in under seven minutes
+        # against 15.8 MB and 1.2 s for the same design before divergence
+        # tracking existed.
+        #
+        # Report NO usable prefix rather than a guess.  The caller then
+        # takes t_c = 0, which guards the whole launch-to-pin span -- the
+        # conservative direction, and exactly what this check did before
+        # divergent-tail guarding was added.  Degrading to the stricter
+        # behaviour is safe; inventing a prefix here would not be.
+        if p in seen:
+            return None
+        seen.add(p)
+        chain.append(p)
+        lvl, nd = p
+        p = pred_out[lvl].get(nd)
+    chain.reverse()
+    return chain
+
+
 def main():
     if not SDF.exists():
         print(f"no routed SDF at {SDF} -- run ./flow.sh first", file=sys.stderr)
@@ -262,6 +439,12 @@ def main():
         return 2
 
     stops = T.storage_nodes(edges)
+    side_arcs = T.fastfall_side_arcs(edges)
+    early_edges = {
+        src: [(dst, delay) for dst, delay in links
+              if (src, dst) not in side_arcs]
+        for src, links in edges.items()
+    }
     binc, srcs_of = defaultdict(list), defaultdict(set)
     for s, lst in edges.items():
         for d, w in lst:
@@ -276,128 +459,11 @@ def main():
     feed = {(o, ip) for o in stops
             for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
 
-    def fwd(launch, longest):
-        """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
-        kept apart deliberately.  Take the extremal over all of them and a
-        longest path granted six crossings simply goes round the handshake
-        loop and comes back -- measured, it reported 44 ns of arrival at a pin
-        two cells away.  Inside one transaction each storage cell fires once,
-        so the signal's real path is the one with the FEWEST crossings and the
-        deeper levels are laps."""
-        better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
-        # Bellman-Ford's bound.  A shortest-path relaxation over positive
-        # weights settles on its own, but a LONGEST-path one does not: on a
-        # cycle whose arcs are all positive, every lap improves every node and
-        # the loop below never runs out of frontier.  Traversal stops at
-        # storage nodes, so any cycle containing one is safe -- which is every
-        # handshake in the library.  A cycle that stores NOTHING has nothing to
-        # stop it, and that is what a free-running ring oscillator is.
-        #
-        # Measured, before this cap existed: verify/soak_top.v has exactly one
-        # such ring (line 130, "the one loop in this design that stores
-        # nothing") and rule E ran for five minutes on a 535-arc design with
-        # two select gates and had to be killed.  It was not slow, it was not
-        # terminating, and as a gate in check.sh it would have hung the whole
-        # check rather than failing it.
-        #
-        # No path can improve more than |pins| times without revisiting a node,
-        # so exceeding that bound IS a positive cycle.  Say which pin, and say
-        # what to do about it -- a hang teaches nothing.
-        # `pred` is kept alongside `out`, ONE PER LEVEL, so the exact walk a
-        # pin's arrival took can be replayed rather than guessed at.  A node's
-        # predecessor is (level, node) -- almost always the same level, except
-        # a stop `o` seeded at the top of a new level, whose predecessor is
-        # the enable pin `ip` back in the PREVIOUS level's table (the single
-        # deliberate hop this docstring describes).  The launch's own entry
-        # at level 0 has predecessor None; nothing else does, since every
-        # other node was relaxed from something.
-        cap = len(edges) + 1
-        out, pred_out = [], []
-        seeds, seed_pred = {launch: 0}, {launch: None}
-        for lvl in range(K + 1):
-            tab, pred = dict(seeds), dict(seed_pred)
-            frontier = list(seeds)
-            passes = 0
-            while frontier:
-                passes += 1
-                if passes > cap:
-                    raise CombinationalCycle(sorted(frontier)[0])
-                nxt = []
-                for pn in frontier:
-                    tv = tab[pn]
-                    for d, w in edges.get(pn, ()):
-                        if (pn, d) in feed:
-                            continue
-                        if d not in tab or better(tv + w, tab[d]):
-                            tab[d] = tv + w
-                            pred[d] = (lvl, pn)
-                            # Record an arrival back at the launch, but never EXPAND
-                            # from it.  The old condition was "d not in stops or
-                            # d == launch", and that second clause is a lap: it lets
-                            # the walk leave the launch, go round the launch's own
-                            # handshake loop, and set off again with a larger number,
-                            # forever, because every arc is positive and this is a
-                            # LONGEST-path relaxation.  Levels are kept apart precisely
-                            # so laps land at a deeper crossing count instead; the
-                            # clause quietly readmitted them at level 0.
-                            #
-                            # Measured: rule E on verify/soak_top.v -- 535 arcs, two
-                            # select gates -- ran five minutes and had to be killed.
-                            # Not slow: not terminating.  As a gate in check.sh that
-                            # would have hung the check rather than failing it.
-                            if d not in stops:
-                                nxt.append(d)
-                frontier = nxt
-            out.append(tab)
-            pred_out.append(pred)
-            seeds, seed_pred = {}, {}
-            for o in stops:
-                if o == launch:
-                    continue
-                for ip, arc in binc.get(o, ()):
-                    if (o, ip) in feed or ip not in tab:
-                        continue
-                    v = tab[ip] + arc
-                    if o not in seeds or better(v, seeds[o]):
-                        seeds[o] = v
-                        seed_pred[o] = (lvl, ip)
-            if not seeds:
-                break
-        return out, pred_out
-
-    def path_to(pred_out, level, node):
-        """The exact walk from `launch` to `node` at `level`, as a list of
-        (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
-        predecessor pointers -- not a proxy over what is merely backward-
-        reachable, the concrete route that pin's arrival time came from."""
-        chain = [(level, node)]
-        seen = {(level, node)}
-        p = pred_out[level].get(node)
-        while p is not None:
-            # A predecessor CYCLE is possible and must be caught here.  The
-            # longest-path relaxation is bounded by Bellman-Ford's cap, not by
-            # acyclicity, so on a loop that stores nothing -- a free-running
-            # ring -- the pointers it leaves behind can close on themselves.
-            # A pipeline cannot do this (soak_top.v has exactly one such ring;
-            # gcd has none), which is why this walked fine on every compiled
-            # design and hung only on soak: unguarded, the loop below appends
-            # forever.  Measured, it reached 10.4 GB in under seven minutes
-            # against 15.8 MB and 1.2 s for the same design before divergence
-            # tracking existed.
-            #
-            # Report NO usable prefix rather than a guess.  The caller then
-            # takes t_c = 0, which guards the whole launch-to-pin span -- the
-            # conservative direction, and exactly what this check did before
-            # divergent-tail guarding was added.  Degrading to the stricter
-            # behaviour is safe; inventing a prefix here would not be.
-            if p in seen:
-                return None
-            seen.add(p)
-            chain.append(p)
-            lvl, nd = p
-            p = pred_out[lvl].get(nd)
-        chain.reverse()
-        return chain
+    def fwd(launch, longest, term=None):
+        """walk() over this design's graph: every arc for the select's LONGEST
+        walk, the fast-fall-side-pruned arcs for the request's shortest."""
+        return walk(edges if longest else early_edges, stops, binc, feed,
+                    launch, longest, term)
 
     def divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp):
         """X, the last (level, node) the two MEASURED walks -- the shortest
@@ -532,15 +598,55 @@ def main():
         # did over-credit (usteer got t_c=417 where the true value is 0).
         #
         # Worst is chosen by the GUARDED margin, since that is the verdict.
+        # (3) Plus the C node of every link whose LATCH is a nearest-storage
+        # launch of the select.  cand is ordered by select crossings, so a
+        # 32-bit latch bank fills cand[:4] with its own outputs (64 of them,
+        # O5 and O6 per bit) and that link's C node -- where the request
+        # and the select really diverge, per (1) -- can sit at index 96 and
+        # never be evaluated (isprime ucond_br16, 2026-10-26).  It is ADDED,
+        # never substituted: the verdict is still the MIN over every launch
+        # evaluated, so an extra launch can only find a violation, never hide
+        # one.  (It does not clear ucond_br16: the lap launches stay binding.)
+        names = {q for _, _, q in cand}
+        launches = [q for _, _, q in cand[:4]]
+        added = set()           # links whose C node (3) added at this gate
+        if cand:
+            k0 = cand[0][0]
+            for ks, _, q in cand:
+                if ks != k0:
+                    break
+                m = RE_LATCH_OUT.match(T.pin_split(q)[0])
+                cnode = m and m.group(1) + ".ctl.u.u/O6"
+                if cnode and cnode in names and cnode not in launches:
+                    launches.append(cnode)
+                    added.add(m.group(1))
+        # (4) --own-gate-laps-off-strict.  Once (3) has added link L's C node,
+        # L's real divergence point is being measured directly.  A launch at
+        # one of L's LATCH OUTPUTS reaches the select through the latch (that
+        # is why it is a candidate at all), but it reaches the REQUEST pin
+        # only by going round the handshake: through this very gate, out to
+        # its acknowledge, back through L's controller and request chain --
+        # the NEXT token's request, not the one this select is bundled with.
+        # So for exactly those launches, and only on the request (shortest)
+        # walk, the walk may not pass through this gate.  The select walk, the
+        # C-node launch, every other cand[:4] launch, and every gate where (3)
+        # added nothing are untouched, so a row can change only if its binding
+        # launch was such a latch output and its request walk ran through its
+        # own gate.  A latch launch whose request then has no path is simply
+        # not evaluated; the verdict is the MIN over what is.
+        own = parent + "."
         worst = None
-        for _, _, launch in cand[:4]:
+        for launch in launches:
+            m = RE_LATCH_OUT.match(T.pin_split(launch)[0])
+            lap = STRICT_LAPS and m is not None and m.group(1) in added
             for d, lng in ((0, False), (1, True)):
-                key = (launch, lng)
+                term = own if (lap and not lng) else None
+                key = (launch, lng, term)
                 if key in cache:
                     cache.move_to_end(key)
                 else:
                     try:
-                        cache[key] = fwd(launch, lng)
+                        cache[key] = fwd(launch, lng, term)
                         while len(cache) > CACHE_MAX:
                             cache.popitem(last=False)
                     except CombinationalCycle as e:
@@ -559,8 +665,8 @@ def main():
                         print( "         genuinely runs free end to end.")
                         print( "         Rule E did not run.  This is a gap, not a pass.")
                         return 2
-            out_f, pred_f = cache[(launch, False)]
-            out_t, pred_t = cache[(launch, True)]
+            out_f, pred_f = cache[(launch, False, own if lap else None)]
+            out_t, pred_t = cache[(launch, True, None)]
             e = at(out_f, rp)
             l = at(out_t, sp)
             if e is None or l is None:
@@ -578,7 +684,8 @@ def main():
                      e[0], l[0])
             g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
             if worst is None or g < worst[0]:
-                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc)
+                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
+                         path_to(pred_f, e[1], rp) or [])
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
@@ -604,6 +711,7 @@ def main():
     rows = [(guarded(r[7], r[9], r[11]),) + r for r in rows]
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
+    short = [r for r in rows if r[0] <= SLACK]
 
     t_elem = T.measure_delay_element(SDF.read_text())
     if t_elem is None:
@@ -623,10 +731,37 @@ def main():
         print(f"             {len(orphan)} gate(s) share no launch with their "
               f"own select within {K} crossings -- not checked")
 
+    # The last stage of every bd_pipe, for req_knob() below.
+    last_stage = {}
+    for name in set(T.pin_split(n)[0] for n in srcs_of):
+        mp = RE_PIPE_STAGE.match(name)
+        if mp:
+            last_stage[mp.group(1)] = max(last_stage.get(mp.group(1), 0), int(mp.group(2)))
+
+    def req_knob(req_path):
+        """The link whose DELAY really sits on the measured request path: the
+        storage crossing nearest the request pin, and only if the path leaves
+        it through its request side (its rdly chain or the C node that drives
+        req_out), in the stage DELAY pads (a bd_pipe's last).  None when the
+        crossing nearest the pin is not such a node -- a latch, an inner pipe
+        stage, an acknowledge."""
+        for _, node in reversed(req_path):
+            inst = T.pin_split(node)[0]
+            mk = RE_REQ_SIDE.match(inst)
+            if mk is None:
+                if T.RE_SEL_LINK.search(inst) or T.RE_SEL_LINK_STRUCT.search(inst):
+                    return None
+                continue
+            link, stage = mk.group(1), mk.group(2)
+            if stage is not None and int(stage) != last_stage.get(link, int(stage)):
+                return None
+            return link.rpartition(".")[2] if "." in link else link
+        return None
+
     pads, unattributed = {}, []
     for (gm, margin, kind, parent, cell, rp, sp,
-         launch, t_req, k_req, t_sel, k_sel, t_c) in (rows if VERBOSE else bad):
-        flag = "VIOLATED" if gm <= 0 else "ok      "
+         launch, t_req, k_req, t_sel, k_sel, t_c, req_path) in (rows if VERBOSE else short):
+        flag = "VIOLATED" if gm <= 0 else ("SLACK   " if gm <= SLACK else "ok      ")
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
         print(f"           divergence point {t_c} ps in (shared, not guarded)")
@@ -636,7 +771,7 @@ def main():
         print(f"                latest   {t_sel} ps, {k_sel} storage crossing(s)")
         print(f"           margin {margin:+d} ps raw, {gm:+d} ps guarded"
               + ("   the request beats its own select" if gm <= 0 else ""))
-        if gm > 0:
+        if gm > SLACK:
             continue
         # WHICH link's knob moves this edge.  The launch is the storage node
         # that released the select, and for every violation seen so far that
@@ -646,28 +781,33 @@ def main():
         # launch moves the request later and does not drag the select along
         # with it.  Anything else is not attributable from this measurement and
         # is reported rather than guessed at.
-        m = T.RE_SEL_LINK.search(launch)
-        if not m:
-            # Fall back to the structural form, which finds the same knob on an
-            # instance that is not named ulink_* -- see RE_SEL_LINK_STRUCT.
-            m = T.RE_SEL_LINK_STRUCT.search(launch)
-        if not m:
+        #
+        # That premise fails when the launch is a bd_pipe stage or an
+        # acknowledge: on gcd_hw (2026-10-25) umux20's launch is its OUTPUT
+        # pipe's stage[0] C node, both legs run back upstream from there, and
+        # padding that pipe's DELAY (its last stage's req_out) moved the
+        # request by reroute noise only -- +609 ps for six elements -- so
+        # converge.sh padded it forever.  The knob is therefore taken from the
+        # measured request path itself (req_knob) and only used if it is
+        # really on it.
+        knob = req_knob(req_path)
+        if knob is None:
             unattributed.append((parent, launch))
             continue
         # The elements being added sit in the request path, so they are subject
         # to the same GUARD_LO scatter as the rest of it.
-        need = math.ceil(-gm / (t_elem * GUARD_LO))
-        pads[m.group(1)] = max(pads.get(m.group(1), 0), need)
+        need = math.ceil((SLACK - gm) / (t_elem * GUARD_LO))
+        pads[knob] = max(pads.get(knob, 0), need)
         print(f"           fix: {need} more bd_delay element(s) on "
-              f"{m.group(1)} ({t_elem} ps ea, derated to "
+              f"{knob} ({t_elem} ps ea, derated to "
               f"{int(t_elem * GUARD_LO)})")
 
     if unattributed:
         print()
         for parent, launch in unattributed:
-            print(f"  {parent}: launch {launch} is not a bd_link C node, so no "
-                  f"DELAY knob\n    is attributable to it -- reported, not "
-                  f"padded")
+            print(f"  {parent}: launch {launch}: no link's DELAY is on the "
+                  f"measured request path,\n    so no knob is attributable -- "
+                  f"reported, not padded")
     if PADS is not None:
         PADS.write_text(json.dumps(dict(sorted(pads.items())), indent=1) + "\n")
         print(f"\n  wrote {len(pads)} per-link requirement(s) to {PADS} "
