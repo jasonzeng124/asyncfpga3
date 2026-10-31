@@ -738,3 +738,10 @@ only). REFUTED: "ArbOrd fails in 3/5 scatter draws". Two of the three failing pa
 truth is 1 of 5. Formal already accepted this from P17's partial findings (44d30983). CONFIRMED: SatPinW structural
 fix (ArbOrd still assumed on every gcd_hw row), corrected QQuiet/quiet-start/ArbOrd monitors (counts), Bwit4 170/175,
 N level 173/175, NChk chunking, Prelim deletion lost no theorem.
+
+### progress 18:00
+The owner pushed an audit PROGRAM change (f33d8da3, 13:30 EDT): top priority is the formal shards' bitstream theorem
+(formal/target/, Spec.lean, five allowed hypotheses). My push was rejected until I rebased onto it. At formal head
+2f2e632d, formal/target/ and Formal/Target/Spec.lean do NOT exist yet (formal PROGRAM's "THE goal", 4ef44a05/95d0784d,
+is from today). Prepared for it: audit/target_ref.md records my own BQ#1 default-seed build md5s (sdf 6f8b99e6, xray
+357f17cb, fasm 1a3909f6), and my rebuilt bitstream payload is byte-identical to research/board/gcd_hw_03e82630.bit.
