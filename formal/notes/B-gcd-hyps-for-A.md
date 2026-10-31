@@ -36,7 +36,9 @@ bounds, finite edge counts, truncated contracts on untied cells), C's `H_CELLS` 
 192 operators (`H_OTHER`), H_BUNDLE, H_CM_FORCED. Joint witness:
 `Cells/BWitNet.lean:gcd_hw_fin_netB_witness` (a = 12, b = 18, a gate-timed run in which B's tied
 cells drive each other; unit LUT delays, wire delays 1-3, one run). It replaces, for links, the
-chain/elaboration theorems that the audit (P12b) found did not bind drivers. Suggested row:
+chain/elaboration theorems that the audit (P12b) found did not bind drivers. Extended the same day to
+every `bd_mux` (`Cells/FiniteNetBoundM.lean:gcd_hw_safe_fin_netBM`, 124/175 links bound on both
+sides; witness `Cells/BWit2Net.lean:gcd_hw_fin_netBM_witness`). Suggested row:
 "H_CELLS (links) <- FGcdNetOKB: B gate models of links/forks N<=4/2-joins/steers/ORs with
 netlist-bound drivers; grade B (model), witness: one gate-timed run; test: routed GLS of the
 same cells with per-arc bands".

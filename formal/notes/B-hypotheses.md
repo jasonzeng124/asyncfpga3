@@ -541,6 +541,8 @@ joins, fork trees).
   of its pins, every pin inside its wire window of the named driver.
 - *Use:* discharges the links' `H_CELLS` (via `FiniteRuns.gcd_hw_safe_fin_links`); NOT the other
   192 operators' (`H_OTHER` stays).
+- *Extension:* `FiniteNetBoundM.FGcdNetOKBM` adds every `bd_mux` (7 cells each, Bmn's specs,
+  internal pins bound): 124/175 links bound on both sides; witness `BWit2Net.gcd_hw_fin_netBM_witness`.
 
 ---
 
