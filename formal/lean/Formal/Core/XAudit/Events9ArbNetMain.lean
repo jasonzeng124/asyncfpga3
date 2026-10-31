@@ -1,6 +1,7 @@
 import Lean.Data.Json
 import Formal.Core.XAudit.Parse
 import Formal.Core.XAudit.Events9ArbNetRows
+import Formal.Core.XAudit.Events9ArbNetEdge
 
 /-!
 # `xarbnet` — check the arbiter link of a ROUTED netlist (executable main)
@@ -212,6 +213,31 @@ def parseArb (N : Nat) (gix : Std.HashMap String Nat) (d : Design) (j : Json) : 
          rq1 := ← parseReq gix d ((jget j "rq1").getD Json.null),
          rq2 := ← parseReq gix d ((jget j "rq2").getD Json.null) }
 
+/-- The least quiet-start time `T0` that the start-bound conjuncts of `ArbRowsOK` allow for a
+design reset released at `T` (the B1 rows do not depend on `T0`). -/
+def t0Min {N : Nat} (d : Design) (a : ArbD N) (T : Nat) : Nat :=
+  let B := bandsOf d a
+  max (max ((B.g1 0).2 + (B.g1 2).2 + 2) ((B.g2 1).2 + (B.g2 2).2 + 2))
+    (max (max ((B.r0 0).2 + (B.r0 2).2 + 2) ((B.r0 1).2 + (B.r0 2).2 + 2))
+      (max (T + phi d (PrQ a) + (B.g2 2).2 + 2) (T + phi d (PrQ a) + (B.r0 2).2)))
+
+/-- Margins (rhs - lhs, >= 0 holds) of the conjuncts of `ArbRowsOK d a T T0`, in its order
+(diagnostics only; the verdict uses `decide (ArbRowsOK …)`). -/
+def rowsDiag {N : Nat} (d : Design) (a : ArbD N) (T T0 : Nat) : List (String × Int) :=
+  let B := bandsOf d a
+  let z (n : Nat) : Int := n
+  [("B1 g1", z (plo d (P1Q a) + (B.g1 2).1) - z ((B.g1 0).2 + 2)),
+   ("B1 g2", z (plo d (P2Q a) + (B.g2 2).1) - z ((B.g2 1).2 + 2)),
+   ("B1 s1", z (plo d (P1Q a) + ((B.r0 2).1 - 2)) - z ((B.r0 0).2 - 2 + 2)),
+   ("B1 s2", z (plo d (P2Q a) + ((B.r0 2).1 - 2)) - z ((B.r0 1).2 - 2 + 2)),
+   ("start g1", z T0 - z ((B.g1 0).2 + (B.g1 2).2 + 2)),
+   ("start g2", z T0 - z ((B.g2 1).2 + (B.g2 2).2 + 2)),
+   ("start s1", z T0 - z ((B.r0 0).2 + (B.r0 2).2 + 2)),
+   ("start s2", z T0 - z ((B.r0 1).2 + (B.r0 2).2 + 2)),
+   ("rst g2", z T0 - z (T + phi d (PrQ a) + (B.g2 2).2 + 2)),
+   ("rst R0", z T0 - z (T + phi d (PrQ a) + (B.r0 2).2)),
+   ("lo r0.1", z (B.r0 0).1 - 2), ("lo r0.2", z (B.r0 1).1 - 2), ("lo r0.q", z (B.r0 2).1 - 2)]
+
 /-- The conjuncts of `ArbOK`, separately (diagnostics only; the verdict uses `decide (ArbOK …)`). -/
 def diag {N : Nat} (d : Design) (net : Net4 N) (b : Bands4 net) (rn : Fin N → RNode) (fuel rw : Nat)
     (a : ArbD N) : List (String × Bool) :=
@@ -287,12 +313,20 @@ def run (args : List String) : IO UInt32 := do
       w30 := w30.push ((jget x "w_r0a0").bind jnat)
     let K := AS.size
     IO.println s!"[xarbnet] {d.gates.length} gates, {N} nodes ({(A.filter (·.virt)).size} virtual), {K} arbiters, fuel {fuel}, 1 ps steps"
+    let Trst := ((getArg rest "--T").bind String.toNat?).getD 20000
     let mut nOK := 0
+    let mut nRows := 0
     for h : k in [0:AS.size] do
       let a := AS[k]'h.upper
       let ok := decide (ArbOK d net b rn fuel rw a)
       if ok then nOK := nOK + 1
       let B := bandsOf d a
+      let T0 := t0Min d a Trst
+      let okR := decide (ArbRowsOK d a Trst T0)
+      if ok && okR then nRows := nRows + 1
+      IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbRowsOK {okR} (T {Trst}, T0 {T0}) [Events9ArbNetEdge.arbCond_of_edge / Events9FullArb]"
+      if !okR then
+        IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbOK {ok}; K {kOf B}, ctl lo {loCtl B}; Dq g1/g2/R0 {B.g1 2}/{B.g2 2}/{B.r0 2}, Dr1 g1/R0 {B.g1 0}/{B.r0 0}, Dr2 g2/R0 {B.g2 1}/{B.r0 1}, DA0 {B.st 4}"
       if !ok then
         for (nm, v) in diag d net b rn fuel rw a do
@@ -324,6 +358,7 @@ def run (args : List String) : IO UInt32 := do
     let okRs := decide (RsOK asF rs)
     let okFix := decide (FixShape net b rn)
     IO.println s!"[xarbnet] ArbOK {nOK}/{K}; OwnOK {okOwn}; RsOK {okRs}; FixShape {okFix}"
+    IO.println s!"[xarbnet] ArbOK and ArbRowsOK {nRows}/{K} (the checked premises of Events9FullArb.design_verdict9_full_arb besides design_verdict9_full's own)"
     let allOK := nOK == K && okOwn && okRs && okFix
     IO.println s!"VERDICT {if allOK then "ARB-LINK OK" else "ARB-LINK FAILS"} (Events9ArbNet.design_verdict9arbnet: HARB7' and HRst follow from SatPin and the per-arbiter trace conditions ArbCond)"
     return (if allOK then 0 else 1)

@@ -819,3 +819,15 @@ longer hypotheses of the combined verdict. NOT covered: the edge windows (no der
 rows or walks), joint satisfiability on a real run (no witness), and no executable evaluates the
 combined checks in one run yet (xarbnet does not evaluate ArbRowsOK; it prints Rows). Not a
 verified gcd_hw run.
+### progress 07:45
+Toolchain restored from origin/toolchain-cache/d7ce266cff0c8e1e (installed zstd, tcl8.6, boost 1.83,
+simplejson); toolchain.sh 9/9, nextpnr 9c732bc6303458df. gcd_hw R5 d/3/4/5 rebuilt from git archive
+520a43f: all 8 md5s equal events5/builds.txt (reproducible). Bands, E9Par certificates and xevents9par
+reproduce all 16 committed rows byte for byte (10 CLEAN on the corrected core, unchanged); xarbnet
+reproduces too. **xarbnet now evaluates ArbRowsOK** (Events9FullArb's checked arbiter premise): arbiters
+passing of 9 = slow 7/3/7/5, fast 7/4/7/6 (d/3/4/5), indep 0 everywhere, gb 1/0/1/0. Only the B1 rows fail
+(-54..-243 ps at slow/fast). Reading (notes/A-e9arbnet.md, 2026-10-31): the real grant can fall through
+its q pin while its own request pin still reads the old high request (ustate saw the fall first); the
+corrected core's grant, a C-element, cannot. So this is an abstraction limit, not a demonstrated circuit
+failure, and no counter-run was built. Net: the combined theorem's checked premises hold on NO gcd_hw row.
+Fix direction: a grant node that may fall from either input. Not a verified run.

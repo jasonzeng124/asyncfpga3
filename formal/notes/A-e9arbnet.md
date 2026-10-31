@@ -27,3 +27,38 @@ Plan
 2. B1/B2/C/settle as decidable rows over the band file's per-pin arcs and the certificate's
    walks; executable; run on 16 rows.
 3. What remains: Unc W, metastability (settle bound H not available for near ties).
+
+## 2026-10-31 (lead): ArbRowsOK evaluated on the 16 rebuilt rows
+
+Rebuilt gcd_hw R5 d/3/4/5 from `git archive 520a43f` (toolchain restored from the cache branch,
+toolchain.sh 9/9, nextpnr 9c732bc6303458df; BD_SIZES=gcd_hw_sizes_R5.vh, BDC_SELECT_PADS=gcd_hw_pads.json,
+BD_RLOC=v4, no --freq): all 8 SDF / routed-JSON md5s equal events5/builds.txt. e8mux/bands.sh (new
+variant) reproduces the recorded skeleton md5s; par/run.sh reproduces all 16 committed xe9p results byte
+for byte; arbnet/run.sh reproduces the committed xan results (before the edit below).
+
+`xarbnet` now also evaluates `decide (ArbRowsOK d a T T0)` (T = `--T`, default 20000 = rig_rst release
+at 20 ns; T0 = `t0Min`, the least quiet-start time the start-bound conjuncts allow) and prints the
+negative conjunct margins. Table (`results/rows_table_1031.txt`): arbiters with ArbOK and ArbRowsOK, of 9:
+
+| corner | d | 3 | 4 | 5 |
+|---|---|---|---|---|
+| slow | 7 | 3 | 7 | 5 |
+| fast | 7 | 4 | 7 | 6 |
+| indep | 0 | 0 | 0 | 0 |
+| gb | 1 | 0 | 1 | 0 |
+
+Only the four B1 conjuncts ever fail (start bounds and the `2 <=` side conditions always hold). Worst
+margins: slow -131..-243 ps, fast -54..-103, gb -657..-910, indep -1442..-1893.
+
+**What a failing B1 row means.** B1 (`RdOK` clause 1) asks: if a reader sees the request high and the
+state literal lost at `t`, the reader's output was already low at `t - 2`. The real grant is an AND of its
+request read and its q read. The row `hi Dr + 2 <= lo DrQ + lo Dq` makes the grant's request pin see a
+request fall no later than ustate's request pin plus the grant's q pin. When it fails, the trace that
+breaks the proof is: the request falls, ustate sees it and flips q, and the grant falls through its q pin
+while its own request pin still reads the old high request. The grant falls AFTER the request fell (four-
+phase order kept), but the corrected core's grant (a two-input C-element on request and ctl) cannot fall
+while its request input is high. So the failure is a limit of the abstraction. It is not shown to be a
+circuit failure, and no counter-run of the real cell was built for it. Consequence: `design_verdict9_full_arb`'s
+checked premises hold on NO gcd_hw row (each needs 9/9). A core whose grant may fall from either input (an
+AND, not a C-element, on the fall) would remove this row; that changes Events9Arb's virtual node kind, not
+done.
