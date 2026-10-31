@@ -162,7 +162,8 @@ experiments; and (2) **connecting** the proofs to the real routed design
        `Events9FullArb.design_verdict9arbnet_ord`. All its checked premises hold on **10 gcd_hw rows**
        (slow/fast on all 4 seeds, gb on 3/4). Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
        (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
-       gcd correctness.
+       gcd correctness. **Joint satisfiability of these hypotheses on a real gcd_hw/ipow/xorshift run is not
+       shown** (no witness), so the rows are conditional, not shown non-vacuous.
      - **Arbiters vs κ:**
        - B's `OnGcdArbKappa` is safe for κ ≤ 16587/374773 ≈ 0.0443. That is the server-free arc
          form, tight on the 1 fs grid for its binding row (`OnGcdArbKappaTight.rt1b_safe` /

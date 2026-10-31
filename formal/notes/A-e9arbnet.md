@@ -108,3 +108,7 @@ constant for `hi2` after each change of q, then QClean holds. For ustate O6 this
 on q by a condition on ustate's input reads (requests, reset, A0): no input read changes within one q-feedback
 delay of a q change. A contested near tie violates it, as it must. (`st_stable`: the real INIT is also
 one-step stable, not needed by this proof.) Not done: instantiating it inside ArbEdge (QClean is still the field).
+
+**Scope of every "row covered" statement in this note (self-audit, 2026-10-31):** it means the decidable
+premises evaluate to true on that row. No witness shows SatPin + constants/reset + ArbEdge (or QQuiet and the
+rest) + ArbOrd + SelOK + SelPart jointly satisfiable on that route, so no row is shown non-vacuous.
