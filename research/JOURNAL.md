@@ -1854,3 +1854,6 @@ the pre-place script, or a soft nextpnr pull toward a datapath centroid, before 
   sigma 0.16 / 0.24 / 0.32 with wire 0.126 / 0.189 / 0.252, on the two routes with confirmed linear-2x failures
   (BQ#3 seed 9, BQ#2 seed 6). seeds_fid tags these runs _logn. Question: at what scale does each first fail when
   the speed-up tail is bounded like silicon's?
+### progress 17:55 (log-normal scan: BQ#3 seed 9 passes 1x and 1.5x)
+- GLS_SCATTER_LOGN=1, draw 1, BQ#3 seed 9 (linear threshold ~1.33x): sigma 0.16/0.126 PASS 52/42/62, sigma
+  0.24/0.189 (1.5x) PASS 51/41/61. 2x log-normal running (an earlier session saw it fail).
