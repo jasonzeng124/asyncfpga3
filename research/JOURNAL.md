@@ -1774,3 +1774,6 @@ research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatte
 Reading: 1/3 vs 1/3; fewer errors on draw 2 but more on draw 1; the constrained route is 6-16% slower. No
 robustness gain shown, a speed cost shown. Draw 4 on both running; unless it separates them, the chain-only
 region prototype is a negative result.
+### progress 00:15 (full container restart; draw-4 and seed-9 2x runs restarted)
+- Container restarted (~00:13, uptime 0): disk kept, processes lost (2x draw 4 on both seed-6 routes, BQ#2 seed 9
+  2x draw 1). toolchain.sh ok; partial run dirs removed; both relaunched.
