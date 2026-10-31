@@ -1,5 +1,6 @@
 import Formal.Core.XAudit.Events9Full
 import Formal.Core.XAudit.Events9ArbNetEdge
+import Formal.Core.XAudit.Events9ArbB1
 
 /-!
 # Formal.Core.XAudit.Events9FullArb — one statement: full select/setup verdict + arbiter link
@@ -181,6 +182,42 @@ theorem design_verdict9arbnet_edge (hr : Recog6 d net b rn rank rw fuel) (hOK : 
           x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) :=
   design_verdict9arbnet hr hOK hJ back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg as own hA hown hrs hfs
     hsat h0 h1 hT hrst T0 H (fun k => arbCond_of_edge hsat h0 h1 (hA k) hrst (hrows k) (he k)) sel
+
+
+/-- **`design_verdict9arbnet_ord`**: `design_verdict9arbnet_edge` with the four B1 band rows of
+`ArbRowsOK` replaced by the behaviour hypothesis `ArbOrd` (each reader's read order; given under
+fixed path delays in a corner model by `ord_of_transport` + `corner_ord`). Checked: the par verdict's
+checks, ArbOK, OwnOK, RsOK, FixShape, `ArbRowsOKS` (start bounds). Assumed: SatPin, constants,
+reset, `ArbEdge`, `ArbOrd`, then SelPart, SelOK and the residual obligations. -/
+theorem design_verdict9arbnet_ord (hr : Recog6 d net b rn rank rw fuel) (hOK : net.OK7)
+    {parts : List (List Nat)} {rs : Nat → Nat} {log : List LnP} {J : Array Jd}
+    (hJ : runLogP net b rs parts log = some J)
+    (back line : (j : Fin N) → Fin (net.ar j) → Nat) (xS xw : Fin N → Nat) (xa : Fin N → List Arm)
+    (hl : List HLn9) (gd : (j : Fin N) → Fin (net.ar j) → GD)
+    (cp : (j : Fin N) → Fin (net.ar j) → Bool) (cxm : Fin N → Bool) (cl : (j : Fin N) → Fin (net.ar j) → Bool)
+    (cg : (j : Fin N) → Fin (net.ar j) → Bool)
+    (hcp : ∀ j p, cp j p = true → backOK7 net b J j p (back j p) = true)
+    (hcx : ∀ m, cxm m = true → exclOK7 net b parts J m (xS m) (xa m) (xw m) = true)
+    (hcl : ∀ j p, cl j p = true → lineOK7 net b J j p (line j p) = true)
+    (hcg : ∀ j p, cg j p = true → guardOK8 net b parts J (hl.map (san J)) j p (gd j p) = true)
+    (as : Fin K → ArbD N) (own : Fin N → Option (Fin K))
+    (hA : ∀ k, ArbOK d net b rn fuel rw (as k)) (hown : OwnOK rn as own) (hrs : RsOK as rs)
+    (hfs : Events9Arb.FixShape net b rn)
+    (hsat : SatPin d plG x) (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+    {T : Nat} (hT : 1 ≤ T) (hrst : ∀ t, x (d.wire rw) t = decide (t < T))
+    (T0 : Nat) (H : Fin K → Nat) (hrows : ∀ k, ArbRowsOKS d (as k) T T0)
+    (he : ∀ k, ArbEdge hsat rn (as k) T0 (H k)) (ho : ∀ k, ArbOrd hsat (as k) T0) (sel : Nat → Nat → Bool) :
+    ∃ cv : Fin N → Sig, ∃ bh : Beh7 net b sel, (∀ j t, bh.c j t = ccOf rn x cv j t) ∧
+      (∀ j p s, bh.gc j p s = gcnt net sel j p (bh.cm j p s)) ∧
+      (SelPart sel parts → bh.SelOK →
+        (∀ j p s, net.mg j = false → net.pk j p ≠ PK.guard → cp j p = false → bh.P j p s ≤ bh.M (bh.Q j s) j + 1) →
+        (∀ m s, net.mg m = true → cxm m = false → fodd (net.ar m) (fun p => bh.P m p s) ≤ 1) →
+        (∀ j p s, net.pk j p = PK.multi → cl j p = false → ContigF (net.nc j p) (bh.cm j p s)) →
+        (∀ j p, net.pk j p = PK.guard → cg j p = false → GuardPin bh j p) →
+        ∀ t j, (rn j).virt = false →
+          x (d.wire (gt d (rn j).lut).out) t = ph (net.v j) (bh.M t j)) :=
+  design_verdict9arbnet hr hOK hJ back line xS xw xa hl gd cp cxm cl cg hcp hcx hcl hcg as own hA hown hrs hfs
+    hsat h0 h1 hT hrst T0 H (fun k => arbCond_of_ord hsat h0 h1 (hA k) hrst (hrows k) (he k) (ho k)) sel
 
 end
 

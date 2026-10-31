@@ -89,3 +89,15 @@ fast 0.0537/0.0547/0.0467/0.0536. So if the in-corner spread is shared and the l
 B1 holds on every gcd_hw arbiter reader that fails it in band form. This is close to B's server-free arbiter
 threshold 0.0443 (OnGcdArbKappa). NOT done: plugging the corner-model order into arbCond_of_edge (it takes the
 band row ArbRowsOK, not HOrd), and the readers that pass in band form were not re-checked under κ.
+
+**gcd_hw with the read order assumed (2026-10-31).** `Events9ArbB1.arbCond_of_ord` = `arbCond_of_edge` with
+the four B1 band rows replaced by `ArbOrd` (per reader, the behaviour's read order); `ArbRowsOKS` = the
+remaining (start) conjuncts, decidable; `ord_of_row`: a reader whose band row holds satisfies its order for
+every behaviour, so ArbOrd is a real assumption only at the readers whose band row fails.
+`Events9FullArb.design_verdict9arbnet_ord` is the par verdict with ArbOK/OwnOK/RsOK/FixShape/ArbRowsOKS
+checked and ArbEdge + ArbOrd assumed. xarbnet: ArbRowsOKS 9/9 on all 16 rows. With xevents9par CLEAN, all
+checked premises hold on **10 gcd_hw rows: slow and fast on d/3/4/5, gb on 3/4**
+(`results/gcd_ord_table_1031.txt`). What is assumed for those rows: SatPin, constants/reset, ArbEdge (QClean,
+quiet start, settle bound, edge windows), ArbOrd at the B1-failing readers (supported, not proved, by the
+corner model: shared band position plus path scatter κ <= ~0.047, via ord_of_transport/corner_ord and the
+untrusted b1Kappa print), SelOK, SelPart.

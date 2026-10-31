@@ -148,6 +148,13 @@ experiments; and (2) **connecting** the proofs to the real routed design
        B1 row fails: the real grant can fall through its q pin before its request pin sees the request
        fall, and the core's C-element grant cannot. This is an abstraction limit, not a demonstrated
        failure (`notes/A-e9arbnet.md`). So the combined theorem covers **no** gcd_hw row yet.
+       **Later the same day:** B1 holds on every failing reader if the arcs share their position inside
+       the band (min margin 51 ps), and also under path scatter κ ≤ ~0.047 (untrusted print). Making B1 a
+       behaviour hypothesis ArbOrd (`Events9ArbB1`; `ord_of_row`: automatic where the band row holds) gives
+       `Events9FullArb.design_verdict9arbnet_ord`. All its checked premises hold on **10 gcd_hw rows**
+       (slow/fast on all 4 seeds, gb on 3/4). Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
+       (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
+       gcd correctness.
      - **Arbiters vs κ:**
        - B's `OnGcdArbKappa` is safe for κ ≤ 16587/374773 ≈ 0.0443. That is the server-free arc
          form, tight on the 1 fs grid for its binding row (`OnGcdArbKappaTight.rt1b_safe` /

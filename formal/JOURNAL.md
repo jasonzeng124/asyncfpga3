@@ -873,3 +873,14 @@ ord_of_transport, corner_ord (κ-guarded nominal row gives the order). Untrusted
 gcd_hw slow/fast the failing B1 readers hold under a shared-position corner model for κ up to 0.047-0.067
 (min per row in tools-A/xaudit/arbnet/results/b1_kappa_1031.txt; fast seed 4 lowest, 0.0467). Not yet wired
 into arbCond_of_edge (it still takes ArbRowsOK). κ itself is unmeasured (T1 test).
+### progress 09:03
+**gcd_hw: first rows on the corrected core with every checked premise passing** (conditional). New (check.sh
+OK): Events9ArbB1.arbCond_of_ord, ArbRowsOKS, ord_of_row; Events9FullArb.design_verdict9arbnet_ord. The B1
+band rows become the behaviour hypothesis ArbOrd; ord_of_row makes it automatic where the band row holds.
+xarbnet: ArbRowsOKS 9/9 on all 16 rows; with xevents9par CLEAN that gives 10 rows (slow/fast x d/3/4/5, gb
+3/4). Plain statement for those rows: every behaviour of the routed gcd_hw control skeleton in the per-pin
+prjxray bands that satisfies constants/reset, ArbEdge (no metastable runt on q, quiet start, settle bound,
+edge windows), ArbOrd at the B1-failing readers (needs a shared in-corner position and path scatter
+<= ~4.7%), SelOK and SelPart has every real LUT wire equal to its reset value flipped M t j times (counts of
+a certified Beh7 realisation). Not a correctness theorem for gcd (that is C's capstone, which needs
+H_BUNDLE/H_CELLS, which this does not yet supply). No silicon claim; κ and the shared position unmeasured.

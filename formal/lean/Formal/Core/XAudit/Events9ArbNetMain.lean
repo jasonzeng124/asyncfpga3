@@ -2,6 +2,7 @@ import Lean.Data.Json
 import Formal.Core.XAudit.Parse
 import Formal.Core.XAudit.Events9ArbNetRows
 import Formal.Core.XAudit.Events9ArbNetEdge
+import Formal.Core.XAudit.Events9ArbB1
 
 /-!
 # `xarbnet` — check the arbiter link of a ROUTED netlist (executable main)
@@ -342,6 +343,7 @@ def run (args : List String) : IO UInt32 := do
     let Trst := ((getArg rest "--T").bind String.toNat?).getD 20000
     let mut nOK := 0
     let mut nRows := 0
+    let mut nRowsS := 0
     for h : k in [0:AS.size] do
       let a := AS[k]'h.upper
       let ok := decide (ArbOK d net b rn fuel rw a)
@@ -350,6 +352,8 @@ def run (args : List String) : IO UInt32 := do
       let T0 := t0Min d a Trst
       let okR := decide (ArbRowsOK d a Trst T0)
       if ok && okR then nRows := nRows + 1
+      let okS := decide (ArbRowsOKS d a Trst T0)
+      if ok && okS then nRowsS := nRowsS + 1
       IO.println s!"[xarbnet] arbiter {anames[k]!}: ArbRowsOK {okR} (T {Trst}, T0 {T0}) [Events9ArbNetEdge.arbCond_of_edge / Events9FullArb]"
       if !okR then
         IO.println s!"  ArbRowsOK margins (ps): {(rowsDiag d a Trst T0).filter (fun p => decide (p.2 < 0))}"
@@ -387,6 +391,7 @@ def run (args : List String) : IO UInt32 := do
     let okFix := decide (FixShape net b rn)
     IO.println s!"[xarbnet] ArbOK {nOK}/{K}; OwnOK {okOwn}; RsOK {okRs}; FixShape {okFix}"
     IO.println s!"[xarbnet] ArbOK and ArbRowsOK {nRows}/{K} (the checked premises of Events9FullArb.design_verdict9_full_arb besides design_verdict9_full's own)"
+    IO.println s!"[xarbnet] ArbOK and ArbRowsOKS {nRowsS}/{K} (start rows only; with ArbOrd assumed: Events9FullArb.design_verdict9arbnet_ord)"
     let allOK := nOK == K && okOwn && okRs && okFix
     IO.println s!"VERDICT {if allOK then "ARB-LINK OK" else "ARB-LINK FAILS"} (Events9ArbNet.design_verdict9arbnet: HARB7' and HRst follow from SatPin and the per-arbiter trace conditions ArbCond)"
     return (if allOK then 0 else 1)
