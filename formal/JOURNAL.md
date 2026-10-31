@@ -842,3 +842,9 @@ rests on the refuted HARB7; it rests on SatPin, constants/reset, ArbEdge (no met
 start, settle bound, edge windows), SelOK, SelPart. ipow's DSPs are cut (datapath not covered); no
 silicon claim. Boundary negative control: +43 ps on a grant request pin passes, +44 fails (B1 -1).
 gcd_hw: still no row (2-6 of 9 arbiters fail B1 at slow/fast). Mathlib build still running.
+### progress 08:25
+Mathlib built. CornerDiff's port of the auditor's witness failed check.sh (`field_simp` is not
+imported in this file: "unknown tactic"), so it was NOT checked when pushed at 07:40 as "pending
+check". Fixed with an elementary rewrite (mul_div_cancel₀); `check.sh Formal/Core/Delay/CornerDiff.lean`:
+452 decls, [check] OK. diff_not_imp_scat_strong and diff_not_imp_scat_degenerate are now claimed.
+Whole-project lake build still running (~560/741 Formal modules).

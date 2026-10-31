@@ -329,7 +329,9 @@ theorem diff_not_imp_scat_strong (K : ℝ) (hK0 : 0 ≤ K) (hK1 : K < 1) :
       ∀ s' : ℝ, 0 < s' → ¬ (Scat K (s' * 1) da ∧ Scat K (s' * 2) db) := by
   set e := (1 - K) / (4 * (1 + K)) with he
   have hpos : 0 < 1 + K := by linarith
-  have he4 : (1 + K) * (4 * e) = 1 - K := by rw [he]; field_simp
+  have he4 : (1 + K) * (4 * e) = 1 - K := by
+    rw [he, show (1 + K) * (4 * ((1 - K) / (4 * (1 + K)))) = (4 * (1 + K)) * ((1 - K) / (4 * (1 + K))) by ring]
+    exact mul_div_cancel₀ _ (ne_of_gt (by linarith))
   have he0 : 0 < e := by rw [he]; apply div_pos <;> linarith
   refine ⟨e, 1 + e, by unfold guardLo guardHi; norm_num, ?_, ?_⟩
   · constructor <;> linarith
