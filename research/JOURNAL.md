@@ -1857,3 +1857,6 @@ the pre-place script, or a soft nextpnr pull toward a datapath centroid, before 
 ### progress 17:55 (log-normal scan: BQ#3 seed 9 passes 1x and 1.5x)
 - GLS_SCATTER_LOGN=1, draw 1, BQ#3 seed 9 (linear threshold ~1.33x): sigma 0.16/0.126 PASS 52/42/62, sigma
   0.24/0.189 (1.5x) PASS 51/41/61. 2x log-normal running (an earlier session saw it fail).
+### progress 18:25 (log-normal: BQ#3 seed 9 fails at 2x -- threshold 1.5-2x, linear ~1.33x)
+- BQ#3 seed 9, log-normal sigma 0.32/0.252: FAIL errs 6 (same six vectors as linear 2x). Its failing scale under
+  log-normal factors is between 1.5x and 2x the calibrated scatter (linear: ~1.33x). BQ#2 seed 6 scan running.
