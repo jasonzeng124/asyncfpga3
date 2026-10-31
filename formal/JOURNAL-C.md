@@ -752,3 +752,12 @@ GcdShli0) + GcdJoin; xorshift (Gen Xs/*, Sgt, BitFn, XsUnits, XsFn, XsXor). Nega
 are building. The 11g full check (tools/fasm2lean3/check.sh, every seed of gcd + xorshift) has
 passed steps 0-2 (toolchain 9c732bc6303458df, 4 seeds, check3 0 fail, drift up to date, rhoinj
 uncovered 0); its Lean step is still running.
+
+### progress 09:42 -- xorshift H_COMPUTE_FN claimed
+Committed after my own `./check.sh` (Gen/Compute/Xs/{Uaddi0,Ucmpi0,Ucmpi1,Uxori1,Uxori2}, Sgt,
+BitFn, XsUnits, XsFn, XsXor: 10 files, 2115 declarations, standard axioms only, OK;
+`KERNEL=xorshift tools/compute/gen.sh --check`: all 5 up to date). Proved for every input, on the
+xorshift soak top's yosys synthesis (identical on its 4 seeds): uaddi0 = `e0 + 1`, ucmpi0 = signed
+`e0 > e1`, ucmpi1 = signed `e0 < e1`, uxori2 = `e0 ^ (e0 << 5)`, uxori1 =
+`t ^ (t >> 17)` with `t = e0 ^ (e0 << 13)`. This is a second kernel on the same machinery. It does NOT show
+timing, H_MAP for xorshift, or anything about the board.

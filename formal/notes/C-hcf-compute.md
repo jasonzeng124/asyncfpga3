@@ -4,9 +4,9 @@ Shard C, 2026-10-31. Core Lean only (no Mathlib), no sorry/axiom/native_decide; 
 (`decide +kernel`) for the exhaustive local checks.
 
 STATUS (claimed = committed after `./check.sh`; see JOURNAL-C for each commit): claimed: uori0/1,
-ucmpi0/1/2/3/8/10, uaddi0, ushrsi0-4, and (this commit) uori2/3/4, uselect0, uselect1. PENDING
-CHECK (files present, NOT claimed until a later commit says so): ushli0 (`GcdShli0*`),
-`GcdJoin.lean`, xorshift (`Xs*`, `Sgt`, `BitFn`).
+ucmpi0/1/2/3/8/10, uaddi0, ushrsi0-4, uori2/3/4, uselect0, uselect1; xorshift's 5 units (`Xs*`,
+`Sgt`, `BitFn`; check.sh 10 files, 2115 declarations, OK). PENDING CHECK (NOT claimed until a
+later commit says so): ushli0 (`GcdShli0*`), `GcdJoin.lean`.
 
 ## Problem statement
 
