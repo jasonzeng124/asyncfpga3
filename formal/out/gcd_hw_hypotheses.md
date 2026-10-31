@@ -41,7 +41,7 @@ it:
 - inputs outside [0, 2^31);
 - laps after the first (except `gcd_rig_every`, which has no witness);
 - the rig's result capture;
-- the data-path functions (H_COMPUTE_FN);
+- the data-path functions (H_COMPUTE_FN) -- now proved by C for all 20 units (2026-10-31), but not yet a hypothesis discharged inside these theorems (H_MAP, constants open);
 - metastability (contest-freedom is proved in the model: `gcd_hw_never_contested`,
   `gcd_hw_arbiters_uncontended3`).
 
