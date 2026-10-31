@@ -711,3 +711,6 @@ Pass 17: ~/wt-f14 at formal 464c5ea7 (1058 files); NChk-first build running. Sub
 of P15a and whether any gcd_hw row now has ArbOrd discharged; corrected glsq monitors vs the Lean definitions; B's
 Bwit4 (170/175), the N level (173/175), and whether NChk chunking changes what is checked; dangling citations after
 the Prelim deletion. Research: BQ#1 1x scatter 3/3 PASS (4a48b6b4), not yet looked at.
+
+### progress 16:10
+BQ#1 d 1x scatter draw 1: 16/16 errs 0, 23/18/26 (= claim), no stalls. CONFIRMED. Formal build status: EXITMOD BWit2NChk 0 EXITMOD BWit3NChk 0 EXITMOD BWit4NChk 0 EXITMOD BWitNChk 0 
