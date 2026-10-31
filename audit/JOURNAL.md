@@ -691,3 +691,7 @@ P16 in. I checked its two overstatements myself: no BWit4Net exists although not
 its witness theorem; FiniteNetComb.lean:11 says "(no runt, no hazard)" but B_excclean.lean (rc 0, re-run by me)
 shows a runt passes H_EXC_CLEAN. Arbiter mutual exclusion is still assumed via H_OTHER. CONFIRMED: 164/170 censuses,
 Bwit3 (own INIT decoding), b1_and (576 margins; a proof-side virtual node, not a circuit change), 11g import.
+
+### progress 14:25
+BQ#1 seed 9 route: sdf 81d27cf3 and xray 7a495c31 REPRODUCED (= TSV), so BQ#1's non-default-seed routes reproduce too.
+SLOW_MAX sim 7/16. Axiom audit 58251494: 403/865, bad 0.
