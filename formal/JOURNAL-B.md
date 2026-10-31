@@ -1564,3 +1564,30 @@ existing edges) carries the four cell lemmas and flink_spec_env1; producers adap
 (FiniteNetWit2Lib, AssumeGuaranteeMuxNFin, SelfAuditB9). This WEAKENS a hypothesis, so
 every theorem using these specs is at least as strong as before. All 12 dependent modules
 re-check (private olean build, 140-module closure).
+
+### progress 08:12
+In (core Lean; private olean build, 130-module closure, axioms standard):
+Bwit step 3 -- the DRIVER-BOUND gate-level gcd_hw theorem has a joint witness.
+BWitLib (wire_map/gE_map: event-list wires of any delay; celB_spec'/stB_spec'/orB_spec'/
+linkB_spec': Bfin3's checkers with pins at any wire delay from a bound driver, edges read
+at existing edges only, node edge times checked as data), BWitNDefs + generated BWitNData
+(tools-B/bwit/gen_bdata.py --check ok: per-channel pin wire delays, steer token tables),
+BWitNChk (kernel: every channel's two pins are wires of the netlist-named driver's node,
+every link / fork / join / steer / OR cell passes its checker), BWitNet:
+- bwit_ok : FGcdNetOKB chB NBn LB nB. Every tied cell's node IS the channel signal it
+  drives, one tick early; every tied pin is driven by the cell reqSrc/ackSrc names, through
+  wires of delay 1-3; contract cells (one per channel signal) drive only pins whose netlist
+  driver is an untied operator.
+- gcd_hw_fin_netB_witness: chB meets FGcdNetOKB AND C's H_OTHER, H_BUNDLE, H_CM_FORCED
+  jointly, out0 latches 6; gcd_hw_fin_netB_consistent applies gcd_hw_safe_fin_netB.
+- bwit_link_env: on the witness, the 63 both-side-bound links' pin drivers are tied
+  gate-model cells with pins.
+So gcd_hw_safe_fin_netB is NOT vacuous, and unlike Bfin3's witness the gate-modelled
+nodes DRIVE the network: tied guarantees feed tied assumptions (link -> link, steer ->
+link, fork C-element -> link ack, ...). Needed on the way: NB (event horizon of B's list
+checkers) 480 -> 640, old witnesses re-check.
+NOT covered: one run (12, 18), unit LUT delay and simulator-chosen wire delays 1-3 (no
+delay band exercised, windows met at width 0), R = 2; contract cells' contracts hold
+because their nodes are clean (at the 112 unbound link sides and every pin driven by an
+untied operator); C's H_OTHER for the 192 non-link operators is still assumed by the
+theorem and here discharged only on this run by C's checkers. Negative control running.
