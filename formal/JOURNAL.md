@@ -1057,3 +1057,5 @@ Events9ArbB1.arb_low_of_reqlow (check.sh OK): at an ArbOK arbiter, both request 
 ArbEdge's 'low' field (grants and R0 low there) from the real INITs, whatever q is. So the quiet start reduces to
 an environment condition on the requests. (On the corrected GLS run the first grant rises ~40 ns after reset
 release, consistent with this.) The settle bound and the per-reader edge windows remain assumed.
+### progress 14:39
+Whole-project ./check.sh OK (73187 library declarations, standard axioms) including arb_low_of_reqlow.
