@@ -15,3 +15,8 @@ on 7 arbiters, 772 / 731 ps on merge2 / merge9. Negative control: WSCALE=20 give
 vector 6, so the check can fail. NOT covered: other seeds, corners, scatter, the band-hi window of the Lean
 hypothesis, and the pre-reset period (QQuiet as stated in Lean quantifies over all times, so it is FALSE on this
 run at 3-7 ns; a version of qclean_of_quiet from T0 on would be needed).
+
+Quiet start (`gen_lowmon.py`, ArbEdge's `low` field): vector 6, same build, all 27 grant/R0 LUT outputs of the 9
+arbiters: the only edges before rig reset release (478.5 ns) are X->0 resolutions at 2.3-4.7 ns; no rise before
+release; the first grant rise is at 610.0 ns (`low_vec6_head.txt`). So `low` holds here for any T0 up to ~607 ns
+after time 0 (the Lean model is binary from t = 0; the GLS starts at X, which the SatPin model does not have).
