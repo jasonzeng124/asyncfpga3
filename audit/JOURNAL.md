@@ -802,3 +802,9 @@ No other PASS run I reproduced shows double laps (scan of all logs).
 Research 7ceec350 tabulates failing scales: BQ#3 s9 1.75-2x (relies on the 1.75x "PASS" refuted in r23 M, so really
 1.5-1.75x) and BQ#2 s6 1.5-1.75x. Their ">= 1.5x margin on the worst known route/draw" holds on my reproductions
 (both 1.5x runs clean). They start a 1.5x draw-2 sweep next.
+
+### progress 23:37
+New tool audit/tools/lapcheck.py: per-vector STALL / DOUBLE (completion pairs < 1 ns) / ERR check on sweep logs, the
+two failure modes the seeds_fid judge misses. Validation: flags exactly vectors 2,3,9,11,13,15 of the 1.75x run
+(lapcheck_bq3_9_logn175.txt), CLEAN on bq3_9_logn15, bq2_6_logn15, s7_2x, bq1_d_1x, and flags all 16 vectors of the
+failing s6_2x_d2. I will run it on every future GLS reproduction.
