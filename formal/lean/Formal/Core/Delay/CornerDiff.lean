@@ -309,4 +309,35 @@ theorem ring_kappa_below_infeasible {κ ri rj : ℝ} (hκ1 : κ ≤ 1) (hκm : -
   have hk : (ri - rj) / (ri + rj) * (ri + rj) = ri - rj := div_mul_cancel₀ _ hpos.ne'
   nlinarith
 
+/-! ## Non-degenerate difference-without-per-path witness (2026-10-31)
+
+Audit `5a1ee8d2` (P13, OVERSTATED): `diff_not_imp_scat`'s witness is a scale artefact -- at
+the shared scale `s' = |K| + 3` both of its tails have per-path scatter 0. The statement is
+still true, but the witness does not show what the docstring says. `diff_not_imp_scat_strong`
+(proof by the auditor, `audit/lean/P13/T23_Corner.lean`, ported verbatim) is the honest
+version: a pair that passes rule E's guard (`Pa = 1`, `Pb = 2`), has `κd = 0` at scale 1, and
+violates per-path `Scat K` on at least one tail at EVERY positive shared scale, for every
+`0 ≤ K < 1`. -/
+
+/-- At the scale `|K| + 3` the old witness has per-path scatter 0 (it is degenerate). -/
+theorem diff_not_imp_scat_degenerate (K : ℝ) :
+    DiffScat 0 (|K| + 3) 1 1 (|K| + 3) (|K| + 3) ∧ Scat 0 ((|K| + 3) * 1) (|K| + 3) := by
+  refine ⟨?_, ?_⟩ <;> simp [DiffScat, Scat]
+
+theorem diff_not_imp_scat_strong (K : ℝ) (hK0 : 0 ≤ K) (hK1 : K < 1) :
+    ∃ da db : ℝ, 0 < guardLo * 2 - guardHi * 1 ∧ DiffScat 0 1 1 2 da db ∧
+      ∀ s' : ℝ, 0 < s' → ¬ (Scat K (s' * 1) da ∧ Scat K (s' * 2) db) := by
+  set e := (1 - K) / (4 * (1 + K)) with he
+  have hpos : 0 < 1 + K := by linarith
+  have he4 : (1 + K) * (4 * e) = 1 - K := by rw [he]; field_simp
+  have he0 : 0 < e := by rw [he]; apply div_pos <;> linarith
+  refine ⟨e, 1 + e, by unfold guardLo guardHi; norm_num, ?_, ?_⟩
+  · constructor <;> linarith
+  · rintro s' hs' ⟨⟨h1, _⟩, ⟨_, h4⟩⟩
+    have a : (1 - K) * (1 + e) ≤ (1 - K) * ((1 + K) * (s' * 2)) :=
+      mul_le_mul_of_nonneg_left h4 (by linarith)
+    have b : (1 + K) * 2 * ((1 - K) * (s' * 1)) ≤ (1 + K) * 2 * e :=
+      mul_le_mul_of_nonneg_left h1 (by nlinarith)
+    nlinarith
+
 end Formal.Core.CornerDiff

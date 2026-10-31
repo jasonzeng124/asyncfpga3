@@ -46,8 +46,12 @@ experiments; and (2) **connecting** the proofs to the real routed design
        The value of κ is unmeasured;
      - flops and latches (`Core/Prims/Seq{Next,Flop,Latch,Xray,Gls,Sync}`, PrimsSeq, 845 decls):
        per-input setup/hold windows, X bounded by cqHi+res then definite (res = named
-       H_FF_RESOLVE, no MTBF), two-flop synchronizer; prjxray ships no fast-corner setup/hold
-       (H_WINDOW_SLOW_ONLY).
+       H_FF_RESOLVE, no MTBF, a free parameter: so x_contained / sync_two_flop restate that
+       assumption rather than derive it, audit `53d5cc9`), two-flop synchronizer; prjxray ships no fast-corner setup/hold
+       (H_WINDOW_SLOW_ONLY). **2026-10-31:** the windows were SLICEL-only, and a SLICEM flop's D
+       hold is 262 ps against SLICEL's 241 (unsafe side; audit `53d5cc9` P10b OVERSTATED). SLICEM
+       numbers added (`SeqXray.regFFM/ff5M/latM`, site-selected `regFFAt`, `slicem_hold_longer`);
+       the site type of a placed flop is the named H_FF_SITE.
      - DSP48E1 as ipow uses it (`Core/Prims/{Dsp,DspData,DspTimed}`, PrimsDSP, 700 decls): the combinational cascade = (a*b) mod 2^32 for all inputs; sound coarse X model; lumped settle bound tight to 1 ps;
      - xaudit sound in continuous time (`Core/XSimChan*`, `XAudit/Sound*`, XSound2, 1470 decls): transport channels, and inertial iff ρ ≤ (hi+1−lo)·q;
      - the arbiter loop at signal level (`Core/Delay/InvolutionLoop{Bridge,Signal,Rate}`, InvLoop2, 994 decls): for every solution q latches iff s > s*, loses iff s < s*, oscillates forever iff s = s*; laps to resolution between two logarithmic bounds under channel slope bounds;
@@ -121,7 +125,7 @@ experiments; and (2) **connecting** the proofs to the real routed design
        - Per-obligation tcheck rows, matched to the Ops fields by hand (8w: 4500/4572 rows
          matched).
        - A's `Core/XAudit/Events8Beh.design_verdict8`: CLEAN at the slow and fast corners on the 4
-         seeds, under SatPin, constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub. **2026-10-29: HDsub is discharged (`Events9.design_verdict9`), but H_ARB as encoded (HARB7) is FALSE on real uncontested bd_arbiter runs (`Core/XAudit/Events8Arb.unc_not_harb`: R0 can rise before the grant from ustate's own q read; the virtual grant is 2 steps late), and C's untimed `Unc 0` is not enough (`noFree_not_harb`). So the CLEAN verdict currently covers no real run. A corrected virtual core and the sufficiency proof are probe E8ArbFix.** **E8ArbFix (2026-10-29): with the corrected core (each reader of q gets its own pin band; R0 a merge of two shadow grants) the real cell is proved a behaviour of it at cell level under per-reader timing conditions B1/B2/C and a settle bound H (`Events9Arb.core_of_settle`, Lean check pending), and it fits 576/576 recorded arbiter runs; but xevents9 with it gives NO CLEAN gcd_hw row: 54 structural residuals per row (6 per arbiter, all relying on "R0 is a merge of the grants"), needing a new liveness rule (probe E9Par).** **Other hypotheses of the verdict (2026-10-29, claimed):** HDsub proved (`Events9`); SelOK at real pins derived from C's H_BUNDLE through a checked channel map, with hold rows (`Events9Sel*`; split rows CLEAN on all slow/fast/gb rows, but the split lag is a named hypothesis, not a causal consequence: `Events9PrefixSel.sibling_lag_neg`); a prefix-by-prefix verdict (`Events9Prefix.design_verdict9_upto`) with H_ACK_LAG replaced by checked rows at a source-anchored lag (rows not yet generated: probe E9SelRun). Remaining on a row: SatPin (the model), constants/reset, C's H_BUNDLE, setup, and the arbiter (corrected core + liveness rule + Unc).
+         seeds, under SatPin, constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub. **2026-10-29: HDsub is discharged (`Events9.design_verdict9`), but H_ARB as encoded (HARB7) is FALSE on real uncontested bd_arbiter runs (`Core/XAudit/Events8Arb.unc_not_harb`: R0 can rise before the grant from ustate's own q read; the virtual grant is 2 steps late), and C's untimed `Unc 0` is not enough (`noFree_not_harb`). So the CLEAN verdict currently covers no real run. A corrected virtual core and the sufficiency proof are probe E8ArbFix.** **E8ArbFix (2026-10-29): with the corrected core (each reader of q gets its own pin band; R0 a merge of two shadow grants) the real cell is proved a behaviour of it at cell level under per-reader timing conditions B1/B2/C and a settle bound H (`Events9Arb.core_of_settle`, checked; audit P12c 2b: it leaves q free -- the real state LUT enters only through the settle bound hstall, which may be ~1e12, and four RdOK hypotheses; its non-vacuity witness has one client active; and `design_verdict9arb` takes HARB7 from HARB7' by projection, so the corrected core adds no soundness to the design verdict), and it fits 576/576 recorded arbiter runs; but xevents9 with it gives NO CLEAN gcd_hw row: 54 structural residuals per row (6 per arbiter, all relying on "R0 is a merge of the grants"), needing a new liveness rule (probe E9Par).** **Other hypotheses of the verdict (2026-10-29, claimed):** HDsub proved (`Events9`); SelOK at real pins derived from an H_BUNDLE-shaped hypothesis (audit P12c 2a: it is assumed as Held on A's own wires, not imported from a C theorem, and the channel map's entOK only checks that a buffer route exists), with hold rows (`Events9Sel*`; split rows CLEAN on all slow/fast/gb rows, but the split lag is a named hypothesis, not a causal consequence: `Events9PrefixSel.sibling_lag_neg`); a prefix-by-prefix verdict (`Events9Prefix.design_verdict9_upto`) with H_ACK_LAG replaced by checked rows at a source-anchored lag (rows not yet generated: probe E9SelRun). Remaining on a row: SatPin (the model), constants/reset, C's H_BUNDLE, setup, and the arbiter (corrected core + liveness rule + Unc).
          Audit `eb346fb` CONFIRMED it conditional on those hypotheses; its Lean certificates are
          UNVERIFIED. The gb ENTRY claim was OVERSTATED: E8Mux reran it with the OUTMUX hop, and 2 of
          3 failures are real ([C], same Lean checker).
@@ -340,7 +344,7 @@ refuted, the correction said they were not):
 - `CornerDiff` [L]: rules E and A compare two paths, so what they need is a bound κd on
   the scatter of a path *difference*. Both rules are sound under κd with the same limits
   (`ruleE_sound_diff`, `ruleA_sound_diff`, both tight); per-path κ implies κd but not
-  conversely (`diff_not_imp_scat`: per-path scatter beyond any bound with κd = 0), so
+  conversely (`diff_not_imp_scat_strong`, the auditor's non-degenerate witness: a guarded pair with κd = 0 that violates per-path Scat K at every positive scale; the older `diff_not_imp_scat` witness is a scale artefact, `diff_not_imp_scat_degenerate`), so
   ring data (one absolute path per ring) cannot decide κd either way.
 - Net: κ (per path) and κd are **unmeasured** on the current toolchain; whether rules E
   and A are safe on silicon is open; the per-ring data and bitstreams needed to redo the
@@ -438,8 +442,10 @@ refuted, the correction said they were not):
   cascaded arbiter, and 6 guarded acks arriving through delay lines whose
   obligation is expected to be false until the domain gets a guarded
   multi-copy pin kind). Superseded by **Events8** (`Core/XAudit/Events8Beh.design_verdict8`,
-  goal 2 above): CLEAN at the slow and fast corners on all 4 seeds, conditional on SatPin,
-  constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub (audit `eb346fb`
+  goal 2 above): the checker prints CLEAN at the slow and fast corners on all 4 seeds, conditional on SatPin,
+  constant wires and reset, H_ARB (HARB7), SelOK, SelPart and HDsub. **This verifies no real gcd_hw run:
+  HARB7 is false on real uncontested bd_arbiter runs (`Events8Arb.unc_not_harb`), and with the corrected
+  core no row is CLEAN (54 structural residuals per row). Audit `e91d41ff`/`eb346fb` OVERSTATED rows, answered here.** (audit `eb346fb`
   CONFIRMED as conditional, Lean certificates UNVERIFIED; the gb ENTRY claim OVERSTATED,
   2 of 3 real after E8Mux added the O5/MUXF OUTMUX hop, [C], `notes/A-e8mux.md`).
 - **Per-pin race checker** (`lake exe xevents2pin`, `Events2Pin*.lean`): sound

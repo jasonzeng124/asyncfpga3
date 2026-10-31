@@ -236,7 +236,7 @@ concern cells, the flow and the board.
   - `GLS_SCATTER(_REGION)` factors are unbounded Gaussians, so a scatter run tests delays
     outside every κ regime of §3.
 - **Change:**
-  - `delta = p − TLOOP/2 + noise` (asymmetric arcs: `p − TLOOP·tf/(tr+tf)`), exposed as
+  - `delta = p − TLOOP/2 + noise` (asymmetric arcs: NOT `p − TLOOP·tf/(tr+tf)`, which has the wrong direction -- audit `1fefbc0` REFUTED, `notes/A-inv-loop.md`: the side is decided by `InvolutionLoop.asym_iff`, and in the skewed exp family a 10 ps slower rise moves the centre UP by ~70 ps; prjxray has no rise/fall split, so use TLOOP/2), exposed as
     `+META_CENTRE=`;
   - fix the comment;
   - clip the scatter at a stated κ, or say "unclipped" wherever scatter results are quoted.

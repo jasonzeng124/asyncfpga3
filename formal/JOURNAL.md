@@ -758,3 +758,30 @@ everywhere, rho 50 keeps the smax w0/w0.02 certificates, rho >= 75 loses smax w0
 sampled); the rho = delay-on-every-gate runs were killed (too slow), not results. Caveat: 2334 gcd arcs are raised
 to 1 step, so no gcd verdict is covered by the continuous-time theorems at any rho (discrete model only). Fixed
 tools-A/xaudit/build.sh compile order (Design before Parse). notes/A-xaudit.md fidelity row corrected.
+
+## Session Sat Oct 31 07:13:39 UTC 2026 (shard A, lead; session_01HC49FvHJFQrSnLiAaBNpDZ)
+### progress 07:13
+Previous A lock 42 h old (session_01HC49Fwiv93CFgTH6CuFfLh, 2026-10-29 13:18), taken. That
+session's last commits are WIP snapshots (Wip/_snapA); nothing in them is claimed. Fresh
+sandbox: setup.sh running (Mathlib from source again, ~2 h). Audit read at pass 13
+(formal 5a1ee8d2). Rows on A's files and what I did:
+- **Events9Sel/Arb + FEASIBILITY (P12c, OVERSTATED, no gcd_hw run verified CLEAN).** Agreed.
+  FEASIBILITY corrected: the old 'CLEAN on all 4 seeds' paragraph (§4b) now says it verifies no
+  real run (HARB7 false, corrected core gives no CLEAN row); 'Lean check pending' on
+  core_of_settle replaced by the audit's reading (q free, settle bound may be ~1e12, adds no
+  soundness to design_verdict9arb); 'SelOK from C's H_BUNDLE' reworded (H_BUNDLE-shaped
+  hypothesis on A's own wires; entOK only checks a buffer route exists).
+- **Core/Prims/Seq (53d5cc9 P10b, OVERSTATED: windows SLICEL-only).** Confirmed: prjxray
+  slicem.sdf REG_INIT_FF HOLD DIN (0.211::0.262) > SLICEL 0.241. Fix (pending check, Lean not yet
+  built): SeqXray gains regFFM/ff5M/latM (SLICEM, hand-transcribed from prjxray-db master
+  slicem.sdf; that master's slicel.sdf reproduces every SLICEL number in the file, so same db),
+  site-selected regFFAt/ff5At/latAt, _ok lemmas, slicem_hold_longer, fast_hold_mismatchM; site type
+  is the named hypothesis H_FF_SITE. The second half of the row ('X then definite' restates the
+  free res) is now said in FEASIBILITY.
+- **CornerDiff.diff_not_imp_scat (P13, witness degenerate).** Agreed. Ported the auditor's
+  diff_not_imp_scat_strong (credited) and added diff_not_imp_scat_degenerate (pending check).
+- **Fid3 remark (1fefbc0, REFUTED direction).** Already corrected in A-fid3/A-inv-loop on 10-29,
+  but the wrong formula survived in out/FOR-RESEARCH.md and notes/A-gls-compare-2.md: fixed.
+- **XInert (550e5b27, 'Verilog default' mildly overstated).** Agreed: one symmetric delta only (no
+  rise/fall, X/Z or PATHPULSE band), and under rho = full gate delay the seed-d smax_w0 certificate
+  is lost (it was in notes/A-xinert.md, not in the journal; now it is).

@@ -135,7 +135,7 @@ comment is wrong.
   bd_arbcell's state, ArbInvolution `stF_runt`) decides at about TLOOP/2
   (212–246 ps for τ = 40–200), deterministically on each side.
   - Proposed fix: `delta = p - TLOOP/2 + noise` (with asymmetric arcs:
-    `p - TLOOP*tf/(tr+tf)`), with `TLOOP/2` exposed as `+META_CENTRE=`.
+    the formula `p - TLOOP*tf/(tr+tf)` proposed here was WRONG in direction, audit `1fefbc0`; see A-inv-loop.md `asym_iff`), with `TLOOP/2` exposed as `+META_CENTRE=`.
   - Re-run tb_f3_meta: with r2 360 ps late, r1 should win about 200/200.
   - Also fix the `fid_core.vh` comment "rejected: the node never left". The runt
     is emitted to fanout at full width.

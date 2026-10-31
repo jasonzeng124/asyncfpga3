@@ -1,4 +1,5 @@
 import Formal.Core.Prims.SeqLatch
+import Formal.Core.Prims.Xray
 
 /-!
 # Formal.Core.Prims.SeqXray — prjxray-db numbers for the slice flops and latches
@@ -45,6 +46,30 @@ For the sync R/S (FDRE/FDSE) prjxray gives no SETUP/HOLD on SR, only RECOVERY/RE
 those are used as its window (**H_SR_SYNC_WINDOW**).
 
 `res` (H_FF_RESOLVE / H_LAT_RESOLVE) has no prjxray value: it stays a parameter.
+
+## SLICEM (added 2026-10-31, answering audit `53d5cc9` P10b: "windows are SLICEL-only")
+
+The defs above (`regFF`, `ff5`, `lat`) are the SLICEL numbers. A SLICEM flop has a LONGER
+D hold (`slicem.sdf` `REG_INIT_FF`: `HOLD DIN (0.211::0.262)` against SLICEL's 0.241), so
+applying `regFF` to a SLICEM flop was on the unsafe side. `regFFM`/`ff5M`/`latM` are the
+SLICEM numbers, transcribed by hand from prjxray-db master `zynq7/timings/slicem.sdf`
+(fetched 2026-10-31; its SLICEL file reproduces every SLICEL number above, so it is the same
+database as the toolchain's). `regFFAt`/`ff5At`/`latAt` select by `SiteType`; a statement
+about a placed flop must use the site it is placed in (**H_FF_SITE**: the site type comes
+from the routed netlist, not from this file). `regFFM`:
+`CLK Q (0.118::0.147)(0.292::0.362)`, `SETUP DIN (-0.074::-0.06)`, `HOLD DIN (0.211::0.262)`,
+`HOLD CE (-0.007::-0.005)`, `SETUP CE (0.088::0.109)`; `_QH`: `SR Q (0.197::0.245)(0.489::0.606)`,
+`RECOVERY (0.314::0.389)`, `REMOVAL (-0.292::-0.238)`; `_QL`: `SR Q (0.247::0.308)(0.689::0.855)`,
+`RECOVERY (0.279::0.347)`, `REMOVAL (-0.285::-0.232)`. `ff5M` (`FF_INIT`): `CLK Q
+(0.102::0.127)(0.259::0.322)`, `SETUP DIN (-0.074::-0.06)`, `HOLD DIN (0.194::0.241)`, CE as
+`regFFM`; `_QH`: `SR Q (0.184::0.229)(0.455::0.565)`, `RECOVERY (0.279::0.347)`, `REMOVAL
+(-0.292::-0.238)`; `_QL`: `SR Q (0.233::0.29)(0.648::0.804)`, `RECOVERY (0.314::0.389)`,
+`REMOVAL (-0.285::-0.232)`. `latM` (`REG_INIT_LAT`): `CE Q (0.129::0.161)(0.415::0.514)`,
+`CLK Q (0.132::0.164)(0.378::0.469)`, `D Q (0.075::0.094)(0.214::0.265)`, `SETUP DIN
+(-0.078::-0.064)`, `HOLD DIN (0.211::0.262)`; `_QH` `SR Q (0.161::0.201)(0.493::0.611)`; `_QL`
+`SR Q (0.198::0.246)(0.645::0.8)`. (prjxray's SLICEM REG_INIT_FF lists the shorter
+recovery under QL and the longer under QH, the reverse of SLICEL; transcribed as written.)
+Not covered: the SLICEM LUTRAM/SRL write timing (no design here uses it as storage).
 -/
 
 namespace Formal.Core.Prims.Seq
@@ -132,5 +157,99 @@ theorem fast_hold_mismatch (res : Nat) :
     ((regFF .fast false res).cqLo : Int) < (regFF .fast false res).dHi ∧
       (regFF .slow false res).dHi < ((regFF .slow false res).cqLo : Int) := by
   simp [regFF, cs]
+
+/-! ### SLICEM -/
+
+/-- AFF..DFF in a SLICEM (`slicem.sdf` `REG_INIT_FF`). -/
+def regFFM (c : XCorner) (rv : Bool) (res : Nat) : FFTiming :=
+  { cqLo := cs c 118 292
+    cqHi := cs c 147 362
+    dLo := 60, dHi := 262
+    ceLo := -109, ceHi := -5
+    srLo := if rv then -389 else -347, srHi := if rv then -238 else -232
+    sqLo := if rv then cs c 197 489 else cs c 247 689
+    sqHi := if rv then cs c 245 606 else cs c 308 855
+    res := res }
+
+/-- A5FF..D5FF in a SLICEM (`slicem.sdf` `FF_INIT`). -/
+def ff5M (c : XCorner) (rv : Bool) (res : Nat) : FFTiming :=
+  { cqLo := cs c 102 259
+    cqHi := cs c 127 322
+    dLo := 60, dHi := 241
+    ceLo := -109, ceHi := -5
+    srLo := if rv then -347 else -389, srHi := if rv then -238 else -232
+    sqLo := if rv then cs c 184 455 else cs c 233 648
+    sqHi := if rv then cs c 229 565 else cs c 290 804
+    res := res }
+
+/-- LDCE/LDPE in a SLICEM (`slicem.sdf` `REG_INIT_LAT`), same conventions as `lat`:
+gate band = hull of CLK->Q and CE->Q, `hLo = -dqHi(slow) = -265` (covers `-SETUP_MAX = +64`). -/
+def latM (c : XCorner) (rv : Bool) (res : Nat) : LatTiming :=
+  { gqLo := cs c 129 378
+    gqHi := cs c 164 514
+    dqLo := cs c 75 214
+    dqHi := cs c 94 265
+    hLo := -265, hHi := 262
+    sqLo := if rv then cs c 161 493 else cs c 198 645
+    sqHi := if rv then cs c 201 611 else cs c 246 800
+    res := res }
+
+/-- Site-selected timing (H_FF_SITE: the site type is read from the placed netlist). -/
+def regFFAt : Formal.Core.Prims.SiteType → XCorner → Bool → Nat → FFTiming
+  | .slicel => regFF
+  | .slicem => regFFM
+
+def ff5At : Formal.Core.Prims.SiteType → XCorner → Bool → Nat → FFTiming
+  | .slicel => ff5
+  | .slicem => ff5M
+
+def latAt : Formal.Core.Prims.SiteType → XCorner → Bool → Nat → LatTiming
+  | .slicel => lat
+  | .slicem => latM
+
+theorem regFFM_ok (c : XCorner) (rv : Bool) (res : Nat) : (regFFM c rv res).Ok := by
+  cases c <;> cases rv <;> simp [regFFM, cs, FFTiming.Ok]
+
+theorem ff5M_ok (c : XCorner) (rv : Bool) (res : Nat) : (ff5M c rv res).Ok := by
+  cases c <;> cases rv <;> simp [ff5M, cs, FFTiming.Ok]
+
+theorem regFFAt_ok (s : Formal.Core.Prims.SiteType) (c : XCorner) (rv : Bool) (res : Nat) :
+    (regFFAt s c rv res).Ok := by
+  cases s
+  · exact regFF_ok c rv res
+  · exact regFFM_ok c rv res
+
+theorem ff5At_ok (s : Formal.Core.Prims.SiteType) (c : XCorner) (rv : Bool) (res : Nat) :
+    (ff5At s c rv res).Ok := by
+  cases s
+  · exact ff5_ok c rv res
+  · exact ff5M_ok c rv res
+
+theorem latM_bands (c : XCorner) (rv : Bool) (res : Nat) :
+    (latM c rv res).dqLo ≤ (latM c rv res).dqHi ∧ (latM c rv res).hLo ≤ (latM c rv res).hHi ∧
+      (latM c rv res).gqLo ≤ (latM c rv res).gqHi := by
+  cases c <;> cases rv <;> simp [latM, cs]
+
+/-- **The audit's point, as a theorem.** The SLICEM AFF..DFF and latch D holds (262 ps) are
+longer than the SLICEL ones (241 ps), and neither D window contains the other (SLICEM starts
+later, 60 against 45 ps). So the SLICEL window is not a safe stand-in for a SLICEM flop,
+and a window valid for both sites must be the hull `[45, 262]`. -/
+theorem slicem_hold_longer (c : XCorner) (rv : Bool) (res : Nat) :
+    (regFF c rv res).dHi < (regFFM c rv res).dHi ∧ (lat c rv res).hHi < (latM c rv res).hHi ∧
+      (regFF c rv res).dLo < (regFFM c rv res).dLo := by
+  cases c <;> cases rv <;> simp [regFF, regFFM, lat, latM, cs]
+
+/-- The SLICEM flop is non-vacuous at every corner. -/
+theorem regFFM_inhabited (c : XCorner) (async rv init : Bool) (res : Nat) (ck : Substrate.Sig)
+    (r ce d : Substrate.KSig) : ∃ q, FlopRel (regFFM c rv res) async rv init ck r ce d q :=
+  flopRel_inhabited _ async rv init ck r ce d (regFFM_ok c rv res)
+
+/-- H_WINDOW_SLOW_ONLY in a SLICEM: fast CK->Q min 118 lies inside the slow-only D window
+`[60, 262]`, so a same-edge flop-to-flop pair needs >= 145 ps of wire; at the slow corner
+`292 > 262`. -/
+theorem fast_hold_mismatchM (res : Nat) :
+    ((regFFM .fast false res).cqLo : Int) < (regFFM .fast false res).dHi ∧
+      (regFFM .slow false res).dHi < ((regFFM .slow false res).cqLo : Int) := by
+  simp [regFFM, cs]
 
 end Formal.Core.Prims.Seq
