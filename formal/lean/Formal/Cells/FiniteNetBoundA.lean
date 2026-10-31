@@ -12,7 +12,8 @@ C's generated netlist `Formal.Gen.Cells.bd_arbiter`):
   ONE named race hypothesis per cell, `H_EXC_CLEAN` (clean pins give a clean excitation): this
   is where arbitration lives (`notes/B-arb-bind-plan.md`; `ArbAMergeRunWit.sep_cex_run` shows
   it is not automatic);
-* `ua1`/`ua2` (drive `x.ack`/`y.ack`): the C-element `GC2` of the grant and `z_ack`.
+* `ua1`/`ua2` (drive `x.ack`/`y.ack`): the C-element of the grant and `z_ack`, with `z_ack`
+  read at the tokens that client won (`FMuxASpec`, as a mux acknowledge).
 Drivers: `reqSrcA` / `ackSrcA` are `FiniteNetBoundM`'s plus the arbiter (`z.req <- R0`,
 `x.ack <- ua1`, `y.ack <- ua2`), followed through the same wires.
 
@@ -239,10 +240,11 @@ structure FGcdNetOKBA (ch : Fin NC → Chan) (N : FGcdNetA) (L : N.ι → Nat �
   /-- **The arbiter's `ugrant`**: `g1` (`b = false`), `g2` (`b = true`). -/
   H_ARBG : ∀ o x y z w, opAt o = .amerge x y z w → ∀ b, ∃ ps e Le,
     FCombSpec N.D L (N.ag o b) (gF b) ps e Le ∧ ArbPins N ch o x y z ps 3
-  /-- **The arbiter's `ua1`/`ua2`**: `C(g, A0)`. -/
-  H_ARBA : ∀ o x y z w, opAt o = .amerge x y z w → ∀ b, ∃ (pv : Fin 2 → GPin N.ι) (E : Nat),
-    FCelSpec GC2 N.D L (N.aa o b) pv E ∧ (pv 0).drv = N.ag o b ∧ (pv 1).P = (ch z).ack ∧
-    BoundAA N z (pv 1)
+  /-- **The arbiter's `ua1`/`ua2`**: `C(g, A0)`, `A0 = z_ack` read at the winner's tokens
+  (`κ`, as a mux acknowledge: `z_ack` carries both clients' tokens). -/
+  H_ARBA : ∀ o x y z w, opAt o = .amerge x y z w → ∀ b, ∃ ap zp κ E,
+    FMuxASpec N.D L (N.aa o b) ap zp κ E ∧ ap.drv = N.ag o b ∧ zp.P = (ch z).ack ∧
+    BoundAA N z zp
   H_REST : ∀ c, ¬ FTiedA N c → FCellOK N.D L c
   H_DRV_FORK : ∀ o os i, forkOuts (opAt o) = some os → 2 ≤ os.length → os.length ≤ 4 →
     forkIn (opAt o) = some i → ∃ wl wh, Wire wl wh (N.D.O (N.fa o)) (ch i).ack
@@ -296,7 +298,8 @@ theorem FGcdNetOKBA.toOKBM {ch : Fin NC → Chan} {N : FGcdNetA} {L : N.ι → N
       · subst hq; obtain ⟨ps, e, Le, S, _⟩ := H.H_ARBQ o x y z w ho; exact fcomb_spec_cell S
       · subst hr; obtain ⟨ps, e, Le, S, _⟩ := H.H_ARBR o x y z w ho; exact fcomb_spec_cell S
       · subst hg; obtain ⟨ps, e, Le, S, _⟩ := H.H_ARBG o x y z w ho b; exact fcomb_spec_cell S
-      · subst haa; obtain ⟨pv, E, S, _⟩ := H.H_ARBA o x y z w ho b; exact fcel_spec_cell H.NW S
+      · subst haa; obtain ⟨ap, zp, κ, E, S, _⟩ := H.H_ARBA o x y z w ho b
+        exact fmuxa_spec_cell H.NW S
     · exact H.H_REST c (fun h => h.elim hc ha)
   H_DRV_FORK := H.H_DRV_FORK
   H_DRV_JOIN := H.H_DRV_JOIN
