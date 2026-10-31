@@ -1870,3 +1870,7 @@ the pre-place script, or a soft nextpnr pull toward a datapath centroid, before 
 | BQ#2 seed 6 (uori3) | PASS 50 | PASS 46 | FAIL errs 3 | between 1x and 2x |
 With silicon-like bounded speed-ups (log-normal), the two worst known exposures hold to at least 1.5x the
 calibrated within-die scatter, which S9 already suspects is double-counted. Bisecting 1.75x on both now.
+### progress 21:58 (log-normal 1.75x: BQ#3 seed 9 PASS -> its threshold is 1.75-2x)
+- BQ#3 seed 9, log-normal 0.28/0.2205, draw 1: PASS 16/16 errs 0 (laps 50/40/120). Vector 13 ran 120 laps vs ~60
+  at the other scales, with every result correct (oks = laps); most likely its critical cycle sits in a region
+  this draw makes fast. Noted, not chased. BQ#2 seed 6 at 1.75x running.
