@@ -1825,3 +1825,13 @@ source (1 req side) remain unbound, and C's H_OTHER remains a hypothesis.
   honest outcome to report).
 - Memory: each NChk module peaks ~11 GB; they are chained by imports (BWit -> 2 -> 3 -> 4) so
   lake builds them one at a time. A fifth must import BWit4NChk.
+
+### correction 12:31 (to 11:50 and 12:25, and the BWit3Net/BWit4Net docstrings)
+"The 9 arbiters are uncontested on this run" overstated what was checked. Measured (Python,
+bsim3 and bsim4, 12/18): at arbiters 171 and 180 both requests ARE high together (171: x
+granted at 74, y rises at 115 and waits; 180: y rises at 369 while x holds, later x rises at
+511 while y holds), so hold and handover epochs occur. What does NOT occur is a race: the
+closest x/y request rises at any one arbiter are 36 ticks apart (op 180, ticks 333/369),
+against 2 ticks per gate, so no two requests reach the arbiter inside its decision window
+and H_EXC_CLEAN is never tight. Other inputs give no race-closer evidence in this
+simulator: 9 (a, b) pairs tried, all with C's checker clean; none was searched for races.

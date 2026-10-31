@@ -548,8 +548,9 @@ joins, fork trees).
     `BWit2Net.gcd_hw_fin_netBM_witness`.
   - `FiniteNetBoundA.FGcdNetOKBA`: every `bd_arbiter` (ustate q/R0 and ugrant g1/g2 as
     `FCombSpec`: real LUT + ONE named race hypothesis H_EXC_CLEAN each; ua1/ua2 as `FMuxASpec`
-    with a winner table): 164/175; `BWit3Net.gcd_hw_fin_netBA_witness` (the 9 arbiters are
-    uncontested on that run: H_EXC_CLEAN is never tight there).
+    with a winner table): 164/175; `BWit3Net.gcd_hw_fin_netBA_witness` (on that run two arbiters
+    hand a waiting request over, but no two requests race: the closest request rises at one
+    arbiter are 36 ticks apart, so H_EXC_CLEAN is never tight there).
   - `FiniteNetBoundT.FGcdNetOKBT`: every 5/6-way fork's acknowledge tree (`bd_ctree`: chunk C4,
     chunk C2, top C2, `FCelSpec` each): 170/175 (left: muxn 4 acknowledge sides, source 1
     request side); `BWit4Net.gcd_hw_fin_netBT_witness`.
