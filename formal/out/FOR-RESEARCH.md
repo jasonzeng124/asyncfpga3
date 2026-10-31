@@ -348,3 +348,27 @@ Graded list: `formal/notes/A-substrate.md`; fidelity table: FEASIBILITY.md.
 ## 16. iverilog RAMB18E1 stand-in has no hold check and does not poison — OPEN (2026-10-29)
 
 `cells/sim/bd_prims_sim.v`'s RAMB18E1 uses one 2454 ps CLK->DO point (prjxray band: fast 585..1098, slow 1353..2454 ps), has no hold check, and on a setup violation only prints, though its header says it poisons the output. `formal/lean/Formal/Core/Prims/Ram.lean` (A, checked) gives the windows (slow corner only in prjxray: ADDR [-566,+360], WE [-532,+197], DI WRITE_FIRST [-737,+667] ps) and shows a DI/WE change inside its window gives X. Change (research GLS, since cells/ is frozen): band the CLK->DO arc, add hold checks, set DO to X on any violation. Only testbenches and board rigs use bd_mem today.
+
+## 17. bd_arbiter: two timing conditions the formal verdict now needs on gcd_hw — OPEN (2026-10-31)
+
+The corrected-core verdict for the routed control skeleton (`Core/XAudit/Events9FullArb.design_verdict9arbnet_ord`,
+checked) holds on 10 of 16 gcd_hw rows (R5, seeds d/3/4/5, slow/fast, gb 3/4) under two arbiter conditions
+that a GLS monitor or a board experiment can test:
+
+- **ArbOrd (the grant's request pin vs ustate's request + q path).** At each grant/R0 reader, ustate's read of
+  the request at the reader's q-read time must not be later than the reader's own request read 2 ps earlier.
+  With prjxray bands taken independently per arc this fails on 2-6 of 9 arbiters per gcd_hw row (by
+  54..243 ps at slow/fast). It holds with >= 51 ps if every arc sits at the same position inside its
+  [MIN, MAX], and under per-path scatter κ <= ~0.047 (`notes/A-e9arbnet.md`; `formal/tools-A/xaudit/arbnet/results/b1_kappa_1031.txt`).
+  Test: T1 (on-die differential two-path, gives κ and whether the in-corner position is shared); in the
+  fid GLS with per-arc scatter, a monitor on each `uarb*.ugrant` LUT: after `ustate` flips q away from a
+  branch, the grant's request input must already read low when its q input changes.
+- **QQuiet (no input change within the q loop).** After each change of `ustate`'s q, its reads of both
+  requests, the reset and A0 stay constant for the q own-feedback path's max delay (`Events9ArbB1.qclean_of_arb`:
+  this gives the no-metastable-runt condition QClean). Test: GLS monitor on every `uarb*.ustate` LUT: flag any
+  input edge at the LUT pins within `phi(PqQ)` (about 300-450 ps on gcd_hw routes) after its O6 edge. Expect
+  zero on gcd_hw (no contested schedule was found); any hit is a near tie, which the verdict does not cover.
+
+Commands to regenerate the formal side: `formal/tools-A/xaudit/arbnet/run.sh` (needs the E9Par certificates
+from `par/run.sh` and the bands from `e8mux/bands.sh`, all on gcd_hw R5 rebuilt from `git archive 520a43f`;
+md5s in `events5/builds.txt`).
