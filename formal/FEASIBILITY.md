@@ -86,7 +86,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
 
 2. **A correct gcd.**
    - **2026-10-31 (from JOURNAL-B / JOURNAL-C, not re-checked by A):** B's driver-bound gate-level
-     theorem `gcd_hw_safe_fin_netB` (every tied cell's pins driven by the netlist-named cell) now has a
+     theorem `gcd_hw_safe_fin_netB` (tied cells' pins driven by the netlist-named cell where the netlist names a
+     tied driver: only 63 of 175 links are bound on both sides at that commit, 223 of 729 tied pins are driven by
+     pinless contract cells; audit 0780fd30 OVERSTATED, now corrected; later Bwit2-4 raise the bound count) now has a
      joint witness (`gcd_hw_fin_netB_witness`, one run a=12, b=18, unit LUT delay, wire delays 1-3, out0
      latches 6); C's H_OTHER for the 192 non-link operators is still a hypothesis. B withdrew "FEnv1
      derived" and "first joint witness" for Bfin2/Bfin3 (audit P12b). C repaired TxWin (audit P12a row 18:
