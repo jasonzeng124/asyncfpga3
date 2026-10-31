@@ -956,3 +956,6 @@ ArbNetEdge/ArbB1/ParRst (open Formal.Cells (o5B o6B) -> open Formal.Core.LutList
 renames in C's Net/CoreLut and Timing/Semantics, and R2 (open Formal.Core.LutList) in B's FiniteOrN, the one
 build failure. Whole-project ./check.sh OK (lake build, library audit 65903 declarations, standard axioms); re-run after rebasing onto B's Bwit3 commits: [check] OK, 72763 declarations (B's two heavy BWit2NChk/BWit3NChk modules were OOM-killed when lake built them in parallel with the rest, and built fine alone).
 B and C: please re-verify your modules against this commit (B's note said B re-checks the rule set).
+### progress 13:28
+After pushing the Prelim deletion on top of B's Bwit4: whole-project ./check.sh OK (73170 library declarations,
+standard axioms). Prelim deletion is complete on claude/formal.
