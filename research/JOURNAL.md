@@ -1849,3 +1849,8 @@ Next: (1) ring128 per-ring data from the owner unblocks acceptance; (2) if robus
 log-normal scale scan per draw (the failing scale) instead of fixed 2x draws; (3) skip carry-cluster members in
 the pre-place script, or a soft nextpnr pull toward a datapath centroid, before trying placement again;
 (4) goal 2 leads (RTZ tail, rule E tightening) once the gates may move.
+### progress 16:10 (log-normal scale scan started)
+- Next (2) started: GLS_SCATTER_LOGN=1 (factors exp(sigma N): no region faster than e^-3sigma), draw 1, region
+  sigma 0.16 / 0.24 / 0.32 with wire 0.126 / 0.189 / 0.252, on the two routes with confirmed linear-2x failures
+  (BQ#3 seed 9, BQ#2 seed 6). seeds_fid tags these runs _logn. Question: at what scale does each first fail when
+  the speed-up tail is bounded like silicon's?
