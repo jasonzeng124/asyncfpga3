@@ -1599,3 +1599,14 @@ In: BWitNet.Rej.chW_net_not_bound (self-audit; axioms: propext): Bfin3's network
 FGcdNetOKB: link 194's request pin (channel 13) is driven there by channel 13's pinless
 contract cell, while the netlist names link 193. So the binding excludes exactly that
 degeneracy. Paste block for A updated (notes/B-gcd-hyps-for-A.md).
+
+### progress 08:36
+Bwit2 step 1 (Python only, UNTRUSTED; tools-B/bwit/bsim2.py, bsim2.out): bd_mux
+gate-modelled as well (uj0/uj1 C-elements of x/y request and gated control, uor, the two
+udly buffers, uxa/uya C-elements of the join and z_ack; LUT 1 and wire 1 on every internal
+pin; ctl_ack = z_ack). C's mux model takes its internal j_b := B's join node 6 ticks late
+(the j -> uor -> udly -> udly -> z_req path). a=12,b=18: quiescent at 690, out0 = 6 at 687;
+C's checker 0 violations; 620 bound tied pins, all wire-delayed copies of their netlist
+driver (w 1/2/3); with muxes bound, links bound on BOTH sides rise from 63 to 124 of 175.
+Negative control flags 63 pins. Lean for this needs mux cell checkers (muxj/muxa/buf; or
+exists) and NB >= 691.
