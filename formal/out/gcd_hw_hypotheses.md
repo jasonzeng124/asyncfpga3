@@ -1,6 +1,7 @@
 # gcd_hw: the end-to-end statement and every hypothesis under it
 
-Shard A (probe FeasDraft), refreshed 2026-10-29 ~09:00 UTC from:
+Shard A (probe FeasDraft), refreshed 2026-10-29 ~09:00 UTC; rows ArbEdge, ArbOrd, QQuiet-after-S and
+H_COMPUTE_FN updated by the lead on 2026-10-31 (after audit passes 14-15). Built from:
 - `notes/B-gcd-hyps-for-A.md` and `notes/B-hypotheses.md` (Bhyp2: B ledger BH1-BH26, with
   contradictions K1-K16);
 - JOURNAL-B's 2026-10-29 entries after Bhyp2 (Bfb, Bzd, Brz, Bsa3, Bjw, Blap, Bbr, Bkx19, Bsrv,
