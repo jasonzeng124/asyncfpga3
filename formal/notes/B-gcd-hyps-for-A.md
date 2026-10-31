@@ -37,8 +37,15 @@ bounds, finite edge counts, truncated contracts on untied cells), C's `H_CELLS` 
 `Cells/BWitNet.lean:gcd_hw_fin_netB_witness` (a = 12, b = 18, a gate-timed run in which B's tied
 cells drive each other; unit LUT delays, wire delays 1-3, one run). It replaces, for links, the
 chain/elaboration theorems that the audit (P12b) found did not bind drivers. Extended the same day to
-every `bd_mux` (`Cells/FiniteNetBoundM.lean:gcd_hw_safe_fin_netBM`, 124/175 links bound on both
-sides; witness `Cells/BWit2Net.lean:gcd_hw_fin_netBM_witness`). Suggested row:
+every `bd_mux` (`Cells/FiniteNetBoundM.lean:gcd_hw_safe_fin_netBM`, 136/175 links bound on both
+sides; witness `Cells/BWit2Net.lean:gcd_hw_fin_netBM_witness`), then every `bd_arbiter`
+(`Cells/FiniteNetBoundA.lean:gcd_hw_safe_fin_netBA`, 164/175; witness
+`Cells/BWit3Net.lean:gcd_hw_fin_netBA_witness`; the arbiter's race is ONE named hypothesis per
+`ustate`/`ugrant` output, H_EXC_CLEAN, never tight on that run), then every 5/6-way fork tree
+(`Cells/FiniteNetBoundT.lean:gcd_hw_safe_fin_netBT`, 170/175; witness
+`Cells/BWit4Net.lean:gcd_hw_fin_netBT_witness`). Each level's hypothesis implies the previous
+one's (`toOKBM`, `toOKBA`). Still unbound: the one muxn's 4 acknowledge sides and the source's
+request side (2026-10-31). Suggested row:
 "H_CELLS (links) <- FGcdNetOKB: B gate models of links/forks N<=4/2-joins/steers/ORs with
 netlist-bound drivers; grade B (model), witness: one gate-timed run; test: routed GLS of the
 same cells with per-arc bands".
