@@ -1610,3 +1610,16 @@ C's checker 0 violations; 620 bound tied pins, all wire-delayed copies of their 
 driver (w 1/2/3); with muxes bound, links bound on BOTH sides rise from 63 to 124 of 175.
 Negative control flags 63 pins. Lean for this needs mux cell checkers (muxj/muxa/buf; or
 exists) and NB >= 691.
+
+### progress 08:41
+In (core Lean; private olean build, axioms standard): Belab2 FiniteNetBoundM. bd_mux
+gate-modelled and bound too (FGcdNetM = FGcdNet + mj/ma/md/mo; reqSrcM: mux output
+request <- last udly buffer; ackSrcM: x/y ack <- uxa/uya, control ack <- z's driver
+(ctl_ack = z_ack); inside the mux uor reads the joins, udly[0] uor, udly[1] udly[0],
+uxa/uya their join). bound_censusM (kernel): 124 of 175 links bound on BOTH sides (was
+63), 25 request only, 25 acknowledge only, 1 neither. FGcdNetOKBM.toOK (mux contracts from
+Bmn's specs), link_env_boundM, gcd_hw_safe_fin_netBM. Bmn's FMuxJSpec / FMuxASpec /
+FBufSpec H_TIMES also restricted to existing edges (no producer existed; 5 dependents
+re-check). NOT yet: a joint witness of FGcdNetOKBM (Python evidence bsim2.py only; Lean
+needs muxj/muxa/buf checkers and NB >= 691). Until then gcd_hw_safe_fin_netBM is reported
+as possibly vacuous.

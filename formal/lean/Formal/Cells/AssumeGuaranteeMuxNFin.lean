@@ -288,7 +288,7 @@ structure FMuxASpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (ap zp : GPin
   H_PINS : D.pins c = [ap, zp]
   H_CEL : CelG G2 (pv2 ap.P zp.P) D.rst (D.O c) (D.qp c) (D.lo c) (D.hi c) (D.fl c) (D.fh c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j =
+  H_TIMES : ∀ j, L c j → D.τ c j =
     nt (D.O c) (D.lo c) (D.hi c) (max (gE D.τ ap j) (gc κ (gE D.τ zp) j)) (Vph j)
   H_CNT : ∀ j, L c j ↔ L ap.drv j ∧ L zp.drv (sN κ j)
   H_DOWNZ : ∀ j, L zp.drv (j + 1) → L zp.drv j
@@ -307,7 +307,7 @@ structure FBufSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (p : GPin ι) 
   H_LUT_WIN : Win (D.lo c) (D.hi c) p.P (D.O c)
   H_NO_REVERT : NoRevertI (D.lo c) (D.hi c) p.P (D.O c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gE D.τ p j) (Vph j)
+  H_TIMES : ∀ j, L c j → D.τ c j = nt (D.O c) (D.lo c) (D.hi c) (gE D.τ p j) (Vph j)
   H_CNT : ∀ j, L c j ↔ L p.drv j
   H_FLOOR : ∀ j, L c j → D.hi c ≤ gE D.τ p j + D.lo c
 
@@ -327,19 +327,19 @@ theorem fdec_spec_cell {c : ι} {cp : GPin ι} {k : Nat} {s0 s1 : Nat → Bool} 
 theorem fmuxa_spec_cell (NW : FNetW D L) {c : ι} {ap zp : GPin ι} {κ : Nat → Nat} {E : Nat}
     (S : FMuxASpec D L c ap zp κ E) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c)
-      (fun j => max (gE D.τ ap j) (gc κ (gE D.τ zp) j)) := funext S.H_TIMES
-  rw [hτ]
+  refine FiniteNet.gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c)
+      (fun j => max (gE D.τ ap j) (gc κ (gE D.τ zp) j))) (fun j hj => S.H_TIMES j hj) ?_
   exact tmuxa S.H_CEL NW.H_RST S.H_RST_LONG S.H_LAT S.H_PWR S.H_DOWNZ S.H_INCZ S.H_CNT
-    S.H_RST_EARLY (fun j h1 h2 => by rw [← S.H_TIMES j]; exact S.H_SNDJ j h1 h2)
-    (fun j h1 h2 => by rw [← S.H_TIMES j]; exact S.H_SNDZ j h1 h2) S.H_ZFALL
+    S.H_RST_EARLY (fun j h1 h2 => by rw [← S.H_TIMES j h1]; exact S.H_SNDJ j h1 h2)
+    (fun j h1 h2 => by rw [← S.H_TIMES j h1]; exact S.H_SNDZ j h1 h2) S.H_ZFALL
     (hA ap (by rw [S.H_PINS]; simp)) (hA zp (by rw [S.H_PINS]; simp))
 
 theorem fbuf_spec_cell {c : ι} {p : GPin ι} (S : FBufSpec D L c p) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c) (gE D.τ p) := funext S.H_TIMES
   have hL : L c = L p.drv := funext fun j => propext (S.H_CNT j)
-  rw [hτ, hL]
+  refine FiniteNet.gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c) (gE D.τ p))
+    (fun j hj => S.H_TIMES j hj) ?_
+  rw [hL]
   exact tnode S.H_LUT_WIN S.H_NO_REVERT (hA p (by rw [S.H_PINS]; simp))
     (fun j hj => S.H_FLOOR j (by rw [hL]; exact hj)) S.H_PWR
 
@@ -594,7 +594,7 @@ structure FMuxJSpec (D : GD ι) (L : ι → Nat → Prop) (c : ι) (xp cp : GPin
   H_CEL : CelG G2 (pv2 xp.P (gate b cp.P s)) D.rst (D.O c) (D.qp c) (D.lo c) (D.hi c)
     (D.fl c) (D.fh c)
   H_PWR : ∀ t, t < D.hi c → D.O c t = false
-  H_TIMES : ∀ j, D.τ c j =
+  H_TIMES : ∀ j, L c j → D.τ c j =
     nt (D.O c) (D.lo c) (D.hi c) (max (gE D.τ xp j) (gc κ (gE D.τ cp) j)) (Vph j)
   H_CNT : ∀ j, L c j ↔ L xp.drv j ∧ L cp.drv (sN κ j)
   H_DOWNC : ∀ j, L cp.drv (j + 1) → L cp.drv j
@@ -614,12 +614,11 @@ theorem fmuxj_spec_cell {D : GD ι} {L : ι → Nat → Prop} (NW : FNetW D L) {
     {xp cp : GPin ι} {b : Bool} {s σ : Nat → Bool} {κ : Nat → Nat} {E : Nat}
     (S : FMuxJSpec D L c xp cp b s σ κ E) : FCellOK D L c := by
   intro T hA
-  have hτ : D.τ c = fe (D.O c) (D.lo c) (D.hi c)
-      (fun j => max (gE D.τ xp j) (gc κ (gE D.τ cp) j)) := funext S.H_TIMES
-  rw [hτ]
+  refine FiniteNet.gphT_congr (c' := fe (D.O c) (D.lo c) (D.hi c)
+      (fun j => max (gE D.τ xp j) (gc κ (gE D.τ cp) j))) (fun j hj => S.H_TIMES j hj) ?_
   exact tmuxj S.H_CEL NW.H_RST S.H_RST_LONG S.H_LAT S.H_PWR S.H_DOWNC S.H_INCC S.H_SEL_STABLE
     S.H_KAPPA S.H_KAPPA_B S.H_KAPPA_ALL (fun _ => rfl) S.H_CNT S.H_RST_EARLY
-    (fun j hj => by rw [← S.H_TIMES j]; exact S.H_SND j hj)
+    (fun j hj => by rw [← S.H_TIMES j hj]; exact S.H_SND j hj)
     (hA xp (by rw [S.H_PINS]; simp)) (hA cp (by rw [S.H_PINS]; simp))
 
 end Formal.Cells.AssumeGuaranteeMuxNFin
