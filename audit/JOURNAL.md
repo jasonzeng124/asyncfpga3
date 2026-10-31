@@ -487,3 +487,8 @@ Next: BQ#2 seed 7 route + 2x draw 1 (claimed PASS 54/42/63), already queued.
 BQ#2 seed 7 route: sdf ae90c9ef and xray 042034d2 REPRODUCED (match the TSV). 2x draw 1 full stack running.
 Summary notification sent to the owner: no refutations this session; BQ#2 2x failure and its cause independently
 confirmed; formal axiom audit clean; P13: 2 mild overstatements.
+
+### progress 00:29
+BQ#2 seed 7 2x draw 1 full stack: 16/16 PASS errs 0, 54/42/63, CONFIRMED exactly (route md5s reproduced). So
+BQ#2 at 2x draw 1 stands at seeds 7 and 8 PASS and seed 6 FAIL, all three reproduced by me. Seed 9 2x was never
+completed by research (OOM).
