@@ -1134,3 +1134,9 @@ INIT-support filter on the 5 seed-4 scatter draws: 298/19/286 (σ 0.05), 214/-34
 recount: ArbOrd fails in 1 of 5 draws (merge6 g1 -346, R0 -161, r1 from ucond_br26). Process note: a first
 detached waiter I believed dead had survived, and two reruns interleaved in one GLS work dir; I discarded those
 files and reran alone (provenance per draw now matches the label).
+
+### A progress 17:45 -- ArbEnv settle bound measured (seed 4)
+check_env now prints SETTLE (largest last-q-change minus A0-read-low phase start). Seed-4 rerun (same route md5
+b1b4b951, same 333,736 events, 0 violations): max 3.88 µs over 63,991 phases, at merge6, vector with the long
+phase. Every ArbEnv field now has GLS evidence on gcd_hw (settle on one seed); all of it at SDF point delays, which
+is not a proof over the bands and says nothing about scatter for ArbEnv.

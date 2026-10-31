@@ -166,8 +166,10 @@ rig's reset release count.
 | 4 | yes | 333,736 | 0 |
 
 Negative controls (seed 5, vector 6): CTRL_DA=3000 (A0 read 3 ns late) and CTRL_E=5000000 (windows widened)
-both produce many violations. Limits: GLS at 520a43f with SDF point delays (not the bands, no scatter), the
-settle bound H is not monitored, raw EV logs are not kept (only per-vector check_v*.txt and summary.txt).
+both produce many violations. Settle bound (check_env SETTLE, seed 4 rerun, same route md5, same counts): the last
+q change of an A0-read-low phase comes at most 3,881,444 ps after the phase start (63,991 phases; phases already
+running at reset release excluded), against H <= 10^15 ps in the Lean. Limits: GLS at 520a43f with SDF point
+delays (not the bands, no scatter), the settle bound on one seed, raw EV logs are not kept (only per-vector check_v*.txt and summary.txt).
 
 ## QQuiet with the Lean window (XAN=)
 
