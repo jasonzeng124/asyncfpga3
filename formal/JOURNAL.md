@@ -938,3 +938,6 @@ glsq σ=0.10 (seed 4, 2 draws): both 16/16 vectors, 0 QQuiet violations after re
 request pin (merge6 g1, -321 ps) while the circuit still computes every vector. Evidence that ArbOrd is stricter than
 the circuit needs (abstraction limit), consistent with grant_fall_after_req_fall. A verdict without ArbOrd needs an
 AND-grant node in the corrected core (not done).
+### progress 10:44
+Whole-project ./check.sh OK (lake build; library audit 64823 declarations, standard axioms), covering every
+Lean file claimed today including the from-S arbiter chain (pulled tree incl. B/C's latest commits).
