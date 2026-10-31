@@ -1869,3 +1869,8 @@ re-implementation, not Lean): the muxn's control acknowledge (a wire from z.ack,
 sink B does not model) and the source's request side. **NO joint witness** (no simulator
 model of the generated muxn, no Bool checker for FDecSpec): this level is a theorem whose
 hypotheses are not shown satisfiable; the T level (170/175) is the strongest with a witness.
+
+### progress 15:51
+formal/check.sh --committed on 464c5ea7 (all of today's B work, incl. the chunked NChk
+modules and FiniteNetBoundN, on top of the Prelim deletion): "Build completed successfully
+(3897 jobs)", axiom audit "[check] OK".
