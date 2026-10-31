@@ -1111,3 +1111,10 @@ the seed-5 GLS: 54 pairs, worst 382 ps (old filter 72 pairs, same worst). Correc
 the ArbEnv run). HOWTO 5b updated for SatPinW (P17 1e); notes/A-kleene-lut.md points to Core.LutList (P17 4).
 P17 2e: negctl.txt keeps summary lines only, not raw output -- accepted; CONTROL=1 does not exercise the pre-flip
 slice. ArbEnv GLS run (check_env on all four fields, readers g1/g2/s1/s2) in progress on seeds 5,d,3,4.
+
+### A progress 16:50 -- ArbEnv window fields on the seed-5 GLS: 0 violations
+check_env.py (the Lean ArbEnv fields nore/rise/flip/C at all four readers g1, g2, s1 (R0, q side), s2, every
+arbiter, bands from xan_5_slow.txt, the same route by md5) on 16 vectors of the seed-5 R5 GLS (520a43f, SDF points,
+transport ICBUF): 16/16 compute, 349,792 checked events, 0 violations (out2/env_5/summary.txt). Controls CTRL_DA=3000
+and CTRL_E=5000000 do fire (vector 6), so the checker can fail. Not shown: the bands (only the GLS point delays),
+the settle bound, scatter. Seeds d/3/4 running.
