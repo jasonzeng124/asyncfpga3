@@ -1098,3 +1098,16 @@ ps), the no-re-request and B2 settledness windows of the 4 readers, the 4 pointw
 (seeds d/3/4/5, untrusted) for: quiet start, QQuiet after reset, no-re-request (grant readers), pointwise C (grant
 readers); ArbOrd at GLS point delays (fails under scatter). Not monitored: B2 windows, R0-reader windows, settle bound.
 Whole-project ./check.sh OK (73409 library declarations).
+
+### A progress 16:50 -- audit P17 rows on A: ord_static filter fixed, "3 of 5" corrected
+P17 (partial) confirms SatPinW (1a/1b structurally; ArbOrd still assumed on every gcd_hw row), arbOrd_of_transport,
+arb_low_of_reqlow, the corrected QQuiet/lowmon monitors. It REFUTES "ArbOrd fails in 3/5 scatter draws" (2d): the
+-12 and -410 ps pairs were on ustate pin A4 = the LUT-buffered design reset (one net at all 9 ustates), which
+ord_static's filter admitted (also A0); R0 = r1 q + r2 !q reads neither. On request pairs only: 298/19/286 ps
+(σ 0.05), 214/-346 ps (σ 0.10): ArbOrd fails in 1 of 5 draws (merge6 g1 on r1). Fixed: ord_static now takes the
+request nets from the support of the R0 cell's INIT (exactly 2 per arbiter or exit 1; OLD=1 = old filter). On
+the seed-5 GLS: 54 pairs, worst 382 ps (old filter 72 pairs, same worst). Corrected FEASIBILITY status, FOR-RESEARCH
+17, ledger ArbOrd row, glsq README (the scatter numbers are P17's recount until my rerun of those draws, queued after
+the ArbEnv run). HOWTO 5b updated for SatPinW (P17 1e); notes/A-kleene-lut.md points to Core.LutList (P17 4).
+P17 2e: negctl.txt keeps summary lines only, not raw output -- accepted; CONTROL=1 does not exercise the pre-flip
+slice. ArbEnv GLS run (check_env on all four fields, readers g1/g2/s1/s2) in progress on seeds 5,d,3,4.

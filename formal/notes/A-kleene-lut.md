@@ -148,7 +148,7 @@ Effort to finish:
   of `keval` with q as an input) on top of `Lut.keval_mono`. This overlaps `Formal.Core.Ternary`'s `iterA`.
 - Also about 1 day: transcribe bd_merge/bd_mux/bd_ctl INITs.
 
-**Duplication to resolve (lead):** `Formal.Core.Ternary`, `Formal.Core.LutTree` and `Formal.Cells.Prelim` each
+**Duplication to resolve (lead):** `Formal.Core.Ternary`, `Formal.Core.LutTree` and `Formal.Cells.Prelim` (deleted 2026-10-31; its defs live in `Formal.Core.LutList`) each
 define their own `K3`, in separate namespaces, so nothing clashes. They should be ported to `Formal.Core.K3`.
 `LutTree` addresses INIT MSB-first with A6 at the root. Its `evalTree_eq_tableEval` and this file's
 `keval_eq_kevalSpec` both reduce to the same order-free specification.

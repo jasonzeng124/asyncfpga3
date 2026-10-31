@@ -26,7 +26,8 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   delay behaviour the user supplies. ipow 3/5 and xorshift 5/8/9 (slow/fast) meet every checked premise of the form
   without ArbOrd. On gcd_hw, 10 rows meet every checked premise of the ArbOrd form; ArbOrd holds for fixed-delay
   behaviours meeting four path rows (`arbOrd_of_transport`), not for every behaviour in the bands, and it failed in
-  3 of 5 research-GLS scatter draws while the circuit still computed every vector (an abstraction limit). No joint
+  1 of 5 research-GLS scatter draws (σ 0.10 draw 2, -346 ps, merge6 g1) while the circuit still computed every
+  vector (an abstraction limit). An earlier "3 of 5" counted two reset-pin pairs as request pairs (audit P17 2d). No joint
   witness of the hypotheses on any real run.
 
 ## Short answer (provisional)

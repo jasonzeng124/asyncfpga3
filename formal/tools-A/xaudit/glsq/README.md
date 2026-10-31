@@ -79,15 +79,22 @@ gcd_hw R5 rebuilt per seed (md5s = events5/builds.txt, `out2/<seed>/md5.txt`), r
 | seed 3 | 16/16 | 18669 | 0 | 80 | 0 | +41.2 ns | 380 ps |
 | seed 4 | 16/16 | 19567 | 0 | 48 | 0 | +41.9 ns | 382 ps |
 | seed 5 | 16/16 | 20387 | 0 | 128 | 0 | +41.4 ns | 382 ps |
-| seed 4, σ 0.05, draw 1 | 16/16 | 19637 | 0 | – | – | – | **-12 ps** (R0 reader, merge10) |
+| seed 4, σ 0.05, draw 1 | 16/16 | 19637 | 0 | – | – | – | 298 ps (was "-12 ps": a reset-pin pair, P17 2d) |
 | seed 4, σ 0.05, draw 2 | 16/16 | 19467 | 0 | – | – | – | 19 ps |
-| seed 4, σ 0.05, draw 3 | 16/16 | 19629 | 0 | – | – | – | 142 ps |
-| seed 4, σ 0.10, draw 1 | 16/16 | 19701 | 0 | – | – | – | **-410 ps** (R0 reader, merge10) |
-| seed 4, σ 0.10, draw 2 | 16/16 | 19359 | 0 | – | – | – | **-346 ps** |
+| seed 4, σ 0.05, draw 3 | 16/16 | 19629 | 0 | – | – | – | 286 ps (was 142: A0/rst pin) |
+| seed 4, σ 0.10, draw 1 | 16/16 | 19701 | 0 | – | – | – | 214 ps (was "-410": reset-pin pair) |
+| seed 4, σ 0.10, draw 2 | 16/16 | 19359 | 0 | – | – | – | **-346 ps** (merge6 g1, r1) |
+
+CORRECTION (audit P17 row 2d): ord_static's old filter ("any LUT-driven ustate input other than q") admitted
+the LUT-buffered reset (one net at the ustate of all 9 arbiters) and A0, which R0 = r1 q + r2 !q does not read.
+The scatter-row ord numbers above are P17's recount on the request pairs only (the old 72-pair worst in
+parentheses); the filter now takes the request nets from the R0 INIT's support (54 pairs; OLD=1 restores the
+old filter), and the own rerun of these draws is recorded below when done. P17 also notes the σ 0.05 draw 2 change
+49 -> 19 ps came from the O5-arc fix, not the pair filter.
 
 So with the corrected checks: QQuiet after reset holds on every run (0 violations), the quiet start holds (no
 rise before release, first rise ~40 ns after), ArbOrd holds at the GLS point delays (>= 278 ps) but fails under
-per-arc scatter in 3 of 5 draws (the earlier ">= 49 ps at σ 0.05" was an artefact of the dropped pairs) while every
+per-arc scatter in 1 of 5 draws while every
 run computes all 16 vectors: ArbOrd is stricter than the circuit needs. Limitations: GLS model at 520a43f (SDF
 points, no fid), W is the GLS loop delay rather than phi(PqQ), only vector 6 for the quiet start, one route for scatter.
 
