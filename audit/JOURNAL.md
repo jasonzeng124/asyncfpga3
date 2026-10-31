@@ -614,3 +614,9 @@ run on research's gcd_hw GLS. Shard C: H_COMPUTE_FN for all 20 gcd_hw units (ush
 xorshift's 5. Shard B: Bwit2 (mux-extended, 124/175) and 136/175 via 1-input joins. ~/wt-f14 checked out at
 f40e003a, Mathlib unchanged; lake build running (incremental: lake re-checks every module whose inputs changed, by
 hash). Keyword scan of the 831 files: see below.
+
+### progress 10:49
+kwgrep on f40e003a (831 files): 1 identifier hit, as before. Pass-15 subagents launched: P15a (shard A: arbnet_ord/
+ordS gcd_hw coverage conditional on ArbOrd/QQuiet, and whether the prose says so; glsq monitors on research GLS
+vs the Lean definitions; the scatter-0.10 ArbOrd failure) and P15bc (C: H_COMPUTE_FN 20/20 + GcdJoin link into the
+capstone, xorshift units, Wip negative controls; B: Bwit2 and the 136/175 census).
