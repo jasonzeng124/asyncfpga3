@@ -582,3 +582,8 @@ every module under Formal/ (Wip/ excluded), so my lake build covers every claime
 B+C: TxWin repair, H_COMPUTE_FN 14 units with own netlist spot-check, Bwit/Bwit2 joint witnesses) and P14a (shard A:
 Events9FullArb / arbnet_edge verdicts and coverage, grant_fall_after_req_fall, CornerDiff strong witness, SeqXray
 SLICEM vs prjxray-db) launched; they compile only after my build finishes, one Lean process each.
+
+### progress 09:54
+Clean lake build of formal 0780fd30: EXIT 0, 3636 jobs, 0 errors (audit/logs/formal_build_0780fd30.log). Per-module
+axiom audit of all 795 modules started (2 jobs; live log in scratch, results to ~/axres_0780fd30, snapshots via
+axsnap.sh).
