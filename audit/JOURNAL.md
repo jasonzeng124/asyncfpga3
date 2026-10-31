@@ -568,3 +568,10 @@ journal's "5 FAST_MIN 88/71/102" exactly. CONFIRMED. BQ#1 default-seed route + S
 ### progress 08:52
 BQ#1 (top of BOARD-QUEUE) full stack, default seed: my route reproduces sdf 6f8b99e6; xray 357f17cb. SLOW_MAX 16/16
 errs 0, no stalls, 16/12/18: CONFIRMED exactly. This is the first time I have reproduced the BQ#1 full stack.
+
+### progress 08:53
+Formal advanced to 0780fd30 (40+ commits on 2026-10-31: B Bwit/Bwit2 joint witnesses of the driver-bound
+network theorem; C TxWin indexed by occurring transactions (answers my P12a row 18), H_COMPUTE_FN for 14 compute
+units, vk2; A Events9FullArb/E9* claims, SeqXray SLICEM windows (answers P10b), CornerDiff strong witness (answers
+P13), "design_verdict9_full_arb covers no gcd_hw row"). Clean worktree ~/wt-f14; Mathlib packages moved from wt-f13
+(same lake-manifest); lake build of 0780fd30 running.
