@@ -101,3 +101,10 @@ checked premises hold on **10 gcd_hw rows: slow and fast on d/3/4/5, gb on 3/4**
 quiet start, settle bound, edge windows), ArbOrd at the B1-failing readers (supported, not proved, by the
 corner model: shared band position plus path scatter κ <= ~0.047, via ord_of_transport/corner_ord and the
 untrusted b1Kappa print), SelOK, SelPart.
+
+**QClean reduced to quiet reads (2026-10-31).** `Events9ArbB1.qclean_of_quiet` (check.sh OK): for any self-loop
+`q t = F (X t) (q (f2 t))` (own-feedback warp lower delay >= 1, upper hi2), if the cell's OTHER reads `X` are
+constant for `hi2` after each change of q, then QClean holds. For ustate O6 this replaces the no-runt hypothesis
+on q by a condition on ustate's input reads (requests, reset, A0): no input read changes within one q-feedback
+delay of a q change. A contested near tie violates it, as it must. (`st_stable`: the real INIT is also
+one-step stable, not needed by this proof.) Not done: instantiating it inside ArbEdge (QClean is still the field).

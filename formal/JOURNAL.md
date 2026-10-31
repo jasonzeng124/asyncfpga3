@@ -890,3 +890,8 @@ declarations; executables separately; axioms standard). Added Events9ArbB1.st_st
 vectors; check.sh OK): ustate's real ARB_ST INIT is one-step stable, so QClean can fail only if one of
 ustate's other reads changes within the q loop delay of a q change. That tells which hypothesis QClean
 would reduce to; QClean itself is still assumed.
+### progress 09:24
+Events9ArbB1.qclean_of_quiet (check.sh OK; strong induction on time, a last-change lemma): QClean follows for
+any self-loop LUT whose other reads stay constant for one own-feedback delay after each change of its output.
+So ArbEdge's QClean can be replaced by an input-timing condition (no request/reset/A0 read change within the
+q loop delay of a q flip); not yet substituted into ArbEdge.

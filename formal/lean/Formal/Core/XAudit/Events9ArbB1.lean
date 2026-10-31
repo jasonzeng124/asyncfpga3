@@ -314,4 +314,64 @@ theorem st_stable : ∀ r1 r2 q rs a : Bool,
     o6B ARB_ST [r1, r2, o6B ARB_ST [r1, r2, q, rs, a, true], rs, a, true] =
       o6B ARB_ST [r1, r2, q, rs, a, true] := by decide
 
+/-! ## QClean from quiet reads -/
+
+/-- A signal is constant (equal to its value at `b`) on `[a, b]`. -/
+def ConstOn (q : Sig) (a b : Nat) : Prop := ∀ u, a ≤ u → u ≤ b → q u = q b
+
+/-- The last change of a Boolean signal in `(a, b]` when it differs at `a` and `b`. -/
+theorem last_change (q : Sig) : ∀ (k a b : Nat), b = a + k → q a ≠ q b →
+    ∃ c, a < c ∧ c ≤ b ∧ q (c - 1) ≠ q c ∧ ConstOn q c b := by
+  intro k
+  induction k with
+  | zero => intro a b hb h; subst hb; exact absurd rfl h
+  | succ k ih =>
+    intro a b hb h
+    by_cases hp : q (b - 1) = q b
+    · obtain ⟨c, h1, h2, h3, h4⟩ := ih a (b - 1) (by omega) (by rw [hp]; exact h)
+      refine ⟨c, h1, by omega, h3, fun u hu hu' => ?_⟩
+      rcases Nat.lt_or_ge u b with hlt | hge
+      · rw [h4 u hu (by omega), hp]
+      · rw [show u = b by omega]
+    · exact ⟨b, by omega, Nat.le_refl _, hp, fun u hu hu' => by rw [show u = b by omega]⟩
+
+/-- **`qclean_of_quiet`**: a self-loop `q t = F (X t) (q (f2 t))` (any `F`; `X` = the vector of the
+cell's other reads; own-feedback warp `f2` with lower delay `≥ 1` and upper `hi2`) whose other reads
+are QUIET for `hi2` after each change of `q` (`X u = X τ` for `u ∈ [τ, τ + hi2]`) satisfies `QClean`:
+at every change of `q`, its own read still sees the old value. For ustate O6 with the real INIT
+(`F` = `o6B ARB_ST`), this replaces the no-runt hypothesis on `q` by a timing condition on its
+INPUT reads (requests, reset, A0 as read by ustate): the uncontested-schedule condition in the form
+QClean needs. A near tie violates it (both requests move within the loop), as it must. -/
+theorem qclean_of_quiet {α : Type} {F : α → Bool → Bool} {X : Nat → α} {q : Sig} {f2 : Nat → Nat}
+    {lo2 hi2 : Nat} (hq : ∀ t, q t = F (X t) (q (f2 t))) (hw : Warp lo2 hi2 f2) (hlo : 1 ≤ lo2)
+    (hquiet : ∀ τ, 1 ≤ τ → q (τ - 1) ≠ q τ → ∀ u, τ ≤ u → u ≤ τ + hi2 → X u = X τ) :
+    QClean q f2 := by
+  have key : ∀ τ, 1 ≤ τ → q (τ - 1) ≠ q τ → ConstOn q (f2 τ) (τ - 1) := by
+    intro τ
+    induction τ using Nat.strongRecOn with
+    | _ τ ih =>
+      intro hτ hch
+      have hfl := hw.le_late τ
+      have hfe := hw.early_le τ
+      by_cases hc : ConstOn q (f2 τ) (τ - 1)
+      · exact hc
+      · exfalso
+        have : ∃ u, f2 τ ≤ u ∧ u ≤ τ - 1 ∧ q u ≠ q (τ - 1) := by
+          refine Classical.byContradiction fun hn => hc fun u hu hu' => ?_
+          exact Classical.byContradiction fun hne => hn ⟨u, hu, hu', hne⟩
+        obtain ⟨u, hu1, hu2, hu3⟩ := this
+        obtain ⟨τ1, a1, a2, a3, a4⟩ := last_change q (τ - 1 - u) u (τ - 1) (by omega) hu3
+        have hτ1 : 1 ≤ τ1 := by omega
+        have ih1 := ih τ1 (by omega) hτ1 a3
+        have hm := hw.mono τ1 τ (by omega)
+        -- q (f2 τ) is the value before τ1's change
+        have v1 : q (f2 τ) = q (τ1 - 1) := ih1 (f2 τ) hm (by omega)
+        have v2 : q (f2 τ1) = q (τ1 - 1) := ih1 (f2 τ1) (Nat.le_refl _) (by have := hw.le_late τ1; omega)
+        have hX : X τ = X τ1 := hquiet τ1 hτ1 a3 τ (by omega) (by omega)
+        have e1 : q τ = q τ1 := by rw [hq τ, hq τ1, hX, v1, v2]
+        have e2 : q (τ - 1) = q τ1 := (a4 τ1 (Nat.le_refl _) a2).symm
+        exact hch (by rw [e1, e2])
+  intro τ hτ hch
+  exact key τ hτ hch (f2 τ) (Nat.le_refl _) (by have := hw.le_late τ; omega)
+
 end Formal.Core.XAudit.Events9ArbNet
