@@ -1690,3 +1690,14 @@ mismatch" on the decide proof). The checks bite on the internal mux nodes too.
 formal/check.sh --committed again on the branch head after all of today's B commits (and the
 other shards' pushes so far): "Build completed successfully (3663 jobs)", axiom audit
 "[check] OK".
+
+### progress 11:10
+In (lake build OK: BWitNChk, BWit2NChk, then BWitNet, BWit2Net, FiniteNetBoundMCensus;
+the two kernel-check modules must be built one at a time on this box, parallel lake was
+OOM-killed): every tied cell now DRIVES its own output channel in the hypothesis
+(H_DRV_FORK/JOIN/STEER in FGcdNetOKB, plus H_DRV_MUX in FGcdNetOKBM: fork C-element ->
+input ack, join C-element -> output req, steer branch -> branch req, steer OR -> input
+ack, mux udly[1] -> z req, uxa/uya -> x/y ack; links already had LinkOut). Before, a tied
+node was connected to its output channel only where the channel's reader was tied, so a
+steer feeding an amerge could drive nothing. Both witnesses meet the new fields (the node
+is the channel one tick early: wire_shift).

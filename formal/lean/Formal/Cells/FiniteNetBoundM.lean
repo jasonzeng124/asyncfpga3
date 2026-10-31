@@ -31,8 +31,7 @@ H_BUNDLE, H_CM_FORCED.
 (`FMuxJSpec`, `FMuxASpec`, `FOrSpec` with the real `uor`, `FBufSpec`), H_TIMES at existing
 edges; every steer's and mux's select trace is bit 0 of its control channel's bus; contracts on muxn, amerge, sources, sinks, wide joins, fork trees.
 
-**NOT covered:** a joint witness of `FGcdNetOKBM` (Python evidence only:
-`tools-B/bwit/bsim2.py`); C's H_OTHER stays for the 192 non-link operators. Core Lean only.
+**Joint witness:** `BWit2Net.gcd_hw_fin_netBM_witness`. **NOT covered:** C's H_OTHER stays for the 192 non-link operators. Core Lean only.
 -/
 
 namespace Formal.Cells.FiniteNetBoundM
@@ -228,6 +227,17 @@ structure FGcdNetOKBM (ch : Fin NC → Chan) (N : FGcdNetM) (L : N.ι → Nat �
   H_MUXD : ∀ o cc x y z mw, opAt o = .mux cc x y z mw → ∀ i : Fin 2, ∃ p,
     FBufSpec N.D L (N.md o i) p ∧ p.drv = (if i.val = 0 then N.mo o else N.md o 0)
   H_REST : ∀ c, ¬ FTiedM N c → FCellOK N.D L c
+  /-- **Every tied cell drives its own output channel** through a wire (links: `LinkOut`). -/
+  H_DRV_FORK : ∀ o os i, forkOuts (opAt o) = some os → 2 ≤ os.length → os.length ≤ 4 →
+    forkIn (opAt o) = some i → ∃ wl wh, Wire wl wh (N.D.O (N.fa o)) (ch i).ack
+  H_DRV_JOIN : ∀ o ins z, joinIns (opAt o) = some ins → ins.length = 2 →
+    joinOut (opAt o) = some z → ∃ wl wh, Wire wl wh (N.D.O (N.jr o)) (ch z).req
+  H_DRV_STEER : ∀ o j t f, stJ (opAt o) = some (j, t, f) →
+    (∀ b, ∃ wl wh, Wire wl wh (N.D.O (N.sb o b)) (ch (brC t f b)).req) ∧
+    ∃ wl wh, Wire wl wh (N.D.O (N.ao o)) (ch j).ack
+  H_DRV_MUX : ∀ o cc x y z mw, opAt o = .mux cc x y z mw →
+    (∃ wl wh, Wire wl wh (N.D.O (N.md o 1)) (ch z).req) ∧
+    ∀ b, ∃ wl wh, Wire wl wh (N.D.O (N.ma o b)) (ch (if b then y else x)).ack
 
 /-- Forgetting the bindings, with the mux cells' contracts from their specs. -/
 theorem FGcdNetOKBM.toOK {ch : Fin NC → Chan} {N : FGcdNetM} {L : N.ι → Nat → Prop}

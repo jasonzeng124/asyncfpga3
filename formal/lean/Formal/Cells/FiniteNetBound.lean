@@ -19,7 +19,9 @@ clean" (`SelfAuditB9.flink_env1_local`). Here the drivers are fixed BY THE NETLI
   and join C-element pins, steer branch request pin, steer OR pins), `drv` = that cell
   whenever the netlist determines one (`BoundR`/`BoundA`); the steer OR's pins are also
   tied to C's branch acknowledge traces (absent from `FGcdNetOK`), and the steer's select
-  trace is bit 0 of its input channel's bus (absent from `FGcdNetOK`, where it was free).
+  trace is bit 0 of its input channel's bus (absent from `FGcdNetOK`, where it was free);
+  and every tied cell drives its own output channel through a wire (`H_DRV_*`; links:
+  `LinkOut`), also where that channel's reader is a contract.
 
 ## Assumed / proved / NOT covered
 
@@ -212,6 +214,17 @@ theorem ackSrc_tied (N : FGcdNet) : ∀ (F : Nat) (c : Fin NC) (d : DK),
 
 variable {ι : Type}
 
+/-- A fork's input channel; a join's output channel. -/
+def forkIn : K NC → Option (Fin NC)
+  | .forkG i _ => some i
+  | .forkH i _ _ _ _ _ => some i
+  | _ => none
+
+def joinOut : K NC → Option (Fin NC)
+  | .join _ o _ _ _ => some o
+  | .bjoin _ o _ _ => some o
+  | _ => none
+
 /-- Pin `p` reading channel `c`'s request has the netlist's driver (when it determines one). -/
 def BoundR (N : FGcdNet) (c : Fin NC) (p : GPin N.ι) : Prop :=
   ∀ d, reqSrc FU c = some d → p.drv = d.cell N
@@ -258,6 +271,14 @@ structure FGcdNetOKB (ch : Fin NC → Chan) (N : FGcdNet) (L : N.ι → Nat → 
     FOrSpec N.D L (N.ao o) (fun a0 a1 => genF bd_steer "uack" .O ["ack0", "ack1"] [a0, a1])
       ap σ κ ∧ ∀ b, (ap b).P = (ch (brC t f b)).ack ∧ BoundA N (brC t f b) (ap b)
   H_REST : ∀ c, ¬ FTied N c → FCellOK N.D L c
+  /-- **Every tied cell drives its own output channel** through a wire (links: `LinkOut`). -/
+  H_DRV_FORK : ∀ o os i, forkOuts (opAt o) = some os → 2 ≤ os.length → os.length ≤ 4 →
+    forkIn (opAt o) = some i → ∃ wl wh, Wire wl wh (N.D.O (N.fa o)) (ch i).ack
+  H_DRV_JOIN : ∀ o ins z, joinIns (opAt o) = some ins → ins.length = 2 →
+    joinOut (opAt o) = some z → ∃ wl wh, Wire wl wh (N.D.O (N.jr o)) (ch z).req
+  H_DRV_STEER : ∀ o j t f, stJ (opAt o) = some (j, t, f) →
+    (∀ b, ∃ wl wh, Wire wl wh (N.D.O (N.sb o b)) (ch (brC t f b)).req) ∧
+    ∃ wl wh, Wire wl wh (N.D.O (N.ao o)) (ch j).ack
 
 theorem stJ_of_steerIn {k : K NC} {j : Fin NC} (h : steerIn k = some j) :
     ∃ t f, stJ k = some (j, t, f) := by

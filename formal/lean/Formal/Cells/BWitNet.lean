@@ -42,7 +42,7 @@ open Formal.Net.CapNet.Wit (CD nv bv yW yW_good A0 B0)
 open Formal.Cells.WinFifoCausal (nt nt_lo τs)
 open Formal.Cells.PipeTimed (Vph)
 open Formal.Cells.LutFbBridge2Env (Wire ε ash isLink)
-open Formal.Cells.FiniteRunsWit (sortedB cL rst2 bndD linkB)
+open Formal.Cells.FiniteRunsWit (sortedB cL rst2 bndD linkB wire_shift)
 open Formal.Cells.AssumeGuaranteeEnds (GPin gE GC2 GC3 GC4)
 open Formal.Cells.AssumeGuaranteeEndsNet (GD)
 open Formal.Cells.AssumeGuaranteeEndsCap (forkOuts joinIns steerIn d0 LinkOut)
@@ -287,6 +287,39 @@ theorem ao_specB {o : Fin NO} {j t f : Fin NC} (h : stJ (opAt o) = some (j, t, f
     · exact pinA_L f
     · exact pinA_L t
 
+
+/-! ## Every tied cell drives its own output channel -/
+
+theorem fkIn_eq (k : K NC) : fkIn k = FiniteNetBound.forkIn k := by cases k <;> rfl
+theorem jnOut_eq (k : K NC) : jnOut k = FiniteNetBound.joinOut k := by cases k <;> rfl
+
+theorem drv_fork (o : Fin NO) (os : List (Fin NC)) (i : Fin NC) (hos : forkOuts (opAt o) = some os)
+    (h2 : 2 ≤ os.length) (h4 : os.length ≤ 4) (hi : FiniteNetBound.forkIn (opAt o) = some i) :
+    ∃ wl wh, Wire wl wh (DB.O (.fa o)) (chB i).ack := by
+  have hok : faOK o = true := by
+    unfold faOK; rw [hos]; exact decide_eq_true ⟨h2, h4⟩
+  have hl : lstN (.fa o) = (cdB i).ak := by
+    simp only [lstN, hok, ite_true, fkIn_eq, hi]
+  exact ⟨1, 1, by show Wire 1 1 (cL (lstN (.fa o))) (bv (cdB i).ak); rw [hl]; exact wire_shift _⟩
+
+theorem drv_join (o : Fin NO) (ins : List (Fin NC)) (z : Fin NC) (hos : joinIns (opAt o) = some ins)
+    (h2 : ins.length = 2) (hz : FiniteNetBound.joinOut (opAt o) = some z) :
+    ∃ wl wh, Wire wl wh (DB.O (.jr o)) (chB z).req := by
+  have hok : jrOK o = true := by
+    unfold jrOK; rw [hos]; simp [h2]
+  have hl : lstN (.jr o) = (cdB z).rq := by
+    simp only [lstN, hok, ite_true, jnOut_eq, hz]
+  exact ⟨1, 1, by show Wire 1 1 (cL (lstN (.jr o))) (bv (cdB z).rq); rw [hl]; exact wire_shift _⟩
+
+theorem drv_steer (o : Fin NO) (j t f : Fin NC) (h : stJ (opAt o) = some (j, t, f)) :
+    (∀ b, ∃ wl wh, Wire wl wh (DB.O (.sb o b)) (chB (brC t f b)).req) ∧
+    ∃ wl wh, Wire wl wh (DB.O (.ao o)) (chB j).ack := by
+  refine ⟨fun b => ⟨1, 1, ?_⟩, ⟨1, 1, ?_⟩⟩
+  · have hl : lstN (.sb o b) = (cdB (brC t f b)).rq := by simp only [lstN, h]
+    show Wire 1 1 (cL (lstN (.sb o b))) (bv (cdB (brC t f b)).rq); rw [hl]; exact wire_shift _
+  · have hl : lstN (.ao o) = (cdB j).ak := by simp only [lstN, h]
+    show Wire 1 1 (cL (lstN (.ao o))) (bv (cdB j).ak); rw [hl]; exact wire_shift _
+
 /-! ## 3. `FGcdNetOKB` on `chB` -/
 
 theorem h_forkB (o : Fin NO) (os : List (Fin NC)) (hos : forkOuts (opAt o) = some os)
@@ -330,6 +363,9 @@ theorem bwit_ok : FGcdNetOKB chB NBn LB nB where
   H_SOR o j t f h := ⟨apB t f, σT (tabOf o), κT (tabOf o), ao_specB h,
     fun b => ⟨rfl, boundA _⟩⟩
   H_REST c _ := cell_okB c
+  H_DRV_FORK := drv_fork
+  H_DRV_JOIN := drv_join
+  H_DRV_STEER := drv_steer
 
 /-! ## 4. The joint witness -/
 

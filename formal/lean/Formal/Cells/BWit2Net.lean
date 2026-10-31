@@ -402,6 +402,50 @@ theorem md_specB {o : Fin NO} {cc x y z : Fin NC} (h : muxC (opAt o) = some (cc,
   | ⟨0, _⟩, hp => exact bufB_spec b0 rfl rfl rfl hp rfl (pinI_gE _) (pinI_L _) rfl (fun _ _ => rfl)
   | ⟨1, _⟩, hp => exact bufB_spec b1 rfl rfl rfl hp rfl (pinI_gE _) (pinI_L _) rfl (fun _ _ => rfl)
 
+
+/-! ## Every tied cell drives its own output channel -/
+
+theorem fkIn_eq (k : K NC) : fkIn k = FiniteNetBound.forkIn k := by cases k <;> rfl
+theorem jnOut_eq (k : K NC) : jnOut k = FiniteNetBound.joinOut k := by cases k <;> rfl
+
+theorem drv_fork (o : Fin NO) (os : List (Fin NC)) (i : Fin NC) (hos : forkOuts (opAt o) = some os)
+    (h2 : 2 ≤ os.length) (h4 : os.length ≤ 4) (hi : FiniteNetBound.forkIn (opAt o) = some i) :
+    ∃ wl wh, Wire wl wh (DB.O (.fa o)) (chB i).ack := by
+  have hok : faOK o = true := by
+    unfold faOK; rw [hos]; exact decide_eq_true ⟨h2, h4⟩
+  have hl : lstN (.fa o) = (cdB i).ak := by
+    simp only [lstN, hok, ite_true, fkIn_eq, hi]
+  exact ⟨1, 1, by show Wire 1 1 (cL (lstN (.fa o))) (bv (cdB i).ak); rw [hl]; exact wire_shift _⟩
+
+theorem drv_join (o : Fin NO) (ins : List (Fin NC)) (z : Fin NC) (hos : joinIns (opAt o) = some ins)
+    (h2 : ins.length = 2) (hz : FiniteNetBound.joinOut (opAt o) = some z) :
+    ∃ wl wh, Wire wl wh (DB.O (.jr o)) (chB z).req := by
+  have hok : jrOK o = true := by
+    unfold jrOK; rw [hos]; simp [h2]
+  have hl : lstN (.jr o) = (cdB z).rq := by
+    simp only [lstN, hok, ite_true, jnOut_eq, hz]
+  exact ⟨1, 1, by show Wire 1 1 (cL (lstN (.jr o))) (bv (cdB z).rq); rw [hl]; exact wire_shift _⟩
+
+theorem drv_steer (o : Fin NO) (j t f : Fin NC) (h : stJ (opAt o) = some (j, t, f)) :
+    (∀ b, ∃ wl wh, Wire wl wh (DB.O (.sb o b)) (chB (brC t f b)).req) ∧
+    ∃ wl wh, Wire wl wh (DB.O (.ao o)) (chB j).ack := by
+  refine ⟨fun b => ⟨1, 1, ?_⟩, ⟨1, 1, ?_⟩⟩
+  · have hl : lstN (.sb o b) = (cdB (brC t f b)).rq := by simp only [lstN, h]
+    show Wire 1 1 (cL (lstN (.sb o b))) (bv (cdB (brC t f b)).rq); rw [hl]; exact wire_shift _
+  · have hl : lstN (.ao o) = (cdB j).ak := by simp only [lstN, h]
+    show Wire 1 1 (cL (lstN (.ao o))) (bv (cdB j).ak); rw [hl]; exact wire_shift _
+
+theorem drv_mux (o : Fin NO) (cc x y z : Fin NC) (mw : MW) (h : opAt o = .mux cc x y z mw) :
+    (∃ wl wh, Wire wl wh (DB.O (.md o 1)) (chB z).req) ∧
+    ∀ b, ∃ wl wh, Wire wl wh (DB.O (.ma o b)) (chB (if b then y else x)).ack := by
+  have hm := muxC_of h
+  refine ⟨⟨1, 1, ?_⟩, fun b => ⟨1, 1, ?_⟩⟩
+  · have hl : lstN (.md o 1) = (cdB z).rq := by simp only [lstN, hm]; rfl
+    show Wire 1 1 (cL (lstN (.md o 1))) (bv (cdB z).rq); rw [hl]; exact wire_shift _
+  · have hl : lstN (.ma o b) = (cdB (if b then y else x)).ak := by simp only [lstN, hm]
+    show Wire 1 1 (cL (lstN (.ma o b))) (bv (cdB (if b then y else x)).ak); rw [hl]
+    exact wire_shift _
+
 /-! ## 4. `FGcdNetOKBM` on `chB` -/
 
 theorem h_forkB (o : Fin NO) (os : List (Fin NC)) (hos : forkOuts (opAt o) = some os)
@@ -454,6 +498,10 @@ theorem bwit_okM : FGcdNetOKBM chB NBm LB nB where
   H_MUXD o cc x y z mw h i := ⟨pIn (if i.val = 0 then .mo o else .md o 0),
     md_specB (muxC_of h) i, by split <;> rfl⟩
   H_REST c _ := cell_okB c
+  H_DRV_FORK := drv_fork
+  H_DRV_JOIN := drv_join
+  H_DRV_STEER := drv_steer
+  H_DRV_MUX := drv_mux
 
 /-! ## 5. The joint witness -/
 
