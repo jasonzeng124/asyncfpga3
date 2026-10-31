@@ -861,3 +861,9 @@ NoReReq, every fall of the real AND grant at t > loDr+loQ+loDq comes after a req
 followed the grant's last high request read, by at least min(loDr, loQ+loDq). This supports reading the
 gcd_hw B1 failures as a limit of the C-element grant abstraction, not a four-phase violation. It does not
 show the downstream checks would pass with an AND grant (they would need a new log rule).
+### progress 08:53
+Diagnostic (untrusted print in xarbnet, b1Corr; check.sh OK on the Main): with every arc at the same end of
+its prjxray band, B1 holds on all 104 failing gcd_hw reader rows (slow/fast, 4 seeds), min margin 51 ps. So
+gcd_hw's B1 failures are entirely the within-corner MIN/MAX spread taken as independent per arc. This turns
+the open question into the corner-model one (H_SPREAD_CORRELATED / κ). Next candidate: a Lean corner-model
+version of ArbRowsOK (shared position plus κ) and its κ threshold per arbiter.

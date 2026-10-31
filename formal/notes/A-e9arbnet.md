@@ -68,3 +68,13 @@ for the real grant `y = s(wr) && e(wq)`, under ustate's flip property and NoReRe
 grant fall at `t > lo Dr + lo Q + lo Dq` is preceded by a time `u` with `wr(t-1) < u` (after the grant's
 last high read of the request), `s u = false`, and `u + min(lo Dr, lo Q + lo Dq) <= t`. So req↓ → grant↓
 holds whichever pin the fall came through. Not covered: exclusion, rises, the downstream readers.
+
+**B1 and the within-corner spread (2026-10-31, diagnostic, no theorem).** xarbnet now also prints, for each
+failing arbiter, B1 with EVERY arc at the same end of its band (`b1Corr`: all at lo, all at hi; B1 is
+linear in a shared position, so both ends >= 0 means it holds at every shared position). On gcd_hw slow and
+fast, all 4 seeds, every reader of every failing arbiter (104 reader rows): min 51 ps at the lo end, 59 ps at
+the hi end, i.e. B1 HOLDS. So the B1 failures come only from letting arcs inside one corner sit at
+opposite ends of their prjxray [MIN, MAX], independently per arc. Whether that spread is shared (the
+H_SPREAD_CORRELATED / κ question of gcd_hw_hypotheses.md) decides it. Under a corner model with a shared
+position inside [MIN, MAX] and a local scatter κ, B1's margin of >= 51 ps over paths of ~1-2 ns suggests a
+κ threshold of a few percent; that threshold is NOT computed or proved here.
