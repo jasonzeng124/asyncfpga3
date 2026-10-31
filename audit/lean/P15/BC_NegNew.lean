@@ -38,7 +38,9 @@ abbrev ShlBitM (k i : Nat) : Prop :=
      | some j => decide (Leaf.inp 0 j ∈ S)
      | none => true) = true
 
-theorem aud_ushMut_changed : ushMut ≠ Ushli0.cells := by decide +kernel
+theorem aud_ushMut_changed : ((ushMut.map Cell.ins) != (Ushli0.cells.map Cell.ins)) = true := by decide +kernel
+-- the original passes the same check: formal's GcdShli0K0.shl_k4_b5
+#check @shl_k4_b5
 set_option maxRecDepth 100000 in
 theorem aud_ush_mut_k0_b5_holds : ShlBitM 0 5 := by decide +kernel
 set_option maxRecDepth 100000 in

@@ -27,15 +27,15 @@ open Formal.Cells.BWit2
 #print axioms Formal.Cells.FiniteNetBoundMCensus.unbound_req_classes
 #print axioms Formal.Cells.FiniteNetBoundMCensus.unbound_ack_classes
 
-/-- activity: channels with request edges, total request edges, last edge, out0's edges -/
+-- activity: channels with request edges, total request edges, last edge, out0's edges 
 #eval ((List.finRange NC).filter fun c => (cdB c).rq.length > 0).length
 #eval ((List.finRange NC).map fun c => (cdB c).rq.length).sum
 #eval ((List.finRange NC).map fun c => (cdB c).rq.foldl max 0).foldl max 0
 #eval ((cdB out0).rq, (cdB out0).ak)
-/-- muxes whose two internal joins toggle at least once in the run -/
+-- muxes whose two internal joins toggle at least once in the run -/
 #eval ((List.finRange NO).filter fun o => isMux o && ((mjN o false).length + (mjN o true).length > 0)).length
 #eval ((List.finRange NO).filter fun o => isMux o).length
-/-- the drivers the witness uses for channels 109 and 113 (outputs of 1-input joins 41, 43) -/
+-- the drivers the witness uses for channels 109 and 113 (outputs of 1-input joins 41, 43) -/
 #eval (reqSrcM FU ⟨109, by decide⟩, reqSrcM FU ⟨113, by decide⟩)
 #eval (opAt (prodOf ⟨109, by decide⟩) |> fun k => match k with | .join ins o _ _ _ => (ins, o) | _ => ([], ⟨0, by decide⟩))
 #eval (mjN ⟨37, by decide⟩ false).take 4
@@ -74,10 +74,7 @@ def mjSelInv (o : Fin NO) : Bool :=
 set_option maxRecDepth 100000 in
 theorem aud_mux37_selinv_rejected : mjSelInv ⟨37, by decide⟩ = false := by decide +kernel
 
-/-! (3) wire check of channel 109 with the request bound to the join-input contract node
-(`.rq 85`, the trace of the join's input channel) instead of link 220 through the join -/
-def wire109 (d : Cm) : Bool :=
-  let c : Fin NC := ⟨109, by decide⟩
-  (cdB c).rq == shL (wR c - 1) (lstN d)
-#eval (wire109 (dR ⟨109, by decide⟩), wire109 (.rq ⟨85, by decide⟩), wR ⟨109, by decide⟩)
-#eval ((cdB ⟨85, by decide⟩).rq.take 3, (cdB ⟨109, by decide⟩).rq.take 3, (lstN (dR ⟨109, by decide⟩)).take 3)
+/-! (3) not a mutation: on the witness, channel 109 (the request into link 233, downstream of the
+1-input join op 41 = ushrsi0 through a fork) is channel 85's request (ushrsi0's e0 side, out of
+link 220) shifted by wR 109 - 1 ticks: the compute unit is a wire of a few ticks in this run. -/
+#eval (wR ⟨109, by decide⟩, (cdB ⟨85, by decide⟩).rq, (cdB ⟨109, by decide⟩).rq, wR ⟨113, by decide⟩, (cdB ⟨113, by decide⟩).rq)

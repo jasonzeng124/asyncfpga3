@@ -626,3 +626,11 @@ First lake build of f40e003a: EXIT 1. The only failure is Formal.Cells.BWitNChk,
 (SIGKILL, OOM: two subagent Lean processes plus the build). The other 3667 jobs built. Stopped my queued BQ#1
 FAST_MIN GLS to free memory, and re-running lake build (logs/formal_build_f40e003a_r2.log). Not a proof failure
 unless it recurs with memory free.
+
+### progress 11:16
+P15a in. Main finding (definitions read by me): ArbOrd, the hypothesis that now replaces the failing B1 rows for
+gcd_hw, is an order on Classical.choose warps for all t > T0. During idle stretches any in-band warp satisfies the
+gates, so at B1-failing readers ArbOrd cannot be proved for a real run. The "10 gcd_hw rows covered" result is
+therefore OVERSTATED. The subagent's demonstration is a one-gate model with the merge6 numbers; my re-run of its Lean
+file waits for the rebuild. Also OVERSTATED: the glsq GLS monitors check less than the Lean definitions say, and
+the FEASIBILITY status paragraph lacks caveats. Statements and numbers otherwise CONFIRMED.
