@@ -537,3 +537,7 @@ The container restarted around 03:20 (disk kept; Lean, toolchain and worktrees i
 
 ### progress 03:37
 BQ#2 seed 7 2x draw 2: errs 3 on vectors 7, 8, 12 (the same signature as seed 6 / uori3), others progress. CONFIRMED.
+
+### progress 03:38
+No new research claims (BQ#1 8-seed full stack in progress on their side); formal is unchanged since 5a1ee8d2.
+Started BQ#2 seed 3 route + SLOW_MAX full stack to close part of the UNVERIFIED d,3,4,5 row.
