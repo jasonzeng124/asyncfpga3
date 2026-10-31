@@ -759,4 +759,170 @@ theorem arb_low_of_reqlow {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T0 : N
 
 end
 
+/-! ## The C clause pointwise (2026-10-31)
+
+`c_of` needs the C WINDOW (A0 read high for every ustate time in a band window around each request fall). The GLS
+(tools-A/xaudit/glsq, gen_cwmon.py) found that window tight at gcd_hw's merge10 g1 (misses by 5 ps), while at the
+GLS's own point delays the pointwise condition holds with 244 ps. `c_of_pt` needs only the pointwise condition on
+the behaviour's own reads: whenever the reader's request read has just fallen (high at `wr (t-2)`, low at `wr t`),
+ustate's A0 read at the reader's q-read time is high. -/
+
+section
+variable {s e y : Sig} {wr wq fQ : Nat → Nat} {loDr hiDr loDq hiDq T0 : Nat}
+
+theorem c_of_pt {a q : Sig} {f4 : Nat → Nat} (hy : ∀ t, y t = (s (wr t) && e (wq t)))
+    (hcp : ∀ t, T0 < t → s (wr (t - 2)) = true → s (wr t) = false → a (f4 (wq t)) = true) :
+    ∀ t, T0 < t → s (wr t) = false → Settled a q f4 (wq t) → e (wq t) = true → y (t - 2) = false := by
+  intro t ht hs hst _
+  rw [hy]
+  cases hs2 : s (wr (t - 2))
+  · rfl
+  · exfalso
+    have := hcp t ht hs2 hs
+    rw [hst.1] at this; exact absurd this (by decide)
+
+/-- `rdOK_of_ord` with the pointwise C clause. -/
+theorem rdOK_of_ordP {a q : Sig} {f4 : Nat → Nat} (hy : ∀ t, y t = (s (wr t) && e (wq t)))
+    (hwr : Warp loDr hiDr wr) (hwq : Warp loDq hiDq wq) (hfQm : Mono fQ)
+    (hT : hiDr + hiDq + 2 ≤ T0) (hord : ∀ t, T0 < t → fQ (wq t) ≤ wr (t - 2))
+    (hflip : ∀ τ, T0 < τ + hiDq + 2 → 1 ≤ τ → e (τ - 1) = true → e τ = false → s (fQ τ) = false)
+    (hnore : ∀ τ, 1 ≤ τ → e (τ - 1) = true → e τ = false →
+      ∀ v, fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false)
+    (hr : ∀ σ, 1 ≤ σ → s (σ - 1) = false → s σ = true →
+      ∀ u, σ + loDr ≤ u + hiDq → u + loDq < σ + hiDr + 2 → e u = true → Settled a q f4 u)
+    (hf : ∀ τ, 1 ≤ τ → e (τ - 1) = false → e τ = true →
+      ∀ u, τ ≤ u → u + loDq < τ + hiDq + 2 → Settled a q f4 u)
+    (hcp : ∀ t, T0 < t → s (wr (t - 2)) = true → s (wr t) = false → a (f4 (wq t)) = true) :
+    RdOK (Settled a q f4) s e y wr wq T0 := fun t ht =>
+  ⟨b1_of_ord hy hwr hwq hfQm hT hord hflip hnore t ht, b2_of hy hwr hwq hT hr hf t ht,
+    fun hs hst he => c_of_pt (q := q) hy hcp t ht hs hst he⟩
+
+end
+
+/-- RdEdge without its C window. -/
+structure RdEdgeNF (a q : Sig) (f4 : Nat → Nat) (s e : Sig) (fQ : Nat → Nat) (loDr hiDr loDq hiDq : Nat) : Prop where
+  nore : ∀ τ, 1 ≤ τ → e (τ - 1) = true → e τ = false →
+    ∀ v, fQ τ ≤ v → v + loDr < τ + hiDq + 2 → s v = false
+  rise : ∀ σ, 1 ≤ σ → s (σ - 1) = false → s σ = true →
+    ∀ u, σ + loDr ≤ u + hiDq → u + loDq < σ + hiDr + 2 → e u = true → Settled a q f4 u
+  flip : ∀ τ, 1 ≤ τ → e (τ - 1) = false → e τ = true →
+    ∀ u, τ ≤ u → u + loDq < τ + hiDq + 2 → Settled a q f4 u
+
+section
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x) (rn : Fin N → RNode)
+  (a : ArbD N)
+
+/-- `ArbEdgeS` with the four C windows replaced by the pointwise C conditions `c1`..`c4` (on the readers'
+own warps: grants `f1Of`/`f2Of`, R0 terms `frOf` shifted by two steps, as in `arbCond_of_edge`). -/
+structure ArbEdgeSP (S T0 H : Nat) : Prop where
+  cleanS : ∀ τ, S < τ → 1 ≤ τ → qS (x := x) a (τ - 1) ≠ qS (x := x) a τ →
+    qS (x := x) a (tau hsat (PqQ a) τ) = qS (x := x) a (τ - 1)
+  low : ∀ t, t ≤ T0 + 2 → g1S (x := x) a t = false ∧ g2S (x := x) a t = false ∧ R0S (x := x) a t = false
+  stall : ∀ v, ∃ v', v' ≤ v ∧ v ≤ v' + H ∧
+    (v' = 0 ∨ Ok (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (v' + 1 - kOf (bandsOf d a)))
+  hi : H + kOf (bandsOf d a) + ((bandsOf d a).st 4).2 ≤ 10 ^ 15
+  e1 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r1S (x := x) a) (qS (x := x) a)
+    (tau hsat (P1Q a)) ((bandsOf d a).g1 0).1 ((bandsOf d a).g1 0).2 ((bandsOf d a).g1 2).1 ((bandsOf d a).g1 2).2
+  e2 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r2S (x := x) a) (fun u => !qS (x := x) a u)
+    (tau hsat (P2Q a)) ((bandsOf d a).g2 1).1 ((bandsOf d a).g2 1).2 ((bandsOf d a).g2 2).1 ((bandsOf d a).g2 2).2
+  e3 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r1S (x := x) a) (qS (x := x) a)
+    (tau hsat (P1Q a)) (((bandsOf d a).r0 0).1 - 2) (((bandsOf d a).r0 0).2 - 2)
+    (((bandsOf d a).r0 2).1 - 2) (((bandsOf d a).r0 2).2 - 2)
+  e4 : RdEdgeNF (aS (x := x) rn a) (qS (x := x) a) (f4Of hsat a) (r2S (x := x) a) (fun u => !qS (x := x) a u)
+    (tau hsat (P2Q a)) (((bandsOf d a).r0 1).1 - 2) (((bandsOf d a).r0 1).2 - 2)
+    (((bandsOf d a).r0 2).1 - 2) (((bandsOf d a).r0 2).2 - 2)
+  c1 : ∀ t, T0 < t → r1S (x := x) a (f1Of hsat a 0 (t - 2)) = true → r1S (x := x) a (f1Of hsat a 0 t) = false →
+    aS (x := x) rn a (f4Of hsat a (f1Of hsat a 2 t)) = true
+  c2 : ∀ t, T0 < t → r2S (x := x) a (f2Of hsat a 1 (t - 2)) = true → r2S (x := x) a (f2Of hsat a 1 t) = false →
+    aS (x := x) rn a (f4Of hsat a (f2Of hsat a 2 t)) = true
+  c3 : ∀ t, T0 < t → r1S (x := x) a (frOf hsat a 0 (t - 2 + 2)) = true → r1S (x := x) a (frOf hsat a 0 (t + 2)) = false →
+    aS (x := x) rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+  c4 : ∀ t, T0 < t → r2S (x := x) a (frOf hsat a 1 (t - 2 + 2)) = true → r2S (x := x) a (frOf hsat a 1 (t + 2)) = false →
+    aS (x := x) rn a (f4Of hsat a (frOf hsat a 2 (t + 2))) = true
+
+end
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+include h0 h1
+
+/-- **`arbCond_of_ordSP`**: `arbCond_of_ordS` with the pointwise C conditions (`ArbEdgeSP`). -/
+theorem arbCond_of_ordSP {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) {T S T0 H : Nat}
+    (hrst : ∀ t, x (d.wire rw) t = decide (t < T)) (hrows : ArbRowsOKSS d a T S T0)
+    (he : ArbEdgeSP hsat rn a S T0 H) (ho : ArbOrd hsat a T0) : ArbCond hsat rn a T0 H := by
+  obtain ⟨r11, r1q, s1, r22, r2q, s2, rR1, rR2, rRq, _sR, _hgQ, rQ1, rQ2, rQq, rQr, rQA, sQ, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩ := hA
+  obtain ⟨⟨t1, t2, t3, t4, tr, tr', l0, l1, l2⟩, sS1, sS2, sS3⟩ := hrows
+  have wP : ∀ {gi i w : Nat} {p : Path}, RdP d fuel gi i p w → Warp (plo d ((gi, i) :: p)) (phi d ((gi, i) :: p))
+      (tau hsat ((gi, i) :: p)) := fun h => tau_warp hsat _ h.2.2.1
+  -- ustate O6's equation
+  have hq : ∀ t, qS (x := x) a t = o6B ARB_ST [r1S (x := x) a (tau hsat (P1Q a) t), r2S (x := x) a (tau hsat (P2Q a) t),
+      qS (x := x) a (tau hsat (PqQ a) t), x (d.wire rw) (tau hsat (PrQ a) t),
+      aS (x := x) rn a (tau hsat (PA a) t), true] := by
+    intro t
+    rw [st_eq]
+    show x (d.wire (gt d a.gQ).out) t = _
+    rw [gate_spec hsat h0 h1 rQ1.1 sQ t]
+    simp only
+    rw [rdP_val hsat h0 h1 rQ1 t, rdP_val hsat h0 h1 rQ2 t, rdP_val hsat h0 h1 rQq t,
+      rdP_val hsat h0 h1 rQr t, rdP_val hsat h0 h1 rQA t]
+    rfl
+  have hrs : ∀ τ, T + phi d (PrQ a) ≤ τ → x (d.wire rw) (tau hsat (PrQ a) τ) = false := by
+    intro τ hτ
+    rw [hrst]
+    have := (wP rQr).early_le τ
+    simp only [decide_eq_false_iff_not, Nat.not_lt]
+    show T ≤ tau hsat ((a.gQ, a.irQ) :: a.prQ) τ
+    simp only [PrQ] at hτ
+    omega
+  -- the reader equations
+  have hg1 : ∀ t, g1S (x := x) a t = (r1S (x := x) a (f1Of hsat a 0 t) && qS (x := x) a (f1Of hsat a 2 t)) := by
+    intro t
+    unfold g1S
+    rw [gate_spec hsat h0 h1 r11.1 s1 t]
+    simp only
+    rw [rdP_val hsat h0 h1 r11 t, rdP_val hsat h0 h1 r1q t]
+    rfl
+  have hg2 : ∀ t, g2S (x := x) a t = (r2S (x := x) a (f2Of hsat a 1 t) && !qS (x := x) a (f2Of hsat a 2 t)) := by
+    intro t
+    unfold g2S
+    rw [gate_spec hsat h0 h1 r22.1 s2 t]
+    simp only
+    rw [rdP_val hsat h0 h1 r22 t, rdP_val hsat h0 h1 r2q t]
+    rfl
+  -- the flips
+  have fl1 : ∀ τ, S < τ → 1 ≤ τ → qS (x := x) a (τ - 1) = true → qS (x := x) a τ = false →
+      r1S (x := x) a (tau hsat (P1Q a) τ) = false := fun τ hS h1' hp hn =>
+    flipAway1' hq (he.cleanS τ hS h1') hp hn
+  have fl2 : ∀ τ, S < τ → T + phi d (PrQ a) ≤ τ → 1 ≤ τ → (fun u => !qS (x := x) a u) (τ - 1) = true →
+      (fun u => !qS (x := x) a u) τ = false → r2S (x := x) a (tau hsat (P2Q a) τ) = false := fun τ hS hτ h1' hp hn => by
+    simp only [Bool.not_eq_true', Bool.not_eq_false'] at hp hn
+    exact flipAway2' hq (he.cleanS τ hS h1') (hrs τ hτ) hp hn
+  -- the warps
+  have wg10 : Warp ((bandsOf d a).g1 0).1 ((bandsOf d a).g1 0).2 (f1Of hsat a 0) := wP r11
+  have wg12 : Warp ((bandsOf d a).g1 2).1 ((bandsOf d a).g1 2).2 (f1Of hsat a 2) := wP r1q
+  have wg21 : Warp ((bandsOf d a).g2 1).1 ((bandsOf d a).g2 1).2 (f2Of hsat a 1) := wP r22
+  have wg22 : Warp ((bandsOf d a).g2 2).1 ((bandsOf d a).g2 2).2 (f2Of hsat a 2) := wP r2q
+  have wr0 : Warp ((bandsOf d a).r0 0).1 ((bandsOf d a).r0 0).2 (frOf hsat a 0) := wP rR1
+  have wr1 : Warp ((bandsOf d a).r0 1).1 ((bandsOf d a).r0 1).2 (frOf hsat a 1) := wP rR2
+  have wr2 : Warp ((bandsOf d a).r0 2).1 ((bandsOf d a).r0 2).2 (frOf hsat a 2) := wP rRq
+  have wq1 : Warp (plo d (P1Q a)) (phi d (P1Q a)) (tau hsat (P1Q a)) := wP rQ1
+  have wq2 : Warp (plo d (P2Q a)) (phi d (P2Q a)) (tau hsat (P2Q a)) := wP rQ2
+  have lg12 := warp_le wg12
+  have lg22 := warp_le wg22
+  have lr2 := warp_le wr2
+  refine ⟨he.low, by omega, by omega, by omega, he.stall, he.hi, ?_, ?_, ?_, ?_⟩
+  · exact rdOK_of_ordP hg1 wg10 wg12 wq1.mono t1 ho.o1 (fun τ hτ h1' hp hn => fl1 τ (by omega) h1' hp hn)
+      he.e1.nore he.e1.rise he.e1.flip he.c1
+  · exact rdOK_of_ordP hg2 wg21 wg22 wq2.mono t2 ho.o2 (fun τ hτ h1' hp hn => fl2 τ (by omega) (by omega) h1' hp hn)
+      he.e2.nore he.e2.rise he.e2.flip he.c2
+  · exact rdOK_of_ordP (fun t => rfl) (sh2W wr0 l0) (sh2W wr2 l2) wq1.mono (by omega) ho.o3
+      (fun τ hτ h1' hp hn => fl1 τ (by omega) h1' hp hn) he.e3.nore he.e3.rise he.e3.flip he.c3
+  · exact rdOK_of_ordP (fun t => rfl) (sh2W wr1 l1) (sh2W wr2 l2) wq2.mono (by omega) ho.o4
+      (fun τ hτ h1' hp hn => fl2 τ (by omega) (by omega) h1' hp hn) he.e4.nore he.e4.rise he.e4.flip he.c4
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet

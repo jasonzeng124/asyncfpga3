@@ -1079,3 +1079,10 @@ falls; window needs 1385), while the run computes every vector. A 5 ps miss is i
 slow-corner bands (window ends) and the GLS's SDF points, so neither violation nor satisfaction is established for
 the chip; but the hypothesis has essentially no margin there. Next session: check whether c_of's window can be
 weakened, and run the C/nore monitors on all seeds and on the R0 readers.
+### progress 15:22
+Events9ArbB1: c_of_pt, rdOK_of_ordP, RdEdgeNF, ArbEdgeSP, arbCond_of_ordSP; Events9FullArb.design_verdict9arbnet_ordSP
+(check.sh OK on both files): the C clause from a POINTWISE condition on the behaviour's reads (A0 read high at the
+reader's q-read time whenever its request read has just fallen) instead of the band window. GLS (seed 4, 16 vectors,
+POINT=1 monitor): 0 violations over ~64k request falls, where the band window missed by 5 ps at merge10 g1. So the
+tight ArbEdge field has a weaker, comfortably satisfied replacement; the verdict that uses it is _ordSP.
+Whole-project ./check.sh OK after these (73391 library declarations, standard axioms).

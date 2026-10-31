@@ -10,7 +10,9 @@ sigma = the fall time of the request's driver net. The monitor flags CW_VIOL if 
 after sigma inside the window is checked as it happens). An older low interval than the last 16 is not seen. A0 = the ustate
 input with which the INIT holds q (output = q for both q values with A0 = 1, rst = 0, any requests); rst = the
 input that forces the output high. lo Dr / hi Dr /
-lo Dq / hi Dq: the reader's request and q bands from XAN.txt. Same caveats as gen_noremon.py."""
+lo Dq / hi Dq: the reader's request and q bands from XAN.txt. Same caveats as gen_noremon.py.
+POINT=1: the pointwise C condition of `ArbEdgeSP` (c_of_pt) at this run's own point delays instead: A0 high at
+sigma + Dr - Dq - DA (+0..2), Dr / Dq = the grant's request / q pin delays (ICBUF D + TA)."""
 import sys, os, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lutnet import load
@@ -73,6 +75,10 @@ for a, B in sorted(bands.items()):
         rn = mine[0]
         loDr, hiDr = B[f"Dr{b}"]; loDq, hiDq = B[f"Dq{b}"]
         lo = loDr - hiDq - DA; hi = hiDr + 2 - loDq - DA      # window [sigma + lo, sigma + hi)
+        if os.environ.get("POINT") == "1":   # pointwise C (ArbEdgeSP.c_k) at this run's own point delays
+            Dr = [d + R["ta"].get(int(p_[1]), 0) for p_, (n, d) in rsrc.items() if n == rn][0]
+            Dq = [d + R["ta"].get(int(p_[1]), 0) for p_, (n, d) in rsrc.items() if n == q][0]
+            lo = Dr - Dq - DA; hi = lo + 3
         tag = a.split("udut.")[-1] + f".g{b}"; c = nm[a + ".ustate$LUT6"] + f"_{b}"; ca = nm[a + ".ustate$LUT6"]
         out.append(f"  // {tag}: request {rn}, A0 net {a0n} (ustate pin {pa}, DA {DA}), window [sigma + {lo}, sigma + {hi})")
         if b == 1:   # one ring buffer of A0's recent low intervals per arbiter (16 entries)

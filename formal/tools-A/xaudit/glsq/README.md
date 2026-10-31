@@ -128,3 +128,8 @@ mismatch of the two delay models; neither the violation nor its absence is estab
 first ArbEdge field found tight on a real route, and the obvious target for the next session (the window comes
 from `c_of` in Events9ArbNetEdge; whether a weaker window suffices is open). Not covered: R0 readers, other seeds,
 scatter.
+
+Pointwise C (`POINT=1 gen_cwmon.py`, the c_k fields of `Events9ArbB1.ArbEdgeSP`, at the GLS's own point delays;
+`out2/cwpt4/`): seed 4, 16 vectors, 18 grant readers: **0 violations over 63995 request falls after reset**
+(merge10 g1: A0 read point 244 ps after A0's rise on the lap examined). So the pointwise form, unlike the band
+window, has margin on this run. R0 readers not monitored.
