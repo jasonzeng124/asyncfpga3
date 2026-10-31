@@ -1502,3 +1502,26 @@ WITHDRAWN: the derivation is from per-link end contracts with Env1's content, an
 chW witness is a relabelling of the link's own pins. The same applies to Bnet's
 gcd_hw_safe_chains (10-28/29 entry "derives every link's Env1 from chain-end
 contracts"). Next: a driver-bound network hypothesis (FiniteNetBound).
+
+### progress 07:33
+In (core Lean; checked here through the private olean build formal/tools-B/privbuild.py,
+`lean -DautoImplicit=false -o` over the 128-module Mathlib-free closure, through slot.sh;
+`#print axioms` standard; Mathlib/lake build of setup.sh still running):
+- Belab FiniteNetBound (notes/B-finite-net-bound.md). FGcdNetOKB = FGcdNetOK with every
+  tied cell's pin drivers bound to the cells the NETLIST names (reqSrc/ackSrc, computed from
+  C's opAt/prodOf/consOf: producer link / steer branch / 2-join through forks; consumer link /
+  steer OR / fork C-element through 2-joins), and the steer OR's pins tied to the branch
+  acknowledges. Proved: reqSrc_tied/ackSrc_tied + tied_pins_ne (a netlist-named driver is a
+  tied cell with pins, so its contract is a gate model, not the bare pinless claim);
+  link_env_bound; bound_census (kernel): of 175 links, 63 bound on both sides, 64 request
+  side only, 23 acknowledge side only, 25 neither (the other side is a mux, muxn, amerge,
+  source, 1-input join, or a fork/join chain ending at one); gcd_hw_safe_fin_netB.
+  NOT shown: joint satisfiability (no witness; chW cannot carry it, chW_steer_unwired). The
+  proof is the old one through toOK: binding narrows the hypothesis, it adds no derivation.
+  The notes record why a witness needs (1) a re-simulated run with tied gates at LUT 1 +
+  wire 1 (uniform dilation of chW fails: links would need 4 ticks, the rest 2) and (2) a
+  fix in B's specs: H_TIMES and the checkers' driver hypothesis are "for every edge index",
+  which bound drivers cannot meet past the last edge. Mutant (link reqSrc -> .fa) fails.
+- Blcw RigLapsWit: the auditor's P13 instance of lap_cut_fails taken into the library
+  (lap_cut_fails_instance; auditor's construction, credited). Shows consistency of the
+  hypotheses on a channel map that is not a gcd_hw run.
