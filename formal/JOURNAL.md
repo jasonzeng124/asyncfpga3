@@ -1020,3 +1020,9 @@ per-pin delays, ArbOrd at an arbiter follows from four path-delay rows (reader r
 path + reader q path; grants and R0 terms). With SatPinW this is now a usable discharge: the user supplies the
 transport behaviour. Not shown: that such a behaviour exists for gcd_hw (it must also satisfy every gate's
 evaluation; no witness).
+### progress 14:28
+Whole-project ./check.sh OK (73186 library declarations, standard axioms) with SatPinW, arbOrd_of_transport and
+the Bwit wording. Link (untrusted mapping): xarbnet's b1Corr lo-end / hi-end margins are exactly
+arbOrd_of_transport's four rows for the point behaviours 'every arc at its band's lo end' and 'every arc at its hi
+end'; on gcd_hw slow/fast they hold on every reader of every arbiter (>= 51 / >= 59 ps), so those two point
+behaviours meet ArbOrd. Still not a witness (the rest of the gates' evaluation is not shown for them).
