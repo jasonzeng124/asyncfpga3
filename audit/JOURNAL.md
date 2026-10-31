@@ -714,3 +714,10 @@ the Prelim deletion. Research: BQ#1 1x scatter 3/3 PASS (4a48b6b4), not yet look
 
 ### progress 16:10
 BQ#1 d 1x scatter draw 1: 16/16 errs 0, 23/18/26 (= claim), no stalls. CONFIRMED. Formal build status: EXITMOD BWit2NChk 0 EXITMOD BWit3NChk 0 EXITMOD BWit4NChk 0 EXITMOD BWitNChk 0 
+
+### progress 16:19
+The container restarted again (~16:15). The formal 464c5ea7 build had all 4 NChk modules done (peak RSS 0.8-7.7 GB)
+and stopped at 3379/3899; restarted (logs: formal_build_464c5ea7_r2). The P17 subagent was resumed from its
+transcript; its partial P17.md (summary: SatPinW fix CONFIRMED structurally but ArbOrd still assumed on every gcd_hw
+row; corrected glsq monitors match the Lean windows; Bwit4 and the 173/175 census CONFIRMED; no theorem lost in the
+Prelim deletion) is committed. BQ#1 d 1x was already recorded.
