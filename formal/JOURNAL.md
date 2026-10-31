@@ -991,3 +991,11 @@ notes/A-e9arbnet.md; ArbOrd stays a hypothesis for now.
 - **Row 18, wording: agreed.** FEASIBILITY lists all ArbEdge windows (B2, C); CornerDiff header and note now point
   to the auditor's strong witness instead of 'beyond ANY bound'.
 - Row 11 (GcdJoin not linked into the capstone) is C's; A's files already say 'open'.
+### progress 14:10
+glsq rerun with corrected monitors (audit P15a points a-c fixed; tools-A/xaudit/glsq/out2, README table): 4 seeds
+no scatter: 16/16 vectors, 0 QQuiet violations after reset (window shifted by TA_k, pre- and post-flip checks),
+no grant/R0 rise before reset release (27 outputs on their real ports; first rise ~40 ns after release), ArbOrd
+worst 278 ps over 72 reader pairs incl. R0. Under GLS scatter (seed 4): σ 0.05 ArbOrd -12/+19/+142 ps, σ 0.10
+-410/-346 ps (fails on the R0 reader), every run still 16/16 and QQuiet clean. Correction to my earlier entry:
+'σ 0.05 ArbOrd >= 49 ps' was wrong (the filter dropped 26 of 54 pairs and never looked at R0). Point (d), the
+GLS version, stays a limitation.

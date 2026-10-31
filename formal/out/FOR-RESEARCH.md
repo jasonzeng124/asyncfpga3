@@ -374,7 +374,8 @@ monitors on the unmodified GLS; NOTE: these first numbers came from monitors tha
 hypotheses, audit P15a; corrected rerun in `glsq/out2/`):** on gcd_hw R5 seeds d/3/4/5 (SDF delays, no scatter), 16/16 vectors each,
 0 QQuiet violations after reset (about 20k q flips per seed). QQuiet does fail during power-up while rst is
 high (X resolution), which is why the Lean form only needs it after S. ArbOrd holds with the GLS's point delays
-(worst 280 ps), and no grant/R0 rises before reset release (vector 6, seed 5). Suggested research change:
+(corrected rerun: worst 278 ps over 72 reader pairs) but fails under per-arc scatter in 3 of 5 draws while the
+circuit still computes every vector; no grant/R0 rises before reset release (vector 6, all 4 seeds). Suggested research change:
 make these monitors part of the fid GLS runs (`glsq/gen_qqmon.py`, `gen_lowmon.py` read only `names.map` and
 `netlist_baked.v`), and run them under scatter.
 

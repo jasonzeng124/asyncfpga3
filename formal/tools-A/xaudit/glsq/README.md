@@ -64,3 +64,29 @@ Scatter (`SIG=0.05 run_scatter.sh seed4`, GLS_SCATTER = 0.05 per arc, unclamped 
 DQ 2385, Dq 306, margin -321 ps), yet the run is correct on all 16 vectors. So ArbOrd can fail while the circuit
 works, as `Events9ArbB1.grant_fall_after_req_fall` predicts: it is a condition of the C-element grant abstraction,
 stricter than what the circuit needs. (One draw, one model; the monitor did not look for the q-pin fall itself.)
+
+## Corrected rerun (`run_all2.sh`, outputs `out2/`; monitors fixed after audit P15a)
+
+QQuiet window per pin k: (tau - TA_k, tau + W - TA_k] (checked both ways: pin changes after an output change and
+output changes shortly after a pin change); W = the cell's own loop delay in this GLS (not the Lean band hi).
+lowmon on the port each cell drives (27 outputs). ord_static on every reader (both grants and R0) and every
+request net (LUT-driven input of ustate$LUT6 other than q; may include A0, conservative): 72 pairs per seed.
+gcd_hw R5 rebuilt per seed (md5s = events5/builds.txt, `out2/<seed>/md5.txt`), research GLS at 520a43f.
+
+| run | vectors errs=0 | q flips | QQuiet viol. after reset | before reset | grant/R0 rise before reset | first rise after release | ArbOrd worst (72 pairs) |
+|---|---|---|---|---|---|---|---|
+| seed d | 16/16 | 20106 | 0 | 80 | 0 | +40.1 ns | 278 ps |
+| seed 3 | 16/16 | 18669 | 0 | 80 | 0 | +41.2 ns | 380 ps |
+| seed 4 | 16/16 | 19567 | 0 | 48 | 0 | +41.9 ns | 382 ps |
+| seed 5 | 16/16 | 20387 | 0 | 128 | 0 | +41.4 ns | 382 ps |
+| seed 4, σ 0.05, draw 1 | 16/16 | 19637 | 0 | – | – | – | **-12 ps** (R0 reader, merge10) |
+| seed 4, σ 0.05, draw 2 | 16/16 | 19467 | 0 | – | – | – | 19 ps |
+| seed 4, σ 0.05, draw 3 | 16/16 | 19629 | 0 | – | – | – | 142 ps |
+| seed 4, σ 0.10, draw 1 | 16/16 | 19701 | 0 | – | – | – | **-410 ps** (R0 reader, merge10) |
+| seed 4, σ 0.10, draw 2 | 16/16 | 19359 | 0 | – | – | – | **-346 ps** |
+
+So with the corrected checks: QQuiet after reset holds on every run (0 violations), the quiet start holds (no
+rise before release, first rise ~40 ns after), ArbOrd holds at the GLS point delays (>= 278 ps) but fails under
+per-arc scatter in 3 of 5 draws (the earlier ">= 49 ps at σ 0.05" was an artefact of the dropped pairs) while every
+run computes all 16 vectors: ArbOrd is stricter than the circuit needs. Limitations: GLS model at 520a43f (SDF
+points, no fid), W is the GLS loop delay rather than phi(PqQ), only vector 6 for the quiet start, one route for scatter.
