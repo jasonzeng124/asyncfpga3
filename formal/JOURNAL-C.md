@@ -807,3 +807,18 @@ The file's title and the out0_dag_witness docstring now say so (check.sh OK, 434
 statements unchanged), and so does notes/C-8x4-refine.md. Commit d63d5221's message omitted it and
 cannot be changed. The FEASIBILITY sentence "phys4/phys5 were vacuous" is shard A's file: FOR SHARD A,
 P12a found only phys5_cls/_gen vacuous (audit P14 row 10).
+
+### progress 11:10 -- state at hand-off
+Everything this session produced is committed and pushed, and the tree is clean:
+- H_COMPUTE_FN for all 20 gcd_hw units, GcdJoin, and the 5 xorshift units.
+- The negative controls.
+- 11g on all routes of gcd_hw and xorshift.
+- Audit rows 18 and P14-10.
+
+NEXT for C: H_NO_DEADLOCK'' via the confluence route (notes/C-8z5-nodeadlock.md, analysis
+2026-10-31). First obligations:
+(a) persistence of every excitation in the interleaving model except the mux-input acknowledge,
+    with the depth-one exception from mux_out_not_mux;
+(b) one constructive schedule per input that closes out0;
+(c) the timed-to-interleaving bridge (8z4 serial, its hex premise for gcd_hw).
+None of these is started.
