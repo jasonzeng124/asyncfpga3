@@ -189,3 +189,73 @@ own sha256 line does not certify it (independent build used instead).
   heldChk) give H_OTHER (in fact all 367 operators) and H_BUNDLE on chB.
 
 (c)/(d) Findings. (census numbers from BC_BwitCensus.lean, below)
+1. Not degenerate in the sense asked. Cells are not "tied to constants": "tied" means a gate-model
+   cell whose pins are tied to C's channel traces. In the witness each tied cell's output node IS
+   the channel signal it drives, and each of its pins is (kernel-checked) the node of the cell the
+   netlist names, delayed by wR/wA. So links feed links, steer branches feed links, fork
+   C-elements feed link acknowledges, etc., in one closed simulated run that the gate checkers
+   (real cel2/cel3/cel4, bd_steer OR, link LUT functions) accept, and C's operator models hold on
+   the same traces; the computation reaches out0 = 6 = gcd(12, 18) at t = 585. This is a genuine
+   improvement over Bfin3's relabelling (P12b): `Rej.chW_net_not_bound` proves the old chW network
+   violates the binding.
+2. Degenerate in the disclosed ways: one run, one input pair (12, 18); all LUT delays lo = hi = 1,
+   wire delays fixed (1..3) with windows of width 0, so no delay band is exercised; R = 2.
+3. Coverage of the binding. The binding is enforced only where `reqSrc`/`ackSrc` return a cell:
+   63/175 links are bound on both sides (kernel census `bound_census`: 63 both, 64 request only,
+   23 acknowledge only, 25 neither). Unbound link SIDES = 64 + 23 + 2*25 = 137. The BWitNet
+   docstring and JOURNAL-B 08:12 say "the 112 link sides `bound_census` counts as unbound"; 112 is
+   the number of LINKS not bound on both sides (175 - 63), not of sides. Miscount (minor). On
+   those sides, and on every pin whose netlist driver is a mux, muxn, amerge, source, sink, wide
+   join or fork tree, the driver is a pinless contract cell (`rq c`/`ak c`) whose contract holds
+   because its node is clean (`cell_okB`), i.e. the old P12b weakness persists there (disclosed
+   as item (ii) in BWitNet's docstring).
+4. The commit message and the status table give the 63/175 figure (status table) or none (commit);
+   FEASIBILITY.md's paraphrase "(every tied cell's pins driven by the netlist-named cell)" omits
+   "where the netlist names a B cell" and the 63/175 figure; read literally it overstates (A's
+   paraphrase, marked "not re-checked by A").
+5. What the theorem still assumes, also on the witness: H_OTHER (C's `Cell` for the 192 non-link
+   operators) and H_BUNDLE (`Held` on every channel) are hypotheses; on chB they are discharged by
+   C's checkers on that single run, not by B's gate models. The gate-level network is used only
+   to derive the links' `Cell` (`toOK` -> `gcd_hw_safe_fin_net`); in the witness even that is
+   redundant, since `b_cells` gives C's `Cell` for all 367 operators including links. Disclosed
+   (item (iv) and the note).
+6. Negative control (a0337827). It is journal-only (no committed file). I reproduced it without
+   editing their tree (BC_BwitCensus.lean: `wireChk'` with channel 20's request wire 2 -> 1):
+   result below. It is a real mutation of the witness data and makes the witness proof fail
+   (bw_c1 -> bwit_ok), but it tests only the consistency of the declared wire delay with the
+   pre-computed traces; it cannot "break the theorem" (an implication) and it does not test that
+   the gate checks or the binding reject a wrong circuit. The binding side is covered by
+   `chW_net_not_bound`; for the gate side I added a mutant (fork acknowledge C-element checked
+   as OR), result below.
+
+## B2. fa430509 / 65522b83: FiniteNetBoundM (124/175) and Bwit2
+
+(a) fa430509: "FiniteNetBoundM -- muxes gate-modelled and bound (124/175 links bound both sides,
+kernel census); gcd_hw_safe_fin_netBM, NO witness yet"; 65522b83: "Bwit2 steps 2-3 --
+mux-gate-modelled run chB2 meets C's hypotheses (BWit2Cells, kernel); mux cell checkers
+bufB/mjB/maB with soundness (BWit2Lib)". JOURNAL-B 08:41: "NOT yet: a joint witness of
+FGcdNetOKBM ... Until then gcd_hw_safe_fin_netBM is reported as possibly vacuous."
+
+(b)/(d) `bound_censusM` (FiniteNetBoundM.lean:309-312, kernel): 124 both, 25 request only, 25
+acknowledge only, 1 neither. BWit2Cells proves only C's hypotheses on the run chB2 (`b_cells`,
+`b_held`, `b_forced`, `b_out0`) and BWit2Lib proves soundness lemmas of the mux checkers; no file
+instantiates `FGcdNetOKBM` (grep: the name occurs only in FiniteNetBoundM.lean). So at HEAD
+`gcd_hw_safe_fin_netBM` has NO witness, exactly as stated. The headline "124/175" therefore belongs
+to a theorem that may be vacuous; the witnessed theorem is the 63/175 one. The prose says so in
+fa430509 and the journal; the 65522b83 message does not claim an FGcdNetOKBM witness.
+Verdict B2: CONFIRMED (accurately scoped; "Bwit2 step 3" is checker soundness, not a witness).
+
+## B3. 3aed4ede chW_net_not_bound and 629c4401 docstring caveats
+
+- `Rej.chW_net_not_bound : ¬ FGcdNetOKB chW NW LW nW` (BWitNet.lean:362): link 194 reads channel
+  13 (`lkIO`, kernel), the netlist names link 193 as channel 13's request driver (`reqSrc`, kernel),
+  while Bfin3's network has pin list `[pR 13, ...]` whose driver is the contract cell `rq 13`; the
+  constructor mismatch `Cl.rq _ = Cl.lk _` closes it. A genuine proof that the binding excludes
+  the P12b relabelling, for the specific witness `fgcdNetOK_chW`. CONFIRMED.
+- 629c4401: CAVEAT paragraphs added to exactly 8 theorem docstrings (AssumeGuaranteeCap:146,
+  AssumeGuaranteeEndsCap:220, AssumeGuaranteeMuxNNet:199 and :332, AssumeGuaranteeMuxNet:430,
+  FiniteNet:646, FiniteNetMixed:395, FiniteOrN:452); the JOURNAL-B status table preamble now says
+  151/38/56/10 and the Phase 3 row carries the driver caveat. Residual: the old wording ("every
+  cell carries B's gate model except ...", "contracts remain on ...") is kept in front of each
+  caveat, and the MODULE headers FiniteNetMixed.lean:20-26 and FiniteOrN.lean:28-35 still carry
+  it with no caveat in that bullet. Minor. CONFIRMED (with that nit).
