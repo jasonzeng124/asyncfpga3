@@ -374,4 +374,56 @@ theorem qclean_of_quiet {α : Type} {F : α → Bool → Bool} {X : Nat → α} 
   intro τ hτ hch
   exact key τ hτ hch (f2 τ) (Nat.le_refl _) (by have := hw.le_late τ; omega)
 
+/-! ## ArbEdge with QClean replaced by quiet input reads -/
+
+section
+variable {N : Nat} {d : Design} {net : Net4 N} {b : Bands4 net} {rn : Fin N → RNode} {fuel rw : Nat}
+  {x : Fin d.n → Sig} (hsat : SatPin d plG x)
+  (h0 : ∀ t, x (d.wire 0) t = false) (h1 : ∀ t, x (d.wire 1) t = true)
+include h0 h1
+
+/-- ustate O6's equation on the wires of `d`, at an `ArbOK` arbiter (as in `arbCond_of_edge`). -/
+theorem arb_q_eq {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) :
+    ∀ t, qS (x := x) a t = o6B ARB_ST [r1S (x := x) a (tau hsat (P1Q a) t), r2S (x := x) a (tau hsat (P2Q a) t),
+      qS (x := x) a (tau hsat (PqQ a) t), x (d.wire rw) (tau hsat (PrQ a) t),
+      aS (x := x) rn a (tau hsat (PA a) t), true] := by
+  obtain ⟨_, _, _, _, _, _, _, _, _, _sR, _hgQ, rQ1, rQ2, rQq, rQr, rQA, sQ, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _, _, _, _, _⟩ := hA
+  intro t
+  rw [st_eq]
+  show x (d.wire (gt d a.gQ).out) t = _
+  rw [gate_spec hsat h0 h1 rQ1.1 sQ t]
+  simp only
+  rw [rdP_val hsat h0 h1 rQ1 t, rdP_val hsat h0 h1 rQ2 t, rdP_val hsat h0 h1 rQq t,
+    rdP_val hsat h0 h1 rQr t, rdP_val hsat h0 h1 rQA t]
+  rfl
+
+/-- ustate's own `q` read path is a warp with its path band. -/
+theorem arb_qq_warp {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) :
+    Warp (plo d (PqQ a)) (phi d (PqQ a)) (tau hsat (PqQ a)) := by
+  obtain ⟨_, _, _, _, _, _, _, _, _, _sR, _hgQ, _, _, rQq, _⟩ := hA
+  exact tau_warp hsat _ rQq.2.2.1
+
+/-- **The quiet-reads condition** (replaces `QClean` in `ArbEdge`): after each change of `q`, ustate
+O6's other four reads (both requests, the design reset, A0) are constant for `phi (PqQ)` steps. -/
+def QQuiet (rw : Nat) (rn : Fin N → RNode) (a : ArbD N) : Prop :=
+  ∀ τ, 1 ≤ τ → qS (x := x) a (τ - 1) ≠ qS (x := x) a τ → ∀ u, τ ≤ u → u ≤ τ + phi d (PqQ a) →
+    (r1S (x := x) a (tau hsat (P1Q a) u), r2S (x := x) a (tau hsat (P2Q a) u),
+      x (d.wire rw) (tau hsat (PrQ a) u), aS (x := x) rn a (tau hsat (PA a) u)) =
+    (r1S (x := x) a (tau hsat (P1Q a) τ), r2S (x := x) a (tau hsat (P2Q a) τ),
+      x (d.wire rw) (tau hsat (PrQ a) τ), aS (x := x) rn a (tau hsat (PA a) τ))
+
+/-- **`qclean_of_arb`**: at an `ArbOK` arbiter whose own-q read path has lower delay `≥ 1`
+(`plo d (PqQ a)`, a band number), `QQuiet` gives `QClean` for the real `q`. -/
+theorem qclean_of_arb {a : ArbD N} (hA : ArbOK d net b rn fuel rw a) (hlo : 1 ≤ plo d (PqQ a))
+    (hQ : QQuiet hsat rw rn a) : QClean (qS (x := x) a) (tau hsat (PqQ a)) := by
+  have hq := arb_q_eq hsat h0 h1 hA
+  exact qclean_of_quiet (F := fun (v : Bool × Bool × Bool × Bool) bq =>
+      o6B ARB_ST [v.1, v.2.1, bq, v.2.2.1, v.2.2.2, true])
+    (X := fun u => (r1S (x := x) a (tau hsat (P1Q a) u), r2S (x := x) a (tau hsat (P2Q a) u),
+      x (d.wire rw) (tau hsat (PrQ a) u), aS (x := x) rn a (tau hsat (PA a) u)))
+    (fun t => hq t) (arb_qq_warp hsat h0 h1 hA) hlo hQ
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet

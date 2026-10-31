@@ -895,3 +895,9 @@ Events9ArbB1.qclean_of_quiet (check.sh OK; strong induction on time, a last-chan
 any self-loop LUT whose other reads stay constant for one own-feedback delay after each change of its output.
 So ArbEdge's QClean can be replaced by an input-timing condition (no request/reset/A0 read change within the
 q loop delay of a q flip); not yet substituted into ArbEdge.
+### progress 09:25
+Events9ArbB1: arb_q_eq, arb_qq_warp, QQuiet, qclean_of_arb (check.sh OK). At an ArbOK arbiter with
+plo(PqQ) >= 1, QClean (ArbEdge's no-metastable-runt field) follows from QQuiet: after each q change,
+ustate's reads of both requests, the reset and A0 stay constant for phi(PqQ) ps. So ArbEdge's
+metastability field is now a condition on input timing at the real cell; the other fields (quiet start,
+settle bound, edge windows) and ArbOrd remain hypotheses.
