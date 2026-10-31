@@ -6,6 +6,26 @@ C-8x.
 STATUS: DONE for (1) and (2). Five new Lean files pass `./check.sh` (log at the end). No existing
 file was edited.
 
+## Correction (2026-10-31, audit P12a rows 18-19)
+
+- **phys4/phys5 rows were unusable on any terminating run.** The `TxWin` of `CapstoneRefine`
+  demanded a `k`-th transaction for EVERY `k` (`count : ∀ k, ...`), so a channel with a TxWin is
+  offered infinitely often (auditor's `txwin_inf`). On a single-start gcd run every channel is
+  offered finitely often, so the `dag`/`cert` certificates and every `Row`/`RowG` were impossible,
+  `BCert` reduced to `exempt` (assumed bundling), and `phys5_cls`/`phys5_gen` were vacuous on
+  every real gcd run (auditor's `phys5cls_out0_inf`, `chW_not_cls`). The statement "26 root
+  certificates, all with tcheck A rows" below could not be realised.
+- **Fixed** (2026-10-31): `TxWin` now quantifies only over transactions that occur (`HasOff P k`):
+  `idle`, `count` and `win` need a `k`-th offer, and the last transaction's window is unbounded on
+  the right. Every theorem built on `TxWin` re-checks unchanged in statement. Non-vacuity on a
+  FINITE channel: `CapstoneRefineFinWit.fin_witness` (a channel offered exactly twice, idle
+  forever after, certified by a real tcheck DAG row, not `exempt`). Still NOT shown: a gcd_hw run
+  meeting phys5's Row hypotheses; the gcd_hw witnesses remain all-ghost/all-exempt.
+- **"H_FN decided against Formal.Gen on 176/221" overstated.** `fnOK` returns `true` for `.wire`
+  (43 forks) and `.shift` (37 steerD var 0) without consulting `Formal.Gen`. Only 96 (87 latches,
+  9 data muxes) are checked against generated cells, at W = 3 only, with each bit pair assumed to
+  use `pair[0].u`. H_FN is reduced to H_ZD_BITS + H_WIDTH, which are assumed.
+
 ## Verdict
 
 - **(1) Composing lemmas for every kind.** `fieldOf_row`: a cell's handshake half, the protocol

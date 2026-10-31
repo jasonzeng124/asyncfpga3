@@ -626,3 +626,26 @@ inside the capstone) and witgen (active run under H_GEN).
 ### progress 12:10
 8x4 committed after my own check.sh (5 files, 5061 decls). Launched cap (phys5 instantiated
 on route d's imported netlist and certified tcheck rows).
+
+## Session Sat Oct 31 07:21 UTC 2026
+
+### progress 07:21
+Took LOCK-C (previous 2026-10-29T12:59, stale; no C session on 10-30). Probe "cap" (launched
+12:10 on 10-29) never landed. setup.sh's whole-project `lake build` (Mathlib from source: cache
+unreachable) stopped by me; shard C's modules are built by target (they import no Mathlib).
+Audit read (passes 12-13). Open rows on C files, in order of weight:
+- row 18 (P12a): `TxWin.count : ∀ k` forces infinitely many offers, so on every terminating run
+  BCert = exempt and phys4/phys5_cls/_gen are vacuous on real gcd runs. CONFIRMED by me from
+  the definition. Fixing now (index by the transactions that occur).
+- row 19 (P12a e): "H_FN decided on 176/221" overstated -- fnOK returns true for `.wire` (43
+  forks) and `.shift` (37 steerD) without consulting Formal.Gen; only 96 (87 latches + 9 data
+  muxes, W=3 instances, bit pair pair[0].u assumed) are checked against generated cells, and
+  H_FN is reduced to H_ZD_BITS + H_WIDTH (assumed). Accepted: the correct sentence is "96 of
+  221 sampled channels are checked against Formal.Gen (W=3 only); 80 pass a constant-true
+  check; H_FN rests on H_ZD_BITS + H_WIDTH".
+- row 20 (P12a): "9 FASTFALL lines" miscount. Accepted: 11 distinct lines (19 line x model
+  failures: 1 sdfband + 9 fastG + 9 slowG); by tcheck's own verdict (fastG AND slowG) those 11
+  lines FAIL, rule F passes them. The C-10o note's table was already right.
+- row 13 (P13): bdc_closed_ring_empty scope -- docstring now says closed bd_c2n rings from
+  all-zero only; "every bdc ring" rests on emit.py emitting no `_set` cell (grep, not Lean).
+- row 45: Ring.lean header already says N(N-1) / tight N(N-1)/2 in RingFair (fixed earlier).
