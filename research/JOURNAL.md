@@ -1863,3 +1863,10 @@ the pre-place script, or a soft nextpnr pull toward a datapath centroid, before 
 ### progress 19:56 (log-normal: BQ#2 seed 6 passes 1x and 1.5x)
 - BQ#2 seed 6 (linear 2x FAIL, uori3), log-normal draw 1: sigma 0.16 PASS 50/41/59, sigma 0.24 PASS 46/38/55.
   2x running.
+### progress 20:28 (log-normal scan: both failing routes pass 1.5x, fail 2x)
+| draw 1, GLS_SCATTER_LOGN=1 | 1x (0.16/0.126) | 1.5x (0.24/0.189) | 2x (0.32/0.252) | linear threshold |
+|---|---|---|---|---|
+| BQ#3 seed 9 (uori2) | PASS 52 | PASS 51 | FAIL errs 6 | ~1.33x |
+| BQ#2 seed 6 (uori3) | PASS 50 | PASS 46 | FAIL errs 3 | between 1x and 2x |
+With silicon-like bounded speed-ups (log-normal), the two worst known exposures hold to at least 1.5x the
+calibrated within-die scatter, which S9 already suspects is double-counted. Bisecting 1.75x on both now.
