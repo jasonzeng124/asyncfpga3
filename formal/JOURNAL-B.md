@@ -1701,3 +1701,11 @@ ack, mux udly[1] -> z req, uxa/uya -> x/y ack; links already had LinkOut). Befor
 node was connected to its output channel only where the channel's reader was tied, so a
 steer feeding an amerge could drive nothing. Both witnesses meet the new fields (the node
 is the channel one tick early: wire_shift).
+
+### progress 11:11
+In (lake build OK): FiniteNetComb -- FCombSpec, a truncated spec for a LUT whose
+correctness is a race (the arbiter's ustate/ugrant): the real LUT F of its pins through Win
++ H_NO_REVERT, and one named hypothesis H_EXC_CLEAN (clean pins on [0,T) give a clean
+excitation with stated edges). fcomb_spec_cell: it meets FCellOK, so such cells can join the
+bound network; fcomb_of_buf: a buffer is an instance (H_EXC_CLEAN = the pin's own
+cleanliness). Building block for notes/B-arb-bind-plan.md; no arbiter instance yet.
