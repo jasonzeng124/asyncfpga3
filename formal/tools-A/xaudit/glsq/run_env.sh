@@ -24,6 +24,9 @@ for f in sorted(glob.glob(O + "/check_v*.txt")):
     for m in re.finditer(r"^(\S+) (\S+): (\d+) events, (\d+) violations", t, re.M):
         tot[(m.group(1), m.group(2))] += int(m.group(3)); bad[(m.group(1), m.group(2))] += int(m.group(4))
 lines = [f"{k[0]} {k[1]}: {tot[k]} events, {bad[k]} violations" for k in sorted(tot)]
+st = [(int(m.group(1)), int(m.group(2)), f) for f in sorted(glob.glob(O + "/check_v*.txt"))
+      for m in re.finditer(r"^SETTLE max (\d+) ps over (\d+)", open(f).read(), re.M)]
+if st: lines.append(f"settle: max {max(x[0] for x in st)} ps over {sum(x[1] for x in st)} A0-read-low phases")
 open(O + "/summary.txt", "w").write(f"vectors errs=0: {ok}/16\n" + "\n".join(lines) + "\n")
 print(O.split("/")[-1], f"errs0 {ok}/16", "total events", sum(tot.values()), "violations", sum(bad.values()))
 PY

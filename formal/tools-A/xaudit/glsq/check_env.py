@@ -11,6 +11,7 @@ bands lo/hi Dr, lo/hi Dq; the R0 readers' bands are xarbnet's R0 bands minus 2, 
   flip : each flip of e toward at tau -> every u in [tau, tau + hiDq + 2 - loDq) is Settled
   C    : each fall of s at sigma      -> A0 high on [sigma + Dr - Dq - DA, + 2) (reader point delays Dr, Dq)
 Settled u = A0 read low at u (A0 at u - DA) and q constant from u while that read stays low.
+Also prints SETTLE: the largest (last q change - start) over A0-read-low phases starting after T_AFTER (ArbEnv's settle bound H).
 Negative controls: CTRL_DA=d adds d to DA (A0 read at the wrong time), CTRL_E=e widens the nore/rise/flip windows."""
 import sys, os, json, re, bisect, collections
 CDA = int(os.environ.get("CTRL_DA", "0")); CE = int(os.environ.get("CTRL_E", "0"))   # negative controls
@@ -48,7 +49,7 @@ class Sig:
         return m
 def shifted(sig, d):  # read through a fixed delay d
     return Sig([(t + d, v) for t, v in zip(sig.t, sig.v)])
-tot = collections.Counter(); bad = collections.Counter(); ex = {}
+tot = collections.Counter(); bad = collections.Counter(); ex = {}; settle = [0, None]
 for name, I in sorted(info.items()):
     tag = name.split("udut.")[-1]
     if name not in B: continue
@@ -60,6 +61,10 @@ for name, I in sorted(info.items()):
     for (p, p2) in A0r.runs(0, tafter, end):
         ch = [t for t in q.t if p < t <= p2 - 1]
         if ch: nonset.append((p, max(ch)))
+        # settle bound H: last q change of an A0-read-low phase, measured from the phase start
+        if p == tafter: continue          # phase already running at reset release: start unknown, not counted
+        tot[("all", "settle")] += 1
+        if ch and max(ch) - p > settle[0]: settle[0] = max(ch) - p; settle[1] = (tag, p)
     def settled_all(lo, hi, cond=None):   # every u in [lo, hi) (with cond(u)) settled?
         for (a, b) in nonset:
             x, y = max(a, lo), min(b, hi)
@@ -95,5 +100,7 @@ for name, I in sorted(info.items()):
             lo = sg + P["Dr"] - P["Dq"] - I["DA"] - CDA
             if A0.runs(0, lo, lo + 2) or A0.runs(None, lo, lo + 2):
                 bad[(rd, "C")] += 1; ex.setdefault((rd, "C"), (tag, sg))
+print(f"SETTLE max {settle[0]} ps over {tot[('all', 'settle')]} A0-read-low phases (at {settle[1]})")
+tot.pop(("all", "settle"), None)
 for k in sorted(tot):
     print(f"{k[0]} {k[1]}: {tot[k]} events, {bad[k]} violations" + (f" (first: {ex[k]})" if bad[k] else ""))
