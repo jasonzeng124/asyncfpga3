@@ -529,3 +529,8 @@ r23 K: research's 2x region-map spread table reproduced exactly with my code (ov
 BQ#2 seed 6's 44 occupied regions, draw 3 has no region < 0.4 (its 0.12 region is empty). Failing draws 1-2
 have one, passing 3-4 don't. "Draw 3 splits by route" contradicts their own table (PASS on both): minor
 OVERSTATED. At 1x the occupied spread is already 1.7-2.2x.
+
+### progress 03:23
+The container restarted around 03:20 (disk kept; Lean, toolchain and worktrees intact). BQ#2 seed 7 2x draw 2
+(claimed "FAIL errs 3"): seed-7 route md5s reproduced again. Vectors 0-9 finished before the restart: vec 7 and
+8 fail (laps 1, errs 1); the rest pass at TEND 30 us. Vectors 10-15 relaunched.
