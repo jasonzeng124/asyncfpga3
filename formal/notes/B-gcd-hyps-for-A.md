@@ -26,6 +26,22 @@ new section, "Shard B's cell hypotheses". The corrections after it are for the e
   `H_ENV` and the sources' `SrcR` proved from the rig's env cells. Its binders (BH24) are Lean
   hypotheses of a capstone-chain theorem. **It has no joint non-vacuity witness yet.**
 
+**Update 2026-10-31 (shard B): the gate-level network theorem, driver-bound, with a joint
+witness.** `Cells/FiniteNetBound.lean:gcd_hw_safe_fin_netB` is C's gcd_hw safety (every out0
+token carries gcd a b) with the `H_CELLS` of all 175 LINKS discharged by one gate-level network
+of B's cell models (`FGcdNetOKB`), whose tied cells' pin drivers are bound to the cells the
+netlist names (63 links bound on both sides, 64 request side only, 23 acknowledge side only, 25
+neither: `bound_census`). Its hypotheses: `FGcdNetOKB` (B's gate models, wires, edge-time
+bounds, finite edge counts, truncated contracts on untied cells), C's `H_CELLS` for the other
+192 operators (`H_OTHER`), H_BUNDLE, H_CM_FORCED. Joint witness:
+`Cells/BWitNet.lean:gcd_hw_fin_netB_witness` (a = 12, b = 18, a gate-timed run in which B's tied
+cells drive each other; unit LUT delays, wire delays 1-3, one run). It replaces, for links, the
+chain/elaboration theorems that the audit (P12b) found did not bind drivers. Suggested row:
+"H_CELLS (links) <- FGcdNetOKB: B gate models of links/forks N<=4/2-joins/steers/ORs with
+netlist-bound drivers; grade B (model), witness: one gate-timed run; test: routed GLS of the
+same cells with per-arc bands".
+
+
 | B id | hypothesis (Lean) | plain statement | grade | status | test | chain? |
 |---|---|---|---|---|---|---|
 | BH1 | INIT = function: `LinkHandshake:65 ctlB`, `OpsGen:397 link_gate`, Gen | LUT output = INIT of its physical pins | A cell / B whole bits | `ctlB` discharged (kernel decide) | `formal/tools/gen/gen.sh --check`; extend `fasm2lean2/check.sh` to gcd_hw | chain |
