@@ -515,3 +515,7 @@ SLOW_MAX full stack running; I check all 16 vectors for stalls, not just errs.
 BQ#2 seed 9 SLOW_MAX full stack: 16/16 errs 0, 31/25/36 = TSV, every vector's last lap > 147 us (no stall).
 CONFIRMED. BQ#2 rows I reproduced myself are now: seeds d (r15), 4, 6, 7, 9 at SLOW_MAX (6/7 in r22); seeds 7, 8 2x PASS;
 seed 6 2x draws 1 and 2 FAIL; seed 6 1x PASS.
+
+### progress 01:42
+Research d57bd982: BQ#2 seed 9 2x draw 1 "PASS 16/16 (49/39/58)"; BOARD-QUEUE now says 2x 3/4. Running it on my
+seed-9 route with a per-vector stall check.
