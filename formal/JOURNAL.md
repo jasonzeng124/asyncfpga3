@@ -964,3 +964,30 @@ Negative design result: the AND-grant proposal (two-copy AND request pin) is not
 the B1 clause, but the matching with the real grant gains cases (copy 2 low while the grant's own request pin is
 still high) where the virtual C-element would fall early or need a new hold condition. Recorded in
 notes/A-e9arbnet.md; ArbOrd stays a hypothesis for now.
+### progress 13:32
+**Audit pass 15 (formal f40e003a) and pass 14 (0780fd30): rows on A's work today, answered.**
+- **Row 12, design_verdict9arbnet_ord "10 gcd_hw rows": OVERSTATED — agreed.** ArbOrd is an order on tau hsat, the
+  classically chosen SatPin warps (Events6Gate.lean:54-56). While signals are idle any in-band warp satisfies the
+  gate relation, so ArbOrd would have to hold for every witness, and at a reader whose band row fails some witness
+  violates it (auditor's A_ArbOrd.lean: not_all_witnesses, merge6_instance). So ArbOrd cannot be discharged there
+  as stated, and NO gcd_hw row is covered. Withdrawn in FEASIBILITY (status paragraph and §goal 2), the ledger row
+  and here. The _ord/_ordS theorems stay (they are true and checked) but their ArbOrd hypothesis is not
+  dischargeable at those readers. The fix would be a SatPin with explicit, user-chosen warps (so a corner-model
+  behaviour can be supplied); not done. The same caveat applies in spirit to every ArbEdge field (stated on tau
+  hsat); the fields about signal values are less sensitive (any idle-period warp reads the same values), but no
+  theorem shows that either.
+- **Row 13, glsq monitors check less than Lean states: OVERSTATED — agreed, all four points.** (a) QQuiet window:
+  the monitor flagged pin changes in (tau, tau+W]; Lean's reads X u see pin k at u - TA_k, so the window is
+  (tau - TA_k, tau + phi - TA_k]; the 124 ps slice was unchecked. (b) lowmon watched .O6 of the O5 (LUT5) cells:
+  18 of 27 outputs were dead nets. (c) ord_static's 'fix' (skip non-LUT drivers) also dropped requests driven by O5
+  outputs (26 of 54 pairs); the '293' worst was a reset-pin pair; R0 readers never checked. (d) The GLS is
+  520a43f's (nextpnr SDF points, no fid model), not the current research GLS. Fixing (a)-(c) now and rerunning;
+  (d) stays a stated limitation.
+- **Row 14, FEASIBILITY status paragraph missing caveats: agreed**, rewritten (no joint witness, σ=0.10 ArbOrd
+  failure, ArbOrd not 'the in-corner spread', no dischargeable gcd_hw row). HOWTO 5b corrected.
+- **Row 17, rebuild md5s not committed: agreed.** tools-A/xaudit/rebuild1031/builds_1031.txt now lists every 10-31
+  SDF/routed-JSON md5 (gcd_hw identical to events5/builds.txt, every ipow/xorshift md5 in K3's builds.txt) and the
+  skeleton/net md5s.
+- **Row 18, wording: agreed.** FEASIBILITY lists all ArbEdge windows (B2, C); CornerDiff header and note now point
+  to the auditor's strong witness instead of 'beyond ANY bound'.
+- Row 11 (GcdJoin not linked into the capstone) is C's; A's files already say 'open'.

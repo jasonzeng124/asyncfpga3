@@ -46,8 +46,9 @@ constrains the difference the rules actually compare.
 3. Per-path ⇒ difference: `diffScat_of_scat` (`κd = κ`),
    `diff_of_scat_sharp` (it is attained, so `f(κ) = κ` is the best map), and
    `ruleE_sound_of_diff` re-derives `Corner.ruleE_sound` through it.
-   Difference ⇏ per-path: `diff_not_imp_scat` (perfectly correlated tails,
-   `κd = 0`, per-path scatter beyond ANY bound `K`), and the instance
+   Difference ⇏ per-path: `diff_not_imp_scat_strong` (the auditor's P13 witness: a guarded pair with
+   `κd = 0` that violates per-path `Scat K` at every positive scale, `0 ≤ K < 1`; the older
+   `diff_not_imp_scat` witness is a scale artefact, `diff_not_imp_scat_degenerate`), and the instance
    `rings_refute_path_not_diff`: the 7-link ring ratios 1.470 / 0.773 are
    realised at per-path κ = 0.311 > kappaE (so `ruleE_sound` does not apply)
    together with a guarded tail pair at κd = 0, where `ruleE_sound_diff`

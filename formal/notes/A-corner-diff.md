@@ -44,7 +44,7 @@ soundness theorems assume only `DiffLow`, so they are stronger. `DiffScat.low` c
 | `diffScat_of_scat` | `Scat κ (s·Pa) da ∧ Scat κ (s·Pb) db ⇒ DiffScat κ s Pa Pb da db`, so `f(κ) = κ`. |
 | `diff_of_scat_sharp` | That map is attained: the early tail slow by κ and the late tail fast by κ give deviation exactly `−κ·s(Pa+Pb)`. So no `f(κ) < κ` holds. |
 | `ruleE_sound_of_diff` | `Corner.ruleE_sound` follows as a corollary, which confirms the difference hypothesis is the weaker one. |
-| `diff_not_imp_scat` | For every `K`, there are perfectly correlated tails (equal P, equal d) with `κd = 0` whose two tails both violate `Scat K`. So no `g` gives `DiffScat κd ⇒ Scat (g κd)`. |
+| `diff_not_imp_scat` (witness degenerate, audit P13; use `diff_not_imp_scat_strong`, the auditor's, for `0 ≤ K < 1`) | For every `K`, there are perfectly correlated tails (equal P, equal d) with `κd = 0` whose two tails both violate `Scat K`. So no `g` gives `DiffScat κd ⇒ Scat (g κd)`. |
 | `rings_refute_path_not_diff` | Concrete instance. At `s = 2.243/2`, the 7-link ring ratios 1.470 and 0.773 are realised at per-path `κ = 0.697/2.243 ≈ 0.311 > kappaE`. On the same die and at that κ, a guarded tail pair (`Pr = 2`, `Ps = 1`) is correlated so that `κd = 0`, and `ruleE_sound_diff` proves the select arrives first. |
 | `ring_kappa_attained` | At `s = (ri+rj)/2` and `κ = (ri−rj)/(ri+rj)`, both `Scat κ s ri` and `Scat κ s rj` hold. |
 | `ring_kappa_attained_all` | The same holds for every ratio in `[rj, ri]`, so further rings within the range cannot raise the bound. |

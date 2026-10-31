@@ -7,13 +7,18 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
-**2026-10-31 (lead), in one paragraph.** Formal/Cells/Prelim is deleted (Phase 1 done; every cell proof is on Core.LutList). Whole-project `check.sh` OK (lake build, 64,216 library declarations,
-standard axioms). The routed-timing verdict on the corrected arbiter core no longer assumes the refuted HARB7:
-the arbiter is checked at its real LUTs, and what remains about it is named (ArbEdge: quiet start, settle bound,
-edge windows, and QClean, now derived from quiet input reads; ArbOrd, the in-corner spread). Under those, every
-checked premise holds on 10 of 16 rebuilt gcd_hw rows, and without ArbOrd on 10 ipow/xorshift rows. Not yet: a
-link from this skeleton verdict to C's H_BUNDLE/H_CELLS, so gcd correctness on the routed design still rests
-on C's capstone hypotheses.
+**2026-10-31 (lead), in one paragraph** (rewritten after audit pass 15). Formal/Cells/Prelim is deleted (Phase 1 done).
+Whole-project `check.sh` OK (lake build, 73,170 library declarations, standard axioms). The routed-timing verdict on
+the corrected arbiter core no longer assumes the refuted HARB7: the arbiter is checked at its real LUTs, and what
+remains about it is named: ArbEdge (quiet start, settle bound H, and the per-reader edge windows: no re-request
+while switching, the B2 settledness windows after request rises and literal flips, the C window of A0 high around
+request falls; its QClean field now derived from quiet input reads after reset), and, for the gcd_hw form,
+ArbOrd. **No gcd_hw row is covered in a dischargeable way:** ArbOrd is an order on the classically chosen SatPin
+warps, and at a reader whose band row fails (2-6 of 9 arbiters per slow/fast row) some admissible witness violates
+it (audit P15a, `not_all_witnesses`), so it cannot be discharged there as stated; and in the research GLS at
+σ = 0.10 it fails on a real request pin while the circuit computes every vector. ipow 3/5 and xorshift 5/8/9
+(slow/fast) meet every checked premise of `design_verdict9arbnet_edge`, which needs no ArbOrd. No joint witness of
+the hypotheses on any real run. Not yet: a link from this skeleton verdict to C's H_BUNDLE/H_CELLS.
 
 ## Short answer (provisional)
 
@@ -159,8 +164,10 @@ experiments; and (2) **connecting** the proofs to the real routed design
        **Later the same day:** B1 holds on every failing reader if the arcs share their position inside
        the band (min margin 51 ps), and also under path scatter κ ≤ ~0.047 (untrusted print). Making B1 a
        behaviour hypothesis ArbOrd (`Events9ArbB1`; `ord_of_row`: automatic where the band row holds) gives
-       `Events9FullArb.design_verdict9arbnet_ord`. All its checked premises hold on **10 gcd_hw rows**
-       (slow/fast on all 4 seeds, gb on 3/4). Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
+       `Events9FullArb.design_verdict9arbnet_ord`. All its checked premises hold on 10 gcd_hw rows
+       (slow/fast on all 4 seeds, gb on 3/4), **but ArbOrd cannot be discharged at the B1-failing readers as
+       stated** (audit P15a: it constrains the classically chosen SatPin warps, and some admissible witness
+       violates it there), so these rows are NOT covered; a fix needs SatPin with explicit, user-chosen warps. Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
        (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
        gcd correctness. **Joint satisfiability of these hypotheses on a real gcd_hw/ipow/xorshift run is not
        shown** (no witness), so the rows are conditional, not shown non-vacuous.
@@ -209,8 +216,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
        rebuilt ipow/xorshift (md5s reproduce). On 10 rows (ipow 3/5, xorshift 5/8/9, each at slow and fast)
        every checked premise of `Events9FullArb.design_verdict9arbnet_edge` holds (xevents9par CLEAN,
        ArbOK + ArbRowsOK 2/2, OwnOK/RsOK/FixShape). So for those routes the routed control skeleton's
-       verdict rests on SatPin, constants/reset, the per-arbiter edge windows ArbEdge (no metastable runt,
-       quiet start, settle bound, no re-request while switching), SelOK and SelPart, and not on the refuted
+       verdict rests on SatPin, constants/reset, the per-arbiter ArbEdge (no metastable runt, quiet start,
+       settle bound, no re-request while switching, the B2 settledness windows, the C window of A0 high around
+       request falls), SelOK and SelPart, and not on the refuted
        HARB7. ipow's DSPs are cut (datapath not covered); gb/indep rows fail ArbRowsOK (B1). A boundary
        negative control (+43 ps passes, +44 ps fails) shows the row is evaluated exactly. gcd_hw has no
        such row (`notes/A-k3.md`, `notes/A-e9arbnet.md`).
