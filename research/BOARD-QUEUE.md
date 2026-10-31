@@ -95,8 +95,8 @@ research/data/fid/bq2_fullstack_s6-9.tsv): 16/16 errs=0 and bits EQUIVALENT on a
 28-33 (6-9: 31-33), FAST_MIN 77-93 (6-9: 86-93). The resolver change reproduced seed 6 SLOW_MAX exactly (33/27/39).
 Arbiter near-tie round trips (research/data/fid/arbtie.md): 0 of 18 ack C-elements below the model's requirement on
 seeds 6-9, worst margin 878 ps.
-Within-die scatter (band 0.38, draw 1, 2026-10-30): 1x (region 0.16 + wire 0.126) PASS on seeds 6 and 7 so far; 2x
-(0.32 + 0.252) PASS on seed 8 and FAILS on seed 6 (vectors 7, 8, 12: one lap with an x compare, then stall).
+Within-die scatter (band 0.38, draw 1, 2026-10-30/31): 1x (region 0.16 + wire 0.126) PASS on seeds 6, 7, 8, 9; 2x
+(0.32 + 0.252) PASS on seeds 7, 8, 9 and FAILS on seed 6 (vectors 7, 8, 12: one lap with an x compare, then stall).
 Cause, confirmed by intervention: uori3's matched delay (chain X12-13 Y53-55, region factor 0.49 in this draw)
 tracks a datapath at X0-5 Y56-76 (factors 1.56/1.54); with only that chain's arcs and wires scaled back x2.03,
 all three vectors pass (39/175/146 laps, errs 0). Same mechanism as #3's seed-9 uori2 failure, beyond what the

@@ -1777,3 +1777,7 @@ region prototype is a negative result.
 ### progress 00:15 (full container restart; draw-4 and seed-9 2x runs restarted)
 - Container restarted (~00:13, uptime 0): disk kept, processes lost (2x draw 4 on both seed-6 routes, BQ#2 seed 9
   2x draw 1). toolchain.sh ok; partial run dirs removed; both relaunched.
+### progress 01:23 (BQ#2 within-die scatter draw 1 complete: 1x 4/4, 2x 3/4)
+- BQ#2 seed 9 2x draw 1 PASS 16/16 (49/39/58). Draw 1: 1x PASS 4/4 seeds, 2x PASS 3/4 (seed 6 = uori3). BQ#3's
+  record for comparison: 1x 8/8, 2x 7/8. BOARD-QUEUE #2 updated.
+- Chain-region route 2x draw 4 PASS (46/36/53): chain regions 2/4 so far; unconstrained draw 4 running.
