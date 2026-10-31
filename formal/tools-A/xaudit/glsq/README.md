@@ -112,3 +112,19 @@ the monitor detects re-requests; from the latter, the earliest re-request after 
 (merge10 g2), a margin of >= 29.4 ns over nore's window on every reader. Not covered: the R0 readers (e3/e4),
 other seeds/corners, scatter; the GLS delays are not shown inside the prjxray bands; the pre-check looks at the
 request's last high interval only.
+
+## ArbEdge's C window (RdEdge.fall) for the grant readers (`gen_cwmon.py`, `out2/cw4/`)
+
+Window from the Lean field: around each fall sigma of the reader's request (driver net), ustate reads A0 high for
+u in [sigma + lo Dr - hi Dq, sigma + hi Dr + 2 - lo Dq); with ustate's A0 pin delay DA (GLS point) the A0 driver net
+must be high on [sigma + lo Dr - hi Dq - DA, sigma + hi Dr + 2 - lo Dq - DA). A0 and rst are picked from ustate's
+INIT (A0: the input with which the output holds q; rst: the input that forces it high); A0's last 16 low intervals
+are kept per arbiter. Seed 4, no scatter, 16 vectors (`out2/cw4/table.txt`): all 18 grant readers mapped; every
+reader passes on every vector EXCEPT `ucontrol_merge10.uarb1` g1, which misses by exactly **5 ps** on every lap of
+12 of 16 vectors (A0 rises 1380 ps before r1 falls; the window needs 1385; e.g. vector 6: A0 rise 1180480, r1 fall
+1181860). The run is correct on all 16 vectors. Reading: ArbEdge's C window is tight to a few ps at that reader
+(its window end comes from slow-corner band ends mixed with the GLS's point delays, so a 5 ps miss is within the
+mismatch of the two delay models; neither the violation nor its absence is established for the chip). It is the
+first ArbEdge field found tight on a real route, and the obvious target for the next session (the window comes
+from `c_of` in Events9ArbNetEdge; whether a weaker window suffices is open). Not covered: R0 readers, other seeds,
+scatter.

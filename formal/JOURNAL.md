@@ -1071,3 +1071,11 @@ glsq gen_noremon.py (untrusted; window algebra written from RdEdge.nore, request
 GLS, 16/16 vectors, 0 nore violations after reset on all 18 grant readers; detection control +5 us fires (3195);
 earliest re-request after a flip-away 29.1 ns vs window end <= 0.28 ns. Evidence only (one seed, grant readers,
 GLS point delays). lutnet.py now also returns INITs and the PSEUDO_GND/VCC nets.
+### progress 15:17
+**Finding (GLS evidence, untrusted): ArbEdge's C window is tight on one gcd_hw arbiter.** glsq gen_cwmon.py
+(window from RdEdge.fall, A0/rst picked from ustate's INIT): seed 4, 16 vectors, all 18 grant readers pass except
+ucontrol_merge10.uarb1 g1, which misses by exactly 5 ps on every lap of 12/16 vectors (A0 rises 1380 ps before r1
+falls; window needs 1385), while the run computes every vector. A 5 ps miss is inside the mismatch between the
+slow-corner bands (window ends) and the GLS's SDF points, so neither violation nor satisfaction is established for
+the chip; but the hypothesis has essentially no margin there. Next session: check whether c_of's window can be
+weakened, and run the C/nore monitors on all seeds and on the R0 readers.
