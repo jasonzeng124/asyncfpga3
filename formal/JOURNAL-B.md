@@ -1662,3 +1662,15 @@ sides, 15 request side only, 24 acknowledge side only, 0 neither; the remaining 
 sides end at an amerge (23 request + 5 acknowledge), muxn (4), fork tree N >= 5 (6) or the
 source (1). The mux-extended witness (BWit2Net) re-checks with the regenerated wire data
 (gen_bdata2.py --check ok; bsim2.py: 657 bound pins, all wired, w 1-3; bsim2.out).
+
+### next (for the next B session)
+- Remaining unbound link sides (FiniteNetBoundM census): amerge 28 (needs finite-run cell
+  specs of bd_arbiter's ustate/ugrant/ua1/ua2 with the race hypotheses of ArbAMergeRun:
+  the real frontier), fork trees N=5/6 6 (FTree5/FTree6 exist; checkers = celB), muxn 4
+  (FDecSpec/FAndSpec/FOrN exist; no Bool checkers), source 1 (cannot be gate-modelled on a
+  terminating run: FiniteNetSrc.chW_src_unwired).
+- The witnesses use unit LUT delays and simulator-chosen wires; a witness on routed delays
+  needs gcd_hw's routed SDF on disk (not here) and checkers with lo = hi = d.
+- C's H_OTHER (192 non-link operators) is still a hypothesis of every network theorem; for
+  forks, C's Fork.wire relates the fork INPUT request, which no B cell reads (a fork is a
+  wire), so it is a modelling choice of C's, not physics B can derive.
