@@ -62,3 +62,9 @@ circuit failure, and no counter-run of the real cell was built for it. Consequen
 checked premises hold on NO gcd_hw row (each needs 9/9). A core whose grant may fall from either input (an
 AND, not a C-element, on the fall) would remove this row; that changes Events9Arb's virtual node kind, not
 done.
+
+**Lean support for that reading** (`Core/XAudit/Events9ArbB1.grant_fall_after_req_fall`, check.sh OK):
+for the real grant `y = s(wr) && e(wq)`, under ustate's flip property and NoReReq only (no B1 row), every
+grant fall at `t > lo Dr + lo Q + lo Dq` is preceded by a time `u` with `wr(t-1) < u` (after the grant's
+last high read of the request), `s u = false`, and `u + min(lo Dr, lo Q + lo Dq) <= t`. So req↓ → grant↓
+holds whichever pin the fall came through. Not covered: exclusion, rises, the downstream readers.

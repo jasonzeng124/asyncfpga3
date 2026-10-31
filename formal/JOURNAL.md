@@ -854,3 +854,10 @@ library audit count not kept (output tailed), every executable module audited se
 Quot.sound). setup.sh's first build reported "build failed" only because it compiled the unfixed
 CornerDiff. So everything claimed today (SeqXray SLICEM, CornerDiff strong witness, the 14 Events9 files,
 Events9FullArb, Events9ArbNetMain) now also builds under lake, not only in the scratch overlay.
+### progress 08:50
+Claimed Core/XAudit/Events9ArbB1.lean (check.sh OK, 3277 decls in closure, axioms standard):
+grant_fall_after_req_fall. Plain statement: without the B1 row, given only ustate's flip property and
+NoReReq, every fall of the real AND grant at t > loDr+loQ+loDq comes after a request fall that
+followed the grant's last high request read, by at least min(loDr, loQ+loDq). This supports reading the
+gcd_hw B1 failures as a limit of the C-element grant abstraction, not a four-phase violation. It does not
+show the downstream checks would pass with an AND grant (they would need a new log rule).
