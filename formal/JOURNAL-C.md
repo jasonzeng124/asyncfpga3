@@ -761,3 +761,9 @@ xorshift soak top's yosys synthesis (identical on its 4 seeds): uaddi0 = `e0 + 1
 `e0 > e1`, ucmpi1 = signed `e0 < e1`, uxori2 = `e0 ^ (e0 << 5)`, uxori1 =
 `t ^ (t >> 17)` with `t = e0 ^ (e0 << 13)`. This is a second kernel on the same machinery. It does NOT show
 timing, H_MAP for xorshift, or anything about the board.
+
+### progress 09:46 -- negative controls
+`Wip/Chcf/Neg.lean` ran with no output and rc 0. Both kernel-decided controls hold: changing bit 3's OR
+LUT in uori0 to AND (INIT 14 -> 8) makes `BitLocal` false, and changing bit 5's XOR LUT in uaddi0 to
+XNOR (INIT 6 -> 9) makes the bit-5 slice check false. So these certificate checks can fail. The
+controls cover two units, not every certificate kind.
