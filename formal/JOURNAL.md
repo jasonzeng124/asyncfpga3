@@ -806,3 +806,16 @@ scan.py clean): SeqXray (SLICEM windows, from the previous entry) and the 14 Eve
   NOT proved: that the printed rows imply the edge windows; nothing joins ArbNet to Full.
 So no gcd_hw run is verified yet: the arbiter half now rests on ArbEdge instead of HARB7'.
 Next: compose design_verdict9_full with design_verdict9arbnet (one statement, one hypothesis list).
+### progress 07:20
+**Events9FullArb.design_verdict9_full_arb** (new, checked as above: lean 4.35 autoImplicit=false,
+scratch overlay; audit 'only propext/choice/Quot.sound'). Plain statement: for a parsed routed
+netlist and an accepted certificate, every SatPin behaviour satisfying (assumed) constants/reset,
+per arbiter ArbEdge (QClean = no metastable runt on q; quiet start to T0; settle bound H k; the
+per-reader edge windows), SelPart, SelOK at the virtual pins, C's H_BUNDLE per mapped select
+channel, H_SEL_FN, H_SEL_O/setup where no setup row, and the residual obligations of uncertified
+items, has SelOK and every real LUT wire = reset value flipped M t j times. Checked (decidable):
+design_verdict9_full's checks + ArbOK/OwnOK/RsOK/FixShape + ArbRowsOK. So HARB7' and HRst are no
+longer hypotheses of the combined verdict. NOT covered: the edge windows (no derivation from the
+rows or walks), joint satisfiability on a real run (no witness), and no executable evaluates the
+combined checks in one run yet (xarbnet does not evaluate ArbRowsOK; it prints Rows). Not a
+verified gcd_hw run.
