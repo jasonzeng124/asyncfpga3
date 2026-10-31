@@ -1014,3 +1014,9 @@ unchanged (ofSat/toSat), so earlier conclusions stand. What this does NOT do: sh
 one of those (κ and the in-corner correlation are unmeasured), or give a witness. The '10 gcd_hw rows' are now
 'covered for every behaviour of the bands whose warps satisfy ArbOrd at the 2-6 B1-failing readers' (plus the
 other named hypotheses), which is a meaningful conditional but not coverage of the bands.
+### progress 14:22
+Events9ArbB1: pathD, tau_transport, arbOrd_of_transport (check.sh OK). For a SatPinW behaviour with fixed
+per-pin delays, ArbOrd at an arbiter follows from four path-delay rows (reader request path + 2 <= ustate request
+path + reader q path; grants and R0 terms). With SatPinW this is now a usable discharge: the user supplies the
+transport behaviour. Not shown: that such a behaviour exists for gcd_hw (it must also satisfy every gate's
+evaluation; no witness).

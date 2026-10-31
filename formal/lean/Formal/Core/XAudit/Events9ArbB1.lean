@@ -667,4 +667,47 @@ theorem b1_and (hy : ∀ t, y t = (s (wr t) && e (wq t)))
 
 end
 
+/-! ## ArbOrd for transport behaviours (fixed per-pin delays) -/
+
+section
+variable {N : Nat} {d : Design} {x : Fin d.n → Sig} (hsat : SatPinW d plG x)
+
+/-- Sum of fixed per-pin delays along a path. -/
+def pathD (D : Nat → Nat → Nat) : Path → Nat
+  | [] => 0
+  | (gi, i) :: r => D gi i + pathD D r
+
+/-- With fixed per-pin delays (`wf hsat gi i t = t - D gi i`), a path's composed warp subtracts the
+path's summed delay. -/
+theorem tau_transport {D : Nat → Nat → Nat} (hD : ∀ gi i t, wf hsat gi i t = t - D gi i) :
+    ∀ (P : Path) (t : Nat), tau hsat P t = t - pathD D P
+  | [], t => by simp [tau, pathD]
+  | (gi, i) :: r, t => by
+    simp only [tau, pathD]; rw [tau_transport hD r, hD]; omega
+
+/-- **`arbOrd_of_transport`**: for a behaviour with fixed per-pin delays, ArbOrd at an arbiter follows
+from four delay rows (reader's request path + 2 ≤ ustate's request path + reader's q path, for the two
+grants and the two R0 terms), once `T0` exceeds the paths involved. -/
+theorem arbOrd_of_transport {D : Nat → Nat → Nat} (hD : ∀ gi i t, wf hsat gi i t = t - D gi i)
+    (a : ArbD N) {T0 : Nat}
+    (hT : pathD D (P1g1 a) + pathD D (P2g2 a) + pathD D (P1R a) + pathD D (P2R a) +
+      pathD D (P1Q a) + pathD D (P2Q a) + pathD D (Pqg1 a) + pathD D (Pqg2 a) + pathD D (PqR a) + 4 ≤ T0)
+    (r1 : pathD D (P1g1 a) + 2 ≤ pathD D (P1Q a) + pathD D (Pqg1 a))
+    (r2 : pathD D (P2g2 a) + 2 ≤ pathD D (P2Q a) + pathD D (Pqg2 a))
+    (r3 : pathD D (P1R a) + 2 ≤ pathD D (P1Q a) + pathD D (PqR a))
+    (r4 : pathD D (P2R a) + 2 ≤ pathD D (P2Q a) + pathD D (PqR a)) :
+    ArbOrd hsat a T0 := by
+  have tt := tau_transport hsat hD
+  refine ⟨fun t ht => ?_, fun t ht => ?_, fun t ht => ?_, fun t ht => ?_⟩
+  · show tau hsat (P1Q a) (tau hsat (Pqg1 a) t) ≤ tau hsat (P1g1 a) (t - 2)
+    rw [tt, tt, tt]; omega
+  · show tau hsat (P2Q a) (tau hsat (Pqg2 a) t) ≤ tau hsat (P2g2 a) (t - 2)
+    rw [tt, tt, tt]; omega
+  · show tau hsat (P1Q a) (tau hsat (PqR a) (t + 2)) ≤ tau hsat (P1R a) (t - 2 + 2)
+    rw [tt, tt, tt]; omega
+  · show tau hsat (P2Q a) (tau hsat (PqR a) (t + 2)) ≤ tau hsat (P2R a) (t - 2 + 2)
+    rw [tt, tt, tt]; omega
+
+end
+
 end Formal.Core.XAudit.Events9ArbNet

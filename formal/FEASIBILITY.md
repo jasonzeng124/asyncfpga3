@@ -169,8 +169,9 @@ experiments; and (2) **connecting** the proofs to the real routed design
        stated** (audit P15a: it constrains the classically chosen SatPin warps, and some admissible witness
        violates it there), so these rows are NOT covered for the bands. **Fixed later the same day (SatPinW):** the
        verdicts now take a behaviour WITH its warps, so ArbOrd is a condition on the user's behaviour; the rows are
-       covered exactly for the behaviours whose warps meet ArbOrd at the B1-failing readers (expected to include
-       fixed delays under the corner model with κ below ~0.047; the composed-path lemma is not written), not for
+       covered exactly for the behaviours whose warps meet ArbOrd at the B1-failing readers (for fixed per-pin delays,
+       `Events9ArbB1.arbOrd_of_transport` reduces ArbOrd to four path-delay rows per arbiter; with the corner model
+       those rows hold for κ below ~0.047 at the B1-failing readers, untrusted numbers), not for
        every behaviour in the bands. Those rows rest on SatPin, constants/reset, ArbEdge, ArbOrd
        (the in-corner correlation question), SelOK and SelPart. This is the routed control skeleton, not
        gcd correctness. **Joint satisfiability of these hypotheses on a real gcd_hw/ipow/xorshift run is not
