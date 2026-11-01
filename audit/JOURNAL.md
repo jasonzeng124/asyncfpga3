@@ -878,3 +878,9 @@ Spec's ArbOK contradicts GateOK on held-arbiter handovers (NetCorrect vacuous th
 deadlock, consistent with my T2. Build of 88c74e3c running (NChk first). Subagents: T3 (frozen Spec diff, the
 owner's checklist read from the Lean binders, the vacuity claim with my own Lean check) and T4 (run the decoder
 round trip myself; own comparison against the read-back FASM; spot-check decoded LUTs).
+
+### progress 08:33
+T4 in (decoder round trip). I re-ran the subagent's re-encoder against my own read-back: 355126 read-back / 344790
+re-encoded / 0 invented / 10336 left. CONFIRMED. All 7167 kernel-cone LUT sites match the bits and nextpnr. Leftovers
+include FF and clock config with real function, but nothing reaches the kernel cone. The generated Lean net data and
+its WF proof are not committed at 88c74e3c (UNVERIFIED), and the Lean-side round trip is not written yet.
