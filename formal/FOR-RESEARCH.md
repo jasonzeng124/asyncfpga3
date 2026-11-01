@@ -106,6 +106,8 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 - **What it means**: the sequential theorem's κ margin is ~0.15 under the pessimistic semantics PROGRAM requires, and
   at least ~0.36 (in this evidence) if silicon kills narrow runts. Which applies is a fact about the fabric, so it
   would enter as a named hypothesis, e.g. H_RUNT(w): "a LUT input pulse narrower than w ps is not propagated".
+  Stated in Lean as an addition: `Formal/Target/SpecRunt.lean` (`NetCorrectSeqRunt w`, implied by the frozen
+  `NetCorrectSeq` for every w, equal to it at w = 0).
 - **Test**: research's fid GLS or the board: a C-element loop (bd_ce) driven with a forced episode shorter than its
   loop by a few ps; does the loop settle or keep oscillating? `tools-B/target/` has the delays.
 - **Also for the owner (shard A, Spec)**: in the frozen `Adm`, the guard g only widens the global band

@@ -1362,3 +1362,9 @@ then again in order, successfully). #print axioms refuted, refuted_range: propex
 Also: Spec, NetBase, Witness, WitBoundary, WitSlice recompiled with -DautoImplicit=false (the lakefile's option): OK.
 Next: the full-project check.sh --committed (lake build of every committed Formal module, then the axiom audit),
 which was not run in one piece this session; started now.
+### progress 11:54 -- SpecRunt.lean: the runt-filtered variant of the sequential statement (an addition)
+Formal/Target/SpecRunt.lean (compiles with -DautoImplicit=false): `NoRuntRead w s u` (read time u never lands in a
+pulse of s narrower than w), `GateOKRunt`, `BehavesRunt`, `NetCorrectSeqRunt w` (= NetCorrectSeq with every pin read
+obeying H_RUNT(w)); proved: `gateOK_of_runt`, `seqRunt_of_seq` (the frozen statement implies the variant for every
+w), `runt_zero` (w = 0 is the frozen statement). No frozen definition changed; nothing imports it yet. Purpose: give
+the owner the alternative B's ua1 finding calls for (FOR-RESEARCH 3), as a statement, not a choice made for him.
