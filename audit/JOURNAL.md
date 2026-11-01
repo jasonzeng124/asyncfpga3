@@ -866,3 +866,7 @@ confirmed; A's "would not hold two pairs" note is refuted.
 
 ### progress 07:53
 T2 addendum: the pipelined replay also reorders at FAST_MIN (out0 = [1, 0x20]). The counterexample holds at both corners.
+
+### progress 07:57
+T2 addendum 2: pipelined (3,5),(3,5) and (8,8),(3,5) DEADLOCK on the target's fid GLS (both accepted, no out0 in 37 us).
+Sequential (3,5),(3,5) answers 1, 1 within 1 us each. C's deadlock claim is CONFIRMED: THE theorem fails on liveness too.
