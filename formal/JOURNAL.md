@@ -1225,3 +1225,9 @@ What the Spec should now say (decision, journaled before freezing): keep the pip
 asked for it) so the target's statement is REFUTED, and add the sequential variant (next pair only after out0's
 handshake) as the statement that can still be true. Next: write SeqEnv into Spec.lean; Lean witness of the reorder
 trace is the stronger deliverable (needs the Lean netlist data).
+### progress 07:44 -- C's rig-vector predictions reproduced on the decoded target
+Pipelined env on the decoded target (sim.py, corner 0.5 mid-band, broad data rule): vector 9 then 4 -> out0 [1, 4096]
+(reorder); vector 9 twice -> deadlock (quiescent at 349 ns, no out0); vector 15 then 5 -> deadlock (quiescent at 1088
+ns). Same as C's token-level Lean run (PipeGcd: vector 9 then 4 -> [1, 4096]) and handshake-model simulations. So three
+independent models (token graph in Lean, C's handshake network, A's decoded bitstream netlist with prjxray bands)
+agree: the pipelined statement is false for the target. Still simulation for the bitstream (no Lean witness there).

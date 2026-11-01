@@ -71,3 +71,7 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 - **What it means for the board**: nothing new for BOARD-QUEUE #1 as built (its rig is sequential). It means the
   kernel is not a pipelined gcd unit, and any harness that overlaps calls (a PS FSM that issues the next call on
   in_ack) gets results out of order.
+- **Rig vectors on the decoded target (07:49, `formal/tools-A/target/out/pipe_*.txt`)**, pipelined env, broad data rule,
+  corner 0.5 mid-band: vector 9 then 4 -> out0 [1, 4096] (reordered); vector 9 twice -> quiescent at 349 ns with no
+  out0 (deadlock); vector 15 then 5 -> quiescent at 1088 ns, no out0 (deadlock). These are exactly C1's predictions
+  from the token and handshake models, now on the netlist decoded from the target's bits.
