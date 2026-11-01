@@ -1436,3 +1436,11 @@ that the fault is seen finitely often and the run goes quiet in a WRONG state. B
 Conclusion for the margin: the κ ≈ 0.155 bound stays a simulation result (plus B's Lean `Ua1Static` window fact);
 the frozen H_PRIM makes it an eternal-chaos failure, which the current Lean method cannot certify. Not shown:
 that no quiet-wrong witness exists.
+### progress 14:35 -- S1 (Lean round trip of the decoder): generic part proved, target data generated, compiling
+`Formal/Target/RoundTrip.lean` (compiles; standard axioms): `feats` re-encodes a gate from its own Lean fields (pip
+gate -> its feature `TILE.DST.SRC`; LUT6 O6 -> one `INIT[b]` feature per set INIT bit, with a site-prefix table);
+`STree.find_sound`; fuel-bounded sort/merge, each a permutation; `perm_of_idx`. `tools-A/target/gen_rt.py` writes
+the target data (`Formal/Target/RT/`, not committed until it checks): 355,126 read-back features (fromBit.fasm,
+md5 418f36ae = target/gcd_hw_03e82630.fromBit.fasm.xz), 339,036 re-encoded from 81,990 gates (73,065 pips +
+265,971 INIT bits), 16,090 leftover, 0 produced twice, 0 invented (Python mirror of `feats`). The claim, once the
+kernel checks it: re-encoded ++ leftovers is a permutation of the target's features.
