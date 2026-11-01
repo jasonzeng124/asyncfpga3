@@ -107,6 +107,8 @@ Cause, confirmed by intervention: uori3's matched delay (chain X12-13 Y53-55, re
 tracks a datapath at X0-5 Y56-76 (factors 1.56/1.54); with only that chain's arcs and wires scaled back x2.03,
 all three vectors pass (39/175/146 laps, errs 0). Same mechanism as #3's seed-9 uori2 failure, beyond what the
 ring data supports, so #2 stays queued; if the board fails vectors 7, 8, 12 with the rest passing, suspect uori3.
+Log-normal within-die scatter (GLS_SCATTER_LOGN=1, bounded speed-ups, 2026-11-01): 1.5x (region 0.24 + wire 0.189),
+draw 2: PASS on seeds 6, 7, 8, 9 (the routes on disk). Seed 6's failing scale on draw 1: between 1.5x and 1.75x.
 
 ## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~6% more laps than #2 (same 8 routes), every audit and routed GLS clean on 8 routes
 Run only after #2 passes: it is #2 plus one opt-in change (bd_link's request delay and bd_mux's output delay fall
