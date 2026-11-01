@@ -1301,3 +1301,10 @@ Gate chunk C000 (2500 gates in 19 slices, 7 of them single heavy gates on the ri
 modules of B up to 7 GB) was stopped to give the witness two slots without OOM risk; lake keeps what it finished and
 it is restarted after the witness. check.sh on the committed Formal/Target files has therefore not run this session
 in one piece; each file was compiled with lake env lean against the same Mathlib.
+### progress 09:20 -- refutation, boundary half proved (env_ok, arb_ok, not_correct; standard axioms)
+In a test file (formal/lean/Wip/Target/RefTest.lean, not built by check.sh; it is Refute.lean minus beh_ok) against the
+compiled witness table: `env_ok : Env (ext D b P) boundary 20000 0 2999 (some 2) va vb` (H_ENV: reset, the three input
+channels with the shared request, broad data rule, liveness, out0/end acks), `arb_ok : ArbOK 656 arbs (ext D b P)`
+(H_ARB with T = 656 ps on all 9 target arbiters), `not_correct : ¬ Correct ...` (out0's first value 1 at 864.821 ns
+is not gcd(65536, 4096)) compile; #print axioms: propext, Classical.choice, Quot.sound. Left for `refuted`: beh_ok,
+i.e. the 80 gate chunks (25 done; C018/C020, the ring-oscillator chunks, take ~40 min each) and 81 periodicity chunks.

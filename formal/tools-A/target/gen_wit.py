@@ -239,7 +239,7 @@ theorem arb_ok : ArbOK %d arbs (ext D b P) := by
 def bnodes : List Nat := [boundary.rst, boundary.a.req, boundary.a.ack, boundary.b.ack, boundary.start.ack,
   boundary.out0.req, boundary.out0.ack, boundary.pend.ack] ++ boundary.a.data ++ boundary.b.data ++ boundary.out0.data
 
-def bp : List Nat := bnodes.flatMap fun n => (D n).ts
+noncomputable def bp : List Nat := bnodes.flatMap fun n => (D n).ts
 
 theorem bchk : ∀ n ∈ bnodes, (D n).ok = true ∧ (∀ τ ∈ (D n).ts, τ + P < b) ∧ (∀ τ ∈ (D n).ts, τ ∈ bp) := by
   decide +kernel
