@@ -1144,3 +1144,30 @@ is not a proof over the bands and says nothing about scatter for ArbEnv.
 ## Session Sun Nov  1 07:10:33 UTC 2026 (shard A, lead; session_01HC49FuvqSpaEaNQDLmDbxx)
 First session under THE goal (owner 2026-10-31): one theorem about the gcd_hw bitstream. Lock was 13.8 h old
 (previous A session), taken.
+### progress 07:21 -- the target chosen and committed (formal/target/)
+Target = BOARD-QUEUE #1 bitstream `research/board/gcd_hw_03e82630.bit` (research 1a97b739). Rebuilt in the cloud
+toolchain (nextpnr 9c732bc6303458df, toolchain.sh ok) with #1's recipe exactly (no seed, no --freq, no sizes): SDF
+md5 6f8b99e6 = #1's recorded md5, and the rebuilt .bit equals the target in every byte except the 8 header date/time
+bytes (offsets 99-114). So nextpnr's .fasm of the rebuild is the one the target was made from (via fasm2frames +
+xc7frames2bit). The target read back with bitread + bit2fasm (prjxray, the H_DECODE step): 355126 canonical
+features (nextpnr's FASM has 401642; the differences are bit-less pseudo-pips and zero-encoded defaults, listed
+in formal/target/README.md, not yet a decoding claim). Committed: .bit, both FASMs (xz), SDF and yosys JSON (xz,
+cross-checks/naming only), toolchain stamp; md5/sha256 in README. STATUS.md started: no theorem about the target
+exists yet.
+Note (scope of the boundary): the target is gcd_hw = kernel + in-fabric rig (16 fixed vectors, ring-oscillator
+clock, BSCAN readback); it has no PS-side harness. Decision: the theorem is about the kernel `urig.udut` cut at its
+boundary nodes (rst, a/b/start in, out0/end out); the rig's drivers of those nodes are removed and replaced by every
+environment that obeys H_ENV (which includes the rig if it obeys the protocol, and a PS harness). Why: THE goal's
+statement quantifies over environments; the rig is one of them.
+### progress 07:30 -- Spec.lean part I drafted (in Wip/Target/ until it compiles: Mathlib still building)
+Definitions only: Net/Gate/Arc (every primitive pin, pip, wire as a gate with its prjxray 4-tuple), GateOK (per-pin
+monotone read times, admissible delay, output = INIT at the address of the reads, arbitrary before the gate's
+longest delay = any power-up state), Adm = H_DELAY(g, κ) (band widened by g AND corner-c window with scatter κ),
+ArbOK = H_ARB(T), Env = H_ENV (reset [0,R), per-channel four-phase, independent channels = pipelined offers, env
+liveness, n ≤ ∞ pairs < 2^31), Correct (protocol + liveness of every boundary handshake, k-th out0 value =
+gcd(a k, b k), idle for ever after a finite offer), NetCorrect. Part II (Lean decoder, round trip, THE theorem) is a
+stub. Two margins are parameters and are stated as such, because the boundary needs them: `su` (input data held
+from su ps before req rises; target su = 0) and `Δo` (env's out0 ack no earlier than Δo after out0 req: bd_link's
+req leads its data by a latch arc, which the rig pads with a 16-element delay). The audit may judge Δo an env timing
+assumption; it is one, and it is inherent in this boundary (the alternative, data valid at the req edge, is false
+for bd_link by its own header).
