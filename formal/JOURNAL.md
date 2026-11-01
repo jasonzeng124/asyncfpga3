@@ -1140,3 +1140,7 @@ check_env now prints SETTLE (largest last-q-change minus A0-read-low phase start
 b1b4b951, same 333,736 events, 0 violations): max 3.88 µs over 63,991 phases, at merge6, vector with the long
 phase. Every ArbEnv field now has GLS evidence on gcd_hw (settle on one seed); all of it at SDF point delays, which
 is not a proof over the bands and says nothing about scatter for ArbEnv.
+
+## Session Sun Nov  1 07:10:33 UTC 2026 (shard A, lead; session_01HC49FuvqSpaEaNQDLmDbxx)
+First session under THE goal (owner 2026-10-31): one theorem about the gcd_hw bitstream. Lock was 13.8 h old
+(previous A session), taken.
