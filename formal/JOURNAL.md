@@ -1557,3 +1557,9 @@ full-width vectors (expected values from math.gcd = the C transcription's, as re
 corner/position (1,1), (0,0), (0.5,0.5) (out/ps_vec8_sequential.txt; ~5 us per pair). gen_lean.py (now with --ns /
 --mp) writes `Formal/Target/NetPS` (namespace Formal.Target.DecodedPS): 75 gate chunks, 187,258 nodes, 9 arbiters.
 Compiling one module at a time; not committed until it checks.
+### progress 20:06 -- container restart; FormalWit rebuild resumed
+The container restarted at ~20:0x; the private-olean rebuild of V9V4c (done, 19:04) and the round trip (22 of 80
+gate chunks done) against the new Spec resumed from where it stopped (it compiles only missing modules). Lost
+work: none committed; an earlier slip this hour (a private olean directory named Formal/ shadowed lake's Formal
+oleans, so 30 RT chunks failed fast and were redone) cost ~30 min. The gcd_ps Lean netlist (NetPS) will be built
+with lake after the rebuild, not into a private directory.
