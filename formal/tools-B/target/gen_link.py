@@ -87,5 +87,21 @@ out.append("theorem ua1Loop_eq : Formal.Cells.Ua1Static.ua1Loop = %s := by\n  si
 out.append("""/-- **Ua1Static's verdicts as statements about the decoded netlist's own arcs.** -/""")
 out.append("theorem ua1_holds_decoded :\n    ((%s).map (Formal.Cells.Ua1Static.hi 1 (15/100) (1/2))).sum <=\n      ((%s).map (Formal.Cells.Ua1Static.lo 1 (15/100) (1/2))).sum := by\n  rw [← ua1Path_eq, ← ua1Loop_eq]; exact Formal.Cells.Ua1Static.ua1_holds_at_015\n" % (arcl(loop), arcl(path)))
 out.append("theorem ua1_fails_decoded :\n    ((%s).map (Formal.Cells.Ua1Static.lo 1 (16/100) (1/2))).sum <\n      ((%s).map (Formal.Cells.Ua1Static.hi 1 (16/100) (1/2))).sum := by\n  rw [← ua1Path_eq, ← ua1Loop_eq]; exact Formal.Cells.Ua1Static.ua1_fails_at_016\n" % (arcl(path), arcl(loop)))
+# wiring: each listed gate pin reads the next listed gate's output node; both chains close at ua1
+def wires(l, close):
+    pairs = []
+    for k, (m, pin) in enumerate(l):
+        nxt = l[k + 1][0] if k + 1 < len(l) else close
+        pairs.append((m, pin, nxt))
+    return pairs
+pw = wires(arcs, gi) + [(gi, 4, arcs[0][0])]
+lw = wires([(m, 0) for m in route], gi) + [(gi, 0, route[0])]
+def wthm(nm, pairs, doc):
+    body = " ∧\n    ".join("(gate %d).ins.getD %d 0 = %d" % w for w in pairs)
+    lem = ", ".join("gate_%d" % m for m in sorted(set(w[0] for w in pairs)))
+    return "/-- %s -/\ntheorem %s :\n    %s := by\n  simp only [%s]\n  decide +kernel\n" % (doc, nm, body, lem)
+out.append(wthm("ua1Path_wired", pw, "The episode path is wired: every listed pin reads the next listed gate's output, from ua1's pin A5 back to ua1's own output (gate %d)." % gi))
+out.append("/-- The feedback route consists of copy gates (one pin, table 0b10). -/\ntheorem ua1Loop_copies :\n    " + " ∧\n    ".join("(gate %d).k = 1 ∧ (gate %d).init = 2" % (m, m) for m in route) + " := by\n  simp only [%s]\n  decide +kernel\n" % ", ".join("gate_%d" % m for m in route))
+out.append(wthm("ua1Loop_wired", lw, "ua1's feedback loop is wired: pin A1 reads a chain of copy gates that starts at ua1's own output."))
 out.append("end Formal.Cells.TargetLink")
 print("\n".join(out))

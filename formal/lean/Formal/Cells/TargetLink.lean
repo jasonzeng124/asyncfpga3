@@ -251,4 +251,49 @@ theorem ua1_fails_decoded :
       (([(gate 109788).arcs.getD 0 default, (gate 109787).arcs.getD 0 default, (gate 109786).arcs.getD 0 default, (gate 109785).arcs.getD 0 default, (gate 109723).arcs.getD 0 default, (gate 109726).arcs.getD 0 default, (gate 109800).arcs.getD 0 default]).map (Formal.Cells.Ua1Static.hi 1 (16/100) (1/2))).sum := by
   rw [← ua1Path_eq, ← ua1Loop_eq]; exact Formal.Cells.Ua1Static.ua1_fails_at_016
 
+/-- The episode path is wired: every listed pin reads the next listed gate's output, from ua1's pin A5 back to ua1's own output (gate 109800). -/
+theorem ua1Path_wired :
+    (gate 109797).ins.getD 0 0 = 109796 ∧
+    (gate 109796).ins.getD 0 0 = 109777 ∧
+    (gate 109777).ins.getD 0 0 = 109776 ∧
+    (gate 109776).ins.getD 0 0 = 109780 ∧
+    (gate 109780).ins.getD 0 0 = 261 ∧
+    (gate 261).ins.getD 4 0 = 257 ∧
+    (gate 257).ins.getD 0 0 = 256 ∧
+    (gate 256).ins.getD 0 0 = 255 ∧
+    (gate 255).ins.getD 0 0 = 254 ∧
+    (gate 254).ins.getD 0 0 = 258 ∧
+    (gate 258).ins.getD 0 0 = 109744 ∧
+    (gate 109744).ins.getD 0 0 = 109725 ∧
+    (gate 109725).ins.getD 0 0 = 109724 ∧
+    (gate 109724).ins.getD 0 0 = 109723 ∧
+    (gate 109723).ins.getD 0 0 = 109726 ∧
+    (gate 109726).ins.getD 0 0 = 109800 ∧
+    (gate 109800).ins.getD 4 0 = 109797 := by
+  simp only [gate_254, gate_255, gate_256, gate_257, gate_258, gate_261, gate_109723, gate_109724, gate_109725, gate_109726, gate_109744, gate_109776, gate_109777, gate_109780, gate_109796, gate_109797, gate_109800]
+  decide +kernel
+
+/-- The feedback route consists of copy gates (one pin, table 0b10). -/
+theorem ua1Loop_copies :
+    (gate 109788).k = 1 ∧ (gate 109788).init = 2 ∧
+    (gate 109787).k = 1 ∧ (gate 109787).init = 2 ∧
+    (gate 109786).k = 1 ∧ (gate 109786).init = 2 ∧
+    (gate 109785).k = 1 ∧ (gate 109785).init = 2 ∧
+    (gate 109723).k = 1 ∧ (gate 109723).init = 2 ∧
+    (gate 109726).k = 1 ∧ (gate 109726).init = 2 := by
+  simp only [gate_109788, gate_109787, gate_109786, gate_109785, gate_109723, gate_109726]
+  decide +kernel
+
+/-- ua1's feedback loop is wired: pin A1 reads a chain of copy gates that starts at ua1's own output. -/
+theorem ua1Loop_wired :
+    (gate 109788).ins.getD 0 0 = 109787 ∧
+    (gate 109787).ins.getD 0 0 = 109786 ∧
+    (gate 109786).ins.getD 0 0 = 109785 ∧
+    (gate 109785).ins.getD 0 0 = 109723 ∧
+    (gate 109723).ins.getD 0 0 = 109726 ∧
+    (gate 109726).ins.getD 0 0 = 109800 ∧
+    (gate 109800).ins.getD 0 0 = 109788 := by
+  simp only [gate_109723, gate_109726, gate_109785, gate_109786, gate_109787, gate_109788, gate_109800]
+  decide +kernel
+
 end Formal.Cells.TargetLink
