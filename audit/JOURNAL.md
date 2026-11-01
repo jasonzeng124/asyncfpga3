@@ -947,3 +947,9 @@ seeds). The kappa 0.21 control matches the baseline exactly (checked by me: laps
 ### progress 11:06
 BQ#1 d log-normal 1.5x draw 2 (re-run after the disk-full failure): 16/16 lapcheck CLEAN (16 vector lines), v6 26.
 CONFIRMED. 4 of the 20 "all pass" routes are now reproduced clean.
+
+### progress 11:58
+Formal 565af3b9: the pipelined refutation is now committed (FormalWit/V9V4, 228 modules; refuted / refuted_range at pSlow,
+T >= 656). I read the statement: it uses the committed decoded target and reorders vector 9 then (1,1), consistent with
+my T2. Building it one module at a time (/root/build21.sh: Formal first, then FormalWit) for my own build and axiom
+check. SpecRunt.lean adds H_RUNT(w) as a sixth hypothesis, offered as an owner option. Findings: T7.md.
