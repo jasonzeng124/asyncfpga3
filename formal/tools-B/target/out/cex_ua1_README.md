@@ -37,6 +37,7 @@ corner 0.2 0.2016/0.2062, corner 0.1 0.2859/0.2906; corners 0 and 1: no oscillat
 | 0.3 | 0.1500 | 0.1547 |
 | 0.4-0.7 | 0.1547 | 0.1594 |
 | 0.8 | 0.1734 | 0.1781 |
+| 0.9 | 0.2250 | 0.2297 |
 | 0.0, 1.0 | no oscillation up to 0.3 (per-gate map) | |
 Other rig vectors at κ = 0.16, corner 0.5: (0x30,0x12), (0x11,5), (0x24,0x3C) oscillate; (0x10000,0x1000),
 (0x18697,0x18697) do not exercise this handshake and are correct.

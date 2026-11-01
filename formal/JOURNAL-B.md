@@ -2213,7 +2213,7 @@ plan, not a theorem. HPrimWin's docstring and notes/B-hprim.md are corrected the
 
 ### progress 09:47 -- ua1 counterexample: κ threshold over corners, other vectors
 Per-pin adversary, bisection to 0.005: corner 0.1 0.159/0.164, 0.2 and 0.3 0.150/0.155, 0.4-0.7 0.155/0.159,
-0.8 0.173/0.178 (corner 0.9 running; corners 0 and 1 clean to 0.3, the per-gate map). Smallest so far:
+0.8 0.173/0.178 (corner 0.9: corner 0.90: clean at κ = 0.2250, oscillates at κ = 0.2297; corners 0 and 1 clean to 0.3, the per-gate map). Smallest so far:
 **κ = 0.155 oscillates at corners 0.2-0.3 (g = 1)**. At κ = 0.16, corner 0.5, the same assignment also breaks
 rig vectors (0x30,0x12), (0x11,5), (0x24,0x3C); (0x10000,0x1000) and (0x18697,0x18697) do not use this
 handshake. Table: tools-B/target/out/cex_ua1_README.md. Interpretation unchanged (transport keeps the runt
