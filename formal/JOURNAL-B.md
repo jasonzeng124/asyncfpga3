@@ -2163,3 +2163,13 @@ and the binding constraint is a C-element race, not the arbiter's decision (H_AR
 behaviour hard to certify as eventually periodic), other corners, κ = 0 (319 ps of margin left there),
 research's fid GLS on this assignment (FOR SHARD A / research: please run it), whether silicon's inertial
 filtering would kill a 7 ps runt (the Spec admits transport, so the Spec theorem must exclude it by timing).
+
+### progress 09:39 -- the ua1 counterexample's κ threshold: 0.155-0.158 at corner 0.5 with a per-pin adversary
+simb.py now takes per-pin positions ("gate:pin"); `cex_ua1_posmap_pin.json` additionally puts ua1's A0 pin
+at the slow end and its g pin at the fast end (the episode at ua1 is g's fall read minus A0's rise read).
+Corner 0.5: clean at κ = 0.155, oscillation at κ = 0.158. Per-gate assignment: corner 0.5 0.21/0.215,
+corner 0.2 0.2016/0.2062, corner 0.1 0.2859/0.2906; corners 0 and 1 clean up to κ = 0.3 (at an extreme
+corner Adm clamps one end of the window to the global band, FAST_MIN or SLOW_MAX, so the adversary loses
+one direction). Per-pin map over corners 0.1..0.9 running (tools-B/target/kmap.py). **So far: if the
+simulator is right, NetCorrectSeq on the target is false for g = 1 and every κ >= 0.158 (corner 0.5), i.e.
+THE theorem's κ margin is < 0.158**; all of it from one storage node, arbiter 0's ua1.

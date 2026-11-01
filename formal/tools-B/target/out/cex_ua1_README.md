@@ -21,3 +21,10 @@ Observed: κ <= 0.21: ua1 rises once at ~600.99 ns and holds (clean). κ = 0.215
 falls at 601.885, rises at 601.892, ... (period 894 ps, a 7 ps runt circulating in its feedback loop); by
 620 ns 5336 nodes toggle (some every ~5 ps); no out0 by 620 ns (correct run: out0 = 6 at 756 ns).
 κ = 0.22-0.3: same shape, longer runts. Mid-window everywhere (no posmap): correct, out0 = 6.
+
+## Sharper adversary (per-pin, `cex_ua1_posmap_pin.json`)
+Same client path at the fast end; ua1's feedback pin (A1) and A0 pin (A3) at the slow end, its g pin
+(A5) at the fast end ("gate:pin" keys; simb.py reads them). Corner 0.5: clean at κ = 0.155, ua1
+oscillates at κ = 0.158. Per-gate assignment (`cex_ua1_posmap.json`): corner 0.5 0.21/0.215,
+corner 0.2 0.2016/0.2062, corner 0.1 0.2859/0.2906; corners 0 and 1: no oscillation up to κ = 0.3
+(Adm clamps one window end to the global band there). Per-pin map over corners: JOURNAL-B.

@@ -88,12 +88,14 @@ def main():
     print("sim: cone %d gates of %d (%d nodes)" % (len(cone), len(gates), len(seen)), file=sys.stderr)
     c, p = a.corner, a.pos
 
-    PM = {int(k): v for k, v in json.load(open(a.posmap)).items()} if a.posmap else {}
+    PMraw = json.load(open(a.posmap)) if a.posmap else {}
+    PM = {int(k): v for k, v in PMraw.items() if ":" not in k}
+    PMpin = {tuple(int(x) for x in k.split(":")): v for k, v in PMraw.items() if ":" in k}   # "gate:pin" (B)
 
-    def dly(e, gi=None):
+    def dly(e, gi=None, pin=None):
         lo = (1 - c) * e["fmin"] + c * e["smin"]
         hi = (1 - c) * e["fmax"] + c * e["smax"]
-        pp = PM.get(gi, p)
+        pp = PMpin.get((gi, pin), PM.get(gi, p))
         if pp == -1:
             d = max((1 - a.kappa) * lo, e["fmin"])      # Adm: (1-κ)·lerp_lo and ≥ FAST_MIN/g (g = 1)
             return int(-(-d // 1))                       # ceil: stay inside the window
@@ -111,7 +113,7 @@ def main():
     readers = defaultdict(list)   # node -> [(gi, pin, d)]
     for gi in cone:
         g = gates[gi]
-        ds = [dly(e, gi) for e in g["arcs"]]
+        ds = [dly(e, gi, pin) for pin, e in enumerate(g["arcs"])]
         G[gi] = (g["k"], g["init"], g["ins"], ds, g["out"])
         for pin, (n, d) in enumerate(zip(g["ins"], ds)):
             readers[n].append((gi, pin, d))
