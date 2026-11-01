@@ -863,3 +863,6 @@ finished" is false. With my own environment replacing the rig's env node (forced
 held), offering vector 6 then (1,1) back to back gives out0 = [1, 0x20]: REORDERED. The sequential control is in
 order. THE goal's theorem, as drafted (pipelined H_ENV), is FALSE for the target bitstream. C's counterexample is
 confirmed; A's "would not hold two pairs" note is refuted.
+
+### progress 07:53
+T2 addendum: the pipelined replay also reorders at FAST_MIN (out0 = [1, 0x20]). The counterexample holds at both corners.
