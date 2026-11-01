@@ -28,6 +28,13 @@ date) computes gcd on the board. Where it stands, plainly:
   (PipeGcd). Input data must also be held until the acknowledge falls ("broad" four-phase). With a sequential env the
   decoded netlist computes all 16 rig vectors. So Spec.lean keeps `NetCorrect` (pipelined, refuted) and adds
   `NetCorrectSeq` (sequential), the statement left to prove. `formal/FOR-RESEARCH.md` 2 and C1.
+- **Cross-checks by B and C (their journals, 2026-11-01)**: C's GLS of the target route (nextpnr SDF, gate passed)
+  with a pipelined env loses results in every run and delivers vector 4's gcd before vector 9's, the same as A's
+  decoded-netlist simulation; C's FASM import of the target's bits is claimed in Lean (every read-back instance
+  computes its yosys cell under rho), and C's `SpecSettle` (interval settle/hold, sound for Spec's Behaves, no loops)
+  is the first generic checker piece on the frozen Spec. B's `spec_double_ack`: the frozen H_ARB(T) does not rule
+  out an arbiter acknowledging both clients, so a proof of the sequential statement must derive per-arbiter
+  "q settled before A0" from the bands; B's `ArbClean`: separated arbitrations need no H_ARB.
 - **Lean data**: the decoded netlist is generated as Lean (`Formal/Target/Net/`, 80 chunks, well-formedness by
   chunked `decide +kernel`); `Formal/Target/Witness.lean` (proved) checks a concrete behaviour against `GateOK`.
 - **What carries over**: C's FASM import of other gcd_hw routes, `gcd_hw_graph_computes_gcd` (token level, one
