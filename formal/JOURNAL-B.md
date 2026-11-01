@@ -2281,3 +2281,10 @@ under every admissible delay) and `ua1_fails_at_016` (κ = 0.16: path >= 852, lo
 violate it), `ua1_numbers`. Agrees with the simulated threshold (0.155/0.159). **Not shown:** the arcs are
 generated data (tools-B/target/ua1arcs.py, reproduced byte-identically), not yet tied to Decoded.net; that the
 episode is this path for every behaviour (causality: a network fact); the dynamics (simulation).
+
+### progress 10:24 -- static κ* at other corners agrees with simulation
+kstar.py on the (12,18) baseline dump: corner 0 with g = 2: ua1 κ* = 0.140 (simulated 0.145/0.148); corners 0.2
+and 0.3: 0.150 (simulated 0.150/0.155); the next node (SLICE_X0Y18.CLUT.O6) 0.355-0.47 or more. (Corners 0.8 and
+1.0 give no estimate from a corner-0.5 dump: the back-trace needs a dump at its own corner; the simulation gives
+0.173/0.178 at 0.8 and none at 1.0 with g = 1.) Building shard A's generated Formal.Target.Net here to tie
+targetQ and Ua1Static to Decoded.net (tools-B/target/gen_link.py, pending the build).
