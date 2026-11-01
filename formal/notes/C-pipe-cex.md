@@ -112,3 +112,6 @@ rules 34-36), the same loop the CapNet deadlock sits in. Nothing moves after 891
 So "offer pair k+1 only after out0's k-th result" looks sufficient at the token level; at the handshake level the
 capstone's `gcd_rig_all` (C-8s3) already proves safety (every out0 offer = gcd) for gcd_rig's sequential env under the
 cell models; liveness there still rests on H_NO_DEADLOCK''. Not proved for a general sequential env.
+
+Acceptance gate for the target GLS (cells/gls tb_gate.v on the same generated netlist, iverilog 12's SDF annotator):
+`ANNOTATE_DONE`, 0 `SDF WARNING`/`SDF ERROR` lines, rc 0. Sequential controls 9/9 and 2/4: both results, correct.

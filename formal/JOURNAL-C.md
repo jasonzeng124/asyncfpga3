@@ -902,3 +902,13 @@ slow), the sources obey four-phase and offer gcd_rig's vector 9 twice (requests 
 is low at every tick (neither result is ever offered), and no non-source gate is excited at tick 265 (QuietNS).
 So without H_START_ONCE the capstone's liveness fails outright: this is what H_START_ONCE is hiding. Unit delays,
 CapNet (bdc's graph), not the band or the bitstream; the target-route GLS (notes/C-pipe-cex.md) agrees.
+
+### progress 08:04 -- target GLS gated; owner notified; H_COMPUTE_FN units identical in the target
+- Target GLS acceptance gate: ANNOTATE_DONE, 0 SDF warnings/errors. Sequential controls (9/9, 2/4, 9/4) all correct.
+  So, on the nextpnr-SDF GLS of the target route: pipelined offers lose results in every run tried, and 9 then 4
+  delivers pair 2's gcd first. Probe: the wedge is at the first loop's header muxes (umux0-2).
+- Token level: offering pair k+1 once out0 holds k results: 400/400 random rig-vector sequences correct.
+- The 20 fused compute units in the TARGET's yosys synthesis (formal/target/gcd_hw_03e82630.json.xz) extract
+  (tools/compute/extract.py) to Lean byte-identical to the committed Gen/Compute/GcdD/*: so C's H_COMPUTE_FN
+  theorems (all 20 units, every input, ranges as stated) are about the target's synthesis too. Not shown: that the
+  target's BITS implement that synthesis (11g's import needs prjxray-db, not installed here; next step).

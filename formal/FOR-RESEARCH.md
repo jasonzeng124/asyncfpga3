@@ -41,7 +41,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   handshake is complete), `formal/tools/pipe/gls/run.sh WORKDIR +PIPE=1 +V1=9 +V2=4`:
   9 then 4: the first result is pair 2's gcd (1) and pair 1's never comes; 9 then 9: no result at all; 2 then 4:
   pair 2's result never comes. Sequential controls (PIPE=0) for the same pairs: both results, correct.
-  Table and acceptance-gate status: formal/notes/C-pipe-cex.md. With `-DPROBE` (vector 9 twice) the last
+  Table: formal/notes/C-pipe-cex.md; acceptance gate (gate.vvp): ANNOTATE_DONE, 0 SDF warnings/errors. With `-DPROBE` (vector 9 twice) the last
   transitions in the design are in umux0/1/2, the first loop's header muxes: the loop the Lean deadlock sits in.
   **Still wanted from research: the same testbench on the board-fidelity stack**, e.g.
   `GLS_SDF=<xray_delay.py SDF> GLS_SDF_FIELD=<corner> GLS_MODEL=fid cells/gls/fid/build_fid.sh <target hw dir> WORK bit`,
