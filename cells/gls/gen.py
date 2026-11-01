@@ -78,6 +78,12 @@ OUTPUT_PORTS = {
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
 }
 
+# PS7 (gcd_ps): only M_AXI_GP0 and FCLK are modelled (gls/ps/ps7_master.v, a
+# behavioural AXI master); every other PS7 pin is tied off in that design.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ps"))
+import ps7_pins  # noqa: E402
+OUTPUT_PORTS["PS7_PS7"] = set(ps7_pins.OUTPUTS)
+
 # What an unrouted input pin is at the bel level.  A pin nextpnr left unrouted
 # is not floating on silicon -- the bel has a hardware default -- and every one
 # of these is checked against a census of what actually occurs (see the
@@ -111,6 +117,7 @@ PORT_ORDER = {
     "IOB33_INBUF_EN": ["PAD", "OUT"],
     "PSEUDO_GND": ["Y"],
     "PSEUDO_VCC": ["Y"],
+    "PS7_PS7": ps7_pins.INPUTS + ps7_pins.OUTPUTS,
 }
 
 # ---- DSP48E1 ----------------------------------------------------------------
@@ -863,7 +870,12 @@ def main():
             # pin is: "R" = synchronous reset to 0, "S" = synchronous set to 1.
             # 20 of the 247 flops here are FDSE, and modelling them as FDRE
             # would hold rst_sr at 0 and never assert the rig's reset at all.
-            sr_val = 1 if attrs.get("X_ORIG_PORT_SR") == "S" else 0
+            # FDCE/FDPE (async clear/preset; gcd_ps's AXI bridge has 69) share
+            # it too: X_ORIG_PORT_SR "CLR"/"PRE", and SR then acts at once,
+            # not on CK (ASYNC).  PRE sets to 1 like S; until 2026-11-01 it was
+            # read as 0 and every FDPE was a synchronous reset to 0.
+            sr_val = 1 if attrs.get("X_ORIG_PORT_SR") in ("S", "PRE") else 0
+            asy = ", .ASYNC(1'b1)" if attrs.get("X_ORIG_TYPE") in ("FDCE", "FDPE") else ""
             # An uninitialised reg arrives as INIT "x"; the bel powers up 0.
             init = int((params.get("INIT", "0") or "0").replace("x", "0"), 2)
             # iverilog applies none of the SDF's TIMINGCHECKs, so the baked
@@ -873,10 +885,10 @@ def main():
             if shs:
                 tps += ", .TSU(%d), .THD(%d)" % (max(s for _, _, s, _ in shs),
                                                   max(h for _, _, _, h in shs))
-            L.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)) %s (%s);"
-                     % (init, sr_val, nn, ", ".join(conn)))
-            B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s) %s (%s);"
-                     % (init, sr_val, tps, nn, ", ".join(conn)))
+            L.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s) %s (%s);"
+                     % (init, sr_val, asy, nn, ", ".join(conn)))
+            B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s%s) %s (%s);"
+                     % (init, sr_val, asy, tps, nn, ", ".join(conn)))
         elif t == DSP_T:
             zmux, acasc, extra = dsp_config(cname, c, netname)
             cfg = ".ZMUX(%d), .ACASC(%d)%s" % (zmux, acasc, extra)

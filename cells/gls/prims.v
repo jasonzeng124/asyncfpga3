@@ -174,6 +174,10 @@ module SLICE_FFX (
 );
     parameter [0:0] INIT  = 1'b0;
     parameter [0:0] SRVAL = 1'b0;
+    // ASYNC=1: FDCE/FDPE -- SR clears/presets at once (gen.py).  The SDF has
+    // no SR->Q arc, so it takes TCKQ (assumption, stated); recovery/removal
+    // of SR against CK is not checked.
+    parameter [0:0] ASYNC = 1'b0;
     parameter TCKQ = 100;
     // The SDF's SETUPHOLD for this bel.  iverilog applies no TIMINGCHECK, so
     // the check is behavioural: a D (or CE) change inside TSU before or THD
@@ -204,6 +208,8 @@ module SLICE_FFX (
         end
         t_in = $time;
     end
+
+    always @(posedge SR) if (ASYNC) Q <= #(TCKQ) SRVAL;
 
     specify
         (posedge CK => (Q +: D)) = TCKQ;
@@ -260,6 +266,7 @@ module SLICE_FFX (
     parameter TSU = 0;
     parameter THD = 0;
     parameter integer SEED = 1;
+    parameter [0:0] ASYNC = 1'b0;     // FDCE/FDPE: SR acts at once (see the default model)
     parameter integer TCKI = -1, TDI = -1, TCEI = -1, TSRI = -1;  // GLS_FID only
     parameter integer TMPW = -1, WMPW = -1;                       // GLS_FID only
     localparam integer AK = (TCKI >= 0) ? TCKI : 1;
@@ -408,8 +415,18 @@ module SLICE_FFX (
         ckp = ck;
     end
 
+    // ASYNC: SR (its pin copy) clears/presets the node at once; any capture
+    // still in flight is cancelled so it cannot land after the reset
+    always @(sr) if (ASYNC && sr === 1'b1) begin
+        cancelv[g_rise % 64] = 1'b1;
+        newgen;
+        st = SRVAL;
+        launch(LQ, gen, SRVAL);
+    end
+
     always @(d or ce or sr) begin
-        if (t_ck > 0 && $time - t_ck < thd) begin
+        if (ASYNC && sr === 1'b1) ;      // held in reset: nothing to resolve
+        else if (t_ck > 0 && $time - t_ck < thd) begin
             nw = nsf(sr, ce, d, pre_rise);
             if (!(nw === st && (nw === 1'b0 || nw === 1'b1))) begin
                 resolve($time - t_ck, nw, st, 1);
