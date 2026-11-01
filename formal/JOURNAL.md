@@ -1288,3 +1288,10 @@ outputs = 0,1,.., assembled with outsOK_append). What it shows: the generated da
 is the target's configuration (the Lean round trip is not written; the Python one is). Cost to other shards: about
 22 MB of source; on this loaded 4-core box each chunk takes 10-300 s and its olean ~15 MB, so a full lake build grows
 by roughly 30-60 min and 1.2 GB.
+### progress 08:42 -- Lean refutation pipeline: data compiles; first kernel-cost test running
+Witness V9V4 (sim.py --full --corner 1 --pos 1, vector 9 then 4, pipelined): Formal/Target/Wit/V9V4/ (generated, not
+yet committed): T00..T63 + Top (the description table: 59294 nodes with flips, 326886 flips; noncomputable, kernel-only)
+compile; C000..C079 (per gate chunk: chkFrom on [dmax, b) and dmax ≤ Dm), Q000..Q080 (per node chunk: periodicity on
+[b-Dm, b)), Refute.lean (the assembly: beh_ok, arb_ok at T = 656 ps, env_ok, not_correct, `refuted : ¬ NetCorrect net
+boundary arbs pSlow 656 20000 0 2999`) are generated; timing C000/Q000 now. Nothing about the refutation is claimed
+until Refute.lean compiles.
