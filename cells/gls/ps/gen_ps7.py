@@ -22,12 +22,13 @@ BODY = r'''
     //   +NVEC=<n>       how many to run (default all 64 slots that loaded)
     //   +FCLK_PS=<ps>   FCLK0 period, default 10000 (100 MHz)
     //   +TVEC=<ns>      per-vector timeout for any one poll, default 60000
+    //   +PIPE=1         overlap pairs of calls (a protocol violation, for FOR-RESEARCH s2)
     // Every AXI output changes TCO after the ACLK edge it is computed on, and
     // every input is sampled on the edge, as the PS7's registered interface.
     localparam integer TCO = 100;
     localparam [11:0] ID = 12'h3E7;            // never 0 (hw-docs/07: ID echo)
     reg fclk = 1'b0;
-    integer fclk_ps, tvec_ns, nvec, maxvec, k, ok, err, hang, idmis, polls;
+    integer fclk_ps, tvec_ns, nvec, maxvec, k, ok, err, hang, idmis, polls, pipe;
     reg [31:0] mem [0:191];
     reg [1023:0] vecfile;
     reg        aresetn = 1'b0;
@@ -39,7 +40,8 @@ BODY = r'''
     reg        timed_out;
     time       t0, t_req, t_ack, t_out;
     initial begin
-        fclk_ps = 10000; tvec_ns = 60000; nvec = 64;
+        fclk_ps = 10000; tvec_ns = 60000; nvec = 64; pipe = 0;
+        if ($value$plusargs("PIPE=%d", pipe)) ;
         if ($value$plusargs("FCLK_PS=%d", fclk_ps)) ;
         if ($value$plusargs("TVEC=%d", tvec_ns)) ;
         if (!$value$plusargs("PSVEC=%s", vecfile)) vecfile = "ps_vec.hex";
@@ -111,6 +113,45 @@ BODY = r'''
         repeat (8) @(posedge MAXIGP0ACLK);
         axi_write(32'h00, 32'h0);               // release it
         repeat (8) @(posedge MAXIGP0ACLK);
+        if (pipe) begin : pipelined
+            // +PIPE=1: NOT gcd_ps.v's protocol.  Vectors in pairs (k, k+1): offer k, wait for
+            // its i_ack, offer k+1 at once, then collect two results.  formal/FOR-RESEARCH.md
+            // section 2 predicts pair k+1 overtakes a longer pair k; this mode exists to show
+            // what a host that overlaps calls would get, which is why the harnesses must not.
+            reg [31:0] g0, g1;
+            for (k = 0; k + 1 < nvec; k = k + 2) begin
+                timed_out = 0; g0 = 32'hxxxxxxxx; g1 = 32'hxxxxxxxx;
+                axi_write(32'h08, mem[3 * k]);     axi_write(32'h0C, mem[3 * k + 1]);
+                axi_write(32'h00, 32'h1);          poll(32'h1, 32'h1);
+                if (!timed_out) axi_write(32'h00, 32'h0);
+                if (!timed_out) begin axi_write(32'h08, mem[3 * k + 3]); axi_write(32'h0C, mem[3 * k + 4]); end
+                if (!timed_out) axi_write(32'h00, 32'h1);
+                if (!timed_out) poll(32'h1, 32'h1);
+                if (!timed_out) axi_write(32'h00, 32'h0);
+                if (!timed_out) poll(32'h2, 32'h2);
+                if (!timed_out) axi_read(32'h10, g0);
+                if (!timed_out) axi_write(32'h00, 32'h2);
+                if (!timed_out) poll(32'h2, 32'h0);
+                if (!timed_out) axi_write(32'h00, 32'h0);
+                if (!timed_out) poll(32'h2, 32'h2);
+                if (!timed_out) axi_read(32'h10, g1);
+                if (!timed_out) axi_write(32'h00, 32'h2);
+                if (!timed_out) poll(32'h2, 32'h0);
+                if (!timed_out) axi_write(32'h00, 32'h0);
+                $display("PSPIPE vecs=%0d,%0d exp=%08h,%08h got=%08h,%08h %0s", k, k + 1,
+                         mem[3 * k + 2], mem[3 * k + 5], g0, g1,
+                         timed_out ? "HANG" :
+                         (g0 === mem[3 * k + 2] && g1 === mem[3 * k + 5]) ? "IN_ORDER" :
+                         (g0 === mem[3 * k + 5] && g1 === mem[3 * k + 2]) ? "REORDERED" : "WRONG");
+                if (timed_out) begin
+                    hang = hang + 1;
+                    axi_write(32'h00, 32'h4); repeat (8) @(posedge MAXIGP0ACLK);
+                    axi_write(32'h00, 32'h0); repeat (8) @(posedge MAXIGP0ACLK);
+                end
+            end
+            $display("PSSUMMARY pipe n=%0d hang=%0d id_mismatch=%0d t_end=%0t", nvec, hang, idmis, $time);
+            $finish;
+        end
         for (k = 0; k < nvec; k = k + 1) begin
             timed_out = 0;
             axi_write(32'h08, mem[3 * k]);
