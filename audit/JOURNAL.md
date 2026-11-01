@@ -823,3 +823,6 @@ worst routes: 1.5-1.75x (my data).
 ### progress 01:24
 Research 3270b5f1: log-normal 1.5x draw 2 on BQ#3 d,3,4,5 PASS (d 53/44/63, where linear 2x draw 2 failed with errs
 15). Reproducing BQ#3 d draw 2 at full TEND with lapcheck (stall/double check).
+
+### progress 02:38
+BQ#3 d log-normal 1.5x draw 2: 16/16, 53/44/63 = claim, lapcheck CLEAN. CONFIRMED.
