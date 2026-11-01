@@ -2187,3 +2187,12 @@ FOR SHARD A / the owner: either keep the pessimistic H_PRIM and accept κ_max < 
 "forcing episode >= loop" at ua1, which fails beyond that), or move to a semantics in which runts below a width
 die (a new, named fidelity hypothesis such as H_RUNT(w): a pulse narrower than w at a LUT input does not reach
 its output), under which this trace no longer refutes the theorem.
+
+### progress 09:43 -- independent simulator agrees with shard A's on the ua1 counterexample run
+tools-B/target/sim2.py: my own event-driven implementation of the Spec gate relation with constant read
+delays (not A's code; same delay rule; the environment replayed from the reference dump). On the κ = 0.215
+corner-0.5 run (cex_ua1_posmap.json), every flip of all 170254 cone nodes in (25 ns, 606 ns] is identical to
+simb.py's (0 differing nodes), ua1's circulating runt included. (Before 25 ns the two differ only in the
+power-up convention: A's reads at negative times depend on event order; the Spec leaves outputs before a
+gate's start unconstrained, so both are behaviours.) So the trace is not an artefact of one simulator; it is
+still untrusted Python against the same JSON netlist (rebuilt from A's generated Lean data).
