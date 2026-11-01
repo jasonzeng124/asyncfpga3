@@ -1569,3 +1569,10 @@ FormalWit into an empty private directory), 17:52-22:02 with a container restart
 `refuted_range`, RT `roundtrip`, `o5_gates`: axioms [propext, Classical.choice, Quot.sound]. So the pipelined
 refutation of the previous target holds for the new `Adm` (at (g, κ) = (1, 0) both forms are [smin, smax]).
 Not re-run under the new Spec: V9V4 (the first, ~3 h certificate of the same fact; check.sh --wit rebuilds it).
+### progress 22:37 -- gcd_ps Lean netlist compiles; DecodedPS.net_wf proved
+`Formal/Target/NetPS` (gen_lean.py --ns Formal.Target.DecodedPS --mp Formal.Target.NetPS, from decoded net eee97ec8):
+75 gate chunks, 187,258 nodes, boundary and 9 arbiters; `lake build Formal.Target.NetPS.All` OK (871 jobs, ~35 min),
+`check.sh Formal/Target/NetPS/All.lean` audit OK (518 declarations). So the first Lean theorem about THE target is
+`DecodedPS.net_wf : net.WF` (pin/arc lists of length k, nodes in range, INIT in range, bands ordered, one driver per
+node). Not shown: anything about its behaviour; that `net` is the bits' configuration (decoder untrusted; the round
+trip for gcd_ps is the next step, gen_rt.py on this net).

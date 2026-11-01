@@ -3,7 +3,8 @@
 **THE target since 2026-11-01 19:3x UTC (owner decision 1): `formal/target/gcd_ps_e6bb4aec.bit`** (BOARD-QUEUE #4,
 full-width operands from the PS; README.md, gcd_ps sections): rebuilt bit-identical up to the header date, read back,
 decoded (Python round trip 0 invented, boundary 32+32 distinct operand nodes, 9 arbiters), 8/8 full-width vectors in
-simulation at three corners; the Lean netlist (`Formal/Target/NetPS`) is generated and not yet compiled. Everything
+simulation at three corners; the Lean netlist `Formal.Target.DecodedPS.net` (`Formal/Target/NetPS`, 75 chunks) compiles and
+`Formal.Target.DecodedPS.net_wf : net.WF` is proved (check.sh audit OK). No theorem about its behaviour yet. Everything
 below this paragraph is about the PREVIOUS target, `formal/target/gcd_hw_03e82630.bit` (BQ#1, 16-vector table), and stays
 valid for it.
 
