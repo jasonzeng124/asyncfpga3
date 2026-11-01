@@ -21,6 +21,8 @@ date) computes gcd on the board. Where it stands, plainly:
   frozen H_PRIM lets circulate for ever; the decoded arcs hold at κ = 0.15 and fail at 0.16 (`Ua1Static`, Lean, on
   `Decoded.net`); with a runt filter the same run recovers. Simulation, not a Lean refutation. Below that κ, 16/16 rig
   vectors and 60/60 random sequential runs are correct in simulation; no proof route at 200k gates exists yet.
+  Under H_RUNT(w) (owner decision 2), the same adversary in simulation: w = 20 ps holds to κ = 0.19 and fails at 0.20;
+  w = 10 fails by 0.18, w = 40 holds at 0.20 and fails at 0.25 (one adversary, corner 0.5; `tools-A/target/out/hrunt_sweep.txt`).
 - **The target does not match THE goal's wording**: its three input requests are one net and its operand buses come
   from a 16-entry table (a: 18 distinct nets, b: 20, constant-tied high bits), so it cannot be offered every pair below
   2^31 or independent pipelined pairs (`formal/target/BOUNDARY.md`, `formal/FOR-RESEARCH.md` 1). The statement is
