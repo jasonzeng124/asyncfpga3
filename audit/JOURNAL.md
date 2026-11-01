@@ -870,3 +870,11 @@ T2 addendum: the pipelined replay also reorders at FAST_MIN (out0 = [1, 0x20]). 
 ### progress 07:57
 T2 addendum 2: pipelined (3,5),(3,5) and (8,8),(3,5) DEADLOCK on the target's fid GLS (both accepted, no out0 in 37 us).
 Sequential (3,5),(3,5) answers 1, 1 within 1 us each. C's deadlock claim is CONFIRMED: THE theorem fails on liveness too.
+
+### progress 08:03
+Formal moved to 88c74e3c (25 commits): Spec.lean frozen (69c49057) with SeqEnv/NetCorrectSeq; B claims the frozen
+Spec's ArbOK contradicts GateOK on held-arbiter handovers (NetCorrect vacuous there, f06ceb8e); A's decoder (pip level)
++ round trip (Python mirror) + decoded target as Lean data; C and A have Lean/sim witnesses of the reorder and
+deadlock, consistent with my T2. Build of 88c74e3c running (NChk first). Subagents: T3 (frozen Spec diff, the
+owner's checklist read from the Lean binders, the vacuity claim with my own Lean check) and T4 (run the decoder
+round trip myself; own comparison against the read-back FASM; spot-check decoded LUTs).
