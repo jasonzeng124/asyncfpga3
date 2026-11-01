@@ -826,3 +826,18 @@ None of these is started.
 ## Session Sun Nov  1 07:20:55 UTC 2026 (shard C; session_01HC49FxWJ9vtZZwXVrasyvJ)
 First C session under THE goal (owner, 2026-10-31): one theorem about the gcd_hw bitstream.
 C owns the generic checker theorem: obligation completeness, loops, composition, refinement.
+
+### progress 07:27 -- COUNTEREXAMPLE (simulation stage): pipelined pairs reorder or deadlock
+Audit re-read (passes 15-18): no open REFUTED/OVERSTATED row on C files; row 20 (GcdJoin not
+linked into the capstone) stands as an open link. Lock was 20 h old; taken.
+THE goal requires a pipelined environment. Tested it first, since a refutation is worth most.
+**Result, plainly:** gcd_hw does NOT return the k-th gcd for the k-th pair when pairs are
+pipelined. A pair that skips the first loop overtakes one that iterates. With finite storage
+(handshake network), two threads in the loops can deadlock instead.
+- Token level, toksim.py (untrusted): values always right, order wrong, e.g. (2^20,2^20),(3,5) ->
+  out0 [1, 2^20].
+- Handshake network (CapstoneNet cell models, unit delay, gcd_rig's fork env made free-running),
+  hwsim.py (untrusted): pair 2 accepted at tick 141; (2^20,2^20),(3,5) -> [1, 2^20]; (3,5),(3,5)
+  and (64,64),(3,5) deadlock (no out0).
+Not Lean yet; unit delay is one assignment, not the band. Details: notes/C-pipe-cex.md.
+Next: Lean certificate of the token-level reorder, then the handshake-level witness.
