@@ -953,3 +953,7 @@ Formal 565af3b9: the pipelined refutation is now committed (FormalWit/V9V4, 228 
 T >= 656). I read the statement: it uses the committed decoded target and reorders vector 9 then (1,1), consistent with
 my T2. Building it one module at a time (/root/build21.sh: Formal first, then FormalWit) for my own build and axiom
 check. SpecRunt.lean adds H_RUNT(w) as a sixth hypothesis, offered as an owner option. Findings: T7.md.
+
+### progress 12:29
+Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness modules: 77 built so far, all rc=0
+(~30 s and ~2.4 GB each). Research 100b2f13: log-normal 1.5x draw 3 partial (BQ#1 4/4); waiting for the summary.
