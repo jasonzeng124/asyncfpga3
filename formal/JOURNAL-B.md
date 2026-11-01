@@ -1895,12 +1895,12 @@ files are checked meanwhile with a private olean chain (lean -DautoImplicit=fals
 ### progress 07:31 -- H_PRIM in window form (HPrimWin.lean, checked, Core only)
 **Problem, plainly:** which single per-primitive relation is implied by every admissible gate
 behaviour (transport with any delays in the band, even time-varying; inertial swallowing;
-jitter), so that one proof covers them all? **Lean:**  (output at tau at
+jitter), so that one proof covers them all? **Lean:** `WinH f pin lo hi y` (output at tau at
 least as defined as f of any Kleene abstraction of each pin over its window
-[tau - hi_i, tau - lo_i]); , , 
+[tau - hi_i, tau - lo_i]); `win_of_varTransport`, `win_of_timed`, `win_inertial`
 (time-varying transport, Core's fixed-delay Timed.H, sampled/inertial behaviours all imply
-WinH);  (guard widening preserves it); , , ;
-/ (strictly weaker than fixed-delay transport). Checked privately
+WinH); `win_widen` (guard widening preserves it); `win_forced`, `win_settles`, `win_sic`;
+`buf_win`/`buf_not_fixed` (strictly weaker than fixed-delay transport). Checked privately
 (lean -DautoImplicit=false -o on Kleene/Xray/XrayData/Muxf/Carry, then the file): OK.
 **Does NOT show:** that silicon is any of these (H_PRIM itself); involution (next file);
 flops (SeqFlop needs H_FF_RESOLVE, not among the five allowed hypotheses -- recorded for
