@@ -1295,3 +1295,9 @@ compile; C000..C079 (per gate chunk: chkFrom on [dmax, b) and dmax ≤ Dm), Q000
 [b-Dm, b)), Refute.lean (the assembly: beh_ok, arb_ok at T = 656 ps, env_ok, not_correct, `refuted : ¬ NetCorrect net
 boundary arbs pSlow 656 20000 0 2999`) are generated; timing C000/Q000 now. Nothing about the refutation is claimed
 until Refute.lean compiles.
+### progress 09:10 -- witness gate checks running; the setup lake build paused
+Gate chunk C000 (2500 gates in 19 slices, 7 of them single heavy gates on the ring/BUFG path) passed in 5 min at
+4.9 GB peak; 20 of 80 chunks done, no failures. The full-project lake build started by setup.sh (2 h, held one slot,
+modules of B up to 7 GB) was stopped to give the witness two slots without OOM risk; lake keeps what it finished and
+it is restarted after the witness. check.sh on the committed Formal/Target files has therefore not run this session
+in one piece; each file was compiled with lake env lean against the same Mathlib.
