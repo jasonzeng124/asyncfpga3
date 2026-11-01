@@ -1399,7 +1399,7 @@ checks the walker's wire-to-node connectivity.
 ### progress 13:00 -- INDEPENDENT connectivity check of the decoder against nextpnr's routing: agrees
 tools-A/target/xcheck_nextpnr.py: for every placed LUT and MUXF cell in nextpnr's routed JSON (its own chipdb and
 router, a different code base from the FASM walker), each physical pin's net driver (BEL output) is compared with the
-decoded netlist's source of that pin (walking back through the pip and site-hop gates). 46213 pins match; 3 differ,
+decoded netlist's source of that pin (walking back through the pip and site-hop gates). 46213 LUT/MUXF pins match (with the 59 CARRY4 cells: 46685, all carry pins match); 3 differ,
 all pin A6 of a LUT whose INIT has equal halves (bits: VCC, nextpnr: GND; the LUT ignores A6), so harmless; 1 cell has
 no gate, the known unread MUXF7 of ucontrol_merge12 (out/xcheck_nextpnr.txt). What it shows: end-to-end connectivity
 of the decoded netlist (bits -> prjxray-db -> walker) equals what the router built, on every LUT/MUXF input pin. Not

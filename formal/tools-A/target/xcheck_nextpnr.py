@@ -72,12 +72,19 @@ for cn, c in R["cells"].items():
         site, b = bel.split("/")
         gname = "%s.%s" % (site, {"F7AMUX": "F7A", "F7BMUX": "F7B", "F8MUX": "F8"}[b])
         pins = None
+    elif ct == "CARRY4":
+        site = bel.split("/")[0]
+        gname = "%s.CARRY4.CO3" % site
+        pins = "carry"
     else:
         continue
     g = by_name.get(gname)
     if g is None:
         bad.append(("no gate", cn, gname)); stat["no gate"] += 1; continue
-    if pins is None:
+    if pins == "carry":
+        pm = {"CI": 0, "CYINIT": 1, "S0": 2, "S1": 3, "S2": 4, "S3": 5, "DI0": 6, "DI1": 7, "DI2": 8, "DI3": 9}
+        items = [(p, pm[p]) for p in c["connections"] if p in pm]
+    elif pins is None:
         pm = {"I0": 0, "I1": 1, "S0": 2}
         items = [(p, pm[p]) for p in c["connections"] if p in pm]
     else:
