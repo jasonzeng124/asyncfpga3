@@ -151,6 +151,9 @@ follow-pulse fix): all 16 corner runs PASS 16/16, EQUIVALENT, every laps triple 
 table (vec 6 SLOW_MAX mean 32.75, FAST_MIN 89.6); the seed-9 2x-scatter failure reproduces exactly (same six
 vectors). Arbiter near-tie round trips (research/data/fid/arbtie.md): 0 of 18 ack C-elements below the model's
 requirement on all 8 routes, worst margin 691 ps (seed d).
+Log-normal within-die scatter (GLS_SCATTER_LOGN=1, bounded speed-ups, 2026-11-01): 1.5x the calibrated scatter
+(region 0.24 + wire 0.189), draw 2: PASS on all 8 seeds (vec 6 laps 44-56). Seed 9's failing scale on draw 1:
+between 1.75x and 2x (linear factors: ~1.33x).
 The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
 prediction.
 

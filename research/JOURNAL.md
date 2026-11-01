@@ -1885,3 +1885,6 @@ holds beyond draw 1.
 ### progress 01:22 (log-normal 1.5x draw 2: BQ#3 d,3,4,5 PASS)
 - BQ#3 log-normal 0.24/0.189 draw 2: d PASS 53/44/63 (linear 2x draw 2 had FAILED it with errs 15), 3 PASS 44/35/52,
   4 PASS 56/44/64, 5 PASS 52/42/61. Seeds 6-9 then BQ#2 6-9 running.
+### progress 03:33 (BQ#3 log-normal 1.5x draw 2: 8/8 PASS)
+- BQ#3 log-normal 0.24/0.189 draw 2: d,3,4,5,6,7,8,9 all PASS 16/16 (vec 6 laps 44-56). BOARD-QUEUE #3 updated.
+  BQ#2 seeds 6-9 at the same point running.
