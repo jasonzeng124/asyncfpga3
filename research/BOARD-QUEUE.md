@@ -213,7 +213,12 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
   vectors: seeds d,3-9 x SLOW_MAX/FAST_MIN: 24/24 ok, 0 err, 0 hang, fasm_equiv EQUIVALENT on all 16 runs; gate
   ANNOTATE_DONE with 0 SDF warnings on all 16. (0x7fffffff, 0x7ffffffe), the longest vector: 15.0 us mean
   (14.6-15.4) from i_ack to o_req at SLOW_MAX, 5.3 us (5.2-5.45) at FAST_MIN.
+- Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, the measured 8.5% median ring scatter; draw 1),
+  seeds d,3,4,5: 24/24, EQUIVALENT, gate clean (`research/data/gcd_ps/p1_scatter1x.tsv`).
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
+- The UNSIZED routes (umux21 at 12 links, rule A -1567 / -464 ps on seeds d / 5) also pass the full stack at both
+  corners, so on this bundle rule A charges more than the GLS shows (see JOURNAL 20:17, 21:05); P1 is kept
+  anyway (a delay that is too long only costs time, and it is on the exit path, once per call).
 - CDC (read in gcd_ps.v): STATUS.i_ack and STATUS.o_req reach the PS clock through 2-flop synchronizers; the
   kernel-facing request is a flop cleared asynchronously by the kernel's own i_ack (the pulse adapter), so a host
   holding CTRL.i_req for milliseconds over JTAG cannot wedge the kernel; A/B are written before the CTRL write that
