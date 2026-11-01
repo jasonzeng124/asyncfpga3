@@ -1467,3 +1467,10 @@ covers LUT/MUXF/CARRY4 pin drivers); (2) the FASM parsing (Python) and bit2fasm 
 CARRY4 and constant gates (no INIT feature of their own); (5) the site-prefix table (prjxray tilegrid, 2,624 sites,
 data). Measured: 64 subtrees + index check, 64 block merges (~3 min), 80 gate chunks (914 certificate slices; ~3.8
 min and ~4 GB each, 3 at a time: 15:48-17:15), assembly 8 s. Built with private oleans; check.sh --wit builds it.
+### progress 17:23 -- S1 part 2 CHECKED: every LUT5 output agrees with its LUT6 (o5_gates)
+`FormalWit/RT/OAll.lean` (gen_o5.py, Formal/Target/LutPair.lean): `o5_gates : ∀ g ∈ gates, isO5 g → ∃ q ∈ gates,
+o5match q g`, axioms standard. Plainly: an O5 output has no FASM feature of its own; its function is the low half
+of its LUT's INIT. Shown: each of the 8,925 O5 gates follows an O6 gate with the same `<site>.<L>LUT.` name, reads
+that O6's first five pins and has INIT = the O6's INIT mod 2^32, so with `roundtrip` its function is the
+bitstream's. Not shown: that the O6's pin list is A1..A6 in order (the decoder's pin map; the nextpnr cross-check
+compares pin drivers per physical pin). 80 chunks, ~10 s each (17:18-17:22).
