@@ -80,8 +80,11 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   four-phase), not just until it rises ("early"). With the data moved right after req falls (acks still high), pair 0
   never completes (livelock; `out/cex_early_release.txt`); moved at each ack's fall, both pairs are right
   (`out/ok_broad_sequential.txt`).
-- **Not shown**: a Lean-checked trace; that the simulator is a faithful instance of `Behaves` (it is untrusted code);
-  research's fid GLS has not been run with a pipelined environment.
+- **Lean (2026-11-01, later)**: `FormalWit.V9V4.Refute.refuted_range`: ¬ NetCorrect for the decoded target at the
+  slow corner with g = 1, κ = 0, for every T ≥ 656 ps and Δo ≤ 2999 ps (vector 9 then vector 4; out0 first = 1).
+  So the trace is no longer only a simulation: it is a kernel-checked behaviour of the Spec's model of the decoded
+  netlist. Still not shown: that the decoded netlist is the target's configuration beyond H_DECODE (untrusted
+  decoder; Python round trip; C's independent import agrees), and research's fid GLS with a pipelined env.
 - **Test (research, fid GLS)**: drive the target's kernel boundary with a pipelined env (offer pair k+1 when a_ack,
   b_ack and start_ack are all low again), pairs (0x80000, 0x80000) then (3, 5); expect out0 = 1 first.
 - **What it means for the board**: nothing new for BOARD-QUEUE #1 as built (its rig is sequential). It means the

@@ -21,7 +21,9 @@ date) computes gcd on the board. Where it stands, plainly:
   pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
   472 CARRY4 outputs), prjxray arcs per pin. The Lean round trip is not written. **No theorem about the target
   exists yet** (`formal/target/STATUS.md`).
-- **COUNTEREXAMPLE (simulation; Lean witness in progress)**: under the owner's pipelined environment the target
+- **COUNTEREXAMPLE, LEAN-CHECKED** (`FormalWit/V9V4/Refute.lean`, `refuted_range`, standard axioms; built by
+  `check.sh --wit`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
+  Simulation first found it: under the owner's pipelined environment the target
   gives results out of order or deadlocks: on the netlist decoded from the target's bits, every arc inside its
   prjxray band, rig vector 9 then 4 -> out0 [1, 4096]; vector 9 twice and 15 then 5 deadlock; (2^19,2^19),(3,5)
   reorders at the fast end, slow end and with ±20% scatter. Shard C proves the reordering at token level in Lean

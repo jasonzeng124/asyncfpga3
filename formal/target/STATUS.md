@@ -4,9 +4,10 @@ Target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean
 (`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01; part II, the Lean decoder, a stub).
 
 **Theorems about the target so far (2026-11-01):** `Formal.Target.Decoded.net_wf` (the decoded netlist is
-well formed). Shard C's 11g on the target (every read-back instance computes its yosys cell under rho). In
-progress: `Formal.Target.Wit.V9V4.refuted : ¬ NetCorrect net boundary arbs pSlow 656 20000 0 2999` (the
-pipelined statement is false; not claimed until it compiles). For the sequential statement `NetCorrectSeq`, none. The list below is what `NetCorrect` on the decoded target would need, and where each piece
+well formed). Shard C's 11g on the target (every read-back instance computes its yosys cell under rho). **Refuted:**
+`FormalWit.V9V4.Refute.refuted_range : ∀ T Δo, 656 ≤ T → Δo ≤ 2999 → ¬ NetCorrect net boundary arbs pSlow T 20000 0 Δo`
+(the owner's pipelined statement is false for the decoded target; hypotheses used: H_DECODE for `net`, the Spec's
+model; standard axioms; `check.sh --wit`). For the sequential statement `NetCorrectSeq`, none. The list below is what `NetCorrect` on the decoded target would need, and where each piece
 stands. It must shrink.
 
 | # | hypothesis | allowed (one of the five)? | status |
