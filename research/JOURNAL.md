@@ -2078,3 +2078,9 @@ double-counted, ring128 per-ring data still needed).
   research/board/gcd_hw_03e82630.bit, prjxray SDF of the same route (nextpnr sdf 6f8b99e6), fid, both corners;
   +PIPE=0 9/4 (control), +PIPE=1 9/4, 9/9, 15/5, 2/4; in_ack resolved from this route's nets.map instead of the
   hard-coded n144588. Then BQ#4 scatter to BQ#1's level (1x on 6-9; log-normal 1.5x draw 2 on d,3,4,5).
+### progress 23:23 (out0 bundling on all 8 P1 seeds; 64 vectors 64/64)
+- research/data/gcd_ps/p1_out0_bundle_8seed.tsv: out0 margin at the kernel boundary, P1, every seed: SLOW_MAX mean
+  +12268 ps (11281-13100), FAST_MIN mean +4209 ps (3978-4492, worst seed 5); no late data change on any of the 16
+  runs; PS harness 24/24 on all. Seed d with the first 64 vectors of gcd_ps_vec1000.hex: 64/64 at both corners,
+  min margin identical to the 24-vector run (the minimum is set by the route, not the operands). BOARD-QUEUE #4
+  updated. Now running: FOR-RESEARCH C1's tb_pipe on BQ#1's full stack, then BQ#4 scatter to BQ#1's level.

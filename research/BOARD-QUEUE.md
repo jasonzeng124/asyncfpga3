@@ -218,8 +218,9 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
 - umux21 drives out0, and the PS reads O_DATA >= 2 synchronizer clocks after out0_req, so this harness cannot see
   an out0 bundling violation (umux21 cut to 1 link: still 24/24). Measured instead at the kernel boundary with an
-  out0 bundling monitor (`research/data/gcd_ps/out0_bundle_margin.tsv`, seed d): P1 +12.0 ns (SLOW_MAX) / +4.1 ns
-  (FAST_MIN) between the last out0_data change and out0_req, no late change; the monitor's negative control
+  out0 bundling monitor (`research/data/gcd_ps/p1_out0_bundle_8seed.tsv`): P1 on all 8 seeds, SLOW_MAX mean +12.3 ns
+  (worst +11.3, seed 5), FAST_MIN mean +4.2 ns (worst +3.98, seed 5) between the last out0_data change and out0_req,
+  no late change; seed d with 64 vectors 64/64 at both corners, same margins; the monitor's negative control
   (umux21's data LUTs 20x slower) shows 23-24 late changes up to 10 ns after the request while the harness still
   says 24/24. On this bundle rule A over-charges: even 1 link measures +0.57 ns at FAST_MIN where rule A asks
   for 13. P1 is kept (a delay that is too long only costs time; this one is on the exit path, once per call).
