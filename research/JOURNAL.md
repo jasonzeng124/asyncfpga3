@@ -2095,3 +2095,7 @@ double-counted, ring128 per-ring data still needed).
   (+3091.5). The input handshake completes ~2.9 us before the result: gcd_rig.v's header ("acknowledges start only
   when it is finished") is wrong on the board-fidelity stack too; the rig is safe because its env waits for out0.
   15/5, 2/4 and FAST_MIN running.
+### progress 23:53 (FOR-RESEARCH C1 on BQ#1's full stack: all five cases as predicted, both corners)
+- research/data/fid/c1_pipe/README.md: SLOW_MAX and FAST_MIN, decoded from the committed BQ#1 bit: sequential 9/4
+  both right; pipelined 9/4 only 1 (pair 2's), 9/9 and 15/5 deadlock, 2/4 only pair 1's. Exactly FOR-RESEARCH
+  C1's table, now on the board-fidelity stack the request named. Rig env control vec 6: 16 laps, 0 errors.
