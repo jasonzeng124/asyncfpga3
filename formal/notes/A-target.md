@@ -53,3 +53,15 @@ Kernel cost: per-gate cost is quadratic in its breakpoints; 122 gates near the r
     python3 formal/tools-A/target/gen_lean.py NET BND OUTDIR --arbs ARBS          # Formal/Target/Net
     python3 formal/tools-A/target/sim.py ... --full --corner 1 --pos 1 --dump W.json
     python3 formal/tools-A/target/gen_wit.py NET BND W.json V9V4 OUTDIR --arbs ARBS   # Formal/Target/Wit/V9V4
+
+## Next for A (written 2026-11-01 ~12:05)
+1. **Faster witnesses** (for `check.sh --wit` and for new counterexamples): the 3 h of kernel time are dominated by
+   ~122 gates on the housekeeping ring and its BUFG path, whose flips span the whole window [dmax, b) (2.68 µs, ~240
+   flips per node; the check is quadratic per gate). Give each node its own periodic start (the ring is periodic after
+   its first lap, ~50 ns): `ext` with a per-node cut, the gate check on [dmax, max cut of its nodes). Expected: --wit
+   from ~3 h to ~1 h (then dominated by per-module import time).
+2. **S1, the Lean round trip** of the decoder: sorted feature list of the read-back FASM as data, a certificate list
+   (feature, gate) checked by lookup, so that "no feature dropped or invented" is a kernel fact (today: Python only).
+3. **Spec decisions pending with the owner**: SeqEnv (restriction of the owner's env, forced by the refutation);
+   H_RUNT(w) (`SpecRunt.lean`) vs the frozen transport H_PRIM; the g-in-Adm fix (FOR-RESEARCH 3). Each needs an audit
+   row when applied.
