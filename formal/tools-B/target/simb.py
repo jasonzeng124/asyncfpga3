@@ -40,6 +40,7 @@ def main():
     ap.add_argument("--pos", type=float, default=0.5)
     ap.add_argument("--scatter", type=float, default=0.0)
     ap.add_argument("--posmap", default=None)
+    ap.add_argument("--filter", default=None, help="JSON {\"gate:pin\": W}: that pin skips input pulses narrower than W ps (B; needs W <= the pin's delay)")
     ap.add_argument("--watch", default=None, help="gate name; stop once it has flipped --maxflips times (B)")
     ap.add_argument("--maxflips", type=int, default=6)
     ap.add_argument("--g", type=float, default=1.0, help="guard: global band [FAST_MIN/g, SLOW_MAX*g] (B)")
@@ -154,11 +155,22 @@ def main():
         for gi, pin, d in readers.get(n, ()):
             sched(t + d, gi)
 
+    FILT = {tuple(int(x) for x in kk.split(":")): w for kk, w in json.load(open(a.filter)).items()} if a.filter else {}
+
+    def fval(n, r, t, w):
+        """value of n read at r, skipping a pulse narrower than w that contains r and has ended by t"""
+        ts = ht[n]; vs = hv[n]
+        k = bisect_right(ts, r) - 1
+        if k >= 1 and k + 1 < len(ts) and ts[k + 1] - ts[k] < w and ts[k + 1] <= t:
+            return vs[k - 1]
+        return vs[k] if r >= 0 else vs[0]
+
     def ev(gi, t):
         k, init, ins, ds, o = G[gi]
         ad = 0
         for i in range(k):
-            if val(ins[i], t - ds[i]):
+            w = FILT.get((gi, i))
+            if (fval(ins[i], t - ds[i], t, w) if w else val(ins[i], t - ds[i])):
                 ad |= 1 << i
         v = bool(init >> ad & 1)
         if setv(o, t, v):
