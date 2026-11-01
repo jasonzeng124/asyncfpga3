@@ -1904,3 +1904,4 @@ Every board candidate holds 1.5x the calibrated within-die scatter on this draw 
 (log-normal), including the two routes that fail linear 2x. BOARD-QUEUE #1 updated.
 Does NOT show: other draws at 1.5x (one draw per route); whether the calibrated scatter is right (S9: possibly
 double-counted, ring128 per-ring data still needed).
+### progress 09:54 (log-normal 1.5x draw 3 across all 20 routes started; PR #2 description refreshed)
