@@ -103,7 +103,7 @@ with open(os.path.join(OUT, "CBase.lean"), "w") as f:
             "namespace %s\nopen Formal.Target Formal.Target.Wit Formal.Target.Decoded\n\n"
             "/-- What each circuit gate must pass: the segment walk and the delay bound. -/\n"
             "def Pc (g : Gate) : Prop := g.out ∉ boundary.env → chkFrom D g (dsl g) b %d g.dmax = true ∧ g.dmax ≤ Dm\n\n"
-            "instance : DecidablePred Pc := fun g => by unfold Pc; exact inferInstance\n\nend %s\n" % (NS, NS, FUEL, NS))
+            "noncomputable instance : DecidablePred Pc := fun g => by unfold Pc; exact inferInstance\n\nend %s\n" % (NS, NS, FUEL, NS))
 gcost = []
 for i, g in enumerate(gs0):
     L = len(D.get(perm[g["out"]], (0, []))[1]) + sum(len(D.get(perm[x], (0, []))[1]) for x in g["ins"])
