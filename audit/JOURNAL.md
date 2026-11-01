@@ -909,3 +909,9 @@ WitBoundary.lean and WitSlice.lean are now committed. The 88c74e3c axiom audit w
 modules, 0 bad (2 no-result = the two runs I killed; logs/axres_88c74e3c_partial.txt). Build of 6f094d32 started.
 Subagent T5 launched: whether the repaired ArbOK removes T3's vacuity, any residual small-T vacuity, the target
 arbiter list against my own extraction, what Witness.lean proves, and whether the net data compiles.
+
+### progress 09:18
+Formal ce523cfc STATUS.md: theorems about the target so far = net_wf and C's 11g. The pipelined refutation V9V4.refuted
+is "in progress, not claimed"; NetCorrectSeq is decomposed into S1-S6 (all open); "H_ENV + SeqEnv" is listed as
+allowed. That is the deviation in T3's row, still awaiting the owner. 6f094d32 build: NChk done, full build running; T5
+running.
