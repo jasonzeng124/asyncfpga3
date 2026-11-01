@@ -19,7 +19,9 @@ date) computes gcd on the board. Where it stands, plainly:
   written for the pairs the wiring can represent.
 - **Decoder**: an untrusted decoder (`formal/tools-A/target/`, on shard C's fasm2lean3) gives the target's netlist at
   pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
-  472 CARRY4 outputs), prjxray arcs per pin. The Lean round trip is not written. **No theorem about the target
+  472 CARRY4 outputs), prjxray arcs per pin. Checks (untrusted scripts): Python round trip 0 invented features;
+  every LUT/MUXF/CARRY4 input pin's driver equals nextpnr's routed netlist (46685 pins, an independent code base; 3
+  don't-care A6 pins differ); no undriven node in the kernel's cone. The Lean round trip is not written. **No theorem about the target
   exists yet** (`formal/target/STATUS.md`).
 - **COUNTEREXAMPLE, LEAN-CHECKED** (`FormalWit/V9V4/Refute.lean`, `refuted_range`, standard axioms; built by
   `check.sh --wit`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
