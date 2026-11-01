@@ -1961,3 +1961,7 @@ double-counted, ring128 per-ring data still needed).
   running; then the negative control: the UNSIZED routes d (rule A -1567 ps) and 5 (-464) on the same stack.
 - xsdb_gcd.tcl takes an optional vector file; research/board/gcd_ps_vec1000.hex (seed 1; the GLS's 24 are its
   first 24 lines, byte-identical).
+### progress 18:55 (gcd_ps full stack: seeds d, 3 PASS both corners, 4 SLOW_MAX PASS)
+- d, 3: 24/24 ok at SLOW_MAX and FAST_MIN, EQUIVALENT, gate ANNOTATE_DONE / 0 SDF warnings on all four; 4 SLOW_MAX
+  24/24. Harness negative control (seed d SLOW_MAX netlist, vector file with two expected values corrupted):
+  ok=1 err=2, so the compare can fail. Formal-target artefacts (seed d .bit, .fasm.gz, toolchain) staged.
