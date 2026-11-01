@@ -2084,3 +2084,14 @@ double-counted, ring128 per-ring data still needed).
   runs; PS harness 24/24 on all. Seed d with the first 64 vectors of gcd_ps_vec1000.hex: 64/64 at both corners,
   min margin identical to the 24-vector run (the minimum is set by the route, not the operands). BOARD-QUEUE #4
   updated. Now running: FOR-RESEARCH C1's tb_pipe on BQ#1's full stack, then BQ#4 scatter to BQ#1's level.
+### progress 23:32 (FOR-RESEARCH C1 on BQ#1's full stack, SLOW_MAX: reorder and deadlock reproduce)
+- formal's tb_pipe.v (scratch copy, in_ack resolved from this route's nets.map) on the netlist decoded from the
+  COMMITTED research/board/gcd_hw_03e82630.bit (fasm_equiv EQUIVALENT), prjxray SDF SLOW_MAX, fid:
+  +PIPE=0 9/4 (sequential control): LAP 1 mism=0 at idx 9 (4096), LAP 2 mism=0 at idx 4 (1): both right.
+  +PIPE=1 9/4: the only result is LAP 1 mism=0 at idx 4, i.e. 1 = pair 2's gcd; pair 1's 4096 never comes.
+  +PIPE=1 9/9: no result at all (quiet for 100 us).
+  Identical in kind to formal's nextpnr-SDF GLS (FOR-RESEARCH C1) and to the gcd_ps target's +PIPE=1 run.
+- start/in_ack timing, vector 9, sequential: request 697.5 ns, in_ack rises 928.1 ns (+230.6), result 3789.0 ns
+  (+3091.5). The input handshake completes ~2.9 us before the result: gcd_rig.v's header ("acknowledges start only
+  when it is finished") is wrong on the board-fidelity stack too; the rig is safe because its env waits for out0.
+  15/5, 2/4 and FAST_MIN running.
