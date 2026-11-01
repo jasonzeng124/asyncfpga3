@@ -1907,3 +1907,6 @@ double-counted, ring128 per-ring data still needed).
 ### progress 09:54 (log-normal 1.5x draw 3 across all 20 routes started; PR #2 description refreshed)
 ### progress 12:25 (log-normal 1.5x draw 3: BQ#1 d,3,4,5 PASS)
 - BQ#1 draw 3: d 26/20/30, 3 24/19/28, 4 26/20/29, 5 30/23/34; all 16/16 errs 0.
+### progress 14:19 (log-normal 1.5x draw 3: BQ#1 8/8 PASS)
+- BQ#1 draw 3: all 8 seeds PASS 16/16 (vec 6 laps 24-30). BQ#1 now clean at log-normal 1.5x on draws 2 and 3.
+  BQ#2 6-9 then BQ#3 x8 running.
