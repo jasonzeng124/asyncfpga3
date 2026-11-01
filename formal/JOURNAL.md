@@ -1389,3 +1389,10 @@ out0 req/data), stopping at env nodes: 170254 gates, 0 undriven non-env nodes. S
 computed by a decoded gate or set by the environment: a pip dropped by the decoder inside the kernel would have shown
 up as a free node there, and the refutation's witness sets no free node that the kernel can see. (Python check, not
 Lean; it complements the Python round trip's "0 invented features".)
+### progress 12:57 -- correction: C's 11g import is not an independent check of this decoder
+Earlier today (the refutation entry, and the notification sent to the owner) I wrote that C's "independent" 11g
+import of the same bits agrees. My decoder (tools-A/target/decode_base.py) is a copy of C's fasm2lean3 walker with
+pip-level output added, so agreement with C's 11g is agreement of one code base with itself at instance level, not an
+independent decode. The audit's run of the decoder (T5) re-ran the same code. Independent evidence for H_DECODE today:
+the round trip (0 invented features) and the bitstream byte-identity of fasm2frames(nextpnr .fasm), neither of which
+checks the walker's wire-to-node connectivity.

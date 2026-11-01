@@ -12,7 +12,7 @@ stands. It must shrink.
 
 | # | hypothesis | allowed (one of the five)? | status |
 |---|---|---|---|
-| 1 | H_DECODE: prjxray maps the target's bits to features correctly (`bitread`/`bit2fasm`) | allowed | read-back exists; untrusted decoder (tools-A/target) with a Python round trip (0 invented features) and no undriven node in the kernel's cone (Python); C's independent 11g import agrees at instance level; Lean round trip not written |
+| 1 | H_DECODE: prjxray maps the target's bits to features correctly (`bitread`/`bit2fasm`) | allowed | read-back exists; untrusted decoder (tools-A/target) with a Python round trip (0 invented features) and no undriven node in the kernel's cone (Python); C's 11g import agrees at instance level (same walker code as this decoder, so NOT an independent check); Lean round trip not written |
 | 2 | H_DELAY(g, κ): `Adm` in Spec.lean | allowed | stated; band tables from prjxray-db not generated |
 | 3 | H_PRIM: `GateOK` in Spec.lean (Boolean, per-pin monotone read times) | allowed | stated; MUXF7/F8, CARRY4 as gates of this kind not yet decoded |
 | 4 | H_ARB(T): `ArbOK` | allowed | stated; arbiter node list not generated |
