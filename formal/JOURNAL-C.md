@@ -822,3 +822,7 @@ NEXT for C: H_NO_DEADLOCK'' via the confluence route (notes/C-8z5-nodeadlock.md,
 (b) one constructive schedule per input that closes out0;
 (c) the timed-to-interleaving bridge (8z4 serial, its hex premise for gcd_hw).
 None of these is started.
+
+## Session Sun Nov  1 07:20:55 UTC 2026 (shard C; session_01HC49FxWJ9vtZZwXVrasyvJ)
+First C session under THE goal (owner, 2026-10-31): one theorem about the gcd_hw bitstream.
+C owns the generic checker theorem: obligation completeness, loops, composition, refinement.
