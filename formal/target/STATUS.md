@@ -12,7 +12,7 @@ stands. It must shrink.
 
 | # | hypothesis | allowed (one of the five)? | status |
 |---|---|---|---|
-| 1 | H_DECODE: prjxray maps the target's bits to features correctly (`bitread`/`bit2fasm`) | allowed | read-back exists; untrusted decoder (tools-A/target) with a Python round trip (0 invented features) and no undriven node in the kernel's cone (Python); C's 11g import agrees at instance level (same walker code as this decoder, so NOT an independent check); **independent**: every LUT/MUXF input pin's driver equals nextpnr's routed netlist (46685 pins incl. CARRY4; 3 don't-care A6 pins differ; out/xcheck_nextpnr.txt); Lean round trip not written |
+| 1 | H_DECODE: prjxray maps the target's bits to features correctly (`bitread`/`bit2fasm`) | allowed | read-back exists; untrusted decoder (tools-A/target) with a Python round trip (0 invented features) and no undriven node in the kernel's cone (Python); C's 11g import agrees at instance level (same walker code as this decoder, so NOT an independent check); **independent**: every LUT/MUXF input pin's driver equals nextpnr's routed netlist (46685 pins incl. CARRY4; 3 don't-care A6 pins differ; out/xcheck_nextpnr.txt); **Lean round trip (pips + LUT6 INIT bits) checked**: `FormalWit.RT.All.roundtrip` (below, S1) |
 | 2 | H_DELAY(g, κ): `Adm` in Spec.lean | allowed | stated; band tables from prjxray-db not generated |
 | 3 | H_PRIM: `GateOK` in Spec.lean (Boolean, per-pin monotone read times) | allowed | stated; MUXF7/F8, CARRY4 as gates of this kind not yet decoded |
 | 4 | H_ARB(T): `ArbOK` | allowed | stated; arbiter node list not generated |
@@ -27,7 +27,7 @@ own behaviour: ArbEnv, QQuiet, ArbOrd, which THE goal forbids as assumptions).
 ## What `NetCorrectSeq` on the target still needs (decomposition, 2026-11-01)
 | # | obligation | owner | state |
 |---|---|---|---|
-| S1 | `net` is the target's configuration: Lean round trip of the decoder (features <-> gates) | A | Python round trip only |
+| S1 | `net` is the target's configuration: Lean round trip of the decoder (features <-> gates) | A | **pip and LUT6-INIT layer checked in Lean** (`FormalWit/RT/All.lean` `roundtrip`, check.sh --wit): the 339,036 features re-encoded from 81,990 gates (73,065 pips, 8,925 LUT6 INITs) plus 16,090 listed leftovers are exactly the 355,126 read-back features, each once. Open: wire-to-node merge (prjxray tileconn), O5/MUXF/CARRY4/output-mux layer, the leftovers' meaning (Python classes) |
 | S2 | timing obligations generated from `net` and proved complete: every bundled link's data settles before its request (settle/hold windows) | C (`Timing/SpecSettle`, no loops yet) | started |
 | S3 | the feedback cells (C-elements, latches, arbiters) as Spec gates with their loop timing derived from the bands | B (`ArbTSpec`, `ArbClean`) | started; `spec_double_ack` shows H_ARB alone is not enough: per-arbiter "q settled before A0" must be derived |
 | S4 | composition of the cells over the whole decoded network and refinement to the token graph | C | not started on `net` |

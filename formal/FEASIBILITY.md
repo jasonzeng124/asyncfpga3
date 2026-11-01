@@ -28,10 +28,12 @@ date) computes gcd on the board. Where it stands, plainly:
   pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
   472 CARRY4 outputs), prjxray arcs per pin. Checks (untrusted scripts): Python round trip 0 invented features;
   every LUT/MUXF/CARRY4 input pin's driver equals nextpnr's routed netlist (46685 pins, an independent code base; 3
-  don't-care A6 pins differ); no undriven node in the kernel's cone. The Lean round trip is not written. **No theorem that the target is correct exists**; the theorems
+  don't-care A6 pins differ); no undriven node in the kernel's cone. Lean round trip (pips and LUT6 INIT bits, `FormalWit/RT/All.lean` `roundtrip`): the features re-encoded from the Lean
+  gates plus a listed leftover set are exactly the read-back FASM's 355,126 features, each once (the wire-to-node
+  merge and the leftovers' meaning are not checked). **No theorem that the target is correct exists**; the theorems
   about it are the refutation below and well-formedness/wiring facts (`formal/target/STATUS.md`).
 - **COUNTEREXAMPLE, LEAN-CHECKED** (`FormalWit/V9V4/Refute.lean`, `refuted_range`, standard axioms; built by
-  `check.sh --wit`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
+  `check.sh --wit`; re-checked ~3x cheaper with per-node cuts as `FormalWit/V9V4c`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
   Simulation first found it: under the owner's pipelined environment the target
   gives results out of order or deadlocks: on the netlist decoded from the target's bits, every arc inside its
   prjxray band, rig vector 9 then 4 -> out0 [1, 4096]; vector 9 twice and 15 then 5 deadlock; (2^19,2^19),(3,5)

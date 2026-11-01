@@ -1453,3 +1453,17 @@ structurally (`splitC`), and checks the index permutation block by block (`perm_
 peaked at 4.06 GB and took 3m47s (chunk 0: 2500 gates, 11 certificate slices). Generated data moved to
 `FormalWit/RT/` (built by `check.sh --wit`, which now builds `RT.All` last and audits `roundtrip`). Nothing
 claimed until All.lean checks.
+### progress 17:16 -- S1 CHECKED (pip and LUT6-INIT layer): the Lean netlist re-encodes to the target's read-back FASM
+`FormalWit/RT/All.lean` (gen_rt.py, RoundTrip.lean): `roundtrip : ((gates.flatMap (feats pre)) ++ lft.map get).Perm tf`,
+axioms [propext, Classical.choice, Quot.sound], no sorry/native_decide. Problem, plainly: is every routing pip and
+every LUT INIT bit of the decoded Lean netlist really in the bitstream's read-back, and is every such bit in the
+read-back a gate of the netlist? Shown: the features recomputed by the kernel from the Lean gates' own fields
+(73,065 pips: the gate name `TILE.DST.SRC`; 8,925 LUT6 outputs: one `TILE.SLICE.xLUT.INIT[b]` per set INIT bit,
+265,971 bits), plus 16,090 explicitly listed leftover features, are exactly the 355,126 read-back features
+(target/gcd_hw_03e82630.fromBit.fasm.xz, md5 418f36ae), each once. Not shown: (1) that a pip connects the right
+electrical nodes (the decoder's wire-to-node merge from prjxray tileconn is not re-checked; the nextpnr cross-check
+covers LUT/MUXF/CARRY4 pin drivers); (2) the FASM parsing (Python) and bit2fasm itself; (3) what the leftovers mean
+(Python classes: FF/CE/SR config, IO and clock buffers, carry/output-mux selects, LUT DI routing); (4) O5, MUXF,
+CARRY4 and constant gates (no INIT feature of their own); (5) the site-prefix table (prjxray tilegrid, 2,624 sites,
+data). Measured: 64 subtrees + index check, 64 block merges (~3 min), 80 gate chunks (914 certificate slices; ~3.8
+min and ~4 GB each, 3 at a time: 15:48-17:15), assembly 8 s. Built with private oleans; check.sh --wit builds it.

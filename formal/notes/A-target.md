@@ -64,7 +64,8 @@ Kernel cost: per-gate cost is quadratic in its breakpoints; 122 gates near the r
    `eq_extC`, `extC_eq_val_upto`, `gateOK_cut`); used by `gen_witc.py` (13:07; V9V4c being checked) (needs a per-node cut table in the
    description tree, a per-gate window end B_g = max(cut of its nodes, dmax + P), descriptions kept up to the largest
    B_g of the gates touching the node, and one periodicity check per node on [cut - Dm, horizon)).
-2. **S1, the Lean round trip** of the decoder: sorted feature list of the read-back FASM as data, a certificate list
+2. **S1, the Lean round trip** of the decoder (DONE for pips and LUT6 INITs, 17:15: `FormalWit/RT/All.lean` `roundtrip`;
+   next: O5 = INIT[31:0] with the O6's first five pins, output-mux/carry selects, the leftover classes in Lean): sorted feature list of the read-back FASM as data, a certificate list
    (feature, gate) checked by lookup, so that "no feature dropped or invented" is a kernel fact (today: Python only).
 3. **Spec decisions pending with the owner**: SeqEnv (restriction of the owner's env, forced by the refutation);
    H_RUNT(w) (`SpecRunt.lean`) vs the frozen transport H_PRIM; the g-in-Adm fix (FOR-RESEARCH 3). Each needs an audit
