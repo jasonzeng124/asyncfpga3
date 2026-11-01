@@ -35,3 +35,7 @@ own behaviour: ArbEnv, QQuiet, ArbOrd, which THE goal forbids as assumptions).
 | S6 | liveness: every handshake completes and the circuit returns to idle under `SeqEnv` | C/A | not started |
 Allowed hypotheses in the final statement: H_DECODE (bitread/bit2fasm + the prjxray tables the decoder uses),
 H_DELAY(g, κ), H_PRIM (built into `GateOK`), H_ARB(T), H_ENV + SeqEnv. Everything in S1-S6 must be proved.
+
+**Non-vacuity rule for T (audit T5, 2026-11-01):** `ArbOK T` is unsatisfiable once an arbiter's state inputs change and
+hold, when T is below that state LUT's own delay (78/g..664·g ps on the target), so `NetCorrect`/`NetCorrectSeq` at such
+T is vacuous. Any positive result must use T ≥ the largest state-LUT delay bound, or come with a witness behaviour.

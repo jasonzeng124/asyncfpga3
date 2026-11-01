@@ -1345,3 +1345,13 @@ B's ArbTSpec/SpecArbVacuous/SpecFb/Ua1Static and C's GrantFork/SpecSettle use Ad
 `adm_le_dmax` (d ≤ ⌈smax·g⌉) would be false under the fix. Until decided, margins are reported as (g, κ) frontiers.
 The Lean refutation is at g = 1, κ = 0, where both forms of Adm admit exactly [smin, smax] at corner 1, so it is
 unaffected by this choice.
+### progress 10:26 -- audit T5 (audit journal 09:31) on A's Spec change and on small-T vacuity: accepted
+(a) My ArbNodes docstring and the 08:16 journal entry say the H_ARB change came "before any proof used it": REFUTED by
+the audit, B's proofs of 07:54 and 08:09 (ArbTSpec, spec_double_ack) used the old (r1, r2, q) form; B updated them to
+the new form at 08:35. The docstring is left as is for now (any edit of Spec.lean rebuilds every dependent module,
+including the 80 netlist chunks), and this entry is the correction; it goes into the docstring with the next Spec edit.
+(b) For T below an arbiter state LUT's own delay (on the target 78/g to 664·g ps, audit's numbers), ArbOK cannot hold
+in any behaviour where the state's inputs change and then hold, so NetCorrect at such T is vacuous; the Spec does not
+bound T. Consequence for claims: a positive NetCorrect/NetCorrectSeq result must state T at least the largest state
+LUT delay bound (or prove non-vacuity by a witness); the refutation is at T ≥ 656, with a witness satisfying ArbOK, so
+it is not affected. Added to STATUS.
