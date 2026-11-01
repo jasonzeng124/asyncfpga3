@@ -33,7 +33,13 @@ Every Lean item: check.sh OK (per file), standard axioms only. Simulation items:
   fast corner), sequential env, 4 of 6 rig vectors tried; reproduced flip-for-flip by an independent
   simulator. Rests on transport (GateOK admits it); involution/inertial gates would let ua1 latch. If every
   reader of ua1 skips the runt (a read-map choice inside the bands) the run is correct, so the failure needs a
-  reader to see it. tools-B/target/out/cex_ua1_README.md.
+  reader to see it, and with runt resolution from any T1 up to 620 ns the same delays give the correct
+  result: the failure is the frozen H_PRIM's eternal-runt (transport) property, not gcd_hw's logic.
+  tools-B/target/out/cex_ua1_README.md.
+- `Cells/Ua1Static` (Lean, decided on generated arc data): ua1's fb_switch premise holds for its tightest
+  episode at κ = 0.15 (path >= 865 ps, loop <= 852 ps) and can fail at κ = 0.16 (852 < 860).
+- Static estimate over all storage nodes (tools-B/target/kstar.py, calibrated on ua1): only ua1 binds below
+  κ = 0.36 (next: SLICE_X0Y18.CLUT.O6 0.365, SLICE_X42Y82.ALUT.O6 0.500).
 
 ## Tools (tools-B/target/)
 lean2json (decoded Lean net -> JSON), simb (A's simulator + per-gate/per-pin positions, κ, g, watch, runt
