@@ -143,15 +143,14 @@ theorem c2_start : c2Gate.start pex = 3 := by
   simp [Gate.start, c2Gate, pex]; rfl
 
 theorem adm_exact (c : ℚ) (n d : Nat) : Adm pex c ⟨n, n, n, n⟩ d ↔ d = n := by
-  simp only [Adm, pex, lerp]
+  have e : ∀ m : ℚ, (1 - (0:ℚ)) * ((1 - c) * m + c * m) / 1 = m := fun m => by ring
+  have e' : ∀ m : ℚ, (1 + (0:ℚ)) * ((1 - c) * m + c * m) * 1 = m := fun m => by ring
+  simp only [Adm, pex, lerp, e, e']
   constructor
-  · rintro ⟨h1, h2, -, -⟩
-    have : (d : ℚ) = n := le_antisymm (by simpa using h2) (by simpa using h1)
-    exact_mod_cast this
+  · rintro ⟨h1, h2⟩
+    exact_mod_cast le_antisymm h2 h1
   · rintro rfl
-    have e : (1 - (0:ℚ)) * ((1 - c) * (d:ℚ) + c * d) = d := by ring
-    have e' : (1 + (0:ℚ)) * ((1 - c) * (d:ℚ) + c * d) = d := by ring
-    refine ⟨by simp, by simp, le_of_eq e, le_of_eq e'.symm⟩
+    exact ⟨le_refl _, le_refl _⟩
 
 /-- The oscillating trace is a behaviour of the C-element gate at every corner. -/
 theorem c2_osc_gateOK (c : ℚ) : GateOK pex c c2Gate oscBeh := by

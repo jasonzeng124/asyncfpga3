@@ -1499,3 +1499,14 @@ the refutations' kernel checks are unchanged; their assembly lemmas are re-prove
 Ua1Static / ArbTSpec / SpecArbVacuous / SpecFb (B). Owner decisions 1 (new full-width target, when research
 lands it), 2 (H_RUNT(w), w = 20 ps headline) and 4 (NetCorrectSeq is the target) are noted; 2 and 4 need no Spec
 change (SpecRunt.lean exists). Audit row: requested in FOR-RESEARCH (the audit branch is not mine to edit).
+### progress 17:33 -- Spec.Adm changed (owner decision 3); all six dependent files fixed; full check running
+Done as planned (entry above): `Spec.Adm` = g-scaled window, `Gate.start` = max ⌈(1+κ)·smax·g⌉. Each dependent
+file compiles against the new Spec (private oleans): Witness (adm_slow, start_slow re-proved), SpecSettle (C;
+new `Sane`, `ArcsOK`, `arcsOK_of_wf`; `gate_stable`, `gateRule_sound`, `cert_sound`, `cert_sound_net` take
+`Sane p` and, for the net, `N.WF`), Ua1Static (B; `ua1_numbers` still 865/852 and 852/860), SpecArbVacuous (B;
+`delay_bound` restated per corner; `arbOK_excludes_handover` unchanged), SpecFb and ArbTSpec (B; proofs only),
+plus SpecRunt, NetBase, WitBoundary, WitCut, ArbOKRepair. Statements that became FALSE and what replaces them:
+SpecSettle.adm_le_dmax / dmin_le_adm (old band bounds) -> the κ-widened bounds with hypotheses; SpecArbVacuous
+.delay_bound (∃M ∀c) -> ∀c ∃M. Also corrected Spec's ArbNodes docstring ("before any proof used it" was wrong,
+audit). Full `check.sh --committed` started at 17:32. The FormalWit refutations and the round trip must be rebuilt
+against the new Spec (their kernel checks do not involve Adm; at (g, κ) = (1, 0) both forms admit [smin, smax]).

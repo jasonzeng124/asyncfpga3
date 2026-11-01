@@ -67,11 +67,13 @@ theorem qInit_reset (b : Bool) : qInit.testBit (2 + (if b then 4 else 0)) = fals
 theorem qInit_hold (b : Bool) : qInit.testBit (2 + (if b then 4 else 0) + 16) = b := by
   cases b <;> decide
 
-/-- A read delay admissible for an arc is at most some `M` fixed by the arc and `g`. -/
-theorem delay_bound (p : DelayPar) (e : Arc) : ∃ M : Nat, ∀ c d, Adm p c e d → d ≤ M := by
-  obtain ⟨M, hM⟩ := exists_nat_ge ((e.smax : ℚ) * p.g)
-  refine ⟨M, fun c d h => ?_⟩
-  have h1 : (d : ℚ) ≤ e.smax * p.g := h.2.1
+/-- A read delay admissible for an arc at corner `c` is at most some `M` fixed by the arc, `c`, `κ` and `g`.
+(Changed 2026-11-01 with `Spec.Adm`, owner decision 3, by shard A: was `∃ M, ∀ c d, ...`, from the global band
+`smax·g`, which `Adm` no longer has; per corner is what `arbOK_excludes_handover` uses.) -/
+theorem delay_bound (p : DelayPar) (e : Arc) (c : ℚ) : ∃ M : Nat, ∀ d, Adm p c e d → d ≤ M := by
+  obtain ⟨M, hM⟩ := exists_nat_ge ((1 + p.κ) * lerp e.fmax e.smax c * p.g)
+  refine ⟨M, fun d h => ?_⟩
+  have h1 : (d : ℚ) ≤ (1 + p.κ) * lerp e.fmax e.smax c * p.g := h.2
   exact_mod_cast le_trans h1 hM
 
 theorem arbOK_excludes_handover (p : DelayPar) (c : ℚ) (g : Gate) (x : Beh)
@@ -82,12 +84,12 @@ theorem arbOK_excludes_handover (p : DelayPar) (c : ℚ) (g : Gate) (x : Beh)
     (ha : ∀ t, x a0 t = decide (t < ta)) (hq : x q T = true)
     (harb : ArbOKv1 T [⟨r1, r2, q⟩] x) : False := by
   obtain ⟨f, _, hrel⟩ := hg
-  obtain ⟨M, hM⟩ := delay_bound p (g.arcs.getD 4 default)
+  obtain ⟨M, hM⟩ := delay_bound p (g.arcs.getD 4 default) c
   set t := max (g.start p) (ta + T + M)
   have ht : g.start p ≤ t := le_max_left _ _
   obtain ⟨hreads, hval⟩ := hrel t ht
   have h4 := hreads 4 (by omega)
-  have hd : t - f 4 t ≤ M := hM c _ h4.2
+  have hd : t - f 4 t ≤ M := hM _ h4.2
   have htM : ta + T + M ≤ t := le_max_right _ _
   have hfa : ¬ (f 4 t < ta) := by omega
   -- q at t is the reset value

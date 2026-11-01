@@ -63,24 +63,21 @@ def p1 : DelayPar := ⟨1, 0⟩
 theorem adm_e1 (d : Nat) : Adm p1 1 e1 d ↔ d = 1 := by
   simp only [Adm, p1, e1, lerp]
   constructor
-  · rintro ⟨h1, h2, -, -⟩
-    have : (d : ℚ) = 1 := le_antisymm (by simpa using h2) (by simpa using h1)
-    exact_mod_cast this
+  · rintro ⟨h1, h2⟩
+    norm_num at h1 h2
+    omega
   · rintro rfl; norm_num
 
 theorem adm_eq (d : Nat) : Adm p1 1 eq d ↔ 2 ≤ d ∧ d ≤ 3 := by
   simp only [Adm, p1, eq, lerp]
   constructor
-  · rintro ⟨h1, h2, -, -⟩
-    constructor
-    · have : (2 : ℚ) ≤ d := by simpa using h1
-      exact_mod_cast this
-    · have : (d : ℚ) ≤ 3 := by simpa using h2
-      exact_mod_cast this
+  · rintro ⟨h1, h2⟩
+    norm_num at h1 h2
+    exact ⟨by exact_mod_cast h1, by exact_mod_cast h2⟩
   · rintro ⟨h1, h2⟩
     have h1' : (2 : ℚ) ≤ d := by exact_mod_cast h1
     have h2' : (d : ℚ) ≤ 3 := by exact_mod_cast h2
-    refine ⟨?_, ?_, ?_, ?_⟩ <;> norm_num <;> linarith
+    refine ⟨?_, ?_⟩ <;> norm_num <;> linarith
 
 theorem startQ : gQ.start p1 = 3 := by simp [Gate.start, gQ, e1, eq, p1]; decide
 /-- A gate all of whose arcs are `e1` and whose start is 1, read with unit delay, holds as

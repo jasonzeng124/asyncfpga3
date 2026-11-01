@@ -138,21 +138,25 @@ structure DelayPar where
 
 def lerp (a b : Nat) (c : ℚ) : ℚ := (1 - c) * a + c * b
 
-/-- **H_DELAY(g, κ) at corner `c`**: delay `d` (ps) is admissible for arc `e`. -/
+/-- **H_DELAY(g, κ) at corner `c`**: delay `d` (ps) is admissible for arc `e`: inside the corner-`c` window
+with scatter `κ`, widened by the guard `g`.
+
+Changed 2026-11-01 (owner decision 3, PROGRAM.md; journal): the guard now scales the corner window. Before, `Adm`
+was the window `[(1-κ)·lerp(fmin,smin,c), (1+κ)·lerp(fmax,smax,c)]` intersected with the band
+`[fmin/g, smax·g]`, so at small κ the guard had no effect at all. -/
 def Adm (p : DelayPar) (c : ℚ) (e : Arc) (d : Nat) : Prop :=
-  (e.fmin : ℚ) / p.g ≤ d ∧ (d : ℚ) ≤ e.smax * p.g ∧
-  (1 - p.κ) * lerp e.fmin e.smin c ≤ d ∧ (d : ℚ) ≤ (1 + p.κ) * lerp e.fmax e.smax c
+  (1 - p.κ) * lerp e.fmin e.smin c / p.g ≤ d ∧ (d : ℚ) ≤ (1 + p.κ) * lerp e.fmax e.smax c * p.g
 
 /-- The address formed by `k` pin values (pin 0 = bit 0). -/
 def addr : (k : Nat) → (Nat → Bool) → Nat
   | 0, _ => 0
   | k + 1, v => addr k v + (if v k then 2 ^ k else 0)
 
-/-- The time from which a gate's relation is required: its longest band end
-(before that, a read could fall before time 0; the output is arbitrary there,
-which is any power-up state). -/
+/-- The time from which a gate's relation is required: its longest window end over all corners,
+`(1+κ)·smax·g` (before that, a read could fall before time 0; the output is arbitrary there, which is any
+power-up state). Changed 2026-11-01 with `Adm` (was `smax·g`). -/
 def Gate.start (p : DelayPar) (g : Gate) : Nat :=
-  (g.arcs.map fun e => (Rat.ceil ((e.smax : ℚ) * p.g)).toNat).foldr max 0
+  (g.arcs.map fun e => (Rat.ceil ((1 + p.κ) * e.smax * p.g)).toNat).foldr max 0
 
 /-- **The gate relation (H_PRIM with H_DELAY).** Pin `i` is read at time `f i t`,
 non-decreasing in `t`; from the gate's start on, every read delay is admissible
@@ -226,7 +230,8 @@ def circuit (N : Net) (B : Boundary) : Net :=
 /-- One arbiter: its state (decision) node `q`, the output of the arbiter's state
 LUT (`bd_arbiter.ustate`, O6), and `ins`, the nodes that LUT reads other than its
 own feedback (in `bd_arbiter`: the two requests, the reset and the hold input `A0`).
-(Changed 2026-11-01, before any proof used it: the first version listed only the
+(Changed 2026-11-01; the audit notes that some proofs already used the old form, which this note first denied:
+the first version listed only the
 two requests, which wrongly forbade `q` to move at `A0`'s fall with both requests
 held, a normal arbiter step.) -/
 structure ArbNodes where

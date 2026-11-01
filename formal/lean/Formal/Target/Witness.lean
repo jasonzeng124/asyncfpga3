@@ -261,7 +261,7 @@ theorem adm_slow (e : Arc) (d : Nat) (h0 : e.fmin ≤ e.smin) (h1 : e.smin ≤ d
   have a1 : (e.fmin : ℚ) ≤ d := by exact_mod_cast Nat.le_trans h0 h1
   have a2 : (e.smin : ℚ) ≤ d := by exact_mod_cast h1
   have a3 : (d : ℚ) ≤ e.smax := by exact_mod_cast h2
-  refine ⟨?_, ?_, ?_, ?_⟩ <;> simp only [pSlow, lerp] <;> norm_num <;> first | assumption | omega
+  refine ⟨?_, ?_⟩ <;> simp only [pSlow, lerp] <;> norm_num <;> first | assumption | omega
 
 theorem ceil_nat_one (n : Nat) : (Rat.ceil ((n : ℚ) * 1)).toNat = n := by
   rw [mul_one]
@@ -271,7 +271,7 @@ theorem ceil_nat_one (n : Nat) : (Rat.ceil ((n : ℚ) * 1)).toNat = n := by
 
 theorem start_slow (g : Gate) : g.start pSlow = g.dmax := by
   unfold Gate.start Gate.dmax
-  simp only [pSlow]
+  simp only [pSlow, add_zero, one_mul]
   congr 1
   apply List.map_congr_left
   intro e _; exact ceil_nat_one e.smax

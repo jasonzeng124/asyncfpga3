@@ -37,13 +37,14 @@ and of ua1's feedback loop (route + pin A1), as Spec `Arc`s. -/
 def ua1Path : List Arc := [⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨33, 60, 111, 153⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨83, 104, 202, 250⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨34, 51, 103, 133⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨217, 270, 516, 640⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨78, 98, 191, 237⟩]
 def ua1Loop : List Arc := [⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨36, 53, 103, 133⟩, ⟨33, 51, 113, 147⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩, ⟨219, 272, 521, 646⟩]
 
-/-- Smallest admissible integer delay of an arc (Spec `Adm`, guard g, scatter κ, corner c). -/
+/-- Smallest admissible integer delay of an arc (Spec `Adm`, guard g, scatter κ, corner c).
+(Changed 2026-11-01 with `Spec.Adm`, owner decision 3, by shard A: was `⌈max((1-κ)·lerp, fmin/g)⌉`.) -/
 def lo (g κ c : ℚ) (e : Arc) : Int :=
-  Rat.ceil (max ((1 - κ) * lerp e.fmin e.smin c) ((e.fmin : ℚ) / g))
+  Rat.ceil ((1 - κ) * lerp e.fmin e.smin c / g)
 
-/-- Largest admissible integer delay of an arc. -/
+/-- Largest admissible integer delay of an arc. (Changed with `lo`: was `⌊min((1+κ)·lerp, smax·g)⌋`.) -/
 def hi (g κ c : ℚ) (e : Arc) : Int :=
-  Rat.floor (min ((1 + κ) * lerp e.fmax e.smax c) ((e.smax : ℚ) * g))
+  Rat.floor ((1 + κ) * lerp e.fmax e.smax c * g)
 
 def pathLo (g κ c : ℚ) : Int := (ua1Path.map (lo g κ c)).sum
 def loopHi (g κ c : ℚ) : Int := (ua1Loop.map (hi g κ c)).sum

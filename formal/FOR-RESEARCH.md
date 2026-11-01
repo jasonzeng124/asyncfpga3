@@ -123,3 +123,9 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   (g scaling the corner window: [(1-κ)·lerp(FAST_MIN,SLOW_MIN,c)/g, (1+κ)·lerp(FAST_MAX,SLOW_MAX,c)·g]) is proposed but
   NOT applied: six B/C files build on the current shape (one claimed lemma, C's `adm_le_dmax`, would become false).
   It needs an audit row and the shards' agreement.
+- **APPLIED 2026-11-01 (owner decision 3, PROGRAM.md)** by shard A: `Spec.Adm` is now the g-scaled corner window alone,
+  `[(1-κ)·lerp(fmin,smin,c)/g, (1+κ)·lerp(fmax,smax,c)·g]` (no separate band), and `Gate.start` is ⌈(1+κ)·smax·g⌉.
+  Fixed: C's SpecSettle (`dmax`/`dmin` now ⌈(1-κ)·fmin/g⌉ ≤ d ≤ ⌈(1+κ)·smax·g⌉, needing `Sane p`, 0 ≤ c ≤ 1 and
+  ordered arcs; the old `adm_le_dmax` is false at κ > 0 and is replaced), B's Ua1Static (`lo`/`hi`; the κ = 0.15/0.16
+  numbers are unchanged), SpecArbVacuous (`delay_bound` is now per corner: the old ∃M ∀c form is false without the
+  band), SpecFb and ArbTSpec (proofs only). **AUDIT: please add a row** for this change to the frozen Spec.
