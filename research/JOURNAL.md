@@ -1943,3 +1943,10 @@ double-counted, ring128 per-ring data still needed).
   First check (default seed, nextpnr SDF, default model): vectors 0-2 OK (0x7fffffff/0x7ffffffe -> 1,
   0x7fffffff/0x7fffffff, 0x40000000/0x60000000 -> 0x20000000). Unsized route: rule A violation present, so this
   is a harness check only, not a claim.
+### progress 17:58 (gcd_ps: full-stack decode works; P1 sizes routing on 8 seeds)
+- fasm2net.py --ps7 (b2315c2): decodes the PSS2 tile into one PS7_PS7 cell (M_AXI_GP0 + FCLK bit pins,
+  cells/gls/ps/ps7_pins.py) and async-SR flops (FDCE/FDPE, CLR/PRE) instead of refusing them. gcd_hw decode is
+  byte-identical before/after. fasm_equiv on the gcd_ps default seed: EQUIVALENT; the only differences are PS7
+  inputs the routed JSON ties to constants (now a named benign kind, not silently ignored).
+- P1 sizes (8018048): umux21 12 -> 16 links (max rule-A "PAD to" over unsized d,3,4,5: -1567/-154/-464 ps, 3
+  clean). First 8-seed launch failed on a missing cells/build/gen (2fed1d0, fixed); relaunched d,3-9.
