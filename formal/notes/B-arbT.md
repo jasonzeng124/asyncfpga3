@@ -48,3 +48,16 @@ must list these nine, with r1, r2, q AND (after the repair) A0 and rst as read a
 - `rgate_of_gateOK`: a Spec gate with Nat bounds on Adm is an ArbT.RGate.
 - `spec_one_ack`: ArbT.one_ack for Spec gates (ugrant O6 + ua2): q settled before A0 rises =>
   the losing ack stays low for the transaction.
+
+## On the decoded target (2026-11-01, untrusted Python, tools-B/target/)
+- `lean2json.py`: rebuilds shard A's net JSON from the generated Lean (Formal/Target/Net/*.lean):
+  200097 nodes, 199736 gates, 9 arbiters; boundary names = A's out/boundary_03e82630.json.
+- `simb.py`: A's simulator (tools-A/target/sim.py) + `--posmap` (per-gate window position) and
+  `--kappa` (posmap -1/2 = fast/slow end of the κ-widened Adm window). Vector (12,18): RESULT OK.
+- `adv.py`: per arbiter, pin roles from the decoded ustate INIT (feedback, rst, VCC by source;
+  A0 = the freeze pin; r1 = the set pin), "both requests rise from idle" events, causal back-traces
+  (`crit`), adversarial runs (private causal paths at opposite window ends).
+- `a0race.py`: request edges vs A0's fall with the other request high; opposite-sense edges.
+- `run16.sh`: adv.py over the 16 gcd_rig.v vectors.
+Findings: see JOURNAL-B 08:43 and later (arbitrations lopsided by >= 52 ns; separation route,
+ArbClean.lean).

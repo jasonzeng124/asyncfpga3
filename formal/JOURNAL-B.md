@@ -2091,3 +2091,19 @@ arbitration. **What it means:** per arbitration the proof can take the separatio
 the requests at ustate's pins are separated by >= the feedback arc, provable from the bands where the
 second request's causal path is long) instead of H_ARB(T). **Not covered:** physical pin permutations of
 each decoded ustate; proving separation for every behaviour.
+
+### progress 08:50 -- ArbClean for the target's own (pin-permuted) ustates; FF concern settled by the audit
+- `q_clean_set_gen`: the clean-set theorem for ANY pin order (roles r1, r2, feedback, rst, A0, tied pins),
+  with the two table facts as hypotheses; `hset_of_fact`/`hconf_of_fact` turn decidable Boolean facts into
+  them. `targetQ` (GENERATED from the decoded target via tools-B/target/lean2json.py + adv.py roles: the
+  nine ustate O6 gates' names, INITs and role indices -- each one permuted differently by nextpnr) and
+  `targetQ_facts` (kernel decide: all nine meet both facts); negative control `targetQ_swap_fails`
+  (r1/r2 swapped on the first gate: the set fact fails). check.sh OK. Not yet linked by an equality to
+  `Formal.Target.Decoded.net` (that module is not committed; audit T4 row 135), so `targetQ` is data of
+  the same generator, not yet the Lean netlist itself.
+- Audit T4 (row 134): "no FF reaches the kernel cone (170254-gate cone has 0 free non-env nodes)". So my
+  H_FF_RESOLVE concern (notes/B-hprim.md, 07:2x) does not arise for the kernel: Spec's gate-only H_PRIM
+  covers every primitive in the cone (LUT6_2 halves, MUXF7/F8, CARRY4 outputs, pips/hops), all with tables
+  in PrimTables.
+- Audit T3 confirmed HPrimInv (H_PRIM scope gap) and double_ack (H_ARB alone gives no exclusion), and found
+  the same v1 ArbOK vacuity independently.
