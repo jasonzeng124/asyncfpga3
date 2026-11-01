@@ -186,4 +186,258 @@ theorem arbOK_one (T : Nat) (q : SD) (ins : List SD) (hq : q.ok = true) (hi : �
   have := noflip_of_constOn d (hi d hd) (hc d hd) τ' hτ' (by omega)
   omega
 
+/-! ## Quiet nodes, moves, liveness -/
+
+/-- A node whose flips all end a period before `b` reads the same in the extension. -/
+theorem ext_eq_val (D : Nat → SD) {b P n : Nat} (hP : 0 < P) (hPb : P ≤ b) (hq : ∀ τ ∈ (D n).ts, τ + P < b) :
+    ∀ t, ext D b P n t = (D n).val t := by
+  intro t
+  unfold ext
+  by_cases h : t < b
+  · rw [wrap_lt h]
+  · have hw1 : b - P ≤ wrap b P t := by unfold wrap; rw [if_neg h]; omega
+    have hw2 : wrap b P t ≤ t := by
+      unfold wrap; rw [if_neg h]
+      have := Nat.mod_lt (t - (b - P)) hP
+      have := Nat.mod_le (t - (b - P)) P
+      omega
+    exact ((D n).val_const hw2 (fun x hx h1 => by have := hq x hx; omega)).symm
+
+/-- Four-phase moves of the driver of `r` (rises only while `a` is low, falls only while high),
+from a check at each flip of `r`. -/
+def movesB (R : Nat) (r a : SD) : Bool := r.ts.all fun τ => !(decide (R + 1 ≤ τ)) || (r.val (τ - 1) == a.val (τ - 1))
+
+theorem reqMoves_of (R : Nat) (r a : SD) (hr : r.ok = true) (h : movesB R r a = true) :
+    ReqMoves r.val a.val R := by
+  intro t ht hne
+  have hm := (flip_iff r hr t).1 hne
+  have := List.all_eq_true.1 h _ hm
+  simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, beq_iff_eq,
+    Nat.add_sub_cancel] at this
+  rcases this with h1 | h1
+  · omega
+  · exact h1
+
+/-- Four-phase moves of the driver of `a` (rises only while `r` is high, falls only while low). -/
+def ackMovesB (R : Nat) (r a : SD) : Bool := a.ts.all fun τ => !(decide (R + 1 ≤ τ)) || (a.val (τ - 1) != r.val (τ - 1))
+
+theorem ackMoves_of (R : Nat) (r a : SD) (ha : a.ok = true) (h : ackMovesB R r a = true) :
+    AckMoves r.val a.val R := by
+  intro t ht hne
+  have hm := (flip_iff a ha t).1 hne
+  have := List.all_eq_true.1 h _ hm
+  simp only [Bool.or_eq_true, Bool.not_eq_true', decide_eq_false_iff_not, bne_iff_ne, ne_eq,
+    Nat.add_sub_cancel] at this
+  rcases this with h1 | h1
+  · omega
+  · exact h1
+
+/-- The time-dependent part of a liveness check: some later breakpoint where `f` holds. -/
+def later (bp : List Nat) (f : Nat → Bool) (t : Nat) : Bool := bp.any fun e => decide (t < e) && f e
+
+theorem later_inv (bp : List Nat) (f : Nat → Bool) {s t : Nat} (hst : s ≤ t) (h : ∀ x ∈ bp, s < x → t < x) :
+    later bp f t = later bp f s := by
+  unfold later
+  induction bp with
+  | nil => rfl
+  | cons e l ih =>
+    simp only [List.any_cons]
+    have he := h e List.mem_cons_self
+    rw [ih (fun x hx => h x (List.mem_cons_of_mem _ hx))]
+    congr 1
+    by_cases h1 : s < e
+    · simp [h1, he h1]
+    · simp [h1, show ¬ t < e by omega]
+
+theorem exists_of_later (bp : List Nat) (f : Nat → Bool) (t : Nat) (h : later bp f t = true) :
+    ∃ e, t ≤ e ∧ f e = true := by
+  obtain ⟨e, _, he⟩ := List.any_eq_true.1 h
+  simp only [Bool.and_eq_true, decide_eq_true_eq] at he
+  exact ⟨e, Nat.le_of_lt he.1, he.2⟩
+
+/-! ## The environment of a described behaviour -/
+
+theorem val_before (d : SD) {T : Nat} (h : ∀ τ ∈ d.ts, T < τ) : ∀ t, t ≤ T → d.val t = d.val 0 :=
+  fun t ht => d.val_const (Nat.zero_le t) (fun x hx _ => by have := h x hx; omega)
+
+theorem val_after (d : SD) {T : Nat} (h : ∀ τ ∈ d.ts, τ ≤ T) : ∀ t, T ≤ t → d.val t = d.val T :=
+  fun t ht => d.val_const ht (fun x hx h1 => by have := h x hx; omega)
+
+theorem mem_of_zipIdx {l : List Nat} {n i : Nat} (hm : (n, i) ∈ l.zipIdx) : n ∈ l := by
+  have h3 := List.mem_zipIdx hm
+  rw [h3.2.2]; exact List.getElem_mem _
+
+theorem busVal_congr (x y : Beh) (l : List Nat) (t : Nat) (h : ∀ n ∈ l, x n t = y n t) :
+    busVal x l t = busVal y l t := by
+  unfold busVal; congr 1
+  apply List.map_congr_left
+  rintro ⟨n, i⟩ hm
+  simp [h n (mem_of_zipIdx hm)]
+
+theorem busVal_inv (D : Nat → SD) (l bp : List Nat) (hsub : ∀ n ∈ l, ∀ x ∈ (D n).ts, x ∈ bp) {s t : Nat}
+    (hst : s ≤ t) (h : ∀ x ∈ bp, s < x → t < x) : busVal (beh D) l t = busVal (beh D) l s := by
+  unfold busVal; congr 1
+  apply List.map_congr_left
+  rintro ⟨n, i⟩ hm
+  have := val_const_of_gap (D n) bp (hsub n (mem_of_zipIdx hm)) hst h
+  simp only [beh, this]
+
+theorem val0_false (d : SD) {R : Nat} (h0 : d.v0 = false) (h : ∀ τ ∈ d.ts, R < τ) : d.val 0 = false := by
+  unfold SD.val SD.cnt
+  rw [List.filter_eq_nil_iff.2 (fun x hx => by have := h x hx; simp; omega)]
+  simp [h0]
+
+/-- The liveness check of a request driver (`ReqLive` with at most `m` rises owed). -/
+def reqLiveQ (bp : List Nat) (R m : Nat) (r a : SD) (t : Nat) : Bool :=
+  !((r.val t == a.val t) && (r.val t || decide (risesD r R t < m))) || later bp (fun e => r.val e != a.val e) t
+
+def ackLiveQ (bp : List Nat) (r a : SD) (t : Nat) : Bool :=
+  (a.val t == r.val t) || later bp (fun e => a.val e == r.val e) t
+
+def offQ (R m : Nat) (r : SD) (t : Nat) : Bool := !(r.val t) || decide (risesD r R t - 1 < m)
+
+def dataQ (D : Nat → SD) (R : Nat) (r a : SD) (data : List Nat) (vals : Nat → Nat) (t : Nat) : Bool :=
+  !((r.val t || a.val t) && decide (1 ≤ risesD r R t)) || (busVal (beh D) data t == vals (risesD r R t - 1))
+
+/-- Data present at each rising flip of the request (the `su = 0` clause). -/
+def riseDataB (D : Nat → SD) (R : Nat) (r : SD) (data : List Nat) (vals : Nat → Nat) : Bool :=
+  r.ts.all fun τ => !(decide (R + 1 ≤ τ) && r.val τ) || (busVal (beh D) data τ == vals (risesD r R τ - 1))
+
+/-- The output acknowledge rises no earlier than `Δo` after its request (checked at each flip). -/
+def deltaB (R Δo : Nat) (r a : SD) : Bool :=
+  a.ts.all fun τ => !(decide (R + 1 ≤ τ) && a.val τ) ||
+    (r.val (τ - Δo) && r.ts.all fun y => !(decide (τ - Δo < y) && decide (y ≤ τ)))
+
+section env
+variable (D : Nat → SD) (bp : List Nat) (cap fuel R : Nat)
+
+theorem walk_any (Q : Nat → Bool) (hinv : ∀ s t, s ≤ t → (∀ x ∈ bp, s < x → t < x) → Q t = Q s)
+    (hcap : ∀ x ∈ bp, x < cap) (h : walk bp Q cap fuel R = true) : ∀ t, R ≤ t → Q t = true :=
+  walk_sound bp Q cap hinv hcap fuel R h
+
+/-- **`Spec.EnvIn` for the described behaviour** (`su = 0`, `m` pairs), from finite checks. -/
+theorem envIn_of (ch : InCh) (m : Nat) (vals : Nat → Nat)
+    (hok : (D ch.req).ok = true ∧ (D ch.ack).ok = true)
+    (hsub : ∀ n ∈ ch.req :: ch.ack :: ch.data, ∀ x ∈ (D n).ts, x ∈ bp) (hcap : ∀ x ∈ bp, x < cap)
+    (hlow : (D ch.req).v0 = false ∧ ∀ τ ∈ (D ch.req).ts, R < τ)
+    (hmv : movesB R (D ch.req) (D ch.ack) = true)
+    (hlive : walk bp (reqLiveQ bp R m (D ch.req) (D ch.ack)) cap fuel R = true)
+    (hoff : walk bp (offQ R m (D ch.req)) cap fuel R = true)
+    (hrise : riseDataB D R (D ch.req) ch.data vals = true)
+    (hdata : walk bp (dataQ D R (D ch.req) (D ch.ack) ch.data vals) cap fuel R = true) :
+    EnvIn (beh D) ch R 0 (some m) vals := by
+  obtain ⟨hr, ha⟩ := hok
+  have sr : ∀ x ∈ (D ch.req).ts, x ∈ bp := hsub _ List.mem_cons_self
+  have sa : ∀ x ∈ (D ch.ack).ts, x ∈ bp := hsub _ (List.mem_cons_of_mem _ List.mem_cons_self)
+  have sd : ∀ n ∈ ch.data, ∀ x ∈ (D n).ts, x ∈ bp := fun n hn =>
+    hsub n (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hn))
+  have vr := fun {s t : Nat} (h1 : s ≤ t) (h2 : ∀ x ∈ bp, s < x → t < x) => val_const_of_gap (D ch.req) bp sr h1 h2
+  have va := fun {s t : Nat} (h1 : s ≤ t) (h2 : ∀ x ∈ bp, s < x → t < x) => val_const_of_gap (D ch.ack) bp sa h1 h2
+  have rr := fun {s t : Nat} (h1 : s ≤ t) (h2 : ∀ x ∈ bp, s < x → t < x) => risesD_const (D ch.req) R bp sr h1 h2
+  have hre : ∀ t, rises (beh D ch.req) R t = risesD (D ch.req) R t := rises_eq (D ch.req) hr R
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t ht
+    simp only [beh]; rw [val_before (D ch.req) hlow.2 t ht]; exact val0_false _ hlow.1 hlow.2
+  · exact reqMoves_of R _ _ hr hmv
+  · have hQ := walk_any bp cap fuel R _ (fun s t h1 h2 => by
+      unfold reqLiveQ; rw [vr h1 h2, va h1 h2, rr h1 h2, later_inv bp _ h1 h2]) hcap hlive
+    intro t ht he hm
+    have q := hQ t ht
+    unfold reqLiveQ at q
+    simp only [beh] at he hm
+    rw [hre] at hm
+    have c : ((D ch.req).val t == (D ch.ack).val t && ((D ch.req).val t || decide (risesD (D ch.req) R t < m))) = true := by
+      simp only [Bool.and_eq_true, beq_iff_eq, Bool.or_eq_true, decide_eq_true_eq]
+      exact ⟨he, by rcases hm with h | h; exact Or.inl h; exact Or.inr h⟩
+    rw [c] at q
+    obtain ⟨e, hte, hfe⟩ := exists_of_later bp _ t (by simpa using q)
+    exact ⟨e, hte, by simpa [beh] using hfe⟩
+  · have hQ := walk_any bp cap fuel R _ (fun s t h1 h2 => by unfold offQ; rw [vr h1 h2, rr h1 h2]) hcap hoff
+    intro t ht h1
+    have q := hQ t ht
+    unfold offQ at q
+    simp only [beh] at h1
+    rw [h1] at q
+    simp only [Offered, hre]; simpa using q
+  · intro t ht h0 h1 s hs1 hs2
+    have hst : s = t + 1 := by omega
+    subst hst
+    simp only [beh] at h0 h1
+    have hm := (flip_iff (D ch.req) hr t).1 (by rw [h0, h1]; simp)
+    have q := List.all_eq_true.1 hrise _ hm
+    rw [hre]
+    simp only [h1, Bool.or_eq_true, Bool.not_eq_true', Bool.and_eq_false_iff, decide_eq_false_iff_not,
+      beq_iff_eq] at q
+    rcases q with (q | q) | q
+    · omega
+    · simp at q
+    · exact q
+  · have hQ := walk_any bp cap fuel R _ (fun s t h1 h2 => by
+      unfold dataQ; rw [vr h1 h2, va h1 h2, rr h1 h2, busVal_inv D ch.data bp sd h1 h2]) hcap hdata
+    intro t ht hra h1
+    have q := hQ t ht
+    unfold dataQ at q
+    simp only [beh] at hra
+    rw [hre] at h1 ⊢
+    have c : (((D ch.req).val t || (D ch.ack).val t) && decide (1 ≤ risesD (D ch.req) R t)) = true := by
+      simp only [Bool.and_eq_true, Bool.or_eq_true, decide_eq_true_eq]; exact ⟨hra, h1⟩
+    rw [c] at q
+    simpa using q
+
+/-- **`Spec.EnvOut` for the described behaviour**, from finite checks. -/
+theorem envOut_of (ch : OutCh) (Δo : Nat)
+    (hok : (D ch.req).ok = true ∧ (D ch.ack).ok = true)
+    (hsub : ∀ n ∈ [ch.req, ch.ack], ∀ x ∈ (D n).ts, x ∈ bp) (hcap : ∀ x ∈ bp, x < cap)
+    (hlow : (D ch.ack).v0 = false ∧ ∀ τ ∈ (D ch.ack).ts, R < τ)
+    (hmv : ackMovesB R (D ch.req) (D ch.ack) = true)
+    (hlive : walk bp (ackLiveQ bp (D ch.req) (D ch.ack)) cap fuel R = true)
+    (hd : deltaB R Δo (D ch.req) (D ch.ack) = true) :
+    EnvOut (beh D) ch R Δo := by
+  obtain ⟨hr, ha⟩ := hok
+  have sr : ∀ x ∈ (D ch.req).ts, x ∈ bp := hsub _ List.mem_cons_self
+  have sa : ∀ x ∈ (D ch.ack).ts, x ∈ bp := hsub _ (List.mem_cons_of_mem _ List.mem_cons_self)
+  refine ⟨?_, ackMoves_of R _ _ ha hmv, ?_, ?_⟩
+  · intro t ht
+    simp only [beh]; rw [val_before (D ch.ack) hlow.2 t ht]; exact val0_false _ hlow.1 hlow.2
+  · have hQ := walk_any bp cap fuel R _ (fun s t h1 h2 => by
+      unfold ackLiveQ
+      rw [val_const_of_gap _ bp sr h1 h2, val_const_of_gap _ bp sa h1 h2, later_inv bp _ h1 h2]) hcap hlive
+    intro t ht hne
+    have q := hQ t ht
+    unfold ackLiveQ at q
+    simp only [beh] at hne
+    have c : ((D ch.ack).val t == (D ch.req).val t) = false := by simpa using hne
+    rw [c] at q
+    obtain ⟨e, hte, hfe⟩ := exists_of_later bp _ t (by simpa using q)
+    exact ⟨e, hte, by simpa [beh] using hfe⟩
+  · intro t ht h0 h1 s hs1 hs2
+    simp only [beh] at h0 h1 ⊢
+    have hm := (flip_iff (D ch.ack) ha t).1 (by rw [h0, h1]; simp)
+    have q := List.all_eq_true.1 hd _ hm
+    simp only [h1, Bool.or_eq_true, Bool.not_eq_true', Bool.and_eq_false_iff, decide_eq_false_iff_not,
+      Bool.and_eq_true, List.all_eq_true] at q
+    rcases q with (q | q) | ⟨q1, q2⟩
+    · omega
+    · simp at q
+    · rw [(D ch.req).val_const (show t + 1 - Δo ≤ s by omega) (fun y hy h3 => by
+          have := q2 y hy; simp at this; omega)]
+      exact q1
+end env
+
+/-! ## Transfer between behaviours that agree on the channel's nodes -/
+
+theorem envIn_congr (x y : Beh) (ch : InCh) (R su : Nat) (n : Option Nat) (vals : Nat → Nat)
+    (h : ∀ v ∈ ch.req :: ch.ack :: ch.data, x v = y v) (hy : EnvIn y ch R su n vals) : EnvIn x ch R su n vals := by
+  have hr : x ch.req = y ch.req := h _ List.mem_cons_self
+  have ha : x ch.ack = y ch.ack := h _ (List.mem_cons_of_mem _ List.mem_cons_self)
+  have hd : ∀ t, busVal x ch.data t = busVal y ch.data t := fun t =>
+    busVal_congr x y _ t (fun v hv => congrFun (h v (List.mem_cons_of_mem _ (List.mem_cons_of_mem _ hv))) t)
+  unfold EnvIn at hy ⊢; rw [hr, ha]; simp only [hd]; exact hy
+
+theorem envOut_congr (x y : Beh) (ch : OutCh) (R Δo : Nat)
+    (h : ∀ v ∈ [ch.req, ch.ack], x v = y v) (hy : EnvOut y ch R Δo) : EnvOut x ch R Δo := by
+  have hr : x ch.req = y ch.req := h _ List.mem_cons_self
+  have ha : x ch.ack = y ch.ack := h _ (List.mem_cons_of_mem _ List.mem_cons_self)
+  unfold EnvOut at hy ⊢; rw [hr, ha]; exact hy
+
 end Formal.Target.Wit
