@@ -30,6 +30,12 @@ for the target theorem must use pairs from that table (a = vec[31:0], b = vec[63
 - `Formal/Net/PipeWit.lean` + generated `PipeWitData.lean` (`tools/pipe/gen_pipewit.py`):
   `gcd_hw_pipelined_reorder_handshake`, the same pairs on the 465-channel CapNet network (C-wit checker,
   every non-source operator's `CellR`, `Held` everywhere, `FourPhaseEnv` on a, b, start).
+  CLAIMED (journal 07:5x): out0 offers gcd 1 1 at tick 272 and gcd 65536 4096 at tick 1044; requests low at reset.
+- `Formal/Net/PipeDead.lean` + generated `PipeDeadData.lean` (`tools/pipe/gen_deadwit.py`):
+  `gcd_hw_pipelined_deadlock`, vector 9 twice: every non-source operator's `CellI` with explicit internal traces,
+  `Held`, the one-tick step property (`BndG 1`) for every non-source gate including arbiter grants, four-phase
+  sources offering at ticks 0 and 142, out0's request low at every tick, and `QuietNS` (no non-source gate
+  excited) at tick 265. CLAIMED. So without H_START_ONCE the capstone's liveness fails outright.
 
 ## Earlier exploration (non-target pairs; tools are untrusted simulators)
 | model | tool | environment | result |
