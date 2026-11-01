@@ -1273,3 +1273,9 @@ periodic extension at every t ≥ lo), `gateOK_slow` (=> Spec.GateOK pSlow 1 g, 
 (gen_wit.py; 7.9 MB: P = 22122 ps, b = 2676520 ps, Dm = 696 ps), the per-chunk decide runs, and the boundary half
 (Env, ArbOK, ¬Correct) of the refutation. Generated netlist namespace renamed Formal.Target.Decoded (Net clashed with
 the structure's field names); arbiter list added to All.lean; full recompile running.
+### progress 08:25 -- Formal/Target/WitBoundary.lean compiles (boundary half of the witness machinery)
+Proved: `flip_iff` (strictly increasing flip list: value changes at t+1 iff t+1 is a flip), `rises_eq` (Spec.rises,
+a recursion over every ps, equals a count over the flip list, so it can be evaluated), `walk_sound` (a property
+that only changes at listed breakpoints holds at every t ≥ lo if a walk over the breakpoints accepts it),
+`arbOK_one` (H_ARB(T) for one arbiter from "every q flip follows an input flip by less than T"). Still to write:
+the target-specific assembly (Env, ArbOK, ¬Correct for the vector-9-then-4 witness) and the per-chunk decide runs.
