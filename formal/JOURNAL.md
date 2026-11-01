@@ -1563,3 +1563,9 @@ gate chunks done) against the new Spec resumed from where it stopped (it compile
 work: none committed; an earlier slip this hour (a private olean directory named Formal/ shadowed lake's Formal
 oleans, so 30 RT chunks failed fast and were redone) cost ~30 min. The gcd_ps Lean netlist (NetPS) will be built
 with lake after the rebuild, not into a private directory.
+### progress 22:02 -- refutation and round trip RE-CHECKED against the new Spec.Adm
+Clean private rebuild (Formal deps from lake's .lake/build, checked by check.sh --committed after the Adm change;
+FormalWit into an empty private directory), 17:52-22:02 with a container restart: V9V4c `refuted`,
+`refuted_range`, RT `roundtrip`, `o5_gates`: axioms [propext, Classical.choice, Quot.sound]. So the pipelined
+refutation of the previous target holds for the new `Adm` (at (g, κ) = (1, 0) both forms are [smin, smax]).
+Not re-run under the new Spec: V9V4 (the first, ~3 h certificate of the same fact; check.sh --wit rebuilds it).
