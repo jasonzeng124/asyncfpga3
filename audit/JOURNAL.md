@@ -922,3 +922,10 @@ the never-acknowledging toy now FAILS NetCorrect for T >= D. A residual vacuity 
 (on the target 78/g..664g ps), and the Spec does not bound T. "Before any proof used it" is REFUTED (B's 07:54 and 08:09
 proofs used the old form). The target arbiter list matches my own extraction; the net data equals my decoder run and
 compiles (build EXIT 0, 4052 jobs). The pipelined refutation is not committed yet.
+
+### progress 09:59
+New: research 57c0cea4 BQ#1 log-normal 1.5x draw 2 8/8 PASS ("all 20 candidate routes"); reproducing BQ#1 d with
+lapcheck. Formal B f59c49bc..5ba857b7: candidate counterexample to the SEQUENTIAL NetCorrectSeq at g=1, kappa ~0.155-0.215
+(arbiter 0's ack C-element ua1 latches a circulating 7 ps runt under transport semantics; no out0). Subagent T6
+launched to reproduce it independently and replay it in the fid GLS (owner's checklist). A: refutation boundary half
+compiles in Wip (not claimed).
