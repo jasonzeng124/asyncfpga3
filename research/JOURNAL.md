@@ -1912,3 +1912,18 @@ double-counted, ring128 per-ring data still needed).
   BQ#2 6-9 then BQ#3 x8 running.
 ### progress 16:59 (log-normal 1.5x draw 3: BQ#2 4/4 PASS)
 - BQ#2 draw 3: 6 59/49/69, 7 50/40/58, 8 59/48/68, 9 50/40/58; all PASS. BQ#3 x8 running.
+### progress 17:31 (owner's new first lead (690f156): a full-width gcd target in gcd_ps)
+- Read PROGRAM.md's new section and formal/FOR-RESEARCH.md (claude/formal) sections 1-3. Stopped the log-normal
+  draw-3 sweep (BQ#1 8/8 and BQ#2 4/4 done, BQ#3 not run) to free the machine for this lead.
+- gcd_ps.v reading (CDC): STATUS.i_ack and STATUS.o_req cross into the PS clock through 2-flop synchronizers
+  (sync_i_ack/sync_o_req); A/B are aclk registers written before the CTRL write that raises the request; the
+  request flop (req_core) is cleared asynchronously by the kernel's i_ack (a 4-phase return, the flop's output is
+  then re-synchronised); o_ack_pl = ctrl_o_ack & o_req_pl (falls with o_req). O_DATA is sampled every clock but
+  only read after o_req is synchronised (stable while o_req is high). No missing synchronizer found by reading;
+  to be confirmed in GLS. Sequencing: the host protocol (poll i_ack, then poll o_req, read, ack) offers the next
+  pair only after the result handshake, i.e. the sequential environment formal needs; no hardware FSM issues
+  calls on in_ack.
+- Plan: build gcd_ps with BQ#1's flags (select pads, v4); audits; a behavioural PS7 (AXI master + FCLK) for the
+  GLS netlist, a testbench running the documented host sequence over operands outside the 16 vectors with
+  expected values from bdc/simcheck.py's ref_gcd (the C transcription); fid GLS at both corners on >= 4 seeds;
+  BOARD-QUEUE item naming one seed's .bit/.fasm as the formal target. Default-seed build running.
