@@ -1382,3 +1382,10 @@ Formal/Target/WitCut.lean compiles (-DautoImplicit=false): `extC` (each node rep
 cut), `eq_extC`/`gateOK_cut` (Spec.GateOK at the slow corner from a segment check on [dmax, B) with B ≥ every cut of
 the gate's nodes), `extC_eq_val_upto`. Purpose: make witness checks cheap where most flips come from a node that is
 periodic early (the ring). Not yet used by gen_wit.py (notes/A-target.md, Next 1).
+### progress 12:57 -- H_DECODE evidence: no free node in the kernel's cone (Python, decoded net 7c41591d)
+The 199736 gates drive 199736 nodes; the other 361 nodes are undriven, and every one is a flip-flop, BUFG or BSCAN
+output of the rig/housekeeping (opaque primitives, free in the Spec). Backward cone from the kernel's outputs (acks,
+out0 req/data), stopping at env nodes: 170254 gates, 0 undriven non-env nodes. So every value the kernel reads is
+computed by a decoded gate or set by the environment: a pip dropped by the decoder inside the kernel would have shown
+up as a free node there, and the refutation's witness sets no free node that the kernel can see. (Python check, not
+Lean; it complements the Python round trip's "0 invented features".)
