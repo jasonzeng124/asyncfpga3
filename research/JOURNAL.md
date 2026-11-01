@@ -1950,3 +1950,14 @@ double-counted, ring128 per-ring data still needed).
   inputs the routed JSON ties to constants (now a named benign kind, not silently ignored).
 - P1 sizes (8018048): umux21 12 -> 16 links (max rule-A "PAD to" over unsized d,3,4,5: -1567/-154/-464 ps, 3
   clean). First 8-seed launch failed on a missing cells/build/gen (2fed1d0, fixed); relaunched d,3-9.
+### progress 18:20 (gcd_ps P1: every audit clean on 8 seeds; full stack seed d 24/24 at both corners)
+- P1 routes d,3-9 (research/data/gcd_ps/p1_audit_8seed.tsv): rule A 0 on all 8 (umux21 margin mean 1456 ps,
+  range 358-1889, guardband applied), D 38 (screen), E 0, J ok, build_hw PASS incl. fasm_audit. nextpnr reports
+  "PASS at 12.00 MHz" because build_hw.sh passes no --freq for gcd_ps; the number that matters is its fclk0
+  estimate, 343-447 MHz against the board's 100 MHz FCLK0 (xsdb_gcd.tcl's SLCR write).
+- Full stack (bit-decoded netlist + prjxray SDF + fid), seed d, 24 vectors from gen_vectors.py: SLOW_MAX 24/24
+  ok, 0 hang; FAST_MIN 24/24 ok, 0 hang; fasm_equiv EQUIVALENT; gate ANNOTATE_DONE 0 SDF warnings (max).
+  Vector 0 (0x7fffffff, 0x7ffffffe) takes 15.2 us from i_ack to o_req at SLOW_MAX. Seeds 3,4,5 then 6-9
+  running; then the negative control: the UNSIZED routes d (rule A -1567 ps) and 5 (-464) on the same stack.
+- xsdb_gcd.tcl takes an optional vector file; research/board/gcd_ps_vec1000.hex (seed 1; the GLS's 24 are its
+  first 24 lines, byte-identical).
