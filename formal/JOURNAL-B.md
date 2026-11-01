@@ -1984,3 +1984,17 @@ over all non-feedback pins of the state LUT (r1, r2, A0, rst), i.e. `ArbNodes` g
 repaired, H_ARB(T) does not give safety by itself (`ArbT.double_ack`, progress above): the proof needs
 the derived obligation "last edge at ustate's pins -> A0 rise at ua >= T + W".
 check.sh (per file) OK on all four new B files: HPrimWin, HPrimInv, ArbT, SpecArbVacuous.
+
+### progress 08:02 -- STATUS item 3: MUXF7/F8, CARRY4, LUT6_2 as Spec gates (PrimTables.lean, check.sh OK)
+**Problem, plainly:** the frozen Spec has one primitive kind (a table gate with per-pin reads); is
+each non-LUT slice primitive, written as such gates, exactly shard A's Core model? **Lean:**
+`table_sound` (a table checked on all 2^k addresses is read correctly on every pin vector, via
+`addr_lt`/`addr_testBit`); `muxf_gate` (0xCA = Core bmux); `carry_gate` (8 tables of 512 bits,
+Core pin order, = Core bout); `aCarry_gate` (shard A's decoder layout from build_net.py:
+pins [CIN, CYINIT, S0..Si, DI0..], carry-in CIN||CYINIT, A's table loop transcribed: = Core bout on
+the mapped pins, all 8 outputs; negative control: swapping the loop's mux arms fails);
+`lut6_gate`/`lut5_gate` (O6 = 6-pin gate with INIT, O5 = 5-pin gate with INIT mod 2^32, = Core
+Lut.eval). decide +kernel (no native_decide); standard axioms. Fidelity: per-pin single reads are
+exact for CARRY4/MUXF because every output is a read-once formula of its pins (Core kout_sic).
+**Does NOT show:** the decoder itself (part II), that CIN||CYINIT equals the silicon's PRECYINIT mux
+(it does when the unused source is tied 0 -- the Lean decoder should check that per site).
