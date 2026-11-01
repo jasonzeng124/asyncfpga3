@@ -1551,3 +1551,9 @@ bridge_i.udut's ports has 32 distinct a_data and 32 distinct b_data nodes, so un
 any pair of 32-bit operands. 9 arbiters. Request: one node (bd_fork broadcasts it), a slice FF (the AXI slave's
 req_core) as in the source. Two decoder whitelist additions (unread OUTMUX x5Q select, a clock-row enable), stated in
 the README. Next: simulation sanity check, then the Lean netlist.
+### progress 19:48 -- gcd_ps: simulation sanity 8/8 at three corners; Lean netlist generated, compiling
+sim.py on the decoded gcd_ps net (eee97ec8), sequential env, broad data rule, the first 8 of research's 1000
+full-width vectors (expected values from math.gcd = the C transcription's, as research asserted): correct at
+corner/position (1,1), (0,0), (0.5,0.5) (out/ps_vec8_sequential.txt; ~5 us per pair). gen_lean.py (now with --ns /
+--mp) writes `Formal/Target/NetPS` (namespace Formal.Target.DecodedPS): 75 gate chunks, 187,258 nodes, 9 arbiters.
+Compiling one module at a time; not committed until it checks.
