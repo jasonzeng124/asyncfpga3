@@ -99,3 +99,9 @@ GLS (cells/gls), NOT research's board-fidelity (prjxray) GLS.
 
 So on the routed target with its own routed delays, a pipelined environment loses results (deadlock) in every run tried,
 and in one of them the first result delivered is the second pair's.
+
+### Where the target route wedges (vector 9 twice, `-DPROBE`, cells/gls gen_probe.py last-transition dump)
+Pair 2's in_ack rises at 851.9 ns and never falls (its return-to-zero never completes; in the Lean PipeDead run it
+is likewise start's acknowledge that stays high). The last transitions in the whole design (882-891 ns) are in
+`umux0`, `umux1`, `umux2` and `ulink_n32__2`: mux0-2 are the header muxes of the first loop (control_merge2; GcdHw
+rules 34-36), the same loop the CapNet deadlock sits in. Nothing moves after 891 ns (run to 101 us).

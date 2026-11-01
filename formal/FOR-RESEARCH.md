@@ -41,8 +41,14 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   handshake is complete), `formal/tools/pipe/gls/run.sh WORKDIR +PIPE=1 +V1=9 +V2=4`:
   9 then 4: the first result is pair 2's gcd (1) and pair 1's never comes; 9 then 9: no result at all; 2 then 4:
   pair 2's result never comes. Sequential controls (PIPE=0) for the same pairs: both results, correct.
-  Table and acceptance-gate status: formal/notes/C-pipe-cex.md. **Still wanted from research: the same testbench on
-  the board-fidelity (prjxray) GLS.**
+  Table and acceptance-gate status: formal/notes/C-pipe-cex.md. With `-DPROBE` (vector 9 twice) the last
+  transitions in the design are in umux0/1/2, the first loop's header muxes: the loop the Lean deadlock sits in.
+  **Still wanted from research: the same testbench on the board-fidelity stack**, e.g.
+  `GLS_SDF=<xray_delay.py SDF> GLS_SDF_FIELD=<corner> GLS_MODEL=fid cells/gls/fid/build_fid.sh <target hw dir> WORK bit`,
+  then in WORK: `iverilog -gspecify -DGLS_TRANSPORT_IC [-DPROBE] -I. -o pipe.vvp formal/tools/pipe/gls/tb_pipe.v
+  netlist_baked.v cells/gls/prims.v` (check `urig.in_ack`'s wire in nets.map against tb_pipe.v's `IN_ACK`) and
+  `vvp pipe.vvp +PIPE=1 +V1=9 +V2=4`, `+V2=9`, and `+PIPE=0` as the control. prjxray is not installed in shard C's
+  sandbox.
 - **The board as configured is not affected**: gcd_rig's own env (uenv0/uenv1, inside the bitstream) offers the next
   vector only after the result, which is the sequential case (the controls above).
 - **For research (to confirm or refute on the target).** Run the fid GLS of `formal/target/gcd_hw_03e82630` with the
