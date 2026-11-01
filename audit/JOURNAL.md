@@ -915,3 +915,10 @@ Formal ce523cfc STATUS.md: theorems about the target so far = net_wf and C's 11g
 is "in progress, not claimed"; NetCorrectSeq is decomposed into S1-S6 (all open); "H_ENV + SeqEnv" is listed as
 allowed. That is the deviation in T3's row, still awaiting the owner. 6f094d32 build: NChk done, full build running; T5
 running.
+
+### progress 09:31
+T5 in. I re-ran ToyRepaired.lean (rc 0) and checked the commit timestamps. The repaired ArbOK removes T3's vacuity:
+the never-acknowledging toy now FAILS NetCorrect for T >= D. A residual vacuity remains for T below the state LUT's delay
+(on the target 78/g..664g ps), and the Spec does not bound T. "Before any proof used it" is REFUTED (B's 07:54 and 08:09
+proofs used the old form). The target arbiter list matches my own extraction; the net data equals my decoder run and
+compiles (build EXIT 0, 4052 jobs). The pipelined refutation is not committed yet.

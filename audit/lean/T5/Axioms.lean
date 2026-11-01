@@ -5,7 +5,7 @@ import Formal.Cells.ArbClean
 import Formal.Cells.ArbOKRepair
 
 /-! Audit T5: axioms of every headline theorem of the committed decoded-net data and of Witness /
-WitBoundary / WitSlice (formal 6f094d32), plus kernel checks tying `arbs` to the decoded gates. -/
+WitBoundary / WitSlice (formal 6f094d32), plus two `example`s on the statement's shape. -/
 
 open Formal.Target Formal.Target.Decoded Formal.Target.Wit
 
@@ -40,14 +40,8 @@ example : Prop := ¬ NetCorrect net boundary arbs Wit.pSlow 656 20000 0 2999
 /-- `net_wf` is about exactly the net with 200097 nodes. -/
 example : net.n = 200097 := rfl
 
-/-- Kernel check: for each listed arbiter, the gate at index q drives q, is a 6-input gate, and every
-listed input is one of that gate's pins (so `arbs` names the inputs of the gate that drives q). -/
-theorem arbs_on_gates : (arbs.all fun a =>
-    let g := gates.getD a.q default
-    g.out == a.q && g.k == 6 && a.ins.length == 5 && a.ins.all (fun n => g.ins.contains n)) = true := by
-  decide +kernel
-
-#print axioms arbs_on_gates
+-- (A kernel `decide` tying `arbs` to `gates.getD q` was tried in the first run: it hit the
+-- 200000-heartbeat limit at 13 GB RSS and is left out; the list is checked in Python, arb_check.py.)
 
 -- B's ArbClean (6603bdd1, f4a4ef64): headline theorems
 #print axioms Formal.Cells.ArbClean.q_clean_set
