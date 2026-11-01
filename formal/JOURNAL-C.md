@@ -989,3 +989,9 @@ of C's generated library cell, and rho is a bijection off the 1139 route-through
 glitches; the FASM-to-site decoding (trusted Python, H_SITE_DECODE; shard A's decoder is the Lean route); the 18
 arbiter LUTs (ustate/ugrant of 9 bd_arbiters) whose INITs come from research's newer bd_arb.v, absent from C's
 generated library (still checked against the yosys netlist by the Inst.Sound half).
+
+### progress 08:37 -- tcheck C-10l rows on the target: same pattern
+K 42, Xc 81, Xic 32, Xm 81 rows: 0 failures at sdf/fast/slow; with the shared-prefix credit (Xc) the X guard-band
+failures drop from 11 to 1 (umux11.uxa slowG -313); Xm (max-node) 0 failures even guarded. So across every tcheck row
+family on the target route (A, E, F, J, Fd, X, Xi, Z, K, Xc, Xic, Xm): no failure at a consistent unguarded prjxray
+corner. Tables: tools/tcheck/results/target/*_T.*
