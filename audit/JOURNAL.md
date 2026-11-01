@@ -855,3 +855,11 @@ claim CONFIRMED independently. The .fasm/.sdf equal my own BQ#1 rebuild; the .bi
 canonical feature counts match exactly. Spec.lean part I draft (Wip, unchecked): matches THE goal on inputs,
 pipelining, safety+liveness, delays and H_ARB, but H_ENV adds harness timing margins su/Δo, which THE goal excludes.
 That needs an owner decision. No theorem about the target exists yet.
+
+### progress 07:49
+TOP PRIORITY result (audit/findings/T2.md). In the fid GLS of the target's own FASM (1a3909f6, SLOW_MAX), the kernel
+acknowledges its inputs at 0.99 us and delivers out0 at 9.99 us, so gcd_rig.v's "start acknowledged only when
+finished" is false. With my own environment replacing the rig's env node (forced boundary nets, four-phase, data
+held), offering vector 6 then (1,1) back to back gives out0 = [1, 0x20]: REORDERED. The sequential control is in
+order. THE goal's theorem, as drafted (pipelined H_ENV), is FALSE for the target bitstream. C's counterexample is
+confirmed; A's "would not hold two pairs" note is refuted.
