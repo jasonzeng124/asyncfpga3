@@ -1481,3 +1481,8 @@ as hop and CARRY4 gates and roundtrip.py re-encodes them, but the Lean gates do 
 re-encode them in the kernel, so `roundtrip` treats them as leftovers. That is the open semantic part of S1. The
 rest has no meaning in the Spec: 4,183 FF configuration (FF outputs are free), 3,084 SLICEM LUT DI routing (no
 LUTRAM), 157 clock-buffer/IO/config bits.
+### progress 17:36 -- check.sh on the new default modules OK; full `check.sh --wit --committed` started
+`check.sh Formal/Target/WitCut.lean Formal/Target/RoundTrip.lean Formal/Target/LutPair.lean`: OK, 537 declarations
+audited. A full `--wit --committed` run (lake build of every committed module, then FormalWit one module at a time:
+V9V4, V9V4c, RT, then the axiom audit) is running in the background (expected several hours); its result will be
+journaled if the session lasts.
