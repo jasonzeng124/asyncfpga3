@@ -54,9 +54,10 @@ chain), so internal hazards of the function are kept.
   instant, equals `f` of pin values each read at SOME instant inside the pin's
   window — which covers pulse swallowing, since a swallowed pulse is the output
   reading the older value) implies `WinH`. Proved as `win_of_sampled`.
-* Involution: see `formal/lean/Formal/Cells/HPrimInv.lean` (needs ℝ): the window
-  relation covers an involution channel when its `δmin` is at least the band's
-  lower end, and NOT otherwise (a concrete trace).
+* Involution: see `formal/lean/Formal/Cells/HPrimInv.lean` (needs ℝ): read-time/window
+  relations do NOT cover an involution channel in general (a concrete `ratPair` trace with
+  `δmin` below the band's lower end), and they do cover it for inputs separated by more than
+  `δ∞ - δmin` (via Core's `trace_transfer_sep`). The exact condition is not proved.
 
 ## What this does NOT show
 

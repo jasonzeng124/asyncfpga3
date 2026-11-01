@@ -30,13 +30,14 @@ for MUXF7/F8; `Carry.kout` for CARRY4). A routed wire/pip is the 1-pin case f = 
 Done for (a); (b) only with input separation (inv_sep_win, from Core's trace_transfer_sep).
 Original plan: (a) concrete counterexample on Core's `ratPair` (δ∞ = 2, δmin = 1): band [3/2, 2],
 input pulse [0, 3/2): output high on [2, 17/6), and at τ = 29/10 the input is steady 1
-on its window [0.9, 1.4] while the output is 0. So WinH does NOT cover involution
-channels whose δmin is below the band's lower end. (b) positive: δmin ≥ lo and δ∞ ≤ hi
-implies WinH (every surviving output transition of input n lies in (t n + δmin, t n + δ∞],
-and a cancelling pair cannot straddle a steady window).
+on its window [0.9, 1.4] while the output is 0. So this in-band involution channel is not
+a window behaviour (proved for ratPair on [3/2, 2] only; no general statement). (b) planned,
+NOT proved: δmin ≥ lo and δ∞ ≤ hi implies WinH (every surviving output transition of input n
+lies in (t n + δmin, t n + δ∞], and a cancelling pair cannot straddle a steady window).
 
 ## Not covered / open
-- FDRE/FDSE: Core `SeqFlop` relation carries H_FF_RESOLVE (bounded resolution of a
+- (Settled 2026-11-01 by audit T4: no FF reaches the target's kernel cone, so the following
+  concern does not arise for THE theorem.) FDRE/FDSE: Core `SeqFlop` relation carries H_FF_RESOLVE (bounded resolution of a
   disturbed flop). That is not one of THE goal's five hypotheses. gcd_hw's bitstream
   contains 326 flops (306 FDRE, 20 FDSE, decoded route 2) and gcd_hw.v has a ring-
   oscillator clock and two-flop synchronizers (gcd_bench.v sync_i_ack/sync_o_req);
