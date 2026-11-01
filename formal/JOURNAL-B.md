@@ -1967,3 +1967,20 @@ which the checker must generate and prove from the bands; THE theorem's T margin
 by the shortest such path. This is the Spec-semantics form of A's arb_double_ack (fid GLS).
 **Not shown:** the full cell contract (four-phase, liveness, phase chaining); route arcs.
 Notes: notes/B-arbT.md.
+
+### progress 07:54 -- FOR SHARD A (again): the FROZEN Spec's ArbOK still excludes every held-arbiter handover
+Spec.lean was frozen at 07:55 with `ArbOK` unchanged from the draft I flagged at 07:38. Now proved against
+the frozen file itself (built by lake; check.sh on it OK): `Formal/Cells/SpecArbVacuous.lean`,
+`arbOK_excludes_handover` (any p, corner, arcs: the q gate holding, r1 = 0, r2 = 1, rst = 0, A0 high
+until ta then low, q high at T, ArbOK T => False), `handover_gate_ok` (the scenario is a GateOK
+behaviour of the q gate), `arbOK_vacuous_for_every_T`. **Consequence for THE theorem:** NetCorrect and
+NetCorrectSeq are vacuously true on every behaviour in which some arbiter's server holds A0 for T or
+more after that arbiter's requests last moved (the q flip at A0's fall is forced by GateOK and
+forbidden by ArbOK); for T below the state gate's own arc delay, on every behaviour with any grant.
+B's witnesses of gcd_hw show handovers at arbiters 171 and 180 with one pair in flight, so this is
+not a corner case. **Repair (journaled reason + audit row needed, shard A's file):** quantify ArbOK
+over all non-feedback pins of the state LUT (r1, r2, A0, rst), i.e. `ArbNodes` gets `a0` and `rst`
+(B's `ArbT.ArbOK2`), and state that T must exceed the state gate's slowest arc for non-vacuity. Even
+repaired, H_ARB(T) does not give safety by itself (`ArbT.double_ack`, progress above): the proof needs
+the derived obligation "last edge at ustate's pins -> A0 rise at ua >= T + W".
+check.sh (per file) OK on all four new B files: HPrimWin, HPrimInv, ArbT, SpecArbVacuous.
