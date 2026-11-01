@@ -30,7 +30,8 @@ date) computes gcd on the board. Where it stands, plainly:
   every LUT/MUXF/CARRY4 input pin's driver equals nextpnr's routed netlist (46685 pins, an independent code base; 3
   don't-care A6 pins differ); no undriven node in the kernel's cone. Lean round trip (pips and LUT6 INIT bits, `FormalWit/RT/All.lean` `roundtrip`): the features re-encoded from the Lean
   gates plus a listed leftover set are exactly the read-back FASM's 355,126 features, each once (the wire-to-node
-  merge and the leftovers' meaning are not checked). **No theorem that the target is correct exists**; the theorems
+  merge and the leftovers' meaning are not checked); `o5_gates`: every LUT5 output is the low INIT half of its LUT6
+  on the same first five pins. **No theorem that the target is correct exists**; the theorems
   about it are the refutation below and well-formedness/wiring facts (`formal/target/STATUS.md`).
 - **COUNTEREXAMPLE, LEAN-CHECKED** (`FormalWit/V9V4/Refute.lean`, `refuted_range`, standard axioms; built by
   `check.sh --wit`; re-checked ~3x cheaper with per-node cuts as `FormalWit/V9V4c`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
