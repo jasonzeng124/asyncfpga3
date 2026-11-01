@@ -892,3 +892,7 @@ T <= R+L a never-acknowledging toy netlist satisfies NetCorrect and NetCorrectSe
 hypotheses, and such a netlist exists for every T. Also: section 7 calls NetCorrectSeq (extra SeqEnv binder, sequential
 env) THE theorem, which deviates from the owner's pipelined statement; Env adds harness timing (R, su, Δo).
 Formal 88c74e3c build EXIT 0.
+
+### progress 08:44
+Formal a3354d1c/08805763: B self-corrects a near-tie claim on the decoded target; A journal only. Nothing to grade.
+Axiom audit of 88c74e3c running (60 modules done).
