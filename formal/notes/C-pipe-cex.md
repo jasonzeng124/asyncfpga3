@@ -105,3 +105,10 @@ Pair 2's in_ack rises at 851.9 ns and never falls (its return-to-zero never comp
 is likewise start's acknowledge that stays high). The last transitions in the whole design (882-891 ns) are in
 `umux0`, `umux1`, `umux2` and `ulink_n32__2`: mux0-2 are the header muxes of the first loop (control_merge2; GcdHw
 rules 34-36), the same loop the CapNet deadlock sits in. Nothing moves after 891 ns (run to 101 us).
+
+## What restriction would be enough? (token level, simulation only)
+`tools/pipe/seqtok.py`: 400 random sequences of 2-3 rig vectors, pair k+1 offered as soon as out0 holds k results
+(in 103 of the offers pair k still had tokens in flight, e.g. on their way to sinks): every result right and in order.
+So "offer pair k+1 only after out0's k-th result" looks sufficient at the token level; at the handshake level the
+capstone's `gcd_rig_all` (C-8s3) already proves safety (every out0 offer = gcd) for gcd_rig's sequential env under the
+cell models; liveness there still rests on H_NO_DEADLOCK''. Not proved for a general sequential env.
