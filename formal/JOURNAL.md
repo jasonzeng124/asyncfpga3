@@ -1418,7 +1418,7 @@ pSlow 656 20000 0 2999` and `refuted_range` (T ≥ 656, Δo ≤ 2999), axioms [p
 no sorry or native_decide in the generated files. Same pairs, same dump, same parameters as V9V4; the witness
 behaviour is `extC D cut P` instead of `ext D b P`. Measured on this sandbox (4 cores, 15 GB, two modules at a time,
 private oleans): T/Top/CBase ~3 min; the 80 gate chunks + 81 periodicity chunks + Refute + axiom print 63.5 min wall
-(13:11:47-14:15:09). For comparison (journal 11:xx): V9V4's C000 took 5 min (V9V4c's C000: under 1 min) and its
+(13:11:47-14:15:09). For comparison (journal 09:10, 09:20, 10:11): V9V4's C000 took 5 min (V9V4c's C000: under 1 min) and its
 ring chunks ~40 min each; V9V4 totalled ~3 h CPU. Not measured: V9V4c's CPU total, peak memory. What it does not
 show: anything new about the target; it is a cheaper certificate of the same fact. check.sh --wit now builds every
 witness's Refute (before, with two witnesses, all but the last were skipped by the module ordering).
