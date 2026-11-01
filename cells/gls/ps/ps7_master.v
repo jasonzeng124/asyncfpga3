@@ -306,29 +306,37 @@ module PS7_PS7 (
             // its i_ack, offer k+1 at once, then collect two results.  formal/FOR-RESEARCH.md
             // section 2 predicts pair k+1 overtakes a longer pair k; this mode exists to show
             // what a host that overlaps calls would get, which is why the harnesses must not.
+            // stage names the wait that timed out: ack0/ack1 = the i_ack of pair k/k+1 (this
+            // host offers k+1 and waits for its i_ack BEFORE reading k's result, so an ack1
+            // hang can be this host's own deadlock, not the kernel's), out0/out1 = a result.
             reg [31:0] g0, g1;
+            reg [8*4:1] stage;
             for (k = 0; k + 1 < nvec; k = k + 2) begin
                 timed_out = 0; g0 = 32'hxxxxxxxx; g1 = 32'hxxxxxxxx;
                 axi_write(32'h08, mem[3 * k]);     axi_write(32'h0C, mem[3 * k + 1]);
+                stage = "ack0";
                 axi_write(32'h00, 32'h1);          poll(32'h1, 32'h1);
                 if (!timed_out) axi_write(32'h00, 32'h0);
                 if (!timed_out) begin axi_write(32'h08, mem[3 * k + 3]); axi_write(32'h0C, mem[3 * k + 4]); end
                 if (!timed_out) axi_write(32'h00, 32'h1);
+                if (!timed_out) stage = "ack1";
                 if (!timed_out) poll(32'h1, 32'h1);
                 if (!timed_out) axi_write(32'h00, 32'h0);
+                if (!timed_out) stage = "out0";
                 if (!timed_out) poll(32'h2, 32'h2);
                 if (!timed_out) axi_read(32'h10, g0);
                 if (!timed_out) axi_write(32'h00, 32'h2);
                 if (!timed_out) poll(32'h2, 32'h0);
                 if (!timed_out) axi_write(32'h00, 32'h0);
+                if (!timed_out) stage = "out1";
                 if (!timed_out) poll(32'h2, 32'h2);
                 if (!timed_out) axi_read(32'h10, g1);
                 if (!timed_out) axi_write(32'h00, 32'h2);
                 if (!timed_out) poll(32'h2, 32'h0);
                 if (!timed_out) axi_write(32'h00, 32'h0);
-                $display("PSPIPE vecs=%0d,%0d exp=%08h,%08h got=%08h,%08h %0s", k, k + 1,
-                         mem[3 * k + 2], mem[3 * k + 5], g0, g1,
-                         timed_out ? "HANG" :
+                $display("PSPIPE vecs=%0d,%0d exp=%08h,%08h got=%08h,%08h %0s%0s", k, k + 1,
+                         mem[3 * k + 2], mem[3 * k + 5], g0, g1, timed_out ? stage : "",
+                         timed_out ? " HANG" :
                          (g0 === mem[3 * k + 2] && g1 === mem[3 * k + 5]) ? "IN_ORDER" :
                          (g0 === mem[3 * k + 5] && g1 === mem[3 * k + 2]) ? "REORDERED" : "WRONG");
                 if (timed_out) begin

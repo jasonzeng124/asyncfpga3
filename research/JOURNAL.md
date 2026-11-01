@@ -2005,3 +2005,17 @@ double-counted, ring128 per-ring data still needed).
   research rule: never shorten a delay to hit a target). Rule A flags all three (-2024/-3670/-4795 ps), so the
   audit can fail. Their full-stack GLS at both corners is queued; where it first fails measures how much of
   rule A's charge on this bundle is real.
+### progress 20:45 (FOR-RESEARCH s2 on the gcd_ps full stack: overlapped calls reorder; unsized d and 5 pass)
+- Unsized control complete: seeds d and 5, both corners, 24/24 (rule A -1567 / -464 ps). The shortened-umux21
+  controls (8/4/1 links) are what decides it; queued.
+- +PIPE=1 (host offers pair k+1 right after pair k's i_ack; NOT gcd_ps's protocol), seed d P1, SLOW_MAX, full
+  stack. Formal's pair (2^19, 2^19) then (3, 5): out0 = 1 first, then 0x80000 -- REORDERED, exactly
+  FOR-RESEARCH s2's prediction, now on the bit-decoded gcd_ps target with prjxray delays. The 24 vectors as 12
+  pairs: 2 reordered ((0x7fffffff,0x7ffffffe) overtaken by a==b; the large-prime pair overtaken by an early
+  return), 2 in order, 8 HANG. The same compiled sim in the sequential mode afterwards: 24/24.
+  Caveat on the hangs: this host waits for pair k+1's i_ack before reading k's result, so a hang there can be
+  the host's own deadlock (the kernel may not accept k+1 until k's result is taken). gcd_ps's register
+  interface cannot express a fully concurrent host (a CTRL write with o_ack=1 also rewrites the request flop),
+  so the model now names the wait that timed out (ack0/ack1/out0/out1); re-run queued.
+- What it means for the board: confirms that BQ#1 and BQ#4 must stay sequential; both are (gcd_rig's two-stage
+  env; xsdb_gcd.tcl waits for o_req to fall before the next write).
