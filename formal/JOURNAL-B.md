@@ -2079,3 +2079,15 @@ Adversarial runs (each private path at the opposite end of its corner window, κ
 <= 15 ns (arb 0: 95 -> 83 ns); an apparent "order flip" in the first script was an event-matching artifact
 (tie.py's bisection shows the gap never crosses 0). So on this vector the arbitrations are lopsided by
 tens of ns and the 08:29 near-tie lead does NOT transfer. The 16 rig vectors are running (tools-B/target/run16.sh).
+
+### progress 08:46 -- separated arbitrations need no H_ARB (ArbClean.lean, check.sh OK)
+**Problem, plainly:** can the proof avoid H_ARB(T) at an arbiter whose two requests are separated in time
+(as every simulated arbitration on the decoded target is, by >= 52 ns so far)? **Lean (frozen Spec
+semantics):** `q_clean_set` / `q_clean_reset`: if the held arbiter's state LUT reads the set (reset)
+condition over its read windows for at least its feedback arc (`s + hi_q <= e + 1`) and afterwards r1 (r2)
+stays high with rst low, q is 1 (0) on the whole interval, whatever r2 (r1) and A0 do -- SpecFb.fb_switch
+plus decided table facts; no resolution hypothesis. With ArbT.one_ack this decides a separated
+arbitration. **What it means:** per arbitration the proof can take the separation route (an obligation:
+the requests at ustate's pins are separated by >= the feedback arc, provable from the bands where the
+second request's causal path is long) instead of H_ARB(T). **Not covered:** physical pin permutations of
+each decoded ustate; proving separation for every behaviour.
