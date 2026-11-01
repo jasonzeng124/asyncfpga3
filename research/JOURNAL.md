@@ -1892,3 +1892,5 @@ holds beyond draw 1.
 - BQ#2 log-normal 0.24/0.189 draw 2: seeds 6, 7, 8, 9 PASS (49/50/45/48 laps vec 6). With BQ#3's 8/8: 12/12 routes
   clean at 1.5x the calibrated within-die scatter with bounded (log-normal) factors, including both routes that
   fail linear 2x. BOARD-QUEUE #2 updated. BQ#1 x8 at the same point started.
+### progress 07:53 (BQ#1 log-normal 1.5x draw 2: 4/4 PASS so far)
+- d 26/20/30, 3 27/21/30, 4 25/19/28, 5 28/22/32; all 16/16 errs 0. Seeds 6-9 running.
