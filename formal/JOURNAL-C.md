@@ -970,3 +970,9 @@ merge9 uarb1#1: fast +179, slow +480, guarded -770/-1237). Tables: tools/tcheck/
 Meaning for NetCorrectSeq: at g = 1 the checked bundling/flush/arbiter-fork rows hold at a consistent corner; they set a
 ceiling on the provable guard g (merge9's J row has +179 ps at the fast corner). Not shown: that these rows are all the
 obligations (completeness), mixed corners within κ, W/R rows (not compared), anything in Lean about the target.
+
+### progress 08:29 -- tcheck C-10k rows on the target: same pattern
+Fd 29, X 81, Xi 32, Z 9 rows: 0 failures at the sdf, fast and slow corners (minima +1061 fast / +1735 slow for Fd,
++1502 / +2308 for X); X fails only with the guard band (fastG 2, slowG 9; worst umux18.uxa/uya -1373 ps slowG).
+Tables: tools/tcheck/results/target/{r10k_rows,summary10k}_T.* (run10k.sh had overwritten the committed 4-seed tables;
+restored).
