@@ -59,7 +59,10 @@ Kernel cost: per-gate cost is quadratic in its breakpoints; 122 gates near the r
    ~122 gates on the housekeeping ring and its BUFG path, whose flips span the whole window [dmax, b) (2.68 µs, ~240
    flips per node; the check is quadratic per gate). Give each node its own periodic start (the ring is periodic after
    its first lap, ~50 ns): `ext` with a per-node cut, the gate check on [dmax, max cut of its nodes). Expected: --wit
-   from ~3 h to ~1 h (then dominated by per-module import time).
+   from ~3 h to ~1 h (then dominated by per-module import time). **Proved** (Formal/Target/WitCut.lean: `extC`,
+   `eq_extC`, `extC_eq_val_upto`, `gateOK_cut`); gen_wit.py does not use it yet (needs a per-node cut table in the
+   description tree, a per-gate window end B_g = max(cut of its nodes, dmax + P), descriptions kept up to the largest
+   B_g of the gates touching the node, and one periodicity check per node on [cut - Dm, horizon)).
 2. **S1, the Lean round trip** of the decoder: sorted feature list of the read-back FASM as data, a certificate list
    (feature, gate) checked by lookup, so that "no feature dropped or invented" is a kernel fact (today: Python only).
 3. **Spec decisions pending with the owner**: SeqEnv (restriction of the owner's env, forced by the refutation);

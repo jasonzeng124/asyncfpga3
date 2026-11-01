@@ -1377,3 +1377,8 @@ formal/check.sh --committed on the tree at this session's start of the run (comm
 NetBase, Witness, WitBoundary, WitSlice, Net/*}; SpecRunt was committed after the run listed its files): lake build
 "Build completed successfully (4052 jobs)", axiom audit OK (no BAD), 60 min wall. FormalWit (the refutation) is
 outside the default build by design and was checked separately (above; check.sh --wit is the route for others).
+### progress 12:55 -- WitCut.lean (per-node periodic cut for witnesses; generic, proved)
+Formal/Target/WitCut.lean compiles (-DautoImplicit=false): `extC` (each node repeats its last period from its own
+cut), `eq_extC`/`gateOK_cut` (Spec.GateOK at the slow corner from a segment check on [dmax, B) with B ≥ every cut of
+the gate's nodes), `extC_eq_val_upto`. Purpose: make witness checks cheap where most flips come from a node that is
+periodic early (the ring). Not yet used by gen_wit.py (notes/A-target.md, Next 1).
