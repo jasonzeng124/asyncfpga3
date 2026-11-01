@@ -13,7 +13,7 @@ Provenance in `{max,min}_provenance.txt`; one log per run, filtered to the testb
 | PIPE=1 9 then 9 | no result | same | deadlock |
 | PIPE=1 15 then 5 | both accepted, no result | same | deadlock |
 | PIPE=1 2 then 4 | only LAP1 = pair 1's; pair 2's never | same | pair 2 never |
-| rig env (tb_run, vec 6, 150 us) | 16 laps, 0 err | (not run) | - |
+| rig env (tb_run, vec 6, 150 us) | 16 laps, 0 err | 45 laps, 0 err | - (BQ#1 table: 15-16 / 44-48) |
 
 Vector 9 sequential, SLOW_MAX: request 697.5 ns, in_ack rises 928.1 ns, result 3789.0 ns; FAST_MIN: in_ack falls
 400.0 ns, result 1398.3 ns. The input handshake completes long before the result (gcd_rig.v's header is wrong);
