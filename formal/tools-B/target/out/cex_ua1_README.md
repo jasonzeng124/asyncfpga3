@@ -43,3 +43,9 @@ Other rig vectors at κ = 0.16, corner 0.5: (0x30,0x12), (0x11,5), (0x24,0x3C) o
 (0x18697,0x18697) do not exercise this handshake and are correct.
 Cross-check: tools-B/target/sim2.py (independent implementation) reproduces the κ = 0.215 run flip for flip
 after reset.
+
+## With the guard g (simb.py --g: global band [FAST_MIN/g, SLOW_MAX·g])
+Corner 0 (fast): g = 1 clean to κ = 0.3; g = 1.1, 1.15 clean at κ = 0.15; g >= 1.2 oscillates at κ = 0.16;
+g = 2: clean at κ = 0.145, oscillates at κ = 0.148 (the lowest found). Corner 1 (slow): clean at κ = 0.16
+for g = 1 .. 2. So g matters only where the κ-window reaches the global band (extreme corners); with
+κ = 0 the corner window lies inside the band and g has no effect at all.

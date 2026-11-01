@@ -2218,3 +2218,13 @@ Per-pin adversary, bisection to 0.005: corner 0.1 0.159/0.164, 0.2 and 0.3 0.150
 rig vectors (0x30,0x12), (0x11,5), (0x24,0x3C); (0x10000,0x1000) and (0x18697,0x18697) do not use this
 handshake. Table: tools-B/target/out/cex_ua1_README.md. Interpretation unchanged (transport keeps the runt
 alive; see the 09:4x entry).
+
+### progress 09:50 -- the (g, κ) frontier of the ua1 counterexample
+simb.py --g (Adm's global band [FAST_MIN/g, SLOW_MAX·g]). At corner 0, g = 1 clamps the fast end at FAST_MIN
+(clean to κ = 0.3); g >= 1.2 frees it: g = 2 oscillates at κ = 0.148, clean at 0.145 (lowest found). Corner 1
+clean at κ = 0.16 for g up to 2. **Observation about Spec's H_DELAY (FOR SHARD A):** g only matters where the
+κ-window reaches the global band, i.e. at extreme corners; at κ = 0 every admissible delay is inside the corner
+window, which lies inside [FAST_MIN, SLOW_MAX], so the theorem's truth at κ = 0 does not depend on g at all and
+"the largest g" is not a meaningful margin there. Frontier from this one node (simulation): κ_max < 0.148 for
+g >= 1.2, < 0.155 for g = 1. A back-of-envelope check agrees: episode/loop = 1.72 at mid-band, so the two meet
+when the per-arc spread (window half-width ~0.11 plus κ) reaches 0.72/2.72 = 0.265, i.e. κ ~ 0.155.
