@@ -869,3 +869,15 @@ feeds the kernel from gcd_rig's 16-vector table. So the counterexample now uses 
   PipeWit (handshake-level reorder, rig vectors 9 then 4) and PipeDead (handshake-level deadlock, vector 9
   twice, with the one-tick step property on every non-source gate, so nothing is merely slow, and QuietNS at
   tick 265). Neither is claimed until it compiles.
+
+### progress 07:52 -- GLS of the TARGET route: pipelined env loses results (not yet gated)
+iverilog 12 installed (apt). Research's cells/gls generators (read-only) on formal/target's routed JSON + SDF
+(SDF md5 = README's), baked delays, my testbench formal/tools/pipe/gls/tb_pipe.v (env_c forced: pair 2 offered
+as soon as pair 1's input handshake completes). nextpnr-SDF GLS, not the fid GLS.
+- 9 then 4: first result = 1 (pair 2's gcd; rig mism=0 vs vector 4), pair 1's never comes (100 us quiet). Same with
+  a 20 ns data setup.
+- 9 then 9: pair 2 never accepted, no result at all.
+- 2 then 4: pair 1's result, then pair 2's never comes.
+- sequential control (9 then 4): both results, correct, in order.
+Pending before this is claimed: the SDF acceptance gate (gate.vvp, ANNOTATE_DONE and no SDF warnings) and the
+sequential controls 9/9 and 2/4. Table: notes/C-pipe-cex.md.

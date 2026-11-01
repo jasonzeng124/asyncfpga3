@@ -80,3 +80,22 @@ that one occurs is not, in every run tried.)
   loop (the "both even: shift" loop; pending values 32768/16384 and 2048/1024 are both pairs' halvings). bdc gives
   each loop the minimum 3 storage stages, enough for ONE token; C's own `Ring.k_tokens` (C-9) says a ring with k
   tokens needs 2k + 1 stages. Two invocations in one loop is two tokens in a ring sized for one.
+
+## GLS of the TARGET route (added 2026-11-01 ~07:55)
+`formal/tools/pipe/gls/run.sh WORKDIR +PIPE=1 +V1=9 +V2=4`: research's cells/gls generators (read-only) on
+`formal/target/gcd_hw_03e82630.routed.json.xz` + `.sdf.xz` (SDF md5 6f8b99e6c49bb7ef8855c881cecabe5c = the target
+README's), baked delays (`run_baked` style; iverilog 12), testbench `tb_pipe.v`: env_c (the kernel's one input request)
+forced by the testbench, idx forced to V1 for pair 1 and to V2 once pair 1's input handshake is complete (in_ack low);
+SU ps later env_c rises for pair 2. The rig compares out0 with the gcd of the CURRENT idx. This is the nextpnr-SDF
+GLS (cells/gls), NOT research's board-fidelity (prjxray) GLS.
+
+| run | pair 1 accepted | pair 2 | results |
+|---|---|---|---|
+| PIPE=1, 9 then 4 | 684.9 ns | offered 686.9, accepted 1071 ns | lap 1 at 1147 ns, mism=0 vs gcd(vector 4) = 1: **the first result is pair 2's**; pair 1's result never comes (quiet 100 us) |
+| PIPE=1, 9 then 4, SU=20 ns | 684.9 ns | offered 704.9, accepted 1089 ns | the same: lap 1 at 1165 ns = 1, then nothing |
+| PIPE=1, 9 then 9 | 684.9 ns | offered 686.9, **never accepted** | **no result at all** (quiet 100 us) |
+| PIPE=1, 2 then 4 | 800.5 ns | offered 802.5, accepted 1449 ns | lap 1 at 1399 ns, mism=1 vs 1 (pair 1's 6, in order); pair 2's result never comes |
+| PIPE=0 (sequential), 9 then 4 | 684.9 ns | offered after lap 1 | lap 1 at 2498 ns (4096, mism 0 vs vector 9), lap 2 at 2991 ns (1, mism 0): correct |
+
+So on the routed target with its own routed delays, a pipelined environment loses results (deadlock) in every run tried,
+and in one of them the first result delivered is the second pair's.
