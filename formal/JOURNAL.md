@@ -1231,3 +1231,11 @@ Pipelined env on the decoded target (sim.py, corner 0.5 mid-band, broad data rul
 ns). Same as C's token-level Lean run (PipeGcd: vector 9 then 4 -> [1, 4096]) and handshake-model simulations. So three
 independent models (token graph in Lean, C's handshake network, A's decoded bitstream netlist with prjxray bands)
 agree: the pipelined statement is false for the target. Still simulation for the bitstream (no Lean witness there).
+### progress 07:46 -- Spec.lean part I compiles and is frozen (Formal/Target/Spec.lean)
+check.sh on Formal/Target/Spec.lean OK (186 declarations, standard axioms; only small Mathlib imports for ℚ). Added
+SeqEnv and NetCorrectSeq (sequential env: next pair only after out0's previous handshake), because the pipelined
+NetCorrect is expected false for the target (counterexample above); NetCorrect is kept unchanged so that its
+refutation can be stated. Part I frozen from this commit; part II (Lean decoder, round trip, the theorem about the
+bytes) still a stub. Re-read before freezing: the end channel's request is the shared input request in the target
+(nextpnr names it p_end_req), so CircOut on it is a property the proof must derive from start_ack = C(p_end_ack, ..),
+not a trivial falsity.

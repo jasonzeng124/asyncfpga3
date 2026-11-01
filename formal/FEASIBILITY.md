@@ -10,7 +10,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:
-- **The statement** is drafted (`formal/lean/Wip/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
+- **The statement** is drafted (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
   H_ARB, H_ENV, the safety and liveness conclusion; part II, the decoder tie, a stub). It is not yet compiled (Mathlib
   is rebuilding from source in this sandbox) and so not yet frozen.
 - **The target does not match THE goal's wording**: its three input requests are one net and its operand buses come

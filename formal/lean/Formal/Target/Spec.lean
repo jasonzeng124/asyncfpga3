@@ -9,12 +9,13 @@ Shard A, 2026-11-01. `formal/PROGRAM.md`, "THE goal". This file holds only
 definitions: no theorem, no proof. It is the statement every shard works
 toward. Changing it needs a journaled reason and an audit row.
 
-**Status (v1, 2026-11-01): part I written (sections 1-6); part II (section 7)
-is a stub.** Part I is the semantics, the hypotheses H_DELAY, H_PRIM, H_ARB and
-H_ENV, and the conclusion, for an arbitrary decoded netlist `N`. Part II ties
-`N` to the target FASM through a decoder written in Lean (H_DECODE). Until part
-II lands, the statement is "for the netlist `N`", not yet "for the bitstream".
-See `formal/target/README.md` and `formal/target/STATUS.md`.
+**Status (v1, 2026-11-01 07:55 UTC).** Part I (sections 1-6: the semantics, H_DELAY,
+H_PRIM, H_ARB, H_ENV, the conclusion, `NetCorrect` and `NetCorrectSeq`) compiles
+(`formal/check.sh`) and is FROZEN from this commit: a change needs a journaled
+reason and an audit row; additions that do not change an existing definition are
+journaled. Part II (section 7: the decoder in Lean, the round trip, the theorem
+about the target's bytes) is still a stub, so the statement is so far "for the
+netlist `N`", not yet "for the bitstream". See `formal/target/STATUS.md`.
 
 ## In plain words
 
@@ -151,7 +152,7 @@ def addr : (k : Nat) → (Nat → Bool) → Nat
 (before that, a read could fall before time 0; the output is arbitrary there,
 which is any power-up state). -/
 def Gate.start (p : DelayPar) (g : Gate) : Nat :=
-  (g.arcs.map fun e => ⌈(e.smax : ℚ) * p.g⌉.toNat).foldr max 0
+  (g.arcs.map fun e => (Rat.ceil ((e.smax : ℚ) * p.g)).toNat).foldr max 0
 
 /-- **The gate relation (H_PRIM with H_DELAY).** Pin `i` is read at time `f i t`,
 non-decreasing in `t`; from the gate's start on, every read delay is admissible
@@ -351,7 +352,30 @@ def NetCorrect (N : Net) (B : Boundary) (A : List ArbNodes) (p : DelayPar) (T R 
   ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat),
     Behaves p (circuit N B) x → ArbOK T A x → Env x B R su Δo n va vb → Correct x B R Δo n va vb
 
+/-- **The sequential environment** (an extra restriction of `Env`): each input
+request rises for the `k+1`-th time only after `out0` has completed `k`
+handshakes (its acknowledge has risen `k` times and both its request and
+acknowledge are low again). gcd_rig.v's env and gcd_bench.v's FSM are of this
+kind. -/
+def SeqEnv (x : Beh) (B : Boundary) (R : Nat) : Prop :=
+  ∀ ch ∈ [B.a, B.b, B.start], ∀ t, R ≤ t → x ch.req t = false → x ch.req (t + 1) = true →
+    rises (x ch.req) R t ≤ rises (x B.out0.ack) R t ∧ x B.out0.req t = false ∧ x B.out0.ack t = false
+
+/-- **The sequential statement**: `NetCorrect` for sequential environments only. -/
+def NetCorrectSeq (N : Net) (B : Boundary) (A : List ArbNodes) (p : DelayPar) (T R su Δo : Nat) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat),
+    Behaves p (circuit N B) x → ArbOK T A x → Env x B R su Δo n va vb → SeqEnv x B R →
+      Correct x B R Δo n va vb
+
 /-! ## 7. Part II (stub): the target
+
+**Status of the two statements for the target (2026-11-01).** `NetCorrect` (the
+owner's pipelined environment) is expected FALSE for the target: in simulation of
+the netlist decoded from the target's bits, with every arc inside its band, pipelined
+pairs come out reordered or deadlock (`formal/FOR-RESEARCH.md` 2 and C1; shard C's
+`Formal/Net/PipeGcd.lean` proves the reordering at token level). The deliverable for
+it is a Lean-checked counterexample behaviour. `NetCorrectSeq` is the statement that
+can still be true, and the one to prove.
 
 **How the target's boundary is wired (found 2026-11-01, yosys netlist of the target
 build).** THE goal's wording ("every `a, b < 2^31`", independent channels) does not fit
@@ -361,9 +385,9 @@ this bitstream, and the statement above is written for what the bitstream is:
   per-channel rules, conjoined, say: the shared request rises only when all three
   acknowledges are low and falls only when all three are high. Offering pair `k+1`
   "as soon as the input handshake of pair `k` completes" is still allowed and covered,
-  but it is the handshake of all three channels together, and `start` is
-  acknowledged only at completion (gcd_rig.v's header; not proved here), so the target
-  would not hold two pairs.
+  but it is the handshake of all three channels together. (gcd_rig.v's header says
+  `start` is acknowledged only at completion; on the decoded target it is not: 141 ns
+  vs 934 ns, so the target does take a second pair early, and then reorders.)
 * The rig feeds the kernel from a 16-entry table, and yosys merged equal bits: of
   `a`'s 32 bits only 19 are distinct nodes and `a[31]` is the constant 0; of `b`'s,
   21 distinct nodes and 7 bits are the constant 0 (exact map:
@@ -382,8 +406,9 @@ To be written with the decoder (`formal/target/`):
   (H_DECODE: those tables say what the bits mean);
 * `encode : Net → List String` and the round trip `encode N ~ targetFasm`, so a
   decoder that drops or invents a feature fails the build;
-* **THE theorem**: `decode targetFasm = some (N, B, A) ∧ N.WF ∧ B.OK N ∧ NetCorrect N B A p T R su Δo`,
-  for stated `p = ⟨g, κ⟩`, `T`, `R`, `su`, `Δo`.
+* **THE theorem**: `decode targetFasm = some (N, B, A) ∧ N.WF ∧ B.OK N ∧ NetCorrectSeq N B A p T R su Δo`,
+  for stated `p = ⟨g, κ⟩`, `T`, `R`, `su`, `Δo`; and the refutation
+  `decode targetFasm = some (N, B, A) ∧ ¬ NetCorrect N B A p T R su Δo` (for every `T`, at `g = 1`).
 -/
 
 end Formal.Target
