@@ -7,28 +7,26 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
-**2026-10-31 (lead), where things stand** (rewritten after audit pass 15 and the SatPinW change).
-- Whole-project `check.sh` OK (lake build, 73,409 library declarations, standard axioms). Formal/Cells/Prelim is
-  deleted (Phase 1 done).
-- **gcd correctness is still conditional and not composed end to end.** C's capstone (`gcd_hw_circuit_safe3`: every
-  out0 latch is gcd, for the concrete 465-channel network) rests on H_CELLS, H_BUNDLE, H_START_ONCE; B has joint
-  witnesses of the gate-level network theorems on one run; C proved the 20 data-path units' functions (H_COMPUTE_FN,
-  not yet linked into the capstone). Nothing yet derives H_CELLS/H_BUNDLE from the routed netlist.
-- **Routed control skeleton (A).** The corrected-arbiter-core verdicts (`Core/XAudit/Events9FullArb`) no longer
-  assume the refuted HARB7: each arbiter is checked at its real LUTs, and what remains is named: ArbEdge (quiet
-  start, settle bound, the per-reader edge windows) and, for the gcd_hw form, ArbOrd. Reductions proved on 10-31:
-  QClean from quiet input reads after reset (`qcleanFrom_of_quiet`), the quiet start from quiet requests
-  (`arb_low_of_reqlow`), the C window replaced by a pointwise condition (`design_verdict9arbnet_ordSP`), the settle
-  limit raised from ~1 s to ~1000 s (ctl band 10^15). Research-GLS evidence (`tools-A/xaudit/glsq`, untrusted): these
-  hold with margin on seeds d/3/4/5 (the band C window was 5 ps short at one seed-4 reader; the pointwise form is
-  not). The current best statement is `Events9FullArb.design_verdict9arbnet_env`, whose arbiter hypotheses are one
-  explicit list (`Events9ArbB1.ArbEnv` + QQuiet after S + ArbOrd); see out/gcd_hw_hypotheses.md. The verdicts now take a behaviour WITH its warps (`SatPinW`), so these are conditions on the
-  delay behaviour the user supplies. ipow 3/5 and xorshift 5/8/9 (slow/fast) meet every checked premise of the form
-  without ArbOrd. On gcd_hw, 10 rows meet every checked premise of the ArbOrd form; ArbOrd holds for fixed-delay
-  behaviours meeting four path rows (`arbOrd_of_transport`), not for every behaviour in the bands, and it failed in
-  1 of 5 research-GLS scatter draws (σ 0.10 draw 2, -346 ps, merge6 g1) while the circuit still computed every
-  vector (an abstraction limit). An earlier "3 of 5" counted two reset-pin pairs as request pairs (audit P17 2d). No joint
-  witness of the hypotheses on any real run.
+**2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
+`formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
+date) computes gcd on the board. Where it stands, plainly:
+- **The statement** is drafted (`formal/lean/Wip/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
+  H_ARB, H_ENV, the safety and liveness conclusion; part II, the decoder tie, a stub). It is not yet compiled (Mathlib
+  is rebuilding from source in this sandbox) and so not yet frozen.
+- **The target does not match THE goal's wording**: its three input requests are one net and its operand buses come
+  from a 16-entry table (a: 18 distinct nets, b: 20, constant-tied high bits), so it cannot be offered every pair below
+  2^31 or independent pipelined pairs (`formal/target/BOUNDARY.md`, `formal/FOR-RESEARCH.md` 1). The statement is
+  written for the pairs the wiring can represent.
+- **Decoder**: an untrusted decoder (`formal/tools-A/target/`, on shard C's fasm2lean3) gives the target's netlist at
+  pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
+  472 CARRY4 outputs), prjxray arcs per pin. The Lean round trip is not written. **No theorem about the target
+  exists yet** (`formal/target/STATUS.md`).
+- **What carries over**: C's FASM import of other gcd_hw routes, `gcd_hw_graph_computes_gcd` (token level, one
+  invocation), B's cell proofs, A's XAudit/E9 verdicts. Every arbiter hypothesis of A's best earlier verdict
+  (`design_verdict9arbnet_env`: the 12 `ArbEnv` fields, QQuiet after S, `hbase`, ArbOrd; audit P18 1a corrects the
+  earlier "one explicit list") is an assumption about the circuit's own behaviour, which THE goal forbids, and the
+  research-GLS zero-violation counts offered as evidence for them are not instances of those premises (the GLS is
+  not a band-respecting behaviour: audit P18 3a). They are leads for the proof, not parts of it.
 
 ## Short answer (provisional)
 

@@ -1186,3 +1186,11 @@ request makes the per-channel four-phase rules a fork (rise only when all three 
 "every pair, independent pipelined channels" theorem needs a target with a real operand path (a gcd_bench/gcd_ps build
 with 32-bit operand registers); no such bitstream is committed. The proof should be generic in the boundary so that a
 second target costs only the decode. FOR-RESEARCH gets this.
+### progress 08:20 -- audit P18 rows 12 and 13 on A's files: accepted, wording corrected
+Row 12 (OVERSTATED): the research GLS is not a band-respecting behaviour (seed d: 59/81 monitored arcs outside the
+slow bands), so the 0-violation counts of 10-31 are evidence about that simulation, not instances of the ArbEnv/QQuiet
+premises; the phi window (409-412 ps) is shorter than the GLS loop delay on 7 of 9 arbiters, so the phi run checks
+less; `reqlow` is checked by no script. I withdraw "every ArbEnv field now has GLS evidence". Row 13 (OVERSTATED):
+ArbEnv is not "one list" of the arbiter hypotheses: QQuiet after S, hbase and ArbOrd sit outside it. FEASIBILITY's
+status block is rewritten for THE goal and says both. Under THE goal all of these are assumptions about the circuit's
+own behaviour and cannot appear in the final theorem; they remain leads.
