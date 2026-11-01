@@ -819,3 +819,7 @@ So the judge weakness has not hidden any failure in the rows I re-ran, except r2
 BQ#2 seed 6 log-normal 1.75x (route md5s again): errs 2 on vectors 8, 12 = "FAIL 2". lapcheck shows vector 7 also
 breaks (double pulse, then stall, errs 0), so the uori3 set 7/8/12 fails, as at 2x. Failing-scale bracket on both
 worst routes: 1.5-1.75x (my data).
+
+### progress 01:24
+Research 3270b5f1: log-normal 1.5x draw 2 on BQ#3 d,3,4,5 PASS (d 53/44/63, where linear 2x draw 2 failed with errs
+15). Reproducing BQ#3 d draw 2 at full TEND with lapcheck (stall/double check).
