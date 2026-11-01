@@ -2247,3 +2247,14 @@ refutation is not an eventually periodic trace (the dominoes keep spreading), wh
 one; and the result says more about H_PRIM's pessimism than about this one C-element (FOR SHARD A / owner:
 with any runt-killing semantics -- involution, inertial, a named H_RUNT(w) -- the same delays would likely be
 harmless).
+
+### progress 10:14 -- (static estimate over all storage nodes) ua1 is the only node binding below κ = 0.36
+tools-B/target/kstar.py: for each storage node, take its tightest flipping episode in a baseline dump whose end
+is causally induced by the node's own flip (back-traced: the "acknowledged client releases" shape), and solve
+for the smallest κ at which that causal path at the fast end of its windows is shorter than the node's loop at
+the slow end (corner 0.5, g = 1, grid 0.005). On vector (12, 18) it gives ua1 κ* = 0.155 -- the same as the
+simulated threshold (0.155/0.159), so the static model is calibrated. Over all 16 rig vectors, the only nodes
+with κ* below 0.6: SLICE_X2Y18.DLUT.O6 (ua1) 0.155, SLICE_X0Y18.CLUT.O6 0.365, SLICE_X42Y82.ALUT.O6 0.500.
+Episodes ended by independent events (not by the node's own flip) are not covered by this estimate (their
+gaps in the dumps are tens of ns). **So, in this evidence, THE theorem's κ margin under the frozen H_PRIM is set
+by one C-element, arbiter 0's ua1, at ~0.15; the next storage node would allow ~0.36.**
