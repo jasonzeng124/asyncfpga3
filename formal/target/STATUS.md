@@ -1,6 +1,13 @@
 # STATUS: hypotheses of the current best theorem about the target
 
-Target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
+**THE target since 2026-11-01 19:3x UTC (owner decision 1): `formal/target/gcd_ps_e6bb4aec.bit`** (BOARD-QUEUE #4,
+full-width operands from the PS; README.md, gcd_ps sections): rebuilt bit-identical up to the header date, read back,
+decoded (Python round trip 0 invented, boundary 32+32 distinct operand nodes, 9 arbiters), 8/8 full-width vectors in
+simulation at three corners; the Lean netlist (`Formal/Target/NetPS`) is generated and not yet compiled. Everything
+below this paragraph is about the PREVIOUS target, `formal/target/gcd_hw_03e82630.bit` (BQ#1, 16-vector table), and stays
+valid for it.
+
+Previous target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
 (`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01 (changes since: ArbNodes inputs; `Adm` = g-scaled window, owner decision 3); part II, the Lean decoder, a stub).
 
 **Theorems about the target so far (2026-11-01):** `Formal.Target.Decoded.net_wf` (the decoded netlist is
