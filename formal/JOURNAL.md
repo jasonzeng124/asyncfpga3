@@ -1510,3 +1510,11 @@ SpecSettle.adm_le_dmax / dmin_le_adm (old band bounds) -> the κ-widened bounds 
 .delay_bound (∃M ∀c) -> ∀c ∃M. Also corrected Spec's ArbNodes docstring ("before any proof used it" was wrong,
 audit). Full `check.sh --committed` started at 17:32. The FormalWit refutations and the round trip must be rebuilt
 against the new Spec (their kernel checks do not involve Adm; at (g, κ) = (1, 0) both forms admit [smin, smax]).
+### progress 17:52 -- full check.sh --committed OK on the new Spec.Adm; first H_RUNT(20) data point
+`check.sh --committed` (17:32-17:52): "Build completed successfully (4056 jobs)", audit OK. So every committed
+Formal module builds against the changed `Adm`/`Gate.start`. FormalWit (refutations, round trip) not rebuilt yet.
+H_RUNT(w), owner decision 2 (simulation, B's simb.py, ua1 per-pin adversary cex_ua1_posmap_pin.json, corner 0.5,
+vector (0xC,0x12), every pin skipping pulses < 20 ps from t = 0 (--gfilter 20,0); note simb's window still clips to
+the old band, which at corner 0.5 does not bind): κ = 0.16 correct (out0 = 6); κ = 0.20 chaos (40M events by
+1.22 µs, no out0); κ = 0.25 chaos. So on THIS adversary the w = 20 margin is in [0.16, 0.20); other adversaries may
+fail lower (only ua1 was targeted). Bisecting.
