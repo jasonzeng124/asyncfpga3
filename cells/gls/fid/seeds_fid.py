@@ -43,8 +43,9 @@ def route(a, seed):
     wt = os.path.join(a.out, "wt-" + seed)
     log = os.path.join(a.out, seed, "route.log")
     os.makedirs(os.path.dirname(log), exist_ok=True)
-    hw = os.path.join(wt, "cells/build/hw/gcd_hw")
-    if os.path.exists(os.path.join(hw, "gcd_hw_xray.sdf")):
+    T = a.top
+    hw = os.path.join(wt, "cells/build/hw/" + T)
+    if os.path.exists(os.path.join(hw, T + "_xray.sdf")):
         return hw
     if not os.path.isdir(wt):
         with lock:
@@ -61,12 +62,12 @@ def route(a, seed):
     env.pop("NEXTPNR_SEED", None)
     if seed != "d":
         env["NEXTPNR_SEED"] = seed
-    if sh("./hw/build_hw.sh gcd_hw", log, env=env, cwd=os.path.join(wt, "cells")):
+    if sh("./hw/build_hw.sh " + T, log, env=env, cwd=os.path.join(wt, "cells")):
         raise RuntimeError("build_hw failed for seed " + seed)
-    xs = os.path.join(hw, "gcd_hw_xray.sdf")
+    xs = os.path.join(hw, T + "_xray.sdf")
     env2 = dict(os.environ, PYTHONPATH=PRJXRAY)
-    if sh(f"python3 {REPO}/cells/gls/fid/xray_delay.py --routed {hw}/gcd_hw_routed.json "
-          f"--sdf {hw}/gcd_hw.sdf --out {xs}", log, env=env2):
+    if sh(f"python3 {REPO}/cells/gls/fid/xray_delay.py --routed {hw}/{T}_routed.json "
+          f"--sdf {hw}/{T}.sdf --out {xs}", log, env=env2):
         raise RuntimeError("xray_delay failed for seed " + seed)
     return hw
 
@@ -132,7 +133,11 @@ def main():
     p.add_argument("--route-jobs", type=int, default=3)
     p.add_argument("--sim-jobs", type=int, default=3)
     p.add_argument("--env", nargs="*", default=[])
+    p.add_argument("--top", default="gcd_hw",
+                   help="build_hw.sh design; the sims (--cols/--scatter) are gcd_hw's harness only")
     a = p.parse_args()
+    if a.top != "gcd_hw" and (a.cols or a.scatter):
+        sys.exit("seeds_fid.py: --top %s: route only (--cols '' and no --scatter); the sims are gcd_hw's" % a.top)
     a.out = os.path.abspath(a.out); os.makedirs(a.out, exist_ok=True)
     seeds = a.seeds.split(",")
     sims = ThreadPoolExecutor(a.sim_jobs)
