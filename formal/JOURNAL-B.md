@@ -2051,3 +2051,15 @@ ArbTSpec.spec_double_ack). NOT shown: a trace on the decoded target, the target'
 disjointness. Next step for whoever has the decoded net (shard A's sim.py): an adversarial in-band
 assignment slowing x's cone and speeding y's at arbiter ucontrol_merge(z229) / (z111), then look for a
 runt on ustate's set/reset excitation.
+
+### progress 08:35 -- shard A repaired Spec's H_ARB (08:11, 3d3ebb61); B files updated to it
+A adopted the repair (ArbNodes = q + every non-feedback input of the state LUT). That broke my two files
+built against v1 (SpecArbVacuous, ArbTSpec: lake build failure, fixed within the hour):
+- SpecArbVacuous now states the v1 defect against a verbatim local copy `ArbOKv1` (history).
+- **ArbOKRepair (new, check.sh OK), against the repaired Spec:** `arbOK_admits_handover` (the handover
+  v1 excluded satisfies the repaired ArbOK for T >= 10, the state gate's arc in the example);
+  `arbOK_needs_T_ge_arc` (for T < 10 the repaired ArbOK excludes that ordinary, race-free q transition:
+  **THE theorem must take T at least the state gate's slowest admissible arc, else it is vacuous on every
+  arbitration** -- FOR SHARD A: STATUS/Spec should say so); `arbOK_mono`.
+- ArbTSpec: the double acknowledge now meets the repaired ArbOK for every T >= 7 (`spec_double_ack`).
+check.sh OK on SpecArbVacuous, ArbOKRepair, ArbTSpec.

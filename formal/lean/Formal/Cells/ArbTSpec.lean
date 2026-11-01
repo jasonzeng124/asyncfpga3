@@ -9,12 +9,13 @@ import Mathlib.Tactic.Linarith
 Shard B, THE goal. `ArbT.double_ack` was stated over B's read-time gates. Here the same
 trace is a behaviour of the frozen `Formal.Target.Spec`: six Spec `Gate`s (ustate O6/O5,
 ugrant O5/O6, ua1, ua2, real INITs with tied pins folded), `Behaves` at the slow corner
-with g = 1, κ = 0, and the frozen `ArbOK T` for every `T ≥ 9`.
+with g = 1, κ = 0, and the Spec's `ArbOK T` (as repaired by shard A at 08:11: q constant `T`
+after all four non-feedback inputs of the state LUT are) for every `T ≥ 7`.
 
 ## Problem, plainly
 Does the frozen statement's H_ARB(T) prevent an arbiter from acknowledging both clients
-in one server transaction? **No**: `spec_double_ack`. With H_ARB(T) as frozen (q constant
-`T` after the two requests are), a near-tie leaves q oscillating until 20 while the server
+in one server transaction? **No**: `spec_double_ack`. With H_ARB(T) as repaired (q constant
+`T` after all four non-feedback inputs of the state LUT are), a near-tie leaves q oscillating until 20 while the server
 raises A0 at 18 (6 ps after R0 rose); A1 rises at 19 and A2 at 20. Every gate relation
 holds (monotone read maps, every read delay admissible).
 
@@ -131,26 +132,22 @@ theorem gateOK_all : ∀ g ∈ arbNet.gates, GateOK p1 1 g beh := by
 
 theorem behaves : Behaves p1 arbNet beh := ⟨1, by norm_num, le_refl _, gateOK_all⟩
 
-/-- The frozen H_ARB(T), for this arbiter, for every `T ≥ 9`. -/
-theorem arbOK (T : Nat) (hT : 9 ≤ T) : ArbOK T [⟨0, 1, 2⟩] beh := by
-  intro a ha t1 t2 h1 h2 t ht1 ht2
+/-- The arbiter's nodes for the Spec's (repaired, 08:11) H_ARB: q 2; inputs r1 0, r2 1, rst 3, A0 4. -/
+def arbN : ArbNodes := ⟨2, [0, 1, 3, 4]⟩
+
+/-- The Spec's H_ARB(T) (repaired form), for this arbiter, for every `T ≥ 7`. -/
+theorem arbOK (T : Nat) (hT : 7 ≤ T) : ArbOK T [arbN] beh := by
+  intro a ha t1 t2 hc
   simp only [List.mem_singleton] at ha
   subst ha
-  show cq t = cq (t1 + T)
-  by_cases hlate : 20 ≤ t1 + T
-  · simp only [cq]; simp [show ¬ (t < 20) by omega, show ¬ (t1 + T < 20) by omega]
-  · by_cases hearly : t2 ≤ 10
-    · simp only [cq]; simp [show ¬ (11 ≤ t) by omega, show ¬ (11 ≤ t1 + T) by omega]
-    · exfalso
-      by_cases a : t1 ≤ 9
-      · have := h1 10 (by omega) (by omega); simp [beh, cr1] at this; omega
-      · have := h2 11 (by omega) (by omega); simp [beh, cr2] at this; omega
+  exact Formal.Cells.ArbT.cex_arb T hT t1 t2 (hc 0 (by simp [arbN])) (hc 1 (by simp [arbN]))
+    (hc 3 (by simp [arbN])) (hc 4 (by simp [arbN]))
 
 /-- **Double acknowledge under the frozen Spec.** The six arbiter gates hold (`Behaves`,
-slow corner, g = 1, κ = 0), the frozen H_ARB(T) holds for every `T ≥ 9`, R0 rises once (at
+slow corner, g = 1, κ = 0), the Spec's H_ARB(T) (repaired form) holds for every `T ≥ 7`, R0 rises once (at
 12) and stays high, the server raises A0 at 18, and both A1 (19) and A2 (20) rise. -/
-theorem spec_double_ack (T : Nat) (hT : 9 ≤ T) :
-    Behaves p1 arbNet beh ∧ ArbOK T [⟨0, 1, 2⟩] beh ∧
+theorem spec_double_ack (T : Nat) (hT : 7 ≤ T) :
+    Behaves p1 arbNet beh ∧ ArbOK T [arbN] beh ∧
     (∀ t, beh 5 t = decide (12 ≤ t)) ∧ (∀ t, beh 4 t = decide (18 ≤ t)) ∧
     beh 8 18 = false ∧ beh 8 19 = true ∧ beh 9 19 = false ∧ beh 9 20 = true :=
   ⟨behaves, arbOK T hT, fun _ => rfl, fun _ => rfl, rfl, rfl, rfl, rfl⟩

@@ -2,10 +2,12 @@ import Formal.Target.Spec
 import Mathlib.Algebra.Order.Archimedean.Basic
 
 /-!
-# Shard B check of the FROZEN Spec's H_ARB(T) (`ArbOK`): it excludes the held arbiter's handover
+# Shard B check of Spec v1's H_ARB(T) (`ArbOKv1`, frozen 07:55, repaired 08:11): it excluded every held-arbiter handover
 
-Against `Formal.Target.Spec` as frozen (shard A, 2026-11-01 07:55 UTC; `ArbOK` unchanged
-from the v1 draft that `Wip/Bspec/ArbOKVacuous.lean` checked). Built by lake.
+Against `Formal.Target.Spec`'s gate relation, with the v1 `ArbOK` (frozen 07:55, request
+nodes only) copied verbatim below as `ArbOKv1`. **Shard A repaired the Spec at 08:11**
+(commit 3d3ebb61: `ArbNodes` = q plus every non-feedback input of the state LUT); the
+repaired `ArbOK` admits this handover for `T ≥ 10` (`Formal.Cells.ArbOKRepair`). Built by lake.
 
 ## Problem, plainly
 Spec v1 states H_ARB(T) as: whenever an arbiter's two request nodes are constant on
@@ -22,13 +24,13 @@ H_ENV does not bound: for every `T`, such behaviours exist.
 ## Lean
 * `arbOK_excludes_handover`: for ANY delay parameters, corner and arcs: the q gate holding
   (`GateOK`), requests r1 = 0, r2 = 1 and rst = 0 throughout, A0 high until `ta` and low
-  after, q high at time `T`, and `ArbOK T` for this arbiter: `False`.
+  after, q high at time `T`, and `ArbOKv1 T` for this arbiter: `False`.
 * `handover_gate_ok`: the same scenario has a behaviour of the q gate (exact delay 10 ps on
   every arc, g = 1, κ = 0, corner 0): q high until `ta + 10`, low after. With `T < ta + 10`
   it meets the scenario's premises, so the contradiction comes from `ArbOK`, not from an
   empty scenario.
 * `arbOK_vacuous_for_every_T`: for every `T` there is a behaviour of the q gate (a handover
-  whose server wait is longer than `T`) that `GateOK` admits and `ArbOK T` forbids.
+  whose server wait is longer than `T`) that `GateOK` admits and `ArbOKv1 T` forbids.
 
 ## Suggested repair (for shard A; not checked against a proof)
 State H_ARB(T) over ALL non-feedback inputs of the state LUT, as its pins read them:
@@ -40,6 +42,18 @@ set/reset transition in the same way).
 open Formal.Target
 
 namespace Formal.Cells.SpecArbVacuous
+
+/-- Spec v1's arbiter nodes (two requests and the state node), verbatim. -/
+structure ArbNodesV1 where
+  r1 : Nat
+  r2 : Nat
+  q : Nat
+  deriving Repr
+
+/-- Spec v1's H_ARB(T) (frozen 07:55, replaced 08:11), verbatim. -/
+def ArbOKv1 (T : Nat) (A : List ArbNodesV1) (x : Beh) : Prop :=
+  ∀ a ∈ A, ∀ t1 t2, ConstOn (x a.r1) t1 t2 → ConstOn (x a.r2) t1 t2 →
+    ConstOn (x a.q) (t1 + T) t2
 
 /-- ustate's O6 table with I5 tied high: `INIT[63:32]` of `64'hFFF0_FFB2_ACAC_ACAC`,
 pins I0..I4 = r1, r2, q, rst, A0. -/
@@ -66,7 +80,7 @@ theorem arbOK_excludes_handover (p : DelayPar) (c : ℚ) (g : Gate) (x : Beh)
     (hout : g.out = q) (hg : GateOK p c g x)
     (h1 : ∀ t, x r1 t = false) (h2 : ∀ t, x r2 t = true) (hr : ∀ t, x rst t = false)
     (ha : ∀ t, x a0 t = decide (t < ta)) (hq : x q T = true)
-    (harb : ArbOK T [⟨r1, r2, q⟩] x) : False := by
+    (harb : ArbOKv1 T [⟨r1, r2, q⟩] x) : False := by
   obtain ⟨f, _, hrel⟩ := hg
   obtain ⟨M, hM⟩ := delay_bound p (g.arcs.getD 4 default)
   set t := max (g.start p) (ta + T + M)
@@ -140,7 +154,7 @@ theorem handover_gate_ok (ta : Nat) : GateOK p1 0 gq (hb ta) := by
 /-- **For every `T`**: a handover whose server holds A0 past `T` is a behaviour of the q
 gate (`GateOK`) that `ArbOK T` forbids. -/
 theorem arbOK_vacuous_for_every_T (T : Nat) :
-    ∃ ta, GateOK p1 0 gq (hb ta) ∧ ¬ ArbOK T [⟨0, 1, 2⟩] (hb ta) := by
+    ∃ ta, GateOK p1 0 gq (hb ta) ∧ ¬ ArbOKv1 T [⟨0, 1, 2⟩] (hb ta) := by
   refine ⟨T, handover_gate_ok T, fun harb => ?_⟩
   exact arbOK_excludes_handover p1 0 gq (hb T) 0 1 2 3 4 T T rfl rfl rfl rfl
     (handover_gate_ok T) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
