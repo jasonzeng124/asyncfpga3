@@ -1444,3 +1444,12 @@ the target data (`Formal/Target/RT/`, not committed until it checks): 355,126 re
 md5 418f36ae = target/gcd_hw_03e82630.fromBit.fasm.xz), 339,036 re-encoded from 81,990 gates (73,065 pips +
 265,971 INIT bits), 16,090 leftover, 0 produced twice, 0 invented (Python mirror of `feats`). The claim, once the
 kernel checks it: re-encoded ++ leftovers is a permutation of the target's features.
+### progress 15:35 -- S1 round trip: chunk 0 checks in the kernel; full build running (FormalWit/RT)
+Kernel cost findings (each measured here, 100-string probes): `String.<` 33 s / 4.4 GB per 100 comparisons and
+`String.splitOn` does not reduce at all; byte lists (`String.toByteArray`) compare in ~1 s per 100. So
+RoundTrip.lean now orders and compares strings as byte lists (`ltB`, `eqB`, `eq_of_bl`), finds target features by a
+Nat index certificate (`ITree`, `chkI`, `chkI_sound`: only byte equality is checked per feature), splits names
+structurally (`splitC`), and checks the index permutation block by block (`perm_blocks`). A whole-chunk check
+peaked at 4.06 GB and took 3m47s (chunk 0: 2500 gates, 11 certificate slices). Generated data moved to
+`FormalWit/RT/` (built by `check.sh --wit`, which now builds `RT.All` last and audits `roundtrip`). Nothing
+claimed until All.lean checks.
