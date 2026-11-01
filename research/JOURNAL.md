@@ -1977,3 +1977,11 @@ double-counted, ring128 per-ring data still needed).
 - BOARD-QUEUE #4 written: formal target = P1 seed d, research/board/gcd_ps_e6bb4aec.bit (md5 aa83c8b7) and
   .fasm.gz (uncompressed md5 2dbf962d); board run = xsdb_gcd.tcl over the 16 golden then 1000 derived vectors.
   PR #2 description refreshed. Queued: seeds 6-9, unsized negative control (d, 5), +PIPE=1 on seed d, 1x scatter.
+### progress 20:25 (gcd_ps full stack 6 both corners, 7 SLOW_MAX: 24/24; FOR-RESEARCH s3 reading)
+- 6 max/min and 7 max: 24/24, EQUIVALENT; gates clean (5 min's re-run gate too).
+- FOR-RESEARCH s3 (does a LUT loop circulate a runt?): the fid GLS cannot answer it. fid_core.vh's resolver
+  rejects a runt narrower than TLOOP - WIN/2 and resolves (maybe metastably) one inside the window; it never lets
+  a runt circulate, by construction. That is H_RUNT(w ~ TLOOP - WIN/2) built into the model, an assumption, not
+  evidence for it. So "passes the fid GLS" means "correct if silicon kills loop runts the way the model does";
+  the transport semantics (formal's pessimistic case) is the one the default GLS model shows (auditor T6: pulse
+  trains then stalls on 2 of 3 seeds at those delays). Only the board can settle it.
