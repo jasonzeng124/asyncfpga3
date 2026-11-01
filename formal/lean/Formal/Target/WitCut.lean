@@ -92,4 +92,67 @@ theorem gateOK_cut (D : Nat → SD) (cut : Nat → Nat) (g : Gate) {B P Dm fuel 
       (extC_eq_val_upto D hP (by omega) hpo2)
       (fun i hi => extC_eq_val_upto D hP (by have := hPi i hi; omega) (hpi2 i hi)) t ht
 
+/-! ## Data: description, cut and horizon per node -/
+
+/-- A node's witness data: its description, its cut (periodic from there) and its horizon (the description is
+only used below it). -/
+structure NodeW where
+  d : SD
+  cut : Nat
+  hor : Nat
+  deriving Inhabited
+
+inductive BTW where
+  | leaf (v : NodeW)
+  | node (mid : Nat) (l r : BTW)
+  deriving Inhabited
+
+def BTW.find : BTW → Nat → NodeW
+  | .leaf v, _ => v
+  | .node m l r, n => if n < m then l.find n else r.find n
+
+theorem perOn_mono {d : SD} {P lo hi lo' hi' : Nat} (h : PerOn d P lo hi) (h1 : lo ≤ lo') (h2 : hi' ≤ hi) :
+    PerOn d P lo' hi' := fun s hs1 hs2 => h s (by omega) (by omega)
+
+/-- A gate's window end: the largest cut among its nodes, and at least `dmax + P`. -/
+def _root_.Formal.Target.Gate.winEnd (cut : Nat → Nat) (P : Nat) (g : Gate) : Nat :=
+  ((List.range g.k).map fun i => cut (g.ins.getD i 0)).foldr max (max (cut g.out) (g.dmax + P))
+
+theorem le_winEnd_out (cut : Nat → Nat) (P : Nat) (g : Gate) : cut g.out ≤ g.winEnd cut P ∧ g.dmax + P ≤ g.winEnd cut P := by
+  unfold Gate.winEnd
+  generalize (List.range g.k).map (fun i => cut (g.ins.getD i 0)) = l
+  induction l with
+  | nil => simp only [List.foldr_nil]; omega
+  | cons x l ih => simp only [List.foldr_cons]; omega
+
+theorem le_winEnd_in (cut : Nat → Nat) (P : Nat) (g : Gate) (i : Nat) (hi : i < g.k) :
+    cut (g.ins.getD i 0) ≤ g.winEnd cut P := by
+  unfold Gate.winEnd
+  have hm : cut (g.ins.getD i 0) ∈ (List.range g.k).map (fun i => cut (g.ins.getD i 0)) :=
+    List.mem_map.2 ⟨i, List.mem_range.2 hi, rfl⟩
+  generalize (List.range g.k).map (fun i => cut (g.ins.getD i 0)) = l at hm
+  induction l with
+  | nil => cases hm
+  | cons x l ih =>
+    simp only [List.foldr_cons]
+    rcases List.mem_cons.1 hm with h | h
+    · omega
+    · have := ih h; omega
+
+/-- A node whose flips all end a period before its cut reads its description in the extension. -/
+theorem extC_eq_val (D : Nat → SD) {cut : Nat → Nat} {P n : Nat} (hP : 0 < P) (hPc : P ≤ cut n)
+    (hq : ∀ τ ∈ (D n).ts, τ + P < cut n) : extC D cut P n = (D n).val :=
+  by
+  funext t
+  unfold extC
+  by_cases h : t < cut n
+  · rw [wrap_lt h]
+  · have hw1 : cut n - P ≤ wrap (cut n) P t := by unfold wrap; rw [if_neg h]; omega
+    have hw2 : wrap (cut n) P t ≤ t := by
+      unfold wrap; rw [if_neg h]
+      have := Nat.mod_lt (t - (cut n - P)) hP
+      have := Nat.mod_le (t - (cut n - P)) P
+      omega
+    exact ((D n).val_const hw2 (fun x hx h1 => by have := hq x hx; omega)).symm
+
 end Formal.Target.Wit
