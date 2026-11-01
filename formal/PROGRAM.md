@@ -96,6 +96,32 @@ whether it is one of the five allowed or still to be derived. The list must
 shrink. A day that does not shrink it, or produce a counterexample, has to
 say why in the journal.
 
+### Owner decisions, 2026-11-01 (answers to FOR-RESEARCH 1 and 3, and the g/κ question)
+1. **New target: a full-width gcd bitstream.** Research builds `cells/hw/gcd_ps.v`
+   (32-bit A_DATA/B_DATA registers driven from the PS, separate request
+   path, no vector table) as a BOARD-QUEUE item and names its `.bit`/`.fasm`.
+   When it lands, shard A makes it THE target (copy, md5s, journal the
+   switch). Keep the 16-vector target's results: the proof is generic in the
+   boundary, so the second target should cost only the decode. The boundary
+   of the theorem is the kernel's handshake ports inside gcd_ps. The AXI
+   register slave is the environment: state what H_ENV then requires of it,
+   including how STATUS inputs cross into the PS clock (a missing
+   synchronizer there is a finding, not an assumption).
+2. **H_RUNT(w) is a sixth allowed hypothesis:** a LUT input pulse narrower
+   than w ps does not propagate to its output. Use `SpecRunt.lean`
+   (`NetCorrectSeqRunt w`). Report the margin as a function of w, with
+   w = 20 ps as the headline; w = 0 (no runt filtering) stays the
+   pessimistic bound and is still reported.
+3. **Approve the g/κ fix to `Adm`:** g scales the corner window,
+   `[(1-κ)·lerp(FAST_MIN,SLOW_MIN,c)/g, (1+κ)·lerp(FAST_MAX,SLOW_MAX,c)·g]`.
+   This is a change to the frozen Spec with the owner's reason, so journal
+   it and give the audit a row. Fix the six B/C files that build on the old
+   shape, and say which claimed lemmas become false (C's `adm_le_dmax`) and
+   what replaces them. The margin is the (g, κ) frontier.
+4. The pipelined statement stays refuted for this kernel; the owner keeps
+   the lowering as is. The target theorem is `NetCorrectSeq` (sequential
+   env: next pair only after the previous output's handshake completes).
+
 ## North star (owner, 2026-10-27). The goal above overrides this and everything below.
 
 **Keep it digital for now.** No analog models, no ODEs, no MTBF, no slew. Make
