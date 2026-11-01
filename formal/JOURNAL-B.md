@@ -2130,7 +2130,7 @@ How close does the target come? **Tool:** tools-B/target/fbscan.py over the 16 r
 (sequential env, decoded target, mid corner, mid-window delays; only episodes after reset release counted):
 540 feedback LUTs active; the five weakest ratios (episode / simulated loop delay): SLICE_X2Y18.DLUT.O6 1.72
 (1143 ps vs 665 ps; loop SLOW_MAX 1064 ps), SLICE_X0Y18.CLUT.O6 2.76, SLICE_X42Y82.ALUT.O6 3.16,
-SLICE_X6Y99.CLUT.O6 3.21, SLICE_X38Y78.ALUT.O6 3.68 (notes: tools-B/target, /fbweak.txt not committed).
+SLICE_X6Y99.CLUT.O6 3.21, SLICE_X38Y78.ALUT.O6 3.68 (table: notes/B-fbscan.md).
 SLICE_X2Y18.DLUT.O6 is arbiter 0's acknowledge C-element (decoded table = majority(A0, g, fb) with reset; its
 g pin comes from arbiter 0's ugrant at SLICE_X0Y18.A): the episode is "A0 rises with g high -> ua rises -> the
 client drops r -> g falls at ua's pin", which must outlast ua's own feedback route (6 hops + pin arc).
@@ -2141,3 +2141,25 @@ episode becomes shorter than the loop between κ = 0.2 and 0.3: then, in the Spe
 GateOK behaviour), ua1 can latch a runt and oscillate -- an acknowledge glitch at arbiter 0. **If confirmed,
 THE theorem's κ margin is below ~0.25 at g = 1 because of this one node.** Not shown: the κ = 0.3 outcome, other
 corners, a Lean trace.
+
+### progress 09:33 -- CANDIDATE COUNTEREXAMPLE (simulation, untrusted) to NetCorrectSeq at g = 1, κ = 0.215: arbiter 0's acknowledge latches a runt
+**Plainly:** on the decoded target bitstream, with the SEQUENTIAL environment, rig vector (12, 18), corner
+0.5, and every delay inside Spec's Adm window for g = 1, κ = 0.215, arbiter 0's acknowledge C-element ua1
+(SLICE_X2Y18.DLUT.O6, decoded table C(A0, g) with reset) sees its set condition for less than its own
+feedback loop: the acknowledged client (a controller at SLICE_X2Y18.A) drops its request, and ugrant's g
+(SLICE_X0Y18.A) falls at ua1's pin, before ua1's output has come round its 6-hop feedback route. ua1 rises
+at 600.991 ns, falls at 601.885, rises at 601.892, ... : a 7 ps runt circulating with period 894 ps (the
+loop delay), for ever in the transport semantics (a GateOK behaviour). It spreads: by 620 ns 5336 nodes
+toggle, some every ~5 ps; no out0 by 620 ns (the correct run gives out0 = 6 at 756 ns). κ <= 0.21: clean.
+The race is the textbook isochronic-fork race at a C-element (client latency vs the C-element's feedback),
+here between a 3-LUT client path (episode 1143 ps at mid-band) and ua1's feedback loop (665 ps mid, 1064 ps
+SLOW_MAX), the tightest of the target's 540 active storage nodes (notes/B-fbscan.md).
+**Delay assignment:** tools-B/target/out/cex_ua1_posmap.json (22 gates: the client path at the fast end of
+the κ-widened window, ua1's feedback route and ua1 at the slow end; everything else mid-window); reproduce:
+tools-B/target/out/cex_ua1_README.md. **What it means:** if the simulator is right, THE theorem as frozen
+(NetCorrectSeq) is FALSE for p = (g = 1, κ >= 0.215) at corner 0.5, so its κ margin is at most ~0.21 there,
+and the binding constraint is a C-element race, not the arbiter's decision (H_ARB is not involved).
+**NOT shown:** a Lean witness (needs shard A's Witness machinery; the spreading oscillation may make the
+behaviour hard to certify as eventually periodic), other corners, κ = 0 (319 ps of margin left there),
+research's fid GLS on this assignment (FOR SHARD A / research: please run it), whether silicon's inertial
+filtering would kill a 7 ps runt (the Spec admits transport, so the Spec theorem must exclude it by timing).
