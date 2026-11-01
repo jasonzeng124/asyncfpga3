@@ -1171,3 +1171,18 @@ from su ps before req rises; target su = 0) and `Δo` (env's out0 ack no earlier
 req leads its data by a latch arc, which the rig pads with a 16-element delay). The audit may judge Δo an env timing
 assumption; it is one, and it is inherent in this boundary (the alternative, data valid at the req edge, is false
 for bd_link by its own header).
+### progress 07:50 -- FINDING: THE goal's statement does not fit the BOARD-QUEUE #1 bitstream as worded; adapted
+The owner's statement says "for every a, b < 2^31, when the PS-side harness offers (a, b) ... independent
+channels (pipelining)". The program also says the target is BOARD-QUEUE #1. That build is gcd_hw: kernel + in-fabric
+rig, no PS harness. Its yosys netlist (formal/target/BOUNDARY.md) shows: (1) a_req = b_req = start_req = one net (the
+rig's bd_fork is `assign req_out = {N{req}}`); (2) the kernel's a_data has 18 distinct non-constant nets and a[31] = 0;
+b_data has 20 distinct nets and 7 bits tied to 0 (yosys merged bits that are equal over the 16 table entries). So the
+configured circuit cannot be offered most pairs below 2^31, nor offer a and b independently. Decision (no one to ask):
+keep the target (the program names it) and write the statement for what the bitstream is. Spec.lean: Boundary gets an
+explicit `env` node list (the rig's driver outputs of those nets, the shared request, rst, out0/end acks), channels may
+share nodes, a data list may name a constant tie, and `Env` requires the bus to show the k-th value, so it holds only
+for pairs the wiring can represent (all 16 vectors among them); for other pairs the theorem says nothing. The shared
+request makes the per-channel four-phase rules a fork (rise only when all three acks are low). For the owner: the
+"every pair, independent pipelined channels" theorem needs a target with a real operand path (a gcd_bench/gcd_ps build
+with 32-bit operand registers); no such bitstream is committed. The proof should be generic in the boundary so that a
+second target costs only the decode. FOR-RESEARCH gets this.

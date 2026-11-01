@@ -185,7 +185,11 @@ structure OutCh where
   data : List Nat
   deriving Repr
 
-/-- The kernel's boundary in the target (node indices of `N`). -/
+/-- The kernel's boundary in the target (node indices of `N`). `env` lists the
+nodes the environment drives; their drivers in the bitstream (the rig's) are
+removed. Channels may share nodes and a data list may name a node that the
+circuit drives (a constant tie), exactly as the target is wired; see the
+target notes below. -/
 structure Boundary where
   rst : Nat
   a : InCh
@@ -193,11 +197,22 @@ structure Boundary where
   start : InCh
   out0 : OutCh
   pend : OutCh
+  env : List Nat
   deriving Repr
 
 /-- The nodes the environment drives. -/
-def Boundary.envNodes (B : Boundary) : List Nat :=
-  [B.rst, B.a.req, B.b.req, B.start.req, B.out0.ack, B.pend.ack] ++ B.a.data ++ B.b.data
+def Boundary.envNodes (B : Boundary) : List Nat := B.env
+
+/-- The boundary is consistent: the environment drives exactly the reset, the
+input requests, the output acknowledges and the input data nodes that the
+circuit does not tie (a data node outside `env` must be driven by a gate). -/
+def Boundary.OK (N : Net) (B : Boundary) : Prop :=
+  B.rst ∈ B.env ∧ B.a.req ∈ B.env ∧ B.b.req ∈ B.env ∧ B.start.req ∈ B.env ∧
+  B.out0.ack ∈ B.env ∧ B.pend.ack ∈ B.env ∧
+  (∀ v ∈ B.env, v = B.rst ∨ v = B.a.req ∨ v = B.b.req ∨ v = B.start.req ∨ v = B.out0.ack ∨
+      v = B.pend.ack ∨ v ∈ B.a.data ∨ v ∈ B.b.data) ∧
+  (∀ v ∈ B.a.data ++ B.b.data, v ∉ B.env → v ∈ N.gates.map Gate.out) ∧
+  B.a.data.length = 32 ∧ B.b.data.length = 32 ∧ B.out0.data.length = 32
 
 /-- **The circuit**: the decoded netlist without the gates that drive an
 environment node (in the bitstream those are the rig's; the theorem replaces
@@ -335,6 +350,27 @@ def NetCorrect (N : Net) (B : Boundary) (A : List ArbNodes) (p : DelayPar) (T R 
 
 /-! ## 7. Part II (stub): the target
 
+**How the target's boundary is wired (found 2026-11-01, yosys netlist of the target
+build).** THE goal's wording ("every `a, b < 2^31`", independent channels) does not fit
+this bitstream, and the statement above is written for what the bitstream is:
+* `a_req`, `b_req` and `start_req` are ONE node: the rig's `bd_fork` is
+  `assign req_out = {N{req}}`. So `B.a.req = B.b.req = B.start.req`, and `Env`'s
+  per-channel rules, conjoined, say: the shared request rises only when all three
+  acknowledges are low and falls only when all three are high. Offering pair `k+1`
+  "as soon as the input handshake of pair `k` completes" is still allowed and covered,
+  but it is the handshake of all three channels together, and `start` is
+  acknowledged only at completion (gcd_rig.v's header; not proved here), so the target
+  would not hold two pairs.
+* The rig feeds the kernel from a 16-entry table, and yosys merged equal bits: of
+  `a`'s 32 bits only 19 are distinct nodes and `a[31]` is the constant 0; of `b`'s,
+  21 distinct nodes and 7 bits are the constant 0 (exact map:
+  `formal/target/BOUNDARY.md`). `Env` requires the bus to show `va k`, so it holds
+  only for pairs the
+  wiring can represent, which include all 16 vectors. For any other pair the theorem
+  says nothing: this bitstream cannot be offered it.
+
+To be written with the decoder (`formal/target/`):
+
 To be written with the decoder (`formal/target/`):
 * `targetFasm : List String`: the FASM lines of `formal/target/gcd_hw_03e82630.fasm`;
 * `decode : List String → Option (Net × Boundary × List ArbNodes)`, a Lean function
@@ -343,7 +379,7 @@ To be written with the decoder (`formal/target/`):
   (H_DECODE: those tables say what the bits mean);
 * `encode : Net → List String` and the round trip `encode N ~ targetFasm`, so a
   decoder that drops or invents a feature fails the build;
-* **THE theorem**: `decode targetFasm = some (N, B, A) ∧ NetCorrect N B A p T R su Δo`,
+* **THE theorem**: `decode targetFasm = some (N, B, A) ∧ N.WF ∧ B.OK N ∧ NetCorrect N B A p T R su Δo`,
   for stated `p = ⟨g, κ⟩`, `T`, `R`, `su`, `Δo`.
 -/
 
