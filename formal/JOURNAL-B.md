@@ -2063,3 +2063,19 @@ built against v1 (SpecArbVacuous, ArbTSpec: lake build failure, fixed within the
   arbitration** -- FOR SHARD A: STATUS/Spec should say so); `arbOK_mono`.
 - ArbTSpec: the double acknowledge now meets the repaired ArbOK for every T >= 7 (`spec_double_ack`).
 check.sh OK on SpecArbVacuous, ArbOKRepair, ArbTSpec.
+
+### progress 08:43 -- CORRECTION to the 08:29 lead: on the decoded target, the two requests at an arbiter do NOT share a distant common cause
+The 08:29 node-count estimate assumed both request rises follow the input offer at ~0 by independent
+paths. Measured on the decoded target itself (shard A's generated Lean netlist rebuilt as JSON by
+tools-B/target/lean2json.py -- 200097 nodes, 199736 gates, 9 arbiters, boundary names = A's; shard A's
+simulator copied as tools-B/target/simb.py with a per-gate delay-position map; vector (12, 18), mid corner,
+mid-window delays; all untrusted Python): causal back-traces (tools-B/target/adv.py `crit`) of each
+"both requests rise from idle" event:
+- arb 0 (SLICE_X0Y18.D): chains meet 4.3 ns before r1's rise; r2 rises 95 ns after r1.
+- arb 6 (SLICE_X41Y24.C): chains meet 0.27 ns before r1's rise; r2 rises 60 ns after r1.
+- arb 8 (SLICE_X0Y96.A): r2's causal chain passes through r1's own rise (no race possible).
+- the other six: no both-from-idle event on this vector.
+Adversarial runs (each private path at the opposite end of its corner window, κ = 0) move the gaps by
+<= 15 ns (arb 0: 95 -> 83 ns); an apparent "order flip" in the first script was an event-matching artifact
+(tie.py's bisection shows the gap never crosses 0). So on this vector the arbitrations are lopsided by
+tens of ns and the 08:29 near-tie lead does NOT transfer. The 16 rig vectors are running (tools-B/target/run16.sh).
