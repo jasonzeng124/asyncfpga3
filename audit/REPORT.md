@@ -4,6 +4,16 @@ Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUT
 Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494; pass 17 formal 464c5ea7; pass 18 formal 2f2e632d; THE goal passes T1-T5 (formal a11503e9..6f094d32).
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
+## Owner decisions vs items the audit raised (as of formal 94b7fd79 / research 690f1561, owner commits 2026-11-01 17:10 UTC)
+| audit item | owner decision | status |
+|---|---|---|
+| NetCorrectSeq adds SeqEnv, not one of the five (row "DEVIATES: NetCorrectSeq adds a SeqEnv binder") | decision 4: pipelined statement stays refuted (refutation CONFIRMED, T7/T8); target theorem is NetCorrectSeq with the sequential env | **resolved by owner** (SeqEnv accepted) |
+| H_RUNT(w) as a sixth hypothesis (SpecRunt row; T6 ua1 runt) | decision 2: H_RUNT(w) allowed; headline w = 20 ps, w = 0 still reported | **resolved by owner**; audit will check the w-margin claims |
+| inert guard g in Adm (FOR-RESEARCH 3) | decision 3: g/κ fix approved: Adm window [(1-κ)·lerp(min)/g, (1+κ)·lerp(max)·g]; journal, audit row, fix the six B/C files, name lemmas that become false (C's adm_le_dmax) | **approved, not yet applied**; audit will diff Spec.lean against the approved formula when it lands |
+| 16-vector target cannot state "every a, b" (merged operand bits, T1/T2) | decision 1: new full-width target gcd_ps.v (32-bit PS registers); STATUS-bit clock crossing to be checked | **open** (research to build; audit will re-run the T1/T4 checks on the new bitstream) |
+| residual vacuity of the repaired ArbOK for T < D (78/g..664·g ps; row "OVERSTATED: residual vacuity") | not addressed | **still open** |
+| H_ENV harness timing margins R, su, Δo (row "DEVIATES from THE goal") | not addressed explicitly (decision 1 asks what H_ENV requires of the AXI slave) | **still open** |
+
 ## REFUTED / OVERSTATED
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
