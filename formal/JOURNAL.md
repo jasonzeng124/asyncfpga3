@@ -1372,3 +1372,8 @@ the owner the alternative B's ua1 finding calls for (FOR-RESEARCH 3), as a state
 FOR-RESEARCH 3 updated: in research's fid GLS with the 7 local arcs set, the default resolver gives out0_req pulse
 trains (four-phase violation) then a stall at 2 of 3 seeds, so near κ ≈ 0.16 the failure is not only a property of the
 transport H_PRIM; SpecRunt's w-filter would then not save the sequential statement there either (to be checked).
+### progress 12:53 -- whole-project check.sh --committed: OK
+formal/check.sh --committed on the tree at this session's start of the run (committed files incl. Formal/Target/{Spec,
+NetBase, Witness, WitBoundary, WitSlice, Net/*}; SpecRunt was committed after the run listed its files): lake build
+"Build completed successfully (4052 jobs)", axiom audit OK (no BAD), 60 min wall. FormalWit (the refutation) is
+outside the default build by design and was checked separately (above; check.sh --wit is the route for others).
