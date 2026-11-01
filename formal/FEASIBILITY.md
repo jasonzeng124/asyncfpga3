@@ -10,9 +10,16 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:
-- **The statement** is drafted (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
-  H_ARB, H_ENV, the safety and liveness conclusion; part II, the decoder tie, a stub). It is not yet compiled (Mathlib
-  is rebuilding from source in this sandbox) and so not yet frozen.
+- **The statement** compiles (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
+  H_ARB, H_ENV, the safety and liveness conclusion) and part I is frozen, with one journaled change (H_ARB reads the
+  arbiter's state-LUT inputs; audit row). Three statement decisions wait for the owner: `SeqEnv` (the sequential
+  restriction the refutation forces), H_RUNT(w) (`SpecRunt.lean`, a runt filter instead of the frozen transport
+  H_PRIM), and the inert guard g in `Adm` at small κ (`FOR-RESEARCH.md` 3).
+- **The sequential statement `NetCorrectSeq` (the one left to prove) is not proved, and has a candidate counterexample
+  at κ ≥ 0.16**: shard B (JOURNAL-B 09:47-10:35, audit T6 confirms) finds a runt on the ua1 feedback switch that the
+  frozen H_PRIM lets circulate for ever; the decoded arcs hold at κ = 0.15 and fail at 0.16 (`Ua1Static`, Lean, on
+  `Decoded.net`); with a runt filter the same run recovers. Simulation, not a Lean refutation. Below that κ, 16/16 rig
+  vectors and 60/60 random sequential runs are correct in simulation; no proof route at 200k gates exists yet.
 - **The target does not match THE goal's wording**: its three input requests are one net and its operand buses come
   from a 16-entry table (a: 18 distinct nets, b: 20, constant-tied high bits), so it cannot be offered every pair below
   2^31 or independent pipelined pairs (`formal/target/BOUNDARY.md`, `formal/FOR-RESEARCH.md` 1). The statement is
@@ -21,8 +28,8 @@ date) computes gcd on the board. Where it stands, plainly:
   pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
   472 CARRY4 outputs), prjxray arcs per pin. Checks (untrusted scripts): Python round trip 0 invented features;
   every LUT/MUXF/CARRY4 input pin's driver equals nextpnr's routed netlist (46685 pins, an independent code base; 3
-  don't-care A6 pins differ); no undriven node in the kernel's cone. The Lean round trip is not written. **No theorem about the target
-  exists yet** (`formal/target/STATUS.md`).
+  don't-care A6 pins differ); no undriven node in the kernel's cone. The Lean round trip is not written. **No theorem that the target is correct exists**; the theorems
+  about it are the refutation below and well-formedness/wiring facts (`formal/target/STATUS.md`).
 - **COUNTEREXAMPLE, LEAN-CHECKED** (`FormalWit/V9V4/Refute.lean`, `refuted_range`, standard axioms; built by
   `check.sh --wit`): the pipelined `NetCorrect` is false for the decoded target at the strictest delay model.
   Simulation first found it: under the owner's pipelined environment the target
