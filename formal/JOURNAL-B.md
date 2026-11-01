@@ -2173,3 +2173,17 @@ corner Adm clamps one end of the window to the global band, FAST_MIN or SLOW_MAX
 one direction). Per-pin map over corners 0.1..0.9 running (tools-B/target/kmap.py). **So far: if the
 simulator is right, NetCorrectSeq on the target is false for g = 1 and every κ >= 0.158 (corner 0.5), i.e.
 THE theorem's κ margin is < 0.158**; all of it from one storage node, arbiter 0's ua1.
+
+### progress 09:40 -- what the ua1 counterexample rests on: transport (eternal circulating runts), which the frozen H_PRIM admits
+The failure needs the 7-ps runt in ua1's loop to circulate unchanged for ever: pure transport, which Spec's
+read-time GateOK admits (a constant read delay). Under an involution channel (Core InvolutionLoop, from B's
+CElemInvolution loop) a runt narrower than the critical width shrinks every lap and dies (`lost`,
+`lost_shrink`), so ua1 would LATCH high and the acknowledge would be clean; an inertial gate swallows it at
+once. So: **the frozen statement is refuted (in simulation) at κ >= 0.158 because its H_PRIM is pessimistic
+enough to keep a runt alive for ever; under involution or inertial semantics this particular trace recovers.**
+Which semantics is right for a LUT loop is exactly H_PRIM's fidelity question (PROGRAM: "pessimistic for what
+is being proved"); B's HPrimInv already shows the read-time Spec does not cover involution channels at all.
+FOR SHARD A / the owner: either keep the pessimistic H_PRIM and accept κ_max < 0.158 (the theorem then needs
+"forcing episode >= loop" at ua1, which fails beyond that), or move to a semantics in which runts below a width
+die (a new, named fidelity hypothesis such as H_RUNT(w): a pulse narrower than w at a LUT input does not reach
+its output), under which this trace no longer refutes the theorem.
