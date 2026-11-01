@@ -41,6 +41,7 @@ def main():
     ap.add_argument("--scatter", type=float, default=0.0)
     ap.add_argument("--posmap", default=None)
     ap.add_argument("--filter", default=None, help="JSON {\"gate:pin\": W}: that pin skips input pulses narrower than W ps (B; needs W <= the pin's delay)")
+    ap.add_argument("--gfilter", default=None, help="W,T1: from T1 on every pin whose window allows it skips pulses narrower than W (B)")
     ap.add_argument("--watch", default=None, help="gate name; stop once it has flipped --maxflips times (B)")
     ap.add_argument("--maxflips", type=int, default=6)
     ap.add_argument("--maxevents", type=int, default=0, help="stop and print CHAOS after this many events (B)")
@@ -169,11 +170,22 @@ def main():
             return vs[k - 1]
         return vs[k] if r >= 0 else vs[0]
 
+    GW = [int(x) for x in a.gfilter.split(",")] if a.gfilter else None
+    GOK = set()
+    if GW:
+        for gi_ in G:
+            for i_, e_ in enumerate(gates[gi_]["arcs"]):
+                lo_ = (1 - c) * e_["fmin"] + c * e_["smin"]
+                if lo_ >= GW[0] and G[gi_][3][i_] >= GW[0]:      # pin's window start and its delay >= W
+                    GOK.add((gi_, i_))
+
     def ev(gi, t):
         k, init, ins, ds, o = G[gi]
         ad = 0
         for i in range(k):
             w = FILT.get((gi, i))
+            if w is None and GW and (gi, i) in GOK:
+                w = [GW[0], GW[1]]
             if (fval(ins[i], t - ds[i], t, w) if w else val(ins[i], t - ds[i])):
                 ad |= 1 << i
         v = bool(init >> ad & 1)

@@ -2258,3 +2258,15 @@ with κ* below 0.6: SLICE_X2Y18.DLUT.O6 (ua1) 0.155, SLICE_X0Y18.CLUT.O6 0.365, 
 Episodes ended by independent events (not by the node's own flip) are not covered by this estimate (their
 gaps in the dumps are tens of ns). **So, in this evidence, THE theorem's κ margin under the frozen H_PRIM is set
 by one C-element, arbiter 0's ua1, at ~0.15; the next storage node would allow ~0.36.**
+
+### progress 10:15 -- with any runt resolution the same delays are harmless (simulation)
+simb.py --gfilter W,T1: from T1 on, every pin whose window allows it (window start and delay >= W) skips input
+pulses narrower than W (a legal read-map choice inside the bands, i.e. still a Spec behaviour; it is how a
+runt "resolves"). Same κ = 0.16 assignment, the first ua1 glitch let through the OR: W = 20 ps from T1 = 602.4,
+610 or 620 ns (the last after the chaos has spread to thousands of nodes) -> RESULT OK, out0 = 6 every time.
+**Plainly:** the circuit's logic absorbs the glitch; what kills it is only that the frozen H_PRIM lets every runt
+circulate for ever. So THE theorem as frozen is (in simulation) false beyond κ ~ 0.15 for a reason that is about
+the gate model, not about gcd_hw's design; the same trace is not a counterexample in any semantics in which
+narrow runts eventually die (involution, inertial, or a named H_RUNT). That is the decision to put to the owner:
+it is the "transport vs involution vs inertial" choice PROGRAM asks H_PRIM to make, and here it decides whether
+κ_max is ~0.15 or (in this evidence) at least ~0.36.
