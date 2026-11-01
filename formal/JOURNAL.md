@@ -1159,7 +1159,7 @@ clock, BSCAN readback); it has no PS-side harness. Decision: the theorem is abou
 boundary nodes (rst, a/b/start in, out0/end out); the rig's drivers of those nodes are removed and replaced by every
 environment that obeys H_ENV (which includes the rig if it obeys the protocol, and a PS harness). Why: THE goal's
 statement quantifies over environments; the rig is one of them.
-### progress 07:30 -- Spec.lean part I drafted (in Wip/Target/ until it compiles: Mathlib still building)
+### progress 07:21 -- Spec.lean part I drafted (in Wip/Target/ until it compiles: Mathlib still building)
 Definitions only: Net/Gate/Arc (every primitive pin, pip, wire as a gate with its prjxray 4-tuple), GateOK (per-pin
 monotone read times, admissible delay, output = INIT at the address of the reads, arbitrary before the gate's
 longest delay = any power-up state), Adm = H_DELAY(g, κ) (band widened by g AND corner-c window with scatter κ),
@@ -1171,7 +1171,7 @@ from su ps before req rises; target su = 0) and `Δo` (env's out0 ack no earlier
 req leads its data by a latch arc, which the rig pads with a 16-element delay). The audit may judge Δo an env timing
 assumption; it is one, and it is inherent in this boundary (the alternative, data valid at the req edge, is false
 for bd_link by its own header).
-### progress 07:50 -- FINDING: THE goal's statement does not fit the BOARD-QUEUE #1 bitstream as worded; adapted
+### progress 07:26 -- FINDING: THE goal's statement does not fit the BOARD-QUEUE #1 bitstream as worded; adapted
 The owner's statement says "for every a, b < 2^31, when the PS-side harness offers (a, b) ... independent
 channels (pipelining)". The program also says the target is BOARD-QUEUE #1. That build is gcd_hw: kernel + in-fabric
 rig, no PS harness. Its yosys netlist (formal/target/BOUNDARY.md) shows: (1) a_req = b_req = start_req = one net (the
@@ -1186,7 +1186,7 @@ request makes the per-channel four-phase rules a fork (rise only when all three 
 "every pair, independent pipelined channels" theorem needs a target with a real operand path (a gcd_bench/gcd_ps build
 with 32-bit operand registers); no such bitstream is committed. The proof should be generic in the boundary so that a
 second target costs only the decode. FOR-RESEARCH gets this.
-### progress 08:20 -- audit P18 rows 12 and 13 on A's files: accepted, wording corrected
+### progress 07:32 -- audit P18 rows 12 and 13 on A's files: accepted, wording corrected
 Row 12 (OVERSTATED): the research GLS is not a band-respecting behaviour (seed d: 59/81 monitored arcs outside the
 slow bands), so the 0-violation counts of 10-31 are evidence about that simulation, not instances of the ArbEnv/QQuiet
 premises; the phi window (409-412 ps) is shorter than the GLS loop delay on 7 of 9 arbiters, so the phi run checks
@@ -1194,3 +1194,17 @@ less; `reqlow` is checked by no script. I withdraw "every ArbEnv field now has G
 ArbEnv is not "one list" of the arbiter hypotheses: QQuiet after S, hbase and ArbOrd sit outside it. FEASIBILITY's
 status block is rewritten for THE goal and says both. Under THE goal all of these are assumptions about the circuit's
 own behaviour and cannot appear in the final theorem; they remain leads.
+### progress 07:34 -- decoder round trip (Python mirror): 0 invented, every leftover classified
+tools-A/target/roundtrip.py re-encodes the decoded netlist (pips, LUT INIT bits, OUTMUX hops, CARRY4 PRECYINIT/CY0)
+and compares with the read-back FASM, one feature per set bit: 355126 target features, 344790 produced, 0
+duplicated, **0 invented**, 10336 left. The leftovers are all in classes the netlist gives no gate by design: FF
+config (ZINI/ZRST/FFSYNC/CE/SR/FFMUX/NOCLKINV), SLICEM DI1MUX defaults, PRECYINIT.C0 of slices with no CARRY4 in use
+(2911), clock buffers/spines, IOB/IOI, BSCAN/config, and 1 OUTMUX (DOUTMUX.O6 at CLBLM_L_X20Y86.SLICEL_X1) that no route
+reads (not yet given a hop; harmless, its output pin would be a free node either way). This is a Python check, not
+the Lean round trip. Correction: my three previous progress headings were written with estimated times; fixed to the
+commit times (07:21, 07:26, 07:32).
+Read C's notes/C-pipe-cex.md (07:27): a pipelined env reorders or deadlocks bdc's handshake network in an untrusted
+unit-delay simulation, and C's model disagrees with gcd_rig.v's "start acknowledged only at completion". The Spec's
+Env allows exactly that env (raise the shared request once all three acks are low), so if this holds on the target
+it refutes NetCorrect. Next for A: boundary nodes in the decoded target, then an event-driven simulation of the
+decoded target netlist itself (fixed in-band delays) under the sequential and the pipelined env.

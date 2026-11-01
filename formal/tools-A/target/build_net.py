@@ -308,9 +308,15 @@ def main():
                         if d is None:
                             die("%s: no IOPATH %s %s%d" % (name, pn, o, i))
                         arcs.append(arc_of(add(sitepin_delay(pv), d)))
+                    ciV, cyV = cv["CI"], cv["CYINIT"]
+                    precy = ("CIN" if "_route" in ciV else
+                             "AX" if "_route" in cyV else ("C1" if cyV.get("const") else "C0"))
+                    cy0 = [isinstance(cv["DI%d" % j], dict) and "_route" not in cv["DI%d" % j]
+                           and str(cv["DI%d" % j].get("net", "")).endswith("5") for j in range(4)]
                     add_gate({"name": "%s.%s%d" % (name, o, i), "kind": "carry", "k": k, "init": init,
                               "ins": [p[1] for p in pins], "arcs": arcs,
-                              "out": node(c["outs"]["%s%d" % (o, i)]), "prov": {"site": name.split(".")[0]}})
+                              "out": node(c["outs"]["%s%d" % (o, i)]),
+                              "prov": {"site": name.split(".")[0], "precy": precy, "cy0": cy0}})
             fidelity["CARRY4 output as one gate over its inputs (IOPATH per pin; DI: envelope of variants)"] += 8
         else:
             # flip-flops, BUFG/BUFHCE, BSCAN: no gate; their output nets are free nodes. Their
