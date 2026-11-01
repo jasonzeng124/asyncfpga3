@@ -40,6 +40,8 @@ def main():
     ap.add_argument("--pos", type=float, default=0.5)
     ap.add_argument("--scatter", type=float, default=0.0)
     ap.add_argument("--posmap", default=None)
+    ap.add_argument("--watch", default=None, help="gate name; stop once it has flipped --maxflips times (B)")
+    ap.add_argument("--maxflips", type=int, default=6)
     ap.add_argument("--kappa", type=float, default=0.0, help="posmap value -1/2 = fast/slow end of the κ-widened window")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--pipelined", action="store_true")
@@ -104,6 +106,7 @@ def main():
             d = min(max(d, lo * (1 - a.scatter)), hi * (1 + a.scatter))
         return int(round(d))
 
+    WATCH = next((i for i, gg in enumerate(gates) if gg['name'] == a.watch), None) if a.watch else None
     G = {}
     readers = defaultdict(list)   # node -> [(gi, pin, d)]
     for gi in cone:
@@ -207,6 +210,9 @@ def main():
         if t > a.tmax:
             break
         nev += 1
+        if WATCH is not None and len(ht[WATCH]) > a.maxflips + 1:
+            print('WATCH: %s flipped %d times by %d ps' % (a.watch, len(ht[WATCH]) - 1, t), file=sys.stderr)
+            break
         if pri == -1:
             n, v = x
             if setv(n, t, v):
