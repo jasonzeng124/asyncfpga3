@@ -1910,3 +1910,5 @@ double-counted, ring128 per-ring data still needed).
 ### progress 14:19 (log-normal 1.5x draw 3: BQ#1 8/8 PASS)
 - BQ#1 draw 3: all 8 seeds PASS 16/16 (vec 6 laps 24-30). BQ#1 now clean at log-normal 1.5x on draws 2 and 3.
   BQ#2 6-9 then BQ#3 x8 running.
+### progress 16:59 (log-normal 1.5x draw 3: BQ#2 4/4 PASS)
+- BQ#2 draw 3: 6 59/49/69, 7 50/40/58, 8 59/48/68, 9 50/40/58; all PASS. BQ#3 x8 running.
