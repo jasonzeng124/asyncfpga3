@@ -1986,3 +1986,5 @@ double-counted, ring128 per-ring data still needed).
   on) still fails: out0_req 5-15 ps pulse trains, then no lap for 11-14 us on 2 of 3 seeds. So fid neither
   assumes the problem away nor answers s3: what a READER does with a pulse narrower than ~20 ps is not modelled
   (transport), and that is the H_RUNT question. Only the board, or a measured LUT pulse-rejection width, settles it.
+### progress 21:10 (gcd_ps full stack: 7 and 8 both corners, 9 SLOW_MAX: 24/24)
+- 7 min, 8 max/min, 9 max: 24/24, EQUIVALENT, gates clean. 15 of 16 P1 seed x corner runs done, all 24/24.
