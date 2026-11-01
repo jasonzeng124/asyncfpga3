@@ -835,3 +835,7 @@ the board-facing document: OVERSTATED row added at the top. Spot-checking BQ#3 s
 ### progress 04:45
 BQ#3 seed 9 log-normal 1.5x draw 2 (md5s again): 16/16, lapcheck CLEAN, v6 48. With seed d, 2 of the 8 draw-2 rows are
 reproduced CLEAN.
+
+### progress 05:16
+The container restarted again (~05:10); disk intact, nothing lost except the branch watcher (re-armed). No new commits
+on research (after 96446990) or formal (after 2f2e632d); formal/target still absent.
