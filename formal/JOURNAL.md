@@ -1576,3 +1576,8 @@ Not re-run under the new Spec: V9V4 (the first, ~3 h certificate of the same fac
 `DecodedPS.net_wf : net.WF` (pin/arc lists of length k, nodes in range, INIT in range, bands ordered, one driver per
 node). Not shown: anything about its behaviour; that `net` is the bits' configuration (decoder untrusted; the round
 trip for gcd_ps is the next step, gen_rt.py on this net).
+### progress 22:38 -- gcd_ps round trip generated (FormalWit/RTPS), building
+gen_rt.py / gen_o5.py take --ns/--mp/--netmp/--netns (defaults reproduce the committed FormalWit/RT byte for byte,
+checked with diff -r). For gcd_ps (net eee97ec8, read-back 740cc6bf): 338,510 target features, 324,188 re-encoded from
+78,272 gates (pips + LUT6 INIT bits), 14,322 leftovers, 0 duplicates, 0 invented (Python mirror); 75 chunks, 867
+certificate slices. Building privately (expected ~2.5 h); nothing claimed until roundtrip and o5_gates check.
