@@ -1882,3 +1882,6 @@ calibrated within-die scatter, which S9 already suspects is double-counted. Bise
 Margin over the calibrated within-die scatter, on the worst known route/draw of each candidate: >= 1.5x.
 Next: log-normal 1.5x on draw 2 over all routes (BQ#3 d,3-9; BQ#2 6-9, the routes on disk), to see whether 1.5x
 holds beyond draw 1.
+### progress 01:22 (log-normal 1.5x draw 2: BQ#3 d,3,4,5 PASS)
+- BQ#3 log-normal 0.24/0.189 draw 2: d PASS 53/44/63 (linear 2x draw 2 had FAILED it with errs 15), 3 PASS 44/35/52,
+  4 PASS 56/44/64, 5 PASS 52/42/61. Seeds 6-9 then BQ#2 6-9 running.
