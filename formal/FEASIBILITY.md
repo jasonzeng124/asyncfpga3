@@ -21,6 +21,15 @@ date) computes gcd on the board. Where it stands, plainly:
   pip level from the read-back FASM: 200,097 nodes, 199,736 gates (167,588 pips, 17,850 LUT outputs, 1,200 F7/F8,
   472 CARRY4 outputs), prjxray arcs per pin. The Lean round trip is not written. **No theorem about the target
   exists yet** (`formal/target/STATUS.md`).
+- **COUNTEREXAMPLE (simulation; Lean witness in progress)**: under the owner's pipelined environment the target
+  gives results out of order or deadlocks: on the netlist decoded from the target's bits, every arc inside its
+  prjxray band, rig vector 9 then 4 -> out0 [1, 4096]; vector 9 twice and 15 then 5 deadlock; (2^19,2^19),(3,5)
+  reorders at the fast end, slow end and with ±20% scatter. Shard C proves the reordering at token level in Lean
+  (PipeGcd). Input data must also be held until the acknowledge falls ("broad" four-phase). With a sequential env the
+  decoded netlist computes all 16 rig vectors. So Spec.lean keeps `NetCorrect` (pipelined, refuted) and adds
+  `NetCorrectSeq` (sequential), the statement left to prove. `formal/FOR-RESEARCH.md` 2 and C1.
+- **Lean data**: the decoded netlist is generated as Lean (`Formal/Target/Net/`, 80 chunks, well-formedness by
+  chunked `decide +kernel`); `Formal/Target/Witness.lean` (proved) checks a concrete behaviour against `GateOK`.
 - **What carries over**: C's FASM import of other gcd_hw routes, `gcd_hw_graph_computes_gcd` (token level, one
   invocation), B's cell proofs, A's XAudit/E9 verdicts. Every arbiter hypothesis of A's best earlier verdict
   (`design_verdict9arbnet_env`: the 12 `ArbEnv` fields, QQuiet after S, `hbase`, ArbOrd; audit P18 1a corrects the
