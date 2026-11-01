@@ -1998,3 +1998,14 @@ Lut.eval). decide +kernel (no native_decide); standard axioms. Fidelity: per-pin
 exact for CARRY4/MUXF because every output is a read-once formula of its pins (Core kout_sic).
 **Does NOT show:** the decoder itself (part II), that CIN||CYINIT equals the silicon's PRECYINIT mux
 (it does when the unused source is tied 0 -- the Lean decoder should check that per site).
+
+### progress 08:06 -- feedback LUTs under the frozen Spec (SpecFb.lean, check.sh OK)
+**Problem, plainly:** what does the Spec's GateOK alone guarantee for a storage node (a LUT reading
+its own output: C-element, latch, arbiter q), given that only arbiters get a resolution
+assumption? **Lean (over Formal.Target.Spec):** `fb_stays` (confirmed value stays), `fb_forced`,
+`fb_switch` (forced for at least the feedback arc's upper bound, then confirmed: clean switch);
+`fb_runt_oscillates`: a bd_c2 C-element (0xE8), arcs 1/1/3 ps, a = 1, b high for 1 ps -- forced
+for less than the feedback arc -- and GateOK admits a behaviour that oscillates for ever
+(`c2_osc_forever`). Standard axioms. **FOR SHARD C:** every storage node of the target needs the
+derived obligation "each forcing episode at its pins lasts >= the feedback arc's hi" (fb_switch's
+side condition); H_ARB covers only the arbiters' q. Notes: notes/B-specfb.md.
