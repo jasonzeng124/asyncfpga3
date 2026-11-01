@@ -48,7 +48,14 @@ def gate (i : Nat) : Gate := net.gates.getD i default
 
 theorem getD_skip {α : Type} (l1 l2 : List α) (h : l1.length = 2500) (i : Nat) (d : α) :
     (l1 ++ l2).getD (i + 2500) d = l2.getD i d := by
-  rw [List.getD_append_right _ _ _ _ (by omega)]; congr 1; omega
+  simp only [List.getD_eq_getElem?_getD]
+  rw [List.getElem?_append_right (by omega)]
+  congr 2; omega
+
+theorem getD_left {α : Type} (l1 l2 : List α) (i : Nat) (hi : i < l1.length) (d : α) :
+    (l1 ++ l2).getD i d = l1.getD i d := by
+  simp only [List.getD_eq_getElem?_getD]
+  rw [List.getElem?_append_left hi]
 """)
 chunks = sorted(set(i // C for i in qidx + [m for m, _ in path + loop]))
 def chunk_lemma(i):
@@ -64,7 +71,7 @@ for i in sorted(set(qidx + [m for m, _ in path + loop])):
 for i, k, j in lines:
     skips = ", ".join("getD_skip _ _ g%03d_len" % c for c in range(k))
     idx = "%d" % j + " + 2500" * k
-    tail = "" if k == 79 else "\n  rw [List.getD_append _ _ _ _ (by rw [g%03d_len]; omega)]" % k
+    tail = "" if k == 79 else "\n  rw [getD_left _ _ _ (by rw [g%03d_len]; omega)]" % k
     out.append("theorem gate_%d : gate %d = (g%03d).getD %d default := by\n  show gates.getD (%s) default = _\n  simp only [gates]%s%s\n" % (
         i, i, k, j, idx, ("\n  rw [" + skips + "]") if k else "", tail))
 # targetQ link
@@ -77,5 +84,8 @@ def arcl(l): return "[" + ", ".join("(gate %d).arcs.getD %d default" % (m, p) fo
 out.append("/-- The arcs of `Ua1Static.ua1Path` and `ua1Loop` are the decoded netlist's arcs of these gate pins. -/")
 out.append("theorem ua1Path_eq : Formal.Cells.Ua1Static.ua1Path = %s := by\n  simp only [%s]\n  decide +kernel\n" % (arcl(path), ", ".join("gate_%d" % m for m in sorted(set(m for m, _ in path)))))
 out.append("theorem ua1Loop_eq : Formal.Cells.Ua1Static.ua1Loop = %s := by\n  simp only [%s]\n  decide +kernel\n" % (arcl(loop), ", ".join("gate_%d" % m for m in sorted(set(m for m, _ in loop)))))
+out.append("""/-- **Ua1Static's verdicts as statements about the decoded netlist's own arcs.** -/""")
+out.append("theorem ua1_holds_decoded :\n    ((%s).map (Formal.Cells.Ua1Static.hi 1 (15/100) (1/2))).sum <=\n      ((%s).map (Formal.Cells.Ua1Static.lo 1 (15/100) (1/2))).sum := by\n  rw [← ua1Path_eq, ← ua1Loop_eq]; exact Formal.Cells.Ua1Static.ua1_holds_at_015\n" % (arcl(loop), arcl(path)))
+out.append("theorem ua1_fails_decoded :\n    ((%s).map (Formal.Cells.Ua1Static.lo 1 (16/100) (1/2))).sum <\n      ((%s).map (Formal.Cells.Ua1Static.hi 1 (16/100) (1/2))).sum := by\n  rw [← ua1Path_eq, ← ua1Loop_eq]; exact Formal.Cells.Ua1Static.ua1_fails_at_016\n" % (arcl(path), arcl(loop)))
 out.append("end Formal.Cells.TargetLink")
 print("\n".join(out))
