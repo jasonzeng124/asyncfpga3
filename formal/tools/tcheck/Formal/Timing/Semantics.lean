@@ -24,7 +24,7 @@ A **run** of a netlist (`Run`) is the conjunction of the arc and node relations:
 * `H_LOCAL`          the node function of `v` reads only pins of arcs into `v`.
 * `H_ZERO_DELAY_FN`  `sig v t = g v (pins at t)`: all delay of a cell is put on
   its input-pin arcs, the Boolean function itself is instantaneous. Any LUT
-  (binary `Formal.Cells.lutB` on the pins) is an admissible `g v`; the theorems
+  (binary `Formal.Core.LutList.lutB` on the pins) is an admissible `g v`; the theorems
   quantify over every local `g`, so they hold for every cell function at once.
 
 `FixedRun` is the stricter semantics in which every arc has ONE delay

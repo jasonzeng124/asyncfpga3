@@ -942,3 +942,18 @@ an unknown input are each rejected. NOT covered: feedback (loop nodes cannot be 
 windows a design needs (the obligation generator), anything about the env.
 This is the generic piece C owes THE goal for bundling/settling obligations, stated on Spec directly (C's older
 Timing/Checker is sound only for its own run semantics).
+
+### progress 08:18 -- tcheck on the target route (running); rule D screen understood
+- formal/setup.sh: my broad `pkill -f "lake build"` (meant for a tcheck build) also killed setup's Mathlib build at
+  ~07:58 (setup then reported done, rc 0, but Mathlib is incomplete). Restarted setup.sh (idempotent); it is
+  building Mathlib again. No committed file was affected. Process note: kill by PID, never by pattern.
+- tcheck (C-10, compiled, proved sound over its own semantics) rebuilt; toy and cert self-tests ok; sync.sh copied
+  a docstring-only drift of Formal/Timing/Semantics.lean (from the lead's Prelim deletion).
+- Work tree build/tree_T = `git archive 1a97b739 cells bdc` (the research commit the target was built from) + the
+  target's SDF (md5 6f8b99e6, = README), routed JSON, FASM (md5 1a3909f6, = README), .bit.
+- research's own rules on the target route (this tree's verify/*.py on the target SDF): rule E (skew.py) 118 select
+  gates, 0 violated; rule J (arb_fork.py) every arbiter ok; tighten.py: rule A passes every comparator, F 29 lines ok
+  (worst +1343 ps); its "38 boundaries do not meet" are all rule D, which the script itself calls a one-sided SCREEN
+  superseded by rule E. So nothing new from the project's rules.
+- Next: extract every rule's obligations with prjxray arcs (extract.py --rules2 AEFJWR --cert) and run tcheck on them:
+  the band verdicts for the TARGET (the earlier C-10 runs were on --freq 100 routes, not these bytes).
