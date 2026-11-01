@@ -2204,3 +2204,9 @@ INIT, feedback pin, feedback route (gate indices), loop band (route + pin arc, s
 and the shortest flipping-then-hold forcing episode seen over the 16 rig-vector simulations (2255 nodes have
 one; at mid-band none is below its loop's SLOW_MAX; the tightest is ua1, ratio 1.72). This is the per-node
 list of SpecFb.fb_switch obligations S3 must discharge (or that fail, as ua1's does at κ >= ~0.15).
+
+### correction 09:46 (to the HPrimInv entry above)
+"involution only for long pulses or bands whose lower end is at most the channel's short-pulse delays" said
+more than the Lean: proved are the ratPair counterexample (band [3/2, 2]) and coverage for inputs separated
+by more than delta_inf - delta_min (inv_sep_win). The "band lower end <= delta_min suffices" direction is a
+plan, not a theorem. HPrimWin's docstring and notes/B-hprim.md are corrected the same way.
