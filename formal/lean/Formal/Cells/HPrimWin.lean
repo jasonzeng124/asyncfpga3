@@ -121,6 +121,26 @@ theorem win_of_timed {f : (Fin n → K3) → K3} (hf : Mono f) (T : Timed n)
     WinH f T.pin lo hi T.y :=
   win_of_varTransport hf (fun i _ => T.d i) (fun i _ => hd i) h
 
+/-- The MUXF7/MUXF8 Kleene function on pins `0 = I0`, `1 = I1`, `2 = S`. -/
+def muxF (v : Fin 3 → K3) : K3 := mux2 (v 2) (v 0) (v 1)
+
+/-- The three pin waveforms of a `MuxTimed`, in `muxF`'s order. -/
+def muxPins (M : MuxTimed) : Fin 3 → Wave := fun i =>
+  if i.val = 0 then M.i0 else if i.val = 1 then M.i1 else M.s
+
+/-- The three arc delays of a `MuxTimed`, in `muxF`'s order. -/
+def muxD (M : MuxTimed) : Fin 3 → Int := fun i =>
+  if i.val = 0 then M.d0 else if i.val = 1 then M.d1 else M.dS
+
+theorem muxF_mono : Mono muxF := fun _ _ h => mux2_mono (h 2) (h 0) (h 1)
+
+/-- Core's MUXF model (`MuxTimed.H`, fixed delays) with delays in band implies `WinH`. -/
+theorem win_of_mux (M : MuxTimed) {lo hi : Fin 3 → Int}
+    (hd : ∀ i, lo i ≤ muxD M i ∧ muxD M i ≤ hi i) (h : M.H) : WinH muxF (muxPins M) lo hi M.y := by
+  apply win_of_varTransport muxF_mono (fun i _ => muxD M i) (fun i _ => hd i)
+  intro τ
+  exact h τ
+
 /-- **Bounded inertial (sampled) behaviour.** The output at each instant EQUALS `f`
 of pin values each taken at some instant inside the pin's window. A pulse the gate
 swallows is the output still reading the older value; so swallowing, pulse
