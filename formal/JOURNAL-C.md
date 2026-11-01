@@ -841,3 +841,20 @@ pipelined. A pair that skips the first loop overtakes one that iterates. With fi
   and (64,64),(3,5) deadlock (no out0).
 Not Lean yet; unit delay is one assignment, not the band. Details: notes/C-pipe-cex.md.
 Next: Lean certificate of the token-level reorder, then the handshake-level witness.
+
+### progress 07:43 -- token-level reordering CLAIMED (Lean); counterexample retargeted to the rig's vectors
+Shard A's Spec.lean (Wip) puts the boundary at the kernel ports with ONE shared request, and the target
+feeds the kernel from gcd_rig's 16-vector table. So the counterexample now uses the table's vectors:
+- **Claimed** (`lean -DautoImplicit=false` on the core-only chain KahnLTS..GcdHw..PipeGcd, rc 0, 95 s;
+  `#print axioms`: propext, Classical.choice, Quot.sound; no sorry/native_decide; drift check
+  `tools/pipe/gen_reorder.py --check` ok): `Formal.Net.PipeGcd.gcd_hw_pipelined_reorders`.
+  **Plainly:** in the token graph bdc emits for gcd_hw, with vector 9 (a=65536, b=4096) queued before
+  vector 4 (1, 1) and two start tokens, there is a complete run (528 firings, each re-executed by the
+  kernel) ending with out0 = [1, 4096]. It does NOT show the hardware takes this schedule.
+  check.sh was not run: Mathlib is still building from source (setup.sh: cache unreachable); the
+  lead's check.sh needs `lake build`. FOR SHARD A: please add Formal/Net/PipeGcd.lean to check.sh's run.
+- Handshake model (hwsim, unit delay), target vectors: 9 then 4 -> out0 [1, 4096] (reorder);
+  9 twice -> DEADLOCK (quiescent at 264, no out0); 15 then 5 -> DEADLOCK.
+- FOR SHARD A: Spec.lean section 7 says the target "would not hold two pairs" because start is acknowledged
+  only at completion (gcd_rig.v's header). The capstone's handshake model says otherwise: pair 1's input
+  handshake completes at tick ~140, its result at 271+. See FOR-RESEARCH.md section C1 (added by C).

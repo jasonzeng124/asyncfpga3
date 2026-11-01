@@ -128,7 +128,7 @@ def run(rules, N, pairs, rng, out_ch, maxsteps=10 ** 6):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("pairs", nargs="+")
-    ap.add_argument("--lean", default="formal/lean/Formal/Net/GcdHw.lean")
+    ap.add_argument("--lean", default=__import__("os").path.join(__import__("os").path.dirname(__import__("os").path.abspath(__file__)), "..", "..", "lean", "Formal", "Net", "GcdHw.lean"))
     ap.add_argument("--runs", type=int, default=20)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", type=int, default=None, help="output channel (default: name '170')")
