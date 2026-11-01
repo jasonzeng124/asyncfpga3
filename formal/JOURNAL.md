@@ -1405,3 +1405,10 @@ no gate, the known unread MUXF7 of ucontrol_merge12 (out/xcheck_nextpnr.txt). Wh
 of the decoded netlist (bits -> prjxray-db -> walker) equals what the router built, on every LUT/MUXF input pin. Not
 compared: CARRY4 pins, the per-pip structure in between (only the endpoints), and constants inside nextpnr's own
 model. This is the strongest H_DECODE evidence so far; the Lean round trip is still not written.
+### progress 13:07 -- gen_witc.py: the same refutation with a cut per node (generated, NOT yet checked)
+tools-A/target/gen_witc.py writes witness `V9V4c` from the same dump as V9V4: node n repeats its last period from its
+own cut (the earliest P-periodic point of its run, + Dm), each gate is checked on [dmax, max cut of its nodes) via
+WitCut.gateOK_cut, and every per-node fact (cut ≥ P + Dm, periodic on [cut - Dm, hor), window end ≤ hor) is a kernel
+check. Python cost proxy (sum over gates of (flips in the gate's window)^2): 4.8e7 -> 1.95e7; 1541 slices (V9V4:
+1695). The heaviest gates are no longer the ring's but computation nodes with ~140 flips. Compiling in the
+background; V9V4c is not committed under FormalWit until it checks, and V9V4 (the verified refutation) is unchanged.
