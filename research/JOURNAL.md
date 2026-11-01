@@ -1961,23 +1961,23 @@ double-counted, ring128 per-ring data still needed).
   running; then the negative control: the UNSIZED routes d (rule A -1567 ps) and 5 (-464) on the same stack.
 - xsdb_gcd.tcl takes an optional vector file; research/board/gcd_ps_vec1000.hex (seed 1; the GLS's 24 are its
   first 24 lines, byte-identical).
-### progress 18:55 (gcd_ps full stack: seeds d, 3 PASS both corners, 4 SLOW_MAX PASS)
+### progress 18:38 (gcd_ps full stack: seeds d, 3 PASS both corners, 4 SLOW_MAX PASS)
 - d, 3: 24/24 ok at SLOW_MAX and FAST_MIN, EQUIVALENT, gate ANNOTATE_DONE / 0 SDF warnings on all four; 4 SLOW_MAX
   24/24. Harness negative control (seed d SLOW_MAX netlist, vector file with two expected values corrupted):
   ok=1 err=2, so the compare can fail. Formal-target artefacts (seed d .bit, .fasm.gz, toolchain) staged.
-### progress 19:10 (gcd_ps full stack: d,3,4 PASS both corners, 5 SLOW_MAX PASS; disk full voided 5 FAST_MIN)
+### progress 18:50 (gcd_ps full stack: d,3,4 PASS both corners, 5 SLOW_MAX PASS; disk full voided 5 FAST_MIN)
 - 4: 24/24 at both corners, EQUIVALENT, gate clean. 5 SLOW_MAX 24/24.
 - 5 FAST_MIN printed no summary: the session's disk allowance ran out at 18:48 while iverilog wrote its
   run_baked.vvp (truncated, "syntax error" at load). Not a GLS result; re-queued. Each gcd_ps full-stack job
   leaves ~1 GB of compiled sims; the drivers now delete them after the run and gate, and the stale binaries of the
   BQ#1-3 sweeps (results in research/data/fid/*.tsv) were removed: 11 GB free.
-### progress 19:45 (BOARD-QUEUE #4 gcd_ps added; formal target named)
+### progress 19:02 (BOARD-QUEUE #4 gcd_ps added; formal target named)
 - Seed 5 FAST_MIN re-run: 24/24, EQUIVALENT. So seeds d,3,4,5 x SLOW_MAX/FAST_MIN: 8/8 runs 24/24, 0 err, 0 hang
   (research/data/gcd_ps/p1_fullstack.tsv). Longest vector 15.1 us (14.95-15.2) at SLOW_MAX, 5.3 us at FAST_MIN.
 - BOARD-QUEUE #4 written: formal target = P1 seed d, research/board/gcd_ps_e6bb4aec.bit (md5 aa83c8b7) and
   .fasm.gz (uncompressed md5 2dbf962d); board run = xsdb_gcd.tcl over the 16 golden then 1000 derived vectors.
   PR #2 description refreshed. Queued: seeds 6-9, unsized negative control (d, 5), +PIPE=1 on seed d, 1x scatter.
-### progress 20:25 (gcd_ps full stack 6 both corners, 7 SLOW_MAX: 24/24; FOR-RESEARCH s3 reading)
+### progress 19:28 (gcd_ps full stack 6 both corners, 7 SLOW_MAX: 24/24; FOR-RESEARCH s3 reading)
 - 6 max/min and 7 max: 24/24, EQUIVALENT; gates clean (5 min's re-run gate too).
 - FOR-RESEARCH s3 (does a LUT loop circulate a runt?), CORRECTED after reading audit T6 (claude/audit
   audit/findings/T6.md rows 7-8, section 3): the fid resolver only makes the loop's OWN echo impossible (the
@@ -1986,15 +1986,15 @@ double-counted, ring128 per-ring data still needed).
   on) still fails: out0_req 5-15 ps pulse trains, then no lap for 11-14 us on 2 of 3 seeds. So fid neither
   assumes the problem away nor answers s3: what a READER does with a pulse narrower than ~20 ps is not modelled
   (transport), and that is the H_RUNT question. Only the board, or a measured LUT pulse-rejection width, settles it.
-### progress 21:10 (gcd_ps full stack: 7 and 8 both corners, 9 SLOW_MAX: 24/24)
+### progress 19:48 (gcd_ps full stack: 7 and 8 both corners, 9 SLOW_MAX: 24/24)
 - 7 min, 8 max/min, 9 max: 24/24, EQUIVALENT, gates clean. 15 of 16 P1 seed x corner runs done, all 24/24.
-### progress 21:35 (gcd_ps P1 full stack: 16/16 seed x corner runs 24/24)
+### progress 19:57 (gcd_ps P1 full stack: 16/16 seed x corner runs 24/24)
 - Seeds d,3-9 x SLOW_MAX/FAST_MIN: all 24/24, 0 err, 0 hang, EQUIVALENT, gate clean
   (research/data/gcd_ps/p1_fullstack.tsv). Longest vector i_ack->o_req: SLOW_MAX mean 15.03 us (14.6-15.4),
   FAST_MIN 5.32 us (5.2-5.45); worst seed for it is 6 at both corners. BOARD-QUEUE #4 updated to 8 seeds.
 - Next (queued, running): unsized negative control (d: rule A -1567 ps, 5: -464 ps) on the same stack; then
   +PIPE=1 on seed d (24-vector pairs and formal's (2^19,2^19),(3,5)); then 1x within-die scatter on d,3,4,5.
-### progress 22:05 (gcd_ps negative control: the UNSIZED routes pass the full stack -- rule A is pessimistic here)
+### progress 20:17 (gcd_ps negative control: the UNSIZED routes pass the full stack -- rule A is pessimistic here)
 - Unsized seed d (umux21 12 links; rule A margin -1567 ps guarded, req 6692 vs peak 7088, i.e. negative even raw)
   on the full stack: SLOW_MAX 24/24, FAST_MIN 24/24, EQUIVALENT, gate clean. Unsized seed 5 (-464) SLOW_MAX 24/24.
   So the control did NOT fail: either rule A over-charges this bundle or the GLS/vectors cannot see it.

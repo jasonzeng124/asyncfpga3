@@ -203,7 +203,7 @@ What it would mean:
 - The harness is sequential on purpose (one call completes before the next is offered). formal/FOR-RESEARCH.md
   section 2: the kernel reorders overlapped calls, so a host that overlaps them is not testing this.
 
-Evidence (JOURNAL 2026-11-01 17:31-19:40):
+Evidence (JOURNAL 2026-11-01 17:31-19:57):
 - Audits, P1 seeds d,3-9 (`research/data/gcd_ps/p1_audit_8seed.tsv`): rule A 0 on all 8 (umux21 margin mean 1456 ps,
   range 358-1889, guardband applied), rule D 38 (the screen, as on #1), E 0, J ok, build_hw PASS incl. fasm_audit.
   nextpnr's fclk0 estimate 343-447 MHz against the 100 MHz FCLK0 (build_hw.sh passes no --freq for gcd_ps, so its
