@@ -1355,3 +1355,10 @@ in any behaviour where the state's inputs change and then hold, so NetCorrect at
 bound T. Consequence for claims: a positive NetCorrect/NetCorrectSeq result must state T at least the largest state
 LUT delay bound (or prove non-vacuity by a witness); the refutation is at T ≥ 656, with a witness satisfying ArbOK, so
 it is not affected. Added to STATUS.
+### progress 11:53 -- FormalWit re-check under the committed module names: refuted / refuted_range OK
+Every module of formal/lean/FormalWit/V9V4 (64 T, Top, CBase, 80 C, 81 Q, Refute) compiled with lake env lean from
+the committed text (one benign error: Top.lean was also matched by the T* glob and compiled once before T62 existed,
+then again in order, successfully). #print axioms refuted, refuted_range: propext, Classical.choice, Quot.sound.
+Also: Spec, NetBase, Witness, WitBoundary, WitSlice recompiled with -DautoImplicit=false (the lakefile's option): OK.
+Next: the full-project check.sh --committed (lake build of every committed Formal module, then the axiom audit),
+which was not run in one piece this session; started now.
