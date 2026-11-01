@@ -2009,3 +2009,15 @@ for less than the feedback arc -- and GateOK admits a behaviour that oscillates 
 (`c2_osc_forever`). Standard axioms. **FOR SHARD C:** every storage node of the target needs the
 derived obligation "each forcing episode at its pins lasts >= the feedback arc's hi" (fb_switch's
 side condition); H_ARB covers only the arbiters' q. Notes: notes/B-specfb.md.
+
+### progress 08:09 -- the double acknowledge is a behaviour of the FROZEN Spec (ArbTSpec.lean, check.sh OK)
+**Problem, plainly:** does the frozen statement's H_ARB(T) keep an arbiter from acknowledging both
+clients in one server transaction? **No.** `spec_double_ack`: six Spec `Gate`s (ustate O6/O5, ugrant
+O5/O6, ua1, ua2; real INITs, tied pins folded), `Behaves` at the slow corner with g = 1, κ = 0
+(monotone read maps, every read delay admissible: unit arcs, q's feedback arc (2,2,2,3)), the frozen
+`ArbOK T` for every T >= 9, R0 rises once at 12 and stays high, the server's A0 rises at 18, and
+both A1 (19) and A2 (20) rise. Standard axioms. **What it means:** THE theorem cannot be proved by
+treating arbiters as safe under H_ARB(T); the proof must derive "q settled before A0 rises at ua"
+(ArbT.one_ack) per arbiter from the bands, through the server path. For T at least the shortest such
+path in the target, this shape is a candidate counterexample on the target itself (not yet built:
+needs the decoded target's arbiter nodes and a near-tie reachable under the sequential env).
