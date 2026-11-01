@@ -1894,3 +1894,13 @@ holds beyond draw 1.
   fail linear 2x. BOARD-QUEUE #2 updated. BQ#1 x8 at the same point started.
 ### progress 07:53 (BQ#1 log-normal 1.5x draw 2: 4/4 PASS so far)
 - d 26/20/30, 3 27/21/30, 4 25/19/28, 5 28/22/32; all 16/16 errs 0. Seeds 6-9 running.
+### progress 09:54 (log-normal 1.5x draw 2: all 20 candidate routes PASS)
+| log-normal 1.5x (0.24/0.189), draw 2 | routes | pass |
+|---|---|---|
+| BQ#1 | d,3-9 | 8/8 |
+| BQ#2 | 6-9 (on disk) | 4/4 |
+| BQ#3 | d,3-9 | 8/8 |
+Every board candidate holds 1.5x the calibrated within-die scatter on this draw when region speed-ups are bounded
+(log-normal), including the two routes that fail linear 2x. BOARD-QUEUE #1 updated.
+Does NOT show: other draws at 1.5x (one draw per route); whether the calibrated scatter is right (S9: possibly
+double-counted, ring128 per-ring data still needed).
