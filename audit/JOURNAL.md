@@ -935,3 +935,11 @@ The disk filled up (/: 0 bytes free). The BQ#1 d log-normal GLS build failed wit
 CLEAN on a run with no vector logs (fixed: it now flags "NO VECTOR LOGS"; earlier CLEAN verdicts all had per-vector
 output). Freed space by deleting large regenerable intermediates (netlists, vvp images, routed json) of finished
 r23 work dirs; kept the sweep logs and the bq1_d_max/min dirs. Now 5.6 GB free. GLS re-run.
+
+### progress 10:35
+T6 in (B's sequential-theorem candidate counterexample). The 7 ps runt mechanism is CONFIRMED independently: B's two
+simulators, the subagent's own transport simulator on my decoded net (flip-for-flip), all delays inside Adm, and the
+frozen H_PRIM admits transport. It is NOT yet a counterexample to NetCorrectSeq: only liveness can fail, and no finite
+run reaches the nominal out0 time. fid GLS replay (7 local arcs changed): the same runt in transport mode; with the
+default resolver, out0_req pulse trains (a four-phase violation) and then a stall (> 12 us without a lap at 2 of 3
+seeds). The kappa 0.21 control matches the baseline exactly (checked by me: laps 2.087/3.499/4.912 us).
