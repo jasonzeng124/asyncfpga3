@@ -891,3 +891,14 @@ native_decide/axiom in PipeWit{,Data}; `tools/pipe/gen_pipewit.py --check` ok.
 low at reset) and offer gcd_rig's vector 9 at tick 0 and vector 4 at tick 142, and out0 offers gcd 1 1 = 1 FIRST
 (tick 272) and gcd 65536 4096 = 4096 second (tick 1044). Unit delays: one delay assignment, not the band; CapNet
 is built from bdc's graph and link plan, not decoded from the bitstream.
+
+### progress 07:56 -- PipeDead CLAIMED: deadlock under a pipelined env, every gate fast
+Same check as PipeWit (direct lean -DautoImplicit=false, rc 0, 55 s; axioms propext, Classical.choice,
+Quot.sound; no sorry/native_decide/axiom; `gen_deadwit.py --check` ok).
+**Plainly:** `Formal.Net.CapNet.PipeDead.gcd_hw_pipelined_deadlock`: a run of the CapNet network in which every
+non-source operator meets its cell model with explicit internal traces (CellI), every channel is bundled, EVERY gate
+of every non-source operator (arbiter grants included) has the one-tick step property (BndG 1: nothing is merely
+slow), the sources obey four-phase and offer gcd_rig's vector 9 twice (requests rise at 0 and 142), out0's request
+is low at every tick (neither result is ever offered), and no non-source gate is excited at tick 265 (QuietNS).
+So without H_START_ONCE the capstone's liveness fails outright: this is what H_START_ONCE is hiding. Unit delays,
+CapNet (bdc's graph), not the band or the bitstream; the target-route GLS (notes/C-pipe-cex.md) agrees.

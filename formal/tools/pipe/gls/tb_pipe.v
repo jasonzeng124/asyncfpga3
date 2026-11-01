@@ -21,6 +21,9 @@
 `timescale 1ps/1ps
 
 module tb_pipe;
+`ifdef PROBE
+`include "probe.vh"   // cells/gls gen_probe.py: last transition of every node
+`endif
 
     top dut ();
     `include "signals.vh"
@@ -90,6 +93,9 @@ module tb_pipe;
             #1000000;
             if (t_rst_rel != 0 && ($time - t_rst_rel) > quiet_ns*1000 && ($time - t_last_lap) > quiet_ns*1000) begin
                 $display("RESULT quiet: laps=%0d last lap t=%0t, nothing for %0t", laps, t_last_lap, $time - t_last_lap);
+`ifdef PROBE
+                dump_probe(0); $display("# probe_last.txt written");
+`endif
                 $finish;
             end
             if ($time > tend*1000) begin
