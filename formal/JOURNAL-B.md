@@ -2270,3 +2270,14 @@ the gate model, not about gcd_hw's design; the same trace is not a counterexampl
 narrow runts eventually die (involution, inertial, or a named H_RUNT). That is the decision to put to the owner:
 it is the "transport vs involution vs inertial" choice PROGRAM asks H_PRIM to make, and here it decides whether
 κ_max is ~0.15 or (in this evidence) at least ~0.36.
+
+### progress 10:20 -- the ua1 threshold in Lean, statically (Ua1Static.lean, check.sh OK)
+**Problem, plainly:** with every delay inside Spec's Adm window (g = 1, corner 1/2), can the causal path that
+ends ua1's forcing episode (ua1 -> client -> ugrant g -> ua1 pin A5, 17 arcs) be faster than ua1's feedback loop
+(6-hop route + pin A1, 7 arcs)? **Lean (decide +kernel on the generated arc data, integer ps window ends exactly
+as Adm allows: ceil of max((1-κ)·lerp_lo, FAST_MIN/g), floor of min((1+κ)·lerp_hi, SLOW_MAX·g)):**
+`ua1_holds_at_015` (κ = 0.15: path >= 865 ps, loop <= 852 ps: fb_switch's premise holds for this episode
+under every admissible delay) and `ua1_fails_at_016` (κ = 0.16: path >= 852, loop <= 860: admissible delays can
+violate it), `ua1_numbers`. Agrees with the simulated threshold (0.155/0.159). **Not shown:** the arcs are
+generated data (tools-B/target/ua1arcs.py, reproduced byte-identically), not yet tied to Decoded.net; that the
+episode is this path for every behaviour (causality: a network fact); the dynamics (simulation).
