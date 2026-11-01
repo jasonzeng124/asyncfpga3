@@ -280,7 +280,7 @@ theorem busVal_inv (D : Nat → SD) (l bp : List Nat) (hsub : ∀ n ∈ l, ∀ x
   apply List.map_congr_left
   rintro ⟨n, i⟩ hm
   have := val_const_of_gap (D n) bp (hsub n (mem_of_zipIdx hm)) hst h
-  simp only [beh, this]
+  exact congrArg (fun v : Bool => if v = true then 2 ^ i else 0) this
 
 theorem val0_false (d : SD) {R : Nat} (h0 : d.v0 = false) (h : ∀ τ ∈ d.ts, R < τ) : d.val 0 = false := by
   unfold SD.val SD.cnt
