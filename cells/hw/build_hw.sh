@@ -176,6 +176,25 @@ gcd_ps|gcd_bench)
     ( cd .. && python3 bdc/emit.py \
         build/frontend/gcd/comp/handshake_transformed.mlir \
         --no-top -o build/gen/gcd_kernel_ps.v )
+    # BD_SIZES=<path>: per-cell matched-delay sizes for gcd_ps only, as for
+    # gcd_hw above, with tighten.py's names for bridge_i.udut.<inst>
+    # (BD_SZ_BRIDGE_I_UDUT_<INST>).  OFF unless set.
+    if [ "$TOP" = gcd_ps ] && [ -n "${BD_SIZES:-}" ] && [ "$BD_SIZES" != none ]; then
+        [ -e "$BD_SIZES" ] || { echo "build_hw.sh: BD_SIZES=$BD_SIZES does not exist" >&2; exit 2; }
+        python3 - "$KERNEL" build/gen/gcd_ps_dut_params.vh <<'PY'
+import re, sys
+src, out = sys.argv[1:3]
+ps = re.findall(r"parameter\s+DELAY_(\w+)\s*=\s*(\d+)", open(src).read())
+if not ps:
+    sys.exit(f"{src}: no DELAY_ parameters -- nothing to size")
+m = lambda i: "BD_SZ_BRIDGE_I_UDUT_" + i.upper()
+lines = [f"`ifndef {m(i)}\n `define {m(i)} {d}\n`endif" for i, d in ps]
+lines.append("`define GCD_DUT_PARAMS " + ", ".join(f".DELAY_{i}(`{m(i)})" for i, _ in ps))
+open(out, "w").write("\n".join(lines) + "\n")
+PY
+        SRCS="rtl/*.v $KERNEL $BD_SIZES build/gen/gcd_ps_dut_params.vh hw/$TOP.v"
+        echo "build_hw.sh: applying $(grep -c '^`define' "$BD_SIZES") measured delay size(s) from $BD_SIZES" >&2
+    fi
     ;;
 *)
     SRCS="rtl/bd_latch.v rtl/bd_ce.v rtl/bd_arb.v hw/$TOP.v"
