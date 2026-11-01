@@ -10,6 +10,12 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:
+- **THE target switched (owner decision 1) to `formal/target/gcd_ps_e6bb4aec.bit`** (BQ#4, 2026-11-01 19:3x UTC): the same
+  kernel with full 32-bit operands from the PS. Rebuilt bit-identical up to the date, read back (338,510 features),
+  decoded (Python round trip 0 invented; boundary at the kernel's ports with 32+32 distinct operand nodes, so the
+  owner's "every pair below 2^31" is now representable); 8/8 full-width vectors correct in simulation at three
+  corners. The Lean netlist is generated, not yet compiled; no Lean theorem about gcd_ps yet. Results below that
+  name gcd_hw_03e82630 are about the previous target.
 - **The statement** compiles (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
   H_ARB, H_ENV, the safety and liveness conclusion) and part I is frozen, with two journaled changes: H_ARB reads the
   arbiter's state-LUT inputs (audit row); `Adm` is the g-scaled corner window (owner decision 3, 2026-11-01; audit row
