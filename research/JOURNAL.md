@@ -2019,3 +2019,12 @@ double-counted, ring128 per-ring data still needed).
   so the model now names the wait that timed out (ack0/ack1/out0/out1); re-run queued.
 - What it means for the board: confirms that BQ#1 and BQ#4 must stay sequential; both are (gcd_rig's two-stage
   env; xsdb_gcd.tcl waits for o_req to fall before the next write).
+### progress 21:05 (pipe FAST_MIN same as SLOW_MAX; 1x scatter seeds d, 3 PASS)
+- +PIPE=1 at FAST_MIN (seed d): formal pair REORDERED (1 then 0x80000), 12 pairs 2/2/8 (reordered/in order/hang),
+  identical to SLOW_MAX; sequential run 24/24.
+- Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, draw 1), full stack: seeds d and 3 24/24,
+  EQUIVALENT. 4, 5 running.
+- bdc_muxn3_32 reading (why rule A may over-charge umux21): z_data is a mux on s (the select latch's data),
+  z_req = delay(OR of C(in_k_req, ctl_req & s==k)). s is the output of ulink_n_index_97, whose own request is
+  matched (8 links) after its data, so s settles before ctl_req rises; tighten, finding "no common source",
+  charges s an upstream lag of 1229 ps after the request instead. The shortened-umux21 controls test this.
