@@ -1948,3 +1948,22 @@ only for long pulses or bands whose lower end is at most the channel's short-pul
 an involution trailing edge can come earlier than lo. Shard A must either name that
 restriction in the fidelity table or take band lower ends at most delta_min (unreported by
 prjxray). **Not shown:** the exact band/pair characterisation; multi-pin Kleene case.
+
+### progress 07:48 -- the arbiter under H_ARB(T) (ArbT.lean, checked, Core only)
+**Problem, plainly:** under the Spec semantics (Boolean gates, per-pin read times in the
+bands) plus H_ARB(T), is the held bd_arbiter safe, and how does T enter? **Lean:** read-time
+gates `RGate` (Spec v1's GateOK minus monotone reads, so positive results transfer), the
+real INITs (`q_eq`, `r0_eq`, `g1_eq`, `g2_eq`, `ua_eq`, decide). Positive: `q_stays`
+(settled q kept while pins confirm it: A0 freeze, tie hold), `grant_excl`, `ack_stays_low`,
+`one_ack` (q settled W before A0 rises => the losing ack stays low for the whole server
+transaction). **Counterexample `double_ack`:** all six gates hold (unit delays, q feedback
+band [2,3]), H_ARB(T) in B's strong form `ArbOK2` (all four non-feedback ustate pins) holds
+for every T >= 7, near-tie r1@10/r2@11, q oscillates (circulating runt) until 20, server A0
+rises at 18 (R0 rose at 12, one transaction), and BOTH A1 (19) and A2 (20) rise. Negative
+control: changing the resolving read (t=21 -> 19) breaks the kernel check. Standard axioms.
+**What it means (FOR SHARD A/C):** H_ARB(T) alone does not give arbiter safety; it needs the
+timing obligation "last edge at ustate's pins -> A0 rise at ua >= T + W" (a server path),
+which the checker must generate and prove from the bands; THE theorem's T margin is bounded
+by the shortest such path. This is the Spec-semantics form of A's arb_double_ack (fid GLS).
+**Not shown:** the full cell contract (four-phase, liveness, phase chaining); route arcs.
+Notes: notes/B-arbT.md.
