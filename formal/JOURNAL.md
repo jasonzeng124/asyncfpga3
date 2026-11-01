@@ -1422,3 +1422,17 @@ private oleans): T/Top/CBase ~3 min; the 80 gate chunks + 81 periodicity chunks 
 ring chunks ~40 min each; V9V4 totalled ~3 h CPU. Not measured: V9V4c's CPU total, peak memory. What it does not
 show: anything new about the target; it is a cheaper certificate of the same fact. check.sh --wit now builds every
 witness's Refute (before, with two witnesses, all but the last were skipped by the module ordering).
+### progress 14:19 -- can B's ua1 runt (κ ≥ 0.16, sequential env) become a Lean refutation? Not with the witness method
+Question: B's candidate counterexample to `NetCorrectSeq` (cex_ua1_README.md) would bound the κ margin in Lean if it
+became a checked witness like V9V4. The witness method needs a behaviour that is eventually periodic with one period
+for every node a gate touches. Measured (B's simb.py, per-pin posmap, corner 0.5, κ = 0.16, vector (0xC,0x12),
+decoded net 7c41591d, to 640 ns): no out0 (correct: 6); activity after the runt GROWS and is aperiodic: 600-610 ns
+5214 nodes / 42k flips, 620-630 ns 5051 / 1.13M, 630-640 ns 4682 / 1.41M, 639-640 ns 3911 nodes / 170k flips; inter-flip
+gaps per node take up to 33 distinct values from 1 ps up. So the transport run is not a usable witness (a fixed-delay
+finite system is eventually periodic in principle, but nothing suggests a period anywhere near checkable).
+The only other route inside the frozen Spec: read-map freedom (a pin may skip a pulse narrower than its window), so
+that the fault is seen finitely often and the run goes quiet in a WRONG state. B found the opposite with
+`--gfilter` (skip from any T1 up to 620 ns: the run recovers and is correct), so no such witness is known.
+Conclusion for the margin: the κ ≈ 0.155 bound stays a simulation result (plus B's Lean `Ua1Static` window fact);
+the frozen H_PRIM makes it an eternal-chaos failure, which the current Lean method cannot certify. Not shown:
+that no quiet-wrong witness exists.
