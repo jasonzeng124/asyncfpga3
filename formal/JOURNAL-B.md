@@ -2196,3 +2196,11 @@ simb.py's (0 differing nodes), ua1's circulating runt included. (Before 25 ns th
 power-up convention: A's reads at negative times depend on event order; the Spec leaves outputs before a
 gate's start unconstrained, so both are behaviours.) So the trace is not an artefact of one simulator; it is
 still untrusted Python against the same JSON netlist (rebuilt from A's generated Lean data).
+
+### progress 09:45 -- FOR SHARD C (S3 data): the target's storage-node table
+formal/out/target_fb_nodes.json (tools-B/target/fbtable.py, UNTRUSTED data): all 4401 feedback LUTs of the
+decoded target's kernel cone (a LUT one of whose pins is its own output through copy gates), with gate index,
+INIT, feedback pin, feedback route (gate indices), loop band (route + pin arc, sum FAST_MIN .. sum SLOW_MAX),
+and the shortest flipping-then-hold forcing episode seen over the 16 rig-vector simulations (2255 nodes have
+one; at mid-band none is below its loop's SLOW_MAX; the tightest is ua1, ratio 1.72). This is the per-node
+list of SpecFb.fb_switch obligations S3 must discharge (or that fail, as ua1's does at κ >= ~0.15).

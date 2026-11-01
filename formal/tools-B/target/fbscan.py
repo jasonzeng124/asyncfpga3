@@ -65,7 +65,7 @@ for gi, G in enumerate(g):
             res.append((tend - t, fhi, flo, G["name"], t, simloop))
 res.sort(key=lambda r: r[0] / r[5])
 print("feedback gates with activity:", nfb, "| flipping episodes followed by a hold:", len(res))
-for r in res[:400]:
+for r in res:
     print("  episode %d ps / sim loop %d ps = %.2f  (loop band %d..%d ps)  %s at %d ps%s" % (r[0], r[5], r[0] / r[5], r[2], r[1], r[3], r[4], "   <-- SHORTER THAN LOOP SLOW_MAX" if r[0] < r[1] else ""))
 print("episodes shorter than their loop's SLOW_MAX:", sum(1 for r in res if r[0] < r[1]),
       "| shorter than FAST_MIN:", sum(1 for r in res if r[0] < r[2]))
