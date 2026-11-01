@@ -957,3 +957,11 @@ check. SpecRunt.lean adds H_RUNT(w) as a sixth hypothesis, offered as an owner o
 ### progress 12:29
 Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness modules: 77 built so far, all rc=0
 (~30 s and ~2.4 GB each). Research 100b2f13: log-normal 1.5x draw 3 partial (BQ#1 4/4); waiting for the summary.
+
+### 13:35 T8: A's new H_DECODE evidence (formal c9484103)
+- Decoder unchanged since 88c74e3c, Spec unchanged since 565af3b9 -> my T4 decode is the object. Own scripts t8/undriven_own.py
+  (0 undriven of 170,324 kernel-cone nodes, 0 multiply-driven) and t8/carry_own.py (59 CARRY4 cells, 590/590 pins match
+  nextpnr). A6 "mismatches": nextpnr cell netlist says GND, nextpnr ROUTING ties VCC (X16Y51) / leaves unrouted (X10Y92);
+  bits follow the routing; halves equal -> harmless. Nits: "472" is the carry output-gate count, pins are 590; the check is
+  independent of A's walker but not of prjxray's database (= H_DECODE). findings/T8.md, REPORT row.
+- Witness build at 565af3b9 still running (C020, module 87/228, all rc=0 so far).
