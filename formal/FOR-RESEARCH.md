@@ -35,6 +35,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   both effects (formal/tools/pipe/hwsimgen.py on the generated-netlist model).
 - **Not shown.** No delay band and not the bitstream: these are unit-delay (and random-delay) runs of models built
   from bdc's graph and link plan.
+- **GLS of the target route (added later the same session).** Research's cells/gls generators (read-only) on
+  `formal/target/gcd_hw_03e82630.routed.json.xz` + `.sdf.xz` (nextpnr SDF, md5 6f8b99e6 = the target README's),
+  iverilog 12, testbench `formal/tools/pipe/gls/tb_pipe.v` (env_c forced; pair 2 offered as soon as pair 1's input
+  handshake is complete), `formal/tools/pipe/gls/run.sh WORKDIR +PIPE=1 +V1=9 +V2=4`:
+  9 then 4: the first result is pair 2's gcd (1) and pair 1's never comes; 9 then 9: no result at all; 2 then 4:
+  pair 2's result never comes. Sequential controls (PIPE=0) for the same pairs: both results, correct.
+  Table and acceptance-gate status: formal/notes/C-pipe-cex.md. **Still wanted from research: the same testbench on
+  the board-fidelity (prjxray) GLS.**
+- **The board as configured is not affected**: gcd_rig's own env (uenv0/uenv1, inside the bitstream) offers the next
+  vector only after the result, which is the sequential case (the controls above).
 - **For research (to confirm or refute on the target).** Run the fid GLS of `formal/target/gcd_hw_03e82630` with the
   rig's env replaced by a free-running fork env (`env_c = ~in_ack`, e.g. uenv1 as an inverter of in_ack, which is
   `sim.py`'s `noack` negative control) and two vectors queued: 9 then 4 (expect out0 = 1 then 0x1000), and 9 then 9

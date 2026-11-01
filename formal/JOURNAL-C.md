@@ -881,3 +881,13 @@ as soon as pair 1's input handshake completes). nextpnr-SDF GLS, not the fid GLS
 - sequential control (9 then 4): both results, correct, in order.
 Pending before this is claimed: the SDF acceptance gate (gate.vvp, ANNOTATE_DONE and no SDF warnings) and the
 sequential controls 9/9 and 2/4. Table: notes/C-pipe-cex.md.
+
+### progress 07:54 -- PipeWit CLAIMED: the capstone's cell models admit reordered results
+`lean -DautoImplicit=false` over the core-only import chain (direct lean, scratch oleans; Mathlib still building),
+rc 0; `#print axioms gcd_hw_pipelined_reorder_handshake`: propext, Classical.choice, Quot.sound; no sorry/
+native_decide/axiom in PipeWit{,Data}; `tools/pipe/gen_pipewit.py --check` ok.
+**Plainly:** there is a run of the 465-channel CapNet network in which every non-source operator meets its cell model
+(CellR, the capstone's H_CELLS), every channel is bundled (Held), the sources obey the four-phase protocol (requests
+low at reset) and offer gcd_rig's vector 9 at tick 0 and vector 4 at tick 142, and out0 offers gcd 1 1 = 1 FIRST
+(tick 272) and gcd 65536 4096 = 4096 second (tick 1044). Unit delays: one delay assignment, not the band; CapNet
+is built from bdc's graph and link plan, not decoded from the bitstream.
