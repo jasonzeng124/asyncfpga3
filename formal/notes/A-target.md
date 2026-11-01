@@ -55,15 +55,16 @@ Kernel cost: per-gate cost is quadratic in its breakpoints; 122 gates near the r
     python3 formal/tools-A/target/sim.py ... --full --corner 1 --pos 1 --dump W.json
     python3 formal/tools-A/target/gen_wit.py NET BND W.json V9V4 OUTDIR --arbs ARBS   # Formal/Target/Wit/V9V4
 
-## Next for A (written 2026-11-01 17:38)
-1. **S1 rest**: re-encode the 5,460 output-mux and 3,206 carry selects in Lean (needs each hop's driver gate: an
-   index-keyed gate tree tied to `gates`, as `ITree`/`hidx` tie the features); check the O6 pin order (A1..A6)
-   against the prjxray pin names in Lean; the wire-to-node merge (prjxray tileconn) stays H_DECODE.
-2. **Faster witnesses**: done (`gen_witc.py`, V9V4c, ~3x). New counterexamples should use gen_witc.py.
-3. **The sequential statement**: no proof route at 200k gates yet; B's κ ≥ 0.16 runt is aperiodic in simulation (no
-   Lean witness by the periodic method, journal 14:19). A quiet-wrong witness via read-map choices is the only
-   known route to a Lean refutation; none found.
-4. **Owner decisions pending**: SeqEnv; H_RUNT(w) (`SpecRunt.lean`) vs the frozen transport H_PRIM; the g-in-Adm
-   fix (FOR-RESEARCH 3). Each needs an audit row when applied.
-5. Kernel cost rules learned (journal 15:35): never use `String.<`, `String.splitOn` or one declaration over more
-   than ~50k list elements; compare strings as byte lists; give indices as certificates.
+## Next for A (written 2026-11-01 23:40, after the switch to gcd_ps)
+0. **THE target is gcd_ps_e6bb4aec** (BQ#4). Done: copy, rebuild tie, read-back, decode, boundary (full width),
+   Lean netlist + `DecodedPS.net_wf`, simulation sanity 8/8; round trip `FormalWit/RTPS` building. Next on it:
+   commit RTPS when it checks; the pipelined witness for gcd_ps is not needed (owner: the pipelined statement stays
+   refuted for this kernel); check BOUNDARY-ps.md's environment reading on the decoded bits (the AXI slave, fork and
+   sink are decoded gates too).
+1. **S1 rest**: output-mux and carry selects in Lean; the O6 pin order (A1..A6); the wire-to-node merge stays H_DECODE.
+2. **The sequential statement**: no proof route at this size yet; B's runt failure is aperiodic (journal 14:19). H_RUNT
+   margin points on the old target: w = 20 holds to κ = 0.19 (one adversary). Repeat on gcd_ps.
+3. **Owner decisions**: all four answered 2026-11-01 (PROGRAM.md). Audit row for the `Adm` change requested.
+4. Kernel cost rules (journal 15:35): no `String.<`, no `String.splitOn`, no declaration over ~50k list elements;
+   strings as byte lists; indices as certificates. Private olean directories must not contain a `Formal/` folder
+   (it shadows lake's), and kill scripts must not match their own command line.
