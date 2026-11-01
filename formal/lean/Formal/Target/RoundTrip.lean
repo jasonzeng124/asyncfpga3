@@ -161,13 +161,15 @@ theorem map_getD_range (l : List String) : (List.range l.length).map (fun j => l
   simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]
 
 /-- **The round trip.** `prod` (the produced features) are all found in `T` at indices `idx`; those indices and
-the leftover indices `L` are a permutation of `0 .. n-1`, where `n` is the number of target features. Then the
+the leftover indices `L` are a permutation of `0 .. n-1`, where the leaves of `T` are indexed `0 .. n-1`. Then the
 produced features plus the leftover features are exactly the target's features, each once. -/
-theorem perm_of_idx (T : STree Nat) (hl : T.leaves.map Prod.snd = List.range T.leaves.length)
+theorem perm_of_idx (T : STree Nat) (n : Nat) (hl : T.leaves.map Prod.snd = List.range n)
     (prod : List String) (L : List Nat)
     (hfind : ∀ f ∈ prod, (T.find f).isSome = true)
-    (hperm : (prod.map (fun f => (T.find f).getD 0) ++ L).Perm (List.range T.leaves.length)) :
+    (hperm : (prod.map (fun f => (T.find f).getD 0) ++ L).Perm (List.range n)) :
     (prod ++ L.map (fun j => (T.leaves.map Prod.fst).getD j "")).Perm (T.leaves.map Prod.fst) := by
+  have hn : n = T.leaves.length := by simpa using (congrArg List.length hl).symm
+  subst hn
   set tf := T.leaves.map Prod.fst with htf
   have hlen : tf.length = T.leaves.length := by simp [htf]
   have hp : prod.map (fun f => tf.getD ((T.find f).getD 0) "") = prod := by
@@ -182,5 +184,89 @@ theorem perm_of_idx (T : STree Nat) (hl : T.leaves.map Prod.snd = List.range T.l
   rw [← hlen, map_getD_range] at this
   rw [← hp]
   simpa [Function.comp_def] using this
+
+/-! ## Checking a permutation of `0 .. n-1` block by block
+
+The kernel cannot merge 355k indices in one declaration. Index lists are cut into blocks of consecutive
+indices (`blocks`); `rows` holds, per producer (gate chunk, leftovers), its indices cut by block; each block is
+merged and compared on its own (`hb`); `perm_blocks` reassembles. -/
+
+/-- Consecutive index blocks of lengths `ns` from `s`. -/
+def blocks : Nat → List Nat → List (List Nat)
+  | _, [] => []
+  | s, n :: ns => List.range' s n :: blocks (s + n) ns
+
+theorem blocks_length : ∀ (s : Nat) (ns : List Nat), (blocks s ns).length = ns.length
+  | _, [] => rfl
+  | s, _ :: ns => by simp only [blocks, List.length_cons, blocks_length _ ns]
+
+theorem blocks_flatten : ∀ (s : Nat) (ns : List Nat), (blocks s ns).flatten = List.range' s ns.sum
+  | _, [] => rfl
+  | s, n :: ns => by
+    simp only [blocks, List.flatten_cons, blocks_flatten (s + n) ns, List.sum_cons]
+    exact List.range'_append_1
+
+theorem flatMap_append_perm {α β : Type} (l : List α) (f g : α → List β) :
+    (l.flatMap fun a => f a ++ g a).Perm (l.flatMap f ++ l.flatMap g) := by
+  induction l with
+  | nil => exact List.Perm.refl _
+  | cons a l ih =>
+    simp only [List.flatMap_cons, List.append_assoc]
+    refine List.Perm.append_left (f a) ?_
+    refine (List.Perm.append_left (g a) ih).trans ?_
+    rw [← List.append_assoc, ← List.append_assoc]
+    exact List.Perm.append_right _ List.perm_append_comm
+
+theorem flatMap_perm {α β : Type} (l : List α) {f g : α → List β} (h : ∀ a ∈ l, (f a).Perm (g a)) :
+    (l.flatMap f).Perm (l.flatMap g) := by
+  induction l with
+  | nil => exact List.Perm.refl _
+  | cons a l ih =>
+    simp only [List.flatMap_cons]
+    exact (h a List.mem_cons_self).append (ih fun b hb => h b (List.mem_cons_of_mem _ hb))
+
+theorem transpose_perm (u : Nat → Nat → List Nat) (K : Nat) : ∀ C : Nat,
+    ((List.range C).flatMap fun c => (List.range K).flatMap fun k => u c k).Perm
+      ((List.range K).flatMap fun k => (List.range C).flatMap fun c => u c k)
+  | 0 => by simp only [List.range_zero, List.flatMap_nil]; exact (List.Perm.refl _).trans (by
+      rw [show ((List.range K).flatMap fun _ => ([] : List Nat)) = [] by
+        induction (List.range K) with
+        | nil => rfl
+        | cons _ _ ih => simp [ih]])
+  | C + 1 => by
+    simp only [List.range_succ, List.flatMap_append, List.flatMap_cons, List.flatMap_nil, List.append_nil]
+    exact ((transpose_perm u K C).append (List.Perm.refl _)).trans (flatMap_append_perm _ _ _).symm
+
+theorem map_getD_range' {α : Type} (l : List α) (d : α) : (List.range l.length).map (fun i => l.getD i d) = l := by
+  apply List.ext_getElem (by simp)
+  intro i h1 h2
+  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]
+
+theorem flatMap_getD (l : List (List Nat)) : ((List.range l.length).flatMap fun i => l.getD i []) = l.flatten := by
+  rw [List.flatMap_def, map_getD_range']
+
+theorem getD_mem' {α : Type} (l : List α) (d : α) {i : Nat} (hi : i < l.length) : l.getD i d ∈ l := by
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]; exact List.getElem_mem hi
+
+/-- **Block-wise permutation check.** Every row (producer) has one index list per block; block `k`'s lists,
+merged, are the `k`-th block. Then all rows together are a permutation of `range' 0 (sum ns)`. -/
+theorem perm_blocks (F G : Nat) (rows : List (List (List Nat))) (ns : List Nat)
+    (hrow : ∀ r ∈ rows, r.length = ns.length)
+    (hb : ∀ k, k < ns.length →
+      mergeAll F G ((List.range rows.length).map fun c => (rows.getD c []).getD k []) = (blocks 0 ns).getD k []) :
+    (rows.map List.flatten).flatten.Perm (List.range' 0 ns.sum) := by
+  have e1 : (rows.map List.flatten).flatten = (List.range rows.length).flatMap fun c => (rows.getD c []).flatten := by
+    conv_lhs => rw [← map_getD_range' rows []]
+    rw [List.map_map, List.flatMap_def]; rfl
+  rw [e1]
+  refine (flatMap_perm _ (g := fun c => (List.range ns.length).flatMap fun k => (rows.getD c []).getD k [])
+    fun c hc => ?_).trans ?_
+  · have hm := getD_mem' rows [] (List.mem_range.1 hc)
+    rw [← hrow _ hm, flatMap_getD]
+  refine (transpose_perm _ _ _).trans ?_
+  refine (flatMap_perm _ (g := fun k => (blocks 0 ns).getD k []) fun k hk => ?_).trans ?_
+  · rw [← hb k (List.mem_range.1 hk), List.flatMap_def]
+    exact (mergeAll_perm _ _ _).symm
+  · rw [show ns.length = (blocks 0 ns).length from (blocks_length 0 ns).symm, flatMap_getD, blocks_flatten]
 
 end Formal.Target.RT
