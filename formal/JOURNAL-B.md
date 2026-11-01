@@ -2116,7 +2116,7 @@ the 12 vectors finished so far, the closest "both requests rise from idle" pair 
 the baseline and both adversarial runs (each request's private causal path at the opposite end of its corner
 window, κ = 0): arb 0 79 ns, arb 4 52 ns, arb 6 52 ns, arb 7 51 ns, arb 8 168 ns; arbs 1, 2, 3, 5 never see
 two requests from idle. At κ = 0.5 (vector 0x10E,0xC0) the tightest, arb 7, is still 29 ns apart. The state
-LUT's feedback arc is ~0.1-0.7 ns, so on these schedules every arbitration is separated by ~two orders of
+LUT's feedback loop (route + pin arc, decoded data) is 114..930 ps (FAST_MIN..SLOW_MAX, worst arb 8), so on these schedules every arbitration is separated by ~50x or more of
 magnitude more than q_clean_set needs, and H_ARB(T) is never exercised. **Plainly:** in simulation the target's
 arbiters never race under the sequential environment; a proof can aim at the separation route
 (ArbClean) and leave T unconstrained there -- but simulation covers a handful of delay assignments, not the
