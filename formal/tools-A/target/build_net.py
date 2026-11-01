@@ -158,6 +158,12 @@ def main():
         if d is None:
             d = [0, 0, 0, 0]
             fidelity["pip with no delay data (prjxray: none), arc 0"] += 1
+        if not (d[0] <= d[1] and d[2] <= d[3] and d[0] <= d[2] and d[1] <= d[3]):
+            # prjxray record not ordered (seen on BRKH_INT *_SLOW and CLK_HROW pips): widen to one
+            # band [min, max] at both corners, which contains every number of the record
+            m, M = min(d), max(d)
+            d = [m, M, m, M]
+            fidelity["pip delay record not ordered in prjxray-db: widened to [min, max] at both corners"] += 1
         r = float(s2d.get("res") or 0)
         rc = int(-(-r * load_star(dn) * 1e-3 // 1))   # ceil, ps
         if rc:

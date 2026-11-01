@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--dout", type=int, default=3000)
     ap.add_argument("--tmax", type=int, default=5_000_000)
     ap.add_argument("--trace", default=None)
+    ap.add_argument("--full", action="store_true", help="simulate every circuit gate, not only the kernel cone")
     ap.add_argument("--datachange", choices=["handshake", "broad", "rtz", "next"], default="handshake",
                     help="when the env moves the data to the next pair: right after the input "
                          "handshake (Spec.Env allows it) or only just before the next request")
@@ -73,6 +74,8 @@ def main():
             if i not in seen and i not in ENV:
                 seen.add(i)
                 todo.append(i)
+    if a.full:
+        cone = set(drv.values())
     print("sim: cone %d gates of %d (%d nodes)" % (len(cone), len(gates), len(seen)), file=sys.stderr)
     c, p = a.corner, a.pos
 

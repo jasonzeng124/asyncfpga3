@@ -1239,3 +1239,14 @@ refutation can be stated. Part I frozen from this commit; part II (Lean decoder,
 bytes) still a stub. Re-read before freezing: the end channel's request is the shared input request in the target
 (nextpnr names it p_end_req), so CircOut on it is a property the proof must derive from start_ack = C(p_end_ack, ..),
 not a trivial falsity.
+### progress 07:57 -- decoded netlist as Lean data (Formal/Target/Net, compiling); 23 unordered prjxray arcs widened
+gen_lean.py writes the decoded target as Formal.Target.Spec data: 80 chunks of 2500 gates, node names, `net`,
+`boundary`; nodes renumbered so gate i drives node i, so "no node has two drivers" is "outputs = 0,1,..", checked per
+chunk by decide +kernel (outsOK, NetBase.lean), and every gate's WFn too; All.lean assembles `net_wf : net.WF`. A
+first build found WFn false in some chunks: 23 pip arcs whose prjxray-db record is not ordered (BRKH_INT *_SLOW pips,
+e.g. [202, 109, 231, 316] ps; CLK_HROW pips [0, 190, 0, 0]). build_net now widens such an arc to [min, max] at both
+corners (contains every number of the record; fidelity list). Every simulation result was rerun on the repaired net
+(md5 7c41591d): identical (reorder, early-release livelock, both deadlocks, broad sequential OK).
+Lean counterexample (next): the full circuit has a free-running housekeeping ring (gcd_hw.v dhk + invhk, no enable),
+so a witness behaviour of `circuit net boundary` must be eventually periodic, not eventually constant; the checker
+will verify each gate at the breakpoints of its piecewise-constant signals over one prefix plus one period.

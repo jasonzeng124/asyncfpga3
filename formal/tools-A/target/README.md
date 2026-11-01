@@ -14,7 +14,8 @@ the Lean round trip and checker take them.
 | `make_net.sh` | the pipeline from `formal/target/` |
 | `out/` | committed outputs |
 
-Results 2026-11-01 (target 03e82630, decoded net md5 99b3ab4a, 200097 nodes, 199736 gates; kernel cone 170254 gates):
+Results 2026-11-01 (target 03e82630, decoded net md5 7c41591d after the 23-arc widening of 08:10, 200097 nodes, 199736 gates;
+kernel cone 170254 gates; vec16 was run on the net before the widening, md5 99b3ab4a; the others were rerun after it, same results):
 - `out/vec16_sequential.txt`: all 16 vectors correct (sequential env, corner 0.5, mid-band).
 - `out/cex_pipelined_reorder.txt`: pipelined env, (2^19, 2^19) then (3, 5): out0 = [1, 524288]. Same at c = 0 fast
   end, c = 1 slow end, and ±10% / ±20% scatter (formal/FOR-RESEARCH.md item 2).
