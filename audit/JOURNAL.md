@@ -971,3 +971,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 14:18 progress: witness build at C031 (98 modules, all rc=0). Draw-3 GLS: vectors 0-7 errs 0, vec 6 laps 26 (= research's 'd 26'). Formal a7312634 committed V9V4c (per-node-cut witness) -- queued.
 - 14:19 V9V4c (a7312634) files extracted by git archive into my 565af3b9 tree (only additions since; WitCut md5 1e30ce2f equal); /root/build22.sh builds it module by module after the draw-3 GLS ends (memory). grep: no sorry/native_decide/axiom/extern in V9V4c or WitCut.
 - 14:48 draw-3 GLS done: 16/16 errs 0, v6/v12/v13 = 26/20/30 exactly as research 100b2f13; lapcheck CLEAN. Row added. V9V4c build starting (build22).
+- 14:58 progress: V9V4 at C063 (130 modules rc=0), V9V4c at T26 (28 rc=0). Formal: A started the Lean decoder round trip (RoundTrip, gen_rt.py; 4aa24410..02c8ceb5) -- audit when claimed.
