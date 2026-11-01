@@ -160,7 +160,7 @@ between 1.75x and 2x (linear factors: ~1.33x).
 The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
 prediction.
 
-## 4. gcd_ps: the same kernel, 32-bit operands from the PS (no vector table), P1 pad-only sizes -- every audit clean on 8 seeds, full-stack fid GLS 24/24 on 4 seeds x 2 corners
+## 4. gcd_ps: the same kernel, 32-bit operands from the PS (no vector table), P1 pad-only sizes -- every audit and the full-stack fid GLS (24/24, both corners) clean on 8 seeds
 The owner's lead of 690f156. The kernel, bdc flags, pads (`gcd_hw_pads.json`) and placement (v4) are BQ#1's; the
 harness is `cells/hw/gcd_ps.v` (AXI3 register slave on M_AXI_GP0, operands from the host, no vector table). With
 full-width operands one bundle needs more delay than BQ#1's: `bridge_i.udut.umux21` violated rule A on 3 of 4 unsized
@@ -210,9 +210,9 @@ Evidence (JOURNAL 2026-11-01 17:31-19:40):
   "PASS at 12.00 MHz" line means nothing; the estimate is the number).
 - Full stack (`research/data/gcd_ps/p1_fullstack.tsv`): each seed's netlist decoded from its own .bit with the PS7
   (fasm2net --ps7), prjxray SDF, fid primitives, a behavioural PS7 running the host sequence above over the 24
-  vectors: seeds d,3,4,5 x SLOW_MAX/FAST_MIN: 24/24 ok, 0 err, 0 hang, fasm_equiv EQUIVALENT on all 8 runs; gate
-  ANNOTATE_DONE with 0 SDF warnings. (0x7fffffff, 0x7ffffffe), the longest vector: 15.1 us (14.95-15.2) from
-  i_ack to o_req at SLOW_MAX, 5.3 us (5.25-5.4) at FAST_MIN.
+  vectors: seeds d,3-9 x SLOW_MAX/FAST_MIN: 24/24 ok, 0 err, 0 hang, fasm_equiv EQUIVALENT on all 16 runs; gate
+  ANNOTATE_DONE with 0 SDF warnings on all 16. (0x7fffffff, 0x7ffffffe), the longest vector: 15.0 us mean
+  (14.6-15.4) from i_ack to o_req at SLOW_MAX, 5.3 us (5.2-5.45) at FAST_MIN.
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
 - CDC (read in gcd_ps.v): STATUS.i_ack and STATUS.o_req reach the PS clock through 2-flop synchronizers; the
   kernel-facing request is a flop cleared asynchronously by the kernel's own i_ack (the pulse adapter), so a host

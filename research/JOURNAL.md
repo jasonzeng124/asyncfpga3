@@ -1988,3 +1988,9 @@ double-counted, ring128 per-ring data still needed).
   (transport), and that is the H_RUNT question. Only the board, or a measured LUT pulse-rejection width, settles it.
 ### progress 21:10 (gcd_ps full stack: 7 and 8 both corners, 9 SLOW_MAX: 24/24)
 - 7 min, 8 max/min, 9 max: 24/24, EQUIVALENT, gates clean. 15 of 16 P1 seed x corner runs done, all 24/24.
+### progress 21:35 (gcd_ps P1 full stack: 16/16 seed x corner runs 24/24)
+- Seeds d,3-9 x SLOW_MAX/FAST_MIN: all 24/24, 0 err, 0 hang, EQUIVALENT, gate clean
+  (research/data/gcd_ps/p1_fullstack.tsv). Longest vector i_ack->o_req: SLOW_MAX mean 15.03 us (14.6-15.4),
+  FAST_MIN 5.32 us (5.2-5.45); worst seed for it is 6 at both corners. BOARD-QUEUE #4 updated to 8 seeds.
+- Next (queued, running): unsized negative control (d: rule A -1567 ps, 5: -464 ps) on the same stack; then
+  +PIPE=1 on seed d (24-vector pairs and formal's (2^19,2^19),(3,5)); then 1x within-die scatter on d,3,4,5.
