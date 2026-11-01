@@ -2042,3 +2042,13 @@ double-counted, ring128 per-ring data still needed).
   routed JSON's NEXTPNR_BEL and nets.map): margin = out0_req rise minus the last out0_data change; LATE = a
   data change while out0_req is high before the host's o_ack. Running on seed d with umux21 at 1, 4, 8, 12
   (unsized) and 16 (P1) links, both corners. The n4/n8 PS-only controls were dropped (they cannot fail either).
+### progress 21:48 (out0 bundling margin measured at the kernel boundary: P1 12.0/4.1 ns, umux21 at 1 link still +2.05/+0.57 ns)
+- Monitor (PS_BUNDLE=1), seed d, full stack, 24 requests each, min over requests of (out0_req rise - last
+  out0_data change), at the driver pins; no data change while req was high before the host's ack in any run:
+  | umux21 links | SLOW_MAX | FAST_MIN |
+  | 16 (P1, shipped) | +12043 ps | +4112 ps |
+  | 1 (control) | +2054 ps | +566 ps |
+  Rule A charged this bundle "PAD to 13" (needs ~5.5 ns more) at 1 link; the GLS says 1 link already has
+  +566 ps at FAST_MIN with no scatter. Not yet a claim: one seed, no scatter, driver pins only (routing to
+  the consumer excluded), and the monitor's own negative control (umux21's 36 data LUTs and their input wires
+  20x slower, on the 1-link route) is queued; 12/8/4 links running.
