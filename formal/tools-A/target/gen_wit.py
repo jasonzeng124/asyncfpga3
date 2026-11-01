@@ -305,6 +305,11 @@ theorem not_correct : ¬ Correct (ext D b P) boundary %d %d (some %d) va vb := b
 theorem refuted : ¬ NetCorrect net boundary arbs pSlow %d %d 0 %d := fun H =>
   not_correct (H (ext D b P) (some %d) va vb beh_ok arb_ok env_ok)
 
+/-- **The same for every arbiter bound `T ≥ %d` and every output margin `Δo ≤ %d`.** -/
+theorem refuted_range (T Δo : Nat) (hT : %d ≤ T) (hΔ : Δo ≤ %d) :
+    ¬ NetCorrect net boundary arbs pSlow T %d 0 Δo := fun H =>
+  not_correct (correct_anti hΔ (H (ext D b P) (some %d) va vb beh_ok (arbOK_mono hT arb_ok) (env_mono hΔ env_ok)))
+
 end %s
 ''' % (NAME, W["args"], Tarb, R0, DO, Tarb, R0, DO, pairs, outs[0][1], NS,
        nestC(["c%03d" % c for c in range(nG2)]), nN, FUEL, perTerm(0),
@@ -313,5 +318,5 @@ end %s
        R0, DO, FUEL, R0, R0, DO, FUEL, R0,
        R0, DO, nb, R0, R0 - 1, R0,
        R0, DO, nb, rise0, rise0 + DO, rise0, rise0 + DO, rise0 + DO, rise0 - 1, rise0 + DO,
-       Tarb, R0, DO, nb, NS))
+       Tarb, R0, DO, nb, Tarb, DO, Tarb, DO, R0, nb, NS))
 print("gen_wit: Refute.lean: T = %d, R = %d, Δo = %d, first out0 sample %d, request rise %d" % (Tarb, R0, DO, s0, rise0))

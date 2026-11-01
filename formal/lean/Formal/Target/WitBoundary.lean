@@ -440,4 +440,26 @@ theorem envOut_congr (x y : Beh) (ch : OutCh) (R Δo : Nat)
   have ha : x ch.ack = y ch.ack := h _ (List.mem_cons_of_mem _ List.mem_cons_self)
   unfold EnvOut at hy ⊢; rw [hr, ha]; exact hy
 
+/-! ## Monotonicity in the parameters (for refutations over a range) -/
+
+theorem arbOK_mono {T T' : Nat} (h : T ≤ T') {A : List ArbNodes} {x : Beh} (hA : ArbOK T A x) : ArbOK T' A x :=
+  fun a ha t1 t2 hc t h1 h2 => by
+    have := hA a ha t1 t2 hc
+    rw [this t (by omega) h2, this (t1 + T') (by omega) (by omega)]
+
+theorem envOut_mono {x : Beh} {ch : OutCh} {R Δo Δo' : Nat} (h : Δo' ≤ Δo) (hE : EnvOut x ch R Δo) :
+    EnvOut x ch R Δo' := by
+  obtain ⟨h1, h2, h3, h4⟩ := hE
+  exact ⟨h1, h2, h3, fun t ht h0 h1' s hs1 hs2 => h4 t ht h0 h1' s (by omega) hs2⟩
+
+theorem env_mono {x : Beh} {B : Boundary} {R su Δo Δo' : Nat} {n : Option Nat} {va vb : Nat → Nat}
+    (h : Δo' ≤ Δo) (hE : Env x B R su Δo n va vb) : Env x B R su Δo' n va vb := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hE
+  exact ⟨h1, h2, h3, h4, h5, h6, envOut_mono h h7, envOut_mono h h8⟩
+
+theorem correct_anti {x : Beh} {B : Boundary} {R Δo Δo' : Nat} {n : Option Nat} {va vb : Nat → Nat}
+    (h : Δo' ≤ Δo) (hC : Correct x B R Δo' n va vb) : Correct x B R Δo n va vb := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hC
+  exact ⟨h1, h2, h3, h4, h5, fun t0 t a b c d e => h6 t0 t a b c (by omega) e, h7⟩
+
 end Formal.Target.Wit
