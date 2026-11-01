@@ -1994,3 +1994,14 @@ double-counted, ring128 per-ring data still needed).
   FAST_MIN 5.32 us (5.2-5.45); worst seed for it is 6 at both corners. BOARD-QUEUE #4 updated to 8 seeds.
 - Next (queued, running): unsized negative control (d: rule A -1567 ps, 5: -464 ps) on the same stack; then
   +PIPE=1 on seed d (24-vector pairs and formal's (2^19,2^19),(3,5)); then 1x within-die scatter on d,3,4,5.
+### progress 22:05 (gcd_ps negative control: the UNSIZED routes pass the full stack -- rule A is pessimistic here)
+- Unsized seed d (umux21 12 links; rule A margin -1567 ps guarded, req 6692 vs peak 7088, i.e. negative even raw)
+  on the full stack: SLOW_MAX 24/24, FAST_MIN 24/24, EQUIVALENT, gate clean. Unsized seed 5 (-464) SLOW_MAX 24/24.
+  So the control did NOT fail: either rule A over-charges this bundle or the GLS/vectors cannot see it.
+- tighten's pairing for umux21 says why it may over-charge: "paired as one bundled channel (no common source)",
+  request from umux21.uj1 (its join), data from ulink_n_index_97's ctl (the select latch), plus an assumed
+  upstream data lag of 1229 ps. It cannot order the two, so it charges the worst case.
+- To tell the two apart: seed d re-routed with umux21 cut to 8, 4, 1 links (CONTROL ONLY, never shipped;
+  research rule: never shorten a delay to hit a target). Rule A flags all three (-2024/-3670/-4795 ps), so the
+  audit can fail. Their full-stack GLS at both corners is queued; where it first fails measures how much of
+  rule A's charge on this bundle is real.
