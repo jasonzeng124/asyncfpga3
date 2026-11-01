@@ -970,3 +970,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 13:40 started own fid GLS of the target route (wt-r14 BQ#1 default, xray 357f17cb) at log-normal 0.24/0.189 draw 3 (SEED=3), to check research 100b2f13 'BQ#1 draw 3: d 26/20/30 ... 16/16 errs 0'. Witness build continues (C020).
 - 14:18 progress: witness build at C031 (98 modules, all rc=0). Draw-3 GLS: vectors 0-7 errs 0, vec 6 laps 26 (= research's 'd 26'). Formal a7312634 committed V9V4c (per-node-cut witness) -- queued.
 - 14:19 V9V4c (a7312634) files extracted by git archive into my 565af3b9 tree (only additions since; WitCut md5 1e30ce2f equal); /root/build22.sh builds it module by module after the draw-3 GLS ends (memory). grep: no sorry/native_decide/axiom/extern in V9V4c or WitCut.
+- 14:48 draw-3 GLS done: 16/16 errs 0, v6/v12/v13 = 26/20/30 exactly as research 100b2f13; lapcheck CLEAN. Row added. V9V4c build starting (build22).
