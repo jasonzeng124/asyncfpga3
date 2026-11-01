@@ -1928,3 +1928,23 @@ slowest arc contradicts an ordinary set/reset transition the same way (non-vacui
 T >= that arc's g·SLOW_MAX plus the feedback route).
 **Also:** Spec v1 does not compile as committed: `⌈⌉` on ℚ (Gate.start, line 152) needs
 `import Mathlib.Data.Rat.Floor` (the copy adds exactly that line; then it checks).
+
+### progress 07:41 -- H_PRIM vs involution channels (HPrimInv.lean, checked)
+**Problem, plainly:** PROGRAM asks H_PRIM to be pessimistic, or the result to hold for
+transport, inertial AND involution. Spec v1's GateOK and B's WinH are read-time models (the
+output is the gate function of pins read at admissible delays). Is an involution channel
+(Core InvolutionPair, full trace semantics with cancellation) a read-time behaviour when its
+delays are "in the band"? **Answer (Lean): not in general.** `WinR` (1-pin Boolean window
+relation) is implied by every read-time model (`win_of_readTime`, no monotonicity needed;
+`win_of_chan` for Core's Chan). `rat_not_win`: Core's ratPair (delta_inf = 2, delta_min = 1,
+`rat_numbers`), input pulse [0, 3/2): output high on [2, 17/6) (`rat_out`, via Core's
+pulse_out); at tau = 29/10 the input is steadily 1 on its window [9/10, 7/5] for the band
+[3/2, 2], the output is 0. `rat_not_readTime`: no read map at all reproduces it. Positive:
+`inv_sep_win` -- with input edges S apart, S > delta_inf - delta_min, the output IS a window
+behaviour for Core's transfer band (and wider, `winR_widen`). Standard axioms only
+(lake env lean, after lake build of Formal.Core.Delay.InvolutionTrace).
+**What it means:** a read-time H_PRIM (Spec v1) covers transport and inertial, and involution
+only for long pulses or bands whose lower end is at most the channel's short-pulse delays;
+an involution trailing edge can come earlier than lo. Shard A must either name that
+restriction in the fidelity table or take band lower ends at most delta_min (unreported by
+prjxray). **Not shown:** the exact band/pair characterisation; multi-pin Kleene case.

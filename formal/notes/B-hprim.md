@@ -26,8 +26,9 @@ for MUXF7/F8; `Carry.kout` for CARRY4). A routed wire/pip is the 1-pin case f = 
 - `buf_win`, `buf_not_fixed`: a buffer behaviour in WinH that no fixed-delay transport
   model has (WinH is strictly weaker than Core's Timed.H).
 
-## Involution (HPrimInv.lean, needs Mathlib; status in JOURNAL-B)
-Plan: (a) concrete counterexample on Core's `ratPair` (δ∞ = 2, δmin = 1): band [3/2, 2],
+## Involution (HPrimInv.lean, needs Mathlib; CHECKED 2026-11-01)
+Done for (a); (b) only with input separation (inv_sep_win, from Core's trace_transfer_sep).
+Original plan: (a) concrete counterexample on Core's `ratPair` (δ∞ = 2, δmin = 1): band [3/2, 2],
 input pulse [0, 3/2): output high on [2, 17/6), and at τ = 29/10 the input is steady 1
 on its window [0.9, 1.4] while the output is 0. So WinH does NOT cover involution
 channels whose δmin is below the band's lower end. (b) positive: δmin ≥ lo and δ∞ ≤ hi
