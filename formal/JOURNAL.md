@@ -1474,3 +1474,10 @@ of its LUT's INIT. Shown: each of the 8,925 O5 gates follows an O6 gate with the
 that O6's first five pins and has INIT = the O6's INIT mod 2^32, so with `roundtrip` its function is the
 bitstream's. Not shown: that the O6's pin list is A1..A6 in order (the decoder's pin map; the nextpnr cross-check
 compares pin drivers per physical pin). 80 chunks, ~10 s each (17:18-17:22).
+### progress 17:30 -- what the round trip's 16,090 leftovers are (Python classes, decoded net 7c41591d)
+5,460 slice output-mux selects (xOUTMUX.O6/O5/F7/F8/XOR/CY/xQ) and 3,206 carry selects (CARRY4.xCY0, PRECYINIT)
+carry meaning: they pick what drives a slice's xMUX output and the carry chain's inputs. The decoder models them
+as hop and CARRY4 gates and roundtrip.py re-encodes them, but the Lean gates do not carry the provenance needed to
+re-encode them in the kernel, so `roundtrip` treats them as leftovers. That is the open semantic part of S1. The
+rest has no meaning in the Spec: 4,183 FF configuration (FF outputs are free), 3,084 SLICEM LUT DI routing (no
+LUTRAM), 157 clock-buffer/IO/config bits.
