@@ -1474,15 +1474,28 @@ of its LUT's INIT. Shown: each of the 8,925 O5 gates follows an O6 gate with the
 that O6's first five pins and has INIT = the O6's INIT mod 2^32, so with `roundtrip` its function is the
 bitstream's. Not shown: that the O6's pin list is A1..A6 in order (the decoder's pin map; the nextpnr cross-check
 compares pin drivers per physical pin). 80 chunks, ~10 s each (17:18-17:22).
-### progress 17:30 -- what the round trip's 16,090 leftovers are (Python classes, decoded net 7c41591d)
+### progress 17:23 -- what the round trip's 16,090 leftovers are (Python classes, decoded net 7c41591d)
 5,460 slice output-mux selects (xOUTMUX.O6/O5/F7/F8/XOR/CY/xQ) and 3,206 carry selects (CARRY4.xCY0, PRECYINIT)
 carry meaning: they pick what drives a slice's xMUX output and the carry chain's inputs. The decoder models them
 as hop and CARRY4 gates and roundtrip.py re-encodes them, but the Lean gates do not carry the provenance needed to
 re-encode them in the kernel, so `roundtrip` treats them as leftovers. That is the open semantic part of S1. The
 rest has no meaning in the Spec: 4,183 FF configuration (FF outputs are free), 3,084 SLICEM LUT DI routing (no
 LUTRAM), 157 clock-buffer/IO/config bits.
-### progress 17:36 -- check.sh on the new default modules OK; full `check.sh --wit --committed` started
+### progress 17:25 -- check.sh on the new default modules OK; full `check.sh --wit --committed` started
 `check.sh Formal/Target/WitCut.lean Formal/Target/RoundTrip.lean Formal/Target/LutPair.lean`: OK, 537 declarations
 audited. A full `--wit --committed` run (lake build of every committed module, then FormalWit one module at a time:
 V9V4, V9V4c, RT, then the axiom audit) is running in the background (expected several hours); its result will be
 journaled if the session lasts.
+### progress 17:27 -- owner decisions 2026-11-01 read (PROGRAM.md, commit 94b7fd79); applying the g/κ fix to Spec.Adm
+The owner approved (decision 3) `Adm` = d ∈ [(1-κ)·lerp(FAST_MIN,SLOW_MIN,c)/g, (1+κ)·lerp(FAST_MAX,SLOW_MAX,c)·g],
+and says C's `adm_le_dmax` becomes false. That holds only if the separate global band [FAST_MIN/g, SLOW_MAX·g] is
+dropped, so I apply the formula literally: Adm is the g-scaled corner window alone. Consequence, stated plainly: at
+κ > 0 a delay may now exceed SLOW_MAX·g (up to (1+κ)·SLOW_MAX·g) or fall below FAST_MIN/g (down to
+(1-κ)·FAST_MIN/g); before, the band clipped both. With it, `Gate.start` (the longest admissible delay, from which
+the gate relation is required) becomes ⌈(1+κ)·SLOW_MAX·g⌉ per arc (was ⌈SLOW_MAX·g⌉); at κ = 0 it is unchanged.
+At (g, κ) = (1, 0), the refutation's delay model, both forms admit exactly [SLOW_MIN, SLOW_MAX] at corner 1, so
+the refutations' kernel checks are unchanged; their assembly lemmas are re-proved. Files: Spec.lean (A), Witness
+(A), SpecSettle (C: dmax/dmin and adm_le_dmax/dmin_le_adm replaced, with the hypotheses they now need),
+Ua1Static / ArbTSpec / SpecArbVacuous / SpecFb (B). Owner decisions 1 (new full-width target, when research
+lands it), 2 (H_RUNT(w), w = 20 ps headline) and 4 (NetCorrectSeq is the target) are noted; 2 and 4 need no Spec
+change (SpecRunt.lean exists). Audit row: requested in FOR-RESEARCH (the audit branch is not mine to edit).
