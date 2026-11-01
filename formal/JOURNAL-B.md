@@ -2029,3 +2029,25 @@ the losing ack stays low for the whole transaction). check.sh OK on all seven B 
 The target has nine bd_arbiters (SDF instance names): urig.udut.ucontrol_merge{2,3,4,6,9,10,11,12}.uarb1
 and ucontrol_merge12.uarb2 (ustate packed as $LUT6 = q, $LUT5 = R0); recorded in notes/B-arbT.md for
 Spec part II's `List ArbNodes` (which should carry A0 and rst too, per the repair).
+
+### progress 08:29 -- LEAD (simulation, untrusted): near-ties at two gcd_hw arbiters are plausible under the SEQUENTIAL env
+Question: can two requests reach a gcd_hw arbiter nearly together with ONE pair in flight (the shape
+ArbT/ArbTSpec.double_ack needs)? Tool: tools-B/arbgap (uses shard C's generated-netlist simulator
+tools/capwit3/simgen.py read-only; amerge is modelled abstractly there, only the request timing is used).
+- Unit delays, (12, 18): arbiters op 171 (z111) and op 180 (z229) see both requests rise from idle,
+  x at 195 / y at 282 and x at 616 / y at 698 (op 178: 594 / 854).
+- Causality (tools-B/arbgap/causal.py): slowing ONLY the arbiter's own z.ack by 40 ticks moves y's rise at
+  op 178 (854 -> 894: y waits for the arbiter's handshake, so no race is possible there) but NOT at ops 171
+  and 180 (282 and 698 unchanged): there the two requests come from independent paths of the same
+  invocation, and which one arrives first is decided by path delays.
+- Node-count estimate: both rises follow the single input offer at ~0, so a relative path-delay shift of
+  87/477 = 18% (op 171) or 82/1314 = 6.2% (op 180) closes the gap, if the paths are disjoint.
+  Independent random scatter does not (±10% per node, 3 seeds: gaps stay ~10x the unit gaps, the law of
+  large numbers); it needs the ADVERSARIAL per-arc choice that Spec's Adm allows (each arc anywhere in its
+  corner window; even κ = 0 leaves FAST_MIN..FAST_MAX, ~±10% on LUT arcs).
+**If this transfers to the target's routed delays:** H_ARB(T) is genuinely exercised under the sequential
+env, and NetCorrectSeq can only hold for T below the shortest server path (ArbT.one_ack /
+ArbTSpec.spec_double_ack). NOT shown: a trace on the decoded target, the target's real path delays, path
+disjointness. Next step for whoever has the decoded net (shard A's sim.py): an adversarial in-band
+assignment slowing x's cone and speeding y's at arbiter ucontrol_merge(z229) / (z111), then look for a
+runt on ustate's set/reset excitation.
