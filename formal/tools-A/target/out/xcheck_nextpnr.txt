@@ -1,0 +1,9 @@
+xcheck: {'match': 46213, 'no gate': 1, 'mismatch': 3}
+   ('no gate', 'urig.udut.ucontrol_merge12.$abc$10510$auto$blifparse.cc:557:parse_blif$10513.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux7', 'SLICE_X22Y84.F7A')
+   ('urig.udut.ulink_n166__1.many.stage[1].u.lat.odd.u', 'SLICE_X10Y92.BLUT.O6', 'A6', 'const0', 'const1')
+   ('urig.udut.ulink_n59__2.ctl.u.u', 'SLICE_X22Y51.ALUT.O6', 'A6', 'const0', 'const1')
+   ('urig.udut.ulink_n166__1.many.stage[1].u.ctl.u.u', 'SLICE_X10Y92.ALUT.O6', 'A6', 'const0', 'const1')
+# Reading (shard A, 2026-11-01): the 3 mismatches are pin A6 of three kernel LUTs (ulink_n166__1 lat/ctl,
+# ulink_n59__2 ctl) that read VCC in the bits and GND in nextpnr's netlist; each LUT's INIT has equal halves
+# (ccccaaaaccccaaaa, 008e008e008e008e, 2323020223230202), so O6 does not depend on A6: harmless. The 'no gate' is
+# the known unread MUXF7 of ucontrol_merge12 (its output is read by nothing; C-11f).

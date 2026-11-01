@@ -1396,3 +1396,12 @@ pip-level output added, so agreement with C's 11g is agreement of one code base 
 independent decode. The audit's run of the decoder (T5) re-ran the same code. Independent evidence for H_DECODE today:
 the round trip (0 invented features) and the bitstream byte-identity of fasm2frames(nextpnr .fasm), neither of which
 checks the walker's wire-to-node connectivity.
+### progress 13:00 -- INDEPENDENT connectivity check of the decoder against nextpnr's routing: agrees
+tools-A/target/xcheck_nextpnr.py: for every placed LUT and MUXF cell in nextpnr's routed JSON (its own chipdb and
+router, a different code base from the FASM walker), each physical pin's net driver (BEL output) is compared with the
+decoded netlist's source of that pin (walking back through the pip and site-hop gates). 46213 pins match; 3 differ,
+all pin A6 of a LUT whose INIT has equal halves (bits: VCC, nextpnr: GND; the LUT ignores A6), so harmless; 1 cell has
+no gate, the known unread MUXF7 of ucontrol_merge12 (out/xcheck_nextpnr.txt). What it shows: end-to-end connectivity
+of the decoded netlist (bits -> prjxray-db -> walker) equals what the router built, on every LUT/MUXF input pin. Not
+compared: CARRY4 pins, the per-pip structure in between (only the endpoints), and constants inside nextpnr's own
+model. This is the strongest H_DECODE evidence so far; the Lean round trip is still not written.
