@@ -160,6 +160,65 @@ between 1.75x and 2x (linear factors: ~1.33x).
 The board's vec 6 should land between the FAST_MIN and SLOW_MAX numbers; ~50-55 laps per 150 us is the band
 prediction.
 
+## 4. gcd_ps: the same kernel, 32-bit operands from the PS (no vector table), P1 pad-only sizes -- every audit clean on 8 seeds, full-stack fid GLS 24/24 on 4 seeds x 2 corners
+The owner's lead of 690f156. The kernel, bdc flags, pads (`gcd_hw_pads.json`) and placement (v4) are BQ#1's; the
+harness is `cells/hw/gcd_ps.v` (AXI3 register slave on M_AXI_GP0, operands from the host, no vector table). With
+full-width operands one bundle needs more delay than BQ#1's: `bridge_i.udut.umux21` violated rule A on 3 of 4 unsized
+seeds (-1567/-154/-464 ps), so P1 lengthens it alone, 12 -> 16 links (`research/data/gcd_ps/gcd_ps_sizes_P1.vh`,
+research/tools/pad_sizes.py: only rule-A violators lengthened, nothing shortened).
+
+**Formal target**: seed `d` (build_hw.sh's default seed) of this build.
+- `research/board/gcd_ps_e6bb4aec.bit`: md5 aa83c8b7a5e6b68e69729131e984c0f4,
+  sha256 e6bb4aec70f31fa7579a482d94ec168162656dabf74e833ed57d1a516b809798
+- `research/board/gcd_ps_e6bb4aec.fasm.gz`: the .fasm, gzip -n; md5 of the uncompressed .fasm
+  2dbf962dbcf01dcd9bd6ad6f7870ca27
+- same route: sdf md5 cbdbea3a7416b56010e8ef0aec0331d4, prjxray SDF (xray_delay.py) 8afd5cce25bbc4187cb11808fae1d5a4;
+  toolchain in `gcd_ps_e6bb4aec.toolchain.txt` (nextpnr 9c732bc6303458df, all patches ok, yosys 0.62, textX fasm
+  parser). Branch claude/research.
+Use the committed bitstream (as for #1). To rebuild the same route in the cloud:
+
+    cd cells && BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 \
+        BD_SIZES=../research/data/gcd_ps/gcd_ps_sizes_P1.vh ./hw/build_hw.sh gcd_ps
+
+Board run (from cells/; the first is the 16 golden vectors, the second 1000 vectors outside them):
+
+    hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit; echo "exit $?"
+    hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit ../research/board/gcd_ps_vec1000.hex; echo "exit $?"
+
+`gcd_ps_vec1000.hex` comes from `cells/gls/ps/gen_vectors.py --n 1000 --seed 1`: operands in [0, 2^31), none of
+gcd_rig's 16 pairs, expected from bdc/simcheck.py's `ref_gcd` (the transcription of gcd.c) and asserted equal to
+math.gcd; none is 0. Its first 24 lines are the vectors the GLS below ran.
+
+Pass (self-reporting): each run prints `liveness pre-check PASS`, then `=== PASS 16/16 ===` (first) and
+`=== PASS 1000/1000 ===` (second), and exits 0. Any `MISMATCH`, `TIMEOUT`, a `FAIL:` line or a non-zero exit is a
+FAIL. The script programs the PL and re-runs the SLCR bring-up itself (FCLK0 100 MHz).
+
+What it would mean:
+- PASS: the compiled kernel computes gcd on full 32-bit operands from outside the die, on 1000 vectors nobody
+  chose to suit the route, on silicon. That is the claim the formal work's target is about.
+- MISMATCH on some vectors: a wrong answer the full-stack GLS did not show. Send the full output (a, b, got).
+- TIMEOUT "o_req rise": a missing answer (livelock or deadlock), the August shape. Note which vectors.
+- `A_DATA readback FAILED` or a TIMEOUT on "i_ack rise" for every vector: the AXI bridge or the PS bring-up, not
+  the kernel.
+- The harness is sequential on purpose (one call completes before the next is offered). formal/FOR-RESEARCH.md
+  section 2: the kernel reorders overlapped calls, so a host that overlaps them is not testing this.
+
+Evidence (JOURNAL 2026-11-01 17:31-19:40):
+- Audits, P1 seeds d,3-9 (`research/data/gcd_ps/p1_audit_8seed.tsv`): rule A 0 on all 8 (umux21 margin mean 1456 ps,
+  range 358-1889, guardband applied), rule D 38 (the screen, as on #1), E 0, J ok, build_hw PASS incl. fasm_audit.
+  nextpnr's fclk0 estimate 343-447 MHz against the 100 MHz FCLK0 (build_hw.sh passes no --freq for gcd_ps, so its
+  "PASS at 12.00 MHz" line means nothing; the estimate is the number).
+- Full stack (`research/data/gcd_ps/p1_fullstack.tsv`): each seed's netlist decoded from its own .bit with the PS7
+  (fasm2net --ps7), prjxray SDF, fid primitives, a behavioural PS7 running the host sequence above over the 24
+  vectors: seeds d,3,4,5 x SLOW_MAX/FAST_MIN: 24/24 ok, 0 err, 0 hang, fasm_equiv EQUIVALENT on all 8 runs; gate
+  ANNOTATE_DONE with 0 SDF warnings. (0x7fffffff, 0x7ffffffe), the longest vector: 15.1 us (14.95-15.2) from
+  i_ack to o_req at SLOW_MAX, 5.3 us (5.25-5.4) at FAST_MIN.
+- The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
+- CDC (read in gcd_ps.v): STATUS.i_ack and STATUS.o_req reach the PS clock through 2-flop synchronizers; the
+  kernel-facing request is a flop cleared asynchronously by the kernel's own i_ack (the pulse adapter), so a host
+  holding CTRL.i_req for milliseconds over JTAG cannot wedge the kernel; A/B are written before the CTRL write that
+  raises the request and stay unchanged until the result is read.
+
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
 yosys 0.62 maps soak_top's two 8-input functions to MUXF7/MUXF8, and rloc_stamp gave their LUTs
