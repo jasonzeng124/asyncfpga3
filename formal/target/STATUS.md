@@ -3,8 +3,10 @@
 Target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
 (`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01; part II, the Lean decoder, a stub).
 
-**Current best theorem about the target: none.** No Lean theorem yet has the target's netlist in
-it. The list below is what `NetCorrect` on the decoded target would need, and where each piece
+**Theorems about the target so far (2026-11-01):** `Formal.Target.Decoded.net_wf` (the decoded netlist is
+well formed). Shard C's 11g on the target (every read-back instance computes its yosys cell under rho). In
+progress: `Formal.Target.Wit.V9V4.refuted : ¬ NetCorrect net boundary arbs pSlow 656 20000 0 2999` (the
+pipelined statement is false; not claimed until it compiles). For the sequential statement `NetCorrectSeq`, none. The list below is what `NetCorrect` on the decoded target would need, and where each piece
 stands. It must shrink.
 
 | # | hypothesis | allowed (one of the five)? | status |
@@ -20,3 +22,15 @@ Existing results that a proof can reuse (not yet bridged to Spec.lean): shard C'
 the `--freq 100` gcd_hw routes (not this route), `gcd_hw_graph_computes_gcd` (one invocation, token
 level), shard B's cell proofs, shard A's XAudit/E9 verdicts (each with hypotheses about the circuit's
 own behaviour: ArbEnv, QQuiet, ArbOrd, which THE goal forbids as assumptions).
+
+## What `NetCorrectSeq` on the target still needs (decomposition, 2026-11-01)
+| # | obligation | owner | state |
+|---|---|---|---|
+| S1 | `net` is the target's configuration: Lean round trip of the decoder (features <-> gates) | A | Python round trip only |
+| S2 | timing obligations generated from `net` and proved complete: every bundled link's data settles before its request (settle/hold windows) | C (`Timing/SpecSettle`, no loops yet) | started |
+| S3 | the feedback cells (C-elements, latches, arbiters) as Spec gates with their loop timing derived from the bands | B (`ArbTSpec`, `ArbClean`) | started; `spec_double_ack` shows H_ARB alone is not enough: per-arbiter "q settled before A0" must be derived |
+| S4 | composition of the cells over the whole decoded network and refinement to the token graph | C | not started on `net` |
+| S5 | `gcd_hw_graph_computes_gcd` for any number of pairs under `SeqEnv` (one invocation exists) | C | token-level sequential runs correct in simulation (400/400) |
+| S6 | liveness: every handshake completes and the circuit returns to idle under `SeqEnv` | C/A | not started |
+Allowed hypotheses in the final statement: H_DECODE (bitread/bit2fasm + the prjxray tables the decoder uses),
+H_DELAY(g, κ), H_PRIM (built into `GateOK`), H_ARB(T), H_ENV + SeqEnv. Everything in S1-S6 must be proved.
