@@ -55,18 +55,15 @@ Kernel cost: per-gate cost is quadratic in its breakpoints; 122 gates near the r
     python3 formal/tools-A/target/sim.py ... --full --corner 1 --pos 1 --dump W.json
     python3 formal/tools-A/target/gen_wit.py NET BND W.json V9V4 OUTDIR --arbs ARBS   # Formal/Target/Wit/V9V4
 
-## Next for A (written 2026-11-01 ~12:05)
-1. **Faster witnesses** (for `check.sh --wit` and for new counterexamples): the 3 h of kernel time are dominated by
-   ~122 gates on the housekeeping ring and its BUFG path, whose flips span the whole window [dmax, b) (2.68 µs, ~240
-   flips per node; the check is quadratic per gate). Give each node its own periodic start (the ring is periodic after
-   its first lap, ~50 ns): `ext` with a per-node cut, the gate check on [dmax, max cut of its nodes). Expected: --wit
-   from ~3 h to ~1 h (then dominated by per-module import time). **Proved** (Formal/Target/WitCut.lean: `extC`,
-   `eq_extC`, `extC_eq_val_upto`, `gateOK_cut`); used by `gen_witc.py` (13:07; V9V4c being checked) (needs a per-node cut table in the
-   description tree, a per-gate window end B_g = max(cut of its nodes, dmax + P), descriptions kept up to the largest
-   B_g of the gates touching the node, and one periodicity check per node on [cut - Dm, horizon)).
-2. **S1, the Lean round trip** of the decoder (DONE for pips and LUT6 INITs, 17:15: `FormalWit/RT/All.lean` `roundtrip`;
-   next: O5 = INIT[31:0] with the O6's first five pins, output-mux/carry selects, the leftover classes in Lean): sorted feature list of the read-back FASM as data, a certificate list
-   (feature, gate) checked by lookup, so that "no feature dropped or invented" is a kernel fact (today: Python only).
-3. **Spec decisions pending with the owner**: SeqEnv (restriction of the owner's env, forced by the refutation);
-   H_RUNT(w) (`SpecRunt.lean`) vs the frozen transport H_PRIM; the g-in-Adm fix (FOR-RESEARCH 3). Each needs an audit
-   row when applied.
+## Next for A (written 2026-11-01 17:38)
+1. **S1 rest**: re-encode the 5,460 output-mux and 3,206 carry selects in Lean (needs each hop's driver gate: an
+   index-keyed gate tree tied to `gates`, as `ITree`/`hidx` tie the features); check the O6 pin order (A1..A6)
+   against the prjxray pin names in Lean; the wire-to-node merge (prjxray tileconn) stays H_DECODE.
+2. **Faster witnesses**: done (`gen_witc.py`, V9V4c, ~3x). New counterexamples should use gen_witc.py.
+3. **The sequential statement**: no proof route at 200k gates yet; B's κ ≥ 0.16 runt is aperiodic in simulation (no
+   Lean witness by the periodic method, journal 14:19). A quiet-wrong witness via read-map choices is the only
+   known route to a Lean refutation; none found.
+4. **Owner decisions pending**: SeqEnv; H_RUNT(w) (`SpecRunt.lean`) vs the frozen transport H_PRIM; the g-in-Adm
+   fix (FOR-RESEARCH 3). Each needs an audit row when applied.
+5. Kernel cost rules learned (journal 15:35): never use `String.<`, `String.splitOn` or one declaration over more
+   than ~50k list elements; compare strings as byte lists; give indices as certificates.
