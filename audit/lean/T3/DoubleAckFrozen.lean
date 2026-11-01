@@ -56,3 +56,6 @@ theorem frozen_arbOK_8_fails : ¬ ArbOK 8 [⟨1, 2, 3⟩] xda := by
   simp [xda, Formal.Cells.ArbT.cq] at this
 
 end Audit.T3.DA
+
+#print axioms Audit.T3.DA.double_ack_frozen
+#print axioms Audit.T3.DA.frozen_arbOK_8_fails

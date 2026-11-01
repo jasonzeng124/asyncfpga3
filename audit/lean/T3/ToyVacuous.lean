@@ -1,4 +1,6 @@
 import Formal.Target.Spec
+import Mathlib.Tactic.Ring
+import Mathlib.Tactic.NormNum
 
 /-!
 # Audit T3: the frozen `NetCorrect` holds VACUOUSLY for a circuit that never answers
@@ -69,8 +71,8 @@ theorem start_q : gQ.start p1 = 1 := by
 
 theorem start_A0 (L : Nat) : (gA0 L).start p1 = L := by
   simp only [Gate.start, gA0, aL, p1, List.map, List.foldr]
-  have e : ((L : ℚ) * (1 : ℚ)) = ((L : ℤ) : ℚ) := by push_cast; ring
-  rw [e, Rat.ceil_intCast]
+  have e : ((L : ℕ) : ℚ) = ((L : ℤ) : ℚ) := (Int.cast_natCast L).symm
+  rw [mul_one, e, Rat.ceil_intCast]
   simp
 
 /-- With `g = 1, κ = 0` an arc whose four numbers are all `m` admits exactly delay `m`. -/
@@ -81,8 +83,8 @@ theorem adm_exact (c : ℚ) (m d : Nat) (h : Adm p1 c ⟨m, m, m, m⟩ d) : d = 
   exact_mod_cast this
 
 theorem adm_of (c : ℚ) (m : Nat) : Adm p1 c ⟨m, m, m, m⟩ m := by
-  simp [Adm, p1, lerp]
-  constructor <;> ring_nf <;> simp
+  have e : (1 - c) * (m : ℚ) + c * m = m := by ring
+  simp [Adm, p1, lerp, e]
 
 theorem qbit (v : Nat → Bool) (h0 : v 0 = false) (h1 : v 1 = true) :
     qInit.testBit (addr 5 v) = (v 3 || (v 4 && v 2)) := by
@@ -110,11 +112,11 @@ theorem rises_req (L R t : Nat) : rises (xw L R 5) R t = if R < t then 1 else 0 
     simp only [rises, ih, xw]
     by_cases h1 : R < t
     · have : R < t + 1 := by omega
-      simp [h1, this]; omega
+      simp [h1, this] <;> omega
     · by_cases h2 : t = R
       · subst h2; simp
       · have : ¬ R < t + 1 := by omega
-        simp [h1, this]; omega
+        simp [h1, this] <;> omega
 
 theorem rises_zero (s : Sig) (R t : Nat) (h : ∀ u, s u = false) : rises s R t = 0 := by
   induction t with
@@ -127,7 +129,7 @@ theorem constGate (c : ℚ) (g : Gate) (x : Beh) (hk : g.k = 0) (ha : g.arcs = [
   rw [hk, hv t]; rfl
 
 theorem toy_behaves (L R : Nat) (hL : 1 ≤ L) (hLR : L ≤ R) : Behaves p1 (circuit (toyNet L) toyB) (xw L R) := by
-  refine ⟨0, le_rfl, by norm_num, ?_⟩
+  refine ⟨0, le_rfl, zero_le_one, ?_⟩
   rw [circuit_gates]
   intro g hg
   simp only [toyNet, List.mem_cons, List.not_mem_nil, or_false] at hg
@@ -193,19 +195,24 @@ theorem toy_env (L R su Δo : Nat) :
   refine ⟨?_, ?_, ?_, envIn_w L R su, envIn_w L R su, envIn_w L R su, envOut_w L R Δo, envOut_w L R Δo⟩
   · intro t ht; simp [toyB, xw, ht]
   · intro t ht; simp [toyB, xw]; omega
-  · intro k _; norm_num
+  · intro k _; show 0 < 2 ^ 31 ∧ 0 < 2 ^ 31; decide
 
 theorem toy_seq (L R : Nat) : SeqEnv (xw L R) toyB R := by
-  intro ch hch t ht h0 h1
+  intro ch hch t ht h0 _
   simp only [toyB, List.mem_cons, List.not_mem_nil, or_false, or_self] at hch
   subst hch
+  have e8 : rises (xw L R toyB.out0.ack) R t = 0 :=
+    rises_zero _ R t (fun u => by show xw L R 8 u = false; simp [xw])
   refine ⟨?_, ?_, ?_⟩
-  · rw [rises_zero (xw L R outCh.ack) R t (fun u => by simp [outCh, xw])]
-    simp only [inCh, rises_req]
-    simp [inCh, xw] at h0
+  · rw [e8]
+    show rises (xw L R 5) R t ≤ 0
+    rw [rises_req]
+    have : t ≤ R := by
+      have h0' : xw L R 5 t = false := h0
+      simp [xw] at h0'; omega
     split <;> omega
-  · simp [outCh, xw]
-  · simp [outCh, xw]
+  · show xw L R 7 t = false; simp [xw]
+  · show xw L R 8 t = false; simp [xw]
 
 theorem toy_not_correct (L R Δo : Nat) :
     ¬ Correct (xw L R) toyB R Δo (some 1) (fun _ => 0) (fun _ => 0) := by
@@ -339,3 +346,7 @@ theorem vacuous_every_T (T : Nat) (hT : 1 ≤ T) (su Δo : Nat) :
     toy_witness T T su Δo hT le_rfl⟩
 
 end Audit.T3.Toy
+
+#print axioms Audit.T3.Toy.toy_iff
+#print axioms Audit.T3.Toy.vacuous_every_T
+#print axioms Audit.T3.Toy.toy_witness

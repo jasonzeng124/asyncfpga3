@@ -884,3 +884,11 @@ T4 in (decoder round trip). I re-ran the subagent's re-encoder against my own re
 re-encoded / 0 invented / 10336 left. CONFIRMED. All 7167 kernel-cone LUT sites match the bits and nextpnr. Leftovers
 include FF and clock config with real function, but nothing reaches the kernel cone. The generated Lean net data and
 its WF proof are not committed at 88c74e3c (UNVERIFIED), and the Lean-side round trip is not written yet.
+
+### progress 08:39
+T3 in (frozen Spec). I re-ran its 4 Lean files (rc 0, no sorry) and checked that ToyVacuous imports the frozen Spec with
+no redefinitions. The frozen statement can be VACUOUS. ArbOK says q may change only within T of a request edge; for
+T <= R+L a never-acknowledging toy netlist satisfies NetCorrect and NetCorrectSeq because no behaviour meets the
+hypotheses, and such a netlist exists for every T. Also: section 7 calls NetCorrectSeq (extra SeqEnv binder, sequential
+env) THE theorem, which deviates from the owner's pipelined statement; Env adds harness timing (R, su, Δo).
+Formal 88c74e3c build EXIT 0.

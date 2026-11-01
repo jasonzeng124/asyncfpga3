@@ -62,3 +62,5 @@ theorem arbOK_iff (T : Nat) (A : List ArbNodes) (x : Beh) :
     · exact h ((c2 (w + 1) (by omega) (by omega)).trans (c2 w (by omega) (by omega)).symm)
 
 end Audit.T3
+
+#print axioms Audit.T3.arbOK_iff
