@@ -42,6 +42,7 @@ def main():
     ap.add_argument("--dout", type=int, default=3000)
     ap.add_argument("--tmax", type=int, default=5_000_000)
     ap.add_argument("--trace", default=None)
+    ap.add_argument("--dump", default=None, help="write every node's (v0, flip times) as JSON")
     ap.add_argument("--full", action="store_true", help="simulate every circuit gate, not only the kernel cone")
     ap.add_argument("--datachange", choices=["handshake", "broad", "rtz", "next"], default="handshake",
                     help="when the env moves the data to the next pair: right after the input "
@@ -273,6 +274,9 @@ def main():
             print("trace %-9s %s" % (k, list(zip(ht[n], hv[n]))[:12]), file=sys.stderr)
     print("sim: %d events, t = %d ps, %d pairs offered, %d accepted, %d outputs" %
           (nev, t, len(pairs), st["done_in"], len(outvals)), file=sys.stderr)
+    if a.dump:
+        json.dump({"tend": t, "nodes": {str(n): [hv[n][0], ht[n][1:]] for n in ht if len(ht[n]) > 1 or hv[n][0]},
+                   "outs": outvals, "pairs": pairs, "args": vars(a)}, open(a.dump, "w"))
     want = [math.gcd(x, y) for x, y in pairs]
     got = [v for _, v in outvals]
     ok = got == want

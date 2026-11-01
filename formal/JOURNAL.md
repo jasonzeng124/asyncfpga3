@@ -1250,3 +1250,18 @@ corners (contains every number of the record; fidelity list). Every simulation r
 Lean counterexample (next): the full circuit has a free-running housekeeping ring (gcd_hw.v dhk + invhk, no enable),
 so a witness behaviour of `circuit net boundary` must be eventually periodic, not eventually constant; the checker
 will verify each gate at the breakpoints of its piecewise-constant signals over one prefix plus one period.
+### progress 08:11 -- Spec change (frozen part, journaled): H_ARB reads all inputs of the arbiter's state LUT
+**Change to frozen Spec.lean part I, with reason (audit row requested):** `ArbNodes` was (r1, r2, q) and `ArbOK` said "both
+requests constant on [t1,t2] -> q constant on [t1+T, t2]". In bd_arbiter, q = O6 of ustate, which also reads A0 (the
+hold) and rst; with both requests held, q legitimately flips at A0's fall (alternation). So the old H_ARB excluded
+normal behaviours, i.e. it was a hypothesis about the circuit that is false of correct operation, making any theorem
+under it weaker than it looks. Now `ArbNodes = (q, ins)` with ins = every node the state LUT reads except its own
+feedback, and `ArbOK`: all of ins constant on [t1,t2] -> q constant on [t1+T, t2]. No proof used the old form.
+tools-A/target/arbs.py lists the target's 9 arbiters (ucontrol_merge{2,3,4,6,9,10,11,12}.uarb1, merge12.uarb2), 5 ins
+each (out/arbs_03e82630.json). Lean data compile: the 80 gate chunks pass WFn and outsOK by decide +kernel (all 79 of
+the first run, rerunning on the changed Spec).
+Lean counterexample in progress: Formal/Target/Witness.lean (segment-walk checker `chkFrom` with soundness, eventually
+periodic extension `ext`, `gateOK_slow`: a passing check gives Spec.GateOK at c = 1, g = 1, κ = 0 with every pin delay
+= the slow end of its band). Witness run (sim.py --full --corner 1 --pos 1, vector 9 then 4, pipelined): out0 = 1 at
+864.8 ns, 4096 at 2581.6 ns; every non-ring node quiet after 2.632 µs; the 122 ring nodes toggle every 11061 ps
+exactly (P = 22122 ps).

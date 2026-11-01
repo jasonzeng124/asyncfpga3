@@ -46,9 +46,9 @@ SLOW_MAX·g]`, and within the local scatter `κ ≥ 0` of the corner-`c` window,
 are weaker hypotheses, so the theorem's value is the largest `g, κ` for which
 it holds.
 
-**H_ARB(T).** For every arbiter of the target, given by its two request nodes
-and its state node: whenever both requests are constant on `[t1, t2]`, the
-state node is constant on `[t1 + T, t2]`.
+**H_ARB(T).** For every arbiter of the target, given by its state node and the
+other inputs of its state LUT (requests, reset, hold): whenever those inputs are
+constant on `[t1, t2]`, the state node is constant on `[t1 + T, t2]`.
 
 **H_ENV.** The environment drives the reset and the request and data nodes of
 the input channels `a`, `b`, `start` and the acknowledge nodes of the output
@@ -223,21 +223,25 @@ the rig by every environment that obeys H_ENV). -/
 def circuit (N : Net) (B : Boundary) : Net :=
   { N with gates := N.gates.filter fun g => g.out ∉ B.envNodes }
 
-/-- One arbiter: its two request nodes and its state (decision) node. -/
+/-- One arbiter: its state (decision) node `q`, the output of the arbiter's state
+LUT (`bd_arbiter.ustate`, O6), and `ins`, the nodes that LUT reads other than its
+own feedback (in `bd_arbiter`: the two requests, the reset and the hold input `A0`).
+(Changed 2026-11-01, before any proof used it: the first version listed only the
+two requests, which wrongly forbade `q` to move at `A0`'s fall with both requests
+held, a normal arbiter step.) -/
 structure ArbNodes where
-  r1 : Nat
-  r2 : Nat
   q : Nat
+  ins : List Nat
   deriving Repr
 
 /-- A signal is constant on `[t1, t2]`. -/
 def ConstOn (s : Sig) (t1 t2 : Nat) : Prop := ∀ t, t1 ≤ t → t ≤ t2 → s t = s t1
 
-/-- **H_ARB(T)**: whenever both requests are constant on `[t1, t2]`, the state
-node is constant on `[t1 + T, t2]`. -/
+/-- **H_ARB(T)**: whenever every input of the arbiter's state LUT (other than its
+feedback) is constant on `[t1, t2]`, the state node is constant on `[t1 + T, t2]`:
+the internal race resolves within `T` once its inputs stop moving. -/
 def ArbOK (T : Nat) (A : List ArbNodes) (x : Beh) : Prop :=
-  ∀ a ∈ A, ∀ t1 t2, ConstOn (x a.r1) t1 t2 → ConstOn (x a.r2) t1 t2 →
-    ConstOn (x a.q) (t1 + T) t2
+  ∀ a ∈ A, ∀ t1 t2, (∀ n ∈ a.ins, ConstOn (x n) t1 t2) → ConstOn (x a.q) (t1 + T) t2
 
 /-! ## 4. Four-phase handshakes -/
 
