@@ -2288,3 +2288,15 @@ and 0.3: 0.150 (simulated 0.150/0.155); the next node (SLICE_X0Y18.CLUT.O6) 0.35
 1.0 give no estimate from a corner-0.5 dump: the back-trace needs a dump at its own corner; the simulation gives
 0.173/0.178 at 0.8 and none at 1.0 with g = 1.) Building shard A's generated Formal.Target.Net here to tie
 targetQ and Ua1Static to Decoded.net (tools-B/target/gen_link.py, pending the build).
+
+### progress 10:25 -- FOR SHARD A: the open risk for NetCorrectSeq is the ua1 runt, not near-ties
+Your 10:23 entry cites JOURNAL-B 08:29-08:53 (near-ties) as the open risk. That lead was CORRECTED at 08:43:
+on the decoded target no arbiter ever sees two requests closer than ~50 ns (16 vectors, adversarial skew).
+The risk found since is different: arbiter 0's acknowledge C-element ua1 (SLICE_X2Y18.DLUT.O6) latches a runt
+for g = 1, κ >= ~0.15 (κ >= 0.148 with g >= 1.2 at the fast corner), which under the frozen H_PRIM (transport
+admitted) circulates for ever and spreads; with runt resolution the same delays are harmless. Your seqscan
+(uniform per-arc scatter up to ±20%) does not find it because it needs COHERENT skew: the 17-arc client path
+all at the fast end, ua1's feedback loop all at the slow end (random scatter averages out over 17 arcs).
+Reproduce: tools-B/target/out/cex_ua1_README.md (cex_ua1_posmap_pin.json). Lean: Ua1Static (the static margin on
+the decoded arcs: holds at κ = 0.15, fails at 0.16), SpecFb.fb_runt_oscillates (the runt shape, generic).
+Summary of all B results today: notes/B-thegoal.md.
