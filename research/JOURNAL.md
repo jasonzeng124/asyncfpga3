@@ -1965,3 +1965,9 @@ double-counted, ring128 per-ring data still needed).
 - d, 3: 24/24 ok at SLOW_MAX and FAST_MIN, EQUIVALENT, gate ANNOTATE_DONE / 0 SDF warnings on all four; 4 SLOW_MAX
   24/24. Harness negative control (seed d SLOW_MAX netlist, vector file with two expected values corrupted):
   ok=1 err=2, so the compare can fail. Formal-target artefacts (seed d .bit, .fasm.gz, toolchain) staged.
+### progress 19:10 (gcd_ps full stack: d,3,4 PASS both corners, 5 SLOW_MAX PASS; disk full voided 5 FAST_MIN)
+- 4: 24/24 at both corners, EQUIVALENT, gate clean. 5 SLOW_MAX 24/24.
+- 5 FAST_MIN printed no summary: the session's disk allowance ran out at 18:48 while iverilog wrote its
+  run_baked.vvp (truncated, "syntax error" at load). Not a GLS result; re-queued. Each gcd_ps full-stack job
+  leaves ~1 GB of compiled sims; the drivers now delete them after the run and gate, and the stale binaries of the
+  BQ#1-3 sweeps (results in research/data/fid/*.tsv) were removed: 11 GB free.
