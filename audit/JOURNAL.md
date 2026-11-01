@@ -896,3 +896,8 @@ Formal 88c74e3c build EXIT 0.
 ### progress 08:44
 Formal a3354d1c/08805763: B self-corrects a near-tie claim on the decoded target; A journal only. Nothing to grade.
 Axiom audit of 88c74e3c running (60 modules done).
+
+### progress 08:50
+Formal 6603bdd1 (B: ArbClean, separated arbitrations decided by the frozen gate relation): queued for the next pass.
+Watcher now batches routine formal commits hourly and wakes at once on Spec/target changes, research claims, or the
+end of the axiom audit.
