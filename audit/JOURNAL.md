@@ -831,3 +831,7 @@ BQ#3 d log-normal 1.5x draw 2: 16/16, 53/44/63 = claim, lapcheck CLEAN. CONFIRME
 Research 96446990: BOARD-QUEUE #3 adds "log-normal 1.5x draw 2: PASS on all 8 seeds" and "seed 9's failing scale on
 draw 1: between 1.75x and 2x". The latter contradicts r23 M (1.75x fails with double pulses), and it is now in
 the board-facing document: OVERSTATED row added at the top. Spot-checking BQ#3 seed 9 1.5x draw 2 with lapcheck.
+
+### progress 04:45
+BQ#3 seed 9 log-normal 1.5x draw 2 (md5s again): 16/16, lapcheck CLEAN, v6 48. With seed d, 2 of the 8 draw-2 rows are
+reproduced CLEAN.
