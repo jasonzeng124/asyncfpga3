@@ -43,3 +43,31 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   H_ENV to the sequential environment (offer k+1 only after out0's k-th handshake), which is what gcd_rig and
   gcd_bench do; (b) change bdc so a function invocation cannot enter before the previous one leaves (e.g. a
   token-count gate between start and end).
+
+## 2. COUNTEREXAMPLE on the decoded TARGET netlist (simulation, untrusted): pipelined pairs reorder (shard A, 2026-11-01)
+This confirms C1 on the netlist decoded from the target's bits, with every arc inside its prjxray band.
+- **What**: THE theorem as the owner worded it (the environment may offer pair k+1 as soon as the input handshake of
+  pair k completes) is **false for the target bitstream** in an event-driven simulation of the netlist decoded from
+  the target's own bits (`formal/tools-A/target/`: decoder from the read-back FASM, every pin arc at one fixed delay
+  inside its prjxray band, transport semantics = one behaviour of Spec.lean's `Behaves`).
+- **Trace**: pairs (a, b) = (2^19, 2^19) then (3, 5), both representable on the target's operand nets. The shared input
+  request rises at 20.0 ns, `start_ack` rises at 141.0 ns (the input handshake of pair 0 completes at 183.3 ns, all
+  acks low), pair 1 is offered at 183.3 ns, and out0 delivers **1 at 936.8 ns, then 524288 at 1854.0 ns**: gcd(3,5)
+  overtakes gcd(2^19,2^19). Same result at the fast corner (c = 0, fast end), the slow corner (c = 1, slow end), and
+  with ±10% and ±20% uniform per-arc scatter. Output: `formal/tools-A/target/out/cex_pipelined_reorder.txt`.
+  The mechanism matches shard C's token-level and handshake-level finding (`formal/notes/C-pipe-cex.md`): pair 1 skips
+  the k-loop that pair 0 iterates in.
+- **gcd_rig.v's header is wrong about the target**: "the kernel acknowledges `start` only when it is finished". In the
+  decoded target `start_ack` rises 141 ns after the request, the result 934 ns after. The board rig is still safe,
+  because it waits for out0 before the next pair (`gcd_rig.v`'s env is two stages), not because of start_ack.
+- **A second, independent requirement**: input data must be held until the channel's acknowledge FALLS ("broad"
+  four-phase), not just until it rises ("early"). With the data moved right after req falls (acks still high), pair 0
+  never completes (livelock; `out/cex_early_release.txt`); moved at each ack's fall, both pairs are right
+  (`out/ok_broad_sequential.txt`).
+- **Not shown**: a Lean-checked trace; that the simulator is a faithful instance of `Behaves` (it is untrusted code);
+  research's fid GLS has not been run with a pipelined environment.
+- **Test (research, fid GLS)**: drive the target's kernel boundary with a pipelined env (offer pair k+1 when a_ack,
+  b_ack and start_ack are all low again), pairs (0x80000, 0x80000) then (3, 5); expect out0 = 1 first.
+- **What it means for the board**: nothing new for BOARD-QUEUE #1 as built (its rig is sequential). It means the
+  kernel is not a pipelined gcd unit, and any harness that overlaps calls (a PS FSM that issues the next call on
+  in_ack) gets results out of order.

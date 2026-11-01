@@ -1208,3 +1208,20 @@ unit-delay simulation, and C's model disagrees with gcd_rig.v's "start acknowled
 Env allows exactly that env (raise the shared request once all three acks are low), so if this holds on the target
 it refutes NetCorrect. Next for A: boundary nodes in the decoded target, then an event-driven simulation of the
 decoded target netlist itself (fixed in-band delays) under the sequential and the pipelined env.
+### progress 07:43 -- COUNTEREXAMPLE in simulation on the decoded target: pipelined pairs come out reordered
+Boundary of the decoded target named (tools-A/target/boundary.py; out/boundary_03e82630.json): 42 env nodes (rst, the
+shared request = rig uenv1, 18 a / 20 b table LUT outputs, out0 ack = rig uenv0, end ack), kernel acks and out0
+req/data (32 distinct nodes). Simulator over the decoded netlist (tools-A/target/sim.py, untrusted; kernel cone
+170254 gates; one fixed delay per pin arc inside its prjxray band, transport). Validation: all 16 gcd_rig.v vectors
+correct with a sequential env. Findings (FOR-RESEARCH 2):
+1. **Pipelined env (offer pair k+1 when all three input acks are low) reorders**: (2^19,2^19) then (3,5) gives out0 =
+   [1, 524288], at mid, fast-end and slow-end corners and with ±10%/±20% scatter. So THE theorem in the owner's
+   wording is false for this bitstream (simulation, not Lean). start_ack rises at 141 ns, the result at 934 ns: the
+   gcd_rig.v header's "start is acknowledged only when finished" does not hold for the target.
+2. **Data released at ack rise (early four-phase) livelocks pair 0**; released at ack fall (broad) it is correct.
+   Spec.lean's EnvIn now uses the broad rule (data held while req or ack is high), with this reason in its docstring.
+Not shown: a Lean-checked counterexample; simulator fidelity; research fid GLS with a pipelined env (asked for).
+What the Spec should now say (decision, journaled before freezing): keep the pipelined env in NetCorrect (the owner
+asked for it) so the target's statement is REFUTED, and add the sequential variant (next pair only after out0's
+handshake) as the statement that can still be true. Next: write SeqEnv into Spec.lean; Lean witness of the reorder
+trace is the stronger deliverable (needs the Lean netlist data).

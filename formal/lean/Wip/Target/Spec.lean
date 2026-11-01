@@ -54,7 +54,9 @@ the input channels `a`, `b`, `start` and the acknowledge nodes of the output
 channels `out0`, `end`. Reset is high on `[0, R)` and low from `R` on. Each
 channel, on its own, follows the four-phase protocol from `R` on, with no
 timing assumption except two stated margins: the input data is held from `su`
-ps before its request rises until its acknowledge rises, and the output
+ps before its request rises until its acknowledge has FALLEN again (broad
+four-phase; holding it only until the acknowledge rises breaks the target in
+simulation, see `formal/FOR-RESEARCH.md` 2), and the output
 acknowledge does not rise earlier than `Δo` ps after the output request rose.
 (The kernel's `out0_req` leads `out0_data` by a latch arc, so some `Δo` is
 inherent at this boundary; the rig pads it with a delay line.) The channels are
@@ -276,9 +278,10 @@ def Offered (n : Option Nat) (k : Nat) : Prop := match n with
 /-! ## 5. H_ENV -/
 
 /-- The environment's obligations on an input channel: request low on `[0, R]`;
-from `R` on it moves only as allowed, rises at most `n` times, is live; while the request
-is high and not yet acknowledged, and from `su` ps before each rise, the data
-holds item `k` of `vals` (`k` = rises so far minus one). -/
+from `R` on it moves only as allowed, rises at most `n` times, is live; from `su`
+ps before each rise until the acknowledge has fallen again (while the request or
+the acknowledge is high: the "broad" four-phase data rule), the data holds item
+`k` of `vals` (`k` = rises so far minus one). -/
 def EnvIn (x : Beh) (ch : InCh) (R su : Nat) (n : Option Nat) (vals : Nat → Nat) : Prop :=
   (∀ t, t ≤ R → x ch.req t = false) ∧
   ReqMoves (x ch.req) (x ch.ack) R ∧
@@ -286,7 +289,7 @@ def EnvIn (x : Beh) (ch : InCh) (R su : Nat) (n : Option Nat) (vals : Nat → Na
   (∀ t, R ≤ t → x ch.req t = true → Offered n (rises (x ch.req) R t - 1)) ∧
   (∀ t, R ≤ t → x ch.req t = false → x ch.req (t + 1) = true →
       ∀ s, t + 1 - su ≤ s → s ≤ t + 1 → busVal x ch.data s = vals (rises (x ch.req) R (t + 1) - 1)) ∧
-  (∀ t, R ≤ t → x ch.req t = true → x ch.ack t = false →
+  (∀ t, R ≤ t → (x ch.req t = true ∨ x ch.ack t = true) → 1 ≤ rises (x ch.req) R t →
       busVal x ch.data t = vals (rises (x ch.req) R t - 1))
 
 /-- The environment's obligations on an output channel: acknowledge low on
