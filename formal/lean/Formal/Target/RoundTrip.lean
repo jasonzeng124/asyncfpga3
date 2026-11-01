@@ -177,12 +177,21 @@ theorem mergeAll_perm (f : Nat) : ∀ (g : Nat) (ls : List (List Nat)), (mergeAl
 /-- The set bits of a LUT6 INIT, low to high. -/
 def lutBits (init : Nat) : List Nat := (List.range 64).filter fun b => init.testBit b
 
+/-- Split a character list at `d` (structural; `String.splitOn` does not reduce in the kernel). -/
+def splitC (d : Char) : List Char → List (List Char)
+  | [] => [[]]
+  | c :: cs => if c = d then [] :: splitC d cs else
+      match splitC d cs with
+      | [] => [[c]]
+      | w :: ws => (c :: w) :: ws
+
 /-- **The FASM features gate `g` stands for** (pips and LUT6 INIT bits; every other gate: none). -/
 def feats (pre : String → String) (g : Gate) : List String :=
   if g.k = 1 ∧ g.name.front ≠ '~' ∧ g.name.startsWith "hop " = false then [g.name]
   else if g.k = 6 ∧ g.name.endsWith ".O6" = true then
-    match g.name.splitOn "." with
-    | [site, lut, _] => (lutBits g.init).map fun b => pre site ++ "." ++ lut ++ ".INIT[" ++ toString b ++ "]"
+    match splitC '.' g.name.toList with
+    | [site, lut, _] =>
+      (lutBits g.init).map fun b => pre (String.ofList site) ++ "." ++ String.ofList lut ++ ".INIT[" ++ toString b ++ "]"
     | _ => []
   else []
 
