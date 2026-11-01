@@ -7,14 +7,14 @@ import Formal.Target.Spec
 output node `o`, one arc `⟨a, b, c, d⟩` (FAST_MIN, FAST_MAX, SLOW_MIN, SLOW_MAX in ps).
 -/
 
-namespace Formal.Target.Net
+namespace Formal.Target.Decoded
 open Formal.Target
 
 /-- A 1-input copy gate (pip or site hop). -/
 @[reducible] def P (n : String) (i o a b c d : Nat) : Gate :=
   ⟨n, 1, 2, [i], [⟨a, b, c, d⟩], o⟩
 
-end Formal.Target.Net
+end Formal.Target.Decoded
 
 namespace Formal.Target
 

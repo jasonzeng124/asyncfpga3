@@ -1265,3 +1265,11 @@ periodic extension `ext`, `gateOK_slow`: a passing check gives Spec.GateOK at c 
 = the slow end of its band). Witness run (sim.py --full --corner 1 --pos 1, vector 9 then 4, pipelined): out0 = 1 at
 864.8 ns, 4096 at 2581.6 ns; every non-ring node quiet after 2.632 µs; the 122 ring nodes toggle every 11061 ps
 exactly (P = 22122 ps).
+### progress 08:16 -- Formal/Target/Witness.lean compiles (checker for concrete behaviours, proved sound)
+Proved (no sorry, compiles with lake env lean): `chkFrom_sound` (segment walk between breakpoints gives the gate
+equation on the window), `eq_ext` (with periodicity of the inputs from b - Dm, the equation holds for the eventually
+periodic extension at every t ≥ lo), `gateOK_slow` (=> Spec.GateOK pSlow 1 g, pin delays = slow ends), `chkPer_sound` /
+`perOn_of_chk` (periodicity check), `adm_slow`, `start_slow`. Not yet: the generated witness data for the target
+(gen_wit.py; 7.9 MB: P = 22122 ps, b = 2676520 ps, Dm = 696 ps), the per-chunk decide runs, and the boundary half
+(Env, ArbOK, ¬Correct) of the refutation. Generated netlist namespace renamed Formal.Target.Decoded (Net clashed with
+the structure's field names); arbiter list added to All.lean; full recompile running.
