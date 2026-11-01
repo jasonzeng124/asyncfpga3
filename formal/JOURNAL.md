@@ -1368,3 +1368,7 @@ pulse of s narrower than w), `GateOKRunt`, `BehavesRunt`, `NetCorrectSeqRunt w` 
 obeying H_RUNT(w)); proved: `gateOK_of_runt`, `seqRunt_of_seq` (the frozen statement implies the variant for every
 w), `runt_zero` (w = 0 is the frozen statement). No frozen definition changed; nothing imports it yet. Purpose: give
 the owner the alternative B's ua1 finding calls for (FOR-RESEARCH 3), as a statement, not a choice made for the owner.
+### progress 11:57 -- audit T6 read: B's ua1 runt confirmed, and the fid GLS with its default resolver also fails
+FOR-RESEARCH 3 updated: in research's fid GLS with the 7 local arcs set, the default resolver gives out0_req pulse
+trains (four-phase violation) then a stall at 2 of 3 seeds, so near κ ≈ 0.16 the failure is not only a property of the
+transport H_PRIM; SpecRunt's w-filter would then not save the sequential statement there either (to be checked).

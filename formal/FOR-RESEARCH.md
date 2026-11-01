@@ -103,6 +103,12 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   escapes through one reader (SLICE_X2Y18.CLUT, an OR), and the circuit locks up. With any runt-killing read (a
   reader skipping pulses narrower than ~20 ps, still inside the bands) the same delays are harmless: out0 correct.
   The next storage node would bind only at κ ≈ 0.36.
+- **Audit T6 (claude/audit af485141, findings/T6.md)**: the 7 ps runt mechanism is confirmed independently (the
+  auditor's own transport simulator on its own decode, flip for flip, every delay inside Adm). Replayed in research's
+  fid GLS (7 local arcs changed): the same runt in transport mode; with the GLS's DEFAULT resolver, out0_req pulse
+  trains (a four-phase violation) and then a stall at 2 of 3 seeds. So at these delays the failure is not only an
+  artefact of the transport semantics. Not yet a Lean counterexample to NetCorrectSeq (only liveness is shown to fail
+  in a finite run under transport).
 - **What it means**: the sequential theorem's κ margin is ~0.15 under the pessimistic semantics PROGRAM requires, and
   at least ~0.36 (in this evidence) if silicon kills narrow runts. Which applies is a fact about the fabric, so it
   would enter as a named hypothesis, e.g. H_RUNT(w): "a LUT input pulse narrower than w ps is not propagated".
