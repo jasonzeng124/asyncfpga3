@@ -1335,3 +1335,13 @@ position in {0, 0.5, 1}, uniform per-arc scatter in {0, ±10%, ±20%}, output ac
 right, in order (out/seqscan_60.txt). Evidence for NetCorrectSeq, not a proof; B's near-tie analysis (JOURNAL-B
 08:29-08:53) is the open risk for it.
 FormalWit re-check under the new module names: base modules and 18/80 gate chunks done, no errors.
+### progress 10:25 -- B's two points for the Spec owner: answered (no Spec change today)
+(1) H_PRIM keeps runts alive in LUT loops (transport): that is the pessimistic semantics PROGRAM requires, so B's
+κ ≈ 0.155 threshold for the SEQUENTIAL statement stands as a result under the frozen Spec; a runt-killing variant
+would be a new named hypothesis about silicon (H_RUNT(w)), the owner's call (FOR-RESEARCH 3). (2) g is inert at
+small κ in my Adm (intersection of the g-band with the corner window): agreed, a defect of the definition with respect
+to the owner's "largest g" margin. Proposed fix (g scales the corner window) written in FOR-RESEARCH 3 but not applied:
+B's ArbTSpec/SpecArbVacuous/SpecFb/Ua1Static and C's GrantFork/SpecSettle use Adm's current shape, and C's claimed
+`adm_le_dmax` (d ≤ ⌈smax·g⌉) would be false under the fix. Until decided, margins are reported as (g, κ) frontiers.
+The Lean refutation is at g = 1, κ = 0, where both forms of Adm admit exactly [smin, smax] at corner 1, so it is
+unaffected by this choice.
