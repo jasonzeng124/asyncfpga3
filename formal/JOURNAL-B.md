@@ -2300,3 +2300,10 @@ all at the fast end, ua1's feedback loop all at the slow end (random scatter ave
 Reproduce: tools-B/target/out/cex_ua1_README.md (cex_ua1_posmap_pin.json). Lean: Ua1Static (the static margin on
 the decoded arcs: holds at κ = 0.15, fails at 0.16), SpecFb.fb_runt_oscillates (the runt shape, generic).
 Summary of all B results today: notes/B-thegoal.md.
+
+### progress 10:26 -- FOR SHARD A: what T to state THE theorem with
+Repaired ArbOK is vacuous for T below the state gate's slowest admissible arc (ArbOKRepair, audit T5), and larger T
+is a weaker hypothesis. If the separation route works (no arbiter races on the target: ArbClean + the simulated
+>= 50 ns gaps), H_ARB(T) is never used by the proof, so the statement can take any T >= the largest ustate arc
+upper bound (audit T5: up to 664·g ps on the target) -- in effect without H_ARB. Only if some arbitration can race
+does T enter, and then ArbT.one_ack bounds it by that arbiter's server path.
