@@ -15,6 +15,8 @@ export PATH="$HOME/.elan/bin:$PATH"
 cd "$HERE/lean"
 fail=0
 COMMITTED=0
+WIT=0
+if [ "${1:-}" = "--wit" ]; then WIT=1; shift; fi   # also build and audit the FormalWit library (hours)
 if [ "${1:-}" = "--committed" ]; then COMMITTED=1; shift; fi
 FILES=("$@")
 echo "[check] textual scan"
@@ -68,7 +70,7 @@ open Lean Meta in
   for (c, _) in env.constants.map₁.toList do
     let some idx := env.getModuleIdxFor? c | continue
     let mod := env.header.moduleNames[idx.toNat]!
-    unless (`Formal).isPrefixOf mod do continue
+    unless (`Formal).isPrefixOf mod || (`FormalWit).isPrefixOf mod do continue
     if c.isInternal then continue
     n := n + 1
     let axs ← collectAxioms c
@@ -82,6 +84,15 @@ LEAN
   FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake env sh -c 'LEAN_PATH="$PWD/${CHK:-.lake/none}:$LEAN_PATH" exec lean "$0"' "$AUD"
   local rc=$?; rm -f "$AUD"; return $rc
 }
+if [ $WIT -eq 1 ]; then
+  # one module at a time: lake has no job limit, and witness modules use up to ~5 GB each
+  echo "[check] witness library FormalWit (one module at a time)"
+  for m in $(cd FormalWit && find . -name '*.lean' | sed 's|^\./||; s|\.lean$||; s|/|.|g' | sort -t. -k2,2 | awk '/Refute$/{r=$0; next} {print} END{if (r) print r}'); do
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "FormalWit.$m" > .lake/check-wit.log 2>&1
+    grep -q 'Build completed successfully' .lake/check-wit.log || { grep -E 'error' .lake/check-wit.log | head -5; echo "[check] FAIL: FormalWit.$m"; fail=1; break; }
+  done
+  for r in $(cd FormalWit && find . -name 'Refute.lean' | sed 's|^\./||; s|\.lean$||; s|/|.|g'); do LIBMODS+=("FormalWit.$r"); done
+fi
 echo "[check] axiom audit"
 if [ $fail -eq 0 ]; then
   ROOT=none; [ ${#FILES[@]} -eq 0 ] && [ $COMMITTED -eq 0 ] && ROOT=root
