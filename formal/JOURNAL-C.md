@@ -957,3 +957,16 @@ Timing/Checker is sound only for its own run semantics).
   superseded by rule E. So nothing new from the project's rules.
 - Next: extract every rule's obligations with prjxray arcs (extract.py --rules2 AEFJWR --cert) and run tcheck on them:
   the band verdicts for the TARGET (the earlier C-10 runs were on --freq 100 routes, not these bytes).
+
+### progress 08:23 -- tcheck on THE TARGET: every A/E/F/J row passes at both prjxray corners
+extract.py --rules2 AEFJWR --cert on the target route (tree_T: research 1a97b739 cells + the target's SDF/FASM, md5s =
+README): 184 controllers, 2735 obligations, 80102 arcs with prjxray numbers, 9872 falling back to the SDF band, 15
+unordered prjxray records hulled. tcheck (proved-sound checker, toy/cert self-tests ok): 15738 instances checked.
+Against research's own rules (compare2.py): A 50/50 agree PASS; E 116+115 agree, 2+3 disagree; F 28+28 agree, 1+1;
+J 14/14/18 agree, 4+4 J0/Jp disagree. **Every disagreement is "band only"**: the rows pass at the fast and at the slow
+prjxray corner (each corner consistent, no guard) and fail only with the 0.772/1.155 guard band applied: umux13 uj0/uj1
+and umux19 uj1 (rule E; worst guarded -426 ps), ucmpi8.udly (F, -498), the arbiters of control_merge2/4/9 (J; worst
+merge9 uarb1#1: fast +179, slow +480, guarded -770/-1237). Tables: tools/tcheck/results/target/compare5_T.tsv.
+Meaning for NetCorrectSeq: at g = 1 the checked bundling/flush/arbiter-fork rows hold at a consistent corner; they set a
+ceiling on the provable guard g (merge9's J row has +179 ps at the fast corner). Not shown: that these rows are all the
+obligations (completeness), mixed corners within κ, W/R rows (not compared), anything in Lean about the target.
