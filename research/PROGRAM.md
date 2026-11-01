@@ -21,6 +21,25 @@ evidence stronger:
   async latch, stale operands) as regression tests, wherever they can be
   reproduced without a board.
 
+## First lead: a full-width gcd target for formal (owner, 2026-11-01)
+
+Formal is proving that a gcd_hw bitstream is correct (claude/formal,
+`formal/PROGRAM.md`, "THE goal"). Its current target, the BOARD-QUEUE #1
+build, takes inputs from a 16-entry vector table, so "every a, b" cannot be
+stated for it (`formal/FOR-RESEARCH.md` section 1). Build the same kernel
+inside `cells/hw/gcd_ps.v` (32-bit operand registers from the PS, no vector
+table), with the same flags and sizing flow as BOARD-QUEUE #1, put it through
+the full stack (every audit, the fid GLS at both corners on >=4 seeds, with
+operands from outside the 16 vectors and a derived oracle), and add it to
+BOARD-QUEUE.md as a new item. Name one seed's `.bit` and `.fasm`, with md5s,
+as "formal target" in that item. Check how the STATUS bits (i_ack, o_req)
+cross from the async kernel into the PS clock domain; if there is no
+synchronizer, that is a finding to fix first (see the async-latch lesson in
+the journal). Do this before other leads. Also read FOR-RESEARCH sections 2
+and 3: the kernel reorders pipelined pairs (the board harnesses must stay
+sequential; check gcd_ps's FSM does), and the ua1 runt test is a cheap fid
+GLS experiment.
+
 ## THE priority: a board-fidelity gate-level simulation (owner, 2026-10-27)
 
 The owner considers this the most important thing for developing without a
