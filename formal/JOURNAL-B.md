@@ -2318,3 +2318,11 @@ Decoded.net's own arcs. Standard axioms. So targetQ_facts and the ua1 static mar
 netlist THE theorem is about (modulo H_DECODE's round trip, shard A). Not re-derived here: the pin roles and the
 path's identity (which pin reads which node) -- they come from the generator's tracing. Note: importing
 Formal.Target.Net.All costs other shards ~30 CPU-min on a fresh build.
+
+### progress 10:35 -- ua1's path and loop wiring in Lean (TargetLink, check.sh OK)
+Added `ua1Path_wired` (every pin on the 17-arc episode path reads the next listed gate's output, from ua1's pin
+A5 back to ua1's own output node 109800), `ua1Loop_wired` (pin A1 reads a 6-gate chain starting at ua1's output)
+and `ua1Loop_copies` (those six are copy gates, k = 1, table 0b10), all decided on Decoded.net. So the static half
+of the ua1 counterexample -- the path, the loop, their arcs, and the κ at which Adm lets the path beat the loop --
+is now Lean-checked on the target's netlist. Still simulation: that this path is what ends the episode in every
+behaviour (it is the causal path in the runs), and the dynamics (eternal runt, spreading).
