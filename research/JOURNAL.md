@@ -1927,3 +1927,19 @@ double-counted, ring128 per-ring data still needed).
   GLS netlist, a testbench running the documented host sequence over operands outside the 16 vectors with
   expected values from bdc/simcheck.py's ref_gcd (the C transcription); fid GLS at both corners on >= 4 seeds;
   BOARD-QUEUE item naming one seed's .bit/.fasm as the formal target. Default-seed build running.
+### progress 17:48 (gcd_ps: built, rule A needs padding, GLS harness working; async-flop GLS bug fixed)
+- gcd_ps with BQ#1's flags (select pads, v4) routes on seeds d,3,4,5 (build_hw PASS incl. fasm_audit). Default
+  seed audit: rule A 1 violation (bridge_i.udut.umux21 margin -1567 ps, PAD to 16), rule D 38 (the screen, as on
+  BQ#1), E 0, J ok. BQ#1's own route: rule A 0 -- gcd_hw's 16-vector table lets synthesis merge most operand bits
+  (formal FOR-RESEARCH s1: a_data 18 distinct nets), so its datapath is shorter. gcd_ps therefore needs the
+  sizing step: BD_SIZES now works for gcd_ps (bridge_i.udut.*), and research/tools/pad_sizes.py writes a
+  PAD-ONLY sizes file (only rule-A violators lengthened, max over seeds; nothing shortened). Running.
+- GLS bug found and fixed (231b948): gen.py/prims.v modelled every SLICE_FFX as FDRE/FDSE (synchronous SR) and
+  read FDPE's "PRE" as reset-to-0. gcd_ps's AXI bridge has 67 FDCE + 2 FDPE, so in GLS it never left reset
+  correctly (aw_en = 0, no BVALID ever). gcd_hw has only FDRE/FDSE (306/20), so no earlier result changes;
+  run_f3.sh all ok.
+- GLS harness (cells/gls/ps/): behavioural PS7_PS7 = FCLK0 + AXI3 master running gcd_ps.v's documented host
+  sequence; 24 vectors outside gcd_rig's 16, expected from bdc/simcheck.py ref_gcd (= math.gcd on [0,2^31)).
+  First check (default seed, nextpnr SDF, default model): vectors 0-2 OK (0x7fffffff/0x7ffffffe -> 1,
+  0x7fffffff/0x7fffffff, 0x40000000/0x60000000 -> 0x20000000). Unsized route: rule A violation present, so this
+  is a harness check only, not a claim.
