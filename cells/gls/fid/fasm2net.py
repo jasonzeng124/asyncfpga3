@@ -234,6 +234,7 @@ class Design:
         self.unused_slices = set()   # slices with no configured feature at all
         self.sitepin_of = {}         # (tile, wire) -> (site, pin name)
         self.used = set()            # (tile, feature) consumed
+        self.ps7 = False             # decode the PS7 (--ps7)
         self.problems = collections.Counter()
         self.examples = collections.defaultdict(list)
         self.notes = []
@@ -381,6 +382,8 @@ class Design:
         for tile, tt in self.fab.ttype.items():
             if tt.startswith("CLBL") and tile not in self.feats:
                 self.feats[tile] = {}
+            if tt == "PSS2" and self.ps7 and tile not in self.feats:
+                self.feats[tile] = {}      # the PS7 has no PL configuration bits
         for tile in sorted(self.feats):
             tt = self.fab.ttype[tile]
             if tt.startswith("CLBL"):
@@ -397,6 +400,8 @@ class Design:
                 self.decode_ioi(tile)
             elif tt in ("DSP_L", "DSP_R"):
                 self.decode_dsp(tile)
+            elif tt == "PSS2" and self.ps7:
+                self.decode_ps7(tile)
 
     def sitepins(self, tile, sname):
         for s, name in self.fab.sites(tile):
@@ -514,8 +519,10 @@ class Design:
             if clkinv:
                 self.problem("REFUSED: inverted slice clock (CLKINV)", "%s %s" % (tile, c.name))
             if srused and not ffsync:
-                self.problem("REFUSED: asynchronous SR (FDCE/FDPE) -- prims.v is synchronous",
-                             "%s %s" % (tile, c.name))
+                # asynchronous SR: FDCE (clear) / FDPE (preset); prims.v models
+                # it since 2026-11-01 (gen.py passes ASYNC from X_ORIG_TYPE)
+                c.attrs["X_ORIG_TYPE"] = "FDCE" if zrst else "FDPE"
+                c.attrs["X_ORIG_PORT_SR"] = "CLR" if zrst else "PRE"
             self.add(c)
         for i, L in enumerate(LUTS):
             srcs = {"%sX" % L: R(L + "X"), "O6": K("%s6LUT" % L, "O6"), "O5": K("%s5LUT" % L, "O5"),
@@ -591,6 +598,24 @@ class Design:
         for f in self.feats[tile]:
             if re.match(r"CLK_HROW_R_CK_GCLK\d+_ACTIVE$", f):
                 self.used.add((tile, f))
+
+    def decode_ps7(self, tile):
+        """The PS7 (--ps7 only: the bits do not say whether the PS drives the
+        PL, so a design that uses it says so).  Only the pins gls/ps/ps7_pins.py
+        lists are modelled (M_AXI_GP0 + FCLK); the rest are left out."""
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ps"))
+        import ps7_pins
+        for s, sname in self.fab.sites(tile):
+            if s["type"] != "PS7":
+                continue
+            pins = {p: v["wire"] for p, v in s["site_pins"].items() if v}
+            c = Cell("%s/PS7" % sname, "PS7_PS7", root=True)
+            for p in ps7_pins.INPUTS:
+                c.ins[p] = ("route", tile, pins[p], sname, p)
+            c.outs = list(ps7_pins.OUTPUTS)
+            self.add(c)
+            for p in c.outs:
+                self.sout(tile, pins, sname, p, (c.name, p))
 
     def decode_cfg(self, tile):
         for f in list(self.feats[tile]):
@@ -1367,6 +1392,8 @@ def main():
     ap.add_argument("--names", help="routed JSON: ONLY for naming (aliases, SDF re-key)")
     ap.add_argument("--sdf", help="SDF to re-key onto this netlist (needs --names)")
     ap.add_argument("--allow", action="store_true", help="write outputs despite REFUSED items")
+    ap.add_argument("--ps7", action="store_true",
+                    help="decode the PS7 (M_AXI_GP0 + FCLK pins, gls/ps/ps7_pins.py): the bits do not show it")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     fasm = a.fasm
@@ -1375,6 +1402,7 @@ def main():
         bit_to_fasm(a.bit, fasm)
     fab = Fabric(DB_ROOT, PART)
     des = Design(fab, parse_fasm(fasm))
+    des.ps7 = a.ps7
     des.build()
     des.check_bufg()
     des.check_dsp()

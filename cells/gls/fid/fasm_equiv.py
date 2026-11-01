@@ -373,6 +373,13 @@ def main():
         if a_ is None:
             flag("pin unconnected in routed JSON, DRIVEN on the board", "%s/%s <- %s" % (k[0], k[1], b_))
             continue
+        if b_ is None and k[0].endswith("/PS7") and a_[0] == "const":
+            # a PS7 input nextpnr ties to a constant: the decoder models only
+            # gls/ps/ps7_pins.py's pins (fasm2net --ps7); the tie-off is inside
+            # the PS/PL interface and carries no PL bits
+            flag("PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)",
+                 "%s/%s <- %s" % (k[0], k[1], a_))
+            continue
         if b_ is None:
             flag("pin connected in routed JSON, unconnected on the board", "%s/%s <- %s" % (k[0], k[1], a_))
             continue
@@ -552,6 +559,7 @@ def main():
     if a.out:
         open(a.out, "w").write(txt + "\n")
     benign = ("cell in routed JSON, not configured by the bits (it has NO loads)",
+              "PS7 input tied to a constant in JSON, not modelled",
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
               "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip",

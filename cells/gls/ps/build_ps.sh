@@ -1,19 +1,30 @@
 #!/usr/bin/env bash
-# build_ps.sh HWDIR WORK [VECFILE] -- routed GLS of hw/gcd_ps.v, as cells/gls/build.sh does for
-# gcd_hw, with the behavioural PS7 (ps7_master.v) as the only driver.  Env as build.sh/gen.py:
+# build_ps.sh HWDIR WORK [VECFILE] [bit] -- routed GLS of hw/gcd_ps.v, as cells/gls/build.sh does
+# for gcd_hw, with the behavioural PS7 (ps7_master.v) as the only driver.  Env as build.sh/gen.py:
 # GLS_SDF (default HWDIR/gcd_ps.sdf), GLS_SDF_FIELD, GLS_MODEL=fid, GLS_SCATTER*.
+# With "bit" (the full stack, as fid/build_fid.sh): the netlist is decoded from HWDIR/gcd_ps.bit
+# (fasm2net.py --ps7), checked against the routed JSON (fasm_equiv.py, verdict in provenance), and
+# GLS_SDF is re-keyed onto it.
 # Then: (cd WORK && vvp gate.vvp)  -> must print ANNOTATE_DONE and no SDF WARNING/ERROR;
 #       (cd WORK && vvp run_baked.vvp +PSVEC=ps_vec.hex) -> PSRES lines, PSSUMMARY.
 set -euo pipefail
-HW=$(cd "$1" && pwd); mkdir -p "$2"; WORK=$(cd "$2" && pwd); VEC=${3:-}
+HW=$(cd "$1" && pwd); mkdir -p "$2"; WORK=$(cd "$2" && pwd); VEC=${3:-}; SRC=${4:-json}
 GLS=$(cd "$(dirname "$0")/.." && pwd); PS=$GLS/ps
 J=$HW/gcd_ps_routed.json; S=${GLS_SDF:-$HW/gcd_ps.sdf}
-cp "$J" "$WORK/routed.json"; cp "$S" "$WORK/routed.sdf"
+if [ "$SRC" = bit ]; then
+    python3 "$GLS/fid/fasm2net.py" --ps7 --bit "$HW/gcd_ps.bit" --out "$WORK/fid" --names "$J" --sdf "$S"
+    python3 "$GLS/fid/fasm_equiv.py" "$J" "$WORK/fid/fasm_routed.json" "$WORK/fid/routes.tsv" \
+        "$WORK/fid/stubs.tsv" --out "$WORK/fid/equiv.txt" --max 4 | grep -E "VERDICT" || true
+    cp "$WORK/fid/fasm_routed.json" "$WORK/routed.json"; cp "$WORK/fid/fasm.sdf" "$WORK/routed.sdf"
+else
+    cp "$J" "$WORK/routed.json"; cp "$S" "$WORK/routed.sdf"
+fi
 {   echo "design:    gcd_ps"
     echo "routed.json md5 $(md5sum < "$WORK/routed.json" | cut -d' ' -f1)  <- $J"
     echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf" | cut -d' ' -f1)  <- $S, column ${GLS_SDF_FIELD:-min}"
     echo "delays:    scatter ${GLS_SCATTER:-0} region ${GLS_SCATTER_REGION:-0} seed ${GLS_SCATTER_SEED:-1} mode ${GLS_SCATTER_MODE:-arc} logn ${GLS_SCATTER_LOGN:-0}"
     echo "model:     ${GLS_MODEL:-default}"
+    echo "netlist:   $SRC$( [ "$SRC" = bit ] && echo " (fasm2net --ps7 from $(md5sum < "$HW/gcd_ps.bit" | cut -c1-8)); $(grep -o 'VERDICT.*' "$WORK/fid/equiv.txt")")"
     [ -f "$HW/toolchain.txt" ] && cat "$HW/toolchain.txt" || echo "toolchain: UNSTAMPED"
 } > "$WORK/provenance.txt"
 cat "$WORK/provenance.txt"
