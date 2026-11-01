@@ -2028,3 +2028,17 @@ double-counted, ring128 per-ring data still needed).
   z_req = delay(OR of C(in_k_req, ctl_req & s==k)). s is the output of ulink_n_index_97, whose own request is
   matched (8 links) after its data, so s settles before ctl_req rises; tighten, finding "no common source",
   charges s an upstream lag of 1229 ps after the request instead. The shortened-umux21 controls test this.
+### progress 22:05 (why the gcd_ps negative control cannot fail; an out0 bundling monitor)
+- 1x scatter: seeds 4, 5 also 24/24 (4/4; research/data/gcd_ps/p1_scatter1x.tsv). BOARD-QUEUE #4 updated.
+- umux21 cut to 1 link (control route): full stack 24/24 at SLOW_MAX and FAST_MIN. Cause found by reading the
+  generated kernel: umux21's output n170 IS the kernel's out0 (out0_req = n170_req, out0_data = n170_data), and
+  gcd_ps's consumer is the PS: o_data_capture is sampled every FCLK0 and the host reads O_DATA only after o_req
+  has crossed the 2-flop synchronizer and an AXI read, i.e. >= 20 ns after out0_req. So a result that settles
+  after its request is still read right; the PS-harness GLS cannot see an out0 bundling violation, and the
+  unsized "pass" says nothing about rule A. Negative result: through this harness, this bundle's GLS check is
+  blind by construction. (On gcd_hw, out0 goes to the rig's asynchronous compare, where it does matter.)
+- Remedy for the check: cells/gls/ps/gen_bundle_mon.py + build_ps.sh PS_BUNDLE=1, a monitor on the kernel
+  boundary in the bit-decoded netlist (driver pins of core_o_req and bridge_i.o_data_pl[31:0], found via the
+  routed JSON's NEXTPNR_BEL and nets.map): margin = out0_req rise minus the last out0_data change; LATE = a
+  data change while out0_req is high before the host's o_ack. Running on seed d with umux21 at 1, 4, 8, 12
+  (unsized) and 16 (P1) links, both corners. The n4/n8 PS-only controls were dropped (they cannot fail either).

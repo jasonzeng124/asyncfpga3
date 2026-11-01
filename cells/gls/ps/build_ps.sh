@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build_ps.sh HWDIR WORK [VECFILE] [bit] -- routed GLS of hw/gcd_ps.v, as cells/gls/build.sh does
 # for gcd_hw, with the behavioural PS7 (ps7_master.v) as the only driver.  Env as build.sh/gen.py:
-# GLS_SDF (default HWDIR/gcd_ps.sdf), GLS_SDF_FIELD, GLS_MODEL=fid, GLS_SCATTER*.
+# GLS_SDF (default HWDIR/gcd_ps.sdf), GLS_SDF_FIELD, GLS_MODEL=fid, GLS_SCATTER*, PS_BUNDLE=1.
 # With "bit" (the full stack, as fid/build_fid.sh): the netlist is decoded from HWDIR/gcd_ps.bit
 # (fasm2net.py --ps7), checked against the routed JSON (fasm_equiv.py, verdict in provenance), and
 # GLS_SDF is re-keyed onto it.
@@ -33,7 +33,10 @@ cd "$WORK"; export GLS_WORK=$WORK
 python3 "$GLS/gen.py"
 iverilog -gspecify -I. -o gate.vvp "$GLS/tb_gate.v" netlist.v "$GLS/prims.v" "$PS/ps7_master.v"
 FIDDEF=""; [ "${GLS_MODEL:-}" = fid ] && FIDDEF="-DGLS_FID -I$GLS"
+# PS_BUNDLE=1: add gen_bundle_mon.py's out0 bundling monitor (the host cannot see an out0 bundling
+# violation: it reads O_DATA two synchronizer clocks after o_req).
+MON=""; if [ "${PS_BUNDLE:-0}" = 1 ]; then python3 "$PS/gen_bundle_mon.py" "$J" nets.map bundle_mon.v; MON=bundle_mon.v; fi
 # shellcheck disable=SC2086
-iverilog -gspecify -DGLS_TRANSPORT_IC $FIDDEF -I. -o run_baked.vvp "$PS/tb_ps.v" netlist_baked.v "$GLS/prims.v" "$PS/ps7_master.v" 2>&1 \
+iverilog -gspecify -DGLS_TRANSPORT_IC $FIDDEF -I. -o run_baked.vvp "$PS/tb_ps.v" netlist_baked.v "$GLS/prims.v" "$PS/ps7_master.v" $MON 2>&1 \
     | grep -v 'procedural continuous' || true
 echo "built in $WORK"
