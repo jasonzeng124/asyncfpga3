@@ -1367,4 +1367,4 @@ Formal/Target/SpecRunt.lean (compiles with -DautoImplicit=false): `NoRuntRead w 
 pulse of s narrower than w), `GateOKRunt`, `BehavesRunt`, `NetCorrectSeqRunt w` (= NetCorrectSeq with every pin read
 obeying H_RUNT(w)); proved: `gateOK_of_runt`, `seqRunt_of_seq` (the frozen statement implies the variant for every
 w), `runt_zero` (w = 0 is the frozen statement). No frozen definition changed; nothing imports it yet. Purpose: give
-the owner the alternative B's ua1 finding calls for (FOR-RESEARCH 3), as a statement, not a choice made for him.
+the owner the alternative B's ua1 finding calls for (FOR-RESEARCH 3), as a statement, not a choice made for the owner.
