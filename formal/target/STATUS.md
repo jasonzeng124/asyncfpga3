@@ -1,7 +1,7 @@
 # STATUS: hypotheses of the current best theorem about the target
 
 Target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
-(`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01; part II, the Lean decoder, a stub).
+(`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01 (changes since: ArbNodes inputs; `Adm` = g-scaled window, owner decision 3); part II, the Lean decoder, a stub).
 
 **Theorems about the target so far (2026-11-01):** `Formal.Target.Decoded.net_wf` (the decoded netlist is
 well formed). Shard C's 11g on the target (every read-back instance computes its yosys cell under rho). **Refuted:**

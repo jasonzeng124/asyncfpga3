@@ -11,10 +11,11 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:
 - **The statement** compiles (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
-  H_ARB, H_ENV, the safety and liveness conclusion) and part I is frozen, with one journaled change (H_ARB reads the
-  arbiter's state-LUT inputs; audit row). Three statement decisions wait for the owner: `SeqEnv` (the sequential
-  restriction the refutation forces), H_RUNT(w) (`SpecRunt.lean`, a runt filter instead of the frozen transport
-  H_PRIM), and the inert guard g in `Adm` at small κ (`FOR-RESEARCH.md` 3).
+  H_ARB, H_ENV, the safety and liveness conclusion) and part I is frozen, with two journaled changes: H_ARB reads the
+  arbiter's state-LUT inputs (audit row); `Adm` is the g-scaled corner window (owner decision 3, 2026-11-01; audit row
+  requested). Owner decisions 2026-11-01 (PROGRAM.md): the target theorem is `NetCorrectSeq` (sequential env);
+  H_RUNT(w) is a sixth allowed hypothesis (`SpecRunt.lean`, margin reported against w, w = 20 ps headline); a
+  full-width gcd bitstream will replace the 16-vector target when research builds it.
 - **The sequential statement `NetCorrectSeq` (the one left to prove) is not proved, and has a candidate counterexample
   at κ ≥ 0.16**: shard B (JOURNAL-B 09:47-10:35, audit T6 confirms) finds a runt on the ua1 feedback switch that the
   frozen H_PRIM lets circulate for ever; the decoded arcs hold at κ = 0.15 and fail at 0.16 (`Ua1Static`, Lean, on
