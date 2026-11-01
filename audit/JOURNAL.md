@@ -943,3 +943,7 @@ frozen H_PRIM admits transport. It is NOT yet a counterexample to NetCorrectSeq:
 run reaches the nominal out0 time. fid GLS replay (7 local arcs changed): the same runt in transport mode; with the
 default resolver, out0_req pulse trains (a four-phase violation) and then a stall (> 12 us without a lap at 2 of 3
 seeds). The kappa 0.21 control matches the baseline exactly (checked by me: laps 2.087/3.499/4.912 us).
+
+### progress 11:06
+BQ#1 d log-normal 1.5x draw 2 (re-run after the disk-full failure): 16/16 lapcheck CLEAN (16 vector lines), v6 26.
+CONFIRMED. 4 of the 20 "all pass" routes are now reproduced clean.
