@@ -974,3 +974,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 14:58 progress: V9V4 at C063 (130 modules rc=0), V9V4c at T26 (28 rc=0). Formal: A started the Lean decoder round trip (RoundTrip, gen_rt.py; 4aa24410..02c8ceb5) -- audit when claimed.
 - 15:36 progress: V9V4 at Q039 (186 rc=0), V9V4c at C028 (96 rc=0). A's RoundTrip still in progress (b6d7d4f1).
 - 15:52 **T7 DONE: V9V4 refutation CONFIRMED.** 228/228 witness modules rc=0 (3.86 h); refuted / refuted_range types as claimed, axioms standard only; Lean net = my decode (lean_cmp 0 diffs at 565af3b9), Lean boundary = my boundary by name (t8/bnd_lean_cmp.py). V9V4c (a7312634) build continues.
+- 17:16 V9V4c (a7312634) CONFIRMED: 229/229 rc=0, same refuted/refuted_range types, standard axioms. '~3x cheaper' -> 1.6x on my sequential builds (OVERSTATED, minor). T8 rows 5-6.
