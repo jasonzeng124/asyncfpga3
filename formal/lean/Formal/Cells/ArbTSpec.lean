@@ -156,3 +156,54 @@ theorem spec_double_ack (T : Nat) (hT : 9 ≤ T) :
   ⟨behaves, arbOK T hT, fun _ => rfl, fun _ => rfl, rfl, rfl, rfl, rfl⟩
 
 end Formal.Cells.ArbTSpec
+
+/-! ## Bridge: Spec gates are read-time gates, so `ArbT`'s positive results apply -/
+
+namespace Formal.Cells.ArbTSpec
+
+open Formal.Target
+open Formal.Cells.ArbT (g2Init uaInit pins)
+
+/-- A Spec gate (with Nat bounds implied by `Adm`) is a `ArbT.RGate` on its pin nodes. -/
+theorem rgate_of_gateOK {p : DelayPar} {c : ℚ} {g : Gate} {x : Beh} (hg : GateOK p c g x)
+    {lo hi : Nat → Nat} (hb : ∀ i, i < g.k → ∀ d, Adm p c (g.arcs.getD i default) d → lo i ≤ d ∧ d ≤ hi i) :
+    Formal.Cells.ArbT.RGate g.k g.init (fun i => x (g.ins.getD i 0)) lo hi (g.start p) (x g.out) := by
+  obtain ⟨f, _, hf⟩ := hg
+  refine ⟨f, fun t ht => ⟨fun i hi' => ?_, ?_⟩⟩
+  · have h := (hf t ht).1 i hi'
+    have hd := hb i hi' _ h.2
+    omega
+  · rw [(hf t ht).2, addr_same]; rfl
+
+/-- **One acknowledge per server transaction, for Spec gates.** ugrant's O6 gate `gg2`
+(table `g2Init`, pins r1, r2, q) and ua2's gate `ga2` (table `uaInit`, pins g2, A0, A2, rst),
+with Nat bounds on their arcs: if q is high on every instant g2's gate reads during
+`[s - hi_a0, e]` (q settled before A0 rises), and A2 is low on its feedback window before `s`,
+then A2 stays low on `[s, e]` whatever A0 does. -/
+theorem spec_one_ack {p : DelayPar} {c : ℚ} {gg2 ga2 : Gate} {x : Beh}
+    (h2 : GateOK p c gg2 x) (ha : GateOK p c ga2 x)
+    (hk2 : gg2.k = 3) (hi2 : gg2.init = g2Init) (hka : ga2.k = 4) (hia : ga2.init = uaInit)
+    (hwire : ga2.ins.getD 0 0 = gg2.out) (hself : ga2.ins.getD 2 0 = ga2.out)
+    {log hig loa hia' : Nat → Nat}
+    (hb2 : ∀ i, i < gg2.k → ∀ d, Adm p c (gg2.arcs.getD i default) d → log i ≤ d ∧ d ≤ hig i)
+    (hba : ∀ i, i < ga2.k → ∀ d, Adm p c (ga2.arcs.getD i default) d → loa i ≤ d ∧ d ≤ hia' i)
+    (hlo : 1 ≤ loa 2) {s e : Nat} (hs : max (gg2.start p) (ga2.start p) + hia' 0 ≤ s)
+    (hq : ∀ u, s ≤ u + hia' 0 + hig 2 → u ≤ e → x (gg2.ins.getD 2 0) u = true)
+    (hpre : ∀ t, s ≤ t + hia' 2 → t < s → x ga2.out t = false) :
+    ∀ t, s ≤ t → t ≤ e → x ga2.out t = false := by
+  have r2 := rgate_of_gateOK h2 hb2
+  have ra := rgate_of_gateOK ha hba
+  rw [hk2, hi2] at r2
+  rw [hka, hia] at ra
+  -- re-express the pin functions as `pins` lists
+  obtain ⟨f2, hf2⟩ := r2
+  obtain ⟨fa, hfa⟩ := ra
+  have r2' : Formal.Cells.ArbT.RGate 3 g2Init
+      (pins [x (gg2.ins.getD 0 0), x (gg2.ins.getD 1 0), x (gg2.ins.getD 2 0)]) log hig (max (gg2.start p) (ga2.start p)) (x gg2.out) :=
+    ⟨f2, fun t ht => ⟨(hf2 t (by omega)).1, by rw [(hf2 t (by omega)).2]; rfl⟩⟩
+  have ra' : Formal.Cells.ArbT.RGate 4 uaInit
+      (pins [x gg2.out, x (ga2.ins.getD 1 0), x ga2.out, x (ga2.ins.getD 3 0)]) loa hia' (max (gg2.start p) (ga2.start p)) (x ga2.out) :=
+    ⟨fa, fun t ht => ⟨(hfa t (by omega)).1, by rw [(hfa t (by omega)).2, ← hwire, ← hself]; rfl⟩⟩
+  exact Formal.Cells.ArbT.one_ack r2' ra' hlo hs hq hpre
+
+end Formal.Cells.ArbTSpec

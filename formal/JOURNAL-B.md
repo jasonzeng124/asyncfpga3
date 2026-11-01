@@ -2021,3 +2021,11 @@ treating arbiters as safe under H_ARB(T); the proof must derive "q settled befor
 (ArbT.one_ack) per arbiter from the bands, through the server path. For T at least the shortest such
 path in the target, this shape is a candidate counterexample on the target itself (not yet built:
 needs the decoded target's arbiter nodes and a near-tie reachable under the sequential env).
+
+### progress 08:16 -- arbiter positive results usable on Spec gates; target arbiter list
+`ArbTSpec.rgate_of_gateOK` (a Spec gate with Nat bounds implied by Adm is a read-time RGate) and
+`spec_one_ack` (ArbT.one_ack stated for Spec gates: ugrant O6 and ua2; q settled before A0 rises =>
+the losing ack stays low for the whole transaction). check.sh OK on all seven B files of today.
+The target has nine bd_arbiters (SDF instance names): urig.udut.ucontrol_merge{2,3,4,6,9,10,11,12}.uarb1
+and ucontrol_merge12.uarb2 (ustate packed as $LUT6 = q, $LUT5 = R0); recorded in notes/B-arbT.md for
+Spec part II's `List ArbNodes` (which should carry A0 and rst too, per the repair).

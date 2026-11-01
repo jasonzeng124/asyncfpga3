@@ -37,3 +37,14 @@ T for which THE theorem can hold is bounded by the shortest such path in the tar
 ## Not covered
 Full cell contract (four-phase on all three channels, liveness, chaining phases); route
 arcs between cells (pins = nodes here); the obligation's generation on the target netlist.
+
+## Target arbiters (from formal/target/gcd_hw_03e82630.sdf.xz instance names)
+Nine bd_arbiters: urig.udut.ucontrol_merge{2,3,4,6,9,10,11,12}.uarb1 and ucontrol_merge12.uarb2;
+each ustate is packed as `ustate$LUT6` (q) and `ustate$LUT5` (R0). Spec part II's `List ArbNodes`
+must list these nine, with r1, r2, q AND (after the repair) A0 and rst as read at ustate's pins.
+
+## Spec-level forms (ArbTSpec.lean)
+- `spec_double_ack`: the counterexample as a frozen-Spec behaviour (Behaves, ArbOK T, T >= 9).
+- `rgate_of_gateOK`: a Spec gate with Nat bounds on Adm is an ArbT.RGate.
+- `spec_one_ack`: ArbT.one_ack for Spec gates (ugrant O6 + ua2): q settled before A0 rises =>
+  the losing ack stays low for the transaction.
