@@ -41,7 +41,7 @@ def rows_of(names, ops, tr):   # = capwit2/gen_wit.py rows_of with r0 = True
 
 def render():
     names, ops, out0, start = sim.load_net("gcd")
-    env = {"mode": "pipe", "offers": len(PAIRS), "start": start, "out0": out0}
+    env = {"mode": "pipe", "offers": len(PAIRS), "start": start, "out0": out0, "r0low": True}
     tr = hwsim.simulate(PAIRS, names, ops, env)
     T = len(tr) - 1
     srcs = [(o["z"], o["which"]) for o in ops if o["k"] == "src"]
@@ -58,7 +58,7 @@ import Formal.Net.CapstoneNetChk
 
 One unit-delay run of the concrete gcd_hw CapNet network ({len(names)} channels), every gate of
 every cell model with delay exactly 1 (as C-8t), under a PIPELINED environment: the three source
-requests are one wire env_c (gcd_rig's bd_fork), high at tick 0; in_ack = C(source acks);
+requests are one wire env_c (gcd_rig's bd_fork), low at tick 0 (first offer at tick 0 -> 1); in_ack = C(source acks);
 env_c' = not in_ack, so pair 2 is offered as soon as pair 1's input handshake is complete.
 Pairs (a, b): {[p[:2] for p in PAIRS]}. Quiescent after {T} ticks.
 Source channels (z, which): {srcs}; their request rises: {[offs(z) for z, _ in srcs]} (-1 = high at 0).
