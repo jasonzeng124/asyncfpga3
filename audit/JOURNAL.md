@@ -966,3 +966,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
   independent of A's walker but not of prjxray's database (= H_DECODE). findings/T8.md, REPORT row.
 - Witness build at 565af3b9 still running (C020, module 87/228, all rc=0 so far).
 - 13:36 WitCut.lean (c9484103) compiled standalone on my 565af3b9 tree: standard axioms, conclusion = Spec GateOK pSlow 1. Row added.
+- 13:38 B's Ua1Static: axioms standard (my build), arcs = my decode (loop equal, path unique chain), sums 865/852, 852/860 reproduced. T8 row 4.
