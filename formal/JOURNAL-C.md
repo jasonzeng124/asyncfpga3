@@ -995,3 +995,11 @@ K 42, Xc 81, Xic 32, Xm 81 rows: 0 failures at sdf/fast/slow; with the shared-pr
 failures drop from 11 to 1 (umux11.uxa slowG -313); Xm (max-node) 0 failures even guarded. So across every tcheck row
 family on the target route (A, E, F, J, Fd, X, Xi, Z, K, Xc, Xic, Xm): no failure at a consistent unguarded prjxray
 corner. Tables: tools/tcheck/results/target/*_T.*
+
+### progress 09:24 -- arbiter-core INITs in the target: evidence only (Lean attempt abandoned)
+The 18 target LUTs not bound to C's generated library are the 9 bd_arbiters' ustate/ugrant LUT6_2s. grep of the
+generated GcdT data (the same data the Lean import checks): all 9 ustate carry INIT 0xFFF0FFB2ACACACAC and all 9 ugrant
+0x0C0C0C0CA0A0A0A0 (research 1a97b739's held-arbiter bd_arb.v; the constants shard B's arbiter files use). A kernel
+statement of this (decide over instance names with String.endsWith) was OOM-killed over all instances and still
+unfinished after 30 min per-chunk; abandoned, NOT claimed. The right fix is a generated library for the target's
+cells/rtl (C's tools/gen on 1a97b739's rtl), so gen3 binds these LUTs like the others; not started.
