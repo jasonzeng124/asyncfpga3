@@ -125,6 +125,7 @@ Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), in
 
 | branch | commit | claim (quoted) | verdict | evidence | note |
 |---|---|---|---|---|---|
+| research | f691b29b | BOARD-QUEUE #2 "log-normal 1.5x ... draw 2: PASS on seeds 6, 7, 8, 9 (49/50/45/48 laps vec 6)" | CONFIRMED for seed 6 (exact v6 49; lapcheck CLEAN, vectors 7/8/12 normal) | audit/r23/route6e.log (md5s again), lapcheck_bq2_6_logn15_d2.txt | seeds 7-9 not re-run; "bounded speed-ups" wording as before |
 | research | 96446990 | BOARD-QUEUE #3 "log-normal 1.5x ... draw 2: PASS on all 8 seeds (vec 6 laps 44-56)" | CONFIRMED for seeds d and 9 (lapcheck CLEAN; seed 9 v6 48, in range); 6 seeds not re-run | audit/r23/lapcheck_bq3_d_logn15_d2.txt, lapcheck_bq3_9_logn15_d2.txt, route_bq3_9c.log | |
 | research | 3270b5f1 | "BQ#3 log-normal 0.24/0.189 draw 2: d PASS 53/44/63 (linear 2x draw 2 had FAILED it with errs 15)" | CONFIRMED (exactly; lapcheck CLEAN: no stall, no double pulse) | audit/r23/route_bq3_d.log (sdf 61e14755 / xray ef6d6e77), bq3_d_logn15_d2.log, lapcheck_bq3_d_logn15_d2.txt | seeds 3, 4, 5 not re-run |
 | research | 7ceec350 | "BQ#2 seed 6 (uori3) ... 1.75x FAIL 2" | CONFIRMED (errs 2: vectors 8, 12); undercounted | audit/r23/route6d.log (md5s again), lapcheck_bq2_6_logn175.txt (TEND 30 us) | vector 7 also breaks: a double completion pulse at 1.26 us, then a stall with errs 0 -- 3 vectors broken (the uori3 set 7/8/12), the judge counts 2 |

@@ -843,3 +843,7 @@ on research (after 96446990) or formal (after 2f2e632d); formal/target still abs
 ### progress 05:56
 Research f691b29b: BQ#2 log-normal 1.5x draw 2 PASS on seeds 6-9 (12/12 routes with BQ#3). Spot-checking seed 6 draw 2
 with lapcheck. BOARD-QUEUE #2 again says "bounded speed-ups".
+
+### progress 07:06
+BQ#2 seed 6 log-normal 1.5x draw 2: 16/16 lapcheck CLEAN, v6 49 = claim. CONFIRMED. On my data the worst known routes
+of #2 and #3 are clean at 1.5x on draws 1 and 2 and fail at 1.75x on draw 1.
