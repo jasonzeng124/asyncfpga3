@@ -181,6 +181,7 @@ gcd_ps|gcd_bench)
     # (BD_SZ_BRIDGE_I_UDUT_<INST>).  OFF unless set.
     if [ "$TOP" = gcd_ps ] && [ -n "${BD_SIZES:-}" ] && [ "$BD_SIZES" != none ]; then
         [ -e "$BD_SIZES" ] || { echo "build_hw.sh: BD_SIZES=$BD_SIZES does not exist" >&2; exit 2; }
+        mkdir -p build/gen
         python3 - "$KERNEL" build/gen/gcd_ps_dut_params.vh <<'PY'
 import re, sys
 src, out = sys.argv[1:3]
