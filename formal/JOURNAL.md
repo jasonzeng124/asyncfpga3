@@ -1328,3 +1328,10 @@ identical text to what was checked, except the module prefix FormalWit.V9V4 inst
 limit, so a default build could OOM other shards' check.sh). `formal/check.sh --wit` builds it one module at a time
 and audits Refute's axioms. A re-check under the new module names is running now; until it finishes, the claim rests
 on the per-file check above.
+### progress 10:23 -- sequential env on the decoded target: 60/60 random runs correct (simulation)
+tools-A/target/seqscan.sh (untrusted sim.py): 60 runs, each 3 random rig vectors in sequence (next pair only after
+out0's handshake, SeqEnv), data released at each ack's fall (broad: the earliest the Spec allows), corner c and
+position in {0, 0.5, 1}, uniform per-arc scatter in {0, ±10%, ±20%}, output ack margin 500-3500 ps: every out0 value
+right, in order (out/seqscan_60.txt). Evidence for NetCorrectSeq, not a proof; B's near-tie analysis (JOURNAL-B
+08:29-08:53) is the open risk for it.
+FormalWit re-check under the new module names: base modules and 18/80 gate chunks done, no errors.
