@@ -2028,7 +2028,7 @@ double-counted, ring128 per-ring data still needed).
   z_req = delay(OR of C(in_k_req, ctl_req & s==k)). s is the output of ulink_n_index_97, whose own request is
   matched (8 links) after its data, so s settles before ctl_req rises; tighten, finding "no common source",
   charges s an upstream lag of 1229 ps after the request instead. The shortened-umux21 controls test this.
-### progress 22:05 (why the gcd_ps negative control cannot fail; an out0 bundling monitor)
+### progress 21:30 (why the gcd_ps negative control cannot fail; an out0 bundling monitor)
 - 1x scatter: seeds 4, 5 also 24/24 (4/4; research/data/gcd_ps/p1_scatter1x.tsv). BOARD-QUEUE #4 updated.
 - umux21 cut to 1 link (control route): full stack 24/24 at SLOW_MAX and FAST_MIN. Cause found by reading the
   generated kernel: umux21's output n170 IS the kernel's out0 (out0_req = n170_req, out0_data = n170_data), and
