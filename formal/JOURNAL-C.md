@@ -912,3 +912,19 @@ CapNet (bdc's graph), not the band or the bitstream; the target-route GLS (notes
   (tools/compute/extract.py) to Lean byte-identical to the committed Gen/Compute/GcdD/*: so C's H_COMPUTE_FN
   theorems (all 20 units, every input, ranges as stated) are about the target's synthesis too. Not shown: that the
   target's BITS implement that synthesis (11g's import needs prjxray-db, not installed here; next step).
+
+### progress 08:06 -- 11g on THE TARGET: Python half passes; Lean half building
+Toolchain restored from the project's cache (cloud/toolchain-cache.sh fetch, key d7ce266cff0c8e1e, branch
+toolchain-cache/d7ce266cff0c8e1e) for prjxray-db. On formal/target/gcd_hw_03e82630:
+- fasm2lean3 on the READ-BACK FASM (fromBit) and on nextpnr's FASM: the same physical netlist (8925 LUT6_2, 306 FDRE,
+  20 FDSE, 343 MUXF8, 857 MUXF7, 59 CARRY4, 14 buf, BSCAN; 0 floating pins).
+- gen3 with the target's yosys netlist: 10629 instances, logical 9623 (9622 matched; the 9623rd is the unread MUXF7
+  as on every seed), physical 10525 (0 unused), 1139 route-through outputs; check3 (Python mirror of Inst.check):
+  0 fail; rhoinj: uncovered 0.
+- Difference from the --freq 100 seeds: 5627 of 5645 library-cell LUTs bound to generated cells (seeds: 5645).
+  To look at: which 18, and why (the target has BDC_SELECT_PADS / v4 placement).
+- Lean: Formal/Net/FasmDesign/GcdT/* (generated), FasmRhoT* (generated), FasmGcdT.lean (FasmGcd2 with the target's
+  counts) building one module at a time (direct lean). Not claimed until it compiles.
+Meaning, once the Lean passes: every physical instance decoded from the target's bits computes its yosys cell under
+rho, rho bijective off route-throughs; with H_COMPUTE_FN (20 units, byte-identical in the target's synthesis) the
+compute units of the target's bits compute bdc's functions (still under H_MAP and the Boolean primitive models).
