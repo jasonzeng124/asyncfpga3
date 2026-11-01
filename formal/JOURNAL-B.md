@@ -2228,3 +2228,22 @@ window, which lies inside [FAST_MIN, SLOW_MAX], so the theorem's truth at κ = 0
 "the largest g" is not a meaningful margin there. Frontier from this one node (simulation): κ_max < 0.148 for
 g >= 1.2, < 0.155 for g = 1. A back-of-envelope check agrees: episode/loop = 1.72 at mid-band, so the two meet
 when the per-arc spread (window half-width ~0.11 plus κ) reaches 0.72/2.72 = 0.265, i.e. κ ~ 0.155.
+
+### progress 10:08 -- how the ua1 runt brings the circuit down (simulation): one reader, one glitch, then dominoes
+simb.py --filter (a reader pin skips input pulses narrower than W, W <= its minimum delay: a monotone read map
+with every delay in band, so still a Spec behaviour) and --maxevents. tools-B/target/readers.py, κ = 0.16,
+corner 0.5, vector (12, 18):
+- every reader of ua1 skips the 8 ps gaps: CORRECT (out0 = 6; ua1 oscillates internally ~33 ns until A0 falls
+  and forces it low);
+- exactly one reader seeing them: correct for six of the seven reader pins; CHAOS (no output) only when
+  SLICE_X2Y18.CLUT.O6 sees them -- its table is A1 OR g, fanned out to four distant LUTs (X4Y22.B, X4Y33.B,
+  X2Y56.B, X12Y61.B, pin 3);
+- that OR seeing only the FIRST runt (before 602.4 ns) is already enough: the glitch reaches X4Y22.B/X4Y33.B
+  and others, which start their own circulating runts (gaps 1-8 ps) at 603.1-603.8 ns, and the run explodes
+  by ~633 ns with no output.
+**Plainly:** under the frozen H_PRIM, which keeps any runt alive in any LUT loop, one escaped glitch is enough
+to bring the circuit down; ua1's short forcing episode is the first domino. So the Lean witness of this
+refutation is not an eventually periodic trace (the dominoes keep spreading), which is why I have not built
+one; and the result says more about H_PRIM's pessimism than about this one C-element (FOR SHARD A / owner:
+with any runt-killing semantics -- involution, inertial, a named H_RUNT(w) -- the same delays would likely be
+harmless).

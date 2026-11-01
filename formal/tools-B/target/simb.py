@@ -43,6 +43,7 @@ def main():
     ap.add_argument("--filter", default=None, help="JSON {\"gate:pin\": W}: that pin skips input pulses narrower than W ps (B; needs W <= the pin's delay)")
     ap.add_argument("--watch", default=None, help="gate name; stop once it has flipped --maxflips times (B)")
     ap.add_argument("--maxflips", type=int, default=6)
+    ap.add_argument("--maxevents", type=int, default=0, help="stop and print CHAOS after this many events (B)")
     ap.add_argument("--g", type=float, default=1.0, help="guard: global band [FAST_MIN/g, SLOW_MAX*g] (B)")
     ap.add_argument("--kappa", type=float, default=0.0, help="posmap value -1/2 = fast/slow end of the κ-widened window")
     ap.add_argument("--seed", type=int, default=1)
@@ -155,13 +156,16 @@ def main():
         for gi, pin, d in readers.get(n, ()):
             sched(t + d, gi)
 
-    FILT = {tuple(int(x) for x in kk.split(":")): w for kk, w in json.load(open(a.filter)).items()} if a.filter else {}
+    FILT = {tuple(int(x) for x in kk.split(":")): (w if isinstance(w, list) else [w, 0])
+            for kk, w in json.load(open(a.filter)).items()} if a.filter else {}
 
-    def fval(n, r, t, w):
-        """value of n read at r, skipping a pulse narrower than w that contains r and has ended by t"""
+    def fval(n, r, t, wt):
+        """value of n read at r, skipping a pulse narrower than w (starting at or after t1) that contains r and
+        has ended by t"""
+        w, t1 = wt
         ts = ht[n]; vs = hv[n]
         k = bisect_right(ts, r) - 1
-        if k >= 1 and k + 1 < len(ts) and ts[k + 1] - ts[k] < w and ts[k + 1] <= t:
+        if k >= 1 and k + 1 < len(ts) and ts[k] >= t1 and ts[k + 1] - ts[k] < w and ts[k + 1] <= t:
             return vs[k - 1]
         return vs[k] if r >= 0 else vs[0]
 
@@ -225,6 +229,9 @@ def main():
         if t > a.tmax:
             break
         nev += 1
+        if a.maxevents and nev > a.maxevents:
+            print('CHAOS: %d events by %d ps' % (nev, t), file=sys.stderr)
+            break
         if WATCH is not None and len(ht[WATCH]) > a.maxflips + 1:
             print('WATCH: %s flipped %d times by %d ps' % (a.watch, len(ht[WATCH]) - 1, t), file=sys.stderr)
             break
