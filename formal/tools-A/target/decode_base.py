@@ -517,7 +517,11 @@ def main():
                                       (r"^(ENABLE_BUFFER\.HCLK_CK_BUFHCLK\d+|GCLK\d+_ENABLE_(ABOVE|BELOW)|"
                                        r"CLK_HROW_R_CK_GCLK\d+_ACTIVE|HCLK_CMT_CK_BUFHCLK\d+_USED)$",
                                        "clock spine enable"),
-                                      (r"^SLICE[LM]_X[01]\.PRECYINIT\.C0$", "default")]:
+                                      (r"^SLICE[LM]_X[01]\.PRECYINIT\.C0$", "default"),
+                                      # gcd_ps (2026-11-01): an OUTMUX select is consumed when a route reads the
+                                      # slice's xMUX output; one left over selects onto an xMUX nobody reads
+                                      (r"^SLICE[LM]_X[01]\.[A-D]OUTMUX\.[A-D]5Q$", "outmux select, xMUX unread"),
+                                      (r"^CLK_HROW_CK_IN_[LR]\d+_ACTIVE$", "clock spine enable")]:
             if re.search(rx, rest):
                 census[cat] += 1
                 break

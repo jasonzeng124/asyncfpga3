@@ -1543,3 +1543,11 @@ makes only after the previous output handshake (the sequential environment). The
 (i_ack falling) is asynchronous to aclk; a CTRL write that SETS i_req in the same cycle would be a recovery
 violation, which the host sequence rules out by ms-scale polling, i.e. by a timing assumption on the host. Next:
 rebuild (toolchain.sh first) to get the routed JSON, then decode.
+### progress 19:44 -- gcd_ps rebuilt (bit-identical up to the date), read back, decoded; boundary is full width
+target/README.md (gcd_ps section): the rebuild reproduces the target's .fasm (md5 2dbf962d) and BQ#4's SDF; the .bit
+differs in 5 header-date bytes. Read-back 338,510 features (md5 740cc6bf; the same command reproduces BQ#1's
+418f36ae). Decoded net (md5 eee97ec8): Python round trip 0 invented / 0 duplicated / 9,017 leftovers; the boundary at
+bridge_i.udut's ports has 32 distinct a_data and 32 distinct b_data nodes, so unlike BQ#1 this target can be offered
+any pair of 32-bit operands. 9 arbiters. Request: one node (bd_fork broadcasts it), a slice FF (the AXI slave's
+req_core) as in the source. Two decoder whitelist additions (unread OUTMUX x5Q select, a clock-row enable), stated in
+the README. Next: simulation sanity check, then the Lean netlist.

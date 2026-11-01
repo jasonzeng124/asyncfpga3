@@ -61,3 +61,19 @@ bfa659b4:
 The md5s match BOARD-QUEUE #4's. Not yet done: the read-back FASM, the rebuild that ties the `.fasm` to the `.bit`
 (and gives the routed JSON that names the boundary), the decode, the Lean netlist. The 16-vector target's files and
 results above stay (the refutation of the pipelined statement is about that target).
+
+## gcd_ps: the `.fasm` tied to the `.bit`, read back, decoded (2026-11-01 19:4x UTC)
+1. `cells/verify/toolchain.sh` all ok (nextpnr 9c732bc6303458df). Rebuild from `git archive` of research bfa659b4
+   with BQ#4's recipe (`BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4
+   BD_SIZES=../research/data/gcd_ps/gcd_ps_sizes_P1.vh ./hw/build_hw.sh gcd_ps`; Dynamatic's frontend MLIR from
+   `cloud/fixtures/frontend`, as cloud/setup-toolchain.sh installs it). Rebuilt `.fasm` md5 2dbf962d = the target's;
+   SDF md5 cbdbea3a = BQ#4's record; rebuilt `.bit` differs from the target in 5 bytes, offsets 108-114, the header
+   date. Kept: `gcd_ps_e6bb4aec.{json,routed.json,sdf}.xz` (yosys 3d067e00, routed ca02cebf), `.xdc`, `.pnr.txt`.
+2. Read-back: `bit2fasm.py --db-root .../prjxray-db/zynq7 --part xc7z010clg400-1 --bitread .../bitread` (not
+   `--canonical`; the same command reproduces BQ#1's 418f36ae) -> `gcd_ps_e6bb4aec.fromBit.fasm.xz`, md5 740cc6bf
+   (uncompressed), 338,510 features.
+3. Decoder (tools-A/target, untrusted): net.json md5 eee97ec8; Python round trip 0 invented, 0 duplicated, 9,017
+   leftovers (out/roundtrip_e6bb4aec.txt); boundary (boundary_ps.py: the kernel bridge_i.udut's ports) with 32
+   distinct a_data and 32 distinct b_data nodes (out/boundary_e6bb4aec.json); 9 arbiters (out/arbs_e6bb4aec.json).
+   decode_base.py now also accepts, as unread configuration, an OUTMUX x5Q select whose xMUX no route reads (5 in
+   this target) and a CLK_HROW_CK_IN_*_ACTIVE clock-row enable (1).
