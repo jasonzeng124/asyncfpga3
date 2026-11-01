@@ -901,3 +901,11 @@ Axiom audit of 88c74e3c running (60 modules done).
 Formal 6603bdd1 (B: ArbClean, separated arbitrations decided by the frozen gate relation): queued for the next pass.
 Watcher now batches routine formal commits hourly and wakes at once on Spec/target changes, research claims, or the
 end of the axiom audit.
+
+### progress 08:56
+Formal 3d3ebb61 changed the FROZEN Spec: ArbOK repaired (ArbNodes = q + all non-feedback inputs of the state LUT),
+journaled in the commit and the docstring ("before any proof used it"). The decoded target net data, Witness.lean,
+WitBoundary.lean and WitSlice.lean are now committed. The 88c74e3c axiom audit was stopped (superseded) at 266
+modules, 0 bad (2 no-result = the two runs I killed; logs/axres_88c74e3c_partial.txt). Build of 6f094d32 started.
+Subagent T5 launched: whether the repaired ArbOK removes T3's vacuity, any residual small-T vacuity, the target
+arbiter list against my own extraction, what Witness.lean proves, and whether the net data compiles.
