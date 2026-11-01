@@ -216,9 +216,13 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
 - Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, the measured 8.5% median ring scatter; draw 1),
   seeds d,3,4,5: 24/24, EQUIVALENT, gate clean (`research/data/gcd_ps/p1_scatter1x.tsv`).
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
-- The UNSIZED routes (umux21 at 12 links, rule A -1567 / -464 ps on seeds d / 5) also pass the full stack at both
-  corners, so on this bundle rule A charges more than the GLS shows (see JOURNAL 20:17, 21:05); P1 is kept
-  anyway (a delay that is too long only costs time, and it is on the exit path, once per call).
+- umux21 drives out0, and the PS reads O_DATA >= 2 synchronizer clocks after out0_req, so this harness cannot see
+  an out0 bundling violation (umux21 cut to 1 link: still 24/24). Measured instead at the kernel boundary with an
+  out0 bundling monitor (`research/data/gcd_ps/out0_bundle_margin.tsv`, seed d): P1 +12.0 ns (SLOW_MAX) / +4.1 ns
+  (FAST_MIN) between the last out0_data change and out0_req, no late change; the monitor's negative control
+  (umux21's data LUTs 20x slower) shows 23-24 late changes up to 10 ns after the request while the harness still
+  says 24/24. On this bundle rule A over-charges: even 1 link measures +0.57 ns at FAST_MIN where rule A asks
+  for 13. P1 is kept (a delay that is too long only costs time; this one is on the exit path, once per call).
 - CDC (read in gcd_ps.v): STATUS.i_ack and STATUS.o_req reach the PS clock through 2-flop synchronizers; the
   kernel-facing request is a flop cleared asynchronously by the kernel's own i_ack (the pulse adapter), so a host
   holding CTRL.i_req for milliseconds over JTAG cannot wedge the kernel; A/B are written before the CTRL write that

@@ -2052,3 +2052,18 @@ double-counted, ring128 per-ring data still needed).
   +566 ps at FAST_MIN with no scatter. Not yet a claim: one seed, no scatter, driver pins only (routing to
   the consumer excluded), and the monitor's own negative control (umux21's 36 data LUTs and their input wires
   20x slower, on the 1-link route) is queued; 12/8/4 links running.
+### progress 22:18 (out0 bundling: monotone in umux21 length, monitor's negative control fails; pipe hangs are kernel deadlocks)
+- research/data/gcd_ps/out0_bundle_margin.tsv (seed d, full stack, min over 24 requests, SLOW_MAX / FAST_MIN):
+  1 link +2054/+566, 4 +3114/+960, 8 +6859/+2284, 12 (unsized) +8823/+2992, 16 (P1) +12043/+4112 ps; no late
+  data change in any. Monotone in length, as it should be (the 1/4/8 routes are separate place-and-routes).
+- Monitor negative control: the 1-link route with umux21's 36 data LUTs (and the wires into them, 388 arcs)
+  20x slower: 23 (SLOW_MAX) / 24 (FAST_MIN) late changes, up to 9973 / 6255 ps after out0_req, data X while
+  settling -- and the PS harness still says 24/24 ok. So the monitor can fail, and the harness is blind here.
+- Rule A on this bundle: asks for 13 links at 1 link (-4795 ps); the GLS measures +566 ps at FAST_MIN with no
+  scatter. Rule A over-charges it by most of its request chain, through the "no common source" pairing with the
+  select latch (progress 21:05). One seed, no scatter, driver pins: a lead for a sharper rule, not a size change
+  (the shipped P1 keeps 16; CLAUDE.md: never shorten a delay to hit a target).
+- +PIPE=1 re-run with stage labels (seed d SLOW_MAX): all 8 hangs are "out0": the kernel acknowledged BOTH
+  overlapped pairs and then produced no result within 60 us (the longest single call is 15 us), so they are kernel
+  deadlocks, not this host's. 2 reordered, 2 in order, 8 deadlocked of 12 overlapped pairs: FOR-RESEARCH s2's two
+  predictions (reorder, deadlock) both reproduce on the gcd_ps target's full stack.
