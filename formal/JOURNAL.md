@@ -1518,3 +1518,12 @@ vector (0xC,0x12), every pin skipping pulses < 20 ps from t = 0 (--gfilter 20,0)
 the old band, which at corner 0.5 does not bind): κ = 0.16 correct (out0 = 6); κ = 0.20 chaos (40M events by
 1.22 µs, no out0); κ = 0.25 chaos. So on THIS adversary the w = 20 margin is in [0.16, 0.20); other adversaries may
 fail lower (only ua1 was targeted). Bisecting.
+### progress 18:12 -- H_RUNT(w) margin points on the ua1 adversary (simulation; owner decision 2)
+tools-A/target/out/hrunt_sweep.txt. Setup: B's simb.py with its ua1 per-pin adversary, corner 0.5, g = 1, vector
+(0xC,0x12), sequential env, every pin skipping pulses narrower than w from t = 0. Results (largest κ correct and
+quiet / smallest κ that fails): w = 0: 0.155 / 0.158 (B); w = 10: 0.16 / 0.18 (out0 correct but the circuit keeps
+oscillating, which a later pair would meet); **w = 20 (headline): 0.19 / 0.20** (chaos, no out0); w = 40: 0.20 /
+0.25. So on this adversary the runt filter moves the κ margin from ~0.155 to ~0.19 at w = 20. Not shown: that no
+other adversary fails at a lower κ for w > 0 (only ua1's path was skewed; B's static kstar says the next storage
+node binds near 0.365 at w = 0); other corners and vectors; any of it in Lean. simb's window still clips to the
+pre-change band; at corner 0.5 and g = 1 that does not bind.
