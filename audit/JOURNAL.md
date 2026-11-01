@@ -965,3 +965,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
   bits follow the routing; halves equal -> harmless. Nits: "472" is the carry output-gate count, pins are 590; the check is
   independent of A's walker but not of prjxray's database (= H_DECODE). findings/T8.md, REPORT row.
 - Witness build at 565af3b9 still running (C020, module 87/228, all rc=0 so far).
+- 13:36 WitCut.lean (c9484103) compiled standalone on my 565af3b9 tree: standard axioms, conclusion = Spec GateOK pSlow 1. Row added.
