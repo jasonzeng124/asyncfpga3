@@ -847,3 +847,11 @@ with lapcheck. BOARD-QUEUE #2 again says "bounded speed-ups".
 ### progress 07:06
 BQ#2 seed 6 log-normal 1.5x draw 2: 16/16 lapcheck CLEAN, v6 49 = claim. CONFIRMED. On my data the worst known routes
 of #2 and #3 are clean at 1.5x on draws 1 and 2 and fail at 1.75x on draw 1.
+
+### progress 07:25
+TOP PRIORITY (owner): the target appeared at formal a11503e9. Audit T1 (audit/findings/T1.md): every target md5 and
+claim CONFIRMED independently. The .fasm/.sdf equal my own BQ#1 rebuild; the .bit differs from my rebuild only in
+8 header date bytes; my own bitread + bit2fasm of the target reproduces their read-back FASM byte for byte; the
+canonical feature counts match exactly. Spec.lean part I draft (Wip, unchecked): matches THE goal on inputs,
+pipelining, safety+liveness, delays and H_ARB, but H_ENV adds harness timing margins su/Δo, which THE goal excludes.
+That needs an owner decision. No theorem about the target exists yet.
