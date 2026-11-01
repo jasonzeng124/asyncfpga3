@@ -814,3 +814,8 @@ lapcheck over all 24 of this session's sweep dirs (audit/r23/lapcheck_all.txt): 
 all BQ#1/BQ#2 SLOW_MAX/FAST_MIN, 2x seeds 7/8/9, the uori3 fix). Flags only on the known FAILs and on the
 1.75x log-normal run. (s7_2x_d2's third flag is vec 10, cut off by the container restart and re-run in s7_2x_d2b.)
 So the judge weakness has not hidden any failure in the rows I re-ran, except r23 M.
+
+### progress 00:07
+BQ#2 seed 6 log-normal 1.75x (route md5s again): errs 2 on vectors 8, 12 = "FAIL 2". lapcheck shows vector 7 also
+breaks (double pulse, then stall, errs 0), so the uori3 set 7/8/12 fails, as at 2x. Failing-scale bracket on both
+worst routes: 1.5-1.75x (my data).
