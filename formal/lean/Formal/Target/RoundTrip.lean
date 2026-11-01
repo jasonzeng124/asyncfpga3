@@ -21,6 +21,38 @@ target, so that a decoder bug shows up". This file is the generic, target-indepe
 namespace Formal.Target.RT
 open Formal.Target
 
+/-! ## Strings as byte lists (cheap in the kernel; `String.<` and `String.decEq` decode characters) -/
+
+def bl (s : String) : List UInt8 := s.toByteArray.data.toList
+
+def eqB : List UInt8 → List UInt8 → Bool
+  | [], [] => true
+  | a :: as, b :: bs => a.toNat == b.toNat && eqB as bs
+  | _, _ => false
+
+def ltB : List UInt8 → List UInt8 → Bool
+  | [], [] => false
+  | [], _ :: _ => true
+  | _ :: _, [] => false
+  | a :: as, b :: bs => if a.toNat < b.toNat then true else if a.toNat = b.toNat then ltB as bs else false
+
+theorem eqB_sound : ∀ (a b : List UInt8), eqB a b = true → a = b
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp [eqB] at h
+  | _ :: _, [], h => by simp [eqB] at h
+  | x :: as, y :: bs, h => by
+    simp only [eqB, Bool.and_eq_true, beq_iff_eq] at h
+    rw [UInt8.toNat_inj.1 h.1, eqB_sound as bs h.2]
+
+theorem eq_of_bl {s t : String} (h : bl s = bl t) : s = t := by
+  obtain ⟨x, hx⟩ := s
+  obtain ⟨y, hy⟩ := t
+  have : x = y := ByteArray.ext (Array.ext' h)
+  subst this
+  rfl
+
+theorem eq_of_eqB {s t : String} (h : eqB (bl s) (bl t) = true) : s = t := eq_of_bl (eqB_sound _ _ h)
+
 /-! ## Search trees keyed by strings -/
 
 inductive STree (α : Type) where
@@ -31,8 +63,8 @@ inductive STree (α : Type) where
 
 def STree.find {α : Type} : STree α → String → Option α
   | .nil, _ => none
-  | .leaf s v, t => if t = s then some v else none
-  | .node m l r, t => if t < m then l.find t else r.find t
+  | .leaf s v, t => if eqB (bl t) (bl s) then some v else none
+  | .node m l r, t => if ltB (bl t) (bl m) then l.find t else r.find t
 
 def STree.leaves {α : Type} : STree α → List (String × α)
   | .nil => []
@@ -45,7 +77,8 @@ theorem STree.find_sound {α : Type} : ∀ (T : STree α) (t : String) (v : α),
       simp only [find] at h
       split at h
       · rename_i hts
-        subst hts
+        have := eq_of_eqB hts
+        subst this
         simp only [Option.some.injEq] at h
         subst h
         simp [leaves]
@@ -268,5 +301,83 @@ theorem perm_blocks (F G : Nat) (rows : List (List (List Nat))) (ns : List Nat)
   · rw [← hb k (List.mem_range.1 hk), List.flatMap_def]
     exact (mergeAll_perm _ _ _).symm
   · rw [show ns.length = (blocks 0 ns).length from (blocks_length 0 ns).symm, flatMap_getD, blocks_flatten]
+
+/-! ## Index-keyed feature trees and index certificates
+
+Comparing strings by order in the kernel is expensive (it decodes both); comparing them for equality is cheap.
+So every produced feature comes with its index in the target list as certificate data, the kernel finds the
+leaf by that (Nat) index and checks only string equality (`chkI`). -/
+
+inductive ITree where
+  | nil
+  | leaf (s : String) (j : Nat)
+  | node (m : Nat) (l r : ITree)
+  deriving Inhabited
+
+def ITree.get : ITree → Nat → Option String
+  | .nil, _ => none
+  | .leaf s j, i => if i = j then some s else none
+  | .node m l r, i => if i < m then l.get i else r.get i
+
+def ITree.leaves : ITree → List (String × Nat)
+  | .nil => []
+  | .leaf s j => [(s, j)]
+  | .node _ l r => l.leaves ++ r.leaves
+
+theorem ITree.get_sound : ∀ (T : ITree) (i : Nat) (s : String), T.get i = some s → (s, i) ∈ T.leaves
+  | .nil, _, _, h => by simp [get] at h
+  | .leaf w j, i, s, h => by
+      simp only [get] at h
+      split at h
+      · rename_i hij
+        subst hij
+        simp only [Option.some.injEq] at h
+        subst h
+        simp [leaves]
+      · simp at h
+  | .node m l r, i, s, h => by
+      simp only [get] at h
+      simp only [leaves, List.mem_append]
+      split at h
+      · exact Or.inl (get_sound l i s h)
+      · exact Or.inr (get_sound r i s h)
+
+/-- Each feature `fs[k]` is the target feature at index `js[k]`. -/
+def chkI (T : ITree) : List String → List Nat → Bool
+  | [], [] => true
+  | f :: fs, j :: js => (match T.get j with | some s => eqB (bl s) (bl f) | none => false) && chkI T fs js
+  | _, _ => false
+
+theorem chkI_sound (T : ITree) {n : Nat} (hl : T.leaves.map Prod.snd = List.range n) :
+    ∀ (fs : List String) (js : List Nat), chkI T fs js = true →
+      fs = js.map (fun j => (T.leaves.map Prod.fst).getD j "")
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp [chkI] at h
+  | _ :: _, [], h => by simp [chkI] at h
+  | f :: fs, j :: js, h => by
+    simp only [chkI, Bool.and_eq_true] at h
+    have hn : n = T.leaves.length := by simpa using (congrArg List.length hl).symm
+    subst hn
+    obtain ⟨h1, h2⟩ := h
+    split at h1
+    · rename_i s hs
+      have := eq_of_eqB h1
+      subst this
+      rw [List.map_cons, chkI_sound T hl fs js h2, getD_of_mem_idx hl (ITree.get_sound T j s hs)]
+    · simp at h1
+
+theorem fm_drop_take {α β : Type} (F : α → List β) (l : List α) (a n : Nat) {x y : List β}
+    (h1 : ((l.drop a).take n).flatMap F = x) (h2 : (l.drop (a + n)).flatMap F = y) :
+    (l.drop a).flatMap F = x ++ y := by
+  rw [← h1, ← h2, ← List.flatMap_append, ← List.drop_drop, List.take_append_drop]
+
+theorem fm_drop_len {α β : Type} (F : α → List β) (l : List α) (a : Nat) (h : l.length ≤ a) :
+    (l.drop a).flatMap F = [] := by
+  rw [List.drop_eq_nil_of_le h]; rfl
+
+theorem perm_map_getD (tf : List String) (I : List Nat) (h : I.Perm (List.range tf.length)) :
+    (I.map fun j => tf.getD j "").Perm tf := by
+  have := h.map (fun j => tf.getD j "")
+  rwa [map_getD_range] at this
 
 end Formal.Target.RT
