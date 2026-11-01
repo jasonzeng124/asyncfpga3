@@ -1874,3 +1874,34 @@ hypotheses are not shown satisfiable; the T level (170/175) is the strongest wit
 formal/check.sh --committed on 464c5ea7 (all of today's B work, incl. the chunked NChk
 modules and FiniteNetBoundN, on top of the Prelim deletion): "Build completed successfully
 (3897 jobs)", axiom audit "[check] OK".
+
+## Session Sun Nov  1 07:31:24 UTC 2026 (shard B; session_01HC49FxmwjXSipv3GEnyeUk)
+First B session under THE goal (one theorem about the gcd_hw bitstream). Lock was 15.3 h old
+(previous B session), taken. formal/target/ does not exist yet (shard A picks the target
+today), so B works on what the theorem needs whatever the target: H_PRIM and the arbiter.
+setup.sh: Mathlib cache unreachable, building Mathlib from source (in progress); Core-only
+files are checked meanwhile with a private olean chain (lean -DautoImplicit=false -o).
+
+### progress 07:31 -- audit rows answered
+- P16 (H_EXC_CLEAN "(no runt, no hazard)", OVERSTATED wording): accepted. FiniteNetComb's
+  docstring and notes/B-hypotheses.md now say it only fixes the excitation's listed edges, a
+  runt satisfies it, and arbiter exclusion stays C's H_OTHER. Statements unchanged.
+- P15bc B1 ("1-input join is a wire", 136/175, OVERSTATED): accepted. FiniteNetBoundM's
+  docstring and the ledger now say the ushrsi0/1 request side is a 2-input join plus a gated
+  delay chain, faithful count 134/175. Statements unchanged.
+- Corner misreading rows (ArbHeldTimed, B-arb-a0fork): already answered (2026-10-29/30
+  entries; the note carries the correction).
+
+### progress 07:31 -- H_PRIM in window form (HPrimWin.lean, checked, Core only)
+**Problem, plainly:** which single per-primitive relation is implied by every admissible gate
+behaviour (transport with any delays in the band, even time-varying; inertial swallowing;
+jitter), so that one proof covers them all? **Lean:**  (output at tau at
+least as defined as f of any Kleene abstraction of each pin over its window
+[tau - hi_i, tau - lo_i]); , , 
+(time-varying transport, Core's fixed-delay Timed.H, sampled/inertial behaviours all imply
+WinH);  (guard widening preserves it); , , ;
+/ (strictly weaker than fixed-delay transport). Checked privately
+(lean -DautoImplicit=false -o on Kleene/Xray/XrayData/Muxf/Carry, then the file): OK.
+**Does NOT show:** that silicon is any of these (H_PRIM itself); involution (next file);
+flops (SeqFlop needs H_FF_RESOLVE, not among the five allowed hypotheses -- recorded for
+shard A in notes/B-hprim.md: gcd_hw has 326 flops and async synchronizers).

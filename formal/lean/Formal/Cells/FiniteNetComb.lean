@@ -8,7 +8,11 @@ law (the arbiter's `ustate`/`ugrant`, see `notes/B-arb-bind-plan.md`): the cell 
 `F` of its pins through a `Win` channel with H_NO_REVERT, and the race content is ONE named
 hypothesis, `H_EXC_CLEAN`: whenever the pins are clean step signals on `[0, T)`, the excitation
 `t ↦ F (pins t)` is a clean step signal on `[0, T)` with the stated edge times `e` and edge set
-`Le` (no runt, no hazard). Everything else is the network rule.
+`Le`. (Correction 2026-11-01, audit P16: this only fixes that the excitation's edges are the
+listed ones; a runt -- two edges one tick apart -- is a finite list of edges and satisfies it,
+see the auditor's `runt_gph`. It is NOT a no-runt/no-hazard condition, and arbiter mutual
+exclusion is not derived from it: in the gcd_hw theorems that is still C's H_OTHER.)
+Everything else is the network rule.
 
 **Proved:** `fcomb_spec_cell`: such a cell meets its truncated contract (`FCellOK`), so it can
 sit in `FiniteNetMixed`'s networks next to the handshake cells. `fcomb_of_buf`: a 1-pin buffer

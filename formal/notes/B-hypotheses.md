@@ -544,13 +544,17 @@ joins, fork trees).
 - *Extensions* (each implies the previous one; each with a joint witness on its own gate-timed
   run, 12/18, LUT 1, wires 1-3):
   - `FiniteNetBoundM.FGcdNetOKBM`: every `bd_mux` (7 cells each, Bmn's specs, internal pins
-    bound), 1-input joins as wires: 136/175 links bound on both sides;
+    bound), 1-input joins as wires: 136/175 links bound on both sides (134 faithfully: the
+    fused ushrsi0/1 request side is a 2-input join plus a gated delay chain, not a wire --
+    audit P15bc B1);
     `BWit2Net.gcd_hw_fin_netBM_witness`.
   - `FiniteNetBoundA.FGcdNetOKBA`: every `bd_arbiter` (ustate q/R0 and ugrant g1/g2 as
     `FCombSpec`: real LUT + ONE named race hypothesis H_EXC_CLEAN each; ua1/ua2 as `FMuxASpec`
     with a winner table): 164/175; `BWit3Net.gcd_hw_fin_netBA_witness` (on that run two arbiters
     hand a waiting request over, but no two requests race: the closest request rises at one
-    arbiter are 36 ticks apart, so H_EXC_CLEAN is never tight there).
+    arbiter are 36 ticks apart). H_EXC_CLEAN only says the excitation's edges are the listed
+    ones; a runt satisfies it (audit P16), so it is not a no-runt condition, and arbiter
+    exclusion in these theorems is still C's H_OTHER.
   - `FiniteNetBoundT.FGcdNetOKBT`: every 5/6-way fork's acknowledge tree (`bd_ctree`: chunk C4,
     chunk C2, top C2, `FCelSpec` each): 170/175 (left: muxn 4 acknowledge sides, source 1
     request side); `BWit4Net.gcd_hw_fin_netBT_witness`.

@@ -13,14 +13,17 @@ every mux pin bound as well:
 * a mux output request is driven by the mux's last `udly` buffer; a mux input acknowledge by
   its `uxa`/`uya`; the control's acknowledge is `z_ack` (a wire), so its driver is `z`'s
   (`reqSrcM`, `ackSrcM`);
-* a 1-input join is a wire both ways in the emitted Verilog (it has no cell), so a request is
-  traced back, and an acknowledge forward, through it;
+* a 1-input join is treated as a wire both ways, so a request is traced back, and an
+  acknowledge forward, through it. (Correction 2026-11-01, audit P15bc B1: this is false on the
+  request side of the fused shift units ushrsi0/ushrsi1, which emit a 2-input `bd_join` and a
+  `bd_delay_gated` chain on z_req; there the binding traces through cells the model does not
+  have. The faithful count is 134/175, not 136/175.)
 * inside the mux: `uor` reads the two join nodes, `udly[0]` reads `uor`, `udly[1]` reads
   `udly[0]`, `uxa`/`uya` read their join's node and `z`'s acknowledge.
 
 ## Assumed / proved / NOT covered
 
-**Proved:** `bound_censusM` (kernel): with muxes and 1-input joins as wires, 136 of 175 links are bound on both sides (the
+**Proved:** `bound_censusM` (kernel): with muxes and 1-input joins as wires, 136 of 175 links (134 faithfully: audit P15bc B1) are bound on both sides (the
 remaining sides end at an amerge, muxn, fork tree N >= 5 or source);
 `FGcdNetOKBM.toOK` (the mux cells' truncated contracts follow from their specs:
 `fmuxj_spec_cell`, `fmuxa_spec_cell`, `for_spec_cell`, `fbuf_spec_cell`); `link_env_boundM`;
