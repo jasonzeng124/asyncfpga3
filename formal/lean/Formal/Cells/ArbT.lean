@@ -52,8 +52,10 @@ for one transaction (the double-ack shard A found in the research fid model, her
 Spec semantics). `one_ack` gives the matching sufficient condition: q settled `W` before A0
 rises. With H_ARB(T) that is a timing obligation on the circuit: from the last edge at
 ustate's pins to A0's rise at ua must be at least `T + W` -- a path through the server, which
-the checker must generate and prove from the bands; it cannot be assumed. The theorem's
-`T` margin is therefore bounded by the shortest such server path.
+the checker must generate and prove from the bands; it cannot be assumed. At an arbiter where a
+race can occur, the theorem's `T` margin is therefore bounded by the shortest such server path;
+where arbitrations are separated (`ArbClean`), `T` does not enter at all (the target's simulated
+arbitrations are all of that kind, JOURNAL-B 2026-11-01).
 
 ## Not covered
 The whole-cell contract (four-phase on every channel, liveness, chaining phases): only the

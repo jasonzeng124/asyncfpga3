@@ -22,8 +22,9 @@ holds (monotone read maps, every read delay admissible).
 ## What it means
 THE theorem cannot be proved from H_ARB(T) by treating the arbiter as safe: the proof
 must derive that every arbiter's q is settled before its A0 rises at ua (ArbT.one_ack), a
-timing obligation through the server path. For T at least the shortest such path in the
-target, this shape is a candidate counterexample there.
+timing obligation through the server path. Whether this shape is reachable on the target is
+open: in simulation (JOURNAL-B, 2026-11-01, 16 rig vectors, adversarial in-band skew) no arbiter of
+the target ever sees two requests closer than ~50 ns, so no near-tie arises there.
 
 Node numbering: 0 r1, 1 r2, 2 q, 3 rst, 4 A0, 5 R0, 6 g1, 7 g2, 8 A1, 9 A2.
 -/
