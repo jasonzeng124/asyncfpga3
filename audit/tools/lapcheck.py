@@ -19,6 +19,9 @@ a = ap.parse_args()
 
 bad = 0
 for run in a.runs:
+    vlogs = glob.glob(os.path.join(run, "sweep", "v*.log"))
+    if not vlogs:
+        print(f"{run}: NO VECTOR LOGS (build failed or not run)"); bad += 1; continue
     for f in sorted(glob.glob(os.path.join(run, "sweep", "v*.log")), key=lambda p: int(re.findall(r"v(\d+)", p)[-1])):
         t = open(f, errors="replace").read()
         m = re.search(r"SUMMARY vec=(\d+) laps=(\d+) errs=(\d+) oks=(\d+).*?t_end=(\d+).*?t_last_lap=(\d+)", t)

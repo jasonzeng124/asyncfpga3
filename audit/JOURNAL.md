@@ -929,3 +929,9 @@ lapcheck. Formal B f59c49bc..5ba857b7: candidate counterexample to the SEQUENTIA
 (arbiter 0's ack C-element ua1 latches a circulating 7 ps runt under transport semantics; no out0). Subagent T6
 launched to reproduce it independently and replay it in the fid GLS (owner's checklist). A: refutation boundary half
 compiles in Wip (not claimed).
+
+### progress 10:03
+The disk filled up (/: 0 bytes free). The BQ#1 d log-normal GLS build failed with ENOSPC, and lapcheck wrongly said
+CLEAN on a run with no vector logs (fixed: it now flags "NO VECTOR LOGS"; earlier CLEAN verdicts all had per-vector
+output). Freed space by deleting large regenerable intermediates (netlists, vvp images, routed json) of finished
+r23 work dirs; kept the sweep logs and the bq1_d_max/min dirs. Now 5.6 GB free. GLS re-run.
