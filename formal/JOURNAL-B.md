@@ -2122,3 +2122,22 @@ arbiters never race under the sequential environment; a proof can aim at the sep
 (ArbClean) and leave T unconstrained there -- but simulation covers a handful of delay assignments, not the
 bands, and arbitrations triggered only by other inputs are not seen. NOT shown: separation for every
 behaviour (it needs a checker obligation per arbitration, shard C).
+
+### progress 09:10 -- (simulation, untrusted) the target's weakest storage node: arbiter 0's ua C-element, margin closes near κ ≈ 0.25
+**Question, plainly:** SpecFb says every storage node needs each flipping forcing episode to outlast its
+feedback loop, else a runt can circulate for ever (no hypothesis of THE goal resolves it outside arbiters).
+How close does the target come? **Tool:** tools-B/target/fbscan.py over the 16 rig-vector baseline dumps
+(sequential env, decoded target, mid corner, mid-window delays; only episodes after reset release counted):
+540 feedback LUTs active; the five weakest ratios (episode / simulated loop delay): SLICE_X2Y18.DLUT.O6 1.72
+(1143 ps vs 665 ps; loop SLOW_MAX 1064 ps), SLICE_X0Y18.CLUT.O6 2.76, SLICE_X42Y82.ALUT.O6 3.16,
+SLICE_X6Y99.CLUT.O6 3.21, SLICE_X38Y78.ALUT.O6 3.68 (notes: tools-B/target, /fbweak.txt not committed).
+SLICE_X2Y18.DLUT.O6 is arbiter 0's acknowledge C-element (decoded table = majority(A0, g, fb) with reset; its
+g pin comes from arbiter 0's ugrant at SLICE_X0Y18.A): the episode is "A0 rises with g high -> ua rises -> the
+client drops r -> g falls at ua's pin", which must outlast ua's own feedback route (6 hops + pin arc).
+**Adversarial (tools-B/target/fbadv.py, vector (12,18), corner 0.5):** that causal path at the fast end of its
+windows, ua's feedback route and ua at the slow end: κ = 0: episode 1062 ps vs loop 743 ps; κ = 0.1: 1009 vs
+815; κ = 0.2: 953 vs 890 (63 ps left); κ = 0.3: loop 964 ps, run still going (pending). By the trend the
+episode becomes shorter than the loop between κ = 0.2 and 0.3: then, in the Spec semantics (transport is a
+GateOK behaviour), ua1 can latch a runt and oscillate -- an acknowledge glitch at arbiter 0. **If confirmed,
+THE theorem's κ margin is below ~0.25 at g = 1 because of this one node.** Not shown: the κ = 0.3 outcome, other
+corners, a Lean trace.
