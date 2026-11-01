@@ -1906,7 +1906,7 @@ WinH); `win_widen` (guard widening preserves it); `win_forced`, `win_settles`, `
 flops (SeqFlop needs H_FF_RESOLVE, not among the five allowed hypotheses -- recorded for
 shard A in notes/B-hprim.md: gcd_hw has 326 flops and async synchronizers).
 
-### progress 08:05 -- FOR SHARD A: Spec v1's H_ARB(T) makes the theorem vacuous on every handover
+### progress 07:38 -- FOR SHARD A: Spec v1's H_ARB(T) makes the theorem vacuous on every handover
 **Problem, plainly:** Spec v1 (`Wip/Target/Spec.lean`, A's draft) states H_ARB(T) as "both
 request nodes constant on [t1, t2] => state node q constant on [t1 + T, t2]". The held
 `bd_arbiter`'s state LUT (ustate, INIT FFF0_FFB2_ACAC_ACAC, O6 = q) also reads A0 and rst:
