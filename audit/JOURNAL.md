@@ -839,3 +839,7 @@ reproduced CLEAN.
 ### progress 05:16
 The container restarted again (~05:10); disk intact, nothing lost except the branch watcher (re-armed). No new commits
 on research (after 96446990) or formal (after 2f2e632d); formal/target still absent.
+
+### progress 05:56
+Research f691b29b: BQ#2 log-normal 1.5x draw 2 PASS on seeds 6-9 (12/12 routes with BQ#3). Spot-checking seed 6 draw 2
+with lapcheck. BOARD-QUEUE #2 again says "bounded speed-ups".
