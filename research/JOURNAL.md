@@ -2067,3 +2067,14 @@ double-counted, ring128 per-ring data still needed).
   overlapped pairs and then produced no result within 60 us (the longest single call is 15 us), so they are kernel
   deadlocks, not this host's. 2 reordered, 2 in order, 8 deadlocked of 12 overlapped pairs: FOR-RESEARCH s2's two
   predictions (reorder, deadlock) both reproduce on the gcd_ps target's full stack.
+### progress 22:25 (queue: out0 monitor on all 8 P1 seeds; FOR-RESEARCH C1's tb_pipe on BQ#1's full stack)
+- Rule A's mux pairing on gcd_hw R5 (BQ#2 seed 6, tighten.py): all 22 bd_mux bundles pair "by common source" (their
+  own join), not the "no common source" pairing that over-charged gcd_ps's umux21. So the over-charge is not a
+  general speed lead for gcd_hw. (P3, steer-join grouping, was already tried: negative, JOURNAL 10-26 21:40.)
+- Running: the out0 bundling monitor on P1 seeds 3-9 at both corners (the formal target's kernel-boundary
+  contract on every seed), then seed d with 64 vectors (first 64 of gcd_ps_vec1000.hex).
+- Queued after it: formal's FOR-RESEARCH C1 ask, tb_pipe.v (claude/formal formal/tools/pipe/gls/, used read-only from
+  a scratch copy) on the BQ#1 target's board-fidelity stack: netlist decoded from the COMMITTED
+  research/board/gcd_hw_03e82630.bit, prjxray SDF of the same route (nextpnr sdf 6f8b99e6), fid, both corners;
+  +PIPE=0 9/4 (control), +PIPE=1 9/4, 9/9, 15/5, 2/4; in_ack resolved from this route's nets.map instead of the
+  hard-coded n144588. Then BQ#4 scatter to BQ#1's level (1x on 6-9; log-normal 1.5x draw 2 on d,3,4,5).
