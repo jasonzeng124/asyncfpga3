@@ -1527,3 +1527,19 @@ oscillating, which a later pair would meet); **w = 20 (headline): 0.19 / 0.20** 
 other adversary fails at a lower κ for w > 0 (only ua1's path was skewed; B's static kstar says the next storage
 node binds near 0.365 at w = 0); other corners and vectors; any of it in Lean. simb's window still clips to the
 pre-change band; at corner 0.5 and g = 1 that does not bind.
+### progress 19:35 -- THE TARGET SWITCHES to gcd_ps (BOARD-QUEUE #4), owner decision 1
+Research landed BQ#4 at 19:02 (research bfa659b4; formal target = research/board/gcd_ps_e6bb4aec.*). Copied to
+formal/target/; md5 .bit aa83c8b7 (sha256 e6bb4aec...), .fasm 2dbf962d: both equal BQ#4's record. From now on THE
+theorem is about gcd_ps_e6bb4aec.bit; the gcd_hw_03e82630 results (pipelined refutation, round trip, O5 check,
+H_RUNT points) are about the old target and are kept. The H_ENV reading of gcd_ps.v (owner: "state what H_ENV then
+requires of it, including how STATUS inputs cross into the PS clock"), first pass from the source (not yet from the
+bits): STATUS.i_ack and STATUS.o_req each pass a 2-flop synchronizer (sync_i_ack, sync_o_req) before the AXI read
+mux, so no missing synchronizer there; O_DATA is sampled every aclk without one, and is read only after o_req has
+crossed two stages, so its bits are stable by then (bundled data before request); the kernel's i_req is a flop set
+by an AXI write and cleared ASYNCHRONOUSLY by the kernel's i_ack (req_core), and o_ack = ctrl_o_ack AND o_req
+(combinational). So the kernel sees: i_req falls a few gate delays after i_ack rises (no host timing involved),
+o_ack falls a gate delay after o_req falls; the data registers change only on host writes, which the host sequence
+makes only after the previous output handshake (the sequential environment). The release of req_core's async clear
+(i_ack falling) is asynchronous to aclk; a CTRL write that SETS i_req in the same cycle would be a recovery
+violation, which the host sequence rules out by ms-scale polling, i.e. by a timing assumption on the host. Next:
+rebuild (toolchain.sh first) to get the routed JSON, then decode.

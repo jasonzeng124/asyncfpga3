@@ -42,3 +42,22 @@ new target, journaled as a new decision.
 `bitread` + `bit2fasm.py` with prjxray-db (`$TC/openxc7/share/nextpnr/prjxray-db/zynq7`, part
 xc7z010clg400-1): the map from frame bits to FASM features. The decoder from features to the
 Lean netlist will be Lean code with a re-encoding round trip (Spec.lean section 7).
+
+# THE target from 2026-11-01 19:3x UTC: gcd_ps (BOARD-QUEUE #4), owner decision 1
+
+Owner decision 1 (PROGRAM.md, 2026-11-01): when research's full-width gcd bitstream lands, it is THE target. It
+landed as BOARD-QUEUE #4 (research bfa659b4): gcd_ps (cells/hw/gcd_ps.v: the same kernel, bdc flags, pads and v4
+placement as BQ#1, operands from the PS over an AXI3 register slave, no vector table; P1 sizes lengthen
+`bridge_i.udut.umux21` 12 -> 16 links), build_hw.sh's default seed d. Copied from `research/board/` at research
+bfa659b4:
+
+| file | what | md5 | sha256 |
+|---|---|---|---|
+| `gcd_ps_e6bb4aec.bit` | the bitstream | aa83c8b7a5e6b68e69729131e984c0f4 | e6bb4aec70f31fa7579a482d94ec168162656dabf74e833ed57d1a516b809798 |
+| `gcd_ps_e6bb4aec.fasm.gz` | nextpnr's FASM (gzip -n) | 2dbf962dbcf01dcd9bd6ad6f7870ca27 (uncompressed) | |
+| `gcd_ps_e6bb4aec.toolchain.txt` | toolchain stamp (nextpnr 9c732bc6303458df, all patches ok) | | |
+| `gcd_ps_vec1000.hex` | research's 1000 board vectors (not an input of the theorem) | | |
+
+The md5s match BOARD-QUEUE #4's. Not yet done: the read-back FASM, the rebuild that ties the `.fasm` to the `.bit`
+(and gives the routed JSON that names the boundary), the decode, the Lean netlist. The 16-vector target's files and
+results above stay (the refutation of the pipelined statement is about that target).
