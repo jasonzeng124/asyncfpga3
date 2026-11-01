@@ -2099,3 +2099,11 @@ double-counted, ring128 per-ring data still needed).
 - research/data/fid/c1_pipe/README.md: SLOW_MAX and FAST_MIN, decoded from the committed BQ#1 bit: sequential 9/4
   both right; pipelined 9/4 only 1 (pair 2's), 9/9 and 15/5 deadlock, 2/4 only pair 1's. Exactly FOR-RESEARCH
   C1's table, now on the board-fidelity stack the request named. Rig env control vec 6: 16 laps, 0 errors.
+### progress 23:55 (BQ#4's board script checked offline against a mock board; scatter runs restarted with the monitor)
+- cells/hw/mock_xsdb_gcd.tcl: xsdb_gcd.tcl in tclsh against a fake board (gcd_ps register map, Euclid gcd,
+  instant answers) with injected faults. none: PASS 16/16 and 1000/1000, exit 0; wrong:5 and hang:7: PASS 15/16 /
+  999/1000 + FAIL line, exit 1, one MISMATCH line; deadaxi: liveness pre-check refuses, exit 1. So BQ#4's pass
+  criterion is self-reporting and can fail; and Euclid agrees with the vector file's ref_gcd answers on all 1000.
+  It checks the script, not the design.
+- The BQ#4 scatter extension was restarted with PS_BUNDLE=1 (psbm/run3.sh) so it also measures the out0 margin
+  under scatter: 1x on seeds 6-9, log-normal 1.5x draw 2 on d,3,4,5.

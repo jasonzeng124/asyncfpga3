@@ -192,6 +192,11 @@ math.gcd; none is 0. Its first 24 lines are the vectors the GLS below ran.
 Pass (self-reporting): each run prints `liveness pre-check PASS`, then `=== PASS 16/16 ===` (first) and
 `=== PASS 1000/1000 ===` (second), and exits 0. Any `MISMATCH`, `TIMEOUT`, a `FAIL:` line or a non-zero exit is a
 FAIL. The script programs the PL and re-runs the SLCR bring-up itself (FCLK0 100 MHz).
+The script's verdict was checked offline (`tclsh cells/hw/mock_xsdb_gcd.tcl FAULT -- <bit> [vecfile]`, a fake
+board with gcd_ps's register map and an independent Euclid gcd): clean, PASS 16/16 and 1000/1000, exit 0 (so the
+vector file's ref_gcd answers agree with Euclid on all 1000); one wrong answer or one missing o_req, `PASS 999/1000`
+plus `FAIL: 1/1000`, exit 1; A_DATA reading back 0, the liveness pre-check refuses, exit 1. Note `=== PASS k/n ===`
+is printed on a failing run too: only `n/n` with exit 0 is a pass.
 
 What it would mean:
 - PASS: the compiled kernel computes gcd on full 32-bit operands from outside the die, on 1000 vectors nobody
