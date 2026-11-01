@@ -1979,9 +1979,10 @@ double-counted, ring128 per-ring data still needed).
   PR #2 description refreshed. Queued: seeds 6-9, unsized negative control (d, 5), +PIPE=1 on seed d, 1x scatter.
 ### progress 20:25 (gcd_ps full stack 6 both corners, 7 SLOW_MAX: 24/24; FOR-RESEARCH s3 reading)
 - 6 max/min and 7 max: 24/24, EQUIVALENT; gates clean (5 min's re-run gate too).
-- FOR-RESEARCH s3 (does a LUT loop circulate a runt?): the fid GLS cannot answer it. fid_core.vh's resolver
-  rejects a runt narrower than TLOOP - WIN/2 and resolves (maybe metastably) one inside the window; it never lets
-  a runt circulate, by construction. That is H_RUNT(w ~ TLOOP - WIN/2) built into the model, an assumption, not
-  evidence for it. So "passes the fid GLS" means "correct if silicon kills loop runts the way the model does";
-  the transport semantics (formal's pessimistic case) is the one the default GLS model shows (auditor T6: pulse
-  trains then stalls on 2 of 3 seeds at those delays). Only the board can settle it.
+- FOR-RESEARCH s3 (does a LUT loop circulate a runt?), CORRECTED after reading audit T6 (claude/audit
+  audit/findings/T6.md rows 7-8, section 3): the fid resolver only makes the loop's OWN echo impossible (the
+  feedback pin reads the committed state, so the 7 ps runt cannot circulate, by construction); every other LUT pin
+  is transport, so the node's readers still see narrow pulses. At shard B's delays the default fid model (resolver
+  on) still fails: out0_req 5-15 ps pulse trains, then no lap for 11-14 us on 2 of 3 seeds. So fid neither
+  assumes the problem away nor answers s3: what a READER does with a pulse narrower than ~20 ps is not modelled
+  (transport), and that is the H_RUNT question. Only the board, or a measured LUT pulse-rejection width, settles it.
