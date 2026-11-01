@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resumable, parallel per-module axiom audit. Usage: axiom_audit_par.sh <lean project> <outdir> [jobs]
 # Writes <outdir>/<Module>.res ("constants=N bad=B" or "NO RESULT") and <outdir>/<Module>.out; skips modules
-# that already have a .res. Then prints a summary. Same check as axiom_audit_permod.sh.
+# that already have a .res (MODLIST=<file> restricts the module set). Then prints a summary. Same check as axiom_audit_permod.sh.
 set -uo pipefail
 P=${1:?project}; OUT=${2:?outdir}; J=${3:-3}
 mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
@@ -36,7 +36,8 @@ L
   echo "${r:-NO RESULT}" > "$OUT/$M.res"
 }
 export -f one
-find Formal -name '*.lean' | sort | sed 's#/#.#g; s#\.lean$##' | xargs -P "$J" -I{} bash -c 'one {} '"$OUT"
+# MODLIST=<file of module names> restricts the audit to those modules (default: every module under Formal/)
+if [ -n "${MODLIST:-}" ]; then cat "$MODLIST"; else find Formal -name '*.lean' | sort | sed 's#/#.#g; s#\.lean$##'; fi | xargs -P "$J" -I{} bash -c 'one {} '"$OUT"
 tot=0; bad=0; nores=0
 for r in "$OUT"/*.res; do
   l=$(cat "$r")
