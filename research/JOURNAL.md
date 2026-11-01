@@ -1971,3 +1971,9 @@ double-counted, ring128 per-ring data still needed).
   run_baked.vvp (truncated, "syntax error" at load). Not a GLS result; re-queued. Each gcd_ps full-stack job
   leaves ~1 GB of compiled sims; the drivers now delete them after the run and gate, and the stale binaries of the
   BQ#1-3 sweeps (results in research/data/fid/*.tsv) were removed: 11 GB free.
+### progress 19:45 (BOARD-QUEUE #4 gcd_ps added; formal target named)
+- Seed 5 FAST_MIN re-run: 24/24, EQUIVALENT. So seeds d,3,4,5 x SLOW_MAX/FAST_MIN: 8/8 runs 24/24, 0 err, 0 hang
+  (research/data/gcd_ps/p1_fullstack.tsv). Longest vector 15.1 us (14.95-15.2) at SLOW_MAX, 5.3 us at FAST_MIN.
+- BOARD-QUEUE #4 written: formal target = P1 seed d, research/board/gcd_ps_e6bb4aec.bit (md5 aa83c8b7) and
+  .fasm.gz (uncompressed md5 2dbf962d); board run = xsdb_gcd.tcl over the 16 golden then 1000 derived vectors.
+  PR #2 description refreshed. Queued: seeds 6-9, unsized negative control (d, 5), +PIPE=1 on seed d, 1x scatter.
