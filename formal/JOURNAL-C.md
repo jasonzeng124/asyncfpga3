@@ -928,3 +928,17 @@ toolchain-cache/d7ce266cff0c8e1e) for prjxray-db. On formal/target/gcd_hw_03e826
 Meaning, once the Lean passes: every physical instance decoded from the target's bits computes its yosys cell under
 rho, rho bijective off route-throughs; with H_COMPUTE_FN (20 units, byte-identical in the target's synthesis) the
 compute units of the target's bits compute bdc's functions (still under H_MAP and the Boolean primitive models).
+
+### progress 08:13 -- SpecSettle CLAIMED: interval timing (settle and hold) in the frozen Spec's semantics
+`Formal/Timing/SpecSettle.lean` (lean -DautoImplicit=false, rc 0; axioms propext, Classical.choice, Quot.sound;
+imports Formal.Target.Spec and Mathlib.Data.Rat.Floor). **Plainly:** for Spec's GateOK (per-pin monotone reads,
+every read delay admissible under H_DELAY(g, κ), output = INIT at the reads): every admissible read delay of an arc
+lies in [⌈fmin/g⌉, ⌈smax·g⌉] (any corner, any κ); if a gate's inputs hold values on windows [S_i, U_i], its output
+holds INIT[addr] on [max(start, S_i + dmax_i), min(U_i + dmin_i)] (`gate_stable`); and a Boolean certificate
+checker `certOK` (one STA pass over a gate list in topological order: inputs external or earlier, the local rule per
+gate) is sound for every `Behaves` behaviour of a netlist (`cert_sound_net`). Controls (Wip/CSpec/SettleNeg.lean,
+rc 0): the tight certificate of a one-gate buffer is accepted; one ps too early, one ps too late, the wrong value, or
+an unknown input are each rejected. NOT covered: feedback (loop nodes cannot be certified by this rule), which
+windows a design needs (the obligation generator), anything about the env.
+This is the generic piece C owes THE goal for bundling/settling obligations, stated on Spec directly (C's older
+Timing/Checker is sound only for its own run semantics).
