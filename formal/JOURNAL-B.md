@@ -1905,3 +1905,26 @@ WinH); `win_widen` (guard widening preserves it); `win_forced`, `win_settles`, `
 **Does NOT show:** that silicon is any of these (H_PRIM itself); involution (next file);
 flops (SeqFlop needs H_FF_RESOLVE, not among the five allowed hypotheses -- recorded for
 shard A in notes/B-hprim.md: gcd_hw has 326 flops and async synchronizers).
+
+### progress 08:05 -- FOR SHARD A: Spec v1's H_ARB(T) makes the theorem vacuous on every handover
+**Problem, plainly:** Spec v1 (`Wip/Target/Spec.lean`, A's draft) states H_ARB(T) as "both
+request nodes constant on [t1, t2] => state node q constant on [t1 + T, t2]". The held
+`bd_arbiter`'s state LUT (ustate, INIT FFF0_FFB2_ACAC_ACAC, O6 = q) also reads A0 and rst:
+q is frozen while A0 is high and flips at A0's fall. In a normal handover (client 1
+released, client 2 waiting) both requests are constant across A0's fall and q must flip.
+So GateOK + ArbOK is contradictory for every behaviour in which the server holds A0 at
+least T after the requests last moved, and NetCorrect is vacuously true for all of them.
+A0's fall waits on the downstream and, through out0, on the environment, which H_ENV does
+not bound: such behaviours exist for every T.
+**Lean (Wip/Bspec/ArbOKVacuous.lean, checked privately against a verbatim copy of the
+draft, Wip/Bspec/SpecV1.lean; standard axioms only; not built by lake):**
+`arbOK_excludes_handover` (any p, corner, arcs: q gate GateOK, r1 = 0, r2 = 1, rst = 0,
+A0 high until ta then low, q high at T, ArbOK T => False); `handover_gate_ok` (the
+scenario IS a GateOK behaviour of the q gate with exact 10 ps arcs, g = 1, κ = 0);
+`arbOK_vacuous_for_every_T` (for every T: a behaviour GateOK admits and ArbOK T forbids).
+**Suggested repair (not proved to suffice):** quantify over ALL non-feedback pins of the
+state LUT as read at its pins (r1, r2, A0, rst), and note that T below the state gate's
+slowest arc contradicts an ordinary set/reset transition the same way (non-vacuity needs
+T >= that arc's g·SLOW_MAX plus the feedback route).
+**Also:** Spec v1 does not compile as committed: `⌈⌉` on ℚ (Gate.start, line 152) needs
+`import Mathlib.Data.Rat.Floor` (the copy adds exactly that line; then it checks).
