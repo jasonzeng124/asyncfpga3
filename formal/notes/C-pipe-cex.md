@@ -61,3 +61,22 @@ pending.
 2. Lean, handshake level: the unit-delay trace as a kernel-checked witness of the CapNet
    cell models (C-wit machinery) with the pipelined env, for reorder and for deadlock.
 3. Research: a fid GLS of the target bitstream with a pipelined env (FOR-RESEARCH).
+
+## Generated-netlist model (hwsimgen.py, simgen's per-LUT chains), unit and random delays (1..4 ticks per node)
+| pairs | unit | delay seed 1 | delay seed 2 |
+|---|---|---|---|
+| vector 9, vector 4 | [1, 4096] REORDER | [1, 4096] | [1, 4096] |
+| vector 9, vector 9 | DEADLOCK | DEADLOCK | DEADLOCK |
+| vector 15, vector 5 | [1, 256] REORDER | [1, 256] | [1, 256] |
+(vector 15 then 5 deadlocks in the lumped CapNet model and reorders here: which failure occurs is timing-dependent;
+that one occurs is not, in every run tried.)
+
+## Why
+- **Reorder.** The loop-header control_merges are arbitrated merges (bd_arbiter). A pair that needs fewer loop
+  iterations (vector 4: none) passes the merges while the earlier pair is still circulating, and leaves first.
+  The data stays consistent per pair (each mux is steered by its own merge's index token), so the values are
+  right and only the order is wrong (token level: 300 random runs, multiset always right).
+- **Deadlock.** Vector 9 twice: in the deadlocked state (CapNet, unit delay) both pairs' tokens sit in the first
+  loop (the "both even: shift" loop; pending values 32768/16384 and 2048/1024 are both pairs' halvings). bdc gives
+  each loop the minimum 3 storage stages, enough for ONE token; C's own `Ring.k_tokens` (C-9) says a ring with k
+  tokens needs 2k + 1 stages. Two invocations in one loop is two tokens in a ring sized for one.

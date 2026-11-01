@@ -42,6 +42,9 @@ def simulate(vals, names, ops, env, tmax=100000):
     if rig:
         envc, inack, rises = True, False, 0
         for z in srcz: req[z] = True
+        if env.get("r0low"):   # every request low at tick 0; the first offer rises at tick 1
+            envc, rises = False, -1
+            for z in srcz: req[z] = False
     it = {n: [False] * NINT.get(o["k"], 0) for n, o in enumerate(ops)}
     latch = {o["o"]: 0 for o in ops if o["k"] == "link"}
     srcdone = {n: False for n, o in enumerate(ops) if o["k"] == "src"}
@@ -148,7 +151,7 @@ def simulate(vals, names, ops, env, tmax=100000):
             if ne and not envc:
                 if rises + 1 < env["offers"]:
                     rises += 1
-                    offer[0] = rises
+                    offer[0] = max(rises, 0)
                 else: ne = envc
             envc, inack = ne, nin
             for z in srcz: nreq[z] = envc

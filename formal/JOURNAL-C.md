@@ -858,3 +858,14 @@ feeds the kernel from gcd_rig's 16-vector table. So the counterexample now uses 
 - FOR SHARD A: Spec.lean section 7 says the target "would not hold two pairs" because start is acknowledged
   only at completion (gcd_rig.v's header). The capstone's handshake model says otherwise: pair 1's input
   handshake completes at tick ~140, its result at 271+. See FOR-RESEARCH.md section C1 (added by C).
+
+### progress 07:45 -- deadlock explained; two more Lean witnesses building
+- Generated-netlist model (hwsimgen, per-LUT chains), unit delay and random per-node delays 1..4: vector 9 then 4
+  reorders in every run; vector 9 twice deadlocks in every run. Which failure a pair sequence hits can depend on
+  timing (vector 15 then 5: deadlock in CapNet, reorder here); that one occurs did not, in any run tried.
+- Deadlock cause: both invocations' tokens in the first loop; the loop has bdc's 3 storage stages (one token);
+  C-9's Ring.k_tokens: k tokens need 2k+1. Plainly: gcd_hw's loops have room for one invocation at a time.
+- Building (core-only chain, 68 modules, direct `lean`; Mathlib still compiling for setup.sh):
+  PipeWit (handshake-level reorder, rig vectors 9 then 4) and PipeDead (handshake-level deadlock, vector 9
+  twice, with the one-tick step property on every non-source gate, so nothing is merely slow, and QuietNS at
+  tick 265). Neither is claimed until it compiles.
