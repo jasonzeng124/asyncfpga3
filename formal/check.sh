@@ -87,7 +87,7 @@ LEAN
 if [ $WIT -eq 1 ]; then
   # one module at a time: lake has no job limit, and witness modules use up to ~5 GB each
   echo "[check] witness library FormalWit (one module at a time)"
-  for m in $(cd FormalWit && find . -name '*.lean' | sed 's|^\./||; s|\.lean$||; s|/|.|g' | sort -t. -k2,2 | awk '/Refute$/{r=$0; next} {print} END{if (r) print r}'); do
+  for m in $(cd FormalWit && find . -name '*.lean' | sed 's|^\./||; s|\.lean$||; s|/|.|g' | sort -t. -k2,2 | awk '/Refute$/{r[++nr]=$0; next} {print} END{for (i = 1; i <= nr; i++) print r[i]}'); do
     FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "FormalWit.$m" > .lake/check-wit.log 2>&1
     grep -q 'Build completed successfully' .lake/check-wit.log || { grep -E 'error' .lake/check-wit.log | head -5; echo "[check] FAIL: FormalWit.$m"; fail=1; break; }
   done

@@ -1412,3 +1412,13 @@ WitCut.gateOK_cut, and every per-node fact (cut ≥ P + Dm, periodic on [cut - D
 check. Python cost proxy (sum over gates of (flips in the gate's window)^2): 4.8e7 -> 1.95e7; 1541 slices (V9V4:
 1695). The heaviest gates are no longer the ring's but computation nodes with ~140 flips. Compiling in the
 background; V9V4c is not committed under FormalWit until it checks, and V9V4 (the verified refutation) is unchanged.
+### progress 14:16 -- V9V4c CHECKED: the same refutation, per-node cuts, ~3x cheaper
+`FormalWit/V9V4c/Refute.lean` (gen_witc.py, WitCut.gateOK_cut) compiles: `refuted : ¬ NetCorrect net boundary arbs
+pSlow 656 20000 0 2999` and `refuted_range` (T ≥ 656, Δo ≤ 2999), axioms [propext, Classical.choice, Quot.sound],
+no sorry or native_decide in the generated files. Same pairs, same dump, same parameters as V9V4; the witness
+behaviour is `extC D cut P` instead of `ext D b P`. Measured on this sandbox (4 cores, 15 GB, two modules at a time,
+private oleans): T/Top/CBase ~3 min; the 80 gate chunks + 81 periodicity chunks + Refute + axiom print 63.5 min wall
+(13:11:47-14:15:09). For comparison (journal 11:xx): V9V4's C000 took 5 min (V9V4c's C000: under 1 min) and its
+ring chunks ~40 min each; V9V4 totalled ~3 h CPU. Not measured: V9V4c's CPU total, peak memory. What it does not
+show: anything new about the target; it is a cheaper certificate of the same fact. check.sh --wit now builds every
+witness's Refute (before, with two witnesses, all but the last were skipped by the module ordering).
