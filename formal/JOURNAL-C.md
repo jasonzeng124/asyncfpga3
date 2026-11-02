@@ -1296,3 +1296,20 @@ and A + 87·M ≤ R - 1, then all 414 island members are low from R - 1 - M on, 
 start.ack and out0.req. Kernel-checked per member: logic node; forcing pins' sources are members or the two env
 nodes; those pins at 0 force the INIT to 0 whatever the other pins (data latches, arbiter states) read; comb members'
 member sources have smaller rank (≤ 85); the 94 storage members are reset-forced to 0. Next: Correct for n = some 0.
+
+### progress 10:06 -- correct_n0 CLAIMED: THE theorem's conclusion Spec.Correct on the decoded target, for n = some 0
+`Formal/Net/CViewPS/Idle0.lean` (lake build OK, 1306 jobs; `#print axioms correct_n0`: propext, Classical.choice,
+Quot.sound; scan clean). **Statement** (`Formal.Net.CViewPS.correct_n0`): for every p with 0 ≤ κ ≤ 1, 0 < g, and R, su,
+Δo, M, A such that every island member's start and every storage member's reset arrival is ≤ A, every island member
+pin's composite Σdmax ≤ M, every forcing pin's Σdmin ≥ 1 and A + 87·M + 1 ≤ R: for every x, va, vb,
+`Behaves p (circuit DecodedPS.net DecodedPS.boundary) x → Env x DecodedPS.boundary R su Δo (some 0) va vb →
+Correct x DecodedPS.boundary R Δo (some 0) va vb`. That is THE theorem (NetCorrectSeq's conclusion) for the case
+"no pair is ever offered", WITHOUT H_ARB and without SeqEnv, for every delay assignment in Adm.
+**Plainly:** if the PS never offers a pair, the decoded gcd_ps circuit keeps a.ack, b.ack, start.ack and out0.req
+low from the end of reset for ever, whatever its 4,185 data latches and 9 arbiter states power up with; so every
+CircIn/CircOut clause, the data clause (vacuous) and the idle clause hold. **Non-vacuity on the data (Python):** at
+g = 1, κ = 0 the forcing pins' composite fast delays are ≥ 114 ps, M = 3,881 ps works, A ≈ 15.6 ns, so the hypotheses
+hold for a reset of R ≥ ~353 ns (the 87·M settle bound is loose). The hypotheses on p are not yet discharged in Lean
+for a concrete p (a decide over the 414 members' arcs). **Not shown:** any n ≥ 1, i.e. the computing part.
+This replaces nothing in STATUS's list (the allowed hypotheses here are H_DECODE via net, H_DELAY via Behaves, H_PRIM,
+H_ENV; for n = 0 no derived hypothesis remains), but it is the first Lean theorem of THE statement's shape.
