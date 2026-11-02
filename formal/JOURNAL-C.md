@@ -1133,3 +1133,13 @@ episodes ended by independent events (other inputs racing), the data-hold race a
 obligation), g > 1.
 FOR SHARD B: this is a static lower bound to compare with kstar; the structural worst nodes are ulink_n143 stage[2]
 ctl and umux7.uj1, not the ones your simulation found tightest.
+
+### progress 08:52 -- SpecLoop: causality (cgate_cause) and fundamental-mode settling (settle_ranked), check.sh OK
+`cgate_cause`: if a collapsed gate's output differs at t1 ≤ t2 (from its start on), some pin's source toggles at a
+time in (t1 - Σdmax, t2 - Σdmin] of that pin's composite arcs (no spontaneous change; the basis for reading path
+delays as causal bounds). `settle_ranked`: for ranked combinational nodes over roots (every pin source a root or a
+lower-ranked comb node, composite Σdmax ≤ M, starts ≤ A): if every root is quiet on [A, B], every comb node w is
+quiet on [A + (ρ w + 1)·M, B]. Instantiated with CViewPS (comb_ranked: roots = the 4,597 storage nodes + env/undriven
+nodes, depth ≤ 96) this says: once THE target's storage and environment nodes stop moving, the whole circuit is quiet
+97·M later. **Not yet done:** the instantiation as one Lean statement on DecodedPS (needs gluing comb_ranked's
+node-indexed data to collapsed's view list, and M for a concrete p); storage-node dynamics.

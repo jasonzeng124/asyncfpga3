@@ -148,4 +148,92 @@ theorem cgate_switch {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {ar
   · exact hf t a h
   · exact hh t (by omega) b
 
+
+/-- A signal that differs at `a ≤ b` toggles at some step in `(a, b]`. -/
+theorem toggle_between (s : Sig) : ∀ (a b : Nat), a ≤ b → s a ≠ s b → ∃ u, a < u ∧ u ≤ b ∧ s (u - 1) ≠ s u := by
+  intro a b hab hne
+  induction b with
+  | zero =>
+    have : a = 0 := by omega
+    subst this; exact absurd rfl hne
+  | succ b ih =>
+    by_cases hab' : a ≤ b
+    · by_cases h : s b = s (b + 1)
+      · obtain ⟨u, h1, h2, h3⟩ := ih hab' (by rw [h]; exact hne)
+        exact ⟨u, h1, by omega, h3⟩
+      · exact ⟨b + 1, by omega, le_refl _, by simpa using h⟩
+    · have : a = b + 1 := by omega
+      subst this; exact absurd rfl hne
+
+/-- **No spontaneous change (causality).** If a collapsed gate's output differs at `t1 ≤ t2`
+(both from its start on), some pin's source toggles at a time in
+`(t1 - Σdmax, t2 - Σdmin]` of that pin's composite arcs. -/
+theorem cgate_cause {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) (hord : ∀ i, i < g.k → ArcsOrd (arcs i))
+    (hg : CGateOK p c g src arcs S x) {t1 t2 : Nat} (hS : S ≤ t1) (h12 : t1 ≤ t2)
+    (hne : x g.out t1 ≠ x g.out t2) :
+    ∃ i, i < g.k ∧ ∃ u, t1 - sumMax p (arcs i) < u ∧ u ≤ t2 - sumMin p (arcs i) ∧
+      x (src i) (u - 1) ≠ x (src i) u := by
+  obtain ⟨F, hm, hF⟩ := hg
+  obtain ⟨r1, o1⟩ := hF t1 hS
+  obtain ⟨r2, o2⟩ := hF t2 (by omega)
+  by_contra hno
+  apply hne
+  rw [o1, o2]; congr 1
+  apply SpecSettle.addr_congr
+  intro i hi
+  obtain ⟨a1, b1⟩ := r1 i hi
+  obtain ⟨a2, b2⟩ := r2 i hi
+  obtain ⟨l1, u1⟩ := sumAdm_bounds hp hc0 hc1 _ _ (hord i hi) b1
+  obtain ⟨l2, u2⟩ := sumAdm_bounds hp hc0 hc1 _ _ (hord i hi) b2
+  have hmono : F i t1 ≤ F i t2 := hm i hi h12
+  by_contra hd
+  obtain ⟨u, h1, h2, h3⟩ := toggle_between (x (src i)) _ _ hmono hd
+  exact hno ⟨i, hi, u, by omega, by omega, h3⟩
+
+
+/-- `s` is constant on `[a, b]`. -/
+def Quiet (s : Sig) (a b : Nat) : Prop := ∀ t, a ≤ t → t ≤ b → s t = s a
+
+/-- **Settling of ranked combinational logic (fundamental mode).** Nodes `w` with `comb w` are
+collapsed gates `gate w` (output `w`) whose every pin source is either a `root` or a comb node of
+smaller rank `ρ`; every pin's composite delay is at most `M` (`sumMax ≤ M`) and every gate's
+start is at most `A`. If every root is quiet on `[A, B]`, every comb node `w` is quiet on
+`[A + (ρ w + 1) * M, B]`. With THE target's ranks (`CViewPS.comb_ranked`, depth ≤ 96) and the
+storage and environment nodes as roots: once they stop moving, the whole circuit is quiet
+`97 · M` later. -/
+theorem settle_ranked {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    (comb root : Nat → Prop) (ρ : Nat → Nat) (gate : Nat → Gate) (src : Nat → Nat → Nat)
+    (arcs : Nat → Nat → List Arc) (S : Nat → Nat) (M A B : Nat)
+    (hg : ∀ w, comb w → (gate w).out = w ∧ CGateOK p c (gate w) (src w) (arcs w) (S w) x)
+    (hord : ∀ w, comb w → ∀ i, i < (gate w).k → ArcsOrd (arcs w i))
+    (hsrc : ∀ w, comb w → ∀ i, i < (gate w).k → root (src w i) ∨ (comb (src w i) ∧ ρ (src w i) < ρ w))
+    (hM : ∀ w, comb w → ∀ i, i < (gate w).k → sumMax p (arcs w i) ≤ M)
+    (hS : ∀ w, comb w → S w ≤ A)
+    (hroot : ∀ r, root r → Quiet (x r) A B) :
+    ∀ w, comb w → Quiet (x w) (A + (ρ w + 1) * M) B := by
+  intro w
+  induction hr : ρ w using Nat.strong_induction_on generalizing w with
+  | _ n ih =>
+    intro hw t h1 h2
+    obtain ⟨hout, hcg⟩ := hg w hw
+    by_contra hne
+    have hne' : x (gate w).out (A + (n + 1) * M) ≠ x (gate w).out t := by
+      rw [hout]; exact fun e => hne e.symm
+    obtain ⟨i, hi, u, u1, u2, u3⟩ := cgate_cause hp hc0 hc1 (hord w hw) hcg
+      (by have := hS w hw; nlinarith) h1 hne'
+    have hm := hM w hw i hi
+    rcases hsrc w hw i hi with hrt | ⟨hc, hlt⟩
+    · have q := hroot _ hrt
+      have e1 := q (u - 1) (by rw [Nat.add_mul] at u1; omega) (by omega)
+      have e2 := q u (by rw [Nat.add_mul] at u1; omega) (by omega)
+      exact u3 (e1.trans e2.symm)
+    · have q := ih (ρ (src w i)) (hr ▸ hlt) (src w i) rfl hc
+      have hb : A + (ρ (src w i) + 1) * M ≤ A + n * M := by
+        have : ρ (src w i) + 1 ≤ n := by omega
+        have := Nat.mul_le_mul_right M this; omega
+      have e1 := q (u - 1) (by rw [Nat.add_mul] at u1; omega) (by omega)
+      have e2 := q u (by rw [Nat.add_mul] at u1; omega) (by omega)
+      exact u3 (e1.trans e2.symm)
+
 end Formal.Timing.SpecLoop
