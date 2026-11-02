@@ -1085,3 +1085,12 @@ read a floating node with the INIT depending on it are outside the cone (agrees 
 FOR SHARD B: storage nodes become CGateOK gates whose feedback pin has src = own output (4,597 of them), so
 fb_stays/fb_forced/fb_switch can be restated on CGateOK with the feedback delay = loop sum (SumAdm) and applied to
 every storage node of THE target at once.
+
+### progress 08:28 -- SpecLoop CLAIMED: settle and storage-hold rules on the collapsed relation
+`Formal/Timing/SpecLoop.lean` (`check.sh` OK, standard axioms). For CGateOK gates (every logic gate of THE target,
+by CViewPS), sane parameters, c ∈ [0,1], ordered arcs: `sumAdm_bounds` (a composite delay lies in [Σdmin, Σdmax]);
+`cgate_stable` (inputs stable on windows ⇒ output INIT[v] on the shifted intersection); `cgate_hold` (a storage
+node whose feedback pin's source is its own output, loop delay ≥ 1 ps, other pins confirming q on their windows,
+output q on the primed segment [T0 - Σdmax_loop, T0): output stays q on [T0, E]). Strong induction on time.
+**Not shown:** how a forcing episode primes the loop (B's fb_switch condition on the collapsed loop), the
+per-node obligations on THE target.
