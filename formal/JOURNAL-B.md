@@ -2438,3 +2438,17 @@ g = 1, κ = 0.435, corner 1/2, every composite delay of gate 120808's routed fee
 delay per arc) is at most 1091 ps.** With SpecFbChain.cfb_switch (and C's collapse), that is the loop bound of the
 node's S3 obligation. **Not shown:** the episode lower bound in every behaviour (the path is a causal path of the
 simulated runs; other inputs could end the episode sooner in other behaviours unless the network excludes it).
+
+### progress 08:48 -- gcd_ps: arbitrations separated by >= 49.9 ns (simulation); storage-node table for shard C
+**Arbiters (tools-B/ps/arbsep.sh = adv.py over the 16 rig + 16 full-width vectors, corner 0.5, κ = 0, sequential env,
+one pair per run):** all 32 baselines correct. Smallest gap between the two requests of any "both rise from idle"
+pair, over the baseline and two adversarial runs per arbitration (each request's private backward cone at opposite
+window ends): SLICE_X18Y24.A 49.9 ns, SLICE_X14Y19.A 53.1, SLICE_X16Y18.D 55.8, SLICE_X38Y51.B 77.7,
+SLICE_X39Y21.C 164 ns; four arbiters (X14Y18.A, X16Y25.B, X16Y31.A, X39Y24.A) never see such a pair. Same picture as
+gcd_hw: the decoded target's arbitrations are separated by tens of ns, so (in this evidence) ArbClean's separated
+route applies and H_ARB(T) is never exercised. Not shown: multi-pair sequences (running: adv.py now takes several
+pairs and ADV_DC=broad, the Spec env's data rule; with the "handshake" data rule a 2-pair run livelocks, which is A's
+known early-release behaviour, outside Env), other corners, κ > 0.
+**For shard C (S3 data):** formal/out/target_ps_fb_nodes.json (fbtable.py, UNTRUSTED): gcd_ps's 4401 feedback LUTs in
+the kernel cone, feedback pin, route, loop band, shortest simulated flipping episode over 6 vectors (2281 nodes have
+one; none shorter than its loop's SLOW_MAX at mid-window).

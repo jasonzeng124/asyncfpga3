@@ -62,7 +62,7 @@ def run(posmap, tag):
     pm = os.path.join(TMP, "pm_%s.json" % tag); dp = os.path.join(TMP, "dump_%s.json" % tag)
     json.dump({str(k): v for k, v in posmap.items()}, open(pm, "w"))
     out = subprocess.run([sys.executable, "-I", os.path.join(HERE, "simb.py"), NETF, BNDF, "--pairs", *PAIR.split(),
-                          "--corner", CORNER, "--kappa", KAPPA, "--tmax", "200000000", "--posmap", pm, "--dump", dp],
+                          "--corner", CORNER, "--kappa", KAPPA, "--tmax", "200000000", "--posmap", pm, "--dump", dp, "--datachange", os.environ.get("ADV_DC", "handshake")],
                          capture_output=True, text=True)
     res = [l for l in out.stdout.splitlines() if "RESULT" in l]
     return json.load(open(dp))["nodes"], (res[0] if res else out.stdout[-300:] + out.stderr[-300:])
