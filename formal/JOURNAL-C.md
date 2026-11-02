@@ -1313,3 +1313,16 @@ hold for a reset of R ≥ ~353 ns (the 87·M settle bound is loose). The hypothe
 for a concrete p (a decide over the 414 members' arcs). **Not shown:** any n ≥ 1, i.e. the computing part.
 This replaces nothing in STATUS's list (the allowed hypotheses here are H_DECODE via net, H_DELAY via Behaves, H_PRIM,
 H_ENV; for n = 0 no derived hypothesis remains), but it is the first Lean theorem of THE statement's shape.
+
+### progress 10:45 -- correct_n0_p1 CLAIMED: zero pairs at g = 1, κ = 0, only the reset length remains
+`Formal/Net/CViewPS/{P1Defs,P1Chk0..7,Idle0P1}.lean` (lake build OK; standard axioms; scan clean). At p1 = (g = 1, κ = 0)
+dmax = smax, dmin = fmin and Gate.start = max smax (`dmax_p1`, `dmin_p1`, `start_p1`), so the island's delay
+hypotheses become Nat facts, kernel-checked one theorem per island entry (414; a one-decide-per-chunk version peaked
+at ~14 GB and was killed, per-entry ~3 GB): starts ≤ A1 = 15,600 ps, every member pin's composite smax sum ≤ M1 =
+3,881 ps, every forcing pin's composite fmin sum ≥ 1, storage members' reset-pin smax sums ≤ A1.
+**Statement** (`Formal.Net.CViewPS.correct_n0_p1`): for every R ≥ A1 + 87·M1 + 1 = 353,248 ps and every su, Δo, x, va, vb:
+`Behaves p1 (circuit DecodedPS.net DecodedPS.boundary) x → Env x DecodedPS.boundary R su Δo (some 0) va vb →
+Correct x DecodedPS.boundary R Δo (some 0) va vb`. Plainly: with every arc in its corner window (any one corner, no
+scatter, no guard), a reset of at least ~353 ns, and no pair offered, the decoded gcd_ps circuit satisfies THE
+theorem's conclusion. Hypotheses: H_DECODE (that net is the bits), H_DELAY at (1, 0), H_PRIM, H_ENV; no H_ARB, no
+SeqEnv. **Not shown:** n ≥ 1; κ > 0 or g > 1 (the same proof works with other bounds; not instantiated).
