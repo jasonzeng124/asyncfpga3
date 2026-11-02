@@ -2326,3 +2326,6 @@ and `ua1Loop_copies` (those six are copy gates, k = 1, table 0b10), all decided 
 of the ua1 counterexample -- the path, the loop, their arcs, and the κ at which Adm lets the path beat the loop --
 is now Lean-checked on the target's netlist. Still simulation: that this path is what ends the episode in every
 behaviour (it is the causal path in the runs), and the dynamics (eternal runt, spreading).
+
+## Session Mon Nov  2 07:20:28 UTC 2026 (shard B; session_01HC49FvR4pUnyzuN7abJaqe)
+Lock was 21 h old (yesterday's B session); taken. THE target is now gcd_ps_e6bb4aec (A, 19:35 yesterday).
