@@ -1143,3 +1143,12 @@ quiet on [A + (ρ w + 1)·M, B]. Instantiated with CViewPS (comb_ranked: roots =
 nodes, depth ≤ 96) this says: once THE target's storage and environment nodes stop moving, the whole circuit is quiet
 97·M later. **Not yet done:** the instantiation as one Lean statement on DecodedPS (needs gluing comb_ranked's
 node-indexed data to collapsed's view list, and M for a concrete p); storage-node dynamics.
+
+### progress 08:54 -- settle_PS CLAIMED: THE target settles in fundamental mode
+`Formal/Net/CViewPS/Settle.lean` (lake build OK, 1288 jobs; `#print axioms settle_PS`: propext, Classical.choice,
+Quot.sound; scan.py clean). **Plainly:** in every behaviour of THE theorem's circuit (Sane p), at its corner: for any
+M bounding every combinational pin's composite Σdmax and any A past every combinational gate's start, if every
+non-combinational node that feeds a combinational gate (the 4,597 storage nodes, env and undriven nodes) is constant
+on [A, B], then every combinational node w is constant on [A + (ρ w + 1)·M, B] (ρ the kernel-checked rank; ≤ 96 per
+the generator, not stated in Lean). From collapsed + comb_ranked + settle_ranked. **Not shown:** that the storage
+nodes/env are ever quiet (dynamics), M for a concrete p.
