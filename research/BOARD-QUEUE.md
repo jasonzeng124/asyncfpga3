@@ -220,7 +220,7 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
   (14.6-15.4) from i_ack to o_req at SLOW_MAX, 5.3 us (5.2-5.45) at FAST_MIN.
 - Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, the measured 8.5% median ring scatter; draw 1):
   8/8 seeds 24/24, EQUIVALENT (`research/data/gcd_ps/p1_scatter1x.tsv`; out0 margin on 6-9 +5.96..+7.41 ns).
-  Log-normal 1.5x (region 0.24 + wire 0.189, draw 2), seeds d,3,4,5: 24/24, EQUIVALENT, out0 margin +5.93..+6.41
+  Log-normal 1.5x (region 0.24 + wire 0.189, draw 2), all 8 seeds: 24/24, EQUIVALENT, out0 margin +5.93..+9.07
   ns, no late change (`research/data/gcd_ps/p1_logn15.tsv`). BQ#4 now has BQ#1's scatter coverage.
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
 - umux21 drives out0, and the PS reads O_DATA >= 2 synchronizer clocks after out0_req, so this harness cannot see
