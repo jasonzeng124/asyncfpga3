@@ -1003,3 +1003,36 @@ generated GcdT data (the same data the Lean import checks): all 9 ustate carry I
 statement of this (decide over instance names with String.endsWith) was OOM-killed over all instances and still
 unfinished after 30 min per-chunk; abandoned, NOT claimed. The right fix is a generated library for the target's
 cells/rtl (C's tools/gen on 1a97b739's rtl), so gen3 binds these LUTs like the others; not started.
+
+## Session Mon Nov  2 07:27 UTC 2026 (shard C; session_01HC49FxF4NXW5x4MW5wphev)
+Lock-C was 22 h old (yesterday's C session, last journal entry 09:24); taken. Read PROGRAM (THE goal, owner
+decisions 2026-11-01), STATUS, A/B journal tails, audit REPORT. Audit rows on C files: no new REFUTED/OVERSTATED
+since yesterday; decision 3's `adm_le_dmax` fix in SpecSettle was done by A (JOURNAL 17:27). setup.sh running
+(Mathlib cache unreachable; building from source). Plan: S5 (C) first, since it needs only core Lean.
+
+### progress 08:31 -- S5 token level CLAIMED: gcd_hw under a sequential env, any number of pairs, every schedule
+`Formal/Net/GcdHwSeq.lean` (core Lean only; `check.sh Formal/Net/GcdHwSeq.lean` OK; `#print axioms gcd_hw_seq`:
+propext, Classical.choice, Quot.sound; no sorry/native_decide).
+**Problem.** C-8i/8k's `gcd_hw_graph_computes_gcd` covers one pair offered to an empty graph. THE goal's
+`NetCorrectSeq` needs any number of pairs under `SeqEnv`, where pair k+1 may enter while pair k's leftovers are
+still inside (token simulation, 3000 runs: at the moment out0 gets its token, up to 15 internal channels still
+hold tokens, e.g. 5/8/15/17/22/29 on the a=0 / b=0 fast paths, 177-197, 233/239/241, and 251 to sink15).
+**Statement** (`Formal.Net.GcdHw.Seq.gcd_hw_seq`): bdc's gcd_hw graph (the 158 imported rules) closed with a
+sequential environment written as 6 more rules (take: out0 -> result log + one credit; offer: credit + next (a, b)
+from two input lists -> a, b, start; one credit at the start). For every list of pairs with a, b < 2^31, on every
+schedule and control_merge arbitration: (1) some run completes with log = ps.map gcd; (2) EVERY complete run ends
+with log exactly ps.map gcd; (3) at every point of every run the log is a prefix of ps.map gcd (no wrong, missing
+or reordered result); (4) every partial run can be completed (no deadlock); (5) one bound on every run's length.
+**How.** A token count over the spine minus control_merge12's sink branch, plus cm12's index, out0, the credit and
+the offer path, stays <= 1 in every reachable state (new generic `closedQ`: `closed_of_check` extended to a token
+moving from a control_merge's index through a mux to its output); that is what the existing diamond lemma needs,
+so all complete runs end in one state (KahnLTS.terminal_unique); the run that drains each pair before taking its
+result is built from the single-invocation theorem with a frame lemma (`run_ext`: tokens on channels no rule reads
+-- end tokens, remaining inputs, the log -- do not change a run).
+**Not covered.** Token level (unbounded FIFOs, H_SOURCE_ETERNAL as in C-8i); no circuit, delays or bitstream. It
+is the token-level half of S5; S4 (the decoded circuit refines this graph under SeqEnv) is still open. The env may
+offer a, b and start separately (more permissive than the target's shared request), never before the previous
+result was taken. With two initial credits (a pipelined env) the invariant fails at the start, consistent with
+PipeWit/PipeDead and the V9V4 refutation.
+FOR SHARD A (STATUS.md, S5 row): token-level part proved by `Formal.Net.GcdHw.Seq.gcd_hw_seq`; open: its
+connection to the circuit (S4).
