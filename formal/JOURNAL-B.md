@@ -2518,3 +2518,9 @@ fires), episodes of control nodes are ended only by acknowledgement of their own
 RaceStaticPS measure -- which is why kstar2's common-ancestor estimates (independent end events) were not real races.
 Not shown in Lean: necessity for every behaviour (needs C's SI/persistence argument), the data latches (C's relative-
 timing family), other episodes of other nodes beyond the scan.
+
+### progress 09:30 -- kstar2's 12 worst static candidates are clean in simulation up to κ = 0.4
+tools-B/ps/k2sim.sh on the 12 nodes with the smallest kstar2 κ* (0.000-0.175; vector (12,18), corner 0.5): with each
+node's adversarial map (P_end fast, P_start and loop slow) at κ = 0, 0.2 and 0.4, every node flips exactly as in the
+baseline (1, 2 or 4 flips) and every run is correct. So none of the reconvergent-path estimates is a race in
+simulation, consistent with the 09:1x reading (those episodes end by joins; acknowledgement paths are what bind).
