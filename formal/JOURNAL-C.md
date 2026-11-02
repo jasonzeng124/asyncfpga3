@@ -1392,3 +1392,11 @@ gcd_hw_seq, with "non-vacuity open" for the zero-pair chain; witness_n0 (11:30) 
 target now has: n = 0 proved for every g > 0, κ < 1 (reset ≥ ⌈(1+κ)g⌉·353 ns) and shown non-vacuous at (1, 0).
 Next for C: a multi-transition witness (a computing run, n = 1, with ArbOK and SeqEnv) would show NetCorrectSeq's
 hypotheses satisfiable for n ≥ 1; the proof for n ≥ 1 needs the S4 composition (notes/C-route-S4.md).
+
+### progress 11:32 -- groundwork for an n = 1 witness (untrusted)
+`formal/tools/cview/witn1.py`: transport simulation of THE target's circuit at FAST_MIN with a sequential env for one
+pair (data from t = 0, request at R + 1 ns, falls when all three acks are high, out0.ack and pend.ack follow their
+requests after Δo = 3 ns): result 6 = gcd(12, 18); 97,926 transitions on 39,051 nodes, at most 7 per node, done by
+785 ns. A Lean witness for n = 1 (Behaves ∧ Env (some 1) ∧ SeqEnv, plus ArbOK T for a stated T) needs: WitBase
+generalized to transition lists (same lastBp argument), ~100k data numbers in chunk trees, and proofs of the Env/SeqEnv
+clauses over piecewise-constant boundary signals. Not started in Lean.
