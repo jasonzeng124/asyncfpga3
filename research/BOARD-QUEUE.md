@@ -222,7 +222,9 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
   8/8 seeds 24/24, EQUIVALENT (`research/data/gcd_ps/p1_scatter1x.tsv`; out0 margin on 6-9 +5.96..+7.41 ns).
   Log-normal 1.5x (region 0.24 + wire 0.189, draw 2), all 8 seeds: 24/24, EQUIVALENT, out0 margin +5.93..+9.07
   ns, no late change (`research/data/gcd_ps/p1_logn15.tsv`); draw 3, all 8 seeds: 24/24, out0 margin +6.19..+9.95 ns
-  (`p1_logn15_draw3.tsv`). BQ#4 now has BQ#1's scatter coverage.
+  (`p1_logn15_draw3.tsv`). BQ#4 now has BQ#1's scatter coverage. Beyond it (draw 2): log-normal 2x 8/8 and 3x 8/8
+  seeds 24/24 (out0 margin >= +5.07 ns), 5x on seed d 24/24 (`p1_logn2x.tsv`, `p1_logn3x.tsv`): no scatter level tried
+  breaks this design (P1 keeps default lengths; the tightened R5 of #2/#3 fails at 1.5-2x).
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
 - umux21 drives out0, and the PS reads O_DATA >= 2 synchronizer clocks after out0_req, so this harness cannot see
   an out0 bundling violation (umux21 cut to 1 link: still 24/24). Measured instead at the kernel boundary with an

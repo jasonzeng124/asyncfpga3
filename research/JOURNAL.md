@@ -2165,3 +2165,12 @@ Next: as in progress 00:37 above.
   tightened R5 of BQ#2/3, which is the expected reason it has more scatter margin.
 - An all-pass scan is only evidence if the same stack can fail on this design: queued the umux21=1-link control
   route at 3x (does the margin go negative?) and P1 seed d at 5x (region 0.80 + wire 0.63).
+### progress 03:02 (scatter controls on gcd_ps: nothing fails up to log-normal 5x; the scatter does reach the bundle)
+- umux21=1-link control route at log-normal 3x (draw 2): 24/24, out0 margin +269 ps (no scatter, band-free corners:
+  +566 FAST_MIN / +2054 SLOW_MAX), so the scatter moves the monitored bundle toward failure but not past it.
+- P1 seed d at log-normal 5x (region 0.80 + wire 0.63, draw 2): 24/24, EQUIVALENT, out0 margin +4252 ps, run 214 us.
+  Scatter reached every arc (44617 interconnect arcs from the wire model, 24968 with one draw each, region factor
+  on all 113788). So no scatter level tried breaks gcd_ps P1 on these draws; the stack's ability to fail under
+  scatter is shown on gcd_hw R5 (BQ#2 seed 6 at 1.5-1.75x, BQ#3 seed 9 at 1.75-2x), not on this design. The
+  difference is the sizing: P1 keeps bdc's default lengths (plus one pad) where R5 tightened every chain.
+- Does NOT show: that silicon's within-die variation is log-normal or bounded like this; draws other than 2 above 1.5x.
