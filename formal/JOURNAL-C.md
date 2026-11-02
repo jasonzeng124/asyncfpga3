@@ -1437,3 +1437,16 @@ composition S4, with the per-storage-node switch obligations and bundling window
 most 219 ps after a toggle of one of its state LUT's other inputs (kernel-checked, with the transition lists strictly
 increasing so each listed time is a real toggle: `sigL_toggles`), hence ArbOK T for all T ≥ 220. This covers the
 audit's meaningful range (T ≥ the state LUT's delay, ≤ 664 ps at g = 1), replacing the weak T ≥ 785 ns of w1_all_hyps.
+
+### progress 13:03 -- w1_hyps_and_correct CLAIMED: one Lean-checked run meets ALL of NetCorrectSeq's hypotheses AND Correct
+Witness regenerated with the env's acknowledges 4 ns after their requests (Δo = 3 ns in Env), so Correct's data clause
+has a real 1 ns sampling window: tools/cview/witn1.py ... 400000 4000 (97,926 transitions, result 6); all 75 chunk
+checks rebuilt (two streams; an earlier overlapping build clashed, rerun clean). Updated: Wit1 (`w1_result` now at
+775,455 ps), Wit1Env (ack delay 4000; ArbOK bounds). New `Formal/Net/CViewPS/Wit1Correct.lean`: `w1_correct :
+Correct xW1 DecodedPS.boundary 400000 3000 (some 1) (fun _ => 12) (fun _ => 18)` (input acks follow the protocol and
+are live; out0 and end requests follow the protocol, rise once, are live; out0's data during [request + 3 ns,
+acknowledge) is Nat.gcd 12 18 (data bits settle at 768,160 ps, `busVal_after`); idle from 785,729 ps with one rise
+each) and `w1_hyps_and_correct su T (220 ≤ T)`: (Behaves p1 ... ∧ ArbOK T arbs ∧ Env ... ∧ SeqEnv ...) ∧ Correct ....
+lake build OK (1624 jobs), standard axioms, scan clean. **Meaning:** a concrete gate-level behaviour of the decoded
+bitstream, at g = 1, κ = 0, satisfying every hypothesis of THE statement for one pair and its full conclusion. One
+run: a consistency check of the statement (not vacuous, not contradicted, at n = 1); no claim for other runs.

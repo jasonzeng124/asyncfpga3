@@ -7,8 +7,7 @@ import Formal.Net.CViewPS.Wit1
 one pair, `n = some 1`), `SeqEnv` and `ArbOK T`. If no behaviour satisfied them, the statement would be
 vacuous for `n = 1`. **Proved** (`w1_hyps`): the run `xW1` (Wit1.lean, which computes gcd(12, 18))
 satisfies `Behaves p1 (circuit DecodedPS.net DecodedPS.boundary)`, `Env` with `R = 400000`, any `su`,
-`Δo = 3000`, `n = some 1`, `va = fun _ => 12`, `vb = fun _ => 18`, and `SeqEnv`. (`ArbOK` is not
-covered here.) Every boundary signal of the run is a single pulse; the Env clauses are proved from
+`Δo = 3000` (the run's acknowledges follow after 4 ns), `n = some 1`, `va = fun _ => 12`, `vb = fun _ => 18`, and `SeqEnv`; and `ArbOK T` for every `T ≥ 220` (`w1_all_hyps'`). Every boundary signal of the run is a single pulse; the Env clauses are proved from
 the pulse shapes (`pulse_val`, `rises_pulse`).
 -/
 
@@ -40,7 +39,7 @@ theorem rises_pulse (s : Sig) (R a b : Nat) (hRa : R < a) (hab : a < b)
 theorem w1_codes : encW1 186905 = some (true, [400000]) ∧ encW1 186985 = some (false, [401000, 499367]) ∧
     encW1 104576 = some (false, [436429, 513860]) ∧ encW1 104695 = some (false, [436885, 514175]) ∧
     encW1 147972 = some (false, [499366, 537972]) ∧ encW1 160957 = some (false, [771456, 781729]) ∧
-    encW1 154859 = some (false, [774456, 784729]) ∧ encW1 104477 = some (false, [404000, 502367]) := by
+    encW1 154859 = some (false, [775456, 785729]) ∧ encW1 104477 = some (false, [405000, 503367]) := by
   decide +kernel
 
 theorem w1_data : (boundary.a.data.all fun n => (thrL (encW1 n)).isEmpty) = true ∧
@@ -123,28 +122,28 @@ theorem w1_hyps (su : Nat) :
           rw [this] at hc; omega
     · rw [hq, rs]; rw [hq, rq, pls_true] at hr
       simp only [Offered]; split <;> omega
-  have eout : ∀ (ch : OutCh) (a1 b1' : Nat), xW1 ch.req = pls a1 b1' → xW1 ch.ack = pls (a1 + 3000) (b1' + 3000) →
-      400000 < a1 → a1 + 3000 < b1' → EnvOut xW1 ch 400000 3000 := by
+  have eout : ∀ (ch : OutCh) (a1 b1' : Nat), xW1 ch.req = pls a1 b1' → xW1 ch.ack = pls (a1 + 4000) (b1' + 4000) →
+      400000 < a1 → a1 + 4000 < b1' → EnvOut xW1 ch 400000 3000 := by
     intro ch a1 b1' hr ha h0 h1
     refine ⟨fun t ht => ?_, fun t ht hne => ?_, fun t ht hne => ?_, fun t ht h4 h5 s hs1 hs2 => ?_⟩
     · rw [ha, pls_false]; omega
     · rw [ha] at hne ⊢; rw [hr]
       rcases pls_change hne with h | h
-      · rw [(pls_false.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) t = false),
+      · rw [(pls_false.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) t = false),
           (pls_true.mpr (by omega) : pls a1 b1' t = true)]; simp
-      · rw [(pls_true.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) t = true),
+      · rw [(pls_true.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) t = true),
           (pls_false.mpr (by omega) : pls a1 b1' t = false)]; simp
     · rw [ha, hr] at hne
-      by_cases e1 : a1 ≤ t ∧ t < a1 + 3000
-      · exact ⟨a1 + 3000, by omega, by rw [ha, hr, (pls_true.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) (a1 + 3000) = true),
-          (pls_true.mpr (by omega) : pls a1 b1' (a1 + 3000) = true)]⟩
-      · by_cases e2 : b1' ≤ t ∧ t < b1' + 3000
-        · exact ⟨b1' + 3000, by omega, by rw [ha, hr, (pls_false.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) (b1' + 3000) = false),
-            (pls_false.mpr (by omega) : pls a1 b1' (b1' + 3000) = false)]⟩
+      by_cases e1 : a1 ≤ t ∧ t < a1 + 4000
+      · exact ⟨a1 + 4000, by omega, by rw [ha, hr, (pls_true.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) (a1 + 4000) = true),
+          (pls_true.mpr (by omega) : pls a1 b1' (a1 + 4000) = true)]⟩
+      · by_cases e2 : b1' ≤ t ∧ t < b1' + 4000
+        · exact ⟨b1' + 4000, by omega, by rw [ha, hr, (pls_false.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) (b1' + 4000) = false),
+            (pls_false.mpr (by omega) : pls a1 b1' (b1' + 4000) = false)]⟩
         · exfalso; apply hne
-          by_cases e3 : a1 + 3000 ≤ t ∧ t < b1'
-          · rw [(pls_true.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) t = true), (pls_true.mpr (by omega) : pls a1 b1' t = true)]
-          · rw [(pls_false.mpr (by omega) : pls (a1 + 3000) (b1' + 3000) t = false), (pls_false.mpr (by omega) : pls a1 b1' t = false)]
+          by_cases e3 : a1 + 4000 ≤ t ∧ t < b1'
+          · rw [(pls_true.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) t = true), (pls_true.mpr (by omega) : pls a1 b1' t = true)]
+          · rw [(pls_false.mpr (by omega) : pls (a1 + 4000) (b1' + 4000) t = false), (pls_false.mpr (by omega) : pls a1 b1' t = false)]
     · rw [ha, pls_false] at h4; rw [ha, pls_true] at h5; rw [hr, pls_true]; omega
   refine ⟨behaves_w1, ⟨fun t ht => ?_, fun t ht => ?_, fun k hk => ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
   · rw [b1]; simp only [xW1, c1]; rw [step_val]; simp; omega
@@ -171,12 +170,12 @@ theorem w1_hyps (su : Nat) :
     refine ⟨by simp, pls_false.mpr (by omega), pls_false.mpr (by omega)⟩
 
 
-theorem arbs_late : (arbs.all fun a => (thrL (encW1 a.q)).all fun θ => decide (θ < 785472)) = true := by
+theorem arbs_late : (arbs.all fun a => (thrL (encW1 a.q)).all fun θ => decide (θ < 787000)) = true := by
   decide +kernel
 
-/-- **All of `NetCorrectSeq`'s hypotheses hold of the run**, for every `T ≥ 785,472` ps (H_ARB(T) is
+/-- **All of `NetCorrectSeq`'s hypotheses hold of the run**, for every `T ≥ 787,000` ps (H_ARB(T) is
 met because every arbiter state is constant after the run's last transition; a weak `T`). -/
-theorem w1_all_hyps (su T : Nat) (hT : 785472 ≤ T) :
+theorem w1_all_hyps (su T : Nat) (hT : 787000 ≤ T) :
     Behaves p1 (circuit net boundary) xW1 ∧ ArbOK T arbs xW1 ∧
     Env xW1 boundary 400000 su 3000 (some 1) (fun _ => 12) (fun _ => 18) ∧ SeqEnv xW1 boundary 400000 := by
   obtain ⟨h1, h2, h3⟩ := w1_hyps su
