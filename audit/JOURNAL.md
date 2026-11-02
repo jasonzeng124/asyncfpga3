@@ -996,3 +996,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 02:49 T12 started: gcd_ps full-stack GLS on MY BQ#4 rebuild (/root/bq4ref) with research's harness (wt-r14 at research ee8d8869), MY 24 vectors (t12/own_vectors.py, seed 20261102, none from gen_vectors) and MY oracle (t12/check_psres.py, math.gcd): nominal, then log-normal 2x draw 2 (research 59773544 claims 8/8 seeds 24/24).
 - 03:04 T12 nominal (no scatter): bit-decoded netlist EQUIVALENT, ANNOTATE_DONE, 24/24 OK by my own math.gcd oracle, out0 bundle margin 7.1 ns. 2x log-normal draw 2 running.
 - 03:16 T12: gcd_ps seed d 2x log-normal draw 2: 24/24 by my oracle, margin 5738 ps = research. Rows added.
+- 03:47 gcd_ps boundary bit order checked by my own bnd_names_own.py vs RTL register names in my rebuild's routing: 98/98 (a/b/out0 data bits, rst, req). Closes T10 row 5's UNVERIFIED. RTPS build at C042.
