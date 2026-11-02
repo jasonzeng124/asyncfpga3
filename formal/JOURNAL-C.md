@@ -1113,3 +1113,23 @@ SpecLoop this localizes the loop part of S2: obligations only at storage nodes (
 episode ≥ its routed loop's Σdmax) and along acyclic paths (`cgate_stable` windows). It answers, for this target,
 THE goal's "feedback loops handled inside the proof, not cut by hand": the cut set is derived and checked, not chosen.
 **Not shown:** that the obligations hold; no behaviour beyond structure.
+
+### progress 08:51 -- static switch-obligation table for THE target's 4,597 storage nodes (untrusted Python)
+`formal/tools/cview/loopobl.py` on DecodedPS (collapsed view; tables tools/cview/out/obl{0,0.5,1}.tsv, summary
+obl_summary.txt). Per storage node s and corner c (g = 1): L = its routed loop at the slow end of the κ=0 window
+(Σ lerp(fmax,smax,c) over the feedback pin's composite arcs); R = the fastest path (Σ lerp(fmin,smin,c), support pins
+only) from s's output back to the source of an episode-ending pin of s (for latch-like nodes the enable, i.e. a
+pin one value of which makes the feedback irrelevant; for C-element-like nodes every non-feedback input; reset/env
+pins excluded). An episode that ends only as a consequence of s's own switching lasts ≥ R; `cgate_switch` needs ≥ L;
+κ* = (R-L)/(R+L) is where (1-κ)R = (1+κ)L. Minimum κ* per kind (corners 0/0.5/1): link ctl C-elements 0.142/0.152/
+0.157 (worst ulink_n143 stage[2] ctl: L 386, R 514 ps at c=0); mux join uj 0.157/0.165/0.168; arbiter state 0.234/
+0.262/0.274; mux uxa/uya ≥ 0.24; control_merge g ≥ 0.296; latches (enable return) ≥ 0.446; 1,673 latch nodes have no
+return path to their enable at all. **Meaning:** a static, structural sufficient margin: no own-consequence episode
+of any storage node violates the clean-switch condition for κ ≤ 0.14 at g = 1, any corner -- IF the shortest
+structural path bounds the causal one (not proved; it is a lower bound only if every return goes along some path of
+the collapsed graph, which the Spec semantics should give by a causality lemma, not yet written). B's simulated
+episodes give ≈ 0.49 for the tightest node (actual paths are longer than the structural minimum). **Not covered:**
+episodes ended by independent events (other inputs racing), the data-hold race at latch d pins (a bundling
+obligation), g > 1.
+FOR SHARD B: this is a static lower bound to compare with kstar; the structural worst nodes are ulink_n143 stage[2]
+ctl and umux7.uj1, not the ones your simulation found tightest.
