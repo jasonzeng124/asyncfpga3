@@ -395,4 +395,56 @@ theorem settle_value {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 �
     rw [hout] at key
     rw [key, hv w hw]
 
+
+/-- `init` gives `q` at every address whose bit `j` is `b` (pin `j` at `b` forces the output). -/
+def Forces (k init j : Nat) (b q : Bool) : Bool :=
+  (List.range (2 ^ k)).all fun a => (a.testBit j != b) || (init.testBit a == q)
+
+theorem addr_lt : ∀ (k : Nat) (v : Nat → Bool), addr k v < 2 ^ k
+  | 0, _ => by simp [addr]
+  | k + 1, v => by
+    have := addr_lt k v
+    simp only [addr]; split <;> rw [Nat.pow_succ] <;> omega
+
+theorem addr_testBit : ∀ (k : Nat) (v : Nat → Bool) (j : Nat), j < k → (addr k v).testBit j = v j
+  | 0, _, j, h => absurd h (by omega)
+  | k + 1, v, j, h => by
+    have hlt := addr_lt k v
+    simp only [addr]
+    by_cases e : j = k
+    · subst e
+      split
+      · rename_i hv
+        rw [Nat.add_comm, Nat.testBit_two_pow_add_eq, Nat.testBit_lt_two_pow hlt]
+        simp [hv]
+      · rename_i hv
+        rw [Nat.add_zero, Nat.testBit_lt_two_pow hlt]; simp [hv]
+    · have hj : j < k := by omega
+      have := addr_testBit k v j hj
+      split
+      · rw [Nat.add_comm, Nat.testBit_two_pow_add_gt hj]; exact this
+      · rw [Nat.add_zero]; exact this
+
+
+/-- **One forcing pin.** If pin `j`'s source holds `b` on `[Sj, Uj]` and `b` on pin `j` forces the
+INIT to `q` (`Forces`), the output is `q` on the shifted window, whatever every other pin (the
+feedback included) reads. A reset pin of a C-element is the typical case. -/
+theorem cgate_force_pin {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) (hord : ∀ i, i < g.k → ArcsOrd (arcs i))
+    (hg : CGateOK p c g src arcs S x) {j : Nat} (hj : j < g.k) (b q : Bool)
+    (hF : Forces g.k g.init j b q = true) (Sj Uj : Nat)
+    (hin : ∀ t, Sj ≤ t → t ≤ Uj → x (src j) t = b) :
+    ∀ t, S ≤ t → Sj + sumMax p (arcs j) ≤ t → t ≤ Uj + sumMin p (arcs j) → x g.out t = q := by
+  obtain ⟨F, -, hFt⟩ := hg
+  intro t hS h1 h2
+  obtain ⟨hr, ho⟩ := hFt t hS
+  obtain ⟨r1, r2⟩ := hr j hj
+  obtain ⟨b1, b2⟩ := sumAdm_bounds hp hc0 hc1 _ _ (hord j hj) r2
+  have hb : x (src j) (F j t) = b := hin _ (by omega) (by omega)
+  rw [ho]
+  simp only [Forces, List.all_eq_true, List.mem_range] at hF
+  have h := hF _ (addr_lt g.k fun i => x (src i) (F i t))
+  rw [addr_testBit _ _ _ hj, hb] at h
+  simpa using h
+
 end Formal.Timing.SpecLoop

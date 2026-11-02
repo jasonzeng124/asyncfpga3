@@ -1258,3 +1258,13 @@ any power-up state and a transport loop could carry a power-up pulse, but Correc
 nodes, and a latch's loop is overwritten when it is first enabled); 403 read the reset with rst = 1 forcing their
 output (C-elements, mux joins, forks, arbiter C-elements); 9 read the reset but are not forced by it alone (the 9
 bd_arbiter ustate LUTs, B's ArbClean territory). So no control storage node is left unreset: checked, no finding.
+
+### progress 09:33 -- reset_state CLAIMED: reset puts 403 control storage nodes of THE target in their reset state
+`SpecLoop`: `Forces` (a Bool check that one pin value forces an INIT), `addr_testBit`, `cgate_force_pin` (that pin's
+source holding b ⇒ output q on the shifted window, whatever the other pins and the feedback read). `CViewPS/ResetData`
+(generated list, 403 entries) and `Reset.lean`: `resetList_ok` (kernel: each entry is a logic node of the circuit,
+its pin's source is the reset node 186905, and that pin at 1 forces the INIT to the listed value) and
+`reset_state`: in every behaviour of THE theorem's circuit (Sane p), at its corner, if reset is high on [0, R), each
+listed node equals its reset value at every t with startPS ≤ t, Σdmax(reset pin) ≤ t ≤ R - 1 + Σdmin(reset pin).
+lake build OK (1291 jobs), standard axioms, scan clean. **Not covered:** the 4,185 data latches (no reset) and the
+9 arbiter states (reset + other inputs); that R exceeds those start times is Env's R, a parameter.
