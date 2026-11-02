@@ -1599,3 +1599,10 @@ hours; its result will be journaled if the session lasts.
 on device)". The default build had passed (4133 jobs). Freed ~4.7 GB (private olean copies whose results are
 already journaled, round-trip scratch). lake's FormalWit build tree is ~4 GB of oleans + 1.7 GB of IR for the two
 round trips: anyone running --wit needs ~8 GB free. Re-running (lake skips what is built).
+### progress 15:09 -- FULL check.sh --wit --committed OK (every committed claim, both targets, new Adm)
+Run 2026-11-02 03:1x-15:09 (after the disk-full stop, two container restarts it survived): "Build completed
+successfully (4133 jobs)", every FormalWit module built one at a time by lake (V9V4, V9V4c, RT, RTPS), axiom audit
+OK over all claimed modules and the witnesses' Refute / round-trip assemblies, "[check] OK". So, by lake from the
+committed tree with the changed `Adm`: both pipelined refutations of the previous target (V9V4, V9V4c), both
+decoder round trips and O5 checks (previous target RT, THE target RTPS), `DecodedPS.net_wf`, and everything else
+committed under Formal/. Disk: lake's FormalWit tree needs ~8 GB.
