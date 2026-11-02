@@ -4,7 +4,11 @@
 full-width operands from the PS; README.md, gcd_ps sections): rebuilt bit-identical up to the header date, read back,
 decoded (Python round trip 0 invented, boundary 32+32 distinct operand nodes, 9 arbiters), 8/8 full-width vectors in
 simulation at three corners; the Lean netlist `Formal.Target.DecodedPS.net` (`Formal/Target/NetPS`, 75 chunks) compiles and
-`Formal.Target.DecodedPS.net_wf : net.WF` is proved (check.sh audit OK). No theorem about its behaviour yet. Everything
+`Formal.Target.DecodedPS.net_wf : net.WF` is proved (check.sh audit OK). No theorem about its behaviour yet.
+Round trip for gcd_ps (`FormalWit/RTPS`, check.sh --wit): `RTPS.Data.roundtrip`: the 324,188 features re-encoded
+from 78,272 gates (pips + LUT6 INIT bits) plus 14,322 listed leftovers are exactly the 338,510 read-back features,
+each once; `RTPS.Data.o5_gates`: every O5 gate is the low INIT half of its O6 on the O6's first five pins. Standard
+axioms. Same limits as the BQ#1 round trip (wire-to-node merge, output-mux/carry selects, FASM parsing untrusted). Everything
 below this paragraph is about the PREVIOUS target, `formal/target/gcd_hw_03e82630.bit` (BQ#1, 16-vector table), and stays
 valid for it.
 

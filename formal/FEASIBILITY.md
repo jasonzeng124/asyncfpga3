@@ -14,7 +14,9 @@ date) computes gcd on the board. Where it stands, plainly:
   kernel with full 32-bit operands from the PS. Rebuilt bit-identical up to the date, read back (338,510 features),
   decoded (Python round trip 0 invented; boundary at the kernel's ports with 32+32 distinct operand nodes, so the
   owner's "every pair below 2^31" is now representable); 8/8 full-width vectors correct in simulation at three
-  corners. The Lean netlist compiles and `DecodedPS.net_wf` (well-formedness) is proved; nothing about its behaviour yet. Results below that
+  corners. The Lean netlist compiles, `DecodedPS.net_wf` is proved, and the decoder round trip checks in Lean
+  (`FormalWit/RTPS` `roundtrip`, `o5_gates`: pips and LUT INITs re-encode exactly to the read-back); nothing about
+  its behaviour yet. Results below that
   name gcd_hw_03e82630 are about the previous target.
 - **The statement** compiles (`formal/lean/Formal/Target/Spec.lean`, part I: netlist, H_PRIM/H_DELAY gate relation,
   H_ARB, H_ENV, the safety and liveness conclusion) and part I is frozen, with two journaled changes: H_ARB reads the

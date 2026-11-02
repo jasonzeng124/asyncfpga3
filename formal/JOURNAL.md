@@ -1581,3 +1581,10 @@ gen_rt.py / gen_o5.py take --ns/--mp/--netmp/--netns (defaults reproduce the com
 checked with diff -r). For gcd_ps (net eee97ec8, read-back 740cc6bf): 338,510 target features, 324,188 re-encoded from
 78,272 gates (pips + LUT6 INIT bits), 14,322 leftovers, 0 duplicates, 0 invented (Python mirror); 75 chunks, 867
 certificate slices. Building privately (expected ~2.5 h); nothing claimed until roundtrip and o5_gates check.
+### progress 00:35 -- gcd_ps round trip CHECKED (RTPS.Data.roundtrip, o5_gates)
+FormalWit/RTPS (gen_rt.py/gen_o5.py on net eee97ec8, read-back 740cc6bf): `roundtrip` and `o5_gates` compile,
+axioms [propext, Classical.choice, Quot.sound], no sorry/native_decide, 22:38-00:35 (75 chunks, 867 slices, 2 at a
+time). Plainly: every pip and every LUT INIT bit of THE target's decoded Lean netlist is in the bitstream's read-back,
+and every such bit of the read-back is a gate, each once (14,322 leftovers listed); every LUT5 output is the low half
+of its LUT6. Not shown: as for BQ#1 (wire-to-node merge, output-mux and carry selects, FASM parsing, leftovers'
+meaning).
