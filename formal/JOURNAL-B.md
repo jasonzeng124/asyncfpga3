@@ -2351,3 +2351,28 @@ Audit row "candidate counterexample to the SEQUENTIAL NetCorrectSeq ... ua1" (T6
   can withdraw g before ua1's own output has come round its loop -- is the finding; the decision for A/owner is the
   audit's: keep κ below the race threshold, or make the loop-vs-path constraint an explicit derived obligation.
 All of this is about the PREVIOUS target (gcd_hw_03e82630). For THE target gcd_ps the same race is being re-scanned now.
+
+### progress 08:40 -- gcd_ps (THE target): the C-element loop-vs-path race is much less tight than on gcd_hw (simulation, untrusted)
+Ported B's storage-node scan to gcd_ps: tools-B/target/lean2json.py on the committed `Formal/Target/NetPS` (187,258
+nodes, 186,873 gates, 9 arbiters; JSON md5 ddbf362e), A's simulator (simb.py), kstar.py (static κ* per storage
+node: the smallest κ at which the node's tightest self-induced flipping episode, with its causal path at the fast end
+of Adm's window and the node's feedback loop at the slow end, becomes shorter than the loop), new
+tools-B/ps/kscan.sh (batch over the 16 rig vectors + the first 16 of target/gcd_ps_vec1000.hex) and tools-B/ps/kadv.py
+(the same analysis for one node, writing the adversarial per-pin delay map). Fix: adv.py `roles` stepped past the
+gate list on env nodes (gcd_ps's reset is an FF output with no gate).
+- **The old binding node does not bind here.** On gcd_hw the binding node "ua1" (JOURNAL-B 09:33 yesterday) is the
+  cell `ucontrol_merge10.uarb1.ua2.u` (my nickname was wrong: it is the arbiter's ua2 C-element); in gcd_ps that
+  cell sits at SLICE_X38Y53.A6LUT and none of its episodes is among the tightest.
+- **Tightest on gcd_ps** (corner 0.5, mid-window baseline, 9 vectors so far): SLICE_X32Y45.ALUT.O6 =
+  `ulink_n_falseResult_85.many.stage[0].u.ctl.u.u` (a link controller C-element): episode 2236 ps vs loop 677 ps
+  mid (ratio 3.30; loop band 331..1082 ps), κ* = 0.500. Next: SLICE_X18Y96.ALUT.O6 (`ulink_n164` stage 0 ctl),
+  ratio 3.95. On gcd_hw the worst ratio was 1.72 (κ* 0.155).
+- **Adversarial run (kadv.py map, vector (12,18), corner 0.5, g = 1):** κ = 0.45, 0.47, 0.48, 0.49: the node flips as
+  in the baseline, out0 = 6. κ = 0.50: a 2 ps runt circulates (period 1082 ps = loop at its slow end) for 32 flips,
+  then dies when an input forces the node; out0 = 6. κ = 0.55: a 9 ps runt, 1656 flips by 2 us, no out0 by 2 us
+  (a liveness failure is NOT shown by a finite run, audit T6). So on this adversary the race threshold is
+  κ ≈ 0.49-0.50 at corner 0.5.
+**Plainly:** if the simulator and the static estimate are right, THE target's κ margin from C-element races (w = 0,
+g = 1, corner 0.5) is about 0.49 on these vectors, not 0.155. **Not shown:** other corners (running next), all
+vectors (scan running), episodes ended by independent events (kstar covers self-induced ones), anything in Lean
+(the static margin of this node on `DecodedPS.net`'s arcs is the next Lean step, as Ua1Static did for gcd_hw).

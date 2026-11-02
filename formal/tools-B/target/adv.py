@@ -25,7 +25,7 @@ def roles(a):
     q = a["qi"]; G = g[q]; ins = G["ins"]
     def src(n):
         h = 0
-        while g[n]["k"] == 1 and h < 500: n = g[n]["ins"][0]; h += 1
+        while n < len(g) and g[n]["k"] == 1 and h < 500: n = g[n]["ins"][0]; h += 1
         return n
     fb = [i for i, n in enumerate(ins) if src(n) == q]
     rst = [i for i, n in enumerate(ins) if src(n) == idx[B["boundary"]["rst"]]]
