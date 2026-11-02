@@ -1586,7 +1586,7 @@ S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH aga
   (asked to resume). BQ#2: 5 FAST_MIN 88/71/102, 6 SLOW_MAX 33/27/39, both PASS (10/16 runs, all PASS).
   BQ#3 seed 5 1x scatter PASS.
 
-## Session 2026-10-29 14:41 -- (in progress) fid resolver: explicit feedback (audit r16 follow_lost fixed); r18 double-ack open
+## Session 2026-10-29 14:41 -- (in progress) fid resolver fixed (r16); BQ#1-3 full stack + scatter; gcd_ps formal target (BQ#4) through the full stack; FOR-RESEARCH C1 answered
 Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7,8,9 routing)
 - Lock 12:07 (2 h 34 min, dead); taken. 4 cores, 15 GB. toolchain.sh ok. Audit read (pass 11a, db195be4): two open
   rows on research files: r16 (FID_RESOLVE "applied late, not lost" REFUTED) and r18 (arb_double_ack CONFIRMED in
@@ -2119,3 +2119,26 @@ Next: (1) ring128 per-ring data from the owner still blocks acceptance; (2) the 
 rule A for "no common source" pairs whose data comes from a matched link -- worth a formal look (it would be a
 soundness argument, not a measurement), not a size change; (3) goal 2 leads (rule E tightening, two-phase links)
 once the gates may move.
+### summary of the gcd_ps lead (owner, 690f156), 2026-11-01 17:31 - 11-02 01:20
+Toolchain: nextpnr 9c732bc6303458df, patches 789a7120c912d393 (toolchain.sh ok)   Seeds: d,3-9 (P1); d (controls)
+Did: gcd_ps with BQ#1's flags; pad-only sizing (P1: umux21 12 -> 16); fasm2net --ps7 + async-SR flops; a
+behavioural PS7 running the documented host sequence; derived vectors outside gcd_rig's 16; an out0 bundling
+monitor; FOR-RESEARCH s2/C1 pipelined tests on both targets; the board script checked against a mock board.
+Measured:
+| what | result | n |
+|---|---|---|
+| audits on P1 | rule A/E/J 0, D 38 (screen); umux21 margin mean 1456 ps (358-1889) | 8 seeds |
+| full stack, SLOW_MAX / FAST_MIN | 24/24 each, EQUIVALENT, gate clean; longest vector 15.0 / 5.3 us | 8 seeds x 2 |
+| full stack, 64 vectors | 64/64 at both corners | seed d |
+| 1x within-die scatter | 24/24 | 8 seeds |
+| log-normal 1.5x, draw 2 | 24/24 | 4 seeds (6-9 running) |
+| out0 bundling margin, no scatter | FAST_MIN mean +4.21 ns (worst +3.98), SLOW_MAX mean +12.27 (worst +11.28) | 8 seeds |
+| out0 margin under scatter | >= +5.93 ns (band column) | 8 runs |
+| out0 margin vs umux21 length (seed d, FAST_MIN) | 1: +0.57, 4: +0.96, 8: +2.28, 12: +2.99, 16: +4.11 ns | 5 routes |
+| PS-harness blind spot | umux21 at 1 link, or its data 20x slower: still 24/24 (monitor: 23-24 late) | seed d |
+| pipelined host (gcd_ps) | formal pair reordered; 12 pairs: 2 reordered, 2 in order, 8 deadlocked | seed d x 2 |
+| tb_pipe on BQ#1's bit (C1) | sequential right; 9/4 reorder; 9/9, 15/5 deadlock; 2/4 pair 2 lost | 2 corners |
+Does NOT show: silicon (BOARD-QUEUE #4 is the test); scatter beyond 1.5x or other draws on gcd_ps; out0 timing
+at the consumer pins (the monitor reads driver pins); that rule A's extra charge on umux21 is unsafe to remove
+(one route family, no proof); anything about the arbiter or runt hypotheses beyond what BQ#1-3 already had.
+Next: as in progress 01:20 above.
