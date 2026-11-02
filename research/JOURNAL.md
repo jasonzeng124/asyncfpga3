@@ -2257,3 +2257,7 @@ failing scatter scale, not only by rules and corners.
 ### progress 17:33 (R5 vs R5x1.25: 2x does not discriminate; x1.25 costs 10.5% at SLOW_MAX)
 - research/data/fid/r5x125/README.md: on seeds 7-10, R5x1.25 costs -10.5% SLOW_MAX laps (vec 6 31.0 -> 27.75, range
   -6..-16%), and both arms pass log-normal 2x draw 1 on all four. 3x draw 1 on 7-10 of both arms now running.
+### progress 19:37 (R5x1.25 survives log-normal 3x draw 1 on seeds 7-10)
+- R5x1.25 at log-normal 3x (region 0.48 + wire 0.378) draw 1: seeds 7, 8, 9, 10 all PASS 16/16 errs 0 (vec 6 laps
+  44/28/26/32). R5 arm at the same 3x now running; if R5 fails there, x1.25 buys between 2x and 3x of margin for
+  ~10% speed.
