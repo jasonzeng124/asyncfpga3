@@ -37,4 +37,5 @@ theorem binding_row_fails_0425 :
 
 end Formal.Cells.RaceTablePS""" % len(rows))
 open(OUT, "w").write("\n".join(out) + "\n")
+json.dump([{"gate": r["gate"], "node": r["node"], "path": r["path"], "loop": r["loop"]} for _, r in rows], open(OUT + ".pins.json", "w"))
 print("rows", len(rows), "records", nrows, "nodes with a non-necessary path (excluded):", len(nonnec), "worst", [(r["node"], k) for k, r in rows[:4]])
