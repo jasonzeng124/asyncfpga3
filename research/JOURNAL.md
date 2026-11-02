@@ -2242,3 +2242,6 @@ failing scatter scale, not only by rules and corners.
 | 8 | 31/25/37 | 29/23/34 | -6% | PASS 35/28/42 |
 | 9 | 31/25/36 | 28/23/33 | -10% | PASS 33/26/39 |
   R5 arm at the same scatter (seeds 7-9; R5 seed 6 FAILS it) now running, then seed 10 for both.
+### progress 14:00 (R5 arm at log-normal 2x draw 1: seeds 7, 8 PASS)
+- R5 seeds 7 (51/39/58) and 8 (41/32/48) PASS log-normal 2x draw 1; seed 6 FAILs it (errs 3). So far R5 2/3 vs
+  R5x1.25 3/3 on the seeds that place: not yet discriminating. R5 seed 9 and seed 10 (both arms) running.
