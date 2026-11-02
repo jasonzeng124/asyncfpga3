@@ -2602,3 +2602,12 @@ Agrees with the static estimate of 10:1x (w = 20: 0.44 / 0.4475). **Plainly:** o
 little (~0.015 at w = 20), because this race opens fast with κ (~3 ps of runt per 0.001 of κ); the margin is set by
 the race, ~0.42 at w = 0 and ~0.435 at w = 20 (fast corner). Caveats: A's --gfilter form, not SpecRunt's (audit T9:
 SpecRunt also bans sub-w pulses on zero-delay hops); one adversary, one vector; simulation only.
+
+### progress 13:24 -- RaceLinkPS CHECKED (split layout; check.sh OK, 790 declarations, standard axioms)
+RaceLinkPS/Defs + 23 files RaceLinkPS/Bxx (one theorem per row, <= 35 netlist chunks per file) + RaceLinkPS.lean, one
+sequential check.sh run with nothing else running: OK, no OOM. **`rows_linked : ∀ i, i < 185 → i ≠ 174 → i ≠ 184 → rowP i`**:
+for 183 of the 185 RaceTablePS rows, the node gate, every path and loop arc (= DecodedPS.net's arc of the listed pin,
+`arcAt_eq`) and the wiring (closed causal path from the node's output back to its end pin; feedback loop = copy-gate
+chain from its output) are checked on the netlist. **Rows 174 and 184 (SLICE_X6Y47.D, SLICE_X14Y57.D; paths of 1032
+and 1211 arcs; corner-uniform thresholds 0.975 / 0.99) are NOT checked**: each alone exceeds the container's memory in
+the kernel (OOM-killed at ~13.8 GB). They do not bear on the 0.415 margin. Supersedes the withdrawn 685355ef.
