@@ -2261,3 +2261,7 @@ failing scatter scale, not only by rules and corners.
 - R5x1.25 at log-normal 3x (region 0.48 + wire 0.378) draw 1: seeds 7, 8, 9, 10 all PASS 16/16 errs 0 (vec 6 laps
   44/28/26/32). R5 arm at the same 3x now running; if R5 fails there, x1.25 buys between 2x and 3x of margin for
   ~10% speed.
+### progress 20:40 (R5 also passes log-normal 3x draw 1 on seeds 7, 8)
+- R5 seed 7 PASS (47/36/53), seed 8 PASS (34/26/39) at log-normal 3x draw 1. So on the routes both arms have, neither
+  fails at 2x or 3x: R5's known scatter failures (BQ#2 seed 6, BQ#3 seed 9) are specific routes, not a uniform
+  shortfall that x1.25 fixes. Seeds 9, 10 of R5 at 3x running.
