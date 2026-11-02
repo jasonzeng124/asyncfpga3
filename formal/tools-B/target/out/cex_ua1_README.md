@@ -18,7 +18,7 @@ Reproduce (sequential env, rig vector (12, 18)):
         --posmap formal/tools-B/target/out/cex_ua1_posmap.json --dump d.json
 
 Observed: κ <= 0.21: ua1 rises once at ~600.99 ns and holds (clean). κ = 0.215: ua1 rises at 600.991 ns,
-falls at 601.885, rises at 601.892, ... (period 894 ps, a 7 ps runt circulating in its feedback loop); by
+falls at 601.885, rises at 601.892, ... (period 901 ps = the loop delay; high phase 894 ps; a 7 ps runt circulating in its feedback loop -- corrected 2026-11-02 per audit T6); by
 620 ns 5336 nodes toggle (some every ~5 ps); no out0 by 620 ns (correct run: out0 = 6 at 756 ns).
 κ = 0.22-0.3: same shape, longer runts. Mid-window everywhere (no posmap): correct, out0 = 6.
 
