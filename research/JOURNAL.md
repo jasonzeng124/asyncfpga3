@@ -2149,3 +2149,7 @@ Next: as in progress 00:37 above.
   crosses); ro_link synchronizes run/rst INTO the ring domain, reads its counters only after the window closed, and
   its token census is a deliberate asynchronous sample (a mean over reads is the measurement, by design). No
   missing synchronizer found. Reading only; none of these except gcd_ps has a GLS harness.
+### progress 01:34 (gcd_ps log-normal 1.5x: draws 2 and 3, 8/8 seeds each)
+- Draw 2 seeds 6-9 and draw 3 all 8: 24/24, EQUIVALENT, no late out0 change; out0 margin draw 2 +5.93..+9.07 ns,
+  draw 3 +6.19..+9.95 ns (p1_logn15.tsv, p1_logn15_draw3.tsv). Same coverage as BQ#1 (draws 2 and 3, 8/8).
+  Running: log-normal 2x (region 0.32 + wire 0.252), draw 2, all 8 seeds, to find what fails first.
