@@ -1367,3 +1367,8 @@ bridges core's Rat.ceil in Gate.start and Mathlib's ⌈⌉), and every forcing p
 R ≥ C·A1 + 87·C·M1 + 1 (A1 = 15,600, M1 = 3,881 ps), Behaves p (circuit DecodedPS.net DecodedPS.boundary) x → Env ...
 (some 0) ... → Correct ... (some 0) .... **Meaning:** for zero pairs THE theorem's (g, κ) frontier is all of κ < 1, g > 0,
 given a reset of about C × 353 ns. (κ = 1 lets a pin's lower window reach 0 ps; the island argument needs ≥ 1 ps.)
+
+### progress 10:55 -- check.sh over all 18 hand-written Lean files of this session: OK (2,948 declarations audited)
+Caveat for the zero-pair theorems: they are implications from `Behaves p (circuit DecodedPS.net DecodedPS.boundary) x`;
+their non-vacuity needs some behaviour of that netlist to exist (simulations produce them; no Lean witness for the
+gcd_ps netlist yet; A's Lean witnesses are for the previous target).
