@@ -1099,3 +1099,17 @@ per-node obligations on THE target.
 forced on [T1, T0) with T0 - T1 ≥ Σdmax of the routed loop, then confirmed on [T0, E] ⇒ output q on [T1, E]. The side
 condition "forcing lasts at least the loop's Σdmax" is the per-storage-node obligation (B's fb_switch condition,
 now on the collapsed loops of every storage node of THE target, via CViewPS).
+
+### progress 08:45 -- HuffmanPS CLAIMED: every loop of THE target's circuit passes through a storage node
+Generic `Formal/Timing/Huffman.lean` (`rankChunkOK`, `ranked_of_chunks`); generated `Formal/Net/CViewPS/{R,K}*.lean`,
+`RK`, `Ranks` (formal/tools/cview/gen_rank.py); `HuffmanPS.lean` by hand. `lake build Formal.Net.CViewPS.HuffmanPS` OK
+(1286 jobs); `#print axioms comb_ranked`: propext, Classical.choice, Quot.sound; scan.py clean.
+**Plainly** (`Formal.Net.CViewPS.comb_ranked`): in the collapsed view of THE target's circuit, call a logic gate a
+storage node if one of its pins reads its own output through the routing (4,597: C-elements, latches, arbiter
+states) and the others combinational (15,281). There is a rank on nodes that strictly increases along every
+pin-to-source link between combinational gates (same pin data as `collapsed`). So every cycle passes through a
+storage node: THE target is 4,597 storage LUTs plus acyclic logic (depth ≤ 96, no INIT-support pruning needed). With
+SpecLoop this localizes the loop part of S2: obligations only at storage nodes (`cgate_switch`: each forcing
+episode ≥ its routed loop's Σdmax) and along acyclic paths (`cgate_stable` windows). It answers, for this target,
+THE goal's "feedback loops handled inside the proof, not cut by hand": the cut set is derived and checked, not chosen.
+**Not shown:** that the obligations hold; no behaviour beyond structure.
