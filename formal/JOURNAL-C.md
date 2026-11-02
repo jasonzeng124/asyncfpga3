@@ -1010,7 +1010,7 @@ decisions 2026-11-01), STATUS, A/B journal tails, audit REPORT. Audit rows on C 
 since yesterday; decision 3's `adm_le_dmax` fix in SpecSettle was done by A (JOURNAL 17:27). setup.sh running
 (Mathlib cache unreachable; building from source). Plan: S5 (C) first, since it needs only core Lean.
 
-### progress 08:31 -- S5 token level CLAIMED: gcd_hw under a sequential env, any number of pairs, every schedule
+### progress 07:44 -- S5 token level CLAIMED: gcd_hw under a sequential env, any number of pairs, every schedule
 `Formal/Net/GcdHwSeq.lean` (core Lean only; `check.sh Formal/Net/GcdHwSeq.lean` OK; `#print axioms gcd_hw_seq`:
 propext, Classical.choice, Quot.sound; no sorry/native_decide).
 **Problem.** C-8i/8k's `gcd_hw_graph_computes_gcd` covers one pair offered to an empty graph. THE goal's
