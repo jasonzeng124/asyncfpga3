@@ -1352,3 +1352,9 @@ in B's table: an arbiter remembers its last grant). The idle island of island_PS
 so (if this holds in general) the same island keeps the circuit idle between pairs: the n = 0 argument is the
 "between pairs" step of a multi-pair proof. Side note: with the env acting between every firing, one persistence
 violation at SLICE_X3Y22.D6 (next to start.ack) and run lengths 3947/3949: an interface-order effect to look at.
+- The persistence violation at SLICE_X3Y22.D6 is `bridge_i.ufork` (gcd_ps wrapper, outside udut): the 3-input
+  C-element joining a.ack, b.ack, start.ack (+ rst, feedback) into the PS-side acknowledge. Spec's env sits at the
+  kernel ports and may lower the shared request as soon as all three kernel acks are high, before this join has
+  fired; the real AXI side waits for the join. It drives only toward the PS (env side), so Correct (stated at the
+  kernel ports) is unaffected; but it means H_ENV at the kernel ports is NOT what the board's harness does: the board
+  waits one C-element longer (stricter), so the theorem's env covers the board's. No finding against the theorem.
