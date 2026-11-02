@@ -1251,3 +1251,10 @@ first κ = 0 run with the default 5 µs horizon stopped before the 4th result, n
 that line is a sufficient-condition artefact for this adversary; THE theorem's real κ margin is not set by it. The
 storage-node races (B: ≈ 0.42-0.5 simulated) remain the tightest real behaviour found. One adversary, 4 pairs:
 evidence, not proof.
+
+### progress 09:25 -- reset structure of THE target's storage nodes (untrusted Python, collapsed view)
+Of the 4,597 storage nodes: 4,185 have no reset pin, exactly the latch-like set of hufsim (data latches; Spec allows
+any power-up state and a transport loop could carry a power-up pulse, but Correct's idle clause names only req/ack
+nodes, and a latch's loop is overwritten when it is first enabled); 403 read the reset with rst = 1 forcing their
+output (C-elements, mux joins, forks, arbiter C-elements); 9 read the reset but are not forced by it alone (the 9
+bd_arbiter ustate LUTs, B's ArbClean territory). So no control storage node is left unreset: checked, no finding.
