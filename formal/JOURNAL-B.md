@@ -2469,3 +2469,16 @@ gates (both table gates; not distinguished), the decoder's pin/table choice (H_D
 and checked: Formal.Cells.PrimsPS.prim_cover.
 Also: an 8-pair sequential run (broad data rule) on gcd_ps is correct and its arbitrations keep >= 49.9 ns gaps
 (same arbiters; arb 5 SLICE_X14Y18.A appears with a 683 ns gap).
+
+### progress 09:07 -- gcd_ps's tightest race at every corner at once (RaceCornersPS.lean, check.sh OK)
+**Problem, plainly:** Behaves lets the die sit at any corner c; is node 120808's tightest episode path at least as slow
+as its loop for EVERY corner and every admissible delay, at g = 1? **Lean (standard axioms):** `sum_lower`/`sum_upper`
+(any delays admissible at (g = 1, κ, c) sum to within (1-κ)·lerp(ΣFAST_MIN, ΣSLOW_MIN, c) .. (1+κ)·lerp(ΣFAST_MAX,
+ΣSLOW_MAX, c), exact rationals, linear in c); **`race_all_corners`: at κ = 0.415, for every corner c >= 0 and every
+admissible delays of the 36 path arcs and the 7 loop arcs, loop total <= path total** (smallest margin at c = 0,
+~3.7 ps); `race_fails_c0`: at κ = 0.425, corner 0, the integer window ends already invert it. So for this episode the
+corner-uniform κ margin is in [0.415, 0.425) (simulation at corner 0: clean 0.419, runt 0.425).
+**H_RUNT(w), static estimate for this node** (smallest κ at which loop_hi - path_lo >= w, integer window ends, path from
+the corner-0.5 dump): w = 0: 0.425 / 0.44 / 0.4475 at corners 0 / 0.5 / 1; w = 20 (headline): 0.44 / 0.4475 / 0.4525;
+w = 40: 0.4525 / 0.455 / 0.4575. The race opens fast with κ (~3 ps per 0.001), so the runt filter buys only
+~0.01-0.015 here (on gcd_hw A's simulation gave 0.155 -> 0.19). Not checked: A's SpecRunt form (audit T9) or a simulation.
