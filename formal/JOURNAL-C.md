@@ -1425,3 +1425,10 @@ a witness for the meaningful T ≥ the state-LUT delay would need the arbiter tr
 ns: there is a behaviour of the decoded bitstream's circuit meeting every hypothesis, and in it out0 carries gcd(12, 18)
 = 6 (w1_result). Caveat: with Δo = 3000 equal to the run's ack delay, Correct's data clause has an empty sampling
 window in this run (ack rises exactly Δo after the request), so this witness does not exercise that clause.
+
+### progress 12:17 -- end-of-afternoon summary (shard C, 2026-11-02)
+Lean, standard axioms, all pushed: S5 token level (gcd_hw_seq); THE target's collapsed view, loop structure, settle/
+quiet/reset/boundary-reset theorems; Spec.Correct for n = 0 for every g > 0, κ < 1 (correct_n0_all) with a Lean witness
+(witness_n0); a Lean-checked gate-level run computing gcd(12, 18) on the decoded bitstream (behaves_w1, w1_result) that
+meets every hypothesis of NetCorrectSeq for n = 1 (w1_all_hyps, T ≥ 785 ns). Open: NetCorrectSeq for n ≥ 1 (the cell-level
+composition S4, with the per-storage-node switch obligations and bundling windows; see notes/C-route-S4.md).
