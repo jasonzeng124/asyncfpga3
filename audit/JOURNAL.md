@@ -997,3 +997,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 03:04 T12 nominal (no scatter): bit-decoded netlist EQUIVALENT, ANNOTATE_DONE, 24/24 OK by my own math.gcd oracle, out0 bundle margin 7.1 ns. 2x log-normal draw 2 running.
 - 03:16 T12: gcd_ps seed d 2x log-normal draw 2: 24/24 by my oracle, margin 5738 ps = research. Rows added.
 - 03:47 gcd_ps boundary bit order checked by my own bnd_names_own.py vs RTL register names in my rebuild's routing: 98/98 (a/b/out0 data bits, rst, req). Closes T10 row 5's UNVERIFIED. RTPS build at C042.
+- 05:32 **gcd_ps Lean layer CONFIRMED**: build25 305/305 rc=0 at 06c2a739; DecodedPS.net_wf, RTPS roundtrip, o5_gates standard axioms; tf = own read-back (338,510); siteT 2423/2423; kwgrep 0. T11 rows 5-6, REPORT rows updated.
