@@ -2119,7 +2119,7 @@ Next: (1) ring128 per-ring data from the owner still blocks acceptance; (2) the 
 rule A for "no common source" pairs whose data comes from a matched link -- worth a formal look (it would be a
 soundness argument, not a measurement), not a size change; (3) goal 2 leads (rule E tightening, two-phase links)
 once the gates may move.
-### summary of the gcd_ps lead (owner, 690f156), 2026-11-01 17:31 - 11-02 01:20
+### summary of the gcd_ps lead (owner, 690f156), 2026-11-01 17:31 - 11-02 00:40
 Toolchain: nextpnr 9c732bc6303458df, patches 789a7120c912d393 (toolchain.sh ok)   Seeds: d,3-9 (P1); d (controls)
 Did: gcd_ps with BQ#1's flags; pad-only sizing (P1: umux21 12 -> 16); fasm2net --ps7 + async-SR flops; a
 behavioural PS7 running the documented host sequence; derived vectors outside gcd_rig's 16; an out0 bundling
@@ -2141,4 +2141,4 @@ Measured:
 Does NOT show: silicon (BOARD-QUEUE #4 is the test); scatter beyond 1.5x or other draws on gcd_ps; out0 timing
 at the consumer pins (the monitor reads driver pins); that rule A's extra charge on umux21 is unsafe to remove
 (one route family, no proof); anything about the arbiter or runt hypotheses beyond what BQ#1-3 already had.
-Next: as in progress 01:20 above.
+Next: as in progress 00:37 above.
