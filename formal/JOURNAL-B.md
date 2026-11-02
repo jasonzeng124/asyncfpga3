@@ -2539,3 +2539,13 @@ SLOW imply loop total <= path total for every corner c ∈ [0,1] and every delay
 **Not shown:** the rows' arcs are tied to DecodedPS.net only for the binding row (TargetLinkPS); episodes that no
 simulated vector exercised; that the paths end the episodes in every behaviour (necessity is per run; C's SI
 finding is the route to "every behaviour"); data-latch episodes (not self-induced; C's relative-timing family).
+
+### progress 09:46 -- the (g, κ) frontier of gcd_ps's recorded acknowledgement races (RaceFrontierPS.lean, check.sh OK)
+Owner decision 3 asks for the margin as the (g, κ) frontier. **Lean (standard axioms):** `sum_lower_g`/`sum_upper_g`
+(admissible delays at (g, κ, c) sum within (1-κ)/g·lerp(ΣFAST_MIN, ΣSLOW_MIN, c) .. (1+κ)·g·lerp(ΣFAST_MAX, ΣSLOW_MAX, c));
+`race_ok_gk` ((1+κ)·g²·Σloop <= (1-κ)·Σpath at both corner ends => loop <= path at every corner, every admissible
+delay); `frontier`: all 185 rows of RaceTablePS pass at (g, κ) = (1.55, 0), (1.5, 0), (1.25, 0.2), (1.1, 0.3), (1, 0.415);
+`frontier_edge`: (1.6, 0) fails; **`table_race_free_gk`**: at any passing point, every row is race-free for every corner
+and every admissible delays. The binding row (SLICE_X32Y45.A) sets the frontier g²·(1+κ)/(1-κ) <= 1073/441 = 2.433:
+**g <= 1.56 at κ = 0, 1.41 at 0.1, 1.27 at 0.2, 1.14 at 0.3, 1.02 at 0.4, 1 at 0.415.** Same caveats as RaceTablePS
+(recorded episodes of 32 simulated vectors; generated rows; necessity per run).
