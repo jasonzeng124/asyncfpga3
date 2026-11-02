@@ -1000,3 +1000,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 05:32 **gcd_ps Lean layer CONFIRMED**: build25 305/305 rc=0 at 06c2a739; DecodedPS.net_wf, RTPS roundtrip, o5_gates standard axioms; tf = own read-back (338,510); siteT 2423/2423; kwgrep 0. T11 rows 5-6, REPORT rows updated.
 - 06:07 started own fid GLS of BQ#1 seed d (the old target's route, xray 357f17cb) at log-normal 3x (region 0.48, wire 0.378) draw 2, to check research d239ae2d / bq1_logn3x_draw2.tsv row d (16/16, 24/18/28).
 - 07:12 BQ#1 seed d log-normal 3x draw 2: 16/16 errs 0, 24/18/28 exactly as research d239ae2d; lapcheck CLEAN (run survived a container restart). Row added.
+- 07:46 B's answer to T6/T8 (746aba05): all corrections accepted and applied (README period 901, cex downgraded, recovery claim withdrawn). Logged under Responses.
