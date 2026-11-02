@@ -1400,3 +1400,16 @@ requests after Δo = 3 ns): result 6 = gcd(12, 18); 97,926 transitions on 39,051
 785 ns. A Lean witness for n = 1 (Behaves ∧ Env (some 1) ∧ SeqEnv, plus ArbOK T for a stated T) needs: WitBase
 generalized to transition lists (same lastBp argument), ~100k data numbers in chunk trees, and proofs of the Env/SeqEnv
 clauses over piecewise-constant boundary signals. Not started in Lean.
+
+### progress 12:12 -- Wit1 CLAIMED: a Lean-checked gate-level run of THE target computing gcd(12, 18)
+`Formal/Net/CViewPS/{WitBaseL,L000..L074,EncL,X000..X074,Wit1}.lean` (lake build OK, 1622 jobs; standard axioms; scan
+clean). `WitBaseL`: the single-transition witness check generalized to transition lists (`sigL`, `gateWL`,
+`gateOK_of_gateWL`). Data: tools/cview/witn1.py (transport run at FAST_MIN; power-up consistent under reset; operand
+buses 12 and 18; reset released at 400 ns; request raised at 401 ns, lowered when all three input acks are high;
+out0.ack and pend.ack follow their requests 3 ns later) and gen_wit1.py: 97,926 transitions on 39,051 nodes (≤ 7 per
+node), every circuit gate kernel-checked at every breakpoint (75 chunks, ≤ 6.7 GB each).
+**Statements:** `behaves_w1 : Behaves p1 (circuit DecodedPS.net DecodedPS.boundary) xW1`; `w1_result`: in xW1,
+out0.req rises at 771,456 ps, out0.ack at 774,456 ps, and the out0 data bus at 774,455 ps is Nat.gcd 12 18. Plainly:
+one concrete behaviour of the decoded bitstream's circuit, satisfying every gate relation of THE theorem at g = 1,
+κ = 0, computes gcd(12, 18) = 6. This is a single run (a Lean-checked GLS), NOT a theorem about all runs; the
+Env/SeqEnv/ArbOK clauses for it are not proved (next: they would show NetCorrectSeq's hypotheses satisfiable for n = 1).

@@ -72,3 +72,17 @@ tot = sum(len(t) for t in trans.values())
 moved = {n: t for n, t in trans.items() if t}
 print("result", state["result"], "expected", __import__("math").gcd(A_, B_), "nodes moved", len(moved), "transitions", tot,
       "max per node", max(len(t) for t in moved.values()), "last", max(t[-1] for t in trans.values() if t))
+# self-check (as Lean's gateWL) and output
+bad = 0
+for g in gates:
+    st = max([e["smax"] for e in g["arcs"]], default=0)
+    bps = {st} | set(trans.get(g["out"], []))
+    for j, u in enumerate(g["ins"]):
+        bps |= {t + g["arcs"][j]["fmin"] for t in trans.get(u, [])}
+    for T in bps:
+        if T < st: continue
+        a = sum((1 << j) for j, u in enumerate(g["ins"]) if at(u, T - g["arcs"][j]["fmin"]))
+        if bool((g["init"] >> a) & 1) != at(g["out"], T): bad += 1
+print("gate checks failing:", bad)
+if len(sys.argv) > 7:
+    json.dump({"R": R, "v0": sorted(n for n, v in v0.items() if v), "trans": {str(n): t for n, t in moved.items()}}, open(sys.argv[7], "w"))
