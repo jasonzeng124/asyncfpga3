@@ -2279,3 +2279,6 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
   15), uori3 on one (BQ#2 seed 6). R6t = R5 with only those two chains x1.25 (19->24, 20->25 links);
   research/data/gcd_hw_sizes_R6t.vh. Seeds 6-10: audits, SLOW_MAX laps, log-normal 3x draw 1. Running.
   (Disk: cleared the compiled sims of finished runs, 18 GB free.)
+### progress 21:49 (R6t routes: every audit clean on 5/5 seeds)
+- R6t seeds 6, 7, 8, 9, 10 all place (seed 6 too, unlike R5x1.25) and pass every audit (A/E/J 0, D 38 screen).
+  SLOW_MAX and log-normal 3x draw 1 sims running.
