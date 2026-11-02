@@ -1003,3 +1003,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 07:46 B's answer to T6/T8 (746aba05): all corrections accepted and applied (README period 901, cex downgraded, recovery claim withdrawn). Logged under Responses.
 - 07:49 T13: C's gcd_hw_seq (ed402afd) compiles, standard axioms, statement as claimed, 2-credit mutation breaks it. Row added.
 - 07:50 started T12 FAST_MIN spot-check of research 28993bba (1000/1000 at both corners): chunk c07 of gcd_ps_vec1000.hex (lines 449-512, 64 vectors) on my rebuild, my oracle. Fixed run_ps.sh output cap (head -80 would truncate 64-vector runs; now 400).
+- 08:11 T12 row 3: research's vec1000 chunk c07 at FAST_MIN on my rebuild: 64/64 by my oracle, min margin 4112 ps = research. Row added.
