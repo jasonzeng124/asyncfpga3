@@ -26,6 +26,19 @@ Added later on 2026-11-02 (all Lean-checked unless marked):
 7. tcheck on THE target's route: every rule row passes at both consistent corners; binding row rule A umux21,
    κ* ≈ 0.080 at g = 1 (a sufficient-condition margin).
 
+8. THE theorem's conclusion for zero pairs: `CViewPS.correct_n0` (any p, delay hypotheses), `correct_n0_p1`
+   (g = 1, κ = 0, R ≥ 353,248 ps), `correct_n0_all` (every g > 0, κ < 1, R ≥ ⌈(1+κ)g⌉·353 ns), via the 414-node
+   idle island (`island_PS`), no H_ARB, no SeqEnv.
+
+Next steps for C (in order):
+- Non-vacuity: a Lean witness behaviour of `circuit DecodedPS.net DecodedPS.boundary` under Env (n = 0): a consistent
+  power-up assignment under rst = 1 (latches and arbiter states chosen), then the event-driven run of the reset
+  release with fixed admissible delays (f i t = t - d_i); GateOK per gate is a finite check around its transitions
+  (A's WitCut/V9V4c approach; expect a multi-hour chunked build).
+- n ≥ 1: the island shows the control returns to the same idle island between pairs (simulation: only arbiter
+  sites differ, and the island ignores them). The per-pair argument needs the handshake-level dynamics of the
+  ~412 control storage nodes (latches first): the cell-level composition of S4.
+
 What the structure of THE target forces (tools/loops/loops.py): after cutting all 4,597 storage self-loops
 and all pins outside their INIT support, the circuit still has one strongly connected component of 86,684
 nodes (control + data of the loops) and 128 data rings (one bit of a loop variable round bdc's 3-stage loop
