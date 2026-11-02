@@ -2142,3 +2142,10 @@ Does NOT show: silicon (BOARD-QUEUE #4 is the test); scatter beyond 1.5x or othe
 at the consumer pins (the monitor reads driver pins); that rule A's extra charge on umux21 is unsafe to remove
 (one route family, no proof); anything about the arbiter or runt hypotheses beyond what BQ#1-3 already had.
 Next: as in progress 00:37 above.
+### progress 00:39 (CDC survey of every PS harness, by reading)
+- The owner's gcd_ps CDC question applied to every cells/hw/*_ps.v: gcd/ipow/mult/mult2/multn sample STATUS
+  i_ack/o_req through 2-flop synchronizers (sync_i_ack/sync_o_req); mem_arb (sync_lz_req/tok_ack/la_ack) and
+  mem_port (sync_ack) synchronize their acks; mem_bist is fully synchronous (RAMB18E1 on aclk, nothing async
+  crosses); ro_link synchronizes run/rst INTO the ring domain, reads its counters only after the window closed, and
+  its token census is a deliberate asynchronous sample (a mean over reads is the measurement, by design). No
+  missing synchronizer found. Reading only; none of these except gcd_ps has a GLS harness.
