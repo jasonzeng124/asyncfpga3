@@ -2578,3 +2578,10 @@ New layout (tools-B/ps/gen_racelink_ps.py): RaceLinkPS/Defs (definitions, `cat_g
 files RaceLinkPS/Bxx with one theorem per row, each file's rows touching <= 35 chunks, and the top file assembling
 `rows_linked : ∀ i < 185, rowP i = true`. In the 5-row layout, the files covering rows 0-159 passed check.sh; the
 25-file run is going now. Nothing about RaceLinkPS is claimed until it passes.
+
+### progress 11:53 -- race table stable under 80 more full-width vectors (simulation)
+racescan.sh on vectors 17-96 of target/gcd_ps_vec1000.hex (80 single-pair sequential runs, broad data rule, corner 0.5;
+all 80 correct): with the first 32, 112 runs and 14,963 self-induced episodes; still exactly the same 185 storage nodes,
+every path hop a necessary input (0 exceptions), and the generated table is IDENTICAL row for row to the committed
+RaceTablePS (same worst episode per node: binding SLICE_X32Y45.A at 0.415, then 0.495, 0.51, 0.525). So in this
+evidence the table is saturated: 3.5x more vectors found no new acknowledgement race and no tighter episode.
