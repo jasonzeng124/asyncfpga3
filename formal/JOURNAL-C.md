@@ -1372,3 +1372,16 @@ given a reset of about C × 353 ns. (κ = 1 lets a pin's lower window reach 0 ps
 Caveat for the zero-pair theorems: they are implications from `Behaves p (circuit DecodedPS.net DecodedPS.boundary) x`;
 their non-vacuity needs some behaviour of that netlist to exist (simulations produce them; no Lean witness for the
 gcd_ps netlist yet; A's Lean witnesses are for the previous target).
+
+### progress 11:30 -- witness_n0 CLAIMED: the zero-pair theorems are not vacuous (a Lean witness behaviour of THE target)
+`Formal/Net/CViewPS/{WitBase,E000..E074,Enc,W000..W074,Wit0}.lean` (lake build OK, 1469 jobs; standard axioms; scan clean).
+Generic `WitBase`: a behaviour in which every node switches at most once (`sig1` codes), every pin read at its
+FAST_MIN; `gateW` checks a gate's equation at its start and at each breakpoint; `gateOK_of_gateW` (via `lastBp_spec`):
+that finite check gives Spec.GateOK p1 0 for all time. Data (tools/cview/witn0.py + gen_wit0.py, untrusted): a power-up
+state consistent with every circuit gate under reset (62,788 nodes high, found by relaxation), reset released at
+400,000 ps, transport simulation at FAST_MIN: 3,604 nodes switch once, all settled 3.4 ns later; every one of the
+circuit's gates kernel-checked per 2,500-gate chunk (~1-4 min, ~5 GB each).
+**Statements:** `witness_n0 su Δo va vb : ∃ x, Behaves p1 (circuit DecodedPS.net DecodedPS.boundary) x ∧
+Env x DecodedPS.boundary 400000 su Δo (some 0) va vb` and `witness_n0_correct`: Correct holds of it (from
+correct_n0_p1). So the hypotheses of correct_n0_p1 are jointly satisfiable on the decoded gcd_ps netlist: the
+zero-pair result is not vacuous. This closes the 10:4x caveat.
