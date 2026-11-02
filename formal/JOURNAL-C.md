@@ -1268,3 +1268,15 @@ its pin's source is the reset node 186905, and that pin at 1 forces the INIT to 
 listed node equals its reset value at every t with startPS ≤ t, Σdmax(reset pin) ≤ t ≤ R - 1 + Σdmin(reset pin).
 lake build OK (1291 jobs), standard axioms, scan clean. **Not covered:** the 4,185 data latches (no reset) and the
 9 arbiter states (reset + other inputs); that R exceeds those start times is Env's R, a parameter.
+
+### progress 09:37 -- boundary_reset CLAIMED: THE target's handshake outputs start low
+`Formal/Net/CViewPS/BoundaryReset{Data,}.lean` (data generated, kernel-checked: 30-node combinational cone of b.ack
+and out0.req with zero-delay values, every cone value = INIT at its sources, every source in the cone with a smaller
+global rank or one of 5 roots; the roots are reset-forced storage nodes of resetList with the same values).
+`boundary_reset`: in every behaviour of THE theorem's circuit (Sane p), at its corner, with reset high on [0, R),
+for any M bounding the cone's composite pin delays, A past the cone's starts and the roots' starts and reset-pin
+Σdmax, and B ≤ R - 1: b.ack (node 104695) is low on [A + 8M, B] and out0.req (160957) on [A + 19M, B]. a.ack and
+start.ack are themselves reset-forced storage nodes (low by reset_state). Python (untrusted) agrees: all four 0 under
+reset. lake build OK, standard axioms, scan clean. This is the initial-state half of Correct's CircIn/CircOut for
+the circuit's outputs (given R large enough); **not shown:** pend's request (shared with the input request, an env
+node) needs nothing; anything after reset.
