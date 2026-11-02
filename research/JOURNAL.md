@@ -2212,3 +2212,10 @@ Next: as in progress 00:37 above.
   monitor on: 1000/1000 ok at each corner, 0 err, 0 hang, 0 id mismatch, out0 min margin 12043 / 4112 ps (the same as
   the 24- and 64-vector runs: the minimum is set by the route), no late change. research/data/gcd_ps/p1_vec1000_target.tsv;
   BOARD-QUEUE #4 updated: the board run now has a per-vector GLS prediction for every vector it will run.
+### progress 09:31 (BQ#1 at log-normal 3x: 8/8 seeds)
+- Seeds 6-9 at 3x draw 2: PASS 16/16 errs 0, EQUIVALENT (vec 6 laps 20/23/32/26). BQ#1 at 3x: 8/8 seeds
+  (research/data/fid/bq1_logn3x_draw2.tsv), like BQ#4 (8/8). BOARD-QUEUE #1 updated.
+Next: (1) ring128 per-ring data (owner) unblocks acceptance; (2) a sharper rule A for "no common source" pairs
+(umux21 finding) as a formal soundness question, not a size change; (3) goal 2 (speed) only with a scatter
+budget: R5's 1.9x costs the 3x scatter margin the default lengths keep, so any tightening should be judged by its
+failing scatter scale, not only by rules and corners.
