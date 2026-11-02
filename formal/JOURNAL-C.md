@@ -1413,3 +1413,15 @@ out0.req rises at 771,456 ps, out0.ack at 774,456 ps, and the out0 data bus at 7
 one concrete behaviour of the decoded bitstream's circuit, satisfying every gate relation of THE theorem at g = 1,
 κ = 0, computes gcd(12, 18) = 6. This is a single run (a Lean-checked GLS), NOT a theorem about all runs; the
 Env/SeqEnv/ArbOK clauses for it are not proved (next: they would show NetCorrectSeq's hypotheses satisfiable for n = 1).
+
+### progress 12:16 -- w1_all_hyps CLAIMED: all of NetCorrectSeq's hypotheses are satisfiable for one pair on THE target
+`Formal/Net/CViewPS/Wit1Env.lean` (lake build OK; standard axioms; scan clean). For the Lean-checked run xW1 (12, 18):
+`w1_all_hyps su T (hT : 785472 ≤ T)`: Behaves p1 (circuit DecodedPS.net DecodedPS.boundary) xW1 ∧ ArbOK T arbs xW1 ∧
+Env xW1 DecodedPS.boundary 400000 su 3000 (some 1) (fun _ => 12) (fun _ => 18) ∧ SeqEnv xW1 DecodedPS.boundary 400000.
+The Env/SeqEnv clauses are proved from the pulse shapes of the 8 boundary signals (pls, pls_change, rises_pulse);
+ArbOK because the 9 arbiter states are constant after the run's last transition (so only for T ≥ 785,472 ps: a weak T;
+a witness for the meaningful T ≥ the state-LUT delay would need the arbiter traces checked against their inputs).
+**Meaning:** THE statement (NetCorrectSeq) is not vacuous for n = 1 at (g, κ) = (1, 0), R = 400 ns, Δo = 3 ns, T ≥ 785
+ns: there is a behaviour of the decoded bitstream's circuit meeting every hypothesis, and in it out0 carries gcd(12, 18)
+= 6 (w1_result). Caveat: with Δo = 3000 equal to the run's ack delay, Correct's data clause has an empty sampling
+window in this run (ack rises exactly Δo after the request), so this witness does not exercise that clause.
