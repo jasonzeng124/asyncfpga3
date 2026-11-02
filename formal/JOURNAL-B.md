@@ -2585,3 +2585,20 @@ all 80 correct): with the first 32, 112 runs and 14,963 self-induced episodes; s
 every path hop a necessary input (0 exceptions), and the generated table is IDENTICAL row for row to the committed
 RaceTablePS (same worst episode per node: binding SLICE_X32Y45.A at 0.415, then 0.495, 0.51, 0.525). So in this
 evidence the table is saturated: 3.5x more vectors found no new acknowledgement race and no tighter episode.
+
+### progress 12:34 -- H_RUNT(w) on gcd_ps's binding race (simulation; for shard A's 00:36 note and owner decision 2)
+A's 00:36 entry: rebuilding the ua1 H_RUNT adversary on gcd_ps "needs B's causal-path tooling". Done with it:
+tools-B/ps/hrunt.sh = A's hrunt_sweep setup (simb.py --gfilter W,0: from t = 0 every pin whose window start and delay
+are >= W skips input pulses narrower than W), vector (12,18), the binding node's per-pin adversary (kadv map at that
+corner), bisection of the smallest κ at which the run is not clean (node flips beyond its baseline, or a wrong result).
+g = 1, current Adm:
+| w (ps) | corner 0: clean / not clean | corner 0.5: clean / not clean |
+|---|---|---|
+| 0 | 0.422 / 0.427 | 0.436 / 0.441 |
+| 10 | 0.427 / 0.431 | 0.441 / 0.445 |
+| 20 (headline) | 0.436 / 0.441 | 0.445 / 0.450 |
+| 40 | 0.450 / 0.455 | 0.450 / 0.455 |
+Agrees with the static estimate of 10:1x (w = 20: 0.44 / 0.4475). **Plainly:** on THE target the runt filter buys
+little (~0.015 at w = 20), because this race opens fast with κ (~3 ps of runt per 0.001 of κ); the margin is set by
+the race, ~0.42 at w = 0 and ~0.435 at w = 20 (fast corner). Caveats: A's --gfilter form, not SpecRunt's (audit T9:
+SpecRunt also bans sub-w pulses on zero-delay hops); one adversary, one vector; simulation only.
