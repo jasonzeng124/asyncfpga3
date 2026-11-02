@@ -172,6 +172,12 @@ research/tools/pad_sizes.py: only rule-A violators lengthened, nothing shortened
   sha256 e6bb4aec70f31fa7579a482d94ec168162656dabf74e833ed57d1a516b809798
 - `research/board/gcd_ps_e6bb4aec.fasm.gz`: the .fasm, gzip -n; md5 of the uncompressed .fasm
   2dbf962dbcf01dcd9bd6ad6f7870ca27
+- `research/board/gcd_ps_e6bb4aec.boundary.tsv`: the kernel's boundary in this route (the kernel has no pins in
+  the bitstream; its ports are internal nets), from research/tools/boundary_map.py on the routed JSON: in =
+  a_data[31:0] (bridge_i.a_data_reg FF Q), b_data[31:0] (b_data_reg), rst (SLICE_X2Y29/DFF/Q, ctrl_rst), the ONE
+  request net a_req = b_req = start_req (SLICE_X3Y30/C5FF/Q, the req_core FDCE; yosys named it bridge_i.p_end_req),
+  out0_ack (SLICE_X4Y34/A6LUT/O6 = ctrl_o_ack & o_req, named n_index_97_ack), p_end_ack; out = a_ack, b_ack,
+  start_ack, out0_req (SLICE_X5Y31/C6LUT/O6, core_o_req), out0_data[31:0] (o_data_pl).
 - same route: sdf md5 cbdbea3a7416b56010e8ef0aec0331d4, prjxray SDF (xray_delay.py) 8afd5cce25bbc4187cb11808fae1d5a4;
   toolchain in `gcd_ps_e6bb4aec.toolchain.txt` (nextpnr 9c732bc6303458df, all patches ok, yosys 0.62, textX fasm
   parser). Branch claude/research.

@@ -2178,3 +2178,9 @@ Next: as in progress 00:37 above.
 - To test the explanation that P1's default lengths are why gcd_ps survives 3x-5x while R5 (BQ#2/3) fails at 1.5-2x:
   BQ#1 (gcd_hw, default lengths, same pads/placement) at log-normal 3x draw 2 on seeds d,3,4,5 (seeds_fid, existing
   routes). Running.
+### progress 03:26 (formal target's kernel boundary map)
+- research/tools/boundary_map.py: nets crossing a hierarchy prefix in a routed JSON, with driver bel/pin (fasm2net's
+  net names). On the formal target (bridge_i.udut.): 68 in, 36 out once constants (785, incl. packer-legalised
+  constant LUTs) and packer route-through sinks are excluded. Names are yosys's, not the RTL's: the request flop
+  (req_core) is called bridge_i.p_end_req and out0_ack is called n_index_97_ack, so the map gives the pins, and
+  BOARD-QUEUE #4 gives the port reading. research/board/gcd_ps_e6bb4aec.boundary.tsv.
