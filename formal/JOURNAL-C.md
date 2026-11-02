@@ -1152,3 +1152,13 @@ non-combinational node that feeds a combinational gate (the 4,597 storage nodes,
 on [A, B], then every combinational node w is constant on [A + (ρ w + 1)·M, B] (ρ the kernel-checked rank; ≤ 96 per
 the generator, not stated in Lean). From collapsed + comb_ranked + settle_ranked. **Not shown:** that the storage
 nodes/env are ever quiet (dynamics), M for a concrete p.
+
+### progress 08:56 -- quiet_PS CLAIMED: THE target never starts moving by itself
+`SpecLoop.quiet_forever` (generic) and `Formal/Net/CViewPS/Quiet.lean` (`quiet_PS`; lake build OK; standard axioms;
+scan clean). **Plainly:** in every behaviour of THE theorem's circuit (Sane p), at its corner, for M with every
+logic pin's composite delay in [1, M] ps and every logic gate's start ≤ T - M: if the env/undriven nodes feeding
+logic are constant from T - M on and every logic node (all 19,878, storage included) is constant on [T - M, T], every
+logic node is constant for ever. Proof: the first toggle after T would need (cgate_cause) a source toggle strictly
+earlier inside [T - M, ...]. This is the "stays idle" half of THE theorem's last clause. **Caveat:** the hypothesis
+1 ≤ Σdmin per composite pin must hold for the p used (a composite arc with all fmin = 0 makes the statement vacuous
+for that p); **not shown:** that the circuit becomes quiet after the last pair.

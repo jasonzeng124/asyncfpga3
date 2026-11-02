@@ -236,4 +236,50 @@ theorem settle_ranked {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 
       have e2 := q u (by rw [Nat.add_mul] at u1; omega) (by omega)
       exact u3 (e1.trans e2.symm)
 
+
+/-- **Quiet is forever.** Logic nodes `w` (`node w`) are collapsed gates (output `w`) whose pin
+sources are logic nodes or roots; every composite delay is in `[1, M]` ps (`1 ≤ Σdmin`,
+`Σdmax ≤ M`) and every start is at most `T - M`. If the roots are quiet from `T - M` on for ever
+and every logic node is quiet on `[T - M, T]`, then every logic node is quiet for ever: a quiet
+circuit with a quiet environment never starts moving by itself (no oscillation, no late glitch). -/
+theorem quiet_forever {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    (node root : Nat → Prop) (gate : Nat → Gate) (src : Nat → Nat → Nat)
+    (arcs : Nat → Nat → List Arc) (S : Nat → Nat) (M T : Nat) (hMT : M ≤ T)
+    (hg : ∀ w, node w → (gate w).out = w ∧ CGateOK p c (gate w) (src w) (arcs w) (S w) x)
+    (hord : ∀ w, node w → ∀ i, i < (gate w).k → ArcsOrd (arcs w i))
+    (hsrc : ∀ w, node w → ∀ i, i < (gate w).k → root (src w i) ∨ node (src w i))
+    (hM : ∀ w, node w → ∀ i, i < (gate w).k → 1 ≤ sumMin p (arcs w i) ∧ sumMax p (arcs w i) ≤ M)
+    (hS : ∀ w, node w → S w ≤ T - M)
+    (hroot : ∀ r, root r → ∀ t, T - M ≤ t → x r t = x r (T - M))
+    (hq : ∀ w, node w → ∀ t, T - M ≤ t → t ≤ T → x w t = x w (T - M)) :
+    ∀ w, node w → ∀ t, T - M ≤ t → x w t = x w (T - M) := by
+  -- no logic node toggles at any time after T - M
+  have key : ∀ t, ∀ w, node w → T - M < t → x w (t - 1) = x w t := by
+    intro t
+    induction t using Nat.strong_induction_on with
+    | _ t ih =>
+      intro w hw ht
+      by_cases htT : t ≤ T
+      · rw [hq w hw (t - 1) (by omega) (by omega), hq w hw t (by omega) htT]
+      by_contra hne
+      obtain ⟨hout, hcg⟩ := hg w hw
+      have hne' : x (gate w).out (t - 1) ≠ x (gate w).out t := by rw [hout]; exact hne
+      obtain ⟨i, hi, u, u1, u2, u3⟩ := cgate_cause hp hc0 hc1 (hord w hw) hcg
+        (by have := hS w hw; omega) (by omega) hne'
+      obtain ⟨m1, m2⟩ := hM w hw i hi
+      rcases hsrc w hw i hi with hr | hn
+      · exact u3 ((hroot _ hr (u - 1) (by omega)).trans (hroot _ hr u (by omega)).symm)
+      · by_cases hu : T - M < u
+        · exact u3 (ih u (by omega) _ hn hu)
+        · exact u3 ((hq _ hn (u - 1) (by omega) (by omega)).trans (hq _ hn u (by omega) (by omega)).symm)
+  intro w hw t ht
+  induction t with
+  | zero => have : T - M = 0 := by omega
+            rw [this]
+  | succ t ih =>
+    by_cases h : T - M ≤ t
+    · rw [← ih h, ← key (t + 1) w hw (by omega)]; rfl
+    · have : T - M = t + 1 := by omega
+      rw [this]
+
 end Formal.Timing.SpecLoop
