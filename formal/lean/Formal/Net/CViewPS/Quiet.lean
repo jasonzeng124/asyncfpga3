@@ -6,14 +6,14 @@ import Formal.Net.CViewPS.Settle
 **Problem, plainly.** THE theorem's conclusion ends with the circuit idle for ever after the last
 pair. Can the circuit, once quiet, start moving with no input (a late glitch, an oscillation)?
 **Proved** (`quiet_PS`): in every behaviour of THE theorem's circuit (sane p), at its corner, for
-any `M` with every logic pin's composite delay in `[1, M]` ps and `T ≥ M` past every logic gate's
+any `M` bounding every logic pin's composite delay, with every pin's delay ≥ 1 ps unless its source is outside the logic or a constant (k = 0) gate, and `T ≥ M` past every logic gate's
 start (+ M): if the environment and undriven nodes that feed logic are constant from `T - M` on,
 and every logic node (combinational and storage, 19,878) is constant on `[T - M, T]`, then every
 logic node is constant for ever from `T - M`. From `collapsed` and `SpecLoop.quiet_forever`.
 
 **Not shown.** That the circuit reaches such a quiet state after the last pair (liveness), and
-the hypothesis `1 ≤ Σdmin` for a concrete `p` (it fails for a pin whose whole composite arc has
-`fmin = 0`; then the statement is vacuous for that p, so it must be checked for the p used).
+the delay hypotheses for a concrete `p` (on the data, the only zero-fmin composite pins are 368
+CARRY4 pins reading the CONST0 gate, k = 0, which the hypothesis allows).
 -/
 
 namespace Formal.Net.CViewPS
@@ -64,7 +64,9 @@ theorem ord_logic {w : Nat} (hw : logicPS w) : ∀ i, i < (gAt cs 2500 w).k → 
 /-- **Quiet is forever, on THE target.** -/
 theorem quiet_PS {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circuit net boundary) x) :
     ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ (M T : Nat), M ≤ T →
-      (∀ w, logicPS w → ∀ i, i < (gAt cs 2500 w).k → 1 ≤ sumMin p (arcsPS w i) ∧ sumMax p (arcsPS w i) ≤ M) →
+      (∀ w, logicPS w → ∀ i, i < (gAt cs 2500 w).k →
+        (1 ≤ sumMin p (arcsPS w i) ∨ ¬ logicPS (srcPS w i) ∨ (gAt cs 2500 (srcPS w i)).k = 0) ∧
+        sumMax p (arcsPS w i) ≤ M) →
       (∀ w, logicPS w → startPS p w ≤ T - M) →
       (∀ r, ¬ logicPS r → (∃ w i, logicPS w ∧ i < (gAt cs 2500 w).k ∧ srcPS w i = r) →
         ∀ t, T - M ≤ t → x r t = x r (T - M)) →
@@ -81,7 +83,13 @@ theorem quiet_PS {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circuit
     by_cases hs : logicPS (srcPS w i)
     · exact Or.inr hs
     · exact Or.inl ⟨hs, w, i, hw, hi, rfl⟩
-  · exact hM
+  · intro w hw i hi
+    obtain ⟨h1, h2⟩ := hM w hw i hi
+    refine ⟨?_, h2⟩
+    rcases h1 with h1 | h1 | h1
+    · exact Or.inl h1
+    · exact Or.inr (Or.inl ⟨h1, w, i, hw, hi, rfl⟩)
+    · exact Or.inr (Or.inr h1)
   · exact hS
   · intro r ⟨h1, h2⟩; exact hroot r h1 h2
   · exact hq

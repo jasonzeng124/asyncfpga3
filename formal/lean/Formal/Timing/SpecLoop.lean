@@ -248,7 +248,8 @@ theorem quiet_forever {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 
     (hg : ∀ w, node w → (gate w).out = w ∧ CGateOK p c (gate w) (src w) (arcs w) (S w) x)
     (hord : ∀ w, node w → ∀ i, i < (gate w).k → ArcsOrd (arcs w i))
     (hsrc : ∀ w, node w → ∀ i, i < (gate w).k → root (src w i) ∨ node (src w i))
-    (hM : ∀ w, node w → ∀ i, i < (gate w).k → 1 ≤ sumMin p (arcs w i) ∧ sumMax p (arcs w i) ≤ M)
+    (hM : ∀ w, node w → ∀ i, i < (gate w).k →
+      (1 ≤ sumMin p (arcs w i) ∨ root (src w i) ∨ (gate (src w i)).k = 0) ∧ sumMax p (arcs w i) ≤ M)
     (hS : ∀ w, node w → S w ≤ T - M)
     (hroot : ∀ r, root r → ∀ t, T - M ≤ t → x r t = x r (T - M))
     (hq : ∀ w, node w → ∀ t, T - M ≤ t → t ≤ T → x w t = x w (T - M)) :
@@ -270,7 +271,17 @@ theorem quiet_forever {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 
       rcases hsrc w hw i hi with hr | hn
       · exact u3 ((hroot _ hr (u - 1) (by omega)).trans (hroot _ hr u (by omega)).symm)
       · by_cases hu : T - M < u
-        · exact u3 (ih u (by omega) _ hn hu)
+        · by_cases hut : u < t
+          · exact u3 (ih u hut _ hn hu)
+          · -- a zero-delay pin: its source is a root or a constant (k = 0) gate
+            rcases m1 with m1 | m1 | m1
+            · omega
+            · exact u3 ((hroot _ m1 (u - 1) (by omega)).trans (hroot _ m1 u (by omega)).symm)
+            · obtain ⟨ho', hcg'⟩ := hg _ hn
+              have : x (gate (src w i)).out (u - 1) ≠ x (gate (src w i)).out u := by rw [ho']; exact u3
+              obtain ⟨i', hi', -⟩ := cgate_cause hp hc0 hc1 (hord _ hn) hcg'
+                (by have := hS _ hn; omega) (by omega) this
+              omega
         · exact u3 ((hq _ hn (u - 1) (by omega) (by omega)).trans (hq _ hn u (by omega) (by omega)).symm)
   intro w hw t ht
   induction t with

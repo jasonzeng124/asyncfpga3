@@ -1162,3 +1162,8 @@ logic node is constant for ever. Proof: the first toggle after T would need (cga
 earlier inside [T - M, ...]. This is the "stays idle" half of THE theorem's last clause. **Caveat:** the hypothesis
 1 ≤ Σdmin per composite pin must hold for the p used (a composite arc with all fmin = 0 makes the statement vacuous
 for that p); **not shown:** that the circuit becomes quiet after the last pair.
+### progress 08:57 -- quiet_PS hypothesis fixed to fit the data
+Checked on the data: 368 composite pins have Σfmin = 0 (CARRY4 pieces reading the CONST0 gate, k = 0, zero-delay
+tie), so "every pin ≥ 1 ps" would have made quiet_PS vacuous at every p. quiet_forever/quiet_PS now require ≥ 1 ps
+only for pins whose source is a non-constant logic node (a zero-delay pin from a root or a k = 0 gate is handled:
+a k = 0 gate never toggles, by cgate_cause). Rebuilt; standard axioms; check.sh OK.
