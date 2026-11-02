@@ -2235,3 +2235,10 @@ failing scatter scale, not only by rules and corners.
 ### progress 11:39 (R5x1.25 seed 9: SLOW_MAX 28 vs R5 31; log-normal 2x draw 1 PASS)
 - R5x1.25 seed 9: SLOW_MAX PASS 16/16 (28/23/33; R5 seed 9: 31/25/36, -10%); log-normal 2x draw 1 PASS (33/26/39),
   despite its -32 ps rule A flag. Seed 7, then the R5 arm at the same scatter (seeds 7-9), then seed 10, running.
+### progress 12:52 (R5x1.25 arm done on seeds 7-9: -7..-10% SLOW_MAX laps, log-normal 2x draw 1 3/3 PASS)
+| seed | R5 SLOW_MAX (6/12/13) | R5x1.25 SLOW_MAX | change on vec 6 | R5x1.25 logn 2x d1 |
+|---|---|---|---|---|
+| 7 | 31/25/36 | 28/22/33 | -10% | PASS 50/40/58 |
+| 8 | 31/25/37 | 29/23/34 | -6% | PASS 35/28/42 |
+| 9 | 31/25/36 | 28/23/33 | -10% | PASS 33/26/39 |
+  R5 arm at the same scatter (seeds 7-9; R5 seed 6 FAILS it) now running, then seed 10 for both.
