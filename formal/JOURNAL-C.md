@@ -1178,3 +1178,11 @@ bounds how soon s's own switch can withdraw its forcing: the causal half of the 
 no conflict). **Not shown:** the isolation hypothesis (in a running circuit other inputs move concurrently; that
 needs the handshake-level argument, S4), and a kernel-checked φ for THE target (needs a concrete p: Σdmin is computed
 from p).
+
+### progress 09:01 -- NodeN143: one real storage node through the collapsed view (check.sh OK)
+`Formal/Net/CViewPS/NodeN143.lean`: node 151633 (SLICE_X40Y49.A6, nextpnr name ulink_n143 stage[2] ctl, the storage
+node with the smallest static margin) is a logic node and a storage node of THE target's circuit; its pin 1 reads its
+own output through its routing (`srcPS 151633 1 = 151633`), and the loop's composite arcs are 7 (pin + 6 copy gates)
+with Σ smax = 959 ps. So cgate_switch / B's cfb_switch apply to it with that loop; its obligation is "every forcing
+episode lasts ≥ 959 ps" at the slow bound (g = 1, κ = 0). Each check is a ~1 s decide on the collapsed data, so any
+node B or A needs can be bridged the same way.
