@@ -2219,3 +2219,12 @@ Next: (1) ring128 per-ring data (owner) unblocks acceptance; (2) a sharper rule 
 (umux21 finding) as a formal soundness question, not a size change; (3) goal 2 (speed) only with a scatter
 budget: R5's 1.9x costs the 3x scatter margin the default lengths keep, so any tightening should be judged by its
 failing scatter scale, not only by rules and corners.
+### progress 09:39 (speed / scatter trade-off: R5 x1.25 routes)
+- research/data/gcd_hw_sizes_R5x125.vh: every R5 size x1.25 rounded up (sum 796 -> 1106 links; none shorter), BQ#2's
+  flags. Question: how much SLOW_MAX speed does it cost, and does it pass log-normal 2x draw 1, where R5 seed 6
+  fails? Arms: R5x1.25 seeds 7,8,9 (+10), R5 seeds 7,8,9 (+10) at the same scatter (R5 seed 6 already FAIL).
+- Seed 6 did not place under R5x1.25 ("post-placement validity check failed for Bel SLICE_X14Y88/A5FF (no cell)",
+  the same nextpnr legality failure R5 seed 2 once hit): seed 10 added to both arms instead.
+- Audits: seeds 7, 8 every rule clean (D 38 screen); seed 9 rule A -32 ps (urig.udut.ucontrol_merge9, 5 links, PAD
+  to 6). So uniform lengthening does not keep rule A by itself: the longer chains move the route, and one bundle
+  ends 32 ps short. Seed 9 is kept in the experiment as a data point, not as a shippable route.
