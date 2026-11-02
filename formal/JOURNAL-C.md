@@ -1186,3 +1186,10 @@ own output through its routing (`srcPS 151633 1 = 151633`), and the loop's compo
 with Σ smax = 959 ps. So cgate_switch / B's cfb_switch apply to it with that loop; its obligation is "every forcing
 episode lasts ≥ 959 ps" at the slow bound (g = 1, κ = 0). Each check is a ~1 s decide on the collapsed data, so any
 node B or A needs can be bridged the same way.
+
+### progress 09:02 -- SpecLoop.settle_value: settled values are the zero-delay values (check.sh OK)
+As settle_ranked, plus any assignment v consistent with the combinational logic (v w = INIT_w at v of its sources) and
+equal to the roots on [A, B]: every comb node w equals v w on [A + (ρ w + 1)·M, B]. With storage + env nodes as roots,
+v is the zero-delay evaluation of THE target's acyclic logic (HuffmanPS) from the storage state, so each storage
+node's next-state can be read off an abstract Huffman machine whenever the state has been quiet long enough. Next
+toward S4: the abstract machine's state graph per handshake episode, with the per-node switch obligations.

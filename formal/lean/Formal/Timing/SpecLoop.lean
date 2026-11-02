@@ -344,4 +344,55 @@ theorem light_cone {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 ≤
             (by have := hS _ hn; omega) (by omega) this
           omega
 
+
+/-- **Settled values are the zero-delay values.** As `settle_ranked`, and `v` is any assignment
+consistent with the combinational logic (`v w = INIT_w` at the `v` of its sources, for every comb
+node) that agrees with the roots on `[A, B]`. Then every comb node `w` equals `v w` on
+`[A + (ρ w + 1)·M, B]`. With storage nodes and the environment as roots, `v` is the zero-delay
+evaluation of the acyclic logic from the storage state: the storage nodes' next-state functions
+can be read off this abstract (Huffman) machine whenever the state has been quiet long enough. -/
+theorem settle_value {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    (comb root : Nat → Prop) (ρ : Nat → Nat) (gate : Nat → Gate) (src : Nat → Nat → Nat)
+    (arcs : Nat → Nat → List Arc) (S : Nat → Nat) (M A B : Nat) (v : Nat → Bool)
+    (hg : ∀ w, comb w → (gate w).out = w ∧ CGateOK p c (gate w) (src w) (arcs w) (S w) x)
+    (hord : ∀ w, comb w → ∀ i, i < (gate w).k → ArcsOrd (arcs w i))
+    (hsrc : ∀ w, comb w → ∀ i, i < (gate w).k → root (src w i) ∨ (comb (src w i) ∧ ρ (src w i) < ρ w))
+    (hM : ∀ w, comb w → ∀ i, i < (gate w).k → sumMax p (arcs w i) ≤ M)
+    (hS : ∀ w, comb w → S w ≤ A)
+    (hv : ∀ w, comb w → v w = (gate w).init.testBit (addr (gate w).k fun i => v (src w i)))
+    (hroot : ∀ r, root r → ∀ t, A ≤ t → t ≤ B → x r t = v r) :
+    ∀ w, comb w → ∀ t, A + (ρ w + 1) * M ≤ t → t ≤ B → x w t = v w := by
+  classical
+  intro w
+  induction hr : ρ w using Nat.strong_induction_on generalizing w with
+  | _ n ih =>
+    intro hw t h1 h2
+    obtain ⟨hout, hcg⟩ := hg w hw
+    have hin : ∀ i, i < (gate w).k → ∀ t', (if root (src w i) then A else A + (ρ (src w i) + 1) * M) ≤ t' →
+        t' ≤ B → x (src w i) t' = v (src w i) := by
+      intro i hi t' a b
+      by_cases hr' : root (src w i)
+      · simp only [hr', ite_true] at a; exact hroot _ hr' t' a b
+      · simp only [hr', ite_false] at a
+        rcases hsrc w hw i hi with h | ⟨hc, hlt⟩
+        · exact absurd h hr'
+        · exact ih _ (hr ▸ hlt) _ rfl hc t' a b
+    have hwin : ∀ i, i < (gate w).k → (if root (src w i) then A else A + (ρ (src w i) + 1) * M) +
+        sumMax p (arcs w i) ≤ t ∧ t ≤ B + sumMin p (arcs w i) := by
+      intro i hi
+      have hm := hM w hw i hi
+      refine ⟨?_, by omega⟩
+      by_cases hr' : root (src w i)
+      · simp only [hr', ite_true]; rw [Nat.add_mul] at h1; nlinarith
+      · simp only [hr', ite_false]
+        rcases hsrc w hw i hi with h | ⟨_, hlt⟩
+        · exact absurd h hr'
+        · have : ρ (src w i) + 1 ≤ n := by omega
+          have := Nat.mul_le_mul_right M this; nlinarith
+    have key := cgate_stable hp hc0 hc1 (hord w hw) hcg
+      (fun i => if root (src w i) then A else A + (ρ (src w i) + 1) * M) (fun _ => B)
+      (fun i => v (src w i)) hin t (by have := hS w hw; nlinarith) hwin
+    rw [hout] at key
+    rw [key, hv w hw]
+
 end Formal.Timing.SpecLoop
