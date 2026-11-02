@@ -1211,3 +1211,21 @@ control moves. So the timed proof splits exactly into: the SI control network (a
 KahnLTS, on reachable states), plus two timing obligation families: (a) settle windows (settle_value) between
 storage switches, (b) bundling (latch before control), plus the per-node switch obligations (cgate_switch). **Not
 shown:** any of this in Lean; exhaustive orders (random sampling only); pipelined env (refuted anyway).
+
+### progress 09:21 -- tcheck on THE target's route (gcd_ps): every row passes at both consistent corners; binding row umux21 rule A, κ* ≈ 0.080
+Tree: `git archive` research bfa659b4 (BQ#4's commit) cells+bdc + the target's SDF (md5 cbdbea3a), routed JSON, FASM
+(md5 2dbf962d) = README's; prjxray-db from the toolchain cache (d7ce266cff0c8e1e). extract.py --rules2 AEFJWR --cert:
+184 controllers, 2505 obligations, 74,876 arcs with prjxray numbers, 10,515 SDF fallback. tcheck (C-10, compiled,
+proved sound over its own run semantics; toy and cert self-tests ok): 15,012 instances. Summary
+tools/tcheck/results/target/summary5_PS.txt, rows t5_PS.out.xz.
+- At the fast and the slow prjxray corner (each consistent, κ = 0, g = 1): **every row of every family passes**
+  (A 89, E 322, E0 596, F 29, H 158, I 75, J 54, R 409, W 150).
+- Failures only with the guard band (fastG/slowG: rule A umux21 and ushli0, 8 E0 select rows, F cm12.udly, J0/Jp of
+  cm9/cm11 arbiters) and ONE row under the corner-mixing SDF band: **rule A, umux21's bundled data** (req ≥ 4282 vs
+  data ≤ 3648 ps at the fast corner, 10151 vs 8180 at the slow one).
+- Read as THE theorem's (g, κ) frontier (sums scale linearly in Adm's window): this row holds iff (1-κ)·R(c)/g ≥
+  (1+κ)·D(c)·g; at g = 1 κ* = 634/7930 = **0.080** at corner 0 (0.108 at corner 1); at κ = 0, g* = √(4282/3648) ≈ 1.083.
+  That is far tighter than the storage-node races (B: ≈ 0.42 simulated; my static bound 0.142). **Caveat:** rule A
+  is a sufficient condition (research found it pessimistic on gcd_ps: unsized routes pass the full stack), so this
+  bounds what a proof THROUGH rule A can certify, it is not a counterexample; and tcheck's semantics is its own, not
+  Spec's (bridging tcheck to SpecSettle/SpecLoop windows is open).
