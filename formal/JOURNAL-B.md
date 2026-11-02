@@ -2524,3 +2524,18 @@ tools-B/ps/k2sim.sh on the 12 nodes with the smallest kstar2 κ* (0.000-0.175; v
 node's adversarial map (P_end fast, P_start and loop slow) at κ = 0, 0.2 and 0.4, every node flips exactly as in the
 baseline (1, 2 or 4 flips) and every run is correct. So none of the reconvergent-path estimates is a race in
 simulation, consistent with the 09:1x reading (those episodes end by joins; acknowledgement paths are what bind).
+
+### progress 09:42 -- every recorded acknowledgement race of gcd_ps is safe at κ = 0.415, at every corner (RaceTablePS.lean, check.sh OK)
+**Problem, plainly:** for each storage node whose tightest simulated flipping episode is ended by an acknowledgement of
+its own flip, is that acknowledgement path at least as slow as the node's feedback loop for every corner and every
+admissible delay (g = 1)? **Data (simulation, untrusted; tools-B/ps/racescan.sh + racetab.py):** 32 single-pair
+sequential runs (16 rig + 16 full-width vectors, broad data rule, corner 0.5, all correct): 3738 self-induced
+episodes on 185 storage nodes; in every one, every hop of the path was a NECESSARY input in its run (0 exceptions).
+Per node the worst episode's corner-uniform threshold: SLICE_X32Y45.A 0.415, SLICE_X18Y96.A 0.495, SLICE_X16Y22.C
+0.51, SLICE_X30Y33.A 0.525, all others higher (formal/out/target_ps_races.json, for shard C). **Lean (GENERATED table
+of 185 rows; standard axioms):** `race_ok_of_sums` (generic: 283·ΣFAST_MAX(loop) <= 117·ΣFAST_MIN(path) and the same for
+SLOW imply loop total <= path total for every corner c ∈ [0,1] and every delays admissible at g = 1, κ = 83/200);
+`table_ok` (all 185 rows pass, kernel decide); **`table_race_free`**; negative control `binding_row_fails_0425`.
+**Not shown:** the rows' arcs are tied to DecodedPS.net only for the binding row (TargetLinkPS); episodes that no
+simulated vector exercised; that the paths end the episodes in every behaviour (necessity is per run; C's SI
+finding is the route to "every behaviour"); data-latch episodes (not self-induced; C's relative-timing family).
