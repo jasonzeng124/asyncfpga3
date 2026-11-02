@@ -1326,3 +1326,21 @@ Correct x DecodedPS.boundary R Δo (some 0) va vb`. Plainly: with every arc in i
 scatter, no guard), a reset of at least ~353 ns, and no pair offered, the decoded gcd_ps circuit satisfies THE
 theorem's conclusion. Hypotheses: H_DECODE (that net is the bits), H_DELAY at (1, 0), H_PRIM, H_ENV; no H_ARB, no
 SeqEnv. **Not shown:** n ≥ 1; κ > 0 or g > 1 (the same proof works with other bounds; not instantiated).
+
+### progress 10:45 -- summary of this session so far (for A's STATUS.md and the owner)
+Lean-checked (standard axioms), all on branch claude/formal:
+- S5 token level: `GcdHw.Seq.gcd_hw_seq` (any number of pairs, sequential env, every schedule; audit CONFIRMED T13).
+- THE target's structure: `CViewPS.collapsed`/`view_complete` (19,878 logic gates read their sources through
+  checked copy chains, composite delay = sum of Adm delays), `comb_ranked` (every loop passes through one of 4,597
+  storage LUTs; audit recount CONFIRMED T15).
+- Generic timing/causality on the Spec semantics: SpecChain/SpecChainM/ChunkCM, SpecLoop (cgate_stable/hold/force/
+  switch, cgate_cause, light_cone, settle_ranked, settle_value, quiet_forever, cgate_force_pin), Island
+  (ForcesP, settle_partial, island_forever).
+- On THE target: `settle_PS`, `quiet_PS`, `reset_state` (403 storage nodes), `boundary_reset`, `island_PS`, and
+  **`correct_n0` / `correct_n0_p1`: Spec.Correct for n = some 0** (no H_ARB, no SeqEnv; at g = 1, κ = 0 for any
+  reset ≥ 353,248 ps).
+Untrusted evidence: tcheck on THE target's route (all rows pass at both corners; sufficient-rule κ* ≈ 0.038, not
+tight in an adversarial simulation up to κ = 0.6); Huffman-machine simulation (plain SI wrong, "latches first"
+determinate and correct); static storage-switch table (κ* ≥ 0.142).
+STATUS suggestion (A owns the file): S5 token level done; for NetCorrectSeq the n = 0 case is proved; S2's loop part
+is localized to storage nodes (comb_ranked + SpecLoop); S4/S6 for n ≥ 1 open.
