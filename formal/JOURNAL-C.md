@@ -1036,3 +1036,17 @@ result was taken. With two initial credits (a pipelined env) the invariant fails
 PipeWit/PipeDead and the V9V4 refutation.
 FOR SHARD A (STATUS.md, S5 row): token-level part proved by `Formal.Net.GcdHw.Seq.gcd_hw_seq`; open: its
 connection to the circuit (S4).
+
+### progress 07:52 -- THE target's netlist is cyclic beyond its storage self-loops (structure, untrusted Python)
+`formal/tools/loops/loops.py` on `DecodedPS.net` (rebuilt from the committed Lean data by B's lean2json.py: 187,258
+nodes, 186,873 gates). A pin is a self-feedback pin if following its node back through copy gates (k = 1, INIT 0b10)
+reaches the gate's own output: 4,597 such pins on 4,597 gates (chains of 4-13 copy gates, i.e. the routing pips of
+each C-element/latch loop). Cut all of them, and also the 42,391 pins outside their gate's INIT support: the node
+graph still has 129 cyclic SCCs: 128 of 73-77 nodes, each one bit of a loop variable going round its loop
+(`ulink_n_falseResult_51` stages 0..2 latch pair[k] -> `umux10.udat.pair[k]`, i.e. bdc's 3-stage loop link and its
+header mux), and one SCC of 86,684 nodes with 8,653 LUTs (link latches, controllers, delay chains, compute units,
+muxes: control and data of the loops together). Meaning for the checker (S2): a static cut of the storage loops
+does not leave a DAG, so SpecSettle's topological certificate (`certOK`) cannot cover the kernel by cutting loops;
+the obligations have to be event-based (per handshake phase, latch-enable windows), as rules A/E/F/J are. Next:
+collapse the copy chains in Lean (pin -> source node with summed corner window), so cell-level reasoning works on
+~12k logic gates instead of 187k nodes.
