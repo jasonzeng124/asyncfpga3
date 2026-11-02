@@ -1051,7 +1051,7 @@ the obligations have to be event-based (per handshake phase, latch-enable window
 collapse the copy chains in Lean (pin -> source node with summed corner window), so cell-level reasoning works on
 ~12k logic gates instead of 187k nodes.
 
-### progress 08:10 -- SpecChain CLAIMED: routing chains collapse in the Spec's semantics
+### progress 07:56 -- SpecChain CLAIMED: routing chains collapse in the Spec's semantics
 `Formal/Timing/SpecChain.lean` (imports SpecSettle; `check.sh Formal/Timing/SpecChain.lean` OK; `#print axioms
 collapse_net`: propext, Classical.choice, Quot.sound).
 **Problem.** In `DecodedPS.net` every pip/wire/site hop is a copy gate, so a LUT pin reaches its driving LUT through
