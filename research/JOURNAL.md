@@ -2254,3 +2254,6 @@ failing scatter scale, not only by rules and corners.
 ### progress 16:21 (R5x1.25 seed 10; R5 seed 10 routed clean)
 - R5x1.25 seed 10: every audit clean; SLOW_MAX PASS 26/21/31; log-normal 2x draw 1 PASS 38/29/46. R5 seed 10 routed,
   every audit clean; its SLOW_MAX and 2x runs are running, then 3x draw 1 on 7-10 of both arms.
+### progress 17:33 (R5 vs R5x1.25: 2x does not discriminate; x1.25 costs 10.5% at SLOW_MAX)
+- research/data/fid/r5x125/README.md: on seeds 7-10, R5x1.25 costs -10.5% SLOW_MAX laps (vec 6 31.0 -> 27.75, range
+  -6..-16%), and both arms pass log-normal 2x draw 1 on all four. 3x draw 1 on 7-10 of both arms now running.
