@@ -1229,3 +1229,15 @@ tools/tcheck/results/target/summary5_PS.txt, rows t5_PS.out.xz.
   is a sufficient condition (research found it pessimistic on gcd_ps: unsized routes pass the full stack), so this
   bounds what a proof THROUGH rule A can certify, it is not a counterexample; and tcheck's semantics is its own, not
   Spec's (bridging tcheck to SpecSettle/SpecLoop windows is open).
+
+### progress 09:22 -- tcheck κ* per row on THE target: binding row is rule F at ucontrol_merge12.udly, κ* ≈ 0.038
+tools/tcheck/results/target/kappa_rows_PS.txt: for every row, from its fast- and slow-corner instance (req_min,
+data_max), κ* = (req - data)/(req + data) (sums scale linearly in Adm's window, so the row holds at corner c, g = 1
+iff κ ≤ κ*). Lowest: **F (delay-line flush) ucontrol_merge12.udly n=24: 0.047 fast / 0.038 slow** (flush 2679 ps vs
+the next rise of its source ≥ 2890 ps at the slow corner); A umux21 bundled 0.080 (umux21 is gcd_hw's OUTPUT mux, it
+drives out0: Spec's Correct reads out0 data only from Δo after its request, so this row is absorbed by the env's Δo
+and is not an obligation of THE theorem as stated); then E0 select rows from 0.161 (umux14.uj1), J arbiter forks from
+0.175 (cm9 uarb1), A ushli0 0.181. Correction to the 09:21 entry: the binding row is F cm12.udly, not A umux21.
+**Meaning:** a proof that discharges its obligations through tcheck's rules certifies at most κ ≈ 0.038 at g = 1
+(at κ = 0: g ≤ √(2890/2679) ≈ 1.039). Rules are sufficient conditions; whether violating F at cm12 actually breaks
+gcd_ps is untested (a GLS/simb adversary on that delay line would say).
