@@ -12,6 +12,20 @@ What exists (all Lean-checked, standard axioms):
 4. Older, model level: CapNet (bdc's graph as 465 cell-level channels) refines the token graph for ONE pair
    under H_CELLS (Ops gate models), H_BUNDLE, H_START_ONCE (`KCap.kernel_circuit_safe`).
 
+Added later on 2026-11-02 (all Lean-checked unless marked):
+5. `CViewPS.comb_ranked`: every loop of THE target passes through one of its 4,597 storage LUTs (acyclic rest,
+   depth 96). `SpecLoop`: `cgate_cause` (no spontaneous change), `light_cone` (changes travel no faster than the
+   fastest delay path), `settle_ranked`/`settle_value` (once storage+env are quiet, the logic settles to its
+   zero-delay values), `quiet_forever` (a quiet circuit with a quiet env never moves again);
+   `CViewPS.settle_PS`, `quiet_PS` instantiate them on THE target.
+6. Simulation (untrusted, tools/cview/hufsim.py): the Huffman abstraction (storage nodes + zero-delay logic) is NOT
+   speed-independent (wrong gcd), but with "data latches fire before other storage nodes" it gives the right
+   results, the same firing count on every order and no persistence violation (11 pairs x 6 orders). So the
+   intended proof shape is: SI control network + bundling (latch before control) + settle windows + per-node
+   switch obligations.
+7. tcheck on THE target's route: every rule row passes at both consistent corners; binding row rule A umux21,
+   κ* ≈ 0.080 at g = 1 (a sufficient-condition margin).
+
 What the structure of THE target forces (tools/loops/loops.py): after cutting all 4,597 storage self-loops
 and all pins outside their INIT support, the circuit still has one strongly connected component of 86,684
 nodes (control + data of the loops) and 128 data rings (one bit of a loop variable round bdc's 3-stage loop
