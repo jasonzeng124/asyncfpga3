@@ -1094,3 +1094,8 @@ node whose feedback pin's source is its own output, loop delay ≥ 1 ps, other p
 output q on the primed segment [T0 - Σdmax_loop, T0): output stays q on [T0, E]). Strong induction on time.
 **Not shown:** how a forcing episode primes the loop (B's fb_switch condition on the collapsed loop), the
 per-node obligations on THE target.
+### progress 08:29 -- SpecLoop: cgate_force and cgate_switch added (check.sh OK)
+`cgate_force`: pins forcing q whatever the feedback ⇒ output q on the window (no loop assumption). `cgate_switch`:
+forced on [T1, T0) with T0 - T1 ≥ Σdmax of the routed loop, then confirmed on [T0, E] ⇒ output q on [T1, E]. The side
+condition "forcing lasts at least the loop's Σdmax" is the per-storage-node obligation (B's fb_switch condition,
+now on the collapsed loops of every storage node of THE target, via CViewPS).

@@ -97,4 +97,55 @@ theorem cgate_hold {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs
       obtain ⟨w1, w2⟩ := hw i hi e
       exact hin i hi e (F i t) (by omega) (by omega)
 
+
+/-- **Forced**: the other pins hold `v` on their windows and INIT gives `q` at `v` whatever the
+feedback pin reads. Then the output is `q` on the window, without any assumption on the loop. -/
+theorem cgate_force {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) (hord : ∀ i, i < g.k → ArcsOrd (arcs i))
+    (hg : CGateOK p c g src arcs S x) {j : Nat} (Si Ui : Nat → Nat) (v : Nat → Bool) (q : Bool)
+    (hin : ∀ i, i < g.k → i ≠ j → ∀ t, Si i ≤ t → t ≤ Ui i → x (src i) t = v i)
+    (hforce : ∀ b : Bool, g.init.testBit (addr g.k fun i => if i = j then b else v i) = q) :
+    ∀ t, S ≤ t → (∀ i, i < g.k → i ≠ j → Si i + sumMax p (arcs i) ≤ t ∧ t ≤ Ui i + sumMin p (arcs i)) →
+      x g.out t = q := by
+  obtain ⟨F, -, hF⟩ := hg
+  intro t ht hw
+  obtain ⟨hr, ho⟩ := hF t ht
+  rw [ho, ← hforce (x (src j) (F j t))]; congr 1
+  apply SpecSettle.addr_congr
+  intro i hi
+  by_cases e : i = j
+  · subst e; simp
+  · simp only [e, ite_false]
+    obtain ⟨r1, r2⟩ := hr i hi
+    obtain ⟨b1, b2⟩ := sumAdm_bounds hp hc0 hc1 _ _ (hord i hi) r2
+    obtain ⟨w1, w2⟩ := hw i hi e
+    exact hin i hi e (F i t) (by omega) (by omega)
+
+/-- **A clean switch**: forced to `q` on `[T1, T0)` with `T0 - T1 ≥ Σdmax` of the loop (the
+forcing lasts at least the loop's longest delay), then confirmed on `[T0, E]`: the output is `q`
+on all of `[T1, E]`. The side condition is the per-storage-node timing obligation. -/
+theorem cgate_switch {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) (hord : ∀ i, i < g.k → ArcsOrd (arcs i))
+    (hg : CGateOK p c g src arcs S x) {j : Nat} (hj : j < g.k) (hfb : src j = g.out)
+    (hlo : 1 ≤ sumMin p (arcs j)) (q : Bool) (T1 T0 E : Nat) (hS : S ≤ T1)
+    (hlen : T1 + sumMax p (arcs j) ≤ T0)
+    (Sf Uf : Nat → Nat) (vf : Nat → Bool)
+    (hinf : ∀ i, i < g.k → i ≠ j → ∀ t, Sf i ≤ t → t ≤ Uf i → x (src i) t = vf i)
+    (hforce : ∀ b : Bool, g.init.testBit (addr g.k fun i => if i = j then b else vf i) = q)
+    (hwf : ∀ i, i < g.k → i ≠ j → Sf i + sumMax p (arcs i) ≤ T1 ∧ T0 ≤ Uf i + sumMin p (arcs i))
+    (Sc Uc : Nat → Nat) (vc : Nat → Bool)
+    (hinc : ∀ i, i < g.k → i ≠ j → ∀ t, Sc i ≤ t → t ≤ Uc i → x (src i) t = vc i)
+    (hconf : g.init.testBit (addr g.k fun i => if i = j then q else vc i) = q)
+    (hwc : ∀ i, i < g.k → i ≠ j → Sc i + sumMax p (arcs i) ≤ T0 ∧ E ≤ Uc i + sumMin p (arcs i)) :
+    ∀ t, T1 ≤ t → t ≤ E → x g.out t = q := by
+  have hf : ∀ t, T1 ≤ t → t < T0 → x g.out t = q := fun t a b =>
+    cgate_force hp hc0 hc1 hord hg Sf Uf vf q hinf hforce t (by omega)
+      (fun i hi e => ⟨by have := (hwf i hi e).1; omega, by have := (hwf i hi e).2; omega⟩)
+  have hh := cgate_hold hp hc0 hc1 hord hg hj hfb hlo Sc Uc vc q hinc hconf T0 E (by omega) hwc
+    (fun t a b => hf t (by omega) b)
+  intro t a b
+  by_cases h : t < T0
+  · exact hf t a h
+  · exact hh t (by omega) b
+
 end Formal.Timing.SpecLoop
