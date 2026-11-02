@@ -2274,3 +2274,8 @@ failing scatter scale, not only by rules and corners.
   placement (seed 6) and a rule A flag (seed 9, -32 ps), so it is not a drop-in replacement for R5. Not shipped.
 Next: a targeted version (lengthen only the chains whose bundles failed under scatter: uori2/uori3) would keep most
 of R5's speed; it needs the failing-chain list from more draws first. Ring128 data still blocks acceptance.
+### progress 21:42 (R6t: targeted lengthening of uori2/uori3 only)
+- uori2 failed under scatter on two independent routes (BQ#3 seed 9 at 2x, R5 seed 10 at 3x; same vectors 2, 3, 9,
+  15), uori3 on one (BQ#2 seed 6). R6t = R5 with only those two chains x1.25 (19->24, 20->25 links);
+  research/data/gcd_hw_sizes_R6t.vh. Seeds 6-10: audits, SLOW_MAX laps, log-normal 3x draw 1. Running.
+  (Disk: cleared the compiled sims of finished runs, 18 GB free.)
