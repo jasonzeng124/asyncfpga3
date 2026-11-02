@@ -1021,3 +1021,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 15:25 T15 row 8: C's one-pair witness (gcd 12,18; all NetCorrectSeq hyps + Correct) built, standard axioms. build31 had two concurrent instances (chain watcher did start + my manual setsid); killed the later one at RaceLinkPS.B08; remaining instance finishing RaceLinkPS.
 - 16:25 build31 done: B's split RaceLinkPS rows_linked (183/185, rows 174/184 excluded) standard axioms. REPORT row updated.
 - 16:58 build32 at formal head 0be49560: 4 NChk EXITMOD 0, default lake build EXIT 0 (4821 jobs, incremental). Axiom audit of all Formal modules added/changed since 65323d29 started (MODLIST /root/modlist_0be49560.txt).
+- 18:38 axiom audit of 763 Formal modules changed since 65323d29 (at 0be49560): 4741 constants, bad 0; kwgrep 1 hit (opaque constructor). Row added.
