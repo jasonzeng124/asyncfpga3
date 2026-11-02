@@ -2265,3 +2265,12 @@ failing scatter scale, not only by rules and corners.
 - R5 seed 7 PASS (47/36/53), seed 8 PASS (34/26/39) at log-normal 3x draw 1. So on the routes both arms have, neither
   fails at 2x or 3x: R5's known scatter failures (BQ#2 seed 6, BQ#3 seed 9) are specific routes, not a uniform
   shortfall that x1.25 fixes. Seeds 9, 10 of R5 at 3x running.
+### progress 21:41 (R5 vs R5x1.25 complete: x1.25 trades 10.5% speed for the one 3x failure seen)
+- Log-normal 3x draw 1, seeds 7-10: R5 3/4 (seed 10 FAIL errs 4, vectors 2, 3, 9, 15: one wrong lap then a stall,
+  the same vector set as BQ#3 seed 9's uori2 failure), R5x1.25 4/4. 2x draw 1: 4/4 both on these seeds.
+  research/data/fid/r5x125/README.md.
+- Conclusion (thin: one failure per eight scatter runs): R5's scatter failures are route-specific; a uniform 25%
+  lengthening removed the one seen on seeds 7-10, at -10.5% SLOW_MAX laps (vec 6 31.0 -> 27.75). It also cost a
+  placement (seed 6) and a rule A flag (seed 9, -32 ps), so it is not a drop-in replacement for R5. Not shipped.
+Next: a targeted version (lengthen only the chains whose bundles failed under scatter: uori2/uori3) would keep most
+of R5's speed; it needs the failing-chain list from more draws first. Ring128 data still blocks acceptance.
