@@ -2228,3 +2228,7 @@ failing scatter scale, not only by rules and corners.
 - Audits: seeds 7, 8 every rule clean (D 38 screen); seed 9 rule A -32 ps (urig.udut.ucontrol_merge9, 5 links, PAD
   to 6). So uniform lengthening does not keep rule A by itself: the longer chains move the route, and one bundle
   ends 32 ps short. Seed 9 is kept in the experiment as a data point, not as a shippable route.
+### progress 10:41 (R5x1.25 seed 8: SLOW_MAX 29 laps vs R5's 31; log-normal 2x draw 1 PASS)
+- R5x1.25 seed 8: SLOW_MAX PASS 16/16 laps 29/23/34 (vectors 6/12/13; R5 seed 8: 31/25/37, i.e. -6..-8%);
+  log-normal 2x draw 1 PASS 16/16 (35/28/42). R5 seed 8 has no log-normal 2x draw 1 row yet (queued). Seeds 7, 9
+  then the R5 arm and seed 10 running.
