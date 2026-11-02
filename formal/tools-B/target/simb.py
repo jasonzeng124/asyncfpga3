@@ -46,6 +46,7 @@ def main():
     ap.add_argument("--maxflips", type=int, default=6)
     ap.add_argument("--maxevents", type=int, default=0, help="stop and print CHAOS after this many events (B)")
     ap.add_argument("--g", type=float, default=1.0, help="guard: global band [FAST_MIN/g, SLOW_MAX*g] (B)")
+    ap.add_argument("--oldadm", action="store_true", help="pre-2026-11-01 Adm: window clipped to [FAST_MIN/g, SLOW_MAX*g] (B)")
     ap.add_argument("--kappa", type=float, default=0.0, help="posmap value -1/2 = fast/slow end of the κ-widened window")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--pipelined", action="store_true")
@@ -101,10 +102,10 @@ def main():
         hi = (1 - c) * e["fmax"] + c * e["smax"]
         pp = PMpin.get((gi, pin), PM.get(gi, p))
         if pp == -1:
-            d = max((1 - a.kappa) * lo, e["fmin"] / a.g)  # Adm: (1-κ)·lerp_lo and ≥ FAST_MIN/g
+            d = max((1 - a.kappa) * lo, e["fmin"] / a.g) if a.oldadm else (1 - a.kappa) * lo / a.g  # Adm (2026-11-01 form unless --oldadm)
             return int(-(-d // 1))                       # ceil: stay inside the window
         if pp == 2:
-            d = min((1 + a.kappa) * hi, e["smax"] * a.g)  # Adm: (1+κ)·lerp_hi and ≤ SLOW_MAX·g
+            d = min((1 + a.kappa) * hi, e["smax"] * a.g) if a.oldadm else (1 + a.kappa) * hi * a.g
             return int(d // 1)
         d = lo + pp * (hi - lo)
         if a.scatter:

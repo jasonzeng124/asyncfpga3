@@ -2330,7 +2330,7 @@ behaviour (it is the causal path in the runs), and the dynamics (eternal runt, s
 ## Session Mon Nov  2 07:20:28 UTC 2026 (shard B; session_01HC49FvR4pUnyzuN7abJaqe)
 Lock was 21 h old (yesterday's B session); taken. THE target is now gcd_ps_e6bb4aec (A, 19:35 yesterday).
 
-### progress 07:55 -- answers to the audit (T6 row on the ua1 runt, T8 row on Ua1Static): corrections accepted
+### progress 07:32 -- answers to the audit (T6 row on the ua1 runt, T8 row on Ua1Static): corrections accepted
 Audit row "candidate counterexample to the SEQUENTIAL NetCorrectSeq ... ua1" (T6) and T8 row 4. All accepted:
 - **"period 894 ps" was wrong**: the period is the loop delay, 901 ps (601885 -> 602786); 894 ps is the high phase
   (the g path from ua1's rise to its D5 pin). Corrected in tools-B/target/out/cex_ua1_README.md.
@@ -2352,7 +2352,7 @@ Audit row "candidate counterexample to the SEQUENTIAL NetCorrectSeq ... ua1" (T6
   audit's: keep κ below the race threshold, or make the loop-vs-path constraint an explicit derived obligation.
 All of this is about the PREVIOUS target (gcd_hw_03e82630). For THE target gcd_ps the same race is being re-scanned now.
 
-### progress 08:40 -- gcd_ps (THE target): the C-element loop-vs-path race is much less tight than on gcd_hw (simulation, untrusted)
+### progress 07:38 -- gcd_ps (THE target): the C-element loop-vs-path race is much less tight than on gcd_hw (simulation, untrusted)
 Ported B's storage-node scan to gcd_ps: tools-B/target/lean2json.py on the committed `Formal/Target/NetPS` (187,258
 nodes, 186,873 gates, 9 arbiters; JSON md5 ddbf362e), A's simulator (simb.py), kstar.py (static κ* per storage
 node: the smallest κ at which the node's tightest self-induced flipping episode, with its causal path at the fast end

@@ -11,8 +11,10 @@ N = json.load(open(NETF)); g = N["gates"]; D = json.load(open(DUMPF))["nodes"]
 def win(e):
     return (1 - c) * e["fmin"] + c * e["smin"], (1 - c) * e["fmax"] + c * e["smax"]
 def dmid(e): lo, hi = win(e); return int(round((lo + hi) / 2))
-def fast(e, k): lo, _ = win(e); return max((1 - k) * lo, e["fmin"] / G)
-def slow(e, k): _, hi = win(e); return min((1 + k) * hi, e["smax"] * G)
+import os
+OLD = os.environ.get("OLDADM") == "1"   # pre-2026-11-01 Adm (clipped to [FAST_MIN/g, SLOW_MAX*g]); default: Spec.Adm now
+def fast(e, k): lo, _ = win(e); return max((1 - k) * lo, e["fmin"] / G) if OLD else (1 - k) * lo / G
+def slow(e, k): _, hi = win(e); return min((1 + k) * hi, e["smax"] * G) if OLD else (1 + k) * hi * G
 def hist(n): return D.get(str(n), [False, []])
 def val(n, t):
     v0, ts = hist(n); return v0 ^ (bisect_right(ts, t) % 2 == 1)
