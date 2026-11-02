@@ -2207,3 +2207,8 @@ Next: as in progress 00:37 above.
   both tightened R5 builds (BQ#2, BQ#3) have a seed that fails between 1.5x and 2x. So R5's ~1.9x speed is bought
   with scatter margin, and the margin it keeps (>=1.5x on draws 2-3) is still above the measured 8.5% ring scatter.
   The board order in BOARD-QUEUE (#1 first) already matches this.
+### progress 07:21 (all 1000 board vectors pass on the formal target's full stack)
+- research/board/gcd_ps_vec1000.hex on gcd_ps_e6bb4aec (decoded from the committed bit), SLOW_MAX and FAST_MIN, out0
+  monitor on: 1000/1000 ok at each corner, 0 err, 0 hang, 0 id mismatch, out0 min margin 12043 / 4112 ps (the same as
+  the 24- and 64-vector runs: the minimum is set by the route), no late change. research/data/gcd_ps/p1_vec1000_target.tsv;
+  BOARD-QUEUE #4 updated: the board run now has a per-vector GLS prediction for every vector it will run.
