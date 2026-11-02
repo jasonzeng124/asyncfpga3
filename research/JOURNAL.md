@@ -2153,3 +2153,8 @@ Next: as in progress 00:37 above.
 - Draw 2 seeds 6-9 and draw 3 all 8: 24/24, EQUIVALENT, no late out0 change; out0 margin draw 2 +5.93..+9.07 ns,
   draw 3 +6.19..+9.95 ns (p1_logn15.tsv, p1_logn15_draw3.tsv). Same coverage as BQ#1 (draws 2 and 3, 8/8).
   Running: log-normal 2x (region 0.32 + wire 0.252), draw 2, all 8 seeds, to find what fails first.
+### progress 02:12 (gcd_ps survives log-normal 2x on all 8 seeds)
+- Log-normal 2x (region 0.32 + wire 0.252), draw 2: 8/8 seeds 24/24, EQUIVALENT, out0 margin +5.62..+9.81 ns, no
+  late change (p1_logn2x.tsv). For comparison, BQ#3 seed 9 fails between 1.75x and 2x (draw 1) and BQ#2 seed 6
+  between 1.5x and 1.75x. Not a like-for-like comparison (different kernel harness, draw 2 not 1), but no gcd_ps
+  route has shown a scatter failure yet. Running: 3x on all 8 to find what fails first.
