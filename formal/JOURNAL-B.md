@@ -2392,7 +2392,7 @@ the node, bisection of the smallest κ at which the node flips more than in the 
 | 0.8 | 0.4375 | 0.444 | 0.445 | 0.520, 0.535 |
 | 1.0 | 0.444 | 0.450 | 0.445 | 0.520, 0.540 |
 (corner 0.2 running.) Static and simulated thresholds agree within the grid. The node is the same at every corner:
-SLICE_X32Y45.ALUT.O6, ; 24 of the 32 scanned vectors exercise its
+SLICE_X32Y45.ALUT.O6, cell ulink_n_falseResult_85.many.stage[0].u.ctl.u.u; 24 of the 32 scanned vectors exercise its
 tight episode (all 32 vectors correct at mid-window, corner 0.5).
 **Plainly (simulation, w = 0, g = 1):** on THE target the C-element loop-vs-path race allows κ up to about 0.42 before an
 admissible delay assignment can make a storage node latch a runt; on gcd_hw it was 0.155. Not shown: other episode
