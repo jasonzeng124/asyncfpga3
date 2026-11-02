@@ -62,6 +62,19 @@ filters), sim2 (independent re-implementation), adv/tie/a0race (arbitration timi
   so the T non-vacuity bound is (1+κ)·664·g ps, as on gcd_hw.
 - `Cells/SpecFbChain` (Lean, generic): fb_switch through a routed feedback (C's CGateOK), and Spec.Adm's
   integer window ends bound every summed delay (`sumAdm_bounds`).
-- `Cells/TargetLinkPS` (Lean, generated; building): ties targetQPS and the race arcs to DecodedPS.net, the
-  node's feedback chain (`pinsOK`), and `race_loop_delay_le` (feedback delay <= 1091 ps at κ = 0.435).
-- Arbiter separation on gcd_ps (adv.py, 32 vectors, corner 0.5): see JOURNAL-B.
+- `Cells/TargetLinkPS` (Lean, generated, check.sh OK): targetQPS and the binding node's arcs/wiring on
+  DecodedPS.net; `race_pinsOK` (C's chain check); `race_loop_delay_le` (routed feedback delay <= 1091 ps, κ = 0.435).
+- `Cells/PrimsPS` (Lean, generated, check.sh OK): **H_PRIM coverage**: every one of DecodedPS.net's 186,873 gates is
+  a constant, copy, LUT5/LUT6 table, 2:1 mux (0xCA = Core bmux) or CARRY4 output (= Core bout); nothing else.
+- `Cells/RaceCornersPS` (Lean): the binding race holds at κ = 0.415 for EVERY corner (rational, linear in c); fails at
+  0.425 corner 0.
+- `Cells/RaceTablePS` (Lean, generated 185 rows): every recorded acknowledgement race (3738 self-induced episodes, 32
+  simulated vectors, every path hop a necessary input in its run) is safe at κ = 0.415, every corner (`table_race_free`).
+- `Cells/RaceFrontierPS` (Lean): the (g, κ) frontier of those races: g²(1+κ)/(1-κ) <= 2.433 (binding row):
+  g <= 1.56 at κ = 0, 1.27 at 0.2, 1.02 at 0.4 (`table_race_free_gk` at five points; edge (1.6, 0) fails).
+- `Cells/ArbCleanChain`, `Cells/SpecFbChain` (Lean, generic): clean switch / separated arbitration through a routed
+  feedback (C's CGateOK).
+- `Cells/RaceLinkPS` (Lean, generated): ties all 185 rows to DecodedPS.net -- NOT yet checked (memory; split by
+  netlist chunks, re-running).
+- Simulation: arbitrations separated by >= 49.9 ns (32 single-pair vectors + one 8-pair run): H_ARB never exercised.
+  Static reconvergent-path estimates (kstar2) are not races (12 worst clean to κ = 0.4 in simulation).
