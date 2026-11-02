@@ -2107,3 +2107,15 @@ double-counted, ring128 per-ring data still needed).
   It checks the script, not the design.
 - The BQ#4 scatter extension was restarted with PS_BUNDLE=1 (psbm/run3.sh) so it also measures the out0 margin
   under scatter: 1x on seeds 6-9, log-normal 1.5x draw 2 on d,3,4,5.
+### progress 00:37 (BQ#4 scatter at BQ#1's level: 1x 8/8, log-normal 1.5x 4/4, out0 margin positive throughout)
+- 1x scatter seeds 6-9: 24/24, EQUIVALENT; out0 margin 5959/7412/7309/7151 ps (band column). Log-normal 1.5x draw 2,
+  seeds d,3,4,5: 24/24, EQUIVALENT, out0 margin 6033/6411/5990/5929 ps, no late change; longest vector 8.85-9.7 us.
+  Tables research/data/gcd_ps/p1_scatter1x.tsv, p1_logn15.tsv; BOARD-QUEUE #4 updated.
+- gcd_ps lead (690f156) status: every item of the owner's list done (audits, full stack at both corners on 8 seeds
+  with derived vectors from outside the 16, BOARD-QUEUE #4 with the formal target's .bit/.fasm and md5s, CDC
+  reading, sequential harness confirmed, FOR-RESEARCH s2/C1 reproduced on both targets' full stacks, s3 read).
+  Beyond it: the out0 bundling monitor and the PS-harness blind spot it exposed; the board script checked offline.
+Next: (1) ring128 per-ring data from the owner still blocks acceptance; (2) the umux21 finding suggests a sharper
+rule A for "no common source" pairs whose data comes from a matched link -- worth a formal look (it would be a
+soundness argument, not a measurement), not a size change; (3) goal 2 leads (rule E tightening, two-phase links)
+once the gates may move.
