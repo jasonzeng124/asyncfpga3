@@ -2497,3 +2497,11 @@ targeted episode becomes LONGER (the end event is a join of several handshakes: 
 earlier). So "latest-arriving input" paths over-approximate the risk badly for long reconvergent paths; a sound
 static bound needs the event-graph view (which inputs are NECESSARY for each transition), i.e. shard C's checker.
 Checking the top 12 kstar2 nodes in simulation now (tools-B/ps/k2sim.sh).
+
+### progress 09:14 -- separated arbitration through a routed state feedback (ArbCleanChain.lean, check.sh OK)
+`cq_clean_set_gen`: ArbClean.q_clean_set_gen for C's collapsed relation CGateOK (the state LUT's feedback through its
+copy-gate route; composite delay bounds via SpecFbChain.CBands/cbands_of_sums), by SpecFbChain.cfb_switch. With
+ArbCleanPS.targetQPS_facts (via ArbClean.hset_of_fact/hconf_of_fact) it applies to each of gcd_ps's nine state LUTs.
+**Plainly:** an arbitration whose set condition lasts at least the state LUT's routed feedback delay is decided by the
+gate relation alone, whatever the per-copy-gate read times. **Not shown:** that every gcd_ps arbitration is that
+separated in every behaviour (simulation: >= 49.9 ns, 32 single-pair vectors + one 8-pair run).
