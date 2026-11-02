@@ -1012,3 +1012,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 10:44 build26 (eb4503b7) 311/311 rc=0: C's CViewPS collapsed view + HuffmanPS; comb_ranked/collapsed/view_complete standard axioms. build27 (9d3e3a3d) started.
 - 10:51 C discharged correct_n0's side conditions: correct_n0_p1 (g=1, κ=0, R >= 353 ns; dcc8cc94) and correct_n0_all (all Sane p with κ<1, R >= Cp·A1 + 87·Cp·M1 + 1; baf03e79; Σdmin >= 1 holds because integer ceil of a positive window end). build27 at IslandChk3 (Reset module peaked at 13 GB); build28 (baf03e79: Idle0P1, Idle0All) chained after it.
 - 11:00 build27 (9d3e3a3d): 24/25 rc=0; boundary_reset, island_PS, correct_n0, RaceTablePS, RaceFrontierPS standard axioms; RaceLinkPS OOM-killed (13.8 GB, exit 137) -> UNVERIFIED. build28 (baf03e79) running.
+- 11:18 build28 (baf03e79) 12/12: correct_n0_p1/_all standard axioms; R bound 353,248 ps at (1,0). Non-vacuity open (no Lean behaviour witness for gcd_ps; C's caveat).
