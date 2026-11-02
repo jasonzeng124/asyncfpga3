@@ -1385,3 +1385,10 @@ circuit's gates kernel-checked per 2,500-gate chunk (~1-4 min, ~5 GB each).
 Env x DecodedPS.boundary 400000 su Δo (some 0) va vb` and `witness_n0_correct`: Correct holds of it (from
 correct_n0_p1). So the hypotheses of correct_n0_p1 are jointly satisfiable on the decoded gcd_ps netlist: the
 zero-pair result is not vacuous. This closes the 10:4x caveat.
+
+### progress 11:31 -- summary update
+Audit (claude/audit e07f8832) CONFIRMED correct_n0 / correct_n0_p1 / correct_n0_all, boundary_reset, HuffmanPS and
+gcd_hw_seq, with "non-vacuity open" for the zero-pair chain; witness_n0 (11:30) answers it. THE statement on THE
+target now has: n = 0 proved for every g > 0, κ < 1 (reset ≥ ⌈(1+κ)g⌉·353 ns) and shown non-vacuous at (1, 0).
+Next for C: a multi-transition witness (a computing run, n = 1, with ArbOK and SeqEnv) would show NetCorrectSeq's
+hypotheses satisfiable for n ≥ 1; the proof for n ≥ 1 needs the S4 composition (notes/C-route-S4.md).
