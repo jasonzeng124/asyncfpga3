@@ -1193,3 +1193,21 @@ equal to the roots on [A, B]: every comb node w equals v w on [A + (ρ w + 1)·M
 v is the zero-delay evaluation of THE target's acyclic logic (HuffmanPS) from the storage state, so each storage
 node's next-state can be read off an abstract Huffman machine whenever the state has been quiet long enough. Next
 toward S4: the abstract machine's state graph per handshake episode, with the per-node switch obligations.
+
+### progress 09:14 -- THE target as an abstract Huffman machine: SI fails, "latches first" works (simulation, untrusted)
+`formal/tools/cview/hufsim.py`: state = the 4,597 storage nodes; all other logic evaluated with zero delay (what
+settle_value says the timed circuit settles to); one step fires one excited storage node; env = A's sim.py sequential
+protocol. (1) **Plain speed-independent semantics (any excited storage node may fire next) is WRONG for THE target**:
+gcd(12,18) returned 2, other seeds deadlock or return 0; 53 persistence violations (ctl C-elements, forks, cm12 arbiter,
+latches). Expected for bundled data: with zero-delay logic the matched delay lines vanish, so control can outrun its
+data latches. (2) **Relative timing "every excited data latch fires before any other storage node"** (4,185 latch-like
+nodes: an enable pin one value of which makes the feedback irrelevant; 412 others: C-elements, arbiters, forks):
+11 sequential pairs (0,0 7,0 0,5 1,1 17,5 0x42F,0x1CE 0x10E,0xC0 0x10000,0x1000 0x24,0x3C 0x400,0x300 0x18697,0x18697)
+x 6 random control orders: every result = gcd, in order; every run the SAME 13,743 firings; ZERO persistence
+violations. Also 12,18 48,18 x 4 orders: correct, 0 violations. Logs: tools/cview/out/hufsim_{seq,si}.txt.
+**Meaning (if it holds in general):** THE target's control network (412 storage nodes) is speed-independent and
+determinate given (a) zero-delay settling of the logic between storage nodes and (b) data latches settling before
+control moves. So the timed proof splits exactly into: the SI control network (a determinacy/diamond argument like
+KahnLTS, on reachable states), plus two timing obligation families: (a) settle windows (settle_value) between
+storage switches, (b) bundling (latch before control), plus the per-node switch obligations (cgate_switch). **Not
+shown:** any of this in Lean; exhaustive orders (random sampling only); pipelined env (refuted anyway).
