@@ -1241,3 +1241,13 @@ and is not an obligation of THE theorem as stated); then E0 select rows from 0.1
 **Meaning:** a proof that discharges its obligations through tcheck's rules certifies at most κ ≈ 0.038 at g = 1
 (at κ = 0: g ≤ √(2890/2679) ≈ 1.039). Rules are sufficient conditions; whether violating F at cm12 actually breaks
 gcd_ps is untested (a GLS/simb adversary on that delay line would say).
+
+### progress 09:24 -- the binding tcheck row (F, cm12.udly) is not tight: adversarial simulation correct up to κ = 0.6
+B's simb.py (A's simulator + per-gate window ends) on DecodedPS, sequential env (--datachange broad), corner 1,
+posmap: ucontrol_merge12.udly's 24 stage LUTs and their routing (378 gates) at the SLOW end of the κ-widened window,
+every other gate at the FAST end (so the line flushes as late and its source re-rises as early as Adm allows).
+Pairs 12,18 48,18 17,5 0x42F,0x1CE: results [6, 6, 1, 21] correct at κ = 0, 0.06, 0.12, 0.3, 0.6 (tmax 20 µs; a
+first κ = 0 run with the default 5 µs horizon stopped before the 4th result, not a failure). So rule F's 0.038 at
+that line is a sufficient-condition artefact for this adversary; THE theorem's real κ margin is not set by it. The
+storage-node races (B: ≈ 0.42-0.5 simulated) remain the tightest real behaviour found. One adversary, 4 pairs:
+evidence, not proof.
