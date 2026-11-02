@@ -2411,3 +2411,17 @@ shapes (kstar covers episodes ended by the node's own causal path), vectors beyo
   (gates 120675, 120679), so counting them on both sides changes nothing. Matches the simulated threshold (0.4375/0.444).
 **Not shown:** that these rows/arcs are DecodedPS.net's (TargetLinkPS, generated, building: needs NetPS, ~35 min);
 that this episode is ended by this path in every behaviour; any other node or episode; dynamics.
+
+### progress 08:06 -- S3 on the real netlist: clean switch through a routed feedback (SpecFbChain.lean, check.sh OK)
+**Problem, plainly:** SpecFb.fb_switch (a storage LUT switches cleanly when its set condition lasts at least its feedback
+delay) assumed the feedback pin reads the LUT's own output directly; on both targets every feedback runs through 4-13
+copy gates. Does the rule survive, and are the integer window ends B's static margins sum (Ua1Static, RaceStaticPS)
+sound bounds on every admissible summed delay? **Lean (standard axioms):** `cfb_forced`/`cfb_stays`/`cfb_switch`: the
+SpecFb lemmas for shard C's collapsed relation `SpecChain.CGateOK` (pins read source nodes through copy chains, composite
+delay = one admissible delay per arc), with the feedback pin's source = the gate's own output and the bounds now on the
+composite (route + pin) delay; `adm_lo`/`adm_hi` (every Adm-admissible delay lies in [Ua1Static.lo, Ua1Static.hi]);
+`sumAdm_bounds` (Σ lo ≤ D ≤ Σ hi for every SumAdm composite delay D); `cbands_of_sums` (hence CBands with those sums).
+So with C's `collapse`, B's per-node race data (RaceStaticPS: loop Σ hi = 1091 ps at κ = 0.435) is exactly the `hi j`
+that `cfb_switch` needs. **Not shown:** that the forcing episode lasts >= that bound in every behaviour (causality
+through the network, the open part of S3/S4); the chain data for the target's nodes.
+Also: adv.py takes several space-separated pairs (a sequential multi-pair run); running on gcd_ps.
