@@ -2482,3 +2482,18 @@ corner-uniform κ margin is in [0.415, 0.425) (simulation at corner 0: clean 0.4
 the corner-0.5 dump): w = 0: 0.425 / 0.44 / 0.4475 at corners 0 / 0.5 / 1; w = 20 (headline): 0.44 / 0.4475 / 0.4525;
 w = 40: 0.4525 / 0.455 / 0.4575. The race opens fast with κ (~3 ps per 0.001), so the runt filter buys only
 ~0.01-0.015 here (on gcd_hw A's simulation gave 0.155 -> 0.19). Not checked: A's SpecRunt form (audit T9) or a simulation.
+
+### progress 09:12 -- coverage of the race scan: episodes ended by reconvergent paths (static estimate unsound-pessimistic)
+Corner 0.2 (kcorner): clean at κ = 0.4375, runt at 0.444, kstar 0.430 -- the table of 07:5x is complete (0, 0.2, 0.5,
+0.8, 1.0), minimum at corner 0 (0.419/0.425).
+kstar.py only covers episodes whose end traces back to the node's OWN flip. New tools-B/ps/kstar2.py covers every
+flipping episode followed by a hold: it back-traces the episode's start and end events (latest-arriving input, mid
+delays) to their first common event and asks when "P_end fast, P_start and loop slow" can make the episode shorter than
+the loop. On vector (12,18), corner 0.5: 938 episodes, 148 without a common event within 4000 hops, and the worst
+nodes get κ* = 0.000 (SLICE_X30Y76.ALUT.O6: episode 9078 ps between two ~650-arc paths from a common event ~50 ns
+earlier), 0.03, 0.045, ... **This static estimate is NOT a race:** in simulation with exactly that adversarial
+assignment (κ = 0, 0.05, 0.1, 0.2) SLICE_X30Y76.A flips as in the baseline (4 flips), the run is correct, and the
+targeted episode becomes LONGER (the end event is a join of several handshakes: speeding one path does not make it
+earlier). So "latest-arriving input" paths over-approximate the risk badly for long reconvergent paths; a sound
+static bound needs the event-graph view (which inputs are NECESSARY for each transition), i.e. shard C's checker.
+Checking the top 12 kstar2 nodes in simulation now (tools-B/ps/k2sim.sh).
