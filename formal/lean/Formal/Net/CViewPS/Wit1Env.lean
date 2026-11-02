@@ -186,4 +186,74 @@ theorem w1_all_hyps (su T : Nat) (hT : 785472 ≤ T) :
   simp only [List.all_eq_true, decide_eq_true_eq] at hl
   exact sigL_eq _ _ _ (fun θ hθ => by have := hl θ hθ; constructor <;> intro <;> omega)
 
+
+theorem countP_le_split (θ : Nat) (hθ : 1 ≤ θ) : ∀ ts : List Nat,
+    ts.countP (fun x => decide (x ≤ θ)) = ts.countP (fun x => decide (x ≤ θ - 1)) + ts.count θ
+  | [] => rfl
+  | x :: ts => by
+    rw [List.countP_cons, List.countP_cons, List.count_cons, countP_le_split θ hθ ts]
+    by_cases h1 : x = θ
+    · subst h1
+      have : ¬ (x ≤ x - 1) := by omega
+      simp [this]; omega
+    · by_cases h2 : x ≤ θ - 1
+      · have : x ≤ θ := by omega
+        simp [h2, this, h1]; try omega
+      · have : ¬ x ≤ θ := by omega
+        simp [h2, this, h1]; try omega
+
+/-- In a strictly increasing transition list, every listed time is a real toggle. -/
+theorem sigL_toggles (b : Bool) (ts : List Nat) (hs : ts.Pairwise (· < ·)) (θ : Nat) (hθ : θ ∈ ts) (h1 : 1 ≤ θ) :
+    sigL (some (b, ts)) (θ - 1) ≠ sigL (some (b, ts)) θ := by
+  simp only [sigL]
+  rw [countP_le_split θ h1 ts]
+  have hc : ts.count θ = 1 := List.Nodup.count_of_mem (hs.imp (fun h => Nat.ne_of_lt h)) hθ
+  rw [hc]
+  cases b <;> cases h : (ts.countP fun x => decide (x ≤ θ - 1)) % 2 == 1 <;> simp_all <;> omega
+
+def arbChk (T : Nat) (a : ArbNodes) : Bool :=
+  (thrL (encW1 a.q)).all fun τ => a.ins.any fun n =>
+    (thrL (encW1 n)).any fun θ => decide (τ < θ + T) && decide (θ ≤ τ) && decide (1 ≤ θ)
+
+def incr (n : Nat) : Bool := match encW1 n with
+  | some (_, ts) => decide (ts.Pairwise (· < ·))
+  | none => true
+
+theorem arbs_quick : (arbs.all fun a => arbChk 220 a && a.ins.all incr) = true := by decide +kernel
+
+/-- **H_ARB(T) for every `T ≥ 220` ps**: in the run every arbiter-state toggle comes at most 219 ps
+after a toggle of one of the state LUT's other inputs. -/
+theorem w1_arbOK (T : Nat) (hT : 220 ≤ T) : ArbOK T arbs xW1 := by
+  intro a ha t1 t2 hin t ht1 ht2
+  have hk := List.all_eq_true.mp arbs_quick a ha
+  simp only [Bool.and_eq_true] at hk
+  obtain ⟨hchk, hinc⟩ := hk
+  apply sigL_eq
+  intro θ hθ
+  constructor
+  · intro h; by_contra h'
+    -- a toggle of q at θ in (t1 + T, t]: some input toggled shortly before
+    simp only [arbChk, List.all_eq_true, List.any_eq_true, Bool.and_eq_true, decide_eq_true_eq] at hchk
+    obtain ⟨n, hn, θ', hθ', ⟨⟨h1, h2⟩, h3⟩⟩ := hchk θ hθ
+    have hi := List.all_eq_true.mp hinc n hn
+    have hc := hin n hn
+    cases he : encW1 n with
+    | none => simp [thrL, he] at hθ'
+    | some pr =>
+      obtain ⟨b, ts⟩ := pr
+      simp only [thrL, he] at hθ'
+      simp only [incr, he, decide_eq_true_eq] at hi
+      have tog := sigL_toggles b ts hi θ' hθ' h3
+      have e1 := hc (θ' - 1) (by omega) (by omega)
+      have e2 := hc θ' (by omega) (by omega)
+      simp only [xW1, he] at e1 e2
+      exact tog (e1.trans e2.symm)
+  · intro h; omega
+
+theorem w1_all_hyps' (su T : Nat) (hT : 220 ≤ T) :
+    Behaves p1 (circuit net boundary) xW1 ∧ ArbOK T arbs xW1 ∧
+    Env xW1 boundary 400000 su 3000 (some 1) (fun _ => 12) (fun _ => 18) ∧ SeqEnv xW1 boundary 400000 := by
+  obtain ⟨h1, h2, h3⟩ := w1_hyps su
+  exact ⟨h1, w1_arbOK T hT, h2, h3⟩
+
 end Formal.Net.CViewPS

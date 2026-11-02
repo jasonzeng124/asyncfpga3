@@ -1432,3 +1432,8 @@ quiet/reset/boundary-reset theorems; Spec.Correct for n = 0 for every g > 0, κ 
 (witness_n0); a Lean-checked gate-level run computing gcd(12, 18) on the decoded bitstream (behaves_w1, w1_result) that
 meets every hypothesis of NetCorrectSeq for n = 1 (w1_all_hyps, T ≥ 785 ns). Open: NetCorrectSeq for n ≥ 1 (the cell-level
 composition S4, with the per-storage-node switch obligations and bundling windows; see notes/C-route-S4.md).
+### progress 12:18 -- w1_arbOK: the one-pair witness meets H_ARB(T) for every T ≥ 220 ps
+`w1_arbOK` / `w1_all_hyps'` (Wit1Env.lean; standard axioms; scan clean): every arbiter-state toggle in the run comes at
+most 219 ps after a toggle of one of its state LUT's other inputs (kernel-checked, with the transition lists strictly
+increasing so each listed time is a real toggle: `sigL_toggles`), hence ArbOK T for all T ≥ 220. This covers the
+audit's meaningful range (T ≥ the state LUT's delay, ≤ 664 ps at g = 1), replacing the weak T ≥ 785 ns of w1_all_hyps.
