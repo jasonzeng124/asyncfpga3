@@ -2174,3 +2174,7 @@ Next: as in progress 00:37 above.
   scatter is shown on gcd_hw R5 (BQ#2 seed 6 at 1.5-1.75x, BQ#3 seed 9 at 1.75-2x), not on this design. The
   difference is the sizing: P1 keeps bdc's default lengths (plus one pad) where R5 tightened every chain.
 - Does NOT show: that silicon's within-die variation is log-normal or bounded like this; draws other than 2 above 1.5x.
+### progress 03:03 (is it the sizing? BQ#1 at log-normal 3x)
+- To test the explanation that P1's default lengths are why gcd_ps survives 3x-5x while R5 (BQ#2/3) fails at 1.5-2x:
+  BQ#1 (gcd_hw, default lengths, same pads/placement) at log-normal 3x draw 2 on seeds d,3,4,5 (seeds_fid, existing
+  routes). Running.
