@@ -97,6 +97,9 @@ def run(seed):
         return False
     if not fire_until_stable(): return ("reset did not settle",)
     setenv(nb("rst"), False); fire_until_stable()
+    ctrl = sorted(stor - LATCH)
+    idle0 = {s: val[s] for s in ctrl}
+    run.idle_diffs = []
     pairs = [tuple(int(x, 0) for x in p.split(",")) for p in a.pairs]
     k = 0; results = []; req = nb("req"); acks = [nb("a_ack"), nb("b_ack"), nb("start_ack")]
     oR, oA, pA = nb("out0_req"), nb("out0_ack"), nb("pend_ack")
@@ -117,12 +120,16 @@ def run(seed):
             results.append(sum((1 << b) for b, nm in enumerate(B["out0_data"]) if val[idx[nm]])); setenv(oA, True)
         elif not val[oR] and val[oA]:
             setenv(oA, False); k += 1; waiting_out = False
+            fire_until_stable_ctrl = None
         if val[pend_req] != val[pA] and False: pass
         setenv(pA, val[pend_req])
         ex = set(excited())
         for s in prev_ex - ex:
             if not hasattr(run, "fired") or s != run.fired: persist[s] += 1
         if not ex:
+            if waiting_out is False and not val[req] and not val[oA]:
+                d = [N[s] for s in ctrl if val[s] != idle0[s]]
+                if d not in run.idle_diffs: run.idle_diffs.append(d)
             if k >= len(pairs) and not val[oR] and not val[oA]: break
             return ("deadlock", results, k, persist)
         pool = sorted(ex & LATCH) if (a.latch_first and ex & LATCH) else sorted(ex)
@@ -134,6 +141,7 @@ tot = collections.Counter()
 for r in range(a.runs):
     res = run(a.seed + r)
     exp = [math.gcd(x, y) for x, y in (tuple(int(v, 0) for v in p.split(",")) for p in a.pairs)]
+    print("idle-state differences seen at quiescent points (control storage):", [len(d) for d in run.idle_diffs], (run.idle_diffs[-1][:5] if run.idle_diffs else None))
     print("run", r, res[0], "results", res[1] if len(res) > 1 else None, "expected", exp, "steps", res[2] if len(res) > 2 else None)
     if len(res) > 3: tot.update(res[3])
 print("persistence violations (node: count) over all runs:", len(tot))

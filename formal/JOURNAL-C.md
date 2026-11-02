@@ -1344,3 +1344,11 @@ tight in an adversarial simulation up to κ = 0.6); Huffman-machine simulation (
 determinate and correct); static storage-switch table (κ* ≥ 0.142).
 STATUS suggestion (A owns the file): S5 token level done; for NetCorrectSeq the n = 0 case is proved; S2's loop part
 is localized to storage nodes (comb_ranked + SpecLoop); S4/S6 for n ≥ 1 open.
+
+### progress 10:46 -- after each pair the control returns to the reset idle state, up to 2 arbiter-site nodes (simulation)
+hufsim (latches first), pairs 12,18 48,18 17,5 0,0, 2 orders: at every quiescent point between pairs, the 412
+non-latch storage nodes equal their post-reset idle values except SLICE_X39Y21.C6 and SLICE_X39Y24.A6 (arbiter sites
+in B's table: an arbiter remembers its last grant). The idle island of island_PS treats arbiter states as unknown,
+so (if this holds in general) the same island keeps the circuit idle between pairs: the n = 0 argument is the
+"between pairs" step of a multi-pair proof. Side note: with the env acting between every firing, one persistence
+violation at SLICE_X3Y22.D6 (next to start.ack) and run lengths 3947/3949: an interface-order effect to look at.
