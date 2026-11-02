@@ -1005,3 +1005,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 07:50 started T12 FAST_MIN spot-check of research 28993bba (1000/1000 at both corners): chunk c07 of gcd_ps_vec1000.hex (lines 449-512, 64 vectors) on my rebuild, my oracle. Fixed run_ps.sh output cap (head -80 would truncate 64-vector runs; now 400).
 - 08:11 T12 row 3: research's vec1000 chunk c07 at FAST_MIN on my rebuild: 64/64 by my oracle, min margin 4112 ps = research. Row added.
 - 08:22 T14: B's RaceStaticPS (κ 0.435/0.44) confirmed on my gcd_ps decode (unique path, loop, sums with new Adm, cell name); ArbCleanPS data 9/9 (INIT, fb pin, tied pin); SpecFbChain + SpecChain compile, standard axioms.
+- 08:54 T15: C's HuffmanPS recounted on my decode (19878/4597/15281, acyclic, depth 96) = C's numbers; B's TargetLinkPS compiles (concatenated), standard axioms. CViewPS Lean build to queue.
