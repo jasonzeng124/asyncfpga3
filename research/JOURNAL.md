@@ -2158,3 +2158,10 @@ Next: as in progress 00:37 above.
   late change (p1_logn2x.tsv). For comparison, BQ#3 seed 9 fails between 1.75x and 2x (draw 1) and BQ#2 seed 6
   between 1.5x and 1.75x. Not a like-for-like comparison (different kernel harness, draw 2 not 1), but no gcd_ps
   route has shown a scatter failure yet. Running: 3x on all 8 to find what fails first.
+### progress 02:49 (gcd_ps survives log-normal 3x on all 8 seeds; controls queued)
+- Log-normal 3x (region 0.48 + wire 0.378), draw 2: 8/8 seeds 24/24, EQUIVALENT, out0 margin +5.07..+11.78 ns, no
+  late change (p1_logn3x.tsv). Scatter was applied (provenance: scatter 0.378 region 0.48 logn 1; run times move
+  with scale: seed d 131 us at 1.5x, 145 at 2x, 160 at 3x). P1 is BQ#1-type sizing (defaults + one pad), not the
+  tightened R5 of BQ#2/3, which is the expected reason it has more scatter margin.
+- An all-pass scan is only evidence if the same stack can fail on this design: queued the umux21=1-link control
+  route at 3x (does the margin go negative?) and P1 seed d at 5x (region 0.80 + wire 0.63).
