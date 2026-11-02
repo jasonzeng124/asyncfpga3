@@ -1050,3 +1050,16 @@ does not leave a DAG, so SpecSettle's topological certificate (`certOK`) cannot 
 the obligations have to be event-based (per handshake phase, latch-enable windows), as rules A/E/F/J are. Next:
 collapse the copy chains in Lean (pin -> source node with summed corner window), so cell-level reasoning works on
 ~12k logic gates instead of 187k nodes.
+
+### progress 08:10 -- SpecChain CLAIMED: routing chains collapse in the Spec's semantics
+`Formal/Timing/SpecChain.lean` (imports SpecSettle; `check.sh Formal/Timing/SpecChain.lean` OK; `#print axioms
+collapse_net`: propext, Classical.choice, Quot.sound).
+**Problem.** In `DecodedPS.net` every pip/wire/site hop is a copy gate, so a LUT pin reaches its driving LUT through
+4-13 copy gates, each with its own read time and admissible delay. Can cell-level reasoning treat "pin i reads node s
+with one delay"? **Proved** (Spec's GateOK, Sane (0 ≤ κ ≤ 1, 0 < g), one corner c ∈ [0,1]): `chain_read`: along a copy
+chain (`chainOK`, a Bool check) there is one non-decreasing read time F with x v t = x u (F t) and t - F t a sum of one
+Adm-admissible delay per chain arc at the same corner (`SumAdm`); `collapse`/`collapse_net`: a gate whose pins read
+through such chains (gates of the netlist) satisfies `CGateOK`, GateOK's shape with sources for pin nodes and summed
+delays (pin arc first), from `g.start + Σ (chainStart + dmax)` on. Glitches, transport and pulse swallowing of the
+chain are kept (it is the composition of the reads). **Not shown:** the chains of the target (data + a check on
+DecodedPS.net: next); one net with several readers is collapsed per reader (they may see it at different delays).
