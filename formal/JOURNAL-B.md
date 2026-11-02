@@ -2568,3 +2568,13 @@ container's memory-cgroup OOM killer (exit 137, dmesg), while three simulations 
 no Lean error was reported. One earlier plain \`lake env lean\` elaboration of the same file did finish with no error
 (3.5 min), but that is not check.sh (no axiom audit). Until a check.sh run passes, RaceLinkPS is UNCHECKED. Re-running
 with the simulations stopped; if it is still too large, rows_arcs will be split.
+
+### progress 11:22 -- RaceLinkPS withdrawn from the branch until it checks; split by netlist chunks
+The monolithic RaceLinkPS (685355ef) is removed from the branch: its kernel check needs ~13.8 GB (the container's
+memory-cgroup limit; OOM-killed 3 times), so it is unchecked and would break anyone's `check.sh --committed`.
+Cause: the check unfolds every netlist chunk (g000..g074) a row's gates live in; memory tracks the number of distinct
+chunks per process, not the number of rows (a 5-row-block split still died on the files whose rows touch 50+ chunks).
+New layout (tools-B/ps/gen_racelink_ps.py): RaceLinkPS/Defs (definitions, `cat_get`, `arcAt_eq`, `rowP`, `cover`), 25
+files RaceLinkPS/Bxx with one theorem per row, each file's rows touching <= 35 chunks, and the top file assembling
+`rows_linked : ∀ i < 185, rowP i = true`. In the 5-row layout, the files covering rows 0-159 passed check.sh; the
+25-file run is going now. Nothing about RaceLinkPS is claimed until it passes.
