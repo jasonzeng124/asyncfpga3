@@ -2251,3 +2251,6 @@ failing scatter scale, not only by rules and corners.
   is a route-specific placement (uori3 far from its datapath) that x1.25 could not even be routed on. Seed 10
   (both arms) running, then log-normal 3x draw 1 on 7-10 of both arms, where failures should be common enough
   to compare rates. Cost so far: -6..-10% SLOW_MAX laps on vector 6.
+### progress 16:21 (R5x1.25 seed 10; R5 seed 10 routed clean)
+- R5x1.25 seed 10: every audit clean; SLOW_MAX PASS 26/21/31; log-normal 2x draw 1 PASS 38/29/46. R5 seed 10 routed,
+  every audit clean; its SLOW_MAX and 2x runs are running, then 3x draw 1 on 7-10 of both arms.
