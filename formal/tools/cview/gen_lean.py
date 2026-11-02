@@ -27,7 +27,9 @@ for c in range(nch):
     vals = [cpk(g) for g in gs] + [None] * (2 ** D - len(gs))
     with open(f"{out}/T{c:03d}.lean", "w") as f:
         f.write(f"import {NS}.Base\n\n" + HDR + f"namespace {NS}\nopen Formal.Target Formal.Target.DecodedPS Formal.Timing.ChunkCM\n\n")
+        f.write("set_option maxRecDepth 100000 in\n")
         f.write(f"def t{c:03d} : BT :=\n  {tree(vals, D)}\n\n")
+        f.write("set_option maxRecDepth 100000 in\n")
         f.write(f"theorem t{c:03d}_fact : t{c:03d}.perf {D} = true ∧\n"
                 f"    t{c:03d}.toList = g{c:03d}.map (cpK keepPS) ++ List.replicate (2 ^ {D} - g{c:03d}.length) none ∧\n"
                 f"    outsOK g{c:03d} ({C} * {c}) = true ∧ g{c:03d}.length ≤ {C} :=\n"
@@ -51,6 +53,7 @@ for c in range(nch):
         f.write(f"import {NS}.CM\n\n" + HDR + f"namespace {NS}\nopen Formal.Target Formal.Target.DecodedPS Formal.Timing.ChunkCM Formal.Timing.SpecChainM\n\n")
         f.write("set_option maxRecDepth 100000 in\n")
         f.write(f"def v{c:03d} : List PinData := [\n  " + ",\n  ".join(ents) + "]\n\n")
+        f.write("set_option maxRecDepth 100000 in\n")
         f.write(f"theorem v{c:03d}_ok : chunkViewOK cmPS keepPS g{c:03d} v{c:03d} = true := by decide +kernel\n\n")
         f.write(f"end {NS}\n")
 L = lambda pre: ", ".join(f"{pre}{c:03d}" for c in range(nch))
@@ -60,11 +63,12 @@ with open(f"{out}/CM.lean", "w") as f:
     f.write(f"def tl : List BT := [{L('t')}]\n\ndef cs : List (List Gate) := [{L('g')}]\n\n")
     f.write(f"/-- The copy map of THE target's circuit. -/\ndef cmPS : Nat → Option Nat := cmOf tl {C} {D}\n\n")
     f.write("theorem cs_len : cs.length = %d := rfl\ntheorem tl_len : tl.length = cs.length := rfl\n\n" % nch)
-    f.write("/-- One chunk fact per chunk, moved from the one-chunk lists of `T*.lean`. -/\n")
+    f.write("set_option maxRecDepth 100000 in\nset_option maxHeartbeats 4000000 in\n")
+    f.write("/-- One chunk fact per chunk (from `T*.lean`). -/\n")
     f.write(f"theorem facts : ∀ c, c < cs.length → ChunkFact tl cs keepPS {C} {D} c := by\n  intro c hc\n  rw [cs_len] at hc\n  match c, hc with\n")
     for c in range(nch):
-        f.write(f"  | {c}, _ => unfold ChunkFact; exact t{c:03d}_fact\n")
-    f.write(f"  | n + {nch}, h => absurd h (by omega)\n\nend {NS}\n")
+        f.write(f"  | {c}, _ => simp only [ChunkFact, tl, cs, List.getD_cons_succ, List.getD_cons_zero]; exact t{c:03d}_fact\n")
+    f.write(f"  | n + {nch}, h => exact absurd h (by omega)\n\nend {NS}\n")
 with open(f"{out}/All.lean", "w") as f:
     f.write("".join(f"import {NS}.V{c:03d}\n" for c in range(nch)) + "\n" + HDR)
     f.write(f"namespace {NS}\nopen Formal.Target Formal.Target.DecodedPS Formal.Timing.ChunkCM Formal.Timing.SpecChainM\n\n")
