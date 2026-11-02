@@ -1588,3 +1588,9 @@ time). Plainly: every pip and every LUT INIT bit of THE target's decoded Lean ne
 and every such bit of the read-back is a gate, each once (14,322 leftovers listed); every LUT5 output is the low half
 of its LUT6. Not shown: as for BQ#1 (wire-to-node merge, output-mux and carry selects, FASM parsing, leftovers'
 meaning).
+### progress 00:36 -- H_RUNT on gcd_ps: B's ua1 adversary does not carry over; full --wit check started
+B's per-pin adversary (cex_ua1_posmap_pin.json) is keyed by the old net's gate indices; mapped through gate names,
+2 of its 25 entries exist in gcd_ps (ua1 is placed elsewhere: the old SLICE_X2Y18 gates are absent). Rebuilding the
+adversary on gcd_ps needs B's causal-path tooling (tools-B/target); not done. Started `check.sh --wit --committed`
+(lake build of every committed module, then every FormalWit module one at a time, then the audit), expected many
+hours; its result will be journaled if the session lasts.
