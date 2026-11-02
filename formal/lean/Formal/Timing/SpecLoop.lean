@@ -293,4 +293,55 @@ theorem quiet_forever {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 
     · have : T - M = t + 1 := by omega
       rw [this]
 
+
+/-- `s` toggles at `u` (changes between `u - 1` and `u`). -/
+def Toggles (s : Sig) (u : Nat) : Prop := s (u - 1) ≠ s u
+
+/-- **Light cone (causality bound).** Logic nodes are collapsed gates (output = the node) whose
+pin sources are logic nodes or roots. `φ` is a potential: `φ w ≤ φ (src w i) + Σdmin` for every
+pin (shortest-path lower bounds), with `Σdmin ≥ 1` unless the source is a root or a constant
+(`k = 0`) gate; every composite `Σdmax ≤ M`; starts ≤ `A - M`. If nothing (logic or root)
+toggles in `(A - M, A]` and no root `r` toggles in `(A, φ r)`, then no logic node `w` toggles in
+`(A, φ w)`. Read with `φ` = "event time + shortest path delay": a change cannot reach a node
+faster than the fastest path from its cause. This is the causality half of the storage-node
+switch obligation (B's `cfb_switch`, `SpecLoop.cgate_switch`): the forcing of a storage node
+cannot be withdrawn, as a consequence of its own switch, sooner than its fastest return path. -/
+theorem light_cone {p : DelayPar} {c : ℚ} {x : Beh} (hp : Sane p) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    (node root : Nat → Prop) (gate : Nat → Gate) (src : Nat → Nat → Nat)
+    (arcs : Nat → Nat → List Arc) (S : Nat → Nat) (φ : Nat → Nat) (M A : Nat) (hMA : M ≤ A)
+    (hg : ∀ w, node w → (gate w).out = w ∧ CGateOK p c (gate w) (src w) (arcs w) (S w) x)
+    (hord : ∀ w, node w → ∀ i, i < (gate w).k → ArcsOrd (arcs w i))
+    (hsrc : ∀ w, node w → ∀ i, i < (gate w).k → root (src w i) ∨ node (src w i))
+    (hM : ∀ w, node w → ∀ i, i < (gate w).k →
+      (1 ≤ sumMin p (arcs w i) ∨ root (src w i) ∨ (gate (src w i)).k = 0) ∧ sumMax p (arcs w i) ≤ M)
+    (hpot : ∀ w, node w → ∀ i, i < (gate w).k → φ w ≤ φ (src w i) + sumMin p (arcs w i))
+    (hS : ∀ w, node w → S w ≤ A - M)
+    (hpre : ∀ n, node n ∨ root n → ∀ u, A - M < u → u ≤ A → ¬ Toggles (x n) u)
+    (hroot : ∀ r, root r → ∀ u, A < u → u < φ r → ¬ Toggles (x r) u) :
+    ∀ w, node w → ∀ t, A < t → t < φ w → ¬ Toggles (x w) t := by
+  intro w hw t
+  induction t using Nat.strong_induction_on generalizing w with
+  | _ t ih =>
+    intro hA hφ htog
+    obtain ⟨hout, hcg⟩ := hg w hw
+    have hne : x (gate w).out (t - 1) ≠ x (gate w).out t := by rw [hout]; exact htog
+    obtain ⟨i, hi, u, u1, u2, u3⟩ := cgate_cause hp hc0 hc1 (hord w hw) hcg
+      (by have := hS w hw; omega) (by omega) hne
+    obtain ⟨m1, m2⟩ := hM w hw i hi
+    have hp' := hpot w hw i hi
+    by_cases huA : u ≤ A
+    · rcases hsrc w hw i hi with hr | hn
+      · exact hpre _ (Or.inr hr) u (by omega) huA u3
+      · exact hpre _ (Or.inl hn) u (by omega) huA u3
+    · rcases hsrc w hw i hi with hr | hn
+      · exact hroot _ hr u (by omega) (by omega) u3
+      · rcases m1 with m1 | m1 | m1
+        · exact ih u (by omega) _ hn (by omega) (by omega) u3
+        · exact hroot _ m1 u (by omega) (by omega) u3
+        · obtain ⟨ho', hcg'⟩ := hg _ hn
+          have : x (gate (src w i)).out (u - 1) ≠ x (gate (src w i)).out u := by rw [ho']; exact u3
+          obtain ⟨i', hi', -⟩ := cgate_cause hp hc0 hc1 (hord _ hn) hcg'
+            (by have := hS _ hn; omega) (by omega) this
+          omega
+
 end Formal.Timing.SpecLoop

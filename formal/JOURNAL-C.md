@@ -1167,3 +1167,14 @@ Checked on the data: 368 composite pins have Σfmin = 0 (CARRY4 pieces reading t
 tie), so "every pin ≥ 1 ps" would have made quiet_PS vacuous at every p. quiet_forever/quiet_PS now require ≥ 1 ps
 only for pins whose source is a non-constant logic node (a zero-delay pin from a root or a k = 0 gate is handled:
 a k = 0 gate never toggles, by cgate_cause). Rebuilt; standard axioms; check.sh OK.
+
+### progress 09:00 -- SpecLoop.light_cone (causality bound), check.sh OK
+For collapsed logic nodes over roots, a potential φ with φ w ≤ φ(src w i) + Σdmin for every pin (Σdmin ≥ 1 unless the
+source is a root or a k = 0 constant), Σdmax ≤ M, starts ≤ A - M: if nothing toggles in (A - M, A] and no root r
+toggles in (A, φ r), then no logic node w toggles in (A, φ w). Plainly: a change cannot reach a node faster than the
+fastest delay path from its cause. With φ = T0 + shortest path from a storage node s (and every other root quiet), it
+bounds how soon s's own switch can withdraw its forcing: the causal half of the per-storage-node switch obligation
+(B's cfb_switch / my cgate_switch; B wrote the CGateOK feedback lemmas in parallel, SpecFbChain, 08:06: same content,
+no conflict). **Not shown:** the isolation hypothesis (in a running circuit other inputs move concurrently; that
+needs the handshake-level argument, S4), and a kernel-checked φ for THE target (needs a concrete p: Σdmin is computed
+from p).
