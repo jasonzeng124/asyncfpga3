@@ -1280,3 +1280,19 @@ start.ack are themselves reset-forced storage nodes (low by reset_state). Python
 reset. lake build OK, standard axioms, scan clean. This is the initial-state half of Correct's CircIn/CircOut for
 the circuit's outputs (given R large enough); **not shown:** pend's request (shared with the input request, an env
 node) needs nothing; anything after reset.
+
+### progress 10:04 -- island_PS CLAIMED: THE target stays idle when nothing is offered, whatever its data latches hold
+Generic `Formal/Timing/Island.lean` (check.sh OK): `ForcesP` (some pins at given values force the INIT whatever the
+others read), `forcesP_sound`, `settle_partial` (ranked settling with partial forcing), `island_forever` (if every
+member of a self-confirming island holds its value for M ps and the env members hold theirs, all hold for ever).
+Instance `Formal/Net/CViewPS/Island{Data,Defs,Chk0..7,PS}.lean` (data from tools/cview/idlex.py: a ternary
+fixpoint with every data latch and arbiter state X, then the island grown back from the four outputs). lake build OK
+(1305 jobs; the one-decide version peaked at ~14 GB and was killed, so the check is split in 8 chunks);
+`#print axioms island_PS`: propext, Classical.choice, Quot.sound; scan clean.
+**Plainly** (`island_PS`): in every behaviour of THE theorem's circuit (Sane p), at its corner: if reset is high on
+[0, R), the shared input request (186985) and pend.ack (104477) are low at all times, every island member starts
+and every storage member's reset arrives by A, member pin delays are in [1, M] on forcing pins and ≤ M on all pins,
+and A + 87·M ≤ R - 1, then all 414 island members are low from R - 1 - M on, for ever: in particular a.ack, b.ack,
+start.ack and out0.req. Kernel-checked per member: logic node; forcing pins' sources are members or the two env
+nodes; those pins at 0 force the INIT to 0 whatever the other pins (data latches, arbiter states) read; comb members'
+member sources have smaller rank (≤ 85); the 94 storage members are reset-forced to 0. Next: Correct for n = some 0.

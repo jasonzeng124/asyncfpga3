@@ -1,4 +1,11 @@
-import Formal.Net.CViewPS.IslandData
+import Formal.Net.CViewPS.IslandChk0
+import Formal.Net.CViewPS.IslandChk1
+import Formal.Net.CViewPS.IslandChk2
+import Formal.Net.CViewPS.IslandChk3
+import Formal.Net.CViewPS.IslandChk4
+import Formal.Net.CViewPS.IslandChk5
+import Formal.Net.CViewPS.IslandChk6
+import Formal.Net.CViewPS.IslandChk7
 
 /-!
 # THE target stays idle when no pair is offered (shard C)
@@ -26,22 +33,8 @@ open Formal.Target Formal.Target.DecodedPS Formal.Timing.SpecSettle Formal.Timin
   Formal.Timing.SpecChainM Formal.Timing.ChunkCM Formal.Timing.Huffman Formal.Timing.SpecLoop
   Formal.Timing.Island
 
-def memI (w : Nat) : Bool := islandList.any fun e => e.1 == w
-def envI (e : Nat) : Bool := e == 186985 || e == 104477
-def psI (w : Nat) : List Nat := ((islandList.find? fun e => e.1 == w).map fun e => e.2.2).getD []
-def valI : Nat → Bool := fun _ => false
-def storI (w : Nat) : Bool := isStor (gAt cs 2500 w) (pvAt vss 2500 w)
-
-def entryOK (e : Nat × Bool × List Nat) : Bool :=
-  logicB e.1 && (e.2.1 == false) && (psI e.1 == e.2.2) &&
-  (e.2.2.all fun j => decide (j < (gAt cs 2500 e.1).k) && (memI (srcPS e.1 j) || envI (srcPS e.1 j))) &&
-  ForcesP (gAt cs 2500 e.1).k (gAt cs 2500 e.1).init (asgOf srcPS valI e.1 e.2.2) false &&
-  (if storI e.1 then resetList.any (fun r => r.1 == e.1 && r.2.2 == false)
-   else (decide ((rkPS e.1).getD 0 ≤ 85)) && e.2.2.all fun j =>
-     !(memI (srcPS e.1 j) && !storI (srcPS e.1 j)) || decide ((rkPS (srcPS e.1 j)).getD 0 < (rkPS e.1).getD 0))
-
-set_option maxRecDepth 100000 in
-theorem island_ok : islandList.all entryOK = true := by decide +kernel
+theorem island_ok : islandList.all entryOK = true := by
+  simp only [islandList, List.all_append, isl0_ok, isl1_ok, isl2_ok, isl3_ok, isl4_ok, isl5_ok, isl6_ok, isl7_ok, Bool.and_self]
 
 theorem entry_of_mem {w : Nat} (h : memI w = true) : ∃ e ∈ islandList, e.1 = w ∧ entryOK e = true := by
   obtain ⟨e, he, hw⟩ := List.any_eq_true.mp h
@@ -124,9 +117,9 @@ theorem island_PS {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circui
       obtain ⟨hjk, hsrc⟩ := (entry_facts hw.1).2.1 j hj
       refine ⟨hjk, ?_⟩
       rcases hsrc with hm | he
-      · cases hst : storI (srcPS w j)
-        · exact Or.inr ⟨⟨hm, hst⟩, ((entry_facts hw.1).2.2.2.2 hw.2).2 j hj hm hst⟩
+      · rcases Bool.eq_false_or_eq_true (storI (srcPS w j)) with hst | hst
         · exact Or.inl (Or.inl ⟨hm, hst⟩)
+        · exact Or.inr ⟨⟨hm, hst⟩, ((entry_facts hw.1).2.2.2.2 hw.2).2 j hj hm hst⟩
       · exact Or.inl (Or.inr he))
     (fun w hw => hM w hw.1) (fun w hw => hS w hw.1)
     (by
@@ -145,10 +138,10 @@ theorem island_PS {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circui
     (fun w hw => by have := hS w hw; omega)
     (fun e he t _ => henv e he t)
   intro w hw t h1 h2
-  cases hst : storI w
+  rcases Bool.eq_false_or_eq_true (storI w) with hst | hst
+  · exact hstor w hw hst t (by omega) h2
   · have hr := ((entry_facts hw).2.2.2.2 hst).1
     have hmul : ((rkPS w).getD 0 + 1) * M ≤ 86 * M := Nat.mul_le_mul_right M (by omega)
     exact hcomb w ⟨hw, hst⟩ t (by omega) h2
-  · exact hstor w hw hst t (by omega) h2
 
 end Formal.Net.CViewPS
