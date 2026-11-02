@@ -2193,3 +2193,11 @@ Next: as in progress 00:37 above.
 - BQ#1 (gcd_hw, default lengths) log-normal 3x draw 2: seed d PASS 16/16 errs 0 (vec 6 laps 24/18/28), seed 3 PASS
   16/16 (25/19/28), EQUIVALENT; default-seed sdf 6f8b99e6 again. Consistent with the sizing explanation: both
   default-length builds (BQ#1, BQ#4) survive 3x where the tightened R5 builds fail at 1.5-2x. Seeds 4, 5 running.
+### progress 04:04 (R6 considered and dropped; all 1000 board vectors queued on the formal target)
+- R6 (R5 with only uori2/uori3 padded, to keep R5's speed with BQ#1's scatter margin) considered and dropped: R5
+  has uori2/3/4 at 19-20 links vs 84 in BQ#1, and covering a 3-sigma log-normal 2x region ratio (~2.6x) by padding
+  alone means roughly doubling those loop-body chains, a large speed cost; co-location was the real cure and
+  region placement does not legalize (JOURNAL 10-31). R5 passes 1.5x on two draws, which is above the measured
+  scatter. Not pursued.
+- Queued after BQ#1's 3x seeds: research/board/gcd_ps_vec1000.hex in 16 chunks of 64 on the formal target (P1
+  seed d), full stack, both corners, out0 monitor on, so every vector the board will run has a GLS verdict first.
