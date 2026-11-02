@@ -1594,3 +1594,8 @@ B's per-pin adversary (cex_ua1_posmap_pin.json) is keyed by the old net's gate i
 adversary on gcd_ps needs B's causal-path tooling (tools-B/target); not done. Started `check.sh --wit --committed`
 (lake build of every committed module, then every FormalWit module one at a time, then the audit), expected many
 hours; its result will be journaled if the session lasts.
+### progress 03:30 -- full --wit check stopped by a full disk (not a proof failure); freed space, re-running
+`check.sh --wit --committed` failed at FormalWit.RTPS.C016 with "resource exhausted (error code: 28, no space left
+on device)". The default build had passed (4133 jobs). Freed ~4.7 GB (private olean copies whose results are
+already journaled, round-trip scratch). lake's FormalWit build tree is ~4 GB of oleans + 1.7 GB of IR for the two
+round trips: anyone running --wit needs ~8 GB free. Re-running (lake skips what is built).
