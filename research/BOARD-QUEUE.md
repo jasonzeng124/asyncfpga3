@@ -57,6 +57,8 @@ default-seed sdf 6f8b99e6 reproduced): 16/16 errs=0 and bits EQUIVALENT on all 1
 nominal GLS holds at both corners). Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, draw 1): 8/8 seeds
 PASS (vec 6 laps 23-29).
 Log-normal (bounded) within-die scatter 1.5x (region 0.24 + wire 0.189), draw 2: 8/8 seeds PASS (vec 6 laps 24-32).
+Log-normal 3x (region 0.48 + wire 0.378), draw 2, seeds d,3,4,5: 4/4 PASS 16/16 errs 0 (vec 6 laps 21-27;
+research/data/fid/bq1_logn3x_draw2.tsv). The default lengths carry far more scatter margin than R5 (#2/#3 fail at 1.5-2x).
 
 ## 2. gcd_hw with route-measured matched-delay sizes (R5) -- ~1.9x laps in routed GLS; every audit and routed GLS (nominal + corners) clean on 8 routes
 Same rig, pads and placement as #1, plus per-cell matched-delay sizes `research/data/gcd_hw_sizes_R5.vh`

@@ -2201,3 +2201,9 @@ Next: as in progress 00:37 above.
   scatter. Not pursued.
 - Queued after BQ#1's 3x seeds: research/board/gcd_ps_vec1000.hex in 16 chunks of 64 on the formal target (P1
   seed d), full stack, both corners, out0 monitor on, so every vector the board will run has a GLS verdict first.
+### progress 04:54 (BQ#1 survives log-normal 3x: 4/4; the sizing explanation holds)
+- BQ#1 log-normal 3x draw 2: d, 3, 4, 5 all PASS 16/16 errs 0, EQUIVALENT (vec 6 laps 24/25/21/27 vs ~16 at SLOW_MAX,
+  ~46 at FAST_MIN). Both default-length builds (BQ#1 on gcd_hw, BQ#4 on gcd_ps) survive 3x on every seed tried;
+  both tightened R5 builds (BQ#2, BQ#3) have a seed that fails between 1.5x and 2x. So R5's ~1.9x speed is bought
+  with scatter margin, and the margin it keeps (>=1.5x on draws 2-3) is still above the measured 8.5% ring scatter.
+  The board order in BOARD-QUEUE (#1 first) already matches this.
