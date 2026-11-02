@@ -2245,3 +2245,9 @@ failing scatter scale, not only by rules and corners.
 ### progress 14:00 (R5 arm at log-normal 2x draw 1: seeds 7, 8 PASS)
 - R5 seeds 7 (51/39/58) and 8 (41/32/48) PASS log-normal 2x draw 1; seed 6 FAILs it (errs 3). So far R5 2/3 vs
   R5x1.25 3/3 on the seeds that place: not yet discriminating. R5 seed 9 and seed 10 (both arms) running.
+### progress 15:09 (R5 vs R5x1.25 at log-normal 2x draw 1: not discriminating)
+- R5 seed 9 PASS (45/36/53). At log-normal 2x draw 1: R5 3/4 (seed 6 FAIL; 7, 8, 9 PASS), R5x1.25 3/3 (7, 8, 9; seed 6
+  does not place). On the routes both arms have, both pass, so 2x draw 1 cannot tell them apart; R5's one failure
+  is a route-specific placement (uori3 far from its datapath) that x1.25 could not even be routed on. Seed 10
+  (both arms) running, then log-normal 3x draw 1 on 7-10 of both arms, where failures should be common enough
+  to compare rates. Cost so far: -6..-10% SLOW_MAX laps on vector 6.
