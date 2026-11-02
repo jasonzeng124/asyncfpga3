@@ -2189,3 +2189,7 @@ Next: as in progress 00:37 above.
   target passes nominal and log-normal 2x draw 2 on seed d, EQUIVALENT, out0 margin min 5738 ps = research's row;
   6f0d3d92: decoded LUT/MUXF of every kernel site agree with the bits, Lean data and nextpnr. No REFUTED or
   OVERSTATED row on research's gcd_ps work. (Not re-run by the auditor: seeds 3-9, FAST_MIN, 1.5x draws.)
+### progress 04:02 (BQ#1 at log-normal 3x: d, 3 PASS)
+- BQ#1 (gcd_hw, default lengths) log-normal 3x draw 2: seed d PASS 16/16 errs 0 (vec 6 laps 24/18/28), seed 3 PASS
+  16/16 (25/19/28), EQUIVALENT; default-seed sdf 6f8b99e6 again. Consistent with the sizing explanation: both
+  default-length builds (BQ#1, BQ#4) survive 3x where the tightened R5 builds fail at 1.5-2x. Seeds 4, 5 running.
