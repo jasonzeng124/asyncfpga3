@@ -2376,3 +2376,24 @@ gate list on env nodes (gcd_ps's reset is an FF output with no gate).
 g = 1, corner 0.5) is about 0.49 on these vectors, not 0.155. **Not shown:** other corners (running next), all
 vectors (scan running), episodes ended by independent events (kstar covers self-induced ones), anything in Lean
 (the static margin of this node on `DecodedPS.net`'s arcs is the next Lean step, as Ua1Static did for gcd_hw).
+
+### progress 07:57 -- gcd_ps race threshold under the CURRENT Adm, over corners: κ ≈ 0.42-0.44 (simulation)
+**Correction to 07:38:** simb.py and kstar.py still clipped the window to [FAST_MIN/g, SLOW_MAX·g], the Adm before owner
+decision 3. At κ ≈ 0.5 that clip binds (0.5·lerp(FAST_MIN,SLOW_MIN,0.5) < FAST_MIN), so the 07:38 numbers (κ* 0.500,
+runt from 0.50) were for the OLD Adm. Both tools now use Spec.Adm as it stands ((1-κ)·lerp_lo/g .. (1+κ)·lerp_hi·g;
+--oldadm / OLDADM=1 reproduce the old runs). At corner 0.5 the gcd_hw ua1 numbers of yesterday are unaffected (the clip
+does not bind at κ ≈ 0.15 there; A's note).
+New tools-B/ps/kcorner.sh (per corner: baseline dump of vector (12,18), kstar top nodes, kadv's per-pin adversary for
+the node, bisection of the smallest κ at which the node flips more than in the baseline), g = 1:
+| corner | clean at κ | runt at κ | kstar (static) | 2nd / 3rd node (static κ*) |
+|---|---|---|---|---|
+| 0.0 | 0.419 | 0.425 | 0.420 | SLICE_X18Y96.A 0.500, SLICE_X16Y22.C 0.515 |
+| 0.5 | 0.4375 | 0.444 | 0.440 | 0.515, 0.530 |
+| 0.8 | 0.4375 | 0.444 | 0.445 | 0.520, 0.535 |
+| 1.0 | 0.444 | 0.450 | 0.445 | 0.520, 0.540 |
+(corner 0.2 running.) Static and simulated thresholds agree within the grid. The node is the same at every corner:
+SLICE_X32Y45.ALUT.O6, ; 24 of the 32 scanned vectors exercise its
+tight episode (all 32 vectors correct at mid-window, corner 0.5).
+**Plainly (simulation, w = 0, g = 1):** on THE target the C-element loop-vs-path race allows κ up to about 0.42 before an
+admissible delay assignment can make a storage node latch a runt; on gcd_hw it was 0.155. Not shown: other episode
+shapes (kstar covers episodes ended by the node's own causal path), vectors beyond the 32, g > 1, any liveness failure.
