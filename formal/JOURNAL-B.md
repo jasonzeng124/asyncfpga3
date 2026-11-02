@@ -2505,3 +2505,16 @@ ArbCleanPS.targetQPS_facts (via ArbClean.hset_of_fact/hconf_of_fact) it applies 
 **Plainly:** an arbitration whose set condition lasts at least the state LUT's routed feedback delay is decided by the
 gate relation alone, whatever the per-copy-gate read times. **Not shown:** that every gcd_ps arbitration is that
 separated in every behaviour (simulation: >= 49.9 ns, 32 single-pair vectors + one 8-pair run).
+
+### progress 09:15 -- the binding race path is a chain of NECESSARY transitions (simulation check); reading C's SI result
+tools-B/ps/necessary.py: for each hop of node 120808's 36-arc episode path in the (12,18) mid-window run, flip that
+pin's read back to its old value (other reads unchanged): does the gate keep its old output? **Yes for all 35 forward
+hops** (30 copy gates and 5 LUTs: 135940 pin 4, 135956 pin 4, 135972 pin 3, 135829 pin 3, 140537 pin 4). So in that
+run each transition on the path needs its predecessor: the episode's end cannot come before the path's delay after
+the node's own flip, in any behaviour with the same order of transitions; RaceStaticPS/RaceCornersPS's sums are then
+true lower bounds for it. With shard C's 09:14 finding (Huffman-machine simulation: the 412 control storage nodes are
+speed-independent with ZERO persistence violations, i.e. an excited node's excitation is never withdrawn before it
+fires), episodes of control nodes are ended only by acknowledgement of their own flip -- the self-induced shape kstar /
+RaceStaticPS measure -- which is why kstar2's common-ancestor estimates (independent end events) were not real races.
+Not shown in Lean: necessity for every behaviour (needs C's SI/persistence argument), the data latches (C's relative-
+timing family), other episodes of other nodes beyond the scan.
