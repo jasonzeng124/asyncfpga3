@@ -2184,3 +2184,8 @@ Next: as in progress 00:37 above.
   constant LUTs) and packer route-through sinks are excluded. Names are yosys's, not the RTL's: the request flop
   (req_core) is called bridge_i.p_end_req and out0_ack is called n_index_97_ack, so the map gives the pins, and
   BOARD-QUEUE #4 gives the port reading. research/board/gcd_ps_e6bb4aec.boundary.tsv.
+### progress 03:27 (audit read: T12 independently confirms the gcd_ps target)
+- claude/audit 34c32f11 (T12): with the auditor's own vectors (none from gen_vectors) and own oracle, the gcd_ps
+  target passes nominal and log-normal 2x draw 2 on seed d, EQUIVALENT, out0 margin min 5738 ps = research's row;
+  6f0d3d92: decoded LUT/MUXF of every kernel site agree with the bits, Lean data and nextpnr. No REFUTED or
+  OVERSTATED row on research's gcd_ps work. (Not re-run by the auditor: seeds 3-9, FAST_MIN, 1.5x draws.)
