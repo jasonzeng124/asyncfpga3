@@ -1358,3 +1358,12 @@ violation at SLICE_X3Y22.D6 (next to start.ack) and run lengths 3947/3949: an in
   fired; the real AXI side waits for the join. It drives only toward the PS (env side), so Correct (stated at the
   kernel ports) is unaffected; but it means H_ENV at the kernel ports is NOT what the board's harness does: the board
   waits one C-element longer (stricter), so the theorem's env covers the board's. No finding against the theorem.
+
+### progress 10:49 -- correct_n0_all CLAIMED: zero pairs, for every g > 0 and 0 ≤ κ < 1
+`Formal/Net/CViewPS/Idle0All.lean` (lake build OK, standard axioms, scan clean). With C = ⌈(1+κ)·g⌉: every upper
+delay bound scales by at most C (`dmax_le`, `start_le`, `sumMax_le`, `chainStart_le`, `cStart_le`; `rat_ceil_eq`
+bridges core's Rat.ceil in Gate.start and Mathlib's ⌈⌉), and every forcing pin keeps a fast delay ≥ 1 ps while κ < 1
+(`dmin_pos`, `sumMin_pos`). **Statement** (`correct_n0_all`): for every p with Sane p and κ < 1, and every reset
+R ≥ C·A1 + 87·C·M1 + 1 (A1 = 15,600, M1 = 3,881 ps), Behaves p (circuit DecodedPS.net DecodedPS.boundary) x → Env ...
+(some 0) ... → Correct ... (some 0) .... **Meaning:** for zero pairs THE theorem's (g, κ) frontier is all of κ < 1, g > 0,
+given a reset of about C × 353 ns. (κ = 1 lets a pin's lower window reach 0 ps; the island argument needs ≥ 1 ps.)
