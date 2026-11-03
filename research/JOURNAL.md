@@ -2339,3 +2339,16 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   arbiter. So the sampled mixing, up to 3x on default lengths, never broke an arbiter fork; the static worst case
   the audit computes is not refuted by this (sampling is not exhaustive, and the arbiter near-tie model, arbtie.md,
   is the fid resolver's).
+### progress 07:00 (gcd cost model: GLS corners bracket the August board's per-iteration costs)
+- research/tools/gcd_ps_cost_fit.py fits cells/hw/gcd_cost_fit.py's model (base + k, pre-ctz, main, inner-ctz terms,
+  counters replayed from the C) to GLS latencies (out0_req rise from the bundle monitor minus the CTRL write) on the
+  1000-vector runs of the formal target. Per-iteration ns, SLOW_MAX / FAST_MIN: k 157.7 / 57.2, pre-ctz 154.5 / 54.9,
+  main 218.6 / 76.8, inner ctz 139.7 / 49.6 (residual RMS 40 / 14 ns). The August board fit (gcd_bench_gen):
+  127.1, 108.3, 156.5, 114.6 -- inside the corner bracket on all four terms, at 54-72% of the way from FAST_MIN to
+  SLOW_MAX. The band column (0.38) with 1x scatter, 24 vectors: 103, 95, 121, 77 -- 10-33% FASTER than the board.
+  research/data/gcd_ps/cost_model_vs_board.tsv.
+- Reading, soft (different build: the August bench had other sizes and a pre-patch toolchain era, and a cost model is
+  not the ring data acceptance needs): on this kernel the board sits nearer SLOW_MAX than the band 0.38 that the five
+  rings were fitted to. If it holds on a like-for-like build, the band predictions in BOARD-QUEUE (e.g. "~50-55 laps
+  per 150 us" for #3) are optimistic, and the SLOW_MAX numbers are the safer expectation. Worth a check by the owner
+  when #4 runs: gcd_ps per-call latency is directly comparable with this table.
