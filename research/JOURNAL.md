@@ -2472,3 +2472,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   it (_c...). Unit check on a (100:200:300) arc: LUT 158, CARRY4 at b=1 300.
 - Running: BQ#2 (R5, the thinnest margins) on its 8 routes (seeds 6-11,13,14), band 0.288 with
   CARRY4=1,SELMUX2_1=1,SLICE_FFX=1; then BQ#3 and BQ#1. The bench queue (q4) was stopped after its current run.
+### progress 18:14 (cell-type check running; bench routes 4-6 built)
+- GLS_SDF_BAND_CELL took effect on BQ#2 seed 6 (IOPATH arcs moved: CARRY4 1380, SELMUX2_1 3600, SLICE_FFX 326);
+  its 16 vectors are simulating, one sim at a time while au3's UNIFORM run finishes.
+- Bench routes for bench_hang on more seeds, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
+  au5 d0b647b2, nh5 f44ff432, au6 ddf4f013, nh6 35715d8c. Their sweeps are queued after the cell-type check.
