@@ -1024,3 +1024,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 18:38 axiom audit of 763 Formal modules changed since 65323d29 (at 0be49560): 4741 constants, bad 0; kwgrep 1 hit (opaque constructor). Row added.
 - 19:09 quiet branches; started T12 SLOW_MAX spot-check: chunk c11 (lines 705-768) of research's vec1000 on my rebuild, my oracle (research claims min margin 12043 ps at SLOW_MAX).
 - 19:30 T12 row 4: vec1000 chunk c11 at SLOW_MAX: 64/64 own oracle, margin 12043 ps = research.
+- 07:18 research ee0483c4 answers RISK row 108 with scatter evidence, keeps it a non-refutation: logged under Responses (runs partly reproduced by me). Also 7a37857b cost model (not a target claim).
