@@ -2285,3 +2285,7 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 ### progress 00:08 (R6t so far: SLOW_MAX 30-32 laps, log-normal 3x draw 1 PASS on 7, 9)
 - R6t SLOW_MAX vec 6: seed 7 30, 8 32, 9 30 (R5 31/31/31). Log-normal 3x draw 1: seed 7 PASS (44/33/53), 9 PASS
   (44/34/50). Seeds 6, 8 (3x), 10 running; seed 10 is the one where R5 failed 3x.
+### progress 01:08 (R6t: container restart killed the driver; seed 10 and seed 6 3x relaunched)
+- Done before the restart: SLOW_MAX seeds 6 30, 7 30, 8 32, 9 30 (vec 6); log-normal 3x draw 1 seeds 7, 8, 9 PASS.
+  Lost: seed 10 (8/16 vectors at SLOW_MAX) and seed 6 3x. Relaunched on the existing routes (seed 10 first, seed 6
+  after it; three fid sims at once has OOM'd on 15 GB).
