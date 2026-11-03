@@ -2461,5 +2461,14 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (band0.288_s...), so rows from before (bare "band") stay unambiguous. test_acceptance.py 30 passed. acceptance.py
   at the default: ring128 MATCH (exit 0). ring5_a/b ERROR here: their rebuilt ro_top route is not on this container
   (soft items; not re-run). ring128_summary.py keeps its explicit 0.38 model, as a record of what it tested.
-- Effect on earlier band numbers: at 0.288 every arc is ~7% faster than at 0.38 on average across the die (median
-  ring: 1.113 -> 1.0 of measured), so band-column laps and margins move toward the FAST_MIN side; corners unaffected.
+- Effect on earlier band numbers: at 0.288 ring periods are ~10% shorter than at 0.38 (median ring: 1.114 -> 1.0 of
+  measured), so band-column laps and margins move toward the FAST_MIN side; corners unaffected.
+### progress 17:41 (the cell-type check: GLS_SDF_BAND_CELL)
+- ring128 calibrates SLICE_LUTX and interconnect arcs only. A gcd_hw route's xray SDF also has CARRY4 (1380 IOPATH
+  arcs), SELMUX2_1 (F7/F8, 3603) and SLICE_FFX (326) arcs, with no measured position. Matched delays are LUT chains;
+  datapaths use carries and F7/F8 muxes. So the dangerous reading of the soft gcd cost datum (kernel cells nearer
+  SLOW_MAX) is: uncalibrated cells slow, LUT chains as measured.
+- gen.py GLS_SDF_BAND_CELL=CELLTYPE=b,... (band only): those IOPATH arcs take band b; counts printed; seeds_fid tags
+  it (_c...). Unit check on a (100:200:300) arc: LUT 158, CARRY4 at b=1 300.
+- Running: BQ#2 (R5, the thinnest margins) on its 8 routes (seeds 6-11,13,14), band 0.288 with
+  CARRY4=1,SELMUX2_1=1,SLICE_FFX=1; then BQ#3 and BQ#1. The bench queue (q4) was stopped after its current run.

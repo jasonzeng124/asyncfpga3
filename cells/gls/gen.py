@@ -381,13 +381,19 @@ def unesc(s):
 _FIELD = os.environ.get("GLS_SDF_FIELD", "min")
 SDF_FIELD = {"min": 0, "typ": 1, "max": 2, "band": 0}[_FIELD]
 SDF_BAND = float(os.environ.get("GLS_SDF_BAND", "0.288"))
+# GLS_SDF_BAND_CELL=CELLTYPE=b[,CELLTYPE=b...] (band only): IOPATH arcs of those SDF cell types take band b
+# instead of GLS_SDF_BAND.  ring128 measures LUT and interconnect arcs only (a ring is SLICE_LUTX + wire), so
+# CARRY4, SELMUX2_1 (F7/F8) and SLICE_FFX have no measured position; e.g. CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 puts
+# them at SLOW_MAX while the measured arcs stay at the measured band -- datapath late against LUT-chain delays.
+SDF_BAND_CELL = {k: float(v) for k, v in (kv.split("=") for kv in
+                 filter(None, os.environ.get("GLS_SDF_BAND_CELL", "").split(",")))}
 
 
-def tri(m, first):
+def tri(m, first, celltype=None):
     """the selected column of the triple whose min is group `first`"""
     if _FIELD == "band":
         lo, hi = int(m.group(first)), int(m.group(first + 2))
-        return int(round(lo + SDF_BAND * (hi - lo)))
+        return int(round(lo + SDF_BAND_CELL.get(celltype, SDF_BAND) * (hi - lo)))
     return int(m.group(first + SDF_FIELD))
 
 
@@ -627,9 +633,13 @@ def read_sdf(path):
     iopaths = collections.defaultdict(list)
     setuphold = collections.defaultdict(list)
     ic = []
-    inst = None
+    inst = ct = None
     n_io = n_ic = n_sh = 0
+    n_cell = collections.Counter()
     for line in open(path):
+        m = RE_CT.search(line)
+        if m:
+            ct = m.group(1)
         m = RE_IC.search(line)
         if m:
             ic.append((unesc(m.group(1)), unesc(m.group(2)),
@@ -642,13 +652,20 @@ def read_sdf(path):
             continue
         m = RE_IO.search(line)
         if m:
-            iopaths[inst].append((m.group(1), m.group(2), perturb(tri(m, 3), inst or "")))
+            iopaths[inst].append((m.group(1), m.group(2), perturb(tri(m, 3, ct), inst or "")))
             n_io += 1
+            if ct in SDF_BAND_CELL:
+                n_cell[ct] += 1
             continue
         m = RE_SH.search(line)
         if m:
             setuphold[inst].append((m.group(1), m.group(2), int(m.group(5)), int(m.group(6))))
             n_sh += 1
+    if SDF_BAND_CELL:
+        print("GLS_SDF_BAND_CELL: %s (IOPATH arcs moved: %s)" % (
+            SDF_BAND_CELL, ", ".join("%s %d" % kv for kv in sorted(n_cell.items())) or "none"))
+        if _FIELD != "band":
+            sys.exit("gen.py: GLS_SDF_BAND_CELL needs GLS_SDF_FIELD=band")
     return iopaths, ic, setuphold, n_io, n_ic, n_sh
 
 
@@ -678,8 +695,10 @@ def main():
         dsp_group_ps[cname] = g
         iopaths[cname] = [(a, z, g[(dsp_group(a), dsp_group(z))])
                           for a, z, _ in iopaths[cname]]
-    sys.stderr.write("delays: SDF column %s, scale %g, scatter sigma %g (seed %s, mode %s)\n"
-                     % (os.environ.get("GLS_SDF_FIELD", "min"), DELAY_SCALE, SCATTER,
+    sys.stderr.write("delays: SDF column %s%s, scale %g, scatter sigma %g (seed %s, mode %s)\n"
+                     % (os.environ.get("GLS_SDF_FIELD", "min"),
+                        " %g%s" % (SDF_BAND, " cells %s" % SDF_BAND_CELL if SDF_BAND_CELL else "")
+                        if _FIELD == "band" else "", DELAY_SCALE, SCATTER,
                         os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
     if SCATTER_MODE == "wire" and SCATTER:
         sys.stderr.write("delays: %d interconnect arc(s) from the wire model, %d fell back "

@@ -76,6 +76,8 @@ def sim(a, seed, hw, col, scat):
     # the band's value is part of the tag: gen.py's default moved 0.38 -> 0.288 on 2026-11-03, and a bare
     # "band" row/dir from before then means 0.38
     ctag = col + (os.environ.get("GLS_SDF_BAND", "0.288") if col == "band" else "")
+    if col == "band" and os.environ.get("GLS_SDF_BAND_CELL"):      # e.g. _cCARRY4=1-SELMUX2_1=1-SLICE_FFX=1
+        ctag += "_c" + os.environ["GLS_SDF_BAND_CELL"].replace(",", "-")
     tag = ctag + ("" if scat is None else "_s" + scat.replace(":", "-"))
     if scat is not None and os.environ.get("GLS_SCATTER_LOGN") == "1":
         tag += "_logn"        # same draw, log-normal factors: its own run dir and row
