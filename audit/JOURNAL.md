@@ -1026,3 +1026,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:30 T12 row 4: vec1000 chunk c11 at SLOW_MAX: 64/64 own oracle, margin 12043 ps = research.
 - 07:18 research ee0483c4 answers RISK row 108 with scatter evidence, keeps it a non-refutation: logged under Responses (runs partly reproduced by me). Also 7a37857b cost model (not a target claim).
 - 10:01 research 25847170: vec1000 at band 0.38 + 1x scatter (region 0.16, wire 0.126, draw 1) 1000/1000, margin 7341 ps. Spot-check of chunk c03 started (expect t_end 391156293, margin 7341).
+- 10:18 T12 row 5: band+1x chunk c03 64/64 own oracle, t_end and margin identical to research's row.
