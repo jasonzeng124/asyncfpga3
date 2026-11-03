@@ -2477,3 +2477,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   its 16 vectors are simulating, one sim at a time while au3's UNIFORM run finishes.
 - Bench routes for bench_hang on more seeds, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
   au5 d0b647b2, nh5 f44ff432, au6 ddf4f013, nh6 35715d8c. Their sweeps are queued after the cell-type check.
+### progress 18:20 (bench_hang, board-like: the August harness hangs every UNIFORM batch)
+- au3 at the nominal 100 MHz, UNIFORM seeds 1-4 x 32 (full-width operands, as the board's batches): 4/4 batches HANG
+  after 6, 3, 4, 14 runs, the bench's own sticky 011 -> 001 in each. nh3 (fixed) passed the same UNIFORM batch at both
+  corners (32/32, oracle SIG). research/data/bench/README.md. The board: 5 of 8 runs hung, with code 110.

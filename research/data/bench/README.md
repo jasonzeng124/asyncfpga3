@@ -55,3 +55,20 @@ Reading: the full stack reproduces the August bench hang's MECHANISM (a multi-bi
 unsynchronised async latch lands on bitwise mixes of two states; one of them hangs the batch) and the fix (2-flop
 synchroniser: none across the sweep). It does not reproduce the board's code (110) or rate (5 of 8 runs): that
 needs the August route, which was not kept. Soft acceptance item bench_hang: mechanism MATCH, rate/code not testable.
+
+## au3: board-like batches (au3_max_uni4x32.log)
+SLOW_MAX, FCLK0 at the nominal 10000 ps, UNIFORM mode (full-width LFSR operands, as the board's batches), seeds
+1-4, 32 runs each, 1 ms batch timeout. Expected SIGs (hw/uniform_oracle.py gcd <seed> 32): b2d15eed, 5309beda,
+3e520cd2, 0d9ac6da.
+
+| seed | completed | latmin-max | the bench's sticky | verdict |
+|---|---|---|---|---|
+| 1 | 6/32 | 2-303 | 011 -> 001 | HANG |
+| 2 | 3/32 | 2-98 | 011 -> 001 | HANG |
+| 3 | 4/32 | 48-228 | 011 -> 001 | HANG |
+| 4 | 14/32 | 48-742 | 011 -> 001 | HANG |
+
+Every batch hangs within 14 runs (the monitor's 4->0 BILLs are the host's bench_rst after each timeout). Random
+operands spread i_ack's phase, so the vulnerable window (about 1/8 of the period on this route, from the sweep) is
+hit within a few runs. The board hung in 5 of 8 runs: its window was narrower (its route, its code 110). nh3 (the
+fixed harness) passed the same UNIFORM test at both corners, 32/32 with SIG = the oracle's.
