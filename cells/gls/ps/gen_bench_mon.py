@@ -45,17 +45,52 @@ def main():
         w, _, n = line.strip().partition(" ")
         by_pin.setdefault(n, w)
 
+    # nextpnr's routed JSON keeps ONE name per net and splits buses into per-bit nets, so a name the
+    # RTL uses may be gone.  Every alias of the bit is in the synthesised JSON beside it (same
+    # basename, no _routed): try them all, and say which one matched.
+    mods = json.load(open(rj.replace("_routed.json", ".json")))["modules"]
+    synm = [v for v in mods.values() if v.get("attributes", {}).get("top")][0]
+    syn, syncells = synm["netnames"], synm["cells"]
+    alias = {}
+    for n, v in syn.items():
+        for i, b in enumerate(v["bits"]):
+            alias.setdefault(b, []).append(n if len(v["bits"]) == 1 else "%s[%d]" % (n, i))
+
+    def bits_of(name):
+        if name in nets:
+            return nets[name]["bits"]
+        return None
+
     def wire(rtl, bit=0):
-        if rtl not in nets:
-            sys.exit("gen_bench_mon: no net %r in %s" % (rtl, rj))
-        b = nets[rtl]["bits"][bit]
+        cands = [rtl if bit == 0 and rtl in nets and len(nets[rtl]["bits"]) == 1 else None, "%s[%d]" % (rtl, bit)]
+        if rtl in syn:
+            cands += alias[syn[rtl]["bits"][bit]]
+        b = None
+        for c in cands:
+            if c and bits_of(c):
+                b = bits_of(c)[0 if c != rtl else bit]; used = c
+                break
+        if b is None and rtl in syn:
+            # no alias survived: find the bit's driving CELL in the synthesised netlist (cell names
+            # survive place and route) and take that cell's output in the routed one.
+            sb = syn[rtl]["bits"][bit]
+            for cn, c in syncells.items():
+                for p, d in c.get("port_directions", {}).items():
+                    if d == "output" and sb in c["connections"].get(p, []) and cn in cells:
+                        k = c["connections"][p].index(sb)
+                        b = cells[cn]["connections"][p][k]; used = "driver cell %s.%s" % (cn, p)
+                        break
+                if b is not None:
+                    break
+        if b is None:
+            sys.exit("gen_bench_mon: no net for %r[%d] in %s (tried %s)" % (rtl, bit, rj, cands))
         if b not in drv:
-            sys.exit("gen_bench_mon: net %r[%d] has no placed driver" % (rtl, bit))
+            sys.exit("gen_bench_mon: net %r[%d] (%s) has no placed driver" % (rtl, bit, used))
         bel, port = drv[b]
         pin = bel + "/" + port
         if pin not in by_pin:
             sys.exit("gen_bench_mon: %r -> %s not in %s" % (rtl, pin, nmap))
-        return "tb_ps.dut." + by_pin[pin], pin
+        return "tb_ps.dut." + by_pin[pin], pin + " (as " + used + ")"
 
     sig = {k: wire("bridge_i." + k) for k in
            ("aclk", "req_core", "i_ack_pl", "o_req_pl", "bench_o_ack", "o_req_s")}
