@@ -2484,3 +2484,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 ### progress 19:16 (cell-type check: BQ#2 seed 6 PASS)
 - BQ#2 (R5) seed 6, band 0.288 with CARRY4/SELMUX2_1/SLICE_FFX at SLOW_MAX: PASS 16/16, errs 0, EQUIVALENT, laps
   61/50/72 (full SLOW_MAX 33/27/39). Seeds 7-11,13,14 running two at a time, then BQ#3, BQ#1.
+### progress 21:57 (cell-type check: BQ#2 5/5 so far; seed 10's NOT_EQUIVALENT is a constant LUT, fixed in fasm_equiv)
+- BQ#2 under GLS_SDF_BAND_CELL (CARRY4/SELMUX2_1/SLICE_FFX at SLOW_MAX, the rest at 0.288): seeds 6, 7, 8, 9, 10
+  PASS 16/16 errs 0 (laps 57-61 / 46-50 / 66-72). 11, 13, 14 running.
+- Seed 10's rows say NOT_EQUIVALENT, here and in every earlier column (incl. its 3x FAIL that "R5 6/7" counts). By the
+  journal's own rule (2026-10-28 03:53) that is a stop sign, and it was missed then. Traced: two pins the routed JSON
+  ties to GND (on ulink_n_trueResult_4 stage 1's C node and a $PACKER_GND LUT) are driven in the bits by
+  SLICE_X14Y79/A6LUT, which the bits configure with INIT all 0 and all inputs constant: nextpnr routing GND out of an
+  unused LUT, as on BQ#3 seed 7 (the decoder already resolves it to 0 since 54f2ce6). The netlist simulated was
+  functionally the JSON's; fasm_equiv compared driver identity, not value.
+- fasm_equiv.py: a LUT whose INIT is all 0 / all 1 is compared as that constant (pins, routing key, and the bits-only
+  cell is reported as a benign kind). Seed 10 now EQUIVALENT; seed 8 unchanged (EQUIVALENT). Negative controls on
+  seed 8's bits: a live LUT forced to INIT 0 -> NOT EQUIVALENT (DRIVER DIFFERS ...); inverted -> NOT EQUIVALENT
+  (LUT FUNCTION DIFFERS), identical to the old tool; a 1-bit flip of an entry its tied pins never reach is
+  EQUIVALENT under both. test_acceptance.py 30 passed. The running cell check uses the frozen worktree (old verdicts).

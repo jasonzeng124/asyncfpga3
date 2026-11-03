@@ -40,6 +40,7 @@ import gen                                          # noqa: E402  (expand_lut_in
 import fasm2net                                     # noqa: E402
 
 CONST = {"PSEUDO_VCC": 1, "PSEUDO_GND": 0}
+FOLDED = []         # pins whose driver lut_const() folded to a constant (reported as CONST_LUT)
 
 
 def load(path):
@@ -61,6 +62,23 @@ def lutpos(b):
     """SLICE_X1Y2/A6LUT -> SLICE_X1Y2/A (the physical LUT position)."""
     m = re.match(r"(.*)/([A-D])[56]LUT$", b)
     return "%s/%s" % m.groups() if m else None
+
+
+CONST_LUT = "driver is a LUT with a constant function (INIT all 0 or all 1), compared as that constant"
+
+
+def lut_const(c):
+    """0 / 1 if this cell is a LUT whose INIT is all zeros / all ones (its output is that constant whatever its
+    inputs: nextpnr can route GND out of an otherwise unused LUT, which the decoder sees as a LUT with INIT 0),
+    else None."""
+    if c.get("type") != "SLICE_LUTX":
+        return None
+    init = str(c.get("parameters", {}).get("INIT", ""))
+    if init and set(init) <= {"0"}:
+        return 0
+    if init and set(init) <= {"1"}:
+        return 1
+    return None
 
 
 def pin_drivers(cells, drv, gen_ties):
@@ -85,6 +103,9 @@ def pin_drivers(cells, drv, gen_ties):
                     v = ("undriven",)
                 elif cells[d[0]]["type"] in CONST:
                     v = ("const", CONST[cells[d[0]]["type"]])
+                elif lut_const(cells[d[0]]) is not None:
+                    v = ("const", lut_const(cells[d[0]]))
+                    FOLDED.append("%s/%s <- %s" % (b, p, belof[d[0]]))
                 elif cells[d[0]]["type"] == "PAD":
                     v = ("undriven",)       # fasm2net names the pad as the driver of its own net
                 else:
@@ -198,6 +219,10 @@ def main():
         flag("cell in routed JSON, not configured by the bits%s" % (" (it has NO loads)" if loads == 0 else " (HAS LOADS)"),
              "%s %s %s" % (b, c["type"], cn[:80]))
     for b in only_f:
+        if lut_const(fb[b][1]) is not None:
+            flag("bits-only LUT with a constant function (INIT all %d): a constant source, its loads compared "
+                 "as that constant" % lut_const(fb[b][1]), b)
+            continue
         flag("cell configured by the bits, absent from routed JSON", "%s %s" % (b, fb[b][1]["type"]))
     for b in sorted(set(jb) & set(fb)):
         if jb[b][1]["type"] != fb[b][1]["type"]:
@@ -394,6 +419,8 @@ def main():
                      "%s/%s json %d bits %d (%s)" % (k[0], k[1], a_[1], b_[1], ", ".join(seen)))
             continue
         flag("DRIVER DIFFERS", "%s/%s json %s bits %s" % (k[0], k[1], a_, b_))
+    for e in sorted(set(FOLDED)):
+        flag(CONST_LUT, e)
     say("3. CONNECTIVITY  %d pins with the same driver on both sides" % n_same)
     # driver -> sink pairs, as sets
     pairs = lambda pd: {(v, k) for k, v in pd.items() if k[0] in common_pos and v[0] in ("bel", "const")}
@@ -453,7 +480,8 @@ def main():
             d = jd.get(nn["bits"][0])
             if d is None:
                 continue
-            key = ("const", CONST[jc[d[0]]["type"]]) if jc[d[0]]["type"] in CONST else (belof[d[0]], d[1])
+            key = ("const", CONST[jc[d[0]]["type"]]) if jc[d[0]]["type"] in CONST else \
+                ("const", lut_const(jc[d[0]])) if lut_const(jc[d[0]]) is not None else (belof[d[0]], d[1])
             f = r.split(";")
             s = jpips.setdefault(key, set())
             for i in range(0, len(f) - 2, 3):
@@ -475,6 +503,8 @@ def main():
             else:
                 bb, _, pp = netn.rpartition("/")
                 key = (bb, pp)
+                if bb in fb and lut_const(fb[bb][1]) is not None:
+                    key = ("const", lut_const(fb[bb][1]))
             for pid in pips.split():
                 t, d_, s_ = pid.split(".")
                 pr = (fab.node(t, s_), fab.node(t, d_))
@@ -563,7 +593,7 @@ def main():
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
               "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip",
-              HARMLESS_CONST)
+              HARMLESS_CONST, CONST_LUT, "bits-only LUT with a constant function")
     hard = [k for k in bad if not k.startswith(benign)]
     say("VERDICT: %s" % ("EQUIVALENT (only the benign kinds above)" if not hard else
                          "NOT EQUIVALENT: " + "; ".join(hard)))
