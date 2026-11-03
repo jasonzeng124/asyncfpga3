@@ -2352,3 +2352,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   rings were fitted to. If it holds on a like-for-like build, the band predictions in BOARD-QUEUE (e.g. "~50-55 laps
   per 150 us" for #3) are optimistic, and the SLOW_MAX numbers are the safer expectation. Worth a check by the owner
   when #4 runs: gcd_ps per-call latency is directly comparable with this table.
+### progress 07:01 (queue: target 1000 vectors at band + 1x scatter; BQ#1 3x draw 3)
+- Not pursued: a like-for-like GLS of the August gcd_bench_gen build behind the board cost model. Its bitstream was not
+  kept and its build ran converge.sh's select-pad loop, so a rebuild would be another route; the comparison would stay
+  soft. The nextpnr placement-validity failure (1 seed in ~10) is noted, not chased: it fails loudly.
+- Running: all 1000 BQ#4 vectors on the formal target at band 0.38 + 1x within-die scatter (the board-like point),
+  then BQ#1 at log-normal 3x draw 3 on all 8 seeds.
