@@ -1030,3 +1030,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 14:50 research 60f3cb76: BQ#1 log-normal 3x draw 3 8/8 PASS (seed d 22/17/26). Own spot-check of seed d started (r23/run_point2.sh, region 0.48, wire 0.378, logn, seed 3).
 - 15:37 BQ#1 seed d log-normal 3x draw 3: 16/16 errs 0, 22/17/26 exactly as research 60f3cb76; lapcheck CLEAN.
 - 17:32 owner commit db3c299b on research: August n=128 ring raw data and build (answers BOARD-QUEUE's data request); noted, no audit claim yet.
+- 18:19 T16: research's band recalibration (0.38 -> 0.288) from the owner's August ring data reproduced independently (md5s, bitstream = route, SDF f20c1bf4, own ring walk 0 ps vs pred, own fit 0.2877 / +11.45% at 0.38 / held-out <= 3.06%).
