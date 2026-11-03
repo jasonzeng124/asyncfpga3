@@ -2481,3 +2481,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - au3 at the nominal 100 MHz, UNIFORM seeds 1-4 x 32 (full-width operands, as the board's batches): 4/4 batches HANG
   after 6, 3, 4, 14 runs, the bench's own sticky 011 -> 001 in each. nh3 (fixed) passed the same UNIFORM batch at both
   corners (32/32, oracle SIG). research/data/bench/README.md. The board: 5 of 8 runs hung, with code 110.
+### progress 19:16 (cell-type check: BQ#2 seed 6 PASS)
+- BQ#2 (R5) seed 6, band 0.288 with CARRY4/SELMUX2_1/SLICE_FFX at SLOW_MAX: PASS 16/16, errs 0, EQUIVALENT, laps
+  61/50/72 (full SLOW_MAX 33/27/39). Seeds 7-11,13,14 running two at a time, then BQ#3, BQ#1.
