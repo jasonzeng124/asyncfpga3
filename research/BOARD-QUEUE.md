@@ -239,7 +239,8 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
   breaks this design (P1 keeps default lengths; the tightened R5 of #2/#3 fails at 1.5-2x).
 - **Every vector the board run uses, pre-simulated on the formal target itself**: all 1000 of gcd_ps_vec1000.hex on
   the netlist decoded from gcd_ps_e6bb4aec.bit, full stack, SLOW_MAX and FAST_MIN: 1000/1000 ok, 0 err, 0 hang at
-  both corners, out0 margin >= +12.0 / +4.1 ns, no late change (`research/data/gcd_ps/p1_vec1000_target.tsv`).
+  both corners, out0 margin >= +12.0 / +4.1 ns, no late change; and at band 0.38 + 1x within-die scatter (the
+  board-like point) 1000/1000, margin >= +7.3 ns (`research/data/gcd_ps/p1_vec1000_target.tsv`).
   So a board MISMATCH or TIMEOUT on any of them is a disagreement with this model, vector by vector.
 - The harness can fail: the same netlist with two expected values corrupted gives ok=1 err=2.
 - umux21 drives out0, and the PS reads O_DATA >= 2 synchronizer clocks after out0_req, so this harness cannot see

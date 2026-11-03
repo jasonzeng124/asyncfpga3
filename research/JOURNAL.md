@@ -2358,3 +2358,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   soft. The nextpnr placement-validity failure (1 seed in ~10) is noted, not chased: it fails loudly.
 - Running: all 1000 BQ#4 vectors on the formal target at band 0.38 + 1x within-die scatter (the board-like point),
   then BQ#1 at log-normal 3x draw 3 on all 8 seeds.
+### progress 09:40 (formal target: all 1000 board vectors also pass at band + 1x scatter)
+- 1000/1000 ok, 0 err, 0 hang, out0 min margin 7341 ps, no late change, at band 0.38 + region 0.16 + wire 0.126 draw 1.
+  BOARD-QUEUE #4 updated. BQ#1 log-normal 3x draw 3 on 8 seeds now running.
