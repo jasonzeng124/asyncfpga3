@@ -2307,3 +2307,6 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 - R6t seed 6 at 3x PASS (40/32/47). R6t at log-normal 3x draw 1: 4/5 (seed 10 fails). research/data/fid/r6t/README.md.
   Negative result for the targeted fix as a 3x-margin measure; it is speed-neutral and audit-clean, so it is a
   candidate only if the 2x failures (uori2/uori3) are the concern, which the board would have to show.
+### progress 03:01 (R5x1.25 seeds 11-14: placed, every audit clean)
+- R5x1.25 seeds 11, 12, 13, 14: all place, rules A/E/J 0 (D 38 screen). Their log-normal 3x draw 1 runs, then R5's
+  on the same seeds, are running (~5 h).
