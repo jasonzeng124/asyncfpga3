@@ -2385,3 +2385,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   build_bench.sh's rule A gate holds; audit_route.sh: rule A/E/F/H/I/J 0, rule D 38 (the screen, as BQ#4).
 - Queued behind BQ#1's last two seeds (memory): full-stack fid GLS of nh3 at both corners, FIXED gcd(48,18) x16 and
   UNIFORM seed 1 x32. BQ#1 3x draw 3: d,3-7 PASS so far.
+### progress 14:17 (BQ#1: log-normal 3x draw 3 also 8/8)
+- BQ#1 full stack (bits-decoded netlist, prjxray SDF, fid), band 0.38 + log-normal region 0.48 + wire 0.378 (3x the
+  calibrated within-die scatter), draw 3, seeds d,3-9: 8/8 PASS 16/16, errs 0, EQUIVALENT, vec 6 laps 20-30
+  (research/data/fid/bq1_logn3x_draw3.tsv). With draw 2: 16/16 routes x draws at 3x on the default lengths. Does not
+  show: silicon, or more than two draws of one scatter model. BOARD-QUEUE #1 updated.
