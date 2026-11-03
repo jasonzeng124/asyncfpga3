@@ -2402,3 +2402,18 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   worktree), NEXTPNR_SEED=3, bit 53b40d67; audits A/E/F/H/I/J 0, D 38. On nh3 st[0] is placed 15 rows from st[1:2].
 - Running: phase sweep (139 batches x 2 runs, FCLK0 10000-10276 ps in 2 ps steps: i_ack, ~36 cycles after issue,
   walks the whole aclk period in ~72 ps steps) on au3, then the same on nh3 as the control.
+### progress 15:22 (bench RTZ tail: the harness floor at both corners; the board's 23/12.1 not reproduced)
+- nh3 fixed harness, full stack: SLOW_MAX UNIFORM seed 1 x32 (full-width random operands): SIG b2d15eed =
+  hw/uniform_oracle.py's (derived from the C), 0 illegal transitions, latency 96-1297 cycles. FAST_MIN FIXED gcd(48,18)
+  x16: SIG 00020002 (derived), latmin = latmax = 63, cycles/run 68.0, tail 5.0.
+- Per run (gen_bench_mon, every run of both batches): S_ACK + S_RTZ + S_NEXT = 5 cycles at SLOW_MAX, 4 at FAST_MIN;
+  kernel output RTZ (bench_o_ack -> o_req fall) 12.7 ns / 4.6 ns, identical for every vector; i_ack comes 359-468 ns
+  (SLOW_MAX, operand-dependent) after the request.
+- So on this route gcd's tail is the null floor (5.0 exact on the board for all four nulls), at both corners and for
+  every input; the kernel's RTZ is absorbed by the o_req synchroniser. The board's gcd tail is NOT reproduced: README
+  says 22.992 exact, rtz_cost_results.tsv 12.142 approx -- both from d741ae57 (2026-08-24), on an unarchived August
+  build, an hour after the lut-pinmap patch was first committed (whether that board's binary had it is not on record).
+  Grade: soft. The board's latmin 122 does sit between the GLS corners (63 / 170), as the cost-model check found.
+- Open hypothesis (cheap to test later): the long tail was a property of that build (e.g. a pre-patch bitstream), not
+  of the kernel. inject_pinmap.py on this bench route + the same monitor would say whether pinmap corruption can lengthen
+  the RTZ. Not run.
