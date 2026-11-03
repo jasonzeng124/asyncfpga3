@@ -2289,3 +2289,14 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 - Done before the restart: SLOW_MAX seeds 6 30, 7 30, 8 32, 9 30 (vec 6); log-normal 3x draw 1 seeds 7, 8, 9 PASS.
   Lost: seed 10 (8/16 vectors at SLOW_MAX) and seed 6 3x. Relaunched on the existing routes (seed 10 first, seed 6
   after it; three fid sims at once has OOM'd on 15 GB).
+### progress 01:54 (R6t seed 10 FAILS log-normal 3x: the targeted fix does not buy 3x margin)
+- R6t seed 10: SLOW_MAX PASS 32/26/37; log-normal 3x draw 1 FAIL errs 7 (vectors 1,2,3,9,11,13,15). So the R6t arm at 3x draw 1 is
+  3/4 so far (7, 8, 9 PASS; 6 running), the same rate as R5 (3/4), while R5x1.25 was 4/4.
+- Rule A on this draw's exactly scaled SDF (research/tools/scatter_ruleA/scale_sdf.py, then tighten.py): 10 non-D
+  bundles short at once (ucmpi1 -4638, ushrsi1 -8729, ushrsi2 -8911, ushrsi0 -3310, uori2 -2945, ucmpi8 -917, ...;
+  research/data/fid/r6t/seed10_3x_scaled_ruleA_violations.txt). At 3x the tightened R5 family is short in many
+  bundles on some routes, not in one chain, so lengthening the two chains seen failing at 2x does not cover it.
+  (As recorded 10-31, rule A on a scaled SDF over-reports; the GLS failure is the evidence, the list only says it
+  is broad.)
+- SLOW_MAX: R6t vec 6 30/30/32/30/32 on seeds 6-10 (mean 30.8) vs R5 31.0 (seeds 7-10) and R5x1.25 27.75. R6t is
+  nearly free at SLOW_MAX and passes every audit on 5/5 seeds, but buys no measured scatter margin at 3x.
