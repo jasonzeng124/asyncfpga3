@@ -2310,3 +2310,6 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 ### progress 03:01 (R5x1.25 seeds 11-14: placed, every audit clean)
 - R5x1.25 seeds 11, 12, 13, 14: all place, rules A/E/J 0 (D 38 screen). Their log-normal 3x draw 1 runs, then R5's
   on the same seeds, are running (~5 h).
+### progress 04:44 (R5x1.25 also fails log-normal 3x on a fresh seed)
+- R5x1.25 3x draw 1: seed 12 FAIL errs 5 (vectors 4, 5, 7, 8, ...), 13 PASS, 14 PASS, 11 running. So R5x1.25 is 6/7
+  at 3x so far, not immune: the earlier 4/4 vs R5's 3/4 was within noise. R5 on seeds 11-14 runs next.
