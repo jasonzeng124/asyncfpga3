@@ -2282,3 +2282,6 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 ### progress 21:49 (R6t routes: every audit clean on 5/5 seeds)
 - R6t seeds 6, 7, 8, 9, 10 all place (seed 6 too, unlike R5x1.25) and pass every audit (A/E/J 0, D 38 screen).
   SLOW_MAX and log-normal 3x draw 1 sims running.
+### progress 00:08 (R6t so far: SLOW_MAX 30-32 laps, log-normal 3x draw 1 PASS on 7, 9)
+- R6t SLOW_MAX vec 6: seed 7 30, 8 32, 9 30 (R5 31/31/31). Log-normal 3x draw 1: seed 7 PASS (44/33/53), 9 PASS
+  (44/34/50). Seeds 6, 8 (3x), 10 running; seed 10 is the one where R5 failed 3x.
