@@ -273,7 +273,12 @@ Pass: `flow.sh PASS`, exit 0. If it passes there and fails in the cloud
 or the build, not the patch. If it fails there too, the committed
 nextpnr-xilinx-rloc-group.patch is not the one PR #1's routed numbers came from.
 
-## Owner-side data request (no board needed): the August n=128 ring raw data
+## Owner-side data request (no board needed): the August n=128 ring raw data -- DONE (owner, db3c299b; result 2026-11-03)
+**Delivered and used.** `research/board/ro_many_aug/` (bit, fasm, routed JSON, SDF, toolchain, measured.tsv). Result in
+`research/data/fid/ring128/README.md`: on the measured route, all 128 periods lie between the full stack's FAST_MIN and
+SLOW_MAX; the band model at 0.38 misses by +11.5% (MISMATCH), and one global x = 0.288 predicts every ring within 3%
+(held-out splits all pass). The request text below is kept for the record.
+
 The board-fidelity GLS (PROGRAM.md, "THE priority") has to be validated ring by ring. The repo has the ring
 summary (76/128 slower than the SDF, offset ~+988 ps) but not the per-ring board periods, nor the August
 `ro_many_top` routed.json/SDF/bit they were measured on (that route predates the lut-perm-sink patch and cannot be

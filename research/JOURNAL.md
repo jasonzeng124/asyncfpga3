@@ -2438,3 +2438,20 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - One route each is a sample (CLAUDE.md), so both harnesses are being built on NEXTPNR_SEED 4, 5, 6 (same flags,
   nohist, August revert for "au"). So far, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
   au5 d0b647b2. The same phase sweep will run on each. au3 UNIFORM 4x32 at 100 MHz still simulating.
+### progress 17:38 (ring128 on its MEASURED route: band 0.38 MISMATCH; x = 0.288 predicts all 128 rings within 3%)
+- The owner committed the August ro_many_top build and its per-ring periods (db3c299b, research/board/ro_many_aug/):
+  the hard timing test was blocked on exactly this. md5s check; the bits decode EQUIVALENT to the routed JSON.
+- acceptance.py --stack full --items ring128 --ro-many-data (the pre-registered test: median and per-length medians
+  within +/-5%): SLOW_MAX +88.2% (no ring slower: bound holds), FAST_MIN -35.9% (every ring slower: bound holds),
+  **band 0.38: +11.5% median, MISMATCH** (hard). Per ring, silicon sits at x = 0.288 of [FAST_MIN, SLOW_MAX]
+  (p05-p95 0.276-0.303, no length trend). With one global x every held-out split passes: groups 0-7 <-> 8-15,
+  short <-> long, leave-one-length-out; median errors <= 0.6%, worst ring 3.06%. acceptance.py at --band 0.288: MATCH.
+  The route's own nextpnr SDF: p05/p95 -28/+18%, 7-link -16%. research/tools/ring128_fit.py, research/data/fid/ring128/.
+- So the model fix is the band (0.38 -> 0.288), and the within-die residual is 0.76% median |dev| per ring (includes
+  model error), about 1/11 of the "1x" scatter (8.33%), which had been sized to an 8.5% measured against nextpnr's
+  SDF. Every 1x/1.5x/3x scatter result so far ran at ~11x/16x/33x the ring-level variation now on record.
+- Not yet acceptance in full (acceptance_status.md): rings test LUT + wire arcs only; a soft datum (gcd per-iteration
+  costs, another build) puts kernel cells at 0.54-0.72. A cell-type-dependent x is the case that hides a bundling
+  violation (matched delays are LUT chains, datapaths are not), so the gates stay until the verification runs cover it.
+- Not changed yet: gen.py's GLS_SDF_BAND default (0.38) and acceptance.py's --band default. Next: make 0.288 the
+  measured default (0.38 stays reproducible by env), then the cell-type check.
