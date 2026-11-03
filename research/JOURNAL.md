@@ -2361,3 +2361,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 ### progress 09:40 (formal target: all 1000 board vectors also pass at band + 1x scatter)
 - 1000/1000 ok, 0 err, 0 hang, out0 min margin 7341 ps, no late change, at band 0.38 + region 0.16 + wire 0.126 draw 1.
   BOARD-QUEUE #4 updated. BQ#1 log-normal 3x draw 3 on 8 seeds now running.
+### progress 13:08 (next lead: a routed full-stack GLS of gcd_bench_gen -- tooling, untested)
+- Why: two open items need the bench harness simulated, which nothing here could do (no AXI host for its
+  register map): the "RTZ tail" (rtz_cost.sh: gcd 12.1 cycles/run vs the null's 5; the 2026-10-30 17:08 trace found
+  the kernel's own output RTZ ~14 ns, so the rest is unexplained) and the soft acceptance item bench_hang (the August
+  harness's 3-bit state register reading an async latch; inventory.md: "no AXI host model for the bench harness").
+- cells/gls/ps/gen_ps7.py now also writes ps7_bench.v: the same AXI3 master (task text shared; ps7_master.v is
+  byte-identical, md5 81d66ef5) running xsdb_bench_gen.tcl's run_batch, reading the bench's own illegal-transition
+  sticky (0x58) after each batch, with +PSTEP to step the FCLK0 period between batches (a phase sweep).
+  build_ps.sh takes PS_DESIGN/PS_HOST/PS_MON_GEN (gcd_ps default unchanged). gen_bench_mon.py: per-run kernel
+  handshake times at driver pins, aclk phase of i_ack/o_req, cycles per FSM segment, illegal transitions.
+- Build: BQ#4's flags and P1 sizes in build_bench.sh. With BD_RLOC=v4 nextpnr cannot place the uori2/uori4 delay
+  columns in the bench ("post-place repair: no valid placement ... uori2.udly.chain.g[0]", then an arch.h:923
+  assertion) on seeds 3 and 4 alike: deterministic, not seed noise (gcd_ps places them; the bench adds 1024 histogram
+  flops). Retrying with v2 (build_bench.sh's default); the kernel then needs its own audits.
