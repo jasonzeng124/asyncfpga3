@@ -112,6 +112,10 @@ all three vectors pass (39/175/146 laps, errs 0). Same mechanism as #3's seed-9 
 ring data supports, so #2 stays queued; if the board fails vectors 7, 8, 12 with the rest passing, suspect uori3.
 Log-normal within-die scatter (GLS_SCATTER_LOGN=1, bounded speed-ups, 2026-11-01): 1.5x (region 0.24 + wire 0.189),
 draw 2: PASS on seeds 6, 7, 8, 9 (the routes on disk). Seed 6's failing scale on draw 1: between 1.5x and 1.75x.
+Fresh seeds (2026-11-03): R5 on seeds 10, 11, 14 every audit clean; seed 13 rule E 6 violations, all one link
+(ulink_n106__1 feeding ucond_br34/35/36: raw +3837 ps, guarded -119 ps, fix +1 element); seed 12 does not place (nextpnr
+"post-placement validity check failed ... A5FF (no cell)", third time seen). So build #2 with the default seed as
+written (that route is the one audited and simulated); another seed can come out rule-E short by one element.
 
 ## 3. gcd_hw R5 sizes + link fast fall (BDC_LINK_FASTFALL=1) -- ~6% more laps than #2 (same 8 routes), every audit and routed GLS clean on 8 routes
 Run only after #2 passes: it is #2 plus one opt-in change (bd_link's request delay and bd_mux's output delay fall

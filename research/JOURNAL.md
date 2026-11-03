@@ -2313,3 +2313,10 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
 ### progress 04:44 (R5x1.25 also fails log-normal 3x on a fresh seed)
 - R5x1.25 3x draw 1: seed 12 FAIL errs 5 (vectors 4, 5, 7, 8, ...), 13 PASS, 14 PASS, 11 running. So R5x1.25 is 6/7
   at 3x so far, not immune: the earlier 4/4 vs R5's 3/4 was within noise. R5 on seeds 11-14 runs next.
+### progress 05:10 (R5 on fresh seeds 11-14: one rule E violation, one unplaceable)
+- R5 seeds 11, 14 every audit clean; 13: rule E 6 violated, all ulink_n106__1 -> ucond_br34/35/36 (raw +3837, guarded
+  -119 ps, fix +1 element; the same link R3/R4's rule E tail kept finding); 12: does not place (nextpnr post-placement
+  validity check, SLICE_X18Y44/A5FF (no cell); third occurrence: R5 seed 2, R5x1.25 seed 6, R5 seed 12). BOARD-QUEUE
+  #2 now says to build with the default seed as written. The 3x runs on 11, 13, 14 continue (13 kept as a data point).
+- The nextpnr placement failure recurs at about 1 seed in 10 on these netlists: worth a look (RLOC v4 column groups
+  vs packing are the likely interaction) but it fails loudly, so it cannot produce a wrong bitstream.
