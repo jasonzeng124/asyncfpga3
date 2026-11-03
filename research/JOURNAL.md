@@ -2434,3 +2434,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Queued (q4): au3 UNIFORM 4x32 random full-width vectors at the nominal 100 MHz (board-like: does the August harness
   give wrong answers or hangs there?), the window again at 1 ps steps with another metastability seed (skew or
   metastability?), au3 FAST_MIN sweep.
+### progress 17:31 (bench_hang on more routes: seeds 4-6 of both harnesses building)
+- One route each is a sample (CLAUDE.md), so both harnesses are being built on NEXTPNR_SEED 4, 5, 6 (same flags,
+  nohist, August revert for "au"). So far, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
+  au5 d0b647b2. The same phase sweep will run on each. au3 UNIFORM 4x32 at 100 MHz still simulating.
