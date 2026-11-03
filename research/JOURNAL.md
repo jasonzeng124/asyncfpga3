@@ -2417,3 +2417,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Open hypothesis (cheap to test later): the long tail was a property of that build (e.g. a pre-patch bitstream), not
   of the kernel. inject_pinmap.py on this bench route + the same monitor would say whether pinmap corruption can lengthen
   the RTZ. Not run.
+### progress 15:44 (August bench hang mechanism reproduced on the full stack -- control pending)
+- au3 = the bench with the synchroniser reverted (August code), SLOW_MAX phase sweep (2-run FIXED batches, FCLK0
+  10000 + 2k ps; i_ack's phase moves ~72 ps per step): in one window, FCLK0 10010-10044 ps (batches 5-22 of 128),
+  the bench's own illegal-transition sticky fires in 13 batches (S_WAIT_ACK 011 -> 001 in 12, -> 000 in one, which
+  hangs 0/2), and 4 more complete out of protocol (results captured 2-27 cycles after issue). Outside it, 110
+  batches are normal. 001/000 are bitwise mixes of 011 and the intended 100: the mechanism of the August hang, with a
+  different code than the board's 110 (route-dependent). research/data/bench/ (README.md, logs, the two seds).
+- Grade: this reproduces a SOFT acceptance item's mechanism, not its rate or code (no August route). The deciding
+  half is the control: the same sweep on nh3 (synchroniser in) is running; it must show no illegal transition.
