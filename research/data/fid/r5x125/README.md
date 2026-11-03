@@ -18,3 +18,17 @@ Mean SLOW_MAX vec 6 on seeds 7-10: R5 31.0, R5x1.25 27.75 (-10.5%). On seeds 7-1
 Reading: x1.25 removed the one scatter failure seen on these routes, for 10.5% of SLOW_MAX speed. One failure in
 eight scatter runs per arm is thin evidence; it says "failures are rare and route-specific, and a uniform 25% pad
 covered the one seen", not a failure rate.
+
+## More routes at log-normal 3x draw 1 (seeds 11-14, 2026-11-03)
+
+| seed | R5 | R5x1.25 |
+|---|---|---|
+| 11 | PASS 47/36/51 | PASS 26/20/30 |
+| 12 | (no placement) | **FAIL errs 5** (vectors 4,5,7,8,...) |
+| 13 | PASS 35/28/40 (rule E -119 ps on this route) | PASS 25/19/30 |
+| 14 | PASS 27/21/31 | PASS 35/28/41 |
+
+Totals at 3x draw 1, seeds 7-14 that place: **R5 6/7, R5x1.25 7/8**. The earlier 4/4 vs 3/4 was noise: a uniform 25%
+lengthening does not measurably change the 3x failure rate (~1 route in 7-8 for both), and costs 10.5% SLOW_MAX speed.
+Negative result. Every variant of the tightened R5 family keeps >= 1.5x (BQ#2/#3 draws 2-3, 8/8); the default
+lengths (BQ#1, BQ#4) are 16/16 at 3x.

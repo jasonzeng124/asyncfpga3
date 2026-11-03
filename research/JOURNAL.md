@@ -2320,3 +2320,11 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
   #2 now says to build with the default seed as written. The 3x runs on 11, 13, 14 continue (13 kept as a data point).
 - The nextpnr placement failure recurs at about 1 seed in 10 on these netlists: worth a look (RLOC v4 column groups
   vs packing are the likely interaction) but it fails loudly, so it cannot produce a wrong bitstream.
+### progress 06:56 (speed/scatter study closed: uniform or targeted padding of R5 does not change its 3x failure rate)
+- R5 on fresh seeds at 3x draw 1: 11, 13, 14 PASS. Totals on seeds 7-14 that place: R5 6/7, R5x1.25 7/8, R6t 4/5.
+  Failures are ~1 route in 5-8 for every R5-family variant at 3x, and 0/16 for default lengths (BQ#1 8/8, BQ#4 8/8).
+  research/data/fid/r5x125/README.md, research/data/fid/r6t/README.md.
+- Conclusion (negative): neither the uniform x1.25 (-10.5% speed) nor the targeted uori2/uori3 pad (~0%) moves the
+  tightened sizing's 3x failure rate measurably at this sample size. 3x is twice the 1.5x that R5 holds on every
+  route tried, and ~6x the measured ring scatter. No size change recommended; BOARD-QUEUE order stands.
+Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued on the machine now.
