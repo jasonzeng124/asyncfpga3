@@ -2300,3 +2300,6 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
   is broad.)
 - SLOW_MAX: R6t vec 6 30/30/32/30/32 on seeds 6-10 (mean 30.8) vs R5 31.0 (seeds 7-10) and R5x1.25 27.75. R6t is
   nearly free at SLOW_MAX and passes every audit on 5/5 seeds, but buys no measured scatter margin at 3x.
+### progress 02:33 (queued: R5 vs R5x1.25 at log-normal 3x draw 1 on fresh seeds 11-14)
+- After R6t seed 6: routes and 3x draw 1 runs for seeds 11-14 in both arms (8 runs), to put more than four routes
+  under the R5x1.25 4/4 vs R5 3/4 comparison.
