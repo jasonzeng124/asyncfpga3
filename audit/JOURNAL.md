@@ -1029,3 +1029,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 10:18 T12 row 5: band+1x chunk c03 64/64 own oracle, t_end and margin identical to research's row.
 - 14:50 research 60f3cb76: BQ#1 log-normal 3x draw 3 8/8 PASS (seed d 22/17/26). Own spot-check of seed d started (r23/run_point2.sh, region 0.48, wire 0.378, logn, seed 3).
 - 15:37 BQ#1 seed d log-normal 3x draw 3: 16/16 errs 0, 22/17/26 exactly as research 60f3cb76; lapcheck CLEAN.
+- 17:32 owner commit db3c299b on research: August n=128 ring raw data and build (answers BOARD-QUEUE's data request); noted, no audit claim yet.
