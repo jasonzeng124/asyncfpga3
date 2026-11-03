@@ -2390,3 +2390,15 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   calibrated within-die scatter), draw 3, seeds d,3-9: 8/8 PASS 16/16, errs 0, EQUIVALENT, vec 6 laps 20-30
   (research/data/fid/bq1_logn3x_draw3.tsv). With draw 2: 16/16 routes x draws at 3x on the default lengths. Does not
   show: silicon, or more than two draws of one scatter model. BOARD-QUEUE #1 updated.
+### progress 14:53 (bench full-stack GLS: first numbers; August-harness route built)
+- nh3 (fixed harness), SLOW_MAX, bits-decoded netlist EQUIVALENT, gate ANNOTATE_DONE with no SDF warning: FIXED
+  gcd(48,18) x16: completed 16/16, SIG 00020002 = the fold of gcd=6 over 16 runs (derived, not read), illegal-transition
+  sticky 0. latmin/max 170/171, cycles/run 176.06, so the rtz_cost.sh "tail" is 6.06; per run (gen_bench_mon): S_ACK +
+  S_RTZ + S_NEXT = 5 cycles, the null's; kernel output RTZ (bench_o_ack -> o_req fall) 12.7 ns, synchroniser 17.4 ns.
+  i_ack comes 360 ns after the request, o_req 1.665 us. Every run identical to the ps (deterministic sim).
+- Reading (soft): on this route the RTZ tail is the harness's 5 cycles plus mean-vs-min, not the kernel; the board's
+  12.1 (August build, other sizes) is NOT reproduced. FAST_MIN and UNIFORM running.
+- au3: the same build with the synchroniser reverted (cdc_bench.sh's "august" sed, applied to gen_bench.py in the
+  worktree), NEXTPNR_SEED=3, bit 53b40d67; audits A/E/F/H/I/J 0, D 38. On nh3 st[0] is placed 15 rows from st[1:2].
+- Running: phase sweep (139 batches x 2 runs, FCLK0 10000-10276 ps in 2 ps steps: i_ack, ~36 cycles after issue,
+  walks the whole aclk period in ~72 ps steps) on au3, then the same on nh3 as the control.
