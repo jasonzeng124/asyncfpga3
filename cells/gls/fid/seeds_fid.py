@@ -73,7 +73,10 @@ def route(a, seed):
 
 
 def sim(a, seed, hw, col, scat):
-    tag = col + ("" if scat is None else "_s" + scat.replace(":", "-"))
+    # the band's value is part of the tag: gen.py's default moved 0.38 -> 0.288 on 2026-11-03, and a bare
+    # "band" row/dir from before then means 0.38
+    ctag = col + (os.environ.get("GLS_SDF_BAND", "0.288") if col == "band" else "")
+    tag = ctag + ("" if scat is None else "_s" + scat.replace(":", "-"))
     if scat is not None and os.environ.get("GLS_SCATTER_LOGN") == "1":
         tag += "_logn"        # same draw, log-normal factors: its own run dir and row
     work = os.path.join(a.out, seed, tag)

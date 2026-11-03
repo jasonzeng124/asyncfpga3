@@ -2455,3 +2455,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   violation (matched delays are LUT chains, datapaths are not), so the gates stay until the verification runs cover it.
 - Not changed yet: gen.py's GLS_SDF_BAND default (0.38) and acceptance.py's --band default. Next: make 0.288 the
   measured default (0.38 stays reproducible by env), then the cell-type check.
+### progress 17:39 (model fix: band default 0.38 -> 0.288)
+- gen.py GLS_SDF_BAND and acceptance.py --band default 0.288 (the measured route's median; comments cite the data);
+  GLS_SDF_BAND=0.38 reproduces every earlier band result. seeds_fid.py now puts the band value in its tag
+  (band0.288_s...), so rows from before (bare "band") stay unambiguous. test_acceptance.py 30 passed. acceptance.py
+  at the default: ring128 MATCH (exit 0). ring5_a/b ERROR here: their rebuilt ro_top route is not on this container
+  (soft items; not re-run). ring128_summary.py keeps its explicit 0.38 model, as a record of what it tested.
+- Effect on earlier band numbers: at 0.288 every arc is ~7% faster than at 0.38 on average across the die (median
+  ring: 1.113 -> 1.0 of measured), so band-column laps and margins move toward the FAST_MIN side; corners unaffected.

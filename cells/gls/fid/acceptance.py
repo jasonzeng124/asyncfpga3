@@ -5,7 +5,7 @@
                                         [--netlist-cmd CMD] [--corner min|typ|max]
                                         [--ro-many-data DIR] [--work DIR]
                                         [--vectors 0-15] [--report out.json]
-                                        [--stack default|full] [--band 0.38]
+                                        [--stack default|full] [--band 0.288]
 
 The yardstick for the board-fidelity GLS (research/PROGRAM.md, "THE
 priority").  It runs one GLS CONFIGURATION over every silicon datum in
@@ -156,7 +156,7 @@ def unesc(s):
     return s.replace("\\", "")
 
 
-def parse_sdf_rf(path, corner="max", band=0.38):
+def parse_sdf_rf(path, corner="max", band=0.288):
     """{src_pin: [(dst_pin, rise_ps, fall_ps)]} for every IOPATH and
     INTERCONNECT; pins are 'instance/port' with SDF escapes removed.  Units are
     taken as ps (nextpnr's TIMESCALE is 1ps; an SDF in ns is scaled)."""
@@ -227,7 +227,7 @@ class Config:
         self.corner = a.corner
         self.work = work
         self.stack = getattr(a, "stack", "default") or "default"
-        self.band = getattr(a, "band", 0.38)
+        self.band = getattr(a, "band", 0.288)
         if self.stack == "full" and (self.sdf_cmd or self.netlist_cmd):
             raise ValueError("--stack full fixes the netlist (the bits) and the SDF (xray_delay.py); "
                              "it does not take --sdf-cmd or --netlist-cmd")
@@ -836,7 +836,7 @@ def main():
                     help="SDF column; band (fast_min + --band * (slow_max - fast_min)) needs --stack full")
     ap.add_argument("--stack", choices=STACKS, default="default",
                     help="full: bits-decoded netlist + xray_delay.py SDF + GLS_MODEL=fid (see above)")
-    ap.add_argument("--band", type=float, default=0.38,
+    ap.add_argument("--band", type=float, default=0.288,  # ring128 on its measured route; 0.38 before 2026-11-03
                     help="--corner band's position in [fast min, slow max] (gen.py GLS_SDF_BAND)")
     ap.add_argument("--ro-many-data")
     ap.add_argument("--ring-tol", type=float, default=5.0,

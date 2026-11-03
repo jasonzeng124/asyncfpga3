@@ -371,12 +371,16 @@ def unesc(s):
 # the corner.  Default "min" keeps the behaviour this file always had.
 # GLS_SDF_FIELD=band (F3) reads BOTH ends of an xray_delay.py triple and takes
 #   fast_min + GLS_SDF_BAND * (slow_max - fast_min)
-# -- the board's position inside [fast min, slow max] (F1: 0.35-0.41 on long
-# rings), never a mix of corners within one arc.  On nextpnr's own SDF (all
-# three columns equal) it returns that number unchanged.
+# -- the board's position inside [fast min, slow max], never a mix of corners
+# within one arc.  On nextpnr's own SDF (all three columns equal) it returns
+# that number unchanged.  Default 0.288: the median over the 128 rings of
+# ro_many_top on their MEASURED route (research/data/fid/ring128/README.md;
+# every held-out split within 3%).  It was 0.38 until 2026-11-03, fitted to
+# ro_top's five rings across routes (F1: 0.35-0.41); GLS_SDF_BAND=0.38
+# reproduces any result taken before then.
 _FIELD = os.environ.get("GLS_SDF_FIELD", "min")
 SDF_FIELD = {"min": 0, "typ": 1, "max": 2, "band": 0}[_FIELD]
-SDF_BAND = float(os.environ.get("GLS_SDF_BAND", "0.38"))
+SDF_BAND = float(os.environ.get("GLS_SDF_BAND", "0.288"))
 
 
 def tri(m, first):

@@ -1,0 +1,22 @@
+... ring128 (ring_population, hard)
+... ring5_a (ring_route, soft)
+... ring5_b (ring_route, soft)
+
+GLS configuration: {"stack": "full", "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)", "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist", "model": "GLS_MODEL=fid", "corner": "band", "gls_env": {"GLS_MODEL": "fid", "GLS_SDF_FIELD": "band", "GLS_SDF_BAND": "0.288"}}
+
+==== HARD (1) ==================================================
+
+[MATCH] ring128: 128 ring oscillators (ro_many_top), 32 each at 7/15/31/63 links
+    source: cells/hw/README.md:296-301, cells/hw/README.md:305-306, cells/hw/README.md:321-323, cells/hw/README.md:353
+    per-ring comparison on the measured route: median +0.0% and per-length medians within +/-5.0%
+      n=128  median error +0.03%  p05 -1.8%  p95 +1.5%  by length {7: 0.6, 15: 0.1, 31: 0.0, 63: -0.4}  silicon slower than model on 59
+
+==== SOFT (2) ==================================================
+
+[ERROR] ring5_a: ro_top five rings, route A (2026-08-03)
+    source: cells/hw/README.md:192-202
+    ERROR: FileNotFoundError: [Errno 2] No such file or directory: '/home/user/asyncfpga3/build/fid/ro_top/ro_top_routed.json'
+
+[ERROR] ring5_b: ro_top five rings, route B (rebuilt 2026-08-18, measured 2026-08-23)
+    source: cells/hw/README.md:218-229
+    ERROR: FileNotFoundError: [Errno 2] No such file or directory: '/home/user/asyncfpga3/build/fid/ro_top/ro_top_routed.json'
