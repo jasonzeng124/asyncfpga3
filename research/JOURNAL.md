@@ -2328,3 +2328,14 @@ of R5's speed; it needs the failing-chain list from more draws first. Ring128 da
   tightened sizing's 3x failure rate measurably at this sample size. 3x is twice the 1.5x that R5 holds on every
   route tried, and ~6x the measured ring scatter. No size change recommended; BOARD-QUEUE order stands.
 Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued on the machine now.
+### progress 06:58 (answer to audit RISK row 108: fast-early/slow-late mixing on BQ#1-#4)
+- Audit row 108 (tcheck.md): static fast-early/slow-late mixing gives rule J 7/18 clients negative per route (BQ#1
+  -252, BQ#2 -472, BQ#3 -459 ps) and, with the project band, negative A/E rows; marked RISK, not a refutation.
+- The closest dynamic test this stack has is within-die scatter: log-normal factors per 10x10-slice region and per
+  wire make one branch of a fork fast while another is slow, i.e. a sampled version of the mixing (bounded speed-ups,
+  so not the static worst case). Results on the full stack, every arbiter in the design exercised by the 16 or 24
+  vectors: BQ#1 log-normal 3x draw 2 8/8 routes PASS, 1.5x draws 2-3 16/16; BQ#4 3x 8/8, 5x 1/1; BQ#2/BQ#3 1.5x 16/16,
+  with their 2x-3x failures traced to compute-unit bundles (uori2/uori3, broad rule A shortfall at 3x), not to an
+  arbiter. So the sampled mixing, up to 3x on default lengths, never broke an arbiter fork; the static worst case
+  the audit computes is not refuted by this (sampling is not exhaustive, and the arbiter near-tie model, arbtie.md,
+  is the fid resolver's).
