@@ -2426,3 +2426,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   different code than the board's 110 (route-dependent). research/data/bench/ (README.md, logs, the two seds).
 - Grade: this reproduces a SOFT acceptance item's mechanism, not its rate or code (no August route). The deciding
   half is the control: the same sweep on nh3 (synchroniser in) is running; it must show no illegal transition.
+### progress 16:12 (control: the synchronised bench never mixes over the same sweep -> bench_hang mechanism MATCH)
+- nh3 (today's harness), the same SLOW_MAX sweep: 127 batches, FCLK0 10000-10252 ps, 0 illegal transitions, 0 hangs,
+  every SIG derived-correct, no out-of-protocol capture; i_ack's phase covered ~9 of 10 ns.
+- So the full stack reproduces the August bench hang's mechanism and its fix (soft item bench_hang: mechanism MATCH;
+  code and rate need the August route). acceptance_status.md row added. Two routes, not one with/without: noted.
+- Queued (q4): au3 UNIFORM 4x32 random full-width vectors at the nominal 100 MHz (board-like: does the August harness
+  give wrong answers or hangs there?), the window again at 1 ps steps with another metastability seed (skew or
+  metastability?), au3 FAST_MIN sweep.

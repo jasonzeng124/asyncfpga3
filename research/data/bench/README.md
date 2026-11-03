@@ -43,3 +43,15 @@ cap stopped the run after batch 127 (FCLK0 10254 ps).
   saw 17 BILL. 001 and 000 are bitwise mixes of 011 and the intended 100, the mechanism gen_bench.py's comment
   describes; the board's code was 110 (another mix: which bit is late is route-dependent).
 - SIG stayed 0000000a in the completing batches only because FIXED repeats one operand pair.
+
+## nh3: the same sweep, synchronisers in (the control; nh3_max_sweep.log)
+127 batches, FCLK0 10000-10252 ps (the 5 ms cap again): 0 illegal transitions (monitor and the bench's sticky), 0
+hangs, completed 2/2 and SIG 0000000a (derived) in every batch, latency 170 -> 166 cycles with the period, no
+out-of-protocol capture. 127 steps of ~72 ps walk i_ack's phase over ~9 ns of the 10 ns period, so the synchronised
+harness saw nearly every phase. nh3 and au3 are two routes (the netlists differ by the revert), so the comparison is
+harness-vs-harness at matched sweep, not one route with and without.
+
+Reading: the full stack reproduces the August bench hang's MECHANISM (a multi-bit state register sampling an
+unsynchronised async latch lands on bitwise mixes of two states; one of them hangs the batch) and the fix (2-flop
+synchroniser: none across the sweep). It does not reproduce the board's code (110) or rate (5 of 8 runs): that
+needs the August route, which was not kept. Soft acceptance item bench_hang: mechanism MATCH, rate/code not testable.
