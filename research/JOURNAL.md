@@ -2375,3 +2375,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   columns in the bench ("post-place repair: no valid placement ... uori2.udly.chain.g[0]", then an arch.h:923
   assertion) on seeds 3 and 4 alike: deterministic, not seed noise (gcd_ps places them; the bench adds 1024 histogram
   flops). Retrying with v2 (build_bench.sh's default); the kernel then needs its own audits.
+### progress 13:53 (bench routes with v4 once its histogram is compiled out; audits clean)
+- BD_RLOC=v2 routes the bench but misses rule A once (ulink_n_falseResult_25 stage 1, -144 ps) and rule E broadly
+  (ucond_br10-18 need 5-11 pad elements): BQ#1's pads were measured on v4 placement, so v2 is not a like-for-like
+  kernel. Kept v4 and compiled out the bench's 64x16 latency histogram instead (its write data tied to 0, so yosys
+  drops the 1024 flops; HIST reads 0). The histogram only observes; the FSM, synchronisers, AXI slave and kernel
+  are gen_bench.py's. The patch is a sed in the build's worktree, recorded with the data.
+- Route nh3 (NEXTPNR_SEED=3, nextpnr 9c732bc6303458df, toolchain.sh all ok): bit 464c573f, fclk0 est. 108 MHz;
+  build_bench.sh's rule A gate holds; audit_route.sh: rule A/E/F/H/I/J 0, rule D 38 (the screen, as BQ#4).
+- Queued behind BQ#1's last two seeds (memory): full-stack fid GLS of nh3 at both corners, FIXED gcd(48,18) x16 and
+  UNIFORM seed 1 x32. BQ#1 3x draw 3: d,3-7 PASS so far.
