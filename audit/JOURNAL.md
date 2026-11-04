@@ -1074,3 +1074,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:33Z T22: research d9b5dc8a isprime GND-buffer classification CONFIRMED (JSON GND buffers -> 0; own read-back INIT 0).
 - 19:36Z lock.
 - 20:16Z lock.
+- 20:16Z T19: own route of BQ#2 seed 13 + worst-case gate started (route_wc.sh), second route for the gate.
