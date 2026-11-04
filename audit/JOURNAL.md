@@ -1054,3 +1054,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 12:16Z T18 row 3: own seed-5 cell check 16/16 errs 0, 62/50/73 = TSV (journal 06:32 has 4/5 swapped), EQUIVALENT; rerunning for lapcheck (sweep logs deleted).
 - 12:42Z lock; T18 seed-5 rerun for lapcheck in progress.
 - 13:22Z lock; T18 seed-5 rerun in progress.
+- 13:51Z T18 done: seed-5 rerun identical, LAPCHECK CLEAN; REPORT row for b624a41a.
