@@ -1085,3 +1085,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 22:57Z lock.
 - 22:57Z T21 collatz (research 18a33cc6): board 29/29 (48,18 min over logs 103); own min/max running.
 - 23:37Z lock.
+- 23:46Z lock; container restart ~23:40 killed the collatz SLOW_MAX run (FAST_MIN done); relaunched.
