@@ -1052,3 +1052,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 11:21Z T18: own seed-5 route sdf c71ed2cb / xray f3ca9bea = table's seed-5 row; cell check sim at vec 5/16.
 - 12:02Z lock; T18 seed-5 cell check 13/16 vectors, errs 0 so far.
 - 12:16Z T18 row 3: own seed-5 cell check 16/16 errs 0, 62/50/73 = TSV (journal 06:32 has 4/5 swapped), EQUIVALENT; rerunning for lapcheck (sweep logs deleted).
+- 12:42Z lock; T18 seed-5 rerun for lapcheck in progress.
