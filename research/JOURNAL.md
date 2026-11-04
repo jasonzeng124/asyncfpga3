@@ -2576,3 +2576,14 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   the flock (the gate is stopped and nothing else simulates, so memory is not shared) and resumes the gate at the
   end. Lesson: never SIGSTOP a process that may hold a lock you will wait on; pause between seeds instead.
 - Running: ipow, isprime, collatz, collatz64 August bench builds at FAST_MIN and SLOW_MAX on their board vectors.
+### progress 18:04 (the August ipow bitstream has a live LUT written as constant 0)
+- ipow_bench_gen (August, bit 6dbf3faec62f): bits-vs-JSON NOT EQUIVALENT. Traced: the routed JSON has
+  bridge_i.udut.ushrsi0's LUT at SLICE_X24Y46/C6LUT (CLBLM_R_X17Y46 SLICEM_X0 CLUT) with INIT 0100 (f = I1 & ~I0),
+  driving 9 pins; the August FASM writes CLUT.INIT = 0 there (the .bit agrees with the FASM; its route pips are in
+  both). So the board ran that LUT as constant 0: a FASM-writer defect of that toolchain (d216cb36), not a decoder one.
+  The shape fits the lut-pinmap class (if the pin carrying I1 is taken for I0, f = I0 & ~I0 = 0); the build (08-24
+  06:12) predates the patch's first commit (11:41) though its toolchain.txt stamps it ok. fasm_equiv flags it as it
+  should (DRIVER DIFFERS on the 9 sinks, LUT FUNCTION DIFFERS on the 4 consuming LUTs). The other differences are the
+  benign kinds. gcd_bench_gen was EQUIVALENT.
+- The full stack simulates what the board ran, so the ipow comparison stays valid; whether the defect changed any
+  answer is read from the run against the board's recorded results (aug_x.py checks every result).
