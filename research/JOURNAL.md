@@ -2596,3 +2596,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   32-bit half; some JSON LUT inputs are undriven nets), so it was reverted: the verdict stays conservative and the
   August builds' differences are classified by hand here. The sims run on the bits and are checked against the
   board's results either way.
+### progress 20:39 (another restart ~20:30 killed every job; requeued)
+- Lost: the paused gate driver (BQ#3 worst case had no rows yet), the August runner (isprime SLOW_MAX at 16/18 vectors;
+  kept as a partial log, as FAST_MIN's 16, enough for x), the lock keeper. Relaunched: runk4.sh (collatz, collatz64
+  August builds at both corners, holding the compile flock through compile and run) beside vq5.sh (the gate, one sim
+  while runk4 lives, then two: worst case on BQ#3/BQ#1, band 0.288 + M on BQ#2/3/1, BQ#1 cell check, bench sweeps).
+- isprime vectors trimmed to board latency <= 3000 cycles (18 of 25; the rest run 6k-61k cycles, ~7 h of sim for
+  nothing the x fit needs); collatz/collatz64 all fit.
