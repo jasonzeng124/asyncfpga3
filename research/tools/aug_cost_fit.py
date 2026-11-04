@@ -8,7 +8,8 @@ full stack's, per vector and through gcd's per-loop cost model.
 BOARD_TSV is the board's gcd_cost.tsv (a b k ctzpre main ctzin result cycles latmin latmax; FIXED batches of 200,
 FCLK0 100 MHz).  Each RUN_LOG is ps7_bench.v's output for the SAME bitstream (one FIXED batch per vector, +VECFILE);
 its BENCHRES lines give latmin/latmax in aclk cycles, the same counter the board read.  Rows are paired by (a, b);
-a batch that did not complete, or whose result disagrees with the board's, is reported and left out.
+a batch that did not complete, whose result disagrees with the board's, or whose two runs disagree (the August
+harness's async-latch race), is reported and left out.
 
 Printed:
   * per vector: board latmin, each run's latmin, and x = (board - FAST_MIN) / (SLOW_MAX - FAST_MIN) when both
@@ -34,6 +35,9 @@ def lstsq(X, y):
     return beta, math.sqrt(sum(e * e for e in res) / max(1, len(X) - n))
 
 
+RACE = {}
+
+
 def main():
     board = {}
     for ln in open(sys.argv[1]).read().splitlines()[1:]:
@@ -50,6 +54,13 @@ def main():
             d = dict(re.findall(r"(\w+)=(\S+)", ln))
             key = (int(d["op0"], 16), int(d["op1"], 16))
             ok = ln.rstrip().endswith("DONE") and int(d["completed"]) == int(d["n"])
+            # the August harness reads an unsynchronised latch: a batch whose runs disagree (the bench's mismatch
+            # sticky, MISM_ST bit 0) or whose latencies differ by more than 3 cycles (a stale or late capture) hit
+            # that race -- its latencies are not the kernel's, so it is reported and left out of the fit
+            if ok and (int(d["mism_st"], 16) & 1 or int(d["latmax"]) - int(d["latmin"]) > 3):
+                RACE.setdefault(name, []).append("%d,%d lat %s-%s mism_st %s" % (int(d["op0"], 16), int(d["op1"], 16),
+                                                                                 d["latmin"], d["latmax"], d["mism_st"]))
+                continue
             if key in board and ok and int(d["odata"], 16) != board[key]["result"]:
                 print("  %s %s: result %s != board %d -- left out" % (name, key, d["odata"], board[key]["result"]))
                 ok = False
@@ -58,6 +69,8 @@ def main():
                 continue
             r[key] = (int(d["latmin"]), int(d["latmax"]))
         runs[name] = r
+    for name, v in RACE.items():
+        print("  %s: %d batch(es) hit the harness race, left out: %s" % (name, len(v), "; ".join(v)))
     names = list(runs)
     print("%-24s %8s  %s%s" % ("a,b", "board", "  ".join("%8s" % n for n in names),
                                "   x(board)" if "min" in runs and "max" in runs else ""))
