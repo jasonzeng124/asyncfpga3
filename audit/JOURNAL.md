@@ -1084,3 +1084,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 22:17Z prep: own board tables for collatz (29 vectors) and collatz64 (27) extracted (t21/*_board_own.txt) ahead of research's item-2 claims.
 - 22:57Z lock.
 - 22:57Z T21 collatz (research 18a33cc6): board 29/29 (48,18 min over logs 103); own min/max running.
+- 23:37Z lock.
