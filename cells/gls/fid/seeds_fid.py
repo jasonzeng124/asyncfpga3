@@ -78,6 +78,11 @@ def sim(a, seed, hw, col, scat):
     ctag = col + (os.environ.get("GLS_SDF_BAND", "0.288") if col == "band" else "")
     if col == "band" and os.environ.get("GLS_SDF_BAND_CELL"):      # e.g. _cCARRY4=1-SELMUX2_1=1-SLICE_FFX=1
         ctag += "_c" + os.environ["GLS_SDF_BAND_CELL"].replace(",", "-")
+    # GLS_SDF_BAND_INST_RX=REGEX:BAND -- per seed, every cell matching REGEX in that route at BAND (gen.py's
+    # GLS_SDF_BAND_INST file, written by research/tools/band_inst_list.py from the seed's own routed JSON)
+    birx = os.environ.get("GLS_SDF_BAND_INST_RX", "") if col == "band" else ""
+    if birx:
+        ctag += "_i" + birx.rpartition(":")[2]
     tag = ctag + ("" if scat is None else "_s" + scat.replace(":", "-"))
     if scat is not None and os.environ.get("GLS_SCATTER_LOGN") == "1":
         tag += "_logn"        # same draw, log-normal factors: its own run dir and row
@@ -85,6 +90,14 @@ def sim(a, seed, hw, col, scat):
     log = os.path.join(a.out, seed, tag + ".log")
     env = dict(os.environ, GLS_SDF=os.path.join(hw, "gcd_hw_xray.sdf"),
                GLS_SDF_FIELD=col, GLS_MODEL="fid", PYTHONPATH=PRJXRAY)
+    if birx:
+        rx, _, b = birx.rpartition(":")
+        os.makedirs(os.path.join(a.out, seed), exist_ok=True)
+        bfile = os.path.join(a.out, seed, tag + ".band")
+        if sh(f"python3 {REPO}/research/tools/band_inst_list.py {os.path.join(hw, a.top + '_routed.json')} "
+              f"'{rx}' {b} {bfile}", log):
+            raise RuntimeError("band_inst_list failed for seed " + seed)
+        env["GLS_SDF_BAND_INST"] = "@" + bfile
     if scat is not None:
         reg, wire, draw = scat.split(":")
         env.update(GLS_SCATTER_REGION=reg, GLS_SCATTER=wire,
