@@ -1043,3 +1043,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 07:16Z lock; cell-slow run in vvp; research added tools aug_board_vectors.py / aug_x.py (tooling, no new claim).
 - 07:57Z T17 row 5: cell-slow override verified in annot.sdf (CARRY4 90, SELMUX 1454, FFX 1950, + 2 SLICE_LATX latches moved by the SLICE_FFX knob). Sim running.
 - 08:02Z T17 row 5 done: own cell-slow = research's cellslow log exactly; latmin = band 24/24, but latmax of (786432,262144) 334 vs 333 (also in research's logs) -> 'identical cycle for cycle' OVERSTATED (minor). T17 complete except SLOW_MAX own re-sim.
+- 08:38Z lock; own SLOW_MAX rerun of Aug gcd in vvp (closes T17 row 3 UNVERIFIED part). No new research/formal claims.
