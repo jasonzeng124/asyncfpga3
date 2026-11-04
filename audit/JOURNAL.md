@@ -1047,3 +1047,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 09:15Z T17 row 3 closed: own SLOW_MAX rerun = research's max log on all 24 batches (race batches too); x from own runs only: 0.211. T17 complete.
 - 09:16Z T17 row 7: per-term x 0.196-0.210 CONFIRMED from own runs.
 - 09:18Z T17 row 8: GLS_SDF_BAND_INST chain selection CONFIRMED (own src-line selection = regex, 1183) and arc count 8756 reproduced; scope note (anchor + tail route not moved).
+- 09:59Z lock; no new research/formal claims since ae13f18f / 0be49560.
