@@ -2511,3 +2511,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   PROGRAM.md's verification criterion asks for. ring128/README.md.
 - Plan: the verification runs per candidate (>= 8 seeds): SLOW_MAX, FAST_MIN (done for BQ#1-4), band 0.288 + M,
   and the cell-type check with M on top. Queued after the running cell checks.
+### progress 02:01 (container restart ~01:45; queue relaunched)
+- Every background job died (verification queue, sims, lock keeper); scratch files and the toolchain survived
+  (toolchain.sh: all patches ok, nextpnr 9c732bc6303458df). Rows that landed before: BQ#3 cell check d, 3 PASS
+  16/16 (laps 60/50/71, 59/48/69). Relaunched only the missing runs (vq2.sh, the frozen worktree at 2945db42).
