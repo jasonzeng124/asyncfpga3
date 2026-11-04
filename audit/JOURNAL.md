@@ -1032,3 +1032,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 17:32 owner commit db3c299b on research: August n=128 ring raw data and build (answers BOARD-QUEUE's data request); noted, no audit claim yet.
 - 18:19 T16: research's band recalibration (0.38 -> 0.288) from the owner's August ring data reproduced independently (md5s, bitstream = route, SDF f20c1bf4, own ring walk 0 ps vs pred, own fit 0.2877 / +11.45% at 0.38 / held-out <= 3.06%).
 - 00:31 research 1d7d73c7 cell-type check (BQ#2 8/8 PASS at LUT+wire band 0.288, CARRY4/F7F8/FF at SLOW_MAX; seed 6 61/50/72): own spot-check of seed 6 started (saved build /root/bq2s6, wt-r14 now at research 22fe1811 for GLS_SDF_BAND_CELL).
+- 01:33 cell-type check BQ#2 seed 6: 16/16 errs 0, 61/50/72 exactly as research 1d7d73c7; lapcheck CLEAN.

@@ -1,0 +1,79 @@
+GLS_MODEL=fid
+GLS_SDF=/root/bq2s6_hw/gcd_hw/gcd_hw_xray.sdf
+GLS_SDF_BAND=0.288
+GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1
+GLS_SDF_FIELD=band
+== fasm2net (bit) ==
+source: /root/bq2s6_hw/gcd_hw/gcd_hw.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 68843   nodes touched: 325760
+cells: 11733  {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 1200, 'SLICE_FFX': 326, 'SLICE_LUTX': 10136}
+sinks traced: 242603
+sink roots: {'drv': 39150, 'const/tile': 2208, 'const/default': 21497}
+sdf: cell arcs for a bel this netlist does not have                         1
+sdf: cells re-keyed                                                         11733
+sdf: interconnects re-keyed                                                 50022
+sdf: sinks with no nextpnr interconnect (0 ps)                              16262
+
+PROBLEMS (1 kinds):
+       5  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL3_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL1_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL2_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL0_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL8_O
+
+CONFIGURED FEATURES NOT CONSUMED: 0 kinds (0 all-zero encodings ignored)
+
+note: 50 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 12091 routed-JSON net names attached by driver bel pin, 1 whose driver has no net here
+== equivalence against the routed JSON (information; the sim runs regardless) ==
+1. CELLS  routed JSON 11732 bels, bitstream 11731 bels, common 11731
+2. CONFIG  compared {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'SLICE_FFX': 326} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+3. CONNECTIVITY  34842 pins with the same driver on both sides
+4. LUT FUNCTIONS  10136 LUTs compared, 10136 identical over every input assignment
+5. ROUTING  12092 nets with identical pip sets, 0 differ (1 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    gcd_hw  (FASM-BUILT netlist: fasm2net.py from the bit)
+stamped:   2026-11-04 00:31:40
+md5 716bc60113052e5ef6a8304d2b153fb1  /root/bq2s6_hw/gcd_hw/gcd_hw.bit
+md5 227bce4a5e5b16f982e07c3e7bfb6c15  /root/bq2s6_hw/gcd_hw/gcd_hw.fasm
+md5 8a833e531d140ef6cd37f93ebab0002b  /root/bq2s6_hw/gcd_hw/gcd_hw_routed.json
+md5 c4ec8664f465c9d689f400debc95c9fc  /root/bq2s6_hw/gcd_hw/gcd_hw.sdf
+connectivity/LUTs from: bit;  names + delays from: routed JSON + SDF (re-keyed)
+delays:    scale 1, scatter sigma 0, seed 1, mode arc (gen.py)
+sdf:       1f7f03eacf89546408be82fe0ac0135c  /root/bq2s6_hw/gcd_hw/gcd_hw_xray.sdf, column band
+model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region 0/10, band 0.288 if column=band)
+toolchain: UNSTAMPED
+== gen.py on the FASM-built netlist ==
+GLS_SDF_BAND_CELL: {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0} (IOPATH arcs moved: CARRY4 1380, SELMUX2_1 3600, SLICE_FFX 326)
+delays: SDF column band 0.288 cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 44440 IOPATH, 66284 INTERCONNECT, 1218 SETUPHOLD
+fid: 4711 LUT state node(s) with a self-loop; loop delay min/median/max 201/510/2196 ps
+cells         : 11733
+icbufs        : 66284
+nets          : 12153 (+66284 icbuf outputs)
+IOPATH  claimed 110724 -> emitted 110724 (incl. 66284 icbuf)
+SETUPHOLD claimed 1218 -> 326 flops check them in netlist_baked.v
+handshake wires: 542  data buses: 159
+resolved 14 signals -> signals.vh
+== compiling ==
+built /root/r23work/bq2_6_cellcheck
+94b6a69eb3806cf3906148f8d9c07742  /root/r23work/bq2_6_cellcheck/netlist_baked.v
+vec 0: RESULT timeout: vec=0 laps=5725 errs=0 oks=5725 | SUMMARY vec=0 laps=5725 errs=0 oks=5725 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=404902 t_last_lap=150991894
+vec 1: RESULT timeout: vec=1 laps=3493 errs=0 oks=3493 | SUMMARY vec=1 laps=3493 errs=0 oks=3493 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=414169 t_last_lap=150996193
+vec 2: RESULT timeout: vec=2 laps=371 errs=0 oks=371 | SUMMARY vec=2 laps=371 errs=0 oks=371 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=784379 t_last_lap=150736129
+vec 3: RESULT timeout: vec=3 laps=315 errs=0 oks=315 | SUMMARY vec=3 laps=315 errs=0 oks=315 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=857043 t_last_lap=150929889
+vec 4: RESULT timeout: vec=4 laps=802 errs=0 oks=802 | SUMMARY vec=4 laps=802 errs=0 oks=802 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=564764 t_last_lap=150867904
+vec 5: RESULT timeout: vec=5 laps=282 errs=0 oks=282 | SUMMARY vec=5 laps=282 errs=0 oks=282 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=911327 t_last_lap=150528372
+vec 6: RESULT timeout: vec=6 laps=61 errs=0 oks=61 | SUMMARY vec=6 laps=61 errs=0 oks=61 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=2824969 t_last_lap=149590009
+vec 7: RESULT timeout: vec=7 laps=213 errs=0 oks=213 | SUMMARY vec=7 laps=213 errs=0 oks=213 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=1082817 t_last_lap=150362829
+vec 8: RESULT timeout: vec=8 laps=177 errs=0 oks=177 | SUMMARY vec=8 laps=177 errs=0 oks=177 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=1225121 t_last_lap=150162129
+vec 9: RESULT timeout: vec=9 laps=145 errs=0 oks=145 | SUMMARY vec=9 laps=145 errs=0 oks=145 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=1413348 t_last_lap=150344772
+vec 10: RESULT timeout: vec=10 laps=802 errs=0 oks=802 | SUMMARY vec=10 laps=802 errs=0 oks=802 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=564764 t_last_lap=150867904
+vec 11: RESULT timeout: vec=11 laps=85 errs=0 oks=85 | SUMMARY vec=11 laps=85 errs=0 oks=85 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=2136848 t_last_lap=149805740
+vec 12: RESULT timeout: vec=12 laps=50 errs=0 oks=50 | SUMMARY vec=12 laps=50 errs=0 oks=50 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=3350607 t_last_lap=148975716
+vec 13: RESULT timeout: vec=13 laps=72 errs=0 oks=72 | SUMMARY vec=13 laps=72 errs=0 oks=72 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=2462163 t_last_lap=150375114
+vec 14: RESULT timeout: vec=14 laps=292 errs=0 oks=292 | SUMMARY vec=14 laps=292 errs=0 oks=292 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=893821 t_last_lap=150740197
+vec 15: RESULT timeout: vec=15 laps=180 errs=0 oks=180 | SUMMARY vec=15 laps=180 errs=0 oks=180 hk=10685 t_end=151000000 t_rst_rel=378734 t_first_lap=1214555 t_last_lap=150799485
+DONE
