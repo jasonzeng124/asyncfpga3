@@ -2587,3 +2587,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   benign kinds. gcd_bench_gen was EQUIVALENT.
 - The full stack simulates what the board ran, so the ipow comparison stays valid; whether the defect changed any
   answer is read from the run against the board's recorded results (aug_x.py checks every result).
+### progress 18:27 (August isprime: NOT EQUIVALENT is nextpnr's GND buffers -- benign by inspection; fasm_equiv not changed)
+- isprime_bench_gen (August): fasm_equiv lists 3 DRIVER DIFFERS, all F7-mux inputs at SLICE_X10Y63 whose JSON drivers
+  are $PACKER_GND_NET$LUT buffers (INIT ..0010, A1 on GND: output 0) and whose bits drivers are INIT-0 LUTs (output
+  0). Same value; benign. The other kinds are the benign ones.
+- Tried to make fasm_equiv fold such buffers (JSON side by name, decoder side by evaluating INIT when every physical
+  pin is constant). It moved differences between categories rather than settling them (5-LUT O5 outputs need the
+  32-bit half; some JSON LUT inputs are undriven nets), so it was reverted: the verdict stays conservative and the
+  August builds' differences are classified by hand here. The sims run on the bits and are checked against the
+  board's results either way.
