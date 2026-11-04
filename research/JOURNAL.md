@@ -2570,3 +2570,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (the measured mix), the uncalibrated cells at their slow corner, and the board's residual as scatter, on every route.
 - Does not show: silicon; mixes beyond those measured (chains below 0.21); BQ#3/BQ#1 (running next, after the
   August-kernel runs, which now pause the queue: item 2 for ipow/isprime/collatz/collatz64).
+### progress 18:00 (a deadlock cost ~25 min; the other August kernels now running)
+- runk.sh paused the gate's seeds_fid (SIGSTOP) while one of its threads held the shared compile flock, then waited
+  on that flock itself: nothing ran 17:35-18:00. Replaced by runk2.sh, which runs the August kernel builds without
+  the flock (the gate is stopped and nothing else simulates, so memory is not shared) and resumes the gate at the
+  end. Lesson: never SIGSTOP a process that may hold a lock you will wait on; pause between seeds instead.
+- Running: ipow, isprime, collatz, collatz64 August bench builds at FAST_MIN and SLOW_MAX on their board vectors.
