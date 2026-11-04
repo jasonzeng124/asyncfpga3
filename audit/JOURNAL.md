@@ -1058,3 +1058,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 14:03Z lock; no new claims (research locks only; formal 0be49560).
 - 14:43Z lock; T18 seed-4 route + cell check running.
 - 15:34Z lock; container restart at ~14:50 left the seed-4 run alive (setsid); watchers re-armed.
+- 15:42Z T18 row 4: own seed-4 cell check 16/16 errs 0, 56/44/65 = TSV, md5s = TSV, lapcheck CLEAN. Research worst-case gate (journal 14:59, BQ#2 4/4) not yet tabled; will check seed 6 when it is.
