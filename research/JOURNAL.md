@@ -2515,3 +2515,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Every background job died (verification queue, sims, lock keeper); scratch files and the toolchain survived
   (toolchain.sh: all patches ok, nextpnr 9c732bc6303458df). Rows that landed before: BQ#3 cell check d, 3 PASS
   16/16 (laps 60/50/71, 59/48/69). Relaunched only the missing runs (vq2.sh, the frozen worktree at 2945db42).
+### progress 03:36 (owner's next steps 1dd0a675; item 2 started: the August gcd_bench_gen on the full stack)
+- The owner committed research/board/aug/ (every August board build with its .bit, and 331 logs paired to them) and
+  PROGRAM.md "Next, now that ring128 matches": (1) the sim is the gate, uncalibrated cells at 0.288 by default and
+  also gated at the slow-cell corner; (2) fit the datapath band on the August gcd build; (3) shrink matched delays to
+  what the sim proves; (4) every other kernel through the full stack; (5) one ordered board list.
+- Item 2 running: the August gcd_bench_gen (bit f199866ea256, nextpnr d216cb36, the async-latch-hang build) decoded
+  from its bits with its own routed JSON, prjxray SDF of that route, ps7_bench.v (new +VECFILE: one FIXED batch per
+  vector) on the board's 24 gcd_cost vectors x 2 runs, at FAST_MIN, SLOW_MAX, band 0.288, and 0.288 with CARRY4/
+  F7F8/FF at SLOW_MAX. Board: logs/gcd_cost.tsv (latmin/latmax per vector, N=200).
+- The verification queue (cell check BQ#3/BQ#1, then band 0.288 + M, cell + M) continues alongside.

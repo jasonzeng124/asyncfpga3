@@ -226,6 +226,7 @@ BENCH_PROG = r'''
             axi_write(32'h20, 32'h2); axi_write(32'h20, 32'h0);   // bench_rst: stickies read 0 first
             axi_read(32'h58, ill);
             if (ill[3] || ill[7]) $display("BENCHPRE batch=%0d ILL=%08h not clear after bench_rst", j, ill);
+            if (nvf > 0) begin op0 = vmem[2 * j]; op1 = vmem[2 * j + 1]; opstep = 0; end
             axi_write(32'h08, op0 + j * opstep); axi_write(32'h0C, op1); axi_write(32'h14, nruns);
             axi_write(32'h20, 32'h0); axi_write(32'h20, 32'h1 | ((mode & 3) << 2));
             t0 = $time;
@@ -264,6 +265,8 @@ BENCH_BODY = r'''
     //   +MODE=<m>       0 UNIFORM (OP0 = LFSR seed), 1 FIXED (default), 2 LEGACY
     //   +OP0=<hex> +OP1=<hex>   operands (default 30, 12 = 48, 18), +OPSTEP=<hex> added to OP0 per batch
     //   +RUNGAP=<n>     inter-run gap register (default: leave the reset value)
+    //   +VECFILE=<file> hex "op0 op1" per line ($readmemh, 2 words per vector): batch j runs vector j
+    //                   (overrides OP0/OP1/OPSTEP; NBATCH defaults to the number of vectors read)
     //   +TBATCH=<ns>    a batch that is not done after this is a HANG (default 200 + 20 us per run)
     // Same AXI3 master as gcd_ps's (gen_ps7.py), running hw/xsdb_bench_gen.tcl's run_batch.
     localparam integer TCO = 100;
@@ -277,6 +280,9 @@ BENCH_BODY = r'''
     reg [3:0]  wstrb = 0;
     reg        arvalid = 0, awvalid = 0, bready = 0, rready = 0, wvalid = 0;
     reg [31:0] bs, cyc, prep, lmin, lmax, sig, mism, odata, fsm, ill, illc;
+    reg [31:0] vmem [0:511];
+    reg [1023:0] vecfile;
+    integer nvf;
     reg        timed_out;
     time       t0;
     initial begin
@@ -293,6 +299,14 @@ BENCH_BODY = r'''
         if ($value$plusargs("RUNGAP=%d", rungap)) ;
         tbatch_ns = 200000 + 20000 * nruns;
         if ($value$plusargs("TBATCH=%d", tbatch_ns)) ;
+        nvf = 0;
+        if ($value$plusargs("VECFILE=%s", vecfile)) begin
+            for (j = 0; j < 512; j = j + 1) vmem[j] = 32'hxxxxxxxx;
+            $readmemh(vecfile, vmem);
+            while (nvf < 256 && vmem[2 * nvf + 1] !== 32'hxxxxxxxx) nvf = nvf + 1;
+            if (!$value$plusargs("NBATCH=%d", nbatch)) nbatch = nvf;
+            if (nbatch > nvf) nbatch = nvf;
+        end
     end
     always #(fclk_ps / 2) fclk = ~fclk;
 
