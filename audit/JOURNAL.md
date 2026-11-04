@@ -1076,3 +1076,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 20:16Z lock.
 - 20:16Z T19: own route of BQ#2 seed 13 + worst-case gate started (route_wc.sh), second route for the gate.
 - 20:56Z lock.
+- 20:57Z T19 row 3: own BQ#2 s13 route md5s = research's (f3cacada/2634727b); sim running. T21 isprime (research 6665dad1): board 25/25 = own extraction; (143,0) 'did not complete' is a restart-truncated log; own min/max running.
