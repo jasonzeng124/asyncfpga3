@@ -36,3 +36,14 @@ operating point, x = 0.21, moves i_ack's phase). These batches are reported, not
 All 24 batches complete, none hits the harness race. Every vector is predicted 9-10% slow (48,18: 134 vs 122
 cycles; 2^31-1,2^31-2: 1319 vs 1199), and the cost terms likewise (main 172.0 vs 156.5 ns, k 137.3 vs 125.8):
 the kernel sits at x = 0.21 uniformly, whatever the vector, so the model's error on this kernel is one scale.
+
+## Band 0.288 with CARRY4 / F7F8 / FF at SLOW_MAX (fit_all.txt)
+2200 CARRY4, 4362 SELMUX2_1 and 1952 SLICE_FFX IOPATH arcs moved to SLOW_MAX: every vector's latency is
+IDENTICAL to band 0.288's, cycle for cycle (even the simulation end time, 244286032 ps, is the same). The
+uncalibrated cell types are not on this kernel's critical cycle at all.
+
+So what the board's latency measures is the matched delays and handshake LUTs, as bundled data should: the
+datapath (carries, F7/F8) has slack under its matched delay. Hence x = 0.21 is the silicon position of the
+RLOC'd LUT delay chains, and ring128's 0.288 that of LUT + routed hops. The measured mix is the dangerous one:
+matched delays FASTER, relative to the model, than the routed datapath they bound. That is the gate corner to run:
+delay chains at 0.21, everything else at 0.288 (plus the uncalibrated cells at SLOW_MAX, plus M).

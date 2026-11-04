@@ -2543,3 +2543,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   rest stays at 0.288. No effect when unset.
 - The gate this enables (next): delay chains at x = 0.21 (the August gcd kernel's measured position, the low end of
   LUT + wire on this die), everything else at 0.288, and the same with CARRY4/F7F8/FF at SLOW_MAX on top.
+### progress 06:32 (item 2: uncalibrated cells are off the gcd kernel's critical cycle; x = 0.21 is the delay chains')
+- August gcd build, band 0.288 with CARRY4/F7F8/FF at SLOW_MAX (8514 arcs moved): latency identical to band 0.288 on
+  all 24 vectors, cycle for cycle (sim end time equal to the ps). The kernel's latency is its matched delays +
+  handshake LUTs; the datapath has slack. So the board's x = 0.21 is the RLOC'd delay chains' position, ring128's
+  0.288 LUT + routed hops'. Measured mix: matched delays ~10% faster (vs the model) than routed logic -- the
+  dangerous direction. The gate queued (vq3) runs exactly that corner: chains 0.21, the rest 0.288, cells at
+  SLOW_MAX, + M, on BQ#1-3 x 8 seeds. research/data/aug_gcd/README.md.
+- BQ#3 cell check: seeds 4, 5 PASS (62/50/73, 56/44/65); 6-9 resumed.
