@@ -31,3 +31,8 @@ to 0.29 (ring loops: one LUT and a routed hop per stage): one band does not fit 
 At SLOW_MAX, 10 of the 24 batches hit the harness's async-latch race (the bench's mismatch sticky, or the two runs
 captured 700+ cycles apart); FAST_MIN had none. The board ran all 24 vectors 600 times with no mismatch (its
 operating point, x = 0.21, moves i_ack's phase). These batches are reported, not fitted.
+
+## Band 0.288 on the same build (fit_min_max_band.txt)
+All 24 batches complete, none hits the harness race. Every vector is predicted 9-10% slow (48,18: 134 vs 122
+cycles; 2^31-1,2^31-2: 1319 vs 1199), and the cost terms likewise (main 172.0 vs 156.5 ns, k 137.3 vs 125.8):
+the kernel sits at x = 0.21 uniformly, whatever the vector, so the model's error on this kernel is one scale.
