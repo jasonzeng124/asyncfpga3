@@ -2563,3 +2563,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Container restart ~14:50: this time every job survived (only the watcher died). Disk was at 90%: deleted the
   regenerable per-run decoder outputs and netlists of finished runs (routes.tsv, pipnames.tsv, fasm_routed.json,
   routed.json copies, annot.sdf, netlist*.v; never the route dirs or any log) and three idle 1 GB vvps: 17 GB free.
+### progress 17:09 (the combined worst-case gate: BQ#2 8/8 PASS)
+- BQ#2 (R5 sizes, the tightest candidate), 8 routes (6-11, 13, 14): delay chains at 0.21, CARRY4/F7F8/FF at SLOW_MAX,
+  the rest at 0.288, + M scatter: 8/8 PASS 16/16, errs 0, all EQUIVALENT (laps vec 6: 58-64).
+  research/data/fid/bq2_worstcase.tsv. So R5's bundles hold with the matched delays ~10% faster than the routed logic
+  (the measured mix), the uncalibrated cells at their slow corner, and the board's residual as scatter, on every route.
+- Does not show: silicon; mixes beyond those measured (chains below 0.21); BQ#3/BQ#1 (running next, after the
+  August-kernel runs, which now pause the queue: item 2 for ipow/isprime/collatz/collatz64).
