@@ -1073,3 +1073,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:33Z T21 CONFIRMED: own ipow min/max = research's logs, results = board, x 0.226 median / 0.225 LS.
 - 19:33Z T22: research d9b5dc8a isprime GND-buffer classification CONFIRMED (JSON GND buffers -> 0; own read-back INIT 0).
 - 19:36Z lock.
+- 20:16Z lock.
