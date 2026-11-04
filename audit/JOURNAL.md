@@ -1081,3 +1081,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 21:59Z T19 row 3 CONFIRMED: own BQ#2 s13 worst-case gate 16/16, 58/46/68 = TSV, lapcheck CLEAN.
 - 22:07Z T21 isprime CONFIRMED: own min/max = research's logs, x 0.222; (143,0) completes in own run.
 - 22:17Z lock.
+- 22:17Z prep: own board tables for collatz (29 vectors) and collatz64 (27) extracted (t21/*_board_own.txt) ahead of research's item-2 claims.
