@@ -2535,3 +2535,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (next: an instance-level band, delay chains low, the rest high).
 - The August harness hits its race in the sim at SLOW_MAX (10/24 batches), not at FAST_MIN (0/24); reported.
 - Band 0.288 and band + slow cells on this build running.
+### progress 05:19 (GLS_SDF_BAND_INST: matched-delay chains at their own band)
+- gen.py GLS_SDF_BAND_INST=@FILE ("INSTANCE band" lines; IOPATH of those instances and INTERCONNECT into them;
+  wins over GLS_SDF_BAND_CELL; an instance the SDF lacks is an error). research/tools/band_inst_list.py writes the
+  file from the routed JSON (cell regex -> NEXTPNR_BEL; default all bd_delay chain LUTs, '\.chain\.g\[\d+\]\.u$').
+  Checked on BQ#2 seed 6's bits-decoded netlist: 1183 chain BELs, all in the SDF, 8756 arcs moved to 0.21 while the
+  rest stays at 0.288. No effect when unset.
+- The gate this enables (next): delay chains at x = 0.21 (the August gcd kernel's measured position, the low end of
+  LUT + wire on this die), everything else at 0.288, and the same with CARRY4/F7F8/FF at SLOW_MAX on top.

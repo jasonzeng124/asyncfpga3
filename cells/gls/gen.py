@@ -387,12 +387,28 @@ SDF_BAND = float(os.environ.get("GLS_SDF_BAND", "0.288"))
 # them at SLOW_MAX while the measured arcs stay at the measured band -- datapath late against LUT-chain delays.
 SDF_BAND_CELL = {k: float(v) for k, v in (kv.split("=") for kv in
                  filter(None, os.environ.get("GLS_SDF_BAND_CELL", "").split(",")))}
+# GLS_SDF_BAND_INST=@FILE (band only): FILE lists "INSTANCE band" per line (the SDF's instance names: BELs on a
+# netlist decoded from the bits; research/tools/band_inst_list.py writes it from the routed JSON).  Those
+# instances' IOPATH arcs, and every INTERCONNECT arc INTO them, take that band; it wins over GLS_SDF_BAND_CELL.
+# For the mix ring128 + the August gcd build leave open: LUT + wire structures on one die span x 0.21-0.29, so
+# the matched-delay chains low with the datapath they track high is a corner the sim must pass.
+SDF_BAND_INST = {}
+_bi = os.environ.get("GLS_SDF_BAND_INST", "")
+if _bi:
+    for _ln in open(_bi[1:] if _bi.startswith("@") else _bi):
+        if _ln.strip() and not _ln.startswith("#"):
+            _k, _v = _ln.split()
+            SDF_BAND_INST[_k] = float(_v)
+n_band_inst = collections.Counter()
 
 
-def tri(m, first, celltype=None):
+def tri(m, first, celltype=None, inst=None):
     """the selected column of the triple whose min is group `first`"""
     if _FIELD == "band":
         lo, hi = int(m.group(first)), int(m.group(first + 2))
+        if inst is not None and inst in SDF_BAND_INST:
+            n_band_inst["arcs"] += 1
+            return int(round(lo + SDF_BAND_INST[inst] * (hi - lo)))
         return int(round(lo + SDF_BAND_CELL.get(celltype, SDF_BAND) * (hi - lo)))
     return int(m.group(first + SDF_FIELD))
 
@@ -643,7 +659,8 @@ def read_sdf(path):
         m = RE_IC.search(line)
         if m:
             ic.append((unesc(m.group(1)), unesc(m.group(2)),
-                       perturb_ic(tri(m, 3), unesc(m.group(1)), unesc(m.group(2)))))
+                       perturb_ic(tri(m, 3, None, unesc(m.group(2)).rpartition("/")[0]),
+                                  unesc(m.group(1)), unesc(m.group(2)))))
             n_ic += 1
             continue
         m = RE_INST.search(line)
@@ -652,7 +669,7 @@ def read_sdf(path):
             continue
         m = RE_IO.search(line)
         if m:
-            iopaths[inst].append((m.group(1), m.group(2), perturb(tri(m, 3, ct), inst or "")))
+            iopaths[inst].append((m.group(1), m.group(2), perturb(tri(m, 3, ct, inst), inst or "")))
             n_io += 1
             if ct in SDF_BAND_CELL:
                 n_cell[ct] += 1
@@ -661,6 +678,16 @@ def read_sdf(path):
         if m:
             setuphold[inst].append((m.group(1), m.group(2), int(m.group(5)), int(m.group(6))))
             n_sh += 1
+    if SDF_BAND_INST:
+        hit = len({k for k in SDF_BAND_INST if k in iopaths})
+        print("GLS_SDF_BAND_INST: %d instances listed, %d in the SDF, %d arcs (IOPATH + INTERCONNECT into them) "
+              "at their own band (%s)" % (len(SDF_BAND_INST), hit, n_band_inst["arcs"],
+                                          ", ".join(sorted({"%g" % v for v in SDF_BAND_INST.values()}))))
+        if _FIELD != "band":
+            sys.exit("gen.py: GLS_SDF_BAND_INST needs GLS_SDF_FIELD=band")
+        if hit < len(SDF_BAND_INST):
+            sys.exit("gen.py: GLS_SDF_BAND_INST names %d instance(s) the SDF does not have (e.g. %s) -- wrong "
+                     "netlist naming?" % (len(SDF_BAND_INST) - hit, sorted(set(SDF_BAND_INST) - set(iopaths))[:3]))
     if SDF_BAND_CELL:
         print("GLS_SDF_BAND_CELL: %s (IOPATH arcs moved: %s)" % (
             SDF_BAND_CELL, ", ".join("%s %d" % kv for kv in sorted(n_cell.items())) or "none"))
@@ -697,7 +724,8 @@ def main():
                           for a, z, _ in iopaths[cname]]
     sys.stderr.write("delays: SDF column %s%s, scale %g, scatter sigma %g (seed %s, mode %s)\n"
                      % (os.environ.get("GLS_SDF_FIELD", "min"),
-                        " %g%s" % (SDF_BAND, " cells %s" % SDF_BAND_CELL if SDF_BAND_CELL else "")
+                        " %g%s%s" % (SDF_BAND, " cells %s" % SDF_BAND_CELL if SDF_BAND_CELL else "",
+                                     " inst %d listed" % len(SDF_BAND_INST) if SDF_BAND_INST else "")
                         if _FIELD == "band" else "", DELAY_SCALE, SCATTER,
                         os.environ.get("GLS_SCATTER_SEED", "1"), SCATTER_MODE))
     if SCATTER_MODE == "wire" and SCATTER:
