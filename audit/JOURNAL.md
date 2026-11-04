@@ -1067,3 +1067,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 17:35Z T19 row 1 CONFIRMED exactly vs research 1c3df20c seed-6 row (64/52/75, draw 1). REPORT row added. Draw 2 running.
 - 18:15Z lock; T19 draw-2 in progress.
 - 18:17Z T20: research 7edc6af6 'live LUT written as constant 0 (FASM-writer defect)' REFUTED: both LUT2 inputs on A1 (X_ORIG_PORT_A1 'I1 I0', GND-driven), INIT 4'h4 -> constant 0 in the netlist; bits (own read-back) INIT 0 = correct; fasm_equiv false positive.
+- 18:55Z lock; T19 draw-2 in progress.
