@@ -1041,3 +1041,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 06:37Z research bc77bdd1 (cell-slow = band latencies; 'x=0.21 is the chains'') -> T17 rows 5 (pending own rerun, queued after band run) and 6 (OVERSTATED as wording: inference across designs, conservative consequence).
 - 07:12Z T17 row 4 CONFIRMED exact: own band-0.288 run = research's on 24/24 (end time equal), band/board 1.092-1.111, cost coefficients equal. Cell-slow run (row 5) started.
 - 07:16Z lock; cell-slow run in vvp; research added tools aug_board_vectors.py / aug_x.py (tooling, no new claim).
+- 07:57Z T17 row 5: cell-slow override verified in annot.sdf (CARRY4 90, SELMUX 1454, FFX 1950, + 2 SLICE_LATX latches moved by the SLICE_FFX knob). Sim running.
