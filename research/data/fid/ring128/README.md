@@ -60,3 +60,20 @@ was run at roughly 11x / 16x / 33x the ring-level variation now measured.
   only bounded through it; its ratio across lengths (0.98% at 7 links vs 0.66% at 63, vs 2.8x for independent arcs)
   says it is mostly correlated or model error.
 - 0.288 is fitted to the data it is tested on; the held-out splits are within one population.
+
+## The measured residual as scatter (cells/gls/fid/f3/ring_scatter.py on THIS route, 8 draws each)
+`GLS_SDF_FIELD=band GLS_SCATTER_MODE=wire GLS_REGION_SLICES=10`, ring periods as gen.py annotates them, each draw
+normalised by its median (as the board's numbers are). Median |dev| per ring:
+
+| setting | all | 7 | 15 | 31 | 63 links |
+|---|---|---|---|---|---|
+| measured (one-x residual, above) | 0.76% | 0.98 | 0.58 | 0.73 | 0.66 |
+| "1x": region 0.16 + wire 0.126 | 8.37% | 11.90 | 9.93 | 7.16 | 5.98 |
+| wire 0.126 alone | 0.84% | 1.48 | 0.96 | 0.68 | 0.55 |
+| region 0.01 + wire 0.126 | 1.05% | 1.71 | 1.17 | 0.88 | 0.65 |
+| **region 0.02 + wire 0.126 ("M")** | 1.34% | 2.15 | 1.59 | 1.16 | 0.91 |
+
+"M" is the smallest setting tried that is at or above the measured residual at every length; it treats the whole
+residual (model error included) as die variation, which is the conservative reading. It is ~1/6 of the old 1x.
+PROGRAM.md's verification criterion ("slow and fast corners, the measured residual as scatter, at least 8 seeds")
+now has a number: M = `GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire` at band 0.288.

@@ -2504,3 +2504,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   full SLOW_MAX ~31). research/data/fid/bq2_cellcheck.tsv. So the uncalibrated cell types running at their slow
   corner against measured-speed LUT chains do not break R5's bundles on any route. BQ#3, then BQ#1, running.
 - Does not show: those cells beyond SLOW_MAX, scatter on top (next: the measured residual as scatter), silicon.
+### progress 00:24 (the measured residual as scatter: "M" = region 0.02 + wire 0.126)
+- f3/ring_scatter.py on ring128's measured route: the old 1x (region 0.16 + wire 0.126) gives 8.37% median |dev|;
+  the board's residual is 0.76% (0.98/0.58/0.73/0.66 at 7/15/31/63). region 0.02 + wire 0.126 gives 1.34%
+  (2.15/1.59/1.16/0.91), the smallest tried at or above the measured value at every length: "M", the scatter
+  PROGRAM.md's verification criterion asks for. ring128/README.md.
+- Plan: the verification runs per candidate (>= 8 seeds): SLOW_MAX, FAST_MIN (done for BQ#1-4), band 0.288 + M,
+  and the cell-type check with M on top. Queued after the running cell checks.
