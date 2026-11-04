@@ -1049,3 +1049,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 09:18Z T17 row 8: GLS_SDF_BAND_INST chain selection CONFIRMED (own src-line selection = regex, 1183) and arc count 8756 reproduced; scope note (anchor + tail route not moved).
 - 09:59Z lock; no new research/formal claims since ae13f18f / 0be49560.
 - 10:40Z T18 started: research b624a41a BQ#3 cell check 8/8. sdf md5s for d, 9 = my earlier routes; journal/table swap seeds 4/5 laps; own seed-5 route + cell check running.
+- 11:21Z T18: own seed-5 route sdf c71ed2cb / xray f3ca9bea = table's seed-5 row; cell check sim at vec 5/16.
