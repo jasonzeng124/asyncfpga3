@@ -14,5 +14,5 @@ source /root/audit-tc/openxc7/export.sh
 } > $L 2>&1
 cp $L /home/user/asyncfpga3/audit/t18/
 HW=/root/t18/bq3s$S/gcd_hw /home/user/asyncfpga3/audit/r23/run_point2.sh bq3_${S}_cellcheck 0 0 all GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1
-cp /root/r23work/bq3_${S}_cellcheck.log /home/user/asyncfpga3/audit/t18/; rm -rf /root/r23work/bq3_${S}_cellcheck
+cp /root/r23work/bq3_${S}_cellcheck.log /home/user/asyncfpga3/audit/t18/
 echo ALLDONE >> /home/user/asyncfpga3/audit/t18/bq3_${S}_cellcheck.log
