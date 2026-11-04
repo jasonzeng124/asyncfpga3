@@ -1,0 +1,34 @@
+build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN; deriving per-route matched-delay sizes for collatz_bench_gen by running hw/tighten_loop.sh (rule A outer, rule E inner)
+== resuming from 10 accumulated size(s) ==
+== iteration 0: build with the sizes above (or none) ==
+   unsized: 10 delay-bearing cell(s), chain built 45.2 ns, route needs 44.6 ns
+        rule A violations: 1   (rule D screen, informational: 6)
+   WARNING: rule A already fails before any sizing
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: UCMPI2 11->12  (10 cell(s))
+   sized (pass 1): 10 delay-bearing cell(s), chain built 49.1 ns, route needs 48.3 ns
+        rule A violations: 1   (rule D screen, informational: 6)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.umux2     5 links   1790 ps   req  2214  peak  1984  guard  396  margin   -166   PAD to 6 -- VIOLATION
+== iteration 2: size from that route, rebuild, re-check ==
+   ratchet: UMUX2 5->6  (10 cell(s))
+   sized (pass 2): 10 delay-bearing cell(s), chain built 47.2 ns, route needs 44.0 ns
+        rule A violations: 1   (rule D screen, informational: 6)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.uaddi0   32 links  11731 ps   req 12300  peak 10920  guard 2184  margin   -804   PAD to 35 -- VIOLATION
+== iteration 3: size from that route, rebuild, re-check ==
+   ratchet: UADDI0 32->35  (10 cell(s))
+   sized (pass 3): 10 delay-bearing cell(s), chain built 52.3 ns, route needs 40.4 ns
+        rule A violations: 0   (rule D screen, informational: 6)
+   ACCEPTED as best so far: 52.3 ns of matched delay
+== iteration 4: size from that route, rebuild, re-check ==
+   ratchet: nothing raised  (10 cell(s))
+   CONVERGED: the proposal stopped moving
+
+RESULT: best passing build carries 52.3 ns of matched delay
+        (unsized baseline was 45.2 ns)
+
+final: 10 measured size(s) in build/gen/collatz_bench_gen_sizes.vh
+bitstream build/hw/collatz_bench_gen/collatz_bench_gen.bit

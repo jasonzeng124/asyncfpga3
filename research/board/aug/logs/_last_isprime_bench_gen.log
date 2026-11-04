@@ -1,0 +1,23 @@
+build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN; deriving per-route matched-delay sizes for isprime_bench_gen by running hw/tighten_loop.sh (rule A outer, rule E inner)
+== iteration 0: build with the sizes above (or none) ==
+   unsized: 28 delay-bearing cell(s), chain built 282.6 ns, route needs 100.3 ns
+        rule A violations: 0   (rule D screen, informational: 30)
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: seeded 28 cell(s) from the first route
+   BUILD FAILED with these sizes -- not a candidate
+   (that is verify/converge.sh -- RULE E -- failing to settle,
+    not rule A.  Rule E pads select channels and its own
+    message says the margins are below this fabric's routing
+    noise, so it cannot hold a per-channel constant across
+    builds.  Re-run with BD_SKIP_RULE_E=1 to size rule A
+    without it, and pad selects separately afterwards.)
+       4275), while the same C node reaches its own delay chain in 639.
+       Two LUTs of one cell, two nanoseconds apart, on the critical path
+       of every transfer in the design.  Fix that and the select margin
+       stops being a search.
+
+RESULT: no sized build passed rule A on its own route.
+Shipping bdc/emit.py's estimate -- unmeasured, generous, and safe.
+
+final: no sizes applied -- kernel is at bdc/emit.py's estimate
+bitstream build/hw/isprime_bench_gen/isprime_bench_gen.bit

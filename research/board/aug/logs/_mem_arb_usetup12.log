@@ -1,0 +1,50 @@
+== toolchain ==
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+nextpnr sha256: d216cb36a370f78a084ceef34491435199d03d809d64daaa4cdc52d9777ce26d
+== synthesis ==
+        1   BUFG
+       51   CARRY4
+       43   FDCE
+        2   FDPE
+      467   FDRE
+        1   LUT1
+      121   LUT2
+       93   LUT3
+       36   LUT4
+       46   LUT5
+      270   LUT6
+        2   OBUF
+        1   BUFG
+       51   CARRY4
+       43   FDCE
+        2   FDPE
+      467   FDRE
+       51   LUT1
+      123   LUT2
+       93   LUT3
+       79   LUT4
+       46   LUT5
+      279   LUT6
+        2   LUT6_2
+        2   OBUF
+        2   RAMB18E1
+             0 group(s), 0 logic slot(s) named
+             0 link/stage bank(s) that ARE one LUT (W<=2), 0 wider bank(s) where only the named bit is constrained
+             0 group(s) also hold their select consumer's LUTs
+
+== place and route ==
+routed. (seed 1)
+FASM: 990 occupied LUT sites, 42 global buffer lines, 132 BRAM lines
+(expect 1 BUFG for aclk-only builds e.g. mem_bist_ps; expect 2 for mem_port_ps with USE_BUFG=1 -- aclk plus bd_mem's manufactured clock; expect 1 for mem_port_ps with USE_BUFG=0 -- ram_clk must NOT show here, it is a LUT1 not a BUFGCTRL; expect 1 for mem_arb_ps -- both RAMB18E1 gangs inside bdc_memport_arb_10_32_2 are fixed USE_BUFG=0 in the generated source, so aclk's own BUFG is the only one)
+
+== bitstream ==
+2083881 bytes -> build/hw_mem/mem_arb_ps/usetup12/mem_arb_ps.bit
+routed SDF -> build/hw_mem/mem_arb_ps/usetup12/mem_arb_ps.sdf
+nextpnr sha256 (BUILD time) -> d216cb36a370f78a084ceef34491435199d03d809d64daaa4cdc52d9777ce26d
+
+build_mem.sh PASS: build/hw_mem/mem_arb_ps/usetup12/mem_arb_ps.bit

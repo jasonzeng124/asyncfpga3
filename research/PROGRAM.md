@@ -21,6 +21,47 @@ evidence stronger:
   async latch, stale operands) as regression tests, wherever they can be
   reproduced without a board.
 
+## Next, now that ring128 matches (owner, 2026-11-04)
+
+Every runnable hard acceptance item matches, ring128 included at band 0.288 with a
+0.76% residual. The gap left is the cell types the rings do not exercise, and only
+the board can close it. The owner's rule for gaps like this: **pick a reasonable
+parametric model, say what it is, run with it, and measure more later.** Do not
+wait on data the project cannot get.
+
+1. **The sim is the gate** (see "Once it passes acceptance"). For the cell types
+   ring128 does not calibrate (CARRY4, MUXF7/F8, the slice output muxes), the
+   default is the same band as LUT + wire, 0.288: same die, same process. Keep it a
+   parameter (`GLS_SDF_BAND_CELL`), and also gate every design at the corner
+   where those cells are at SLOW_MAX while everything else is at 0.288 (you
+   already ran that check). Flops: none in the kernels, and the harness's flops
+   are clocked logic covered by nextpnr STA plus the synchronizer rule, so they
+   need no calibration.
+2. **Fit the datapath band on the August gcd build.** The owner committed the
+   August board builds and logs: `research/board/aug/` (README.md pairs each log with
+   the `.bit` it programmed). `gcd_bench_gen` is the build behind the gcd cost model's
+   board column (54-72% of the band on the datapath, against 0.288 from the rings).
+   Run that exact build in the full stack, fit the per-iteration costs against
+   `logs/gcd_cost.tsv` and `_gcdcost_*.log`, and do the same for the other matched
+   kernels (collatz, collatz64, ipow, isprime, and their null builds for the
+   harness overhead). If one band fits rings and kernels, the cell default
+   stands. If the datapath sits slower, set the cell band from the fit, say so,
+   and keep it a parameter.
+3. **Speed: shrink the matched delays to what the sim proves.** The sizing guards
+   were set for ~8.5% scatter, and the board shows 0.76%. A matched delay and the
+   path it tracks are on the same die, so the shared corner cancels and only the
+   residual and the cell-type mismatch need a guard. Shrink in small steps and run
+   the full stack after each one (both corners, the measured residual as scatter,
+   >= 8 seeds, derived oracles). A step that fails is reverted. Never go below
+   what the sim proves at the slow-cell corner of item 1. Report the per-kernel
+   speedup against BOARD-QUEUE #1/#2.
+4. **Run every other kernel through the full stack** (ipow, xorshift, collatz,
+   collatz64, isprime). So far only the rules have judged them.
+5. **One ordered board list** at the top of BOARD-QUEUE.md for when the board is
+   back, best first: gcd_ps with the 1000 vectors; the short-pulse C-element test
+   (H_RUNT); the fastest design the sim accepts; a ring set on a second route, which
+   would test the band transfer. Each item judges itself.
+
 ## First lead: a full-width gcd target for formal (owner, 2026-11-01)
 
 Formal is proving that a gcd_hw bitstream is correct (claude/formal,

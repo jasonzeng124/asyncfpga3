@@ -1,0 +1,53 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/collatz_bench_gen/collatz_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00012020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (collatz): op0=12 op1=18 -> ODATA=9 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=48 op1=18, N=200 ===
+  completed=200 latmin=104 latmax=105 cyc  prepcyc=3200  odata=11 sig=0x000006f9 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x000006f9 matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (48,18)->11  vs  (49,18)->24  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 202 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=155 MISM_VAL=24 MISM_REF=11
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=155 val=24 ref=11)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=64 ===
+  completed=64 cycles=64629 prepcyc=1024 latmin=262 latmax=2373 cyc  mism_st=2
+UNIFORM SIG oracle PASS (0x0a864e3c over 64 distinct inputs)
+  histogram sum = 64 (expect 64)
+
+  latency (cycles): min=262 p50~=896 p90~=1536 p99~=2048 max=2373 mean=1009.8
+  latency (ns, @100.0MHz nominal): min=2620.0 p50~=8960.0 p90~=15360.0 p99~=20480.0 max=23730.0 mean=10098.3
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 99026.8 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 32: count=2      ~256 cyc
+  bucket 33: count=3      ~320 cyc
+  bucket 34: count=6      ~384 cyc
+  bucket 35: count=4      ~448 cyc
+  bucket 36: count=3      ~512 cyc
+  bucket 37: count=3      ~640 cyc
+  bucket 38: count=2      ~768 cyc
+  bucket 39: count=13     ~896 cyc
+  bucket 40: count=8      ~1024 cyc
+  bucket 41: count=11     ~1280 cyc
+  bucket 42: count=6      ~1536 cyc
+  bucket 43: count=2      ~1792 cyc
+  bucket 44: count=1      ~2048 cyc
+
+==========================================================================
+collatz bench PASS
+==========================================================================

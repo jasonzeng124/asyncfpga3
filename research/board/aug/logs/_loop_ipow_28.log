@@ -1,0 +1,42 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/ipow_bench_gen/ipow_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (ipow): op0=12 op1=18 -> ODATA=0 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=3 op1=268435455, N=200 ===
+  completed=200 latmin=172 latmax=175 cyc  prepcyc=3200  odata=1789569707 sig=0x400000bf mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x400000bf matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (3,268435455)->1789569707  vs  (3,268435456)->1073741825  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 254 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=89 MISM_VAL=1073741825 MISM_REF=1789569707
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=89 val=1073741825 ref=1789569707)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=200 ===
+  completed=200 cycles=17485 prepcyc=3200 latmin=6 latmax=193 cyc  mism_st=2
+  histogram sum = 200 (expect 200)
+
+  latency (cycles): min=6 p50~=6 p90~=160 p99~=192 max=193 mean=87.4
+  latency (ns, @100.0MHz nominal): min=60.0 p50~=60.0 p90~=1600.0 p99~=1920.0 max=1930.0 mean=874.2
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 1143837.6 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 10: count=115    ~6 cyc
+  bucket 29: count=69     ~160 cyc
+  bucket 30: count=16     ~192 cyc
+
+==========================================================================
+ipow bench PASS
+==========================================================================

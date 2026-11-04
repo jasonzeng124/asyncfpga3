@@ -1,0 +1,57 @@
+build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN; deriving per-route matched-delay sizes for xorshift_bench_gen by running hw/tighten_loop.sh (rule A outer, rule E inner)
+== iteration 0: build with the sizes above (or none) ==
+   unsized: 12 delay-bearing cell(s), chain built 123.6 ns, route needs 30.6 ns
+        rule A violations: 0   (rule D screen, informational: 8)
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: seeded 12 cell(s) from the first route
+   sized (pass 1): 12 delay-bearing cell(s), chain built 13.5 ns, route needs 29.6 ns
+        rule A violations: 9   (rule D screen, informational: 8)
+   rejected: 9 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.uaddi0    6 links   2064 ps   req  3254  peak  3353  guard  670  margin   -769   PAD to 9 -- VIOLATION
+       bridge_i.udut.ucmpi0   14 links   4991 ps   req  6210  peak  6235  guard 1247  margin  -1272   PAD to 18 -- VIOLATION
+       bridge_i.udut.ucmpi1   10 links   3685 ps   req  4589  peak  3898  guard  779  margin    -88   PAD to 11 -- VIOLATION
+== iteration 2: size from that route, rebuild, re-check ==
+   ratchet: UADDI0 6->9, UCMPI0 14->18, UCMPI1 10->11, UCONTROL_MERGE1 0->1, UMUX1 0->1, UMUX2 0->1, UMUX3 2->6, UXORI1 0->4, UXORI2 2->7  (12 cell(s))
+   sized (pass 2): 12 delay-bearing cell(s), chain built 22.3 ns, route needs 32.6 ns
+        rule A violations: 5   (rule D screen, informational: 8)
+   rejected: 5 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucmpi1   11 links   3582 ps   req  4966  peak  4631  guard  926  margin   -591   PAD to 13 -- VIOLATION
+       bridge_i.udut.ucontrol_merge0  0 links    124 ps   req   424  peak   906  guard  200  margin   -682   PAD to 2 -- VIOLATION
+       bridge_i.udut.ucontrol_merge1  1 links    124 ps   req   959  peak  1313  guard  262  margin   -616   PAD to 6 -- VIOLATION
+== iteration 3: size from that route, rebuild, re-check ==
+   ratchet: UCMPI1 11->13, UCONTROL_MERGE0 0->2, UCONTROL_MERGE1 1->6, UMUX0 1->2, UXORI1 4->5  (12 cell(s))
+   sized (pass 3): 12 delay-bearing cell(s), chain built 27.7 ns, route needs 30.3 ns
+        rule A violations: 3   (rule D screen, informational: 8)
+   rejected: 3 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucontrol_merge0  2 links    398 ps   req  1399  peak  1328  guard  265  margin   -194   PAD to 3 -- VIOLATION
+       bridge_i.udut.umux1     1 links    124 ps   req   979  peak  1024  guard  204  margin   -249   PAD to 4 -- VIOLATION
+       bridge_i.udut.uxori0    4 links    946 ps   req  1370  peak  1984  guard  396  margin  -1010   PAD to 9 -- VIOLATION
+== iteration 4: size from that route, rebuild, re-check ==
+   ratchet: UCONTROL_MERGE0 2->3, UMUX1 1->4, UXORI0 4->9  (12 cell(s))
+   sized (pass 4): 12 delay-bearing cell(s), chain built 30.4 ns, route needs 33.2 ns
+        rule A violations: 2   (rule D screen, informational: 8)
+   rejected: 2 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.uaddi0    9 links   3321 ps   req  4270  peak  3680  guard  736  margin   -146   PAD to 10 -- VIOLATION
+       bridge_i.udut.ucmpi0   18 links   5654 ps   req  6078  peak  6858  guard 1371  margin  -2151   PAD to 25 -- VIOLATION
+== iteration 5: size from that route, rebuild, re-check ==
+   ratchet: UADDI0 9->10, UCMPI0 18->25  (12 cell(s))
+   sized (pass 5): 12 delay-bearing cell(s), chain built 33.4 ns, route needs 32.9 ns
+        rule A violations: 1   (rule D screen, informational: 8)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucmpi1   13 links   4818 ps   req  5668  peak  5002  guard 1000  margin   -334   PAD to 14 -- VIOLATION
+== iteration 6: size from that route, rebuild, re-check ==
+   ratchet: UCMPI1 13->14  (12 cell(s))
+   sized (pass 6): 12 delay-bearing cell(s), chain built 37.4 ns, route needs 32.3 ns
+        rule A violations: 0   (rule D screen, informational: 8)
+   ACCEPTED as best so far: 37.4 ns of matched delay
+
+RESULT: best passing build carries 37.4 ns of matched delay
+        (unsized baseline was 123.6 ns)
+
+final: 12 measured size(s) in build/gen/xorshift_bench_gen_sizes.vh
+bitstream build/hw/xorshift_bench_gen/xorshift_bench_gen.bit

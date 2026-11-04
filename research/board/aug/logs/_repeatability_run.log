@@ -1,0 +1,38 @@
+=== xorshift  op0=48 op1=18 gold=0x03dba483  4x programming, 8x batch ===
+  prog 0: 8 batches, cycles mean 19738.4 spread 13 (659 ppm)
+  prog 1: 8 batches, cycles mean 19739.9 spread 16 (811 ppm)
+  prog 2: 8 batches, cycles mean 19740.9 spread 13 (659 ppm)
+  prog 3: 8 batches, cycles mean 19738.0 spread 6 (304 ppm)
+=== ipow  op0=3 op1=7 gold=0x00078179  4x programming, 8x batch ===
+  prog 0: 8 batches, cycles mean 5400.0 spread 0 (0 ppm)
+  prog 1: 8 batches, cycles mean 5400.0 spread 0 (0 ppm)
+  prog 2: 8 batches, cycles mean 5400.0 spread 0 (0 ppm)
+  prog 3: 8 batches, cycles mean 5400.0 spread 0 (0 ppm)
+=== collatz  op0=48 op1=18 gold=0x000006f9  4x programming, 8x batch ===
+  prog 0: 8 batches, cycles mean 22182.2 spread 17 (766 ppm)
+  prog 1: 8 batches, cycles mean 22191.5 spread 20 (901 ppm)
+  prog 2: 8 batches, cycles mean 22195.1 spread 34 (1532 ppm)
+  prog 3: 8 batches, cycles mean 22189.6 spread 23 (1037 ppm)
+=== collatz64  op0=48 op1=18 gold=0x000006f9  4x programming, 8x batch ===
+  prog 0: 8 batches, cycles mean 27778.5 spread 20 (720 ppm)
+  prog 1: 8 batches, cycles mean 27787.8 spread 16 (576 ppm)
+  prog 2: 8 batches, cycles mean 27785.0 spread 15 (540 ppm)
+  prog 3: 8 batches, cycles mean 27787.9 spread 18 (648 ppm)
+=== isprime  op0=47 op1=18 gold=0x000000ff  4x programming, 8x batch ===
+  prog 0: 8 batches, cycles mean 90699.0 spread 27 (298 ppm)
+  prog 1: 8 batches, cycles mean 90705.1 spread 41 (452 ppm)
+  prog 2: 8 batches, cycles mean 90724.1 spread 83 (915 ppm)
+  prog 3: 8 batches, cycles mean 90704.8 spread 36 (397 ppm)
+wrote build/hw/repeatability.tsv
+
+kernel      progs batches  cycles/batch      within-prog        across-prog       latmin  latmax
+                                    mean   spread     ppm   spread     ppm
+xorshift       4      32     19739.3       16     811      2.9     146      93      95
+ipow           4      32      5400.0        0       0      0.0       0      21      22
+collatz        4      32     22189.6       34    1532     12.9     580     103     105
+collatz64      4      32     27784.8       20     720      9.4     337     130     132
+isprime        4      32     90708.2       83     915     25.1     277     433     439
+
+within = worst spread of batch cycles inside a single programming
+across = spread of the per-programming MEANS (configuration noise, with
+         within-noise averaged down by the batch count)
