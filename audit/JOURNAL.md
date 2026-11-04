@@ -1070,3 +1070,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 18:55Z lock; T19 draw-2 in progress.
 - 18:57Z T21 started: research ca6756ba ipow x = 0.225. Board latencies own-extracted = research's 17/17, results = a^b mod 2^32. Own min/max sims running. (Research README repeats the T20-refuted 'live LUT'.)
 - 19:15Z T19 row 2: worst-case gate BQ#2 s6 draw 2 PASS 16/16, 64/52/75, lapcheck CLEAN.
+- 19:33Z T21 CONFIRMED: own ipow min/max = research's logs, results = board, x 0.226 median / 0.225 LS.
