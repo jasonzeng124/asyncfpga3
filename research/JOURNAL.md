@@ -2525,3 +2525,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   vector) on the board's 24 gcd_cost vectors x 2 runs, at FAST_MIN, SLOW_MAX, band 0.288, and 0.288 with CARRY4/
   F7F8/FF at SLOW_MAX. Board: logs/gcd_cost.tsv (latmin/latmax per vector, N=200).
 - The verification queue (cell check BQ#3/BQ#1, then band 0.288 + M, cell + M) continues alongside.
+### progress 05:17 (item 2: the August gcd kernel sits at x = 0.21 on its own build -- faster than the rings' 0.288)
+- The August gcd_bench_gen (f199866ea256) on the full stack, the board's 24 gcd_cost vectors: per vector, x =
+  (board - FAST_MIN)/(SLOW_MAX - FAST_MIN) = 0.209-0.216 (median 0.211, 12 clean vectors >= 100 cycles); the four
+  cost-model terms give 0.196-0.210. research/data/aug_gcd/README.md.
+- So the datapath does NOT sit slower than the rings: the soft 0.54-0.72 came from comparing different builds. Per
+  PROGRAM item 2 the cell default (0.288) stands; it over-predicts this kernel by ~10%. But LUT + wire structures span
+  x 0.21-0.29 on this die, so a matched delay at 0.21 with its datapath at 0.29 is a mix the sim must also gate
+  (next: an instance-level band, delay chains low, the rest high).
+- The August harness hits its race in the sim at SLOW_MAX (10/24 batches), not at FAST_MIN (0/24); reported.
+- Band 0.288 and band + slow cells on this build running.
