@@ -10,6 +10,6 @@ export GLS_SDF=$HW/gcd_bench_gen_xray.sdf GLS_SDF_FIELD=$FIELD GLS_MODEL=fid PS_
 { echo "research $(cd /root/wt-r14 && git rev-parse HEAD) field $FIELD"; md5sum $HW/gcd_bench_gen.bit $GLS_SDF
   /root/wt-r14/cells/gls/ps/build_ps.sh $HW $W "" bit || { echo BUILD_FAIL; exit 1; }
   cd $W && vvp gate.vvp | grep -E "ANNOTATE_DONE|WARNING|ERROR" | head -5
-  vvp run_baked.vvp +VECFILE=/root/t17/gcdcost_vec.hex | grep -E "^BENCH" | head -60
+  vvp run_baked.vvp +VECFILE=/root/t17/gcdcost_vec.hex +NRUNS=2 | grep -E "^BENCH" | head -60
 } > $L 2>&1
 rm -f $W/*.vvp; echo DONE >> $L; cp $L /home/user/asyncfpga3/audit/t17/$TAG.log
