@@ -2498,3 +2498,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   seed 8's bits: a live LUT forced to INIT 0 -> NOT EQUIVALENT (DRIVER DIFFERS ...); inverted -> NOT EQUIVALENT
   (LUT FUNCTION DIFFERS), identical to the old tool; a 1-bit flip of an entry its tied pins never reach is
   EQUIVALENT under both. test_acceptance.py 30 passed. The running cell check uses the frozen worktree (old verdicts).
+### progress 00:22 (cell-type check: BQ#2 8/8 PASS)
+- BQ#2 (R5 sizes, the tightest shipped candidate), 8 routes (seeds 6-11, 13, 14), LUT + interconnect at the measured
+  0.288 and every CARRY4 / F7F8 / FF arc at SLOW_MAX: 8/8 PASS 16/16, errs 0 (laps vec 6: 55-61, mean 57.1;
+  full SLOW_MAX ~31). research/data/fid/bq2_cellcheck.tsv. So the uncalibrated cell types running at their slow
+  corner against measured-speed LUT chains do not break R5's bundles on any route. BQ#3, then BQ#1, running.
+- Does not show: those cells beyond SLOW_MAX, scatter on top (next: the measured residual as scatter), silicon.
