@@ -2556,3 +2556,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   errs 0, EQUIVALENT (laps vec 6: 56-63). research/data/fid/bq3_cellcheck.tsv. With BQ#2's 8/8: 16/16 routes.
 - Now: the combined worst case (delay chains 0.21, CARRY4/F7F8/FF at SLOW_MAX, rest 0.288, + M) on BQ#2's 8 routes;
   the other kernels' August builds after it.
+### progress 14:59 (worst-case gate: BQ#2 4/4 so far; restart survived; disk cleaned)
+- The combined worst case (delay chains at 0.21 -- 1183 instances, 8756 arcs; CARRY4/F7F8/FF at SLOW_MAX; the rest at
+  0.288; M scatter on top) on BQ#2 (R5, the tightest sizes): seeds 6, 7, 8, 9 PASS 16/16, errs 0, EQUIVALENT (laps
+  vec 6: 60-64). 10, 11 running; 13, 14 next.
+- Container restart ~14:50: this time every job survived (only the watcher died). Disk was at 90%: deleted the
+  regenerable per-run decoder outputs and netlists of finished runs (routes.tsv, pipnames.tsv, fasm_routed.json,
+  routed.json copies, annot.sdf, netlist*.v; never the route dirs or any log) and three idle 1 GB vvps: 17 GB free.
