@@ -2603,3 +2603,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   while runk4 lives, then two: worst case on BQ#3/BQ#1, band 0.288 + M on BQ#2/3/1, BQ#1 cell check, bench sweeps).
 - isprime vectors trimmed to board latency <= 3000 cycles (18 of 25; the rest run 6k-61k cycles, ~7 h of sim for
   nothing the x fit needs); collatz/collatz64 all fit.
+### progress 20:39 (item 2: isprime sits at x = 0.222; kernels so far 0.211 / 0.225 / 0.222)
+- August isprime_bench_gen, 16 board vectors at each corner (partial logs: trimmed list, cut by the restart): x =
+  0.222 (0.220-0.226, 12 vectors >= 50 cycles), every result equal to the board's. research/data/aug_kernels/.
+- Three kernels on their own August builds: gcd 0.211, ipow 0.225, isprime 0.222 -- one kernel band ~0.22, against
+  ring128's 0.288. collatz, collatz64 running.
