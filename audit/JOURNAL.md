@@ -1037,3 +1037,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 05:25 T17 started: research item 2 (August gcd kernel x = 0.21). Board column = owner's table; x recomputed from research's logs (median 0.211; 48/48 results = math.gcd). Own FAST_MIN rerun of the August build running.
 - 05:47Z T17: own FAST_MIN rerun of Aug gcd_bench_gen in progress (research 382c321b host, +VECFILE +NRUNS=2); first attempt on 22fe1811 lacked +VECFILE (1 batch), discarded.
 - 06:06Z new research claim c73c8214 (band 0.288 on Aug gcd: 24/24 complete, every vector 9-10% slow, x=0.21 uniform). Queued own band run after aug_min (T17 row 4).
+- 06:23Z T17 row 3 CONFIRMED exact: own FAST_MIN rerun 24/24 batches clean, latmin = research's on 24/24, x median 0.211. REPORT row added for 359e0728. Own band-0.288 run started (row 4).
