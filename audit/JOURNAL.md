@@ -1063,3 +1063,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 16:14Z lock; T19 run in progress.
 - 16:55Z lock; T19 run in progress.
 - 17:32Z T19 row 1: own worst-case gate run BQ#2 s6 (draw 1): 16/16 errs 0, 64/52/75, lapcheck CLEAN, 8756 chain arcs = research's. Awaiting research's table.
+- 17:35Z lock; T19 draw-2 run in progress.
