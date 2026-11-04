@@ -1056,3 +1056,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 13:22Z lock; T18 seed-5 rerun in progress.
 - 13:51Z T18 done: seed-5 rerun identical, LAPCHECK CLEAN; REPORT row for b624a41a.
 - 14:03Z lock; no new claims (research locks only; formal 0be49560).
+- 14:43Z lock; T18 seed-4 route + cell check running.
