@@ -2551,3 +2551,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   dangerous direction. The gate queued (vq3) runs exactly that corner: chains 0.21, the rest 0.288, cells at
   SLOW_MAX, + M, on BQ#1-3 x 8 seeds. research/data/aug_gcd/README.md.
 - BQ#3 cell check: seeds 4, 5 PASS (62/50/73, 56/44/65); 6-9 resumed.
+### progress 09:59 (cell-type check: BQ#3 8/8 PASS; the worst-case gate starts)
+- BQ#3 (R5 + fast-fall links), seeds d,3-9, CARRY4/F7F8/FF at SLOW_MAX against LUT + wire at 0.288: 8/8 PASS 16/16,
+  errs 0, EQUIVALENT (laps vec 6: 56-63). research/data/fid/bq3_cellcheck.tsv. With BQ#2's 8/8: 16/16 routes.
+- Now: the combined worst case (delay chains 0.21, CARRY4/F7F8/FF at SLOW_MAX, rest 0.288, + M) on BQ#2's 8 routes;
+  the other kernels' August builds after it.
