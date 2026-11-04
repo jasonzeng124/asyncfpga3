@@ -1075,3 +1075,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:36Z lock.
 - 20:16Z lock.
 - 20:16Z T19: own route of BQ#2 seed 13 + worst-case gate started (route_wc.sh), second route for the gate.
+- 20:56Z lock.
