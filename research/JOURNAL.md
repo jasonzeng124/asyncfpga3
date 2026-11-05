@@ -2673,3 +2673,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Item 4: collatz T3 and xorshift T3, 4 routes each x {SLOW_MAX, FAST_MIN, worst}: 12/12 PASS each, bits
   EQUIVALENT on all 8 routes; audits rule D screens only (6 / 8 per route), E/J 0. collatz64 running (seed 1 3/3).
 - Item 3 step 1 (s90) worst-case sims started (i3.sh); BQ#1's worst case follows the s90 corners.
+### progress 11:35 (item 3 step 1: s90 passes the worst-case gate 8/8 and is not faster; item 4 isprime fixed)
+- s90 (R5 x0.9 ceil), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT (research/data/item3/). Paired laps
+  vs R5's own worst-case rows: 0.999 / 1.000 / 0.996 on vec 6/12/13, per-seed 0.87-1.11: no measurable speedup. Route
+  scatter swamps a 1-2 link cut. s75 (x0.75, 52 sizes) is routed; its worst case runs next, then the corners of the
+  deepest step that passed.
+- isprime: every soak read "SOAK all FAIL: 31 port bits have no same-driver net" before simulating -- a soak_fid
+  harness bug (a constant-driven port bit was always counted missing; isprime returns a bool in an i32). Fixed
+  (e574b300); rerun: seeds 25, 26 PASS at SLOW_MAX, FAST_MIN and the worst case (25 and 26 are the routes with rule E 2).
+- collatz64 T4: 12/12 PASS, 4/4 EQUIVALENT.
