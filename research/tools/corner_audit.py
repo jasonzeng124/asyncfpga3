@@ -104,6 +104,12 @@ def worker(sdf, spec):
         except ZeroDivisionError:
             return n, 1, "line zeroed by corner_audit"
     T.line_links = ll
+    # Rule A's cell_boundary() lets the packer's constant drivers start a data path (tighten.py's own CONST_DRV
+    # comment: a net that never transitions cannot start one; starts_reaching() and skew.py already drop them).
+    # On xorshift_s50 seed 1 the GND tie-off into ucmpi0's carry chain was the "latest data" by 3.4 ns.
+    if spec.get("drop_const", True):
+        ocb = T.cell_boundary
+        T.cell_boundary = lambda *a, **k: {s for s in ocb(*a, **k) if not T.is_const(s)}
     f_rows = []
     orig_ff = T.audit_fastfall
 
@@ -335,6 +341,8 @@ def main():
     ap.add_argument("--all-lines", action="store_true", help="also resize the harness's lines (upipe, uspin)")
     ap.add_argument("--no-size", action="store_true", help="report only")
     ap.add_argument("--max-iter", type=int, default=30)
+    ap.add_argument("--keep-const-launch", action="store_true",
+                    help="rule A exactly as tighten.py: constant drivers may launch the data path")
     a = ap.parse_args()
     if a.inst_rx is None:
         a.inst_rx = [r"\.chain\.g\[\d+\]\.u$:0.21"]
@@ -367,7 +375,8 @@ def main():
     if (pnr / "toolchain.txt").exists():
         (out / "toolchain.txt").write_text((pnr / "toolchain.txt").read_text())
     sdf = out / "soak.sdf"
-    spec = {"a_frac": a.a_frac, "a_min": a.a_min, "glo": a.guard_lo, "ghi": a.guard_hi}
+    spec = {"a_frac": a.a_frac, "a_min": a.a_min, "glo": a.guard_lo, "ghi": a.guard_hi,
+            "drop_const": not a.keep_const_launch}
     nominal = lambda rule: a.guard_lo if rule == "E" else 1.0
 
     base = run_worker(sdf, {**spec, "chains": True, "keep_logs": True}, log=out)
@@ -496,7 +505,8 @@ def main():
                     p[mac] = m
                     padded[mac] = True
                     gained[k] += credit(k, mac, n0, m)
-                    why[mac] = "PAD for %s (%+d ps)" % (k, -need)
+                    why[mac] = (why[mac] + "; " if why.get(mac, "").startswith(("PAD", "verify")) else "") + \
+                        "PAD %d->%d for %s (%+d ps)" % (n0, m, k, -need)
                     changed = True
             return changed
 
@@ -546,7 +556,7 @@ def main():
                 if shr:
                     mac = max(shr, key=lambda m: drop(m, kk, prop[m]))
                     prop[mac] += 1
-                    why[mac] = "verify: +1 for %s" % k
+                    why[mac] = (why.get(mac, "") + "; ") + "verify: +1 for %s" % k
                     changed = True
                 elif kk:
                     pad_need[kk] = mg - a.slack
@@ -574,6 +584,8 @@ def main():
     rep.append("  nextpnr: %s" % tc)
     rep.append("  guards: rule E/J %.3f*req vs %.3f*sel; rule A/F/H/I/K/L guard max(%.3f*t_data, %d ps); slack %d"
                % (a.guard_lo, a.guard_hi, a.a_frac, a.a_min, a.slack))
+    rep.append("  rule A data launches from constant drivers: %s" % ("kept (tighten.py as is)" if a.keep_const_launch
+                                                                   else "DROPPED (a constant never transitions)"))
     rep.append("  audits exit: tighten %s, skew %s, arb_fork %s" % (base["tighten_rc"], base["skew_rc"], base["arb_rc"]))
     rep.append("  per-link cost at this corner: c_lo %s ps (cheapest link-to-link step on the route), lut_lo %d ps; "
                "chain mean steps %s-%s ps" % (c_lo, lut_lo, int(min(means.values())) if means else "-",
@@ -621,7 +633,7 @@ def main():
                                             else "   // was %d" % sizes[mac]))
 
     # ---- stdout summary
-    print("\n".join(rep[:6 + len(warn)]))
+    print("\n".join(rep[:rep.index("")]))
     print("negative at this corner: %d" % len(neg))
     for mg, k in neg:
         print("  %-2s %+6d  %s" % (cons[k]["rule"], mg, cons[k]["text"][:150]))
