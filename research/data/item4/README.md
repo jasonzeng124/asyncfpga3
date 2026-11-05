@@ -14,3 +14,5 @@ the routed JSON (run after the sims, with the 2026-11-05 constant-LUT fold).
   exit 1 on these routes is rule D's 8 select screens (informational, as in the T9 record); rules E/J 0.
 - collatz T3 (BD_DSP=1, research/data/collatz_sizes_T3.vh), seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT. tighten.py exit 1 =
   rule D's 6 select screens; rules E/J 0.
+- xorshift T3 (BD_DSP=1, research/data/xorshift_sizes_T3.vh), seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT. tighten.py exit 1
+  = rule D's 8 select screens; rules E/J 0.
