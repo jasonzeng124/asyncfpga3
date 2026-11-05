@@ -2608,3 +2608,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   0.222 (0.220-0.226, 12 vectors >= 50 cycles), every result equal to the board's. research/data/aug_kernels/.
 - Three kernels on their own August builds: gcd 0.211, ipow 0.225, isprime 0.222 -- one kernel band ~0.22, against
   ring128's 0.288. collatz, collatz64 running.
+### progress 00:04 (item 2 done: five kernels at x = 0.211-0.225, rings 0.288; restart again ~23:50)
+- collatz64 (August, EQUIVALENT): x = 0.224 (0.218-0.227), results equal the board's. Five kernels on their own
+  August bitstreams: gcd 0.211, ipow 0.225, isprime 0.222, collatz 0.222, collatz64 0.224. research/data/aug_kernels/.
+- Item 2 answer: the datapath is not slower than the rings; the default (cells at 0.288) stands; kernels' x is their
+  matched delays' (slow cells change no latency), ~10% faster than band 0.288, which the worst-case gate covers.
+- Another container restart (~23:50) killed every job; collatz64 SLOW_MAX had 16/27 (enough). Gate relaunched (vq6:
+  BQ#3 worst case 3-9 (d done), BQ#1 worst case, band + M on all three, BQ#1 cell check, bench sweeps).
