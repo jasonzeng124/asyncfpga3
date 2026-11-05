@@ -10,7 +10,7 @@ worst-case run, paired by seed against BQ#2's own worst-case rows (research/data
 | step | sizes moved | worst case | corners | laps vs R5 (paired mean, range) |
 |---|---|---|---|---|
 | s90 (x0.9) | 19 (compute/select delays >= 10 links, -1..-2 links) | **8/8 PASS**, EQUIVALENT | queued | vec6 0.999 (0.891-1.086), vec12 1.000, vec13 0.996 |
-| s75 (x0.75) | 52 | running | | |
+| s75 (x0.75) | 52 | **8/8 PASS**, EQUIVALENT (seed 9 rerun after the disk-full void) | running | vec6 1.074 (1.000-1.155), vec12 1.074, vec13 1.074 |
 
 s90: the gate holds, but it buys no measurable speed: a ~2% shorter compute delay is below the +-10% route-to-route
 scatter of the laps, and the mean over 8 paired routes is 1.00. Audits (s90_audits.txt, informational under item 1):

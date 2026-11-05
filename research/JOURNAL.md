@@ -2751,3 +2751,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Next design: per-cell shrink at the worst-case corner -- run the rule audits on the worst-case-banded SDF with the
   guardband set to the measured residual, take each line's own margin, shorten by what it allows (minus a slack),
   then gate the result in the full stack.
+### progress 19:55 (item 3 gcd: R5 x0.75 passes the worst-case gate 8/8 at 1.07x laps)
+- gcd_hw R5 x0.75 (52 sizes; 796 -> 683 links), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT
+  (research/data/item3/s75_worstcase.tsv). Paired laps vs R5: 1.074 on vec 6/12/13 (1.00-1.17). Corners running.
+- collatz x0.5: seed 3's worst case FAILS too (seed 2 FAST_MIN) -- reverted; collatz x0.75 and operator-only x0.5 queued.
