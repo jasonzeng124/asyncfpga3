@@ -1134,3 +1134,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 15:08Z T23 rows 10-11: own xorshift x0 seed 1: nominal routed GLS FAIL (timeout vec 0); research reports x0.25 fails the worst case (only); s375 file confirmed.
 - 15:47Z lock.
 - 16:27Z lock.
+- 16:27Z T23 row 10: own x0 seed 1 full stack SLOW_MAX FAIL (timeout vec 0).
