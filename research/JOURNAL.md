@@ -2735,3 +2735,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   reminders created. The lock refresher now rebases before pushing (the owner's commit had made its push non-fast-forward).
 - gcd s75 worst case: 7/7 valid seeds PASS (seed 9 rerunning after the disk-full void); paired laps vs R5 1.07x
   (1.00-1.17) on those 7. collatz x0.5: seed 1 PASS at all three configs, seed 2 SLOW_MAX PASS; nominal 1.34x.
+### progress 20:10 (item 3: the xorshift floor is a select race on an empty pipe, not the operators)
+- research/data/item3/rc375/: x0.375 fails because ulink_n_index_15's request (SDELAY 1 + DELAY 4) beats its own select
+  (two latches + routed wire, no matched delay) into umux3 when the pipe is empty. The routed req-sel margin orders all
+  16 xorshift routes (base, s50, s375, s25) by pass/fail; link counts alone do not. Rule E flags it (and fails s50
+  guarded); rule D's bd_mux screen misses it (measures from stage[1] only).
+- So x0.5's 1.44x carries thin raw select margins (+0.5..+1.5 ns at the nextpnr SDF) that the full stack accepts. Next
+  experiment: shrink only operator delays (udly) and keep rule E's link fixes -- deeper on the part that sets throughput.
