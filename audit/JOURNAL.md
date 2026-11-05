@@ -1138,3 +1138,5 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 17:07Z lock.
 - 17:08Z T23 row 12: xorshift item-3 bracket (x0.5 holds, x0.375/x0.25 fail) UNVERIFIED as committed; x0.25 FAST_MIN also fails on seed 3 (the 16:05 'not either uniform corner' was seed 1 only).
 - 17:48Z lock.
+- 17:49Z owner bdc07ece on claude/audit: PROGRAM now allows <= 2 subagents at a time (no git in subagents), max effort. Rebased onto it.
+- 17:49Z T23 row 13: own xorshift T3 vs T3s50 seed-1 pair started (to check 1.44x and the passes on an own route).
