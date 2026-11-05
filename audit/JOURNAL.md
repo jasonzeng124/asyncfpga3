@@ -1127,3 +1127,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 13:45Z lock.
 - 13:46Z T23 rows 7-8: research fixed the 0->1 clamp (d59e4d0e; regenerated file = pure shrink); xorshift s75 1.13x UNVERIFIED (no latencies committed).
 - 13:58Z T23 row 5: own s75 seed-6 worst case PASS 16/16, 66/53/77, lapcheck CLEAN (pre-registered: sdf d6887667 / xray 2e8c528a).
+- 14:26Z lock.
