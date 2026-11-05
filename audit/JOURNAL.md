@@ -1130,3 +1130,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 14:26Z lock.
 - 14:26Z T23 row 9: xorshift x0.5 / x0 size files confirmed; x0.5 12/12 / 1.46x unverifiable as committed; research's own negative-control plan noted.
 - 14:27Z T23 row 10: own pre-registered negative control xorshift x0 seed 1 started.
+- 15:06Z lock.
