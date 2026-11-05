@@ -2695,3 +2695,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   EQUIVALENT. Paired against T3's item-4 runs: 1.131x at both corners (1.10-1.16), 1.117x in the worst case
   (1.09-1.15). Audits (informational): rule A 1-2, rule E 0-2 per route. Seeds 5-8 and x0.5 queued.
 - gcd s75: worst case 2/2 so far (seeds 6, 7).
+### progress 15:10 (item 3, xorshift x0.5: 12/12 at 1.46x; the gate's teeth on this flow not yet shown)
+- xorshift T3 x0.5 (20 of 47 sizes), seeds 1-4: SLOW_MAX, FAST_MIN, worst case 12/12 PASS, 4/4 EQUIVALENT. Paired vs T3:
+  1.465x (SLOW_MAX), 1.463x (FAST_MIN), 1.438x (worst case). Old rules: A 4-6, E 2-10, H 0-1 per route.
+- Caution recorded before anything is claimed: each halving has passed, so the gate's ability to FAIL a too-short delay
+  on this kernel/flow is unshown. x0.25 queued, then x0 if needed (CLAUDE.md: a negative control must be able to fail).
+  Not a board candidate until a failing step brackets it.
