@@ -2722,3 +2722,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   seeds: 1.447x (SLOW_MAX), 1.444x (FAST_MIN), 1.418x (worst case; per-route 1.34-1.47). x0.75: 1.14x / 1.13x.
 - x0.25 FAIL (worst case 0/3; seeds 1, 2 pass both corners). Floor between x0.25 and x0.5; x0.375 running.
 - xorshift T3 seed 8's worst case rerun after the disk-full window: PASS (T3 baseline 12/12 on seeds 5-8).
+### progress 18:50 (item 3 xorshift: x0.375 fails the nominal routed GLS on 4/4 -- the floor is not monotone in f)
+- xorshift T3 x0.375 (20 of 47 sizes): RTL sim PASS, nextpnr-SDF routed GLS FAIL on all 4 seeds ("PROTOCOL req rose out
+  of phase on out0", ~5.04 us, every seed). x0.25 passed that nominal GLS on seeds 1, 2. Elementwise s375 >= s25, so the
+  failure is a RATIO between two delays (ceil rounds small lines differently at each f), not a length floor: uniform
+  scaling is not monotone. The full-stack runs for x0.375 were not run (a step that fails anything is reverted).
+- Result for xorshift: x0.5 is the deepest uniform step that holds (8 routes, 24/24, 1.44x / 1.42x worst case).
+  A per-cell search below it would need the ratio constraint named first.
+- Queued now: x0.5 on collatz T3, ipow T9, collatz64 T4, isprime (their item-4 seeds, paired against item 4).
