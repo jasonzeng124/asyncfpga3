@@ -1095,3 +1095,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 02:10Z lock.
 - 02:11Z T20 resolved (research withdrew the ipow 'FASM-writer defect' in 5e5b9963). T25: item-4 ipow 12/12 table UNVERIFIED (no md5s/commands committed).
 - 02:50Z lock.
+- 03:30Z lock.
