@@ -1149,3 +1149,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 20:20Z T23 row 10 done: x0 control fails/hangs in every configuration (nominal GLS, SLOW_MAX FAIL; FAST_MIN and worst no verdict in 7000 s).
 - 20:30Z lock.
 - 20:31Z T23 row 15: research's per-cell corner tools + collatz per-cell candidate noted UNVERIFIED (tool validation not reproduced; candidate not judged).
+- 21:11Z lock.
