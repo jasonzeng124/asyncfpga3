@@ -26,6 +26,7 @@ validated sizes (same NEXTPNR_SEED, same flow); "speedup" = base / step.
 |---|---|---|---|---|---|
 | xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.138 / 1.140 (1.10-1.18); 1.132 (1.09-1.19) |
 | xorshift T3 x0.5 | 20 of 47 | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.447 / 1.444 (1.37-1.50); 1.418 (1.34-1.47) |
+| xorshift T3 operator delays only x0.25 (links at base) | 5 of 47 | 1-4 | **FAIL**: nominal routed GLS 4/4 (protocol error on out0); rule E: ucond_br2/3/5 steers (comparator result as select) | - | - |
 | xorshift T3 x0.375 | 20 of 47 | 1-4 | **FAIL**: nominal nextpnr-SDF routed GLS fails 4/4 (protocol error on out0); full stack not run | - | - |
 | xorshift T3 x0.25 | 20 of 47 | 1-4 | **FAIL**: SLOW_MAX 4/4, FAST_MIN 2/4 (seed 3 FAIL, seed 4 hung), worst 0/3 (seed 4 not run) | - | - |
 
@@ -41,3 +42,8 @@ case (protocol error on out0), so it is item 1's slow-cell/fast-chain corner tha
 FAST_MIN too; seed 4's FAST_MIN sims ran 30-47 min with no output (normal: ~10) and were killed, its worst case not run.
 The nominal nextpnr-SDF routed GLS already failed seeds 3 and 4 (vector 4 wrong result). x0.375 fails where x0.25 partly passed: uniform scaling with ceil is not monotone (a ratio between two delay lines, not a
 length floor). The deepest uniform step that holds for xorshift is x0.5.
+
+Operator-only x0.25 fails too, at a different pair: the comparator delays (ucmpi0 23 -> 6) are themselves select-race
+guards -- the compare result is the select of the ucond_br steers, and rule E flags ucond_br2/3/5 on every route. A
+uniform factor cannot find per-cell floors that differ this much (umux3's empty-pipe race, the steers' compare race).
+Next: per-cell sizing at the worst-case corner (each line shortened to what its own pair allows), not a global factor.

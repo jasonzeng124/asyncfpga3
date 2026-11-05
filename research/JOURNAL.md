@@ -2742,3 +2742,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   guarded); rule D's bd_mux screen misses it (measures from stage[1] only).
 - So x0.5's 1.44x carries thin raw select margins (+0.5..+1.5 ns at the nextpnr SDF) that the full stack accepts. Next
   experiment: shrink only operator delays (udly) and keep rule E's link fixes -- deeper on the part that sets throughput.
+### progress 19:05 (item 3: operator-only x0.25 fails at the comparator steers; collatz x0.5 fails FAST_MIN)
+- xorshift operator delays only x0.25 (links at T3): routed GLS fails 4/4 (out0 protocol); rule E flags ucond_br2/3/5 --
+  the comparator's matched delay holds back the request of the steers its result selects (ucmpi0 23 -> 6 links). So the
+  per-cell floors differ (the umux3 empty-pipe race, the compare/steer race) and a global factor will not find them.
+- collatz T3 x0.5: seed 2 FAST_MIN fails (fast mode hangs on vector 2; stalled passes); its worst case PASSES -- the
+  combined worst case does not subsume the fast corner (why PROGRAM asks for both corners). Seeds 1, 3 pass so far.
+- Next design: per-cell shrink at the worst-case corner -- run the rule audits on the worst-case-banded SDF with the
+  guardband set to the measured residual, take each line's own margin, shorten by what it allows (minus a slack),
+  then gate the result in the full stack.
