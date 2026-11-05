@@ -1143,3 +1143,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 18:28Z T23 row 10: x0 FAST_MIN gave no verdict within the 7000 s wall limit (no PASS).
 - 18:28Z lock.
 - 18:29Z T23 row 13: own xorshift T3 vs x0.5 seed 1: both pass all three configs; speedup 1.46-1.47 (inside research's range).
+- 19:09Z lock.
