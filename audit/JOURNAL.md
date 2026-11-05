@@ -1135,3 +1135,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 15:47Z lock.
 - 16:27Z lock.
 - 16:27Z T23 row 10: own x0 seed 1 full stack SLOW_MAX FAIL (timeout vec 0).
+- 17:07Z lock.
