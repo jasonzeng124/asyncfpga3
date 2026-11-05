@@ -1119,3 +1119,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 10:55Z lock.
 - 11:35Z lock.
 - 11:35Z T23 row 2: research e031b13f s90 8/8 / paired 1.00 CONFIRMED (seed 6 = my pre-registered run exactly; ratios recomputed).
+- 12:15Z lock.
