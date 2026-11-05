@@ -2708,5 +2708,5 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   result; both are moved aside (`*diskfull_discarded*`) and rerun. 7.6 GB freed from finished runs' regenerable
   intermediates; a janitor now clears them below 6 GB free (never a .vvp, never the worst-case fid/ files fasm_equiv
   reads).
-- gcd s75 worst case so far 5/5 (6, 7, 8, 10 + 11 running); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
+- gcd s75 worst case so far 4/4 (6, 7, 8, 10; 11 running, 9 rerun); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
   8-route pairing); xorshift x0.25 routing.
