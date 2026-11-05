@@ -2629,3 +2629,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   check plus M. Running those separately costs ~12 h of the one machine for nothing a bundling failure could add, so
   the gate is: SLOW_MAX and FAST_MIN (done, 8/8 each for BQ#1-#4) + the worst case on 8 routes. BQ#3's worst case is
   running (d PASS), BQ#1 next (vq7.sh). Not strictly monotone in an async circuit; noted, not run.
+### progress 00:14 (item 4 started: every other kernel through the full stack)
+- Configs (Explore agent's survey of the journal, checked against research/data): ipow T9 (BD_DSP=1), collatz T3,
+  xorshift T3, collatz64 T4, isprime rulee6 pads (BD_DSP=1 BD_RLOC_ARB=1; the one without a ratcheted size set, rule E
+  not clean on 2/4 earlier seeds). 4 fresh routes each via bdc/fusion_bench.py --route (its own RTL check, audits and
+  nextpnr-SDF GLS), then per route: soak.fasm assembled to a .bit (bit_control.to_bit), the prjxray SDF, and
+  cells/gls/fid/soak_fid.py ... bit --gate at SLOW_MAX, FAST_MIN and the combined worst case. Running beside the
+  gate (k4.sh, frozen worktree at 841995d1). Oracles: fusion_bench's, from the C.
