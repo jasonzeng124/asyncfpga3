@@ -1091,3 +1091,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 00:50Z T23: research item-3 candidate R5s90 = ceil(0.9 R5) on all 220 sizes, 19 moved: CONFIRMED (file). Gate pending.
 - 00:53Z T21 collatz CONFIRMED: own min/max = research's on 29/29, x 0.222.
 - 01:29Z lock.
+- 01:36Z T24: H_RUNT rig (BQ item 2) CONFIRMED pre-board: rebuild reproduces, bits = FASM, 128 cell functions on physical pins correct in bits, predictions reproduced on 128 rows by own JSON walk, runt_tb PASS/inject FAIL, judge reviewed.
