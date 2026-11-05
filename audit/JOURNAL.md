@@ -1129,3 +1129,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 13:58Z T23 row 5: own s75 seed-6 worst case PASS 16/16, 66/53/77, lapcheck CLEAN (pre-registered: sdf d6887667 / xray 2e8c528a).
 - 14:26Z lock.
 - 14:26Z T23 row 9: xorshift x0.5 / x0 size files confirmed; x0.5 12/12 / 1.46x unverifiable as committed; research's own negative-control plan noted.
+- 14:27Z T23 row 10: own pre-registered negative control xorshift x0 seed 1 started.
