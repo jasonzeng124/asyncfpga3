@@ -2701,3 +2701,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Caution recorded before anything is claimed: each halving has passed, so the gate's ability to FAIL a too-short delay
   on this kernel/flow is unshown. x0.25 queued, then x0 if needed (CLAUDE.md: a negative control must be able to fail).
   Not a board candidate until a failing step brackets it.
+### progress 14:45 (disk full at ~14:20: two runs voided, nothing read from them)
+- The scratch disk filled (139 MB free). Two compiled sims were truncated mid-write: xorshift T3 seed 8's worst-case
+  sim_fast.vvp (soak read "FAIL: simulation did not pass"; the vvp has a syntax error at line 3753909) and gcd s75 seed
+  9's worst-case run_baked.vvp (every vector "syntax error"; seeds_fid reads it INCOMPLETE). Neither is a circuit
+  result; both are moved aside (`*diskfull_discarded*`) and rerun. 7.6 GB freed from finished runs' regenerable
+  intermediates; a janitor now clears them below 6 GB free (never a .vvp, never the worst-case fid/ files fasm_equiv
+  reads).
+- gcd s75 worst case so far 5/5 (6, 7, 8, 10 + 11 running); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
+  8-route pairing); xorshift x0.25 routing.
