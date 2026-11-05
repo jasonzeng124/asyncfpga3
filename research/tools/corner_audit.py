@@ -24,6 +24,14 @@ their main()s -- the same `verify/<audit>.py <sdf>` invocation bdc/fusion_bench.
 is reported, never sized on: it is a screen (tighten.py and research/tools/audit_route.sh say so).  Rules B/C keep the
 vendor's own BRAM numbers.
 
+TWO DEPARTURES FROM tighten.py's RULE A, both on by default and both printed in report.txt:
+  * a constant driver ($PACKER_GND_DRV/VCC) never starts a data path (--keep-const-launch restores it): on
+    xorshift_s50 seed 1 the GND tie-off into ucmpi0's carry chain was the "latest data" by 3.4 ns;
+  * A' -- where tighten can only pair a cell as a BUNDLED CHANNEL (request from the cell's join at t=0, data from
+    the upstream link's latch at t=0, which drops the upstream link's DELAY lead), the same rule is re-measured from
+    each upstream link's C node with skew.py's storage-crossing walk(), and A' is what gets sized
+    (--rule-a-tighten sizes tighten's own row instead).  tighten's row is still reported, as rule "a".
+
 WHICH LINE A CONSTRAINT DEPENDS ON is MEASURED, not inferred from names: for each delay line (a sizes.vh macro, all its
 chains), one more run with that line's internal arcs (its LUT arcs and link-to-link hops) set to 0.  Every constraint
 whose margin drops is one the line sits on the early side of (a request, a hold path, a close); dM = how much it
