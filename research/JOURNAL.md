@@ -2636,7 +2636,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   nextpnr-SDF GLS), then per route: soak.fasm assembled to a .bit (bit_control.to_bit), the prjxray SDF, and
   cells/gls/fid/soak_fid.py ... bit --gate at SLOW_MAX, FAST_MIN and the combined worst case. Running beside the
   gate (k4.sh, frozen worktree at 841995d1). Oracles: fusion_bench's, from the C.
-### progress 00:45 (item 4: ipow routes; item 3 step 1 queued)
+### progress 00:35 (item 4: ipow routes; item 3 step 1 queued)
 - ipow T9, 4 fresh routes (seeds 29-32, fusion_bench --route): RTL check and routed nextpnr-SDF GLS fast+stalled pass on
   all 4; rules E/J 0. tighten.py exits 1 on every seed with 8 violations, all section D (ucond_br2..9 select
   screens, margins -3.8 to -8.1 ns): the screen, as recorded for T9 and every earlier kernel, not a gate. Their
@@ -2673,7 +2673,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Item 4: collatz T3 and xorshift T3, 4 routes each x {SLOW_MAX, FAST_MIN, worst}: 12/12 PASS each, bits
   EQUIVALENT on all 8 routes; audits rule D screens only (6 / 8 per route), E/J 0. collatz64 running (seed 1 3/3).
 - Item 3 step 1 (s90) worst-case sims started (i3.sh); BQ#1's worst case follows the s90 corners.
-### progress 11:35 (item 3 step 1: s90 passes the worst-case gate 8/8 and is not faster; item 4 isprime fixed)
+### progress 11:08 (item 3 step 1: s90 passes the worst-case gate 8/8 and is not faster; item 4 isprime fixed)
 - s90 (R5 x0.9 ceil), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT (research/data/item3/). Paired laps
   vs R5's own worst-case rows: 0.999 / 1.000 / 0.996 on vec 6/12/13, per-seed 0.87-1.11: no measurable speedup. Route
   scatter swamps a 1-2 link cut. s75 (x0.75, 52 sizes) is routed; its worst case runs next, then the corners of the
@@ -2682,12 +2682,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   harness bug (a constant-driven port bit was always counted missing; isprime returns a bool in an i32). Fixed
   (e574b300); rerun: seeds 25, 26 PASS at SLOW_MAX, FAST_MIN and the worst case (25 and 26 are the routes with rule E 2).
 - collatz64 T4: 12/12 PASS, 4/4 EQUIVALENT.
-### progress 12:30 (item 4 done: 60/60)
+### progress 12:26 (item 4 done: 60/60)
 - isprime (rule-E-6 pads, BD_RLOC_ARB=1), seeds 25-28: 12/12 PASS, 4/4 EQUIVALENT; seeds 25/26 carry rule E 2 and pass
   the worst case. Item 4: ipow T9, collatz T3, xorshift T3, collatz64 T4, isprime: 60/60 full-stack runs (SLOW_MAX,
   FAST_MIN, combined worst case; 4 fresh routes each), every route's bits EQUIVALENT (research/data/item4/).
 - Item 3: s75 worst case running (i3b.sh).
-### progress 13:55 (item 3 on xorshift: x0.75 is 1.13x faster and passes 12/12; a shrink_sizes bug found first)
+### progress 13:22 (item 3 on xorshift: x0.75 is 1.13x faster and passes 12/12; a shrink_sizes bug found first)
 - shrink_sizes clamped every size to >= 1, so T3's 18 zero sizes (uack, short rdly) became 1: the first xorshift x0.75
   routed SLOWER than T3 (nominal 3.31 vs 3.22 us on seed 1). Fixed (a 0 stays 0); gcd R5 has no zeros, so s90/s75 are
   unchanged (regenerated s75 byte-identical below its header).
@@ -2695,13 +2695,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   EQUIVALENT. Paired against T3's item-4 runs: 1.131x at both corners (1.10-1.16), 1.117x in the worst case
   (1.09-1.15). Audits (informational): rule A 1-2, rule E 0-2 per route. Seeds 5-8 and x0.5 queued.
 - gcd s75: worst case 2/2 so far (seeds 6, 7).
-### progress 15:10 (item 3, xorshift x0.5: 12/12 at 1.46x; the gate's teeth on this flow not yet shown)
+### progress 14:01 (item 3, xorshift x0.5: 12/12 at 1.46x; the gate's teeth on this flow not yet shown)
 - xorshift T3 x0.5 (20 of 47 sizes), seeds 1-4: SLOW_MAX, FAST_MIN, worst case 12/12 PASS, 4/4 EQUIVALENT. Paired vs T3:
   1.465x (SLOW_MAX), 1.463x (FAST_MIN), 1.438x (worst case). Old rules: A 4-6, E 2-10, H 0-1 per route.
 - Caution recorded before anything is claimed: each halving has passed, so the gate's ability to FAIL a too-short delay
   on this kernel/flow is unshown. x0.25 queued, then x0 if needed (CLAUDE.md: a negative control must be able to fail).
   Not a board candidate until a failing step brackets it.
-### progress 14:45 (disk full at ~14:20: two runs voided, nothing read from them)
+### progress 14:24 (disk full at ~14:20: two runs voided, nothing read from them)
 - The scratch disk filled (139 MB free). Two compiled sims were truncated mid-write: xorshift T3 seed 8's worst-case
   sim_fast.vvp (soak read "FAIL: simulation did not pass"; the vvp has a syntax error at line 3753909) and gcd s75 seed
   9's worst-case run_baked.vvp (every vector "syntax error"; seeds_fid reads it INCOMPLETE). Neither is a circuit
@@ -2710,19 +2710,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   reads).
 - gcd s75 worst case so far 4/4 (6, 7, 8, 10; 11 running, 9 rerun); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
   8-route pairing); xorshift x0.25 routing.
-### progress 16:05 (item 3 xorshift: the negative control fails where it should -- x0.25 fails the worst case)
+### progress 15:03 (item 3 xorshift: the negative control fails where it should -- x0.25 fails the worst case)
 - xorshift T3 x0.25: nominal routed GLS (nextpnr SDF) FAILS on seeds 3 and 4 (vector 4 out0 05c420c5, expected
   9dcca8c5 from the C; "PROTOCOL req rose out of phase on out0"; SDFs complete, ANNOTATE_DONE, the sim ran 4 vectors
   first -- not the disk-full window's truncation). Full stack seed 1: SLOW_MAX PASS, FAST_MIN PASS, **combined worst
   case FAIL** (protocol error on out0, both fast and stalled modes). So the gate has teeth on this flow, and it is
   the slow-cell/fast-chain corner of item 1, not either uniform corner, that catches the short delay.
 - Bracket: x0.5 passes (4 routes), x0.25 fails. Queued: x0.5 on seeds 5-8 (8 routes), then x0.375.
-### progress 18:20 (item 3 xorshift: x0.5 holds on 8 routes at 1.44x; x0.25 fails)
+### progress 16:53 (item 3 xorshift: x0.5 holds on 8 routes at 1.44x; x0.25 fails)
 - xorshift T3 x0.5, 8 routes x {SLOW_MAX, FAST_MIN, worst case}: 24/24 PASS, 8/8 EQUIVALENT. Paired vs T3 on the same 8
   seeds: 1.447x (SLOW_MAX), 1.444x (FAST_MIN), 1.418x (worst case; per-route 1.34-1.47). x0.75: 1.14x / 1.13x.
 - x0.25 FAIL (worst case 0/3; seeds 1, 2 pass both corners). Floor between x0.25 and x0.5; x0.375 running.
 - xorshift T3 seed 8's worst case rerun after the disk-full window: PASS (T3 baseline 12/12 on seeds 5-8).
-### progress 18:50 (item 3 xorshift: x0.375 fails the nominal routed GLS on 4/4 -- the floor is not monotone in f)
+### progress 16:55 (item 3 xorshift: x0.375 fails the nominal routed GLS on 4/4 -- the floor is not monotone in f)
 - xorshift T3 x0.375 (20 of 47 sizes): RTL sim PASS, nextpnr-SDF routed GLS FAIL on all 4 seeds ("PROTOCOL req rose out
   of phase on out0", ~5.04 us, every seed). x0.25 passed that nominal GLS on seeds 1, 2. Elementwise s375 >= s25, so the
   failure is a RATIO between two delays (ceil rounds small lines differently at each f), not a length floor: uniform
@@ -2730,19 +2730,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Result for xorshift: x0.5 is the deepest uniform step that holds (8 routes, 24/24, 1.44x / 1.42x worst case).
   A per-cell search below it would need the ratio constraint named first.
 - Queued now: x0.5 on collatz T3, ipow T9, collatz64 T4, isprime (their item-4 seeds, paired against item 4).
-### progress 19:35 (owner 1035dcef read: max effort, <= 2 subagents at a time, no scheduled routines)
+### progress 17:42 (owner 1035dcef read: max effort, <= 2 subagents at a time, no scheduled routines)
 - Read and followed: one subagent used this session (the H_RUNT rig, finished); none running; no scheduled routines or
   reminders created. The lock refresher now rebases before pushing (the owner's commit had made its push non-fast-forward).
 - gcd s75 worst case: 7/7 valid seeds PASS (seed 9 rerunning after the disk-full void); paired laps vs R5 1.07x
   (1.00-1.17) on those 7. collatz x0.5: seed 1 PASS at all three configs, seed 2 SLOW_MAX PASS; nominal 1.34x.
-### progress 20:10 (item 3: the xorshift floor is a select race on an empty pipe, not the operators)
+### progress 17:54 (item 3: the xorshift floor is a select race on an empty pipe, not the operators)
 - research/data/item3/rc375/: x0.375 fails because ulink_n_index_15's request (SDELAY 1 + DELAY 4) beats its own select
   (two latches + routed wire, no matched delay) into umux3 when the pipe is empty. The routed req-sel margin orders all
   16 xorshift routes (base, s50, s375, s25) by pass/fail; link counts alone do not. Rule E flags it (and fails s50
   guarded); rule D's bd_mux screen misses it (measures from stage[1] only).
 - So x0.5's 1.44x carries thin raw select margins (+0.5..+1.5 ns at the nextpnr SDF) that the full stack accepts. Next
   experiment: shrink only operator delays (udly) and keep rule E's link fixes -- deeper on the part that sets throughput.
-### progress 19:05 (item 3: operator-only x0.25 fails at the comparator steers; collatz x0.5 fails FAST_MIN)
+### progress 18:43 (item 3: operator-only x0.25 fails at the comparator steers; collatz x0.5 fails FAST_MIN)
 - xorshift operator delays only x0.25 (links at T3): routed GLS fails 4/4 (out0 protocol); rule E flags ucond_br2/3/5 --
   the comparator's matched delay holds back the request of the steers its result selects (ucmpi0 23 -> 6 links). So the
   per-cell floors differ (the umux3 empty-pipe race, the compare/steer race) and a global factor will not find them.
@@ -2751,11 +2751,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Next design: per-cell shrink at the worst-case corner -- run the rule audits on the worst-case-banded SDF with the
   guardband set to the measured residual, take each line's own margin, shorten by what it allows (minus a slack),
   then gate the result in the full stack.
-### progress 19:55 (item 3 gcd: R5 x0.75 passes the worst-case gate 8/8 at 1.07x laps)
+### progress 18:50 (item 3 gcd: R5 x0.75 passes the worst-case gate 8/8 at 1.07x laps)
 - gcd_hw R5 x0.75 (52 sizes; 796 -> 683 links), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT
   (research/data/item3/s75_worstcase.tsv). Paired laps vs R5: 1.074 on vec 6/12/13 (1.00-1.17). Corners running.
 - collatz x0.5: seed 3's worst case FAILS too (seed 2 FAST_MIN) -- reverted; collatz x0.75 and operator-only x0.5 queued.
-### progress 20:40 (item 3: per-cell sizing at the worst-case corner -- research/tools/corner_sdf.py, corner_audit.py)
+### progress 19:52 (item 3: per-cell sizing at the worst-case corner -- research/tools/corner_sdf.py, corner_audit.py)
 - Built by a subagent, reviewed here: corner_sdf.py collapses the prjxray SDF to one corner with gen.py's per-arc band
   choice (same CARRY4/SELMUX2_1 arc counts as gen.py's own log on xorshift_s50 seed 1); corner_audit.py runs tighten /
   skew / arb_fork unchanged (guards patched in-process: rule A max(0.03 t, 50 ps), rule E 0.97/1.03), finds each
@@ -2769,7 +2769,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   by any rule at either corner (ucond_br5 sits at ~0 raw at both: a mis-steer would look like that hang).
 - Use: per-cell max over a kernel's base routes -> candidate -> >= 8 routes of the full stack. Most useful where a
   global x0.5 fails (collatz, ipow). Running on their base routes now.
-### progress 21:30 (item 3: per-cell candidates built; the rules stay more conservative than the full stack)
+### progress 21:13 (item 3: per-cell candidates built; the rules stay more conservative than the full stack)
 - Per-cell max of corner_audit proposals over the base routes: collatz T3 249 -> 200 links (4 routes), ipow T9 332 ->
   251 (4), xorshift T3 156 -> 135 (4). xorshift's x0.5 (87 links) passes the full stack on 8 routes, so the rule-proven
   per-cell sizes sit well above the sim's floor: useful where a uniform factor fails (collatz, ipow both fail x0.5), not
@@ -2777,17 +2777,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Uniform x0.5 so far: xorshift PASS (8 routes, 1.44x), collatz FAIL, ipow FAIL (worst case only, 2/4); x0.75 for
   collatz64 running, isprime queued. Recurring pattern: x0.25 xorshift, x0.5 ipow, operator-only x0.25 xorshift all pass
   BOTH uniform corners on some routes and fail only the combined worst case.
-### progress 23:05 (item 3: collatz per-cell sizes pass 12/12 at 1.16x)
+### progress 22:19 (item 3: collatz per-cell sizes pass 12/12 at 1.16x)
 - collatz T3 per-cell candidate (research/data/collatz_sizes_T3cs.vh, 249 -> 200 links), seeds 1-4: SLOW_MAX, FAST_MIN,
   worst case 12/12 PASS, 4/4 EQUIVALENT -- including seed 2 FAST_MIN and seed 3 worst case, where uniform x0.5 failed.
   Paired vs T3: 1.159x / 1.158x (corners), 1.153x (worst case). Seeds 5-8 to queue (and the T3 baseline on 5-8).
 - collatz64 x0.75 seed 1: 3/3 PASS. gcd s75 corners: 3/3 PASS so far.
-### progress 00:40 (item 3: ipow per-cell holds 12/12 but is only 1.02-1.04x)
+### progress 23:35 (item 3: ipow per-cell holds 12/12 but is only 1.02-1.04x)
 - ipow T9 per-cell (332 -> 251 links), seeds 29-32: 12/12 PASS, 4/4 EQUIVALENT; paired 1.041x / 1.024x (corners), 1.024x
   (worst case). Rule A at the corner keeps uselect0 (52) and umuli1 (47 -> 36) near T9, and those set the cycle. A
   between-the-two candidate (x0.5's shrink on the lines corner_audit shows unbound, per-cell lengths elsewhere) is
   the next ipow step.
 - collatz64 x0.75: seeds 1-2 3/3 PASS each. gcd s75 corners: 6/6 PASS so far.
-### progress 01:40 (item 3: operator-only x0.5 on xorshift is safe and only 1.05-1.07x)
+### progress 23:50 (item 3: operator-only x0.5 on xorshift is safe and only 1.05-1.07x)
 - xorshift operator delays only x0.5: 12/12 PASS, 4/4 EQUIVALENT; paired 1.073x / 1.054x / 1.053x (max/min/worst). Uniform
   x0.5 is 1.44x: the link request delays carry most of the cycle -- the same lines that carry the select races.
