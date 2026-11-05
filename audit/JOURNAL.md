@@ -1109,3 +1109,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 06:58Z T19 row 4: BQ#3 s4 worst case reproduced exactly (58/46/67, lapcheck CLEAN).
 - 07:32Z lock.
 - 07:32Z T23 row 4: own s90 seed-6 route + worst-case gate started ahead of research's verdict.
+- 08:12Z lock.
