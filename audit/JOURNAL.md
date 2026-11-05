@@ -1093,3 +1093,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 01:29Z lock.
 - 01:36Z T24: H_RUNT rig (BQ item 2) CONFIRMED pre-board: rebuild reproduces, bits = FASM, 128 cell functions on physical pins correct in bits, predictions reproduced on 128 rows by own JSON walk, runt_tb PASS/inject FAIL, judge reviewed.
 - 02:10Z lock.
+- 02:11Z T20 resolved (research withdrew the ipow 'FASM-writer defect' in 5e5b9963). T25: item-4 ipow 12/12 table UNVERIFIED (no md5s/commands committed).
