@@ -1136,3 +1136,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 16:27Z lock.
 - 16:27Z T23 row 10: own x0 seed 1 full stack SLOW_MAX FAIL (timeout vec 0).
 - 17:07Z lock.
+- 17:08Z T23 row 12: xorshift item-3 bracket (x0.5 holds, x0.375/x0.25 fail) UNVERIFIED as committed; x0.25 FAST_MIN also fails on seed 3 (the 16:05 'not either uniform corner' was seed 1 only).
