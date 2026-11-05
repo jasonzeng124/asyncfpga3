@@ -2782,3 +2782,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   worst case 12/12 PASS, 4/4 EQUIVALENT -- including seed 2 FAST_MIN and seed 3 worst case, where uniform x0.5 failed.
   Paired vs T3: 1.159x / 1.158x (corners), 1.153x (worst case). Seeds 5-8 to queue (and the T3 baseline on 5-8).
 - collatz64 x0.75 seed 1: 3/3 PASS. gcd s75 corners: 3/3 PASS so far.
+### progress 00:40 (item 3: ipow per-cell holds 12/12 but is only 1.02-1.04x)
+- ipow T9 per-cell (332 -> 251 links), seeds 29-32: 12/12 PASS, 4/4 EQUIVALENT; paired 1.041x / 1.024x (corners), 1.024x
+  (worst case). Rule A at the corner keeps uselect0 (52) and umuli1 (47 -> 36) near T9, and those set the cycle. A
+  between-the-two candidate (x0.5's shrink on the lines corner_audit shows unbound, per-cell lengths elsewhere) is
+  the next ipow step.
+- collatz64 x0.75: seeds 1-2 3/3 PASS each. gcd s75 corners: 6/6 PASS so far.

@@ -61,3 +61,8 @@ routes) for collatz and ipow are queued; the uniform x0.75 for collatz64 and isp
 
 collatz per-cell holds on all 12 where uniform x0.5 failed two (FAST_MIN on seed 2, worst case on seed 3). Seeds 5-8 owed
 (PROGRAM: 8 routes) before it is a result.
+| ipow T9 per-cell (corner_audit, per-cell max over 4 routes) | 23 of 52 (332 -> 251 links) | 29-32 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.041 / 1.024 (0.98-1.06); 1.024 (0.97-1.07) |
+
+ipow per-cell holds everywhere (incl. seeds 30 and 32, where x0.5 failed the worst case) but buys only 2-4%: the lines
+that set ipow's cycle, uselect0 (52 -> 51) and the multiply umuli1 (47 -> 36), stay near T9 because rule A binds them at
+the corner. The rules leave little room on ipow; the sim's floor lies between this and x0.5 (nominal 1.47x, fails).
