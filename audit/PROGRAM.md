@@ -19,6 +19,17 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
+## Effort and subagents (owner, 2026-11-05)
+
+The owner raised the budget to about twice the single-thread, high-effort level.
+Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
+but at most 2 at a time.** Wait for one to finish before starting another. A
+subagent never touches git: it works in its own worktree or scratch directory
+and reports back, and you review and commit what it found. Use them for
+independent work that would otherwise wait (a second sweep while a build runs, a
+proof while a check builds, a claim to reproduce), never to run the same work
+twice. Never create scheduled routines or reminders.
+
 ## What to audit (in priority order)
 
 ### 1. Formal proofs (`claude/formal`)
