@@ -207,7 +207,13 @@ def rule_a_from_link(T, skew, sdf):
         inside = lambda p: any(T.pin_split(p)[0] == r or T.pin_split(p)[0].startswith(r + ".") for r in region)
         # a source outside the region that reaches a peer WITHOUT crossing one of the links' latches would launch
         # data this measurement does not see: then keep tighten's A
-        if any(not inside(s) and not T.is_const(s) and any(p in timing.late(s, region) for p in peers) for s in srcs):
+        # (an outside combinational source -- logic fused between the link and the cell -- is fine when everything
+        # that drives it is itself one of the region's storage nodes, which the walk crosses)
+        def foreign(s):
+            if inside(s) or T.is_const(s) or not any(p in timing.late(s, region) for p in peers):
+                return False
+            return s in stops or any(not inside(x) for x in T.starts_reaching(back, s, stops))
+        if any(foreign(s) for s in srcs):
             continue
         worst = None
         for link in ups:
