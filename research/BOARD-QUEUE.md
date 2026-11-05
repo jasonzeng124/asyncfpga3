@@ -4,6 +4,29 @@ Experiments that have passed every check possible without the board, most
 valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
+## Board list, in order (owner, 2026-11-04: best first; each item judges itself)
+1. **gcd_ps with the 1000 vectors** (item #4 below): `hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit
+   ../research/board/gcd_ps_vec1000.hex; echo "exit $?"`. Pass: `=== PASS 1000/1000 ===` and exit 0. Also gives
+   per-call latency directly comparable with the full stack's (research/data/gcd_ps/cost_model_vs_board.tsv).
+2. **The short-pulse C-element test (H_RUNT)**: NOT BUILT YET. formal/FOR-RESEARCH section 3 asks whether a LUT loop
+   kills a runt narrower than its loop. A rig and its self-judging script are the next board item to build here.
+3. **The fastest design the sim accepts**: currently #2 below (gcd_hw R5 sizes): it passes the combined worst-case gate
+   (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual as scatter) on 8/8 routes
+   (research/data/fid/bq2_worstcase.tsv), and the cell check (slow uncalibrated cells) 8/8. #3 (R5 + fast fall, ~6%
+   faster) has passed the cell check 8/8; its worst-case gate is running. Commands and criteria under #2/#3.
+4. **A ring set on a second route (band transfer)**: research/board/ro_many_2/ (today's ro_many_top, bit 8dc4f1ac,
+   predictions committed before any run). From cells/:
+
+       mkdir -p build/hw/ro_many_top && cp ../research/board/ro_many_2/ro_many_top.bit build/hw/ro_many_top/ && \
+         for f in ro_many_top_routed.json ro_many_top.sdf; do xz -dc ../research/board/ro_many_2/$f.xz > build/hw/ro_many_top/$f; done && \
+         RO_MEAS_TSV=build/hw/ro_many_top/measured.tsv python3 hw/ro_many_measure.py; echo "measure exit $?"
+       python3 ../research/tools/ring2_judge.py build/hw/ro_many_top/measured.tsv ../research/board/ro_many_2/predicted.tsv; echo "judge exit $?"
+
+   Pass: measure exit 0 (the readback's own checks) and the judge's `=== PASS ===`, exit 0 (median and per-length
+   median error of the 0.288 prediction within +/-5%, every ring inside its FAST_MIN..SLOW_MAX). The judge was
+   checked on the first route's data: 0.288 PASS, 0.38 FAIL. A FAIL with every ring inside the corners means the band
+   does not transfer between routes (the judge prints this route's own x).
+
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
 (8 seeds: worst +272, raw >= +718). That counts the part of A0's route its branches share as

@@ -2615,3 +2615,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   matched delays' (slow cells change no latency), ~10% faster than band 0.288, which the worst-case gate covers.
 - Another container restart (~23:50) killed every job; collatz64 SLOW_MAX had 16/27 (enough). Gate relaunched (vq6:
   BQ#3 worst case 3-9 (d done), BQ#1 worst case, band + M on all three, BQ#1 cell check, bench sweeps).
+### progress 00:08 (item 5: the ordered board list; a second ring route with predictions committed first)
+- BOARD-QUEUE.md now opens with the owner's ordered list: (1) gcd_ps 1000 vectors, (2) H_RUNT short-pulse test -- not
+  built yet, next, (3) the fastest design the sim accepts (BQ#2 R5 now: worst-case gate 8/8), (4) a ring set on a second
+  route. Each judges itself.
+- (4) built: today's ro_many_top (August recipe, default seed, nextpnr 9c732bc6), bit 8dc4f1ac, bits EQUIVALENT to
+  its routed JSON; research/board/ro_many_2/ holds the bit, xz'd FASM/JSON/SDF, and predicted.tsv (per ring FAST_MIN,
+  SLOW_MAX, band 0.288) written before any run. research/tools/ring2_judge.py applies acceptance.py's criterion; on
+  the first route's data it PASSes at 0.288 and FAILs at 0.38.
