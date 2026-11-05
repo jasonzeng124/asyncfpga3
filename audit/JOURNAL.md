@@ -1147,3 +1147,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:09Z T23 row 14: research's gcd s75 8/8 / 1.074x CONFIRMED (seed 6 = my pre-registered run exactly; pairing recomputed). Collatz x0.5 recorded FAIL by research (98a94070); corner_sdf/corner_audit drafts not claims.
 - 19:49Z lock.
 - 20:20Z T23 row 10 done: x0 control fails/hangs in every configuration (nominal GLS, SLOW_MAX FAIL; FAST_MIN and worst no verdict in 7000 s).
+- 20:30Z lock.
