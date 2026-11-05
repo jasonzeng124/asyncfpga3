@@ -47,3 +47,8 @@ Operator-only x0.25 fails too, at a different pair: the comparator delays (ucmpi
 guards -- the compare result is the select of the ucond_br steers, and rule E flags ucond_br2/3/5 on every route. A
 uniform factor cannot find per-cell floors that differ this much (umux3's empty-pipe race, the steers' compare race).
 Next: per-cell sizing at the worst-case corner (each line shortened to what its own pair allows), not a global factor.
+
+| collatz T3 x0.5 | 24 sizes | 1-4 | **FAIL**: SLOW_MAX 4/4, FAST_MIN 3/4 (seed 2: fast-mode hang on vector 2), worst 3/4 (seed 3) | - | - |
+
+collatz x0.5 fails two different configs on two routes; its seed 2 passes the worst case but hangs at FAST_MIN (the
+combined worst case does not subsume the fast corner). collatz x0.75 and operator-only x0.5 are queued.
