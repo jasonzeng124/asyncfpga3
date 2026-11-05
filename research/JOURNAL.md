@@ -2710,3 +2710,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   reads).
 - gcd s75 worst case so far 4/4 (6, 7, 8, 10; 11 running, 9 rerun); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
   8-route pairing); xorshift x0.25 routing.
+### progress 16:05 (item 3 xorshift: the negative control fails where it should -- x0.25 fails the worst case)
+- xorshift T3 x0.25: nominal routed GLS (nextpnr SDF) FAILS on seeds 3 and 4 (vector 4 out0 05c420c5, expected
+  9dcca8c5 from the C; "PROTOCOL req rose out of phase on out0"; SDFs complete, ANNOTATE_DONE, the sim ran 4 vectors
+  first -- not the disk-full window's truncation). Full stack seed 1: SLOW_MAX PASS, FAST_MIN PASS, **combined worst
+  case FAIL** (protocol error on out0, both fast and stalled modes). So the gate has teeth on this flow, and it is
+  the slow-cell/fast-chain corner of item 1, not either uniform corner, that catches the short delay.
+- Bracket: x0.5 passes (4 routes), x0.25 fails. Queued: x0.5 on seeds 5-8 (8 routes), then x0.375.
