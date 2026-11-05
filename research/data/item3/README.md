@@ -52,3 +52,8 @@ Next: per-cell sizing at the worst-case corner (each line shortened to what its 
 
 collatz x0.5 fails two different configs on two routes; its seed 2 passes the worst case but hangs at FAST_MIN (the
 combined worst case does not subsume the fast corner). collatz x0.75 and operator-only x0.5 are queued.
+| ipow T9 x0.5 | 31 sizes | 29-32 | **FAIL**: SLOW_MAX 4/4, FAST_MIN 4/4, worst 2/4 (seed 30: out0 0XX00003, seed 32) | - | - |
+
+ipow x0.5 passes both uniform corners on every route and fails only the combined worst case (2 of 4): the slow-cell /
+fast-chain corner of item 1 again the one that catches it. Per-cell candidates (corner_audit, per-cell max over 4
+routes) for collatz and ipow are queued; the uniform x0.75 for collatz64 and isprime is running.
