@@ -24,8 +24,8 @@ validated sizes (same NEXTPNR_SEED, same flow); "speedup" = base / step.
 
 | kernel step | sizes moved | routes | SLOW_MAX / FAST_MIN / worst | bits | speedup (corners; worst case) |
 |---|---|---|---|---|---|
-| xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-4 | 4/4, 4/4, 4/4 | 4/4 EQUIVALENT | 1.131 (1.10-1.16); 1.117 (1.09-1.15) |
+| xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 1.131 (1.10-1.16); 1.117 (1.09-1.15) on seeds 1-4 (T3 baseline for 5-8 queued) |
 
-Seeds 5-8 of xorshift s75 (to reach PROGRAM's 8 routes) and xorshift x0.5 are queued.
+xorshift x0.5 (20 of 47 sizes) and T3 on seeds 5-8 are queued.
 A first xorshift s75 run is discarded: shrink_sizes clamped 0 -> 1 then, adding 18 delay lines to T3's handshakes
 (it routed slower than T3); fixed in the tool before the rerun above.
