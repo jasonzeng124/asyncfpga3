@@ -2755,3 +2755,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - gcd_hw R5 x0.75 (52 sizes; 796 -> 683 links), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT
   (research/data/item3/s75_worstcase.tsv). Paired laps vs R5: 1.074 on vec 6/12/13 (1.00-1.17). Corners running.
 - collatz x0.5: seed 3's worst case FAILS too (seed 2 FAST_MIN) -- reverted; collatz x0.75 and operator-only x0.5 queued.
+### progress 20:40 (item 3: per-cell sizing at the worst-case corner -- research/tools/corner_sdf.py, corner_audit.py)
+- Built by a subagent, reviewed here: corner_sdf.py collapses the prjxray SDF to one corner with gen.py's per-arc band
+  choice (same CARRY4/SELMUX2_1 arc counts as gen.py's own log on xorshift_s50 seed 1); corner_audit.py runs tighten /
+  skew / arb_fork unchanged (guards patched in-process: rule A max(0.03 t, 50 ps), rule E 0.97/1.03), finds each
+  constraint's lines by zeroing chains one at a time, pads what is short, shrinks the rest, re-audits with predicted
+  delays. Per-link cost: conservative (a shortened line keeps its dearest step; padding credited at the cheapest).
+- Validation against the full stack's own verdicts: flags umux3's empty-pipe race on x0.375 (-686 guarded) and the
+  ucond_br steers on operator-only x0.25 (-820..-1040), proposing the lengths that clear them. On x0.5 (which PASSES the
+  full stack) it still finds -36..-87 ps rows and tighten's bundled rule A -908: the static rules are more pessimistic
+  than the GLS, so its proposals are what the RULES prove at the corner, not the sim's floor. On base T3 seed 1 it
+  shortens kernel links 155 -> 111 (less than x0.5, which passes). collatz x0.5 seed 2's FAST_MIN hang is not explained
+  by any rule at either corner (ucond_br5 sits at ~0 raw at both: a mis-steer would look like that hang).
+- Use: per-cell max over a kernel's base routes -> candidate -> >= 8 routes of the full stack. Most useful where a
+  global x0.5 fails (collatz, ipow). Running on their base routes now.
