@@ -2717,3 +2717,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   case FAIL** (protocol error on out0, both fast and stalled modes). So the gate has teeth on this flow, and it is
   the slow-cell/fast-chain corner of item 1, not either uniform corner, that catches the short delay.
 - Bracket: x0.5 passes (4 routes), x0.25 fails. Queued: x0.5 on seeds 5-8 (8 routes), then x0.375.
+### progress 18:20 (item 3 xorshift: x0.5 holds on 8 routes at 1.44x; x0.25 fails)
+- xorshift T3 x0.5, 8 routes x {SLOW_MAX, FAST_MIN, worst case}: 24/24 PASS, 8/8 EQUIVALENT. Paired vs T3 on the same 8
+  seeds: 1.447x (SLOW_MAX), 1.444x (FAST_MIN), 1.418x (worst case; per-route 1.34-1.47). x0.75: 1.14x / 1.13x.
+- x0.25 FAIL (worst case 0/3; seeds 1, 2 pass both corners). Floor between x0.25 and x0.5; x0.375 running.
+- xorshift T3 seed 8's worst case rerun after the disk-full window: PASS (T3 baseline 12/12 on seeds 5-8).
