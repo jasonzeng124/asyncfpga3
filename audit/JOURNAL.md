@@ -1097,3 +1097,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 02:50Z lock.
 - 03:30Z lock.
 - 03:30Z T25: collatz T3 and xorshift T3 item-4 rows (bff63c38, 3d5c5012), same unverifiable record shape.
+- 04:10Z lock.
