@@ -2656,3 +2656,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Item 3 step 1 (s90): 8/8 routed. Audits (informational now): tighten.py needs `--osc dhk --osc invhk` on gcd_hw (the
   housekeeping ring); rule A 0-2 per route at the old 8.5% guard (raw margins positive), rule E 8 on seed 6, rule J
   -57 ps guarded on seed 11. The full stack decides; its sims wait for BQ#3's worst case.
+### progress 02:40 (item 4: ipow 12/12; the August "FASM-writer defect" was a checker gap)
+- ipow T9, seeds 29-32 x {SLOW_MAX, FAST_MIN, worst case}: 12/12 PASS (research/data/item4/).
+- Their bits-vs-JSON check first read NOT EQUIVALENT, with exactly the August ipow signature. Traced: ushrsi0's LUT2
+  (f = I1 & ~I0) has BOTH logical inputs on one physical pin (X_ORIG_PORT_A1 'I0I1 ', net $PACKER_GND_NET), so it is
+  constant 0 by its own netlist, and nextpnr's FASM writer correctly writes INIT 0. The August ipow build is the same
+  shape ('I1 I0' on $PACKER_GND_NET at SLICE_X24Y46/C6LUT). **CORRECTION of 18:04 (Nov 4)**: that was not a
+  FASM-writer defect and the board did not run a broken LUT; fasm_equiv judged constness from the INIT string.
+  Fix: lut_const() also folds a LUT whose physical-pin function (gen.py's expansion) is constant. On ipow seed 29 it
+  folds exactly that one cell; all 4 routes EQUIVALENT. Negative control: the bits-side LUT made live (f = A1) -> NOT
+  EQUIVALENT. test_acceptance.py 30 passed. research/data/aug_kernels/README.md corrected.

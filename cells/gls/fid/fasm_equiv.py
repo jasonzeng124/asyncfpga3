@@ -78,6 +78,18 @@ def lut_const(c):
         return 0
     if init and set(init) <= {"1"}:
         return 1
+    # A LUT whose logical inputs the packer put on ONE physical pin can be constant although its INIT is not: a
+    # LUT2 f = I1 & ~I0 with I0 and I1 both on A1 (X_ORIG_PORT_A1 'I0I1 ', both on $PACKER_GND_NET in ipow's
+    # ushrsi0) is 0 for every input, and nextpnr's FASM writer correctly writes INIT 0.  Judge the function the
+    # physical pins compute (gen.py's expansion), not the INIT string.
+    if init and any(k.startswith("X_ORIG_PORT_A") for k in c.get("attributes", {})):
+        port = "O5" if "O5" in c.get("connections", {}) and "O6" not in c.get("connections", {}) else "O6"
+        t = gen.expand_lut_init(init, c["attributes"], port)
+        n = 64 if port == "O6" else 32
+        if t == 0:
+            return 0
+        if t == (1 << n) - 1:
+            return 1
     return None
 
 
