@@ -2666,3 +2666,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   Fix: lut_const() also folds a LUT whose physical-pin function (gen.py's expansion) is constant. On ipow seed 29 it
   folds exactly that one cell; all 4 routes EQUIVALENT. Negative control: the bits-side LUT made live (f = A1) -> NOT
   EQUIVALENT. test_acceptance.py 30 passed. research/data/aug_kernels/README.md corrected.
+### progress 05:22 (BQ#3 worst-case gate 8/8; item 4: collatz, xorshift 12/12 each)
+- BQ#3 (R5 + link fast fall), combined worst case, seeds d,3-9: 8/8 PASS 16/16, EQUIVALENT, laps 58-65 on vec 6
+  (research/data/fid/bq3_worstcase.tsv). BQ#3 is now board list item 3 (fastest design the sim accepts); BQ#2 is
+  its fallback.
+- Item 4: collatz T3 and xorshift T3, 4 routes each x {SLOW_MAX, FAST_MIN, worst}: 12/12 PASS each, bits
+  EQUIVALENT on all 8 routes; audits rule D screens only (6 / 8 per route), E/J 0. collatz64 running (seed 1 3/3).
+- Item 3 step 1 (s90) worst-case sims started (i3.sh); BQ#1's worst case follows the s90 corners.

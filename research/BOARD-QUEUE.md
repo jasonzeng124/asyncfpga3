@@ -21,10 +21,11 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
    PULSE k=3 counts an edge every trial), and the judge prints `=== PASS: ... ===`, exit 0 (a capture threshold w* can
    be named). The answer is in the lines after: `=== RUNT CIRCULATES ===` (any TEST cell with >= 2 rising edges in a
    trial) or not, and w* - loop. RIG FAIL means the rig, not the fabric, and nothing else is read.
-3. **The fastest design the sim accepts**: currently #2 below (gcd_hw R5 sizes): it passes the combined worst-case gate
-   (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual as scatter) on 8/8 routes
-   (research/data/fid/bq2_worstcase.tsv), and the cell check (slow uncalibrated cells) 8/8. #3 (R5 + fast fall, ~6%
-   faster) has passed the cell check 8/8; its worst-case gate is running. Commands and criteria under #2/#3.
+3. **The fastest design the sim accepts**: #3 below (gcd_hw R5 sizes + link fast fall, ~6% more laps than #2): the
+   combined worst-case gate (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual
+   as scatter) 8/8 routes (research/data/fid/bq3_worstcase.tsv), the cell check (slow uncalibrated cells) 8/8, both
+   corners 8/8. #2 (R5 without fast fall) passes the same (bq2_worstcase.tsv) and is the fallback. Commands and
+   criteria under #2/#3. (PROGRAM item 3's smaller sizes are being gated; this item moves to them only if they pass.)
 4. **A ring set on a second route (band transfer)**: research/board/ro_many_2/ (today's ro_many_top, bit 8dc4f1ac,
    predictions committed before any run). From cells/:
 
