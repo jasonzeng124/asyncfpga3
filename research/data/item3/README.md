@@ -66,3 +66,7 @@ collatz per-cell holds on all 12 where uniform x0.5 failed two (FAST_MIN on seed
 ipow per-cell holds everywhere (incl. seeds 30 and 32, where x0.5 failed the worst case) but buys only 2-4%: the lines
 that set ipow's cycle, uselect0 (52 -> 51) and the multiply umuli1 (47 -> 36), stay near T9 because rule A binds them at
 the corner. The rules leave little room on ipow; the sim's floor lies between this and x0.5 (nominal 1.47x, fails).
+| xorshift T3 operator delays only x0.5 (links at base) | 5 of 47 | 1-4 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.073 / 1.054 (1.02-1.10); 1.053 (1.04-1.07) |
+
+Operator-only x0.5 is safe but buys 5-7%, against 1.44x for uniform x0.5: most of xorshift's cycle is in the LINK request
+delays (rdly), which are also where its select races live (umux3's empty pipe). Speed and risk sit in the same lines.

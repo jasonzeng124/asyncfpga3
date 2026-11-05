@@ -2788,3 +2788,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   between-the-two candidate (x0.5's shrink on the lines corner_audit shows unbound, per-cell lengths elsewhere) is
   the next ipow step.
 - collatz64 x0.75: seeds 1-2 3/3 PASS each. gcd s75 corners: 6/6 PASS so far.
+### progress 01:40 (item 3: operator-only x0.5 on xorshift is safe and only 1.05-1.07x)
+- xorshift operator delays only x0.5: 12/12 PASS, 4/4 EQUIVALENT; paired 1.073x / 1.054x / 1.053x (max/min/worst). Uniform
+  x0.5 is 1.44x: the link request delays carry most of the cycle -- the same lines that carry the select races.
