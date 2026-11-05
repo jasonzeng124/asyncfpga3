@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """shrink_sizes.py IN.vh FACTOR OUT.vh -- one PROGRAM item-3 shrink step: every matched-delay size n in IN.vh becomes
-ceil(FACTOR * n) (never below 1).
+ceil(FACTOR * n) (never below 1; a size of 0 -- no delay line -- stays 0).
 
     python3 research/tools/shrink_sizes.py research/data/gcd_hw_sizes_R5.vh 0.9 research/data/gcd_hw_sizes_R5s90.vh
 
@@ -17,7 +17,7 @@ def main():
     for ln in open(src):
         m = re.match(r"(`define\s+\S+\s+)(\d+)(.*)$", ln.rstrip("\n"))
         if m:
-            n = int(m.group(2)); k = max(1, math.ceil(f * n - 1e-9))
+            n = int(m.group(2)); k = 0 if n == 0 else max(1, math.ceil(f * n - 1e-9))
             moved += k != n
             ln = "%s%d%s\n" % (m.group(1), k, m.group(3))
         lines.append(ln)
