@@ -1099,3 +1099,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 03:30Z T25: collatz T3 and xorshift T3 item-4 rows (bff63c38, 3d5c5012), same unverifiable record shape.
 - 04:10Z lock.
 - 04:12Z T25: own reconstruction of item-4 collatz T3 seed 1 started (fusion_bench --mlir fixtures/collatz --sizes T3 --route --nextpnr-seeds 1, BD_DSP=1; then soak_fid fasm --gate at max/min/worst with own xray SDF + own chain list).
+- 04:38Z T25 row 3: own reconstruction collatz T3 s1 passes max/min/worst; tighten 6 rule-D screens as stated.
