@@ -26,7 +26,7 @@ validated sizes (same NEXTPNR_SEED, same flow); "speedup" = base / step.
 |---|---|---|---|---|---|
 | xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.138 / 1.140 (1.10-1.18); 1.132 (1.09-1.19) |
 | xorshift T3 x0.5 | 20 of 47 | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.447 / 1.444 (1.37-1.50); 1.418 (1.34-1.47) |
-| xorshift T3 operator delays only x0.25 (links at base) | 5 of 47 | 1-4 | **FAIL**: nominal routed GLS 4/4 (protocol error on out0); rule E: ucond_br2/3/5 steers (comparator result as select) | - | - |
+| xorshift T3 operator delays only x0.25 (links at base) | 5 of 47 | 1-4 | **FAIL**: nominal routed GLS 4/4 (protocol error on out0; rule E: ucond_br2/3/5 steers); full stack seed 1: both corners PASS, worst case FAIL (seeds 2-4 not run) | - | - |
 | xorshift T3 x0.375 | 20 of 47 | 1-4 | **FAIL**: nominal nextpnr-SDF routed GLS fails 4/4 (protocol error on out0); full stack not run | - | - |
 | xorshift T3 x0.25 | 20 of 47 | 1-4 | **FAIL**: SLOW_MAX 4/4, FAST_MIN 2/4 (seed 3 FAIL, seed 4 hung), worst 0/3 (seed 4 not run) | - | - |
 
