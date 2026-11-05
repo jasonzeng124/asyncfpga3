@@ -1158,3 +1158,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 23:14Z lock.
 - 23:22Z T23 row 17: own collatz T3 vs T3cs seed 1: both pass all three; speedup 1.09-1.12 (research mean 1.16, range 1.09-1.27).
 - 23:54Z lock.
+- 23:55Z T23 row 18: ipow per-cell and xorshift operator-only x0.5 (small gains) noted UNVERIFIED.
