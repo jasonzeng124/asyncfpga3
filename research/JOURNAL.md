@@ -2777,3 +2777,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Uniform x0.5 so far: xorshift PASS (8 routes, 1.44x), collatz FAIL, ipow FAIL (worst case only, 2/4); x0.75 for
   collatz64 running, isprime queued. Recurring pattern: x0.25 xorshift, x0.5 ipow, operator-only x0.25 xorshift all pass
   BOTH uniform corners on some routes and fail only the combined worst case.
+### progress 23:05 (item 3: collatz per-cell sizes pass 12/12 at 1.16x)
+- collatz T3 per-cell candidate (research/data/collatz_sizes_T3cs.vh, 249 -> 200 links), seeds 1-4: SLOW_MAX, FAST_MIN,
+  worst case 12/12 PASS, 4/4 EQUIVALENT -- including seed 2 FAST_MIN and seed 3 worst case, where uniform x0.5 failed.
+  Paired vs T3: 1.159x / 1.158x (corners), 1.153x (worst case). Seeds 5-8 to queue (and the T3 baseline on 5-8).
+- collatz64 x0.75 seed 1: 3/3 PASS. gcd s75 corners: 3/3 PASS so far.
