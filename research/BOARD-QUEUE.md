@@ -8,8 +8,19 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
 1. **gcd_ps with the 1000 vectors** (item #4 below): `hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit
    ../research/board/gcd_ps_vec1000.hex; echo "exit $?"`. Pass: `=== PASS 1000/1000 ===` and exit 0. Also gives
    per-call latency directly comparable with the full stack's (research/data/gcd_ps/cost_model_vs_board.tsv).
-2. **The short-pulse C-element test (H_RUNT)**: NOT BUILT YET. formal/FOR-RESEARCH section 3 asks whether a LUT loop
-   kills a runt narrower than its loop. A rig and its self-judging script are the next board item to build here.
+2. **The short-pulse C-element test (H_RUNT)**: research/board/runt/ (runt_top, bit 08529a39; predictions committed
+   before any run; README there). 96 C-element loops forced by episodes of routed width -427..+1542 ps against their own
+   211-633 ps loops, plus NEG/LONG/PULSE controls. From cells/:
+
+       mkdir -p build/hw/runt_top && cp ../research/board/runt/runt_top.bit ../research/board/runt/instances.tsv build/hw/runt_top/ && \
+         xz -dc ../research/board/runt/runt_top_routed.json.xz > build/hw/runt_top/runt_top_routed.json && \
+         python3 hw/runt_measure.py; echo "measure exit $?"
+       python3 ../research/tools/runt_judge.py build/hw/runt_top/runt_measured.tsv ../research/board/runt/predicted.tsv; echo "judge exit $?"
+
+   Pass: measure prints `=== RIG OK ===` and exits 0 (every control in every trial: NEG never captures, LONG always,
+   PULSE k=3 counts an edge every trial), and the judge prints `=== PASS: ... ===`, exit 0 (a capture threshold w* can
+   be named). The answer is in the lines after: `=== RUNT CIRCULATES ===` (any TEST cell with >= 2 rising edges in a
+   trial) or not, and w* - loop. RIG FAIL means the rig, not the fabric, and nothing else is read.
 3. **The fastest design the sim accepts**: currently #2 below (gcd_hw R5 sizes): it passes the combined worst-case gate
    (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual as scatter) on 8/8 routes
    (research/data/fid/bq2_worstcase.tsv), and the cell check (slow uncalibrated cells) 8/8. #3 (R5 + fast fall, ~6%

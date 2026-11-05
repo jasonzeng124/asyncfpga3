@@ -2646,3 +2646,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   Routing on BQ#2's seeds 6,7,8,9,10,11,13,14 (one at a time, holding the compile lock); then the worst-case gate on
   all 8, then both corners. A failure reverts the step. BQ#1's worst case moved behind it (i3.sh): the board list's
   item 1 is gcd_ps, which has its own gate.
+### progress 02:05 (H_RUNT rig built and routed; ipow 3/4 routes through the full stack)
+- runt_top (board list item 2; a subagent wrote the RTL/measure/judge/testbench, checked here: runt_tb PASS, its
+  injected defect FAILs): routed at nextpnr 9c732bc6303458df, 2 BUFGs, edge counters fabric-clocked. Predictions from
+  its prjxray SDF (research/tools/runt_predict.py, band 0.288): TEST episode widths -427..+1542 ps vs own loops 211-633
+  ps; committed with the bit before any board run (research/board/runt/). BOARD-QUEUE item 2 now has commands and a
+  self-judging criterion. Not done: a fid GLS of the rig.
+- ipow T9 seeds 29, 30, 31: full stack PASS at SLOW_MAX, FAST_MIN and the combined worst case (EQUIVALENT bits).
+- Item 3 step 1 (s90): 8/8 routed. Audits (informational now): tighten.py needs `--osc dhk --osc invhk` on gcd_hw (the
+  housekeeping ring); rule A 0-2 per route at the old 8.5% guard (raw margins positive), rule E 8 on seed 6, rule J
+  -57 ps guarded on seed 11. The full stack decides; its sims wait for BQ#3's worst case.
