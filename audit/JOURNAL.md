@@ -1152,3 +1152,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 21:11Z lock.
 - 21:11Z research a06615fa (xorshift operator-only x0.25 seed 1: corners pass, worst fails) and e8fc708b (ipow per-cell candidate 332 -> 251, not judged): negative result / candidate, no check needed; T23 row 12's nuance (worst case is the most sensitive corner, FAST_MIN also failed x0.25 seed 3) stands.
 - 21:52Z lock.
+- 21:52Z T23 row 16: per-cell candidate link totals confirmed (files only).
