@@ -2646,7 +2646,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   Routing on BQ#2's seeds 6,7,8,9,10,11,13,14 (one at a time, holding the compile lock); then the worst-case gate on
   all 8, then both corners. A failure reverts the step. BQ#1's worst case moved behind it (i3.sh): the board list's
   item 1 is gcd_ps, which has its own gate.
-### progress 02:05 (H_RUNT rig built and routed; ipow 3/4 routes through the full stack)
+### progress 01:19 (H_RUNT rig built and routed; ipow 3/4 routes through the full stack)
 - runt_top (board list item 2; a subagent wrote the RTL/measure/judge/testbench, checked here: runt_tb PASS, its
   injected defect FAILs): routed at nextpnr 9c732bc6303458df, 2 BUFGs, edge counters fabric-clocked. Predictions from
   its prjxray SDF (research/tools/runt_predict.py, band 0.288): TEST episode widths -427..+1542 ps vs own loops 211-633
@@ -2656,7 +2656,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Item 3 step 1 (s90): 8/8 routed. Audits (informational now): tighten.py needs `--osc dhk --osc invhk` on gcd_hw (the
   housekeeping ring); rule A 0-2 per route at the old 8.5% guard (raw margins positive), rule E 8 on seed 6, rule J
   -57 ps guarded on seed 11. The full stack decides; its sims wait for BQ#3's worst case.
-### progress 02:40 (item 4: ipow 12/12; the August "FASM-writer defect" was a checker gap)
+### progress 01:34 (item 4: ipow 12/12; the August "FASM-writer defect" was a checker gap)
 - ipow T9, seeds 29-32 x {SLOW_MAX, FAST_MIN, worst case}: 12/12 PASS (research/data/item4/).
 - Their bits-vs-JSON check first read NOT EQUIVALENT, with exactly the August ipow signature. Traced: ushrsi0's LUT2
   (f = I1 & ~I0) has BOTH logical inputs on one physical pin (X_ORIG_PORT_A1 'I0I1 ', net $PACKER_GND_NET), so it is
