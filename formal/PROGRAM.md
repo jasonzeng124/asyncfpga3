@@ -1,5 +1,16 @@
 # Formal-model feasibility program
 
+## Effort and subagents (owner, 2026-11-05)
+
+The owner raised the budget to about twice the single-thread, high-effort level.
+Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
+but at most 2 at a time.** Wait for one to finish before starting another. A
+subagent never touches git: it works in its own worktree or scratch directory
+and reports back, and you review and commit what it found. Use them for
+independent work that would otherwise wait (a second sweep while a build runs, a
+proof while a check builds, a claim to reproduce), never to run the same work
+twice. Never create scheduled routines or reminders.
+
 ## THE goal: the real gcd bitstream is correct (owner, 2026-10-31)
 
 The owner wants **one theorem: the gcd_hw bitstream, as it will be flashed,
