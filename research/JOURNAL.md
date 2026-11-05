@@ -2636,3 +2636,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   nextpnr-SDF GLS), then per route: soak.fasm assembled to a .bit (bit_control.to_bit), the prjxray SDF, and
   cells/gls/fid/soak_fid.py ... bit --gate at SLOW_MAX, FAST_MIN and the combined worst case. Running beside the
   gate (k4.sh, frozen worktree at 841995d1). Oracles: fusion_bench's, from the C.
+### progress 00:45 (item 4: ipow routes; item 3 step 1 queued)
+- ipow T9, 4 fresh routes (seeds 29-32, fusion_bench --route): RTL check and routed nextpnr-SDF GLS fast+stalled pass on
+  all 4; rules E/J 0. tighten.py exits 1 on every seed with 8 violations, all section D (ucond_br2..9 select
+  screens, margins -3.8 to -8.1 ns): the screen, as recorded for T9 and every earlier kernel, not a gate. Their
+  full-stack runs (SLOW_MAX, FAST_MIN, worst case) are running.
+- Item 3 step 1: research/tools/shrink_sizes.py; candidate research/data/gcd_hw_sizes_R5s90.vh = R5 x0.9 (ceil): 19
+  sizes move (the compute udly and select delays >= 10 links, by 1-2 links each); the 1-2 link link/uack sizes stay.
+  Routing on BQ#2's seeds 6,7,8,9,10,11,13,14 (one at a time, holding the compile lock); then the worst-case gate on
+  all 8, then both corners. A failure reverts the step. BQ#1's worst case moved behind it (i3.sh): the board list's
+  item 1 is gcd_ps, which has its own gate.
