@@ -1144,3 +1144,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 18:28Z lock.
 - 18:29Z T23 row 13: own xorshift T3 vs x0.5 seed 1: both pass all three configs; speedup 1.46-1.47 (inside research's range).
 - 19:09Z lock.
+- 19:09Z T23 row 14: research's gcd s75 8/8 / 1.074x CONFIRMED (seed 6 = my pre-registered run exactly; pairing recomputed). Collatz x0.5 recorded FAIL by research (98a94070); corner_sdf/corner_audit drafts not claims.
