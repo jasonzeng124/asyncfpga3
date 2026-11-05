@@ -26,9 +26,16 @@ validated sizes (same NEXTPNR_SEED, same flow); "speedup" = base / step.
 |---|---|---|---|---|---|
 | xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 1.131 (1.10-1.16); 1.117 (1.09-1.15) on seeds 1-4 (T3 baseline for 5-8 queued) |
 | xorshift T3 x0.5 | 20 of 47 | 1-4 | 4/4, 4/4, 4/4 | 4/4 EQUIVALENT | 1.465 / 1.463 (1.45-1.48); 1.438 (1.42-1.47) |
+| xorshift T3 x0.25 | 20 of 47 | 1-4 | **FAIL**: SLOW_MAX 4/4, FAST_MIN 2/4 (seed 3 FAIL, seed 4 hung), worst 0/3 (seed 4 not run) | - | - |
 
 x0.5 audits (informational): rule A 4-6, rule E 2-10, rule H 0-1 per route; the full stack passes all 12. T3 on seeds 5-8 and x0.25 are
 queued. **A step this far below the rules needs a negative control on this flow:** if x0.25 also passes, x0 (every delay
 line at its floor) is next, and the gate has to fail somewhere for these passes to mean anything.
 A first xorshift s75 run is discarded: shrink_sizes clamped 0 -> 1 then, adding 18 delay lines to T3's handshakes
 (it routed slower than T3); fixed in the tool before the rerun above.
+
+x0.25 is the negative control on this flow: seeds 1 and 2 pass BOTH uniform corners and fail only the combined worst
+case (protocol error on out0), so it is item 1's slow-cell/fast-chain corner that catches a too-short delay. Seed 3 fails
+FAST_MIN too; seed 4's FAST_MIN sims ran 30-47 min with no output (normal: ~10) and were killed, its worst case not run.
+The nominal nextpnr-SDF routed GLS already failed seeds 3 and 4 (vector 4 wrong result). Floor: between x0.25 and x0.5;
+x0.375 and x0.5 on seeds 5-8 are queued.
