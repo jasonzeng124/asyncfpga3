@@ -1088,3 +1088,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 23:46Z lock; container restart ~23:40 killed the collatz SLOW_MAX run (FAST_MIN done); relaunched.
 - 00:09Z lock; second container restart (~00:05) killed collatz SLOW_MAX again; relaunched with restart-tolerant chunked runner t21/run_kernel_resume.sh.
 - 00:49Z lock; collatz SLOW_MAX chunk 8/8 running. Research started items 3 (R5 x0.9 shrink) and 4 (other kernels' routes): no results yet.
+- 00:50Z T23: research item-3 candidate R5s90 = ceil(0.9 R5) on all 220 sizes, 19 moved: CONFIRMED (file). Gate pending.
