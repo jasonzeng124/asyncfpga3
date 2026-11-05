@@ -119,8 +119,13 @@ def main():
                 missing.append(b)
                 return b
             if d[2] in ("PSEUDO_VCC", "PSEUDO_GND"):
-                missing.append(("const", b))
-                return fbit.get("VCC" if d[2] == "PSEUDO_VCC" else "GND", b)
+                # a port bit the routed design drives with a constant (isprime's 31 upper result bits: it returns a
+                # bool in an i32) is the bits' netlist's own constant net; missing only if that netlist has none
+                k = "VCC" if d[2] == "PSEUDO_VCC" else "GND"
+                if k not in fbit:
+                    missing.append(("const", b))
+                    return b
+                return fbit[k]
             if (d[0], d[1]) not in fbit:
                 missing.append((d[0], d[1]))
                 return b
