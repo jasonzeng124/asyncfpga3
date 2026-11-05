@@ -2623,3 +2623,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   its routed JSON; research/board/ro_many_2/ holds the bit, xz'd FASM/JSON/SDF, and predicted.tsv (per ring FAST_MIN,
   SLOW_MAX, band 0.288) written before any run. research/tools/ring2_judge.py applies acceptance.py's criterion; on
   the first route's data it PASSes at 0.288 and FAILs at 0.38.
+### progress 00:09 (gate trimmed to the worst case; band + M and the plain BQ#1 cell check dropped)
+- The combined worst case (chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + M) contains band 0.288 + M except
+  that the chains are faster and the cells slower, i.e. every bundle has less margin; and it contains the plain cell
+  check plus M. Running those separately costs ~12 h of the one machine for nothing a bundling failure could add, so
+  the gate is: SLOW_MAX and FAST_MIN (done, 8/8 each for BQ#1-#4) + the worst case on 8 routes. BQ#3's worst case is
+  running (d PASS), BQ#1 next (vq7.sh). Not strictly monotone in an async circuit; noted, not run.
