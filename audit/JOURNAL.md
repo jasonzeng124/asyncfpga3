@@ -1154,3 +1154,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 21:52Z lock.
 - 21:52Z T23 row 16: per-cell candidate link totals confirmed (files only).
 - 22:33Z lock.
+- 22:33Z T23 row 17: own collatz T3 vs T3cs seed-1 pair started (research 166877ef claims 12/12 at 1.16x).
