@@ -224,7 +224,9 @@ def rule_a_from_link(T, skew, sdf):
                     if (c, lng) not in walks:
                         walks[(c, lng)] = skew.walk(edges if lng else early_edges, stops, binc, feed, c, lng)[0]
                 r = at(walks[(c, False)], tail)
-                ds = [(at(walks[(c, True)], p), p) for p in peers]
+                # the data may cross one storage node more than the request (the link's latch, when the request
+                # leaves the C node directly); a peer first reached deeper than that is a lap, not this token
+                ds = [(at(walks[(c, True)][:r[1] + 2], p), p) for p in peers] if r else []
                 ds = [(v, p) for v, p in ds if v is not None]
                 if r is None or not ds:
                     continue
