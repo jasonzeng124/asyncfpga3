@@ -2730,3 +2730,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Result for xorshift: x0.5 is the deepest uniform step that holds (8 routes, 24/24, 1.44x / 1.42x worst case).
   A per-cell search below it would need the ratio constraint named first.
 - Queued now: x0.5 on collatz T3, ipow T9, collatz64 T4, isprime (their item-4 seeds, paired against item 4).
+### progress 19:35 (owner 1035dcef read: max effort, <= 2 subagents at a time, no scheduled routines)
+- Read and followed: one subagent used this session (the H_RUNT rig, finished); none running; no scheduled routines or
+  reminders created. The lock refresher now rebases before pushing (the owner's commit had made its push non-fast-forward).
+- gcd s75 worst case: 7/7 valid seeds PASS (seed 9 rerunning after the disk-full void); paired laps vs R5 1.07x
+  (1.00-1.17) on those 7. collatz x0.5: seed 1 PASS at all three configs, seed 2 SLOW_MAX PASS; nominal 1.34x.
