@@ -1125,3 +1125,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 12:56Z T23 row 6: xorshift s75 candidate OVERSTATED as a shrink (18 of 31 moves are 0->1 by the never-below-1 clamp). T25 row 5: item 4 '60/60' noted, same record shape.
 - 13:05Z lock; restart ~13:00 left the s75 run alive (vec 7/16); watchers re-armed.
 - 13:45Z lock.
+- 13:46Z T23 rows 7-8: research fixed the 0->1 clamp (d59e4d0e; regenerated file = pure shrink); xorshift s75 1.13x UNVERIFIED (no latencies committed).
