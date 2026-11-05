@@ -1105,3 +1105,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 05:32Z T19: research 367580db BQ#3 worst case 8/8 (board list item 3 now BQ#3); own seed-4 worst-case run started on my T18 route.
 - 06:11Z lock.
 - 06:51Z lock.
+- 06:52Z T23 row 3: R5s75 = ceil(0.75 R5) on all 220, 52 moved (file only).
