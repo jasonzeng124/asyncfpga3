@@ -2682,3 +2682,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   harness bug (a constant-driven port bit was always counted missing; isprime returns a bool in an i32). Fixed
   (e574b300); rerun: seeds 25, 26 PASS at SLOW_MAX, FAST_MIN and the worst case (25 and 26 are the routes with rule E 2).
 - collatz64 T4: 12/12 PASS, 4/4 EQUIVALENT.
+### progress 12:30 (item 4 done: 60/60)
+- isprime (rule-E-6 pads, BD_RLOC_ARB=1), seeds 25-28: 12/12 PASS, 4/4 EQUIVALENT; seeds 25/26 carry rule E 2 and pass
+  the worst case. Item 4: ipow T9, collatz T3, xorshift T3, collatz64 T4, isprime: 60/60 full-stack runs (SLOW_MAX,
+  FAST_MIN, combined worst case; 4 fresh routes each), every route's bits EQUIVALENT (research/data/item4/).
+- Item 3: s75 worst case running (i3b.sh).

@@ -18,3 +18,10 @@ the routed JSON (run after the sims, with the 2026-11-05 constant-LUT fold).
   = rule D's 8 select screens; rules E/J 0.
 - collatz64 T4 (BD_DSP=1, research/data/collatz64_sizes_T4.vh), seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT. tighten.py exit
   1 = rule D's 6 select screens; rules E/J 0.
+- isprime rule-E-6 pads (BD_DSP=1 BD_RLOC_ARB=1, research/data/isprime_dsp1_rulee6_sizes.vh), seeds 25-28: 12/12 PASS,
+  4/4 EQUIVALENT (after e574b300: soak_fid had refused every isprime run before simulating, because its 31 constant
+  result bits had "no same-driver net"). Audits: rule D 30 screens, rule E 2 on seeds 25 and 26 (both pass the full
+  stack, worst case included), J 0.
+
+**Item 4 done: 60/60** (5 kernels x 4 routes x {SLOW_MAX, FAST_MIN, worst case}), 20/20 routes bits EQUIVALENT.
+Not shown: anything below these vectors (fusion_bench's, from the C), or other scatter draws (one per route).
