@@ -2769,3 +2769,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   by any rule at either corner (ucond_br5 sits at ~0 raw at both: a mis-steer would look like that hang).
 - Use: per-cell max over a kernel's base routes -> candidate -> >= 8 routes of the full stack. Most useful where a
   global x0.5 fails (collatz, ipow). Running on their base routes now.
+### progress 21:30 (item 3: per-cell candidates built; the rules stay more conservative than the full stack)
+- Per-cell max of corner_audit proposals over the base routes: collatz T3 249 -> 200 links (4 routes), ipow T9 332 ->
+  251 (4), xorshift T3 156 -> 135 (4). xorshift's x0.5 (87 links) passes the full stack on 8 routes, so the rule-proven
+  per-cell sizes sit well above the sim's floor: useful where a uniform factor fails (collatz, ipow both fail x0.5), not
+  as the floor itself. collatz_cs (nominal 1.17x) and ipow_cs are in the full stack now; xorshift_cs not run.
+- Uniform x0.5 so far: xorshift PASS (8 routes, 1.44x), collatz FAIL, ipow FAIL (worst case only, 2/4); x0.75 for
+  collatz64 running, isprime queued. Recurring pattern: x0.25 xorshift, x0.5 ipow, operator-only x0.25 xorshift all pass
+  BOTH uniform corners on some routes and fail only the combined worst case.
