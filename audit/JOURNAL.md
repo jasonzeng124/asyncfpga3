@@ -1140,3 +1140,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 17:48Z lock.
 - 17:49Z owner bdc07ece on claude/audit: PROGRAM now allows <= 2 subagents at a time (no git in subagents), max effort. Rebased onto it.
 - 17:49Z T23 row 13: own xorshift T3 vs T3s50 seed-1 pair started (to check 1.44x and the passes on an own route).
+- 18:28Z T23 row 10: x0 FAST_MIN gave no verdict within the 7000 s wall limit (no PASS).
