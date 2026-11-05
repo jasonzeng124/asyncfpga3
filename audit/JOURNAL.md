@@ -1112,3 +1112,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 08:12Z lock.
 - 08:53Z lock.
 - 09:05Z T23 row 4: own s90 seed-6 worst case PASS 16/16, lapcheck CLEAN; laps 57/45/67 < R5's 64/52/75 on the same seed (route-dependent).
+- 09:34Z lock.
