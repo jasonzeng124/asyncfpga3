@@ -145,11 +145,94 @@ def worker(sdf, spec):
             out["arb_rc"] = 2
     out["arb_log"] = buf.getvalue()
     out["constraints"] = parse_logs(out, f_rows, T)
+    if spec.get("rule_a_link", True):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            ap = rule_a_from_link(T, skew, sdf)
+        for parent, d in ap.items():
+            out["constraints"]["A' %s" % parent] = d
+            k = "A %s" % parent
+            if k in out["constraints"]:
+                out["constraints"][k]["rule"] = "a"        # reported; A' is what is sized on
     if spec.get("chains"):
         out["chains"] = chain_geometry(T, sdf)
     for k in ("tighten_log", "skew_log", "arb_log"):
         if not spec.get("keep_logs"):
             out.pop(k)
+    return out
+
+
+def rule_a_from_link(T, skew, sdf):
+    """Rule A at a cell tighten.py can only pair as a BUNDLED CHANNEL (request and data on different nets, every
+    boundary net launched at t=0: its own docstring calls that strictly more pessimistic than a common start, "a
+    reason to look, not proof").  The common start exists one storage crossing upstream: the C node of each upstream
+    bd_link the cell is fed by.  From it the request runs through that link's DELAY and the cell's join to the chain
+    tail; the data runs through the link's latch and the cell's logic to every peer.  Both walks are skew.py's own
+    walk() (one table per storage crossing; earliest on the fast-fall-pruned arcs, latest on all arcs), so the link's
+    DELAY lead and the join, which bundled pairing throws away, are counted -- the measurement rule E already makes
+    at select gates.  Only for cells whose every non-constant boundary source is an upstream link (else: tighten's A).
+    -> {parent: constraint}"""
+    edges, back, stops = T.routed_graph(pathlib.Path(sdf))
+    timing = T.Timing(edges, stops)
+    chains = T.find_chains(edges)
+    binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
+    for s, lst in edges.items():
+        for d, w in lst:
+            binc[d].append((s, w))
+            srcs_of[d].add(s)
+    feed = {(o, ip) for o in stops for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
+    side = T.fastfall_side_arcs(edges)
+    early_edges = {s: [(d, w) for d, w in lst if (s, d) not in side] for s, lst in edges.items()}
+    walks = {}
+
+    def at(levels, pin):
+        for k, tab in enumerate(levels):
+            if pin in tab:
+                return tab[pin], k
+        return None
+    out = {}
+    for parent, head, tail, links in T.request_sites(edges, back, chains):
+        downstream = T.reaches(edges, tail, stops)
+        upstream = {p for p in edges if T.is_output(p) and head in T.reaches(edges, p, stops)}
+        own = set(links)
+        peers = sorted({p for p in edges if T.is_output(p) and T.pin_split(p)[0].startswith(parent + ".")
+                        and T.pin_split(p)[0] not in own and p not in downstream and p not in upstream})
+        if not peers:
+            continue
+        ups = T.upstream_bd_links(T.cell_boundary(edges, back, stops, parent))
+        region = (parent,) + ups
+        srcs = T.cell_boundary(edges, back, stops, region)
+        if not ups or T.check(timing, srcs, peers, tail, T.req_guard, confine=region if ups else parent) is not None:
+            continue                                   # common-source pairing: tighten's A is already exact
+        inside = lambda p: any(T.pin_split(p)[0] == r or T.pin_split(p)[0].startswith(r + ".") for r in region)
+        # a source outside the region that reaches a peer WITHOUT crossing one of the links' latches would launch
+        # data this measurement does not see: then keep tighten's A
+        if any(not inside(s) and not T.is_const(s) and any(p in timing.late(s, region) for p in peers) for s in srcs):
+            continue
+        worst = None
+        for link in ups:
+            for c in (link + ".ctl.u.u/O6", link + ".ctl.ub/O6"):
+                if c not in stops:
+                    continue
+                for lng in (False, True):
+                    if (c, lng) not in walks:
+                        walks[(c, lng)] = skew.walk(edges if lng else early_edges, stops, binc, feed, c, lng)[0]
+                r = at(walks[(c, False)], tail)
+                ds = [(at(walks[(c, True)], p), p) for p in peers]
+                ds = [(v, p) for v, p in ds if v is not None]
+                if r is None or not ds:
+                    continue
+                (t_d, k_d), peer = max(ds)
+                g = T.req_guard(None, t_d)
+                m = r[0] - t_d - g
+                if worst is None or m < worst[0]:
+                    worst = (m, g, r[0], r[1], t_d, k_d, peer, c)
+        if worst is None:
+            continue
+        m, g, t_r, k_r, t_d, k_d, peer, c = worst
+        out[parent] = {"rule": "A", "margin": int(m), "knob": parent,
+                       "text": "%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
+                               % (parent, len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
     return out
 
 
@@ -341,6 +424,8 @@ def main():
     ap.add_argument("--all-lines", action="store_true", help="also resize the harness's lines (upipe, uspin)")
     ap.add_argument("--no-size", action="store_true", help="report only")
     ap.add_argument("--max-iter", type=int, default=30)
+    ap.add_argument("--rule-a-tighten", action="store_true",
+                    help="size on tighten.py's rule A even where it pairs as a bundled channel (no A' re-measure)")
     ap.add_argument("--keep-const-launch", action="store_true",
                     help="rule A exactly as tighten.py: constant drivers may launch the data path")
     a = ap.parse_args()
@@ -376,7 +461,7 @@ def main():
         (out / "toolchain.txt").write_text((pnr / "toolchain.txt").read_text())
     sdf = out / "soak.sdf"
     spec = {"a_frac": a.a_frac, "a_min": a.a_min, "glo": a.guard_lo, "ghi": a.guard_hi,
-            "drop_const": not a.keep_const_launch}
+            "drop_const": not a.keep_const_launch, "rule_a_link": not a.rule_a_tighten}
     nominal = lambda rule: a.guard_lo if rule == "E" else 1.0
 
     base = run_worker(sdf, {**spec, "chains": True, "keep_logs": True}, log=out)
@@ -461,7 +546,9 @@ def main():
             return 0
         return min(slope(mac, k) * dd, sens[mac][k])
 
-    sized = [k for k, c in cons.items() if c["rule"] in SIZED_RULES]
+    def kernel_con(k):        # a constraint inside the harness (upipe, uspin) is reported, not sized, unless --all-lines
+        return a.all_lines or k.split()[1].startswith("uut.")
+    sized = [k for k, c in cons.items() if c["rule"] in SIZED_RULES and kernel_con(k)]
     prop = dict(sizes)
     why = {}
     if not a.no_size:
@@ -485,12 +572,15 @@ def main():
                 gk = min(nominal(cons[k]["rule"]), sens[mac][k] / d_of(mac)) if d_of(mac) else 0
             return gk * (m - n_from) * c_lo
         padded = {}
-        gained = collections.Counter()
+        raised_from = {}
 
-        def fix_negative(p, need_of):
+        def fix_negative(p, cur):
+            """Pad until every constraint in `cur` {key: margin} is >= slack.  A pad is credited to EVERY constraint
+            the line was measured on (at the smaller of the rule's slope and the observed one); verify checks it."""
+            gain = collections.Counter()
             changed = False
-            for k in sorted(need_of, key=lambda k: need_of[k]):
-                need = -need_of[k]
+            for k in sorted(cur, key=lambda k: cur[k]):
+                need = a.slack - (cur[k] + gain[k])
                 if need <= 0:
                     continue
                 mac = pad_target(k)
@@ -504,14 +594,28 @@ def main():
                 if m > n0:
                     p[mac] = m
                     padded[mac] = True
-                    gained[k] += credit(k, mac, n0, m)
+                    raised_from.setdefault(mac, n0)
+                    for k2 in sens[mac]:
+                        gain[k2] += credit(k2, mac, n0, m)
                     why[mac] = (why[mac] + "; " if why.get(mac, "").startswith(("PAD", "verify")) else "") + \
                         "PAD %d->%d for %s (%+d ps)" % (n0, m, k, -need)
                     changed = True
-            return changed
+            return changed, gain
+
+        def verify(p):
+            scale = {}
+            for mac in sized_lines:
+                if p[mac] != sizes[mac]:
+                    for b in lines[mac]:
+                        D = geo[b]["D"] or 0
+                        scale[b] = (d_new(b, p[mac]) / D) if D else 1.0
+            ver = run_worker(sdf, {**spec, "scale": scale, "keep_logs": True})
+            bad = {k: v["margin"] for k, v in ver["constraints"].items()
+                   if v["rule"] in SIZED_RULES and kernel_con(k) and v["margin"] < a.slack}
+            return bad, ver
 
         # 1. constraints already short at this corner: pad
-        fix_negative(prop, {k: cons[k]["margin"] - a.slack for k in sized if cons[k]["margin"] < a.slack})
+        _, gained = fix_negative(prop, {k: cons[k]["margin"] for k in sized if cons[k]["margin"] < a.slack})
         # 2. greedy shrink, longest line first
         budget = {k: cons[k]["margin"] - a.slack + gained[k] for k in sized}
         for mac in sorted(sized_lines, key=lambda m: -d_of(m)):
@@ -534,18 +638,10 @@ def main():
             bind = min(on, key=lambda k: budget[k])
             why[mac] = ("floor %d" % a.floor if best == a.floor else "bound by %s (%d ps left)" % (bind, budget[bind]))
         # 3. verify on the corner SDF with predicted chain delays, bump what fails
-        hist = []
+        nver = 0
         for it in range(a.max_iter):
-            scale = {}
-            for mac in sized_lines:
-                if prop[mac] != sizes[mac]:
-                    for b in lines[mac]:
-                        D = geo[b]["D"] or 0
-                        scale[b] = (d_new(b, prop[mac]) / D) if D else 1.0
-            ver = run_worker(sdf, {**spec, "scale": scale, "keep_logs": True})
-            bad = {k: v["margin"] for k, v in ver["constraints"].items()
-                   if v["rule"] in SIZED_RULES and v["margin"] < a.slack}
-            hist.append((it, len(bad), dict(prop)))
+            bad, ver = verify(prop)
+            nver += 1
             if not bad:
                 break
             changed = False
@@ -555,17 +651,38 @@ def main():
                 shr = [mac for mac in sized_lines if prop[mac] < sizes[mac] and kk and kk in sens[mac]]
                 if shr:
                     mac = max(shr, key=lambda m: drop(m, kk, prop[m]))
+                    raised_from.setdefault(mac, prop[mac])
                     prop[mac] += 1
                     why[mac] = (why.get(mac, "") + "; ") + "verify: +1 for %s" % k
                     changed = True
                 elif kk:
-                    pad_need[kk] = mg - a.slack
+                    pad_need[kk] = mg
                 else:
                     why.setdefault("_new", []).append(k)
             if pad_need:
-                changed |= fix_negative(prop, pad_need)
+                changed |= fix_negative(prop, pad_need)[0]
             if not changed:
                 break
+        # 4. trim what padding / verify raised: the smallest value that still verifies (bisection, monotone assumed)
+        if not bad:
+            for mac in sorted(raised_from, key=lambda m: -(prop[m] - raised_from[m])):
+                lo, hi = raised_from[mac], prop[mac]       # lo failed (or was short), hi verifies
+                while hi - lo > 1:
+                    mid = (lo + hi) // 2
+                    trial = dict(prop)
+                    trial[mac] = mid
+                    b2, v2 = verify(trial)
+                    nver += 1
+                    if b2:
+                        lo = mid
+                    else:
+                        hi, ver = mid, v2
+                if hi != prop[mac]:
+                    why[mac] += "; trimmed %d->%d by verify" % (prop[mac], hi)
+                    prop[mac] = hi
+            bad, ver = verify(prop)
+            nver += 1
+        hist = list(range(nver))
         (out / "verify.txt").write_text(
             "verify: corner SDF, every changed line's chain arcs scaled to its predicted delay\n"
             "iterations %d, sized constraints below slack %d after the last\n\n" % (len(hist), len(bad))
