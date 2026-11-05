@@ -1116,3 +1116,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 09:34Z T25 row 4: collatz64 T4 item-4 rows (e0b47038), same record shape.
 - 10:14Z lock.
 - 10:14Z research e574b300 (soak_fid: constant-driven port bits bind to the bits netlist's GND/VCC): reviewed, a harness fix; note: those 31 isprime result bits are then read from the decoded netlist's constant net, not from a driver the bits route to the port -- the routed JSON's constness is trusted for them. No verdict row (no result claim).
+- 10:55Z lock.
