@@ -2687,3 +2687,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   the worst case. Item 4: ipow T9, collatz T3, xorshift T3, collatz64 T4, isprime: 60/60 full-stack runs (SLOW_MAX,
   FAST_MIN, combined worst case; 4 fresh routes each), every route's bits EQUIVALENT (research/data/item4/).
 - Item 3: s75 worst case running (i3b.sh).
+### progress 13:55 (item 3 on xorshift: x0.75 is 1.13x faster and passes 12/12; a shrink_sizes bug found first)
+- shrink_sizes clamped every size to >= 1, so T3's 18 zero sizes (uack, short rdly) became 1: the first xorshift x0.75
+  routed SLOWER than T3 (nominal 3.31 vs 3.22 us on seed 1). Fixed (a 0 stays 0); gcd R5 has no zeros, so s90/s75 are
+  unchanged (regenerated s75 byte-identical below its header).
+- xorshift T3 x0.75 (13 of 47 sizes), seeds 1-4: SLOW_MAX, FAST_MIN and the combined worst case 12/12 PASS, 4/4
+  EQUIVALENT. Paired against T3's item-4 runs: 1.131x at both corners (1.10-1.16), 1.117x in the worst case
+  (1.09-1.15). Audits (informational): rule A 1-2, rule E 0-2 per route. Seeds 5-8 and x0.5 queued.
+- gcd s75: worst case 2/2 so far (seeds 6, 7).

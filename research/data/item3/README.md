@@ -16,3 +16,16 @@ s90: the gate holds, but it buys no measurable speed: a ~2% shorter compute dela
 scatter of the laps, and the mean over 8 paired routes is 1.00. Audits (s90_audits.txt, informational under item 1):
 rule A 0-2 per route at the old 8.5% guard (raw margins positive), rule E 8 on seed 6, rule J -57 ps guarded on seed 11;
 all 8 pass the full stack anyway.
+
+## Kernels (fusion_bench routes, soak_fid full stack, the item-4 flow)
+
+Speed: sum of the 14 vector latencies of each full-stack run, paired by seed against the kernel's item-4 run of its
+validated sizes (same NEXTPNR_SEED, same flow); "speedup" = base / step.
+
+| kernel step | sizes moved | routes | SLOW_MAX / FAST_MIN / worst | bits | speedup (corners; worst case) |
+|---|---|---|---|---|---|
+| xorshift T3 x0.75 | 13 of 47 (0 stays 0) | 1-4 | 4/4, 4/4, 4/4 | 4/4 EQUIVALENT | 1.131 (1.10-1.16); 1.117 (1.09-1.15) |
+
+Seeds 5-8 of xorshift s75 (to reach PROGRAM's 8 routes) and xorshift x0.5 are queued.
+A first xorshift s75 run is discarded: shrink_sizes clamped 0 -> 1 then, adding 18 delay lines to T3's handshakes
+(it routed slower than T3); fixed in the tool before the rerun above.
