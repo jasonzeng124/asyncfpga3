@@ -79,7 +79,7 @@ are running instead.
 
 ipow x0.75 (uniform) beats ipow's per-cell sizes (1.02x): the rules at the corner are more conservative than the sim here
 too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2 of 4 routes).
-| isprime per-cell (corner_audit, per-cell max over 4 routes) | 13 of 15 sized lines (199 -> 147 links) | 25-28 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.056 / 1.063 (1.03-1.08); 1.064 (1.05-1.08) |
+| isprime per-cell (corner_audit, per-cell max over 4 routes) | 13 of 15 sized lines (199 -> 147 links) | 25-28 (+29: **FAIL** SLOW_MAX fast-mode hang, vector 4; base on 29 pending) | **4/4, 4/4, 4/4** on 25-28 | 4/4 EQUIVALENT | 1.056 / 1.063 (1.03-1.08); 1.064 (1.05-1.08) |
 
 ## Per-kernel summary (deepest step that holds the full stack; speedup paired by seed, worst case)
 
@@ -89,7 +89,7 @@ too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2
 | collatz | per-cell (x0.5 fails) | 8 | 1.155x | 1.157 / 1.153 |
 | collatz64 | x0.75 | 4 (5-8 running) | 1.166x | 1.173 / 1.175 |
 | ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 8 | 1.129x | 1.135 / 1.132 |
-| isprime | per-cell (x0.75 fails) | 4 | 1.064x | 1.056 / 1.063 |
+| isprime | none yet: per-cell holds on 4 routes but fails route 29 (x0.75 fails) | - | - | - |
 | gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | 1.057 / 1.043 laps (R5 corner rows exist on 5 / 4 seeds) |
 
 Against BOARD-QUEUE #1/#2 for gcd: R5 x0.75 is 1.07x BQ#2's laps (BQ#2 itself ~1.9x BQ#1's), i.e. ~2.0x BQ#1.

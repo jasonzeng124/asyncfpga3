@@ -2821,3 +2821,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   time after the queue. Kernel soak compiles do not take the shared compile lock; the collatz64 T4 baseline is deferred
   so only one kernel queue runs beside the gcd sims.
 - ipow x0.75 on 8 routes: 24/24, 8/8 EQUIVALENT; paired vs T9 1.135x / 1.132x / 1.129x (max/min/worst).
+### progress 10:04 (item 3: isprime per-cell FAILS on a fifth route -- the 4-route pass did not transfer)
+- isprime per-cell sizes (per-cell max over seeds 25-28), fresh seed 29: SLOW_MAX fast mode hangs on vector 4 (the same
+  symptom as x0.75 on seed 25). Not OOM. So isprime has no item-3 step yet; whether the BASE sizes hold on seed 29 (their
+  rule E was never clean) is the next run. The per-kernel table now lists isprime as none.
