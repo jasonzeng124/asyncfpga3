@@ -2836,3 +2836,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   symptom as the per-cell and x0.75 candidates. Not OOM. So the item-3 isprime failures were not (only) the shrink:
   the base design itself is not clean. isprime goes back to "needs its select pads fixed" (rule E 2 on seeds 25/26 was
   the warning). research/data/item4/README.md revised.
+### progress 14:51 (isprime seed 30: a C-element runt at ufork0, not a select race)
+- research/data/item4/isprime_seed30/: ufork0's C-element output start_ack rises; the zero-delay testbench drops p_end_ack
+  in the same ps; it reaches the LUT pin 387 ps later, before the cell's own feedback (421 ps, a routing detour on this
+  route) has latched -> start_ack dips, the testbench takes it as the ack falling, vector 1's token is lost. A runt
+  narrower than the loop -- the H_RUNT question (board list item 2), here in a shipped kernel. No rule audit flags it.
+  A +300 ps patch on that wire makes all 18 fast vectors pass. Board relevance unshown (the board harness answers
+  slower than 0 ps). New audit lead: C-element self-loop vs the fastest external return (forks/joins, not only arbiters).
