@@ -29,7 +29,7 @@ For n ≥ 1 there is no theorem yet, so the "current best theorem" is the statem
 each stands:
 | # | hypothesis | allowed? | status (2026-11-06) |
 |---|---|---|---|
-| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); independent connectivity check vs nextpnr: 43,986/43,986 logic pins agree (2026-11-06, Python); open: wire-to-node merge in Lean, output-mux/carry selects in Lean (in progress 2026-11-06), FASM parsing |
+| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); independent connectivity check vs nextpnr: 43,986/43,986 logic pins agree (2026-11-06, Python; it compares Lean pin index i with nextpnr's physical pin A(i+1), so it also confirms the pin order A1..A6 that Spec's `addr` and prjxray's INIT[b] indexing assume); open: wire-to-node merge in Lean, output-mux/carry selects in Lean (in progress 2026-11-06), FASM parsing |
 | 2 | H_DELAY(g, κ) (`Adm`) | allowed | stated; per-arc bands are the decoder's prjxray numbers (in the netlist) |
 | 3 | H_PRIM (`GateOK`) | allowed | stated; every gate kind covered (PrimsPS) |
 | 4 | H_ARB(T) (`ArbOK`) | allowed | stated; non-vacuous at T ≥ 220 for n = 1 (C's witness). Headline T: as LARGE as possible (`seq_anti_T`), at least the slowest state-LUT arc ((1+κ)·664·g ps) to avoid the residual vacuity (audit T5) |
