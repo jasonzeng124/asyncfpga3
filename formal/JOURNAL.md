@@ -1673,3 +1673,9 @@ structure in between (only endpoints) and arc delays. Untrusted Python, as befor
 186985); `the_of_plan`: NetCorrectSeq DecodedPS.net DecodedPS.boundary DecodedPS.arbs p T R su Δo from a Plan for
 every behaviour meeting its hypotheses; `the_of_plan_weaken`: the same carried to smaller (g, κ), T and larger su, Δo.
 So "THE theorem" is now literally one open hypothesis (`∀ x .., ∃ I, Plan x boundary R Δo I`), for shard C's S4/S6.
+### progress 07:35 -- H_ENV margin Δo on THE target: at most (1-κ)·535/g ps (the end channel's sink)
+The env's end acknowledge on gcd_ps is the rig-side bd_delay of the request (pend.ack = SLICE_X2Y21.BLUT.O6, a copy of
+A5); its shortest path from the request node is 535 ps FAST_MIN / 1331 ps SLOW_MIN (decoded gates, Python). So the
+board's environment meets Spec's `EnvOut pend Δo` only for Δo ≤ (1-κ)·535/g ps, and the headline must use such a Δo
+(Δo = 0 is strongest, SpecMono). Answers the audit's "H_ENV margins" row for Δo (BOUNDARY-ps.md finding 4); R and su
+stay host properties (the host writes data ≥ 1 aclk before the request; reset is ms long).

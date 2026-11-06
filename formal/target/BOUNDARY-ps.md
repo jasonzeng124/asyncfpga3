@@ -53,7 +53,13 @@ stable by then and the capture of that cycle is clean. **No missing synchronizer
 3. "Request rises only with its acknowledge low" is met only because the kernel's input acknowledges fall long before
    the host's next write. Spec's H_ENV states it as the environment's obligation; for gcd_ps it is a joint property of
    the host's timing and the kernel's own ack timing (which the theorem itself would have to bound).
-4. Δo is bounded by the `pend` sink's delay line, not by the host.
+4. Δo is bounded by the `pend` sink's delay line, not by the host. **Number (2026-11-06, decoded gates, Python):**
+   the shortest path from the request node (186985) to `pend.ack` (104477, `SLICE_X2Y21.BLUT.O6`, INIT
+   0xffff0000ffff0000 = a copy of its A5 pin) sums to 535 ps of FAST_MIN (1331 ps of SLOW_MIN). Under H_DELAY(g, κ)
+   the sink's delay is at least (1-κ)·lerp(535, 1331, c)/g ps, so the board's environment satisfies `EnvOut pend Δo`
+   only for **Δo ≤ (1-κ)·535/g ps** (fast corner). A result about the board must therefore be stated with Δo at most
+   that (for example Δo = 0, the strongest, by `SpecMono.seq_mono_Δo`); C's n = 1 witness (Δo = 3 ns) is a
+   consistency check, not the board's environment for the end channel.
 
 Not shown: any of this on the decoded bits (the environment logic is decoded too; it can be checked the same way as
 the kernel later), the PS7 side (AXI timing, the SLCR bring-up), the board.
