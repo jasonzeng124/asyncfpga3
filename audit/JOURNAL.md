@@ -1182,3 +1182,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 08:53Z T27: B's S3 cell layer builds clean (66 modules, 172 constants 0 bad); CElemPS 361 rows confirmed; view theorems generic until CElemViewPS/LatchViewPS instances land.
 - 09:19Z lock.
 - 09:43Z T27 row 4: CElemViewPS (361) and ArbViewPS (9) instances build clean, axioms OK.
+- 10:00Z lock.
