@@ -36,8 +36,8 @@ def classify(gi):
     ov = {}; ci = []
     for i, (m, ch) in enumerate(srcs):
         if i == fb: continue
-        if not dep(G, i): ov[i] = 0; continue
         if isconst(m): ov[i] = cval(m)
+        elif not dep(G, i): ov[i] = 0
         elif m == RST: ov[i] = 0
         else: ci.append(i)
     if not ci: return None
@@ -90,7 +90,9 @@ for gi, G in enumerate(g):
     for kk in [s * 0.005 for s in range(0, 121)]:
         if ok(kk): best = kk
         else: break
-    rows.append(dict(q=gi, name=G["name"], arb=gi in arbq, fb=fb, ci=ci, pol=[P[i] for i in ci], kstar=best))
+    rows.append(dict(q=gi, name=G["name"], arb=gi in arbq, fb=fb, ci=ci, pol=[P[i] for i in ci], kstar=best,
+                     k=G["k"], ov=ov, chains=[[c for c in srcs[i][1]] for i in range(G["k"])],
+                     srcs=[srcs[i][0] for i in range(G["k"])]))
 rows.sort(key=lambda r: (r["kstar"] if r["kstar"] is not None else -1))
 json.dump(rows, open(sys.argv[4], "w"))
 print("storage gates", nst, "C-elements (SpecCElem sense)", nce)
