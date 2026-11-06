@@ -26,8 +26,16 @@ depends on it at that moment: that is the **bundling obligation BO_f** (data sta
 can see it), assumed by the abstraction and listed for the timing side (S4(c)).
 Windows: W_c = {c} ∪ supp(c) per control node, plus one env window.
 
-## Results
-(see JOURNAL-C, 2026-11-06)
+## Results (2026-11-06; untrusted tools)
+- Per-node windows are too coarse: plain and context-consistent closures reach the same 49.5 k-tuple
+  fixpoint with 927 flagged (node, mover) pairs on 395 of 412 nodes; concrete walks see 6 k tuples.
+- **The machine is not persistent** (random walks with arbitrary env delays, all results correct):
+  C-elements at 1 lose their falling excitation before firing: mux input-ack C-elements (uxa/uya of
+  umux2..18) and arbiter grant C-elements ucontrol_merge{4,6,10}.uarb1.ua1 (re-enabled by
+  ucontrol_mergeN_f). The withdrawn node is not re-excited (`--tri`): the two orders diverge locally
+  and reconverge later. So `Keller`'s diamond fails; each site is a runt opportunity whose timing
+  must be bounded (B's static race tables give the margins; merge10's is on B's κ* = 0.298 path).
+  Trace: tools/huff/out_trace_merge10_ua1.txt.
 
 ## What it does not cover
 The timed behaviours (that a behaviour of the circuit is a run of this abstract machine needs the
