@@ -1563,3 +1563,15 @@ are B's race-table kind of number (merge10's is B's binding κ* = 0.298 path). N
   clean instance (merge10 trace 1) gave κ* ≈ 0.80. Needed: a time-separation-of-events bound over the trace's event
   graph (AND inputs for lower bounds where the input is necessary, all changed inputs for upper bounds, a common
   dominator as the reference), with sensitised (event-specific) paths. Output kept as out_rtmargin_estimates.txt.
+
+### progress 09:12 -- cell-instance windows: also too coarse (negative); adversarial timed sweep running
+tools/huff/wincell.py: one window per bdc cell instance (246 cells, <= 17 variables: the cell's control nodes and
+all their supports), seeded with 6,108 tuples observed in 1,500 concrete walks, with the 30 RT orders as priorities:
+the Cartesian closure passed 267,000 tuples after 13 sweeps and was still growing (stopped). Correlations ACROSS cells
+(around the loop) are what the abstraction loses, so a sound persistence certificate needs either channel-protocol
+windows spanning both ends of every channel with a phase/token invariant, or the assume-guarantee cell route
+(cells checked against their port protocols, composition theorem). Not attempted further today.
+Side check: tools-A/target/sim.py's default env (--datachange handshake) changes the operands 2 ps after the request
+falls, while the input acks are still high; Spec.EnvIn forbids that (data must hold while req or ack is high). With
+it, THE target returns each result one pair late (12,18 1071,462 -> 2, 6): an env outside H_ENV, not a counterexample.
+With --nextreq seq --datachange broad (A's sweep settings): correct.
