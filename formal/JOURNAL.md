@@ -1657,7 +1657,7 @@ four-phase moves on [t, t2), out0.req rises exactly once at t0, data = gcd of th
 t0 until the ack, all low at t2, I t2). SeqEnv and ArbOK are not used by the assembly; they are what `step` for the
 target will need. **So S4/S6 for the target are now exactly: find I and prove base, quiet, step on DecodedPS.**
 C's island_PS / correct_n0 are of the base/quiet kind. Not shown: Plan for any netlist.
-### progress 07:45 -- H_DECODE on THE target: the independent nextpnr connectivity check agrees on every pin
+### progress 07:33 -- H_DECODE on THE target: the independent nextpnr connectivity check agrees on every pin
 `tools-A/target/xcheck_nextpnr.py` (now accepts nets rebuilt from the Lean data, tools-B/target/lean2json.py, kinds
 inferred from shape) on `DecodedPS.net` (the committed Lean netlist) vs the target's own nextpnr routed JSON
 (target/gcd_ps_e6bb4aec.routed.json.xz): **43,986 LUT/MUXF/CARRY4 input pins: the driver reached by walking back
