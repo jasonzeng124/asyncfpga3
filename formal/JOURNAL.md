@@ -1608,7 +1608,7 @@ decoder round trips and O5 checks (previous target RT, THE target RTPS), `Decode
 committed under Formal/. Disk: lake's FormalWit tree needs ~8 GB.
 
 ## Session Fri Nov  6 07:11 UTC 2026 (shard A, lead; session_01HC49FyMwt2HwMQrjJfm2dr)
-### progress 07:45 -- start: lock taken (previous A lock 2026-11-02 15:09, stale); no shard session since 11-02
+### progress 07:16 -- start: lock taken (previous A lock 2026-11-02 15:09, stale); no shard session since 11-02
 Read PROGRAM.md (new 2026-11-05: max effort, at most 2 subagents at a time), the journals' tails (B and C last
 wrote 2026-11-02 13:24 / 13:03) and audit/REPORT.md at claude/audit 3c4dc596. Rows concerning A's files that are
 still open: (1) **row T9, SpecRunt DEVIATES**: `NoRuntRead` on EVERY pin, including zero-delay pips and hops where
