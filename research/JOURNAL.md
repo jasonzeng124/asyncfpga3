@@ -2857,3 +2857,22 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - s75ff (R5 x0.75 sizes + BDC_LINK_FASTFALL=1), combined worst case, BQ#2's 8 seeds: 8/8 PASS 16/16 (seed 10's
   NOT_EQUIVALENT is the benign GND-buffer F7 class). Vec 6 laps 67.8 mean: 1.132x BQ#2 R5 (8 paired), 1.056x R5 x0.75,
   1.083x BQ#3 (4 common seeds). Corners running; if 16/16 it replaces BQ#3 as board list item 3.
+### progress 23:56 (C-element return-path audit: no internal runt hazard on 169 routes; every negative is the 0 ps testbench port)
+- After a container restart (~23:3x) every queue was dead; requeued (scratch rq.sh): s75ff corners 10/13 max+min and
+  14 min, then BQ#1 worst-case reruns 6/7/9, then collatz64 T4 base 5-8. Lock keeper and janitor restarted.
+- New static audit research/tools/ce_return.py (subagent-built; checked here against the seed-30 README): per C-element
+  LUT (identified by INIT through X_ORIG_PORT and by src bd_ce.v; the two agree on every DUT cell), margin = shortest
+  return from its O6 back to each non-feedback, non-rst input (+ that pin's arc) minus its own loop. Paths through other
+  C-elements are taken structurally (conservative). Ports of a kernel are a 0 ps turnaround (the soak testbench); gcd's
+  on-chip env is class ENV. It reproduces isprime_b ufork0 exactly: seeds 29/30/31/32 = +532/-34/+290/+199 ps FAST_MIN.
+- 169 routes (107 kernel, 62 gcd), FAST_MIN and SLOW_MAX (research/data/ceret/summary.tsv): INTERNAL negatives 0
+  (worst +145 ps xorshift_s25 FAST_MIN, unguarded; plain kernels +170..+366; gcd +180); ENV (gcd) 0 (worst +730).
+  PORT: 22 negative rows on 12 routes, every one ufork0's C-element via start_ack -> start_req == p_end_req -> p_end_ack
+  (the `end` channel is a bare wire from the start fork, research/data/ceret/negatives.tsv).
+- Against the full-stack sims: every isprime failure sits on a flagged route/corner (s75 seed 25 FAST_MIN -9; cs seed 29
+  SLOW_MAX -20; b seed 30 FAST_MIN -34). Not sufficient: xorshift s50 seed 2 (-119), xorshift s75 seeds 1/4 (-9/-86),
+  isprime seed 26 (-21) pass. So the static screen predicts where the sim can fail; the sim's 0 ps environment decides.
+- What it means: no route has an internal C-element runt; the hazard needs an environment that answers faster than the
+  cell's own feedback, and only the testbench does. Margin -9..-130 ps vs a board harness answering through routed logic.
+  Not shown: the board harness's own turnaround (being measured: same tool, return through the routed soak harness).
+  Caveat: the k4 routes record nextpnr only as 0.9.2-100-gbfdeaf7c, not the fingerprint (gcd routes: 9c732bc6303458df).
