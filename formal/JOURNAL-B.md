@@ -2654,3 +2654,31 @@ min over paths commutes with the two endpoint checks). Output: formal/out/target
 in every behaviour, given persistence (a node's forcing is withdrawn only as a consequence of its own switch, C's SI
 finding); it gives κ ≤ 0.298 at g = 1, vs 0.415 from recorded episodes. The gap is a join (C-element) whose other
 input decides. **Not shown:** anything in Lean yet; persistence (network, C); whether 0.298 is attainable.
+
+### progress 07:45 -- a routed C-element under THE Spec switches only when forced (SpecCElem.lean, check.sh OK)
+**Problem, plainly:** C's S4 route (notes/C-route-S4.md (b)) asks B for per-cell handshake theorems at the Spec
+level: from the collapsed gate relation of a cell's gates and a condition on its environment, its ports follow the
+cell's spec. For a C-element: when does a LUT whose output returns through its routing to one of its own pins behave
+as a C-element (switch only to the common value of its inputs, never on a stale feedback read), for EVERY behaviour?
+**Lean (standard axioms; check.sh OK):** `SpecCElem.celem_forced` / `celem_forced'`. Setting: `CGateOK` gate, feedback
+pin j whose source is its own output, composite read windows [lo i, hi i] (CBands), C inputs `ci` with polarities
+`pol`, other pins held at `ov` (reset low, ties). INIT facts (decidable per instance): `hall` (all C inputs show w =>
+output w, whatever the feedback reads) and `hhold` (feedback reads !w and output w => every C input shows w).
+Environment `hA` (timed delay-insensitive protocol): C input i changes only when q already shows the input's old
+value and has shown it for the last Δ i ps. Timing: `hloop` -- for every C input, hi j ≤ Δ i + lo i (the input's
+earliest response is read after the feedback's latest confirmation: the loop-vs-path race of RaceTablePS/allpaths);
+`hM`/`hi0` -- every C input's window end ≤ M and one input i0 has Δ i0 + lo i0 ≥ M. Start: q quiet on (S0 - H, S0].
+**Conclusion:** from S0 on, every toggle of q is FORCED (at its reads every C input already shows the new value) and
+no other toggle lies within M before it. Proof: strong induction over toggles; `tau_step` (the last change of an
+input before its read at t came after q's previous toggle, by hA and that toggle's separation) gives both the
+non-staleness of the feedback read and the separation. A first version needed Δ i + lo i ≥ every input's hi
+(cross terms between input routes; on THE target that alone cost κ down to 0.025); restructured so the only
+per-input condition is the physical race (hloop).
+**On THE target (tools-B/ps/celemtab.py, untrusted; out/target_ps_celem.json):** 361 of the 4,597 storage gates are
+C-elements in this sense (C inputs = support pins whose source is neither a constant nor the reset; a polarity
+assignment satisfying hall/hhold exists). With Δ i = the static shortest path from q's output to input i's SOURCE
+(all paths, support pins), the theorem's timing conditions hold for all 361 up to κ = 0.295 at g = 1 (binding:
+SLICE_X40Y49.A, ulink_n143 stage 2 ctl -- the allpaths.py node; next 0.30, 0.305, 0.355); 215 of them have no return
+path within 4x their windows. **Not shown:** hA itself (the neighbours' protocol, i.e. that an input changes only in
+response to q -- network/C), the per-instance INIT facts in Lean on DecodedPS.net (next), the other 4,236 storage
+gates (latches, arbiters, C-elements with extra logic: not C-elements in this sense), a non-vacuity witness.
