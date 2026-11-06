@@ -1583,3 +1583,27 @@ distinct c nodes of the 30 orders, c's LUT arcs at (1+κ)·(slow end of its wind
 pairs (12,18) (1071,462) (17,5) (48,18): **240/240 runs correct**, and the narrowest pulse on any c is 2,528 ps (no
 runt; the loops are 145-375 ps). Running now: the same with c's input routes slowed too (--slowroutes), κ up to 0.95,
 including the pair (2^31-1, 2^31-2). This adversary is one direction only (c slow, all else fast), not all assignments.
+
+### progress 09:46 -- COUNTEREXAMPLE CANDIDATE to NetCorrectSeq at (g, κ) = (1, 0.84), fast corner, w = 0 (simulation + independent check; NOT Lean)
+Adversary (tools/huff/simadv.py, --slowroutes): umux16.uya (input-ack C-element of mux16's y input; one of the 30
+relative-timing orders: it must fall before ulink_n_falseResult_85 / ulink_n_trueResult_72 move) and every pip/hop
+on its input routes at (1+κ)·FAST_MAX, every other arc at (1-κ)·FAST_MIN; corner 0, transport delays; env exactly
+SeqEnv (--nextreq seq --datachange broad), R = 400 ns, su = 1 ns, out0/end acks 3 ns after their requests; pairs
+(12,18), (1071,462). **Result: out0 = 6 for the first pair; the second pair's input handshake completes; then the
+circuit is quiet from 520,810 ps on and out0 never rises again: a deadlock.** Mechanism: uya is excited to fall, the
+next token re-enables it before it has fallen (the withdrawal of the 13:xx entry, now in time), and uya emits two
+6 ps runts (514,876-514,882 and 515,460-515,466 ps) before settling; the mux's handshake is lost.
+Checks (both independent of the simulator's event loop, tools/huff/{gatecheck,envcheck}.py, untrusted):
+every one of the 186,871 gates of circuit DecodedPS.net DecodedPS.boundary satisfies Spec's gate relation (output =
+INIT at the address of its inputs read d_i earlier) at every breakpoint (414,736 checks, 0 mismatches), every arc's
+delay is inside Adm (g = 1, κ = 0.84, c = 0) (0 outside); Spec.Env with R = 400000, su = 1000, Δo = 3000 and SeqEnv
+hold clause by clause; ArbOK T holds for every T >= 36 ps (all 9 arbiter states resolve); Correct fails (out0 owes
+its 2nd rise). If simulator and checks are right, this refutes NetCorrectSeq DecodedPS.net DecodedPS.boundary
+DecodedPS.arbs ⟨1, 0.84⟩ T 400000 su Δo for every T >= 36, su <= 1000, Δo <= 3000 (by the monotonicity A proved, also
+for every larger κ, every larger T is not implied -- T is anti-monotone the other way: refuted for all T >= 36).
+Bracket for this adversary: correct at κ = 0.82, deadlock at 0.84 .. 0.95 (corner 0). The other failures of the
+κ ≥ 0.8 sweep (ucontrol_merge10's arbiter at 0.78-0.8) are NOT counterexamples: there the arbiter state oscillates for
+good, which H_ARB(T) excludes. **Scope:** w = 0 (no runt filtering): with H_RUNT(20 ps) the 6 ps runts are filtered
+and this case is open. It says the (g, κ) margin at g = 1 is below 0.84; B's sufficient bound is 0.415. Files:
+tools/huff/cex/k84b_dump.json.xz (every node's flips), k84b_sim.log. Next: a Lean-checked witness (WitBaseL-style,
+per-arc delays) would make it a theorem.
