@@ -2921,3 +2921,12 @@ the rest. check.sh's per-file mode, one at a time, passes in ~1 min per file.
 (361 C-elements, 4,185 latches, 9 arbiter state LUTs (separated arbitrations), 42 mux joins (select held)). Their
 remaining premises are environment ones: hA, the latch windows, the select's stability (the mux control-channel
 contract), arbitration separation (or H_ARB(T) for close ones).
+
+### progress 11:16 -- one composition step inside a link stage: latch width from the controller (SpecLatchSep; check.sh OK)
+Every one of LatchViewPS's 4,185 latches has as enable source a C-element of CElemViewPS (its link controller; Python
+check on the two tables, untrusted). `SpecLatchSep.sep_const` (no toggle in (τ - M, τ) => constant on [τ - M, τ - 1])
+and `latch_close_sep`: latch_close with the enable-open premise replaced by "the enable source toggles to closed at
+τ and did not toggle in (τ - M, τ)". With the controller's cell theorem (toggles M apart), a latch's minimum-width
+condition is met as soon as M ≥ (hi e - lo e) + hi j, so the latch's remaining environment premise is its data
+window (setup/hold: bundling). Not shown: the instance-level composition statement (controller row ↔ latch row) in
+Lean.
