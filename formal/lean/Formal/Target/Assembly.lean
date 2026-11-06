@@ -18,8 +18,9 @@ node. That is how both targets are wired (the rig's `bd_fork` broadcasts one req
 request passed through, `p_end_req = req`, and the kernel's start acknowledge is a C-element of that request and
 the end acknowledge, shard A journal 2026-11-06).
 
-**`Plan x B R Δo I`** (for one behaviour `x`, with an invariant `I` on time chosen by the prover, e.g. "the
-storage nodes hold their idle values"):
+**`Plan x B R Δo I`** (for one behaviour `x`, with an invariant `I` on time chosen by the prover. NOT "the storage
+nodes hold their idle values": the environment may raise the next request in the very ps the last boundary
+acknowledge falls, so `I` must include the settling states right after that fall and be closed under `quiet`):
 * `base`: `I R` and the circuit's boundary outputs (input acks, `out0.req`) are low at `R`;
 * `quiet`: if `I t` and every boundary node is low at `t` and the request is still low at `t + 1`, then the
   circuit's boundary outputs are low at `t + 1` and `I (t + 1)`;
@@ -34,7 +35,10 @@ storage nodes hold their idle values"):
 hypotheses has some `I` with `Plan`, THE statement holds. SeqEnv and H_ARB are not used here; they are what a
 proof of `step` for the target will need.
 
-**Not shown:** `Plan` for any netlist (that is S4/S6 for the target).
+**Not shown:** `Plan` for any netlist (that is S4/S6 for the target). **How much this reduces** (independent review,
+2026-11-06): `Plan` is about as strong as `Correct` plus "exactly one `out0` rise per request and no spontaneous
+outputs" (e.g. `I t := Low x B t ∧ rises = rises` works when the circuit is correct); what the assembly removes is the
+all-time bookkeeping (liveness, counting, indices, quiescence), not the circuit argument.
 -/
 
 namespace Formal.Target.Assembly

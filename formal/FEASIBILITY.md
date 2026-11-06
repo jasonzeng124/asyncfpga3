@@ -20,8 +20,9 @@ hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
 - **Races**: 185 storage nodes' acknowledgement races are safe for every corner and admissible delay up to
   g²(1+κ)/(1-κ) ≤ 2.433 (g ≤ 1.56 at κ = 0, κ ≤ 0.415 at g = 1; B's `RaceFrontierPS`, rows from simulation).
 - **The statement's shape** (A, 2026-11-06): the margin is a down-set in (g, κ) and in T, and up-closed in su, Δo
-  (`SpecMono.seq_weaken`); `Assembly.netCorrectSeq_of_plan` reduces THE statement, for every netlist wired like the
-  targets (one request node, end request = start request), to a per-pair `Plan` (base, quiet, step). H_RUNT(w) is now
+  (`SpecMono.seq_weaken`); `Assembly.netCorrectSeq_of_plan` restates THE statement, for every netlist wired like the
+  targets (one request node, end request = start request), as a per-pair `Plan` (base, quiet, step): the all-time
+  bookkeeping of Correct is proved once; the circuit argument itself is not made smaller. H_RUNT(w) is now
   on LUT pins only, as the owner worded it (`SpecRunt`, audit T9).
 - **Not proved: NetCorrectSeq for n ≥ 1.** What is left is exactly `Plan` on `DecodedPS`: an invariant and the
   per-pair step (S4: cell-level composition over the collapsed view; S6: liveness). Verdict: feasible, with the

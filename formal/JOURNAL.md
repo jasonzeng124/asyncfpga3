@@ -1733,3 +1733,14 @@ is the named way to filter more. Also found: Spec.lean's plain-words H_DELAY par
 Adm of before owner decision 3 (the definition is right; audit row 191 read the definition). Not fixed in the file
 today: any byte change to Spec.lean rebuilds ~1,900 dependent modules; the correct reading is Adm's docstring and
 STATUS. To fix with the next Spec change.
+### progress 10:38 -- independent review of Assembly/Plan (read-only subagent): no blocker; wording corrected
+Findings taken: (1) I cannot be "storage holds idle values": the env may raise the next request in the ps the last
+boundary ack falls, so I must contain those settling states (module doc fixed; notes/A-assembly.md already said so);
+(8) Plan is sound but not much smaller than Correct (I := Low ∧ rises r = rises out0 works for a correct circuit): the
+assembly removes Correct's all-time bookkeeping (liveness, counting, indices, quiescence), NOT the circuit argument.
+My 07:29 and STATUS wording "S4/S6 are now exactly Plan" was right but suggested more progress than it is: STATUS row 7
+and FEASIBILITY now say so. (10) With OneReq, Correct's end-channel clauses are mostly env facts; the circuit content is
+only pend's ReqMoves (through start.ack's C-element), worth an audit note. (11) Correct's "no more rises than pairs"
+bounds counts only for finite n; Assembly proves the stronger equality anyway. (9) Env liveness + SeqEnv make
+deadlocking behaviours absent for n > k, but they remain for n = some k, so liveness is still checked. (12) Spec.lean
+repeats a "To be written" line (doc; with the next Spec change). check.sh on the four A files OK after the doc edit.
