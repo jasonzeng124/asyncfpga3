@@ -1724,3 +1724,12 @@ in flip-flop-only slices, missing from RTPS's site-prefix table (built from LUT 
 machine). The rest of the leftovers have no Spec meaning (FF config, LUTRAM DI routing, clock/IO). Not shown: the
 wire-to-node merge; FASM parsing. Cost: ~30 min for the new part, on top of RTPS (~1.5 h); built one module at a time
 into private oleans. check.sh --wit now builds RTPSSel last (after RTPS.All) and audits its Final.
+### progress 10:26 -- SpecSkip: the gate relation swallows only pulses no wider than the delay window (check.sh OK)
+`Formal/Target/SpecSkip.lean`: `skip_width` (read delays in [lo, hi]: a jump of the read time skips at most hi - lo ps
+of input) and `read_hits` (every wider interval in the read range is read). So Spec's "a read that jumps swallows a
+pulse (inertial behaviour)" holds only for pulses no wider than the pin's window; a pure inertial channel with a
+larger delay is NOT a GateOK behaviour. Pessimistic for the target's safety claims (fewer pulses filtered); H_RUNT(w)
+is the named way to filter more. Also found: Spec.lean's plain-words H_DELAY paragraph still describes the band-clipped
+Adm of before owner decision 3 (the definition is right; audit row 191 read the definition). Not fixed in the file
+today: any byte change to Spec.lean rebuilds ~1,900 dependent modules; the correct reading is Adm's docstring and
+STATUS. To fix with the next Spec change.
