@@ -28,6 +28,14 @@ if [ ${#FILES[@]} -eq 0 ]; then
 echo "[check] lake build"
 TARGETS=(); [ $COMMITTED -eq 1 ] && TARGETS=($(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g'))
 FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
+# lake has no job limit: on a 15 GB sandbox several large chunk modules at once get OOM-killed (exit 137). Rebuild
+# those one module at a time (each through slot.sh), then run the whole build once more.
+if ! grep -q 'Build completed successfully' .lake/check-build.log && grep -q 'exited with code 137' .lake/check-build.log; then
+  oom=$(grep -B1 'exited with code 137' .lake/check-build.log | grep -o 'Building [A-Za-z0-9_.]*' | awk '{print $2}' | sort -u)
+  echo "[check] $(echo "$oom" | wc -w) module(s) OOM-killed; rebuilding them one at a time"
+  for m in $oom; do FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "$m" > .lake/check-oom.log 2>&1 || true; done
+  FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
+fi
 grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] FAIL: build"; fail=1; }
 mods=$(printf '%s\n' "${SCAN[@]}" | grep '^Formal/' | sed 's|\.lean$||; s|/|.|g' | sort)
 else

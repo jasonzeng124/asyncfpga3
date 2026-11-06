@@ -1750,3 +1750,8 @@ My request-gap entry said "no counterexample to NetCorrectSeq on THE target is k
 only and is now out of date. STATUS and FEASIBILITY lead with the counterexample. Next (A): the Lean corollary with
 SpecMono that it holds for every g ≥ 1, 0.84 ≤ κ ≤ 1, every T ≥ 36, Δo ≤ 3000 (needs C's oleans; check.sh --committed
 is building them).
+### progress 12:12 -- check.sh --committed: lake build OOM-killed 25 modules; check.sh now retries them one at a time
+The 11:02 run failed only by exit 137 (memory cgroup) on 25 large chunk modules (C's CexPS X053-X072, B's
+RaceLinkPS/CElemPS/CElemViewPS, C's IslandChk4, FiniteRunsWitData): lake builds several ~6 GB kernel checks at once
+and has no job limit. No Lean error. check.sh (A's file) now rebuilds OOM-killed modules one at a time through slot.sh
+and runs the build once more. Rebuilding the 25 now; the full check reruns after.
