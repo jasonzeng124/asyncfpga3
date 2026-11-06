@@ -2815,3 +2815,16 @@ s + hi fb ≤ e + 1 (its routed feedback's summed upper window end), then q = 1 
 C-elements; close arbitrations (H_ARB(T) plus the server-path obligation).
 Also: stopped setup.sh's project-wide lake build (it had run 1.5 h and was the third memory consumer behind two OOM
 kills); all checks here use check.sh's per-file mode.
+
+### progress 08:48 -- timing side of C's 08:17 persistence finding for ucontrol_merge10.uarb1.ua1 (static, untrusted)
+C's walk: x = ucontrol_merge10_f (SLICE_X38Y53.B, gate 144585) falls, the arbiter state ustate (144471) toggles, the
+grant g = r·q (144448) falls, so ua1 = C(g, x) (SLICE_X39Y51.D, gate 146522 -- the "ack" of my 07:20 path) is excited
+to fall; x rises again before ua1 fell. ua1 runts only if its reads see (g, x) both low for less than its loop's
+upper delay. If x's re-rise is a consequence of the ustate toggle (C's trace order), the excitation lasts at least
+(shortest ustate -> x, all paths) + lo(x pin) - [hi(ustate -> g pin) + hi(g -> ua1 pin)] and must be >= hi(ua1 loop):
+numbers (composite chains): ustate -> x ≥ 1670 / 4161 ps (FAST_MIN / SLOW_MIN, every path), x pin lo 241 / 601,
+ustate -> g -> ua1 pin ≤ 398 + 316 / 967 + 771, ua1 loop ≤ 145 / 375. At g = 1, both corners: holds for κ ≤ 0.38
+(fast 1052/2770, slow 2649/6875). So under that causal order this withdrawn excitation is timing-safe up to κ ≈ 0.38
+(above the 0.298 all-paths figure, below the 0.415 recorded-race margin). If x's re-rise had an independent cause the
+bound would need that cause's path; a naive all-paths x -> x cycle is meaningless here (it runs through x's own
+feedback). Not in Lean; the other 17 nodes not computed.
