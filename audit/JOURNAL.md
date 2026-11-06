@@ -1160,3 +1160,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 23:54Z lock.
 - 23:55Z T23 row 18: ipow per-cell and xorshift operator-only x0.5 (small gains) noted UNVERIFIED.
 - 00:34Z lock.
+- 00:46Z lock (after container restart).
