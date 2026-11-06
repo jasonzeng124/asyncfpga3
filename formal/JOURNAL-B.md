@@ -2828,3 +2828,14 @@ ustate -> g -> ua1 pin ≤ 398 + 316 / 967 + 771, ua1 loop ≤ 145 / 375. At g =
 (above the 0.298 all-paths figure, below the 0.415 recorded-race margin). If x's re-rise had an independent cause the
 bound would need that cause's path; a naive all-paths x -> x cycle is meaningless here (it runs through x's own
 feedback). Not in Lean; the other 17 nodes not computed.
+
+### progress 09:10 -- CElemViewPS CHECKED: THE target's 361 C-elements, every behaviour (check.sh OK, 1030 declarations)
+`CElemViewPS.target_ps_celem_forced` = `CElemView.target_celem_forced allRows allRows_ok` (58 generated row files,
+`allRows_length = 361`). **Plainly:** for every delay parameter with 0 ≤ κ ≤ 1, g > 0 and every behaviour of THE
+theorem's circuit (Spec's gate relation, H_PRIM + H_DELAY), at the behaviour's corner: each of these 361 C-elements of
+the decoded bitstream, given (i) its environment hypothesis hA (each C input changes only when the C-element has shown
+the input's old value for Δ i), (ii) the loop race hi j ≤ Δ i + lo i and the separation condition, with lo/hi its own
+routed pins' summed integer window ends, (iii) the reset low from S0 - H on and (iv) no toggle in (S0 - H, S0],
+switches only when forced and never twice within M. H_DECODE is the only trust for the gate data. **Not shown:** (i)
+and (ii) themselves; C found (08:17) that 18 C-elements violate (i) at the order level, so for those this theorem's
+premise is false and they need a timing argument instead (see 08:5x above for ua1).
