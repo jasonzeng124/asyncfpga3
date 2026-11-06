@@ -35,3 +35,13 @@ false path, JOURNAL-B 08:45); protocol-aware distances are needed for a tight ma
 
 **Not covered.** hA itself; the other 4,236 storage gates (latches: use SpecLoop.cgate_switch with the bundling
 window; arbiters: ArbClean / H_ARB(T)); the bridge from C's `collapsed` view entries to these rows.
+
+**Evidence on the environment premises (simulation, untrusted; JOURNAL-B 2026-11-06).**
+- C-element races: all-paths static bound κ ≤ 0.295 (binding path is a false path under the protocol); recorded
+  episodes 0.415 (RaceTablePS); C's 23 order-level persistence pairs: 0 withdrawals in a timed 13-pair run; ua1 of
+  merge10 timing-safe to κ ≈ 0.38 under C's causal order.
+- Latches: every close in a 13-pair run meets latch_close's windows with ≥ 2.26 ns slack (hold binding); the tightest
+  hold survives an adversary to κ = 0.5 (204 ps left), because the data release is caused by the enable's own fall
+  through a 43-arc chain; short structural paths through OR/AND gates are not sensitizable.
+- Lesson for a sound static bound: path sums must follow the protocol's causal order (which input is the LAST to
+  arrive at each join), not graph distance.
