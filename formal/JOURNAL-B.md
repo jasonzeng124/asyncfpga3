@@ -2901,3 +2901,7 @@ least the routed feedback's upper delay, r2 then stays high => q = 0), decidable
 `arows_reset_ok` (THE target's nine state LUTs pass both), `target_ps_arb_clean_reset` (every behaviour of THE
 circuit). Both directions of a separated arbitration are now cell theorems on the netlist's own gates. Same caveats as
 ArbViewPS.
+**FOR SHARD A and the audit (full builds):** the generated files CElemViewPS/B*, LatchViewPS/B*, CElemPS/B* and
+ArbViewPS each unfold up to 12 netlist chunks in the kernel; observed peak ~5.8 GB per lean process (LatchViewPS/B18).
+Three at once can exceed this container's ~15 GB (two OOM kills today). Build them with FORMAL_SLOTS ≤ 2, or after
+the rest. check.sh's per-file mode, one at a time, passes in ~1 min per file.
