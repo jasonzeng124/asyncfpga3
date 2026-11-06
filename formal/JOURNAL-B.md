@@ -2655,7 +2655,7 @@ in every behaviour, given persistence (a node's forcing is withdrawn only as a c
 finding); it gives κ ≤ 0.298 at g = 1, vs 0.415 from recorded episodes. The gap is a join (C-element) whose other
 input decides. **Not shown:** anything in Lean yet; persistence (network, C); whether 0.298 is attainable.
 
-### progress 07:45 -- a routed C-element under THE Spec switches only when forced (SpecCElem.lean, check.sh OK)
+### progress 07:33 -- a routed C-element under THE Spec switches only when forced (SpecCElem.lean, check.sh OK)
 **Problem, plainly:** C's S4 route (notes/C-route-S4.md (b)) asks B for per-cell handshake theorems at the Spec
 level: from the collapsed gate relation of a cell's gates and a condition on its environment, its ports follow the
 cell's spec. For a C-element: when does a LUT whose output returns through its routing to one of its own pins behave
@@ -2683,7 +2683,7 @@ path within 4x their windows. **Not shown:** hA itself (the neighbours' protocol
 response to q -- network/C), the per-instance INIT facts in Lean on DecodedPS.net (next), the other 4,236 storage
 gates (latches, arbiters, C-elements with extra logic: not C-elements in this sense), a non-vacuity witness.
 
-### progress 08:25 -- celem_forced is not vacuous; its INIT facts are a decidable check (SpecCElemWit, SpecCElemFact; check.sh OK)
+### progress 07:47 -- celem_forced is not vacuous; its INIT facts are a decidable check (SpecCElemWit, SpecCElemFact; check.sh OK)
 - `SpecCElemFact.cfact` (all 2^k INIT addresses) with `hall_of_cfact` / `hhold_of_cfact`: a passing check gives exactly
   celem_forced's `hall` / `hhold`. `ctl151633_fact`: THE target's binding link controller (SLICE_X40Y49.ALUT.O6, INIT
   0x08080e0e08080e0e, feedback pin 1, C inputs 0 and 4 with pin 4 inverted, pins 2/3/5 low) passes; negative control
@@ -2695,7 +2695,7 @@ gates (latches, arbiters, C-elements with extra logic: not C-elements in this se
   in a run where the C-element switches, and the input b is in the hold state for 3 ps per edge (not the degenerate
   a = b case). Ideal run; says nothing about the target.
 
-### progress 08:45 -- the 0.298 static path is a FALSE path under the handshake protocol (simulation + decoded-gate reading)
+### progress 07:48 -- the 0.298 static path is a FALSE path under the handshake protocol (simulation + decoded-gate reading)
 Question of 07:20: can an admissible assignment make SLICE_X40Y49.A's 713 ps return path (q -> grant g = q·s ->
 ack = C(g, x) -> q pin 4) beat its loop for κ in [0.30, 0.41]? Answer (subagent, simb.py, untrusted; files kept in the
 session scratchpad only): **not realized**. Decoded roles: q = C(r, ¬ack); g = q ∧ s (s = arbiter state 144471);
@@ -2712,3 +2712,5 @@ results correct, smallest ack-after-q gap 22.8 ns (rise) / 4.0 ns (fall) even at
 circuit actually has needs the protocol (which input changes are responses to which), i.e. persistence/causal order
 -- shard C's WinInv/Keller line. The recorded-episode value (0.415, RaceTablePS) stays the best evidence; the
 all-paths table is the every-path fallback. Not shown in Lean.
+
+(Time correction 08:10: the headings 07:47 and 07:48 above were first written as 08:25 and 08:45, which were wrong; 07:45 was 07:33. Times now from the commits.)
