@@ -2745,3 +2745,15 @@ that is 4,198 of 4,597. Derived windows at the slow corner: enable open width mi
 data setup min 86 / median 1303 / max 3586 ps; data hold min 373 / median 812 / max 1551 ps. These are per-latch
 bundling obligations for C's composition (rule I's territory). **Not shown:** that the network meets them; the 399
 remaining storage gates (asymmetric C-elements, set/reset nodes); instance facts in Lean for the latches (next).
+
+### progress 08:19 -- latch coverage 4,185 (constant-data latches included); SpecLatchFact; the last 42 storage gates
+- latchtab.py now lets the data pin be a tied pin: the 348 one-sided storage gates ("input 1 clears, else hold") are
+  data latches of a constant bit (e.g. `ulink_n68__1.lat.pair[20]`). Total 4,185 latches; with the 361 C-elements
+  and 9 arbiters: 4,555 of THE target's 4,597 storage gates have a B cell theorem whose INIT premises they meet.
+- `SpecLatchFact.lfact` + `hopen_of_lfact` / `hclosed_of_lfact` (decide over 2^k addresses gives latch_close's INIT
+  premises); `lat2271_fact` (the most common latch shape on the target) and negative control `lat2271_swapped`.
+  check.sh OK. LatchPS (the 4,185-row instance table on DecodedPS.net, 210 generated files) is building.
+- The remaining 42 (mux-join elements `umux*.uj*`, e.g. fall forced by a = 0 ∧ ¬(b ∧ c)) have non-conjunctive
+  forcing conditions: neither celem_forced nor an asymmetric generalization (per-direction conjunctive input sets,
+  written and checked, then deleted: zero target instances) applies. Their environment condition would differ too
+  (an OR-type input may change without q showing its old value). Open.

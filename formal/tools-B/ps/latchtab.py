@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Shard B (UNTRUSTED): storage gates of a decoded netlist that are latches in the sense of
 Formal.Cells.SpecLatch.latch_close (enable pin e with polarity pe, data pin d with polarity pd, feedback j; other
-pins held: sources constant gates or the reset node held low; INIT: enable open => output = data^pd, closed =>
+pins held: sources constant gates or the reset node held low (the data pin may itself be tied: a latch of a
+constant data bit); INIT: enable open => output = data^pd, closed =>
 output = feedback), and the windows latch_close derives for each, per corner c in {0,1} at g = 1, kappa = K:
   minimum open width of the enable   We >= (hi_e - lo_e) + hi_j
   data setup before the close         Wd >= hi_d + hi_j - lo_e
@@ -37,8 +38,7 @@ for gi, G in enumerate(g):
         else: live.append(i)
     out = lambda v: (G["init"] >> sum(b << i for i, b in enumerate(v))) & 1
     found = None
-    for e, d in itertools.permutations(live, 2):
-        others = [i for i in live if i not in (e, d)]
+    for e, d in [(e, d) for e in live for d in live + sorted(ov) if d != e]:   # data may be a tied pin
         for pe, pd in itertools.product([0, 1], repeat=2):
             ok = True
             for bits in itertools.product([0, 1], repeat=len(live) + 1):
