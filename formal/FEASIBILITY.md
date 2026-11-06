@@ -11,7 +11,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
 - **Decoded netlist = the bits** (H_DECODE reduced to prjxray's tables plus the parts listed in STATUS): Lean round
   trip of every pip and LUT INIT bit (`FormalWit/RTPS`), extended 2026-11-06 to the output-mux and carry selects
-  (`FormalWit/RTPSSel` `roundtrip_sel`, leftovers 14,322 -> 9,036, none with Spec meaning but 19 x5Q selects),
+  (`FormalWit/RTPSSel` `roundtrip_sel`, leftovers 14,322 -> 9,017, every select included; none of the rest is read by the Spec),
   `DecodedPS.net_wf`, `BoundaryPS.boundary_ok`; independent check against nextpnr: 43,986/43,986 pins (Python); every gate is a modelled primitive
   (B's `PrimsPS.prim_cover`: no FF, latch, DSP or RAM in the circuit).
 - **Zero pairs, every g > 0 and κ < 1** (C's `correct_n0_all`, with a Lean witness): after reset the circuit is idle
