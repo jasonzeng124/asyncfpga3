@@ -43,6 +43,7 @@ def main():
     ap.add_argument("--R", type=int, default=20000)
     ap.add_argument("--slow", nargs="*", default=[], help="node names whose driving gate is made slow")
     ap.add_argument("--kappa", type=float, default=None)
+    ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
     ap.add_argument("--watch", nargs="*", default=[], help="node names: print their flip times")
     ap.add_argument("--su", type=int, default=0)
     ap.add_argument("--dout", type=int, default=3000)
@@ -98,6 +99,13 @@ def main():
     c, p = a.corner, a.pos
 
     SLOW = set(idx[x] for x in a.slow)
+    if a.slowroutes:
+        for n0 in list(SLOW):
+            gi0 = drv.get(n0)
+            if gi0 is None: continue
+            for u in gates[gi0]["ins"]:
+                while u in drv and gates[drv[u]]["k"] == 1 and gates[drv[u]]["init"] == 2:
+                    SLOW.add(u); u = gates[drv[u]]["ins"][0]
     def dly(e, gi=None):
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]

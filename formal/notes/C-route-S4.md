@@ -60,3 +60,17 @@ The missing pieces, in order:
 - (e) Liveness (S6): the env offers a pair only after the previous result (SeqEnv); under the obligations,
   every enabled handshake completes within a bound (no runt-oscillation: `fb_runt_oscillates` shows this is
   exactly what the switch obligations exclude).
+
+## Update 2026-11-06 (shard C)
+- Proved (core Lean): `Net/Keller.lean` (persistent + commuting moves: one terminating run fixes the end
+  state, the firing multiset and a bound on every schedule) and `Net/WinInv.lean` (a windowed invariant
+  checked locally holds in every reachable state; pairwise persistence from a join check).
+- Found (simulation, tools/huff): the latches-first abstract machine of THE target is NOT persistent under
+  an env with arbitrary delays: falling excitations of mux input-ack C-elements (12 muxes) and of three
+  arbiter grant C-elements (ucontrol_merge{4,6,10}.uarb1.ua1) are withdrawn; results stay correct. With 30
+  relative-timing orders "c fires before b" (tools/huff/out_rt_pairs.txt) no withdrawal is seen in
+  ~10^8 moves. So the proof shape is: SI control + latches first + 30 RT orders (timed race obligations)
+  -> Keller on the RT machine -> one checked run decides every order.
+- Not working: per-node windows for WinInv (too coarse; 395/412 nodes flagged); the single-chain race
+  estimate (tools/huff/rtmargin.py; unsound/too crude). Next: cell/channel-structured windows; a
+  time-separation bound for the 30 orders; adversarial timed simulation (tools/huff/simadv.py).
