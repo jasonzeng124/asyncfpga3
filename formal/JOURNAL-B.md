@@ -2871,3 +2871,16 @@ skew between the two branches from the common cause costs most of the margin. So
 the causal order assumed; the remaining 15 pairs have re-enablers that reach the node through logic and are not
 computed. What a sound per-pair bound needs from C: the common cause event of the excitation's completion and of the
 re-enabling change (an order-level fact their walks can extract), then B's static path sums give the timing margin.
+
+### progress 09:28 -- the tightest latch hold (SLICE_X32Y90.C5) survives an adversary to κ = 0.5 (simulation, subagent)
+Latch gate 123324 at its close τ = 1839150 ps (3-pair sequential run reproduces it; corner 0.5): the data source's next
+change (130155) is CAUSED by the enable close (123385) itself, through a 44-hop / 43-arc chain (2,989 ps nominal; via
+SLICE_X34Y94 A-D, SLICE_X35Y94 A-B). A shorter structural path (19 arcs, 1,424 ps FAST end) exists but cannot be
+sensitized: it enters OR gates (133934 = pin0 ∨ pin4, 133918 = pin0 ∨ pin1) whose falling output waits for the last
+input. Adversary (data branch and data pin route at the fast end, enable pin route at the slow end, plus every cone arc
+that could become latest): hold slack 1,867 / 1,036 / **204 ps** at κ = 0 / 0.25 / 0.5; result correct; the latch
+output toggles exactly as in the baseline. Linear extrapolation reaches 0 at κ ≈ 0.56. **Plainly:** the binding latch
+hold obligation of latch_close is met up to κ ≈ 0.5 here because the hold is self-timed (the enable's fall releases the
+data); the margin is set by a 43-arc chain against the latch's enable read window. Simulation only, one close, one
+corner; the static all-paths bound would be wrong here for the same reason as for the C-elements (unsensitizable
+paths through OR/AND gates).
