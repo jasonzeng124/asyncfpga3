@@ -2986,3 +2986,10 @@ SLOW_MIN)**, the binding one at ucontrol_merge4 (SLICE_X14Y19.A, O6 grant), agai
 (the floor for a non-vacuous T). So T can be taken up to roughly 1.2 ns at the fast corner (3.1 ns slow) before this
 obligation fails at κ = 0, minus the grant/ack read windows; a sound version needs the same protocol argument as the
 C-element hA (that A0 rises only in response to a grant).
+
+### progress 11:54 -- longer run: 30 more full-width pairs, fast corner (simulation, untrusted)
+One sequential run of pairs 13-42 of gcd_ps_vec1000.hex (corner 0, mid-window, broad data rule; all 30 results
+correct): latch_close windows over 871,467 closes on 3,929 latches -- worst slacks width 7.6 ns, setup 9.7 ns,
+**hold 1.28 ns** (SLICE_X32Y90.C6, the O6 sibling of the 09:13 binding latch); C's 23 persistence pairs: 17,458
+excitations, 0 withdrawn. Same picture as the 13-pair run at corner 0.5; hold remains the binding latch window, still
+at nanosecond scale.
