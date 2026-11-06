@@ -1450,3 +1450,8 @@ each) and `w1_hyps_and_correct su T (220 ≤ T)`: (Behaves p1 ... ∧ ArbOK T ar
 lake build OK (1624 jobs), standard axioms, scan clean. **Meaning:** a concrete gate-level behaviour of the decoded
 bitstream, at g = 1, κ = 0, satisfying every hypothesis of THE statement for one pair and its full conclusion. One
 run: a consistency check of the statement (not vacuous, not contradicted, at n = 1); no claim for other runs.
+
+## Session Fri Nov  6 07:21:50 UTC 2026 (shard C; session_01HC49FvLJLLajcTcDRz4Ugc)
+
+### progress 07:21 -- start
+Lock taken (previous C lock 2026-11-02, stale). Reading STATUS, audit, other journals.
