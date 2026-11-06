@@ -1767,3 +1767,11 @@ From C's second Lean refutation (`CexPS72.not_netCorrectSeq`, κ = 0.72, a quiet
 lies inside κ < 0.72 for every g ≥ 1 (w = 0, reset 400 ns). STATUS/FEASIBILITY updated: margin at g = 1 in [0.415, 0.72)
 if B's race bound becomes a theorem (it is not one yet). 1,227 declarations audited with SpecMono. Building C's chunks
 needed one-at-a-time rebuilds (lake parallelism OOMs here); check.sh now retries OOM-killed modules (2f849f4e).
+### progress 18:33 -- FULL check.sh --committed OK (every committed Formal module, incl. today's B/C/A work)
+Run 16:44-18:33 on the tree at f4002ca0 + locks: lake build of every git-tracked Formal module, with check.sh's new
+OOM retry (89 modules OOM-killed in the parallel pass, then rebuilt one at a time; round 1 found 5 more), then the
+axiom audit over every module and the two executables: "[check] OK". So C's CexPS / CexPS72 refutations, B's
+LatchViewPS / CElemPS / RaceLinkPS, and A's SpecRunt, SpecMono, SpecSkip, Assembly, AssemblyPS, BoundaryPS and
+FrontierPS all build from the committed sources with standard axioms only. FormalWit (incl. today's RTPSSel) is
+outside --committed; RTPSSel was built and audited privately (10:2x entry). Lesson for every shard: on this 15 GB
+sandbox the plain lake build is not enough; check.sh's retry is.
