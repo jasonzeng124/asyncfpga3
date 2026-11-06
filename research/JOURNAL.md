@@ -2799,3 +2799,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 ### progress 01:21 (item 3: collatz per-cell holds on 8 routes, 24/24)
 - collatz T3 per-cell (200 links), seeds 5-8 added: 24/24 PASS over 8 routes, 8/8 EQUIVALENT. Speedup 1.16x on seeds 1-4;
   the T3 baseline on 5-8 is running for the 8-route pairing.
+### progress 01:47 (item 3: collatz64 x0.75 passes 12/12 at 1.17x)
+- collatz64 T4 x0.75, seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT; paired vs T4 1.173x / 1.175x (corners), 1.166x (worst).
+  isprime x0.75 next. Per-kernel so far (deepest step that holds, worst-case speedup): xorshift x0.5 1.42x (8 routes),
+  collatz per-cell 1.15x (8 routes, pairing on 4), collatz64 x0.75 1.17x (4), ipow per-cell 1.02x (4), gcd R5 x0.75 1.07x laps (8).
