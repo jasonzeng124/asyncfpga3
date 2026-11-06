@@ -1185,3 +1185,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 10:00Z lock.
 - 10:06Z T28: C's k84b counterexample to NetCorrectSeq (g=1, κ=0.84) CONFIRMED by own transport + Env/SeqEnv/ArbOK/Correct checkers.
 - 10:40Z lock.
+- 11:21Z lock; building C's CexPS refutation (e9780623).
