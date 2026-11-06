@@ -2930,3 +2930,20 @@ and `latch_close_sep`: latch_close with the enable-open premise replaced by "the
 condition is met as soon as M ≥ (hi e - lo e) + hi j, so the latch's remaining environment premise is its data
 window (setup/hold: bundling). Not shown: the instance-level composition statement (controller row ↔ latch row) in
 Lean.
+
+### progress 11:16 -- end-of-day summary (shard B, 2026-11-06)
+**Lean, standard axioms, check.sh OK, all pushed:** the S3 cell layer on THE target's own gates, every behaviour of
+`circuit net boundary`: C-elements (`CElemViewPS.target_ps_celem_forced`, 361), latches (`LatchViewPS.target_ps_latch_close`,
+4,185), mux joins while their select is held (`CElemWinViewPS.target_ps_muxj_forced`, 42), arbiter state LUTs in a
+separated arbitration, both directions (`ArbViewPS`, `ArbViewPSReset`, 9) -- all 4,597 storage gates; generic
+theorems `SpecCElem.celem_forced(')`, `SpecCElemWin.celem_forced_win`, `SpecLatch.latch_close`, `SpecLatchSep.latch_close_sep`,
+`ViewPS.view_collapse` / `const_hold`, with joint non-vacuity witnesses (`SpecCElemWit`, `SpecLatchWit`) and decidable
+INIT facts with negative controls. **Not shown (the S4 part):** the environment premises -- hA for C-elements
+(C: the control machine is persistent only under 30 relative-timing orders, so hA is FALSE for those nodes at the
+order level and needs a timing argument), the latches' data windows, the mux select's stability, arbitration
+separation. **Simulation (untrusted):** all-paths race bound 0.298 is a false path; latch windows met with ≥ 2.26 ns
+slack and the tightest hold survives to κ = 0.5; C's persistence pairs never withdraw in timed runs at mid delays.
+**The (g = 1) κ frontier, all shards:** below 0.84 (C's Lean refutation) and below ~0.70 in simulation (C); B's
+sufficient conditions hold to 0.415 (recorded races) for what they cover. STATUS list: today does not shrink the
+list of THE theorem's hypotheses (no n ≥ 1 theorem yet); it moves S3 from "started" to "cells done, environment
+premises open", which is what S4 consumes.
