@@ -1192,3 +1192,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 13:22Z lock; building CexPS72 + B's cell modules (d2494073).
 - 14:02Z lock.
 - 14:43Z lock.
+- 15:24Z lock.
