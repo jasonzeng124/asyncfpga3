@@ -90,6 +90,7 @@ too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2
 | collatz64 | x0.75 | 8 (pairing on 1-4; T4 baseline on 5-8 queued) | 1.166x | 1.173 / 1.175 |
 | ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 8 | 1.129x | 1.135 / 1.132 |
 | isprime | none yet: per-cell holds on 4 routes but fails route 29 (x0.75 fails) | - | - | - |
+| gcd_hw (BQ#2 R5) | x0.75 + link fast fall | 8 (worst case; corners running) | 1.132x laps vs BQ#2, 1.083x vs BQ#3 (4 common seeds) |
 | gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | 1.057 / 1.043 laps (R5 corner rows exist on 5 / 4 seeds) |
 
 Against BOARD-QUEUE #1/#2 for gcd: R5 x0.75 is 1.07x BQ#2's laps (BQ#2 itself ~1.9x BQ#1's), i.e. ~2.0x BQ#1.

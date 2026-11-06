@@ -2853,3 +2853,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   const 0 in the bits -- the benign class already seen (BQ#1 seed 8, August isprime/collatz). Tried folding those cells by
   name in fasm_equiv: wrong (891 new DRIVER DIFFERS, because the bits side still sees them as LUTs); reverted. A correct
   fix folds both sides by the function given tied pins; not done.
+### progress 17:20 (item 3 gcd: R5 x0.75 + link fast fall passes the worst case 8/8 at 1.13x BQ#2)
+- s75ff (R5 x0.75 sizes + BDC_LINK_FASTFALL=1), combined worst case, BQ#2's 8 seeds: 8/8 PASS 16/16 (seed 10's
+  NOT_EQUIVALENT is the benign GND-buffer F7 class). Vec 6 laps 67.8 mean: 1.132x BQ#2 R5 (8 paired), 1.056x R5 x0.75,
+  1.083x BQ#3 (4 common seeds). Corners running; if 16/16 it replaces BQ#3 as board list item 3.
