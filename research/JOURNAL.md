@@ -2791,3 +2791,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 ### progress 23:50 (item 3: operator-only x0.5 on xorshift is safe and only 1.05-1.07x)
 - xorshift operator delays only x0.5: 12/12 PASS, 4/4 EQUIVALENT; paired 1.073x / 1.054x / 1.053x (max/min/worst). Uniform
   x0.5 is 1.44x: the link request delays carry most of the cycle -- the same lines that carry the select races.
+### progress 00:09 (container restart at ~00:00 killed every queue; restarted from what was on disk)
+- Lost mid-run, rerun from scratch (nothing read from partial runs): collatz64 x0.75 seed 3 worst + seed 4, collatz
+  per-cell seed 5 worst + seeds 6-8, gcd s75 corners (7 of 16 rows were done: all PASS; the 9 missing rows queued).
+  New soak-only runner skips any config that already has a SOAK_VERDICT. isprime x0.75, collatz T3 seeds 5-8 (baseline)
+  and BQ#1's worst case follow.
