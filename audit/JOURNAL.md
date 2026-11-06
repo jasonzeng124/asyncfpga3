@@ -1201,3 +1201,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 17:25Z T23 row 24: s75ff worst case 8/8, pairing 1.132 recomputed; seed 10 NOT_EQUIVALENT classified by inspection only.
 - 18:05Z lock.
 - 18:10Z T28 row 7: A's FrontierPS.not_seq_above (g>=1, κ>=21/25) and not_seq_above72 confirmed (build, axioms).
+- 18:12Z lock (after restart).
