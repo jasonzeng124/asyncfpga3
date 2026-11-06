@@ -2961,3 +2961,14 @@ inputs are constant on [t1, t2], its two grants are never both high on [t1 + T +
 settling window (H_ARB lets q move for T: there both grants can glitch, and ArbTSpec.spec_double_ack shows what the
 acks can do), anything about the ack C-elements; that T is small enough for the server path (the non-vacuity rule
 needs T ≥ the state LUT's own delay, ~664 ps at g = 1).
+
+### progress 11:42 -- H_ARB(T): the losing client is not acknowledged while the state is settled (AckLow, ArbAckPS; check.sh OK)
+`AckLow.grant_low` (a grant that fires only with its q read at b is 0 once q's source shows !b, after its read window)
+and `ack_low` (an ack C-element whose INIT is 0 when its grant and feedback pins read 0 stays 0, whatever A0 does,
+while its grant source is 0). `ArbAckPS.target_ps_ack_low`: the 16 ack C-elements ua1/ua2 of the 8 arbiters named
+uarb1 (GENERATED rows: ack, the grant it reads, the state node that grant reads; `arows_ok` by kernel decide), in every
+behaviour of THE circuit: if the state shows the losing value on [a, e] and the ack was low on its feedback window
+before s, the ack stays low on [s, e'] for s, e' inside the grant's settled window. With ArbOK T this is the arbiter's
+one-acknowledge property while the state stays settled. **Not shown:** the settling window and that the server waits
+for it (server-path obligation; spec_double_ack is the counterexample shape without it); the ninth arbiter (its ack
+cells are not named uarb1 in the routed JSON; not looked at).
