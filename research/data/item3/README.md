@@ -75,7 +75,7 @@ delays (rdly), which are also where its select races live (umux3's empty pipe). 
 
 isprime's base sizes (rule-E-6 pads) were never ratcheted, so it had the least slack; per-cell audits on its base routes
 are running instead.
-| ipow T9 x0.75 | 18 sizes | 29-32 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.113 / 1.100 (1.05-1.15); 1.090 (1.02-1.17) |
+| ipow T9 x0.75 | 18 sizes | 29-36 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.135 / 1.132 (1.05-1.19); 1.129 (1.02-1.19) |
 
 ipow x0.75 (uniform) beats ipow's per-cell sizes (1.02x): the rules at the corner are more conservative than the sim here
 too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2 of 4 routes).
@@ -88,7 +88,7 @@ too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2
 | xorshift | x0.5 (x0.375, x0.25 fail) | 8 | 1.418x | 1.447 / 1.444 |
 | collatz | per-cell (x0.5 fails) | 8 | 1.155x | 1.157 / 1.153 |
 | collatz64 | x0.75 | 4 (5-8 running) | 1.166x | 1.173 / 1.175 |
-| ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 4 | 1.090x | 1.113 / 1.100 |
+| ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 8 | 1.129x | 1.135 / 1.132 |
 | isprime | per-cell (x0.75 fails) | 4 | 1.064x | 1.056 / 1.063 |
 | gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | 1.057 / 1.043 laps (R5 corner rows exist on 5 / 4 seeds) |
 
