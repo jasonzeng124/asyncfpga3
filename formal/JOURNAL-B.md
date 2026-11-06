@@ -2850,3 +2850,14 @@ the requirement alone widened by κ = 0.4: 8.3 / 14.1 / 1.97 ns. (A 1-pair run: 
 evidence every latch close meets the derived conditions by nanoseconds; the binding one is hold (data released
 ~2 ns after the close source edge, against ~0.4-1.5 ns of enable read skew). **Not shown:** adversarial delays (the
 run's own timings at κ > 0 were not varied, only the requirement); other vectors; anything in Lean.
+
+### progress 09:13 -- C's 23 persistence-violation pairs in a TIMED run: 0 withdrawals (untrusted)
+tools-B/ps/persist_timed.py on the 13-pair sequential dump of 09:13 (corner 0.5, mid-window): for each (node, re-enabler) pair in
+C's tools/huff/out_persist_walks.txt (all 23 nodes are celemtab C-elements, hence among CElemViewPS's 361), every
+episode in which the node's C-input SOURCES all show the value opposite to its output (excited), and whether an input
+source returns before the node toggles. Result: **6,000+ excitations over the 23 pairs, 0 withdrawn**; the shortest
+excitation-to-toggle time is 419-1063 ps per node (one LUT plus its routed pins). So the order C's untimed walks reach
+(an input returning before the node fires) needs that input's return to beat ~0.4-1 ns, while in this run the returns
+come much later; consistent with the static 0.38 for ua1 (08:48). **Not shown:** adversarial delays; other vectors;
+that the timed circuit can never reach the order (that is a race bound per pair, like 08:48, still to be computed for
+22 pairs with their causal order).
