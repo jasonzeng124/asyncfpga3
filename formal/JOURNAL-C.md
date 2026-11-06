@@ -1515,3 +1515,24 @@ mostly at fork C-elements and the exit merge (ucontrol_merge12 / ulink_n_index_9
 them to the same 49,850: the per-node windows forget how a fork's branch acknowledges move together, so the flags are
 artefacts of the abstraction (the 40 M-state search saw none). Next: context-consistent joins (a joined pair must agree
 with every other window sharing >= 2 variables), which is still sound and needs a WinInv generalisation in Lean.
+
+### progress 08:17 -- FINDING (simulation, untrusted): THE target's abstract control machine is NOT persistent; 18 C-elements lose a falling excitation
+huffx --walks (random walks of the latches-first abstract machine with the env's moves at arbitrary delays; 3,200 walks
+x 5 random pairs, ranges 3,000 and 10^6, ~61 M moves): **every result correct (wrong 0), every walk completes, but 503
+persistence violations**, all of one kind: a C-element at 1, excited to fall, is re-enabled (an input returns) before
+it fires. Nodes (counts): mux input-ack C-elements uxa/uya of umux2, 6, 7, 8, 9, 10, 11, 15, 16, 17, 18 (the 8z3 class
+`mux_full_pers_false` of gcd_hw, now on THE target), and the **arbiter grant C-elements ucontrol_merge10.uarb1.ua1
+(38), ucontrol_merge4.uarb1.ua1, ucontrol_merge6.uarb1.ua1**, each re-enabled by its merge's ucontrol_mergeN_f.
+The earlier 0 (hufsim, 11-02) came from an env that answers instantly; the 40 M-state DFS never got past move 911.
+Trace (tools/huff/out_trace_merge10_ua1.txt; walk 22, seed 13, 10,284 moves): x = ucontrol_merge10_f falls, the arbiter
+state ucontrol_merge10.uarb1.ustate toggles 8 moves later (so the grant g = r·q falls and ua1 = C(g, x) is excited to
+fall), then ~40 moves of the loop body (forks, links, cond_br joins, muxes) and x rises again before ua1 fell. This is
+the order-level form of B's all-paths race (11-06 07:20: κ* = 0.298 at ulink_n143's C-element through this ua1 and x):
+**the order in which x returns first IS reachable** (B's "not decided" question, answered at the order level). Timed,
+ua1's fall (one LUT + routing) races the causal chain ustate -> ... -> x (many LUTs), so a runt needs heavy scatter
+(B's static bound κ ≈ 0.3); not decided here. Consequences: (1) Keller's diamond does NOT hold on THE target's machine,
+so determinacy must use a weaker theorem (withdrawn falling excitations of these 18 nodes are harmless at the order
+level: every walk was correct either way) plus a timing obligation per node (fall before the re-enable, or the runt is
+absorbed): this is a complete-by-simulation list of where runts can arise in control; (2) the per-node windowed
+invariant (winfix, also with context-consistent joins) does not separate real from spurious: same 49.5 k-tuple fixpoint,
+927 flagged pairs on 395 nodes (negative result; a cell/channel-structured invariant is needed).

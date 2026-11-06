@@ -143,7 +143,7 @@ void dfs(int depth) {
     undoTo(mark); env = save; H1 = h1; H2 = h2;
   }
 }
-string dumpInit, winFile, obsOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
+string dumpInit, winFile, obsOut, traceNode, traceOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
 int main(int argc, char** argv) {
   ifstream in(argv[1]); string w; int n;
   maxStates = 50000000;
@@ -152,6 +152,7 @@ int main(int argc, char** argv) {
     if (a == "--max") { maxStates = atoll(argv[++i]); continue; }
     if (a == "--dump-init") { dumpInit = argv[++i]; continue; }
     if (a == "--walks") { walks = atoi(argv[++i]); winFile = argv[++i]; obsOut = argv[++i]; continue; }
+    if (a == "--trace") { traceNode = argv[++i]; traceOut = argv[++i]; continue; }
     if (a == "--seed") { walkSeed = atoll(argv[++i]); continue; }
     if (a == "--range") { walkRange = atoll(argv[++i]); continue; }
     size_t c = a.find(','); pairsv.push_back({stoull(a.substr(0, c), 0, 0), stoull(a.substr(c + 1), 0, 0)});
@@ -210,14 +211,28 @@ int main(int argc, char** argv) {
       pairsv.clear(); for (int q = 0; q < NP; q++) { u64 a = rg() % walkRange, b = rg() % walkRange; pairsv.push_back({a, b}); }
       setBus(0); { vector<int> ch(AD); ch.insert(ch.end(), BD.begin(), BD.end()); settleFrom(ch); latchClosureFrom(0); }
       trail.clear(); record();
+      vector<int> hist;
       for (long long st = 0; st < 10000000; st++) {
         vector<int> ms = moves(); if (ms.empty()) break;
-        int mv = ms[rg() % ms.size()]; apply(mv, env); trail.clear(); record(); tot++;
+        int mv = ms[rg() % ms.size()];
+        vector<int> exc; for (int m : ms) if (m >= 0 && m != mv) exc.push_back(m);
+        apply(mv, env); trail.clear(); record(); tot++; hist.push_back(mv); if (traceNode.empty() && hist.size() > 64) hist.erase(hist.begin());
+        for (int c : exc) if (!excited(c)) { if (nPersist < 40) { fprintf(stderr, "VIOL walk %d move %lld: %s (val %d) disabled by %s; env k %d kout %d w %d req %d pack %d oreq %d oack %d; last moves:", w, st, names[stor[c].out].c_str(), (int)val[stor[c].out], mv >= 0 ? names[stor[mv].out].c_str() : ("env" + to_string(mv)).c_str(), env.k, env.kout, env.w, (int)val[REQ], (int)val[PACK], (int)val[OREQ], (int)val[OACK]); for (size_t q = hist.size() > 8 ? hist.size() - 8 : 0; q < hist.size(); q++) fprintf(stderr, " %s", hist[q] >= 0 ? names[stor[hist[q]].out].c_str() : ("env" + to_string(hist[q])).c_str()); fprintf(stderr, "\n"); }
+          if (!traceNode.empty() && names[stor[c].out] == traceNode) {
+            FILE* tf = fopen(traceOut.c_str(), "w");
+            fprintf(tf, "# huffx trace: walk %d seed %lld range %lld pairs", w, walkSeed, walkRange);
+            for (auto& pr : pairsv) fprintf(tf, " %llu,%llu", pr.first, pr.second);
+            fprintf(tf, "\n# %s (val %d) excited, then disabled by the last move\n", traceNode.c_str(), (int)val[stor[c].out]);
+            for (size_t q = 0; q < hist.size(); q++) fprintf(tf, "%s\n", hist[q] >= 0 ? names[stor[hist[q]].out].c_str() : ("env" + to_string(hist[q])).c_str());
+            fclose(tf); fprintf(stderr, "trace written (%zu moves)\n", hist.size()); exit(0);
+          }
+          nPersist++; persistBy[names[stor[c].out] + (mv >= 0 ? " by " + names[stor[mv].out] : " by env" + to_string(mv))]++; }
       }
       if (env.kout == NP) okc++;
     }
     long long sz = 0; for (auto& o : obs) sz += o.size();
-    fprintf(stderr, "walks %d (complete %lld), moves %lld, wrong %lld, observed tuples %lld\n", walks, okc, tot, nWrong, sz);
+    fprintf(stderr, "walks %d (complete %lld), moves %lld, wrong %lld, persistence violations %lld, observed tuples %lld\n", walks, okc, tot, nWrong, nPersist, sz);
+    for (auto& kv : persistBy) fprintf(stderr, "  persist %lld %s\n", kv.second, kv.first.c_str());
     FILE* f = fopen(obsOut.c_str(), "w");
     for (int i = 0; i < nw; i++) { fprintf(f, "%s", wk[i].c_str()); for (u64 t : obs[i]) fprintf(f, " %llu", t); fprintf(f, "\n"); }
     fclose(f); return 0;
