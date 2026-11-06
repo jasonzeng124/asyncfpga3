@@ -2947,3 +2947,17 @@ slack and the tightest hold survives to κ = 0.5; C's persistence pairs never wi
 sufficient conditions hold to 0.415 (recorded races) for what they cover. STATUS list: today does not shrink the
 list of THE theorem's hypotheses (no n ≥ 1 theorem yet); it moves S3 from "started" to "cells done, environment
 premises open", which is what S4 consumes.
+
+### progress 11:26 -- H_ARB(T): grants exclusive once the state has settled (GrantExcl, ArbGrantPS; check.sh OK)
+**Problem, plainly:** an arbiter's grants g1 = r1·q and g2 = r2·¬q read q through different routes, so while q moves
+both can be high. Under H_ARB(T), when are they never both high, in every behaviour? **Lean (standard axioms):**
+`GrantExcl.grants_excl` (if g1 fires only with its q read high, g2 only with it low (tied pins at their values), and
+q's source is constant on [a, b], then no t whose q reads both fall in [a, b] has both grants high) and
+`grants_excl_arb` (with Spec.ArbOK T: inputs constant on [t1, t2] => exclusive on [t1 + T + hi, t2 + lo]).
+`ArbGrantPS.target_ps_grants_excl` (18 grant LUTs of THE target's nine arbiters, GENERATED with every pin's chain;
+`grows_ok` by kernel decide: chains, reads of the arbiter's own state node `arbs[i].q`, INIT fact `gfact`, VCC tie
+derived): in every behaviour of THE circuit and for every T with `ArbOK T arbs x`, whenever an arbiter's state-LUT
+inputs are constant on [t1, t2], its two grants are never both high on [t1 + T + hi, t2 + lo]. **Not shown:** the
+settling window (H_ARB lets q move for T: there both grants can glitch, and ArbTSpec.spec_double_ack shows what the
+acks can do), anything about the ack C-elements; that T is small enough for the server path (the non-vacuity rule
+needs T ≥ the state LUT's own delay, ~664 ps at g = 1).
