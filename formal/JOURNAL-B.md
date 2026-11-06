@@ -2907,3 +2907,17 @@ ArbViewPS.
 ArbViewPS each unfold up to 12 netlist chunks in the kernel; observed peak ~5.8 GB per lean process (LatchViewPS/B18).
 Three at once can exceed this container's ~15 GB (two OOM kills today). Build them with FORMAL_SLOTS ≤ 2, or after
 the rest. check.sh's per-file mode, one at a time, passes in ~1 min per file.
+
+### progress 11:14 -- the last 42 storage gates: mux joins, while their select is held (SpecCElemWin, CElemWinView, CElemWinViewPS; check.sh OK)
+- `SpecCElemWin.celem_forced_win`: celem_forced with the held pins and hA required only up to a time E, conclusion for
+  toggles up to E (tau_step_win: the environment hypothesis is used only up to the read time).
+- All 42 remaining storage gates (bd_mux joins j0 = C(x_req, ctl_req·¬s), j1 = C(y_req, ctl_req·s)) are C-elements in
+  celem_forced's sense once their select pin is held at its selecting value (tools-B/ps/muxjtab.py;
+  out/target_ps_muxj.json).
+- `CElemWinView.target_celemw_forced` and the instance `CElemWinViewPS.target_ps_muxj_forced` (42 rows, 10 generated
+  files): in every behaviour of THE circuit, each join, on any window [S0, E] on which its select's source shows the
+  selecting value (from S0 - H), given hA up to E and the timing premises, switches only when forced.
+**So every one of THE target's 4,597 storage gates now has an every-behaviour cell theorem on the netlist's own gates**
+(361 C-elements, 4,185 latches, 9 arbiter state LUTs (separated arbitrations), 42 mux joins (select held)). Their
+remaining premises are environment ones: hA, the latch windows, the select's stability (the mux control-channel
+contract), arbitration separation (or H_ARB(T) for close ones).
