@@ -2838,4 +2838,4 @@ the input's old value for Δ i), (ii) the loop race hi j ≤ Δ i + lo i and the
 routed pins' summed integer window ends, (iii) the reset low from S0 - H on and (iv) no toggle in (S0 - H, S0],
 switches only when forced and never twice within M. H_DECODE is the only trust for the gate data. **Not shown:** (i)
 and (ii) themselves; C found (08:17) that 18 C-elements violate (i) at the order level, so for those this theorem's
-premise is false and they need a timing argument instead (see 08:5x above for ua1).
+premise is false and they need a timing argument instead (see 08:48 above for ua1).
