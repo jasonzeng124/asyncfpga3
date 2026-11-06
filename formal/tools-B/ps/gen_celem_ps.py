@@ -80,45 +80,40 @@ top += ["", "/-!", "# Formal.Cells.CElemPS — THE target's C-elements, checked 
         "## Not covered", "That this list is every C-element (the classifier is untrusted; a missed one is simply not covered);",
         "the environment hypothesis `hA` and the timing conditions; the routed chain delays (CGateOK via C's `collapse`).", "-/", "",
         "namespace Formal.Cells.CElemPS", "open Formal.Target Formal.Target.DecodedPS Formal.Cells.RaceLinkPS Formal.Cells.SpecCElemFact", "",
-        "def allRows : List Row := " + " ++ ".join("rows%02d" % i for i in range(len(files))), "",
-        "theorem allRows_ok : allRows.all rowOK = true := by",
+        "set_option maxRecDepth 100000 in", "def allRows : List Row := " + " ++ ".join("rows%02d" % i for i in range(len(files))), "",
+        "set_option maxRecDepth 100000 in", "theorem allRows_ok : allRows.all rowOK = true := by",
         "  simp only [allRows, List.all_append, " + ", ".join("rows%02d_ok" % i for i in range(len(files))) + ", Bool.and_self]", "",
-        '''theorem cfact_of_row {r : Row} (h : rowOK r = true) :
-    let (q, k, j, ci, pol, ov, _, _) := r
+        '''theorem cfact_of_row {q k j : Nat} {ci pol ov : List Bool} {fbc : List Nat} {held : List (Nat × List Nat × Nat)}
+    (h : rowOK (q, k, j, ci, pol, ov, fbc, held) = true) :
     (net.gates.getD q default).k = k ∧ j < k ∧
       cfact k (net.gates.getD q default).init j (fl ci) (fl pol) (fl ov) = true := by
-  obtain ⟨q, k, j, ci, pol, ov, fbc, held⟩ := r
-  simp only [rowOK, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at h
-  obtain ⟨⟨⟨⟨⟨⟨h1, -⟩, h3⟩, h4⟩, -⟩, -⟩⟩ := h
+  simp only [rowOK, Bool.and_eq_true] at h
+  obtain ⟨⟨⟨⟨⟨h1, -⟩, h3⟩, h4⟩, -⟩, -⟩ := h
+  have h1' : (gateAt q).k = k := beq_iff_eq.mp h1
   rw [← gateAt_eq]
-  exact ⟨h1, h3, h1 ▸ h4⟩
+  exact ⟨h1', of_decide_eq_true h3, h4⟩
+
+theorem row_ok {r : Row} (hr : r ∈ allRows) : rowOK r = true := by
+  have := allRows_ok; simp only [List.all_eq_true] at this; exact this r hr
 
 /-- **`hall` for every listed C-element of the netlist.** -/
-theorem row_hall {r : Row} (hr : r ∈ allRows) :
-    let (q, k, j, ci, pol, ov, _, _) := r
+theorem row_hall {q k j : Nat} {ci pol ov : List Bool} {fbc : List Nat} {held : List (Nat × List Nat × Nat)}
+    (hr : (q, k, j, ci, pol, ov, fbc, held) ∈ allRows) :
     ∀ (w : Bool) (v : Nat → Bool), (∀ i, i < k → i ≠ j → fl ci i = true → (v i ^^ fl pol i) = w) →
       (∀ i, i < k → i ≠ j → fl ci i = false → v i = fl ov i) →
-      (net.gates.getD q default).init.testBit (addr k v) = w := by
-  have h : rowOK r = true := by
-    have := allRows_ok; simp only [List.all_eq_true] at this; exact this r hr
-  obtain ⟨q, k, j, ci, pol, ov, fbc, held⟩ := r
-  obtain ⟨-, -, hf⟩ := cfact_of_row h
-  exact hall_of_cfact hf
+      (net.gates.getD q default).init.testBit (addr k v) = w :=
+  hall_of_cfact (cfact_of_row (row_ok hr)).2.2
 
 /-- **`hhold` for every listed C-element of the netlist.** -/
-theorem row_hhold {r : Row} (hr : r ∈ allRows) :
-    let (q, k, j, ci, pol, ov, _, _) := r
+theorem row_hhold {q k j : Nat} {ci pol ov : List Bool} {fbc : List Nat} {held : List (Nat × List Nat × Nat)}
+    (hr : (q, k, j, ci, pol, ov, fbc, held) ∈ allRows) :
     ∀ (w : Bool) (v : Nat → Bool), v j = !w →
       (∀ i, i < k → i ≠ j → fl ci i = false → v i = fl ov i) →
       (net.gates.getD q default).init.testBit (addr k v) = w →
-      ∀ i, i < k → i ≠ j → fl ci i = true → (v i ^^ fl pol i) = w := by
-  have h : rowOK r = true := by
-    have := allRows_ok; simp only [List.all_eq_true] at this; exact this r hr
-  obtain ⟨q, k, j, ci, pol, ov, fbc, held⟩ := r
-  obtain ⟨-, hj, hf⟩ := cfact_of_row h
-  exact hhold_of_cfact hf hj
+      ∀ i, i < k → i ≠ j → fl ci i = true → (v i ^^ fl pol i) = w :=
+  hhold_of_cfact (cfact_of_row (row_ok hr)).2.2 (cfact_of_row (row_ok hr)).2.1
 
-theorem allRows_length : allRows.length = %d := by decide
+set_option maxRecDepth 100000 in\ntheorem allRows_length : allRows.length = %d := by decide
 
 end Formal.Cells.CElemPS
 ''' % len(rows)]
