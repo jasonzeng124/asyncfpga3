@@ -82,6 +82,7 @@ EnvS env;
 struct Key { u64 a, b; bool operator==(const Key& o) const { return a == o.a && b == o.b; } };
 struct KH { size_t operator()(const Key& k) const { return k.a ^ (k.b * 0x9e3779b97f4a7c15ull); } };
 unordered_set<Key, KH> seen;
+long long nTriOK = 0, nTriBad = 0; map<int,long long> triWhy; vector<pair<int,int>> rtPairs; bool triCheck = false;
 long long nStates = 0, nDead = 0, nWrong = 0, nPersist = 0, nFinal = 0, maxStates;
 map<string, long long> persistBy; long long maxDepth = 0;
 vector<int> ctl;
@@ -143,7 +144,7 @@ void dfs(int depth) {
     undoTo(mark); env = save; H1 = h1; H2 = h2;
   }
 }
-string dumpInit, winFile, obsOut, traceNode, traceOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
+string rtFile, dumpInit, winFile, obsOut, traceNode, traceOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
 int main(int argc, char** argv) {
   ifstream in(argv[1]); string w; int n;
   maxStates = 50000000;
@@ -153,6 +154,8 @@ int main(int argc, char** argv) {
     if (a == "--dump-init") { dumpInit = argv[++i]; continue; }
     if (a == "--walks") { walks = atoi(argv[++i]); winFile = argv[++i]; obsOut = argv[++i]; continue; }
     if (a == "--trace") { traceNode = argv[++i]; traceOut = argv[++i]; continue; }
+    if (a == "--tri") { triCheck = true; continue; }
+    if (a == "--rt") { rtFile = argv[++i]; continue; }
     if (a == "--seed") { walkSeed = atoll(argv[++i]); continue; }
     if (a == "--range") { walkRange = atoll(argv[++i]); continue; }
     size_t c = a.find(','); pairsv.push_back({stoull(a.substr(0, c), 0, 0), stoull(a.substr(c + 1), 0, 0)});
@@ -197,6 +200,9 @@ int main(int argc, char** argv) {
   fprintf(stderr, "huffx: %d nodes, %zu comb (depth %d), %zu storage, %zu control; %d pairs\n", NN, comb.size(), maxRank, stor.size(), ctl.size(), NP);
   if (!dumpInit.empty()) { FILE* f = fopen(dumpInit.c_str(), "w"); for (int i = 0; i < NN; i++) fputc(val[i] ? '1' : '0', f); fputc('\n', f); fclose(f); if (maxStates == 0) return 0; }
   env = {0, 0, 0};
+  if (!rtFile.empty()) { map<string,int> byName; for (size_t q = 0; q < stor.size(); q++) byName[names[stor[q].out]] = q;
+    ifstream rf(rtFile); string a1, b1; while (rf >> a1 >> b1) rtPairs.push_back({byName.at(a1), byName.at(b1)});
+    fprintf(stderr, "relative-timing pairs: %zu\n", rtPairs.size()); }
   if (walks > 0) {
     // random walks: record the tuple of every window (winfix.py --export) in every visited state
     ifstream wf(winFile); int nw; wf >> nw; vector<string> wk(nw); vector<vector<int>> wv(nw);
@@ -214,9 +220,37 @@ int main(int argc, char** argv) {
       vector<int> hist;
       for (long long st = 0; st < 10000000; st++) {
         vector<int> ms = moves(); if (ms.empty()) break;
+        if (!rtPairs.empty()) {   // relative timing: b may not move while its partner c is excited
+          vector<int> ms2;
+          for (int m : ms) { bool blocked = false; if (m >= 0) for (auto& pr : rtPairs) if (pr.second == m && excited(pr.first)) { blocked = true; break; } if (!blocked) ms2.push_back(m); }
+          if (!ms2.empty()) ms = ms2;
+        }
         int mv = ms[rg() % ms.size()];
         vector<int> exc; for (int m : ms) if (m >= 0 && m != mv) exc.push_back(m);
-        apply(mv, env); trail.clear(); record(); tot++; hist.push_back(mv); if (traceNode.empty() && hist.size() > 64) hist.erase(hist.begin());
+        size_t mk0 = trail.size(); EnvS es0 = env; u64 h10 = H1, h20 = H2;
+        apply(mv, env);
+        if (triCheck) {
+          // for every control node c excited before mv and disabled by it: does s.c.mv.c = s.mv ?
+          vector<int> dis; for (int c : exc) if (!excited(c)) dis.push_back(c);
+          if (!dis.empty()) {
+            Key kb = key(); size_t mkb = trail.size(); EnvS eb = env; u64 hb1 = H1, hb2 = H2;
+            vector<unsigned char> vb(val);
+            for (int c : dis) {
+              // back to s
+              undoTo(mk0); env = es0; H1 = h10; H2 = h20;
+              bool ok = true; EnvS e2 = env; int why = 0;
+              apply(c, e2);
+              vector<int> m2 = moves(); if (find(m2.begin(), m2.end(), mv) == m2.end()) { ok = false; why = 1; }
+              if (ok) { apply(mv, e2); if (!excited(c)) { ok = false; why = 2; } else { apply(c, e2); env = e2; Key k3 = key(); ok = (k3 == kb); if (!ok) why = 3; } }
+              triWhy[why]++;
+              if (ok) nTriOK++; else { nTriBad++; if (nTriBad < 10) fprintf(stderr, "TRIANGLE FAILS: %s vs %s\n", names[stor[c].out].c_str(), mv >= 0 ? names[stor[mv].out].c_str() : "env"); }
+            }
+            // restore s.mv
+            undoTo(mk0); env = es0; H1 = h10; H2 = h20; apply(mv, env);
+            if (!(key() == kb)) { fprintf(stderr, "restore mismatch\n"); exit(4); }
+          }
+        }
+        trail.clear(); record(); tot++; hist.push_back(mv); if (traceNode.empty() && hist.size() > 64) hist.erase(hist.begin());
         for (int c : exc) if (!excited(c)) { if (nPersist < 40) { fprintf(stderr, "VIOL walk %d move %lld: %s (val %d) disabled by %s; env k %d kout %d w %d req %d pack %d oreq %d oack %d; last moves:", w, st, names[stor[c].out].c_str(), (int)val[stor[c].out], mv >= 0 ? names[stor[mv].out].c_str() : ("env" + to_string(mv)).c_str(), env.k, env.kout, env.w, (int)val[REQ], (int)val[PACK], (int)val[OREQ], (int)val[OACK]); for (size_t q = hist.size() > 8 ? hist.size() - 8 : 0; q < hist.size(); q++) fprintf(stderr, " %s", hist[q] >= 0 ? names[stor[hist[q]].out].c_str() : ("env" + to_string(hist[q])).c_str()); fprintf(stderr, "\n"); }
           if (!traceNode.empty() && names[stor[c].out] == traceNode) {
             FILE* tf = fopen(traceOut.c_str(), "w");
@@ -231,7 +265,7 @@ int main(int argc, char** argv) {
       if (env.kout == NP) okc++;
     }
     long long sz = 0; for (auto& o : obs) sz += o.size();
-    fprintf(stderr, "walks %d (complete %lld), moves %lld, wrong %lld, persistence violations %lld, observed tuples %lld\n", walks, okc, tot, nWrong, nPersist, sz);
+    fprintf(stderr, "walks %d (complete %lld), moves %lld, wrong %lld, persistence violations %lld, observed tuples %lld; triangle ok %lld fail %lld (why1 mv disabled by c %lld, why2 c not re-excited %lld, why3 states differ %lld)\n", walks, okc, tot, nWrong, nPersist, sz, nTriOK, nTriBad, triWhy[1], triWhy[2], triWhy[3]);
     for (auto& kv : persistBy) fprintf(stderr, "  persist %lld %s\n", kv.second, kv.first.c_str());
     FILE* f = fopen(obsOut.c_str(), "w");
     for (int i = 0; i < nw; i++) { fprintf(f, "%s", wk[i].c_str()); for (u64 t : obs[i]) fprintf(f, " %llu", t); fprintf(f, "\n"); }
