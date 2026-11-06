@@ -2789,7 +2789,7 @@ becomes a statement about `Behaves p (circuit net boundary) x` itself? **Lean (s
   4,185 rows with every pin's chain, 108 files) supersedes it; it and CElemViewPS (361 rows, 58 files) are building one
   file at a time (~1 min per file).
 
-### progress 08:39 -- FOR SHARD A (STATUS.md S3 row) and FOR SHARD C (S4 (b)): where the cell layer stands
+### progress 08:37 -- FOR SHARD A (STATUS.md S3 row) and FOR SHARD C (S4 (b)): where the cell layer stands
 S3 at the Spec level, for THE target, as of this session (all standard axioms):
 - C-elements: `SpecCElem.celem_forced'` (every behaviour meeting CGateOK + bands + INIT facts + hA + loop race =>
   every toggle forced, separated), witness `SpecCElemWit`, decidable INIT facts `SpecCElemFact`, netlist check of 361
