@@ -1,4 +1,4 @@
-# B: the routed C-element under THE Spec (S3 cell theorem), 2026-11-06
+# B: the routed storage cells under THE Spec (S3 cell theorems), 2026-11-06
 
 **Problem.** For shard C's composition (notes/C-route-S4.md (b)): when does a LUT whose output returns through its
 routing to one of its own pins behave as a C-element in EVERY behaviour of the Spec (per-pin read times inside the
@@ -15,7 +15,18 @@ Adm bands, transport/glitches allowed)?
 - `SpecCElemFact.cfact` + `hall_of_cfact`/`hhold_of_cfact`: the INIT facts as a decide over 2^k addresses.
 - `SpecCElemWit`: joint non-vacuity witness (a switching C-element run meeting every premise).
 - `CElemPS` (generated, tools-B/ps/gen_celem_ps.py): 361 C-elements of `DecodedPS.net` pass the INIT and wiring
-  check (`row_hall`, `row_hhold` on `net.gates.getD q default`). [status: see JOURNAL-B]
+  check (`row_hall`, `row_hhold` on `net.gates.getD q default`).
+- `ViewPS.view_collapse`: in every behaviour of THE circuit, listed gates with checked copy chains satisfy CGateOK
+  (via C's `SpecChain.collapse_net`); `const_hold`: constant gates hold their value.
+- `CElemView.target_celem_forced`: the C-element theorem stated on `Behaves p (circuit net boundary) x` for every
+  row list passing `crowOK` (instance `CElemViewPS`, 361 rows).
+- Latches: `SpecLatch.latch_close` (clean close and hold; derived windows: enable open ≥ (hi e - lo e) + hi j, data
+  stable from hi d + hi j - lo e before the close to hi e after), `SpecLatchWit`, `SpecLatchFact`,
+  `LatchView.target_latch_close` (instance `LatchViewPS`, 4,185 rows; out/target_ps_latch.json lists each latch's
+  derived windows).
+- Arbiters: `ArbViewPS.target_ps_arb_clean_set` (the nine state LUTs decide a separated arbitration cleanly, every
+  behaviour).
+- Not covered: 42 mux-join storage gates (non-conjunctive forcing). [instance build status: JOURNAL-B]
 
 **How C uses it.** `hA` = persistence of the Huffman/abstract machine (C: WinInv/Keller) + a distance bound: an input
 change that responds to q's change arrives no sooner than the shortest causal return path. The static all-paths
