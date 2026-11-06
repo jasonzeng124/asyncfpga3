@@ -1638,3 +1638,24 @@ statement fails for every κ ≥ 21/25 (the witness's delays stay admissible for
 so the same xK refutes them, though only κ = 21/25 is stated in Lean), and B's race tables give sufficient conditions
 up to 0.415: the frontier is in [0.415, 0.84) if B's chain is completed, and it is set by a relative-timing order of
 the control network (umux16.uya before the next token's ulink_n_falseResult_85 / trueResult_72 stage).
+
+### progress 10:55 -- a stronger adversary fails at κ = 0.70 (simulation only): a runt ring, not a deadlock
+Slowing uya AND its support's storage nodes (ulink_n_falseResult_85 stage 0, ulink_n_trueResult_72 stage 0,
+SLICE_X32Y28.A6, umux16.uj1; + their input pips), everything else fast: (1071, 462) correct at κ = 0.64 and 0.67;
+at κ = 0.70 out0 never rises and the circuit NEVER goes quiet (130 M events in 3 µs): ulink_n_falseResult_85
+stage[2]'s C-element and its ack delay chain carry a circulating train of 1-7 ps pulses (the fb_runt_oscillates
+mechanism), umux16.uxa follows. Arbiters are fine (ArbOK for T >= 66). So, at w = 0, a livelock exists at κ ≈ 0.7
+(if the simulator is right); it is not in Lean (an infinite non-periodic-looking pulse train needs a different
+witness encoding), and H_RUNT(w) for any w >= 8 ps would exclude these pulses. The Lean-checked refutation stays at
+κ = 21/25 (a quiet deadlock).
+
+### progress 10:55 -- STATUS suggestion for shard A (A owns STATUS.md)
+- New row (Lean): `CexPS.not_netCorrectSeq` -- NetCorrectSeq on THE target is FALSE at (g, κ) = (1, 21/25), w = 0,
+  R = 400 ns, every T >= 36, every su, every Δo <= 3 ns (deadlock on (1071, 462)). With seq_weaken (A) this refutes
+  every larger κ / g at those margins. The (g, κ) frontier at g = 1 is below 0.84; simulation: below 0.70 at w = 0
+  (runt ring); B's race tables: sufficient up to 0.415 (for the conditions B covers).
+- The binding mechanism is a relative-timing order of the control network (C's 30 orders, tools/huff/out_rt_pairs.txt):
+  "umux16.uya falls before the next token's link stage moves". This is a natural row for S2/S3: an obligation the
+  checker must generate.
+- New generic Lean (core): Net/Keller (determinacy from persistence), Net/WinInv (windowed invariant check). Not yet
+  used on THE target (the machine is not persistent without the 30 orders).
