@@ -1,0 +1,1 @@
+constants=17 bad=0
