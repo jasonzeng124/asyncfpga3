@@ -43,6 +43,7 @@ def main():
     ap.add_argument("--R", type=int, default=20000)
     ap.add_argument("--slow", nargs="*", default=[], help="node names whose driving gate is made slow")
     ap.add_argument("--kappa", type=float, default=None)
+    ap.add_argument("--fast", nargs="*", default=None, help="only these gates (and their input routes) fast; all others mid-window")
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
     ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
@@ -101,6 +102,15 @@ def main():
     c, p = a.corner, a.pos
 
     SLOW = set(idx[x] for x in a.slow)
+    FAST = None
+    if a.fast:
+        FAST = set(idx[x] for x in a.fast)
+        for n0 in list(FAST):
+            gi0 = drv.get(n0)
+            if gi0 is None: continue
+            for u in gates[gi0]["ins"]:
+                while u in drv and gates[drv[u]]["k"] == 1 and gates[drv[u]]["init"] == 2:
+                    FAST.add(u); u = gates[drv[u]]["ins"][0]
     if a.slowroutes:
         for n0 in list(SLOW):
             gi0 = drv.get(n0)
@@ -116,6 +126,7 @@ def main():
                 if gi is not None and gates[gi]["out"] in SLOW: return ((25 + P) * e["fmax"]) // 25
                 return ((25 - P) * e["fmin"] + 24) // 25
             if gi is not None and gates[gi]["out"] in SLOW: return int(math.floor(hi * (1 + a.kappa)))
+            if FAST is not None and not (gi is not None and gates[gi]["out"] in FAST): return int(round(lo + 0.5 * (hi - lo)))
             return int(math.ceil(lo * (1 - a.kappa)))
         lo = (1 - c) * e["fmin"] + c * e["smin"]
         hi = (1 - c) * e["fmax"] + c * e["smax"]

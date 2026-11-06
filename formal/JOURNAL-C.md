@@ -1707,3 +1707,14 @@ observed traces; so it is neither proved sound nor complete. Consistency check: 
 order, the one the Lean refutations break (at 0.72 and 0.84), and 0.24 < 0.72 as a sufficient bound must be. If the
 assumptions held, the g = 1, w = 0 frontier would lie in [0.24, 0.72) for these orders alone (B: 0.415 for the race
 rows B covers).
+
+### progress 12:46 -- TSE report details; w = 20 probe negative
+- Subagent's final report on tools/huff/tse (tse2.py: pairwise separation bounds over the ancestors of b and of "c
+  fires", last 400 events, Floyd-Warshall closure; κ* by bisection; 172 traces from huffr.cpp, a huffx copy that logs
+  per-move flips): 20 of the 30 orders covered (the other 10 had no trace in those seeds); 0 of 172 traces gave an
+  inconsistent bound; structural (all-path) hops give the same κ = 0 slack as sensitised ones except merge6 (so the
+  bad rtmargin numbers came from its single-chain cause analysis). Unsoundness, in its words: one causal scenario per
+  trace; necessity/sensitisation judged on zero-delay values; floating-mode max not a strict upper bound and
+  predecessors without a sensitised path dropped from HI; events older than the window assumed settled.
+- w = 20 probe: uya slow, only the chain A -> ... -> b of the worst TSE trace fast, every other arc mid-window: correct
+  at κ = 0.5 .. 0.95, and still 4-5 ps glitches somewhere in every run. No counterexample lead for H_RUNT(20).
