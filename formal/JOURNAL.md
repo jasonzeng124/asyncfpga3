@@ -1697,3 +1697,11 @@ with AssemblyPS since 871f8118. Rule for myself: STATUS/FEASIBILITY name a Lean 
 out0/end acks and the 64 operand bits, nothing else; every operand bit is an env node; 32/32/32 bus widths), by decide.
 It had never been proved (grep). `AssemblyPS.the_shape_of_plan`: net.WF ∧ boundary.OK net ∧ NetCorrectSeq ..., from a
 Plan: Spec part II's theorem shape, with the Lean round trip standing in for a Lean decoder.
+### progress 07:42 -- adversarial-environment sweep on THE target: 11/11 runs correct (simulation, untrusted)
+sim.py on DecodedPS.net (lean2json of the committed Lean netlist), 12 full-width pairs (gcd_ps_vec1000 rows 1-12,
+incl. (2^31-1, 2^31-2) and (0, x)), the most aggressive environment Spec.Env + SeqEnv allow in these respects: next
+request at the earliest SeqEnv moment (out0 req and ack low), out0/end acks fall 1 ps after their request, data move
+to the next pair as soon as their ack falls (broad rule), Δo = 1 ps (and 3 ns). Corners 0/0.5/1 at window positions
+0/0.5/1, plus uniform scatter 0.15 and 0.3 (seeds 1-3): every run returns the 12 gcds in order and ends idle
+(out/advenv_sweep_e6bb4aec.txt). Not shown: per-pin adversarial delays (B's simb), other env timings; a sweep of the
+request gap (0-2000 ps after SeqEnv allows it, 4 pairs, 3 corners) is running to look for a timing window.
