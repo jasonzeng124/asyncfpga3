@@ -2611,3 +2611,46 @@ for 183 of the 185 RaceTablePS rows, the node gate, every path and loop arc (= D
 chain from its output) are checked on the netlist. **Rows 174 and 184 (SLICE_X6Y47.D, SLICE_X14Y57.D; paths of 1032
 and 1211 arcs; corner-uniform thresholds 0.975 / 0.99) are NOT checked**: each alone exceeds the container's memory in
 the kernel (OOM-killed at ~13.8 GB). They do not bear on the 0.415 margin. Supersedes the withdrawn 685355ef.
+
+## Session Fri Nov  6 07:12:14 UTC 2026 (shard B; session_01HC49Fys5b1nnePtYevXncB)
+Lock was 4 days old (my Nov 2 session); taken. No shard ran Nov 3-5. Audit read (origin/claude/audit, last row T23):
+no REFUTED or OVERSTATED row is open against shard B's files; the newest rows on B's work (T14 RaceStaticPS/ArbCleanPS/
+SpecFbChain, T15 RaceTablePS/FrontierPS/split RaceLinkPS 183/185) are CONFIRMED, with the stated caveat that the races are
+those B's 32 simulated vectors recorded. setup.sh is running (Mathlib cache unreachable: building from source).
+
+### progress 07:20 -- an ALL-PATHS race table for THE target (static, every path; untrusted Python)
+**Problem, plainly:** RaceTablePS's 185 rows (binding κ 0.415) are the episodes that 112 simulated runs happened to show.
+Is there a storage node whose loop can be beaten by a return path that no simulation exercised? Check every graph
+path, not just recorded ones. **Tool:** tools-B/ps/allpaths.py on the lean2json of `Formal/Target/NetPS` (md5 ddbf362e,
+same as before): for each of the 4,597 storage gates q (a pin whose copy chain returns to q's output) and each
+RACE-RELEVANT pin i of q (from some forcing address -- output the same for both feedback values -- flipping pin i
+reaches a hold address, output = feedback value; a mux-latch's data pins are NOT relevant, its select pins are; both
+C-element inputs are), the shortest path from q's output to q's pin i over every gate pin in its INIT support
+(Σ FAST_MIN, resp. Σ SLOW_MIN, pin i's arc included), against the loop's Σ FAST_MAX / Σ SLOW_MAX; corner-uniform
+threshold κ* = min over c ∈ {0,1} of (D_c − L_c)/(D_c + L_c) (g = 1; exact per path at every corner by linearity, and
+min over paths commutes with the two endpoint checks). Output: formal/out/target_ps_allpaths.json.
+**Results.**
+- Before the two filters (all pins, all paths) the minimum is negative: a mux-latch's don't-care pin and data-ring paths
+  through three transparent latches (q -> latch -> latch -> mux -> q's data pin). Neither is a race: a don't-care pin
+  carries nothing, and a change on a mux-latch's selected data pin takes a forced output to another forced output
+  (the latch follows d; the loop is not read). Hence the INIT-support and race-relevance filters.
+- With them: 47 storage gates have a return path shorter than 3x their loop (all others: κ* >= 0.5). **Binding:
+  SLICE_X40Y49.ALUT.O6 = `ulink_n143.many.stage[2].u.ctl.u.u` (link controller C-element), pin 4 (its acknowledge
+  input), κ* = 0.298** (loop 386/959 ps, return path 713/1842 ps, 19 arcs, 3 LUTs: q -> SLICE_X38Y51.A5 = arbiter
+  grant g = r·q_state (0xaa00aa00) -> SLICE_X39Y51.D6 = C-element C(g, x) with reset -> q's pin 4). Next: 0.374
+  (SLICE_X23Y18.D), 0.405 (SLICE_X20Y40.D), 0.410 (arbiter state SLICE_X14Y19.A), then 0.417 twice -- one of them
+  RaceTablePS's binding node SLICE_X32Y45.A, whose all-paths value equals its recorded episode (0.415 on the 0.005 grid).
+- With paths not allowed through any other storage gate (--cut): NO storage gate has a return path within 3x its
+  loop. Every short return path on THE target goes through at least one other storage node (an acknowledging
+  C-element), as the Muller-pipeline structure predicts.
+- **Is the 0.298 path real?** Adversarial simulation (tools-B/ps/apadv.py: the 19 path arcs at the fast end, the 7 loop
+  arcs at the slow end; simb.py, vector (12,18), corner 0, κ = 0, 0.3, 0.35, 0.4, 0.45): the node flips 4 times as in
+  the baseline, result 6, no runt. Reason, from the dump: the arbiter's state already favours this client (grant
+  follows q 260 ps after q rises), but the acknowledging C-element C(g, x) waits for x (SLICE_X38Y53.B), which rises
+  ~51 ns after q in this run. The static path is a real path of the circuit but in this run its last hop is gated by
+  an independent join input. Whether an admissible assignment can make x arrive first (it is ~51 ns later here; at κ ≈
+  0.3 the two ~250-300 ns cause cones could in principle reorder) is NOT decided.
+**Plainly:** the static all-paths bound is a sufficient condition for every self-induced race of every storage node
+in every behaviour, given persistence (a node's forcing is withdrawn only as a consequence of its own switch, C's SI
+finding); it gives κ ≤ 0.298 at g = 1, vs 0.415 from recorded episodes. The gap is a join (C-element) whose other
+input decides. **Not shown:** anything in Lean yet; persistence (network, C); whether 0.298 is attainable.
