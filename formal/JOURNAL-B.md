@@ -2804,3 +2804,14 @@ S3 at the Spec level, for THE target, as of this session (all standard axioms):
 What remains for S4 from these: the environment premises -- for C-elements hA (persistence + return-path distance;
 C's WinInv/Keller line), for latches the enable/data windows (bundling; out/target_ps_latch.json lists each latch's
 derived requirement), the reset low, and a quiet start (C's island/settle results).
+
+### progress 08:46 -- the nine arbiter state LUTs: separated arbitration, every behaviour (ArbViewPS; check.sh OK)
+`ArbViewPS.target_ps_arb_clean_set` (rows GENERATED from ArbCleanPS.targetQPS's names and roles plus every pin's chain
+from the netlist; `arows_ok` by kernel decide): in every behaviour of THE circuit, at its corner, for each of the nine
+arbiter state LUTs: if r1 is read high on [s, e'], r2 low on [s, e], reset low on [s, e'], A0 low on [s, e], and
+s + hi fb ≤ e + 1 (its routed feedback's summed upper window end), then q = 1 on [s, e']. The tied VCC pin is derived
+(constant gate). No H_ARB. **Not shown:** that the target's arbitrations are that separated in every behaviour
+(simulation only, ≥ 49.9 ns); the reset direction (same argument, r1/r2 exchanged, not stated); grants and ack
+C-elements; close arbitrations (H_ARB(T) plus the server-path obligation).
+Also: stopped setup.sh's project-wide lake build (it had run 1.5 h and was the third memory consumer behind two OOM
+kills); all checks here use check.sh's per-file mode.
