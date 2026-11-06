@@ -147,6 +147,8 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   --slow SLICE_X36Y47.C6 --slowroutes --nextreq seq --datachange broad --R 400000 --su 1000 --full` (net.json, bnd.json
   from `tools/cview/lean2json.py lean/Formal/Target/NetPS`). **Lean:** one-pair version (1071, 462), exact integer delays
   (`--exact --data0`), `not_netCorrectSeq : ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq net boundary arbs ⟨1, 21/25⟩ T 400000 su Δo`,
-  standard axioms (`lake build Formal.Net.CexPS.Refute`).
+  standard axioms (`lake build Formal.Net.CexPS.Refute`). **Also at κ = 18/25 = 0.72** (`Formal.Net.CexPS72.not_netCorrectSeq`, T ≥ 62):
+  uya plus the four storage nodes of its support slowed (⌊43·FAST_MAX/25⌋), all else at ⌈7·FAST_MIN/25⌉. Simulation:
+  a runt-ring livelock at 0.70, correct at 0.67 with these adversaries.
 - **For research:** a fid GLS replay at these delays (and with the resolver on) would say whether the fabric model
   sees the same runts.

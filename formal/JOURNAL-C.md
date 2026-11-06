@@ -1668,3 +1668,12 @@ stage 0, umux16.uj1, SLICE_X32Y28.A6) and the pips on all their input routes at 
 adversary: correct at 0.64 and 0.67, runt-ring livelock at 0.70, quiet deadlock at 0.72, non-quiet at 0.75-0.80.
 Lean files Formal/Net/CexPS72/ (same templates as CexPS; k_hyps / k_arbOK / k_not_correct already check against the
 node codes); the 75 gate checks run one at a time (two at once exceed the session's memory: 18 OOM kills).
+
+### progress 12:17 -- REFUTED IN LEAN at κ = 18/25 = 0.72 too: CexPS72.not_netCorrectSeq
+`Formal/Net/CexPS72/` (lake build OK, 1,133 jobs; axioms propext, Classical.choice, Quot.sound; scan clean; 75 gate
+chunks one at a time, ~55 s each). **Statement:** ∀ T su Δo, 62 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq DecodedPS.net
+DecodedPS.boundary DecodedPS.arbs ⟨1, 18/25⟩ T 400000 su Δo. Witness: umux16.uya, the four storage nodes of its support
+(ulink_n_falseResult_85 / ulink_n_trueResult_72 stage 0, umux16.uj1, SLICE_X32Y28.A6) and every pip on their input
+routes at ⌊43·FAST_MAX/25⌋, every other pin at ⌈7·FAST_MIN/25⌉; one pair (1071, 462), deadlock (89,170 transitions,
+quiet from 467,650 ps). **Meaning:** at g = 1 and w = 0 the theorem's κ margin is below 0.72 (simulation: a runt-ring
+livelock at 0.70; correct at 0.67 with these adversaries); B's sufficient bound 0.415 stands below it.

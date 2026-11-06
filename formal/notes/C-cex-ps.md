@@ -39,3 +39,10 @@ behaviour of THE target's decoded circuit, with an environment obeying H_ENV and
   ring) at κ = 0.70 in simulation only.
 - One corner (fast). R, su, Δo as stated. `T` is the H_ARB bound; every T ≥ 36 is refuted, which includes every T
   above the state LUTs' own delays (audit T5's non-vacuity range).
+
+## Second refutation, κ = 18/25 (`Formal/Net/CexPS72/`, same structure)
+`not_netCorrectSeq : ∀ T su Δo, 62 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq net boundary arbs ⟨1, 18/25⟩ T 400000 su Δo`.
+Slow set: umux16.uya, ulink_n_falseResult_85 stage 0, ulink_n_trueResult_72 stage 0, umux16.uj1, SLICE_X32Y28.A6
+and the pips on their input routes (`tools/huff/cex/k72_slow.txt`), at ⌊43·FAST_MAX/25⌋; all else ⌈7·FAST_MIN/25⌉.
+Data: `tools/huff/cex/k72_dump.json.xz`. With these adversaries: correct at 0.64/0.67, runt-ring livelock at 0.70
+(simulation, never quiet; not in Lean), quiet deadlock at 0.72.
