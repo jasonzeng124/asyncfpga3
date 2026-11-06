@@ -79,3 +79,18 @@ are running instead.
 
 ipow x0.75 (uniform) beats ipow's per-cell sizes (1.02x): the rules at the corner are more conservative than the sim here
 too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2 of 4 routes).
+| isprime per-cell (corner_audit, per-cell max over 4 routes) | 13 of 15 sized lines (199 -> 147 links) | 25-28 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.056 / 1.063 (1.03-1.08); 1.064 (1.05-1.08) |
+
+## Per-kernel summary (deepest step that holds the full stack; speedup paired by seed, worst case)
+
+| kernel | step | routes | speedup, combined worst case | corners |
+|---|---|---|---|---|
+| xorshift | x0.5 (x0.375, x0.25 fail) | 8 | 1.418x | 1.447 / 1.444 |
+| collatz | per-cell (x0.5 fails) | 8 | 1.155x | 1.157 / 1.153 |
+| collatz64 | x0.75 | 4 (5-8 running) | 1.166x | 1.173 / 1.175 |
+| ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 4 | 1.090x | 1.113 / 1.100 |
+| isprime | per-cell (x0.75 fails) | 4 | 1.064x | 1.056 / 1.063 |
+| gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | corners 15/16 PASS so far |
+
+Against BOARD-QUEUE #1/#2 for gcd: R5 x0.75 is 1.07x BQ#2's laps (BQ#2 itself ~1.9x BQ#1's), i.e. ~2.0x BQ#1.
+None of these is a board candidate until it has 8 routes on every config; the board list's item 3 stays BQ#3 for now.
