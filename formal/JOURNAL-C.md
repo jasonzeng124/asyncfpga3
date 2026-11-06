@@ -1694,3 +1694,16 @@ Simulation / untrusted:
 STATUS list: does not shrink today; instead THE statement is now refuted at (1, 0.72) and (1, 0.84) with w = 0. The
 open question for the owner's headline is H_RUNT(20): every failing run here has sub-20 ps pulses (combinational
 hazards at these scatters), so the runt-filtered statement is untouched.
+
+### progress 12:45 -- time-separation bounds for the 30 orders (subagent, untrusted): weakest is umux16.uya, κ* ≈ 0.24
+tools/huff/tse/ (written by a subagent, reviewed only by reading its output): per withdrawal trace, an event graph
+with NECESSARY predecessors for lower bounds (max over necessary inputs of LO + min sensitised hop) and all changed
+predecessors for upper bounds, reference A = a common cause; κ* = (LO(b) - HI(c) - loop)/(LO(b) + HI(c) + loop).
+Table (out_tse_table.txt, 20 pairs with traces): min κ* per order from 0.24 (umux16.uya before
+ulink_n_falseResult_85: HI 3,124 + loop 318 vs LO 5,682 ps at the fast corner) through 0.34-0.43 for the other mux
+input-ack orders, 0.55 for ucontrol_merge10.ua1, up to 0.89. **Caveats (the subagent's flags):** events outside the
+trace window are assumed settled, some changed predecessors have no sensitised path, and the bound covers only the
+observed traces; so it is neither proved sound nor complete. Consistency check: it ranks umux16.uya as the weakest
+order, the one the Lean refutations break (at 0.72 and 0.84), and 0.24 < 0.72 as a sufficient bound must be. If the
+assumptions held, the g = 1, w = 0 frontier would lie in [0.24, 0.72) for these orders alone (B: 0.415 for the race
+rows B covers).
