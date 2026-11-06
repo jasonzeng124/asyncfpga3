@@ -1,16 +1,41 @@
 # STATUS: hypotheses of the current best theorem about the target
 
 **THE target since 2026-11-01 19:3x UTC (owner decision 1): `formal/target/gcd_ps_e6bb4aec.bit`** (BOARD-QUEUE #4,
-full-width operands from the PS; README.md, gcd_ps sections): rebuilt bit-identical up to the header date, read back,
-decoded (Python round trip 0 invented, boundary 32+32 distinct operand nodes, 9 arbiters), 8/8 full-width vectors in
-simulation at three corners; the Lean netlist `Formal.Target.DecodedPS.net` (`Formal/Target/NetPS`, 75 chunks) compiles and
-`Formal.Target.DecodedPS.net_wf : net.WF` is proved (check.sh audit OK). No theorem about its behaviour yet.
-Round trip for gcd_ps (`FormalWit/RTPS`, check.sh --wit): `RTPS.Data.roundtrip`: the 324,188 features re-encoded
-from 78,272 gates (pips + LUT6 INIT bits) plus 14,322 listed leftovers are exactly the 338,510 read-back features,
-each once; `RTPS.Data.o5_gates`: every O5 gate is the low INIT half of its O6 on the O6's first five pins. Standard
-axioms. Same limits as the BQ#1 round trip (wire-to-node merge, output-mux/carry selects, FASM parsing untrusted). Everything
-below this paragraph is about the PREVIOUS target, `formal/target/gcd_hw_03e82630.bit` (BQ#1, 16-vector table), and stays
-valid for it.
+full-width operands from the PS; README.md, gcd_ps sections). THE statement: `Spec.NetCorrectSeq DecodedPS.net
+DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential environment).
+Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
+standard axioms unless marked; "C" / "B" name the shard whose file it is.
+
+## THE target: what is proved (as of 2026-11-02, unchanged since)
+| piece | theorem | plainly |
+|---|---|---|
+| decoded netlist | `DecodedPS.net_wf` (A) | the Lean netlist is well formed |
+| H_DECODE | `FormalWit.RTPS.Data.roundtrip`, `o5_gates` (A, check.sh --wit) | every pip and LUT INIT bit of the netlist is in the read-back, and every read-back pip/INIT bit is a gate, each once; O5 = low half of its O6 |
+| H_PRIM coverage | `Cells.PrimsPS.prim_cover` (B) | every gate is a constant, copy, 2:1 mux, CARRY4 output (A's tables) or LUT5/LUT6 table: nothing unmodelled |
+| structure | `CViewPS.collapsed`/`view_complete`, `comb_ranked` (C) | the 19,878 logic gates read through checked copy chains; every loop passes one of 4,597 storage LUTs |
+| zero pairs | `CViewPS.correct_n0_all` + `witness_n0` (C) | **`Correct` for n = some 0, every g > 0, 0 ≤ κ < 1, reset R ≥ ⌈(1+κ)g⌉·353 ns** (no H_ARB, no SeqEnv), and its hypotheses are satisfiable |
+| one pair, one run | `CViewPS.w1_hyps_and_correct` (C) | a Lean-checked run of the decoded circuit meets EVERY hypothesis of NetCorrectSeq (n = 1, (12,18), g = 1, κ = 0, R = 400 ns, Δo = 3 ns, any T ≥ 220) and its conclusion (out0 = 6): the statement is not vacuous for n = 1 |
+| races (S3 data) | `RaceTablePS.table_race_free`, `RaceFrontierPS.table_race_free_gk`, `RaceLinkPS.rows_linked` (B) | for 185 storage nodes, the simulated acknowledgement path is at least as slow as the node's routed feedback for every corner and admissible delay, up to (g, κ) on g²(1+κ)/(1-κ) ≤ 2.433 (g ≤ 1.56 at κ = 0; κ ≤ 0.415 at g = 1); 183 rows tied to the netlist's own arcs and wiring. The rows come from 112 simulated runs (untrusted) |
+| switch rules | `SpecFbChain.cfb_switch`, `ArbCleanChain.cq_clean_set_gen` (B), `SpecLoop.*` (C) | a storage LUT (incl. an arbiter state LUT) switches cleanly through its routed feedback when its set condition lasts at least the loop's composite delay |
+| token level (S5) | `GcdHw.Seq.gcd_hw_seq` (C) | bdc's gcd graph with a sequential env returns `ps.map gcd`, in order, for any number of pairs |
+| parameters | `SpecMono.seq_weaken` (A, 2026-11-06; NOT YET CHECKED, see journal) | the statement at (g', κ', T') and margins su, Δo implies it at every smaller g, κ, T and larger su, Δo: the margin is a down-set |
+
+**NOT proved: NetCorrectSeq on THE target for any n ≥ 1.** Missing (shard C's route, notes/C-route-S4.md): S4 (cell
+instances on the collapsed view, per-cell handshake theorems from the switch obligations, bundling windows per channel,
+composition to CapNet's channel model and the token graph) and S6 (liveness for n ≥ 1).
+
+## The list (must shrink): hypotheses of the best statement about THE target
+For n ≥ 1 there is no theorem yet, so the "current best theorem" is the statement itself; its hypotheses and where
+each stands:
+| # | hypothesis | allowed? | status (2026-11-06) |
+|---|---|---|---|
+| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); open: wire-to-node merge, output-mux/carry selects in Lean, FASM parsing |
+| 2 | H_DELAY(g, κ) (`Adm`) | allowed | stated; per-arc bands are the decoder's prjxray numbers (in the netlist) |
+| 3 | H_PRIM (`GateOK`) | allowed | stated; every gate kind covered (PrimsPS) |
+| 4 | H_ARB(T) (`ArbOK`) | allowed | stated; non-vacuous at T ≥ 220 for n = 1 (C's witness). Headline T: as LARGE as possible (`seq_anti_T`), at least the slowest state-LUT arc ((1+κ)·664·g ps) to avoid the residual vacuity (audit T5) |
+| 5 | H_ENV (`Env`) + SeqEnv | allowed (owner decisions 1, 4) | stated; what it asks of the AXI slave: BOUNDARY-ps.md. Margins: smaller Δo, su are stronger (`seq_mono_Δo/su`); the board's pend sink bounds Δo (BOUNDARY-ps.md finding 4) |
+| 6 | H_RUNT(w) (optional, owner decision 2) | allowed | `SpecRunt.NetCorrectSeqRunt w`, corrected 2026-11-06 to LUT pins only (audit T9) |
+| 7 | everything else | must be derived | S4 composition and S6 liveness for n ≥ 1: not done |
 
 Previous target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
 (`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01 (changes since: ArbNodes inputs; `Adm` = g-scaled window, owner decision 3); part II, the Lean decoder, a stub).
