@@ -30,4 +30,4 @@ Not shown: anything below these vectors (fusion_bench's, from the C), or other s
 8-route check): FAST_MIN fast mode hangs on vector 1 (timeout; SLOW_MAX PASS). Seed 29: 3/3 PASS. So isprime's 4-route
 12/12 above does not hold in general -- its select pads were never rule-E clean, and the full stack now finds a route where
 that matters. isprime needs its pads fixed (rule E on 8+ routes) before it is a validated kernel. Item 4 is 48/48 for the
-other four kernels; isprime is 15/16 runs on 6 routes so far (seeds 31-32 running).
+other four kernels; isprime: 22/24 runs on 8 routes (seeds 25-32), both failures on seed 30 (FAST_MIN and worst case, fast-mode hang).
