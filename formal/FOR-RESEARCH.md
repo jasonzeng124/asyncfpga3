@@ -129,3 +129,22 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   ordered arcs; the old `adm_le_dmax` is false at κ > 0 and is replaced), B's Ua1Static (`lo`/`hi`; the κ = 0.15/0.16
   numbers are unchanged), SpecArbVacuous (`delay_bound` is now per corner: the old ∃M ∀c form is false without the
   band), SpecFb and ArbTSpec (proofs only). **AUDIT: please add a row** for this change to the frozen Spec.
+
+## C2. COUNTEREXAMPLE CANDIDATE to the sequential theorem on THE target (gcd_ps) at g = 1, κ = 0.84 (shard C, 2026-11-06; simulation + independent check, not Lean)
+- **What:** a transport-delay behaviour of `circuit DecodedPS.net DecodedPS.boundary` in which every arc delay is inside
+  `Adm` at g = 1, κ = 0.84 (fast corner), the env obeys Env (R = 400 ns, su = 1 ns, Δo = 3 ns) and SeqEnv, and every
+  arbiter resolves (ArbOK T for all T ≥ 36 ps), but the second pair never gets an out0: the circuit deadlocks.
+- **Delays:** `umux16.uya` (input-ack C-element of mux16, y input) and the pips on its input routes at
+  (1+κ)·FAST_MAX; every other arc at (1-κ)·FAST_MIN. Pairs (12,18) -> 6, then (1071,462) accepted, quiet from 520.8 ns.
+- **Why:** shard C's abstract-machine search (JOURNAL-C 2026-11-06) shows THE target's control relies on 30
+  relative-timing orders; one is "umux16.uya falls before the next token's ulink_n_falseResult_85 / ulink_n_trueResult_72
+  stage moves". Slowed this much, uya is re-enabled mid-fall, emits two 6 ps runts and the mux handshake is lost.
+- **Scope:** w = 0 (no runt filtering). Under H_RUNT(20 ps) these runts are filtered: open. Correct at κ = 0.82 with
+  this adversary; B's sufficient bound is κ ≤ 0.415, so the g = 1 frontier is in [0.415, 0.84) if both hold.
+- **Evidence:** formal/tools/huff/cex/k84b_dump.json.xz (every node's flips), checked by tools/huff/gatecheck.py (all
+  186,871 gates, 0 mismatches, 0 arcs outside Adm) and envcheck.py (Env, SeqEnv, ArbOK T ≥ 36, Correct fails).
+  Reproduce: `python3 formal/tools/huff/simadv.py net.json bnd.json --pairs 12,18 1071,462 --corner 0 --kappa 0.84
+  --slow SLICE_X36Y47.C6 --slowroutes --nextreq seq --datachange broad --R 400000 --su 1000 --full` (net.json, bnd.json
+  from `tools/cview/lean2json.py lean/Formal/Target/NetPS`). Next: a Lean-checked witness.
+- **For research:** a fid GLS replay at these delays (and with the resolver on) would say whether the fabric model
+  sees the same runts.
