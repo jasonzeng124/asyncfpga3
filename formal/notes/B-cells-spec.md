@@ -26,7 +26,7 @@ Adm bands, transport/glitches allowed)?
   derived windows).
 - Arbiters: `ArbViewPS.target_ps_arb_clean_set` (the nine state LUTs decide a separated arbitration cleanly, every
   behaviour).
-- Not covered: 42 mux-join storage gates (non-conjunctive forcing). [instance build status: JOURNAL-B]
+- Mux joins (42): `SpecCElemWin.celem_forced_win`, `CElemWinView.target_celemw_forced`, instance `CElemWinViewPS` (C-elements while the select is held at its selecting value).
 
 **How C uses it.** `hA` = persistence of the Huffman/abstract machine (C: WinInv/Keller) + a distance bound: an input
 change that responds to q's change arrives no sooner than the shortest causal return path. The static all-paths
