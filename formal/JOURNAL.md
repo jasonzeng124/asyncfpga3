@@ -1668,3 +1668,8 @@ nothing is merged or split. 1 cell has no gate: the unread MUXF7 of ucontrol_mer
 out/xcheck_nextpnr_e6bb4aec.txt. Plainly: two different code bases (prjxray-db + C's walker vs nextpnr's chipdb and
 router) give the same end-to-end connectivity of THE target on every logic input pin. Not compared: the pip-level
 structure in between (only endpoints) and arc delays. Untrusted Python, as before.
+### progress 07:35 -- AssemblyPS: the assembly instantiated on THE target (check.sh OK)
+`Formal/Target/AssemblyPS.lean`: `oneReq_PS : OneReq DecodedPS.boundary` (rfl: a/b/start/end requests are node
+186985); `the_of_plan`: NetCorrectSeq DecodedPS.net DecodedPS.boundary DecodedPS.arbs p T R su Δo from a Plan for
+every behaviour meeting its hypotheses; `the_of_plan_weaken`: the same carried to smaller (g, κ), T and larger su, Δo.
+So "THE theorem" is now literally one open hypothesis (`∀ x .., ∃ I, Plan x boundary R Δo I`), for shard C's S4/S6.
