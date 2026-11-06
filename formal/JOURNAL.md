@@ -1755,3 +1755,10 @@ The 11:02 run failed only by exit 137 (memory cgroup) on 25 large chunk modules 
 RaceLinkPS/CElemPS/CElemViewPS, C's IslandChk4, FiniteRunsWitData): lake builds several ~6 GB kernel checks at once
 and has no job limit. No Lean error. check.sh (A's file) now rebuilds OOM-killed modules one at a time through slot.sh
 and runs the build once more. Rebuilding the 25 now; the full check reruns after.
+### progress 12:52 -- FrontierPS.not_seq_above: THE statement is false for every g ≥ 1, 21/25 ≤ κ ≤ 1 (check.sh OK)
+`Formal/Target/FrontierPS.lean`: `not_seq_above : 1 ≤ p.g → 21/25 ≤ p.κ → ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 →
+¬ NetCorrectSeq DecodedPS.net DecodedPS.boundary DecodedPS.arbs p T 400000 su Δo` (κ ≤ 1 is not needed in the
+statement: `DelayPar.LE` asks it of C's point, 21/25). From C's `CexPS.not_netCorrectSeq` and `SpecMono.seq_anti_p`;
+standard axioms (975 declarations audited with SpecMono). Plainly: without runt filtering, the owner's (g, κ) frontier
+on THE target lies inside κ < 0.84 for every guard g ≥ 1 (reset 400 ns). Not shown: any point where it holds.
+C's CexPS modules needed one-at-a-time rebuilds here (OOM otherwise); all built.

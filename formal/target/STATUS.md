@@ -12,7 +12,7 @@ DecodedPS.arbs ⟨1, 21/25⟩ T 400000 su Δo` (standard axioms). Plainly: at g 
 w = 0) there is an admissible behaviour of THE target in which the pair (1071, 462) is accepted and no result ever comes
 back (a C-element, umux16.uya, re-enabled mid-fall, emits ~6 ps runts). So THE theorem's margin at g = 1 is below κ = 0.84;
 B's sufficient race bound is κ ≤ 0.415, so the g = 1 frontier is in [0.415, 0.84) if both hold (the lower end is not a
-theorem yet). By `SpecMono.seq_anti_p` the refutation carries to every (g, κ) with g ≥ 1 and κ ≥ 0.84 (κ ≤ 1; the Lean corollary is being built, journal); under
+theorem yet). By `SpecMono.seq_anti_p` the refutation carries to every (g, κ) with g ≥ 1 and κ ≥ 0.84 (κ ≤ 1): `FrontierPS.not_seq_above`, Lean; under
 H_RUNT(20 ps) it is open. Details: notes/C-cex-ps.md, FOR-RESEARCH C2.
 
 ## THE target: what is proved (as of 2026-11-02, unchanged since)
