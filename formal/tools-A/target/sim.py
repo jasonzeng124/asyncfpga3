@@ -54,6 +54,8 @@ def main():
                     help="sample: next pair may be offered once out0 is sampled (before its ack rises: more "
                          "than SeqEnv allows); seq: exactly SeqEnv, at the earliest: once out0's req and ack "
                          "are both low again")
+    ap.add_argument("--reqgap", type=int, default=0,
+                    help="extra ps the env waits, once it may raise the next request, before raising it")
     a = ap.parse_args()
     if a.dfall is None:
         a.dfall = a.dout
@@ -234,7 +236,7 @@ def main():
                 drive_data(t + 1, pairs[st["k"]][1], "b_data")
                 env_set(t + 1 + max(a.su, 1), req, True)
             else:
-                env_set(t + max(a.su, 1), req, True)
+                env_set(t + max(a.su, 1) + (a.reqgap if st["k"] > 0 else 0), req, True)
             req_state = True
         elif req_state and all(A) and val(req, t):
             env_set(t + 1, req, False)
