@@ -1705,3 +1705,9 @@ to the next pair as soon as their ack falls (broad rule), Δo = 1 ps (and 3 ns).
 0/0.5/1, plus uniform scatter 0.15 and 0.3 (seeds 1-3): every run returns the 12 gcds in order and ends idle
 (out/advenv_sweep_e6bb4aec.txt). Not shown: per-pin adversarial delays (B's simb), other env timings; a sweep of the
 request gap (0-2000 ps after SeqEnv allows it, 4 pairs, 3 corners) is running to look for a timing window.
+### progress 07:48 -- request-gap sweep: 123/123 correct (simulation)
+4 pairs ((12,18), (48,18), (17,5), (0,7)), the next request raised G ps after SeqEnv first allows it, G = 0..2000 step 50,
+at (corner, position) (0.5,0.5), (0,0), (1,1), with the aggressive env of the previous entry: every run correct
+(out/reqgap_sweep_e6bb4aec.txt). So no timing window between the previous pair's tail and the next request shows up at
+nominal delays. With the 11/11 sweep this is the evidence that `Plan.step`'s "the circuit is ready when SeqEnv lets the
+env raise the next request" is true; no counterexample to NetCorrectSeq on THE target is known.
