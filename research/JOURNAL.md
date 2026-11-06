@@ -2811,3 +2811,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - isprime per-cell (199 -> 147 links in its 15 sized lines), seeds 25-28: 12/12 PASS, 4/4 EQUIVALENT; 1.056x / 1.063x /
   1.064x vs base. Per-kernel table in research/data/item3/README.md: xorshift 1.42x (x0.5, 8 routes), collatz 1.155x
   (per-cell, 8), collatz64 1.17x (x0.75, 4), ipow 1.09x (x0.75, 4), isprime 1.06x (per-cell, 4), gcd R5 x0.75 1.07x laps.
+### progress 07:34 (item 3 gcd: R5 x0.75 passes the whole gate -- worst case 8/8, both corners 16/16)
+- gcd_hw R5 x0.75 (research/data/gcd_hw_sizes_R5s75.vh): SLOW_MAX 8/8, FAST_MIN 8/8, combined worst case 8/8, all 16/16
+  vectors, all EQUIVALENT, BQ#2's seeds. Laps vs R5: 1.074x (worst case, 8 paired), 1.057x / 1.043x (corners, 5 / 4 paired).
+  A board candidate after BQ#3 (whose fast fall it does not carry yet); not yet in BOARD-QUEUE.

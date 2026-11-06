@@ -10,7 +10,7 @@ worst-case run, paired by seed against BQ#2's own worst-case rows (research/data
 | step | sizes moved | worst case | corners | laps vs R5 (paired mean, range) |
 |---|---|---|---|---|
 | s90 (x0.9) | 19 (compute/select delays >= 10 links, -1..-2 links) | **8/8 PASS**, EQUIVALENT | queued | vec6 0.999 (0.891-1.086), vec12 1.000, vec13 0.996 |
-| s75 (x0.75) | 52 | **8/8 PASS**, EQUIVALENT (seed 9 rerun after the disk-full void) | running | vec6 1.074 (1.000-1.155), vec12 1.074, vec13 1.074 |
+| s75 (x0.75) | 52 | **8/8 PASS**, EQUIVALENT (seed 9 rerun after the disk-full void) | **16/16 PASS** (s75_corners.tsv) | vec6 1.074 (1.000-1.155), vec12 1.074, vec13 1.074 |
 
 s90: the gate holds, but it buys no measurable speed: a ~2% shorter compute delay is below the +-10% route-to-route
 scatter of the laps, and the mean over 8 paired routes is 1.00. Audits (s90_audits.txt, informational under item 1):
@@ -90,7 +90,7 @@ too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2
 | collatz64 | x0.75 | 4 (5-8 running) | 1.166x | 1.173 / 1.175 |
 | ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 4 | 1.090x | 1.113 / 1.100 |
 | isprime | per-cell (x0.75 fails) | 4 | 1.064x | 1.056 / 1.063 |
-| gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | corners 15/16 PASS so far |
+| gcd_hw (BQ#2 R5) | x0.75 | 8 | 1.074x laps | 1.057 / 1.043 laps (R5 corner rows exist on 5 / 4 seeds) |
 
 Against BOARD-QUEUE #1/#2 for gcd: R5 x0.75 is 1.07x BQ#2's laps (BQ#2 itself ~1.9x BQ#1's), i.e. ~2.0x BQ#1.
 None of these is a board candidate until it has 8 routes on every config; the board list's item 3 stays BQ#3 for now.
