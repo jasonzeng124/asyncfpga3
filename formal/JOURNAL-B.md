@@ -2977,3 +2977,12 @@ cells are not named uarb1 in the routed JSON; not looked at).
 The ninth arbiter is ucontrol_merge12.uarb2 (its cells are named uarb2, which the first generator's filter missed);
 ArbAckPS now has all 18 ack C-elements (rows regenerated, arows_ok passes). The 11:42 entry's "8 arbiters / ninth not
 looked at" is superseded.
+
+### progress 11:50 -- the arbiters' server-path obligation, static numbers (untrusted)
+What ArbGrantPS / ArbAckPS leave open is that the server's A0 does not act before the state has settled (H_ARB's T
+after the last request change). If A0's rise is a response to the winning grant (protocol), it cannot come sooner than
+the shortest path grant -> A0 source. All paths, support pins, every arbiter: **≥ 1,225 ps at FAST_MIN (≥ 3,135 ps at
+SLOW_MIN)**, the binding one at ucontrol_merge4 (SLICE_X14Y19.A, O6 grant), against state-LUT arcs ≤ 282 / 664 ps
+(the floor for a non-vacuous T). So T can be taken up to roughly 1.2 ns at the fast corner (3.1 ns slow) before this
+obligation fails at κ = 0, minus the grant/ack read windows; a sound version needs the same protocol argument as the
+C-element hA (that A0 rises only in response to a grant).
