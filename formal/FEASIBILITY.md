@@ -10,7 +10,9 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **2026-11-06 (lead): where THE theorem stands on THE target `gcd_ps_e6bb4aec.bit`** (details and the shrinking
 hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
 - **Decoded netlist = the bits** (H_DECODE reduced to prjxray's tables plus the parts listed in STATUS): Lean round
-  trip of every pip and LUT INIT bit (`FormalWit/RTPS`), `DecodedPS.net_wf`; every gate is a modelled primitive
+  trip of every pip and LUT INIT bit (`FormalWit/RTPS`), extended 2026-11-06 to the output-mux and carry selects
+  (`FormalWit/RTPSSel` `roundtrip_sel`, leftovers 14,322 -> 9,036, none with Spec meaning but 19 x5Q selects),
+  `DecodedPS.net_wf`, `BoundaryPS.boundary_ok`; independent check against nextpnr: 43,986/43,986 pins (Python); every gate is a modelled primitive
   (B's `PrimsPS.prim_cover`: no FF, latch, DSP or RAM in the circuit).
 - **Zero pairs, every g > 0 and κ < 1** (C's `correct_n0_all`, with a Lean witness): after reset the circuit is idle
   and stays idle. **One pair, one run**: a Lean-checked gate-level run of the decoded bitstream meets every hypothesis
