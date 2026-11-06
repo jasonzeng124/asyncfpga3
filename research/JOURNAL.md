@@ -2815,3 +2815,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - gcd_hw R5 x0.75 (research/data/gcd_hw_sizes_R5s75.vh): SLOW_MAX 8/8, FAST_MIN 8/8, combined worst case 8/8, all 16/16
   vectors, all EQUIVALENT, BQ#2's seeds. Laps vs R5: 1.074x (worst case, 8 paired), 1.057x / 1.043x (corners, 5 / 4 paired).
   A board candidate after BQ#3 (whose fast fall it does not carry yet); not yet in BOARD-QUEUE.
+### progress 09:55 (BQ#1 worst case: two compiles OOM-killed; ipow x0.75 on 8 routes)
+- BQ#1 combined worst case: d, 3, 4, 5 PASS; seeds 6 and 7 INCOMPLETE -- their iverilog compiles (6.2 GB RSS) were
+  OOM-killed (dmesg: memcg OOM, task ivl) beside a 4.3 GB gcd sim and two kernel soaks. Not results; both rerun one at a
+  time after the queue. Kernel soak compiles do not take the shared compile lock; the collatz64 T4 baseline is deferred
+  so only one kernel queue runs beside the gcd sims.
+- ipow x0.75 on 8 routes: 24/24, 8/8 EQUIVALENT; paired vs T9 1.135x / 1.132x / 1.129x (max/min/worst).
