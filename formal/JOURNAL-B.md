@@ -2972,3 +2972,8 @@ before s, the ack stays low on [s, e'] for s, e' inside the grant's settled wind
 one-acknowledge property while the state stays settled. **Not shown:** the settling window and that the server waits
 for it (server-path obligation; spec_double_ack is the counterexample shape without it); the ninth arbiter (its ack
 cells are not named uarb1 in the routed JSON; not looked at).
+
+### progress 11:49 -- ArbAckPS extended to all nine arbiters (18 acks; check.sh OK)
+The ninth arbiter is ucontrol_merge12.uarb2 (its cells are named uarb2, which the first generator's filter missed);
+ArbAckPS now has all 18 ack C-elements (rows regenerated, arows_ok passes). The 13:xx entry's "8 arbiters / ninth not
+looked at" is superseded.
