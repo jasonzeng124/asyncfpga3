@@ -1606,3 +1606,15 @@ OK over all claimed modules and the witnesses' Refute / round-trip assemblies, "
 committed tree with the changed `Adm`: both pipelined refutations of the previous target (V9V4, V9V4c), both
 decoder round trips and O5 checks (previous target RT, THE target RTPS), `DecodedPS.net_wf`, and everything else
 committed under Formal/. Disk: lake's FormalWit tree needs ~8 GB.
+
+## Session Fri Nov  6 07:11 UTC 2026 (shard A, lead; session_01HC49FyMwt2HwMQrjJfm2dr)
+### progress 07:45 -- start: lock taken (previous A lock 2026-11-02 15:09, stale); no shard session since 11-02
+Read PROGRAM.md (new 2026-11-05: max effort, at most 2 subagents at a time), the journals' tails (B and C last
+wrote 2026-11-02 13:24 / 13:03) and audit/REPORT.md at claude/audit 3c4dc596. Rows concerning A's files that are
+still open: (1) **row T9, SpecRunt DEVIATES**: `NoRuntRead` on EVERY pin, including zero-delay pips and hops where
+the read time is forced to the present, so it forbids sub-w pulses on read nodes instead of filtering them; (2)
+residual vacuity at T < D (Spec should state the T bound); (3) H_ENV harness margins R, su, Δo "not addressed
+explicitly"; (4) the AXI slave's H_ENV and STATUS crossing (formal/target/BOUNDARY-ps.md, not yet audited).
+setup.sh: the Mathlib cache host is blocked again, so Mathlib's imported part is building from source (hours).
+Plan: fix (1) in SpecRunt; answer (2) and (3) with monotonicity lemmas (new SpecMono.lean); bring STATUS.md up to
+the 11-02 results of B and C (it still lists only net_wf for gcd_ps); then the top-level assembly.
