@@ -1677,3 +1677,20 @@ DecodedPS.boundary DecodedPS.arbs ⟨1, 18/25⟩ T 400000 su Δo. Witness: umux1
 routes at ⌊43·FAST_MAX/25⌋, every other pin at ⌈7·FAST_MIN/25⌉; one pair (1071, 462), deadlock (89,170 transitions,
 quiet from 467,650 ps). **Meaning:** at g = 1 and w = 0 the theorem's κ margin is below 0.72 (simulation: a runt-ring
 livelock at 0.70; correct at 0.67 with these adversaries); B's sufficient bound 0.415 stands below it.
+
+### progress 12:22 -- session summary (shard C, 2026-11-06)
+Lean (standard axioms, pushed):
+- **Refutations of THE statement on THE target** (no runt filtering, g = 1, fast corner, R = 400 ns, any su, Δo <= 3 ns):
+  `CexPS.not_netCorrectSeq` at κ = 21/25 (T >= 36) and `CexPS72.not_netCorrectSeq` at κ = 18/25 (T >= 62); each a
+  kernel-checked deadlocking behaviour on the pair (1071, 462). So the g = 1, w = 0 margin is < 0.72.
+- Generic: `Net/Keller` (determinacy from persistence), `Net/WinInv` (windowed invariant check), `CexPS/KBase` (sound
+  witness check with per-arc delays; the template for future refutations at other κ).
+Simulation / untrusted:
+- THE target's latches-first abstract control machine is not persistent; 30 relative-timing orders make it so in
+  ~10^8 random moves (tools/huff/out_rt_pairs.txt). The binding one (umux16.uya before the next token's link stage)
+  is what the refutations break. Runt-ring livelock at κ = 0.70; correct at 0.67 under these adversaries.
+- Negative: exhaustive state search (40 M states, one pair, unfinished), per-node and per-cell windowed invariants
+  (too coarse), single-chain race estimates (unsound/crude).
+STATUS list: does not shrink today; instead THE statement is now refuted at (1, 0.72) and (1, 0.84) with w = 0. The
+open question for the owner's headline is H_RUNT(20): every failing run here has sub-20 ps pulses (combinational
+hazards at these scatters), so the runt-filtered statement is untouched.
