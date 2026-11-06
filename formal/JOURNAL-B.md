@@ -2694,3 +2694,21 @@ gates (latches, arbiters, C-elements with extra logic: not C-elements in this se
   every toggle from 5 ps on forced), `wit_toggles` (q toggles at 14 ps), `wit_toggle_14`. So all hypotheses hold together
   in a run where the C-element switches, and the input b is in the hold state for 3 ps per edge (not the degenerate
   a = b case). Ideal run; says nothing about the target.
+
+### progress 08:45 -- the 0.298 static path is a FALSE path under the handshake protocol (simulation + decoded-gate reading)
+Question of 07:20: can an admissible assignment make SLICE_X40Y49.A's 713 ps return path (q -> grant g = q·s ->
+ack = C(g, x) -> q pin 4) beat its loop for κ in [0.30, 0.41]? Answer (subagent, simb.py, untrusted; files kept in the
+session scratchpad only): **not realized**. Decoded roles: q = C(r, ¬ack); g = q ∧ s (s = arbiter state 144471);
+ack = C(g, x); x = 144585 = C(y, z); z = 140997 (4-input completion C-element following s2 = s ? q : p1). Protocol
+order: at a rise of q, either s = 1 and x can rise again only after z rises, which q's own rise causes through
+s2 -> z (≥ 1.44 ns FAST_MIN), or s = 0 and g waits for s, whose switch needs x = 0; at a fall of q, x stays 1 until z
+falls, again caused by q's fall (~9 ns). So x is never already enabling when the grant moves: the static path assumes
+an input order the protocol excludes. With the necessary order the shortest return is q -> z/x -> ack -> q ≈ 2078 ps
+FAST_MIN vs loop 386 ps FAST_MAX (κ* ≈ 0.69). Runs: 32 sequential runs (25 small + 300 full-width pairs, corner 0,
+broad data), 10,682 q toggles, never an enabling x at a grant toggle; three adversarial posmaps (rise cone, fall cone,
+and "everything fast except the 7 loop arcs slow") at κ = 0.30, 0.41, 0.5: q flips exactly as in the baseline, all
+results correct, smallest ack-after-q gap 22.8 ns (rise) / 4.0 ns (fall) even at κ = 0.5.
+**Meaning:** the all-paths bound (0.295-0.298) is sound but loose; the path that binds it is not causal. The bound the
+circuit actually has needs the protocol (which input changes are responses to which), i.e. persistence/causal order
+-- shard C's WinInv/Keller line. The recorded-episode value (0.415, RaceTablePS) stays the best evidence; the
+all-paths table is the every-path fallback. Not shown in Lean.
