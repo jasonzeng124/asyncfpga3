@@ -43,6 +43,8 @@ def main():
     ap.add_argument("--R", type=int, default=20000)
     ap.add_argument("--slow", nargs="*", default=[], help="node names whose driving gate is made slow")
     ap.add_argument("--kappa", type=float, default=None)
+    ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
+    ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
     ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
     ap.add_argument("--watch", nargs="*", default=[], help="node names: print their flip times")
     ap.add_argument("--su", type=int, default=0)
@@ -109,6 +111,10 @@ def main():
     def dly(e, gi=None):
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
+            if a.exact:   # kappa = 21/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
+                assert c == 0 and abs(a.kappa - 0.84) < 1e-12
+                if gi is not None and gates[gi]["out"] in SLOW: return (46 * e["fmax"]) // 25
+                return (4 * e["fmin"] + 24) // 25
             if gi is not None and gates[gi]["out"] in SLOW: return int(math.floor(hi * (1 + a.kappa)))
             return int(math.ceil(lo * (1 - a.kappa)))
         lo = (1 - c) * e["fmin"] + c * e["smin"]
@@ -204,8 +210,9 @@ def main():
         sched(0, gi)
     st = {"k": 0, "phase": "idle", "outs": [], "out_pending": False, "next_ok": True, "done_in": 0}
     if pairs:
-        drive_data(a.R - a.su - 1 if a.su else a.R, pairs[0][0], "a_data")
-        drive_data(a.R - a.su - 1 if a.su else a.R, pairs[0][1], "b_data")
+        t0d = 0 if a.data0 else (a.R - a.su - 1 if a.su else a.R)
+        drive_data(t0d, pairs[0][0], "a_data")
+        drive_data(t0d, pairs[0][1], "b_data")
     t = 0
     last = {}
     nev = 0

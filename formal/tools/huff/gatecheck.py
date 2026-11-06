@@ -17,7 +17,9 @@ for n0 in list(SLOWN):
     for u in G[gi0]["ins"]:
         while u in drv and G[drv[u]]["k"] == 1 and G[drv[u]]["init"] == 2: SLOW.add(u); u = G[drv[u]]["ins"][0]
 cs, kf = float(c), float(kap)
+EXACT = kap == Fr(21, 25) and c == 0
 def dly(e, slow):
+    if EXACT: return (46 * e["fmax"]) // 25 if slow else (4 * e["fmin"] + 24) // 25
     lo = (1 - cs) * e["fmin"] + cs * e["smin"]; hi = (1 - cs) * e["fmax"] + cs * e["smax"]
     return int(math.floor(hi * (1 + kf))) if slow else int(math.ceil(lo * (1 - kf)))
 def adm(e, d):
