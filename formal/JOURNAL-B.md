@@ -2758,7 +2758,7 @@ remaining storage gates (asymmetric C-elements, set/reset nodes); instance facts
   written and checked, then deleted: zero target instances) applies. Their environment condition would differ too
   (an OR-type input may change without q showing its old value). Open.
 
-### progress 08:40 -- the C-element theorem tied to every behaviour of THE circuit (ViewPS, CElemView; check.sh OK)
+### progress 08:28 -- the C-element theorem tied to every behaviour of THE circuit (ViewPS, CElemView; check.sh OK)
 **Problem, plainly:** celem_forced' takes the collapsed relation of one gate as a premise. For a gate of THE target,
 does every behaviour of THE theorem's circuit give it, with the copy chains B's tables list, so that the cell theorem
 becomes a statement about `Behaves p (circuit net boundary) x` itself? **Lean (standard axioms, check.sh OK):**
