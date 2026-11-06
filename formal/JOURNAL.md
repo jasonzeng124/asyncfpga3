@@ -1762,3 +1762,8 @@ statement: `DelayPar.LE` asks it of C's point, 21/25). From C's `CexPS.not_netCo
 standard axioms (975 declarations audited with SpecMono). Plainly: without runt filtering, the owner's (g, κ) frontier
 on THE target lies inside κ < 0.84 for every guard g ≥ 1 (reset 400 ns). Not shown: any point where it holds.
 C's CexPS modules needed one-at-a-time rebuilds here (OOM otherwise); all built.
+### progress 16:44 -- FrontierPS.not_seq_above72: false for every g ≥ 1, κ ≥ 18/25, T ≥ 62 (check.sh OK)
+From C's second Lean refutation (`CexPS72.not_netCorrectSeq`, κ = 0.72, a quiet deadlock) and SpecMono: the frontier
+lies inside κ < 0.72 for every g ≥ 1 (w = 0, reset 400 ns). STATUS/FEASIBILITY updated: margin at g = 1 in [0.415, 0.72)
+if B's race bound becomes a theorem (it is not one yet). 1,227 declarations audited with SpecMono. Building C's chunks
+needed one-at-a-time rebuilds (lake parallelism OOMs here); check.sh now retries OOM-killed modules (2f849f4e).

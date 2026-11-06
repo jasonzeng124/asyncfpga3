@@ -26,7 +26,8 @@ hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
   on LUT pins only, as the owner worded it (`SpecRunt`, audit T9).
 - **COUNTEREXAMPLE, Lean-checked (shard C, audit T28):** NetCorrectSeq on THE target is FALSE at g = 1, κ = 0.84 (w = 0)
   for every T ≥ 36 (`CexPS.not_netCorrectSeq`): one input-ack C-element slowed to the top of its window and everything
-  else fast loses a handshake through ~6 ps runts. The headline κ must be below 0.84; [0.415, 0.84) is where the g = 1
+  else fast loses a handshake through ~6 ps runts. Refuted at κ = 0.72 too (CexPS72, T ≥ 62); with `FrontierPS` both carry to every g ≥ 1. The
+  headline κ must be below 0.72; [0.415, 0.72) is where the g = 1
   frontier lies if B's race bound becomes a theorem.
 - **Not proved: NetCorrectSeq for n ≥ 1.** What is left is exactly `Plan` on `DecodedPS`: an invariant and the
   per-pair step (S4: cell-level composition over the collapsed view; S6: liveness). Verdict: feasible, with the

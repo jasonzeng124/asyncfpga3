@@ -1,5 +1,6 @@
 import Formal.Target.SpecMono
 import Formal.Net.CexPS.Refute
+import Formal.Net.CexPS72.Refute
 
 /-!
 # Formal.Target.FrontierPS — where THE theorem's (g, κ) margin can lie on THE target
@@ -20,5 +21,14 @@ theorem not_seq_above {p : DelayPar} (hg : 1 ≤ p.g) (hk : 21 / 25 ≤ p.κ) (T
   have hle : Formal.Net.CexPS.pK.LE p := by
     refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Net.CexPS.pK] <;> norm_num <;> linarith
   exact Formal.Net.CexPS.not_netCorrectSeq T su Δo hT hΔ (seq_anti_p hle h)
+
+/-- The same from C's second counterexample (`CexPS72`, κ = 18/25, a quiet deadlock): THE statement is false for
+every `g ≥ 1`, `κ ≥ 18/25`, `T ≥ 62`, `Δo ≤ 3000`. So the frontier lies inside `κ < 0.72` for every `g ≥ 1`. -/
+theorem not_seq_above72 {p : DelayPar} (hg : 1 ≤ p.g) (hk : 18 / 25 ≤ p.κ) (T su Δo : Nat) (hT : 62 ≤ T)
+    (hΔ : Δo ≤ 3000) : ¬ NetCorrectSeq net boundary arbs p T 400000 su Δo := by
+  intro h
+  have hle : Formal.Net.CexPS72.pK.LE p := by
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Net.CexPS72.pK] <;> norm_num <;> linarith
+  exact Formal.Net.CexPS72.not_netCorrectSeq T su Δo hT hΔ (seq_anti_p hle h)
 
 end Formal.Target.FrontierPS
