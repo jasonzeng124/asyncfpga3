@@ -1575,3 +1575,11 @@ Side check: tools-A/target/sim.py's default env (--datachange handshake) changes
 falls, while the input acks are still high; Spec.EnvIn forbids that (data must hold while req or ack is high). With
 it, THE target returns each result one pair late (12,18 1071,462 -> 2, 6): an env outside H_ENV, not a counterexample.
 With --nextreq seq --datachange broad (A's sweep settings): correct.
+
+### progress 09:17 -- adversarial timed sweep of the 30 orders: 240/240 correct, no runt on any c (simulation)
+tools/huff/simadv.py (copy of A's sim.py, SeqEnv-exact env: --nextreq seq --datachange broad): for each of the 20
+distinct c nodes of the 30 orders, c's LUT arcs at (1+κ)·(slow end of its window) and EVERY other arc in the circuit at
+(1-κ)·(fast end) (all inside Spec.Adm at g = 1 with scatter κ), corners 0 and 1, κ ∈ {0, 0.2, 0.4, 0.5, 0.6, 0.7},
+pairs (12,18) (1071,462) (17,5) (48,18): **240/240 runs correct**, and the narrowest pulse on any c is 2,528 ps (no
+runt; the loops are 145-375 ps). Running now: the same with c's input routes slowed too (--slowroutes), κ up to 0.95,
+including the pair (2^31-1, 2^31-2). This adversary is one direction only (c slow, all else fast), not all assignments.
