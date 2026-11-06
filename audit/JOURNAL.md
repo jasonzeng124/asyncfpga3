@@ -1171,3 +1171,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 04:08Z lock.
 - 04:48Z lock.
 - 04:49Z T23 row 22 noted.
+- 05:17Z lock (after restart).
