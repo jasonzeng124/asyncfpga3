@@ -1711,3 +1711,16 @@ at (corner, position) (0.5,0.5), (0,0), (1,1), with the aggressive env of the pr
 (out/reqgap_sweep_e6bb4aec.txt). So no timing window between the previous pair's tail and the next request shows up at
 nominal delays. With the 11/11 sweep this is the evidence that `Plan.step`'s "the circuit is ready when SeqEnv lets the
 env raise the next request" is true; no counterexample to NetCorrectSeq on THE target is known.
+### progress 10:24 -- S1: output-mux and carry selects in THE target's Lean round trip (roundtrip_sel CHECKED)
+Subagent's work (gen_rtsel.py, Formal/Target/RoundTripSel.lean, FormalWit/RTPSSel/), reviewed and re-audited here:
+`FormalWit.RTPSSel.Data.roundtrip_sel : ((gates.flatMap (featsX pre (fun i => net.names.getD i ""))) ++ lft2.map get).Perm tf`,
+`#print axioms` (run by me on its oleans): propext, Classical.choice, Quot.sound; scan.py clean. **Plainly:** besides
+every pip and LUT INIT bit, the 5,048 slice output-mux selects (from each `hop ..<L>MUX` gate and the name of the node it
+reads: O6/O5/F7/F8/XOR/CY/x5Q) and the 38 PRECYINIT + 152 CY0 carry selects (from what each CARRY4's CI/CYINIT/DI pins
+read) are recomputed by the kernel from the Lean netlist's own fields and node names (looked up through a certificate of
+5,299 (index, name) pairs checked chunk-wise against `net.names`), and together with 9,036 listed leftovers they are
+exactly the read-back features, each once. Leftovers 14,322 -> 9,036; the remaining selects are 19 `<L>OUTMUX.<L>5Q`
+in flip-flop-only slices, missing from RTPS's site-prefix table (built from LUT sites; the tilegrid is not on this
+machine). The rest of the leftovers have no Spec meaning (FF config, LUTRAM DI routing, clock/IO). Not shown: the
+wire-to-node merge; FASM parsing. Cost: ~30 min for the new part, on top of RTPS (~1.5 h); built one module at a time
+into private oleans. check.sh --wit now builds RTPSSel last (after RTPS.All) and audits its Final.
