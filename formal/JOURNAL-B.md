@@ -2682,3 +2682,15 @@ SLICE_X40Y49.A, ulink_n143 stage 2 ctl -- the allpaths.py node; next 0.30, 0.305
 path within 4x their windows. **Not shown:** hA itself (the neighbours' protocol, i.e. that an input changes only in
 response to q -- network/C), the per-instance INIT facts in Lean on DecodedPS.net (next), the other 4,236 storage
 gates (latches, arbiters, C-elements with extra logic: not C-elements in this sense), a non-vacuity witness.
+
+### progress 08:25 -- celem_forced is not vacuous; its INIT facts are a decidable check (SpecCElemWit, SpecCElemFact; check.sh OK)
+- `SpecCElemFact.cfact` (all 2^k INIT addresses) with `hall_of_cfact` / `hhold_of_cfact`: a passing check gives exactly
+  celem_forced's `hall` / `hhold`. `ctl151633_fact`: THE target's binding link controller (SLICE_X40Y49.ALUT.O6, INIT
+  0x08080e0e08080e0e, feedback pin 1, C inputs 0 and 4 with pin 4 inverted, pins 2/3/5 low) passes; negative control
+  `ctl151633_wrong_pol` (polarity on pin 0 instead) fails.
+- `SpecCElemWit` (**joint non-vacuity witness**): a 3-pin C-element (INIT 0xE8, feedback on pin 2), unit arcs at
+  ArbTSpec.p1 (every read delay forced to 1 ps), a = 20 ps square wave, b = a delayed 3 ps, q = b delayed 1 ps:
+  `wit_gate` (CGateOK holds), `wit_hA` (the environment hypothesis with Δ = 6 / 9), `wit_forced` (celem_forced' applied:
+  every toggle from 5 ps on forced), `wit_toggles` (q toggles at 14 ps), `wit_toggle_14`. So all hypotheses hold together
+  in a run where the C-element switches, and the input b is in the hold state for 3 ps per edge (not the degenerate
+  a = b case). Ideal run; says nothing about the target.
