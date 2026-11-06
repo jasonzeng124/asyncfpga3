@@ -143,12 +143,14 @@ void dfs(int depth) {
     undoTo(mark); env = save; H1 = h1; H2 = h2;
   }
 }
+string dumpInit;
 int main(int argc, char** argv) {
   ifstream in(argv[1]); string w; int n;
   maxStates = 50000000;
   for (int i = 2; i < argc; i++) {
     string a = argv[i];
     if (a == "--max") { maxStates = atoll(argv[++i]); continue; }
+    if (a == "--dump-init") { dumpInit = argv[++i]; continue; }
     size_t c = a.find(','); pairsv.push_back({stoull(a.substr(0, c), 0, 0), stoull(a.substr(c + 1), 0, 0)});
   }
   NP = pairsv.size();
@@ -189,6 +191,7 @@ int main(int argc, char** argv) {
   if (!stabilize()) { fprintf(stderr, "post-reset did not settle\n"); return 2; }
   trail.clear();
   fprintf(stderr, "huffx: %d nodes, %zu comb (depth %d), %zu storage, %zu control; %d pairs\n", NN, comb.size(), maxRank, stor.size(), ctl.size(), NP);
+  if (!dumpInit.empty()) { FILE* f = fopen(dumpInit.c_str(), "w"); for (int i = 0; i < NN; i++) fputc(val[i] ? '1' : '0', f); fputc('\n', f); fclose(f); if (maxStates == 0) return 0; }
   env = {0, 0}; seen.insert(key()); nStates = 1;
   dfs(0);
   printf("states %lld (cap %lld)%s maxdepth %lld final %lld deadlocks %lld wrong %lld persistence-violations %lld\n",

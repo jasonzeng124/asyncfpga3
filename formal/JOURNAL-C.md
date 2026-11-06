@@ -1485,3 +1485,12 @@ infinite schedule). For Boolean networks with one-node flips, `diamond_of_persis
 its reachable states, one terminating run (e.g. a checked witness) fixes the results, the end state and the firing
 counts of EVERY order, and every order terminates within that run's length. What remains for that use: persistence on
 the reachable states (an obligation, not shown) and the latches-first macro-step being deterministic.
+
+### progress 07:43 -- exhaustive Huffman search: 40 M states for ONE pair before move ~911; no violation; explicit route closed
+huffx (tools/huff), THE target's abstract machine (Lean netlist via lean2json), pair (12, 18), every interleaving of
+control firings and env moves: capped at 40,005,494 distinct states (9 min) with the DFS never deeper than 911 moves
+(a full pair takes ~1,118 moves in one order): the interleavings of up to 12 concurrently excited control nodes
+multiply. Inside the explored part: 0 persistence violations, 0 deadlocks, 0 wrong results (one terminal state
+reached, out0 = 6). **Meaning:** evidence for persistence (untrusted, hashed states); a Lean certificate by state
+enumeration is infeasible. Persistence must be shown by something that scales with the circuit, not with its
+interleavings: a local inductive invariant (next), or cell-level composition.
