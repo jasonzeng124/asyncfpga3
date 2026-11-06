@@ -1209,3 +1209,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 20:32Z T30: roundtrip_sel build abandoned (RTPS needs > 2 GB disk; guard stopped at 640 MB); UNVERIFIED.
 - 20:55Z lock.
 - 21:36Z lock.
+- 22:16Z lock.
