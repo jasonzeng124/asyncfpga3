@@ -1,4 +1,5 @@
 import FormalWit.RTPSSel.N
+import FormalWit.RTPSSel.X
 import FormalWit.RTPS.Top
 import Formal.Target.NetPS.G045
 
@@ -11,59 +12,59 @@ open Formal.Target Formal.Target.RT Formal.Target.RTS Formal.Target.DecodedPS Fo
 
 def j045_0 : List Nat := [197383, 197433, 196980, 197720, 197907, 197753, 209883, 197941, 197975, 196676, 198008]
 
-theorem s045_0 : ((g045.drop 0).take 250).flatMap (selF pre nmc) = j045_0.map get :=
+theorem s045_0 : ((g045.drop 0).take 250).flatMap (selF pre2 nmc) = j045_0.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_1 : List Nat := [197046, 198207, 198241, 198274, 198476, 198442, 198726, 201913]
 
-theorem s045_1 : ((g045.drop 250).take 250).flatMap (selF pre nmc) = j045_1.map get :=
+theorem s045_1 : ((g045.drop 250).take 250).flatMap (selF pre2 nmc) = j045_1.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_2 : List Nat := [212282, 211720, 132712, 198073, 19331, 212647, 212315, 212614, 199249]
 
-theorem s045_2 : ((g045.drop 500).take 250).flatMap (selF pre nmc) = j045_2.map get :=
+theorem s045_2 : ((g045.drop 500).take 250).flatMap (selF pre2 nmc) = j045_2.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_3 : List Nat := [212381, 199585]
 
-theorem s045_3 : ((g045.drop 750).take 250).flatMap (selF pre nmc) = j045_3.map get :=
+theorem s045_3 : ((g045.drop 750).take 250).flatMap (selF pre2 nmc) = j045_3.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_4 : List Nat := [119231, 200412, 200342, 200343, 200344, 200345, 201983, 201985, 200552, 200482, 200483, 200484, 200485]
 
-theorem s045_4 : ((g045.drop 1000).take 250).flatMap (selF pre nmc) = j045_4.map get :=
+theorem s045_4 : ((g045.drop 1000).take 250).flatMap (selF pre2 nmc) = j045_4.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_5 : List Nat := [203097, 119412, 119269, 119445, 119302, 119340, 119374, 203059, 202954]
 
-theorem s045_5 : ((g045.drop 1250).take 250).flatMap (selF pre nmc) = j045_5.map get :=
+theorem s045_5 : ((g045.drop 1250).take 250).flatMap (selF pre2 nmc) = j045_5.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_6 : List Nat := [201356, 212749, 201390, 200921, 201424, 213020, 201457, 201645, 212918, 201679, 201712]
 
-theorem s045_6 : ((g045.drop 1500).take 250).flatMap (selF pre nmc) = j045_6.map get :=
+theorem s045_6 : ((g045.drop 1500).take 250).flatMap (selF pre2 nmc) = j045_6.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_7 : List Nat := [201611, 121721, 201879, 201320, 21160, 214257, 202921, 119660, 203506, 119803, 119769, 119731, 119874, 119698, 119841, 214089, 201558, 204104, 120418]
 
-theorem s045_7 : ((g045.drop 1750).take 250).flatMap (selF pre nmc) = j045_7.map get :=
+theorem s045_7 : ((g045.drop 1750).take 250).flatMap (selF pre2 nmc) = j045_7.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_8 : List Nat := [203363, 119517, 203544, 203025, 202454, 203577, 213920, 76715, 77047, 78321, 120862]
 
-theorem s045_8 : ((g045.drop 2000).take 250).flatMap (selF pre nmc) = j045_8.map get :=
+theorem s045_8 : ((g045.drop 2000).take 250).flatMap (selF pre2 nmc) = j045_8.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def j045_9 : List Nat := [135506, 202956, 202884, 202885, 202886, 202887, 203132, 203060, 203061, 203062, 203063, 119483]
 
-theorem s045_9 : ((g045.drop 2250).take 250).flatMap (selF pre nmc) = j045_9.map get :=
+theorem s045_9 : ((g045.drop 2250).take 250).flatMap (selF pre2 nmc) = j045_9.map get :=
   chkI_sound T hidx _ _ (by decide +kernel)
 
 def jc045 : List Nat := j045_0 ++ (j045_1 ++ (j045_2 ++ (j045_3 ++ (j045_4 ++ (j045_5 ++ (j045_6 ++ (j045_7 ++ (j045_8 ++ (j045_9 ++ [])))))))))
 
 set_option maxRecDepth 100000 in
-theorem es045 : g045.flatMap (selF pre nmc) = jc045.map get := by
-  have h := fm_drop_take (selF pre nmc) g045 0 250 s045_0 (fm_drop_take (selF pre nmc) g045 250 250 s045_1 (fm_drop_take (selF pre nmc) g045 500 250 s045_2 (fm_drop_take (selF pre nmc) g045 750 250 s045_3 (fm_drop_take (selF pre nmc) g045 1000 250 s045_4 (fm_drop_take (selF pre nmc) g045 1250 250 s045_5 (fm_drop_take (selF pre nmc) g045 1500 250 s045_6 (fm_drop_take (selF pre nmc) g045 1750 250 s045_7 (fm_drop_take (selF pre nmc) g045 2000 250 s045_8 (fm_drop_take (selF pre nmc) g045 2250 250 s045_9 (fm_drop_len (selF pre nmc) g045 2500 (Nat.le_of_eq g045_len)))))))))))
+theorem es045 : g045.flatMap (selF pre2 nmc) = jc045.map get := by
+  have h := fm_drop_take (selF pre2 nmc) g045 0 250 s045_0 (fm_drop_take (selF pre2 nmc) g045 250 250 s045_1 (fm_drop_take (selF pre2 nmc) g045 500 250 s045_2 (fm_drop_take (selF pre2 nmc) g045 750 250 s045_3 (fm_drop_take (selF pre2 nmc) g045 1000 250 s045_4 (fm_drop_take (selF pre2 nmc) g045 1250 250 s045_5 (fm_drop_take (selF pre2 nmc) g045 1500 250 s045_6 (fm_drop_take (selF pre2 nmc) g045 1750 250 s045_7 (fm_drop_take (selF pre2 nmc) g045 2000 250 s045_8 (fm_drop_take (selF pre2 nmc) g045 2250 250 s045_9 (fm_drop_len (selF pre2 nmc) g045 2500 (Nat.le_of_eq g045_len)))))))))))
   rw [List.drop_zero] at h
   rw [h, jc045]
   simp only [List.map_append, List.map_nil]

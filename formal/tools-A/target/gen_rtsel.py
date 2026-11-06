@@ -17,6 +17,7 @@ Writes DIR/FormalWit/RTPSSel/ (namespace Formal.Target.RTPSSel.Data):
 Untrusted: nothing the theorems depend on; the Python below only proposes certificates.
 """
 import glob
+import json
 from collections import Counter
 import os
 import re
@@ -78,6 +79,19 @@ assert sorted(FT) == list(range(N))
 top = open(os.path.join(LEAN, "FormalWit/RTPS/Top.lean")).read()
 assert "def N : Nat := %d" % N in top
 site_pre = dict(re.findall(r'\(\.leaf "([^"\\]*)" "([^"\\]*)"\)', top.split("def siteT")[1].split("\n")[0]))
+# Extra site prefixes (prjxray tilegrid.json, --tilegrid): for slices with no LUT (flip-flops only), which RTPS's
+# siteT lacks. Rule (checked against every siteT entry): TILE.<SLICEL|SLICEM>_X<i>, i = rank of the site's X in its tile.
+TG = arg("--tilegrid", None)
+tg_pre = {}
+if TG:
+    for t, g in json.load(open(TG)).items():
+        sl = sorted([(s_, ty) for s_, ty in g.get("sites", {}).items() if s_.startswith("SLICE_")],
+                    key=lambda p_: int(re.match(r"SLICE_X(\d+)", p_[0]).group(1)))
+        for i_, (s_, ty) in enumerate(sl):
+            tg_pre[s_] = "%s.%s_X%d" % (t, ty, i_)
+    bad = [x for x in site_pre if tg_pre.get(x) != site_pre[x]]
+    assert not bad, "tilegrid rule disagrees with siteT on %s" % bad[:3]
+extra_used = {}
 pos = {s: j for j, s in FT.items()}
 rtxt = open(os.path.join(LEAN, "FormalWit/RTPS/Rows.lean")).read()
 m = re.search(r"^def rowL : List \(List Nat\) := (\[.*\])$", rtxt, re.M)
@@ -117,7 +131,12 @@ def nm(i):
 
 
 def pre(site):
-    return site_pre.get(site, "")
+    if site in site_pre:
+        return site_pre[site]
+    if site in tg_pre:
+        extra_used[site] = tg_pre[site]
+        return tg_pre[site]
+    return ""
 
 
 def is_const(s):
@@ -272,6 +291,27 @@ with wopen(os.path.join(OUT, "N.lean"), "w") as f:
     f.write("theorem nmc_eq : nmc = fun i => names.getD i \"\" := nmC_eq NT _ hNT\n")
     f.write(END)
 
+# ---- X.lean: the extra site prefixes and pre2
+ex = sorted(extra_used.items())
+
+
+def stree(items, lo, hi):
+    if hi <= lo:
+        return ".nil"
+    if hi - lo == 1:
+        return "(.leaf %s %s)" % (q(items[lo][0]), q(items[lo][1]))
+    mid = (lo + hi) // 2
+    return "(.node %s %s %s)" % (q(items[mid][0]), stree(items, lo, mid), stree(items, mid, hi))
+
+
+with wopen(os.path.join(OUT, "X.lean"), "w") as f:
+    f.write("import FormalWit.RTPS.Top\nimport Formal.Target.RoundTripSel\n\n" + HDR + OPEN.replace(" Formal.Target.DecodedPS\n", " Formal.Target.RTPS.Data\n"))
+    f.write("/-- Site prefixes of the %d flip-flop-only slices a select needs that RTPS's `siteT` lacks (prjxray\n"
+            "tilegrid.json, the rule that reproduces every `siteT` entry). Data, like `siteT`. -/\n" % len(ex))
+    f.write("def siteX : STree String := %s\n\n" % stree(ex, 0, len(ex)))
+    f.write("/-- `pre`, extended by `siteX`. -/\ndef pre2 (s : String) : String := (siteX.find s).getD (pre s)\n")
+    f.write(END)
+
 # ---- S000..: per gate chunk
 OPENS = OPEN.replace("Formal.Target.DecodedPS\n", "Formal.Target.DecodedPS Formal.Target.RTPS.Data\n")
 nC = len(chunks)
@@ -279,18 +319,18 @@ for c in range(nC):
     gi = GI[c]
     sl = [(a, min(SL, len(gi) - a)) for a in range(0, len(gi), SL)]
     with wopen(os.path.join(OUT, "S%03d.lean" % c), "w") as f:
-        f.write("import %s.N\nimport FormalWit.RTPS.Top\nimport Formal.Target.NetPS.G%03d\n\n" % (MP, c) + HDR + OPENS)
+        f.write("import %s.N\nimport %s.X\nimport FormalWit.RTPS.Top\nimport Formal.Target.NetPS.G%03d\n\n" % (MP, MP, c) + HDR + OPENS)
         for k_, (a_, n_) in enumerate(sl):
             cert = [x for gg in gi[a_:a_ + n_] for x in gg]
             f.write("def j%03d_%d : List Nat := [%s]\n\n" % (c, k_, ", ".join(map(str, cert))))
-            f.write("theorem s%03d_%d : ((g%03d.drop %d).take %d).flatMap (selF pre nmc) = j%03d_%d.map get :=\n"
+            f.write("theorem s%03d_%d : ((g%03d.drop %d).take %d).flatMap (selF pre2 nmc) = j%03d_%d.map get :=\n"
                     "  chkI_sound T hidx _ _ (by decide +kernel)\n\n" % (c, k_, c, a_, n_, c, k_))
         f.write("def jc%03d : List Nat := %s\n\n" % (c, " ++ (".join("j%03d_%d" % (c, k_) for k_ in range(len(sl))) + " ++ []" + ")" * (len(sl) - 1)))
-        term = "fm_drop_len (selF pre nmc) g%03d %d (Nat.le_of_eq g%03d_len)" % (c, len(gi), c)
+        term = "fm_drop_len (selF pre2 nmc) g%03d %d (Nat.le_of_eq g%03d_len)" % (c, len(gi), c)
         for k_ in reversed(range(len(sl))):
             a_, n_ = sl[k_]
-            term = "fm_drop_take (selF pre nmc) g%03d %d %d s%03d_%d (%s)" % (c, a_, n_, c, k_, term)
-        f.write("set_option maxRecDepth 100000 in\ntheorem es%03d : g%03d.flatMap (selF pre nmc) = jc%03d.map get := by\n"
+            term = "fm_drop_take (selF pre2 nmc) g%03d %d %d s%03d_%d (%s)" % (c, a_, n_, c, k_, term)
+        f.write("set_option maxRecDepth 100000 in\ntheorem es%03d : g%03d.flatMap (selF pre2 nmc) = jc%03d.map get := by\n"
                 "  have h := %s\n  rw [List.drop_zero] at h\n  rw [h, jc%03d]\n  simp only [List.map_append, List.map_nil]\n"
                 % (c, c, c, term, c))
         f.write(END)
@@ -320,9 +360,9 @@ reads; the CARRY4 gates' tables are the decoder's); and, as for `roundtrip`, FAS
 with wopen(os.path.join(OUT, "All.lean"), "w") as f:
     f.write("\n".join("import %s.S%03d" % (MP, c) for c in range(nC)) + "\nimport FormalWit.RTPS.Rows\nimport Formal.Target.NetPS.All\n\n" + DOC + OPENS)
     f.write("def J : List Nat := %s\n\n" % (" ++ (".join("jc%03d" % c for c in range(nC)) + ")" * (nC - 1)))
-    f.write("set_option maxRecDepth 100000 in\ntheorem hselc : gates.flatMap (selF pre nmc) = J.map get := by\n"
+    f.write("set_option maxRecDepth 100000 in\ntheorem hselc : gates.flatMap (selF pre2 nmc) = J.map get := by\n"
             "  simp only [gates, List.flatMap_append, %s, J, List.map_append]\n\n" % ", ".join("es%03d" % c for c in range(nC)))
-    f.write("theorem hsel : gates.flatMap (selF pre (fun i => net.names.getD i \"\")) = J.map get := by\n"
+    f.write("theorem hsel : gates.flatMap (selF pre2 (fun i => net.names.getD i \"\")) = J.map get := by\n"
             "  rw [show (fun i => net.names.getD i \"\") = nmc from nmc_eq.symm]\n  exact hselc\n\n")
     f.write("set_option maxRecDepth 100000 in\n/-- The new leftovers (%d target features). -/\ndef lft2 : List Nat := [%s]\n\n"
             % (len(LFT2), ", ".join(map(str, LFT2))))
@@ -330,19 +370,19 @@ with wopen(os.path.join(OUT, "All.lean"), "w") as f:
     f.write("theorem hperm2 : (J ++ lft2).Perm lft := by\n  have h := msortF_perm 20 (J ++ lft2)\n  rw [hs2] at h\n  exact h.symm\n\n")
     f.write("/-- **The selects**: the select features re-encoded from the gates plus the new leftovers are exactly the old\n"
             "leftovers, each once. -/\n")
-    f.write("theorem sel_perm : ((gates.flatMap (selF pre (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm (lft.map get) := by\n"
+    f.write("theorem sel_perm : ((gates.flatMap (selF pre2 (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm (lft.map get) := by\n"
             "  rw [hsel, ← List.map_append]\n  exact hperm2.map get\n\n")
     f.write("/-- The extended round trip, from the pip/INIT one (`RTPS.Data.roundtrip` has exactly this hypothesis's type). -/\n")
     f.write("theorem roundtrip_sel_of (hrt : ((gates.flatMap (feats pre)) ++ lft.map get).Perm tf) :\n"
-            "    ((gates.flatMap (featsX pre (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm tf :=\n"
-            "  roundtrip_ext gates pre _ get lft lft2 tf hrt sel_perm\n")
+            "    ((gates.flatMap (featsX2 pre pre2 (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm tf :=\n"
+            "  roundtrip_ext2 gates pre pre2 _ get lft lft2 tf hrt sel_perm\n")
     f.write(END)
 with wopen(os.path.join(OUT, "Final.lean"), "w") as f:
     f.write("import %s.All\nimport FormalWit.RTPS.All\n\n" % MP + HDR + OPENS)
     f.write("/-- **The extended round trip**: pips, LUT6 INIT bits, output-mux and carry selects re-encoded from the Lean\n"
-            "gates (`RTS.featsX`), plus the %d leftover features `lft2`, are exactly the target's read-back features,\n"
+            "gates (`RTS.featsX2`; site prefixes `pre`, and `pre2` = `pre` + the FF-only slices for the selects), plus the %d leftover features `lft2`, are exactly the target's read-back features,\n"
             "each once. -/\n" % len(LFT2))
-    f.write("theorem roundtrip_sel :\n    ((gates.flatMap (featsX pre (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm tf :=\n"
+    f.write("theorem roundtrip_sel :\n    ((gates.flatMap (featsX2 pre pre2 (fun i => net.names.getD i \"\"))) ++ lft2.map get).Perm tf :=\n"
             "  roundtrip_sel_of roundtrip\n")
     f.write(END)
 print("gen_rtsel: wrote %s (N, S000..S%03d, All, Final)" % (OUT, nC - 1))

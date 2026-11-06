@@ -1791,3 +1791,14 @@ Infrastructure: check.sh retries OOM-killed modules (needed on this sandbox); fu
 The STATUS list: row 1 (H_DECODE) shrank (selects, pin order, connectivity); row 6 fixed; row 7 restated as one Plan;
 and the statement is now known false above κ = 0.72. Open for A: the 19 x5Q selects (need prjxray's tilegrid in the
 round-trip prefix table), the wire-to-node merge in Lean, Spec.lean's stale plain-words H_DELAY paragraph.
+### progress 19:52 -- roundtrip_sel now re-encodes EVERY select: leftovers 9,017 (= the Python mirror)
+The 19 x5Q output-mux selects of 9 flip-flop-only slices were missing because RTPS's site-prefix table holds LUT sites
+only. gen_rtsel.py --tilegrid (prjxray-db master zynq7/xc7z010/tilegrid.json, fetched from GitHub; its slice-prefix
+rule, TILE.<SLICEL|SLICEM>_X<rank of X in the tile>, reproduces all 2,423 siteT entries, checked by the generator) adds
+`RTPSSel.Data.siteX` (9 sites) and `pre2` (= pre extended by siteX), used only for the selects; new
+`RoundTripSel.featsX2` / `roundtrip_ext2` take the two prefix tables. `roundtrip_sel` : (gates.flatMap (featsX2 pre pre2
+names) ++ lft2.map get).Perm tf with lft2.length = 9,017; axioms propext, Classical.choice, Quot.sound; scan clean; X, N,
+S000-S074, All, Final rebuilt one at a time (19:08-19:51) into private oleans on top of the RTPS oleans. Plainly: every
+pip, LUT INIT bit, output-mux select and carry select of THE target's read-back is recomputed by the kernel from the
+Lean netlist, each once; what remains unexplained in Lean is FF configuration, LUTRAM DI routing and clock/IO bits,
+none of which the Spec reads. The tilegrid is the same kind of trusted prjxray data as siteT (H_DECODE).

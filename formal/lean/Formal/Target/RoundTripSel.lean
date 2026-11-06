@@ -198,4 +198,17 @@ theorem roundtrip_ext (gates : List Gate) (pre : String → String) (nm : Nat �
   rw [List.append_assoc]
   exact hsel.append_left _
 
+/-- The extended re-encoder with a separate site-prefix table for the selects (`pre2` may cover sites `pre` lacks). -/
+def featsX2 (pre pre2 : String → String) (nm : Nat → String) (g : Gate) : List String := feats pre g ++ selF pre2 nm g
+
+theorem roundtrip_ext2 (gates : List Gate) (pre pre2 : String → String) (nm : Nat → String) (get : Nat → String)
+    (L L2 : List Nat) (tf : List String)
+    (hrt : ((gates.flatMap (feats pre)) ++ L.map get).Perm tf)
+    (hsel : ((gates.flatMap (selF pre2 nm)) ++ L2.map get).Perm (L.map get)) :
+    ((gates.flatMap (featsX2 pre pre2 nm)) ++ L2.map get).Perm tf := by
+  have h1 := flatMap_append_perm gates (feats pre) (selF pre2 nm)
+  refine ((h1.append_right _).trans ?_).trans hrt
+  rw [List.append_assoc]
+  exact hsel.append_left _
+
 end Formal.Target.RTS
