@@ -1181,3 +1181,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 08:06Z T26: formal 5a9f9237 built (10 modules rc=0) + axiom audit clean (436 constants); H_RUNT fix resolves T9 (own T9 file no longer compiles; runt_nonlut_iff; no zero-arc LUT pin on target). SpecMono confirmed. New B/C/A modules' content next.
 - 08:53Z T27: B's S3 cell layer builds clean (66 modules, 172 constants 0 bad); CElemPS 361 rows confirmed; view theorems generic until CElemViewPS/LatchViewPS instances land.
 - 09:19Z lock.
+- 09:43Z T27 row 4: CElemViewPS (361) and ArbViewPS (9) instances build clean, axioms OK.
