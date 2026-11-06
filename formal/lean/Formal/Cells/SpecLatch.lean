@@ -16,7 +16,7 @@ gives (`hi e > lo e`). When does the latch close without a runt and hold its val
 
 ## Result (`latch_close`)
 Premises: the collapsed relation (`CGateOK`) with bands; INIT facts `hopen` (enable open: output = data, after
-polarity, whatever the feedback reads) and `hclosed` (enable closed: output = feedback read); other pins held.
+polarity, whatever the feedback reads) and `hclosed` (enable closed: output = feedback read); held pins constant from `A - H` on, `H` bounding every pin's window end.
 The enable's source is open on `[τ - We, τ - 1]` and closed on `[τ, E]`; the data's source shows `v` on
 `[τ - Wd, τ + hi e]`. Timing (`A` is the time from which the conclusion holds):
 `τ + hi e ≤ A + We` (every read of the enable from `A` on, before the close is
@@ -49,8 +49,8 @@ theorem latch_close {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arc
       (∀ i, i < g.k → held i = true → v i = ov i) → g.init.testBit (addr g.k v) = (v d ^^ pd))
     (hclosed : ∀ v : Nat → Bool, (v e ^^ pe) = false →
       (∀ i, i < g.k → held i = true → v i = ov i) → g.init.testBit (addr g.k v) = v j)
-    (hheld : ∀ i, i < g.k → held i = true → ∀ t, x (src i) t = ov i)
-    (τ E We Wd A : Nat) (v : Bool)
+    (τ E We Wd A H : Nat) (v : Bool) (hH : ∀ i, i < g.k → hi i ≤ H)
+    (hheld : ∀ i, i < g.k → held i = true → ∀ t, A ≤ t + H → x (src i) t = ov i)
     (hopenW : ∀ t, τ ≤ t + We → t < τ → (x (src e) t ^^ pe) = true)
     (hclosedW : ∀ t, τ ≤ t → t ≤ E → (x (src e) t ^^ pe) = false)
     (hdata : ∀ t, τ ≤ t + Wd → t ≤ τ + hi e → (x (src d) t ^^ pd) = v)
@@ -67,7 +67,8 @@ theorem latch_close {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arc
   | _ s ih =>
   intro hAs hsE
   obtain ⟨-, hy⟩ := hF s (by omega)
-  have hheldR : ∀ i, i < g.k → held i = true → x (src i) (F i s) = ov i := fun i hi' hh => hheld i hi' hh _
+  have hheldR : ∀ i, i < g.k → held i = true → x (src i) (F i s) = ov i := fun i hi' hh =>
+    hheld i hi' hh _ (by have := hrd s (by omega) i hi'; have := hH i hi'; omega)
   have hre := hrd s (by omega) e he
   have hrdd := hrd s (by omega) d hd
   have hrj := hrd s (by omega) j hj

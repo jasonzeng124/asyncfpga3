@@ -57,8 +57,8 @@ theorem wit_close : ∀ s, 1 ≤ s → s ≤ 100 + 1 → x gL.out s = true :=
       show (0xD8 : Nat).testBit (addr 3 v) = v 2
       simp only [addr, h0]
       cases h1 : v 1 <;> cases h2 : v 2 <;> decide)
+    10 100 10 10 1 1 true (fun _ _ => le_rfl)
     (fun i _ h => by simp at h)
-    10 100 10 10 1 true
     (fun t _ h => by simp [x, En]; omega)
     (fun t h _ => by simp [x, En]; omega)
     (fun t _ h => by simp [x, Dt]; omega)
