@@ -1162,3 +1162,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 00:34Z lock.
 - 00:46Z lock (after container restart).
 - 01:26Z lock.
+- 01:27Z T23 row 19: collatz per-cell 8 routes 24/24 noted.
