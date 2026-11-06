@@ -1550,3 +1550,16 @@ control + latches first (bundling) + these 29 relative-timing orders, each a tim
 excites c, then c's switch, must beat the causal chain to b). Each is a candidate runt site if it fails; their margins
 are B's race-table kind of number (merge10's is B's binding κ* = 0.298 path). Not shown: completeness of the list
 (random walks), the timed margins, anything in Lean.
+
+### progress 09:00 -- timed margins of the 30 orders: single-chain estimate INCONCLUSIVE (method too crude); one rare 30th order
+- A 2^31-range confirmation (4 x 1,000 walks x 6 pairs, 125 M moves, all correct) found one more withdrawal:
+  umux16.uya before ulink_n_trueResult_72 stage 0 -> **30 orders** (out_rt_pairs.txt). The list is NOT shown complete.
+- tools/huff/rtmargin.py (untrusted): per withdrawal trace (huffx --traceall, 158 traces), backward "last-changed
+  input" cause chains of b and of the event e that excited c, first common cause A, hop delays = extreme sums of the
+  netlist's prjxray arcs over every logic path between consecutive storage events. Result: κ* from -0.73 to +0.27,
+  i.e. meaningless as stated: the max over ALL logic paths includes unsensitised ones (one hop uori3.ujoin ->
+  ucond_br28_j costs 23.5 ns max vs 1.4 ns min to a sibling), the chain of b ignores that b's event also waits for the
+  slow side's later events, and the one-chain max can UNDER-estimate D. Neither sound nor tight: not a result. The one
+  clean instance (merge10 trace 1) gave κ* ≈ 0.80. Needed: a time-separation-of-events bound over the trace's event
+  graph (AND inputs for lower bounds where the input is necessary, all changed inputs for upper bounds, a common
+  dominator as the reference), with sensitised (event-specific) paths. Output kept as out_rtmargin_estimates.txt.

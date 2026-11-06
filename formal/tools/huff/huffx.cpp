@@ -144,6 +144,7 @@ void dfs(int depth) {
     undoTo(mark); env = save; H1 = h1; H2 = h2;
   }
 }
+string traceDir; map<string,int> traceCnt; int traceK = 5;
 string rtFile, dumpInit, winFile, obsOut, traceNode, traceOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
 int main(int argc, char** argv) {
   ifstream in(argv[1]); string w; int n;
@@ -154,6 +155,7 @@ int main(int argc, char** argv) {
     if (a == "--dump-init") { dumpInit = argv[++i]; continue; }
     if (a == "--walks") { walks = atoi(argv[++i]); winFile = argv[++i]; obsOut = argv[++i]; continue; }
     if (a == "--trace") { traceNode = argv[++i]; traceOut = argv[++i]; continue; }
+    if (a == "--traceall") { traceDir = argv[++i]; traceK = atoi(argv[++i]); continue; }
     if (a == "--tri") { triCheck = true; continue; }
     if (a == "--rt") { rtFile = argv[++i]; continue; }
     if (a == "--seed") { walkSeed = atoll(argv[++i]); continue; }
@@ -251,9 +253,19 @@ int main(int argc, char** argv) {
             if (!(key() == kb)) { fprintf(stderr, "restore mismatch\n"); exit(4); }
           }
         }
-        trail.clear(); record(); tot++; hist.push_back(mv); if (traceNode.empty() && hist.size() > 64) hist.erase(hist.begin());
+        trail.clear(); record(); tot++; hist.push_back(mv); if (traceNode.empty() && traceDir.empty() && hist.size() > 64) hist.erase(hist.begin());
         if (!rtPairs.empty()) for (int c : exc) if (excited(c) && blockedNow(c)) { nRtBlock++; rtBlockBy[names[stor[c].out] + (mv >= 0 ? " by " + names[stor[mv].out] : " by env" + to_string(mv))]++; }
         for (int c : exc) if (!excited(c)) { if (nPersist < 40) { fprintf(stderr, "VIOL walk %d move %lld: %s (val %d) disabled by %s; env k %d kout %d w %d req %d pack %d oreq %d oack %d; last moves:", w, st, names[stor[c].out].c_str(), (int)val[stor[c].out], mv >= 0 ? names[stor[mv].out].c_str() : ("env" + to_string(mv)).c_str(), env.k, env.kout, env.w, (int)val[REQ], (int)val[PACK], (int)val[OREQ], (int)val[OACK]); for (size_t q = hist.size() > 8 ? hist.size() - 8 : 0; q < hist.size(); q++) fprintf(stderr, " %s", hist[q] >= 0 ? names[stor[hist[q]].out].c_str() : ("env" + to_string(hist[q])).c_str()); fprintf(stderr, "\n"); }
+          if (!traceDir.empty()) {
+            string key2 = names[stor[c].out] + "__" + (mv >= 0 ? names[stor[mv].out] : "env");
+            if (traceCnt[key2]++ < traceK) {
+              string fn = traceDir + "/" + key2 + "__" + to_string(traceCnt[key2]) + ".txt";
+              FILE* tf = fopen(fn.c_str(), "w");
+              fprintf(tf, "# huffx trace: walk %d seed %lld\n", w, walkSeed);
+              for (size_t q = 0; q < hist.size(); q++) fprintf(tf, "%s\n", hist[q] >= 0 ? names[stor[hist[q]].out].c_str() : ("env" + to_string(hist[q])).c_str());
+              fclose(tf);
+            }
+          }
           if (!traceNode.empty() && names[stor[c].out] == traceNode) {
             FILE* tf = fopen(traceOut.c_str(), "w");
             fprintf(tf, "# huffx trace: walk %d seed %lld range %lld pairs", w, walkSeed, walkRange);
