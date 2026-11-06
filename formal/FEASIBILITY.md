@@ -7,6 +7,25 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
 
+**2026-11-06 (lead): where THE theorem stands on THE target `gcd_ps_e6bb4aec.bit`** (details and the shrinking
+hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
+- **Decoded netlist = the bits** (H_DECODE reduced to prjxray's tables plus the parts listed in STATUS): Lean round
+  trip of every pip and LUT INIT bit (`FormalWit/RTPS`), `DecodedPS.net_wf`; every gate is a modelled primitive
+  (B's `PrimsPS.prim_cover`: no FF, latch, DSP or RAM in the circuit).
+- **Zero pairs, every g > 0 and κ < 1** (C's `correct_n0_all`, with a Lean witness): after reset the circuit is idle
+  and stays idle. **One pair, one run**: a Lean-checked gate-level run of the decoded bitstream meets every hypothesis
+  of `NetCorrectSeq` and computes gcd(12, 18) (C's `w1_hyps_and_correct`): the statement is not vacuous.
+- **Races**: 185 storage nodes' acknowledgement races are safe for every corner and admissible delay up to
+  g²(1+κ)/(1-κ) ≤ 2.433 (g ≤ 1.56 at κ = 0, κ ≤ 0.415 at g = 1; B's `RaceFrontierPS`, rows from simulation).
+- **The statement's shape** (A, 2026-11-06): the margin is a down-set in (g, κ) and in T, and up-closed in su, Δo
+  (`SpecMono.seq_weaken`); `Assembly.netCorrectSeq_of_plan` reduces THE statement, for every netlist wired like the
+  targets (one request node, end request = start request), to a per-pair `Plan` (base, quiet, step). H_RUNT(w) is now
+  on LUT pins only, as the owner worded it (`SpecRunt`, audit T9).
+- **Not proved: NetCorrectSeq for n ≥ 1.** What is left is exactly `Plan` on `DecodedPS`: an invariant and the
+  per-pair step (S4: cell-level composition over the collapsed view; S6: liveness). Verdict: feasible, with the
+  remaining effort in one place (the step); no counterexample to the sequential statement is known on THE target
+  (the gcd_hw ua1 runt at κ ≈ 0.155 does not carry over: on gcd_ps the binding race is at κ ≈ 0.42, B).
+
 **2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:

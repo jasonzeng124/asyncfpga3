@@ -47,7 +47,16 @@ def main():
     ap.add_argument("--datachange", choices=["handshake", "broad", "rtz", "next"], default="handshake",
                     help="when the env moves the data to the next pair: right after the input "
                          "handshake (Spec.Env allows it) or only just before the next request")
+    ap.add_argument("--dfall", type=int, default=None,
+                    help="out0/end acks FALL this many ps after their request falls (default: --dout); "
+                         "Spec.Env puts no lower bound on a fall, so 1 is the adversarial env")
+    ap.add_argument("--nextreq", choices=["sample", "seq"], default="sample",
+                    help="sample: next pair may be offered once out0 is sampled (before its ack rises: more "
+                         "than SeqEnv allows); seq: exactly SeqEnv, at the earliest: once out0's req and ack "
+                         "are both low again")
     a = ap.parse_args()
+    if a.dfall is None:
+        a.dfall = a.dout
     rnd = random.Random(a.seed)
     N = json.load(open(a.net))
     B = json.load(open(a.bnd))["boundary"]
@@ -248,17 +257,23 @@ def main():
             outvals.append((st["sample_at"], v))
             print("out0 #%d at %d ps: %d" % (len(outvals) - 1, st["sample_at"], v))
             st["sample_at"] = None
-            if not a.pipelined:
+            if not a.pipelined and a.nextreq == "sample":
                 st["next_ok"] = True
         if not r0 and val(oA, t) and st["out_pending"]:
             st["out_pending"] = False
-            env_set(t + a.dout, oA, False)
+            env_set(t + a.dfall, oA, False)
+            if not a.pipelined and a.nextreq == "seq":
+                st["seq_wait"] = True
+        if st.get("seq_wait") and not r0 and not val(oA, t):
+            st["seq_wait"] = False
+            st["next_ok"] = True
+            heapq.heappush(Q, (t + 1, -2, 0, None))
         pr = val(nb("req"), t)
         # the end channel's request IS the shared input request in the target; its ack is a
         # delayed copy (as the rig's bd_snk): rise dout after the request, fall dout after
         if pr != pend_state:
             pend_state = pr
-            env_set(t + a.dout, eA, pr)
+            env_set(t + (a.dout if pr else a.dfall), eA, pr)
     if a.trace and a.trace != "1":
         W = json.load(open(a.trace))   # {"req": node, "bus": [nodes]}
         rn = idx[W["req"]]
