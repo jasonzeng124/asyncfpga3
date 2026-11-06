@@ -2861,3 +2861,13 @@ excitation-to-toggle time is 419-1063 ps per node (one LUT plus its routed pins)
 come much later; consistent with the static 0.38 for ua1 (08:48). **Not shown:** adversarial delays; other vectors;
 that the timed circuit can never reach the order (that is a race bound per pair, like 08:48, still to be computed for
 22 pairs with their causal order).
+
+### progress 09:14 -- static race bounds for the persistence pairs depend on where the common cause sits (untrusted)
+tools-B/ps/persist_static.py: for the 8 pairs whose re-enabler is a direct C-input source, assuming the re-enabler's
+return is caused by the change of the input that completed the excitation (worst such input), κ* = 0.65-0.81. For
+ua1 (SLICE_X39Y51.D) that gives 0.670, but its actual common cause sits one step earlier (the arbiter state, which
+drives both the grant g and, through s2 -> z, the re-enabler x), and with the cause there the bound is 0.38 (08:48):
+skew between the two branches from the common cause costs most of the margin. So these figures are only as good as
+the causal order assumed; the remaining 15 pairs have re-enablers that reach the node through logic and are not
+computed. What a sound per-pair bound needs from C: the common cause event of the excitation's completion and of the
+re-enabling change (an order-level fact their walks can extract), then B's static path sums give the timing margin.
