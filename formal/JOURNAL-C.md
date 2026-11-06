@@ -1659,3 +1659,12 @@ witness encoding), and H_RUNT(w) for any w >= 8 ps would exclude these pulses. T
   checker must generate.
 - New generic Lean (core): Net/Keller (determinacy from persistence), Net/WinInv (windowed invariant check). Not yet
   used on THE target (the machine is not persistent without the 30 orders).
+
+### progress 11:16 -- a quiet deadlock at κ = 18/25 = 0.72 (simulation + checks); Lean version building (CexPS72)
+Adversary: umux16.uya, the four storage nodes of its support (ulink_n_falseResult_85 stage 0, ulink_n_trueResult_72
+stage 0, umux16.uj1, SLICE_X32Y28.A6) and the pips on all their input routes at ⌊43·FAST_MAX/25⌋, every other arc at
+⌈7·FAST_MIN/25⌉ (κ = 18/25, corner 0). (1071, 462): accepted, quiet from 467,650 ps, out0 never rises; gatecheck
+(exact) 0 mismatches over all 186,871 gates; Env/SeqEnv OK; ArbOK for T >= 61 (Lean will use T >= 62). With this
+adversary: correct at 0.64 and 0.67, runt-ring livelock at 0.70, quiet deadlock at 0.72, non-quiet at 0.75-0.80.
+Lean files Formal/Net/CexPS72/ (same templates as CexPS; k_hyps / k_arbOK / k_not_correct already check against the
+node codes); the 75 gate checks run one at a time (two at once exceed the session's memory: 18 OOM kills).
