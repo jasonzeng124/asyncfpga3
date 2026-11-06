@@ -2831,3 +2831,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   in the bits -- the benign GND-buffer class of the August isprime/collatz builds (current fasm_equiv agrees: only that
   DRIVER DIFFERS kind). Seeds 6, 7, 9 compiles were OOM-killed; rerun one at a time after gcd x0.75 + fast fall.
 - gcd R5 x0.75 + link fast fall: routing (8 seeds).
+### progress 13:09 (item 4 revised: isprime's validated sizes fail FAST_MIN on fresh seed 30)
+- isprime rule-E-6 pad sizes (item 4's 12/12 on seeds 25-28), seed 30: FAST_MIN fast mode hangs on vector 1, the same
+  symptom as the per-cell and x0.75 candidates. Not OOM. So the item-3 isprime failures were not (only) the shrink:
+  the base design itself is not clean. isprime goes back to "needs its select pads fixed" (rule E 2 on seeds 25/26 was
+  the warning). research/data/item4/README.md revised.

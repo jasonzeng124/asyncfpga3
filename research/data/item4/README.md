@@ -25,3 +25,9 @@ the routed JSON (run after the sims, with the 2026-11-05 constant-LUT fold).
 
 **Item 4 done: 60/60** (5 kernels x 4 routes x {SLOW_MAX, FAST_MIN, worst case}), 20/20 routes bits EQUIVALENT.
 Not shown: anything below these vectors (fusion_bench's, from the C), or other scatter draws (one per route).
+
+**REVISION (2026-11-06): isprime fails on a fresh route.** The same rule-E-6 pad sizes, fresh seed 30 (route made for item 3's
+8-route check): FAST_MIN fast mode hangs on vector 1 (timeout; SLOW_MAX PASS). Seed 29: 3/3 PASS. So isprime's 4-route
+12/12 above does not hold in general -- its select pads were never rule-E clean, and the full stack now finds a route where
+that matters. isprime needs its pads fixed (rule E on 8+ routes) before it is a validated kernel. Item 4 is 48/48 for the
+other four kernels; isprime is 15/16 runs on 6 routes so far (seeds 31-32 running).
