@@ -29,13 +29,13 @@ For n ≥ 1 there is no theorem yet, so the "current best theorem" is the statem
 each stands:
 | # | hypothesis | allowed? | status (2026-11-06) |
 |---|---|---|---|
-| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); open: wire-to-node merge, output-mux/carry selects in Lean, FASM parsing |
+| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); independent connectivity check vs nextpnr: 43,986/43,986 logic pins agree (2026-11-06, Python); open: wire-to-node merge in Lean, output-mux/carry selects in Lean (in progress 2026-11-06), FASM parsing |
 | 2 | H_DELAY(g, κ) (`Adm`) | allowed | stated; per-arc bands are the decoder's prjxray numbers (in the netlist) |
 | 3 | H_PRIM (`GateOK`) | allowed | stated; every gate kind covered (PrimsPS) |
 | 4 | H_ARB(T) (`ArbOK`) | allowed | stated; non-vacuous at T ≥ 220 for n = 1 (C's witness). Headline T: as LARGE as possible (`seq_anti_T`), at least the slowest state-LUT arc ((1+κ)·664·g ps) to avoid the residual vacuity (audit T5) |
-| 5 | H_ENV (`Env`) + SeqEnv | allowed (owner decisions 1, 4) | stated; what it asks of the AXI slave: BOUNDARY-ps.md. Margins: smaller Δo, su are stronger (`seq_mono_Δo/su`); the board's pend sink bounds Δo (BOUNDARY-ps.md finding 4) |
+| 5 | H_ENV (`Env`) + SeqEnv | allowed (owner decisions 1, 4) | stated; what it asks of the AXI slave: BOUNDARY-ps.md. Margins: smaller Δo, su are stronger (`seq_mono_Δo/su`); the board's end-channel sink needs **Δo ≤ (1-κ)·535/g ps** (BOUNDARY-ps.md finding 4), so the headline uses such a Δo (0 is strongest) |
 | 6 | H_RUNT(w) (optional, owner decision 2) | allowed | `SpecRunt.NetCorrectSeqRunt w`, corrected 2026-11-06 to LUT pins only (audit T9) |
-| 7 | everything else | must be derived | S4 composition and S6 liveness for n ≥ 1: not done |
+| 7 | everything else | must be derived | reduced (A, `AssemblyPS.the_of_plan`) to ONE hypothesis: a `Plan` (invariant, base, quiet, per-pair step) for every behaviour; that is S4 composition and S6 liveness for n ≥ 1: not done |
 
 Previous target: `formal/target/gcd_hw_03e82630.bit` (README.md). Statement: `formal/lean/Formal/Target/Spec.lean`
 (`NetCorrect`, pipelined env: expected FALSE for the target, see FOR-RESEARCH 2 / C1; `NetCorrectSeq`, sequential env: the statement to prove. Part I compiles and is frozen 2026-11-01 (changes since: ArbNodes inputs; `Adm` = g-scaled window, owner decision 3); part II, the Lean decoder, a stub).

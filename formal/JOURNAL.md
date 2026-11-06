@@ -1679,3 +1679,12 @@ A5); its shortest path from the request node is 535 ps FAST_MIN / 1331 ps SLOW_M
 board's environment meets Spec's `EnvOut pend Δo` only for Δo ≤ (1-κ)·535/g ps, and the headline must use such a Δo
 (Δo = 0 is strongest, SpecMono). Answers the audit's "H_ENV margins" row for Δo (BOUNDARY-ps.md finding 4); R and su
 stay host properties (the host writes data ≥ 1 aclk before the request; reset is ms long).
+### progress 07:37 -- delegated: OUTMUX/carry selects in the Lean round trip (S1); STATUS updated
+A subagent (no git; new files only: Formal/Target/RoundTripSel.lean, FormalWit/RTPSSel/, tools-A/target/gen_rtsel.py)
+is extending THE target's Lean round trip so the output-mux selects (and, if feasible, PRECYINIT/CY0) are re-encoded
+from the Lean gates instead of being listed leftovers (14,322 -> toward Python's 9,017). Nothing claimed until it
+compiles here. STATUS rows 1, 5, 7 updated (xcheck, Δo bound, the Plan reduction).
+Adversarial-env sweep (sim.py --nextreq seq --dfall 1, broad data rule, 12 full-width pairs): all runs that finished
+are correct (corner 0 at positions 0/0.5/1 with Δo 1 and 3000 ps; corner 0.5 pos 0 and pos 1); the first sweep's
+"MISMATCH" rows were runs cut off by --tmax (40 us) before the 12th pair (rerun with 200 us: correct). Rerunning the
+rest with a longer tmax.
