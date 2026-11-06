@@ -12,6 +12,10 @@ import json, sys, collections
 net = json.load(open(sys.argv[1])); R = json.load(open(sys.argv[2]))["modules"]["top"]
 names = net["nodes"]; gates = net["gates"]
 drv = {g["out"]: gi for gi, g in enumerate(gates)}
+# nets rebuilt from the Lean data (tools-B/target/lean2json.py) carry no "kind": infer it from the gate's shape
+for g in gates:
+    if "kind" not in g:
+        g["kind"] = "const" if g["k"] == 0 else ("pip" if g["k"] == 1 and g["init"] == 2 else "logic")
 by_name = {g["name"]: g for g in gates}
 
 
@@ -60,7 +64,7 @@ def phys(d):
     return "?%s/%s" % (ct, p)
 
 
-stat = collections.Counter(); bad = []
+stat = collections.Counter(); bad = []; ps7 = set()
 for cn, c in R["cells"].items():
     ct = c["type"]; bel = c["attributes"].get("NEXTPNR_BEL", "")
     if ct == "SLICE_LUTX":
@@ -100,9 +104,22 @@ for cn, c in R["cells"].items():
             stat["match"] += 1
         else:
             stat["mismatch"] += 1
+            if want.startswith("?PS7") and got.startswith("float:"):
+                stat["mismatch"] -= 1; stat["PS7 output (opaque in the decode)"] += 1
+                ps7.add((want, got))
+                continue
             if len(bad) < 15:
                 bad.append((cn[:50], gname, p, want, got))
 print("xcheck:", dict(stat))
+# a PS7 output is not decoded (the PS is opaque, an env primitive): the decoder leaves its node undriven ("float:").
+# Each distinct PS7 pin must map to ONE float node and vice versa, or the decoder merged/split them.
+pm = collections.defaultdict(set); fm = collections.defaultdict(set)
+for w, g_ in ps7:
+    pm[w].add(g_); fm[g_].add(w)
+print("PS7 pins: %d distinct, float nodes: %d, one-to-one: %s" % (len(pm), len(fm),
+      all(len(v) == 1 for v in pm.values()) and all(len(v) == 1 for v in fm.values())))
+for w in sorted(pm):
+    print("   ", w, "->", sorted(pm[w]))
 for x in bad[:15]:
     print("  ", x)
 sys.exit(0 if stat["mismatch"] == 0 and stat["no gate"] == 0 else 1)

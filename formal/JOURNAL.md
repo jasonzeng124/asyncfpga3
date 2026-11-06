@@ -1657,3 +1657,14 @@ four-phase moves on [t, t2), out0.req rises exactly once at t0, data = gcd of th
 t0 until the ack, all low at t2, I t2). SeqEnv and ArbOK are not used by the assembly; they are what `step` for the
 target will need. **So S4/S6 for the target are now exactly: find I and prove base, quiet, step on DecodedPS.**
 C's island_PS / correct_n0 are of the base/quiet kind. Not shown: Plan for any netlist.
+### progress 07:45 -- H_DECODE on THE target: the independent nextpnr connectivity check agrees on every pin
+`tools-A/target/xcheck_nextpnr.py` (now accepts nets rebuilt from the Lean data, tools-B/target/lean2json.py, kinds
+inferred from shape) on `DecodedPS.net` (the committed Lean netlist) vs the target's own nextpnr routed JSON
+(target/gcd_ps_e6bb4aec.routed.json.xz): **43,986 LUT/MUXF/CARRY4 input pins: the driver reached by walking back
+through the decoded pip and hop gates equals the BEL output nextpnr routed to that pin; 0 mismatches.** 80 more pins
+read a PS7 output (AXI ARESETN, ARVALID, AWVALID, BREADY, RREADY, WVALID: all in the AXI slave, outside the kernel);
+the decoder leaves the PS7 opaque (undriven "float:" nodes), and the 6 PS7 pins map one-to-one to 6 float nodes, so
+nothing is merged or split. 1 cell has no gate: the unread MUXF7 of ucontrol_merge12 (as on BQ#1).
+out/xcheck_nextpnr_e6bb4aec.txt. Plainly: two different code bases (prjxray-db + C's walker vs nextpnr's chipdb and
+router) give the same end-to-end connectivity of THE target on every logic input pin. Not compared: the pip-level
+structure in between (only endpoints) and arc delays. Untrusted Python, as before.
