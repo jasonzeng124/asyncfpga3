@@ -1688,3 +1688,7 @@ Adversarial-env sweep (sim.py --nextreq seq --dfall 1, broad data rule, 12 full-
 are correct (corner 0 at positions 0/0.5/1 with Δo 1 and 3000 ps; corner 0.5 pos 0 and pos 1); the first sweep's
 "MISMATCH" rows were runs cut off by --tmax (40 us) before the 12th pair (rerun with 200 us: correct). Rerunning the
 rest with a longer tmax.
+### progress 07:37 -- audit T26 (STATUS claimed uncommitted fixes): correct, now resolved
+Audit d4204d55 T26: STATUS.md at e647ce85 said SpecRunt was "corrected" and listed SpecMono while neither was committed.
+Right: I committed STATUS before the Lean files. Both are committed and check.sh-checked since de979b9b (07:28 entries),
+with AssemblyPS since 871f8118. Rule for myself: STATUS/FEASIBILITY name a Lean result only after its commit.
