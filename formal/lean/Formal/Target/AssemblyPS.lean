@@ -1,6 +1,7 @@
 import Formal.Target.Assembly
 import Formal.Target.SpecMono
 import Formal.Target.NetPS.All
+import Formal.Target.BoundaryPS
 
 /-!
 # Formal.Target.AssemblyPS — the top-level assembly on THE target (gcd_ps_e6bb4aec)
@@ -23,6 +24,14 @@ theorem the_of_plan {p : DelayPar} {T R su Δo : Nat}
       Env x boundary R su Δo n va vb → SeqEnv x boundary R → ∃ I, Plan x boundary R Δo I) :
     NetCorrectSeq net boundary arbs p T R su Δo :=
   netCorrectSeq_of_plan oneReq_PS h
+
+/-- **THE theorem's shape** (Spec part II, with the Lean round trip `FormalWit.RTPS.Data.roundtrip` in place of a Lean
+decoder): the decoded netlist is well formed, its boundary consistent, and THE statement holds, given a plan. -/
+theorem the_shape_of_plan {p : DelayPar} {T R su Δo : Nat}
+    (h : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x → ArbOK T arbs x →
+      Env x boundary R su Δo n va vb → SeqEnv x boundary R → ∃ I, Plan x boundary R Δo I) :
+    net.WF ∧ boundary.OK net ∧ NetCorrectSeq net boundary arbs p T R su Δo :=
+  ⟨net_wf, boundary_ok, the_of_plan h⟩
 
 /-- The same, carried to every smaller `(g, κ)`, `T` and larger margins. -/
 theorem the_of_plan_weaken {p p' : DelayPar} {T T' R su su' Δo Δo' : Nat} (hp : p.LE p') (hT : T ≤ T')

@@ -1692,3 +1692,8 @@ rest with a longer tmax.
 Audit d4204d55 T26: STATUS.md at e647ce85 said SpecRunt was "corrected" and listed SpecMono while neither was committed.
 Right: I committed STATUS before the Lean files. Both are committed and check.sh-checked since de979b9b (07:28 entries),
 with AssemblyPS since 871f8118. Rule for myself: STATUS/FEASIBILITY name a Lean result only after its commit.
+### progress 07:41 -- BoundaryPS.boundary_ok: THE target's boundary is consistent (Spec part II's B.OK N); check.sh OK
+`Formal/Target/BoundaryPS.lean`: `boundary_ok : DecodedPS.boundary.OK DecodedPS.net` (env = reset, shared request,
+out0/end acks and the 64 operand bits, nothing else; every operand bit is an env node; 32/32/32 bus widths), by decide.
+It had never been proved (grep). `AssemblyPS.the_shape_of_plan`: net.WF ∧ boundary.OK net ∧ NetCorrectSeq ..., from a
+Plan: Spec part II's theorem shape, with the Lean round trip standing in for a Lean decoder.
