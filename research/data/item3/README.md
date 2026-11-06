@@ -75,3 +75,7 @@ delays (rdly), which are also where its select races live (umux3's empty pipe). 
 
 isprime's base sizes (rule-E-6 pads) were never ratcheted, so it had the least slack; per-cell audits on its base routes
 are running instead.
+| ipow T9 x0.75 | 18 sizes | 29-32 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.113 / 1.100 (1.05-1.15); 1.090 (1.02-1.17) |
+
+ipow x0.75 (uniform) beats ipow's per-cell sizes (1.02x): the rules at the corner are more conservative than the sim here
+too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2 of 4 routes).

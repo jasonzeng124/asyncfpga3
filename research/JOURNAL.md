@@ -2803,3 +2803,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - collatz64 T4 x0.75, seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT; paired vs T4 1.173x / 1.175x (corners), 1.166x (worst).
   isprime x0.75 next. Per-kernel so far (deepest step that holds, worst-case speedup): xorshift x0.5 1.42x (8 routes),
   collatz per-cell 1.15x (8 routes, pairing on 4), collatz64 x0.75 1.17x (4), ipow per-cell 1.02x (4), gcd R5 x0.75 1.07x laps (8).
+### progress 04:33 (item 3: ipow x0.75 passes 12/12 at 1.09x worst case; isprime per-cell queued)
+- ipow T9 x0.75, seeds 29-32: 12/12 PASS, 4/4 EQUIVALENT; 1.113x / 1.100x / 1.090x (max/min/worst) vs T9 -- more than the
+  per-cell candidate (1.02x). isprime x0.75 failed (seed 25 FAST_MIN hang); its per-cell candidate (199 -> 147 links)
+  is next. gcd s75 corners 13/13 PASS so far.
