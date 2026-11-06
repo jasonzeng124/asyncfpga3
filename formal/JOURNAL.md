@@ -1618,7 +1618,7 @@ explicitly"; (4) the AXI slave's H_ENV and STATUS crossing (formal/target/BOUNDA
 setup.sh: the Mathlib cache host is blocked again, so Mathlib's imported part is building from source (hours).
 Plan: fix (1) in SpecRunt; answer (2) and (3) with monotonicity lemmas (new SpecMono.lean); bring STATUS.md up to
 the 11-02 results of B and C (it still lists only net_wf for gcd_ps); then the top-level assembly.
-### progress 07:45 -- audit T9 fixed: H_RUNT(w) now on LUT input pins only (SpecRunt.lean, check.sh OK)
+### progress 07:28 -- audit T9 fixed: H_RUNT(w) now on LUT input pins only (SpecRunt.lean, check.sh OK)
 `Formal/Target/SpecRunt.lean`: the filter is a gate-class parameter, `GateOKRuntOn L` / `NetCorrectSeqRuntOn L`;
 `NetCorrectSeqRunt w` is now the class `lutGate` (decoded name ends in `LUT.O6`/`LUT.O5`, kernel-reducible by bytes;
 pips, site hops, MUXF7/F8, CARRY4 and constants are NOT filtered). This is the owner's wording ("a LUT input pulse
@@ -1630,7 +1630,7 @@ hypothesis), `seqRuntAll_of_seqRunt` (the corrected statement implies the withdr
 frozen statement, any class). Nothing imported SpecRunt, so nothing else changes. Not shown: any w for the fabric;
 the earlier H_RUNT simulation points (A's simb --gfilter, B's hrunt.sh) filter "pins whose window start and delay are
 >= W", which is neither form exactly (audit: UNVERIFIED); they stay simulation evidence only.
-### progress 07:45 -- SpecMono.lean: THE statement's margin is a down-set (check.sh OK)
+### progress 07:28 -- SpecMono.lean: THE statement's margin is a down-set (check.sh OK)
 Answers audit rows T5 (residual vacuity at small T) and "H_ENV margins R, su, Δo not addressed" as far as Lean can:
 `arbOK_mono`, `seq_anti_T` (proved at T' gives every T <= T'), `seq_mono_su`, `seq_mono_Δo` (proved at su, Δo gives
 every larger one; for Δo also the data window shrinks), `adm_mono`/`start_mono`/`behaves_mono` and `seq_anti_p`
@@ -1640,7 +1640,7 @@ pipelined NetCorrect. Plainly: the owner's "(g, κ) frontier" is the boundary of
 and SMALL su, Δo covers the smaller T and larger margins, and the vacuity risk is only at small T: so the headline T
 should be large (at least the slowest state-LUT arc, (1+κ)·664·g ps), and C's n = 1 witness (every T >= 220) is a
 witness at every larger T. Nothing about R (Env fixes the reset to exactly [0, R)).
-### progress 07:46 -- Assembly.lean: THE statement reduced to a per-pair Plan (check.sh OK, 293 decls with the two above)
+### progress 07:29 -- Assembly.lean: THE statement reduced to a per-pair Plan (check.sh OK, 293 decls with the two above)
 **Problem, plainly:** Correct has seven all-time clauses; a proof for the target will argue per pair. Is "idle after
 reset, stays idle while nothing is offered, one offered pair gives one correct output handshake and idle again" enough?
 **Lean (generic in the netlist; standard axioms):** `Assembly.correct_of_plan : OneReq B → Env x B R su Δo n va vb →
