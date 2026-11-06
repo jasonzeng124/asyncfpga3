@@ -5,7 +5,7 @@ proved correct (in Lean 4 or similar), and how feasible is that?
 Program: `formal/PROGRAM.md`. Shard A writes this file from all three shards'
 journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
-**Status: a verdict for every track (1–13). Updated as the 48-hour phases (PROGRAM.md) land.**
+**Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
 **2026-11-06 (lead): where THE theorem stands on THE target `gcd_ps_e6bb4aec.bit`** (details and the shrinking
 hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
@@ -34,7 +34,7 @@ hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
   remaining effort in one place (the step); a counterexample is known only at κ ≥ 0.84 (above); the gcd_hw ua1 runt at κ ≈ 0.155 does not
   carry over (on gcd_ps the binding race is at κ ≈ 0.42, B).
 
-**2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
+**2026-11-01 (lead, kept as history; mostly about the PREVIOUS target gcd_hw_03e82630 — the 2026-11-06 block above supersedes it for THE target): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header
 date) computes gcd on the board. Where it stands, plainly:
 - **THE target switched (owner decision 1) to `formal/target/gcd_ps_e6bb4aec.bit`** (BQ#4, 2026-11-01 19:3x UTC): the same
