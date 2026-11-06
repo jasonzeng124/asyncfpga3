@@ -1187,3 +1187,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 10:40Z lock.
 - 11:21Z lock; building C's CexPS refutation (e9780623).
 - 12:01Z lock.
+- 12:28Z T28 row 5: C's Lean refutation CexPS.not_netCorrectSeq (g=1, κ=21/25) builds (154 modules) with standard axioms; statement = frozen NetCorrectSeq on THE target (Spec/NetPS unchanged).
