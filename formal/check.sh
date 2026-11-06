@@ -31,9 +31,18 @@ FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | t
 # lake has no job limit: on a 15 GB sandbox several large chunk modules at once get OOM-killed (exit 137). Rebuild
 # those one module at a time (each through slot.sh), then run the whole build once more.
 if ! grep -q 'Build completed successfully' .lake/check-build.log && grep -q 'exited with code 137' .lake/check-build.log; then
-  oom=$(grep -B1 'exited with code 137' .lake/check-build.log | grep -o 'Building [A-Za-z0-9_.]*' | awk '{print $2}' | sort -u)
+  oom=$(awk '/Building /{for (i = 1; i < NF; i++) if ($i == "Building") m = $(i + 1)} /exited with code 137/{print m}' .lake/check-build.log | sort -u)
   echo "[check] $(echo "$oom" | wc -w) module(s) OOM-killed; rebuilding them one at a time"
   for m in $oom; do FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "$m" > .lake/check-oom.log 2>&1 || true; done
+  # the rest of the build can still OOM on modules that were never started; repeat a few rounds
+  for round in 1 2 3; do
+    FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" > .lake/check-build.log 2>&1
+    grep -q 'Build completed successfully' .lake/check-build.log && break
+    oom=$(awk '/Building /{for (i = 1; i < NF; i++) if ($i == "Building") m = $(i + 1)} /exited with code 137/{print m}' .lake/check-build.log | sort -u)
+    [ -z "$oom" ] && break
+    echo "[check] round $round: $(echo "$oom" | wc -w) more OOM-killed; one at a time"
+    for m in $oom; do FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "$m" > .lake/check-oom.log 2>&1 || true; done
+  done
   FORMAL_SLOT_CWD="$HERE/lean" "$HERE/slot.sh" lake build "${TARGETS[@]}" 2>&1 | tee .lake/check-build.log | grep -E 'error|warning: declaration uses|Build completed|✖' | head -50
 fi
 grep -q 'Build completed successfully' .lake/check-build.log || { echo "[check] FAIL: build"; fail=1; }
