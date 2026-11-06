@@ -2894,3 +2894,10 @@ A + hi j ≤ τ + lo e (its own routed pins' summed window ends), A ≥ its coll
 holds v on [A, E + lo e]. With CElemViewPS and ArbViewPS: 4,555 of the 4,597 storage gates have an every-behaviour
 cell theorem on the netlist's own gates; open premises are the environment windows (bundling / hA), which the
 network must supply.
+
+### progress 11:04 -- arbiter clear direction (ArbViewPSReset; check.sh OK)
+`cq_clean_reset_gen` (the mirror of ArbCleanChain's set lemma: reads see r1 low, r2 high, reset low, A0 low for at
+least the routed feedback's upper delay, r2 then stays high => q = 0), decidable `resetFact`/`zconfFact` with soundness,
+`arows_reset_ok` (THE target's nine state LUTs pass both), `target_ps_arb_clean_reset` (every behaviour of THE
+circuit). Both directions of a separated arbitration are now cell theorems on the netlist's own gates. Same caveats as
+ArbViewPS.
