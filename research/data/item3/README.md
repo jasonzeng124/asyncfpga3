@@ -71,3 +71,7 @@ the corner. The rules leave little room on ipow; the sim's floor lies between th
 Operator-only x0.5 is safe but buys 5-7%, against 1.44x for uniform x0.5: most of xorshift's cycle is in the LINK request
 delays (rdly), which are also where its select races live (umux3's empty pipe). Speed and risk sit in the same lines.
 | collatz64 T4 x0.75 | 15 sizes | 1-4 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.173 / 1.175 (1.12-1.21); 1.166 (1.11-1.19) |
+| isprime x0.75 | 15 sizes | 25 (of 25-28) | **FAIL**: seed 25 FAST_MIN hangs (fast mode, vector 4); rest not run | - | - |
+
+isprime's base sizes (rule-E-6 pads) were never ratcheted, so it had the least slack; per-cell audits on its base routes
+are running instead.
