@@ -2843,3 +2843,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   narrower than the loop -- the H_RUNT question (board list item 2), here in a shipped kernel. No rule audit flags it.
   A +300 ps patch on that wire makes all 18 fast vectors pass. Board relevance unshown (the board harness answers
   slower than 0 ps). New audit lead: C-element self-loop vs the fastest external return (forks/joins, not only arbiters).
+- Negative: a self-loop-length screen does not discriminate -- isprime routes carry ~2385 LUT self-loops (latches + C-
+  elements), median ~330 ps at FAST_MIN, max ~700; ufork0's 421 ps is ordinary. The hazard is loop vs the fastest RETURN
+  of an input edge through the environment, which needs the path from each output back to the cell's other inputs
+  (including a zero-delay testbench's). Screen discarded; not committed.
