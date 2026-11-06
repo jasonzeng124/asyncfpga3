@@ -1177,3 +1177,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 06:38Z T23 row 23: item-3 per-kernel summary mapped to audit status.
 - 07:18Z lock.
 - 07:19Z T26: formal A resumed; STATUS.md claims SpecRunt 'corrected' (T9) and SpecMono, neither committed -> OVERSTATED (premature).
+- 07:59Z lock.
