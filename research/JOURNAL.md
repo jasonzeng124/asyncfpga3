@@ -2847,3 +2847,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   elements), median ~330 ps at FAST_MIN, max ~700; ufork0's 421 ps is ordinary. The hazard is loop vs the fastest RETURN
   of an input edge through the environment, which needs the path from each output back to the cell's other inputs
   (including a zero-delay testbench's). Screen discarded; not committed.
+### progress 15:47 (gcd R5 x0.75 + fast fall: worst case 5/5 so far; GND-buffer equivalence class)
+- s75ff worst case: seeds 6, 7, 8, 9, 10 PASS 16/16; laps 65-71 on vec 6 vs BQ#3's 58-65 on the same seeds.
+- Seed 10 reads NOT_EQUIVALENT: 4 F7-mux inputs fed by $PACKER_GND_NET buffer LUTs (f = A1, A1 tied GND) in the JSON,
+  const 0 in the bits -- the benign class already seen (BQ#1 seed 8, August isprime/collatz). Tried folding those cells by
+  name in fasm_equiv: wrong (891 new DRIVER DIFFERS, because the bits side still sees them as LUTs); reverted. A correct
+  fix folds both sides by the function given tied pins; not done.
