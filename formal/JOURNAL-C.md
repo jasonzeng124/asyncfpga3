@@ -1607,3 +1607,15 @@ good, which H_ARB(T) excludes. **Scope:** w = 0 (no runt filtering): with H_RUNT
 and this case is open. It says the (g, κ) margin at g = 1 is below 0.84; B's sufficient bound is 0.415. Files:
 tools/huff/cex/k84b_dump.json.xz (every node's flips), k84b_sim.log. Next: a Lean-checked witness (WitBaseL-style,
 per-arc delays) would make it a theorem.
+
+### progress 10:07 -- toward a Lean refutation at κ = 21/25: KBase proved; one-pair deadlock run; checks building
+- The deadlock needs only ONE pair: (1071, 462) (also (462, 1071), (35, 15)) is accepted and out0 never rises
+  (κ = 0.84, same adversary). Exact-delay run (simadv --exact --data0: slow ⌊46·FAST_MAX/25⌋, fast ⌈4·FAST_MIN/25⌉,
+  operands constant from t = 0, reset 400 ns, req at 401 ns, pend ack 3 ns after req): 106,500 transitions, quiet
+  from 450,422 ps; gatecheck (exact) 0 mismatches over all 186,871 gates; Env/SeqEnv OK; ArbOK for T >= 35.
+- `Formal/Net/CexPS/KBase.lean` (lake env lean OK; no sorry): `gateOK_of_gateWK`: the finite per-gate check
+  (equation at start and every breakpoint, plus 4·fmin <= 25·d <= 46·fmax and d <= startK per arc) gives
+  Spec.GateOK ⟨1, 21/25⟩ 0 for the coded behaviour; `startK_le` (startK <= Gate.start pK via Rat.ceil).
+- Generated: L000..L074 (node codes), EncK, X000..X074 (per-chunk decide of gateWK), Wit.lean (behaves_k from the
+  chunks), Refute.lean (k_hyps: Env + SeqEnv for any su, Δo <= 3000; k_arbOK: T >= 36; k_not_correct;
+  not_netCorrectSeq). Building now; nothing claimed until it checks.
