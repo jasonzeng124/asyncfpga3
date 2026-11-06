@@ -1206,3 +1206,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 19:35Z lock.
 - 20:15Z lock.
 - 20:16Z T30: A's roundtrip_sel (selects re-encoded, leftovers 9017) noted; build pending (needs RTPS rebuild, disk).
+- 20:32Z T30: roundtrip_sel build abandoned (RTPS needs > 2 GB disk; guard stopped at 640 MB); UNVERIFIED.
