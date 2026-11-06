@@ -1619,3 +1619,22 @@ per-arc delays) would make it a theorem.
 - Generated: L000..L074 (node codes), EncK, X000..X074 (per-chunk decide of gateWK), Wit.lean (behaves_k from the
   chunks), Refute.lean (k_hyps: Env + SeqEnv for any su, Δo <= 3000; k_arbOK: T >= 36; k_not_correct;
   not_netCorrectSeq). Building now; nothing claimed until it checks.
+
+### progress 10:39 -- REFUTED IN LEAN: THE sequential statement is false at (g, κ) = (1, 21/25), w = 0
+`Formal/Net/CexPS/{KBase, L000..L074, EncK, X000..X074, Wit, Refute}.lean` (lake build OK, 1,133 jobs; axioms
+propext, Classical.choice, Quot.sound; scan.py clean; X chunks 22-83 s, <= 6.2 GB each).
+**Statement** (`Formal.Net.CexPS.not_netCorrectSeq`): ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 →
+¬ NetCorrectSeq DecodedPS.net DecodedPS.boundary DecodedPS.arbs ⟨1, 21/25⟩ T 400000 su Δo.
+**Plainly:** with no guard (g = 1) and within-die scatter κ = 0.84, at the fast corner, a 400 ns reset, and any
+H_ARB(T) with T ≥ 36 ps (this includes every T above the state LUTs' own delays, so the audit's non-vacuity rule
+is met), THE target's decoded circuit can deadlock on the pair (1071, 462): the witness behaviour xK (umux16.uya
+and its 35 input-route pips read at ⌊46·FAST_MAX/25⌋, every other pin at ⌈4·FAST_MIN/25⌉, transport) satisfies
+Behaves (`behaves_k`, every one of the circuit's gates kernel-checked at every breakpoint), Env with any su and
+Δo ≤ 3 ns and SeqEnv (`k_hyps`), ArbOK T (`k_arbOK`), but out0's request never rises (`k_not_correct`).
+Hypotheses used: none beyond Spec's definitions (H_DECODE is the meaning of DecodedPS.net).
+**Not shown:** κ < 0.84 (the same adversary is correct at 0.82); w > 0 (NetCorrectSeqRunt: the run has ~6 ps runts
+on uya, which H_RUNT(20) would filter); other corners. **Consequence for the (g, κ) frontier at g = 1:** the
+statement fails for every κ ≥ 21/25 (the witness's delays stay admissible for larger κ: the Adm window only widens,
+so the same xK refutes them, though only κ = 21/25 is stated in Lean), and B's race tables give sufficient conditions
+up to 0.415: the frontier is in [0.415, 0.84) if B's chain is completed, and it is set by a relative-timing order of
+the control network (umux16.uya before the next token's ulink_n_falseResult_85 / trueResult_72 stage).

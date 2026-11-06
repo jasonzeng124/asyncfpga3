@@ -130,7 +130,7 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   numbers are unchanged), SpecArbVacuous (`delay_bound` is now per corner: the old ∃M ∀c form is false without the
   band), SpecFb and ArbTSpec (proofs only). **AUDIT: please add a row** for this change to the frozen Spec.
 
-## C2. COUNTEREXAMPLE CANDIDATE to the sequential theorem on THE target (gcd_ps) at g = 1, κ = 0.84 (shard C, 2026-11-06; simulation + independent check, not Lean)
+## C2. COUNTEREXAMPLE (Lean-checked 2026-11-06 10:4x: `Formal.Net.CexPS.not_netCorrectSeq`) to the sequential theorem on THE target (gcd_ps) at g = 1, κ = 21/25, w = 0 (shard C)
 - **What:** a transport-delay behaviour of `circuit DecodedPS.net DecodedPS.boundary` in which every arc delay is inside
   `Adm` at g = 1, κ = 0.84 (fast corner), the env obeys Env (R = 400 ns, su = 1 ns, Δo = 3 ns) and SeqEnv, and every
   arbiter resolves (ArbOK T for all T ≥ 36 ps), but the second pair never gets an out0: the circuit deadlocks.
@@ -145,6 +145,8 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   186,871 gates, 0 mismatches, 0 arcs outside Adm) and envcheck.py (Env, SeqEnv, ArbOK T ≥ 36, Correct fails).
   Reproduce: `python3 formal/tools/huff/simadv.py net.json bnd.json --pairs 12,18 1071,462 --corner 0 --kappa 0.84
   --slow SLICE_X36Y47.C6 --slowroutes --nextreq seq --datachange broad --R 400000 --su 1000 --full` (net.json, bnd.json
-  from `tools/cview/lean2json.py lean/Formal/Target/NetPS`). Next: a Lean-checked witness.
+  from `tools/cview/lean2json.py lean/Formal/Target/NetPS`). **Lean:** one-pair version (1071, 462), exact integer delays
+  (`--exact --data0`), `not_netCorrectSeq : ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq net boundary arbs ⟨1, 21/25⟩ T 400000 su Δo`,
+  standard axioms (`lake build Formal.Net.CexPS.Refute`).
 - **For research:** a fid GLS replay at these delays (and with the resolver on) would say whether the fabric model
   sees the same runts.
