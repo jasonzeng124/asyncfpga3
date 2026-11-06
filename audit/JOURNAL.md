@@ -1164,3 +1164,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 01:26Z lock.
 - 01:27Z T23 row 19: collatz per-cell 8 routes 24/24 noted.
 - 02:07Z lock.
+- 02:07Z T23 row 20: collatz64 x0.75 12/12 at 1.17x noted UNVERIFIED.
