@@ -1455,3 +1455,20 @@ run: a consistency check of the statement (not vacuous, not contradicted, at n =
 
 ### progress 07:21 -- start
 Lock taken (previous C lock 2026-11-02, stale). Reading STATUS, audit, other journals.
+
+### progress 07:32 -- plan; tools: Lean netlist back to JSON, exhaustive Huffman explorer
+State (STATUS 11-06, audit d4204d55): no audit row open against C's files (T26 concerns A's STATUS). THE statement is
+proved for n = 0 only; n >= 1 needs S4 (composition) + S6 (liveness). Every C route to n >= 1 passes through the claim
+of 11-02 09:14 (simulation): THE target's 412 control storage nodes form a speed-independent, determinate network once
+data latches fire first ("latches first"). That claim rested on 6-11 random orders. Today, first: make it exhaustive
+(all orders, all env delays) per operand pair, then decide whether a Lean certificate of it is feasible (state count).
+- `tools/cview/lean2json.py`: reads the committed Lean netlist (Formal/Target/NetPS) back into the cview JSON, so the
+  tools run on exactly Lean's gates (187,258 nodes, 186,873 gates, 68 env nodes, 9 arbiters); hufsim on it reproduces
+  11-02 (12,18 -> 6; 17,5 -> 1; 0 persistence violations).
+- Data -> control interface (static, untrusted): the 412 control nodes read data only through 32 nodes: 23 one-bit data
+  latches (condition tokens) and 9 combinational nodes over 32-65 data latches (comparisons / zero tests).
+- `tools/huff/{prep.py,huffx.cpp}`: exhaustive DFS over every interleaving of control-node firings and env moves (each
+  env signal a separate move with any delay; sequential env), latches-first closure after every move; checks out0 data
+  = gcd at every out0 ack, persistence of every excited control node under every other move, deadlock, closure
+  convergence. States hashed (128-bit Zobrist): evidence, not proof. Concurrency seen in one random run: up to 12
+  control nodes excited at once.
