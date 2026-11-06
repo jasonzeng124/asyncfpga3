@@ -98,12 +98,23 @@ windows['env'] = tuple(envsupp)
 # truth tables: for control c, F_c as dict over tuple of window values
 def asg_of(W, t): return {v: bool((t >> p) & 1) for p, v in enumerate(W)}
 Ftab = {}
+import pickle, os
+TCACHE = sys.argv[1] + ".ftab.pkl"
+if os.path.exists(TCACHE): Ftab = pickle.load(open(TCACHE, "rb"))
 for c in CTL:
+    if c in Ftab: continue
     W = windows[c]; tab = []
     for t in range(1 << len(W)):
         tab.append(F(c, asg_of(W, t)))
     Ftab[c] = tab
+pickle.dump(Ftab, open(TCACHE, "wb"))
 print("tables built", file=sys.stderr)
+if "--export" in sys.argv:
+    with open(sys.argv[sys.argv.index("--export") + 1], "w") as f:
+        f.write("%d\n" % len(windows))
+        for k, W in windows.items():
+            f.write("%s %d %s\n" % ("env" if k == "env" else str(k), len(W), " ".join(str(v) for v in W)))
+    print("exported windows", file=sys.stderr); sys.exit(0)
 def initval(v):
     if v == W_ENV: return False
     if v in (REQ, PACK, OACK): return False
@@ -150,63 +161,222 @@ def join(Wa, Ra, Wb, Rb):
             d = asg_of(Wa, ta); d.update(asg_of(Wb, tb)); yield d
 def proj(W, d): return sum((1 << p) for p, v in enumerate(W) if d[v])
 def tup(W, d): return proj(W, d)
-it = 0
-changed = True
-while changed:
-    changed = False; it += 1; added = 0
-    for k, W in windows.items():
-        movers = set(W)
-        new = set()
-        # control movers
-        for m in movers:
-            if isinstance(m, int) and m in Ftab:
-                Wm = windows[m]
-                for d in join(W, R[k], Wm, R[m]):
-                    if Ftab[m][proj(Wm, d)] != d[m]:
-                        d2 = dict(d); d2[m] = not d[m]; new.add(proj(W, d2))
-            elif m in FRONT:
-                if k == 'env': continue
-                c = k  # window owner: flip allowed if c insensitive to m
+
+# ---- fast fixpoint (bit operations; same semantics as the join version) ----
+pos = {k: {v: p for p, v in enumerate(W)} for k, W in windows.items()}
+def keyfun(A, B):
+    """positions in A and in B of the variables they share"""
+    sh = [v for v in windows[A] if v in pos[B]]
+    return [pos[A][v] for v in sh], [pos[B][v] for v in sh]
+def key(t, ps):
+    r = 0
+    for i, p in enumerate(ps):
+        if (t >> p) & 1: r |= 1 << i
+    return r
+KF = {}
+def kf(A, B):
+    if (A, B) not in KF: KF[(A, B)] = keyfun(A, B)
+    return KF[(A, B)]
+ENVMOVES = ["req+", "req-", "pack+", "pack-", "oack+", "oack-"]
+def env_enabled_effects(t):
+    d = asg_of(windows['env'], t)
+    return env_moves(d)
+movers = {}
+for k, W in windows.items():
+    ms = []
+    for v in W:
+        if isinstance(v, int) and v in Ftab: ms.append(("ctl", v))
+        elif v in FRONT and k != 'env': ms.append(("fr", v))
+    if any(v in ENVVARS for v in W): ms.append(("env", None))
+    movers[k] = ms
+def excited_keys(m, A):
+    pa, pb = kf(A, m)
+    Wm = windows[m]; pm = pos[m][m]
+    return set(key(t, pb) for t in R[m] if Ftab[m][t] != bool((t >> pm) & 1))
+def env_keys(A):
+    """for each env move: set of keys (on A ∩ env window) where enabled; effects"""
+    pa, pb = kf(A, 'env')
+    out = collections.defaultdict(set); effs = {}
+    for t in R['env']:
+        for nm_, eff in env_enabled_effects(t):
+            out[nm_].add(key(t, pb)); effs[nm_] = eff
+    return pa, out, effs
+
+RCACHE = sys.argv[1] + ".R.pkl"
+if os.path.exists(RCACHE) and "--fresh" not in sys.argv: R = pickle.load(open(RCACHE, "rb"))
+if "--seed-obs" in sys.argv:
+    # candidate invariant: the tuples observed in concrete runs (huffx --walks); then close it
+    for ln in open(sys.argv[sys.argv.index("--seed-obs") + 1]):
+        k, *ts = ln.split(); k = "env" if k == "env" else int(k)
+        R[k] |= set(int(t) for t in ts)
+    R0 = {k: set(r) for k, r in R.items()}
+
+if "--ctx" in sys.argv:
+    # context-consistent closure: a joined pair (t on W, tm on W_m) is kept only if, for every other
+    # window X sharing >= 2 variables with W ∪ W_m, some allowed tuple of X agrees with it there.
+    # Sound (the real state meets every window); Lean: WinInv closeCtxOK (to be written).
+    allv = {}
+    def ctxw(k, m):
+        ck = (k, m)
+        if ck in allv: return allv[ck]
+        U = set(windows[k]) | set(windows[m])
+        xs = []
+        for X, WX in windows.items():
+            if X in (k, m): continue
+            I = [v for v in WX if v in U]
+            if len(I) >= 2: xs.append((X, I))
+        allv[ck] = xs; return xs
+    projc = {}
+    def projset(X, I):
+        ck = (X, tuple(I))
+        if ck in projc and projc[ck][0] == len(R[X]): return projc[ck][1]
+        ps = [pos[X][v] for v in I]
+        r = set(key(t, ps) for t in R[X]); projc[ck] = (len(R[X]), r); return r
+    def consistent(d, xs):
+        for X, I in xs:
+            kk = 0
+            for i, v in enumerate(I):
+                if d[v]: kk |= 1 << i
+            if kk not in projset(X, I): return False
+        return True
+    def asg2(Wa, ta, Wb, tb):
+        d = {}
+        for p_, v in enumerate(Wa): d[v] = bool((ta >> p_) & 1)
+        for p_, v in enumerate(Wb):
+            bv = bool((tb >> p_) & 1)
+            if v in d and d[v] != bv: return None
+            d[v] = bv
+        return d
+    sweep = 0; changed = True
+    while changed:
+        changed = False; sweep += 1; added = 0
+        for k, W in windows.items():
+            new = set()
+            for kind, m in movers[k]:
+                if kind == "ctl" or kind == "env":
+                    mk = m if kind == "ctl" else 'env'
+                    Wm = windows[mk]; xs = ctxw(k, mk)
+                    if mk == k:
+                        for t in R[k]:
+                            if kind == "ctl" and Ftab[m][t] != bool((t >> pos[k][m]) & 1): new.add(t ^ (1 << pos[k][m]))
+                        continue
+                    for tm in R[mk]:
+                        if kind == "ctl":
+                            if Ftab[m][tm] == bool((tm >> pos[mk][m]) & 1): continue
+                            effl = [({m: not bool((tm >> pos[mk][m]) & 1)})]
+                        else:
+                            effl = [e for _, e in env_enabled_effects(tm)]
+                            if not effl: continue
+                        for t in R[k]:
+                            d = asg2(W, t, Wm, tm)
+                            if d is None or not consistent(d, xs): continue
+                            for eff in effl:
+                                t2 = t
+                                for v, bb in eff.items():
+                                    if v in pos[k]:
+                                        p_ = pos[k][v]; t2 = (t2 | (1 << p_)) if bb else (t2 & ~(1 << p_))
+                                new.add(t2)
+                elif kind == "fr":
+                    b_ = 1 << pos[k][m]
+                    for t in R[k]:
+                        if Ftab[k][t] == Ftab[k][t ^ b_]: new.add(t ^ b_)
+            n0 = len(R[k]); R[k] |= new
+            if len(R[k]) != n0: changed = True; added += len(R[k]) - n0
+        print("ctx sweep", sweep, "added", added, "total", sum(len(r) for r in R.values()), file=sys.stderr)
+    work = []
+else:
+    work = None
+# chaotic iteration with a worklist: a window is revisited only when its own relation or the
+# relation of one of its movers' windows grew (same least fixpoint as the sweep)
+deps = collections.defaultdict(set)   # deps[j] = windows whose update reads R[j]
+for k in windows:
+    deps[k].add(k)
+    for kind, m in movers[k]:
+        if kind == "ctl": deps[m].add(k)
+        elif kind == "env": deps['env'].add(k)
+ver = {k: 0 for k in windows}; cacheEK = {}
+def excited_keys_c(m, A):
+    ck = (m, A)
+    if ck in cacheEK and cacheEK[ck][0] == ver[m]: return cacheEK[ck][1]
+    r = excited_keys(m, A); cacheEK[ck] = (ver[m], r); return r
+cacheEnv = {}
+def env_keys_c(A):
+    if A in cacheEnv and cacheEnv[A][0] == ver['env']: return cacheEnv[A][1]
+    r = env_keys(A); cacheEnv[A] = (ver['env'], r); return r
+if work is None:
+    work = collections.deque(windows.keys())
+else:
+    work = collections.deque()
+inwork = set(work); steps = 0
+while work:
+    k = work.popleft(); inwork.discard(k); steps += 1
+    new = set()
+    for kind, m in movers[k]:
+        if kind == "ctl":
+            pa, _ = kf(k, m); EK = excited_keys_c(m, k); b = 1 << pos[k][m]
+            for t in R[k]:
+                if key(t, pa) in EK: new.add(t ^ b)
+        elif kind == "fr":
+            b = 1 << pos[k][m]
+            for t in R[k]:
+                if Ftab[k][t] == Ftab[k][t ^ b]: new.add(t ^ b)
+        else:
+            pa, EKs, effs = env_keys_c(k)
+            for nm_, ks in EKs.items():
+                eff = effs[nm_]
                 for t in R[k]:
-                    t2 = t ^ (1 << W.index(m))
-                    if Ftab[c][t] == Ftab[c][t2]: new.add(t2)
-        if any(v in ENVVARS for v in W):
-            We = windows['env']
-            for d in join(W, R[k], We, R['env']):
-                for nm, eff in env_moves(d):
-                    d2 = dict(d); d2.update(eff); new.add(proj(W, d2))
-        n0 = len(R[k]); R[k] |= new
-        if len(R[k]) != n0: changed = True; added += len(R[k]) - n0
-    print("iter", it, "added", added, "total", sum(len(r) for r in R.values()), file=sys.stderr)
-# checks
+                    if key(t, pa) in ks:
+                        t2 = t
+                        for v, bb in eff.items():
+                            if v in pos[k]:
+                                p = pos[k][v]; t2 = (t2 | (1 << p)) if bb else (t2 & ~(1 << p))
+                        new.add(t2)
+    n0 = len(R[k]); R[k] |= new
+    if len(R[k]) != n0:
+        ver[k] += 1
+        for j in deps[k]:
+            if j not in inwork: work.append(j); inwork.add(j)
+    if steps % 20000 == 0: print("steps", steps, "work", len(work), "total", sum(len(r) for r in R.values()), file=sys.stderr)
+if "--seed-obs" in sys.argv:
+    grown = {k: len(R[k]) - len(R0[k]) for k in R if len(R[k]) != len(R0[k])}
+    print("closure added tuples to", len(grown), "windows; total added", sum(grown.values()), file=sys.stderr)
+    for k, n in sorted(grown.items(), key=lambda t: -t[1])[:15]: print("   grew", nm(k), n, "observed", len(R0[k]), file=sys.stderr)
+else: pickle.dump(R, open(RCACHE, "wb"))
+print("fixpoint after", steps, "window visits; total tuples", sum(len(r) for r in R.values()), file=sys.stderr)
+# checks: persistence of every excited control node under every other move that can touch its window
 viol = collections.Counter(); ex = {}
 for c in CTL:
-    Wc = windows[c]
-    for m in Wc:
-        if m == c: continue
-        if isinstance(m, int) and m in Ftab:
-            for d in join(Wc, R[c], windows[m], R[m]):
-                if Ftab[c][proj(Wc, d)] != d[c] and Ftab[m][proj(windows[m], d)] != d[m]:
-                    d2 = dict(d); d2[m] = not d[m]
-                    if Ftab[c][proj(Wc, d2)] == d2[c]:
-                        viol[(names[c], names[m])] += 1; ex[(names[c], names[m])] = {nm(v): int(d[v]) for v in Wc}
-        elif m in ENVVARS:
-            for d in join(Wc, R[c], windows['env'], R['env']):
-                if Ftab[c][proj(Wc, d)] != d[c]:
-                    for nm, eff in env_moves(d):
-                        d2 = dict(d); d2.update(eff)
-                        if Ftab[c][proj(Wc, d2)] == d2[c]:
-                            viol[(names[c], nm)] += 1
+    Wc = windows[c]; pc = pos[c][c]
+    exc = [t for t in R[c] if Ftab[c][t] != bool((t >> pc) & 1)]
+    for kind, m in movers[c]:
+        if kind == "ctl" and m != c:
+            pa, pb = kf(c, m); EK = excited_keys(m, c); b = 1 << pos[c][m]
+            for t in exc:
+                if key(t, pa) in EK and Ftab[c][t ^ b] == bool((t >> pc) & 1):
+                    viol[(nm(c), nm(m))] += 1; ex[(nm(c), nm(m))] = t
+        elif kind == "env":
+            pa, EKs, effs = env_keys(c)
+            for mvn, ks in EKs.items():
+                for t in exc:
+                    if key(t, pa) in ks:
+                        t2 = t
+                        for v, bb in effs[mvn].items():
+                            if v in pos[c]:
+                                p = pos[c][v]; t2 = (t2 | (1 << p)) if bb else (t2 & ~(1 << p))
+                        if Ftab[c][t2] == bool((t2 >> pc) & 1): viol[(nm(c), mvn)] += 1
 print("windows", len(windows), "R sizes: max", max(len(r) for r in R.values()), "sum", sum(len(r) for r in R.values()))
-print("persistence violations (over-approximation):", len(viol))
-for (a, b), n in viol.most_common(40): print("  ", n, a, "disabled by", b)
-# boundary protocol: acks
-def ackcheck(u, nm):
-    bad = 0
-    for k in contains[u] if u in contains else []:
-        pass
-    return bad
+big = sorted(((len(r), nm(k)) for k, r in R.items()), reverse=True)[:8]
+print("largest windows", big)
+print("persistence violations (over-approximation):", len(viol), "pairs")
+for (x, y), n in viol.most_common(60): print("  ", n, x, "disabled by", y)
+# bundling obligations: per frontier node, how many reachable reader tuples are sensitive to it
+bo = collections.Counter()
+for c in CTL:
+    for v in windows[c]:
+        if v in FRONT:
+            b = 1 << pos[c][v]
+            bo[nm(v)] += sum(1 for t in R[c] if Ftab[c][t] != Ftab[c][t ^ b])
+print("BO_f: frontier nodes with sensitive reader tuples:", sum(1 for k in bo if bo[k]), "of", len(FRONT))
 import json
-json.dump({"viol": [[a, b, n] for (a, b), n in viol.items()], "ex": {"%s|%s" % k: v for k, v in ex.items()},
-           "R": {nm(k): len(r) for k, r in R.items()}},
-          open("/tmp/claude-0/w/winfix_out.json", "w"), indent=0)
+json.dump({"viol": [[x, y, n] for (x, y), n in viol.items()], "bo": dict(bo),
+           "R": {nm(k): len(r) for k, r in R.items()}}, open(sys.argv[1] + ".winfix.json", "w"), indent=0)

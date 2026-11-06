@@ -77,7 +77,7 @@ void undoTo(size_t m) {
 }
 u64 busv(const vector<int>& d) { u64 v = 0; for (size_t i = 0; i < d.size(); i++) if (val[d[i]]) v |= 1ull << i; return v; }
 // env state beyond node values
-struct EnvS { int k, kout; };
+struct EnvS { int k, kout; int w; };
 EnvS env;
 struct Key { u64 a, b; bool operator==(const Key& o) const { return a == o.a && b == o.b; } };
 struct KH { size_t operator()(const Key& k) const { return k.a ^ (k.b * 0x9e3779b97f4a7c15ull); } };
@@ -107,7 +107,7 @@ bool apply(int mv, EnvS& e) { // returns false on a wrong result
   size_t t0 = trail.size(); vector<int> ch;
   if (mv >= 0) { int n = stor[mv].out; setNode(n, !val[n]); ch.push_back(n); }
   else if (mv == -1) { setBus(e.k); setNode(REQ, 1); e.k++; for (int x : AD) ch.push_back(x); for (int x : BD) ch.push_back(x); ch.push_back(REQ); }
-  else if (mv == -2) { setNode(REQ, 0); ch.push_back(REQ); }
+  else if (mv == -2) { setNode(REQ, 0); ch.push_back(REQ); e.w = 1; }
   else if (mv == -3) { setNode(PACK, 1); ch.push_back(PACK); }
   else if (mv == -4) { setNode(PACK, 0); ch.push_back(PACK); }
   else if (mv == -5) {
@@ -115,7 +115,7 @@ bool apply(int mv, EnvS& e) { // returns false on a wrong result
     if (got != want) { nWrong++; if (nWrong < 5) fprintf(stderr, "WRONG out0 pair %d got %llu want %llu\n", e.kout, got, want); }
     setNode(OACK, 1); ch.push_back(OACK); e.kout++;
   }
-  else if (mv == -6) { setNode(OACK, 0); ch.push_back(OACK); }
+  else if (mv == -6) { setNode(OACK, 0); ch.push_back(OACK); e.w = 0; }
   settleFrom(ch);
   if (!latchClosureFrom(t0)) { fprintf(stderr, "latch closure did not converge\n"); exit(3); }
   return true;
@@ -143,7 +143,7 @@ void dfs(int depth) {
     undoTo(mark); env = save; H1 = h1; H2 = h2;
   }
 }
-string dumpInit;
+string dumpInit, winFile, obsOut; int walks = 0; long long walkSeed = 1, walkRange = 64;
 int main(int argc, char** argv) {
   ifstream in(argv[1]); string w; int n;
   maxStates = 50000000;
@@ -151,6 +151,9 @@ int main(int argc, char** argv) {
     string a = argv[i];
     if (a == "--max") { maxStates = atoll(argv[++i]); continue; }
     if (a == "--dump-init") { dumpInit = argv[++i]; continue; }
+    if (a == "--walks") { walks = atoi(argv[++i]); winFile = argv[++i]; obsOut = argv[++i]; continue; }
+    if (a == "--seed") { walkSeed = atoll(argv[++i]); continue; }
+    if (a == "--range") { walkRange = atoll(argv[++i]); continue; }
     size_t c = a.find(','); pairsv.push_back({stoull(a.substr(0, c), 0, 0), stoull(a.substr(c + 1), 0, 0)});
   }
   NP = pairsv.size();
@@ -192,7 +195,34 @@ int main(int argc, char** argv) {
   trail.clear();
   fprintf(stderr, "huffx: %d nodes, %zu comb (depth %d), %zu storage, %zu control; %d pairs\n", NN, comb.size(), maxRank, stor.size(), ctl.size(), NP);
   if (!dumpInit.empty()) { FILE* f = fopen(dumpInit.c_str(), "w"); for (int i = 0; i < NN; i++) fputc(val[i] ? '1' : '0', f); fputc('\n', f); fclose(f); if (maxStates == 0) return 0; }
-  env = {0, 0}; seen.insert(key()); nStates = 1;
+  env = {0, 0, 0};
+  if (walks > 0) {
+    // random walks: record the tuple of every window (winfix.py --export) in every visited state
+    ifstream wf(winFile); int nw; wf >> nw; vector<string> wk(nw); vector<vector<int>> wv(nw);
+    for (int i = 0; i < nw; i++) { int n; wf >> wk[i] >> n; wv[i].resize(n); for (int j = 0; j < n; j++) wf >> wv[i][j]; }
+    vector<unordered_set<u64>> obs(nw);
+    auto record = [&]() { for (int i = 0; i < nw; i++) { u64 t = 0; for (size_t j = 0; j < wv[i].size(); j++) { int v = wv[i][j]; bool b = v < 0 ? env.w : val[v]; if (b) t |= 1ull << j; } obs[i].insert(t); } };
+    vector<unsigned char> val0 = val; mt19937_64 rg(walkSeed);
+    long long tot = 0, okc = 0;
+    for (int w = 0; w < walks; w++) {
+      val = val0; env = {0, 0, 0}; H1 = H2 = 0; trail.clear();
+      // operand pairs for this walk: drawn from a small range so that runs finish
+      pairsv.clear(); for (int q = 0; q < NP; q++) { u64 a = rg() % walkRange, b = rg() % walkRange; pairsv.push_back({a, b}); }
+      setBus(0); { vector<int> ch(AD); ch.insert(ch.end(), BD.begin(), BD.end()); settleFrom(ch); latchClosureFrom(0); }
+      trail.clear(); record();
+      for (long long st = 0; st < 10000000; st++) {
+        vector<int> ms = moves(); if (ms.empty()) break;
+        int mv = ms[rg() % ms.size()]; apply(mv, env); trail.clear(); record(); tot++;
+      }
+      if (env.kout == NP) okc++;
+    }
+    long long sz = 0; for (auto& o : obs) sz += o.size();
+    fprintf(stderr, "walks %d (complete %lld), moves %lld, wrong %lld, observed tuples %lld\n", walks, okc, tot, nWrong, sz);
+    FILE* f = fopen(obsOut.c_str(), "w");
+    for (int i = 0; i < nw; i++) { fprintf(f, "%s", wk[i].c_str()); for (u64 t : obs[i]) fprintf(f, " %llu", t); fprintf(f, "\n"); }
+    fclose(f); return 0;
+  }
+  seen.insert(key()); nStates = 1;
   dfs(0);
   printf("states %lld (cap %lld)%s maxdepth %lld final %lld deadlocks %lld wrong %lld persistence-violations %lld\n",
          nStates, maxStates, nStates >= maxStates ? " CAPPED" : "", maxDepth, nFinal, nDead, nWrong, nPersist);

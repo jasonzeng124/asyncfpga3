@@ -1505,3 +1505,13 @@ after move b in every state meeting the invariant). **Plainly:** persistence of 
 certified by checks whose number grows with (windows x movers), not with the 10^7+ interleavings; each check is a
 small decide. Next: compute such windows for THE target (tools/huff/winfix.py, running) and see whether they close
 without spurious violations.
+
+### progress 07:58 -- windowed invariant, first try: plain per-node windows are too coarse (negative result)
+tools/huff/winfix.py (untrusted): 413 windows (each control node with its support, <= 14 vars; one env window), frontier
+nodes free under BO_f. Plain Cartesian closure (join with the mover's own window only): fixpoint 49,850 tuples, three
+windows completely unconstrained (8,192 = 2^13), 927 (node, mover) pairs flagged, on 395 of the 412 nodes; flagged
+mostly at fork C-elements and the exit merge (ucontrol_merge12 / ulink_n_index_97). Random concrete walks (huffx
+--walks: 2,000 walks x 3 random pairs < 300, 12 M moves, all correct) see only 6,023 tuples, and the same closure grows
+them to the same 49,850: the per-node windows forget how a fork's branch acknowledges move together, so the flags are
+artefacts of the abstraction (the 40 M-state search saw none). Next: context-consistent joins (a joined pair must agree
+with every other window sharing >= 2 variables), which is still sound and needs a WinInv generalisation in Lean.
