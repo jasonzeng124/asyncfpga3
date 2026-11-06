@@ -1618,3 +1618,42 @@ explicitly"; (4) the AXI slave's H_ENV and STATUS crossing (formal/target/BOUNDA
 setup.sh: the Mathlib cache host is blocked again, so Mathlib's imported part is building from source (hours).
 Plan: fix (1) in SpecRunt; answer (2) and (3) with monotonicity lemmas (new SpecMono.lean); bring STATUS.md up to
 the 11-02 results of B and C (it still lists only net_wf for gcd_ps); then the top-level assembly.
+### progress 07:45 -- audit T9 fixed: H_RUNT(w) now on LUT input pins only (SpecRunt.lean, check.sh OK)
+`Formal/Target/SpecRunt.lean`: the filter is a gate-class parameter, `GateOKRuntOn L` / `NetCorrectSeqRuntOn L`;
+`NetCorrectSeqRunt w` is now the class `lutGate` (decoded name ends in `LUT.O6`/`LUT.O5`, kernel-reducible by bytes;
+pips, site hops, MUXF7/F8, CARRY4 and constants are NOT filtered). This is the owner's wording ("a LUT input pulse
+narrower than w ps does not propagate to its output"). The 2026-11-01 form (every pin, which at a zero-delay pip
+forbids a sub-w pulse on the read node instead of filtering it, so the statement could not see an out0_req runt) is
+kept only as `NetCorrectSeqRuntAll`, marked withdrawn. Proved: `seqRuntOn_mono` (filtering fewer pins is a weaker
+hypothesis), `seqRuntAll_of_seqRunt` (the corrected statement implies the withdrawn one: it is the stronger),
+`seqRunt_of_seq` (the frozen NetCorrectSeq implies the variant for every class and w), `runt_zero` (w = 0 is the
+frozen statement, any class). Nothing imported SpecRunt, so nothing else changes. Not shown: any w for the fabric;
+the earlier H_RUNT simulation points (A's simb --gfilter, B's hrunt.sh) filter "pins whose window start and delay are
+>= W", which is neither form exactly (audit: UNVERIFIED); they stay simulation evidence only.
+### progress 07:45 -- SpecMono.lean: THE statement's margin is a down-set (check.sh OK)
+Answers audit rows T5 (residual vacuity at small T) and "H_ENV margins R, su, Δo not addressed" as far as Lean can:
+`arbOK_mono`, `seq_anti_T` (proved at T' gives every T <= T'), `seq_mono_su`, `seq_mono_Δo` (proved at su, Δo gives
+every larger one; for Δo also the data window shrinks), `adm_mono`/`start_mono`/`behaves_mono` and `seq_anti_p`
+(proved at (g', κ') gives every 0 < g <= g', 0 <= κ <= κ' with κ <= 1: above κ = 1 the lower window end is negative
+and the windows are not nested, so the hypothesis is needed), `seq_weaken` (all at once), and the same for the
+pipelined NetCorrect. Plainly: the owner's "(g, κ) frontier" is the boundary of a down-set, a result at a LARGE T
+and SMALL su, Δo covers the smaller T and larger margins, and the vacuity risk is only at small T: so the headline T
+should be large (at least the slowest state-LUT arc, (1+κ)·664·g ps), and C's n = 1 witness (every T >= 220) is a
+witness at every larger T. Nothing about R (Env fixes the reset to exactly [0, R)).
+### progress 07:46 -- Assembly.lean: THE statement reduced to a per-pair Plan (check.sh OK, 293 decls with the two above)
+**Problem, plainly:** Correct has seven all-time clauses; a proof for the target will argue per pair. Is "idle after
+reset, stays idle while nothing is offered, one offered pair gives one correct output handshake and idle again" enough?
+**Lean (generic in the netlist; standard axioms):** `Assembly.correct_of_plan : OneReq B → Env x B R su Δo n va vb →
+Plan x B R Δo I → Correct x B R Δo n va vb` and `netCorrectSeq_of_plan` (if every behaviour meeting THE statement's
+hypotheses has an invariant I with `Plan`, NetCorrectSeq holds). `OneReq B`: the three input requests and the END
+channel's request are one node, which is how BOTH targets are wired: the decoded boundary's pend.req is the env's
+request node (bdc's end token is the start request passed through; on gcd_ps node 186985), and the kernel's
+start.ack (SLICE_X3Y22.BLUT, INIT 0x3220 on I0 = a kernel node, I1 = rst, I2 = pend.ack, I3 = itself) is a
+reset C-element of that and pend.ack: so the circuit enforces Correct's end-channel clause through start.ack (checked
+in the decoded gates with Python; this is why that clause, which constrains an env-driven node, is not trivially
+false). `Plan` = base (I R, circuit's boundary outputs low at R), quiet (I t, all low, request low at t+1 =>
+outputs low at t+1, I (t+1)), step (I t, all low, request rises at t => some t2: no new request rise before t2,
+four-phase moves on [t, t2), out0.req rises exactly once at t0, data = gcd of the operand buses at t+1 from Δo after
+t0 until the ack, all low at t2, I t2). SeqEnv and ArbOK are not used by the assembly; they are what `step` for the
+target will need. **So S4/S6 for the target are now exactly: find I and prove base, quiet, step on DecodedPS.**
+C's island_PS / correct_n0 are of the base/quiet kind. Not shown: Plan for any netlist.

@@ -18,7 +18,7 @@ standard axioms unless marked; "C" / "B" name the shard whose file it is.
 | races (S3 data) | `RaceTablePS.table_race_free`, `RaceFrontierPS.table_race_free_gk`, `RaceLinkPS.rows_linked` (B) | for 185 storage nodes, the simulated acknowledgement path is at least as slow as the node's routed feedback for every corner and admissible delay, up to (g, κ) on g²(1+κ)/(1-κ) ≤ 2.433 (g ≤ 1.56 at κ = 0; κ ≤ 0.415 at g = 1); 183 rows tied to the netlist's own arcs and wiring. The rows come from 112 simulated runs (untrusted) |
 | switch rules | `SpecFbChain.cfb_switch`, `ArbCleanChain.cq_clean_set_gen` (B), `SpecLoop.*` (C) | a storage LUT (incl. an arbiter state LUT) switches cleanly through its routed feedback when its set condition lasts at least the loop's composite delay |
 | token level (S5) | `GcdHw.Seq.gcd_hw_seq` (C) | bdc's gcd graph with a sequential env returns `ps.map gcd`, in order, for any number of pairs |
-| parameters | `SpecMono.seq_weaken` (A, 2026-11-06; NOT YET CHECKED, see journal) | the statement at (g', κ', T') and margins su, Δo implies it at every smaller g, κ, T and larger su, Δo: the margin is a down-set |
+| parameters | `SpecMono.seq_weaken` (A, 2026-11-06) | the statement at (g', κ', T') and margins su, Δo implies it at every smaller g, κ, T and larger su, Δo: the margin is a down-set |
 
 **NOT proved: NetCorrectSeq on THE target for any n ≥ 1.** Missing (shard C's route, notes/C-route-S4.md): S4 (cell
 instances on the collapsed view, per-cell handshake theorems from the switch obligations, bundling windows per channel,
