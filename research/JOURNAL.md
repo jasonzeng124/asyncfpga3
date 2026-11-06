@@ -2825,3 +2825,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - isprime per-cell sizes (per-cell max over seeds 25-28), fresh seed 29: SLOW_MAX fast mode hangs on vector 4 (the same
   symptom as x0.75 on seed 25). Not OOM. So isprime has no item-3 step yet; whether the BASE sizes hold on seed 29 (their
   rule E was never clean) is the next run. The per-kernel table now lists isprime as none.
+### progress 11:03 (BQ#1 worst case: 5/5 valid seeds PASS; 6, 7, 9 rerun)
+- BQ#1 combined worst case: d, 3, 4, 5, 8 PASS 16/16 (research/data/fid/bq1_worstcase.tsv). Seed 8 reads NOT_EQUIVALENT:
+  two F7-mux inputs driven in the JSON by nextpnr $PACKER_GND_NET buffer LUTs (f = A1, A1 tied GND, so 0) and by const 0
+  in the bits -- the benign GND-buffer class of the August isprime/collatz builds (current fasm_equiv agrees: only that
+  DRIVER DIFFERS kind). Seeds 6, 7, 9 compiles were OOM-killed; rerun one at a time after gcd x0.75 + fast fall.
+- gcd R5 x0.75 + link fast fall: routing (8 seeds).
