@@ -24,8 +24,12 @@ Adm bands, transport/glitches allowed)?
   stable from hi d + hi j - lo e before the close to hi e after), `SpecLatchWit`, `SpecLatchFact`,
   `LatchView.target_latch_close` (instance `LatchViewPS`, 4,185 rows; out/target_ps_latch.json lists each latch's
   derived windows).
-- Arbiters: `ArbViewPS.target_ps_arb_clean_set` (the nine state LUTs decide a separated arbitration cleanly, every
-  behaviour).
+- Arbiters: `ArbViewPS.target_ps_arb_clean_set` / `ArbViewPSReset` (the nine state LUTs decide a separated arbitration
+  cleanly, both directions); under H_ARB(T): `ArbGrantPS.target_ps_grants_excl` (grants exclusive once the state has
+  settled) and `ArbAckPS.target_ps_ack_low` (the losing client's ack stays low while settled; 18 acks). Open: the
+  settling window and the server-path obligation (static: grant -> A0 ≥ 1,225 ps FAST_MIN).
+- Link stage: `SpecLatchSep.latch_close_sep` (a latch's enable width from its controller's toggle separation; every
+  latch's enable source is a covered C-element).
 - Mux joins (42): `SpecCElemWin.celem_forced_win`, `CElemWinView.target_celemw_forced`, instance `CElemWinViewPS` (C-elements while the select is held at its selecting value).
 
 **How C uses it.** `hA` = persistence of the Huffman/abstract machine (C: WinInv/Keller) + a distance bound: an input
