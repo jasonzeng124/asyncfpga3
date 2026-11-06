@@ -1494,3 +1494,14 @@ multiply. Inside the explored part: 0 persistence violations, 0 deadlocks, 0 wro
 reached, out0 = 6). **Meaning:** evidence for persistence (untrusted, hashed states); a Lean certificate by state
 enumeration is infeasible. Persistence must be shown by something that scales with the circuit, not with its
 interleavings: a local inductive invariant (next), or cell-level composition.
+
+### progress 07:47 -- WinInv.lean CLAIMED: a local check that gives an invariant of every reachable state
+`Formal/Net/WinInv.lean` (core Lean; axioms propext, Quot.sound; no sorry). Generic, for any machine of guarded moves on
+Boolean variables (a move reads the tuple on its window, writes declared variables): windows W with allowed-tuple
+lists R; `closeOK W R m Rm` (finite Boolean check: every allowed tuple of W joined with every compatible allowed tuple
+of m's own window where m is enabled updates to an allowed tuple), `inv_reach` (initial state allowed + every check
+passes => every reachable state allowed in every window), `persistOK` / `persist_of_check` (move a stays enabled
+after move b in every state meeting the invariant). **Plainly:** persistence of THE target's control network can be
+certified by checks whose number grows with (windows x movers), not with the 10^7+ interleavings; each check is a
+small decide. Next: compute such windows for THE target (tools/huff/winfix.py, running) and see whether they close
+without spurious violations.
