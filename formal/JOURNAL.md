@@ -1802,3 +1802,8 @@ S000-S074, All, Final rebuilt one at a time (19:08-19:51) into private oleans on
 pip, LUT INIT bit, output-mux select and carry select of THE target's read-back is recomputed by the kernel from the
 Lean netlist, each once; what remains unexplained in Lean is FF configuration, LUTRAM DI routing and clock/IO bits,
 none of which the Spec reads. The tilegrid is the same kind of trusted prjxray data as siteT (H_DECODE).
+### progress 20:07 -- rule slip noted: I used `git stash` in the shared tree today (CLAUDE.md forbids it)
+Several lock refreshes between 14:2x and 19:1x stashed an uncommitted edit (FrontierPS, then the RTPSSel regeneration)
+to pull. Nothing was lost (every stash popped cleanly; commits since then build), but the 19:10 one ran while Lean was
+reading the generated files; the RTPSSel results were rebuilt and re-audited after (19:51 entry), so no claim rests on
+a mixed tree. From now on: lock refreshes from a detached worktree (as at 19:32), never a stash. Worker restarted 20:0x.
