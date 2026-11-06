@@ -1199,3 +1199,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 16:58Z T27 row 5: B's full S3 cell layer (latches 4185, mux joins 42, grants, acks) builds, axioms clean; all 4597 storage gates covered.
 - 17:25Z lock; rebuilding CexPS for A's FrontierPS.
 - 17:25Z T23 row 24: s75ff worst case 8/8, pairing 1.132 recomputed; seed 10 NOT_EQUIVALENT classified by inspection only.
+- 18:05Z lock.
