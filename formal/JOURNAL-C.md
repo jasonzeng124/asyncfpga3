@@ -1536,3 +1536,17 @@ level: every walk was correct either way) plus a timing obligation per node (fal
 absorbed): this is a complete-by-simulation list of where runts can arise in control; (2) the per-node windowed
 invariant (winfix, also with context-consistent joins) does not separate real from spurious: same 49.5 k-tuple fixpoint,
 927 flagged pairs on 395 nodes (negative result; a cell/channel-structured invariant is needed).
+
+### progress 08:53 -- the control machine is persistent under 29 relative-timing orders (simulation, untrusted)
+Refinement loop (huffx --rt): treat every observed withdrawal (c excited, b fires and disables it) as a relative-timing
+order "c fires before b" (b may not move while c is excited), rerun 2,400 walks, add new pairs, repeat: 23, +3, +3, +0
+-> **29 orders** (tools/huff/out_rt_pairs.txt). With them, 2,400 walks (round 4) and a confirmation of 2,000 walks x
+6 pairs (range 5,000; 35.7 M moves): **0 persistence violations, every result correct, every walk complete** (the
+2^31-range confirmation is still running). The 29: 25 at the input-ack C-elements uxa/uya of 12 muxes (umux1, 2, 6-11,
+15-18; each must fall before the next token's link/fork stage moves: the 8z3 class), 3 at arbiter grants
+(ucontrol_merge{4,6,10}.uarb1.ua1 before ucontrol_merge{4,6,10}_f), 1 pair at the bridge's ufork (env side, outside
+the kernel ports) before the kernel's ufork1/ufork3. **Meaning:** the intended proof shape is now: speed-independent
+control + latches first (bundling) + these 29 relative-timing orders, each a timed race obligation (the event that
+excites c, then c's switch, must beat the causal chain to b). Each is a candidate runt site if it fails; their margins
+are B's race-table kind of number (merge10's is B's binding κ* = 0.298 path). Not shown: completeness of the list
+(random walks), the timed margins, anything in Lean.
