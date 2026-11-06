@@ -32,6 +32,40 @@ evidence stronger:
   async latch, stale operands) as regression tests, wherever they can be
   reproduced without a board.
 
+## Next lead: where one iteration's time goes (owner, 2026-11-06)
+
+Do this before more delay tuning. Dynamatic runs a whole xorshift iteration in
+12.73 ns, clock margin included, so the real logic settles in under 12 ns. The
+August build took 47.66 ns per iteration with 33.4 ns of matched delay. No one has
+measured where that time goes: "matched delays are the cost" comes from ring fits
+and delay totals, not from timing a kernel loop, and the owner doubts it. Link
+fast fall gained only 6-12%, so "paid on both edges" does not explain it either.
+
+Measure it, from the full stack, on xorshift first (T3 and x0.5), then collatz.
+Use one route per build at the calibrated bands, in steady state, with a long
+enough trip count to leave out the call handshake:
+1. Find the critical cycle: the actual causal chain of events that sets the
+   iteration period, walked back from the simulation's event trace. Do not infer
+   it from the netlist or from delay totals.
+2. Split every picosecond on that cycle into: **logic** (the time the data really
+   needs to settle at that stage, measured from the trace); **excess delay** (matched
+   delay beyond that logic, including guard); **handshake** (C-elements, latches,
+   the protocol's own hops); **routing** of request and ack; and **return-to-zero**
+   (time on falling edges). Say how each category is computed.
+3. Self-check: the categories must add up to the measured period, within 1%. If they do
+   not, the breakdown is wrong; do not report it. Show also how the cycle moves when
+   one delay is lengthened: a delay on the critical cycle has to raise the period,
+   and one off it must not.
+4. Report per stage, with the stage count, and say which stages exist only as
+   measurability sites or carry no logic. Give the bound "logic + handshake" in ns per
+   iteration next to Dynamatic's number, and rank the levers by the time each could
+   recover: fewer stages, smaller guard, delay chains that overcover their block
+   (e.g. a constant shift synthesised as a barrel shifter), fast fall, two-phase.
+
+Results go in research/data/itercost/, with a journal entry. This is a measurement:
+it changes no design and no sizes. A number no one predicted, or a lever that turns out
+small, is the result. Say so plainly, and retire any explanation the data rules out.
+
 ## Next, now that ring128 matches (owner, 2026-11-04)
 
 Every runnable hard acceptance item matches, ring128 included at band 0.288 with a
