@@ -1,0 +1,1 @@
+constants=22 bad=0
