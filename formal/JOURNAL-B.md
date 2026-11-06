@@ -2777,7 +2777,7 @@ becomes a statement about `Behaves p (circuit net boundary) x` itself? **Lean (s
   building; 2 of its files passed before an OOM (three Lean jobs at once); builds now run one at a time.
 **Not shown:** hA and the timing premises (the network's); the latch counterpart (next, same pattern).
 
-### progress 08:45 -- the latch theorem tied to every behaviour of THE circuit (LatchView; check.sh OK)
+### progress 08:36 -- the latch theorem tied to every behaviour of THE circuit (LatchView; check.sh OK)
 - `SpecLatch.latch_close` generalized (held pins constant only from A - H on, H ≥ every window end), so a reset pin
   (high during reset) qualifies; SpecLatchWit updated; both recheck.
 - `LatchView.target_latch_close`: for every row list passing `lrowOK` (lfact on the netlist gate, every pin's chain
