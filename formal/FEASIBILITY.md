@@ -24,10 +24,14 @@ hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
   targets (one request node, end request = start request), as a per-pair `Plan` (base, quiet, step): the all-time
   bookkeeping of Correct is proved once; the circuit argument itself is not made smaller. H_RUNT(w) is now
   on LUT pins only, as the owner worded it (`SpecRunt`, audit T9).
+- **COUNTEREXAMPLE, Lean-checked (shard C, audit T28):** NetCorrectSeq on THE target is FALSE at g = 1, κ = 0.84 (w = 0)
+  for every T ≥ 36 (`CexPS.not_netCorrectSeq`): one input-ack C-element slowed to the top of its window and everything
+  else fast loses a handshake through ~6 ps runts. The headline κ must be below 0.84; [0.415, 0.84) is where the g = 1
+  frontier lies if B's race bound becomes a theorem.
 - **Not proved: NetCorrectSeq for n ≥ 1.** What is left is exactly `Plan` on `DecodedPS`: an invariant and the
   per-pair step (S4: cell-level composition over the collapsed view; S6: liveness). Verdict: feasible, with the
-  remaining effort in one place (the step); no counterexample to the sequential statement is known on THE target
-  (the gcd_hw ua1 runt at κ ≈ 0.155 does not carry over: on gcd_ps the binding race is at κ ≈ 0.42, B).
+  remaining effort in one place (the step); a counterexample is known only at κ ≥ 0.84 (above); the gcd_hw ua1 runt at κ ≈ 0.155 does not
+  carry over (on gcd_ps the binding race is at κ ≈ 0.42, B).
 
 **2026-11-01 (lead): THE goal (owner, 2026-10-31) replaces the phase plan.** One theorem: the gcd_hw bitstream
 `formal/target/gcd_hw_03e82630.bit` (BOARD-QUEUE #1, rebuilt and tied to its FASM byte for byte except the header

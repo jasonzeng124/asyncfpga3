@@ -1744,3 +1744,9 @@ only pend's ReqMoves (through start.ack's C-element), worth an audit note. (11) 
 bounds counts only for finite n; Assembly proves the stronger equality anyway. (9) Env liveness + SeqEnv make
 deadlocking behaviours absent for n > k, but they remain for n = some k, so liveness is still checked. (12) Spec.lean
 repeats a "To be written" line (doc; with the next Spec change). check.sh on the four A files OK after the doc edit.
+### progress 11:03 -- shard C's Lean refutation at κ = 21/25 (audit T28) into STATUS and FEASIBILITY; my 10:0x line corrected
+C (e9780623): `CexPS.not_netCorrectSeq`: NetCorrectSeq on THE target is false at g = 1, κ = 0.84, every T ≥ 36, Δo ≤ 3000.
+My request-gap entry said "no counterexample to NetCorrectSeq on THE target is known": that was true at nominal delays
+only and is now out of date. STATUS and FEASIBILITY lead with the counterexample. Next (A): the Lean corollary with
+SpecMono that it holds for every g ≥ 1, 0.84 ≤ κ ≤ 1, every T ≥ 36, Δo ≤ 3000 (needs C's oleans; check.sh --committed
+is building them).
