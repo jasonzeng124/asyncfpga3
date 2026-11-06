@@ -1472,3 +1472,16 @@ data latches fire first ("latches first"). That claim rested on 6-11 random orde
   = gcd at every out0 ack, persistence of every excited control node under every other move, deadlock, closure
   convergence. States hashed (128-bit Zobrist): evidence, not proof. Concurrency seen in one random run: up to 12
   control nodes excited at once.
+
+### progress 07:38 -- Keller.lean CLAIMED: one terminating run decides every run of a persistent machine
+`Formal/Net/Keller.lean` (core Lean only; `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry). Generic,
+for any deterministic labelled transition system `step : α → σ → Option σ` and a move-closed set R with the
+**diamond** on R (two different enabled moves stay enabled after each other and commute): `absorb` (an enabled move
+occurs in every terminating run and the rest of that run finishes from after it), `keller` (every run from s ∈ R
+extends to a permutation of a terminating run l₁, ending in its terminal state τ), `keller_terminal` (every
+terminating run ends in τ and is a permutation of l₁), `keller_bounded` (every run is at most l₁.length long: no
+infinite schedule). For Boolean networks with one-node flips, `diamond_of_persistent`: persistence gives the diamond.
+**Plainly:** if THE target's abstract machine (with the env and the recorded results in its state) is persistent on
+its reachable states, one terminating run (e.g. a checked witness) fixes the results, the end state and the firing
+counts of EVERY order, and every order terminates within that run's length. What remains for that use: persistence on
+the reachable states (an obligation, not shown) and the latches-first macro-step being deterministic.
