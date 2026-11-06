@@ -2884,3 +2884,13 @@ hold obligation of latch_close is met up to κ ≈ 0.5 here because the hold is 
 data); the margin is set by a 43-arc chain against the latch's enable read window. Simulation only, one close, one
 corner; the static all-paths bound would be wrong here for the same reason as for the C-elements (unsensitizable
 paths through OR/AND gates).
+
+### progress 11:00 -- LatchViewPS CHECKED: THE target's 4,185 latches close cleanly, every behaviour (check.sh OK, 1176 declarations)
+`LatchViewPS.target_ps_latch_close` = `LatchView.target_latch_close allRows allRows_ok` (108 generated row files,
+`allRows_length = 4185`). **Plainly:** for every 0 ≤ κ ≤ 1, g > 0 and every behaviour of THE circuit, at its corner,
+each of these 4,185 latches of the decoded bitstream whose enable source is open for [τ - We, τ - 1] and closed on
+[τ, E], whose data source is stable at v on [τ - Wd, τ + hi e], with τ + hi e ≤ A + We, τ + hi d ≤ A + Wd,
+A + hi j ≤ τ + lo e (its own routed pins' summed window ends), A ≥ its collapse start and the reset low from A - H,
+holds v on [A, E + lo e]. With CElemViewPS and ArbViewPS: 4,555 of the 4,597 storage gates have an every-behaviour
+cell theorem on the netlist's own gates; open premises are the environment windows (bundling / hA), which the
+network must supply.
