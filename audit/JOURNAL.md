@@ -1167,3 +1167,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 02:07Z T23 row 20: collatz64 x0.75 12/12 at 1.17x noted UNVERIFIED.
 - 02:47Z lock.
 - 03:28Z lock.
+- 03:28Z T23 row 21 noted.
