@@ -111,10 +111,10 @@ def main():
     def dly(e, gi=None):
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
-            if a.exact:   # kappa = 21/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
-                assert c == 0 and abs(a.kappa - 0.84) < 1e-12
-                if gi is not None and gates[gi]["out"] in SLOW: return (46 * e["fmax"]) // 25
-                return (4 * e["fmin"] + 24) // 25
+            if a.exact:   # kappa = P/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
+                P = round(a.kappa * 25); assert c == 0 and abs(a.kappa - P / 25) < 1e-12
+                if gi is not None and gates[gi]["out"] in SLOW: return ((25 + P) * e["fmax"]) // 25
+                return ((25 - P) * e["fmin"] + 24) // 25
             if gi is not None and gates[gi]["out"] in SLOW: return int(math.floor(hi * (1 + a.kappa)))
             return int(math.ceil(lo * (1 - a.kappa)))
         lo = (1 - c) * e["fmin"] + c * e["smin"]
