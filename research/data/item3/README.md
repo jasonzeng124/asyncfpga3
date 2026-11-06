@@ -57,7 +57,7 @@ combined worst case does not subsume the fast corner). collatz x0.75 and operato
 ipow x0.5 passes both uniform corners on every route and fails only the combined worst case (2 of 4): the slow-cell /
 fast-chain corner of item 1 again the one that catches it. Per-cell candidates (corner_audit, per-cell max over 4
 routes) for collatz and ipow are queued; the uniform x0.75 for collatz64 and isprime is running.
-| collatz T3 per-cell (corner_audit, per-cell max over 4 routes) | 15 of 42 (249 -> 200 links) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 1.159 / 1.158 (1.09-1.27); 1.153 (1.10-1.26) |
+| collatz T3 per-cell (corner_audit, per-cell max over 4 routes) | 15 of 42 (249 -> 200 links) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.157 / 1.153 (1.07-1.27); 1.155 (1.10-1.26) |
 
 collatz per-cell holds on all 12 where uniform x0.5 failed two (FAST_MIN on seed 2, worst case on seed 3). Seeds 5-8 owed
 (PROGRAM: 8 routes) before it is a result.
