@@ -2796,3 +2796,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   per-cell seed 5 worst + seeds 6-8, gcd s75 corners (7 of 16 rows were done: all PASS; the 9 missing rows queued).
   New soak-only runner skips any config that already has a SOAK_VERDICT. isprime x0.75, collatz T3 seeds 5-8 (baseline)
   and BQ#1's worst case follow.
+### progress 01:21 (item 3: collatz per-cell holds on 8 routes, 24/24)
+- collatz T3 per-cell (200 links), seeds 5-8 added: 24/24 PASS over 8 routes, 8/8 EQUIVALENT. Speedup 1.16x on seeds 1-4;
+  the T3 baseline on 5-8 is running for the 8-route pairing.
