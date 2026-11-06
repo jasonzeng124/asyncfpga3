@@ -2839,3 +2839,14 @@ routed pins' summed integer window ends, (iii) the reset low from S0 - H on and 
 switches only when forced and never twice within M. H_DECODE is the only trust for the gate data. **Not shown:** (i)
 and (ii) themselves; C found (08:17) that 18 C-elements violate (i) at the order level, so for those this theorem's
 premise is false and they need a timing argument instead (see 08:48 above for ua1).
+
+### progress 09:13 -- latch_close's windows on THE target in simulation: ≥ 2.26 ns slack (untrusted)
+tools-B/ps/latchslack.py: for each of latchtab's 4,185 latches and each close of its enable in a simb.py dump, the slack
+of latch_close's three windows (enable open width - [(hi e - lo e) + hi j]; data stable before - [hi d + hi j - lo e];
+data stable after - hi e) at the run's corner. One sequential 13-pair run (12,18 plus the first 12 full-width vectors
+of gcd_ps_vec1000.hex; corner 0.5, mid-window delays, broad data rule; all 13 results correct): worst slacks
+**enable width 8.9 ns** (SLICE_X17Y31.D), **setup 14.7 ns** (SLICE_X14Y32.B), **hold 2.26 ns** (SLICE_X32Y90.C5); with
+the requirement alone widened by κ = 0.4: 8.3 / 14.1 / 1.97 ns. (A 1-pair run: 15.5 / 16.4 / 2.96 ns.) So in this
+evidence every latch close meets the derived conditions by nanoseconds; the binding one is hold (data released
+~2 ns after the close source edge, against ~0.4-1.5 ns of enable read skew). **Not shown:** adversarial delays (the
+run's own timings at κ > 0 were not varied, only the requirement); other vectors; anything in Lean.
