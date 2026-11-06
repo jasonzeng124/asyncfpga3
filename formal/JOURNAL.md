@@ -1775,3 +1775,19 @@ LatchViewPS / CElemPS / RaceLinkPS, and A's SpecRunt, SpecMono, SpecSkip, Assemb
 FrontierPS all build from the committed sources with standard axioms only. FormalWit (incl. today's RTPSSel) is
 outside --committed; RTPSSel was built and audited privately (10:2x entry). Lesson for every shard: on this 15 GB
 sandbox the plain lake build is not enough; check.sh's retry is.
+### progress 18:33 -- session summary (shard A, 2026-11-06)
+Lean, standard axioms, check.sh OK, all pushed:
+- audit T9 fixed (SpecRunt: H_RUNT on LUT pins only; the audit confirmed at 5a9f9237), T26 answered.
+- SpecMono: the statement is monotone in (g, κ), T, su, Δo (`seq_weaken`); SpecSkip: the gate relation swallows only
+  pulses no wider than a pin's delay window.
+- Assembly / AssemblyPS / BoundaryPS: NetCorrectSeq on THE target from a per-pair Plan (`the_shape_of_plan`, with
+  net.WF and the newly proved boundary.OK); review: this removes Correct's bookkeeping, not the circuit argument.
+- FrontierPS: with C's refutations, THE statement is false for every g ≥ 1 at κ ≥ 0.84 (T ≥ 36) and κ ≥ 0.72 (T ≥ 62)
+  (audit T28 confirmed).
+- H_DECODE: `roundtrip_sel` (output-mux and carry selects re-encoded in Lean; leftovers 14,322 -> 9,036).
+Python (untrusted): nextpnr connectivity check on THE target 43,986/43,986 pins; adversarial-env and request-gap sweeps
+134/134 correct at nominal delays; Δo must be ≤ (1-κ)·535/g ps for the board's end channel.
+Infrastructure: check.sh retries OOM-killed modules (needed on this sandbox); full check.sh --committed OK at 18:33.
+The STATUS list: row 1 (H_DECODE) shrank (selects, pin order, connectivity); row 6 fixed; row 7 restated as one Plan;
+and the statement is now known false above κ = 0.72. Open for A: the 19 x5Q selects (need prjxray's tilegrid in the
+round-trip prefix table), the wire-to-node merge in Lean, Spec.lean's stale plain-words H_DELAY paragraph.
