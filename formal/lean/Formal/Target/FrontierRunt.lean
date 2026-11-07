@@ -1,6 +1,6 @@
 import Formal.Target.SpecMono
 import Formal.Target.SpecRunt
-import Formal.Target.CexRunt72.Refute
+import Formal.Target.CexRunt44.Refute
 
 /-!
 # Formal.Target.FrontierRunt — the headline statement under H_RUNT(w): monotonicity and where it is false
@@ -16,12 +16,13 @@ questions: is that margin a down-set (so one refutation covers every larger g, �
   at `(g', κ')` implies it at every `(g, κ)` inside (`DelayPar.LE`), exactly as `SpecMono.seq_anti_p` for the
   plain statement; `seqRuntOn_anti_w`: proved at `w` implies proved at every larger `w'` (a larger `w` filters
   more, so fewer behaviours), i.e. a refutation at `w'` is one at every `w ≤ w'`.
-* `not_seqRunt20_above72`: with `CexRunt72.not_netCorrectSeqRunt20`, THE headline statement
-  `NetCorrectSeqRunt 20` on THE target is false for every `g ≥ 1`, `κ ≥ 18/25`, `T ≥ 62`, any `su`,
-  `Δo ≤ 3000`, reset 400 ns; and so for every `w ≤ 20` as well (`not_seqRunt_le20_above72`).
+* `not_seqRunt20_above44`: with `CexRunt44.not_netCorrectSeqRunt20` (shard C's adversary, checked here under
+  H_RUNT(20)), THE headline statement `NetCorrectSeqRunt 20` on THE target is false for every `g ≥ 1`,
+  `κ ≥ 11/25`, `T ≥ 123`, any `su`, `Δo ≤ 3000`, reset 400 ns; and so for every `w ≤ 20` as well
+  (`not_seqRunt_le20_above44`).
 
-**Not shown.** Any point where the statement holds; `w > 20` (simulation only: the same adversary is a behaviour
-up to w = 25 ps); other reset lengths.
+**Not shown.** Any point where the statement holds (shard B proves the binding race row safe for κ ≤ 0.41, one row
+only); `w > 20`; other reset lengths.
 -/
 
 namespace Formal.Target.FrontierRunt
@@ -61,19 +62,19 @@ theorem seqRuntOn_anti_w {L : Gate → Bool} {w w' : Nat} (hw : w ≤ w') {N : N
   exact ⟨f, hm, fun t h2 => ⟨fun i hi => ⟨((ht t h2).1 i hi).1, ((ht t h2).1 i hi).2.1,
     fun hL => noRuntRead_anti hw (((ht t h2).1 i hi).2.2 hL)⟩, (ht t h2).2⟩⟩
 
-/-- **THE headline statement (H_RUNT(20 ps)) is false on THE target for every `g ≥ 1`, `κ ≥ 18/25`.** -/
-theorem not_seqRunt20_above72 {p : DelayPar} (hg : 1 ≤ p.g) (hk : 18 / 25 ≤ p.κ)
-    (T su Δo : Nat) (hT : 62 ≤ T) (hΔ : Δo ≤ 3000) :
+/-- **THE headline statement (H_RUNT(20 ps)) is false on THE target for every `g ≥ 1`, `κ ≥ 11/25`.** -/
+theorem not_seqRunt20_above44 {p : DelayPar} (hg : 1 ≤ p.g) (hk : 11 / 25 ≤ p.κ)
+    (T su Δo : Nat) (hT : 123 ≤ T) (hΔ : Δo ≤ 3000) :
     ¬ NetCorrectSeqRunt 20 net boundary arbs p T 400000 su Δo := by
   intro h
-  have hle : Formal.Net.CexPS72.pK.LE p := by
-    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Net.CexPS72.pK] <;> norm_num <;> linarith
-  exact Formal.Target.CexRunt72.not_netCorrectSeqRunt20 T su Δo hT hΔ (seqRuntOn_anti_p hle h)
+  have hle : (Formal.Target.CexRuntP.pP 11).LE p := by
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Target.CexRuntP.pP] <;> norm_num <;> linarith
+  exact Formal.Target.CexRunt44.not_netCorrectSeqRunt20 T su Δo hT hΔ (seqRuntOn_anti_p hle h)
 
 /-- And for every runt width `w ≤ 20` ps. -/
-theorem not_seqRunt_le20_above72 {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 1 ≤ p.g) (hk : 18 / 25 ≤ p.κ)
-    (T su Δo : Nat) (hT : 62 ≤ T) (hΔ : Δo ≤ 3000) :
+theorem not_seqRunt_le20_above44 {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 1 ≤ p.g) (hk : 11 / 25 ≤ p.κ)
+    (T su Δo : Nat) (hT : 123 ≤ T) (hΔ : Δo ≤ 3000) :
     ¬ NetCorrectSeqRunt w net boundary arbs p T 400000 su Δo :=
-  fun h => not_seqRunt20_above72 hg hk T su Δo hT hΔ (seqRuntOn_anti_w hw h)
+  fun h => not_seqRunt20_above44 hg hk T su Δo hT hΔ (seqRuntOn_anti_w hw h)
 
 end Formal.Target.FrontierRunt

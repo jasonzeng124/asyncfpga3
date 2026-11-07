@@ -1860,3 +1860,7 @@ k44w20 dump (C's 7-arc adversary, κ = 11/25, w = 20) by gen_runtp.py into `Form
 of the per-pin checks: 90,684 LUT pins, 0 failures; every arc inside the integer window), Wit and Refute (C's
 proofs re-run on this run's boundary transitions: req [401000, 455821), acks as in the dump, ArbOK T ≥ 123). Builds
 after the 0.72 chunks finish (one Lean chunk at a time on this sandbox). Not claimed until it checks.
+### progress 08:2x -- build order switched: κ = 11/25 first (it implies κ = 18/25 by the down-set lemma)
+CexRunt72 chunks X000-X026 checked (27/75), then stopped: a refutation at 11/25 covers 18/25 through
+`FrontierRunt.seqRuntOn_anti_p`, so the 0.72 build is only a fallback. CexRunt44 X000 checks (66 s, split in thirds);
+X001-X074 building. FrontierRunt now states `not_seqRunt20_above44` (every g ≥ 1, κ ≥ 11/25, T ≥ 123) from CexRunt44.
