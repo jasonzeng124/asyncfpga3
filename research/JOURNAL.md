@@ -2960,5 +2960,5 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Correction to 06:2x's bench audit (research/data/ceret/bench_harness.tsv): those 6 bench routes had no measured
   sizes either (emit.py estimates). The conclusion is about the harness's return path (bench fork -> async-clear flop
   -> 2-link delay), which the sizes do not touch; ufork0's loop is placement-dependent either way. Caveat added to the
-  TSV header. The August bench builds (aug_kernels) predate this and are not affected by it: their sizes were
-  derived on the bench itself (tighten_loop).
+  TSV header. The August bench builds (aug_kernels) are probably unaffected (build_bench's default MODE=tighten sizes
+  on the bench itself), but that is not checked here.
