@@ -8,7 +8,10 @@ import json, sys, math, bisect
 from fractions import Fraction as Fr
 net = json.load(open(sys.argv[1])); G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}
 BJ = json.load(open(sys.argv[2])); ENV = set(idx[x] for x in BJ["env"])
-D = json.load(open(sys.argv[3])); c = Fr(sys.argv[4]); kap = Fr(sys.argv[5]); SLOWN = set(idx[x] for x in sys.argv[6:])
+D = json.load(open(sys.argv[3])); c = Fr(sys.argv[4]); kap = Fr(sys.argv[5]); ARCS = None
+if len(sys.argv) > 6 and sys.argv[6].startswith("@"):   # per-arc slow list (simadv --classes JSON, key "S": [[node, pin]])
+    ARCS = set((idx[x[0]], x[1]) for x in json.load(open(sys.argv[6][1:]))["S"]); sys.argv = sys.argv[:6]
+SLOWN = set(idx[x] for x in sys.argv[6:])
 drv = {g["out"]: gi for gi, g in enumerate(G) if g["out"] not in ENV}
 # the simulator's slow set (same rule as simadv --slowroutes)
 SLOW = set(SLOWN)
@@ -34,7 +37,7 @@ def val(n, t):
 tend = D["tend"]; bad = 0; badadm = 0; checked = 0
 for o, gi in drv.items():
     g = G[gi]; slow = o in SLOW
-    ds = [dly(e, slow) for e in g["arcs"]]
+    ds = [dly(e, slow if ARCS is None else (o, i) in ARCS) for i, e in enumerate(g["arcs"])]
     for e, d in zip(g["arcs"], ds):
         if not adm(e, d): badadm += 1
     start = max([int(math.ceil((1 + kf) * e["smax"])) for e in g["arcs"]] + [0])

@@ -47,6 +47,10 @@ def main():
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
     ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
+    ap.add_argument("--classes", default=None, help="JSON {S: [nodes], F: [nodes]}: per-gate delay class (exact, corner 0); others --cdefault")
+    ap.add_argument("--cdefault", choices=["S", "F", "M"], default="M")
+    ap.add_argument("--why", default=None, help="write JSON: for every flip after R of the --whynodes, its transport cause chain")
+    ap.add_argument("--whynodes", nargs="*", default=[])
     ap.add_argument("--watch", nargs="*", default=[], help="node names: print their flip times")
     ap.add_argument("--su", type=int, default=0)
     ap.add_argument("--dout", type=int, default=3000)
@@ -118,7 +122,22 @@ def main():
             for u in gates[gi0]["ins"]:
                 while u in drv and gates[drv[u]]["k"] == 1 and gates[drv[u]]["init"] == 2:
                     SLOW.add(u); u = gates[drv[u]]["ins"][0]
-    def dly(e, gi=None):
+    CLS = None
+    if a.classes:
+        CJ = json.load(open(a.classes)); CLS = {}
+        ACL = {}
+        for k in ("F", "S"):
+            for x in CJ.get(k, []):
+                if isinstance(x, list): ACL[(idx[x[0]], x[1])] = k
+                else: CLS[idx[x]] = k
+        PK = round(a.kappa * 25); assert a.corner == 0 and abs(a.kappa - PK / 25) < 1e-12
+    def dly(e, gi=None, pin=None):
+        if CLS is not None:   # exact formulas (same as --exact): S = floor((25+P) fmax / 25), F = ceil((25-P) fmin / 25)
+            k = CLS.get(gates[gi]["out"], a.cdefault) if gi is not None else a.cdefault
+            if gi is not None: k = ACL.get((gates[gi]["out"], pin), k)
+            if k == "S": return ((25 + PK) * e["fmax"]) // 25
+            if k == "F": return ((25 - PK) * e["fmin"] + 24) // 25
+            return (e["fmin"] + e["fmax"]) // 2
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
             if a.exact:   # kappa = P/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
@@ -140,7 +159,7 @@ def main():
     readers = defaultdict(list)   # node -> [(gi, pin, d)]
     for gi in cone:
         g = gates[gi]
-        ds = [dly(e, gi) for e in g["arcs"]]
+        ds = [dly(e, gi, pi) for pi, e in enumerate(g["arcs"])]
         G[gi] = (g["k"], g["init"], g["ins"], ds, g["out"])
         for pin, (n, d) in enumerate(zip(g["ins"], ds)):
             readers[n].append((gi, pin, d))
@@ -332,6 +351,31 @@ def main():
         print("watchnode %s flips %d min pulse %s : %s" % (nmw, len(ts) - 1, min(pw) if pw else None, list(zip(ts, vs))[:40]))
     print("sim: %d events, t = %d ps, %d pairs offered, %d accepted, %d outputs" %
           (nev, t, len(pairs), st["done_in"], len(outvals)), file=sys.stderr)
+    if a.why:
+        def cause(n, t):
+            gi = drv.get(n)
+            if gi is None or gi not in G: return None
+            k, init, ins, ds, o = G[gi]
+            best = None
+            for i in range(k):
+                ts = ht[ins[i]]; j = bisect_right(ts, t - ds[i]) - 1
+                if j >= 1 and ts[j] == t - ds[i]:
+                    if best is None or ds[i] > best[2]: best = (ins[i], t - ds[i], ds[i], i)
+            return best
+        WY = {}
+        for nmw in a.whynodes:
+            n = idx[nmw]; out = []
+            for tt, vv in zip(ht[n][1:], hv[n][1:]):
+                if tt < a.R: continue
+                ch = [(n, tt, -1)]; m, u = n, tt
+                while True:
+                    c0 = cause(m, u)
+                    if c0 is None or c0[1] < a.R: break
+                    ch[-1] = (m, u, c0[3])
+                    m, u = c0[0], c0[1]; ch.append((m, u, -1))
+                out.append([tt, vv, ch])
+            WY[nmw] = out
+        json.dump(WY, open(a.why, "w"))
     if a.dump:
         json.dump({"tend": t, "nodes": {str(n): [hv[n][0], ht[n][1:]] for n in ht if len(ht[n]) > 1 or hv[n][0]},
                    "outs": outvals, "pairs": pairs, "args": vars(a)}, open(a.dump, "w"))

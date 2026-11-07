@@ -1718,3 +1718,34 @@ rows B covers).
   predecessors without a sensitised path dropped from HI; events older than the window assumed settled.
 - w = 20 probe: uya slow, only the chain A -> ... -> b of the worst TSE trace fast, every other arc mid-window: correct
   at κ = 0.5 .. 0.95, and still 4-5 ps glitches somewhere in every run. No counterexample lead for H_RUNT(20).
+
+## Session Sat Nov  7 07:20:35 UTC 2026 (shard C; session_01HC49FxaHWTKraby5xaY51B)
+
+### progress 07:21 -- start
+Lock taken (previous C lock 2026-11-06 12:46, stale). Audit (origin/claude/audit): no open REFUTED/OVERSTATED row on
+C's files; T28 confirms C's refutations. A is building the H_RUNT(20) refutation at κ = 0.72 (A's journal 07:19), so C
+does not touch it. C's plan: push the g = 1 refutation frontier down from κ = 0.72 toward B's sufficient 0.415, since
+a counterexample at smaller scatter is the most informative result available today. setup.sh running (Mathlib from
+source: cache host unreachable).
+
+### progress 07:31 -- COUNTEREXAMPLE CANDIDATE at κ = 12/25 = 0.48 (simulation + independent checks; NOT Lean): B's binding race row is nearly tight
+New tools (untrusted): `simadv.py --classes` (per-arc delay classes: S = ⌊(25+P)·FAST_MAX/25⌋, F = ⌈(25-P)·FAST_MIN/25⌉,
+M = mid; `--why`: transport cause chains), `adv.py` (iterated cause-chain adversary; negative: for umux16.uya the
+re-enabling input's chain always passes through uya's own excitation, so no race there at κ = 0.72), `hazsweep.py`
+(per storage node, per live pin: that pin's route and arc slow, every other arc of the circuit fast).
+**Finding:** slowing ONLY the feedback route of ulink_n_falseResult_85 stage 0 (SLICE_X32Y45.A6; its pin 0 arc and the
+6 pips/hops of its self-loop route: 7 arcs, `tools/huff/cex/k48_classes.json`) and putting every other arc at the fast
+end deadlocks the pair (1071, 462) at κ = 12/25 (corner 0, g = 1, transport, R = 400 ns, SeqEnv env): quiet from
+523,470 ps, out0 never rises. Mechanism: the node is a C-element b = C(x, ¬ack) (INIT 0x2200332222003322: ack low ->
+fb ∨ x, ack high -> fb ∧ x). b rises; the acknowledge comes back (ack read high) before b's own rise has gone round
+its slowed feedback route, so b = fb ∧ x reads fb = 0 and falls; then oscillates with the loop period (~570 ps) and the
+handshake is lost. This is exactly B's binding RaceTablePS row (SLICE_X32Y45.A, safe for κ ≤ 0.415 at g = 1:
+"acknowledgement path at least as slow as the node's feedback loop"). Bracket with this adversary: correct at κ =
+0.36 and 0.40; non-quiet livelock (9.4 M events to 3 µs, no out0) at 0.44; quiet deadlock at 0.48 (and 0.60).
+Checks of the 0.48 dump (`tools/huff/cex/k48_dump.json.xz`): gatecheck.py (new `@classes` per-arc option): all
+186,871 gates satisfy the gate relation at every breakpoint (279,279 checks, 0 mismatches), 0 arcs outside Adm;
+envcheck.py: Env + SeqEnv OK, ArbOK for every T ≥ 113 ps, out0 0 of 1 rises, quiescent end.
+**Meaning (if simulator and checks are right):** NetCorrectSeq on THE target is false at (g, κ) = (1, 0.48), w = 0, and
+for this race the g = 1 frontier is in [0.415, 0.44): B's sufficient bound is tight to 0.03 on its binding row. Next:
+Lean refutation at κ = 12/25 (KBase with per-arc slow list), and a sweep of all 412 control storage nodes x pins at
+κ = 0.40 (running, 1,316 runs) for anything lower.
