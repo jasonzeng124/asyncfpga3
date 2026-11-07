@@ -29,6 +29,9 @@ for cf in sorted(glob.glob(os.path.join(EX, "C_B*.lean"))):
     ctext = open(cf).read(); rtext = open(rf).read()
     for m in re.finditer(r"set_option maxRecDepth 100000 in\n/-- (.*?) -/\ndef (c\d+) : Prem × List CRow := \((.*?)\]\)\n", ctext, re.S):
         doc, name, body = m.group(1), m.group(2), m.group(3)
+        ONLY = os.environ.get("ONLY")
+        if ONLY and name.upper() not in ONLY.split(","):
+            mods.append((name, [], 0, doc)); continue
         prem, rows = body.split(", [\n", 1)
         rowlines = [l.strip().rstrip(",") for l in rows.split("\n") if l.strip()]
         swm = re.search(r"⟨⟨%s, (.*?)⟩, (⟨\d+, \[.*?\], \[.*?\], \[.*?\], (?:true|false), \d+, (?:true|false), \[.*?\], \[.*?\]⟩), (⟨\d+, \[.*?\], \[.*?\], \[.*?\], (?:true|false), \d+, (?:true|false), \[.*?\], \[.*?\]⟩)⟩" % name, rtext, re.S)

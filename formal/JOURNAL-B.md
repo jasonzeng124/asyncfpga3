@@ -3233,3 +3233,11 @@ flips after reset).
   admitted from 7.2 ns. The headline T should therefore stay below the server-path delay, which also keeps it above
   the state LUT's own delay (664 ps slow) only for κ small enough: (1-κ)·1469 (the shortest of the five server
   paths, fast corner) vs (1+κ)·664 -> κ ≤ ~0.38 for both conditions to hold with g = 1. Python estimate, not Lean.
+
+### progress 12:21 -- the 23 large certificates, checked in pieces (BigCertPS; building)
+`CertSplit` (Lean): `certOK_of_split` (certOK from krowOK by row ranges + labels), `raceOK_of_split` (raceOK from
+its cheap parts + per-range path arc sums), `all_range'_append`, `sum_block`, `sFmin_pathArcs`.
+tools-B/ps/gen_bigcerts_ps.py: per certificate a data file, row-range files (krowOK + the range's path FAST_MIN /
+SLOW_MIN sums, each range ≤ MAXC netlist chunks) and a combining file (certOK, raceOK, swOK); BigCertPS.lean:
+`target_switches` over all 23. First pass (MAXC = 12): 14 certificates complete; 9 had a range killed for memory
+(three decides per file over 12 chunks) and are being rebuilt with MAXC = 5 (260 modules).
