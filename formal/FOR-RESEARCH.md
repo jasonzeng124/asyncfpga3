@@ -213,3 +213,17 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   (standard axioms) refutes the headline statement at g = 1, κ = 11/25, T ≥ 123; `FrontierRunt.not_seqRunt_le20_above44`
   carries it to every g ≥ 1, κ ≥ 11/25, w ≤ 20. The κ = 0.72 entry above is superseded. For research: the runt filter
   is not the protection the circuit needs; the C3 race (ack faster than the C-element's own loop) is.
+
+## A5. Which races bind THE target's margin (shard A, 2026-11-07; simulation, independently checked)
+- **Two races fail below κ = 0.48** (single-pin adversary: one pin's route at the top of its window, every other arc at
+  the bottom; H_RUNT(20); pair (1071, 462); all 412 control storage nodes x 1,316 live pins swept at κ = 0.48, and C's
+  sweep at 0.40 found none):
+  1. `ulink_n_falseResult_85` stage 0 (SLICE_X32Y45.A6): the acknowledge returns before the C-element's own
+     feedback loop has gone round. Fails from κ = 0.44 (Lean-refuted, A and C independently); B proved it safe to 0.41.
+  2. `ucontrol_merge10.uarb1.ua2` (SLICE_X38Y53.A6), its read of the fork `ucontrol_merge10_f` slowed: fails from
+     κ = 0.46 (correct at 0.45; `formal/tools-A/target/out/k48w20_ua2_dump.json.xz`, checked: 0 gate mismatches,
+     Env/SeqEnv OK, ArbOK T ≥ 113).
+- **What it means for a fix:** both are local loop-versus-acknowledge races. Lengthening the acknowledge path, or
+  shortening the loop (an RLOC'd feedback route), of these two cells would move this class's margin to at least
+  κ = 0.48. Multi-pin adversaries were not swept.
+- **Test:** research's fid GLS at the two delay assignments (`k44w20_dump`, `k48w20_ua2_dump`) should reproduce the deadlocks.

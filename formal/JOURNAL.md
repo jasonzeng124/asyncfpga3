@@ -2010,3 +2010,15 @@ ArbOK for T ≥ 113, no out0, quiet at 520,098 ps. A third failure, ucontrol_mer
 (SLICE_X38Y51.B6) slowed on pin 3, livelocks (not quiet to 3 µs; ArbOK not yet checked -- an arbiter that never
 settles may violate H_ARB, so it may not be a behaviour). **For research:** fixing ulink_n_falseResult_85's race
 alone moves the margin from 0.44 to ~0.46: the control has several races within a few percent of each other.
+### progress 16:2x -- next-race sweep DONE: at κ = 0.48 only two single-pin races fail (simulation)
+All 412 control storage nodes x live pins (1,316 runs), single-pin adversary, H_RUNT(20), κ = 12/25, pair (1071, 462):
+1,313 correct, 0 inadmissible runs, 3 failures (`tools-A/target/out/sweep_k48_w20.txt`):
+1. SLICE_X32Y45.A6 pin 0 (ulink_n_falseResult_85 stage 0; the known race, Lean-refuted from 0.44);
+2. SLICE_X38Y53.A6 pin 0 (ucontrol_merge10.uarb1.ua2 reading the fork ucontrol_merge10_f): quiet deadlock from
+   κ = 0.46, checked (16:0x entry);
+3. SLICE_X38Y51.B6 pin 3 (merge10's arbiter STATE LUT): a livelock in which the state node oscillates for ever with
+   its inputs fixed (2,799 toggles to 0.8 µs; the largest input-to-state lag grows without bound), so it violates
+   H_ARB(T) for every T: NOT a behaviour of the statement, it is what H_ARB excludes.
+**For research (single-pin adversaries only, one pair):** the control has exactly two races that fail below κ = 0.48,
+at 0.44 and 0.46; fixing both would move this adversary class's margin to at least 0.48. Not covered: multi-pin
+adversaries, other pairs, other corners.
