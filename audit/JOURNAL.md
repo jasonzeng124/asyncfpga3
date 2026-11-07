@@ -1241,3 +1241,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T11:00:24Z T37 row 5: CexRunt44 + FrontierRunt Lean CONFIRMED (156 modules, standard axioms): headline NetCorrectSeqRunt w (w<=20) false for every g>=1, kappa>=11/25, T>=123.
 - 2026-11-07T11:01:13Z queued build42 (C CexR44+AllR, CexRg16; B RaceAllPS/CertRowsPS/RaceAllPS2/CertArbPS/ArbServer) after build40/41. Deleted superseded CexRunt72 oleans (disk).
 - 2026-11-07T11:43:43Z T38: build40 (15 modules: B certificates, target_b_switch_041; C Stretch/Smax/Periodic) build + axioms CONFIRMED (703 constants).
+- 2026-11-07T12:41:35Z container restart: build41 (CexRuntG16 at 6dfd8b6f) had 149 modules rc=0 through X070; resumed without re-checkout (build41_resume.sh); build42 waiter relaunched.
