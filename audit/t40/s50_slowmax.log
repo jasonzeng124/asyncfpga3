@@ -1,0 +1,97 @@
+T40 s50_slowmax  Sat Nov  7 23:18:56 UTC 2026
+GLS_MODEL=fid
+GLS_SDF=/root/t40/s50/xorshift_bench_gen_xray.sdf
+GLS_SDF_FIELD=max
+PS_DESIGN=xorshift_bench_gen
+PS_HOST=ps7_bench.v
+PYTHONPATH=/root/audit-tc/openxc7-src/prjxray
+XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
+9df2b814d8ab2396a5a4c27beb6fd714  /root/t40/s50/xorshift_bench_gen.bit
+c5b8ca02c9a5fb7bf8b9994990e1cb21  /root/t40/s50/xorshift_bench_gen.sdf
+6a4cb90215653def0cb6b0b5be8ba0c9  /root/t40/s50/xorshift_bench_gen_xray.sdf
+f84818bb9ce8fba9c9150f1cba2970e9  /root/t40/s50/xorshift_bench_gen_routed.json
+cf56766bfc5ca242422ce6c53a786d21  /root/t40/xorshift17.hex
+source: /root/t40/s50/xorshift_bench_gen.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 50666   nodes touched: 321866
+cells: 7317  {'BUFGCTRL': 1, 'CARRY4': 78, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PS7_PS7': 1, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 290, 'SLICE_FFX': 1916, 'SLICE_LUTX': 5025}
+sinks traced: 247707
+sink roots: {'drv': 22504, 'const/tile': 864, 'const/default': 13091}
+sdf: DRIVER MISMATCH: nextpnr's arc has another source                      69
+sdf: cell arcs for a bel this netlist does not have                         92
+sdf: cells re-keyed                                                         7225
+sdf: interconnects re-keyed                                                 26341
+sdf: sinks with no nextpnr interconnect (0 ps)                              13102
+
+PROBLEMS (2 kinds):
+      69  SDF interconnect source differs from the bitstream's driver
+            e.g. SLICE_X10Y81/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+            e.g. SLICE_X11Y72/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+            e.g. SLICE_X11Y75/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+            e.g. SLICE_X12Y44/B6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+            e.g. SLICE_X12Y70/C6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+            e.g. SLICE_X13Y83/A6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:706$1331.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X12Y88/CARRY4/CO2
+            e.g. SLICE_X13Y88/A6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:706$1331.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X12Y88/CARRY4/CO2
+            e.g. SLICE_X14Y45/B6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/xorshift_bench_gen.v:586$1313.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y77/CARRY4/CO2
+       1  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_BOT_R_X82Y48/CLK_BUFG_BUFGCTRL0_O
+
+CONFIGURED FEATURES NOT CONSUMED: 1 kinds (0 all-zero encodings ignored)
+       1  CLK_HROW_BOT_R.CLK_HROW_CK_IN_LN_ACTIVE   e.g. CLK_HROW_BOT_R_X82Y26.CLK_HROW_CK_IN_L0_ACTIVE
+
+note: 6079 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 7920 routed-JSON net names attached by driver bel pin, 0 whose driver has no net here
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    xorshift_bench_gen (host ps7_bench.v)
+routed.json md5 39baaf2c6ff38a731442cc946b80f7a1  <- /root/t40/s50/xorshift_bench_gen_routed.json
+routed.sdf  md5 41f1af0447d5ff1dbc778d860518f46b  <- /root/t40/s50/xorshift_bench_gen_xray.sdf, column max
+delays:    scatter 0 region 0 seed 1 mode arc logn 0
+model:     fid
+netlist:   bit (fasm2net --ps7 from 9df2b814); VERDICT: EQUIVALENT (only the benign kinds above)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+24 vectors -> /root/t40/work_s50_slowmax/ps_vec.hex
+delays: SDF column max, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 20895 IOPATH, 39443 INTERCONNECT, 9106 SETUPHOLD
+fid: 786 LUT state node(s) with a self-loop; loop delay min/median/max 384/973/1655 ps
+cells         : 7317
+icbufs        : 39443
+nets          : 7994 (+39443 icbuf outputs)
+IOPATH  claimed 60338 -> emitted 60338 (incl. 39443 icbuf)
+SETUPHOLD claimed 9106 -> 1916 flops check them in netlist_baked.v
+built in /root/t40/work_s50_slowmax
+ANNOTATE_DONE
+$ vvp run_baked.vvp +MODE=1 +VECFILE=/root/t40/xorshift17.hex +NRUNS=2 +TBATCH=1000000
+WARNING: /root/wt-r34/cells/gls/ps/ps7_bench.v:255: $readmemh(/root/t40/xorshift17.hex): Not enough words in the file for the requested range [0:511].
+BENCHRES batch=0 fclk_ps=10000 mode=1 op0=92d68ca2 op1=00000000 n=2 completed=2 cycles=24 prepcyc=32 latmin=7 latmax=7 sig=b77b95e7 odata=92d68ca2 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=2516999 DONE
+BENCHRES batch=1 fclk_ps=10000 mode=1 op0=92d68ca2 op1=00000001 n=2 completed=2 cycles=32 prepcyc=32 latmin=11 latmax=11 sig=7d21d7a5 odata=2b1f4d63 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=4656999 DONE
+BENCHRES batch=2 fclk_ps=10000 mode=1 op0=92d68ca2 op1=00000002 n=2 completed=2 cycles=46 prepcyc=32 latmin=18 latmax=18 sig=bd6f5d8f odata=94dacb7a mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=6796999 DONE
+BENCHRES batch=3 fclk_ps=10000 mode=1 op0=92d68ca2 op1=00000004 n=2 completed=2 cycles=76 prepcyc=32 latmin=33 latmax=33 sig=98d0fa82 odata=77b0567e mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=9486999 DONE
+BENCHRES batch=4 fclk_ps=10000 mode=1 op0=00000001 op1=00000003 n=2 completed=2 cycles=62 prepcyc=32 latmin=26 latmax=26 sig=a655f94e odata=9dcca8c5 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=12176999 DONE
+BENCHRES batch=5 fclk_ps=10000 mode=1 op0=ffffffff op1=00000002 n=2 completed=2 cycles=46 prepcyc=32 latmin=18 latmax=18 sig=04080600 odata=fc07fdff mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=14316999 DONE
+BENCHRES batch=6 fclk_ps=10000 mode=1 op0=0e86622c op1=00000003 n=2 completed=2 cycles=62 prepcyc=32 latmin=26 latmax=26 sig=3f7fac9d odata=152a9b8b mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=17006999 DONE
+BENCHRES batch=7 fclk_ps=10000 mode=1 op0=5621d5d7 op1=00000002 n=2 completed=2 cycles=46 prepcyc=32 latmin=18 latmax=18 sig=f63187bf odata=adef7d6a mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=19146999 DONE
+BENCHRES batch=8 fclk_ps=10000 mode=1 op0=693b9df8 op1=00000007 n=2 completed=2 cycles=122 prepcyc=32 latmin=56 latmax=56 sig=a2c5df72 odata=9e434ad1 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=22386999 DONE
+BENCHRES batch=9 fclk_ps=10000 mode=1 op0=33c584e5 op1=00000008 n=2 completed=2 cycles=136 prepcyc=32 latmin=63 latmax=63 sig=08468076 odata=07c27fd2 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=25626999 DONE
+BENCHRES batch=10 fclk_ps=10000 mode=1 op0=0b77ed62 op1=00000000 n=2 completed=2 cycles=24 prepcyc=32 latmin=7 latmax=7 sig=1d9837a6 odata=0b77ed62 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=27766999 DONE
+BENCHRES batch=11 fclk_ps=10000 mode=1 op0=6a84210f op1=00000006 n=2 completed=2 cycles=106 prepcyc=32 latmin=48 latmax=48 sig=9cbaba99 odata=8b966988 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=31006999 DONE
+BENCHRES batch=12 fclk_ps=10000 mode=1 op0=4a56b27b op1=00000005 n=2 completed=2 cycles=92 prepcyc=32 latmin=41 latmax=41 sig=ea2458db odata=59e3c849 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=33696999 DONE
+BENCHRES batch=13 fclk_ps=10000 mode=1 op0=2a4605d0 op1=00000005 n=2 completed=2 cycles=92 prepcyc=32 latmin=41 latmax=41 sig=13b90d26 odata=f168fb1d mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=36386999 DONE
+BENCHRES batch=14 fclk_ps=10000 mode=1 op0=92d68ca2 op1=00000040 n=2 completed=2 cycles=986 prepcyc=32 latmin=488 latmax=488 sig=f2e4c4b1 odata=ae5c4390 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=48426999 DONE
+BENCHRES batch=15 fclk_ps=10000 mode=1 op0=92d68ca2 op1=000000c8 n=2 completed=2 cycles=3050 prepcyc=32 latmin=1520 latmax=1520 sig=921af22c odata=71f651e4 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=80816999 DONE
+BENCHRES batch=16 fclk_ps=10000 mode=1 op0=92d68ca2 op1=000003e8 n=2 completed=2 cycles=15186 prepcyc=32 latmin=7588 latmax=7588 sig=4de7d3b5 odata=c4a2b16c mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=234756999 DONE
+BENCHSUMMARY batches=17 hang=0 id_mismatch=0 t_end=234806999
+/root/wt-r34/cells/gls/ps/ps7_bench.v:349: $finish called at 234806999 (1ps)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 20:09.64
+	Maximum resident set size (kbytes): 2132708
+DONE

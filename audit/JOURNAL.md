@@ -1256,3 +1256,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T22:15:21Z disk: deleted 1.8 GB of yosys build object files (*.o) under /root/audit-tc/openxc7-src/yosys; the installed toolchain (/root/audit-tc/openxc7/bin) is separate and unchanged.
 - 2026-11-07T22:55:54Z T40 started (subagent, no git, /root/t40 + git-free research copy at dc03fbcc): BOARD-QUEUE #6 xorshift x0.5 bench -- own seed-1 builds (sdf c5b8ca02 / e3024283) + worst-case full-stack run with own oracle.
 - 2026-11-07T23:28:59Z build43 done (965 MOD rc=0 incl. rebuilt CexRunt44/G16 chunks, CexRuntD60, FrontierRuntR, B BigCertPS/RaceAllTarget/CertArbPS2-4/ArbOneAck*/LatchHold*); axiom audit of 496 B modules running.
+- 2026-11-07T23:43:21Z T40 done: BOARD-QUEUE #6 xorshift x0.5 seed 1 CONFIRMED (sdf md5s, worst 17/17 own oracle, 3.784/round exact, SLOW_MAX exact).
