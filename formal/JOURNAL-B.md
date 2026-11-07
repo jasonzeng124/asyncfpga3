@@ -3328,3 +3328,8 @@ bug and should be re-run; the positives are unaffected in soundness (every certi
 **Not shown:** arbs[2], arbs[4] (q never flips after reset in any of the 15 dumps here, so no transaction to certify
 from); the other direction for arbs[1], [3], [6]; the premises. Also observed (Python, d3): arbiter 1's A0 change at
 431.9 ns comes from arbiter 3's q flip through a ~7 ns chain, not from arbiter 1's own q.
+
+**CORRECTION (to progress 10:30):** "SLICE_X16Y31.A: A0's next change is not certified from q (A0 there moves for
+another reason)" was the ctlcert absent-node bug: in d3 arbiter 3's A0 change does come from its own q (Python trace),
+and it is now certified. For SLICE_X39Y24.A the "another reason" reading stands (its A0 change follows arbiter 3's q),
+but a hold certificate from its own q exists all the same (ArbServerPS3).

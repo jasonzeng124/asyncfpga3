@@ -34,12 +34,17 @@ Arbiter 0, transaction where q falls (`Formal.Cells.ArbOneAckPS.target_arb0_one_
 q low at t1 + T, the reset low, A1 low before s0 and the overlap condition (T small enough), the losing client's
 acknowledge A1 stays low on [s0, t2 + …]: the one-acknowledge property for that transaction.
 
+Updated 15:05: settle also for arbs[1], arbs[3] (`Formal.Cells.ArbServerPS3.target_arbs_settle`, 7 of 9 in all).
+One-acknowledge (`ArbOneAck.one_ack_of` instances): `ArbOneAckAllPS.target_one_ack` (arbs[0],[5],[6],[7],[8], one
+direction of q), `ArbOneAckAllPS2.target_one_ack` (arbs[0],[5],[7],[8], the other direction),
+`ArbOneAckAllPS3.target_one_ack` (arbs[1],[3], q leaving true). Same premise shape as above.
+
 ## Generic tools (reusable for other nodes / kernels)
 `CtlChain` (hold_set, hold_mem), `CertPS` (certOK / cert_sound), `CertMarginPS` (win_end_ge, margin_of_sums),
 `CertRaceAll` (race_holds, target_races_of), `CertSwitchAll` (switch_row, target_switches_of), `ArbServer`
 (q_settles). Generator: `tools-B/ps/gen_certs_ps.py` (rows from simb dumps; every row is re-checked in Lean).
 
 ## Not covered
-4 RaceTablePS rows (power-up episodes); 4 arbiters; the one-acknowledge property for the other direction and the other
-arbiters (same pattern as ArbOneAckPS); latches (LatchViewPS's data windows
+4 RaceTablePS rows (power-up episodes); arbs[2], arbs[4] (q never flips after reset in any dump here); the other
+direction of the one-acknowledge property for arbs[1], [3], [6]; latches (LatchViewPS's data windows
 are the analogous premises); non-vacuity of the premises in Lean (they hold in the simulated runs they came from).
