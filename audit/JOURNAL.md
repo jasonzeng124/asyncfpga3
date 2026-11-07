@@ -1226,3 +1226,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 05:00Z lock.
 - 05:40Z lock.
 - 06:20Z lock.
+- 2026-11-07T06:35:47Z T32: FAST_MIN s75ff seed 6 killed by container restart after vec 0-8 (vec 6 = 95 laps, errs 0, matches research); resumed vec 9-15 in the same work dir.
