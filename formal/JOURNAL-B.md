@@ -3241,3 +3241,12 @@ tools-B/ps/gen_bigcerts_ps.py: per certificate a data file, row-range files (kro
 SLOW_MIN sums, each range ≤ MAXC netlist chunks) and a combining file (certOK, raceOK, swOK); BigCertPS.lean:
 `target_switches` over all 23. First pass (MAXC = 12): 14 certificates complete; 9 had a range killed for memory
 (three decides per file over 12 chunks) and are being rebuilt with MAXC = 5 (260 modules).
+
+### progress 14:00 -- CHECKED: the 23 large certificates (BigCertPS.target_switches): 181 of 185 race rows now theorems
+`Formal.Cells.BigCertPS.target_switches` (standard axioms; 391 modules built one at a time with lake, check.sh
+audit 3,531 declarations): the 23 rows whose certificates span 19-40 netlist chunks, each checked in row ranges
+(≤ 5 chunks, ≤ 20-30 rows per file; certOK_of_split / raceOK_of_split reassemble them). With RaceAllPS (135) and
+RaceAllPS2 (23): **181 of the 185 RaceTablePS rows** are clean-switch theorems in every behaviour of THE circuit
+(g = 1, κ ≤ 0.415, under each row's local premises). The 4 left are power-up episodes (reset high; κ 0.85-0.985).
+Memory notes for full builds (shard A, check.sh --committed): every Cert/Race/BigCert module checks alone within
+~6 GB; lake's parallel build will need check.sh's OOM retry (it rebuilds killed modules one at a time).
