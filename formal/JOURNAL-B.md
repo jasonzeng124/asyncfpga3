@@ -3106,3 +3106,15 @@ loop upper delay) holds for κ ≤ 0.423 at c = 0, 0.433 / 0.439 / 0.442 / 0.445
 and for g < 1.58 at κ = 0. C's adversary (slow loop, all else fast) fails at κ = 0.44: the sufficient and the failing
 sides are 0.017 apart on this node. **Not shown:** the four premises (order-level), that inequality in Lean (next),
 the other 184 race rows.
+
+### progress 08:02 -- race_margin CHECKED: the binding race row's margin is a theorem up to κ = 0.41 (g = 1), every corner
+`RaceCertPS.race_margin` (standard axioms, check.sh OK): for g = 1, all κ ∈ [0, 41/100], all c ∈ [0, 1]:
+b's feedback loop upper delay (kb.hi 0) ≤ k1.lo 4 + k2.lo 4 + k3.lo 3 + k4.lo 3 + k5.lo 4 + kb.lo 4, with the arcs
+read from the netlist (`a1`..`ab0` by kernel decide; `kb_view` ties b's chains). Proof: ceil/floor bounds
+(`sum_lo_ge`, `sum_hi_le`, `toNat_ge/le`) to the real inequality (1-κ)(1073 + 1725c) ≥ (1+κ)(441 + 641c).
+**Plainly, with target_ack_holds:** in every behaviour of THE circuit with g = 1 and κ ≤ 0.41, once
+ulink_n_falseResult_85 stage 0 rises (and the four local premises hold), its acknowledge is read unchanged for at
+least the node's own feedback loop delay: B's binding race obligation (the row C's κ = 0.48 counterexample breaks)
+is met. It is the first race row whose acknowledge delay is proved rather than simulated. Real-valued limit 0.417
+(c = 0); C's adversary fails at 0.44. **Not shown:** the cfb_switch assembly (mechanical), the four premises, the
+other 184 rows (ctlcert.py + gen_cert_ps.py produce rows for any node; the Lean pattern is generic).

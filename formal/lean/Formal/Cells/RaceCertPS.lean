@@ -22,6 +22,9 @@ window end.
   hold), `krowOK` (view check, wiring, ties), `krow_set` / `krow_mem` (row-level holds from `CtlChain`).
 * `rows_ok`: THE target's five rows pass `krowOK` (kernel `decide`).
 * `target_ack_holds`: the instance (statement below).
+* `race_margin`: for g = 1, every κ ∈ [0, 41/100] and every corner c ∈ [0, 1], b's feedback loop upper delay
+  (`kb.hi 0`) ≤ the certified acknowledge lower bound (`k1.lo 4 + … + k5.lo 4 + kb.lo 4`, b's own pin-4 chain
+  included). `kb_view` / `kb_src` tie b's pin chains to the netlist.
 
 ## Premises of `target_ack_holds` (each a local value fact the network argument must supply)
 * `b` (node 120808) low on `[a, e]` (with `e` = the instant before `b` rises: the cause);
@@ -31,8 +34,8 @@ window end.
 * `a` at least every row's collapse start.
 
 ## Not shown
-The premises themselves (order-level facts); the comparison with `b`'s feedback loop (κ* = 0.417 at the fast corner,
-Python, journal) as a Lean inequality; the other race rows.
+The premises themselves (order-level facts); the assembly with `SpecFbChain.cfb_switch` into "b switches cleanly"
+(the pieces fit: the acknowledge read stays unchanged for b's loop upper delay); the other race rows.
 -/
 
 namespace Formal.Cells.RaceCertPS
@@ -239,5 +242,95 @@ theorem target_ack_holds {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {
         rcases this with rfl | rfl
         · simp only [if_true]; exact ⟨t2, t4⟩
         · simp only [show (4 : Nat) ≠ 0 by decide, if_false]; exact ⟨by omega, by omega⟩)
+
+/-! ## The margin: the switch obligation of b holds for κ ≤ 0.41 (g = 1), at every corner -/
+
+/-- b's own row (its pin chains, from the same generator); only its arcs are used, and `kb_view` ties them to the
+netlist. -/
+def kb : KRow := ⟨120808, [([120783, 120782, 120730, 120729, 120675, 120679], 120808), ([120787, 120786, 120785, 120784, 48331, 5001, 2383, 1181, 1180, 1179, 1185], 186905), ([120790, 120789, 120788], 120791), ([120797, 120796, 120795, 120794, 120793, 120792, 120798], 136002), ([120803, 120802, 120801, 120800, 120799, 120804], 140537), ([120807, 120806, 120805], 120791)], [1, 4], [false, false, false, false, false, false], false, 0, true, [false, false, true, false, false, true], [false, false, false, false, false, false]⟩
+
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 100000 in
+/-- b's pin chains are the netlist's (view check; its pin 0 is its own feedback, its pin 4 reads the acknowledge
+140537, as `kb_src` states). -/
+theorem kb_view : viewOK kb.q kb.pins = true := by decide +kernel
+
+theorem kb_src : kb.src 0 = 120808 ∧ kb.src 4 = 140537 := by decide
+
+open Formal.Cells.Ua1Static in
+theorem sum_lo_ge {g κ c : ℚ} : ∀ l : List Arc,
+    (((l.map (lo g κ c)).sum : ℤ) : ℚ) ≥ (l.map fun e => (1 - κ) * lerp e.fmin e.smin c / g).sum
+  | [] => by simp
+  | e :: l => by
+    have := sum_lo_ge (g := g) (κ := κ) (c := c) l
+    have h : (1 - κ) * lerp e.fmin e.smin c / g ≤ ((lo g κ c e : ℤ) : ℚ) := by unfold lo; exact Rat.le_ceil
+    simp only [List.map_cons, List.sum_cons, Int.cast_add]
+    linarith
+
+open Formal.Cells.Ua1Static in
+theorem sum_hi_le {g κ c : ℚ} : ∀ l : List Arc,
+    (((l.map (hi g κ c)).sum : ℤ) : ℚ) ≤ (l.map fun e => (1 + κ) * lerp e.fmax e.smax c * g).sum
+  | [] => by simp
+  | e :: l => by
+    have := sum_hi_le (g := g) (κ := κ) (c := c) l
+    have h : ((hi g κ c e : ℤ) : ℚ) ≤ (1 + κ) * lerp e.fmax e.smax c * g := by unfold hi; exact Rat.floor_le _
+    simp only [List.map_cons, List.sum_cons, Int.cast_add]
+    linarith
+
+theorem toNat_ge (s : ℤ) : ((s.toNat : ℕ) : ℚ) ≥ (s : ℚ) := by
+  have := Int.self_le_toNat s
+  exact_mod_cast this
+
+theorem toNat_le {s : ℤ} {r : ℚ} (h : (s : ℚ) ≤ r) (hr : 0 ≤ r) : ((s.toNat : ℕ) : ℚ) ≤ r := by
+  rcases le_or_gt 0 s with hs | hs
+  · have : ((s.toNat : ℕ) : ℤ) = s := Int.toNat_of_nonneg hs
+    have : ((s.toNat : ℕ) : ℚ) = (s : ℚ) := by exact_mod_cast this
+    linarith
+  · have : s.toNat = 0 := Int.toNat_eq_zero.mpr hs.le
+    simp [this, hr]
+
+set_option maxRecDepth 100000 in
+theorem a1 : k1.arcs 4 = [⟨79, 99, 193, 240⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨50, 71, 115, 149⟩, ⟨33, 83, 111, 176⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem a2 : k2.arcs 4 = [⟨78, 98, 192, 238⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem a3 : k3.arcs 3 = [⟨133, 165, 329, 408⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem a4 : k4.arcs 3 = [⟨131, 163, 329, 408⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨44, 63, 108, 140⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem a5 : k5.arcs 4 = [⟨79, 99, 193, 240⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨50, 135, 111, 209⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem ab4 : kb.arcs 4 = [⟨83, 104, 202, 250⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨33, 51, 113, 147⟩, ⟨52, 74, 118, 153⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+set_option maxRecDepth 100000 in
+theorem ab0 : kb.arcs 0 = [⟨225, 281, 528, 655⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨35, 62, 102, 142⟩, ⟨33, 51, 113, 147⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩] := by decide +kernel
+
+/-- **The binding race's margin.** For g = 1, every κ ∈ [0, 41/100] and every corner c ∈ [0, 1]: b's feedback loop
+upper delay (pin 0, `kb.hi 0`) is at most the certified acknowledge lower bound (the five rows' `lo` plus b's own
+pin-4 chain `kb.lo 4`). So with `target_ack_holds`, after b rises its acknowledge is read unchanged for at least b's
+loop upper delay: the switch obligation of `SpecFbChain.cfb_switch` for this node (B's binding RaceTablePS row) is
+met in every behaviour satisfying the premises, up to κ = 0.41 (g = 1). (Real-valued: it fails above
+κ = 632/1514 ≈ 0.417 at c = 0; C's adversary breaks the node at 0.44.) -/
+theorem race_margin (κ c : ℚ) (hk0 : 0 ≤ κ) (hk : κ ≤ 41 / 100) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
+    kb.hi ⟨1, κ⟩ c 0 ≤ k1.lo ⟨1, κ⟩ c 4 + k2.lo ⟨1, κ⟩ c 4 + k3.lo ⟨1, κ⟩ c 3 + k4.lo ⟨1, κ⟩ c 3 +
+      k5.lo ⟨1, κ⟩ c 4 + kb.lo ⟨1, κ⟩ c 4 := by
+  simp only [KRow.lo, KRow.hi, a1, a2, a3, a4, a5, ab4, ab0]
+  have L1 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨79, 99, 193, 240⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨50, 71, 115, 149⟩, ⟨33, 83, 111, 176⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have L2 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨78, 98, 192, 238⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have L3 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨133, 165, 329, 408⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have L4 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨131, 163, 329, 408⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨44, 63, 108, 140⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have L5 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨79, 99, 193, 240⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨50, 135, 111, 209⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have L6 := toNat_ge _ |>.trans' (sum_lo_ge (g := 1) (κ := κ) (c := c) [⟨83, 104, 202, 250⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨33, 51, 113, 147⟩, ⟨52, 74, 118, 153⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩])
+  have H := sum_hi_le (g := 1) (κ := κ) (c := c) [⟨225, 281, 528, 655⟩, ⟨0, 0, 0, 0⟩, ⟨38, 47, 114, 138⟩, ⟨35, 62, 102, 142⟩, ⟨33, 51, 113, 147⟩, ⟨0, 0, 0, 0⟩, ⟨0, 0, 0, 0⟩]
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, lerp, Nat.cast_ofNat, Nat.cast_zero,
+    div_one, mul_one] at L1 L2 L3 L4 L5 L6 H
+  have Hn := toNat_le H (by
+    have : (0 : ℚ) ≤ 1 + κ := by linarith
+    have : (0 : ℚ) ≤ 1 - c := by linarith
+    positivity)
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+  rw [← Nat.cast_le (α := ℚ)]
+  push_cast
+  have hkc : κ * c ≤ 41 / 100 * c := by nlinarith
+  nlinarith [L1, L2, L3, L4, L5, L6, Hn, hkc]
 
 end Formal.Cells.RaceCertPS
