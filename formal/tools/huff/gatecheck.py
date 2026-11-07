@@ -22,13 +22,20 @@ for n0 in list(SLOWN):
 cs, kf = float(c), float(kap)
 EXACT = (kap * 25).denominator == 1 and c == 0
 P = int(kap * 25)
+import os
+GF = os.environ.get("GFRAC")   # guard g = N/D (kappa 0): S = floor(N fmax / D), F = ceil(D fmin / N); Adm window [lo/g, hi*g]
+gN, gD = map(int, GF.split("/")) if GF else (1, 1)
+gq = Fr(gN, gD)
 def dly(e, slow):
+    if GF:
+        assert P == 0 and c == 0
+        return (gN * e["fmax"]) // gD if slow else (gD * e["fmin"] + gN - 1) // gN
     if EXACT: return ((25 + P) * e["fmax"]) // 25 if slow else ((25 - P) * e["fmin"] + 24) // 25
     lo = (1 - cs) * e["fmin"] + cs * e["smin"]; hi = (1 - cs) * e["fmax"] + cs * e["smax"]
     return int(math.floor(hi * (1 + kf))) if slow else int(math.ceil(lo * (1 - kf)))
 def adm(e, d):
     lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
-    return (1 - kap) * lo <= d <= (1 + kap) * hi
+    return (1 - kap) * lo / gq <= d <= (1 + kap) * hi * gq
 sig = {int(k): (v[0], v[1]) for k, v in D["nodes"].items()}
 def val(n, t):
     v0, fl = sig.get(n, (False, []))
@@ -40,7 +47,7 @@ for o, gi in drv.items():
     ds = [dly(e, slow if ARCS is None else (o, i) in ARCS) for i, e in enumerate(g["arcs"])]
     for e, d in zip(g["arcs"], ds):
         if not adm(e, d): badadm += 1
-    start = max([int(math.ceil((1 + kf) * e["smax"])) for e in g["arcs"]] + [0])
+    start = max([int(math.ceil((1 + kf) * e["smax"] * gN / gD)) for e in g["arcs"]] + [0])
     pts = {start}
     for i, n in enumerate(g["ins"]):
         for t in sig.get(n, (0, []))[1]: pts.add(t + ds[i])

@@ -7,6 +7,9 @@ W = json.load(open(sys.argv[1])); net = json.load(open(sys.argv[2])); BJ = json.
 G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}; ENV = set(idx[x] for x in BJ["env"])
 nN = len(N); nG = len(G); C, D = 2500, 12
 drv = {g["out"]: gi for gi, g in enumerate(G) if g["out"] not in ENV}
+ARCS = None
+if len(sys.argv) > 5 and sys.argv[5].startswith("@"):   # per-arc slow list (simadv --classes JSON "S": [[node, pin]]) -> codes 8*out+pin
+    ARCS = sorted(8 * idx[x[0]] + x[1] for x in json.load(open(sys.argv[5][1:]))["S"]); sys.argv = sys.argv[:5]
 SLOW = set(idx[x] for x in sys.argv[5:])
 for n0 in list(SLOW):
     for u in G[drv[n0]]["ins"]:
@@ -32,7 +35,7 @@ open(f"{out}/EncK.lean", "w").write("".join(f"import {NS}.L{c:03d}\n" for c in r
     f"namespace {NS}\n\ndef llK : List BTL := [{L}]\n\n/-- The counterexample run's node codes. -/\n"
     f"def encK : Nat → Option (Bool × List Nat) := lookL llK {C} {D}\n\n"
     f"/-- The slow gates (their output nodes) and the copy gates on their input routes. -/\n"
-    f"def slK : List Nat := [{', '.join(map(str, sorted(SLOW)))}]\n\nend {NS}\n")
+    f"def slK : List Nat := [{', '.join(map(str, ARCS if ARCS is not None else sorted(SLOW)))}]\n\nend {NS}\n")
 for c in range(nchG):
     open(f"{out}/X{c:03d}.lean", "w").write(f"import {NS}.EncK\n\n" + HDR +
         f"namespace {NS}\nopen Formal.Target.DecodedPS Formal.Net.CViewPS\n\nset_option maxRecDepth 100000 in\n"

@@ -1749,3 +1749,15 @@ envcheck.py: Env + SeqEnv OK, ArbOK for every T ≥ 113 ps, out0 0 of 1 rises, q
 for this race the g = 1 frontier is in [0.415, 0.44): B's sufficient bound is tight to 0.03 on its binding row. Next:
 Lean refutation at κ = 12/25 (KBase with per-arc slow list), and a sweep of all 412 control storage nodes x pins at
 κ = 0.40 (running, 1,316 runs) for anything lower.
+
+### progress 07:46 -- the same race along the guard axis: deadlock at g = 1.59, κ = 0 (simulation + checks; NOT Lean); B's g ≤ 1.56 is tight to 0.03
+`simadv.py --gfrac N/D` (κ = 0: slow arcs at ⌊g·FAST_MAX⌋, others at ⌈FAST_MIN/g⌉, both inside Adm ⟨g, 0⟩ at corner 0).
+Same 7 slow arcs (SLICE_X32Y45.A6's feedback route), pair (1071, 462), SeqEnv env: **correct at g = 1.50, 1.55,
+1.57, 1.58; fails at 1.59 (9.2 M events, then quiet, no out0), 1.6, 1.7, 1.8 (quiet deadlocks).** B's sufficient
+frontier for this row is g²(1+κ)/(1-κ) ≤ 2.433, i.e. g ≤ 1.56 at κ = 0. So at κ = 0 the true frontier of THE
+statement (w = 0, fast corner) is below 1.59, and B's row bound 1.56 is within 0.03 of it. g = 8/5 dump
+(`tools/huff/cex/g16_dump.json.xz`): gatecheck (GFRAC=8/5) 287,065 checks, 0 mismatches, 0 arcs outside Adm;
+envcheck: Env + SeqEnv OK, ArbOK for T ≥ 136, out0 0 of 1, quiet from 548,029 ps.
+Lean versions of both (κ = 12/25 at g = 1, and g = 8/5 at κ = 0) are generated (Formal/Net/CexPS48, CexPSg16:
+per-arc slow list `slK` of codes 8·out + pin) and building; not committed until they check (Formal/ is globbed).
+Hazard sweep at κ = 0.40 over all 412 control storage nodes x live pins: 128 / 1,316 runs done, all correct so far.

@@ -48,6 +48,7 @@ def main():
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
     ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
     ap.add_argument("--classes", default=None, help="JSON {S: [nodes], F: [nodes]}: per-gate delay class (exact, corner 0); others --cdefault")
+    ap.add_argument("--gfrac", default=None, help="guard g = N/D for --classes at kappa 0: S = floor(N fmax / D), F = ceil(D fmin / N)")
     ap.add_argument("--cdefault", choices=["S", "F", "M"], default="M")
     ap.add_argument("--why", default=None, help="write JSON: for every flip after R of the --whynodes, its transport cause chain")
     ap.add_argument("--whynodes", nargs="*", default=[])
@@ -135,6 +136,10 @@ def main():
         if CLS is not None:   # exact formulas (same as --exact): S = floor((25+P) fmax / 25), F = ceil((25-P) fmin / 25)
             k = CLS.get(gates[gi]["out"], a.cdefault) if gi is not None else a.cdefault
             if gi is not None: k = ACL.get((gates[gi]["out"], pin), k)
+            if a.gfrac:
+                gn, gd = map(int, a.gfrac.split("/")); assert PK == 0
+                if k == "S": return (gn * e["fmax"]) // gd
+                if k == "F": return (gd * e["fmin"] + gn - 1) // gn
             if k == "S": return ((25 + PK) * e["fmax"]) // 25
             if k == "F": return ((25 - PK) * e["fmin"] + 24) // 25
             return (e["fmin"] + e["fmax"]) // 2
