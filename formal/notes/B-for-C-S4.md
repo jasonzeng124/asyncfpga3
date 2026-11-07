@@ -30,11 +30,16 @@ certificate premises hold, and the state LUT's other inputs are constant on [t1,
 server path's lower bands, ≥ ~1.5 ns at the fast corner, κ = 0), then q is constant on [t1 + T, t2]: the state
 settles before the server's answer reaches it (the obligation `ArbTSpec.spec_double_ack` shows is needed).
 
+Arbiter 0, transaction where q falls (`Formal.Cells.ArbOneAckPS.target_arb0_one_ack`): with the same premises plus
+q low at t1 + T, the reset low, A1 low before s0 and the overlap condition (T small enough), the losing client's
+acknowledge A1 stays low on [s0, t2 + …]: the one-acknowledge property for that transaction.
+
 ## Generic tools (reusable for other nodes / kernels)
 `CtlChain` (hold_set, hold_mem), `CertPS` (certOK / cert_sound), `CertMarginPS` (win_end_ge, margin_of_sums),
 `CertRaceAll` (race_holds, target_races_of), `CertSwitchAll` (switch_row, target_switches_of), `ArbServer`
 (q_settles). Generator: `tools-B/ps/gen_certs_ps.py` (rows from simb dumps; every row is re-checked in Lean).
 
 ## Not covered
-4 RaceTablePS rows (power-up episodes); 4 arbiters; the one-acknowledge assembly (GrantExcl/AckLow with A0's freeze of q); latches (LatchViewPS's data windows
+4 RaceTablePS rows (power-up episodes); 4 arbiters; the one-acknowledge property for the other direction and the other
+arbiters (same pattern as ArbOneAckPS); latches (LatchViewPS's data windows
 are the analogous premises); non-vacuity of the premises in Lean (they hold in the simulated runs they came from).
