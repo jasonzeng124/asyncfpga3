@@ -104,14 +104,17 @@ for k, rs in sorted(BL.items()):
          "end Formal.Cells." + OUTNAME, ""]
     if SUMS: open(os.path.join(CELLS, OUTNAME, "B%02d.lean" % k), "w").write("\n".join(B))
 ks = sorted(BL)
+def lnest_app(xs):
+    acc = xs[0]
+    for x in xs[1:]: acc = "(full_app %s %s)" % (acc, x)
+    return acc
 T = T[:T.index("set_option maxRecDepth 100000 in")]
 T = ["import Formal.Cells.%s.B%02d" % (OUTNAME, k) for k in ks] + T[2:]
 T += ["def rows : List LatchHoldRow := " + " ++ ".join("rows%02d" % k for k in ks), "",
-      "theorem rows_full : ∀ r ∈ rows, certOK r.pc.1 r.pc.2 = true ∧ latchHoldOK r = true := by",
-      "  intro r hr",
-      "  simp only [rows, List.mem_append] at hr",
-      "  rcases hr with " + " | ".join("h" for _ in ks)] + \
-     ["  · exact rows%02d_full r h" % k for k in ks] + ["",
+      "theorem full_app {P : LatchHoldRow → Prop} {l1 l2 : List LatchHoldRow} (h1 : ∀ r ∈ l1, P r)",
+      "    (h2 : ∀ r ∈ l2, P r) : ∀ r ∈ l1 ++ l2, P r := fun r hr => (List.mem_append.1 hr).elim (h1 r) (h2 r)", "",
+      "theorem rows_full : ∀ r ∈ rows, certOK r.pc.1 r.pc.2 = true ∧ latchHoldOK r = true :=",
+      "  " + lnest_app(["rows%02d_full" % k for k in ks])] + ["",
       "/-- **THE target's listed latches hold through the close, hold window from a certificate** (module docstring). -/",
       "theorem target_latch_holds : type_of% (@target_latch_holds_of rows rows_full) := @target_latch_holds_of rows rows_full",
       "", "end Formal.Cells." + OUTNAME, ""]

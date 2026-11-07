@@ -3372,3 +3372,14 @@ first 93, the chain-shaped ones certify; the non-certified ones are latches whos
 their close in that run (premise-free reading: an independent cause).
 **Not shown:** latches whose data never moves in d3 (3,360 of 4,185 do not move: narrow data in that run); the
 premises; whether the minimum κ range (0.346 so far) is a real limit or a short path in this one run.
+
+### progress 16:15 -- CHECKED: latch hold windows for 112 latches (LatchHoldPS, CertLatchPS)
+`LatchHoldPS.target_latch_holds` now covers 112 latches (the chain-certified closes among the first ~200 of the
+396 d3 latch closes with a later data change); certificates `CertLatchPS` (42 files), rows split by certificate
+file (`LatchHoldPS/Bxx`: one kernel check per block; all 112 in one check was killed for memory). lake build +
+check.sh OK (standard axioms, 2636 declarations). Row κ ranges ((1+κ)·kB ≤ kA·(1-κ)): min 0.346
+(SLICE_X32Y92.A O5), median 0.666. Premises per row: out/target_ps_latchholds1.json. Same reading as 14:46: hold
+and open windows discharged, the certificate's local premises and the setup half remain.
+**Running (Python):** the rest of the d3 scan; a full-width run (pair 0x49e9c618,0x35bf992e, corner 0, mid-window,
+broad data rule, result 2 correct) moves the data of 1,639 latches (d3: 825), incl. the binding hold latch
+SLICE_X32Y90.C6 (6 data flips); its 361 new latch closes are being scanned.
