@@ -4,12 +4,18 @@
 
 The owner raised the budget to about twice the single-thread, high-effort level.
 Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-but at most 2 at a time.** Wait for one to finish before starting another. A
+at most 2 at a time for shard A and 4 at a time for shards B and C** (raised, owner, 2026-11-07). Wait for one to finish before starting another. A
 subagent never touches git: it works in its own worktree or scratch directory
 and reports back, and you review and commit what it found. Use them for
 independent work that would otherwise wait (a second sweep while a build runs, a
 proof while a check builds, a claim to reproduce), never to run the same work
 twice. Never create scheduled routines or reminders.
+
+Spend the extra capacity on what is still missing, S4 (composition) and S6 (liveness),
+not on more counterexamples or margin points. Shards A and C both proved the same
+refutations on 2026-11-07: read the other shards' journals before starting a probe.
+Memory is the limit (OOM kills in check.sh and the audit's builds): keep Lean under
+`formal/slot.sh`.
 
 ## THE goal: the real gcd bitstream is correct (owner, 2026-10-31)
 
