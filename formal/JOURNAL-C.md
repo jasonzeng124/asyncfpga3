@@ -1822,3 +1822,16 @@ toggling with the ring, so H_ARB(T) does not constrain it). Bracket: correct at 
 counterexample to the w = 0 statement at κ = 0.40 (below B's 0.415, a race B's table does not cover: it is a runt ring,
 the same family as B's cex_ua1 candidate at arbiter 0), not to the headline. A Lean version needs an eventually-periodic
 witness check (finite prefix + one period), which does not exist yet; noted as the next generic tool.
+
+### progress 08:45 -- B's race table cross-checked by adversary; the κ = 0.40 ring needs T ≥ 7.2 ns; Net/Periodic CLAIMED
+- Feedback-pin adversary at κ = 0.52 on each of the 185 nodes of B's RaceTablePS (its route slow, all else fast): only
+  SLICE_X32Y45.A6 fails (B threshold 0.415); no node fails below its B threshold (the rows at 0.495 / 0.51 pass this
+  adversary). Consistent with B's table (which is a sufficient bound).
+- The κ = 0.40 runt ring (previous entry) is weak: arbiter 0's state toggles at 613,039 ps, 7,234 ps after its inputs
+  last changed, so H_ARB(T) excludes the run for every T < 7.2 ns; it could only refute THE statement for T ≥ 7.2 ns.
+  Not pursued in Lean.
+- `Formal/Net/Periodic.lean` (lake build OK; axioms propext, Classical.choice, Quot.sound): eventually periodic codes
+  `sigQ Q v0 A B` (prefix A < t0, one period B ⊂ [t0, t0+Q) repeated): `sigQ_periodic` (period Q from t0 when |B| is
+  even), `sigQ_unroll` (below t0 + 2Q it is the finite code A ++ B ++ (B + Q)), `eq_of_periodic` (a transport gate
+  equation with delays ≤ Q that holds on [s, t0 + 2Q) holds for ever). Plainly: a never-quiet run that repeats is
+  finite data, and the existing finite per-gate checks extend to it. Not yet used on a run.
