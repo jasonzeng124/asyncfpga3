@@ -3026,3 +3026,23 @@ notes/B-hrunt-forbid.md, for shard A (SpecRunt is A's file).
   `filt_long`; on the toy, `toy_filtered` (the step RuntForbid forbids is a BehavesFilt 20 behaviour and the reader
   y stays low: the 15 ps hazard is filtered) and `toy_frozen_glitch` (under frozen GateOK the hazard reaches y).
   Caveat: the filter is non-causal; with it NetCorrectSeq no longer implies NetCorrectSeqRunt w by restriction.
+
+### progress 07:40 -- CtlChain: sound lower bounds on when a node can change, in Spec semantics (check.sh OK); target instance not found yet
+**Problem, plainly:** C's 30 relative-timing orders need, per order, a lower bound on when the re-enabling node b can
+change after the common cause A; C's TSE computes one from zero-delay "necessary predecessors" (unsound).
+**Lean (standard axioms):** `CtlChain.holds_of_ctl` (a collapsed gate whose INIT is w whenever pin j reads b, tied
+pins at their constants, shows w while j's source shows b, through j's composite band), `ctlfact` +
+`ctl_of_ctlfact` (decidable over the 2^k INIT addresses), `chain_holds` (along a chain: first node = b0 on [a, e]
+=> last node = its value on [a + Σhi, e + Σlo]); with e = A this is "b cannot change before A + Σlo", with no
+assumption on any node off the chain. **Not shown:** C-element (memory) holds (a hold that needs the feedback at w
+too: ack_low's shape, not yet generic), the forcing half of an order, any instance.
+**Python (untrusted), tools-B/ps/ctlchain.py:** time-respecting longest controlling path from A's change in a simb
+dump. On the 3-pair broad run at corner 0 (tools-B/ps/lean2json.py net; results correct) for umux16.uya's order (A =
+SLICE_X32Y28.A6 falling at 853,417 ps, b = SLICE_X32Y45.A6 next at 891,100): **no controlling chain from A reaches b**
+(128 nodes bounded); walking back from b, its holds run through SLICE_X36Y47.A5 <- SLICE_X37Y48.C6 <- SLICE_X42Y97.B6 <-
+... (the X42-43 Y87-97 logic), not to A. Either A is not b's cause in this run (C's trace A is from the untimed
+machine), or the hold needs multi-pin control. Open.
+Also: tools-B/target/simb.py's --datachange help said the default "handshake" mode is allowed by Spec.Env; it is NOT
+(data move while the acks are still high; Env's broad rule forbids it; FOR-RESEARCH's early-release livelock).
+Corrected the help text (default kept for old scripts). Today's 3-pair default-mode run gave [2, 6, 21] for
+[(12,18), (1071,462), (6,4)]: that is the known early-release failure, outside Env; with --datachange broad: correct.

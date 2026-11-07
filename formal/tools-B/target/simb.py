@@ -58,8 +58,10 @@ def main():
     ap.add_argument("--dump", default=None, help="write every node's (v0, flip times) as JSON")
     ap.add_argument("--full", action="store_true", help="simulate every circuit gate, not only the kernel cone")
     ap.add_argument("--datachange", choices=["handshake", "broad", "rtz", "next"], default="handshake",
-                    help="when the env moves the data to the next pair: right after the input "
-                         "handshake (Spec.Env allows it) or only just before the next request")
+                    help="when the env moves the data to the next pair. handshake (default, kept for old scripts): "
+                         "right after req falls, acks still high -- OUTSIDE Spec.Env's broad data rule (corrected "
+                         "2026-11-07; FOR-RESEARCH: early release livelocks/reorders). broad: at each ack's fall "
+                         "(inside Env). rtz/next: later still.")
     a = ap.parse_args()
     rnd = random.Random(a.seed)
     N = json.load(open(a.net))
