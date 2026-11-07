@@ -3176,3 +3176,19 @@ certificate premises, the other force/confirm pins' values over the reads, and t
 emits F/C rows for all 181 certificates (found for every one at the flip) into RaceAllPS(2)/Bxx (`swNN_ok` by kernel
 decide; `swNN_rr` rfl ties them to the race rows) and the batch theorems `target_races`, `target_switches`.
 Kernel checks: CertRowsPS batch 1 at file 66/104 (5 OOM-killed files to rerun alone); batch 2 OK; RaceAll files next.
+
+### progress 10:28 -- CHECKED: 158 of the 185 race rows are theorems about every behaviour of THE circuit (target_races, target_switches)
+Lean (standard axioms; lake build per module + check.sh audit of the top modules, 3,284 declarations):
+`Formal.Cells.RaceAllPS.target_races` / `target_switches` (135 rows) and `RaceAllPS2.target_races` /
+`target_switches` (23 rows), instances of `CertRaceAll.target_races_of` / `CertSwitchAll.target_switches_of` over
+generated, kernel-checked rows (`certsNN_ok`, `racesNN_ok`, `swNN_ok`).
+**Plainly:** for every behaviour of THE circuit with g = 1 and κ ≤ 83/200 = 0.415 (one corner for all rows), for each
+of 158 storage nodes (RaceTablePS rows): (races) once the node has flipped, every read of its acknowledge pin within
+the node's feedback-loop upper delay sees the old acknowledge value; (switches) the node, once forced, reaches its new
+value and keeps it on the whole window, with no runt. Each conditional on the row's local value premises (the node's
+old value before the flip, 0-31 static side inputs held, memory rows' states, the force/confirm side inputs; listed
+in out/target_ps_certs1/2.json), which are order-level facts for C's network argument. This replaces "the simulated
+acknowledgement path" of RaceTablePS by a proof for 158 rows; it is the S3 race layer in every-behaviour form.
+**Not covered:** 4 rows (power-up episodes, no post-reset certificate), 23 rows whose single certificate spans 19-40
+netlist chunks (killed for memory in one kernel decide; all have κ thresholds ≥ 0.94, the table minimum is 0.415);
+the premises themselves; non-vacuity (no Lean witness behaviour meeting all premises yet).
