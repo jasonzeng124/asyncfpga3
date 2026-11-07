@@ -2000,3 +2000,13 @@ C's sweep at κ = 0.40 found every single-pin adversary correct (1,316/1,316). I
 the margin moves to the next failing race; to find it: the same single-pin adversary (one pin's route at the top of
 its window, all else at the bottom; C's hazsweep with H_RUNT(20)) over all 412 control storage nodes x live pins at
 κ = 12/25. Running in A's scratch (3 jobs); C/B: no need to repeat.
+### progress 16:0x -- the NEXT race is only 0.02 behind: arbiter merge10's ack C-element ua2 fails from κ = 0.46 (simulation, checked)
+From the κ = 0.48 sweep (running; 2 of the first ~200 jobs fail besides the known one). **SLICE_X38Y53.A6 =
+ucontrol_merge10.uarb1.ua2** (the arbiter's acknowledge C-element), with its pin-0 route from SLICE_X38Y53.B6
+(ucontrol_merge10_f, the fork) slowed (5 arcs, `tools-A/target/out/k48w20_ua2_classes.json`) and everything else
+fast: quiet deadlock on (1071, 462) at κ = 0.46, 0.47, 0.48; correct at 0.44, 0.45 (w = 20, κ = P/100 exact). The κ = 0.48
+dump (`k48w20_ua2_dump.json.xz`): gatecheck_runt 0 mismatches / 0 Adm / 0 lag violations, envcheck Env + SeqEnv OK,
+ArbOK for T ≥ 113, no out0, quiet at 520,098 ps. A third failure, ucontrol_merge10.uarb1's state LUT
+(SLICE_X38Y51.B6) slowed on pin 3, livelocks (not quiet to 3 µs; ArbOK not yet checked -- an arbiter that never
+settles may violate H_ARB, so it may not be a behaviour). **For research:** fixing ulink_n_falseResult_85's race
+alone moves the margin from 0.44 to ~0.46: the control has several races within a few percent of each other.
