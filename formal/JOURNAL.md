@@ -1921,3 +1921,12 @@ w = 40, κ = 15/25 run in `Formal/Target/CexRuntD60/` (ArbOK T ≥ 88). Queued b
 So on this race the g = 1, w ≤ 20 picture is: proved safe up to κ = 0.41 (B, Lean; real relaxation 0.417), correct in
 this adversary at 0.42-0.43, refuted at 0.44 (Lean). The remaining gap is ~0.02 and would need either a different
 adversary or B's premises discharged. Nothing here says the statement HOLDS below 0.44.
+### progress 11:3x -- CHECKED: the headline statement is false along the GUARD axis too: every g ≥ 8/5 (κ ≥ 0, w ≤ 20)
+`Formal.Target.CexRuntG16.not_netCorrectSeqRunt20 : ∀ T su Δo, 137 ≤ T → Δo ≤ 3000 →
+¬ NetCorrectSeqRunt 20 DecodedPS.net DecodedPS.boundary DecodedPS.arbs ⟨8/5, 0⟩ T 400000 su Δo` and
+`FrontierRunt.not_seqRunt_le20_aboveG16`: false for every guard g ≥ 8/5, every κ ≥ 0, every w ≤ 20, T ≥ 137. All 75
+chunks built (CexRuntG.RBase: the witness check for g = N/D, κ = 0), check.sh on CexRuntG/RBase, CexRuntD/RBase,
+CexRuntG16 Wit/Refute and FrontierRunt: OK, 1,873 declarations audited, standard axioms. Witness: shard C's g16w20
+run (same 7-arc race). **Plainly:** the owner asked for the largest guard g at which the theorem holds; with no
+scatter and the runt filter at 20 ps it is below 1.6 (B's sufficient bound for that race is g ≤ 1.56), and the
+same race bounds κ at 0.44. Both axes of the owner's frontier now have a Lean upper bound.
