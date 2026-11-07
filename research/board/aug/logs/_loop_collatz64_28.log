@@ -1,0 +1,50 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 00006088 (attempt 0, poll 0)
+programming build/hw/collatz64_bench_gen/collatz64_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00014040 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (collatz64): op0=12 op1=18 -> ODATA=176 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=268435456 op1=0, N=200 ===
+  completed=200 latmin=330 latmax=334 cyc  prepcyc=3200  odata=28 sig=0x00000bf4 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x00000bf4 matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (268435456,0)->28  vs  (268435457,0)->173  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 222 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=49 MISM_VAL=173 MISM_REF=28
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=49 val=173 ref=28)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=200 ===
+  completed=200 cycles=510086 prepcyc=3200 latmin=949 latmax=5667 cyc  mism_st=2
+  histogram sum = 200 (expect 200)
+
+  latency (cycles): min=949 p50~=2048 p90~=3584 p99~=4096 max=5667 mean=2550.4
+  latency (ns, @100.0MHz nominal): min=9490.0 p50~=20480.0 p90~=35840.0 p99~=40960.0 max=56670.0 mean=25504.3
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 39209.1 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 39: count=1      ~896 cyc
+  bucket 40: count=6      ~1024 cyc
+  bucket 41: count=14     ~1280 cyc
+  bucket 42: count=25     ~1536 cyc
+  bucket 43: count=22     ~1792 cyc
+  bucket 44: count=45     ~2048 cyc
+  bucket 45: count=44     ~2560 cyc
+  bucket 46: count=17     ~3072 cyc
+  bucket 47: count=12     ~3584 cyc
+  bucket 48: count=12     ~4096 cyc
+  bucket 49: count=2      ~5120 cyc
+
+==========================================================================
+collatz64 bench PASS
+==========================================================================

@@ -1,0 +1,54 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/isprime_bench_gen/isprime_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00012020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (isprime): op0=12 op1=18 -> ODATA=0 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=47 op1=18, N=200 ===
+  completed=200 latmin=433 latmax=439 cyc  prepcyc=3200  odata=1 sig=0x000000ff mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x000000ff matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (47,18)->1  vs  (48,18)->0  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 83 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=35 MISM_VAL=0 MISM_REF=1
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=35 val=0 ref=1)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=64 ===
+  completed=64 cycles=24070309 prepcyc=1024 latmin=8 latmax=13870725 cyc  mism_st=2
+UNIFORM SIG oracle PASS (0x00202000 over 64 distinct inputs)
+  histogram sum = 64 (expect 64)
+
+  latency (cycles): min=8 p50~=448 p90~=28672 p99~=65536 max=13870725 mean=376098.6
+  latency (ns, @100.0MHz nominal): min=80.0 p50~=4480.0 p90~=286720.0 p99~=655360.0 max=138707250.0 mean=3760985.8
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 265.9 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 12: count=30     ~8 cyc
+  bucket 35: count=2      ~448 cyc
+  bucket 36: count=5      ~512 cyc
+  bucket 39: count=2      ~896 cyc
+  bucket 40: count=9      ~1024 cyc
+  bucket 43: count=1      ~1792 cyc
+  bucket 44: count=2      ~2048 cyc
+  bucket 46: count=1      ~3072 cyc
+  bucket 48: count=1      ~4096 cyc
+  bucket 49: count=2      ~5120 cyc
+  bucket 53: count=1      ~10240 cyc
+  bucket 59: count=2      ~28672 cyc
+  bucket 60: count=1      ~32768 cyc
+  bucket 63: count=5      ~65536 cyc
+
+==========================================================================
+isprime bench PASS
+==========================================================================

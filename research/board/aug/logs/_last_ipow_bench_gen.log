@@ -1,0 +1,54 @@
+build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN; deriving per-route matched-delay sizes for ipow_bench_gen by running hw/tighten_loop.sh (rule A outer, rule E inner)
+== iteration 0: build with the sizes above (or none) ==
+   unsized: 11 delay-bearing cell(s), chain built 158.8 ns, route needs 70.6 ns
+        rule A violations: 0   (rule D screen, informational: 8)
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: seeded 11 cell(s) from the first route
+   sized (pass 1): 10 delay-bearing cell(s), chain built 58.6 ns, route needs 70.4 ns
+        rule A violations: 9   (rule D screen, informational: 8)
+   rejected: 9 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucmpi0    4 links    946 ps   req  2675  peak  4153  guard  830  margin  -2308   PAD to 14 -- VIOLATION
+       bridge_i.udut.ucontrol_merge0  1 links    124 ps   req   961  peak   978  guard  200  margin   -217   PAD to 3 -- VIOLATION
+       bridge_i.udut.ucontrol_merge1  3 links    672 ps   req  1531  peak  1444  guard  288  margin   -201   PAD to 4 -- VIOLATION
+== iteration 2: size from that route, rebuild, re-check ==
+   ratchet: UCMPI0 4->14, UCONTROL_MERGE0 1->3, UCONTROL_MERGE1 3->4, UMULI1 38->45, UMUX0 0->1, UMUX1 0->1, UMUX2 0->1, UMUX3 2->8, USHRSI0 25->26  (11 cell(s))
+   sized (pass 2): 11 delay-bearing cell(s), chain built 66.0 ns, route needs 73.2 ns
+        rule A violations: 3   (rule D screen, informational: 8)
+   rejected: 3 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.umux2     1 links    124 ps   req  1028  peak   934  guard  200  margin   -106   PAD to 2 -- VIOLATION
+       bridge_i.udut.uselect0 49 links  19019 ps   req 20146  peak 18394  guard 3678  margin  -1926   PAD to 54 -- VIOLATION
+       bridge_i.udut.ushrsi0  26 links   9614 ps   req 10833  peak  9568  guard 1913  margin   -648   PAD to 28 -- VIOLATION
+== iteration 3: size from that route, rebuild, re-check ==
+   ratchet: UMUX2 1->2, USELECT0 49->54, USHRSI0 26->28  (11 cell(s))
+   sized (pass 3): 11 delay-bearing cell(s), chain built 74.9 ns, route needs 71.6 ns
+        rule A violations: 1   (rule D screen, informational: 8)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.umux1     1 links    124 ps   req  1388  peak  1204  guard  240  margin    -56   PAD to 2 -- VIOLATION
+== iteration 4: size from that route, rebuild, re-check ==
+   ratchet: UMUX1 1->2  (11 cell(s))
+   sized (pass 4): 11 delay-bearing cell(s), chain built 72.4 ns, route needs 75.1 ns
+        rule A violations: 1   (rule D screen, informational: 8)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucmpi2   17 links   6569 ps   req  7563  peak  7194  guard 1438  margin  -1069   PAD to 20 -- VIOLATION
+== iteration 5: size from that route, rebuild, re-check ==
+   ratchet: UCMPI2 17->20  (11 cell(s))
+   sized (pass 5): 11 delay-bearing cell(s), chain built 73.5 ns, route needs 74.1 ns
+        rule A violations: 1   (rule D screen, informational: 8)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.umux0     1 links    124 ps   req  1838  peak  1564  guard  312  margin    -38   PAD to 2 -- VIOLATION
+== iteration 6: size from that route, rebuild, re-check ==
+   ratchet: UMUX0 1->2  (11 cell(s))
+   sized (pass 6): 11 delay-bearing cell(s), chain built 75.8 ns, route needs 71.8 ns
+        rule A violations: 0   (rule D screen, informational: 8)
+   ACCEPTED as best so far: 75.8 ns of matched delay
+
+RESULT: best passing build carries 75.8 ns of matched delay
+        (unsized baseline was 158.8 ns)
+
+final: 11 measured size(s) in build/gen/ipow_bench_gen_sizes.vh
+bitstream build/hw/ipow_bench_gen/ipow_bench_gen.bit

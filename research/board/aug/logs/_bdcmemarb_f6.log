@@ -1,0 +1,48 @@
+MODE: explicit -- using measured delay lengths from BD_SIZES=build/pnr/bdcmemarb3/resize/sizes.vh
+using the generated top build/gen/bdc_mem_arb_top.v (module bdc_mem_arb_top) -> build/pnr/bdcmemarb_f6
+== synthesis ==
+        1   IBUF
+        3   LUT1
+       10   LUT2
+       15   LUT4
+        2   LUT5
+       63   LUT6
+       66   LUT6_2
+        1   OBUF
+        1   LUT2
+        3   LUT6
+        1   IBUF
+       42   LUT1
+       12   LUT2
+       58   LUT4
+        2   LUT5
+       72   LUT6
+       68   LUT6_2
+        1   OBUF
+        2   RAMB18E1
+yosys: 417 LUT cells (a LUT6_2 counts once -- it is one site)
+             64 latch LUT(s) across those banks, 2 of them grouped (3.1%)
+             0 group(s) also hold their select consumer's LUTs
+             2 fractured cpair controller(s) each drive two pipeline stages from one LUT6_2; only one stage's latch can share its SLICE, so 2 stage(s) are left out of any group by construction, not by omission
+
+== toolchain ==
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+== place and route ==
+  "nextpnr-xilinx" -- Next Generation Place and Route (Version 0.9.1-17-g69119066)
+  Yosys 0.62 (git sha1 7326bb7d6, g++ 11.4.0-1ubuntu1~22.04 -fPIC -O3)
+  seed 6 -- this is a SAMPLE of the route, not the route
+routed.
+
+FASM:  255 occupied LUT sites, 132 BRAM lines
+fractured pairs held one site each (68 pair(s) checked)
+no global clock buffer in the bitstream, as required
+
+routed SDF written to build/pnr/bdcmemarb_f6/soak.sdf -- run verify/tighten.py to size the
+matched delays against it.
+
+flow.sh PASS

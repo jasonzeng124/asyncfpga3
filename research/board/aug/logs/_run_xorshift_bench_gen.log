@@ -1,0 +1,74 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/xorshift_bench_gen/xorshift_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (xorshift): op0=12 op1=18 -> ODATA=4241718536 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=48 op1=18, N=200 ===
+  completed=200 latmin=93 latmax=94 cyc  prepcyc=3200  odata=2863579695 sig=0x03dba483 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x03dba483 matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (48,18)->2863579695  vs  (48,19)->797470746  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 88 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=62 MISM_VAL=797470746 MISM_REF=2863579695
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=62 val=797470746 ref=2863579695)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=2000 ===
+  completed=2000 cycles=21290212 prepcyc=32000 latmin=29 latmax=20413 cyc  mism_st=2
+UNIFORM SIG oracle PASS (0x1a9bc8b1 over 2000 distinct inputs)
+  histogram sum = 2000 (expect 2000)
+
+  latency (cycles): min=29 p50~=10240 p90~=16384 p99~=16384 max=20413 mean=10645.1
+  latency (ns, @100.0MHz nominal): min=290.0 p50~=102400.0 p90~=163840.0 p99~=163840.0 max=204130.0 mean=106451.1
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 9394.0 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 19: count=2      ~28 cyc
+  bucket 21: count=2      ~40 cyc
+  bucket 25: count=1      ~80 cyc
+  bucket 26: count=4      ~96 cyc
+  bucket 27: count=1      ~112 cyc
+  bucket 28: count=2      ~128 cyc
+  bucket 29: count=3      ~160 cyc
+  bucket 30: count=2      ~192 cyc
+  bucket 31: count=2      ~224 cyc
+  bucket 32: count=4      ~256 cyc
+  bucket 33: count=4      ~320 cyc
+  bucket 34: count=5      ~384 cyc
+  bucket 35: count=5      ~448 cyc
+  bucket 36: count=6      ~512 cyc
+  bucket 37: count=10     ~640 cyc
+  bucket 38: count=15     ~768 cyc
+  bucket 39: count=5      ~896 cyc
+  bucket 40: count=28     ~1024 cyc
+  bucket 41: count=23     ~1280 cyc
+  bucket 42: count=26     ~1536 cyc
+  bucket 43: count=22     ~1792 cyc
+  bucket 44: count=41     ~2048 cyc
+  bucket 45: count=57     ~2560 cyc
+  bucket 46: count=53     ~3072 cyc
+  bucket 47: count=46     ~3584 cyc
+  bucket 48: count=105    ~4096 cyc
+  bucket 49: count=86     ~5120 cyc
+  bucket 50: count=87     ~6144 cyc
+  bucket 51: count=89     ~7168 cyc
+  bucket 52: count=204    ~8192 cyc
+  bucket 53: count=199    ~10240 cyc
+  bucket 54: count=213    ~12288 cyc
+  bucket 55: count=227    ~14336 cyc
+  bucket 56: count=421    ~16384 cyc
+
+==========================================================================
+xorshift bench PASS
+==========================================================================

@@ -1,0 +1,26 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 00006088 (attempt 0, poll 0)
+programming build/hw/isprime_null_bench_gen/isprime_null_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00012020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (isprime_null): op0=12 op1=18 -> ODATA=12 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=47 op1=18, N=200 ===
+  completed=200 latmin=5 latmax=5 cyc  prepcyc=3200  odata=47 sig=0x00001ae5 mism_st=2
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x00001ae5 matches the expected result fold)
+
+=== (r) repeat the SAME batch 3 times, no reprogramming ===
+rep	cycles	prepcyc	latmin	latmax	sig
+0	2000	3200	5	5	0x00001ae5
+1	2000	3200	5	5	0x00001ae5
+2	2000	3200	5	5	0x00001ae5
+=== (r) done: 3 batches, oracle asserted on each ===

@@ -1,0 +1,166 @@
+# F1 hand checks: cells/gls/fid/handcheck.py on the gcd_hw R5 route (wtFF_sd, nextpnr 9c732bc6303458df, all 9 patch fingerprints ok)
+# routed.json md5 f9c4597d  sdf md5 61e14755   prjxray-db zynq7 0a0added, speed grade -1
+# Units: R ohm, C fF, slowmax = SLOW_MAX intrinsic ns, RC ps = R * Cdown (outpin/buf/pt) or R*(C/2+Cdown) (wire), ohm*fF = 1e-3 ps.
+# HAND = numbers read straight from tile_type_*.json and summed by the textbook Elmore formula in handcheck.py;
+# TOOL = xray_delay.NetTiming (prjxray/timing.py).  Both with site pips at 0 (the tool's OUTMUX charge is separate).
+
+## 1. synthetic pass-transistor chain and buffer (no PT pip on these routes has R>0 or a delay)
+synthetic pt   chain: prjxray/timing.py 60.825 ps, hand 60.825 ps  OK
+synthetic buf  chain: prjxray/timing.py 34.425 ps, hand 34.425 ps  OK
+
+## 2. one buffered pip (vec[9].err_raw) and 3. fanout-6 (urig.udut.umux10.either), full route
+====================================================================================================
+net vec[9].err_raw
+-- sink CLBLM_L_X20Y45/CLBLM_M_B5 pin B5
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLM_L_X20Y45/CLBLM_M_CMUX pin CMUX                              1833.3    0.000    7.713    0.000      14.14
+   wire    node CLBLM_L_X20Y45/CLBLM_M_CMUX (1 tile wires)                      0.0    0.000    7.713    0.000       0.00
+   pt      CLBLM_L_X20Y45/CLBLM_L.CLBLM_M_CMUX->CLBLM_LOGIC_OUTS22              0.0    0.000    7.713    0.000       0.00
+   wire    node CLBLM_L_X20Y45/CLBLM_LOGIC_OUTS22 (2 tile wires)                0.0    0.000    7.713    0.000       0.00
+   buf     INT_L_X20Y45/INT_L.LOGIC_OUTS_L22->>IMUX_L24                      1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X20Y45/IMUX_L24 (2 tile wires)                            0.0    0.000    0.000    0.000       0.00
+   pt      CLBLM_L_X20Y45/CLBLM_L.CLBLM_IMUX24->CLBLM_M_B5                      0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLM_L_X20Y45/CLBLM_M_B5 (1 tile wires)                        0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLM_L_X20Y45/CLBLM_M_B5 pin B5                                     0.0    0.000    0.000    0.137       0.00
+   sum intrinsic (ns) FAST_MIN 0.080 FAST_MAX 0.099 SLOW_MIN 0.225 SLOW_MAX 0.275 ; Elmore RC 14.14 ps
+   HAND  slow-max total = 289.1 ps   fast-min total = 94.1 ps
+   TOOL  slow-max total = 289.1 ps   fast-min total = 94.1 ps   (site extra not in hand sum: 0)
+====================================================================================================
+net urig.udut.umux10.either
+-- sink CLBLL_L_X2Y93/CLBLL_LL_A2 pin A2
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NL1BEG1                        1162.2    8.429   30.852    0.130      35.86
+   wire    node INT_L_X2Y92/NL1BEG1 (2 tile wires)                              0.0    0.000   30.852    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NL1END1->>IMUX_L2                               1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X2Y93/IMUX_L2 (2 tile wires)                              0.0    0.000    0.000    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX2->CLBLL_LL_A2                       0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_LL_A2 (1 tile wires)                        0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_LL_A2 pin A2                                     0.0    0.000    0.000    0.507       0.00
+   sum intrinsic (ns) FAST_MIN 0.252 FAST_MAX 0.312 SLOW_MIN 0.630 SLOW_MAX 0.775 ; Elmore RC 60.36 ps
+   HAND  slow-max total = 835.4 ps   fast-min total = 312.4 ps
+   TOOL  slow-max total = 835.4 ps   fast-min total = 312.4 ps   (site extra not in hand sum: 0)
+-- sink CLBLL_L_X2Y93/CLBLL_LL_B2 pin B2
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NL1BEG1                        1162.2    8.429   30.852    0.130      35.86
+   wire    node INT_L_X2Y92/NL1BEG1 (2 tile wires)                              0.0    0.000   30.852    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NL1END1->>IMUX_L18                              1610.7    7.713    2.273    0.138       3.66
+   wire    node INT_L_X2Y93/IMUX_L18 (2 tile wires)                             0.0    0.000    2.273    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX18->CLBLL_LL_B2                      0.0    0.000    2.273    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_LL_B2 (1 tile wires)                        0.0    2.273    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_LL_B2 pin B2                                     0.0    0.000    0.000    0.506       0.00
+   sum intrinsic (ns) FAST_MIN 0.252 FAST_MAX 0.312 SLOW_MIN 0.629 SLOW_MAX 0.774 ; Elmore RC 64.02 ps
+   HAND  slow-max total = 838.0 ps   fast-min total = 316.0 ps
+   TOOL  slow-max total = 838.0 ps   fast-min total = 316.0 ps   (site extra not in hand sum: 0)
+-- sink CLBLL_L_X2Y93/CLBLL_LL_C2 pin C2
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NR1BEG2                        1162.2    8.429   15.426    0.131      17.93
+   wire    node INT_L_X2Y92/NR1BEG2 (2 tile wires)                              0.0    0.000   15.426    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NR1END2->>IMUX_L29                              1610.7    7.713    4.545    0.138       7.32
+   wire    node INT_L_X2Y93/IMUX_L29 (2 tile wires)                             0.0    0.000    4.545    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX29->CLBLL_LL_C2                      0.0    0.000    4.545    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_LL_C2 (1 tile wires)                        0.0    4.545    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_LL_C2 pin C2                                     0.0    0.000    0.000    0.507       0.00
+   sum intrinsic (ns) FAST_MIN 0.255 FAST_MAX 0.316 SLOW_MIN 0.631 SLOW_MAX 0.776 ; Elmore RC 49.75 ps
+   HAND  slow-max total = 825.7 ps   fast-min total = 304.7 ps
+   TOOL  slow-max total = 825.7 ps   fast-min total = 304.7 ps   (site extra not in hand sum: 0)
+-- sink CLBLL_L_X2Y93/CLBLL_LL_D2 pin D2
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NR1BEG2                        1162.2    8.429   15.426    0.131      17.93
+   wire    node INT_L_X2Y92/NR1BEG2 (2 tile wires)                              0.0    0.000   15.426    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NR1END2->>IMUX_L45                              1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X2Y93/IMUX_L45 (2 tile wires)                             0.0    0.000    0.000    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX45->CLBLL_LL_D2                      0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_LL_D2 (1 tile wires)                        0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_LL_D2 pin D2                                     0.0    0.000    0.000    0.509       0.00
+   sum intrinsic (ns) FAST_MIN 0.255 FAST_MAX 0.316 SLOW_MIN 0.632 SLOW_MAX 0.778 ; Elmore RC 42.43 ps
+   HAND  slow-max total = 820.4 ps   fast-min total = 297.4 ps
+   TOOL  slow-max total = 820.4 ps   fast-min total = 297.4 ps   (site extra not in hand sum: 0)
+-- sink CLBLL_L_X2Y93/CLBLL_L_A4 pin A4
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NL1BEG1                        1162.2    8.429   30.852    0.130      35.86
+   wire    node INT_L_X2Y92/NL1BEG1 (2 tile wires)                              0.0    0.000   30.852    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NL1END1->>IMUX_L10                              1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X2Y93/IMUX_L10 (2 tile wires)                             0.0    0.000    0.000    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX10->CLBLL_L_A4                       0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_L_A4 (1 tile wires)                         0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_L_A4 pin A4                                      0.0    0.000    0.000    0.284       0.00
+   sum intrinsic (ns) FAST_MIN 0.168 FAST_MAX 0.207 SLOW_MIN 0.450 SLOW_MAX 0.552 ; Elmore RC 60.36 ps
+   HAND  slow-max total = 612.4 ps   fast-min total = 228.4 ps
+   TOOL  slow-max total = 612.4 ps   fast-min total = 228.4 ps   (site extra not in hand sum: 0)
+-- sink CLBLL_L_X2Y93/CLBLL_L_B4 pin B4
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000   16.858    0.000      24.50
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000   16.858    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000   16.858    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000   16.858    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NL1BEG1                        1162.2    8.429   30.852    0.130      35.86
+   wire    node INT_L_X2Y92/NL1BEG1 (2 tile wires)                              0.0    0.000   30.852    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NL1END1->>IMUX_L26                              1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X2Y93/IMUX_L26 (2 tile wires)                             0.0    0.000    0.000    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX26->CLBLL_L_B4                       0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_L_B4 (1 tile wires)                         0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_L_B4 pin B4                                      0.0    0.000    0.000    0.282       0.00
+   sum intrinsic (ns) FAST_MIN 0.168 FAST_MAX 0.207 SLOW_MIN 0.449 SLOW_MAX 0.550 ; Elmore RC 60.36 ps
+   HAND  slow-max total = 610.4 ps   fast-min total = 228.4 ps
+   TOOL  slow-max total = 610.4 ps   fast-min total = 228.4 ps   (site extra not in hand sum: 0)
+
+## 3b. loading control: umux10.either pruned to its A4 sink (every other branch removed)
+====================================================================================================
+net urig.udut.umux10.either   [PRUNED to SITEWIRE/SLICE_X3Y93/A2]
+-- sink CLBLL_L_X2Y93/CLBLL_L_A4 pin A4
+   kind    element                                                            R ohm     C fF    Cdown  slowmax      RC ps
+   outpin  CLBLL_L_X2Y92/CLBLL_LL_C pin C                                    1453.4    0.000    8.429    0.000      12.25
+   wire    node CLBLL_L_X2Y92/CLBLL_LL_C (1 tile wires)                         0.0    0.000    8.429    0.000       0.00
+   pt      CLBLL_L_X2Y92/CLBLL_L.CLBLL_LL_C->CLBLL_LOGIC_OUTS14                 0.0    0.000    8.429    0.000       0.00
+   wire    node CLBLL_L_X2Y92/CLBLL_LOGIC_OUTS14 (2 tile wires)                 0.0    0.000    8.429    0.000       0.00
+   buf     INT_L_X2Y92/INT_L.LOGIC_OUTS_L14->>NL1BEG1                        1162.2    8.429    7.713    0.130       8.96
+   wire    node INT_L_X2Y92/NL1BEG1 (2 tile wires)                              0.0    0.000    7.713    0.000       0.00
+   buf     INT_L_X2Y93/INT_L.NL1END1->>IMUX_L10                              1610.7    7.713    0.000    0.138       0.00
+   wire    node INT_L_X2Y93/IMUX_L10 (2 tile wires)                             0.0    0.000    0.000    0.000       0.00
+   pt      CLBLL_L_X2Y93/CLBLL_L.CLBLL_IMUX10->CLBLL_L_A4                       0.0    0.000    0.000    0.000       0.00
+   wire    node CLBLL_L_X2Y93/CLBLL_L_A4 (1 tile wires)                         0.0    0.000    0.000    0.000       0.00
+   inpin   CLBLL_L_X2Y93/CLBLL_L_A4 pin A4                                      0.0    0.000    0.000    0.284       0.00
+   sum intrinsic (ns) FAST_MIN 0.168 FAST_MAX 0.207 SLOW_MIN 0.450 SLOW_MAX 0.552 ; Elmore RC 21.21 ps
+   HAND  slow-max total = 573.2 ps   fast-min total = 189.2 ps
+   TOOL  slow-max total = 573.2 ps   fast-min total = 189.2 ps   (site extra not in hand sum: 0)
+
+## 4. nextpnr's own number for the same arcs, re-derived (getPipDelay, xilinx/arch.h at bfdeaf7c)
+# every non-TILE_ROUTING pip (site pip, site-pin entry/exit) = 25 ps; a CLB tie pass-transistor pip has
+# max_delay 0 -> max(0, pip_epsilon) = 35 ps; a buffered pip = SLOW_MAX + R_pip * C_pip(its OWN in_cap).
+#   vec[9].err_raw -> vec[9].uerr_s/A5 (pin B5):
+#     SITEPIP COUTMUX 25 + site exit 25 + PT 35 + (138 + 1610.7*7.713e-3 = 150) + PT 35 + site entry 25 = 295   (SDF: 295)
+#     prjxray: 0 (CMUX outpin) + 205 (C->>CMUX OUTMUX pseudo-pip) + 138 + 137 (pin B5) + 14 RC = 494 ps slow-max
+#   umux10.either -> chain.g[0].u/A2 (pin A2):
+#     SITEPIP 25 + exit 25 + PT 35 + (130 + 1162.2*8.429e-3 = 139) + (138 + 12 = 150) + PT 35 + entry 25 = 434  (SDF: 434)
+#     prjxray: 130 + 138 + 507 (pin A2) + 60 RC = 835 ps slow-max
+# The same re-derivation is in xray_delay.py (nextpnr_emulated_ps column): it reproduces nextpnr's SDF to
+# within 1 ps on 41091/41096 non-clock arcs of gcd_hw, 7746/7749 of ro_many_top, 2444/2444 of ro_top and
+# 8365/8456 of fresh7_ipow (the 91 misses are all the pad-input net rst, whose ILOGIC route-through the
+# emulation charges as a 300 ps LUT route-through; nextpnr evidently does not).  Negative control
+# (XRAY_NEGCTL_WRONG_PIP=1: each pip replaced by another pip out of the same wire): 483/2444 within 1 ps
+# on ro_top -- the check fails as it should, and the 20% that still match are pips with identical timing
+# classes, so the match is necessary, not sufficient.
+
+## 5. fanout loading on a 30-sink net (urig.a_v[12], tool only)
+# slow-max with all 30 sinks vs each sink's path alone: loading adds median 84.6 ps (min 64.4, max 118.4);
+# Elmore RC median 225.0 ps full vs 148.1 ps pruned.  nextpnr's number does not change with fanout.

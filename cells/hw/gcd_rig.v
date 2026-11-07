@@ -176,16 +176,38 @@ module gcd_rig #(parameter integer IDXW  = 4,
 
     wire abs_req_raw, cmp_req_raw;
 
+    // GCD_DUT_PARAMS: per-cell matched-delay sizes, defined only when
+    // hw/build_hw.sh is given BD_SIZES (see there).  Absent, the kernel builds
+    // at bdc/emit.py's own estimates, as it always has.
+`ifdef GCD_DUT_PARAMS
+    bdc_gcd #(`GCD_DUT_PARAMS) udut (
+`else
     bdc_gcd udut (
+`endif
         .rst(rst),
         .a_req(a_req),         .a_ack(a_ack),         .a_data(a_v),
         .b_req(b_req),         .b_ack(b_ack),         .b_data(b_v),
         .start_req(start_req), .start_ack(start_ack),
         .out0_req(out0_req),   .out0_ack(out0_ack),   .out0_data(out0_data),
         .p_end_req(p_end_req), .p_end_ack(p_end_ack),
-        .probe_n138_req(abs_req_raw),    .probe_n138_data(abs_data),
+        .probe_n138_req(abs_req_raw),    .probe_n138_data(abs_data)
+`ifdef GCD_RIG_CMP_PROBE
+        ,
         .probe_n136_u_req(cmp_req_raw),  .probe_n136_u_data(cmp_z),
-        .probe_n135__2_req(),            .probe_n135__2_data(cmp_in));
+        .probe_n135__2_req(),            .probe_n135__2_data(cmp_in)
+`endif
+        );
+`ifndef GCD_RIG_CMP_PROBE
+    // With op fusion on (bdc/emit.py's default since September) ucmpi11 and
+    // its operand channel %135#2 are folded into select1's fused cell and
+    // there is no net left to tap: emit.py refuses the probe.  The cmp
+    // detectors then see a constant and report cmp_seen = 0, which voids
+    // cmp_bad -- by construction, not by measurement.  hw/build_hw.sh sets
+    // GCD_RIG_CMP_PROBE for a BDC_OP_FUSION=0 build.
+    assign cmp_req_raw = 1'b0;
+    assign cmp_z = 1'b0;
+    assign cmp_in = 32'd0;
+`endif
 
     // Same padding, same reason, as urdly below: the request must trail the
     // data it describes before anything samples its edge.

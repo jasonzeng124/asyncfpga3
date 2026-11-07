@@ -19,7 +19,7 @@
 # here, only values.
 set -euo pipefail
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 CELLS=$(cd "$(dirname "$0")/../.." && pwd)
 SRC=$CELLS/verify/dsp
 WORK=$CELLS/build/verify/dsp

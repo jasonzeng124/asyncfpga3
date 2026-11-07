@@ -56,6 +56,13 @@ ENVIRONMENT
     RO_GROUPS       comma/dash list of groups to sweep, default 0-15
     RO_FORCE        1 to re-measure groups already on disk
     RO_GUARDBAND_PCT  the band under test, default 8.5
+    RO_OFFLINE      1 to judge the raw logs already on disk without touching
+                    a board (no xsdb, no hw_server); groups not on disk are
+                    skipped
+    RO_MEAS_TSV     write every ring's measured and predicted period to this
+                    path (g, b, links, measured_ps, spread, predicted_ps) --
+                    the per-ring table cells/gls/fid/acceptance.py takes as
+                    its hard ring test (--ro-many-data)
 """
 
 import os
@@ -96,6 +103,8 @@ WINDOW_MS = int(os.environ.get("RO_WINDOW_MS", "4000"))
 REPEATS = int(os.environ.get("RO_REPEATS", "2"))
 FORCE = os.environ.get("RO_FORCE", "0") == "1"
 GUARDBAND_PCT = float(os.environ.get("RO_GUARDBAND_PCT", "8.5"))
+OFFLINE = os.environ.get("RO_OFFLINE", "0") == "1"
+MEAS_TSV = os.environ.get("RO_MEAS_TSV")
 # 24 async samples per group, same count ro_measure uses.  The probability a
 # turning ring returns 24 identical bits is 2^-23 if the sampler is fair; the
 # check is deliberately crude because it only has to separate "moving" from
@@ -426,7 +435,7 @@ def main():
             print(f"missing {f} -- run BD_RLOC=none hw/build_hw.sh ro_many_top "
                   f"first", file=sys.stderr)
             return 2
-    if not XSDB.exists():
+    if not XSDB.exists() and not OFFLINE:
         print(f"xsdb not found at {XSDB}", file=sys.stderr)
         return 2
 
@@ -458,7 +467,7 @@ def main():
             print(f"    grp[{g}].ro[{b}]: {err}")
 
     # ---- the sweep ---------------------------------------------------------
-    if not ensure_hw_server():
+    if not OFFLINE and not ensure_hw_server():
         print("hw_server did not come up on tcp:3121", file=sys.stderr)
         return 2
 
@@ -470,6 +479,9 @@ def main():
         if cached.exists() and not FORCE and f"GROUPDONE {g}" in cached.read_text():
             logs[g] = cached.read_text()
             print(f"group {g:2d}   cached")
+            continue
+        if OFFLINE:
+            print(f"group {g:2d}   not on disk -- skipped (RO_OFFLINE)")
             continue
         # Configure once, on the first group actually measured.  Re-loading the
         # bitstream between groups would be sixteen configurations of the same
@@ -644,6 +656,13 @@ def main():
         warn += len(missing_pred)
 
     ratios = {k: meas[k]["period"] / predicted[k] for k in have}
+    if MEAS_TSV:
+        with open(MEAS_TSV, "w") as f:
+            f.write("g\tb\tlinks\tmeasured_ps\tspread\tpredicted_ps\n")
+            for (g, b) in sorted(meas):
+                f.write(f"{g}\t{b}\t{ring_len(g, b)}\t{meas[(g, b)]['period']:.1f}\t"
+                        f"{meas[(g, b)]['spread']:.6f}\t{predicted.get((g, b), '')}\n")
+        print(f"per-ring table written to {MEAS_TSV}")
 
     # One scale factor over the whole population, exactly as ro_measure.py
     # fits it: measured = k * predicted through the origin.  With 128 points
