@@ -78,6 +78,7 @@ for row in R[:MAXR]:
     lut = [(g, p) for g, p in row["path"] if gates[g]["k"] > 1 or gates[g]["init"] != 2]
     steps = list(reversed(lut[:-1]))       # outward from the node; the last entry is the node reading its ack
     if row.get("a0pin") is not None: steps = steps + [(row["a0pin"], 0)]   # arbiters: the copy gate driving A0's pin node
+    if "want_cv" in row: flips = [tf for tf in flips if val(q0, tf - 1) == row["want_cv"]]
     for tf in flips[:6]:
         t0 = tf - 1; crows = []; statics = []; ok = True; prev = q0
         for si, (g, p) in enumerate(steps):
