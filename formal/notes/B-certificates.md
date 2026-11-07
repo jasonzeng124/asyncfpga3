@@ -32,7 +32,8 @@ EVERY behaviour of the circuit? Answer: yes, given a few local value premises pe
 `tools-B/ps/gen_certs_ps.py` (untrusted generator; certificates from simb dumps at corner 0) -> `Formal/Cells/
 CertRowsPS(2)/Bxx.lean` (certificates, `certsNN_ok`) and `RaceAllPS(2)/Bxx.lean` (node pins, `racesNN_ok`). Batch 1:
 158 rows (3-pair run), batch 2: 23 rows ((2^30, 3·2^29), (7, 3), (3, 7)); 4 rows without a certificate from these
-dumps: SLICE_X4Y54.A, X4Y51.A, X16Y25.B, X16Y18.D.
+dumps: SLICE_X4Y54.A, X4Y51.A, X16Y25.B, X16Y18.D -- their RaceTablePS episodes are power-up episodes (t = 37, 55, 55,
+194 ns, while the reset is high), not post-reset ones, and are far from binding (κ 0.85-0.985).
 
 ## Not shown
 The premises; the switch assembly (`cfb_switch`) for rows other than the binding one; the 4 rows; that the
