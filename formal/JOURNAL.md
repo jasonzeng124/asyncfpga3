@@ -1977,3 +1977,10 @@ R ≥ 400 ns, T ≥ 137) / `not_seqRunt40_above60_R` (every w ≤ 40, g ≥ 1, �
 Via `SpecRunt.runt_zero` (w = 0 is the frozen statement): the frozen `NetCorrectSeq` on THE target is false for
 every g ≥ 1, κ ≥ 11/25 and for every g ≥ 8/5, κ ≥ 0, every reset R ≥ 400 ns. This supersedes FrontierPS's
 κ ≥ 18/25 bound (C's CexPS72) for the plain statement.
+### progress 15:2x -- full check.sh --committed NOT completed this session (stopped at the 2 h background limit)
+Started 13:1x on the whole committed tree. The parallel lake pass OOM-killed many of B's new large modules
+(CertRowsPS, LatchViewPS chunks; exit 137, no Lean error seen) and the run hit the session's 2 h background-command
+limit during the one-at-a-time retries, so there is no whole-tree verdict today. Every file A committed today was
+checked individually with check.sh (FILE mode; RBase x4, CexRunt44/G16/D60 Wit/Refute/AnyR, SpecStutter,
+StutterCodes, FrontierRunt/40/R: OK, standard axioms). Next session: run check.sh --committed early (lake keeps the
+oleans already built).
