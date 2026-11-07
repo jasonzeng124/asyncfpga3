@@ -25,6 +25,8 @@ cause's change plus the chain's summed LOWER delays, in every behaviour, with no
 
 * `hold_set`: the same for a controlling SET of pins (an OR held low needs all its low inputs held), each pin with
   its own source window.
+* `hold_mem`: a memory (C-element) hold: INIT = w when the set's pins and the feedback show their values; once
+  at w on its feedback window, the node stays w while the set's sources hold (generalises `AckLow.ack_low`).
 * `cert_holds`: hold certificates over several roots: a list of steps, each deriving one node's hold window from
   roots (premises) or earlier steps' windows, holds whenever the roots do. With `hold_set` as the step rule this is
   the sound form of a "necessary predecessors" lower bound with several causes.
@@ -172,5 +174,39 @@ theorem cert_holds (x : Beh) (roots : List HoldW) (hr : ∀ r ∈ roots, r.Holds
     rcases hok i hi d hd with h | ⟨k, hk, he⟩
     · exact hr d h
     · rw [← he]; exact ih k hk _
+
+/-- **A memory (C-element) hold.** If the INIT is `w` at every address whose pins in `P` show `bv` and whose
+feedback pin `fb` (source = the gate's own output, composite delay ≥ 1) shows `w`, tied pins at their constants,
+then the output, once `w` on its feedback window `[s - hi fb, s - 1]`, stays `w` on `[s, E]` as long as every pin
+`j ∈ P` reads inside a window on which its source shows `bv j` (here: `j`'s source shows `bv j` at every time
+`u` with `s ≤ u + hi j` and `u + lo j ≤ E`). -/
+theorem hold_mem {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hg : CGateOK p c g src arcs S x) {lo hi : Nat → Nat} (hb : CBands p c g.k arcs lo hi)
+    (P : List Nat) (hP : ∀ j ∈ P, j < g.k) {fb : Nat} (hfbk : fb < g.k) (hfb : src fb = g.out)
+    (hlo : 1 ≤ lo fb) (bv : Nat → Bool) (w : Bool) (held ov : Nat → Bool)
+    (hf : ∀ v : Nat → Bool, (∀ i, i < g.k → held i = true → v i = ov i) → (∀ j ∈ P, v j = bv j) → v fb = w →
+      g.init.testBit (addr g.k v) = w)
+    (hh : ∀ i, i < g.k → held i = true → ∀ t, x (src i) t = ov i)
+    {s E : Nat} (hS : S ≤ s) (hpre : ∀ t, s ≤ t + hi fb → t < s → x g.out t = w)
+    (hm : ∀ j ∈ P, ∀ u, s ≤ u + hi j → u + lo j ≤ E → x (src j) u = bv j) :
+    ∀ t, s ≤ t → t ≤ E → x g.out t = w := by
+  obtain ⟨F, -, hF⟩ := hg
+  intro t
+  induction t using Nat.strong_induction_on with
+  | _ t ih =>
+  intro hst htE
+  obtain ⟨r, y⟩ := hF t (by omega)
+  have df := hb fb hfbk _ (r fb hfbk).2
+  have ef := (r fb hfbk).1
+  have hfr : x (src fb) (F fb t) = w := by
+    rw [hfb]
+    by_cases hc : s ≤ F fb t
+    · exact ih _ (by omega) hc (by omega)
+    · exact hpre _ (by omega) (by omega)
+  rw [y]
+  refine hf _ (fun i hi hh' => hh i hi hh' _) (fun j hj => ?_) hfr
+  have d := hb j (hP j hj) _ (r j (hP j hj)).2
+  have e1 := (r j (hP j hj)).1
+  exact hm j hj _ (by omega) (by omega)
 
 end Formal.Cells.CtlChain

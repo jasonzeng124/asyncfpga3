@@ -6,6 +6,7 @@ order-level fact the network argument must supply). For each changing node n, in
 n is certified to keep its pre-tau value = max over controlling pin sets P (INIT = n's value whenever P's pins show
 their pre-tau source values; tied pins constant) of min over j in P of U(src j) + dmin_j. Prints U(B) - tau + 1 (the
 sound-shape lower bound on B's change after A, given the premises), and the number of static premises used.
+Feedback pins are fixed at the node's own value (a memory hold, by induction; not yet in Lean).
 usage: ctlcert.py NET.json DUMP.json A TAU B C KAPPA"""
 import json, sys, math, itertools
 N = json.load(open(sys.argv[1])); D = json.load(open(sys.argv[2]))["nodes"]
@@ -48,8 +49,10 @@ for _pass in range(4):
   for tn, n in changing:
     if n not in drv or n in U: continue
     g = gates[drv[n]]; k, I = g["k"], g["init"]; w = val(n, t0)
-    pins = [j for j in range(k) if not isconst(g["ins"][j])]
+    fbp = [j for j in range(k) if root(g["ins"][j]) == n]
+    pins = [j for j in range(k) if not isconst(g["ins"][j]) and j not in fbp]
     fix = {j: cval(g["ins"][j]) for j in range(k) if isconst(g["ins"][j])}
+    for j in fbp: fix[j] = w   # memory hold: the node's own feedback shows w (inductive; CtlChain needs hold_mem)
     best = None; bestP = None
     for r in range(1, len(pins) + 1):
         for P in itertools.combinations(pins, r):

@@ -3061,3 +3061,13 @@ only 16 / 750 nodes, not b: other concurrent activity is in flight at every cand
 common cause of an order is not one event; a sound LO needs the order-level state (which nodes are in flight) from
 C's abstract machine, which this tool cannot see.** Handed to C as the shape: roots = C's order-level holds,
 steps = hold_set, cert_holds composes.
+
+### progress 07:45 -- hold_mem (C-element hold, generic); the arbiter server path is not certifiable from q alone either (Python, negative)
+`CtlChain.hold_mem` (standard axioms, check.sh OK): AckLow.ack_low generalised to any held value w and any
+controlling set: once at w on its feedback window, a C-element stays w while the set's sources hold. With hold_set
+and cert_holds this completes the hold toolkit (plain, set, memory, composition).
+Python (ctlcert.py, memory holds on): ucontrol_merge10.uarb1, cause q = SLICE_X38Y51.B6 changing at 312,962 ps (3-pair
+corner-0 run), targets its three moving state-LUT inputs (next changes ~47-49 ns later): none certified (18-71 nodes):
+the loop body between the decision and the server's response has other activity in flight, as for the uya order.
+So neither the RT orders nor the server-path obligation reduce to a single timed cause; the roots of a certificate
+must come from the abstract machine's state (C).
