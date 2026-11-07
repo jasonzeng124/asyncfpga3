@@ -23,6 +23,12 @@ cause's change plus the chain's summed LOWER delays, in every behaviour, with no
   `a ≥` every step's start, the last node shows its value on `[a + Σhi, e + Σlo]`.
 * Reading for an order: with `e` = the cause's change time A, the chain's end cannot change before `A + Σlo`.
 
+* `hold_set`: the same for a controlling SET of pins (an OR held low needs all its low inputs held), each pin with
+  its own source window.
+* `cert_holds`: hold certificates over several roots: a list of steps, each deriving one node's hold window from
+  roots (premises) or earlier steps' windows, holds whenever the roots do. With `hold_set` as the step rule this is
+  the sound form of a "necessary predecessors" lower bound with several causes.
+
 ## Not shown
 The upper (forcing) half of an order (c fires by A + HI); that the cause node held its value from `a`; any instance.
 -/
@@ -111,5 +117,60 @@ theorem chain_holds (x : Beh) :
       (fun s' h' => le_trans (hS s' (List.mem_cons_of_mem _ h')) (Nat.le_add_right _ _)) step t
       (by unfold sumHi; omega) (by unfold sumLo; omega)
     simpa [lastN] using this
+
+/-! ## Controlling sets and hold certificates (several roots) -/
+
+/-- **A gate held by a controlling set of pins.** If the INIT is `w` at every address whose pins in `P` show
+`bv`, tied pins at their constants, the output is `w` at every `t ≥ S` at which every pin `j ∈ P` reads inside a
+window `[a j, e j]` on which its source shows `bv j`. -/
+theorem hold_set {p : DelayPar} {c : ℚ} {g : Gate} {src : Nat → Nat} {arcs : Nat → List Arc} {S : Nat}
+    {x : Beh} (hg : CGateOK p c g src arcs S x) {lo hi : Nat → Nat} (hb : CBands p c g.k arcs lo hi)
+    (P : List Nat) (hP : ∀ j ∈ P, j < g.k) (bv : Nat → Bool) (w : Bool) (held ov : Nat → Bool)
+    (hf : ∀ v : Nat → Bool, (∀ i, i < g.k → held i = true → v i = ov i) → (∀ j ∈ P, v j = bv j) →
+      g.init.testBit (addr g.k v) = w)
+    (hh : ∀ i, i < g.k → held i = true → ∀ t, x (src i) t = ov i)
+    (a e : Nat → Nat) (hm : ∀ j ∈ P, ∀ t, a j ≤ t → t ≤ e j → x (src j) t = bv j) :
+    ∀ t, S ≤ t → (∀ j ∈ P, a j + hi j ≤ t ∧ t ≤ e j + lo j) → x g.out t = w := by
+  obtain ⟨F, -, hF⟩ := hg
+  intro t hS hw
+  obtain ⟨r, y⟩ := hF t hS
+  rw [y]
+  refine hf _ (fun i hi hh' => hh i hi hh' _) fun j hj => ?_
+  have d := hb j (hP j hj) _ (r j (hP j hj)).2
+  have e1 := (r j (hP j hj)).1
+  obtain ⟨w1, w2⟩ := hw j hj
+  exact hm j hj _ (by omega) (by omega)
+
+/-- A hold certificate entry: node `n` shows `w` on `[s, e]`. -/
+structure HoldW where
+  n : Nat
+  w : Bool
+  s : Nat
+  e : Nat
+
+def HoldW.Holds (x : Beh) (h : HoldW) : Prop := ∀ t, h.s ≤ t → t ≤ h.e → x h.n t = h.w
+
+/-- One certificate step: entry `h` follows from the entries `deps` (each a source window) by a rule `R`
+(e.g. `hold_set` instantiated at those windows). -/
+structure CStep (x : Beh) where
+  h : HoldW
+  deps : List HoldW
+  rule : (∀ d ∈ deps, d.Holds x) → h.Holds x
+
+/-- **Certificates compose.** In a list of steps where every dependency of step `i` is a root (premise) or the
+entry of a step `k < i`, every entry holds once the roots do. -/
+theorem cert_holds (x : Beh) (roots : List HoldW) (hr : ∀ r ∈ roots, r.Holds x) (steps : List (CStep x))
+    (hok : ∀ i (hi : i < steps.length), ∀ d ∈ steps[i].deps,
+      d ∈ roots ∨ ∃ k, ∃ hk : k < i, (steps[k]'(by omega)).h = d) :
+    ∀ i (hi : i < steps.length), steps[i].h.Holds x := by
+  intro i
+  induction i using Nat.strong_induction_on with
+  | _ i ih =>
+    intro hi
+    apply steps[i].rule
+    intro d hd
+    rcases hok i hi d hd with h | ⟨k, hk, he⟩
+    · exact hr d h
+    · rw [← he]; exact ih k hk _
 
 end Formal.Cells.CtlChain

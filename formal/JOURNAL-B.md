@@ -3046,3 +3046,18 @@ Also: tools-B/target/simb.py's --datachange help said the default "handshake" mo
 (data move while the acks are still high; Env's broad rule forbids it; FOR-RESEARCH's early-release livelock).
 Corrected the help text (default kept for old scripts). Today's 3-pair default-mode run gave [2, 6, 21] for
 [(12,18), (1071,462), (6,4)]: that is the known early-release failure, outside Env; with --datachange broad: correct.
+
+### progress 07:44 -- CtlChain extended: controlling SETS and multi-root hold certificates (check.sh OK); instance attempt negative
+**Lean (standard axioms):** `CtlChain.hold_set` (a gate held by a controlling set of pins, each pin with its own
+source window: an OR held low needs all its low inputs held) and `cert_holds` (a list of steps, each deriving one
+node's hold window from roots or EARLIER steps, holds whenever the roots do). This is the sound form of C's TSE
+"necessary predecessors" lower bound with several causes; roots are premises (order-level facts).
+**Python (untrusted, negative):** tools-B/ps/ctlcert.py (controlling-set certificate on a simb dump; roots = the cause
+plus every node static in [tau, b's change]). For umux16.uya's order on the 3-pair corner-0 run: b = SLICE_X32Y45.A6
+is NOT certified from A = SLICE_X32Y28.A6 (853,417 ps): walking back, b's change at 891,100 comes through two long
+AND/OR delay lines (X42-43 Y87-97, X36-37 Y87-98 enabled by SLICE_X35Y79.D6) whose head (SLICE_X36Y95.D6) was already
+in flight before A changed; re-anchoring at SLICE_X36Y95.C6 (853,299) or SLICE_X35Y79.D6 (843,253) still certifies
+only 16 / 750 nodes, not b: other concurrent activity is in flight at every candidate cause. **So in a timed run the
+common cause of an order is not one event; a sound LO needs the order-level state (which nodes are in flight) from
+C's abstract machine, which this tool cannot see.** Handed to C as the shape: roots = C's order-level holds,
+steps = hold_set, cert_holds composes.
