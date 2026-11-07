@@ -7,6 +7,22 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-07 (lead, in progress): the margin is now bracketed by one race, with and without the runt filter.**
+- **Binding race, both sides.** One C-element of THE target (ulink_n_falseResult_85 stage 0, SLICE_X32Y45.A6) must see
+  its acknowledge return no earlier than its own feedback loop. Shard B **proved** that obligation for every
+  behaviour at g = 1, κ ≤ 0.41, every corner (`RaceCertPS.race_margin`, `target_b_switch_041`, Lean; one race row
+  of 185, local premises open). Shard C **found** (simulation, independently checked; Lean at κ = 12/25 building) that
+  slowing only that node's 7-arc feedback route and making everything else fast deadlocks the pair (1071, 462) at
+  κ = 0.48 (w = 0), at κ = 0.44 under H_RUNT(20), and at g = 1.59, κ = 0. So the g = 1 frontier is in [0.41, 0.44)
+  for this race if the Lean versions hold, and B's sufficient bound is tight to 0.03.
+- **H_RUNT(20) does not move the frontier.** Shard A: C's κ = 0.72 deadlock and its 0.44 one are plain races,
+  not runt mechanisms; both survive a Spec-faithful runt filter on every LUT pin (simrunt.py; independent checker
+  gatecheck_runt.py). Lean: `CexRunt72.RBase` / `CexRuntP.RBase` (a finite check sound for `SpecRunt.GateOKRunt`,
+  CHECKED); the refutation of `NetCorrectSeqRunt 20` at κ = 11/25 (`CexRunt44`, C's run) is building; with
+  `FrontierRunt` (down-set in (g, κ), up-set in w, both proved) it covers every g ≥ 1, κ ≥ 11/25, w ≤ 20.
+- **Verdict unchanged in kind:** THE theorem is false above a small scatter (≈ 0.44 at g = 1, ≈ 1.59 guard at κ = 0) for
+  a reason that is a real timing race in the circuit, not an artefact of the gate model or the runt semantics.
+
 **2026-11-06 (lead): where THE theorem stands on THE target `gcd_ps_e6bb4aec.bit`** (details and the shrinking
 hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
 - **Decoded netlist = the bits** (H_DECODE reduced to prjxray's tables plus the parts listed in STATUS): Lean round
