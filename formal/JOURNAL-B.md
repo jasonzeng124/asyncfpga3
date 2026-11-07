@@ -3010,3 +3010,19 @@ environment (vacuity risk, same class as audit T5/T9). **On THE target (Python, 
 LUT pins have < 20 admissible integer delays at c = 0, κ = 0 (2,307 at c = 0.5; none at c = 1; none for κ ≥ 0.1).
 **Not shown:** that the target's behaviours carry such pulses there. Proposed fix (a read-value filter) in
 notes/B-hrunt-forbid.md, for shard A (SpecRunt is A's file).
+
+### progress 07:28 -- THE target's own mid-window run is not a BehavesRunt 20 behaviour; a filtering H_RUNT, checked (RuntFilter; check.sh OK)
+- tools-B/ps/lean2json.py rebuilds net.json from the generated Lean data (NetPS; 187,258 nodes, 186,873 gates, gate i
+  drives node i), so simb.py runs without a prjxray-db decode. tools-B/ps/runtscan.py: pulses on support-LUT-pin
+  sources that are narrower than w but at least as wide as the pin's admissible window (those runt_forbids drops).
+- (12, 18), corner 0, κ = 0 (simulation, untrusted; result correct): at mid-window delays (pos 0.5) **5 pulses of
+  13 ps** on narrow-window LUT pin sources (SLICE region X19-21 Y73-78, ~254.5 ns; windows 12-13 delays), so that run
+  is NOT a `BehavesRunt 20` behaviour and NetCorrectSeqRunt 20 at (g, κ) = (1, 0) says nothing about it. At pos 0,
+  0.25, 0.75, 1: 0 such pulses (35-666 sub-20 pulses, all skippable). So on THE target the exclusion is real for a
+  natural delay assignment, but not forced (other positions avoid it): behaviours dropped, no vacuity shown.
+- `Formal/Cells/RuntFilter.lean` (standard axioms): a FILTER form of H_RUNT(w) for A to consider: a LUT pin evaluates
+  `filt w s` (each maximal constant run shorter than w that ends is replaced by the filtered value before it; a
+  train of runts vanishes) at the frozen read times. `filt_zero`/`gateOKFilt_zero` (w = 0 is the frozen GateOK),
+  `filt_long`; on the toy, `toy_filtered` (the step RuntForbid forbids is a BehavesFilt 20 behaviour and the reader
+  y stays low: the 15 ps hazard is filtered) and `toy_frozen_glitch` (under frozen GateOK the hazard reaches y).
+  Caveat: the filter is non-causal; with it NetCorrectSeq no longer implies NetCorrectSeqRunt w by restriction.
