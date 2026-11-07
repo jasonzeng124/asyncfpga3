@@ -4,8 +4,8 @@ All theorems below are about every behaviour of `circuit DecodedPS.net DecodedPS
 behaviour's corner, standard axioms, built with lake (check.sh audit). "Premises" are value facts about named nodes
 over time windows; discharging them is the network (order-level) argument.
 
-## Storage nodes: clean switches (`Formal.Cells.RaceAllPS.target_switches`, `RaceAllPS2.target_switches`)
-For g = 1, κ ≤ 83/200, one corner c for all rows; for each of 158 storage nodes (`sws`), for any a, E, PS, sT, e':
+## Storage nodes: clean switches (`Formal.Cells.RaceAllPS.target_switches`, `RaceAllPS2.target_switches`, `BigCertPS.target_switches`)
+For g = 1, κ ≤ 83/200, one corner c for all rows (per theorem); for each of 135 + 23 + 23 = 181 storage nodes (`sws`), for any a, E, PS, sT, e':
 - the node is at its OLD value on [a, sT - 1] (it is about to switch at sT);
 - each certificate static node (`r.pc.1.sn`, values `sv`) keeps its value on [a, E k], with E k ≥ sT - 1 + PS and
   PS ≥ every row's `psum` (the acknowledge path's summed lower bands, a few ns);
@@ -36,6 +36,5 @@ settles before the server's answer reaches it (the obligation `ArbTSpec.spec_dou
 (q_settles). Generator: `tools-B/ps/gen_certs_ps.py` (rows from simb dumps; every row is re-checked in Lean).
 
 ## Not covered
-27 RaceTablePS rows (4 power-up episodes; 23 certificates too large for one kernel check here, all κ ≥ 0.94); 4
-arbiters; the one-acknowledge assembly (GrantExcl/AckLow with A0's freeze of q); latches (LatchViewPS's data windows
+4 RaceTablePS rows (power-up episodes); 4 arbiters; the one-acknowledge assembly (GrantExcl/AckLow with A0's freeze of q); latches (LatchViewPS's data windows
 are the analogous premises); non-vacuity of the premises in Lean (they hold in the simulated runs they came from).
