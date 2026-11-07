@@ -3165,3 +3165,14 @@ with the certificate's premises: the acknowledge source keeps its old value at e
 start with u + lo(ack pin) ≤ e + hi(feedback pin), i.e. every read of the node's acknowledge pin within its feedback
 loop's upper delay after the flip sees the old value (the cfb_switch obligation). Next: the per-row instances
 (node pins, ack/feedback pin indices, facts by kernel decide) for the 181 certificates.
+
+### progress 08:46 -- CertSwitchAll: a checked race row makes its node switch cleanly (compiles; check.sh after the batch check)
+`Formal/Cells/CertSwitchAll.lean` (compiles with -DautoImplicit=false, no sorry; check.sh run deferred: two OOM
+kills today when a second Lean process ran beside the 6 GB certificate checks): `SwRow` (race row + the node's
+force row F (old ack value among its controlling pins, feedback free) and confirm row C (feedback = new value, ack
+free)), `swOK`, `switch_row` (cfb_switch + race_row: the node is at its new value on all of [sT, e'] given the
+certificate premises, the other force/confirm pins' values over the reads, and the timing conditions), and
+`target_switches_of` (all rows of a checked list, one corner, every behaviour, g = 1, κ ≤ 83/200). The generator now
+emits F/C rows for all 181 certificates (found for every one at the flip) into RaceAllPS(2)/Bxx (`swNN_ok` by kernel
+decide; `swNN_rr` rfl ties them to the race rows) and the batch theorems `target_races`, `target_switches`.
+Kernel checks: CertRowsPS batch 1 at file 66/104 (5 OOM-killed files to rerun alone); batch 2 OK; RaceAll files next.
