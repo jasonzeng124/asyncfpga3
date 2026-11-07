@@ -15,8 +15,9 @@ certificate whose cause is the latch's enable source and whose last row is the l
 source keeps its value up to `τ + hi e`.
 
 ## Proved (standard axioms)
-* `margin_succ`: `283·(ΣFAST_MAX(loop) + 1) ≤ 117·ΣFAST_MIN(path)` and the same with SLOW give, for g = 1,
-  κ ∈ [0, 83/200] and every corner, `Σ hi(loop) + 1 ≤ Σ lo(path)` (integer window ends).
+* `margin_succ`: `A·(ΣFAST_MAX(loop) + 1) ≤ B·ΣFAST_MIN(path)` and the same with SLOW give, for g = 1, every
+  κ ≥ 0 with `(1+κ)·B ≤ A·(1-κ)` (B > 0) and every corner, `Σ hi(loop) + 1 ≤ Σ lo(path)` (integer window ends). Each
+  row carries its own (A, B), so its own κ range: κ ≤ (A - B)/(A + B).
 * `latch_hold`: certificate (certOK, single path, chain shape) + the two facts on (enable-pin arcs, path arcs) +
   the certificate's value premises with the cause showing its old value on `[a, e]`: the last row's node shows its
   value on `[its window start, e + 1 + hi e]`.
@@ -40,15 +41,23 @@ open Formal.Target Formal.Target.DecodedPS Formal.Timing.SpecChain Formal.Cells.
   Formal.Cells.SpecCElemFact
 
 /-- **Margin with one step to spare** (g = 1, κ ≤ 83/200, every corner). -/
-theorem margin_succ {κ c : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
-    {path loop : List Arc} (h1 : 283 * (sFmax loop + 1) ≤ 117 * sFmin path)
-    (h2 : 283 * (sSmax loop + 1) ≤ 117 * sSmin path) :
+theorem margin_succ {κ c : ℚ} (hk0 : 0 ≤ κ) {A B : Nat} (hB0 : 0 < B)
+    (hk : (1 + κ) * (B : ℚ) ≤ (A : ℚ) * (1 - κ)) (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    {path loop : List Arc} (h1 : A * (sFmax loop + 1) ≤ B * sFmin path)
+    (h2 : A * (sSmax loop + 1) ≤ B * sSmin path) :
     (loop.map (Formal.Cells.Ua1Static.hi 1 κ c)).sum.toNat + 1 ≤
       (path.map (Formal.Cells.Ua1Static.lo 1 κ c)).sum.toNat := by
+  have hBq : (0 : ℚ) < B := by exact_mod_cast hB0
+  have hA0 : (0 : ℚ) ≤ A := by positivity
+  have hk1 : κ < 1 := by
+    by_contra hc
+    rw [not_lt] at hc
+    have : (A : ℚ) * (1 - κ) ≤ 0 := mul_nonpos_of_nonneg_of_nonpos hA0 (by linarith)
+    nlinarith
   have u := hi_sum_le hk0 hc0 hc1 loop
   have l := lo_sum_ge (κ := κ) (by linarith) hc0 hc1 path
-  have q1 : (283 : ℚ) * ((sFmax loop : ℚ) + 1) ≤ 117 * (sFmin path : ℚ) := by exact_mod_cast h1
-  have q2 : (283 : ℚ) * ((sSmax loop : ℚ) + 1) ≤ 117 * (sSmin path : ℚ) := by exact_mod_cast h2
+  have q1 : (A : ℚ) * ((sFmax loop : ℚ) + 1) ≤ B * (sFmin path : ℚ) := by exact_mod_cast h1
+  have q2 : (A : ℚ) * ((sSmax loop : ℚ) + 1) ≤ B * (sSmin path : ℚ) := by exact_mod_cast h2
   have f1 : (0 : ℚ) ≤ sFmax loop := by positivity
   have f2 : (0 : ℚ) ≤ sSmax loop := by positivity
   set X : ℚ := (1 - c) * (sFmax loop : ℚ) + c * (sSmax loop : ℚ) with hX
@@ -57,12 +66,12 @@ theorem margin_succ {κ c : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) (hc0 : 
                          positivity
   have a1 := mul_le_mul_of_nonneg_left q1 (by linarith : (0 : ℚ) ≤ 1 - c)
   have a2 := mul_le_mul_of_nonneg_left q2 hc0
-  have hA : 283 * (X + 1) ≤ 117 * Y := by rw [hX, hY]; nlinarith
-  have hk' : (1 + κ) * 117 ≤ 283 * (1 - κ) := by nlinarith
+  have hA : (A : ℚ) * (X + 1) ≤ B * Y := by rw [hX, hY]; nlinarith
   have hB : (1 + κ) * X + 1 ≤ (1 - κ) * Y := by
     have b1 := mul_le_mul_of_nonneg_left hA (by linarith : (0 : ℚ) ≤ 1 - κ)
-    have b2 := mul_le_mul_of_nonneg_right hk' (by linarith : (0 : ℚ) ≤ X + 1)
-    nlinarith
+    have b2 := mul_le_mul_of_nonneg_right hk (by linarith : (0 : ℚ) ≤ X + 1)
+    have b3 : (B : ℚ) * ((1 + κ) * X + 1) ≤ B * ((1 - κ) * Y) := by nlinarith
+    exact le_of_mul_le_mul_left b3 hBq
   have : ((((loop.map (Formal.Cells.Ua1Static.hi 1 κ c)).sum.toNat : ℕ) : ℚ)) + 1 ≤
       ((((path.map (Formal.Cells.Ua1Static.lo 1 κ c)).sum.toNat : ℕ) : ℚ)) := by linarith
   exact_mod_cast this
@@ -70,12 +79,13 @@ theorem margin_succ {κ c : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) (hc0 : 
 /-- **A latch's hold window from a chain certificate** (every behaviour, g = 1, κ ≤ 83/200, at the corner `c` of the
 collapsed relations `G`). With the certificate's premises (the cause showing its old value on `[a, e]`, static nodes,
 memory rows), the last row's node shows its value from its window start up to `e + 1 + hi e`. -/
-theorem latch_hold {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh}
+theorem latch_hold {κ : ℚ} (hk0 : 0 ≤ κ) {A B : Nat} (hB0 : 0 < B) (hk : (1 + κ) * (B : ℚ) ≤ (A : ℚ) * (1 - κ))
+    {x : Beh}
     (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) (P : Prem) (rows : List CRow) (r : LRow)
     (hok : certOK P rows = true) (hsp : singlePath rows = true) (hch : chainShape rows = true)
     (hn : 1 ≤ rows.length)
-    (h1 : 283 * (sFmax (r.arcs r.e) + 1) ≤ 117 * sFmin (pathArcs rows))
-    (h2 : 283 * (sSmax (r.arcs r.e) + 1) ≤ 117 * sSmin (pathArcs rows))
+    (h1 : A * (sFmax (r.arcs r.e) + 1) ≤ B * sFmin (pathArcs rows))
+    (h2 : A * (sSmax (r.arcs r.e) + 1) ≤ B * sSmin (pathArcs rows))
     {c : ℚ} (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
     (G : ∀ i, i < rows.length → CGateOK ⟨1, κ⟩ c (rows.getD i default).r.g (rows.getD i default).r.src
       (rows.getD i default).r.arcs ((rows.getD i default).r.S ⟨1, κ⟩) x)
@@ -92,7 +102,13 @@ theorem latch_hold {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh}
   intro u hu1 hu2
   have hw := win_end_ge (p := ⟨1, κ⟩) (c := c) P rows hok hsp a e E PS hPS hE hB (rows.length - 1) (by omega)
   have hpc := psum_chain (p := ⟨1, κ⟩) (c := c) rows hch rows.length hn le_rfl
-  have hm := margin_succ hk0 hk hc0 hc1 h1 h2
+  have hm := margin_succ hk0 hB0 hk hc0 hc1 h1 h2
+  have hk1 : κ ≤ 1 := by
+    have hBq : (0 : ℚ) < B := by exact_mod_cast hB0
+    by_contra hc
+    rw [not_le] at hc
+    have : (A : ℚ) * (1 - κ) ≤ 0 := mul_nonpos_of_nonneg_of_nonpos (by positivity) (by linarith)
+    nlinarith
   have hpath := toNat_sum_le (fun i => (rows.getD i default).r.arcs (pathPin (rows.getD i default)))
     (Formal.Cells.Ua1Static.lo 1 κ c) (lo_nonneg (by linarith) hc0 hc1) rows.length
   have hlo : ((pathArcs rows).map (Formal.Cells.Ua1Static.lo 1 κ c)).sum.toNat ≤ loSum ⟨1, κ⟩ c rows rows.length :=
@@ -104,6 +120,8 @@ theorem latch_hold {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh}
 structure LatchHoldRow where
   pc : Prem × List CRow
   l : LRow
+  kA : Nat   -- the row's margin ratio: valid for κ with (1+κ)·kB ≤ kA·(1-κ)
+  kB : Nat
 
 /-- The checks of a latch-hold row besides `certOK`: path shape, the latch row itself, its enable pin reads the cause
 whose old value is the "open" value, its data pin reads the last row's node, and the two arc-sum facts. -/
@@ -111,14 +129,15 @@ def latchHoldOK (r : LatchHoldRow) : Bool :=
   singlePath r.pc.2 && chainShape r.pc.2 && decide (1 ≤ r.pc.2.length) && lrowOK r.l &&
   (r.l.pins.getD r.l.e ([], 0)).2 == r.pc.1.cn && (r.pc.1.cv ^^ r.l.pe) &&
   (r.l.pins.getD r.l.d ([], 0)).2 == (r.pc.2.getD (r.pc.2.length - 1) default).r.q &&
-  decide (283 * (sFmax (r.l.arcs r.l.e) + 1) ≤ 117 * sFmin (pathArcs r.pc.2)) &&
-  decide (283 * (sSmax (r.l.arcs r.l.e) + 1) ≤ 117 * sSmin (pathArcs r.pc.2))
+  decide (r.kA * (sFmax (r.l.arcs r.l.e) + 1) ≤ r.kB * sFmin (pathArcs r.pc.2)) &&
+  decide (r.kA * (sSmax (r.l.arcs r.l.e) + 1) ≤ r.kB * sSmin (pathArcs r.pc.2)) && decide (0 < r.kB)
 
 /-- **A checked latch-hold row gives the latch's hold window** in `target_latch_close`'s form: with `τ = e + 1` (the
 enable source shows its "open" value up to `e`, by the cause premise), the data source shows the last row's value on
 `[its window start, τ + hi e]`. -/
 theorem latch_hold_row {r : LatchHoldRow} (hc : certOK r.pc.1 r.pc.2 = true) (hr : latchHoldOK r = true) {κ : ℚ}
-    (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh} (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) {c : ℚ} (hc0 : 0 ≤ c)
+    (hk0 : 0 ≤ κ) (hk : (1 + κ) * (r.kB : ℚ) ≤ (r.kA : ℚ) * (1 - κ)) {x : Beh}
+    (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) {c : ℚ} (hc0 : 0 ≤ c)
     (hc1 : c ≤ 1)
     (G : ∀ i, i < r.pc.2.length → CGateOK ⟨1, κ⟩ c (r.pc.2.getD i default).r.g (r.pc.2.getD i default).r.src
       (r.pc.2.getD i default).r.arcs ((r.pc.2.getD i default).r.S ⟨1, κ⟩) x)
@@ -134,7 +153,7 @@ theorem latch_hold_row {r : LatchHoldRow} (hc : certOK r.pc.1 r.pc.2 = true) (hr
     ∀ u, (win ⟨1, κ⟩ c a e E r.pc.2 (r.pc.2.length - 1)).1 ≤ u → u ≤ (e + 1) + r.l.hi ⟨1, κ⟩ c r.l.e →
       x (r.l.src r.l.d) u = (r.pc.2.getD (r.pc.2.length - 1) default).r.w := by
   simp only [latchHoldOK, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hr
-  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hsp, hch⟩, hn⟩, hl⟩, hen⟩, hpe⟩, hd⟩, h1⟩, h2⟩ := hr
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hsp, hch⟩, hn⟩, hl⟩, hen⟩, hpe⟩, hd⟩, h1⟩, h2⟩, hB0⟩ := hr
   have hl' := hl
   simp only [lrowOK, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at hl'
   have hkk : r.l.g.k = r.l.pins.length := hl'.1.1.1.1.1.1.1.1.1.1.1.1.1
@@ -142,7 +161,7 @@ theorem latch_hold_row {r : LatchHoldRow} (hc : certOK r.pc.1 r.pc.2 = true) (hr
   have hdk : r.l.d < r.l.g.k := hl'.1.1.1.1.1.1.1.1.1.1.1.2
   refine ⟨hl, by rw [src_eq r.l (by omega), hen], hpe, fun u hu1 hu2 => ?_⟩
   rw [src_eq r.l (by omega), hd]
-  exact latch_hold hk0 hk hb r.pc.1 r.pc.2 r.l hc hsp hch hn h1 h2 hc0 hc1 G a e E PS hcause hstat hmem hPS hE hB u
+  exact latch_hold hk0 hB0 hk hb r.pc.1 r.pc.2 r.l hc hsp hch hn h1 h2 hc0 hc1 G a e E PS hcause hstat hmem hPS hE hB u
     hu1 (by omega)
 
 /-- `target_latch_close` for one row, given its collapsed relation (so that a caller can fix the corner). -/
@@ -186,8 +205,9 @@ matching `v`, `a + We ≤ τ`, the latch's own window inequalities and the reset
 `[A, E' + lo e]`. Compared with `target_latch_close`, the hold half of the data window and the open window are
 discharged. -/
 theorem target_latch_holds_of (L : List LatchHoldRow) (hL : ∀ r ∈ L, certOK r.pc.1 r.pc.2 = true ∧ latchHoldOK r = true)
-    {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh} (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) :
-    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ r ∈ L, ∀ (a e : Nat) (E : Nat → Nat) (PS : Nat),
+    {κ : ℚ} (hk0 : 0 ≤ κ) (hk1 : κ ≤ 1) {x : Beh} (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) :
+    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ r ∈ L, (1 + κ) * (r.kB : ℚ) ≤ (r.kA : ℚ) * (1 - κ) →
+      ∀ (a e : Nat) (E : Nat → Nat) (PS : Nat),
       (∀ t, a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv) →
       (∀ k, k < r.pc.1.sn.length → ∀ t, a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false) →
       (∀ i, i < r.pc.2.length → (r.pc.2.getD i default).r.mem = true →
@@ -206,7 +226,7 @@ theorem target_latch_holds_of (L : List LatchHoldRow) (hL : ∀ r ∈ L, certOK 
       (e + 1) + r.l.hi ⟨1, κ⟩ c r.l.e ≤ A + We → (e + 1) + r.l.hi ⟨1, κ⟩ c r.l.d ≤ A + Wd →
       A + r.l.hi ⟨1, κ⟩ c r.l.j ≤ (e + 1) + r.l.lo ⟨1, κ⟩ c r.l.e →
       ∀ s, A ≤ s → s ≤ E' + r.l.lo ⟨1, κ⟩ c r.l.e → x r.l.q s = v := by
-  have hp : Formal.Timing.SpecSettle.Sane ⟨1, κ⟩ := ⟨hk0, by linarith, by norm_num⟩
+  have hp : Formal.Timing.SpecSettle.Sane ⟨1, κ⟩ := ⟨hk0, hk1, by norm_num⟩
   obtain ⟨c, hc0, hc1, hcol⟩ := Formal.Cells.ViewPS.view_collapse hp hb
     ((L.flatMap fun r => (List.range r.pc.2.length).map fun i =>
       ((r.pc.2.getD i default).r.q, (r.pc.2.getD i default).r.pins)) ++ L.map fun r => (r.l.q, r.l.pins)) (by
@@ -219,10 +239,10 @@ theorem target_latch_holds_of (L : List LatchHoldRow) (hL : ∀ r ∈ L, certOK 
       · rintro e ⟨r, hr, rfl⟩
         have hl := (hL r hr).2
         simp only [latchHoldOK, Bool.and_eq_true] at hl
-        have h := hl.1.1.1.1.1.2
+        have h := hl.1.1.1.1.1.1.2
         simp only [lrowOK, Bool.and_eq_true] at h
         exact h.1.1.1.2)
-  refine ⟨c, hc0, hc1, fun r hr a e E PS h1 h2 h3 h4 h5 h6 E' We Wd A H v hS hH hloj hrst haW hcl hset hw hAe hAd
+  refine ⟨c, hc0, hc1, fun r hr hk a e E PS h1 h2 h3 h4 h5 h6 E' We Wd A H v hS hH hloj hrst haW hcl hset hw hAe hAd
     hloop => ?_⟩
   have G : ∀ i, i < r.pc.2.length → CGateOK ⟨1, κ⟩ c (r.pc.2.getD i default).r.g (r.pc.2.getD i default).r.src
       (r.pc.2.getD i default).r.arcs ((r.pc.2.getD i default).r.S ⟨1, κ⟩) x := fun i hi =>

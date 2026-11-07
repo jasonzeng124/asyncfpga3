@@ -3349,3 +3349,26 @@ certificate. So every storage node and arbiter that moves after reset in these r
 what is left is nodes these workloads never move. A certificate for them needs a flip to take premise values from
 (or a search for sensitizing values, which gives premises nobody has seen hold), or a network-level argument (C) that
 they do not move after reset, which would make their race obligations vacuous. Not attempted here.
+
+### progress 17:10 -- CHECKED: latch hold windows from certificates (LatchHoldCert; first 8 latches, LatchHoldPS)
+**Problem, plainly:** `LatchViewPS.target_ps_latch_close` (4,185 latches) assumes each latch's data source keeps the
+captured value until `τ + hi e` (the HOLD half of its data window) and that the enable was open before τ. In a
+bundled-data pipeline the next data is released only in response to the close itself, so the hold is a race between
+the close and the controller/acknowledge path back to the data: the same shape as B's storage-node race rows.
+**Lean (standard axioms; lake build + check.sh OK):** `LatchHoldCert`:
+- `margin_succ`: per-row integer facts `kA·(ΣFAST_MAX(enable arcs) + 1) ≤ kB·ΣFAST_MIN(path arcs)` (and SLOW) give
+  `hi e + 1 ≤ Σ lo(path)` at every corner, for every κ ≥ 0 with `(1+κ)·kB ≤ kA·(1-κ)` (each row its own κ range).
+- `latch_hold` / `latch_hold_row`: a chain certificate whose cause is the latch's enable source (old value = "open")
+  and whose last row is its data source gives the data value on `[window start, τ + hi e]`, τ = e + 1.
+- `latch_row` (`target_latch_close` per row at a fixed collapsed relation) and `target_latch_holds_of`: for a checked
+  list, ONE corner for certificates and latches together (one `view_collapse`), each latch holds `v` on `[A, E' + lo e]`
+  with the hold half and the open window discharged; left: the certificate's local premises, the enable closed on
+  `[τ, E']`, the setup half (data before the certificate's window start), the latch's own inequalities.
+- Instance `LatchHoldPS.target_latch_holds` (certificates `CertLatchPS`): 8 latches so far, from closes in d3
+  (κ ranges 0.346-0.68, median 0.584; the 8 use 0-1 static premises). Generator tools-B/ps/gen_latchhold_ps.py (two
+  passes: the arc sums are evaluated in Lean by `#eval`, then each row's kA/kB is the smaller of the two ratios).
+**Python (untrusted):** ctlcert over the 396 latch closes in d3 followed by a data change: running (3 workers); of the
+first 93, the chain-shaped ones certify; the non-certified ones are latches whose next data change is not caused by
+their close in that run (premise-free reading: an independent cause).
+**Not shown:** latches whose data never moves in d3 (3,360 of 4,185 do not move: narrow data in that run); the
+premises; whether the minimum κ range (0.346 so far) is a real limit or a short path in this one run.

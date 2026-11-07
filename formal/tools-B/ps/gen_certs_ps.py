@@ -105,7 +105,7 @@ for row in R[:MAXR]:
                     cs["fb"], "true" if cs["mem"] else "false", bl(cs["held"]), bl(cs["ov"]), ", ".join("⟨%d, %d⟩" % l for l in labs)))
     prem = "⟨%d, %s, %s, %s⟩" % (q0, "true" if cv else "false", nl([s for s, v in statics]), bl([v for s, v in statics]))
     npins = [chain(n) for n in gates[q0]["ins"]]
-    ja = row["path"][-1][1]; jf = [i for i, (ch, src) in enumerate(npins) if src == q0][0]
+    ja = row["path"][-1][1]; jf = ([i for i, (ch, src) in enumerate(npins) if src == q0] or [0])[0]   # 0 if the cause has no feedback (CERTONLY uses)
     sw = None if os.environ.get("CERTONLY") else swrows(q0, npins, ja, jf, t0, crows[-1][1]["w"])
     if sw is None and not os.environ.get("CERTONLY"): skipped.append(row["node"] + "(no force/confirm)"); continue
     ntxt = "⟨%d, [%s], [], [], false, 0, false, [], []⟩" % (q0, ", ".join("(%s, %d)" % (nl(ch), src) for ch, src in npins))
