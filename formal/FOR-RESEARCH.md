@@ -164,8 +164,13 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 - **Meaning (now Lean, at a much smaller scatter):** `Formal.Target.CexRunt44.not_netCorrectSeqRunt20` (standard
   axioms, check.sh OK): the headline statement is false at g = 1, κ = 11/25 for every T ≥ 123 ps, every su, Δo ≤ 3 ns;
   `FrontierRunt.not_seqRunt_le20_above44` carries it to every g ≥ 1, κ ≥ 11/25 and every w ≤ 20. **So H_RUNT(w) does
-  not lift the margin at all in the range the owner cares about: with or without runt filtering the g = 1 margin is
+  not lift the margin for any w up to the owner's headline 20 ps: with or without runt filtering the g = 1 margin is
   below 0.44, and the one race that binds it is B's (safe to κ ≤ 0.41).** Audit T37 confirms the run independently.
+- **Limit of this witness (checked, shard A 09:5x):** at w = 40 the same adversary at κ = 0.44 is CORRECT (out0 = 21),
+  and it is not even admissible there (the slowed pin sits at the top of its window, so it has no room to skip a
+  pulse: `INFEASIBLE 1`). At κ = 0.72 the cap is w ≤ 25. So nothing here says the statement is false for w > 20; a
+  wider-filter refutation needs an adversary that leaves ≥ w slack on its slow pins. Research question unchanged: what
+  is the fabric's real w?
 - **Evidence:** `formal/tools-A/target/out/k72w20_dump.json.xz` (every node's flips), from `tools-A/target/simrunt.py`
   (C's simadv.py + `--w`); checked by the independent `tools-A/target/gatecheck_runt.py` (filtered waveforms rebuilt
   separately: all 186,871 gates, 274,930 checks, 0 mismatches, 0 arcs outside Adm, 0 read-lag violations, 0 reads in a

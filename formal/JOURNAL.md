@@ -1889,3 +1889,11 @@ k44w20 dump is a GateOKRunt 20 behaviour: 0 mismatches, 0 Adm or lag violations;
 marking the Lean build "in progress" -- it has since finished and check.sh passed (09:5x entry), so the row can be
 updated. It also confirmed my κ = 0.72 run (every w ≤ 25 a behaviour, w = 26 not), and B's race_margin at κ ≤ 0.41
 (with the real relaxation 0.417). No REFUTED/OVERSTATED row on A's files.
+### progress 09:5x -- how far the runt width can go: this witness stops at w ≈ 25-39, and at w = 40 the run is correct
+Checked before claiming anything wider: the κ = 0.44 adversary with w = 40 (C's simadv.py --classes --w 40) returns
+the right answer (out0 = 21) and is not an admissible GateOKRunt 40 behaviour anyway -- the slowed pin
+(SLICE_X32Y45.A6 pin 0) sits at the TOP of its window, so skipping any pulse would push its read lag outside Adm
+(INFEASIBLE 1). Same structural cap as at κ = 0.72 (w ≤ 25). **So the Lean results cover w ≤ 20 (the owner's headline)
+and nothing above it**; a refutation for a wider filter needs an adversary that keeps ≥ w slack on its slow pins
+(a mid-window slow pin may lose the race). FOR-RESEARCH A4 says so now; the earlier wording ("H_RUNT does not lift
+the margin at all") was too strong and is corrected.
