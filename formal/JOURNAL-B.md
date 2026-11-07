@@ -3307,3 +3307,24 @@ the losing grant's hold; `oneAckOK` checks the wiring), `one_ack_of` (list form,
 behaviour of THE circuit with H_ARB(T), under the premises (as in 14:13's entry), the losing client's acknowledge
 stays low through the transaction. Standard axioms, check.sh OK. **Not shown:** the opposite direction of each
 (needs a certificate from a flip of the other polarity), arbs[1..4], the premises.
+
+### progress 15:05 -- CHECKED: one-acknowledge in the other direction (4 arbiters); arbiters 1 and 3 settle + one-ack
+**Problem, plainly:** `ArbOneAckAllPS` showed the losing client is not acknowledged for 5 arbiters, each in one
+transaction direction only (q leaving one value). The other direction needs a certificate from a q flip of the other
+polarity; arbs[1..4] had no server-path certificate at all.
+**Lean (standard axioms; lake build + check.sh audit OK):**
+- `CertArbPS2` (4 certificates, q flips of the opposite polarity in d3: arbs[0], [5], [7], [8]; cause values are the
+  negations of `CertArbPS`'s) and `ArbOneAckAllPS2.target_one_ack` (4 rows). With `ArbOneAckAllPS`, arbs[0], [5], [7], [8]
+  now have the one-acknowledge statement for both directions of q; arbs[6] for one (d3 has no flip of the other polarity).
+- `CertArbPS3` (2 certificates), `ArbServerPS3.target_arbs_settle` (arbs[1] = SLICE_X39Y24.A, arbs[3] = SLICE_X16Y31.A
+  settle before their server answers, the `ArbServerPS` statement) and `ArbOneAckAllPS3.target_one_ack` (both, one
+  direction: q leaving true).
+Same reading and premises as `ArbServerPS` / `ArbOneAckAllPS` (local value premises, one corner, H_ARB(T)).
+**Why arbs[1], [3] were missing (generator bug, fixed):** simb.py dumps omit the nodes that are False for the whole
+run; ctlcert.py read such a node as "unknown" and dropped every controlling set using it (here arbiter 2's R0, a pin of
+arbiter 3's state LUT). Now read as False (gen_certs_ps.py already did). ctlcert bounds after the fix (fast corner,
+κ = 0, Python): arbs[1] 1945 ps, arbs[3] 719 ps. Earlier ctlcert NEGATIVES (no certificate) may be affected by the same
+bug and should be re-run; the positives are unaffected in soundness (every certificate is checked in Lean).
+**Not shown:** arbs[2], arbs[4] (q never flips after reset in any of the 15 dumps here, so no transaction to certify
+from); the other direction for arbs[1], [3], [6]; the premises. Also observed (Python, d3): arbiter 1's A0 change at
+431.9 ns comes from arbiter 3's q flip through a ~7 ns chain, not from arbiter 1's own q.

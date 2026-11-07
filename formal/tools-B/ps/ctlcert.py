@@ -22,7 +22,7 @@ def isconst(n): r = root(n); return (r in drv and gates[drv[r]]["k"] == 0) or r 
 def cval(n): r = root(n); return False if r == RST else bool(gates[drv[r]]["init"] & 1)
 def val(n, t):
     d = D.get(str(n))
-    if d is None: return cval(n) if isconst(n) else None
+    if d is None: return cval(n) if isconst(n) else False   # simb.py dumps omit exactly the nodes False for the whole run
     v = d[0]
     for s in d[1]:
         if s <= t: v = not v
@@ -36,6 +36,8 @@ def nc(n):
     return None
 def dmin(e): return math.ceil((1 - K) * ((1 - C) * e["fmin"] + C * e["smin"]) - 1e-9)
 t0 = TAU - 1; tB = nc(Bn); INF = 10 ** 15
+if "--horizon" in sys.argv:   # only certify up to TAU + H: nodes quiet on [TAU, TAU + H] are static premises
+    H = int(sys.argv[sys.argv.index("--horizon") + 1]); tB = min(tB, TAU + H) if tB is not None else TAU + H
 U = {}
 def Uof(m):
     if m == A: return t0
