@@ -1220,3 +1220,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 02:19Z lock.
 - 02:59Z lock.
 - 03:40Z lock.
+- 03:40Z T32: board list item 3 now s75ff (#5); own seed-6 route + worst case started.
