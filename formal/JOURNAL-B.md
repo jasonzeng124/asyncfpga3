@@ -3254,3 +3254,26 @@ Memory notes for full builds (shard A, check.sh --committed): every Cert/Race/Bi
 ### progress 14:01 -- RaceAllTarget.target_switches_181: all 181 rows in one statement, one corner (check.sh OK)
 `Formal.Cells.RaceAllTarget.target_switches_181` = target_switches_of over RaceAllPS.sws ++ RaceAllPS2.sws ++
 BigCertPS.sws. This is the statement S4 can consume (notes/B-for-C-S4.md).
+
+### progress 14:05 -- session summary (shard B, 2026-11-07)
+**Lean, standard axioms, all pushed (check.sh audits OK):**
+- H_PRIM / H_RUNT fidelity: `RuntForbid` (SpecRunt's H_RUNT(w) FORBIDS, not filters, a sub-w pulse wider than a LUT
+  pin's window; toy where it forbids the environment's own step), `RuntFilter` (a filtering form, total, w = 0 =
+  frozen). On THE target (simulation): the plain mid-window corner-0 runs have 5-12 such 13-14 ps pulses, so they are
+  not BehavesRunt 20 behaviours at κ = 0 (notes/B-hrunt-forbid.md; for A, owner of SpecRunt).
+- Hold certificates (sound "necessary predecessor" lower bounds in Spec semantics): `CtlChain`, `CertPS`,
+  `CertMarginPS`, `CertRaceAll`, `CertSwitchAll`, `CertSplit`; generators gen_cert_ps / gen_certs_ps /
+  gen_bigcerts_ps (untrusted; every row re-checked by kernel decide).
+- `RaceCertPS.target_b_switch_041`: the binding race node switches cleanly for κ ≤ 0.41 (g = 1).
+- `RaceAllTarget.target_switches_181`: 181 of the 185 RaceTablePS storage nodes switch cleanly in every behaviour of
+  THE circuit (g = 1, κ ≤ 0.415, one corner), under local value premises (out/target_ps_certs1/2.json).
+- `ArbServerPS.target_arbs_settle`: 5 of 9 arbiters' states settle (H_ARB(T)) before the server's answer reaches
+  the state LUT, for T below the server path's summed lower bands.
+**Simulation / untrusted:** certificate LO bounds (binding row κ* 0.417 real-valued, g < 1.58 at κ = 0); server path
+≥ 1.47-2.2 ns (κ = 0, fast corner); simb's default data mode is outside Env (help text corrected).
+**STATUS list:** no hypothesis of THE theorem is removed today (no n ≥ 1 theorem yet); what changed is that the
+timing half of the storage nodes' environment premises (S3 races, 181 nodes) and the arbiters' server-path
+obligation (5 of 9) are now theorems, leaving order-level VALUE premises for S4 (notes/B-for-C-S4.md).
+**Open for B:** the 4 power-up race rows; the 4 other arbiters; the one-acknowledge assembly (needs a careful reading
+of the state LUT's encoding: with A0 = 1 it outputs 1 whatever r1/r2/fb, so "A0 freezes q" is not the right shape);
+latch hold windows by certificates (need full-width runs where the data bits move); non-vacuity witnesses.
