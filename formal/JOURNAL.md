@@ -1995,3 +1995,8 @@ stretch lemmas are independent code, so each refutation now has two independent 
 the runs a third time. Not duplicated: the w = 40 refutation (CexRuntD60, FrontierRunt40 + any R) and the explicit
 per-arc-delay witness check (CexRuntD) are A's only. **Rule for myself: re-read the other journals' tails before every
 build longer than 30 min.** STATUS/FEASIBILITY now name both.
+### progress 15:4x -- started (A; simulation): which race binds NEXT? single-pin sweep at κ = 0.48, w = 20
+C's sweep at κ = 0.40 found every single-pin adversary correct (1,316/1,316). If research fixes SLICE_X32Y45.A6's race,
+the margin moves to the next failing race; to find it: the same single-pin adversary (one pin's route at the top of
+its window, all else at the bottom; C's hazsweep with H_RUNT(20)) over all 412 control storage nodes x live pins at
+κ = 12/25. Running in A's scratch (3 jobs); C/B: no need to repeat.
