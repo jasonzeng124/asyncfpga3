@@ -44,7 +44,7 @@ def ctlset(g, q, j, t0):
                     return dict(P=sorted(P), w=w, mem=mem, fb=fb[0] if mem else k, pins=pins, held=[i in fix for i in range(k)],
                                 ov=[fix.get(i, False) for i in range(k)], bv=[val(pins[i][1], t0) if i in P else False for i in range(k)])
     return None
-certs = []; skipped = []
+certs = []; skipped = []; PREMS = []
 for row in R[:MAXR]:
   if ONLY is not None and row["node"] not in ONLY: continue
   done = None
@@ -82,6 +82,10 @@ for row in R[:MAXR]:
     ja = row["path"][-1][1]; jf = [i for i, (ch, src) in enumerate(npins) if src == q0][0]
     ntxt = "⟨%d, [%s], [], [], false, 0, false, [], []⟩" % (q0, ", ".join("(%s, %d)" % (nl(ch), src) for ch, src in npins))
     certs.append((row["node"], prem, rtxt, len(statics), ntxt, ja, jf))
+    PREMS.append(dict(node=row["node"], gate=q0, cause_value=bool(cv), flip_time_in_dump=t0 + 1,
+                      statics=[dict(node=N["nodes"][s_], value=bool(v_)) for s_, v_ in statics],
+                      memory_rows=[N["nodes"][g] for g, cs, labs in crows if cs["mem"]],
+                      steps=[N["nodes"][g] for g, cs, labs in crows], ack_pin=ja, feedback_pin=jf))
 import os
 C = 2500; MAXC = int(os.environ.get("MAXC", "10"))
 def chunks_of(rt):
@@ -156,4 +160,8 @@ T += ["", "/-!", "# Formal.Cells." + NAME + " — hold certificates for %d of th
       "set_option maxRecDepth 100000 in", "theorem certs_length : certs.length = %d := by decide" % len(certs), "",
       "end Formal.Cells." + NAME, ""]
 open(os.path.join(OUT, NAME + ".lean"), "w").write("\n".join(T))
+if os.environ.get("OUTJSON"):
+    json.dump(dict(note="UNTRUSTED generator output: the value premises of each hold certificate (Formal.Cells.%s / %s); "
+                   "the certificates themselves are checked in Lean (certOK, raceOK)." % (NAME, RN), rows=PREMS, skipped=skipped),
+              open(os.environ["OUTJSON"], "w"), indent=1)
 print("certificates", len(certs), "files", nf, "skipped", len(skipped), skipped[:10])
