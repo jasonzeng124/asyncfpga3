@@ -26,7 +26,8 @@ of THE statement, with or without the runt filter, is below 0.44; the binding ra
 **Guard axis (2026-11-07 11:3x, Lean):** `CexRuntG16.not_netCorrectSeqRunt20` / `FrontierRunt.not_seqRunt_le20_aboveG16`:
 false for every g ≥ 8/5, κ ≥ 0, w ≤ 20, T ≥ 137 (same race; B's sufficient bound for it: g ≤ 1.56 at κ = 0).
 **Wider filter (simulation, independently checked):** at w = 40 the same race deadlocks from κ ≈ 0.60 (correct at
-0.52), so a wider runt filter buys ~0.15 of κ, no more; Lean data in CexRuntD60 (queued).
+0.52), so a wider runt filter buys ~0.15 of κ, no more. **Lean (13:3x):** `FrontierRunt40.not_seqRunt40_above60`:
+false for every w ≤ 40, g ≥ 1, κ ≥ 15/25, T ≥ 88.
 
 ## THE target: what is proved (as of 2026-11-02, unchanged since)
 | piece | theorem | plainly |

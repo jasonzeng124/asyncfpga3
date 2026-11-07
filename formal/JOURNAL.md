@@ -1930,3 +1930,24 @@ CexRuntG16 Wit/Refute and FrontierRunt: OK, 1,873 declarations audited, standard
 run (same 7-arc race). **Plainly:** the owner asked for the largest guard g at which the theorem holds; with no
 scatter and the runt filter at 20 ps it is below 1.6 (B's sufficient bound for that race is g ≤ 1.56), and the
 same race bounds κ at 0.44. Both axes of the owner's frontier now have a Lean upper bound.
+### progress 13:3x -- CHECKED: under a 40 ps runt filter the statement is false from κ = 15/25 (Lean)
+`Formal.Target.CexRuntD60.not_netCorrectSeqRunt40` (⟨1, 15/25⟩, T ≥ 88) and `FrontierRunt40.not_seqRunt40_above60`:
+`NetCorrectSeqRunt w` on THE target is false for every w ≤ 40, g ≥ 1, κ ≥ 15/25, T ≥ 88, any su, Δo ≤ 3000. Witness:
+A's k60w40 run (C's 7-arc race with 40 ps of slack on the slow arcs), checked by `CexRuntD.RBase` (explicit per-arc
+delays). All 75 chunks built; check.sh on Wit, Refute, FrontierRunt40: OK, 2,289 declarations audited, standard
+axioms. **Plainly:** doubling the runt filter from 20 to 40 ps moves the g = 1 failure point from κ = 0.44 to at most
+0.60; the circuit's binding race is not something a runt filter can fix.
+### progress 13:3x -- session summary (shard A, 2026-11-07)
+Lean, standard axioms, check.sh OK, all pushed:
+- **The owner's headline statement (H_RUNT(20)) is refuted on THE target** at g = 1, κ = 11/25 (`CexRunt44`) and along
+  the guard axis at g = 8/5, κ = 0 (`CexRuntG16`); with `FrontierRunt` (down-set in (g, κ), up-set in w) for every
+  g ≥ 1, κ ≥ 11/25 and every g ≥ 8/5, all w ≤ 20. Witness runs: shard C's (one C-element's feedback race).
+- Wider filter: false for every w ≤ 40 at κ ≥ 15/25 (`CexRuntD60`, `FrontierRunt40`; A's adversary with slack).
+- Infrastructure: a witness check sound for `SpecRunt.GateOKRunt` (jump reads over narrow-pulse chains), in four
+  forms: κ = 18/25 node lists (CexRunt72), κ = P/25 per-arc lists (CexRuntP), guard N/D (CexRuntG), explicit per-arc
+  delays (CexRuntD, the general one). Chunk checks split in thirds (one decide over 2,500 gates needs > 15 GB).
+Simulation (untrusted, independently checked): the 0.72 deadlock survives every w ≤ 25; the 0.44 one cannot be pushed
+lower with this adversary (0.42, 0.43 correct); at w = 40 the race fails from ≈ 0.60 (0.52 correct).
+Audit T37 confirmed the headline counterexample. STATUS rows 4 and 6 updated; the list did not shrink today (no
+hypothesis was derived) -- instead the headline statement is refuted, and both owner axes have Lean upper bounds.
+Open: the gap 0.41-0.44 (B's premises; other adversaries); w > 40; the wire-to-node merge in Lean (H_DECODE).

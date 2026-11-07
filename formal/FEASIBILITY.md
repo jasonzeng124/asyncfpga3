@@ -22,8 +22,8 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   C's run, T ≥ 123, standard axioms) and, with `FrontierRunt` (down-set in (g, κ), up-set in w, both proved), covers
   every g ≥ 1, κ ≥ 11/25, w ≤ 20. With B's 0.41 proof the g = 1 margin of the binding race is in [0.41, 0.44).
   Guard axis, also CHECKED (`CexRuntG16`, `FrontierRunt.not_seqRunt_le20_aboveG16`): false for every g ≥ 8/5 at
-  κ = 0 (B's bound for that race: g ≤ 1.56). A wider filter helps a little: at w = 40 the race fails from κ ≈ 0.60
-  (simulation + independent checker; Lean data queued).
+  κ = 0 (B's bound for that race: g ≤ 1.56). A wider filter helps a little: at w = 40 the statement is false from
+  κ = 15/25 (`FrontierRunt40.not_seqRunt40_above60`, Lean; simulation: correct at 0.52).
 - **Verdict unchanged in kind:** THE theorem is false above a small scatter (≈ 0.44 at g = 1, ≈ 1.59 guard at κ = 0) for
   a reason that is a real timing race in the circuit, not an artefact of the gate model or the runt semantics.
 
