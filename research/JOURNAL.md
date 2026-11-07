@@ -2962,3 +2962,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   -> 2-link delay), which the sizes do not touch; ufork0's loop is placement-dependent either way. Caveat added to the
   TSV header. The August bench builds (aug_kernels) are probably unaffected (build_bench's default MODE=tighten sizes
   on the bench itself), but that is not checked here.
+### progress 20:01 (xorshift x0.5 on the board's own bench top: 12/12 full-stack runs, 1.46-1.52x; board list item 4)
+- xorshift_bench_gen (cells/hw/build_bench.sh, the top the board runs) with the re-keyed T3s50 and T3 sizes, NEXTPNR_SEED
+  1-4, BD_SIZES_GATE=0 (rule A: 12-20 cells fail on every bench route of BOTH builds -- informational, PROGRAM item 1),
+  then cells/gls/ps/build_ps.sh ... bit (netlist from each .bit, prjxray SDF, fid, ps7_bench.v host, 17 vectors x 2 runs,
+  expected from simcheck.ref_xorshift) at SLOW_MAX, FAST_MIN and the combined worst case: 24/24 PASS 17/17, no hang,
+  gate clean; bits vs JSON EQUIVALENT except 3 routes' single benign GND-buffer F7/CARRY4 input (checked each).
+- Per round (slope 200->1000 rounds, aclk cycles): x0.5 2.68-2.80 FAST_MIN / 3.78-3.96 worst / 7.48-7.82 SLOW_MAX; T3
+  3.96-4.13 / 5.54-5.81 / 11.06-11.71. Paired base/x0.5: 1.458-1.523 (12 pairs), worst case 1.458-1.512. Same gain as
+  the soak routes (1.42-1.45x).
+- First run voided: TBATCH 200 us was shorter than T3's 1000-round batch (2 x 111 us), so its last vector read HANG with
+  completed=1 and the right answer; re-run at 1 ms. Also voided earlier: the sizes-not-applied builds (d1b44816).
+- BOARD-QUEUE #6 + board list item 4 (ring set moves to 5): exact commands, sdf md5s, and research/tools/
+  xorshift_bench_judge.py (PASS = all 17 oracle points on both builds; checked both ways on synthetic files).
+- Not shown: 8 bench routes (4 here, 8 on the soak top); silicon.
