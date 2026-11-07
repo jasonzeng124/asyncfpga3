@@ -49,7 +49,6 @@ for row in R[:MAXR]:
   if ONLY is not None and row["node"] not in ONLY: continue
   done = None
   for D in DUMPS:
-    if done is not None: break
     q0 = row["gate"]
     flips = [s for s in D.get(str(q0), [0, []])[1] if s > RLEN]
     lut = [(g, p) for g, p in row["path"] if gates[g]["k"] > 1 or gates[g]["init"] != 2]
@@ -68,16 +67,17 @@ for row in R[:MAXR]:
                     labs.append((1, statics.index((s, cs["bv"][i]))))
                 else: labs.append((0, 0))
             crows.append((g, cs, labs)); prev = g
-        if ok and steps: done = (t0, crows, statics); break
+        if ok and steps: done = (t0, crows, statics, val(q0, t0)); break
+    if done is not None: break
   if done is None: skipped.append(row["node"]); continue
   if True:
-    t0, crows, statics = done
+    t0, crows, statics, cv = done
     rtxt = []
     for g, cs, labs in crows:
         pins = ", ".join("(%s, %d)" % (nl(ch), s) for ch, s in cs["pins"])
         rtxt.append("⟨⟨%d, [%s], %s, %s, %s, %d, %s, %s, %s⟩, [%s]⟩" % (g, pins, nl(cs["P"]), bl(cs["bv"]), "true" if cs["w"] else "false",
                     cs["fb"], "true" if cs["mem"] else "false", bl(cs["held"]), bl(cs["ov"]), ", ".join("⟨%d, %d⟩" % l for l in labs)))
-    prem = "⟨%d, %s, %s, %s⟩" % (q0, "true" if val(q0, t0) else "false", nl([s for s, v in statics]), bl([v for s, v in statics]))
+    prem = "⟨%d, %s, %s, %s⟩" % (q0, "true" if cv else "false", nl([s for s, v in statics]), bl([v for s, v in statics]))
     certs.append((row["node"], prem, rtxt, len(statics)))
 import os
 C = 2500; MAXC = int(os.environ.get("MAXC", "10"))
