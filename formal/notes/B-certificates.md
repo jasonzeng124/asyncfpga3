@@ -35,6 +35,13 @@ CertRowsPS(2)/Bxx.lean` (certificates, `certsNN_ok`) and `RaceAllPS(2)/Bxx.lean`
 dumps: SLICE_X4Y54.A, X4Y51.A, X16Y25.B, X16Y18.D -- their RaceTablePS episodes are power-up episodes (t = 37, 55, 55,
 194 ns, while the reset is high), not post-reset ones, and are far from binding (κ 0.85-0.985).
 
+## Kernel-check limits in this sandbox
+A certificate is checked by one kernel `decide` that unfolds every netlist chunk its rows touch (~6 GB at 18 chunks).
+20 batch-1 certificates span 19-40 chunks and were killed for memory; they are left out of the batch theorems (files
+kept in the scratchpad, regenerable with EXCLUDE): all have RaceTablePS κ thresholds ≥ 0.94 (the table's minimum is
+0.415), so they do not affect the frontier. Fix if needed: split a certificate's row checks across files (certOK is a
+conjunction over rows).
+
 ## Not shown
 The premises; the switch assembly (`cfb_switch`) for rows other than the binding one; the 4 rows; that the
 episodes the certificates describe are the ones that occur (the certificate is valid whenever its premises hold,
