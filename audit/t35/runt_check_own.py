@@ -13,6 +13,9 @@ import json, sys, bisect, math
 from fractions import Fraction as F
 net = json.load(open(sys.argv[1])); dump = json.load(open(sys.argv[2])); ENV = set(); W = int(sys.argv[4])
 K = F(int(sys.argv[5]), int(sys.argv[6])); slow_names = sys.argv[7:]
+SLOWARC = None; FLOAT = False
+if slow_names and slow_names[0].endswith('.json'):   # per-arc classes {S: [[out node, pin], ...]} (C's convention); rest fast
+    SLOWARC = set((n, p) for n, p in json.load(open(slow_names[0]))['S']); FLOAT = 'float' in slow_names[1:]; slow_names = []
 nodes = net["nodes"]; idx = {n: i for i, n in enumerate(nodes)}; gates = net["gates"]
 drv = {gt["out"]: gi for gi, gt in enumerate(gates)}
 ENV = set(idx[n] for n in json.load(open(sys.argv[3]))["env"])
@@ -58,7 +61,9 @@ for gi, gt in enumerate(gates):
     if gt["out"] in ENV: continue      # env-driven boundary node: its driver is cut in `circuit`
     ds = []; L = lut(gt); luts += L
     for e in gt["arcs"]:
-        d = math.floor((1 + K) * e["fmax"]) if gt["out"] in SLOW else math.ceil((1 - K) * e["fmin"])
+        sl = (nodes[gt["out"]], len(ds)) in SLOWARC if SLOWARC is not None else gt["out"] in SLOW
+        if FLOAT: d = math.floor(e["fmax"] * (1 + float(K))) if sl else math.ceil(e["fmin"] * (1 - float(K)))   # adversary's float rounding; Adm checked exactly
+        else: d = math.floor((1 + K) * e["fmax"]) if sl else math.ceil((1 - K) * e["fmin"])
         if L and d < W: d = W; raised += 1
         lo = (1 - K) * e["fmin"]; hi = (1 + K) * e["fmax"]
         if not (lo <= d <= hi): bad_adm += 1
