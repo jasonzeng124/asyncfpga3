@@ -1,0 +1,128 @@
+@Formal.Cells.RaceAllPS.target_races : ∀ {κ : ℚ},
+  0 ≤ κ →
+    κ ≤ 83 / 200 →
+      ∀ {x : Formal.Target.Beh},
+        Formal.Target.Behaves { g := 1, κ := κ }
+            (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+          ∃ c,
+            0 ≤ c ∧
+              c ≤ 1 ∧
+                ∀ r ∈ Formal.Cells.RaceAllPS.races,
+                  ∀ (a e : ℕ) (E : ℕ → ℕ) (PS : ℕ),
+                    (∀ (t : ℕ), a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv) →
+                      (∀ k < r.pc.1.sn.length,
+                          ∀ (t : ℕ), a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false) →
+                        (∀ i < r.pc.2.length,
+                            (r.pc.2.getD i default).r.mem = true →
+                              1 ≤
+                                  Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c (r.pc.2.getD i default).r
+                                    (r.pc.2.getD i default).r.fb ∧
+                                ∀ (t : ℕ),
+                                  (Formal.Cells.CertPS.win { g := 1, κ := κ } c a e E r.pc.2 i).1 ≤
+                                      t +
+                                        Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c (r.pc.2.getD i default).r
+                                          (r.pc.2.getD i default).r.fb →
+                                    t < (Formal.Cells.CertPS.win { g := 1, κ := κ } c a e E r.pc.2 i).1 →
+                                      x (r.pc.2.getD i default).r.q t = (r.pc.2.getD i default).r.w) →
+                          (∀ i < r.pc.2.length, Formal.Cells.CertMarginPS.psum { g := 1, κ := κ } c r.pc.2 i ≤ PS) →
+                            (∀ (k : ℕ), e + PS ≤ E k) →
+                              e + PS ≤ Formal.Cells.CertPS.BIG →
+                                (List.getD r.node.pins r.ja ([], 0)).2 = (r.pc.2.getD (r.pc.2.length - 1) default).r.q ∧
+                                  (List.getD r.node.pins r.jf ([], 0)).2 = r.node.q ∧
+                                    r.node.q = r.pc.1.cn ∧
+                                      ∀ (u : ℕ),
+                                        (Formal.Cells.CertPS.win { g := 1, κ := κ } c a e E r.pc.2
+                                                (r.pc.2.length - 1)).1 ≤
+                                            u →
+                                          u + Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c r.node r.ja ≤
+                                              e + Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c r.node r.jf →
+                                            x (r.pc.2.getD (r.pc.2.length - 1) default).r.q u =
+                                              (r.pc.2.getD (r.pc.2.length - 1) default).r.w
+@Formal.Cells.RaceAllPS.target_switches : ∀ {κ : ℚ},
+  0 ≤ κ →
+    κ ≤ 83 / 200 →
+      ∀ {x : Formal.Target.Beh},
+        Formal.Target.Behaves { g := 1, κ := κ }
+            (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+          ∃ c,
+            0 ≤ c ∧
+              c ≤ 1 ∧
+                ∀ s ∈ Formal.Cells.RaceAllPS.sws,
+                  ∀ (a : ℕ) (E : ℕ → ℕ) (PS sT e' : ℕ),
+                    1 ≤ sT →
+                      Formal.Cells.RaceCertPS.KRow.S { g := 1, κ := κ } s.F ≤ sT →
+                        (∀ (t : ℕ), a ≤ t → t ≤ sT - 1 → x s.rr.pc.1.cn t = s.rr.pc.1.cv) →
+                          (∀ k < s.rr.pc.1.sn.length,
+                              ∀ (t : ℕ), a ≤ t → t ≤ E k → x (s.rr.pc.1.sn.getD k 0) t = s.rr.pc.1.sv.getD k false) →
+                            (∀ i < s.rr.pc.2.length,
+                                (s.rr.pc.2.getD i default).r.mem = true →
+                                  1 ≤
+                                      Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c (s.rr.pc.2.getD i default).r
+                                        (s.rr.pc.2.getD i default).r.fb ∧
+                                    ∀ (t : ℕ),
+                                      (Formal.Cells.CertPS.win { g := 1, κ := κ } c a (sT - 1) E s.rr.pc.2 i).1 ≤
+                                          t +
+                                            Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c
+                                              (s.rr.pc.2.getD i default).r (s.rr.pc.2.getD i default).r.fb →
+                                        t < (Formal.Cells.CertPS.win { g := 1, κ := κ } c a (sT - 1) E s.rr.pc.2 i).1 →
+                                          x (s.rr.pc.2.getD i default).r.q t = (s.rr.pc.2.getD i default).r.w) →
+                              (∀ i < s.rr.pc.2.length,
+                                  Formal.Cells.CertMarginPS.psum { g := 1, κ := κ } c s.rr.pc.2 i ≤ PS) →
+                                (∀ (k : ℕ), sT - 1 + PS ≤ E k) →
+                                  sT - 1 + PS ≤ Formal.Cells.CertPS.BIG →
+                                    (Formal.Cells.CertPS.win { g := 1, κ := κ } c a (sT - 1) E s.rr.pc.2
+                                              (s.rr.pc.2.length - 1)).1 +
+                                          Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c s.F s.rr.ja ≤
+                                        sT →
+                                      1 ≤ Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c s.F s.rr.jf →
+                                        sT + Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c s.F s.rr.jf ≤ e' + 1 →
+                                          (∀ j ∈ s.F.P,
+                                              j ≠ s.rr.ja →
+                                                ∀ (u : ℕ),
+                                                  sT ≤ u + Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c s.F j →
+                                                    u + Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c s.F j ≤
+                                                        e' →
+                                                      x (s.F.src j) u = Formal.Cells.SpecCElemFact.fl s.F.bv j) →
+                                            (∀ j ∈ s.C.P,
+                                                ∀ (u : ℕ),
+                                                  sT ≤ u + Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c s.F j →
+                                                    u + Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c s.F j ≤
+                                                        e' →
+                                                      x (s.F.src j) u = Formal.Cells.SpecCElemFact.fl s.C.bv j) →
+                                              ∀ (t : ℕ), sT ≤ t → t ≤ e' → x s.rr.node.q t = s.F.w
+(135, 135, 23, 23)
+@Formal.Cells.ArbServerPS.target_arbs_settle : ∀ {p : Formal.Target.DelayPar},
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ {x : Formal.Target.Beh},
+      Formal.Target.Behaves p (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+        ∀ {T : ℕ},
+          Formal.Target.ArbOK T Formal.Target.DecodedPS.arbs x →
+            ∃ c,
+              0 ≤ c ∧
+                c ≤ 1 ∧
+                  ∀ r ∈ Formal.Cells.ArbServerPS.rowsA,
+                    ∀ (a e : ℕ) (E : ℕ → ℕ) (PS t1 t2 : ℕ),
+                      (∀ (t : ℕ), a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv) →
+                        (∀ k < r.pc.1.sn.length,
+                            ∀ (t : ℕ), a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false) →
+                          (∀ i < r.pc.2.length,
+                              (r.pc.2.getD i default).r.mem = true →
+                                1 ≤
+                                    Formal.Cells.RaceCertPS.KRow.lo p c (r.pc.2.getD i default).r
+                                      (r.pc.2.getD i default).r.fb ∧
+                                  ∀ (t : ℕ),
+                                    (Formal.Cells.CertPS.win p c a e E r.pc.2 i).1 ≤
+                                        t +
+                                          Formal.Cells.RaceCertPS.KRow.hi p c (r.pc.2.getD i default).r
+                                            (r.pc.2.getD i default).r.fb →
+                                      t < (Formal.Cells.CertPS.win p c a e E r.pc.2 i).1 →
+                                        x (r.pc.2.getD i default).r.q t = (r.pc.2.getD i default).r.w) →
+                            (∀ i < r.pc.2.length, Formal.Cells.CertMarginPS.psum p c r.pc.2 i ≤ PS) →
+                              (∀ (k : ℕ), e + PS ≤ E k) →
+                                e + PS ≤ Formal.Cells.CertPS.BIG →
+                                  (∀ n ∈ r.A.ins,
+                                      n ≠ (r.pc.2.getD (r.pc.2.length - 1) default).r.q →
+                                        Formal.Target.ConstOn (x n) t1 t2) →
+                                    (Formal.Cells.CertPS.win p c a e E r.pc.2 (r.pc.2.length - 1)).1 ≤ t1 →
+                                      t2 ≤ e + Formal.Cells.CertMarginPS.psum p c r.pc.2 (r.pc.2.length - 1) →
+                                        Formal.Target.ConstOn (x r.A.q) (t1 + T) t2
