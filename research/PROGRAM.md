@@ -8,12 +8,17 @@ questions: decide, record why in the journal, and keep going. The owner reads
 
 The owner raised the budget to about twice the single-thread, high-effort level.
 Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-but at most 2 at a time.** Wait for one to finish before starting another. A
+but at most 4 at a time** (raised from 2, owner, 2026-11-07). Wait for one to finish before starting another. A
 subagent never touches git: it works in its own worktree or scratch directory
 and reports back, and you review and commit what it found. Use them for
 independent work that would otherwise wait (a second sweep while a build runs, a
 proof while a check builds, a claim to reproduce), never to run the same work
 twice. Never create scheduled routines or reminders.
+
+The limit on progress is now memory and disk, not usage: the session has logged OOM kills
+and disk-full restarts. Before starting a job, check `free -g` and `df -h`, and do not
+run more than fits. A killed job is a lost result. Good first use: give the iteration
+breakdown below ("where one iteration's time goes") to a subagent now, since it has not started.
 
 ## No board for a long time (owner, 2026-10-25)
 
