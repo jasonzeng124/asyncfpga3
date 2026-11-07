@@ -1251,3 +1251,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T16:53:02Z build43 launched at formal 234e1135 (A: CexRunt44/G16 AnyR, CexRuntD60 w=40 kappa 15/25, FrontierRunt40, FrontierRuntR; B: BigCertPS, RaceAllTarget 181 rows, CertArbPS2-4, ArbOneAck*, LatchHold*). Note: deleting .lake/build/ir marks modules out of date (lake rebuilds); not doing that again.
 - 2026-11-07T17:27:57Z build43 attempt 1 killed (deleted IR -> lake rebuilt CexRunt44 chunks in parallel, 3 OOM exits 137). Relaunched with CexPS72.KBase, CexRunt44 and CexRuntG16 chunks first, one at a time.
 - 2026-11-07T18:14:02Z disk: removed audited CexPS (kappa 0.84) and C's CexR44 olean dirs (nothing in the queue imports them; FrontierPS/CexR44 would need a rebuild to re-audit).
+- 2026-11-07T21:35:54Z T39: FrontierRuntR (every R >= 400 ns; w<=20 kappa>=0.44; g>=1.6; w<=40 kappa>=0.6) Lean CONFIRMED; k60w40 witness checked by own checker with explicit arc delays.

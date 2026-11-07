@@ -14,7 +14,8 @@ from fractions import Fraction as F
 net = json.load(open(sys.argv[1])); dump = json.load(open(sys.argv[2])); ENV = set(); W = int(sys.argv[4])
 K = F(int(sys.argv[5]), int(sys.argv[6])); slow_names = sys.argv[7:]
 SLOWARC = None; FLOAT = False
-import os; G = F(os.environ.get('AUDIT_G', '1'))   # guard g (T38); Adm = [(1-k) fmin / g, (1+k) fmax g], start uses (1+k) smax g
+import os; G = F(os.environ.get('AUDIT_G', '1')); SSLACK = int(os.environ.get('AUDIT_SSLACK', '0')); SSLUT = os.environ.get('AUDIT_SSLACK_LUT', '0') == '1'   # T39: slow arcs at floor((1+k) fmax g) - SSLACK (only on LUT pins if SSLUT)
+EX = dict(tuple(map(int, x.split(':'))) for x in os.environ.get('AUDIT_EX', '').split(',') if x)   # T39: explicit per-arc delays, code 8*out+pin -> d (still checked against Adm)   # guard g (T38); Adm = [(1-k) fmin / g, (1+k) fmax g], start uses (1+k) smax g
 if slow_names and slow_names[0].endswith('.json'):   # per-arc classes {S: [[out node, pin], ...]} (C's convention); rest fast
     SLOWARC = set((n, p) for n, p in json.load(open(slow_names[0]))['S']); FLOAT = 'float' in slow_names[1:]; slow_names = []
 nodes = net["nodes"]; idx = {n: i for i, n in enumerate(nodes)}; gates = net["gates"]
@@ -64,7 +65,8 @@ for gi, gt in enumerate(gates):
     for e in gt["arcs"]:
         sl = (nodes[gt["out"]], len(ds)) in SLOWARC if SLOWARC is not None else gt["out"] in SLOW
         if FLOAT: d = math.floor(e["fmax"] * (1 + float(K))) if sl else math.ceil(e["fmin"] * (1 - float(K)))   # adversary's float rounding; Adm checked exactly
-        else: d = math.floor((1 + K) * e["fmax"] * G) if sl else math.ceil((1 - K) * e["fmin"] / G)
+        else: d = math.floor((1 + K) * e["fmax"] * G) - (SSLACK if (not SSLUT or L) else 0) if sl else math.ceil((1 - K) * e["fmin"] / G)
+        if 8 * gt["out"] + len(ds) in EX: d = EX[8 * gt["out"] + len(ds)]
         if L and d < W: d = W; raised += 1
         lo = (1 - K) * e["fmin"] / G; hi = (1 + K) * e["fmax"] * G
         if not (lo <= d <= hi): bad_adm += 1
