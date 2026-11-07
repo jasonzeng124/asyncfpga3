@@ -1878,3 +1878,8 @@ route slow, all else fast; JOURNAL-C 07:40); the runt-filtered witness check and
 B's `race_margin` (that race is safe for κ ≤ 0.41), the g = 1, w ≤ 20 frontier of THE statement is below 0.44, and
 the one race known to bind it is safe up to 0.41. The κ = 18/25 build (CexRunt72, 27/75 chunks checked) is superseded
 and stopped; its RBase stays (checked).
+### progress 10:0x -- guard axis: CexRuntG.RBase (g = N/D, κ = 0) compiles; g = 8/5 refutation data generated
+`Formal/Target/CexRuntG/RBase.lean`: the same runt witness check for `pG N D = ⟨N/D, 0⟩` (slow arcs ⌊N·FAST_MAX/D⌋,
+others ⌈D·FAST_MIN/N⌉, window D·fmin ≤ N·d, D·d ≤ N·fmax). Data for C's g16w20 dump (same 7-arc adversary, g = 8/5,
+κ = 0, w = 20; JOURNAL-C 07:36-07:40) in `Formal/Target/CexRuntG16/` (Python mirror of the per-pin checks: 0 failures),
+Wit/Refute (ArbOK T ≥ 137). Building (75 chunks, ~2 h). Not claimed yet.
