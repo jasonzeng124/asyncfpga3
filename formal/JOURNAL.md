@@ -1973,3 +1973,7 @@ Not done: the same stretch for the g = 8/5 and w = 40 refutations (same machiner
 runs quiet on [299,999, 399,999]) and `FrontierRuntR.not_seqRunt_le20_aboveG16_R` (every w ≤ 20, g ≥ 8/5, κ ≥ 0,
 R ≥ 400 ns, T ≥ 137) / `not_seqRunt40_above60_R` (every w ≤ 40, g ≥ 1, κ ≥ 15/25, R ≥ 400 ns, T ≥ 88). check.sh OK,
 2,425 declarations audited, standard axioms. Every Lean refutation of today now holds at the board's reset length.
+### progress 14:4x -- the plain statement too: `FrontierRuntR.not_seq_above44_R`, `not_seq_aboveG16_R` (check.sh OK)
+Via `SpecRunt.runt_zero` (w = 0 is the frozen statement): the frozen `NetCorrectSeq` on THE target is false for
+every g ≥ 1, κ ≥ 11/25 and for every g ≥ 8/5, κ ≥ 0, every reset R ≥ 400 ns. This supersedes FrontierPS's
+κ ≥ 18/25 bound (C's CexPS72) for the plain statement.

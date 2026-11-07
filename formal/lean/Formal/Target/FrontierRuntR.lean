@@ -45,4 +45,16 @@ theorem not_seqRunt40_above60_R {w : Nat} (hw : w ≤ 40) {p : DelayPar} (hg : 1
   exact Formal.Target.CexRuntD60.AnyR.not_netCorrectSeqRunt40_R R T su Δo hR hT hΔ
     (seqRuntOn_anti_p hle (seqRuntOn_anti_w hw h))
 
+/-- **The plain statement (no runt filter, the frozen `NetCorrectSeq`)** is false for every g ≥ 1, κ ≥ 11/25, every
+reset R ≥ 400 ns: the runt-filtered refutation at w = 0 is the frozen statement (`SpecRunt.runt_zero`). -/
+theorem not_seq_above44_R {p : DelayPar} (hg : 1 ≤ p.g) (hk : 11 / 25 ≤ p.κ)
+    (R T su Δo : Nat) (hR : 400000 ≤ R) (hT : 123 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeq net boundary arbs p T R su Δo :=
+  fun h => not_seqRunt_le20_above44_R (w := 0) (by norm_num) hg hk R T su Δo hR hT hΔ (runt_zero.mpr h)
+
+theorem not_seq_aboveG16_R {p : DelayPar} (hg : 8 / 5 ≤ p.g) (hk : 0 ≤ p.κ)
+    (R T su Δo : Nat) (hR : 400000 ≤ R) (hT : 137 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeq net boundary arbs p T R su Δo :=
+  fun h => not_seqRunt_le20_aboveG16_R (w := 0) (by norm_num) hg hk R T su Δo hR hT hΔ (runt_zero.mpr h)
+
 end Formal.Target.FrontierRuntR
