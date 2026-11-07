@@ -3118,3 +3118,16 @@ least the node's own feedback loop delay: B's binding race obligation (the row C
 is met. It is the first race row whose acknowledge delay is proved rather than simulated. Real-valued limit 0.417
 (c = 0); C's adversary fails at 0.44. **Not shown:** the cfb_switch assembly (mechanical), the four premises, the
 other 184 rows (ctlcert.py + gen_cert_ps.py produce rows for any node; the Lean pattern is generic).
+
+### progress 08:06 -- target_b_switch(_041) CHECKED: the binding node rises cleanly in every behaviour for κ ≤ 0.41 (g = 1), given local premises
+`RaceCertPS.target_b_switch` (standard axioms, check.sh OK): ack_holds_at (refactored to one corner) + b's force fact
+(kbF: reset low, x high, ack low => 1 whatever the feedback) + confirm fact (kbC: reset low, x high, feedback high
+=> 1 whatever the ack), both kernel-checked on b's INIT 0x2200332222003322, assembled with SpecFbChain.cfb_switch.
+**Plainly:** in every behaviour of THE circuit, at its corner, if ulink_n_falseResult_85 stage 0 (SLICE_X32Y45.A6)
+is low until s, its x input (node 136002) reads high from s until e', the reset is low, and the acknowledge
+certificate's premises hold (SLICE_X37Y43.A6 low, SLICE_X36Y45.A6 low on its feedback window, the cause window long
+enough before s), and the margin holds, then the node is HIGH on all of [s, e']: it rises and stays, no runt, no
+fall-back. `target_b_switch_041`: at g = 1 and κ ≤ 0.41 the margin is `race_margin`, so only the local premises
+remain. This is exactly the behaviour C's κ = 0.48 counterexample violates (b rises, the ack returns before b's
+slowed loop, b falls and oscillates). **Not shown:** the local premises (order-level; for C's network argument), b's
+fall direction, the other 184 race rows (same generator + Lean pattern).

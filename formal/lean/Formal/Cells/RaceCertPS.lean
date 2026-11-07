@@ -25,6 +25,10 @@ window end.
 * `race_margin`: for g = 1, every κ ∈ [0, 41/100] and every corner c ∈ [0, 1], b's feedback loop upper delay
   (`kb.hi 0`) ≤ the certified acknowledge lower bound (`k1.lo 4 + … + k5.lo 4 + kb.lo 4`, b's own pin-4 chain
   included). `kb_view` / `kb_src` tie b's pin chains to the netlist.
+* `target_b_switch`: assembled with `SpecFbChain.cfb_switch`: b, low until `s`, with x read high and the premises,
+  is high on the whole of `[s, e']` (clean rise, no runt) whenever the margin holds at the corner;
+  `target_b_switch_041`: for g = 1 and κ ≤ 0.41 the margin is discharged (`race_margin`), leaving only the local
+  value premises.
 
 ## Premises of `target_ack_holds` (each a local value fact the network argument must supply)
 * `b` (node 120808) low on `[a, e]` (with `e` = the instant before `b` rises: the cause);
@@ -34,8 +38,8 @@ window end.
 * `a` at least every row's collapse start.
 
 ## Not shown
-The premises themselves (order-level facts); the assembly with `SpecFbChain.cfb_switch` into "b switches cleanly"
-(the pieces fit: the acknowledge read stays unchanged for b's loop upper delay); the other race rows.
+The premises themselves (order-level facts: b low before its rise, x high, the reset low, SLICE_X37Y43.A6 low,
+SLICE_X36Y45.A6 low on its feedback window, and the timing order a ≪ s); the other race rows; b's fall.
 -/
 
 namespace Formal.Cells.RaceCertPS
@@ -162,14 +166,10 @@ theorem rows_ok : rows.all krowOK = true := by decide +kernel
 theorem rows_ok' : ∀ r ∈ rows, krowOK r = true := by
   have := rows_ok; simp only [List.all_eq_true] at this; exact this
 
-/-- **The binding race's acknowledge stays low** (THE target, every behaviour, at its corner). With `b` (node 120808,
-SLICE_X32Y45.A6) low on `[a, e]` (so `e` = the instant before `b` rises), the reset low from `ar`, SLICE_X37Y43.A6
-(node 140520) low on `[a, E]`, SLICE_X36Y45.A6 (node 135829) low on its feedback window before `s4`, and `a` at least
-every row's start: the acknowledge source SLICE_X37Y43.B6 (node 140537) is low on the window below, whose right end is
-`e` plus the five routed steps' summed LOWER window ends (`k1.lo 4 + k2.lo 4 + k3.lo 3 + k4.lo 3 + k5.lo 4`). -/
-theorem target_ack_holds {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {x : Beh}
-    (hb : Behaves p (circuit net boundary) x) :
-    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ a e E ar : Nat,
+/-- The acknowledge hold at a given corner, from the collapsed relations of the five rows. -/
+theorem ack_holds_at {p : DelayPar} {c : ℚ} {x : Beh} (hb : Behaves p (circuit net boundary) x)
+    (G : ∀ r ∈ rows, CGateOK p c r.g r.src r.arcs (r.S p) x) :
+    ∀ a e E ar : Nat,
       (∀ r ∈ rows, r.S p ≤ a) →
       (∀ t, a ≤ t → t ≤ e → x 120808 t = false) →
       (∀ t, ar ≤ t → x 186905 t = false) →
@@ -181,18 +181,12 @@ theorem target_ack_holds {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {
       ∀ t, a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 + k5.hi p c 4 ≤ t → a + k5.hi p c 0 ≤ t →
         t ≤ e + k1.lo p c 4 + k2.lo p c 4 + k3.lo p c 3 + k4.lo p c 3 + k5.lo p c 4 → t ≤ E + k5.lo p c 0 →
         x 140537 t = false := by
-  obtain ⟨c, hc0, hc1, hcol⟩ := view_collapse hp hb (rows.map fun r => (r.q, r.pins)) (by
-    simp only [List.all_eq_true, List.mem_map]
-    rintro e ⟨r, hr, rfl⟩
-    exact (krow_facts hb (rows_ok' r hr)).2.2.2.2.2)
-  have G : ∀ r ∈ rows, CGateOK p c r.g r.src r.arcs (r.S p) x := fun r hr =>
-    hcol (r.q, r.pins) (List.mem_map.mpr ⟨r, hr, rfl⟩)
   have m1 : k1 ∈ rows := by simp [rows]
   have m2 : k2 ∈ rows := by simp [rows]
   have m3 : k3 ∈ rows := by simp [rows]
   have m4 : k4 ∈ rows := by simp [rows]
   have m5 : k5 ∈ rows := by simp [rows]
-  refine ⟨c, hc0, hc1, fun a e E ar hS hcause hrst hrstw hstat hlo4 hpre t t1 t2 t3 t4 => ?_⟩
+  intro a e E ar hS hcause hrst hrstw hstat hlo4 hpre t t1 t2 t3 t4
   have S1 := hS k1 m1
   have S2 := hS k2 m2
   have S3 := hS k3 m3
@@ -242,6 +236,31 @@ theorem target_ack_holds {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {
         rcases this with rfl | rfl
         · simp only [if_true]; exact ⟨t2, t4⟩
         · simp only [show (4 : Nat) ≠ 0 by decide, if_false]; exact ⟨by omega, by omega⟩)
+
+/-- **The binding race's acknowledge stays low** (THE target, every behaviour, at its corner). With `b` (node 120808,
+SLICE_X32Y45.A6) low on `[a, e]` (so `e` = the instant before `b` rises), the reset low from `ar`, SLICE_X37Y43.A6
+(node 140520) low on `[a, E]`, SLICE_X36Y45.A6 (node 135829) low on its feedback window before `s4`, and `a` at least
+every row's start: the acknowledge source SLICE_X37Y43.B6 (node 140537) is low on the window below, whose right end is
+`e` plus the five routed steps' summed LOWER window ends (`k1.lo 4 + k2.lo 4 + k3.lo 3 + k4.lo 3 + k5.lo 4`). -/
+theorem target_ack_holds {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {x : Beh}
+    (hb : Behaves p (circuit net boundary) x) :
+    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ a e E ar : Nat,
+      (∀ r ∈ rows, r.S p ≤ a) →
+      (∀ t, a ≤ t → t ≤ e → x 120808 t = false) →
+      (∀ t, ar ≤ t → x 186905 t = false) →
+      ar + k4.hi p c 1 ≤ a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 →
+      (∀ t, a ≤ t → t ≤ E → x 140520 t = false) →
+      1 ≤ k4.lo p c 4 →
+      (∀ t, a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 ≤ t + k4.hi p c 4 →
+        t < a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 → x 135829 t = false) →
+      ∀ t, a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 + k5.hi p c 4 ≤ t → a + k5.hi p c 0 ≤ t →
+        t ≤ e + k1.lo p c 4 + k2.lo p c 4 + k3.lo p c 3 + k4.lo p c 3 + k5.lo p c 4 → t ≤ E + k5.lo p c 0 →
+        x 140537 t = false := by
+  obtain ⟨c, hc0, hc1, hcol⟩ := view_collapse hp hb (rows.map fun r => (r.q, r.pins)) (by
+    simp only [List.all_eq_true, List.mem_map]
+    rintro e ⟨r, hr, rfl⟩
+    exact (krow_facts hb (rows_ok' r hr)).2.2.2.2.2)
+  exact ⟨c, hc0, hc1, ack_holds_at hb fun r hr => hcol (r.q, r.pins) (List.mem_map.mpr ⟨r, hr, rfl⟩)⟩
 
 /-! ## The margin: the switch obligation of b holds for κ ≤ 0.41 (g = 1), at every corner -/
 
@@ -332,5 +351,135 @@ theorem race_margin (κ c : ℚ) (hk0 : 0 ≤ κ) (hk : κ ≤ 41 / 100) (hc0 : 
   push_cast
   have hkc : κ * c ≤ 41 / 100 * c := by nlinarith
   nlinarith [L1, L2, L3, L4, L5, L6, Hn, hkc]
+
+/-! ## b switches cleanly (assembly with `cfb_switch`) -/
+
+/-- b's force fact (reset low, x = pin 3 high, acknowledge = pin 4 low, ties: output 1 whatever the feedback) and its
+confirm fact (reset low, x high, feedback high: output 1 whatever the acknowledge), as rows on b's pins. -/
+def kbF : KRow := { kb with P := [1, 3, 4], bv := [false, false, false, true, false, false], w := true, fb := 6, mem := false }
+def kbC : KRow := { kb with P := [1, 3], bv := [false, false, false, true, false, false], w := true, fb := 0, mem := true }
+
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 100000 in
+theorem kbF_ok : krowOK kbF = true := by decide +kernel
+
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 100000 in
+theorem kbC_ok : krowOK kbC = true := by decide +kernel
+
+theorem kbF_lo (p : DelayPar) (c : ℚ) : kbF.lo p c = kb.lo p c := rfl
+theorem kbF_hi (p : DelayPar) (c : ℚ) : kbF.hi p c = kb.hi p c := rfl
+theorem kbC_lo (p : DelayPar) (c : ℚ) : kbC.lo p c = kb.lo p c := rfl
+theorem kbC_hi (p : DelayPar) (c : ℚ) : kbC.hi p c = kb.hi p c := rfl
+
+/-- A row's INIT fact from what the reads can see (`CVisible`, pin `j` excluded and neither in `P` nor tied). -/
+theorem visible_fact {p : DelayPar} {c : ℚ} {x : Beh} (hb : Behaves p (circuit net boundary) x) {r : KRow}
+    (h : krowOK r = true) (j : Nat) (hjP : j ∉ r.P) (hjh : fl r.held j = false) (t : Nat)
+    (hm : ∀ i ∈ r.P, ∀ u, u + r.lo p c i ≤ t → t ≤ u + r.hi p c i → x (r.src i) u = fl r.bv i)
+    (v : Nat → Bool) (hv : CVisible x r.g.k r.src (r.lo p c) (r.hi p c) j t v) (hmem : r.mem = true → v r.fb = r.w) :
+    r.g.init.testBit (addr r.g.k v) = r.w := by
+  obtain ⟨hP, -, hf, hh, -, -⟩ := krow_facts hb h
+  refine hf v (fun i hi hheld => ?_) (fun i hiP => ?_) hmem
+  · have hij : i ≠ j := by rintro rfl; rw [hjh] at hheld; exact absurd hheld (by decide)
+    obtain ⟨u, -, -, hvu⟩ := hv i hi hij
+    rw [hvu, hh i hi hheld u]
+  · have hij : i ≠ j := by rintro rfl; exact hjP hiP
+    obtain ⟨u, h1, h2, hvu⟩ := hv i (hP i hiP) hij
+    rw [hvu]; exact hm i hiP u h1 h2
+
+set_option maxRecDepth 100000 in
+/-- **The binding node switches cleanly** (every behaviour of THE circuit, at its corner). b = SLICE_X32Y45.A6
+(node 120808) is low until `s`; from `s` its input x (node 136002) reads high (until `e'`), the reset is low, and the
+acknowledge certificate's premises hold (as in `ack_holds_at`, with the cause ending at `s - 1`). If the margin
+`kb.hi 0 ≤ Σ lo + kb.lo 4` holds at the corner (`race_margin`: always, for g = 1 and κ ≤ 0.41), b is high on the
+whole of `[s, e']`: it rises and stays, with no runt, because its acknowledge cannot be read changed before its own
+feedback loop has confirmed the new value. -/
+theorem target_b_switch {p : DelayPar} (hp : Formal.Timing.SpecSettle.Sane p) {x : Beh}
+    (hb : Behaves p (circuit net boundary) x) :
+    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ a E ar s e' : Nat,
+      (∀ r ∈ rows, r.S p ≤ a) → kb.S p ≤ s → 1 ≤ s →
+      (∀ t, a ≤ t → t ≤ s - 1 → x 120808 t = false) →
+      (∀ t, ar ≤ t → x 186905 t = false) →
+      ar + k4.hi p c 1 ≤ a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 →
+      ar + kb.hi p c 1 ≤ s →
+      (∀ t, a ≤ t → t ≤ E → x 140520 t = false) →
+      1 ≤ k4.lo p c 4 →
+      (∀ t, a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 ≤ t + k4.hi p c 4 →
+        t < a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 → x 135829 t = false) →
+      a + k1.hi p c 4 + k2.hi p c 4 + k3.hi p c 3 + k4.hi p c 3 + k5.hi p c 4 + kb.hi p c 4 ≤ s →
+      a + k5.hi p c 0 + kb.hi p c 4 ≤ s →
+      s + kb.hi p c 0 ≤ E + k5.lo p c 0 + kb.lo p c 4 + 1 →
+      kb.hi p c 0 ≤ k1.lo p c 4 + k2.lo p c 4 + k3.lo p c 3 + k4.lo p c 3 + k5.lo p c 4 + kb.lo p c 4 →
+      1 ≤ kb.lo p c 0 → s + kb.hi p c 0 ≤ e' + 1 →
+      (∀ u, s ≤ u + kb.hi p c 3 → u + kb.lo p c 3 ≤ e' → x 136002 u = true) →
+      ∀ t, s ≤ t → t ≤ e' → x 120808 t = true := by
+  obtain ⟨c, hc0, hc1, hcol⟩ := view_collapse hp hb ((rows.map fun r => (r.q, r.pins)) ++ [(kb.q, kb.pins)]) (by
+    simp only [List.all_append, List.all_eq_true, List.mem_map, Bool.and_eq_true]
+    refine ⟨?_, by simpa using kb_view⟩
+    rintro e ⟨r, hr, rfl⟩
+    exact (krow_facts hb (rows_ok' r hr)).2.2.2.2.2)
+  have G : ∀ r ∈ rows, CGateOK p c r.g r.src r.arcs (r.S p) x := fun r hr =>
+    hcol (r.q, r.pins) (List.mem_append.mpr (Or.inl (List.mem_map.mpr ⟨r, hr, rfl⟩)))
+  have Gb : CGateOK p c kb.g kb.src kb.arcs (kb.S p) x := hcol (kb.q, kb.pins) (by simp)
+  refine ⟨c, hc0, hc1, fun a E ar s e' hS hSb hs1 hcause hrst hrstw hrstb hstat hlo4 hpre w1 w2 w3 hmarg hlo0 he' hx => ?_⟩
+  have ack := ack_holds_at hb G a (s - 1) E ar hS hcause hrst hrstw hstat hlo4 hpre
+  obtain ⟨-, hfbC, -, -, houtC, -⟩ := krow_facts hb kbC_ok
+  have hfb : kb.src 0 = kb.g.out := (hfbC rfl).2
+  have hsrc : kb.src 1 = 186905 ∧ kb.src 3 = 136002 ∧ kb.src 4 = 140537 := by decide
+  obtain ⟨s1, s3, s4⟩ := hsrc
+  have hbd : CBands p c kb.g.k kb.arcs (kb.lo p c) (kb.hi p c) := cbands_of_sums kb.arcs
+  have key := cfb_switch Gb hbd (j := 0) (by decide) hfb hlo0 (s := s) (e := s + kb.hi p c 0 - 1)
+    (e' := e') hSb (by omega) (cv := true)
+    (fun t t1 t2 v hv => visible_fact hb kbF_ok 0 (by decide) (by decide) t (fun i hi u u1 u2 => by
+        have : i = 1 ∨ i = 3 ∨ i = 4 := by simpa [kbF] using hi
+        rcases this with rfl | rfl | rfl
+        · show x (kb.src 1) u = false
+          rw [s1]; exact hrst u (by rw [kbF_hi] at u2; omega)
+        · show x (kb.src 3) u = true
+          rw [s3]; exact hx u (by rw [kbF_hi] at u2; omega) (by rw [kbF_lo] at u1; omega)
+        · show x (kb.src 4) u = false
+          rw [s4]; rw [kbF_lo] at u1; rw [kbF_hi] at u2
+          exact ack u (by omega) (by omega) (by omega) (by omega)) v hv (by simp [kbF]))
+    (fun t t1 t2 v hv0 hv => visible_fact hb kbC_ok 0 (by decide) (by decide) t (fun i hi u u1 u2 => by
+        have : i = 1 ∨ i = 3 := by simpa [kbC] using hi
+        rcases this with rfl | rfl
+        · show x (kb.src 1) u = false
+          rw [s1]; exact hrst u (by rw [kbC_hi] at u2; omega)
+        · show x (kb.src 3) u = true
+          rw [s3]; exact hx u (by rw [kbC_hi] at u2; omega) (by rw [kbC_lo] at u1; omega)) v hv
+        (fun _ => by simpa [kbC] using hv0))
+  intro t t1 t2
+  have := key t t1 t2
+  have hq : kb.g.out = 120808 := houtC
+  rwa [hq] at this
+
+/-- **At g = 1 and κ ≤ 0.41 the margin premise is a theorem** (`race_margin` at every corner), so the binding node
+switches cleanly under the remaining local premises alone. -/
+theorem target_b_switch_041 (κ : ℚ) (hk0 : 0 ≤ κ) (hk : κ ≤ 41 / 100) {x : Beh}
+    (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) :
+    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧
+      kb.hi ⟨1, κ⟩ c 0 ≤ k1.lo ⟨1, κ⟩ c 4 + k2.lo ⟨1, κ⟩ c 4 + k3.lo ⟨1, κ⟩ c 3 + k4.lo ⟨1, κ⟩ c 3 +
+        k5.lo ⟨1, κ⟩ c 4 + kb.lo ⟨1, κ⟩ c 4 ∧ ∀ a E ar s e' : Nat,
+      (∀ r ∈ rows, r.S ⟨1, κ⟩ ≤ a) → kb.S ⟨1, κ⟩ ≤ s → 1 ≤ s →
+      (∀ t, a ≤ t → t ≤ s - 1 → x 120808 t = false) →
+      (∀ t, ar ≤ t → x 186905 t = false) →
+      ar + k4.hi ⟨1, κ⟩ c 1 ≤ a + k1.hi ⟨1, κ⟩ c 4 + k2.hi ⟨1, κ⟩ c 4 + k3.hi ⟨1, κ⟩ c 3 + k4.hi ⟨1, κ⟩ c 3 →
+      ar + kb.hi ⟨1, κ⟩ c 1 ≤ s →
+      (∀ t, a ≤ t → t ≤ E → x 140520 t = false) →
+      1 ≤ k4.lo ⟨1, κ⟩ c 4 →
+      (∀ t, a + k1.hi ⟨1, κ⟩ c 4 + k2.hi ⟨1, κ⟩ c 4 + k3.hi ⟨1, κ⟩ c 3 + k4.hi ⟨1, κ⟩ c 3 ≤ t + k4.hi ⟨1, κ⟩ c 4 →
+        t < a + k1.hi ⟨1, κ⟩ c 4 + k2.hi ⟨1, κ⟩ c 4 + k3.hi ⟨1, κ⟩ c 3 + k4.hi ⟨1, κ⟩ c 3 → x 135829 t = false) →
+      a + k1.hi ⟨1, κ⟩ c 4 + k2.hi ⟨1, κ⟩ c 4 + k3.hi ⟨1, κ⟩ c 3 + k4.hi ⟨1, κ⟩ c 3 + k5.hi ⟨1, κ⟩ c 4 +
+        kb.hi ⟨1, κ⟩ c 4 ≤ s →
+      a + k5.hi ⟨1, κ⟩ c 0 + kb.hi ⟨1, κ⟩ c 4 ≤ s →
+      s + kb.hi ⟨1, κ⟩ c 0 ≤ E + k5.lo ⟨1, κ⟩ c 0 + kb.lo ⟨1, κ⟩ c 4 + 1 →
+      1 ≤ kb.lo ⟨1, κ⟩ c 0 → s + kb.hi ⟨1, κ⟩ c 0 ≤ e' + 1 →
+      (∀ u, s ≤ u + kb.hi ⟨1, κ⟩ c 3 → u + kb.lo ⟨1, κ⟩ c 3 ≤ e' → x 136002 u = true) →
+      ∀ t, s ≤ t → t ≤ e' → x 120808 t = true := by
+  have hp : Formal.Timing.SpecSettle.Sane ⟨1, κ⟩ := ⟨hk0, by linarith, by norm_num⟩
+  obtain ⟨c, hc0, hc1, h⟩ := target_b_switch hp hb
+  have hm := race_margin κ c hk0 hk hc0 hc1
+  exact ⟨c, hc0, hc1, hm, fun a E ar s e' h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 =>
+    h a E ar s e' h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 hm h14 h15 h16⟩
 
 end Formal.Cells.RaceCertPS
