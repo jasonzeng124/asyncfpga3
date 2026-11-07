@@ -1851,3 +1851,12 @@ stage-0 C-element (SLICE_X32Y45.A6) has its 7-arc feedback route at ⌊36·FAST_
 By `SpecMono.seq_anti_p` this refutes every (g ≥ 1, κ ≥ 0.44). Supersedes CexPS72/CexRunt72 (κ = 0.72) as the
 frontier point; the plain fallback CexPS48 was not needed and is dropped. Not shown: κ < 0.44 (simulation: this
 adversary is correct at 0.43); other corners.
+
+### progress 10:14 -- headline sweep at κ = 0.40 (w = 20): 1,316 / 1,316 correct; CexRg16 chunk X054 needed a 9-way split
+- Single-pin adversary (one pin's route slow, all else fast), H_RUNT(20), κ = 0.40, all 412 control storage nodes x live
+  pins: every run correct (the arbiter-0 runt ring of the w = 0 sweep is filtered). So no single-pin counterexample to
+  the headline exists below this adversary's 0.44 binding race at κ = 0.40 (simulation; not exhaustive over
+  multi-pin adversaries).
+- CexRg16: X054 OOM-killed three times at 3 decides (also alone); regenerated with 9 decides (gen_runt_c.py
+  CEXSPLIT=9, other files identical) and it checks. Wit/Refute/AllR building.
+- Correction to 08:4x entry: Net/Periodic's lemmas use only propext and Quot.sound (not Classical.choice).
