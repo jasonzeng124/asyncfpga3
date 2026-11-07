@@ -2948,3 +2948,17 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   arithmetic and the fid resolver's runt-vs-loop rule).
 - For the owner's gate decision: the turnaround that clears every isprime failure seen is ~2 x 17 ps on this route; the
   worst static PORT margin on any route is -130 ps (xorshift_s25 seed 1, which passed its sims anyway).
+### progress 13:43 (bug: build_bench.sh silently ignored soak-keyed sizes files; guarded)
+- Building xorshift's bench top (cells/hw/build_bench.sh) with BD_SIZES=research/data/xorshift_sizes_T3s50.vh and with
+  T3.vh gave byte-identical SDFs: the sizes files are keyed to the fusion_bench soak top (BD_SZ_UUT_*), the bench names
+  the kernel bridge_i.udut. (BD_SZ_BRIDGE_I_UDUT_*), so no define matched, every chain was built at emit.py's
+  estimate -- while build_bench printed "applying 47 measured delay size(s)". Exactly the "wrong-but-plausible build"
+  its own comment warns about.
+- Fix: build_bench.sh now counts the sizes file's defines that the generated sources use; none -> refuse (exit 1),
+  some -> WARNING. Checked both ways: the soak-keyed file is refused; the re-keyed research/data/xorshift_sizes_T3{,s50}
+  _bench.vh (UUT_ -> BRIDGE_I_UDUT_, UPIPE_* dropped) applies 45/45.
+- Correction to 06:2x's bench audit (research/data/ceret/bench_harness.tsv): those 6 bench routes had no measured
+  sizes either (emit.py estimates). The conclusion is about the harness's return path (bench fork -> async-clear flop
+  -> 2-link delay), which the sizes do not touch; ufork0's loop is placement-dependent either way. Caveat added to the
+  TSV header. The August bench builds (aug_kernels) predate this and are not affected by it: their sizes were
+  derived on the bench itself (tighten_loop).

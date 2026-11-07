@@ -203,6 +203,22 @@ if [ -n "${BD_SIZES:-}" ] && [ "${BD_SIZES}" != "none" ] \
 fi
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
 if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
+    # A sizes file is keyed by instance path.  One measured on another top (fusion_bench's
+    # soak harness names the kernel uut., giving BD_SZ_UUT_*; this bench names it
+    # bridge_i.udut., giving BD_SZ_BRIDGE_I_UDUT_*) matches nothing here, and every chain
+    # silently builds at emit.py's estimate while the line below still says "applying N".
+    # That happened (2026-11-07): refuse when nothing matches, warn when only part does.
+    _nd=0; _nm=0
+    for _d in $(sed -n 's/^`define \([A-Za-z0-9_]*\).*/\1/p' "$SIZES"); do
+        _nd=$((_nd + 1))
+        grep -qw "$_d" "build/gen/${KERNEL}_kernel_bench.v" "build/gen/${TOP}.v" && _nm=$((_nm + 1))
+    done
+    if [ "$_nd" -gt 0 ] && [ "$_nm" -eq 0 ]; then
+        echo "build_bench.sh: none of the $_nd sizes in $SIZES is used by $TOP (sizes keyed to another" \
+             "top? e.g. BD_SZ_UUT_* from a fusion_bench route; this bench uses BD_SZ_BRIDGE_I_UDUT_*)" >&2
+        exit 1
+    fi
+    [ "$_nm" -lt "$_nd" ] && echo "build_bench.sh: WARNING: only $_nm of the $_nd sizes in $SIZES are used by $TOP" >&2
     SRCS="$SIZES $SRCS"
     echo "build_bench.sh: applying $(grep -c '^`define' "$SIZES") measured " \
          "delay size(s) from $SIZES" >&2
