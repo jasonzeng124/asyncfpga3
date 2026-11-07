@@ -1238,3 +1238,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T08:41:49Z CexRunt72 build (formal 2ad639a8) one module at a time: 89 modules rc=0 (L000-074, EncR, RBase, Ch, X000-010, X peak 6.6 GB) before a container restart; resumed.
 - 2026-11-07T09:24:48Z T37: C's k44w20 (headline H_RUNT(20) at kappa 11/25) confirmed by own checker + env checker; CexRunt44 Lean build running (CexRunt72 build stopped at X032, superseded).
 - 2026-11-07T10:06:07Z T37 rows 6-8: guard-axis g16w20 (g=8/5, kappa 0) confirmed by own checker (now g-general) + env checker; Lean CexRuntG16 to build.
+- 2026-11-07T11:00:24Z T37 row 5: CexRunt44 + FrontierRunt Lean CONFIRMED (156 modules, standard axioms): headline NetCorrectSeqRunt w (w<=20) false for every g>=1, kappa>=11/25, T>=123.
