@@ -1883,3 +1883,9 @@ and stopped; its RBase stays (checked).
 others ⌈D·FAST_MIN/N⌉, window D·fmin ≤ N·d, D·d ≤ N·fmax). Data for C's g16w20 dump (same 7-arc adversary, g = 8/5,
 κ = 0, w = 20; JOURNAL-C 07:36-07:40) in `Formal/Target/CexRuntG16/` (Python mirror of the per-pin checks: 0 failures),
 Wit/Refute (ArbOK T ≥ 137). Building (75 chunks, ~2 h). Not claimed yet.
+### progress 10:1x -- audit T37 confirms the H_RUNT(20) counterexample independently (and T35/A4 at κ = 0.72)
+Audit (origin/claude/audit a1c3a1dc): T37 **CONFIRMS** the headline refutation at κ = 0.44 with its own checker (the
+k44w20 dump is a GateOKRunt 20 behaviour: 0 mismatches, 0 Adm or lag violations; Env/SeqEnv/ArbOK T ≥ 122; no out0),
+marking the Lean build "in progress" -- it has since finished and check.sh passed (09:5x entry), so the row can be
+updated. It also confirmed my κ = 0.72 run (every w ≤ 25 a behaviour, w = 26 not), and B's race_margin at κ ≤ 0.41
+(with the real relaxation 0.417). No REFUTED/OVERSTATED row on A's files.
