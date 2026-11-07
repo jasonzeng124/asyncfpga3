@@ -1809,3 +1809,16 @@ simadv.py `KDEN=100` (exact κ = P/100). Same 7-arc adversary, fast corner: κ =
 κ = 0.43 correct, but at w = 0 the C-element oscillates for a while first (7.5 M events vs 0.55 M) and at w = 20 one
 pin is infeasible; κ = 0.44 fails (livelock at w = 0, quiet deadlock at w = 20). With B's sufficient 0.415, this
 race's g = 1 frontier is in [0.415, 0.44) if B's row is sound, i.e. B's bound is within 0.025 of the truth.
+
+### progress 08:30 -- sweep κ = 0.40 done: one failure, a perpetual runt ring through arbiter 0 (w = 0 only; simulation)
+Sweep of all 412 control storage nodes x live pins at κ = 0.40 (one pin's route slow, everything else fast; 1,316 runs):
+1,315 correct; **one fails**: SLICE_X38Y51.B6 (the state LUT of arbiter 0, `arbs[0].q`) with its pin-3 route slow (8
+arcs, input from SLICE_X38Y53.B6). From ~606 ns a ring of 18 LUTs around arbiter 0 (state B6, grants/O5s at X38Y51,
+X38Y45, X38Y47, X39Y47, X40Y49, ...) oscillates with 1-7 ps pulses, exactly periodic with period 182 ps (checked over
+[620, 660] ns on all 109 active nodes; every other node quiet), so in this deterministic transport run it never stops;
+out0 never rises. envcheck: Env + SeqEnv OK; ArbOK T holds for T ≥ 7,234 ps in the window (the state LUT's inputs keep
+toggling with the ring, so H_ARB(T) does not constrain it). Bracket: correct at κ = 0.36, 0.38, 0.39; fails at 0.40.
+**Under H_RUNT(20) the same adversary is correct at 0.40** (the ring's pulses are filtered). So: a candidate
+counterexample to the w = 0 statement at κ = 0.40 (below B's 0.415, a race B's table does not cover: it is a runt ring,
+the same family as B's cex_ua1 candidate at arbiter 0), not to the headline. A Lean version needs an eventually-periodic
+witness check (finite prefix + one period), which does not exist yet; noted as the next generic tool.
