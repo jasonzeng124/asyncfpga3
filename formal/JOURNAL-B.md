@@ -3383,3 +3383,13 @@ and open windows discharged, the certificate's local premises and the setup half
 **Running (Python):** the rest of the d3 scan; a full-width run (pair 0x49e9c618,0x35bf992e, corner 0, mid-window,
 broad data rule, result 2 correct) moves the data of 1,639 latches (d3: 825), incl. the binding hold latch
 SLICE_X32Y90.C6 (6 data flips); its 361 new latch closes are being scanned.
+
+### progress 20:03 -- CHECKED: latch hold windows for 214 more latches (LatchHoldPS2; 326 in all)
+The d3 scan finished: of the 396 latch closes followed by a data change, 326 have a chain-shaped certificate, 43 a
+certificate that is not a single chain (not used by LatchHoldCert), 27 none (the next data change has another cause
+in that run). `LatchHoldPS2.target_latch_holds` (certificates `CertLatchPS2`, 61 files; rows split per file) covers
+the 214 not in LatchHoldPS. lake build + check.sh OK (standard axioms, 2852 declarations). Row κ ranges: min 0.199
+(SLICE_X20Y96.D O5), median 0.617. Together, LatchHoldPS + LatchHoldPS2 give the hold and open windows of 326 of the
+4,185 latches as theorems (each in its own κ range, local premises and the setup half remaining). Premises:
+out/target_ps_latchholds2.json. Python, untrusted: which certificate path makes 0.199 binding is not yet examined
+(a short controller path to that latch's data, or a slow enable pin arc).
