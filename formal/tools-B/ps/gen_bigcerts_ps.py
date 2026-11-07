@@ -41,7 +41,7 @@ for cf in sorted(glob.glob(os.path.join(EX, "C_B*.lean"))):
                "namespace Formal.Cells.BigCertPS", "open Formal.Cells.CertPS Formal.Cells.RaceCertPS Formal.Cells.CertRaceAll Formal.Cells.CertSwitchAll", "",
                "set_option maxRecDepth 100000 in", "def %s : Prem × List CRow := (%s, [\n  %s])" % (name, prem, ",\n  ".join(rowlines)), "",
                "set_option maxRecDepth 100000 in", "def %s_sw : SwRow := ⟨⟨%s, %s, %s, %s⟩, %s, %s⟩" % (name, name, node, ja, jf, F, Cr), "",
-               "theorem %s_len : %s.2.length = %d := rfl" % (name, name, n), "", "end Formal.Cells.BigCertPS", ""]
+               "set_option maxRecDepth 100000 in", "theorem %s_len : %s.2.length = %d := rfl" % (name, name, n), "", "end Formal.Cells.BigCertPS", ""]
         open(os.path.join(D, name.upper() + ".lean"), "w").write("\n".join(dat))
         # ranges
         ranges = []; cur = []; cs = set()
