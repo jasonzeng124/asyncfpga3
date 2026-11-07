@@ -2912,3 +2912,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   artefacts for the board question. They remain sim failures under "the sim is the gate"; whether the gate should model
   a minimum environment turnaround (e.g. one C-element + wire, the internal worst being +145 ps) is an owner decision,
   not taken here. What would decide it on silicon: H_RUNT (board list item 2).
+### progress 06:24 (BQ#1 combined worst case 8/8)
+- BQ#1 seeds 6, 7, 9 (compile OOM-killed on 11-06, rerun with --sim-jobs 1): PASS 16/16 errs=0, EQUIVALENT; vec 6
+  laps 30 / 32 / 33. BQ#1 worst case now 8/8 (research/data/fid/bq1_worstcase.tsv; vec 6 mean 32.0, 30-34). Seed 8's
+  NOT_EQUIVALENT is the benign GND-buffer F7 class. So BQ#1, #2, #3 and #5 all pass the combined worst case on 8 routes.
