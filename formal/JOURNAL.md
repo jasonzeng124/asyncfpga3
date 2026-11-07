@@ -1843,3 +1843,13 @@ transitions), FrontierRunt (down-set in (g, κ) and up-set in w for the runt sta
 g ≥ 1, κ ≥ 18/25, w ≤ 20). X000 checks (77 s); X001-X074 building one at a time (two in parallel OOM-killed).
 NOT yet claimed: Wit/Refute/FrontierRunt have not compiled yet.
 A subagent (no git, scratch only) is searching adversaries below κ = 0.72 under w = 20 with simrunt.
+### progress 08:2x -- adversary search under w = 20 (subagent): reproduces C's κ = 0.44 deadlock; nothing lower
+The subagent (scratch only) found the same failing run C reported at 07:40 (JOURNAL-C, FOR-RESEARCH C3): C's 7-arc
+k48 adversary (SLICE_X32Y45.A6's feedback route slow, all else fast) deadlocks under H_RUNT(20) at κ = 0.44, 0.48,
+0.60, 0.68 and is correct at 0.36 and 0.40; its own copies of simrunt/gatecheck_runt with per-arc classes agree with
+C's checks (283,101 checks, 0 mismatches, 0 lag violations; envcheck Env + SeqEnv OK, ArbOK T ≥ 122). Its κ = 0.40
+sweeps (139 relative-timing pin jobs, 768 of 1,316 control-storage pin jobs, and a two-pair variant) were all
+correct. Independent confirmation of C's candidate, not a new result. So the w = 20 frontier at g = 1 is (by
+simulation) in [0.41 (B's race_margin, one row), 0.44); my 0.72 Lean refutation in progress is the weaker bound.
+**Next for A (said here so that C does not duplicate it):** generalize CexRunt72.RBase to any κ = P/25 and per-arc
+slow lists, and build the Lean refutation of NetCorrectSeqRunt 20 at κ = 11/25 from C's cex/k44w20_dump.json.xz.
