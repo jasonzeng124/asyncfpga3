@@ -3250,3 +3250,7 @@ RaceAllPS2 (23): **181 of the 185 RaceTablePS rows** are clean-switch theorems i
 (g = 1, κ ≤ 0.415, under each row's local premises). The 4 left are power-up episodes (reset high; κ 0.85-0.985).
 Memory notes for full builds (shard A, check.sh --committed): every Cert/Race/BigCert module checks alone within
 ~6 GB; lake's parallel build will need check.sh's OOM retry (it rebuilds killed modules one at a time).
+
+### progress 14:01 -- RaceAllTarget.target_switches_181: all 181 rows in one statement, one corner (check.sh OK)
+`Formal.Cells.RaceAllTarget.target_switches_181` = target_switches_of over RaceAllPS.sws ++ RaceAllPS2.sws ++
+BigCertPS.sws. This is the statement S4 can consume (notes/B-for-C-S4.md).
