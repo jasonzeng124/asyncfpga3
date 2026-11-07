@@ -2922,3 +2922,14 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Item 3 collatz64 x0.75 paired by seed on all 8 routes (sum of stalled latencies, base/step): SLOW_MAX 1.183 (1.12-1.24),
   FAST_MIN 1.182 (1.12-1.22), worst case 1.177 (1.11-1.25); was 1.166 on 4 routes. nextpnr: k4 routes record only
   0.9.2-100-gbfdeaf7c (see ceret caveat).
+### progress 12:20 (isprime: every full-stack failure passes with a 300 ps environment turnaround; both 0 ps controls still fail)
+- A/B, informational (gate unchanged): soak_fid with every testbench drive except rst delayed D ps (wire #D, inertial;
+  diff in research/data/item4/envd/). Routes and bits as the failing runs; nextpnr k4 routes (version-only record).
+  D=300: isprime_b seed 30 FAST_MIN PASS, isprime_b seed 30 worst case PASS, isprime_s75 seed 25 FAST_MIN PASS,
+  isprime_cs seed 29 SLOW_MAX PASS. D=0 controls: isprime_b 30 FAST_MIN FAIL (fast hang), isprime_s75 25 FAST_MIN
+  FAIL -- both reproduce. research/data/item4/envd/results.tsv.
+- So isprime's base (rule-E-6 pads) and its x0.75 / per-cell steps fail only through the 0 ps start->end turnaround
+  (with ce_return: the only negative C-element returns on any route). 300 ps is ~1/8 of what the board bench gives
+  (>= 2.5 ns, research/data/ceret/bench_harness.tsv). If the owner accepts a minimum environment turnaround in the
+  gate, isprime's base is 24/24 on 8 routes and its steps can be re-gated; until then they stay failures.
+- Not shown: D values between 0 and 300 (where the threshold is); stalled-mode runs were never failing.
