@@ -1968,3 +1968,8 @@ monotonicity in R), while the board's reset is far longer. New, standard axioms,
 - `Formal/Target/FrontierRuntR.lean`: `not_seqRunt_le20_above44_R` -- false for every w ≤ 20, g ≥ 1, κ ≥ 11/25,
   R ≥ 400 ns, T ≥ 123, any su, Δo ≤ 3000. Plainly: the board's long reset does not rescue the circuit.
 Not done: the same stretch for the g = 8/5 and w = 40 refutations (same machinery; only the env file needs copying).
+### progress 14:3x -- CHECKED: guard-axis and w = 40 refutations also for every reset R ≥ 400 ns
+`CexRuntG16/AnyR.lean`, `CexRuntD60/AnyR.lean` (same stutter machinery; arcs ≤ 698 ps give delays ≤ 1,117 ps; both
+runs quiet on [299,999, 399,999]) and `FrontierRuntR.not_seqRunt_le20_aboveG16_R` (every w ≤ 20, g ≥ 8/5, κ ≥ 0,
+R ≥ 400 ns, T ≥ 137) / `not_seqRunt40_above60_R` (every w ≤ 40, g ≥ 1, κ ≥ 15/25, R ≥ 400 ns, T ≥ 88). check.sh OK,
+2,425 declarations audited, standard axioms. Every Lean refutation of today now holds at the board's reset length.

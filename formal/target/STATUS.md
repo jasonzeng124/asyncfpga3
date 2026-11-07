@@ -25,7 +25,7 @@ its window). Shard B proved that race safe for κ ≤ 0.41 at g = 1 (`RaceCertPS
 of THE statement, with or without the runt filter, is below 0.44; the binding race is safe up to 0.41.**
 **Any reset length (2026-11-07 14:1x, Lean):** `FrontierRuntR.not_seqRunt_le20_above44_R`: the same for every reset
 length R ≥ 400 ns (the run is quiet long before the reset ends; `SpecStutter` stretches it), so the board's long
-reset is covered.
+reset is covered. Same for the guard-axis and w = 40 refutations (`not_seqRunt_le20_aboveG16_R`, `not_seqRunt40_above60_R`).
 **Guard axis (2026-11-07 11:3x, Lean):** `CexRuntG16.not_netCorrectSeqRunt20` / `FrontierRunt.not_seqRunt_le20_aboveG16`:
 false for every g ≥ 8/5, κ ≥ 0, w ≤ 20, T ≥ 137 (same race; B's sufficient bound for it: g ≤ 1.56 at κ = 0).
 **Wider filter (simulation, independently checked):** at w = 40 the same race deadlocks from κ ≈ 0.60 (correct at
