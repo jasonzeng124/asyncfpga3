@@ -44,8 +44,9 @@ for c in range(nch):
     open(f"{out}/L{c:03d}.lean", "w").write(f"import {NS}.RBase\n\n" + HDR + f"namespace {NS}\nopen Formal.Net.CexPS72\n\n"
         "set_option maxRecDepth 100000 in\n" + f"def l{c:03d} : BTL :=\n  {tree(ns, D)}\n\nend {NS}\n")
 open(f"{out}/Ch.lean", "w").write(f"import {NS}.RBase\n\n" + HDR + f"namespace {NS}\n\n"
+    "set_option maxRecDepth 100000 in\n"
     f"/-- Narrow-pulse chains (maximal runs of pulses < {W} ps, power-up interval excluded) of {len(CH)} nodes. -/\n"
-    "set_option maxRecDepth 100000 in\n" + f"def chT : BTC :=\n  {ctree(0, DC)}\n\nend {NS}\n")
+    f"def chT : BTC :=\n  {ctree(0, DC)}\n\nend {NS}\n")
 L = ", ".join(f"l{c:03d}" for c in range(nch))
 open(f"{out}/EncR.lean", "w").write("".join(f"import {NS}.L{c:03d}\n" for c in range(nch)) + f"import {NS}.Ch\n\n" + HDR +
     f"namespace {NS}\nopen Formal.Net.CexPS72\n\ndef llR : List BTL := [{L}]\n\n/-- The run's node codes. -/\n"

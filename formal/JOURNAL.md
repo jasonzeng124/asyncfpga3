@@ -1828,3 +1828,18 @@ rises, quiet end). So the 0.72 deadlock is a plain race (uya vs the next token's
 κ = 0.76/0.80/0.84 at w = 20: livelock to 1.5 us (no out0); κ = 0.68, 0.64: correct (w = 0 and 20). FOR-RESEARCH A4.
 Not shown: Lean. Next: the Lean refutation of `NetCorrectSeqRunt 20` at ⟨1, 18/25⟩ (KBase-style per-gate check with
 the filtered read maps for LUT pins).
+### progress 07:4x -- Lean refutation of NetCorrectSeqRunt 20 at ⟨1, 18/25⟩: generic part CHECKED, chunk checks building
+`Formal/Target/CexRunt72/RBase.lean` (lake build OK; `#print axioms gateOKRunt_of_gateWR`: propext, Classical.choice,
+Quot.sound): a finite per-gate check `gateWR w enc chs sl g` is sound for `SpecRunt.GateOKRunt w pK 0 g`. Read maps:
+non-LUT pins transport; a LUT pin reads at `t - d` unless that lands in a listed chain [S, E) of narrow pulses of its
+input, then at S - 1. The check asks, per LUT pin: strictly increasing transitions, chains ordered and disjoint with
+ends at transitions, every transition pair closer than w ending after r0 = startK - d inside a chain, no early
+transition < w ending after r0, each chain ending after r0 starts ≥ w after the previous transition and keeps the lag
+d + E - S inside the window. Soundness covers monotone read maps, Adm, NoRuntRead (via `pulse_shape`: a pulse of a
+coded signal runs between consecutive transitions) and the gate equation at every time. Data (gen_runt.py from the
+w = 20 dump; Python mirror of the per-pin checks: 90,684 LUT pins, 0 failures): L000-L074, Ch (597 nodes with
+chains), EncR, X000-X074, Wit, Refute (C's CexPS72 proofs on this run: the eight boundary signals have exactly C's
+transitions), FrontierRunt (down-set in (g, κ) and up-set in w for the runt statement; the refutation for all
+g ≥ 1, κ ≥ 18/25, w ≤ 20). X000 checks (77 s); X001-X074 building one at a time (two in parallel OOM-killed).
+NOT yet claimed: Wit/Refute/FrontierRunt have not compiled yet.
+A subagent (no git, scratch only) is searching adversaries below κ = 0.72 under w = 20 with simrunt.
