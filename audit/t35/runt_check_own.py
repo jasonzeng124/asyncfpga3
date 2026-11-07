@@ -14,6 +14,7 @@ from fractions import Fraction as F
 net = json.load(open(sys.argv[1])); dump = json.load(open(sys.argv[2])); ENV = set(); W = int(sys.argv[4])
 K = F(int(sys.argv[5]), int(sys.argv[6])); slow_names = sys.argv[7:]
 SLOWARC = None; FLOAT = False
+import os; G = F(os.environ.get('AUDIT_G', '1'))   # guard g (T38); Adm = [(1-k) fmin / g, (1+k) fmax g], start uses (1+k) smax g
 if slow_names and slow_names[0].endswith('.json'):   # per-arc classes {S: [[out node, pin], ...]} (C's convention); rest fast
     SLOWARC = set((n, p) for n, p in json.load(open(slow_names[0]))['S']); FLOAT = 'float' in slow_names[1:]; slow_names = []
 nodes = net["nodes"]; idx = {n: i for i, n in enumerate(nodes)}; gates = net["gates"]
@@ -63,16 +64,16 @@ for gi, gt in enumerate(gates):
     for e in gt["arcs"]:
         sl = (nodes[gt["out"]], len(ds)) in SLOWARC if SLOWARC is not None else gt["out"] in SLOW
         if FLOAT: d = math.floor(e["fmax"] * (1 + float(K))) if sl else math.ceil(e["fmin"] * (1 - float(K)))   # adversary's float rounding; Adm checked exactly
-        else: d = math.floor((1 + K) * e["fmax"]) if sl else math.ceil((1 - K) * e["fmin"])
+        else: d = math.floor((1 + K) * e["fmax"] * G) if sl else math.ceil((1 - K) * e["fmin"] / G)
         if L and d < W: d = W; raised += 1
-        lo = (1 - K) * e["fmin"]; hi = (1 + K) * e["fmax"]
+        lo = (1 - K) * e["fmin"] / G; hi = (1 + K) * e["fmax"] * G
         if not (lo <= d <= hi): bad_adm += 1
         ds.append(d)
     checked += 1
-    start = max([math.ceil((1 + K) * e["smax"]) for e in gt["arcs"]] + ds + [0])
+    start = max([math.ceil((1 + K) * e["smax"] * G) for e in gt["arcs"]] + ds + [0])
     if L:   # lag check over every narrow chain the read window can enter at t >= start
         for i, d, e in zip(gt["ins"], ds, gt["arcs"]):
-            hi = (1 + K) * e["fmax"]
+            hi = (1 + K) * e["fmax"] * G
             for a, b, c in narrow(i):
                 if b - 1 + d < start: continue
                 if c == 0: pow_reads += 1; continue
@@ -90,7 +91,7 @@ for gi, gt in enumerate(gates):
             if u is None: u = 0
             if val(i, u): a |= 1 << p
         if val(gt["out"], T) != bool((gt["init"] >> a) & 1): mism.append((gt["name"], T)); break
-print("W", W, "kappa", K, "slow nodes", len(SLOW), "gates checked", checked, "LUT gates", luts, "LUT pin delays raised to W", raised)
+print("W", W, "kappa", K, "g", G, "slow nodes", len(SLOW), "gates checked", checked, "LUT gates", luts, "LUT pin delays raised to W", raised)
 print("delays outside Adm(c=0):", bad_adm, " LUT-pin lag violations:", bad_lag, " reads into a narrow power-up interval:", pow_reads,
       " max lag/fmax on LUT pins:", float(maxlag_ratio))
 print("gates whose dumped output disagrees:", len(mism), mism[:8])
