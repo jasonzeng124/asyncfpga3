@@ -1853,3 +1853,10 @@ correct. Independent confirmation of C's candidate, not a new result. So the w =
 simulation) in [0.41 (B's race_margin, one row), 0.44); my 0.72 Lean refutation in progress is the weaker bound.
 **Next for A (said here so that C does not duplicate it):** generalize CexRunt72.RBase to any κ = P/25 and per-arc
 slow lists, and build the Lean refutation of NetCorrectSeqRunt 20 at κ = 11/25 from C's cex/k44w20_dump.json.xz.
+### progress 08:4x -- κ-generic runt witness check (CexRuntP.RBase compiles) and κ = 11/25 data generated
+`Formal/Target/CexRuntP/RBase.lean`: CexRunt72.RBase generalized to κ = P/25 (any P ≤ 25, g = 1, corner 0) and
+per-arc slow lists (codes 8·out + pin, C's convention); `gateOKRunt_of_gateWR P hP w hw ..` compiles. Data for C's
+k44w20 dump (C's 7-arc adversary, κ = 11/25, w = 20) by gen_runtp.py into `Formal/Target/CexRunt44/` (Python mirror
+of the per-pin checks: 90,684 LUT pins, 0 failures; every arc inside the integer window), Wit and Refute (C's
+proofs re-run on this run's boundary transitions: req [401000, 455821), acks as in the dump, ArbOK T ≥ 123). Builds
+after the 0.72 chunks finish (one Lean chunk at a time on this sandbox). Not claimed until it checks.
