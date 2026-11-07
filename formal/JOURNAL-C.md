@@ -1860,3 +1860,13 @@ adversary is correct at 0.43); other corners.
 - CexRg16: X054 OOM-killed three times at 3 decides (also alone); regenerated with 9 decides (gen_runt_c.py
   CEXSPLIT=9, other files identical) and it checks. Wit/Refute/AllR building.
 - Correction to 08:4x entry: Net/Periodic's lemmas use only propext and Quot.sound (not Classical.choice).
+
+### progress 10:32 -- PROVED IN LEAN: THE statement is false at g = 8/5, κ = 0 (no scatter), with and without H_RUNT(20), every reset ≥ 400 ns
+`Formal/Net/CexRg16/` (lake build OK; axioms propext, Classical.choice, Quot.sound; chunks built one at a time, X054 in 9
+decides): `not_netCorrectSeqRunt20_R : ∀ D T su Δo, 137 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 net boundary arbs
+⟨8/5, 0⟩ T (400000 + D) su Δo` and `not_netCorrectSeq_R` (plain). Same witness mechanism as CexR44 (SLICE_X32Y45.A6's
+7-arc feedback route at ⌊8·FAST_MAX/5⌋, every other arc at ⌈5·FAST_MIN/8⌉, LUT pins ≥ 20 ps).
+**Plainly:** with no within-die scatter at all, a guard of 1.6 on the fast-corner window already admits a run of THE
+target that never answers. By seq_anti_p: false for every g ≥ 1.6 at every κ ≥ 0. Together with CexR44 and B's
+RaceFrontierPS (sufficient for its rows: g²(1+κ)/(1-κ) ≤ 2.433), the frontier on this race is pinned to within ~0.03
+on both axes. STATUS suggestion for A: replace the κ = 0.72 frontier row by these two (all R ≥ 400 ns, w = 0 and 20).

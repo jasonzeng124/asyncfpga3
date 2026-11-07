@@ -184,7 +184,7 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 ## C3. COUNTEREXAMPLES at much smaller margins: κ = 0.44 (g = 1) LEAN-CHECKED, and g = 1.6 (κ = 0) in simulation, with and without H_RUNT(20) (shard C, 2026-11-07)
 - **Lean (standard axioms):** `Formal.Net.CexR44.not_netCorrectSeqRunt20_R` and `not_netCorrectSeq_R`: for every reset
   R = 400 ns + D, every T ≥ 123 ps, su, Δo ≤ 3 ns, THE statement at ⟨g, κ⟩ = ⟨1, 11/25⟩ is false, with H_RUNT(20) and
-  without (`lake build Formal.Net.CexR44.AllR`). The g = 8/5 version (`CexRg16`) is building.
+  without (`lake build Formal.Net.CexR44.AllR`). The g = 8/5, κ = 0 version is also Lean-checked: `Formal.Net.CexRg16.not_netCorrectSeqRunt20_R` (T ≥ 137, every R ≥ 400 ns).
 - **What:** ONE C-element, `ulink_n_falseResult_85` stage 0 (SLICE_X32Y45.A6, b = C(x, ¬ack), INIT 0x2200332222003322),
   with its feedback route slow (its pin-0 arc and the 6 pips/hops of its self-loop route at the slow end; 7 arcs), and
   every other arc of the circuit at the fast end. Pair (1071, 462), SeqEnv env (R = 400 ns, su = 1 ns, Δo = 3 ns),
