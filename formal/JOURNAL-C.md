@@ -1762,7 +1762,7 @@ Lean versions of both (κ = 12/25 at g = 1, and g = 8/5 at κ = 0) are generated
 per-arc slow list `slK` of codes 8·out + pin) and building; not committed until they check (Formal/ is globbed).
 Hazard sweep at κ = 0.40 over all 412 control storage nodes x live pins: 128 / 1,316 runs done, all correct so far.
 
-### progress 07:52 -- the deadlock survives H_RUNT(20): κ = 0.44 and g = 1.6 under the owner's headline w (simulation + checks)
+### progress 07:40 -- the deadlock survives H_RUNT(20): κ = 0.44 and g = 1.6 under the owner's headline w (simulation + checks)
 simadv.py now has `--w` (shard A's simrunt.py filter, ported; HI includes g). Same 7-arc adversary, w = 20: **quiet
 deadlock at κ = 0.44 (correct at 0.40) and at g = 1.6, κ = 0** (g = 1.59: one LUT pin infeasible, run correct). The
 oscillation pulses are 80-570 ps, so the runt filter cannot touch them. Checks: tools/huff/gatecheck_runt_c.py (copy
