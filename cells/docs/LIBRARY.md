@@ -326,40 +326,32 @@ carries the attempted derivations and exactly how they fail.
 `bd_link_ctl(req_in, c_next, rst) → c`. One stage's controller, a `bd_c2n`.
 **1 LUT6.**
 
-### `bd_link_pair`
+Two adjacent stages *could* share one fractured `LUT6_2` (`{req, C_i, C_i+1,
+C_i+2, rst}` is exactly the fracturing budget) and an earlier `bd_link_pair`
+did. It is gone: the shared LUT feeds `C_i+1` straight into `C_i`'s equation,
+and that is the wire `DACK` has to lengthen (below). Control is one LUT per
+stage out of `1 + W/2`; the pairing was never where the area was.
 
-`bd_link_pair(req_in, c_next, rst) → ci, cj`. Two stages' controllers in one
-fractured `LUT6_2`, INIT `64'h0000_C0FC_0000_8E8E`:
-
-```
-ci = ~rst · C(req_in, ~cj)
-cj = ~rst · C(ci,     ~c_next)      with c_next = C_i+2
-```
-
-**Cost: 1 LUT for two stages, so half a LUT per stage.** Two adjacent stages
-touch `{req, C_i, C_i+1, C_i+2, rst}` — five distinct pins, exactly the
-fracturing budget. **One more control input anywhere and adjacent stages stop
-sharing**, which is the sentence to remember before adding a feature to this
-controller.
-
-### `bd_link #(W, DELAY)`
+### `bd_link #(W, DELAY, DACK)`
 
 One pipeline stage: controller plus latch. Ports `rst`, `req_in`/`ack_in`/
 `data_in`, `req_out`/`ack_out`/`data_out`. **Cost: 1 LUT + W/2 LUTs**, plus
-`DELAY`, which defaults to 0.
+`DELAY` and `DACK`, both of which default to 0.
 
-`ack_in` is wired to the raw node and must stay that way. Delaying it would only
-lengthen the sender's hold window, never shorten it — so it is not a correctness
-risk — but it would also stop the pair of adjacent controllers sharing a LUT, and
-that is a cost risk.
+`DELAY` pads `req_out` for an edge-sampling consumer (the node leads its own
+data by one latch arc per stage of depth — see the header of `bd_link.v`).
+`DACK` holds back the *fall* of `ack_in` (`bd_delay` `FASTRISE`: the rise
+still flushes in one hop) so the sender cannot release data before the enable
+has reached every latch bit; on a routed 32-bit link that fan-out spans ~1 ns.
+`verify/tighten.py` rule H sizes it from the route.
 
-### `bd_pipe #(W, N, DELAY)`
+### `bd_pipe #(W, N, DELAY, SDELAY, DACK)`
 
-N stages, paired: stages 0,1 share a `LUT6_2`, stages 2,3 the next, and an odd
-final stage falls back to a whole LUT6. **Cost: `ceil(N/2)` LUTs + `N·W/2` LUTs.**
-
-`DELAY` pads the pipeline's own outgoing request only. The internal stage
-boundaries need nothing, because each one is a transparent latch.
+N chained `bd_link`s. `DELAY` pads the pipe's outgoing request, `SDELAY`
+(default 1) pads each *internal* request so a stage cannot close before the
+previous stage's data has settled (rule I sizes it), and `DACK` goes to every
+stage. **Cost: `N·(1 + DACK) + (N-1)·SDELAY + N·W/2` LUTs** — 23 for
+`bd_pipe #(8, 4)` at the defaults.
 
 ### The finding: the request outruns its own data
 
@@ -376,20 +368,29 @@ against 55 ps on the controller pair). The control wave outruns its own data by
 the difference, once per stage — roughly `N·(t_latch − t_ctl)` across N empty
 stages.
 
-Inside the library the lead is harmless, and *why* it is harmless is the entire
-argument for the hold window: every consumer is a transparent latch, and it does
-not close at `req↑`, it closes at `ack↓`, a full phase later. Nothing samples on
-the edge. The lead bites only at a boundary that samples the request edge — a
-BRAM clock pin, a synchronous vendor block, an off-library consumer. There, and
-only there, `req_out` on its own is not a valid bundled-data request.
+Inside the library the lead is *usually* harmless: every consumer is a
+transparent latch, and it does not close at `req↑`, it closes at `ack↓`, a full
+phase later. The lead bites for certain at a boundary that samples the request
+edge — a BRAM clock pin, a synchronous vendor block, an off-library consumer.
+There `req_out` on its own is not a valid bundled-data request.
+
+It also bites inside a pipe, and an earlier version of this section said it
+could not. Stage i closes one controller arc after stage i−1's node fell; its
+data settles one *latch* arc after stage i−1's data did, and the latch arc is
+the slower. Fill an empty pipe behind a source that returns to zero the moment
+it is acknowledged and the closing wave gains on the data wave at every stage:
+`tb_link`'s 8-bit, 4-stage pipe latched X into stage 2 of token 0 with no
+request line between the stages. The paired controllers hid this in simulation
+(the `O5` fall arc happened to equal the latch's) and no rule checked it on a
+route. `bd_pipe` now carries `SDELAY` on every internal boundary and rule I
+sizes it.
 
 `bd_mem` handles its own boundary with an explicit `DSETUP` line. For any other
-edge-sampling consumer, `DELAY` inserts a matched line on `req_out` alone — not
-on `ack_in`, which must keep ending the hold window at the node itself. It
-defaults to 0, which is the cell the review costs: zero extra LUTs, identical to
-the frozen specification. Set it only where the boundary needs it, size it from
-the measured lead at that depth, and tighten it post-route like every other
-matched line.
+edge-sampling consumer, `DELAY` inserts a matched line on `req_out`. It defaults
+to 0, which is the cell the review costs: zero extra LUTs, identical to the
+frozen specification. Set it only where the boundary needs it, size it from the
+measured lead at that depth, and tighten it post-route like every other matched
+line.
 
 ---
 
@@ -895,9 +896,8 @@ construction. See `docs/ARBITER.md`.
 | `bd_delay #(N)` | `bd_latch.v` | N LUTs (0 = a wire) |
 | `bd_datamux #(W)` | `bd_latch.v` | W/2 LUTs |
 | `bd_link_ctl` | `bd_link.v` | 1 LUT |
-| `bd_link_pair` | `bd_link.v` | 1 LUT for two stages |
-| `bd_link #(W)` | `bd_link.v` | 1 + W/2 |
-| `bd_pipe #(W,N)` | `bd_link.v` | `ceil(N/2)` + `N·W/2` |
+| `bd_link #(W,DELAY,DACK)` | `bd_link.v` | 1 + W/2 + DELAY + DACK |
+| `bd_pipe #(W,N,DELAY,SDELAY,DACK)` | `bd_link.v` | `N·(1+DACK) + (N-1)·SDELAY + N·W/2` |
 | `bd_fork #(N)` `bd_join #(N)` | `bd_ctl.v` | 1 LUT to fan-in 4 |
 | `bd_steer` | `bd_ctl.v` | 2 LUTs |
 | `bd_bd2dr` | `bd_ctl.v` | 1 LUT |

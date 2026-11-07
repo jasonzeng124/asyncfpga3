@@ -1,0 +1,17 @@
+xevents: ../tools-A/xaudit/designs/ring3.json top ring3: 18 wires, 15 gates; 3 C-element stages (bd_c2n / bd_c2n_set INIT on [a, b, q, rst, 0, 0])
+bands: 1 step = 10 ps
+  stage 0 st[0].u/O (wire 7 'c[0]', reset 1): a <- stage 2, b <- stage 1; LUT [90,130] ps, own feedback [270,330] ps
+    race via a -> stage 2 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+    race via b -> stage 1 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+  stage 1 st[1].u/O (wire 5 'c[1]', reset 0): a <- stage 0, b <- stage 2; LUT [90,130] ps, own feedback [270,330] ps
+    race via a -> stage 0 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+    race via b -> stage 2 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+  stage 2 st[2].u/O (wire 3 'c[2]', reset 0): a <- stage 1, b <- stage 0; LUT [90,130] ps, own feedback [270,330] ps
+    race via a -> stage 1 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+    race via b -> stage 0 -> back: fastest round trip 810 ps vs own feedback max 330 ps: margin 480 ps
+Recog (proved-decidable, re-checks the recogniser): true
+Pairing (handshake structure): true
+Race (feedback <= fastest neighbour round trip, every pin): true
+counter graph: 5 simple cycles, 0 with no token
+event spacing per node (max cycle ratio, COMPUTED not proved except ring3): [1350.0, 1710.0] ps; period (two events) twice that
+VERDICT: CLEAN FOREVER. Events.design_safe: every behaviour (every delay in the bands, any power-up, reset released once) has every C-element node = reset value flipped M t j times at every time, M the counter recursion: no X, no glitch, no stored X, for all time.

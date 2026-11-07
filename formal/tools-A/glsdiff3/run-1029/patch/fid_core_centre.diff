@@ -1,0 +1,41 @@
+--- src/fid_core.vh	2026-10-29 07:00:51.000000000 +0000
++++ patch/fid_core.vh	2026-10-29 07:26:35.863248523 +0000
+@@ -25,8 +25,9 @@
+ //    + the feedback pin's arc.  When the output reverses less than TLOOP
+ //    after its last edge, the drive was removed before the loop could commit:
+ //    a runt.  With p = runt width and an offset
+-//        delta = p - (TLOOP - WIN/2) + N(0, WIN/4)        (thermal noise)
+-//      delta <= -WIN/2 : the runt is rejected outright (the node never left);
++//        delta = p - CEN + N(0, WIN/4)        (thermal noise),
++//    CEN = TLOOP*META_CENTRE_PM/1000 (default 500: TLOOP/2); META_CENTRE_PM<0: TLOOP - WIN/2
++//      delta <= -WIN/2 : the runt is rejected (one runt reaches fanout; its echo is ignored);
+ //      otherwise       : the node resolves to the runt value if delta > 0,
+ //                        else back, after t_r = TAU*ln(WIN/(2|delta|)) >= 0,
+ //    i.e. the textbook law t_r = tau ln(T0/|dt|), which for a uniformly
+@@ -50,6 +51,7 @@
+     parameter integer TAU   = 150;
+     parameter integer WIN   = 150;
+     integer tau, win, seed, gseed, verbose, xmode, off;
++    integer cpm, cen;   // +META_CENTRE_PM=: decision centre in per-mille of TLOOP (Fid3 proposal)
+     integer n_meta, n_rej, n_commit;
+     reg o_r = 1'bx;
+     assign o = o_r;
+@@ -66,6 +68,8 @@
+         if ($value$plusargs("META_SEED=%d", gseed)) ;
+         if ($value$plusargs("META_VERBOSE=%d", verbose)) ;
+         if ($value$plusargs("META_X=%d", xmode)) ;
++        cpm = 500;                              // TLOOP/2: the duty-balanced point of the
++        if ($value$plusargs("META_CENTRE_PM=%d", cpm)) ;   // circulating runt (see A-fid3.md)
+         seed = SEED * 7919 + gseed * 104729 + 17;
+     end
+     always @(f or kick) begin
+@@ -79,7 +83,8 @@
+                 p = $time - t_last;
+                 runt_val = o_r;
+                 noise = $dist_normal(seed, 0, (win > 4) ? win / 4 : 1);
+-                delta = p - (TLOOP - win / 2) + noise;
++                cen = (cpm >= 0) ? (TLOOP * cpm) / 1000 : TLOOP - win / 2;   // cpm < 0: the old rule
++                delta = p - cen + noise;
+                 if (delta <= -(win / 2)) begin
+                     n_rej = n_rej + 1;
+                     if (verbose > 1)
