@@ -1785,3 +1785,21 @@ Sweep at κ = 0.40 (412 control nodes x pins): 233 / 1,316 runs, all correct so 
   yet; the 0.72 run grew to 8.7 GB and was stopped). Far above the control race (0.44), so not the binding failure,
   but it is the first wrong-VALUE run found on THE target; bracket (0.68, 0.8].
 - Sweep at κ = 0.40 over 412 control nodes x pins: 700+ / 1,316 runs, all correct.
+
+### progress 08:26 -- Net/Stretch CLAIMED: refutations extend to every reset length (generic part); target smax bound
+Gap found in every refutation so far (C's CexPS/CexPS72, A's CexRunt72, today's): they fix R = 400 ns, while THE
+statement takes R as a parameter and the positive zero-pair theorem needs R ≥ ⌈(1+κ)g⌉·(A1 + 87·M1) + 1 (~706 ns at
+these parameters). So "the statement is false at (g, κ)" was only shown for one short reset.
+- `Formal/Net/Stretch.lean` (lake build OK; axioms propext, Classical.choice, Quot.sound): `σ b Δ` (identity to b,
+  held on [b, b+Δ], shifted by Δ after), `stretch x b Δ = x ∘ σ`. `gateOKRuntOn_stretch` / `behavesRuntOn_stretch`:
+  if every node is constant on [a, b], a + (every gate's start) ≤ b and w ≤ b - a, the stretched run is again a
+  (runt-filtered) behaviour: read maps f'(t) = f(σ t) + (t - σ t), lag at t = old lag at σ t, every narrow pulse of the
+  stretched signal is a shifted narrow pulse of the old one. `adm_le_start` (WF bands: admissible delay ≤ start),
+  `σ_onto`, `arbOK_stretch` (H_ARB(T) survives when a + T ≤ b).
+- `Formal/Net/StretchPS/Smax.lean` (checks with lake env lean; 75 chunk decides, ~20 s): every arc of THE target has
+  SLOW_MAX ≤ 698 ps (`smax_all`); `start_le_of_smax`.
+- Per witness (`CexR44/AllR.lean`, `CexRg16/AllR.lean`, written, NOT yet checked: they import the witness builds):
+  the node codes are constant on [2000, 399999] (75 decides), the boundary proof redone for a schedule shifted by D,
+  giving `not_netCorrectSeqRunt20_R` / `not_netCorrectSeq_R` for every R = 400 ns + D. The same two files' pattern
+  applies to C's and A's earlier refutations.
+Chunk checks: CexR44 11/75 done (~85 s each), CexRg16 base building; sweep κ = 0.40: 1,098/1,316, all correct.
