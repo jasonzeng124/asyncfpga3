@@ -2933,3 +2933,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (>= 2.5 ns, research/data/ceret/bench_harness.tsv). If the owner accepts a minimum environment turnaround in the
   gate, isprime's base is 24/24 on 8 routes and its steps can be re-gated; until then they stay failures.
 - Not shown: D values between 0 and 300 (where the threshold is); stalled-mode runs were never failing.
+### progress 12:30 (isprime turnaround threshold: seed 30 passes at 50 ps, as the static -34 ps margin predicts)
+- isprime_b seed 30 FAST_MIN: D = 0 FAIL, 50 / 100 / 200 / 300 PASS; isprime_s75 seed 25 FAST_MIN: D = 0 FAIL, 100 / 300
+  PASS (research/data/item4/envd/results.tsv). ce_return's static margins (-34, -9 ps) say any D above ~34 / ~9 ps closes
+  them; the sim agrees at the points run. So the minimum environment turnaround that clears every isprime failure seen is
+  under 50 ps on these routes -- far below one wire + LUT (~250 ps FAST_MIN) and the bench's >= 2.5 ns.
+- Not shown: the exact threshold between 0 and 50 ps; any route whose static PORT margin is worse (xorshift_s25 seed 1,
+  -130 ps, would need D > ~130).
