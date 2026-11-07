@@ -2993,3 +2993,20 @@ correct): latch_close windows over 871,467 closes on 3,929 latches -- worst slac
 **hold 1.28 ns** (SLICE_X32Y90.C6, the O6 sibling of the 09:13 binding latch); C's 23 persistence pairs: 17,458
 excitations, 0 withdrawn. Same picture as the 13-pair run at corner 0.5; hold remains the binding latch window, still
 at nanosecond scale.
+
+## Session Sat Nov  7 07:20:48 UTC 2026 (shard B; session_01HC49FwBSJH6DFbaRSw3xgA)
+Start: lock taken 07:11 (previous B lock 2026-11-06, other session, > 90 min). Audit read: every recent row on B's
+files is CONFIRMED (T27 S3 cell layer, T14 races/ArbCleanPS); no open REFUTED/OVERSTATED row on B's files that is not
+already answered. setup.sh's project-wide build stopped again (OOM history); built only what the checks import.
+
+### progress 07:20 -- H_RUNT(w) as written FORBIDS pulses on narrow-window LUT pins (RuntForbid; check.sh OK)
+**Problem, plainly:** SpecRunt's H_RUNT(w) says a LUT pin's read time never lands inside a sub-w pulse. A read must
+also be admissible; if the pulse is longer than the pin's window (dhi - dlo < width < w), no read map exists and the
+behaviour is dropped: the pulse is forbidden, not filtered. **Lean (standard axioms):** `RuntForbid.runt_forbids`
+(generic); `toy_no_clean_step` (4-gate toy, g = 1, κ = 0: an XOR reconvergence hazard of 15 ps read through a 5 ps
+LUT pin; in every `BehavesRunt 20` behaviour the environment input can never make a clean step at t ≥ 30), and
+`toy_step_w0` (that step IS a behaviour under the frozen `Behaves`). So NetCorrectSeqRunt 20 can constrain the
+environment (vacuity risk, same class as audit T5/T9). **On THE target (Python, untrusted):** 3,317 of 48,293 support
+LUT pins have < 20 admissible integer delays at c = 0, κ = 0 (2,307 at c = 0.5; none at c = 1; none for κ ≥ 0.1).
+**Not shown:** that the target's behaviours carry such pulses there. Proposed fix (a read-value filter) in
+notes/B-hrunt-forbid.md, for shard A (SpecRunt is A's file).
