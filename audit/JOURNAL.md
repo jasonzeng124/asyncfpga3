@@ -1246,3 +1246,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T13:23:20Z build42 attempt 1 OOM (alphabetical order put CexR44.AllR first; lake built X chunks in parallel, X019 killed). Restarted with data/bases/X chunks first, one module at a time (build42.sh fixed; attempt-1 log kept).
 - 2026-11-07T14:02:36Z T37 row 9: C CexR44 AllR (every reset >= 400 ns, plain + H_RUNT(20), kappa 11/25) Lean CONFIRMED.
 - 2026-11-07T16:02:53Z T37 row 10: C CexRg16 AllR (g=8/5, kappa 0, every reset >= 400 ns) Lean CONFIRMED.
+- 2026-11-07T16:47:19Z build42 done (491 MOD lines rc=0: CexR44, CexRg16, B RaceAllPS/CertRowsPS/RaceAllPS2/CertArbPS/ArbServer). Axiom audit of 177 B modules running.
