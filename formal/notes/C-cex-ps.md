@@ -46,3 +46,30 @@ Slow set: umux16.uya, ulink_n_falseResult_85 stage 0, ulink_n_trueResult_72 stag
 and the pips on their input routes (`tools/huff/cex/k72_slow.txt`), at ⌊43·FAST_MAX/25⌋; all else ⌈7·FAST_MIN/25⌉.
 Data: `tools/huff/cex/k72_dump.json.xz`. With these adversaries: correct at 0.64/0.67, runt-ring livelock at 0.70
 (simulation, never quiet; not in Lean), quiet deadlock at 0.72.
+
+## C3 (2026-11-07): the binding feedback race, at κ = 0.44 / g = 1.6, with and without H_RUNT(20)
+**Node.** `ulink_n_falseResult_85` stage 0, SLICE_X32Y45.A6 (gate output node 120675), INIT 0x2200332222003322:
+pins 0 = own output (feedback, through 6 pips/hops), 1 = reset, 3 = x (request in), 4 = ack (from the next stage);
+with reset low, ack low: out = fb ∨ x; ack high: out = fb ∧ x (a C-element C(x, ¬ack)).
+**Adversary.** The 7 arcs of the feedback route (pin 0 of the LUT and the 6 copy gates on the route; arc codes
+8·out + pin in `slK`/`slR`) at the slow end, every other arc of the circuit at the fast end. In the run: x rises,
+b rises; the next stage acknowledges and ack is read high before b's own rise has reached its feedback pin; b = fb ∧ x
+reads fb = 0 and falls; b then oscillates with the loop period (~570 ps; pulses 80-570 ps), the stage's handshake is
+lost, the circuit goes quiet with out0 low.
+**Margins (this adversary, fast corner, pair (1071, 462)).**
+| axis | correct | fails |
+|---|---|---|
+| g = 1, w = 0 | κ ≤ 0.40 | 0.44 (livelock), 0.48, 0.60 (quiet) |
+| g = 1, w = 20 | κ ≤ 0.40 | 0.44 (quiet) |
+| κ = 0, w = 0 | g ≤ 1.58 | 1.59 (quiet after 9 M events), 1.6, 1.7, 1.8 |
+| κ = 0, w = 20 | g ≤ 1.58 (1.59: one pin infeasible) | 1.6 |
+Shard B's RaceTablePS row for this node: safe while g²(1+κ)/(1-κ) ≤ 2.433 (κ ≤ 0.415 at g = 1; g ≤ 1.56 at κ = 0).
+**Lean (building, not yet claimed):** `Formal/Net/CexR44` (`not_netCorrectSeqRunt20` at ⟨1, 11/25⟩, T ≥ 123; with
+`SpecRunt.seqRunt_of_seq` this also refutes the plain NetCorrectSeq there), `Formal/Net/CexRg16` (⟨8/5, 0⟩, T ≥ 137),
+fallbacks `CexPS48` (plain, ⟨1, 12/25⟩, T ≥ 114) and `CexPSg16` (plain, ⟨8/5, 0⟩, T ≥ 137). The runt check `gateWR`
+and its soundness are shard A's (Target/CexRunt72/RBase), copied with κ/g constants and per-arc slow lists.
+**Data:** tools/huff/cex/{k48,g16,k44w20,g16w20}_dump.json.xz, k48_classes.json; generators gen_cex.py /
+gen_runt_c.py (`@classes`), checks gatecheck.py / gatecheck_runt_c.py / envcheck.py.
+**Bundling, for contrast (simulation):** slowing EVERY arc in the combinational fan-in of every latch data pin (99,765
+nodes) and keeping enables / control fast: correct at κ = 0, 0.2, 0.4, 0.6 ((1071, 462) and (2^31-1, 2^31-2)): the data
+bundling has far more margin than this control race.
