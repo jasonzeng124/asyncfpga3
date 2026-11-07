@@ -3365,7 +3365,7 @@ the close and the controller/acknowledge path back to the data: the same shape a
   with the hold half and the open window discharged; left: the certificate's local premises, the enable closed on
   `[τ, E']`, the setup half (data before the certificate's window start), the latch's own inequalities.
 - Instance `LatchHoldPS.target_latch_holds` (certificates `CertLatchPS`): 8 latches so far, from closes in d3
-  (κ ranges 0.346-0.68, median 0.584; the 8 use 0-1 static premises). Generator tools-B/ps/gen_latchhold_ps.py (two
+  (κ ranges 0.346-0.68, median 0.584; the 8 use 0-2 static premises, ctlcert count). Generator tools-B/ps/gen_latchhold_ps.py (two
   passes: the arc sums are evaluated in Lean by `#eval`, then each row's kA/kB is the smaller of the two ratios).
 **Python (untrusted):** ctlcert over the 396 latch closes in d3 followed by a data change: running (3 workers); of the
 first 93, the chain-shaped ones certify; the non-certified ones are latches whose next data change is not caused by
