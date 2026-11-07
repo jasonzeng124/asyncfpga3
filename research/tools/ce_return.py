@@ -221,7 +221,7 @@ def soak_ports(routed_json):
 
 
 # ---------------------------------------------------------------- analysis
-def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False, env="tb"):
+def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False, env="tb", ff_async=None):
     ci = 0 if corner == "fast_min" else 1
     top = json.loads(Path(routed_json).read_text())["modules"]["top"]
     cells = top["cells"]
@@ -285,10 +285,18 @@ def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False, env="tb"):
     for a, lst in extra.items():
         for t, lab in lst:
             adj[a].append((t, 0, lab))
+    if ff_async is not None:
+        # prjxray's SDF gives a SLICE_FFX only CK->Q, so an asynchronous clear/preset (the bench's req_clr) would
+        # end the search.  --ff-async PS adds SR->Q = PS on every SLICE_FFX (a sync SR too: adding arcs can only
+        # shorten a return, so the margin stays a lower bound when PS is at most the real SR->Q).
+        for cn, c in cells.items():
+            if c["type"] == "SLICE_FFX" and c["connections"].get("SR") and c["connections"].get("Q"):
+                adj[cn + "/SR"].append((cn + "/Q", ff_async, None))
 
     if dut_prefix is None:
         dut_prefix = "uut." if any(n.startswith("uut.") for n in cells) else \
-            "urig.udut." if any(n.startswith("urig.udut.") for n in cells) else ""
+            "urig.udut." if any(n.startswith("urig.udut.") for n in cells) else \
+            "bridge_i.udut." if any(n.startswith("bridge_i.udut.") for n in cells) else ""
     roles = bd_ce_roles()
     n_struct = n_init = n_name = 0
     ces, disagree = [], []
@@ -390,8 +398,8 @@ def analyse(adj, io, ic, ci, r, dut_prefix, cap, times=False):
 
 
 def run(routed_json, sdf, corner, cap=5000, dut_prefix=None, all_ce=False, out=sys.stdout, tsv=None, quiet=False,
-        env="tb", times=False):
-    adj, io, ic, ci, ces, info = build(routed_json, sdf, corner, dut_prefix, all_ce, env)
+        env="tb", times=False, ff_async=None):
+    adj, io, ic, ci, ces, info = build(routed_json, sdf, corner, dut_prefix, all_ce, env, ff_async)
     dp = info["dut_prefix"]
     pr = (lambda *a: None) if quiet else (lambda s: print(s, file=out))
     pr("# ce_return %s %s corner=%s" % (routed_json, sdf, corner))
@@ -466,8 +474,12 @@ def main():
                          "board view (no turnaround edges, no forced-net cuts: returns run through the routed soak "
                          "harness and are classed ENV)")
     ap.add_argument("--times", action="store_true", help="annotate each path cell with its arrival time (ps after q)")
+    ap.add_argument("--ff-async", type=int, default=None, metavar="PS",
+                    help="add SR->Q = PS ps on every SLICE_FFX (prjxray gives none); 0 = a lower bound on the return "
+                         "through an async clear such as gen_bench's req_clr")
     a = ap.parse_args()
-    run(a.routed_json, a.sdf, a.corner, a.cap, a.dut_prefix, a.all, tsv=a.tsv, env=a.env, times=a.times)
+    run(a.routed_json, a.sdf, a.corner, a.cap, a.dut_prefix, a.all, tsv=a.tsv, env=a.env, times=a.times,
+        ff_async=a.ff_async)
 
 
 if __name__ == "__main__":
