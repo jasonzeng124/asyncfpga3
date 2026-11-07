@@ -3156,3 +3156,12 @@ window ends no earlier than e + psum), `lo_sum_ge` / `hi_sum_le` (integer window
 sums, g = 1), `margin_of_sums` (283·ΣFAST_MAX(loop) ≤ 117·ΣFAST_MIN(path) and the SLOW analogue give
 Σ hi(loop) ≤ Σ lo(path) for every κ ≤ 83/200 and every corner: RaceTablePS's facts, now for the integer bounds the
 certificates use). Next: per row, tie psum + the node's ack-pin band to RaceTablePS's path, and the switch assembly.
+
+### progress 08:33 -- CertRaceAll.race_holds CHECKED: a race obligation from any chain certificate, every behaviour
+`Formal/Cells/CertRaceAll.lean` (standard axioms): `chainShape`, `psum_chain`, `pathArcs`, and `race_holds`:
+for g = 1, κ ≤ 83/200, a certificate with certOK / singlePath / chainShape and the two RaceTablePS-style integer facts
+(283·ΣFAST_MAX(node feedback pin) ≤ 117·ΣFAST_MIN(path pins ++ node ack pin), and SLOW), in a behaviour at a corner,
+with the certificate's premises: the acknowledge source keeps its old value at every u from the last row's window
+start with u + lo(ack pin) ≤ e + hi(feedback pin), i.e. every read of the node's acknowledge pin within its feedback
+loop's upper delay after the flip sees the old value (the cfb_switch obligation). Next: the per-row instances
+(node pins, ack/feedback pin indices, facts by kernel decide) for the 181 certificates.
