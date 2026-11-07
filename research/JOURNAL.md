@@ -2940,3 +2940,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   under 50 ps on these routes -- far below one wire + LUT (~250 ps FAST_MIN) and the bench's >= 2.5 ns.
 - Not shown: the exact threshold between 0 and 50 ps; any route whose static PORT margin is worse (xorshift_s25 seed 1,
   -130 ps, would need D > ~130).
+### progress 13:28 (the full stack reproduces ce_return's -34 ps margin to within a few ps)
+- isprime_b seed 30 FAST_MIN, testbench drives delayed D: D = 0, 10, 15 FAIL (fast-mode hang); D = 20, 40, 50, 100, 200,
+  300 PASS. The race path crosses two delayed drives (start_req falls, then p_end_ack), so the added turnaround is 2D:
+  30 ps fails, 40 ps passes. ce_return's static FAST_MIN margin for this C-element is -34 ps. The static audit and the
+  bit-decoded full-stack GLS agree to within the 30-40 ps bracket: a quantitative cross-check of both (the audit's
+  arithmetic and the fid resolver's runt-vs-loop rule).
+- For the owner's gate decision: the turnaround that clears every isprime failure seen is ~2 x 17 ps on this route; the
+  worst static PORT margin on any route is -130 ps (xorshift_s25 seed 1, which passed its sims anyway).
