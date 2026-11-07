@@ -32,7 +32,7 @@ qof = {x["node"]: x["latch_q"] for x in rows}
 # LRow literals, verbatim from LatchViewPS
 lit = {}
 for f in glob.glob(os.path.join(CELLS, "LatchViewPS", "B*.lean")):
-    for m in re.finditer(r"^  (⟨(\d+), .*⟩),?$", open(f).read(), re.M):
+    for m in re.finditer(r"^  (⟨(\d+), .*⟩)(?:,|\])?$", open(f).read(), re.M):
         lit[int(m.group(2))] = m.group(1)
 # which certificate file holds which index
 fam = open(os.path.join(CELLS, NAME + ".lean")).read()
