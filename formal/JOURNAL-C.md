@@ -1803,3 +1803,9 @@ these parameters). So "the statement is false at (g, κ)" was only shown for one
   giving `not_netCorrectSeqRunt20_R` / `not_netCorrectSeq_R` for every R = 400 ns + D. The same two files' pattern
   applies to C's and A's earlier refutations.
 Chunk checks: CexR44 11/75 done (~85 s each), CexRg16 base building; sweep κ = 0.40: 1,098/1,316, all correct.
+
+### progress 08:27 -- this race's frontier at g = 1: correct at κ ≤ 0.43, fails at 0.44 (simulation)
+simadv.py `KDEN=100` (exact κ = P/100). Same 7-arc adversary, fast corner: κ = 0.41, 0.42 correct (w = 0 and 20);
+κ = 0.43 correct, but at w = 0 the C-element oscillates for a while first (7.5 M events vs 0.55 M) and at w = 20 one
+pin is infeasible; κ = 0.44 fails (livelock at w = 0, quiet deadlock at w = 20). With B's sufficient 0.415, this
+race's g = 1 frontier is in [0.415, 0.44) if B's row is sound, i.e. B's bound is within 0.025 of the truth.

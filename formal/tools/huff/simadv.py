@@ -21,6 +21,7 @@ out0 / end acks rise `dout` ps after their request (Spec's Δo) and fall `dout` 
 Prints every out0 value, its pair index, and checks gcd in order.
 """
 import argparse
+import os
 import heapq
 import json
 import math
@@ -132,7 +133,7 @@ def main():
             for x in CJ.get(k, []):
                 if isinstance(x, list): ACL[(idx[x[0]], x[1])] = k
                 else: CLS[idx[x]] = k
-        PK = round(a.kappa * 25); assert a.corner in (0, 1) and abs(a.kappa - PK / 25) < 1e-12
+        KD = int(os.environ.get("KDEN", "25")); PK = round(a.kappa * KD); assert a.corner in (0, 1) and abs(a.kappa - PK / KD) < 1e-12
         FMX, FMN = ("fmax", "fmin") if a.corner == 0 else ("smax", "smin")   # corner 1: the slow-corner window
     def dly(e, gi=None, pin=None):
         if CLS is not None:   # exact formulas (same as --exact): S = floor((25+P) fmax / 25), F = ceil((25-P) fmin / 25)
@@ -142,8 +143,8 @@ def main():
                 gn, gd = map(int, a.gfrac.split("/")); assert PK == 0
                 if k == "S": return (gn * e[FMX]) // gd
                 if k == "F": return (gd * e[FMN] + gn - 1) // gn
-            if k == "S": return ((25 + PK) * e[FMX]) // 25
-            if k == "F": return ((25 - PK) * e[FMN] + 24) // 25
+            if k == "S": return ((KD + PK) * e[FMX]) // KD
+            if k == "F": return ((KD - PK) * e[FMN] + KD - 1) // KD
             return (e[FMN] + e[FMX]) // 2
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
