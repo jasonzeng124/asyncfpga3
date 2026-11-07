@@ -1771,3 +1771,17 @@ Adm, 0 lag violations; g16w20 286,141 / 0 / 0 / 0; negative control: the same du
 mismatches; envcheck: Env + SeqEnv OK, ArbOK T ≥ 122 / 136, no out0, quiet. FOR-RESEARCH C3 written. Lean for w = 20
 needs a GateOKRunt witness check (A is building one for 0.72; the dumps are cex/k44w20_dump, g16w20_dump).
 Sweep at κ = 0.40 (412 control nodes x pins): 233 / 1,316 runs, all correct so far.
+
+### progress 08:13 -- Lean runt refutations building; slow corner; bundling adversary gives a WRONG VALUE at κ = 0.8
+- Lean: `Formal/Net/CexR44` (NetCorrectSeqRunt 20 at ⟨1, 11/25⟩; by `SpecRunt.seqRunt_of_seq` it also refutes the
+  plain NetCorrectSeq there) and `Formal/Net/CexRg16` (⟨8/5, 0⟩): KBase, RBase (shard A's `gateWR` soundness, copied
+  with per-arc slow lists and the κ/g constants), node codes and EncR compile; the 75 gate-chunk checks (each split in
+  three decides, ~85 s and ≤ 4.1 GB per chunk) are running one chain per witness. Not committed until Refute checks.
+- Slow corner (c = 1; slow arcs at (1+κ)·SLOW_MAX, others at (1-κ)·SLOW_MIN), same 7-arc adversary: correct at κ = 0.36,
+  0.40, 0.44 (0.48 did not finish). So the fast corner binds for this race.
+- Bundling adversary (tools/huff/bundadv.py: every arc in the combinational fan-in of a latch data pin slow, all latch
+  enables / control fast): pair (2^31-1, 2^31-2) correct at κ = 0.6 and 0.68, but at **κ = 0.8 out0 returns 2147483646
+  (want 1) and then a second value**: a safety failure (wrong data latched), not a deadlock. Not checked (no gatecheck
+  yet; the 0.72 run grew to 8.7 GB and was stopped). Far above the control race (0.44), so not the binding failure,
+  but it is the first wrong-VALUE run found on THE target; bracket (0.68, 0.8].
+- Sweep at κ = 0.40 over 412 control nodes x pins: 700+ / 1,316 runs, all correct.

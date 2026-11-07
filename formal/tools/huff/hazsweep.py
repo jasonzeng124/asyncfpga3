@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 ap = argparse.ArgumentParser(); ap.add_argument("net"); ap.add_argument("bnd"); ap.add_argument("P", type=int); ap.add_argument("out")
 ap.add_argument("--jobs", type=int, default=2); ap.add_argument("--pairs", nargs="+", default=["1071,462"])
 ap.add_argument("--nodes", nargs="*", default=None); ap.add_argument("--default", default="F")
+ap.add_argument("--fbonly", action="store_true", help="only each node's feedback pin(s)")
 ap.add_argument("--control", action="store_true", help="only storage nodes that are not latch-like (prep.py)")
 ap.add_argument("--mode", default="pin", choices=["pin", "allbutpin"])
 a = ap.parse_args()
@@ -53,6 +54,7 @@ for o in cands:
         if not dep(g, p): continue
         s, hops = chain(u)
         if s in ENV or N[s].endswith("_WIRE"): continue
+        if a.fbonly and s != o: continue
         arcs = [[N[o], p]] + [[N[h], 0] for h in hops]
         jobs.append((N[o], p, N[s], arcs))
 print("jobs", len(jobs), file=sys.stderr)

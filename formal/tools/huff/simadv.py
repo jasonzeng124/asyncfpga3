@@ -132,18 +132,19 @@ def main():
             for x in CJ.get(k, []):
                 if isinstance(x, list): ACL[(idx[x[0]], x[1])] = k
                 else: CLS[idx[x]] = k
-        PK = round(a.kappa * 25); assert a.corner == 0 and abs(a.kappa - PK / 25) < 1e-12
+        PK = round(a.kappa * 25); assert a.corner in (0, 1) and abs(a.kappa - PK / 25) < 1e-12
+        FMX, FMN = ("fmax", "fmin") if a.corner == 0 else ("smax", "smin")   # corner 1: the slow-corner window
     def dly(e, gi=None, pin=None):
         if CLS is not None:   # exact formulas (same as --exact): S = floor((25+P) fmax / 25), F = ceil((25-P) fmin / 25)
             k = CLS.get(gates[gi]["out"], a.cdefault) if gi is not None else a.cdefault
             if gi is not None: k = ACL.get((gates[gi]["out"], pin), k)
             if a.gfrac:
                 gn, gd = map(int, a.gfrac.split("/")); assert PK == 0
-                if k == "S": return (gn * e["fmax"]) // gd
-                if k == "F": return (gd * e["fmin"] + gn - 1) // gn
-            if k == "S": return ((25 + PK) * e["fmax"]) // 25
-            if k == "F": return ((25 - PK) * e["fmin"] + 24) // 25
-            return (e["fmin"] + e["fmax"]) // 2
+                if k == "S": return (gn * e[FMX]) // gd
+                if k == "F": return (gd * e[FMN] + gn - 1) // gn
+            if k == "S": return ((25 + PK) * e[FMX]) // 25
+            if k == "F": return ((25 - PK) * e[FMN] + 24) // 25
+            return (e[FMN] + e[FMX]) // 2
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
             if a.exact:   # kappa = P/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
