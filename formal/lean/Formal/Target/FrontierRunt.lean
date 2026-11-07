@@ -1,6 +1,7 @@
 import Formal.Target.SpecMono
 import Formal.Target.SpecRunt
 import Formal.Target.CexRunt44.Refute
+import Formal.Target.CexRuntG16.Refute
 
 /-!
 # Formal.Target.FrontierRunt — the headline statement under H_RUNT(w): monotonicity and where it is false
@@ -20,6 +21,9 @@ questions: is that margin a down-set (so one refutation covers every larger g, �
   H_RUNT(20)), THE headline statement `NetCorrectSeqRunt 20` on THE target is false for every `g ≥ 1`,
   `κ ≥ 11/25`, `T ≥ 123`, any `su`, `Δo ≤ 3000`, reset 400 ns; and so for every `w ≤ 20` as well
   (`not_seqRunt_le20_above44`).
+
+* `not_seqRunt20_aboveG16`: on the guard axis, with `CexRuntG16.not_netCorrectSeqRunt20` (shard C's adversary at
+  g = 8/5, κ = 0), the headline statement is false for every guard `g ≥ 8/5` and every scatter `κ ≥ 0`, `T ≥ 137`.
 
 **Not shown.** Any point where the statement holds (shard B proves the binding race row safe for κ ≤ 0.41, one row
 only); `w > 20`; other reset lengths.
@@ -76,5 +80,20 @@ theorem not_seqRunt_le20_above44 {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 
     (T su Δo : Nat) (hT : 123 ≤ T) (hΔ : Δo ≤ 3000) :
     ¬ NetCorrectSeqRunt w net boundary arbs p T 400000 su Δo :=
   fun h => not_seqRunt20_above44 hg hk T su Δo hT hΔ (seqRuntOn_anti_w hw h)
+
+/-- **On the guard axis**: THE headline statement is false for every guard `g ≥ 8/5` (and any scatter `κ ≥ 0`),
+`T ≥ 137`, `Δo ≤ 3000`, reset 400 ns; and for every runt width `w ≤ 20`. -/
+theorem not_seqRunt20_aboveG16 {p : DelayPar} (hg : 8 / 5 ≤ p.g) (hk : 0 ≤ p.κ)
+    (T su Δo : Nat) (hT : 137 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeqRunt 20 net boundary arbs p T 400000 su Δo := by
+  intro h
+  have hle : (Formal.Target.CexRuntG.pG 8 5).LE p := by
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Target.CexRuntG.pG] <;> norm_num <;> linarith
+  exact Formal.Target.CexRuntG16.not_netCorrectSeqRunt20 T su Δo hT hΔ (seqRuntOn_anti_p hle h)
+
+theorem not_seqRunt_le20_aboveG16 {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 8 / 5 ≤ p.g) (hk : 0 ≤ p.κ)
+    (T su Δo : Nat) (hT : 137 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeqRunt w net boundary arbs p T 400000 su Δo :=
+  fun h => not_seqRunt20_aboveG16 hg hk T su Δo hT hΔ (seqRuntOn_anti_w hw h)
 
 end Formal.Target.FrontierRunt
