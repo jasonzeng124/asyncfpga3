@@ -3333,3 +3333,10 @@ from); the other direction for arbs[1], [3], [6]; the premises. Also observed (P
 another reason)" was the ctlcert absent-node bug: in d3 arbiter 3's A0 change does come from its own q (Python trace),
 and it is now certified. For SLICE_X39Y24.A the "another reason" reading stands (its A0 change follows arbiter 3's q),
 but a hold certificate from its own q exists all the same (ArbServerPS3).
+
+### progress 15:25 -- CHECKED: arbs[6] one-acknowledge in the other direction (ArbOneAckAllPS4)
+`CertArbPS4` (1 certificate: arbs[6] = SLICE_X14Y19.A, q leaving true at 1,507,123 ps in the simb dump
+dd_0x40000000_0x60000000; 7 LUT steps; ctlcert bound 1818 ps, fast corner, κ = 0, Python) and
+`ArbOneAckAllPS4.target_one_ack`. lake build + check.sh OK (standard axioms). arbs[0], [5], [6], [7], [8] now have the
+one-acknowledge statement for both directions of q; arbs[1], [3] for q leaving true only (every dump here flips them
+once, true -> false); arbs[2], [4] none. Same premises/reading as ArbOneAckAllPS.

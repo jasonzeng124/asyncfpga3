@@ -37,7 +37,8 @@ acknowledge A1 stays low on [s0, t2 + …]: the one-acknowledge property for tha
 Updated 15:05: settle also for arbs[1], arbs[3] (`Formal.Cells.ArbServerPS3.target_arbs_settle`, 7 of 9 in all).
 One-acknowledge (`ArbOneAck.one_ack_of` instances): `ArbOneAckAllPS.target_one_ack` (arbs[0],[5],[6],[7],[8], one
 direction of q), `ArbOneAckAllPS2.target_one_ack` (arbs[0],[5],[7],[8], the other direction),
-`ArbOneAckAllPS3.target_one_ack` (arbs[1],[3], q leaving true). Same premise shape as above.
+`ArbOneAckAllPS3.target_one_ack` (arbs[1],[3], q leaving true), `ArbOneAckAllPS4.target_one_ack` (arbs[6], the
+other direction). Same premise shape as above.
 
 ## Generic tools (reusable for other nodes / kernels)
 `CtlChain` (hold_set, hold_mem), `CertPS` (certOK / cert_sound), `CertMarginPS` (win_end_ge, margin_of_sums),
@@ -46,5 +47,5 @@ direction of q), `ArbOneAckAllPS2.target_one_ack` (arbs[0],[5],[7],[8], the othe
 
 ## Not covered
 4 RaceTablePS rows (power-up episodes); arbs[2], arbs[4] (q never flips after reset in any dump here); the other
-direction of the one-acknowledge property for arbs[1], [3], [6]; latches (LatchViewPS's data windows
+direction of the one-acknowledge property for arbs[1], [3]; latches (LatchViewPS's data windows
 are the analogous premises); non-vacuity of the premises in Lean (they hold in the simulated runs they came from).
