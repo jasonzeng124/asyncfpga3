@@ -173,3 +173,28 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   --slowroutes --su 1000 --dout 3000 --full --datachange broad --dfall 3000 --nextreq seq --w 20`.
 - **For research:** κ = 0.72 is a large within-die scatter; the point is that the runt filter is not what protects the
   circuit here: the binding relative-timing order (umux16.uya before the next token's link stage) is a plain race.
+
+## C3. CANDIDATE COUNTEREXAMPLES at much smaller margins: κ = 0.44 (g = 1) and g = 1.6 (κ = 0), with and without H_RUNT(20) (shard C, 2026-11-07; simulation + independent checks; Lean building)
+- **What:** ONE C-element, `ulink_n_falseResult_85` stage 0 (SLICE_X32Y45.A6, b = C(x, ¬ack), INIT 0x2200332222003322),
+  with its feedback route slow (its pin-0 arc and the 6 pips/hops of its self-loop route at the slow end; 7 arcs), and
+  every other arc of the circuit at the fast end. Pair (1071, 462), SeqEnv env (R = 400 ns, su = 1 ns, Δo = 3 ns),
+  corner 0: the acknowledge comes back before b's own rise has gone round its feedback route, so b = fb ∧ x reads
+  fb = 0 and falls; b oscillates with its loop period (~570 ps), the stage's handshake is lost, out0 never rises.
+- **Margins (this adversary):** w = 0: correct at κ ≤ 0.40, livelock at 0.44, quiet deadlock at 0.48 and 0.60; at κ = 0:
+  correct at g ≤ 1.58, deadlock at g = 1.59, 1.6, 1.7, 1.8. **w = 20 (H_RUNT(20), the headline):** quiet deadlock at
+  κ = 0.44 and at g = 1.6 (pulses here are ~80-570 ps, far wider than 20 ps); correct at κ = 0.40.
+- **Meaning:** this is shard B's binding race row (RaceTablePS: safe for g²(1+κ)/(1-κ) ≤ 2.433, i.e. κ ≤ 0.415 at g = 1,
+  g ≤ 1.56 at κ = 0). The row bound is tight within ~0.03 in each direction, and the runt filter does not help. If the
+  Lean versions check, THE statement's frontier (fast corner) is: g = 1: κ* < 0.44 (w = 20) / < 0.48 (w = 0);
+  κ = 0: g* < 1.6. A sound positive theorem must sit below B's bound on this row.
+- **Evidence:** formal/tools/huff/cex/{k48_dump, g16_dump, k44w20_dump, g16w20_dump}.json.xz, delay classes
+  cex/k48_classes.json. Checked by tools/huff/gatecheck.py (w = 0; per-arc `@classes`, `GFRAC=8/5` for g) and
+  tools/huff/gatecheck_runt_c.py (shard A's independent H_RUNT checker + per-arc lists; negative control: the w = 20
+  dumps read as w = 0 give 22 / 36 mismatches), envcheck.py (Env + SeqEnv OK, ArbOK T ≥ 113-136 ps, no out0).
+  Reproduce: `python3 formal/tools/huff/simadv.py net.json bnd.json --pairs 1071,462 --corner 0 --kappa 0.48 --classes
+  formal/tools/huff/cex/k48_classes.json --cdefault F --data0 --full --R 400000 --su 1000 --datachange broad --nextreq seq`
+  (add `--w 20`, or `--kappa 0 --gfrac 8/5`). **Lean (building):** Formal/Net/CexPS48 (⟨1, 12/25⟩, w = 0) and
+  CexPSg16 (⟨8/5, 0⟩, w = 0); the w = 20 versions need A's GateOKRunt witness check.
+- **For research:** the fid GLS at these delays (feedback route of one stage-0 C-element slowed by ~1.5x relative to the
+  ack path) would say whether the fabric oscillates the same way; the design-side fix is a longer acknowledge path or a
+  shorter feedback route on link stage 0 (the stage reads its ack after one LUT + short routes).

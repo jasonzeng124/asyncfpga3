@@ -1761,3 +1761,13 @@ envcheck: Env + SeqEnv OK, ArbOK for T ≥ 136, out0 0 of 1, quiet from 548,029 
 Lean versions of both (κ = 12/25 at g = 1, and g = 8/5 at κ = 0) are generated (Formal/Net/CexPS48, CexPSg16:
 per-arc slow list `slK` of codes 8·out + pin) and building; not committed until they check (Formal/ is globbed).
 Hazard sweep at κ = 0.40 over all 412 control storage nodes x live pins: 128 / 1,316 runs done, all correct so far.
+
+### progress 07:52 -- the deadlock survives H_RUNT(20): κ = 0.44 and g = 1.6 under the owner's headline w (simulation + checks)
+simadv.py now has `--w` (shard A's simrunt.py filter, ported; HI includes g). Same 7-arc adversary, w = 20: **quiet
+deadlock at κ = 0.44 (correct at 0.40) and at g = 1.6, κ = 0** (g = 1.59: one LUT pin infeasible, run correct). The
+oscillation pulses are 80-570 ps, so the runt filter cannot touch them. Checks: tools/huff/gatecheck_runt_c.py (copy
+of A's independent gatecheck_runt.py with per-arc lists and GFRAC): k44w20 283,101 checks, 0 mismatches, 0 arcs outside
+Adm, 0 lag violations; g16w20 286,141 / 0 / 0 / 0; negative control: the same dumps read as w = 0: 22 and 36
+mismatches; envcheck: Env + SeqEnv OK, ArbOK T ≥ 122 / 136, no out0, quiet. FOR-RESEARCH C3 written. Lean for w = 20
+needs a GateOKRunt witness check (A is building one for 0.72; the dumps are cex/k44w20_dump, g16w20_dump).
+Sweep at κ = 0.40 (412 control nodes x pins): 233 / 1,316 runs, all correct so far.

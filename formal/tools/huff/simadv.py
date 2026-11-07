@@ -47,6 +47,7 @@ def main():
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
     ap.add_argument("--slowroutes", action="store_true", help="also slow the copy chains (pips, hops) into the slow gates' pins")
+    ap.add_argument("--w", type=int, default=0, help="H_RUNT(w) on LUT pins (shard A's simrunt.py logic, ported)")
     ap.add_argument("--classes", default=None, help="JSON {S: [nodes], F: [nodes]}: per-gate delay class (exact, corner 0); others --cdefault")
     ap.add_argument("--gfrac", default=None, help="guard g = N/D for --classes at kappa 0: S = floor(N fmax / D), F = ceil(D fmin / N)")
     ap.add_argument("--cdefault", choices=["S", "F", "M"], default="M")
@@ -162,9 +163,19 @@ def main():
 
     G = {}
     readers = defaultdict(list)   # node -> [(gi, pin, d)]
+    LUTG = set(); HI = {}
+    gmul = (lambda f: int(f.split("/")[0]) / int(f.split("/")[1]))(a.gfrac) if a.gfrac else 1.0
     for gi in cone:
         g = gates[gi]
         ds = [dly(e, gi, pi) for pi, e in enumerate(g["arcs"])]
+        if a.w and (g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")):
+            LUTG.add(gi)
+            his = [((1 - c) * e["fmax"] + c * e["smax"]) * (1 + (a.kappa or 0)) * gmul for e in g["arcs"]]
+            HI[gi] = his
+            for i_ in range(len(ds)):
+                if ds[i_] < a.w:
+                    assert a.w <= his[i_], (g["name"], i_, his[i_])
+                    ds[i_] = a.w
         G[gi] = (g["k"], g["init"], g["ins"], ds, g["out"])
         for pin, (n, d) in enumerate(zip(g["ins"], ds)):
             readers[n].append((gi, pin, d))
@@ -204,10 +215,33 @@ def main():
         for gi, pin, d in readers.get(n, ()):
             sched(t + d, gi)
 
+    INF = defaultdict(int); NSKIP = [0]
+
+    def fval(n, r):
+        """value at the greatest u <= r in no pulse narrower than W; returns (value, u)"""
+        ts = ht[n]; vs = hv[n]
+        if r < 0:
+            return vs[0], r
+        k = bisect_right(ts, r) - 1
+        u = r
+        while k + 1 < len(ts) and ts[k + 1] - ts[k] < a.w and ts[k + 1] <= r + a.w:
+            if k == 0:
+                break  # the power-up interval [0, ts[1]): reads before reset settle; not filtered
+            u = ts[k] - 1; k -= 1; NSKIP[0] += 1
+        return vs[k], u
+
     def ev(gi, t):
         k, init, ins, ds, o = G[gi]
         ad = 0
-        for i in range(k):
+        if gi in LUTG:
+            for i in range(k):
+                v_, u_ = fval(ins[i], t - ds[i])
+                if t - u_ > HI[gi][i]:
+                    INF[(gi, i)] += 1
+                if v_:
+                    ad |= 1 << i
+        else:
+          for i in range(k):
             if val(ins[i], t - ds[i]):
                 ad |= 1 << i
         v = bool(init >> ad & 1)
@@ -356,6 +390,8 @@ def main():
         print("watchnode %s flips %d min pulse %s : %s" % (nmw, len(ts) - 1, min(pw) if pw else None, list(zip(ts, vs))[:40]))
     print("sim: %d events, t = %d ps, %d pairs offered, %d accepted, %d outputs" %
           (nev, t, len(pairs), st["done_in"], len(outvals)), file=sys.stderr)
+    if a.w:
+        print("HRUNT w=%d: LUT gates %d, skipped reads %d, INFEASIBLE pins %d %s" % (a.w, len(LUTG), NSKIP[0], len(INF), sorted(((v, names[G[g][4]], i) for (g, i), v in INF.items()), reverse=True)[:5]), file=sys.stderr)
     if a.why:
         def cause(n, t):
             gi = drv.get(n)
