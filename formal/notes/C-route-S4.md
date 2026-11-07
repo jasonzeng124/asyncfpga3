@@ -74,3 +74,18 @@ The missing pieces, in order:
 - Not working: per-node windows for WinInv (too coarse; 395/412 nodes flagged); the single-chain race
   estimate (tools/huff/rtmargin.py; unsound/too crude). Next: cell/channel-structured windows; a
   time-separation bound for the 30 orders; adversarial timed simulation (tools/huff/simadv.py).
+
+## Update 2026-11-07 (shard C): where a positive theorem can live
+- Upper end of the (g, κ) frontier (fast corner, one pair (1071, 462), R ≥ 400 ns via `Net/Stretch`): THE statement
+  fails at κ = 0.44 (g = 1) and at g = 1.6 (κ = 0), with and without H_RUNT(20) (simulation + independent checkers;
+  Lean CexR44 / CexRg16 building, see JOURNAL-C). The binding mechanism is a feedback race of one link stage-0
+  C-element (SLICE_X32Y45.A6): the stage's acknowledge returns before its own rise has gone round its routed
+  feedback. Shard B's RaceTablePS row for that node (sufficient: κ ≤ 0.415 / g ≤ 1.56) is within 0.025 / 0.03.
+- So a positive theorem for n ≥ 1 must be stated at (g, κ) inside B's bound, and its S4 proof must use B's race
+  rows as the per-cell switch obligations (the `cgate_switch` premise of route step (b)); nothing weaker survives.
+- Single-pin adversary sweeps at κ = 0.40 (412 control nodes x pins): 1,315/1,316 correct; the one failure is a
+  runt ring through arbiter 0 that needs H_ARB with T ≥ 7.2 ns and disappears under H_RUNT(20). Data bundling
+  (every latch data cone slow, all control fast) stays correct up to κ = 0.68; it gives a wrong value at 0.8.
+  So, in simulation, the control races (B's table) are what bind, not bundling.
+- Tools for future refutations: `Net/Stretch` (any reset length), `Net/Periodic` (never-quiet runs that repeat),
+  per-arc slow lists in the witness checks (CexR44/CexRg16 KBase/RBase), tools/huff/{hazsweep, bundadv, adv}.py.

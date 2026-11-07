@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 ap = argparse.ArgumentParser(); ap.add_argument("net"); ap.add_argument("bnd"); ap.add_argument("P", type=int); ap.add_argument("out")
 ap.add_argument("--jobs", type=int, default=2); ap.add_argument("--pairs", nargs="+", default=["1071,462"])
 ap.add_argument("--nodes", nargs="*", default=None); ap.add_argument("--default", default="F")
+ap.add_argument("--w", type=int, default=0)
 ap.add_argument("--fbonly", action="store_true", help="only each node's feedback pin(s)")
 ap.add_argument("--control", action="store_true", help="only storage nodes that are not latch-like (prep.py)")
 ap.add_argument("--mode", default="pin", choices=["pin", "allbutpin"])
@@ -72,7 +73,7 @@ def run(j):
     json.dump(cls, open(cf, "w"))
     cmd = ["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "simadv.py"), a.net, a.bnd, "--pairs", *a.pairs,
            "--corner", "0", "--kappa", str(a.P / 25), "--classes", cf, "--cdefault", a.default, "--data0", "--full",
-           "--R", "400000", "--su", "1000", "--datachange", "broad", "--nextreq", "seq", "--tmax", "3000000"]
+           "--R", "400000", "--su", "1000", "--datachange", "broad", "--nextreq", "seq", "--tmax", "3000000"] + (["--w", str(a.w)] if a.w else [])
     r = subprocess.run(cmd, capture_output=True, text=True)
     os.unlink(cf)
     res = [l for l in r.stdout.splitlines() if l.startswith("RESULT")]
