@@ -3277,3 +3277,10 @@ obligation (5 of 9) are now theorems, leaving order-level VALUE premises for S4 
 **Open for B:** the 4 power-up race rows; the 4 other arbiters; the one-acknowledge assembly (needs a careful reading
 of the state LUT's encoding: with A0 = 1 it outputs 1 whatever r1/r2/fb, so "A0 freezes q" is not the right shape);
 latch hold windows by certificates (need full-width runs where the data bits move); non-vacuity witnesses.
+
+### progress 14:06 -- correction: the state LUT DOES freeze q while A0 is high (decoded INIT)
+The summary's "with A0 = 1 it outputs 1 whatever r1/r2/fb" used the RTL INIT 0xFFF0FFB2ACACACAC with the ROUTED pin
+order; the decoded gate (SLICE_X38Y51.BLUT.O6, INIT 0xffffaab2e4e4e4e4, roles r1 = pin 2, r2 = 1, fb = 0, rst = 4,
+A0 = 3, pin 5 tied 1) gives, with rst low: A0 = 0: q = C(r1, ~r2) (set on r1·~r2, reset on ~r1·r2); A0 = 1: q = fb
+(frozen), as bd_arb.v says. So the one-acknowledge assembly has the expected shape: certificate (A0 cannot rise
+before the server path) + ArbOK (q settles within T) + freeze (A0 high holds q) + GrantExcl + AckLow.
