@@ -1232,3 +1232,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T07:02:37Z T32 done: s75ff seed 6 FAST_MIN 16/16 errs 0, vec 6 = 95 laps (matches research), lapcheck CLEAN; board candidate #5 CONFIRMED at all three corners on the board seed. T33 worst case now running.
 - 2026-11-07T07:23:54Z T35: formal A f446facf k72w20 dump checked with own H_RUNT(w) checker: GateOKRunt 20 behaviour, Env/SeqEnv/ArbOK T>=61, no out0 -> NetCorrectSeqRunt 20 false at g=1, kappa 18/25 (simulation; Lean pending). Owner notified.
 - 2026-11-07T07:40:26Z T33 done: BQ#1 seed 6 combined worst case reproduced exactly (16/16, 30/24/34, lapcheck CLEAN).
+- 2026-11-07T07:42:18Z T35 row 4: own check of w=25 dump (generated with formal's simrunt) CONFIRMS the counterexample for every w <= 25; w=26 run violates lag bound on 4 LUT pins (not a behaviour).
