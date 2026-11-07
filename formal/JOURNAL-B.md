@@ -3192,3 +3192,14 @@ acknowledgement path" of RaceTablePS by a proof for 158 rows; it is the S3 race 
 **Not covered:** 4 rows (power-up episodes, no post-reset certificate), 23 rows whose single certificate spans 19-40
 netlist chunks (killed for memory in one kernel decide; all have κ thresholds ≥ 0.94, the table minimum is 0.415);
 the premises themselves; non-vacuity (no Lean witness behaviour meeting all premises yet).
+
+### progress 10:30 -- arbiter server path: hold certificates from the state's change to A0 (Python, untrusted)
+ctlcert.py on the 3-pair corner-0 run, cause = the arbiter's state q changing, target = its A0 input (ArbViewPS role
+a0), κ = 0, dmin sums (sound-shape lower bounds, given the listed premises): ucontrol_merge10.uarb1 (SLICE_X38Y51.B)
+≥ 1,833 ps (7 LUT steps), SLICE_X14Y18.A ≥ 1,469 (5), SLICE_X14Y19.A ≥ 1,818 (7), SLICE_X18Y24.A ≥ 2,106-2,197 (7),
+SLICE_X39Y21.C ≥ 1,530 (4); SLICE_X39Y24.A and SLICE_X16Y31.A: A0's next change is not certified from q (A0 there
+moves for another reason in this run); SLICE_X16Y25.B, SLICE_X16Y18.D: q does not flip after reset in this run.
+**Meaning for H_ARB(T):** ArbTSpec.spec_double_ack needs A0 to act while q is still unsettled; with these certificates
+A0 cannot move before q's first change + ~1.47 ns (fast corner, κ = 0), so for T up to about that minus the read
+windows the server-path obligation holds (given the premises), while the non-vacuity floor is the state LUT's own
+upper delay (~664 ps slow). The Lean assembly (certificate + ArbOK + GrantExcl + AckLow) is the next step.
