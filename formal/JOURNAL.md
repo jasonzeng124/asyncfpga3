@@ -1864,3 +1864,17 @@ after the 0.72 chunks finish (one Lean chunk at a time on this sandbox). Not cla
 CexRunt72 chunks X000-X026 checked (27/75), then stopped: a refutation at 11/25 covers 18/25 through
 `FrontierRunt.seqRuntOn_anti_p`, so the 0.72 build is only a fallback. CexRunt44 X000 checks (66 s, split in thirds);
 X001-X074 building. FrontierRunt now states `not_seqRunt20_above44` (every g ≥ 1, κ ≥ 11/25, T ≥ 123) from CexRunt44.
+### progress 09:5x -- CHECKED: THE headline statement under H_RUNT(20) is false at g = 1, κ = 11/25 (and above)
+`Formal.Target.CexRunt44.not_netCorrectSeqRunt20 : ∀ T su Δo, 123 ≤ T → Δo ≤ 3000 →
+¬ NetCorrectSeqRunt 20 DecodedPS.net DecodedPS.boundary DecodedPS.arbs ⟨1, 11/25⟩ T 400000 su Δo` and
+`FrontierRunt.not_seqRunt20_above44` / `not_seqRunt_le20_above44`: the same for every g ≥ 1, κ ≥ 11/25 and every
+runt width w ≤ 20 (down-set in (g, κ), up-set in w, both proved here). lake build of all 75 chunk checks (each split in
+three decides, ~65-100 s each, one at a time), Wit, Refute, FrontierRunt; check.sh on RBase (both), Wit, Refute,
+FrontierRunt: OK, 1,372 declarations audited, standard axioms only; scan clean. **Plainly:** with the owner's runt
+hypothesis at its headline width (a LUT pin never reads inside a pulse narrower than 20 ps), no guard, and within-die
+scatter 0.44, THE target has a behaviour that obeys H_DECODE, H_DELAY, H_PRIM, H_ARB(T ≥ 123 ps), H_ENV + SeqEnv and
+H_RUNT(20), accepts (1071, 462) and never returns a result. The run is shard C's (7 arcs of one C-element's feedback
+route slow, all else fast; JOURNAL-C 07:40); the runt-filtered witness check and the Lean refutation are A's. With
+B's `race_margin` (that race is safe for κ ≤ 0.41), the g = 1, w ≤ 20 frontier of THE statement is below 0.44, and
+the one race known to bind it is safe up to 0.41. The κ = 18/25 build (CexRunt72, 27/75 chunks checked) is superseded
+and stopped; its RBase stays (checked).
