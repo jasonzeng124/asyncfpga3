@@ -2888,6 +2888,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   board test of the mechanism. (2) isprime's seed-30/25/29 failures, and the flagged-but-passing xorshift s50/s75,
   collatz s50, ipow s50 routes, are failures against a zero-delay handshaking environment at start->end, not internal
   hazards. They stay counted as failures (the sim is the gate; a real handshaking neighbour can answer in ~one wire).
-  (3) The fix belongs at the kernel boundary, not in the shrunk delays:  is a bare wire from the start fork, so
+  (3) The fix belongs at the kernel boundary, not in the shrunk delays: `end` is a bare wire from the start fork, so
   the environment's ack lands straight on a C-element pin. Candidates: a boundary stage whose C-element's feedback is
   local, or a placement rule keeping ufork0's feedback short; not built yet.
