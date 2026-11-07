@@ -3131,3 +3131,12 @@ fall-back. `target_b_switch_041`: at g = 1 and κ ≤ 0.41 the margin is `race_m
 remain. This is exactly the behaviour C's κ = 0.48 counterexample violates (b rises, the ack returns before b's
 slowed loop, b falls and oscillates). **Not shown:** the local premises (order-level; for C's network argument), b's
 fall direction, the other 184 race rows (same generator + Lean pattern).
+
+### progress 08:09 -- CertPS: a generic hold-certificate checker on THE target (check.sh OK)
+`Formal/Cells/CertPS.lean` (standard axioms): certificates = lists of `CRow` (a KRow plus, per controlling pin, a
+label: the cause, static premise k, or an EARLIER row k); `win` computes each row's hold window from the premise
+windows and the routed pin bands (start = max of source starts + hi, end = min of source ends + lo); `certOK`
+(Boolean: krowOK per row + labels: source node and controlled value match, earlier-row indices); `cert_sound`:
+in a behaviour at a corner, with the cause's value on [a, e], each static node's on [a, E k], and each memory row's
+own value on its feedback window before its hold, every row's node holds its value on its window. Next: generate
+certificates for the RaceTablePS rows (ctlcert.py -> gen) and check them with certOK by kernel decide.
