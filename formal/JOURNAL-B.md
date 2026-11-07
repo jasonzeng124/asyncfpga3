@@ -3148,3 +3148,11 @@ premises; memory only if needed), from simb dumps at corner 0 (3-pair broad run;
 for rows that do not flip there). 158 + 23 = 181 certificates; 4 rows have none from these dumps
 (SLICE_X4Y54.A, X4Y51.A, X16Y25.B, X16Y18.D). Lean: Formal/Cells/CertRowsPS(2)/Bxx.lean, `certsNN_ok` by kernel
 decide over `CertPS.certOK` (~6 GB, ~1 min per file); check.sh running (104 + 8 files). Not committed until it passes.
+
+### progress 08:16 -- CertMarginPS: certificate window ends as path sums, and the margin from arc-sum facts (check.sh OK)
+`Formal/Cells/CertMarginPS.lean` (standard axioms): `psum` (summed lower bands along a certificate's causal path),
+`win_end_ge` (with one non-static pin per row (`singlePath`) and static premises lasting to e + PS, each row's
+window ends no earlier than e + psum), `lo_sum_ge` / `hi_sum_le` (integer window ends vs the corner-linear real
+sums, g = 1), `margin_of_sums` (283·ΣFAST_MAX(loop) ≤ 117·ΣFAST_MIN(path) and the SLOW analogue give
+Σ hi(loop) ≤ Σ lo(path) for every κ ≤ 83/200 and every corner: RaceTablePS's facts, now for the integer bounds the
+certificates use). Next: per row, tie psum + the node's ack-pin band to RaceTablePS's path, and the switch assembly.
