@@ -2027,3 +2027,14 @@ Same picture as 15:2x: the parallel pass OOM-kills B's new large modules (BigCer
 the one-at-a-time retries do not finish inside one 2 h background command. Lake keeps what was built, so each run
 gets further; the only errors in both logs are exit 137 (memory). Not restarted again today (tool limit). For the
 next lead session: start `check.sh --committed` first thing and let it run across several 2 h windows.
+### progress 18:2x -- answers to the audit's two long-open owner-table rows (residual vacuity of ArbOK; H_ENV margins)
+- **Residual vacuity for T < D (audit T5, "still open").** For the parameters where it matters, the hypotheses are now
+  shown satisfiable by Lean-checked behaviours: every refutation of today exhibits a behaviour meeting Behaves(Runt),
+  ArbOK T, Env and SeqEnv at once -- at ⟨1, 11/25⟩ for every T ≥ 123 ps, at ⟨8/5, 0⟩ for every T ≥ 137, at ⟨1, 15/25⟩
+  for every T ≥ 88 (w ≤ 20 / 40), each for every reset ≥ 400 ns; C's `w1_hyps_and_correct` does the same at ⟨1, 0⟩ for
+  T ≥ 220. So the statements refuted today are not vacuously true or false there; the T5 point (vacuity for T below the
+  state-LUT delay) remains a fact about small T, and a positive result must still be stated at T ≥ the slowest
+  state-LUT arc (STATUS row 4).
+- **H_ENV margins R, su, Δo ("still open").** Δo: the board's end channel needs Δo ≤ (1-κ)·535/g ps (2026-11-06); su: every
+  refutation holds for every su; R: every refutation holds for every reset length ≥ 400 ns (SpecStutter / Net/Stretch),
+  so the board's long reset is covered. The margins no longer affect any verdict reported here.
