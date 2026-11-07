@@ -32,10 +32,17 @@ would be stated if the frontier is reported per corner; at κ ≥ 0.1 every LUT 
 and the read-map form can always skip a sub-20 pulse (a window of W+1 points minus a pulse of < W+1 points leaves
 a point; monotonicity is kept by reading before, then after the pulse).
 
+**Simulation (untrusted; tools-B/ps/lean2json.py + tools-B/target/simb.py + tools-B/ps/runtscan.py):** corner 0,
+κ = 0, mid-window delays (pos 0.5), --datachange broad (inside Env): (12, 18) alone has 5, and (12,18), (1071,462),
+(6,4) has 12, pulses of 13-14 ps on narrow-window LUT pin sources (CLBLM_R_X21Y73 / X21Y78, CLBLL_R_X19Y73; windows
+12-13 delays); results correct. So these natural behaviours of THE target are NOT BehavesRunt 20 behaviours. At pos 0,
+0.25, 0.75, 1 the (12,18) run has none (the pulses are optional, not forced).
+
 **Not shown:** that the target's admissible behaviours carry pulses of width in [window, 20) on those pins' sources
 (that is what would make a difference: forced -> vacuity for that environment; optional -> behaviours dropped).
 
-**Proposed fix (for shard A, owner of SpecRunt.lean):** state H_RUNT as a filter on the value read, not a ban on the
+**Proposed fix (for shard A, owner of SpecRunt.lean), now checked in Lean: `Formal/Cells/RuntFilter.lean`**
+(`filt`, `GateOKFiltOn`, `gateOKFilt_zero`, `toy_filtered`, `toy_frozen_glitch`). state H_RUNT as a filter on the value read, not a ban on the
 read time. For a LUT pin, the gate reads `filt w s` instead of `s`, where `filt w s t = s t` if `t` lies in a
 maximal constant run of `s` of length ≥ w (or one that starts at 0), and otherwise `filt w s (a - 1)` with `a` the
 start of `t`'s run (well-founded: `a ≤ t`). It is total (every `GateOK` read map stays a read map), so it never
