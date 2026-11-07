@@ -1216,3 +1216,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 00:17Z T31: research ce_return screen (169 routes) noted UNVERIFIED; contrasted with formal's mixed-corner C-element runt (T28).
 - 00:19Z lock (after restart).
 - 00:59Z lock.
+- 01:39Z lock.
