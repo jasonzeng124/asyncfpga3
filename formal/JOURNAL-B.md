@@ -3203,3 +3203,19 @@ moves for another reason in this run); SLICE_X16Y25.B, SLICE_X16Y18.D: q does no
 A0 cannot move before q's first change + ~1.47 ns (fast corner, κ = 0), so for T up to about that minus the read
 windows the server-path obligation holds (given the premises), while the non-vacuity floor is the state LUT's own
 upper delay (~664 ps slow). The Lean assembly (certificate + ArbOK + GrantExcl + AckLow) is the next step.
+
+### progress 10:38 -- CHECKED: five arbiters settle before their server answers, under H_ARB(T), every behaviour (ArbServer, ArbServerPS)
+**Problem, plainly:** ArbTSpec.spec_double_ack shows H_ARB(T) alone allows the server's A0 to act while the arbiter
+state q is still moving (both clients acknowledged). The missing obligation: q has settled before A0 can change.
+**Lean (standard axioms; lake build + check.sh audit):** `ArbServer.q_settles` (generic: a chain certificate from q
+to the copy gate driving the state LUT's A0 pin node (`arbCertOK`) + ArbOK T: with q unchanged on [a, e], the
+certificate premises, the other state inputs constant on [t1, t2], t2 ≤ e + psum: q constant on [t1 + T, t2]);
+`target_arbs_settle_of` (list form, one corner); `ArbServerPS.target_arbs_settle` for ucontrol_merge10.uarb1
+(SLICE_X38Y51.B, arbs[0]) and SLICE_X14Y18.A, X14Y19.A, X18Y24.A, X39Y21.C (arbs[5..8]); certificates `CertArbPS`
+(5 certificates, 5-8 rows: q -> R0 (the state LUT's O5) -> ... -> A0 source -> A0 pin node; 2-5 static premises
+each; out/target_ps_arbcerts.json). **Reading:** if q first moves at e + 1 ≥ t1, the A0 pin node cannot change
+before e + psum (≥ ~1.47-2.2 ns at the fast corner, κ = 0, Python), so for T below that the state has settled before
+the server's answer reaches it: the server-path obligation of the one-acknowledge argument, as a theorem modulo the
+local premises. **Not shown:** the assembly with GrantExcl/AckLow into "one acknowledge per transaction"; the premises;
+arbiters arbs[1..4] (no post-reset chain certificate in the runs used: A0 there changes for another reason, or q never
+flips after reset).

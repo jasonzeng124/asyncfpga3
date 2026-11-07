@@ -90,3 +90,16 @@ if Bn in U and "--tree" in sys.argv:
         for j in WHY[n]: walk(g["ins"][j], d + 1)
     walk(Bn, 0)
     print("\n".join(out)); print("LUT steps:", len(seen))
+if Bn in U and "--chainjson" in sys.argv:
+    # the certificate as a single chain from the target back to the cause, if every step has exactly one pin whose
+    # source is certified (not static) -- RaceTablePS-style path [(gate, pin) ...] from the target side to the cause
+    out = []; n = Bn; ok = True
+    while n != A:
+        if n not in U: ok = False; break
+        g = gates[drv[n]]
+        if g["k"] == 1 and g["init"] == 2: n = g["ins"][0]; continue
+        dyn = [j for j in WHY[n] if root(g["ins"][j]) == A or root(g["ins"][j]) in U]
+        if len(dyn) != 1: ok = False; break
+        out.append((drv[n], dyn[0])); n = root(g["ins"][dyn[0]])
+    path = sys.argv[sys.argv.index("--chainjson") + 1]
+    json.dump(dict(ok=ok, path=out), open(path, "w")); print("chain", ok, len(out))
