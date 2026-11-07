@@ -53,6 +53,7 @@ def main():
     ap.add_argument("--kappa", type=float, default=None)
     ap.add_argument("--w", type=int, default=0, help="H_RUNT(w) on LUT pins (A)")
     ap.add_argument("--classes", default=None, help="JSON {S: [[node, pin], ..]}: per-ARC slow list, exact, corner 0 (A, C's format)")
+    ap.add_argument("--kden", type=int, default=25, help="kappa denominator Q: kappa = P/Q exactly with --classes (A)")
     ap.add_argument("--sslack", type=int, default=0, help="slow arcs get (top of window) - sslack ps, so a LUT pin at the top can still skip a pulse up to sslack wide and stay inside Adm (A)")
     ap.add_argument("--fast", nargs="*", default=None, help="only these gates (and their input routes) fast; all others mid-window")
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
@@ -137,10 +138,10 @@ def main():
 
     def dly(e, gi=None, pin=None):
         if ACL:
-            P = round(a.kappa * 25); assert c == 0 and abs(a.kappa - P / 25) < 1e-12
+            Q = a.kden; P = round(a.kappa * Q); assert c == 0 and abs(a.kappa - P / Q) < 1e-12
             if gi is not None and ACL.get((gates[gi]["out"], pin)) == "S":
-                return max(((25 + P) * e["fmax"]) // 25 - a.sslack, ((25 - P) * e["fmin"] + 24) // 25)
-            return ((25 - P) * e["fmin"] + 24) // 25
+                return max(((Q + P) * e["fmax"]) // Q - a.sslack, ((Q - P) * e["fmin"] + Q - 1) // Q)
+            return ((Q - P) * e["fmin"] + Q - 1) // Q
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
             if a.exact:   # kappa = P/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)

@@ -1915,3 +1915,9 @@ verifying each one inside `Adm (pP P) 0`. This is the general form -- any future
 needs only data, no new soundness proof. `gen_runtp.py` grew an optional SSLACK argument that emits it (regenerating
 CexRunt44 with the edited generator gives byte-identical files, so the edit is safe). Data + Wit/Refute for the
 w = 40, κ = 15/25 run in `Formal/Target/CexRuntD60/` (ArbOK T ≥ 88). Queued behind CexRuntG16; not claimed.
+### progress 10:3x -- the 0.44 counterexample cannot be pushed below 0.44 with this adversary (κ = P/100 sweep)
+`simrunt.py --kden Q` (κ = P/Q exactly, same integer formulas): with C's 7 arcs, w = 20, the run is CORRECT at
+κ = 42/100 and 43/100 (at 0.43 it is not even admissible: the slow pin has no skip room) and deadlocks at 44/100.
+So on this race the g = 1, w ≤ 20 picture is: proved safe up to κ = 0.41 (B, Lean; real relaxation 0.417), correct in
+this adversary at 0.42-0.43, refuted at 0.44 (Lean). The remaining gap is ~0.02 and would need either a different
+adversary or B's premises discharged. Nothing here says the statement HOLDS below 0.44.
