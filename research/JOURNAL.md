@@ -2916,3 +2916,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - BQ#1 seeds 6, 7, 9 (compile OOM-killed on 11-06, rerun with --sim-jobs 1): PASS 16/16 errs=0, EQUIVALENT; vec 6
   laps 30 / 32 / 33. BQ#1 worst case now 8/8 (research/data/fid/bq1_worstcase.tsv; vec 6 mean 32.0, 30-34). Seed 8's
   NOT_EQUIVALENT is the benign GND-buffer F7 class. So BQ#1, #2, #3 and #5 all pass the combined worst case on 8 routes.
+### progress 11:02 (collatz64: T4 baseline on routes 5-8 clean; x0.75 pairs on 8 routes at 1.18x)
+- collatz64 T4 (validated sizes) seeds 5-8, full stack: 12/12 PASS (SLOW_MAX, FAST_MIN, combined worst case; stalled
+  and fast), bits vs JSON 4/4 EQUIVALENT -> collatz64 base 24/24 on 8 routes (item 4).
+- Item 3 collatz64 x0.75 paired by seed on all 8 routes (sum of stalled latencies, base/step): SLOW_MAX 1.183 (1.12-1.24),
+  FAST_MIN 1.182 (1.12-1.22), worst case 1.177 (1.11-1.25); was 1.166 on 4 routes. nextpnr: k4 routes record only
+  0.9.2-100-gbfdeaf7c (see ceret caveat).

@@ -70,7 +70,7 @@ the corner. The rules leave little room on ipow; the sim's floor lies between th
 
 Operator-only x0.5 is safe but buys 5-7%, against 1.44x for uniform x0.5: most of xorshift's cycle is in the LINK request
 delays (rdly), which are also where its select races live (umux3's empty pipe). Speed and risk sit in the same lines.
-| collatz64 T4 x0.75 | 15 sizes | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | (seeds 1-4 paired:) 1.173 / 1.175 (1.12-1.21); 1.166 (1.11-1.19) |
+| collatz64 T4 x0.75 | 15 sizes | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.183 / 1.182 (1.12-1.24); 1.177 (1.11-1.25) |
 | isprime x0.75 | 15 sizes | 25 (of 25-28) | **FAIL**: seed 25 FAST_MIN hangs (fast mode, vector 4); rest not run | - | - |
 
 isprime's base sizes (rule-E-6 pads) were never ratcheted, so it had the least slack; per-cell audits on its base routes
@@ -87,7 +87,7 @@ too. ipow's floor lies between x0.75 (holds) and x0.5 (fails the worst case on 2
 |---|---|---|---|---|
 | xorshift | x0.5 (x0.375, x0.25 fail) | 8 | 1.418x | 1.447 / 1.444 |
 | collatz | per-cell (x0.5 fails) | 8 | 1.155x | 1.157 / 1.153 |
-| collatz64 | x0.75 | 8 (pairing on 1-4; T4 baseline on 5-8 queued) | 1.166x | 1.173 / 1.175 |
+| collatz64 | x0.75 | 8 | 1.177x | 1.183 / 1.182 |
 | ipow | x0.75 (x0.5 fails; per-cell 1.02x) | 8 | 1.129x | 1.135 / 1.132 |
 | isprime | none yet: per-cell holds on 4 routes but fails route 29 (x0.75 fails) | - | - | - |
 | gcd_hw (BQ#2 R5) | x0.75 + link fast fall | 8 (worst case 8/8, corners 16/16: s75ff_worstcase.tsv, s75ff_corners.tsv) | 1.132x laps vs BQ#2, 1.083x vs BQ#3 (4 common seeds) | vec6 laps 35.4 / 96.9 (SLOW_MAX / FAST_MIN), 1.060 / 1.053 x R5 x0.75's on the same 8 seeds |
