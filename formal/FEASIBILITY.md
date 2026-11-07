@@ -7,26 +7,27 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
-**2026-11-07 (lead): the margin is now bracketed by one race, with and without the runt filter.**
-- **Binding race, both sides.** One C-element of THE target (ulink_n_falseResult_85 stage 0, SLICE_X32Y45.A6) must see
-  its acknowledge return no earlier than its own feedback loop. Shard B **proved** that obligation for every
-  behaviour at g = 1, κ ≤ 0.41, every corner (`RaceCertPS.race_margin`, `target_b_switch_041`, Lean; one race row
-  of 185, local premises open). Shard C **found** (simulation, independently checked; Lean at κ = 12/25 building) that
-  slowing only that node's 7-arc feedback route and making everything else fast deadlocks the pair (1071, 462) at
-  κ = 0.48 (w = 0), at κ = 0.44 under H_RUNT(20), and at g = 1.59, κ = 0. So the g = 1 frontier is in [0.41, 0.44)
-  for this race if the Lean versions hold, and B's sufficient bound is tight to 0.03.
-- **H_RUNT(20) does not move the frontier.** Shard A: C's κ = 0.72 deadlock and its 0.44 one are plain races,
-  not runt mechanisms; both survive a Spec-faithful runt filter on every LUT pin (simrunt.py; independent checker
-  gatecheck_runt.py). Lean: `CexRunt72.RBase` / `CexRuntP.RBase` (a finite check sound for `SpecRunt.GateOKRunt`,
-  CHECKED); **the refutation of `NetCorrectSeqRunt 20` at κ = 11/25 is CHECKED** (`CexRunt44.not_netCorrectSeqRunt20`,
-  C's run, T ≥ 123, standard axioms) and, with `FrontierRunt` (down-set in (g, κ), up-set in w, both proved), covers
-  every g ≥ 1, κ ≥ 11/25, w ≤ 20, and (`FrontierRuntR`) every reset length R ≥ 400 ns, so the board's long reset is
-  covered. With B's 0.41 proof the g = 1 margin of the binding race is in [0.41, 0.44).
-  Guard axis, also CHECKED (`CexRuntG16`, `FrontierRunt.not_seqRunt_le20_aboveG16`): false for every g ≥ 8/5 at
-  κ = 0 (B's bound for that race: g ≤ 1.56). A wider filter helps a little: at w = 40 the statement is false from
-  κ = 15/25 (`FrontierRunt40.not_seqRunt40_above60`, Lean; simulation: correct at 0.52).
-- **Verdict unchanged in kind:** THE theorem is false above a small scatter (≈ 0.44 at g = 1, ≈ 1.59 guard at κ = 0) for
-  a reason that is a real timing race in the circuit, not an artefact of the gate model or the runt semantics.
+**2026-11-07 (lead): THE statement is refuted on THE target, with and without the runt filter, at the board's
+reset, along both axes of the owner's frontier; one race binds it.** Lean, standard axioms, check.sh OK:
+- **Refutations** (`Formal/Target/FrontierRuntR.lean`, all for every reset length R ≥ 400 ns, any su, Δo ≤ 3 ns):
+  - `not_seqRunt_le20_above44_R`: false for every runt width w ≤ 20 (the owner's headline H_RUNT(20) included),
+    every g ≥ 1 and every κ ≥ 11/25, T ≥ 123;
+  - `not_seqRunt_le20_aboveG16_R`: false for every w ≤ 20, every guard g ≥ 8/5 and every κ ≥ 0, T ≥ 137;
+  - `not_seqRunt40_above60_R`: false for every w ≤ 40, g ≥ 1, κ ≥ 15/25, T ≥ 88;
+  - `not_seq_above44_R` / `not_seq_aboveG16_R`: the plain frozen statement likewise.
+  Witness runs: shard C's (one C-element's feedback race, JOURNAL-C 07:31-07:40) and A's (the same race with 40 ps of
+  slack for the w = 40 filter). Checked by A's runt witness check (`CexRunt72/CexRuntP/CexRuntG/CexRuntD .RBase`:
+  per LUT pin, reads jump over chains of narrow pulses inside the delay window), extended to any reset length by a
+  generic stutter lemma (`SpecStutter`), and made monotone by `FrontierRunt` (down-set in (g, κ), up-set in w).
+  Audit T37 confirms the runs and the κ = 11/25 and g = 8/5 Lean refutations independently.
+- **The binding race, safe side.** Shard B proved the same race safe in every behaviour at g = 1, κ ≤ 0.41, every
+  corner (`RaceCertPS.race_margin`, `target_b_switch_041`; one race row of 185, local premises open). In simulation
+  the adversary is correct at κ = 0.42 and 0.43. **So at g = 1 the margin of THE statement is below 0.44, and the race
+  that sets it is safe to 0.41;** on the guard axis below 1.6 (B's sufficient bound 1.56).
+- **What the runt filter buys:** nothing up to 20 ps; at 40 ps the failure point moves from κ = 0.44 to at most 0.60.
+  The circuit's problem is a race (an acknowledge returning before the C-element's own feedback loop), not runts.
+- **Not proved: any positive result for n ≥ 1 pairs.** Whether the statement holds anywhere (for example at
+  κ ≤ 0.41) needs the network argument (C's S4/S6, A's `Plan`), which is not done.
 
 **2026-11-06 (lead): where THE theorem stands on THE target `gcd_ps_e6bb4aec.bit`** (details and the shrinking
 hypothesis list: `formal/target/STATUS.md`). Lean-checked, standard axioms:
