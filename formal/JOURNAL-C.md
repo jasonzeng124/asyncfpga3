@@ -1750,7 +1750,7 @@ for this race the g = 1 frontier is in [0.415, 0.44): B's sufficient bound is ti
 Lean refutation at κ = 12/25 (KBase with per-arc slow list), and a sweep of all 412 control storage nodes x pins at
 κ = 0.40 (running, 1,316 runs) for anything lower.
 
-### progress 07:46 -- the same race along the guard axis: deadlock at g = 1.59, κ = 0 (simulation + checks; NOT Lean); B's g ≤ 1.56 is tight to 0.03
+### progress 07:36 -- the same race along the guard axis: deadlock at g = 1.59, κ = 0 (simulation + checks; NOT Lean); B's g ≤ 1.56 is tight to 0.03
 `simadv.py --gfrac N/D` (κ = 0: slow arcs at ⌊g·FAST_MAX⌋, others at ⌈FAST_MIN/g⌉, both inside Adm ⟨g, 0⟩ at corner 0).
 Same 7 slow arcs (SLICE_X32Y45.A6's feedback route), pair (1071, 462), SeqEnv env: **correct at g = 1.50, 1.55,
 1.57, 1.58; fails at 1.59 (9.2 M events, then quiet, no out0), 1.6, 1.7, 1.8 (quiet deadlocks).** B's sufficient
