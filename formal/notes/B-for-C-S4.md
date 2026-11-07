@@ -34,11 +34,20 @@ Arbiter 0, transaction where q falls (`Formal.Cells.ArbOneAckPS.target_arb0_one_
 q low at t1 + T, the reset low, A1 low before s0 and the overlap condition (T small enough), the losing client's
 acknowledge A1 stays low on [s0, t2 + …]: the one-acknowledge property for that transaction.
 
-Updated 15:05: settle also for arbs[1], arbs[3] (`Formal.Cells.ArbServerPS3.target_arbs_settle`, 7 of 9 in all).
+Updated 14:29: settle also for arbs[1], arbs[3] (`Formal.Cells.ArbServerPS3.target_arbs_settle`, 7 of 9 in all).
 One-acknowledge (`ArbOneAck.one_ack_of` instances): `ArbOneAckAllPS.target_one_ack` (arbs[0],[5],[6],[7],[8], one
 direction of q), `ArbOneAckAllPS2.target_one_ack` (arbs[0],[5],[7],[8], the other direction),
 `ArbOneAckAllPS3.target_one_ack` (arbs[1],[3], q leaving true), `ArbOneAckAllPS4.target_one_ack` (arbs[6], the
 other direction). Same premise shape as above.
+
+## Latch hold windows (`Formal.Cells.LatchHoldCert.target_latch_holds_of`, instance `LatchHoldPS.target_latch_holds`)
+Updated 14:46. For each listed latch, with one corner for certificates and latches: if the enable source shows its
+open value on `[a, e]` (the certificate's cause), the certificate's static side inputs / memory rows hold, the
+enable is closed on `[e + 1, E']`, the data source shows `v` from `e + 1 - Wd` up to the certificate's window start
+(setup half), and the latch's own inequalities hold, then the latch holds `v` on `[A, E' + lo e]`. The HOLD half of
+the data window (`… ≤ τ + hi e`) and the open window are no longer premises. Each row is valid for κ with
+`(1+κ)·kB ≤ kA·(1-κ)` (its own range; 0.346-0.68 for the first 8). Premise lists: out/target_ps_latchholds*.json
+(when generated).
 
 ## Generic tools (reusable for other nodes / kernels)
 `CtlChain` (hold_set, hold_mem), `CertPS` (certOK / cert_sound), `CertMarginPS` (win_end_ge, margin_of_sums),

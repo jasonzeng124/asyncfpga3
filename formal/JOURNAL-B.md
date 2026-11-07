@@ -3308,7 +3308,7 @@ behaviour of THE circuit with H_ARB(T), under the premises (as in 14:13's entry)
 stays low through the transaction. Standard axioms, check.sh OK. **Not shown:** the opposite direction of each
 (needs a certificate from a flip of the other polarity), arbs[1..4], the premises.
 
-### progress 15:05 -- CHECKED: one-acknowledge in the other direction (4 arbiters); arbiters 1 and 3 settle + one-ack
+### progress 14:29 -- CHECKED: one-acknowledge in the other direction (4 arbiters); arbiters 1 and 3 settle + one-ack
 **Problem, plainly:** `ArbOneAckAllPS` showed the losing client is not acknowledged for 5 arbiters, each in one
 transaction direction only (q leaving one value). The other direction needs a certificate from a q flip of the other
 polarity; arbs[1..4] had no server-path certificate at all.
@@ -3334,14 +3334,14 @@ another reason)" was the ctlcert absent-node bug: in d3 arbiter 3's A0 change do
 and it is now certified. For SLICE_X39Y24.A the "another reason" reading stands (its A0 change follows arbiter 3's q),
 but a hold certificate from its own q exists all the same (ArbServerPS3).
 
-### progress 15:25 -- CHECKED: arbs[6] one-acknowledge in the other direction (ArbOneAckAllPS4)
+### progress 14:32 -- CHECKED: arbs[6] one-acknowledge in the other direction (ArbOneAckAllPS4)
 `CertArbPS4` (1 certificate: arbs[6] = SLICE_X14Y19.A, q leaving true at 1,507,123 ps in the simb dump
 dd_0x40000000_0x60000000; 7 LUT steps; ctlcert bound 1818 ps, fast corner, κ = 0, Python) and
 `ArbOneAckAllPS4.target_one_ack`. lake build + check.sh OK (standard axioms). arbs[0], [5], [6], [7], [8] now have the
 one-acknowledge statement for both directions of q; arbs[1], [3] for q leaving true only (every dump here flips them
 once, true -> false); arbs[2], [4] none. Same premises/reading as ArbOneAckAllPS.
 
-### progress 15:35 -- what the remaining uncovered rows are (Python, untrusted)
+### progress 14:33 -- what the remaining uncovered rows are (Python, untrusted)
 The 4 RaceTablePS rows without a certificate (SLICE_X4Y54.A, SLICE_X4Y51.A, SLICE_X16Y25.B, SLICE_X16Y18.D) are
 exactly the storage nodes that never flip after reset (t > 400 ns) in any of the 15 simb.py dumps here (d0, d3, dp,
 12 dd_* input pairs); the last two are the states q of arbs[2] and arbs[4], the two arbiters without a server-path
@@ -3350,7 +3350,7 @@ what is left is nodes these workloads never move. A certificate for them needs a
 (or a search for sensitizing values, which gives premises nobody has seen hold), or a network-level argument (C) that
 they do not move after reset, which would make their race obligations vacuous. Not attempted here.
 
-### progress 17:10 -- CHECKED: latch hold windows from certificates (LatchHoldCert; first 8 latches, LatchHoldPS)
+### progress 14:46 -- CHECKED: latch hold windows from certificates (LatchHoldCert; first 8 latches, LatchHoldPS)
 **Problem, plainly:** `LatchViewPS.target_ps_latch_close` (4,185 latches) assumes each latch's data source keeps the
 captured value until `τ + hi e` (the HOLD half of its data window) and that the enable was open before τ. In a
 bundled-data pipeline the next data is released only in response to the close itself, so the hold is a race between
