@@ -116,6 +116,7 @@ for row in R[:MAXR]:
                       steps=[N["nodes"][g] for g, cs, labs in crows], ack_pin=ja, feedback_pin=jf))
 import os
 C = 2500; MAXC = int(os.environ.get("MAXC", "10"))
+MAXC2_FROM, MAXC2 = (int(x) for x in os.environ["MAXC2"].split(":")) if os.environ.get("MAXC2") else (0, 0)
 def lnest(xs):
     acc = xs[0]
     for x in xs[1:]: acc = "⟨%s, %s⟩" % (acc, x)
@@ -126,7 +127,8 @@ def chunks_of(rt):
 files = []; cur = []; cs = set()
 for i, (nm, prem, rt, ns, _n, _a, _f, _s) in enumerate(certs):
     ch = chunks_of(rt)
-    if cur and len(cs | ch) > MAXC: files.append((cur, cs)); cur = []; cs = set()
+    mc = MAXC2 if MAXC2 and len(files) >= MAXC2_FROM else MAXC   # env MAXC2=K:N: from file K on, at most N chunks
+    if cur and len(cs | ch) > mc: files.append((cur, cs)); cur = []; cs = set()
     cur.append(i); cs |= ch
 if cur: files.append((cur, cs))
 D = os.path.join(OUT, NAME); os.makedirs(D, exist_ok=True)
