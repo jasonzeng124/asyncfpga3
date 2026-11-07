@@ -1234,3 +1234,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T07:40:26Z T33 done: BQ#1 seed 6 combined worst case reproduced exactly (16/16, 30/24/34, lapcheck CLEAN).
 - 2026-11-07T07:42:18Z T35 row 4: own check of w=25 dump (generated with formal's simrunt) CONFIRMS the counterexample for every w <= 25; w=26 run violates lag bound on 4 LUT pins (not a behaviour).
 - 2026-11-07T08:08:44Z T36 started: building formal B RaceCertPS (63129f39) in own worktree; audit file lean/T36/AuditT36.lean (axioms, mutation kappa 0.42). Formal A CexRunt72 Lean (1e1c7c85/12b9d156) present but not yet claimed.
+- 2026-11-07T08:10:08Z T36 done: RaceCertPS builds, standard axioms, statements as claimed, mutations (42/100, 44/100) fail; integer margin holds to 0.42, fails at 0.44.

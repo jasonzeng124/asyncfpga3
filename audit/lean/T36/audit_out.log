@@ -1,0 +1,63 @@
+@target_ack_holds : ∀ {p : DelayPar},
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ {x : Beh},
+      Behaves p (circuit DecodedPS.net DecodedPS.boundary) x →
+        ∃ c,
+          0 ≤ c ∧
+            c ≤ 1 ∧
+              ∀ (a e E ar : ℕ),
+                (∀ r ∈ rows, KRow.S p r ≤ a) →
+                  (∀ (t : ℕ), a ≤ t → t ≤ e → x 120808 t = false) →
+                    (∀ (t : ℕ), ar ≤ t → x 186905 t = false) →
+                      ar + KRow.hi p c k4 1 ≤
+                          a + KRow.hi p c k1 4 + KRow.hi p c k2 4 + KRow.hi p c k3 3 + KRow.hi p c k4 3 →
+                        (∀ (t : ℕ), a ≤ t → t ≤ E → x 140520 t = false) →
+                          1 ≤ KRow.lo p c k4 4 →
+                            (∀ (t : ℕ),
+                                a + KRow.hi p c k1 4 + KRow.hi p c k2 4 + KRow.hi p c k3 3 + KRow.hi p c k4 3 ≤
+                                    t + KRow.hi p c k4 4 →
+                                  t < a + KRow.hi p c k1 4 + KRow.hi p c k2 4 + KRow.hi p c k3 3 + KRow.hi p c k4 3 →
+                                    x 135829 t = false) →
+                              ∀ (t : ℕ),
+                                a + KRow.hi p c k1 4 + KRow.hi p c k2 4 + KRow.hi p c k3 3 + KRow.hi p c k4 3 +
+                                      KRow.hi p c k5 4 ≤
+                                    t →
+                                  a + KRow.hi p c k5 0 ≤ t →
+                                    t ≤
+                                        e + KRow.lo p c k1 4 + KRow.lo p c k2 4 + KRow.lo p c k3 3 + KRow.lo p c k4 3 +
+                                          KRow.lo p c k5 4 →
+                                      t ≤ E + KRow.lo p c k5 0 → x 140537 t = false
+race_margin : ∀ (κ c : ℚ),
+  0 ≤ κ →
+    κ ≤ 41 / 100 →
+      0 ≤ c →
+        c ≤ 1 →
+          KRow.hi { g := 1, κ := κ } c kb 0 ≤
+            KRow.lo { g := 1, κ := κ } c k1 4 + KRow.lo { g := 1, κ := κ } c k2 4 + KRow.lo { g := 1, κ := κ } c k3 3 +
+                  KRow.lo { g := 1, κ := κ } c k4 3 +
+                KRow.lo { g := 1, κ := κ } c k5 4 +
+              KRow.lo { g := 1, κ := κ } c kb 4
+'Formal.Cells.RaceCertPS.target_ack_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.RaceCertPS.race_margin' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Cells.RaceCertPS.rows_ok' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.RaceCertPS.kb_view' depends on axioms: [propext, Quot.sound]
+'Formal.Cells.RaceCertPS.kb_src' depends on axioms: [propext]
+[(620, 642), (623, 639), (625, 634), (633, 611)]
+Audit/AuditT36.lean:17:81: error: Tactic `decide` failed to reduce
+  @decide
+    (¬KRow.hi { g := 1, κ := 42 / 100 } 0 kb 0 ≤
+        KRow.lo { g := 1, κ := 42 / 100 } 0 k1 4 + KRow.lo { g := 1, κ := 42 / 100 } 0 k2 4 +
+                KRow.lo { g := 1, κ := 42 / 100 } 0 k3 3 +
+              KRow.lo { g := 1, κ := 42 / 100 } 0 k4 3 +
+            KRow.lo { g := 1, κ := 42 / 100 } 0 k5 4 +
+          KRow.lo { g := 1, κ := 42 / 100 } 0 kb 4)
+    instDecidableNot
+to `true` or `false`.
+
+Reduction got stuck at
+  (KRow.hi { g := 1, κ := 42 / 100 } 0 kb 0).ble
+    (KRow.lo { g := 1, κ := 42 / 100 } 0 k1 4 + KRow.lo { g := 1, κ := 42 / 100 } 0 k2 4 +
+            KRow.lo { g := 1, κ := 42 / 100 } 0 k3 3 +
+          KRow.lo { g := 1, κ := 42 / 100 } 0 k4 3 +
+        KRow.lo { g := 1, κ := 42 / 100 } 0 k5 4 +
+      KRow.lo { g := 1, κ := 42 / 100 } 0 kb 4)
