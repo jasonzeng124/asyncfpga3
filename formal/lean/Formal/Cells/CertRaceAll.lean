@@ -179,4 +179,36 @@ theorem race_row {r : RaceRow} (hc : certOK r.pc.1 r.pc.2 = true) (hr : raceOK r
   exact ⟨hja, hjf, hq, race_holds hk0 hk hb r.pc.1 r.pc.2 r.node r.ja r.jf hc hsp hch hn h1 h2 hc0 hc1 G a e E PS
     hcause hstat hmem hPS hE hB⟩
 
+/-- **Every checked race row, in every behaviour of THE circuit** (one corner for all rows): for g = 1, κ ≤ 83/200,
+for each row of a list whose rows pass `certOK` and `raceOK`, given the row's certificate premises, the node's
+acknowledge pin reads the old acknowledge value throughout the node's feedback-loop upper delay after its flip. -/
+theorem target_races_of (L : List RaceRow) (hL : ∀ r ∈ L, certOK r.pc.1 r.pc.2 = true ∧ raceOK r = true)
+    {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh} (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) :
+    ∃ c : ℚ, 0 ≤ c ∧ c ≤ 1 ∧ ∀ r ∈ L, ∀ (a e : Nat) (E : Nat → Nat) (PS : Nat),
+      (∀ t, a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv) →
+      (∀ k, k < r.pc.1.sn.length → ∀ t, a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false) →
+      (∀ i, i < r.pc.2.length → (r.pc.2.getD i default).r.mem = true →
+        1 ≤ (r.pc.2.getD i default).r.lo ⟨1, κ⟩ c (r.pc.2.getD i default).r.fb ∧
+        ∀ t, (win ⟨1, κ⟩ c a e E r.pc.2 i).1 ≤ t + (r.pc.2.getD i default).r.hi ⟨1, κ⟩ c (r.pc.2.getD i default).r.fb →
+          t < (win ⟨1, κ⟩ c a e E r.pc.2 i).1 → x (r.pc.2.getD i default).r.q t = (r.pc.2.getD i default).r.w) →
+      (∀ i, i < r.pc.2.length → psum ⟨1, κ⟩ c r.pc.2 i ≤ PS) → (∀ k, e + PS ≤ E k) → e + PS ≤ BIG →
+      (r.node.pins.getD r.ja ([], 0)).2 = (r.pc.2.getD (r.pc.2.length - 1) default).r.q ∧
+      (r.node.pins.getD r.jf ([], 0)).2 = r.node.q ∧ r.node.q = r.pc.1.cn ∧
+      ∀ u, (win ⟨1, κ⟩ c a e E r.pc.2 (r.pc.2.length - 1)).1 ≤ u →
+        u + r.node.lo ⟨1, κ⟩ c r.ja ≤ e + r.node.hi ⟨1, κ⟩ c r.jf →
+        x (r.pc.2.getD (r.pc.2.length - 1) default).r.q u = (r.pc.2.getD (r.pc.2.length - 1) default).r.w := by
+  have hp : Formal.Timing.SpecSettle.Sane ⟨1, κ⟩ := ⟨hk0, by linarith, by norm_num⟩
+  obtain ⟨c, hc0, hc1, hcol⟩ := Formal.Cells.ViewPS.view_collapse hp hb
+    (L.flatMap fun r => (List.range r.pc.2.length).map fun i =>
+      ((r.pc.2.getD i default).r.q, (r.pc.2.getD i default).r.pins)) (by
+      simp only [List.all_eq_true, List.mem_flatMap, List.mem_map, List.mem_range]
+      rintro e ⟨r, hr, i, hi, rfl⟩
+      have hc := (hL r hr).1
+      simp only [certOK, List.all_eq_true, List.mem_range, Bool.and_eq_true] at hc
+      exact (krow_facts hb (hc i hi).1).2.2.2.2.2)
+  refine ⟨c, hc0, hc1, fun r hr a e E PS h1 h2 h3 h4 h5 h6 => ?_⟩
+  exact race_row (hL r hr).1 (hL r hr).2 hk0 hk hb hc0 hc1
+    (fun i hi => hcol _ (List.mem_flatMap.mpr ⟨r, hr, List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩⟩))
+    a e E PS h1 h2 h3 h4 h5 h6
+
 end Formal.Cells.CertRaceAll
