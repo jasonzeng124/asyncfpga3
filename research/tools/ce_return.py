@@ -24,6 +24,10 @@ FAST_MIN:SLOW_MIN:SLOW_MAX; fast_min = first number, slow_max = third; rise and 
     Y_req, Y_data out -> Y_ack in.  Nets driven by a constant are never a turnaround.  A wire through the DUT
     (isprime's `end`: p_end_req IS the start_req net) chains turnarounds naturally (start_ack -> start_req ==
     p_end_req -> p_end_ack), which is exactly the isprime seed-30 path.
+  * --env harness (soak routes): the board view.  No 0 ps turnaround and no forced-net cut (forcing is GLS-only;
+    on the board the harness really drives those nets): returns run through the routed soak harness (upipe...),
+    which is in the same JSON/SDF, and a path that leaves the DUT prefix is ENV.  The only arcs cut are the ones
+    cut in every mode (flop CK->Q, BUFGCTRL, BSCAN).  This is also what gcd_hw-style routes always get.
   * gcd_hw-style designs (no soak.json): no ports; the on-chip environment is real logic.  A path that leaves the DUT
     hierarchy (--dut-prefix, default auto: "uut." or "urig.udut.") and comes back is marked ENV, else INTERNAL.
 The shortest path is STRUCTURAL: a path through another C-element is counted as if that C-element always switched,
@@ -217,7 +221,7 @@ def soak_ports(routed_json):
 
 
 # ---------------------------------------------------------------- analysis
-def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False):
+def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False, env="tb"):
     ci = 0 if corner == "fast_min" else 1
     top = json.loads(Path(routed_json).read_text())["modules"]["top"]
     cells = top["cells"]
@@ -246,7 +250,7 @@ def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False):
         d = driver.get(bit)
         return d[0] + "/" + d[1] if d else None
 
-    ports = soak_ports(routed_json)
+    ports = soak_ports(routed_json) if env == "tb" else None
     blocked = set()
     extra = defaultdict(list)                     # node -> [(node, 0, label)]
     if ports:
@@ -323,13 +327,13 @@ def build(routed_json, sdf, corner, dut_prefix=None, all_ce=False):
             (roles.get(int(m.group(1)), ("?",))[0] if m else "?")
         ces.append(r)
     info = dict(n_struct=n_struct, n_init=n_init, n_name=n_name, disagree=disagree, dut_prefix=dut_prefix,
-                n_ports=len(extra), blocked=len(blocked), soak=bool(ports))
+                n_ports=len(extra), blocked=len(blocked), soak=bool(ports), env=env)
     an = [r for r in ces if all_ce or r["name"].startswith(dut_prefix)]
     info["n_outside"] = len(ces) - len(an)
     return adj, io, ic, ci, an, info
 
 
-def analyse(adj, io, ic, ci, r, dut_prefix, cap):
+def analyse(adj, io, ic, ci, r, dut_prefix, cap, times=False):
     cn = r["name"]
     o = cn + "/O6"
     fbp = cn + "/" + r["fb"]
@@ -368,21 +372,26 @@ def analyse(adj, io, ic, ci, r, dut_prefix, cap):
                 path.append("<tb>/")
             x = pred[x]
         path.reverse()
-        names = []
+        names, tl = [], []
         for n in path[:-1]:
             c = n.rsplit("/", 1)[0] if n != "<tb>/" else "<tb>"
             if not names or names[-1] != c:
-                names.append(c)
+                names.append(c); tl.append(None)
+            if n != "<tb>/":
+                tl[-1] = dist[n]                      # arrival at this cell's last pin on the path (its output)
         cells_on = [c for c in names if c != "<tb>"]
         cls = "PORT" if labs else ("ENV" if any(not n.startswith(dut_prefix) for n in cells_on) else "INTERNAL")
         ret = dist[t] + arc(p)
+        if times:
+            names = [c if tt is None else "%s@%d" % (c, tt) for c, tt in zip(names, tl)] + ["%s/%s@%d" % (cn, p, dist[t])]
         rows.append(dict(pin=p, ret=ret, arr=dist[t], cls=cls, path=names, ports=list(reversed(labs)),
                          margin=ret - loop))
     return loop, rows
 
 
-def run(routed_json, sdf, corner, cap=5000, dut_prefix=None, all_ce=False, out=sys.stdout, tsv=None, quiet=False):
-    adj, io, ic, ci, ces, info = build(routed_json, sdf, corner, dut_prefix, all_ce)
+def run(routed_json, sdf, corner, cap=5000, dut_prefix=None, all_ce=False, out=sys.stdout, tsv=None, quiet=False,
+        env="tb", times=False):
+    adj, io, ic, ci, ces, info = build(routed_json, sdf, corner, dut_prefix, all_ce, env)
     dp = info["dut_prefix"]
     pr = (lambda *a: None) if quiet else (lambda s: print(s, file=out))
     pr("# ce_return %s %s corner=%s" % (routed_json, sdf, corner))
@@ -391,13 +400,15 @@ def run(routed_json, sdf, corner, cap=5000, dut_prefix=None, all_ce=False, out=s
                                                 info["n_outside"], len(info["disagree"]),
                                                 (": " + ", ".join("%s(%s)" % d for d in info["disagree"][:8]))
                                                 if info["disagree"] else ""))
-    pr("# ports: %s, %d forced-net drivers cut, %d turnaround sources" %
-       ("soak harness (0 ps tb)" if info["soak"] else "none (on-chip environment)", info["blocked"], info["n_ports"]))
+    pr("# env=%s ports: %s, %d forced-net drivers cut, %d turnaround sources" %
+       (env, "soak tb (0 ps turnaround)" if info["soak"] else
+        ("none: routed harness/environment kept whole, no arc cut beyond flops/BUFG/BSCAN" if env == "harness" or
+         not dp.startswith("uut.") else "none (on-chip environment)"), info["blocked"], info["n_ports"]))
     worst = {"INTERNAL": None, "ENV": None, "PORT": None}
     nneg = {"INTERNAL": 0, "ENV": 0, "PORT": 0}
     res = []
     for r in sorted(ces, key=lambda r: r["name"]):
-        a = analyse(adj, io, ic, ci, r, dp, cap)
+        a = analyse(adj, io, ic, ci, r, dp, cap, times)
         if a is None:
             pr("%s\t%s\tNO_LOOP_TIMING" % (r["name"], r["bel"]))
             continue
@@ -432,7 +443,9 @@ def run(routed_json, sdf, corner, cap=5000, dut_prefix=None, all_ce=False, out=s
                 n_neg_internal=nneg["INTERNAL"], n_neg_env=nneg["ENV"], n_neg_port=nneg["PORT"],
                 negs=[(r["name"], w["cls"], w["margin"], w["pin"], loop, w["ret"], ",".join(w["ports"]))
                       for r, loop, w, rows in res if w and w["margin"] < 0],
-                info=info)
+                info=info,
+                per={r["name"]: (w["cls"], w["margin"], w["pin"], loop, w["ret"], " > ".join(w["path"]))
+                     for r, loop, w, rows in res if w})
     print("CE_RETURN n_ce=%d worst_internal=%s worst_env=%s worst_port=%s n_neg_internal=%d n_neg_env=%d "
           "n_neg_port=%d" % (len(res), fmt(worst["INTERNAL"]), fmt(worst["ENV"]), fmt(worst["PORT"]),
                              nneg["INTERNAL"], nneg["ENV"], nneg["PORT"]), file=out)
@@ -448,8 +461,13 @@ def main():
     ap.add_argument("--cap", type=int, default=5000, help="search returns up to loop+CAP ps (default 5000)")
     ap.add_argument("--dut-prefix", default=None)
     ap.add_argument("--all", action="store_true", help="also analyse C-elements outside the DUT prefix")
+    ap.add_argument("--env", choices=["tb", "harness"], default="tb",
+                    help="soak routes: tb = GLS view (forced DUT ports, 0 ps testbench turnaround, PORT); harness = "
+                         "board view (no turnaround edges, no forced-net cuts: returns run through the routed soak "
+                         "harness and are classed ENV)")
+    ap.add_argument("--times", action="store_true", help="annotate each path cell with its arrival time (ps after q)")
     a = ap.parse_args()
-    run(a.routed_json, a.sdf, a.corner, a.cap, a.dut_prefix, a.all, tsv=a.tsv)
+    run(a.routed_json, a.sdf, a.corner, a.cap, a.dut_prefix, a.all, tsv=a.tsv, env=a.env, times=a.times)
 
 
 if __name__ == "__main__":

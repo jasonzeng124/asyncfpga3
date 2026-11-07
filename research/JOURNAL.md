@@ -2876,3 +2876,18 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   cell's own feedback, and only the testbench does. Margin -9..-130 ps vs a board harness answering through routed logic.
   Not shown: the board harness's own turnaround (being measured: same tool, return through the routed soak harness).
   Caveat: the k4 routes record nextpnr only as 0.9.2-100-gbfdeaf7c, not the fingerprint (gcd routes: 9c732bc6303458df).
+### progress 00:01 (board view: the kernel soak harness is open-loop, so ufork0's runt can only happen in the testbench)
+- ce_return.py --env harness (no 0 ps tb edges, returns through the routed soak harness): 107 kernel routes x 2 corners,
+  0 ENV paths, 0 negatives of any class; internal worst unchanged (+145 FAST_MIN). Checked here on isprime_b seed 30:
+  tb mode n_neg_port=1 (ufork0 -34), harness mode 0 paths. Reason (bdc/emit.py emit_top, by design): DUT inputs come from
+  the free-running spine latches, DUT outputs only feed the XOR tree to pin_out; no harness signal follows the handshake.
+- PORT breakdown (research/data/ceret/ufork.txt, 12 routes): wire out 0 (tb reads O6's own net), turnaround 0, so the whole
+  return is the one INTERCONNECT from the harness latch that drives p_end_ack to ufork0's pin (237-439 ps FAST_MIN),
+  racing the C-element's own feedback wire. Placement-dependent, which is why it hits ~1 route in 8.
+- Consequences: (1) the board soak can neither show nor rule out this race; the H_RUNT rig (board list item 2) is the
+  board test of the mechanism. (2) isprime's seed-30/25/29 failures, and the flagged-but-passing xorshift s50/s75,
+  collatz s50, ipow s50 routes, are failures against a zero-delay handshaking environment at start->end, not internal
+  hazards. They stay counted as failures (the sim is the gate; a real handshaking neighbour can answer in ~one wire).
+  (3) The fix belongs at the kernel boundary, not in the shrunk delays:  is a bare wire from the start fork, so
+  the environment's ack lands straight on a C-element pin. Candidates: a boundary stage whose C-element's feedback is
+  local, or a placement rule keeping ufork0's feedback short; not built yet.
