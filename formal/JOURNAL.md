@@ -2022,3 +2022,8 @@ All 412 control storage nodes x live pins (1,316 runs), single-pin adversary, H_
 **For research (single-pin adversaries only, one pair):** the control has exactly two races that fail below κ = 0.48,
 at 0.44 and 0.46; fixing both would move this adversary class's margin to at least 0.48. Not covered: multi-pin
 adversaries, other pairs, other corners.
+### progress 18:1x -- second full check.sh --committed also stopped at the 2 h limit (no Lean error seen)
+Same picture as 15:2x: the parallel pass OOM-kills B's new large modules (BigCertPS, CElemPS, RaceLinkPS chunks) and
+the one-at-a-time retries do not finish inside one 2 h background command. Lake keeps what was built, so each run
+gets further; the only errors in both logs are exit 137 (memory). Not restarted again today (tool limit). For the
+next lead session: start `check.sh --committed` first thing and let it run across several 2 h windows.
