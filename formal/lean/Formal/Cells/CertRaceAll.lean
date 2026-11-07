@@ -138,4 +138,45 @@ theorem race_holds {κ : ℚ} (hk0 : 0 ≤ κ) (hk : κ ≤ 83 / 200) {x : Beh}
   have hja : ((node.arcs ja).map (Formal.Cells.Ua1Static.lo 1 κ c)).sum.toNat = node.lo ⟨1, κ⟩ c ja := rfl
   exact cert_sound hb P rows hok G a e E hcause hstat hmem (rows.length - 1) (by omega) u hu1 (by omega)
 
+/-- A race row: a certificate, the storage node's row (its pins; the other fields unused), the node's acknowledge
+pin `ja` and feedback pin `jf`. -/
+structure RaceRow where
+  pc : Prem × List CRow
+  node : KRow
+  ja : Nat
+  jf : Nat
+
+/-- The checks of a race row besides `certOK`: path shape, the node's wiring (its `ja` reads the last row's node, its
+`jf` reads itself, it is the cause), and the two integer arc-sum facts. -/
+def raceOK (r : RaceRow) : Bool :=
+  singlePath r.pc.2 && chainShape r.pc.2 && decide (1 ≤ r.pc.2.length) &&
+  Formal.Cells.ViewPS.viewOK r.node.q r.node.pins && r.node.q == r.pc.1.cn &&
+  (r.node.pins.getD r.ja ([], 0)).2 == (r.pc.2.getD (r.pc.2.length - 1) default).r.q &&
+  (r.node.pins.getD r.jf ([], 0)).2 == r.node.q &&
+  decide (283 * sFmax (r.node.arcs r.jf) ≤ 117 * sFmin (pathArcs r.pc.2 ++ r.node.arcs r.ja)) &&
+  decide (283 * sSmax (r.node.arcs r.jf) ≤ 117 * sSmin (pathArcs r.pc.2 ++ r.node.arcs r.ja))
+
+/-- **A checked race row gives the race obligation** (`race_holds` with the row's facts). -/
+theorem race_row {r : RaceRow} (hc : certOK r.pc.1 r.pc.2 = true) (hr : raceOK r = true) {κ : ℚ} (hk0 : 0 ≤ κ)
+    (hk : κ ≤ 83 / 200) {x : Beh} (hb : Behaves ⟨1, κ⟩ (circuit net boundary) x) {c : ℚ} (hc0 : 0 ≤ c) (hc1 : c ≤ 1)
+    (G : ∀ i, i < r.pc.2.length → CGateOK ⟨1, κ⟩ c (r.pc.2.getD i default).r.g (r.pc.2.getD i default).r.src
+      (r.pc.2.getD i default).r.arcs ((r.pc.2.getD i default).r.S ⟨1, κ⟩) x)
+    (a e : Nat) (E : Nat → Nat) (PS : Nat)
+    (hcause : ∀ t, a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv)
+    (hstat : ∀ k, k < r.pc.1.sn.length → ∀ t, a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false)
+    (hmem : ∀ i, i < r.pc.2.length → (r.pc.2.getD i default).r.mem = true →
+      1 ≤ (r.pc.2.getD i default).r.lo ⟨1, κ⟩ c (r.pc.2.getD i default).r.fb ∧
+      ∀ t, (win ⟨1, κ⟩ c a e E r.pc.2 i).1 ≤ t + (r.pc.2.getD i default).r.hi ⟨1, κ⟩ c (r.pc.2.getD i default).r.fb →
+        t < (win ⟨1, κ⟩ c a e E r.pc.2 i).1 → x (r.pc.2.getD i default).r.q t = (r.pc.2.getD i default).r.w)
+    (hPS : ∀ i, i < r.pc.2.length → psum ⟨1, κ⟩ c r.pc.2 i ≤ PS) (hE : ∀ k, e + PS ≤ E k) (hB : e + PS ≤ BIG) :
+    (r.node.pins.getD r.ja ([], 0)).2 = (r.pc.2.getD (r.pc.2.length - 1) default).r.q ∧
+    (r.node.pins.getD r.jf ([], 0)).2 = r.node.q ∧ r.node.q = r.pc.1.cn ∧
+    ∀ u, (win ⟨1, κ⟩ c a e E r.pc.2 (r.pc.2.length - 1)).1 ≤ u →
+      u + r.node.lo ⟨1, κ⟩ c r.ja ≤ e + r.node.hi ⟨1, κ⟩ c r.jf →
+      x (r.pc.2.getD (r.pc.2.length - 1) default).r.q u = (r.pc.2.getD (r.pc.2.length - 1) default).r.w := by
+  simp only [raceOK, Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hr
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨hsp, hch⟩, hn⟩, -⟩, hq⟩, hja⟩, hjf⟩, h1⟩, h2⟩ := hr
+  exact ⟨hja, hjf, hq, race_holds hk0 hk hb r.pc.1 r.pc.2 r.node r.ja r.jf hc hsp hch hn h1 h2 hc0 hc1 G a e E PS
+    hcause hstat hmem hPS hE hB⟩
+
 end Formal.Cells.CertRaceAll
