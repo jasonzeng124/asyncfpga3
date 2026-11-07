@@ -46,7 +46,8 @@ open value on `[a, e]` (the certificate's cause), the certificate's static side 
 enable is closed on `[e + 1, E']`, the data source shows `v` from `e + 1 - Wd` up to the certificate's window start
 (setup half), and the latch's own inequalities hold, then the latch holds `v` on `[A, E' + lo e]`. The HOLD half of
 the data window (`… ≤ τ + hi e`) and the open window are no longer premises. Each row is valid for κ with
-`(1+κ)·kB ≤ kA·(1-κ)` (its own range; 0.346-0.68 for the first 8). Premise lists: out/target_ps_latchholds*.json
+`(1+κ)·kB ≤ kA·(1-κ)` (its own range). Instances: LatchHoldPS (112), LatchHoldPS2 (214), LatchHoldPS3 (344; full-width run): 670
+latches; κ ranges min 0.291 (SLICE_X32Y90.C O6), median ~0.63. Premise lists: out/target_ps_latchholds*.json
 (when generated).
 
 ## Generic tools (reusable for other nodes / kernels)

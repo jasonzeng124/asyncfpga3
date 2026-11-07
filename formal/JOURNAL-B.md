@@ -3393,3 +3393,20 @@ the 214 not in LatchHoldPS. lake build + check.sh OK (standard axioms, 2852 decl
 4,185 latches as theorems (each in its own κ range, local premises and the setup half remaining). Premises:
 out/target_ps_latchholds2.json. Python, untrusted: which certificate path makes 0.199 binding is not yet examined
 (a short controller path to that latch's data, or a slow enable pin arc).
+
+### progress 22:27 -- CHECKED: latch hold windows for 344 more latches from a full-width run (670 in all)
+**Run (simulation, untrusted):** simb.py, pair 0x49e9c618,0x35bf992e (row 14 of gcd_ps_vec1000.hex), corner 0,
+mid-window, broad data rule, result 2 (correct); dump dfw.json. It moves the data of 1,639 latches (d3: 825); 361
+latch closes followed by a data change are on latches not in the d3 scan; ctlcert (κ = 0, fast corner) gives a
+chain certificate for 344 of them, none uncertified.
+**Lean (standard axioms; lake build + check.sh OK, 3192 declarations):** `LatchHoldPS3.target_latch_holds`
+(certificates `CertLatchPS3`, 96 files), same statement as LatchHoldPS. Row κ ranges: min **0.291 at SLICE_X32Y90.C
+O6**, the latch with the smallest simulated hold slack (1.28 ns, 11:54 entry); median 0.654. With LatchHoldPS (112)
+and LatchHoldPS2 (214): **670 of the 4,185 latches** have their hold and open windows as theorems (each in its own κ
+range; local premises and the setup half remain). Premises: out/target_ps_latchholds{1,2,3}.json.
+**Build note:** two 15-18-chunk certificate files with 24-31 certificates were OOM-killed (after a container
+restart); gen_certs_ps.py MAXC2=K:N:P caps chunks and certificates per file from file K on.
+**Reading:** for g = 1 the binding latch's hold obligation is now proved for κ ≤ 0.291 (from this certificate; the
+sums use the fast/slow MIN of the path and MAX of the enable pin). That sits below the race rows' 0.415 and A/C's
+0.44 refutation: if 0.291 is tight it, not the races, would bound the headline κ for latches whose data moves like
+this. Not examined yet: whether a longer certificate (a different path through the controller) raises it.
