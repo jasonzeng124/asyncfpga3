@@ -3219,3 +3219,17 @@ the server's answer reaches it: the server-path obligation of the one-acknowledg
 local premises. **Not shown:** the assembly with GrantExcl/AckLow into "one acknowledge per transaction"; the premises;
 arbiters arbs[1..4] (no post-reset chain certificate in the runs used: A0 there changes for another reason, or q never
 flips after reset).
+
+### progress 10:49 -- reading A and C today: the frontier is now bracketed on both axes by B's sufficient rows
+- A/C Lean-refuted THE statement at g = 1, κ = 11/25 = 0.44 (w = 0 and w = 20) and at g = 8/5, κ = 0. B's checked
+  race certificates give the binding row's switch obligation for κ ≤ 0.41 (Lean, race_margin) / 0.417 (real-valued)
+  and, at κ = 0, for g < 1.58 (Python): the sufficient side of B's cell layer sits 0.02-0.03 below the refutations on
+  both axes. (Sufficient for the race rows only; the network premises are still open, so this is not a lower bound
+  on THE theorem's frontier.)
+- C's κ = 0.40 runt ring (w = 0) is at arbiter 0 with its A0 route (pin 3, from SLICE_X38Y53.B6) slowed and needs
+  T ≥ 7.2 ns. ArbServerPS.target_arbs_settle covers arbiter 0 for T below its server-path sum (≈ 1.83 ns at κ = 0,
+  ~1.1 ns at κ = 0.4, fast corner): there the state settles before A0 moves. So for the headline T the gap
+  [server path, 7.2 ns) is where H_ARB(T) neither prevents nor admits that ring by B's argument; C's run shows it is
+  admitted from 7.2 ns. The headline T should therefore stay below the server-path delay, which also keeps it above
+  the state LUT's own delay (664 ps slow) only for κ small enough: (1-κ)·1469 (the shortest of the five server
+  paths, fast corner) vs (1+κ)·664 -> κ ≤ ~0.38 for both conditions to hold with g = 1. Python estimate, not Lean.
