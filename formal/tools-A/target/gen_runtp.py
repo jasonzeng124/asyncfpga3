@@ -3,17 +3,27 @@
 simadv.py --classes CLS.json --cdefault F --w W, exact): per-chunk BTL trees of node codes, a sparse BTC tree of
 narrow-pulse chains, the per-arc slow list (codes 8·out + pin), per-chunk gate checks (CexRuntP.gateWR), each split
 in 3 slices (one decide over a whole chunk needs > 15 GB).
-usage: gen_runtp.py dump.json net.json bnd.json OUTDIR NAMESPACE (P | N/D) W classes.json   (N/D: guard N/D at κ = 0, CexRuntG)"""
+usage: gen_runtp.py dump.json net.json bnd.json OUTDIR NAMESPACE (P | N/D) W classes.json [SSLACK]
+  (N/D: guard N/D at κ = 0, CexRuntG; SSLACK: explicit per-arc delays, slow arcs at top-of-window - SSLACK, CexRuntD)"""
 import json, sys, os
 Wd = json.load(open(sys.argv[1])); net = json.load(open(sys.argv[2])); BJ = json.load(open(sys.argv[3])); out = sys.argv[4]
 NS = sys.argv[5]; PS = sys.argv[6]; GMODE = "/" in PS; P = PS.replace("/", " ");
-RB = "Formal.Target.CexRuntG" if GMODE else "Formal.Target.CexRuntP"; W = int(sys.argv[7]); CJ = json.load(open(sys.argv[8]))
+SSLACK = int(sys.argv[9]) if len(sys.argv) > 9 else None;
+RB = "Formal.Target.CexRuntG" if GMODE else ("Formal.Target.CexRuntD" if SSLACK is not None else "Formal.Target.CexRuntP"); W = int(sys.argv[7]); CJ = json.load(open(sys.argv[8]))
 G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}; ENV = set(idx[x] for x in BJ["env"])
 nN = len(N); nG = len(G); C, D = 2500, 12
 drv = {g["out"]: gi for gi, g in enumerate(G) if g["out"] not in ENV}
 assert not CJ.get("F") and all(isinstance(x, list) for x in CJ["S"])
-SLOW = set(8 * idx[n] + p for n, p in CJ["S"])
 assert all(p < 8 for _, p in CJ["S"])
+if SSLACK is None:
+    SLOW = set(8 * idx[n] + p for n, p in CJ["S"])
+else:   # explicit per-arc delays (CexRuntD): slow arcs at (top of window) - SSLACK, as simrunt.py --sslack
+    PP = int(P)
+    SLOW = []
+    for n, p in CJ["S"]:
+        gi = drv[idx[n]]; e = G[gi]["arcs"][p]
+        SLOW.append((8 * idx[n] + p, max((25 + PP) * e["fmax"] // 25 - SSLACK, ((25 - PP) * e["fmin"] + 24) // 25)))
+    SLOW = sorted(SLOW)
 nodes = {int(k): v for k, v in Wd["nodes"].items()}
 def leaf(n):
     v = nodes.get(n)
@@ -53,8 +63,10 @@ open(f"{out}/EncR.lean", "w").write("".join(f"import {NS}.L{c:03d}\n" for c in r
     f"namespace {NS}\nopen Formal.Net.CexPS72 {RB}\n\ndef llR : List BTL := [{L}]\n\n/-- The run's node codes. -/\n"
     f"def encR : Nat → Option (Bool × List Nat) := lookL llR {C} {D}\n\n"
     f"/-- Each node's narrow-pulse chains. -/\ndef chR (n : Nat) : List (Nat × Nat) := chT.get {DC} n\n\n"
-    f"/-- The slow arcs, as codes 8·out + pin. -/\n"
-    f"def slR : List Nat := [{', '.join(map(str, sorted(SLOW)))}]\n\nend {NS}\n")
+    + (f"/-- The adversary's arcs, as (code 8·out + pin, delay in ps). -/\ndef slR : List (Nat × Nat) := ["
+     + ", ".join(f"({a}, {b})" for a, b in SLOW) + f"]\n\nend {NS}\n" if SSLACK is not None else
+     f"/-- The slow arcs, as codes 8·out + pin. -/\n"
+     f"def slR : List Nat := [{', '.join(map(str, sorted(SLOW)))}]\n\nend {NS}\n"))
 F = f"(fun g => !keepPS g || gateWR {P} {W} encR chR slR g)"
 for c in range(nchG):
     q = 834

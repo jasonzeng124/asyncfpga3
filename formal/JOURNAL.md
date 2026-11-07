@@ -1908,3 +1908,10 @@ pulse and stay inside Adm. With C's 7 arcs and S = 40: correct at κ = 0.44, 0.4
 **Plainly, for the owner: the runt filter buys margin, but little.** At the headline w = 20 the statement is false
 from κ = 0.44 (Lean); at w = 40 it is false from κ ≈ 0.60 (simulation, bracket (0.52, 0.60]); at w = 0 from 0.44 too.
 Not Lean yet for w = 40 (the witness check needs per-arc delays from data rather than the slow/fast formula).
+### progress 10:2x -- CexRuntD: witness check with EXPLICIT per-arc delays (compiles); data for the w = 40 refutation
+`Formal/Target/CexRuntD/RBase.lean` (compiles): the runt witness check where the adversary's arcs carry explicit
+delays from the data (`ex : List (code, delay)`, code = 8·out + pin; every other arc at the fast end), the check still
+verifying each one inside `Adm (pP P) 0`. This is the general form -- any future adversary (slack, mixed corners)
+needs only data, no new soundness proof. `gen_runtp.py` grew an optional SSLACK argument that emits it (regenerating
+CexRunt44 with the edited generator gives byte-identical files, so the edit is safe). Data + Wit/Refute for the
+w = 40, κ = 15/25 run in `Formal/Target/CexRuntD60/` (ArbOK T ≥ 88). Queued behind CexRuntG16; not claimed.
