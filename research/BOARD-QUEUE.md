@@ -21,11 +21,11 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
    PULSE k=3 counts an edge every trial), and the judge prints `=== PASS: ... ===`, exit 0 (a capture threshold w* can
    be named). The answer is in the lines after: `=== RUNT CIRCULATES ===` (any TEST cell with >= 2 rising edges in a
    trial) or not, and w* - loop. RIG FAIL means the rig, not the fabric, and nothing else is read.
-3. **The fastest design the sim accepts**: #3 below (gcd_hw R5 sizes + link fast fall, ~6% more laps than #2): the
+3. **The fastest gcd the sim accepts**: #5 below (gcd_hw R5 sizes x0.75 + link fast fall, PROGRAM item 3): the
    combined worst-case gate (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual
-   as scatter) 8/8 routes (research/data/fid/bq3_worstcase.tsv), the cell check (slow uncalibrated cells) 8/8, both
-   corners 8/8. #2 (R5 without fast fall) passes the same (bq2_worstcase.tsv) and is the fallback. Commands and
-   criteria under #2/#3. (PROGRAM item 3's smaller sizes are being gated; this item moves to them only if they pass.)
+   as scatter) 8/8 routes, and SLOW_MAX and FAST_MIN 16/16 runs, every run 16/16 errs=0 (research/data/item3/
+   s75ff_worstcase.tsv, s75ff_corners.tsv). Worst-case laps 1.13x #2's on the same 8 routes, 1.08x #3's. Fallback: #3
+   (BQ#3), then #2. Commands and criteria under #5.
 4. **A ring set on a second route (band transfer)**: research/board/ro_many_2/ (today's ro_many_top, bit 8dc4f1ac,
    predictions committed before any run). From cells/:
 
@@ -291,6 +291,31 @@ Evidence (JOURNAL 2026-11-01 17:31-19:57):
   kernel-facing request is a flop cleared asynchronously by the kernel's own i_ack (the pulse adapter), so a host
   holding CTRL.i_req for milliseconds over JTAG cannot wedge the kernel; A/B are written before the CTRL write that
   raises the request and stay unchanged until the result is read.
+
+## 5. gcd_hw R5 sizes x0.75 + link fast fall -- the PROGRAM item 3 step; every full-stack run clean on 8 routes
+Run after #3 passes (it is #3 with every matched delay ceil(0.75*n) links: research/data/gcd_hw_sizes_R5s75.vh, made
+by research/tools/shrink_sizes.py from gcd_hw_sizes_R5.vh). Same rig, pads, v4 placement, BDC_LINK_FASTFALL=1.
+Toolchain: nextpnr 9c732bc6303458df (cells/verify/toolchain.sh must pass). The gated routes are NEXTPNR_SEED 6, 7, 8, 9,
+10, 11, 13, 14; build seed 6 (its md5s here: gcd_hw.sdf 39d30709, routed.json 72d6256d (not portable in general),
+bit c1d9b764 (not reproducible)):
+
+    cd cells
+    NEXTPNR_SEED=6 BD_SIZES=../research/data/gcd_hw_sizes_R5s75.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 BDC_LINK_FASTFALL=1 ./hw/build_hw.sh gcd_hw
+    md5sum build/hw/gcd_hw/gcd_hw.sdf
+    hw/board.sh python3 hw/gcd_measure.py --program
+    sleep 60
+    hw/board.sh python3 hw/gcd_measure.py; echo "exit $?"
+
+Pass: the same PASS line and exit 0 as #1-#3. If the sdf md5 differs from 39d30709 the route is not the one gated here:
+still a valid test of the recipe (8/8 seeds pass), but say so. Speed: gcd_measure.py's per-vector latency against #3's.
+Full stack seed 6: vec 6 laps 35 (SLOW_MAX) / 95 (FAST_MIN) / 67 (combined worst case); the board's should fall
+between the two corners.
+What it would mean: PASS = the shrunk delays (25% off every matched delay) hold on silicon at this route; FAIL while #3
+passes = a bundling margin the full stack mis-predicts at x0.75: send the full output; the first suspects are the
+vectors whose loops run longest (6, 12, 13).
+Evidence: research/data/item3/README.md, JOURNAL 2026-11-06/07. Rules A/E are informational under PROGRAM item 1 (the
+sim is the gate). Seed 10's bits-vs-JSON check reads NOT_EQUIVALENT: four F7 inputs fed by $PACKER_GND_NET buffer LUTs
+(constant 0 on both sides), the benign class seen on BQ#1 seed 8.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

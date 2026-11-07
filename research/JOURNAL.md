@@ -2891,3 +2891,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (3) The fix belongs at the kernel boundary, not in the shrunk delays: `end` is a bare wire from the start fork, so
   the environment's ack lands straight on a C-element pin. Candidates: a boundary stage whose C-element's feedback is
   local, or a placement rule keeping ufork0's feedback short; not built yet.
+### progress 03:28 (item 3 gcd: R5 x0.75 + link fast fall passes both corners 16/16 -> board list item 3)
+- s75ff corners after the restart rerun: 10 max/min, 13 max/min, 14 min all PASS 16/16 errs=0 -> 16/16 runs
+  (research/data/item3/s75ff_corners.tsv). Vec 6 laps mean 35.4 SLOW_MAX (34-38), 96.9 FAST_MIN (91-105); vs R5 x0.75
+  without fast fall on the same seeds 33.4 / 92.0 (1.060x / 1.053x). With the worst case 8/8 (1.132x BQ#2, 1.083x BQ#3),
+  every one of 24 full-stack runs on 8 routes is clean. nextpnr 9c732bc6303458df.
+- BOARD-QUEUE: new section #5 (exact commands, seed 6 md5s, pass criterion); board list item 3 now points to it, with
+  BQ#3 then BQ#2 as fallbacks. Not shown: anything on silicon; the gain over BQ#3 (~8%) is below the route-to-route
+  lap scatter of a single route, so the board comparison needs #3 and #5 measured on the same board session.
