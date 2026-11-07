@@ -44,8 +44,9 @@ def Uof(m):
     if x is None or x > tB: return (x - 1) if x is not None else INF   # static premise
     return None
 changing = sorted((nc(int(k)), int(k)) for k in D if nc(int(k)) is not None and nc(int(k)) <= tB and int(k) != A)
-static_used = set()
-for _pass in range(4):
+static_used = set(); WHY = {}
+for _pass in range(60):
+  nU = len(U)
   for tn, n in changing:
     if n not in drv or n in U: continue
     g = gates[drv[n]]; k, I = g["k"], g["init"]; w = val(n, t0)
@@ -65,10 +66,27 @@ for _pass in range(4):
             u = min(uu + dmin(g["arcs"][j]) for uu, j in zip(us, P))
             if best is None or u > best: best, bestP = u, P
     if best is not None:
-        U[n] = best
+        U[n] = best; WHY[n] = bestP
         for j in bestP:
             m = g["ins"][j]
             if m != A and m not in U: static_used.add(root(m))
+  if len(U) == nU: break
 print("changing nodes in [tau, nc(B)]:", len(changing), " certified:", len(U))
 if Bn in U: print("U(B) - tau + 1 =", U[Bn] - t0, " (actual B change - tau =", tB - TAU, ")  static premises used:", len(static_used))
 else: print("B not certified")
+
+if Bn in U and "--tree" in sys.argv:
+    # the dependency tree of B's certificate at LUT level (copies collapsed), with the static premises it uses
+    seen = set(); out = []
+    def walk(n, d):
+        if n == A: out.append("  " * d + "CAUSE " + N["nodes"][n]); return
+        if n not in U:
+            out.append("  " * d + "STATIC %s = %s until %s" % (N["nodes"][n], val(n, t0), Uof(n))); return
+        g = gates[drv[n]]
+        if g["k"] == 1 and g["init"] == 2: return walk(g["ins"][0], d)
+        out.append("  " * d + "%s (w=%s) U-t0=%d via pins %s" % (g["name"], val(n, t0), U[n] - t0, list(WHY[n])))
+        if n in seen: return
+        seen.add(n)
+        for j in WHY[n]: walk(g["ins"][j], d + 1)
+    walk(Bn, 0)
+    print("\n".join(out)); print("LUT steps:", len(seen))

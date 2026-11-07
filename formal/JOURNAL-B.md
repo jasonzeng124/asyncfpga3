@@ -3071,3 +3071,21 @@ corner-0 run), targets its three moving state-LUT inputs (next changes ~47-49 ns
 the loop body between the decision and the server's response has other activity in flight, as for the uya order.
 So neither the RT orders nor the server-path obligation reduce to a single timed cause; the roots of a certificate
 must come from the abstract machine's state (C).
+
+### progress 07:48 -- CORRECTION: the "not certified" results of 07:4x were a tool bug; certificates work (Python, untrusted)
+ctlcert.py processed nodes changing at the same ps (zero-delay hops) in a fixed 4-pass order, so long hop chains were
+left uncertified. With a fixpoint loop (corner 0, κ = 0, 3-pair broad run; dmin sums, corner-independent lower ends):
+| cause -> target | certified LO (ps) | actual (mid-window run) | premises besides the cause |
+|---|---|---|---|
+| b = SLICE_X32Y45.A6 rising (302,683) -> its ack source SLICE_X37Y43.B6 | 867 | 1,036 | 2 static |
+| uya order: SLICE_X32Y28.A6 (853,417) -> SLICE_X32Y45.A6 | 4,633 | 37,683 | 3 static |
+| merge10.uarb1 q (312,962) -> state input SLICE_X40Y49.A6 | 4,991 | 46,487 | 38 static |
+The 07:30-07:44 statements "no chain reaches b", "B not certified", "server path not certifiable" are WITHDRAWN (tool
+bug, not the circuit). The uya LO (4,633) is below C's unsound TSE figure (5,682).
+**The binding race row, re-derived:** b's ack is read at b's pin 4 (pin chain FAST_MIN sum 206 ps), so after b rises the
+ack cannot be read changed before 867 + 206 = 1,073 ps, against b's own feedback loop (7 arcs, FAST_MAX sum 441 ps):
+κ* = (1073 - 441)/(1073 + 441) = **0.417** at the fast corner, which reproduces RaceTablePS's binding row (0.415, from
+simulated ack paths) and sits below C's counterexample candidate (fails at 0.44, k48 adversary slows exactly this
+loop). Certificate (LUT level): ack LUT SLICE_X37Y43.B (an OR, held low by pins 0 and 4) <- SLICE_X36Y45.A (C-element,
+memory hold, pin 3) <- SLICE_X36Y46.D <- .C <- .B <- b; premises: b low until it rises, SLICE_X36Y45.A low on its
+feedback window, SLICE_X37Y43.A6 low (static). Next: this certificate in Lean on THE target's own gates.
