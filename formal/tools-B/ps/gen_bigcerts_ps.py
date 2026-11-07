@@ -50,7 +50,7 @@ for cf in sorted(glob.glob(os.path.join(EX, "C_B*.lean"))):
         ranges = []; cur = []; cs = set()
         for i, l in enumerate(rowlines):
             ch = chunks(l)
-            if cur and len(cs | ch) > MAXC: ranges.append(cur); cur = []; cs = set()
+            if cur and (len(cs | ch) > MAXC or len(cur) >= int(os.environ.get("MAXROWS", "30"))): ranges.append(cur); cur = []; cs = set()
             cur.append(i); cs |= ch
         if cur: ranges.append(cur)
         rmods = []; rsums = []
