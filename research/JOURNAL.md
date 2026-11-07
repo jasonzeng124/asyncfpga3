@@ -2899,3 +2899,16 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - BOARD-QUEUE: new section #5 (exact commands, seed 6 md5s, pass criterion); board list item 3 now points to it, with
   BQ#3 then BQ#2 as fallbacks. Not shown: anything on silicon; the gain over BQ#3 (~8%) is below the route-to-route
   lap scatter of a single route, so the board comparison needs #3 and #5 measured on the same board session.
+### progress 04:31 (the board bench closes ufork0's loop through >= 2.3 ns: the testbench race cannot happen there)
+- The kernel board harness (cells/hw/gen_bench.py) does close the handshake: start_ack -> the bench's bd_fork C-element
+  -> req_clr -> the request flop's async clear -> start_req == p_end_req -> bd_delay #(.N(2)) upsnk -> p_end_ack. prjxray
+  gives SLICE_FFX no SR->Q arc, so ce_return got --ff-async PS (SR->Q taken as PS ps; 0 = a lower bound).
+- 6 bench routes (cells/hw/build_bench.sh, BD_NO_TIGHTEN=1 with the validated sizes; isprime seeds 25/26/29/30,
+  xorshift x0.5 seeds 1/2; nextpnr 9c732bc6303458df), research/data/ceret/bench_harness.tsv: 0 negatives of any class;
+  ufork0 return 2536-3005 ps vs loop 194-397 at FAST_MIN (margin +2325..+2639 with SR->Q = 0), beyond loop+5000 at
+  SLOW_MAX; worst internal +326 FAST_MIN. These are new routes, not the soak routes the sims ran (bench routes differ).
+- So: on the board's own bench, the start->end return is ~6x ufork0's loop; the soak testbench's 0 ps turnaround is the
+  only environment that loses the race. isprime's 3 failures and the flagged-but-passing kernel routes are testbench
+  artefacts for the board question. They remain sim failures under "the sim is the gate"; whether the gate should model
+  a minimum environment turnaround (e.g. one C-element + wire, the internal worst being +145 ps) is an owner decision,
+  not taken here. What would decide it on silicon: H_RUNT (board list item 2).
