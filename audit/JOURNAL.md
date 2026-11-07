@@ -1229,3 +1229,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T06:35:47Z T32: FAST_MIN s75ff seed 6 killed by container restart after vec 0-8 (vec 6 = 95 laps, errs 0, matches research); resumed vec 9-15 in the same work dir.
 - 2026-11-07T06:39:23Z T33 started: own route BQ#1 seed 6 (research claims sdf 753059c0, xray 140e2572, worst case 16/16 30/24/34) + combined worst case (audit/t33/route_wc_bq1.sh). T34 (subagent, no git): own bench-route return-path delay for research 1c998e95 ufork0 claim, isprime seed 25.
 - 2026-11-07T06:45:23Z T34 done: research 1c998e95 isprime 25 FAST_MIN ufork0 loop/return/margin 397/2962/+2565 reproduced exactly with own route + own path walk; other rows UNVERIFIED (findings/T34.md).
+- 2026-11-07T07:02:37Z T32 done: s75ff seed 6 FAST_MIN 16/16 errs 0, vec 6 = 95 laps (matches research), lapcheck CLEAN; board candidate #5 CONFIRMED at all three corners on the board seed. T33 worst case now running.
