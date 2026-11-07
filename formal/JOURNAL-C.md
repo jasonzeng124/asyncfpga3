@@ -1835,3 +1835,19 @@ witness check (finite prefix + one period), which does not exist yet; noted as t
   even), `sigQ_unroll` (below t0 + 2Q it is the finite code A ++ B ++ (B + Q)), `eq_of_periodic` (a transport gate
   equation with delays ≤ Q that holds on [s, t0 + 2Q) holds for ever). Plainly: a never-quiet run that repeats is
   finite data, and the existing finite per-gate checks extend to it. Not yet used on a run.
+
+### progress 10:05 -- PROVED IN LEAN: THE statement is false at g = 1, κ = 11/25 = 0.44, with and without H_RUNT(20), for every reset ≥ 400 ns
+`Formal/Net/CexR44/` (lake build OK, 1,140 jobs; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide;
+75 gate chunks x 3 decides, ~85 s each; one chunk OOM-retried once).
+- `not_netCorrectSeqRunt20 : ∀ T su Δo, 123 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 net boundary arbs ⟨1, 11/25⟩ T 400000 su Δo`.
+- `AllR.not_netCorrectSeqRunt20_R` / `not_netCorrectSeq_R`: the same for every reset R = 400000 + D, for the headline
+  (H_RUNT(20)) and the plain statement (via `SpecRunt.seqRunt_of_seq`). Uses `Net/Stretch` (quiet [2000, 399999] ps,
+  checked on the node codes), `StretchPS.smax_all` (start ≤ 1006 ps), the env proof redone for a D-shifted schedule.
+**Plainly:** with no guard, within-die scatter 0.44 at the fast corner, any arbiter bound T ≥ 123 ps, any reset of at
+least 400 ns, any setup margin and out0/end ack delay ≤ 3 ns, and even if LUT pins filter every pulse narrower than
+20 ps, there is an admissible behaviour of THE target that accepts (1071, 462) and never answers. The witness: one link
+stage-0 C-element (SLICE_X32Y45.A6) has its 7-arc feedback route at ⌊36·FAST_MAX/25⌋, everything else at
+⌈14·FAST_MIN/25⌉ (LUT pins ≥ 20 ps); its acknowledge returns before its own rise has gone round the loop.
+By `SpecMono.seq_anti_p` this refutes every (g ≥ 1, κ ≥ 0.44). Supersedes CexPS72/CexRunt72 (κ = 0.72) as the
+frontier point; the plain fallback CexPS48 was not needed and is dropped. Not shown: κ < 0.44 (simulation: this
+adversary is correct at 0.43); other corners.
