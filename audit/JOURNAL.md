@@ -1224,3 +1224,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 04:20Z lock.
 - 04:56Z T32 row 1: board build s75ff seed 6 reproduced (sdf 39d30709), worst case 16/16 67/54/78 = TSV, lapcheck CLEAN; corners running.
 - 05:00Z lock.
+- 05:40Z lock.
