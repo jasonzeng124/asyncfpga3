@@ -3284,3 +3284,17 @@ order; the decoded gate (SLICE_X38Y51.BLUT.O6, INIT 0xffffaab2e4e4e4e4, roles r1
 A0 = 3, pin 5 tied 1) gives, with rst low: A0 = 0: q = C(r1, ~r2) (set on r1·~r2, reset on ~r1·r2); A0 = 1: q = fb
 (frozen), as bd_arb.v says. So the one-acknowledge assembly has the expected shape: certificate (A0 cannot rise
 before the server path) + ArbOK (q settles within T) + freeze (A0 high holds q) + GrantExcl + AckLow.
+
+### progress 14:13 -- CHECKED: arbiter 0 does not acknowledge the losing client (ArbOneAckPS.target_arb0_one_ack)
+**Problem, plainly:** ArbTSpec.spec_double_ack: H_ARB(T) alone lets both clients be acknowledged. For
+ucontrol_merge10.uarb1 (arbs[0], the arbiter of C's κ = 0.40 ring) in the transaction where its state q falls (client
+2 wins): is the losing side's acknowledge A1 (SLICE_X39Y51.D6 = C(g1, A0)) held low throughout, in every behaviour?
+**Lean (standard axioms, check.sh OK):** `target_arb0_one_ack`: in every behaviour of THE circuit with H_ARB(T)
+(`ArbOK T arbs x`, any sane p), at its corner: with the server-path certificate's premises (q high on [a, e]; its
+static side inputs; memory rows), the state's other inputs constant on [t1, t2] (t2 ≤ e + psum), q low at t1 + T,
+the reset low, A1 low on its feedback window before s0, and the overlap condition
+t1 + T + hi(g1's q pin) + hi(A1's g1 pin) ≤ e + psum(A0 source) + lo(A1's A0 pin) + 1 (T small enough that the
+grant settles before A0 can reach A1), A1 is LOW on all of [s0, t2 + lo + lo]. Assembly: certificate c000 (A0's
+source held low) + kA1 (A1 held by A0 low, reset, feedback) + q_settles (q constant at the winner's value) + kGr1 (g1
+held low by q) + kG1 (A1 held by g1 low). **Not shown:** the premises; the opposite transaction and the other 4
+arbiters with certificates (same pattern, rows by generator); that A2 (the winner) completes (liveness).
