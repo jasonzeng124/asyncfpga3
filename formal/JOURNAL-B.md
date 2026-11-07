@@ -3140,3 +3140,11 @@ windows and the routed pin bands (start = max of source starts + hi, end = min o
 in a behaviour at a corner, with the cause's value on [a, e], each static node's on [a, E k], and each memory row's
 own value on its feedback window before its hold, every row's node holds its value on its window. Next: generate
 certificates for the RaceTablePS rows (ctlcert.py -> gen) and check them with certOK by kernel decide.
+
+### progress 08:13 -- certificates for 181 of the 185 RaceTablePS rows generated; kernel checks running
+tools-B/ps/gen_certs_ps.py (untrusted generator): for each RaceTablePS row (out/target_ps_races.json), the episode
+path's LUT steps become CRows (cause = the storage node's own flip; controlling set = path pin + fewest static
+premises; memory only if needed), from simb dumps at corner 0 (3-pair broad run; then (2^30, 3·2^29), (7,3), (3,7)
+for rows that do not flip there). 158 + 23 = 181 certificates; 4 rows have none from these dumps
+(SLICE_X4Y54.A, X4Y51.A, X16Y25.B, X16Y18.D). Lean: Formal/Cells/CertRowsPS(2)/Bxx.lean, `certsNN_ok` by kernel
+decide over `CertPS.certOK` (~6 GB, ~1 min per file); check.sh running (104 + 8 files). Not committed until it passes.
