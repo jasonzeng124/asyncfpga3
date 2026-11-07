@@ -152,3 +152,24 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   a runt-ring livelock at 0.70, correct at 0.67 with these adversaries.
 - **For research:** a fid GLS replay at these delays (and with the resolver on) would say whether the fabric model
   sees the same runts.
+
+## A4. CANDIDATE COUNTEREXAMPLE under H_RUNT(20 ps) (the owner's headline w), g = 1, κ = 18/25 (shard A, 2026-11-07; simulation, untrusted, not yet Lean)
+- **What:** shard C's κ = 0.72 deadlock (C2, `CexPS72`) does NOT depend on runts. Re-run with a Spec-faithful H_RUNT(w)
+  on every LUT pin (`SpecRunt.GateOKRunt w`: a LUT pin reads at the greatest time ≤ t - d lying in no pulse narrower
+  than w, inside its Adm window; pips, hops, MUXF, CARRY4 transport), the same adversary (uya + 4 support storage
+  nodes and their input routes at ⌊43·FAST_MAX/25⌋, all else at ⌈7·FAST_MIN/25⌉, LUT pins raised to ≥ w ps, still
+  inside Adm) still accepts (1071, 462) and deadlocks quietly at 467.65 ns with no out0, for every w ≤ 25 ps. At w ≥ 26
+  this adversary is no longer a behaviour (one LUT pin, SLICE_X32Y45.A6 pin 0, would have to skip a pulse longer than
+  its window allows) and the run is correct.
+- **Meaning, if it holds up in Lean:** `NetCorrectSeqRunt 20` (the headline statement) is false at g = 1, κ = 0.72 (and
+  by monotonicity above), so H_RUNT(20) does not lift the κ margin above 0.72: the frontier at g = 1, w = 20 is < 0.72,
+  same as at w = 0.
+- **Evidence:** `formal/tools-A/target/out/k72w20_dump.json.xz` (every node's flips), from `tools-A/target/simrunt.py`
+  (C's simadv.py + `--w`); checked by the independent `tools-A/target/gatecheck_runt.py` (filtered waveforms rebuilt
+  separately: all 186,871 gates, 274,930 checks, 0 mismatches, 0 arcs outside Adm, 0 read-lag violations, 0 reads in a
+  narrow power-up interval) and C's `tools/huff/envcheck.py` (Env + SeqEnv OK, ArbOK for every T ≥ 61 ps, out0 never rises).
+  Reproduce: `python3 formal/tools-A/target/simrunt.py net.json bnd.json --pairs 1071,462 --corner 0 --R 400000 --slow
+  SLICE_X36Y47.C6 SLICE_X32Y45.A6 SLICE_X32Y28.A6 SLICE_X37Y47.D6 SLICE_X34Y47.A6 --kappa 0.72 --exact --data0
+  --slowroutes --su 1000 --dout 3000 --full --datachange broad --dfall 3000 --nextreq seq --w 20`.
+- **For research:** κ = 0.72 is a large within-die scatter; the point is that the runt filter is not what protects the
+  circuit here: the binding relative-timing order (umux16.uya before the next token's link stage) is a plain race.

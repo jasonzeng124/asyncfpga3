@@ -1809,3 +1809,22 @@ reading the generated files; the RTPSSel results were rebuilt and re-audited aft
 a mixed tree. From now on: lock refreshes from a detached worktree (as at 19:32), never a stash. Worker restarted 20:0x.
 
 ## Session Sat Nov  7 07:10:19 UTC 2026 (shard A, lead; session_01HC49FyF4PiYHNeSNNSGw5f)
+Lock taken (previous lock 7.7 h old). Audit read (origin/claude/audit 063973a7): no new REFUTED/OVERSTATED row on A's
+files; still open from the owner table: residual vacuity of ArbOK for T < D and the H_ENV margins (answered for Δo
+2026-11-06). setup.sh running (Mathlib cache unreachable here: building from source).
+### progress 07:19 -- CANDIDATE: THE headline statement under H_RUNT(20) is false at g = 1, κ = 0.72 (simulation, untrusted)
+Question: does the owner's runt filter (w = 20 ps headline) rescue the target from C's refutations? C's Lean witnesses
+cannot be reused: they read 1 ps pulses on LUT pins (checked: k72 has 14 one-ps pulses on LUT-read nodes, k84b 26).
+New `tools-A/target/simrunt.py` (C's simadv.py + `--w W`): every LUT pin reads at f(t) = the greatest u ≤ t - d in no
+pulse narrower than W (Spec's Pulse, incl. [0, first flip)); f is monotone, f(t) ≤ t, and the run is a GateOKRunt
+behaviour iff every lag t - f(t) stays within the pin's Adm upper bound (counted as INFEASIBLE otherwise); LUT pin
+delays are raised to ≥ W (inside Adm; asserted) so the filter is causal. w = 0 reproduces C's k72 run event for event
+(382,232 events, deadlock at 467,650 ps). **With C's κ = 18/25 adversary the deadlock persists for w = 2, 5, 10, 20,
+21..25 (0 infeasible pins); at w ≥ 26 one pin (SLICE_X32Y45.A6 pin 0) cannot skip and the run is correct.** The w = 20
+dump (`tools-A/target/out/k72w20_dump.json.xz`) is checked by the independent `gatecheck_runt.py` (rebuilds the filtered
+waveforms itself: 186,871 gates, 274,930 checks, 0 mismatches, 0 arcs outside Adm, 0 lag violations; control: the
+same dump read as w = 0 gives 16 mismatches) and C's envcheck.py (Env + SeqEnv OK, ArbOK for every T ≥ 61, out0 never
+rises, quiet end). So the 0.72 deadlock is a plain race (uya vs the next token's link stage), not a runt mechanism.
+κ = 0.76/0.80/0.84 at w = 20: livelock to 1.5 us (no out0); κ = 0.68, 0.64: correct (w = 0 and 20). FOR-RESEARCH A4.
+Not shown: Lean. Next: the Lean refutation of `NetCorrectSeqRunt 20` at ⟨1, 18/25⟩ (KBase-style per-gate check with
+the filtered read maps for LUT pins).
