@@ -153,7 +153,7 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 - **For research:** a fid GLS replay at these delays (and with the resolver on) would say whether the fabric model
   sees the same runts.
 
-## A4. CANDIDATE COUNTEREXAMPLE under H_RUNT(20 ps) (the owner's headline w), g = 1, κ = 18/25 (shard A, 2026-11-07; simulation, untrusted, not yet Lean)
+## A4. COUNTEREXAMPLE under H_RUNT(20 ps) (the owner's headline w), g = 1, κ = 18/25 (shard A, 2026-11-07; simulation, untrusted, not yet Lean)
 - **What:** shard C's κ = 0.72 deadlock (C2, `CexPS72`) does NOT depend on runts. Re-run with a Spec-faithful H_RUNT(w)
   on every LUT pin (`SpecRunt.GateOKRunt w`: a LUT pin reads at the greatest time ≤ t - d lying in no pulse narrower
   than w, inside its Adm window; pips, hops, MUXF, CARRY4 transport), the same adversary (uya + 4 support storage
@@ -198,3 +198,8 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
 - **For research:** the fid GLS at these delays (feedback route of one stage-0 C-element slowed by ~1.5x relative to the
   ack path) would say whether the fabric oscillates the same way; the design-side fix is a longer acknowledge path or a
   shorter feedback route on link stage 0 (the stage reads its ack after one LUT + short routes).
+- **Update 2026-11-07 09:5x: Lean-checked, and at a much smaller scatter.** Shard C's κ = 0.44 run (C3: one C-element's
+  feedback route slow) is a behaviour under H_RUNT(20) too, and `Formal.Target.CexRunt44.not_netCorrectSeqRunt20`
+  (standard axioms) refutes the headline statement at g = 1, κ = 11/25, T ≥ 123; `FrontierRunt.not_seqRunt_le20_above44`
+  carries it to every g ≥ 1, κ ≥ 11/25, w ≤ 20. The κ = 0.72 entry above is superseded. For research: the runt filter
+  is not the protection the circuit needs; the C3 race (ack faster than the C-element's own loop) is.

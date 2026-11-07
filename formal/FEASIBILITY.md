@@ -7,7 +7,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
-**2026-11-07 (lead, in progress): the margin is now bracketed by one race, with and without the runt filter.**
+**2026-11-07 (lead): the margin is now bracketed by one race, with and without the runt filter.**
 - **Binding race, both sides.** One C-element of THE target (ulink_n_falseResult_85 stage 0, SLICE_X32Y45.A6) must see
   its acknowledge return no earlier than its own feedback loop. Shard B **proved** that obligation for every
   behaviour at g = 1, κ ≤ 0.41, every corner (`RaceCertPS.race_margin`, `target_b_switch_041`, Lean; one race row
@@ -18,8 +18,9 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 - **H_RUNT(20) does not move the frontier.** Shard A: C's κ = 0.72 deadlock and its 0.44 one are plain races,
   not runt mechanisms; both survive a Spec-faithful runt filter on every LUT pin (simrunt.py; independent checker
   gatecheck_runt.py). Lean: `CexRunt72.RBase` / `CexRuntP.RBase` (a finite check sound for `SpecRunt.GateOKRunt`,
-  CHECKED); the refutation of `NetCorrectSeqRunt 20` at κ = 11/25 (`CexRunt44`, C's run) is building; with
-  `FrontierRunt` (down-set in (g, κ), up-set in w, both proved) it covers every g ≥ 1, κ ≥ 11/25, w ≤ 20.
+  CHECKED); **the refutation of `NetCorrectSeqRunt 20` at κ = 11/25 is CHECKED** (`CexRunt44.not_netCorrectSeqRunt20`,
+  C's run, T ≥ 123, standard axioms) and, with `FrontierRunt` (down-set in (g, κ), up-set in w, both proved), covers
+  every g ≥ 1, κ ≥ 11/25, w ≤ 20. With B's 0.41 proof the g = 1 margin of the binding race is in [0.41, 0.44).
 - **Verdict unchanged in kind:** THE theorem is false above a small scatter (≈ 0.44 at g = 1, ≈ 1.59 guard at κ = 0) for
   a reason that is a real timing race in the circuit, not an artefact of the gate model or the runt semantics.
 

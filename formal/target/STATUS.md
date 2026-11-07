@@ -15,6 +15,15 @@ B's sufficient race bound is κ ≤ 0.415, so the g = 1 frontier is in [0.415, 0
 theorem yet). By `SpecMono.seq_anti_p` the refutation carries to every (g, κ) with g ≥ 1 and κ ≥ 0.84 (`FrontierPS.not_seq_above`) and κ ≥ 0.72 with T ≥ 62 (`not_seq_above72`), Lean; under
 H_RUNT(20 ps) it is open. Details: notes/C-cex-ps.md, FOR-RESEARCH C2.
 
+## COUNTEREXAMPLE UNDER THE HEADLINE HYPOTHESIS H_RUNT(20) (shard A, 2026-11-07; Lean, standard axioms, check.sh OK)
+`Formal.Target.CexRunt44.not_netCorrectSeqRunt20 : ∀ T su Δo, 123 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 DecodedPS.net
+DecodedPS.boundary DecodedPS.arbs ⟨1, 11/25⟩ T 400000 su Δo`; with `FrontierRunt.not_seqRunt_le20_above44`: false for every
+g ≥ 1, κ ≥ 11/25 and every runt width w ≤ 20 (so also for the plain statement, w = 0). Witness: shard C's run (the 7 arcs
+of SLICE_X32Y45.A6's feedback route, ulink_n_falseResult_85 stage 0, at the top of the window, all else at the bottom),
+checked as a `BehavesRunt 20` behaviour by `CexRuntP.RBase` (every LUT pin skips every pulse narrower than 20 ps inside
+its window). Shard B proved that race safe for κ ≤ 0.41 at g = 1 (`RaceCertPS.race_margin`). **So the g = 1 margin
+of THE statement, with or without the runt filter, is below 0.44; the binding race is safe up to 0.41.**
+
 ## THE target: what is proved (as of 2026-11-02, unchanged since)
 | piece | theorem | plainly |
 |---|---|---|
