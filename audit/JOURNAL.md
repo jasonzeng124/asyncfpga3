@@ -1243,3 +1243,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T11:43:43Z T38: build40 (15 modules: B certificates, target_b_switch_041; C Stretch/Smax/Periodic) build + axioms CONFIRMED (703 constants).
 - 2026-11-07T12:41:35Z container restart: build41 (CexRuntG16 at 6dfd8b6f) had 149 modules rc=0 through X070; resumed without re-checkout (build41_resume.sh); build42 waiter relaunched.
 - 2026-11-07T12:53:56Z T37 row 8: CexRuntG16 + FrontierRunt Lean CONFIRMED (guard axis g >= 8/5, kappa >= 0, w <= 20).
+- 2026-11-07T13:23:20Z build42 attempt 1 OOM (alphabetical order put CexR44.AllR first; lake built X chunks in parallel, X019 killed). Restarted with data/bases/X chunks first, one module at a time (build42.sh fixed; attempt-1 log kept).
