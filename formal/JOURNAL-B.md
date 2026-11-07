@@ -3340,3 +3340,12 @@ dd_0x40000000_0x60000000; 7 LUT steps; ctlcert bound 1818 ps, fast corner, κ = 
 `ArbOneAckAllPS4.target_one_ack`. lake build + check.sh OK (standard axioms). arbs[0], [5], [6], [7], [8] now have the
 one-acknowledge statement for both directions of q; arbs[1], [3] for q leaving true only (every dump here flips them
 once, true -> false); arbs[2], [4] none. Same premises/reading as ArbOneAckAllPS.
+
+### progress 15:35 -- what the remaining uncovered rows are (Python, untrusted)
+The 4 RaceTablePS rows without a certificate (SLICE_X4Y54.A, SLICE_X4Y51.A, SLICE_X16Y25.B, SLICE_X16Y18.D) are
+exactly the storage nodes that never flip after reset (t > 400 ns) in any of the 15 simb.py dumps here (d0, d3, dp,
+12 dd_* input pairs); the last two are the states q of arbs[2] and arbs[4], the two arbiters without a server-path
+certificate. So every storage node and arbiter that moves after reset in these runs now has its checked certificate;
+what is left is nodes these workloads never move. A certificate for them needs a flip to take premise values from
+(or a search for sensitizing values, which gives premises nobody has seen hold), or a network-level argument (C) that
+they do not move after reset, which would make their race obligations vacuous. Not attempted here.
