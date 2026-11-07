@@ -1897,3 +1897,14 @@ the right answer (out0 = 21) and is not an admissible GateOKRunt 40 behaviour an
 and nothing above it**; a refutation for a wider filter needs an adversary that keeps ≥ w slack on its slow pins
 (a mid-window slow pin may lose the race). FOR-RESEARCH A4 says so now; the earlier wording ("H_RUNT does not lift
 the margin at all") was too strong and is corrected.
+### progress 10:1x -- how much a WIDER runt filter buys: w = 40 moves the frontier from 0.44 to ~0.60, no further (simulation + independent check)
+The w = 40 question needs an adversary that leaves the filter room: `simrunt.py --classes FILE --sslack S` (new, A's
+tool) puts the listed arcs at (top of window) - S instead of the top, so a LUT pin there can still skip an S-wide
+pulse and stay inside Adm. With C's 7 arcs and S = 40: correct at κ = 0.44, 0.48, 0.52 (and at w = 20, sslack = 0 the
+κ = 0.44 deadlock reproduces exactly, 533,340 ps = C's dump: cross-check of the new path), **deadlock at κ = 0.60 and
+0.72**. The κ = 0.60 dump (`tools-A/target/out/k60w40_dump.json.xz`) checked by gatecheck_runt.py (now takes
+`@classes.json:SSLACK`): 186,871 gates, 276,066 checks, 0 mismatches, 0 arcs outside Adm, 0 lag violations; control
+(same dump read as w = 0): 3,187 mismatches; envcheck: Env + SeqEnv OK, ArbOK T ≥ 87, no out0, quiet at 498,580 ps.
+**Plainly, for the owner: the runt filter buys margin, but little.** At the headline w = 20 the statement is false
+from κ = 0.44 (Lean); at w = 40 it is false from κ ≈ 0.60 (simulation, bracket (0.52, 0.60]); at w = 0 from 0.44 too.
+Not Lean yet for w = 40 (the witness check needs per-arc delays from data rather than the slow/fast formula).

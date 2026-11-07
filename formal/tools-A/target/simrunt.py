@@ -52,6 +52,8 @@ def main():
     ap.add_argument("--slow", nargs="*", default=[], help="node names whose driving gate is made slow")
     ap.add_argument("--kappa", type=float, default=None)
     ap.add_argument("--w", type=int, default=0, help="H_RUNT(w) on LUT pins (A)")
+    ap.add_argument("--classes", default=None, help="JSON {S: [[node, pin], ..]}: per-ARC slow list, exact, corner 0 (A, C's format)")
+    ap.add_argument("--sslack", type=int, default=0, help="slow arcs get (top of window) - sslack ps, so a LUT pin at the top can still skip a pulse up to sslack wide and stay inside Adm (A)")
     ap.add_argument("--fast", nargs="*", default=None, help="only these gates (and their input routes) fast; all others mid-window")
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
@@ -127,7 +129,18 @@ def main():
             for u in gates[gi0]["ins"]:
                 while u in drv and gates[drv[u]]["k"] == 1 and gates[drv[u]]["init"] == 2:
                     SLOW.add(u); u = gates[drv[u]]["ins"][0]
-    def dly(e, gi=None):
+    ACL = {}
+    if a.classes:
+        CJ = json.load(open(a.classes))
+        assert not CJ.get("F")
+        for x in CJ["S"]: ACL[(idx[x[0]], x[1])] = "S"
+
+    def dly(e, gi=None, pin=None):
+        if ACL:
+            P = round(a.kappa * 25); assert c == 0 and abs(a.kappa - P / 25) < 1e-12
+            if gi is not None and ACL.get((gates[gi]["out"], pin)) == "S":
+                return max(((25 + P) * e["fmax"]) // 25 - a.sslack, ((25 - P) * e["fmin"] + 24) // 25)
+            return ((25 - P) * e["fmin"] + 24) // 25
         if a.kappa is not None:
             lo = (1 - c) * e["fmin"] + c * e["smin"]; hi = (1 - c) * e["fmax"] + c * e["smax"]
             if a.exact:   # kappa = P/25 exactly, corner 0: integer formulas used by the Lean witness (CexPS.dK)
@@ -150,7 +163,7 @@ def main():
     LUTG = set(); HI = {}
     for gi in cone:
         g = gates[gi]
-        ds = [dly(e, gi) for e in g["arcs"]]
+        ds = [dly(e, gi, i_) for i_, e in enumerate(g["arcs"])]
         if a.w and (g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")):
             LUTG.add(gi)
             his = [((1 - c) * e["fmax"] + c * e["smax"]) * (1 + (a.kappa or 0)) for e in g["arcs"]]

@@ -6,13 +6,23 @@ changes, including [0, first flip)). Checks, for every gate of the circuit (env-
 breakpoint t >= Gate.start: out(t) = INIT bit at the read address; every d inside Adm(g = 1, kappa, corner); for LUT
 pins the read lag t - f(t) <= the Adm upper bound wherever a read lands in a narrow-pulse chain, and no read at
 t >= start lands in a narrow power-up interval (no admissible f there). Delays rebuilt by the simadv/simrunt rule.
-usage: gatecheck_runt.py net.json bnd.json dump.json corner kappa w SLOWNODE..."""
+usage: gatecheck_runt.py net.json bnd.json dump.json corner kappa w SLOWNODE...
+   or: gatecheck_runt.py net.json bnd.json dump.json corner kappa w @classes.json[:SSLACK]
+       (per-ARC slow list as simrunt.py --classes; SSLACK = simrunt.py --sslack)"""
 import json, sys, math, bisect
 from fractions import Fraction as Fr
 net = json.load(open(sys.argv[1])); G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}
 BJ = json.load(open(sys.argv[2])); ENV = set(idx[x] for x in BJ["env"])
 D = json.load(open(sys.argv[3])); c = Fr(sys.argv[4]); kap = Fr(sys.argv[5]); W = int(sys.argv[6])
-SLOWN = set(idx[x] for x in sys.argv[7:])
+ARCCLS = None; SSLACK = 0
+if len(sys.argv) > 7 and sys.argv[7].startswith("@"):
+    spec = sys.argv[7][1:]
+    if ":" in spec: spec, sl_ = spec.rsplit(":", 1); SSLACK = int(sl_)
+    CJ = json.load(open(spec)); assert not CJ.get("F")
+    ARCCLS = set((idx[n], p) for n, p in CJ["S"])
+    SLOWN = set()
+else:
+    SLOWN = set(idx[x] for x in sys.argv[7:])
 drv = {g["out"]: gi for gi, g in enumerate(G) if g["out"] not in ENV}
 SLOW = set(SLOWN)
 for n0 in list(SLOWN):
@@ -23,6 +33,11 @@ EXACT = (kap * 25).denominator == 1 and c == 0
 P = int(kap * 25)
 def islut(g): return g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")
 def dly(e, slow, lut):
+    if ARCCLS is not None:
+        assert EXACT
+        d = (max(((25 + P) * e["fmax"]) // 25 - SSLACK, ((25 - P) * e["fmin"] + 24) // 25) if slow
+             else ((25 - P) * e["fmin"] + 24) // 25)
+        return max(d, W) if (lut and W) else d
     if EXACT: d = ((25 + P) * e["fmax"]) // 25 if slow else ((25 - P) * e["fmin"] + 24) // 25
     else:
         lo = (1 - cs) * e["fmin"] + cs * e["smin"]; hi = (1 - cs) * e["fmax"] + cs * e["smax"]
@@ -61,8 +76,12 @@ def val(s, t):
     return bool(v0) ^ (bisect.bisect_right(fl, t) % 2 == 1)
 tend = D["tend"]; bad = 0; badadm = 0; badlag = 0; badpow = 0; checked = 0; nlut = 0; maxlag = Fr(0)
 for o, gi in drv.items():
-    g = G[gi]; slow = o in SLOW; lut = islut(g) and W > 0; nlut += lut
-    ds = [dly(e, slow, lut) for e in g["arcs"]]
+    g = G[gi]; lut = islut(g) and W > 0; nlut += lut
+    if ARCCLS is not None:
+        ds = [dly(e, (o, i) in ARCCLS, lut) for i, e in enumerate(g["arcs"])]
+    else:
+        slow = o in SLOW
+        ds = [dly(e, slow, lut) for e in g["arcs"]]
     for e, d in zip(g["arcs"], ds):
         lo, hi = bounds(e)
         if not (lo <= d <= hi): badadm += 1
