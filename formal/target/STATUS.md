@@ -23,6 +23,8 @@ of SLICE_X32Y45.A6's feedback route, ulink_n_falseResult_85 stage 0, at the top 
 checked as a `BehavesRunt 20` behaviour by `CexRuntP.RBase` (every LUT pin skips every pulse narrower than 20 ps inside
 its window). Shard B proved that race safe for κ ≤ 0.41 at g = 1 (`RaceCertPS.race_margin`). **So the g = 1 margin
 of THE statement, with or without the runt filter, is below 0.44; the binding race is safe up to 0.41.**
+**Two independent Lean proofs (2026-11-07):** shard C proved the same κ = 11/25 and g = 8/5 refutations, for every reset
+≥ 400 ns, with its own witness check and stretch lemma (`Formal/Net/CexR44`, `Formal/Net/CexRg16`, `Net/Stretch`).
 **Any reset length (2026-11-07 14:1x, Lean):** `FrontierRuntR.not_seqRunt_le20_above44_R`: the same for every reset
 length R ≥ 400 ns (the run is quiet long before the reset ends; `SpecStutter` stretches it), so the board's long
 reset is covered. Same for the guard-axis and w = 40 refutations (`not_seqRunt_le20_aboveG16_R`, `not_seqRunt40_above60_R`).

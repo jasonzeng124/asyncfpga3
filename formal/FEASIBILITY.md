@@ -19,7 +19,9 @@ reset, along both axes of the owner's frontier; one race binds it.** Lean, stand
   slack for the w = 40 filter). Checked by A's runt witness check (`CexRunt72/CexRuntP/CexRuntG/CexRuntD .RBase`:
   per LUT pin, reads jump over chains of narrow pulses inside the delay window), extended to any reset length by a
   generic stutter lemma (`SpecStutter`), and made monotone by `FrontierRunt` (down-set in (g, κ), up-set in w).
-  Audit T37 confirms the runs and the κ = 11/25 and g = 8/5 Lean refutations independently.
+  Shard C proved the κ = 11/25 and g = 8/5 points (every reset ≥ 400 ns) independently, with its own witness check
+  and stretch lemma (`Formal/Net/CexR44`, `CexRg16`, `Net/Stretch`), so each has two independent Lean proofs; audit
+  T37 confirms the runs and the Lean refutations a third time.
 - **The binding race, safe side.** Shard B proved the same race safe in every behaviour at g = 1, κ ≤ 0.41, every
   corner (`RaceCertPS.race_margin`, `target_b_switch_041`; one race row of 185, local premises open). In simulation
   the adversary is correct at κ = 0.42 and 0.43. **So at g = 1 the margin of THE statement is below 0.44, and the race

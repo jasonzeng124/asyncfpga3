@@ -1984,3 +1984,14 @@ limit during the one-at-a-time retries, so there is no whole-tree verdict today.
 checked individually with check.sh (FILE mode; RBase x4, CexRunt44/G16/D60 Wit/Refute/AnyR, SpecStutter,
 StutterCodes, FrontierRunt/40/R: OK, standard axioms). Next session: run check.sh --committed early (lake keeps the
 oleans already built).
+### progress 15:3x -- DUPLICATION with shard C found (my slip): two independent Lean refutations of the same points
+Re-reading JOURNAL-C now: C built, in parallel with me and with its own witness check and stretch lemma,
+`Formal/Net/CexR44` (κ = 11/25, w = 0 and 20, every reset ≥ 400 ns; 10:05), `Formal/Net/CexRg16` (g = 8/5, κ = 0; 10:32)
+and `Net/Stretch` (any reset length; 08:26). My CexRunt44/CexRuntG16 + SpecStutter + FrontierRuntR (09:5x-14:4x) prove
+the same statements. I had journaled at 08:2x that A would take the κ = 11/25 Lean refutation, but did not re-read
+JOURNAL-C before starting the 2 h builds and missed C's 08:13/08:26 entries. Cost: roughly 4 h of chunk builds and
+the stretch lemma done twice. Benefit, such as it is: the two witness checks (A's RBase family, C's) and the two
+stretch lemmas are independent code, so each refutation now has two independent Lean proofs, and audit T37 confirms
+the runs a third time. Not duplicated: the w = 40 refutation (CexRuntD60, FrontierRunt40 + any R) and the explicit
+per-arc-delay witness check (CexRuntD) are A's only. **Rule for myself: re-read the other journals' tails before every
+build longer than 30 min.** STATUS/FEASIBILITY now name both.
