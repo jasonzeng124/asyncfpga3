@@ -1,0 +1,116 @@
+GLS_MODEL=fid
+GLS_SCATTER=0.126
+GLS_SCATTER_MODE=wire
+GLS_SCATTER_REGION=0.02
+GLS_SCATTER_SEED=1
+GLS_SDF=/root/t19/bq1s6/gcd_hw/gcd_hw_xray.sdf
+GLS_SDF_BAND=0.288
+GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1
+GLS_SDF_BAND_INST=@/root/t19/chains_bq1s6.band
+GLS_SDF_FIELD=band
+== fasm2net (bit) ==
+source: /root/t19/bq1s6/gcd_hw/gcd_hw.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 71074   nodes touched: 328121
+cells: 13216  {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 1200, 'SLICE_FFX': 326, 'SLICE_LUTX': 11619}
+sinks traced: 242598
+sink roots: {'drv': 41925, 'const/default': 27615, 'const/tile': 2208}
+sdf: cell arcs for a bel this netlist does not have                         1
+sdf: cells re-keyed                                                         13216
+sdf: interconnects re-keyed                                                 52803
+sdf: sinks with no nextpnr interconnect (0 ps)                              22379
+
+PROBLEMS (1 kinds):
+       5  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL8_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL2_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL3_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL0_O
+            e.g. CLK_BUFG_TOP_R_X82Y53/CLK_BUFG_BUFGCTRL1_O
+
+CONFIGURED FEATURES NOT CONSUMED: 0 kinds (0 all-zero encodings ignored)
+
+note: 49 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 13574 routed-JSON net names attached by driver bel pin, 1 whose driver has no net here
+== equivalence against the routed JSON (information; the sim runs regardless) ==
+1. CELLS  routed JSON 13215 bels, bitstream 13214 bels, common 13214
+2. CONFIG  compared {'BSCAN': 1, 'BUFGCTRL': 5, 'CARRY4': 59, 'SLICE_FFX': 326} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+3. CONNECTIVITY  37622 pins with the same driver on both sides
+4. LUT FUNCTIONS  11619 LUTs compared, 11619 identical over every input assignment
+5. ROUTING  13575 nets with identical pip sets, 0 differ (1 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    gcd_hw  (FASM-BUILT netlist: fasm2net.py from the bit)
+stamped:   2026-11-07 07:02:01
+md5 4ef1398c6ea70bcc63111dae7cb634c0  /root/t19/bq1s6/gcd_hw/gcd_hw.bit
+md5 2ed836c3a28d41a934d13602fbd84221  /root/t19/bq1s6/gcd_hw/gcd_hw.fasm
+md5 34d1aa5f59c5de208a471e2bc0a9365c  /root/t19/bq1s6/gcd_hw/gcd_hw_routed.json
+md5 753059c0eae369209cd3aace5e91a1b7  /root/t19/bq1s6/gcd_hw/gcd_hw.sdf
+connectivity/LUTs from: bit;  names + delays from: routed JSON + SDF (re-keyed)
+delays:    scale 1, scatter sigma 0.126, seed 1, mode wire (gen.py)
+sdf:       140e257256d1d06905f8730e99f8735b  /root/t19/bq1s6/gcd_hw/gcd_hw_xray.sdf, column band
+model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region 0.02/10, band 0.288 if column=band)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== gen.py on the FASM-built netlist ==
+GLS_SDF_BAND_INST: 2666 instances listed, 2666 in the SDF, 20434 arcs (IOPATH + INTERCONNECT into them) at their own band (0.21)
+GLS_SDF_BAND_CELL: {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0} (IOPATH arcs moved: CARRY4 1380, SELMUX2_1 3600, SLICE_FFX 326)
+delays: SDF column band 0.288 cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0} inst 2666 listed, scale 1, scatter sigma 0.126 (seed 1, mode wire)
+delays: 47273 interconnect arc(s) from the wire model, 27909 fell back to one draw each
+delays: region scatter sigma 0.02 over 10x10-slice regions: 122402 arc(s) placed, 0 without a site (unscaled)
+SDF claims: 47220 IOPATH, 75182 INTERCONNECT, 1218 SETUPHOLD
+fid: 4711 LUT state node(s) with a self-loop; loop delay min/median/max 171/489/1773 ps
+cells         : 13216
+icbufs        : 75182
+nets          : 13636 (+75182 icbuf outputs)
+IOPATH  claimed 122402 -> emitted 122402 (incl. 75182 icbuf)
+SETUPHOLD claimed 1218 -> 326 flops check them in netlist_baked.v
+handshake wires: 542  data buses: 159
+resolved 14 signals -> signals.vh
+== compiling ==
+built /root/r23work/bq1_6_wc_s1
+7ee007b47020856f665f5efaa867e839  /root/r23work/bq1_6_wc_s1/netlist_baked.v
+vec 0: RESULT timeout: vec=0 laps=3667 errs=0 oks=3667 | SUMMARY vec=0 laps=3667 errs=0 oks=3667 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=388632 t_last_lap=150965916
+vec 1: RESULT timeout: vec=1 laps=2359 errs=0 oks=2359 | SUMMARY vec=1 laps=2359 errs=0 oks=2359 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=405702 t_last_lap=150949854
+vec 2: RESULT timeout: vec=2 laps=209 errs=0 oks=209 | SUMMARY vec=2 laps=209 errs=0 oks=209 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1066193 t_last_lap=150492769
+vec 3: RESULT timeout: vec=3 laps=175 errs=0 oks=175 | SUMMARY vec=3 laps=175 errs=0 oks=175 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1206561 t_last_lap=150631671
+vec 4: RESULT timeout: vec=4 laps=427 errs=0 oks=427 | SUMMARY vec=4 laps=427 errs=0 oks=427 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=700563 t_last_lap=150939687
+vec 5: RESULT timeout: vec=5 laps=150 errs=0 oks=150 | SUMMARY vec=5 laps=150 errs=0 oks=150 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1351873 t_last_lap=150990934
+vec 6: RESULT timeout: vec=6 laps=30 errs=0 oks=30 | SUMMARY vec=6 laps=30 errs=0 oks=30 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=5222892 t_last_lap=146608158
+vec 7: RESULT timeout: vec=7 laps=108 errs=0 oks=108 | SUMMARY vec=7 laps=108 errs=0 oks=108 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1736458 t_last_lap=150366199
+vec 8: RESULT timeout: vec=8 laps=98 errs=0 oks=98 | SUMMARY vec=8 laps=98 errs=0 oks=98 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1884271 t_last_lap=150940679
+vec 9: RESULT timeout: vec=9 laps=97 errs=0 oks=97 | SUMMARY vec=9 laps=97 errs=0 oks=97 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1891392 t_last_lap=150072096
+vec 10: RESULT timeout: vec=10 laps=427 errs=0 oks=427 | SUMMARY vec=10 laps=427 errs=0 oks=427 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=700563 t_last_lap=150939687
+vec 11: RESULT timeout: vec=11 laps=42 errs=0 oks=42 | SUMMARY vec=11 laps=42 errs=0 oks=42 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=3892331 t_last_lap=149228844
+vec 12: RESULT timeout: vec=12 laps=24 errs=0 oks=24 | SUMMARY vec=12 laps=24 errs=0 oks=24 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=6592148 t_last_lap=150221467
+vec 13: RESULT timeout: vec=13 laps=34 errs=0 oks=34 | SUMMARY vec=13 laps=34 errs=0 oks=34 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=4658998 t_last_lap=146935660
+vec 14: RESULT timeout: vec=14 laps=170 errs=0 oks=170 | SUMMARY vec=14 laps=170 errs=0 oks=170 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1231689 t_last_lap=150653208
+vec 15: RESULT timeout: vec=15 laps=115 errs=0 oks=115 | SUMMARY vec=15 laps=115 errs=0 oks=115 hk=11814 t_end=151000000 t_rst_rel=347644 t_first_lap=1650006 t_last_lap=150131358
+DONE
+/root/r23work/bq1_6_wc_s1 vec  0 laps   3667 errs 0 oks 3667 last 150965916 period 4107400 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  1 laps   2359 errs 0 oks 2359 last 150949854 period 6384400.0 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  2 laps    209 errs 0 oks 209 last 150492769 period 718397 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  3 laps    175 errs 0 oks 175 last 150631671 period 858765.0 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  4 laps    427 errs 0 oks 427 last 150939687 period 352674 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  5 laps    150 errs 0 oks 150 last 150990934 period 1004289.0 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  6 laps     30 errs 0 oks 30 last 146608158 period 4875354 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  7 laps    108 errs 0 oks 108 last 150366199 period 1389063.0 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  8 laps     98 errs 0 oks 98 last 150940679 period 1536664 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec  9 laps     97 errs 0 oks 97 last 150072096 period 1543549 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 10 laps    427 errs 0 oks 427 last 150939687 period 352674 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 11 laps     42 errs 0 oks 42 last 149228844 period 3544793 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 12 laps     24 errs 0 oks 24 last 150221467 period 6244753 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 13 laps     34 errs 0 oks 34 last 146935660 period 4311414 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 14 laps    170 errs 0 oks 170 last 150653208 period 884151.0 close_pairs 0 ok
+/root/r23work/bq1_6_wc_s1 vec 15 laps    115 errs 0 oks 115 last 150131358 period 1302468.0 close_pairs 0 ok
+LAPCHECK CLEAN 0
+ALLDONE
