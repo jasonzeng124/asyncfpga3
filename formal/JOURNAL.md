@@ -1951,3 +1951,20 @@ lower with this adversary (0.42, 0.43 correct); at w = 40 the race fails from �
 Audit T37 confirmed the headline counterexample. STATUS rows 4 and 6 updated; the list did not shrink today (no
 hypothesis was derived) -- instead the headline statement is refuted, and both owner axes have Lean upper bounds.
 Open: the gap 0.41-0.44 (B's premises; other adversaries); w > 40; the wire-to-node merge in Lean (H_DECODE).
+### progress 14:1x -- CHECKED: the headline refutation holds for EVERY reset length R ≥ 400 ns (board reset covered)
+Gap closed: `Env` fixes the reset to exactly [0, R), and all refutations so far had R = 400 ns (SpecMono: no
+monotonicity in R), while the board's reset is far longer. New, standard axioms, check.sh OK (1,869 declarations):
+- `Formal/Target/SpecStutter.lean` (generic): `gateOKRuntOn_stut` / `behavesRuntOn_stut` -- if every node is constant
+  on [t0 - Q, t0], every admissible arc delay is ≤ Q, Q ≤ t0, w ≤ Q + 1 and every gate's start is ≤ t0, then the run
+  with every event after t0 delayed by Δ is again a GateOKRunt / BehavesRunt behaviour (with and without runt
+  filtering: L, w arbitrary). Key lemma `pulse_stut`: a narrow pulse of the stretched signal lies wholly before t0 or
+  wholly after t0 + Δ.
+- `Formal/Target/StutterCodes.lean`: the same on coded runs (`sigL_shift`, `quiet_of_codes`, `lookL_all`,
+  `arbChkE_shift`, `incr_shift`).
+- `Formal/Target/CexRunt44/AnyR.lean`: the κ = 11/25 run is quiet on [299,999, 399,999] (`quiet_trees`, one kernel
+  decide over all 187k node codes) and every arc has smax ≤ 698 (`arcs_chunks`), so every admissible delay is
+  ≤ 1,006 ps; Env/SeqEnv re-proved with reset 400,000 + Δ, ArbOK T ≥ 123, out0 never rises:
+  **`not_netCorrectSeqRunt20_R`: ∀ R ≥ 400,000, ¬ NetCorrectSeqRunt 20 net boundary arbs ⟨1, 11/25⟩ T R su Δo.**
+- `Formal/Target/FrontierRuntR.lean`: `not_seqRunt_le20_above44_R` -- false for every w ≤ 20, g ≥ 1, κ ≥ 11/25,
+  R ≥ 400 ns, T ≥ 123, any su, Δo ≤ 3000. Plainly: the board's long reset does not rescue the circuit.
+Not done: the same stretch for the g = 8/5 and w = 40 refutations (same machinery; only the env file needs copying).

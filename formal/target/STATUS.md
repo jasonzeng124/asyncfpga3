@@ -23,6 +23,9 @@ of SLICE_X32Y45.A6's feedback route, ulink_n_falseResult_85 stage 0, at the top 
 checked as a `BehavesRunt 20` behaviour by `CexRuntP.RBase` (every LUT pin skips every pulse narrower than 20 ps inside
 its window). Shard B proved that race safe for κ ≤ 0.41 at g = 1 (`RaceCertPS.race_margin`). **So the g = 1 margin
 of THE statement, with or without the runt filter, is below 0.44; the binding race is safe up to 0.41.**
+**Any reset length (2026-11-07 14:1x, Lean):** `FrontierRuntR.not_seqRunt_le20_above44_R`: the same for every reset
+length R ≥ 400 ns (the run is quiet long before the reset ends; `SpecStutter` stretches it), so the board's long
+reset is covered.
 **Guard axis (2026-11-07 11:3x, Lean):** `CexRuntG16.not_netCorrectSeqRunt20` / `FrontierRunt.not_seqRunt_le20_aboveG16`:
 false for every g ≥ 8/5, κ ≥ 0, w ≤ 20, T ≥ 137 (same race; B's sufficient bound for it: g ≤ 1.56 at κ = 0).
 **Wider filter (simulation, independently checked):** at w = 40 the same race deadlocks from κ ≈ 0.60 (correct at
@@ -56,7 +59,7 @@ each stands:
 | 2 | H_DELAY(g, κ) (`Adm`) | allowed | stated; per-arc bands are the decoder's prjxray numbers (in the netlist) |
 | 3 | H_PRIM (`GateOK`) | allowed | stated; every gate kind covered (PrimsPS) |
 | 4 | H_ARB(T) (`ArbOK`) | allowed | stated; non-vacuous at T ≥ 220 for n = 1 (C's witness). Headline T: as LARGE as possible (`seq_anti_T`), at least the slowest state-LUT arc ((1+κ)·664·g ps) to avoid the residual vacuity (audit T5) |
-| 5 | H_ENV (`Env`) + SeqEnv | allowed (owner decisions 1, 4) | stated; what it asks of the AXI slave: BOUNDARY-ps.md. Margins: smaller Δo, su are stronger (`seq_mono_Δo/su`); the board's end-channel sink needs **Δo ≤ (1-κ)·535/g ps** (BOUNDARY-ps.md finding 4), so the headline uses such a Δo (0 is strongest) |
+| 5 | H_ENV (`Env`) + SeqEnv | allowed (owner decisions 1, 4) | the κ = 11/25 refutation holds for every reset R ≥ 400 ns, every su, every Δo ≤ 3 ns (`FrontierRuntR`, 2026-11-07); stated; what it asks of the AXI slave: BOUNDARY-ps.md. Margins: smaller Δo, su are stronger (`seq_mono_Δo/su`); the board's end-channel sink needs **Δo ≤ (1-κ)·535/g ps** (BOUNDARY-ps.md finding 4), so the headline uses such a Δo (0 is strongest) |
 | 6 | H_RUNT(w) (optional, owner decision 2) | allowed | `SpecRunt.NetCorrectSeqRunt w`, corrected 2026-11-06 to LUT pins only (audit T9). **2026-11-07: it does not raise the margin.** The statement with w = 20 (the owner's headline) is REFUTED at g = 1, κ = 11/25 and for every g ≥ 1, κ ≥ 11/25, w ≤ 20 (`CexRunt44.not_netCorrectSeqRunt20`, `FrontierRunt.not_seqRunt_le20_above44`, Lean): the binding failure is a race, not a runt. Witness check: `CexRuntP.RBase` (per-LUT-pin jump reads inside the delay window) |
 | 7 | everything else | must be derived | restated (A, `AssemblyPS.the_of_plan`) as ONE per-pair hypothesis, a `Plan` (invariant, base, quiet, step) for every behaviour; the all-time bookkeeping of Correct is proved, the circuit argument is not reduced (Plan ≈ Correct per pair); S4 composition and S6 liveness for n ≥ 1: not done |
 
