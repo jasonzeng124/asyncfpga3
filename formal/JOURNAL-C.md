@@ -1907,3 +1907,15 @@ at least L events of w below it") with bounds justified one step at a time along
 `lsound_of_step`). `occnet_summary` packages it. Unlike Keller.lean it needs no persistence on the (unknown)
 reachable states: the certificate's order stands in for them.
 **Not shown:** a decidable enumerator for LCheck (next), any instance, the timed -> abstract refinement.
+
+### progress 08:5x -- Net/OccNetDec.lean CLAIMED: the local check as a Boolean enumeration (generic, core Lean)
+`Formal/Net/OccNetDec.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
+Per node `v`: `enumAll` enumerates the counts of `D v`'s nodes one node at a time (0..len), prunes partial vectors
+by the pairwise bounds of each node's last counted event, and compares `en v` with `enabledB` at every full vector.
+`enumAll_sound` (pruning drops no vector that respects the bounds), `lcheck_of_enum` (needs: `en v` reads only
+`D v`, `D v` duplicate-free, containing `v` and the nodes of `v`'s causes), Boolean forms of the time-stamp and
+bound checks (`tmOKB`, `lstepB`), and `occnet_dec`: from passing Boolean checks, every maximal valid run fires each
+node exactly `len` times and ends in the certificate's final state, every valid run extends to one, no run exceeds
+`Σ len`, and every property of all ideal states holds after every valid run. A two-node toy instance runs
+through `decide` (`Toy.toy`). Cost of a real instance: per node, the number of bound-respecting count vectors of
+its dependency list (the subagent is measuring this on THE target).
