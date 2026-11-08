@@ -3451,3 +3451,16 @@ certified from: 15/15 correct (`tools-B/ps/out/latchsweep_k43_d3_low15.txt`). **
 adversary breaks a latch hold below the 0.44 refutation on these pairs; the 0.376-0.44 certified bounds look like
 certificate slack (the certified path sum is not tight against a real data change that alters the latched value), not
 a race. Not shown: multi-pin adversaries, other pairs, other corners. The other 3,510 latches: running.
+
+### progress 08:40 -- why the low certified latch bounds are slack, not races (simulation, untrusted)
+- Bisection, binding latch SLICE_X32Y90.C5 (certified κ ≤ 0.421), enable-pin adversary, full-width pair: correct at
+  κ = 0.43, 0.50, 0.60; quiet deadlock (no out0) at 0.70 (and 0.80). So this latch's own failure point under its
+  adversary is in (0.60, 0.70], far above the 0.44 refutation.
+- Lowest certificate, SLICE_X20Y96.D5 (O5 = d·e | fb·~e, data pin 0 from SLICE_X18Y95.C5, enable pin 1 from
+  SLICE_X20Y96.A6; certified κ ≤ 0.376): on the 3-pair run at κ = 0.43 with its enable slow, the enable opens for
+  ~11 ns per pair (1016.6-1027.6 ns), the data source moves at 1016.4 ns (before the open) and next at 1245.7 ns,
+  218 ns after the close. The certificate (cause = enable source closing, 3 LUT steps to the data source, a
+  C-element, plus one static premise SLICE_X14Y88.C6 = false) only bounds how early the data source COULD move
+  after the close; in the runs its other input keeps it for ~200 ns. So the 0.376 is the certificate's slack: a
+  longer controlling path (through the static premise's own cause) would raise it, at the cost of a premise
+  further away. Not attempted: regenerating certificates with longer chains for the 15 rows below 0.445.
