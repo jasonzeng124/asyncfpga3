@@ -2218,3 +2218,8 @@ An OR gate reads two environment inputs rising at 10 and 12 ps (read delay 1), f
 event has two alternatives [(in0,0)], [(in1,0)]. Every hypothesis of `timedA_follows` is discharged (local checks by
 `lcheckXA_of_enum` with the own-history filter; without that filter the OR gate's check fails on the vector "fired,
 neither input read"), and `toyA_follows` concludes.
+
+### progress 09:07 -- Net/AO/Local.lean CLAIMED (check.sh OK)
+`lcheckXA_congr` (per-node local certificates for the AND-OR check with data pins) and `lcheckA_window` (the AND-OR
+form of OccWindow: a local check inside a window's box from a shifted window certificate, alternatives shifted).
+Waiting on the subagent's re-measurement of THE target's (12,18) certificate against the AO model.
