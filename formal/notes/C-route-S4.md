@@ -171,3 +171,24 @@ Re-measurement of the (12,18) certificate against the AO model: in progress (sub
   even with every row passing. Under diagnosis: real race vs certificate artefact.
 * Gap 3 (quiet start): existing `reset_state`/`settle_PS`/`quiet_PS`/`correct_n0` cover much of it. Coverage of
   the certificate's exact nodes, and the 9 arbiter states that reset does not force, are under measurement.
+
+### Status at end of session (2026-11-08 afternoon)
+* Lean (all check.sh OK):
+  * `AO/Timed`: count-based env moves; `UpOKA` previous event and causes may use a Sep to e0; `hEnvE`/`hEnvC`
+    may assume the ideal.
+  * `AO/EnvHS`: req/ack four-phase moves imply `hEnvE`.
+  * `AO/EnvData`: input bus claims from `EnvIn`.
+  * `CViewPS/RIslData`: the reset-island member list. Its check and theorem are in Wip/RIsl, not compiled.
+* Control certificate (untrusted, tools/tocc): 0 local-check failures at c = 0/1 for (12,18) and (17,5); one
+  structure for both corners.
+* Data layer (untrusted): not passing.
+  * 46 of 264 guards fail at c=1 for (12,18), plus more at c=0, where the window fixpoint did not converge.
+  * They need orderings that pass through environment or arbiter events (R1), or hold orderings at truncated latch
+    chains (R2/R3).
+  * About 170 adversarial simulations found no data-driven control change and no wrong gcd.
+* Next:
+  * formulate what upper bound an environment/arbiter event can carry (from Spec's Env/ArbOK) and add it to
+    `UpOKA`;
+  * trace the R2 latch holds;
+  * a monotone window fixpoint;
+  * then the instance generator.
