@@ -3647,3 +3647,14 @@ feedback window without H_ARB (`ArbClean.q_clean_set/reset`, target instances Ar
 settle by (last input change) + T, value unknown (Spec ArbOK), so the certificate must branch; the server-path
 separation (`spec_double_ack`, `one_ack`) and T ≥ the state-LUT delay (audit T5) must come with any such edge.
 A note only; no new Lean.
+
+### progress 19:3x -- consistency check: the κ = 0.40 node IS a RaceTablePS row, but the failing race is a different pin
+SLICE_X16Y21.A6 (node 37463) is row 73 of `RaceTablePS.raceTable`; `table_race_free` (κ = 83/200) says its FEEDBACK
+loop (pin 4) is no slower than its simulated acknowledge path. The refutation slows its pin-0 route (the input from
+the fork ucontrol_merge4_f), which is not that race: no B row covers a storage node's non-feedback input arriving late
+relative to the rest of the handshake (an isochronic-fork / relative-timing race, C4's category; it is not among C4's
+36 sites either, which came from narrow pairs). So no B theorem is contradicted, but the earlier reading "B's race
+rows are safe to κ ≤ 0.415, so the frontier is in [0.415, 0.44)" was wrong in substance: the rows cover one race per
+node (feedback vs acknowledge), and the margin of THE statement is below 0.40 because of a race the rows do not model.
+Correction to the STATUS reading (A's file): B's 0.415 is a bound for the feedback races only, not a lower end of the
+frontier.
