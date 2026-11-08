@@ -1273,3 +1273,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T08:05:31Z T42: build46 (8 modules) build + axioms CONFIRMED; NodeMerge generic, no target instance yet.
 - 2026-11-08T08:20:41Z T42 row 6: C TimedOccRT + TimedOccX (f089a5bb) build + axioms CONFIRMED.
 - 2026-11-08T08:49:13Z T43: NodeMerge instance -- trusted DB contained in prjxray-db (own export + own check, controls caught); PipOK parse exact; Lean build in progress.
+- 2026-11-08T08:50:06Z T44: own 5FF/5FFMUX scan -- THE target and audited board candidates unaffected by research's nextpnr 5FF gap.
