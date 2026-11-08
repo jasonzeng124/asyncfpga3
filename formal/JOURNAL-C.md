@@ -2106,3 +2106,12 @@ nodes (FF outputs, floating pins); 55 of them reach a logic gate through copy ch
 out0.req, out0.data). So a timed net for THE target can be the backward cone of the boundary outputs: closed under
 pin sources, its only free nodes are the environment's. Tool: `formal/tools/occ/free_cone.py` (needs net.json/bnd.json
 from lean2json). A Lean version would be a cone-closure check over the netlist (not done).
+
+### progress 08:36 -- Net/TimedOccU.lean CLAIMED: union claims (a latch's value across transparent and hold phases)
+Gap found in TimedOccX while working out how a data latch (Q = en ? D : Q) would be certified: a claim is proved
+by ONE coverage per pin, but the latch's value window spans the transparent phase (Q follows D, feedback irrelevant)
+and the hold phase (Q follows its feedback, D irrelevant), and the hold phase's feedback reads reach back into the
+transparent phase, so no single-coverage claim proves it. `Formal/Net/TimedOccU.lean` (check.sh OK; standard
+axioms): `UnionOK`/`union_holds` (a claim whose window is the union of two same-valued claims, the first lasting until
+the second starts: one Sep inequality) and `timedU_follows` (timedR_follows where each data-gate claim is gate-proved
+or the union of two gate-proved claims; gate-proved claims may cover a pin, e.g. the latch feedback, by a union).
