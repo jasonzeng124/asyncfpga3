@@ -3424,3 +3424,20 @@ CertLatchPS/2/3, unchanged). Per-row κ ranges: min 0.474 / 0.376 / 0.407, media
 SLICE_X20Y96.D O5, 0.376. So the 14:5x reading ("latch hold might cap the headline κ at 0.29") is WITHDRAWN: it was an
 artefact of the latch theorem's data premise. The latch hold rows now sit at or above the race rows' 0.415 except
 for a few latches between 0.376 and 0.415 (not yet examined; same caveat: a different certificate path may raise them).
+
+## Session Sun Nov  8 07:10:47 UTC 2026 (shard B; session_01HC49FvLPHt8jW9mMxvCTG5)
+Start: lock taken 07:11 (previous B lock 00:12, other session, > 90 min). Audit read (audit head bb78f0a8): every row
+on B's files is CONFIRMED (T27 S3 cell layer; T36 race_margin; T38 race rows 158/181, one-ack, latch holds 670 at the
+data pin, κ figures recomputed by the auditor). No open REFUTED/OVERSTATED row on B's files. setup.sh: Mathlib cache
+unreachable, building the imported part from source (running).
+
+### progress 07:40 -- plan: the latch-hold race has never been attacked by an adversary
+A's and C's single-pin adversary sweeps (hazsweep.py --control; 412 control storage nodes, κ = 0.40 / 0.48) skip all
+4,185 latch-like storage LUTs. B's latch-hold certificates (670 latches, LatchHoldPinPS*) give sufficient bounds as
+low as κ ≤ 0.376, below the refuted 0.44. So a latch whose hold breaks between 0.376 and 0.44 would lower THE
+statement's refutation frontier. New tool `tools-B/ps/latchsweep.py` (untrusted): per latch, its enable-pin arc and
+the copy-chain hops into it at the top of the window, every other arc at the bottom (corner 0, κ = P/100 exact,
+H_RUNT(20) on LUT pins, C's simadv.py). Sanity: at κ = 0.80 the enable adversary on SLICE_X32Y90.C5 gives a quiet
+deadlock (no out0; 567 ns), so the adversary does bite at large κ; at 0.43 the three lowest-bound latches tried
+(SLICE_X32Y90.C5/C6, SLICE_X20Y96.D5) are correct. Running: all 4,185 latches at κ = 0.43 on the full-width pair
+(0x49e9c618, 0x35bf992e), the 670 certified first (~8 runs/min, so the full list takes ~9 h).
