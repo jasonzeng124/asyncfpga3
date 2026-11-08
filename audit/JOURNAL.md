@@ -1267,3 +1267,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T04:13:08Z T38 rows 13-17: B latch holds (670) build/axioms/statement CONFIRMED; kappa bounds recomputed (0.440/0.421 binding, min 0.376).
 - 2026-11-08T04:14:57Z disk: deleted lib+ir of audited CexRunt44/G16/D60 and CexRg16 (FrontierRunt* would need a rebuild to re-audit). T30 retry: build45 (RTPS + RTPSSel, roundtrip_sel) at 86a9ffa0 (FormalWit unchanged since 0506f776), 3.6 GB free.
 - 2026-11-08T04:19:01Z build45: lake builds RTPS data chunks in parallel (4 procs, ~3 GB RAM, fine); disk watchdog (stop below 250 MB) added.
+- 2026-11-08T04:56:05Z disk: deleted lib+ir of Formal/Net/FasmDesign (4.1 GB; older gcd_hw design audits; not imported by RTPS/NetPS/CexRunt*/B's cells -- a rebuild is needed to re-audit those old modules).
