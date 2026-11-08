@@ -3512,3 +3512,22 @@ pair-dependent?).
 A's adversary (SLICE_X32Y45.A6 feedback route slow, all else fast, w = 20, corner 0) on the first 60 vectors of
 target/gcd_ps_vec1000.hex (incl. (2^31-1, 2^31-2), (2^31-1, 2^31-1), powers of two): 60/60 correct
 (`tools-B/ps/out/race_A_k43_vec60.txt`). No pair found that moves this race's threshold below 0.44.
+
+### progress 15:2x -- CANDIDATE COUNTEREXAMPLE at κ = 0.40 (w = 20), BELOW the Lean-refuted 0.44 (simulation, two independent checkers)
+Control sweep (`tools-B/ps/ctlsweep.py`: C's hazsweep with κ = P/100) at κ = 0.43, w = 20, corner 0, on the
+FULL-WIDTH pair (0x49e9c618, 0x35bf992e) instead of (1071, 462): node **SLICE_X16Y21.A6** (6-input C-element
+LUT, INIT 0x00fa00a000fa00a0, pin 3 = reset SLICE_X2Y29.DQ, pin 4 = its own feedback) with its pin-0 route (6 arcs, from
+SLICE_X17Y23.B6) at the top of the window and everything else at the bottom: **quiet deadlock, no out0**.
+Bracket on this pair: correct at κ = 0.30, 0.35; deadlock at 0.40, 0.42, 0.43 (0.10 ran out of simulated time, not a
+verdict). On (1071, 462) the same adversary is correct at 0.43, which is why A's and C's sweeps (that pair only)
+did not see it: **the failure is pair-dependent**.
+Exact run at κ = 10/25 (simadv.py --classes, KDEN 25; dump `tools-B/target/out/k40w20_x16y21_dump.json.xz`, classes
+`k40w20_x16y21_classes.json`):
+- A's `gatecheck_runt.py` (exact mode, w = 20): 186,871 gates, 258,156 checks, **0 mismatches, 0 arcs outside Adm,
+  0 lag violations** (a GateOKRunt 20 behaviour at g = 1, κ = 0.40, corner 0);
+- C's `envcheck.py` (R 400 ns, su 1000, Δo 3 ns): **Env + SeqEnv OK; ArbOK for every T ≥ 131 ps; out0 0 of 1;
+  quiescent from 484,403 ps**.
+So, if the simulator and both checkers are right, NetCorrectSeqRunt 20 (and hence the plain statement) is FALSE at
+g = 1, κ = 0.40, for T ≥ 131: the g = 1 margin is below 0.40, not 0.44. NOT yet: a Lean witness (C's/A's generators
+CexR44 / gen_runt_c.py should apply with this classes file and pair), the exact threshold in (0.35, 0.40], the
+mechanism (the deadlock is ~84 ns after reset release), other pairs.
