@@ -100,8 +100,11 @@ variable (N : TNet α) (dat : α → Bool) (envEn : α → (α → Bool) → Boo
   (cl : List (Claim α)) (gd : α → α → List (Guard α))
 
 /-- The per-vector test: every guarded data assignment. -/
+def ownB (v : α) (n : α → Nat) : Bool :=
+  (List.range (n v)).all fun k => (C.causes v k).any fun alt => alt.all fun p => decide (p.2 < n p.1)
+
 def chkXA (v : α) (Z : List α) (n : α → Nat) : Bool :=
-  (allBools Z.length).all fun bs =>
+  !(ownB C v n) || (allBools Z.length).all fun bs =>
     !(Z.all fun z => match dv cl (gd v z) n with | some val => asg Z bs z == val | none => true) ||
     (tEn N envEn v (mix dat (st s0 n) (asg Z bs)) == enabledBA C n v)
 
@@ -114,7 +117,7 @@ theorem lcheckXA_of_enum {L : α → Nat → α → Nat} {D Z : α → List α} 
     (hgD : ∀ z ∈ Z v, ∀ g ∈ gd v z, (∀ w, g.st = some w → w.1 ∈ D v) ∧ (∀ w, g.en = some w → w.1 ∈ D v))
     (hE : enumAll C L (chkXA N dat envEn s0 C cl gd v (Z v)) (D v) [] (fun _ => 0) = true) :
     LCheckXA N dat envEn s0 C L D cl gd v := by
-  intro n hlen hb bb hbb
+  intro n hlen hb hown bb hbb
   let r : α → Nat := fun x => if x ∈ D v then n x else 0
   have hr : ∀ x ∈ D v, r x = n x := fun x hx => by simp [r, hx]
   have hchk : chkXA N dat envEn s0 C cl gd v (Z v) r = true := by
@@ -130,6 +133,18 @@ theorem lcheckXA_of_enum {L : α → Nat → α → Nat} {D Z : α → List α} 
       · exact Or.inl h0
       · exact Or.inr (hb a ha b hb' (n a - 1) (by omega))
   unfold chkXA at hchk
+  have hownr : ownB C v r = true := by
+    unfold ownB
+    apply List.all_eq_true.2
+    intro k hk
+    rw [List.mem_range, hr v hv] at hk
+    obtain ⟨alt, halt, hin⟩ := hown k hk
+    apply List.any_eq_true.2
+    refine ⟨alt, halt, List.all_eq_true.2 fun p hp => ?_⟩
+    have hpD := hcD k (Nat.lt_of_lt_of_le hk (hlen v hv)) alt halt p hp
+    simp only [decide_eq_true_eq]; rw [hr p.1 hpD]; exact hin p hp
+  rw [hownr] at hchk
+  simp only [Bool.not_true, Bool.false_or] at hchk
   have hm := List.all_eq_true.1 hchk ((Z v).map bb) (by
     have := mem_allBools ((Z v).map bb); simpa using this)
   have hdv : ∀ z ∈ Z v, dv cl (gd v z) r = dv cl (gd v z) n :=

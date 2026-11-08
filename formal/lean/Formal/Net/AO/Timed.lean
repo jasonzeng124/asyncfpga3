@@ -37,6 +37,7 @@ def ChangeOKA (N : TNet α) (CP : Cert α) (x : α → Nat → Bool) (t0 : Nat) 
 def LCheckXA (N : TNet α) (dat : α → Bool) (envEn : α → (α → Bool) → Bool) (s0 : α → Bool) (C : Cert α)
     (L : α → Nat → α → Nat) (D : α → List α) (cl : List (Claim α)) (gd : α → α → List (Guard α)) (v : α) : Prop :=
   ∀ n : α → Nat, (∀ u ∈ D v, n u ≤ C.len u) → (∀ u ∈ D v, ∀ w ∈ D v, ∀ k, k < n u → L u k w ≤ n w) →
+    (∀ k, k < n v → ∃ alt ∈ C.causes v k, AltIn n alt) →
     ∀ bb : α → Bool, (∀ z, dat z = true → z ∈ N.pins v → ∀ val, dv cl (gd v z) n = some val → bb z = val) →
       (tEn N envEn v (mix dat (st s0 n) bb) = true ↔ Enabled C n v)
 
@@ -76,6 +77,25 @@ variable {N : TNet α} {dat : α → Bool} {envEn : α → (α → Bool) → Boo
   {r : α → α → Nat → Nat} {t0 H : Nat} {CF CP : Cert α} {L : α → α → Nat → α → Nat} {D : α → List α}
   {Sep : α → Nat → α → Nat → Option Nat} {cl : List (Claim α)} {gd : α → α → List (Guard α)}
   {Up : α × Nat → α × Nat → Option Nat}
+
+/-- **The reader's own history is in its read tuple**: every counted event of `v` has an alternative of physical
+causes counted (it was enabled by what `v` read then, and reads are monotone). -/
+theorem own_readA (hb : TBehX N dat envEn x r t0 H) (t : Nat) (ht : t0 ≤ t)
+    (hB : ∀ v s, dat v = false → t0 < s → s ≤ t → x v s ≠ x v (s - 1) → ChangeOKA N CP x t0 r v s)
+    (v : α) (hve : dat v = false) :
+    ∀ k, k < nT N x t0 r v (t + 1) v → ∃ alt ∈ CP.causes v k, AltIn (nT N x t0 r v (t + 1)) alt := by
+  intro k hk
+  obtain ⟨_, _, r3, _⟩ := rho_boundsX hb v v (t + 1) (by omega)
+  have hk' : k < cnt x t0 v (ρ N r v v (t + 1)) := hk
+  obtain ⟨s, hs1, hs2, hs3, _, hs5⟩ := event_time (x := x) (t0 := t0) v k _ hk'
+  obtain ⟨hfb, _, alt, halt, hin⟩ := hB v s hve hs1 (by omega) hs5
+  have hna : nT N x t0 r v s v = k := by
+    unfold nT ρ
+    by_cases h : reads N v v = true
+    · simp only [h, if_true]; rw [hfb h, hs3]
+    · simp only [h, if_false, Bool.false_eq_true]; exact hs3
+  rw [hna] at halt
+  exact ⟨alt, halt, altIn_mono (fun w => cnt_mono w _ _ (rho_monoX hb v w s (t + 1) hs1 (by omega))) hin⟩
 
 /-- The read tuple respects the reader's bounds. -/
 theorem read_consistentA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L v))
@@ -156,7 +176,7 @@ theorem change_okA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L 
     have he := hb.env v (t + 1) hg hve (by omega) (by simpa [hsub] using hch)
     have hrd : reads N v v = false := by simp [reads, hg]
     refine ⟨fun h => absurd h (by simp [hrd]), ?_⟩
-    have hL := hloc v hve (nT N x t0 r v (t + 1)) hlen hcons (fun w => x w t)
+    have hL := hloc v hve (nT N x t0 r v (t + 1)) hlen hcons (own_readA hb t ht hB v hve) (fun w => x w t)
       (fun z _ _ val hdv => by rw [hgdF v z hg] at hdv; simp [dv] at hdv)
     apply hL.1
     unfold tEn; rw [hg]; simp only [Bool.false_eq_true, if_false]
@@ -175,7 +195,7 @@ theorem change_okA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L 
     have hbb : ∀ z, dat z = true → z ∈ N.pins v → ∀ val,
         dv cl (gd v z) (nT N x t0 r v (t + 1)) = some val → x z (r v z (t + 1)) = val :=
       fun z _ hz val hdv => guard_readR hb t ht hSS hC v z hg hz (hGd v z hg hz) val hdv
-    have hL := hloc v hve (nT N x t0 r v (t + 1)) hlen hcons (fun w => x w (r v w (t + 1))) hbb
+    have hL := hloc v hve (nT N x t0 r v (t + 1)) hlen hcons (own_readA hb t ht hB v hve) (fun w => x w (r v w (t + 1))) hbb
     have hgeq := hb.geq v (t + 1) hg (by omega)
     rw [pins_readX hb v hg (t + 1) (by omega)] at hgeq
     have hmixv : ∀ n : α → Nat, ∀ bb : α → Bool, mix dat (st (fun w => x w t0) n) bb v = st (fun w => x w t0) n v := by
@@ -371,7 +391,7 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
       have := guard_readR hb (T' - 1) hT1 (ss_mono hSS (by omega)) (fun c hc s hs => hC c hc s (by omega))
         w z hg hz (hGd w z hg hz) val (by rw [hTe]; exact hdv)
       rw [hTe] at this; exact this
-    have hL := hloc w hde (nT N x t0 r w T') hlen' hcons (fun u => x u (r w u T')) hbb
+    have hL := hloc w hde (nT N x t0 r w T') hlen' hcons (by have := own_readA hb (T' - 1) hT1 (fun v s h1 h2 h3 h4 => hB v s h1 h2 (by omega) h4) w hde; rw [hTe] at this; exact this) (fun u => x u (r w u T')) hbb
     have he := hL.2 hEn
     unfold tEn at he; rw [hg] at he; simp only [if_true] at he
     have hgeq := hb.geq w T' hg (by omega)
@@ -629,7 +649,7 @@ theorem gate_firesA (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
     have hbb : ∀ z, dat z = true → z ∈ N.pins v → ∀ val,
         dv cl (gd v z) (nT N x t0 r v (t' + 1)) = some val → x z (r v z (t' + 1)) = val :=
       fun z _ hz val hdv => guard_readR hb t' (by omega) hSS hC v z hg hz (hGd v z hg hz) val hdv
-    have hL := hloc v hve (nT N x t0 r v (t' + 1)) hlen hcons (fun w => x w (r v w (t' + 1))) hbb
+    have hL := hloc v hve (nT N x t0 r v (t' + 1)) hlen hcons (own_readA hb t' (by omega) hB v hve) (fun w => x w (r v w (t' + 1))) hbb
     have hρ : ∀ w, t ≤ ρ N r v w (t' + 1) := by
       intro w
       unfold ρ

@@ -2203,3 +2203,12 @@ chunks, not days. An enumerator that only walks each node's feasible count range
 `enabledBA`, `chkXA`/`lcheckXA_of_enum` (local check with data pins), `sepOKA_of_B`, `upOKA_of_B`, `toA_of_B` (reader rows
 via `readerRowB`), `rtA_of_B`. Every hypothesis of `timedA_follows` except the claim/guard checks (TimedOccDecX's
 valB/covTimeB/guardTimeB are Cert-free and reused) now has an AND-OR Boolean form.
+
+### progress 09:04 -- AO: the local check may assume the reader's own history (own_readA); check.sh OK
+Found while designing an OR-gate toy: with alternatives, pairwise bounds cannot express "the reader's counted event
+had SOME alternative counted" (an OR gate's L to each single input is 0), so the local check had to cover tuples
+like "the OR fired but neither input was read", which no circuit run produces, and an OR gate fails there.
+`LCheckXA` now assumes, for the vectors it covers, that every counted event of the reader has an alternative counted;
+`own_readA` proves this of every real read tuple (the reader was enabled by its reads then, reads are monotone);
+`chkXA` filters by it (`ownB`). Statements of timedA_follows / timedA_live unchanged in shape (the hypothesis
+`hloc` became weaker, so the theorems became stronger).
