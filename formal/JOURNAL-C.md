@@ -2115,3 +2115,10 @@ transparent phase, so no single-coverage claim proves it. `Formal/Net/TimedOccU.
 axioms): `UnionOK`/`union_holds` (a claim whose window is the union of two same-valued claims, the first lasting until
 the second starts: one Sep inequality) and `timedU_follows` (timedR_follows where each data-gate claim is gate-proved
 or the union of two gate-proved claims; gate-proved claims may cover a pin, e.g. the latch feedback, by a union).
+
+### progress 08:37 -- TimedOccU: chains of claims (`ChainOK`, `chain_holds`); timedU_follows uses chains
+A latch needs three consecutive claims, not two: transparent (en read high, Q follows D), enable read uncertain
+(en read may be either value for hi_en - lo_en after the close; the LUT output is still determined because D and the
+feedback agree: this is where the latch's hold condition (D stable a little after close) enters), hold (en read low,
+Q follows its feedback, which is covered by the whole chain). `ChainOK`/`chain_holds` generalise the union to a chain;
+`timedU_follows` now takes chains. check.sh OK.

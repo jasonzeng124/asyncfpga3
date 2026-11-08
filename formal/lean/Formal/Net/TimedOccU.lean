@@ -10,9 +10,10 @@ coverage (`TimedOccX.CovTime`, one covering window per pin), and the hold phase'
 transparent phase, so it must be covered by ONE claim spanning both: the union.
 
 **Proved:** `union_holds` (a claim whose window is the union of two claims' windows with the same value holds, when
-the first claim's end comes no earlier than the second's start: one `Sep` inequality, `UnionOK`), and
-`timedU_follows`: `TimedR.timedR_follows` where each data-gate claim is either gate-proved or the union of two
-gate-proved claims; gate-proved claims may cover their pins (e.g. a latch's feedback) by union claims.
+the first claim's end comes no earlier than the second's start: one `Sep` inequality, `UnionOK`), `chain_holds` (the
+same for a chain of claims, `ChainOK`; a latch needs three: transparent, enable read uncertain (both branches agree),
+hold), and `timedU_follows`: `TimedR.timedR_follows` where each data-gate claim is either gate-proved or the union of
+a chain of gate-proved claims; gate-proved claims may cover their pins (e.g. a latch's feedback) by union claims.
 
 **Not shown here:** any instance.
 -/
@@ -61,6 +62,35 @@ theorem union_holds {x : α → Nat → Bool} {t0 H T : Nat} {Sep : α → Nat �
       | none => trivial
       | some e1 => exact fun hh => hend ⟨e1, hB1, hh⟩
 
+/-- `c` is the union of the consecutive claims `cs` (same node and value; `c` starts with the first, ends with the last;
+each lasts until the next starts). -/
+def ChainOK (Sep : α → Nat → α → Nat → Option Nat) (c : Claim α) : List (Claim α) → Prop
+  | [] => False
+  | [c1] => c1.z = c.z ∧ c1.val = c.val ∧ c1.A = c.A ∧ c1.a = c.a ∧ c1.B = c.B ∧ c1.b = c.b
+  | c1 :: c2 :: cs => c1.z = c.z ∧ c1.val = c.val ∧ c1.A = c.A ∧ c1.a = c.a ∧
+      (match c1.B, c2.A with
+        | some e1, some e2 => ∃ d, Sep e2.1 e2.2 e1.1 e1.2 = some d ∧ c2.a ≤ (c1.b : Int) + d
+        | none, _ => True
+        | some _, none => True) ∧
+      ChainOK Sep ⟨c.z, c.val, c2.A, c2.a, c.B, c.b⟩ (c2 :: cs)
+
+theorem chain_holds {x : α → Nat → Bool} {t0 H T : Nat} {Sep : α → Nat → α → Nat → Option Nat}
+    (hSS : SepSound x t0 Sep T) (t : Nat) (ht : t ≤ T) :
+    ∀ (cs : List (Claim α)) (c : Claim α), ChainOK Sep c cs → (∀ c' ∈ cs, Holds x t0 H c' t) → Holds x t0 H c t
+  | [], c, h, _ => h.elim
+  | [c1], c, h, hh => by
+    obtain ⟨hz, hv, hA, ha, hB, hb⟩ := h
+    have h1 := hh c1 (by simp)
+    intro hH hA' hB'
+    rw [← hz, ← hv]
+    exact h1 hH (by rw [hA, ha]; exact hA') (by rw [hB, hb]; exact hB')
+  | c1 :: c2 :: cs, c, h, hh => by
+    obtain ⟨hz, hv, hA, ha, hj, hrest⟩ := h
+    let c' : Claim α := ⟨c.z, c.val, c2.A, c2.a, c.B, c.b⟩
+    have hc' := chain_holds hSS t ht (c2 :: cs) c' hrest (fun d hd => hh d (by simp [hd]))
+    have h1 := hh c1 (by simp)
+    exact union_holds hSS c c1 c' ⟨hz, rfl, hv, rfl, hA, ha, rfl, rfl, hj⟩ t ht h1 hc'
+
 section main
 variable {N : TNet α} {dat : α → Bool} {envEn : α → (α → Bool) → Bool} {x : α → Nat → Bool}
   {r : α → α → Nat → Nat} {t0 H : Nat} {CF CP : Cert α} {L : α → Nat → α → Nat} {D : α → List α}
@@ -81,8 +111,7 @@ theorem timedU_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
     (hRT : ∀ u k p, k < CF.len u → p ∈ CF.causes u k → p ∉ CP.causes u k →
       ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
     (hGC : ∀ c ∈ cl, N.gate c.z = true → GateProof N dat Sep (fun w => x w t0) cl c ∨
-      ∃ c1 ∈ cl, ∃ c2 ∈ cl, GateProof N dat Sep (fun w => x w t0) cl c1 ∧ GateProof N dat Sep (fun w => x w t0) cl c2 ∧
-        UnionOK Sep c c1 c2)
+      ∃ cs : List (Claim α), (∀ c' ∈ cs, c' ∈ cl ∧ GateProof N dat Sep (fun w => x w t0) cl c') ∧ ChainOK Sep c cs)
     (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, Holds x t0 H c s)
     (hInit : ∀ c ∈ cl, ∀ s, s ≤ t0 → Holds x t0 H c s)
     (hDataLen : ∀ u, dat u = true → CF.len u = 0) :
@@ -177,9 +206,9 @@ theorem timedU_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
               intro c' _ hp
               obtain ⟨hg', ha, cov, hval, hcov, hkind⟩ := hp
               exact claim_stepR hb t ht hSS' hC c' hg' ha cov hval hcov hkind
-            rcases hGC c hc hgz with hp | ⟨c1, h1, c2, h2, hp1, hp2, hu⟩
+            rcases hGC c hc hgz with hp | ⟨cs, hcs, hch⟩
             · exact gp c hc hp
-            · exact union_holds hSS' c c1 c2 hu (t + 1) (Nat.le_refl _) (gp c1 h1 hp1) (gp c2 h2 hp2)
+            · exact chain_holds hSS' (t + 1) (Nat.le_refl _) cs c hch (fun c' hc' => gp c' (hcs c' hc').1 (hcs c' hc').2)
     · refine ⟨fun τ hτ => ?_, fun v s hve h1 h2 h3 => ?_, fun c hc s hs => hInit c hc s (by omega), hss0 _ (by omega)⟩
       · rw [hz τ (by omega)]; exact h0
       · rcases Nat.lt_or_ge s (t + 1) with h | h
