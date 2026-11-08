@@ -2021,3 +2021,20 @@ the abstraction (comb glitches, timing), multi-pair runs; the 6 new orders have 
 6 more race sites a timed proof must cover). Kernel `decide` on 1.4-2.7 M local evaluations with comb cones looks too
 heavy: a Lean instance needs a compiled/verified checker or a smaller encoding.
 **For research:** the 6 new RT sites are candidate race sites, same family as the 30.
+
+### progress 08:15 -- Net/TimedOccRT.lean CLAIMED: relative-timing edges justified by timing (lower AND upper separations)
+`Formal/Net/TimedOccRT.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
+**Problem, plainly:** the control is persistent only under 36 RT orders ("C-element c must fall before node b
+moves", c and b not causally ordered). TimedOccX can only order events through physical causes, so it cannot use
+them. **Model:** two cause relations on the same events: physical causes CP (what a node reads; LCheckX is checked
+against Enabled CP) and the full order CF = physical + RT edges (ideals and the bounds L are in CF, so RT edges
+prune the count vectors the local check must cover). Each RT edge p → (u,k) needs a certified Sep ≥ 1. New
+justification of separations through a common ancestor e0: Sep b (a,k) ≥ Sep e0 (a,k) - Up e0 b, where `Up e0 e`
+bounds how LATE e can follow e0 (each physical cause and the previous event read within its pin's hi, after which
+the gate moves at once; `UpOK`; gate events only, the environment has no upper bound).
+**Proved:** `up_sound` (upper bounds hold up to any horizon where the invariants hold: the gate-fires argument run
+inside the safety induction), `sepSound_step`, and `timedR_follows`: every bounded-delay behaviour follows the FULL
+certificate: the exact nodes' count vectors are ideals of CF (so every RT order is respected), every exact change is
+a certified event, every data claim holds, and all separations are sound. The races behind the 36 RT orders are
+exactly the `Sep ≥ 1` obligations of the RT edges, computed as (physical lower path from e0) - (upper path from e0).
+**Not shown:** liveness for this version (gate_firesX carries over), any instance.
