@@ -357,10 +357,20 @@ def main():
         L = ["import FormalWit.NM.S2", "import FormalWit.NM.S", "import FormalWit.NM.DB", "import FormalWit.NM.C",
              "import Formal.Target.NetPS.G%03d" % ci, "", hdr,
              "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
-             "set_option maxRecDepth 100000 in",
-             "def x%03d : List (Option XC) := [%s]" % (ci, ", ".join(row)), "",
-             "theorem xk%03d : ∀ g ∈ g%03d, isX g = true → XOK D2 P Q C K g :=" % (ci, ci),
-             "  chkXList_sound D2 P Q C K g%03d x%03d (by decide +kernel)" % (ci, ci), ""]
+             "theorem gx%03d_len : g%03d.length = %d := by decide +kernel" % (ci, ci, len(gs)), "",
+             "abbrev PX%03d : Gate → Prop := fun g => isX g = true → XOK D2 P Q C K g" % ci, ""]
+        nsub = (len(gs) + SUB - 1) // SUB
+        for sb in range(nsub):
+            L += ["set_option maxRecDepth 100000 in",
+                  "def x%03d_%d : List (Option XC) := [%s]" % (ci, sb, ", ".join(row[sb * SUB:(sb + 1) * SUB])), "",
+                  "theorem xk%03d_%d : ∀ g ∈ (g%03d.drop %d).take %d, PX%03d g :=" % (ci, sb, ci, sb * SUB, SUB, ci),
+                  "  chkXList_sound D2 P Q C K _ x%03d_%d (by decide +kernel)" % (ci, sb), ""]
+        chain = ("(all_drop_len PX%03d g%03d %d (Nat.le_of_eq gx%03d_len))" if nsub * SUB == len(gs) else
+                 "(all_drop_len PX%03d g%03d %d (by rw [gx%03d_len]; decide))") % (ci, ci, nsub * SUB, ci)
+        for sb in reversed(range(nsub)):
+            chain = "(all_drop_take PX%03d g%03d %d %d xk%03d_%d %s)" % (ci, ci, sb * SUB, SUB, ci, sb, chain)
+        L += ["theorem xk%03d : ∀ g ∈ g%03d, isX g = true → XOK D2 P Q C K g := by" % (ci, ci),
+              "  have h := %s" % chain, "  rwa [List.drop_zero] at h", ""]
         for kn in Kc:
             if kn // 2500 == ci:
                 L += ["/-- The listed constant node is driven by a constant-0 gate. -/",
