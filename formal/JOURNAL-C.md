@@ -2136,3 +2136,9 @@ event never happens), which is how a claim "until the request's next event" is w
 ### progress 08:41 -- TimedOccU liveness (gate_firesU, timedU_live), check.sh OK
 The final generic theorem pair is now `TimedU.timedU_follows` / `TimedU.timedU_live` (exact events, RT edges, data
 claims with chains). 
+
+### progress 08:47 -- Net/OccLocal.lean CLAIMED: per-node local certificates
+`lcheck_congr`, `lcheckX_congr` (check.sh OK): the local check at v depends only on len over D v, v's causes and the
+bounds between nodes of D v, so each node can be checked by `decide` against a small certificate of its own (kernel
+list lookups cost their position, which makes one global table slow: a first benchmark, a 32-stage Muller pipeline
+with 100 events per stage and one global table, was still running after 2 min).
