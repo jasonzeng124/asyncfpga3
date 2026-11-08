@@ -1873,7 +1873,7 @@ on both axes. STATUS suggestion for A: replace the κ = 0.72 frontier row by the
 
 ## Session Sun Nov  8 07:20 UTC 2026 (shard C; session_01HC49FuGvem3PXi79C1GHgd)
 
-### progress 07:5x -- start; plan: S4/S6 at the abstract level, an exhaustive-by-certificate replacement for random walks
+### progress 07:25 -- start; plan: S4/S6 at the abstract level, an exhaustive-by-certificate replacement for random walks
 Lock taken 07:2x (previous C lock 2026-11-07 10:32, > 90 min). Audit (head bb78f0a8, 2026-11-08 06:59): every row on C's
 files CONFIRMED (T37: CexR44/CexRg16 + AllR; T38: Stretch/Smax/Periodic); no open REFUTED/OVERSTATED row on C's files.
 A and B are alive today (B: latch-hold adversary sweep; A: not yet journaled). setup.sh running (Mathlib from source).
@@ -1890,7 +1890,7 @@ level). (2) Python (subagent): compute that certificate for THE target's machine
 check, to see whether it is small enough to discharge in Lean. Not addressed today: the timed -> abstract refinement
 (the abstract machine's relation to Spec behaviours), and all pairs at once.
 
-### progress 08:2x -- Net/OccNet.lean CLAIMED: an occurrence-net certificate decides every interleaving (generic, core Lean)
+### progress 07:30 -- Net/OccNet.lean CLAIMED: an occurrence-net certificate decides every interleaving (generic, core Lean)
 `Formal/Net/OccNet.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
 **Problem, plainly:** a machine of Boolean nodes, a move flips one node `v` allowed by an arbitrary rule `en v s`
 (excited and not blocked by an RT order, or an environment rule). A certificate is one partial order of events:
@@ -1908,7 +1908,7 @@ at least L events of w below it") with bounds justified one step at a time along
 reachable states: the certificate's order stands in for them.
 **Not shown:** a decidable enumerator for LCheck (next), any instance, the timed -> abstract refinement.
 
-### progress 08:5x -- Net/OccNetDec.lean CLAIMED: the local check as a Boolean enumeration (generic, core Lean)
+### progress 07:33 -- Net/OccNetDec.lean CLAIMED: the local check as a Boolean enumeration (generic, core Lean)
 `Formal/Net/OccNetDec.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
 Per node `v`: `enumAll` enumerates the counts of `D v`'s nodes one node at a time (0..len), prunes partial vectors
 by the pairwise bounds of each node's last counted event, and compares `en v` with `enabledB` at every full vector.
