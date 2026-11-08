@@ -2996,3 +2996,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   6 and 8 are the slow x0.5 routes (1.28-1.40): routing scatter on the halved chains, the reason one route is a sample.
 - research/data/xorshift_bench/results.tsv regenerated (per-round from cycle totals, a lat_glitches column: 2, both
   base_8 SLOW_MAX at 100 MHz). Judge corner bands and BOARD-QUEUE #6 updated to 8 routes.
+### progress 02:19 (83.3 MHz harness clock: the lat_min glitch is gone, kernel time unchanged)
+- base_8 and s50_8 at SLOW_MAX re-run with ps7_bench.v +FCLK_PS=12000 (83.3 MHz, the clock build_bench.sh routes for):
+  both PASS 17/17, 0 readings with latmax-latmin > 1 (base_8 at 100 MHz: 2). Kernel time per 1000-round run is the same:
+  base 9155 x 12 ns = 109.9 us (100 MHz: 10985 x 10 ns = 109.9 us); x0.5 6524 x 12 = 78.3 us (7828 x 10 = 78.3 us).
+- So the glitch was the clocked harness over-clocked, not the kernel: BOARD-QUEUE #6's CLK=0x00100C00 stands.
+  Open (not checked): the other board scripts that default to 0x00100A00 (xsdb_bench_gen.tcl, *_cost.sh) and what
+  the August latmin numbers saw; xorshift_cost.sh itself fits batch cycle totals.
