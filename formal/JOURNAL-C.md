@@ -2198,3 +2198,8 @@ in 10 s wall including elaboration. 32 stages x 100 events: stopped after 13 min
 0..len for each node of D v before pruning, and list lookups cost their position). THE target's certificate has <= 7
 events per node and |D v| <= 6 (3,217 exact nodes), i.e. the cheap regime per node, larger |D|: estimated hours in
 chunks, not days. An enumerator that only walks each node's feasible count range would remove the len^|D| factor.
+
+### progress 09:02 -- Net/AO/{Dec,DecT}.lean CLAIMED: Boolean checkers for the AND-OR certificate (check.sh OK)
+`enabledBA`, `chkXA`/`lcheckXA_of_enum` (local check with data pins), `sepOKA_of_B`, `upOKA_of_B`, `toA_of_B` (reader rows
+via `readerRowB`), `rtA_of_B`. Every hypothesis of `timedA_follows` except the claim/guard checks (TimedOccDecX's
+valB/covTimeB/guardTimeB are Cert-free and reused) now has an AND-OR Boolean form.
