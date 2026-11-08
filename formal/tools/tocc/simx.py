@@ -13,7 +13,8 @@ R = int(sys.argv[4]) if len(sys.argv) > 4 else 40000
 dout = int(sys.argv[5]) if len(sys.argv) > 5 else 3000
 C = load(); gates = C["gates"]; bs = C["bs"]; names = C["names"]
 import os, json
-ADV = json.loads(os.environ.get("ADV", "{}"))   # {"slow": [src names], "fastrest": bool}
+ADV = json.loads(os.environ.get("ADV", "{}"))   # {"slow": [src names], "fastrest": bool, "rand": seed, "pos": p}
+import random; RNG = random.Random(ADV.get("rand", 0))
 idn = {nmx: i for i, nmx in enumerate(names)}
 SLOW = set(idn[x] for x in ADV.get("slow", []))
 SLOWR = {}
@@ -31,6 +32,8 @@ for n, g in gates.items():
         elif [names[n], names[p["src"]]] in ADV.get("fastpins", []) or (ADV.get("allfast") and [names[n], names[p["src"]]] not in ADV.get("slowpins", [])): ds.append(lo_)
         elif p["src"] in SLOW: ds.append(hi_)
         elif n in SLOWR and ADV.get("fastrest"): ds.append(lo_)
+        elif "rand" in ADV: ds.append(RNG.randint(lo_, hi_))
+        elif "pos" in ADV: ds.append(int(round(lo_ + ADV["pos"] * (hi_ - lo_))))
         else: ds.append(md)
     G[n] = (g["k"], g["init"], ins, ds)
     for j, (s, d) in enumerate(zip(ins, ds)): readers[s].append((n, d))
@@ -99,5 +102,5 @@ print("corner %d: tend %d, outputs %s (want %d)" % (c, tend, res, math.gcd(A, Bv
 lastpre = max((ts[-1] for n, ts in ht.items() if len(ts) > 1 and ts[-1] < R and n in C["EXACT"]), default=0)
 lastpre_all = max((max([x for x in ts[1:] if x < R], default=0) for n, ts in ht.items()), default=0)
 print("last change before R: exact %d, any %d (R = %d)" % (lastpre, lastpre_all, R))
-pickle.dump(dict(c=c, R=R, dout=dout, A=A, B=Bv, tend=tend, outs=outs, res=res,
+pickle.dump(dict(DS={n: G[n][3] for n in G}, c=c, R=R, dout=dout, A=A, B=Bv, tend=tend, outs=outs, res=res,
                  hist={n: (hv[n][0], ht[n][1:]) for n in ht}), open(os.environ.get("OUT", "/tmp/claude-0/tocc/hist_c%d.pkl" % c), "wb"))

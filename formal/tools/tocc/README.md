@@ -28,3 +28,9 @@ The default of `ao.py` is `--cyc --causeanc --prevanc` plus don't-care placement
 the first later event that needs it. `--legacy` and `--nodcp` turn those off. `ao3_c*.txt`: 0 local-check failures
 for (12,18) and (17,5). `data2.py`: GuardTime margins under the final Sep/Up (`data2_c*.txt`). `q5.py`: one L shared
 by both corners. `q6.py`: the failing guard windows characterised. `cornercmp.py`: structure equality across corners.
+
+## Comparator re-open check (2026-11-08)
+`hazchk.py` + `hzrun.sh`: 12 operand pairs × 2 corners × 6 delay settings (mid, all-lo, all-hi, 3 random per-pin).
+For each, it checks whether any control gate's output depends on a data node at the moment it reads it.
+`hz/res_c*.txt`: 0 such events, and every gcd is right. `q7.py`/`q8.py`: the 33 guard terms, all masked by a datapath
+mux whose select is a 1-bit condition latch.

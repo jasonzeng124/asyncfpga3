@@ -2343,3 +2343,23 @@ fail structurally (untrusted Python, tools/tocc; g = 1, κ = 0).**
   corner argument), any Lean instance.
 * *Reading:* the control half of a one-pair certificate looks feasible. The blocker for S4 is now the data layer
   around the comparator, not the control timing.
+
+### progress 12:21
+**The comparator "re-open" guard failures are an over-approximation of the claim builder, not a hazard
+(untrusted Python, tools/tocc).**
+* *Problem:* 33 guards fail because a register in the comparison node's cone re-opens while a control reader's guard
+  is on. Can that change the comparison as the control reads it?
+* *Found:* in every case the changing upstream bits sit on the UNSELECTED input of a datapath mux. Its select is a
+  1-bit condition latch that stays stable until after the guard ends. In the worked example (12,18), c=0, the
+  select is SLICE_X12Y33.B6, which changes at 198,989 ps; the guard ends at 193,495 ps.
+* *Search:* 144 simulated runs (12 operand pairs incl. zeros, equal, long shift runs × 2 corners × 6 delay
+  settings). There were 0 data-driven control changes at a read, and every gcd was right. The comparison nodes do
+  glitch, but never while a control reader is sensitive to them.
+* *Not shown:* no adversarial search on the select-vs-register race; delays are fixed per pin per run. The 192
+  "no Sep" terms (unordered branches) were not re-examined.
+* *Consequence for the certificate:* the comparator claims must use value-level claims instead of path sums:
+  * a claim on the select latch;
+  * GateProof at the mux with the unselected input X;
+  * ChainOK through the transparent register.
+  The generic Lean for this exists (TimedOccX/U, `GateProof`, `ChainOK`); the generator does not.
+* *No defect found.*
