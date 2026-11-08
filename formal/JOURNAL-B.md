@@ -3634,3 +3634,7 @@ a Lean refutation below 0.40 needs the periodic route.
   plain statement's κ = 0.36 refutation does not have the simple periodic witness; but the w = 20 one refutes the plain
   statement too (seqRunt_of_seq), so (ii) is the only route needed.
 Not attempted here today.
+
+### progress 19:12 -- control sweep at κ = 0.38 on (0x40000000, 0x60000000): again only the merge4 ua2 race (livelock)
+`tools-B/ps/out/ctlsweep_k38_p40000000.txt`: 1,315 / 1,316 correct; SLICE_X16Y21.A6 pin 0 runs to 3 µs without out0
+(8 M events). No other single-pin race fails at 0.38 on this second wide pair, and none ends quietly below 0.40.
