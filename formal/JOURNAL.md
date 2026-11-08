@@ -2099,3 +2099,10 @@ Lean error) and check.sh will rebuild them one at a time. Verdict in the next en
 6,286 oleans built (the parallel lake pass covers both committed and generated modules). Every failure in the
 logs is exit 137 (memory) on B's large chunk modules (CertLatchPS, CElemViewPS, CertRowsPS2 ...); check.sh's retry
 rounds keep making progress. No `error:` other than OOM and no audit result yet.
+### progress 22:0x -- whole-tree check: 3,648 of 4,736 committed Formal modules built, 0 Lean errors (OOM-bound)
+check.sh --committed (started 11:21; survived a container restart at ~20:00) is in its parallel retry rounds; each
+round OOM-kills ~100 of B's large chunk modules (exit 137) and builds a few dozen more. Every error line in the logs
+is exit 137 or "build failed"; no elaboration or kernel error in any module built so far, and the axiom audit has
+not run yet. At this rate it will not finish inside today's session. **For the next lead session:** a
+one-module-at-a-time pass (xargs -P1 over the unbuilt modules) instead of check.sh's parallel rounds; or ask B to
+cap its chunk sizes so a 4-way lake build fits 15 GB.
