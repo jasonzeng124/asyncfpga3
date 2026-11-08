@@ -2091,3 +2091,10 @@ TimedOccRT except the data-claim checks now has a Boolean form.
 count enumeration times every guarded assignment of the gate's data pins), `valB`/`valOK_of_B` (a data-gate claim's
 value for every assignment of its uncovered pins), `covTimeB`/`covTime_of_B`, `guardTimeB`/`guardTime_of_B`. Every
 certificate hypothesis of TimedOccRT now has a Boolean form with a soundness theorem (OccNetDec, TimedOccDec, this).
+
+### progress 08:32 -- Net/TimedCorner.lean CLAIMED: skew rows at every corner from the two extreme corners
+`Formal/Net/TimedCorner.lean` (check.sh OK; standard axioms). Each behaviour has its own corner c, so the timed net's
+integer bounds depend on c. Proved: the integer route bounds lie inside the rational sums (`sumLoC_ge`, `sumHiC_le`),
+those sums are affine in c (`rlo_affine`, `rhi_affine`), and `skew_all_corners`: a skew row "Σ hi(route b) ≤ Σ lo(route a)
++ Σ lo(path)" checked in rationals at c = 0 and c = 1 holds in the integer form at every c ∈ [0,1]. So an instance's
+TO rows need two rational checks each, not one per corner.
