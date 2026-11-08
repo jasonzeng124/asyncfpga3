@@ -3038,3 +3038,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   the input) that only bites when placement puts such a flop in a 5FF slot. The full stack refused the route (the gate
   works). Not done: a nextpnr patch + toolchain.sh fingerprint (CLAUDE.md requires both; a fingerprint must be checked
   to fail on an unpatched binary, which this route provides). Meanwhile every board build must pass fasm_equiv.
+- Fix scope (read of nextpnr-xilinx bfdeaf7c xilinx/fasm.cc): 5FFMUX bits are not written explicitly; they come from
+  site-routing pips. So the gap is in how a constant net reaches a 5FF D pin in site routing (no pip chosen, the pin
+  counted as driven by the constant network), i.e. router/packer, not a one-line FASM fix. Left for the owner: patch the
+  site router (or legalise constant-D flops off the 5FF slots), with the toolchain.sh fingerprint this route provides
+  (bench collatz64 T4, NEXTPNR_SEED=4: expect C5FFMUX in CLBLL_R_X19Y75.SLICEL_X1, or the flop moved).
