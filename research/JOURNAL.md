@@ -3016,3 +3016,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   ~+1 ns; 75 links in all vs x0.5's 87) on seeds 1-4.
 - h375 rejected: seed 1 FAST_MIN fails (stalled: "req rose out of phase on channel out0" -> protocol error; fast mode
   hung), after SLOW_MAX passed. Same umux3 race at the fast corner. Remaining h375 runs stopped; h375b (link at 7) runs.
+- h375b (x0.375 + umux3's link at 7): nominal routed GLS 4/4; full stack seeds 1 and 2 PASS at SLOW_MAX, FAST_MIN and worst
+  case (6/6). But no faster than x0.5: paired s50/h375b = 1.011-1.030 on seed 1, 0.921-0.949 on seed 2 (sum of stalled
+  latencies). The 2 extra links sit on umux3's request path, which is on the loop, so they cost every round what the
+  other x0.375 lines save. Stopped after seed 2 (no point validating a step that buys nothing).
+- Negative result for item 3: below x0.5, xorshift's limit is umux3's empty-pipe race on a loop-carried link; padding
+  that link to win the race costs as much as the shrink gains. x0.5 stays xorshift's step. A real gain would need the
+  race removed (select launched earlier / not from the empty pipe), i.e. a structural change, not a size.
