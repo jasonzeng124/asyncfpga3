@@ -2004,7 +2004,7 @@ any K above its pins' hi, its guarded data reads being the claimed values), `tim
 liveness, every certificate event happens and from some T on every exact node is constant). Data nodes are not
 claimed quiet after T (only what their claims say).
 
-### progress 08:3x -- the 30 RT orders were INCOMPLETE: 6 more found; with 36 the local check PASSES on three pairs (Python, untrusted)
+### progress 08:11 -- the 30 RT orders were INCOMPLETE: 6 more found; with 36 the local check PASSES on three pairs (Python, untrusted)
 Subagent result (tools copied to `formal/tools/occ/`, README there). On THE target's latches-first abstract machine
 (Lean netlist via lean2json, huffx semantics, RT orders applied strictly), the occurrence-net local check of
 Net/OccNet (every node, every order ideal of its local event set) **fails with the 30 RT orders of 11-06**: 6 real
