@@ -3481,3 +3481,15 @@ Baseline dump of the 3-pair broad run ((12,18), (1071,462), (6,4); κ = 0.43, al
 both enable and data there and were not in the full-width sweep; enable-pin adversary at κ = 0.43, w = 20: 103/103
 correct (`tools-B/ps/out/latchsweep_k43_d3.txt`). So 1,544 latches (every latch moving on either workload) have been
 attacked at 0.43 without a failure. Running: the same 1,441 at the slow corner (c = 1; latchsweep.py --corner 1).
+
+### progress 12:52 -- slow corner too: 1,441 / 1,441 latches correct at κ = 0.43 (simulation, untrusted)
+Same 1,441 latches and adversary as 09:35, at the slow corner (c = 1: enable-pin arcs at (1+κ)·SLOW_MAX, all else
+(1-κ)·SLOW_MIN; latchsweep.py --corner 1 --tmax 9 µs; a first attempt with the 3 µs cap reported spurious "no out0":
+the slow-corner run needs ~4.8 µs). All correct (`tools-B/ps/out/latchsweep_k43_fw_c1.txt`).
+**Summary of today's latch-hold attack:** 1,544 latches (every latch whose enable and data both move on the full-width
+pair or the 3-pair run), single enable-pin adversary at κ = 0.43, H_RUNT(20): no failure at either corner. The
+binding latch fails only in (0.60, 0.70]. So, on these workloads and this adversary class, latch holds do not move
+the g = 1 refutation frontier below the control race at 0.44; the certified latch bounds below 0.415 (4 latches,
+0.376-0.414) are certificate slack. What is NOT shown: a latch-hold failure is impossible below 0.44 (no theorem;
+multi-pin adversaries, other pairs untested). The STATUS list is unchanged by this (no hypothesis discharged): the
+day's result is negative evidence for research and for the frontier, not a shrink.
