@@ -1,0 +1,38 @@
+pips_ok : ∀ g ∈ Formal.Target.DecodedPS.net.gates, Formal.Target.NM.isPip g = true → Formal.Target.NM.PipOK D C g
+luts_ok : ∀ g ∈ Formal.Target.DecodedPS.net.gates, Formal.Target.NM.isLut g = true → Formal.Target.NM.LutOK D P C g
+xs_ok : ∀ g ∈ Formal.Target.DecodedPS.net.gates, Formal.Target.NM.isX g = true → Formal.Target.NM.XOK D2 P Q C K g
+@pips_linked : ∀ {g h : Formal.Target.Gate},
+  g ∈ Formal.Target.DecodedPS.net.gates →
+    h ∈ Formal.Target.DecodedPS.net.gates →
+      Formal.Target.NM.isPip g = true →
+        Formal.Target.NM.isPip h = true →
+          h.ins = [g.out] →
+            ∃ tg dg th sh Ag Ah dng shn,
+              D.tiles.get tg = some Ag ∧
+                D.wires.get dg = some dng ∧
+                  D.tiles.get th = some Ah ∧
+                    D.wires.get sh = some shn ∧
+                      (∃ pre s, g.name = pre ++ Ag.name ++ "." ++ dng ++ "." ++ s) ∧
+                        (∃ pre d, h.name = pre ++ Ah.name ++ "." ++ d ++ "." ++ shn) ∧
+                          Formal.Target.NM.Conn D (tg, dg) (th, sh)
+@lut_pins_driven : ∀ {g h : Formal.Target.Gate},
+  g ∈ Formal.Target.DecodedPS.net.gates →
+    h ∈ Formal.Target.DecodedPS.net.gates →
+      Formal.Target.NM.isLut g = true →
+        Formal.Target.NM.isPip h = true →
+          ∀ {j : ℕ},
+            g.ins[j]? = some h.out →
+              ∃ s S T L o6 w th dh Ah dnh,
+                P.sites.get s = some S ∧
+                  D.tiles.get S.tile = some T ∧
+                    g.name = Formal.Target.NM.lutName S L o6 ∧
+                      Formal.Target.NM.pinWire P T.ty S.rank L j = some w ∧
+                        D.tiles.get th = some Ah ∧
+                          D.wires.get dh = some dnh ∧
+                            (∃ pre sn, h.name = pre ++ Ah.name ++ "." ++ dnh ++ "." ++ sn) ∧
+                              Formal.Target.NM.Conn D (th, dh) (S.tile, w)
+'Formal.Target.NM.Data.pips_ok' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Target.NM.Data.luts_ok' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Target.NM.Data.xs_ok' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Target.NM.Data.pips_linked' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Target.NM.Data.lut_pins_driven' depends on axioms: [propext, Classical.choice, Quot.sound]
