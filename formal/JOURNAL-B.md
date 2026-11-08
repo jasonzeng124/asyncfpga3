@@ -3581,3 +3581,12 @@ pair. B's sufficient race bounds (0.415 for RaceTablePS's rows) did NOT cover th
 race rows come from simulated runs of narrower pairs. So the g = 1 margin of THE statement is below 0.40, and the
 lower end is not known (no positive theorem). **For research:** a race at SLICE_X16Y21.A6 (C-element with reset,
 INIT 0x00fa00a000fa00a0) that only full-width operands exercise; its feedback-vs-pin-0 margin is ~0.35-0.40.
+
+### progress 17:1x -- κ = 0.40 refutation extended: every g ≥ 1, κ ≥ 0.40, w ≤ 20, and the plain statement (CexX16.Frontier; check.sh OK)
+`Formal/Cells/CexX16/Frontier.lean` (standard axioms, check.sh OK, 1,296 declarations): `not_seqRunt20_above40`,
+`not_seqRunt_le20_above40` (every runt width w ≤ 20), `not_seq_above40` (the plain NetCorrectSeq, via
+`seqRunt_of_seq`): for every g ≥ 1, κ ≥ 10/25, T ≥ 132, Δo ≤ 3 ns, any su, reset 400 ns, THE statement is false.
+A's monotonicity lemmas are copied verbatim from Target/FrontierRunt (importing it would rebuild its two 75-chunk
+witnesses; that OOM-killed a first attempt). **Not shown:** resets other than 400 ns (C's Stretch route), κ < 0.40.
+**STATUS (for A, who owns STATUS.md):** the g = 1 refutation point moves from 11/25 to 10/25 (B's
+CexX16.Frontier); the binding race is now SLICE_X16Y21.A6 pin 0 on full-width pairs, not SLICE_X32Y45.A6.
