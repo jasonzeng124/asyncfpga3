@@ -3007,3 +3007,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   latmin grows smoothly with latency (~0.8%, run-to-run jitter over N=200), no reading off by a large power of two, none
   beyond 3% apart from +-1-cycle quantization. Consistent with silicon at x ~ 0.21 meeting the harness's 100 MHz timing
   that the SLOW_MAX corner does not; 83.3 MHz stays the recommendation for new board items (it costs nothing).
+### progress 02:23 (xorshift below x0.5: x0.375 with umux3's link delay restored)
+- h375 = T3s375 with ULINK_N_INDEX_15 back at 5 (its x0.5 length; rc375 traced x0.375's failure to umux3's empty-pipe
+  select race on that link). Nominal routed GLS (fusion_bench --route, nextpnr-SDF): 3/4 PASS (seeds 1, 2, 4); x0.375
+  was 0/4. Seed 3 still fails the same way (out0 "req rose out of phase"): skew.log, umux3 request earliest 3369 ps vs
+  select latest 4139 ps (-770 raw); seeds 1/2/4 +654/+274/+259 raw. So one link is not enough on every route.
+- Queued: h375's full stack on 1/2/4 (do the other x0.375 lines hold at the corners?), then h375b (that link at 7,
+  ~+1 ns; 75 links in all vs x0.5's 87) on seeds 1-4.
