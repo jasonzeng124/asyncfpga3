@@ -27,8 +27,9 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
    s75ff_worstcase.tsv, s75ff_corners.tsv). Worst-case laps 1.13x #2's on the same 8 routes, 1.08x #3's. Fallback: #3
    (BQ#3), then #2. Commands and criteria under #5.
 4. **xorshift with every matched delay halved (x0.5), on the kernel bench**: #6 below. Both builds (x0.5 and its T3
-   base) through the full stack on the bench top itself (netlist from each .bit, PS7 host model): 24/24 runs pass,
-   4 routes x SLOW_MAX/FAST_MIN/worst case each, 17/17 vectors every run. Predicted 1.46-1.52x per round. One judge:
+   base) through the full stack on the bench top itself (netlist from each .bit, PS7 host model): 48/48 runs pass,
+   8 routes x SLOW_MAX/FAST_MIN/worst case each, 17/17 vectors every run. Predicted 1.28-1.52x per round (1.47-1.49
+   on the route the board builds). One judge:
    `python3 ../research/tools/xorshift_bench_judge.py build/hw/xorshift_cost_s50.tsv build/hw/xorshift_cost_t3.tsv`.
 5. **A ring set on a second route (band transfer)**: research/board/ro_many_2/ (today's ro_many_top, bit 8dc4f1ac,
    predictions committed before any run). From cells/:
@@ -321,12 +322,12 @@ Evidence: research/data/item3/README.md, JOURNAL 2026-11-06/07. Rules A/E are in
 sim is the gate). Seed 10's bits-vs-JSON check reads NOT_EQUIVALENT: four F7 inputs fed by $PACKER_GND_NET buffer LUTs
 (constant 0 on both sides), the benign class seen on BQ#1 seed 8.
 
-## 6. xorshift x0.5 on the kernel bench -- every matched delay ceil(0.5*n); 24/24 full-stack runs on the bench top
+## 6. xorshift x0.5 on the kernel bench -- every matched delay ceil(0.5*n); 48/48 full-stack runs on 8 bench routes
 PROGRAM item 3's xorshift step (8/8 soak routes, 1.42x worst case) rebuilt on the board's own top (cells/hw/
 build_bench.sh, hw/gen_bench.py) and run through the full stack there, with its T3 base on the same seeds for the
 speed comparison (research/data/xorshift_bench/results.tsv). The sizes are the soak files re-keyed for the bench
 (research/data/xorshift_sizes_T3{,s50}_bench.vh: BD_SZ_UUT_ -> BD_SZ_BRIDGE_I_UDUT_; the unkeyed files are now refused
-by build_bench.sh). Rule A fails 12-20 cells on every bench route of BOTH builds (the base too); under PROGRAM item 1
+by build_bench.sh). Rule A fails 12-23 cells on every bench route of BOTH builds (the base too); under PROGRAM item 1
 it is informational, so the build sets BD_SIZES_GATE=0 -- the full stack is the gate here. Toolchain: nextpnr
 9c732bc6303458df (cells/verify/toolchain.sh must pass). From cells/:
 
@@ -347,12 +348,13 @@ Pass: the judge prints `=== PASS ... ===` and exits 0: both builds give the orac
 (xorshift_cost.sh asserts each one and drops a point that fails). Checked both ways on synthetic files (a missing
 point -> FAIL, exit 1). If an sdf md5 differs, the route is not the one gated here; still a test of the recipe, but say so.
 Then the speed lines: per-round cost of each build, its place between the full stack's corners (the August kernels
-sat at x = 0.21-0.23), and the ratio (predicted 1.46-1.52; ~3.7 vs ~5.6 cycles/round at x = 0.21).
+sat at x = 0.21-0.23), and the ratio (predicted 1.47-1.49 on this route, 1.28-1.52 over 8; ~37 vs ~55 ns/round at
+x = 0.21).
 What it would mean: PASS = halving every matched delay is safe on silicon for this kernel and buys ~1.5x; x0.5 FAIL
 with T3 PASS = a bundling margin the full stack mis-predicts at x0.5 (send both logs); both FAIL = the rig or the
 re-keyed sizes, not x0.5.
-Evidence: research/data/xorshift_bench/results.tsv (24 rows: bits vs JSON EQUIVALENT except 3 benign GND-buffer
-F7/CARRY4 inputs, gate clean, 17/17 every run); research/data/item3/README.md (8 soak routes); JOURNAL 2026-11-07.
+Evidence: research/data/xorshift_bench/results.tsv (48 rows: bits vs JSON EQUIVALENT except 5 routes' single benign
+GND-buffer F7/CARRY4 input, gate clean, 17/17 every run); research/data/item3/README.md (8 soak routes); JOURNAL 2026-11-07.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

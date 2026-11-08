@@ -2987,3 +2987,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   128 cycles at the 1000-round point (to be recomputed from the cycle totals). BOARD-QUEUE #6 now sets CLK=0x00100C00
   and the judge reports ns. Queued: base_8 and s50_8 SLOW_MAX again at FCLK_PS=12000 (83.3 MHz) to see the glitch go.
 - Not checked: whether the August board runs (0x00100A00) hit this; xorshift_cost.sh fits batch totals, not lat_min.
+### progress 01:29 (xorshift x0.5 bench: 8 routes, 48/48 full-stack runs pass; 1.43-1.45x mean, 1.28-1.52 range)
+- Seeds 5-8 added (same flow): all 24 PASS 17/17, gate clean, no hang. Over 8 routes x 3 corners: 48/48 PASS. Bits vs
+  JSON NOT_EQUIVALENT on 5 routes (base 1/2/6, x0.5 3/6), each a single $PACKER_GND_NET buffer LUT on an F7/CARRY4
+  input that the bits read as 0 -- traced on every one.
+- Per round (ns, from batch cycle totals): x0.5 26.6-30.2 FAST_MIN / 37.6-42.1 worst / 74.7-83.6 SLOW_MAX; T3 38.7-41.3
+  / 54.0-58.5 / 108.3-117.1. Paired T3/x0.5: mean 1.436 FAST_MIN, 1.449 SLOW_MAX, 1.431 worst; range 1.28-1.52. Seeds
+  6 and 8 are the slow x0.5 routes (1.28-1.40): routing scatter on the halved chains, the reason one route is a sample.
+- research/data/xorshift_bench/results.tsv regenerated (per-round from cycle totals, a lat_glitches column: 2, both
+  base_8 SLOW_MAX at 100 MHz). Judge corner bands and BOARD-QUEUE #6 updated to 8 routes.
