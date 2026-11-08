@@ -2275,3 +2275,20 @@ THE target passes yet, so nothing about THE target is proved.
     available first).
 * *Not shown:* the out0/pend side (`AckMoves`, Δo), the SeqEnv extra causes E for THE target, the request
   count bound from Offered, and any instance.
+
+### progress 09:27
+**Quiet start (measurement, untrusted Python, formal/tools/quiet).**
+* *Problem:* does reset fix every exact node of the timed certificate (control storage, control comb, 4 env
+  handshake nodes; 3,217 nodes) to a known value before R - 1, as `TBehX.quiet` and the local check's s0 need?
+* *Answer (measured):* yes. A ternary fixpoint under rst = 1 forces every exact node. Data latches are free,
+  storage self-pins were tried at both values, and rst is the only environment node needed.
+  * The 9 arbiter states that `resetList` omits are forced to 1 by rst together with their constant VCC pin. So
+    s0 is unique.
+  * The tocc simulation agrees at R-1.
+* *Lean coverage today:*
+  * `reset_state` covers 402 of these nodes.
+  * The idle island (414) is proved only inside `island_PS`, under requests low for ever, so it is not usable
+    for n ≥ 1.
+  * Missing: one `settle_partial` instance over 3,224 members with ρ ≤ 14 (window [A + 15·M, R-1]). It needs
+    M ≈ 4,636 ps at c = 1, versus 3,881 for the island.
+* A subagent is building that instance (Formal/Net/CViewPS/RIsl*.lean).
