@@ -3597,3 +3597,17 @@ declarations): `not_netCorrectSeqRunt20_R : ∀ D T su Δo, 132 ≤ T → Δo �
 arbs ⟨1, 10/25⟩ T (400000 + D) su Δo` and `not_netCorrectSeq_R` (plain). So the board's long reset is covered too.
 Frontier.lean now also has `not_seqRunt_le20_above40_R` and `not_seq_above40_R`: every g ≥ 1, κ ≥ 10/25, w ≤ 20 (or plain),
 every reset 400 ns + D, T ≥ 132, Δo ≤ 3 ns (check.sh OK, 1,497 declarations).
+
+### progress 17:2x -- below 0.40: an exactly periodic livelock at κ = 0.36 (simulation; a liveness counterexample candidate)
+- The 16 pairs that fail at 0.40 also fail at 0.38 (same 16 of 60) and, at 0.36, all 16 run to the 3 µs cap with
+  9-12 M events and no out0 (livelock, no quiet end). At 0.35 all 60 pairs are correct.
+- Full-width pair, κ = 9/25 = 0.36 exactly, w = 20, same 6-arc adversary, dump to 1.2 µs
+  (`tools-B/target/out/k36w20_x16y21_dump_1200ns.json.xz`): **from 491 ns every node's flips are exactly periodic with
+  period 79 ps** (140 nodes active, around SLICE_X8-9Y14 and SLICE_X16Y21.A6; checked to 1.19 µs; Python). Checks on
+  the prefix: A's gatecheck_runt (exact, w = 20): 0 arcs outside Adm, 0 lag violations, 3 mismatches all at the cut
+  time (expected for a non-quiescent cut); C's envcheck: Env + SeqEnv OK, ArbOK T ≥ 139, out0 never rises.
+- **Reading:** if the periodic tail extends for ever (it is a deterministic transport run, so a repeating state does
+  repeat), THE statement is also false at κ = 0.36 (liveness: the pair is never answered). A Lean proof needs C's
+  `Net/Periodic` (`eq_of_periodic`, with a period multiple ≥ the largest arc delay, e.g. 13·79 = 1027 ps) combined
+  with the H_RUNT(20) read maps (A's gateWR) on the periodic code: not written. Simulation, untrusted: the g = 1 margin
+  of THE statement on this race is in (0.35, 0.36].
