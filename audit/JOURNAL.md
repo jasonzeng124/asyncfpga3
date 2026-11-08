@@ -1259,3 +1259,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T23:43:21Z T40 done: BOARD-QUEUE #6 xorshift x0.5 seed 1 CONFIRMED (sdf md5s, worst 17/17 own oracle, 3.784/round exact, SLOW_MAX exact).
 - 2026-11-08T00:46:10Z T38 rows 9-12: build43 B modules (496) axioms clean (3069 constants); RaceAllTarget 181 rows CONFIRMED.
 - 2026-11-08T00:46:33Z build44 launched at formal 86a9ffa0 (B latch holds, 670 latches, data pin; binding latch kappa <= 0.440 claimed).
+- 2026-11-08T00:47:04Z T41 started (subagent, no git, /root/t41): research 9bd25f84/4cdc975e isprime env-turnaround A/B (isprime_b seed 30 FAST_MIN: D=0 FAIL, D=15 FAIL, D=20 PASS).
