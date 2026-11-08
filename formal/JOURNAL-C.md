@@ -2055,3 +2055,9 @@ after n flips = window state after n - o flips from the state after o) and `lche
 certificate's local check at every count vector inside a window's box follows from the window certificate's local
 check, when causes coincide after shifting event numbers by o and the window's bounds are no stronger. Not shown:
 that windows cover every count vector of every run (an instance property), windows for the timing checks.
+
+### progress 08:22 -- Net/TimedOccToy.lean CLAIMED: TimedOcc's hypotheses hold together (non-vacuity)
+A two-node instance (environment rises at 10 ps, a buffer gate reads it with delay exactly 3): every hypothesis of
+`timed_follows` (TBeh, TmOK, LSound via LStep, SepOK, TO, LCheck via the Boolean enumerator) is discharged and
+`toy_follows` concludes; check.sh OK, standard axioms. Note: even this buffer needs one TO row (its own count vs its
+input's read count: Sep 3 ≥ hi - lo' = 2), so the obligations are not vacuous either.
