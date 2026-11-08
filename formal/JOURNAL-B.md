@@ -3638,3 +3638,10 @@ Not attempted here today.
 ### progress 19:12 -- control sweep at κ = 0.38 on (0x40000000, 0x60000000): again only the merge4 ua2 race (livelock)
 `tools-B/ps/out/ctlsweep_k38_p40000000.txt`: 1,315 / 1,316 correct; SLICE_X16Y21.A6 pin 0 runs to 3 µs without out0
 (8 M events). No other single-pin race fails at 0.38 on this second wide pair, and none ends quietly below 0.40.
+
+### progress 19:2x -- notes/B-arb-up.md: the Lean facts an arbiter-aware Up rule (C's open UpOKA, R1) can use
+For C's S4 data-layer guard failures at the arbiter-0 grant: uncontended requests switch the state LUT within its
+feedback window without H_ARB (`ArbClean.q_clean_set/reset`, target instances ArbViewPS*); contended ones only
+settle by (last input change) + T, value unknown (Spec ArbOK), so the certificate must branch; the server-path
+separation (`spec_double_ack`, `one_ack`) and T ≥ the state-LUT delay (audit T5) must come with any such edge.
+A note only; no new Lean.
