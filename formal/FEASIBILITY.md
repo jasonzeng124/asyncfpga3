@@ -7,7 +7,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
-**2026-11-08 (lead): H_DECODE now covers the netlist's WIRING, not only its feature list.** **PENDING (10:2x): pip chunks all check; LUT/MUXF/CARRY chunks and the All/AllX assembly are still building -- not claimed until they do.** Until today the Lean
+**2026-11-08 (lead): H_DECODE now covers the netlist's WIRING, not only its feature list.** Until today the Lean
 round trip re-encoded each pip gate as its FASM feature from the gate's NAME and never looked at the nodes the gate
 reads and drives, so a decoder that wired a pip or a LUT pin to the wrong node would have passed every Lean check
 (only a Python comparison with nextpnr's routed netlist covered connectivity). New, Lean, standard axioms

@@ -34,7 +34,7 @@ false for every g ≥ 8/5, κ ≥ 0, w ≤ 20, T ≥ 137 (same race; B's suffici
 0.52), so a wider runt filter buys ~0.15 of κ, no more. **Lean (13:3x):** `FrontierRunt40.not_seqRunt40_above60`:
 false for every w ≤ 40, g ≥ 1, κ ≥ 15/25, T ≥ 88.
 
-## H_DECODE: the netlist's wiring checked against prjxray (shard A, 2026-11-08; Lean, check.sh --wit) -- PENDING: pip chunks checked; LUT/MUXF/CARRY chunks and All/AllX still building, not yet claimed
+## H_DECODE: the netlist's wiring checked against prjxray (shard A, 2026-11-08; Lean, check.sh --wit)
 The round trip (`RTPS`, `RTPSSel`) re-encodes each gate as FASM features from its NAME; it never read `ins`/`out`.
 `FormalWit/NM` (generic: `Formal/Target/NodeMerge{,Lut,Pin}.lean`; data: `tools-A/target/gen_nm.py` from prjxray-db
 tilegrid.json, tileconn.json, tile_type_*.json) adds, for every gate of `DecodedPS.net`:

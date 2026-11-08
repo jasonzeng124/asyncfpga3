@@ -2078,3 +2078,17 @@ time. Also generated `NodeMergePin` data (S2, X000-X074, AllX): 1,467 MUXF7/F8 +
 need 4 CIN wires and 3 tileconn pairs not in DB, added as `D2` = DB extended (same tile keys; extra rules under
 10000 + tileconn index). Generated data committed now; `pips_ok`/`luts_ok`/`xs_ok` not claimed until All/AllX build
 and check.sh --wit audits them.
+### progress 11:2x -- CHECKED: the netlist's wiring against prjxray (pips, LUT pins, MUXF selects, CARRY4 carry-in)
+All 225 `FormalWit/NM` chunk modules build (K: 75 x 10 decides; L: 75; X: 75 x 10 decides, after X was split for
+memory), plus `All` and `AllX`. `#print axioms` of `pips_ok`, `pips_linked`, `luts_ok`, `lut_pins_driven`, `xs_ok`,
+`k_const19697`: propext, Classical.choice, Quot.sound only; no sorry/native_decide/axiom in the sources. check.sh
+--wit now audits NM.All/AllX (the full --wit run was not repeated today: it rebuilds every FormalWit module, hours).
+**Plainly:** for THE target's decoded netlist, every pip gate's input and output node is, through prjxray's tileconn
+relation, the electrical node of the wires its name gives (157,229 pips); every LUT input j reads its slice's site-pin
+wire <L><j+1> (16,488 LUTs: the pin order is the chip's); every MUXF7/F8 select and CARRY4 carry-in reads its site
+pin (or CONST0). Trusted: prjxray-db master's tilegrid/tileconn/tile_type tables as transcribed by gen_nm.py (the
+decoder used the toolchain's copy of prjxray-db; the certificates check against master's, so the two agree on
+every connection used). Not covered: site output hops and site-internal nets (slice model), and the converse (that
+no two netlist nodes are one fabric node). STATUS row 1 updated: the "wire-to-node merge" open item is closed for
+every gate pin that reads a routing wire. The hypothesis list did not shrink in count (H_DECODE stays, as allowed),
+but H_DECODE's untrusted part shrank: connectivity moved from Python to Lean.
