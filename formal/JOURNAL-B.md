@@ -3616,3 +3616,9 @@ every reset 400 ns + D, T ≥ 132, Δo ≤ 3 ns (check.sh OK, 1,497 declarations
 SLICE_X16Y21.A6 = `ucontrol_merge4.uarb1.ua2`, reading the fork `ucontrol_merge4_f` (SLICE_X17Y23.B6) on pin 0
 (routed JSON, NEXTPNR_BEL): the same "ua2 reads the fork" pattern as A's 0.46 race at merge10. Written up as
 FOR-RESEARCH B1 (Lean result, pair dependence, the periodic livelock below 0.40, the suggested fix).
+
+### progress 18:24 -- control sweep at κ = 0.37 (full-width pair): only the merge4 ua2 race fails (livelock)
+`tools-B/ps/out/ctlsweep_k37_fw.txt`: 1,315 / 1,316 single-pin runs correct; the one failure is SLICE_X16Y21.A6 pin 0
+(no out0 by 3 µs, 10.9 M events: the periodic livelock of 17:2x). The arbiter-0 state livelock (0.43) is gone at 0.37.
+So on this pair, below 0.40, the merge4 ua2 race is the only single-pin failure and it gives no quiet (finite) end:
+a Lean refutation below 0.40 needs the periodic route.
