@@ -2142,3 +2142,32 @@ claims with chains).
 bounds between nodes of D v, so each node can be checked by `decide` against a small certificate of its own (kernel
 list lookups cost their position, which makes one global table slow: a first benchmark, a 32-stage Muller pipeline
 with 100 events per stage and one global table, was still running after 2 min).
+
+### progress 08:50 -- NEGATIVE (Python, untrusted): the timed certificate for (12,18) does NOT pass as the Lean states it; four over-strong or missing pieces identified
+Subagent result (tools: `formal/tools/tocc/`). THE target's kernel cone: 3,217 exact nodes (411 control storage,
+2,802 control comb, 4 env), 8,561 data nodes; 32 data nodes read by control over 124 pins; 8,333 events per corner,
+≤ 7 per node, max |D v| = 6. Transport run at window midpoints, c = 0 and c = 1, out0 = 6 both.
+1. **OR-causality (the main gap).** About 1,400 control comb gates fire on the FIRST of two concurrent inputs
+   (often siblings of one fork); the later input's event is absorbed. A certificate whose causes must ALL happen
+   cannot express "a or b": the local check fails at ~1,440 nodes per corner (35.5 k count vectors, 4.5 k failing).
+   Timing excludes most of them (Sep from a common ancestor minus Up: 4,122 of 4,209 at c = 0), but 87 (c = 0) /
+   56 (c = 1) remain with negative margins (-56 to -343 ps): there the first input really is either one. So the
+   theory needs **disjunctive (AND-OR) causes**: an event enabled by any of several cause sets, lower separations
+   only through causes common to all sets, upper bounds through any one set.
+2. **TO is over-strong on the diagonal.** For a = b, TO demands Sep((a,k)→(a,k)) = 0 ≥ hi - lo, impossible; but
+   read_consistent never uses those rows (the two reads are the same read). Fix: TO only for a ≠ b.
+3. **TO rows with a = the reader** (8,155 of 10,225 failures at c = 0) are implied by monotone reads plus ChangeOK
+   when the b event is a direct cause of an earlier event of v; the Lean TO still demands them. Fix: discharge
+   those rows from ChangeOK inside read_consistent.
+4. **One global L** for all readers: lowering L(a,k,b) to satisfy one reader's TO breaks another reader's local
+   check. Fix: per-reader bounds L_v.
+Also: the environment rule needs counts (a one-pair req may rise only once; noted before), reset is not certified.
+Data layer: with 264 guards the data-X failures vanish; of 264 bundling windows the 144 with a finite margin all pass
+(smallest 263 ps at c = 0, 682 ps at c = 1); 120 fail structurally (no ordering derivable: paths cross env events or
+the depth limit), all on the 5 comparison nodes with 32-65-latch cones. Real-skew (T2) TO rows: 1,991 of 8,917 fail
+at c = 0 with margins down to -617 ps (e.g. reader SLICE_X42Y95.A6, a = SLICE_X43Y89.D6, b = SLICE_X37Y78.A6):
+these are reconvergent reads whose order the certificate claims but the delays do not guarantee; with OR-causes
+some may become unnecessary (the gate does not need both orders fixed), the rest are genuine hazard candidates.
+**Meaning:** the generic route stands, but the event model must become AND-OR before any instance can pass. Next:
+(2)-(4) are small changes to TimedOcc's obligations; (1) is a refactor of OccNet's Cert (causes as a list of
+alternative sets) through the whole chain.
