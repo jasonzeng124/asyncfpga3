@@ -22,3 +22,9 @@ Results: `ao2_c{0,1}_{base,deep,bcp,cyc,ca,rob,robn}.txt`.
 Traces: `q1*.py` (b nodes and worst rows), `q2.py` (needed rows), `q3*.py` (residual failures), `simx.py`/`advcmp.py`
 (adversarial pin delays).
 Untrusted; one midpoint run per corner.
+
+## Final control configuration (2026-11-08)
+The default of `ao.py` is `--cyc --causeanc --prevanc` plus don't-care placement. A net absorbed change is carried to
+the first later event that needs it. `--legacy` and `--nodcp` turn those off. `ao3_c*.txt`: 0 local-check failures
+for (12,18) and (17,5). `data2.py`: GuardTime margins under the final Sep/Up (`data2_c*.txt`). `q5.py`: one L shared
+by both corners. `q6.py`: the failing guard windows characterised. `cornercmp.py`: structure equality across corners.

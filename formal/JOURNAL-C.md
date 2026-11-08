@@ -2317,3 +2317,29 @@ THE target passes yet, so nothing about THE target is proved.
 * *Not checked:* data GuardTime margins under the new Sep/Up, ValOK/CovTime, other operand pairs, any Lean
   instance. The evidence is one midpoint run per corner.
 * *Reading:* the first credible sign that a timed certificate for THE target exists at g = 1, κ = 0. Not a proof.
+
+### progress 12:15
+**Control certificate: 0 local-check failures at c = 0 and c = 1, for pairs (12,18) and (17,5); the data guards
+fail structurally (untrusted Python, tools/tocc; g = 1, κ = 0).**
+* *Control.* One more construction fix: an absorbed net change that is a don't-care at its event is attached to the
+  first later event whose enabling depends on it. Pulses stay appended. With it:
+  * (12,18): 8,333 events, 2,784 RT edges, minimum reader margin 1,520 ps (c=0) / 4,095 ps (c=1);
+  * (17,5): 12,059 events, 5,220 RT edges, 972 / 2,579 ps.
+  The certificate structure (events, alternatives, RT edges, full-order L, time stamps) is identical at both
+  corners. Only the per-reader L lowering differs, and the c = 0 set contains the c = 1 set. For (12,18), one
+  shared L passes at both corners; this was not run for (17,5).
+* *Data.* GuardTime fails for 120 of 264 guards (12,18) and 192 of 406 (17,5), at both corners. The failures are on
+  the comparison nodes SLICE_X38Y78.A6, X37Y68.B6, X11Y31.B6, X21Y61.B6 and X16Y55.C6. Each failure is a missing
+  separation, not a short margin. Characterised for (12,18):
+  * 192 terms: the latch close is 20–38 ns before the guard start, or the next latch open is 4–15 ns after the
+    guard end, but the register-update and reader-request branches meet only through environment events or
+    non-common alternatives. This needs a deeper or env-aware ordering argument.
+  * 33 terms: a register in the comparator's cone RE-OPENS while the reader's guard is on (8.7 ns median). The
+    output stays right only because the re-latched values are unchanged. No timing bound can discharge this; it
+    needs value-level claims (ValOK/CovTime chained through the latch D inputs). Whether some other operand pair
+    makes it a real hazard is OPEN.
+* *Not checked:* ValOK/CovTime/GateProof for the comparison claims, setup/hold of the 3,990 data-latch captures,
+  transparent-latch chains deeper than 4, one shared Sep path per row across corners (needed for the affine
+  corner argument), any Lean instance.
+* *Reading:* the control half of a one-pair certificate looks feasible. The blocker for S4 is now the data layer
+  around the comparator, not the control timing.

@@ -26,13 +26,14 @@ from cert import ENVREAD
 INF = float("inf")
 c = int(sys.argv[1]); ROUNDS = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 NOPREV = "--noprev" in sys.argv
-PREVANC = "--prevanc" in sys.argv
+LEGACY = "--legacy" in sys.argv
+PREVANC = ("--prevanc" in sys.argv) or not LEGACY
 ROBUST = "--robust" in sys.argv; nrob = [0]
 import os; ROBNODES = set(x for x in os.environ.get("ROBNODES", "").split(",") if x)
-CAUSEANC = "--causeanc" in sys.argv   # repair candidate: a previous event causally below e0 counts as Up hi'(v,v)     # diagnostic: Up without UpOKA's previous-event clause
+CAUSEANC = ("--causeanc" in sys.argv) or not LEGACY   # repair candidate: a previous event causally below e0 counts as Up hi'(v,v)     # diagnostic: Up without UpOKA's previous-event clause
 T0 = time.time()
 C = load(); g = C["gates"]; EX = C["EXACT"]; bs = C["bs"]; nm = C["names"]; DATA = C["DATA"]
-H = pickle.load(open("/tmp/claude-0/tocc/hist_c%d.pkl" % c, "rb")); R = H["R"]; t0 = R - 1; hist = H["hist"]
+H = pickle.load(open("/tmp/claude-0/tocc/hist_c%d%s.pkl" % (c, __import__("os").environ.get("PAIR", "")), "rb")); R = H["R"]; t0 = R - 1; hist = H["hist"]
 def valat(n, t):
     if n not in hist: return False
     b, ts = hist[n]; return b ^ (bisect_right(ts, t) % 2 == 1)
@@ -54,6 +55,8 @@ enode = np.array([xi[n] for n, k, t in el], dtype=np.int32); ek = np.array([k fo
 et = np.array([t for n, k, t in el], dtype=np.int64)
 prev = [eid[(n, k - 1)] if k else None for n, k, t in el]
 # ---------------- CP alternatives
+PAIRSUF = __import__("os").environ.get("PAIR", "")
+DCP = "--nodcp" not in sys.argv; carry = {}; dcp_stat = collections.Counter()
 alts = [None] * NE; nalt = collections.Counter(); bad_full = 0
 for e, (v, k, t) in enumerate(el):
     tp = ev[v][k - 1] if k else t0
@@ -73,12 +76,13 @@ for e, (v, k, t) in enumerate(el):
         if i >= 0 and tw[i] + d > tp: S.append((w, eid[(w, i)], valat(w, tw[i])))
         elif i + 1 < len(tw) and tw[i + 1] + d <= tn: AH.append((w, eid[(w, i + 1)], valat(w, tw[i + 1])))
     P = S + AH
-    def F(A):
+    def F(A, ov=None):
         post = {w: val for (w, _, val) in A}; bits = []
         for p in pins:
             w = p["src"]; d = p["win"][c][2]
             if w == v: bits.append(valat(v, tp))
             elif w in post: bits.append(post[w])
+            elif ov and w in ov: bits.append(ov[w])
             else: bits.append(valat(w, tp - d))
         return bool(lut(g[v]["init"], g[v]["k"], bits))
     before = not valat(v, t)
@@ -107,7 +111,42 @@ for e, (v, k, t) in enumerate(el):
         rmins = [m for m in rob if not any((o & m) == o and o != m for o in rob)]
         if rmins and any(m & ~smask == 0 for m in rmins):
             mins = rmins; rest = []; nrob[0] += 1
-    alts[e] = [[P[i][1] for i in range(len(P)) if m >> i & 1] + rest for m in mins]
+    if DCP:
+        # don't-care placement: an absorbed change (in S but in no minimal set) is not a cause here; it is carried
+        # to the first later event of v whose alternative stops enabling when the change is reverted
+        if k == 0: carry[v] = []
+        altsE = [[P[i][1] for i in range(len(P)) if m >> i & 1] for m in mins]
+        keep = []
+        for (w, r, preval) in carry[v]:
+            if any(x[0] == w for x in S): dcp_stat["superseded"] += 1; continue
+            need = False
+            for ai, m in enumerate(mins):
+                if F([P[i] for i in range(len(P)) if m >> i & 1], {w: preval}) == before:
+                    altsE[ai].append(r); need = True
+            if need: dcp_stat["placed"] += 1
+            else: keep.append((w, r, preval))
+        if k + 1 == len(ev[v]): dcp_stat["dropped_at_end"] += len(keep); keep = []
+        newc = []
+        for i in range(nS):
+            if used >> i & 1: continue
+            w, r, post = S[i]; dw = dl[(v, w)][2]
+            netchg = valat(w, tp - dw) != post
+            needs = [ai for ai, m in enumerate(mins) if F([P[q] for q in range(len(P)) if m >> q & 1], {w: not post}) == before]
+            if netchg and not needs and k + 1 < len(ev[v]):
+                newc.append((w, r, not post)); dcp_stat["carried"] += 1
+            elif netchg and not needs:
+                dcp_stat["dropped (don't-care at v's last event)"] += 1
+            elif netchg and needs:
+                for ai in needs: altsE[ai].append(r)
+                dcp_stat["appended to the alternatives needing it"] += 1
+            else:
+                for a_ in altsE: a_.append(r)
+                dcp_stat["appended to all (pulse, or last event)"] += 1
+        carry[v] = keep + newc
+        if k + 1 == len(ev[v]): dcp_stat["dropped_at_end"] += len(carry[v]); carry[v] = []
+        alts[e] = altsE
+    else:
+        alts[e] = [[P[i][1] for i in range(len(P)) if m >> i & 1] + rest for m in mins]
     nalt[len(mins)] += 1
 # acyclicity: Kahn over prev + all alternative causes; drop look-ahead alternatives on cycles
 def topo():
@@ -124,7 +163,7 @@ def topo():
             if indeg[y] == 0: q.append(y)
     return out, indeg
 dropped = 0
-CYC = "--cyc" in sys.argv     # cut one alternative per found cycle (the most anticipatory one) instead of all later ones
+CYC = ("--cyc" in sys.argv) or not LEGACY     # cut one alternative per found cycle (the most anticipatory one) instead of all later ones
 if not CYC:
   while True:
     out, indeg = topo()
@@ -160,7 +199,7 @@ tm = [0] * NE
 for i, e in enumerate(out): tm[e] = i
 tm = np.array(tm, dtype=np.int64)
 order = list(out)
-print("  look-ahead alternatives dropped for cycles: %d; events with robust alternatives: %d" % (dropped, nrob[0]))
+print("  look-ahead alternatives dropped for cycles: %d; events with robust alternatives: %d; don't-care placement %s" % (dropped, nrob[0], dict(dcp_stat)))
 print("[c=%d] events %d; alternatives per event %s; events whose full candidate set does not enable (fallback AND): %d" % (
     c, NE, sorted(nalt.items()), bad_full))
 # common causes (in every CP alternative)
@@ -316,7 +355,7 @@ def Dof(v):
             for p in alt:
                 if el[p][0] not in D: D.append(el[p][0])
     return D
-DATAG = pickle.load(open("/tmp/claude-0/tocc/data_c%d.pkl" % c, "rb"))["guards"]
+DATAG = pickle.load(open("/tmp/claude-0/tocc/data_c%d%s.pkl" % (c, __import__("os").environ.get("PAIR", "")), "rb"))["guards"]
 def env_en(v, s, n):
     kind = envnode[v]
     if kind == "rst": return s[v]
@@ -462,4 +501,4 @@ for (U, W), (mg, f4, vv, e0) in sorted(rtinfo.items(), key=lambda x: x[1][0])[:1
 print("remaining failures (final round), sample:")
 for (v, kind, nn, D) in [f for f in fails if f[1] != "X"][:12]:
     print("   %s %s %s n=%s D=%s" % (nm[v], "CTRL" if v in C["CTRL"] else "", kind, nn, [nm[u] for u in D]))
-pickle.dump(dict(rt=rt, rtinfo=rtinfo, fails=fails, rows_fail=rows_fail, alts=alts), open("/tmp/claude-0/tocc/ao_c%d%s.pkl" % (c, ("_noprev" if NOPREV else ("_prevanc" if PREVANC else "")) + ("_deep" if DEEP else "") + ("_bcp" if BCP else "") + ("_cyc" if CYC else "") + ("_causeanc" if CAUSEANC else "") + ("_robust" if ROBUST else "") + ("_robn" if ROBNODES else "")), "wb"))
+pickle.dump(dict(rt=rt, rtinfo=rtinfo, fails=fails, rows_fail=rows_fail, alts=alts, el=el, VC=VC, tm=tm), open("/tmp/claude-0/tocc/ao_c%d%s.pkl" % (c, ("_noprev" if NOPREV else ("_prevanc" if PREVANC else "")) + ("_deep" if DEEP else "") + ("_bcp" if BCP else "") + ("_cyc" if CYC else "") + ("_causeanc" if CAUSEANC else "") + ("_robust" if ROBUST else "") + ("_robn" if ROBNODES else "") + ("_dcp" if DCP else "") + PAIRSUF), "wb"))
