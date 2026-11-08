@@ -120,3 +120,21 @@ The plan from here to THE theorem (each step generic first, then instantiated):
    types (branch outcomes); the local checks only see a bounded neighbourhood of segments, so they are checked
    on all short windows of segment types; data values symbolic per epoch, tied to the token-level
    `gcd_hw_seq` by the datapath's zero-delay function.
+
+### Status at 08:2x (2026-11-08)
+Generic chain now complete for ONE input pair (all core Lean, standard axioms): `OccNet` (abstract), `TimedOcc`
+(exact nodes), `TimedOccX` (+ data claims), `TimedOccRT` (+ RT edges justified by lower/upper separations),
+`TimedBridge` (CGateOK at corner c ⇒ the read model). Safety (`timedR_follows`) and liveness (`timedR_live`).
+Abstract-machine evidence (tools/occ, untrusted): with 36 RT orders the local check passes on 3 pairs.
+Gaps, in order:
+1. Instance for one pair: generator for CP/CF/L/Sep/Up/D/claims/guards from one simulated run, then Lean checks.
+   Size: the abstract check visited 1.4-2.7 M local ideals with latches as events; in TimedOccRT latches are data
+   claims, so the exact event sets are control-only and smaller. Kernel `decide` cost still unknown.
+2. Environment: `envEn` is state-based; SeqEnv and "n pairs offered" need counts. Plan: virtual exact nodes
+   (a phase bit "out0 handshake completed since the last request", a pair counter) defined from the Spec
+   behaviour, so the theory stays as is.
+3. Quiet start: exact nodes constant on [t0 - H, t0] after reset (from the n0 island results) and initial data claims.
+4. All pairs: gcd_hw runs Stein's binary gcd (shift loops, compare/subtract loop), so the control path is a word over
+   a finite set of iteration types (branch outcomes), length ≤ ~100. Certificates as concatenations of segment
+   types; every check is local (bounded lookback), so it suffices to check all short windows of segment types;
+   data claims symbolic per epoch, tied to `gcd_hw_seq`'s token-level values. Needs a generic window lemma.
