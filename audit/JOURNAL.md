@@ -1262,3 +1262,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T00:47:04Z T41 started (subagent, no git, /root/t41): research 9bd25f84/4cdc975e isprime env-turnaround A/B (isprime_b seed 30 FAST_MIN: D=0 FAIL, D=15 FAIL, D=20 PASS).
 - 2026-11-08T00:55:31Z T40 note: research 0709b5a6 moves #6 board commands to 83.3 MHz (harness latency register mis-captures at 100 MHz SLOW_MAX on one route); T40 sim verdicts unchanged; August-board effect open.
 - 2026-11-08T01:38:02Z container restart: build44 survived (setsid); T41 subagent's D=0 soak killed, subagent resumed with setsid instructions.
+- 2026-11-08T02:56:17Z build44 done (521 B latch modules rc=0 at 86a9ffa0); axiom audit running.
