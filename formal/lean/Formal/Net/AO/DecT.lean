@@ -105,14 +105,16 @@ def upFormB (e0 e : α × Nat) (d : Nat) : Bool :=
   (N.gate e.1 && !(dat e.1) && decide (e.2 < CP.len e.1) &&
     (CP.causes e.1 e.2).any (fun alt => alt.all (fun p => match upL ul e0 p with
       | some dp => decide (dp + hi' N e.1 p.1 ≤ d) | none => false)) &&
-    (e.2 == 0 || match upL ul e0 (e.1, e.2 - 1) with
-      | some dp => decide (dp + hi' N e.1 e.1 ≤ d) | none => false))
+    (e.2 == 0 || (match upL ul e0 (e.1, e.2 - 1) with
+      | some dp => decide (dp + hi' N e.1 e.1 ≤ d) | none => false) ||
+      (match sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
+      | some _ => decide (hi' N e.1 e.1 ≤ d) | none => false)))
 
 def upB : Bool := ul.all fun q => match upL ul q.1 q.2.1 with
-  | some d => upFormB N dat CP ul q.1 q.2.1 d
+  | some d => upFormB N dat CP sl ul q.1 q.2.1 d
   | none => false
 
-theorem upOK_of_B (h : upB N dat CP ul = true) : UpOKA N dat CP (upL ul) := by
+theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (upL ul) := by
   intro e0 e d hd
   obtain ⟨q, hq, hf, hg⟩ := find_map_some hd
   simp only [Bool.and_eq_true, beq_iff_eq] at hf
@@ -130,11 +132,16 @@ theorem upOK_of_B (h : upB N dat CP ul = true) : UpOKA N dat CP (upL ul) := by
       cases hu : upL ul e0 p with
       | none => rw [hu] at this; cases this
       | some dp => rw [hu] at this; exact ⟨dp, rfl, by simpa using this⟩
-    · rcases hp with hp | hp
+    · rcases hp with (hp | hp) | hp
       · omega
-      · cases hu : upL ul e0 (e.1, e.2 - 1) with
+      · left
+        cases hu : upL ul e0 (e.1, e.2 - 1) with
         | none => rw [hu] at hp; cases hp
         | some dp => rw [hu] at hp; exact ⟨dp, rfl, by simpa using hp⟩
+      · right
+        cases hu : sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
+        | none => rw [hu] at hp; cases hp
+        | some ds => rw [hu] at hp; exact ⟨ds, rfl, by simpa using hp⟩
 
 
 end

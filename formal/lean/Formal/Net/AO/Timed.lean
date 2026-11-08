@@ -15,7 +15,8 @@ timed theorem with all four repaired, on `AO.Cert` (alternative cause sets):
 * `TOA`: rows only for a ≠ b, and a row with a = v may instead name, for an earlier event of v, a cause on b in
   every alternative (`read_consistentA` then uses the reader's own enabling read, by monotone reads);
 * bounds `L v` per reader v, each sound for the full order;
-* RT edges, data claims, chains of claims as in `TimedOccU`;
+* RT edges, data claims, chains of claims as in `TimedOccU`; an upper bound's previous-event clause may instead be
+  met by a separation placing that previous event no later than `e0` (`UpOKA`, second disjunct);
 * environment moves by COUNTS (`hEnvE`): an environment node's change at `s` must be an enabled event of the
   certificate at the counts of `s - 1`, given that those counts are an ideal of the full order (which the induction
   supplies; a handshake argument needs it to know where the acknowledge is). The local check `hloc` is only demanded of gates. (The state-only rule
@@ -271,12 +272,14 @@ theorem change_okA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L 
 
 /-- `Up e0 e = some d`: if `e0` happened by `τ`, then `e` happened by `τ + d`. Justified by `e`'s physical causes
 and previous event (each read within its pin's `hi`); only exact gate events. -/
-def UpOKA (N : TNet α) (dat : α → Bool) (CP : Cert α) (Up : α × Nat → α × Nat → Option Nat) : Prop :=
+def UpOKA (N : TNet α) (dat : α → Bool) (CP : Cert α) (Sep : α → Nat → α → Nat → Option Nat)
+    (Up : α × Nat → α × Nat → Option Nat) : Prop :=
   ∀ e0 e d, Up e0 e = some d →
     e = e0 ∨
     (N.gate e.1 = true ∧ dat e.1 = false ∧ e.2 < CP.len e.1 ∧
       (∃ alt ∈ CP.causes e.1 e.2, ∀ p ∈ alt, ∃ dp, Up e0 p = some dp ∧ dp + hi' N e.1 p.1 ≤ d) ∧
-      (0 < e.2 → ∃ dp, Up e0 (e.1, e.2 - 1) = some dp ∧ dp + hi' N e.1 e.1 ≤ d))
+      (0 < e.2 → (∃ dp, Up e0 (e.1, e.2 - 1) = some dp ∧ dp + hi' N e.1 e.1 ≤ d) ∨
+        (∃ ds, Sep e.1 (e.2 - 1) e0.1 e0.2 = some ds ∧ hi' N e.1 e.1 ≤ d)))
 
 /-- Separations: one step back along a physical cause or the previous event, or through a common ancestor `e0`
 with an upper bound on how late `(b, m)` follows it. -/
@@ -312,7 +315,7 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
       GuardTime N Sep v z c g)
-    (hUp : UpOKA N dat CP Up) (hS : SepOKA N CP Sep Up)
+    (hUp : UpOKA N dat CP Sep Up) (hS : SepOKA N CP Sep Up)
     (T : Nat) (hI : ∀ τ, τ ≤ T → Ideal CF (fun u => cntE dat x t0 u τ))
     (hB : ∀ v s, dat v = false → t0 < s → s ≤ T → x v s ≠ x v (s - 1) → ChangeOKA N CP x t0 r v s)
     (hC : ∀ c ∈ cl, ∀ s, s ≤ T → Holds x t0 H c s) (hSS : SepSound x t0 Sep T)
@@ -332,16 +335,23 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     exfalso
     obtain ⟨T', hTd⟩ : ∃ T', T' = τ + du := ⟨_, rfl⟩
     have hnot' : cnt x t0 w T' ≤ j := by rw [hTd]; exact hnot
+    -- the previous event happened by `τ + dp`, with `dp + hi'(w,w) ≤ du`
+    have hpv : 0 < j → ∃ dp, dp + hi' N w w ≤ du ∧ j - 1 < cnt x t0 w (τ + dp) := by
+      intro hj
+      rcases hpr hj with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩
+      · have h1 := Formal.Net.AO.tm_prev hTP w j (by omega) hlen
+        have hip := ih (CP.tm w (j - 1)) (by omega) (w, j - 1) dp (Nat.le_refl _) hdp (by omega)
+        exact ⟨dp, hle, hip⟩
+      · have := ss_nat hSS hds (by omega) h0
+        exact ⟨0, by omega, Nat.lt_of_lt_of_le this (cnt_mono _ _ _ (by omega))⟩
     -- the previous event happened by `T' - 1`
     have hprev : j ≤ cnt x t0 w (T' - 1) := by
       by_cases hj : j = 0
       · omega
-      · obtain ⟨dp, hdp, hle⟩ := hpr (by omega)
-        have h1 := Formal.Net.AO.tm_prev hTP w j (by omega) hlen
-        have hip := ih (CP.tm w (j - 1)) (by omega) (w, j - 1) dp (Nat.le_refl _) hdp (by omega)
+      · obtain ⟨dp, hle, hip⟩ := hpv (by omega)
         have := hi'_posA hb w w
         have := cnt_mono (x := x) (t0 := t0) w (τ + dp) (T' - 1) (by omega)
-        simp only at hip; omega
+        omega
     have hcT : cnt x t0 w T' = j := by
       have := cnt_mono (x := x) (t0 := t0) w (T' - 1) T' (by omega); omega
     have hcT1 : cnt x t0 w (T' - 1) = j := by
@@ -358,10 +368,7 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
         have hle := cnt_mono (x := x) (t0 := t0) w (r w w T') (T' - 1) (by omega)
         by_cases hj : j = 0
         · omega
-        · obtain ⟨dp, hdp, hle2⟩ := hpr (by omega)
-          have hip := ih (CP.tm w (j - 1)) (by have := Formal.Net.AO.tm_prev hTP w j (by omega) hlen; omega) (w, j - 1) dp
-            (Nat.le_refl _) hdp (by omega)
-          simp only at hip
+        · obtain ⟨dp, hle2, hip⟩ := hpv (by omega)
           have := cnt_mono (x := x) (t0 := t0) w (τ + dp) (r w w T') (by omega)
           omega
       · simp only [hr, if_false, Bool.false_eq_true]; exact hcT1
@@ -422,7 +429,7 @@ theorem sepSound_step (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : �
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
       GuardTime N Sep v z c g)
-    (hUp : UpOKA N dat CP Up) (hS : SepOKA N CP Sep Up)
+    (hUp : UpOKA N dat CP Sep Up) (hS : SepOKA N CP Sep Up)
     (t : Nat) (ht : t0 ≤ t) (hI : ∀ τ, τ ≤ t → Ideal CF (fun u => cntE dat x t0 u τ))
     (hB : ∀ v s, dat v = false → t0 < s → s ≤ t + 1 → x v s ≠ x v (s - 1) → ChangeOKA N CP x t0 r v s)
     (hC : ∀ c ∈ cl, ∀ s, s ≤ t → Holds x t0 H c s) (hSS : SepSound x t0 Sep t) :
@@ -499,7 +506,7 @@ theorem timedA_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
       GuardTime N Sep v z c g)
-    (hUp : UpOKA N dat CP Up) (hS : SepOKA N CP Sep Up)
+    (hUp : UpOKA N dat CP Sep Up) (hS : SepOKA N CP Sep Up)
     (hTF : TmOK CF)
     (hRT : ∀ u k, k < CF.len u → ∀ altP ∈ CP.causes u k, ∃ altF ∈ CF.causes u k, ∀ p ∈ altF,
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
@@ -623,7 +630,7 @@ theorem gate_firesA (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
       GuardTime N Sep v z c g)
-    (hUp : UpOKA N dat CP Up) (hS : SepOKA N CP Sep Up)
+    (hUp : UpOKA N dat CP Sep Up) (hS : SepOKA N CP Sep Up)
     (hTF : TmOK CF)
     (hRT : ∀ u k, k < CF.len u → ∀ altP ∈ CP.causes u k, ∃ altF ∈ CF.causes u k, ∀ p ∈ altF,
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
@@ -716,7 +723,7 @@ theorem timedA_live (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
       GuardTime N Sep v z c g)
-    (hUp : UpOKA N dat CP Up) (hS : SepOKA N CP Sep Up)
+    (hUp : UpOKA N dat CP Sep Up) (hS : SepOKA N CP Sep Up)
     (hTF : TmOK CF)
     (hRT : ∀ u k, k < CF.len u → ∀ altP ∈ CP.causes u k, ∃ altF ∈ CF.causes u k, ∀ p ∈ altF,
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)

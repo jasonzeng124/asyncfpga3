@@ -2234,3 +2234,23 @@ initial one, so a state rule cannot say "the request rises only once", which a o
 in place of the local check at environment nodes; `hloc` is demanded only of gates. The toy discharges `hEnvE`
 directly. *Not shown:* that `Spec.Env`/`SeqEnv` imply `hEnvE` for THE target's certificate (that is the env half of
 the bridge, still open). Still waiting on the subagent's AO re-measurement.
+
+### progress 09:18
+**THE target's (12,18) certificate against the AO model: still failing at both corners (untrusted Python,
+formal/tools/tocc/ao.py; g = 1, κ = 0, one simulated run per corner).** 8,333 events; 2,453 have two alternatives.
+* Exactly the Lean defs at that time: LCheckXA fails 2,832 times at 815 nodes (c = 0) and 2,513 at 724 (c = 1);
+  1,269 RT edges justified.
+* The binding item was `UpOKA`'s previous-event clause (an upper bound needed an upper bound for the gate's own
+  previous event). Repaired IN LEAN this step: the clause may instead be met by a separation `Sep v (k-1) e0`
+  (the previous event is no later than `e0`), with `hi'(v,v) ≤ d`. `up_sound` re-proved, `upB`/`upOK_of_B`
+  updated (Net/AO/Timed.lean, DecT.lean; check.sh OK). With it: 2,758 RT edges (min reader margin 972 ps c=0,
+  2,579 c=1) and 601 (c=0) / 282 (c=1) failures left.
+* What is left is mostly TO skew rows: 3,455 (c=0) / 2,870 (c=1) rows fail, worst margin -653 ps (c=0) and
+  -1,036 ps (c=1), mostly reader = first source where the other alternative bypasses b's pin (so the own-read
+  exemption does not apply), plus reconvergent forks. If every TO row passed, 37 failures at 31 nodes would remain
+  per corner (11 EnE, 26 NxE). 18 control storage nodes fail at both corners.
+* Not checked: data-layer GuardTime margins under the new Sep/Up (120 of 264 windows failed last time), ValOK/
+  GateProof/ChainOK, reset. The certificate is built from one simulated run; the TO failures may be real races or
+  an artefact of a too-coarse cause choice: not decided.
+*Reading:* the AND-OR model removed the gross mismatch (from ~6,000 failures to 282–601), but no certificate for
+THE target passes yet, so nothing about THE target is proved.
