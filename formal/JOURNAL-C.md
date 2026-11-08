@@ -2048,3 +2048,10 @@ So the generic chain is complete for one pair: certificate checks (local check, 
 ### progress 08:18 -- check.sh OK on all six new files
 `formal/check.sh Formal/Net/{OccNet,OccNetDec,TimedOcc,TimedOccX,TimedOccRT,TimedBridge}.lean`: textual scan OK,
 each file builds, axiom audit 596 declarations, `[check] OK`.
+
+### progress 08:20 -- Net/OccWindow.lean CLAIMED: a local check proved on a shifted window certificate
+`Formal/Net/OccWindow.lean` (check.sh OK; standard axioms). First brick of the all-pairs route: `st_shift` (state
+after n flips = window state after n - o flips from the state after o) and `lcheck_of_window`: the big
+certificate's local check at every count vector inside a window's box follows from the window certificate's local
+check, when causes coincide after shifting event numbers by o and the window's bounds are no stronger. Not shown:
+that windows cover every count vector of every run (an instance property), windows for the timing checks.
