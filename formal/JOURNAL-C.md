@@ -2132,3 +2132,7 @@ claim, the request's state after one event, feedback unknown); y uses Q only aft
 `valOK_of_B`, CovTime/GuardTime by hand); `toyX_follows`: both claims hold to 40 ps. check.sh OK, standard axioms.
 Remark: obligations on events that never happen (an index ≥ len) are unconstrained by SepOK (and sound: such an
 event never happens), which is how a claim "until the request's next event" is written when there is none.
+
+### progress 08:41 -- TimedOccU liveness (gate_firesU, timedU_live), check.sh OK
+The final generic theorem pair is now `TimedU.timedU_follows` / `TimedU.timedU_live` (exact events, RT edges, data
+claims with chains). 
