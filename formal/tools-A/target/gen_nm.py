@@ -125,6 +125,7 @@ def main():
     TL = sorted(tiles); TI = {t: i for i, t in enumerate(TL)}
     WL = sorted(wires); WI = {w: i for i, w in enumerate(WL)}
 
+    WX = {}   # wires added for the site-pin paths (NodeMergePin), indices after WL
     def tree(items, leaf):
         """balanced NT literal over sorted (key, value) items"""
         if not items:
@@ -296,6 +297,113 @@ def main():
              "end Formal.Target.NM.Data"]
         open(os.path.join(out, "L%03d.lean" % ci), "w").write("\n".join(L) + "\n")
     print("gen_nm: %d LUT gates on %d sites" % (nl, len(lsites)))
+    # MUXF select / CARRY4 carry-in pins (NodeMergePin)
+    xre = re.compile(r"(SLICE_X\d+Y\d+)\.(F7A|F7B|F8|CARRY4\.C?O\d)$")
+    EXP = {"F7A": (2, "AX"), "F7B": (2, "CX"), "F8": (2, "BX")}
+    PK = {"AX": 0, "BX": 1, "CX": 2, "CIN": 3}
+    xsites = sorted({xre.match(g[0]).group(1) for gs in chunks for g in gs if xre.match(g[0])})
+    for x in xsites:
+        assert x in SI, "site %s not in the LUT site table" % x
+    keys2 = {}
+    for x in xsites:
+        t = site_tile[x]; ty = grid[t]["type"]; r = rank(x); k = TY[ty] * 2 + r
+        if k in keys2:
+            continue
+        site = [z for z in ttj(ty)["sites"] if z["x_coord"] == r and z["prefix"] == "SLICE"][0]
+        row = []
+        for pn, pk in sorted(PK.items(), key=lambda kv: kv[1]):
+            w = site["site_pins"][pn]["wire"]
+            if w not in WI and w not in WX:
+                WX[w] = len(WL) + len(WX)
+            row.append((pk, WI.get(w, WX.get(w))))
+        keys2[k] = row
+    def site_pin_name(t, site, pn):
+        z = [z for z in ttj(grid[t]["type"])["sites"] if z["x_coord"] == rank(site) and z["prefix"] == "SLICE"][0]
+        return z["site_pins"][pn]["wire"]
+    extra = collections.defaultdict(set)
+    Kc = sorted({g[2][0] for gs in chunks for g in gs if xre.match(g[0]) and names[g[2][0]].startswith("CONST")})
+    nx = 0
+    for ci, gs in enumerate(chunks):
+        row = []
+        for g in gs:
+            m = xre.match(g[0])
+            if not m:
+                row.append("none")
+                continue
+            nx += 1
+            site, suf = m.groups()
+            j, pn = EXP.get(suf, (0, "CIN"))
+            n = g[2][j]
+            if n in Kc:
+                row.append('some ⟨%d, "%s", none⟩' % (SI[site], suf))
+                continue
+            t = site_tile[site]
+            wn = site_pin_name(t, site, pn)
+            a, b = canon[n]
+            pth_ = path((t, wn), (a, b))
+            steps = []
+            for (ri, kk, bb, tt2) in pth_:
+                if tt2 not in TI:
+                    sys.exit("pin path needs a tile not in DB: %s" % g[0])
+                for w2 in rules[ri]["wire_pairs"][kk]:
+                    if w2 not in WI and w2 not in WX:
+                        WX[w2] = len(WL) + len(WX)
+                if kk in used_rules.get(ri, ()):
+                    steps.append("(%d, %d, %s, %d)" % (ri, kk, "true" if bb else "false", TI[tt2]))
+                else:
+                    extra[ri].add(kk)
+                    steps.append("(%d, %d, %s, %d)" % (10000 + ri, kk, "true" if bb else "false", TI[tt2]))
+            row.append('some ⟨%d, "%s", some [%s]⟩' % (SI[site], suf, ", ".join(steps)))
+        L = ["import FormalWit.NM.S2", "import FormalWit.NM.S", "import FormalWit.NM.DB", "import FormalWit.NM.C",
+             "import Formal.Target.NetPS.G%03d" % ci, "", hdr,
+             "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
+             "set_option maxRecDepth 100000 in",
+             "def x%03d : List (Option XC) := [%s]" % (ci, ", ".join(row)), "",
+             "theorem xk%03d : ∀ g ∈ g%03d, isX g = true → XOK D2 P Q C K g :=" % (ci, ci),
+             "  chkXList_sound D2 P Q C K g%03d x%03d (by decide +kernel)" % (ci, ci), ""]
+        for kn in Kc:
+            if kn // 2500 == ci:
+                L += ["/-- The listed constant node is driven by a constant-0 gate. -/",
+                      "theorem kconst%d : ∃ g ∈ g%03d, g.out = %d ∧ g.k = 0 ∧ g.init = 0 := by decide +kernel" % (kn, ci, kn), ""]
+        L.append("end Formal.Target.NM.Data")
+        open(os.path.join(out, "X%03d.lean" % ci), "w").write("\n".join(L) + "\n")
+    L = ["import Formal.Target.NodeMergePin", "import FormalWit.NM.DB", "", hdr, "namespace Formal.Target.NM.Data", "open Formal.Target.NM", "",
+         "-- site pins AX, BX, CX, CIN (tile_type_*.json): key ty * 2 + rank, then pin key -> wire",
+         "def pins2 : NT (NT Nat) := " + tree(sorted(keys2.items()), lambda row: tree(row, lambda w: "%d" % w)), "",
+         "def Q : SP2 := ⟨pins2⟩", "",
+         "-- wires added for the carry-in paths (indices after DB's), and the tileconn pairs they use, under key",
+         "-- 10000 + (index of the entry in tileconn.json)",
+         "def wiresX : NT String := " + tree(sorted((i, w) for w, i in WX.items()), lambda w: '"%s"' % w), "",
+         "set_option maxRecDepth 100000 in",
+         "def rulesX : NT Rl := " + tree([(10000 + ri, "⟨%d, %d, %d, %d, %d, %d, %s⟩" % (
+             max(rules[ri]["grid_deltas"][0], 0), max(-rules[ri]["grid_deltas"][0], 0),
+             max(rules[ri]["grid_deltas"][1], 0), max(-rules[ri]["grid_deltas"][1], 0),
+             TY[rules[ri]["tile_types"][0]], TY[rules[ri]["tile_types"][1]],
+             tree([(kk, rules[ri]["wire_pairs"][kk]) for kk in sorted(extra[ri])],
+                  lambda pr: "(%d, %d)" % (WI.get(pr[0], WX.get(pr[0])), WI.get(pr[1], WX.get(pr[1])))))) for ri in sorted(extra)],
+             lambda s_: s_), "",
+         "/-- `D` extended by those wires and pairs (same tiles; old keys unchanged). -/",
+         "def D2 : DB := ⟨D.tiles, .node %d D.wires wiresX, .node 10000 D.rules rulesX⟩" % len(WL), "",
+         "/-- Constant nodes a carry-in may read. -/",
+         "def K : List Nat := [%s]" % ", ".join(map(str, Kc)), "", "end Formal.Target.NM.Data"]
+    open(os.path.join(out, "S2.lean"), "w").write("\n".join(L) + "\n")
+    n = len(chunks)
+    L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.X%03d" % i for i in range(n)] + ["", hdr,
+         "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
+         "/-- **Every MUXF7/F8 gate reads its select, and every CARRY4 output gate its carry-in, from the node of its",
+         "site's pin wire (AX/CX/BX; CIN through tileconn), or the carry-in is the constant node `K`.** -/",
+         "theorem xs_ok : ∀ g ∈ net.gates, isX g = true → XOK D2 P Q C K g := by",
+         "  intro g hg",
+         "  simp only [net, gates, List.mem_append] at hg",
+         "  rcases hg with " + " | ".join("h" for _ in range(n))] + ["  · exact xk%03d g h" % i for i in range(n)]
+    for kn in Kc:
+        L += ["", "/-- The constant node a carry-in may read is driven by a constant-0 gate of the netlist. -/",
+              "theorem k_const%d : ∃ g ∈ net.gates, g.out = %d ∧ g.k = 0 ∧ g.init = 0 := by" % (kn, kn),
+              "  obtain ⟨g, hg, h⟩ := kconst%d" % kn,
+              "  exact ⟨g, by simp only [net, gates, List.mem_append]; tauto, h⟩"]
+    L += ["", "end Formal.Target.NM.Data"]
+    open(os.path.join(out, "AllX.lean"), "w").write("\n".join(L) + "\n")
+    print("gen_nm: %d MUXF/CARRY4 gates, constants %s" % (nx, Kc))
     # All
     n = len(chunks)
     L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.K%03d" % i for i in range(n)] + \
