@@ -89,3 +89,34 @@ The missing pieces, in order:
   So, in simulation, the control races (B's table) are what bind, not bundling.
 - Tools for future refutations: `Net/Stretch` (any reset length), `Net/Periodic` (never-quiet runs that repeat),
   per-arc slow lists in the witness checks (CexR44/CexRg16 KBase/RBase), tools/huff/{hazsweep, bundadv, adv}.py.
+
+## Update 2026-11-08 (shard C): the occurrence-net route (proved generic pieces, and the plan)
+Proved today (core Lean, standard axioms; JOURNAL-C 2026-11-08):
+- `Net/OccNet`, `Net/OccNetDec`: one partial order of events (a certificate, e.g. the causal order of one recorded
+  run) plus a check that is LOCAL per node (over bound-respecting count vectors of the node's dependency list)
+  decides every interleaving of an abstract machine: reachable states = ideal states, every maximal run fires
+  exactly the certificate's events and ends in its final state, no deadlock, bounded length. Boolean checker.
+- `Net/TimedOcc`: the same certificate and local check, plus separations along causes (`SepOK`) and pairwise skew
+  obligations per gate (`TO`: if b's pin can be read later than a's, the certified separation must cover
+  hi_b - lo_a), make every bounded-delay behaviour (per-pin transport reads, Spec's GateOK shape) follow the
+  certificate (`timed_follows`, `timed_prop`), and fire every event, then go quiet (`gate_fires`, `timed_live`).
+  The feedback race (B's race rows), isochronic forks (rule A) and the RT orders of 11-06 are all TO rows or
+  extra cause edges; the timing obligations are generated from the certificate and complete by construction.
+
+The plan from here to THE theorem (each step generic first, then instantiated):
+1. **Data layer (Kleene phase nodes).** Datapath gates glitch (concurrent latch updates), so they cannot be exact
+   event nodes. Model each data node by epochs: a value per epoch and a stable window [τ(A)+a, τ(B)+b) relative to
+   control events A, B; between windows it is X. Control gates read data in Kleene semantics (bd_steer: req & s is
+   0 when req = 0 whatever s is); a control gate's local check must be definite on every tuple where its data
+   inputs may be X, and per (gate, data input) a guard claim (data stable whenever the gate is sensitive) reduces to
+   two separation inequalities (Sep lower bounds only). The data windows themselves are checked gate by gate
+   (inputs' windows + Σmin/Σmax of the pin ⇒ output window), again needing only Sep lower bounds.
+2. **Spec bridge.** CGateOK (collapsed view) gives TBeh's read model; corner c fixed per behaviour, lo/hi per
+   corner, TO checked at c = 0 and c = 1 (affine in c); quiet start from the idle island (`correct_n0` route).
+3. **One pair** (e.g. (12,18) at (g, κ) = (1, 0)): generate the certificate (events, causes, L, Sep, D, data
+   epochs) from one simulated run and discharge every check by `decide` in chunks. This is the first theorem
+   "for every admissible delay the target computes gcd(12,18)".
+4. **All pairs.** Periodic certificates: the run is a concatenation of loop-iteration segments of finitely many
+   types (branch outcomes); the local checks only see a bounded neighbourhood of segments, so they are checked
+   on all short windows of segment types; data values symbolic per epoch, tied to the token-level
+   `gcd_hw_seq` by the datapath's zero-delay function.
