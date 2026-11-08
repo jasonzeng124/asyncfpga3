@@ -3464,3 +3464,14 @@ a race. Not shown: multi-pin adversaries, other pairs, other corners. The other 
   after the close; in the runs its other input keeps it for ~200 ns. So the 0.376 is the certificate's slack: a
   longer controlling path (through the static premise's own cause) would raise it, at the cost of a premise
   further away. Not attempted: regenerating certificates with longer chains for the 15 rows below 0.445.
+
+### progress 09:35 -- latch-hold adversary at κ = 0.43: every latch whose data moves is correct (simulation, untrusted)
+Full-width pair (0x49e9c618, 0x35bf992e), κ = 43/100, w = 20, corner 0: a baseline run (all arcs fast, correct)
+was dumped and the latches whose enable AND data sources both move after reset were selected (a latch whose data
+never moves cannot lose a hold race in that run). With the 670 certified latches run first, 1,441 latches in all
+were run with their enable-pin adversary: **1,441 / 1,441 correct** (`tools-B/ps/out/latchsweep_k43_fw.txt`).
+**Reading:** on this pair no single latch's hold race breaks below the 0.44 control race; with C's bundling
+adversary (setup side, first wrong value in (0.68, 0.8]) neither half of the latch window is the binding failure.
+So the refutation frontier at g = 1 stays at the control race (0.44), and B's 0.376-0.44 certified latch bounds are
+certificate slack (independent causes keep the data, 08:22 entry). Not shown: other pairs (running next: the
+3-pair run's moving latches not covered here), multi-pin adversaries, the slow corner.
