@@ -1283,3 +1283,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T15:16:53Z T45 done: BOARD-QUEUE #7 collatz64 x0.75 seed 1 CONFIRMED (sdf md5s, EQUIVALENT, worst 14/14 own oracle, cyc350 3778 exact).
 - 2026-11-08T15:25:22Z T47: B's kappa 0.40 candidate (full-width pair) CONFIRMED by own runt + env checkers (simulation). Owner notified.
 - 2026-11-08T16:52:25Z build50 launched at formal 5ffee5a7: B's CexX16 (Lean refutation of the headline at g=1, kappa 10/25, T >= 132). Also B d8ea3f0f: X16Y21 race fails on 16/60 pairs at 0.40, 0/60 at 0.35 (simulation; not re-run).
+- 2026-11-08T18:50:46Z T47 row 4: CexX16 Lean refutation at g=1, kappa 10/25 CONFIRMED (156 modules, standard axioms).
