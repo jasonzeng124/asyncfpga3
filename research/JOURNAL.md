@@ -3049,3 +3049,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (1.07-1.22; seed 2 is the slow pair). Same gain as the soak routes (1.18). NOT_EQUIVALENT on s75_4 and base_5: single
   benign GND-buffer CARRY4/F7 inputs (checked).
 - BOARD-QUEUE #7 + list item 6 (loop_cost.sh at CLK 0x00100C00, research/tools/loop_cost_judge.py, checked both ways).
+### progress 14:10 (ipow x0.75 on the bench top: 24/24, 1.15-1.17x; board list item 7)
+- ipow T9 and T9 x0.75 bench builds, seeds 1-4, full stack at 83.3 MHz host clock: 24/24 PASS 17/17, gate clean; bits vs
+  JSON NOT_EQUIVALENT on s75_4 (4) and base_2 (2) GND-buffer F7 inputs only (checked). Paired on the 31-iteration
+  vector (batch cycle totals): 1.172 SLOW_MAX, 1.146 FAST_MIN, 1.149 worst (1.08-1.23); soak routes gave 1.13.
+- Kernel steps now on the board's bench top: xorshift x0.5 (48/48, 1.44x), collatz64 x0.75 (15/15, 1.17x), ipow
+  x0.75 (24/24, 1.15x). BOARD-QUEUE #8 / list item 7 added.

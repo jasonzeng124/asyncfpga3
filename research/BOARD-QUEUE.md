@@ -47,6 +47,9 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
    (5 routes x 3 corners, 14/14 vectors), predicted 1.17x per iteration (1.07-1.22 over 4 paired routes; 1.17-1.19 on
    the route the board builds). One judge: `python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_s75.tsv
    build/hw/lc_t4.tsv`.
+7. **ipow with every matched delay at x0.75, on the kernel bench**: #8 below. 24/24 full-stack runs (both builds, 4 routes
+   x 3 corners, 17/17 vectors), predicted 1.15-1.17x per iteration (1.08-1.23). Judge: `python3 ../research/tools/
+   loop_cost_judge.py ipow build/hw/lc_ipow_s75.tsv build/hw/lc_ipow_t9.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -378,6 +381,22 @@ unconfigured (a nextpnr gap, JOURNAL 2026-11-08) -- any board build must show EQ
 Pass: `=== PASS ... ===`, exit 0 (both builds answered all 10 of loop_cost.sh's points; it asserts each and drops a
 failing one). Checked both ways on synthetic files. Then the per-iteration ratio, predicted 1.17-1.19 on this route.
 What it would mean: as #6 (xorshift), at a gentler shrink.
+
+## 8. ipow x0.75 on the kernel bench -- every matched delay ceil(0.75*n); 24/24 full-stack runs on 4 bench routes
+PROGRAM item 3's ipow step (8/8 soak routes, 1.13x) on the board's own top, with its T9 base on the same seeds
+(research/data/ipow_bench/results.tsv; sizes research/data/ipow_dsp1_sizes_T9{,s75}_bench.vh; rule A 7-16 cells per
+route on both builds, informational). nextpnr 9c732bc6303458df. From cells/:
+
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_bench.vh ./hw/build_bench.sh ipow
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 95a362ff = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_s75.tsv
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9_bench.vh ./hw/build_bench.sh ipow
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # b6f11872
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_t9.tsv
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_s75.tsv build/hw/lc_ipow_t9.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points answered by both builds). The ratio is
+information: predicted 1.08-1.13 on this route (1.08-1.23 over 4). Same meaning as #6/#7.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
