@@ -138,3 +138,12 @@ Gaps, in order:
    a finite set of iteration types (branch outcomes), length ≤ ~100. Certificates as concatenations of segment
    types; every check is local (bounded lookback), so it suffices to check all short windows of segment types;
    data claims symbolic per epoch, tied to `gcd_hw_seq`'s token-level values. Needs a generic window lemma.
+
+### Instance design note (08:5x): corner-generic certificates
+Each behaviour has its own corner c, so the timed net N_c (lo/hi = corner sums, `TimedBridge`) and every numeric
+separation depend on c. An instance should therefore store PATHS, not numbers: a separation entry is a path of
+(event, pin-route) steps; its value at corner c is the sum of `loC` along it (so `SepOKR`'s forms hold by construction:
+extending a path by a cause adds that pin's `lo'`); an upper bound is the same with `hiC`. Every remaining numeric
+obligation (TO rows, RT margins `Σlo - Σhi ≥ 1`, claim windows, guards) is an inequality between sums of corner-
+rounded bounds, discharged for all c ∈ [0,1] by one rational check at c = 0 and one at c = 1 (`TimedCorner`,
+`skew_all_corners`). The Boolean checkers then run once, not once per corner.
