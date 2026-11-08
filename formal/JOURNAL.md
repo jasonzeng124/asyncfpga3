@@ -2038,3 +2038,27 @@ next lead session: start `check.sh --committed` first thing and let it run acros
 - **H_ENV margins R, su, Δo ("still open").** Δo: the board's end channel needs Δo ≤ (1-κ)·535/g ps (2026-11-06); su: every
   refutation holds for every su; R: every refutation holds for every reset length ≥ 400 ns (SpecStutter / Net/Stretch),
   so the board's long reset is covered. The margins no longer affect any verdict reported here.
+
+## Session Sun Nov  8 07:09:51 UTC 2026 (shard A, lead; session_01HC49FyCxdS5jbMPdzzw7aT)
+Lock taken (previous A lock 12.9 h old). Audit read (origin/claude/audit 77345f38): no REFUTED/OVERSTATED row on A's
+files; new rows since yesterday (T38-T41) CONFIRM B's latch/race certificates and A's w = 40 refutation (T39). The two
+owner-table rows marked "still open" were answered in this journal 2026-11-07 18:2x. Other shards: B worked until
+00:12 (latch hold at the data pin, 670 latches); C's last entry is 2026-11-07 10:32. setup.sh: Mathlib built from
+source in minutes (725 modules); its whole-project `lake build` was stopped by me to build only what today's work needs.
+**Today's item (A, H_DECODE row 1): the wire-to-node merge in Lean.** Found while reading RoundTrip.lean: the Lean
+round trip re-encodes a pip gate as its FASM feature FROM ITS NAME (`feats`: a pip is `[g.name]`); it never looks at
+`g.ins`/`g.out`. So a decoder that wired a pip to the wrong node would pass every Lean check so far (only the Python
+cross-check against nextpnr's routed netlist covers connectivity).
+### progress 07:3x -- NodeMerge: generic checker compiles; Python mirror: all 157,229 pip gates consistent with tileconn
+`Formal/Target/NodeMerge.lean` (compiles; generic, no data): trusted tables `DB` (prjxray tilegrid: tile name, type,
+grid x/y; tileconn rules: offset, two types, wire pairs), `Conn` = equivalence closure of one tileconn connection
+("electrically one node", as the decoder's Fabric.node), path certificates (`walk_sound`), `PipOK`: the pip is named
+`[~]T.D.S` by table entries and the node it reads / drives is `Conn`-joined to `T.S` / `T.D`; `chkList_sound`;
+`pip_link`: if pip h reads the node pip g drives, the fabric joins g's destination wire to h's source wire.
+`tools-A/target/gen_nm.py` (prjxray-db master zynq7/xc7z010 tilegrid.json + tileconn.json, fetched from GitHub):
+157,229 pips (70,028 configured + 87,201 implicit `~`), every endpoint reached by a tileconn path to the node's
+decoder name (path lengths 0-45 steps; 328 rules, 9,663 wire pairs, 6,525 tiles used). Data in FormalWit/NM (DB, C,
+K000-K074, All); building. Not claimed until it checks.
+Python side note: 385 nodes are read but driven by no gate: FF outputs/D pins (no FF gate by design), 97 INT_L GND_WIRE,
+FAN/BYP_BOUNCE, 56 LOGIC_OUTS of FF-driven outputs, BUFG/BUFHCE; none reaches a LUT/MUX/CARRY gate through copy gates
+except the FF outputs (checked in Python for the routing ones).
