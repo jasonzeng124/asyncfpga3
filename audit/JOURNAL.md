@@ -1287,3 +1287,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T18:52:28Z T47 row 6: B's sub-0.40 livelock (kappa 0.36-0.37) noted UNVERIFIED (no dump, no claim).
 - 2026-11-08T19:33:12Z T48 started (subagent, no git, git-free research cb6a85b6): BOARD-QUEUE #9 collatz per-cell bench (sdf 1ab39716 / 6134880a). B 0e7b1a57 corrects its reading: the 0.40 race is not B's row race for that node (pin 0 vs feedback) -- consistent with T47's note.
 - 2026-11-08T19:55:32Z T48 done: BOARD-QUEUE #9 collatz per-cell seed 1 CONFIRMED.
+- 2026-11-08T20:53:04Z research 4087ca57: fasm_equiv now folds constant-INIT LUT drivers on DSP data pins (as other pins already); read the diff -- a LUT with all-0/all-1 INIT is that constant, their negative control fails as it must. My T45/T46/T48 EQUIVALENT verdicts ran on the earlier, stricter checker (61c532db / cb6a85b6), so they are unaffected.
