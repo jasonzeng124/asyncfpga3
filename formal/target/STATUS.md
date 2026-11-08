@@ -34,6 +34,19 @@ false for every g ≥ 8/5, κ ≥ 0, w ≤ 20, T ≥ 137 (same race; B's suffici
 0.52), so a wider runt filter buys ~0.15 of κ, no more. **Lean (13:3x):** `FrontierRunt40.not_seqRunt40_above60`:
 false for every w ≤ 40, g ≥ 1, κ ≥ 15/25, T ≥ 88.
 
+## H_DECODE: the netlist's wiring checked against prjxray (shard A, 2026-11-08; Lean, check.sh --wit) -- PENDING: pip chunks checked; LUT/MUXF/CARRY chunks and All/AllX still building, not yet claimed
+The round trip (`RTPS`, `RTPSSel`) re-encodes each gate as FASM features from its NAME; it never read `ins`/`out`.
+`FormalWit/NM` (generic: `Formal/Target/NodeMerge{,Lut,Pin}.lean`; data: `tools-A/target/gen_nm.py` from prjxray-db
+tilegrid.json, tileconn.json, tile_type_*.json) adds, for every gate of `DecodedPS.net`:
+- `pips_ok`: each of the 157,229 pip gates is `[~]T.D.S` for table entries, and the nodes it reads/drives are, by
+  tileconn (`Conn`, the equivalence closure of one tileconn connection), the electrical nodes of `T.S` / `T.D`;
+  `pips_linked`: pip-to-pip connections of the netlist are connections of the chip;
+- `luts_ok`, `lut_pins_driven`: each of the 16,488 LUT gates reads on input j the node of its slice's site-pin wire
+  `<L><j+1>` (pin order A1..A6 as Spec's `addr` assumes);
+- `xs_ok`, `k_const19697`: MUXF7/F8 selects read AX/CX/BX, CARRY4 carry-ins read CIN (through tileconn) or CONST0.
+Trusted: prjxray's tables as transcribed. Not covered: site hops / site-internal nets (the slice model), and the
+converse (no two netlist nodes are one fabric node).
+
 ## THE target: what is proved (as of 2026-11-02, unchanged since)
 | piece | theorem | plainly |
 |---|---|---|
@@ -57,7 +70,7 @@ For n ≥ 1 there is no theorem yet, so the "current best theorem" is the statem
 each stands:
 | # | hypothesis | allowed? | status (2026-11-06) |
 |---|---|---|---|
-| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); independent connectivity check vs nextpnr: 43,986/43,986 logic pins agree (2026-11-06, Python; it compares Lean pin index i with nextpnr's physical pin A(i+1), so it also confirms the pin order A1..A6 that Spec's `addr` and prjxray's INIT[b] indexing assume); open: wire-to-node merge in Lean, output-mux and carry selects now re-encoded in Lean (`FormalWit.RTPSSel.Data.roundtrip_sel`, 2026-11-06: leftovers 14,322 -> 9,017, every select re-encoded; the 9,017 left have no Spec meaning: FF configuration, LUTRAM DI routing, clock/IO), FASM parsing |
+| 1 | H_DECODE (bitread/bit2fasm, prjxray tables) | allowed | Lean round trip of pips + INIT bits (RTPS); independent connectivity check vs nextpnr: 43,986/43,986 logic pins agree (2026-11-06, Python; it compares Lean pin index i with nextpnr's physical pin A(i+1), so it also confirms the pin order A1..A6 that Spec's `addr` and prjxray's INIT[b] indexing assume); **wiring in Lean (2026-11-08, `FormalWit/NM`, see below)**; output-mux and carry selects now re-encoded in Lean (`FormalWit.RTPSSel.Data.roundtrip_sel`, 2026-11-06: leftovers 14,322 -> 9,017, every select re-encoded; the 9,017 left have no Spec meaning: FF configuration, LUTRAM DI routing, clock/IO), FASM parsing |
 | 2 | H_DELAY(g, κ) (`Adm`) | allowed | stated; per-arc bands are the decoder's prjxray numbers (in the netlist) |
 | 3 | H_PRIM (`GateOK`) | allowed | stated; every gate kind covered (PrimsPS) |
 | 4 | H_ARB(T) (`ArbOK`) | allowed | stated; non-vacuous at T ≥ 220 for n = 1 (C's witness). Headline T: as LARGE as possible (`seq_anti_T`), at least the slowest state-LUT arc ((1+κ)·664·g ps) to avoid the residual vacuity (audit T5) |
