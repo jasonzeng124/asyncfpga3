@@ -1933,3 +1933,25 @@ bound-respecting tuple, not just on ideal states. The only timing obligations ar
 per gate: if the bounds say event (b, m-1) precedes event (a, k), and b's pin can be slower than a's
 (hi_b > lo_a), a certified separation d (longest path along causes with the pins' lo delays) must satisfy
 hi_b ≤ lo_a + d. The feedback race (B's race rows) and isochronic forks (rule A) are instances.
+
+### progress 07:43 -- Net/TimedOcc.lean CLAIMED: every bounded-delay behaviour follows the certificate, under local skew obligations
+`Formal/Net/TimedOcc.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
+**Problem, plainly:** in a real circuit each gate reads each input through its own routed delay (Spec's GateOK
+shape: per-pin read times in [lo, hi], lo ≥ 1, monotone, output = function of the reads), so a gate can see a
+mixture of old and new inputs, and a storage node can see its own old value. When does every such behaviour
+follow one occurrence-net certificate?
+**Proved (`timed_follows`, generic):** given TBeh (gates as above; free/environment nodes change only when their
+rule allows it in the previous state; all nodes quiet on [t0 - H, t0]), and on the certificate: OccNet's local
+check `LCheck` at every node for the physical move rule (a gate may move iff its function of its pins differs from
+its value), sound bounds `L`, time stamps, separations `Sep` justified along causes with the pins' lo (`SepOK`),
+and the skew obligations `TO` (per gate v, sources a, b in D v, event (a, k) whose bound says event (b, m-1)
+precedes it, and b readable later than a (hi_b > lo_a): a certified separation d with hi_b ≤ lo_a + d) -- then at
+every time the behaviour's count vector is an ideal of the certificate, and every change of every node is that
+node's next certified event, enabled by what the node read, with its feedback read current (`ChangeOK`).
+`timed_prop`: every property of all ideal states holds at every time from t0. The stale-feedback case (the race
+that refutes THE statement at κ = 0.44) is handled inside the proof: with a consistent read tuple a stale
+feedback read cannot flip the node back, and two events within one feedback delay are impossible.
+**Meaning:** the timing obligations are generated from the certificate and are complete by construction (every
+pair of reads that the local check relies on is either ordered by the delay bounds or covered by a TO row).
+**Not shown:** liveness in time (next), the bridge from Spec.GateOK on THE target's collapsed view to TBeh (the
+quiet start, distinct pin sources), any instance, all pairs at once (a periodic certificate).
