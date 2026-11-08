@@ -3595,5 +3595,5 @@ CexX16.Frontier); the binding race is now SLICE_X16Y21.A6 pin 0 on full-width pa
 `Formal/Cells/CexX16/AllR.lean` (shard C's CexR44/AllR with this run's codes; standard axioms; check.sh OK, 1,487
 declarations): `not_netCorrectSeqRunt20_R : ∀ D T su Δo, 132 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 net boundary
 arbs ⟨1, 10/25⟩ T (400000 + D) su Δo` and `not_netCorrectSeq_R` (plain). So the board's long reset is covered too.
-(Frontier.lean's "every g ≥ 1, κ ≥ 10/25" corollaries are stated at R = 400 ns; combining them with AllR is the same
-two-line monotonicity argument, not written.)
+Frontier.lean now also has `not_seqRunt_le20_above40_R` and `not_seq_above40_R`: every g ≥ 1, κ ≥ 10/25, w ≤ 20 (or plain),
+every reset 400 ns + D, T ≥ 132, Δo ≤ 3 ns (check.sh OK, 1,497 declarations).

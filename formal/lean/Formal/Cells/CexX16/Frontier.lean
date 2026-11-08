@@ -1,6 +1,6 @@
 import Formal.Target.SpecMono
 import Formal.Target.SpecRunt
-import Formal.Cells.CexX16.Refute
+import Formal.Cells.CexX16.AllR
 
 /-!
 # Formal.Cells.CexX16.Frontier — the κ = 0.40 refutation for every larger (g, κ), every w ≤ 20, and w = 0
@@ -16,9 +16,10 @@ hypothesis)?
 * `not_seqRunt20_above40`: `NetCorrectSeqRunt 20` is false for every `g ≥ 1`, `κ ≥ 10/25` (with `κ ≤ 1` not needed
   for the larger parameter), `T ≥ 132`, `Δo ≤ 3000`, reset 400 ns;
 * `not_seqRunt_le20_above40`: the same for every runt width `w ≤ 20`;
-* `not_seq_above40`: the plain statement `NetCorrectSeq` is false there too.
+* `not_seq_above40`: the plain statement `NetCorrectSeq` is false there too;
+* `not_seqRunt_le20_above40_R`, `not_seq_above40_R`: both for every reset length `400000 + D` (with `AllR`).
 
-**Not shown.** Other reset lengths (only R = 400 ns; shard C's `Net/Stretch` route is not applied here), κ < 10/25.
+**Not shown.** Resets shorter than 400 ns, κ < 10/25, other corners.
 -/
 
 namespace Formal.Cells.CexX16.Frontier
@@ -82,5 +83,20 @@ theorem not_seq_above40 {p : DelayPar} (hg : 1 ≤ p.g) (hk : 10 / 25 ≤ p.κ)
     (T su Δo : Nat) (hT : 132 ≤ T) (hΔ : Δo ≤ 3000) :
     ¬ NetCorrectSeq net boundary arbs p T 400000 su Δo :=
   fun h => not_seqRunt20_above40 hg hk T su Δo hT hΔ (seqRunt_of_seq _ 20 h)
+
+/-- **Every reset length** `R = 400000 + D`, every `w ≤ 20`, every `g ≥ 1`, `κ ≥ 10/25`. -/
+theorem not_seqRunt_le20_above40_R {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 1 ≤ p.g) (hk : 10 / 25 ≤ p.κ)
+    (D T su Δo : Nat) (hT : 132 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeqRunt w net boundary arbs p T (400000 + D) su Δo := by
+  intro h
+  have hle : Formal.Cells.CexX16.pK.LE p := by
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Cells.CexX16.pK] <;> norm_num <;> linarith
+  exact Formal.Cells.CexX16.not_netCorrectSeqRunt20_R D T su Δo hT hΔ (seqRuntOn_anti_p hle (seqRuntOn_anti_w hw h))
+
+/-- The plain statement, every reset length. -/
+theorem not_seq_above40_R {p : DelayPar} (hg : 1 ≤ p.g) (hk : 10 / 25 ≤ p.κ)
+    (D T su Δo : Nat) (hT : 132 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeq net boundary arbs p T (400000 + D) su Δo :=
+  fun h => not_seqRunt_le20_above40_R (le_refl 20) hg hk D T su Δo hT hΔ (seqRunt_of_seq _ 20 h)
 
 end Formal.Cells.CexX16.Frontier
