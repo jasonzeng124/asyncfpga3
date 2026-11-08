@@ -50,6 +50,9 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
 7. **ipow with every matched delay at x0.75, on the kernel bench**: #8 below. 24/24 full-stack runs (both builds, 4 routes
    x 3 corners, 17/17 vectors), predicted 1.15-1.17x per iteration (1.08-1.23). Judge: `python3 ../research/tools/
    loop_cost_judge.py ipow build/hw/lc_ipow_s75.tsv build/hw/lc_ipow_t9.tsv`.
+8. **collatz with per-cell sizes, on the kernel bench**: #9 below. 24/24 full-stack runs (both builds, 4 routes x 3
+   corners, 13/13 vectors), predicted 1.16-1.19x per iteration (1.12-1.22). Judge: `python3 ../research/tools/
+   loop_cost_judge.py collatz build/hw/lc_collatz_cs.tsv build/hw/lc_collatz_t3.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -397,6 +400,22 @@ route on both builds, informational). nextpnr 9c732bc6303458df. From cells/:
 
 Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points answered by both builds). The ratio is
 information: predicted 1.08-1.13 on this route (1.08-1.23 over 4). Same meaning as #6/#7.
+
+## 9. collatz per-cell sizes on the kernel bench -- 24/24 full-stack runs on 4 bench routes
+PROGRAM item 3's collatz step (per-cell corner_audit sizes, 8/8 soak routes, 1.155x) on the board's own top, with its
+T3 base on the same seeds (research/data/collatz_bench/results.tsv; sizes research/data/collatz_sizes_T3{,cs}_bench.vh;
+rule A 4-9 cells per route on both builds, informational). nextpnr 9c732bc6303458df. From cells/:
+
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cs_bench.vh ./hw/build_bench.sh collatz
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # 1ab39716 = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_collatz_cs.tsv
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3_bench.vh ./hw/build_bench.sh collatz
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # 6134880a
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_collatz_t3.tsv
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_collatz_cs.tsv build/hw/lc_collatz_t3.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.12-1.15 on
+this route (1.12-1.22 over 4).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

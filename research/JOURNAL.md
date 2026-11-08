@@ -3055,3 +3055,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   vector (batch cycle totals): 1.172 SLOW_MAX, 1.146 FAST_MIN, 1.149 worst (1.08-1.23); soak routes gave 1.13.
 - Kernel steps now on the board's bench top: xorshift x0.5 (48/48, 1.44x), collatz64 x0.75 (15/15, 1.17x), ipow
   x0.75 (24/24, 1.15x). BOARD-QUEUE #8 / list item 7 added.
+### progress 19:00 (collatz per-cell on the bench top: 24/24, 1.16-1.19x; board list item 8)
+- collatz T3 and T3 per-cell bench builds, seeds 1-4, full stack at 83.3 MHz host clock: 24/24 PASS 13/13 (4 vectors on
+  the 3n+1 path), gate clean; NOT_EQUIVALENT only base 2/4's GND-buffer F7 inputs (checked). Paired on the 261-step
+  vector: 1.186 SLOW_MAX, 1.184 FAST_MIN, 1.157 worst (1.12-1.22); soak routes gave 1.155.
+- All four kernel item-3 steps are now gated on the board's own top: xorshift x0.5 1.44x (8 routes), collatz64 x0.75
+  1.17x, ipow x0.75 1.15x, collatz per-cell 1.17x (4-5 routes each). isprime waits on the owner's gate decision.
