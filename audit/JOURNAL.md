@@ -1269,3 +1269,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T04:19:01Z build45: lake builds RTPS data chunks in parallel (4 procs, ~3 GB RAM, fine); disk watchdog (stop below 250 MB) added.
 - 2026-11-08T04:56:05Z disk: deleted lib+ir of Formal/Net/FasmDesign (4.1 GB; older gcd_hw design audits; not imported by RTPS/NetPS/CexRunt*/B's cells -- a rebuild is needed to re-audit those old modules).
 - 2026-11-08T08:03:45Z T30 CONFIRMED: roundtrip_sel builds (436 modules), standard axioms, statement as claimed, 9017 leftovers.
+- 2026-11-08T08:04:17Z build46 launched at formal 5a2a67e1 (C OccNet/OccNetDec/TimedOcc/TimedOccX/TimedBridge; A NodeMerge/Lut/Pin -- H_DECODE pip endpoints vs prjxray tileconn, generic checker).
