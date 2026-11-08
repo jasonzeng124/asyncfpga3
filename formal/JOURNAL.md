@@ -2092,3 +2092,6 @@ every connection used). Not covered: site output hops and site-internal nets (sl
 no two netlist nodes are one fabric node). STATUS row 1 updated: the "wire-to-node merge" open item is closed for
 every gate pin that reads a routing wire. The hypothesis list did not shrink in count (H_DECODE stays, as allowed),
 but H_DECODE's untrusted part shrank: connectivity moved from Python to Lean.
+### progress 15:2x -- whole-tree check.sh --committed running since 11:21 (4,178 of ~4,736 Formal oleans so far)
+Parallel lake pass nearly through; B's CertLatchPS/LatchHold chunks OOM-killed in the parallel pass (exit 137, no
+Lean error) and check.sh will rebuild them one at a time. Verdict in the next entry.
