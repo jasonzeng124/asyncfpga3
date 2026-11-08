@@ -2095,3 +2095,7 @@ but H_DECODE's untrusted part shrank: connectivity moved from Python to Lean.
 ### progress 15:2x -- whole-tree check.sh --committed running since 11:21 (4,178 of ~4,736 Formal oleans so far)
 Parallel lake pass nearly through; B's CertLatchPS/LatchHold chunks OOM-killed in the parallel pass (exit 137, no
 Lean error) and check.sh will rebuild them one at a time. Verdict in the next entry.
+### progress 19:2x -- whole-tree check still in its retry rounds (8 h); no Lean error so far
+6,286 oleans built (the parallel lake pass covers both committed and generated modules). Every failure in the
+logs is exit 137 (memory) on B's large chunk modules (CertLatchPS, CElemViewPS, CertRowsPS2 ...); check.sh's retry
+rounds keep making progress. No `error:` other than OOM and no audit result yet.
