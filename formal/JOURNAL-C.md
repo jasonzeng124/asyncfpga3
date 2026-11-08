@@ -15,6 +15,15 @@
   closes 8d's goal 2); rise-to-rise >= N dmin (>= 6 dmin at N=3), tight; no runt on any stage of
   a persistent ring (`ring_no_runt`). Not covered: exact cycle time, loop N > 5, other cells on
   the cycle, a gate-level environment.
+- **S4/S6 for THE target (2026-11-08): a generic route exists in Lean, no instance yet.** For one input pair,
+  the theorem chain `Net/OccNet` → `TimedOcc` → `TimedOccX` (bundled data as stable-window claims) → `TimedOccRT`
+  (relative-timing edges justified by lower/upper separations) proves: if a certificate (the causal order of one
+  run, bounds, separations, data claims) passes local Boolean checks (`OccNetDec`, `TimedOccDec`, `TimedOccDecX`),
+  then every bounded-delay behaviour follows it and completes it (`timedR_follows`, `timedR_live`); `TimedBridge`
+  connects Spec's collapsed gates; toys show the hypotheses can all hold. Untrusted evidence: THE target's abstract
+  control machine passes the local check for 3 pairs with 36 RT orders (30 were known; 6 found today).
+  Not done: the instance on THE target, all pairs (segment/window certificates; `OccWindow` is the first brick),
+  environment counts (SeqEnv), quiet start.
 - **Track 8 (composition, gcd_hw): safety proved, liveness reduced, rig first result only.**
   Token level: bdc's gcd_hw graph returns Nat.gcd a b for a, b < 2^31 on every schedule,
   live and bounded without fairness (8i/8k); ipow likewise for all i32; collatz conditional
