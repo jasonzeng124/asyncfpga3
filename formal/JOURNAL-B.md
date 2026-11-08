@@ -3554,3 +3554,10 @@ mechanism (the deadlock is ~84 ns after reset release), other pairs.
    again here).
 The known 0.44 race (SLICE_X32Y45.A6) does not fail at 0.43, as expected. So the new race is the only single-pin
 failure below 0.44 on this pair.
+
+### progress 16:38 -- the κ = 0.40 race fails on 16 of 60 vector pairs (simulation)
+SLICE_X16Y21.A6 pin-0 adversary on the first 60 vectors of target/gcd_ps_vec1000.hex, w = 20, corner 0:
+**κ = 0.35: 60/60 correct; κ = 0.40: 16/60 no out0** (incl. (0x40000000, 0x60000000), (2^31-128, 2^29-64), (19767456,
+2016807462), several gcd = 1 pairs); (1071, 462) and the other small pairs pass. So the race is not a quirk of one
+pair: it needs some property of wide operands (to be characterised), which is why the sweeps on (1071, 462) missed it.
+Files: `tools-B/ps/out/race_x16_k{35,40}_vec60.txt`.
