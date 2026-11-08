@@ -2039,7 +2039,7 @@ a certified event, every data claim holds, and all separations are sound. The ra
 exactly the `Sep ≥ 1` obligations of the RT edges, computed as (physical lower path from e0) - (upper path from e0).
 **Not shown:** liveness for this version (gate_firesX carries over), any instance.
 
-### progress 08:2x -- TimedOccRT liveness CLAIMED
+### progress 08:16 -- TimedOccRT liveness CLAIMED
 `gate_firesR`, `timedR_live` (standard axioms): with environment liveness every event of the full certificate
 happens and from some T on every exact node is constant (extra hypothesis: physical causes ⊆ full causes).
 So the generic chain is complete for one pair: certificate checks (local check, bounds, Sep/Up, TO, RT, data claims)
