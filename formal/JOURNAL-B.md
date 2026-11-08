@@ -3410,3 +3410,17 @@ restart); gen_certs_ps.py MAXC2=K:N:P caps chunks and certificates per file from
 sums use the fast/slow MIN of the path and MAX of the enable pin). That sits below the race rows' 0.415 and A/C's
 0.44 refutation: if 0.291 is tight it, not the races, would bound the headline κ for latches whose data moves like
 this. Not examined yet: whether a longer certificate (a different path through the controller) raises it.
+
+### progress 00:12 -- CHECKED: latch hold at the data PIN -- binding latch now κ ≤ 0.440; all 670 ≥ 0.376
+**Problem, plainly:** the 0.291 for SLICE_X32Y90.C O6 came from `SpecLatch.latch_close`'s data premise: it asks the
+data SOURCE to hold until `τ + hi e`, ignoring that the latch only uses a data read while its enable read still
+sees "open" (output times `s < τ + hi e`) and that such a read looks at the source at `s - (read delay) ≤ s - lo d`.
+**Lean (standard axioms; lake build + check.sh OK, 4148 declarations):** `LatchHoldPin`: `latch_close_pin`
+(`latch_close` with the data premise `t + lo d < τ + hi e`; same proof, which only ever uses that), `margin_le`,
+`latch_hold_pin`, `latchHoldPinOK` (facts on path arcs ++ data-pin arcs vs enable-pin arcs, no +1),
+`target_latch_holds_pin_of`; instances `LatchHoldPinPS`, `LatchHoldPinPS2`, `LatchHoldPinPS3` (same 670 certificates,
+CertLatchPS/2/3, unchanged). Per-row κ ranges: min 0.474 / 0.376 / 0.407, medians 0.726 / 0.673 / 0.711.
+**Binding latch:** SLICE_X32Y90.C O6 κ ≤ 0.440 (was 0.291), O5 ≤ 0.421 (was ~0.3). The lowest of the 670 is now
+SLICE_X20Y96.D O5, 0.376. So the 14:5x reading ("latch hold might cap the headline κ at 0.29") is WITHDRAWN: it was an
+artefact of the latch theorem's data premise. The latch hold rows now sit at or above the race rows' 0.415 except
+for a few latches between 0.376 and 0.415 (not yet examined; same caveat: a different certificate path may raise them).

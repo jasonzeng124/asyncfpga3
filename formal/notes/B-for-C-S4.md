@@ -47,7 +47,10 @@ enable is closed on `[e + 1, E']`, the data source shows `v` from `e + 1 - Wd` u
 (setup half), and the latch's own inequalities hold, then the latch holds `v` on `[A, E' + lo e]`. The HOLD half of
 the data window (`… ≤ τ + hi e`) and the open window are no longer premises. Each row is valid for κ with
 `(1+κ)·kB ≤ kA·(1-κ)` (its own range). Instances: LatchHoldPS (112), LatchHoldPS2 (214), LatchHoldPS3 (344; full-width run): 670
-latches; κ ranges min 0.291 (SLICE_X32Y90.C O6), median ~0.63. Premise lists: out/target_ps_latchholds*.json
+latches; κ ranges min 0.291 (SLICE_X32Y90.C O6), median ~0.63.
+Sharper (use these): `Formal.Cells.LatchHoldPin.target_latch_holds_pin_of`, instances LatchHoldPinPS/PS2/PS3 (same
+670 latches): the data premise is at the PIN (`t + lo d < τ + hi e`); κ ranges min 0.376 (SLICE_X20Y96.D O5), binding
+hold latch SLICE_X32Y90.C O6 0.440, medians ~0.70. Premise lists: out/target_ps_latchholds*.json
 (when generated).
 
 ## Generic tools (reusable for other nodes / kernels)
