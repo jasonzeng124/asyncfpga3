@@ -3452,7 +3452,7 @@ adversary breaks a latch hold below the 0.44 refutation on these pairs; the 0.37
 certificate slack (the certified path sum is not tight against a real data change that alters the latched value), not
 a race. Not shown: multi-pin adversaries, other pairs, other corners. The other 3,510 latches: running.
 
-### progress 08:40 -- why the low certified latch bounds are slack, not races (simulation, untrusted)
+### progress 08:22 -- why the low certified latch bounds are slack, not races (simulation, untrusted)
 - Bisection, binding latch SLICE_X32Y90.C5 (certified κ ≤ 0.421), enable-pin adversary, full-width pair: correct at
   κ = 0.43, 0.50, 0.60; quiet deadlock (no out0) at 0.70 (and 0.80). So this latch's own failure point under its
   adversary is in (0.60, 0.70], far above the 0.44 refutation.
