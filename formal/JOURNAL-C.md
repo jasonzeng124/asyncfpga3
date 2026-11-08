@@ -2044,3 +2044,7 @@ exactly the `Sep ≥ 1` obligations of the RT edges, computed as (physical lower
 happens and from some T on every exact node is constant (extra hypothesis: physical causes ⊆ full causes).
 So the generic chain is complete for one pair: certificate checks (local check, bounds, Sep/Up, TO, RT, data claims)
 ⇒ every admissible behaviour follows the certificate (safety) and completes it (liveness).
+
+### progress 08:18 -- check.sh OK on all six new files
+`formal/check.sh Formal/Net/{OccNet,OccNetDec,TimedOcc,TimedOccX,TimedOccRT,TimedBridge}.lean`: textual scan OK,
+each file builds, axiom audit 596 declarations, `[check] OK`.
