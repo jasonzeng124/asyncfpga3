@@ -3023,3 +3023,18 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Negative result for item 3: below x0.5, xorshift's limit is umux3's empty-pipe race on a loop-carried link; padding
   that link to win the race costs as much as the shrink gains. x0.5 stays xorshift's step. A real gain would need the
   race removed (select launched earlier / not from the empty pipe), i.e. a structural change, not a size.
+### progress 08:21 (a nextpnr FASM gap: a constant-D flop in a 5FF slot gets no 5FFMUX bit -- caught by the full stack, 1 route of 870)
+- collatz64 bench (x0.75 vs T4 on the bench top, CLK 83.3 MHz in ps7_bench): seeds 1-3 both builds PASS 14/14 at all
+  3 corners, gate clean, EQUIVALENT; per 350-step vector x0.75 is 1.17-1.22x on seeds 1 and 3, 1.07-1.09x on seed 2.
+- Base (T4) seed 4: gen.py stops (KeyError SLICE_X27Y75/C5FF) because fasm_equiv/fasm2net find a JSON cell "not
+  configured by the bits (HAS LOADS)": $auto$dfflegalize.cc:410:emulate_split_set_clr$23629, an FDPE in the bench
+  harness with D tied to GND ($PACKER_GND_DRV), placed in CLBLL_R_X19Y75 SLICEL_X1 C5FF. nextpnr's own FASM (rebuilt,
+  sdf md5 1310d2ef = the same route) has C5FF.ZINI and COUTMUX.C5Q but NO C5FFMUX.IN_A/IN_B, so on silicon that D comes
+  from an unconfigured mux; the 2 "LUT FUNCTION DIFFERS" are the two LUTs reading its Q. The bits-decoded board.fasm
+  lacks it too: it is in the bitstream, not the decoder.
+- Scan of all 870 FASMs on disk (soak, bench, gcd, board builds): this route is the only one with a 5FF that has
+  ZINI/ZRST but no 5FFMUX. No validated or board-list design is affected (their full-stack decodes were EQUIVALENT).
+- What it means: a real nextpnr-xilinx FASM-writer gap (a GND-driven D into a 5FF is left unrouted, nothing selects
+  the input) that only bites when placement puts such a flop in a 5FF slot. The full stack refused the route (the gate
+  works). Not done: a nextpnr patch + toolchain.sh fingerprint (CLAUDE.md requires both; a fingerprint must be checked
+  to fail on an unpatched binary, which this route provides). Meanwhile every board build must pass fasm_equiv.
