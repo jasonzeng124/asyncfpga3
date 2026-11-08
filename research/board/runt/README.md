@@ -19,3 +19,6 @@ capture edge is at w = loop; prjxray gives every LUT pin the same arc, so pin-to
 
 Not done: a full-stack GLS of this rig (what the fid model predicts per cell); the rig's smoke test (cells/hw/runt_tb.v,
 iverilog, behavioural) passes and its injected-defect variant fails.
+
+The netlist decoded from runt_top.bit (fasm2net) is EQUIVALENT to runt_top_routed.json (fasm_equiv, 2026-11-08, after
+the two nextpnr constant-pin defects were found; bits_vs_routed_equiv.txt).
