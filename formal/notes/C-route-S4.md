@@ -155,3 +155,19 @@ A first Python certificate for THE target (tools/tocc) showed the AND-only chain
 the reader's own-history premise (`own_readA`). The older `OccNet`/`TimedOcc*` files stay as checked special cases
 (and their toys as non-vacuity evidence of the shared machinery); new instance work should target `Net/AO`.
 Re-measurement of the (12,18) certificate against the AO model: in progress (subagent).
+
+### Status at 09:3x (2026-11-08): environment bridge, UpOKA repair, AO measurement
+* Gap 2 (environment) is handled by counts, without virtual nodes.
+  * `timedA_follows` takes `hEnvE`: an env change at s is an enabled event at the counts of s-1, given the ideal.
+    The local check is now demanded only at gates.
+  * `AO/EnvHS` derives `hEnvE` from `ReqMoves`/`AckMoves` for four-phase channels.
+  * `AO/EnvData` derives the input bus claims (`hEnvC`, also given the ideal) from `EnvIn`'s setup and hold
+    clauses.
+  * Still open here: the SeqEnv extra causes (out0) of THE target's request events, and the Offered count bound
+    (both are per-instance facts).
+* `UpOKA`'s previous-event clause may now be met by a separation (prev ≤ e0).
+* AO measurement of the (12,18) certificate (tools/tocc/ao.py, untrusted): 601 (c=0) / 282 (c=1) local-check
+  failures. They are mostly at readers whose skew rows fail, so L was lowered there. 37 per corner would remain
+  even with every row passing. Under diagnosis: real race vs certificate artefact.
+* Gap 3 (quiet start): existing `reset_state`/`settle_PS`/`quiet_PS`/`correct_n0` cover much of it. Coverage of
+  the certificate's exact nodes, and the 9 arbiter states that reset does not force, are under measurement.
