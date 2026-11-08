@@ -3561,3 +3561,23 @@ SLICE_X16Y21.A6 pin-0 adversary on the first 60 vectors of target/gcd_ps_vec1000
 2016807462), several gcd = 1 pairs); (1071, 462) and the other small pairs pass. So the race is not a quirk of one
 pair: it needs some property of wide operands (to be characterised), which is why the sweeps on (1071, 462) missed it.
 Files: `tools-B/ps/out/race_x16_k{35,40}_vec60.txt`.
+
+### progress 16:5x -- PROVED IN LEAN: THE headline statement is false at g = 1, κ = 10/25 = 0.40 (Formal/Cells/CexX16; check.sh OK)
+`Formal.Cells.CexX16.not_netCorrectSeqRunt20 : ∀ T su Δo, 132 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20
+DecodedPS.net DecodedPS.boundary DecodedPS.arbs ⟨1, 10/25⟩ T 400000 su Δo` (axioms propext, Classical.choice,
+Quot.sound; `./check.sh Formal/Cells/CexX16/{Refute,Wit,RBase,KBase}.lean`: 1,266 declarations, [check] OK; no
+sorry / native_decide; the 75 gate chunks built one or two at a time).
+**Plainly:** with no guard, within-die scatter 0.40 at the fast corner, any arbiter bound T ≥ 132 ps, reset 400 ns,
+any setup margin and out0/end-ack delay ≤ 3 ns, and LUT pins filtering every pulse narrower than 20 ps, there is an
+admissible behaviour of THE target that accepts (0x49e9c618, 0x35bf992e) and never answers. The witness: the
+C-element SLICE_X16Y21.A6's pin-0 route from SLICE_X17Y23.B6 (6 arcs) at ⌊35·FAST_MAX/25⌋, every other arc at
+⌈15·FAST_MIN/25⌉ (LUT pins ≥ 20 ps); quiet from 484 ns. By A's `SpecMono.seq_anti_p` this should carry to every
+g ≥ 1, κ ≥ 0.40 (not restated here), and C's `Net/Stretch` route should give every reset ≥ 400 ns (not done: the
+Lean here is for R = 400 ns only). The plain statement (w = 0) follows via `SpecRunt.seqRunt_of_seq` (as in C's AllR;
+not restated here).
+**Frontier now (g = 1, fast corner):** refuted at κ ≥ 0.40 (this file), previously 0.44 (CexR44). Simulation: the same
+adversary is correct at 0.35 on all 60 test pairs and livelocks (no quiet end, no out0) at 0.36-0.39 on the full-width
+pair. B's sufficient race bounds (0.415 for RaceTablePS's rows) did NOT cover this node's race on this workload: the
+race rows come from simulated runs of narrower pairs. So the g = 1 margin of THE statement is below 0.40, and the
+lower end is not known (no positive theorem). **For research:** a race at SLICE_X16Y21.A6 (C-element with reset,
+INIT 0x00fa00a000fa00a0) that only full-width operands exercise; its feedback-vs-pin-0 margin is ~0.35-0.40.
