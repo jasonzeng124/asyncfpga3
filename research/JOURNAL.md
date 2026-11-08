@@ -3003,3 +3003,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - So the glitch was the clocked harness over-clocked, not the kernel: BOARD-QUEUE #6's CLK=0x00100C00 stands.
   Open (not checked): the other board scripts that default to 0x00100A00 (xsdb_bench_gen.tcl, *_cost.sh) and what
   the August latmin numbers saw; xorshift_cost.sh itself fits batch cycle totals.
+- August board data (research/data/aug_kernels/*_board.tsv, aug_gcd): no sign of the lat_min glitch at 100 MHz. latmax-
+  latmin grows smoothly with latency (~0.8%, run-to-run jitter over N=200), no reading off by a large power of two, none
+  beyond 3% apart from +-1-cycle quantization. Consistent with silicon at x ~ 0.21 meeting the harness's 100 MHz timing
+  that the SLOW_MAX corner does not; 83.3 MHz stays the recommendation for new board items (it costs nothing).
