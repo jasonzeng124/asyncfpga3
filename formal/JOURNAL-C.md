@@ -2363,3 +2363,23 @@ fail structurally (untrusted Python, tools/tocc; g = 1, κ = 0).**
   * ChainOK through the transparent register.
   The generic Lean for this exists (TimedOccX/U, `GateProof`, `ChainOK`); the generator does not.
 * *No defect found.*
+
+### progress 13:54
+**Data layer with mux-aware claims: still not passing (untrusted Python, tools/tocc/datal.py).**
+* *Problem:* do value-level claims make the 120/192 failing guards pass? These are GateProof with unselected mux
+  inputs X, plus ChainOK through latch phases.
+* *Answer:* partly.
+  * (12,18): 22k claims; 114 of 264 guards still fail at both corners; every start-side failure is gone.
+  * (17,5): 184 of 406 still fail, including 18 start-side, with margins -47 to -2,174 ps.
+  * Every finite margin is positive.
+* *What remains is ordering, not values.* For (12,18), all 114 are "the claim on z ends at an event that is
+  unordered with the guard's end E". 105 of them end at SLICE_X16Y18.A6(1), an exact node of a merge/arbiter block
+  that reads the arbiter grant SLICE_X14Y18.A6. In the run it fires about 14 ns BEFORE E. So z's value must be
+  carried by a downstream hold, which needs an RT edge "latch close before the merge-select change". Form iv (10
+  candidates) finds no common ancestor for it; it needs an arbiter/env-aware ordering argument.
+* *Unchecked:* the self-cover fixpoint through register loops (49–92 claims), parts of the latch phase CovTime,
+  shared Sep paths across corners. Every obligation kind is mapped to a Lean hypothesis (hGC GateProof/ChainOK,
+  hEnvC, hInit, GuardTime); none is new.
+* *Reading:* the S4 blocker is now orderings that pass through the arbiter-fed merge in the loop. The adversarial
+  search (144 runs) found no data-driven control change, so this looks like a proof-technique gap, not a defect.
+  Not decided.

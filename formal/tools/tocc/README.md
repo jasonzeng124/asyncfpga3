@@ -34,3 +34,8 @@ by both corners. `q6.py`: the failing guard windows characterised. `cornercmp.py
 For each, it checks whether any control gate's output depends on a data node at the moment it reads it.
 `hz/res_c*.txt`: 0 such events, and every gcd is right. `q7.py`/`q8.py`: the 33 guard terms, all masked by a datapath
 mux whose select is a 1-bit condition latch.
+
+## Mux-aware data claims (2026-11-08)
+`datal.py c` (env `PAIR`) builds GateProof/ChainOK-shaped claims on demand, choosing covers from the run. ValOK is
+checked by LUT enumeration; Cov.X is used for unselected inputs; latch phases are T/U/H/U'. It then checks
+GuardTime with the AO Sep/Up. Outputs: `datal_c*.txt`.
