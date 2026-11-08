@@ -2190,3 +2190,11 @@ global L); whether THE target's certificate then passes is not yet re-measured. 
 With every full-order alternative containing a physical one (`hCPsub`), non-empty alternative lists, and environment
 liveness: every certificate event happens and from some T every exact node is constant. The resumed subagent is
 re-measuring THE target's (12,18) certificate against the AO model.
+
+### progress 09:01 -- kernel cost of the local check (benchmark, not a result about the target)
+`formal/tools/occ/bench/gen_muller_bench.py`: a Muller pipeline certificate, one local certificate per node
+(OccLocal), OccNetDec's enumerator by `decide +kernel`. 64 stages x ~6 events per stage (|D v| = 3): all 64 checks
+in 10 s wall including elaboration. 32 stages x 100 events: stopped after 13 min (the enumerator tries every count
+0..len for each node of D v before pruning, and list lookups cost their position). THE target's certificate has <= 7
+events per node and |D v| <= 6 (3,217 exact nodes), i.e. the cheap regime per node, larger |D|: estimated hours in
+chunks, not days. An enumerator that only walks each node's feasible count range would remove the len^|D| factor.
