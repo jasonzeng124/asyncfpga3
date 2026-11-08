@@ -1919,3 +1919,17 @@ node exactly `len` times and ends in the certificate's final state, every valid 
 `Σ len`, and every property of all ideal states holds after every valid run. A two-node toy instance runs
 through `decide` (`Toy.toy`). Cost of a real instance: per node, the number of bound-respecting count vectors of
 its dependency list (the subagent is measuring this on THE target).
+
+### progress 07:5x -- next: the timed half (design), and THE target's control is not copy-chain-only
+Static fact (tools on the Lean netlist, untrusted): the 412 control storage nodes read 595 live pins from 414
+combinational nodes (202 of them with more than 5 gates in their cone and no latch), 276 pins straight from other
+control nodes, 42 from latches, 421 from environment nodes, plus their 412 feedback pins. So a timed proof must
+carry combinational gates as nodes with their own events (a glitch is then an excitation withdrawn, which the local
+check sees), not only storage nodes. No control storage node reads one source on two live pins (57 other gates do).
+Design of the timed theorem (Net/TimedOcc, in progress): every gate is a node with per-pin read delays in
+[lo, hi] (Spec's GateOK shape); the read tuple of a gate at time t (counts of its sources at their read times) is
+fed to the SAME local check as the abstract machine (OccNet.LCheck), which therefore must hold on every
+bound-respecting tuple, not just on ideal states. The only timing obligations are pairwise skew conditions
+per gate: if the bounds say event (b, m-1) precedes event (a, k), and b's pin can be slower than a's
+(hi_b > lo_a), a certified separation d (longest path along causes with the pins' lo delays) must satisfy
+hi_b ≤ lo_a + d. The feedback race (B's race rows) and isochronic forks (rule A) are instances.
