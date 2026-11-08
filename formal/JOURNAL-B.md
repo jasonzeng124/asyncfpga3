@@ -3500,10 +3500,15 @@ Same sweep as 09:35 without H_RUNT (plain transport reads, the pessimistic w = 0
 or w = 20, at either corner. (The first w = 0 launch died with its parent shell after 458 runs; it resumed from
 the result file, so no run was repeated or skipped.)
 
-### progress 14:47 -- combined adversaries do not lower the binding race's threshold (simulation, untrusted)
+### progress 14:4x -- combined adversaries do not lower the binding race's threshold (simulation, untrusted)
 Pair (1071, 462), w = 20, corner 0, every listed arc at the top of its window and all else at the bottom:
 A = SLICE_X32Y45.A6's 7-arc feedback route (the Lean-refuted race); B = ucontrol_merge10.uarb1.ua2's 5-arc pin-0
 route (A's second race, 0.46); L = the binding hold latch SLICE_X32Y90.C5's 6-arc enable route. A, A+B, A+L, A+B+L:
 all correct at κ = 0.42 and 0.43; A and A+B+L both deadlock at 0.44. So these races do not interact: each fails at its
 own threshold. Running: A's adversary at κ = 0.43 on the first 60 vectors of gcd_ps_vec1000.hex (is the 0.44 threshold
 pair-dependent?).
+
+### progress 14:5x -- binding race's adversary at κ = 0.43 on 60 more pairs: all correct (simulation)
+A's adversary (SLICE_X32Y45.A6 feedback route slow, all else fast, w = 20, corner 0) on the first 60 vectors of
+target/gcd_ps_vec1000.hex (incl. (2^31-1, 2^31-2), (2^31-1, 2^31-1), powers of two): 60/60 correct
+(`tools-B/ps/out/race_A_k43_vec60.txt`). No pair found that moves this race's threshold below 0.44.
