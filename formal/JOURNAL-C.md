@@ -1966,8 +1966,8 @@ and no node ever changes again. With `timed_prop`, for a certificate whose final
 handshake with the right data, this would be safety and liveness for that run's input.
 **Not shown:** that environment liveness in Spec's form (ReqLive/AckLive with SeqEnv) gives `henv`; any instance.
 
-### progress 08:1x -- Net/TimedOccX.lean CLAIMED: the timed theorem with a data layer (bundled data as stable-window claims)
-`Formal/Net/TimedOccX.lean` (plain `lean` OK, rc 0; no sorry/native_decide; axioms being printed).
+### progress 07:59 -- Net/TimedOccX.lean CLAIMED: the timed theorem with a data layer (bundled data as stable-window claims)
+`Formal/Net/TimedOccX.lean` (plain `lean` OK, rc 0; no sorry/native_decide; axioms propext, Classical.choice, Quot.sound).
 **Problem, plainly:** the datapath glitches (a register's latches open together, the arithmetic behind them sees
 bits arrive at different times), so its nodes cannot be exact events. The design relies on bundling: control looks
 at a data node only while it is stable (`bd_steer`: req & s ignores s while req is low).
