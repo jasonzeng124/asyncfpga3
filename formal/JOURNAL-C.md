@@ -1985,3 +1985,15 @@ unguarded data inputs taking every value. Everything of TimedOcc for the exact n
 exact change is a certified event, and every claim holds. Only `Sep` LOWER bounds are ever needed (no upper bounds
 on event times), so the obligations stay local and linear.
 **Not shown:** liveness with the data layer (TimedOcc's argument should carry over), any instance, the Spec bridge.
+
+### progress 08:03 -- Net/TimedBridge.lean CLAIMED: Spec's collapsed gates give the timed model's read hypotheses
+`Formal/Net/TimedBridge.lean` (`lake env lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry).
+**Problem, plainly:** TimedOcc/TimedOccX assume per-source read times inside integer windows [lo, hi]; THE
+statement's semantics gives (via `CViewPS.collapsed`) per-pin monotone reads whose delays are sums of `Adm`
+delays at the behaviour's corner c. **Proved:** `loC_le`/`le_hiC`/`sumAdm_corner`: at corner c an admissible arc
+delay lies in [⌈(1-κ)·lerp(fmin,smin,c)/g⌉, ⌊(1+κ)·lerp(fmax,smax,c)·g⌋], composite delays between the sums;
+`reads_of_cgate`: a timed net whose gates each come with a `CGateOK` fact (pins = the distinct sources, function =
+INIT at the address, lo/hi within the corner sums, start ≤ t0 + 1) has read times satisfying TBehX's rd, mono and
+geq fields. So the per-corner bounds (not the corner-free dmin/dmax, which are far wider) feed the skew
+obligations. **Not shown:** the quiet start, the environment rule, `lo ≥ 1` (data), the 57 gates with two live
+pins on one source (they need their last copy gate kept as a node), any instance.
