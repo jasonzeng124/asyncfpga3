@@ -3068,3 +3068,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Fix: 2b applies lut_const() to the driver on both sides and lists the pin under the CONST_LUT folds. On this route:
   EQUIVALENT, the three pins listed as folded. Negative control: the same LUT given INIT ...0001 -> NOT EQUIVALENT with
   "DSP DATA PIN DRIVER DIFFERS" on A21-A23 again. tests: 30 passed. The run itself passed 17/17 either way.
+### progress 21:18 (a second nextpnr bitstream defect, this one computes wrong answers: an F7 select tied to GND is left unrouted and reads 1)
+- ipow T9 (base) bench seed 7, SLOW_MAX: FAIL 11/17 -- 6 wrong results, all large exponents, each equal to 3^e' for a
+  smaller e' (and latency shortened to match): the loop exits early. fasm_equiv: NOT EQUIVALENT, DRIVER DIFFERS
+  SLICE_X11Y68/F7AMUX/S0 json const 0, bits const 1. That F7 is in ushrsi0 (e >>= 1); in the JSON it selects input 0
+  = a $PACKER_GND_NET buffer LUT (the shift's top bit is 0), input 1 = the A6LUT. S0 is on $PACKER_GND_NET with no
+  routing to the AX pin, so on the die the pin reads its default 1 and the F7 passes the A6LUT: e's top bit corrupt.
+- Proof: the same bits-decoded netlist with only that S0 forced to 1'b0 -> PASS 17/17 (lat 15..319, same shape as the
+  other base routes). Unmodified: 11/17. So the bitstream, not the netlist or the sim, is wrong.
+- Scope: 772 fasm_equiv reports on disk: this route (both corners run) is the only const-0 -> const-1 mux select. The
+  only other mux-select line is the August ipow build's (pre-11-05 report, the INIT-0 LUT since folded). All board-list
+  builds decode EQUIVALENT. Same family as the 11-08 5FF gap: a constant on a site pin nextpnr does not route, and the
+  pin's hardware default differs from the constant. The "HARMLESS" class (a LUT pin reads VCC by default ppip) is only
+  harmless when the LUT does not read the pin; for an F7/F8 select (and a 5FF D) it is a functional change.
+- Consequences: (1) every board build must pass fasm_equiv (already the full-stack flow); (2) the right fix is in
+  nextpnr: route GND to these pins (or use the default-1 polarity: swap the F7 inputs), with a toolchain.sh fingerprint
+  -- reproducer: ipow bench, T9 bench sizes, NEXTPNR_SEED=7. Left for the owner with the 5FF case.
