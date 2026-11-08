@@ -2061,3 +2061,11 @@ A two-node instance (environment rises at 10 ps, a buffer gate reads it with del
 `timed_follows` (TBeh, TmOK, LSound via LStep, SepOK, TO, LCheck via the Boolean enumerator) is discharged and
 `toy_follows` concludes; check.sh OK, standard axioms. Note: even this buffer needs one TO row (its own count vs its
 input's read count: Sep 3 ≥ hi - lo' = 2), so the obligations are not vacuous either.
+
+### progress 08:25 -- Net/TimedOccRTToy.lean CLAIMED: the RT extension's hypotheses hold together (non-vacuity)
+Three nodes (environment rises at 10 ps; buffers of it with read delays exactly 1 and 5). The full certificate orders
+the fast buffer's rise before the slow one's (an RT edge: the slow buffer does not read the fast one); the edge is
+justified by SepOKR's fourth form through the common ancestor (Sep 5 physical, Up 1, margin 4 ≥ 1). Every hypothesis
+of `timedR_follows` is discharged (TBehX, TmOK CP/CF, LSound via LStep, Up/Sep checks, TO, LCheckX via the Boolean
+enumerator, RT justification, empty claim/guard lists) and `toyR_follows` concludes (ideals of CF to 30 ps, SepSound).
+check.sh OK, standard axioms.
