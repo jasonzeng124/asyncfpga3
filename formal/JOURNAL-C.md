@@ -1997,3 +1997,9 @@ INIT at the address, lo/hi within the corner sums, start ≤ t0 + 1) has read ti
 geq fields. So the per-corner bounds (not the corner-free dmin/dmax, which are far wider) feed the skew
 obligations. **Not shown:** the quiet start, the environment rule, `lo ≥ 1` (data), the 57 gates with two live
 pins on one source (they need their last copy gate kept as a node), any instance.
+
+### progress 08:04 -- TimedOccX liveness CLAIMED
+Added to `Formal/Net/TimedOccX.lean` (standard axioms): `gate_firesX` (an enabled exact gate event happens within
+any K above its pins' hi, its guarded data reads being the claimed values), `timedX_live` (with environment
+liveness, every certificate event happens and from some T on every exact node is constant). Data nodes are not
+claimed quiet after T (only what their claims say).
