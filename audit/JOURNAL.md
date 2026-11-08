@@ -1275,3 +1275,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T08:49:13Z T43: NodeMerge instance -- trusted DB contained in prjxray-db (own export + own check, controls caught); PipOK parse exact; Lean build in progress.
 - 2026-11-08T08:50:06Z T44: own 5FF/5FFMUX scan -- THE target and audited board candidates unaffected by research's nextpnr 5FF gap.
 - 2026-11-08T10:46:45Z disk: deleted lib+ir of Formal/Target/Net (old gcd_hw netlist; imported only by TargetLink, FormalWit/RT, V9V4c -- all older audits) and ir of FormalWit/RTPS (T30 done; a rebuild needed to re-audit). 5.2 GB free for NM.
+- 2026-11-08T12:07:07Z build48: NM X000-X004 OOM-killed (13.8 GB) at 22cfe0df; formal head rewrote all 75 X files; build49 relaunched at head (lake skips unchanged DB/C/S/L/K).
