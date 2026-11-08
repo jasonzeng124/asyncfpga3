@@ -1264,3 +1264,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T01:38:02Z container restart: build44 survived (setsid); T41 subagent's D=0 soak killed, subagent resumed with setsid instructions.
 - 2026-11-08T02:56:17Z build44 done (521 B latch modules rc=0 at 86a9ffa0); axiom audit running.
 - 2026-11-08T03:23:55Z T41 done: isprime envd A/B CONFIRMED at D=0/15 FAIL, D=20 PASS (own route, own oracle); 'only turnaround' PLAUSIBLE.
+- 2026-11-08T04:13:08Z T38 rows 13-17: B latch holds (670) build/axioms/statement CONFIRMED; kappa bounds recomputed (0.440/0.421 binding, min 0.376).

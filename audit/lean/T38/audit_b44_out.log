@@ -1,0 +1,43 @@
+(112, 214, 344)
+@Formal.Cells.LatchHoldPinPS.target_latch_holds : ∀ {κ : ℚ},
+  0 ≤ κ →
+    κ ≤ 1 →
+      ∀ {x : Formal.Target.Beh},
+        Formal.Target.Behaves { g := 1, κ := κ }
+            (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+          ∃ c,
+            0 ≤ c ∧
+              c ≤ 1 ∧
+                ∀ r ∈ Formal.Cells.LatchHoldPinPS.rows,
+                  (1 + κ) * ↑r.kB ≤ ↑r.kA * (1 - κ) →
+                    ∀ (a e : ℕ) (E : ℕ → ℕ) (PS : ℕ),
+                      (∀ (t : ℕ), a ≤ t → t ≤ e → x r.pc.1.cn t = r.pc.1.cv) →
+                        (∀ k < r.pc.1.sn.length,
+                            ∀ (t : ℕ), a ≤ t → t ≤ E k → x (r.pc.1.sn.getD k 0) t = r.pc.1.sv.getD k false) →
+                          (∀ i < r.pc.2.length,
+                              (r.pc.2.getD i default).r.mem = true →
+                                1 ≤
+                                    Formal.Cells.RaceCertPS.KRow.lo { g := 1, κ := κ } c (r.pc.2.getD i default).r
+                                      (r.pc.2.getD i default).r.fb ∧
+                                  ∀ (t : ℕ),
+                                    (Formal.Cells.CertPS.win { g := 1, κ := κ } c a e E r.pc.2 i).1 ≤
+                                        t +
+                                          Formal.Cells.RaceCertPS.KRow.hi { g := 1, κ := κ } c (r.pc.2.getD i default).r
+                                            (r.pc.2.getD i default).r.fb →
+                                      t < (Formal.Cells.CertPS.win { g := 1, κ := κ } c a e E r.pc.2 i).1 →
+                                        x (r.pc.2.getD i default).r.q t = (r.pc.2.getD i default).r.w) →
+                            (∀ i < r.pc.2.length, Formal.Cells.CertMarginPS.psum { g := 1, κ := κ } c r.pc.2 i ≤ PS) →
+                              (∀ (k : ℕ), e + PS ≤ E k) →
+                                e + PS ≤ Formal.Cells.CertPS.BIG →
+                                  ∀ (E' We Wd A H : ℕ) (v : Bool),
+                                    Formal.Cells.LatchView.LRow.S { g := 1, κ := κ } r.l ≤ A →
+                                      (∀ i < r.l.g.k, Formal.Cells.LatchView.LRow.hi { g := 1, κ := κ } c r.l i ≤ H) →
+                                        1 ≤ Formal.Cells.LatchView.LRow.lo { g := 1, κ := κ } c r.l r.l.j →
+                                          (∀ (t : ℕ), A ≤ t + H → x Formal.Cells.CElemPS.rstNode t = false) →
+                                            a + We ≤ e + 1 →
+                                              (∀ (t : ℕ),
+                                                  e + 1 ≤ t → t ≤ E' → (x (r.l.src r.l.e) t ^^ r.l.pe) = false) →
+                                                (∀ (t : ℕ),
+0.376225
+[(0.376225, 67121), (0.393162, 15631), (0.407049, 100414), (0.414275, 22975), (0.418207, 15632), (0.418573, 78802)]
+[(123324, 0.421359), (123323, 0.440350)]

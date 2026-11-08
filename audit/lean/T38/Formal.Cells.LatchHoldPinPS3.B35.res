@@ -1,0 +1,1 @@
+constants=5 bad=0
