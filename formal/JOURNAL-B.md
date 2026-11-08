@@ -3611,3 +3611,8 @@ every reset 400 ns + D, T ≥ 132, Δo ≤ 3 ns (check.sh OK, 1,497 declarations
   `Net/Periodic` (`eq_of_periodic`, with a period multiple ≥ the largest arc delay, e.g. 13·79 = 1027 ps) combined
   with the H_RUNT(20) read maps (A's gateWR) on the periodic code: not written. Simulation, untrusted: the g = 1 margin
   of THE statement on this race is in (0.35, 0.36].
+
+### progress 17:3x -- the κ = 0.40 race is merge4's arbiter acknowledge C-element; FOR-RESEARCH B1
+SLICE_X16Y21.A6 = `ucontrol_merge4.uarb1.ua2`, reading the fork `ucontrol_merge4_f` (SLICE_X17Y23.B6) on pin 0
+(routed JSON, NEXTPNR_BEL): the same "ua2 reads the fork" pattern as A's 0.46 race at merge10. Written up as
+FOR-RESEARCH B1 (Lean result, pair dependence, the periodic livelock below 0.40, the suggested fix).

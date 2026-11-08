@@ -247,3 +247,24 @@ places where the routed delays must win a race for the design to be correct; eac
 scatter, like the κ = 0.44 one. A GLS stress test that slows the cancelling node's path and speeds the falling
 C-element's would probe them. Shard C's timed theorem (`Formal/Net/TimedOccRT.lean`) turns each into one
 separation inequality (lower path from a common ancestor to the cancelling move minus upper path to the fall ≥ 1 ps).
+
+## B1. COUNTEREXAMPLE at κ = 0.40 (g = 1, w = 20 and w = 0, every reset ≥ 400 ns), LEAN-CHECKED; a periodic livelock from κ = 0.36 (shard B, 2026-11-08)
+**What.** THE statement (and the headline with H_RUNT(20)) is false on THE target (gcd_ps_e6bb4aec) for every g ≥ 1,
+κ ≥ 10/25, T ≥ 132 ps, Δo ≤ 3 ns, any su, every reset ≥ 400 ns: `Formal.Cells.CexX16.Frontier.not_seqRunt_le20_above40_R`
+and `not_seq_above40_R` (standard axioms, check.sh OK). This moves the Lean-checked g = 1 refutation from κ = 0.44
+(C3/A4) down to 0.40.
+**The race.** `bridge_i.udut.ucontrol_merge4.uarb1.ua2` (SLICE_X16Y21.A6, the acknowledge C-element of merge4's
+arbiter; INIT 0x00fa00a000fa00a0, reset on pin 3, own feedback on pin 4). Its pin 0 reads the fork
+`ucontrol_merge4_f` (SLICE_X17Y23.B6) through a 6-arc route (FAST_MIN sum 312 ps, FAST_MAX 407). With that route at
+the slow end and everything else at the fast end, the operands (0x49e9c618, 0x35bf992e) deadlock quietly ~84 ns
+after reset release. It is the same cell pattern as A5's second race (merge10.uarb1.ua2 reading merge10_f, fails from
+0.46), at another arbiter. **Pair-dependent:** (1071, 462) and the small pairs pass, which is why the earlier sweeps
+(that pair only) missed it; 16 of the first 60 vectors of gcd_ps_vec1000.hex fail at κ = 0.38 and 0.40, none at 0.35.
+**Below 0.40.** At κ = 0.36-0.39 the same adversary gives a livelock (no out0, never quiet); at 0.36 the full-width run
+is exactly periodic (period 79 ps from 491 ns, 140 nodes; Env/SeqEnv/ArbOK hold on the prefix). Not Lean-checked.
+Simulated margin of this race: (0.35, 0.36].
+**For research.** Any single-pair κ sweep under-reports the margin: sweep the adversaries over wide operands. The
+ua2-reads-fork pattern of the arbiters (merge4 here, merge10 at 0.46) is the binding race class; giving ua2's fork
+input more slack relative to its feedback loop (or placing ua2 next to the fork) is the fix to try first.
+Files: `formal/tools-B/target/out/k40w20_x16y21_{dump.json.xz,classes.json}`, `k36w20_x16y21_dump_1200ns.json.xz`;
+`formal/tools-B/ps/out/race_x16_k{35,40}_vec60.txt`; JOURNAL-B 2026-11-08.
