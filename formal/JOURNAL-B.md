@@ -3658,3 +3658,9 @@ rows are safe to κ ≤ 0.415, so the frontier is in [0.415, 0.44)" was wrong in
 node (feedback vs acknowledge), and the margin of THE statement is below 0.40 because of a race the rows do not model.
 Correction to the STATUS reading (A's file): B's 0.415 is a bound for the feedback races only, not a lower end of the
 frontier.
+
+### progress 19:3x -- merge10's ua2 race does not drop on wide pairs (simulation)
+A's second race (merge10.uarb1.ua2 pin-0 route, `tools-A/target/out/k48w20_ua2_classes.json`; fails from 0.46 on
+(1071, 462)) on the two wide pairs (0x49e9c618, 0x35bf992e) and (0x40000000, 0x60000000) at κ = 0.36, 0.40, 0.43,
+w = 20: all correct. So the pair dependence is specific to merge4's arbiter, which the wide pairs exercise and the
+narrow ones do not (consistent with the 0.43 sweeps, where merge10 ua2 did not fail on either wide pair).
