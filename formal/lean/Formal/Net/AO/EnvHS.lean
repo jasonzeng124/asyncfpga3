@@ -15,7 +15,9 @@ acknowledge event it needs.
 * `hs_counts`: in such an ideal, `c ak ≤ c rq ≤ c ak + 1`;
 * `hs_balanced`: if the request changes at `s` (both started low, `ReqMoves` from `t0`), the counts at `s - 1` are
   equal;
-* `req_enabled`: hence the request's change is enabled in any certificate whose request event `n` has an
+* `ack_ahead`, `ack_enabled`: the same for an environment acknowledge (`AckMoves`): when it changes, the request
+  is one change ahead, so an acknowledge event `(rq, n) :: E` is enabled;
+* `req_enabled`: from `hs_balanced`, the request's change is enabled in any certificate whose request event `n` has an
   alternative `(ak, n-1) :: E` (or `E` for `n = 0`) with `E` already in the ideal.
 
 **Not shown here:** the `E` part for THE target (the `SeqEnv` conditions on `out0`), the request count bound from
@@ -97,5 +99,47 @@ theorem req_enabled [DecidableEq α] (CP C : Cert α) (x : α → Nat → Bool) 
     rcases List.mem_cons.1 hp with rfl | hp
     · simp only; omega
     · exact hE p hp
+
+/-- **The output side**: an environment acknowledge that moves only while it differs from its request
+(`Spec.AckMoves`) finds the request event it needs: when it changes at `s`, the request has had one more change. -/
+theorem ack_ahead [DecidableEq α] (C : Cert α) (x : α → Nat → Bool) (t0 H : Nat) (rq ak : α)
+    (hq : ∀ u, ∀ s, t0 ≤ s + H → s ≤ t0 → x u s = x u t0)
+    (h0r : x rq t0 = false) (h0a : x ak t0 = false)
+    (hmv : ∀ t, t0 ≤ t → x ak (t + 1) ≠ x ak t → x ak t ≠ x rq t)
+    (c : α → Nat) (hI : Ideal C c)
+    (hAk : ∀ k, k < C.len ak → ∀ alt ∈ C.causes ak k, (rq, k) ∈ alt)
+    (hRq : ∀ k, k + 1 < C.len rq → ∀ alt ∈ C.causes rq (k + 1), (ak, k) ∈ alt)
+    (s : Nat) (hs : t0 < s) (hc1 : c rq = cnt x t0 rq (s - 1)) (hc2 : c ak = cnt x t0 ak (s - 1))
+    (hch : x ak s ≠ x ak (s - 1)) :
+    cnt x t0 rq (s - 1) = cnt x t0 ak (s - 1) + 1 := by
+  have hss : s - 1 + 1 = s := by omega
+  have he := hmv (s - 1) (by omega) (by rw [hss]; exact hch)
+  rw [x_eq_st rq H (hq rq) (s - 1) (by omega), x_eq_st ak H (hq ak) (s - 1) (by omega)] at he
+  simp only [st, h0r, h0a, Bool.false_xor] at he
+  obtain ⟨h1, h2⟩ := hs_counts C c hI rq ak hAk hRq
+  rw [hc1, hc2] at h1 h2
+  rcases Nat.lt_or_ge (cnt x t0 ak (s - 1)) (cnt x t0 rq (s - 1)) with h | h
+  · omega
+  · exfalso; apply he; rw [show cnt x t0 rq (s - 1) = cnt x t0 ak (s - 1) by omega]
+
+/-- Hence the acknowledge's change is enabled for acknowledge events of shape `(rq, n) :: E`. -/
+theorem ack_enabled [DecidableEq α] (CP C : Cert α) (x : α → Nat → Bool) (t0 H : Nat) (rq ak : α)
+    (hq : ∀ u, ∀ s, t0 ≤ s + H → s ≤ t0 → x u s = x u t0)
+    (h0r : x rq t0 = false) (h0a : x ak t0 = false)
+    (hmv : ∀ t, t0 ≤ t → x ak (t + 1) ≠ x ak t → x ak t ≠ x rq t)
+    (c : α → Nat) (hI : Ideal C c)
+    (hAk : ∀ k, k < C.len ak → ∀ alt ∈ C.causes ak k, (rq, k) ∈ alt)
+    (hRq : ∀ k, k + 1 < C.len rq → ∀ alt ∈ C.causes rq (k + 1), (ak, k) ∈ alt)
+    (s : Nat) (hs : t0 < s) (hch : x ak s ≠ x ak (s - 1))
+    (hc : ∀ u, c u = cnt x t0 u (s - 1))
+    (hlen : cnt x t0 ak (s - 1) < CP.len ak)
+    (E : List (α × Nat)) (halt : (rq, cnt x t0 ak (s - 1)) :: E ∈ CP.causes ak (cnt x t0 ak (s - 1)))
+    (hE : AltIn (fun w => cnt x t0 w (s - 1)) E) :
+    Enabled CP (fun w => cnt x t0 w (s - 1)) ak := by
+  have hb := ack_ahead C x t0 H rq ak hq h0r h0a hmv c hI hAk hRq s hs (hc rq) (hc ak) hch
+  refine ⟨hlen, _, halt, fun p hp => ?_⟩
+  rcases List.mem_cons.1 hp with rfl | hp
+  · simp only; omega
+  · exact hE p hp
 
 end Formal.Net.AO.EnvHS
