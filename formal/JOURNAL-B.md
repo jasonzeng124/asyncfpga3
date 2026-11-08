@@ -3493,3 +3493,9 @@ the g = 1 refutation frontier below the control race at 0.44; the certified latc
 0.376-0.414) are certificate slack. What is NOT shown: a latch-hold failure is impossible below 0.44 (no theorem;
 multi-pin adversaries, other pairs untested). The STATUS list is unchanged by this (no hypothesis discharged): the
 day's result is negative evidence for research and for the frontier, not a shrink.
+
+### progress 14:40 -- w = 0 (no runt filter): 1,441 / 1,441 latches correct at κ = 0.43, fast corner (simulation)
+Same sweep as 09:35 without H_RUNT (plain transport reads, the pessimistic w = 0 statement): all correct
+(`tools-B/ps/out/latchsweep_k43_fw_w0.txt`). So the latch-hold adversary finds no failure at κ = 0.43 under w = 0
+or w = 20, at either corner. (The first w = 0 launch died with its parent shell after 458 runs; it resumed from
+the result file, so no run was repeated or skipped.)
