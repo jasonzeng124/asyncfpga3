@@ -1281,3 +1281,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T14:51:10Z T45/T46 started (2 subagents, no git, git-free research copies at 61c532db): BOARD-QUEUE #7 collatz64 x0.75 (sdf 412bd505) and #8 ipow x0.75 (sdf 95a362ff) -- own builds + worst-case full stack + own oracles.
 - 2026-11-08T15:11:18Z T46 done: BOARD-QUEUE #8 ipow x0.75 seed 1 CONFIRMED (sdf md5s, EQUIVALENT, worst 17/17 own oracle, cyc31 298 exact).
 - 2026-11-08T15:16:53Z T45 done: BOARD-QUEUE #7 collatz64 x0.75 seed 1 CONFIRMED (sdf md5s, EQUIVALENT, worst 14/14 own oracle, cyc350 3778 exact).
+- 2026-11-08T15:25:22Z T47: B's kappa 0.40 candidate (full-width pair) CONFIRMED by own runt + env checkers (simulation). Owner notified.
