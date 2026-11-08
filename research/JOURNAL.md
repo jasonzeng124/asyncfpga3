@@ -2976,3 +2976,14 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - BOARD-QUEUE #6 + board list item 4 (ring set moves to 5): exact commands, sdf md5s, and research/tools/
   xorshift_bench_judge.py (PASS = all 17 oracle points on both builds; checked both ways on synthetic files).
 - Not shown: 8 bench routes (4 here, 8 on the soak top); silicon.
+### progress 00:49 (bench harness clock: the board scripts run the harness at 100 MHz, above the 83.3 MHz it is routed for)
+- xorshift bench seeds 5-8 (full stack, running): base seed 8 SLOW_MAX read latmin 578 / 10857 against latmax 706 /
+  10985 for identical vectors: bit 7 (0x80) dropped in the harness's lat_min register; the batch cycle totals (1424 =
+  2x706+12, 21982 = 2x10985+12) and both answers are right. 2 of 748 readings over 16 routes x corners, both on that
+  route. lat_min's update is synchronous (aclk), so it is a clocked path missing timing: build_bench.sh routes the
+  harness for TARGET_MHZ=83 (its comment: it does not close 100 MHz, 79.6-97.7 MHz over six seeds), while
+  xorshift_cost.sh / xsdb_bench_gen.tcl default to CLK_CTRL 0x00100A00 = 100 MHz, and so does ps7_bench.v (fclk_ps 10000).
+- Kernel results unaffected (asynchronous; every answer right); per-round numbers from latmin on that route are off by
+  128 cycles at the 1000-round point (to be recomputed from the cycle totals). BOARD-QUEUE #6 now sets CLK=0x00100C00
+  and the judge reports ns. Queued: base_8 and s50_8 SLOW_MAX again at FCLK_PS=12000 (83.3 MHz) to see the glitch go.
+- Not checked: whether the August board runs (0x00100A00) hit this; xorshift_cost.sh fits batch totals, not lat_min.

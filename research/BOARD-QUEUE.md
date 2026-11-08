@@ -336,10 +336,13 @@ it is informational, so the build sets BD_SIZES_GATE=0 -- the full stack is the 
     NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3_bench.vh ./hw/build_bench.sh xorshift
     md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf      # e3024283
     cp build/hw/xorshift_bench_gen/xorshift_bench_gen.bit build/hw/xorshift_t3.bit
-    BIT=build/hw/xorshift_s50.bit OUT=build/hw/xorshift_cost_s50.tsv hw/xorshift_cost.sh
-    BIT=build/hw/xorshift_t3.bit  OUT=build/hw/xorshift_cost_t3.tsv  hw/xorshift_cost.sh
+    CLK=0x00100C00 BIT=build/hw/xorshift_s50.bit OUT=build/hw/xorshift_cost_s50.tsv hw/xorshift_cost.sh
+    CLK=0x00100C00 BIT=build/hw/xorshift_t3.bit  OUT=build/hw/xorshift_cost_t3.tsv  hw/xorshift_cost.sh
     python3 ../research/tools/xorshift_bench_judge.py build/hw/xorshift_cost_s50.tsv build/hw/xorshift_cost_t3.tsv; echo "exit $?"
 
+CLK=0x00100C00 (83.3 MHz) is the clock build_bench.sh closes the harness for; xorshift_cost.sh's default 0x00100A00
+(100 MHz) is above it, and the full stack at 100 MHz SLOW_MAX showed the harness's latency register capturing a wrong
+value (bit 7 dropped, 2 of 748 readings, one route) -- the kernel's answers were right. The judge reports ns.
 Pass: the judge prints `=== PASS ... ===` and exits 0: both builds give the oracle's answer at all 17 round counts
 (xorshift_cost.sh asserts each one and drops a point that fails). Checked both ways on synthetic files (a missing
 point -> FAIL, exit 1). If an sdf md5 differs, the route is not the one gated here; still a test of the recipe, but say so.
