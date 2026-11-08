@@ -4,6 +4,13 @@ Experiments that have passed every check possible without the board, most
 valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
+**Before programming any build here: check its sdf md5 against the one the item names.** Two nextpnr defects (JOURNAL
+2026-11-08) leave a constant site pin unrouted so the die reads its default instead: a 5FF D (collatz64 bench seed 4)
+and an F7 select (ipow bench seed 7, wrong answers). Both are a deterministic function of the route, and every route
+named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 differs, the route was not gated: run
+the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
+fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
+
 ## Board list, in order (owner, 2026-11-04: best first; each item judges itself)
 1. **gcd_ps with the 1000 vectors** (item #4 below): `hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit
    ../research/board/gcd_ps_vec1000.hex; echo "exit $?"`. Pass: `=== PASS 1000/1000 ===` and exit 0. Also gives
