@@ -3014,3 +3014,5 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   select latest 4139 ps (-770 raw); seeds 1/2/4 +654/+274/+259 raw. So one link is not enough on every route.
 - Queued: h375's full stack on 1/2/4 (do the other x0.375 lines hold at the corners?), then h375b (that link at 7,
   ~+1 ns; 75 links in all vs x0.5's 87) on seeds 1-4.
+- h375 rejected: seed 1 FAST_MIN fails (stalled: "req rose out of phase on channel out0" -> protocol error; fast mode
+  hung), after SLOW_MAX passed. Same umux3 race at the fast corner. Remaining h375 runs stopped; h375b (link at 7) runs.
