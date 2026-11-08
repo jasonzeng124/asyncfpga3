@@ -1,0 +1,1 @@
+constants=4 bad=0
