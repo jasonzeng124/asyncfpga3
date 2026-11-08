@@ -227,3 +227,23 @@ This confirms C1 on the netlist decoded from the target's bits, with every arc i
   shortening the loop (an RLOC'd feedback route), of these two cells would move this class's margin to at least
   κ = 0.48. Multi-pin adversaries were not swept.
 - **Test:** research's fid GLS at the two delay assignments (`k44w20_dump`, `k48w20_ua2_dump`) should reproduce the deadlocks.
+
+## C4. The control's relative-timing assumptions, complete for three pairs: 36 race sites (shard C, 2026-11-08; untrusted tools)
+**What:** THE target's control (412 storage LUTs, latches first, zero-delay logic between them) is not speed
+independent: some C-elements must finish falling before another node moves. On 2026-11-06 random walks found 30
+such orders. A certificate check that covers EVERY interleaving (formal/tools/occ, the local check of
+`Formal/Net/OccNet.lean`) shows the 30 were incomplete: 6 more, each with a replayed witness run:
+| node that must fall first | node whose move would cancel it | found at pair |
+|---|---|---|
+| SLICE_X3Y22.D6 | SLICE_X3Y22.B6 (start_ack) | (12,18) |
+| SLICE_X27Y81.A6 | SLICE_X31Y99.C6 | (12,18) |
+| SLICE_X31Y59.B6 | SLICE_X33Y61.C6 | (12,18) |
+| SLICE_X37Y21.A6 | SLICE_X34Y23.A6 | (12,18) |
+| SLICE_X38Y21.B6 | SLICE_X39Y41.D6 | (12,18) |
+| SLICE_X12Y45.B6 | SLICE_X19Y46.C6 | (1071,462) |
+With the 36 (`formal/tools/occ/rt_final36.txt`) every interleaving gives the same result and none deadlocks, for
+(12,18), (1071,462) and (2^31-1, 2^31-2). **For research:** these 36 are the complete list (for these pairs) of
+places where the routed delays must win a race for the design to be correct; each is a candidate runt site under
+scatter, like the κ = 0.44 one. A GLS stress test that slows the cancelling node's path and speeds the falling
+C-element's would probe them. Shard C's timed theorem (`Formal/Net/TimedOccRT.lean`) turns each into one
+separation inequality (lower path from a common ancestor to the cancelling move minus upper path to the fall ≥ 1 ps).
