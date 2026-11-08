@@ -512,7 +512,8 @@ theorem timedA_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
     (hGC : ∀ c ∈ cl, N.gate c.z = true → GateProof N dat Sep (fun w => x w t0) cl c ∨
       ∃ cs : List (Claim α), (∀ c' ∈ cs, c' ∈ cl ∧ GateProof N dat Sep (fun w => x w t0) cl c') ∧ ChainOK Sep c cs)
-    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, Holds x t0 H c s)
+    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, (∀ τ, τ ≤ s → Ideal CF (fun u => cntE dat x t0 u τ)) →
+      Holds x t0 H c s)
     (hInit : ∀ c ∈ cl, ∀ s, s ≤ t0 → Holds x t0 H c s)
     (hDataLen : ∀ u, dat u = true → CF.len u = 0) :
     ∀ t, (∀ τ, τ ≤ t → Ideal CF (fun u => cntE dat x t0 u τ)) ∧
@@ -545,8 +546,9 @@ theorem timedA_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
         · have : s = t + 1 := by omega
           subst this; exact hC1 v hve (by simpa using h3)
       have hSS' := sepSound_step hb hTP hLs hSE hTO hDE hloc hEnvE hlenEq hgdF hGd hUp hS t ht hI hB' hC hSS
-      refine ⟨fun τ hτ => ?_, hB', fun c hc s hs => ?_, hSS'⟩
-      · rcases Nat.lt_or_ge τ (t + 1) with h | h
+      have hI' : ∀ τ, τ ≤ t + 1 → Ideal CF (fun u => cntE dat x t0 u τ) := by
+        intro τ hτ
+        rcases Nat.lt_or_ge τ (t + 1) with h | h
         · exact hI τ (by omega)
         · have : τ = t + 1 := by omega
           subst this
@@ -597,20 +599,21 @@ theorem timedA_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
           · intro u; unfold cntE; split
             · exact Nat.le_refl _
             · exact cnt_mono u _ _ (by omega)
-      · rcases Nat.lt_or_ge s (t + 1) with h | h
-        · exact hC c hc s (by omega)
-        · have : s = t + 1 := by omega
-          subst this
-          cases hgz : N.gate c.z with
-          | false => exact hEnvC c hc hgz _
-          | true =>
-            have gp : ∀ c', c' ∈ cl → GateProof N dat Sep (fun w => x w t0) cl c' → Holds x t0 H c' (t + 1) := by
-              intro c' _ hp
-              obtain ⟨hg', ha, cov, hval, hcov, hkind⟩ := hp
-              exact claim_stepR hb t ht hSS' hC c' hg' ha cov hval hcov hkind
-            rcases hGC c hc hgz with hp | ⟨cs, hcs, hch⟩
-            · exact gp c hc hp
-            · exact chain_holds hSS' (t + 1) (Nat.le_refl _) cs c hch (fun c' hc' => gp c' (hcs c' hc').1 (hcs c' hc').2)
+      refine ⟨hI', hB', fun c hc s hs => ?_, hSS'⟩
+      rcases Nat.lt_or_ge s (t + 1) with h | h
+      · exact hC c hc s (by omega)
+      · have : s = t + 1 := by omega
+        subst this
+        cases hgz : N.gate c.z with
+        | false => exact hEnvC c hc hgz _ hI'
+        | true =>
+          have gp : ∀ c', c' ∈ cl → GateProof N dat Sep (fun w => x w t0) cl c' → Holds x t0 H c' (t + 1) := by
+            intro c' _ hp
+            obtain ⟨hg', ha, cov, hval, hcov, hkind⟩ := hp
+            exact claim_stepR hb t ht hSS' hC c' hg' ha cov hval hcov hkind
+          rcases hGC c hc hgz with hp | ⟨cs, hcs, hch⟩
+          · exact gp c hc hp
+          · exact chain_holds hSS' (t + 1) (Nat.le_refl _) cs c hch (fun c' hc' => gp c' (hcs c' hc').1 (hcs c' hc').2)
     · refine ⟨fun τ hτ => ?_, fun v s hve h1 h2 h3 => ?_, fun c hc s hs => hInit c hc s (by omega), hss0 _ (by omega)⟩
       · rw [hz τ (by omega)]; exact h0
       · rcases Nat.lt_or_ge s (t + 1) with h | h
@@ -636,7 +639,8 @@ theorem gate_firesA (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
     (hGC : ∀ c ∈ cl, N.gate c.z = true → GateProof N dat Sep (fun w => x w t0) cl c ∨
       ∃ cs : List (Claim α), (∀ c' ∈ cs, c' ∈ cl ∧ GateProof N dat Sep (fun w => x w t0) cl c') ∧ ChainOK Sep c cs)
-    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, Holds x t0 H c s)
+    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, (∀ τ, τ ≤ s → Ideal CF (fun u => cntE dat x t0 u τ)) →
+      Holds x t0 H c s)
     (hInit : ∀ c ∈ cl, ∀ s, s ≤ t0 → Holds x t0 H c s)
     (hDataLen : ∀ u, dat u = true → CF.len u = 0)
     (hCPsub : ∀ u k, ∀ altF ∈ CF.causes u k, ∃ altP ∈ CP.causes u k, ∀ p ∈ altP, p ∈ altF)
@@ -729,7 +733,8 @@ theorem timedA_live (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
       p ∈ altP ∨ ∃ d, Sep p.1 p.2 u k = some d ∧ 1 ≤ d)
     (hGC : ∀ c ∈ cl, N.gate c.z = true → GateProof N dat Sep (fun w => x w t0) cl c ∨
       ∃ cs : List (Claim α), (∀ c' ∈ cs, c' ∈ cl ∧ GateProof N dat Sep (fun w => x w t0) cl c') ∧ ChainOK Sep c cs)
-    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, Holds x t0 H c s)
+    (hEnvC : ∀ c ∈ cl, N.gate c.z = false → ∀ s, (∀ τ, τ ≤ s → Ideal CF (fun u => cntE dat x t0 u τ)) →
+      Holds x t0 H c s)
     (hInit : ∀ c ∈ cl, ∀ s, s ≤ t0 → Holds x t0 H c s)
     (hDataLen : ∀ u, dat u = true → CF.len u = 0)
     (hCPsub : ∀ u k, ∀ altF ∈ CF.causes u k, ∃ altP ∈ CP.causes u k, ∀ p ∈ altP, p ∈ altF)

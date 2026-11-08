@@ -2254,3 +2254,24 @@ formal/tools/tocc/ao.py; g = 1, κ = 0, one simulated run per corner).** 8,333 e
   an artefact of a too-coarse cause choice: not decided.
 *Reading:* the AND-OR model removed the gross mismatch (from ~6,000 failures to 282–601), but no certificate for
 THE target passes yet, so nothing about THE target is proved.
+
+### progress 09:24
+**The environment half of the bridge, in Lean (check.sh OK):**
+* `AO/EnvHS.lean`. *Problem:* does `Spec.EnvIn`'s state rule (`ReqMoves`: a request changes only while it
+  equals its acknowledge) give the count-based `hEnvE`? *Answer:* yes, provided the counts are an ideal of an
+  order in which ack k needs req k and req k+1 needs ack k.
+  * `hs_counts`: in such an ideal, cnt ack ≤ cnt req ≤ cnt ack + 1.
+  * `hs_balanced`: when the request changes, the two counts are equal.
+  * `req_enabled`: the request's change is then enabled, for request events of shape (ack, n-1) :: E with E in
+    the ideal.
+  * For this, `hEnvE` in Timed.lean may now assume the ideal at s-1, which the induction supplies.
+* `AO/EnvData.lean`. *Problem:* does `EnvIn`'s data clause (the bus holds vals j from su before the j-th rise
+  and while req or ack is high) give the timed model's claim on an input bit? The claim is
+  [τ(req,2j) - su, τ(ack,2j+1)) ↦ bit i of vals j. *Answer:* yes.
+  * `testBit_busVal`: bit i of a bus is its i-th node.
+  * `rises_cnt`: rises = (cnt+1)/2 from a quiet start.
+  * `env_claim`, `env_holds`: the claim holds at every t where the counts are an ideal of that order.
+  * `hEnvC` in Timed.lean now also receives the ideal (the step proof was reordered so the ideal at t+1 is
+    available first).
+* *Not shown:* the out0/pend side (`AckMoves`, Δo), the SeqEnv extra causes E for THE target, the request
+  count bound from Offered, and any instance.
