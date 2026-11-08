@@ -15,8 +15,8 @@ timed theorem with all four repaired, on `AO.Cert` (alternative cause sets):
 * `TOA`: rows only for a ≠ b, and a row with a = v may instead name, for an earlier event of v, a cause on b in
   every alternative (`read_consistentA` then uses the reader's own enabling read, by monotone reads);
 * bounds `L v` per reader v, each sound for the full order;
-* RT edges, data claims, chains of claims as in `TimedOccU`; an upper bound's previous-event clause may instead be
-  met by a separation placing that previous event no later than `e0` (`UpOKA`, second disjunct);
+* RT edges, data claims, chains of claims as in `TimedOccU`; an upper bound's previous-event clause, and any cause of
+  its chosen alternative, may instead be met by a separation placing that event no later than `e0` (`UpOKA`);
 * environment moves by COUNTS (`hEnvE`): an environment node's change at `s` must be an enabled event of the
   certificate at the counts of `s - 1`, given that those counts are an ideal of the full order (which the induction
   supplies; a handshake argument needs it to know where the acknowledge is). The local check `hloc` is only demanded of gates. (The state-only rule
@@ -277,7 +277,8 @@ def UpOKA (N : TNet α) (dat : α → Bool) (CP : Cert α) (Sep : α → Nat →
   ∀ e0 e d, Up e0 e = some d →
     e = e0 ∨
     (N.gate e.1 = true ∧ dat e.1 = false ∧ e.2 < CP.len e.1 ∧
-      (∃ alt ∈ CP.causes e.1 e.2, ∀ p ∈ alt, ∃ dp, Up e0 p = some dp ∧ dp + hi' N e.1 p.1 ≤ d) ∧
+      (∃ alt ∈ CP.causes e.1 e.2, ∀ p ∈ alt, (∃ dp, Up e0 p = some dp ∧ dp + hi' N e.1 p.1 ≤ d) ∨
+        (∃ ds, Sep p.1 p.2 e0.1 e0.2 = some ds ∧ hi' N e.1 p.1 ≤ d)) ∧
       (0 < e.2 → (∃ dp, Up e0 (e.1, e.2 - 1) = some dp ∧ dp + hi' N e.1 e.1 ≤ d) ∨
         (∃ ds, Sep e.1 (e.2 - 1) e0.1 e0.2 = some ds ∧ hi' N e.1 e.1 ≤ d)))
 
@@ -375,12 +376,14 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     have hEn : Enabled CP (nT N x t0 r w T') w := by
       obtain ⟨alt, halt, hall⟩ := hca
       refine ⟨by rw [hnw]; exact hlen, alt, by rw [hnw]; exact halt, fun p hp => ?_⟩
-      obtain ⟨dp, hdp, hle⟩ := hall p hp
-      have htm := (hTP.2 w j hlen alt halt p hp).2
-      have hip := ih (CP.tm p.1 p.2) (by omega) p dp (Nat.le_refl _) hdp (by omega)
       obtain ⟨_, r2, _, _⟩ := rho_boundsX hb w p.1 T' (by omega)
       simp only [nT]
-      exact Nat.lt_of_lt_of_le hip (cnt_mono _ _ _ (by omega))
+      rcases hall p hp with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩
+      · have htm := (hTP.2 w j hlen alt halt p hp).2
+        have hip := ih (CP.tm p.1 p.2) (by omega) p dp (Nat.le_refl _) hdp (by omega)
+        exact Nat.lt_of_lt_of_le hip (cnt_mono _ _ _ (by omega))
+      · have := ss_nat hSS hds (by omega) h0
+        exact Nat.lt_of_lt_of_le this (cnt_mono _ _ _ (by omega))
     -- the local check makes the gate move at `T'`
     have hT1 : t0 ≤ T' - 1 := by omega
     have hcons := read_consistentA hb hLs hTO hDE (T' - 1) hT1 (fun τ' h => hI τ' (by omega))

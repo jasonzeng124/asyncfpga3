@@ -103,8 +103,10 @@ variable (N : TNet α) (dat : α → Bool) (CP CF : Cert α) (sl : List (α × N
 def upFormB (e0 e : α × Nat) (d : Nat) : Bool :=
   (e == e0) ||
   (N.gate e.1 && !(dat e.1) && decide (e.2 < CP.len e.1) &&
-    (CP.causes e.1 e.2).any (fun alt => alt.all (fun p => match upL ul e0 p with
-      | some dp => decide (dp + hi' N e.1 p.1 ≤ d) | none => false)) &&
+    (CP.causes e.1 e.2).any (fun alt => alt.all (fun p => (match upL ul e0 p with
+      | some dp => decide (dp + hi' N e.1 p.1 ≤ d) | none => false) ||
+      (match sepL sl p.1 p.2 e0.1 e0.2 with
+      | some _ => decide (hi' N e.1 p.1 ≤ d) | none => false))) &&
     (e.2 == 0 || (match upL ul e0 (e.1, e.2 - 1) with
       | some dp => decide (dp + hi' N e.1 e.1 ≤ d) | none => false) ||
       (match sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
@@ -128,10 +130,15 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
   · right
     obtain ⟨alt, halt, hc'⟩ := hc
     refine ⟨hg1, hd1, hl, ⟨alt, halt, fun p hp' => ?_⟩, fun hk => ?_⟩
-    · have := hc' p hp'
-      cases hu : upL ul e0 p with
-      | none => rw [hu] at this; cases this
-      | some dp => rw [hu] at this; exact ⟨dp, rfl, by simpa using this⟩
+    · rcases hc' p hp' with this | this
+      · left
+        cases hu : upL ul e0 p with
+        | none => rw [hu] at this; cases this
+        | some dp => rw [hu] at this; exact ⟨dp, rfl, by simpa using this⟩
+      · right
+        cases hu : sepL sl p.1 p.2 e0.1 e0.2 with
+        | none => rw [hu] at this; cases this
+        | some ds => rw [hu] at this; exact ⟨ds, rfl, by simpa using this⟩
     · rcases hp with (hp | hp) | hp
       · omega
       · left

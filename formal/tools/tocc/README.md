@@ -12,3 +12,13 @@ alternatives, per-reader L, TOA, ownB filter, RT edges). `--prevanc` lets an upp
 prev → e0). `--noprev` drops the clause (unsound; diagnostic only). Outputs: `ao_c{0,1}.txt` (strict),
 `ao_c{0,1}_prevanc.txt`, `diag_c{0,1}p.txt`. Untrusted Python; one simulated run per corner. The input pickles are
 not committed (they live in /tmp/claude-0/tocc and are rebuilt by build.py/sim.py).
+
+## Diagnosis of the failing TO rows (2026-11-08)
+`ao.py` flags:
+- `--cyc`: cut each cause cycle by removing only the alternative whose cause most precedes its effect in time.
+- `--causeanc`: a cause in Up's chosen alternative may carry a Sep entry to e0. This is now in the Lean (`UpOKA`).
+- `--deep`, `--bcp`, `--robust`, `ROBNODES`: diagnostics.
+Results: `ao2_c{0,1}_{base,deep,bcp,cyc,ca,rob,robn}.txt`.
+Traces: `q1*.py` (b nodes and worst rows), `q2.py` (needed rows), `q3*.py` (residual failures), `simx.py`/`advcmp.py`
+(adversarial pin delays).
+Untrusted; one midpoint run per corner.

@@ -26,7 +26,10 @@ from cert import ENVREAD
 INF = float("inf")
 c = int(sys.argv[1]); ROUNDS = int(sys.argv[2]) if len(sys.argv) > 2 else 3
 NOPREV = "--noprev" in sys.argv
-PREVANC = "--prevanc" in sys.argv   # repair candidate: a previous event causally below e0 counts as Up hi'(v,v)     # diagnostic: Up without UpOKA's previous-event clause
+PREVANC = "--prevanc" in sys.argv
+ROBUST = "--robust" in sys.argv; nrob = [0]
+import os; ROBNODES = set(x for x in os.environ.get("ROBNODES", "").split(",") if x)
+CAUSEANC = "--causeanc" in sys.argv   # repair candidate: a previous event causally below e0 counts as Up hi'(v,v)     # diagnostic: Up without UpOKA's previous-event clause
 T0 = time.time()
 C = load(); g = C["gates"]; EX = C["EXACT"]; bs = C["bs"]; nm = C["names"]; DATA = C["DATA"]
 H = pickle.load(open("/tmp/claude-0/tocc/hist_c%d.pkl" % c, "rb")); R = H["R"]; t0 = R - 1; hist = H["hist"]
@@ -90,6 +93,20 @@ for e, (v, k, t) in enumerate(el):
     used = 0
     for m in mins: used |= m
     rest = [S[i][1] for i in range(nS) if not used >> i & 1]
+    if ROBUST or nm[v] in ROBNODES:
+        # alternative M is robust if F flips for EVERY value (pre or post) of the other pool members
+        full = (1 << len(P)) - 1
+        def robust(m):
+            comp = full & ~m
+            sub = comp
+            while True:
+                if F([P[i] for i in range(len(P)) if (m | sub) >> i & 1]) == before: return False
+                if sub == 0: return True
+                sub = (sub - 1) & comp
+        rob = [m for m in range(1 << len(P)) if robust(m)]
+        rmins = [m for m in rob if not any((o & m) == o and o != m for o in rob)]
+        if rmins and any(m & ~smask == 0 for m in rmins):
+            mins = rmins; rest = []; nrob[0] += 1
     alts[e] = [[P[i][1] for i in range(len(P)) if m >> i & 1] + rest for m in mins]
     nalt[len(mins)] += 1
 # acyclicity: Kahn over prev + all alternative causes; drop look-ahead alternatives on cycles
@@ -107,7 +124,9 @@ def topo():
             if indeg[y] == 0: q.append(y)
     return out, indeg
 dropped = 0
-while True:
+CYC = "--cyc" in sys.argv     # cut one alternative per found cycle (the most anticipatory one) instead of all later ones
+if not CYC:
+  while True:
     out, indeg = topo()
     if len(out) == NE: break
     cyc = [e for e in range(NE) if indeg[e] > 0]
@@ -117,14 +136,67 @@ while True:
         keep = [alt for alt in alts[e] if all(el[p][2] < te for p in alt)]
         if len(keep) < len(alts[e]) and keep: dropped += len(alts[e]) - len(keep); alts[e] = keep; ch = True
     if not ch: raise SystemExit("cycle not resolved")
+else:
+  sys.setrecursionlimit(100000)
+  while True:
+    out, indeg = topo()
+    if len(out) == NE: break
+    rem = set(e for e in range(NE) if indeg[e] > 0)
+    # find one cycle among remaining nodes: walk predecessors (causes) inside rem
+    def preds(e):
+        ps = [(p, ai) for ai, alt in enumerate(alts[e]) for p in alt if p in rem]
+        if prev[e] is not None and prev[e] in rem: ps.append((prev[e], None))
+        return ps
+    start = next(iter(rem)); seen = {}; path = []; x = start
+    while x not in seen:
+        seen[x] = len(path); ps = preds(x)
+        p, ai = ps[0]; path.append((x, p, ai)); x = p
+    cycle = path[seen[x]:]
+    cand = [(el[p][2] - el[e][2], e, ai) for (e, p, ai) in cycle if ai is not None and len(alts[e]) > 1]
+    if not cand: raise SystemExit("cycle without a removable alternative")
+    _, e, ai = max(cand)
+    alts[e] = alts[e][:ai] + alts[e][ai + 1:]; dropped += 1
 tm = [0] * NE
 for i, e in enumerate(out): tm[e] = i
 tm = np.array(tm, dtype=np.int64)
 order = list(out)
-print("  look-ahead alternatives dropped for cycles: %d" % dropped)
+print("  look-ahead alternatives dropped for cycles: %d; events with robust alternatives: %d" % (dropped, nrob[0]))
 print("[c=%d] events %d; alternatives per event %s; events whose full candidate set does not enable (fallback AND): %d" % (
     c, NE, sorted(nalt.items()), bad_full))
 # common causes (in every CP alternative)
+BCP = "--bcp" in sys.argv
+if BCP:
+    # (b') put source b's event into EVERY CP alternative of an OR event of v when b's event is below the event in
+    # every ideal of the plain order and v read it (sim, mid delay) no later than the event fired
+    VC0 = None
+    def _vc():
+        VC = np.zeros((NE, len(xs)), dtype=np.int8)
+        for e in order:
+            n, k, t = el[e]; row = VC[e]; best = None
+            for alt in alts[e]:
+                r = np.zeros(len(xs), dtype=np.int8)
+                for p in alt: np.maximum(r, VC[p], out=r)
+                best = r if best is None else np.minimum(best, r)
+            if best is not None: np.maximum(row, best, out=row)
+            if prev[e] is not None: np.maximum(row, VC[prev[e]], out=row)
+            row[xi[n]] = k + 1
+        return VC
+    VC0 = _vc(); nb_mid = 0; nb_win = 0
+    for e in range(NE):
+        v, k, t = el[e]
+        if len(alts[e]) < 2 or v in envnode: continue
+        for p in C["live"][v]:
+            b = p["src"]
+            if b == v or b not in EX: continue
+            mm = int(VC0[e, xi[b]])
+            if mm == 0: continue
+            pb = eid[(b, mm - 1)]
+            if all(pb in a for a in alts[e]): continue
+            if et[pb] + p["win"][c][2] <= t:
+                nb_mid += 1
+                if et[pb] + p["win"][c][1] <= t: nb_win += 1
+                alts[e] = [a if pb in a else a + [pb] for a in alts[e]]
+    print("  --bcp: b added to every alternative at %d OR events (read before the event even at hi: %d)" % (nb_mid, nb_win))
 common = [set(a[0]).intersection(*map(set, a[1:])) if a else set() for a in alts]
 # ---------------- order bound (CF = CP + rt)
 def vclock(rt):
@@ -191,25 +263,34 @@ def up_from(e0, horizon):
         if k > 0:
             if prev[e] in U: pr = U[prev[e]] + whi(v, v)
             elif NOPREV: pr = 0
-            elif PREVANC and leqP(prev[e], e0): pr = whi(v, v)
+            elif PREVANC and sep23(prev[e], e0) is not None: pr = whi(v, v)   # Lean UpOKA 2nd disjunct: Sep (v,k-1)->e0 exists
             else: continue
         ba = None
         for alt in alts[e]:
-            if not alt or not all(p in U for p in alt): continue
-            x = max(U[p] + whi(v, el[p][0]) for p in alt)
+            if not alt: continue
+            if CAUSEANC:   # proposed: a cause with a Sep entry to e0 happened before e0, counts as hi' only
+                if not all(p in U or sep23(p, e0) is not None for p in alt): continue
+                x = max((U[p] if p in U else 0) + whi(v, el[p][0]) for p in alt)
+            else:
+                if not all(p in U for p in alt): continue
+                x = max(U[p] + whi(v, el[p][0]) for p in alt)
             ba = x if ba is None or x < ba else ba
         if ba is None and not (NOPREV and False): continue
         U[e] = max(pr, ba)
     upcache[key] = (horizon, U); return U
 ord_arr = np.array(order, dtype=np.int64)
+DEEP = "--deep" in sys.argv
 @functools.lru_cache(maxsize=200000)
-def form4(B, A, ncand=10):
+def form4(B, A, ncand=None):
+    ncand = ncand or (60 if DEEP else 10)
     """best Sep(B -> A) by form iv: max over recent common ancestors e0 (tm e0 < tm B) of Sep23(e0->A) - Up(e0->B)"""
     m = np.minimum(VCP[A], VCP[B]); best = (-INF, None)
     cands = []
     for x in np.nonzero(m)[0]:
-        e0 = eid[(xs[x], int(m[x]) - 1)]
-        if tm[e0] < tm[B]: cands.append((tm[e0], e0))
+        for back in ((1, 2, 3) if DEEP else (1,)):
+            if int(m[x]) - back < 0: continue
+            e0 = eid[(xs[x], int(m[x]) - back)]
+            if tm[e0] < tm[B]: cands.append((tm[e0], e0))
     # also: B's own earlier causes chain is covered by common ancestors
     cands.sort(reverse=True)
     for _, e0 in cands[:ncand]:
@@ -381,4 +462,4 @@ for (U, W), (mg, f4, vv, e0) in sorted(rtinfo.items(), key=lambda x: x[1][0])[:1
 print("remaining failures (final round), sample:")
 for (v, kind, nn, D) in [f for f in fails if f[1] != "X"][:12]:
     print("   %s %s %s n=%s D=%s" % (nm[v], "CTRL" if v in C["CTRL"] else "", kind, nn, [nm[u] for u in D]))
-pickle.dump(dict(rt=rt, rtinfo=rtinfo, fails=fails, rows_fail=rows_fail, alts=alts), open("/tmp/claude-0/tocc/ao_c%d%s.pkl" % (c, "_noprev" if NOPREV else ("_prevanc" if PREVANC else "")), "wb"))
+pickle.dump(dict(rt=rt, rtinfo=rtinfo, fails=fails, rows_fail=rows_fail, alts=alts), open("/tmp/claude-0/tocc/ao_c%d%s.pkl" % (c, ("_noprev" if NOPREV else ("_prevanc" if PREVANC else "")) + ("_deep" if DEEP else "") + ("_bcp" if BCP else "") + ("_cyc" if CYC else "") + ("_causeanc" if CAUSEANC else "") + ("_robust" if ROBUST else "") + ("_robn" if ROBNODES else "")), "wb"))

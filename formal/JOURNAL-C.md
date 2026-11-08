@@ -2292,3 +2292,28 @@ THE target passes yet, so nothing about THE target is proved.
   * Missing: one `settle_partial` instance over 3,224 members with ρ ≤ 14 (window [A + 15·M, R-1]). It needs
     M ≈ 4,636 ps at c = 1, versus 3,881 for the island.
 * A subagent is building that instance (Formal/Net/CViewPS/RIsl*.lean).
+
+### progress 10:59
+**The failing skew rows are certificate artefacts, not races (untrusted Python, tools/tocc; pair (12,18), g = 1,
+κ = 0, c = 0 and c = 1).**
+* *Problem:* are the 3,455 / 2,870 failing TO rows, and the local-check failures left after lowering L, real hazards
+  of THE target, or a weakness of how the certificate's causes were chosen?
+* *Worst row traced:* SLICE_X13Y25.B6 = b ∧ SLICE_X13Y25.A6, and A6 = b ∧ …, where b = SLICE_X15Y92.B6 is a
+  broadcast to a 32-bit register.
+  * v can fall through A6 up to 553 ps before it reads b's fall. The inversion is real within the windows.
+  * It is harmless: the AND is already 0, and an adversarial-delay simulation shows no extra event.
+  * c = 1 has the same shape with SLICE_X0Y48.A6.
+* *Two construction changes:*
+  * a cycle cut that removes only one alternative per found cycle (`--cyc`, 5 removals);
+  * `--causeanc`: Up may take a cause of its chosen alternative that is separated before e0, as hi'(v,p).
+* *Result:* local-check failures 601/282 → 21/21 → **3/3**. No failing TO row is then needed by any reader's local
+  check: all 4,441 (c=0) / 3,725 (c=1) are harmless lowerings of L. 2,784 RT edges; minimum reader margin
+  1,520 ps (c=0) and 4,095 ps (c=1).
+* *The 3 left:* a don't-care mux input (select elsewhere) appended to the wrong event, at SLICE_X14Y19.A5,
+  SLICE_X38Y51.B5 and SLICE_X38Y51.A6. The proposed fix is to attach it to the first later event whose enabling
+  depends on it; not implemented. Two of these gates read the arbiter-0 grant.
+* *Lean, this step (check.sh OK):* the `--causeanc` clause is now in `UpOKA` (`up_sound` re-proved; `upB`
+  updated). `--cyc` needs no Lean: it is a choice of certificate, and TmOK is checked anyway.
+* *Not checked:* data GuardTime margins under the new Sep/Up, ValOK/CovTime, other operand pairs, any Lean
+  instance. The evidence is one midpoint run per corner.
+* *Reading:* the first credible sign that a timed certificate for THE target exists at g = 1, κ = 0. Not a proof.
