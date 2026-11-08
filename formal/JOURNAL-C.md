@@ -2069,3 +2069,10 @@ justified by SepOKR's fourth form through the common ancestor (Sep 5 physical, U
 of `timedR_follows` is discharged (TBehX, TmOK CP/CF, LSound via LStep, Up/Sep checks, TO, LCheckX via the Boolean
 enumerator, RT justification, empty claim/guard lists) and `toyR_follows` concludes (ideals of CF to 30 ps, SepSound).
 check.sh OK, standard axioms.
+
+### progress 08:27 -- Net/TimedOccDec.lean CLAIMED: Boolean checkers for the timing obligations
+`Formal/Net/TimedOccDec.lean` (check.sh OK; standard axioms): separation and upper-bound tables as entry lists with
+lookups; `sepB`/`sepOKR_of_B` (all four forms, the common-ancestor form searched over the table), `upB`/`upOK_of_B`,
+`toB`/`to_of_B` (every node of a list, every pair of its dependency list, every event), `rtB`/`rt_of_B` (every
+RT edge has a separation ≥ 1). With OccNetDec's enumerator for the local check, every certificate hypothesis of
+TimedOccRT except the data-claim checks now has a Boolean form.
