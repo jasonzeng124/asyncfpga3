@@ -2212,3 +2212,9 @@ like "the OR fired but neither input was read", which no circuit run produces, a
 `own_readA` proves this of every real read tuple (the reader was enabled by its reads then, reads are monotone);
 `chkXA` filters by it (`ownB`). Statements of timedA_follows / timedA_live unchanged in shape (the hypothesis
 `hloc` became weaker, so the theorems became stronger).
+
+### progress 09:05 -- Net/AO/Toy.lean CLAIMED: non-vacuity of the AND-OR timed theorem (check.sh OK)
+An OR gate reads two environment inputs rising at 10 and 12 ps (read delay 1), fires at 11 ps on the first; its
+event has two alternatives [(in0,0)], [(in1,0)]. Every hypothesis of `timedA_follows` is discharged (local checks by
+`lcheckXA_of_enum` with the own-history filter; without that filter the OR gate's check fails on the vector "fired,
+neither input read"), and `toyA_follows` concludes.
