@@ -1889,3 +1889,21 @@ outputs are those of the certificate run: safety), and no run stops early (no de
 level). (2) Python (subagent): compute that certificate for THE target's machine for single pairs and run the local
 check, to see whether it is small enough to discharge in Lean. Not addressed today: the timed -> abstract refinement
 (the abstract machine's relation to Spec behaviours), and all pairs at once.
+
+### progress 08:2x -- Net/OccNet.lean CLAIMED: an occurrence-net certificate decides every interleaving (generic, core Lean)
+`Formal/Net/OccNet.lean` (plain `lean` OK; axioms propext, Classical.choice, Quot.sound; no sorry/native_decide).
+**Problem, plainly:** a machine of Boolean nodes, a move flips one node `v` allowed by an arbitrary rule `en v s`
+(excited and not blocked by an RT order, or an environment rule). A certificate is one partial order of events:
+per node its number of events `len u`, per event `(u, k)` its immediate causes and a time stamp decreasing along
+causes (`TmOK`; e.g. positions in one recorded run). An ideal is a count vector closed under causes.
+**Proved:** if in the state of every ideal `en v` holds exactly when `v`'s next event is enabled (`GCheck`), then
+every valid run's count vector is an ideal and its state the ideal's state (`valid_ideal`; `reach_prop`: any
+property of all ideal states holds after every run: safety); a terminal ideal is full (`terminal_full`: no
+deadlock before every event of the certificate has happened); every run that cannot be extended fires each node
+exactly `len` times and ends in the certificate's final state (`maximal_run`), every run extends to one
+(`extend_run`), and no run is longer than `Σ len` (`run_length_le`). `GCheck` follows from a LOCAL check per node
+(`LCheck`: count vectors constrained only on `v`'s dependency list by lower bounds `L u k w`, "event (u,k) has
+at least L events of w below it") with bounds justified one step at a time along causes (`LStep`,
+`lsound_of_step`). `occnet_summary` packages it. Unlike Keller.lean it needs no persistence on the (unknown)
+reachable states: the certificate's order stands in for them.
+**Not shown:** a decidable enumerator for LCheck (next), any instance, the timed -> abstract refinement.
