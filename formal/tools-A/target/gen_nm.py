@@ -51,6 +51,7 @@ def parse_net():
 
 def main():
     tg_path, tc_path, out = sys.argv[1:4]
+    ttdir = os.path.dirname(os.path.abspath(tc_path))  # tile_type_*.json next to tileconn.json
     names, chunks = parse_net()
     grid = json.load(open(tg_path))
     at = {(t["grid_x"], t["grid_y"]): n for n, t in grid.items()}
@@ -156,7 +157,7 @@ def main():
                    lambda p: "(%d, %d)" % (WI[p[0]], WI[p[1]]))
         rl.append((ri, "⟨%d, %d, %d, %d, %d, %d, %s⟩" % (max(dx, 0), max(-dx, 0), max(dy, 0), max(-dy, 0),
                                                         TY[t1], TY[t2], prs)))
-    L.append("/-- tileconn.json entries (keyed by their index in the file), restricted to the wire pairs used. -/")
+    L.append("-- tileconn.json entries (keyed by their index in the file), restricted to the wire pairs used.")
     L.append("set_option maxRecDepth 100000 in")
     L.append("def rules : NT Rl := " + tree(rl, lambda s: s))
     L.append("")
@@ -164,26 +165,29 @@ def main():
     L.append("")
     L.append("end Formal.Target.NM.Data")
     open(os.path.join(out, "DB.lean"), "w").write("\n".join(L) + "\n")
-    # C
+    # C: pieces of PIECE leaves, FILES files
     items = sorted((n, (TI[a], WI[b])) for n, (a, b) in canon.items())
-    L = ["import Formal.Target.NodeMerge", "", hdr, "namespace Formal.Target.NM.Data", "open Formal.Target.NM", ""]
+    PIECE, NF = 2000, 8
+    pieces = [items[i:i + PIECE] for i in range(0, len(items), PIECE)]
+    per = (len(pieces) + NF - 1) // NF
     parts = []
-    K = 8
-    step = (len(items) + K - 1) // K
-    for p in range(K):
-        sl = items[p * step:(p + 1) * step]
-        L.append("set_option maxRecDepth 100000 in")
-        L.append("def c%d : NT (Nat × Nat) := %s" % (p, tree(sl, lambda v: "(%d, %d)" % v)))
-        L.append("")
-        parts.append((sl[0][0], "c%d" % p))
+    for f in range(NF):
+        L = ["import Formal.Target.NodeMerge", "", hdr, "namespace Formal.Target.NM.Data", "open Formal.Target.NM", ""]
+        for pi in range(f * per, min((f + 1) * per, len(pieces))):
+            sl = pieces[pi]
+            L.append("set_option maxRecDepth 100000 in")
+            L.append("def c%03d : NT (Nat × Nat) := %s" % (pi, tree(sl, lambda v: "(%d, %d)" % v)))
+            L.append("")
+            parts.append((sl[0][0], "c%03d" % pi))
+        L.append("end Formal.Target.NM.Data")
+        open(os.path.join(out, "C%d.lean" % f), "w").write("\n".join(L) + "\n")
     def comb(ps):
         if len(ps) == 1:
             return ps[0][1]
         m = len(ps) // 2
         return "(.node %d %s %s)" % (ps[m][0], comb(ps[:m]), comb(ps[m:]))
-    L.append("def C : NT (Nat × Nat) := " + comb(parts))
-    L.append("")
-    L.append("end Formal.Target.NM.Data")
+    L = ["import FormalWit.NM.C%d" % f for f in range(NF)] + ["", hdr, "namespace Formal.Target.NM.Data",
+         "open Formal.Target.NM", "", "def C : NT (Nat × Nat) := " + comb(parts), "", "end Formal.Target.NM.Data"]
     open(os.path.join(out, "C.lean"), "w").write("\n".join(L) + "\n")
     # K chunks
     def pth(p):
@@ -191,7 +195,8 @@ def main():
     for ci, (gs, cc) in enumerate(zip(chunks, certs)):
         L = ["import FormalWit.NM.DB", "import FormalWit.NM.C", "import Formal.Target.NetPS.G%03d" % ci, "", hdr,
              "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
-             "theorem g%03d_len : g%03d.length = %d := by decide +kernel" % (ci, ci, len(gs)), ""]
+             "theorem g%03d_len : g%03d.length = %d := by decide +kernel" % (ci, ci, len(gs)), "",
+             "abbrev PP%03d : Gate → Prop := fun g => isPip g = true → PipOK D C g" % ci, ""]
         nsub = (len(gs) + SUB - 1) // SUB
         for s in range(nsub):
             row = []
@@ -208,19 +213,93 @@ def main():
                      (ci, s, ci, s * SUB, SUB))
             L.append("  chk_slice D C g%03d %d %d q%03d_%d (by decide +kernel)" % (ci, s * SUB, SUB, ci, s))
             L.append("")
-        chain = "all_drop_len _ g%03d %d (Nat.le_of_eq g%03d_len)" % (ci, nsub * SUB, ci) if nsub * SUB == len(gs) \
-            else "all_drop_len _ g%03d %d (by rw [g%03d_len]; decide)" % (ci, nsub * SUB, ci)
+        chain = "(all_drop_len PP%03d g%03d %d (Nat.le_of_eq g%03d_len))" % (ci, ci, nsub * SUB, ci) if nsub * SUB == len(gs) \
+            else "(all_drop_len PP%03d g%03d %d (by rw [g%03d_len]; decide))" % (ci, ci, nsub * SUB, ci)
         for s in reversed(range(nsub)):
-            chain = "(all_drop_take _ g%03d %d %d k%03d_%d %s)" % (ci, s * SUB, SUB, ci, s, chain)
+            chain = "(all_drop_take PP%03d g%03d %d %d k%03d_%d %s)" % (ci, ci, s * SUB, SUB, ci, s, chain)
         L.append("theorem k%03d : ∀ g ∈ g%03d, isPip g = true → PipOK D C g := by" % (ci, ci))
         L.append("  have h := %s" % chain)
         L.append("  rwa [List.drop_zero] at h")
         L.append("")
         L.append("end Formal.Target.NM.Data")
         open(os.path.join(out, "K%03d.lean" % ci), "w").write("\n".join(L) + "\n")
+    # LUT pins (NodeMergeLut): sites, pin wires, per-chunk checks
+    def ttj(ty, _c={}):
+        if ty not in _c:
+            _c[ty] = json.load(open(os.path.join(ttdir, "tile_type_%s.json" % ty)))
+        return _c[ty]
+    site_tile = {}
+    for t, v in grid.items():
+        for sn in v.get("sites", {}):
+            if sn.startswith("SLICE_"):
+                site_tile[sn] = t
+    def rank(site):
+        t = site_tile[site]
+        xs = sorted(int(re.match(r"SLICE_X(\d+)Y", s2).group(1)) for s2 in grid[t]["sites"] if s2.startswith("SLICE_"))
+        return xs.index(int(re.match(r"SLICE_X(\d+)Y", site).group(1)))
+    lre = re.compile(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$")
+    lsites = sorted({lre.match(g[0]).group(1) for gs in chunks for g in gs if lre.match(g[0])})
+    SI = {x: i for i, x in enumerate(lsites)}
+    for x in lsites:
+        assert site_tile[x] in TI, x
+    keys = {}
+    for x in lsites:
+        t = site_tile[x]; ty = grid[t]["type"]; r = rank(x)
+        k = TY[ty] * 2 + r
+        if k in keys:
+            continue
+        site = [z for z in ttj(ty)["sites"] if z["x_coord"] == r and z["prefix"] == "SLICE"]
+        assert len(site) == 1, (ty, r)
+        row = []
+        for li, Lt in enumerate("ABCD"):
+            for j in range(6):
+                w = site[0]["site_pins"]["%s%d" % (Lt, j + 1)]["wire"]
+                if w not in WI:
+                    sys.exit("pin wire %s not interned" % w)
+                row.append((li * 6 + j, WI[w]))
+        keys[k] = row
+    L = ["import Formal.Target.NodeMergeLut", "", hdr, "namespace Formal.Target.NM.Data", "open Formal.Target.NM", ""]
+    L.append("-- slice sites (tilegrid.json): name, tile index, rank among the tile's slices (prjxray X0/X1)")
+    L.append("set_option maxRecDepth 100000 in")
+    L.append("def sites : NT Site := " + tree([(SI[x], x) for x in lsites],
+             lambda x: '⟨"%s", %d, %d⟩' % (x, TI[site_tile[x]], rank(x))))
+    L.append("")
+    L.append("-- site pins <L><j+1> (tile_type_*.json): key ty * 2 + rank, then L * 6 + j -> wire")
+    L.append("set_option maxRecDepth 100000 in")
+    L.append("def pins : NT (NT Nat) := " + tree(sorted(keys.items()), lambda row: tree(row, lambda w: "%d" % w)))
+    L.append("")
+    L.append("def P : SP := ⟨sites, pins⟩")
+    L.append("")
+    L.append("end Formal.Target.NM.Data")
+    open(os.path.join(out, "S.lean"), "w").write("\n".join(L) + "\n")
+    nl = 0
+    for ci, gs in enumerate(chunks):
+        row = []
+        for g in gs:
+            m = lre.match(g[0])
+            if m:
+                nl += 1
+                # pin wires must equal the canonical wire of each input node
+                for j, n in enumerate(g[2]):
+                    t = site_tile[m.group(1)]
+                    want = (TI[t], dict(keys[TY[grid[t]["type"]] * 2 + rank(m.group(1))])["ABCD".index(m.group(2)) * 6 + j])
+                    if canon.get(n) is None or (TI[canon[n][0]], WI[canon[n][1]]) != want:
+                        sys.exit("LUT pin mismatch %s %d" % (g[0], j))
+                row.append("some ⟨%d, %d, %s⟩" % (SI[m.group(1)], "ABCD".index(m.group(2)), "true" if m.group(3) == "6" else "false"))
+            else:
+                row.append("none")
+        L = ["import FormalWit.NM.S", "import FormalWit.NM.DB", "import FormalWit.NM.C", "import Formal.Target.NetPS.G%03d" % ci, "", hdr,
+             "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
+             "def l%03d : List (Option LC) := [%s]" % (ci, ", ".join(row)), "",
+             "theorem lk%03d : ∀ g ∈ g%03d, isLut g = true → LutOK D P C g :=" % (ci, ci),
+             "  chkLutList_sound D P C g%03d l%03d (by decide +kernel)" % (ci, ci), "",
+             "end Formal.Target.NM.Data"]
+        open(os.path.join(out, "L%03d.lean" % ci), "w").write("\n".join(L) + "\n")
+    print("gen_nm: %d LUT gates on %d sites" % (nl, len(lsites)))
     # All
     n = len(chunks)
-    L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.K%03d" % i for i in range(n)] + ["", hdr,
+    L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.K%03d" % i for i in range(n)] + \
+        ["import FormalWit.NM.L%03d" % i for i in range(n)] + ["", hdr,
          "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
          "/-- **Every pip gate of THE target's decoded netlist** (implicit pips included) is named `[~]T.D.S` by a",
          "tile and two wires of prjxray's tables, and the nodes it reads and drives are, by tileconn, the electrical",
@@ -239,6 +318,19 @@ def main():
           "      D.wires.get sh = some shn ∧ (∃ pre s, g.name = pre ++ Ag.name ++ \".\" ++ dng ++ \".\" ++ s) ∧",
           "      (∃ pre d, h.name = pre ++ Ah.name ++ \".\" ++ d ++ \".\" ++ shn) ∧ Conn D (tg, dg) (th, sh) :=",
           "  pip_link (pips_ok g hg pg) (pips_ok h hh ph) ih", "",
+          "/-- **Every LUT gate** reads, on input `j`, the node of its site's pin `<L><j+1>` wire (prjxray site pins). -/",
+          "theorem luts_ok : ∀ g ∈ net.gates, isLut g = true → LutOK D P C g := by",
+          "  intro g hg",
+          "  simp only [net, gates, List.mem_append] at hg",
+          "  rcases hg with " + " | ".join("h" for _ in range(n))] + ["  · exact lk%03d g h" % i for i in range(n)] + ["",
+          "/-- **The pip driving LUT input `j` reaches the site wire of pin `<L><j+1>`** (the chip's pin order). -/",
+          "theorem lut_pins_driven {g h : Gate} (hg : g ∈ net.gates) (hh : h ∈ net.gates) (lg : isLut g = true)",
+          "    (ph : isPip h = true) {j : Nat} (hj : g.ins[j]? = some h.out) :",
+          "    ∃ (s : Nat) (S : Site) (T : Tl) (L : Nat) (o6 : Bool) (w th dh : Nat) (Ah : Tl) (dnh : String),",
+          "      P.sites.get s = some S ∧ D.tiles.get S.tile = some T ∧ g.name = lutName S L o6 ∧",
+          "      pinWire P T.ty S.rank L j = some w ∧ D.tiles.get th = some Ah ∧ D.wires.get dh = some dnh ∧",
+          "      (∃ pre sn, h.name = pre ++ Ah.name ++ \".\" ++ dnh ++ \".\" ++ sn) ∧ Conn D (th, dh) (S.tile, w) :=",
+          "  lut_pin_driver (luts_ok g hg lg) (pips_ok h hh ph) hj", "",
           "end Formal.Target.NM.Data"]
     open(os.path.join(out, "All.lean"), "w").write("\n".join(L) + "\n")
     print("gen_nm: %d pips, %d tiles, %d wires, %d types, %d rules (%d pairs), %d canonical nodes, %d chunks" %

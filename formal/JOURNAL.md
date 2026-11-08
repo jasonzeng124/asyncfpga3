@@ -2062,3 +2062,11 @@ K000-K074, All); building. Not claimed until it checks.
 Python side note: 385 nodes are read but driven by no gate: FF outputs/D pins (no FF gate by design), 97 INT_L GND_WIRE,
 FAN/BYP_BOUNCE, 56 LOGIC_OUTS of FF-driven outputs, BUFG/BUFHCE; none reaches a LUT/MUX/CARRY gate through copy gates
 except the FF outputs (checked in Python for the routing ones).
+### progress 08:0x -- NodeMergeLut (LUT input pins vs prjxray site pins): generic compiles; chunks K000/L000 check
+`Formal/Target/NodeMergeLut.lean` (compiles): trusted `SP` = slice sites (tilegrid: name, tile, rank among the tile's
+slices = prjxray's X0/X1) and per tile type/rank the wire of site pin `<L><j+1>` (tile_type_*.json); `LutOK`: a LUT
+gate `SITE.<L>LUT.O6/O5` reads on input j a node whose canonical wire is that pin's wire in the site's tile;
+`lut_pin_driver`: with `PipOK` of the pip driving input j, the fabric joins the pip's destination wire to the pin's
+site wire (the netlist's pin order A1..A6 is the chip's). Python mirror: 16,488 LUT gates on 2,423 sites, every
+input pin's node is exactly its site-pin wire. First data chunks `FormalWit/NM/K000` (2,500 gates, 10 decides,
+100 s) and `L000` (62 s) build; the full `FormalWit.NM.All` build (150 chunk modules) started 08:0x.
