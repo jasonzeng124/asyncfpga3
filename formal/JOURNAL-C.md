@@ -2098,3 +2098,11 @@ integer bounds depend on c. Proved: the integer route bounds lie inside the rati
 those sums are affine in c (`rlo_affine`, `rhi_affine`), and `skew_all_corners`: a skew row "Σ hi(route b) ≤ Σ lo(route a)
 + Σ lo(path)" checked in rationals at c = 0 and c = 1 holds in the integer form at every c ∈ [0,1]. So an instance's
 TO rows need two rational checks each, not one per corner.
+
+### progress 08:34 -- fact (Python, untrusted): the 319 undriven nodes cannot influence the boundary outputs
+Spec leaves nodes driven by no gate unconstrained. On the Lean netlist (lean2json): 319 undriven non-environment
+nodes (FF outputs, floating pins); 55 of them reach a logic gate through copy chains; their whole forward cone
+(2,439 nodes, through every gate, stopping at environment nodes) contains none of the 36 boundary outputs (acks,
+out0.req, out0.data). So a timed net for THE target can be the backward cone of the boundary outputs: closed under
+pin sources, its only free nodes are the environment's. Tool: `formal/tools/occ/free_cone.py` (needs net.json/bnd.json
+from lean2json). A Lean version would be a cone-closure check over the netlist (not done).
