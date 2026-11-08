@@ -2070,3 +2070,11 @@ gate `SITE.<L>LUT.O6/O5` reads on input j a node whose canonical wire is that pi
 site wire (the netlist's pin order A1..A6 is the chip's). Python mirror: 16,488 LUT gates on 2,423 sites, every
 input pin's node is exactly its site-pin wire. First data chunks `FormalWit/NM/K000` (2,500 gates, 10 decides,
 100 s) and `L000` (62 s) build; the full `FormalWit.NM.All` build (150 chunk modules) started 07:4x.
+### progress 08:4x -- NodeMerge pip part CHECKED chunk by chunk (75/75); LUT/MUXF/CARRY chunks rebuilding 2 at a time
+All 75 `FormalWit/NM/K*` modules build (each 10 kernel decides of 250 gates, ~100-130 s): every pip gate's
+certificate is accepted by `chkList`. The first parallel `lake build FormalWit.NM.All` ran 4 modules at once and the
+`L*` LUT chunks (one decide over 2,500 gates each) were OOM-killed (exit 137, no Lean error); rebuilding L*/X* two at a
+time. Also generated `NodeMergePin` data (S2, X000-X074, AllX): 1,467 MUXF7/F8 + CARRY4 gates; the carry-in pins
+need 4 CIN wires and 3 tileconn pairs not in DB, added as `D2` = DB extended (same tile keys; extra rules under
+10000 + tileconn index). Generated data committed now; `pips_ok`/`luts_ok`/`xs_ok` not claimed until All/AllX build
+and check.sh --wit audits them.
