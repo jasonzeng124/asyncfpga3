@@ -2171,3 +2171,17 @@ some may become unnecessary (the gate does not need both orders fixed), the rest
 **Meaning:** the generic route stands, but the event model must become AND-OR before any instance can pass. Next:
 (2)-(4) are small changes to TimedOcc's obligations; (1) is a refactor of OccNet's Cert (causes as a list of
 alternative sets) through the whole chain.
+
+### progress 08:59 -- Net/AO/{Occ,Timed}.lean CLAIMED: the timed theorem with AND-OR causes and the relaxed skew rows
+Answer to the 09:xx negative result. `Formal/Net/AO/Occ.lean`: certificates whose events have a list of ALTERNATIVE
+cause sets (`AO.Cert`; an event is enabled by any alternative fully counted; ideals likewise); `enabled_of_not_full`
+(no deadlock: time stamps decrease along every cause of every alternative), `lsound_of_step` (bounds justified
+through EVERY alternative are sound). `Formal/Net/AO/Timed.lean`: `timedA_follows` -- every bounded-delay behaviour
+follows such a certificate (ideals of the full order, every exact change a certified event, every data claim holds,
+separations sound), with: separations back through a cause found in every alternative (`SepOKA`), upper bounds
+through any one alternative (`UpOKA`), RT edges added per alternative (`hRT`), reader-specific bounds `L v`, skew
+rows `TOA` only for distinct sources, and rows whose first source is the reader discharged by naming, for an earlier
+event of the reader, a cause on the other source in every alternative (`read_consistentA` uses the reader's own
+enabling read and monotone reads), data claims with chains (TimedOccU). check.sh OK on both; standard axioms.
+This removes the four over-strong/missing points the Python study found (OR-causality, diagonal rows, reader rows,
+global L); whether THE target's certificate then passes is not yet re-measured. Liveness for AO: next.
