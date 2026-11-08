@@ -363,6 +363,11 @@ def main():
                     return ("undriven",)
                 if cells[x[0]]["type"] in CONST:
                     return ("const", CONST[cells[x[0]]["type"]])
+                # a LUT with an all-0/all-1 INIT is that constant (nextpnr ties a DSP pin through an otherwise
+                # unused LUT; the decoder sees it as a bits-only INIT-0 LUT) -- the same fold section 3 applies
+                if lut_const(cells[x[0]]) is not None:
+                    FOLDED.append("%s/%s <- %s" % (b, p, bm[x[0]]))
+                    return ("const", lut_const(cells[x[0]]))
                 return (bm[x[0]], x[1])
             if d(j, jd, jc, bj) != d(f, fd, fc, bf):
                 flag("DSP DATA PIN DRIVER DIFFERS", "%s/%s json %s bits %s"

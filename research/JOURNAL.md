@@ -3061,3 +3061,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   vector: 1.186 SLOW_MAX, 1.184 FAST_MIN, 1.157 worst (1.12-1.22); soak routes gave 1.155.
 - All four kernel item-3 steps are now gated on the board's own top: xorshift x0.5 1.44x (8 routes), collatz64 x0.75
   1.17x, ipow x0.75 1.15x, collatz per-cell 1.17x (4-5 routes each). isprime waits on the owner's gate decision.
+### progress 20:25 (fasm_equiv: DSP data pins now fold a constant-INIT LUT driver, like every other pin)
+- ipow x0.75 bench seed 6 read NOT_EQUIVALENT: "DSP DATA PIN DRIVER DIFFERS" on DSP48_X0Y14 A21-A23, json const 0, bits
+  driven by SLICE_X2Y28/A6LUT -- a bits-only LUT with INIT all 0 (nextpnr ties the pin to GND through an unused LUT;
+  the dsp-constpins patch's job). Section 3 already folds such LUTs; the DSP data-pin comparison (2b) did not.
+- Fix: 2b applies lut_const() to the driver on both sides and lists the pin under the CONST_LUT folds. On this route:
+  EQUIVALENT, the three pins listed as folded. Negative control: the same LUT given INIT ...0001 -> NOT EQUIVALENT with
+  "DSP DATA PIN DRIVER DIFFERS" on A21-A23 again. tests: 30 passed. The run itself passed 17/17 either way.
