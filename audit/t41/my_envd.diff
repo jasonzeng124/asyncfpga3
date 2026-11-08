@@ -1,0 +1,30 @@
+--- /root/wt-r34/cells/gls/fid/soak_fid.py	2026-11-05 12:16:15.000000000 +0000
++++ soak_fid_envd.py	2026-11-08 00:48:29.029538192 +0000
+@@ -24,7 +24,7 @@
+ import argparse, json, os, re, shutil, subprocess, sys
+ from pathlib import Path
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path("/root/wt-r34/cells/gls/fid")
+ GLS = HERE.parent
+ CELLS = GLS.parent
+ sys.path.insert(0, str(CELLS.parent / "bdc"))
+@@ -153,7 +153,8 @@
+                 verdict(False, ["SOAK all FAIL: harness aliases independently driven ports"])
+             driven.add(bit)
+             value = f"{port}[{i}]" if port.endswith("_data") else port
+-            connection.append(f"wire drive_{bit} = {value};")
++            dly = int(os.environ.get("SOAK_ENV_DELAY", "0")) if port != "rst" else 0
++            connection.append(f"wire #{dly} drive_{bit} = {value};" if dly else f"wire drive_{bit} = {value};")
+             connection.append(f"initial force dut.n{bit} = drive_{bit};")
+     for port in observe:
+         bits = signals[port]
+@@ -162,6 +163,8 @@
+     for kind in ("stalled", "fast"):
+         tb = (sd / f"tb_{kind}.v").read_text()
+         tb = re.sub(r"bdc_\w+ dut\([^\n]+", "\n".join(connection), tb)
++        # T41 audit addition (zero-time, observe only): print each vector's captured result before its check
++        tb = re.sub(r'(  if \(out0_got !== [^\n]+\n\s*\$fatal\(1, "vector (\d+):)', lambda m: '  $display("GOT %s %%0h", out0_got);\n' % m.group(2) + m.group(1), tb)
+         for arg, lead in leads.items():
+             if lead is not None:
+                 tb = re.sub(rf"bd_source #\(\.W\((\d+)\)\) {arg}_src\(",
