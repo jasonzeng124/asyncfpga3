@@ -2076,3 +2076,9 @@ lookups; `sepB`/`sepOKR_of_B` (all four forms, the common-ancestor form searched
 `toB`/`to_of_B` (every node of a list, every pair of its dependency list, every event), `rtB`/`rt_of_B` (every
 RT edge has a separation ≥ 1). With OccNetDec's enumerator for the local check, every certificate hypothesis of
 TimedOccRT except the data-claim checks now has a Boolean form.
+
+### progress 08:30 -- Net/TimedOccDecX.lean CLAIMED: Boolean checkers for the data layer
+`Formal/Net/TimedOccDecX.lean` (check.sh OK; standard axioms): `chkX`/`lcheckX_of_enum` (LCheckX: OccNetDec's pruned
+count enumeration times every guarded assignment of the gate's data pins), `valB`/`valOK_of_B` (a data-gate claim's
+value for every assignment of its uncovered pins), `covTimeB`/`covTime_of_B`, `guardTimeB`/`guardTime_of_B`. Every
+certificate hypothesis of TimedOccRT now has a Boolean form with a soundness theorem (OccNetDec, TimedOccDec, this).
