@@ -38,6 +38,7 @@ def sep(e1, e2):
     s, _ = sepAny(e1, e2); return s
 def latest(cands):     # among event ids, the one latest in tm
     return max(cands, key=lambda e: tm[e])
+HOLDX = int(os.environ.get('HOLDX', '20000'))
 memo = {}; inprog = set(); stats = collections.Counter(); DEPS = []; CTX = []
 def exwin(u, t):
     k = sum(1 for x in ev[u] if x <= t)
@@ -248,7 +249,7 @@ def latch_claim(Q, sb, se, val):
             if kk >= 1: anchors.add(eid[(e, kk - 1)])
             if kk < len(ev[e]): anchors.add(eid[(e, kk)])
             CTX.append(tuple(sorted(anchors)))
-            w = claim(u, tD - dmd, min(tclose, se) - dmd)
+            w = claim(u, tD - dmd, min(stable(u, tD - dmd)[1] - 1, max(min(tclose, se), tclose if tclose < 10**12 else se) + HOLDX - dmd))
             CTX.pop()
             if w == "PENDING": continue
             if j in nT: Dw.append((u, w, dlo, dhi))

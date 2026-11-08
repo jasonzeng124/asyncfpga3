@@ -2383,3 +2383,25 @@ fail structurally (untrusted Python, tools/tocc; g = 1, κ = 0).**
 * *Reading:* the S4 blocker is now orderings that pass through the arbiter-fed merge in the loop. The adversarial
   search (144 runs) found no data-driven control change, so this looks like a proof-technique gap, not a defect.
   Not decided.
+
+### progress 14:12
+**The 105 merge-path guard failures were a claim-window artefact; safe by ordinary causal separations (untrusted
+Python, tools/tocc m1–m4.py, mrace.sh).**
+* *Problem:* the claim on z ended at SLICE_X16Y18.A6(1), a merge node that fires 14 ns before the reader's E. Race
+  or artefact?
+* *Found:* SLICE_X15Y19.B6 = SLICE_X17Y18.B6 ∨ SLICE_X16Y18.A6. It hands over from one input to the other and stays
+  1, and the latch SLICE_X11Y53.A6 holds it after its close.
+* *The argument:* two separations along physical causes. No RT edge, no environment and no arbiter fact is needed.
+  * OR hand-over: margin 24,594 ps (c=0) / 60,245 ps (c=1).
+  * Latch hold: margin 13,314 / 33,400 ps.
+* *Why it failed before:* the builder requested each latch's D claim only until the mid-delay close. Fixed with a
+  bounded extension (HOLDX).
+* *Adversarial check:* 12 runs (pairs (12,18), (8,12), (17,5) × 2 corners) with the race pushed to the window ends.
+  Every gcd was right; there were 0 data-driven control changes; the OR never glitched.
+* *Guards now failing:*
+  * (12,18): 78 (c=0) / 42 (c=1) of 264;
+  * (17,5): 171 / 138 of 406.
+  All are on SLICE_X38Y78.A6 and SLICE_X37Y68.B6, ending at other register-path events (SLICE_X34Y92.A6,
+  X34Y76.A6, X26Y70.A6, X30Y76.A6). These are not yet analysed: likely the same window artefact.
+* *Caveat:* the longer windows rely on many more ASSUMED register-loop self-cover fixpoints (2,915 at c=0, up from
+  49). That fixpoint must be checked before any of this counts. The data layer is not passing; no defect found.
