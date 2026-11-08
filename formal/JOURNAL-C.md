@@ -1870,3 +1870,22 @@ decides): `not_netCorrectSeqRunt20_R : ∀ D T su Δo, 137 ≤ T → Δo ≤ 300
 target that never answers. By seq_anti_p: false for every g ≥ 1.6 at every κ ≥ 0. Together with CexR44 and B's
 RaceFrontierPS (sufficient for its rows: g²(1+κ)/(1-κ) ≤ 2.433), the frontier on this race is pinned to within ~0.03
 on both axes. STATUS suggestion for A: replace the κ = 0.72 frontier row by these two (all R ≥ 400 ns, w = 0 and 20).
+
+## Session Sun Nov  8 07:20 UTC 2026 (shard C; session_01HC49FuGvem3PXi79C1GHgd)
+
+### progress 07:5x -- start; plan: S4/S6 at the abstract level, an exhaustive-by-certificate replacement for random walks
+Lock taken 07:2x (previous C lock 2026-11-07 10:32, > 90 min). Audit (head bb78f0a8, 2026-11-08 06:59): every row on C's
+files CONFIRMED (T37: CexR44/CexRg16 + AllR; T38: Stretch/Smax/Periodic); no open REFUTED/OVERSTATED row on C's files.
+A and B are alive today (B: latch-hold adversary sweep; A: not yet journaled). setup.sh running (Mathlib from source).
+Owner: spend capacity on S4 (composition) and S6 (liveness), not on more counterexamples. C's route (notes/C-route-S4.md,
+11-06): THE target's latches-first control machine is persistent under 30 relative-timing (RT) orders -- shown only by
+random walks (125 M moves) and a 40 M-state DFS that never got past move 911. Keller.lean turns persistence on the
+reachable states into "one terminating run decides every run", but nothing scalable proves that persistence.
+Today: (1) Lean, generic: an occurrence-net (event-structure) certificate. Given ONE candidate partial order of events
+(e.g. from a checked run) and RT orders, a check that is LOCAL per node (over the order ideals of the events of its
+support only) proves that every reachable state of the machine is the state of an order ideal, every run is a prefix of a
+linearization, every maximal run fires exactly the certificate's events (so the end state, all latched values and the
+outputs are those of the certificate run: safety), and no run stops early (no deadlock: liveness at the abstract
+level). (2) Python (subagent): compute that certificate for THE target's machine for single pairs and run the local
+check, to see whether it is small enough to discharge in Lean. Not addressed today: the timed -> abstract refinement
+(the abstract machine's relation to Spec behaviours), and all pairs at once.
