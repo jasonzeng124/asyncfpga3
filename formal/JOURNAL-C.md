@@ -2122,3 +2122,13 @@ A latch needs three consecutive claims, not two: transparent (en read high, Q fo
 feedback agree: this is where the latch's hold condition (D stable a little after close) enters), hold (en read low,
 Q follows its feedback, which is covered by the whole chain). `ChainOK`/`chain_holds` generalise the union to a chain;
 `timedU_follows` now takes chains. check.sh OK.
+
+### progress 08:40 -- Net/TimedOccXToy.lean CLAIMED: the data layer's hypotheses hold together (non-vacuity)
+Request (environment, rises at 10 ps), a constant data input (environment claim), a latch Q = en ? D : Q enabled by
+the request, and a control gate y = req ∧ Q that reads the request with delay 3 and Q with delay 1 (bundled data).
+Certificate: two exact events; claims D = true for ever, Q = true from 1 ps after the request (covered by D's
+claim, the request's state after one event, feedback unknown); y uses Q only after reading the request (a guard:
+1 + 1 ≤ 3). Every hypothesis of `timedX_follows` is discharged (LCheckX via `lcheckX_of_enum`, the claim's value via
+`valOK_of_B`, CovTime/GuardTime by hand); `toyX_follows`: both claims hold to 40 ps. check.sh OK, standard axioms.
+Remark: obligations on events that never happen (an index ≥ len) are unconstrained by SepOK (and sound: such an
+event never happens), which is how a claim "until the request's next event" is written when there is none.
