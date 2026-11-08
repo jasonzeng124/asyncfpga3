@@ -3475,3 +3475,9 @@ adversary (setup side, first wrong value in (0.68, 0.8]) neither half of the lat
 So the refutation frontier at g = 1 stays at the control race (0.44), and B's 0.376-0.44 certified latch bounds are
 certificate slack (independent causes keep the data, 08:22 entry). Not shown: other pairs (running next: the
 3-pair run's moving latches not covered here), multi-pin adversaries, the slow corner.
+
+### progress 09:42 -- 3-pair run: the 103 further latches whose data moves are correct too
+Baseline dump of the 3-pair broad run ((12,18), (1071,462), (6,4); κ = 0.43, all fast, correct): 103 latches move
+both enable and data there and were not in the full-width sweep; enable-pin adversary at κ = 0.43, w = 20: 103/103
+correct (`tools-B/ps/out/latchsweep_k43_d3.txt`). So 1,544 latches (every latch moving on either workload) have been
+attacked at 0.43 without a failure. Running: the same 1,441 at the slow corner (c = 1; latchsweep.py --corner 1).

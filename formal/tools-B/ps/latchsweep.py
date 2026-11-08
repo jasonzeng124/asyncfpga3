@@ -15,6 +15,7 @@ ap.add_argument("--kd", type=int, default=100); ap.add_argument("--w", type=int,
 ap.add_argument("--jobs", type=int, default=4); ap.add_argument("--pairs", nargs="+", default=["1071,462"])
 ap.add_argument("--first", nargs="*", default=[], help="latch names (net node names) to run first")
 ap.add_argument("--only", nargs="*", default=None)
+ap.add_argument("--corner", choices=["0", "1"], default="0", help="1: the slow-corner window (SLOW_MIN/SLOW_MAX)")
 ap.add_argument("--pin", choices=["e", "d"], default="e", help="slow the enable pin (hold race) or the data pin (setup race)")
 a = ap.parse_args()
 net = json.load(open(a.net)); G = net["gates"]; N = net["nodes"]
@@ -47,7 +48,7 @@ def run(j):
     if nm in done: return None
     cf = "%s/ls_%s_%d.json" % (W, nm.replace("/", "_"), os.getpid())
     json.dump({"S": arcs, "F": []}, open(cf, "w"))
-    cmd = ["python3", SIM, a.net, a.bnd, "--pairs", *a.pairs, "--corner", "0", "--kappa", repr(a.P / a.kd),
+    cmd = ["python3", SIM, a.net, a.bnd, "--pairs", *a.pairs, "--corner", a.corner, "--kappa", repr(a.P / a.kd),
            "--classes", cf, "--cdefault", "F", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", "3000000"] + (["--w", str(a.w)] if a.w else [])
     r = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, KDEN=str(a.kd)))
