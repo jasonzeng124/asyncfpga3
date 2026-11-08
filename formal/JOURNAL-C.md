@@ -1965,3 +1965,23 @@ environment move eventually happens, there is a time `T` from which every node h
 and no node ever changes again. With `timed_prop`, for a certificate whose final ideal contains the out0
 handshake with the right data, this would be safety and liveness for that run's input.
 **Not shown:** that environment liveness in Spec's form (ReqLive/AckLive with SeqEnv) gives `henv`; any instance.
+
+### progress 08:1x -- Net/TimedOccX.lean CLAIMED: the timed theorem with a data layer (bundled data as stable-window claims)
+`Formal/Net/TimedOccX.lean` (plain `lean` OK, rc 0; no sorry/native_decide; axioms being printed).
+**Problem, plainly:** the datapath glitches (a register's latches open together, the arithmetic behind them sees
+bits arrive at different times), so its nodes cannot be exact events. The design relies on bundling: control looks
+at a data node only while it is stable (`bd_steer`: req & s ignores s while req is low).
+**Model:** nodes split into exact (control, environment handshakes: every change is a certificate event) and data
+(no events). The certificate makes claims "data node z has value val on [τ(A) + a, τ(B) + b)" (A, B exact events
+or absent; a ∈ ℤ, b ∈ ℕ). Claims on free data nodes (operand buses: what H_ENV says) and all claims before t0 are
+hypotheses; claims on data gates are proved.
+**Checks:** per data-gate claim, each pin is covered by an exact source between two of its events, by a claim of
+its source, or unknown (X); the gate function gives val for every value of the unknown pins (`ValOK`, Kleene-style
+definiteness) and each covered window contains the pin's read times, which is two `Sep` inequalities per pin
+(`CovTime`). An exact gate may use a data input's value only in count vectors where a start witness has been read
+and an end witness not (`Guard`, `GuardTime`: two `Sep` inequalities); `LCheckX` is OccNet's local check with
+unguarded data inputs taking every value. Everything of TimedOcc for the exact nodes.
+**Proved (`timedX_follows`):** at every time the exact nodes' count vector is an ideal of the certificate, every
+exact change is a certified event, and every claim holds. Only `Sep` LOWER bounds are ever needed (no upper bounds
+on event times), so the obligations stay local and linear.
+**Not shown:** liveness with the data layer (TimedOcc's argument should carry over), any instance, the Spec bridge.
