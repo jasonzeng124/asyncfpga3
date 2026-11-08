@@ -3043,3 +3043,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   counted as driven by the constant network), i.e. router/packer, not a one-line FASM fix. Left for the owner: patch the
   site router (or legalise constant-D flops off the 5FF slots), with the toolchain.sh fingerprint this route provides
   (bench collatz64 T4, NEXTPNR_SEED=4: expect C5FFMUX in CLBLL_R_X19Y75.SLICEL_X1, or the flop moved).
+### progress 10:50 (collatz64 x0.75 on the bench top: 15/15, 1.17x; board list item 6)
+- Seeds 1-5 (base 4 not simulable, see above): x0.75 15/15 PASS 14/14 (incl. 4 vectors on the 3n+1 path), gate clean;
+  T4 12/12 on 1/2/3/5. Paired per 350-step vector (batch cycle totals): 1.170 SLOW_MAX, 1.171 FAST_MIN, 1.168 worst
+  (1.07-1.22; seed 2 is the slow pair). Same gain as the soak routes (1.18). NOT_EQUIVALENT on s75_4 and base_5: single
+  benign GND-buffer CARRY4/F7 inputs (checked).
+- BOARD-QUEUE #7 + list item 6 (loop_cost.sh at CLK 0x00100C00, research/tools/loop_cost_judge.py, checked both ways).

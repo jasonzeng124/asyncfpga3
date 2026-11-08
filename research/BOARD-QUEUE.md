@@ -43,6 +43,10 @@ valuable first. Each one: branch/commit, exact commands, pass criterion
    median error of the 0.288 prediction within +/-5%, every ring inside its FAST_MIN..SLOW_MAX). The judge was
    checked on the first route's data: 0.288 PASS, 0.38 FAIL. A FAIL with every ring inside the corners means the band
    does not transfer between routes (the judge prints this route's own x).
+6. **collatz64 with every matched delay at x0.75, on the kernel bench**: #7 below. 15/15 full-stack runs on the bench top
+   (5 routes x 3 corners, 14/14 vectors), predicted 1.17x per iteration (1.07-1.22 over 4 paired routes; 1.17-1.19 on
+   the route the board builds). One judge: `python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_s75.tsv
+   build/hw/lc_t4.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -355,6 +359,25 @@ with T3 PASS = a bundling margin the full stack mis-predicts at x0.5 (send both 
 re-keyed sizes, not x0.5.
 Evidence: research/data/xorshift_bench/results.tsv (48 rows: bits vs JSON EQUIVALENT except 5 routes' single benign
 GND-buffer F7/CARRY4 input, gate clean, 17/17 every run); research/data/item3/README.md (8 soak routes); JOURNAL 2026-11-07.
+
+## 7. collatz64 x0.75 on the kernel bench -- every matched delay ceil(0.75*n); 15/15 full-stack runs on 5 bench routes
+PROGRAM item 3's collatz64 step (8/8 soak routes, 1.18x) on the board's own top, with its T4 base on the same seeds
+(research/data/collatz64_bench/results.tsv). Sizes re-keyed for the bench (research/data/collatz64_sizes_T4{,s75}
+_bench.vh). Rule A fails 12-17 cells on every bench route of both builds (informational, PROGRAM item 1:
+BD_SIZES_GATE=0). nextpnr 9c732bc6303458df. The T4 base on seed 4 could not be simulated: its bits leave a 5FF D mux
+unconfigured (a nextpnr gap, JOURNAL 2026-11-08) -- any board build must show EQUIVALENT in fasm_equiv. From cells/:
+
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4s75_bench.vh ./hw/build_bench.sh collatz64
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 412bd505 = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_s75.tsv
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4_bench.vh ./hw/build_bench.sh collatz64
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # ebb49f83
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_t4.tsv
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_s75.tsv build/hw/lc_t4.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (both builds answered all 10 of loop_cost.sh's points; it asserts each and drops a
+failing one). Checked both ways on synthetic files. Then the per-iteration ratio, predicted 1.17-1.19 on this route.
+What it would mean: as #6 (xorshift), at a gentler shrink.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
