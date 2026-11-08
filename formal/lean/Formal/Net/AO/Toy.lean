@@ -115,8 +115,8 @@ theorem hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn
     simp [Fx, h0, h1, h2, Enabled, C, h3]
 
 theorem hEnvE : ∀ v s, N.gate v = false → dat v = false → 5 < s → x v s ≠ x v (s - 1) →
-    Enabled C (fun w => cnt x 5 w (s - 1)) v := by
-  intro v s hg _ hs hch
+    Ideal C (fun u => cntE dat x 5 u (s - 1)) → Enabled C (fun w => cnt x 5 w (s - 1)) v := by
+  intro v s hg _ hs hch _
   by_cases h0 : v = 0
   · subst h0
     have : s = 10 := by simp only [x, if_true] at hch; simp at hch; omega

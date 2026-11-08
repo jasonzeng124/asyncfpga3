@@ -17,7 +17,8 @@ timed theorem with all four repaired, on `AO.Cert` (alternative cause sets):
 * bounds `L v` per reader v, each sound for the full order;
 * RT edges, data claims, chains of claims as in `TimedOccU`;
 * environment moves by COUNTS (`hEnvE`): an environment node's change at `s` must be an enabled event of the
-  certificate at the counts of `s - 1`. The local check `hloc` is only demanded of gates. (The state-only rule
+  certificate at the counts of `s - 1`, given that those counts are an ideal of the full order (which the induction
+  supplies; a handshake argument needs it to know where the acknowledge is). The local check `hloc` is only demanded of gates. (The state-only rule
   `envEn` of `TBehX` cannot say "the request rises once", which a one-pair certificate needs.)
 
 **Proved:** `timedA_follows` (every bounded-delay behaviour follows the certificate: ideals of the full order,
@@ -153,7 +154,7 @@ theorem change_okA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L 
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
@@ -181,6 +182,7 @@ theorem change_okA (hb : TBehX N dat envEn x r t0 H) (hLs : ∀ v, LSound CF (L 
     have hrd : reads N v v = false := by simp [reads, hg]
     refine ⟨fun h => absurd h (by simp [hrd]), ?_⟩
     have he := hEnvE v (t + 1) hg hve (by omega) (by simpa [hsub] using hch)
+      (by have := hI t (Nat.le_refl _); simp only [Nat.add_sub_cancel]; exact this)
     rw [hsub] at he
     have : nT N x t0 r v (t + 1) = fun w => cnt x t0 w t := by
       funext w
@@ -305,7 +307,7 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
@@ -415,7 +417,7 @@ theorem sepSound_step (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : �
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
@@ -492,7 +494,7 @@ theorem timedA_follows (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : 
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
@@ -616,7 +618,7 @@ theorem gate_firesA (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
@@ -709,7 +711,7 @@ theorem timedA_live (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀
     (hTO : TOA N CF CP L D Sep) (hDE : ∀ v u, u ∈ D v → dat u = false)
     (hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w t0) CP (L v) D cl gd v)
     (hEnvE : ∀ v s, N.gate v = false → dat v = false → t0 < s → x v s ≠ x v (s - 1) →
-      Enabled CP (fun w => cnt x t0 w (s - 1)) v)
+      Ideal CF (fun u => cntE dat x t0 u (s - 1)) → Enabled CP (fun w => cnt x t0 w (s - 1)) v)
     (hlenEq : ∀ u, CP.len u = CF.len u)
     (hgdF : ∀ v z, N.gate v = false → gd v z = [])
     (hGd : ∀ v z, N.gate v = true → z ∈ N.pins v → ∀ g ∈ gd v z, ∃ c, cl[g.ci]? = some c ∧ c.z = z ∧
