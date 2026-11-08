@@ -2003,3 +2003,21 @@ Added to `Formal/Net/TimedOccX.lean` (standard axioms): `gate_firesX` (an enable
 any K above its pins' hi, its guarded data reads being the claimed values), `timedX_live` (with environment
 liveness, every certificate event happens and from some T on every exact node is constant). Data nodes are not
 claimed quiet after T (only what their claims say).
+
+### progress 08:3x -- the 30 RT orders were INCOMPLETE: 6 more found; with 36 the local check PASSES on three pairs (Python, untrusted)
+Subagent result (tools copied to `formal/tools/occ/`, README there). On THE target's latches-first abstract machine
+(Lean netlist via lean2json, huffx semantics, RT orders applied strictly), the occurrence-net local check of
+Net/OccNet (every node, every order ideal of its local event set) **fails with the 30 RT orders of 11-06**: 6 real
+persistence violations, each confirmed by replaying a witness move list in huffx's own C++ code (`huffr --replay`):
+SLICE_X3Y22.D6 disabled by start_ack (SLICE_X3Y22.B6), X27Y81.A6 by X31Y99.C6, X31Y59.B6 by X33Y61.C6, X37Y21.A6 by
+X34Y23.A6, X38Y21.B6 by X39Y41.D6 (all at (12,18)), X12Y45.B6 by X19Y46.C6 (at (1071,462)). In each witness the victim
+waits while 23-79 other moves happen, which uniform random walks essentially never schedule: that is why 10^8
+random moves saw none. **With 36 orders the local check passes for (12,18) (1,124 events, 1.38 M local ideals),
+(1071,462) (2,448 events) and (2^31-1, 2^31-2) (13,984 events, 2.7 M local ideals, 18 min)**, i.e. (by OccNet's
+theorem, if the checker is right) every interleaving of the abstract machine with these 36 orders fires the same
+events, never deadlocks, and has out0 = gcd at the out0 ack. Mutation: dropping any one of the 36 makes the check fail
+and recovers exactly that order. Certificates are 21/55/369 KB. Not checked: the checker itself (untrusted Python),
+the abstraction (comb glitches, timing), multi-pair runs; the 6 new orders have no timing justification yet (they are
+6 more race sites a timed proof must cover). Kernel `decide` on 1.4-2.7 M local evaluations with comb cones looks too
+heavy: a Lean instance needs a compiled/verified checker or a smaller encoding.
+**For research:** the 6 new RT sites are candidate race sites, same family as the 30.
