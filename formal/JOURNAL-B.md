@@ -3622,3 +3622,15 @@ FOR-RESEARCH B1 (Lean result, pair dependence, the periodic livelock below 0.40,
 (no out0 by 3 µs, 10.9 M events: the periodic livelock of 17:2x). The arbiter-0 state livelock (0.43) is gone at 0.37.
 So on this pair, below 0.40, the merge4 ua2 race is the only single-pin failure and it gives no quiet (finite) end:
 a Lean refutation below 0.40 needs the periodic route.
+
+### progress 18:3x -- what a Lean refutation below 0.40 needs (handoff note for C / A)
+- w = 20, κ = 9/25, full-width pair: exactly periodic from 491 ns, period 79 ps, 140 active nodes (17:2x). A Lean
+  witness needs (i) codes as C's `sigQ` (prefix + one period), (ii) a GateOKRunt check over a finite window that
+  extends to all t: C's `eq_of_periodic` does this for transport gate equations, but under H_RUNT the LUT-pin read
+  map `jr` skips pulses < 20 ps, and in the periodic tail the narrow-pulse chains are infinite, so A's `gateWR`
+  (finite chain lists) has to be redone for periodic chains (a chain list that is itself `sigQ`-periodic), (iii)
+  Env / SeqEnv / ArbOK (no boundary or arbiter-state node is in the periodic set? not yet checked) and out0 never rising.
+- w = 0, κ = 9/25: NOT periodic by 1.19 µs (445 active nodes, 66 M events: unfiltered runts keep spreading), so the
+  plain statement's κ = 0.36 refutation does not have the simple periodic witness; but the w = 20 one refutes the plain
+  statement too (seqRunt_of_seq), so (ii) is the only route needed.
+Not attempted here today.
