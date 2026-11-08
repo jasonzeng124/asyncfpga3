@@ -1279,3 +1279,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T12:43:27Z container restart killed build49 at X014 (175 rc=0, X chunks now ~3.9 GB); resumed at a24381ad without re-checkout.
 - 2026-11-08T14:50:12Z T43 done: NodeMerge on THE target CONFIRMED (build, axioms, statements; all trusted tables independently checked against prjxray-db).
 - 2026-11-08T14:51:10Z T45/T46 started (2 subagents, no git, git-free research copies at 61c532db): BOARD-QUEUE #7 collatz64 x0.75 (sdf 412bd505) and #8 ipow x0.75 (sdf 95a362ff) -- own builds + worst-case full stack + own oracles.
+- 2026-11-08T15:11:18Z T46 done: BOARD-QUEUE #8 ipow x0.75 seed 1 CONFIRMED (sdf md5s, EQUIVALENT, worst 17/17 own oracle, cyc31 298 exact).

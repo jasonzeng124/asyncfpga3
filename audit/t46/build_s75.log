@@ -1,0 +1,89 @@
+T46 build s75 Sun Nov  8 14:52:06 UTC 2026
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+$ NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_bench.vh ./hw/build_bench.sh ipow
+build_bench.sh: MODE=BD_NO_TIGHTEN -- building ipow_bench_gen directly, select channels at bdc/emit.py's unmeasured SELECT_PAD estimate
+wrote build/gen/ipow_kernel_bench.v: module bdc_ipow, 67 matched delay(s)
+wrote build/gen/ipow_bench_gen.v: module ipow_bench_gen (real DUT for ipow)
+build_bench.sh: applying 50 measured  delay size(s) from ../research/data/ipow_dsp1_sizes_T9s75_bench.vh
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== synthesis (ipow_bench_gen) ==
+             12 link/stage bank(s) that ARE one LUT (W<=2), 24 wider bank(s) where only the named bit is constrained
+             396 latch LUT(s) across those banks, 36 of them grouped (9.1%)
+             4 group(s) also hold their select consumer's LUTs
+        1   BUFG
+       64   CARRY4
+      868   FDCE
+       42   FDPE
+     1044   FDRE
+        2   LUT1
+      540   LUT2
+      238   LUT3
+      259   LUT4
+      170   LUT5
+     1022   LUT6
+        2   OBUF
+        1   BUFG
+       69   CARRY4
+      868   FDCE
+       42   FDPE
+     1044   FDRE
+      160   LUT1
+      702   LUT2
+      301   LUT3
+      321   LUT4
+      179   LUT5
+     1239   LUT6
+      460   LUT6_2
+        2   OBUF
+
+== place and route ==
+routed. (attempt 1/1: 102.35 MHz)
+TIMING: fclk0_bufg closes at 102.35 MHz (target 83 MHz)
+FASM:  4849 occupied LUT sites, 42 global buffer lines
+
+== bitstream ==
+2083876 bytes -> build/hw/ipow_bench_gen/ipow_bench_gen.bit
+routed SDF -> build/hw/ipow_bench_gen/ipow_bench_gen.sdf
+BD_DSP=1
+BD_RLOC=v2
+
+build_bench.sh PASS
+	Command being timed: "./hw/build_bench.sh ipow"
+	User time (seconds): 98.65
+	System time (seconds): 3.43
+	Percent of CPU this job got: 101%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:40.16
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 637552
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 599
+	Minor (reclaiming a frame) page faults: 469709
+	Voluntary context switches: 61335
+	Involuntary context switches: 17410
+	Swaps: 0
+	File system inputs: 138824
+	File system outputs: 151064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+exit 0
+95a362ff8022cf89d1b5e5f065ecb881  build/hw/ipow_bench_gen/ipow_bench_gen.sdf
+efbcba987275c51beb8aed7feef1ecf5  build/hw/ipow_bench_gen/ipow_bench_gen.bit
+c5b8e5b55d2d7f2f54943ea5c1c12679  build/hw/ipow_bench_gen/ipow_bench_gen_routed.json
+BUILD_DONE
