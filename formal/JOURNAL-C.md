@@ -1955,3 +1955,13 @@ feedback read cannot flip the node back, and two events within one feedback dela
 pair of reads that the local check relies on is either ordered by the delay bounds or covered by a TO row).
 **Not shown:** liveness in time (next), the bridge from Spec.GateOK on THE target's collapsed view to TBeh (the
 quiet start, distinct pin sources), any instance, all pairs at once (a periodic certificate).
+
+### progress 07:47 -- TimedOcc liveness CLAIMED: all certificate events happen, then quiet for ever
+Added to `Formal/Net/TimedOcc.lean` (same checks; standard axioms): `gate_fires` -- an event of a gate that is
+enabled in the behaviour's ideal at `t` has happened by `t + K` for any `K` above all of the gate's pin `hi`s
+(enabledness persists because counts only grow; once every read is at or after `t` the read tuple enables it and
+the local check makes the gate's function differ from its value). `timed_live` -- if moreover every enabled
+environment move eventually happens, there is a time `T` from which every node has had exactly its `len` changes
+and no node ever changes again. With `timed_prop`, for a certificate whose final ideal contains the out0
+handshake with the right data, this would be safety and liveness for that run's input.
+**Not shown:** that environment liveness in Spec's form (ReqLive/AckLive with SeqEnv) gives `henv`; any instance.

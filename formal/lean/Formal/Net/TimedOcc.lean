@@ -463,4 +463,151 @@ theorem timed_prop (hb : TBeh N envEn x r t0 H) (hT : TmOK C) (hLs : LSound C L)
 
 end main2
 
+/-! ## Liveness in time -/
+
+section live
+variable {N : TNet α} {envEn : α → (α → Bool) → Bool} {x : α → Nat → Bool} {r : α → α → Nat → Nat}
+  {t0 H : Nat} {C : Cert α} {L : α → Nat → α → Nat} {D : α → List α} {Sep : α → Nat → α → Nat → Option Nat}
+
+/-- **An enabled gate event happens within `K`** (any `K` above every `hi` of the gate's pins). -/
+theorem gate_fires (hb : TBeh N envEn x r t0 H) (hT : TmOK C) (hLs : LSound C L) (hS : SepOK N C Sep)
+    (hTO : TO N C L D Sep) (hloc : ∀ v, LCheck (tEn N envEn) (fun w => x w t0) C L D v)
+    (v : α) (hg : N.gate v = true) (K : Nat) (hK : ∀ w ∈ N.pins v, N.hi v w < K) (hK1 : 1 ≤ K)
+    (t : Nat) (ht : t0 ≤ t) (hen : Enabled C (fun u => cnt x t0 u t) v) :
+    cnt x t0 v t < cnt x t0 v (t + K) := by
+  rcases Nat.lt_or_ge (cnt x t0 v t) (cnt x t0 v (t + K - 1)) with hlt | hge
+  · exact Nat.lt_of_lt_of_le hlt (cnt_mono v _ _ (by omega))
+  · -- no change of `v` on `(t, t + K - 1]`: then it changes at `t + K`
+    have hconst : ∀ τ, t ≤ τ → τ ≤ t + K - 1 → cnt x t0 v τ = cnt x t0 v t := by
+      intro τ h1 h2
+      have := cnt_mono (x := x) (t0 := t0) v t τ h1
+      have := cnt_mono (x := x) (t0 := t0) v τ (t + K - 1) h2
+      omega
+    let t' := t + K - 1
+    have hfol := timed_follows hb hT hLs hS hTO hloc t'
+    have hcons := read_consistent hb hT hLs hS hTO t' (by omega) hfol.1 hfol.2 v
+    have hlen : ∀ u ∈ D v, nT N x t0 r v (t' + 1) u ≤ C.len u := by
+      intro u _
+      obtain ⟨_, _, h3, _⟩ := rho_bounds hb v u (t' + 1) (by omega)
+      exact (hfol.1 _ (by omega) u).1
+    have hL := hloc v (nT N x t0 r v (t' + 1)) hlen hcons
+    -- every read at `t' + 1` is at or after `t`
+    have hρ : ∀ w, t ≤ ρ N r v w (t' + 1) := by
+      intro w
+      unfold ρ
+      by_cases h : reads N v w = true
+      · simp only [h, if_true]
+        simp only [reads, Bool.and_eq_true, decide_eq_true_eq] at h
+        obtain ⟨_, h2, h3, _⟩ := hb.rd v w (t' + 1) h.1 h.2 (by omega)
+        have := hK w h.2
+        omega
+      · simp only [h, if_false, Bool.false_eq_true]; omega
+    have hnv : nT N x t0 r v (t' + 1) v = cnt x t0 v t := by
+      have h1 := hρ v
+      obtain ⟨_, _, h3, _⟩ := rho_bounds hb v v (t' + 1) (by omega)
+      exact hconst _ h1 (by omega)
+    have hEn : Enabled C (nT N x t0 r v (t' + 1)) v :=
+      enabled_mono hen hnv.symm (fun w => cnt_mono w _ _ (hρ w))
+    have he := hL.2 hEn
+    unfold tEn at he; rw [hg] at he; simp only [if_true] at he
+    have hgeq := hb.geq v (t' + 1) hg (by omega)
+    rw [pins_read hb v hg (t' + 1) (by omega)] at hgeq
+    rw [← hgeq] at he
+    have hst : st (fun w => x w t0) (nT N x t0 r v (t' + 1)) v = x v t' := by
+      rw [x_eq_st v H (fun s' h1 h2 => hb.quiet v s' h1 h2) t' (by omega)]
+      simp only [st]; rw [hnv, hconst t' (by omega) (Nat.le_refl _)]
+    rw [hst] at he
+    have hc := cnt_succ (x := x) (t0 := t0) v t' (by omega)
+    have hx : (x v (t' + 1) != x v t') = true := he
+    rw [hx] at hc
+    have e : t' + 1 = t + K := by omega
+    rw [← e, hc, hconst t' (by omega) (Nat.le_refl _)]
+    simp
+
+theorem sumOver_lt {U : List α} {f g : α → Nat} (hle : ∀ u ∈ U, f u ≤ g u) (v : α) (hv : v ∈ U)
+    (hlt : f v < g v) : sumOver U f < sumOver U g := by
+  induction U with
+  | nil => simp at hv
+  | cons a U ih =>
+    simp only [sumOver, List.foldr] at *
+    have h1 := sumOver_le (U := U) (f := f) (g := g) (fun u hu => hle u (by simp [hu]))
+    simp only [sumOver] at h1
+    by_cases hva : v = a
+    · subst hva; omega
+    · have := ih (fun u hu => hle u (by simp [hu])) (by simpa [hva] using hv)
+      have := hle a (by simp)
+      omega
+
+/-- **Liveness.** If every free node eventually makes an enabled move, every event of the certificate happens,
+after which the circuit is quiet for ever: there is a time `T` from which every node has had exactly its `len`
+changes and no node changes again. -/
+theorem timed_live (hb : TBeh N envEn x r t0 H) (hT : TmOK C) (hLs : LSound C L) (hS : SepOK N C Sep)
+    (hTO : TO N C L D Sep) (hloc : ∀ v, LCheck (tEn N envEn) (fun w => x w t0) C L D v)
+    (U : List α) (hcov : ∀ u, 0 < C.len u → u ∈ U)
+    (K : α → Nat) (hK : ∀ v, N.gate v = true → 1 ≤ K v ∧ ∀ w ∈ N.pins v, N.hi v w < K v)
+    (henv : ∀ u t, N.gate u = false → t0 ≤ t → Enabled C (fun w => cnt x t0 w t) u →
+      ∃ t', t < t' ∧ cnt x t0 u t < cnt x t0 u t') :
+    ∃ T, t0 ≤ T ∧ (∀ u, cnt x t0 u T = C.len u) ∧ ∀ u s, T ≤ s → x u s = x u T := by
+  have hfol := timed_follows hb hT hLs hS hTO hloc
+  have hI : ∀ t, Ideal C (fun u => cnt x t0 u t) := fun t => (hfol t).1 t (Nat.le_refl _)
+  -- progress: from a non-full ideal, some count grows
+  have prog : ∀ t, t0 ≤ t → (∃ u, cnt x t0 u t < C.len u) →
+      ∃ t', t < t' ∧ ∃ v, v ∈ U ∧ cnt x t0 v t < cnt x t0 v t' := by
+    intro t ht ⟨u, hu⟩
+    obtain ⟨v, hv⟩ := enabled_of_not_full hT (hI t) _ u hu (Nat.le_refl _)
+    have hvU : v ∈ U := hcov v (by have := hv.1; omega)
+    cases hg : N.gate v with
+    | true =>
+      obtain ⟨hK1, hK2⟩ := hK v hg
+      exact ⟨t + K v, by omega, v, hvU, gate_fires hb hT hLs hS hTO hloc v hg (K v) hK2 hK1 t ht hv⟩
+    | false =>
+      obtain ⟨t', h1, h2⟩ := henv v t hg ht hv
+      exact ⟨t', h1, v, hvU, h2⟩
+  -- the measure
+  let M : Nat → Nat := fun t => sumOver U fun u => C.len u - cnt x t0 u t
+  have hMdec : ∀ t t', t ≤ t' → ∀ v ∈ U, cnt x t0 v t < cnt x t0 v t' → M t' < M t := by
+    intro t t' htt v hv hlt
+    have hle : ∀ u ∈ U, C.len u - cnt x t0 u t' ≤ C.len u - cnt x t0 u t := fun u _ => by
+      have := cnt_mono (x := x) (t0 := t0) u t t' htt; omega
+    have hlt' : C.len v - cnt x t0 v t' < C.len v - cnt x t0 v t := by have := (hI t' v).1; simp only at this; omega
+    exact sumOver_lt hle v hv hlt'
+  have full : ∀ n t, t0 ≤ t → M t ≤ n → ∃ T, t ≤ T ∧ ∀ u, cnt x t0 u T = C.len u := by
+    intro n
+    induction n with
+    | zero =>
+      intro t ht hM
+      refine ⟨t, Nat.le_refl _, fun u => ?_⟩
+      rcases Nat.lt_or_ge (cnt x t0 u t) (C.len u) with hlt | hge
+      · exfalso
+        have hpos := hcov u (by omega)
+        have := sumOver_lt (U := U) (f := fun _ => 0) (g := fun u => C.len u - cnt x t0 u t)
+          (fun _ _ => Nat.zero_le _) u hpos (by omega)
+        rw [sumOver_zero] at this
+        simp only [M] at hM; omega
+      · have := (hI t u).1; simp only at this; omega
+    | succ n ih =>
+      intro t ht hM
+      by_cases hall : ∀ u, cnt x t0 u t = C.len u
+      · exact ⟨t, Nat.le_refl _, hall⟩
+      · simp only [Classical.not_forall] at hall
+        obtain ⟨u, hu⟩ := hall
+        obtain ⟨t', h1, v, hv, h2⟩ := prog t ht ⟨u, Nat.lt_of_le_of_ne (hI t u).1 hu⟩
+        have := hMdec t t' (by omega) v hv h2
+        obtain ⟨T, hT1, hT2⟩ := ih t' (by omega) (by omega)
+        exact ⟨T, by omega, hT2⟩
+  obtain ⟨T, hT1, hT2⟩ := full (M t0) t0 (Nat.le_refl _) (Nat.le_refl _)
+  refine ⟨T, hT1, hT2, fun u s hs => ?_⟩
+  -- after `T` no count can grow, so nothing changes
+  have hc : ∀ s, T ≤ s → cnt x t0 u s = cnt x t0 u T := by
+    intro s hs
+    have h1 := cnt_mono (x := x) (t0 := t0) u T s hs
+    have h2 := (hI s u).1
+    simp only at h2
+    rw [hT2 u] at h1 ⊢; omega
+  rw [x_eq_st u H (fun s' h1 h2 => hb.quiet u s' h1 h2) s (by omega),
+    x_eq_st u H (fun s' h1 h2 => hb.quiet u s' h1 h2) T (by omega)]
+  simp only [st]; rw [hc s hs]
+
+end live
+
 end Formal.Net.OccNet.Timed
