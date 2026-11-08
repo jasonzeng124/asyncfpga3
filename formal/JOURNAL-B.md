@@ -3431,7 +3431,7 @@ on B's files is CONFIRMED (T27 S3 cell layer; T36 race_margin; T38 race rows 158
 data pin, κ figures recomputed by the auditor). No open REFUTED/OVERSTATED row on B's files. setup.sh: Mathlib cache
 unreachable, building the imported part from source (running).
 
-### progress 07:40 -- plan: the latch-hold race has never been attacked by an adversary
+### progress 07:15 -- plan: the latch-hold race has never been attacked by an adversary
 A's and C's single-pin adversary sweeps (hazsweep.py --control; 412 control storage nodes, κ = 0.40 / 0.48) skip all
 4,185 latch-like storage LUTs. B's latch-hold certificates (670 latches, LatchHoldPinPS*) give sufficient bounds as
 low as κ ≤ 0.376, below the refuted 0.44. So a latch whose hold breaks between 0.376 and 0.44 would lower THE

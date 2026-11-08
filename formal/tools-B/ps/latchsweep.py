@@ -2,7 +2,7 @@
 """Shard B (UNTRUSTED), 2026-11-08: single-pin latch-HOLD adversary sweep on THE target.
 The control sweeps of A and C (tools/huff/hazsweep.py --control) skip the 4,185 latch-like storage LUTs. A latch's
 hold race is: its enable pin closes (slow) vs the next data reaching its data pin through the controller (fast).
-For each latch L (out/target_ps_latch.json: pin e = enable), one run with L's enable-pin arc and the copy-chain hops
+For each latch L (out/target_ps_latch.json: pin e = enable; --pin d: the data pin, the setup race), one run with L's enable-pin arc and the copy-chain hops
 into that pin at the top of the window, (KD+P)/KD * FAST_MAX, and every other arc at the bottom, (KD-P)/KD *
 FAST_MIN (corner 0, kappa = P/KD exactly, transport, H_RUNT(w) on LUT pins), via tools/huff/simadv.py.
 Reports runs whose result is wrong or missing (candidates: check with gatecheck/envcheck before believing them).
@@ -15,6 +15,7 @@ ap.add_argument("--kd", type=int, default=100); ap.add_argument("--w", type=int,
 ap.add_argument("--jobs", type=int, default=4); ap.add_argument("--pairs", nargs="+", default=["1071,462"])
 ap.add_argument("--first", nargs="*", default=[], help="latch names (net node names) to run first")
 ap.add_argument("--only", nargs="*", default=None)
+ap.add_argument("--pin", choices=["e", "d"], default="e", help="slow the enable pin (hold race) or the data pin (setup race)")
 a = ap.parse_args()
 net = json.load(open(a.net)); G = net["gates"]; N = net["nodes"]
 drv = {g["out"]: gi for gi, g in enumerate(G)}
@@ -25,7 +26,7 @@ def nn(name):   # SLICE_X0Y47.ALUT.O6 -> SLICE_X0Y47.A6
 rows = json.load(open(a.lat))["rows"]
 jobs = []
 for r in rows:
-    q = r["q"]; g = G[drv[q]]; e = r["e"]
+    q = r["q"]; g = G[drv[q]]; e = r[a.pin]
     hops = []; u = g["ins"][e]
     while u in drv and is_copy(G[drv[u]]): hops.append(u); u = G[drv[u]]["ins"][0]
     arcs = [[N[q], e]] + [[N[h], 0] for h in hops]
