@@ -2223,3 +2223,14 @@ neither input read"), and `toyA_follows` concludes.
 `lcheckXA_congr` (per-node local certificates for the AND-OR check with data pins) and `lcheckA_window` (the AND-OR
 form of OccWindow: a local check inside a window's box from a shifted window certificate, alternatives shifted).
 Waiting on the subagent's re-measurement of THE target's (12,18) certificate against the AO model.
+
+### progress 09:13
+**Environment moves by counts (Net/AO/Timed.lean, check.sh OK).** *Problem:* `TBehX.env` lets an environment node
+change whenever a predicate of the current STATE allows it. After one gcd pair the boundary state is back to the
+initial one, so a state rule cannot say "the request rises only once", which a one-pair certificate needs (and which
+`Spec.EnvIn` says with `Offered n`). *Change:* every theorem of the AO chain (`change_okA`, `up_sound`,
+`sepSound_step`, `timedA_follows`, `gate_firesA`, `timedA_live`) now takes
+`hEnvE : ∀ v s, gate v = false → dat v = false → t0 < s → x v s ≠ x v (s-1) → Enabled CP (counts at s-1) v`
+in place of the local check at environment nodes; `hloc` is demanded only of gates. The toy discharges `hEnvE`
+directly. *Not shown:* that `Spec.Env`/`SeqEnv` imply `hEnvE` for THE target's certificate (that is the env half of
+the bridge, still open). Still waiting on the subagent's AO re-measurement.

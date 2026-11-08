@@ -89,8 +89,8 @@ theorem hF : ∀ v s, tEn N envEn v s = Fx v ((D v).map s) ((Z v).map s) := by
       · subst h1; simp [tEn, N, D, Fx, envEn]
       · simp [tEn, N, D, Fx, envEn, h0, h1, h2]
 
-theorem hloc : ∀ v, dat v = false → LCheckXA N dat envEn (fun w => x w 5) C (L v) D cl gd v := by
-  intro v _
+theorem hloc : ∀ v, N.gate v = true → dat v = false → LCheckXA N dat envEn (fun w => x w 5) C (L v) D cl gd v := by
+  intro v _ _
   have hs0 : (fun w => x w 5) = fun _ => false := by
     funext w; simp only [x]; split <;> (try split) <;> (try split) <;> simp
   rw [hs0]
@@ -114,6 +114,23 @@ theorem hloc : ∀ v, dat v = false → LCheckXA N dat envEn (fun w => x w 5) C 
     rw [hF]
     simp [Fx, h0, h1, h2, Enabled, C, h3]
 
+theorem hEnvE : ∀ v s, N.gate v = false → dat v = false → 5 < s → x v s ≠ x v (s - 1) →
+    Enabled C (fun w => cnt x 5 w (s - 1)) v := by
+  intro v s hg _ hs hch
+  by_cases h0 : v = 0
+  · subst h0
+    have : s = 10 := by simp only [x, if_true] at hch; simp at hch; omega
+    subst this
+    exact ⟨by decide, [], by simp [C], by simp [AltIn]⟩
+  · by_cases h1 : v = 1
+    · subst h1
+      have : s = 12 := by simp only [x] at hch; simp at hch; omega
+      subst this
+      exact ⟨by decide, [], by simp [C], by simp [AltIn]⟩
+    · exfalso
+      have h2 : ¬ v = 2 := by intro h; subst h; simp [N] at hg
+      apply hch; simp [x, h0, h1, h2]
+
 /-- **Non-vacuity of the AND-OR timed theorem.** -/
 theorem toyA_follows : ∀ τ, τ ≤ 30 → Ideal C (fun u => cntE dat x 5 u τ) := by
   have h := timedA_follows (N := N) (dat := dat) (envEn := envEn) (x := x) (r := r) (t0 := 5) (H := 1) (CF := C)
@@ -122,7 +139,7 @@ theorem toyA_follows : ∀ τ, τ ≤ 30 → Ideal C (fun u => cntE dat x 5 u τ
     (by intro v a b k ha hb hab hk hL hlt; exfalso; simp only [L] at hL; split at hL
         · rename_i h; exact hab h.1
         · omega)
-    (fun _ _ _ => rfl) hloc (fun _ => rfl) (fun _ _ _ => rfl) (fun _ _ _ _ g hg => by simp [gd] at hg)
+    (fun _ _ _ => rfl) hloc hEnvE (fun _ => rfl) (fun _ _ _ => rfl) (fun _ _ _ _ g hg => by simp [gd] at hg)
     (by intro e0 e d h; simp [Up] at h) (by intro b m a k d _ h; simp [Sep] at h) hT
     (by intro u k _ altP haltP; exact ⟨altP, haltP, fun p hp => Or.inl hp⟩)
     (by simp [cl]) (by simp [cl]) (by simp [cl]) (fun u h => by simp [dat] at h) 30
