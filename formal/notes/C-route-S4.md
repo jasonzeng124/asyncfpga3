@@ -147,3 +147,11 @@ extending a path by a cause adds that pin's `lo'`); an upper bound is the same w
 obligation (TO rows, RT margins `Σlo - Σhi ≥ 1`, claim windows, guards) is an inequality between sums of corner-
 rounded bounds, discharged for all c ∈ [0,1] by one rational check at c = 0 and one at c = 1 (`TimedCorner`,
 `skew_all_corners`). The Boolean checkers then run once, not once per corner.
+
+### Status at end of morning (2026-11-08): the current chain is `Net/AO/*`
+A first Python certificate for THE target (tools/tocc) showed the AND-only chain cannot fit the circuit: OR-causality
+(~1,400 control gates fire on the first of two inputs), over-strong skew rows (a = b; a = reader), one global L.
+`Net/AO/Occ`, `Net/AO/Timed` (`timedA_follows`, `timedA_live`), `Net/AO/Dec`, `Net/AO/DecT` repair all four and add
+the reader's own-history premise (`own_readA`). The older `OccNet`/`TimedOcc*` files stay as checked special cases
+(and their toys as non-vacuity evidence of the shared machinery); new instance work should target `Net/AO`.
+Re-measurement of the (12,18) certificate against the AO model: in progress (subagent).
