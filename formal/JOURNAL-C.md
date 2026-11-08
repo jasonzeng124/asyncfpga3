@@ -2038,3 +2038,9 @@ certificate: the exact nodes' count vectors are ideals of CF (so every RT order 
 a certified event, every data claim holds, and all separations are sound. The races behind the 36 RT orders are
 exactly the `Sep ≥ 1` obligations of the RT edges, computed as (physical lower path from e0) - (upper path from e0).
 **Not shown:** liveness for this version (gate_firesX carries over), any instance.
+
+### progress 08:2x -- TimedOccRT liveness CLAIMED
+`gate_firesR`, `timedR_live` (standard axioms): with environment liveness every event of the full certificate
+happens and from some T on every exact node is constant (extra hypothesis: physical causes ⊆ full causes).
+So the generic chain is complete for one pair: certificate checks (local check, bounds, Sep/Up, TO, RT, data claims)
+⇒ every admissible behaviour follows the certificate (safety) and completes it (liveness).
