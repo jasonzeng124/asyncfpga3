@@ -1258,3 +1258,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-07T23:28:59Z build43 done (965 MOD rc=0 incl. rebuilt CexRunt44/G16 chunks, CexRuntD60, FrontierRuntR, B BigCertPS/RaceAllTarget/CertArbPS2-4/ArbOneAck*/LatchHold*); axiom audit of 496 B modules running.
 - 2026-11-07T23:43:21Z T40 done: BOARD-QUEUE #6 xorshift x0.5 seed 1 CONFIRMED (sdf md5s, worst 17/17 own oracle, 3.784/round exact, SLOW_MAX exact).
 - 2026-11-08T00:46:10Z T38 rows 9-12: build43 B modules (496) axioms clean (3069 constants); RaceAllTarget 181 rows CONFIRMED.
+- 2026-11-08T00:46:33Z build44 launched at formal 86a9ffa0 (B latch holds, 670 latches, data pin; binding latch kappa <= 0.440 claimed).
