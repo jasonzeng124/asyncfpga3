@@ -3441,3 +3441,13 @@ H_RUNT(20) on LUT pins, C's simadv.py). Sanity: at κ = 0.80 the enable adversar
 deadlock (no out0; 567 ns), so the adversary does bite at large κ; at 0.43 the three lowest-bound latches tried
 (SLICE_X32Y90.C5/C6, SLICE_X20Y96.D5) are correct. Running: all 4,185 latches at κ = 0.43 on the full-width pair
 (0x49e9c618, 0x35bf992e), the 670 certified first (~8 runs/min, so the full list takes ~9 h).
+
+### progress 08:21 -- latch-hold adversary at κ = 0.43: the 670 certified latches all correct (simulation, untrusted)
+`latchsweep.py`, κ = 43/100, w = 20, full-width pair (0x49e9c618, 0x35bf992e): the first 675 runs (the 670 latches
+with hold certificates, then 5 more) all return gcd = 2. The 15 latches whose certified bound is below 0.445
+(`tools-B/ps/out/latchhold_kappa_670.txt`, recomputed from the Lean rows' kA/kB: (kA-kB)/(kA+kB); lowest
+SLICE_X20Y96.D5 0.376) were also run on the 3-pair broad run (12,18), (1071,462), (6,4) whose closes they were
+certified from: 15/15 correct (`tools-B/ps/out/latchsweep_k43_d3_low15.txt`). **Reading:** no single enable-pin
+adversary breaks a latch hold below the 0.44 refutation on these pairs; the 0.376-0.44 certified bounds look like
+certificate slack (the certified path sum is not tight against a real data change that alters the latched value), not
+a race. Not shown: multi-pin adversaries, other pairs, other corners. The other 3,510 latches: running.
