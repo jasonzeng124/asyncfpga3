@@ -39,6 +39,11 @@ def sep(e1, e2):
 def latest(cands):     # among event ids, the one latest in tm
     return max(cands, key=lambda e: tm[e])
 HOLDX = int(os.environ.get('HOLDX', '20000'))
+MEETN = int(os.environ.get('MEETN', '25'))
+GTOP = None
+MEETN = int(os.environ.get('MEETN', '25'))
+COVL = {}
+PEND = []; INSTACK = []; DEPSMAP = {}; OWNBAD = {}; PREV = {}; PEND_PREV = []
 memo = {}; inprog = set(); stats = collections.Counter(); DEPS = []; CTX = []
 def exwin(u, t):
     k = sum(1 for x in ev[u] if x <= t)
@@ -69,7 +74,17 @@ def window(pins_w, z):
     if not Bs: B = None; b = 0
     else:
         best = None
-        for pool in (set(Bs), set(CTX[-1] if CTX else ())):
+        def meet_pool():
+            m = VCP[Bs[0]].copy()
+            for e_ in Bs[1:]: m = np.minimum(m, VCP[e_])
+            cs = [eid[(xs[x], int(m[x]) - 1)] for x in np.nonzero(m)[0]]
+            cs.sort(key=lambda e_: -tm[e_])
+            return set(cs[:MEETN])
+        pools = ((set(Bs) | set(CTX[-1] if CTX else ()), "MEET") if (GTOP and len(INSTACK) == 1) else (set(Bs), set(CTX[-1] if CTX else ()), "MEET"))
+        for pool in pools:
+            if isinstance(pool, str):
+                if best is not None: break
+                pool = meet_pool(); stats["claim end via a common causal ancestor of the pins' end events (tried)"] += 1
             for cand in pool:
                 reqs = []; ok = True
                 for u, w in pins_w:
@@ -80,12 +95,17 @@ def window(pins_w, z):
                 if ok:
                     bb = min(reqs)
                     if bb < 0: continue
-                    if best is None or et[cand] + bb > et[best[0]] + best[1]: best = (cand, bb)
+                    if GTOP and len(INSTACK) == 1:      # top claim of a guard: pick the end that maximises GuardTime's end margin
+                        Eg, lz, hE = GTOP
+                        dg = sep(Eg, cand)
+                        sc = (dg + lz + bb - hE) if dg != NEG else NEG
+                        if best is None or sc > best[2]: best = (cand, bb, sc)
+                    elif best is None or et[cand] + bb > et[best[0]] + best[1]: best = (cand, bb, 0)
             if best is not None: break
         if best is None:
             obl("CovTime end (no Sep between pin windows)", NEG, (nm[z], tuple(Bs), tuple(CTX[-1]) if CTX else ())); B = min(Bs, key=lambda e: tm[e]); b = 0
         else:
-            B, b = best
+            B, b = best[0], best[1]
             if b < 0: obl("claim end before its B (b < 0)", b, nm[z]); b = 0
     return A, a, B, b
 def lutv(z, assign):     # assign: pin index -> bool or None (X); returns set of outputs
@@ -115,8 +135,15 @@ def claim(n, t, t2=None):
     if key in memo:
         if DEPS: DEPS[-1].add(key)
         return memo[key]
-    if key in inprog: stats["self-cover through a register loop (union claim, fixpoint assumed)"] += 1; return "PENDING"
-    inprog.add(key)
+    if key in inprog:
+        stats["loop cover by an in-progress claim (CovTime checked after the fact)"] += 1
+        if DEPS: DEPS[-1].add(key)
+        if key in PREV:
+            stats["  ...using the previous pass's window of that claim"] += 1
+            PEND_PREV.append(key)
+            return dict(PREV[key], val=valat(n, t), kind="prev-pass")
+        return ("PENDING", key)
+    inprog.add(key); INSTACK.append(key)
     val = valat(n, t)
     o0 = len(OBL); DEPS.append(set())
     if n in C["data_env"]:
@@ -129,10 +156,12 @@ def claim(n, t, t2=None):
         cl_ = latch_claim(n, sb, min(se, t2 + 1), val)
     else:
         cl_ = comb_claim(n, max(t, t0 - 5000), max(t2, t0 - 5000) + 1, val)
-    inprog.discard(key)
+    inprog.discard(key); INSTACK.pop()
     deps = DEPS.pop()
+    DEPSMAP[key] = set(deps)
     bad_own = [k for k, m, det in OBL[o0:] if m < 0]
     cl_ = dict(cl_) if isinstance(cl_, dict) else cl_
+    OWNBAD[key] = bool(bad_own)
     cl_["bad"] = bool(bad_own) or any(memo[d_].get("bad") for d_ in deps if d_ in memo)
     cl_["key"] = key
     memo[key] = cl_
@@ -158,14 +187,15 @@ def comb_seg(z, s1, s2, val):
         if cand[j][2] is None: continue
         a2 = dict(assign); a2[j] = None
         if lutv(z, a2) == {val}: assign = a2
-    pins_w = []
+    pins_w = []; pend = []
     for j, (u, v_, r) in cand.items():
         if assign.get(j) is None or r is None: continue
         w = claim(u, r, min(s2, 10**12) - G["pins"][j]["win"][c][2])
-        if w == "PENDING": continue
+        if isinstance(w, tuple): pend.append((u, w[1])); continue
         pins_w.append((u, w))
     A, a, B, b = window(pins_w, z)
-    return dict(A=A, a=a, B=B, b=b, val=val, kind="comb")
+    for (u, tk) in pend: PEND.append((INSTACK[-1], z, u, tk, (A, a, B, b)))
+    return dict(A=A, a=a, B=B, b=b, val=val, kind="comb", cov=[(u, w.get("key")) for u, w in pins_w])
 def comb_claim(z, sb, se, val):
     stats["comb claims (GateProof)"] += 1
     r = comb_seg(z, sb, se, val)
@@ -241,7 +271,7 @@ def latch_claim(Q, sb, se, val):
         if lutv(Q, hb) != {val}: obl("ValOK latch hold phase", NEG, nm[Q])
         if nT is None: obl("ValOK latch transparent phase", NEG, nm[Q]); nT = set(Dp)
         if nU is None: obl("ValOK latch uncertain phase (D and feedback disagree)", NEG, nm[Q]); nU = set(Dp)
-        Dw = []; DwU = []
+        Dw = []; DwU = []; pendD = []
         for j in Dp:
             if j not in nT and j not in nU: continue
             u = g[Q]["pins"][j]["src"]; dlo, dhi, dmd = g[Q]["pins"][j]["win"][c]
@@ -251,8 +281,8 @@ def latch_claim(Q, sb, se, val):
             CTX.append(tuple(sorted(anchors)))
             w = claim(u, tD - dmd, min(stable(u, tD - dmd)[1] - 1, max(min(tclose, se), tclose if tclose < 10**12 else se) + HOLDX - dmd))
             CTX.pop()
-            if w == "PENDING": continue
-            if j in nT: Dw.append((u, w, dlo, dhi))
+            if isinstance(w, tuple): pendD.append((u, w[1], j in nT, j in nU)); continue
+            if j in nT: Dw.append((u, w, dlo, dhi)); COVL.setdefault(Q, []).append((u, w.get("key")))
             if j in nU: DwU.append((u, w, dlo, dhi))
         if chain and chain[-1]["ph"] == "H":
             # U' at the re-opening: en X, D covered (the new D), feedback by the union (both agree)
@@ -260,6 +290,8 @@ def latch_claim(Q, sb, se, val):
             if pinsU:
                 AU, aU, BU2, bU2 = window(pinsU, Q)
                 chain.append(dict(ph="U'", A=AU, a=aU, B=BU2, b=bU2, k=kk))
+                for (u, tk, iT, iU) in pendD:
+                    if iU: PEND.append((INSTACK[-1], Q, u, tk, (AU, aU, BU2, bU2)))
             else:   # value decided by the feedback alone while the enable read is uncertain: U' = feedback only
                 chain.append(dict(ph="U'", A=chain[-1]["A"], a=chain[-1]["a"], B=None, b=0, k=kk))
                 stats["re-open covered by feedback alone"] += 1
@@ -268,11 +300,15 @@ def latch_claim(Q, sb, se, val):
         pinsT += [(u, w) for (u, w, dlo, dhi) in Dw]
         A, a, B, b = window(pinsT, Q)
         chain.append(dict(ph="T", A=A, a=a, B=B, b=b, k=kk))
+        for (u, tk, iT, iU) in pendD:
+            if iT: PEND.append((INSTACK[-1], Q, u, tk, (A, a, B, b)))
         if kk >= len(ev[e]) or tclose >= se + 10**12: break
         # U: en X, D covered, fb by the union: starts hi_fb after T's start, ends with D's validity
         pinsU = [(u, w) for (u, w, dlo, dhi) in DwU]
         _, _, BU, bU = window(pinsU, Q) if pinsU else (None, 0, None, 0)
         chain.append(dict(ph="U", A=A, a=a + fhi, B=BU, b=bU, k=kk))
+        for (u, tk, iT, iU) in pendD:
+            if iU: PEND.append((INSTACK[-1], Q, u, tk, (A, a + fhi, BU, bU)))
         # H: en ex(kk+1) (closed between close event kk and next open kk+1), fb by the union
         Bh = eid[(e, kk + 1)] if kk + 1 < len(ev[e]) else None
         chain.append(dict(ph="H", A=eid[(e, kk)], a=ehi, B=Bh, b=elo, k=kk + 1))
@@ -292,30 +328,89 @@ def latch_claim(Q, sb, se, val):
                 ("U'", "T"): "ChainOK U'->T (re-latch: transparent phase starts before the new D ends)",
                 ("H", "T"): "ChainOK H->T (re-open without D cover)"}.get((c1["ph"], c2["ph"]), "ChainOK")
         obl(kind, (c1["b"] + d - c2["a"]) if d != NEG else NEG, (nm[Q], c1["B"], c2["A"]))
-    return dict(A=chain[0]["A"], a=chain[0]["a"], B=chain[-1]["B"], b=chain[-1]["b"], val=val, kind="latch")
-# ---------------- guards
+    return dict(A=chain[0]["A"], a=chain[0]["a"], B=chain[-1]["B"], b=chain[-1]["b"], val=val, kind="latch",
+                phases=[(ph["ph"], ph["B"]) for ph in chain], cov=COVL.get(Q, []))
+# ---------------- guards (window fixpoint: a pass re-uses the previous pass's windows for loop covers)
 def mid_(v, w): return dl[(v, w)][2] if (v, w) in dl else 1
-G_ = []
-for (v, z), gl in DATAG.items():
-    for (st, en_, val) in gl:
-        u, j = st; S = eid[(u, j)]; E = eid[en_] if en_ else None
-        ts = ev[u][j] + mid_(v, u)
-        n0 = len(OBL)
-        te_ = (ev[en_[0]][en_[1]] + mid_(v, en_[0])) if en_ else ts
-        CTX.append(tuple(sorted([S] + ([E] if E is not None else []))))
-        cz = claim(z, ts - mid_(v, z), te_ - mid_(v, z))
-        CTX.pop()
-        if cz == "PENDING": G_.append((v, z, NEG, "cycle")); continue
-        ms = INF; me = INF
-        if cz["A"] is not None:
-            d = sep(cz["A"], S)
-            ms = (d + lo_(v, u) - pwin(v, z)[1] - cz["a"]) if d != NEG else NEG
-        if cz["B"] is not None:
-            if E is None: me = NEG
-            else:
-                d = sep(E, cz["B"])
-                me = (d + pwin(v, z)[0] + cz["b"] - hi_(v, u)) if d != NEG else NEG
-        G_.append((v, z, ms, me, cz, st, en_))
+NPASS = int(os.environ.get("NPASS", "4"))
+for pass_ in range(NPASS):
+    memo.clear(); OBL.clear(); stats.clear(); PEND.clear(); DEPSMAP.clear(); OWNBAD.clear(); PEND_PREV.clear()
+    G_ = []
+    for (v, z), gl in DATAG.items():
+        for (st, en_, val) in gl:
+            u, j = st; S = eid[(u, j)]; E = eid[en_] if en_ else None
+            ts = ev[u][j] + mid_(v, u)
+            te_ = (ev[en_[0]][en_[1]] + mid_(v, en_[0])) if en_ else ts
+            CTX.append(tuple(sorted([S] + ([E] if E is not None else []))))
+            GTOP = (E, pwin(v, z)[0], hi_(v, u)) if E is not None else None
+            cz = claim(z, ts - mid_(v, z), te_ - mid_(v, z))
+            GTOP = None
+            CTX.pop()
+            if isinstance(cz, tuple): G_.append((v, z, NEG, "cycle")); continue
+            ms = INF; me = INF
+            if cz["A"] is not None:
+                d = sep(cz["A"], S)
+                ms = (d + lo_(v, u) - pwin(v, z)[1] - cz["a"]) if d != NEG else NEG
+            if cz["B"] is not None:
+                if E is None: me = NEG
+                else:
+                    d = sep(E, cz["B"])
+                    me = (d + pwin(v, z)[0] + cz["b"] - hi_(v, u)) if d != NEG else NEG
+            G_.append((v, z, ms, me, cz, st, en_))
+    NEWW = {k: dict(A=v_["A"], a=v_["a"], B=v_["B"], b=v_["b"]) for k, v_ in memo.items() if isinstance(v_, dict)}
+    changed = sum(1 for k in NEWW if PREV.get(k) != NEWW[k])
+    nf = sum(1 for x in G_ if len(x) == 7 and min(x[2], x[3]) < 0)
+    print("  pass %d: claims %d, windows changed vs previous pass %d, loop covers %d (via previous-pass windows %d), guards failing %d" % (
+        pass_, len(NEWW), changed, stats["loop cover by an in-progress claim (CovTime checked after the fact)"], len(PEND_PREV), nf), flush=True)
+    if changed == 0: break
+    PREV = NEWW
+# ---------------- loop covers: CovTime against the (now finished) covering claim; then failure propagation
+PWHY = collections.Counter(); PEX = []
+pbad = set(); npend = 0; pfail = 0; pmin = INF
+for (ck, z, u, tk, (A, a, B, b)) in PEND:
+    w = memo.get(tk)
+    if not isinstance(w, dict): continue
+    npend += 1; lo, hi, md = pwin(z, u); ok = True
+    if w["A"] is not None:
+        if A is None: m = NEG
+        else:
+            d = sep(w["A"], A); m = (a + d - hi - w["a"]) if d != NEG else NEG
+        if m < 0: ok = False
+        elif m < pmin: pmin = m
+    if w["B"] is not None:
+        if B is None: m = NEG
+        else:
+            d = sep(B, w["B"]); m = (lo + w["b"] + d - b) if d != NEG else NEG
+        if m < 0: ok = False
+        elif m < pmin: pmin = m
+    if not ok:
+        pfail += 1; pbad.add(ck)
+        why = []
+        if ck == tk: why.append("same claim")
+        elif ck[0] == tk[0]: why.append("same node, other window")
+        else: why.append("other node")
+        why.append("kind %s->%s" % ("latch" if z in C["LATCH"] else "comb", "latch" if tk[0] in C["LATCH"] else "comb"))
+        if w["A"] is not None and (A is None or sep(w["A"], A) == NEG or a + sep(w["A"], A) - hi - w["a"] < 0):
+            why.append("start: " + ("consumer A none" if A is None else ("no Sep" if sep(w["A"], A) == NEG else "negative")))
+        if w["B"] is not None and (B is None or sep(B, w["B"]) == NEG or lo + w["b"] + sep(B, w["B"]) - b < 0):
+            why.append("end: " + ("consumer B none" if B is None else ("no Sep" if sep(B, w["B"]) == NEG else "negative")))
+        PWHY[tuple(why)] += 1
+        if len(PEX) < 4: PEX.append((nm[z], nm[u], nm[tk[0]], A, a, B, b, w["A"], w["a"], w["B"], w["b"]))
+    DEPSMAP.setdefault(ck, set()).add(tk)
+print("  loop covers (Cov.cl by an in-progress claim, incl. self): %d checked, %d failed CovTime, smallest margin %s" % (npend, pfail, pmin))
+for k_, n_ in PWHY.most_common(10): print("    %5d %s" % (n_, k_))
+for x in PEX: print("    ex", x[:3], "consumer A,a,B,b", [(nm[el[x[3]][0]], el[x[3]][1]) if x[3] is not None else None, x[4], (nm[el[x[5]][0]], el[x[5]][1]) if x[5] is not None else None, x[6]], "cover", [(nm[el[x[7]][0]], el[x[7]][1]) if x[7] is not None else None, x[8], (nm[el[x[9]][0]], el[x[9]][1]) if x[9] is not None else None, x[10]])
+bad = set(k for k, v_ in OWNBAD.items() if v_) | pbad
+rev = collections.defaultdict(set)
+for k, ds in DEPSMAP.items():
+    for d_ in ds: rev[d_].add(k)
+todo = list(bad)
+while todo:
+    k = todo.pop()
+    for p_ in rev[k]:
+        if p_ not in bad: bad.add(p_); todo.append(p_)
+for k, v_ in memo.items():
+    if isinstance(v_, dict): v_["bad"] = k in bad
 # ---------------- report
 kinds = collections.defaultdict(lambda: [0, 0, INF])
 for k, m, det in OBL:

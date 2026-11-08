@@ -2418,3 +2418,27 @@ Python, tools/tocc m1–m4.py, mrace.sh).**
   * The cause is that the oleans of the CViewPS modules they import were not built in this session: a
     whole-project lake build was still running.
 * *Not shown:* anything about reset beyond the measurement (09:2x entry). The kernel cost per chunk is unknown.
+
+### progress 15:21
+**Data layer: loop covers and remaining guard failures classified; still not passing (untrusted Python).**
+* *Loop covers.* Claims covering themselves through register loops are sound in the Lean by the time induction
+  (`claim_stepR` uses covering claims only at reads ≤ t), provided each cover meets CovTime. The tool now computes
+  windows as a fixpoint.
+  * (12,18) c=1: converged; all 116 loop covers checked.
+  * (12,18) c=0: NOT converged (about 1,490 windows oscillate), so 2,915 loop covers there are unchecked.
+  * (17,5) not re-run.
+* *Failing guards:* (12,18) 82 (c=0, provisional) / 46 (c=1) of 264; (17,5) 184 / 151 of 406 (older code).
+  * R1: the reader's E is 18–36 ns before a register re-open, but the two are causally unordered, and no Up exists
+    from any common ancestor because the paths cross environment events or non-common alternatives. Some of these
+    sit at the arbiter-0 grant (SLICE_X38Y51/53). They need an env-/arbiter-aware ordering argument, possibly an
+    ArbOK-derived fact (not formulated). An adversarial run on the main group: right gcd, no data-driven control
+    change.
+  * R2/R3: claims end early because latch chains in z's cone are truncated where a latch's close and its D's end
+    are causally unordered (hold ordering). Not yet traced latch by latch; no adversarial runs on these points.
+  * R4: 18 start-side failures at (17,5); not analysed.
+* *Open, for the next session:*
+  * a monotone (shrinking) window fixpoint;
+  * the precise form of an env/arbiter-aware upper bound, i.e. what `UpOKA` could admit through an environment
+    or arbiter event, given Spec's ArbOK;
+  * tracing the truncated latch holds.
+* *No defect found* in any adversarial run so far (about 170 runs in total).
