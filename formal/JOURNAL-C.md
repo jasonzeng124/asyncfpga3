@@ -2185,3 +2185,8 @@ event of the reader, a cause on the other source in every alternative (`read_con
 enabling read and monotone reads), data claims with chains (TimedOccU). check.sh OK on both; standard axioms.
 This removes the four over-strong/missing points the Python study found (OR-causality, diagonal rows, reader rows,
 global L); whether THE target's certificate then passes is not yet re-measured. Liveness for AO: next.
+
+### progress 09:00 -- AO liveness CLAIMED: gate_firesA, timedA_live (check.sh OK)
+With every full-order alternative containing a physical one (`hCPsub`), non-empty alternative lists, and environment
+liveness: every certificate event happens and from some T every exact node is constant. The resumed subagent is
+re-measuring THE target's (12,18) certificate against the AO model.
