@@ -2755,3 +2755,9 @@ new ones will start until one finishes, and idle polling is reduced.
   (checked: no LUT depends on them, 24,587 pins); union claims used as feedback covers and comb-segment claims have
   no Lean emitter yet. So "0 failing at c=1" is the Python verdict on the obligations it emits, for one pair, one
   midpoint run per corner, g = 1, κ = 0. Not a proof.
+
+### progress 20:05 -- Net/Compute/PS/Ushli0.lean: the 19th datapath unit (check.sh OK)
+`ushli0_ps`: under `Settled`, THE target's ushli0 outputs `Ops.shli 32 e0 e1` for every e0 and every shift
+amount e1 < 32 (the side condition of Net/Compute's proof, kept as a hypothesis). check.sh: 4,452 declarations,
+standard axioms; textual scan of its 144 generated chunks OK. With this, 19 of 20 units are proved on the decoded
+netlist (untimed); uori4 needs its own extraction; only uselect1 has a timed version.
