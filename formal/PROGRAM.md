@@ -4,7 +4,7 @@
 
 The owner raised the budget to about twice the single-thread, high-effort level.
 Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-at most 2 at a time for shard A and 4 at a time for shards B and C** (raised, owner, 2026-11-07). Wait for one to finish before starting another. A
+at most 2 at a time for every shard** (owner, 2026-11-09: back from 4 for B and C; the week's usage is near its limit). Wait for one to finish before starting another. A
 subagent never touches git: it works in its own worktree or scratch directory
 and reports back, and you review and commit what it found. Use them for
 independent work that would otherwise wait (a second sweep while a build runs, a
