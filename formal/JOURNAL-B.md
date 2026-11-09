@@ -3984,7 +3984,7 @@ SLICE_X34Y76.B6 H->U' (-3.7 / -7.5 ns), SLICE_X33Y91.B5 U'->T (no Sep), SLICE_X3
 re-open-at-concurrent-branches class as (12,18)'s former roots; Up minus Sep a few ns short (generator search or real:
 not yet traced). lchk 0 / 0 there too. ~1.5 h and 3.4 GB per corner.
 
-### progress 14:5x -- (17,5): 0/406 (c0), 6/406 (c1) guards fail after one builder fix; all roots artefacts, positive path-sum margins (untrusted Python)
+### progress 15:0x -- (17,5): 0/406 (c0), 6/406 (c1) guards fail after one builder fix; all roots artefacts, positive path-sum margins (untrusted Python)
 Files `formal/tools-B/r23/es/`. Roots of the 126/126: SLICE_X34Y76.B6 and X36Y71.C6 H->U' are the same data-vs-select mux
 race as (12,18)'s (mux SLICE_X33Y75.B6; D really glitches 336,494-337,719 ps), but provable: the bank re-latch
 SLICE_X30Y76.A6(2) is causally before the re-open (Sep 3,566 = the lo path), margin 3,566 + 125 - 1,071 = **+2,620 ps**
