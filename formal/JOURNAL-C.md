@@ -2575,3 +2575,15 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   alternative carry extra causes that lie before the window's start offset on a dependency node (they are counted
   inside the box). So the reset event and the last events of nodes quiet since iteration 0 need no new rule for the
   local check; the timing checks (Sep/Up rows that use them) still need their window form.
+
+### progress 10:20 -- Timing/SpecSettleSym.lean: value-free settle windows (the timing half of piece 2)
+* *Problem, plainly:* `uselect1_ps` assumes the unit's gates satisfy their zero-delay equations (`Settled`). When
+  does a timed behaviour give that, for EVERY operand value? `SpecSettle.cert_sound` needs concrete values (one pair).
+* *Proved* (check.sh OK): `certS_sound_net`: if a value-free window certificate passes (an STA pass in topological
+  order: start and each input's window start + dmax ≤ the gate's window start; window end ≤ each input's end + dmin)
+  and the external inputs hold (any values) on their windows, then in every behaviour every gate of the list holds a
+  constant on its window and, at every time inside its own and its inputs' windows, equals its INIT bit at the
+  address of its inputs' values at that time. `certN_sound_net`: the same for every sane p from a decidable
+  certificate in prjxray slow-max units, windows [T0 + ⌈(1+κ)g⌉·SN n, T1].
+* *Next:* the uselect1 instance: inputs held on [T0, T1] ⇒ at every t in [T0 + ⌈(1+κ)g⌉·D, T1] the output word is the
+  op of the input words (D = the unit's slow-max depth, computed and checked in the kernel).
