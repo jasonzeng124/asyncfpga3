@@ -1,0 +1,78 @@
+R1c, shard C helper, 2026-11-09.  UNTRUSTED Python.  Pair (12,18).  Copied from /tmp/claude-0/r1b, with paths rewritten.
+The r1b results are kept as RESULTS_r1b.txt.
+All runs use: SEPIV1=1 (form iv only with d >= 1), REL=1 RELD=99 RELK=16 RELTRY=64 (relative Up clause, as r1b), NPASS=4.
+Runner: `<env> python3 rundatal.py <c>`; the logs and pickles are datal_c<c>_<tag>.{log,pkl}.
+Final: `ARTFIX=1 ARTFIX2=1 REL=1 RELD=99 RELK=16 RELTRY=64 TAG=_fin python3 rundatal.py <c>`.
+
+Changes in datal.py (env switches, all default on):
+  JOIN    claim start: if no pin start has a Sep from all the other pin starts, also try the earliest common causal
+          DESCENDANTS of the pin starts (join_pool, 8 events), not only the consumer's anchors (the latch's open/close).
+          This is the anchoring fix in the form that works.  The bank latches X30-31,Y75-77 failed H->U' because, deep in
+          their D cone, X28Y67.A6 reads two latches.  Their opens X24Y77.A6(0) and X28Y65.A6(0) are causally unordered,
+          so the claim fell back to the bank's own open X30Y76.A6(0).  Now it starts at X35Y79.D6(0)@613712, before the open.
+  ANCHOR  B's literal fix: if H->U' fails, rebuild the U' cover claims of comb D inputs from the D input's own last
+          change (claim(u, sb_u, same end)).  The rebuilt claim is kept only if the step passes and no new obligation fails.
+          Otherwise everything is rolled back (OBL, DEPS, PEND, SEPNEED).  ANCMODES=...,no-consumer-anchor is an
+          opt-in variant: tested on X25Y76.B5 only, and it was rejected.
+  COMBREL/COMBTRUNC  a comb-chain segment join (ChainOK) that fails is first retried with the relative Up (never
+          passed).  If it still fails, the chain is TRUNCATED to its passing prefix (a ChainOK chain of that prefix), the
+          same treatment latch chains get.  Before this, the claim was marked failing.
+  ARTFIX/ARTFIX2 (r1b switches, set in the "art" and "fin" runs): a claim end prefers events causally after the guard's
+          E, or after the next latch phase's start.
+  sneed/SEPNEED: every Sep used by an accepted claim obligation (CovTime start and end, latch ChainOK, comb ChainOK, loop
+          covers), with the Sep value it needs and the depth.
+lchk.py now also emits every SEPNEED Sep (emit_sepq at its depth), re-checks it with sepFormB/upFormB, and re-evaluates
+  each claim-building obligation against the emitted (checked) table value: "needbad".
+New scripts: anal.py (classification, incl. guards whose claim depends on a failing obligation), path.py (claim-end
+  binding path of a failing guard), probe.py, dbgq.py (builds one latch claim), tr2.py, ordchk.py, upjoin.py, joinanc.py.
+
+Failing guards of 264 (GuardTime fails / GuardTime fails OR the claim depends on a failing claim obligation):
+                                                     c=1        c=0
+  r1b (sound + relative clause), reference          61 / -     82 / -
+  main: + JOIN + ANCHOR                             43 / 43    82 / 82   (c=0: 78 depend on comb-chain fails)
+  art:  + ARTFIX, ARTFIX2                           43 / 43    46 / 82
+  fin:  + COMBREL/COMBTRUNC  (FINAL)                43 / 43    46 / 46
+Truncations at H->U': c=1 57 -> 1 (main), c=0 129 -> 2.  ANCHOR fired 1x (c=1) and 2x (c=0), accepted only in fin:
+  X25Y76.B5, H->U' margin -383 -> +240,620 ps (U'.A = X22Y79.A6(0)@591321).
+lchk on every run: upFormB failures 0, sepFormB failures 0, claim-building Seps 906-922 (all re-checked), needbad 0,
+  GuardTime recomputed from the emitted tables agrees with datal on 264/264.
+  Final: c=1 Up 3051 (730 relative), Sep 89718; c=0 Up 365, Sep 61977.
+(datal_c1_v1.* is a REL=0 NPASS=1 smoke test.  The first c=1 main run was OOM-killed by the cgroup, alongside a 12 GB
+ Lean process, and was rerun.)
+
+What still fails (FINAL; anal.py, path.py, ordchk.py):
+  c=1 30 / c=0 40  MASKING RACE at D = X22Y81.B5 of latch X25Y76.B5 (B's root).  D holds its value across X27Y80.B6's
+      re-open X27Y80.A6(2) only because masking latch X22Y87.D5 has taken control.  X22Y87.D5 opens at X22Y87.A6(0), and
+      that event and X27Y80.A6(2) are causally UNORDERED: 4.5 ns apart at c=1, 2.2 ns at c=0, no Sep23 either way.
+      So D's claim (anchored at its own last change, or not) ends at X27Y80.A6(2).  That end reaches the guards through
+      X25Y76.B5 -> X28Y67.A6 -> ... -> bank latch X31Y76.A5 -> X33Y75.C5 -> X34Y65.A5 -> X35Y70.F7B/F8 -> X37Y68.A6/B6.
+      Readers: X37Y68.B6, X38Y78.A6.  The claim end is causally before E.
+  c=1 9 / c=0 2    single-node early end at X37Y68.B6 (claim.B = an event of a reader-side node, e.g. X39Y87.A6(0),
+      X37Y59.B6(0), X38Y53.C6(0): the previous event of E's node, causally before E).
+  c=1 4 / c=0 4    arbiter-area latches X36Y63.B6, X36Y68.B6 (x2), X37Y47.B6: their own chain ends causally before E
+      (B's "U->H, D = X39Y53.B6" class).
+Counterfactuals with B's UnionUp joins (upjoin.py, joinanc.py, c=0 final; not in the pipeline):
+  Up join (UnionUpOK): joins 2 of ~355 distinct truncated links (U->H at X29Y65.C6 and X12Y33.B6), none of them on the
+  40-guard path.
+  JoinAnc on X34Y65.A5 U->H (on the path): short by 12.7 ns (best e0 = X27Y80.A6(2): Sep 0, Up 15.3 ns).
+  X22Y81.B5 segment join (segup.py).  seg2's CovTime start must be causally after both X22Y87.A6(0) and X27Y80.A6(2),
+  so a Sep join (seg2.A <= seg1.B = X27Y80.A6(2)) is impossible.  Any Up or JoinAnc join needs
+  Up(X27Y80.A6(2) -> J) + seg2.a <= seg1.b (978 ps at c=1).  The earliest common descendants J come 31 ns (c=1) and
+  13 ns (c=0) after it, and no depth-0 Up reaches them, so UnionUp cannot close this.  (ja_c*.txt: the joinanc.py runs
+  on this link hit the 900 s timeout and are empty.)
+  To prove this class, one needs an ordering fact that the causal model lacks: X22Y87.D5 takes control before
+  X27Y80.B6 changes.  That is a timing race between two unordered latch opens, 2.2-4.5 ns apart in the run.  It needs a
+  model-level statement (an RT edge X22Y87.A6(0) -> X27Y80.A6(2), with its own check) or an adversarial check.
+
+Lean obligation behind the anchoring fix (no new Lean; UnionUp.lean is not used):
+  Latch Q's claim is the union hGC disjunct 2 (TimedU.timedU_follows, and AO.timedA_follows Net/AO/Timed.lean:540):
+  a ChainOK Sep chain [.., H, U', T, ..] of GateProof claims.  The step is TimedOccU.lean:67-75, ChainOK cons case,
+  with c1 = H and c2 = U':
+     c1.B = some (en, k) (the re-open), c2.A = some e2,  exists d, Sep e2 (en,k) = some d  and  U'.a <= H.b + d,
+  where H.b = lo(Q,en).  The fix changes only the witnesses U'.A/U'.a and, below them, the cover claim w of D.
+  It uses U''s GateProof CovTime start (TimedOccX.lean:87-90): Sep w.A U'.A = some d' and hi(Q,D) + w.a <= U'.a + d'.
+  w is either GateProof with w.A = a common causal descendant of D's pin starts (JOIN), or (ANCHOR) a claim of D over
+  its whole stable interval: GateProof, or a ChainOK chain of gate-proved segments.  Truncation to a passing prefix is
+  ChainOK of the prefix.  The anchor cannot be "D's own last change" as such: D is a data node, it has no events
+  (hDataLen: CF.len D = 0; Sep targets are non-data, hSE).  Every Sep used is a SepOKA entry (form iv with d >= 1),
+  re-checked by lchk.  No ChainUpOK/UnionUpOK/JoinAnc link is used.

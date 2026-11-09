@@ -2655,3 +2655,20 @@ stays an explicit hypothesis (instance property). Also a note on B's 10:3x item 
 pins): `TimedBridge.GateFact` already allows any per-pin source map and arcs, so B's fix (keep those gates' raw pin
 nodes as sources and add each pin node as a copy gate with its collapsed chain) needs no generic change; it is an
 instance choice.
+
+### progress 12:56 -- data layer, sound and combined: 43 / 46 of 264 guards fail; the residue is ONE unordered pair (untrusted Python)
+* *Run (subagent, tools/tocc/r1c/RESULTS.txt):* (12,18), sound Seps (form iv d ≥ 1), the relative Up clause, and new
+  sound witness choices in the claim builder: JOIN (a claim may start at the earliest event causally after all its
+  pins' starts: fixes the X30-31,Y75-77 register bank, H->U' truncations 57 -> 1 at c=1, 129 -> 2 at c=0), B's
+  ANCHOR (rebuild a D claim from its own last change, kept only if the step passes), comb-chain prefix cuts.
+  lchk now re-checks every emitted Sep/Up entry including the ~910 claim-building Seps: 0 failures each run.
+* *Failing guards:* c=1 61 -> **43**, c=0 82 -> **46**. All have the claim end causally before the guard end.
+  * c=1 30 / c=0 40: root latch SLICE_X25Y76.B5 (B's root). Its D (X22Y81.B5) keeps its value only because masking
+    latch X22Y87.D5 takes control (its open X22Y87.A6(0)) before X27Y80.B6 changes (at X27Y80.A6(2)); these two
+    events are causally UNORDERED, 4.5 ns apart (c=1), 2.2 ns (c=0). No Sep, Up or join can order them (the earliest
+    common successors are 13-31 ns later against a 978 ps budget). So this is either a real race or needs a
+    model-level ordering argument. **Next: an adversarial run pushing X22Y87.A6's open late and X27Y80.A6 early.**
+  * c=1 9 / c=0 2: claim on X37Y68.B6 ends at the previous event of the guard-end node.
+  * 4 per corner: arbiter-area latches X36Y63.B6, X36Y68.B6, X37Y47.B6 (B's U->H class, D = X39Y53.B6).
+* *Lean side:* the fixes use only existing obligations (TimedOccU ChainOK cons step; GateProof/CovTime; hGC's chain
+  disjunct). B's UnionUp joins are not needed.
