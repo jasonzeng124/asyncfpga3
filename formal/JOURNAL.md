@@ -2106,3 +2106,13 @@ is exit 137 or "build failed"; no elaboration or kernel error in any module buil
 not run yet. At this rate it will not finish inside today's session. **For the next lead session:** a
 one-module-at-a-time pass (xargs -P1 over the unbuilt modules) instead of check.sh's parallel rounds; or ask B to
 cap its chunk sizes so a 4-way lake build fits 15 GB.
+### progress 04:1x (2026-11-09) -- session close: whole-tree check NOT completed; lock refresh stopped for the next session
+check.sh --committed (since 11:21 yesterday): 4,082 of 4,736 committed Formal modules built, every failure exit 137
+(memory), no Lean error, audit not reached. Stopping lock refreshes now so tomorrow's (today's) lead session can take
+the lock at its start. **Next lead session:** (1) finish the whole-tree check with a one-module-at-a-time pass over
+the ~650 unbuilt modules (mostly B's CertLatchPS/LatchHold*/CElem*View chunks), then the audit; (2) optional
+H_DECODE follow-ups: site output hops (Python: every hop consistent with its slice; needs a node-name certificate
+in Lean) and the converse (no two netlist nodes are one fabric node).
+**Session summary (A, 2026-11-08):** `FormalWit/NM` -- the decoded netlist's wiring checked against prjxray in Lean
+(pips_ok 157,229 pips; luts_ok 16,488 LUTs, pin order; xs_ok MUXF selects and CARRY4 carry-ins); standard axioms.
+STATUS row 1 updated (the "wire-to-node merge" open item closed for every gate pin that reads a routing wire).
