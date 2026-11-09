@@ -259,4 +259,9 @@ Links on the cycle: ulink_n26, ulink_n28__1, ulink_n10__x and ulink_n14__0 are r
 
 - One route per build, at the calibrated bands (no scatter, no PVT corner), on the simulator, not silicon.
 - Settle times depend on the inputs (one value per kernel), so the "worst settle seen" is not a bound.
+- A bound by idealisation failed (`research/tools/itercost/zero_delays.py`, a negative result).
+  - The six delay instances on x0.5 xorshift's control ring were set to 1 ps arcs and 1 ps input wires.
+  - The kernel deadlocked after its first iteration: umux1's output rose once and never again.
+  - Meanwhile some net kept switching for 155 µs of sim time, after which the run was stopped.
+  - So "remove the ring's delays" is not a measurable what-if on this route. Those delays order the first token's handshakes, not only its data. Levers 2-4 above are therefore read off the cycle, not simulated.
 - Only the first critical cycle. Once a lever shortens it, another ring becomes critical. For xorshift, the xor ring has at least 0.5 ns of slack (`lengthen.tsv`); how much more is not measured.

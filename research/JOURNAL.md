@@ -3147,3 +3147,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - research/data/itercost/README.md has both kernels, the method, the self-checks and the ranked levers. Retired on
   xorshift / held on collatz: "the datapath's matched delays are the cost". RTZ factor E = 1.78 (xorshift), 1.35
   (collatz) vs the model's 1.5. Not shown: other routes, PVT, silicon, the next critical cycle once one shortens.
+- 10:15 negative: zeroing x0.5 xorshift's six control-ring delay instances in the sim (1 ps arcs and input wires,
+  research/tools/itercost/zero_delays.py) deadlocks after the first iteration (umux1's z_req rises once; something
+  keeps switching for 155 us, run stopped). The "remove the delays" bound is not measurable that way; the README's
+  levers stay read off the cycle.
