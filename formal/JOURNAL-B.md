@@ -3831,3 +3831,33 @@ with REANCH + LGTOPOFF; (17,5) 158/128, 156/126) is optimistic; C's sound base i
 findings (which roots, the LGTOPOFF builder bug, no hazard in the adversarial runs) are not counts, but each root
 needs re-checking with d ≥ 1. C asks B for the re-open latch-chain step (register-bank latches SLICE_X30-31,Y75-77:
 "new D valid before the re-open is read" short by 1.35 / 1.45 ns at c0): B takes it, next entry.
+
+### progress 11:3x -- register-bank re-open (C's handoff): no hazard; the blocker is claim anchoring; a NEGATIVE-offset fix is NOT sound (untrusted Python + reading the Lean)
+Subagent, with C's d ≥ 1 fix applied to the copy (SEPIV1; C's r1b/lchk.py re-check NOT run). Files:
+`formal/tools-B/r23/followup3/`.
+- The 32 bank latches enabled by SLICE_X30Y76.A6 (C's "re-open" blocker): 30/32 latch the SAME value at every opening
+  (both corners); the 2 that change have their new D long before the open. Between the open read and the D claim's
+  start, D is stable: nothing in the D cones (257 comb gates, 110 leaves) changes in ±15 ns except bank latch C5 itself;
+  a ternary (Kleene) check with the changing latches, or all 32 bank latches, set to X and the enable X keeps every
+  unchanged latch's D definite and equal to Q. Adversarial run (enable path fast, all else slow, both corners): gcd 6,
+  no data-driven control change, no bank Q change while closed, no D glitch.
+- **Why the Lean step fails:** inside the D cone, SLICE_X28Y67.A6 reads two covers whose start events are the loads of two
+  different registers (SLICE_X24Y77.A6(0) @273,748, SLICE_X28Y65.A6(0) @272,926), causally unordered; a claim has ONE
+  anchor and `CovTime` needs a lower Sep from each cover's start to it, so the builder anchors at the bank's own opening,
+  and the offsets then grow along the carry chain to ~2.3 ns > the enable's lo (~0.22 ns).
+- Counts with the sound Sep: best config 48 / 48 failing guards, all rooted at that bank re-open step. The subagent's
+  "ANEG" run (claim offsets a < 0) reaches 0 / 0, **but that is not a Lean-valid certificate**: C's `GateProof` and
+  `claim_stepR` require 0 ≤ c.a, and the induction is causal (a claim anchored at a future event cannot be proved at
+  time t). So 0/0 is NOT a result; 48/48 is the sound count of the best builder configuration so far.
+
+### progress 11:4x -- Formal/Cells/CovUp.lean, CovUpMain.lean CLAIMED: pin covers timed by an UPPER bound from the claim's anchor
+The sound replacement for negative offsets. `CovUp.CovTimeU`: a covered pin's start side may be justified by
+`Up(c.A → w.A) = u` with 1 ≤ hi + w.a and hi + w.a + u ≤ c.a (the cover starts no later than the claim's anchor + u),
+besides C's Sep form; so a claim can be anchored at a COMMON ANCESTOR of two causally unordered covers (here: of the two
+register loads), with a ≥ 0. `win_transferU`, `claim_stepU` (C's claim step, proof copied, with UpSoundT one tick
+behind), `GateProofU` (+ `gateProofU_of_gateProof`). `CovUpMain.timedA_follows_cu`, `gate_firesA_cu`,
+`timedA_live_cu`: C's AO safety and liveness with GateProofU claims and ChainUpOK chains; they imply C's theorems.
+`./check.sh` on UnionUp, UnionUpDec, CovUp, CovUpMain: 409 declarations, standard axioms, [check] OK.
+**Plainly:** if a generator anchors such claims at a common ancestor and the Up bounds are tight enough, the bank
+re-open step needs no negative offset. Whether C's Up tables are tight enough there: being measured. Not shown: the
+Boolean checker for CovTimeU, any instance.
