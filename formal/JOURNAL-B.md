@@ -3794,3 +3794,32 @@ decoded net, A1..A6) are distinct even when their collapsed sources coincide, so
 one hop: pins = g.ins, arcs i = [its own pin arc] (CGateOK straight from GateOK), and each such pin node added to the
 timed net as a k = 1 gate with the collapsed chain from the source (CGateOK of the copy chain). Then every pin list is
 nodup. Not written; a design suggestion only.
+
+### progress 11:0x -- (12,18) data layer down to 18/18 failing guards, one root (concurrent-branch Up bound); no race found (untrusted Python)
+Subagent, on top of the relative clause; files `formal/tools-B/r23/followup2/` (README.txt, datal_t.py with REANCH /
+LGTOPOFF switches, traces, h_rag_c*.log). Changes to the claim builder (copy only):
+- `LGTOPOFF` (a builder bug): the guard-optimal end choice was also applied to a latch's own phase windows when the
+  latch is the guard's data node, which broke its U->H union. With it off, SLICE_X36Y63.B6 / X36Y68.B6 join by the
+  plain Sep join: the real D end (SLICE_X38Y51.A6(0), through the arbiter-0 state) is causally AFTER the close, Sep
+  2,649 / 2,244 ps. No arbiter fact needed.
+- `REANCH`: at a re-open, request the D claim from the start of D's own stable value (split into comb segments
+  joined by Sep). Removes the SLICE_X25Y76.B5 root, but NOT yet sound as a cut: failing comb-segment links rise 3 -> 13
+  (c0, worst -18.9 ns) / 2 -> 11 (c1), loop-cover CovTime failures c1 22 -> 48 (c0 2,751 -> 512); the guards depending
+  on any failing obligation are unchanged in number (78 / 120). Missing in Lean terms: a value-level hand-over join
+  at a mux whose select switches while both covered inputs agree (a GateProof with the select X across the switch);
+  the builder does not produce it.
+Failing guards: (12,18) c0 44 -> 20 (REANCH) -> **18**; c1 32 -> 20 -> **18**. (17,5): 158 -> 156, 128 -> 126.
+- (12,18) residue, both corners: 18 guards on SLICE_X38Y78.A6 from one root, SLICE_X37Y71.B5 H->U' (-7,876 ps, c0).
+  Its D (SLICE_X34Y77.D5) has two covers, bank latch SLICE_X30Y75.C5 and latch SLICE_X36Y69.B6 (whose D is the
+  arbiter-0 OR SLICE_X39Y53.B6). The X36Y69 branch is concurrent with SLICE_X30Y76.A6(2); the best common-ancestor
+  bound with the relative clause lets it come ~10.5 ns after that event, while in the run it comes 1.2 ns before. This is
+  C's R1 pattern ("Y2", the arbiter-0 grant in the branch's past): it needs a tighter Up rule or an arbiter-aware fact.
+  8 adversarial runs (setup race, concurrent branches skewed, both corners): gcd 6, 0 data-driven control changes; the
+  branch gap stays ≥ 3.9 ns (c0) / 9.8 ns (c1).
+- (17,5) roots: c0 class A with D-claim ends anchored at SLICE_X34Y76.A6(0) + 61-70 ns (SLICE_X34Y76.B6 T->U 126
+  guards, X36Y71.C6 18, X35Y76.B5 12; Up-vs-missing not computed); c1 H->U' anchored at SLICE_X30Y76.A6(2), -12 to -13 ns
+  (the same register-bank re-open / concurrent-branch class).
+**Reading:** no hazard found in any of today's ~30 adversarial runs; what blocks a passing (12,18) certificate is
+(i) the concurrent-branch upper bound (C's R1/Y2) and (ii) a mux hand-over claim form. Neither is a B cell question;
+handed to C. STATUS list unchanged today (no hypothesis discharged); today's Lean (UnionUp, UnionUpDec) generalises
+C's chain joins but has no measured use yet.
