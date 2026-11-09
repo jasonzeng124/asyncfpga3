@@ -2636,3 +2636,14 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   the decoded chunks), output uniqueness (net_wf) ⇒ `Settled` at t ⇒ `uselect1_ps`.
 * *Not shown:* that the operands hold on [T0, T1] in a run (the bundling half of S4), that T1 - T0 > 8.8 ns there;
   the other units (in progress, untimed). ⌈(1+κ)g⌉ rounds up: g = 1.1, κ = 0.1 doubles D.
+
+### progress 10:53 -- handoff: where shard C stands and what is next (no new result)
+Done today (Lean, check.sh OK unless noted): AO/Window + AO/WindowT (every per-entry obligation of timedA_follows
+except claim checks, lifted from window certificates); UpOKA relative clause + Boolean checker; reset_quiet_PS
+(reset island); SpecSettleSym; uselect1_ps and uselect1_timed. Running at this entry: the other datapath units
+(subagent; PS/*.lean files present but NOT yet checked or committed by me), RIslBnd*/RIslAll (every-(g,κ) reset
+corollary; generated, uncommitted, builds in progress), the combined sound data-layer run (/tmp/claude-0/r1c).
+Next, in order: (1) commit the units after check.sh; timed versions of the condition units (ucmpi*) with psmapT.py;
+(2) the re-open latch-chain step that leaves 61/82 guards failing at (12,18) (with B); (3) the bundling half of S4:
+operands held on [T0, T1] from the link/latch handshake, so uselect1_timed's hypothesis is derived; (4) window
+coverage + the unrolled-certificate assembly; (5) TimedBridge's 57 duplicate-source gates (B's 10:3x suggestion).
