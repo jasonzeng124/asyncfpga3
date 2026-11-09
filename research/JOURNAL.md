@@ -3199,3 +3199,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   keeps the RTZ on the cycle (a mux cannot take the next token until both of its inputs have returned to zero), the
   period moves by less than the added latency, and the new cycle will still flip at umux1. I expect the second: a
   partial drop of 3-8 ns, with the flip left at umux1.
+### progress 21:05 (second-latch lead, seed 1 only: -3.5 / -4.9 ns; the cycle moves to the counter ring and still flips at the merge)
+- Bench top, x0.5 sizes, NEXTPNR_SEED=1, itercost bands, every run EQUIVALENT (benign kinds) and cd3132bf, every
+  interval exact and summing to its period (508/510). New inner stages took bdc's default SDELAY 3 (x0.5's own inner
+  stages are 1). Periods (base x0.5 seed 1: 39.06 ns):
+    all three (n_trueResult_8=2, n11__1=2, n_trueResult_12=4)  35.57 ns   cycle moved; RTZ 43%
+    ulink_n_trueResult_8=2 only                                  34.12 ns   cycle moved; RTZ 40%
+    ulink_n11__1=2 only                                          39.87 ns   same cycle (still through umux1)
+    ulink_n_trueResult_12=4 only                                 44.33 ns   same cycle, longer
+- With umux1's coupling decoupled the critical cycle is the loop COUNTER ring (umux0 -> ulink_n7 -> uaddi0 (i+1) ->
+  ulink_n30__1 -> ucmpi1 -> steer -> ucontrol_merge0 -> ulink_n12__0 -> umux0) and it still flips polarity twice per
+  iteration, at ucontrol_merge0 ack -> ulink_n_trueResult_12 req; a 4th stage in that pipe does not remove it. Reading:
+  the arbitrated merge's output cannot return to zero before its granted input does, so the coupling is in the merge,
+  not in the latch count beside it -- a stage on the merge's OUTPUT side would be the test of that.
+- Against the prediction: the size of the drop (3.5-4.9 ns) is inside the 3-8 ns predicted; the place is not -- the
+  remaining flip is at the merge, not at umux1.
+- One route each, and adding stages re-places the design: repeating base / p8 / all3 on seeds 2-4 before any claim.
