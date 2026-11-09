@@ -2539,7 +2539,7 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
 ### progress 09:20 -- Net/Compute/PS/Uselect1.lean: the first datapath unit of THE target proved on the decoded netlist
 * *Problem, plainly:* does unit uselect1 (bdc op 126: fused subi0+cmpi11+subi1+select1) of THE target, as decoded
   from the bitstream, compute its MLIR operation for every pair of 32-bit inputs?
-* *Proved* (subagent, compiled with lean by hand; lake + check.sh build running now):
+* *Proved* (subagent; lake build OK module by module; check.sh OK on OnDecoded, PSMap/Uselect1/All, PS/Uselect1: 3,003 declarations, standard axioms; textual scan of all generated files OK):
   `uselect1_ps : Settled DecodedPS.net S v → word (v ∘ zNode) 32 = Ops.select (Ops.cmpi .sgt 32 (Ops.subi 32 A B)
   4294967295) (Ops.subi 32 A B) (Ops.subi 32 0 (Ops.subi 32 A B))` with A, B the words at the unit's 64 input nodes.
   `Settled N S v`: every gate of N with output in S (2,645 decoded nodes) satisfies Spec's gate equation with
