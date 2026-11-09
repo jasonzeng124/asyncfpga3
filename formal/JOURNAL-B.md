@@ -3916,7 +3916,7 @@ What is left at (12,18), sound, at the fixpoint, without REANCH:
   with REANCH, 13 / 11 comb links fail, incl. SLICE_X22Y81.B5 -13.3 / -32.8 ns, and 3 "no Sep" carry/LUT nodes).
 Next (B): emit the select-X bridging segments, then REANCH; expected residue: C's R1 root (18 guards).
 
-### progress 13:0x -- (12,18): every claim obligation passes; 42/30 guards fail at ONE root, a real data-vs-select glitch absorbed by a closed latch (untrusted Python)
+### progress 12:4x -- (12,18): every claim obligation passes; 42/30 guards fail at ONE root, a real data-vs-select glitch absorbed by a closed latch (untrusted Python)
 Builder copy + `MUXX` (bridging GateProof segments over a mux select change, the changing pins as Cov.X, ValOK by LUT
 enumeration, joins by ChainOK/ChainUpOK only). Files `formal/tools-B/r23/followup6/`. Sound configuration (relative Up,
 chain joins, LGTOPOFF, COVUP, Sep iv d ≥ 1, MUXX), fixpoint (c0 pass 4, c1 pass 2):
@@ -3935,7 +3935,7 @@ SLICE_X25Y76.B5's re-open (SLICE_X24Y77.A6(2)) covering the glitch path, another
 that the current Up/Sep rules do not give. Whether the margin survives κ > 0: testing next (it could matter for the
 frontier, so it goes to FOR-RESEARCH if it breaks below 0.36).
 
-### progress 13:3x -- the mux glitch race holds to κ ≈ 0.55 (simulation); not a frontier issue
+### progress 12:5x -- the mux glitch race holds to κ ≈ 0.55 (simulation); not a frontier issue
 Files `formal/tools-B/r23/kap/` (classes per pair: data branch slow, 321 arcs; select branch fast, 327; variant with
 SLICE_X25Y76.B5's enable path fast; results.txt). simadv, w = 20, three pairs ((12,18), full-width, (1071,462)),
 κ = 0.10-0.35 corner 0 and 0.30 corner 1: **60/60 correct** (two slow-corner full-width runs needed --tmax 40 µs, the
