@@ -2718,3 +2718,11 @@ instance choice.
 * *What "0 failing" means:* every guard of the one-pair certificate passes the Python transcription of the Lean
   checks it emits, with two known gaps still being closed (the U phase's CovTime start for D pins covered only in U;
   loop covers re-checked at the fixpoint): a subagent is adding both checks now. It is evidence, not a proof.
+
+### progress 17:54 -- NOT done: the every-(g,κ) reset corollary (Wip/RIslBnd), memory
+`reset_quiet_all` (the reset island known on [⌈(1+κ)g⌉·(19,832 + 15·4,636) ps, R-1] for every sane p) is written
+(Wip/RIslBnd/RIslAll.lean + 62 generated chunks checking each member's slow-max start ≤ 19,832 ps and pin delays ≤
+4,636 ps, values measured with #eval) but not built: chunks 06, 08, 09 are OOM-killed at ~11 GB each (the kernel
+evaluates long pin chains), which this container's 14.3 GB cgroup cannot host next to anything else. Parked in Wip/
+(not claimed). Fix for a later session: split those chunks per member, or precompute per-member bounds as data
+checked by smaller lemmas. `reset_quiet_PS` (parametric in A, M) stands.
