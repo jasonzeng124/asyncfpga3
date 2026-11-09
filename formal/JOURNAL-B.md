@@ -3726,3 +3726,12 @@ In `AO.timedA_follows`' step, `chain_holds` is applied at t + 1 with `SepSound` 
 available at horizon t (it is what proves `sepSound_step`). So the Up and JoinAnc joins now require 1 ≤ c2.a and
 `chain_holds_up` takes `SepSound` at T and `UpSoundT` at T' with t ≤ T, t ≤ T' + 1. The hold claim c2 starts at
 close + (enable pin delay) ≥ 1, so the condition is met by the latch phases it is for. Same checks (standard axioms).
+
+### progress 09:2x -- UnionUp.timedA_follows_up CLAIMED: C's main AO theorem with the new chain joins
+`Formal.Cells.UnionUp.timedA_follows_up`: C's `AO.timedA_follows` (safety: ideals, every exact change certified,
+every data claim holds, separations sound) with data-claim chains in `ChainUpOK` form (Sep, Up or common-ancestor
+joins). The proof is C's, copied, except the chain step: `chain_holds_up` with SepSound at t + 1 and UpSoundT at t
+(`upSoundT_of_up_sound` from the induction hypotheses at t). Its hGC is weaker than C's, so it implies C's theorem.
+Private build of the closure OK; `#print axioms`: propext, Classical.choice, Quot.sound. check.sh not yet run (setup
+still building Mathlib). **For C:** a generator may now emit Up / JoinAnc joins for latch holds (class A/B of R2/R3);
+liveness (`timedA_live`) with ChainUpOK not done (same one-line change expected).
