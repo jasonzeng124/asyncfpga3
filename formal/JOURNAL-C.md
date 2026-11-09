@@ -2477,3 +2477,17 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
   checks for windows, any instance.
 * *Container:* GitHub release downloads returned 504 for whole files; Lean 4.35.0 was fetched in 10-50 MB range
   requests and linked with elan by hand (setup.sh then continued normally).
+
+### progress 07:47 -- piece 2 (symbolic datapath): THE target's decoded datapath gates ARE Net/Compute's cells (untrusted Python)
+* *Problem:* every-pair claims need each datapath unit of THE target to compute its MLIR op for all inputs. Net/Compute
+  proved this (add_sound, EqZero, bitwise, shifts) for yosys cells of the OLD target. Do THE target's decoded gates
+  implement the same cells?
+* *Answer (subagent, untrusted Python, formal/tools/compute/ps/):* yes for all 20 `bdc_fused_*` units: 2,840 cells,
+  3,050 outputs, 0 failures, via the committed routed JSON's placement (only a hint; checked against the decoded
+  gates). Handled: 1,566 LUTs with permuted pins, 1,384 route-through hops, constant pins, O5 packing; the 38 CARRY4s.
+  Negative controls (INIT bit, pip, CARRY4 half) each caught. extract.py on THE target's synthesis gives Lean
+  byte-identical to Gen/Compute/GcdD/* for 19 of 20 units; **uori4 differs** (needs its own SltOK certificate).
+* *Plan for Lean (not started):* a generated map (yosys net -> DecodedPS node) per unit, a kernel-checked
+  correspondence checker `corrOK` with `corr_sound` (settled gate values -> the cell netlist's values), then
+  e.g. `uselect1_ps` from GcdD's existing theorems; a settle bound per unit from SpecSettle. Estimated 4-6 days.
+  Not covered: data movement through latches/rings (S4 b/c), shift-amount side conditions (ushrsi only for e1 = 1).
