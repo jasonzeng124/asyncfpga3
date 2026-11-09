@@ -1,5 +1,5 @@
 import Formal.Net.CViewPS.RIslData
-import Formal.Net.CViewPS.BoundaryReset
+import Formal.Net.CViewPS.ResetData
 import Formal.Timing.Island
 
 /-! Shard C: the per-entry check of the reset island (used by RIslChk*.lean and RIslPS.lean).
@@ -37,6 +37,16 @@ theorem RTree.find_all {f : Nat × Bool × List Nat × Nat → Bool} :
     · exact RTree.find_all l w e h ha.1
     · exact RTree.find_all r w e h ha.2
 
+/-- A logic node of the collapsed view (`Reset.logicB`, restated here so this file does not import the
+12 GB kernel check in `Reset`). -/
+def logicBR (w : Nat) : Bool :=
+  decide (w / 2500 < cs.length) && decide (w % 2500 < (cs.getD (w / 2500) []).length) &&
+    keepPS (gAt cs 2500 w) && (cpIn (gAt cs 2500 w)).isNone
+
+theorem logicPS_of_BR {w : Nat} (h : logicBR w = true) : logicPS w := by
+  simp only [logicBR, Bool.and_eq_true, decide_eq_true_eq, Option.isNone_iff_eq_none] at h
+  exact ⟨h.1.1.1, h.1.1.2, h.1.2, h.2⟩
+
 def lookR (w : Nat) : Option (Nat × Bool × List Nat × Nat) := rIsl.find w
 /-- Member of the reset island. -/
 def memR (w : Nat) : Bool := (lookR w).isSome
@@ -48,7 +58,7 @@ def psR (w : Nat) : List Nat := ((lookR w).map fun e => e.2.2.1).getD []
 def rhoR (w : Nat) : Nat := ((lookR w).map fun e => e.2.2.2).getD 0
 
 def rEntryOK (e : Nat × Bool × List Nat × Nat) : Bool :=
-  logicB e.1 && (e.1 != rstPS) && decide (e.2.2.2 ≤ 14) &&
+  logicBR e.1 && (e.1 != rstPS) && decide (e.2.2.2 ≤ 14) &&
   (e.2.2.1.all fun j => decide (j < (gAt cs 2500 e.1).k) &&
     ((srcPS e.1 j == rstPS) || (memR (srcPS e.1 j) && decide (rhoR (srcPS e.1 j) < e.2.2.2)))) &&
   ForcesP (gAt cs 2500 e.1).k (gAt cs 2500 e.1).init (asgOf srcPS valR e.1 e.2.2.1) e.2.1

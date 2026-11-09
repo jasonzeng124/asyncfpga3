@@ -2472,7 +2472,7 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
   nonzero window bounds, shifted, are no stronger, (iv) the window's start state is the long run's state after o on
   the dependency set, and the move rule reads only that set and data nodes.
 * *Checked:* compiles with `lean` against freshly built dependencies; `#print axioms`: propext, Classical.choice,
-  Quot.sound. check.sh not yet run (fresh container; the project build is still compiling Mathlib from source).
+  Quot.sound. check.sh OK at 09:xx (see below).
 * *Not shown:* coverage (every count vector the long check ranges over lies in some window's box), the timing
   checks for windows, any instance.
 * *Container:* GitHub release downloads returned 504 for whole files; Lean 4.35.0 was fetched in 10-50 MB range
@@ -2517,3 +2517,21 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
 `upRelB` (searches the Up table for an entry `Up a p` and the Sep table for `Sep a e0`) and `upRelB_sound`;
 `upFormB` accepts it for causes and for the previous event; `upOK_of_B` re-proved (compiled with lean, standard
 axioms). Cost: one pass over the Up table per cause (a hint field would make it linear; not needed yet).
+
+### progress 09:13 -- Net/CViewPS/RIslPS.lean: THE target starts quiet (reset island in Lean)
+* *Problem, plainly:* every certificate for n ≥ 1 needs a known start: during reset, every control node whose value
+  reset alone determines must hold that value, whatever the 4,185 unreset data latches hold, for every admissible
+  delay.
+* *Proved* (`reset_quiet_PS`, `reset_quiet_PS15`; lake build OK; `#print axioms`: propext, Classical.choice,
+  Quot.sound): in every behaviour of THE theorem's circuit (sane p), at its corner: if `rstPS` is high on [0, R),
+  every member's start is ≤ A and every pin of every member has composite delay ≤ M, then each of the 3,224 members of
+  the reset island (402 reset-pin storage nodes, 9 arbiter states, ~2,800 combinational nodes, 11 constants) equals
+  its listed value at every t in [A + 15·M, R - 1]. Kernel-checked per member in 62 chunks (RIslChk00..61, 14-134 s
+  each): a logic node, forcing pins whose sources are rst or members of smaller rank (ρ ≤ 14), and the INIT forced
+  (`ForcesP`) whatever the other pins read; then `Island.settle_partial` with the single root rst.
+* *Engineering:* `RIslDefs` restates `Reset.logicB` (as `logicBR`) instead of importing `CViewPS.Reset`, whose
+  kernel check needs ~12 GB and is OOM-killed under this container's 14.3 GB cgroup when anything else runs.
+* *Not shown:* the delay hypotheses (A, M) for a concrete p (the 09:27 measurement: M ≈ 4,636 ps at c = 1); which
+  other nodes are known; anything after R - 1. This discharges the quiet-start part of `TBehX.quiet`/s0 for exact
+  control nodes only once (A, M) are instantiated.
+* *check.sh* (file mode): AO/Timed, AO/DecT, AO/Window, CViewPS/RIslDefs, RIslChk, RIslPS: textual scan OK, 1,812 declarations audited, `[check] OK`.

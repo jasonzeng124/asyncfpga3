@@ -35,13 +35,14 @@ theorem rentry_facts {w : Nat} (h : memR w = true) :
   unfold memR at h
   obtain ⟨e, he⟩ := Option.isSome_iff_exists.mp h
   obtain ⟨rfl, hok⟩ := RTree.find_all rIsl w e he rIsl_ok
-  have hps : psR e.1 = e.2.2.1 := by simp [psR, lookR, he]
-  have hrho : rhoR e.1 = e.2.2.2 := by simp [rhoR, lookR, he]
+  have hps : psR e.1 = e.2.2.1 := by unfold psR; rw [he]; rfl
+  have hrho : rhoR e.1 = e.2.2.2 := by unfold rhoR; rw [he]; rfl
   simp only [rEntryOK, Bool.and_eq_true, decide_eq_true_eq, bne_iff_ne, ne_eq] at hok
   obtain ⟨⟨⟨⟨hl, hne⟩, hr⟩, hall⟩, hF⟩ := hok
-  have hval : valR e.1 = e.2.1 := by simp [valR, lookR, he, hne]
+  have hval : valR e.1 = e.2.1 := by
+    unfold valR; rw [he]; simp [hne]
   rw [hps, hrho, hval]
-  refine ⟨logicPS_of_B hl, hr, fun j hj => ?_, hF⟩
+  refine ⟨logicPS_of_BR hl, hr, fun j hj => ?_, hF⟩
   have := List.all_eq_true.mp hall j hj
   simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, beq_iff_eq] at this
   exact this

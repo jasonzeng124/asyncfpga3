@@ -1,6 +1,6 @@
 import Formal.Net.CViewPS.RIslDefs
 
-/-! Shard C: kernel check of reset-island block 0. -/
+/-! Shard C: kernel check of reset-island block 0 (generated). -/
 
 namespace Formal.Net.CViewPS
 
