@@ -29,6 +29,8 @@ constraints: `formal/out/cell_constraints.json` (151 entries, 38 exact, 56 bound
 
 | THE goal: refutation below the 0.44 frontier (2026-11-08) | **works: Lean-refuted at g = 1, κ = 10/25 (w ≤ 20 and plain, every g ≥ 1, κ ≥ 0.40, every reset ≥ 400 ns)** | CexX16 (KBase, RBase, Wit, Refute, AllR, Frontier; C's/A's witness machinery re-instantiated) | race: merge4's arbiter acknowledge C-element ua2 (SLICE_X16Y21.A6) reading its fork; only wide operands exercise it (16/60 vectors fail at 0.38-0.40, 0/60 at 0.35); κ = 0.36-0.39 livelock, exactly periodic at 0.36 (period 79 ps): Lean needs a periodic H_RUNT check (not written). Latch-hold adversary: no failure at 0.43 (1,544 latches, both corners, w = 0 and 20) |
 
+| THE goal S4 data layer: latch claim chains (2026-11-09) | **works (generic Lean); measured on (12,18): C's bank re-open blocker passes, 18/18 guards still fail** | UnionUp, UnionUpDec, CovUp, CovUpMain, CovUpDec | chain joins by Up / common ancestor (`ChainUpOK`; no measured use yet) and pin covers timed by an upper bound from the claim's anchor (`CovTimeU`), wired into C's AO safety and liveness (`timedA_follows_cu`, `timedA_live_cu`, implying C's); Boolean checkers. Python (untrusted, one run per corner): with CovTimeU the register-bank re-open step passes (≥ +6.8 ns c0); left: one R1 concurrent-branch root (18 guards), REANCH comb-segment joins, and loop-cover CovTime failures (78/120 guards depend; tracing). Negative claim offsets are NOT Lean-valid (GateProof needs 0 ≤ a) |
+
 Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
 north star; they check but get no further work.
 
