@@ -3108,3 +3108,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   xorshift, gcd_ps and board-list route: 0. With 2 bad selects in ~17 x 76 = ~1300 such muxes, nextpnr leaves roughly 1 in
   650 of them unrouted -- rare per mux, but ipow carries 76 of them, so ~12% of its builds compute wrong answers.
   Exposure is ipow (and marginally isprime); the other kernels and every board-list design have no such mux.
+### progress 08:40 (ipow x0.75 on the bench top over 8 good routes per build: 48/48, 1.16-1.18x)
+- Seed 9 pair finished: T9 base 9 PASS 17/17 at max/min/worst (EQUIVALENT); x0.75 seed 9 FAIL 12/17 at all three
+  corners (the F7-select defect above). So 18 ipow bench routes built, 2 defective (base 7, x0.75 9), 16 good;
+  every good route passes 17/17 at every corner: 48/48 (x0.75 seeds 1-8, T9 seeds 1-6,8,9).
+- Paired base/x0.75 on the 31-iteration vector's batch cycles, seeds 1-6 and 8 (7 pairs): SLOW_MAX mean 1.180
+  (1.12-1.25), FAST_MIN 1.159 (1.08-1.23), worst 1.160 (1.09-1.26). Seed 1 (the board item's route): 1.08-1.13.
+  research/data/ipow_bench/results.tsv regenerated (seeds 1-9); BOARD-QUEUE #8 / item 7 updated.
+- Does not show: anything on silicon; cycle counts are at 12 ns granularity, so a per-pair ratio carries ~1% quantisation.
