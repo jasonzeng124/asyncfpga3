@@ -2150,3 +2150,16 @@ bound on the feedback races only, not a lower end of the frontier).
 - `CexQ36`: 75 node chunks + Ch + EncR built (~20 s each); gate-check chunks X* ~100-120 s each, ~6 GB each; at 2 in
   parallel about one in four is OOM-killed (exit 137, no Lean error so far); the failures are retried one at a time,
   then Wit / Refute / AnyR (any reset) / Frontier36 (w ≤ 20, g ≥ 1, κ ≥ 9/25, plain statement, any R ≥ 400 ns).
+### progress 09:3x -- CHECKED: THE statement refuted at κ = 9/25 by a livelock (any reset, w ≤ 20, plain statement)
+- `Formal.Target.CexQ36.Wit.behavesRunt_r`: the eventually periodic run (prefix codes to 491,000 ps, then one 79 ps
+  period for ever; 140 nodes oscillate) is a `BehavesRunt 20` behaviour of THE circuit at ⟨1, 9/25⟩, corner 0.
+- `CexQ36.not_netCorrectSeqRunt20`: Env (reset 400 ns, pair (1240057368, 901749038), any su, Δo ≤ 3000) + SeqEnv +
+  ArbOK T ≥ 140 hold and out0 never rises, so `¬ NetCorrectSeqRunt 20 … ⟨1, 9/25⟩ T 400000 su Δo`.
+- `CexQ36.AnyR.not_netCorrectSeqRunt20_R` (every R ≥ 400 ns; `CexRuntQ.xQ_shift` + `Stutter.behavesRuntOn_stut`) and
+  `Frontier36.not_seqRunt_le20_above36_R` / `not_seq_above36_R` (every w ≤ 20, g ≥ 1, κ ≥ 9/25; plain statement).
+  `#print axioms`: propext, Classical.choice, Quot.sound; no sorry/native_decide/axiom in the sources.
+- Plainly: at g = 1 and within-die scatter 0.36, with B's adversary (one C-element's fork input read late), the
+  circuit accepts the full-width pair and then switches for ever without answering. Not shown: κ < 0.36, other
+  corners/pairs; the list of hypotheses did not shrink (this is a refutation, which the program counts as a result).
+- Build notes: X chunks ~100-250 s, ~6 GB; chunks 7, 14, 15, 65 need 24 slices, 70 and 72 slices cut by kernel cost
+  (the oscillating LUTs' pinOK is quadratic in the unrolled transition list: two such gates in one decide = 9.8 GB).

@@ -13,7 +13,17 @@ arbiter acknowledge C-element SLICE_X16Y21.A6 reads the fork late; quiet deadloc
 (w = 0 implies w = 20). **Correction (B, 2026-11-08 19:3x):** B's race rows (κ ≤ 0.415, below) cover each storage node's
 feedback race only; the κ = 0.40 race is a different one (a late non-feedback input), so 0.415 is NOT a lower end of
 the frontier. Known now: g = 1 margin < 0.40 (Lean). Simulation: correct at 0.35, livelock (never answers, never quiet)
-at 0.36-0.39 on that pair; A is building a Lean livelock refutation at 0.36 (2026-11-09, not yet claimed).
+at 0.36-0.39 on that pair.
+
+## BEST REFUTATION: κ = 0.36 at g = 1, by a LIVELOCK (shard A, 2026-11-09; Lean, standard axioms)
+`Formal.Target.Frontier36.not_seqRunt_le20_above36_R : w ≤ 20 → 1 ≤ p.g → 9/25 ≤ p.κ → ∀ R T su Δo, 400000 ≤ R →
+140 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt w DecodedPS.net DecodedPS.boundary DecodedPS.arbs p T R su Δo` and
+`not_seq_above36_R` (the plain frozen statement). Base: `CexQ36.not_netCorrectSeqRunt20` (κ = 9/25, R = 400 ns);
+any reset: `CexQ36.AnyR`. Witness: B's κ = 0.40 adversary at κ = 9/25 on the full-width pair; the run is eventually
+periodic (period 79 ps from 491 ns, 140 nodes oscillate for ever, no boundary or arbiter-state node moves), out0 never
+rises. New generic Lean: `SpecPeriodic.gateOKRunt_of_window` (a gate relation checked on one window extends to all
+time for a periodic run), `CexRuntQ.gateOKRunt_of_gateQ` (the finite per-gate check), `CexRuntQ.xQ_shift` (stretch).
+So the g = 1 margin of THE statement is below 0.36 (simulation: this adversary is correct at 0.35).
 
 ## COUNTEREXAMPLE (shard C, 2026-11-06; audit T28 confirms independently)
 `Formal.Net.CexPS.not_netCorrectSeq : ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq DecodedPS.net DecodedPS.boundary

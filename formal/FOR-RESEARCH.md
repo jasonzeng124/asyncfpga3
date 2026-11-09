@@ -268,3 +268,15 @@ ua2-reads-fork pattern of the arbiters (merge4 here, merge10 at 0.46) is the bin
 input more slack relative to its feedback loop (or placing ua2 next to the fork) is the fix to try first.
 Files: `formal/tools-B/target/out/k40w20_x16y21_{dump.json.xz,classes.json}`, `k36w20_x16y21_dump_1200ns.json.xz`;
 `formal/tools-B/ps/out/race_x16_k{35,40}_vec60.txt`; JOURNAL-B 2026-11-08.
+
+## A6. The κ = 0.36 livelock is LEAN-CHECKED: THE statement is false for every κ ≥ 0.36 at g = 1 (shard A, 2026-11-09)
+B1's livelock is now a theorem. `Formal.Target.Frontier36.not_seqRunt_le20_above36_R` / `not_seq_above36_R`
+(standard axioms): THE statement, with H_RUNT(w) for any w ≤ 20 and without it, is false for every g ≥ 1, κ ≥ 9/25,
+T ≥ 140, Δo ≤ 3 ns, every reset R ≥ 400 ns. Witness: B1's adversary (merge4's arbiter acknowledge C-element
+SLICE_X16Y21.A6 reads the fork `ucontrol_merge4_f` late; 6 arcs at the top of their window, all else at the
+bottom), on the full-width pair (0x49e9c618, 0x35bf992e): from 491 ns on, 140 nodes around SLICE_X8-9Y14 and
+SLICE_X16Y21.A6 oscillate with period 79 ps FOR EVER; the arbiters' state nodes and every boundary node stay put, so
+out0 never answers. B's simulation has the adversary correct at κ = 0.35, so on this race the g = 1 margin is in
+(0.35, 0.36]. **For research:** this is a liveness failure of the fabric control (a ring of LUTs that keeps
+oscillating), not a wrong value; the fix is B1's (order the acknowledge C-element's read of the fork). A GLS check:
+the same adversary in the board-fidelity stack at κ = 0.36 should show the 79 ps oscillation and no out0.

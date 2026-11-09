@@ -21,8 +21,18 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   the handshake), which no row models. So "the frontier is in [0.415, 0.44)" was wrong; what is known is only
   that the g = 1 margin is below 0.40 (Lean) and, in simulation, that this adversary is correct at 0.35 and never
   answers (a livelock, no quiet end) at 0.36-0.39 on that pair.
-- **In progress (A, today):** a Lean refutation at κ = 9/25 = 0.36 with a livelock witness (an eventually periodic
-  run; new generic checker `SpecPeriodic` + `CexRuntQ`). Not claimed until it checks.
+- **New (A, Lean, standard axioms): refuted at κ = 9/25 = 0.36 by a LIVELOCK.** `Formal.Target.Frontier36`:
+  THE statement (any w ≤ 20, and the plain w = 0 one) is false for every g ≥ 1, κ ≥ 9/25, T ≥ 140, Δo ≤ 3 ns, every
+  reset R ≥ 400 ns. Same adversary as B's at 0.40; at 0.36 the run never goes quiet: from 491 ns, 140 nodes oscillate
+  with period 79 ps for ever and out0 never answers. A run that never stops is infinite, so this needed a new checker:
+  `SpecPeriodic` (generic: if every node of a gate is periodic from t0 and the gate relation holds on one window
+  [start, V+Q) with a seam and a floor condition on the read maps, it holds at every time; the read maps are
+  extended periodically and a narrow pulse is shifted back a period) and `CexRuntQ` (the per-gate finite check on
+  the run unrolled 21 periods; `xQ_shift` stretches a periodic run to any reset). Data: 150 generated modules
+  (`tools-A/target/gen_runtq.py`); six gate chunks with heavy oscillating LUTs needed finer kernel slices (one
+  single gate needs ~5 GB). **Reading:** on this race the g = 1 margin is in (0.35, 0.36] (the upper end Lean, the
+  lower end simulation of one adversary and one pair only). Verified checkers can now refute liveness, not only
+  safety.
 
 **2026-11-08 (lead): H_DECODE now covers the netlist's WIRING, not only its feature list.** Until today the Lean
 round trip re-encoded each pip gate as its FASM feature from the gate's NAME and never looked at the nodes the gate
