@@ -3151,3 +3151,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   research/tools/itercost/zero_delays.py) deadlocks after the first iteration (umux1's z_req rises once; something
   keeps switching for 155 us, run stopped). The "remove the delays" bound is not measurable that way; the README's
   levers stay read off the cycle.
+### progress 10:40 (first lever from itercost: BDC_CONST_DATA, off by default)
+- bdc/emit.py BDC_CONST_DATA=1: inside a fused region, an external operand whose value is a known constant (a
+  `constant` result, or a fork output of one) is read as that literal; the channel stays (link, join request, ack).
+  Default output byte-identical to HEAD on gcd/xorshift/collatz/collatz64/ipow/isprime; with the flag simcheck PASS on
+  all six; pytest bdc 63 pass (new test_const_data.py). It turns collatz's `n << e1` / `n >>> e3` and ipow's ushrsi0
+  `e >>> e1` into constant shifts (ushrsi0 is where ipow's 76 constant-select F7s, and the F7 bitstream defect, live).
+- Running: collatz BDC_CONST_DATA=1 at T3 sizes, soak top, NEXTPNR_SEED 1-4, full stack at max/min/worst
+  ($S/k4/collatz_cd, worktree at 83cd6c77). Next: corner_audit those routes for the regions' new sizes, then 8 routes.
