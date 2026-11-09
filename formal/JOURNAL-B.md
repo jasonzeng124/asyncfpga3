@@ -3850,7 +3850,7 @@ Subagent, with C's d ≥ 1 fix applied to the copy (SEPIV1; C's r1b/lchk.py re-c
   `claim_stepR` require 0 ≤ c.a, and the induction is causal (a claim anchored at a future event cannot be proved at
   time t). So 0/0 is NOT a result; 48/48 is the sound count of the best builder configuration so far.
 
-### progress 11:4x -- Formal/Cells/CovUp.lean, CovUpMain.lean CLAIMED: pin covers timed by an UPPER bound from the claim's anchor
+### progress 11:3x -- Formal/Cells/CovUp.lean, CovUpMain.lean CLAIMED: pin covers timed by an UPPER bound from the claim's anchor
 The sound replacement for negative offsets. `CovUp.CovTimeU`: a covered pin's start side may be justified by
 `Up(c.A → w.A) = u` with 1 ≤ hi + w.a and hi + w.a + u ≤ c.a (the cover starts no later than the claim's anchor + u),
 besides C's Sep form; so a claim can be anchored at a COMMON ANCESTOR of two causally unordered covers (here: of the two
