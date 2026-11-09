@@ -2623,3 +2623,16 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   one root (latch SLICE_X25Y76.B5's U' D claim anchored too late). B's copy reproduced C's base pipeline, which had the
   form-(iv) d ≤ 0 bug, so its counts are likely optimistic too. A combined sound run (d ≥ 1 + relative clause + B's
   anchoring fix) is running (subagent, /tmp/claude-0/r1c).
+
+### progress 10:52 -- Net/Compute/PS/Uselect1T.lean: the first TIMED datapath theorem on THE target (check.sh OK)
+* *Problem, plainly:* if the 64 operand nodes of unit uselect1 hold (any values) from T0 to T1, does the unit's output
+  carry op(e0, e1) at some known time, in every admissible behaviour, for every (g, κ)?
+* *Proved* (`uselect1_timed`; subagent; I re-ran check.sh on SpecSettleSym, the 10 generated files and the theorem:
+  3,253 declarations, standard axioms; textual scan OK): for every sane p and every behaviour of DecodedPS.net, if
+  every e0/e1 input node is constant on [T0, T1], then at every t with T0 + ⌈(1+κ)g⌉·8,815 ps ≤ t ≤ T1 the 32 output
+  nodes carry select(subi(e0,e1) > -1, subi(e0,e1), 0 - subi(e0,e1)) of the input words. D = 8,815 ps is the longest
+  prjxray slow-max path over all 2,645 gates the unit needs (kernel-checked). The unit reads no other external node.
+  Route: `certN_sound_net` (value-free STA certificate, checked in 31 pieces; gate membership by construction from
+  the decoded chunks), output uniqueness (net_wf) ⇒ `Settled` at t ⇒ `uselect1_ps`.
+* *Not shown:* that the operands hold on [T0, T1] in a run (the bundling half of S4), that T1 - T0 > 8.8 ns there;
+  the other units (in progress, untimed). ⌈(1+κ)g⌉ rounds up: g = 1.1, κ = 0.1 doubles D.
