@@ -1295,3 +1295,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T11:14:53Z T52: uselect1_timed CONFIRMED as stated; 8815 ps reproduced by own longest-path; note: stated over DecodedPS.net, not circuit (composition gap).
 - 2026-11-09T12:35:26Z formal 539b0d14 batch (4 generic modules) build + axioms CONFIRMED.
 - 2026-11-09T17:19:38Z formal 49d5b3fa batch (3 generic B modules) build + axioms CONFIRMED.
+- 2026-11-09T17:58:00Z T53 started (own scripts, no subagent -- owner reports usage near the weekly limit): BOARD-QUEUE #10 collatz BDC_CONST_DATA + per-cell (sdf 3cbe05d8) seed 1 build + worst-case run, research copy c10d82ea.
