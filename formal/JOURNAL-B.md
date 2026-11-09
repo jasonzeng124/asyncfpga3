@@ -3864,4 +3864,5 @@ Boolean checker for CovTimeU, any instance.
 
 ### progress 11:4x -- Formal/Cells/CovUpDec.lean CLAIMED: Boolean checker for CovTimeU
 `covTimeUB` (C's covTimeB start test, or the Up start test) and `covTimeU_of_B` (sound); toy by `decide`. check.sh
-OK, standard axioms.
+on all five of today's files together (UnionUp, UnionUpDec, CovUp, CovUpMain, CovUpDec): 482 declarations, standard
+axioms, [check] OK (run alone, file mode fails only because CovUp's olean is not in its private dir).
