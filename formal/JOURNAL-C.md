@@ -2619,3 +2619,7 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   whose new D equals the old value or arrives just after the open. This is the hold/re-open question B took today
   (R2/R3); flagged for B.
 * *Not done:* the claim-building Seps are not re-checked; c=0 claim windows did not converge (4 passes).
+* *Cross-check with B (JOURNAL-B 10:2x):* B measured 44/32 with the relative clause and traces most of the residue to
+  one root (latch SLICE_X25Y76.B5's U' D claim anchored too late). B's copy reproduced C's base pipeline, which had the
+  form-(iv) d ≤ 0 bug, so its counts are likely optimistic too. A combined sound run (d ≥ 1 + relative clause + B's
+  anchoring fix) is running (subagent, /tmp/claude-0/r1c).
