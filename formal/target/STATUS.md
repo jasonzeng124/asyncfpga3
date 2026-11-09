@@ -63,8 +63,13 @@ tilegrid.json, tileconn.json, tile_type_*.json) adds, for every gate of `Decoded
 - `luts_ok`, `lut_pins_driven`: each of the 16,488 LUT gates reads on input j the node of its slice's site-pin wire
   `<L><j+1>` (pin order A1..A6 as Spec's `addr` assumes);
 - `xs_ok`, `k_const19697`: MUXF7/F8 selects read AX/CX/BX, CARRY4 carry-ins read CIN (through tileconn) or CONST0.
-Trusted: prjxray's tables as transcribed. Not covered: site hops / site-internal nets (the slice model), and the
-converse (no two netlist nodes are one fabric node).
+Trusted: prjxray's tables as transcribed. Not covered: the converse (no two netlist nodes are one fabric node), and
+site-internal nets other than those below.
+**Site output hops (2026-11-09, A; `FormalWit.NM.Data.hop_wired`, generic `Formal/Target/NodeMergeHop.lean`):** each of the
+9,573 slice-logic output hops (`hop TILE/WIRE` from `SITE.A6`, `F8`, `XOR2`, …) drives the node whose canonical wire is
+an output-pin wire (`A..D`, `AMUX..DMUX`, `COUT`; tile_type_*.json) of that same site's tile and rank, the source/pin
+pair is one the 7-series slice wires (`hopTab`, trusted), and the gate driving the source is that site's
+LUT/MUXF/CARRY4 output of the matching name (`outTab`). Flop outputs (`…Q`) exempt (no flop in the circuit).
 
 ## THE target: what is proved (as of 2026-11-02, unchanged since)
 | piece | theorem | plainly |

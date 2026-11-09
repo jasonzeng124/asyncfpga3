@@ -112,7 +112,7 @@ if [ $WIT -eq 1 ]; then
   for r in $(cd FormalWit && ls -d RT*/ 2>/dev/null); do r=${r%/}   # the decoder round trips (S1)
     for m in All OAll Final; do [ -f "FormalWit/$r/$m.lean" ] && LIBMODS+=("FormalWit.$r.$m"); done
   done
-  for m in All AllX; do [ -f "FormalWit/NM/$m.lean" ] && LIBMODS+=("FormalWit.NM.$m"); done   # wiring vs prjxray (S1)
+  for m in All AllX AllH; do [ -f "FormalWit/NM/$m.lean" ] && LIBMODS+=("FormalWit.NM.$m"); done   # wiring vs prjxray (S1)
 fi
 echo "[check] axiom audit"
 if [ $fail -eq 0 ]; then

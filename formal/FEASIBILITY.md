@@ -34,6 +34,15 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   lower end simulation of one adversary and one pair only). Verified checkers can now refute liveness, not only
   safety.
 
+**2026-11-09 (lead), also: H_DECODE now covers the slice OUTPUT hops.** `FormalWit.NM.Data.hop_wired` (Lean, standard
+axioms; generic `Formal/Target/NodeMergeHop.lean`, data from `tools-A/target/gen_nm.py`): for every hop `h` and gate
+`g` of THE target's netlist with `h` reading `g`'s output, a slice-logic node, `g` is named `S.<gs>` for a slice site `S`
+of prjxray's tilegrid, and `h` drives the node whose canonical wire is output pin `p` of `S`'s own tile and rank
+(tile_type_*.json), with `gs -> p` one of the 7-series slice's output paths (O6 to `<L>` or `<L>MUX`, O5/F7/F8/XOR/CY to
+`<L>MUX`, CO3 to `COUT`; a trusted table). 9,573 hops, 9,380 driver gates. Together with 2026-11-08's pips, LUT
+inputs and MUXF/CARRY selects, every routing connection of the logic is now checked against prjxray in Lean;
+left: the converse (two netlist nodes that are one fabric node) and the slice-internal model itself (H_PRIM).
+
 **2026-11-08 (lead): H_DECODE now covers the netlist's WIRING, not only its feature list.** Until today the Lean
 round trip re-encoded each pip gate as its FASM feature from the gate's NAME and never looked at the nodes the gate
 reads and drives, so a decoder that wired a pip or a LUT pin to the wrong node would have passed every Lean check

@@ -2180,3 +2180,10 @@ wiring, trusted), `OutOK` (a site-logic gate `S.ALUT.O6`/`F8`/`CARRY4.O2`… dri
 are exempt (no flop is in the circuit; free nodes). Data from `gen_nm.py` (extended; the existing NM files reproduce
 byte for byte): 9,573 slice-logic hops, 9,380 driver gates, 9,571 checked node names; Python mirror: all pass.
 `FormalWit/NM/H000..H074`, `AllH` (`hop_wired`) building. Not claimed until AllH checks.
+### progress 11:0x -- CHECKED: every slice output hop reaches its own site's output-pin wire (H_DECODE)
+All 76 `FormalWit/NM/H*` modules and `AllH` build; `hop_wired`, `hops_all`: standard axioms; no sorry/native_decide.
+Plainly: in THE target's decoded netlist, wherever a hop copies a LUT/MUXF/CARRY4 output out of its slice, the
+destination is that slice's own output pin (right tile, right M/L slice, a pin the slice can route that output to).
+check.sh --wit now also audits `FormalWit.NM.AllH`. Trusted: prjxray's tables and the slice output table `hopTab`.
+STATUS row 1 / FEASIBILITY updated. The hypothesis count does not change (H_DECODE is allowed); its untrusted part
+shrank by the site output hops.
