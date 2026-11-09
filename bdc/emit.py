@@ -66,6 +66,14 @@ ACK_PAD = int(os.environ.get("BDC_ACK_PAD", "6"))
 # Placeholder for the request line between two stages of a bd_pipe (SDELAY),
 # rule I's knob; the same generous-then-shrink arrangement.
 STAGE_PAD = int(os.environ.get("BDC_STAGE_PAD", "3"))
+# BDC_MERGE_OUT_LINK=inst[,inst...] (empty by default; the shipped build is byte-identical without it): put one
+# bd_link stage between the named arbitrated control_merge (bdc_amerge) and the fork that splits its output into
+# result and index, latching the index (and the result's data, if any).  A MEASUREMENT knob for the owner's
+# second-latch lead (research/data/itercost/second_latch): the arbiter's output request is its granted input's, so it
+# cannot return to zero before that input does; storage on its OUTPUT is the test of whether that is what keeps the
+# loop counter ring changing polarity at the merge.  The index is a select, so the link's request delay defaults to
+# SELECT_PAD, its acknowledge delay to ACK_PAD (macros DELAY_<INST>_OLINK / _OLINK_UACK; tighten/size them as usual).
+MERGE_OUT_LINK = set(filter(None, os.environ.get("BDC_MERGE_OUT_LINK", "").split(",")))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -2240,14 +2248,33 @@ class Emitter:
         self.emit(f"    wire {m_req}, {m_ack};")
         if not self.is_control(res):
             self.emit(f"    wire [{max(w, 1) - 1}:0] {inst}_data;")
+        olink = inst in MERGE_OUT_LINK
+        z_req, z_ack, z_dat, z_idx = m_req, m_ack, inst + '_data', f"{self.odata(idx)}[{iw - 1}:0]"
+        if olink:
+            z_req, z_ack, z_idx = f"{inst}_lreq", f"{inst}_lack", f"{inst}_lidx"
+            self.emit(f"    wire {z_req}, {z_ack};")
+            self.emit(f"    wire [{iw - 1}:0] {z_idx};")
+            if w and not self.is_control(res):
+                z_dat = f"{inst}_ldata"
+                self.emit(f"    wire [{max(w, 1) - 1}:0] {z_dat};")
         self.emit(f"    bdc_amerge{n}_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
         for k, o in enumerate(ops):
             self.emit(f"        .in{k}_req({self.req(o)}), "
                       f".in{k}_ack({self.ack(o)}), .in{k}_data({self.data(o)}),")
-        self.emit(f"        .z_req({m_req}), .z_ack({m_ack}), "
-                  f".z_data({inst + '_data' if w else ''}), "
-                  f".index({self.odata(idx)}[{iw - 1}:0]));")
+        self.emit(f"        .z_req({z_req}), .z_ack({z_ack}), "
+                  f".z_data({z_dat if w else ''}), "
+                  f".index({z_idx}));")
+        if olink:
+            wd = w if (w and not self.is_control(res)) else 0
+            ld = self.delay(f"{inst}_olink", SELECT_PAD)
+            la = self.delay(f"{inst}_olink_uack", ACK_PAD)
+            din = f"{{{z_dat}, {z_idx}}}" if wd else z_idx
+            dout = f"{{{inst}_data, {self.odata(idx)}[{iw - 1}:0]}}" if wd else f"{self.odata(idx)}[{iw - 1}:0]"
+            self.emit(f"    bd_link #(.W({iw + wd}), .DELAY({ld}), .DACK({la})) {inst}_olink (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .req_in({z_req}), .ack_in({z_ack}), .data_in({din}),")
+            self.emit(f"        .req_out({m_req}), .ack_out({m_ack}), .data_out({dout}));")
         if self.width(idx) > iw:
             self.emit(f"    assign {self.odata(idx)}"
                       f"[{self.width(idx) - 1}:{iw}] = "
