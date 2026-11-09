@@ -2688,3 +2688,20 @@ instance choice.
   topological, not time, order (suspected cause of the "13-31 ns" figure; unverified).
 * *Side finding at κ = 0.44 (adv2 only):* select latch X27Y80.B6 emits a ~390 ps pulse each iteration (its D,
   X39Y21.D6, arrives after it opens): harmless here (readers closed). κ = 0.44 is already above the refuted frontier.
+
+### progress 15:54 -- data layer (12,18): 4 of 264 guards fail at c=1 (was 43), 46 at c=0 (root moved) (untrusted Python)
+* *Run (subagent, tools/tocc/r1d/RESULTS.txt; both corners converged):* builder changes, each a choice of a valid
+  witness: JOINTIME (join candidates by time), segmented claims (X22Y81.B5 gets two separate GateProof claims w1
+  ending at B and w2 starting at J; the reader's single ChainOK claim covers D with w1 in T/U, its hold phase H
+  covers the gap with D = X, and w2 in U'/T'; no new Lean), RESTART (a second claim of a truncated latch starting
+  transparent at a join), HOLDRETRY (request D's claim further past the close). lchk: 0 Sep/Up failures; all ~950
+  claim-building Seps re-checked; GuardTime recomputation agrees on 264/264.
+* *Failing guards:* c=1 43 -> **4**; c=0 46 -> 46 with a new root.
+  * both corners, 4: arbiter-area latches X36Y63.B6, X36Y68.B6 (×2), X37Y47.B6: hold step, D's end causally before
+    the close (unchanged; B's U->H class).
+  * c=0, 42: bank latches X30Y75.C6 / X31Y76.A5 fail U'->T at re-open X30Y76.A6(2); their U' end is carried round a
+    datapath loop by loop covers; the restart that would fix it is rejected because its cone closes the loop.
+    Proposed: an optimistic post-join start window for loop covers (fixpoint), not implemented.
+* *Caveats (pre-existing):* loop covers are sound only at a fixpoint (both runs converged); the U phase's CovTime start
+  is unchecked for D pins covered only in U (except under HOLDRETRY). So "4 failing" is not yet "the rest passes in
+  Lean"; it is the Python's verdict on the obligations it emits.
