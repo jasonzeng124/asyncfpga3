@@ -201,7 +201,7 @@ theorem upSoundT_of_up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (
 open Formal.Net.OccNet (st)
 
 /-- **C's `AO.timedA_follows` with `ChainUpOK` chains** (the proof is C's, copied verbatim from
-`Formal/Net/AO/Timed.lean` at the commit of 2026-11-09 09:1x, except the chain step, which uses `chain_holds_up` with
+`Formal/Net/AO/Timed.lean` at the commit of 2026-11-09 08:2x, except the chain step, which uses `chain_holds_up` with
 `SepSound` at `t + 1` and `UpSoundT` at `t` from `upSoundT_of_up_sound`). Every hypothesis is C's except `hGC`, which
 is weaker (every `ChainOK` chain is a `ChainUpOK` chain), so this theorem implies C's. -/
 theorem timedA_follows_up (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v, LSound CF (L v))

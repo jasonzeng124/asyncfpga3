@@ -3677,7 +3677,7 @@ latches), or by neither (a race candidate)? Deliverables: the latch-by-latch cla
 in Lean (Formal/Cells/) whatever generic lemma turns a hold certificate into the hold phase of C's `ChainOK` claim
 chain. C's own tools (formal/tools/tocc) are read and run from a scratch copy only.
 
-### progress 08:3x -- R2/R3 (truncated latch holds) traced: proof-rule and claim-builder gaps, no race found (untrusted Python)
+### progress 08:1x -- R2/R3 (truncated latch holds) traced: proof-rule and claim-builder gaps, no race found (untrusted Python)
 Subagent, C's tocc pipeline re-run from a scratch copy (net.json/bnd.json from tools/cview/lean2json.py), pair (12,18),
 g = 1, κ = 0, one midpoint run per corner. Outputs and tools: `formal/tools-B/r23/` (README.txt, table_c*.tsv,
 trunc4_c*.txt, roots/guards_c*.txt, adv_summary.txt, datal_t.py = datal.py with truncations switchable).
@@ -3704,7 +3704,7 @@ trunc4_c*.txt, roots/guards_c*.txt, adv_summary.txt, datal_t.py = datal.py with 
   data-driven control changes, no latch changed while its enable read closed. Weak tests (real gaps 9-80 ns).
 Not done: other pairs; a suppressed union is not a proof.
 
-### progress 08:4x -- Formal/Cells/UnionUp.lean CLAIMED: claim chains joined by an UPPER bound (class A's missing rule)
+### progress 08:1x -- Formal/Cells/UnionUp.lean CLAIMED: claim chains joined by an UPPER bound (class A's missing rule)
 Core Lean, no Mathlib; private olean build of its closure OK; `#print axioms`: propext, Classical.choice, Quot.sound
 (chainOK_up_of_chainOK: none); no sorry/native_decide.
 **Plainly:** two consecutive claims on one node with one value (c1 ends at event e1 + c1.b, c2 starts at e2 + c2.a)
@@ -3716,18 +3716,18 @@ join into one claim if e2 happens at most u after e1 (an `Up e1 e2 = some u` ent
 needs UpSoundT at the induction horizon, which `up_sound` provides from the same hypotheses) -- C's file, proposed
 here; classes B and C; any instance.
 
-### progress 09:0x -- UnionUp: third join form through a common ancestor (`JoinAnc`, `union_holds_anc`) for class B
+### progress 08:2x -- UnionUp: third join form through a common ancestor (`JoinAnc`, `union_holds_anc`) for class B
 c1's end event at least s after an ancestor e0 (a `Sep` entry), c2's start at most u after e0 (an `Up` entry),
 0 ≤ c2.a, c2.a + u ≤ c1.b + s: the claims join. `ChainUpOK` links now accept Sep, Up or JoinAnc. Same checks
 (private build of the closure, standard axioms). Whether C's tables reach such an e0 for class B is being measured.
 
-### progress 09:1x -- UnionUp made wireable into C's induction step (1 ≤ c2.a, upper bounds one tick behind)
+### progress 08:2x -- UnionUp made wireable into C's induction step (1 ≤ c2.a, upper bounds one tick behind)
 In `AO.timedA_follows`' step, `chain_holds` is applied at t + 1 with `SepSound` at t + 1, while `up_sound` is only
 available at horizon t (it is what proves `sepSound_step`). So the Up and JoinAnc joins now require 1 ≤ c2.a and
 `chain_holds_up` takes `SepSound` at T and `UpSoundT` at T' with t ≤ T, t ≤ T' + 1. The hold claim c2 starts at
 close + (enable pin delay) ≥ 1, so the condition is met by the latch phases it is for. Same checks (standard axioms).
 
-### progress 09:2x -- UnionUp.timedA_follows_up CLAIMED: C's main AO theorem with the new chain joins
+### progress 08:2x -- UnionUp.timedA_follows_up CLAIMED: C's main AO theorem with the new chain joins
 `Formal.Cells.UnionUp.timedA_follows_up`: C's `AO.timedA_follows` (safety: ideals, every exact change certified,
 every data claim holds, separations sound) with data-claim chains in `ChainUpOK` form (Sep, Up or common-ancestor
 joins). The proof is C's, copied, except the chain step: `chain_holds_up` with SepSound at t + 1 and UpSoundT at t
@@ -3736,7 +3736,7 @@ Private build of the closure OK; `#print axioms`: propext, Classical.choice, Quo
 still building Mathlib). **For C:** a generator may now emit Up / JoinAnc joins for latch holds (class A/B of R2/R3);
 liveness (`timedA_live`) with ChainUpOK not done (same one-line change expected).
 
-### progress 09:3x -- UnionUp: liveness too (gate_firesA_up, timedA_live_up)
+### progress 08:2x -- UnionUp: liveness too (gate_firesA_up, timedA_live_up)
 C's `gate_firesA` and `timedA_live` (proofs copied) with `ChainUpOK` chains, through `timedA_follows_up`. Private
 build OK; standard axioms; no sorry/native_decide. So the whole AO chain (safety + liveness) accepts Up and
 common-ancestor joins in latch claim chains.
