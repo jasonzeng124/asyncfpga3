@@ -3182,3 +3182,20 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - BOARD-QUEUE: item 9 / section #10 (seed-1 sdf 3cbe05d8, predicted 1.26-1.30 on that route).
 - (A container restart killed only a waiter; the bench run, lockkeeper and janitor survived.)
 - Next: the same flag on ipow (ushrsi0's barrel shifter; it is also where the F7-select bitstream defect lives).
+### progress 19:10 (owner's NEXT lead: a second latch at the three handshake couplings -- prediction, before running)
+- Container restart at ~18:45 killed every process (lockkeeper, janitor, the ipow audits); restarted all three; the
+  ipow BDC_CONST_DATA full stack had finished first: seeds 29-32, 12/12 PASS (audits rerunning).
+- Checked the premise on x0.5 seed 1's cycle_hops.tsv: the cycle flips polarity at exactly the owner's three places,
+  each crossed twice per iteration (umux1 ack -> ulink_n_trueResult_8 req; ufork9 ack (n30__1) -> ulink_n11__1's ack;
+  ucontrol_merge0 ack -> ulink_n_trueResult_12 req). ulink_n_trueResult_8 and ulink_n11__1 are single bd_link stages;
+  ulink_n_trueResult_12 is already a 3-stage bd_pipe (ring floor 3), so its coupling is through a 3-stage pipe's
+  first stage, not a lone latch.
+- Plan: BDC_LINK_DEPTHS (existing per-site knob) ulink_n_trueResult_8=2, ulink_n11__1=2, ulink_n_trueResult_12=4 on the
+  bench top, x0.5 sizes, NEXTPNR_SEED=1, the itercost bands; then each point alone.
+- PREDICTION (written before any run): one token per loop iteration circulates, so a stage added on the ring costs
+  forward latency on the rising pass (~1-1.5 ns each: C-element, SDELAY=1 rdly, wires; x3 = 3-4.5 ns). If the
+  coupling is the cause, the falling segments (17.2 ns) leave the cycle and the period falls toward the rising pass
+  (21.9 ns) + that cost: ~25-30 ns, i.e. down 9-14 ns. If instead umux1 joining the data ring and the select ring
+  keeps the RTZ on the cycle (a mux cannot take the next token until both of its inputs have returned to zero), the
+  period moves by less than the added latency, and the new cycle will still flip at umux1. I expect the second: a
+  partial drop of 3-8 ns, with the flip left at umux1.
