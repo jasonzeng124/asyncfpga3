@@ -2442,3 +2442,19 @@ Python, tools/tocc m1–m4.py, mrace.sh).**
     or arbiter event, given Spec's ArbOK;
   * tracing the truncated latch holds.
 * *No defect found* in any adversarial run so far (about 170 runs in total).
+
+## Session Mon Nov  9 07:21 UTC 2026 (shard C; session_01HC49FxPPB5CDDqijck4Enx)
+
+### progress 07:35 -- start; claims for today
+Lock taken 07:21 (previous C lock 2026-11-08 15:21, > 90 min). Audit (head dd23acde, 2026-11-09 07:00): T42 CONFIRMS
+C's OccNet/OccNetDec/TimedOcc/TimedOccX/TimedBridge as generic statements (no instance); no open REFUTED/OVERSTATED
+row on C's files. A is alive (κ = 9/25 periodic livelock refutation), B is alive and has taken C's data-layer item
+R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying GitHub downloads (504s).
+**C's items today, highest value first:**
+1. *Reset island in Lean* (yesterday's 14:17, written but not compiled): reset fixes every exact control node of
+   THE target on [A + (ρ+1)·M, R-1]. This is the quiet-start hypothesis every n ≥ 1 certificate needs.
+2. *R1 of the data layer*: guard ends unordered with a register re-open, across environment / arbiter events. Formulate
+   what an env- or arbiter-aware upper bound may soundly admit (from Spec's Env/SeqEnv and ArbOK), in Lean.
+3. *All pairs*: the per-pair certificate cannot cover 2^62 pairs. Write down, and start in Lean, the window
+   (per-loop-iteration) certificate that would: same control order for every iteration of one branch kind, data
+   carried by invariant claims.
