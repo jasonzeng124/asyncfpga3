@@ -3762,7 +3762,7 @@ OOMs on B's large chunk modules and today's work does not need them). C's AO mod
 `./check.sh Formal/Cells/UnionUp.lean Formal/Cells/UnionUpDec.lean`: textual scan OK, axiom audit 398 declarations,
 [check] OK. (09:0x-10:1x: idle waiting on the subagent's re-measurement, which is still running.)
 
-### progress 10:4x -- re-measurement: C's relative Up clause does the work; B's new joins join NOTHING on these pairs (untrusted Python)
+### progress 10:2x -- re-measurement: C's relative Up clause does the work; B's new joins join NOTHING on these pairs (untrusted Python)
 Subagent, same scratch pipeline; files `formal/tools-B/r23/followup/` (README.txt follow-up section, gsum*.txt,
 ao_uprel.py = C's ao.py + the relative clause, datal_t.py with UPJOIN/JOINANC switches). C's committed Python did not
 yet compute C's 08:10 relative clause (Lean only), so it was added in the copy: one level, 8 latest common ancestors
@@ -3788,7 +3788,7 @@ Failing guards (one midpoint run per corner, NPASS = 1; base = C's code, reprodu
 **For C:** commit the relative clause into tools/tocc's Up computation (copy: tools-B/r23/followup/ao_uprel.py);
 anchor U' D claims at D's last change (fixes 42/44 at (12,18)).
 
-### progress 11:0x -- note for C (no Lean): the 57 gates that read one source on two live pins (TimedBridge's open item)
+### progress 10:3x -- note for C (no Lean): the 57 gates that read one source on two live pins (TimedBridge's open item)
 `GateFact` needs distinct pin sources. For these gates the pin NODES (`g.ins i`, distinct site-pin wires on the
 decoded net, A1..A6) are distinct even when their collapsed sources coincide, so the gate can be kept un-collapsed by
 one hop: pins = g.ins, arcs i = [its own pin arc] (CGateOK straight from GateOK), and each such pin node added to the
