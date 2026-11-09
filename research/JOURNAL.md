@@ -3159,3 +3159,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   `e >>> e1` into constant shifts (ushrsi0 is where ipow's 76 constant-select F7s, and the F7 bitstream defect, live).
 - Running: collatz BDC_CONST_DATA=1 at T3 sizes, soak top, NEXTPNR_SEED 1-4, full stack at max/min/worst
   ($S/k4/collatz_cd, worktree at 83cd6c77). Next: corner_audit those routes for the regions' new sizes, then 8 routes.
+### progress 12:10 (BDC_CONST_DATA collatz at T3 sizes: 12/12 full stack, 4/4 EQUIVALENT, 1.01-1.11x already)
+- collatz BDC_CONST_DATA=1, T3 sizes, soak top, NEXTPNR_SEED 1-4 (worktree 83cd6c77, nextpnr 9c732bc6303458df):
+  SLOW_MAX / FAST_MIN / worst case 12/12 PASS; fasm_equiv 4/4 EQUIVALENT (benign kinds only); LUT sites 1713 -> 1071.
+  Paired against T3 (k4/collatz, same seeds; the routes differ, so this is the whole design's effect): max
+  1.03/1.03/1.08/1.09, min 1.03/1.04/1.11/1.11, worst 1.01/1.06/1.10/1.09 -- with the delays unchanged, so from
+  the smaller placement, not from sizing. corner_audit on these 4 routes -> collatz_sizes_T3cd.vh (249 -> 174 links;
+  uaddi0 29 -> 18, uselect0 31 -> 23); its 8 routes x 3 corners are running (k4/collatz_cdc).
