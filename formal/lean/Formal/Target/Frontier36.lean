@@ -1,6 +1,7 @@
 import Formal.Target.SpecMono
 import Formal.Target.SpecRunt
 import Formal.Target.CexQ36.Refute
+import Formal.Target.CexQ36.AnyR
 
 /-!
 # The κ = 9/25 livelock refutation carried to the frontier (shard A, 2026-11-09)
@@ -14,7 +15,9 @@ runt width `w ≤ 20`, every guard `g ≥ 1`, every scatter `κ ≥ 9/25`, every
 The monotonicity lemmas are copies of `FrontierRunt`'s (that module imports the κ = 11/25 and g = 8/5 witnesses,
 whose builds this file does not need).
 
-**Not shown.** Other reset lengths (the stutter lemma has not been applied to periodic codes); κ < 9/25.
+`not_seqRunt_le20_above36_R`, `not_seq_above36_R`: the same for every reset length R ≥ 400 ns (`CexQ36.AnyR`).
+
+**Not shown.** κ < 9/25.
 -/
 
 namespace Formal.Target.Frontier36
@@ -69,5 +72,21 @@ theorem not_seq_above36 {p : DelayPar} (hg : 1 ≤ p.g) (hk : 9 / 25 ≤ p.κ)
     (T su Δo : Nat) (hT : 140 ≤ T) (hΔ : Δo ≤ 3000) :
     ¬ NetCorrectSeq net boundary arbs p T 400000 su Δo :=
   fun h => not_seqRunt_le20_above36 (w := 0) (by norm_num) hg hk T su Δo hT hΔ (runt_zero.mpr h)
+
+/-- **For every reset length `R ≥ 400 ns`**: every `w ≤ 20`, `g ≥ 1`, `κ ≥ 9/25`, `T ≥ 140`, `Δo ≤ 3 ns`. -/
+theorem not_seqRunt_le20_above36_R {w : Nat} (hw : w ≤ 20) {p : DelayPar} (hg : 1 ≤ p.g) (hk : 9 / 25 ≤ p.κ)
+    (R T su Δo : Nat) (hR : 400000 ≤ R) (hT : 140 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeqRunt w net boundary arbs p T R su Δo := by
+  intro h
+  have hle : (Formal.Target.CexRuntP.pP 9).LE p := by
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> simp only [Formal.Target.CexRuntP.pP] <;> norm_num <;> linarith
+  exact Formal.Target.CexQ36.AnyR.not_netCorrectSeqRunt20_R R T su Δo hR hT hΔ
+    (seqRuntOn_anti_p hle (seqRuntOn_anti_w hw h))
+
+/-- **The plain frozen statement, every reset length `R ≥ 400 ns`.** -/
+theorem not_seq_above36_R {p : DelayPar} (hg : 1 ≤ p.g) (hk : 9 / 25 ≤ p.κ)
+    (R T su Δo : Nat) (hR : 400000 ≤ R) (hT : 140 ≤ T) (hΔ : Δo ≤ 3000) :
+    ¬ NetCorrectSeq net boundary arbs p T R su Δo :=
+  fun h => not_seqRunt_le20_above36_R (w := 0) (by norm_num) hg hk R T su Δo hR hT hΔ (runt_zero.mpr h)
 
 end Formal.Target.Frontier36

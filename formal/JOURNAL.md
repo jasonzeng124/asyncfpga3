@@ -2144,3 +2144,9 @@ bound on the feedback races only, not a lower end of the frontier).
   holds for T ≥ 140 with non-oscillating witnesses only.
 - Data: `Formal/Target/CexQ36/` (gen_runtq.py; Q 79, t0 491000, m 21, V 492501), Wit.lean and Refute.lean adapted
   from B's CexX16 (x_fin: a node that does not oscillate follows its prefix code). Nothing claimed until it checks.
+### progress 08:0x -- generic periodic machinery CHECKED; the κ = 9/25 data chunks building (OOM retries)
+- `SpecPeriodic.lean`, `CexRuntQ/QBase.lean` (`gateOKRunt_of_gateQ`: standard axioms), `CexRuntQ/QStretch.lean`
+  (`xQ_shift`: a periodic run stretched after a quiet instant is `Stutter.stutB`; `xQ_fin`) compile.
+- `CexQ36`: 75 node chunks + Ch + EncR built (~20 s each); gate-check chunks X* ~100-120 s each, ~6 GB each; at 2 in
+  parallel about one in four is OOM-killed (exit 137, no Lean error so far); the failures are retried one at a time,
+  then Wit / Refute / AnyR (any reset) / Frontier36 (w ≤ 20, g ≥ 1, κ ≥ 9/25, plain statement, any R ≥ 400 ns).
