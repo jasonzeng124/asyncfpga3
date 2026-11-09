@@ -2169,3 +2169,14 @@ bound on the feedback races only, not a lower end of the frontier).
   correct at κ = 0.36, 0.32, 0.28, 0.20: the fast corner binds. So, with κ on the /25 grid the Lean checkers use,
   0.36 is this race's frontier point; a refutation below needs a different (likely multi-pin) adversary. B's
   single-pin control sweeps at 0.37/0.38 found no other race, so I do not repeat them at 0.32.
+### progress 10:3x -- H_DECODE: site output hops (started; generic Lean compiles, data passes the Python mirror)
+The last "not covered" wiring item of 2026-11-08: a slice output is a copy gate `hop TILE/WIRE` from a slice-internal
+node (`SLICE_X0Y16.A6`, `…F8`, `…XOR2`, …) to a routing node; nothing checked its geometry (that the site is the one
+behind that tile's M/L pins, and the pin is one the slice can drive from that source). `Formal/Target/NodeMergeHop.lean`
+(compiles): `HopOK` (source node named `S.name.src` for a site `S` of the table, destination's canonical wire = the
+output-pin wire `p` of `S`'s tile/rank from `tile_type_*.json`, `(src, p)` in `hopTab`, the 7-series slice output
+wiring, trusted), `OutOK` (a site-logic gate `S.ALUT.O6`/`F8`/`CARRY4.O2`… drives the node `S.A6`/`F8`/`XOR2`…),
+`hop_from_gate` (with dot-free site names: the gate's output reaches pin `p` of its own site). Flop outputs (`…Q`)
+are exempt (no flop is in the circuit; free nodes). Data from `gen_nm.py` (extended; the existing NM files reproduce
+byte for byte): 9,573 slice-logic hops, 9,380 driver gates, 9,571 checked node names; Python mirror: all pass.
+`FormalWit/NM/H000..H074`, `AllH` (`hop_wired`) building. Not claimed until AllH checks.
