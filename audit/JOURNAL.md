@@ -1300,3 +1300,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T18:37:40Z T54 started: build56 of C's 17 more datapath units (da84aadb) one unit at a time. Owner commit 0455acf2 sets research's next lead (second latch at handshake couplings) -- no claim yet.
 - 2026-11-09T19:36:28Z build56: Ushrsi0 failed (Chk68/70/72/73; peak 7.3 GB with lake's parallel jobs; cause not yet known); serial retry (-j1) queued after build56 (lean/T29/retry56.sh).
 - 2026-11-09T20:16:24Z T54 done: 17 datapath units CONFIRMED (build incl. serial Ushrsi0 rebuild, axioms; uaddi0 own evaluation).
+- 2026-11-09T21:20:14Z T54 row 6: ushli0_ps build + axioms CONFIRMED (19/20 units).
