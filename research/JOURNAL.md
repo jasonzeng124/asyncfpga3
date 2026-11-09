@@ -3084,3 +3084,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Consequences: (1) every board build must pass fasm_equiv (already the full-stack flow); (2) the right fix is in
   nextpnr: route GND to these pins (or use the default-1 polarity: swap the F7 inputs), with a toolchain.sh fingerprint
   -- reproducer: ipow bench, T9 bench sizes, NEXTPNR_SEED=7. Left for the owner with the 5FF case.
+### progress 03:10 (kernel bench to 8 routes: collatz per-cell 48/48; ipow x0.75 24/24 with base seed 7 the F7 defect)
+- collatz per-cell vs T3 on the bench top, seeds 1-8: 48/48 PASS 13/13, gate clean; NOT_EQUIVALENT only benign GND-
+  buffer CARRY4/F7 data inputs (checked each new one). Paired, 261-step vector: mean 1.206 SLOW_MAX, 1.209 FAST_MIN,
+  1.187 worst (1.12-1.33). research/data/collatz_bench/results.tsv now 8 routes; BOARD-QUEUE #9 / item 8 updated.
+- ipow x0.75 seeds 5-8: 12/12 PASS (24/24 over 8 routes). T9 base 5/6/8 PASS; 7 = the F7-select bitstream defect (all
+  3 corners 11/17, same wrong answers). Seed 9 pair queued for an 8th pairing. collatz64 6-8 running.
