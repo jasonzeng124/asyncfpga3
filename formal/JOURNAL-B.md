@@ -4054,3 +4054,11 @@ over C's Sep/Up tables (gateProofUB or all segments gate-proved + chainUpB); `hg
 (pins nodup assumed). check.sh on the six B files of today: OK, standard axioms. It joins C's Boolean checkers (local
 check, TOA, Up, Sep, RT, GuardTime); whether every certificate hypothesis of `timedA_follows_cu` now has one was not
 audited.
+
+### progress 17:0x -- Formal/Cells/AOCertDec.lean: Boolean checkers for the AND-OR certificate's TmOK and LStep
+Audit of `timedA_follows_cu`'s hypotheses against existing Boolean checkers: hloc (AO.lcheckXA_of_enum), hTO
+(toA_of_B), hUp (upOK_of_B), hS (sepOKR_of_B), hRT (rtA_of_B), hGd (guardTime_of_B), hGC (B's hgc_of_B) had one;
+**hTP / hTF (AO.TmOK) and hLs (AO.LSound via LStep) did not** (C's tmOKB / lstepB are for the plain certificate). Added
+`tmOKA_of_B`, `lstepA_of_B`, `lsoundA_of_B`, toy by `decide`; check.sh OK, standard axioms. Left without a Boolean
+form, being structural or semantic: hSE, hDE, hgdF, hlenEq, hDataLen (structural, decidable per instance) and hb, hEnvE,
+hEnvC, hInit (the Spec bridge, environment and reset: C's TimedBridge / EnvHS / EnvData / reset_quiet_PS).
