@@ -1298,3 +1298,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T17:58:00Z T53 started (own scripts, no subagent -- owner reports usage near the weekly limit): BOARD-QUEUE #10 collatz BDC_CONST_DATA + per-cell (sdf 3cbe05d8) seed 1 build + worst-case run, research copy c10d82ea.
 - 2026-11-09T18:15:30Z T53 done: BOARD-QUEUE #10 collatz const-data seed 1 CONFIRMED (sdf 3cbe05d8, EQUIVALENT, 13/13 own oracle, cyc261 2610 exact).
 - 2026-11-09T18:37:40Z T54 started: build56 of C's 17 more datapath units (da84aadb) one unit at a time. Owner commit 0455acf2 sets research's next lead (second latch at handshake couplings) -- no claim yet.
+- 2026-11-09T19:36:28Z build56: Ushrsi0 failed (Chk68/70/72/73; peak 7.3 GB with lake's parallel jobs; cause not yet known); serial retry (-j1) queued after build56 (lean/T29/retry56.sh).
