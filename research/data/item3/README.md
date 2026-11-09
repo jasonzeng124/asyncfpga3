@@ -58,6 +58,7 @@ ipow x0.5 passes both uniform corners on every route and fails only the combined
 fast-chain corner of item 1 again the one that catches it. Per-cell candidates (corner_audit, per-cell max over 4
 routes) for collatz and ipow are queued; the uniform x0.75 for collatz64 and isprime is running.
 | collatz T3 per-cell (corner_audit, per-cell max over 4 routes) | 15 of 42 (249 -> 200 links) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes: 1.157 / 1.153 (1.07-1.27); 1.155 (1.10-1.26) |
+| collatz BDC_CONST_DATA=1 + per-cell (corner_audit on 4 const-data routes, per-cell max; collatz_sizes_T3cd.vh) | 18 of 42 (249 -> 174 links) | 1-8 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes vs T3: 1.361 / 1.344 (1.27-1.47); 1.335 (1.28-1.41). vs per-cell: 1.178 / 1.168; 1.157 (1.06-1.27) |
 
 collatz per-cell holds on all 12 where uniform x0.5 failed two (FAST_MIN on seed 2, worst case on seed 3). Seeds 5-8 owed
 (PROGRAM: 8 routes) before it is a result.

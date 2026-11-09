@@ -3166,3 +3166,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   1.03/1.03/1.08/1.09, min 1.03/1.04/1.11/1.11, worst 1.01/1.06/1.10/1.09 -- with the delays unchanged, so from
   the smaller placement, not from sizing. corner_audit on these 4 routes -> collatz_sizes_T3cd.vh (249 -> 174 links;
   uaddi0 29 -> 18, uselect0 31 -> 23); its 8 routes x 3 corners are running (k4/collatz_cdc).
+### progress 14:05 (collatz: BDC_CONST_DATA + per-cell sizes 24/24 on 8 routes, 1.34-1.36x over T3, 1.16-1.18x over per-cell)
+- collatz BDC_CONST_DATA=1 at collatz_sizes_T3cd.vh (249 -> 174 links), soak top, NEXTPNR_SEED 1-8, worktree 83cd6c77,
+  nextpnr 9c732bc6303458df: SLOW_MAX / FAST_MIN / worst 24/24 PASS, fasm_equiv 8/8 EQUIVALENT (benign kinds only).
+  Paired per seed (research/data/item3/collatz_cdc/pairs.txt): vs T3 1.361 / 1.344 / 1.335 (max / min / worst; range
+  1.27-1.47); vs the previous best per-cell sizes 1.178 / 1.168 / 1.157 (1.06-1.27). Rule A informational (item 1).
+- The lever came from itercost (two barrel shifters from an unfolded shift-by-one); it also cut 37% of the LUTs.
+- Not shown: the board's bench top (next: re-key, build_bench, full stack on 8 routes for a board item), silicon,
+  ipow/collatz64 with the flag (ipow's ushrsi0 is the same pattern and carries the F7-defect exposure).
