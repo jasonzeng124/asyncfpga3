@@ -3247,3 +3247,13 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   ushrsi0 26 -> 1, ulink_n17__1 10 -> 7, ulink_n13_SDELAY 3 -> 1. Suspect: the umux3 select race (the same class that
   stopped xorshift below x0.5); corner_audit's rules do not see it. Test running: T9cdb = T9cd with ulink_n_index_15
   back to 12, seeds 30/32/33 nominal. The flag itself is not implicated: T9 sizes + the flag passed 12/12.
+### progress 07:40 (ipow T9cd diagnosed: ushrsi0 at 1 link fails on other routes; the per-route audit does not carry)
+- Nominal routed GLS (fusion_bench --route), out0 hold-window violation in every failure:
+    T9cdb (T9cd, ulink_n_index_15 back to 12): seeds 30, 32 pass; 33 FAIL
+    T9cdc (+ ulink_n17__1 10, ulink_n13_SDELAY 3, i.e. T9cs values except ushrsi0): seeds 33, 29 FAIL
+  Controls on seed 33, all PASS: T9 sizes + BDC_CONST_DATA; T9cdc with ushrsi0 26; T9cs without the flag.
+- So the line that breaks it is ushrsi0 = 1. With BDC_CONST_DATA its logic is wiring (e >>> 1), and corner_audit
+  proposed 1 on each of its 4 routes (29-32), but a region with no logic still has to cover the data-vs-request
+  routing skew into its consumer, which moves with the route; one link does not cover it on routes 29 (full stack) and
+  33. A per-cell max over 4 routes is not a bound across routes -- the same lesson as the umux3 select race, now on a
+  logic-free delay. corner_audit is being run on the failing seed-33 route to see whether its rules see the hazard.
