@@ -2571,3 +2571,7 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   (datafast.py simplified them), the arbiter's other outcome.
 * *Reading:* the per-kind window route for every pair is supported by the data; the infinite family of kinds (m
   unbounded) is handled by nesting: inner windows of fixed kinds inside the main window.
+* *Note on the "quiet node" references (10:1x):* `AO/Window.lcheckXA_window` already admits them: `AltCorr` lets a long
+  alternative carry extra causes that lie before the window's start offset on a dependency node (they are counted
+  inside the box). So the reset event and the last events of nodes quiet since iteration 0 need no new rule for the
+  local check; the timing checks (Sep/Up rows that use them) still need their window form.
