@@ -45,6 +45,37 @@ Results go in research/data/itercost/, with a journal entry. This is a measureme
 it changes no design and no sizes. A number no one predicted, or a lever that turns out
 small, is the result. Say so plainly, and retire any explanation the data rules out.
 
+## NEXT: a second latch where the cycle waits on a handshake (owner, 2026-11-09)
+
+The itercost cycle for xorshift x0.5 (seed 1) runs twice per iteration, once rising
+and once falling. It changes polarity at exactly three places, where the next hop
+waits on a neighbour's full handshake:
+- `umux1` ack -> `ulink_n_trueResult_8` req;
+- `ufork9` ack -> `ulink_n11__1`;
+- `ucontrol_merge0` ack -> `ulink_n_trueResult_12` req.
+
+Each of these is a single `bd_link` stage, a simple Muller controller: half a token,
+so "two stages make one register-equivalent" (bd_link.v). Each sits next to a cell
+that synchronizes several channels (a mux joining two rings, a fork, the arbitrated
+merge). So at each barrier the return-to-zero couples straight through the one
+latch. The owner's reading: 2 simple latches act as 1 decoupled latch, so give each
+coupling point two. The RTZ tail should then fade while the next iteration's
+rising wave runs, and the period should fall toward one pass.
+
+Experiment (a measurement, no default changes):
+1. Add one more `bd_link` stage at each of the three points on the xorshift x0.5
+   build, through a bdc option or an explicit per-site list, not by hand-editing
+   generated Verilog. Use the same route seeds and the same full-stack bands as
+   itercost.
+2. Rerun itercost on it. Report the new period, the new critical cycle (does it
+   still change polarity, and where), and the forward-latency cost of the added
+   stages. Then add the stages one point at a time, to see which coupling binds.
+3. Predict before running: if the coupling is the cause, the period drops by a large
+   part of the 17.2 ns RTZ share. If it barely moves, say so and say why from the new
+   cycle.
+4. If it helps, run the same on collatz, then judge it with the full gate
+   (corners + combined worst case, >= 8 routes) before it goes near the board list.
+
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
