@@ -5,6 +5,7 @@ Formal.Target.CexRuntQ.gateQ: per-chunk BTL trees of the prefix codes (transitio
 period per node (transitions in [t0, t0+Q)), a sparse BTC tree of the narrow-pulse chains of the run unrolled m
 periods (transitions < H = t0 + m·Q), the per-arc slow list, per-chunk gate checks split in 3 slices.
 Aborts unless the dump's transitions in [t0, H) are exactly the period unrolled (so the Lean run IS the dump up to H).
+(CEXHEAVY=7,14,15,65,70,72 for CexQ36: those gate chunks need > 15 GB in 3 slices.)
 usage: gen_runtq.py dump.json net.json bnd.json OUTDIR NAMESPACE P W classes.json Q t0 m V"""
 import json, sys, os
 Wd = json.load(open(sys.argv[1])); net = json.load(open(sys.argv[2])); BJ = json.load(open(sys.argv[3])); out = sys.argv[4]
@@ -73,17 +74,26 @@ open(f"{out}/EncR.lean", "w").write("".join(f"import {NS}.L{c:03d}\n" for c in r
     f"/-- The slow arcs, as codes 8·out + pin. -/\n"
     f"def slR : List Nat := [{', '.join(map(str, sorted(SLOW)))}]\n\nend {NS}\n")
 F = f"(fun g => !keepPS g || gateQ {P} {W} {Q} {T0} {M} {V} encR perR chR slR g)"
+HEAVY = set(int(x) for x in os.environ.get("CEXHEAVY", "").split(",") if x)   # chunks split in 24 slices (memory)
 for c in range(nchG):
     q = 834
     def slc(j):
         e = f"g{c:03d}"
         for _ in range(j): e = f"({e}.drop {q})"
         return e if j == 2 else f"({e}.take {q})"
-    parts = "\n".join(f"set_option maxRecDepth 100000 in\ntheorem x{c:03d}_p{j} : {slc(j)}.all {F} = true := by decide +kernel\n" for j in range(3))
-    comb = (f"theorem x{c:03d}_ok : g{c:03d}.all {F} = true := by\n"
-            f"  rw [← List.take_append_drop {q} g{c:03d}, List.all_append, x{c:03d}_p0, Bool.true_and]\n"
-            f"  rw [← List.take_append_drop {q} (g{c:03d}.drop {q}), List.all_append, x{c:03d}_p1, Bool.true_and]\n"
-            f"  exact x{c:03d}_p2\n")
+    S = 24 if c in HEAVY else 3
+    q = (2500 + S - 1) // S
+    def slc(j):
+        e = f"g{c:03d}"
+        for _ in range(j): e = f"({e}.drop {q})"
+        return e if j == S - 1 else f"({e}.take {q})"
+    parts = "\n".join(f"set_option maxRecDepth 100000 in\ntheorem x{c:03d}_p{j} : {slc(j)}.all {F} = true := by decide +kernel\n" for j in range(S))
+    comb = f"theorem x{c:03d}_ok : g{c:03d}.all {F} = true := by\n"
+    e = f"g{c:03d}"
+    for j in range(S - 1):
+        comb += f"  rw [← List.take_append_drop {q} {e}, List.all_append, x{c:03d}_p{j}, Bool.true_and]\n"
+        e = f"({e}.drop {q})"
+    comb += f"  exact x{c:03d}_p{S-1}\n"
     open(f"{out}/X{c:03d}.lean", "w").write(f"import {NS}.EncR\n\n" + HDR +
         f"namespace {NS}\nopen Formal.Target.DecodedPS Formal.Net.CViewPS {OP[5:]}\n\n" + parts + "\n" + comb + f"\nend {NS}\n")
 print("gen_runtq: %d node chunks, %d gate chunks, %d slow arcs, %d nodes with chains, %d periodic nodes, H = %d"

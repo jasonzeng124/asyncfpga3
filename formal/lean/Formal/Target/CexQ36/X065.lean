@@ -6,17 +6,101 @@ namespace Formal.Target.CexQ36
 open Formal.Target.DecodedPS Formal.Net.CViewPS Formal.Net.CexPS72 Formal.Target.CexRuntP Formal.Target.CexRuntQ
 
 set_option maxRecDepth 100000 in
-theorem x065_p0 : (g065.take 834).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+theorem x065_p0 : (g065.take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem x065_p1 : ((g065.drop 834).take 834).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+theorem x065_p1 : ((g065.drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-theorem x065_p2 : ((g065.drop 834).drop 834).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+theorem x065_p2 : (((g065.drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p3 : ((((g065.drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p4 : (((((g065.drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p5 : ((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p6 : (((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p7 : ((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p8 : (((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p9 : ((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p10 : (((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p11 : ((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p12 : (((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p13 : ((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p14 : (((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p15 : ((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p16 : (((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p17 : ((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p18 : (((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p19 : ((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p20 : (((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p21 : ((((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p22 : (((((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).take 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem x065_p23 : (((((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by decide +kernel
 
 theorem x065_ok : g065.all (fun g => !keepPS g || gateQ 9 20 79 491000 21 492501 encR perR chR slR g) = true := by
-  rw [← List.take_append_drop 834 g065, List.all_append, x065_p0, Bool.true_and]
-  rw [← List.take_append_drop 834 (g065.drop 834), List.all_append, x065_p1, Bool.true_and]
-  exact x065_p2
+  rw [← List.take_append_drop 105 g065, List.all_append, x065_p0, Bool.true_and]
+  rw [← List.take_append_drop 105 (g065.drop 105), List.all_append, x065_p1, Bool.true_and]
+  rw [← List.take_append_drop 105 ((g065.drop 105).drop 105), List.all_append, x065_p2, Bool.true_and]
+  rw [← List.take_append_drop 105 (((g065.drop 105).drop 105).drop 105), List.all_append, x065_p3, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((g065.drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p4, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((g065.drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p5, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p6, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p7, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p8, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p9, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p10, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p11, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p12, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p13, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p14, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p15, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p16, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p17, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p18, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p19, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p20, Bool.true_and]
+  rw [← List.take_append_drop 105 (((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p21, Bool.true_and]
+  rw [← List.take_append_drop 105 ((((((((((((((((((((((g065.drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105).drop 105), List.all_append, x065_p22, Bool.true_and]
+  exact x065_p23
 
 end Formal.Target.CexQ36
