@@ -1,0 +1,29 @@
+Formal.Net.Compute.PS.Uselect1T.uselect1_timed : ∀ (p : Formal.Target.DelayPar),
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ (x : Formal.Target.Beh),
+      Formal.Target.Behaves p Formal.Target.DecodedPS.net x →
+        ∀ (T0 T1 : ℕ),
+          (∀ k < 32,
+              ∀ (t : ℕ),
+                T0 ≤ t →
+                  t ≤ T1 →
+                    x (Formal.Net.Compute.PS.Uselect1.e0Node k) t = x (Formal.Net.Compute.PS.Uselect1.e0Node k) T0 ∧
+                      x (Formal.Net.Compute.PS.Uselect1.e1Node k) t = x (Formal.Net.Compute.PS.Uselect1.e1Node k) T0) →
+            ∀ (t : ℕ),
+              T0 + Formal.Timing.SpecSettle.cScale p * Formal.Net.Compute.PS.Uselect1T.D ≤ t →
+                t ≤ T1 →
+                  Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.zNode) 32 =
+                    Formal.Net.GcdHw.Ops.select
+                      (Formal.Net.GcdHw.Ops.cmpi Formal.Net.GcdHw.Pred.sgt 32
+                        (Formal.Net.GcdHw.Ops.subi 32
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32))
+                        4294967295)
+                      (Formal.Net.GcdHw.Ops.subi 32
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32))
+                      (Formal.Net.GcdHw.Ops.subi 32 0
+                        (Formal.Net.GcdHw.Ops.subi 32
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32)))
+'Formal.Net.Compute.PS.Uselect1T.uselect1_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
