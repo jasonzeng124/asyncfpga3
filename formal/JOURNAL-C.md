@@ -2512,3 +2512,8 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
   project still running).
 * *Not done:* the Boolean checker `upFormB` does not yet emit the relative clause; the (12,18) data layer not
   re-measured with it.
+
+### progress 08:11 -- DecT: the Boolean upper-bound checker emits the relative clause
+`upRelB` (searches the Up table for an entry `Up a p` and the Sep table for `Sep a e0`) and `upRelB_sound`;
+`upFormB` accepts it for causes and for the previous event; `upOK_of_B` re-proved (compiled with lean, standard
+axioms). Cost: one pass over the Up table per cause (a hint field would make it linear; not needed yet).

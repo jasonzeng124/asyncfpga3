@@ -100,17 +100,40 @@ section
 variable (N : TNet α) (dat : α → Bool) (CP CF : Cert α) (sl : List (α × Nat × α × Nat × Nat))
   (ul : List ((α × Nat) × (α × Nat) × Nat))
 
+/-- The relative clause: some table entry `Up a p` with a separation `Sep a e0`. -/
+def upRelB (e0 p : α × Nat) (h d : Nat) : Bool :=
+  ul.any fun q => q.2.1 == p && (match upL ul q.1 p, sepL sl q.1.1 q.1.2 e0.1 e0.2 with
+    | some dA, some dS => decide (dA + h ≤ d + dS)
+    | _, _ => false)
+
 def upFormB (e0 e : α × Nat) (d : Nat) : Bool :=
   (e == e0) ||
   (N.gate e.1 && !(dat e.1) && decide (e.2 < CP.len e.1) &&
     (CP.causes e.1 e.2).any (fun alt => alt.all (fun p => (match upL ul e0 p with
       | some dp => decide (dp + hi' N e.1 p.1 ≤ d) | none => false) ||
       (match sepL sl p.1 p.2 e0.1 e0.2 with
-      | some _ => decide (hi' N e.1 p.1 ≤ d) | none => false))) &&
+      | some _ => decide (hi' N e.1 p.1 ≤ d) | none => false) ||
+      upRelB sl ul e0 p (hi' N e.1 p.1) d)) &&
     (e.2 == 0 || (match upL ul e0 (e.1, e.2 - 1) with
       | some dp => decide (dp + hi' N e.1 e.1 ≤ d) | none => false) ||
       (match sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
-      | some _ => decide (hi' N e.1 e.1 ≤ d) | none => false)))
+      | some _ => decide (hi' N e.1 e.1 ≤ d) | none => false) ||
+      upRelB sl ul e0 (e.1, e.2 - 1) (hi' N e.1 e.1) d))
+
+theorem upRelB_sound {e0 p : α × Nat} {h d : Nat} (hr : upRelB sl ul e0 p h d = true) :
+    ∃ a dA dS, upL ul a p = some dA ∧ sepL sl a.1 a.2 e0.1 e0.2 = some dS ∧ dA + h ≤ d + dS := by
+  unfold upRelB at hr
+  obtain ⟨q, _, hq⟩ := List.any_eq_true.1 hr
+  simp only [Bool.and_eq_true, beq_iff_eq] at hq
+  obtain ⟨hp, hm⟩ := hq
+  cases hu : upL ul q.1 p with
+  | none => rw [hu] at hm; cases hm
+  | some dA =>
+    cases hs : sepL sl q.1.1 q.1.2 e0.1 e0.2 with
+    | none => rw [hu, hs] at hm; cases hm
+    | some dS =>
+      rw [hu, hs] at hm
+      exact ⟨q.1, dA, dS, hu, hs, by simpa using hm⟩
 
 def upB : Bool := ul.all fun q => match upL ul q.1 q.2.1 with
   | some d => upFormB N dat CP sl ul q.1 q.2.1 d
@@ -130,7 +153,7 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
   · right
     obtain ⟨alt, halt, hc'⟩ := hc
     refine ⟨hg1, hd1, hl, ⟨alt, halt, fun p hp' => ?_⟩, fun hk => ?_⟩
-    · rcases hc' p hp' with this | this
+    · rcases hc' p hp' with (this | this) | this
       · left
         cases hu : upL ul e0 p with
         | none => rw [hu] at this; cases this
@@ -139,7 +162,9 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
         cases hu : sepL sl p.1 p.2 e0.1 e0.2 with
         | none => rw [hu] at this; cases this
         | some ds => rw [hu] at this; exact ⟨ds, rfl, by simpa using this⟩
-    · rcases hp with (hp | hp) | hp
+      · right; right
+        exact upRelB_sound sl ul this
+    · rcases hp with ((hp | hp) | hp) | hp
       · omega
       · left
         cases hu : upL ul e0 (e.1, e.2 - 1) with
@@ -149,7 +174,8 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
         cases hu : sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
         | none => rw [hu] at hp; cases hp
         | some ds => rw [hu] at hp; exact ⟨ds, rfl, by simpa using hp⟩
-
+      · right; right
+        exact upRelB_sound sl ul hp
 
 end
 
