@@ -2587,3 +2587,14 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   certificate in prjxray slow-max units, windows [T0 + ⌈(1+κ)g⌉·SN n, T1].
 * *Next:* the uselect1 instance: inputs held on [T0, T1] ⇒ at every t in [T0 + ⌈(1+κ)g⌉·D, T1] the output word is the
   op of the input words (D = the unit's slow-max depth, computed and checked in the kernel).
+
+### progress 10:33 -- Net/AO/WindowT.lean: the separation and upper-bound tables lifted from a window (check.sh OK)
+* *Problem:* piece 1 needs every obligation of the long certificate from window checks; after the local check
+  (Window.lean), the Sep/Up tables.
+* *Proved:* `sepClause_window`: when the long tables on a window's events are the window's tables shifted by o and
+  time stamps are shifted by a constant, every clause of `SepOKA` for a shifted window entry follows from the
+  window entry's clause. `upClause_window`: the same for `UpOKA` (all three cause forms, incl. the relative one),
+  given a justification for each long cause that lies before the window (`hExtra`: e.g. the reset event and last
+  events of quiet nodes, which the window study found) and for the previous event of a node's first window event.
+* *Not shown:* that the long tables consist only of shifted window entries, `TOA`, `GuardTime`, coverage, any
+  instance.
