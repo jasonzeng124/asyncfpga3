@@ -1289,3 +1289,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T19:55:32Z T48 done: BOARD-QUEUE #9 collatz per-cell seed 1 CONFIRMED.
 - 2026-11-08T20:53:04Z research 4087ca57: fasm_equiv now folds constant-INIT LUT drivers on DSP data pins (as other pins already); read the diff -- a LUT with all-0/all-1 INIT is that constant, their negative control fails as it must. My T45/T46/T48 EQUIVALENT verdicts ran on the earlier, stricter checker (61c532db / cb6a85b6), so they are unaffected.
 - 2026-11-08T21:37:42Z T49: H_RUNT rig bit = committed FASM (own read-back + fasm2frames, identical frames); 5FF scan clean.
+- 2026-11-09T09:42:31Z T50 started: C's reset_quiet_PS (06e25398, THE target's 3,224-node reset island) -- build51 at formal head; planned independent check: every member holds valR during reset in own-checked behaviours (k44w20, k40w20, k72w20 dumps).
