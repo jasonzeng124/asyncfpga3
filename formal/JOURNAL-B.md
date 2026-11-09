@@ -3749,3 +3749,9 @@ else at the bottom, corner 0, H_RUNT(20)) on all 32 latches of that register: 32
 sweep's default 3 µs cap (3.51 µs at κ = 0), so a first run reported spurious "no output"; rerun with a 9 µs cap.
 (Yesterday's 0.43 sweeps finished under 3 µs: faster arcs.) Reading: class C is a claim-anchoring artefact on this
 evidence too; the builder needs value-level / older-anchor claims for these D inputs. Not a proof.
+
+### progress 09:0x -- Formal/Cells/UnionUpDec.lean CLAIMED: Boolean checker for ChainUpOK
+`chainUpB sl ul c cs` over C's tables (`AO.sepL`, `AO.upL`), `joinB_sound`, `chainUpB_sound : chainUpB … = true →
+ChainUpOK (sepL sl) (upL ul) c cs`; a toy (data claim ends at the open + 50, hold starts at the close + 3, close ≤ open
++ 20) discharged by `decide`. Private build OK; `#print axioms chainUpB_sound`: propext, Classical.choice, Quot.sound.
+So a generator emitting Up / ancestor joins can have them kernel-checked like C's other tables.
