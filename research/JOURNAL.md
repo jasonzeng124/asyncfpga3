@@ -3094,3 +3094,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Seeds 6-8 added: x0.75 9/9 PASS 14/14, T4 9/9; x0.75 24/24 over 8 routes; T4 21/24 (seed 4 = the 5FF bitstream
   defect). Paired over 7 routes, 350-step vector: 1.172 / 1.174 / 1.172 (SLOW_MAX / FAST_MIN / worst), 1.07-1.22.
   NOT_EQUIVALENT only benign GND-buffer F7 data inputs (checked each new one). BOARD-QUEUE #7 / item 6 updated.
+### progress 07:47 (the F7-select defect again: ipow x0.75 bench seed 9 -- 2 of 17 ipow bench routes)
+- ipow x0.75 bench seed 9 SLOW_MAX: FAIL 12/17, the same early-exit pattern (5 large-exponent vectors wrong); fasm_equiv
+  DRIVER DIFFERS SLICE_X16Y60/F7AMUX/S0 json const 0, bits const 1; the cell is again in ushrsi0 (e >>= 1).
+- So the defect is not one route's accident: ushrsi0 synthesises an F7 whose select is tied to GND, and on 2 of the 17
+  ipow bench routes built (base 7, x0.75 9) nextpnr leaves that select unrouted (the die reads 1). On silicon those
+  builds give wrong answers. All ipow results above are on routes that decode clean; the board item's route (seed 1)
+  decodes EQUIVALENT. The BOARD-QUEUE header rule (decode-check any route whose sdf md5 differs) covers rebuilds.
+- Not done: a census across kernels of F7/F8 selects tied to a constant (yosys emits them; how often nextpnr leaves
+  them unrouted is the question for the nextpnr fix).
