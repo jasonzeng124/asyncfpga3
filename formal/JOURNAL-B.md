@@ -3999,3 +3999,26 @@ fixpoint pass 3 / 2, 0 failing claim obligations, lchk 0 / 0 both corners; (12,1
   relup's current Up would still be 1.2-2.8 ns short).
 - The c0 "non-convergence" was harmless monotone growth of end offsets (+1,819 ps per pass around a self-covering register
   loop, CovTime holding for every b); gone with ESPLIT.
+
+### progress 16:3x -- every measured pair/corner passes the data layer (untrusted Python): (12,18), (17,5) both corners; (8,12), (1071,462) at c1
+End-side fix `ENDFIX=2` (a claim end is never anchored at a context anchor causally before another, e.g. the guard reader's
+own start event; a guard's top claim with no Sep from E also searches the common-ancestor pool, the meeting event of its
+covers' ends and events causally after E on their trigger chains; ends still justified by Sep only). Final builder
+config (copy: `formal/tools-B/r23/final/`): C's relup (RELD 99), chain joins, LGTOPOFF, COVUP + COVMEET (CovTimeU), MUXX,
+XOPT, ESPLIT, ENDFIX=2, window fixpoint, lchk.
+| pair, corner | guards failing | fixpoint | lchk upFormB / sepFormB |
+|---|---|---|---|
+| (17,5) c1 | **0 / 406** | pass 2 | 0 / 0 |
+| (17,5) c0 | **0 / 406** | pass 3 | 0 / 0 |
+| (12,18) c0 | **0 / 264** | pass 2 | 0 / 0 |
+| (12,18) c1 | 0 / 264 (ESPLIT run; ENDFIX only changes otherwise-failing ends) | pass 2 | 0 / 0 |
+| (8,12) c1 | **0 / 284** (C's base: 146 fail) | pass 2 | 0 / 0 |
+| (1071,462) c1 | **0 / 532** (C's base: 289 fail) | pass 2 | 0 / 0 |
+Each with 0 failing claim obligations, no truncations, the right gcd. A rejected variant (ENDFIX=1) gave 66 / 406.
+**What this is and is not:** for each pair and corner, a data-layer certificate (claims, guards, Sep/Up tables) generated
+from ONE midpoint run passes every check the Python models for C's generic AO theorem plus B's CovUp/UnionUp joins; the
+Sep/Up entries are re-checked against the Lean rules by C's lchk.py. NOT: a Lean instance (nothing emitted as Lean data or
+kernel-checked; CovTime/ChainOK/ValOK arithmetic is Python only), (8,12)/(1071,462) at c0, all pairs (C's window route),
+the Spec bridge. Cost ~20 min ((12,18)) to 1.5 h per corner, ~3.5 GB.
+**For C:** the builder modes (and why each is sound in Lean terms) are in final/README.txt; with C's control certificate,
+the per-pair route to a first `decide`-checked instance looks open; B suggests the Lean emission next.
