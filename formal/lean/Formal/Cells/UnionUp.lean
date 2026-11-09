@@ -27,6 +27,10 @@ happens at most `u` after `c1.B`, and `c2.a + u ≤ c1.b`.
 
 * `gate_firesA_up`, `timedA_live_up`: C's liveness theorems (proofs copied) with `ChainUpOK` chains.
 
+## Measured use (JOURNAL-B 2026-11-09 10:4x, untrusted Python)
+On pairs (12,18) and (17,5), once C's relative Up clause is in, neither the `Up` join nor `JoinAnc` joins any link
+that the `Sep` join does not: they are sound generalisations with no measured use yet.
+
 ## Not shown
 Class B (claim end and
 close causally unordered) is the shape `JoinAnc` covers when C's Up/Sep tables reach a common ancestor; whether they
