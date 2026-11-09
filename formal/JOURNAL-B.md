@@ -4051,5 +4051,6 @@ nodup), so an emitted claim list can be checked by `decide` for the `CovUpMain` 
 ### progress 17:0x -- CovUpGC.hgc_of_B: the whole claim hypothesis hGC of timedA_follows_cu as one Boolean
 Per claim a hint (`gp`: its pins' covers; `ch`: indices of its chain's segments); `hgcB` checks every data-gate claim
 over C's Sep/Up tables (gateProofUB or all segments gate-proved + chainUpB); `hgc_of_B` gives exactly the hGC premise
-(pins nodup assumed). check.sh on the six B files of today: OK, standard axioms. With C's Boolean checkers for the
-control/timing tables, every hypothesis of `timedA_follows_cu` that is about the certificate now has a Boolean form.
+(pins nodup assumed). check.sh on the six B files of today: OK, standard axioms. It joins C's Boolean checkers (local
+check, TOA, Up, Sep, RT, GuardTime); whether every certificate hypothesis of `timedA_follows_cu` now has one was not
+audited.
