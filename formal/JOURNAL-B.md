@@ -3715,3 +3715,8 @@ join into one claim if e2 happens at most u after e1 (an `Up e1 e2 = some u` ent
 **Not shown:** the wiring into C's `timedU_follows`/`timedA_follows` (they take `ChainOK`; switching to `ChainUpOK`
 needs UpSoundT at the induction horizon, which `up_sound` provides from the same hypotheses) -- C's file, proposed
 here; classes B and C; any instance.
+
+### progress 09:0x -- UnionUp: third join form through a common ancestor (`JoinAnc`, `union_holds_anc`) for class B
+c1's end event at least s after an ancestor e0 (a `Sep` entry), c2's start at most u after e0 (an `Up` entry),
+0 ≤ c2.a, c2.a + u ≤ c1.b + s: the claims join. `ChainUpOK` links now accept Sep, Up or JoinAnc. Same checks
+(private build of the closure, standard axioms). Whether C's tables reach such an e0 for class B is being measured.

@@ -19,14 +19,15 @@ happens at most `u` after `c1.B`, and `c2.a + u ≤ c1.b`.
   hypotheses.
 * `UnionUpOK`, `union_holds_up`: if `c1.B = e1`, `c2.A = e2`, `Up e1 e2 = some u`, `c2.a + u ≤ c1.b` and `0 ≤ c2.a`,
   then at every `t ≤ T` where both claims hold, their union holds (same value, `c1`'s start, `c2`'s end).
-* `ChainUpOK`, `chain_holds_up`: chains whose links are joined by either rule (`Sep` as in `ChainOK`, or `Up`);
+* `ChainUpOK`, `chain_holds_up`: chains whose links are joined by either rule (`Sep` as in `ChainOK`, `Up`, or `JoinAnc`: a `Sep` from a common ancestor `e0` to `c1`'s
+  end and an `Up` from `e0` to `c2`'s start, `c2.a + u ≤ c1.b + s`; `union_holds_anc`);
   `chainOK_up_of_chainOK`: every `ChainOK` chain is a `ChainUpOK` chain, so this is a strict generalisation.
 
 ## Not shown
 The wiring into C's main induction (`TimedU.timedU_follows` / `AO.timedA_follows` take `ChainOK`; using `ChainUpOK`
 there needs `UpSoundT` at the induction's horizon, which `up_sound` supplies from the same induction hypotheses: this
-is a change to C's files, proposed in JOURNAL-B). Class B (claim end and close causally unordered, no common
-ancestor bound) and class C (re-open setup; a claim-builder artefact) are not addressed here. No instance.
+is a change to C's files, proposed in JOURNAL-B). Class B (claim end and close causally unordered) is the
+shape `JoinAnc` covers when C's Up/Sep tables reach a common ancestor; whether they do is measured, not shown. Class C (re-open setup; a claim-builder artefact) is not addressed here. No instance.
 -/
 
 namespace Formal.Cells.UnionUp
@@ -76,6 +77,47 @@ theorem union_holds_up {x : α → Nat → Bool} {t0 H T : Nat} {Up : α × Nat 
       | none => trivial
       | some e1 => exact fun hh => hend ⟨e1, hB1, hh⟩
 
+/-- The join through a common ancestor `e0`: `c1`'s end event comes at least `s` after `e0` (a `Sep` entry) and
+`c2`'s start event at most `u` after it (an `Up` entry), with `c2.a + u ≤ c1.b + s`. -/
+def JoinAnc (Sep : α → Nat → α → Nat → Option Nat) (Up : α × Nat → α × Nat → Option Nat) (c1 c2 : Claim α) : Prop :=
+  match c1.B, c2.A with
+  | some e1, some e2 => ∃ e0 s u, Sep e0.1 e0.2 e1.1 e1.2 = some s ∧ Up e0 e2 = some u ∧ 0 ≤ c2.a ∧
+      c2.a + u ≤ (c1.b : Int) + s
+  | none, _ => True
+  | some _, none => True
+
+theorem union_holds_anc {x : α → Nat → Bool} {t0 H T : Nat} {Sep : α → Nat → α → Nat → Option Nat}
+    {Up : α × Nat → α × Nat → Option Nat}
+    (hSS : SepSound x t0 Sep T) (hUS : UpSoundT x t0 Up T) (c c1 c2 : Claim α)
+    (hz1 : c1.z = c.z) (hz2 : c2.z = c.z) (hv1 : c1.val = c.val) (hv2 : c2.val = c.val) (hA1 : c1.A = c.A)
+    (ha1 : c1.a = c.a) (hB2 : c2.B = c.B) (hb2 : c2.b = c.b) (hj : JoinAnc Sep Up c1 c2)
+    (t : Nat) (ht : t ≤ T)
+    (h1 : Holds x t0 H c1 t) (h2 : Holds x t0 H c2 t) : Holds x t0 H c t := by
+  intro hH hA hBn
+  by_cases hend : ∃ e1, c1.B = some e1 ∧ hbI x t0 e1 ((t : Int) - c1.b)
+  · obtain ⟨e1, he1, hhb⟩ := hend
+    rw [← hz2, ← hv2]
+    apply h2 hH
+    · cases hA2 : c2.A with
+      | none => trivial
+      | some e2 =>
+        unfold JoinAnc at hj
+        rw [he1, hA2] at hj
+        obtain ⟨e0, s, u, hS, hU, ha0, hle⟩ := hj
+        have h0 := hSS e1.1 e0.1 e1.2 e0.2 s hS ((t : Int) - c1.b) (by omega) hhb
+        obtain ⟨h00, hc0⟩ := h0
+        have hτ := hUS e0 e2 u (((t : Int) - c1.b) - s).toNat hU hc0 (by omega)
+        refine ⟨by omega, ?_⟩
+        have : ((t : Int) - c2.a).toNat ≥ (((t : Int) - c1.b) - s).toNat + u := by omega
+        exact Nat.lt_of_lt_of_le hτ (cnt_mono e2.1 _ _ this)
+    · rw [hB2, hb2]; exact hBn
+  · rw [← hz1, ← hv1]
+    apply h1 hH
+    · rw [hA1, ha1]; exact hA
+    · cases hB1 : c1.B with
+      | none => trivial
+      | some e1 => exact fun hh => hend ⟨e1, hB1, hh⟩
+
 /-- Chains whose consecutive claims are joined by a separation (as `ChainOK`) or by an upper bound. -/
 def ChainUpOK (Sep : α → Nat → α → Nat → Option Nat) (Up : α × Nat → α × Nat → Option Nat) (c : Claim α) :
     List (Claim α) → Prop
@@ -89,7 +131,8 @@ def ChainUpOK (Sep : α → Nat → α → Nat → Option Nat) (Up : α × Nat �
        (match c1.B, c2.A with
         | some e1, some e2 => ∃ u, Up e1 e2 = some u ∧ 0 ≤ c2.a ∧ c2.a + u ≤ (c1.b : Int)
         | none, _ => True
-        | some _, none => True)) ∧
+        | some _, none => True) ∨
+       JoinAnc Sep Up c1 c2) ∧
       ChainUpOK Sep Up ⟨c.z, c.val, c2.A, c2.a, c.B, c.b⟩ (c2 :: cs)
 
 theorem chain_holds_up {x : α → Nat → Bool} {t0 H T : Nat} {Sep : α → Nat → α → Nat → Option Nat}
@@ -109,9 +152,10 @@ theorem chain_holds_up {x : α → Nat → Bool} {t0 H T : Nat} {Sep : α → Na
     let c' : Claim α := ⟨c.z, c.val, c2.A, c2.a, c.B, c.b⟩
     have hc' := chain_holds_up hSS hUS t ht (c2 :: cs) c' hrest (fun d hd => hh d (by simp [hd]))
     have h1 := hh c1 (by simp)
-    rcases hj with hj | hj
+    rcases hj with hj | hj | hj
     · exact union_holds hSS c c1 c' ⟨hz, rfl, hv, rfl, hA, ha, rfl, rfl, hj⟩ t ht h1 hc'
     · exact union_holds_up hUS c c1 c' ⟨hz, rfl, hv, rfl, hA, ha, rfl, rfl, hj⟩ t ht h1 hc'
+    · exact union_holds_anc hSS hUS c c1 c' hz rfl hv rfl hA ha rfl rfl hj t ht h1 hc'
 
 omit [DecidableEq α] in
 /-- Every `ChainOK` chain is a `ChainUpOK` chain (the new rule only adds the upper-bound join). -/
