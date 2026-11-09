@@ -3897,3 +3897,21 @@ joins under REANCH, and the pre-existing loop-cover CovTime failures.
 In every builder configuration 78 (c0) / 120 (c1) guards at (12,18) depend on a failing claim obligation, mostly
 loop-cover CovTime (claims covering themselves through register loops; the c0 window fixpoint does not converge).
 B traces them next (classification: fixpoint artefact vs missing proof rule vs race candidate), same scratch pipeline.
+
+### progress 12:4x -- loop-cover CovTime failures were a one-pass artefact: 0 fail at the window fixpoint (untrusted Python)
+Same sound configuration (relative Up, chain joins, LGTOPOFF, COVUP, Sep iv d ≥ 1). Files `formal/tools-B/r23/followup5/`
+(obl.py: obligations by kind and blocked guards). Run to the window fixpoint (NPASS = 10) the claim windows CONVERGE at
+both corners (c0 in 4 passes: 19,847 -> 7,083 -> 2,278 -> 50 -> 0 changed; c1 in 2), and then **0 of 3,187 (c0) / 0 of
+57 (c1) loop-cover CovTime checks fail** (re-checked against the final windows, CovTimeU form included). At NPASS = 1 a
+cover still in progress is left out of its consumer's window (2,862 open-ended, 161 "no Sep", 66 finite shortfalls):
+that, not the circuit, was C's 447 / 28 and the "c0 does not converge" of 11-08 (C's run had the unsound Sep iv).
+What is left at (12,18), sound, at the fixpoint, without REANCH:
+- comb-segment links 3 (c0) / 2 (c1), blocking 78 / 30 guards: datapath muxes SLICE_X27Y88.A6 (-295 / -476 ps),
+  X30Y81.C5 (-237 / -414), X33Y75.B6 (-220, c0) whose select (a condition latch of the arbiter-0 OR group, SLICE_X36Y68.B6
+  / X36Y69.B6) switches inside the output's stable interval while the output does not change; the builder splits the
+  claim there and the join needs hi ≤ lo on the select pin. A ternary check (select X, other pins at their run values)
+  gives a definite output over ±1.5 ns around each such switch, both corners: a bridging GateProof with the select as
+  Cov.X closes them in existing Lean terms; the builder does not emit it yet.
+- GuardTime 42 / 30 (root SLICE_X25Y76.B5 H->U', removed by REANCH, which itself needs the same mux-select-X segments:
+  with REANCH, 13 / 11 comb links fail, incl. SLICE_X22Y81.B5 -13.3 / -32.8 ns, and 3 "no Sep" carry/LUT nodes).
+Next (B): emit the select-X bridging segments, then REANCH; expected residue: C's R1 root (18 guards).
