@@ -3116,3 +3116,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (1.12-1.25), FAST_MIN 1.159 (1.08-1.23), worst 1.160 (1.09-1.26). Seed 1 (the board item's route): 1.08-1.13.
   research/data/ipow_bench/results.tsv regenerated (seeds 1-9); BOARD-QUEUE #8 / item 7 updated.
 - Does not show: anything on silicon; cycle counts are at 12 ns granularity, so a per-pair ratio carries ~1% quantisation.
+### progress 09:10 (PROGRAM FIRST item, xorshift: where one iteration's time goes -- research/data/itercost/)
+- I had not started the FIRST item (owner, made first 2026-11-08) until now; the ipow 8-route work above came before
+  it. Corrected: itercost is the only work until it is delivered for xorshift and collatz.
+- Full stack (bits-decoded netlist, prjxray SDF, fid, calibrated bands, no scatter), the board list's seed-1 bench
+  routes, one 256-round vector twice, every net dumped; causal back-trace from a steady-state rise of umux1's z_req to
+  the previous one: x0.5 39.06 ns (86 hops), T3 57.03 ns (123 hops), every hop exact (t_src + wire + arc = t), the
+  categories sum to the period to the ps; lengthening +500 ps on an on-cycle delay element: +11 / +22 cycles
+  (predicted 10.7 / 21.3: rise-only / both edges), on uxori1's delay: +0.
+- The critical cycle is the LOOP-CONTROL ring (umux1 select pipe, i+1<rounds compare, control merge, steers, 5 links),
+  not the xor datapath. Its delays bundle loop-invariant data (rounds, a select and a compare constant until exit).
+  x0.5 / T3: RTZ 44% / 42%, excess delay 30% / 38%, req/ack routing 20% / 16%, handshake arcs 3% / 2%, logic 3% / 2%;
+  wires are 86% of the period. Bound logic + handshake 2.26 / 2.24 ns vs Dynamatic 12.73 ns.
+- Levers (x0.5): two-phase 17.2 ns; the 4 rule-1 measurability links on the ring 17.0 ns (ulink_n12__1's 2-stage pipe
+  alone 9.2); excess delay 11.8 (5.3 if sized to the worst settle seen -- not safe); fast fall on full-cost chains 6.9.
+  Retired: "the xorshift's datapath delays are the cost" (they are off the cycle on these routes).
+- Does not show: one route per build, sim not silicon, input-dependent settles. Collatz next.
