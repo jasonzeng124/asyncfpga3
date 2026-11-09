@@ -49,3 +49,19 @@ non-vacuity check, not as THE theorem.
 Liveness bounds across words (the timed theorem gives a bound per certificate; for every word the bound grows with
 m, which is enough for `Correct`'s "eventually"), reset/quiet start (`RIslPS`, separate), pipelining (refuted;
 SeqEnv).
+
+## Status at the end of 2026-11-09 (shard C)
+- Piece 1 (control windows): `Net/AO/Window.lcheckXA_window` (Lean): the AND-OR, data-guarded local check of a long
+  certificate inside a window's box from the window's check; pre-window causes (reset, last events of quiet nodes)
+  are admitted. Evidence (untrusted Python, tools/tocc/win): from iteration 2 on, same-kind main-loop windows are
+  shift-identical across iterations and pairs (kind = number m of inner shift iterations, m ≥ 2 continuing, m = 1
+  exit); two L entries depend on the previous kind; iterations 0 and 1 belong in the prefix. Open: the window form of
+  the timing checks (TOA, SepOKA, UpOKA, GuardTime), coverage, nested inner windows, delay variation.
+- Piece 2 (datapath): `Net/Compute/PS/Uselect1.uselect1_ps` (Lean, check.sh OK): the decoded gates of unit uselect1
+  compute its MLIR op for all inputs, given the zero-delay gate equations (`Settled`). `Timing/SpecSettleSym`
+  (Lean): value-free settle certificates give `Settled` at every time inside the windows, for every (g, κ). Python:
+  all 20 units match Net/Compute's cells (uori4 needs its own extraction). In progress: the other units, the timed
+  instance.
+- R1 data-layer failures: not races (env-stall simulations); a proof-rule gap, closed in Lean by `UpOKA`'s relative
+  clause (Up a p with Sep a e0).
+- Quiet start: `CViewPS.reset_quiet_PS` (Lean): the 3,224-node reset island holds its values during reset.
