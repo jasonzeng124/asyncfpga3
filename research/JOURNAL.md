@@ -3272,3 +3272,5 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   as noted on xorshift); (2) ipow T9cs (12/12, never on the board list) carries umux3 = 1 and relies on that ordering;
   board item 7 (ipow x0.75: umux3 = ceil(0.75*4) = 3) does not use 1. Test running: T9cdd = T9cd + umux3 4, seeds
   29/30/32/33 nominal.
+- 01:10 T9cdd (T9cd + umux3 4, ushrsi0 kept 1): nominal routed GLS PASS on all four seeds that failed (29/30/32/33) --
+  the race diagnosis holds. Full stack on 8 routes (29-36) running (k4/ipow_cdd, ipow_cdd2).
