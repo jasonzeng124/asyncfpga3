@@ -567,7 +567,7 @@ def latch_claim(Q, sb, se, val):
                 ("H", "T"): "ChainOK H->T (re-open without D cover)"}.get((c1["ph"], c2["ph"]), "ChainOK")
         obl(kind, (c1["b"] + d - c2["a"]) if d != NEG else NEG, (nm[Q], c1["B"], c2["A"]))
     return dict(A=chain[0]["A"], a=chain[0]["a"], B=chain[-1]["B"], b=chain[-1]["b"], val=val, kind="latch",
-                phases=[(ph["ph"], ph["B"]) for ph in chain], cov=COVL.get(Q, []), trunc=trunc if (trunc and not trunc["suppressed"]) else None, bind=chain[-1].get("bind"))
+                phases=[(ph["ph"], ph["B"]) for ph in chain], chainw=[(ph["ph"], ph["A"], ph["a"], ph["B"], ph["b"], [(x_[0], x_[1]) for x_ in ph.get("pins", [])]) for ph in chain], cov=COVL.get(Q, []), trunc=trunc if (trunc and not trunc["suppressed"]) else None, bind=chain[-1].get("bind"))
 # ---------------- guards (window fixpoint: a pass re-uses the previous pass's windows for loop covers)
 def mid_(v, w): return dl[(v, w)][2] if (v, w) in dl else 1
 NPASS = int(os.environ.get("NPASS", "4")); PASSLOG = []
@@ -706,6 +706,21 @@ for (ck, z, u, tk, (A, a, B, b)) in PEND:
     for side, m, why in _cov(z, u, A, a, B, b, w):
         LOOPC.append(("pending", ck, z, u, tk, side, m, why, (A, a, B, b), (w["A"], w["a"], w["B"], w["b"])))
         if m < 0: FAILS[ck].append(("loop cover (pending)", side, m, why))
+# bsub1 audit: CovTime (Sep or CovTimeU) of EVERY covered pin of EVERY latch phase (T, U, U'), against FINAL windows
+PHASEC = collections.Counter(); PHASEF = []
+for ck, cl in memo.items():
+    if not isinstance(cl, dict) or cl.get("kind") != "latch": continue
+    for (ph_, A, a, B, b, pins_) in cl.get("chainw", []):
+        for (u, kk) in pins_:
+            w = memo.get(kk) if kk is not None else None
+            if not isinstance(w, dict): continue
+            for side, m, why in _cov(ck[0], u, A, a, B, b, w):
+                PHASEC[(ph_, side)] += 1
+                if m < 0:
+                    FAILS[ck].append(("latch phase %s CovTime" % ph_, side, m, why))
+                    if len(PHASEF) < 20: PHASEF.append((nm[ck[0]], ph_, side, m, why, nm[u], A, a, B, b, w.get("A"), w.get("a"), w.get("B"), w.get("b")))
+print("  [audit] latch-phase CovTime checks (phase, side) -> count:", dict(PHASEC), " failing:", sum(1 for L in FAILS.values() for x in L if x[0].startswith("latch phase")), flush=True)
+for x in PHASEF[:6]: print("     fail", x, flush=True)
 for (ck, z, u, tk, (A, a, B, b)) in PCHK:
     w = memo.get(tk)
     if not isinstance(w, dict): continue

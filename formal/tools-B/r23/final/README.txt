@@ -104,3 +104,7 @@ Follow-up 11 (end-side fix, more pairs): tocc/datal_t.py ENDFIX=2: a claim's end
  after E on their trigger chains. (ENDFIX=1 additionally tried the meet pool before the context anchors: worse, 66/406.)
  runs: tocc175/ef3_c{0,1}.*  (17,5);  tocc/ef3_c0.*  (12,18) c0;  tocc812/ef3_c1.*  (8,12) c1;  tocc1071/ef3_c1.*  (1071,462) c1
  tocc812/, tocc1071/: per-pair copies (sim.py, data.py, hist/data pickles at c1), prep_pairs.sh, queue12.sh
+
+Follow-up 12 (soundness audit): tocc/datal_t.py now re-checks CovTime (Sep, or CovTimeU on the start side) for every
+ covered pin of every latch phase (T, U, U') against FINAL windows ([audit] line; failures go to FAILS as
+ "latch phase <ph> CovTime"), in addition to the loop-cover re-check. Runs: tocc/au_c{0,1}.*, tocc175/au_c1.*

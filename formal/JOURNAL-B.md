@@ -4030,3 +4030,15 @@ reached (12,18) c1 0 / 264 independently; B's copy (16:3x) reached 0 at both cor
 the fixpoint); B's copy re-checks loop covers against final windows (12:3x) and is now auditing the U-phase start.
 To avoid two builders: B's modes and their soundness notes are in tools-B/r23/final/README.txt for C to merge; B will
 not extend its copy further beyond this audit.
+
+### progress 16:5x -- B's builder audited for C's two known gaps: U-phase start now checked, 0 failures (untrusted Python)
+Gap 1 (latch U phase's CovTime start not checked) WAS open in B's copy; added: every covered pin of every T/U/U' phase
+re-checked against the final windows (Sep or CovTimeU start; Sep end). Gap 2 (loop covers) was already re-checked at
+the fixpoint. Rerun (files: tools-B/r23/final/*_au_*.log, datal_t.py):
+| run | latch-phase checks (U starts) | failing | guards blocked | GuardTime failing | loop covers failing | Sep / Up emitted | lchk |
+|---|---|---|---|---|---|---|---|
+| (12,18) c0 | 7,202 (883) | 0 | 0 | 0 / 264 | 0 / 3,224 | 681 / 65 | 0 / 0 |
+| (12,18) c1 | 8,696 (700) | 0 | 0 | 0 / 264 | 0 / 546 | 674 / 65 | 0 / 0 |
+| (17,5) c1 | 58,507 (2,801) | 0 | 0 | 0 / 406 | 0 / 2,780 | 1,426 / 119 | 0 / 0 |
+Every claim-building Sep/Up query of the final pass (a superset of the used ones) is emitted and lchk-checked. Remaining
+trust: the obligation arithmetic (CovTime/ChainOK/ValOK) is Python only; certificates built from one midpoint run.
