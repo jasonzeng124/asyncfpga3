@@ -2127,3 +2127,20 @@ refutation below κ = 0.40 with a LIVELOCK witness** -- B's w = 20, κ = 9/25 ru
 periodic from 491 ns (period 79 ps). Needs a periodic GateOKRunt check (C's `Net/Periodic` + A's gateWR read maps for
 periodic chain lists). Also today: STATUS/FEASIBILITY to B's κ = 0.40 result and B's 19:3x correction (0.415 is a
 bound on the feedback races only, not a lower end of the frontier).
+### progress 07:2x -- livelock witness: data passes the Python mirror; generic Lean written, building
+- B's κ = 9/25, w = 20 run (`tools-B/target/out/k36w20_x16y21_dump_1200ns.json.xz`, simadv --classes, exact integer
+  delays) is EXACTLY periodic with period Q = 79 ps from 490,314 ps to 1.2 µs: 140 nodes oscillate (even number of
+  transitions per period), every other node is constant from then on, no boundary node oscillates; one arbiter input
+  (CLBLL_R_X11Y19/CLBLL_LL_A1, of the arbiter whose state is SLICE_X14Y19.A6) oscillates, its state node does not.
+- Plan of the Lean witness: `Formal/Target/SpecPeriodic.lean` (generic): `gateOKRunt_of_window` -- if a gate's nodes
+  are Q-periodic from t0 and its read maps satisfy every clause of Spec's gate relation on [start, V+Q) with a seam
+  condition rd(V+Q-1) ≤ rd(V)+Q and a floor t0+w ≤ rd(V), then the gate relation holds at EVERY time (the read maps
+  are extended periodically; a narrow pulse is shifted back a period); `condAt_transfer` (window clauses carry
+  between behaviours that agree on [0, H) when U + w ≤ H); `sigQ_eq_unr` (C's periodic code = the finite code with the
+  period unrolled m times). `Formal/Target/CexRuntQ/QBase.lean`: `gateQ` = A's gateWR restricted to breakpoints
+  before V+Q on the run unrolled 21 periods, plus seam/floor/periodicity, sound by `gateOKRunt_of_gateQ`.
+- Python mirror (`gatecheck_runt.py` on the run unrolled to H = 492,659 ps, checked to 492,579): 186,871 gates, 0
+  mismatches, 0 arcs outside Adm, 0 lag violations; seam holds for every pin; min floor rd(V) - t0 = 1,119 ps; ArbOK
+  holds for T ≥ 140 with non-oscillating witnesses only.
+- Data: `Formal/Target/CexQ36/` (gen_runtq.py; Q 79, t0 491000, m 21, V 492501), Wit.lean and Refute.lean adapted
+  from B's CexX16 (x_fin: a node that does not oscillate follows its prefix code). Nothing claimed until it checks.
