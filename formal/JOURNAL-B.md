@@ -4062,3 +4062,14 @@ Audit of `timedA_follows_cu`'s hypotheses against existing Boolean checkers: hlo
 `tmOKA_of_B`, `lstepA_of_B`, `lsoundA_of_B`, toy by `decide`; check.sh OK, standard axioms. Left without a Boolean
 form, being structural or semantic: hSE, hDE, hgdF, hlenEq, hDataLen (structural, decidable per instance) and hb, hEnvE,
 hEnvC, hInit (the Spec bridge, environment and reset: C's TimedBridge / EnvHS / EnvData / reset_quiet_PS).
+
+### progress 18:0x -- final audited builder: all four pairs pass at both corners (untrusted Python)
+Same audited config (ENDFIX=2, U-phase start check, loop covers at the fixpoint, every claim-building Sep/Up lchk-checked):
+| run | fixpoint | latch-phase checks (U starts) | failing | GuardTime failing | loop covers failing | Sep / Up emitted | lchk |
+|---|---|---|---|---|---|---|---|
+| (8,12) c0 | 2 | 8,418 (792) | 0 | 0 / 284 | 0 / 2,256 | 754 / 52 | 0 / 0 |
+| (8,12) c1 | 2 | 10,308 (631) | 0 | 0 / 284 | 0 / 805 | 750 / 52 | 0 / 0 |
+| (1071,462) c0 | 3 | 101,426 (7,518) | 0 | 0 / 532 | 0 / 56,987 | 2,222 / 286 | 0 / 0 |
+| (1071,462) c1 | 2 | 99,452 (6,822) | 0 | 0 / 532 | 0 / 4,584 | 2,192 / 286 | 0 / 0 |
+With 16:5x: (12,18) and (17,5) c1 also pass with the audit; (17,5) c0 passed before the audit (ENDFIX=2 run, 16:3x) and
+was not rerun with it. Logs: tools-B/r23/final/*_fa_c*.log. Same limits as before (Python arithmetic, one midpoint run each).

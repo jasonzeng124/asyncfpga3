@@ -108,3 +108,4 @@ Follow-up 11 (end-side fix, more pairs): tocc/datal_t.py ENDFIX=2: a claim's end
 Follow-up 12 (soundness audit): tocc/datal_t.py now re-checks CovTime (Sep, or CovTimeU on the start side) for every
  covered pin of every latch phase (T, U, U') against FINAL windows ([audit] line; failures go to FAILS as
  "latch phase <ph> CovTime"), in addition to the loop-cover re-check. Runs: tocc/au_c{0,1}.*, tocc175/au_c1.*
+Follow-up 13: final audited config on (8,12)/(1071,462) both corners: tocc812/fa_c{0,1}.*, tocc1071/fa_c{0,1}.* ((1071,462) c1 rerun alone after an OOM kill at 7.3 GB); queue14.sh
