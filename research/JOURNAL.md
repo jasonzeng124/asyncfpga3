@@ -3090,3 +3090,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   1.187 worst (1.12-1.33). research/data/collatz_bench/results.tsv now 8 routes; BOARD-QUEUE #9 / item 8 updated.
 - ipow x0.75 seeds 5-8: 12/12 PASS (24/24 over 8 routes). T9 base 5/6/8 PASS; 7 = the F7-select bitstream defect (all
   3 corners 11/17, same wrong answers). Seed 9 pair queued for an 8th pairing. collatz64 6-8 running.
+### progress 07:26 (collatz64 x0.75 on the bench top over 8 routes: 24/24, 1.17x)
+- Seeds 6-8 added: x0.75 9/9 PASS 14/14, T4 9/9; x0.75 24/24 over 8 routes; T4 21/24 (seed 4 = the 5FF bitstream
+  defect). Paired over 7 routes, 350-step vector: 1.172 / 1.174 / 1.172 (SLOW_MAX / FAST_MIN / worst), 1.07-1.22.
+  NOT_EQUIVALENT only benign GND-buffer F7 data inputs (checked each new one). BOARD-QUEUE #7 / item 6 updated.
