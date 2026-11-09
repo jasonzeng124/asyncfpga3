@@ -3761,3 +3761,29 @@ setup.sh finished Mathlib (from source) and moved on to the whole-project build;
 OOMs on B's large chunk modules and today's work does not need them). C's AO modules built with lake, then
 `./check.sh Formal/Cells/UnionUp.lean Formal/Cells/UnionUpDec.lean`: textual scan OK, axiom audit 398 declarations,
 [check] OK. (09:0x-10:1x: idle waiting on the subagent's re-measurement, which is still running.)
+
+### progress 10:4x -- re-measurement: C's relative Up clause does the work; B's new joins join NOTHING on these pairs (untrusted Python)
+Subagent, same scratch pipeline; files `formal/tools-B/r23/followup/` (README.txt follow-up section, gsum*.txt,
+ao_uprel.py = C's ao.py + the relative clause, datal_t.py with UPJOIN/JOINANC switches). C's committed Python did not
+yet compute C's 08:10 relative clause (Lean only), so it was added in the copy: one level, 8 latest common ancestors
+as bases (a subset of what the Lean admits); Up also for events concurrent with e0, min over applicable disjuncts.
+Failing guards (one midpoint run per corner, NPASS = 1; base = C's code, reproduced exactly):
+| pair | base c0 / c1 | + relative clause | + Up join + JoinAnc |
+|---|---|---|---|
+| (12,18), 264 guards | 82 / 46 | **44 / 32** | 44 / 32 (0 links joined) |
+| (17,5), 406 guards | 184 / 151 | -- | **158 / 128** (0 links joined; 0 start-side failures left) |
+- **Plainly: today's UnionUp joins (Up, JoinAnc) are sound but did not fire once on these two pairs.** The large-offset
+  class A cases are fixed by C's relative clause through Sep form iv (e.g. SLICE_X34Y92.C5: Up(open -> close) =
+  45,569 ps within its 50,158 budget, 36 guards). The class A cases left have small offsets (1.4-6.3 ns) against Up
+  bounds of 19-63 ns: Up exists but is 14-60 ns too large, and the D claim does end well before the close in the run
+  too. Class B links have no common ancestor that works. So UnionUp is a generalisation with no measured use yet;
+  the earlier reading "class A needs an Up join" was wrong once the relative clause is in.
+- (12,18) residue: 42/44 (c0) and 30/32 (c1) trace to ONE root, latch SLICE_X25Y76.B5's re-open (H -> U'): its U' D
+  claim starts at SLICE_X22Y87.A6(0) (374,823 ps) but the H phase ends at the re-open SLICE_X24Y77.A6(2) (381,661):
+  shortfall -4,259 / -9,260 ps, while its D (SLICE_X22Y81.B5) last changed ~116 ns before the re-open: an anchoring
+  artefact of the builder (the D claim should start at D's own last change). The other 2 per corner: U->H at
+  SLICE_X36Y63.B6 / X36Y68.B6 (D = SLICE_X39Y53.B6, arbiter-0 area), finite margins -8.6 to -30 ns; this morning's
+  hold adversary on them (enable route slow, all else fast, both corners) gave the right gcd and no hold violation.
+- (17,5) residue: mostly U'->T class A (re-latch start), not root-traced.
+**For C:** commit the relative clause into tools/tocc's Up computation (copy: tools-B/r23/followup/ao_uprel.py);
+anchor U' D claims at D's last change (fixes 42/44 at (12,18)).
