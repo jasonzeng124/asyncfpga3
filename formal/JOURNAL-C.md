@@ -2775,3 +2775,16 @@ netlist (untimed); uori4 needs its own extraction; only uselect1 has a timed ver
   rooted at comb X37Y68.B6.
 * *Next for the data layer:* merge r1d/r1e/r1f fixes into one builder, re-run both corners, then the four
   undischarged Lean hypotheses (hInit A = none, constant-pin covers, dead pins, union/segment claim emitters).
+
+### progress 21:01 -- merged claim builder (tools/tocc/r1g): (12,18) c=1 0 / 264, c=0 42; one root left (untrusted Python)
+* *Run (subagent; container restarted mid-run, resumed):* r1e + r1f fixes in one datal.py (no conflicts; CTXAFTER,
+  UPMOVE default on, OPTLOOP off). c=1: **0** failing, converged pass 2 (no regression). c=0: **42**, converged pass 8.
+  Both corners: 0 failed obligations, lchk 0 failures (859 / 899 claim-building Seps), GuardTime recomputation
+  mismatch 0.
+* *c=0 residue:* 40 guards (consumers X37Y68.B6, X38Y78.A6) fail because a datapath LOOP carries claim ends of the
+  form "B + δ" (B = the select-latch re-open X27Y80.A6(2)): the loop latches' U' phases end at B, and their next phase
+  starts at an open after B with no Sep from that open to B. The restart at the join J is already in place; what is
+  missing is moving those loop ends onto a later event (a bounded Up(B → later event)) or a consistent optimistic
+  loop window (OPTLOOP found none). 2 guards: comb root X37Y59.B6.
+* *Standing:* the one-pair data layer passes at c=1 under the Python transcription; c=0 has one structural loop
+  class left. Neither is a Lean result; the four undischarged hypotheses of 18:xx still stand.
