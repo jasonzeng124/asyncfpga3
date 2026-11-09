@@ -2458,3 +2458,22 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
 3. *All pairs*: the per-pair certificate cannot cover 2^62 pairs. Write down, and start in Lean, the window
    (per-loop-iteration) certificate that would: same control order for every iteration of one branch kind, data
    carried by invariant claims.
+
+### progress 07:35 -- Net/AO/Window.lean: the AND-OR, data-guarded local check lifted from a window certificate
+* *Problem:* the all-pairs route (new note notes/C-allpairs.md: word-indexed control certificates, symbolic data
+  claims, refinement of the branch word to the token run) needs the long certificate's checks to follow from
+  finitely many window checks. First piece: the local check `LCheckXA` (AND-OR causes, per-reader bounds, data
+  guards), which `OccWindow` had only for the plain AND certificate.
+* *Proved* (`lcheckXA_window`; also `enabled_window`, `dv_window`): at every count vector inside a window's box
+  (each dependency node between the window's start offset o and its end), the long check's conclusion follows from
+  the window's `LCheckXA`, when (i) shifted window causes correspond to the long ones up to extra causes before the
+  window (`AltCorr`), (ii) each data pin's long guard list is the window's shifted (claim indices by co) between
+  guards that ended before and guards that start after the window, with the same claim values (`GuardsCorr`), (iii)
+  nonzero window bounds, shifted, are no stronger, (iv) the window's start state is the long run's state after o on
+  the dependency set, and the move rule reads only that set and data nodes.
+* *Checked:* compiles with `lean` against freshly built dependencies; `#print axioms`: propext, Classical.choice,
+  Quot.sound. check.sh not yet run (fresh container; the project build is still compiling Mathlib from source).
+* *Not shown:* coverage (every count vector the long check ranges over lies in some window's box), the timing
+  checks for windows, any instance.
+* *Container:* GitHub release downloads returned 504 for whole files; Lean 4.35.0 was fetched in 10-50 MB range
+  requests and linked with elan by hand (setup.sh then continued normally).
