@@ -2730,3 +2730,12 @@ checked by smaller lemmas. `reset_quiet_PS` (parametric in A, M) stands.
 ### progress 18:14 -- owner: subagent cap back to 2 (usage near the weekly limit)
 Read PROGRAM.md's change (c4b98723). Two subagents are running (datapath units; data-layer soundness gaps + c=0); no
 new ones will start until one finishes, and idle polling is reduced.
+
+### progress 18:16 -- 17 more datapath units of THE target proved on the decoded netlist (check.sh OK)
+* *Proved* (subagent; I ran check.sh on Net/Compute/PS/{Common, Uaddi0, Ucmpi0/1/2/3/8/10, Uori0/1/2/3, Uselect0,
+  Ushrsi0..4}: 7,838 declarations, standard axioms; textual scan of all generated PSMap files OK): for each unit, under
+  `Settled` (zero-delay gate equations on its decoded gates), the output equals the unit's MLIR op of its input
+  words, exactly as the existing Net/Compute functional theorem states it, with its side conditions kept as hypotheses
+  (e.g. `ushrsi*_ps` only for shift amount word = 1, as Net/Compute proved). Generic helper `PS/Common.unit_ps`.
+* *Not done:* Ushli0 (its PS file is not built yet; left uncommitted), uori4 (needs its own extraction), the timed
+  versions (only uselect1 has one), and the operands' hold (bundling).

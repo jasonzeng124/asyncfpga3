@@ -5,7 +5,7 @@ bdc_fused unit's yosys cells (Formal/Gen/Compute/GcdD/<Unit>.lean) and THE targe
 `corr_sound`). Nothing here is trusted: every gate, map entry and cell certificate is re-checked by
 the kernel against DecodedPS's gate list.
 
-    python3 psmap.py ps.json ps.routed.json net.json UNIT OUTDIR [--per-check N]
+    python3 psmap.py ps.json ps.routed.json net.json UNIT OUTDIR [--per-check N] [--max-cells M] [--per-file F]
 
 Port of check_unit.py: the placement (routed JSON NEXTPNR_BEL / X_ORIG_PORT_*) only proposes
   phi : yosys net -> decoded node   (cell outputs in the cone)
@@ -29,6 +29,8 @@ CHUNK = 2500
 def main():
     synth, routed, netf, unit, outdir = sys.argv[1:6]
     per = int(sys.argv[sys.argv.index("--per-check") + 1]) if "--per-check" in sys.argv else 20
+    # at most this many cells per kernel check (0 = no limit): kernel memory grows with the cells of one check
+    maxc = int(sys.argv[sys.argv.index("--max-cells") + 1]) if "--max-cells" in sys.argv else 0
     U = unit[0].upper() + unit[1:]
     S = json.load(open(synth))["modules"]
     R = json.load(open(routed))["modules"]["top"]["cells"]
@@ -119,7 +121,16 @@ def main():
                 ip = [k[len("X_ORIG_PORT_"):] for k, v in dc["attributes"].items() if k.startswith("X_ORIG_PORT_") and v == "I0"]
                 rb = dc["connections"][ip[0]][0]; continue
             break
-        return nid[rnode(*rdrv[rb])]
+        nd = rnode(*rdrv[rb])
+        if nd in ("GND", "VCC"):
+            # input bit tied to a constant in the placed design: no decoded node of that name; take the
+            # decoded LUT pin's driver chain (pips) down to its constant gate (INT_*/GND_WIRE, VCC_WIRE).
+            assert c["type"].startswith("LUT") and rp.startswith("A"), (c["type"], rp)
+            g = gout[phi[c["connections"]["O"][0]]]
+            e = follow_copies(g["ins"][int(rp[1]) - 1])
+            assert gout[e]["k"] == 0 and gout[e]["init"] == (1 if nd == "VCC" else 0), nodes[e]
+            return e
+        return nid[nd]
 
     def const_of(i):
         g = gout.get(i)
@@ -335,7 +346,7 @@ def main():
     groups, cur, cc_ = [], [], 0
     for i in small:
         c_ = cost(*certs[i])
-        if cur and cc_ + c_ > budget: groups.append(cur); cur, cc_ = [], 0
+        if cur and (cc_ + c_ > budget or (maxc and len(cur) >= maxc)): groups.append(cur); cur, cc_ = [], 0
         cur.append(i); cc_ += c_
     if cur: groups.append(cur)
     thms = [("grp%d" % g, "idxOK maps D cells certs [%s]" % ", ".join(map(str, is_))) for g, is_ in enumerate(groups)]
@@ -347,7 +358,8 @@ def main():
         parts[i] = P
         for q in range(P):
             thms.append((f"a{i}_{q}", f"asgRange (certs.getD {i} dfltCC) (cells.getD {i} dfltCell) {64 * q} {64 * q + 64}"))
-    per_file = 3
+    # kernel checks per Chk file (memory accumulates within one file)
+    per_file = int(sys.argv[sys.argv.index("--per-file") + 1]) if "--per-file" in sys.argv else 3
     files = [thms[k:k + per_file] for k in range(0, len(thms), per_file)]
     pre = (f"import {ns}.Data\n\n" + hdr +
            f"namespace {ns}\nopen Formal.Net.Compute Formal.Net.Compute.OnDecoded\n\n")
@@ -377,7 +389,7 @@ def main():
     out.append("/-- Every checked gate content is a gate of THE target's decoded netlist. -/\n"
                "theorem D_ok : ∀ c ∈ D, ∃ g ∈ DecodedPS.net.gates, GC.ofGate g = c := by\n" + "\n".join(pr) + "\n")
     out.append("set_option maxRecDepth 100000 in\ntheorem topo_ok : topoOK cells [] = true := by decide +kernel\n")
-    out.append(f"theorem cells_len : cells.length = {n} := rfl\n")
+    out.append(f"set_option maxRecDepth 100000 in\ntheorem cells_len : cells.length = {n} := rfl\n")
     cases = []
     for i in range(n):
         if i in grp_of:
