@@ -3676,3 +3676,42 @@ D's next change by a separation C's AO certificate can use, by one of B's latch-
 latches), or by neither (a race candidate)? Deliverables: the latch-by-latch classification (tools-B, untrusted), and
 in Lean (Formal/Cells/) whatever generic lemma turns a hold certificate into the hold phase of C's `ChainOK` claim
 chain. C's own tools (formal/tools/tocc) are read and run from a scratch copy only.
+
+### progress 08:3x -- R2/R3 (truncated latch holds) traced: proof-rule and claim-builder gaps, no race found (untrusted Python)
+Subagent, C's tocc pipeline re-run from a scratch copy (net.json/bnd.json from tools/cview/lean2json.py), pair (12,18),
+g = 1, κ = 0, one midpoint run per corner. Outputs and tools: `formal/tools-B/r23/` (README.txt, table_c*.tsv,
+trunc4_c*.txt, roots/guards_c*.txt, adv_summary.txt, datal_t.py = datal.py with truncations switchable).
+- **Reproduced C exactly:** 82 / 46 of 264 guards fail (c = 0 / c = 1), as JOURNAL-C 11-08 15:21.
+- **The truncations are the whole remaining failure:** suppressing the U->H (latch hold) and H->U' (re-open) unions
+  makes all 264 guards pass at both corners (U->H alone: 30 / 30 left). Other truncation kinds are harmless.
+- In the run, D almost never changes near a close: of 131 U->H truncations at c = 0 only 16 have a later D change,
+  the nearest 8.6 ns after the close read (c = 1: 6 of 88, nearest 22.2 ns).
+- Three classes (roots, c = 0 / c = 1):
+  * **A (50+65+1 / 20): D's claim ends at an event causally BEFORE the close** (often the latch's own opening, large
+    offset b). `ChainOK` can only join by a lower bound Sep(close -> claim end), which cannot exist here; the right
+    join is an UPPER bound, close ≤ claim-end event + u with c2.a + u ≤ c1.b. Example SLICE_X34Y92.C5 (en
+    X34Y92.A6, D X37Y79.D6): claim end = open A6(0)@321,592 + 50,498 ps; close A6(1)@331,299; slack 40 ns in the run.
+    Its Up(open -> close) is blocked by a concurrent cause (SLICE_X11Y25.B6(2)), the same blocker as C's R1, which C's
+    relative Up clause (JOURNAL-C 2026-11-09 08:10) addresses. Alone, X34Y92.C5's hold fixes 36 guards at c = 0.
+  * **B (5 / 41): claim end and close causally unordered**, no common-ancestor bound (e.g. SLICE_X34Y65.A5, c = 1,
+    run margin 36.7 ns, 12 guards). Not addressed.
+  * **C (16 / 17): H->U' re-open setup, finite shortfall -162 to -2,099 ps**, 14 of them the registers enabled by
+    SLICE_X22Y87.A6. Artefact: their D inputs are constant 0 in this run (high operand bits of (12,18)) but the claim is
+    anchored at a recent control event instead of a constant (hInit / value) claim.
+- Every guard-breaking hold latch is among B's 670 latch-hold certificates (κ bounds 0.73-0.87), but those are a
+  different argument (physical enable->D chain, Spec level), not the AO Sep/Up the builder uses.
+- Adversarial runs (enable route max / D min and the reverse, the 6 critical sites, both corners): gcd = 6, 0
+  data-driven control changes, no latch changed while its enable read closed. Weak tests (real gaps 9-80 ns).
+Not done: other pairs; a suppressed union is not a proof.
+
+### progress 08:4x -- Formal/Cells/UnionUp.lean CLAIMED: claim chains joined by an UPPER bound (class A's missing rule)
+Core Lean, no Mathlib; private olean build of its closure OK; `#print axioms`: propext, Classical.choice, Quot.sound
+(chainOK_up_of_chainOK: none); no sorry/native_decide.
+**Plainly:** two consecutive claims on one node with one value (c1 ends at event e1 + c1.b, c2 starts at e2 + c2.a)
+join into one claim if e2 happens at most u after e1 (an `Up e1 e2 = some u` entry that is sound) and
+0 ≤ c2.a, c2.a + u ≤ c1.b. `union_holds_up`; `ChainUpOK`/`chain_holds_up` (each link by C's Sep join or this Up join);
+`chainOK_up_of_chainOK` (strict generalisation of `ChainOK`); `UpSoundT` and `upSoundT_of_up_sound` (C's
+`AO.up_sound`, under its own hypotheses, gives the soundness the join needs, at the same horizon).
+**Not shown:** the wiring into C's `timedU_follows`/`timedA_follows` (they take `ChainOK`; switching to `ChainUpOK`
+needs UpSoundT at the induction horizon, which `up_sound` provides from the same hypotheses) -- C's file, proposed
+here; classes B and C; any instance.
