@@ -2163,3 +2163,9 @@ bound on the feedback races only, not a lower end of the frontier).
   corners/pairs; the list of hypotheses did not shrink (this is a refutation, which the program counts as a result).
 - Build notes: X chunks ~100-250 s, ~6 GB; chunks 7, 14, 15, 65 need 24 slices, 70 and 72 slices cut by kernel cost
   (the oscillating LUTs' pinOK is quadratic in the unrolled transition list: two such gates in one decide = 9.8 GB).
+### progress 10:0x -- below 0.36 on this race: nothing (simulation, untrusted)
+- B's merge4 ua2 adversary at κ = 0.32 (fast corner, w = 20) on 60 random full-width pairs (seed 9): 60/60 correct
+  (`tools-A/target/out/sweep_merge4_k32_60pairs.txt`). At the SLOW corner (corner 1, same classes) the original pair is
+  correct at κ = 0.36, 0.32, 0.28, 0.20: the fast corner binds. So, with κ on the /25 grid the Lean checkers use,
+  0.36 is this race's frontier point; a refutation below needs a different (likely multi-pin) adversary. B's
+  single-pin control sweeps at 0.37/0.38 found no other race, so I do not repeat them at 0.32.
