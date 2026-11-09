@@ -135,7 +135,7 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
         cases hu : upL ul e0 p with
         | none => rw [hu] at this; cases this
         | some dp => rw [hu] at this; exact ⟨dp, rfl, by simpa using this⟩
-      · right
+      · right; left
         cases hu : sepL sl p.1 p.2 e0.1 e0.2 with
         | none => rw [hu] at this; cases this
         | some ds => rw [hu] at this; exact ⟨ds, rfl, by simpa using this⟩
@@ -145,7 +145,7 @@ theorem upOK_of_B (h : upB N dat CP sl ul = true) : UpOKA N dat CP (sepL sl) (up
         cases hu : upL ul e0 (e.1, e.2 - 1) with
         | none => rw [hu] at hp; cases hp
         | some dp => rw [hu] at hp; exact ⟨dp, rfl, by simpa using hp⟩
-      · right
+      · right; left
         cases hu : sepL sl e.1 (e.2 - 1) e0.1 e0.2 with
         | none => rw [hu] at hp; cases hp
         | some ds => rw [hu] at hp; exact ⟨ds, rfl, by simpa using hp⟩

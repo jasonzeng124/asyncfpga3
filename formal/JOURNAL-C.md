@@ -2491,3 +2491,24 @@ R2/R3 (truncated latch holds). Container: 4 cores, 15 GB; setup.sh is retrying G
   correspondence checker `corrOK` with `corr_sound` (settled gate values -> the cell netlist's values), then
   e.g. `uselect1_ps` from GcdD's existing theorems; a settle bound per unit from SpecSettle. Estimated 4-6 days.
   Not covered: data movement through latches/rings (S4 b/c), shift-amount side conditions (ushrsi only for e1 = 1).
+
+### progress 08:10 -- R1 resolved as a proof-rule gap (untrusted Python); the rule added to UpOKA (Lean)
+* *Problem (R1, 11-08 15:21):* data guards fail because the reader's guard end E and a register re-open are unordered
+  in the (12,18) certificate and no upper bound reaches them; is that a race once the environment stalls (H_ENV has
+  no timing bound)?
+* *Answer (subagent, untrusted Python, tools/tocc/r1/: RESULTS.txt, r1c.py, r1c_c{0,1}.txt, sweep_12_18.txt,
+  other_pairs.txt):* no race, and no environment involvement. The true R1 class is 12 guards (c=1) / 42 (c=0); the
+  other failing guards are claim-builder artefacts (re-open causally after E with 1.7-81.6 ns lower-bound separation,
+  or an early end event). For R1, every environment event is an ancestor of both sides or of neither; the arbiter-0
+  grant lies only on the re-open side. The missing upper bound is blocked by causes CONCURRENT with the common
+  ancestor. 150 runs with each environment move stalled by 0/5/50/500 ns (both corners, three delay settings), plus
+  path-skew runs (E side slow, re-open side fast): gcd right, 0 data-driven control changes, order never flips; the
+  gap stays >= 19.5 ns (c=1) / 3.9 ns (c=0). Other pairs (17,5), (8,12), (7,7), (1071,462) with env stalls: right.
+* *Lean (Net/AO/Timed.lean, compiled with lean against fresh oleans; axioms standard; DecT/Dec/Toy/Local/Window
+  rebuilt):* `UpOKA` gains a relative clause for a cause p (and for the previous event): `Up a p = dA`,
+  `Sep a e0 = dS`, `dA + hi' ≤ d + dS` (p is at most dA - dS after e0). `up_sound` is now proved by induction on
+  the target's time stamp with the base event generalized (the clause recurses on base a); its statement is
+  unchanged, so `timedA_follows`/`timedA_live` keep their statements. check.sh not run yet (lake build of the
+  project still running).
+* *Not done:* the Boolean checker `upFormB` does not yet emit the relative clause; the (12,18) data layer not
+  re-measured with it.

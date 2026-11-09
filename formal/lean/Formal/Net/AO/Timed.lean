@@ -16,7 +16,9 @@ timed theorem with all four repaired, on `AO.Cert` (alternative cause sets):
   every alternative (`read_consistentA` then uses the reader's own enabling read, by monotone reads);
 * bounds `L v` per reader v, each sound for the full order;
 * RT edges, data claims, chains of claims as in `TimedOccU`; an upper bound's previous-event clause, and any cause of
-  its chosen alternative, may instead be met by a separation placing that event no later than `e0` (`UpOKA`);
+  its chosen alternative, may instead be met by a separation placing that event no later than `e0`, or (relative
+  clause, 2026-11-09) by an upper bound `Up a p = dA` from another event `a` together with a separation `Sep a e0 = dS`
+  (so `p` is at most `dA - dS` after `e0`): the rule a concurrent cause needs (`UpOKA`);
 * environment moves by COUNTS (`hEnvE`): an environment node's change at `s` must be an enabled event of the
   certificate at the counts of `s - 1`, given that those counts are an ideal of the full order (which the induction
   supplies; a handshake argument needs it to know where the acknowledge is). The local check `hloc` is only demanded of gates. (The state-only rule
@@ -278,9 +280,12 @@ def UpOKA (N : TNet α) (dat : α → Bool) (CP : Cert α) (Sep : α → Nat →
     e = e0 ∨
     (N.gate e.1 = true ∧ dat e.1 = false ∧ e.2 < CP.len e.1 ∧
       (∃ alt ∈ CP.causes e.1 e.2, ∀ p ∈ alt, (∃ dp, Up e0 p = some dp ∧ dp + hi' N e.1 p.1 ≤ d) ∨
-        (∃ ds, Sep p.1 p.2 e0.1 e0.2 = some ds ∧ hi' N e.1 p.1 ≤ d)) ∧
+        (∃ ds, Sep p.1 p.2 e0.1 e0.2 = some ds ∧ hi' N e.1 p.1 ≤ d) ∨
+        (∃ a dA dS, Up a p = some dA ∧ Sep a.1 a.2 e0.1 e0.2 = some dS ∧ dA + hi' N e.1 p.1 ≤ d + dS)) ∧
       (0 < e.2 → (∃ dp, Up e0 (e.1, e.2 - 1) = some dp ∧ dp + hi' N e.1 e.1 ≤ d) ∨
-        (∃ ds, Sep e.1 (e.2 - 1) e0.1 e0.2 = some ds ∧ hi' N e.1 e.1 ≤ d)))
+        (∃ ds, Sep e.1 (e.2 - 1) e0.1 e0.2 = some ds ∧ hi' N e.1 e.1 ≤ d) ∨
+        (∃ a dA dS, Up a (e.1, e.2 - 1) = some dA ∧ Sep a.1 a.2 e0.1 e0.2 = some dS ∧
+          dA + hi' N e.1 e.1 ≤ d + dS)))
 
 /-- Separations: one step back along a physical cause or the previous event, or through a common ancestor `e0`
 with an upper bound on how late `(b, m)` follows it. -/
@@ -323,8 +328,9 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     (e0 : α × Nat) (τ : Nat) (h0 : e0.2 < cnt x t0 e0.1 τ) :
     ∀ M (e : α × Nat) du, CP.tm e.1 e.2 ≤ M → Up e0 e = some du → τ + du ≤ T → e.2 < cnt x t0 e.1 (τ + du) := by
   intro M
+  revert e0 τ
   refine Nat.strongRecOn M ?_
-  intro M ih e du hM hU hT
+  intro M ih e0 τ h0 e du hM hU hT
   have hτ0 := cnt_pos h0
   rcases hUp e0 e du hU with he | ⟨hg, hde, hlen, hca, hpr⟩
   · subst he; exact Nat.lt_of_lt_of_le h0 (cnt_mono _ _ _ (by omega))
@@ -337,21 +343,30 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
     obtain ⟨T', hTd⟩ : ∃ T', T' = τ + du := ⟨_, rfl⟩
     have hnot' : cnt x t0 w T' ≤ j := by rw [hTd]; exact hnot
     -- the previous event happened by `τ + dp`, with `dp + hi'(w,w) ≤ du`
-    have hpv : 0 < j → ∃ dp, dp + hi' N w w ≤ du ∧ j - 1 < cnt x t0 w (τ + dp) := by
+    have hpv : 0 < j → ∃ σ, σ + hi' N w w ≤ τ + du ∧ j - 1 < cnt x t0 w σ := by
       intro hj
-      rcases hpr hj with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩
+      rcases hpr hj with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩ | ⟨a, dA, dS, hdA, hdS, hle⟩
       · have h1 := Formal.Net.AO.tm_prev hTP w j (by omega) hlen
-        have hip := ih (CP.tm w (j - 1)) (by omega) (w, j - 1) dp (Nat.le_refl _) hdp (by omega)
-        exact ⟨dp, hle, hip⟩
+        have hip := ih (CP.tm w (j - 1)) (by omega) e0 τ h0 (w, j - 1) dp (Nat.le_refl _) hdp (by omega)
+        exact ⟨τ + dp, by omega, hip⟩
       · have := ss_nat hSS hds (by omega) h0
-        exact ⟨0, by omega, Nat.lt_of_lt_of_le this (cnt_mono _ _ _ (by omega))⟩
+        exact ⟨τ, by omega, Nat.lt_of_lt_of_le this (cnt_mono _ _ _ (by omega))⟩
+      · have h1 := Formal.Net.AO.tm_prev hTP w j (by omega) hlen
+        have ha := ss_nat hSS hdS (by omega) h0
+        have hτS : dS ≤ τ := by
+          rcases Nat.lt_or_ge τ dS with h | h
+          · have e : τ - dS = 0 := by omega
+            rw [e] at ha; simp [cnt] at ha
+          · exact h
+        have hip := ih (CP.tm w (j - 1)) (by omega) a (τ - dS) ha (w, j - 1) dA (Nat.le_refl _) hdA (by omega)
+        exact ⟨τ - dS + dA, by omega, hip⟩
     -- the previous event happened by `T' - 1`
     have hprev : j ≤ cnt x t0 w (T' - 1) := by
       by_cases hj : j = 0
       · omega
-      · obtain ⟨dp, hle, hip⟩ := hpv (by omega)
+      · obtain ⟨σ, hle, hip⟩ := hpv (by omega)
         have := hi'_posA hb w w
-        have := cnt_mono (x := x) (t0 := t0) w (τ + dp) (T' - 1) (by omega)
+        have := cnt_mono (x := x) (t0 := t0) w σ (T' - 1) (by omega)
         omega
     have hcT : cnt x t0 w T' = j := by
       have := cnt_mono (x := x) (t0 := t0) w (T' - 1) T' (by omega); omega
@@ -369,8 +384,8 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
         have hle := cnt_mono (x := x) (t0 := t0) w (r w w T') (T' - 1) (by omega)
         by_cases hj : j = 0
         · omega
-        · obtain ⟨dp, hle2, hip⟩ := hpv (by omega)
-          have := cnt_mono (x := x) (t0 := t0) w (τ + dp) (r w w T') (by omega)
+        · obtain ⟨σ, hle2, hip⟩ := hpv (by omega)
+          have := cnt_mono (x := x) (t0 := t0) w σ (r w w T') (by omega)
           omega
       · simp only [hr, if_false, Bool.false_eq_true]; exact hcT1
     have hEn : Enabled CP (nT N x t0 r w T') w := by
@@ -378,12 +393,21 @@ theorem up_sound (hb : TBehX N dat envEn x r t0 H) (hTP : TmOK CP) (hLs : ∀ v,
       refine ⟨by rw [hnw]; exact hlen, alt, by rw [hnw]; exact halt, fun p hp => ?_⟩
       obtain ⟨_, r2, _, _⟩ := rho_boundsX hb w p.1 T' (by omega)
       simp only [nT]
-      rcases hall p hp with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩
+      rcases hall p hp with ⟨dp, hdp, hle⟩ | ⟨ds, hds, hle⟩ | ⟨a, dA, dS, hdA, hdS, hle⟩
       · have htm := (hTP.2 w j hlen alt halt p hp).2
-        have hip := ih (CP.tm p.1 p.2) (by omega) p dp (Nat.le_refl _) hdp (by omega)
+        have hip := ih (CP.tm p.1 p.2) (by omega) e0 τ h0 p dp (Nat.le_refl _) hdp (by omega)
         exact Nat.lt_of_lt_of_le hip (cnt_mono _ _ _ (by omega))
       · have := ss_nat hSS hds (by omega) h0
         exact Nat.lt_of_lt_of_le this (cnt_mono _ _ _ (by omega))
+      · have htm := (hTP.2 w j hlen alt halt p hp).2
+        have ha := ss_nat hSS hdS (by omega) h0
+        have hτS : dS ≤ τ := by
+          rcases Nat.lt_or_ge τ dS with h | h
+          · have e : τ - dS = 0 := by omega
+            rw [e] at ha; simp [cnt] at ha
+          · exact h
+        have hip := ih (CP.tm p.1 p.2) (by omega) a (τ - dS) ha p dA (Nat.le_refl _) hdA (by omega)
+        exact Nat.lt_of_lt_of_le hip (cnt_mono _ _ _ (by omega))
     -- the local check makes the gate move at `T'`
     have hT1 : t0 ≤ T' - 1 := by omega
     have hcons := read_consistentA hb hLs hTO hDE (T' - 1) hT1 (fun τ' h => hI τ' (by omega))
