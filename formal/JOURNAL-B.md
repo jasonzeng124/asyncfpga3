@@ -3934,3 +3934,14 @@ chain joins, LGTOPOFF, COVUP, Sep iv d ≥ 1, MUXX), fixpoint (c0 pass 4, c1 pas
 SLICE_X25Y76.B5's re-open (SLICE_X24Y77.A6(2)) covering the glitch path, another concurrent-branch (R1-type) obligation
 that the current Up/Sep rules do not give. Whether the margin survives κ > 0: testing next (it could matter for the
 frontier, so it goes to FOR-RESEARCH if it breaks below 0.36).
+
+### progress 13:3x -- the mux glitch race holds to κ ≈ 0.55 (simulation); not a frontier issue
+Files `formal/tools-B/r23/kap/` (classes per pair: data branch slow, 321 arcs; select branch fast, 327; variant with
+SLICE_X25Y76.B5's enable path fast; results.txt). simadv, w = 20, three pairs ((12,18), full-width, (1071,462)),
+κ = 0.10-0.35 corner 0 and 0.30 corner 1: **60/60 correct** (two slow-corner full-width runs needed --tmax 40 µs, the
+baseline too). D glitches in every run (4.8 ns wide at 0.10, 12.2 ns at 0.35) but is never read while the latch is open;
+the glitch-to-re-open gap shrinks 1,966 -> 937 ps over κ 0.10 -> 0.35 (corner 0, all other arcs fast), 2,826 ps at corner
+1, 0.30. Bracket (12,18): gap 523 ps at 0.45, 132 ps at 0.55; at 0.65 D is read while open and Q glitches (3 changes),
+gcd still right. So this race is real but absorbed below κ ≈ 0.55-0.65, above the Lean-refuted 0.40: it does not move
+the frontier. For the proof it is a genuine timing obligation (data re-latch vs downstream re-open, ~1-2 ns margin at
+κ ≤ 0.35), not a builder artefact: the R1-type upper bound C is working on must cover it.
