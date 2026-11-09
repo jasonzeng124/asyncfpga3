@@ -3866,3 +3866,27 @@ Boolean checker for CovTimeU, any instance.
 `covTimeUB` (C's covTimeB start test, or the Up start test) and `covTimeU_of_B` (sound); toy by `decide`. check.sh
 on all five of today's files together (UnionUp, UnionUpDec, CovUp, CovUpMain, CovUpDec): 482 declarations, standard
 axioms, [check] OK (run alone, file mode fails only because CovUp's olean is not in its private dir).
+
+### progress 12:1x -- CovTimeU in the builder: C's register-bank re-open step PASSES soundly; 18/18 guards left, one R1 root (untrusted Python)
+Subagent, copy of C's builder with `COVUP` (a claim with causally unordered covers is anchored at one of the latest
+common ancestors e0 of the covers' start events; each cover's start by Sep or by `CovTimeU`'s Up form; c.a ≥ 0; sound
+Sep (form iv d ≥ 1); no negative offsets). Files `formal/tools-B/r23/followup4/`. Failing guards of 264 at (12,18):
+| config (all: relative Up clause, Up/ancestor chain joins, LGTOPOFF fix, sound Sep) | c0 | c1 |
+|---|---|---|
+| without COVUP | 60 | 48 |
+| + COVUP | **42** | **30** |
+| + COVUP + REANCH | **18** | **18** |
+- **The bank re-open (C's handoff): all 32 bank latches' H->U' links pass at both openings**, smallest margin +6,868 ps
+  (c0) / +18,404 ps (c1); their D claims are anchored at common ancestors of the two operand-register loads, each cover
+  timed by an upper bound from that ancestor -- the case `CovUp.CovTimeU` was written for, and its first measured use.
+- COVUP alone leaves one root (SLICE_X25Y76.B5 H->U', -9.8 / -24.0 ns), removed by REANCH; COVUP + REANCH leaves one
+  root, SLICE_X37Y71.B5 H->U' (18 guards on SLICE_X38Y78.A6; -8.6 / -20.0 ns): C's R1 concurrent-branch case (the
+  re-open of D-cover latch SLICE_X36Y69.B6, with the arbiter-0 grant in its past, unordered with X37Y71.B5's re-open);
+  Up bounds from the common ancestor are 9-20 ns looser than the real gap; CovTimeU does not close it.
+- **Not a passing certificate:** REANCH raises failing comb-segment links 3/2 -> 13/11 (worst -13.3 / -32.8 ns), and in every
+  configuration 78 (c0) / 120 (c1) guards depend on a failing claim obligation (loop-cover CovTime, comb segments), as in
+  C's base. The Sep/Up entries were NOT re-checked with C's lchk.py (different implementation, no table emitter).
+  (17,5): 156 / 126, unchanged.
+**For C:** CovTimeU (Formal/Cells/CovUp, CovUpMain with the AO theorems, CovUpDec) is the Lean form the builder needs for
+claims over causally unordered register loads; the open items are R1 (concurrent-branch Up tightness), the comb-segment
+joins under REANCH, and the pre-existing loop-cover CovTime failures.
