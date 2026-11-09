@@ -3983,3 +3983,19 @@ comb links fail, so REANCH is not used.
 SLICE_X34Y76.B6 H->U' (-3.7 / -7.5 ns), SLICE_X33Y91.B5 U'->T (no Sep), SLICE_X36Y71.C6 H->U' (-3.8 / -7.6 ns): the same
 re-open-at-concurrent-branches class as (12,18)'s former roots; Up minus Sep a few ns short (generator search or real:
 not yet traced). lchk 0 / 0 there too. ~1.5 h and 3.4 GB per corner.
+
+### progress 14:5x -- (17,5): 0/406 (c0), 6/406 (c1) guards fail after one builder fix; all roots artefacts, positive path-sum margins (untrusted Python)
+Files `formal/tools-B/r23/es/`. Roots of the 126/126: SLICE_X34Y76.B6 and X36Y71.C6 H->U' are the same data-vs-select mux
+race as (12,18)'s (mux SLICE_X33Y75.B6; D really glitches 336,494-337,719 ps), but provable: the bank re-latch
+SLICE_X30Y76.A6(2) is causally before the re-open (Sep 3,566 = the lo path), margin 3,566 + 125 - 1,071 = **+2,620 ps**
+(relup's bounds agree); the builder missed it because one cover set had to span ~378 ns. SLICE_X33Y91.B5's U'->T failure
+inherits that truncation. Fix `ESPLIT` (a comb claim with start offset > 3 ns is tried as two segments, the first with
+another ValOK-checked cover set, joined by ChainOK/ChainUpOK; no new rule). With it: **(17,5) c0 0 / 406, c1 6 / 406**,
+fixpoint pass 3 / 2, 0 failing claim obligations, lchk 0 / 0 both corners; (12,18) c1 still 0 / 264 (regression check).
+- The 6 left (c1): guards of readers SLICE_X31Y94.A5/A6 on z = SLICE_X38Y78.A6 whose top claim's END was anchored at
+  the reader's own start event (the guard-optimal end choice found no candidate with a Sep and kept the first); the real
+  end, the next re-open SLICE_X36Y71.A6(8), is causally after E (Sep 7,756 ps; path sums ≥ 22.4 ns; run gap 25.7 ns):
+  not a race. Needs an end-side meeting-event choice in the builder (or an Up form of GuardTime in Lean, which with
+  relup's current Up would still be 1.2-2.8 ns short).
+- The c0 "non-convergence" was harmless monotone growth of end offsets (+1,819 ps per pass around a self-covering register
+  loop, CovTime holding for every b); gone with ESPLIT.
