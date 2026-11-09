@@ -6,6 +6,15 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## BEST REFUTATION SO FAR: κ = 0.40 at g = 1 (shard B, 2026-11-08; Lean; audit T47 CONFIRMED)
+`Formal.Cells.CexX16.not_netCorrectSeqRunt20 : ∀ T su Δo, 132 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 DecodedPS.net
+DecodedPS.boundary DecodedPS.arbs ⟨1, 10/25⟩ T 400000 su Δo` (full-width pair (0x49e9c618, 0x35bf992e); merge4's
+arbiter acknowledge C-element SLICE_X16Y21.A6 reads the fork late; quiet deadlock). It refutes the plain statement too
+(w = 0 implies w = 20). **Correction (B, 2026-11-08 19:3x):** B's race rows (κ ≤ 0.415, below) cover each storage node's
+feedback race only; the κ = 0.40 race is a different one (a late non-feedback input), so 0.415 is NOT a lower end of
+the frontier. Known now: g = 1 margin < 0.40 (Lean). Simulation: correct at 0.35, livelock (never answers, never quiet)
+at 0.36-0.39 on that pair; A is building a Lean livelock refutation at 0.36 (2026-11-09, not yet claimed).
+
 ## COUNTEREXAMPLE (shard C, 2026-11-06; audit T28 confirms independently)
 `Formal.Net.CexPS.not_netCorrectSeq : ∀ T su Δo, 36 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeq DecodedPS.net DecodedPS.boundary
 DecodedPS.arbs ⟨1, 21/25⟩ T 400000 su Δo` (standard axioms). Plainly: at g = 1 and within-die scatter κ = 0.84 (fast corner,

@@ -7,6 +7,23 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-09 (lead): the g = 1 margin is below 0.40, and the races B's rows certify are not the ones that bind.**
+- **Shard B, Lean, audit T47 CONFIRMED:** `Formal.Cells.CexX16.not_netCorrectSeqRunt20`: THE headline statement
+  (H_RUNT(20), sequential env) is false at g = 1, κ = 10/25 = 0.40, reset 400 ns, every T ≥ 132, su, Δo ≤ 3 ns, on the
+  full-width pair (0x49e9c618, 0x35bf992e): with the pin-0 route of merge4's arbiter acknowledge C-element
+  (SLICE_X16Y21.A6 = `ucontrol_merge4.uarb1.ua2`, reading the fork) at the top of its window and every other arc at
+  the bottom, the circuit deadlocks quietly. The failure is pair-dependent: on (1071, 462) the same adversary is
+  correct at 0.43, which is why the 2026-11-07 sweeps (that pair only) missed it. By `SeqRunt` monotonicity it also
+  refutes the plain statement (w = 0) there.
+- **Correction (B, JOURNAL-B 2026-11-08 19:3x) to the 2026-11-06/07 blocks below:** B's race rows (κ ≤ 0.415) certify
+  one race per storage node (its feedback loop against its acknowledge path). They are NOT a lower end of the frontier:
+  the κ = 0.40 failure is a different race (a storage node's non-feedback input arriving late relative to the rest of
+  the handshake), which no row models. So "the frontier is in [0.415, 0.44)" was wrong; what is known is only
+  that the g = 1 margin is below 0.40 (Lean) and, in simulation, that this adversary is correct at 0.35 and never
+  answers (a livelock, no quiet end) at 0.36-0.39 on that pair.
+- **In progress (A, today):** a Lean refutation at κ = 9/25 = 0.36 with a livelock witness (an eventually periodic
+  run; new generic checker `SpecPeriodic` + `CexRuntQ`). Not claimed until it checks.
+
 **2026-11-08 (lead): H_DECODE now covers the netlist's WIRING, not only its feature list.** Until today the Lean
 round trip re-encoded each pip gate as its FASM feature from the gate's NAME and never looked at the nodes the gate
 reads and drives, so a decoder that wired a pip or a LUT pin to the wrong node would have passed every Lean check
