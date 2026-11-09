@@ -3890,3 +3890,8 @@ Sep (form iv d ≥ 1); no negative offsets). Files `formal/tools-B/r23/followup4
 **For C:** CovTimeU (Formal/Cells/CovUp, CovUpMain with the AO theorems, CovUpDec) is the Lean form the builder needs for
 claims over causally unordered register loads; the open items are R1 (concurrent-branch Up tightness), the comb-segment
 joins under REANCH, and the pre-existing loop-cover CovTime failures.
+
+### progress 12:1x -- next B item (claimed): the loop-cover CovTime failures
+In every builder configuration 78 (c0) / 120 (c1) guards at (12,18) depend on a failing claim obligation, mostly
+loop-cover CovTime (claims covering themselves through register loops; the c0 window fixpoint does not converge).
+B traces them next (classification: fixpoint artefact vs missing proof rule vs race candidate), same scratch pipeline.
