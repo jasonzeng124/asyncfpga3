@@ -4073,3 +4073,22 @@ Same audited config (ENDFIX=2, U-phase start check, loop covers at the fixpoint,
 | (1071,462) c1 | 2 | 99,452 (6,822) | 0 | 0 / 532 | 0 / 4,584 | 2,192 / 286 | 0 / 0 |
 With 16:5x: (12,18) and (17,5) c1 also pass with the audit; (17,5) c0 passed before the audit (ENDFIX=2 run, 16:3x) and
 was not rerun with it. Logs: tools-B/r23/final/*_fa_c*.log. Same limits as before (Python arithmetic, one midpoint run each).
+
+### progress 18:0x -- session summary (B, 2026-11-09)
+PROGRAM.md (owner, 2026-11-09 12:56 local): subagents back to 2 per shard, usage near the weekly limit. B used one at a
+time today; no further subagent work this session.
+**Lean (all check.sh OK, standard axioms; generic, no instance):** `Cells/UnionUp` (claim-chain joins by Up and through a
+common ancestor; C's AO safety/liveness re-proved with them), `UnionUpDec`, `CovUp` (pin covers timed by an upper bound
+from the claim's anchor: `CovTimeU`, `claim_stepU`, `GateProofU`), `CovUpMain` (`timedA_follows_cu`, `gate_firesA_cu`,
+`timedA_live_cu`: C's AO theorems with GateProofU claims and ChainUpOK chains; they imply C's), `CovUpDec` (covTimeUB,
+gateProofUB), `CovUpGC` (the whole hGC premise as one Boolean), `AOCertDec` (AO TmOK / LStep Booleans, missing before).
+**Python (untrusted; builder copy in tools-B/r23/final, C's relup + lchk):** the data layer of a one-pair certificate
+passes for (12,18), (17,5), (8,12), (1071,462) at both corners (0 failing guards, 0 failing claim obligations, every
+claim-building Sep/Up lchk-clean). The decisive pieces were CovTimeU (C's register-bank re-open blocker), C's recursive
+relative Up clause, and builder fixes (LGTOPOFF, MUXX, XOPT, ESPLIT, ENDFIX); negative claim offsets were tried and
+rejected as not Lean-valid. A real datapath race (mux SLICE_X22Y81.B5 / X33Y75.B6 data-vs-select glitch) exists in the
+model at κ = 0 but is absorbed by closed latches (path-sum margin +1.2 / +2.6 ns; simulation: holds to κ ≈ 0.55).
+**STATUS list:** unchanged (no hypothesis discharged in Lean on THE target). What would shrink it: emitting one pair's
+certificate (C's control + this data layer) as Lean data, discharged by the Boolean checkers above and C's, plus the
+Spec bridge (TimedBridge), reset (reset_quiet_PS) and env (EnvHS/EnvData) instances: "for every admissible delay at
+g = 1, κ = 0, THE target computes gcd(12,18)". For C (who owns the generator) or B next session.
