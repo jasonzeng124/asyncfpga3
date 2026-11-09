@@ -4,40 +4,14 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## Effort and subagents (owner, 2026-11-05)
+## FIRST: where one iteration's time goes (owner, 2026-11-06; made first 2026-11-08)
 
-The owner raised the budget to about twice the single-thread, high-effort level.
-Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-but at most 4 at a time** (raised from 2, owner, 2026-11-07). Wait for one to finish before starting another. A
-subagent never touches git: it works in its own worktree or scratch directory
-and reports back, and you review and commit what it found. Use them for
-independent work that would otherwise wait (a second sweep while a build runs, a
-proof while a check builds, a claim to reproduce), never to run the same work
-twice. Never create scheduled routines or reminders.
+**This comes before everything else, board candidates included.** It was asked for
+on 2026-11-06 and has not started in two days, while board candidates kept being
+chosen instead. Start it at the top of the session, with subagents if useful, and
+deliver research/data/itercost/ for xorshift before any new sizing or board-list
+work. The board list is long enough until then.
 
-The limit on progress is now memory and disk, not usage: the session has logged OOM kills
-and disk-full restarts. Before starting a job, check `free -g` and `df -h`, and do not
-run more than fits. A killed job is a lost result. Good first use: give the iteration
-breakdown below ("where one iteration's time goes") to a subagent now, since it has not started.
-
-## No board for a long time (owner, 2026-10-25)
-
-Nobody will run anything on silicon for the foreseeable future. Keep adding to
-`BOARD-QUEUE.md` (one short entry per candidate; don't commit a bitstream for
-each one), but never wait on it and never count it as verification. Goal 1 is
-therefore as strong as the evidence available without a board, so make that
-evidence stronger:
-- more seeds (8+ for anything you ship as a default), with the worst seed
-  reported, not just the mean;
-- routed GLS at the slow AND fast corners of the SDF, plus delay scatter
-  injected around the routed values (at least the measured 8.5% median ring
-  scatter, and the tails beyond it), showing which margin fails first;
-- negative controls that prove each audit and each GLS check can fail;
-- re-checking the August silicon failures (bitstream bugs, memory inference,
-  async latch, stale operands) as regression tests, wherever they can be
-  reproduced without a board.
-
-## Next lead: where one iteration's time goes (owner, 2026-11-06)
 
 Do this before more delay tuning. Dynamatic runs a whole xorshift iteration in
 12.73 ns, clock margin included, so the real logic settles in under 12 ns. The
@@ -70,6 +44,39 @@ enough trip count to leave out the call handshake:
 Results go in research/data/itercost/, with a journal entry. This is a measurement:
 it changes no design and no sizes. A number no one predicted, or a lever that turns out
 small, is the result. Say so plainly, and retire any explanation the data rules out.
+
+## Effort and subagents (owner, 2026-11-05)
+
+The owner raised the budget to about twice the single-thread, high-effort level.
+Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
+but at most 4 at a time** (raised from 2, owner, 2026-11-07). Wait for one to finish before starting another. A
+subagent never touches git: it works in its own worktree or scratch directory
+and reports back, and you review and commit what it found. Use them for
+independent work that would otherwise wait (a second sweep while a build runs, a
+proof while a check builds, a claim to reproduce), never to run the same work
+twice. Never create scheduled routines or reminders.
+
+The limit on progress is now memory and disk, not usage: the session has logged OOM kills
+and disk-full restarts. Before starting a job, check `free -g` and `df -h`, and do not
+run more than fits. A killed job is a lost result. Good first use: give the iteration
+breakdown below ("where one iteration's time goes") to a subagent now, since it has not started.
+
+## No board for a long time (owner, 2026-10-25)
+
+Nobody will run anything on silicon for the foreseeable future. Keep adding to
+`BOARD-QUEUE.md` (one short entry per candidate; don't commit a bitstream for
+each one), but never wait on it and never count it as verification. Goal 1 is
+therefore as strong as the evidence available without a board, so make that
+evidence stronger:
+- more seeds (8+ for anything you ship as a default), with the worst seed
+  reported, not just the mean;
+- routed GLS at the slow AND fast corners of the SDF, plus delay scatter
+  injected around the routed values (at least the measured 8.5% median ring
+  scatter, and the tails beyond it), showing which margin fails first;
+- negative controls that prove each audit and each GLS check can fail;
+- re-checking the August silicon failures (bitstream bugs, memory inference,
+  async latch, stale operands) as regression tests, wherever they can be
+  reproduced without a board.
 
 ## Next, now that ring128 matches (owner, 2026-11-04)
 
