@@ -3257,3 +3257,18 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   routing skew into its consumer, which moves with the route; one link does not cover it on routes 29 (full stack) and
   33. A per-cell max over 4 routes is not a bound across routes -- the same lesson as the umux3 select race, now on a
   logic-free delay. corner_audit is being run on the failing seed-33 route to see whether its rules see the hazard.
+### progress 22:50 (ipow T9cd root cause traced: the umux3 empty-pipe select race, exposed by a faster exit path)
+- Sweep, nominal routed GLS: ushrsi0 = 4 fails seeds 29 and 33; 8 fails 29, passes 33; 26 passes (controls). Not a
+  routing-skew margin, so I traced it: T9cdc+ushrsi0=8 seed 29, the nominal GLS dumped, cause-by-cause back from the
+  out0 hold violation (every hop exact).
+  * out0 goes X when umux3's select (n_index_15) arrives and steers to y (the loop result) BEFORE that token exists;
+  * the change inside the hold window is n_falseResult_11_data[4] -> out0_data[4] 1617 ps after the result link's
+    latch opened (its req rise), while umux3's own req path (y req -> j1 -> either -> 1-link udly) is as fast.
+  So umux3 = 1 (T9 had 4; T9cs and T9cd both proposed 1) is too short whenever the select arrives first -- the same
+  empty-pipe select race that limits xorshift below x0.5. In T9 / T9cs the long ushrsi0 delay (the barrel shifter)
+  kept the exit decision, hence the select, later than the result, so umux3 = 1 passed there by ordering, not by
+  margin. BDC_CONST_DATA makes the e/exit path fast and exposes it.
+- Consequences: (1) corner_audit's per-cell proposal for a mux whose select can arrive first is not safe (rule gap,
+  as noted on xorshift); (2) ipow T9cs (12/12, never on the board list) carries umux3 = 1 and relies on that ordering;
+  board item 7 (ipow x0.75: umux3 = ceil(0.75*4) = 3) does not use 1. Test running: T9cdd = T9cd + umux3 4, seeds
+  29/30/32/33 nominal.
