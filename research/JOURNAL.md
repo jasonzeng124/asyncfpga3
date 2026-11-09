@@ -3215,3 +3215,14 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Against the prediction: the size of the drop (3.5-4.9 ns) is inside the 3-8 ns predicted; the place is not -- the
   remaining flip is at the merge, not at umux1.
 - One route each, and adding stages re-places the design: repeating base / p8 / all3 on seeds 2-4 before any claim.
+### progress 23:40 (second-latch lead on 4 routes: umux1's coupling binds, -5.6 ns (1.16x); the merge's does not decouple)
+- research/data/itercost/second_latch/: xorshift x0.5 bench top, seeds 1-4, BDC_LINK_DEPTHS. Mean period base 39.49 ns;
+  ulink_n_trueResult_8=2 alone 33.92 (-5.58 ns, -4.9..-6.9, 1.164x); all three 34.68 (-4.81); ulink_n11__1=2 alone
+  +0.8 and ulink_n_trueResult_12=4 alone +5.3 (seed 1). All runs correct, equivalent or benign GND-buffer F7 only
+  (checked), every iteration exact.
+- The cycle moves to the loop counter ring and still flips polarity at ucontrol_merge0 ack -> ulink_n_trueResult_12
+  req; RTZ stays 39-43%. A 4th stage on that pipe does not decouple it: the arbitrated merge's output RTZ follows its
+  granted input. Next test: storage on the merge's output (needs a bdc change; not a BDC_LINK_DEPTHS site).
+- Prediction (committed first): size of drop right (3-8 ns), location wrong (merge, not umux1).
+- Base rebuilds on seeds 2-4 did not reproduce the old xb routes' bits (same seed, newer tree); paired with the
+  rebuilt bases. ipow BDC_CONST_DATA: corner_audit done on seeds 29-32 (sizes_max next).
