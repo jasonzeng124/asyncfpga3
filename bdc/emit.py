@@ -705,6 +705,17 @@ _FUSABLE_CHANS = {
 }
 
 BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
+
+# BDC_CONST_DATA=1 (OFF by default; the shipped build is byte-identical without it): a fused region reads an
+# external operand whose value is a KNOWN constant -- a `constant` node's result, or a fork output whose input is
+# one -- as a literal in its datapath, while the channel itself stays: its link, its request in the region's
+# bd_join, its acknowledge.  Only the data wire is replaced by the value that wire always carries, so the handshake
+# is unchanged and the result is the same function.  Why: constant absorption (compute_fusion) only folds a
+# constant fired by a bare `source` with one reader; collatz's shift-by-one (`constant4`, fired by the loop's control
+# and forked five ways) is left as a 32-bit data channel, so `n << e1` and `n >>> e3` are synthesised as barrel
+# shifters and their matched delays are sized to them (research/data/itercost: 14.6-16.3 ns of excess delay per
+# iteration on collatz's critical cycle).
+BDC_CONST_DATA = os.environ.get("BDC_CONST_DATA", "0") == "1"
 MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
 BDC_FASTFALL = compute.BDC_FASTFALL
 # Opt-in, default off: a fast fall on every bare bd_link's request line (RFAST)
@@ -810,7 +821,7 @@ def _topo_order(nodes, members, value_producer, member_set, aliases):
 
 
 def _build_region(func, members, value_producer, value_consumers, const_of,
-                  aliases=None):
+                  aliases=None, known=None):
     aliases = aliases or {}
     nodes = func.nodes
     member_set = set(members)
@@ -868,6 +879,10 @@ def _build_region(func, members, value_producer, value_consumers, const_of,
                 ext_index[opnd] = len(region.ext_inputs)
                 region.ext_inputs.append(opnd)
             region.ref[(i, port)] = ("ext", ext_index[opnd])
+            if known and opnd in known:
+                # BDC_CONST_DATA: the channel stays an external input (joined, linked, acknowledged); only its data
+                # wire is read as the literal it always carries.
+                region.ref[(i, port)] = ("const", known[opnd])
 
     if not region.ext_inputs:
         # Every operand of every node in this region folded to a literal, so
@@ -1041,11 +1056,26 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
     for i in fusable:
         groups.setdefault(uf.find(i), []).append(i)
 
+    known = {}
+    if BDC_CONST_DATA:
+        changed = True
+        while changed:
+            changed = False
+            for n in nodes:
+                if n.op == "constant" and n.results[0] not in known:
+                    value = n.attrs.get("value")
+                    raw = getattr(value, "value", value)
+                    if isinstance(raw, int) and not isinstance(raw, bool):
+                        known[n.results[0]] = raw; changed = True
+                elif n.op == "fork" and n.operands and n.operands[0] in known:
+                    for r in n.results:
+                        if r not in known:
+                            known[r] = known[n.operands[0]]; changed = True
     plan = FusionPlan()
     plan.skip |= absorbed | fork_owners.keys()
     for members in groups.values():
         region = _build_region(func, members, value_producer, value_consumers,
-                                const_of, aliases)
+                                const_of, aliases, known)
         for i in region.node_ids:
             plan.region_of[i] = region
             if i != region.anchor:
