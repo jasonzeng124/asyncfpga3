@@ -3740,3 +3740,12 @@ liveness (`timedA_live`) with ChainUpOK not done (same one-line change expected)
 C's `gate_firesA` and `timedA_live` (proofs copied) with `ChainUpOK` chains, through `timedA_follows_up`. Private
 build OK; standard axioms; no sorry/native_decide. So the whole AO chain (safety + liveness) accepts Up and
 common-ancestor joins in latch claim chains.
+
+### progress 08:5x -- class C (re-open setup, register enabled by SLICE_X22Y87.A6) on a full-width pair: correct (simulation)
+Class C's shortfall was on (12,18), where these D inputs never change. On the full-width pair (0x49e9c618, 0x35bf992e),
+where they do, the setup adversary (`latchsweep.py --pin d`: the latch's data-pin route at the top of its window, all
+else at the bottom, corner 0, H_RUNT(20)) on all 32 latches of that register: 32/32 correct at κ = 0, 0.10, 0.20,
+0.30 (`tools-B/ps/out/setup_x22y87_fw.txt`). Caveat found on the way: at κ ≤ 0.20 this pair's answer comes after the
+sweep's default 3 µs cap (3.51 µs at κ = 0), so a first run reported spurious "no output"; rerun with a 9 µs cap.
+(Yesterday's 0.43 sweeps finished under 3 µs: faster arcs.) Reading: class C is a claim-anchoring artefact on this
+evidence too; the builder needs value-level / older-anchor claims for these D inputs. Not a proof.
