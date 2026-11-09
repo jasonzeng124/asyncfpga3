@@ -2194,3 +2194,17 @@ shrank by the site output hops.
   over the xc7z010 (prjxray-db master tilegrid/tileconn, 2.41 M unions) puts each of the 169,113 netlist routing nodes
   in its own fabric node: 0 collisions. So the decoder never split one electrical node into two. Not in Lean: a
   separation proof needs the whole closure (a certificate of classes plus a completeness argument), not attempted.
+### progress 11:3x -- combined adversary (merge4 + merge10 ack C-elements read the fork late): correct at 0.32, 0.28
+Three pairs ((1240057368, 901749038), (1071, 462), (297511126, 399743236)), fast corner, w = 20: all correct
+(simulation). The two known fork races do not compound below 0.36.
+**Session summary (A, 2026-11-09):**
+1. **THE statement refuted at κ = 9/25 = 0.36 (g = 1) by a livelock, Lean, standard axioms, check.sh OK**
+   (`Frontier36.not_seqRunt_le20_above36_R`, `not_seq_above36_R`: every w ≤ 20, g ≥ 1, κ ≥ 9/25, T ≥ 140, Δo ≤ 3 ns,
+   every reset ≥ 400 ns). New generic machinery for never-quiet witnesses: `SpecPeriodic`, `CexRuntQ`
+   (QBase, QStretch). On this race the g = 1 margin is in (0.35, 0.36]; 60 random pairs at 0.32, the slow corner,
+   and the combined two-race adversary found nothing lower (simulation).
+2. **H_DECODE: slice output hops checked against prjxray in Lean** (`FormalWit.NM.Data.hop_wired`, 9,573 hops);
+   the converse (no two netlist nodes are one fabric node) holds in Python (0 collisions in the full tileconn closure).
+3. STATUS/FEASIBILITY/FOR-RESEARCH (A6) and the draft PR summary updated; B's κ = 0.40 result and correction folded in.
+**Next lead session:** a refutation below 0.36 needs a new (multi-pin or pair-specific) adversary; otherwise support
+C's S4 instance (top-level assembly: wire C's per-pair certificate theorem into `AssemblyPS.the_of_plan`).
