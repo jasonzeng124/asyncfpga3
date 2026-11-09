@@ -2705,3 +2705,16 @@ instance choice.
 * *Caveats (pre-existing):* loop covers are sound only at a fixpoint (both runs converged); the U phase's CovTime start
   is unchecked for D pins covered only in U (except under HOLDRETRY). So "4 failing" is not yet "the rest passes in
   Lean"; it is the Python's verdict on the obligations it emits.
+
+### progress 16:24 -- (12,18) c=1: 0 of 264 data guards fail; the last 4 were a builder bug (untrusted Python)
+* *The 4 arbiter-area hold failures (subagent, tools/tocc/arbh/RESULTS.txt):* not a race and not a missing argument:
+  the builder's guard-optimal end choice (GTOP) leaked into a latch's own U-phase window (each latch is its own
+  guard's data node), ending D's claim at the reader's earlier event. B's LGTOPOFF wrapper (already in tools-B, not
+  in C's copy) fixes it: c=1 4 -> **0** of 264 (converged; lchk 0 failures); c=0 46 -> 42 (the bank-latch loop-cover
+  class remains; run stopped before convergence). Event trace: for every close of these latches, D's next change is
+  CAUSED by the close (via the group acks and join X37Y55.C6), hold margin 5.4-7.0 ns (c=1) / 2.1-2.8 ns (c=0),
+  order cannot flip below κ ≈ 0.88. 56 adversarial runs (4 pairs, both corners, κ 0 and 0.44, 4 modes): gcd right,
+  no glitch, latched values identical, 0 hazards.
+* *What "0 failing" means:* every guard of the one-pair certificate passes the Python transcription of the Lean
+  checks it emits, with two known gaps still being closed (the U phase's CovTime start for D pins covered only in U;
+  loop covers re-checked at the fixpoint): a subagent is adding both checks now. It is evidence, not a proof.
