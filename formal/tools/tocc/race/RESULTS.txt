@@ -1,0 +1,52 @@
+RACE study, shard C helper, 2026-11-09 (UNTRUSTED Python; tools copied from /tmp/claude-0/r1c, paths rewritten).
+Question: X22Y87.A6(0) (= A, opens masking latch X22Y87.D5) vs X27Y80.A6(2) (= B, re-opens select latch X27Y80.B6):
+real race of THE target, or ordered by something the certificate misses?
+
+Structure (look.py): X22Y81.B5 = X27Y80.B6 ? X22Y87.D5 : X22Y79.D5 (mux; select = data latch X27Y80.B6).
+Readers of X22Y81.B5: latches X25Y76.B5, X25Y76.B6 (enable X24Y77.A6) and X27Y85.A6, X27Y85.A5 (enable X26Y85.A6). No other readers.
+(12,18): both mux inputs are 1 at B, so the mid run has no change on X22Y81.B5.  If B comes first, X22Y81.B5 glitches 1->0->1.
+All four readers are CLOSED from X24Y77.A6(1)@676 ns / X26Y85.A6(1)@734 ns to their re-opens O = X24Y77.A6(2)@878.2 ns and
+O2 = X26Y85.A6(2)@878.0 ns (c=1), so the glitch falls in a closed window.
+
+1. Paths (crit.py: last-arriving cause chain back to the first event below the other side; mid windows).
+  A chain, c=1: X22Y87.A6(0) <- X31Y87.B5(0) <- X39Y87.A6(0) <- X39Y93.* <- X38Y93.* <- X39Y89.* <- X38Y89.* <- X39Y92.* <- X38Y92.*
+     <- X39Y90.* <- X38Y90.* <- X39Y91.* <- X38Y91.* <- X39Y88.* <- X38Y88.* <- X38Y93.B6 <- X39Y92.C6 <- X38Y90.D6 <- X38Y91.A6
+     <- X36Y86.B6 <- X32Y88.A6 <- X26Y77.A6 <- X33Y70.A6 <- X31Y68.B6(2) <- ra = X42Y97.B6(2) (54 hops).
+     c=1 sum lo 29440 / hi 37471 (sim 33433);  c=0 lo 11708 / hi 15283 (sim 13445).
+  B chain, c=1: X27Y80.A6(2) <- X38Y15.C6 <- X38Y15.A6 <- X39Y15.A6 <- X38Y15.D6 <- X38Y15.B6 <- X39Y15.D6 <- X38Y14.A6 <- X38Y14.D6
+     <- X38Y14.C6 <- X39Y14.C6 <- X39Y14.A6 <- X39Y14.B6 <- X38Y14.B6 <- X39Y21.C5(2) <- X39Y21.C6(0) <- X38Y30.A5(0) <- X38Y53.C6(0)
+     <- rb = X39Y65.B6(0) (18 hops).  c=1 lo 14014 / hi 18015 (sim 16002); c=0 lo 5717 / hi 7642.
+  Common anchor ra (ra <= rb, Sep 19230 c=1 / 7730 c=0).  Sep23(ra -> B) = 33244 (c=1) / 13447 (c=0).
+  No Up(e0 -> A) or Up(e0 -> B) exists from any of 40 newest common ancestors (stat.py; concurrency blockers, as r1).
+  Worst-case path skew t(A) - t(B) <= hi-chain(ra->A) - Sep(ra->B) = 37471 - 33244 = +4227 ps (c=1), 15283 - 13447 = +1836 ps (c=0)
+  (mid: -4505 / -2183).  So the order CAN flip at kappa = 0; the windows would have to shrink by ~6% (kappa = -0.060 / -0.064)
+  to exclude it.  Sim sweep (lam.sh: only-A past at mid+lam(hi-mid), only-B past at mid-lam(mid-lo)): flips at lam ~ 0.75 (c=1),
+  ~0.79 (c=0).
+2. Adversarial sims (simk.py = simenv.py + gate lists at (1+k)hi / (1-k)lo; sets.py: gates of events only below A -> hi,
+   only below B -> lo; sets2.py "adv2": also the {A,B} -> {O,O2} paths lo and the D paths X22Y87.D5/X22Y81.B5/X27Y80.B6 + reader
+   D pins hi).  batch.py -> batch.log; margin.py; trunc_cmp.py.
+   (12,18),(17,5),(1071,462),(0x49e9c618,0x35bf992e) x c in {0,1} x {adv, adv2} x kappa {0, 0.44}: the order FLIPS in every
+   iteration of every run (A after B by 0.5-2.3 ns at kappa 0, up to 24.6 ns at 0.44); X22Y81.B5 glitches; gcd right; hazchk 0;
+   every exact node has the reference event count; reader latches hold the reference values; no X22Y81.B5 change is read
+   while a reader is transparent.  Glitch end -> reader open margin (sim): >= 7.3 ns / 2.25 ns at kappa 0 (c=1/c=0),
+   min 640 ps / 197 ps at kappa 0.44 (adv2, X27Y85.A5).
+   Inputs that really differ: in-domain pairs never (scan.py, 19 pairs: X22Y87.D5 = X22Y79.D5 at every select change).
+   Only (0x80000000,0x40000000) and (3280387012,271041745) (bit 31 set; gcd does not finish in 50 ms even at mid) have them;
+   there X22Y87.D5 = 0 throughout, so the order of A and B does not matter (one clean change at B). Prefix comparison over
+   258-767 closed phases: 0 reader mismatches, hazchk 0.  In adv2 k=0.44 the select latch X27Y80.B6 itself passes a ~390 ps
+   pulse each iteration (its D X39Y21.D6 arrives after its open); harmless here (readers closed), but a separate D-vs-open race
+   at large kappa.
+3. Ordering that the certificate misses (opath.py, join.py): both A and B are below the completion join
+   J = X27Y80.D6(0) (one alternative: {X2Y29.DQ(0), X32Y79.D6(2) (B's side), X22Y87.A6(0)}), and the reader opens are below J:
+   Sep(A->J) 849/339, Sep(B->J) 2793/1131, Sep(J->O) 7325/2908, Sep(J->O2) 7158/2833 (c=1/c=0).
+   Sep(A->O) 8174/3247, Sep(B->O) 10118/4039, Sep(A->O2) 8007/3172, Sep(B->O2) 9951/3964.
+   Settle check (sets2.py): Sep(X->open) + lo(enable pin) - hi(D path) >= 5051 ps (c=1), 1951 ps (c=0); worst X27Y85.A5 from A;
+   linear flip kappa 0.409 (c=0) / 0.421 (c=1).  For the X25Y76.B5 root itself: 5640 / 2216 ps, kappa 0.462 / 0.455.
+Verdict: NOT a counterexample.  A vs B is a real, unordered race (flips at kappa 0, both corners), but it is benign: it only
+decides whether X22Y81.B5 glitches while every reader is closed.  The ordering that matters (A, B before the readers' re-open)
+holds by Sep through the join X27Y80.D6(0), which waits for both.  The certificate fails because it builds D's claim as one
+interval that covers the select change.  Fix: cut D's claim at B, and start the next segment at J (CovTime start with Sep from
+the pin starts A and B).  No continuity is needed across the gap, because H (the latch holding while closed) covers it, and U'
+only needs D from before the re-open.  segup.py's "earliest common descendants 13-31 ns later" probably missed J (not verified): join_pool takes the
+first 8 in topological order, not by time.  At large kappa (~0.41 at c=0, statically) the settle-before-reopen margin itself
+goes to 0; sims at 0.44 still pass (197 ps).

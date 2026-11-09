@@ -2672,3 +2672,19 @@ instance choice.
   * 4 per corner: arbiter-area latches X36Y63.B6, X36Y68.B6, X37Y47.B6 (B's U->H class, D = X39Y53.B6).
 * *Lean side:* the fixes use only existing obligations (TimedOccU ChainOK cons step; GateProof/CovTime; hGC's chain
   disjunct). B's UnionUp joins are not needed.
+
+### progress 13:13 -- the residual unordered pair is NOT a race: ordered in effect by a join (untrusted Python)
+* *Problem:* is the unordered pair A = X22Y87.A6(0) (masking latch open) / B = X27Y80.A6(2) (mux select change) a
+  real race of THE target?
+* *Answer (subagent, tools/tocc/race/RESULTS.txt):* the order of A and B really flips within the delay windows at
+  κ = 0 (A can trail B by up to 4.2 ns at c=1, 1.8 ns at c=0), but the flip only decides whether X22Y81.B5 (a mux
+  feeding four latches) glitches 1→0→1 while ALL its readers are closed. Both A and B precede a single join event
+  J = X27Y80.D6(0), which precedes the readers' re-opens: guaranteed separations A→J 849 / 339 ps, J→re-open 7,325 /
+  2,908 ps (c=1 / c=0); settle margin before the re-open ≥ 5,051 / 1,951 ps, reaching 0 at κ ≈ 0.41-0.42 (static,
+  worst reader X27Y85.A5). Adversarial runs (4 pairs incl. a full-width one, both corners, κ = 0 and 0.44): order
+  flips, glitch appears, gcd right, 0 hazards, readers hold the same values.
+* *Certificate fix (to implement):* end X22Y81.B5's claim segment at B and start a new segment at J (justified by
+  Sep A→J and B→J); the closed readers' hold claims cover the gap. The builder's join pool picks candidates in
+  topological, not time, order (suspected cause of the "13-31 ns" figure; unverified).
+* *Side finding at κ = 0.44 (adv2 only):* select latch X27Y80.B6 emits a ~390 ps pulse each iteration (its D,
+  X39Y21.D6, arrives after it opens): harmless here (readers closed). κ = 0.44 is already above the refuted frontier.
