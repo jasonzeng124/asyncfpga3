@@ -2601,3 +2601,4 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
 * *Added (check.sh OK):* `toRow_window` (a skew row of `TOA` from the window's row, when the reader's bound is the
   window's shifted) and `guardTime_window` (`GuardTime` for a shifted guard and shifted claim). So every per-entry
   timing obligation of `timedA_follows` except the claim checks (`GateProof`/`ChainOK`) now has a window form.
+  (check.sh note: `check.sh WindowT.lean` alone FAILS with "Window.olean does not exist" because file mode only sees lake-built dependencies; `check.sh Window.lean WindowT.lean` is OK, 389 declarations. The commit 2a5ceeb1 was made before I saw the first failure.)
