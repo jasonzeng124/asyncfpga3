@@ -1,0 +1,20 @@
+@reset_quiet_PS15 : ∀ {p : DelayPar},
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ {x : Beh},
+      Behaves p (circuit DecodedPS.net DecodedPS.boundary) x →
+        ∃ c,
+          0 ≤ c ∧
+            c ≤ 1 ∧
+              ∀ (R M A : ℕ),
+                (∀ t < R, x rstPS t = true) →
+                  0 < R →
+                    (∀ (w : ℕ), memR w = true → startPS p w ≤ A) →
+                      (∀ (w : ℕ),
+                          memR w = true →
+                            ∀ i < (Formal.Timing.Huffman.gAt cs 2500 w).k,
+                              Formal.Timing.SpecLoop.sumMax p (arcsPS w i) ≤ M) →
+                        ∀ (w : ℕ), memR w = true → ∀ (t : ℕ), A + 15 * M ≤ t → t ≤ R - 1 → x w t = valR w
+'Formal.Net.CViewPS.reset_quiet_PS' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CViewPS.reset_quiet_PS15' depends on axioms: [propext, Classical.choice, Quot.sound]
+186905
+members 3224
