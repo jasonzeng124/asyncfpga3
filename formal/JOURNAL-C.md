@@ -2550,3 +2550,24 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   Then GcdD's existing `uselect1_fn`. Axioms: standard. Negative control: an inverted CARRY4 INIT is caught.
 * *Not shown:* that the gates in S settle (timing: a settle bound from SpecSettle) or that the input nodes carry the
   operand tokens (S4 data movement). Other 19 units: rerun psmap.py per unit; uori4 needs its own extraction.
+
+### progress 09:56 -- all-pairs premise tested: same-kind loop windows ARE shift-identical from iteration 2 on (untrusted Python)
+* *Problem:* notes/C-allpairs.md assumes THE target's one-run certificate is a concatenation of per-iteration windows,
+  identical (after shifting each node's event numbers) for iterations of the same kind. True?
+* *Answer (subagent, tools/tocc/win/RESULTS.txt; single runs at corner midpoints, c=1: (17,5), (1071,462),
+  (65535,4097), (603,445); c=0: three of them):* mostly yes. Loop heads found by fitting node counts to the token-level
+  loop counts: 388 nodes fire twice per main-loop iteration (head SLICE_X39Y21.C5), 271 twice per inner shift
+  iteration (head SLICE_X38Y51.B5). Kind = m, the number of inner iterations (m ≥ 2 continuing, m = 1 exit). Window
+  size 2,234 + 818(m-2) events (continuing), 2,446 (exit). From iteration 2 on, same-kind windows have equal per-node
+  counts, equal AND-OR causes, equal RT edges, equal relative time stamps; across pairs too ((17,5) and (1071,462)
+  windows identical); same at c=0.
+* *Exceptions (each fits the two-window plan or needs a small rule):* iteration 0 is special (entry path, a one-shot
+  node, up to 880 ps slower) and iteration 1 has 10-11 extra reset causes (first events after reset): both belong in
+  the prefix. Two L entries per window depend on the PREVIOUS window's kind (so the window certificate is a function
+  of (previous kind, kind), as planned). Causes of continuing nodes reach at most one window back; but ~40 references
+  to the reset event and 4 RT edges per window point at the LAST event of nodes quiet since iteration 0 -- these need
+  a "last event of a quiet node" rule in the two-window check. Inner windows need kind (first/second/later × shift/exit).
+* *Not covered:* delay variation (one delay assignment per run, so "dt = 0" is for midpoints only), the data guards
+  (datafast.py simplified them), the arbiter's other outcome.
+* *Reading:* the per-kind window route for every pair is supported by the data; the infinite family of kinds (m
+  unbounded) is handled by nesting: inner windows of fixed kinds inside the main window.
