@@ -5,7 +5,7 @@ Formal.Target.CexRuntQ.gateQ: per-chunk BTL trees of the prefix codes (transitio
 period per node (transitions in [t0, t0+Q)), a sparse BTC tree of the narrow-pulse chains of the run unrolled m
 periods (transitions < H = t0 + m·Q), the per-arc slow list, per-chunk gate checks split in 3 slices.
 Aborts unless the dump's transitions in [t0, H) are exactly the period unrolled (so the Lean run IS the dump up to H).
-(CEXHEAVY=7,14,15,65,70,72 for CexQ36: those gate chunks need > 15 GB in 3 slices.)
+(CEXHEAVY=7,14,15,65 CEXHEAVY2=70,72 for CexQ36: those gate chunks need > 15 GB in 3 / 24 slices.)
 usage: gen_runtq.py dump.json net.json bnd.json OUTDIR NAMESPACE P W classes.json Q t0 m V"""
 import json, sys, os
 Wd = json.load(open(sys.argv[1])); net = json.load(open(sys.argv[2])); BJ = json.load(open(sys.argv[3])); out = sys.argv[4]
@@ -75,13 +75,14 @@ open(f"{out}/EncR.lean", "w").write("".join(f"import {NS}.L{c:03d}\n" for c in r
     f"def slR : List Nat := [{', '.join(map(str, sorted(SLOW)))}]\n\nend {NS}\n")
 F = f"(fun g => !keepPS g || gateQ {P} {W} {Q} {T0} {M} {V} encR perR chR slR g)"
 HEAVY = set(int(x) for x in os.environ.get("CEXHEAVY", "").split(",") if x)   # chunks split in 24 slices (memory)
+HEAVY2 = set(int(x) for x in os.environ.get("CEXHEAVY2", "").split(",") if x)  # chunks split in 125 slices
 for c in range(nchG):
     q = 834
     def slc(j):
         e = f"g{c:03d}"
         for _ in range(j): e = f"({e}.drop {q})"
         return e if j == 2 else f"({e}.take {q})"
-    S = 24 if c in HEAVY else 3
+    S = 125 if c in HEAVY2 else (24 if c in HEAVY else 3)
     q = (2500 + S - 1) // S
     def slc(j):
         e = f"g{c:03d}"
