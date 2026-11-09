@@ -3898,7 +3898,7 @@ In every builder configuration 78 (c0) / 120 (c1) guards at (12,18) depend on a 
 loop-cover CovTime (claims covering themselves through register loops; the c0 window fixpoint does not converge).
 B traces them next (classification: fixpoint artefact vs missing proof rule vs race candidate), same scratch pipeline.
 
-### progress 12:4x -- loop-cover CovTime failures were a one-pass artefact: 0 fail at the window fixpoint (untrusted Python)
+### progress 12:3x -- loop-cover CovTime failures were a one-pass artefact: 0 fail at the window fixpoint (untrusted Python)
 Same sound configuration (relative Up, chain joins, LGTOPOFF, COVUP, Sep iv d ≥ 1). Files `formal/tools-B/r23/followup5/`
 (obl.py: obligations by kind and blocked guards). Run to the window fixpoint (NPASS = 10) the claim windows CONVERGE at
 both corners (c0 in 4 passes: 19,847 -> 7,083 -> 2,278 -> 50 -> 0 changed; c1 in 2), and then **0 of 3,187 (c0) / 0 of
