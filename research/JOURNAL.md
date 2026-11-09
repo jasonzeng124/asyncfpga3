@@ -3239,3 +3239,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   the cycle; the counter ring now flips at ucontrol_merge0_f ack -> ucontrol_merge0_olink, RTZ still 40-43%. Each
   decoupled synchronising cell moves the coupling one cell on; the RTZ share does not fall.
 - Next: collatz with the same kind of sites (per the lead), sized links, then the full gate on >= 8 routes.
+### progress 04:10 (negative: ipow T9cd fails -- the out0 mux's select link shortened 12 -> 9 by corner_audit)
+- ipow BDC_CONST_DATA at ipow_dsp1_sizes_T9cd.vh: seed 29 decodes EQUIVALENT and passes the nominal routed GLS but the
+  full stack gives X on out0 at every corner (5/5 run, FAIL; stopped); seeds 30, 32, 33 fail the nominal GLS
+  ("PROTOCOL data moved inside the hold window on channel out0", vector 1 b=3 e=1). Against the per-cell T9cs (which
+  passed 12/12), T9cd shortens four more lines: ulink_n_index_15 12 -> 9 (umux3's select, umux3 drives out0),
+  ushrsi0 26 -> 1, ulink_n17__1 10 -> 7, ulink_n13_SDELAY 3 -> 1. Suspect: the umux3 select race (the same class that
+  stopped xorshift below x0.5); corner_audit's rules do not see it. Test running: T9cdb = T9cd with ulink_n_index_15
+  back to 12, seeds 30/32/33 nominal. The flag itself is not implicated: T9 sizes + the flag passed 12/12.
