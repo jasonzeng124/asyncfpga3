@@ -12,8 +12,10 @@ stamps are shifted by a constant, each long entry's justification is the window 
 for `UpOKA`, given a justification for each long cause that lies before the window, and for the previous event of
 a node's first window event).
 
-**Not shown here:** that the long tables consist only of shifted window entries (an instance property), `TOA`,
-`GuardTime`, coverage.
+Also `toRow_window` (a skew row of `TOA`) and `guardTime_window` (a shifted guard and claim).
+
+**Not shown here:** that the long tables consist only of shifted window entries (an instance property), coverage,
+the claim checks (`GateProof`, `ChainOK`).
 -/
 
 namespace Formal.Net.AO
@@ -148,6 +150,75 @@ theorem upClause_window (hT' : TmOK C')
           (hprev (by omega))
         simp only [shE] at this ⊢
         rw [show e.2 + o e.1 - 1 = e.2 - 1 + o e.1 by omega]; exact this
+
+end
+
+/-! ## Skew rows and guard timing -/
+
+/-- One row of `TOA`, for reader `v`, sources `a ≠ b`, event `k` of `a`. -/
+def TORow (N : TNet α) (CP : Cert α) (L : α → α → Nat → α → Nat) (Sep : α → Nat → α → Nat → Option Nat)
+    (v a b : α) (k : Nat) : Prop :=
+  (∃ d, Sep b (L v a k b - 1) a k = some d ∧ hi' N v b ≤ lo' N v a + d) ∨
+  (a = v ∧ ∃ k', k' ≤ k ∧ ∀ alt ∈ CP.causes v k', ∃ p ∈ alt, p.1 = b ∧ L v v k b ≤ p.2 + 1)
+
+section
+variable {N : TNet α} {C C' : Cert α} {Sep Sep' : α → Nat → α → Nat → Option Nat}
+  {L L' : α → α → Nat → α → Nat} {o : α → Nat}
+
+/-- **A window skew row gives the shifted long row**, when the reader's bound on `b` is the window's shifted. -/
+theorem toRow_window
+    (hSep : ∀ b m a k, m < C'.len b → k < C'.len a → Sep b (m + o b) a (k + o a) = Sep' b m a k)
+    (Dv : List α) (v a b : α) (k : Nat) (hk : k < C'.len a)
+    (hcs : ∀ k, k < C'.len v → k + o v < C.len v ∧
+      Pw (AltCorr Dv o) (C.causes v (k + o v)) (C'.causes v k))
+    (hL0 : 0 < L' v a k b) (hLb : L' v a k b - 1 < C'.len b)
+    (hLa : L v a (k + o a) b = L' v a k b + o b)
+    (hW : TORow N C' L' Sep' v a b k) : TORow N C L Sep v a b (k + o a) := by
+  rcases hW with ⟨d, hd, hle⟩ | ⟨rfl, k', hk', hall⟩
+  · left
+    refine ⟨d, ?_, hle⟩
+    rw [hLa, show L' v a k b + o b - 1 = (L' v a k b - 1) + o b by omega, hSep b _ a k hLb hk]
+    exact hd
+  · right
+    refine ⟨rfl, k' + o a, by omega, fun alt halt => ?_⟩
+    obtain ⟨alt', halt', hcor⟩ := forall₂_mem_left (hcs k' (by omega)).2 alt halt
+    obtain ⟨p, hp, hpb, hle⟩ := hall alt' halt'
+    refine ⟨(p.1, p.2 + o p.1), hcor.1 p hp, hpb, ?_⟩
+    simp only
+    have ho : o p.1 = o b := by rw [hpb]
+    rw [hLa]; omega
+
+/-- A claim shifted by the offsets. -/
+def shC (o : α → Nat) (c : Claim α) : Claim α :=
+  { c with A := c.A.map (shE o), B := c.B.map (shE o) }
+
+/-- **Guard timing of a shifted guard and claim** follows from the window's. -/
+theorem guardTime_window
+    (hSep : ∀ b m a k, m < C'.len b → k < C'.len a → Sep b (m + o b) a (k + o a) = Sep' b m a k)
+    (hSepDom : ∀ b m a k d, Sep' b m a k = some d → m < C'.len b ∧ k < C'.len a)
+    (v z : α) (c : Claim α) (g : Guard α) (co : Nat)
+    (hW : GuardTime N Sep' v z c g) : GuardTime N Sep v z (shC o c) (shiftG o co g) := by
+  obtain ⟨hA, hB⟩ := hW
+  refine ⟨?_, ?_⟩
+  · cases hc : c.A with
+    | none => simp [shC, hc]
+    | some e =>
+      rw [hc] at hA
+      obtain ⟨w, hw, d, hd, hle⟩ := hA
+      obtain ⟨h1, h2⟩ := hSepDom _ _ _ _ _ hd
+      simp only [shC, hc, Option.map, shiftG, hw, shE]
+      refine ⟨(w.1, w.2 + o w.1), rfl, d, ?_, hle⟩
+      rw [hSep e.1 e.2 w.1 w.2 h1 h2]; exact hd
+  · cases hc : c.B with
+    | none => simp [shC, hc]
+    | some e =>
+      rw [hc] at hB
+      obtain ⟨w, hw, d, hd, hle⟩ := hB
+      obtain ⟨h1, h2⟩ := hSepDom _ _ _ _ _ hd
+      simp only [shC, hc, Option.map, shiftG, hw, shE]
+      refine ⟨(w.1, w.2 + o w.1), rfl, d, ?_, ?_⟩
+      · rw [hSep w.1 w.2 e.1 e.2 h1 h2]; exact hd
+      · exact hle
 
 end
 

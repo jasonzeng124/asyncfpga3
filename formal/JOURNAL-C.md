@@ -2598,3 +2598,6 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   events of quiet nodes, which the window study found) and for the previous event of a node's first window event.
 * *Not shown:* that the long tables consist only of shifted window entries, `TOA`, `GuardTime`, coverage, any
   instance.
+* *Added (check.sh OK):* `toRow_window` (a skew row of `TOA` from the window's row, when the reader's bound is the
+  window's shifted) and `guardTime_window` (`GuardTime` for a shifted guard and shifted claim). So every per-entry
+  timing obligation of `timedA_follows` except the claim checks (`GateProof`/`ChainOK`) now has a window form.
