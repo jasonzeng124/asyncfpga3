@@ -321,7 +321,7 @@ theorem s_arbOK (Δ T : Nat) (hT : 140 ≤ T) : ArbOK T arbs (xS Δ) := by
   have hqS : perS Δ a.q = [] := by simp [perS, hq0]
   have hxq : xS Δ a.q = sigL (encS Δ a.q) := by simp only [xS]; exact xQ_fin hqS
   have hqN : encN a.q = encR a.q := by simp [encN, hq0]
-  rw [hxq, hxq]
+  rw [hxq]
   apply sigL_eq
   intro θ hθ
   constructor

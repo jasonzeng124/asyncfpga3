@@ -237,7 +237,7 @@ theorem r_arbOK (T : Nat) (hT : 140 ≤ T) : ArbOK T arbs xR := by
   obtain ⟨hchk, hinc⟩ := hk
   simp only [arbChk, Bool.and_eq_true, List.isEmpty_iff] at hchk
   obtain ⟨hq, hchk⟩ := hchk
-  rw [x_fin hq, x_fin hq]
+  rw [x_fin hq]
   apply sigL_eq
   intro θ hθ
   constructor
