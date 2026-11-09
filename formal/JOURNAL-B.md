@@ -3787,3 +3787,10 @@ Failing guards (one midpoint run per corner, NPASS = 1; base = C's code, reprodu
 - (17,5) residue: mostly U'->T class A (re-latch start), not root-traced.
 **For C:** commit the relative clause into tools/tocc's Up computation (copy: tools-B/r23/followup/ao_uprel.py);
 anchor U' D claims at D's last change (fixes 42/44 at (12,18)).
+
+### progress 11:0x -- note for C (no Lean): the 57 gates that read one source on two live pins (TimedBridge's open item)
+`GateFact` needs distinct pin sources. For these gates the pin NODES (`g.ins i`, distinct site-pin wires on the
+decoded net, A1..A6) are distinct even when their collapsed sources coincide, so the gate can be kept un-collapsed by
+one hop: pins = g.ins, arcs i = [its own pin arc] (CGateOK straight from GateOK), and each such pin node added to the
+timed net as a k = 1 gate with the collapsed chain from the source (CGateOK of the copy chain). Then every pin list is
+nodup. Not written; a design suggestion only.
