@@ -159,8 +159,104 @@ These are upper bounds read off this cycle. Shortening the cycle moves the criti
 - **"Paid on both edges"** is half right. Falling edges are 42-44% of the period, but only 21-24% are delay chains falling. The rest is the handshake cells' and wires' own return to zero, which fast fall cannot touch. Link fast fall's measured 6-12% gain fits the 14-18% of the period that ulink_n11__1's and ulink_n12__1's rdlys spend falling.
 - **logic + handshake = 2.2 ns per iteration** against Dynamatic's 12.73 ns. Even with all request/acknowledge routing added, it is 10-11 ns. What the async build pays is protocol (RTZ), routing, and delay chains on a control ring that carries no changing data.
 
+## collatz (bench top, NEXTPNR_SEED=1, the board list's routes, item #9)
+
+Routes:
+- T3: sdf `6134880a`, bit `e6b7bdf7`.
+- per-cell "cs": sdf `1ab39716`, bit `07b0fbef`.
+
+Both decode EQUIVALENT (benign kinds only). The vector is n=6171, 261 steps, run twice; both builds return 261. The bench masks collatz's n to 16 bits (`loop_cost.sh`), so 2^30 becomes n=1, 0 steps; that is correct and was not used.
+
+umux1's output is NOT on the critical cycle: the back-walk passes its previous rise without touching it. So the marker is `n26_u_req`, the output of uaddi0, found as a net that repeats at exactly one period on a 4-period walk.
+
+All 518 steady-state iterations are traced (`iterations.tsv`), and every one closes exactly with categories summing to its period. **Even and odd steps take the identical period, to the ps.** Both branches are computed every iteration and a select picks one, so the cycle does not depend on the branch.
+
+| ns per iteration | cs (per-cell) | T3 |
+|---|---:|---:|
+| measured period | **67.82** | **77.56** |
+| hops / stages | 150 / 13 | 180 / 13 |
+| logic | 9.34 (13.8%) | 9.50 (12.3%) |
+| excess delay | 30.99 (45.7%) | 37.73 (48.6%) |
+| handshake | 1.10 (1.6%) | 1.10 (1.4%) |
+| routing | 8.84 (13.0%) | 7.57 (9.8%) |
+| return-to-zero | 17.56 (25.9%) | 21.66 (27.9%) |
+| of RTZ: delay chains / handshake cells | 7.62 / 9.93 | 12.99 / 8.67 |
+| sum - period | 0 ps | 0 ps |
+| **bound logic + handshake** | **10.44** | **10.60** |
+| bound + all req/ack routing | 19.3 | 18.2 |
+| Dynamatic (README.md) | 14.05 | 14.05 |
+
+Mean over the 518 iterations, by parity of n (cs): even logic 8.31 / excess 32.03 ns, odd 8.19 / 32.15. The table above is one representative iteration.
+
+Wires are 85-86% of the period, as for xorshift.
+
+**Self-check** (`lengthen.tsv`):
+- +500 ps on one uselect0 delay element raises the cycle count 1479 to 1490 (predicted 1489.9).
+- +500 ps on uaddi1's (the step counter, off the cycle) leaves it at 1479.
+
+### Here the cycle is the n datapath
+
+The cycle runs:
+1. uaddi0: 3n+1, as `(n << e1) + n + 1`
+2. ulink_n26
+3. uselect0: `n & 1 ? 3n+1 : n >>> e3`
+4. ulink_n28__1
+5. ucmpi2: `n != 1`
+6. ucond_br6_j and ucond_br6 (n's steer)
+7. ulink_n_falseResult_7
+8. ucontrol_merge0
+9. ulink_n14__0 (umux0's select)
+10. umux0
+11. ulink_n10__1 (or ulink_n10__2 on the T3 route)
+12. back to uaddi0
+
+As for xorshift, it runs once on rising edges and once on falling edges.
+
+Two of the regions on the cycle compute something every iteration:
+- **uaddi0:** logic 5.2-5.9 ns of an 11.2-11.9 ns delay.
+- **uselect0:** logic 2.8-2.9 ns of a 12.2-12.4 ns delay.
+
+Both shift by a constant 1 that reaches the region as a **data channel**: handshake `constant4`, fired once per iteration and forked five ways, so it is not folded into the region. yosys therefore builds two 32-bit barrel shifters. The delays are sized to the barrel shifters' static paths, while the trace sees the shift-by-one paths. That is PROGRAM's "a constant shift synthesised as a barrel shifter", measured: 16.3 ns (cs) and 14.6 ns (T3) of excess delay on the cycle, in these two regions alone.
+
+The rest of the cycle again bundles data that does not change in steady state:
+- ucmpi2's result is 1 until exit (8.0-8.4 ns of delay, logic 0, worst seen 3.1-3.3 ns).
+- ulink_n14__0 carries umux0's select (4.1-7.1 ns of rdly on the rise and again on the fall).
+
+Links on the cycle: ulink_n26, ulink_n28__1, ulink_n10__x and ulink_n14__0 are rule-1 measurability sites. ulink_n_falseResult_7 is the rule-2 ring-storage link (floor 3).
+
+| stage (cs) | ns on the cycle | RTZ | excess | logic |
+|---|---:|---:|---:|---:|
+| uselect0 (select, barrel shift) | 14.57 | 1.47 | 9.58 | 2.82 |
+| uaddi0 (3n+1, barrel shift) | 14.09 | 1.30 | 6.68 | 5.23 |
+| ulink_n14__0 (umux0 select) | 9.78 | 4.89 | 4.11 | 0 |
+| ucmpi2 (n != 1) | 9.66 | 1.17 | 7.95 | 0 |
+| ucontrol_merge0 | 5.99 | 1.86 | 1.72 | 1.29 |
+| umux0 | 3.06 | 1.53 | 0.95 | 0 |
+| ulink_n_falseResult_7 | 2.24 | 1.12 | 0 | 0 |
+| ucond_br6 + ucond_br6_j | 3.01 | 1.51 | 0 | 0 |
+| ulink_n10__1 / ulink_n28__1 / ulink_n26 | 1.43 / 1.42 / 1.31 | 0.72 / 0.71 / 0.65 | 0 | 0 |
+| ucontrol_merge0_f | 1.26 | 0.63 | 0 | 0 |
+
+### Levers, ranked (cs; T3)
+
+1. **Delays overcovering their block:**
+   - The excess is 31.0 ns (46%); T3 37.7 ns.
+   - Sizing every delay on the cycle to the worst settle seen in this run would recover 24.4 ns; T3 31.4 ns. That is not safe as it stands: it is input-dependent and the guard must be kept.
+   - The structural part is folding the shift-by-one constant into uaddi0 and uselect0, which removes the barrel shifters: up to 16.3 ns; T3 14.6 ns.
+2. **Two-phase:** 17.6 ns (26%); T3 21.7 ns.
+3. **Fewer stages:** the four rule-1 links hold 13.9 ns; T3 19.1 ns. ulink_n14__0, a 1-bit select, holds 9.8 and 15.1 ns of that.
+4. **Routing:** 8.8 ns of req/ack wires, plus most of every chain.
+5. **Fast fall** on the chains that still fall at full cost (ulink_n14__0's rdly and umux0's udly): 5.1 ns; T3 9.9 ns.
+
+### Across the two kernels
+
+- logic + handshake is 2.2 ns per iteration (xorshift) and 10.4-10.6 ns (collatz). Dynamatic's closed clock period is 12.73 ns and 14.05 ns.
+- The async builds are 3.1-4.5x (xorshift) and 4.8-5.5x (collatz) slower. The difference is excess delay (30-49%), RTZ (26-44%) and routing (10-20%). It is not logic.
+- RTZ costs E = P / (P - RTZ) = 1.78x on xorshift and 1.35x on collatz, against the x1.5 that README.md's model assumes.
+- The "matched delays are the cost" claim holds on collatz, where its datapath delays are on the cycle. It does not hold on xorshift, where the datapath is off the cycle and the delays that cost are on the loop-control ring.
+
 ## Not shown
 
 - One route per build, at the calibrated bands (no scatter, no PVT corner), on the simulator, not silicon.
-- Settle times depend on the inputs (one seed value, 256 rounds), so the "worst settle seen" is not a bound.
-- Collatz: next (PROGRAM: "xorshift first, then collatz").
+- Settle times depend on the inputs (one value per kernel), so the "worst settle seen" is not a bound.
+- Only the first critical cycle. Once a lever shortens it, another ring becomes critical. For xorshift, the xor ring has at least 0.5 ns of slack (`lengthen.tsv`); how much more is not measured.

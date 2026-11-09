@@ -3132,3 +3132,18 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   alone 9.2); excess delay 11.8 (5.3 if sized to the worst settle seen -- not safe); fast fall on full-cost chains 6.9.
   Retired: "the xorshift's datapath delays are the cost" (they are off the cycle on these routes).
 - Does not show: one route per build, sim not silicon, input-dependent settles. Collatz next.
+### progress 09:55 (PROGRAM FIRST item, collatz: the cycle is the n datapath; two barrel shifters from a forked constant)
+- Same flow on the board list's collatz seed-1 bench routes (T3 6134880a, per-cell cs 1ab39716), n=6171 (261 steps)
+  twice: every one of 518 steady-state iterations traced, all close exactly, categories sum to each period; even and
+  odd steps have the identical period (both branches computed, a select picks): cs 67.82 ns, T3 77.56 ns. umux1 is
+  off the cycle (marker n26_u_req). Lengthening: uselect0 element +500 ps -> 1479 -> 1490 cycles (pred. 1489.9),
+  uaddi1 (step counter) +0.
+- Cycle: uaddi0 (3n+1) -> uselect0 -> ucmpi2 (n != 1) -> steer -> merge -> ulink_n14__0 (select) -> umux0 -> uaddi0.
+  cs / T3: excess 46% / 49%, RTZ 26% / 28%, routing 13% / 10%, logic 14% / 12%, handshake 1.6% / 1.4%; logic +
+  handshake 10.4 / 10.6 ns vs Dynamatic 14.05.
+- uaddi0 and uselect0 shift by a constant 1 that arrives as a DATA channel (handshake constant4, forked 5 ways, not
+  folded), so yosys builds 32-bit barrel shifters and the delays are sized to them: 16.3 ns (cs) of excess on the
+  cycle in those two regions -- PROGRAM's "constant shift synthesised as a barrel shifter", measured.
+- research/data/itercost/README.md has both kernels, the method, the self-checks and the ranked levers. Retired on
+  xorshift / held on collatz: "the datapath's matched delays are the cost". RTZ factor E = 1.78 (xorshift), 1.35
+  (collatz) vs the model's 1.5. Not shown: other routes, PVT, silicon, the next critical cycle once one shortens.

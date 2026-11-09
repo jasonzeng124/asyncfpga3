@@ -93,72 +93,127 @@ def settle(nets, t_lo, t_hi):
 m = N.inv[P + MK]
 rises = [t for t, v in ev[m] if v == "1"]
 pers = [b - a for a, b in zip(rises, rises[1:])]
-mode = collections.Counter(pers).most_common(1)[0][0]
-k = len(rises) * 3 // 4
-while pers[k - 1] != mode: k -= 1
-hops, end = T.chain(m, rises[k], stop=lambda n, t: t <= rises[k - 1])
-closes = end[1] == m and end[2] == rises[k - 1]
-period = rises[k] - rises[k - 1]
-bad = [h for h in hops if h["slack"] != 0]
-summ = []
-summ.append("marker %s: %d rises, period histogram %s" % (MK, len(rises), sorted(collections.Counter(pers).items())))
-summ.append("cycle: %d hops, period %d ps, closes on the marker: %s, inexact hops: %d" % (len(hops), period, closes, len(bad)))
-if not closes or bad:
-    open(OUT + "/summary.txt", "w").write("\n".join(summ) + "\nNOT A CYCLE: stop\n"); print("\n".join(summ)); sys.exit(1)
-hops = hops[::-1]
 
-# ---- 2. categories -----------------------------------------------------------------------------------------------
-for h in hops:
-    h["lname"] = logical(h["cell"], h["port"], cn, bels)
-    h["role"] = role(h["lname"])
-    h["dt"] = h["tout"] - h["t"]
-    nm = h["lname"][len(P):] if h["lname"].startswith(P) else h["lname"]
-    h["stage"] = nm.split(".")[0]
-    h["ctl"] = h["role"] != "logic"
-    h["fall"] = h["edge"] == "0" and h["ctl"]
-# delay instance runs on the cycle (consecutive hops through one instance, rising)
-runs, cur = [], None
-for i, h in enumerate(hops):
-    if h["role"] == "delay" and not h["fall"]:
-        di = delay_inst(h["lname"])
-        if cur and cur["inst"] == di and cur["end"] == i - 1: cur["end"] = i; cur["d"] += h["dt"]
+
+CLASS_DATA = sys.argv[sys.argv.index("--class-data") + 1] if "--class-data" in sys.argv else MK.replace("_req", "_data")
+if "--class-data" in sys.argv and CLASS_DATA in a: a.remove(CLASS_DATA)
+
+
+def marker_value(t):
+    """the data word CLASS_DATA (default: the marker channel's _data) at time t, or None"""
+    nets = nets_of(CLASS_DATA)
+    if not nets: return None
+    byname = {N.name[n]: n for n in nets}
+    v = 0
+    for i in range(64):
+        n = byname.get(P + CLASS_DATA + "[%d]" % i)
+        if n is None: break
+        if T.val_at(n, t) == "1": v |= 1 << i
+    return v
+
+
+def one_cycle(k):
+    """the critical cycle ending at rises[k]: (hops, period, closes, n_inexact, cat, stage, rtz_by, drows)"""
+    hops, end = T.chain(m, rises[k], stop=lambda n, t: t <= rises[k - 1])
+    closes = end[1] == m and end[2] == rises[k - 1]
+    period = rises[k] - rises[k - 1]
+    bad = [h for h in hops if h["slack"] != 0]
+    hops = hops[::-1]
+    for h in hops:
+        h["lname"] = logical(h["cell"], h["port"], cn, bels)
+        h["role"] = role(h["lname"])
+        h["dt"] = h["tout"] - h["t"]
+        nm = h["lname"][len(P):] if h["lname"].startswith(P) else h["lname"]
+        h["stage"] = nm.split(".")[0]
+        h["ctl"] = h["role"] != "logic"
+        h["fall"] = h["edge"] == "0" and h["ctl"]
+    runs, cur = [], None
+    for i, h in enumerate(hops):
+        if h["role"] == "delay" and not h["fall"]:
+            di = delay_inst(h["lname"])
+            if cur and cur["inst"] == di and cur["end"] == i - 1: cur["end"] = i; cur["d"] += h["dt"]
+            else:
+                cur = dict(inst=di, start=i, end=i, d=h["dt"], t_a=h["t"]); runs.append(cur)
+        else: cur = None
+    cat = collections.Counter(); stage = collections.defaultdict(collections.Counter); rtz_by = collections.Counter()
+    for h in hops:
+        s = h["stage"]
+        if h["fall"]:
+            cat["rtz"] += h["dt"]; stage[s]["rtz"] += h["dt"]; rtz_by[h["role"]] += h["dt"]
+        elif h["role"] == "delay": pass
+        elif h["role"] == "logic":
+            cat["logic"] += h["dt"]; stage[s]["logic"] += h["dt"]
         else:
-            cur = dict(inst=di, start=i, end=i, d=h["dt"], t_a=h["t"]); runs.append(cur)
-    else: cur = None
-cat = collections.Counter(); stage = collections.defaultdict(collections.Counter); rtz_by = collections.Counter()
-for h in hops:
-    s = h["stage"]
-    if h["fall"]:
-        cat["rtz"] += h["dt"]; stage[s]["rtz"] += h["dt"]; rtz_by[h["role"]] += h["dt"]
-    elif h["role"] == "delay": pass                       # split below
-    elif h["role"] == "logic":
-        cat["logic"] += h["dt"]; stage[s]["logic"] += h["dt"]
-    else:
-        cat["routing"] += h["wire"]; cat["handshake"] += h["arc"]
-        stage[s]["routing"] += h["wire"]; stage[s]["handshake"] += h["arc"]
-drows = []
-for r in runs:
-    inst, kind = r["inst"]; t_a = r["t_a"]; t_b = hops[r["end"]]["tout"]
-    nets, what = bundled(inst) if kind != "uack" else ([], "ack delay (no data)")
-    s = settle(nets or [], t_a - period // 2, t_b) if nets else None
-    lg = 0 if s is None else max(0, min(s - t_a, r["d"]))
-    ex = r["d"] - lg
-    cat["logic"] += lg; cat["excess"] += ex
-    st_ = inst.split(".")[0]; stage[st_]["logic"] += lg; stage[st_]["excess"] += ex
-    drows.append((inst, kind, r["end"] - r["start"] + 1, r["d"], lg, ex, "-" if s is None else s - t_a, what, len(nets or [])))
+            cat["routing"] += h["wire"]; cat["handshake"] += h["arc"]
+            stage[s]["routing"] += h["wire"]; stage[s]["handshake"] += h["arc"]
+    drows = []
+    for r in runs:
+        inst, kind = r["inst"]; t_a = r["t_a"]; t_b = hops[r["end"]]["tout"]
+        nets, what = bundled(inst) if kind != "uack" else ([], "ack delay (no data)")
+        s = settle(nets or [], t_a - period // 2, t_b) if nets else None
+        lg = 0 if s is None else max(0, min(s - t_a, r["d"]))
+        ex = r["d"] - lg
+        cat["logic"] += lg; cat["excess"] += ex
+        st_ = inst.split(".")[0]; stage[st_]["logic"] += lg; stage[st_]["excess"] += ex
+        drows.append((inst, kind, r["end"] - r["start"] + 1, r["d"], lg, ex, "-" if s is None else s - t_a, what, len(nets or [])))
+    return hops, period, closes, len(bad), cat, stage, rtz_by, drows
+
+
+summ = ["marker %s: %d rises, period histogram (top 12) %s" % (MK, len(rises), sorted(collections.Counter(pers).most_common(12)))]
+KEYS = ("logic", "excess", "handshake", "routing", "rtz")
+# every interval after the first rise (--all), classified; else the representative steady-state one
+ALL = "--all" in sys.argv
+CLASS = sys.argv[sys.argv.index("--class") + 1] if "--class" in sys.argv else None   # 'parity': marker data & 1
+if CLASS in a: a.remove(CLASS)
+rows = []
+if ALL:
+    for k in range(1, len(rises)):
+        if pers[k - 1] > 3 * min(pers): continue            # a gap between vector runs, not an iteration
+        hk, pk, ck, bk, catk, _, _, _ = one_cycle(k)
+        v = marker_value(rises[k - 1])
+        cls = ("odd" if v & 1 else "even") if (CLASS == "parity" and v is not None) else "all"
+        rows.append((k, rises[k], pk, ck, bk, len(hk), cls, v, catk))
+    with open(OUT + "/iterations.tsv", "w") as f:
+        f.write("k\tt_ps\tperiod_ps\tcloses\tinexact\thops\tclass\tmarker_data_at_start\t" + "\t".join(x + "_ps" for x in KEYS) + "\tsum_minus_period_ps\n")
+        for (k, tk, pk, ck, bk, nh, cls, v, catk) in rows:
+            f.write("%d\t%d\t%d\t%s\t%d\t%d\t%s\t%s\t%s\t%d\n" % (k, tk, pk, ck, bk, nh, cls, v, "\t".join(str(catk[x]) for x in KEYS), sum(catk.values()) - pk))
+    good = [r for r in rows if r[3] and r[4] == 0]
+    summ.append("intervals traced: %d; closed and exact: %d; sum == period on all of those: %s" % (
+        len(rows), len(good), all(sum(r[8].values()) == r[2] for r in good)))
+    for cls in sorted(set(r[6] for r in good)):
+        g = [r for r in good if r[6] == cls]
+        mp = st.mean(r[2] for r in g)
+        summ.append("class %-5s n=%3d  period mean %.2f ns (min %.2f max %.2f)  " % (cls, len(g), mp / 1e3, min(r[2] for r in g) / 1e3, max(r[2] for r in g) / 1e3)
+                    + "  ".join("%s %.2f (%.1f%%)" % (x, st.mean(r[8][x] for r in g) / 1e3, 100 * st.mean(r[8][x] for r in g) / mp) for x in KEYS))
+# representative: the steady-state interval (3/4 through) with the modal period, or of the given class
+k = len(rises) * 3 // 4
+if ALL and "--rep-class" in sys.argv:
+    want = sys.argv[sys.argv.index("--rep-class") + 1]
+    cand = [r for r in rows if r[6] == want and r[3] and r[4] == 0]
+    mp = st.median(r[2] for r in cand); k = min(cand, key=lambda r: (abs(r[2] - mp), -r[0]))[0]
+else:
+    mode = collections.Counter(pers).most_common(1)[0][0]
+    while pers[k - 1] != mode: k -= 1
+hops, period, closes, nbad, cat, stage, rtz_by, drows = one_cycle(k)
+summ.append("representative cycle (rise %d): %d hops, period %d ps, closes on the marker: %s, inexact hops: %d" % (k, len(hops), period, closes, nbad))
+if not closes or nbad:
+    open(OUT + "/summary.txt", "w").write("\n".join(summ) + "\nNOT A CYCLE: stop\n"); print("\n".join(summ)); sys.exit(1)
 tot = sum(cat.values())
 
 # ---- the same delays over the WHOLE run: worst settle relative to the delay's own input rise ----------------------
 def worst_over_run(inst, kind):
     nets, what = bundled(inst) if kind != "uack" else ([], "")
     if not nets: return None, None, 0
-    # the instance's output net: the chain element whose output leaves the instance on the cycle
     outs = [h["out"] for h in hops if h["role"] == "delay" and delay_inst(h["lname"]) == (inst, kind)]
     zo = outs[-1]; wl, ml, n = None, None, 0
+    def inside(nn):
+        d = N.drv.get(nn)
+        if not d: return False
+        ln = logical(d[0], d[1], cn, bels)
+        return role(ln) == "delay" and delay_inst(ln) == (inst, kind)
     for t, v in ev[zo]:
         if v != "1": continue
-        ch, _ = T.chain(zo, t, stop=lambda nn, tt: not (N.drv.get(nn) and role(logical(N.drv[nn][0], N.drv[nn][1], cn, bels)) == "delay"
-                                                         and delay_inst(logical(N.drv[nn][0], N.drv[nn][1], cn, bels)) == (inst, kind)))
+        ch, _ = T.chain(zo, t, stop=lambda nn, tt: not inside(nn))
         if not ch: continue
         t_in = ch[-1]["t"]; s = settle(nets, t_in - period // 2, t)
         n += 1
@@ -185,8 +240,8 @@ with open(OUT + "/stages.tsv", "w") as f:
     f.write("stage\t" + "\t".join(k + "_ps" for k in keys) + "\ttotal_ps\n")
     for s in sorted(stage, key=lambda s: -sum(stage[s].values())):
         f.write("%s\t%s\t%d\n" % (s, "\t".join(str(stage[s][k]) for k in keys), sum(stage[s].values())))
-summ.append("stages on the cycle: %d (%s)" % (len(stage), ", ".join(sorted(stage))))
-for k in ("logic", "excess", "handshake", "routing", "rtz"):
+summ.append("representative cycle -- stages on the cycle: %d (%s)" % (len(stage), ", ".join(sorted(stage))))
+for k in KEYS:
     summ.append("  %-10s %7d ps  %5.1f%%" % (k, cat[k], 100.0 * cat[k] / period))
 summ.append("  sum        %7d ps vs period %d ps: %s (%+.3f%%)" % (tot, period, "OK" if abs(tot - period) <= 0.01 * period else "FAIL",
                                                                  100.0 * (tot - period) / period))
