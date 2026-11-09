@@ -1291,3 +1291,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-08T21:37:42Z T49: H_RUNT rig bit = committed FASM (own read-back + fasm2frames, identical frames); 5FF scan clean.
 - 2026-11-09T09:42:31Z T50 started: C's reset_quiet_PS (06e25398, THE target's 3,224-node reset island) -- build51 at formal head; planned independent check: every member holds valR during reset in own-checked behaviours (k44w20, k40w20, k72w20 dumps).
 - 2026-11-09T10:00:27Z T50 done: reset_quiet_PS CONFIRMED (build, axioms, statement; all 3,224 members match valR in 4 own-checked behaviours; non-vacuous).
+- 2026-11-09T10:32:41Z T51: uselect1_ps + generic modules (49) CONFIRMED; own evaluation of decoded uselect1 gates matches |e0-e1| on 300 pairs.
