@@ -2647,3 +2647,11 @@ Next, in order: (1) commit the units after check.sh; timed versions of the condi
 (2) the re-open latch-chain step that leaves 61/82 guards failing at (12,18) (with B); (3) the bundling half of S4:
 operands held on [T0, T1] from the link/latch handshake, so uselect1_timed's hypothesis is derived; (4) window
 coverage + the unrolled-certificate assembly; (5) TimedBridge's 57 duplicate-source gates (B's 10:3x suggestion).
+
+### progress 11:25 -- AO/Window: `lcheckXA_of_windows` (check.sh OK, with WindowT: 415 declarations)
+The long certificate's `LCheckXA` at a node follows from a family of windows (`WinAt`: window certificate, offsets,
+correspondence facts) plus coverage: every count vector the check ranges over lies in some window's box. Coverage
+stays an explicit hypothesis (instance property). Also a note on B's 10:3x item (57 gates reading one source on two
+pins): `TimedBridge.GateFact` already allows any per-pin source map and arcs, so B's fix (keep those gates' raw pin
+nodes as sources and add each pin node as a copy gate with its collapsed chain) needs no generic change; it is an
+instance choice.

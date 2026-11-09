@@ -19,7 +19,8 @@ not passed its end), the long certificate's local check follows from the window 
   rule at `v` reads only the dependency set and data nodes (`hT`).
 
 **Proved:** `altIn_corr`, `enabled_window`, `dv_window`, `lcheckXA_window` (the conclusion of the long local check,
-at every count vector in the box, from the window's local check).
+at every count vector in the box, from the window's local check), `lcheckXA_of_windows` (the long check from a family
+of windows, given that every count vector the check ranges over lies in some window's box).
 
 **Not shown here:** that every count vector the long check quantifies over lies in some window's box (coverage; an
 instance property), the timing checks (`TOA`, `SepOK`, `UpOKA`, `GuardTime`) for windows, any instance.
@@ -281,5 +282,38 @@ theorem lcheckXA_window {N : TNet α} {dat : α → Bool} {envEn : α → (α �
     · intro u hu; unfold mix; simp [hu]
   rw [hst, h]
   exact (enabled_window hcs hbox1 hv hlen hcD).symm
+
+/-- A window of a long certificate, as seen from reader `v`: the window certificate and its data, the offsets, and
+the correspondence facts `lcheckXA_window` needs. -/
+structure WinAt (N : TNet α) (dat : α → Bool) (envEn : α → (α → Bool) → Bool) (s0 : α → Bool) (C : Cert α)
+    (L : α → Nat → α → Nat) (D : α → List α) (cl : List (Claim α)) (gd : α → α → List (Guard α)) (v : α) where
+  C' : Cert α
+  L' : α → Nat → α → Nat
+  s0' : α → Bool
+  cl' : List (Claim α)
+  gd' : α → α → List (Guard α)
+  o : α → Nat
+  co : Nat
+  hc : LCheckXA N dat envEn s0' C' L' D cl' gd' v
+  hs0 : ∀ u ∈ D v, s0' u = st s0 o u
+  hcs : ∀ k, k < C'.len v → k + o v < C.len v ∧ Pw (AltCorr (D v) o) (C.causes v (k + o v)) (C'.causes v k)
+  hcD : ∀ k, k < C'.len v → ∀ alt ∈ C'.causes v k, ∀ q ∈ alt, q.1 ∈ D v
+  hgd : ∀ z, dat z = true → z ∈ N.pins v → GuardsCorr C' (D v) o co cl cl' (gd v z) (gd' v z)
+  hL : ∀ a ∈ D v, ∀ b ∈ D v, ∀ k, k < C'.len a → L' a k b = 0 ∨ L' a k b + o b ≤ L a (k + o a) b
+
+/-- **The long local check from windows and coverage**: if every count vector the long check ranges over lies in the
+box of some window (`hcov`), the long check holds. -/
+theorem lcheckXA_of_windows {N : TNet α} {dat : α → Bool} {envEn : α → (α → Bool) → Bool} {s0 : α → Bool}
+    {C : Cert α} {L : α → Nat → α → Nat} {D : α → List α} {cl : List (Claim α)} {gd : α → α → List (Guard α)}
+    {v : α} (hv : v ∈ D v)
+    (hT : ∀ s s' : α → Bool, (∀ u ∈ D v, s u = s' u) → (∀ u, dat u = true → s u = s' u) →
+      tEn N envEn v s = tEn N envEn v s')
+    (hcov : ∀ n : α → Nat, (∀ u ∈ D v, n u ≤ C.len u) → (∀ a ∈ D v, ∀ b ∈ D v, ∀ k, k < n a → L a k b ≤ n b) →
+      ∃ W : WinAt N dat envEn s0 C L D cl gd v, (∀ u ∈ D v, W.o u ≤ n u ∧ n u ≤ W.o u + W.C'.len u) ∧
+        (n v < C.len v ↔ n v - W.o v < W.C'.len v)) :
+    LCheckXA N dat envEn s0 C L D cl gd v := by
+  intro n hlen hcons hown bb hbb
+  obtain ⟨W, hbox, hl⟩ := hcov n hlen hcons
+  exact lcheckXA_window W.o W.co W.hc hv hT W.hs0 W.hcs W.hcD W.hgd W.hL n hbox hl hcons hown bb hbb
 
 end Formal.Net.AO
