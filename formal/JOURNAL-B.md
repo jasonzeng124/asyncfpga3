@@ -3664,3 +3664,15 @@ A's second race (merge10.uarb1.ua2 pin-0 route, `tools-A/target/out/k48w20_ua2_c
 (1071, 462)) on the two wide pairs (0x49e9c618, 0x35bf992e) and (0x40000000, 0x60000000) at κ = 0.36, 0.40, 0.43,
 w = 20: all correct. So the pair dependence is specific to merge4's arbiter, which the wide pairs exercise and the
 narrow ones do not (consistent with the 0.43 sweeps, where merge10 ua2 did not fail on either wide pair).
+
+## Session Mon Nov  9 07:10:38 UTC 2026 (shard B; session_01HC49FxhoCpLyX7S4DnzarL)
+Start: lock taken 07:10 (previous B lock 2026-11-08 19:21, other session, > 90 min). Audit read (head dd23acde): every
+row on B's files CONFIRMED, including T47 (B's κ = 0.40 refutation, own build + own simulation check); no open
+REFUTED/OVERSTATED row on B's files. setup.sh running (fresh container).
+**Today's item (B), claimed now so C and A do not duplicate it.** A has claimed the κ = 9/25 periodic refutation, and the
+owner wants the extra capacity on S4/S6, so B works on C's S4 data-layer item 3 of 2026-11-08 15:21, **"tracing the
+truncated latch holds" (R2/R3)**, which is a cell question: per truncated hold, is the latch close ordered before its
+D's next change by a separation C's AO certificate can use, by one of B's latch-hold certificates (LatchHoldPinPS, 670
+latches), or by neither (a race candidate)? Deliverables: the latch-by-latch classification (tools-B, untrusted), and
+in Lean (Formal/Cells/) whatever generic lemma turns a hold certificate into the hold phase of C's `ChainOK` claim
+chain. C's own tools (formal/tools/tocc) are read and run from a scratch copy only.
