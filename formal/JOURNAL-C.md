@@ -2726,3 +2726,7 @@ instance choice.
 evaluates long pin chains), which this container's 14.3 GB cgroup cannot host next to anything else. Parked in Wip/
 (not claimed). Fix for a later session: split those chunks per member, or precompute per-member bounds as data
 checked by smaller lemmas. `reset_quiet_PS` (parametric in A, M) stands.
+
+### progress 18:14 -- owner: subagent cap back to 2 (usage near the weekly limit)
+Read PROGRAM.md's change (c4b98723). Two subagents are running (datapath units; data-layer soundness gaps + c=0); no
+new ones will start until one finishes, and idle polling is reduced.
