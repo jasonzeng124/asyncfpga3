@@ -6,7 +6,8 @@ import Formal.Target.RoundTripSel
 
 Shard A, 2026-11-09. Companion of `NodeMerge` (pips) and `NodeMergeLut` (LUT input pins). The decoder models a
 slice output as a copy gate `hop TILE/WIRE` (`k = 1`, INIT `0b10`) from a slice-internal node named
-`SITE.<src>` (a LUT's `A6`/`A5`, `F7A`, `F8`, a CARRY4's `XOR<i>`/`CO<i>`, a flop's `AQ`/`A5Q`) to a routing node.
+`SITE.<src>` (a LUT's `A6`/`A5`, `F7A`, `F8`, a CARRY4's `XOR<i>`/`CO<i>`; also a flop's `AQ`/`A5Q`, which the
+checks exempt: no flop is in the circuit, its outputs are free nodes) to a routing node.
 Until now nothing checked that the destination is the right output pin of the right site: a decoder that sent
 `SLICE_X0Y16.A6` to the L-slice's pin, or to another tile, passed every Lean check.
 
@@ -90,11 +91,14 @@ def chkHop (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (N : ITree) (g : G
     | none => false
   | _, _, _ => false
 
-/-- A hop that needs no certificate reads a node whose (checked) name is not a slice node. -/
+/-- A slice-logic source: a node named `SLICE…` that is not a flop output (`…Q`; no flop is in the circuit). -/
+def logicSrc (x : String) : Bool := isSliceC x.toList && !(x.toList.getLast? == some 'Q')
+
+/-- A hop that needs no certificate reads a node whose (checked) name is not a slice-logic node. -/
 def hopExempt (N : ITree) (g : Gate) : Bool :=
   !isHop g || (match g.ins with
     | [n] => (match N.get n with
-      | some x => !isSliceC x.toList
+      | some x => !logicSrc x
       | none => false)
     | _ => false)
 
@@ -125,13 +129,28 @@ def chkHopList (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (N : ITree) : 
       | none => hopExempt N g) && chkHopList D P Q3 C N gs cs
   | _, _ => false
 
-/-- The claim per gate: a hop reading a node whose name starts with `SLICE` is checked. -/
-abbrev HopClaim (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (nm : Nat → String) (g : Gate) : Prop :=
-  isHop g = true → (∀ n, g.ins = [n] → isSliceC (nm n).toList = true) → HopOK D P Q3 C nm g
+/-- The claim per gate: every hop reads one node, named in the certificate `N`; a hop reading a slice-logic node
+(named `SLICE…`, not a flop's `…Q`) is checked. -/
+abbrev HopClaim (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (N : ITree) (nm : Nat → String) (g : Gate) : Prop :=
+  isHop g = true → (∃ n, g.ins = [n] ∧ (N.get n).isSome = true) ∧
+    ((∀ n, g.ins = [n] → logicSrc (nm n) = true) → HopOK D P Q3 C nm g)
+
+theorem chkHop_in {D : DB} {P : SP} {Q3 : SP3} {C : NT (Nat × Nat)} {N : ITree} {g : Gate} {c : HC}
+    (h : chkHop D P Q3 C N g c = true) : ∃ n, g.ins = [n] ∧ (N.get n).isSome = true := by
+  unfold chkHop at h
+  split at h
+  · rename_i S src p n hS ht hg
+    split at h
+    · split at h
+      · rename_i x w a hx hw ha
+        exact ⟨n, hg, by rw [hx]; rfl⟩
+      · simp at h
+    · simp at h
+  · simp at h
 
 theorem chkHopList_sound (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (N : ITree) (nm : Nat → String)
     (hN : ∀ i x, N.get i = some x → nm i = x) : ∀ (gs : List Gate) (cs : List (Option HC)),
-    chkHopList D P Q3 C N gs cs = true → ∀ g ∈ gs, HopClaim D P Q3 C nm g
+    chkHopList D P Q3 C N gs cs = true → ∀ g ∈ gs, HopClaim D P Q3 C N nm g
   | [], [], _, g, hg => by simp at hg
   | [], _ :: _, h, _, _ => by simp [chkHopList] at h
   | _ :: _, [], h, _, _ => by simp [chkHopList] at h
@@ -139,15 +158,16 @@ theorem chkHopList_sound (D : DB) (P : SP) (Q3 : SP3) (C : NT (Nat × Nat)) (N :
     simp only [chkHopList, Bool.and_eq_true] at h
     obtain ⟨h1, h2⟩ := h
     rcases List.mem_cons.1 hg with rfl | hg
-    · intro hh hs
+    · intro hh
       split at h1
-      · exact chkHop_sound hN h1
-      · exfalso
-        simp only [hopExempt, hh, Bool.not_true, Bool.false_or] at h1
+      · exact ⟨chkHop_in h1, fun _ => chkHop_sound hN h1⟩
+      · simp only [hopExempt, hh, Bool.not_true, Bool.false_or] at h1
         split at h1
         · rename_i n hn
           split at h1
           · rename_i x hx
+            refine ⟨⟨n, hn, by rw [hx]; rfl⟩, fun hs => ?_⟩
+            exfalso
             have := hs n hn
             rw [hN n x hx] at this
             simp [this] at h1
@@ -243,5 +263,31 @@ theorem hop_from_gate {D : DB} {P : SP} {Q3 : SP3} {C : NT (Nat × Nat)} {nm : N
   subst e2
   refine ⟨S, T, gs, os, p, w, ?_, hgo, hp, hT, hw, hc⟩
   rw [hgn, e1]
+
+/-- Every value of an `NT` tree satisfies `f`. -/
+def NT.allB {α : Type} (f : α → Bool) : NT α → Bool
+  | .nil => true
+  | .leaf _ v => f v
+  | .node _ l r => NT.allB f l && NT.allB f r
+
+theorem NT.get_allB {α : Type} (f : α → Bool) : ∀ (t : NT α) (i : Nat) (v : α), NT.allB f t = true → t.get i = some v →
+    f v = true
+  | .nil, _, _, _, h => by simp [NT.get] at h
+  | .leaf j w, i, v, ha, h => by
+    simp only [NT.get] at h
+    split at h
+    · simp only [Option.some.injEq] at h; subst h; exact ha
+    · simp at h
+  | .node m l r, i, v, ha, h => by
+    simp only [NT.allB, Bool.and_eq_true] at ha
+    simp only [NT.get] at h
+    split at h
+    · exact NT.get_allB f l i v ha.1 h
+    · exact NT.get_allB f r i v ha.2 h
+
+def dotFree (s : String) : Bool := !s.toList.contains '.'
+
+theorem dotFree_sound {s : String} (h : dotFree s = true) : '.' ∉ s.toList := by
+  simpa [dotFree] using h
 
 end Formal.Target.NM

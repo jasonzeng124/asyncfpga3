@@ -414,6 +414,163 @@ def main():
     L += ["", "end Formal.Target.NM.Data"]
     open(os.path.join(out, "AllX.lean"), "w").write("\n".join(L) + "\n")
     print("gen_nm: %d MUXF/CARRY4 gates, constants %s" % (nx, Kc))
+
+    # site output hops (NodeMergeHop): output-pin wires, a name certificate, per-chunk hop and out-name checks
+    OUTP = ["A", "B", "C", "D", "AMUX", "BMUX", "CMUX", "DMUX", "COUT", "AQ", "BQ", "CQ", "DQ"]
+    HOPT = [("A6", 0), ("B6", 1), ("C6", 2), ("D6", 3), ("A6", 4), ("A5", 4), ("B6", 5), ("B5", 5), ("C6", 6), ("C5", 6),
+            ("D6", 7), ("D5", 7), ("F7A", 4), ("F8", 5), ("F7B", 6), ("XOR0", 4), ("XOR1", 5), ("XOR2", 6), ("XOR3", 7),
+            ("CO0", 4), ("CO1", 5), ("CO2", 6), ("CO3", 7), ("CO3", 8), ("A5Q", 4), ("B5Q", 5), ("C5Q", 6), ("D5Q", 7),
+            ("AQ", 9), ("BQ", 10), ("CQ", 11), ("DQ", 12)]
+    OUTT = [("ALUT.O6", "A6"), ("ALUT.O5", "A5"), ("BLUT.O6", "B6"), ("BLUT.O5", "B5"), ("CLUT.O6", "C6"), ("CLUT.O5", "C5"),
+            ("DLUT.O6", "D6"), ("DLUT.O5", "D5"), ("F7A", "F7A"), ("F7B", "F7B"), ("F8", "F8"), ("CARRY4.O0", "XOR0"),
+            ("CARRY4.O1", "XOR1"), ("CARRY4.O2", "XOR2"), ("CARRY4.O3", "XOR3"), ("CARRY4.CO0", "CO0"), ("CARRY4.CO1", "CO1"),
+            ("CARRY4.CO2", "CO2"), ("CARRY4.CO3", "CO3")]
+    keys3 = {}
+    looked = set()
+    hc_rows, oc_rows = [], []
+    nh = no = 0
+    hopn = set()
+    for ci, gs in enumerate(chunks):
+        for g in gs:
+            if g[0].startswith("hop ") and g[1] == 1:
+                looked.add(g[2][0])
+                if names[g[2][0]].startswith("SLICE") and not names[g[2][0]].endswith("Q"):
+                    hopn.add(g[2][0])
+    for ci, gs in enumerate(chunks):
+        hr, orow = [], []
+        for g in gs:
+            nm_, k, ins, o = g
+            if nm_.startswith("hop ") and k == 1 and ins[0] in hopn:
+                site, src = names[ins[0]].split(".", 1)
+                if site not in SI:
+                    sys.exit("hop source site %s not in the LUT site table" % site)
+                t = site_tile[site]; ty = grid[t]["type"]; r = rank(site); kk = TY[ty] * 2 + r
+                if kk not in keys3:
+                    z = [z for z in ttj(ty)["sites"] if z["x_coord"] == r and z["prefix"] == "SLICE"][0]
+                    row = []
+                    for pi, pn in enumerate(OUTP):
+                        w = z["site_pins"][pn]["wire"]
+                        if w in WI:
+                            row.append((pi, WI[w]))
+                    keys3[kk] = dict(row)
+                if canon.get(o) is None:
+                    sys.exit("hop output node not canonical: %s" % nm_)
+                ta, wa = canon[o]
+                cand = [ti for ti, (sx, pi) in enumerate(HOPT) if sx == src and keys3[kk].get(pi) is not None
+                        and (TI[ta], WI[wa]) == (TI[t], keys3[kk][pi])]
+                if not cand:
+                    sys.exit("hop %s: no allowed pin (src %s, dst %s/%s)" % (nm_, src, ta, wa))
+                hr.append("some ⟨%d, %d⟩" % (SI[site], cand[0])); nh += 1
+            else:
+                hr.append("none")
+            if o in hopn:
+                m = re.match(r"(SLICE_X\d+Y\d+)\.(.*)$", nm_)
+                ti = [i for i, (a, b) in enumerate(OUTT) if m and a == m.group(2) and names[o] == m.group(1) + "." + b]
+                if not ti or m.group(1) not in SI:
+                    sys.exit("out-name: gate %s drives %s" % (nm_, names[o]))
+                orow.append("some ⟨%d, %d⟩" % (SI[m.group(1)], ti[0])); no += 1
+            else:
+                orow.append("none")
+        hc_rows.append(hr); oc_rows.append(orow)
+    # name certificate over the hop-read nodes (as gen_rtsel.py's N.lean)
+    lens, noff = [], []
+    src_n = open(os.path.join(NETD, "Nodes.lean")).read()
+    order = re.search(r'def names : List String := (.*)\n', src_n).group(1).split(" ++ ")
+    dd = dict(re.findall(r'def (n\d\d) : List String := \[(.*?)\]\n', src_n, re.S))
+    off = 0
+    for kname in order:
+        c = len(re.findall(r'"((?:[^"\\]|\\.)*)"', dd[kname.strip()]))
+        noff.append(off); lens.append(c); off += c
+    K = len(order)
+    def itree(items, lo, hi):
+        if hi <= lo:
+            return ".nil"
+        if hi - lo == 1:
+            return '(.leaf "%s" %d)' % (items[lo][0], items[lo][1])
+        mid = (lo + hi) // 2
+        return "(.node %d %s %s)" % (items[mid][1], itree(items, lo, mid), itree(items, mid, hi))
+    per = [[(names[i], i) for i in sorted(looked) if noff[k] <= i < noff[k] + lens[k]] for k in range(K)]
+    L = ["import Formal.Target.NetPS.Nodes", "import Formal.Target.NodeMergeHop", "", hdr,
+         "set_option linter.unusedSimpArgs false", "",
+         "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.RT Formal.Target.RTS Formal.Target.NM Formal.Target.DecodedPS", ""]
+    for k in range(K):
+        L.append("theorem hl%02d : n%02d.length = %d := by decide +kernel" % (k, k, lens[k]))
+    for k in range(K):
+        L += ["", "set_option maxRecDepth 100000 in", "def ht%02d : ITree := %s" % (k, itree(per[k], 0, len(per[k])))]
+    def top_tree(lo, hi):
+        if hi - lo == 1:
+            return "ht%02d" % lo
+        mid = (lo + hi) // 2
+        return "(.node %d %s %s)" % (noff[mid], top_tree(lo, mid), top_tree(mid, hi))
+    L += ["", "/-- Every node a hop reads, with its name (certificate; checked by `hNH`). -/", "def NH : ITree := " + top_tree(0, K)]
+    for k in range(K):
+        A = " ++ ".join("n%02d" % i for i in range(k)) or "[]"
+        B = " ++ ".join("n%02d" % i for i in range(k + 1, K)) or "[]"
+        ls = ", ".join("hl%02d" % i for i in range(k))
+        L += ["", "set_option maxRecDepth 100000 in",
+              "theorem hh%02d : ∀ p ∈ ht%02d.leaves, names.getD p.2 \"\" = p.1 := by" % (k, k),
+              "  have e : names = (%s) ++ n%02d ++ (%s) := by simp only [names, List.append_assoc, List.nil_append, List.append_nil]" % (A, k, B),
+              "  rw [e]",
+              "  exact chkN_mid _ _ _ %d (by simp only [List.length_append, List.length_nil%s]) _ (by decide +kernel)" % (noff[k], (", " + ls) if ls else "")]
+    def top_proof(lo, hi):
+        if hi - lo == 1:
+            return "hh%02d" % lo
+        mid = (lo + hi) // 2
+        return "(ITree.forall_node _ _ _ %s %s)" % (top_proof(lo, mid), top_proof(mid, hi))
+    L += ["", "theorem hNH : ∀ p ∈ NH.leaves, names.getD p.2 \"\" = p.1 :=", "  " + top_proof(0, K), "",
+          "theorem hNHget : ∀ i x, NH.get i = some x → names.getD i \"\" = x :=",
+          "  fun i x h => hNH _ (ITree.get_sound NH i x h)", "",
+          "-- slice output-pin wires (tile_type_*.json): key ty * 2 + rank, then pin index (NodeMergeHop.outPins) -> wire",
+          "def outs3 : NT (NT Nat) := " + tree(sorted((k_, sorted(v.items())) for k_, v in keys3.items()), lambda row: tree(row, lambda w: "%d" % w)),
+          "", "def Q3 : SP3 := ⟨outs3⟩", "", "end Formal.Target.NM.Data"]
+    open(os.path.join(out, "H.lean"), "w").write("\n".join(L) + "\n")
+    for ci, gs in enumerate(chunks):
+        L = ["import FormalWit.NM.H", "import FormalWit.NM.S", "import FormalWit.NM.DB", "import FormalWit.NM.C",
+             "import Formal.Target.NetPS.G%03d" % ci, "", hdr,
+             "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
+             "theorem gh%03d_len : g%03d.length = %d := by decide +kernel" % (ci, ci, len(gs)), "",
+             "abbrev PH%03d : Gate → Prop := fun g => HopClaim D P Q3 C NH (fun i => names.getD i \"\") g ∧ OutClaim P NH (fun i => names.getD i \"\") g" % ci, ""]
+        nsub = (len(gs) + SUB - 1) // SUB
+        for sb in range(nsub):
+            L += ["set_option maxRecDepth 100000 in",
+                  "def h%03d_%d : List (Option HC) := [%s]" % (ci, sb, ", ".join(hc_rows[ci][sb * SUB:(sb + 1) * SUB])), "",
+                  "set_option maxRecDepth 100000 in",
+                  "def o%03d_%d : List (Option OC) := [%s]" % (ci, sb, ", ".join(oc_rows[ci][sb * SUB:(sb + 1) * SUB])), "",
+                  "theorem hk%03d_%d : ∀ g ∈ (g%03d.drop %d).take %d, PH%03d g := by" % (ci, sb, ci, sb * SUB, SUB, ci),
+                  "  intro g hg",
+                  "  exact ⟨chkHopList_sound D P Q3 C NH _ hNHget _ h%03d_%d (by decide +kernel) g hg," % (ci, sb),
+                  "    chkOutList_sound P NH _ hNHget _ o%03d_%d (by decide +kernel) g hg⟩" % (ci, sb), ""]
+        chain = ("(all_drop_len PH%03d g%03d %d (Nat.le_of_eq gh%03d_len))" if nsub * SUB == len(gs) else
+                 "(all_drop_len PH%03d g%03d %d (by rw [gh%03d_len]; decide))") % (ci, ci, nsub * SUB, ci)
+        for sb in reversed(range(nsub)):
+            chain = "(all_drop_take PH%03d g%03d %d %d hk%03d_%d %s)" % (ci, ci, sb * SUB, SUB, ci, sb, chain)
+        L += ["theorem hk%03d : ∀ g ∈ g%03d, PH%03d g := by" % (ci, ci, ci),
+              "  have h := %s" % chain, "  rwa [List.drop_zero] at h", "", "end Formal.Target.NM.Data"]
+        open(os.path.join(out, "H%03d.lean" % ci), "w").write("\n".join(L) + "\n")
+    n = len(chunks)
+    L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.H%03d" % i for i in range(n)] + ["", hdr,
+         "namespace Formal.Target.NM.Data", "open Formal.Target Formal.Target.NM Formal.Target.DecodedPS", "",
+         "theorem hops_all : ∀ g ∈ net.gates, PH000 g := by",
+         "  intro g hg",
+         "  simp only [net, gates, List.mem_append] at hg",
+         "  rcases hg with " + " | ".join("h" for _ in range(n))] + ["  · exact hk%03d g h" % i for i in range(n)] + [
+         "", "theorem sites_dotfree : NT.allB (fun S : Site => dotFree S.name) P.sites = true := by decide +kernel", "",
+         "/-- **Every slice output hop of THE target's netlist reaches its site's output-pin wire** (prjxray's tables),",
+         "and the gate driving its source node is that site's LUT/MUXF/CARRY4 output of the matching name. -/",
+         "theorem hop_wired : ∀ h ∈ net.gates, isHop h = true → ∀ g ∈ net.gates, h.ins = [g.out] →",
+         "    logicSrc (names.getD g.out \"\") = true →",
+         "    ∃ (S : Site) (T : Tl) (gs os : String) (p w : Nat),",
+         "      g.name = S.name ++ \".\" ++ gs ∧ (gs, os) ∈ outTab ∧ (os, p) ∈ hopTab ∧ D.tiles.get S.tile = some T ∧",
+         "      outWire Q3 T.ty S.rank p = some w ∧ C.get h.out = some (S.tile, w) := by",
+         "  intro h hh hih g hg hr hl",
+         "  obtain ⟨⟨n, hn, hs⟩, hok⟩ := (hops_all h hh).1 hih",
+         "  have hok' := hok (fun n' hn' => by rw [hr] at hn'; simp only [List.cons.injEq, and_true] at hn'; rw [← hn']; exact hl)",
+         "  rw [hr] at hn; simp only [List.cons.injEq, and_true] at hn; subst hn",
+         "  have hout := (hops_all g hg).2 hs",
+         "  exact hop_from_gate (fun s S hS => dotFree_sound (NT.get_allB _ P.sites s S sites_dotfree hS)) hok' hout hr",
+         "", "end Formal.Target.NM.Data"]
+    open(os.path.join(out, "AllH.lean"), "w").write("\n".join(L) + "\n")
+    print("gen_nm: %d slice output hops, %d site-logic gates read by hops, %d name leaves" % (nh, no, len(looked)))
     # All
     n = len(chunks)
     L = ["import Formal.Target.NetPS.All"] + ["import FormalWit.NM.K%03d" % i for i in range(n)] + \
