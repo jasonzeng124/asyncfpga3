@@ -3735,3 +3735,8 @@ joins). The proof is C's, copied, except the chain step: `chain_holds_up` with S
 Private build of the closure OK; `#print axioms`: propext, Classical.choice, Quot.sound. check.sh not yet run (setup
 still building Mathlib). **For C:** a generator may now emit Up / JoinAnc joins for latch holds (class A/B of R2/R3);
 liveness (`timedA_live`) with ChainUpOK not done (same one-line change expected).
+
+### progress 09:3x -- UnionUp: liveness too (gate_firesA_up, timedA_live_up)
+C's `gate_firesA` and `timedA_live` (proofs copied) with `ChainUpOK` chains, through `timedA_follows_up`. Private
+build OK; standard axioms; no sorry/native_decide. So the whole AO chain (safety + liveness) accepts Up and
+common-ancestor joins in latch claim chains.
