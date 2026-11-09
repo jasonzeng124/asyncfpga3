@@ -3103,3 +3103,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   decodes EQUIVALENT. The BOARD-QUEUE header rule (decode-check any route whose sdf md5 differs) covers rebuilds.
 - Not done: a census across kernels of F7/F8 selects tied to a constant (yosys emits them; how often nextpnr leaves
   them unrouted is the question for the nextpnr fix).
+- Census (164 routed JSONs on disk): F7/F8 muxes whose select the JSON ties to a constant. ipow bench routes: 76 per route,
+  all in ushrsi0; the August ipow build: 76; isprime (bench routes): 1, in ucmpi7; every gcd, collatz, collatz64,
+  xorshift, gcd_ps and board-list route: 0. With 2 bad selects in ~17 x 76 = ~1300 such muxes, nextpnr leaves roughly 1 in
+  650 of them unrouted -- rare per mux, but ipow carries 76 of them, so ~12% of its builds compute wrong answers.
+  Exposure is ipow (and marginally isprime); the other kernels and every board-list design have no such mux.
