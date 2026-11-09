@@ -2602,3 +2602,20 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   window's shifted) and `guardTime_window` (`GuardTime` for a shifted guard and shifted claim). So every per-entry
   timing obligation of `timedA_follows` except the claim checks (`GateProof`/`ChainOK`) now has a window form.
   (check.sh note: `check.sh WindowT.lean` alone FAILS with "Window.olean does not exist" because file mode only sees lake-built dependencies; `check.sh Window.lean WindowT.lean` is OK, 389 declarations. The commit 2a5ceeb1 was made before I saw the first failure.)
+
+### progress 10:38 -- data layer re-measured with the relative Up rule: a CORRECTION to 11-08 and today's 08:xx counts (untrusted Python)
+* *Correction:* the tocc pipeline's `sepAny` accepted form-(iv) separations (through a common ancestor and an Up
+  bound) with d ≤ 0, but `SepOKA` form (iv) requires d ≥ 1. With that fixed, (12,18) c=1 fails **64** of 264 guards,
+  not 46 (c=0 stays 82). Yesterday's 15:21 counts and today's R1 entry used the unsound Seps; the R1 *race* verdict
+  (simulations) is unaffected.
+* *Relative clause (subagent, tools/tocc/r1b/: relup.py builds Up clause by clause as UpOKA does; lchk.py re-checks
+  every emitted Sep/Up entry against transcriptions of upFormB/upRelB/sepFormB: 0 failures):* clears the 3 c=1 R1
+  guards that reach the end check (64 -> 61), with 2,871 Up entries (730 relative). Nothing else changes.
+* *What remains (61 c=1, 82 c=0):* all have the claim END causally BEFORE the guard end E, so no ordering rule can
+  help. Cause: the register-bank latches SLICE_X30-31,Y75-77 fail the latch-chain step "new D valid before the
+  re-open is read" at their openings (1.35 / 1.45 ns short at c=0), so their claim is cut at X30Y76.A6(0), and ~300
+  downstream latch claims inherit the early end. Choosing later claim ends changed 0 guards. **The blocker is the
+  latch-chain (ChainOK) step at a latch re-open**, i.e. how a transparent latch's claim continues across an opening
+  whose new D equals the old value or arrives just after the open. This is the hold/re-open question B took today
+  (R2/R3); flagged for B.
+* *Not done:* the claim-building Seps are not re-checked; c=0 claim windows did not converge (4 passes).
