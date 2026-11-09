@@ -2761,3 +2761,17 @@ new ones will start until one finishes, and idle polling is reduced.
 amount e1 < 32 (the side condition of Net/Compute's proof, kept as a hypothesis). check.sh: 4,452 declarations,
 standard axioms; textual scan of its 144 generated chunks OK. With this, 19 of 20 units are proved on the decoded
 netlist (untimed); uori4 needs its own extraction; only uselect1 has a timed version.
+
+### progress 20:16 -- c=0 root diagnosed: a claim-end artefact; c=0 78 -> 42 failing guards (untrusted Python)
+* *Subagent (tools/tocc/r1f/RESULTS.txt, r1f_fix.diff):* the hold at X35Y91.B6 / X34Y91.C5 is real and robust: the
+  close precedes the upstream re-open X34Y76.A6(2) (Sep 1,923 ps c=0, 4,820 ps c=1); hold margins 2.55-2.77 ns (c=0),
+  6.4-6.9 ns (c=1); flip κ ≈ 0.80-0.87. The failure was the comb-claim end choice (`_window_end`, ranked by absolute
+  time) picking the result latch's own open as an upstream D claim's end at c=0, which then propagated. Fix (sound
+  witness choices only): CTXAFTER (a latch's D cover prefers an end causally after that latch's close) and UPMOVE (a
+  U' start moved to the preceding close, re-checked). c=0: **78 -> 42**, every obligation passes, lchk 0 failures,
+  GuardTime recomputation mismatch 0. **Not re-run at c=1** (regression unchecked).
+* *Remaining c=0 42:* 40 at X24Y76.D5 / X25Y76.B6, whose claim ends at the select-latch re-open X27Y80.A6(2) (the
+  benign A/B race of the race study; the segmented-claim restart at the join X27Y80.D6(0) is not firing here), and 2
+  rooted at comb X37Y68.B6.
+* *Next for the data layer:* merge r1d/r1e/r1f fixes into one builder, re-run both corners, then the four
+  undischarged Lean hypotheses (hInit A = none, constant-pin covers, dead pins, union/segment claim emitters).
