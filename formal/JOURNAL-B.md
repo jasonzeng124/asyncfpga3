@@ -3915,3 +3915,22 @@ What is left at (12,18), sound, at the fixpoint, without REANCH:
 - GuardTime 42 / 30 (root SLICE_X25Y76.B5 H->U', removed by REANCH, which itself needs the same mux-select-X segments:
   with REANCH, 13 / 11 comb links fail, incl. SLICE_X22Y81.B5 -13.3 / -32.8 ns, and 3 "no Sep" carry/LUT nodes).
 Next (B): emit the select-X bridging segments, then REANCH; expected residue: C's R1 root (18 guards).
+
+### progress 13:0x -- (12,18): every claim obligation passes; 42/30 guards fail at ONE root, a real data-vs-select glitch absorbed by a closed latch (untrusted Python)
+Builder copy + `MUXX` (bridging GateProof segments over a mux select change, the changing pins as Cov.X, ValOK by LUT
+enumeration, joins by ChainOK/ChainUpOK only). Files `formal/tools-B/r23/followup6/`. Sound configuration (relative Up,
+chain joins, LGTOPOFF, COVUP, Sep iv d ≥ 1, MUXX), fixpoint (c0 pass 4, c1 pass 2):
+- comb links 0 / 27 failing (c0, min +553 ps), 0 / 24 (c1, min +1,339 ps); loop covers 0 / 3,187 and 0 / 57; **guards blocked by
+  a failing claim obligation: 0 / 0**. GuardTime: **42 (c0) / 30 (c1)** fail, all from one root, SLICE_X25Y76.B5 H->U'
+  (-9,761 / -24,042 ps). (With REANCH: 18 / 18, but REANCH breaks 10 / 9 comb links MUXX cannot bridge, one of them on this
+  root's own D: not sound.)
+- **The root is a real race in the model:** D = datapath mux SLICE_X22Y81.B5 (data X22Y87.D5 / X22Y79.D5, select latch
+  X27Y80.B6). Its newly selected data input is re-latched at SLICE_X22Y87.A6(0) and the select latch opened at
+  SLICE_X27Y80.A6(2); these are causally unordered (best common-ancestor bound: Up 19,260 ps vs Sep 5,717 ps). Adversarial
+  runs (data branch slow, select branch fast; both corners, κ = 0 windows): the order flips, **D glitches for 2.3 ns (c0) /
+  5.4 ns (c1)**, and the glitch ends while SLICE_X25Y76.B5 is still closed, its re-open coming 2.4-2.9 ns (c0) / 6.0-7.1 ns (c1)
+  later; Q changes once as in the mid run, gcd 6, no data-driven control change.
+**Reading:** at g = 1, κ = 0 this is safe only by a few ns; a Lean proof needs an order between the data re-latch and
+SLICE_X25Y76.B5's re-open (SLICE_X24Y77.A6(2)) covering the glitch path, another concurrent-branch (R1-type) obligation
+that the current Up/Sep rules do not give. Whether the margin survives κ > 0: testing next (it could matter for the
+frontier, so it goes to FOR-RESEARCH if it breaks below 0.36).
