@@ -3861,3 +3861,7 @@ behind), `GateProofU` (+ `gateProofU_of_gateProof`). `CovUpMain.timedA_follows_c
 **Plainly:** if a generator anchors such claims at a common ancestor and the Up bounds are tight enough, the bank
 re-open step needs no negative offset. Whether C's Up tables are tight enough there: being measured. Not shown: the
 Boolean checker for CovTimeU, any instance.
+
+### progress 11:4x -- Formal/Cells/CovUpDec.lean CLAIMED: Boolean checker for CovTimeU
+`covTimeUB` (C's covTimeB start test, or the Up start test) and `covTimeU_of_B` (sound); toy by `decide`. check.sh
+OK, standard axioms.

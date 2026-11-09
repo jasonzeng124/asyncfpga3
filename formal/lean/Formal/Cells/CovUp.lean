@@ -25,7 +25,7 @@ claim at a COMMON ANCESTOR e0 of both loads and time each cover by an upper boun
 The AO main theorems with `GateProofU` claims are in `CovUpMain` (`timedA_follows_cu`, `timedA_live_cu`).
 
 ## Not shown
-Any instance; the Boolean checker for `CovTimeU`.
+Any instance. (Boolean checker for `CovTimeU`: `CovUpDec.covTimeU_of_B`.)
 -/
 
 namespace Formal.Cells.CovUp
