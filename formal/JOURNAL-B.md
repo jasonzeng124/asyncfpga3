@@ -4022,3 +4022,11 @@ kernel-checked; CovTime/ChainOK/ValOK arithmetic is Python only), (8,12)/(1071,4
 the Spec bridge. Cost ~20 min ((12,18)) to 1.5 h per corner, ~3.5 GB.
 **For C:** the builder modes (and why each is sound in Lean terms) are in final/README.txt; with C's control certificate,
 the per-pair route to a first `decide`-checked instance looks open; B suggests the Lean emission next.
+
+### progress 16:3x -- coordination with C (no new result)
+C's builder (JOURNAL-C 12:56-16:24, different modes: JOIN/JOINTIME, segmented claims, RESTART, HOLDRETRY, + B's LGTOPOFF)
+reached (12,18) c1 0 / 264 independently; B's copy (16:3x) reached 0 at both corners for (12,18) and (17,5) and at c1 for
+(8,12), (1071,462). C names two known gaps (U-phase CovTime start for D pins covered only in U; loop covers re-checked at
+the fixpoint); B's copy re-checks loop covers against final windows (12:3x) and is now auditing the U-phase start.
+To avoid two builders: B's modes and their soundness notes are in tools-B/r23/final/README.txt for C to merge; B will
+not extend its copy further beyond this audit.
