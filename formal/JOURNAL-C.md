@@ -2739,3 +2739,19 @@ new ones will start until one finishes, and idle polling is reduced.
   (e.g. `ushrsi*_ps` only for shift amount word = 1, as Net/Compute proved). Generic helper `PS/Common.unit_ps`.
 * *Not done:* Ushli0 (its PS file is not built yet; left uncommitted), uori4 (needs its own extraction), the timed
   versions (only uselect1 has one), and the operands' hold (bundling).
+
+### progress 18:52 -- (12,18) data layer with every check on: c=1 0 of 264 fail, c=0 78 (one root) (untrusted Python)
+* *Checks added (subagent, tools/tocc/r1e/RESULTS.txt):* every latch phase re-checked as a GateProof after its chain
+  is final (0 ≤ a, CovTime start/end of every covered pin, hInit for H); every loop cover re-checked against the
+  FINAL windows (835 at c=1, 36,238 at c=0; 0 fail), so the verdict no longer depends on the fixpoint; a third gap
+  found and closed: the latch feedback pin's CovTime start (failed once, X26Y76.C5, -332 ps; fixed by raising the
+  phase offset). B's LGTOPOFF on. lchk: 0 Sep/Up failures; GuardTime recomputation agrees 264/264.
+* *Result:* **c=1: 0 of 264 guards fail, 0 failed obligations.** c=0: 78 fail (GuardTime end), all rooted at latches
+  X35Y91.B6 / X34Y91.C5 truncated at U→H (U ends at the open of the latch's own enable X34Y92.A6(0), close at
+  X34Y92.A6(1)); not yet diagnosed. The optimistic loop-cover window (OPTLOOP) found no consistent fixpoint (sound,
+  no help; off).
+* *Lean hypotheses the Python does NOT discharge (to be closed before any Lean instance):* hInit for claims with
+  A = none (value before t0 taken from simulation); constant (k = 0) pins have no emitted cover; dead pins set to 0
+  (checked: no LUT depends on them, 24,587 pins); union claims used as feedback covers and comb-segment claims have
+  no Lean emitter yet. So "0 failing at c=1" is the Python verdict on the obligations it emits, for one pair, one
+  midpoint run per corner, g = 1, κ = 0. Not a proof.
