@@ -4042,3 +4042,8 @@ the fixpoint. Rerun (files: tools-B/r23/final/*_au_*.log, datal_t.py):
 | (17,5) c1 | 58,507 (2,801) | 0 | 0 | 0 / 406 | 0 / 2,780 | 1,426 / 119 | 0 / 0 |
 Every claim-building Sep/Up query of the final pass (a superset of the used ones) is emitted and lchk-checked. Remaining
 trust: the obligation arithmetic (CovTime/ChainOK/ValOK) is Python only; certificates built from one midpoint run.
+
+### progress 17:0x -- CovUpDec.gateProofU_of_B: a whole GateProofU claim as a Boolean
+`gateProofUB` (gate, 0 ≤ a, C's `valB`, `covTimeUB` per covered pin, cover kinds) and `gateProofU_of_B` (sound, pins
+nodup), so an emitted claim list can be checked by `decide` for the `CovUpMain` theorems. check.sh on the five B files:
+487 declarations, standard axioms, [check] OK.

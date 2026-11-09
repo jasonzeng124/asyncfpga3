@@ -9,7 +9,7 @@ import Formal.Net.TimedOccDecX
 -/
 
 namespace Formal.Cells.CovUpDec
-open Formal.Net.OccNet.TimedX Formal.Net.OccNet.TimedDecX Formal.Cells.CovUp
+open Formal.Net.OccNet Formal.Net.OccNet.Timed Formal.Net.OccNet.TimedX Formal.Net.OccNet.TimedDecX Formal.Cells.CovUp
 
 variable {α : Type} [DecidableEq α]
 
@@ -65,6 +65,38 @@ theorem covTimeU_of_B (Sep : α → Nat → α → Nat → Option Nat) (Up : α 
       cases c.B with
       | none => intro h2; simp at h2
       | some e => intro h2; exact ⟨e, rfl, opt_dec h2⟩
+
+/-- A whole `GateProofU` claim as a Boolean: gate, `0 ≤ a`, C's `valB`, `covTimeUB` per covered pin, cover kinds. -/
+def gateProofUB (N : TNet α) (dat : α → Bool) (Sep : α → Nat → α → Nat → Option Nat)
+    (Up : α × Nat → α × Nat → Option Nat) (s0 : α → Bool) (cl : List (Claim α)) (c : Claim α) (cov : α → Cov) :
+    Bool :=
+  N.gate c.z && decide (0 ≤ c.a) && valB N cl s0 c cov &&
+  (N.pins c.z).all fun u =>
+    (match covWin s0 cl u (cov u) with
+      | some w => covTimeUB Sep Up c w (N.hi c.z u) (N.lo c.z u)
+      | none => true) &&
+    (match cov u with
+      | .ex _ => !dat u
+      | .cl i => (match cl[i]? with | some w => w.z == u | none => true)
+      | .X => true)
+
+theorem gateProofU_of_B (N : TNet α) (dat : α → Bool) (Sep : α → Nat → α → Nat → Option Nat)
+    (Up : α × Nat → α × Nat → Option Nat) (s0 : α → Bool) (cl : List (Claim α)) (c : Claim α) (cov : α → Cov)
+    (hnd : (N.pins c.z).Nodup) (h : gateProofUB N dat Sep Up s0 cl c cov = true) :
+    GateProofU N dat Sep Up s0 cl c := by
+  unfold gateProofUB at h
+  simp only [Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at h
+  obtain ⟨⟨⟨hg, ha⟩, hv⟩, hp⟩ := h
+  refine ⟨hg, ha, cov, valOK_of_B N cl s0 c cov hnd hv, ?_, ?_⟩
+  · intro u hu w hw
+    have := (hp u hu).1
+    rw [hw] at this
+    exact covTimeU_of_B _ _ _ _ _ _ this
+  · intro u hu
+    have hk := (hp u hu).2
+    refine ⟨fun k hk' => ?_, fun i w hi hw => ?_⟩
+    · rw [hk'] at hk; simpa using hk
+    · rw [hi] at hk; simp only at hk; rw [hw] at hk; simpa using hk
 
 /-- Toy: the claim is anchored at `(0, 0)` with offset 30; a cover starts at `(1, 0)` + 2, at most 20 after the anchor
 (`Up`), read through a pin with hi = 5: 5 + 2 + 20 ≤ 30. -/
