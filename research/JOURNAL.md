@@ -3174,3 +3174,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - The lever came from itercost (two barrel shifters from an unfolded shift-by-one); it also cut 37% of the LUTs.
 - Not shown: the board's bench top (next: re-key, build_bench, full stack on 8 routes for a board item), silicon,
   ipow/collatz64 with the flag (ipow's ushrsi0 is the same pattern and carries the F7-defect exposure).
+### progress 17:30 (collatz BDC_CONST_DATA on the board's bench top: 24/24, 1.34-1.37x over T3; board item 9 / #10)
+- Bench top, BDC_CONST_DATA=1, collatz_sizes_T3cd_bench.vh, NEXTPNR_SEED 1-8: 24/24 PASS 13/13 at max/min/worst, gate
+  clean; 7/8 EQUIVALENT, seed 5 NOT_EQUIVALENT of the benign kind only ($PACKER_GND buffer LUT INIT ..10 on an F7 data
+  input, checked). Paired with the earlier bench runs on the same seeds (261-step vector): over T3 1.365 / 1.358 /
+  1.339 (1.26-1.47), over per-cell 1.132 / 1.124 / 1.128 (1.08-1.16). research/data/collatz_cd_bench/results.tsv.
+- BOARD-QUEUE: item 9 / section #10 (seed-1 sdf 3cbe05d8, predicted 1.26-1.30 on that route).
+- (A container restart killed only a waiter; the bench run, lockkeeper and janitor survived.)
+- Next: the same flag on ipow (ushrsi0's barrel shifter; it is also where the F7-select bitstream defect lives).

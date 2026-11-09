@@ -61,6 +61,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 8. **collatz with per-cell sizes, on the kernel bench**: #9 below. 48/48 full-stack runs (both builds, 8 routes x 3
    corners, 13/13 vectors), predicted 1.19-1.21x per iteration (1.12-1.33). Judge: `python3 ../research/tools/
    loop_cost_judge.py collatz build/hw/lc_collatz_cs.tsv build/hw/lc_collatz_t3.tsv`.
+9. **collatz with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
+   #10 below. 24/24 full-stack runs (8 routes x 3 corners, 13/13 vectors), predicted 1.34-1.37x per iteration over T3
+   (1.26-1.47) and 1.12-1.13x over item 8. Judge: `python3 ../research/tools/loop_cost_judge.py collatz
+   build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -426,6 +430,27 @@ rule A 4-9 cells per route on both builds, informational). nextpnr 9c732bc630345
 
 Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.12-1.15 on
 this route (1.12-1.33 over 8; mean 1.19-1.21 by corner).
+
+## 10. collatz BDC_CONST_DATA=1 + per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
+The first lever from research/data/itercost (collatz's 3n+1 and n>>1 shift by a constant 1 that arrived as a data
+channel, so both were 32-bit barrel shifters): bdc/emit.py BDC_CONST_DATA=1 reads that channel's data as the literal
+it always carries (the channel, its link and its handshake stay), LUT sites -37%, then corner_audit sizes
+(collatz_sizes_T3cd.vh, 249 -> 174 links; soak top 24/24 on 8 routes, 8/8 EQUIVALENT, 1.34-1.36x over T3). On the
+bench top: research/data/collatz_cd_bench/results.tsv (sizes research/data/collatz_sizes_T3cd_bench.vh; rule A 4-8
+cells per route, informational; seed 5 decodes NOT_EQUIVALENT of the benign GND-buffer F7 data-input kind only).
+The T3 base is item 8's (#9's second build). nextpnr 9c732bc6303458df. From cells/, on a checkout with bdc/emit.py's
+BDC_CONST_DATA (commit 83cd6c77 or later):
+
+    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cd_bench.vh ./hw/build_bench.sh collatz
+    grep -c "<< 32'h1" build/gen/collatz_kernel_bench.v    # must be >= 1: the flag took effect
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # 3cbe05d8 = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_collatz_cd.tsv
+    (T3 base: the two #9 commands for lc_collatz_t3.tsv, sdf 6134880a, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.26-1.30 on
+this route (1.26-1.47 over 8; mean 1.34-1.37 by corner). A FAIL with the per-cell build passing would point at the
+flag (the only difference in the netlist's function is the literal), not at the sizes alone.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
