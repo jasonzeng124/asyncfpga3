@@ -1293,3 +1293,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T10:00:27Z T50 done: reset_quiet_PS CONFIRMED (build, axioms, statement; all 3,224 members match valR in 4 own-checked behaviours; non-vacuous).
 - 2026-11-09T10:32:41Z T51: uselect1_ps + generic modules (49) CONFIRMED; own evaluation of decoded uselect1 gates matches |e0-e1| on 300 pairs.
 - 2026-11-09T11:14:53Z T52: uselect1_timed CONFIRMED as stated; 8815 ps reproduced by own longest-path; note: stated over DecodedPS.net, not circuit (composition gap).
+- 2026-11-09T12:35:26Z formal 539b0d14 batch (4 generic modules) build + axioms CONFIRMED.
