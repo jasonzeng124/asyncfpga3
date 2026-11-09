@@ -3956,3 +3956,30 @@ base. **C's relup.py (recursive) gives Up(e* -> A) = 15,283 exactly.** So the ob
 (16,611 ≤ 297 + 17,486) with the U' D claim anchored at e* (cover start by CovTimeU or a claim chain): existing UpOKA
 (relative clause applied recursively) + SepOKA + CovUp, no new rule. Missing only in the generator: recursive relative
 Up (C's relup) and e* in COVUP's anchor pool. Next: C's relup inside B's builder copy, (12,18) rerun, lchk.py re-check.
+
+### progress 14:2x -- (12,18): the DATA LAYER of the one-pair certificate passes at both corners, tables lchk-clean (untrusted Python)
+Builder copy (`formal/tools-B/r23/x4/`: datal_t.py, rundt.py, sepq.py, ao.py, logs, result pickles .xz) with: C's
+`r1b/relup.py` for every Up/Sep query (recursive relative clause, Sep iv d ≥ 1), chain joins (Sep/Up/ancestor),
+LGTOPOFF, COVUP + COVMEET (claims over unordered covers anchored at a common ancestor incl. the true meeting event,
+covers timed by `CovTimeU`), MUXX (select-X bridging segments), XOPT (earliest-start minimal definite cover set),
+window fixpoint. Pair (12,18), g = 1, κ = 0, no REANCH:
+| | c0 | c1 |
+|---|---|---|
+| fixpoint | pass 2 | pass 2 |
+| claims | 82,194 | 85,047 |
+| loop-cover CovTime failing | 0 / 3,224 | 0 / 546 |
+| comb-link failures / guards blocked | 0 / 0 | 0 / 0 |
+| **GuardTime failures (of 264)** | **0** | **0** |
+| latch-chain truncations | 0 | 0 |
+| Sep / Up queries the certificate uses | 805 / 65 | 798 / 65 |
+| C's lchk.py (upFormB / sepFormB on the emitted tables; GuardTime recomputed from them) | **0 / 0**, 0 mismatches | **0 / 0**, 0 mismatches |
+**Plainly:** with C's control certificate (0 local-check failures at both corners, JOURNAL-C 11-08 12:15), every check of
+the generic AO theorem that the Python models now passes for (12,18) at both corners, with the Lean rules as written
+(C's AO + B's CovUp/UnionUp joins). NOT a theorem: untrusted Python; one midpoint run per corner builds the certificate;
+CovTime / ChainOK arithmetic is Python only (lchk re-checks the Sep/Up entries); not yet emitted as Lean data or checked by
+`decide`; the TimedBridge instance, reset (C's reset_quiet_PS), env side are separate. With REANCH: GuardTime 0 but 24 / 16
+comb links fail, so REANCH is not used.
+(17,5) same config: 126 / 126 of 406 guards fail (c0 window iteration does not converge, 3 comb links fail); roots
+SLICE_X34Y76.B6 H->U' (-3.7 / -7.5 ns), SLICE_X33Y91.B5 U'->T (no Sep), SLICE_X36Y71.C6 H->U' (-3.8 / -7.6 ns): the same
+re-open-at-concurrent-branches class as (12,18)'s former roots; Up minus Sep a few ns short (generator search or real:
+not yet traced). lchk 0 / 0 there too. ~1.5 h and 3.4 GB per corner.
