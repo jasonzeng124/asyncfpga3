@@ -3755,3 +3755,9 @@ evidence too; the builder needs value-level / older-anchor claims for these D in
 ChainUpOK (sepL sl) (upL ul) c cs`; a toy (data claim ends at the open + 50, hold starts at the close + 3, close ≤ open
 + 20) discharged by `decide`. Private build OK; `#print axioms chainUpB_sound`: propext, Classical.choice, Quot.sound.
 So a generator emitting Up / ancestor joins can have them kernel-checked like C's other tables.
+
+### progress 10:2x -- check.sh OK on Formal/Cells/UnionUp.lean and UnionUpDec.lean (398 declarations, standard axioms)
+setup.sh finished Mathlib (from source) and moved on to the whole-project build; stopped it (as A did yesterday: it
+OOMs on B's large chunk modules and today's work does not need them). C's AO modules built with lake, then
+`./check.sh Formal/Cells/UnionUp.lean Formal/Cells/UnionUpDec.lean`: textual scan OK, axiom audit 398 declarations,
+[check] OK. (09:0x-10:1x: idle waiting on the subagent's re-measurement, which is still running.)
