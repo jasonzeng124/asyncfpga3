@@ -3233,3 +3233,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   found 76 per ipow route, all in ushrsi0), so the F7-select bitstream defect has nothing to hit.
 - Running: ipow T9cd seeds 29-36 full stack (k4/ipow_cdc); xorshift merge-output link (BDC_MERGE_OUT_LINK, new
   measurement knob, default byte-identical, simcheck PASS) alone and with ulink_n_trueResult_8=2, bench top seeds 1-4.
+### progress 03:20 (merge-output latch: with umux1's, 39.49 -> 31.78 ns (1.24x) on 4 routes; the coupling moves to the fork)
+- BDC_MERGE_OUT_LINK=ucontrol_merge0 alone: 38.08 ns mean (-1.41); with ulink_n_trueResult_8=2: 31.78 (-7.71, -6.7..-8.2,
+  1.243x). All correct, equivalent (mo_2 benign GND-buffer F7, checked), every iteration exact. The arbiter leaves
+  the cycle; the counter ring now flips at ucontrol_merge0_f ack -> ucontrol_merge0_olink, RTZ still 40-43%. Each
+  decoupled synchronising cell moves the coupling one cell on; the RTZ share does not fall.
+- Next: collatz with the same kind of sites (per the lead), sized links, then the full gate on >= 8 routes.
