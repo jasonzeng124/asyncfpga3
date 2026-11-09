@@ -3945,3 +3945,14 @@ the glitch-to-re-open gap shrinks 1,966 -> 937 ps over κ 0.10 -> 0.35 (corner 0
 gcd still right. So this race is real but absorbed below κ ≈ 0.55-0.65, above the Lean-refuted 0.40: it does not move
 the frontier. For the proof it is a genuine timing obligation (data re-latch vs downstream re-open, ~1-2 ns margin at
 κ ≤ 0.35), not a builder artefact: the R1-type upper bound C is working on must cover it.
+
+### progress 13:1x -- the mux-glitch root IS provable with existing rules (+1,172 ps at c0): only the generator's Up was loose (untrusted Python)
+Files `formal/tools-B/r23/meet/` (meet.py, crelup.py). True meeting event of the data re-latch A = SLICE_X22Y87.A6(0) and the
+re-open Cr = SLICE_X24Y77.A6(2): e* = SLICE_X42Y97.B6(2) @361,378. Along the real chains (c0, (12,18)): Σhi e* -> A (54 hops)
+15,283 + tail hi to X25Y76.B5's D pin 1,328 vs Σlo e* -> Cr (71 hops) 17,486 + enable-pin lo 297: **margin +1,172 ps**.
+B's copy's Up(e* -> A) was 19,260: the whole excess (3,977 ps) at one AND hop, SLICE_X31Y68.B6(2), whose second cause
+(SLICE_X32Y65.C6(2), 21 ns earlier, concurrent with e*) needs a recursive relative clause; B's one-level search found no
+base. **C's relup.py (recursive) gives Up(e* -> A) = 15,283 exactly.** So the obligation is a plain ChainOK H -> U' join
+(16,611 ≤ 297 + 17,486) with the U' D claim anchored at e* (cover start by CovTimeU or a claim chain): existing UpOKA
+(relative clause applied recursively) + SepOKA + CovUp, no new rule. Missing only in the generator: recursive relative
+Up (C's relup) and e* in COVUP's anchor pool. Next: C's relup inside B's builder copy, (12,18) rerun, lchk.py re-check.
