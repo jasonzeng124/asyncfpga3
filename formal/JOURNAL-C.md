@@ -2535,3 +2535,18 @@ axioms). Cost: one pass over the Up table per cause (a hint field would make it 
   other nodes are known; anything after R - 1. This discharges the quiet-start part of `TBehX.quiet`/s0 for exact
   control nodes only once (A, M) are instantiated.
 * *check.sh* (file mode): AO/Timed, AO/DecT, AO/Window, CViewPS/RIslDefs, RIslChk, RIslPS: textual scan OK, 1,812 declarations audited, `[check] OK`.
+
+### progress 09:20 -- Net/Compute/PS/Uselect1.lean: the first datapath unit of THE target proved on the decoded netlist
+* *Problem, plainly:* does unit uselect1 (bdc op 126: fused subi0+cmpi11+subi1+select1) of THE target, as decoded
+  from the bitstream, compute its MLIR operation for every pair of 32-bit inputs?
+* *Proved* (subagent, compiled with lean by hand; lake + check.sh build running now):
+  `uselect1_ps : Settled DecodedPS.net S v → word (v ∘ zNode) 32 = Ops.select (Ops.cmpi .sgt 32 (Ops.subi 32 A B)
+  4294967295) (Ops.subi 32 A B) (Ops.subi 32 0 (Ops.subi 32 A B))` with A, B the words at the unit's 64 input nodes.
+  `Settled N S v`: every gate of N with output in S (2,645 decoded nodes) satisfies Spec's gate equation with
+  zero-delay reads (LUTs, copies, CARRY4 outputs, MUXF alike). Generic part `Net/Compute/OnDecoded.lean`
+  (`corr_sound`: gates in the netlist + topological order + per-cell checks ⇒ each mapped yosys net's value equals v
+  at its node); generated part `Gen/Compute/PSMap/Uselect1/*` (13 netlist-chunk sub-checks, 30 kernel checks, ~5 GB
+  peak each) from `tools/compute/ps/psmap.py` (untrusted generator; everything checked in Lean against DecodedPS).
+  Then GcdD's existing `uselect1_fn`. Axioms: standard. Negative control: an inverted CARRY4 INIT is caught.
+* *Not shown:* that the gates in S settle (timing: a settle bound from SpecSettle) or that the input nodes carry the
+  operand tokens (S4 data movement). Other 19 units: rerun psmap.py per unit; uori4 needs its own extraction.
