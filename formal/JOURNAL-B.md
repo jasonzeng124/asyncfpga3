@@ -4047,3 +4047,9 @@ trust: the obligation arithmetic (CovTime/ChainOK/ValOK) is Python only; certifi
 `gateProofUB` (gate, 0 ≤ a, C's `valB`, `covTimeUB` per covered pin, cover kinds) and `gateProofU_of_B` (sound, pins
 nodup), so an emitted claim list can be checked by `decide` for the `CovUpMain` theorems. check.sh on the five B files:
 487 declarations, standard axioms, [check] OK.
+
+### progress 17:0x -- CovUpGC.hgc_of_B: the whole claim hypothesis hGC of timedA_follows_cu as one Boolean
+Per claim a hint (`gp`: its pins' covers; `ch`: indices of its chain's segments); `hgcB` checks every data-gate claim
+over C's Sep/Up tables (gateProofUB or all segments gate-proved + chainUpB); `hgc_of_B` gives exactly the hGC premise
+(pins nodup assumed). check.sh on the six B files of today: OK, standard axioms. With C's Boolean checkers for the
+control/timing tables, every hypothesis of `timedA_follows_cu` that is about the certificate now has a Boolean form.
