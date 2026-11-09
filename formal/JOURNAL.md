@@ -2187,3 +2187,10 @@ destination is that slice's own output pin (right tile, right M/L slice, a pin t
 check.sh --wit now also audits `FormalWit.NM.AllH`. Trusted: prjxray's tables and the slice output table `hopTab`.
 STATUS row 1 / FEASIBILITY updated. The hypothesis count does not change (H_DECODE is allowed); its untrusted part
 shrank by the site output hops.
+### progress 11:2x -- check.sh OK on today's files; the H_DECODE converse holds in Python (untrusted)
+- `check.sh` (FILE mode) on SpecPeriodic, CexRuntQ/{QBase,QStretch}, CexQ36/{Wit,Refute,AnyR}, Frontier36,
+  NodeMergeHop: OK, 2,271 declarations audited, standard axioms.
+- Converse of the wiring check (no two netlist nodes are one fabric node), Python only: the full tileconn closure
+  over the xc7z010 (prjxray-db master tilegrid/tileconn, 2.41 M unions) puts each of the 169,113 netlist routing nodes
+  in its own fabric node: 0 collisions. So the decoder never split one electrical node into two. Not in Lean: a
+  separation proof needs the whole closure (a certificate of classes plus a completeness argument), not attempted.
