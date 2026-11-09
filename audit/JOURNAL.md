@@ -1296,3 +1296,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T12:35:26Z formal 539b0d14 batch (4 generic modules) build + axioms CONFIRMED.
 - 2026-11-09T17:19:38Z formal 49d5b3fa batch (3 generic B modules) build + axioms CONFIRMED.
 - 2026-11-09T17:58:00Z T53 started (own scripts, no subagent -- owner reports usage near the weekly limit): BOARD-QUEUE #10 collatz BDC_CONST_DATA + per-cell (sdf 3cbe05d8) seed 1 build + worst-case run, research copy c10d82ea.
+- 2026-11-09T18:15:30Z T53 done: BOARD-QUEUE #10 collatz const-data seed 1 CONFIRMED (sdf 3cbe05d8, EQUIVALENT, 13/13 own oracle, cyc261 2610 exact).
