@@ -3720,3 +3720,9 @@ here; classes B and C; any instance.
 c1's end event at least s after an ancestor e0 (a `Sep` entry), c2's start at most u after e0 (an `Up` entry),
 0 ≤ c2.a, c2.a + u ≤ c1.b + s: the claims join. `ChainUpOK` links now accept Sep, Up or JoinAnc. Same checks
 (private build of the closure, standard axioms). Whether C's tables reach such an e0 for class B is being measured.
+
+### progress 09:1x -- UnionUp made wireable into C's induction step (1 ≤ c2.a, upper bounds one tick behind)
+In `AO.timedA_follows`' step, `chain_holds` is applied at t + 1 with `SepSound` at t + 1, while `up_sound` is only
+available at horizon t (it is what proves `sepSound_step`). So the Up and JoinAnc joins now require 1 ≤ c2.a and
+`chain_holds_up` takes `SepSound` at T and `UpSoundT` at T' with t ≤ T, t ≤ T' + 1. The hold claim c2 starts at
+close + (enable pin delay) ≥ 1, so the condition is met by the latch phases it is for. Same checks (standard axioms).
