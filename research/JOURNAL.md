@@ -3226,3 +3226,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Prediction (committed first): size of drop right (3-8 ns), location wrong (merge, not umux1).
 - Base rebuilds on seeds 2-4 did not reproduce the old xb routes' bits (same seed, newer tree); paired with the
   rebuilt bases. ipow BDC_CONST_DATA: corner_audit done on seeds 29-32 (sizes_max next).
+### progress 00:30 (ipow BDC_CONST_DATA: 12/12 at T9 sizes; candidate T9cd 332 -> 226 links; 0 constant-select F7s)
+- ipow BDC_CONST_DATA=1 at T9 sizes, soak top, NEXTPNR_SEED 29-32 (the T9 base seeds): 12/12 PASS (max/min/worst).
+  corner_audit on those routes -> ipow_dsp1_sizes_T9cd.vh (per-cell max, 332 -> 226 links; ushrsi0 30 -> 1: the
+  constant shift is wiring now; T9cs was 251). Those routes have 0 F7/F8 muxes with a constant select (the census
+  found 76 per ipow route, all in ushrsi0), so the F7-select bitstream defect has nothing to hit.
+- Running: ipow T9cd seeds 29-36 full stack (k4/ipow_cdc); xorshift merge-output link (BDC_MERGE_OUT_LINK, new
+  measurement knob, default byte-identical, simcheck PASS) alone and with ulink_n_trueResult_8=2, bench top seeds 1-4.
