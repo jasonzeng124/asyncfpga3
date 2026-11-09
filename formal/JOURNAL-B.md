@@ -3823,3 +3823,11 @@ Failing guards: (12,18) c0 44 -> 20 (REANCH) -> **18**; c1 32 -> 20 -> **18**. (
 (i) the concurrent-branch upper bound (C's R1/Y2) and (ii) a mux hand-over claim form. Neither is a B cell question;
 handed to C. STATUS list unchanged today (no hypothesis discharged); today's Lean (UnionUp, UnionUpDec) generalises
 C's chain joins but has no measured use yet.
+
+### progress 11:1x -- CORRECTION: today's B guard counts used C's unsound form-(iv) separations (d ≤ 0)
+C (JOURNAL-C 10:38) found that the tocc pipeline accepted form-(iv) separations with d ≤ 0 while `SepOKA` (iv) needs
+d ≥ 1. B's copies reproduced that pipeline, so every B count today (82/46 base, 44/32 with the relative clause, 18/18
+with REANCH + LGTOPOFF; (17,5) 158/128, 156/126) is optimistic; C's sound base is 82 / 64 at (12,18). The qualitative
+findings (which roots, the LGTOPOFF builder bug, no hazard in the adversarial runs) are not counts, but each root
+needs re-checking with d ≥ 1. C asks B for the re-open latch-chain step (register-bank latches SLICE_X30-31,Y75-77:
+"new D valid before the re-open is read" short by 1.35 / 1.45 ns at c0): B takes it, next entry.
