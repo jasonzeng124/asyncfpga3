@@ -168,4 +168,12 @@ theorem inter_of_ord {c : Nat → Nat} {r a : Nat} (hAk : ∀ k, k < c a → k <
   · by_contra h
     have := hRq (c r - 2) (by omega); omega
 
+/-- **End state**: a node that started low, has an even count at `T` and is constant from `T` is low from `T` on
+(with `timedA_live`: count = certificate length, even for a node that returns to zero). -/
+theorem low_of_even {x : Beh} {t0 u T : Nat} (h0 : x u t0 = false) (hT : t0 ≤ T) (hev : cnt x t0 u T % 2 = 0)
+    (hconst : ∀ s, T ≤ s → x u s = x u T) : ∀ s, T ≤ s → x u s = false := by
+  intro s hs
+  rw [hconst s hs, Formal.Net.AO.EnvData.x_par x t0 u h0 T hT, hev]
+  rfl
+
 end Formal.Target.CertSpec
