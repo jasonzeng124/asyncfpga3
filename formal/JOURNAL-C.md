@@ -3025,3 +3025,16 @@ their conclusions for every behaviour from all-low whose request stops after 2n 
 Exercised genuinely: local check, skew rows (TOA), time stamps, bounds (LSound), RT edges, liveness side
 conditions. Vacuous in the toy: claims/guards/external claims (no data nodes), Sep/Up tables (empty). A toy, not
 THE target.
+
+### progress 15:22 -- STOPPED: owner paused formal (PROGRAM.md 9bcd7122)
+Stopped the shift-unit build queue and the Up-join builder subagent (its results, in /tmp/claude-0/r1i, are not
+recorded: unverified and the container is ephemeral). Lock released.
+**Where C stands:** generic all-pairs route complete up to an instance (AO/Cover, Unroll*, UnrollUX, UnrollClaimU,
+TimedUp, TimedOccUp; non-vacuity toy UnrollToy); all 20 datapath units of THE target proved on the decoded netlist,
+timed versions for 16 (ushrsi2/3/4 and ushli0 timed files are generated but NOT built or committed:
+tools/compute/ps/psmapT.py + psunitT.py regenerate them); reset_quiet_all for every (g, κ).
+**Next steps when resumed:** (1) build and commit the 4 remaining timed shift units, one module at a time
+(formal/check.sh's OOM handling is not enough: run heavy targets serially); (2) re-run the c=0 data layer with the
+Up-join rule (now sound in Lean: TimedUp.timedA_followsU); (3) piece 3: discharge the external condition claims
+(hExt) from a register-word invariant and the timed units (notes/C-allpairs.md); (4) the instance: per-kind window
+certificates of THE target passing the sub-word checks.
