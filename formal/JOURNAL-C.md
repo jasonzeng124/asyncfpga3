@@ -3015,3 +3015,13 @@ claim's node and value qualifies, `extShift_node`), and `hInit` by the per-kind 
 datapath conditions), `hEnvC`, a liveness version, any instance.
 
 ### progress 13:58 -- AO/UnrollUX.timedA_live_unrollUX (liveness for every word with Up-joins and external claims; check.sh OK)
+
+### progress 14:19 -- AO/UnrollToy: the every-word theorems are not vacuous (toy; check.sh OK)
+(subagent; I re-ran check.sh, 1,047 declarations audited.) A two-node handshake (free request node, buffer
+acknowledge with delay in [1, 2]), one kind K = one handshake: every per-kind / sub-word check holds (by `decide`
+plus the reductions), so for the word K^n and EVERY n, `timedA_follows_unrollUXC` and `timedA_live_unrollUX` give
+their conclusions for every behaviour from all-low whose request stops after 2n toggles and progresses
+(`toy_follows_plain`, `toy_live_plain`); `toy_nonvacuous`: a concrete behaviour meets every hypothesis for every n.
+Exercised genuinely: local check, skew rows (TOA), time stamps, bounds (LSound), RT edges, liveness side
+conditions. Vacuous in the toy: claims/guards/external claims (no data nodes), Sep/Up tables (empty). A toy, not
+THE target.
