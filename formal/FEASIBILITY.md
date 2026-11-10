@@ -12,8 +12,8 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 ps, `StepHypR` ⇒ `NetCorrectSeq net boundary arbs p T R su Δo` (THE statement, every T, su, Δo). `StepHypR`: in every
 behaviour meeting THE hypotheses, from the *read island* `IslR` at a rising pair request, one complete pair episode
 (`Assembly.StepCore`: input acknowledges and out0 per four-phase, out0 once with gcd of the pair, back to a low
-boundary) that ends in `IslR`. `IslR`: each of C's 414 idle-island members (incl. a.ack, b.ack, start.ack, out0.req)
-is forced low by a pin set whose current reads see island/env sources that have stayed low since. Proved here: the
+boundary) that ends in `IslR`. `IslR`: some set of logic nodes containing a.ack, b.ack, start.ack, out0.req (C's 414-node idle island
+at reset end), each forced low by a pin set whose current reads see island/env sources that have stayed low since. Proved here: the
 reset base (C's island argument with a bounded environment), the quiet clause (monotone read maps), Isl ⇒ IslR.
 Why not the simpler island (`PlanPS`, also checked): a fastest sequential env re-requests 1-2 ps after out0.req falls,
 so "island low for 3.9 ns" fails at episode ends; IslR holds there in simulation (untrusted, one run, 2 episodes).

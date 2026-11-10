@@ -8,9 +8,10 @@ read island `IslR p x t` at a rising pair request `t ≥ R`, there is one comple
 requests move per four-phase; out0 rises once, at t0, and carries gcd of the operands at t + 1; boundary low at t2;
 `IslR` at t2). Base (reset) and quiet steps are proved (`isl_islR`, `islR_next`, C's island data).
 
-**`IslR p x t`:** every one of C's 414 idle-island members w (`CViewPS.memI`) has a read-map witness F of its routed
+**`IslR p x t`** (generalised 11:5x): for some set S of logic nodes containing a.ack, b.ack, start.ack, out0.req
+(C's 414-node idle island `CViewPS.memI` at reset end), every member w has a read-map witness F of its routed
 gate relation and a pin set P that forces its LUT to 0 whatever the other pins read; each P-pin reads an island member
-or env node (shared request 186985, end.ack 104477) through a route of min delay ≥ 1 ps, and that source is low on
+S-member or env node (shared request 186985, end.ack 104477) through a route of min delay ≥ 1 ps, and that source is low on
 [F j t, t] (the read at t already sees it low, and it has stayed low since).
 
 **Why not a quiet window (the finding that matters for the S4 certificate).** Under `SeqEnv` the env may lower
