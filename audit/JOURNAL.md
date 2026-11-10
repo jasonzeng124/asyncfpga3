@@ -1310,3 +1310,6 @@ PlanRPS (A 154c44cd) built at 464838c1, axioms clean. Conditional on StepHypR; S
 
 ## 2026-11-10T08:18:49Z T56 rows 7-8
 A 9cd05ce7 NetCorrectSeqOn/the_on_of_stepR_all rebuilt at c9a545d7, axioms clean, conditional. Refutations cover Q containing the cex pair only; (12,18) open.
+
+## 2026-11-10T08:22:05Z T57
+C AO layer (14 modules) and Ucmpi2T/3T built at c9a545d7; axioms clean; toy non-vacuity; D 1871/1562 reproduced by own script. Generic, no target instance.

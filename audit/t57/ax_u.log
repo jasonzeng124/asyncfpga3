@@ -1,0 +1,19 @@
+'Formal.Net.Compute.PS.Ucmpi2T.ucmpi2_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi2T.ucmpi2_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi3T.ucmpi3_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi3T.ucmpi3_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+Formal.Net.Compute.PS.Ucmpi3T.ucmpi3_timed_circ : ∀ (p : Formal.Target.DelayPar),
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ (x : Formal.Target.Beh),
+      Formal.Target.Behaves p (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+        ∀ (T0 T1 : ℕ),
+          (∀ e ∈ Formal.Net.Compute.PS.Ucmpi3.maps.psi, ∀ (t : ℕ), T0 ≤ t → t ≤ T1 → x e.2.2 t = x e.2.2 T0) →
+            ∀ (t : ℕ),
+              T0 + Formal.Timing.SpecSettle.cScale p * Formal.Net.Compute.PS.Ucmpi3T.D ≤ t →
+                t ≤ T1 →
+                  Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Ucmpi3.zNode) 1 =
+                    Formal.Net.GcdHw.Ops.cmpi Formal.Net.GcdHw.Pred.eq 1
+                      (Formal.Net.GcdHw.Ops.andi 1
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Ucmpi3.e0Node) 1)
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Ucmpi3.e1Node) 1))
+                      0
