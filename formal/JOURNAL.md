@@ -2362,3 +2362,8 @@ C's `timedA_follows` gives ideals of `cntE` (data nodes counted 0), not of raw c
 behaviour's counts on the boundary nodes: interleaving, "whenever an alternative's causes have happened by s, the
 partner event k has happened by s" (`ackMoves_of_certT`, `reqMoves_of_certT`, EpN1.ord*), out0.req changes at most
 twice (`capO`). The prover gets these from the cntE ideal because boundary nodes are not data nodes.
+### progress 10:07 -- IslR at the episode end next to the refuted frontier (simulation, untrusted)
+B's merge4 adversary (`tools-B/target/out/k40w20_x16y21_classes.json`, the race refuted at κ = 0.36 by a livelock) at
+κ = 0.35 (KDEN = 100), w = 20, corner 0, fastest SeqEnv: full-width pair (1240057368, 901749038) -> out0 = 2 at 3.96 ms
+(correct), next request 3,972,756 ps; IslR holds there (`islr_check.py`, now with KDEN). 10 of 10 checked episode
+ends satisfy IslR, including the closest correct point to the refuted frontier on this race.

@@ -25,11 +25,11 @@ if os.environ.get("CLASSES"):
         for x_ in CJ.get(k_,[]):
             if isinstance(x_,list): ACL[(NIDX[x_[0]],x_[1])]=k_
             else: CLS[NIDX[x_]]=k_
-    PK=round(float(KAP)*25); WR=int(os.environ.get("W","0")); CDEF=os.environ.get("CDEF","M")
+    KD=int(os.environ.get("KDEN","25")); PK=round(float(KAP)*KD); WR=int(os.environ.get("W","0")); CDEF=os.environ.get("CDEF","M")
 def dmc(e, out, pin, islut):
     k_=ACL.get((out,pin), CLS.get(out, CDEF))
-    if k_=="S": d=((25+PK)*e["fmax"])//25
-    elif k_=="F": d=((25-PK)*e["fmin"]+24)//25
+    if k_=="S": d=((KD+PK)*e["fmax"])//KD
+    elif k_=="F": d=((KD-PK)*e["fmin"]+KD-1)//KD
     else: d=(e["fmin"]+e["fmax"])//2
     if islut and d<WR: d=WR
     return d
