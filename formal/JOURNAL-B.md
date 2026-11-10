@@ -4128,3 +4128,12 @@ Census (Python on THE target, untrusted; the Lean instance re-checks it): of 19,
 reads one live source on two pins** (the 57 of TimedBridge's note were all constant/dead duplicates), and every kept
 pin's own arc has fmin ≥ 1 (so TBehX's lo1 holds on kept pins for κ < 1). Instance (`Formal/Cells/SliceNetPS/`,
 generator `tools-B/slicenet/gen.py`): written, building (needs C's CViewPS).
+
+### progress 08:1x -- THE target's slice net: instance written, building (memory-bound)
+Files (not yet checked, so not claimed): `Formal/Cells/SliceNetPS/{Defs,Data,S000..S074,Chunks,Sound,Main,Final}.lean`
+(`tnPS p c1 c2`; `target_reads_slice`; `tnPS_lo1`) and `Formal/Cells/StartBound.lean` +
+`Formal/Cells/StartBoundPS/` (every logic gate's collapsed start ≤ ⌈(1+κ)g⌉ · 33,002 ps, by chunked value trees and a
+walk along C's copy map; this also discharges the start/route-bound premises of C's `quiet_PS`-style theorems).
+Generators `tools-B/slicenet/gen.py`, `gen_sb.py`. The build needs C's whole CViewPS (~700 modules); its V-chunk
+checks take ~4.5 GB each and lake runs four at once, which OOM-killed the subagent's builder runs twice; the V files
+are now built one at a time.
