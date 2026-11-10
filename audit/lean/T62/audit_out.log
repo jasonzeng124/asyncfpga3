@@ -1,0 +1,10 @@
+@reset_quiet_all : ∀ {p : Formal.Target.DelayPar},
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ {x : Formal.Target.Beh},
+      Formal.Target.Behaves p (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+        ∀ (R : ℕ),
+          (∀ t < R, x rstPS t = true) →
+            0 < R → ∀ (w : ℕ), memR w = true → ∀ (t : ℕ), Cp p * A2 + 15 * (Cp p * M2) ≤ t → t ≤ R - 1 → x w t = valR w
+'Formal.Net.CViewPS.reset_quiet_all' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.CViewPS.rIsl_bnd' depends on axioms: [propext]
+(19832, 4636, 89372)
