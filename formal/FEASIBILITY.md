@@ -7,6 +7,19 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-10 (lead): THE statement now has ONE non-allowed hypothesis, the per-pair step (A, Lean, check.sh OK).**
+`Formal.Target.PlanRPS.the_of_stepR_all`: for every g > 0, 0 ≤ κ < 1 and reset R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1
+ps, `StepHypR` ⇒ `NetCorrectSeq net boundary arbs p T R su Δo` (THE statement, every T, su, Δo). `StepHypR`: in every
+behaviour meeting THE hypotheses, from the *read island* `IslR` at a rising pair request, one complete pair episode
+(`Assembly.StepCore`: input acknowledges and out0 per four-phase, out0 once with gcd of the pair, back to a low
+boundary) that ends in `IslR`. `IslR`: each of C's 414 idle-island members (incl. a.ack, b.ack, start.ack, out0.req)
+is forced low by a pin set whose current reads see island/env sources that have stayed low since. Proved here: the
+reset base (C's island argument with a bounded environment), the quiet clause (monotone read maps), Isl ⇒ IslR.
+Why not the simpler island (`PlanPS`, also checked): a fastest sequential env re-requests 1-2 ps after out0.req falls,
+so "island low for 3.9 ns" fails at episode ends; IslR holds there in simulation (untrusted, one run, 2 episodes).
+**What it does not do:** StepHypR is the whole per-pair circuit argument (S4 + per-pair liveness); nothing of it is
+proved on THE target yet. It fixes the exact theorem the S4 certificate (B, C) must deliver, in Spec's own terms.
+
 **2026-11-10 (lead): from the other shards' 2026-11-09 journals (S4 pieces; no hypothesis of THE list discharged yet).**
 - **Shard C, Lean (audit T50-T54 CONFIRMED):** `reset_quiet_PS` (THE target's 3,224-node reset island holds its
   values during reset); `uselect1_ps` + 18 more datapath units (`Net/Compute/PS/*`, 19 of 20): each unit's decoded
