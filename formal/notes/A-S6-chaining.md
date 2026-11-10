@@ -28,3 +28,13 @@ the start of episode k ≥ 2 against such an env, for any H > 4 ps. A per-episod
 3. one certificate for the whole run from reset (all n pairs), which C's all-pairs plan does not cover yet
    ("Not covered: ... reset/quiet start"; one episode only).
 Option 1 composes directly with `StepHypR`. Episode 1 (after reset) is unaffected: C's reset island gives `quiet`.
+
+**Addendum (11:2x): what is still moving at a fastest re-request (simulation, (12,18) then (17,5), corner 0.5, κ = 0).**
+In the 5 ns before the second request, 27 logic nodes changed: the 9 island members above, out0.ack (env), and 17
+non-island control nodes reacting to out0.ack's fall, two of them 1-2 ps before the request (154630 SLICE_X4Y31.C6,
+160973 SLICE_X5Y31.D6), then 154646, 154614, 154737 (X4Y31.D6, X4Y31.B6, X4Y32.D6) and a 10-LUT chain over 4.8 ns
+(35740/35723/35707 X15Y77.C/B/A6, 31576/31560/31544 X14Y77.D/C/B6, 70070/70054 X21Y81.B/A6, 65714/65698/65682/65666
+X20Y81.D/C/B/A6). Over 50 ns, 164 island members and ~580 other logic nodes changed. So for a per-episode
+certificate with `TBehX.quiet` at H ≈ 5 ns, these 26 non-env nodes must be data-claimed (dat = true, "low/stable
+from its last change") or the start weakened; IslR covers only the island. Both races (this chain and the island
+tail made slow, everything else fast, κ = 0.3/0.35, fastest SeqEnv, 3 pairs) were correct in simulation.

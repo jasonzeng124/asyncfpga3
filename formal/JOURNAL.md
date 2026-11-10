@@ -2287,3 +2287,8 @@ previous episode's tail as its first events, or a whole-run certificate. No Lean
   circuit -- unless the kernel joins end.ack into its input acknowledge. Checked: with end.ack 1 µs after the request,
   start.ack rises 472 ps after end.ack (1,400,473 vs 1,400,001 ps), so the env cannot drop the request first; the
   clause is the circuit's to keep. One run, κ = 0.
+### progress 11:2x -- out0.ack-fall chain vs next request: correct to κ = 0.35 (simulation); addendum to the S6 note
+At a fastest re-request 17 non-island control nodes are still reacting to out0.ack's fall (two of them 1-2 ps before
+the request; a 10-LUT chain over 4.8 ns). Made slow together with the island tail, everything else fast, κ = 0.3 and
+0.35, corner 0, `--dfall 1`, pairs (12,18), (17,5), (1071,462): outputs 6, 1, 21. No race found. Listed in
+notes/A-S6-chaining.md (addendum) as the nodes a per-episode certificate must data-claim or start weakly.
