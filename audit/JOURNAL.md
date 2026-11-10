@@ -1316,3 +1316,6 @@ C AO layer (14 modules) and Ucmpi2T/3T built at c9a545d7; axioms clean; toy non-
 
 ## 2026-11-10T09:03:22Z T58
 uori4 (20th unit) confirmed incl. own eval; 7 timed units + D reproduced; AO Unroll* build; PlanRPS doc now conditional (T56 resolved). Next: CexQ36/Frontier36 build (A CHECKED 5d1e710a).
+
+## 2026-11-10T09:04:34Z build65
+CexQ36 + Frontier36 build started (one module at a time, formal 066ee0ee), script lean/T29/build65.sh.
