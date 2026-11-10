@@ -2919,3 +2919,9 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
 * *Limitation noted:* `uL` (one bound table for all readers, relative to window offsets) can only be sound when
   the bounded node's events precede through causal chains; `KindLStep` justifies bounds at most one window back.
   Whether THE target's bounds have this form is unchecked. No instance exists; nothing here is about THE target yet.
+
+### progress 09:46 -- Net/AO/UnrollGlue.lean: hloc of timedA_follows_unroll from the window checks (check.sh OK)
+`hloc_unroll`: the local-check hypothesis of `timedA_follows_unroll`/`timedA_live_unroll`, in exactly their form
+(certificate `LC`, claims `uclT`), follows from `lcheckXA_unroll`'s window checks for the same word. So the generic
+all-pairs control theorem now has, as its only non-local hypotheses, the behaviour itself, the environment
+(hEnvE, hEnvC, henv), the claim proofs (hGC/ChainOK), hInit, hgdF, hDE and the delay bound K.
