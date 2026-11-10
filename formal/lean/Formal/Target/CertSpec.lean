@@ -22,6 +22,10 @@ Do the count facts give the value facts?
 * `enabled_of_changeOKA`: C's per-change conclusion `ChangeOKA` at a gate, with the read bounds of `TBehX`
   (`rd`, `lo1`), gives the "enabled at earlier counts" premise above.
 
+(The first two need raw counts to be an ideal, i.e. a certificate without data nodes; the transitive forms below
+need only facts about the boundary nodes' counts and fit C's `cntE` ideals, see `cntE_nd`, `happened_of_ideal`,
+`inter_of_ord`.)
+
 **Not shown.** The other `StepCore` fields (one out0 handshake, the data, the end state) and the instance for THE
 target (its certificate's cause lists for the boundary events).
 -/
@@ -140,5 +144,28 @@ theorem reqMoves_of_certT (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 
       have hak := hRqT t k alt halt (altIn_mono hle hin)
       omega
   rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+
+/-! ## Glue: from C's ideals of `cntE` to the premises above -/
+
+/-- A non-data node's `cntE` count is its raw count. -/
+theorem cntE_nd {dat : Nat → Bool} {x : Beh} {t0 u s : Nat} (h : dat u = false) :
+    Formal.Net.OccNet.TimedX.cntE dat x t0 u s = cnt x t0 u s := by
+  simp [Formal.Net.OccNet.TimedX.cntE, h]
+
+/-- In an ideal, if event `(u, k)` has happened and every alternative of it contains `(v, j)`, then `(v, j)` has. -/
+theorem happened_of_ideal {C : Cert Nat} {c : Nat → Nat} (hI : Ideal C c) {u k v j : Nat} (hk : k < c u)
+    (hall : ∀ alt ∈ C.causes u k, (v, j) ∈ alt) : j < c v := by
+  obtain ⟨alt, halt, hin⟩ := (hI u).2 k hk
+  exact hin _ (hall alt halt)
+
+/-- Interleaving from the two order facts (acknowledge `k` after request `k`; request `k + 1` after acknowledge `k`). -/
+theorem inter_of_ord {c : Nat → Nat} {r a : Nat} (hAk : ∀ k, k < c a → k < c r) (hRq : ∀ k, k + 1 < c r → k < c a) :
+    c a ≤ c r ∧ c r ≤ c a + 1 := by
+  constructor
+  · rcases Nat.eq_zero_or_pos (c a) with h | h
+    · omega
+    · have := hAk (c a - 1) (by omega); omega
+  · by_contra h
+    have := hRq (c r - 2) (by omega); omega
 
 end Formal.Target.CertSpec
