@@ -2246,3 +2246,21 @@ at the first settled instant SeqEnv allows, out acks fall 1 ps after their reque
 never answers and goes quiet at 599 ns: it waits for the request's fall before computing. Not a counterexample: Spec's
 `ReqLive` makes the env drop a request whose ack is high, so that env is not an `Env`. (It does say the circuit's
 acknowledge-then-compute order is: compute only after the input handshake's return to zero.)
+### progress 09:5x -- CHECKED: `Formal/Target/PlanRPS.lean`: THE statement from the per-pair step ALONE (no quiet hypothesis)
+check.sh OK (1,896 declarations, standard axioms). **Problem:** PlanPS needed a quiet clause for a post-episode state
+J, because the M-window island fails at a fast re-request. **Measured first (untrusted, `tools-A/target/islr_check.py`
+on a simadv_hold dump, pairs (12,18), (17,5), (8,12), corner 0.5, κ = 0, `--nextreq seq --dfall 1`):** at both
+re-requests all 414 island members are low, but 9 changed within the last 3.9 ns (out0.req 4 ps before, then a falling
+chain 160932, 160916, 160996, 19495, 20614, 21015, 20999, 20983 up to 3.8 ns); a per-pin max-delay window still fails on
+out0.req's last causal step (its forcing pin reads 160932, which fell 116 ps earlier, through a 376 ps max route); but
+every member IS Kleene-forced low by the pins whose current reads (simulator delays) see member/env sources that have
+stayed low since. **Lean:** that is `IslR p x t` (per member: a read-map witness `F` of its `CGateOK`, a pin set `P`
+that forces the LUT to 0, each P-pin reading a member/env node through a route of min delay ≥ 1 ps, low on
+[F j t, t]). `isl_islR` (Isl ⇒ IslR), `islR_low` (members, hence a.ack/b.ack/start.ack/out0.req, low),
+`islR_next` (quiet step: monotone reads keep P reading low). `the_of_stepR_all`: for every g > 0, 0 ≤ κ < 1 and
+R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1 ps, `StepHypR p T R su Δo` (from IslR at a rising request, one complete pair
+episode ending in IslR) ⇒ `NetCorrectSeq net boundary arbs p T R su Δo`. **Plainly:** THE statement now has exactly
+one non-allowed hypothesis, the per-pair step, stated with an end-state invariant that a simulated fastest-env run
+satisfies. Not shown: StepHypR (C's S4 per-pair argument for every pair, plus liveness). STATUS row 7 updated.
+**For C:** the end state your certificate must establish is IslR (not "island low for M ps"); with read maps
+explicit in TBehX this should be the per-member claim "my forcing reads are past the sources' last fall".
