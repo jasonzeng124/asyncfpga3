@@ -2925,3 +2925,16 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
 (certificate `LC`, claims `uclT`), follows from `lcheckXA_unroll`'s window checks for the same word. So the generic
 all-pairs control theorem now has, as its only non-local hypotheses, the behaviour itself, the environment
 (hEnvE, hEnvC, henv), the claim proofs (hGC/ChainOK), hInit, hgdF, hDE and the delay bound K.
+
+### progress 09:57 -- c=0 data layer: still 42 / 264; the residue needs an Up-join chain rule (untrusted Python, tools/tocc/r1h)
+* *Subagent result:* c=1 reproduced (0 of 264, all checks). c=0: r1g reproduced pass by pass up to pass 3 (OOM-killed
+  twice next to the Lean build), 42 failing at every pass; a cover-choice variant (DROPMASK) also converges at 42 with
+  every obligation passing, but regresses c=1 (off by default).
+* *Root:* all 42 trace to one claim end B = X27Y80.A6(2) (the select-latch re-open of the benign A/B race), spread by
+  2,561 latch truncations at B in 362 latches. A join of two claim segments needs Sep(next start → B), which cannot
+  exist (the next start is causally AFTER B); RESTART accepted 0 of 80,329 tries.
+* *Needed Lean rule (not in TimedOccU today; B's "UnionUpOK"):* a ChainOK alternative `Up e1 e2 = some u ∧ c2.a + u ≤
+  c1.b`: at t, either e1 has not happened by t − c1.b (c1 holds) or it has, so e2 happened by t − c2.a (c2 holds).
+  Counterfactual count: an Up(B → next start) exists for 378 of 696 joins, small enough for 185. So the rule alone
+  may not clear all 40.
+* *Not a new race:* no evidence of one; no new adversarial runs.

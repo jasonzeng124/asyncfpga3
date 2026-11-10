@@ -1,0 +1,86 @@
+R1h, shard C helper, 2026-11-10 (UNTRUSTED Python; evidence, not a proof).  Pair (12,18), g = 1, kappa = 0, one midpoint
+run per corner.  Workspace /tmp/claude-0/r1h = formal/tools/tocc/r1c/*.py (all paths -> /tmp/claude-0/r1h) + r1g/datal.py,
+r1e/lchk.py, r1e/rundatal.py (now picks the builder file from env DATAL).  Nothing under /home/user/asyncfpga3 was changed.
+
+Inputs rebuilt (not committed upstream):  tools/cview/lean2json.py lean/Formal/Target/NetPS -> net.json, bnd.json;
+build.py net.json bnd.json model.pkl; sim.py c 12 18 40000 (c = 0, 1); data.py c.  numpy is only in /usr/bin/python3 (3.13),
+so run.sh uses that interpreter.  Sim: c=0 tend 483145 out [6], c=1 tend 1122959 out [6] (gcd right).
+
+1. Reproduction (r1g builder = datal_g.py, flags of r1g/run.sh)
+   c=1: 0 of 264 guards fail, converged pass 2.  Log datal_c1_g.log is line-for-line the r1g log (claims 20056, lchk 859
+        claim Seps failing 0, upFormB/sepFormB 0/0, Up 277 / Sep 56445, GuardTime recomputation 0 failing, mismatch 0).
+   c=0: two full runs were OOM-killed by the memory cgroup (shared with the background Lean build; dmesg shows the kills):
+        datal_c0_g_oomkilled.log (after pass 0), datal_c0_g_oomkilled2.log (after pass 3).  Up to where they got, the trajectory
+        is identical to r1g's log: pass 0..3 claims 96557 / 97707 / 98157 / 98425, windows changed 96557 / 64539 / 42809 /
+        25019, guards failing 42 at every pass.  So "42" is reproduced per pass, but the r1g c=0 run was NOT re-run to its end.
+
+2. Diagnosis of the c=0 residue (on the h3 run's pkl, see 3; same 42 guards, same split 40 + 2 as r1g)
+   a) ONE root for all 42.  The 2 "comb root X37Y59.B6" guards (readers X36Y59.A5/A6, z = X37Y68.B6, E = X37Y59.B6(1)) are the
+      same class: z's only cover X37Y68.A6 ends at B = X27Y80.A6(2)@377006 + 16846; the guard-optimal end choice (GTOP) re-wrote
+      that end as S = X37Y59.B6(0) + 21831 (a valid Sep(S -> B) re-expression), which is E's own previous event, so
+      Sep(E -> claim.B) cannot exist.  Whatever the end witness, it is causally before E.  (ana_comb_c0_h3.txt)
+   b) Where B enters (r1h_inj.py, r1h_inj2.py): the cover closure of the 40 failing guard claims whose end is B has 19,571
+      claims (18,430 comb, 1,141 latch).  The ONLY claim in it whose end B is not inherited from a cover is the select latch's
+      own old-value claim X27Y80.B6 (B + 117 ps; it really changes at 377137).  Its direct consumers in the closure are the
+      muxes X22Y80.B6 and X22Y81.B6, which really change after B (377614 / 377496), so their pre-change claims ending at B
+      are correct.  Everything else carries "B + delta" through LATCH TRUNCATIONS: 2,561 truncations (696 distinct) have
+      c1.B = B (U'->T 746, T->U 1094, U->H 703, comb segment 18) in 362 distinct latches.  A truncated latch claim ends at its
+      failing phase's end, B + ~17-19 ns, and that end feeds the next latch of the datapath loop, whose phase after a later
+      open O then fails the same way.  Example path (guard -> select latch):
+        X37Y68.B6 <- X37Y68.A6 <- X35Y70.F8 <- latch X34Y65.A6 (H, U'(B), T(B), U(B), truncated U->H at close
+        X34Y66.A6(1)) <- X33Y75.C6 <- latch X31Y76.A6 (truncated U'->T at open X30Y76.A6(2)) <- X31Y73.B6 <- ... <-
+        latch X24Y76.D6 (T from open X24Y77.A6(2)@381661 ends at B + 18881; truncated T->U) <- ... <- X27Y80.B6.
+      In every such truncation c2.A (an open or close of the latch's enable) is causally AFTER B (e.g. Sep(B -> X24Y77.A6(2))
+      = 4039, Sep(B -> X30Y76.A6(2)) = 23602) while ChainOK needs Sep(c2.A -> c1.B): a lower bound in the wrong direction,
+      impossible by construction.  RESTART tried 80,329 times, accepted 0 (the restarted claims' D covers come back
+      around the same loop to B).  So r1g's description is right; the precise statement is: the needed join is an UPPER
+      bound, t(c2.A) + c2.a <= t(B) + c1.b, and the existing ChainOK/UnionOK only admit a Sep join.
+   c) Up-join counterfactual (r1h_upjoin.py; NOT in the builder): over the 696 distinct truncations at B, an Up(B -> c2.A)
+      (UpOKA tables of relup.py, incl. the relative clause) exists for 378; with u + c2.a <= c1.b the join would pass for 185;
+      193 have an Up that is too large; 318 have no Up (c2.A before B or concurrent with it, e.g. X26Y92.A6(0)@362493,
+      X26Y65.A6(2), X28Y65.A6(2)).  Ups found: e.g. Up(B -> X24Y77.A6(2)) = 11220 (sim 4655), Up(B -> X34Y66.A6(1)) = 15307,
+      Up(B -> X30Y76.A6(2)) = 36144.  Whether the 185 would clear the 40 guards was NOT run (needs a builder change + a full
+      c=0 run, ~50 min, did not fit; also needs the Lean rule below).
+   d) Lean needed for (c) (no such rule exists today; NOT a witness choice): a ChainOK / UnionOK alternative join
+        c1.B = some e1, c2.A = some e2, Up e1 e2 = some u, c2.a + u <= c1.b
+      Soundness sketch: at t with e1 happened by t - c1.b (else c1 holds), e2 happened by t - c1.b + u <= t - c2.a (Up's
+      meaning), so c2's start condition holds.  It needs Up soundness at time t inside the induction of Timed.lean
+      (up_sound, l.~329, is proved there for the same Up table), i.e. chain_holds would take an UpSound-style hypothesis next to
+      SepSound.  This is B's "UnionUpOK" proposal; it does not exist in TimedOccU.lean.
+
+3. What was tried in the builder (sound witness choices only; all checks unchanged)
+   DROPORD (env, default off): comb cover-drop order = soonest-changing pin first.  c=1 pass 0 went from 20,059 claims / 0
+     failing to 94,266 claims / 39 failing (1188 s); killed.  Rejected.
+   DROPMASK (env, default OFF in the delivered datal.py): drop first the MASKED pins (source changes, as read, before z's own
+     simulated stable interval ends, e.g. a mux select whose inputs agree; 32 of the 34 comb readers of X27Y80.B6 are decided
+     without it at 376 ns and at 380 ns, r1h_mux.py).  A first version (datal_h2.py, compared with the requested end) never fired: c=1
+     identical to r1g (0 failing), c=0 pass 0 identical (killed).  The fixed version (datal_h3.py, run _h3):
+       c=0: applied 346 times; pass 0 39 failing (99,767 claims), then 42 from pass 2 on; converged pass 7, 102,175 claims.
+            Final: 42 of 264 fail (40 B + 2 X37Y59.B6, as before); every claim obligation 0 failures; guards depending on a
+            failing obligation 0; claims failing 0 of 102,175; fixpoint converged; loop covers re-checked against the final
+            windows 17,975, 0 failed CovTime; lchk: claim-building
+            Seps 880, failing 0; Up 296 / Sep 59269 emitted, upFormB/sepFormB failures 0/0; GuardTime recomputed from the
+            emitted tables 42 failing, mismatch 0.
+       c=1: REGRESSION.  pass 0: 94,133 claims (r1g 20,059), 39 failing (r1g 0), 1334 s; killed after pass 0 (budget).
+     Because it does not change the c=0 count and regresses c=1, DROPMASK is left OFF; the delivered datal.py with
+     default env is the r1g builder (only the two switches added; diff r1h_vs_r1g_datal*.diff).
+
+4. Numbers per corner, final builder (= r1g behaviour, DROPMASK off)
+   c=1: 0 of 264 (reproduced, full run, lchk 0 failures).   c=0: 42 of 264 (r1g; reproduced through pass 3 only, OOM).
+   With DROPMASK on: c=0 42 (full run, all checks); c=1 39 failing at pass 0 (regression; not run to the end).
+
+5. Race?  Not a new race as far as the Python shows.  The 42 trace to the A/B race of the RACE study (X22Y87.A6(0) vs
+   X27Y80.A6(2), unordered, flips at kappa 0, budgets there: t(A) - t(B) <= +1836 ps at c=0), judged benign there by
+   adversarial sims (race/RESULTS.txt).  Here the failing obligations are joins whose second event is causally after B,
+   i.e. a missing proof rule (an upper-bound join), not a missing order: in the run the loop latches do not change at all.
+   No new adversarial simulation was run in r1h (time).
+
+Still NOT checked / open:
+ - the r1g c=0 run to completion with the r1g builder (OOM twice); the 185 Up-joins in a builder; the Lean UnionUp rule;
+ - DROPMASK at c=1; any second pair; the four undischarged Lean hypotheses of JOURNAL-C 18:52 (hInit A = none, constant-pin
+   covers, dead pins, union/segment claim emitters) stand unchanged.
+
+Files: run.sh (DATAL=<builder file> TAG=<tag> ./run.sh <c>), rundatal.py, datal.py (delivered; DROPMASK/DROPORD off),
+ datal_g.py (= r1g), datal_h2.py, datal_h3.py (DROPMASK on), r1h_vs_r1g_datal.diff, r1h_vs_r1g_datal_pathsnormalised.diff,
+ logs datal_c{0,1}_*.log, pkls datal_c1_g.pkl, datal_c1_h2.pkl, datal_c0_h3.pkl, analysis scripts r1h_*.py and their outputs
+ ana_*_c0_h3.txt.
