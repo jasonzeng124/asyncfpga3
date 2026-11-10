@@ -1,13 +1,17 @@
 # Shard A (UNTRUSTED): does PlanRPS.IslR hold in a simadv dump at given request-rise times?
 # usage: islr_check.py DIR RISE... (DIR has netps.json from tools-B/target/lean2json.py and fast_dump.json from
 # simadv_hold.py --dump, corner 0.5, pos 0.5 delays); run from formal/.
-import json,re,sys,itertools
+import json,re,sys,itertools,os
 S=sys.argv[1]
-N=json.load(open(S+"/netps.json")); D=json.load(open(S+"/fast_dump.json"))["nodes"]
+N=json.load(open(S+"/netps.json")); D=json.load(open(os.environ.get("DUMP",S+"/fast_dump.json")))["nodes"]
 drv={g["out"]:g for g in N["gates"]}
 src=open("lean/Formal/Net/CViewPS/IslandData.lean").read()
 mem=set(int(a) for a in re.findall(r'\((\d+), (?:true|false), \[',src)); env={186985,104477}
-dm=lambda e: int(round((0.5*e["fmin"]+0.5*e["smin"])+0.5*((0.5*e["fmax"]+0.5*e["smax"])-(0.5*e["fmin"]+0.5*e["smin"]))))
+import os
+C=float(os.environ.get("CORNER","0.5")); PP=float(os.environ.get("POS","0.5"))
+def dm(e):
+    lo=(1-C)*e["fmin"]+C*e["smin"]; hi=(1-C)*e["fmax"]+C*e["smax"]
+    return int(round(lo+PP*(hi-lo)))
 def chain(g,i):
     s=dm(g["arcs"][i]); n=g["ins"][i]
     while n in drv and drv[n]["k"]==1 and drv[n]["init"]==2:

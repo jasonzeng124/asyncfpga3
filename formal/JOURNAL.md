@@ -2269,3 +2269,12 @@ C's per-episode framework assumes every exact node constant for H ps before the 
 fastest sequential env re-requests 4 ps after out0.req falls (and 8 more island members fell within 3.9 ns). So a
 per-episode certificate for pairs k ≥ 2 needs a weaker start (IslR's "forced by reads of stable sources" form), the
 previous episode's tail as its first events, or a whole-run certificate. No Lean change to B/C files.
+### progress 10:4x -- IslR at more episode ends (simulation) and a pair-restricted form (Lean, check.sh OK)
+- `tools-A/target/islr_check.py` (now with CORNER/POS/DUMP): IslR holds at all 3 re-requests of two more fastest-env
+  runs, corner 0 pos 0 (pairs (12,18), (17,5), (1071,462): out0 6, 1, 21) and corner 1 pos 1 (out0 6, 1); still
+  untrusted, κ = 0 only, no adversarial delays.
+- `PlanRPS` (check.sh OK, 1,901 declarations, standard axioms): `plan_R` (the plan for one behaviour from its step),
+  `NetCorrectSeqOn Q` (THE statement for envs whose every offered pair satisfies Q; `on_true_iff`: Q = True is THE
+  statement), `the_on_of_stepR_all`: `StepHypROn Q` ⇒ `NetCorrectSeqOn Q` for every g > 0, κ < 1. **Plainly:** a
+  per-pair step proof for (12,18) alone (C's milestone) would give correctness for every env offering (12,18) any
+  number of times, n = none included -- if that step starts from IslR (notes/A-S6-chaining.md).

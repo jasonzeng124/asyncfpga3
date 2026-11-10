@@ -127,15 +127,15 @@ def StepHypR (p : DelayPar) (T R su Δo : Nat) : Prop :=
     ∀ t, R ≤ t → IslR p x t → Low x boundary t → edge (x boundary.a.req) t →
       ∃ t2 t0, StepCore x boundary Δo (IslR p x) t t2 t0
 
-/-- **THE statement on THE target from the per-pair step alone.** -/
-theorem the_of_stepR {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : IslDelay p M A)
-    (hRA : A + 87 * M + 1 ≤ R) (hstep : StepHypR p T R su Δo) :
-    NetCorrectSeq net boundary arbs p T R su Δo := by
-  apply AssemblyPS.the_of_plan
-  intro x n va vb hb harb he hseq
+/-- **The plan for one behaviour**, from that behaviour's per-pair step (base and quiet proved here). -/
+theorem plan_R {p : DelayPar} {Δo M A R su : Nat} (hp : Sane p) (hd : IslDelay p M A) (hRA : A + 87 * M + 1 ≤ R)
+    {x : Beh} {n : Option Nat} {va vb : Nat → Nat} (hb : Behaves p (circuit net boundary) x)
+    (he : Env x boundary R su Δo n va vb)
+    (hstep : ∀ t, R ≤ t → IslR p x t → Low x boundary t → edge (x boundary.a.req) t →
+      ∃ t2 t0, StepCore x boundary Δo (IslR p x) t t2 t0) :
+    Plan x boundary R Δo (IslR p x) := by
   obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12⟩ := bnd_facts
-  have he' := he
-  obtain ⟨hrst, -, -, hEa, -, -, -, hEp⟩ := he'
+  obtain ⟨hrst, -, -, hEa, -, -, -, hEp⟩ := he
   obtain ⟨hq0, -, -, -, -, -⟩ := hEa
   obtain ⟨hp0, hpm, -, -⟩ := hEp
   have hR0 : 0 < R := by omega
@@ -155,21 +155,57 @@ theorem the_of_stepR {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : I
     intro s h1 h2
     exact ⟨fun w hw => hisl w hw s (by omega) h2, by rw [← b2]; exact hq0 s h2, by rw [← b11]; exact hp0 s h2⟩
   have hbaseR : IslR p x R := isl_islR hp hb hd (by omega) hbase
-  refine ⟨IslR p x, ⟨hbaseR, couts_of R (islR_low hp hbaseR), ?_, ?_⟩⟩
-  · intro t ht hI hlow hq
-    have hq0t : x 186985 t = false := by
-      have := hlow boundary.a.req (by simp [bnodes]); rw [b2] at this; exact this
-    have hpat : x 104477 t = false := by
-      have := hlow boundary.pend.ack (by simp [bnodes]); rw [b11] at this; exact this
-    have hq' : x 186985 (t + 1) = false := by rw [← b2]; exact hq
-    have hpa' : x 104477 (t + 1) = false := by
-      by_contra hne
-      have := hpm t ht (by rw [b11, hpat]; simpa using hne)
-      rw [b11, b10, hpat, hq0t] at this; exact this rfl
-    obtain ⟨hI', hl'⟩ := islR_next hp hI hq' hpa'
-    exact ⟨couts_of (t + 1) hl', hI'⟩
-  · intro t ht hI hlow hedge
-    exact hstep x n va vb hb harb he hseq t ht hI hlow hedge
+  refine ⟨hbaseR, couts_of R (islR_low hp hbaseR), ?_, hstep⟩
+  intro t ht hI hlow hq
+  have hq0t : x 186985 t = false := by
+    have := hlow boundary.a.req (by simp [bnodes]); rw [b2] at this; exact this
+  have hpat : x 104477 t = false := by
+    have := hlow boundary.pend.ack (by simp [bnodes]); rw [b11] at this; exact this
+  have hq' : x 186985 (t + 1) = false := by rw [← b2]; exact hq
+  have hpa' : x 104477 (t + 1) = false := by
+    by_contra hne
+    have := hpm t ht (by rw [b11, hpat]; simpa using hne)
+    rw [b11, b10, hpat, hq0t] at this; exact this rfl
+  obtain ⟨hI', hl'⟩ := islR_next hp hI hq' hpa'
+  exact ⟨couts_of (t + 1) hl', hI'⟩
+
+/-- **THE statement on THE target from the per-pair step alone.** -/
+theorem the_of_stepR {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : IslDelay p M A)
+    (hRA : A + 87 * M + 1 ≤ R) (hstep : StepHypR p T R su Δo) :
+    NetCorrectSeq net boundary arbs p T R su Δo := by
+  apply AssemblyPS.the_of_plan
+  intro x n va vb hb harb he hseq
+  exact ⟨IslR p x, plan_R hp hd hRA hb he (hstep x n va vb hb harb he hseq)⟩
+
+/-! ## Restricted to the pairs a predicate allows (a one-pair certificate gives this for its pair, any number of times) -/
+
+/-- THE statement for environments whose every offered pair satisfies `Q`. -/
+def NetCorrectSeqOn (Q : Nat → Nat → Prop) (p : DelayPar) (T R su Δo : Nat) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat),
+    Behaves p (circuit net boundary) x → ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R →
+      (∀ k, Offered n k → Q (va k) (vb k)) → Correct x boundary R Δo n va vb
+
+theorem on_true_iff {p : DelayPar} {T R su Δo : Nat} :
+    NetCorrectSeqOn (fun _ _ => True) p T R su Δo ↔ NetCorrectSeq net boundary arbs p T R su Δo :=
+  ⟨fun h x n va vb hb ha he hs => h x n va vb hb ha he hs (fun _ _ => trivial),
+   fun h x n va vb hb ha he hs _ => h x n va vb hb ha he hs⟩
+
+/-- `StepHypR` for environments offering only pairs allowed by `Q`. -/
+def StepHypROn (Q : Nat → Nat → Prop) (p : DelayPar) (T R su Δo : Nat) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x → ArbOK T arbs x →
+    Env x boundary R su Δo n va vb → SeqEnv x boundary R → (∀ k, Offered n k → Q (va k) (vb k)) →
+    ∀ t, R ≤ t → IslR p x t → Low x boundary t → edge (x boundary.a.req) t →
+      ∃ t2 t0, StepCore x boundary Δo (IslR p x) t t2 t0
+
+/-- **THE statement restricted to `Q`'s pairs, from the per-pair step on those pairs**, every `g > 0`, `κ < 1`.
+With `Q a b := a = 12 ∧ b = 18`: a step proof for the pair (12, 18) alone gives correctness for every environment
+offering (12, 18) any number of times (n = none included). -/
+theorem the_on_of_stepR_all {Q : Nat → Nat → Prop} {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
+    (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHypROn Q p T R su Δo) :
+    NetCorrectSeqOn Q p T R su Δo := by
+  intro x n va vb hb ha he hs hQ
+  exact correct_of_plan AssemblyPS.oneReq_PS he
+    (plan_R hp (islDelay_all hp hk) hR hb he (hstep x n va vb hb ha he hs hQ))
 
 /-- **For every `g > 0`, `0 ≤ κ < 1`**, with a reset of at least `⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps. -/
 theorem the_of_stepR_all {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
