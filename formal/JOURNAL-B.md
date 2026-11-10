@@ -4205,3 +4205,11 @@ check.sh OK, standard axioms.
   that is O(n) per lookup in the kernel (~10^9 steps per slice). A per-pair Lean instance will need the claim list
   in chunks or a tree (like C's BT copy map) before `decide` is feasible; worth fixing in the generic layer first.
 - Constants and dead pins are gone from `tnPS` pin lists, so a certificate for `tnPS` must drop covers on them.
+
+### progress 11:5x -- CHECKED: `Formal/Cells/CovUpChunk.lean` -- the claim check with chunked lookup, split into ranges
+Answers the kernel-cost item of 11:1x for B's part of the certificate. `getC`/`getC_eq`: a claim list stored in chunks
+of C claims is looked up in O(#chunks + C) and agrees with `cl[i]?` on the flattened list; `covWinF`, `valBF`,
+`gateProofUBF` (claim lookup by any `get`) equal C's/B's List versions when `get i = cl[i]?`; `claimOKF` (one claim
+with its hint looked up by function), `rangeOK` (an index range, one `decide`), and `hgc_of_ranges`: ranges covering
+[0, cl.length) give exactly the hGC premise of `CovUpMain.timedA_follows_cu`. check.sh OK (541 declarations).
+Not done: the same for C's checkers (local check, TOA, GuardTime still index `List`s); any instance.
