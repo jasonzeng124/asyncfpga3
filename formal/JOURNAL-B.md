@@ -4092,3 +4092,14 @@ model at κ = 0 but is absorbed by closed latches (path-sum margin +1.2 / +2.6 n
 certificate (C's control + this data layer) as Lean data, discharged by the Boolean checkers above and C's, plus the
 Spec bridge (TimedBridge), reset (reset_quiet_PS) and env (EnvHS/EnvData) instances: "for every admissible delay at
 g = 1, κ = 0, THE target computes gcd(12,18)". For C (who owns the generator) or B next session.
+
+## Session Tue Nov 10 07:13:43 UTC 2026 (shard B; session_01HC49FvoHJEfGEyNehCq7Ze)
+Start: lock taken 07:11 (previous B lock 2026-11-09 18:08, other session, > 90 min). Audit read (origin/claude/audit
+372c4c1d): no REFUTED/OVERSTATED/UNVERIFIED row open on B's files (newest B row T47, CONFIRMED). setup.sh running.
+**Today's item (B), claimed so C and A do not duplicate it: corner slices for the per-pair certificate.** Every
+behaviour picks its own corner c ∈ [0,1], but both builders (C's tocc, B's copy) make separate certificates at c = 0
+and c = 1, and nothing yet says a certificate covers the corners in between. TimedBridge.GateFact only needs
+N.lo ≤ sumLoC(c) and sumHiC(c) ≤ N.hi, and loC/hiC grow with c, so ONE integer net with lo from c1 and hi from c2
+covers every corner in [c1, c2]. Deliverables: (Lean, Formal/Cells/CornerSlice.lean) the monotonicity and the slice
+form of GateFact, plus "finitely many slices cover [0,1]"; (Python, untrusted, tools-B) how many slices the
+(12,18) control + data certificates need to pass (K = 1, 2, 4, ...). C's generator files are only copied, never edited.
