@@ -2329,3 +2329,8 @@ Formal/Core module (1,134) against today's tree, OOM-killed modules retried one 
 first episode alone, whose end may be taken after everything has settled (where the M-window island gives IslR): the
 natural target for C's one-pair milestone "(12,18), n = 1, every admissible delay at g = 1, κ = 0", with no chaining
 issue. Conditional, like the rest of PlanRPS (audit T56).
+### progress 09:09 -- claimed (A, top-level assembly): certificate conclusions -> Spec's boundary clauses
+Generic Lean in `Formal/Target/CertSpec.lean`: from an AO occurrence certificate's conclusions (counts an ideal at
+every time, each change enabled at its read counts; C's `timedA_follows`/`timedA_live` give these) to Spec's
+four-phase clauses (AckMoves/ReqMoves for the circuit-driven acks and out0 request) and, later, StepCore. Uses only
+C's definitions (Net/AO/Occ, TimedOcc cnt); no edit to B/C files.
