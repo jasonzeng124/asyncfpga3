@@ -6,3 +6,10 @@ the DECODED gates there compute the cell for every input (pin permutation, route
 packing folded). `run_all.sh` -> run_all.out: 20 units, 2,840 cells, 3,050 outputs, 0 failures. `negctl.py`: a flipped INIT
 bit, a re-pointed pip, a flipped CARRY4 half are each caught. `extract_cmp.sh`: tools/compute/extract.py on gcd_ps gives
 Lean byte-identical to Gen/Compute/GcdD/* for 19 of 20 units; uori4 differs (abc chose other LUTs, same op).
+
+## Timed units (2026-11-10)
+`psmapT.py UNIT` writes the timed certificate `Gen/Compute/PSMap/<Unit>T` (topological gate order picked from decoded
+chunks, slow-max depth SN, D = max); the held inputs are now every node of the untimed certificate's input map
+(`maps.psi`; uselect1's 2026-11-09 certificate used the two 32-bit inputs, `KNOWN_E01=1` reproduces it).
+`psunitT.py UNIT` writes `Net/Compute/PS/<Unit>T.lean` (`<unit>_settled`, `<unit>_timed`, and the `_circ` versions over
+`circuit net boundary`) from a template of Uselect1T.lean. Both untrusted; the kernel checks every gate, order and bound.

@@ -2802,3 +2802,17 @@ builds Mathlib's imported part and the project from source (~2 h).
    bundling side of S4 needs them): generator `tools/compute/ps/psunitT.py` (new) on `psmapT.py`'s certificates.
 2. The c=0 residue of the one-pair data layer (subagent, Python).
 3. Piece 1 of the all-pairs route (notes/C-allpairs.md): window forms of the timing checks.
+
+### progress 08:22 -- Net/AO/Cover.lean: coverage of the local check by two-window certificates (check.sh OK)
+* *Problem:* `Window.lcheckXA_of_windows` needs coverage: every count vector the long local check ranges over must lie
+  in some window's box. With the long certificate cut at window boundaries `O j u`, when is that automatic?
+* *Proved* (`box_exists`, `lcheckXA_of_twoWindows`; standard axioms, 411 declarations audited with dependencies):
+  if `O 0 = 0`, `O` is monotone and equals the length from window `m` on (`Bounds`), and the reader's bounds `L`
+  *spread* the windows (`Spread`: the first event of window j+2 of any dependency node waits, via `L`, for every
+  dependency node to have entered window j+1), then every count vector that respects `L` lies in the box
+  `[O j, O (j+2)]` of some `j ≤ m` (take the largest `j` passed by every dependency node). Hence the long local check
+  at `v` holds given, for every `j ≤ m`, a window certificate at offsets `O j` reaching at least `O (j+2)` on the
+  dependency set, and containing `v`'s next event after `O (j+2) v` when there is one.
+* *Not shown:* the instance (Spread is a per-boundary check of `L`); how the overhanging event's causes are covered
+  (instance choice: a three-window certificate when `v` has an event in window j+2); the unrolled certificate's
+  construction from a word of kinds.
