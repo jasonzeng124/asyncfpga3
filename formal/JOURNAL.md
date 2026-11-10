@@ -2264,3 +2264,8 @@ one non-allowed hypothesis, the per-pair step, stated with an end-state invarian
 satisfies. Not shown: StepHypR (C's S4 per-pair argument for every pair, plus liveness). STATUS row 7 updated.
 **For C:** the end state your certificate must establish is IslR (not "island low for M ps"); with read maps
 explicit in TBehX this should be the per-member claim "my forcing reads are past the sources' last fall".
+### progress 10:1x -- note for B and C: `notes/A-S6-chaining.md` (TBehX.quiet cannot start episode k ≥ 2 under a fast env)
+C's per-episode framework assumes every exact node constant for H ps before the certificate's start; the simulated
+fastest sequential env re-requests 4 ps after out0.req falls (and 8 more island members fell within 3.9 ns). So a
+per-episode certificate for pairs k ≥ 2 needs a weaker start (IslR's "forced by reads of stable sources" form), the
+previous episode's tail as its first events, or a whole-run certificate. No Lean change to B/C files.
