@@ -3031,7 +3031,7 @@ Stopped the shift-unit build queue and the Up-join builder subagent (its results
 recorded: unverified and the container is ephemeral). Lock released.
 **Where C stands:** generic all-pairs route complete up to an instance (AO/Cover, Unroll*, UnrollUX, UnrollClaimU,
 TimedUp, TimedOccUp; non-vacuity toy UnrollToy); all 20 datapath units of THE target proved on the decoded netlist,
-timed versions for 16 (ushrsi2/3/4 and ushli0 timed files are generated but NOT built or committed:
+timed versions for 16 (ushrsi2/3/4 and ushli0 timed files are generated, NOT built, parked in formal/lean/Wip/TimedShift/;
 tools/compute/ps/psmapT.py + psunitT.py regenerate them); reset_quiet_all for every (g, κ).
 **Next steps when resumed:** (1) build and commit the 4 remaining timed shift units, one module at a time
 (formal/check.sh's OOM handling is not enough: run heavy targets serially); (2) re-run the c=0 data layer with the
