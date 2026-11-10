@@ -4225,3 +4225,11 @@ certificate theorem) is now DERIVED on THE target for its read fields from Spec'
 remain explicit hypotheses; no certificate is emitted yet. Next (B or C): emit one slice's certificate on `tnPS`
 (needs C's local-check/guard checkers chunked like CovUpChunk, and a Nat table of `tnPS` bounds).
 Running: subagent, the 16-slice cover for (17,5), (8,12).
+
+### progress 12:3x -- CHECKED: fast, kernel-evaluable bounds for THE target's slice net (`ArcTree`, `ArcTreePS/Fast`)
+`ArcTree.aOf_eq`: each gate's arc0 packed into chunk trees (75 files `ArcTreePS/A*`, `decide +kernel` each, incl.
+pack/unpack round trip); `sum_chain_walk`: route sums as walks along C's copy map. `ArcTreePS.tnPS_lo_fast` /
+`tnPS_hi_fast`: for p = ⟨gn/gd, kn/kd⟩ and slice ends cn/cd, `tnPS`'s lo/hi at every node and pin equal `loF`/`hiF`
+(Nat ceilings/floors, tree lookups, one gate fetch per pin). Sanity: `loF 0 1 1 1 0 16 66845 67167 = 401` by
+`decide +kernel` in < 3 s, matching the Python route sum. check.sh OK. With CovUpChunk, B's side of a per-slice
+certificate check on `tnPS` is now kernel-feasible in principle; C's local-check/guard checkers still index Lists.
