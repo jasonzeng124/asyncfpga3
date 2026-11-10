@@ -15,15 +15,18 @@
   closes 8d's goal 2); rise-to-rise >= N dmin (>= 6 dmin at N=3), tight; no runt on any stage of
   a persistent ring (`ring_no_runt`). Not covered: exact cycle time, loop N > 5, other cells on
   the cycle, a gate-level environment.
-- **S4/S6 for THE target (2026-11-08): a generic route exists in Lean, no instance yet.** For one input pair,
-  the theorem chain `Net/OccNet` → `TimedOcc` → `TimedOccX` (bundled data as stable-window claims) → `TimedOccRT`
-  (relative-timing edges justified by lower/upper separations) proves: if a certificate (the causal order of one
-  run, bounds, separations, data claims) passes local Boolean checks (`OccNetDec`, `TimedOccDec`, `TimedOccDecX`),
-  then every bounded-delay behaviour follows it and completes it (`timedR_follows`, `timedR_live`); `TimedBridge`
-  connects Spec's collapsed gates; toys show the hypotheses can all hold. Untrusted evidence: THE target's abstract
-  control machine passes the local check for 3 pairs with 36 RT orders (30 were known; 6 found today).
-  Not done: the instance on THE target, all pairs (segment/window certificates; `OccWindow` is the first brick),
-  environment counts (SeqEnv), quiet start.
+- **S4/S6 for THE target (updated 2026-11-10): a generic route for ALL pairs exists in Lean, no instance yet.**
+  For one certificate: `Net/OccNet` → `TimedOcc` → `TimedOccX` → `TimedOccRT` → `AO/Timed` (`timedA_follows`,
+  `timedA_live`: every bounded-delay behaviour follows and completes a certificate that passes local checks).
+  For EVERY word of window kinds (2026-11-10, `AO/Cover`, `Unroll*`, `TimedUp`, `UnrollUX`): the certificate of the
+  word is the concatenation of per-kind window certificates, and every certificate-wide hypothesis of the timed
+  theorems is reduced to finitely many kind / consecutive-kind / sub-word checks, except the behaviour itself, the
+  environment obligations and the datapath condition claims (`hExt`, to come from a register-word invariant).
+  Datapath: all 20 units of THE target compute their MLIR op on the decoded netlist (`Net/Compute/PS`), timed versions
+  for most (also over `circuit net boundary`). Untrusted: the one-pair (12,18) data layer passes at c = 1, 42 of 264
+  guards fail at c = 0 (needs the Up-join rule, now sound in Lean: `TimedOccUp`, `timedA_followsU`).
+  Not done: any per-kind certificate of THE target passing the checks; the register-word invariant and the map from
+  words to the token run (piece 3); quiet start for every (g, κ) (parked, memory).
 - **Track 8 (composition, gcd_hw): safety proved, liveness reduced, rig first result only.**
   Token level: bdc's gcd_hw graph returns Nat.gcd a b for a, b < 2^31 on every schedule,
   live and bounded without fairness (8i/8k); ipow likewise for all i32; collatz conditional
