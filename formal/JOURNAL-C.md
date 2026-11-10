@@ -2788,3 +2788,17 @@ netlist (untimed); uori4 needs its own extraction; only uselect1 has a timed ver
   loop window (OPTLOOP found none). 2 guards: comb root X37Y59.B6.
 * *Standing:* the one-pair data layer passes at c=1 under the Python transcription; c=0 has one structural loop
   class left. Neither is a Lean result; the four undischarged hypotheses of 18:xx still stand.
+
+## Session Tue Nov 10 07:20 UTC 2026 (shard C; session_01HC49FvWnrvHgYYRg3M71CM)
+
+### progress 08:05 -- start; claims for today
+Lock taken 07:21 (previous C lock 2026-11-09 21:01, > 90 min). Audit (head 372c4c1d, 2026-11-10 06:53): no REFUTED or
+OVERSTATED row on C's files; T50/T51/T54 CONFIRM reset_quiet_PS, uselect1_ps and the 17+1 untimed units; T52 CONFIRMS
+uselect1_timed with a NOTE: it is stated over `Behaves p DecodedPS.net`, not over THE statement's
+`circuit net boundary`, so it does not compose yet. Container: 4 cores, 15 GB; Mathlib cache blocked, so setup.sh
+builds Mathlib's imported part and the project from source (~2 h).
+**C's items today, highest value first:**
+1. Timed versions of the other 18 datapath units, each also over `circuit net boundary` (answers T52's note; the
+   bundling side of S4 needs them): generator `tools/compute/ps/psunitT.py` (new) on `psmapT.py`'s certificates.
+2. The c=0 residue of the one-pair data layer (subagent, Python).
+3. Piece 1 of the all-pairs route (notes/C-allpairs.md): window forms of the timing checks.

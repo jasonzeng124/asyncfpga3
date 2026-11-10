@@ -20,6 +20,8 @@ CHUNK = 2500
 PIECE_COST = 12000   # kernel steps (skips + picks) per piece
 PIECE_GATES = 150
 PER_FILE = 4
+# uselect1 (2026-11-09) used the two 32-bit inputs explicitly; every later unit uses the whole input map
+KNOWN_E01 = os.environ.get("KNOWN_E01") == "1"
 
 
 def main():
@@ -84,12 +86,12 @@ def main():
     # known-stack depth (cost estimate of certOKN)
     stack = [d for _, _, d in sorted(psi)]
     pos = {}
-    for j, n in enumerate([d for p, k, d in sorted(psi) if p == 0] + [d for p, k, d in sorted(psi) if p == 1]):
+    for j, n in enumerate([d for _, _, d in psi]):
         pos[n] = j
     cost = 0; t = len(pos)
     for o in order:
         for i in gates[o]["ins"]:
-            cost += t - pos[i] if i in Ss else t - pos[i]
+            cost += t - pos[i]
         pos[o] = t; t += 1
     print(f"psmapT {unit}: |S| = {len(S)}, segments {len(segs)}, D = {D}, known-search ~{cost}", file=sys.stderr)
 
@@ -150,9 +152,13 @@ def main():
                "def SN (n : Nat) : Nat := snT.find n\n")
     dat.append("/-- The piece holding each node's driver. -/\ndef ptT : NT := " + tree(sorted(pidx.items())) + "\n")
     dat.append(f"/-- The unit's depth. -/\ndef D : Nat := {D}\n")
-    dat.append(f"/-- The unit's input nodes. -/\ndef known : List Nat := "
-               f"(List.range 32).map (inNode Formal.Gen.Compute.PSMap.{U}.maps 0) ++ "
-               f"(List.range 32).map (inNode Formal.Gen.Compute.PSMap.{U}.maps 1)\n")
+    if KNOWN_E01:
+        dat.append(f"/-- The unit's input nodes. -/\ndef known : List Nat := "
+                   f"(List.range 32).map (inNode Formal.Gen.Compute.PSMap.{U}.maps 0) ++ "
+                   f"(List.range 32).map (inNode Formal.Gen.Compute.PSMap.{U}.maps 1)\n")
+    else:
+        dat.append(f"/-- The unit's input nodes (every node of the untimed certificate's input map). -/\n"
+                   f"def known : List Nat := Formal.Gen.Compute.PSMap.{U}.maps.psi.map (fun e => e.2.2)\n")
     dat.append("/-- A gate's output and pins have depth at most `D`. -/\n"
                "def bnd (g : Gate) : Bool := decide (SN g.out ≤ D) &&\n"
                "  (List.range g.k).all fun i => decide (SN (g.ins.getD i 0) ≤ D)\n")
