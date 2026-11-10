@@ -2221,3 +2221,20 @@ invariant, so that THE statement follows from the island's delay conditions and 
 per-pair target for C's S4 certificate in Spec's terms. Not claimed until it checks. Whole-tree check.sh: not
 repeated today (each fresh container rebuilds from scratch; 4,082/4,736 committed modules built 11-08 with no Lean
 error; per-file check.sh at claim time and the audit's own builds cover claimed files).
+### progress 08:3x -- CHECKED: `Formal/Target/PlanPS.lean` (THE statement from the per-pair step; base and idle quiet discharged)
+check.sh (FILE mode) OK, 1,887 declarations audited; `#print axioms the_of_step_all`: propext, Classical.choice,
+Quot.sound. **Plainly:** for every g > 0, 0 ≤ κ < 1 and reset R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1 ps, THE statement
+(`NetCorrectSeq` on the decoded gcd_ps netlist) follows from two hypotheses about a state `J` of the prover's choice:
+`StepHyp` (from "C's idle island -- 414 nodes incl. a.ack, b.ack, start.ack, out0.req -- plus the shared request and
+end.ack low for the last M = ⌈(1+κ)g⌉·3,881 ps" (`Isl`) or `J`, at a rising request: one complete pair episode,
+`Assembly.StepCore`, back to `Isl ∨ J`) and `QuietHyp` (from `J`, low boundary, no new request: outputs stay low,
+state stays `J` or reaches `Isl`). Proved: the reset base for every behaviour (`island_reset_upto`: C's `island_PS`
+with the environment low only up to a time, via `island_upto`, a bounded `island_forever`) and the island's quiet
+clause (`isl_next`); the island delay conditions for every p (`islDelay_all`, C's p1 data scaled as in
+`correct_n0_all`). Not shown: StepHyp, QuietHyp (the whole per-pair circuit argument).
+**Finding while writing it (design of the S6 invariant, for C):** the idle island alone cannot be the per-pair
+invariant. Under `SeqEnv` the environment may hold `a.req` high until after the out0 handshake, drop it, and re-raise
+it at the first instant `a.ack` is low again; then at the episode's end `a.ack` fell one ps earlier, so no island
+window of M ps exists before the next request (`the_of_step'` with J = False is a strong form, false against such an
+env unless the step can end elsewhere). The invariant at an episode boundary must describe the circuit just after its
+acknowledges fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
