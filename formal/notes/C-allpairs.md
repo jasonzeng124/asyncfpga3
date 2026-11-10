@@ -79,3 +79,34 @@ SeqEnv).
 - Piece 2: 19 of 20 units timed (generated `Net/Compute/PS/<Unit>T`, building), each also over `circuit net
   boundary`. uori4 still needs its own extraction.
 - Piece 3 (the word is the token run's branch word): not started.
+
+## Status 2026-11-10 ~10:00 and the piece-3 design (shard C)
+**Lean done today (all check.sh OK):** Cover, Unroll, UnrollData, UnrollAsm, UnrollTime, UnrollRest, UnrollGlue,
+UnrollClaim, TimedOccUp, TimedUp. For every word of kinds, `timedA_follows_unrollC` / `timedA_live_unrollC`: every
+behaviour follows and completes the word's unrolled certificate, given finitely many kind / consecutive-kind /
+sub-word checks and the non-local hypotheses hb, hDE, hEnvE, hgdF, hEnvC, henv, K. Datapath: all 20 units of THE
+target proved on the decoded netlist; timed versions (also over `circuit net boundary`) for 13 so far (shift units
+building).
+
+**Piece 3 design (not started in Lean).** A kind fixes the values of the 1-bit condition nodes the control reads
+(their claims carry `val`). For a fixed kind, the condition claim's GateProof cannot be checked per kind: the
+condition's gate is the last LUT of a 32-bit comparator whose inputs are register words, which no window fixes.
+Plan:
+1. Split claims into *control* claims (GateProof per sub-word, as now) and *condition* claims (one per condition
+   read per window). Treat condition claims like environment claims: the unrolled theorem takes them as a hypothesis
+   (`hEnvC`-like: "claim holds at every time up to T, given the run so far followed the certificate").
+2. Discharge that hypothesis by a data invariant proved by induction over windows: at window i's head, the register
+   latches hold the token-level values (va_i, vb_i) of the token run (GcdHw.Seq); the timed unit theorems
+   (`<unit>_timed_circ`) give the condition node = op(va_i, vb_i) from head + D_unit until the registers re-open
+   (their hold windows are control claims of the certificate: bundling); so the condition claim holds with
+   val = op(va_i, vb_i).
+3. The word: kind i+1 is chosen by the condition values of window i; define `word (a, b)` from the token run's branch
+   sequence; the certificate for that word has condition-claim values = the token run's branches, so step 2 proves
+   exactly the claims the certificate assumes. The data update (registers at head i+1 = token values) follows from the
+   datapath units' timed theorems along the window's data moves (uselect/ushrsi/... = the token graph's ops) and the
+   latches' hold claims.
+4. Output: out0's data latch holds gcd at the final window (token theorem) while out0_req is up (control claim).
+What this still needs in Lean: a "claims as hypotheses" variant of UnrollClaim (small); the register-word invariant
+(latch hold ⇒ word equality; a lemma per register bank from the latch's switch rules, B's `cfb_switch`); the map
+from kinds to token-level branches (GcdHw.Seq's run shape). The instance (per-kind certificates of THE target passing
+the window checks) remains the largest piece.
