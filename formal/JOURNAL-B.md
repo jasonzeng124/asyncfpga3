@@ -4235,3 +4235,19 @@ pack/unpack round trip); `sum_chain_walk`: route sums as walks along C's copy ma
 (Nat ceilings/floors, tree lookups, one gate fetch per pin). Sanity: `loF 0 1 1 1 0 16 66845 67167 = 401` by
 `decide +kernel` in < 3 s, matching the Python route sum. check.sh OK. With CovUpChunk, B's side of a per-slice
 certificate check on `tnPS` is now kernel-feasible in principle; C's local-check/guard checkers still index Lists.
+
+### progress 17:5x -- 16 uniform slices for two more pairs: (8,12) passes, (17,5) does NOT (untrusted Python, subagent)
+Files `formal/tools-B/slice/pairs/` (README.txt, logs/). Same pipeline as (12,18), g = 1, κ = 0, one midpoint run per slice.
+- **(8,12): all 16 slices pass** (control 0, guards 0/284, 0 failing claim items, lchk 0/0).
+- **(17,5): control passes on all 16; the data layer fails on the 6 slices covering [0, 3/8]** (78/406 guards on the
+  first three, 60/406 on the next three; 0 failing claim items; lchk 0/0). The zero-width slice [0,0] passes
+  (0/406), so it is again slice WIDTH. Root on [0,5/16]: an H->U' link at the register-bank latches (X30Y76.D6,
+  X30Y75.A6, X31Y76.A5/B6, ...), c1.B = X30Y76.A6(4), c2.A = X38Y15.C6(4); worst margins -927, -621, -430, -141,
+  -108 ps on slices 0..4 (shrinking with c). [5/16,3/8] has a different root (U'->T at X34Y92.B5 / X22Y86.B5, no
+  bound) and its window fixpoint did not converge. Slice [5/8,11/16] is being rerun (first try read a pickle
+  truncated by the disk filling up).
+**Reading:** a uniform cover is pair-dependent; near the fast corner (17,5) needs slices narrower than 1/16 (not
+tried), or a tighter Up bound for the bank-open vs latch-close pair (the same concurrent-branch class as (12,18)'s
+roots). Not a race found in simulation (every run gives gcd).
+Incident: at ~13:30 the subagent's per-slice pickles (1.6-1.9 GB each) filled the session disk; I deleted the pickles
+of six finished slices; the runner now deletes them after each slice.
