@@ -22,6 +22,15 @@ nothing at any parameter. StepHypR is false wherever THE statement is refuted (g
 below; it is the whole per-pair circuit argument (S4 + per-pair liveness); nothing of it is
 proved on THE target yet. It fixes the exact theorem the S4 certificate (B, C) must deliver, in Spec's own terms.
 
+**2026-11-10 (lead), also: the last step from a one-pair certificate to Spec (A, Lean, check.sh OK).**
+`Formal.Target.CertN1.onN1_of_cert`: if, in every behaviour offering one pair satisfying `Q` (e.g. (12, 18)), a timed
+certificate started at the request delivers `EpN1` (counts of every node an ideal of its order at every time; the
+five boundary handshakes ordered, possibly transitively; each boundary change enabled at earlier counts; out0.req
+rising once; the out0 bus = gcd while out0 is up; boundary and C's island low at the end), then THE statement holds
+for every environment offering one such pair (`NetCorrectSeqOnN Q (· = some 1)`), any g > 0, κ < 1 with the reset
+bound. `CertSpec` turns count facts into Spec's AckMoves/ReqMoves. This is the Spec end of C's one-pair route; the
+other end (EpN1 from C's `timedA_follows`/`timedA_live` for THE target's certificate) is not done. Conditional.
+
 **2026-11-10 (lead): from the other shards' 2026-11-09 journals (S4 pieces; no hypothesis of THE list discharged yet).**
 - **Shard C, Lean (audit T50-T54 CONFIRMED):** `reset_quiet_PS` (THE target's 3,224-node reset island holds its
   values during reset); `uselect1_ps` + 18 more datapath units (`Net/Compute/PS/*`, 19 of 20): each unit's decoded
