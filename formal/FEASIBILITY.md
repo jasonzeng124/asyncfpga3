@@ -7,6 +7,21 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-10 (lead): from the other shards' 2026-11-09 journals (S4 pieces; no hypothesis of THE list discharged yet).**
+- **Shard C, Lean (audit T50-T54 CONFIRMED):** `reset_quiet_PS` (THE target's 3,224-node reset island holds its
+  values during reset); `uselect1_ps` + 18 more datapath units (`Net/Compute/PS/*`, 19 of 20): each unit's decoded
+  gates compute its MLIR op when settled (zero-delay equations), side conditions kept; `uselect1_timed`: operands held
+  on [T0, T1] give the output from T0 + ⌈(1+κ)g⌉·8,815 ps (only this unit is timed); generic `AO/Window(T)`,
+  `SpecSettleSym`, the relative Up clause. Not done: uori4, the other timed units, bundling (operand hold) and the
+  every-(g, κ) reset corollary (OOM, parked in Wip).
+- **Shard B, Lean (generic, no instance):** `UnionUp`, `CovUp`/`CovUpMain` (claims timed by upper bounds from their
+  anchor; `timedA_follows_cu`), Boolean checkers `UnionUpDec`, `CovUpDec`, `CovUpGC`, `AOCertDec`.
+- **Python (untrusted), B and C:** the data layer of a one-pair certificate passes for (12,18), (17,5), (8,12),
+  (1071,462) at both corners in B's builder (0 failing guards); C's merged builder: (12,18) c=1 0/264, c=0 42 (one
+  loop class left). Four Lean hypotheses the Python does not discharge (hInit with A = none, constant-pin covers, dead
+  pins, union/segment claim emitters). The first instance theorem ("every admissible delay at g = 1, κ = 0 computes
+  gcd(12,18)") needs these emitted as Lean data.
+
 **2026-11-09 (lead): the g = 1 margin is below 0.40, and the races B's rows certify are not the ones that bind.**
 - **Shard B, Lean, audit T47 CONFIRMED:** `Formal.Cells.CexX16.not_netCorrectSeqRunt20`: THE headline statement
   (H_RUNT(20), sequential env) is false at g = 1, κ = 10/25 = 0.40, reset 400 ns, every T ≥ 132, su, Δo ≤ 3 ns, on the

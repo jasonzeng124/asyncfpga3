@@ -1,5 +1,5 @@
 import Formal.Target.AssemblyPS
-import Formal.Net.CViewPS.IslandPS
+import Formal.Net.CViewPS.Idle0All
 
 /-!
 # Formal.Target.PlanPS — THE statement on THE target from ONE per-pair step (shard A, 2026-11-10)
@@ -273,5 +273,55 @@ theorem the_of_step' {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : I
     NetCorrectSeq net boundary arbs p T R su Δo :=
   the_of_step hp hd hRA (fun _ _ => True) (fun _ _ _ _ _ _ _ _ => trivial)
     (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ => trivial) hstep
+
+/-- **The island's delay conditions, for every `g > 0`, `0 ≤ κ < 1`** (C's `p1_ok`/`isl_rst` data, scaled by
+`Cp p = ⌈(1+κ)·g⌉` as in C's `correct_n0_all`). -/
+theorem islDelay_all {p : DelayPar} (hp : Sane p) (hk : p.κ < 1) : IslDelay p (Cp p * M1) (Cp p * A1) := by
+  have mem : ∀ w, memI w = true → ∃ e ∈ islandList, e.1 = w := by
+    intro w hw
+    obtain ⟨e, he, h⟩ := List.any_eq_true.mp hw
+    exact ⟨e, he, by simpa using h⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro w hw
+    obtain ⟨e, he, rfl⟩ := mem w hw
+    have := List.all_eq_true.mp p1_ok e he
+    simp only [p1OK, Bool.and_eq_true, decide_eq_true_eq] at this
+    exact le_trans (cStart_le hp _ _) (Nat.mul_le_mul_left _ this.1.1)
+  · intro w hw i hi
+    obtain ⟨e, he, rfl⟩ := mem w hw
+    have := List.all_eq_true.mp p1_ok e he
+    simp only [p1OK, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at this
+    exact le_trans (sumMax_le hp _) (Nat.mul_le_mul_left _ (this.1.2 i hi))
+  · intro w hw j hj
+    obtain ⟨e, he, rfl⟩ := mem w hw
+    have := List.all_eq_true.mp p1_ok e he
+    simp only [p1OK, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true] at this
+    exact sumMin_pos hp hk _ (this.2 j hj)
+  · intro r hr hm
+    have := List.all_eq_true.mp isl_rst r hr
+    simp only [hm, Bool.not_true, Bool.false_or, decide_eq_true_eq] at this
+    exact le_trans (sumMax_le hp _) (Nat.mul_le_mul_left _ this)
+
+/-- **THE statement on THE target, for every `g > 0`, `0 ≤ κ < 1`, from the per-pair step alone**: with a reset of
+at least `Cp·A1 + 87·Cp·M1 + 1` ps (`Cp = ⌈(1+κ)·g⌉`, A1 = 15,600 ps, M1 = 3,881 ps; ≈ 353 ns at g = 1, κ = 0),
+`StepHyp` with the island window `M = Cp·M1` and an extra invariant `J` (true at reset end, kept by quiet steps)
+gives `NetCorrectSeq`. -/
+theorem the_of_step_all {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
+    (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (J : Beh → Nat → Prop)
+    (hJ0 : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
+      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R → J x R)
+    (hJq : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
+      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R →
+      ∀ t, R ≤ t → Isl x (Cp p * M1) t → J x t → Low x boundary t → x boundary.a.req (t + 1) = false →
+        J x (t + 1))
+    (hstep : StepHyp p T R su Δo (Cp p * M1) J) :
+    NetCorrectSeq net boundary arbs p T R su Δo :=
+  the_of_step hp (islDelay_all hp hk) hR J hJ0 hJq hstep
+
+/-- The same with no extra invariant. -/
+theorem the_of_step_all' {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
+    (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHyp p T R su Δo (Cp p * M1) (fun _ _ => True)) :
+    NetCorrectSeq net boundary arbs p T R su Δo :=
+  the_of_step' hp (islDelay_all hp hk) hR hstep
 
 end Formal.Target.PlanPS
