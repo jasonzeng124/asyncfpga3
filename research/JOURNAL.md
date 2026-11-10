@@ -3301,3 +3301,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   BOARD-QUEUE item 10 / #11 (seed-1 sdf f0af6ff8).
 - Second-latch lead step 4, collatz: the merge-output link moves the flip to the merge's fork as predicted but buys
   1.8 ns mean (-3.8..+0.3) on ~60.5 ns, below the predicted 2-4; RTZ share unchanged. Not carried to the gate.
+### progress 09:30 (second-latch, full gate on the soak top: p8mo 24/24, 8/8 EQUIVALENT; the soak vectors cannot show the gain)
+- xorshift x0.5 + ulink_n_trueResult_8=2 + BDC_MERGE_OUT_LINK=ucontrol_merge0, soak top, NEXTPNR_SEED 1-8 (worktree
+  5a4176cd), SLOW_MAX / FAST_MIN / worst: 24/24 PASS, fasm_equiv 8/8 EQUIVALENT. Correctness gate passed.
+- Speed is not visible here: the soak's 14 vectors run 0-8 rounds, so the sum of latencies is start-up dominated
+  (x0.5 / p8mo summed latency 0.96-0.98, i.e. the extra stages' forward latency) and the slope over 0-8 rounds is
+  noise (1.02 / 0.99 / 1.01, 0.93-1.08). The steady-state period needs long trips: bench top with the 200/1000-round
+  vectors (xb's own method, per_round_ns), seeds 1-8, running ($S/xpb), paired against research/data/xorshift_bench.
