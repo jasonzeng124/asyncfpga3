@@ -3004,3 +3004,5 @@ lake builds run at once; lake has no job limit, so heavy targets are now built o
   (`RIslBnd<b>q<q>`, ~6 GB each; whole blocks OOM-killed at ~11 GB) and combined by `RIslBndQ.all_quarters`.
 * *Not shown:* anything after R − 1; nodes outside the island; that R is long enough on the board (the island is
   known from 89 ns at g = 1, κ = 0; the board reset is far longer).
+
+### progress 13:25 -- AO/TimedUp: `timedA_liveUX` (liveness with external claims; check.sh OK)
