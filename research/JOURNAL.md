@@ -3274,3 +3274,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   29/30/32/33 nominal.
 - 01:10 T9cdd (T9cd + umux3 4, ushrsi0 kept 1): nominal routed GLS PASS on all four seeds that failed (29/30/32/33) --
   the race diagnosis holds. Full stack on 8 routes (29-36) running (k4/ipow_cdd, ipow_cdd2).
+### progress 02:10 (ipow BDC_CONST_DATA + per-cell (umux3 4): 24/24 on 8 routes, 8/8 EQUIVALENT, 1.26-1.29x over T9)
+- ipow_dsp1_sizes_T9cdd.vh, soak top, NEXTPNR_SEED 29-36 (the T9 base seeds), worktree 83cd6c77, nextpnr
+  9c732bc6303458df: SLOW_MAX / FAST_MIN / worst 24/24 PASS, fasm_equiv 8/8 EQUIVALENT (benign only). Paired vs T9
+  1.263 / 1.281 / 1.286 (1.21-1.39); vs T9cs (seeds 29-32) 1.215 / 1.253 / 1.245. Previous ipow best on the soak top
+  was x0.75 at 1.13x. The routes have no constant-select F7 (the bitstream defect's site is gone).
+- Not shown: the bench top (next), silicon. The umux3 lesson goes with it: a mux whose select can come first keeps a
+  delay corner_audit would remove.

@@ -63,6 +63,7 @@ routes) for collatz and ipow are queued; the uniform x0.75 for collatz64 and isp
 collatz per-cell holds on all 12 where uniform x0.5 failed two (FAST_MIN on seed 2, worst case on seed 3). Seeds 5-8 owed
 (PROGRAM: 8 routes) before it is a result.
 | ipow T9 per-cell (corner_audit, per-cell max over 4 routes) | 23 of 52 (332 -> 251 links) | 29-32 | **4/4, 4/4, 4/4** | 4/4 EQUIVALENT | 1.041 / 1.024 (0.98-1.06); 1.024 (0.97-1.07) |
+| ipow BDC_CONST_DATA=1 + per-cell, umux3 kept at 4 (ipow_dsp1_sizes_T9cdd.vh; T9cd with umux3 1 FAILS: select race, journal) | 23 of 52 | 29-36 | **8/8, 8/8, 8/8** | 8/8 EQUIVALENT | 8 paired routes vs T9: 1.263 / 1.281 (1.21-1.39); 1.286 worst. vs T9cs (4 seeds): 1.215 / 1.253; 1.245 |
 
 ipow per-cell holds everywhere (incl. seeds 30 and 32, where x0.5 failed the worst case) but buys only 2-4%: the lines
 that set ipow's cycle, uselect0 (52 -> 51) and the multiply umuli1 (47 -> 36), stay near T9 because rule A binds them at
