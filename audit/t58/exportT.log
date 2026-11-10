@@ -1,0 +1,50 @@
+Ucmpi0 S 548 D 4486
+Ucmpi1 S 470 D 3068
+Ucmpi8 S 448 D 2872
+Ucmpi10 S 479 D 2985
+Uori0 S 686 D 1541
+Uori1 S 712 D 1695
+Uori4 S 1096 D 5789
+'Formal.Net.Compute.PS.Ucmpi0T.ucmpi0_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi0T.ucmpi0_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi1T.ucmpi1_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi1T.ucmpi1_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi8T.ucmpi8_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi8T.ucmpi8_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi10T.ucmpi10_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Ucmpi10T.ucmpi10_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori0T.uori0_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori0T.uori0_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori1T.uori1_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori1T.uori1_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori4T.uori4_timed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uori4T.uori4_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Net.Compute.PS.Uselect1T.uselect1_timed_circ' depends on axioms: [propext, Classical.choice, Quot.sound]
+Formal.Net.Compute.PS.Uselect1T.uselect1_timed_circ : ∀ (p : Formal.Target.DelayPar),
+  Formal.Timing.SpecSettle.Sane p →
+    ∀ (x : Formal.Target.Beh),
+      Formal.Target.Behaves p (Formal.Target.circuit Formal.Target.DecodedPS.net Formal.Target.DecodedPS.boundary) x →
+        ∀ (T0 T1 : ℕ),
+          (∀ k < 32,
+              ∀ (t : ℕ),
+                T0 ≤ t →
+                  t ≤ T1 →
+                    x (Formal.Net.Compute.PS.Uselect1.e0Node k) t = x (Formal.Net.Compute.PS.Uselect1.e0Node k) T0 ∧
+                      x (Formal.Net.Compute.PS.Uselect1.e1Node k) t = x (Formal.Net.Compute.PS.Uselect1.e1Node k) T0) →
+            ∀ (t : ℕ),
+              T0 + Formal.Timing.SpecSettle.cScale p * Formal.Net.Compute.PS.Uselect1T.D ≤ t →
+                t ≤ T1 →
+                  Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.zNode) 32 =
+                    Formal.Net.GcdHw.Ops.select
+                      (Formal.Net.GcdHw.Ops.cmpi Formal.Net.GcdHw.Pred.sgt 32
+                        (Formal.Net.GcdHw.Ops.subi 32
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32))
+                        4294967295)
+                      (Formal.Net.GcdHw.Ops.subi 32
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                        (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32))
+                      (Formal.Net.GcdHw.Ops.subi 32 0
+                        (Formal.Net.GcdHw.Ops.subi 32
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e0Node) 32)
+                          (Formal.Net.Compute.word ((fun w => x w t) ∘ Formal.Net.Compute.PS.Uselect1.e1Node) 32)))

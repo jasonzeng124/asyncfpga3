@@ -1313,3 +1313,6 @@ A 9cd05ce7 NetCorrectSeqOn/the_on_of_stepR_all rebuilt at c9a545d7, axioms clean
 
 ## 2026-11-10T08:22:05Z T57
 C AO layer (14 modules) and Ucmpi2T/3T built at c9a545d7; axioms clean; toy non-vacuity; D 1871/1562 reproduced by own script. Generic, no target instance.
+
+## 2026-11-10T09:03:22Z T58
+uori4 (20th unit) confirmed incl. own eval; 7 timed units + D reproduced; AO Unroll* build; PlanRPS doc now conditional (T56 resolved). Next: CexQ36/Frontier36 build (A CHECKED 5d1e710a).
