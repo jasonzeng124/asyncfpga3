@@ -3281,3 +3281,12 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   was x0.75 at 1.13x. The routes have no constant-select F7 (the bitstream defect's site is gone).
 - Not shown: the bench top (next), silicon. The umux3 lesson goes with it: a mux whose select can come first keeps a
   delay corner_audit would remove.
+### progress 02:40 (second-latch lead, collatz -- prediction before running)
+- collatz's itercost cycle (cs and T3, seed 1) changes polarity at ONE place, crossed twice: ucontrol_merge0 ack ->
+  ulink_n_falseResult_7 req (the rule-2 ring link, a 3-stage pipe) -- the same merge coupling that remained on
+  xorshift. Test: BDC_MERGE_OUT_LINK=ucontrol_merge0 on the best collatz bench build (BDC_CONST_DATA=1,
+  collatz_sizes_T3cd_bench.vh), seeds 1-4, against those seeds' existing cd bench routes, itercost bands.
+- PREDICTION: on xorshift the merge-output link moved the flip to the merge's fork (ucontrol_merge0_f -> the new
+  link) and bought 2.1 ns once umux1 was decoupled. Here the merge is the only coupling, so I expect the same move
+  (new flip at ucontrol_merge0_f), the RTZ share staying ~25%, and a drop of 2-4 ns on a ~55-60 ns period; less if
+  the added forward latency of the new link (default delay 4 + ack 6) lands on the cycle.
