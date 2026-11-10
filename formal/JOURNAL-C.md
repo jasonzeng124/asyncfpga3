@@ -2985,3 +2985,10 @@ Same conclusion (safety: every behaviour follows the certificate; all claims, ex
 Safety for the certificate of EVERY word, on `timedA_followsUX`: upper-bound claim joins (`ChainUOK` with the long
 tables `LSep`, `LUp`) and external claims (`hExt`). *Open:* the sub-word form of ChainUOK (UnrollClaim uses ChainOK),
 liveness variant, discharging `hExt` (piece 3).
+
+### progress 11:33 -- reset corollary for every (g, κ): unblocked by splitting (building)
+The three blocks of Wip/RIslBnd that OOM-killed at ~11 GB (06, 08, 09) are split into quarters of 13 members
+(`RIslBnd0{6,8,9}q{0..3}`, `all_split_take`): each quarter builds at ~6.3 GB peak in ~1 min; all 12 quarters built.
+The 59 other blocks and `RIslAll.reset_quiet_all` are building (moved from Wip/ to Net/CViewPS/; not committed
+until check.sh passes). Container note: the daily from-source rebuild of the CViewPS chunk tree OOM-kills when two
+lake builds run at once; lake has no job limit, so heavy targets are now built one module at a time.
