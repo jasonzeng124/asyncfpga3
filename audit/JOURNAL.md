@@ -1301,3 +1301,4 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-09T19:36:28Z build56: Ushrsi0 failed (Chk68/70/72/73; peak 7.3 GB with lake's parallel jobs; cause not yet known); serial retry (-j1) queued after build56 (lean/T29/retry56.sh).
 - 2026-11-09T20:16:24Z T54 done: 17 datapath units CONFIRMED (build incl. serial Ushrsi0 rebuild, axioms; uaddi0 own evaluation).
 - 2026-11-09T21:20:14Z T54 row 6: ushli0_ps build + axioms CONFIRMED (19/20 units).
+- 2026-11-10T05:34:18Z T55 started (own scripts): BOARD-QUEUE #11 ipow BDC_CONST_DATA + T9cdd (sdf f0af6ff8) seed 1; note: the board seed decodes NOT_EQUIVALENT per research (benign GND-buffer kind) -- to inspect.
