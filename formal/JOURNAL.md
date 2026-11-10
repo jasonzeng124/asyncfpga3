@@ -2367,3 +2367,7 @@ B's merge4 adversary (`tools-B/target/out/k40w20_x16y21_classes.json`, the race 
 κ = 0.35 (KDEN = 100), w = 20, corner 0, fastest SeqEnv: full-width pair (1240057368, 901749038) -> out0 = 2 at 3.96 ms
 (correct), next request 3,972,756 ps; IslR holds there (`islr_check.py`, now with KDEN). 10 of 10 checked episode
 ends satisfy IslR, including the closest correct point to the refuted frontier on this race.
+### progress 11:46 -- audit row on 51295a21 (PlanRPS generalised, doc "conditional reduction"): CONFIRMED
+Background build of every committed Formal/Target + Formal/Core module (since 08:24): in its first lake pass, now at
+the CexRuntD60 chunks; every failure so far is exit 137 (memory), no Lean error; OOM-killed modules get one-at-a-time
+retries after the pass.
