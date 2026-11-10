@@ -3315,3 +3315,11 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   bit error injected at a fixed point), and the 64-round vector. The base x0.5 route passes this seed and corner, and
   the soak-top gate (other top, other routes) passed 24/24 -- so the extra stages add a real, route-dependent hazard.
   Not a board candidate. Reproducing on one vector with a full dump to trace bit 28 to its cause.
+- 12:20 CORRECTION to 10:40: the seed-1 SLOW_MAX failure is the bench HARNESS, not the kernel. Traced (fid GLS,
+  rounds-0 vector, every net dumped): the kernel's ulink_n_falseResult_1 stage-0 latch captured bit 28 = 0 because
+  its D input, the harness's op0_to_core[28], was already 0 (seed 0x92d68ca2 has it set) -- the harness's operand
+  register missed timing at the 100 MHz harness clock these xorshift bench runs use (xb's method, kept for the
+  pairing; the JOURNAL 2026-11-08 note on 100 MHz SLOW_MAX harness glitches, which is why board items use
+  CLK=0x00100C00). Same route and corner at +FCLK_PS=12000 (83.3 MHz): PASS 17/17. Re-placement by the added stages
+  moved this route's harness across that margin. Lesson kept: a "kernel failure" on the bench top has to be traced to
+  the kernel's own latches before it counts against the kernel.
