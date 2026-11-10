@@ -4251,3 +4251,12 @@ tried), or a tighter Up bound for the bank-open vs latch-close pair (the same co
 roots). Not a race found in simulation (every run gives gcd).
 Incident: at ~13:30 the subagent's per-slice pickles (1.6-1.9 GB each) filled the session disk; I deleted the pickles
 of six finished slices; the runner now deletes them after each slice.
+
+### progress 19:1x -- (17,5) slice runs final (untrusted Python)
+Slice [5/8,11/16] was rerun and passes (0/406, lchk 0/0). Final for (17,5) with 16 uniform slices: the 10 slices
+covering [3/8,1] pass; the 6 covering [0,3/8] fail in the data layer only, by truncation of a latch claim. On
+[0,5/16] the failure is the bank-latch H->U' link. Its margin shrinks with c1: worst -927, -621, -430, -141, -108 ps.
+On [5/16,3/8] the window fixpoint did not converge. Narrower slices near c = 0 (K = 32) were not tried. Write-up:
+tools-B/slice/pairs/README.txt.
+**Next (B or C):** try K = 32 on [0,3/8] for (17,5), or tighten Up for the bank-open (X30Y76.A6(4)) vs
+X38Y15.C6(4) pair. Then the emission of one slice certificate on `tnPS` (C's checkers chunked).

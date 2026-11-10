@@ -34,7 +34,7 @@ INCIDENTS
    Slices p175_00..09 all finished before 13:30 with complete logs.
  - p175_10's next attempt (about 13:55) left data_c0.pkl short (1.48 GB). The data layer then hit EOFError at the
    pickle load, 3 times, so that run has no lchk lines. Its logs are kept in /tmp/claude-0/slice2/p175_10/bad1.
-   p175_10 was rerun from scratch; the row below is from the rerun.
+   p175_10 was rerun from scratch at 17:47 (rerun: 0/406, lchk 0/0); its row is from the rerun.
  - No OOM kills among the reported runs. The two (1071,462) runs that started were killed by me and are not reported.
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ PAIR (17,5)
 | [7/16, 1/2] | p175_07 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 14 |
 | [1/2, 9/16] | p175_08 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 14 |
 | [9/16, 5/8] | p175_09 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 14 |
-@@P175_10@@
+| [5/8, 11/16] | p175_10 (rerun) | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 13 |
 | [11/16, 3/4] | p175_11 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 14 |
 | [3/4, 13/16] | p175_12 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 15 |
 | [13/16, 7/8] | p175_13 | 1 (1) | 0 | 0 / 406 | 0 | 0 | 0/0 | 3 | 15 |
@@ -117,5 +117,6 @@ WHAT IS NOT SHOWN
    plus the Lean side's claim (Formal/Cells/CornerSlice.lean), not checked here.
  - Root attributions (ana2 deepest truncation) are a heuristic link, not proven causes. p175_05's roots come from
    non-converged windows.
- - Pickles were deleted after each run (disk limit). Only logs remain; ao/dl pickles are kept in /tmp/claude-0/slice2
-   for the failing (17,5) slices only, until cleanup.
+ - All pickles over 1 MB in /tmp/claude-0/slice2 (data, ao, dl, model) were deleted after the runs (disk limit),
+   so only the logs remain (here under logs/, and in /tmp/claude-0/slice2/*/). Further probes of the (17,5) roots
+   (dsep.py, sepchk.py) would need those slices rerun.
