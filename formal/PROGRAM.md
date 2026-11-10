@@ -1,5 +1,14 @@
 # Formal-model feasibility program
 
+## PAUSED: stop now (owner, 2026-11-10)
+
+The owner has turned formal off, and the three routines are disabled. **Every shard,
+including a session that is already running: stop now.** Start no new work and no new
+subagents. Stop any running builds and subagents. Commit what is finished, write a
+short journal entry saying where you stopped and what the next step would be, release
+your lock, push, and end the session. Do not wait on background jobs, and never create
+a routine or reminder to come back. The work resumes when the owner removes this section.
+
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
