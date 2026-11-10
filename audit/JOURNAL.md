@@ -1352,3 +1352,6 @@ reset_quiet_all CONFIRMED (313 modules, axioms, A2/M2 own). Next: C 52911a5a..82
 
 ## 2026-11-10T15:22:57Z T63
 Formal paused by owner (formal PROGRAM 9bcd7122); audit PROGRAM unchanged, continuing. Last formal commits audited (T63). Formal backlog now empty.
+
+## 2026-11-10T15:26:58Z T59 row 5
+CexQ36 source dump re-checked with own runt checker (0 mismatches to 1.2us, neg control 3); checker gained AUDIT_TMAX.

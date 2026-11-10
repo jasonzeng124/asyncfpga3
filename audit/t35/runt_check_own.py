@@ -86,7 +86,9 @@ for gi, gt in enumerate(gates):
     for i, d in zip(gt["ins"], ds):
         cand.update(t + d for t in D[i][1] if t + d >= start)
     cand.add(start)
+    TMAX = int(os.environ.get('AUDIT_TMAX', '0'))   # T59: ignore candidate times past the dump's end (frozen afterwards)
     for T in sorted(cand):
+        if TMAX and T > TMAX: break
         a = 0
         for p, (i, d) in enumerate(zip(gt["ins"], ds)):
             u = f_read(i, T - d) if L else T - d
@@ -96,5 +98,5 @@ for gi, gt in enumerate(gates):
 print("W", W, "kappa", K, "g", G, "slow nodes", len(SLOW), "gates checked", checked, "LUT gates", luts, "LUT pin delays raised to W", raised)
 print("delays outside Adm(c=0):", bad_adm, " LUT-pin lag violations:", bad_lag, " reads into a narrow power-up interval:", pow_reads,
       " max lag/fmax on LUT pins:", float(maxlag_ratio))
-print("gates whose dumped output disagrees:", len(mism), mism[:8])
+print("gates whose dumped output disagrees:", len(mism), mism[:8], "earliest", min((m[1] for m in mism), default=None))
 print("outs", dump["outs"], "pairs", dump["pairs"], "tend", dump["tend"])
