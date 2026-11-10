@@ -3290,3 +3290,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   link) and bought 2.1 ns once umux1 was decoupled. Here the merge is the only coupling, so I expect the same move
   (new flip at ucontrol_merge0_f), the RTZ share staying ~25%, and a drop of 2-4 ns on a ~55-60 ns period; less if
   the added forward latency of the new link (default delay 4 + ack 6) lands on the cycle.
+- 01:55 disk full (99 MB free): every ipow bench sim of the first pass ("FAIL 0/17") and the collatz merge-output
+  runs read truncated .vvp files ("syntax error") -- NOT results; discarded. Freed 11 GB (all .vvp/.vcd and finished
+  runs' regenerable intermediates; bits, reproducers and pending routes kept), then a container restart killed the
+  rest; both reruns started (builds kept: their bits were written before the disk filled).
