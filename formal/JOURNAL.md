@@ -2278,3 +2278,12 @@ previous episode's tail as its first events, or a whole-run certificate. No Lean
   statement), `the_on_of_stepR_all`: `StepHypROn Q` ⇒ `NetCorrectSeqOn Q` for every g > 0, κ < 1. **Plainly:** a
   per-pair step proof for (12,18) alone (C's milestone) would give correctness for every env offering (12,18) any
   number of times, n = none included -- if that step starts from IslR (notes/A-S6-chaining.md).
+### progress 11:0x -- two adversarial-env probes, both negative (simulation, untrusted)
+- Episode tail vs next request: the 9-node out0.req falling tail made slow (`--slow` + `--slowroutes`), every other
+  gate fast (`--kappa`, corner 0), fastest SeqEnv (`--dfall 1`): κ = 0.2 and 0.3, pairs (12,18), (17,5), (1071,462):
+  outputs 6, 1, 21, correct. The next request needs ~70 ns to reach the kernel's acks; the tail settles in < 4 ns.
+- End channel: Correct demands four-phase order on `end` (whose request IS the shared input request and whose ack the
+  env drives); an env that delayed end.ack and dropped the request after a/b/start acks could break it whatever the
+  circuit -- unless the kernel joins end.ack into its input acknowledge. Checked: with end.ack 1 µs after the request,
+  start.ack rises 472 ps after end.ack (1,400,473 vs 1,400,001 ps), so the env cannot drop the request first; the
+  clause is the circuit's to keep. One run, κ = 0.

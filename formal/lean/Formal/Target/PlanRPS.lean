@@ -24,6 +24,10 @@ Simulation (untrusted, JOURNAL 2026-11-10): at both re-requests of a run with th
 (12,18), (17,5), (8,12), corner 0.5, κ = 0), `IslR` holds with the simulator's delays while `Isl` fails (9 members
 changed within the last 3.9 ns) and a per-pin-window version fails on out0.req's last causal step.
 
+Also (`the_on_of_stepR_all`): the same restricted to environments whose every offered pair satisfies a predicate
+`Q` (`NetCorrectSeqOn Q`; `on_true_iff`: `Q = True` is THE statement), from the step on those pairs only; so a
+step proof for one pair gives correctness for any number of repetitions of that pair.
+
 **Not shown.** `StepHypR` (the per-pair circuit argument, C's S4/S6 instance for every pair).
 -/
 
