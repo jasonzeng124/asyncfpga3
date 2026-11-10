@@ -2371,3 +2371,7 @@ ends satisfy IslR, including the closest correct point to the refuted frontier o
 Background build of every committed Formal/Target + Formal/Core module (since 08:24): in its first lake pass, now at
 the CexRuntD60 chunks; every failure so far is exit 137 (memory), no Lean error; OOM-killed modules get one-at-a-time
 retries after the pass.
+### progress 14:45 -- build of A's claimed modules: first pass done, 0 Lean errors; 235 OOM-killed modules retried one at a time
+First lake pass over every committed Formal/Target + Formal/Core module (and their dependencies): 1,986 jobs built,
+every failure exit 137 (memory): 235 modules (75 C CexPS72, 72 CexRunt72, 43 CexQ36, 25 C CexPS, 9 CexRuntG16, 6
+CexRuntD60, 4 CexRunt44, ...), no elaboration or kernel error. They are now rebuilt one at a time (~1-4 min each).
