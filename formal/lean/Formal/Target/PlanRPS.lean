@@ -19,9 +19,13 @@ delay at least 1 ps, and at time `t` that source has been low ever since the tim
 * `islR_low`, `rset_low`: `IslR` at `t` puts every member of `S`, so the four boundary outputs, low at `t`;
 * `islR_next`: `IslR` at `t` and the two environment nodes low at `t + 1` give `IslR` at `t + 1` (same `S`, `F`, `P`:
   monotone reads keep reading low sources).
-So THE statement (`NetCorrectSeq` on the decoded gcd_ps netlist), for every `g > 0`, `0 ≤ κ < 1` and reset
-`R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps, follows from ONE hypothesis, `StepHypR`: from `IslR` at a rising pair
-request, one complete pair episode (`Assembly.StepCore`) that ends in `IslR`.
+So THE statement (`NetCorrectSeq` on the decoded gcd_ps netlist) at any `g > 0`, `0 ≤ κ < 1` with a reset
+`R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps follows from ONE hypothesis at the same parameters, `StepHypR`: from `IslR`
+at a rising pair request, one complete pair episode (`Assembly.StepCore`) that ends in `IslR`.
+**This is a conditional reduction, not a result at any parameter** (audit T56): `StepHypR` is the whole per-pair
+circuit argument and is proved nowhere; by this theorem it is FALSE wherever THE statement is refuted (modus tollens
+with `Frontier36`, `CexX16`, `CexR44`/`FrontierRuntR`, `CexRg16`: at g = 1 for κ ≥ 9/25, at g ≥ 8/5), so it can
+only hold below the refuted frontier, where it is open.
 Simulation (untrusted, JOURNAL 2026-11-10): at both re-requests of a run with the fastest sequential env (pairs
 (12,18), (17,5), (8,12), corner 0.5, κ = 0), `IslR` holds with the simulator's delays while `Isl` fails (9 members
 changed within the last 3.9 ns) and a per-pin-window version fails on out0.req's last causal step.

@@ -2298,3 +2298,14 @@ member forced low by pins reading S/env sources that its current reads already s
 such S at reset end, `isl_islR`). Quiet steps keep S (`islR_next`). So the per-pair step may end in any read-forced
 set it can certify, not only C's island: strictly weaker end condition, same theorems (`the_of_stepR_all`,
 `the_on_of_stepR_all`). check.sh OK (1,904 declarations, standard axioms).
+### progress 12:0x -- audit T56 (PlanRPS): CONFIRMED as conditional, OVERSTATED as phrased -- accepted, wording fixed
+The auditor rebuilt PlanRPS (standard axioms) and points out that "for every g > 0, 0 ≤ κ < 1 ... follows from ONE
+hypothesis" lists parameters where that hypothesis is provably false: by `the_of_stepR_all` and the Lean refutations,
+`StepHypR` is false at g = 1 for κ ≥ 9/25 (Frontier36; T56 cites κ = 11/25 and g = 8/5) and at g ≥ 8/5. Agreed: the
+theorem is a conditional reduction that establishes nothing at any parameter; StepHypR can only hold below the
+refuted frontier, where it is open. PlanRPS's doc, STATUS row 7 and FEASIBILITY now say so. T56 row 5 (simulation not
+reproduced): the commands are `tools-B/target/lean2json.py lean/Formal/Target/NetPS DIR/netps.json DIR/arbs.json`,
+`tools-A/target/simadv_hold.py DIR/netps.json tools-A/target/out/boundary_e6bb4aec.json --pairs 12,18 17,5 8,12
+--nextreq seq --datachange next --dfall 1 --R 400000 --tmax 2600000 --dump DIR/fast_dump.json`, then
+`tools-A/target/islr_check.py DIR 1159295 2175678` (from formal/); it checks the original island-only IslR, which
+implies the generalised one. Row 8 (one-pair Q): agreed, (12,18) is open.

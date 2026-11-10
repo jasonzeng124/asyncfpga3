@@ -17,7 +17,9 @@ at reset end), each forced low by a pin set whose current reads see island/env s
 reset base (C's island argument with a bounded environment), the quiet clause (monotone read maps), Isl ⇒ IslR.
 Why not the simpler island (`PlanPS`, also checked): a fastest sequential env re-requests 1-2 ps after out0.req falls,
 so "island low for 3.9 ns" fails at episode ends; IslR holds there in simulation (untrusted, one run, 2 episodes).
-**What it does not do:** StepHypR is the whole per-pair circuit argument (S4 + per-pair liveness); nothing of it is
+**What it does not do (audit T56: CONFIRMED as a conditional reduction, OVERSTATED as first phrased):** it establishes
+nothing at any parameter. StepHypR is false wherever THE statement is refuted (g = 1, κ ≥ 9/25; g ≥ 8/5) and open
+below; it is the whole per-pair circuit argument (S4 + per-pair liveness); nothing of it is
 proved on THE target yet. It fixes the exact theorem the S4 certificate (B, C) must deliver, in Spec's own terms.
 
 **2026-11-10 (lead): from the other shards' 2026-11-09 journals (S4 pieces; no hypothesis of THE list discharged yet).**
