@@ -2237,7 +2237,7 @@ invariant. Under `SeqEnv` the environment may lower `out0.ack` 1 ps after `out0.
 a fall) and raise the next request at once; `out0.req` is an island member, so at that request it fell 1-2 ps earlier
 and no island window of M ps exists (`the_of_step'` with J = False is a strong form, false against such an env). [An
 earlier draft of this entry gave "env holds a.req high until after out0" as the example: wrong, see 09:0x.] The
-invariant at an episode boundary must describe the circuit just after its outputs fallacknowledges fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
+invariant at an episode boundary must describe the circuit just after its outputs fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
 ### progress 09:0x -- adversarial-env simulation (untrusted): fast re-request is fine; "hold the request" is not an Env
 `tools-A/target/simadv_hold.py` (copy of C's simadv.py plus `--holdreq`), netlist rebuilt from the Lean data
 (tools-B/target/lean2json.py), corner 0.5, κ = 0, R = 400 ns, `--nextreq seq --datachange next --dfall 1` (next request

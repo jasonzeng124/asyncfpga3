@@ -19,9 +19,8 @@ for every `g > 0`, `0 ≤ κ < 1` and reset `R ≥ ⌈(1+κ)g⌉·(15,600 + 87·
   `out0` per four-phase, `out0` once with the gcd, back to a low boundary) that ends in `Isl` or `J`;
 * `QuietHyp`: from `J` with a low boundary and no new request, the boundary outputs stay low and the state stays
   `J` or reaches `Isl`.
-`J` cannot be dropped in general: a sequential environment may raise the next request at the first instant the
-boundary is low, and the acknowledges fall at that very instant, so an episode cannot always end with the island
-low for `M` ps (`the_of_step'`, with `J = False`, is therefore a strong form).
+`J` cannot be dropped in general: a sequential environment may lower `out0.ack` 1 ps after `out0.req` (an island
+member) falls and raise the next request at once, so an episode cannot always end with the island low for `M` ps (`the_of_step'`, with `J = False`, is therefore a strong form).
 Whatever the 4,185 unreset data latches and 9 arbiter states hold is left free by `Isl`.
 
 **Not shown.** `StepHyp` and `QuietHyp` (the per-pair circuit argument: C's S4 instance for every pair, and the
@@ -203,8 +202,8 @@ theorem isl_next {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circuit
 
 /-- **The one remaining hypothesis**: from the idle island, or from a state `J` of the prover's choice, at a rising
 pair request, one whole pair episode that ends in the idle island or in `J`. (`J` is needed in general: a sequential
-environment may raise the next request at the first instant the boundary is low, and the acknowledges fall at that
-instant, so an episode cannot always end with the island low for the last `M` ps.) -/
+environment may lower `out0.ack` 1 ps after `out0.req` falls and raise the next request at once, so an episode
+cannot always end with the island low for the last `M` ps.) -/
 def StepHyp (p : DelayPar) (T R su Δo M : Nat) (J : Beh → Nat → Prop) : Prop :=
   ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x → ArbOK T arbs x →
     Env x boundary R su Δo n va vb → SeqEnv x boundary R →
