@@ -1331,3 +1331,6 @@ BQ#12 own build: knobs took effect (olink 1), sdf 1e51be7e = gated route. Worst-
 
 ## 2026-11-10T11:21:31Z T60
 p8 worst case at 83.3 MHz: oracle 17/17, EQUIVALENT, 2.4762 cyc/round. SLOW_MAX still running; x0.5 base rebuilt for a same-clock ratio (T40 base was at 100 MHz: 3.7837 cyc = 37.8 ns/round vs p8 29.7 ns, 1.27x provisional).
+
+## 2026-11-10T11:42:50Z T60 done
+BQ#12 CONFIRMED on board seed: sdf 1e51be7e, worst+SLOW_MAX 17/17 EQUIVALENT at 83.3 MHz, 1.273x same-clock worst case.
