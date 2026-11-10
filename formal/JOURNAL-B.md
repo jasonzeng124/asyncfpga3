@@ -4183,3 +4183,13 @@ latch's close) meet only at SLICE_X27Y80.A6(2): Sep − Up = +2,847 ps on [0,1/1
 **Plainly:** a per-pair Lean theorem covering every corner at g = 1, κ = 0 can be built from ~11-16 integer
 certificates on `tnPS` slices; for one pair, untrusted, from one midpoint run per slice. Not shown: any Lean
 emission; other pairs; κ > 0.
+
+### progress 10:5x -- CHECKED: `SliceNetPS/TBeh.lean`: TBehX on THE target's slice nets; dispatch over a slice cover
+- `target_tbehX` (sane p, κ < 1): every behaviour of THE theorem's circuit has a corner c such that, on every slice
+  net `tnPS p c1 c2` with c1 ≤ c ≤ c2, 0 ≤ c1, c2 ≤ 1, from every t0 ≥ 2·⌈(1+κ)g⌉·33,002 ps, for any `dat`/`envEn`:
+  IF TBehX's `quiet` (exact nodes constant on [t0-H, t0]) and `env` fields hold, THEN `TBehX (tnPS p c1 c2) dat envEn x
+  r t0 H` for some r. So `quiet` and `env` are the only TBehX fields left for the one-pair milestone (A's CertN1 /
+  C's timedA_follows*), plus the certificate itself.
+- `target_by_slices`: certificates on the slices of a finite cover of [0,1] (e.g. the 16 the (12,18) measurement
+  needs) give the property for every behaviour.
+check.sh OK, standard axioms.
