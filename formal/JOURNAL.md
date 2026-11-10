@@ -2233,8 +2233,16 @@ with the environment low only up to a time, via `island_upto`, a bounded `island
 clause (`isl_next`); the island delay conditions for every p (`islDelay_all`, C's p1 data scaled as in
 `correct_n0_all`). Not shown: StepHyp, QuietHyp (the whole per-pair circuit argument).
 **Finding while writing it (design of the S6 invariant, for C):** the idle island alone cannot be the per-pair
-invariant. Under `SeqEnv` the environment may hold `a.req` high until after the out0 handshake, drop it, and re-raise
-it at the first instant `a.ack` is low again; then at the episode's end `a.ack` fell one ps earlier, so no island
-window of M ps exists before the next request (`the_of_step'` with J = False is a strong form, false against such an
-env unless the step can end elsewhere). The invariant at an episode boundary must describe the circuit just after its
-acknowledges fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
+invariant. Under `SeqEnv` the environment may lower `out0.ack` 1 ps after `out0.req` falls (Env puts no lower bound on
+a fall) and raise the next request at once; `out0.req` is an island member, so at that request it fell 1-2 ps earlier
+and no island window of M ps exists (`the_of_step'` with J = False is a strong form, false against such an env). [An
+earlier draft of this entry gave "env holds a.req high until after out0" as the example: wrong, see 09:0x.] The
+invariant at an episode boundary must describe the circuit just after its outputs fallacknowledges fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
+### progress 09:0x -- adversarial-env simulation (untrusted): fast re-request is fine; "hold the request" is not an Env
+`tools-A/target/simadv_hold.py` (copy of C's simadv.py plus `--holdreq`), netlist rebuilt from the Lean data
+(tools-B/target/lean2json.py), corner 0.5, κ = 0, R = 400 ns, `--nextreq seq --datachange next --dfall 1` (next request
+at the first settled instant SeqEnv allows, out acks fall 1 ps after their request): pairs (12,18), (1071,462): out0 = 6,
+21 (correct; 3 ms horizon). With `--holdreq` (input request kept high until the out0 handshake is over) the circuit
+never answers and goes quiet at 599 ns: it waits for the request's fall before computing. Not a counterexample: Spec's
+`ReqLive` makes the env drop a request whose ack is high, so that env is not an `Env`. (It does say the circuit's
+acknowledge-then-compute order is: compute only after the input handshake's return to zero.)
