@@ -3006,3 +3006,10 @@ lake builds run at once; lake has no job limit, so heavy targets are now built o
   known from 89 ns at g = 1, κ = 0; the board reset is far longer).
 
 ### progress 13:25 -- AO/TimedUp: `timedA_liveUX` (liveness with external claims; check.sh OK)
+
+### progress 13:58 -- AO/UnrollClaimU: every-word safety with Up-joined chains and external claims, claim proofs per sub-word (check.sh OK)
+(subagent; I re-ran check.sh, 865 declarations audited.) `timedA_follows_unrollUXC`: `timedA_follows_unrollUX` with
+`hGC` replaced by sub-word checks `GcWinU` (GateProofW or `ChainUOK` over the sub-word's restricted Sep/Up tables;
+`chainUOK_window`) for non-external claims, given `ExtShift ext` (externality survives shifting; any predicate of a
+claim's node and value qualifies, `extShift_node`), and `hInit` by the per-kind check. *Open:* `hExt` (the
+datapath conditions), `hEnvC`, a liveness version, any instance.
