@@ -2938,3 +2938,23 @@ all-pairs control theorem now has, as its only non-local hypotheses, the behavio
   Counterfactual count: an Up(B → next start) exists for 378 of 696 joins, small enough for 185. So the rule alone
   may not clear all 40.
 * *Not a new race:* no evidence of one; no new adversarial runs.
+
+### progress 09:58 -- AO/UnrollClaim (claim proofs for every word) and TimedOccUp (Up-join union rule) (check.sh OK)
+* *UnrollClaim* (subagent; I re-ran check.sh): `timedA_follows_unrollC` / `timedA_live_unrollC`: the UnrollRest
+  theorems with the claim-proof hypothesis `hGC` replaced by sub-word checks `GcWin` (each window's gate claims
+  proved, GateProof or ChainOK, inside the sub-word from the previous window; `gateProof_window`, `chainOK_window`,
+  `uclT_win`) and `hInit` by a per-kind check (`init_unroll`: claims with a start event and start delay ≥ 0, or in
+  window 0 holding up to t0). `gc_unroll_kind` makes each check depend only on the sub-word, under StChain.
+  Restrictions (sufficient conditions only): exact coverage `.ex 0` only in the first window; a claim's proof must
+  live within the sub-word from window i−1. `hEnvC` only restated per window (`env_unroll`; vacuous when no kind
+  has a claim on a non-gate node, `env_none`).
+* *TimedOccUp* (mine): `UnionUpOK`, `ChainUOK`, `unionUp_holds`, `chainU_holds`: two claims of one node/value
+  may also be joined when c2 starts within an UPPER bound u of c1's end and `0 ≤ c2.a`, `c2.a + u ≤ c1.b`, given the
+  Up table is sound up to the current time (`UpSoundI`). `chainUOK_of_chainOK`: the old rule is a special case.
+  This is the rule the c=0 residue needs (r1h). *Open:* using it inside the timed induction (`timedA_follows` would
+  need Up soundness at the step's time; `up_sound` gives it only up to the previous time), and re-running the
+  builder with it.
+* *Where the generic all-pairs theorem stands:* for every word of kinds, timed safety and liveness of the unrolled
+  certificate follow from finitely many kind / consecutive-kind / sub-word checks, except hb (the behaviour), hDE,
+  hEnvE, hgdF, hEnvC, henv and the delay bound K. Not about THE target until an instance passes the checks; refinement
+  (the word is the token run's) is not started.
