@@ -3013,3 +3013,5 @@ lake builds run at once; lake has no job limit, so heavy targets are now built o
 `chainUOK_window`) for non-external claims, given `ExtShift ext` (externality survives shifting; any predicate of a
 claim's node and value qualifies, `extShift_node`), and `hInit` by the per-kind check. *Open:* `hExt` (the
 datapath conditions), `hEnvC`, a liveness version, any instance.
+
+### progress 13:58 -- AO/UnrollUX.timedA_live_unrollUX (liveness for every word with Up-joins and external claims; check.sh OK)
