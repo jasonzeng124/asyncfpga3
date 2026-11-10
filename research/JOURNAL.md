@@ -3294,3 +3294,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   runs read truncated .vvp files ("syntax error") -- NOT results; discarded. Freed 11 GB (all .vvp/.vcd and finished
   runs' regenerable intermediates; bits, reproducers and pending routes kept), then a container restart killed the
   rest; both reruns started (builds kept: their bits were written before the disk filled).
+### progress 06:10 (ipow BDC_CONST_DATA on the bench top 24/24, 1.24-1.27x over T9 -> board item 10; collatz merge latch -1.8 ns only)
+- ipow bench top, T9cdd_bench, seeds 1-8: 24/24 PASS 17/17, gate clean; 6/8 EQUIVALENT, seeds 1 and 5 benign GND
+  buffer (CARRY4 DI / F7 data, checked). Paired (31-iteration vector): over T9 1.254 / 1.244 / 1.269 (1.20-1.31, 7
+  pairs: base 7 is the F7 defect), over x0.75 1.063 / 1.074 / 1.095. research/data/ipow_cd_bench/results.tsv;
+  BOARD-QUEUE item 10 / #11 (seed-1 sdf f0af6ff8).
+- Second-latch lead step 4, collatz: the merge-output link moves the flip to the merge's fork as predicted but buys
+  1.8 ns mean (-3.8..+0.3) on ~60.5 ns, below the predicted 2-4; RTZ share unchanged. Not carried to the gate.

@@ -65,6 +65,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    #10 below. 24/24 full-stack runs (8 routes x 3 corners, 13/13 vectors), predicted 1.34-1.37x per iteration over T3
    (1.26-1.47) and 1.12-1.13x over item 8. Judge: `python3 ../research/tools/loop_cost_judge.py collatz
    build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv`.
+10. **ipow with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
+   #11 below. 24/24 full-stack runs (8 routes x 3 corners, 17/17 vectors), predicted 1.24-1.27x per iteration over
+   T9 (1.20-1.31) and 1.06-1.10x over item 7. Judge: `python3 ../research/tools/loop_cost_judge.py ipow
+   build/hw/lc_ipow_cd.tsv build/hw/lc_ipow_t9.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -451,6 +455,26 @@ BDC_CONST_DATA (commit 83cd6c77 or later):
 Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.26-1.30 on
 this route (1.26-1.47 over 8; mean 1.34-1.37 by corner). A FAIL with the per-cell build passing would point at the
 flag (the only difference in the netlist's function is the literal), not at the sizes alone.
+
+## 11. ipow BDC_CONST_DATA=1 + per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
+ipow's ushrsi0 (`e >>= 1`) shifted by a constant 1 that arrived as a data channel, so it was a 32-bit barrel shifter
+(and the home of the 76 constant-select F7 muxes behind the F7-select bitstream defect; the flag's routes have none).
+Soak top: ipow_dsp1_sizes_T9cdd.vh 24/24 on 8 routes, 8/8 EQUIVALENT, 1.26-1.29x over T9. corner_audit's own
+candidate (T9cd, umux3 1) FAILS: once the exit decision is fast, umux3's select arrives before the result and 1 link
+does not cover the result's latch-to-mux path (traced, JOURNAL 2026-11-09); T9cdd keeps umux3 at T9's 4. Bench top:
+research/data/ipow_cd_bench/results.tsv (sizes research/data/ipow_dsp1_sizes_T9cdd_bench.vh; rule A 12-19 cells per
+route, informational; seeds 1 and 5 decode NOT_EQUIVALENT of the benign GND-buffer kind only). The T9 base is #8's
+second build. nextpnr 9c732bc6303458df. From cells/, on a checkout with BDC_CONST_DATA (83cd6c77 or later):
+
+    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9cdd_bench.vh ./hw/build_bench.sh ipow
+    grep -c ">>> 32'h1" build/gen/ipow_kernel_bench.v    # must be >= 1: the flag took effect
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # f0af6ff8 = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_cd.tsv
+    (T9 base: #8's commands for lc_ipow_t9.tsv, sdf b6f11872, if not already run)
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_cd.tsv build/hw/lc_ipow_t9.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points on both builds). Ratio predicted 1.20-1.22 on
+this route (1.20-1.31 over 7 pairs; mean 1.24-1.27 by corner).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
