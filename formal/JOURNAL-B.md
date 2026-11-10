@@ -31,6 +31,8 @@ constraints: `formal/out/cell_constraints.json` (151 entries, 38 exact, 56 bound
 
 | THE goal S4 data layer: latch claim chains (2026-11-09) | **works (generic Lean); measured on (12,18): C's bank re-open blocker passes, 18/18 guards still fail** | UnionUp, UnionUpDec, CovUp, CovUpMain, CovUpDec | chain joins by Up / common ancestor (`ChainUpOK`; no measured use yet) and pin covers timed by an upper bound from the claim's anchor (`CovTimeU`), wired into C's AO safety and liveness (`timedA_follows_cu`, `timedA_live_cu`, implying C's); Boolean checkers. Python (untrusted, one run per corner): with CovTimeU the register-bank re-open step passes (≥ +6.8 ns c0); left: one R1 concurrent-branch root (18 guards), REANCH comb-segment joins, and loop-cover CovTime failures (78/120 guards depend; tracing). Negative claim offsets are NOT Lean-valid (GateProof needs 0 ≤ a) |
 
+| THE goal S4: the timed model on THE target (2026-11-10) | **works: TBehX read fields derived for every behaviour, any corner slice; 16 slices suffice for (12,18) (Python)** | CornerSlice, SliceReads, SliceNet, SliceNetPS (Main, Final, TBeh), StartBound(PS), ArcTree(PS), CovUpChunk | `tnPS p c1 c2` = THE target's timed net (kept pins only: constants folded, dead pins dropped); `target_tbehX`: every Spec behaviour is a TBehX run of it given `quiet`/`env`; `startPS_le` (start ≤ ⌈(1+κ)g⌉·33,002 ps); fast Nat bounds; chunked claim check. Open: `quiet`/`env` instances, certificate emission (C's checkers still List-indexed), other pairs' slice counts |
+
 Analog files (ArbAnalog, ArbAnalog2, ArbResolve) predate the digital-only
 north star; they check but get no further work.
 
