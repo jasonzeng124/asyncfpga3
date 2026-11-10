@@ -2958,3 +2958,11 @@ all-pairs control theorem now has, as its only non-local hypotheses, the behavio
   certificate follow from finitely many kind / consecutive-kind / sub-word checks, except hb (the behaviour), hDE,
   hEnvE, hgdF, hEnvC, henv and the delay bound K. Not about THE target until an instance passes the checks; refinement
   (the word is the token run's) is not started.
+
+### progress 10:03 -- AO/TimedUp.timedA_followsU: the timed safety theorem admits upper-bound claim joins (check.sh OK)
+`timedA_followsU`: `timedA_follows` with `ChainOK` replaced by `ChainUOK` (TimedOccUp, now with `1 ≤ c2.a` on the
+Up join) in the claim hypothesis; same conclusion. The join at time t+1 uses the Up table's soundness up to t, which
+`up_sound` gives from the induction hypothesis. So the proof rule the c=0 residue needs (r1h) is now sound inside
+the timed theorem. *Open:* `timedA_live` with ChainUOK (same pattern, not written); the builder re-run with the rule
+(the r1h count: an admissible Up exists for 185 of 696 needed joins, so the rule alone may not clear the 40);
+the unrolled (every-word) theorems still use ChainOK.
