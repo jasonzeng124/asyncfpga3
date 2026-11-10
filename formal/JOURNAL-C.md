@@ -2992,3 +2992,15 @@ The three blocks of Wip/RIslBnd that OOM-killed at ~11 GB (06, 08, 09) are split
 The 59 other blocks and `RIslAll.reset_quiet_all` are building (moved from Wip/ to Net/CViewPS/; not committed
 until check.sh passes). Container note: the daily from-source rebuild of the CViewPS chunk tree OOM-kills when two
 lake builds run at once; lake has no job limit, so heavy targets are now built one module at a time.
+
+### progress 13:05 -- `CViewPS.RIslAll.reset_quiet_all`: THE target starts quiet, for every (g, κ) (check.sh OK)
+* *Problem:* every n ≥ 1 certificate needs a quiet start: during reset, are the control nodes of THE circuit at
+  known values from a fixed time on, for every guard g and scatter κ (not only the A, M of `reset_quiet_PS`)?
+* *Proved* (2,273 declarations audited transitively, standard axioms; 248 generated quarter checks textually
+  scanned): for every sane p (g > 0, 0 ≤ κ ≤ 1) and every behaviour of THE theorem's circuit with the reset high on
+  [0, R), each of the 3,224 reset-island members equals its listed value at every t with
+  ⌈(1+κ)g⌉·19,832 + 15·⌈(1+κ)g⌉·4,636 ≤ t ≤ R − 1 ps (89,372 ps at g = 1, κ = 0). The per-member slow-max bounds
+  (start ≤ 19,832 ps, pin delays ≤ 4,636 ps) are checked by the kernel in 248 quarters of 13 members
+  (`RIslBnd<b>q<q>`, ~6 GB each; whole blocks OOM-killed at ~11 GB) and combined by `RIslBndQ.all_quarters`.
+* *Not shown:* anything after R − 1; nodes outside the island; that R is long enough on the board (the island is
+  known from 89 ns at g = 1, κ = 0; the board reset is far longer).
