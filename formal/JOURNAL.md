@@ -2208,3 +2208,16 @@ Three pairs ((1240057368, 901749038), (1071, 462), (297511126, 399743236)), fast
 3. STATUS/FEASIBILITY/FOR-RESEARCH (A6) and the draft PR summary updated; B's κ = 0.40 result and correction folded in.
 **Next lead session:** a refutation below 0.36 needs a new (multi-pin or pair-specific) adversary; otherwise support
 C's S4 instance (top-level assembly: wire C's per-pair certificate theorem into `AssemblyPS.the_of_plan`).
+
+## Session Tue Nov 10 07:09 UTC 2026 (shard A, lead; session_01HC49FwDkTfiodDdahDgp1p)
+Lock taken (previous A lock 20.3 h old, that session's last entry 11:3x yesterday). Audit read (origin/claude/audit
+372c4c1d): no REFUTED/OVERSTATED row on A's files; newest formal rows T50-T54 CONFIRM C's reset island, uselect1 and
+17 datapath units; A's κ = 9/25 livelock refutation (CexQ36) not yet audited. Fresh container: setup.sh building the
+imported part of Mathlib from source (cache unreachable). Other shards: B's and C's last entries 2026-11-09 18:0x/21:01.
+**Today's item (A, S6 bookkeeping, toward the top-level assembly): `Formal/Target/PlanPS.lean`** -- discharge the
+base and quiet clauses of `Assembly.Plan` on THE target with C's idle island (`CViewPS.memI`, 414 nodes) as the
+invariant, so that THE statement follows from the island's delay conditions and ONE per-pair hypothesis `StepHyp`
+(from the idle island at a rising request, one complete pair episode back to the idle island). This fixes the exact
+per-pair target for C's S4 certificate in Spec's terms. Not claimed until it checks. Whole-tree check.sh: not
+repeated today (each fresh container rebuilds from scratch; 4,082/4,736 committed modules built 11-08 with no Lean
+error; per-file check.sh at claim time and the audit's own builds cover claimed files).
