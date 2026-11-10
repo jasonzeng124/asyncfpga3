@@ -1325,3 +1325,6 @@ build65 at CexQ36.X004 (82 rc=0, none failed, peak 6.5 GB). New formal: A CertSp
 
 ## 2026-11-10T10:56:02Z T60 start
 BQ#12 (xorshift x0.5 + second latch, research 8161a5d9) own build started at research 0a557234 (t60/build.sh).
+
+## 2026-11-10T10:57:46Z T60
+BQ#12 own build: knobs took effect (olink 1), sdf 1e51be7e = gated route. Worst-case and SLOW_MAX GLS at 83.3 MHz running (t60/run_worst.sh).
