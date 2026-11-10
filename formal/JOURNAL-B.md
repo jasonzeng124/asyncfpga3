@@ -4213,3 +4213,15 @@ of C claims is looked up in O(#chunks + C) and agrees with `cl[i]?` on the flatt
 with its hint looked up by function), `rangeOK` (an index range, one `decide`), and `hgc_of_ranges`: ranges covering
 [0, cl.length) give exactly the hGC premise of `CovUpMain.timedA_follows_cu`. check.sh OK (541 declarations).
 Not done: the same for C's checkers (local check, TOA, GuardTime still index `List`s); any instance.
+
+### progress 12:0x -- session summary so far (B, 2026-11-10)
+**Lean (all check.sh OK, standard axioms):** CornerSlice (one integer net per corner slice; Nat forms), SliceReads
+(read bridge with constant pins folded and dead pins dropped; `deadB` sound), SliceNet (node-indexed net + reads),
+SliceNetPS (THE target's slice net `tnPS`; `target_reads_slice(_H)`, `tnPS_lo1`, `target_tbehX`, `target_by_slices`,
+Nat bounds), StartBound + StartBoundPS (every logic gate starts within ⌈(1+κ)g⌉·33,002 ps), CovUpChunk (chunked,
+range-split claim check). **Python (untrusted):** the (12,18) certificate needs 16 uniform corner slices (11 non-uniform).
+**STATUS list:** unchanged in count. What moved: TBehX (the timed model's behaviour hypothesis, a premise of every
+certificate theorem) is now DERIVED on THE target for its read fields from Spec's H_DELAY/H_PRIM; `quiet` and `env`
+remain explicit hypotheses; no certificate is emitted yet. Next (B or C): emit one slice's certificate on `tnPS`
+(needs C's local-check/guard checkers chunked like CovUpChunk, and a Nat table of `tnPS` bounds).
+Running: subagent, the 16-slice cover for (17,5), (8,12).
