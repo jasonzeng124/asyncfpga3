@@ -3323,3 +3323,9 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   CLK=0x00100C00). Same route and corner at +FCLK_PS=12000 (83.3 MHz): PASS 17/17. Re-placement by the added stages
   moved this route's harness across that margin. Lesson kept: a "kernel failure" on the bench top has to be traced to
   the kernel's own latches before it counts against the kernel.
+### progress 14:10 (second-latch p8mo: full gate passed; 1.25-1.27x per round over x0.5 on 8 bench routes; board item 11)
+- Bench top, seeds 1-8 (xb's method, 100 MHz harness): 23/24 PASS 17/17 + seed 1 SLOW_MAX = the harness margin
+  (17/17 at 83.3 MHz); decodes EQUIVALENT or benign GND-buffer (6, 7, checked). Per round vs x0.5 paired by seed:
+  1.247 / 1.253 / 1.271 (max / min / worst; 1.18-1.36). Soak-top gate 24/24, 8/8 EQUIVALENT (earlier entry).
+- BOARD-QUEUE item 11 / #12 (seed-1 sdf 1e51be7e, CLK=0x00100C00, judge loop_cost_judge.py xorshift vs item 4's
+  x0.5 route). The added stages keep default (unsized) delays.

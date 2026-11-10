@@ -69,6 +69,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    #11 below. 24/24 full-stack runs (8 routes x 3 corners, 17/17 vectors), predicted 1.24-1.27x per iteration over
    T9 (1.20-1.31) and 1.06-1.10x over item 7. Judge: `python3 ../research/tools/loop_cost_judge.py ipow
    build/hw/lc_ipow_cd.tsv build/hw/lc_ipow_t9.tsv`.
+11. **xorshift x0.5 with a second latch at umux1's and the merge's handshake couplings, on the kernel bench**: #12
+   below. Full gate: soak top 24/24 on 8 routes; bench top 23/24 + the 24th traced to the harness at 100 MHz and
+   passing at 83.3. Predicted 1.25-1.27x per round over item 4's x0.5 (1.18-1.36). Judge: `python3 ../research/tools/
+   loop_cost_judge.py xorshift build/hw/lc_xor_p8mo.tsv build/hw/lc_xor_s50.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -475,6 +479,26 @@ second build. nextpnr 9c732bc6303458df. From cells/, on a checkout with BDC_CONS
 
 Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points on both builds). Ratio predicted 1.20-1.22 on
 this route (1.20-1.31 over 7 pairs; mean 1.24-1.27 by corner).
+
+## 12. xorshift x0.5 + second latch (BDC_LINK_DEPTHS=ulink_n_trueResult_8=2, BDC_MERGE_OUT_LINK=ucontrol_merge0)
+The owner's second-latch lead (research/data/itercost/second_latch): an extra latch at the two handshake couplings
+that set the iteration's critical cycle. Measured on the full stack: 1.25-1.27x per round over x0.5 on 8 bench
+routes; soak-top gate 24/24, 8/8 EQUIVALENT. Both knobs are measurement options in bdc/emit.py (off by default); the
+two new stages keep bdc's default delays (unsized, long side). nextpnr 9c732bc6303458df. From cells/, on a checkout
+with BDC_MERGE_OUT_LINK (5a4176cd or later):
+
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+    grep -c ucontrol_merge0_olink build/gen/xorshift_kernel_bench.v    # must be 1: the knobs took effect
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 1e51be7e = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_p8mo.tsv
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # c5b8ca02 (item 4's x0.5 route)
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_s50.tsv
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_p8mo.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's xorshift points on both builds). CLK=0x00100C00 (83.3 MHz)
+matters here: at 100 MHz this route's harness operand register misses timing at the slow corner (traced, JOURNAL
+2026-11-10). Ratio predicted 1.23-1.27 on this route (1.18-1.36 over 8).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
