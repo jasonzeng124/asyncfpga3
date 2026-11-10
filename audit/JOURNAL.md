@@ -1322,3 +1322,6 @@ CexQ36 + Frontier36 build started (one module at a time, formal 066ee0ee), scrip
 
 ## 2026-11-10T09:34:26Z progress
 build65 at CexQ36.X004 (82 rc=0, none failed, peak 6.5 GB). New formal: A CertSpec/CertN1/NetCorrectSeqOnN, B StartBound (to audit after build).
+
+## 2026-11-10T10:56:02Z T60 start
+BQ#12 (xorshift x0.5 + second latch, research 8161a5d9) own build started at research 0a557234 (t60/build.sh).
