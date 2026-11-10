@@ -2903,3 +2903,19 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
   events is now reduced to checks on short kind sequences, EXCEPT: LSound of the bounds, hSE, hRT, TmOK CF, the claim
   proofs (GateProof/ChainOK), hEnvE/hEnvC/hInit, hDataLen; liveness bounds across words; refinement (piece 3); any
   instance on THE target (none passes these checks yet; untested).
+
+### progress 08:52 -- Net/AO/UnrollRest.lean: timedA_follows / timedA_live for every word, assembled (check.sh OK)
+* *Proved* (subagent; I re-ran check.sh: 793 declarations audited, standard axioms): `timedA_follows_unroll`,
+  `timedA_live_unroll`: the timed safety and liveness theorems applied to the certificate of EVERY word of kinds,
+  with every whole-certificate hypothesis replaced by per-kind / consecutive-kind / sub-word checks: LSound of the
+  bounds (`lsound_PF` from `KindLStep`), hRT (`KindRT`), hCPsub (`KindSub`), hne (`KindNe`), hcov, hlenEq, hSE,
+  hDataLen, TmOK of both certificates, and the timing tables (UnrollTime).
+* *Finding:* `timedA_live`'s `hne` (`CF.causes u k ≠ []` for EVERY k) is false for every plain unrolled
+  certificate (no causes after a node's last event). Fixed by padding (`padC`: cause list `[[]]` past the end);
+  `ideal_padC`, `enabled_padC`, `lsound_padC`, `sepOKA_padC`, ... show padding changes nothing below the counts.
+* *Still hypotheses in the two theorems:* the behaviour (`hb`), `hDE`, the local check `hloc` (on the unpadded
+  certificate with `uclT`; not yet composed with `lcheckXA_unroll`/`lcheckXA_uclT`), the environment and claim
+  obligations (`hEnvE`, `hgdF`, `hGC`/ChainOK, `hEnvC`, `hInit`, `henv`), delay bounds `K`.
+* *Limitation noted:* `uL` (one bound table for all readers, relative to window offsets) can only be sound when
+  the bounded node's events precede through causal chains; `KindLStep` justifies bounds at most one window back.
+  Whether THE target's bounds have this form is unchecked. No instance exists; nothing here is about THE target yet.
