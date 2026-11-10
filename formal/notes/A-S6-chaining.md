@@ -8,7 +8,7 @@ read island `IslR p x t` at a rising pair request `t ≥ R`, there is one comple
 requests move per four-phase; out0 rises once, at t0, and carries gcd of the operands at t + 1; boundary low at t2;
 `IslR` at t2). Base (reset) and quiet steps are proved (`isl_islR`, `islR_next`, C's island data).
 
-**`IslR p x t`** (generalised 11:5x): for some set S of logic nodes containing a.ack, b.ack, start.ack, out0.req
+**`IslR p x t`** (generalised 08:2x): for some set S of logic nodes containing a.ack, b.ack, start.ack, out0.req
 (C's 414-node idle island `CViewPS.memI` at reset end), every member w has a read-map witness F of its routed
 gate relation and a pin set P that forces its LUT to 0 whatever the other pins read; each P-pin reads an island member
 S-member or env node (shared request 186985, end.ack 104477) through a route of min delay ≥ 1 ps, and that source is low on
@@ -30,7 +30,7 @@ the start of episode k ≥ 2 against such an env, for any H > 4 ps. A per-episod
    ("Not covered: ... reset/quiet start"; one episode only).
 Option 1 composes directly with `StepHypR`. Episode 1 (after reset) is unaffected: C's reset island gives `quiet`.
 
-**Addendum (11:2x): what is still moving at a fastest re-request (simulation, (12,18) then (17,5), corner 0.5, κ = 0).**
+**Addendum (08:1x): what is still moving at a fastest re-request (simulation, (12,18) then (17,5), corner 0.5, κ = 0).**
 In the 5 ns before the second request, 27 logic nodes changed: the 9 island members above, out0.ack (env), and 17
 non-island control nodes reacting to out0.ack's fall, two of them 1-2 ps before the request (154630 SLICE_X4Y31.C6,
 160973 SLICE_X5Y31.D6), then 154646, 154614, 154737 (X4Y31.D6, X4Y31.B6, X4Y32.D6) and a 10-LUT chain over 4.8 ns

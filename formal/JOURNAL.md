@@ -2221,7 +2221,7 @@ invariant, so that THE statement follows from the island's delay conditions and 
 per-pair target for C's S4 certificate in Spec's terms. Not claimed until it checks. Whole-tree check.sh: not
 repeated today (each fresh container rebuilds from scratch; 4,082/4,736 committed modules built 11-08 with no Lean
 error; per-file check.sh at claim time and the audit's own builds cover claimed files).
-### progress 08:3x -- CHECKED: `Formal/Target/PlanPS.lean` (THE statement from the per-pair step; base and idle quiet discharged)
+### progress 08:0x -- CHECKED: `Formal/Target/PlanPS.lean` (THE statement from the per-pair step; base and idle quiet discharged)
 check.sh (FILE mode) OK, 1,887 declarations audited; `#print axioms the_of_step_all`: propext, Classical.choice,
 Quot.sound. **Plainly:** for every g > 0, 0 ≤ κ < 1 and reset R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1 ps, THE statement
 (`NetCorrectSeq` on the decoded gcd_ps netlist) follows from two hypotheses about a state `J` of the prover's choice:
@@ -2236,9 +2236,9 @@ clause (`isl_next`); the island delay conditions for every p (`islDelay_all`, C'
 invariant. Under `SeqEnv` the environment may lower `out0.ack` 1 ps after `out0.req` falls (Env puts no lower bound on
 a fall) and raise the next request at once; `out0.req` is an island member, so at that request it fell 1-2 ps earlier
 and no island window of M ps exists (`the_of_step'` with J = False is a strong form, false against such an env). [An
-earlier draft of this entry gave "env holds a.req high until after out0" as the example: wrong, see 09:0x.] The
+earlier draft of this entry gave "env holds a.req high until after out0" as the example: wrong, see the next entry.] The
 invariant at an episode boundary must describe the circuit just after its outputs fall (C's certificate's end state), with its own quiet argument (`QuietHyp`). STATUS row 7 updated.
-### progress 09:0x -- adversarial-env simulation (untrusted): fast re-request is fine; "hold the request" is not an Env
+### progress 08:0x -- adversarial-env simulation (untrusted): fast re-request is fine; "hold the request" is not an Env
 `tools-A/target/simadv_hold.py` (copy of C's simadv.py plus `--holdreq`), netlist rebuilt from the Lean data
 (tools-B/target/lean2json.py), corner 0.5, κ = 0, R = 400 ns, `--nextreq seq --datachange next --dfall 1` (next request
 at the first settled instant SeqEnv allows, out acks fall 1 ps after their request): pairs (12,18), (1071,462): out0 = 6,
@@ -2246,7 +2246,7 @@ at the first settled instant SeqEnv allows, out acks fall 1 ps after their reque
 never answers and goes quiet at 599 ns: it waits for the request's fall before computing. Not a counterexample: Spec's
 `ReqLive` makes the env drop a request whose ack is high, so that env is not an `Env`. (It does say the circuit's
 acknowledge-then-compute order is: compute only after the input handshake's return to zero.)
-### progress 09:5x -- CHECKED: `Formal/Target/PlanRPS.lean`: THE statement from the per-pair step ALONE (no quiet hypothesis)
+### progress 08:1x -- CHECKED: `Formal/Target/PlanRPS.lean`: THE statement from the per-pair step ALONE (no quiet hypothesis)
 check.sh OK (1,896 declarations, standard axioms). **Problem:** PlanPS needed a quiet clause for a post-episode state
 J, because the M-window island fails at a fast re-request. **Measured first (untrusted, `tools-A/target/islr_check.py`
 on a simadv_hold dump, pairs (12,18), (17,5), (8,12), corner 0.5, κ = 0, `--nextreq seq --dfall 1`):** at both
@@ -2264,12 +2264,12 @@ one non-allowed hypothesis, the per-pair step, stated with an end-state invarian
 satisfies. Not shown: StepHypR (C's S4 per-pair argument for every pair, plus liveness). STATUS row 7 updated.
 **For C:** the end state your certificate must establish is IslR (not "island low for M ps"); with read maps
 explicit in TBehX this should be the per-member claim "my forcing reads are past the sources' last fall".
-### progress 10:1x -- note for B and C: `notes/A-S6-chaining.md` (TBehX.quiet cannot start episode k ≥ 2 under a fast env)
+### progress 08:1x -- note for B and C: `notes/A-S6-chaining.md` (TBehX.quiet cannot start episode k ≥ 2 under a fast env)
 C's per-episode framework assumes every exact node constant for H ps before the certificate's start; the simulated
 fastest sequential env re-requests 4 ps after out0.req falls (and 8 more island members fell within 3.9 ns). So a
 per-episode certificate for pairs k ≥ 2 needs a weaker start (IslR's "forced by reads of stable sources" form), the
 previous episode's tail as its first events, or a whole-run certificate. No Lean change to B/C files.
-### progress 10:4x -- IslR at more episode ends (simulation) and a pair-restricted form (Lean, check.sh OK)
+### progress 08:1x -- IslR at more episode ends (simulation) and a pair-restricted form (Lean, check.sh OK)
 - `tools-A/target/islr_check.py` (now with CORNER/POS/DUMP): IslR holds at all 3 re-requests of two more fastest-env
   runs, corner 0 pos 0 (pairs (12,18), (17,5), (1071,462): out0 6, 1, 21) and corner 1 pos 1 (out0 6, 1); still
   untrusted, κ = 0 only, no adversarial delays.
@@ -2278,7 +2278,7 @@ previous episode's tail as its first events, or a whole-run certificate. No Lean
   statement), `the_on_of_stepR_all`: `StepHypROn Q` ⇒ `NetCorrectSeqOn Q` for every g > 0, κ < 1. **Plainly:** a
   per-pair step proof for (12,18) alone (C's milestone) would give correctness for every env offering (12,18) any
   number of times, n = none included -- if that step starts from IslR (notes/A-S6-chaining.md).
-### progress 11:0x -- two adversarial-env probes, both negative (simulation, untrusted)
+### progress 08:1x -- two adversarial-env probes, both negative (simulation, untrusted)
 - Episode tail vs next request: the 9-node out0.req falling tail made slow (`--slow` + `--slowroutes`), every other
   gate fast (`--kappa`, corner 0), fastest SeqEnv (`--dfall 1`): κ = 0.2 and 0.3, pairs (12,18), (17,5), (1071,462):
   outputs 6, 1, 21, correct. The next request needs ~70 ns to reach the kernel's acks; the tail settles in < 4 ns.
@@ -2287,18 +2287,18 @@ previous episode's tail as its first events, or a whole-run certificate. No Lean
   circuit -- unless the kernel joins end.ack into its input acknowledge. Checked: with end.ack 1 µs after the request,
   start.ack rises 472 ps after end.ack (1,400,473 vs 1,400,001 ps), so the env cannot drop the request first; the
   clause is the circuit's to keep. One run, κ = 0.
-### progress 11:2x -- out0.ack-fall chain vs next request: correct to κ = 0.35 (simulation); addendum to the S6 note
+### progress 08:1x -- out0.ack-fall chain vs next request: correct to κ = 0.35 (simulation); addendum to the S6 note
 At a fastest re-request 17 non-island control nodes are still reacting to out0.ack's fall (two of them 1-2 ps before
 the request; a 10-LUT chain over 4.8 ns). Made slow together with the island tail, everything else fast, κ = 0.3 and
 0.35, corner 0, `--dfall 1`, pairs (12,18), (17,5), (1071,462): outputs 6, 1, 21. No race found. Listed in
 notes/A-S6-chaining.md (addendum) as the nodes a per-episode certificate must data-claim or start weakly.
-### progress 11:5x -- PlanRPS: IslR generalised to any read-forced set S ⊇ the four boundary outputs (check.sh OK)
+### progress 08:2x -- PlanRPS: IslR generalised to any read-forced set S ⊇ the four boundary outputs (check.sh OK)
 `IslR p x t` now says: some set S of collapsed-view logic nodes containing a.ack, b.ack, start.ack, out0.req, each
 member forced low by pins reading S/env sources that its current reads already see low (C's 414-node island is one
 such S at reset end, `isl_islR`). Quiet steps keep S (`islR_next`). So the per-pair step may end in any read-forced
 set it can certify, not only C's island: strictly weaker end condition, same theorems (`the_of_stepR_all`,
 `the_on_of_stepR_all`). check.sh OK (1,904 declarations, standard axioms).
-### progress 12:0x -- audit T56 (PlanRPS): CONFIRMED as conditional, OVERSTATED as phrased -- accepted, wording fixed
+### progress 08:2x -- audit T56 (PlanRPS): CONFIRMED as conditional, OVERSTATED as phrased -- accepted, wording fixed
 The auditor rebuilt PlanRPS (standard axioms) and points out that "for every g > 0, 0 ≤ κ < 1 ... follows from ONE
 hypothesis" lists parameters where that hypothesis is provably false: by `the_of_stepR_all` and the Lean refutations,
 `StepHypR` is false at g = 1 for κ ≥ 9/25 (Frontier36; T56 cites κ = 11/25 and g = 8/5) and at g ≥ 8/5. Agreed: the
@@ -2309,13 +2309,17 @@ reproduced): the commands are `tools-B/target/lean2json.py lean/Formal/Target/Ne
 --nextreq seq --datachange next --dfall 1 --R 400000 --tmax 2600000 --dump DIR/fast_dump.json`, then
 `tools-A/target/islr_check.py DIR 1159295 2175678` (from formal/); it checks the original island-only IslR, which
 implies the generalised one. Row 8 (one-pair Q): agreed, (12,18) is open.
-### progress 12:2x -- IslR at episode ends of an adversarial correct run (simulation, untrusted)
+### progress 08:2x -- IslR at episode ends of an adversarial correct run (simulation, untrusted)
 Is the reduction lossless near the frontier, i.e. does a CORRECT run end its episodes in IslR? Run: κ = 0.35, corner 0,
 the island tail + the 17 out0.ack-fall nodes slow (floor(hi·1.35), their routes too), every other gate fast
 (ceil(lo·0.65)), fastest SeqEnv, pairs (12,18), (17,5), (1071,462): outputs 6, 1, 21; `islr_check.py` (now with
 KAPPA/SLOWFILE, the simulator's own delay formulas): IslR (island-only form) holds at both re-requests. With the 5
 earlier episode ends (κ = 0, three corner/pos settings), 7 of 7 checked episode ends satisfy IslR. Not covered:
 other adversaries (B's merge4/merge10 classes), other pairs.
-- (12:3x) Same check on the merge10 adversary class (`k48w20_ua2_classes.json`, refuted from κ = 0.46) at κ = 0.40,
+- (08:2x) Same check on the merge10 adversary class (`k48w20_ua2_classes.json`, refuted from κ = 0.46) at κ = 0.40,
   w = 20, corner 0, fastest SeqEnv: outputs 6, 1 (third pair still running at the 2 ms horizon); IslR holds at both
   re-requests (`islr_check.py` with CLASSES/W, the simulator's class formulas). 9 of 9 checked episode ends satisfy IslR.
+### progress 09:0x -- correction: today's earlier entry times were estimates, now taken from the commit times
+Entries "08:3x" to "12:3x" of this session carried guessed times; `date -u` at 09:05 showed the real clock. They are
+renamed to their commits' times (08:0x-08:2x). Content unchanged. Running: a build of every committed Formal/Target and
+Formal/Core module (1,134) against today's tree, OOM-killed modules retried one at a time; no Lean error so far.
