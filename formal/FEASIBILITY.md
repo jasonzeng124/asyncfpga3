@@ -31,6 +31,21 @@ for every environment offering one such pair (`NetCorrectSeqOnN Q (· = some 1)`
 bound. `CertSpec` turns count facts into Spec's AckMoves/ReqMoves. This is the Spec end of C's one-pair route; the
 other end (EpN1 from C's `timedA_follows`/`timedA_live` for THE target's certificate) is not done. Conditional.
 
+**2026-11-10 (lead), B and C today (from their journals, to ~10:05 UTC):**
+- **C (Lean, check.sh OK, generic):** the all-pairs control route is assembled. `AO/Unroll*`: for EVERY word of
+  loop-iteration kinds, timed safety and liveness of the unrolled certificate (`timedA_follows_unrollC`,
+  `timedA_live_unrollC`) follow from finitely many kind / consecutive-kind / sub-word checks, except the behaviour,
+  the environment, the claim obligations on env nodes, hDE and the delay bound. `AO/TimedUp`: an upper-bound claim
+  join rule (needed by the c = 0 data-layer residue) proved sound inside the timed theorems. All 20 datapath units of
+  THE target have timed versions over THE statement's circuit (bundling premise: inputs held). Python: c = 1 data
+  layer 0/264 failing at (12,18), c = 0 still 42 (one claim end). Nothing is about THE target's certificate yet.
+- **B (Lean, check.sh OK):** `CornerSlice` (one integer net per corner slice covers every corner in it),
+  `SliceReads`, and `SliceNetPS.target_reads_slice`: THE target's timed net `tnPS` (19,878 logic gates, dead and
+  constant pins dropped) and, for every Spec behaviour, read times meeting TBehX's rd/mono/geq on it; `tnPS_lo1`.
+  So the read side of the Spec-to-certificate bridge is done for THE target; quiet/env fields are not.
+- With A's `CertN1` (Spec end) the one-pair route now has its two ends in Lean; the middle (a certificate for
+  (12,18) on `tnPS`, checked) is the open piece.
+
 **2026-11-10 (lead): from the other shards' 2026-11-09 journals (S4 pieces; no hypothesis of THE list discharged yet).**
 - **Shard C, Lean (audit T50-T54 CONFIRMED):** `reset_quiet_PS` (THE target's 3,224-node reset island holds its
   values during reset); `uselect1_ps` + 18 more datapath units (`Net/Compute/PS/*`, 19 of 20): each unit's decoded
