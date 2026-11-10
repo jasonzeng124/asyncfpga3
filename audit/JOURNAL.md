@@ -1337,3 +1337,6 @@ BQ#12 CONFIRMED on board seed: sdf 1e51be7e, worst+SLOW_MAX 17/17 EQUIVALENT at 
 
 ## 2026-11-10T12:16:10Z T59
 CexQ36 + Frontier36 CONFIRMED (Lean, own build 157 modules): headline false for g>=1, kappa>=9/25, w<=20, every R>=400ns, plain too.
+
+## 2026-11-10T12:17:48Z build66
+Large formal batch (e5f31db2) building one module at a time: B SliceNetPS/StartBoundPS/ArcTreePS/CovUpChunk, A CertSpec/CertN1, C AO TimedUp/Unroll*, TimedOccUp, 4 timed units.
