@@ -4155,3 +4155,31 @@ far as gate reads go, for any slice of corners. NOT shown: TBehX's `quiet` and `
 EnvHS), any certificate on `tnPS`, and the slice count the certificates need (subagent measuring). C: the AO theorems
 can be instantiated with `N := tnPS p c1 c2`; constant and dead pins no longer appear, so the builder's
 "constant pins have no cover" and "dead pins set to 0" gaps are gone if it uses this net's pin lists.
+
+### progress 10:3x -- CHECKED: every logic gate starts within ⌈(1+κ)g⌉·33,002 ps; read hypotheses with no netlist premise
+- `Formal/Cells/StartBoundPS/Main.lean` `startPS_le`: for every sane p and every logic node w of THE target,
+  `startPS p w ≤ ⌈(1+κ)g⌉ · 33,002` ps (generic `StartBound.cStart_le_m` + 75 value trees `ffacts` + 75 per-chunk
+  walk checks `start_ok`, all `decide +kernel`). This also discharges the start-time premise of C's `quiet_PS`.
+- `Formal/Cells/SliceNetPS/Final.lean` `target_reads_slice_H`: `target_reads_slice` with H = ⌈(1+κ)g⌉·33,002 and any
+  t0 ≥ 2H (66 ns at g = 1, κ = 0; THE target's reset is ≥ 400 ns). check.sh OK (2,114 declarations, standard axioms).
+
+### progress 10:3x -- how many corner slices the (12,18) certificate needs: 16 (untrusted Python, subagent)
+Files `formal/tools-B/slice/` (README.txt, table.md, slice_build.diff, logs/<slice>/). Slice net per [c1, c2]: per arc
+lo = ⌈lerp(fmin,smin,c1)⌉, hi = ⌊lerp(fmax,smax,c2)⌋ (= the Lean `tnPS` bounds at g = 1, κ = 0), one midpoint run per
+slice, C's control certificate + B's final data-layer builder. Sanity: [0,0] and [1,1] reproduce the c0 / c1 runs
+byte-for-byte.
+| cover | result |
+|---|---|
+| K = 1 [0,1] | 8 control local-check failures, 112/264 guards fail |
+| K = 2 | 2 / 1 control, 47 / 42 guards ([0,1/2] fixpoint does not converge) |
+| K = 4 | every slice fails (1 control, 30-42 guards) |
+| K = 8 | slices 1-3 fail, 4-8 pass |
+| **K = 16** | **all 16 pass**: 0 control failures, 0/264 guards, 0 failing claim items, lchk 0/0 |
+| 11 slices (1/16 up to 3/8, then 1/8) | all pass |
+A zero-width slice at c = 1/2 passes, so the failures come from slice WIDTH, not intermediate corners. Binding
+roots: control, SLICE_X3Y22.B6's own feedback vs its X2Y21.B6 pin (Sep 2 ps; widest passing slice ≈ 0.087 at c = 0,
+≈ 0.16 at c = 0.75); data, the U->H links of X30Y64.C6 / X34Y66 latches, whose two events (bank open X30Y76.A6(2), the
+latch's close) meet only at SLICE_X27Y80.A6(2): Sep − Up = +2,847 ps on [0,1/16], −1,756 on [1/8,1/4].
+**Plainly:** a per-pair Lean theorem covering every corner at g = 1, κ = 0 can be built from ~11-16 integer
+certificates on `tnPS` slices; for one pair, untrusted, from one midpoint run per slice. Not shown: any Lean
+emission; other pairs; κ > 0.
