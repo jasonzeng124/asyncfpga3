@@ -23,6 +23,9 @@ for every `g > 0`, `0 ≤ κ < 1` and reset `R ≥ ⌈(1+κ)g⌉·(15,600 + 87·
 member) falls and raise the next request at once, so an episode cannot always end with the island low for `M` ps (`the_of_step'`, with `J = False`, is therefore a strong form).
 Whatever the 4,185 unreset data latches and 9 arbiter states hold is left free by `Isl`.
 
+**Conditional only** (see audit T56 on `PlanRPS`): the hypotheses are false wherever THE statement is refuted, and
+nothing is established at any parameter. Superseded by `PlanRPS` (one hypothesis, no `QuietHyp`).
+
 **Not shown.** `StepHyp` and `QuietHyp` (the per-pair circuit argument: C's S4 instance for every pair, and the
 settling after it). The island's delay conditions are discharged for every `p` (`islDelay_all`, C's data). This file removes from THE statement's open list the reset base and the
 island's quiet clause of the plan, nothing else; `StepHyp`/`QuietHyp` are still the whole per-pair argument.
