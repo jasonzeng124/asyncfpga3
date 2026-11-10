@@ -2379,3 +2379,19 @@ CexRuntD60, 4 CexRunt44, ...), no elaboration or kernel error. They are now rebu
 A bus whose bit nodes show the bits of v < 2^len has `busVal` = v (`bv_lt`, `busVal_of_bits`, on C's EnvData bit
 lemmas): with per-bit data claims of the certificate (each out0.data bit holds bit i of gcd(12,18) = 6 while out0 is
 up), it gives EpN1's `data` field.
+### progress 15:06 -- session summary so far (A, 2026-11-10; provisional, the session continues)
+1. **S6 assembly (Lean, check.sh OK, standard axioms; audit T56 + row 20: CONFIRMED as conditional):**
+   `PlanRPS.the_of_stepR_all`: THE statement at any g > 0, κ < 1, reset ≥ ⌈(1+κ)g⌉·353 ns follows from ONE per-pair
+   hypothesis `StepHypR` (from the read island IslR at a request, one complete episode back to IslR); base and quiet
+   steps proved (C's island data, monotone reads). Conditional: StepHypR is false where THE statement is refuted and
+   open below. `NetCorrectSeqOn(N)`: restriction to given pairs / pair counts.
+2. **Spec end of the one-pair milestone (Lean, check.sh OK):** `CertN1.onN1_of_cert` (one-pair statement from
+   certificate facts EpN1), `CertSpec` (AckMoves/ReqMoves from certificate counts, transitive forms, glue to C's cntE
+   ideals, end state from even counts, bus value from bits). notes/A-certN1.md lists each EpN1 field and its source.
+3. **Findings (simulation, untrusted) for B/C:** a fastest SeqEnv re-requests 4 ps after out0.req falls, so the
+   M-window island and TBehX.quiet cannot start episode k ≥ 2 (notes/A-S6-chaining.md); IslR holds at 10/10 checked
+   episode ends (κ up to 0.40, merge4/merge10 adversaries, κ = 0.35 next to the refuted frontier); two env-side races
+   probed (episode tail, out0.ack-fall chain) and an end-channel loophole ruled out (start.ack waits for end.ack).
+4. Housekeeping: journal times corrected to the real clock; FEASIBILITY/STATUS/draft PR updated; A's claimed modules
+   rebuilt against today's tree: first pass 0 Lean errors, OOM retries running.
+The STATUS list did not shrink in count: row 7 ("everything else") is now exactly one hypothesis, StepHypR.
