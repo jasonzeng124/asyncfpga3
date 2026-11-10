@@ -2309,3 +2309,10 @@ reproduced): the commands are `tools-B/target/lean2json.py lean/Formal/Target/Ne
 --nextreq seq --datachange next --dfall 1 --R 400000 --tmax 2600000 --dump DIR/fast_dump.json`, then
 `tools-A/target/islr_check.py DIR 1159295 2175678` (from formal/); it checks the original island-only IslR, which
 implies the generalised one. Row 8 (one-pair Q): agreed, (12,18) is open.
+### progress 12:2x -- IslR at episode ends of an adversarial correct run (simulation, untrusted)
+Is the reduction lossless near the frontier, i.e. does a CORRECT run end its episodes in IslR? Run: κ = 0.35, corner 0,
+the island tail + the 17 out0.ack-fall nodes slow (floor(hi·1.35), their routes too), every other gate fast
+(ceil(lo·0.65)), fastest SeqEnv, pairs (12,18), (17,5), (1071,462): outputs 6, 1, 21; `islr_check.py` (now with
+KAPPA/SLOWFILE, the simulator's own delay formulas): IslR (island-only form) holds at both re-requests. With the 5
+earlier episode ends (κ = 0, three corner/pos settings), 7 of 7 checked episode ends satisfy IslR. Not covered:
+other adversaries (B's merge4/merge10 classes), other pairs.

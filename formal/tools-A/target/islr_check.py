@@ -9,13 +9,26 @@ src=open("lean/Formal/Net/CViewPS/IslandData.lean").read()
 mem=set(int(a) for a in re.findall(r'\((\d+), (?:true|false), \[',src)); env={186985,104477}
 import os
 C=float(os.environ.get("CORNER","0.5")); PP=float(os.environ.get("POS","0.5"))
-def dm(e):
+import math
+KAP=os.environ.get("KAPPA"); SLOWN=set(open(os.environ["SLOWFILE"]).read().split()) if os.environ.get("SLOWFILE") else set()
+NAMES=N["nodes"]; NIDX={n:i for i,n in enumerate(NAMES)}
+SLOW=set(NIDX[n] for n in SLOWN)
+for n0 in list(SLOW):   # --slowroutes: the copy chains into slow gates' pins are slow too
+    if n0 in drv:
+        for u in drv[n0]["ins"]:
+            while u in drv and drv[u]["k"]==1 and drv[u]["init"]==2:
+                SLOW.add(u); u=drv[u]["ins"][0]
+def dm(e, out=None):
     lo=(1-C)*e["fmin"]+C*e["smin"]; hi=(1-C)*e["fmax"]+C*e["smax"]
+    if KAP is not None:
+        k=float(KAP)
+        if out in SLOW: return int(math.floor(hi*(1+k)))
+        return int(math.ceil(lo*(1-k)))
     return int(round(lo+PP*(hi-lo)))
 def chain(g,i):
-    s=dm(g["arcs"][i]); n=g["ins"][i]
+    s=dm(g["arcs"][i], g["out"]); n=g["ins"][i]
     while n in drv and drv[n]["k"]==1 and drv[n]["init"]==2:
-        s+=dm(drv[n]["arcs"][0]); n=drv[n]["ins"][0]
+        s+=dm(drv[n]["arcs"][0], n); n=drv[n]["ins"][0]
     return n,s
 def fmn(g,i):
     s=g["arcs"][i]["fmin"]; n=g["ins"][i]
