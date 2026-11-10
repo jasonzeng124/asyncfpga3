@@ -1334,3 +1334,6 @@ p8 worst case at 83.3 MHz: oracle 17/17, EQUIVALENT, 2.4762 cyc/round. SLOW_MAX 
 
 ## 2026-11-10T11:42:50Z T60 done
 BQ#12 CONFIRMED on board seed: sdf 1e51be7e, worst+SLOW_MAX 17/17 EQUIVALENT at 83.3 MHz, 1.273x same-clock worst case.
+
+## 2026-11-10T12:16:10Z T59
+CexQ36 + Frontier36 CONFIRMED (Lean, own build 157 modules): headline false for g>=1, kappa>=9/25, w<=20, every R>=400ns, plain too.
