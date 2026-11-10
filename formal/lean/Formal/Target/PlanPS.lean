@@ -10,21 +10,23 @@ boundary outputs low), a quiet clause (while no pair is offered, the outputs sta
 step (from `I`, low, and a rising pair request, one whole pair episode -- acknowledges, one `out0` handshake
 carrying the gcd, back to low and to `I`). Base and quiet are about the idle circuit, not about computing gcd.
 
-**Proved here** (`the_of_step`): base and quiet hold for THE target with `I` = the *idle island* (shard C's 414
-nodes, `CViewPS.memI`, which include `a.ack`, `b.ack`, `start.ack`, `out0.req`) low, together with the shared
-input request and `end.ack`, over the last `M` ps (`Isl`), plus any extra invariant `J` the step's prover wants
-that is true at reset end and kept by quiet steps. So THE statement follows from:
-* the island's delay conditions for `p` (the same four as C's `correct_n0`: island starts and reset arrivals at
-  most `A`, island pin delays at most `M`, forcing pins at least 1 ps, `A + 87·M + 1 ≤ R`); and
-* **one per-pair hypothesis** (`StepHyp`): from any time `t ≥ R` at which the island has been low for `M` ps and
-  `J` holds, a rising request is followed by one complete pair episode (`Assembly.StepCore`) that ends with the
-  island low for `M` ps and `J` again.
-Whatever the 4,185 unreset data latches and 9 arbiter states hold is left free by `Isl`: the step must work from
-any of them (or the prover puts what it needs in `J`).
+**Proved here** (`the_of_step`, `the_of_step_all`): with the invariant "the *idle island* (shard C's 414 nodes,
+`CViewPS.memI`, which include `a.ack`, `b.ack`, `start.ack`, `out0.req`), the shared input request and `end.ack` have
+been low for the last `M` ps (`Isl`), OR a state `J` of the prover's choice", the base (from reset, every behaviour)
+and the quiet clause for the island are discharged on THE target from C's island data. So THE statement follows,
+for every `g > 0`, `0 ≤ κ < 1` and reset `R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps, from two hypotheses about `J`:
+* `StepHyp`: from `Isl` or `J` at a rising request, one complete pair episode (`Assembly.StepCore`: acknowledges and
+  `out0` per four-phase, `out0` once with the gcd, back to a low boundary) that ends in `Isl` or `J`;
+* `QuietHyp`: from `J` with a low boundary and no new request, the boundary outputs stay low and the state stays
+  `J` or reaches `Isl`.
+`J` cannot be dropped in general: a sequential environment may raise the next request at the first instant the
+boundary is low, and the acknowledges fall at that very instant, so an episode cannot always end with the island
+low for `M` ps (`the_of_step'`, with `J = False`, is therefore a strong form).
+Whatever the 4,185 unreset data latches and 9 arbiter states hold is left free by `Isl`.
 
-**Not shown.** `StepHyp` itself (the per-pair circuit argument: C's S4 instance for every pair); the delay
-conditions for a concrete `p`. This file removes from THE statement's open list the base and the quiet clause of
-the plan and the choice of invariant, nothing else.
+**Not shown.** `StepHyp` and `QuietHyp` (the per-pair circuit argument: C's S4 instance for every pair, and the
+settling after it). The island's delay conditions are discharged for every `p` (`islDelay_all`, C's data). This file removes from THE statement's open list the reset base and the
+island's quiet clause of the plan, nothing else; `StepHyp`/`QuietHyp` are still the whole per-pair argument.
 -/
 
 namespace Formal.Target.PlanPS
@@ -199,23 +201,28 @@ theorem isl_next {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circuit
     subst this
     exact ⟨fun w hw => hfin w hw (t + 1) (by omega) (le_refl _), hq, hpa⟩
 
-/-- **The one remaining hypothesis**: from the idle island (plus `J`) at a rising pair request, one whole pair
-episode that ends in the idle island (plus `J`). -/
+/-- **The one remaining hypothesis**: from the idle island, or from a state `J` of the prover's choice, at a rising
+pair request, one whole pair episode that ends in the idle island or in `J`. (`J` is needed in general: a sequential
+environment may raise the next request at the first instant the boundary is low, and the acknowledges fall at that
+instant, so an episode cannot always end with the island low for the last `M` ps.) -/
 def StepHyp (p : DelayPar) (T R su Δo M : Nat) (J : Beh → Nat → Prop) : Prop :=
   ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x → ArbOK T arbs x →
     Env x boundary R su Δo n va vb → SeqEnv x boundary R →
-    ∀ t, R ≤ t → Isl x M t → J x t → Low x boundary t → edge (x boundary.a.req) t →
-      ∃ t2 t0, StepCore x boundary Δo (fun s => Isl x M s ∧ J x s) t t2 t0
+    ∀ t, R ≤ t → (Isl x M t ∨ J x t) → Low x boundary t → edge (x boundary.a.req) t →
+      ∃ t2 t0, StepCore x boundary Δo (fun s => Isl x M s ∨ J x s) t t2 t0
 
-/-- **THE statement on THE target from the per-pair step.** `J` is any extra invariant true at the end of reset
-and kept by quiet steps (take `J := fun _ _ => True` for none: `the_of_step'`). -/
+/-- The quiet clause for the prover's state `J`: while no pair is offered, the circuit's boundary outputs stay low
+and the state stays `J` or reaches the idle island. -/
+def QuietHyp (p : DelayPar) (T R su Δo M : Nat) (J : Beh → Nat → Prop) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x → ArbOK T arbs x →
+    Env x boundary R su Δo n va vb → SeqEnv x boundary R →
+    ∀ t, R ≤ t → J x t → Low x boundary t → x boundary.a.req (t + 1) = false →
+      (∀ v ∈ couts boundary, x v (t + 1) = false) ∧ (Isl x M (t + 1) ∨ J x (t + 1))
+
+/-- **THE statement on THE target from the per-pair step** (and the quiet clause of the prover's own state `J`;
+`J := fun _ _ => False` needs none: `the_of_step'`). Base and the island's quiet clause are proved here. -/
 theorem the_of_step {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : IslDelay p M A)
-    (hRA : A + 87 * M + 1 ≤ R) (J : Beh → Nat → Prop)
-    (hJ0 : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
-      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R → J x R)
-    (hJq : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
-      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R →
-      ∀ t, R ≤ t → Isl x M t → J x t → Low x boundary t → x boundary.a.req (t + 1) = false → J x (t + 1))
+    (hRA : A + 87 * M + 1 ≤ R) (J : Beh → Nat → Prop) (hJq : QuietHyp p T R su Δo M J)
     (hstep : StepHyp p T R su Δo M J) :
     NetCorrectSeq net boundary arbs p T R su Δo := by
   apply AssemblyPS.the_of_plan
@@ -232,6 +239,15 @@ theorem the_of_step {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : Is
     by_contra hne
     have := hpm t ht (by rw [b11, hpa]; simpa using hne)
     rw [b11, b10, hpa, hq] at this; exact this rfl
+  have couts_of : ∀ s, (∀ w, memI w = true → x w s = false) → ∀ v ∈ couts boundary, x v s = false := by
+    intro s hI v hv
+    simp only [couts, List.mem_cons, List.not_mem_nil, or_false] at hv
+    rw [b5, b6, b7, b8] at hv
+    rcases hv with rfl | rfl | rfl | rfl
+    · exact hI _ mem4.1
+    · exact hI _ mem4.2.1
+    · exact hI _ mem4.2.2.1
+    · exact hI _ mem4.2.2.2
   -- base: the island at the end of reset
   have hbase : Isl x M R := by
     have hisl := island_reset_upto hp hb hd (fun t ht => by rw [b12, ← b1]; exact hrst t ht) hR0
@@ -239,40 +255,24 @@ theorem the_of_step {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : Is
       (fun t ht => by rw [← b11]; exact hp0 t ht) (by omega)
     intro s h1 h2
     exact ⟨fun w hw => hisl w hw s (by omega) h2, by rw [← b2]; exact hq0 s h2, by rw [← b11]; exact hp0 s h2⟩
-  refine ⟨fun t => Isl x M t ∧ J x t, ⟨⟨hbase, hJ0 x n va vb hb harb he hseq⟩, ?_, ?_, ?_⟩⟩
-  · intro v hv
-    simp only [couts, List.mem_cons, List.not_mem_nil, or_false] at hv
-    rw [b5, b6, b7, b8] at hv
-    have hI := (hbase R (by omega) (le_refl _)).1
-    rcases hv with rfl | rfl | rfl | rfl
-    · exact hI _ mem4.1
-    · exact hI _ mem4.2.1
-    · exact hI _ mem4.2.2.1
-    · exact hI _ mem4.2.2.2
-  · intro t ht ⟨hI, hJ⟩ hlow hq
-    have hq0t : x 186985 t = false := (hI t (by omega) (le_refl _)).2.1
-    have hpat : x 104477 t = false := (hI t (by omega) (le_refl _)).2.2
-    have hq' : x 186985 (t + 1) = false := by rw [← b2]; exact hq
-    have hI' := isl_next hp hb hd (A := A) (by omega) hI hq' (hpa_next t ht hq0t hpat)
-    refine ⟨?_, hI', hJq x n va vb hb harb he hseq t ht hI hJ hlow hq⟩
-    intro v hv
-    simp only [couts, List.mem_cons, List.not_mem_nil, or_false] at hv
-    rw [b5, b6, b7, b8] at hv
-    have h1 := (hI' (t + 1) (by omega) (le_refl _)).1
-    rcases hv with rfl | rfl | rfl | rfl
-    · exact h1 _ mem4.1
-    · exact h1 _ mem4.2.1
-    · exact h1 _ mem4.2.2.1
-    · exact h1 _ mem4.2.2.2
-  · intro t ht ⟨hI, hJ⟩ hlow hedge
-    exact hstep x n va vb hb harb he hseq t ht hI hJ hlow hedge
+  refine ⟨fun t => Isl x M t ∨ J x t, ⟨Or.inl hbase, couts_of R (hbase R (by omega) (le_refl _)).1, ?_, ?_⟩⟩
+  · intro t ht hIJ hlow hq
+    rcases hIJ with hI | hJ
+    · have hq0t : x 186985 t = false := (hI t (by omega) (le_refl _)).2.1
+      have hpat : x 104477 t = false := (hI t (by omega) (le_refl _)).2.2
+      have hq' : x 186985 (t + 1) = false := by rw [← b2]; exact hq
+      have hI' := isl_next hp hb hd (A := A) (by omega) hI hq' (hpa_next t ht hq0t hpat)
+      exact ⟨couts_of (t + 1) (hI' (t + 1) (by omega) (le_refl _)).1, Or.inl hI'⟩
+    · exact hJq x n va vb hb harb he hseq t ht hJ hlow hq
+  · intro t ht hIJ hlow hedge
+    exact hstep x n va vb hb harb he hseq t ht hIJ hlow hedge
 
-/-- The same with no extra invariant. -/
+/-- With no state of the prover's own: every episode ends in the idle island (a strong hypothesis: false against a
+sequential environment that re-raises the request at once, see `StepHyp`). -/
 theorem the_of_step' {p : DelayPar} {T R su Δo M A : Nat} (hp : Sane p) (hd : IslDelay p M A)
-    (hRA : A + 87 * M + 1 ≤ R) (hstep : StepHyp p T R su Δo M (fun _ _ => True)) :
+    (hRA : A + 87 * M + 1 ≤ R) (hstep : StepHyp p T R su Δo M (fun _ _ => False)) :
     NetCorrectSeq net boundary arbs p T R su Δo :=
-  the_of_step hp hd hRA (fun _ _ => True) (fun _ _ _ _ _ _ _ _ => trivial)
-    (fun _ _ _ _ _ _ _ _ _ _ _ _ _ _ => trivial) hstep
+  the_of_step hp hd hRA (fun _ _ => False) (fun _ _ _ _ _ _ _ _ _ _ h => h.elim) hstep
 
 /-- **The island's delay conditions, for every `g > 0`, `0 ≤ κ < 1`** (C's `p1_ok`/`isl_rst` data, scaled by
 `Cp p = ⌈(1+κ)·g⌉` as in C's `correct_n0_all`). -/
@@ -302,26 +302,14 @@ theorem islDelay_all {p : DelayPar} (hp : Sane p) (hk : p.κ < 1) : IslDelay p (
     simp only [hm, Bool.not_true, Bool.false_or, decide_eq_true_eq] at this
     exact le_trans (sumMax_le hp _) (Nat.mul_le_mul_left _ this)
 
-/-- **THE statement on THE target, for every `g > 0`, `0 ≤ κ < 1`, from the per-pair step alone**: with a reset of
-at least `Cp·A1 + 87·Cp·M1 + 1` ps (`Cp = ⌈(1+κ)·g⌉`, A1 = 15,600 ps, M1 = 3,881 ps; ≈ 353 ns at g = 1, κ = 0),
-`StepHyp` with the island window `M = Cp·M1` and an extra invariant `J` (true at reset end, kept by quiet steps)
-gives `NetCorrectSeq`. -/
+/-- **THE statement on THE target, for every `g > 0`, `0 ≤ κ < 1`, from the per-pair step**: with a reset of at
+least `Cp·A1 + 87·Cp·M1 + 1` ps (`Cp = ⌈(1+κ)·g⌉`, A1 = 15,600 ps, M1 = 3,881 ps; ≈ 353 ns at g = 1, κ = 0),
+`StepHyp` and `QuietHyp` for a state `J` of the prover's choice, with the island window `M = Cp·M1`, give
+`NetCorrectSeq`. -/
 theorem the_of_step_all {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
     (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (J : Beh → Nat → Prop)
-    (hJ0 : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
-      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R → J x R)
-    (hJq : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit net boundary) x →
-      ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R →
-      ∀ t, R ≤ t → Isl x (Cp p * M1) t → J x t → Low x boundary t → x boundary.a.req (t + 1) = false →
-        J x (t + 1))
-    (hstep : StepHyp p T R su Δo (Cp p * M1) J) :
+    (hJq : QuietHyp p T R su Δo (Cp p * M1) J) (hstep : StepHyp p T R su Δo (Cp p * M1) J) :
     NetCorrectSeq net boundary arbs p T R su Δo :=
-  the_of_step hp (islDelay_all hp hk) hR J hJ0 hJq hstep
-
-/-- The same with no extra invariant. -/
-theorem the_of_step_all' {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p.κ < 1)
-    (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHyp p T R su Δo (Cp p * M1) (fun _ _ => True)) :
-    NetCorrectSeq net boundary arbs p T R su Δo :=
-  the_of_step' hp (islDelay_all hp hk) hR hstep
+  the_of_step hp (islDelay_all hp hk) hR J hJq hstep
 
 end Formal.Target.PlanPS
