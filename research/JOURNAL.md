@@ -3336,3 +3336,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - 16:20 collatz64 BDC_CONST_DATA at T4 sizes, seeds 1-4: 12/12 PASS. corner_audit -> per-cell max 217 -> 143 links;
   UMUX1 kept at T4's 5 (proposed 1) per the umux3 lesson -> collatz64_sizes_T4cd.vh (147 links; uaddi0 37 -> 25,
   uselect0 26 -> 18, ucmpi2 23 -> 14). 8 routes x 3 corners running (k4/collatz64_cdc; ~10 h at this kernel's sim speed).
+### progress 21:40 (collatz64 BDC_CONST_DATA + per-cell: 24/24 on 8 routes, 8/8 EQUIVALENT, 1.23-1.24x over T4)
+- collatz64_sizes_T4cd.vh, soak top, NEXTPNR_SEED 1-8, SLOW_MAX / FAST_MIN / worst: 24/24 PASS, fasm_equiv 8/8
+  EQUIVALENT. Paired vs T4 1.244 / 1.236 / 1.232 (1.15-1.33); vs the x0.75 step 1.052 / 1.045 / 1.047. Bench top next.
+- (lockkeeper had kept a pre-restart proxy port and failed every push for ~2 h; restarted, pending lock commits pushed.)
