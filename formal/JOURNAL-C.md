@@ -2977,3 +2977,8 @@ datapath conditions the control reads, whose values no window fixes) need no Gat
 hypothesis `hExt` of the environment-claim shape (hold at s whenever the run followed the certificate up to s).
 Same conclusion (safety: every behaviour follows the certificate; all claims, external ones included, hold).
 *Open:* discharging `hExt` from the register-word invariant and the timed units; liveness variant; unrolled variant.
+
+### progress 10:11 -- AO/UnrollUX.timedA_follows_unrollUX (check.sh OK)
+Safety for the certificate of EVERY word, on `timedA_followsUX`: upper-bound claim joins (`ChainUOK` with the long
+tables `LSep`, `LUp`) and external claims (`hExt`). *Open:* the sub-word form of ChainUOK (UnrollClaim uses ChainOK),
+liveness variant, discharging `hExt` (piece 3).
