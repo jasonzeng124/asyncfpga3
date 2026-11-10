@@ -3308,3 +3308,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   (x0.5 / p8mo summed latency 0.96-0.98, i.e. the extra stages' forward latency) and the slope over 0-8 rounds is
   noise (1.02 / 0.99 / 1.01, 0.93-1.08). The steady-state period needs long trips: bench top with the 200/1000-round
   vectors (xb's own method, per_round_ns), seeds 1-8, running ($S/xpb), paired against research/data/xorshift_bench.
+### progress 10:40 (second-latch p8mo FAILS on the bench top: seed 1 SLOW_MAX, 4 wrong answers -- a single-bit hazard)
+- xorshift x0.5 + ulink_n_trueResult_8=2 + BDC_MERGE_OUT_LINK, bench top, seeds 1-8 (xb's method): seed 1 SLOW_MAX
+  FAIL 13/17 (gate clean, EQUIVALENT); the other 11 runs so far PASS. Wrong: rounds 0 (bit 28 flipped:
+  82d68ca2 for 92d68ca2), both 3-round vectors with the SAME error pattern xor 57543b39 (xorshift is linear: one fixed
+  bit error injected at a fixed point), and the 64-round vector. The base x0.5 route passes this seed and corner, and
+  the soak-top gate (other top, other routes) passed 24/24 -- so the extra stages add a real, route-dependent hazard.
+  Not a board candidate. Reproducing on one vector with a full dump to trace bit 28 to its cause.
