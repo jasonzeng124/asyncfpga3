@@ -3333,3 +3333,6 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - collatz64's 3n+1 and n>>1 shift by a channel constant too (64-bit: `e0 << e1`, `$signed(e2) >>> e3`). Running the
   same pipeline as collatz/ipow: T4 sizes + flag, seeds 1-4 (the T4 base seeds), full stack, corner_audit; the
   per-cell candidate will keep every mux line at T4 (the ipow umux3 lesson).
+- 16:20 collatz64 BDC_CONST_DATA at T4 sizes, seeds 1-4: 12/12 PASS. corner_audit -> per-cell max 217 -> 143 links;
+  UMUX1 kept at T4's 5 (proposed 1) per the umux3 lesson -> collatz64_sizes_T4cd.vh (147 links; uaddi0 37 -> 25,
+  uselect0 26 -> 18, ucmpi2 23 -> 14). 8 routes x 3 corners running (k4/collatz64_cdc; ~10 h at this kernel's sim speed).
