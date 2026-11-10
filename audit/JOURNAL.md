@@ -1367,3 +1367,6 @@ Seed-3 spot check: p8mo 17/17, base 17/17, 1.248x (in 1.18-1.36). Base seed-3 de
 
 ## 2026-11-10T17:39:55Z REPORT layout
 Moved this session's CONFIRMED rows (T57, T58, T60-T63) out of the REFUTED/OVERSTATED table into CONFIRMED/UNVERIFIED (they had been inserted at the wrong header); T59 (headline refuted at kappa>=0.36) and T56 stay at the top.
+
+## 2026-11-10T21:40:44Z note
+research f12c7570: collatz64 BDC_CONST_DATA + per-cell (T4cd), soak top 24/24 on 8 routes, 1.23-1.24x over T4; bench top next. Not yet a board item; audit when it is (as #10/#11).
