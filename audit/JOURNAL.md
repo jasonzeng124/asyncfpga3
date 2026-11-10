@@ -1370,3 +1370,6 @@ Moved this session's CONFIRMED rows (T57, T58, T60-T63) out of the REFUTED/OVERS
 
 ## 2026-11-10T21:40:44Z note
 research f12c7570: collatz64 BDC_CONST_DATA + per-cell (T4cd), soak top 24/24 on 8 routes, 1.23-1.24x over T4; bench top next. Not yet a board item; audit when it is (as #10/#11).
+
+## 2026-11-10T23:01:06Z note
+formal B session close 49792162: its Lean list (CornerSlice, SliceReads, SliceNet, SliceNetPS, StartBound(PS), ArcTree(PS), CovUpChunk) matches what T51/T61 confirmed; "no hypothesis on the STATUS list was discharged today" agrees with the audit (bridges conditional). Slice covers (12,18)/(8,12)/(17,5) are untrusted Python, not audited.
