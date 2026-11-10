@@ -12,11 +12,12 @@ everything ends constant.
 
 **Proved** (`stepCore_n1`): for THE target, a behaviour with `Env` offering one pair (`n = some 1`) and a rising
 request at `t1 ≥ R` from a low boundary, if a certificate `C` (counts from `t1`) satisfies `EpN1` --
-* counts an ideal at every time;
+(all of it facts about the behaviour's own event counts on these nodes, which C's `timedA_follows` gives through
+the ideal of `cntE` at every time, since boundary nodes are not data nodes)
 * the handshake orders, possibly transitive (`CertSpec`): `a.ack`, `b.ack`, `start.ack` against the request
   (acknowledge side), `out0.req` against `out0.ack` and the request against `end.ack` (request side);
 * every change of those five nodes enabled at counts no later than the previous instant;
-* out0.req has two events and has risen by `T`;
+* out0.req changes at most twice and has risen by `T`;
 * from `T` on every boundary node and every island member is low;
 * the data: from `Δo` after any out0 rise until out0's acknowledge, the out0 bus is gcd of the operands at `t1 + 1`;
 -- then the episode `[t1, T + M + 1)` is a `StepCore` ending in `IslR`. With `PlanRPS.the_onN_of_stepR_all`,
@@ -33,20 +34,19 @@ open Formal.Target Formal.Target.Assembly Formal.Target.DecodedPS Formal.Net.AO 
 
 /-- What a one-pair certificate must deliver (count facts from `t1`, plus the data and the end state). -/
 structure EpN1 (C : Cert Nat) (x : Beh) (t1 T Δo : Nat) : Prop where
-  ideal : ∀ s, Ideal C (fun u => cnt x t1 u s)
   interA : ∀ s, cnt x t1 104576 s ≤ cnt x t1 186985 s ∧ cnt x t1 186985 s ≤ cnt x t1 104576 s + 1
   interB : ∀ s, cnt x t1 104695 s ≤ cnt x t1 186985 s ∧ cnt x t1 186985 s ≤ cnt x t1 104695 s + 1
   interS : ∀ s, cnt x t1 147972 s ≤ cnt x t1 186985 s ∧ cnt x t1 186985 s ≤ cnt x t1 147972 s + 1
   interO : ∀ s, cnt x t1 154859 s ≤ cnt x t1 160957 s ∧ cnt x t1 160957 s ≤ cnt x t1 154859 s + 1
   interP : ∀ s, cnt x t1 104477 s ≤ cnt x t1 186985 s ∧ cnt x t1 186985 s ≤ cnt x t1 104477 s + 1
-  ordA : ∀ k, ∀ alt ∈ C.causes 104576 k, ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c 186985
-  ordB : ∀ k, ∀ alt ∈ C.causes 104695 k, ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c 186985
-  ordS : ∀ k, ∀ alt ∈ C.causes 147972 k, ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c 186985
-  ordO : ∀ k, ∀ alt ∈ C.causes 160957 (k + 1), ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c 154859
-  ordP : ∀ k, ∀ alt ∈ C.causes 186985 (k + 1), ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c 104477
+  ordA : ∀ s k, ∀ alt ∈ C.causes 104576 k, AltIn (fun w => cnt x t1 w s) alt → k < cnt x t1 186985 s
+  ordB : ∀ s k, ∀ alt ∈ C.causes 104695 k, AltIn (fun w => cnt x t1 w s) alt → k < cnt x t1 186985 s
+  ordS : ∀ s k, ∀ alt ∈ C.causes 147972 k, AltIn (fun w => cnt x t1 w s) alt → k < cnt x t1 186985 s
+  ordO : ∀ s k, ∀ alt ∈ C.causes 160957 (k + 1), AltIn (fun w => cnt x t1 w s) alt → k < cnt x t1 154859 s
+  ordP : ∀ s k, ∀ alt ∈ C.causes 186985 (k + 1), AltIn (fun w => cnt x t1 w s) alt → k < cnt x t1 104477 s
   en : ∀ v ∈ [104576, 104695, 147972, 160957, 186985], ∀ s, t1 < s → x v s ≠ x v (s - 1) →
     ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t1 w (s - 1)) ∧ n v = cnt x t1 v (s - 1) ∧ Enabled C n v
-  lenO : C.len 160957 = 2
+  capO : ∀ s, cnt x t1 160957 s ≤ 2
   t1T : t1 ≤ T
   rose : 1 ≤ cnt x t1 160957 T
   endLow : ∀ v ∈ bnodes boundary, ∀ s, T ≤ s → x v s = false
@@ -83,11 +83,11 @@ theorem stepCore_n1 {p : DelayPar} {R su Δo M A t1 T : Nat} {C : Cert Nat} {x :
   have l_oa : x 154859 t1 = false := by rw [← b9]; exact hl _ (by simp [bnodes])
   have l_pa : x 104477 t1 = false := by rw [← b11]; exact hl _ (by simp [bnodes])
   have en := fun v hv => hc.en v hv
-  have mA := ackMoves_of_certT C x t1 186985 104576 l_req l_a hc.ideal hc.interA hc.ordA (en _ (by simp))
-  have mB := ackMoves_of_certT C x t1 186985 104695 l_req l_b hc.ideal hc.interB hc.ordB (en _ (by simp))
-  have mS := ackMoves_of_certT C x t1 186985 147972 l_req l_s hc.ideal hc.interS hc.ordS (en _ (by simp))
-  have mO := reqMoves_of_certT C x t1 160957 154859 l_o l_oa hc.ideal hc.interO hc.ordO (en _ (by simp))
-  have mP := reqMoves_of_certT C x t1 186985 104477 l_req l_pa hc.ideal hc.interP hc.ordP (en _ (by simp))
+  have mA := ackMoves_of_certT C x t1 186985 104576 l_req l_a hc.interA hc.ordA (en _ (by simp))
+  have mB := ackMoves_of_certT C x t1 186985 104695 l_req l_b hc.interB hc.ordB (en _ (by simp))
+  have mS := ackMoves_of_certT C x t1 186985 147972 l_req l_s hc.interS hc.ordS (en _ (by simp))
+  have mO := reqMoves_of_certT C x t1 160957 154859 l_o l_oa hc.interO hc.ordO (en _ (by simp))
+  have mP := reqMoves_of_certT C x t1 186985 104477 l_req l_pa hc.interP hc.ordP (en _ (by simp))
   -- the first out0 rise
   have hex : ∃ s, 1 ≤ cnt x t1 160957 s := ⟨T, hc.rose⟩
   classical
@@ -154,9 +154,7 @@ theorem stepCore_n1 {p : DelayPar} {R su Δo M A t1 T : Nat} {C : Cert Nat} {x :
         · exact h
         · simp [h] at this
       have h3 := cnt_succ_change (x := x) (t1 := t1) (u := 160957) (s := t) h1 (by rw [he'.1, he'.2]; simp)
-      have hlen := ((hc.ideal (t + 1)) 160957).1
-      rw [hc.lenO] at hlen
-      simp only at hlen
+      have hlen := hc.capO (t + 1)
       omega
   · intro t ht hw
     rw [b8, b9] at hw

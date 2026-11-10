@@ -2356,3 +2356,9 @@ one-pair certificate to a Spec-level one-pair theorem is now generic Lean; what 
 delay" is showing EpN1 from C's timedA_follows/timedA_live conclusions for THE target's certificate (counts, ChangeOKA
 via `enabled_of_changeOKA`, the boundary events' cause lists, the data claims, the end state). Conditional, nothing
 proved at any parameter.
+### progress 09:21 -- CertSpec/CertN1 premises restated on the behaviour's raw counts (check.sh OK)
+C's `timedA_follows` gives ideals of `cntE` (data nodes counted 0), not of raw counts, so the earlier
+"Ideal C (cnt ...)" premise would have been unprovable for a certificate with data nodes. Now every premise is about the
+behaviour's counts on the boundary nodes: interleaving, "whenever an alternative's causes have happened by s, the
+partner event k has happened by s" (`ackMoves_of_certT`, `reqMoves_of_certT`, EpN1.ord*), out0.req changes at most
+twice (`capO`). The prover gets these from the cntE ideal because boundary nodes are not data nodes.
