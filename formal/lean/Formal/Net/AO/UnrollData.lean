@@ -32,10 +32,13 @@ open Formal.Net.OccNet.TimedX
 variable {α : Type} [DecidableEq α]
 set_option linter.unusedSectionVars false
 
-/-- A window kind's data: its events and causes, its start state, its claims and, per reader and data pin, its
-guards (event indices relative to the window, claim indices relative to its claim list). -/
+/-- A window kind's data: its events and causes, its start state, its bounds, its claims and, per reader and data
+pin, its guards (event indices relative to the window, claim indices relative to its claim list). -/
 structure WKind (α : Type) extends WCert α where
   s0 : α → Bool
+  /-- Per-reader bounds: event `k` of `a` (relative) needs `Lr a k b` events of `b`, counted from `b`'s first event in
+  this window (negative: in earlier windows). -/
+  Lr : α → Nat → α → Int
   cl : List (Claim α)
   gd : α → α → List (Guard α)
 

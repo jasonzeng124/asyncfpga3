@@ -2850,3 +2850,21 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
 * *Not yet:* the bounds `L` (`hL`), `Spread` from per-kind bounds, the assembly theorem (every word's long local
   check from the finitely many r-window checks), timing tables. Note: the claims' VALUES are per kind here (enough
   for the control's 1-bit conditions); the symbolic data values are piece 2.
+
+### progress 08:11 -- Net/AO/UnrollAsm.lean: the long local check for EVERY word from finitely many window checks (check.sh OK)
+* *Problem:* the long certificate of a run is `unroll` of a word of kinds; its local check at a reader ranges over
+  every count vector, so it cannot be checked per word (infinitely many words). Does it follow from checks of
+  r-window certificates, each depending only on r consecutive kinds?
+* *Proved* (564 declarations audited with UnrollData, standard axioms): `lcheckXA_unroll`: for every word `ks`, the
+  long local check at `v` (with the long bounds `uL`, claims `ucl`, guards `ugd`) holds if every window
+  certificate `win ks j r` (r ≥ 2, j ≤ length) passes its local check, given: every cause of `v` on its dependency
+  set; the per-kind guard facts; `PairChain` (for consecutive kinds w, w': the first event of a dependency node in
+  w' needs every dependency node to have entered w, via the relative bounds); and `hWv` (each window holds v's next
+  event). `lcheckXA_unroll3`: r = 3 when every kind has an event of v. Pieces: `uL`, `hL_win` (`WinAt.hL` by
+  construction), `spread_unroll` (`Cover.Spread` from `PairChain`).
+* *Plainly:* the control's local check, the part of the timed theorem that quantifies over all interleavings, is now
+  reduced, for all words at once, to finitely many checks on kind triples. The window start state in `hW` is
+  `st s0 (off j)`; `UnrollData.st_off` turns it into the kind's own start state (StChain).
+* *Not yet:* the timing tables (TOA, SepOKA, UpOKA, GuardTime) and claim checks for every word (WindowT lifts single
+  entries; the unrolled tables are the next generic step); refinement (the circuit's word is the token run's branch
+  word); any instance on THE target.
