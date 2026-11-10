@@ -65,3 +65,17 @@ SeqEnv).
 - R1 data-layer failures: not races (env-stall simulations); a proof-rule gap, closed in Lean by `UpOKA`'s relative
   clause (Up a p with Sep a e0).
 - Quiet start: `CViewPS.reset_quiet_PS` (Lean): the 3,224-node reset island holds its values during reset.
+
+## Status 2026-11-10 (shard C)
+- Piece 1, local check: DONE generically (Lean, check.sh OK). `AO/Cover.lcheckXA_of_twoWindows` (coverage of every
+  count vector by two-window boxes, from `Spread`); `AO/Unroll` (the long certificate as the concatenation of window
+  kinds with relative indices; the cause correspondence by construction); `AO/UnrollData` (start states via
+  `StChain`, claims and guards via `guardsCorr_win`); `AO/UnrollAsm.lcheckXA_unroll` / `lcheckXA_unroll3`: for EVERY
+  word of kinds, the long local check at a reader follows from the local checks of the r-window certificates
+  `win ks j r` (each depends on r consecutive kinds only), plus per-kind and consecutive-kind facts (`PairChain`).
+  Kinds may be nested loop bodies flattened into the word (outer head, one inner shift iteration, exit), so the
+  alphabet stays small.
+- Piece 1, timing tables (Sep/Up/TOA/GuardTime/TmOK for every word): in progress (subagent, `AO/UnrollTime`).
+- Piece 2: 19 of 20 units timed (generated `Net/Compute/PS/<Unit>T`, building), each also over `circuit net
+  boundary`. uori4 still needs its own extraction.
+- Piece 3 (the word is the token run's branch word): not started.
