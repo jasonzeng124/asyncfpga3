@@ -4,77 +4,74 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## FIRST: where one iteration's time goes (owner, 2026-11-06; made first 2026-11-08)
+## FIRST: compute where storage goes, before building it (set for the owner, 2026-11-10)
 
-**This comes before everything else, board candidates included.** It was asked for
-on 2026-11-06 and has not started in two days, while board candidates kept being
-chosen instead. Start it at the top of the session, with subagents if useful, and
-deliver research/data/itercost/ for xorshift before any new sizing or board-list
-work. The board list is long enough until then.
+**This comes before any new per-kernel delay sizing and before any new board candidate
+that comes from sizing.** The board list is long enough. Finish the collatz64
+`BDC_CONST_DATA` run that is already going, then start here.
 
+Why. The two leads before this one are done (see "Done" below), and they say the same thing:
+- xorshift's period is 86% wire and 40-44% return-to-zero. Logic plus handshake is 2.3 ns.
+- A second latch at one coupling point gave 1.16x, and one more after the merge made it
+  1.25x. But each latch only moved the coupling one cell on, and the RTZ share stayed at
+  39-43%. A latch in the wrong place cost +5.3 ns.
+- Delay sizing does not carry from one route to the next (ipow `umux3`, `ushrsi0`).
 
-Do this before more delay tuning. Dynamatic runs a whole xorshift iteration in
-12.73 ns, clock margin included, so the real logic settles in under 12 ns. The
-August build took 47.66 ns per iteration with 33.4 ns of matched delay. No one has
-measured where that time goes: "matched delays are the cost" comes from ring fits
-and delay totals, not from timing a kernel loop, and the owner doubts it. Link
-fast fall gained only 6-12%, so "paid on both edges" does not explain it either.
+So choosing sites by hand, one route build per guess, is slow and does not converge. The
+critical cycle is not a ring of stages. It is a loop of request and acknowledge hops with
+an odd number of inversions (three on xorshift x0.5), so it runs like a ring oscillator and pays every delay on it
+on both edges. Whether a loop like that binds is a property of the whole timed graph. Compute it.
 
-Measure it, from the full stack, on xorshift first (T3 and x0.5), then collatz.
-Use one route per build at the calibrated bands, in steady state, with a long
-enough trip count to leave out the call handshake:
-1. Find the critical cycle: the actual causal chain of events that sets the
-   iteration period, walked back from the simulation's event trace. Do not infer
-   it from the netlist or from delay totals.
-2. Split every picosecond on that cycle into: **logic** (the time the data really
-   needs to settle at that stage, measured from the trace); **excess delay** (matched
-   delay beyond that logic, including guard); **handshake** (C-elements, latches,
-   the protocol's own hops); **routing** of request and ack; and **return-to-zero**
-   (time on falling edges). Say how each category is computed.
-3. Self-check: the categories must add up to the measured period, within 1%. If they do
-   not, the breakdown is wrong; do not report it. Show also how the cycle moves when
-   one delay is lengthened: a delay on the critical cycle has to raise the period,
-   and one off it must not.
-4. Report per stage, with the stage count, and say which stages exist only as
-   measurability sites or carry no logic. Give the bound "logic + handshake" in ns per
-   iteration next to Dynamatic's number, and rank the levers by the time each could
-   recover: fewer stages, smaller guard, delay chains that overcover their block
-   (e.g. a constant shift synthesised as a barrel shifter), fast fall, two-phase.
+1. **The event graph.** From one full-stack run (the itercost stack and bands), build the
+   timed event graph of the control network: one node per (control net, edge), one arc per
+   causal input of that edge with its wire + arc delay, and the iteration offset of each
+   arc read from the steady-state trace. `trace.py` already finds the binding cause of an
+   edge; this needs every enabling input, with its slack. The period is the maximum cycle
+   ratio of that graph.
+   **Check:** it reproduces the measured period and the critical cycle on every run in
+   `research/data/itercost/` and `second_latch/`. They must agree exactly, since both come
+   from the same trace. If they do not, the graph is wrong.
+2. **What the graph says, with no new builds.** Per kernel (xorshift, collatz, ipow, gcd):
+   - the period if no falling edge ever binds: the worst cycle that has no polarity change.
+     This is the floor that added storage can reach in this protocol;
+   - the next cycles below the critical one, and their slack. That is how much one fix
+     buys before the next cycle binds.
+3. **What-ifs, checked against what was measured.** Edit the graph instead of the design:
+   add a stage at a site, remove a rule-1 link, give a chain a fast fall. Predict the
+   period. First predict the variants already built, from the base graph alone: p8 (-5.6 ns),
+   p11 (+0.8), p12 (+5.3), mo (-1.4), p8mo (-7.7), all3 (-4.8), and collatz's merge link
+   (-1.8). Write the predictions before comparing. Each variant re-places the design, so
+   agreement within the seed scatter (about 1 ns) is a pass. If the edits cannot predict
+   these, say so and stop; that is a result.
+4. **Search, then build only the winners.** Find the smallest set of edits that brings each
+   kernel's predicted period near its floor from step 2. Build the best one or two per kernel,
+   measure with itercost, and report predicted against measured. Then the full gate, as
+   usual, before anything goes on the board list.
+5. **Make it a compiler pass.** If step 4 holds, bdc chooses storage from the graph, with no
+   per-kernel site list: from default delays before the first route, or from one routed
+   pass, the way `converge.sh` iterates. Off by default until it passes the gate on every kernel.
+6. **A protocol table, from the graph only.** No RTL. Per kernel, the predicted period for:
+   today's build; storage chosen as in step 4; that plus fast fall on every chain; a
+   controller holding one token per stage at the coupling cells (read
+   `cells/verify/attempts/bd_deco_attempt.v` and why it is not in `rtl/`); and every
+   falling arc set to zero, which is an upper bound on what two-phase could give. Put
+   Dynamatic's number beside each. The owner needs this table to decide whether a
+   two-phase or decoupled rewrite of the cells is worth doing. `cells/rtl/` stays frozen.
 
-Results go in research/data/itercost/, with a journal entry. This is a measurement:
-it changes no design and no sizes. A number no one predicted, or a lever that turns out
-small, is the result. Say so plainly, and retire any explanation the data rules out.
+Do not change the loop lowering (owner: leave the merge header as it is). Predict before
+every run. A floor in step 2 that is close to today's period is a result: it would mean added
+storage is nearly spent and only the protocol is left. Say so plainly.
 
-## NEXT: a second latch where the cycle waits on a handshake (owner, 2026-11-09)
+Results go in `research/data/eventgraph/`, tools in `research/tools/itercost/`.
 
-The itercost cycle for xorshift x0.5 (seed 1) runs twice per iteration, once rising
-and once falling. It changes polarity at exactly three places, where the next hop
-waits on a neighbour's full handshake:
-- `umux1` ack -> `ulink_n_trueResult_8` req;
-- `ufork9` ack -> `ulink_n11__1`;
-- `ucontrol_merge0` ack -> `ulink_n_trueResult_12` req.
+## Done (kept for the record; do not redo)
 
-Each of these is a single `bd_link` stage, a simple Muller controller: half a token,
-so "two stages make one register-equivalent" (bd_link.v). Each sits next to a cell
-that synchronizes several channels (a mux joining two rings, a fork, the arbitrated
-merge). So at each barrier the return-to-zero couples straight through the one
-latch. The owner's reading: 2 simple latches act as 1 decoupled latch, so give each
-coupling point two. The RTZ tail should then fade while the next iteration's
-rising wave runs, and the period should fall toward one pass.
-
-Experiment (a measurement, no default changes):
-1. Add one more `bd_link` stage at each of the three points on the xorshift x0.5
-   build, through a bdc option or an explicit per-site list, not by hand-editing
-   generated Verilog. Use the same route seeds and the same full-stack bands as
-   itercost.
-2. Rerun itercost on it. Report the new period, the new critical cycle (does it
-   still change polarity, and where), and the forward-latency cost of the added
-   stages. Then add the stages one point at a time, to see which coupling binds.
-3. Predict before running: if the coupling is the cause, the period drops by a large
-   part of the 17.2 ns RTZ share. If it barely moves, say so and say why from the new
-   cycle.
-4. If it helps, run the same on collatz, then judge it with the full gate
-   (corners + combined worst case, >= 8 routes) before it goes near the board list.
+- **Where one iteration's time goes** (owner, 2026-11-06): `research/data/itercost/README.md`.
+  xorshift x0.5 is 39.06 ns: logic 1.03, excess delay 11.79, handshake 1.23, routing 7.85,
+  RTZ 17.15. The critical cycle is the loop-control ring, not the datapath.
+- **A second latch where the cycle waits on a handshake** (owner, 2026-11-09):
+  `research/data/itercost/second_latch/README.md`. xorshift p8mo is 1.25-1.27x per round and
+  passed the full gate (board item 11). collatz gained 1.8 ns only.
 
 ## Effort and subagents (owner, 2026-11-05)
 
@@ -89,8 +86,7 @@ twice. Never create scheduled routines or reminders.
 
 The limit on progress is now memory and disk, not usage: the session has logged OOM kills
 and disk-full restarts. Before starting a job, check `free -g` and `df -h`, and do not
-run more than fits. A killed job is a lost result. Good first use: give the iteration
-breakdown below ("where one iteration's time goes") to a subagent now, since it has not started.
+run more than fits. A killed job is a lost result.
 
 ## No board for a long time (owner, 2026-10-25)
 
