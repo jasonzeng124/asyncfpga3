@@ -2334,3 +2334,11 @@ Generic Lean in `Formal/Target/CertSpec.lean`: from an AO occurrence certificate
 every time, each change enabled at its read counts; C's `timedA_follows`/`timedA_live` give these) to Spec's
 four-phase clauses (AckMoves/ReqMoves for the circuit-driven acks and out0 request) and, later, StepCore. Uses only
 C's definitions (Net/AO/Occ, TimedOcc cnt); no edit to B/C files.
+### progress 09:11 -- CHECKED: `Formal/Target/CertSpec.lean` (four-phase clauses from certificate counts)
+check.sh OK. **Plainly:** if a certificate orders a handshake pair as "ack event k needs req event k, req event k+1
+needs ack event k", both start low at t0, the counts of every behaviour are an ideal at every time (C's
+`timedA_follows`) and each change is enabled at counts no later than the previous instant, then the acknowledge obeys
+Spec's `AckMoves` (`ackMoves_of_cert`) and a circuit-driven request obeys `ReqMoves` (`reqMoves_of_cert`, e.g.
+out0.req against the env's out0.ack). `enabled_of_changeOKA`: C's per-change conclusion `ChangeOKA` plus TBehX's
+read bounds (every pin ≥ 1 ps) gives that premise. Next: the counting fields of StepCore (one out0 rise) and liveness
+from `timedA_live`. Not shown: THE target's certificate instance.
