@@ -1328,3 +1328,6 @@ BQ#12 (xorshift x0.5 + second latch, research 8161a5d9) own build started at res
 
 ## 2026-11-10T10:57:46Z T60
 BQ#12 own build: knobs took effect (olink 1), sdf 1e51be7e = gated route. Worst-case and SLOW_MAX GLS at 83.3 MHz running (t60/run_worst.sh).
+
+## 2026-11-10T11:21:31Z T60
+p8 worst case at 83.3 MHz: oracle 17/17, EQUIVALENT, 2.4762 cyc/round. SLOW_MAX still running; x0.5 base rebuilt for a same-clock ratio (T40 base was at 100 MHz: 3.7837 cyc = 37.8 ns/round vs p8 29.7 ns, 1.27x provisional).
