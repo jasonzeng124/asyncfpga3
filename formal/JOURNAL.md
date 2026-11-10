@@ -2316,3 +2316,6 @@ the island tail + the 17 out0.ack-fall nodes slow (floor(hi·1.35), their routes
 KAPPA/SLOWFILE, the simulator's own delay formulas): IslR (island-only form) holds at both re-requests. With the 5
 earlier episode ends (κ = 0, three corner/pos settings), 7 of 7 checked episode ends satisfy IslR. Not covered:
 other adversaries (B's merge4/merge10 classes), other pairs.
+- (12:3x) Same check on the merge10 adversary class (`k48w20_ua2_classes.json`, refuted from κ = 0.46) at κ = 0.40,
+  w = 20, corner 0, fastest SeqEnv: outputs 6, 1 (third pair still running at the 2 ms horizon); IslR holds at both
+  re-requests (`islr_check.py` with CLASSES/W, the simulator's class formulas). 9 of 9 checked episode ends satisfy IslR.

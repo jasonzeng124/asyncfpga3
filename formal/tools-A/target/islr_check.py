@@ -18,6 +18,21 @@ for n0 in list(SLOW):   # --slowroutes: the copy chains into slow gates' pins ar
         for u in drv[n0]["ins"]:
             while u in drv and drv[u]["k"]==1 and drv[u]["init"]==2:
                 SLOW.add(u); u=drv[u]["ins"][0]
+CLS=None
+if os.environ.get("CLASSES"):
+    CJ=json.load(open(os.environ["CLASSES"])); CLS={}; ACL={}
+    for k_ in ("F","S"):
+        for x_ in CJ.get(k_,[]):
+            if isinstance(x_,list): ACL[(NIDX[x_[0]],x_[1])]=k_
+            else: CLS[NIDX[x_]]=k_
+    PK=round(float(KAP)*25); WR=int(os.environ.get("W","0")); CDEF=os.environ.get("CDEF","M")
+def dmc(e, out, pin, islut):
+    k_=ACL.get((out,pin), CLS.get(out, CDEF))
+    if k_=="S": d=((25+PK)*e["fmax"])//25
+    elif k_=="F": d=((25-PK)*e["fmin"]+24)//25
+    else: d=(e["fmin"]+e["fmax"])//2
+    if islut and d<WR: d=WR
+    return d
 def dm(e, out=None):
     lo=(1-C)*e["fmin"]+C*e["smin"]; hi=(1-C)*e["fmax"]+C*e["smax"]
     if KAP is not None:
@@ -26,6 +41,12 @@ def dm(e, out=None):
         return int(math.ceil(lo*(1-k)))
     return int(round(lo+PP*(hi-lo)))
 def chain(g,i):
+    if CLS is not None:
+        lut=g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")
+        s=dmc(g["arcs"][i], g["out"], i, lut); n=g["ins"][i]
+        while n in drv and drv[n]["k"]==1 and drv[n]["init"]==2:
+            s+=dmc(drv[n]["arcs"][0], n, 0, False); n=drv[n]["ins"][0]
+        return n,s
     s=dm(g["arcs"][i], g["out"]); n=g["ins"][i]
     while n in drv and drv[n]["k"]==1 and drv[n]["init"]==2:
         s+=dm(drv[n]["arcs"][0], n); n=drv[n]["ins"][0]
