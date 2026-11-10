@@ -2292,3 +2292,9 @@ At a fastest re-request 17 non-island control nodes are still reacting to out0.a
 the request; a 10-LUT chain over 4.8 ns). Made slow together with the island tail, everything else fast, κ = 0.3 and
 0.35, corner 0, `--dfall 1`, pairs (12,18), (17,5), (1071,462): outputs 6, 1, 21. No race found. Listed in
 notes/A-S6-chaining.md (addendum) as the nodes a per-episode certificate must data-claim or start weakly.
+### progress 11:5x -- PlanRPS: IslR generalised to any read-forced set S ⊇ the four boundary outputs (check.sh OK)
+`IslR p x t` now says: some set S of collapsed-view logic nodes containing a.ack, b.ack, start.ack, out0.req, each
+member forced low by pins reading S/env sources that its current reads already see low (C's 414-node island is one
+such S at reset end, `isl_islR`). Quiet steps keep S (`islR_next`). So the per-pair step may end in any read-forced
+set it can certify, not only C's island: strictly weaker end condition, same theorems (`the_of_stepR_all`,
+`the_on_of_stepR_all`). check.sh OK (1,904 declarations, standard axioms).

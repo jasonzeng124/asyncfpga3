@@ -8,15 +8,17 @@ import Formal.Target.PlanPS
 an island member, falls 1-2 ps before). Is there one invariant that holds at the end of every episode AND whose quiet
 clause is provable once and for all?
 
-**Proved here** (`the_of_stepR`, `the_of_stepR_all`): yes, the *read island* `IslR`: every member `w` of C's
-414-node idle island has a read map `F` (a witness of its routed gate relation `CGateOK`, monotone reads) and a set
-`P` of its pins such that the pins of `P` alone force `w`'s LUT to 0 (Kleene: whatever the other pins read), each
-pin of `P` reads an island member or one of the two environment nodes (shared request, `end.ack`) through a route
-of minimum delay at least 1 ps, and at time `t` that source has been low ever since the time `F` reads it at `t`.
-* `isl_islR`: the old invariant `Isl` (island and environment low for the last `M` ps) implies `IslR`;
-* `islR_low`: `IslR` at `t` puts every member, so `a.ack`, `b.ack`, `start.ack`, `out0.req`, low at `t`;
-* `islR_next`: `IslR` at `t` and the two environment nodes low at `t + 1` give `IslR` at `t + 1` (monotone reads:
-  the same `F` and `P` keep reading low sources).
+**Proved here** (`the_of_stepR`, `the_of_stepR_all`): yes, the *read island* `IslR`: there is a set `S` of logic
+nodes of C's collapsed view, containing the four boundary nodes the circuit drives (`a.ack`, `b.ack`, `start.ack`,
+`out0.req`), such that every member `w` has a read map `F` (a witness of its routed gate relation `CGateOK`,
+monotone reads) and a set `P` of its pins that alone force `w`'s LUT to 0 (whatever the other pins read), each pin of
+`P` reads a member of `S` or one of the two environment nodes (shared request, `end.ack`) through a route of minimum
+delay at least 1 ps, and at time `t` that source has been low ever since the time `F` reads it at `t`.
+* `isl_islR`: the old invariant `Isl` (C's 414-node idle island and the environment low for the last `M` ps) gives
+  `IslR` with `S` = that island;
+* `islR_low`, `rset_low`: `IslR` at `t` puts every member of `S`, so the four boundary outputs, low at `t`;
+* `islR_next`: `IslR` at `t` and the two environment nodes low at `t + 1` give `IslR` at `t + 1` (same `S`, `F`, `P`:
+  monotone reads keep reading low sources).
 So THE statement (`NetCorrectSeq` on the decoded gcd_ps netlist), for every `g > 0`, `0 ≤ κ < 1` and reset
 `R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps, follows from ONE hypothesis, `StepHypR`: from `IslR` at a rising pair
 request, one complete pair episode (`Assembly.StepCore`) that ends in `IslR`.
@@ -36,16 +38,21 @@ open Formal.Target Formal.Target.Assembly Formal.Target.DecodedPS Formal.Timing.
   Formal.Timing.SpecChain Formal.Timing.SpecChainM Formal.Timing.ChunkCM Formal.Timing.Huffman
   Formal.Timing.SpecLoop Formal.Timing.Island Formal.Net.CViewPS Formal.Target.PlanPS
 
-/-- **The read island at `t`** (see the module doc). -/
+/-- The four boundary nodes the circuit drives: `a.ack`, `b.ack`, `start.ack`, `out0.req`. -/
+def outs4 : List Nat := [104576, 104695, 147972, 160957]
+
+/-- **The read island at `t`** (see the module doc): some set `S` of logic nodes of the collapsed view containing
+the four circuit-driven boundary nodes (C's 414-node idle island is one, `isl_islR`), each member forced low by a
+pin set whose sources (members or the two environment nodes) its current reads already see low, and have since. -/
 def IslR (p : DelayPar) (x : Beh) (t : Nat) : Prop :=
-  ∀ w, memI w = true → ∃ (c : ℚ) (F : Nat → Nat → Nat), 0 ≤ c ∧ c ≤ 1 ∧
+  ∃ S : Nat → Prop, (∀ v ∈ outs4, S v) ∧ ∀ w, S w → logicPS w ∧ ∃ (c : ℚ) (F : Nat → Nat → Nat), 0 ≤ c ∧ c ≤ 1 ∧
     (∀ i, i < (gAt cs 2500 w).k → Monotone (F i)) ∧
     (∀ s, startPS p w ≤ s →
       (∀ i, i < (gAt cs 2500 w).k → F i s ≤ s ∧ SumAdm p c (arcsPS w i) (s - F i s)) ∧
       x (gAt cs 2500 w).out s = (gAt cs 2500 w).init.testBit (addr (gAt cs 2500 w).k fun i => x (srcPS w i) (F i s))) ∧
     startPS p w ≤ t ∧
     ∃ P : List Nat, ForcesP (gAt cs 2500 w).k (gAt cs 2500 w).init (asgOf srcPS valI w P) false = true ∧
-      ∀ j ∈ P, j < (gAt cs 2500 w).k ∧ (memI (srcPS w j) = true ∨ envI (srcPS w j) = true) ∧
+      ∀ j ∈ P, j < (gAt cs 2500 w).k ∧ (S (srcPS w j) ∨ envI (srcPS w j) = true) ∧
         1 ≤ sumMin p (arcsPS w j) ∧ ∀ s, F j t ≤ s → s ≤ t → x (srcPS w j) s = false
 
 /-- Forcing from reads: if every pin of `P` reads `false`, the LUT outputs `false`. -/
@@ -59,33 +66,47 @@ theorem forced_low {w : Nat} {P : List Nat} {v : Nat → Bool}
   obtain ⟨j, hj, rfl⟩ := he
   exact ⟨(hv j hj).1, by simpa [valI] using (hv j hj).2⟩
 
-/-- `IslR` at `t` puts every island member low at `t`. -/
-theorem islR_low {p : DelayPar} (hp : Sane p) {x : Beh} {t : Nat} (h : IslR p x t) :
-    ∀ w, memI w = true → x w t = false := by
+/-- In a read-forced set, every member is low at `t`. -/
+theorem rset_low {p : DelayPar} {x : Beh} {t : Nat} {S : Nat → Prop}
+    (h : ∀ w, S w → logicPS w ∧ ∃ (c : ℚ) (F : Nat → Nat → Nat), 0 ≤ c ∧ c ≤ 1 ∧
+      (∀ i, i < (gAt cs 2500 w).k → Monotone (F i)) ∧
+      (∀ s, startPS p w ≤ s →
+        (∀ i, i < (gAt cs 2500 w).k → F i s ≤ s ∧ SumAdm p c (arcsPS w i) (s - F i s)) ∧
+        x (gAt cs 2500 w).out s = (gAt cs 2500 w).init.testBit (addr (gAt cs 2500 w).k fun i => x (srcPS w i) (F i s))) ∧
+      startPS p w ≤ t ∧
+      ∃ P : List Nat, ForcesP (gAt cs 2500 w).k (gAt cs 2500 w).init (asgOf srcPS valI w P) false = true ∧
+        ∀ j ∈ P, j < (gAt cs 2500 w).k ∧ (S (srcPS w j) ∨ envI (srcPS w j) = true) ∧
+          1 ≤ sumMin p (arcsPS w j) ∧ ∀ s, F j t ≤ s → s ≤ t → x (srcPS w j) s = false) :
+    ∀ w, S w → x w t = false := by
   intro w hw
-  obtain ⟨c, F, hc0, hc1, -, hgt, hst, P, hF, hP⟩ := h w hw
+  obtain ⟨hl, c, F, hc0, hc1, -, hgt, hst, P, hF, hP⟩ := h w hw
   obtain ⟨hrd, ho⟩ := hgt t hst
-  rw [← gAt_out_logic (entry_facts hw).1, ho]
+  rw [← gAt_out_logic hl, ho]
   exact forced_low hF fun j hj => ⟨(hP j hj).1, (hP j hj).2.2.2 _ (le_refl _) (hrd j (hP j hj).1).1⟩
 
-/-- **Quiet step of the read island.** -/
+/-- `IslR` at `t` puts `a.ack`, `b.ack`, `start.ack`, `out0.req` low at `t`. -/
+theorem islR_low {p : DelayPar} {x : Beh} {t : Nat} (h : IslR p x t) : ∀ v ∈ outs4, x v t = false := by
+  obtain ⟨S, h4, hS⟩ := h
+  exact fun v hv => rset_low hS v (h4 v hv)
+
+/-- **Quiet step of the read island** (same set, same read maps and pins). -/
 theorem islR_next {p : DelayPar} (hp : Sane p) {x : Beh} {t : Nat} (h : IslR p x t)
     (hq : x 186985 (t + 1) = false) (hpa : x 104477 (t + 1) = false) :
-    IslR p x (t + 1) ∧ ∀ w, memI w = true → x w (t + 1) = false := by
-  -- every member is low at t + 1
-  have hlow : ∀ w, memI w = true → x w (t + 1) = false := by
+    IslR p x (t + 1) ∧ ∀ v ∈ outs4, x v (t + 1) = false := by
+  obtain ⟨S, h4, hS⟩ := h
+  have hlow : ∀ w, S w → x w (t + 1) = false := by
     intro w hw
-    obtain ⟨c, F, hc0, hc1, hmono, hgt, hst, P, hF, hP⟩ := h w hw
+    obtain ⟨hl, c, F, hc0, hc1, hmono, hgt, hst, P, hF, hP⟩ := hS w hw
     obtain ⟨hrd, ho⟩ := hgt (t + 1) (by omega)
-    rw [← gAt_out_logic (entry_facts hw).1, ho]
+    rw [← gAt_out_logic hl, ho]
     refine forced_low hF fun j hj => ⟨(hP j hj).1, ?_⟩
     obtain ⟨hjk, -, hmin, hlo⟩ := hP j hj
     obtain ⟨r1, r2⟩ := hrd j hjk
-    have hb := (sumAdm_bounds hp hc0 hc1 _ _ (ord_logic (entry_facts hw).1 j hjk) r2).1
+    have hb := (sumAdm_bounds hp hc0 hc1 _ _ (ord_logic hl j hjk) r2).1
     exact hlo _ (hmono j hjk (Nat.le_succ t)) (by omega)
-  refine ⟨fun w hw => ?_, hlow⟩
-  obtain ⟨c, F, hc0, hc1, hmono, hgt, hst, P, hF, hP⟩ := h w hw
-  refine ⟨c, F, hc0, hc1, hmono, hgt, by omega, P, hF, fun j hj => ?_⟩
+  refine ⟨⟨S, h4, fun w hw => ?_⟩, fun v hv => hlow v (h4 v hv)⟩
+  obtain ⟨hl, c, F, hc0, hc1, hmono, hgt, hst, P, hF, hP⟩ := hS w hw
+  refine ⟨hl, c, F, hc0, hc1, hmono, hgt, by omega, P, hF, fun j hj => ?_⟩
   obtain ⟨hjk, hsrc, hmin, hlo⟩ := hP j hj
   refine ⟨hjk, hsrc, hmin, fun s h1 h2 => ?_⟩
   rcases Nat.lt_or_ge s (t + 1) with hs | hs
@@ -99,17 +120,24 @@ theorem islR_next {p : DelayPar} (hp : Sane p) {x : Beh} {t : Nat} (h : IslR p x
       · exact hq
       · exact hpa
 
-/-- **`Isl` implies `IslR`** (in a behaviour, once every island start is at most `t - M`). -/
+/-- **`Isl` implies `IslR`** with C's island as the set (once every island start is at most `t - M`). -/
 theorem isl_islR {p : DelayPar} (hp : Sane p) {x : Beh} (hb : Behaves p (circuit net boundary) x)
     {M A t : Nat} (hd : IslDelay p M A) (hAt : A ≤ t - M) (hI : Isl x M t) : IslR p x t := by
   obtain ⟨hS, hM, hmin, -⟩ := hd
   obtain ⟨c, hc0, hc1, hall⟩ := collapsed hp hb
-  intro w hw
+  refine ⟨fun w => memI w = true, fun v hv => ?_, fun w hw => ?_⟩
+  · have := mem4
+    simp only [outs4, List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with rfl | rfl | rfl | rfl
+    · exact this.1
+    · exact this.2.1
+    · exact this.2.2.1
+    · exact this.2.2.2
   have hg : CGateOK p c (gAt cs 2500 w) (srcPS w) (arcsPS w) (startPS p w) x :=
     hall _ (mem_view_logic (entry_facts hw).1)
   obtain ⟨F, hmono, hgt⟩ := hg
   have hSw := hS w hw
-  refine ⟨c, F, hc0, hc1, hmono, hgt, by omega, psI w, (entry_facts hw).2.2.1, fun j hj => ?_⟩
+  refine ⟨(entry_facts hw).1, c, F, hc0, hc1, hmono, hgt, by omega, psI w, (entry_facts hw).2.2.1, fun j hj => ?_⟩
   obtain ⟨hjk, hsrc⟩ := (entry_facts hw).2.1 j hj
   refine ⟨hjk, hsrc, hmin w hw j hj, fun s h1 h2 => ?_⟩
   obtain ⟨r1, r2⟩ := (hgt t (by omega)).1 j hjk
@@ -143,15 +171,11 @@ theorem plan_R {p : DelayPar} {Δo M A R su : Nat} (hp : Sane p) (hd : IslDelay 
   obtain ⟨hq0, -, -, -, -, -⟩ := hEa
   obtain ⟨hp0, hpm, -, -⟩ := hEp
   have hR0 : 0 < R := by omega
-  have couts_of : ∀ s, (∀ w, memI w = true → x w s = false) → ∀ v ∈ couts boundary, x v s = false := by
+  have couts_of : ∀ s, (∀ v ∈ outs4, x v s = false) → ∀ v ∈ couts boundary, x v s = false := by
     intro s hI v hv
     simp only [couts, List.mem_cons, List.not_mem_nil, or_false] at hv
     rw [b5, b6, b7, b8] at hv
-    rcases hv with rfl | rfl | rfl | rfl
-    · exact hI _ mem4.1
-    · exact hI _ mem4.2.1
-    · exact hI _ mem4.2.2.1
-    · exact hI _ mem4.2.2.2
+    exact hI v (by simp only [outs4]; rcases hv with rfl | rfl | rfl | rfl <;> simp)
   have hbase : Isl x M R := by
     have hisl := island_reset_upto hp hb hd (fun t ht => by rw [b12, ← b1]; exact hrst t ht) hR0
       (U := R) (by omega) (fun t ht => by rw [← b2]; exact hq0 t ht)
@@ -159,7 +183,7 @@ theorem plan_R {p : DelayPar} {Δo M A R su : Nat} (hp : Sane p) (hd : IslDelay 
     intro s h1 h2
     exact ⟨fun w hw => hisl w hw s (by omega) h2, by rw [← b2]; exact hq0 s h2, by rw [← b11]; exact hp0 s h2⟩
   have hbaseR : IslR p x R := isl_islR hp hb hd (by omega) hbase
-  refine ⟨hbaseR, couts_of R (islR_low hp hbaseR), ?_, hstep⟩
+  refine ⟨hbaseR, couts_of R (islR_low hbaseR), ?_, hstep⟩
   intro t ht hI hlow hq
   have hq0t : x 186985 t = false := by
     have := hlow boundary.a.req (by simp [bnodes]); rw [b2] at this; exact this
