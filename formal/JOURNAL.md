@@ -2395,3 +2395,10 @@ up), it gives EpN1's `data` field.
 4. Housekeeping: journal times corrected to the real clock; FEASIBILITY/STATUS/draft PR updated; A's claimed modules
    rebuilt against today's tree: first pass 0 Lean errors, OOM retries running.
 The STATUS list did not shrink in count: row 7 ("everything else") is now exactly one hypothesis, StepHypR.
+### progress 15:06 -- STOPPED: owner paused formal (PROGRAM.md, 9bcd7122). Lock released.
+Read the pause at this time; stopped the background build of A's modules (first pass done with 0 Lean errors; 20 of
+235 OOM-killed modules rebuilt one at a time, all rc=0, the rest not rebuilt). Everything claimed today is committed
+and check.sh OK (PlanPS, PlanRPS, CertSpec, CertN1). **Next step when resumed:** (1) with C, instantiate
+`CertN1.EpN1` from C's `timedA_follows`/`timedA_live` on B's `tnPS` for (12,18) (notes/A-certN1.md); (2) design
+the episode-k ≥ 2 start for C's certificates (notes/A-S6-chaining.md); (3) finish the A-module rebuild
+(one module at a time).
