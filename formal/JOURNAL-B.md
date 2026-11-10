@@ -4260,3 +4260,11 @@ On [5/16,3/8] the window fixpoint did not converge. Narrower slices near c = 0 (
 tools-B/slice/pairs/README.txt.
 **Next (B or C):** try K = 32 on [0,3/8] for (17,5), or tighten Up for the bank-open (X30Y76.A6(4)) vs
 X38Y15.C6(4) pair. Then the emission of one slice certificate on `tnPS` (C's checkers chunked).
+
+### progress 22:2x -- (17,5) passes with 1/32 slices near the fast corner (untrusted Python, subagent)
+Files `formal/tools-B/slice/pairs32/` (README.txt, table.md, logs/). The 12 slices [i/32,(i+1)/32] covering [0,3/8]
+all pass: control 0, guards 0/406, 0 failing claim items, 0 truncations, lchk 0/0, output 1. With the 10 width-1/16
+slices on [3/8,1] (pairs/), **a 22-slice cover passes for (17,5)**. Measured so far: (12,18) 16 uniform (or 11),
+(8,12) 16 uniform, (17,5) 22. The bank-latch H->U' roots (margins down to -927 ps at width 1/16) are slice-width
+artefacts, not races. Not shown: Lean emission; other pairs; κ > 0; one midpoint run per slice.
+(Container restarted at ~20:06; the queue survived, no slice rerun needed.)
