@@ -4137,3 +4137,21 @@ walk along C's copy map; this also discharges the start/route-bound premises of 
 Generators `tools-B/slicenet/gen.py`, `gen_sb.py`. The build needs C's whole CViewPS (~700 modules); its V-chunk
 checks take ~4.5 GB each and lake runs four at once, which OOM-killed the subagent's builder runs twice; the V files
 are now built one at a time.
+
+### progress 10:0x -- CHECKED: THE target's slice timed net and its read hypotheses (check.sh OK, standard axioms)
+`Formal/Cells/SliceNetPS/Main.lean`:
+- `tnPS p c1 c2 : TNet Nat` -- THE target's timed net for the corner slice [c1, c2]: gates = the 19,878 logic nodes
+  (C's `logicPS`); pins = the collapsed sources of the KEPT pins (not dead in the INIT, not tied to one of the 1,925
+  constant nodes); function = the INIT with constant pins filled in; lo/hi = the routes' corner sums at c1 / c2.
+- `target_reads_slice`: for every sane p and every behaviour of THE theorem's circuit (`Behaves p (circuit net
+  boundary) x`) there is a corner c ∈ [0,1] such that for every slice [c1, c2] ∋ c with c2 ≤ 1, every H ≥ all
+  collapsed start times and every t0 ≥ start + H, read times exist meeting TBehX's `rd`, `mono`, `geq` on `tnPS`.
+- `tnPS_lo1` (κ < 1, 0 ≤ c1): TBehX's `lo1` on every kept pin.
+Kernel-checked data: per chunk (75 × `decide +kernel`), kept sources distinct and own-arc fmin ≥ 1 (`sel_ok`), every
+listed constant is a k = 0 logic gate with that value (`const_ok`, `constF_sound`). (One whole-table `decide` needed
+> 10 GB; per-chunk lists fixed that.)
+**Plainly:** the timed-model side of THE statement now has a concrete net, and every Spec behaviour is a run of it as
+far as gate reads go, for any slice of corners. NOT shown: TBehX's `quiet` and `env` fields (C: reset island /
+EnvHS), any certificate on `tnPS`, and the slice count the certificates need (subagent measuring). C: the AO theorems
+can be instantiated with `N := tnPS p c1 c2`; constant and dead pins no longer appear, so the builder's
+"constant pins have no cover" and "dead pins set to 0" gaps are gone if it uses this net's pin lists.

@@ -28,15 +28,16 @@ for c in range(NCH):
 with open(os.path.join(OUT, "FT.lean"), "w") as f:
     f.write("".join("import Formal.Cells.StartBoundPS.F%03d\n" % c for c in range(NCH)))
     f.write("import Formal.Net.CViewPS.CM\n\n" + hdr)
-    f.write("namespace Formal.Cells.StartBoundPS\nopen Formal.Target.DecodedPS Formal.Timing.ChunkCM Formal.Cells.StartBound Formal.Net.CViewPS\n\n")
+    f.write("namespace Formal.Cells.StartBoundPS\nopen Formal.Target.DecodedPS Formal.Timing.SpecChain Formal.Timing.ChunkCM Formal.Cells.StartBound Formal.Net.CViewPS\n\n")
     f.write("def tfPS : List BT := [%s]\n\n" % ", ".join("f%03d" % c for c in range(NCH)))
     f.write("theorem tf_len : tfPS.length = cs.length := rfl\n\n")
     f.write("theorem ffacts : ∀ c, c < cs.length → FChunkFact tfPS cs 12 c := by\n  intro c hc\n  rw [cs_len] at hc\n  match c, hc with\n")
     for c in range(NCH):
         f.write("  | %d, _ => simp only [FChunkFact, tfPS, cs, List.getD_cons_succ, List.getD_cons_zero]; exact f%03d_fact\n" % (c, c))
+    f.write("  | n + %d, h => exact absurd h (by omega)\n" % NCH)
     f.write("\n/-- Per-node values from the trees. -/\ndef fPS (u : Nat) : Nat := fOf tfPS 2500 12 u\n\n")
     f.write("theorem fPS_eq (u : Nat) : fPS u = stN (gaOf cs 2500 u) + (arc0 (gaOf cs 2500 u)).smax :=\n")
-    f.write("  fOf_eq (by decide) (by decide) tf_len ffacts u\n\nend Formal.Cells.StartBoundPS\n")
+    f.write("  fOf_eq (C := 2500) (d := 12) (by decide) (by decide) tf_len ffacts u\n\nend Formal.Cells.StartBoundPS\n")
 for c in range(NCH):
     with open(os.path.join(OUT, "C%03d.lean" % c), "w") as f:
         f.write("import Formal.Cells.StartBoundPS.FT\nimport Formal.Cells.StartBoundPS.Defs\nimport Formal.Net.CViewPS.V%03d\n\n" % c + hdr)

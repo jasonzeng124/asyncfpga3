@@ -39,5 +39,6 @@ with open(os.path.join(OUT, "Chunks.lean"), "w") as f:
     f.write("theorem const_ok : ∀ c, c < cs.length → constChunkOK (cs.getD c []) (cl.getD c []) = true := by\n  intro c hc\n  rw [cs_len] at hc\n  match c, hc with\n")
     for c in range(NCH):
         f.write("  | %d, _ => simp only [cs, cl, List.getD_cons_succ, List.getD_cons_zero]; exact k%03d_ok\n" % (c, c))
+    f.write("  | n + %d, h => exact absurd h (by omega)\n" % NCH)
     f.write("\nend Formal.Cells.SliceNetPS\n")
 print("consts", len(consts), "chunks", NCH)
