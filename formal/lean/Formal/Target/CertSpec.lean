@@ -100,4 +100,46 @@ theorem enabled_of_changeOKA {N : TNet Nat} {CP : Cert Nat} {x : Beh} {t0 : Nat}
     · rename_i hrv; exact hself hrv
     · rfl
 
+/-! ## Transitive forms: the order facts may hold through other events -/
+
+/-- **Acknowledge side, transitive form.** `hInter`: the two counts interleave at every time; `hAkT`: in every ideal
+containing a cause alternative of acknowledge event `k`, request event `k` has happened. -/
+theorem ackMoves_of_certT (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hI : ∀ s, Ideal C (fun u => cnt x t0 u s))
+    (hInter : ∀ s, cnt x t0 a s ≤ cnt x t0 r s ∧ cnt x t0 r s ≤ cnt x t0 a s + 1)
+    (hAkT : ∀ k, ∀ alt ∈ C.causes a k, ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c r)
+    (hen : ∀ s, t0 < s → x a s ≠ x a (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n a = cnt x t0 a (s - 1) ∧ Enabled C n a) :
+    AckMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hna, -, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hna
+  have hra := hAkT _ alt halt _ (hI t) (altIn_mono hle hin)
+  have hc := hInter t
+  have heq : cnt x t0 r t = cnt x t0 a t + 1 := by omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+  exact parity_ne _
+
+/-- **Request side, transitive form.** `hRqT`: in every ideal containing a cause alternative of request event
+`k + 1`, acknowledge event `k` has happened. -/
+theorem reqMoves_of_certT (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hI : ∀ s, Ideal C (fun u => cnt x t0 u s))
+    (hInter : ∀ s, cnt x t0 a s ≤ cnt x t0 r s ∧ cnt x t0 r s ≤ cnt x t0 a s + 1)
+    (hRqT : ∀ k, ∀ alt ∈ C.causes r (k + 1), ∀ c : Nat → Nat, Ideal C c → AltIn c alt → k < c a)
+    (hen : ∀ s, t0 < s → x r s ≠ x r (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n r = cnt x t0 r (s - 1) ∧ Enabled C n r) :
+    ReqMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hnr, -, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hnr
+  have hc := hInter t
+  have heq : cnt x t0 r t = cnt x t0 a t := by
+    rcases Nat.eq_zero_or_pos (n r) with h0 | hpos
+    · omega
+    · obtain ⟨k, hk⟩ : ∃ k, n r = k + 1 := ⟨n r - 1, by omega⟩
+      rw [hk] at halt
+      have hak := hRqT k alt halt _ (hI t) (altIn_mono hle hin)
+      omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+
 end Formal.Target.CertSpec

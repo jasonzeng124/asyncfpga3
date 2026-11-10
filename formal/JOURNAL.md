@@ -2342,3 +2342,17 @@ Spec's `AckMoves` (`ackMoves_of_cert`) and a circuit-driven request obeys `ReqMo
 out0.req against the env's out0.ack). `enabled_of_changeOKA`: C's per-change conclusion `ChangeOKA` plus TBehX's
 read bounds (every pin ≥ 1 ps) gives that premise. Next: the counting fields of StepCore (one out0 rise) and liveness
 from `timedA_live`. Not shown: THE target's certificate instance.
+### progress 09:19 -- CHECKED: `Formal/Target/CertN1.lean`: the one-pair statement from one-pair certificate facts
+check.sh OK (CertSpec + CertN1, 2,302 declarations, standard axioms). `CertSpec` gained transitive forms
+(`ackMoves_of_certT`, `reqMoves_of_certT`: the order facts may hold through other events, e.g. end.ack before the
+request's fall only via start.ack). `CertN1.EpN1 C x t1 T Δo`: what a one-pair certificate (counts from the request
+edge t1) must deliver -- counts an ideal at every time; the five boundary handshake orders (interleaving + transitive
+order); each change of a.ack, b.ack, start.ack, out0.req, req enabled at earlier counts; out0.req has two events and
+rose by T; every boundary node and island member low from T; the out0 data = gcd while out0 is up. `stepCore_n1`:
+with Env for one pair, EpN1 gives a full StepCore ending in IslR (no second request: Env's Offered bound).
+`onN1_of_cert`: if every behaviour (one pair satisfying Q) has such a certificate at its request, then
+`NetCorrectSeqOnN Q (· = some 1)` at any g > 0, κ < 1 with the reset bound. **Plainly:** the last step from C's
+one-pair certificate to a Spec-level one-pair theorem is now generic Lean; what remains for "(12,18), every admissible
+delay" is showing EpN1 from C's timedA_follows/timedA_live conclusions for THE target's certificate (counts, ChangeOKA
+via `enabled_of_changeOKA`, the boundary events' cause lists, the data claims, the end state). Conditional, nothing
+proved at any parameter.
