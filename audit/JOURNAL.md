@@ -1355,3 +1355,6 @@ Formal paused by owner (formal PROGRAM 9bcd7122); audit PROGRAM unchanged, conti
 
 ## 2026-11-10T15:26:58Z T59 row 5
 CexQ36 source dump re-checked with own runt checker (0 mismatches to 1.2us, neg control 3); checker gained AUDIT_TMAX.
+
+## 2026-11-10T16:07:06Z T60 row 6
+100 MHz SLOW_MAX on p8: 8/17, every wrong result = one flipped op0 bit (28, once 29), kernel correct: harness operand path CONFIRMED (sim).
