@@ -2966,3 +2966,7 @@ Up join) in the claim hypothesis; same conclusion. The join at time t+1 uses the
 the timed theorem. *Open:* `timedA_live` with ChainUOK (same pattern, not written); the builder re-run with the rule
 (the r1h count: an admissible Up exists for 185 of 696 needed joins, so the rule alone may not clear the 40);
 the unrolled (every-word) theorems still use ChainOK.
+
+### progress 10:04 -- AO/TimedUp: `gate_firesAU`, `timedA_liveU` (check.sh OK)
+The liveness theorem with `ChainUOK` in `hGC` (proofs copied from Timed.lean, calls redirected). Closes the
+"timedA_live with ChainUOK" item above.
