@@ -4110,3 +4110,21 @@ parametric: nodes = the collapsed view's logic gates (CViewPS.logicView), pins =
 route sums at the slice ends (Nat forms, so the facts are `decide`d), and the 57 gates with a repeated source kept
 one hop un-collapsed (B's 10:3x design). Goal theorem: every behaviour of THE target with corner in [c1, c2] has read
 times meeting TBehX's rd/mono/geq on that net. C's quiet/env/lo1 fields are not part of this claim.
+
+### progress 07:4x -- CHECKED: corner slices and the generalised read bridge (generic Lean, check.sh OK, 626 declarations)
+- `Formal/Cells/CornerSlice.lean`: `loC`/`hiC` and their route sums are non-decreasing in the corner c (sane p,
+  arcs ordered); `gateFact_of_slice`, `reads_of_slice`: ONE integer net with lo at c1 and hi at c2 gives C's
+  `GateFact` / read hypotheses at every corner c ∈ [c1, c2]; `slice_cover`: consecutive slice points from 0 to 1
+  cover every corner; Nat forms `loC_eq_loN`/`hiC_eq_hiN` (and sums) for p = ⟨gn/gd, kn/kd⟩, c = cn/cd, so slice
+  bounds are `decide`-able without ℚ.
+- `Formal/Cells/SliceReads.lean`: `reads_of_sel`, C's `reads_of_cgate` generalised: a gate keeps a pin selection,
+  the other pins are either constants (filled into the function; their source must show the constant from t0 - H)
+  or DEAD (the INIT ignores them: `Dead`, Boolean `deadB` over the 2^k addresses, sound by `dead_of_deadB`), and the
+  bounds are slice bounds. This removes the need for distinct sources on the dropped pins.
+- `Formal/Cells/SliceNet.lean`: `selNet` (node-indexed timed net from collapsed gates + selection) and
+  `selNet_reads`; `sumHiC_le_cStart` (a route's slow-end sum ≤ the gate's collapsed start time, c ≤ 1).
+Census (Python on THE target, untrusted; the Lean instance re-checks it): of 19,878 logic gates' pins, 48,830 are kept,
+4,925 read one of the 1,925 constant nodes, 42,382 are dead; **after folding constants and dropping dead pins no gate
+reads one live source on two pins** (the 57 of TimedBridge's note were all constant/dead duplicates), and every kept
+pin's own arc has fmin ≥ 1 (so TBehX's lo1 holds on kept pins for κ < 1). Instance (`Formal/Cells/SliceNetPS/`,
+generator `tools-B/slicenet/gen.py`): written, building (needs C's CViewPS).
