@@ -4103,3 +4103,10 @@ N.lo ≤ sumLoC(c) and sumHiC(c) ≤ N.hi, and loC/hiC grow with c, so ONE integ
 covers every corner in [c1, c2]. Deliverables: (Lean, Formal/Cells/CornerSlice.lean) the monotonicity and the slice
 form of GateFact, plus "finitely many slices cover [0,1]"; (Python, untrusted, tools-B) how many slices the
 (12,18) control + data certificates need to pass (K = 1, 2, 4, ...). C's generator files are only copied, never edited.
+
+### progress 07:2x -- second item claimed (B): THE target's slice timed net and the read part of `TBehX`
+No instance `TNet` for THE target exists yet (TimedBridge: "Not shown: ... any instance"). B builds it, slice-
+parametric: nodes = the collapsed view's logic gates (CViewPS.logicView), pins = their collapsed sources, lo/hi =
+route sums at the slice ends (Nat forms, so the facts are `decide`d), and the 57 gates with a repeated source kept
+one hop un-collapsed (B's 10:3x design). Goal theorem: every behaviour of THE target with corner in [c1, c2] has read
+times meeting TBehX's rd/mono/geq on that net. C's quiet/env/lo1 fields are not part of this claim.
