@@ -2868,3 +2868,18 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
 * *Not yet:* the timing tables (TOA, SepOKA, UpOKA, GuardTime) and claim checks for every word (WindowT lifts single
   entries; the unrolled tables are the next generic step); refinement (the circuit's word is the token run's branch
   word); any instance on THE target.
+
+### progress 08:29 -- timed datapath units: 10 more checked, incl. uori4 (the 20th unit, own extraction); all with circuit versions
+* *Proved* (check.sh OK on the unit files, 4,869 declarations audited transitively; generated chunks textually scanned):
+  `Net/Compute/PS/{Ucmpi0,Ucmpi1,Ucmpi8,Ucmpi10,Uori0,Uori1,Uori4}T`: for every sane (g, κ) and every behaviour of the
+  decoded netlist, and also of THE statement's `circuit net boundary` (`_circ`), if every input node of the unit holds
+  on [T0, T1], the output at every t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the unit's MLIR op of the inputs at t (D per unit:
+  4486, 3068, 2872, 2985, 1541, 1695, 5789 ps). `Uselect1T` gains `uselect1_timed_circ` (answers audit T52's note).
+* *uori4, the 20th unit:* THE target's synthesis of uori4 differs from gcd_hw's (one comparator LUT with another INIT
+  and permuted pins, nets renumbered). New: `Gen/Compute/GcdPS/Uori4` (extract.py on THE target's synthesis JSON),
+  `Net/Compute/GcdPSUori4.uori4_fn` (its cells compute ((e2 & e3) != 0) | slt(e0, e1) for every input; same SltOK
+  proof, own comparator groups from sltcert.py), `PS/Uori4.uori4_ps` (decoded gates, untimed; psmap.py with
+  GEN_NS=GcdPS) and `PS/Uori4T`. **So all 20 datapath units of THE target are proved on the decoded netlist.**
+* *Still building:* the timed uaddi0, uori2, uori3, uselect0, ushrsi0..4, ushli0 (queue).
+* *Not shown:* that the inputs hold for long enough in a run (bundling, from the handshake); side conditions
+  (shift amounts) remain hypotheses as in the untimed theorems.

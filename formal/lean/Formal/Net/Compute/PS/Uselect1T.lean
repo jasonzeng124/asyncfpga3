@@ -1,4 +1,5 @@
 import Formal.Net.Compute.PS.Uselect1
+import Formal.Net.CViewPS.Base
 import Formal.Gen.Compute.PSMap.Uselect1T.All
 import Mathlib.Data.List.Nodup
 
@@ -25,6 +26,8 @@ a listed gate. `SpecSettleSym.certN_sound_net` then gives every listed gate cons
 `[T0 + C·SN out, T1]` with its gate equation inside its inputs' windows; output-uniqueness
 (`net_wf`) makes the listed gate THE driver of its node, so `Settled DecodedPS.net S (x · t)`, and
 `uselect1_ps` finishes.
+
+`uselect1_timed_circ` (2026-11-10): the same over THE statement's `circuit net boundary` (audit T52's note).
 
 **Not shown.** That the inputs hold (the token protocol); that `T1 - T0` is large enough in a run;
 the other 19 units.
@@ -188,6 +191,52 @@ theorem known_mem (n : Nat) (h : n ∈ known) : ∃ k, k < 32 ∧ (n = e0Node k 
 /-! ## The timed unit theorem -/
 
 set_option maxRecDepth 100000 in
+/-- Every listed gate drives a node outside the environment's nodes (decided on the explicit output lists). -/
+theorem outs_not_env : oAll.all (fun l => l.all (fun n => !(DecodedPS.boundary.env.contains n))) = true := by
+  decide +kernel
+
+theorem out_not_env (g : Gate) (h : g ∈ gs) : g.out ∉ DecodedPS.boundary.envNodes := by
+  obtain ⟨i, hi, hg⟩ := gs_mem g h
+  have hm : g.out ∈ oAll.getD i [] := by
+    rw [← (piece i hi).2.1]; exact List.mem_map.mpr ⟨g, hg, rfl⟩
+  have hl : oAll.getD i [] ∈ oAll := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by rw [oAll_len]; exact hi)]
+    exact List.getElem_mem _
+  have := List.all_eq_true.mp (List.all_eq_true.mp outs_not_env _ hl) g.out hm
+  simpa [Boundary.envNodes] using this
+
+/-- The listed gates are gates of THE theorem's circuit (`Spec.circuit`). -/
+theorem gs_sub_circ : ∀ g ∈ gs, g ∈ (circuit DecodedPS.net DecodedPS.boundary).gates := fun g h =>
+  List.mem_filter.mpr ⟨gs_sub g h, by simpa using out_not_env g h⟩
+
+set_option maxRecDepth 100000 in
+/-- The settle argument for any well-formed netlist `N` containing the listed gates. -/
+theorem settled_gen {N : Net} (hN : N.WF) (hsubN : ∀ g ∈ gs, g ∈ N.gates)
+    (p : DelayPar) (hp : Sane p) (x : Beh) (hb : Behaves p N x) (T0 T1 : Nat)
+    (hin : ∀ k, k < 32 → ∀ t, T0 ≤ t → t ≤ T1 →
+      x (e0Node k) t = x (e0Node k) T0 ∧ x (e1Node k) t = x (e1Node k) T0)
+    (t : Nat) (ht0 : T0 + cScale p * D ≤ t) (ht1 : t ≤ T1) :
+    Settled DecodedPS.net S (fun w => x w t) := by
+  have hk : ∀ n ∈ known, ConstW (fun n => T0 + cScale p * SN n) (fun _ => T1) x n := by
+    intro n hn t' h1 h2
+    have h0 : SN n = 0 := by
+      have := List.all_eq_true.mp known_ok n hn
+      simpa using this
+    simp only [h0, Nat.mul_zero, Nat.add_zero] at h1 ⊢
+    obtain ⟨k, hk, e | e⟩ := known_mem n hn <;> subst e
+    · exact (hin k hk t' h1 h2).1
+    · exact (hin k hk t' h1 h2).2
+  have hset := certN_sound_net hp hN hb SN T0 T1 known gs hsubN hk cert_ok
+  have win : ∀ n, SN n ≤ D → T0 + cScale p * SN n ≤ t := fun n h =>
+    le_trans (Nat.add_le_add_left (Nat.mul_le_mul_left _ h) _) ht0
+  intro g hg hgS
+  obtain ⟨g', hg', hout⟩ := cover g.out hgS
+  have e : g' = g := List.inj_on_of_nodup_map DecodedPS.net_wf.2 (gs_sub g' hg') hg hout
+  subst e
+  have hb' := bnd_gs g' hg'
+  simp only [bnd, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hb'
+  exact (hset g' hg').2 t (win _ hb'.1) ht1 (fun i hi => ⟨win _ (hb'.2 i hi), ht1⟩)
+
 /-- **THE target's decoded `uselect1` unit, timed.** For every sane `(g, κ)` and every behaviour of the
 decoded netlist: if the unit's 64 input nodes hold on `[T0, T1]`, then at every `t` with
 `T0 + ⌈(1+κ)g⌉·8815 ≤ t ≤ T1` the output word is `d = e0 - e1; (d > -1) ? d : 0 - d` of the input
@@ -202,27 +251,23 @@ theorem uselect1_timed (p : DelayPar) (hp : Sane p) (x : Beh) (hb : Behaves p De
           (word ((fun w => x w t) ∘ e1Node) 32)) 4294967295)
         (Ops.subi 32 (word ((fun w => x w t) ∘ e0Node) 32) (word ((fun w => x w t) ∘ e1Node) 32))
         (Ops.subi 32 0 (Ops.subi 32 (word ((fun w => x w t) ∘ e0Node) 32)
-          (word ((fun w => x w t) ∘ e1Node) 32))) := by
-  apply uselect1_ps
-  -- the input nodes hold on their windows `[T0 + C·0, T1]`
-  have hk : ∀ n ∈ known, ConstW (fun n => T0 + cScale p * SN n) (fun _ => T1) x n := by
-    intro n hn t' h1 h2
-    have h0 : SN n = 0 := by
-      have := List.all_eq_true.mp known_ok n hn
-      simpa using this
-    simp only [h0, Nat.mul_zero, Nat.add_zero] at h1 ⊢
-    obtain ⟨k, hk, e | e⟩ := known_mem n hn <;> subst e
-    · exact (hin k hk t' h1 h2).1
-    · exact (hin k hk t' h1 h2).2
-  have hset := certN_sound_net hp DecodedPS.net_wf hb SN T0 T1 known gs gs_sub hk cert_ok
-  have win : ∀ n, SN n ≤ D → T0 + cScale p * SN n ≤ t := fun n h =>
-    le_trans (Nat.add_le_add_left (Nat.mul_le_mul_left _ h) _) ht0
-  intro g hg hgS
-  obtain ⟨g', hg', hout⟩ := cover g.out hgS
-  have e : g' = g := List.inj_on_of_nodup_map DecodedPS.net_wf.2 (gs_sub g' hg') hg hout
-  subst e
-  have hb' := bnd_gs g' hg'
-  simp only [bnd, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true, List.mem_range] at hb'
-  exact (hset g' hg').2 t (win _ hb'.1) ht1 (fun i hi => ⟨win _ (hb'.2 i hi), ht1⟩)
+          (word ((fun w => x w t) ∘ e1Node) 32))) :=
+  uselect1_ps _ (settled_gen DecodedPS.net_wf gs_sub p hp x hb T0 T1 hin t ht0 ht1)
+
+/-- **`uselect1_timed` for every behaviour of THE theorem's circuit** (`circuit net boundary`, audit T52's note):
+the unit's gates drive no environment node, so they are gates of the circuit. -/
+theorem uselect1_timed_circ (p : DelayPar) (hp : Sane p) (x : Beh)
+    (hb : Behaves p (circuit DecodedPS.net DecodedPS.boundary) x) (T0 T1 : Nat)
+    (hin : ∀ k, k < 32 → ∀ t, T0 ≤ t → t ≤ T1 →
+      x (e0Node k) t = x (e0Node k) T0 ∧ x (e1Node k) t = x (e1Node k) T0)
+    (t : Nat) (ht0 : T0 + cScale p * D ≤ t) (ht1 : t ≤ T1) :
+    word ((fun w => x w t) ∘ zNode) 32 =
+      Ops.select (Ops.cmpi .sgt 32 (Ops.subi 32 (word ((fun w => x w t) ∘ e0Node) 32)
+          (word ((fun w => x w t) ∘ e1Node) 32)) 4294967295)
+        (Ops.subi 32 (word ((fun w => x w t) ∘ e0Node) 32) (word ((fun w => x w t) ∘ e1Node) 32))
+        (Ops.subi 32 0 (Ops.subi 32 (word ((fun w => x w t) ∘ e0Node) 32)
+          (word ((fun w => x w t) ∘ e1Node) 32))) :=
+  uselect1_ps _ (settled_gen (Formal.Net.CViewPS.circuit_wf DecodedPS.net_wf) gs_sub_circ p hp x hb T0 T1 hin t ht0
+    ht1)
 
 end Formal.Net.Compute.PS.Uselect1T
