@@ -1307,3 +1307,6 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 
 ## 2026-11-10T08:18:08Z T56
 PlanRPS (A 154c44cd) built at 464838c1, axioms clean. Conditional on StepHypR; StepHypR false at kappa 0.44 / g 8/5 by CexR44/CexRg16. Non-vacuity at small kappa UNVERIFIED. REPORT row added.
+
+## 2026-11-10T08:18:49Z T56 rows 7-8
+A 9cd05ce7 NetCorrectSeqOn/the_on_of_stepR_all rebuilt at c9a545d7, axioms clean, conditional. Refutations cover Q containing the cex pair only; (12,18) open.
