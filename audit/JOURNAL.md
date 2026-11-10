@@ -1361,3 +1361,6 @@ CexQ36 source dump re-checked with own runt checker (0 mismatches to 1.2us, neg 
 
 ## 2026-11-10T16:08:06Z T60 row 7 started
 Spot check of bench route seed 3 (p8mo + x0.5 base, worst case, 83.3 MHz): t60/chain_s3.sh.
+
+## 2026-11-10T16:49:29Z T60 row 7
+Seed-3 spot check: p8mo 17/17, base 17/17, 1.248x (in 1.18-1.36). Base seed-3 decode DRIVER DIFFERS (69 CARRY4 CO2 SDF sources, ?-named) noted.
