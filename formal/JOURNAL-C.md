@@ -2883,3 +2883,23 @@ t ∈ [T0 + ⌈(1+κ)g⌉·D, T1] is the op of the inputs (D = 1871 / 1562 ps). 
 * *Still building:* the timed uaddi0, uori2, uori3, uselect0, ushrsi0..4, ushli0 (queue).
 * *Not shown:* that the inputs hold for long enough in a run (bundling, from the handshake); side conditions
   (shift amounts) remain hypotheses as in the untimed theorems.
+
+### progress 08:30 -- Net/AO/UnrollTime.lean: the timing tables of every unrolled certificate from window checks (check.sh OK)
+* *Problem:* the timed theorem (`timedA_follows`) also needs the separation/upper-bound tables, the skew rows, time
+  stamps and guard timing of the long certificate. For every word of kinds, do they follow from finitely many window
+  checks?
+* *Proved* (subagent; I re-ran check.sh: 713 declarations audited, standard axioms, no sorry): per-kind relative
+  tables (`WKindT`: sep, up, within-window rank); long tables `LSep`, `LUp` and synthetic time stamps
+  `i·BIG + rank` (the timed theorem uses tm only for well-founded induction and TmOK, checked in Timed.lean).
+  `timing_unroll`: for every word, TmOK, SepOKA, UpOKA, TOA (bounds `uL`) and the guard-timing obligation `hGd`
+  of the long certificate hold, given per-kind `KindTm`, `BackChain` (causes look back at most one window) and the
+  window checks `SepWin`/`UpWin`/`TOWin`/`GdWin` on each sub-word of ≤ r consecutive kinds.
+* *Findings on earlier files:* (1) `WindowT.upClause_window`'s hypothesis `hExtra` asks for an upper-bound cause
+  for EVERY pre-window event, which no window with positive offsets supplies; `upClause_window_np` (no pre-window
+  cause, from BackChain) replaces it. (2) `UnrollData.ucl` does not shift claims' event indices; harmless for the
+  local check but wrong for guard timing; `uclT` shifts them and `lcheckXA_uclT` shows the local check is unchanged.
+  An instance must use `uclT`.
+* *Plainly:* with UnrollAsm, every hypothesis of `timedA_follows` that quantifies over the whole certificate's
+  events is now reduced to checks on short kind sequences, EXCEPT: LSound of the bounds, hSE, hRT, TmOK CF, the claim
+  proofs (GateProof/ChainOK), hEnvE/hEnvC/hInit, hDataLen; liveness bounds across words; refinement (piece 3); any
+  instance on THE target (none passes these checks yet; untested).
