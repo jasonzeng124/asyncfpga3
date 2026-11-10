@@ -2375,3 +2375,7 @@ retries after the pass.
 First lake pass over every committed Formal/Target + Formal/Core module (and their dependencies): 1,986 jobs built,
 every failure exit 137 (memory): 235 modules (75 C CexPS72, 72 CexRunt72, 43 CexQ36, 25 C CexPS, 9 CexRuntG16, 6
 CexRuntD60, 4 CexRunt44, ...), no elaboration or kernel error. They are now rebuilt one at a time (~1-4 min each).
+### progress 14:56 -- CertSpec.busVal_of_bits (check.sh OK)
+A bus whose bit nodes show the bits of v < 2^len has `busVal` = v (`bv_lt`, `busVal_of_bits`, on C's EnvData bit
+lemmas): with per-bit data claims of the certificate (each out0.data bit holds bit i of gcd(12,18) = 6 while out0 is
+up), it gives EpN1's `data` field.

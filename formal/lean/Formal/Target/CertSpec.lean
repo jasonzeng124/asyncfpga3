@@ -176,4 +176,27 @@ theorem low_of_even {x : Beh} {t0 u T : Nat} (h0 : x u t0 = false) (hT : t0 ≤ 
   rw [hconst s hs, Formal.Net.AO.EnvData.x_par x t0 u h0 T hT, hev]
   rfl
 
+/-! ## The out0 bus from its bits (for `CertN1.EpN1.data`, from per-bit data claims) -/
+
+theorem bv_lt (b : Nat → Bool) : ∀ d : List Nat, Formal.Net.AO.EnvData.bv b d 0 < 2 ^ d.length
+  | [] => by simp [Formal.Net.AO.EnvData.bv]
+  | n :: d => by
+    rw [Formal.Net.AO.EnvData.bv_cons0]
+    have := bv_lt b d
+    simp only [List.length_cons, Nat.pow_succ]
+    split <;> omega
+
+/-- A bus whose bit nodes show the bits of `v < 2^len` has value `v`. -/
+theorem busVal_of_bits {x : Beh} {d : List Nat} {t v : Nat} (hv : v < 2 ^ d.length)
+    (hb : ∀ i (hi : i < d.length), x (d[i]'hi) t = v.testBit i) : busVal x d t = v := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  by_cases hi : i < d.length
+  · rw [Formal.Net.AO.EnvData.testBit_busVal x d t i hi, hb i hi]
+  · have h1 : busVal x d t < 2 ^ i := by
+      rw [Formal.Net.AO.EnvData.busVal_eq]
+      exact lt_of_lt_of_le (bv_lt _ d) (Nat.pow_le_pow_right (by omega) (by omega))
+    have h2 : v < 2 ^ i := lt_of_lt_of_le hv (Nat.pow_le_pow_right (by omega) (by omega))
+    rw [Nat.testBit_lt_two_pow h1, Nat.testBit_lt_two_pow h2]
+
 end Formal.Target.CertSpec
