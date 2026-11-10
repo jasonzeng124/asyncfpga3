@@ -2323,3 +2323,9 @@ other adversaries (B's merge4/merge10 classes), other pairs.
 Entries "08:3x" to "12:3x" of this session carried guessed times; `date -u` at 09:05 showed the real clock. They are
 renamed to their commits' times (08:0x-08:2x). Content unchanged. Running: a build of every committed Formal/Target and
 Formal/Core module (1,134) against today's tree, OOM-killed modules retried one at a time; no Lean error so far.
+### progress 09:08 -- PlanRPS: restriction to a number of pairs too (check.sh OK, 1,908 declarations)
+`NetCorrectSeqOnN Q Nn` (envs with Nn n and every offered pair in Q; `onN_true_iff`), `StepHypROnN`,
+`the_onN_of_stepR_all`. With Nn := (· = some 1), Env allows one request edge only, so the hypothesis is about the
+first episode alone, whose end may be taken after everything has settled (where the M-window island gives IslR): the
+natural target for C's one-pair milestone "(12,18), n = 1, every admissible delay at g = 1, κ = 0", with no chaining
+issue. Conditional, like the rest of PlanRPS (audit T56).

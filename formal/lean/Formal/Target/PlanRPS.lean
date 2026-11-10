@@ -245,4 +245,33 @@ theorem the_of_stepR_all {p : DelayPar} {T R su Δo : Nat} (hp : Sane p) (hk : p
     NetCorrectSeq net boundary arbs p T R su Δo :=
   the_of_stepR hp (islDelay_all hp hk) hR hstep
 
+/-- THE statement for environments offering a number of pairs allowed by `Nn` (e.g. `(· = some 1)`), every pair
+satisfying `Q`. -/
+def NetCorrectSeqOnN (Q : Nat → Nat → Prop) (Nn : Option Nat → Prop) (p : DelayPar) (T R su Δo : Nat) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Nn n →
+    Behaves p (circuit net boundary) x → ArbOK T arbs x → Env x boundary R su Δo n va vb → SeqEnv x boundary R →
+      (∀ k, Offered n k → Q (va k) (vb k)) → Correct x boundary R Δo n va vb
+
+theorem onN_true_iff {Q : Nat → Nat → Prop} {p : DelayPar} {T R su Δo : Nat} :
+    NetCorrectSeqOnN Q (fun _ => True) p T R su Δo ↔ NetCorrectSeqOn Q p T R su Δo :=
+  ⟨fun h x n va vb hb ha he hs hQ => h x n va vb trivial hb ha he hs hQ,
+   fun h x n va vb _ hb ha he hs hQ => h x n va vb hb ha he hs hQ⟩
+
+/-- `StepHypROn` further restricted to `Nn` numbers of pairs. With `Nn := (· = some 1)` only one request edge ever
+occurs (`Env`), so this is the first episode only, and its end may be taken once everything has settled. -/
+def StepHypROnN (Q : Nat → Nat → Prop) (Nn : Option Nat → Prop) (p : DelayPar) (T R su Δo : Nat) : Prop :=
+  ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Nn n → Behaves p (circuit net boundary) x → ArbOK T arbs x →
+    Env x boundary R su Δo n va vb → SeqEnv x boundary R → (∀ k, Offered n k → Q (va k) (vb k)) →
+    ∀ t, R ≤ t → IslR p x t → Low x boundary t → edge (x boundary.a.req) t →
+      ∃ t2 t0, StepCore x boundary Δo (IslR p x) t t2 t0
+
+/-- **THE statement restricted to `Nn` pair counts and `Q` pairs, from the step on those**, every `g > 0`, `κ < 1`.
+E.g. `Nn := (· = some 1)`, `Q a b := a = 12 ∧ b = 18`: one pair (12, 18), from a proof of its single episode. -/
+theorem the_onN_of_stepR_all {Q : Nat → Nat → Prop} {Nn : Option Nat → Prop} {p : DelayPar} {T R su Δo : Nat}
+    (hp : Sane p) (hk : p.κ < 1) (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHypROnN Q Nn p T R su Δo) :
+    NetCorrectSeqOnN Q Nn p T R su Δo := by
+  intro x n va vb hN hb ha he hs hQ
+  exact correct_of_plan AssemblyPS.oneReq_PS he
+    (plan_R hp (islDelay_all hp hk) hR hb he (hstep x n va vb hN hb ha he hs hQ))
+
 end Formal.Target.PlanRPS
