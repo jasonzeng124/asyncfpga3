@@ -1304,3 +1304,6 @@ Formal 565af3b9 build: NChk modules then full build EXIT 0. FormalWit witness mo
 - 2026-11-10T05:34:18Z T55 started (own scripts): BOARD-QUEUE #11 ipow BDC_CONST_DATA + T9cdd (sdf f0af6ff8) seed 1; note: the board seed decodes NOT_EQUIVALENT per research (benign GND-buffer kind) -- to inspect.
 - 2026-11-10T05:50:13Z T55 done: BOARD-QUEUE #11 ipow const-data seed 1 CONFIRMED (sdf, 17/17 own oracle, cyc31 268); NOT_EQUIVALENT is benign by own analysis (GND-buffer LUT shares a live LUT; bits give GND).
 - 2026-11-10T07:39:30Z formal b3bf2fb8 batch (4 modules incl. A's PlanPS) build + axioms CONFIRMED. Research b4a59904: second-latch p8mo fails on the bench top (their own finding).
+
+## 2026-11-10T08:18:08Z T56
+PlanRPS (A 154c44cd) built at 464838c1, axioms clean. Conditional on StepHypR; StepHypR false at kappa 0.44 / g 8/5 by CexR44/CexRg16. Non-vacuity at small kappa UNVERIFIED. REPORT row added.
