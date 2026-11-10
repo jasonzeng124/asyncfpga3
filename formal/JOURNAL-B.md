@@ -4193,3 +4193,15 @@ emission; other pairs; κ > 0.
 - `target_by_slices`: certificates on the slices of a finite cover of [0,1] (e.g. the 16 the (12,18) measurement
   needs) give the property for every behaviour.
 check.sh OK, standard axioms.
+
+### progress 11:1x -- note for C / A: using `tnPS` in the one-pair instance (no new Lean)
+- `tnPS` gates are only the 19,878 logic nodes; every copy/pip node and every undriven node is a NON-gate. TBehX's
+  `env` field then quantifies over all of them with `dat u = false`, so an instance should mark copy nodes (never a
+  pin of `tnPS`) and the logic outside the kernel's cone as data (`dat = true`, CF.len 0), not exact.
+- Kept pins read 68 environment nodes and **55 undriven nodes** (flop Qs of the PS side and `float:` pins, e.g.
+  SLICE_X0Y26.BQ, `float:SLICE_X0Y26 A4`); Spec leaves undriven nodes unconstrained, so the logic reading them must
+  stay data / outside every claim's cover (C's earlier Python found none in the kernel's cone; not re-checked here).
+- Emission cost: `CovUpGC.hgcB` and C's checkers index the claim list `cl[i]?` (a List): with ~82k claims per slice
+  that is O(n) per lookup in the kernel (~10^9 steps per slice). A per-pair Lean instance will need the claim list
+  in chunks or a tree (like C's BT copy map) before `decide` is feasible; worth fixing in the generic layer first.
+- Constants and dead pins are gone from `tnPS` pin lists, so a certificate for `tnPS` must drop covers on them.
