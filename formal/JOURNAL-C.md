@@ -2970,3 +2970,10 @@ the unrolled (every-word) theorems still use ChainOK.
 ### progress 10:04 -- AO/TimedUp: `gate_firesAU`, `timedA_liveU` (check.sh OK)
 The liveness theorem with `ChainUOK` in `hGC` (proofs copied from Timed.lean, calls redirected). Closes the
 "timedA_live with ChainUOK" item above.
+
+### progress 10:08 -- AO/TimedUp.timedA_followsUX: external (condition) claims as hypotheses (check.sh OK)
+Piece 3, step 1 (notes/C-allpairs.md): `timedA_followsUX ext`: `timedA_followsU` where claims satisfying `ext` (the
+datapath conditions the control reads, whose values no window fixes) need no GateProof/ChainUOK; they are a
+hypothesis `hExt` of the environment-claim shape (hold at s whenever the run followed the certificate up to s).
+Same conclusion (safety: every behaviour follows the certificate; all claims, external ones included, hold).
+*Open:* discharging `hExt` from the register-word invariant and the timed units; liveness variant; unrolled variant.
