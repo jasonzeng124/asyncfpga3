@@ -19,6 +19,9 @@ every corner.
   holds for EVERY behaviour as soon as, for each consecutive pair `[lo, hi]`, it holds for every behaviour that has
   read times on `tnPS p lo hi` from every `t0 ≥ 2H` (the `rd/mono/geq/lo1` part of `TBehX`).
 
+* `tnPS_lo_nat`, `tnPS_hi_nat`: for `p = ⟨gn/gd, kn/kd⟩` and rational slice ends, every bound is a Nat sum
+  (`loN`/`hiN`), so certificate checks on `tnPS` need no ℚ in the kernel.
+
 **Not shown here:** the `quiet` and `env` fields for THE target (reset island, `AO/EnvHS`); any certificate.
 -/
 
@@ -62,5 +65,30 @@ theorem target_by_slices {p : DelayPar} (hp : Sane p) (P : Beh → Prop) (a b : 
   obtain ⟨i, lo, hi, e1, e2, l1, l2⟩ := slice_cover s a b c (by rw [ha]; exact hc0) (by rw [hlast]; exact hc1)
   have hhi : hi ≤ 1 := (hin hi (List.mem_of_getElem? e2)).2
   exact hslice i lo hi e1 e2 x hb (fun t0 ht0 => h lo hi t0 l1 l2 hhi ht0)
+
+end Formal.Cells.SliceNetPS
+
+namespace Formal.Cells.SliceNetPS
+open Formal.Target Formal.Timing.SpecChain Formal.Net.OccNet Formal.Net.OccNet.Bridge Formal.Cells.CornerSlice
+  Formal.Timing.Huffman Formal.Target.DecodedPS Formal.Net.CViewPS Formal.Cells.SliceReads
+  Formal.Cells.SliceNet
+
+/-- **Nat forms of the slice net's bounds** (for `decide`): with `p = ⟨gn/gd, kn/kd⟩` and slice ends `cn1/cd`,
+`cn2/cd`, every `lo`/`hi` is a sum of Nat ceilings/floors (`CornerSlice.loN`/`hiN`) along the pin's route. -/
+theorem tnPS_lo_nat {kn kd gn gd cn1 cn2 cd : Nat} (hk : kn ≤ kd) (hc : cn1 ≤ cd) (hkd : 0 < kd) (hgn : 0 < gn)
+    (hgd : 0 < gd) (hcd : 0 < cd) (cx : ℚ) (v w : Nat) :
+    (tnPS ⟨(gn : ℚ) / gd, (kn : ℚ) / kd⟩ ((cn1 : ℚ) / cd) cx).lo v w =
+      ((pinArcs (gAt cs 2500 v) (pcsPS v) (pinOf (keepPSN v) (srcOf (pcsPS v)) w)).map
+        (loN kn kd gn gd cn1 cd)).sum := by
+  show sumLoC _ _ _ = _
+  exact sumLoC_eq hk hc hkd hgn hgd hcd _
+
+theorem tnPS_hi_nat {kn kd gn gd cn2 cd : Nat} (hc : cn2 ≤ cd) (hkd : 0 < kd)
+    (hgd : 0 < gd) (hcd : 0 < cd) (cx : ℚ) (v w : Nat) :
+    (tnPS ⟨(gn : ℚ) / gd, (kn : ℚ) / kd⟩ cx ((cn2 : ℚ) / cd)).hi v w =
+      ((pinArcs (gAt cs 2500 v) (pcsPS v) (pinOf (keepPSN v) (srcOf (pcsPS v)) w)).map
+        (hiN kn kd gn gd cn2 cd)).sum := by
+  show sumHiC _ _ _ = _
+  exact sumHiC_eq hc hkd hgd hcd _
 
 end Formal.Cells.SliceNetPS
