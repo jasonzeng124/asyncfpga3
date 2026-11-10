@@ -1340,3 +1340,6 @@ CexQ36 + Frontier36 CONFIRMED (Lean, own build 157 modules): headline false for 
 
 ## 2026-11-10T12:17:48Z build66
 Large formal batch (e5f31db2) building one module at a time: B SliceNetPS/StartBoundPS/ArcTreePS/CovUpChunk, A CertSpec/CertN1, C AO TimedUp/Unroll*, TimedOccUp, 4 timed units.
+
+## 2026-11-10T13:08:43Z T61
+Batch at e5f31db2: 328 modules rc=0, 205 theorems axiom-clean; D of uaddi0/uori2/uori3/uselect0 reproduced; CertN1/SliceNetPS conditional bridges.
