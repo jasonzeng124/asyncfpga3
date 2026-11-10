@@ -3329,3 +3329,7 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   1.247 / 1.253 / 1.271 (max / min / worst; 1.18-1.36). Soak-top gate 24/24, 8/8 EQUIVALENT (earlier entry).
 - BOARD-QUEUE item 11 / #12 (seed-1 sdf 1e51be7e, CLK=0x00100C00, judge loop_cost_judge.py xorshift vs item 4's
   x0.5 route). The added stages keep default (unsized) delays.
+### progress 14:40 (next lever: BDC_CONST_DATA on collatz64 -- two 64-bit barrel shifters)
+- collatz64's 3n+1 and n>>1 shift by a channel constant too (64-bit: `e0 << e1`, `$signed(e2) >>> e3`). Running the
+  same pipeline as collatz/ipow: T4 sizes + flag, seeds 1-4 (the T4 base seeds), full stack, corner_audit; the
+  per-cell candidate will keep every mux line at T4 (the ipow umux3 lesson).
