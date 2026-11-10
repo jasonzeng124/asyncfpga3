@@ -4268,3 +4268,12 @@ slices on [3/8,1] (pairs/), **a 22-slice cover passes for (17,5)**. Measured so 
 (8,12) 16 uniform, (17,5) 22. The bank-latch H->U' roots (margins down to -927 ps at width 1/16) are slice-width
 artefacts, not races. Not shown: Lean emission; other pairs; κ > 0; one midpoint run per slice.
 (Container restarted at ~20:06; the queue survived, no slice rerun needed.)
+
+### progress 22:3x -- session close summary (B, 2026-11-10)
+Lean (check.sh OK, standard axioms): CornerSlice, SliceReads, SliceNet, SliceNetPS/{Main,Final,TBeh}, StartBound(PS),
+ArcTree(PS)/Fast, CovUpChunk. TBehX's read fields (rd, mono, geq, lo1) are DERIVED on THE target for every Spec
+behaviour and any corner slice; `quiet`/`env` are left as hypotheses. Python (untrusted) slice covers: (12,18) 16 slices,
+(8,12) 16 slices, (17,5) 22 slices. No hypothesis on the STATUS list was discharged today: no certificate was emitted.
+For the next B session: emit one slice certificate of (12,18) on `tnPS`, using CovUpChunk and loF/hiF. C's
+local-check/guard checkers need the same chunking; coordinate with C first. Or the TBehX `quiet` instance from C's reset
+island.
