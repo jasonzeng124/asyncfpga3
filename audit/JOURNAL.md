@@ -1385,3 +1385,15 @@ Hold scope OVERSTATED: uniform-scale items #4/#6/#12 (xorshift x0.5, umux1 selec
 
 ## 2026-11-11T02:49:27Z T64 row 4
 #7 board seed FAST_MIN: sdf 412bd505 reproduced, EQUIVALENT, oracle 14/14. Both exposed board seeds pass FAST_MIN.
+
+## 2026-11-11T04:50:20Z STOP (owner pause, audit PROGRAM 08340010)
+Stopped on the owner's pause until 2026-11-12 00:00 UTC. No builds or simulations running; no subagents.
+Where this session stopped: findings T56-T64 committed (headline refuted for g >= 1, kappa >= 9/25, T59, witness
+re-checked by own checker; reset_quiet_all, 20/20 datapath units, 16/20 timed units confirmed; formal backlog empty
+at its pause; BQ#12 confirmed on two routes; T64: research's select-link hold is narrower than its reasoning, but #7
+and #12 board seeds pass FAST_MIN).
+Next steps for the next session: (1) audit research's select-safe re-gates (collatz64 T4cdb, collatz T3cdb, ipow T9cde)
+when posted, incl. whether T3cdb's 5 shortened SDELAYs are on non-select pipes in collatz's kernel; (2) FAST_MIN on
+other routes of the uniform-scale items (#4/#6/#7/#12) if the owner wants T64 pursued; (3) the 4 remaining timed
+datapath units if formal resumes (parked in Wip/TimedShift, unchecked).
+Lock released.
