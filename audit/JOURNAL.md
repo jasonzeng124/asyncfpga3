@@ -1379,3 +1379,6 @@ research cc95dc0e/01754319: board items (collatz cd = audit T53, ipow cd = audit
 
 ## 2026-11-11T02:21:15Z T64
 Hold scope OVERSTATED: uniform-scale items #4/#6/#12 (xorshift x0.5, umux1 select 15->8) and #7 (collatz64 x0.75, ulink_n14__1 19->15) shorten select links. Next: FAST_MIN on #12 and #7 board seeds.
+
+## 2026-11-11T02:34:26Z T64 progress
+#12 board seed FAST_MIN at 83.3 MHz: EQUIVALENT, oracle 17/17. #7 rebuilt (sdf 412bd505 reproduced); first FAST_MIN sim truncated (disk full, vvp syntax error), rerunning alone after cleanup.

@@ -1,0 +1,89 @@
+T45 s75_fastmin  Wed Nov 11 02:23:27 UTC 2026
+GLS_MODEL=fid
+GLS_SDF=/root/t45/s75/collatz64_bench_gen_xray.sdf
+GLS_SDF_FIELD=min
+PS_DESIGN=collatz64_bench_gen
+PS_HOST=ps7_bench.v
+PYTHONPATH=/root/audit-tc/openxc7-src/prjxray
+XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
+$ python3 /root/wt-r34/cells/gls/fid/xray_delay.py --routed /root/t45/s75/collatz64_bench_gen_routed.json --sdf /root/t45/s75/collatz64_bench_gen.sdf --out /root/t45/s75/collatz64_bench_gen_xray.sdf
+  sitepip_charged_CLKINV                   1482
+  sitepip_charged_SRUSEDMUX                848
+  sitepip_charged_x5FFMUX                  562
+  sitepip_charged_xFFMUX                   1324
+  sitepip_charged_xOUTMUX                  3403
+89ad591abc3ee998d4a7347ccbb0ffb0  /root/t45/s75/collatz64_bench_gen.bit
+412bd505aa30d5e44a63fb14e3f6e1ff  /root/t45/s75/collatz64_bench_gen.sdf
+2bb24d4f9c8767581198176582ee74b1  /root/t45/s75/collatz64_bench_gen_xray.sdf
+5bfc73eda36bcb1786f52fb07d998a32  /root/t45/s75/collatz64_bench_gen_routed.json
+5f875fe09e3b4a44d49a1c80c8189a3a  /root/t45/collatz64_14.hex
+chain-band cells: 202
+$ /root/wt-r34/cells/gls/ps/build_ps.sh /root/t45/s75 /root/t45/work_s75_fastmin "" bit
+source: /root/t45/s75/collatz64_bench_gen.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 65377   nodes touched: 333641
+cells: 9816  {'BUFGCTRL': 1, 'CARRY4': 88, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PS7_PS7': 1, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 948, 'SLICE_FFX': 1892, 'SLICE_LUTX': 6880}
+sinks traced: 247620
+sink roots: {'drv': 29160, 'const/default': 17748, 'const/tile': 1292}
+sdf: DRIVER MISMATCH: nextpnr's arc has another source                      94
+sdf: cell arcs for a bel this netlist does not have                         92
+sdf: cells re-keyed                                                         9723
+sdf: interconnects re-keyed                                                 35404
+sdf: sinks with no nextpnr interconnect (0 ps)                              17138
+
+PROBLEMS (2 kinds):
+      94  SDF interconnect source differs from the bitstream's driver
+            e.g. SLICE_X0Y72/D6LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+            e.g. SLICE_X11Y79/A6LUT/A4: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:706$1342.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X12Y84/CARRY4/CO2
+            e.g. SLICE_X12Y77/A6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:706$1342.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X12Y84/CARRY4/CO2
+            e.g. SLICE_X12Y84/D5LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+            e.g. SLICE_X12Y84/D6LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+            e.g. SLICE_X12Y93/C5LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+            e.g. SLICE_X12Y93/C6LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+            e.g. SLICE_X13Y84/C6LUT/A1: sdf $GND/Y, bits SLICE_X2Y80/A6LUT/O6
+       1  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_BOT_R_X82Y48/CLK_BUFG_BUFGCTRL0_O
+
+CONFIGURED FEATURES NOT CONSUMED: 1 kinds (0 all-zero encodings ignored)
+       1  CLK_HROW_BOT_R.CLK_HROW_CK_IN_LN_ACTIVE   e.g. CLK_HROW_BOT_R_X82Y26.CLK_HROW_CK_IN_L0_ACTIVE
+
+note: 6073 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 10512 routed-JSON net names attached by driver bel pin, 0 whose driver has no net here
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    collatz64_bench_gen (host ps7_bench.v)
+routed.json md5 c8af48a71e2bd7df7115ad5ea5e675ea  <- /root/t45/s75/collatz64_bench_gen_routed.json
+routed.sdf  md5 364eb631c1aa8303fbde657ed73a5c4a  <- /root/t45/s75/collatz64_bench_gen_xray.sdf, column min
+delays:    scatter 0 region 0 seed 1 mode arc logn 0
+model:     fid
+netlist:   bit (fasm2net --ps7 from 89ad591a); VERDICT: EQUIVALENT (only the benign kinds above)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+24 vectors -> /root/t45/work_s75_fastmin/ps_vec.hex
+delays: SDF column min, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 29694 IOPATH, 52542 INTERCONNECT, 8962 SETUPHOLD
+fid: 1265 LUT state node(s) with a self-loop; loop delay min/median/max 126/333/641 ps
+cells         : 9816
+icbufs        : 52542
+nets          : 10563 (+52542 icbuf outputs)
+IOPATH  claimed 82236 -> emitted 82236 (incl. 52542 icbuf)
+SETUPHOLD claimed 8962 -> 1892 flops check them in netlist_baked.v
+built in /root/t45/work_s75_fastmin
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:47.06
+	Maximum resident set size (kbytes): 5130228
+ANNOTATE_DONE
+$ vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +VECFILE=/root/t45/collatz64_14.hex +NRUNS=2 +TBATCH=2000000
+run_baked.vvp:17627594: syntax error
+Command exited with non-zero status 1
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.06
+	Maximum resident set size (kbytes): 2678372
+DONE
