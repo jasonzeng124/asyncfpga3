@@ -58,13 +58,13 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    routes x 3 corners, 17/17 vectors; 2 of 18 routes carry the F7-select defect), predicted 1.16-1.18x per iteration
    (1.08-1.26). Judge: `python3 ../research/tools/
    loop_cost_judge.py ipow build/hw/lc_ipow_s75.tsv build/hw/lc_ipow_t9.tsv`.
-8. **collatz with per-cell sizes, on the kernel bench**: #9 below. 48/48 full-stack runs (both builds, 8 routes x 3
+8. **[ON HOLD 2026-11-11: its per-cell sizes shorten umux1/umux0 select paths (ulink_n14__0 18->11, ulink_n14__1 36->18, umux0 6->1), the class that failed collatz64; item 9 replaces it]** **collatz with per-cell sizes, on the kernel bench**: #9 below. 48/48 full-stack runs (both builds, 8 routes x 3
    corners, 13/13 vectors), predicted 1.19-1.21x per iteration (1.12-1.33). Judge: `python3 ../research/tools/
    loop_cost_judge.py collatz build/hw/lc_collatz_cs.tsv build/hw/lc_collatz_t3.tsv`.
-9. **[ON HOLD 2026-11-11, being re-gated -- see #10]** **collatz with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
-   #10 below. 24/24 full-stack runs (8 routes x 3 corners, 13/13 vectors), predicted 1.34-1.37x per iteration over T3
-   (1.26-1.47) and 1.12-1.13x over item 8. Judge: `python3 ../research/tools/loop_cost_judge.py collatz
-   build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv`.
+9. **collatz with the shift-by-one read as a literal (BDC_CONST_DATA=1), select-safe per-cell sizes, on the kernel bench**:
+   #10 below. 24/24 full-stack runs (8 routes x 3 corners, 13/13 vectors), predicted 1.17-1.19x per iteration over
+   T3 (1.13-1.25). Replaces the earlier T3cd version (held: shortened select links). Judge: `python3 ../research/tools/
+   loop_cost_judge.py collatz build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv`.
 10. **[ON HOLD 2026-11-11, being re-gated -- see #11]** **ipow with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
    #11 below. 24/24 full-stack runs (8 routes x 3 corners, 17/17 vectors), predicted 1.24-1.27x per iteration over
    T9 (1.20-1.31) and 1.06-1.10x over item 7. Judge: `python3 ../research/tools/loop_cost_judge.py ipow
@@ -73,6 +73,9 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    below. Full gate: soak top 24/24 on 8 routes; bench top 23/24 + the 24th traced to the harness at 100 MHz and
    passing at 83.3. Predicted 1.25-1.27x per round over item 4's x0.5 (1.18-1.36). Judge: `python3 ../research/tools/
    loop_cost_judge.py xorshift build/hw/lc_xor_p8mo.tsv build/hw/lc_xor_s50.tsv`.
+12. **collatz64 with the shift-by-one read as a literal (BDC_CONST_DATA=1), select-safe per-cell sizes, on the kernel
+   bench**: #13 below. 24/24 full-stack runs, predicted 1.22-1.23x per iteration over T4 (1.14-1.35) and 1.03-1.05x
+   over item 6. Judge: `python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_cd.tsv build/hw/lc_t4.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -424,6 +427,8 @@ Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points answered 
 information: predicted 1.08-1.13 on this route (1.08-1.26 over 7 pairs; mean 1.16-1.18 by corner). Same meaning as #6/#7.
 
 ## 9. collatz per-cell sizes on the kernel bench -- 48/48 full-stack runs on 8 bench routes
+**ON HOLD (2026-11-11).** These per-cell sizes shorten umux1/umux0 select paths: ulink_n14__0 18->11, ulink_n14__1 36->18 with SDELAY 3->1, and umux0 6->1. That is the class that failed collatz64 on one route at FAST_MIN (traced). Item 9 (#10) replaces it. This section's T3 build is still the base for #10.
+
 PROGRAM item 3's collatz step (per-cell corner_audit sizes, 8/8 soak routes, 1.155x) on the board's own top, with its
 T3 base on the same seeds (research/data/collatz_bench/results.tsv; sizes research/data/collatz_sizes_T3{,cs}_bench.vh;
 rule A 4-9 cells per route on both builds, informational). nextpnr 9c732bc6303458df. From cells/:
@@ -439,28 +444,25 @@ rule A 4-9 cells per route on both builds, informational). nextpnr 9c732bc630345
 Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.12-1.15 on
 this route (1.12-1.33 over 8; mean 1.19-1.21 by corner).
 
-## 10. collatz BDC_CONST_DATA=1 + per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
-**ON HOLD (2026-11-11).** The collatz64 build made the same way (BDC_CONST_DATA + corner_audit sizes) failed one bench route at FAST_MIN. The cause, traced: umux1's select link, shortened by corner_audit from 19 to 10 links, let a new token into the step counter inside its hold window. This item's sizes shorten the same select links: ulink_n14__0/n14__1/n_index_11 here, ulink_n17__*/n_index_15 for ipow. It passed 8 routes, but that hazard is route-dependent. It is being re-gated with every select link and mux delay kept at max(candidate, base) (`*_T3cdb` / `*_T9cde`). Do not run it until it is replaced.
+## 10. collatz BDC_CONST_DATA=1 + select-safe per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
+collatz's 3n+1 and n>>1 shifted by a constant that arrived as a data channel, which made them barrel shifters.
+bdc/emit.py BDC_CONST_DATA=1 reads that channel's data as the literal it always carries; the channel, its link and
+its handshake stay. Sizes are research/data/collatz_sizes_T3cdb.vh: corner_audit's per-cell proposal, with every mux
+delay and every linked select channel (ulink_n14__0, ulink_n14__1, ulink_n_index_11) at max(proposal, T3). The
+first version (T3cd) shortened those, the class that failed collatz64 on one route (JOURNAL 2026-11-11); it was
+withdrawn. Bench top: research/data/collatz_cdb_bench/results.tsv, 24/24, decodes EQUIVALENT except seeds 4 and 8
+(benign GND-buffer kind, checked). The T3 base is #9's second build. nextpnr 9c732bc6303458df. From cells/, on a
+checkout with BDC_CONST_DATA (83cd6c77 or later):
 
-The first lever from research/data/itercost (collatz's 3n+1 and n>>1 shift by a constant 1 that arrived as a data
-channel, so both were 32-bit barrel shifters): bdc/emit.py BDC_CONST_DATA=1 reads that channel's data as the literal
-it always carries (the channel, its link and its handshake stay), LUT sites -37%, then corner_audit sizes
-(collatz_sizes_T3cd.vh, 249 -> 174 links; soak top 24/24 on 8 routes, 8/8 EQUIVALENT, 1.34-1.36x over T3). On the
-bench top: research/data/collatz_cd_bench/results.tsv (sizes research/data/collatz_sizes_T3cd_bench.vh; rule A 4-8
-cells per route, informational; seed 5 decodes NOT_EQUIVALENT of the benign GND-buffer F7 data-input kind only).
-The T3 base is item 8's (#9's second build). nextpnr 9c732bc6303458df. From cells/, on a checkout with bdc/emit.py's
-BDC_CONST_DATA (commit 83cd6c77 or later):
-
-    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cd_bench.vh ./hw/build_bench.sh collatz
+    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_bench.vh ./hw/build_bench.sh collatz
     grep -c "<< 32'h1" build/gen/collatz_kernel_bench.v    # must be >= 1: the flag took effect
-    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # 3cbe05d8 = the route gated here
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # a7882dfa = the route gated here
     CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_collatz_cd.tsv
-    (T3 base: the two #9 commands for lc_collatz_t3.tsv, sdf 6134880a, if not already run)
+    (T3 base: #9's commands for lc_collatz_t3.tsv, sdf 6134880a, if not already run)
     python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv; echo "exit $?"
 
-Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.26-1.30 on
-this route (1.26-1.47 over 8; mean 1.34-1.37 by corner). A FAIL with the per-cell build passing would point at the
-flag (the only difference in the netlist's function is the literal), not at the sizes alone.
+Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both builds). Ratio predicted 1.15-1.17 on
+this route (1.13-1.25 over 8).
 
 ## 11. ipow BDC_CONST_DATA=1 + per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
 **ON HOLD (2026-11-11).** The collatz64 build made the same way (BDC_CONST_DATA + corner_audit sizes) failed one bench route at FAST_MIN. The cause, traced: umux1's select link, shortened by corner_audit from 19 to 10 links, let a new token into the step counter inside its hold window. This item's sizes shorten the same select links: ulink_n14__0/n14__1/n_index_11 here, ulink_n17__*/n_index_15 for ipow. It passed 8 routes, but that hazard is route-dependent. It is being re-gated with every select link and mux delay kept at max(candidate, base) (`*_T3cdb` / `*_T9cde`). Do not run it until it is replaced.
@@ -503,6 +505,25 @@ with BDC_MERGE_OUT_LINK (5a4176cd or later):
 Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's xorshift points on both builds). CLK=0x00100C00 (83.3 MHz)
 matters here: at 100 MHz this route's harness operand register misses timing at the slow corner (traced, JOURNAL
 2026-11-10). Ratio predicted 1.23-1.27 on this route (1.18-1.36 over 8).
+
+## 13. collatz64 BDC_CONST_DATA=1 + select-safe per-cell sizes on the kernel bench -- 24/24 on 8 bench routes
+The same change as #10 on the 64-bit kernel: two 64-bit barrel shifters removed. Sizes are research/data/collatz64_sizes_T4cdb.vh: corner_audit's per-cell proposal over 4 soak routes, with every mux delay and select link (ulink_n14__0/n14__1/n_index_11) at max(proposal, T4).
+- Soak top: T4cd 24/24 and 8/8 EQUIVALENT, 1.23-1.24x.
+- Bench top: T4cd was 23/24, and the failure traced to umux1's shortened select link; T4cdb is 24/24.
+- Results: research/data/collatz64_cdb_bench/results.tsv. Seed 5 decodes NOT_EQUIVALENT of the benign GND-buffer kind (checked).
+- The T4 base is #7's second build. nextpnr 9c732bc6303458df.
+
+From cells/:
+
+    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_bench.vh ./hw/build_bench.sh collatz64
+    grep -c "<< 64'h1" build/gen/collatz64_kernel_bench.v    # must be >= 1
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # b883dcb5 = the route gated here
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_cd.tsv
+    (T4 base: #7's commands for lc_t4.tsv, sdf ebb49f83, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_cd.tsv build/hw/lc_t4.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 10 of loop_cost.sh's collatz64 points on both builds). Ratio predicted 1.15-1.17
+on this route (1.14-1.35 over 7 pairs).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

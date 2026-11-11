@@ -3359,3 +3359,15 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   ipow umux0/umux1); they passed 8 routes on both tops but the hazard is route-dependent, so board items 9 and 10
   are ON HOLD until re-gated. Candidates: collatz64_sizes_T4cdb.vh (169 links), collatz_sizes_T3cdb.vh (208),
   ipow_dsp1_sizes_T9cde.vh (272). Bench-top gates (8 routes x 3 corners) queued for all three.
+### progress 08:30 (re-gates: collatz64 select-safe 24/24 (1.22x over T4), collatz select-safe 24/24 (1.18x over T3); item 8 also held)
+- Bench top, seeds 1-8, 83.3 MHz, max/min/worst: collatz64_sizes_T4cdb 24/24 PASS 14/14 (seed 5 benign GND buffer);
+  collatz_sizes_T3cdb 24/24 PASS 13/13 (seeds 4, 8 benign). Paired: collatz64 vs T4 1.218 / 1.222 / 1.230 (7 pairs),
+  vs x0.75 1.03-1.05; collatz vs T3 1.184 / 1.188 / 1.167, vs per-cell T3cs 0.98, vs the held T3cd 0.87 -- i.e. most of
+  T3cd's extra gain over per-cell came from the shortened select links; with them restored collatz's literal-shift
+  build is no faster than the per-cell sizes it was meant to beat.
+- The per-cell sizes of board item 8 (collatz_sizes_T3cs) shorten the same select paths (ulink_n14__0 18->11,
+  ulink_n14__1 36->18, umux0 6->1): ON HOLD, replaced by item 9 (T3cdb). The uniform shrinks (items 4, 6, 7, 11:
+  x0.5 / x0.75) scale select links in proportion with everything else; no failure seen on any of their routes; left
+  on the list, flagged for the owner.
+- BOARD-QUEUE: item 9 / #10 rewritten (collatz T3cdb, sdf a7882dfa); new item 12 / #13 (collatz64 T4cdb, sdf b883dcb5);
+  item 10 (ipow) stays held until its re-gate (running) finishes.
