@@ -3345,3 +3345,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   buffer on a CARRY4 DI, checked). Seed 7 FAST_MIN FAIL 12/14: n=871 -> 306 steps (178 expected), n=77031 -> 606
   (350); deterministic (both runs agree), the short power-of-two vectors and n=27/97 pass. A wrong step changes the
   trajectory. Not a board candidate until explained; reproducing n=871 with every net dumped.
+- 03:10 traced (n=871 alone, every net dumped): the n loop runs its 178 iterations correctly; the STEP COUNTER is wrong
+  (127 -> 128 -> 257). At iteration 127 uaddi1's output settles to 128 2.3 ns before its z_req, then 27 ns later, z_req
+  still high, bits 6-8 glitch and settle to 0x100: umux1's select path (ulink_n14__1, shortened 19 -> 10 by
+  corner_audit, SDELAY 2 -> 1) lets umux1's request return to zero early, ulink_n_falseResult_5 admits the next
+  token, its latch opens and new data runs through umux1 -> ulink_n13 -> uaddi1 inside the counter output's hold
+  window. Same family as ipow's umux3: a mux SELECT path that corner_audit's rules do not guard. Test running: seed
+  7 with ulink_n14__1 / _SDELAY back at T4 (19 / 2), FAST_MIN and SLOW_MAX.
