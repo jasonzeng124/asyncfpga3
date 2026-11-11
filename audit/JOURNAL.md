@@ -1382,3 +1382,6 @@ Hold scope OVERSTATED: uniform-scale items #4/#6/#12 (xorshift x0.5, umux1 selec
 
 ## 2026-11-11T02:34:26Z T64 progress
 #12 board seed FAST_MIN at 83.3 MHz: EQUIVALENT, oracle 17/17. #7 rebuilt (sdf 412bd505 reproduced); first FAST_MIN sim truncated (disk full, vvp syntax error), rerunning alone after cleanup.
+
+## 2026-11-11T02:49:27Z T64 row 4
+#7 board seed FAST_MIN: sdf 412bd505 reproduced, EQUIVALENT, oracle 14/14. Both exposed board seeds pass FAST_MIN.
