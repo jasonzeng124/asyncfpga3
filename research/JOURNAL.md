@@ -3352,3 +3352,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   token, its latch opens and new data runs through umux1 -> ulink_n13 -> uaddi1 inside the counter output's hold
   window. Same family as ipow's umux3: a mux SELECT path that corner_audit's rules do not guard. Test running: seed
   7 with ulink_n14__1 / _SDELAY back at T4 (19 / 2), FAST_MIN and SLOW_MAX.
+- 04:10 seed 7 with ulink_n14__1 / _SDELAY back at T4 (19 / 2): FAST_MIN PASS 14/14 (the SLOW_MAX run was lost to a
+  container restart). Diagnosis holds. RULE from now on (both traced failures were mux-select paths): corner_audit
+  proposals never shorten a mux delay or a linked SELECT channel's DELAY/SDELAY (bdc emit.select_channels) below
+  base -- max(candidate, base). collatz T3cd and ipow T9cdd shorten the same select links (and collatz umux0/umux2,
+  ipow umux0/umux1); they passed 8 routes on both tops but the hazard is route-dependent, so board items 9 and 10
+  are ON HOLD until re-gated. Candidates: collatz64_sizes_T4cdb.vh (169 links), collatz_sizes_T3cdb.vh (208),
+  ipow_dsp1_sizes_T9cde.vh (272). Bench-top gates (8 routes x 3 corners) queued for all three.
