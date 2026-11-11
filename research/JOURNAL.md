@@ -3383,3 +3383,16 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   route's input.mlir). It may still pad them. Checked on collatz64_cdc2 seed 5 (an x T4cd route): all 8 select-path lines
   kept, labelled; the same route with --shrink-selects proposes ulink_n14__1 10 -> 5 and umux1 5 -> 1 (the moves that
   failed), so the protection is what holds them. A route's sizes.vh is the floor, so run it on base routes.
+## Session 2026-11-11 07:45 UTC -- STOPPED for the owner's pause (PROGRAM.md, commit cca0a559)
+- The pause (until 2026-11-12 00:00 UTC, "a running session stops now") was committed 2026-11-11 04:26 UTC. This
+  session read it only at 07:41: the lockkeeper's `git pull --rebase` brought it in and I did not re-read PROGRAM.md
+  after each pull. Work done in those ~3 h: the ipow select-safe re-gate finished and was written up (item 10
+  withdrawn), the corner_audit select-path protection (fdee9471), PR #2's description. No new runs were started after
+  the re-gate; nothing is running now (lockkeeper and janitor stopped). Lesson: re-read PROGRAM.md whenever a pull
+  brings in an owner commit.
+- Where it stands: board items 9 (collatz T3cdb, 1.18x), 11 (xorshift second latch, 1.25x), 12 (collatz64 T4cdb, 1.22x)
+  passed the full gate; 8 on hold and 10 withdrawn (select-path race, traced twice); uniform shrinks (4, 6, 7, 11)
+  flagged for the owner. PR #2 is current.
+- Next step (for the session after 2026-11-12 00:00 UTC): delete the PAUSED section, then the new PROGRAM FIRST item
+  ("compute where storage goes, before building it", owner 2026-11-10, commit 8c90d04d), which this session has not
+  started; it comes before any new per-kernel sizing or board candidate.
