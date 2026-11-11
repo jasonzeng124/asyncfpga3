@@ -3340,3 +3340,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - collatz64_sizes_T4cd.vh, soak top, NEXTPNR_SEED 1-8, SLOW_MAX / FAST_MIN / worst: 24/24 PASS, fasm_equiv 8/8
   EQUIVALENT. Paired vs T4 1.244 / 1.236 / 1.232 (1.15-1.33); vs the x0.75 step 1.052 / 1.045 / 1.047. Bench top next.
 - (lockkeeper had kept a pre-restart proxy port and failed every push for ~2 h; restarted, pending lock commits pushed.)
+### progress 01:40 (collatz64 BDC_CONST_DATA on the bench top: 23/24 -- seed 7 FAST_MIN computes wrong step counts)
+- Bench top, T4cd_bench, seeds 1-8, 83.3 MHz harness: 23/24 PASS 14/14; seed 4 decodes NOT_EQUIVALENT (benign GND
+  buffer on a CARRY4 DI, checked). Seed 7 FAST_MIN FAIL 12/14: n=871 -> 306 steps (178 expected), n=77031 -> 606
+  (350); deterministic (both runs agree), the short power-of-two vectors and n=27/97 pass. A wrong step changes the
+  trajectory. Not a board candidate until explained; reproducing n=871 with every net dumped.
