@@ -1376,3 +1376,6 @@ formal B session close 49792162: its Lean list (CornerSlice, SliceReads, SliceNe
 
 ## 2026-11-11T01:40:09Z note
 research cc95dc0e/01754319: board items (collatz cd = audit T53, ipow cd = audit T55) ON HOLD -- corner_audit sizes shorten mux-select links; collatz64 cd failed seed 7 FAST_MIN (hold race). REPORT rows annotated: audit confirmation was board-seed worst case only. Will audit the select-safe re-gates (T4cdb/T3cdb/T9cde) when posted.
+
+## 2026-11-11T02:21:15Z T64
+Hold scope OVERSTATED: uniform-scale items #4/#6/#12 (xorshift x0.5, umux1 select 15->8) and #7 (collatz64 x0.75, ulink_n14__1 19->15) shorten select links. Next: FAST_MIN on #12 and #7 board seeds.
