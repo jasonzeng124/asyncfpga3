@@ -1373,3 +1373,6 @@ research f12c7570: collatz64 BDC_CONST_DATA + per-cell (T4cd), soak top 24/24 on
 
 ## 2026-11-10T23:01:06Z note
 formal B session close 49792162: its Lean list (CornerSlice, SliceReads, SliceNet, SliceNetPS, StartBound(PS), ArcTree(PS), CovUpChunk) matches what T51/T61 confirmed; "no hypothesis on the STATUS list was discharged today" agrees with the audit (bridges conditional). Slice covers (12,18)/(8,12)/(17,5) are untrusted Python, not audited.
+
+## 2026-11-11T01:40:09Z note
+research cc95dc0e/01754319: board items (collatz cd = audit T53, ipow cd = audit T55) ON HOLD -- corner_audit sizes shorten mux-select links; collatz64 cd failed seed 7 FAST_MIN (hold race). REPORT rows annotated: audit confirmation was board-seed worst case only. Will audit the select-safe re-gates (T4cdb/T3cdb/T9cde) when posted.
