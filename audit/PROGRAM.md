@@ -1,5 +1,16 @@
 # Independent audit program
 
+## PAUSED until 2026-11-12 00:00 UTC (owner, 2026-11-11)
+
+The owner has paused the agents for today and tomorrow. **A session that is running now:
+stop now.** Start no new work and no new subagents. Stop any running builds and subagents.
+Commit what is finished, write a short entry in `audit/JOURNAL.md` saying where you stopped and
+what the next step is, release `audit/LOCK`, push, and end the session. Do not wait on
+background jobs, and never create a routine or reminder to come back.
+
+**A session that starts after 2026-11-12 00:00 UTC** (check with `date -u`): the pause is
+over. Delete this section, commit, and carry on with the program below.
+
 You are the independent auditor for asyncfpga3. Two sets of agents produce
 claims:
 - `claude/formal`: three shards building a gate-level Lean 4 model and proofs
