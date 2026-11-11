@@ -65,7 +65,7 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    #10 below. 24/24 full-stack runs (8 routes x 3 corners, 13/13 vectors), predicted 1.17-1.19x per iteration over
    T3 (1.13-1.25). Replaces the earlier T3cd version (held: shortened select links). Judge: `python3 ../research/tools/
    loop_cost_judge.py collatz build/hw/lc_collatz_cd.tsv build/hw/lc_collatz_t3.tsv`.
-10. **[ON HOLD 2026-11-11, being re-gated -- see #11]** **ipow with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
+10. **[WITHDRAWN 2026-11-11: the select-safe re-gate (24/24, research/data/ipow_cde_bench) is 1.16-1.19x over T9 but 0.99-1.02x of item 7, so it adds nothing to the list]** **ipow with the shift-by-one read as a literal (BDC_CONST_DATA=1) + its per-cell sizes, on the kernel bench**:
    #11 below. 24/24 full-stack runs (8 routes x 3 corners, 17/17 vectors), predicted 1.24-1.27x per iteration over
    T9 (1.20-1.31) and 1.06-1.10x over item 7. Judge: `python3 ../research/tools/loop_cost_judge.py ipow
    build/hw/lc_ipow_cd.tsv build/hw/lc_ipow_t9.tsv`.
@@ -465,6 +465,8 @@ Pass: `=== PASS ... ===`, exit 0 (all 9 of loop_cost.sh's collatz points on both
 this route (1.13-1.25 over 8).
 
 ## 11. ipow BDC_CONST_DATA=1 + per-cell sizes on the kernel bench -- 24/24 full-stack runs on 8 bench routes
+**WITHDRAWN (2026-11-11).** The commands below are the held T9cdd version. They shorten ipow's select links (ulink_n17__*, ulink_n_index_15) and its mux delays. Re-gated select-safe (ipow_dsp1_sizes_T9cde, max(candidate, T9)), the build passes 24/24 on 8 bench routes, all EQUIVALENT. But it is no faster than item 7 (x0.75): 0.99-1.02x by corner. Kept for the record; not to be run.
+
 **ON HOLD (2026-11-11).** The collatz64 build made the same way (BDC_CONST_DATA + corner_audit sizes) failed one bench route at FAST_MIN. The cause, traced: umux1's select link, shortened by corner_audit from 19 to 10 links, let a new token into the step counter inside its hold window. This item's sizes shorten the same select links: ulink_n14__0/n14__1/n_index_11 here, ulink_n17__*/n_index_15 for ipow. It passed 8 routes, but that hazard is route-dependent. It is being re-gated with every select link and mux delay kept at max(candidate, base) (`*_T3cdb` / `*_T9cde`). Do not run it until it is replaced.
 
 ipow's ushrsi0 (`e >>= 1`) shifted by a constant 1 that arrived as a data channel, so it was a 32-bit barrel shifter

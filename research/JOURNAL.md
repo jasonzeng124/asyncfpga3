@@ -3371,3 +3371,10 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   on the list, flagged for the owner.
 - BOARD-QUEUE: item 9 / #10 rewritten (collatz T3cdb, sdf a7882dfa); new item 12 / #13 (collatz64 T4cdb, sdf b883dcb5);
   item 10 (ipow) stays held until its re-gate (running) finishes.
+### progress 12:40 (ipow select-safe 24/24 but no faster than x0.75: item 10 withdrawn)
+- ipow_dsp1_sizes_T9cde (select-safe), bench top, seeds 1-8: 24/24 PASS 17/17, 8/8 EQUIVALENT. Paired: vs T9 1.162 /
+  1.159 / 1.185 (7 pairs), vs x0.75 (item 7) 0.985 / 1.002 / 1.024, vs the held T9cdd 0.93. With the select links kept,
+  BDC_CONST_DATA on ipow buys nothing over the uniform x0.75 already listed (the ushrsi0 delay it shortens is not on
+  ipow's critical cycle once the exit select is no longer starved). Item 10 withdrawn. research/data/ipow_cde_bench.
+- Net, after the select rule: collatz64 1.22x over T4 (item 12, +3-5% over item 6); collatz 1.18x over T3 (item 9,
+  replaces held item 8); ipow none over item 7; xorshift second latch 1.25x over x0.5 (item 11).
