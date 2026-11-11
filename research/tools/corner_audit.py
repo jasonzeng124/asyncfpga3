@@ -51,6 +51,12 @@ deliver
          route ever placed.
 and a padded line D(n) + (m - n) * c_lo.  Lines keep >= --floor links (default 1: a line is never removed; 0 stays 0).
 The harness's own lines (upipe, uspin) are measured but kept unless --all-lines.
+SELECT PATHS ARE NEVER SHORTENED (default; --shrink-selects to allow): every mux's own delay (BD_SZ_UUT_UMUX*) and
+every link on a channel bdc reads as a SELECT (bdc/emit.py select_channels(), from the route's input.mlir; DELAY and
+SDELAY) keep at least their current size.  None of the rules here sees the race these lines guard -- a select that
+arrives before its data token, after which the mux fires on the data request alone -- and two shortened select paths
+failed the full stack on routes the proposal was not measured on (ipow umux3, collatz64 ulink_n14__1; JOURNAL
+2026-11-09 / 11-11).  They may still be padded.
 
 VERIFY: the corner SDF re-audited with each changed line's chain arcs scaled to D(m)/D(n) -- path switching included,
 exactly as the audits see it.  A constraint that comes out below --slack bumps the line that cost it most, and the
@@ -423,6 +429,27 @@ def read_sizes(path):
     return sizes, order
 
 
+def select_path_macros(route_dir, macros):
+    """sizes.vh macros guarding a select path: every BD_SZ_UUT_UMUX<n>, and the DELAY/SDELAY of every link on a channel
+    bdc reads as a select (emit.select_channels on the route's input.mlir, which bdc/fusion_bench.py copies next to the
+    seedN/ dirs).  No input.mlir -> the mux delays only, with a warning."""
+    out = {m for m in macros if re.fullmatch(r"BD_SZ_UUT_UMUX\d+", m)}
+    mlir = pathlib.Path(route_dir).resolve().parent / "input.mlir"
+    if not mlir.exists():
+        print("corner_audit: no %s; protecting the mux delays only" % mlir, file=sys.stderr)
+        return out
+    sys.path.insert(0, str(REPO / "bdc"))
+    import emit
+    from hs import parse
+    f = [f for f in parse.parse_module(mlir.read_text(), filename=str(mlir)) if not f.is_declaration][0]
+    e = emit.Emitter(f)
+    for v in e.selects:
+        if v in e.linked:
+            base = "BD_SZ_UUT_ULINK_" + emit.vname(v).upper()
+            out |= {m for m in macros if m in (base, base + "_SDELAY")}
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("route_dir", type=pathlib.Path)
@@ -438,6 +465,8 @@ def main():
     ap.add_argument("--floor", type=int, default=1)
     ap.add_argument("--slack", type=int, default=0, help="every sized constraint must keep >= this many ps")
     ap.add_argument("--all-lines", action="store_true", help="also resize the harness's lines (upipe, uspin)")
+    ap.add_argument("--shrink-selects", action="store_true",
+                    help="allow shortening mux delays and select-channel links (unsafe: see the docstring)")
     ap.add_argument("--no-size", action="store_true", help="report only")
     ap.add_argument("--max-iter", type=int, default=30)
     ap.add_argument("--rule-a-tighten", action="store_true",
@@ -539,6 +568,7 @@ def main():
     sized_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0
                    and (a.all_lines or mac.startswith("BD_SZ_UUT_"))]
     measured_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0]
+    protected = set() if a.shrink_selects else select_path_macros(a.route_dir, list(sizes))
     sens = {}                   # mac -> {key: dM}
     for mac in sorted(measured_lines):
         r = run_worker(sdf, {**spec, "scale": {b: 0.0 for b in lines[mac]}})
@@ -638,6 +668,9 @@ def main():
             if padded.get(mac):
                 continue
             on = [k for k in sens[mac] if k in budget]
+            if mac in protected:
+                why[mac] = "select path: never shortened (see docstring)"
+                continue
             if not on:
                 why[mac] = "on no measured constraint: kept"
                 continue

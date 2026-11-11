@@ -3378,3 +3378,8 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
   ipow's critical cycle once the exit select is no longer starved). Item 10 withdrawn. research/data/ipow_cde_bench.
 - Net, after the select rule: collatz64 1.22x over T4 (item 12, +3-5% over item 6); collatz 1.18x over T3 (item 9,
   replaces held item 8); ipow none over item 7; xorshift second latch 1.25x over x0.5 (item 11).
+- 14:10 research/tools/corner_audit.py now never shortens a select path (default; --shrink-selects to allow): every
+  BD_SZ_UUT_UMUX* and the DELAY/SDELAY of every link on a channel bdc reads as a select (emit.select_channels on the
+  route's input.mlir). It may still pad them. Checked on collatz64_cdc2 seed 5 (an x T4cd route): all 8 select-path lines
+  kept, labelled; the same route with --shrink-selects proposes ulink_n14__1 10 -> 5 and umux1 5 -> 1 (the moves that
+  failed), so the protection is what holds them. A route's sizes.vh is the floor, so run it on base routes.
