@@ -1608,3 +1608,6 @@ Board item 17 (levers 1-3) CONFIRMED on board route: 3 corners 17/17, 1.93-1.99x
 
 ### progress 22:28 item 18 done
 Board item 18 (lever 5) CONFIRMED on board route from T84 runs: sdf, kernel diff = link only, 3 corners 17/17, monitors clean, 2.08-2.14x over x0.5 (pred ~2.12).
+
+### progress 22:36 T87 started
+Research f1111b59 lever 1 on other kernels: spot check colr seed 1 (claimed 47.56 ns; item 15 59.58) by own build at bb155ecf and own collatz period method (n=27 vs n=6171 latmin difference).
