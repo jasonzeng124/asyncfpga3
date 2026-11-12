@@ -1542,3 +1542,6 @@ Item 15 (colb) seeds 2, 3: own builds, FF scan, FAST_MIN + worst.
 
 ### progress 14:14 T78 done
 colb seeds 2, 3: sdf = research, FF clean, FAST_MIN + worst 13/13.
+
+### progress 14:15 T67 row 13
+research ffmux_scan.py validated as a gate: 3/3 defect routes exit 1, 4/4 board seeds exit 0, planted deletion caught.
