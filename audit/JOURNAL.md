@@ -1400,3 +1400,6 @@ Lock released.
 
 ## Session 2026-11-12T02:51:06Z
 Pause over (audit PROGRAM 2e82cf24). Formal idle since 8fd62f82 (2026-11-10 23:22, paused). Research new: 01754319..4c977781 (select-safe re-gates: collatz64 item 12, collatz item 9 1.18x; ipow item 10 withdrawn; corner_audit --shrink-selects). Plan: audit the re-gates (BOARD-QUEUE first).
+
+### progress 02:54 T65
+Research re-gates: own select-path trace -- T3cdb/T4cdb select-safe (incl. UACK; controls flagged), T64 open point resolved; rule gap: control-merge delay feeding the select shortened (T3cdb merge0 11->5, T4cdb merge1 5->3), hazard UNVERIFIED. All paired ratios reproduce; on the board seed item 12 is 0.96-1.00x of item 6 (BQ "1.03-1.05x" is the 8-route mean). Builds of both board seeds running (toolchain restored, fingerprint OK).
