@@ -1482,3 +1482,6 @@ Stress corner no gate runs: FAST_MIN (SDF min) + the M within-die scatter (regio
 
 ### progress 08:49 T70 done
 FAST_MIN + M scatter, draws 1-2, items 7/13/4 board seeds: 6/6 PASS 17/17. No positive control for the scatter part.
+
+### progress 08:50 T70b
+Positive-control attempt for the FAST_MIN+scatter corner: held T4cd on bench seed 1 (passed plain FAST_MIN in research's gate): plain FAST_MIN, then + M scatter draws 1, 2. Running.
