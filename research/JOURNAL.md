@@ -3528,3 +3528,8 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   56.26 / 58.35 ns vs predicted 56.45 / 56.39 / 58.77 / 56.44 (errors +3.1 / +2.0 / -2.5 / +1.9 -- larger than on the
   other kernels); paired with colcdb 1.132 / 1.164 / 1.231 / 1.150 (mean 1.17, predicted 1.19). Cycles as predicted
   (up to the parallel fork branches ulink_n10__1/__2). Next: its full gate (8 routes) after xorshift pmf's.
+### progress 10:45 (xorshift pmf passes the full gate 24/24 -> board item 14 / #15)
+- pmf (x0.5 + ulink_n_trueResult_8=2 + merge-output link + BDC_LINK_FASTFALL) seeds 1, 3-9 x SLOW_MAX / FAST_MIN /
+  worst+M: 24/24 PASS 17/17 (200- and 1000-round vectors included), 7/8 EQUIVALENT, seed 1 benign. Itercost periods
+  seeds 6-9: 29.14 / 30.28 / 31.10 / 29.86 ns (all 8: mean 30.0 vs x0.5's 39.5 -> ~1.32x; ~1.06x over item 11).
+  BOARD-QUEUE item 14 / #15 (seed-1 sdf 169ce4d6). The collatz select-safe gate (colb) is at seed 7.

@@ -80,6 +80,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    chosen by the event graph (research/data/eventgraph), on the kernel bench**: #14 below. Full gate 24/24 on 8 good
    bench routes. Predicted 1.18-1.19x per iteration over item 7 on this route (1.15-1.20 over 4). Judge: `python3
    ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_fm.tsv build/hw/lc_ipow_s75.tsv`.
+14. **xorshift x0.5 + the second latch (item 11's knobs) + link fast fall (BDC_LINK_FASTFALL=1), chosen by the event
+   graph, on the kernel bench**: #15 below. Full gate 24/24 on 8 good bench routes. Predicted 1.34x per round over item
+   4's x0.5 on this route (1.22-1.45 over 8 routes) and ~1.07x over item 11. Judge: `python3 ../research/tools/
+   loop_cost_judge.py xorshift build/hw/lc_xor_pmf.tsv build/hw/lc_xor_s50.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -558,6 +562,29 @@ Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points on both b
 predicted 1.18-1.19 on this route. What it would mean: PASS with the ratio = fast fall and the merge-output latch are
 safe on silicon and the event graph's choice carries; FAIL of the new build only = fast fall (RFAST) or the extra
 latch has a margin the full stack does not see (send both logs).
+
+
+## 15. xorshift x0.5 + BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 + BDC_MERGE_OUT_LINK=ucontrol_merge0 + BDC_LINK_FASTFALL=1 -- 24/24 on 8 bench routes
+Item 11's two latches plus link fast fall: the set research/tools/eventgraph/search.py picks on all five x0.5 base
+graphs (research/data/eventgraph). Itercost-stack period per iteration, seeds 1, 3-9: 29.14 / 29.54 / 32.42 / 28.46 /
+29.14 / 30.28 / 31.10 / 29.86 ns (mean 30.0; x0.5 39.5, item 11's p8mo 31.8 on seeds 1-4).
+- Full gate (bench_gate.sh, 17 vectors, oracle from kernels/xorshift/xorshift.c incl. 200 and 1000 rounds): seeds 1, 3-9
+  x SLOW_MAX / FAST_MIN / worst+M -> 24/24 PASS 17/17; 7/8 EQUIVALENT, seed 1 the benign GND-buffer F7 kind (checked).
+  Seed 2 excluded: AFF without AFFMUX (the nextpnr constant-D flop gap; ffmux_scan.py).
+- New stages keep bdc's defaults (inner SDELAY 3, merge link SELECT_PAD 4 / ACK_PAD 6). nextpnr 9c732bc6303458df.
+  From cells/:
+
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+    grep -c ucontrol_merge0_olink build/gen/xorshift_kernel_bench.v    # must be 1
+    grep -c "RFAST(1)" build/gen/xorshift_kernel_bench.v               # must be 8: fast fall took effect
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 169ce4d6 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_pmf.tsv
+    (x0.5 base: #12's commands for lc_xor_s50.tsv, sdf c5b8ca02, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_pmf.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted 1.33-1.35 on this route. Run item 11 (#12) too if the board time
+allows: pmf / p8mo isolates fast fall (predicted 1.07 on seed 1).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
