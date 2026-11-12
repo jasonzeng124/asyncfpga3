@@ -76,6 +76,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 12. **collatz64 with the shift-by-one read as a literal (BDC_CONST_DATA=1), select-safe per-cell sizes, on the kernel
    bench**: #13 below. 24/24 full-stack runs, predicted 1.22-1.23x per iteration over T4 (1.14-1.35) and 1.03-1.05x
    over item 6. Judge: `python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_cd.tsv build/hw/lc_t4.tsv`.
+13. **ipow x0.75 + link fast fall + a latch on the merge's output (BDC_LINK_FASTFALL=1, BDC_MERGE_OUT_LINK=ucontrol_merge0),
+   chosen by the event graph (research/data/eventgraph), on the kernel bench**: #14 below. Full gate 24/24 on 8 good
+   bench routes. Predicted 1.18-1.19x per iteration over item 7 on this route (1.15-1.20 over 4). Judge: `python3
+   ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_fm.tsv build/hw/lc_ipow_s75.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -526,6 +530,34 @@ From cells/:
 
 Pass: `=== PASS ... ===`, exit 0 (all 10 of loop_cost.sh's collatz64 points on both builds). Ratio predicted 1.15-1.17
 on this route (1.14-1.35 over 7 pairs).
+
+
+## 14. ipow x0.75 + BDC_LINK_FASTFALL=1 + BDC_MERGE_OUT_LINK=ucontrol_merge0 on the kernel bench -- 24/24 on 8 bench routes
+The PROGRAM FIRST item's step 4 for ipow: research/tools/eventgraph/search.py, run on the timed event graph of item 7's
+routes, picked these two existing bdc knobs on every seed (predicted 46.09 / 44.92 / 45.06 / 44.08 ns per iteration;
+measured on the itercost stack 46.84 / 45.02 / 46.04 / 45.24, i.e. 1.185 / 1.152 / 1.179 / 1.199x over x0.75).
+- Full gate (research/tools/eventgraph/bench_gate.sh; research/data/eventgraph/gate/): seeds 1-6, 8, 9 x SLOW_MAX /
+  FAST_MIN / worst (chains 0.21, CARRY4/F7F8/FF 1, rest 0.288, + M) -> 24/24 PASS 17/17 (b = 3 at e = 2^k-1 for 11 k, and
+  6 mixed-sign vectors; oracle from kernels/ipow/ipow.c). Seeds 5, 6, 9 decode NOT_EQUIVALENT of the benign GND-buffer
+  F7/CARRY4 kinds (checked). Seed 7 excluded: its bitstream leaves a constant-D harness flop without BFFMUX (the nextpnr
+  gap; research/tools/ffmux_scan.py).
+- Sizes are item 7's (ipow_dsp1_sizes_T9s75_bench.vh); the new link keeps bdc's defaults (SELECT_PAD 4 / ACK_PAD 6).
+  nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_LINK_FASTFALL=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_bench.vh ./hw/build_bench.sh ipow
+    grep -c ucontrol_merge0_olink build/gen/ipow_kernel_bench.v    # must be 1: the knob took effect
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # e5000e23 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_fm.tsv
+    NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_bench.vh ./hw/build_bench.sh ipow
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 95a362ff (item 7's route)
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_s75.tsv
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_fm.tsv build/hw/lc_ipow_s75.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (all 11 of loop_cost.sh's ipow points on both builds give the oracle's answer). Ratio
+predicted 1.18-1.19 on this route. What it would mean: PASS with the ratio = fast fall and the merge-output latch are
+safe on silicon and the event graph's choice carries; FAIL of the new build only = fast fall (RFAST) or the extra
+latch has a margin the full stack does not see (send both logs).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

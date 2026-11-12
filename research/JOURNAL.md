@@ -3518,3 +3518,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - colcdb (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh, board item 9's sizes) seeds 1-4: 67.44 / 68.02 / 69.27 / 67.10 ns,
   261 steps each. search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 56.45 / 56.39 / 58.77 /
   56.44 ns (1.195 / 1.206 / 1.179 / 1.189x; mean 1.19x). Floors 45.6-46.4 ns. Variant builds (colb) follow colcdb 5-8.
+### progress 06:35 (ipow fm passes the full gate 24/24 -> board item 13 / #14; collatz select-safe step 4 measured)
+- ipowfm (x0.75 + BDC_LINK_FASTFALL + merge-output link) seeds 1-6, 8, 9 x SLOW_MAX / FAST_MIN / worst+M: 24/24 PASS
+  17/17; decodes EQUIVALENT or the benign GND-buffer F7/CARRY4 kinds (5, 6, 9 checked); seed 7 excluded (BFF gap; its own
+  runs also PASS 17/17 -- the defect sits in harness logic these vectors do not exercise, which is why fasm_equiv, not
+  the answers, is what refuses it). BOARD-QUEUE item 13 / #14 (seed-1 sdf e5000e23, ffmux_scan step in the recipe).
+  The first board candidate chosen by the event graph rather than by hand; 1.18x over item 7.
+- collatz select-safe (item 9's T3cdb sizes) + BDC_LINK_FASTFALL + merge link, seeds 1-4: measured 59.58 / 58.44 /
+  56.26 / 58.35 ns vs predicted 56.45 / 56.39 / 58.77 / 56.44 (errors +3.1 / +2.0 / -2.5 / +1.9 -- larger than on the
+  other kernels); paired with colcdb 1.132 / 1.164 / 1.231 / 1.150 (mean 1.17, predicted 1.19). Cycles as predicted
+  (up to the parallel fork branches ulink_n10__1/__2). Next: its full gate (8 routes) after xorshift pmf's.
