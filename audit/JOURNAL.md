@@ -1602,3 +1602,6 @@ Research 8a15fc52 lists c64fm as item 16 (sdf 2c06cd36 = own T77 build): CONFIRM
 
 ### progress 21:55 T86 done
 FAST_MIN monitor sweep, 7 board routes: 0 select violations; tightest = xorshift exit mux umux3 (0.57 ns item 14, 0.71 ns item 4).
+
+### progress 22:27 item 17 done
+Board item 17 (levers 1-3) CONFIRMED on board route: 3 corners 17/17, 1.93-1.99x over x0.5, 1.45-1.49x over item 14.
