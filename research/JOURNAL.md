@@ -3724,3 +3724,9 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
     ipowfm s1 46.84->39.28; s2 45.02->38.71; s3 46.04->38.73; s4 45.24->38.94
     c64fm s1 54.85->44.92; s2 56.16->45.56; s4 57.54->47.96; s5 57.33->47.93
   Building each kernel's item + BDC_MERGE_RES_LINK on those seeds.
+### progress 04:40 (lever 1 on the other kernels, measured on seeds 1-2: collatz 1.24x, ipow 1.16x, collatz64 1.19x)
+- item 15 + BDC_MERGE_RES_LINK (colr): 47.56 / 47.84 ns (predicted 49.47 / 48.56; item 15 59.58 / 58.44): 1.25 / 1.22x.
+- item 13 + it (ipowr): 39.78 / 39.97 (39.28 / 38.71; item 13 46.84 / 45.02): 1.18 / 1.13x.
+- item 16 + it (c64r): 46.95 / 46.37 (44.92 / 45.56; item 16 54.85 / 56.16): 1.17 / 1.21x.
+- All correct (261 steps, 3^(2^31-1)), EQUIVALENT, graph check PASS. Seeds 3-4 running; the three gates queued next.
+  Against Dynamatic: collatz ~47.7 vs 14.05, collatz64 ~46.7 vs 17.84 (README), ipow ~39.9 vs no number on record.
