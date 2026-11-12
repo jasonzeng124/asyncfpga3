@@ -3602,3 +3602,10 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - PREDICTION (item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0), from each pmf graph: 21.85 / 21.87 / 23.10 / 23.57 ns
   (seeds 1/3/4/5; 1.33 / 1.35 / 1.40 / 1.21x over item 14). With PROGRAM's +1-3 ns for an inserted stage's wire:
   expect 23-26 ns. Building seeds 1, 3, 4, 5.
+### progress 18:40 (BDC_MERGE_RES_LINK measured: 23.37 / 23.40 ns on seeds 1, 3 -- 1.25x over item 14; disk filled)
+- item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0, itercost stack: seed 1 23.37 ns (predicted 21.85; +1.52, inside the
+  23-26 expected with the inserted-stage wire), seed 3 23.40 (21.87; +1.53). cd3132bf, EQUIVALENT, graph check PASS,
+  ffmux_scan clean. Over item 14's same seeds: 29.14 -> 23.37 (1.247x), 29.54 -> 23.40 (1.262x). Over x0.5: 1.67x / 1.73x.
+- Seeds 4 and 5 lost their trace dumps to a full disk (817 MB left: this session's dumps, netlists and gate dirs, 27 GB).
+  Freed 11 GB from finished runs (graphs and logs kept); seeds 4, 5 rerunning. The collatz64 gate's seed-8 run was
+  compiled at 17:10, possibly while the disk was filling; if it does not PASS cleanly it is rerun, not read.
