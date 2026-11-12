@@ -1524,3 +1524,6 @@ Item 14 extra routes: pmf seeds 3, 4 (own builds from T67) FAST_MIN + worst.
 
 ### progress 11:56 T66 rows 8-9
 Held-out accuracy recomputed on 20/23 builds from journal-stated predictions: -0.60 / 1.38 / 3.13 ns (research -0.71/1.38/3.13). Step 5 (T3 seed 2) being reproduced by own builds.
+
+### progress 12:26 T75 done
+pmf seeds 3, 4: FAST_MIN + worst 17/17 (EQUIVALENT).
