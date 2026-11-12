@@ -1539,3 +1539,6 @@ c64fm seed 1 (own sdf 2c06cd36): 14/14 at 3 corners; 1.199-1.210 over item 12 (r
 
 ### progress 13:41 T78 started
 Item 15 (colb) seeds 2, 3: own builds, FF scan, FAST_MIN + worst.
+
+### progress 14:14 T78 done
+colb seeds 2, 3: sdf = research, FF clean, FAST_MIN + worst 13/13.
