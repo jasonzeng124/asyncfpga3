@@ -1412,3 +1412,6 @@ Item 9 (collatz T3cdb, seed 1, sdf a7882dfa): worst case 13/13 own oracle, cyc26
 
 ### progress 03:21 T65
 Item 12 (collatz64 T4cdb, seed 1, sdf b883dcb5): worst case EQUIVALENT, 14/14 own oracle, cyc350 3792 = research exact. Started: item 6 (x0.75) seed-7 rebuild + FAST_MIN (the route/corner where T4cd failed; select-unsafe by own trace).
+
+### progress 03:39 T65
+Item 9 SLOW_MAX 13/13, cyc261 5854 = research exact: item 9 board seed CONFIRMED at all 3 corners. Item 6 seed-7 rebuild sdf 5220d51a (research records no sdf for that seed), FAST_MIN queued after collatz64 FAST_MIN.
