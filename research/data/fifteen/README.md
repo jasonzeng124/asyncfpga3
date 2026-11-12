@@ -16,6 +16,7 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 4. placement (on lever 3) | BD_RLOC=v4 / BD_PLACE_WEIGHT=8 / BD_RLOC=v8 | 17.5-18.5 if adjacent (wire budget) | v4 20.55 / 18.75; PW8 20.89 / 19.72 (s1 / s3); v8 does not place | mixed by seed, not adopted |
 | 5. drop the rule-1 link between i+1 and the compare (on lever 3) | BDC_NO_LINK=ulink_n30__1 | ~17.9 / ~18.6 (by hand) | 18.45 / 17.64 / 18.71 / 20.15 (s6-9: 18.72 / 17.37 / 17.95 / 20.53; 8-route mean 18.69) | running (8 routes) |
 | 5b. also drop ulink_n7 | BDC_NO_LINK=ulink_n30__1,ulink_n7 | ~17.5 | 21.96 (s1): ring_depths deepens ulink_n_trueResult_6, which lands on the cycle | rejected |
+| 6. the compare computes i+1 < rounds from i (dup_add.py: a duplicate add fused into it; on lever 3, without 5) | MLIR pre-pass; UCMPI1 = 9 + 6 elements (upper bound) | ~16.2 / ~17.0 (by hand) | 20.86 / 20.35 | not run; blocked on sizing (below) |
 
 The three knobs are new in `bdc/emit.py`, opt-in; with them unset the emitted Verilog is byte-identical on gcd, xorshift,
 collatz, collatz64, ipow and isprime. simcheck PASS with all of them on xorshift.
@@ -34,6 +35,15 @@ collatz, collatz64, ipow and isprime. simcheck PASS with all of them on xorshift
   output link and the select link. The levers left are cell-level (PROGRAM's list): a compare fused with the add, or a
   delay made of the adder's own carry chain so it tracks instead of covering with margin; and fewer handshake stages
   between the merge and umux0.
+
+## Lever 6, blocked on sizing
+
+The fused add+compare settles faster than the compare did alone (worst settle in the run 2.23 / 2.57 ns against 2.93),
+but its delay was set to the sum of the two (15 elements, 6.4 ns on the cycle), so the cycle (now through the rounds
+mux umux2 into the compare) got slower: 20.86 / 20.35. Its true size needs the static worst path of the fused logic,
+which is corner_audit.py's job on soak-top routes of this design (not done this session). If it comes out near the old
+compare's 9 elements, the graph says the cycle drops by ~2.7 ns (to ~18.1 / 17.6), and lever 5 on top of it no longer
+applies (the rule-1 link it removes is gone with the edge).
 
 ## Step 1: the budget (item 14's routes, `budget_pmf_*.txt`, `research/tools/fifteen/budget.py`)
 

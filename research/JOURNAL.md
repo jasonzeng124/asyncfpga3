@@ -3696,3 +3696,11 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   on seed 1's cycle become one region of 15 elements (~5.4 ns) + its join (~0.7): -3.7 ns -> ~16.2 (s1), ~17.0 (s3),
   unless the loop-carry ring (umux0 -> add -> steer -> pipe -> umux0, which also waits for the compare) binds first.
   Building dup seeds 1, 3, 4, 5.
+### progress 01:30 (lever 6 measured: 20.86 / 20.35 ns -- slower, because its delay is the safe upper bound)
+- dup seeds 1/3 (lever 3 + dup_add, UCMPI1 = 15 elements): 20.86 / 20.35 ns (predicted ~16.2 / 17.0; lever 3 19.86 /
+  20.64). cd3132bf; seed 3 decode NOT_EQUIVALENT (check pending). The cycle moved to merge -> olink -> ulink_n12__2 ->
+  umux2 (rounds) -> ulink_n11__1 -> fused compare (7.1 ns) -> steer: the fused region's 16 elements are 6.3-6.4 ns
+  while its data's worst settle in the run is 2.2-2.6 ns (the fused i+1<rounds is faster than the old compare alone,
+  2.9). So the structure works and the size is the blocker: the prediction assumed a fused size near its need.
+- Sizing it properly = corner_audit.py on soak-top routes of the dup design (the established per-cell flow), then the
+  gate. Not done this session. Recorded as blocked in research/data/fifteen/README.md.
