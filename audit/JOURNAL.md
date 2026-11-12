@@ -1406,3 +1406,6 @@ Research re-gates: own select-path trace -- T3cdb/T4cdb select-safe (incl. UACK;
 
 ### progress 03:01 T65
 Own builds at research 4c977781: item 9 collatz T3cdb seed 1 sdf **a7882dfa** reproduced (flag in effect; kernel identical to the one traced, header aside); item 12 collatz64 T4cdb seed 1 sdf **b883dcb5** reproduced. Both decode EQUIVALENT (collatz). Full-stack worst/FAST_MIN/SLOW_MAX at 83.3 MHz running.
+
+### progress 03:14 T65
+Item 9 (collatz T3cdb, seed 1, sdf a7882dfa): worst case 13/13 own oracle, cyc261 2896; FAST_MIN 13/13, cyc261 2064 -- both equal research results.tsv exactly; EQUIVALENT. SLOW_MAX and collatz64 runs going.
