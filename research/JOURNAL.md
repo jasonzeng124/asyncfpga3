@@ -3514,3 +3514,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - ffmux_scan.py on the new FASMs: ipowfm seed 7 has CLBLM_R_X9Y30.SLICEM_X0.BFF with ZINI/ZRST and no BFFMUX -- the
   same nextpnr gap, third slot type (C5FF 11-08, AFF and BFF today), 2 of the ~45 routes built this session. Seed 9
   added so the gate keeps 8 good routes; seed 7's gate runs stay in as an exhibit.
+### progress 05:40 (PREDICTION before the builds: collatz select-safe (item 9 sizes) + BDC_LINK_FASTFALL + merge link)
+- colcdb (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh, board item 9's sizes) seeds 1-4: 67.44 / 68.02 / 69.27 / 67.10 ns,
+  261 steps each. search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 56.45 / 56.39 / 58.77 /
+  56.44 ns (1.195 / 1.206 / 1.179 / 1.189x; mean 1.19x). Floors 45.6-46.4 ns. Variant builds (colb) follow colcdb 5-8.
