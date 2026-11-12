@@ -45,6 +45,7 @@ Usage:
 """
 
 import argparse
+import collections
 import heapq
 import json
 import os
@@ -81,6 +82,10 @@ MERGE_OUT_LINK = set(filter(None, os.environ.get("BDC_MERGE_OUT_LINK", "").split
 # rising pass; the timed event graph predicts this one latch removes every polarity change from the critical cycle.
 # Request delay DELAY_<INST>_RLINK (default STAGE_PAD), acknowledge delay 0 for a control token (ACK_PAD otherwise).
 MERGE_RES_LINK = set(filter(None, os.environ.get("BDC_MERGE_RES_LINK", "").split(",")))
+# BDC_RING_COUNT_OLINKS=1 (off by default; byte-identical without it): ring_depths() counts the storage stage that
+# BDC_MERGE_OUT_LINK puts on both of a merge's outputs and BDC_MERGE_RES_LINK on its result, so a ring that gets its
+# floor of RING_MIN_STAGES from those links no longer needs a deeper bd_pipe elsewhere on it (research/data/fifteen).
+RING_COUNT_OLINKS = os.environ.get("BDC_RING_COUNT_OLINKS", "0") == "1"
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -1357,12 +1362,20 @@ def ring_depths(func, linked, exclude=frozenset()):
     edges = [e for e in edges if e.value not in exclude]
     n = len(func.nodes)
     depth = {ssa: 1 for ssa in linked}
+    extra = collections.defaultdict(int)          # storage that is not a link site (BDC_RING_COUNT_OLINKS)
+    if RING_COUNT_OLINKS:
+        for i, node in enumerate(func.nodes):
+            nm = instname(node, i)
+            if len(node.results) == 2 and nm in MERGE_OUT_LINK:
+                for r in node.results: extra[r] += 1
+            if len(node.results) == 2 and nm in MERGE_RES_LINK:
+                extra[node.results[0]] += 1
 
     def lightest_cycle():
         """(weight, [edges round it]) for the lightest cycle, or None."""
         out = {v: [] for v in range(n)}
         for e in edges:
-            out[e.producer].append((e.consumer, depth.get(e.value, 0), e))
+            out[e.producer].append((e.consumer, depth.get(e.value, 0) + extra.get(e.value, 0), e))
 
         def dijkstra(src):
             dist = {src: 0}

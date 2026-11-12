@@ -3609,3 +3609,14 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - Seeds 4 and 5 lost their trace dumps to a full disk (817 MB left: this session's dumps, netlists and gate dirs, 27 GB).
   Freed 11 GB from finished runs (graphs and logs kept); seeds 4, 5 rerunning. The collatz64 gate's seed-8 run was
   compiled at 17:10, possibly while the disk was filling; if it does not PASS cleanly it is rerun, not read.
+### progress 19:05 (lever 2: BDC_RING_COUNT_OLINKS -- the ring-storage pipe on the cycle becomes one stage; prediction)
+- After the result-branch latch the critical cycle (pmfr seed 1, 23.37 ns) has NO polarity change: it is the counter
+  ring's rising pass, 86% wire (delay chains 16.1 ns of which 13.7 wire; handshake hops 7.3 of which 6.5 wire). Stages:
+  ucmpi1 5.2, ulink_n30__1 2.7, uaddi0 2.8, olink 2.5, ulink_n12__0 2.4, ulink_n_trueResult_12 2.4 (a 3-stage pipe),
+  merge 2.1, umux0 1.5, ucond_br9(_j) 1.2, ulink_n7 0.5.
+- The 3-stage pipe is ring_depths()'s floor for the simple cycle merge -> fork -> join -> steer -> pipe -> merge, whose
+  only storage it was. The olink and rlink now sit on that cycle. bdc/emit.py BDC_RING_COUNT_OLINKS=1 (opt-in, default
+  byte-identical on all six kernels) lets ring_depths count them: the pipe becomes one bd_link (W 1, RFAST under
+  fast fall); nothing else changes in the emitted kernel; simcheck PASS. RING_MIN_STAGES still holds on every cycle.
+- PREDICTION (by hand from pmfr seed 1's cycle; whatif has no stage-removal edit): the pipe's 2.4 ns on the cycle -> one
+  C-element hop, ~0.7 ns: -1.6 to -1.8 ns -> ~21.6-21.8 ns on seeds 1 and 3. Building pmfrc seeds 1, 3, 4, 5.
