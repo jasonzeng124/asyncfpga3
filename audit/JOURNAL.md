@@ -1590,3 +1590,6 @@ Full-coverage monitors: item 14 s1 steer margin 1.668 (worst) / 1.770 (FAST_MIN)
 
 ### progress 20:01
 Research head b40410e3: emit defaults still byte-identical to 7fa9f0c1 (t80/emitdiff_head.log); no bdc/cells changes since 7d9af285. Lever 6 (dup_add, research tool) not built into bdc; nothing to audit there yet.
+
+### progress 21:09 T83 mux monitor
+Item 14 board route: 4 muxes, 0 select changes while z_req high; min margin umux3 0.85 (worst) / 0.57 ns (FAST_MIN, pessimistic by one LUT), loop muxes >= 1.29 ns.
