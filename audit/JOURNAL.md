@@ -1440,3 +1440,6 @@ x50/pmf seeds 3-5 built: sdf md5s equal research graphs/*/build.txt for x50_4/5 
 
 ### progress 05:51 T65 addendum / T67
 Item 7 (ipow x0.75) shortens 9 select-path params (own trace); board seed sdf 95a362ff reproduced, FAST_MIN 17/17 cyc31 220 exact. T67 periods (own latmin method): x50 s3 40.594 / s4 39.429; pmf s3 29.545 / s4 32.424 / s5 28.460 -- all = research to the ps-level resolution; x50 s5 still running.
+
+### progress 05:57 T67 done
+pmf vs x0.5 pairing reproduced by own builds + own period method: 1.340/1.374/1.216/1.447, mean 1.344 (= research). AFF gap confirmed. REPORT row added.
