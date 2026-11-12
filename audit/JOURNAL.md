@@ -1611,3 +1611,6 @@ Board item 18 (lever 5) CONFIRMED on board route from T84 runs: sdf, kernel diff
 
 ### progress 22:36 T87 started
 Research f1111b59 lever 1 on other kernels: spot check colr seed 1 (claimed 47.56 ns; item 15 59.58) by own build at bb155ecf and own collatz period method (n=27 vs n=6171 latmin difference).
+
+### progress 22:45 T87 done
+colr seed 1 47.52 ns (research 47.56), colb control 59.52 (59.58): lever 1 on collatz CONFIRMED (spot). Research journal times for these entries do not match commit times (note).
