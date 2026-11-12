@@ -6,8 +6,8 @@ the period (PROGRAM.md FIRST item, steps 2-3).  Library + CLI:
     whatif.py GRAPHDIR period EDIT [EDIT ...]           predicted period after the edits
 
 EDITs (instances are bdc kernel instance names, e.g. ulink_n_trueResult_8):
-    stage:PROD:CONS:SDELAY[:DACK[:fastrise]]   one bd_link stage on the channel PROD -> CONS (its C-element, a
-                                               forward rdly of SDELAY chain elements, an ack delay of DACK)
+    stage:REQ:ACK:SDELAY[:DACK[:fastrise]]     one bd_link stage on the channel (REQ, ACK) (kernel Verilog nets): its
+                                               C-element, a forward rdly of SDELAY elements, an ack delay of DACK
     depth:LINK:SDELAY[:DACK]                   BDC_LINK_DEPTHS +1 on LINK (a stage on LINK's input channel)
     fastfall:INST                              every falling chain of INST falls in one element (bd_delay FASTFALL)
     nofall                                     every falling arc costs 0 (an upper bound on two-phase signalling)
@@ -68,17 +68,78 @@ class G:
         k = (t - ph) // self.P + 1
         return k, k * self.P + ph
 
-    def stage(self, prod, cons, sdelay, dack=0, fastrise=False):
-        """one bd_link stage S on the channel prod -> cons."""
-        F = [i for i, a in enumerate(self.arcs) if self.nodes[a["u"]]["inst"] == prod and self.nodes[a["v"]]["inst"] == cons]
-        B = [i for i, a in enumerate(self.arcs) if self.nodes[a["u"]]["inst"] == cons and self.nodes[a["v"]]["inst"] == prod]
-        rn = {self.nodes[self.arcs[i]["u"]]["edge"]: self.arcs[i]["u"] for i in F}
-        an = {self.nodes[self.arcs[i]["u"]]["edge"]: self.arcs[i]["u"] for i in B}
-        if set(rn) != {"R", "F"} or set(an) != {"R", "F"} or \
-                len({self.arcs[i]["u"] for i in F}) != 2 or len({self.arcs[i]["u"] for i in B}) != 2:
-            raise ValueError("channel %s -> %s: req %s ack %s (need one req and one ack net, both edges)" % (
-                prod, cons, sorted({self.nodes[self.arcs[i]["u"]]["name"] for i in F}),
-                sorted({self.nodes[self.arcs[i]["u"]]["name"] for i in B})))
+    # ---- the kernel Verilog: instances, ports, fork aliases ------------------------------------------------------
+    def verilog(self):
+        if hasattr(self, "_vl"): return self._vl
+        src = open(self.dir + "/kernel.v").read()
+        insts = {}
+        for m in re.finditer(r"^\s*(\w+)\s*(?:#\((.*?)\))?\s+(u\w+)\s*\((.*?)\);", src, re.S | re.M):
+            typ, par, inst, body = m.groups()
+            ports = {}
+            for p, x in re.findall(r"\.(\w+)\(((?:[^()]|\([^()]*\))*)\)", body):
+                ports[p] = [t for t in re.findall(r"[A-Za-z_]\w*", x) if not re.match(r"^\d", t)]
+            insts[inst] = (typ, par or "", ports)
+        self._vl = insts
+        return insts
+
+    def listing(self, net):
+        return {i for i, (t, p, ports) in self.verilog().items() if any(net in v for v in ports.values())}
+
+    def downstream(self, net):
+        """net plus every fork output it fans out to (a bd_fork passes its request through as a wire)."""
+        out, todo = set(), [net]
+        while todo:
+            n = todo.pop()
+            if n in out: continue
+            out.add(n)
+            for i, (t, p, ports) in self.verilog().items():
+                if t == "bd_fork" and n in ports.get("req", []):
+                    todo += ports.get("req_out", [])
+        return out
+
+    def node_of(self, net, exclude=()):
+        """the graph nodes {edge: id} of a Verilog net (its physical net may carry an alias's name)."""
+        names = {"bridge_i.udut." + n for n in self.downstream(net)}
+        # upstream through a fork too: a fork output is the fork input
+        for i, (t, p, ports) in self.verilog().items():
+            if t == "bd_fork" and net in ports.get("req_out", []):
+                names |= {"bridge_i.udut." + n for n in self.downstream(ports["req"][0])}
+        got = {}
+        for n in self.nodes:
+            if n["name"] in names: got.setdefault(n["edge"], set()).add(n["id"])
+        if not got:
+            # a link whose DACK (DELAY) is 0 has no net of its own for ack_in (req_out): it is the C-element's output,
+            # which the netlist names after the other alias
+            for i, (t, p, ports) in self.verilog().items():
+                if t not in ("bd_link", "bd_pipe"): continue
+                cells = []
+                if net in ports.get("ack_in", []):
+                    cells = [i + ".ctl.u.u", i + ".many.stage[0].u.ctl.u.u"]
+                elif net in ports.get("req_out", []):
+                    nst = int(re.search(r"\.N\((\d+)\)", p).group(1)) if ".N(" in p else 1
+                    cells = [i + ".ctl.u.u", i + ".many.stage[%d].u.ctl.u.u" % (nst - 1)]
+                for n in self.nodes:
+                    if n.get("cell", "")[len("bridge_i.udut."):] in cells:
+                        got.setdefault(n["edge"], set()).add(n["id"])
+        if set(got) != {"R", "F"} or any(len(v) != 1 for v in got.values()):
+            raise ValueError("net %s: graph nodes %s" % (net, got))
+        return {e: v.pop() for e, v in got.items()}
+
+    def stage(self, req, ack, sdelay, dack=0, fastrise=False):
+        """one bd_link stage S on the channel (req, ack) (Verilog net names): S takes the request from its producer
+        and acknowledges it; every consumer of the request (through forks) now sees S's request after S's forward
+        delay; every user of the acknowledge now sees S's acknowledge after S's ack delay."""
+        rn, an = self.node_of(req), self.node_of(ack)
+        cons = set()
+        for n in self.downstream(req): cons |= self.listing(n)
+        prod = self.nodes[rn["R"]]["inst"]; adrv = self.nodes[an["R"]]["inst"]
+        cons -= {prod}; cons = {c for c in cons if self.verilog()[c][0] != "bd_fork"}
+        users = self.listing(ack) - {adrv}
+        F = [i for i, a in enumerate(self.arcs) if a["u"] in rn.values() and self.nodes[a["v"]]["inst"] in cons]
+        B = [i for i, a in enumerate(self.arcs) if a["u"] in an.values() and self.nodes[a["v"]]["inst"] in users]
+        if not F or not B:
+            raise ValueError("channel %s/%s: %d request arcs into %s, %d ack arcs into %s" % (req, ack, len(F), cons,
+                                                                                            len(B), users))
         eR, eF = self.elem()
         P = self.P
         # token m: r.R at its phase (label 0); then a.R, r.F, a.F in 4-phase order
@@ -86,16 +147,16 @@ class G:
         l_aR, t_aR = self.label_after(trR, an["R"])
         l_rF, t_rF = self.label_after(t_aR, rn["F"])
         l_aF, t_aF = self.label_after(t_rF, an["F"])
-        l_aFp = self.label_after(trR - P, an["F"])[0]
-        if self.label_after(trR - P, an["F"])[1] >= trR:
-            raise ValueError("channel %s -> %s is not 4-phase in the trace" % (prod, cons))
+        l_aFp, t_aFp = self.label_after(trR - P, an["F"])
+        if t_aFp >= trR:
+            raise ValueError("channel %s/%s is not 4-phase in the trace" % (req, ack))
         sR, sF = len(self.nodes), len(self.nodes) + 1
-        tag = "S[%s>%s]" % (prod, cons)
+        tag = "S[%s]" % req
         self.nodes.append(dict(id=sR, name=tag + ".c", edge="R", phase=trR, inst=tag, cell=tag))
         self.nodes.append(dict(id=sF, name=tag + ".c", edge="F", phase=self.nodes[rn["F"]]["phase"], inst=tag, cell=tag))
         S = {"R": sR, "F": sF}
         fwd = {"R": sdelay * eR, "F": sdelay * eF}
-        ack = {"R": (1 if fastrise and dack else dack) * eR, "F": dack * eF}
+        ackd = {"R": (1 if fastrise and dack else dack) * eR, "F": dack * eF}
         cin = {}
         for i in F:
             a = self.arcs[i]; e = self.nodes[a["u"]]["edge"]
@@ -106,7 +167,7 @@ class G:
         for i in B:
             a = self.arcs[i]; e = self.nodes[a["u"]]["edge"]
             cack.setdefault(e, a["w"])
-            a["u"] = S[e]; a["w"] += ack[e]; a["o"] += shift[e]
+            a["u"] = S[e]; a["w"] += ackd[e]; a["o"] += shift[e]
         new = [dict(u=rn["R"], v=sR, w=cin["R"], o=0), dict(u=rn["F"], v=sF, w=cin["F"], o=0),
                dict(u=an["F"], v=sR, w=cack["F"], o=0 - l_aFp), dict(u=an["R"], v=sF, w=cack["R"], o=l_rF - l_aR)]
         for a in new:
@@ -117,13 +178,9 @@ class G:
 
     def depth(self, link, sdelay, dack=0):
         """BDC_LINK_DEPTHS +1 on LINK: bd_pipe adds the new stage at the INPUT side (stage 0 takes SDELAY, the last
-        stage keeps DELAY), so it is one stage on the channel (LINK's producer) -> LINK."""
-        prods = {self.nodes[a["u"]]["inst"] for a in self.arcs
-                 if self.nodes[a["v"]]["inst"] == link and self.nodes[a["u"]]["inst"] != link
-                 and self.nodes[a["u"]]["edge"] == self.nodes[a["v"]]["edge"]
-                 and not re.search(r"many\.stage\[[1-9]", self.nodes[a["v"]].get("cell", ""))}
-        if len(prods) != 1: raise ValueError("depth %s: producer not unique: %s" % (link, prods))
-        return self.stage(prods.pop(), link, sdelay, dack)
+        stage keeps DELAY), so it is one stage on LINK's input channel (req_in, ack_in)."""
+        t, par, ports = self.verilog()[link]
+        return self.stage(ports["req_in"][0], ports["ack_in"][0], sdelay, dack)
 
     def fastfall(self, inst):
         """chains of inst fall in one element: each falling chain element after the first follows the chain input."""

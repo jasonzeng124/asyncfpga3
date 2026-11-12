@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""eventgraph.py WORK MARKER [--rj NEXTPNR_ROUTED_JSON] [--ref CYCLE_HOPS_TSV] [--out DIR] -- the timed event graph of one full-stack run (PROGRAM.md FIRST item, step 1).
+"""eventgraph.py WORK MARKER [--rj NEXTPNR_ROUTED_JSON] [--kv KERNEL_V] [--ref CYCLE_HOPS_TSV] [--out DIR] -- the timed event graph of one full-stack run (PROGRAM.md FIRST item, step 1).
 
 WORK: a fullstack_dump.sh run dir (netlist_baked.v, nets.map, dump.vcd).  MARKER: a net (e.g. n8_u_req, in nets.map
 names; or an n* net) whose rises mark iterations.
@@ -184,13 +184,29 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     G, P, t0, mk, N, T, stats, datadep, aper = build(W, MK)
     # ---- write the graph -------------------------------------------------------------------------------------------
-    bels = bel_names(sys.argv[sys.argv.index("--rj") + 1] if "--rj" in sys.argv else W + "/routed.json"); cn = load_names(W)
+    RJ = sys.argv[sys.argv.index("--rj") + 1] if "--rj" in sys.argv else W + "/routed.json"
+    bels = bel_names(RJ); cn = load_names(W)
+    import json
+    mods = json.load(open(RJ))["modules"]
+    top = [k for k in mods if mods[k].get("attributes", {}).get("top")] or list(mods)
+    bit, names = {}, collections.defaultdict(list)
+    for k, v in mods[top[0]]["netnames"].items():
+        for i, b in enumerate(v["bits"]):
+            nm = k if len(v["bits"]) == 1 else "%s[%d]" % (k, i)
+            bit[nm] = b
+            if nm.startswith("bridge_i.udut.") and isinstance(b, int):
+                names[b].append(nm[len("bridge_i.udut."):])
+    if "--kv" in sys.argv:            # the bdc kernel Verilog: whatif.py reads channel nets and parameters from it
+        import shutil
+        shutil.copy(sys.argv[sys.argv.index("--kv") + 1], OUT + "/kernel.v")
     with open(OUT + "/nodes.tsv", "w") as f:
-        f.write("id\tnet\tname\tedge\tphase_ps\tcell\trole\n")
+        f.write("id\tnet\tname\tedge\tphase_ps\tcell\trole\taliases\n")
         for i, nd in enumerate(G.nodes):
             c, p = N.drv.get(nd["net"], ("?", "?"))
             ln = logical(c, p, cn, bels)
-            f.write("%d\t%s\t%s\t%s\t%d\t%s\t%s\n" % (i, nd["net"], nd["name"], nd["edge"], nd["phase"], ln, role(ln)))
+            al = ",".join(sorted(names.get(bit.get(nd["name"]), [])))
+            f.write("%d\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n" % (i, nd["net"], nd["name"], nd["edge"], nd["phase"], ln,
+                                                            role(ln), al))
     with open(OUT + "/arcs.tsv", "w") as f:
         f.write("u\tv\tw_ps\toffset\tslack_ps\tkind\tpin\tcell\ttyp\twire_ps\tarc_ps\n")
         for e in G.arcs:
