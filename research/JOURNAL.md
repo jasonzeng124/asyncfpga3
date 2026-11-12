@@ -3396,3 +3396,19 @@ Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued 
 - Next step (for the session after 2026-11-12 00:00 UTC): delete the PAUSED section, then the new PROGRAM FIRST item
   ("compute where storage goes, before building it", owner 2026-11-10, commit 8c90d04d), which this session has not
   started; it comes before any new per-kernel sizing or board candidate.
+## Session 2026-11-12 02:50 UTC -- PROGRAM FIRST item: the timed event graph (step 1)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/toolchain.sh PASS)   Seeds: 1-4
+### progress 03:00 (step 1 tool works on x0.5 seed 1: graph period = measured, cycle = itercost's, hop for hop)
+- The 11-08 itercost runs were in a scratch dir and their dump top was never committed, so every run is rebuilt:
+  research/tools/eventgraph/fullstack_dump.sh (the itercost stack: bits-decoded netlist, prjxray SDF, fid, chains 0.21,
+  CARRY4/F7F8/FF at 1, rest 0.288, no scatter; one 256-round vector twice, top nets dumped). Rebuilt routes reproduce
+  the recorded sdf md5s (x0.5 s1 c5b8ca02, T3 s1 e3024283, collatz cs 1ab39716, T3 6134880a); x0.5 s1 gives
+  cd3132bf, EQUIVALENT, latmin 836 (the README's 836).
+- research/tools/eventgraph/eventgraph.py: nodes = edges of nets periodic in steady state (230 on x0.5 s1; data and
+  harness-clocked nets are aperiodic); arcs = every ENABLING input of each edge (LUT INIT / F7F8 evaluated on the
+  delayed pin values: a pin is enabling if restoring its previous value would keep the old output), weight wire+arc,
+  token offset from the trace, slack >= 0. Period = max cycle ratio by the max-plus recursion (maxplus.py).
+  x0.5 s1: 230 nodes, 325 arcs, every edge AND-type (no OR edge), no negative slack; graph period 39058 ps = P;
+  the critical cycle (86 arcs, 1 token) equals trace.py's walk and the committed itercost cycle_hops.tsv, edge for edge.
+- Running: the other 33 runs (itercost T3 + collatz, second_latch base 2-4 and all variants, collatz cd +- merge link
+  seeds 1-4 for step 3's collatz prediction), 3 lanes.
