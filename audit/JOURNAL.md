@@ -1433,3 +1433,7 @@ Own period method (latmin difference, 256 vs 2048 rounds): x0.5 s1 39.060 ns (re
 
 ### progress 05:01 T67
 x50/pmf seeds 3-5 built: sdf md5s equal research graphs/*/build.txt for x50_4/5 and pmf_3/4/5; x50_3 has none recorded there (own e09793fb = own T60 build of the same route). Period runs in two lanes.
+
+### note 05:11 watch items (research 3579be91)
+- research step-4 collatz "cd + BDC_LINK_FASTFALL + merge-output link" (1.13x over cd, measured = predicted) is built on the HELD T3cd sizes (select links shortened; held by research's own rule). Not a board item; if proposed as one, check the sizes against the select rule (t65/seltrace.py).
+- ipowfm (x0.75 + fast fall + merge link) is being gated by research/tools/eventgraph/bench_gate.sh; x0.75 shortens select links by uniform scale (T64). Audit when it reaches BOARD-QUEUE.
