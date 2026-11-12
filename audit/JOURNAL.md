@@ -1494,3 +1494,6 @@ Eventgraph README summary understates the p12 miss (4 seeds +2.1..+5.3 ns, mean 
 
 ### progress 09:25 T71/T72
 T71: collatz colb (T3cdb + fast fall + merge link) seed 1 sdf e20325f3 = research; 3 corners running. T72: BDC_LINK_FASTFALL puts one-hop falls on every bd_mux output delay and every bare select link (item 13: umux0-3, ulink_n17__1), outside research's size-only select rule, while research's failure trace speaks of an early return to zero. Test: T4cdb + fast fall only, seed 7 FAST_MIN.
+
+### progress 09:43 T72 done
+T4cdb + fast fall only, seed 7 FAST_MIN: 14/14 (16 fast-fall instances). No hazard from fast fall on select paths shown; documented as a coverage note. colb_1 FAST_MIN 13/13.
