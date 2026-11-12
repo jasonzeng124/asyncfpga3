@@ -175,8 +175,9 @@ class G:
             a = self.arcs[i]; e = self.nodes[a["u"]]["edge"]
             cack.setdefault(e, a["w"])
             a["u"] = S[e]; a["w"] += ackd[e]; a["o"] += shift[e]
-        new = [dict(u=rn["R"], v=sR, w=cin["R"], o=0), dict(u=rn["F"], v=sF, w=cin["F"], o=0),
-               dict(u=an["F"], v=sR, w=cack["F"], o=0 - l_aFp), dict(u=an["R"], v=sF, w=cack["R"], o=l_rF - l_aR)]
+        x = getattr(self, "stage_wire", 0)   # extra wire per inserted stage, on every input arc of it (both edges)
+        new = [dict(u=rn["R"], v=sR, w=cin["R"] + x, o=0), dict(u=rn["F"], v=sF, w=cin["F"] + x, o=0),
+               dict(u=an["F"], v=sR, w=cack["F"] + x, o=0 - l_aFp), dict(u=an["R"], v=sF, w=cack["R"] + x, o=l_rF - l_aR)]
         for a in new:
             a.update(slack=0, kind="edit", pin="")
             if a["o"] < 0: raise ValueError("negative offset in the inserted stage: %s" % a)

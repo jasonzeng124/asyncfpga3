@@ -3552,3 +3552,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x vs storage 1.0-1.3x); (2) gcd: sizing on
   its rising pass (corner_audit, select-safe) -- the graph says nothing else is left there; (3) a per-inserted-stage wire
   term for whatif, fitted on some builds and tested on the others, before trusting predicted magnitudes.
+### progress 12:20 (negative: a constant per-inserted-stage wire term does not help; the graph's held-out error)
+- research/tools/eventgraph/fit_stage_wire.py: whatif's stage_wire (extra ps on every input arc of an inserted stage)
+  fitted on the 16 second-latch builds (x0.5 seeds 1-4: p8, all3, mo, p8mo) and tested unchanged on the 23 step-4 builds
+  (pmf, ipowfm, colb, col cd+link, colfm). Train is best at 0 (mean |err| 0.71 ns, max 1.38); larger terms only hurt it.
+  At 0 the held-out set has mean error -0.71 ns (the graph optimistic), mean |err| 1.38, max 3.13 ns; 500 ps would make
+  it +0.23 / 1.13 but is not what the training data supports. Default kept at 0. Held-out accuracy of the graph, as it
+  stands: within ~1.4 ns per route on 30-70 ns periods (2-5%), optimistic by ~0.7 ns on average.
