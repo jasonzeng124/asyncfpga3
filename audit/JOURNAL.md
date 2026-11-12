@@ -1497,3 +1497,6 @@ T71: collatz colb (T3cdb + fast fall + merge link) seed 1 sdf e20325f3 = researc
 
 ### progress 09:43 T72 done
 T4cdb + fast fall only, seed 7 FAST_MIN: 14/14 (16 fast-fall instances). No hazard from fast fall on select paths shown; documented as a coverage note. colb_1 FAST_MIN 13/13.
+
+### progress 10:03 T71 done
+colb seed 1 (sdf e20325f3 = research): 13/13 at 3 corners; 1.124/1.140/1.134 over item 9 on the same route. Pre-audit for a likely board item.
