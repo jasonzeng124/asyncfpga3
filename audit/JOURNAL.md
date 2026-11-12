@@ -1563,3 +1563,6 @@ Container restart ~15:45 (nothing running then; all results pushed; toolchain an
 
 ### note 16:48
 Owner research PROGRAM db2c8f53: stay four-phase; push xorshift toward 15 ns. Its starting figures (item 14 ~30 ns, 28.5-32.4 by seed) agree with T67 own periods (28.46-32.42 on seeds 1/3/4/5). Audit PROGRAM unchanged.
+
+### progress 17:15 T80
+BDC_MERGE_RES_LINK byte-identical default CONFIRMED by own emit diff (8 emitting kernels, default and board knobs). Prediction 21.9-23.6 ns pre-registered in 922fca2b.
