@@ -1548,3 +1548,12 @@ research ffmux_scan.py validated as a gate: 3/3 defect routes exit 1, 4/4 board 
 
 ### progress 14:58 T79
 ipowfm seed 4 (sdf = research, FF clean) and pmf seed 5 FAST_MIN 17/17. Item 13: 4 routes covered (1 all corners, 2-3 FAST_MIN+worst, 4 FAST_MIN); item 14: 4 routes (1 all corners, 3-4 FAST_MIN+worst, 5 FAST_MIN).
+
+### summary 15:23 (session so far)
+- Board items audited this session, all CONFIRMED on their board routes with own builds + own oracles at FAST_MIN / worst+scatter / SLOW_MAX: item 9 (T65), 12 (T65), 13 (T69, +seeds 2-4), 14 (T74, +seeds 3-5), 15 (T71/T78, +seeds 2-3). Ratios on the board route match the predictions; small OVERSTATED rows: item 9/12 per-route ranges (T65 row 5); eventgraph README p12 wording (T66 row 6).
+- Negative control: held T4cd seed 7 fails exactly as research reported (T65 row 8); select-safe T4cdb passes there (row 13).
+- Eventgraph: step 1 holds by construction (T66 row 1); step 3/4/5 and held-out numbers reproduce (T66, T67).
+- nextpnr constant-D flop gap: AFF, BFF, C5FF instances reproduced by own scan; research ffmux_scan validated with a planted deletion (T67 row 13).
+- Notes, no hazard shown: control-merge delay outside the select rule (T65 rows 3, 14); BDC_LINK_FASTFALL on select paths (T72); FAST_MIN + scatter stress 6/6 pass, no positive control (T70).
+- Formal: no commits since 8fd62f82 (paused); target md5s re-checked (T68).
+- Pending: c64fm (pre-audited T77) if research lists it; compare its sdf md5 (own seed 1 2c06cd36).
