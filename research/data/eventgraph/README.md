@@ -79,7 +79,9 @@ Edits fixed before any prediction (b3eaf9cd). NOT blind: the measured values wer
 - **p12 is a miss of one route, not of structure.** Its measured cycle (`second_latch/p12_1/stages.tsv`) is the base
   cycle, the same 13 stages and 86 hops, with every stage longer in wire (ulink_n12__1 11.26 vs 9.17 ns, umux1 5.77 vs
   4.48, merge 4.97 vs 3.99): the added stage is off the cycle, as predicted, and the re-placement lengthened the ring.
-  p12 seeds 2-4 were built to test that: see the journal (2026-11-12).
+  p12 seeds 2-4 were built to test that: +4.56 / +2.07 / +2.51 ns (mean of 4 seeds +3.6), each time the base cycle
+  with longer wires. So the structure is predicted and the magnitude is not: one more cell beside the merge hub
+  lengthens the ring's routes on every seed. The graph has no placement model; that is its known limit.
 - Criterion "within the seed scatter (~1 ns)": met by every mean except p12 seed 1; single seeds miss by up to 1.4 ns
   (xorshift) and 3.0 ns (collatz seed 4, whose measured period is above its own base). A graph of one route cannot
   know another route's wires; that is the residual.
@@ -90,12 +92,13 @@ Edits fixed before any prediction (b3eaf9cd). NOT blind: the measured values wer
 |---|---|---|---|---|
 | xorshift x0.5 | BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 | 29.07 / 29.29 / 30.13 / 30.11 (s1/3/4/5) | 29.14 / 29.54 / 32.42 / 28.46 | 1.340 / 1.374 / 1.216 / 1.447, mean 1.34 (predicted 1.34) |
 | ipow x0.75 | BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 | 46.09 / 44.92 / 45.06 / 44.08 | 46.84 / 45.02 / 46.04 / 45.24 | 1.185 / 1.152 / 1.179 / 1.199, mean 1.18 (predicted 1.20) |
-| collatz cd | BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 | 53.03 / 53.93 / 53.50 / 53.71 | (journal) | |
+| collatz cd | BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 | 53.03 / 53.93 / 53.50 / 53.71 | 53.60 / 55.05 / 51.84 / 54.72 | 1.122 / 1.104 / 1.164 / 1.113, mean 1.13 (predicted 1.13) |
 
 - xorshift seed 2 is excluded: its bitstream leaves a constant-D harness flop unconfigured (no AFFMUX), the run returns
   X data. A known nextpnr gap (JOURNAL 2026-11-08 08:21, there a C5FF), now in an AFF slot;
   `research/tools/ffmux_scan.py` finds it from the FASM alone (1 of 35 FASMs this session).
-- Every measured cycle is the predicted one (xorshift: the 11 counter-ring stages and the 2 polarity changes at the
+- Every measured cycle is the predicted one (collatz: the same stages up to the two parallel fork branches
+  ulink_n10__1/__2, 0.15 ns apart; xorshift: the 11 counter-ring stages and the 2 polarity changes at the
   merge-output link's fork). The misses are wire on those stages.
 - Over the best measured design before this (p8mo, board item 11), xorshift gains 1.07 / 1.10 / 0.97 (seeds 1/3/4):
   fast fall is what this adds, and on seed 4 the re-placement ate it.

@@ -3489,3 +3489,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   known limit, and it says a stage that cannot help is not free either.
 - (Process note: I started a second lane on a worktree that was still building and then killed collatz builds too
   broadly; every colfm output was deleted and the four builds restarted on idle worktrees. No result was affected.)
+### progress 04:40 (collatz step 4 measured as predicted; p12 seed 4 +2.5; gcd bench builds fail with RLOC v4)
+- collatz cd + BDC_LINK_FASTFALL + merge-output link, seeds 1-4: 53.60 / 55.05 / 51.84 / 54.72 ns (mean 53.80) vs
+  predicted 53.03 / 53.93 / 53.50 / 53.71 (53.54); paired with cd 1.122 / 1.104 / 1.164 / 1.113 (mean 1.13, predicted
+  1.13); 0x105 = 261 steps, EQUIVALENT; the measured cycle is the predicted one (up to two parallel fork branches).
+- p12 seed 4: 41.94 vs 39.43 (+2.51). Four seeds: +5.27 / +4.56 / +2.07 / +2.51, same cycle each time.
+- gcd bench with BQ#4's flags (BD_RLOC=v4): all four seeds abort in nextpnr ("post-place repair: no valid placement for
+  uori2/uori4 udly chain g[0]", then router2 assertion bel != BelId()). Retrying without RLOC.
+- Gate running: ipowfm (x0.75 + BDC_LINK_FASTFALL + merge-output link) seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M,
+  17 vectors (oracle from kernels/ipow/ipow.c), research/tools/eventgraph/bench_gate.sh. Seed 1 SLOW_MAX: PASS 17/17,
+  EQUIVALENT.
