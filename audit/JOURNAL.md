@@ -1418,3 +1418,6 @@ Item 9 SLOW_MAX 13/13, cyc261 5854 = research exact: item 9 board seed CONFIRMED
 
 ### progress 03:39 T65
 Item 12 FAST_MIN 14/14, cyc350 2728 = research exact. Item 6 (x0.75) seed 7 FAST_MIN: EQUIVALENT, 14/14, cyc350 2866 = research s75 seed 7 min exactly (same route). Negative control started: held T4cd seed 7 FAST_MIN (research: FAIL 12/14) -- must fail here too.
+
+### progress 04:08 T65
+Item 12 SLOW_MAX 14/14, cyc350 7622 = research exact: item 12 board seed CONFIRMED at 3 corners. NEGATIVE CONTROL held T4cd seed 7 (own build sdf 98809562) FAST_MIN: EQUIVALENT but **12/14**, n=871 -> 306 steps, n=77031 -> 606 -- research's reported failure reproduced exactly; the stack detects the select race. Diagnosis test running (T4cd with ulink_n14__1/SDELAY at 19/2).
