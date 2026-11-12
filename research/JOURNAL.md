@@ -3559,3 +3559,9 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   At 0 the held-out set has mean error -0.71 ns (the graph optimistic), mean |err| 1.38, max 3.13 ns; 500 ps would make
   it +0.23 / 1.13 but is not what the training data supports. Default kept at 0. Held-out accuracy of the graph, as it
   stands: within ~1.4 ns per route on 30-70 ns periods (2-5%), optimistic by ~0.7 ns on average.
+### progress 12:15 (collatz64, item 12's design: graph exact on 4 seeds; PREDICTION before the variant builds)
+- c64 (BDC_CONST_DATA, collatz64_sizes_T4cdb_bench.vh = item 12), n = 6171 (261 steps), seeds 1-4: 66.07 / 65.91 / 60.84 /
+  65.00 ns, graph check PASS (145 arcs). Floors 41.4-45.6 ns.
+- search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 57.44 / 56.44 / 51.96 / 56.90 ns
+  (1.150 / 1.168 / 1.171 / 1.142x, mean 1.16). Given the held-out bias (graph ~0.7 ns optimistic), expect ~1.14x.
+  Variant builds c64fm 1-4 running.
