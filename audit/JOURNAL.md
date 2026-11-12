@@ -1530,3 +1530,6 @@ pmf seeds 3, 4: FAST_MIN + worst 17/17 (EQUIVALENT).
 
 ### progress 12:55 T66 row 9 done
 Step 5 reproduced: own T3 seed 2 base 56.571 ns, knobbed 39.382 ns (1.436x; predicted 1.59x, miss 3.7 ns as research says).
+
+### progress 12:56 T77 started
+Pre-audit of research's collatz64 c64fm (T4cdb + fast fall + merge link; gate running at research): own seed 1 (3 corners) and seed 3 (reported C5FF gap).
