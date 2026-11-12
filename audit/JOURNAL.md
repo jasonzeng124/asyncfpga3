@@ -1446,3 +1446,6 @@ pmf vs x0.5 pairing reproduced by own builds + own period method: 1.340/1.374/1.
 
 ### progress 05:58 T67
 Research gate (bench_gate.sh) oracles = own oracles (47/47). ipowfm_1 FAST_MIN was never judged by research (script syntax error); own ipowfm seeds 1 and 7 building: seed 1 -> FAST_MIN + worst, seed 7 -> own FF scan for the reported BFF gap.
+
+### progress 06:15 T67
+ipowfm_7 BFF gap CONFIRMED by own build+scan (CLBLM_R_X9Y30 SLICEM_X0 B). ipowfm_1 (sdf e5000e23 = research) FAST_MIN 17/17, the run research did not judge. Worst case running.
