@@ -3499,3 +3499,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - Gate running: ipowfm (x0.75 + BDC_LINK_FASTFALL + merge-output link) seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M,
   17 vectors (oracle from kernels/ipow/ipow.c), research/tools/eventgraph/bench_gate.sh. Seed 1 SLOW_MAX: PASS 17/17,
   EQUIVALENT.
+### progress 05:10 (gates running; collatz select-safe base + knobs queued)
+- Gate (bench_gate.sh, 17 C-derived vectors per run): so far ipowfm seeds 1/2/5 at max/min/worst and pmf seed 1 max
+  all PASS 17/17 (seed 5 and pmf 1 decode NOT_EQUIVALENT of the benign GND-buffer F7 kind, checked on seed 5).
+  ipowfm 1 min lost to a script edited while running (re-queued).
+- gcd bench without RLOC builds (gcd_1/2), but its full-stack sim is OOM-killed next to the other jobs (100k icbufs);
+  deferred until it can run alone.
+- Queued: collatz select-safe base (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh = board item 9's sizes) seeds 1-8,
+  then the same + BDC_LINK_FASTFALL + merge-output link; predictions from the base graphs before the variants run.
+- PR #2 description updated.
