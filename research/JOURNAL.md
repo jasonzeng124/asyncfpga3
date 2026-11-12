@@ -3412,3 +3412,18 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   the critical cycle (86 arcs, 1 token) equals trace.py's walk and the committed itercost cycle_hops.tsv, edge for edge.
 - Running: the other 33 runs (itercost T3 + collatz, second_latch base 2-4 and all variants, collatz cd +- merge link
   seeds 1-4 for step 3's collatz prediction), 3 lanes.
+### progress 03:25 (step 1: 14/14 runs reproduce period and cycle exactly; step 2-4 tools give first numbers)
+- Rebuilt and re-run so far: x0.5 seeds 1-4, T3 seed 1, collatz cs/T3 seed 1, mo 1-4, p8 1, all3 1-2. Each: graph
+  period == trace period to the ps, critical cycle == trace.py's walk == the committed itercost cycle_hops.tsv (hop
+  for hop). Periods equal the recorded ones (40.594 = 40.59, 37.83, 35.57, 67.82, 77.56 ...), so every route reproduced.
+- research/data/eventgraph/graphs/<run>/: nodes.tsv, arcs.tsv, check.txt, kernel.v, provenance, BENCHRES.
+- Step 2 (x0.5 s1): floor with no polarity change 19.99 ns (the loop-counter ring's rising pass) vs 39.06 measured;
+  every falling arc at 0: 21.9 ns. collatz cs: floor 49.3 vs 67.8 (2-phase bound 51.1); T3 56.3 vs 77.6. So on collatz
+  added storage could at best reach 1.37x; the rest is the rising pass of the n datapath (delays), not the protocol.
+- Step 3, seeds 1-2 (predictions from each seed's base graph; edit rules committed b3eaf9cd before any prediction ran;
+  NOT blind: the measured values were already in second_latch/README.md; implementation fixes after that commit were
+  net-finding only, no weights): p8 -6.06/-4.71 (measured -4.94/-5.56); all3 -4.71/-3.73 (-3.49/-4.57); mo -1.28/-1.64
+  (-1.23/-2.59); p8mo -7.34/-6.35 (-7.89/-6.67); the predicted p8 cycle is the measured one (counter ring, flips at the
+  merge). p12 predicted 0 vs +5.3 measured (seed 1): a miss, to be traced on the p12 graph; p11 0 vs +0.8.
+- Step 4 greedy search (buildable knobs only) on x0.5 s1 re-finds p8mo, then adds BDC_LINK_FASTFALL: p8 + fast fall +
+  merge-out link 29.07 ns predicted (1.34x over x0.5; p8mo alone 31.72). Not built yet.

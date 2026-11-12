@@ -43,6 +43,7 @@ class G:
                                   slack=int(a["slack_ps"]), kind=a["kind"], pin=a["pin"]))
         m = re.search(r"period P = (\d+)", open(d + "/check.txt").read())
         self.P = int(m.group(1))
+        self.elem()
 
     def copy(self):
         g = copy.copy(self); g.nodes = [dict(n) for n in self.nodes]; g.arcs = [dict(a) for a in self.arcs]
@@ -54,12 +55,15 @@ class G:
 
     # ---- measured element weights ------------------------------------------------------------------------------
     def elem(self):
+        """median measured chain element (rise, fall) of the BASE graph (cached before any edit)."""
+        if getattr(self, "_elem", None): return self._elem
         r, f = [], []
         for a in self.arcs:
             nu, nv = self.nodes[a["u"]], self.nodes[a["v"]]
             if CHAIN.search(nv.get("cell", "")) and CHAIN.search(nu.get("cell", "")) and nu["inst"] == nv["inst"]:
                 (r if nv["edge"] == "R" else f).append(a["w"])
-        return st.median(r), st.median(f)
+        self._elem = (st.median(r), st.median(f))
+        return self._elem
 
     # ---- edits -------------------------------------------------------------------------------------------------
     def label_after(self, t, node):
@@ -140,6 +144,10 @@ class G:
         if not F or not B:
             raise ValueError("channel %s/%s: %d request arcs into %s, %d ack arcs into %s" % (req, ack, len(F), cons,
                                                                                             len(B), users))
+        return self._insert(rn, an, F, B, sdelay, dack, fastrise, "S[%s]" % req)
+
+    def _insert(self, rn, an, F, B, sdelay, dack, fastrise, tag):
+        req = ack = tag
         eR, eF = self.elem()
         P = self.P
         # token m: r.R at its phase (label 0); then a.R, r.F, a.F in 4-phase order
@@ -151,7 +159,6 @@ class G:
         if t_aFp >= trR:
             raise ValueError("channel %s/%s is not 4-phase in the trace" % (req, ack))
         sR, sF = len(self.nodes), len(self.nodes) + 1
-        tag = "S[%s]" % req
         self.nodes.append(dict(id=sR, name=tag + ".c", edge="R", phase=trR, inst=tag, cell=tag))
         self.nodes.append(dict(id=sF, name=tag + ".c", edge="F", phase=self.nodes[rn["F"]]["phase"], inst=tag, cell=tag))
         S = {"R": sR, "F": sF}
@@ -180,9 +187,24 @@ class G:
         """BDC_LINK_DEPTHS +1 on LINK: bd_pipe adds the new stage at the INPUT side (stage 0 takes SDELAY, the last
         stage keeps DELAY), so it is one stage on LINK's input channel (req_in, ack_in)."""
         t, par, ports = self.verilog()[link]
-        return self.stage(ports["req_in"][0], ports["ack_in"][0], sdelay, dack)
+        c0 = {link + ".ctl.u.u", link + ".many.stage[0].u.ctl.u.u"}
+        cn = {n["edge"]: n["id"] for n in self.nodes if n.get("cell", "")[len("bridge_i.udut."):] in c0}
+        F = [i for i, a in enumerate(self.arcs) if a["v"] in cn.values() and self.nodes[a["u"]]["inst"] != link
+             and self.nodes[a["u"]]["edge"] == self.nodes[a["v"]]["edge"]]
+        rn = {self.nodes[self.arcs[i]["u"]]["edge"]: self.arcs[i]["u"] for i in F}
+        if len({self.arcs[i]["u"] for i in F}) != 2 or set(rn) != {"R", "F"}:
+            raise ValueError("depth %s: request into stage 0 not one net: %s" % (link, F))
+        users = self.listing(ports["ack_in"][0]) - {link}
+        B = [i for i, a in enumerate(self.arcs) if a["u"] in cn.values() and self.nodes[a["v"]]["inst"] in users]
+        if not B:
+            # the producer side may itself have been replaced by an inserted stage (its instance is S[...])
+            B = [i for i, a in enumerate(self.arcs) if a["u"] in cn.values()
+                 and self.nodes[a["v"]]["inst"] == self.nodes[rn["R"]]["inst"]]
+        if not B: raise ValueError("depth %s: no acknowledge users" % link)
+        self.deepened = getattr(self, "deepened", set()) | {link}
+        return self._insert(rn, cn, F, B, sdelay, dack, False, "S[%s]" % link)
 
-    def fastfall(self, inst):
+    def fastfall(self, inst, strict=True):
         """chains of inst fall in one element: each falling chain element after the first follows the chain input."""
         eR, eF = self.elem(); n = 0
         for a in self.arcs:
@@ -190,7 +212,7 @@ class G:
             m = CHAIN.search(nv.get("cell", ""))
             if nv["inst"] == inst and m and nv["edge"] == "F" and CHAIN.search(nu.get("cell", "")) and nu["inst"] == inst:
                 a["w"] = 0; n += 1      # the element follows the input's fall in parallel; the first element keeps its cost
-        if not n: raise ValueError("fastfall: no chain of %s in the graph" % inst)
+        if not n and strict: raise ValueError("fastfall: no chain of %s in the graph" % inst)
         return self
 
     def nofall(self):
@@ -231,16 +253,17 @@ def polarity_floor(g):
     return out
 
 
-def next_cycles(g, cyc, top=6):
-    """the best cycle that avoids each arc of the critical cycle in turn: the cycles that bind next."""
+def next_cycles(g, cyc, top=8):
+    """for each stage (kernel instance) on the critical cycle: the worst cycle that does not pass through it (all
+    arcs into that stage's edges removed).  Distinct cycles, worst first: what binds next, and its slack."""
     seen = {}
-    for i in cyc:
-        arcs = [a for j, a in enumerate(g.arcs) if j != i]
+    insts = list(dict.fromkeys(g.nodes[g.arcs[i]["v"]]["inst"] for i in cyc))
+    for x in insts:
+        arcs = [a for a in g.arcs if g.nodes[a["v"]]["inst"] != x]
         lam, c2 = maxplus.mcr(len(g.nodes), arcs)
         if not c2: continue
         key = frozenset((arcs[j]["u"], arcs[j]["v"]) for j in c2)
-        if key not in seen:
-            seen[key] = (lam, [arcs[j] for j in c2], i)
+        seen.setdefault(key, (lam, [arcs[j] for j in c2], []))[2].append(x)
     return sorted(seen.values(), key=lambda x: -x[0])[:top]
 
 
@@ -269,11 +292,10 @@ def main():
             print("floor, %s-only cycles: %.0f ps (%d arcs: %s)" % (e, l, len(c), ", ".join(dict.fromkeys(g.nodes[a["v"]]["inst"] for a in c))))
         g0 = g.copy().nofall(); l0, c0 = g0.period()
         print("every falling arc 0 (two-phase bound): %.0f ps" % l0)
-        for lam2, c2, i in next_cycles(g, cyc):
+        for lam2, c2, xs in next_cycles(g, cyc):
             b2, f2 = g.describe(c2)
-            print("next: %.0f ps (slack %.0f) avoiding %s%s->%s%s: %s; flips %s" % (lam2, g.P - lam2,
-                  g.nodes[g.arcs[i]["u"]]["inst"], g.nodes[g.arcs[i]["u"]]["edge"], g.nodes[g.arcs[i]["v"]]["inst"],
-                  g.nodes[g.arcs[i]["v"]]["edge"], ", ".join(b2), ", ".join(f2)))
+            print("next: %.0f ps (slack %.0f) without %s: %s; polarity changes %d" % (lam2, g.P - lam2, "/".join(xs),
+                  ", ".join(b2), len(f2)))
 
 
 if __name__ == "__main__":

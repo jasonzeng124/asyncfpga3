@@ -62,6 +62,21 @@ def build(work, marker, K=10):
     N = Net(work, PRIMS)
     ev = load_vcd(work + "/dump.vcd")
     T = Trace(N, ev)
+    if marker == "auto":          # the kernel request net with the longest run of identical rise intervals
+        best = None
+        for n, e in ev.items():
+            nm = N.name.get(n, n)
+            if not (nm.startswith("bridge_i.udut.") and nm.endswith("_req")): continue
+            r = [t for t, c in e if c == "1"]
+            if len(r) < 20: continue
+            d = [b - a for a, b in zip(r, r[1:])]
+            run = cur = 1
+            for x, y in zip(d, d[1:]):
+                cur = cur + 1 if x == y else 1; run = max(run, cur)
+            key = (run, -collections.Counter(d).most_common(1)[0][0])
+            if best is None or key > best[0]: best = (key, nm)
+        marker = best[1]
+        print("auto marker: %s (run of %d equal intervals)" % (marker, best[0][0]))
     mk = marker if marker in ev else N.inv.get(marker)
     if mk not in ev:
         mk = next((k for k, v in N.name.items() if v.endswith("." + marker) or v == marker), None)
