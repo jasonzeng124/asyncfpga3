@@ -1560,3 +1560,6 @@ ipowfm seed 4 (sdf = research, FF clean) and pmf seed 5 FAST_MIN 17/17. Item 13:
 
 ### progress 15:47
 Container restart ~15:45 (nothing running then; all results pushed; toolchain and worktrees intact). Watching for research/formal commits.
+
+### note 16:48
+Owner research PROGRAM db2c8f53: stay four-phase; push xorshift toward 15 ns. Its starting figures (item 14 ~30 ns, 28.5-32.4 by seed) agree with T67 own periods (28.46-32.42 on seeds 1/3/4/5). Audit PROGRAM unchanged.
