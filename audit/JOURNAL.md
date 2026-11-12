@@ -1491,3 +1491,6 @@ T4cd seed 1 (sdf 13e5c529): plain FAST_MIN and +scatter draws 1-2 all 14/14 -- n
 
 ### progress 09:23 T66 row 6
 Eventgraph README summary understates the p12 miss (4 seeds +2.1..+5.3 ns, mean 3.6, same sign; "one outlier" in the summary). OVERSTATED (minor wording) row at top of REPORT.
+
+### progress 09:25 T71/T72
+T71: collatz colb (T3cdb + fast fall + merge link) seed 1 sdf e20325f3 = research; 3 corners running. T72: BDC_LINK_FASTFALL puts one-hop falls on every bd_mux output delay and every bare select link (item 13: umux0-3, ulink_n17__1), outside research's size-only select rule, while research's failure trace speaks of an early return to zero. Test: T4cdb + fast fall only, seed 7 FAST_MIN.
