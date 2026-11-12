@@ -3427,3 +3427,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   merge). p12 predicted 0 vs +5.3 measured (seed 1): a miss, to be traced on the p12 graph; p11 0 vs +0.8.
 - Step 4 greedy search (buildable knobs only) on x0.5 s1 re-finds p8mo, then adds BDC_LINK_FASTFALL: p8 + fast fall +
   merge-out link 29.07 ns predicted (1.34x over x0.5; p8mo alone 31.72). Not built yet.
+### progress 03:35 (step 4 PREDICTION, written before building: xorshift p8 + BDC_LINK_FASTFALL + merge-output link)
+- search.py (greedy over knobs bdc can build: +1 depth on any link, merge-output link, BDC_LINK_FASTFALL) on the four
+  x0.5 base graphs picks the same set on every seed: BDC_LINK_DEPTHS=ulink_n_trueResult_8=2
+  BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1. PREDICTED period 29.07 / 29.70 / 29.29 / 30.13 ns (seeds
+  1-4, mean 29.55; 1.34x over x0.5's 39.49, 1.08x over p8mo's measured 31.78). A further edit gains < 0.3 ns: the
+  cycle stays on the counter ring and still changes polarity at the merge-output link's fork.
+- ipow x0.75 (item 7 route, seed 1): base 55.50 ns, floor 37.26; search: BDC_LINK_FASTFALL + merge-output link ->
+  46.09 ns predicted (1.20x). Seeds 2-4 pending.
+- Building both on seeds 1-4 next (itercost stack, measured period vs predicted).

@@ -80,6 +80,27 @@ def main():
         print("  cycle: %s; polarity changes %d" % (", ".join(by), len(flips)))
         chosen.append(c); cur = lam
     print("chosen: %s -> %.0f ps (%.3fx)" % (" ".join(chosen) or "-", cur, lam0 / cur))
+    print("ENV " + " ".join(to_env(g, chosen)))
+
+
+def to_env(g, chosen):
+    """the bdc knobs that build the chosen edits"""
+    depths, mo, ff = [], [], False
+    for c in chosen:
+        p = c.split(":")
+        if p[0] == "depth":
+            t, par, ports = g.verilog()[p[1]]
+            n = int(re.search(r"\.N\((\d+)\)", par).group(1)) if t == "bd_pipe" else 1
+            depths.append("%s=%d" % (p[1], n + 1))
+        elif p[0] == "stage":
+            mo += [i for i, (t, par, ports) in g.verilog().items() if t.startswith("bdc_amerge") and ports["z_req"][0] == p[1]]
+        elif c == "fastfall:BDC":
+            ff = True
+    out = []
+    if depths: out.append("BDC_LINK_DEPTHS=" + ",".join(depths))
+    if mo: out.append("BDC_MERGE_OUT_LINK=" + ",".join(mo))
+    if ff: out.append("BDC_LINK_FASTFALL=1")
+    return out
 
 
 if __name__ == "__main__":
