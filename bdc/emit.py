@@ -74,6 +74,13 @@ STAGE_PAD = int(os.environ.get("BDC_STAGE_PAD", "3"))
 # loop counter ring changing polarity at the merge.  The index is a select, so the link's request delay defaults to
 # SELECT_PAD, its acknowledge delay to ACK_PAD (macros DELAY_<INST>_OLINK / _OLINK_UACK; tighten/size them as usual).
 MERGE_OUT_LINK = set(filter(None, os.environ.get("BDC_MERGE_OUT_LINK", "").split(",")))
+# BDC_MERGE_RES_LINK=inst[,inst...] (empty by default; byte-identical without it): one bd_link on the RESULT branch of
+# the named arbitrated merge's output fork (between `<inst>_f` and the result's consumer).  A MEASUREMENT knob for
+# PROGRAM.md's 15 ns lead (research/data/fifteen): on xorshift that fork's acknowledge waits for the loop-control steer,
+# which waits for the whole counter computation, so the select token's return-to-zero is coupled to the counter's
+# rising pass; the timed event graph predicts this one latch removes every polarity change from the critical cycle.
+# Request delay DELAY_<INST>_RLINK (default STAGE_PAD), acknowledge delay 0 for a control token (ACK_PAD otherwise).
+MERGE_RES_LINK = set(filter(None, os.environ.get("BDC_MERGE_RES_LINK", "").split(",")))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -2279,11 +2286,27 @@ class Emitter:
             self.emit(f"    assign {self.odata(idx)}"
                       f"[{self.width(idx) - 1}:{iw}] = "
                       f"{self.width(idx) - iw}'d0;")
+        rlink = inst in MERGE_RES_LINK
+        r_req, r_ack = self.oreq(res), self.oack(res)
+        if rlink:
+            r_req, r_ack = f"{inst}_rreq", f"{inst}_rack"
+            self.emit(f"    wire {r_req}, {r_ack};")
         self.emit(f"    bd_fork #(.N(2)) {inst}_f (")
         self.emit(f"        .rst(rst), .req({m_req}), .ack({m_ack}),")
-        self.emit(f"        .req_out({{{self.oreq(idx)}, {self.oreq(res)}}}),")
-        self.emit(f"        .ack_in({{{self.oack(idx)}, {self.oack(res)}}}));")
-        if not self.is_control(res):
+        self.emit(f"        .req_out({{{self.oreq(idx)}, {r_req}}}),")
+        self.emit(f"        .ack_in({{{self.oack(idx)}, {r_ack}}}));")
+        if rlink:
+            ctl = self.is_control(res)
+            rd = self.delay(f"{inst}_rlink", STAGE_PAD)
+            ra = self.delay(f"{inst}_rlink_uack", 0 if ctl else ACK_PAD)
+            rw = 1 if ctl else max(w, 1)
+            rin = "1'b0" if ctl else f"{inst}_data"
+            rout = "" if ctl else self.odata(res)
+            self.emit(f"    bd_link #(.W({rw}), .DELAY({rd}), .DACK({ra})) {inst}_rlink (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .req_in({r_req}), .ack_in({r_ack}), .data_in({rin}),")
+            self.emit(f"        .req_out({self.oreq(res)}), .ack_out({self.oack(res)}), .data_out({rout}));")
+        elif not self.is_control(res):
             self.emit(f"    assign {self.odata(res)} = {inst}_data;")
 
     def _op_fork(self, node, inst):

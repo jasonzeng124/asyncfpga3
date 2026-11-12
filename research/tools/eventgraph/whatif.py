@@ -108,6 +108,10 @@ class G:
         for i, (t, p, ports) in self.verilog().items():
             if t == "bd_fork" and net in ports.get("req_out", []):
                 names |= {"bridge_i.udut." + n for n in self.downstream(ports["req"][0])}
+        # a bd_join's ack_out entries are all its ack input (a wire): the physical net carries any of those names
+        for i, (t, p, ports) in self.verilog().items():
+            if t == "bd_join" and net in ports.get("ack_out", []):
+                names |= {"bridge_i.udut." + n for n in ports.get("ack_out", []) + ports.get("ack", [])}
         got = {}
         for n in self.nodes:
             if n["name"] in names: got.setdefault(n["edge"], set()).add(n["id"])

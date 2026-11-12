@@ -3586,3 +3586,19 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   if 24/24). Starting step 1: the budget from the graph on item 14's routes (pmf seeds 1, 3-9): falling arcs on the
   critical and near-critical cycles, each delay on the rising ring against its data's worst need, each req/ack wire
   against an adjacent-cell wire. Report: research/data/fifteen/README.md.
+### progress 18:00 (15 ns lead, step 1 budget done; first new lever predicted: a latch on the merge fork's result branch)
+- research/tools/fifteen/budget.py on item 14's 8 routes (research/data/fifteen/budget_pmf_*.txt): period 28.5-32.4 ns;
+  return-to-zero on the cycle 9.9-12.7 ns; delay removable under the rules 1.4-2.5 ns (mostly select paths the select
+  rule keeps); handshake-wire removable (to the graph's 10th-percentile wire) 1.9-3.2 ns. All three taken: 16.7-17.7 ns.
+  Not under 15: what blocks is the counter ring's rising logic (uaddi0's i+1 needs 4.9 ns with guard -- its worst settle
+  over the run, 3.8 ns, exceeds its on-cycle delay 2.85 ns: to be checked -- and ucmpi1 3.1) and the handshake hops.
+- No storage edit with existing knobs helps item 14 (21 candidates, all singles and pairs: 0 ps). The cycle closes
+  through the merge-output fork ucontrol_merge0_f: its ack waits for the loop-control join ucond_br9_j, which waits for
+  the whole counter computation, so the select token's RTZ rides the counter's rising pass. The graph: one bd_link on
+  that fork's RESULT branch (n_result -> ucond_br9_j) removes it.
+- bdc/emit.py BDC_MERGE_RES_LINK=<merge> (new, opt-in): that link (control token: W 1, DELAY STAGE_PAD 3, DACK 0).
+  Default output byte-identical on gcd/xorshift/collatz/collatz64/ipow/isprime; simcheck PASS on xorshift with it alone
+  and with item 14's knobs.
+- PREDICTION (item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0), from each pmf graph: 21.85 / 21.87 / 23.10 / 23.57 ns
+  (seeds 1/3/4/5; 1.33 / 1.35 / 1.40 / 1.21x over item 14). With PROGRAM's +1-3 ns for an inserted stage's wire:
+  expect 23-26 ns. Building seeds 1, 3, 4, 5.
