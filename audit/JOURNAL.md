@@ -1500,3 +1500,6 @@ T4cdb + fast fall only, seed 7 FAST_MIN: 14/14 (16 fast-fall instances). No haza
 
 ### progress 10:03 T71 done
 colb seed 1 (sdf e20325f3 = research): 13/13 at 3 corners; 1.124/1.140/1.134 over item 9 on the same route. Pre-audit for a likely board item.
+
+### progress 10:19 T67 row 12
+ipowfm_7: NOT EQUIVALENT (unconfigured BFF with loads) but 17/17 -- oracle passes do not clear a route; research's statement confirmed.
