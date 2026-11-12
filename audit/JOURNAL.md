@@ -1605,3 +1605,6 @@ FAST_MIN monitor sweep, 7 board routes: 0 select violations; tightest = xorshift
 
 ### progress 22:27 item 17 done
 Board item 17 (levers 1-3) CONFIRMED on board route: 3 corners 17/17, 1.93-1.99x over x0.5, 1.45-1.49x over item 14.
+
+### progress 22:28 item 18 done
+Board item 18 (lever 5) CONFIRMED on board route from T84 runs: sdf, kernel diff = link only, 3 corners 17/17, monitors clean, 2.08-2.14x over x0.5 (pred ~2.12).
