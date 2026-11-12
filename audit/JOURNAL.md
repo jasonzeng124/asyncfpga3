@@ -1479,3 +1479,6 @@ Item 4 board seed FAST_MIN 17/17; all uniform-scale board seeds (items 4, 6, 7, 
 
 ### progress 08:09 T70 started
 Stress corner no gate runs: FAST_MIN (SDF min) + the M within-die scatter (region 0.02 + wire 0.126, wire mode; gen.py applies scatter on any column), draws 1 and 2, on the select-unsafe board seeds item 7 (95a362ff), item 13 (e5000e23), item 4 (c5b8ca02). t65/run3.sh, t65/lanes70.sh.
+
+### progress 08:49 T70 done
+FAST_MIN + M scatter, draws 1-2, items 7/13/4 board seeds: 6/6 PASS 17/17. No positive control for the scatter part.
