@@ -1584,3 +1584,6 @@ Research bb155ecf lever 5 (BDC_NO_LINK=ulink_n30__1 on lever 3; 18.45/17.64 ns):
 
 ### progress 19:30 T84/T85
 Levers 3 and 5 reproduced (19.862/20.638, 18.455/17.645 ns). Lever 5 seed 1: FAST_MIN/worst/SLOW_MAX 17/17; monitors 0 steer violations but the 50-us report interval covered only ~25% of the loop iterations: rerunning lever 5 s1 and item 14 s1 with 5-us reports.
+
+### progress 20:00 T83/T84 done
+Full-coverage monitors: item 14 s1 steer margin 1.668 (worst) / 1.770 (FAST_MIN) ns, lever 5 s1 2.159 / 2.154 ns, 0 violations, all 17/17.
