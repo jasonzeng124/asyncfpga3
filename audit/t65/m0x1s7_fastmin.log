@@ -1,0 +1,104 @@
+T65 fastmin  Thu Nov 12 07:37:07 UTC 2026
+GLS_MODEL=fid
+GLS_SDF=/root/t65/m0x1s7/collatz64_bench_gen_xray_min.sdf
+GLS_SDF_FIELD=min
+PS_DESIGN=collatz64_bench_gen
+PS_HOST=ps7_bench.v
+PYTHONPATH=/root/audit-tc/openxc7-src/prjxray
+XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
+$ python3 /root/wt-r65/cells/gls/fid/xray_delay.py --routed /root/t65/m0x1s7/collatz64_bench_gen_routed.json --sdf /root/t65/m0x1s7/collatz64_bench_gen.sdf --out /root/t65/m0x1s7/collatz64_bench_gen_xray_min.sdf
+  sitepip_charged_CLKINV                   1469
+  sitepip_charged_SRUSEDMUX                848
+  sitepip_charged_x5FFMUX                  541
+  sitepip_charged_xFFMUX                   1345
+  sitepip_charged_xOUTMUX                  2976
+f9b538b49ddd14554ec6c36eec1bbb4f  /root/t65/m0x1s7/collatz64_bench_gen.bit
+85a3d9a3eaa8ec790fd37349ddf847b3  /root/t65/m0x1s7/collatz64_bench_gen.sdf
+6b605b0ad8a86133dd0d3104d7877a33  /root/t65/m0x1s7/collatz64_bench_gen_xray_min.sdf
+88834005b6faba09011b8717c95abe39  /root/t65/m0x1s7/collatz64_bench_gen_routed.json
+5f875fe09e3b4a44d49a1c80c8189a3a  /home/user/asyncfpga3/audit/t65/collatz64_14.hex
+chain-band cells: 199
+$ /root/wt-r65/cells/gls/ps/build_ps.sh /root/t65/m0x1s7 /root/t65/work_m0x1s7_fastmin "" bit
+source: /root/t65/m0x1s7/collatz64_bench_gen.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 53061   nodes touched: 324549
+cells: 8007  {'BUFGCTRL': 1, 'CARRY4': 88, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PS7_PS7': 1, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 347, 'SLICE_FFX': 1892, 'SLICE_LUTX': 5672}
+sinks traced: 247595
+sink roots: {'drv': 24480, 'const/tile': 1164, 'const/default': 14682}
+sdf: DRIVER MISMATCH: nextpnr's arc has another source                      69
+sdf: cell arcs for a bel this netlist does not have                         92
+sdf: cells re-keyed                                                         7915
+sdf: interconnects re-keyed                                                 29362
+sdf: sinks with no nextpnr interconnect (0 ps)                              14129
+
+PROBLEMS (2 kinds):
+      69  SDF interconnect source differs from the bitstream's driver
+            e.g. SLICE_X0Y91/A6LUT/A4: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+            e.g. SLICE_X0Y93/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+            e.g. SLICE_X0Y94/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+            e.g. SLICE_X11Y76/A6LUT/A5: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:706$1342.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X10Y78/CARRY4/CO2
+            e.g. SLICE_X13Y43/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+            e.g. SLICE_X13Y44/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+            e.g. SLICE_X13Y74/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:706$1342.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X10Y78/CARRY4/CO2
+            e.g. SLICE_X14Y61/A6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/collatz64_bench_gen.v:586$1324.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y68/CARRY4/CO2
+       1  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_BOT_R_X82Y48/CLK_BUFG_BUFGCTRL0_O
+
+CONFIGURED FEATURES NOT CONSUMED: 1 kinds (0 all-zero encodings ignored)
+       1  CLK_HROW_BOT_R.CLK_HROW_CK_IN_LN_ACTIVE   e.g. CLK_HROW_BOT_R_X82Y26.CLK_HROW_CK_IN_L0_ACTIVE
+
+note: 6079 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 8704 routed-JSON net names attached by driver bel pin, 0 whose driver has no net here
+VERDICT: NOT EQUIVALENT: DRIVER DIFFERS
+design:    collatz64_bench_gen (host ps7_bench.v)
+routed.json md5 10d3bcadfdbb57a994bc360909e80145  <- /root/t65/m0x1s7/collatz64_bench_gen_routed.json
+routed.sdf  md5 403d3a68fb649237b11fd4ece36b1489  <- /root/t65/m0x1s7/collatz64_bench_gen_xray_min.sdf, column min
+delays:    scatter 0 region 0 seed 1 mode arc logn 0
+model:     fid
+netlist:   bit (fasm2net --ps7 from f9b538b4); VERDICT: NOT EQUIVALENT: DRIVER DIFFERS
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+24 vectors -> /root/t65/work_m0x1s7_fastmin/ps_vec.hex
+delays: SDF column min, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 23685 IOPATH, 43491 INTERCONNECT, 8962 SETUPHOLD
+fid: 1265 LUT state node(s) with a self-loop; loop delay min/median/max 125/331/813 ps
+cells         : 8007
+icbufs        : 43491
+nets          : 8754 (+43491 icbuf outputs)
+IOPATH  claimed 67176 -> emitted 67176 (incl. 43491 icbuf)
+SETUPHOLD claimed 8962 -> 1892 flops check them in netlist_baked.v
+built in /root/t65/work_m0x1s7_fastmin
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:20.84
+	Maximum resident set size (kbytes): 4312552
+ANNOTATE_DONE
+$ vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +VECFILE=/home/user/asyncfpga3/audit/t65/collatz64_14.hex +NRUNS=2 +TBATCH=1000000
+WARNING: /root/wt-r65/cells/gls/ps/ps7_bench.v:255: $readmemh(/home/user/asyncfpga3/audit/t65/collatz64_14.hex): Not enough words in the file for the requested range [0:511].
+BENCHRES batch=0 fclk_ps=12000 mode=1 op0=00000002 op1=00000000 n=2 completed=2 cycles=26 prepcyc=32 latmin=8 latmax=8 sig=00000003 odata=00000001 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=3018640 DONE
+BENCHRES batch=1 fclk_ps=12000 mode=1 op0=00000004 op1=00000000 n=2 completed=2 cycles=32 prepcyc=32 latmin=11 latmax=11 sig=00000006 odata=00000002 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=5586640 DONE
+BENCHRES batch=2 fclk_ps=12000 mode=1 op0=00000010 op1=00000000 n=2 completed=2 cycles=48 prepcyc=32 latmin=19 latmax=19 sig=0000000c odata=00000004 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=8154640 DONE
+BENCHRES batch=3 fclk_ps=12000 mode=1 op0=00000100 op1=00000000 n=2 completed=2 cycles=76 prepcyc=32 latmin=33 latmax=33 sig=00000018 odata=00000008 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=11382640 DONE
+BENCHRES batch=4 fclk_ps=12000 mode=1 op0=00001000 op1=00000000 n=2 completed=2 cycles=106 prepcyc=32 latmin=48 latmax=48 sig=00000014 odata=0000000c mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=15270640 DONE
+BENCHRES batch=5 fclk_ps=12000 mode=1 op0=00010000 op1=00000000 n=2 completed=2 cycles=134 prepcyc=32 latmin=62 latmax=62 sig=00000030 odata=00000010 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=19158640 DONE
+BENCHRES batch=6 fclk_ps=12000 mode=1 op0=00100000 op1=00000000 n=2 completed=2 cycles=162 prepcyc=32 latmin=76 latmax=76 sig=0000003c odata=00000014 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=23706640 DONE
+BENCHRES batch=7 fclk_ps=12000 mode=1 op0=01000000 op1=00000000 n=2 completed=2 cycles=192 prepcyc=32 latmin=91 latmax=91 sig=00000028 odata=00000018 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=28254640 DONE
+BENCHRES batch=8 fclk_ps=12000 mode=1 op0=10000000 op1=00000000 n=2 completed=2 cycles=220 prepcyc=32 latmin=105 latmax=105 sig=00000024 odata=0000001c mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=33462640 DONE
+BENCHRES batch=9 fclk_ps=12000 mode=1 op0=40000000 op1=00000000 n=2 completed=2 cycles=236 prepcyc=32 latmin=113 latmax=113 sig=00000022 odata=0000001e mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=38670640 DONE
+BENCHRES batch=10 fclk_ps=12000 mode=1 op0=0000001b op1=00000000 n=2 completed=2 cycles=822 prepcyc=32 latmin=406 latmax=406 sig=000000b1 odata=0000006f mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=51138640 DONE
+BENCHRES batch=11 fclk_ps=12000 mode=1 op0=00000061 op1=00000000 n=2 completed=2 cycles=872 prepcyc=32 latmin=431 latmax=431 sig=0000009a odata=00000076 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=63606640 DONE
+BENCHRES batch=12 fclk_ps=12000 mode=1 op0=00000367 op1=00000000 n=2 completed=2 cycles=1306 prepcyc=32 latmin=648 latmax=648 sig=000001d6 odata=000000b2 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=81354640 DONE
+BENCHRES batch=13 fclk_ps=12000 mode=1 op0=00012ce7 op1=00000000 n=2 completed=2 cycles=2550 prepcyc=32 latmin=1270 latmax=1270 sig=000003e2 odata=0000015e mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=114282640 DONE
+BENCHSUMMARY batches=14 hang=0 id_mismatch=0 t_end=114342640
+/root/wt-r65/cells/gls/ps/ps7_bench.v:349: $finish called at 114342640 (1ps)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 12:03.44
+	Maximum resident set size (kbytes): 2369940
+DONE

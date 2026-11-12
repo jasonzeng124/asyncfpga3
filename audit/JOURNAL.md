@@ -1470,3 +1470,6 @@ Item 12 T4cdb on bench seed 7 (where T4cd failed) FAST_MIN: 14/14, cyc350 2804 =
 
 ### progress 07:35 T65 stress
 Rule-gap probe started: T4cdb with only UCONTROL_MERGE0 6 -> 1 (the merge whose output is the umux0/umux1 select token), bench seed 7, FAST_MIN.
+
+### progress 07:53 T65 row 14
+Stress: T4cdb with UCONTROL_MERGE0 6->1, seed 7 FAST_MIN: 14/14 (benign F7 decode). No hazard shown from the merge-delay gap on this route.
