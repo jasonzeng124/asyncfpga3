@@ -1566,3 +1566,6 @@ Owner research PROGRAM db2c8f53: stay four-phase; push xorshift toward 15 ns. It
 
 ### progress 17:15 T80
 BDC_MERGE_RES_LINK byte-identical default CONFIRMED by own emit diff (8 emitting kernels, default and board knobs). Prediction 21.9-23.6 ns pre-registered in 922fca2b.
+
+### progress 17:26 T81 started
+Research ef92f2be: item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0 "23.37 / 23.40 ns on seeds 1, 3 (1.25x over item 14)". Own builds at ef92f2be + own period method running.
