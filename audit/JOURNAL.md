@@ -1578,3 +1578,6 @@ Latch monitor on item 14 board route (worst): closing-edge setup >= 9.9 ns on al
 
 ### progress 18:33 T83 done
 Item 14 board route: data latches setup >= 9.9 ns (capture at RTZ); loop steers on the i+1 compare: rise margin >= 1.67 ns (worst) / 1.77 (FAST_MIN), 0 select changes while req high. Research's open question is not a violation on this route.
+
+### progress 18:34 T84 started
+Research bb155ecf lever 5 (BDC_NO_LINK=ulink_n30__1 on lever 3; 18.45/17.64 ns): own builds of levers 3 and 5, seeds 1 and 3, at bb155ecf; own period method.
