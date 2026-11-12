@@ -1403,3 +1403,6 @@ Pause over (audit PROGRAM 2e82cf24). Formal idle since 8fd62f82 (2026-11-10 23:2
 
 ### progress 02:54 T65
 Research re-gates: own select-path trace -- T3cdb/T4cdb select-safe (incl. UACK; controls flagged), T64 open point resolved; rule gap: control-merge delay feeding the select shortened (T3cdb merge0 11->5, T4cdb merge1 5->3), hazard UNVERIFIED. All paired ratios reproduce; on the board seed item 12 is 0.96-1.00x of item 6 (BQ "1.03-1.05x" is the 8-route mean). Builds of both board seeds running (toolchain restored, fingerprint OK).
+
+### progress 03:01 T65
+Own builds at research 4c977781: item 9 collatz T3cdb seed 1 sdf **a7882dfa** reproduced (flag in effect; kernel identical to the one traced, header aside); item 12 collatz64 T4cdb seed 1 sdf **b883dcb5** reproduced. Both decode EQUIVALENT (collatz). Full-stack worst/FAST_MIN/SLOW_MAX at 83.3 MHz running.
