@@ -1485,3 +1485,6 @@ FAST_MIN + M scatter, draws 1-2, items 7/13/4 board seeds: 6/6 PASS 17/17. No po
 
 ### progress 08:50 T70b
 Positive-control attempt for the FAST_MIN+scatter corner: held T4cd on bench seed 1 (passed plain FAST_MIN in research's gate): plain FAST_MIN, then + M scatter draws 1, 2. Running.
+
+### progress 09:23 T70b done
+T4cd seed 1 (sdf 13e5c529): plain FAST_MIN and +scatter draws 1-2 all 14/14 -- no positive control; the stress corner adds no demonstrated sensitivity.
