@@ -1427,3 +1427,6 @@ Research eventgraph (PROGRAM FIRST item): own max-cycle-ratio solver on all 27 c
 
 ### progress 04:30 T65 done / T67 started
 T65 row 10: diagnosis test (T4cd seed 7, n14__1 at 19/2) FAST_MIN 14/14, but re-routed (sdf acc06847), a confound research's test shares. T67: own builds at research 7fa9f0c1 of x0.5 s1 (sdf c5b8ca02 reproduced, own FF/FFMUX scan clean) and pmf s1/s2; period by own latmin difference (256 vs 2048 rounds), no trace tool.
+
+### progress 04:50 T67
+Own period method (latmin difference, 256 vs 2048 rounds): x0.5 s1 39.060 ns (research 39.058), pmf s1 29.143 (research 29.144); pmf_1 DRIVER DIFFERS benign by own FASM read. pmf_2 AFF gap CONFIRMED by own scan. Building x50/pmf seeds 3-5 to recompute the 1.344x pairing.
