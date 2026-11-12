@@ -3671,3 +3671,8 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   route-to-route spread; not adopted without more seeds. v8 does not place on either seed.
 - From item 14: seed 1 29.14 -> 18.45 (1.58x), seed 3 29.54 -> 17.64 (1.67x). Gap to 15 on these two routes: 3.5 / 2.6.
 - Next: lever 5 on seeds 4-9 and its gate (rule-1 removal: the gate decides correctness); lever 3's gate is running.
+### progress 23:00 (lever 3 on 8 routes 20.55 ns mean; lever 5 on 7 routes 18.42 mean; gates 29/29 so far)
+- Lever 3 (pmfrcf), seeds 1, 3-9: 19.86 / 20.64 / 20.91 / 21.36 / 19.58 / 21.36 / 20.39 / 20.70 ns, mean 20.60 (item 14
+  30.0): 1.46x. Lever 5 (nl30), seeds 1, 3-8: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95, mean 18.43; seed 9
+  pending. Best route 17.37 ns.
+- Gates (all PASS so far): collatz64 c64fm 21/24, lever 3 6/24, lever 5 2/24.
