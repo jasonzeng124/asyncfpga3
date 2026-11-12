@@ -16,7 +16,8 @@ PYTHONPATH=$PX python3 "$G/fid/xray_delay.py" --routed "$HW/${D}_routed.json" --
 python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' 0.21 "$W/chains.band" > /dev/null
 export GLS_SDF=$XS GLS_SDF_FIELD=band GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
        GLS_SDF_BAND_INST=@$W/chains.band GLS_MODEL=fid PS_DESIGN=$D PS_HOST=ps7_bench.v PYTHONPATH=$PX
-"$G/ps/build_ps.sh" "$HW" "$W" "" bit > "$W/build.log" 2>&1
+# one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
+flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W" "" bit > "$W/build.log" 2>&1
 rm -f "$W/run_baked.vvp" "$W/gate.vvp"
 cat > "$W/dump.v" <<'V'
 module dump_all; initial begin $dumpfile("dump.vcd"); $dumpvars(1, tb_ps.dut); end endmodule

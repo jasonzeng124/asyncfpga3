@@ -18,7 +18,8 @@ case $COL in
                 GLS_SDF_BAND_INST=@$W/chains.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=1;;
   *) echo "COL?"; exit 2;;
 esac
-"$G/ps/build_ps.sh" "$HW" "$W/$COL" "" bit > "$W/$COL.build.log" 2>&1
+# one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
+flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W/$COL" "" bit > "$W/$COL.build.log" 2>&1
 cd "$W/$COL"; rm -f gate.vvp
 vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=20000000 > run.log 2>&1 || true
 rm -f run_baked.vvp
