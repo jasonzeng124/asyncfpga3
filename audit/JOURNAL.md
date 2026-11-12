@@ -1443,3 +1443,6 @@ Item 7 (ipow x0.75) shortens 9 select-path params (own trace); board seed sdf 95
 
 ### progress 05:57 T67 done
 pmf vs x0.5 pairing reproduced by own builds + own period method: 1.340/1.374/1.216/1.447, mean 1.344 (= research). AFF gap confirmed. REPORT row added.
+
+### progress 05:58 T67
+Research gate (bench_gate.sh) oracles = own oracles (47/47). ipowfm_1 FAST_MIN was never judged by research (script syntax error); own ipowfm seeds 1 and 7 building: seed 1 -> FAST_MIN + worst, seed 7 -> own FF scan for the reported BFF gap.
