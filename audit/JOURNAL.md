@@ -1503,3 +1503,6 @@ colb seed 1 (sdf e20325f3 = research): 13/13 at 3 corners; 1.124/1.140/1.134 ove
 
 ### progress 10:19 T67 row 12
 ipowfm_7: NOT EQUIVALENT (unconfigured BFF with loads) but 17/17 -- oracle passes do not clear a route; research's statement confirmed.
+
+### progress 10:19 T73 started
+Item 13 extra routes: ipowfm seeds 2, 3 (own builds) FAST_MIN + worst.
