@@ -1421,3 +1421,6 @@ Item 12 FAST_MIN 14/14, cyc350 2728 = research exact. Item 6 (x0.75) seed 7 FAST
 
 ### progress 04:08 T65
 Item 12 SLOW_MAX 14/14, cyc350 7622 = research exact: item 12 board seed CONFIRMED at 3 corners. NEGATIVE CONTROL held T4cd seed 7 (own build sdf 98809562) FAST_MIN: EQUIVALENT but **12/14**, n=871 -> 306 steps, n=77031 -> 606 -- research's reported failure reproduced exactly; the stack detects the select race. Diagnosis test running (T4cd with ulink_n14__1/SDELAY at 19/2).
+
+### progress 04:11 T66
+Research eventgraph (PROGRAM FIRST item): own max-cycle-ratio solver on all 27 committed graphs = their period = trace P to the ps; but the equality is structural (slack >= 0 everywhere and a zero-slack in-arc at every node), so step 1 checks extraction, not the model. Step-3 table recomputed exactly (mean |err| 0.71 ns, 17 runs; p12 miss -5.27; not blind, as research says). Step-4 predictions committed before the pmf measurement. findings/T66.md.
