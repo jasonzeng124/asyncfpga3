@@ -3508,3 +3508,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - Queued: collatz select-safe base (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh = board item 9's sizes) seeds 1-8,
   then the same + BDC_LINK_FASTFALL + merge-output link; predictions from the base graphs before the variants run.
 - PR #2 description updated.
+### progress 05:22 (gate 14 runs, all PASS; a third constant-D flop gap: ipowfm seed 7, BFF)
+- Gate results so far: ipowfm 1 (max, worst), 2 (max/min/worst), 3 (max), 5 (max/min/worst), 6 (max/min), pmf 1
+  (max/min): every one PASS 17/17. NOT_EQUIVALENT ones (ipowfm 5, 6, pmf 1) are GND-buffer F7 data inputs only (checked).
+- ffmux_scan.py on the new FASMs: ipowfm seed 7 has CLBLM_R_X9Y30.SLICEM_X0.BFF with ZINI/ZRST and no BFFMUX -- the
+  same nextpnr gap, third slot type (C5FF 11-08, AFF and BFF today), 2 of the ~45 routes built this session. Seed 9
+  added so the gate keeps 8 good routes; seed 7's gate runs stay in as an exhibit.
