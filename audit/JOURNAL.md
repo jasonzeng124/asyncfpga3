@@ -1617,3 +1617,6 @@ colr seed 1 47.52 ns (research 47.56), colb control 59.52 (59.58): lever 1 on co
 
 ### progress 23:27 T86 extended
 Items 16, 17 at FAST_MIN with monitors: 0 violations (item 17 umux3 0.84 ns). Sweep now covers 10 board routes, all 0 violations.
+
+### progress 23:57
+Research d457a2fb: lever 1 on collatz/ipow/collatz64 over 8 routes (1.20/1.17/1.18x), gates running; audit spot check T87 (colr s1) stands. Watching for board items.
