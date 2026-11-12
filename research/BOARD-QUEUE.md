@@ -97,6 +97,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    BDC_FORK_OUT_LINK), the 15 ns lead's levers 1-3 (research/data/fifteen), on the kernel bench**: #18 below. Full gate
    24/24 on 8 bench routes. Predicted 1.47x per round over item 14 on this route (1.33-1.55 over 8), 1.97x over item 4.
    Judge: `python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l3.tsv build/hw/lc_xor_s50.tsv`.
+18. **xorshift at ~18.7 ns per iteration: item 17 + the rule-1 link between the loop increment and the compare dropped
+   (BDC_NO_LINK=ulink_n30__1), the 15 ns lead's lever 5, on the kernel bench**: #19 below. Full gate 24/24 on 8 bench
+   routes. Predicted 2.12x per round over item 4 on this route (1.92-2.25 over 8), ~1.08x over item 17. Judge: `python3
+   ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l5.tsv build/hw/lc_xor_s50.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -663,6 +667,27 @@ on a loop steer that waits for the loop compare. Itercost periods seeds 1, 3-9: 
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.97 over x0.5 on this route (1.85-1.97 over 8). If board time
 allows, also run item 14 (#15): l3 / item 14 isolates the three new latches (predicted 1.47 on seed 1).
+
+
+## 19. xorshift item 17 + BDC_NO_LINK=ulink_n30__1 -- 24/24 on 8 bench routes
+Lever 5 of research/data/fifteen: without the rule-1 (measurability) link between the i+1 adder and the compare, the
+compare reads the adder's output directly. ring_depths() still enforces every ring's floor (nothing else changed in the
+emitted kernel). tighten.py loses that start point; the full gate decided correctness instead. Itercost periods seeds 1,
+3-9: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95 / 20.53 ns (mean 18.69; item 17 20.60, item 14 30.0).
+- Full gate (bench_gate.sh, 17 vectors incl. 200 and 1000 rounds): seeds 1, 3-9 x SLOW_MAX / FAST_MIN / worst+M ->
+  24/24 PASS 17/17; 6/8 EQUIVALENT, seeds 3 and 6 the benign GND-buffer F7 kind (checked); ffmux_scan clean.
+- nextpnr 9c732bc6303458df. From cells/, on a checkout with BDC_NO_LINK (7d9af285 or later):
+
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_NO_LINK=ulink_n30__1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+    grep -c "ulink_n30__1 (" build/gen/xorshift_kernel_bench.v    # must be 0: the link is gone
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # c6519c91 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_l5.tsv
+    (x0.5 base: #12's commands for lc_xor_s50.tsv, sdf c5b8ca02, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l5.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~2.12 over x0.5 on this route. What it would mean: PASS = the
+measurability link is not needed for correctness on silicon either; FAIL with item 17 passing = it was (send both logs).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

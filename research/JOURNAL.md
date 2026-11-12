@@ -3709,3 +3709,10 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   BOARD-QUEUE item 17 / #18 (seed-1 sdf e88b0712): 20.60 ns mean per iteration on the itercost stack (item 14 30.0).
 - collatz64 c64fm seeds 1, 2, 4-9: 24/24 PASS 14/14, 6/8 EQUIVALENT (5, 9 benign F7). Item 16 / #17 (sdf 2c06cd36).
 - Lever-5 gate (nl30) 14/24, all PASS so far.
+### progress 03:30 (lever 5 passes the full gate 24/24 -> board item 18: xorshift 18.69 ns per iteration)
+- nl30 seeds 1, 3-9 x 3 corners: 24/24 PASS 17/17; 6/8 EQUIVALENT (3, 6 benign F7); ffmux clean. BOARD-QUEUE item 18 /
+  #19 (seed-1 sdf c6519c91). Best gated xorshift now 18.69 ns mean (17.37-20.53): from item 14 1.61x, from x0.5 2.11x;
+  Dynamatic 12.73. Gap to the owner's 15: 3.7 ns.
+- Where the next ns are (research/data/fifteen/README.md): lever 6 (fused i+1<rounds) needs its delay sized by
+  corner_audit on soak-top routes (its logic settles in 2.2-2.6 ns vs the 6.3 ns delay the safe size gives); the
+  seeds that bind on the ufork8 -> ulink_n7 coupling (5, 9) lose ~2 ns to it.
