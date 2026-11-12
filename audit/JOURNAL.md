@@ -1587,3 +1587,6 @@ Levers 3 and 5 reproduced (19.862/20.638, 18.455/17.645 ns). Lever 5 seed 1: FAS
 
 ### progress 20:00 T83/T84 done
 Full-coverage monitors: item 14 s1 steer margin 1.668 (worst) / 1.770 (FAST_MIN) ns, lever 5 s1 2.159 / 2.154 ns, 0 violations, all 17/17.
+
+### progress 20:01
+Research head b40410e3: emit defaults still byte-identical to 7fa9f0c1 (t80/emitdiff_head.log); no bdc/cells changes since 7d9af285. Lever 6 (dup_add, research tool) not built into bdc; nothing to audit there yet.
