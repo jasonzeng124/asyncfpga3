@@ -1521,3 +1521,6 @@ Research listed colb as board item 15 (#16, cb06f432). Pre-audit covers it: CONF
 
 ### progress 11:45 T75 started
 Item 14 extra routes: pmf seeds 3, 4 (own builds from T67) FAST_MIN + worst.
+
+### progress 11:56 T66 rows 8-9
+Held-out accuracy recomputed on 20/23 builds from journal-stated predictions: -0.60 / 1.38 / 3.13 ns (research -0.71/1.38/3.13). Step 5 (T3 seed 2) being reproduced by own builds.
