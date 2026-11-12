@@ -4,17 +4,6 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## PAUSED until 2026-11-12 00:00 UTC (owner, 2026-11-11)
-
-The owner has paused the agents for today and tomorrow. **A session that is running now:
-stop now.** Start no new work and no new subagents. Stop any running builds and subagents.
-Commit what is finished, write a short entry in `research/JOURNAL.md` saying where you stopped and
-what the next step is, release `research/LOCK`, push, and end the session. Do not wait on
-background jobs, and never create a routine or reminder to come back.
-
-**A session that starts after 2026-11-12 00:00 UTC** (check with `date -u`): the pause is
-over. Delete this section, commit, and carry on with the program below.
-
 ## FIRST: compute where storage goes, before building it (set for the owner, 2026-11-10)
 
 **This comes before any new per-kernel delay sizing and before any new board candidate
