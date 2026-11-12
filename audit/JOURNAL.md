@@ -1461,3 +1461,6 @@ New BOARD-QUEUE item 13 (#14, ipowfm, research 16e68a56): route e5000e23 = own; 
 
 ### progress 07:02 T67
 pmf seed 1 (sdf 169ce4d6): FAST_MIN / worst / SLOW_MAX all 17/17 (own vectors); worst 1.336x over x0.5, 1.050x over item 11. ipowfm_1 SLOW_MAX running.
+
+### progress 07:17 T69 done
+Board item 13 (ipowfm) CONFIRMED on the board seed at 3 corners (own oracle) and ratio 1.175-1.190 over item 7. REPORT row added.
