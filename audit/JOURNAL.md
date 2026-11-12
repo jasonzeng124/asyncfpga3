@@ -1458,3 +1458,6 @@ ipowfm_1 combined worst case 17/17 (own vectors). pmf_1 FAST_MIN (own 17 xorshif
 
 ### progress 06:41 T69
 New BOARD-QUEUE item 13 (#14, ipowfm, research 16e68a56): route e5000e23 = own; FAST_MIN + worst 17/17; own per-iteration ratio over item 7 1.190 (FAST_MIN) / 1.175 (worst) vs predicted 1.18-1.19. SLOW_MAX queued.
+
+### progress 07:02 T67
+pmf seed 1 (sdf 169ce4d6): FAST_MIN / worst / SLOW_MAX all 17/17 (own vectors); worst 1.336x over x0.5, 1.050x over item 11. ipowfm_1 SLOW_MAX running.
