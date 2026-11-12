@@ -74,9 +74,13 @@ def critical(T, uvwo, start, back=400):
     return None
 
 
-def mcr(n, arcs, watch, K=600):
-    """(ratio, cycle arc ids) of the worst cycle upstream of node `watch`."""
+def mcr(n, arcs, watch=None, K=600):
+    """(ratio, cycle arc ids) of the worst cycle upstream of node `watch` (None: the worst cycle of the graph)."""
     T, uvwo = simulate(n, arcs, K)
+    if watch is None:
+        g = (T[K - 1] - T[K - 121]) / 120
+        g[T[K - 1] < -1e17] = -1
+        watch = int(np.argmax(g))
     cyc = critical(T, uvwo, watch)
     if not cyc:
         return float("nan"), []
