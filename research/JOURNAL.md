@@ -3565,3 +3565,11 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 57.44 / 56.44 / 51.96 / 56.90 ns
   (1.150 / 1.168 / 1.171 / 1.142x, mean 1.16). Given the held-out bias (graph ~0.7 ns optimistic), expect ~1.14x.
   Variant builds c64fm 1-4 running.
+### progress 12:45 (collatz64 step 4 measured as predicted; a 4th constant-D flop gap; its gate started)
+- c64fm (item 12 + BDC_LINK_FASTFALL + merge-output link) seeds 1/2/4: 54.85 / 56.16 / 57.54 ns vs predicted 57.44 /
+  56.44 / 56.90; over item 12's design 1.205 / 1.174 / 1.130 (mean 1.17, predicted 1.15 on these three). 261 steps,
+  EQUIVALENT. Seed 3: C5FF without C5FFMUX (ffmux_scan; the 11-08 kind). Four such routes in ~60 built this session
+  (pmf 2 AFF, ipowfm 7 BFF, c64fm 3 C5FF): ~7%. Every board recipe now carries the ffmux_scan step; the nextpnr fix
+  (owner item since 11-08) is worth doing.
+- Gate queued: c64fm seeds 1, 2, 4-9 x 3 corners, 14 vectors (n up to 63728127, 949 steps; oracle from collatz.c).
+  collatz64 sims are slow (~10 h for 24 runs last time); partial results go to gate/results_raw.txt as they land.
