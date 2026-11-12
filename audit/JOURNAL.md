@@ -1506,3 +1506,6 @@ ipowfm_7: NOT EQUIVALENT (unconfigured BFF with loads) but 17/17 -- oracle passe
 
 ### progress 10:19 T73 started
 Item 13 extra routes: ipowfm seeds 2, 3 (own builds) FAST_MIN + worst.
+
+### progress 11:07 T73 done
+Item 13 seeds 2, 3: sdf = research, FF clean, FAST_MIN + worst 17/17. Own harness bug (shared chain-band file under concurrent worst runs) found, fixed, seed 2 rerun passes.
