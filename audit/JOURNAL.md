@@ -1449,3 +1449,6 @@ Research gate (bench_gate.sh) oracles = own oracles (47/47). ipowfm_1 FAST_MIN w
 
 ### progress 06:15 T67
 ipowfm_7 BFF gap CONFIRMED by own build+scan (CLBLM_R_X9Y30 SLICEM_X0 B). ipowfm_1 (sdf e5000e23 = research) FAST_MIN 17/17, the run research did not judge. Worst case running.
+
+### progress 06:15 T68 (target re-check, formal unchanged at 8fd62f82)
+formal/target md5s re-checked from a git archive: gcd_hw bit 594bd861 (sha256 03e82630...), FASM 1a3909f6, fromBit 418f36ae, SDF 6f8b99e6, json ff7c6997; gcd_ps bit aa83c8b7 (sha256 e6bb4aec...) = research/board copy, FASM 2dbf962d -- all = README. Spec.lean last changed 7050f26f (2026-11-01, journaled owner decision 3, audited then). No new formal claims.
