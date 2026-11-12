@@ -1467,3 +1467,6 @@ Board item 13 (ipowfm) CONFIRMED on the board seed at 3 corners (own oracle) and
 
 ### progress 07:35 T65 row 13
 Item 12 T4cdb on bench seed 7 (where T4cd failed) FAST_MIN: 14/14, cyc350 2804 = research exact.
+
+### progress 07:35 T65 stress
+Rule-gap probe started: T4cdb with only UCONTROL_MERGE0 6 -> 1 (the merge whose output is the umux0/umux1 select token), bench seed 7, FAST_MIN.
