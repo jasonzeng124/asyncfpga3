@@ -4,65 +4,65 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## FIRST: compute where storage goes, before building it (set for the owner, 2026-11-10)
+## FIRST: xorshift at 15 ns per iteration, in four-phase (owner, 2026-11-12)
 
-**This comes before any new per-kernel delay sizing and before any new board candidate
-that comes from sizing.** The board list is long enough. Finish the collatz64
-`BDC_CONST_DATA` run that is already going, then start here.
+The owner read `research/data/eventgraph/README.md` and decided two things:
 
-Why. The two leads before this one are done (see "Done" below), and they say the same thing:
-- xorshift's period is 86% wire and 40-44% return-to-zero. Logic plus handshake is 2.3 ns.
-- A second latch at one coupling point gave 1.16x, and one more after the merge made it
-  1.25x. But each latch only moved the coupling one cell on, and the RTZ share stayed at
-  39-43%. A latch in the wrong place cost +5.3 ns.
-- Delay sizing does not carry from one route to the next (ipow `umux3`, `ushrsi0`).
+- **The protocol stays four-phase for now.** Do not start a two-phase rewrite.
+- **About 15 ns per iteration on xorshift is doable in four-phase, and the owner wants a
+  harder push for it.** Do not stop at the knobs bdc already has.
 
-So choosing sites by hand, one route build per guess, is slow and does not converge. The
-critical cycle is not a ring of stages. It is a loop of request and acknowledge hops with
-an odd number of inversions (three on xorshift x0.5), so it runs like a ring oscillator and pays every delay on it
-on both edges. Whether a loop like that binds is a property of the whole timed graph. Compute it.
+Where it stands (bench top, simulation). The best gated xorshift is board item 14, about
+30 ns (28.5 to 32.4 by seed). Dynamatic is 12.73. Two gaps separate 30 from 15:
 
-1. **The event graph.** From one full-stack run (the itercost stack and bands), build the
-   timed event graph of the control network: one node per (control net, edge), one arc per
-   causal input of that edge with its wire + arc delay, and the iteration offset of each
-   arc read from the steady-state trace. `trace.py` already finds the binding cause of an
-   edge; this needs every enabling input, with its slack. The period is the maximum cycle
-   ratio of that graph.
-   **Check:** it reproduces the measured period and the critical cycle on every run in
-   `research/data/itercost/` and `second_latch/`. They must agree exactly, since both come
-   from the same trace. If they do not, the graph is wrong.
-2. **What the graph says, with no new builds.** Per kernel (xorshift, collatz, ipow, gcd):
-   - the period if no falling edge ever binds: the worst cycle that has no polarity change.
-     This is the floor that added storage can reach in this protocol;
-   - the next cycles below the critical one, and their slack. That is how much one fix
-     buys before the next cycle binds.
-3. **What-ifs, checked against what was measured.** Edit the graph instead of the design:
-   add a stage at a site, remove a rule-1 link, give a chain a fast fall. Predict the
-   period. First predict the variants already built, from the base graph alone: p8 (-5.6 ns),
-   p11 (+0.8), p12 (+5.3), mo (-1.4), p8mo (-7.7), all3 (-4.8), and collatz's merge link
-   (-1.8). Write the predictions before comparing. Each variant re-places the design, so
-   agreement within the seed scatter (about 1 ns) is a pass. If the edits cannot predict
-   these, say so and stop; that is a result.
-4. **Search, then build only the winners.** Find the smallest set of edits that brings each
-   kernel's predicted period near its floor from step 2. Build the best one or two per kernel,
-   measure with itercost, and report predicted against measured. Then the full gate, as
-   usual, before anything goes on the board list.
-5. **Make it a compiler pass.** If step 4 holds, bdc chooses storage from the graph, with no
-   per-kernel site list: from default delays before the first route, or from one routed
-   pass, the way `converge.sh` iterates. Off by default until it passes the gate on every kernel.
-6. **A protocol table, from the graph only.** No RTL. Per kernel, the predicted period for:
-   today's build; storage chosen as in step 4; that plus fast fall on every chain; a
-   controller holding one token per stage at the coupling cells (read
-   `cells/verify/attempts/bd_deco_attempt.v` and why it is not in `rtl/`); and every
-   falling arc set to zero, which is an upper bound on what two-phase could give. Put
-   Dynamatic's number beside each. The owner needs this table to decide whether a
-   two-phase or decoupled rewrite of the cells is worth doing. `cells/rtl/` stays frozen.
+1. **30 to 20: return-to-zero is still on the critical cycle.** The worst cycle with no
+   polarity change is 19.2 to 20.7 ns. The step-4 search had three edits only (link depth,
+   merge-output link, fast fall). What binds after them is the falling pass of handshake
+   cells (9.08 ns of the x0.5 period), with the polarity changes at the merge and at the
+   merge-output link's fork.
+2. **20 to 15: the rising pass itself.** On x0.5 seed 1 it is excess delay 11.79, req/ack
+   wires 7.85, handshake cells 1.23, logic 1.03. At least 5 ns has to come out of excess
+   delay and wires.
 
-Do not change the loop lowering (owner: leave the merge header as it is). Predict before
-every run. A floor in step 2 that is close to today's period is a result: it would mean added
-storage is nearly spent and only the protocol is left. Say so plainly.
+What to do, in this order:
 
-Results go in `research/data/eventgraph/`, tools in `research/tools/itercost/`.
+1. **The budget, from the graph, before any build.** For item 14's routes:
+   - every falling arc on a critical or near-critical cycle, by cell, and the edit that would
+     take it off the cycle;
+   - every delay on the rising ring: what it is, what its data needed in the worst iteration
+     and corner, and what the rules (A, E, the select rule) require. That makes the removable
+     part of the 11.8 ns a number;
+   - every req/ack wire on the ring: its routed delay against the shortest it could be with
+     the two cells adjacent. That makes the removable part of the 7.85 ns a number.
+   Then the predicted period with all three taken. If it is not under 15, say what it is and
+   what blocks it, and carry on with the levers anyway.
+2. **New levers, the largest first.** Anything four-phase is allowed. That includes changing
+   or adding cells under CLAUDE.md's rule (a stated reason and a routed-GLS check); new
+   variants are opt-in and off by default. Ideas, not a list to follow:
+   - return-to-zero off the cycle: storage at sites the search could not use (mux, steer and
+     fork outputs, acknowledge paths); handshake cells whose falling arc is short where the
+     protocol allows it (read the notes on `bd_join`'s acknowledge before trying); letting
+     the counter ring's handshake stop waiting on the datapath;
+   - a shorter rising pass: fewer handshake stages on the counter ring (13 today), by fusing
+     its mux, add, compare and steer; per-instance sizing of the ring's delays under the
+     select rule; a delay built from the same primitive as the data it bundles, so it tracks
+     the data instead of covering it with margin;
+   - shorter wires: place the ring's cells together (`RLOC_GROUP`, `PLACE_WEIGHT`).
+3. **Predict, build, measure, gate, as in the event-graph work.** Write every prediction
+   before the build. The graph under-charges an inserted stage by 1 to 3 ns of wire, so add
+   that. The correctness bar does not move: the full gate, the select rule, `ffmux_scan.py`.
+4. **Keep going.** A lever that fails is a journal entry, not a stopping point: take the
+   next one. Stop only when the budget shows no lever left, and then say what 15 ns would
+   need.
+5. **Then the other kernels.** Apply what worked to collatz, ipow and collatz64, and report
+   each beside Dynamatic's number (collatz 14.05, collatz64 17.84). They have no target yet.
+
+The loop lowering stays as it is (owner). If the budget shows that 15 ns cannot be reached
+without changing it, say so with the number.
+
+Report in `research/data/fifteen/README.md`: one table, a row per lever in the order
+applied, with predicted and measured period on four seeds and the gate status. Its first
+line is the best gated xorshift period and the gap to 15.
 
 ## Done (kept for the record; do not redo)
 
@@ -72,6 +72,11 @@ Results go in `research/data/eventgraph/`, tools in `research/tools/itercost/`.
 - **A second latch where the cycle waits on a handshake** (owner, 2026-11-09):
   `research/data/itercost/second_latch/README.md`. xorshift p8mo is 1.25-1.27x per round and
   passed the full gate (board item 11). collatz gained 1.8 ns only.
+- **Storage chosen from the event graph** (owner, 2026-11-10): `research/data/eventgraph/README.md`.
+  The graph reproduces all 26 itercost runs exactly and predicts new builds to about 1.4 ns.
+  Storage plus fast fall: xorshift 1.34x, ipow 1.18x, collatz 1.13x (board items 13 to 15).
+  Two-phase bound 1.78x on xorshift, 1.40 to 1.46x on collatz and ipow; the decoupled
+  controller buys nothing. The owner chose to stay four-phase (2026-11-12).
 
 ## Effort and subagents (owner, 2026-11-05)
 
