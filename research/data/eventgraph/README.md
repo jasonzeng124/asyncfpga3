@@ -92,6 +92,10 @@ Edits fixed before any prediction (b3eaf9cd). NOT blind: the measured values wer
   (xorshift) and 3.0 ns (collatz seed 4, whose measured period is above its own base). A graph of one route cannot
   know another route's wires; that is the residual.
 
+Held out (the 23 step-4 builds, never used to choose anything in the model): mean error -0.71 ns (the graph is
+optimistic), mean |error| 1.38 ns, max 3.13 ns, on 30-70 ns periods. A constant extra wire per inserted stage, fitted on
+the second-latch builds, comes out at 0 and is not used (`fit_stage_wire.py`).
+
 ## Step 4: search, then build only the winners
 
 | kernel | knobs chosen (same on every seed) | predicted (per seed) | measured (per seed) | over the base, measured |
