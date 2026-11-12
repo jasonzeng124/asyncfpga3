@@ -1488,3 +1488,6 @@ Positive-control attempt for the FAST_MIN+scatter corner: held T4cd on bench see
 
 ### progress 09:23 T70b done
 T4cd seed 1 (sdf 13e5c529): plain FAST_MIN and +scatter draws 1-2 all 14/14 -- no positive control; the stress corner adds no demonstrated sensitivity.
+
+### progress 09:23 T66 row 6
+Eventgraph README summary understates the p12 miss (4 seeds +2.1..+5.3 ns, mean 3.6, same sign; "one outlier" in the summary). OVERSTATED (minor wording) row at top of REPORT.
