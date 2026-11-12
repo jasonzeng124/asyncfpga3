@@ -84,6 +84,11 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    graph, on the kernel bench**: #15 below. Full gate 24/24 on 8 good bench routes. Predicted 1.34x per round over item
    4's x0.5 on this route (1.22-1.45 over 8 routes) and ~1.07x over item 11. Judge: `python3 ../research/tools/
    loop_cost_judge.py xorshift build/hw/lc_xor_pmf.tsv build/hw/lc_xor_s50.tsv`.
+15. **collatz with the shift read as a literal + select-safe per-cell sizes (item 9) + link fast fall + a latch on the
+   merge's output (BDC_LINK_FASTFALL=1, BDC_MERGE_OUT_LINK=ucontrol_merge0), chosen by the event graph, on the kernel
+   bench**: #16 below. Full gate 24/24 on 8 bench routes. Predicted 1.13x per iteration over item 9 on this route
+   (1.13-1.23 over 8). Judge: `python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_fm.tsv
+   build/hw/lc_col_cdb.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -585,6 +590,29 @@ graphs (research/data/eventgraph). Itercost-stack period per iteration, seeds 1,
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted 1.33-1.35 on this route. Run item 11 (#12) too if the board time
 allows: pmf / p8mo isolates fast fall (predicted 1.07 on seed 1).
+
+
+## 16. collatz BDC_CONST_DATA=1 + T3cdb sizes + BDC_LINK_FASTFALL=1 + BDC_MERGE_OUT_LINK=ucontrol_merge0 -- 24/24 on 8 bench routes
+Item 9's design with the two knobs research/tools/eventgraph/search.py picks on all four of its base graphs (predicted
+1.19x; measured on the itercost stack, seeds 1-8: 1.132 / 1.164 / 1.231 / 1.150 / 1.174 / 1.210 / 1.157 / 1.126, mean
+1.17x; periods 56.3-60.7 ns against 67.1-69.5).
+- Full gate (bench_gate.sh, 13 vectors: n = 27, 97, 871, 6171, 703 and 2^k; oracle from kernels/collatz/collatz.c):
+  seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M -> 24/24 PASS 13/13; 7/8 EQUIVALENT, seed 8 the benign GND-buffer F7 kind
+  (checked); ffmux_scan.py clean on all 8. The select paths keep item 9's (select-safe) sizes; fast fall acts on link
+  rdlys and 2-input mux udlys only (the rising edges keep the full matched delays).
+- nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_CONST_DATA=1 BDC_LINK_FASTFALL=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_bench.vh ./hw/build_bench.sh collatz
+    grep -c ucontrol_merge0_olink build/gen/collatz_kernel_bench.v    # must be 1
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # e20325f3 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_fm.tsv
+    BDC_CONST_DATA=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_bench.vh ./hw/build_bench.sh collatz
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # a7882dfa (item 9's route)
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_cdb.tsv
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_fm.tsv build/hw/lc_col_cdb.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted 1.13 on this route (1.13-1.23 over 8).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

@@ -3533,3 +3533,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   worst+M: 24/24 PASS 17/17 (200- and 1000-round vectors included), 7/8 EQUIVALENT, seed 1 benign. Itercost periods
   seeds 6-9: 29.14 / 30.28 / 31.10 / 29.86 ns (all 8: mean 30.0 vs x0.5's 39.5 -> ~1.32x; ~1.06x over item 11).
   BOARD-QUEUE item 14 / #15 (seed-1 sdf 169ce4d6). The collatz select-safe gate (colb) is at seed 7.
+### progress 11:35 (collatz select-safe + fast fall + merge link passes the full gate 24/24 -> board item 15 / #16)
+- colb seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M: 24/24 PASS 13/13; 7/8 EQUIVALENT, seed 8 benign GND-buffer F7
+  (checked); ffmux_scan clean. Over item 9 on the itercost stack 1.13-1.23x (mean 1.17, predicted 1.19). Seed-1 route
+  sdf e20325f3; item 9's base a7882dfa reproduced by colcdb_1.
+- So the event graph's step 4 gave three gated board candidates in one session: ipow (item 13, 1.18x over item 7),
+  xorshift (item 14, ~1.32x over x0.5 / ~1.06x over item 11), collatz (item 15, 1.17x over item 9). All three are the
+  same two knobs (link fast fall, a latch on the arbitrated merge's output), plus p8 on xorshift.
