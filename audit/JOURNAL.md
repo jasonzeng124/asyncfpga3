@@ -1518,3 +1518,6 @@ x0.5 board seed SLOW_MAX 17/17 at 83.3 MHz; pmf/x0.5 SLOW_MAX 1.328. Item 14 rat
 
 ### progress 11:41 T71 -> item 15
 Research listed colb as board item 15 (#16, cb06f432). Pre-audit covers it: CONFIRMED on board route (3 corners, ratio 1.124-1.140 vs predicted 1.13). Next: research 55214521 (gcd event graph) claims.
+
+### progress 11:45 T75 started
+Item 14 extra routes: pmf seeds 3, 4 (own builds from T67) FAST_MIN + worst.
