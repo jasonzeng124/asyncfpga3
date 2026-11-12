@@ -1575,3 +1575,6 @@ pmr reproduced: 23.377 / 23.404 ns (research 23.37/23.40), 1.247/1.262x over ite
 
 ### progress 18:21 T83
 Latch monitor on item 14 board route (worst): closing-edge setup >= 9.9 ns on all 22 data latches (they capture at RTZ). Exposure is at request-edge sampling: steer monitor (16 cond_br LUTs, incl. ucmpi1 result n31) running at worst + FAST_MIN.
+
+### progress 18:33 T83 done
+Item 14 board route: data latches setup >= 9.9 ns (capture at RTZ); loop steers on the i+1 compare: rise margin >= 1.67 ns (worst) / 1.77 (FAST_MIN), 0 select changes while req high. Research's open question is not a violation on this route.
