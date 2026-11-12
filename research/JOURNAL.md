@@ -3704,3 +3704,8 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   2.9). So the structure works and the size is the blocker: the prediction assumed a fused size near its need.
 - Sizing it properly = corner_audit.py on soak-top routes of the dup design (the established per-cell flow), then the
   gate. Not done this session. Recorded as blocked in research/data/fifteen/README.md.
+### progress 02:20 (two gates complete: xorshift levers 1-3 24/24 -> board item 17; collatz64 24/24 -> item 16)
+- Lever-3 xorshift (pmfrcf) seeds 1, 3-9 x 3 corners: 24/24 PASS 17/17, 7/8 EQUIVALENT (seed 6 benign F7), ffmux clean.
+  BOARD-QUEUE item 17 / #18 (seed-1 sdf e88b0712): 20.60 ns mean per iteration on the itercost stack (item 14 30.0).
+- collatz64 c64fm seeds 1, 2, 4-9: 24/24 PASS 14/14, 6/8 EQUIVALENT (5, 9 benign F7). Item 16 / #17 (sdf 2c06cd36).
+- Lever-5 gate (nl30) 14/24, all PASS so far.

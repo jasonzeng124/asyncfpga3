@@ -89,6 +89,14 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    bench**: #16 below. Full gate 24/24 on 8 bench routes. Predicted 1.13x per iteration over item 9 on this route
    (1.13-1.23 over 8). Judge: `python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_fm.tsv
    build/hw/lc_col_cdb.tsv`.
+16. **collatz64 item 12 + link fast fall + a latch on the merge's output (BDC_LINK_FASTFALL=1, BDC_MERGE_OUT_LINK=
+   ucontrol_merge0), chosen by the event graph, on the kernel bench**: #17 below. Full gate 24/24 on 8 bench routes.
+   Predicted 1.20x per iteration over item 12 on this route (1.13-1.21 over 8). Judge: `python3 ../research/tools/
+   loop_cost_judge.py collatz64 build/hw/lc_c64_fm.tsv build/hw/lc_cd.tsv`.
+17. **xorshift at ~20.6 ns per iteration: item 14 + three new opt-in bdc knobs (BDC_MERGE_RES_LINK, BDC_RING_COUNT_OLINKS,
+   BDC_FORK_OUT_LINK), the 15 ns lead's levers 1-3 (research/data/fifteen), on the kernel bench**: #18 below. Full gate
+   24/24 on 8 bench routes. Predicted 1.47x per round over item 14 on this route (1.33-1.55 over 8), 1.97x over item 4.
+   Judge: `python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l3.tsv build/hw/lc_xor_s50.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -613,6 +621,48 @@ Item 9's design with the two knobs research/tools/eventgraph/search.py picks on 
     python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_fm.tsv build/hw/lc_col_cdb.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted 1.13 on this route (1.13-1.23 over 8).
+
+
+## 17. collatz64 BDC_CONST_DATA=1 + T4cdb + BDC_LINK_FASTFALL=1 + BDC_MERGE_OUT_LINK=ucontrol_merge0 -- 24/24 on 8 bench routes
+Item 12's design with the two knobs research/tools/eventgraph/search.py picks on its base graphs (predicted 1.15-1.17x;
+itercost periods seeds 1, 2, 4-9: 54.85 / 56.16 / 57.54 / 57.33 / 54.99 / 57.14 / 55.65 / 58.05 ns against item 12's
+60.8-66.1).
+- Full gate (bench_gate.sh, 14 vectors, n up to 63728127 = 949 steps, oracle from kernels/collatz/collatz.c): seeds 1,
+  2, 4-9 x SLOW_MAX / FAST_MIN / worst+M -> 24/24 PASS 14/14; 6/8 EQUIVALENT, seeds 5 and 9 the benign GND-buffer F7
+  kind (checked). Seed 3 excluded: C5FF without C5FFMUX (the nextpnr constant-D flop gap; ffmux_scan.py).
+- nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_CONST_DATA=1 BDC_LINK_FASTFALL=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_bench.vh ./hw/build_bench.sh collatz64
+    grep -c ucontrol_merge0_olink build/gen/collatz64_kernel_bench.v    # must be 1
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 2c06cd36 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_fm.tsv
+    (item 12's base: #13's commands for lc_cd.tsv, sdf b883dcb5, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_fm.tsv build/hw/lc_cd.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.20 on this route.
+
+## 18. xorshift item 14 + BDC_MERGE_RES_LINK + BDC_RING_COUNT_OLINKS + BDC_FORK_OUT_LINK=n11__0 -- 24/24 on 8 bench routes
+The 15 ns lead's levers 1-3 (research/data/fifteen/README.md): a latch on the result branch of the merge-output fork, the
+ring floor counting the merge's new latches (the counter ring's 3-stage pipe becomes one stage), and a latch on the
+rounds fork's steer branch. Each found by the timed event graph: both rings closed through a fork whose acknowledge waited
+on a loop steer that waits for the loop compare. Itercost periods seeds 1, 3-9: 19.86 / 20.64 / 20.91 / 21.36 / 19.58 /
+21.36 / 20.39 / 20.70 ns (mean 20.60; item 14 30.0, x0.5 39.5).
+- Full gate (bench_gate.sh, 17 vectors incl. 200 and 1000 rounds, oracle from kernels/xorshift/xorshift.c): seeds 1, 3-9
+  x SLOW_MAX / FAST_MIN / worst+M -> 24/24 PASS 17/17; 7/8 EQUIVALENT, seed 6 the benign GND-buffer F7 kind (checked);
+  ffmux_scan clean on all 8. The three knobs are opt-in (default output byte-identical on all six kernels).
+- nextpnr 9c732bc6303458df. From cells/, on a checkout with the three knobs (922fca2b and later):
+
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+    grep -c "ucontrol_merge0_rlink\|ulink_n11__0_folink" build/gen/xorshift_kernel_bench.v    # must be 2 (instances)
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # e88b0712 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_l3.tsv
+    (x0.5 base: #12's commands for lc_xor_s50.tsv, sdf c5b8ca02, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l3.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.97 over x0.5 on this route (1.85-1.97 over 8). If board time
+allows, also run item 14 (#15): l3 / item 14 isolates the three new latches (predicted 1.47 on seed 1).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
