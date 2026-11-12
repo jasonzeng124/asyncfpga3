@@ -3662,3 +3662,12 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   ~17.9 (s1), ~18.6 (s3). Also without ulink_n7 (0.53 on the cycle): ~-0.4 more, unless the deeper trueResult_6 pipe
   is on the cycle. Building nl30 and nl307 on seeds 1, 3. Rule-1 links exist so tighten.py can measure: correctness of
   these variants is the full gate's to decide.
+### progress 22:10 (lever 5 measured: 18.45 / 17.64 ns; placement mixed; ulink_n7 removal rejected)
+- BDC_NO_LINK=ulink_n30__1 on the lever-3 build: seed 1 18.45 ns (predicted ~17.9; lever 3 19.86), seed 3 17.64
+  (~18.6; 20.64). cd3132bf; seed 3 decodes NOT_EQUIVALENT of the benign GND-buffer F7 kind (checked); ffmux clean.
+- Also dropping ulink_n7: 21.96 ns on seed 1 -- ring_depths deepens ulink_n_trueResult_6 (2 -> 3) and that pipe is on
+  the cycle. Rejected.
+- Placement on lever 3, seed 3: v4 18.75, PW8 19.72 (vs 20.64); seed 1: v4 20.55, PW8 20.89 (vs 19.86). Within the
+  route-to-route spread; not adopted without more seeds. v8 does not place on either seed.
+- From item 14: seed 1 29.14 -> 18.45 (1.58x), seed 3 29.54 -> 17.64 (1.67x). Gap to 15 on these two routes: 3.5 / 2.6.
+- Next: lever 5 on seeds 4-9 and its gate (rule-1 removal: the gate decides correctness); lever 3's gate is running.

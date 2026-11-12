@@ -1,5 +1,5 @@
-**Best gated xorshift: board item 14, 30.0 ns per iteration (8 routes); gap to 15 ns: 15.0 ns. Best measured (gate
-running): item 14 + three new latches + ring-floor counting, 19.86 / 20.64 ns (seeds 1, 3).**
+**Best gated xorshift: board item 14, 30.0 ns per iteration (8 routes); gap to 15 ns: 15.0 ns. Best measured (not yet
+gated): levers 1-3 + 5, 18.45 / 17.64 ns (seeds 1, 3).**
 
 # xorshift at 15 ns per iteration, four-phase (PROGRAM.md FIRST, owner 2026-11-12)
 
@@ -13,6 +13,9 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 1. latch on the merge fork's result branch | BDC_MERGE_RES_LINK=ucontrol_merge0 | 21.85 / 21.87 / 23.10 / 23.57 | 23.37 / 23.40 / 24.12 / 23.43 | not run |
 | 2. ring floor counts those latches (counter-ring pipe 3 -> 1) | BDC_RING_COUNT_OLINKS=1 | ~21.7 / ~21.7 (by hand) | 22.95 / 21.99 / 20.01 / 21.97 | not run |
 | 3. latch on the rounds fork's steer branch | BDC_FORK_OUT_LINK=n11__0 | 21.21 / 20.60 (from lever 2's graphs) | 19.86 / 20.64 / pending | running (8 routes) |
+| 4. placement (on lever 3) | BD_RLOC=v4 / BD_PLACE_WEIGHT=8 / BD_RLOC=v8 | 17.5-18.5 if adjacent (wire budget) | v4 20.55 / 18.75; PW8 20.89 / 19.72 (s1 / s3); v8 does not place | mixed by seed, not adopted |
+| 5. drop the rule-1 link between i+1 and the compare (on lever 3) | BDC_NO_LINK=ulink_n30__1 | ~17.9 / ~18.6 (by hand) | 18.45 / 17.64 | not run |
+| 5b. also drop ulink_n7 | BDC_NO_LINK=ulink_n30__1,ulink_n7 | ~17.5 | 21.96 (s1): ring_depths deepens ulink_n_trueResult_6, which lands on the cycle | rejected |
 
 The three knobs are new in `bdc/emit.py`, opt-in; with them unset the emitted Verilog is byte-identical on gcd, xorshift,
 collatz, collatz64, ipow and isprime. simcheck PASS with all of them on xorshift.
