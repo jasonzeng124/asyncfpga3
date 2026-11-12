@@ -3464,3 +3464,19 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   only one). The gate refuses such routes; still unpatched in nextpnr (owner item from 11-08 stands). pmf_2 excluded;
   seed 5 (base + pmf) added to keep 4 pairs.
 - ipowfm seeds 1-2 (BDC_LINK_FASTFALL + merge link on ipow x0.75): aaaaaaab, EQUIVALENT; periods in the next note.
+### progress 04:15 (step 4 measured: xorshift pmf 1.34x over x0.5, ipow 1.18x; collatz prediction before building)
+- xorshift pmf (p8 + BDC_LINK_FASTFALL + merge-output link), seeds 1/3/4/5 (2 excluded, bitstream defect): measured
+  29.14 / 29.54 / 32.42 / 28.46 ns (mean 29.89) vs predicted 29.07 / 29.29 / 30.13 / 30.11 (mean 29.65; seed 5's
+  prediction was computed after its run had finished, before I read it). Paired with x0.5: 1.340 / 1.374 / 1.216 /
+  1.447 (mean 1.344, predicted 1.34). Over measured p8mo (seeds 1/3/4): 1.070 / 1.096 / 0.968. Every measured cycle
+  is the predicted one (the 11 counter-ring stages, the 2 polarity changes at the merge-output link's fork); the misses
+  are wire on those stages (seed 4: the merge-output link costs 2.2 ns an edge, the model 0.4 + its rdly).
+- ipow fm (BDC_LINK_FASTFALL + merge-output link on x0.75), seeds 1-4: 46.84 / 45.02 / 46.04 / 45.24 vs predicted
+  46.09 / 44.92 / 45.06 / 44.08 (error +0.09..+1.16, mean +0.75); paired with x0.75 1.185 / 1.152 / 1.179 / 1.199
+  (mean 1.18, predicted 1.20). All aaaaaaab = 3^(2^31-1) mod 2^32, EQUIVALENT.
+- collatz merge-output link on BDC_CONST_DATA (T3cd sizes), seeds 1-4: predicted 57.85 / 58.52 / 57.84 / 58.19
+  (delta -2.43 mean), measured 56.39 / 59.95 / 57.40 / 61.20 (delta -1.81 mean, as second_latch README's -1.8):
+  error -0.63 mean, seed 4 -3.0 (its measured period is above its base: re-placement).
+- PREDICTION collatz cd + BDC_LINK_FASTFALL + merge-output link (search's pick on all four cd graphs): 53.03 / 53.93 /
+  53.50 / 53.71 ns (mean 53.54; 1.13x over cd's 60.54). Building seeds 1-4.
+- Step 2/6 for collatz cd s1: floor 41.8 ns, two-phase bound 43.0, storage 57.9, storage + every chain fast 53.0, deco 60.2.
