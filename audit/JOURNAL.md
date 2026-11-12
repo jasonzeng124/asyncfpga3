@@ -1424,3 +1424,6 @@ Item 12 SLOW_MAX 14/14, cyc350 7622 = research exact: item 12 board seed CONFIRM
 
 ### progress 04:11 T66
 Research eventgraph (PROGRAM FIRST item): own max-cycle-ratio solver on all 27 committed graphs = their period = trace P to the ps; but the equality is structural (slack >= 0 everywhere and a zero-slack in-arc at every node), so step 1 checks extraction, not the model. Step-3 table recomputed exactly (mean |err| 0.71 ns, 17 runs; p12 miss -5.27; not blind, as research says). Step-4 predictions committed before the pmf measurement. findings/T66.md.
+
+### progress 04:30 T65 done / T67 started
+T65 row 10: diagnosis test (T4cd seed 7, n14__1 at 19/2) FAST_MIN 14/14, but re-routed (sdf acc06847), a confound research's test shares. T67: own builds at research 7fa9f0c1 of x0.5 s1 (sdf c5b8ca02 reproduced, own FF/FFMUX scan clean) and pmf s1/s2; period by own latmin difference (256 vs 2048 rounds), no trace tool.

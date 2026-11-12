@@ -1,0 +1,65 @@
+T67 build pmf seed 1 Thu Nov 12 04:14:11 UTC 2026 research 7fa9f0c140c32560b7e540e942b4d2eaf5157a1e
+$ BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_bench.vh ./hw/build_bench.sh xorshift
+build_bench.sh: MODE=BD_NO_TIGHTEN -- building xorshift_bench_gen directly, select channels at bdc/emit.py's unmeasured SELECT_PAD estimate
+wrote build/gen/xorshift_kernel_bench.v: module bdc_xorshift, 62 matched delay(s)
+wrote build/gen/xorshift_bench_gen.v: module xorshift_bench_gen (real DUT for xorshift)
+build_bench.sh: applying 45 measured  delay size(s) from ../research/data/xorshift_sizes_T3s50_bench.vh
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== synthesis (xorshift_bench_gen) ==
+             10 link/stage bank(s) that ARE one LUT (W<=2), 23 wider bank(s) where only the named bit is constrained
+             378 latch LUT(s) across those banks, 33 of them grouped (8.7%)
+             4 group(s) also hold their select consumer's LUTs
+        1   BUFG
+       64   CARRY4
+      828   FDCE
+       42   FDPE
+     1044   FDRE
+        2   LUT1
+      548   LUT2
+      224   LUT3
+      258   LUT4
+       87   LUT5
+     1084   LUT6
+        2   OBUF
+        1   BUFG
+       78   CARRY4
+      828   FDCE
+       42   FDPE
+     1044   FDRE
+       63   LUT1
+      658   LUT2
+      237   LUT3
+      268   LUT4
+       87   LUT5
+     1207   LUT6
+      444   LUT6_2
+        2   OBUF
+
+== place and route ==
+routed. (attempt 1/1: 106.00 MHz)
+TIMING: fclk0_bufg closes at 106.00 MHz (target 83 MHz)
+FASM:  4354 occupied LUT sites, 42 global buffer lines
+
+== bitstream ==
+2083884 bytes -> build/hw/xorshift_bench_gen/xorshift_bench_gen.bit
+routed SDF -> build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf
+BD_DSP=1
+BD_RLOC=v2
+
+build_bench.sh PASS
+exit 0
+olink count: 1
+169ce4d63d7dc9b2f69ee2f7737fc1d2  build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf
+bf1cc7351b44e774b7fcbd09e0447253  build/hw/xorshift_bench_gen/xorshift_bench_gen.bit
+928c3e45baad610c8241e0ad20262c98  ../research/data/xorshift_sizes_T3s50_bench.vh
+BUILDDONE
