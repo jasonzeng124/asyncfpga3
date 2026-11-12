@@ -1473,3 +1473,6 @@ Rule-gap probe started: T4cdb with only UCONTROL_MERGE0 6 -> 1 (the merge whose 
 
 ### progress 07:53 T65 row 14
 Stress: T4cdb with UCONTROL_MERGE0 6->1, seed 7 FAST_MIN: 14/14 (benign F7 decode). No hazard shown from the merge-delay gap on this route.
+
+### progress 08:08 T65 row 15
+Item 4 board seed FAST_MIN 17/17; all uniform-scale board seeds (items 4, 6, 7, 11) + item 13 now pass FAST_MIN in own runs.
