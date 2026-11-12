@@ -3480,3 +3480,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - PREDICTION collatz cd + BDC_LINK_FASTFALL + merge-output link (search's pick on all four cd graphs): 53.03 / 53.93 /
   53.50 / 53.71 ns (mean 53.54; 1.13x over cd's 60.54). Building seeds 1-4.
 - Step 2/6 for collatz cd s1: floor 41.8 ns, two-phase bound 43.0, storage 57.9, storage + every chain fast 53.0, deco 60.2.
+### progress 04:30 (p12 on 3 seeds: +5.3 / +4.6 / +2.1 ns, the same cycle each time -- a systematic placement cost the graph cannot see)
+- p12 (ulink_n_trueResult_12 = 4) seeds 2, 3: 43.44 / 42.66 ns vs their bases 38.89 / 40.59. Kernel Verilog differs from
+  the base only in that pipe's N. Each measured cycle is the base cycle (same 13 stages, 86 hops; the new stage off it,
+  as predicted), longer in wire: seed 2's ulink_n12__1 8.8 -> 11.5 ns, merge fork 0.6 -> 1.3, ucond_br7 0.7 -> 1.5. So
+  the prediction's structure holds and its magnitude misses by 2-5 ns, systematically: one more cell next to the
+  merge hub lengthens the ring's wires on every seed. The graph of one route has no model of placement; this is its
+  known limit, and it says a stage that cannot help is not free either.
+- (Process note: I started a second lane on a worktree that was still building and then killed collatz builds too
+  broadly; every colfm output was deleted and the four builds restarted on idle worktrees. No result was affected.)
