@@ -1572,3 +1572,6 @@ Research ef92f2be: item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0 "23.37 / 23.40 n
 
 ### progress 17:46 T81
 pmr reproduced: 23.377 / 23.404 ns (research 23.37/23.40), 1.247/1.262x over item 14. Pre-running seed 1 at FAST_MIN/worst/SLOW_MAX.
+
+### progress 18:21 T83
+Latch monitor on item 14 board route (worst): closing-edge setup >= 9.9 ns on all 22 data latches (they capture at RTZ). Exposure is at request-edge sampling: steer monitor (16 cond_br LUTs, incl. ucmpi1 result n31) running at worst + FAST_MIN.
