@@ -3730,3 +3730,8 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - item 16 + it (c64r): 46.95 / 46.37 (44.92 / 45.56; item 16 54.85 / 56.16): 1.17 / 1.21x.
 - All correct (261 steps, 3^(2^31-1)), EQUIVALENT, graph check PASS. Seeds 3-4 running; the three gates queued next.
   Against Dynamatic: collatz ~47.7 vs 14.05, collatz64 ~46.7 vs 17.84 (README), ipow ~39.9 vs no number on record.
+### progress 05:50 (disk full again; the lever-1 builds after seeds 3 and the first colr/ipowr gate runs discarded)
+- /home/user/runs reached 100% (trace dumps, gate netlists): every job after ~05:00 failed at once (36 gate "results"
+  for colr/ipowr were FAIL from no space -- discarded, never read as results). Freed 13 GB; 15 builds restarted from
+  scratch; a janitor now deletes finished runs' dumps and gate netlists every 5 min. Kept: colr_3 48.10 ns, ipowr_3
+  38.78, ipowr_5 37.96 (graph checks PASS).
