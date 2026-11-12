@@ -1415,3 +1415,6 @@ Item 12 (collatz64 T4cdb, seed 1, sdf b883dcb5): worst case EQUIVALENT, 14/14 ow
 
 ### progress 03:39 T65
 Item 9 SLOW_MAX 13/13, cyc261 5854 = research exact: item 9 board seed CONFIRMED at all 3 corners. Item 6 seed-7 rebuild sdf 5220d51a (research records no sdf for that seed), FAST_MIN queued after collatz64 FAST_MIN.
+
+### progress 03:39 T65
+Item 12 FAST_MIN 14/14, cyc350 2728 = research exact. Item 6 (x0.75) seed 7 FAST_MIN: EQUIVALENT, 14/14, cyc350 2866 = research s75 seed 7 min exactly (same route). Negative control started: held T4cd seed 7 FAST_MIN (research: FAIL 12/14) -- must fail here too.
