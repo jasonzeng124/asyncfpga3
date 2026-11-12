@@ -1557,3 +1557,6 @@ ipowfm seed 4 (sdf = research, FF clean) and pmf seed 5 FAST_MIN 17/17. Item 13:
 - Notes, no hazard shown: control-merge delay outside the select rule (T65 rows 3, 14); BDC_LINK_FASTFALL on select paths (T72); FAST_MIN + scatter stress 6/6 pass, no positive control (T70).
 - Formal: no commits since 8fd62f82 (paused); target md5s re-checked (T68).
 - Pending: c64fm (pre-audited T77) if research lists it; compare its sdf md5 (own seed 1 2c06cd36).
+
+### progress 15:47
+Container restart ~15:45 (nothing running then; all results pushed; toolchain and worktrees intact). Watching for research/formal commits.
