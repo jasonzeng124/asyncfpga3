@@ -1512,3 +1512,6 @@ Item 13 seeds 2, 3: sdf = research, FF clean, FAST_MIN + worst 17/17. Own harnes
 
 ### progress 11:08 T74
 New board item 14 (#15, pmf, research 6a9bfe6e) CONFIRMED on the board route from runs already done (T67): sdf, RFAST 8, 3 corners 17/17, ratio 1.331-1.340 over x0.5 (pred 1.33-1.35), 1.05-1.08 over item 11 (pred ~1.07). x0.5 SLOW_MAX running for the last ratio.
+
+### progress 11:40 T74 done
+x0.5 board seed SLOW_MAX 17/17 at 83.3 MHz; pmf/x0.5 SLOW_MAX 1.328. Item 14 ratio 1.328-1.340 at every corner (pred 1.33-1.35).
