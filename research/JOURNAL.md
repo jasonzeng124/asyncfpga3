@@ -3735,3 +3735,10 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   for colr/ipowr were FAIL from no space -- discarded, never read as results). Freed 13 GB; 15 builds restarted from
   scratch; a janitor now deletes finished runs' dumps and gate netlists every 5 min. Kept: colr_3 48.10 ns, ipowr_3
   38.78, ipowr_5 37.96 (graph checks PASS).
+### progress 06:35 (lever 1 on the other kernels, 8 routes each: collatz 1.20x, ipow 1.17x, collatz64 1.18x)
+- colr (item 15 + BDC_MERGE_RES_LINK) seeds 1-8: 47.56 / 47.84 / 48.10 / 48.47 / 49.08 / 49.17 / 49.17 / 51.46 ns, mean
+  48.86 (item 15 on the same seeds 58.49): 1.20x. Dynamatic 14.05.
+- ipowr seeds 1-8: 39.78 / 39.97 / 38.78 / 38.07 / 37.96 / 39.74 / 38.22 / 40.62, mean 39.14 (item 13 ~45.8): 1.17x.
+- c64r seeds 1, 2, 4-8: 46.95 / 46.37 / 46.01 / 47.75 / 46.88 / 51.23 / 47.98, mean 47.60 (item 16 ~56.4): 1.18x; seed 9
+  pending. Dynamatic 17.84.
+- ffmux_scan clean on all of them. Gates running (collatz, ipow, collatz64; 8 routes x 3 corners each).
