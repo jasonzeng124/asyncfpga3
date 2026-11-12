@@ -1464,3 +1464,6 @@ pmf seed 1 (sdf 169ce4d6): FAST_MIN / worst / SLOW_MAX all 17/17 (own vectors); 
 
 ### progress 07:17 T69 done
 Board item 13 (ipowfm) CONFIRMED on the board seed at 3 corners (own oracle) and ratio 1.175-1.190 over item 7. REPORT row added.
+
+### progress 07:35 T65 row 13
+Item 12 T4cdb on bench seed 7 (where T4cd failed) FAST_MIN: 14/14, cyc350 2804 = research exact.
