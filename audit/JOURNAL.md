@@ -1527,3 +1527,6 @@ Held-out accuracy recomputed on 20/23 builds from journal-stated predictions: -0
 
 ### progress 12:26 T75 done
 pmf seeds 3, 4: FAST_MIN + worst 17/17 (EQUIVALENT).
+
+### progress 12:55 T66 row 9 done
+Step 5 reproduced: own T3 seed 2 base 56.571 ns, knobbed 39.382 ns (1.436x; predicted 1.59x, miss 3.7 ns as research says).
