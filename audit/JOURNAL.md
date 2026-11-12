@@ -1515,3 +1515,6 @@ New board item 14 (#15, pmf, research 6a9bfe6e) CONFIRMED on the board route fro
 
 ### progress 11:40 T74 done
 x0.5 board seed SLOW_MAX 17/17 at 83.3 MHz; pmf/x0.5 SLOW_MAX 1.328. Item 14 ratio 1.328-1.340 at every corner (pred 1.33-1.35).
+
+### progress 11:41 T71 -> item 15
+Research listed colb as board item 15 (#16, cb06f432). Pre-audit covers it: CONFIRMED on board route (3 corners, ratio 1.124-1.140 vs predicted 1.13). Next: research 55214521 (gcd event graph) claims.
