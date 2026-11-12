@@ -1409,3 +1409,6 @@ Own builds at research 4c977781: item 9 collatz T3cdb seed 1 sdf **a7882dfa** re
 
 ### progress 03:14 T65
 Item 9 (collatz T3cdb, seed 1, sdf a7882dfa): worst case 13/13 own oracle, cyc261 2896; FAST_MIN 13/13, cyc261 2064 -- both equal research results.tsv exactly; EQUIVALENT. SLOW_MAX and collatz64 runs going.
+
+### progress 03:21 T65
+Item 12 (collatz64 T4cdb, seed 1, sdf b883dcb5): worst case EQUIVALENT, 14/14 own oracle, cyc350 3792 = research exact. Started: item 6 (x0.75) seed-7 rebuild + FAST_MIN (the route/corner where T4cd failed; select-unsafe by own trace).
