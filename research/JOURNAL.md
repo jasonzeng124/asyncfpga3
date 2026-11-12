@@ -3676,3 +3676,11 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   30.0): 1.46x. Lever 5 (nl30), seeds 1, 3-8: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95, mean 18.43; seed 9
   pending. Best route 17.37 ns.
 - Gates (all PASS so far): collatz64 c64fm 21/24, lever 3 6/24, lever 5 2/24.
+### progress 23:50 (lever 5: 8 routes, mean 18.69; what blocks 15)
+- nl30 seed 9: 20.53 ns. 8 routes: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95 / 20.53, mean 18.69 (item 14
+  30.0 -> 1.61x). Seeds 5 and 9 bind on a new coupling (fork ufork8 -> ulink_n7: the compare branch of the adder's fork
+  lost its storage with the rule-1 link). Graph: a latch with no request delay back on it moves -1.0..+0.6 ns by seed;
+  a latch on the steer branch (n30__0) does not help. Not a lever.
+- What remains (seeds 1, 3): add 2.75 + compare 4.71 in series (sized to worst settle), merge 2.82, merge-output link
+  2.13, select link 2.77. research/data/fifteen/README.md "Where it stands". 15 needs ~3.5 ns more, from cell-level
+  levers (fused add+compare, a carry-chain delay that tracks the adder, fewer stages between merge and umux0).
