@@ -1593,3 +1593,6 @@ Research head b40410e3: emit defaults still byte-identical to 7fa9f0c1 (t80/emit
 
 ### progress 21:09 T83 mux monitor
 Item 14 board route: 4 muxes, 0 select changes while z_req high; min margin umux3 0.85 (worst) / 0.57 ns (FAST_MIN, pessimistic by one LUT), loop muxes >= 1.29 ns.
+
+### progress 21:10 T86 started
+Monitor sweep (latch/steer/mux) at FAST_MIN on the board routes of items 9, 12, 7, 13, 15, 4 (own builds from T65/T67/T71).
