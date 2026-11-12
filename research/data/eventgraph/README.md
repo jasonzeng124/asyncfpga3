@@ -47,10 +47,16 @@ back-walk == the committed `cycle_hops.tsv`, edge for edge. The same holds on ev
 | ipow x0.75, seeds 1-4 | 55.50 / 51.84 / 54.27 / 54.23 | 37.26 / 35.27 / 37.25 / 36.68 | 37.9 / 41.9 / 38.7 / 40.6 | 52.4 / 49.7 / 50.5 / 50.3 |
 | collatz BDC_CONST_DATA (T3cd), seeds 1-4 | 60.16 / 60.75 / 60.34 / 60.90 | 41.81 / 41.39 / 42.00 / 42.30 | 43.0 (s1) | 57.9 (s1) |
 | collatz per-cell cs / T3, seed 1 | 67.82 / 77.56 | 49.35 / 56.31 | 51.1 / 57.3 | 64.7 / 72.1 |
+| collatz select-safe (item 9, T3cdb), seeds 1-4 | 67.44 / 68.02 / 69.27 / 67.10 | 45.6 / 46.1 / 46.4 / 45.8 | | |
+| gcd bench (gcd_ps P1 sizes, no RLOC), seed 2; vector gcd(1, 2^31-1): one main iteration + one ctz iteration | 186.93 | 171.50 | 173.2 | 186.9 (no gain) |
 
 - The floor is the rising pass of the loop's own ring: on xorshift the loop counter (umux0 -> uaddi0 -> ucmpi1 ->
   steer -> merge), on collatz and ipow the datapath ring (collatz: uaddi0 -> uselect0 -> ucmpi2 -> merge -> umux0;
   ipow: umux1 -> ushrsi0 -> ucmpi2 -> merge). It is 49-51% of today's period on xorshift and 67-70% on ipow and collatz.
+- **gcd: nothing left for storage or protocol** (floor 1.09x below today, two-phase bound 1.08x, storage 1.00x): its
+  424-arc cycle is the rising pass of its datapath, i.e. the matched delays (P1 = pad-only sizes). Sizing is its lever.
+  gcd's bench build with BQ#4's RLOC v4 aborts in nextpnr (all 4 seeds); the unRLOC'd build was used; its full-stack
+  compile needs ~10 GB, so only one seed ran.
 - **Added storage is far from spent on xorshift, nearly spent on collatz and ipow.** Storage alone (the search)
   reaches 1.23x on xorshift x0.5 but only 1.04-1.06x on collatz and ipow: there the polarity changes are at the
   merge only, and what is left between today and the floor is the rising pass's own delays.
@@ -102,7 +108,10 @@ Edits fixed before any prediction (b3eaf9cd). NOT blind: the measured values wer
   merge-output link's fork). The misses are wire on those stages.
 - Over the best measured design before this (p8mo, board item 11), xorshift gains 1.07 / 1.10 / 0.97 (seeds 1/3/4):
   fast fall is what this adds, and on seed 4 the re-placement ate it.
-- None of these has passed the full gate (8 routes x 3 corners, fasm_equiv): not board candidates yet.
+- **Full gate** (`bench_gate.sh`: 8 good routes x SLOW_MAX / FAST_MIN / worst+M, C-derived oracles, fasm_equiv,
+  `gate/results_raw.txt`): ipow 24/24 (seeds 1-6, 8, 9; seed 7 has the BFF gap) -> BOARD-QUEUE item 13; xorshift
+  24/24 (seeds 1, 3-9) -> item 14; collatz on item 9's select-safe sizes (BDC_CONST_DATA, T3cdb) + the same two knobs,
+  predicted 1.19x, measured 1.13-1.23x (mean 1.17) over item 9, 24/24 (seeds 1-8) -> item 15.
 
 ## Step 6: the protocol table (graph only, no RTL), ns per iteration, seed 1
 
