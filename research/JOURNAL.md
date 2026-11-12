@@ -3454,3 +3454,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
   with p12 seeds 2-4 (queued). The graph of one route cannot predict another route's wires; that is the ~1 ns scatter.
 - ipow BDC_LINK_FASTFALL + merge-output link, PREDICTED per seed 46.09 / 44.92 / 45.06 / 44.08 ns (mean 45.04; base
   mean 53.96, 1.20x). Building.
+### progress 04:00 (step 4 first builds: pmf seed 1 measured 29.14 vs predicted 29.07 ns; seed 2 route has a bitstream defect)
+- xorshift p8 + BDC_LINK_FASTFALL + merge-output link ("pmf"), bench top, itercost stack: seed 1 measured 29.144 ns
+  (predicted 29.072, +0.07), cd3132bf, decode benign (GND-buffer F7 data input). Graph check PASS.
+- Seed 2: the route's bitstream leaves a bench-harness flop unconfigured: $auto$dfflegalize emulate_split_set_clr (FDPE,
+  D on GND) placed in CLBLM_R_X9Y36 SLICEM_X0 AFF has ZINI/ZRST but no AFFMUX, and the pip to its LUT load is json-only;
+  fasm_equiv NOT EQUIVALENT, the run returns X data. The same nextpnr gap as 2026-11-08 08:21 (there a C5FF); now an
+  AFF slot too. research/tools/ffmux_scan.py finds it from the FASM alone: 1 of the 35 FASMs of this session (the
+  only one). The gate refuses such routes; still unpatched in nextpnr (owner item from 11-08 stands). pmf_2 excluded;
+  seed 5 (base + pmf) added to keep 4 pairs.
+- ipowfm seeds 1-2 (BDC_LINK_FASTFALL + merge link on ipow x0.75): aaaaaaab, EQUIVALENT; periods in the next note.
