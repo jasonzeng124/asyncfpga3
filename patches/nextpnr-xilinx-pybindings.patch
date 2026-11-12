@@ -1,0 +1,57 @@
+diff --git a/xilinx/arch_pybindings.cc b/xilinx/arch_pybindings.cc
+index 5957b272..515f6a64 100644
+--- a/xilinx/arch_pybindings.cc
++++ b/xilinx/arch_pybindings.cc
+@@ -25,6 +25,42 @@
+ 
+ NEXTPNR_NAMESPACE_BEGIN
+ 
++// Exposes Arch::getCellDelay to Python for real per-cell-arc routed-timing
++// extraction (async-hls's postroute_audit.py needs this for XC7, mirroring
++// the ice40 getCellDelay binding). Not in arch_pybindings_shared.h since
++// DelayInfo's shape (a plain {delay} here) is xilinx-specific; keeping it
++// out of the shared header avoids touching the other (already-validated)
++// arches at all.
++static boost::python::tuple xilinx_get_cell_delay_wrapper(Context &ctx, PythonConversion::ContextualWrapper<CellInfo &> cell,
++                                                            std::string fromPort, std::string toPort)
++{
++    DelayInfo dq;
++    bool found = ctx.getCellDelay(&(cell.base), ctx.id(fromPort), ctx.id(toPort), dq);
++    return boost::python::make_tuple(found, dq.delay);
++}
++
++// Routed net-arc delay (net name, sink cell name, sink port name) -> ps,
++// or -1 if not found. Looked up by string name (not by passing NetInfo/
++// PortRef Python objects across the boundary) since neither is registered
++// with boost::python here in a way that round-trips cleanly -- string
++// lookup sidesteps that entirely and is simple enough for an audit script.
++static float xilinx_get_route_delay_ps_wrapper(Context &ctx, std::string netName, std::string cellName,
++                                                std::string portName)
++{
++    auto it = ctx.nets.find(ctx.id(netName));
++    if (it == ctx.nets.end())
++        return -1.0f;
++    NetInfo *net = it->second.get();
++    IdString target_cell = ctx.id(cellName);
++    IdString target_port = ctx.id(portName);
++    for (auto &usr : net->users) {
++        if (usr.cell != nullptr && usr.cell->name == target_cell && usr.port == target_port) {
++            return (float)ctx.getNetinfoRouteDelay(net, usr);
++        }
++    }
++    return -1.0f;
++}
++
+ void arch_wrap_python()
+ {
+     using namespace PythonConversion;
+@@ -49,6 +85,9 @@ void arch_wrap_python()
+     fn_wrapper_2a<Context, decltype(&Context::isValidBelForCell), &Context::isValidBelForCell, pass_through<bool>,
+                   addr_and_unwrap<CellInfo>, conv_from_str<BelId>>::def_wrap(ctx_cls, "isValidBelForCell");
+ 
++    ctx_cls.def("getCellDelay", &xilinx_get_cell_delay_wrapper);
++    ctx_cls.def("getRouteDelayPs", &xilinx_get_route_delay_ps_wrapper);
++
+     typedef std::unordered_map<IdString, std::unique_ptr<CellInfo>> CellMap;
+     typedef std::unordered_map<IdString, std::unique_ptr<NetInfo>> NetMap;
+     typedef std::unordered_map<IdString, IdString> AliasMap;

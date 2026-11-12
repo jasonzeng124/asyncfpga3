@@ -1,0 +1,15 @@
+xaudit: ../../tools/import/json/bd_latch_W2.json top bd_latch: 17 wires, 12 gates (2 LUT outputs, 5 routed arcs), 2 storage nodes (LUTs with own feedback)
+bands: 1 step = 25 ps; LUT (45, 124) ps, route (100, 700) ps, own feedback (100, 700) ps (defaults unless overridden: 0 cell, 0 arc entries); pads (1, 1) steps
+inputs: [d[0], d[1], en]
+
+TIMED (XSim: Fast.auditF, = XSim.val by auditF_eq; horizon 800 steps = 20000 ps; power-up all X)
+  end state: FIXED POINT (inputs constant from 0 ps, last 29 rows equal): binary values hold forever (settled_forever)
+  STORAGE pair[0].u/O6 (wire 10 '$iopadmap$q[1]'): final X, 1 flagged
+    X [0, 20000] ps: power-up, NEVER RESOLVED (to the horizon 20000 ps)
+  STORAGE pair[0].u/O5 (wire 8 '$iopadmap$q[0]'): final X, 1 flagged
+    X [0, 20000] ps: power-up, NEVER RESOLVED (to the horizon 20000 ps)
+
+UNTIMED (Eichelberger A/B, Formal.Core.Ternary; any gate and wire delays)
+  phase 0 @ 0 ps: inputs held at init (power-up X state): 0 of 2 storage nodes flagged
+
+SUMMARY: timed: 2 flagged X windows on 2 storage nodes; untimed: 0 flagged (node, phase) pairs

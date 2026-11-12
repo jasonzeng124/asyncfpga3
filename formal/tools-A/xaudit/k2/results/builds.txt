@@ -1,0 +1,38 @@
+collatz_hw (k2/collatz_rig.v + k2/collatz_hw.v = gcd_hw's rig and shell around bdc_collatz), probe K2, 2026-10-27
+source: `git archive 0922b8bc` exported to ~/k2src (outside the repo; no worktree), frontend from cloud/fixtures/frontend/collatz
+toolchain: restored from origin/toolchain-cache/d7ce266cff0c8e1e (key = cloud/toolchain-cache.sh key) into ~/dev2/lib/fpgatoolchain;
+  cells/verify/toolchain.sh exit 0 before every build: 9/9 patch fingerprints ok, nextpnr sha256 9c732bc6303458df (= gcd_hw R5's), yosys 0.62
+  runtime libs added with apt (libtcl8.6, boost 1.83 python/filesystem/program_options), as for gcd_hw
+command (k2/build_k2.sh, from ~/k2src/cells):
+  [NEXTPNR_SEED=N] BD_SIZES=../research/data/collatz_hw_sizes_T3rig.vh BDC_SELECT_PADS=$PWD/hw/collatz_hw_pads.json BD_RLOC=v4 ./hw/build_hw.sh collatz_hw
+  sizes = research/data/collatz_sizes_T3.vh (md5 74248644...) BD_SZ_UUT_* lines renamed BD_SZ_URIG_UDUT_* (40 sizes, all match a DELAY_ parameter of the
+  emitted bdc_collatz; md5 b1eff676...); pads file = {} (emit.py default SELECT_PAD, as the T3 build); no --freq (as BOARD-QUEUE #2)
+  emitted kernel build/gen/collatz_kernel.v md5 b5a590a6..., 65 matched delays
+each build ~30 s; bitstream step fails (python textx missing; not needed, not used)
+
+seed 3: NO ROUTE -- "ERROR: post-placement validity check failed for Bel 'SLICE_X0Y44/A5FF' (no cell)" (the placer legality failure gcd_hw R5 seed 2 hit); seed 6 substituted
+seeds d 4 5 6: 68 RLOC clusters, 0 dropped; fasm_audit PASS (2089 LUT sites)
+
+054ca45d3b4a5b4516ec035aecb9e442  d/collatz_hw.sdf
+682c889bba672b3344692b7954630463  d/collatz_hw_routed.json
+96d2d94364d7eaf0c32fa999c23830ce  4/collatz_hw.sdf
+b450db4da276b634aae5e941fd38c2e3  4/collatz_hw_routed.json
+3ffc02e9068d899cc5545a8589d58702  5/collatz_hw.sdf
+48b7d037e5ba4569d20523962c06e8bd  5/collatz_hw_routed.json
+b136e8da8ceb5667792794a808ff709d  6/collatz_hw.sdf
+9427fe33981f4e60233757a646e60372  6/collatz_hw_routed.json
+
+cells audits on each route (from ~/k2src/cells; collatz_hw is not one of their gated designs, so these are informative):
+  verify/tighten.py SDF --osc dhk --osc invhk : rules A 0, H 0, I 0, F 0, B/C/G/J 0, D 6 (the documented screen); exit 1 from D   (all 4 seeds)
+  verify/skew.py SDF (rule E)                 : 18 select gates, 18 measured, 0 violated                                         (all 4 seeds)
+  verify/arb_fork.py SDF                      : exit 0, "every arbiter's A0 reaches its ack C-elements before the grant it unlocks" (all 4 seeds)
+  no routed GLS was run (cells/gls) -- not part of this probe
+
+xray_delay.py = origin/claude/research 7dc5dde:cells/gls/fid/xray_delay.py, md5 3e69bf6ac4597e5e0d559b1a00f14729 (NEWER than gcd_hw's 801db02/99b10a6d:
+  also charges slice routing-BEL muxes OUTMUX/FFMUX/...); XRAY_DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7
+  every seed: INTERCONNECT 12948 (10523 from prjxray), IOPATH ~11595 (all from prjxray), 3207 nets, ~40-56 s
+  arcs.tsv md5: d 56f9a0c7  4 6c6db97e  5 919306a1  6 5f7c5acc
+routed2x.py (defaults --keep-prefix urig. --cut-net rig_rst): 2324 cells kept (2287 urig.*, 37 pulled-in fan-in: vector ROM / mism), 2436 LUT cells,
+  8340 routed arcs, 345 constant nets folded; free inputs exactly idx[3:0] (FF Q) and rig_rst
+  net.json md5: d 533821a0  4 d0452257  5 cd6909c1  6 f0370770
+bands: slow / fast / indep = --corner slow|fast|indep; gb = --corner slowmax --widen 0.332 (as gcd_hw A-events5)

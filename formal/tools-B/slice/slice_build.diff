@@ -1,0 +1,51 @@
+--- build_orig.py	2026-11-10 07:16:04.251575024 +0000
++++ build.py	2026-11-10 07:16:04.268006439 +0000
+@@ -2,7 +2,15 @@
+ """Shard C helper (UNTRUSTED): collapse THE target's netlist (copy chains k=1/INIT=2) inside the kernel cone
+ (as simadv.py), with per-pin composite delay windows at corner 0 and 1 (g = 1, kappa = 0) and midpoint delays.
+ Writes model.pkl.  usage: build.py net.json bnd.json model.pkl"""
+-import json, sys, pickle, collections
++import json, sys, pickle, collections, math, os
++from fractions import Fraction
++# SLICE MODE (shard B, 2026-11-10): env C1, C2 (fractions like 1/4) -> per arc lo = ceil(lerp(fmin,smin,C1)),
++# hi = floor(lerp(fmax,smax,C2)), mid = floor((lerp(fmin,smin,CM)+lerp(fmax,smax,CM))/2) clamped to [lo,hi], CM=(C1+C2)/2
++# (floor, not round, so that [0,0] / [1,1] reproduce the corner-0 / corner-1 windows of the original exactly).
++SLICE = None if "C1" not in os.environ else (Fraction(os.environ["C1"]), Fraction(os.environ["C2"]))
++if SLICE: C1, C2 = SLICE; CM = (C1 + C2) / 2; assert 0 <= C1 <= C2 <= 1
++def lerp(x, y, c): return (1 - c) * x + c * y
++SLST = collections.Counter()
+ net = json.load(open(sys.argv[1])); names = net["nodes"]; G = net["gates"]
+ idx = {n: i for i, n in enumerate(names)}
+ BJ = json.load(open(sys.argv[2])); B = BJ["boundary"]; ENV = set(idx[x] for x in BJ["env"])
+@@ -38,11 +46,20 @@
+         s, carcs = chain(u)
+         arcs = [g["arcs"][j]] + carcs
+         win = {}
+-        for c in (0, 1):
+-            lo = sum((a["fmin"] if c == 0 else a["smin"]) for a in arcs)
+-            hi = sum((a["fmax"] if c == 0 else a["smax"]) for a in arcs)
+-            mid = sum(((a["fmin"] + a["fmax"]) // 2 if c == 0 else (a["smin"] + a["smax"]) // 2) for a in arcs)
+-            win[c] = (lo, hi, mid)
++        if SLICE is None:
++            for c in (0, 1):
++                lo = sum((a["fmin"] if c == 0 else a["smin"]) for a in arcs)
++                hi = sum((a["fmax"] if c == 0 else a["smax"]) for a in arcs)
++                mid = sum(((a["fmin"] + a["fmax"]) // 2 if c == 0 else (a["smin"] + a["smax"]) // 2) for a in arcs)
++                win[c] = (lo, hi, mid)
++        else:   # slice mode: ONE integer window valid for every corner c in [C1, C2]; stored under both keys 0 and 1
++            lo = hi = mid = 0
++            for a in arcs:
++                alo = math.ceil(lerp(a["fmin"], a["smin"], C1)); ahi = math.floor(lerp(a["fmax"], a["smax"], C2))
++                am = math.floor((lerp(a["fmin"], a["smin"], CM) + lerp(a["fmax"], a["smax"], CM)) / 2)
++                am = min(max(am, alo), ahi); assert alo <= ahi
++                lo += alo; hi += ahi; mid += am; SLST["clamped"] += am != math.floor((lerp(a["fmin"], a["smin"], CM) + lerp(a["fmax"], a["smax"], CM)) / 2)
++            win[0] = win[1] = (lo, hi, mid)
+         pins.append(dict(src=s, live=dep(g, j), win=win, narcs=len(arcs), last=u))
+         todo.append(s)
+     gates[n] = dict(name=g["name"], k=g["k"], init=g["init"], pins=pins)
+@@ -58,4 +75,5 @@
+     ls = [p["src"] for p in g["pins"] if p["live"]]
+     if len(ls) != len(set(ls)): dup += 1
+ print("gates with a source on two live pins:", dup)
++print("slice", SLICE, "mid clamped arcs", SLST["clamped"])
+ print("k histogram", collections.Counter(g["k"] for g in gates.values()))

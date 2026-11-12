@@ -1,0 +1,29 @@
+43a44
+> CTXAFTER = os.environ.get('CTXAFTER', '0') == '1'; UPMOVE = os.environ.get('UPMOVE', '0') == '1'
+127a129,131
+>             if _cx is not None:
+>                 ca = [e_ for e_ in cs if leqP(_cx, e_)]
+>                 if ca: return set(ca[:MEETN])
+132a137,140
+>         # r1f CTXAFTER: a claim built as a latch's D cover (consumer anchors = that latch's open/close) prefers an end
+>         # causally after the latest anchor (the close), as U->H needs Sep(close -> U.B); only the choice among candidates
+>         # that pass CovTime end changes (sneed records each Sep used), so this is a preference, not a new argument.
+>         _cx = max(_ctx, key=lambda e_: tm[e_]) if (CTXAFTER and _ctx and not (AFTER and AFTER[-1] is not None) and not (GTOP and len(INSTACK) == 1)) else None
+155a164,166
+>                     elif _cx is not None:
+>                         sc = (bool(leqP(_cx, cand)), et[cand] + bb)
+>                         if best is None or sc > best[2]: best = (cand, bb, sc)
+634a646,658
+>             if need is None and UPMOVE and ph["ph"] == "U'" and p_ >= 1 and chain[p_ - 1]["ph"] == "H" and chain[p_ - 1]["A"] is not None:
+>                 # r1f UPMOVE: U' starts (at its D covers' start) before every earlier phase, so no union chain[j..p] covers
+>                 # its feedback.  Move U'.A to the preceding H's start (the close); a covers fhi after H and every D cover's
+>                 # CovTime start (needs Sep(D.A -> H.A)).  verify_chain re-checks all of it; H->U' ChainOK is checked below.
+>                 Hp = chain[p_ - 1]; A2 = Hp["A"]; reqs = [_fhi + Hp["a"]]; okm = True
+>                 for (u, w) in ph["cov"]:
+>                     if w.get("A") is None: continue
+>                     d = sep(w["A"], A2)
+>                     if d == NEG: okm = False; break
+>                     reqs.append(pwin(Q, u)[1] + w["a"] - d)
+>                 if okm:
+>                     stats["U' start moved to the preceding close (feedback cover)"] += 1
+>                     ph["A"] = A2; ph["a"] = max(reqs); continue

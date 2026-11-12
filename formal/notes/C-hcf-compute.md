@@ -1,0 +1,94 @@
+# C-hcf: H_COMPUTE_FN -- the synthesized compute units of gcd_hw compute their ops
+
+Shard C, 2026-10-31. Core Lean only (no Mathlib), no sorry/axiom/native_decide; kernel `decide`
+(`decide +kernel`) for the exhaustive local checks.
+
+STATUS (claimed = committed after `./check.sh`; see JOURNAL-C for each commit): ALL 20 gcd_hw
+units claimed (uori0/1, ucmpi0/1/2/3/8/10, uaddi0, ushrsi0-4, uori2/3/4, uselect0, uselect1,
+ushli0 for k < 32) and `GcdJoin.lean` (j2..j162, joins_listed); xorshift's 5 units (`Xs*`, `Sgt`,
+`BitFn`). Negative controls: `Wip/Chcf/Neg.lean` (two INIT mutations make certificates false).
+
+## Problem statement
+
+The capstone treats every bdc compute unit (`bdc_fused_*`) as an ideal zero-time function of its
+input tokens (`OpsJoin`, `Join.dat`). The hypothesis that the synthesized gate netlist computes
+that function, **H_COMPUTE_FN**, was open (graded B; "the yosys fused-unit LUT/CARRY4 netlists
+compute bdc's expressions"; `formal/out/gcd_hw_hypotheses.md`). gcd_hw has 20 such units.
+
+**Proved (for every input value, not sampled):** for the units listed below, the combinational
+cone of `z_data` in the committed yosys `synth_xilinx` netlist of gcd_hw
+(`tools/fasm2lean3/fixture/gcd_hw_d.synth.json.xz`, route d's synthesis, extracted by
+`tools/compute/extract.py` into `Formal/Gen/Compute/GcdD/*.lean`) evaluates to the operation bdc
+wrote in that unit's Verilog (`bdc/emit.py` on `cloud/fixtures/frontend/gcd`), stated with the
+capstone's integer semantics (`GcdHw.Ops`).
+
+| unit | bdc Verilog | theorem | method |
+|---|---|---|---|
+| uori0, uori1 | `e0 \| e1` (32 b) | `GcdD.uori0_fn`, `uori1_fn` = `Ops.ori 32` | per-bit exhaustive (support 2) |
+| ucmpi2 | `(e0 & 1) == e1` (1 b) | `ucmpi2_fn` | exhaustive |
+| ucmpi3 | `(e0 & e1) == 0` (1 b) | `ucmpi3_fn` | exhaustive |
+| ucmpi0, 1, 8, 10 | `e0 == 32'h0` | `ucmpi*_fn` = `Ops.cmpi .eq 32 a 0` | `EqZOK`: 4 groups of 8 bits as cut points |
+| uaddi0 | `e0 + e1` (32 b) | `uaddi0_fn` = `Ops.addi 32` | `AddOK`: ripple adder, the 8 CARRY4 carry-outs as cut points |
+| ushrsi0..4 | `$signed(e0) >>> e1`, with `e1 = 1` (the only value gcd_hw feeds it) | `ushrsi*_fn` = `Ops.shrsi 32 a 1` | `ShrOK`: port 1 fixed to 1 and folded through LUT cofactors / MUXF selects (`Fold.lean`) |
+| uori2, 3, 4 | `((e2 & e3) != 0) \| slt(e0, e1)` | `uori*_fn` | `SltOK` (signed compare: 22 group LUTs exhaustive, CARRY4 chain structural via `run_cell`, final over cuts) + output over the compare net |
+| uselect0 | `slt(e0, e1) ? e0 : e1` | `uselect0_fn` | `SltOK` + per-bit mux over the compare net |
+| ushli0 | `e0 << e1`, every `e0`, every shift amount `k < 32` | `ushli0_fn` = `Ops.shli 32 a k` | 32 `FixShOK` certificates (`e1 = k` folded), `GcdShli0K0..3` |
+| uselect1 | `d = e0 - e1; d > -1 ? d : 0 - d` | `uselect1_fn` | two `RipOK` chains (`a + ~b + 1`; `~d + 1` over the 32 difference nets as cuts), sign test over cuts, per-bit mux |
+
+The four routed gcd_hw seeds (d, 2, 3, 4) have byte-identical synthesis JSON (md5 e81e3f53...),
+so every unit theorem holds for all four routes' logical netlist.
+
+**Assumed:** the Boolean semantics of LUT (its INIT table), MUXF7/8 and CARRY4 (shard A's
+`Formal.Core.Prims` models; CARRY4 `c0 = CI | CYINIT` as in UNISIM); that the netlist is the one
+placed and routed (the bitstream import 11f/11g proves each placed instance computes its yosys
+cell under the checked renaming).
+
+**Not covered:** timing (H_COMPUTE_DELAY: the cone settles inside the matched delay, rule A);
+glitches and X; ushli0 for shift amounts `k >= 32` (gcd_hw's `k` stays below 31: a token-level
+fact, not restated here); the shifters ushrsi* for shift amounts other than 1; uselect1's board failure was a
+timing/GLS event, which a function theorem does not address (it only rules out a wrong
+synthesized function as the cause); which physical unit implements which capstone join
+(H_MAP; see the next section for the function-level link).
+
+## In the capstone's terms (`GcdJoin.lean`)
+
+The capstone network has exactly 20 joins (`joins_listed`, kernel decide over `ops`). For each,
+`jgAt p` (the join's data function `jg e js`, from bdc's graph) equals `unitVal` of the unit with
+that operation, on bdc's port wiring (constant operands as constant ports, 1-bit ports as
+`trunci 1`): `j2 .. j162`, for every input (ranges: 32-bit tokens for `uselect0`, shift `< 32` for
+`ushli0`). NOT shown: which physical unit implements which join (H_MAP: the RTL-net to
+Ops-channel map is not in Lean; units are paired by operation, identical operations have
+identical netlists here); that the constant ports carry those constants.
+
+## A second kernel: xorshift (`XsUnits.lean`, `XsXor.lean`)
+
+The same machinery, unchanged, on the xorshift soak top's synthesis (four seeds byte-identical,
+md5 9d030789...; `KERNEL=xorshift tools/compute/gen.sh`): uaddi0 = `e0 + 1` (`RipOK`, carry-in 1),
+ucmpi0 = signed `>` (`SgtOK`), ucmpi1 = signed `<` (`SltOK`), uxori2 = `e0 ^ (e0 << 5)`, uxori1 =
+`t = e0 ^ (e0 << 13); t ^ (t >> 17)` (`BitFnOK`: each output bit over its computed support). All
+five of xorshift's compute units, for every input.
+
+## Method (Formal/Net/Compute/)
+
+- `Basic.lean`: cells, `run` (cells in list order; a CUT net takes a free leaf value), computed
+  supports. `support_sound` (a wire depends only on its support), `cut_sound` (if each cut leaf
+  carries the real value of its net and no net has two drivers, the cut evaluation is the real
+  one), `local_sound` (an exhaustive check over a leaf list covering the support proves the
+  spec for every environment), `eval_filt` (evaluating only a net's cone gives its value).
+- `Word.lean`: numbers on ports, `unitVal`, `BitLocal`, `cert_val`.
+- `Adder.lean`: `AddOK` + `add_sound` (generic ripple-carry arithmetic proved once).
+- `EqZero.lean`: `EqZOK` + `eqz_sound`.
+- `Fold.lean`: constant folding through LUT cofactors and MUXF selects (`fold_sound`).
+- `Shift.lean`: fixed-leaf checks (`localF_sound`), `ShrOK` (shift by 1), `FixShOK` (shift by `k`).
+- `Struct.lean`: `run_cell` (a cell's equation over the final net values).
+- `Slt.lean` / `Sgt.lean`: signed comparators (`slt_sound`, `sgt_sound`).
+- `Ripple.lean`: general ripple chains (`rip_sound`).
+- `BitFn.lean`: per-bit functions over computed supports (`bitFn_bit`).
+A certificate does not have to be trusted: any cut set is sound, every check is kernel-decided.
+Cost: one 512-assignment slice check takes ~5 s in the kernel; uaddi0 ~2.5 min, the four zero
+tests 15 s together.
+
+## Run
+
+    formal/tools/compute/gen.sh --check          # regenerate the unit netlists, compare (drift)
+    cd formal && ./check.sh Formal/Net/Compute/*.lean Formal/Gen/Compute/GcdD/*.lean

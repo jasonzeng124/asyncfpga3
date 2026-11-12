@@ -1,0 +1,202 @@
+import Formal.Net.AO.Timed
+import Formal.Net.AO.EnvHS
+import Formal.Net.AO.EnvData
+import Formal.Target.Spec
+
+/-!
+# Formal.Target.CertSpec — from an occurrence certificate to Spec's four-phase clauses (shard A, 2026-11-10)
+
+**Problem, plainly.** Shard C's timed certificate theorems (`AO.timedA_follows`, `timedA_live`) conclude, for every
+admissible behaviour, facts about *event counts*: at every time the counts of all nodes form an ideal of the
+certificate's order, and every change of a node is enabled at the counts its gate read. THE statement's conclusion
+(`Spec.Correct`, and `Assembly.StepCore` per episode) is about *values*: an acknowledge moves only while it differs
+from its request (`AckMoves`), a circuit-driven request moves only while it equals its acknowledge (`ReqMoves`).
+Do the count facts give the value facts?
+
+**Proved** (generic in the certificate, nodes `Nat`, Spec's behaviours):
+* `ackMoves_of_cert`: if the certificate makes acknowledge event `k` need request event `k` and request event
+  `k + 1` need acknowledge event `k`, both nodes start low at `t0`, the counts are an ideal at every time, and every
+  change of the acknowledge is enabled at counts no later than the previous instant, then `AckMoves` holds from `t0`.
+* `reqMoves_of_cert`: the same order, for a request the circuit drives (e.g. `out0.req` against the environment's
+  `out0.ack`): `ReqMoves` from `t0`.
+* `enabled_of_changeOKA`: C's per-change conclusion `ChangeOKA` at a gate, with the read bounds of `TBehX`
+  (`rd`, `lo1`), gives the "enabled at earlier counts" premise above.
+
+(The first two need raw counts to be an ideal, i.e. a certificate without data nodes; the transitive forms below
+need only facts about the boundary nodes' counts and fit C's `cntE` ideals, see `cntE_nd`, `happened_of_ideal`,
+`inter_of_ord`.)
+
+**Not shown.** The other `StepCore` fields (one out0 handshake, the data, the end state) and the instance for THE
+target (its certificate's cause lists for the boundary events).
+-/
+
+namespace Formal.Target.CertSpec
+open Formal.Target Formal.Net.AO Formal.Net.OccNet.Timed
+
+theorem parity_ne (c : Nat) : (c % 2 == 1) ≠ ((c + 1) % 2 == 1) := by
+  rcases Nat.mod_two_eq_zero_or_one c with h | h
+  · have : (c + 1) % 2 = 1 := by omega
+    simp [h, this]
+  · have : (c + 1) % 2 = 0 := by omega
+    simp [h, this]
+
+/-- **Acknowledge side.** -/
+theorem ackMoves_of_cert (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hI : ∀ s, Ideal C (fun u => cnt x t0 u s))
+    (hAk : ∀ k, k < C.len a → ∀ alt ∈ C.causes a k, (r, k) ∈ alt)
+    (hRq : ∀ k, k + 1 < C.len r → ∀ alt ∈ C.causes r (k + 1), (a, k) ∈ alt)
+    (hen : ∀ s, t0 < s → x a s ≠ x a (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n a = cnt x t0 a (s - 1) ∧ Enabled C n a) :
+    AckMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hna, hlen, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hna
+  have hra := hin _ (hAk _ hlen alt halt)
+  have h1 := hle r
+  have hc := Formal.Net.AO.EnvHS.hs_counts C _ (hI t) r a hAk hRq
+  have heq : cnt x t0 r t = cnt x t0 a t + 1 := by simp only at hc hra; omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+  exact parity_ne _
+
+/-- **Request side** (a request the circuit drives, against the environment's acknowledge). -/
+theorem reqMoves_of_cert (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hI : ∀ s, Ideal C (fun u => cnt x t0 u s))
+    (hAk : ∀ k, k < C.len a → ∀ alt ∈ C.causes a k, (r, k) ∈ alt)
+    (hRq : ∀ k, k + 1 < C.len r → ∀ alt ∈ C.causes r (k + 1), (a, k) ∈ alt)
+    (hen : ∀ s, t0 < s → x r s ≠ x r (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n r = cnt x t0 r (s - 1) ∧ Enabled C n r) :
+    ReqMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hnr, hlen, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hnr
+  have hc := Formal.Net.AO.EnvHS.hs_counts C _ (hI t) r a hAk hRq
+  have heq : cnt x t0 r t = cnt x t0 a t := by
+    rcases Nat.eq_zero_or_pos (n r) with h0 | hpos
+    · omega
+    · obtain ⟨k, hk⟩ : ∃ k, n r = k + 1 := ⟨n r - 1, by omega⟩
+      rw [hk] at hlen halt
+      have hak := hin _ (hRq k hlen alt halt)
+      have := hle a
+      simp only at hak
+      omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+
+/-- **From C's per-change conclusion**: a gate's change at `s` is enabled at its read counts, which are no later than
+`s - 1` (every pin delay at least 1 ps, `TBehX.lo1`), and its own count is the current one. -/
+theorem enabled_of_changeOKA {N : TNet Nat} {CP : Cert Nat} {x : Beh} {t0 : Nat} {r : Nat → Nat → Nat → Nat}
+    {v s : Nat}
+    (hrd : ∀ w, w ∈ N.pins v → N.lo v w ≤ s - r v w s ∧ r v w s ≤ s)
+    (hlo1 : ∀ w, w ∈ N.pins v → 1 ≤ N.lo v w)
+    (hch : ChangeOKA N CP x t0 r v s) :
+    ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧ n v = cnt x t0 v (s - 1) ∧ Enabled CP n v := by
+  obtain ⟨hself, hen⟩ := hch
+  refine ⟨nT N x t0 r v s, fun w => ?_, ?_, hen⟩
+  · unfold nT ρ
+    split
+    · rename_i hrw
+      simp only [reads, Bool.and_eq_true, decide_eq_true_eq] at hrw
+      obtain ⟨h1, h2⟩ := hrd w hrw.2
+      have := hlo1 w hrw.2
+      exact cnt_mono w _ _ (by omega)
+    · exact le_refl _
+  · unfold nT ρ
+    split
+    · rename_i hrv; exact hself hrv
+    · rfl
+
+/-! ## Transitive forms: the order facts may hold through other events -/
+
+/-- **Acknowledge side, transitive form**, all premises about the behaviour's counts. `hInter`: the two counts
+interleave at every time; `hAkT`: whenever every cause of an alternative of acknowledge event `k` has happened by
+`s`, request event `k` has happened by `s` (directly or through other events). -/
+theorem ackMoves_of_certT (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hInter : ∀ s, cnt x t0 a s ≤ cnt x t0 r s ∧ cnt x t0 r s ≤ cnt x t0 a s + 1)
+    (hAkT : ∀ s k, ∀ alt ∈ C.causes a k, AltIn (fun w => cnt x t0 w s) alt → k < cnt x t0 r s)
+    (hen : ∀ s, t0 < s → x a s ≠ x a (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n a = cnt x t0 a (s - 1) ∧ Enabled C n a) :
+    AckMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hna, -, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hna
+  have hra := hAkT t _ alt halt (altIn_mono hle hin)
+  have hc := hInter t
+  have heq : cnt x t0 r t = cnt x t0 a t + 1 := by omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+  exact parity_ne _
+
+/-- **Request side, transitive form.** `hRqT`: whenever every cause of an alternative of request event `k + 1` has
+happened by `s`, acknowledge event `k` has happened by `s`. -/
+theorem reqMoves_of_certT (C : Cert Nat) (x : Beh) (t0 r a : Nat) (h0r : x r t0 = false) (h0a : x a t0 = false)
+    (hInter : ∀ s, cnt x t0 a s ≤ cnt x t0 r s ∧ cnt x t0 r s ≤ cnt x t0 a s + 1)
+    (hRqT : ∀ s k, ∀ alt ∈ C.causes r (k + 1), AltIn (fun w => cnt x t0 w s) alt → k < cnt x t0 a s)
+    (hen : ∀ s, t0 < s → x r s ≠ x r (s - 1) → ∃ n : Nat → Nat, (∀ w, n w ≤ cnt x t0 w (s - 1)) ∧
+      n r = cnt x t0 r (s - 1) ∧ Enabled C n r) :
+    ReqMoves (x r) (x a) t0 := by
+  intro t ht hne
+  obtain ⟨n, hle, hnr, -, alt, halt, hin⟩ := hen (t + 1) (by omega) (by simpa using hne)
+  simp only [Nat.add_sub_cancel] at hle hnr
+  have hc := hInter t
+  have heq : cnt x t0 r t = cnt x t0 a t := by
+    rcases Nat.eq_zero_or_pos (n r) with h0 | hpos
+    · omega
+    · obtain ⟨k, hk⟩ : ∃ k, n r = k + 1 := ⟨n r - 1, by omega⟩
+      rw [hk] at halt
+      have hak := hRqT t k alt halt (altIn_mono hle hin)
+      omega
+  rw [Formal.Net.AO.EnvData.x_par x t0 a h0a t ht, Formal.Net.AO.EnvData.x_par x t0 r h0r t ht, heq]
+
+/-! ## Glue: from C's ideals of `cntE` to the premises above -/
+
+/-- A non-data node's `cntE` count is its raw count. -/
+theorem cntE_nd {dat : Nat → Bool} {x : Beh} {t0 u s : Nat} (h : dat u = false) :
+    Formal.Net.OccNet.TimedX.cntE dat x t0 u s = cnt x t0 u s := by
+  simp [Formal.Net.OccNet.TimedX.cntE, h]
+
+/-- In an ideal, if event `(u, k)` has happened and every alternative of it contains `(v, j)`, then `(v, j)` has. -/
+theorem happened_of_ideal {C : Cert Nat} {c : Nat → Nat} (hI : Ideal C c) {u k v j : Nat} (hk : k < c u)
+    (hall : ∀ alt ∈ C.causes u k, (v, j) ∈ alt) : j < c v := by
+  obtain ⟨alt, halt, hin⟩ := (hI u).2 k hk
+  exact hin _ (hall alt halt)
+
+/-- Interleaving from the two order facts (acknowledge `k` after request `k`; request `k + 1` after acknowledge `k`). -/
+theorem inter_of_ord {c : Nat → Nat} {r a : Nat} (hAk : ∀ k, k < c a → k < c r) (hRq : ∀ k, k + 1 < c r → k < c a) :
+    c a ≤ c r ∧ c r ≤ c a + 1 := by
+  constructor
+  · rcases Nat.eq_zero_or_pos (c a) with h | h
+    · omega
+    · have := hAk (c a - 1) (by omega); omega
+  · by_contra h
+    have := hRq (c r - 2) (by omega); omega
+
+/-- **End state**: a node that started low, has an even count at `T` and is constant from `T` is low from `T` on
+(with `timedA_live`: count = certificate length, even for a node that returns to zero). -/
+theorem low_of_even {x : Beh} {t0 u T : Nat} (h0 : x u t0 = false) (hT : t0 ≤ T) (hev : cnt x t0 u T % 2 = 0)
+    (hconst : ∀ s, T ≤ s → x u s = x u T) : ∀ s, T ≤ s → x u s = false := by
+  intro s hs
+  rw [hconst s hs, Formal.Net.AO.EnvData.x_par x t0 u h0 T hT, hev]
+  rfl
+
+/-! ## The out0 bus from its bits (for `CertN1.EpN1.data`, from per-bit data claims) -/
+
+theorem bv_lt (b : Nat → Bool) : ∀ d : List Nat, Formal.Net.AO.EnvData.bv b d 0 < 2 ^ d.length
+  | [] => by simp [Formal.Net.AO.EnvData.bv]
+  | n :: d => by
+    rw [Formal.Net.AO.EnvData.bv_cons0]
+    have := bv_lt b d
+    simp only [List.length_cons, Nat.pow_succ]
+    split <;> omega
+
+/-- A bus whose bit nodes show the bits of `v < 2^len` has value `v`. -/
+theorem busVal_of_bits {x : Beh} {d : List Nat} {t v : Nat} (hv : v < 2 ^ d.length)
+    (hb : ∀ i (hi : i < d.length), x (d[i]'hi) t = v.testBit i) : busVal x d t = v := by
+  apply Nat.eq_of_testBit_eq
+  intro i
+  by_cases hi : i < d.length
+  · rw [Formal.Net.AO.EnvData.testBit_busVal x d t i hi, hb i hi]
+  · have h1 : busVal x d t < 2 ^ i := by
+      rw [Formal.Net.AO.EnvData.busVal_eq]
+      exact lt_of_lt_of_le (bv_lt _ d) (Nat.pow_le_pow_right (by omega) (by omega))
+    have h2 : v < 2 ^ i := lt_of_lt_of_le hv (Nat.pow_le_pow_right (by omega) (by omega))
+    rw [Nat.testBit_lt_two_pow h1, Nat.testBit_lt_two_pow h2]
+
+end Formal.Target.CertSpec

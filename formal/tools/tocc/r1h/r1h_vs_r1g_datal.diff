@@ -1,0 +1,27 @@
+--- datal_r1g_orig.py	2026-11-10 07:36:58.775279254 +0000
++++ datal.py	2026-11-10 09:36:45.282281104 +0000
+@@ -287,6 +287,7 @@
+     memo[key] = cl_
+     if DEPS: DEPS[-1].add(key)
+     return cl_
++DROPORD = os.environ.get('DROPORD', '0') == '1'; DROPMASK = os.environ.get('DROPMASK', '0') == '1'
+ def comb_seg(z, s1, s2, val):
+     """gate-proved claim of comb z over [s1, s2) (ValOK + CovTime), or None if the stable pins do not decide it"""
+     G = g[z]; cand = {}
+@@ -303,7 +304,15 @@
+     for j, p in enumerate(G["pins"]):
+         if not p["live"]: assign[j] = False
+     if lutv(z, assign) != {val}: return None
+-    for j in sorted(cand):          # drop covers greedily
++    _order = sorted(cand)
++    if DROPORD:     # r1h: drop first the covers whose source changes soonest in the run (a pure cover choice; ValOK re-checked)
++        _order = sorted(cand, key=lambda j: (stable(cand[j][0], cand[j][2])[1] if cand[j][2] is not None else 10**14, j))
++    elif DROPMASK:  # r1h: drop first the MASKED covers: pins whose source changes (as read) before z's own interval ends while z
++        # does not (e.g. a mux select whose inputs agree); other pins keep the old order.  A pure cover choice: ValOK re-checked.
++        _zse = stable(z, tref)[1]       # z's own simulated stable interval end (not the requested end s2)
++        _order = sorted(cand, key=lambda j: (0 if (cand[j][2] is not None and stable(cand[j][0], cand[j][2])[1] + G["pins"][j]["win"][c][2] < _zse) else 1, j))
++        if _order != sorted(cand): stats["comb cover drop order: masked pins first (r1h DROPMASK)"] += 1
++    for j in _order:          # drop covers greedily
+         if cand[j][2] is None: continue
+         a2 = dict(assign); a2[j] = None
+         if lutv(z, a2) == {val}: assign = a2

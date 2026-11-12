@@ -1,0 +1,75 @@
+== per-stage verdicts (real stages; a stage is CLEAN if every pin's rule holds) ==
+family                                         slow               fast              indep
+arbiter ack C (A1/A2)                  15 clean/3  bad       15 clean/3  bad        7 clean/11 bad
+compute-unit join                      16 clean/0  bad       16 clean/0  bad       16 clean/0  bad
+cond_br join                           38 clean/0  bad       38 clean/0  bad        4 clean/34 bad
+control_merge (1-input fork)            5 clean/0  bad        5 clean/0  bad        5 clean/0  bad
+control_merge fork                      8 clean/0  bad        8 clean/0  bad        7 clean/1  bad
+fork                                   44 clean/0  bad       44 clean/0  bad       42 clean/2  bad
+link stage                            184 clean/0  bad      184 clean/0  bad      162 clean/22 bad
+mux join/ack                           90 clean/0  bad       90 clean/0  bad       87 clean/3  bad
+rig env                                 2 clean/0  bad        2 clean/0  bad        1 clean/1  bad
+
+== slow: every negative or missing margin (ps) ==
+  NONE          arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5 pin0 <- arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  NONE          urig.udut.ucontrol_merge12.uarb2.ua1.u pin0 <- arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5
+  NONE          vctl:urig.udut.ucontrol_merge12.uarb1.ustate$LUT6 pin0 <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry 1300 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua1.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry 1930 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua2.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  delay-line contiguity failures: 0
+  merge NOT certified: arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  Back pins 784: min 961, median 6048
+  Guard pins 63: min entry 439, min exit 3734
+  delay-line pins 164: min contiguity margin 207
+  merges 69: certified 68
+  per-window bound: every real stage fires at most once per W; min W 2100 ps (urig.udut.ucontrol_merge10.uarb1.ua1.u), median 9474, max 26380
+    => a full 4-phase handshake of the fastest stage takes >= 4200 ps (238 MHz bound)
+
+== fast: every negative or missing margin (ps) ==
+  NONE          arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5 pin0 <- arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  NONE          urig.udut.ucontrol_merge12.uarb2.ua1.u pin0 <- arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5
+  NONE          vctl:urig.udut.ucontrol_merge12.uarb1.ustate$LUT6 pin0 <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry 552 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua1.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry 804 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua2.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  delay-line contiguity failures: 0
+  merge NOT certified: arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  Back pins 784: min 434, median 2829
+  Guard pins 63: min entry 215, min exit 1666
+  delay-line pins 164: min contiguity margin 282
+  merges 69: certified 68
+  per-window bound: every real stage fires at most once per W; min W 934 ps (urig.udut.ucontrol_merge10.uarb1.ua1.u), median 4327, max 13051
+    => a full 4-phase handshake of the fastest stage takes >= 1868 ps (535 MHz bound)
+
+== indep: every negative or missing margin (ps) ==
+  Back    -190  urig.udut.ulink_n_falseResult_41.many.stage[2].u.ctl.u.u pin1 <- urig.udut.ucontrol_merge4.uarb1.ua2.u  (lo 252 + d 648 - hiQ 1090)
+  Back      -9  urig.udut.ucontrol_merge4.uarb1.ua2.u pin0 <- arb:urig.udut.ucontrol_merge4.uarb1.ugrant$LUT6  (lo 178 + d 722 - hiQ 909)
+  NONE          arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5 pin0 <- arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  NONE          urig.udut.ucontrol_merge12.uarb2.ua1.u pin0 <- arb:urig.udut.ucontrol_merge12.uarb2.ugrant$LUT5
+  NONE          vctl:urig.udut.ucontrol_merge12.uarb1.ustate$LUT6 pin0 <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry -785 exit 1991 (W 4233)  urig.udut.ucontrol_merge11.uarb1.ua1.u <- urig.udut.ucontrol_merge11_f.u.genblk1.g2.u.u
+  Guard entry -400 exit 2147 (W 4233)  urig.udut.ucontrol_merge11.uarb1.ua2.u <- urig.udut.ucontrol_merge11_f.u.genblk1.g2.u.u
+  Guard entry -118 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua1.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry 641 exit None (W None)  urig.udut.ucontrol_merge12.uarb1.ua2.u <- urig.udut.ucontrol_merge12.uarb2.ua1.u
+  Guard entry -800 exit 8528 (W 10261)  urig.udut.ucontrol_merge2.uarb1.ua1.u <- urig.udut.ucontrol_merge2_f.u.genblk1.g2.u.u
+  Guard entry -1002 exit 7806 (W 10261)  urig.udut.ucontrol_merge2.uarb1.ua2.u <- urig.udut.ucontrol_merge2_f.u.genblk1.g2.u.u
+  Guard entry -1278 exit 1254 (W 4034)  urig.udut.ucontrol_merge3.uarb1.ua1.u <- urig.udut.ucontrol_merge3_f.u.genblk1.g2.u.u
+  Guard entry -1251 exit 1231 (W 4034)  urig.udut.ucontrol_merge3.uarb1.ua2.u <- urig.udut.ucontrol_merge3_f.u.genblk1.g2.u.u
+  Guard entry -18 exit 5539 (W 7110)  urig.udut.ucontrol_merge4.uarb1.ua2.u <- urig.udut.ucontrol_merge4_f.u.genblk1.g2.u.u
+  Guard entry -457 exit 1631 (W 3381)  urig.udut.ucontrol_merge9.uarb1.ua1.u <- urig.udut.ucontrol_merge9_f.u.genblk1.g2.u.u
+  Guard entry -51 exit -187 (W 3604)  urig.udut.umux3.uya.u <- urig.udut.ulink_n55.many.stage[0].u.ctl.u.u
+  Guard entry 275 exit -56 (W 2983)  urig.udut.umux4.uxa.u <- urig.udut.ulink_n56.many.stage[0].u.ctl.u.u
+  Guard entry 139 exit -77 (W 2983)  urig.udut.umux4.uya.u <- urig.udut.ulink_n56.many.stage[0].u.ctl.u.u
+  delay-line contiguity failures: 64; worst -11422 ps
+     -11422  urig.udut.ulink_n139.ctl.u.u pin1 <- urig.udut.uselect1.ujoin.u.genblk1.g2.u.u (and, 26 taps, window 14534, W 3112)
+     -9330  urig.udut.ulink_n168.many.stage[0].u.ctl.u.u pin0 <- urig.udut.ushli0.ujoin.u.genblk1.g2.u.u (and, 22 taps, window 11567, W 2237)
+     -9306  urig.udut.ucond_br32_j.u.genblk1.g2.u.u pin0 <- urig.udut.ushrsi3.ujoin.u.genblk1.g2.u.u (and, 24 taps, window 13136, W 3830)
+     -9077  urig.udut.ucond_br27_j.u.genblk1.g2.u.u pin1 <- urig.udut.ushrsi2.ujoin.u.genblk1.g2.u.u (and, 21 taps, window 12803, W 3726)
+     -8704  urig.udut.ucond_br46_j.u.genblk1.g2.u.u pin0 <- urig.udut.ushrsi4.ujoin.u.genblk1.g2.u.u (and, 22 taps, window 13031, W 4327)
+     -8377  urig.udut.ucond_br37_j.u.genblk1.g2.u.u pin1 <- urig.udut.uselect0.ujoin.u.genblk1.g2.u.u (and, 19 taps, window 11687, W 3310)
+  merge NOT certified: arb:urig.udut.ucontrol_merge12.uarb1.ustate$LUT5
+  Back pins 784: min -190, median 2594
+  Guard pins 63: min entry -1278, min exit -187
+  delay-line pins 164: min contiguity margin -11422
+  merges 69: certified 68
+  per-window bound: every real stage fires at most once per W; min W 934 ps (urig.udut.ucontrol_merge10.uarb1.ua1.u), median 4327, max 13051
+    => a full 4-phase handshake of the fastest stage takes >= 1868 ps (535 MHz bound)

@@ -30,7 +30,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 K=${1:-xorshift}
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 NEXTPNR=${NEXTPNR:-$TC/openxc7/bin/nextpnr-xilinx}
 R=..            # the dynamatic frontend writes under the REPO ROOT build/,
                 # not cells/build/ -- two different trees with the same name
