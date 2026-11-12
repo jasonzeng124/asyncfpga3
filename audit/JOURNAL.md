@@ -1397,3 +1397,6 @@ when posted, incl. whether T3cdb's 5 shortened SDELAYs are on non-select pipes i
 other routes of the uniform-scale items (#4/#6/#7/#12) if the owner wants T64 pursued; (3) the 4 remaining timed
 datapath units if formal resumes (parked in Wip/TimedShift, unchecked).
 Lock released.
+
+## Session 2026-11-12T02:51:06Z
+Pause over (audit PROGRAM 2e82cf24). Formal idle since 8fd62f82 (2026-11-10 23:22, paused). Research new: 01754319..4c977781 (select-safe re-gates: collatz64 item 12, collatz item 9 1.18x; ipow item 10 withdrawn; corner_audit --shrink-selects). Plan: audit the re-gates (BOARD-QUEUE first).
