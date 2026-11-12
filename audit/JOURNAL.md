@@ -1533,3 +1533,6 @@ Step 5 reproduced: own T3 seed 2 base 56.571 ns, knobbed 39.382 ns (1.436x; pred
 
 ### progress 12:56 T77 started
 Pre-audit of research's collatz64 c64fm (T4cdb + fast fall + merge link; gate running at research): own seed 1 (3 corners) and seed 3 (reported C5FF gap).
+
+### progress 13:41 T77 done
+c64fm seed 1 (own sdf 2c06cd36): 14/14 at 3 corners; 1.199-1.210 over item 12 (research itercost 1.205). Seed 3 C5FF gap confirmed.
