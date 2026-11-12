@@ -1596,3 +1596,6 @@ Item 14 board route: 4 muxes, 0 select changes while z_req high; min margin umux
 
 ### progress 21:10 T86 started
 Monitor sweep (latch/steer/mux) at FAST_MIN on the board routes of items 9, 12, 7, 13, 15, 4 (own builds from T65/T67/T71).
+
+### progress 21:32 T77 -> item 16; item 17 started
+Research 8a15fc52 lists c64fm as item 16 (sdf 2c06cd36 = own T77 build): CONFIRMED on board route. Item 17 (#18, xorshift levers 1-3, sdf e88b0712 = own T84 l3_1; recipe grep 2, FF clean): 3 corners queued after the T86 sweep.
