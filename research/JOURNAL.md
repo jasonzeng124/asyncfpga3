@@ -3436,3 +3436,21 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - ipow x0.75 (item 7 route, seed 1): base 55.50 ns, floor 37.26; search: BDC_LINK_FASTFALL + merge-output link ->
   46.09 ns predicted (1.20x). Seeds 2-4 pending.
 - Building both on seeds 1-4 next (itercost stack, measured period vs predicted).
+### progress 03:50 (step 3 on all 4 seeds; ipow step-4 prediction for seeds 1-4, before the builds finish)
+- A container restart at ~03:40 killed the lanes; 26 runs had finished; the 21 left (and p12 seeds 2-4, added) restarted
+  from scratch (partial dirs deleted). gcd seed 1's bench build hit a nextpnr assertion (bel != BelId(), BD_RLOC=v4):
+  gcd moved last.
+- Step 3, predicted vs measured period from each seed's base graph (research/data/eventgraph/step3_predictions.tsv):
+    p8   predicted mean 33.56 ns, measured 33.91: error -0.35 (per seed -1.12..+0.86)
+    all3 34.72 vs 34.68: +0.04 (-1.22..+0.85)
+    mo   38.08 vs 38.08: -0.00 (-1.23..+0.95)
+    p8mo 32.14 vs 31.78: +0.36 (-0.79..+1.38)
+    p11  39.06 vs 39.87 (seed 1): -0.81
+    p12  39.06 vs 44.33 (seed 1): -5.27  MISS
+  The predicted cycles move where the measured ones did (p8/all3/p8mo: to the counter ring, flipping at the merge or at
+  the merge-output link's fork). p12: its measured cycle (second_latch/p12_1/stages.tsv) is the base cycle, same 13
+  stages and 86 hops, every stage longer in wire (ulink_n12__1 11.26 vs 9.17 ns, umux1 5.77 vs 4.48, merge 4.97 vs 3.99)
+  -- the structural prediction (the new stage is off the cycle) holds and the 5.3 ns is this one re-placement. Testing
+  with p12 seeds 2-4 (queued). The graph of one route cannot predict another route's wires; that is the ~1 ns scatter.
+- ipow BDC_LINK_FASTFALL + merge-output link, PREDICTED per seed 46.09 / 44.92 / 45.06 / 44.08 ns (mean 45.04; base
+  mean 53.96, 1.20x). Building.
