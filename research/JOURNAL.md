@@ -3580,3 +3580,9 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   8 and 9 rerun on one lane after killing every leftover vvp/ivl. Lesson: after a restart, check for surviving jobs
   before starting new ones.
 - Itercost periods c64fm seeds 5-9: 57.33 / 54.99 / 57.14 / 55.65 / 58.05 ns.
+### progress 17:20 (new PROGRAM FIRST, owner 2026-11-12 db2c8f53: xorshift at 15 ns per iteration in four-phase)
+- Read on the pull that brought it in (the push was rejected by the owner's commit; the lock was still this session's).
+  The event-graph lead moves to Done; the collatz64 gate's last 6 runs finish in the background (item for the board list
+  if 24/24). Starting step 1: the budget from the graph on item 14's routes (pmf seeds 1, 3-9): falling arcs on the
+  critical and near-critical cycles, each delay on the rising ring against its data's worst need, each req/ack wire
+  against an adjacent-cell wire. Report: research/data/fifteen/README.md.
