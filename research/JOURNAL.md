@@ -3573,3 +3573,10 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   (owner item since 11-08) is worth doing.
 - Gate queued: c64fm seeds 1, 2, 4-9 x 3 corners, 14 vectors (n up to 63728127, 949 steps; oracle from collatz.c).
   collatz64 sims are slow (~10 h for 24 runs last time); partial results go to gate/results_raw.txt as they land.
+### progress 17:10 (collatz64 gate 18/18 PASS so far; 5 runs lost to OOM after a container restart, rerunning)
+- c64fm gate: seeds 1, 2, 4-7 x 3 corners = 18/18 PASS 14/14 (up to 949 collatz steps). Seeds 8/9 runs after a container
+  restart reported FAIL 0/14 with 0 cycles: not results -- iverilog was OOM-killed (dmesg) because sims started BEFORE
+  the restart were still running (the restart did not kill them) next to three new lanes. Those lines were removed; seeds
+  8 and 9 rerun on one lane after killing every leftover vvp/ivl. Lesson: after a restart, check for surviving jobs
+  before starting new ones.
+- Itercost periods c64fm seeds 5-9: 57.33 / 54.99 / 57.14 / 55.65 / 58.05 ns.
