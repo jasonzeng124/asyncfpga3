@@ -1430,3 +1430,6 @@ T65 row 10: diagnosis test (T4cd seed 7, n14__1 at 19/2) FAST_MIN 14/14, but re-
 
 ### progress 04:50 T67
 Own period method (latmin difference, 256 vs 2048 rounds): x0.5 s1 39.060 ns (research 39.058), pmf s1 29.143 (research 29.144); pmf_1 DRIVER DIFFERS benign by own FASM read. pmf_2 AFF gap CONFIRMED by own scan. Building x50/pmf seeds 3-5 to recompute the 1.344x pairing.
+
+### progress 05:01 T67
+x50/pmf seeds 3-5 built: sdf md5s equal research graphs/*/build.txt for x50_4/5 and pmf_3/4/5; x50_3 has none recorded there (own e09793fb = own T60 build of the same route). Period runs in two lanes.
