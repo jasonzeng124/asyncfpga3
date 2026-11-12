@@ -1569,3 +1569,6 @@ BDC_MERGE_RES_LINK byte-identical default CONFIRMED by own emit diff (8 emitting
 
 ### progress 17:26 T81 started
 Research ef92f2be: item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0 "23.37 / 23.40 ns on seeds 1, 3 (1.25x over item 14)". Own builds at ef92f2be + own period method running.
+
+### progress 17:46 T81
+pmr reproduced: 23.377 / 23.404 ns (research 23.37/23.40), 1.247/1.262x over item 14. Pre-running seed 1 at FAST_MIN/worst/SLOW_MAX.
