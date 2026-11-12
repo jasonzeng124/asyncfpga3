@@ -92,6 +92,12 @@ RING_COUNT_OLINKS = os.environ.get("BDC_RING_COUNT_OLINKS", "0") == "1"
 # token (a loop steer waiting for the loop compare) couples the fork's return-to-zero to that token; the latch decouples
 # it.  Request delay DELAY_ULINK_<CHAN>_FOLINK (default STAGE_PAD), acknowledge delay ACK_PAD for data (0 for control).
 FORK_OUT_LINK = set(filter(None, os.environ.get("BDC_FORK_OUT_LINK", "").split(",")))
+# BDC_NO_LINK=ulink_<chan>[,...] (empty by default; byte-identical without it): drop the named links from the link set
+# before ring_depths() runs, so a ring that needs storage still gets it (ring_depths deepens another link on it, or
+# refuses).  A measurement knob for research/data/fifteen: a rule-1 (measurability) link on a loop's ring costs a
+# C-element and its request delay every iteration; without it verify/tighten.py loses that start point, and the full
+# gate, not the rules, decides whether the design is still correct.
+NO_LINK = set(filter(None, os.environ.get("BDC_NO_LINK", "").split(",")))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -1736,6 +1742,12 @@ class Emitter:
                     f"{sorted(leaked)}, which BDC_OP_FUSION folded into a "
                     f"fused cell with no channel left there -- this loop "
                     f"shape is not safe to fuse this way")
+        if NO_LINK:
+            gone = {v for v in self.linked if f"ulink_{vname(v)}" in NO_LINK}
+            if len(gone) != len(NO_LINK):
+                raise EmitError(f"{func.name}: BDC_NO_LINK names links that do not exist: "
+                                f"{sorted(NO_LINK - {f'ulink_{vname(v)}' for v in gone})}")
+            self.linked = set(self.linked) - gone
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
         self.depth = ring_depths(func, self.linked, exclude=self.mem_absorbed)

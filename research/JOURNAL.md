@@ -3649,3 +3649,16 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - PREDICTION (from the wire budget, not the graph -- placement is outside the graph's model): the cycle's handshake wires
   (5.03 ns) toward the adjacent-cell value (~2.5) -> 17.5-18.5 ns if a variant achieves adjacency; a spine variant also
   shortens delay-chain elements, which shortens the delays in ns -- the gate, not speed, decides that one.
+### progress 21:20 (lever 4, placement: negative on seed 1; lever 5: BDC_NO_LINK on the counter ring -- prediction)
+- Placement variants on the lever-3 build, seed 1: RLOC v4 20.55 ns, BD_PLACE_WEIGHT=8 (v2) 20.89 -- both slower than
+  v2's 19.86; RLOC v8 (spine) cannot place the bench design ("Unable to find legal placement", not seed noise). Seed 3
+  variants queued. Negative so far: the existing placement knobs do not shorten this ring's wires.
+- bdc/emit.py BDC_NO_LINK=ulink_<chan>[,...] (opt-in; default byte-identical on all six kernels): drops named links
+  before ring_depths(), which still enforces every ring's floor (it deepens another link, or refuses). Removing
+  ulink_n30__1 (rule-1 site between the i+1 adder and the compare): nothing else changes, simcheck PASS. Removing
+  ulink_n7 as well (umux0 -> adder): ring_depths deepens ulink_n_trueResult_6 2 -> 3; simcheck PASS.
+- PREDICTION (by hand from pmfrcf's cycles; no removal edit in whatif): ulink_n30__1 is 2.44 ns on seed 1's cycle
+  (C-element + 4-element rdly); without it the compare reads the adder's output directly (+~0.3 ns wire): -2.0 ns ->
+  ~17.9 (s1), ~18.6 (s3). Also without ulink_n7 (0.53 on the cycle): ~-0.4 more, unless the deeper trueResult_6 pipe
+  is on the cycle. Building nl30 and nl307 on seeds 1, 3. Rule-1 links exist so tighten.py can measure: correctness of
+  these variants is the full gate's to decide.
