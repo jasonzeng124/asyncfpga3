@@ -30,9 +30,29 @@ def _levels(n, arcs):
     return [np.array(by[l], dtype=np.int64) for l in sorted(by)]
 
 
+def normalize(n, arcs):
+    """Shift node labels so every offset is >= 0 (offsets on a cycle sum to its tokens whatever the labels; edits may
+    label new events loosely).  Difference constraints p(v) - p(u) >= -o(u,v), solved by Bellman-Ford."""
+    if all(e["o"] >= 0 for e in arcs): return arcs
+    d = [0] * n
+    for it in range(n + 1):
+        ch = False
+        for e in arcs:
+            if d[e["u"]] + e["o"] < d[e["v"]]:
+                d[e["v"]] = d[e["u"]] + e["o"]; ch = True
+        if not ch: break
+    else:
+        raise ValueError("a cycle with a negative token count")
+    out = []
+    for e in arcs:
+        e2 = dict(e); e2["o"] = e["o"] + d[e["u"]] - d[e["v"]]; out.append(e2)
+    return out
+
+
 def simulate(n, arcs, K=600):
     if not arcs:
         raise ValueError("no arcs")
+    arcs = normalize(n, arcs)
     u = np.array([e["u"] for e in arcs], dtype=np.int64); v = np.array([e["v"] for e in arcs], dtype=np.int64)
     w = np.array([e["w"] for e in arcs], dtype=np.float64); o = np.array([e["o"] for e in arcs], dtype=np.int64)
     if (o < 0).any(): raise ValueError("negative offset")
@@ -76,6 +96,7 @@ def critical(T, uvwo, start, back=400):
 
 def mcr(n, arcs, watch=None, K=600):
     """(ratio, cycle arc ids) of the worst cycle upstream of node `watch` (None: the worst cycle of the graph)."""
+    arcs = normalize(n, arcs)
     T, uvwo = simulate(n, arcs, K)
     if watch is None:
         g = (T[K - 1] - T[K - 121]) / 120

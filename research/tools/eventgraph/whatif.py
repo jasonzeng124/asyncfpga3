@@ -204,6 +204,88 @@ class G:
         self.deepened = getattr(self, "deepened", set()) | {link}
         return self._insert(rn, cn, F, B, sdelay, dack, False, "S[%s]" % link)
 
+    def stage_cells(self):
+        """{ctl cell name: (link instance, stage k, n stages)} for every link stage C-element in the graph."""
+        out = {}
+        for inst, (t, par, ports) in self.verilog().items():
+            if t == "bd_link": out["bridge_i.udut.%s.ctl.u.u" % inst] = (inst, 0, 1)
+            if t == "bd_pipe":
+                n = int(re.search(r"\.N\((\d+)\)", par).group(1))
+                for k in range(n):
+                    out["bridge_i.udut.%s.many.stage[%d].u.ctl.u.u" % (inst, k)] = (inst, k, n)
+        return out
+
+    def deco(self, cell):
+        """Replace one link stage's C-element (bd_c2n) by the decoupled controller of
+        cells/verify/attempts/bd_deco_attempt.v (one token a stage):
+            L = Rin.(L + ~F.~Aout)   latch enable = Ain      F = ~Aout.(Rin + F)      R = ~Aout.(R + F.~L)
+        so Ain follows Rin both ways while the stage is free, the latch closes on Rin's fall, and the outgoing
+        request rises only after that (F high, L low).  Arc weights are the replaced C-element's: Rin's and Aout's
+        arcs keep their wire + arc, the controller's internal arcs (F->L, F/L->R) take one C-element arc each."""
+        sc = self.stage_cells()
+        if cell not in sc: raise ValueError("deco: %s is not a link stage" % cell)
+        inst, k, nst = sc[cell]
+        cn = {n["edge"]: n["id"] for n in self.nodes if n.get("cell") == cell}
+        if set(cn) != {"R", "F"}: raise ValueError("deco: %s not in the graph" % cell)
+        ins = [a for a in self.arcs if a["v"] in cn.values()]
+        same = [a for a in ins if self.nodes[a["u"]]["edge"] == self.nodes[a["v"]]["edge"]]
+        opp = [a for a in ins if self.nodes[a["u"]]["edge"] != self.nodes[a["v"]]["edge"]]
+        rin = {self.nodes[a["v"]]["edge"]: a for a in same}       # c.R <- Rin.R, c.F <- Rin.F
+        aout = {self.nodes[a["v"]]["edge"]: a for a in opp}       # c.R <- Aout.F, c.F <- Aout.R
+        if set(rin) != {"R", "F"} or set(aout) != {"R", "F"} or len(same) != 2 or len(opp) != 2:
+            raise ValueError("deco: %s inputs are not (Rin, Aout): %d same %d opposite" % (cell, len(same), len(opp)))
+        # forward targets of c: its own rdly, the next stage, or (rdly bypassed) the consumer; the rest are ack users
+        t, par, ports = self.verilog()[inst]
+        own = "bridge_i.udut.%s." % inst + ("" if nst == 1 else "many.stage[%d].u." % k)
+        nxt = "bridge_i.udut.%s.many.stage[%d].u.ctl" % (inst, k + 1)
+        cons = set()
+        if k == nst - 1:
+            for n in self.downstream(ports["req_out"][0]): cons |= self.listing(n)
+            cons = {c for c in cons - {inst} if self.verilog()[c][0] != "bd_fork"}
+        outs = [a for a in self.arcs if a["u"] in cn.values()]
+        def fwd(a):
+            v = self.nodes[a["v"]]; c = v.get("cell", "")
+            return c.startswith(own + "rdly") or c.startswith(nxt) or v["inst"] in cons
+        # labels of token m: c.R_m = 0, c.F_m = lF (from the base trace's phases)
+        ph = {e: self.nodes[cn[e]]["phase"] for e in "RF"}
+        lF = 1 if ph["F"] < ph["R"] else 0
+        lab = {"R": 0, "F": lF}
+        base = len(self.nodes); ids = {}
+        for nm in ("L", "Fs", "Ro"):
+            for e in "RF":
+                ids[(nm, e)] = len(self.nodes)
+                self.nodes.append(dict(id=len(self.nodes), name="%s.deco.%s" % (cell, nm), edge=e,
+                                       phase=ph[e], inst=inst, cell="%s.deco.%s" % (cell, nm)))
+        wint = st.median([rin["R"]["w"], rin["F"]["w"], aout["R"]["w"], aout["F"]["w"]])
+        L, Fs, Ro = (lambda e: ids[("L", e)]), (lambda e: ids[("Fs", e)]), (lambda e: ids[("Ro", e)])
+        new = []
+        def add(u, v, w, o): new.append(dict(u=u, v=v, w=w, o=o, slack=0, kind="deco", pin=""))
+        # token m labels: L.R, Fs.R, Ro.R, at 0; L.F, Fs.F, Ro.F at lF.  Source events keep their base offsets.
+        oRR, oRF = rin["R"]["o"], rin["F"]["o"]          # c.R_m <- Rin.R_m (offset), c.F_m <- Rin.F_m
+        oAF, oAR = aout["R"]["o"], aout["F"]["o"]        # c.R_m <- Aout.F_{m-1}, c.F_m <- Aout.R_m
+        add(rin["R"]["u"], L("R"), rin["R"]["w"], oRR)               # L rises on Rin ...
+        add(aout["R"]["u"], L("R"), aout["R"]["w"], oAF)             # ... with Aout low (previous token released)
+        add(Fs("F"), L("R"), wint, 1 - lF)                           # ... and F low (stage empty)
+        add(rin["R"]["u"], Fs("R"), rin["R"]["w"] + wint, oRR)       # F sets on Rin (after L, one arc)
+        add(aout["R"]["u"], Fs("R"), aout["R"]["w"], oAF)
+        add(rin["F"]["u"], L("F"), rin["F"]["w"], oRF)               # the latch closes on Rin's fall alone
+        add(Fs("R"), Ro("R"), wint, lF)                              # R rises: F high ...
+        add(L("F"), Ro("R"), wint, 0 - 0)                            # ... and L low (label of L.F_m is lF: R.R_m too)
+        add(aout["R"]["u"], Ro("R"), aout["R"]["w"], oAF + lF)       # ... and Aout low
+        add(aout["F"]["u"], Ro("F"), aout["F"]["w"], oAR)            # R falls on Aout's rise
+        add(aout["F"]["u"], Fs("F"), aout["F"]["w"] + wint, oAR)     # F clears on Aout's rise (Rin already low)
+        # Ro.R_m carries label lF; fix the L.F -> Ro.R offset accordingly (both lF)
+        # outputs: forward targets read Ro, ack users read L
+        for a in outs:
+            e = self.nodes[a["u"]]["edge"]
+            if fwd(a):
+                a["u"] = Ro(e); a["o"] = a["o"] - (lF if e == "R" else 0)
+            else:
+                a["u"] = L(e)
+        self.arcs = [a for a in self.arcs if a["v"] not in cn.values()] + new
+        # the old c nodes stay (isolated): ids remain stable
+        return self
+
     def fastfall(self, inst, strict=True):
         """chains of inst fall in one element: each falling chain element after the first follows the chain input."""
         eR, eF = self.elem(); n = 0
@@ -226,6 +308,7 @@ class G:
             return self.stage(p[1], p[2], int(p[3]), int(p[4]) if len(p) > 4 else 0, len(p) > 5 and p[5] == "fastrise")
         if p[0] == "depth": return self.depth(p[1], int(p[2]), int(p[3]) if len(p) > 3 else 0)
         if p[0] == "fastfall": return self.fastfall(p[1])
+        if p[0] == "deco": return self.deco("bridge_i.udut." + p[1] if not p[1].startswith("bridge_i") else p[1])
         if p[0] == "nofall": return self.nofall()
         raise ValueError(ed)
 
