@@ -1581,3 +1581,6 @@ Item 14 board route: data latches setup >= 9.9 ns (capture at RTZ); loop steers 
 
 ### progress 18:34 T84 started
 Research bb155ecf lever 5 (BDC_NO_LINK=ulink_n30__1 on lever 3; 18.45/17.64 ns): own builds of levers 3 and 5, seeds 1 and 3, at bb155ecf; own period method.
+
+### progress 19:30 T84/T85
+Levers 3 and 5 reproduced (19.862/20.638, 18.455/17.645 ns). Lever 5 seed 1: FAST_MIN/worst/SLOW_MAX 17/17; monitors 0 steer violations but the 50-us report interval covered only ~25% of the loop iterations: rerunning lever 5 s1 and item 14 s1 with 5-us reports.

@@ -53,7 +53,7 @@ for i, (cn, rp, sp, sn) in enumerate(steers):
           f" if (nv{i} <= 3) $display(\"STEERMON VIOLATION t=%0t {cn} s changed while req=1\", $time); end end",
           f"    always @(tb_ps.dut.{rp}) begin if (tb_ps.dut.{rp} === 1'b1 && pr{i} === 1'b0) begin nr{i} = nr{i} + 1;"
           f" if ($time - ts{i} < mr{i}) mr{i} = $time - ts{i}; end pr{i} = tb_ps.dut.{rp}; end"]
-L.append("    initial forever begin #50000000;")
+L.append("    initial forever begin #5000000;")
 for i, (cn, *_r) in enumerate(steers):
     L.append(f'        $display("STEERMON t=%0t {cn} rises=%0d min_rise_margin_ps=%0d violations=%0d", $time, nr{i}, mr{i}, nv{i});')
 L += ["    end", "endmodule"]

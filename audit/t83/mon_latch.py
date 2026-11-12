@@ -72,7 +72,7 @@ for inst, lst in sorted(groups.items()):
         L.append(f"    always @(tb_ps.dut.{en}) begin if (tb_ps.dut.{en} === 1'b0 && pe_{t} === 1'b1) begin"
                  f" tc_{t} = $time; nc{gi} = nc{gi} + 1; if ($time - td_{t} < ms{gi}) ms{gi} = $time - td_{t}; end pe_{t} = tb_ps.dut.{en}; end")
     gi += 1
-L.append("    initial forever begin #50000000;")
+L.append("    initial forever begin #5000000;")
 for i, inst in enumerate(sorted(groups)):
     L.append(f'        $display("LATCHMON t=%0t {inst} captures=%0d min_setup_ps=%0d min_hold_ps=%0d", $time, nc{i}, ms{i}, mh{i});')
 L.append("    end")
