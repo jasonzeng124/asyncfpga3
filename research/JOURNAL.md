@@ -3684,3 +3684,15 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - What remains (seeds 1, 3): add 2.75 + compare 4.71 in series (sized to worst settle), merge 2.82, merge-output link
   2.13, select link 2.77. research/data/fifteen/README.md "Where it stands". 15 needs ~3.5 ns more, from cell-level
   levers (fused add+compare, a carry-chain delay that tracks the adder, fewer stages between merge and umux0).
+### progress 00:40 (lever 6: the compare computes i+1 < rounds from i -- a duplicated add fused into it; prediction)
+- research/tools/fifteen/dup_add.py rewrites xorshift's frontend MLIR: fork i, give cmpi1 its own `addi i, 1` (with its
+  own constant), drop fork8 (the add now feeds only the loop-carry steer). bdc unchanged: it fuses the copy with the
+  compare into bdc_fused_ucmpi1 (one region, one delay), and rule 1 puts links on both outputs of the new fork
+  (ulink_n7d__0/__1, sized as the old ulink_n7: DELAY 0 default, UACK 0). The rule-1 link between add and compare
+  (ulink_n30__1) disappears with the edge. simcheck PASS with levers 1-3.
+- Sizes: research/data/xorshift_sizes_T3s50_dup_bench.vh = x0.5 with UCMPI1 = 9 + 6 (compare + add elements): the
+  fused region's delay covers both, an upper bound (no shortening). Lever 5 (BDC_NO_LINK) is not used here.
+- PREDICTION (by hand from pmfrcf's cycle; the graph has no fusion edit): add 3.41 + link 2.44 + compare 3.92 = 9.8 ns
+  on seed 1's cycle become one region of 15 elements (~5.4 ns) + its join (~0.7): -3.7 ns -> ~16.2 (s1), ~17.0 (s3),
+  unless the loop-carry ring (umux0 -> add -> steer -> pipe -> umux0, which also waits for the compare) binds first.
+  Building dup seeds 1, 3, 4, 5.
