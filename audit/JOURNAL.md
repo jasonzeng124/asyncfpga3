@@ -1614,3 +1614,6 @@ Research f1111b59 lever 1 on other kernels: spot check colr seed 1 (claimed 47.5
 
 ### progress 22:45 T87 done
 colr seed 1 47.52 ns (research 47.56), colb control 59.52 (59.58): lever 1 on collatz CONFIRMED (spot). Research journal times for these entries do not match commit times (note).
+
+### progress 23:27 T86 extended
+Items 16, 17 at FAST_MIN with monitors: 0 violations (item 17 umux3 0.84 ns). Sweep now covers 10 board routes, all 0 violations.
