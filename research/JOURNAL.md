@@ -3540,3 +3540,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/tool
 - So the event graph's step 4 gave three gated board candidates in one session: ipow (item 13, 1.18x over item 7),
   xorshift (item 14, ~1.32x over x0.5 / ~1.06x over item 11), collatz (item 15, 1.17x over item 9). All three are the
   same two knobs (link fast fall, a latch on the arbitrated merge's output), plus p8 on xorshift.
+### progress 12:05 (gcd graph; step 5 end to end)
+- gcd bench (gcd_ps P1 sizes, no RLOC; vector gcd(1, 2^31-1) = 1, one main + one ctz iteration each), seed 2, alone on the
+  machine (its compile needs ~10 GB): 186.93 ns per iteration, graph check PASS (424 arcs). Floor 171.5 ns, two-phase
+  bound 173.2, storage 1.00x, + every chain fast 1.03x: gcd's cycle is its datapath's rising pass (pad-only sizes);
+  sizing, not storage or protocol, is its lever. One seed only.
+- Step 5, storage_pass.sh end to end on an unseen case (xorshift T3 sizes, seed 2): base 56.57 ns -> search picks the
+  same three knobs -> predicted 35.64, measured 39.38 (1.44x vs 1.59x predicted), same cycle, EQUIVALENT. The miss is
+  the inserted merge-output link (3.9 ns on the cycle measured). The graph under-charges inserted stages' wire by ~1-3
+  ns (p12, pmf seed 4, here): structure is predicted, the number needs the build.
+Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x vs storage 1.0-1.3x); (2) gcd: sizing on
+  its rising pass (corner_audit, select-safe) -- the graph says nothing else is left there; (3) a per-inserted-stage wire
+  term for whatif, fitted on some builds and tested on the others, before trusting predicted magnitudes.

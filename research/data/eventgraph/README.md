@@ -113,6 +113,16 @@ Edits fixed before any prediction (b3eaf9cd). NOT blind: the measured values wer
   24/24 (seeds 1, 3-9) -> item 14; collatz on item 9's select-safe sizes (BDC_CONST_DATA, T3cdb) + the same two knobs,
   predicted 1.19x, measured 1.13-1.23x (mean 1.17) over item 9, 24/24 (seeds 1-8) -> item 15.
 
+## Step 5: storage chosen by a pass, end to end
+
+`storage_pass.sh` on a case none of the above used (xorshift with T3 sizes, NEXTPNR_SEED=2): one routed pass (56.57 ns),
+the graph, the search (BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1,
+predicted 35.64 ns), the rebuild: measured 39.38 ns, cd3132bf, EQUIVALENT. 1.44x measured against 1.59x predicted; the
+measured cycle is the predicted one, and the miss is the merge-output link itself (3.9 ns on the cycle, the graph
+charges it about 0.9 plus its delay elements). Across this session the graph UNDER-charges an inserted stage by
+roughly 1-3 ns of wire (p12, pmf seed 4, this case): it predicts where storage goes and which cycle binds next; a
+build is still needed for the number. Off by default; the result is a candidate, not a gated design.
+
 ## Step 6: the protocol table (graph only, no RTL), ns per iteration, seed 1
 
 | | xorshift x0.5 | xorshift T3 | ipow x0.75 | collatz cd | collatz cs | Dynamatic |
