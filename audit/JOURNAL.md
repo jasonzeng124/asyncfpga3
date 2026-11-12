@@ -1536,3 +1536,6 @@ Pre-audit of research's collatz64 c64fm (T4cdb + fast fall + merge link; gate ru
 
 ### progress 13:41 T77 done
 c64fm seed 1 (own sdf 2c06cd36): 14/14 at 3 corners; 1.199-1.210 over item 12 (research itercost 1.205). Seed 3 C5FF gap confirmed.
+
+### progress 13:41 T78 started
+Item 15 (colb) seeds 2, 3: own builds, FF scan, FAST_MIN + worst.
