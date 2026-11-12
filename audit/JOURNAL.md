@@ -1599,3 +1599,6 @@ Monitor sweep (latch/steer/mux) at FAST_MIN on the board routes of items 9, 12, 
 
 ### progress 21:32 T77 -> item 16; item 17 started
 Research 8a15fc52 lists c64fm as item 16 (sdf 2c06cd36 = own T77 build): CONFIRMED on board route. Item 17 (#18, xorshift levers 1-3, sdf e88b0712 = own T84 l3_1; recipe grep 2, FF clean): 3 corners queued after the T86 sweep.
+
+### progress 21:55 T86 done
+FAST_MIN monitor sweep, 7 board routes: 0 select violations; tightest = xorshift exit mux umux3 (0.57 ns item 14, 0.71 ns item 4).
