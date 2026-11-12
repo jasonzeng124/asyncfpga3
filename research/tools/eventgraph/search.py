@@ -15,6 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from whatif import G, polarity_floor  # noqa: E402
 
 
+NEW = "--new-knobs" in sys.argv
+
+
 def candidates(g, sizes):
     sz = open(sizes).read()
     out = []
@@ -27,6 +30,10 @@ def candidates(g, sizes):
             out.append("depth:%s:%d:0" % (inst, sd))
         if t.startswith("bdc_amerge"):
             out.append("stage:%s:%s:4:6:fastrise" % (ports["z_req"][0], ports["z_ack"][0]))
+        if NEW and t == "bd_fork":
+            # BDC_FORK_OUT_LINK / BDC_MERGE_RES_LINK (research/data/fifteen): a latch on one fork output
+            for rq, ak in zip(ports.get("req_out", []), ports.get("ack_in", [])):
+                out.append("stage:%s:%s:3:6:fastrise" % (rq, ak))
     out.append("fastfall:BDC")
     return out
 
@@ -86,6 +93,7 @@ def main():
 def to_env(g, chosen):
     """the bdc knobs that build the chosen edits"""
     depths, mo, ff = [], [], False
+    out_res, out_fork = [], []
     for c in chosen:
         p = c.split(":")
         if p[0] == "depth":
@@ -93,13 +101,22 @@ def to_env(g, chosen):
             n = int(re.search(r"\.N\((\d+)\)", par).group(1)) if t == "bd_pipe" else 1
             depths.append("%s=%d" % (p[1], n + 1))
         elif p[0] == "stage":
-            mo += [i for i, (t, par, ports) in g.verilog().items() if t.startswith("bdc_amerge") and ports["z_req"][0] == p[1]]
+            m = [i for i, (t, par, ports) in g.verilog().items() if t.startswith("bdc_amerge") and ports["z_req"][0] == p[1]]
+            mo += m
+            if not m:
+                f = [(i, ports) for i, (t, par, ports) in g.verilog().items() if t == "bd_fork" and p[1] in ports.get("req_out", [])]
+                if f and f[0][0].endswith("_f"):
+                    out_res.append(f[0][0][:-2])          # a merge's output fork: its result branch
+                else:
+                    out_fork.append(re.sub(r"_req$", "", p[1]))
         elif c == "fastfall:BDC":
             ff = True
     out = []
     if depths: out.append("BDC_LINK_DEPTHS=" + ",".join(depths))
     if mo: out.append("BDC_MERGE_OUT_LINK=" + ",".join(mo))
     if ff: out.append("BDC_LINK_FASTFALL=1")
+    if out_res: out.append("BDC_MERGE_RES_LINK=" + ",".join(out_res))
+    if out_fork: out.append("BDC_FORK_OUT_LINK=" + ",".join(out_fork))
     return out
 
 

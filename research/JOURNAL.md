@@ -3716,3 +3716,11 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - Where the next ns are (research/data/fifteen/README.md): lever 6 (fused i+1<rounds) needs its delay sized by
   corner_audit on soak-top routes (its logic settles in 2.2-2.6 ns vs the 6.3 ns delay the safe size gives); the
   seeds that bind on the ufork8 -> ulink_n7 coupling (5, 9) lose ~2 ns to it.
+### progress 03:55 (the other kernels: lever 1 found by the search everywhere; PREDICTION before building)
+- search.py --new-knobs (latches on fork outputs, incl. a merge fork's result branch) re-finds lever 1 on xorshift and picks
+  BDC_MERGE_RES_LINK=ucontrol_merge0 alone on collatz (item 15), ipow (item 13) and collatz64 (item 16): the period goes
+  to each one's no-polarity-change floor. PREDICTED (graph of each gated route; +1-3 ns inserted-stage wire expected):
+    colb s1 59.58->49.47; s2 58.44->48.56; s3 56.26->46.85; s4 58.35->48.58
+    ipowfm s1 46.84->39.28; s2 45.02->38.71; s3 46.04->38.73; s4 45.24->38.94
+    c64fm s1 54.85->44.92; s2 56.16->45.56; s4 57.54->47.96; s5 57.33->47.93
+  Building each kernel's item + BDC_MERGE_RES_LINK on those seeds.
