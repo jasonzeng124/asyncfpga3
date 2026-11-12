@@ -349,9 +349,12 @@ if [ "$NULL" = "1" ]; then
 else
     BD_RLOC=${BD_RLOC:-v2}
 fi
+# BD_PLACE_WEIGHT=K / BD_COLUMN_ROWS=N: passed to rloc_stamp.py only when set (as build_hw.sh / flow.sh; unset, the
+# command line and the build are what they were).  research/data/fifteen uses them with the spine variants (v5+).
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+        --variant "$BD_RLOC" ${BD_PLACE_WEIGHT:+--place-weight "$BD_PLACE_WEIGHT"} \
+        ${BD_COLUMN_ROWS:+--column-rows "$BD_COLUMN_ROWS"} --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3

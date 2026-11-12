@@ -3638,3 +3638,14 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - From item 14 on the same seeds (29.14 / 29.54): 1.47x / 1.43x. From x0.5: 1.97x / 1.97x.
 - research/data/fifteen/README.md started (the lever table). Full gate of the lever-3 build running (seeds 1, 3-9 x 3
   corners); seeds 6-9 building.
+### progress 20:40 (lever 3's budget: the rising pass is what is left; lever 4 = placement, prediction)
+- pmfrcf seed 1 (19.86 ns): logic 4.69, excess 8.30, routing 5.03, handshake 0.68, RTZ 1.17; floor (no polarity
+  change) 19.45. Delays against the rules: uaddi0 3.41 on the cycle vs need 5.44 (worst settle 4.20 / 0.772; min margin
+  -0.79 ns at some load -- the same open question as on item 14), ulink_n30__1 1.77 vs 2.40, ucmpi1 3.63 vs 3.79,
+  olink 1.46 vs 1.06, ulink_n12__0 1.81 vs 1.91, umux0 0.91 (select rule). Nothing to shrink: what is left is wire.
+- Lever 4: placement. build_bench.sh used RLOC v2 while flow.sh moved to the spine variants (v8: the cycle carried in
+  one rigid group). build_bench.sh now passes BD_PLACE_WEIGHT / BD_COLUMN_ROWS to rloc_stamp.py when set (unset: the
+  command line is unchanged). Runs: pmfrcf + BD_RLOC=v8; + BD_RLOC=v4; + BD_PLACE_WEIGHT=8 (v2); seeds 1, 3.
+- PREDICTION (from the wire budget, not the graph -- placement is outside the graph's model): the cycle's handshake wires
+  (5.03 ns) toward the adjacent-cell value (~2.5) -> 17.5-18.5 ns if a variant achieves adjacency; a spine variant also
+  shortens delay-chain elements, which shortens the delays in ns -- the gate, not speed, decides that one.
