@@ -3632,3 +3632,9 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   simcheck PASS with all knobs.
 - PREDICTION (graph of pmfrc seeds 1/3 + that link): 21.21 / 20.60 ns, no polarity change, the cycle back on the counter
   ring; with +1-3 ns for the inserted stage: 22-24 ns. Building pmfrcf seeds 1, 3, 4, 5.
+### progress 20:10 (lever 3 measured: 19.86 / 20.64 ns on seeds 1, 3 -- under 20; its gate started)
+- pmfr seed 5: 23.43. pmfrc seeds 4/5: 20.01 / 21.97. pmfrcf (all three levers): seed 1 19.86 ns (predicted 21.21),
+  seed 3 20.64 (20.60); cd3132bf, EQUIVALENT, graph check PASS, ffmux_scan clean on every pmfr* route.
+- From item 14 on the same seeds (29.14 / 29.54): 1.47x / 1.43x. From x0.5: 1.97x / 1.97x.
+- research/data/fifteen/README.md started (the lever table). Full gate of the lever-3 build running (seeds 1, 3-9 x 3
+  corners); seeds 6-9 building.
