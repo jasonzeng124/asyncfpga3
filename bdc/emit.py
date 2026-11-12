@@ -86,6 +86,12 @@ MERGE_RES_LINK = set(filter(None, os.environ.get("BDC_MERGE_RES_LINK", "").split
 # BDC_MERGE_OUT_LINK puts on both of a merge's outputs and BDC_MERGE_RES_LINK on its result, so a ring that gets its
 # floor of RING_MIN_STAGES from those links no longer needs a deeper bd_pipe elsewhere on it (research/data/fifteen).
 RING_COUNT_OLINKS = os.environ.get("BDC_RING_COUNT_OLINKS", "0") == "1"
+# BDC_FORK_OUT_LINK=chan[,chan...] (empty by default; byte-identical without it): one bd_link on the named OUTPUT channel
+# of a fork (the channel's Verilog base name, e.g. n11__0), between the fork and that output's consumer.  A measurement
+# knob for research/data/fifteen: a fork's acknowledge waits for all its consumers, so a consumer that joins with a slow
+# token (a loop steer waiting for the loop compare) couples the fork's return-to-zero to that token; the latch decouples
+# it.  Request delay DELAY_ULINK_<CHAN>_FOLINK (default STAGE_PAD), acknowledge delay ACK_PAD for data (0 for control).
+FORK_OUT_LINK = set(filter(None, os.environ.get("BDC_FORK_OUT_LINK", "").split(",")))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -2325,15 +2331,31 @@ class Emitter:
     def _op_fork(self, node, inst):
         x = node.operands[0]
         n = len(node.results)
-        reqs = ", ".join(self.oreq(r) for r in reversed(node.results))
-        acks = ", ".join(self.oack(r) for r in reversed(node.results))
+        fl = {r for r in node.results if vname(r) in FORK_OUT_LINK}
+        rq = {r: (f"{vname(r)}_freq" if r in fl else self.oreq(r)) for r in node.results}
+        ak = {r: (f"{vname(r)}_fack" if r in fl else self.oack(r)) for r in node.results}
+        for r in node.results:
+            if r in fl:
+                self.emit(f"    wire {rq[r]}, {ak[r]};")
+        reqs = ", ".join(rq[r] for r in reversed(node.results))
+        acks = ", ".join(ak[r] for r in reversed(node.results))
         self.emit(f"    bd_fork #(.N({n})) {inst} (")
         self.emit(f"        .rst(rst), .req({self.req(x)}), .ack({self.ack(x)}),")
         self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
         # Data is broadcast, which is wiring -- bd_fork routes the handshake
         # and nothing else.
         for r in node.results:
-            if not self.is_control(r):
+            if r in fl:
+                ctl = self.is_control(r)
+                li = f"ulink_{vname(r)}_folink"
+                d = self.delay(li, STAGE_PAD)
+                a = self.delay(f"{li}_uack", 0 if ctl else ACK_PAD)
+                w = 1 if ctl else max(self.width(r), 1)
+                self.emit(f"    bd_link #(.W({w}), .DELAY({d}), .DACK({a})) {li} (")
+                self.emit(f"        .rst(rst),")
+                self.emit(f"        .req_in({rq[r]}), .ack_in({ak[r]}), .data_in({chr(39).join(['1', 'b0']) if ctl else self.data(x)}),")
+                self.emit(f"        .req_out({self.oreq(r)}), .ack_out({self.oack(r)}), .data_out({'' if ctl else self.odata(r)}));")
+            elif not self.is_control(r):
                 self.emit(f"    assign {self.odata(r)} = {self.data(x)};")
 
     _op_lazy_fork = _op_fork

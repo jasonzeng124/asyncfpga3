@@ -3620,3 +3620,15 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   fast fall); nothing else changes in the emitted kernel; simcheck PASS. RING_MIN_STAGES still holds on every cycle.
 - PREDICTION (by hand from pmfr seed 1's cycle; whatif has no stage-removal edit): the pipe's 2.4 ns on the cycle -> one
   C-element hop, ~0.7 ns: -1.6 to -1.8 ns -> ~21.6-21.8 ns on seeds 1 and 3. Building pmfrc seeds 1, 3, 4, 5.
+### progress 19:45 (lever 2 measured; lever 3: BDC_FORK_OUT_LINK on the rounds fork -- prediction)
+- pmfr seed 4 (lever 1): 24.12 ns (predicted 23.10; item 14's 32.42 -> 1.34x). Seed 5 still re-running.
+- Lever 2 (BDC_RING_COUNT_OLINKS: the 3-stage pipe on the counter ring becomes one link): seed 1 23.37 -> 22.95, seed 3
+  23.40 -> 21.99 ns (predicted ~21.7). Less than predicted on seed 1 because the cycle moved: the next ring binds, the
+  loop-invariant `rounds` ring (umux2 -> ulink_n11__1 -> ucmpi1 -> ucond_br8 -> pipe -> ufork4 -> ulink_n12__2), with the
+  same coupling as before: fork ufork4's ack waits for the steer ucond_br8's join, which waits for the compare, and
+  umux2's select link waits on that ack (polarity changes ufork4 -> ulink_n12__2).
+- bdc/emit.py BDC_FORK_OUT_LINK=<chan> (opt-in; default byte-identical on all six kernels): one bd_link on a named fork
+  output channel (DELAY STAGE_PAD 3, DACK ACK_PAD 6 for data). With n11__0 (fork ufork4 -> steer ucond_br8's data):
+  simcheck PASS with all knobs.
+- PREDICTION (graph of pmfrc seeds 1/3 + that link): 21.21 / 20.60 ns, no polarity change, the cycle back on the counter
+  ring; with +1-3 ns for the inserted stage: 22-24 ns. Building pmfrcf seeds 1, 3, 4, 5.
