@@ -3822,3 +3822,9 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
 - PREDICTION seed 1: 9b ~17.4 (17.32 + up to 0.3 for the new stage's wire, which is off the binding cycle); 9a not
   modelled (removes a stage from the counter floor, but the control ring merge -> rlink(2) -> steer -> trueResult_12 has
   only its 3 stages): 16.8-18.0. Seeds 1, 3 of each.
+### progress 09:20 UTC (collatz64 lever 5: seed 3 confirms -> 8 routes + full gate; lever 8 seed 3)
+- c64nl_3: 45.28 ns, odata 0x105, EQUIVALENT (c64r has no seed 3; c64r 8-route mean 47.64, range 46.01-51.23). With
+  seed 1 (43.45 vs 46.95) both seeds are below every lever-1 route but one. Building seeds 2, 4-8 and gating all 8
+  (SLOW_MAX / FAST_MIN / worst+M, C-derived oracle c6414).
+- lever 8 seed 3: 19.03 ns (lever 5 s3 17.64; NOT EQUIVALENT = benign constant-CARRY4 DI kind). Lever 8 alone is mixed
+  (-0.14 / +1.39); it stays only as lever 9's base.
