@@ -1685,3 +1685,6 @@ Own periods (itercost corner, latmin method): c64r_1 46.946 / c64nl_1 43.481 / c
 
 ### progress 20:25 T90
 Gate corners vs own oracle: c64nl_1 / c64nl_3 14/14 at FAST_MIN, worst+scatter, SLOW_MAX; colnl_3 13/13 at all three. c64nl_1 over c64r_1 (cyc350): 1.074 / 1.081 / 1.084x. t83 monitors (FAST_MIN, worst) running on the three routes.
+
+### progress 20:36 T90
+REPORT rows added (CONFIRMED numbers/corners; OVERSTATED minor: seed-3 collatz64 gain framed against the 8-route mean). Monitors (FAST_MIN, worst) running on c64nl_1/3, colnl_3. T90b started: own collatz64 c64nl/c64r seeds 2, 4-8 (lanes4.sh) for an independent paired 8-route comparison.
