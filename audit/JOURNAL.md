@@ -1703,3 +1703,6 @@ Own collatz seeds 1-8, colr vs colnl: colr mean 48.88 (research 48.86), colnl 47
 
 ### progress 22:03 T90d started
 Own FF scan on the 12 further lever-5 routes: 0 missing mux (t90/logs/ffscan_t90d.txt). FAST_MIN + own oracle on the 13 remaining lever-5 routes (c64nl 2,4-8; colnl 1,2,4-8) running (lanes6.sh).
+
+### note 22:24
+Research new session (6323c2e2..3a4768c8): the previous research session's lever-5 8-route runs were lost with its container; re-running. Research accepted the T90 OVERSTATED row (paired gains only from now on). New tool research/tools/fifteen/lane.sh and committed itercost vectors (not audited; the audit uses its own vectors). Audit's paired 8-route numbers (T90b/c) are pre-registered ahead of research's re-run.
