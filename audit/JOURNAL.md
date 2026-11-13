@@ -1655,3 +1655,6 @@ Research cd258f06: colr = board item 20 (#21), recipe sdf 44536c3c = own T87 bui
 
 ### progress 05:14 item 20 done
 Board item 20 (colr) CONFIRMED on board route: 3 corners 13/13, 1.23-1.25x over item 15.
+
+### progress 07:46 item 21
+Board item 21 (c64r, sdf 29655e86 = own T88) CONFIRMED on board route from pre-audit.
