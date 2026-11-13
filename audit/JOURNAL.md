@@ -1652,3 +1652,6 @@ Research 630b574a: lever 6 (fused add+compare) rejected by research itself (stat
 
 ### progress 04:25 item 20
 Research cd258f06: colr = board item 20 (#21), recipe sdf 44536c3c = own T87 build; rlink 1; FF scan clean. 3 corners running (sequential).
+
+### progress 05:14 item 20 done
+Board item 20 (colr) CONFIRMED on board route: 3 corners 13/13, 1.23-1.25x over item 15.
