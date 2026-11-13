@@ -1720,3 +1720,6 @@ Stress probe of the control-merge select gap on the current collatz knobs: colnl
 
 ### progress 23:15 T90d correction
 My T90d attribution of the 5 NOT EQUIVALENT decodes to the 69 CARRY4-CO2 SDF lines was WRONG (those lines are on every route). Real cause, from fid/equiv.txt: 7 DRIVER DIFFERS, each a nextpnr packer GND-buffer LUT (output 0) in the JSON vs constant 0 in the bits (6 F7 mux inputs + 1 CARRY4 DI3 of the harness counter): benign, as research says (462b177f). findings/T90.md corrected. Research 462b177f collatz64 lever 5 8 paired routes: mean 45.06 vs 47.64 = 1.057x -- note research pairs against item 22's seeds 1,2,4-9 (its c64nl set is also 1,2,4-9), so it is paired; own seeds 1-8 give 1.054x.
+
+### progress 23:31 T90e done; seed 9
+Merge-cut probe (colnl + merge0/merge1 -> 1 only), seeds 1, 3, FAST_MIN + worst with monitors: 13/13, 0 violations, select margins larger than colnl's; period s1 45.60 (colnl 47.52). Own c64nl_9 45.99 / c64r_9 47.95 = research; research's 8-route 1.057x CONFIRMED from all 16 own periods.
