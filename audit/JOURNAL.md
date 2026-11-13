@@ -1717,3 +1717,6 @@ FAST_MIN on all 16 lever-5 routes (collatz64/collatz seeds 1-8): 14/14 and 13/13
 
 ### progress 23:03 T90e started
 Stress probe of the control-merge select gap on the current collatz knobs: colnl + only UCONTROL_MERGE0 5->1 and UCONTROL_MERGE1 9->1 (own sizes t90/sizes_T3cdb_m01x1_bench.vh; synth.log shows DELAY_UCONTROL_MERGE0 = 1), seeds 1 (sdf 489ad64a), 3 (464414b9). FAST_MIN + worst with t83 monitors, own oracle; period seed 1.
+
+### progress 23:15 T90d correction
+My T90d attribution of the 5 NOT EQUIVALENT decodes to the 69 CARRY4-CO2 SDF lines was WRONG (those lines are on every route). Real cause, from fid/equiv.txt: 7 DRIVER DIFFERS, each a nextpnr packer GND-buffer LUT (output 0) in the JSON vs constant 0 in the bits (6 F7 mux inputs + 1 CARRY4 DI3 of the harness counter): benign, as research says (462b177f). findings/T90.md corrected. Research 462b177f collatz64 lever 5 8 paired routes: mean 45.06 vs 47.64 = 1.057x -- note research pairs against item 22's seeds 1,2,4-9 (its c64nl set is also 1,2,4-9), so it is paired; own seeds 1-8 give 1.054x.

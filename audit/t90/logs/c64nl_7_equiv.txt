@@ -1,0 +1,41 @@
+1. CELLS  routed JSON 7907 bels, bitstream 7907 bels, common 7907
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 88, 'SLICE_FFX': 1892} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  0 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+3. CONNECTIVITY  24550 pins with the same driver on both sides
+   driver->sink pairs: json 26262, bits 37111, common 24550
+4. LUT FUNCTIONS  5616 LUTs compared, 5616 identical over every input assignment
+5. ROUTING  8606 nets with identical pip sets, 0 differ (0 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (8 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+       2  DRIVER DIFFERS
+            SLICE_X6Y54/F7BMUX/0 json ('bel', 'SLICE_X6Y54/D6LUT', 'O6') bits ('const', 0)
+            SLICE_X7Y54/F7BMUX/0 json ('bel', 'SLICE_X7Y54/D6LUT', 'O6') bits ('const', 0)
+       2  HARMLESS: LUT pin on a different constant in the routed JSON than on the board (an IMUX nextpnr tied to GND but never routed reads VCC through its default ppip), and the bits' LUT function does not read that pin
+            SLICE_X6Y54/D/A1 json 0 bits 1 (SLICE_X6Y54/D6LUT)
+            SLICE_X7Y54/D/A1 json 0 bits 1 (SLICE_X7Y54/D6LUT)
+    8858  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y32/C/A5
+            SLICE_X0Y32/D/A3
+            SLICE_X0Y33/D/A1
+            SLICE_X0Y33/D/A2
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+       2  driver is a LUT with a constant function (INIT all 0 or all 1), compared as that constant
+            SLICE_X6Y54/F7BMUX/0 <- SLICE_X6Y54/D6LUT
+            SLICE_X7Y54/F7BMUX/0 <- SLICE_X7Y54/D6LUT
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y22/AFF/SR
+            SLICE_X0Y23/B5FF/SR
+            SLICE_X0Y24/AFF/SR
+            SLICE_X0Y26/A5FF/SR
+    2654  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y32/C/A6
+            SLICE_X0Y32/D/A6
+            SLICE_X0Y33/D/A6
+            SLICE_X0Y34/D/A6
+VERDICT: NOT EQUIVALENT: DRIVER DIFFERS
