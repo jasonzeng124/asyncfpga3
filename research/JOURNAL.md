@@ -3773,3 +3773,12 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   select path) exists because of two traced select races (ipow umux3, collatz64 ulink_n14__1): this removes a select
   link outright, so only the full gate (all corners, 8 routes) can accept it, and any failure is traced before reading.
 - PREDICTION (by hand from nl30's cycles): -2.0 to -2.4 ns -> ~16.4 (s1), ~15.5 (s3). Building nl3012 seeds 1, 3, 4, 5.
+### progress 08:00 UTC (lever 7 rejected: dropping the select link re-couples the merge fork)
+- nl3012 (levers 1-3 + BDC_NO_LINK=ulink_n30__1,ulink_n12__0), nextpnr 9c732bc6303458df, itercost stack: seed 1
+  19.41 ns, seed 3 20.42 ns (odata cd3132bf both, the C value; seed 3's fasm_equiv difference is the benign constant
+  F7BMUX decode kind). Lever 5 on the same seeds: 18.45 / 17.64. PREDICTION was 16.4 / 15.5: wrong in sign.
+- Why (graph): with ulink_n12__0 gone, ucontrol_merge0_f's select branch has no storage, so its acknowledge waits for
+  umux0 again; the cycle changes polarity at ucontrol_merge0_fF -> ucontrol_merge0_olinkR (and ufork8R -> ulink_n7F) and
+  runs through the rounds ring (ulink_n12__2 3.3, ulink_n11__1 3.0, ucmpi1 4.7 ns). The link I removed was the storage
+  that kept the merge fork decoupled -- the by-hand prediction counted only its forward delay. Not gated (slower, and it
+  would also remove a select-path link). Seeds 4, 5 finish for the record.
