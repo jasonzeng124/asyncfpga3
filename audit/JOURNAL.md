@@ -1723,3 +1723,6 @@ My T90d attribution of the 5 NOT EQUIVALENT decodes to the 69 CARRY4-CO2 SDF lin
 
 ### progress 23:31 T90e done; seed 9
 Merge-cut probe (colnl + merge0/merge1 -> 1 only), seeds 1, 3, FAST_MIN + worst with monitors: 13/13, 0 violations, select margins larger than colnl's; period s1 45.60 (colnl 47.52). Own c64nl_9 45.99 / c64r_9 47.95 = research; research's 8-route 1.057x CONFIRMED from all 16 own periods.
+
+### progress 23:31
+Research d5c85ab3 graph records: all 16 lever-5 route sdfs = own builds (byte-identical md5). Watching for the collatz sizing build and research's lever-5 gate result.
