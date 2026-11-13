@@ -92,6 +92,16 @@ RING_COUNT_OLINKS = os.environ.get("BDC_RING_COUNT_OLINKS", "0") == "1"
 # token (a loop steer waiting for the loop compare) couples the fork's return-to-zero to that token; the latch decouples
 # it.  Request delay DELAY_ULINK_<CHAN>_FOLINK (default STAGE_PAD), acknowledge delay ACK_PAD for data (0 for control).
 FORK_OUT_LINK = set(filter(None, os.environ.get("BDC_FORK_OUT_LINK", "").split(",")))
+# BDC_FORK_OUT_FASTFALL=1 (off by default; byte-identical without it): RFAST on every BDC_FORK_OUT_LINK link (the fast
+# request fall BDC_LINK_FASTFALL gives bare links; rtl/bd_link.v RFAST, audited by verify/tighten.py rule F).  Separate
+# from BDC_LINK_FASTFALL so builds made before it keep their emitted text.  research/data/fifteen lever 9: on xorshift
+# without the merge olink, the rounds ring's latch on n11__0 binds through its slow request fall.
+FORK_OUT_FASTFALL = os.environ.get("BDC_FORK_OUT_FASTFALL", "0") == "1"
+# BDC_MERGE_RES_DEPTH=N (default 1; byte-identical at 1): the BDC_MERGE_RES_LINK stage is a bd_pipe of N stages
+# (SDELAY DELAY_<INST>_RLINK_SDELAY, default STAGE_PAD).  research/data/fifteen lever 9: without the merge olink, the
+# arbiter's output return-to-zero waits for the result latch's, which waits for the loop steer; a second stage lets the
+# first empty while the steer holds the second.
+MERGE_RES_DEPTH = int(os.environ.get("BDC_MERGE_RES_DEPTH", "1"))
 # BDC_NO_LINK=ulink_<chan>[,...] (empty by default; byte-identical without it): drop the named links from the link set
 # before ring_depths() runs, so a ring that needs storage still gets it (ring_depths deepens another link on it, or
 # refuses).  A measurement knob for research/data/fifteen: a rule-1 (measurability) link on a loop's ring costs a
@@ -1381,7 +1391,7 @@ def ring_depths(func, linked, exclude=frozenset()):
             if len(node.results) == 2 and nm in MERGE_OUT_LINK:
                 for r in node.results: extra[r] += 1
             if len(node.results) == 2 and nm in MERGE_RES_LINK:
-                extra[node.results[0]] += 1
+                extra[node.results[0]] += MERGE_RES_DEPTH
 
     def lightest_cycle():
         """(weight, [edges round it]) for the lightest cycle, or None."""
@@ -2333,7 +2343,12 @@ class Emitter:
             rw = 1 if ctl else max(w, 1)
             rin = "1'b0" if ctl else f"{inst}_data"
             rout = "" if ctl else self.odata(res)
-            self.emit(f"    bd_link #(.W({rw}), .DELAY({rd}), .DACK({ra})) {inst}_rlink (")
+            if MERGE_RES_DEPTH > 1:
+                rs = self.delay(f"{inst}_rlink_sdelay", STAGE_PAD)
+                self.emit(f"    bd_pipe #(.W({rw}), .N({MERGE_RES_DEPTH}), .DELAY({rd}), .SDELAY({rs}), "
+                          f".DACK({ra})) {inst}_rlink (")
+            else:
+                self.emit(f"    bd_link #(.W({rw}), .DELAY({rd}), .DACK({ra})) {inst}_rlink (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .req_in({r_req}), .ack_in({r_ack}), .data_in({rin}),")
             self.emit(f"        .req_out({self.oreq(res)}), .ack_out({self.oack(res)}), .data_out({rout}));")
@@ -2363,7 +2378,8 @@ class Emitter:
                 d = self.delay(li, STAGE_PAD)
                 a = self.delay(f"{li}_uack", 0 if ctl else ACK_PAD)
                 w = 1 if ctl else max(self.width(r), 1)
-                self.emit(f"    bd_link #(.W({w}), .DELAY({d}), .DACK({a})) {li} (")
+                rf = ", .RFAST(1)" if FORK_OUT_FASTFALL else ""
+                self.emit(f"    bd_link #(.W({w}), .DELAY({d}), .DACK({a}){rf}) {li} (")
                 self.emit(f"        .rst(rst),")
                 self.emit(f"        .req_in({rq[r]}), .ack_in({ak[r]}), .data_in({chr(39).join(['1', 'b0']) if ctl else self.data(x)}),")
                 self.emit(f"        .req_out({self.oreq(r)}), .ack_out({self.oack(r)}), .data_out({'' if ctl else self.odata(r)}));")

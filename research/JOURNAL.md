@@ -3807,3 +3807,18 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   also routed shorter: scatter, so more seeds).
 - collatz - ulink_n28__1, seed 1: 47.51 ns (colr_1 47.56): the link left the cycle but uselect0 routed 0.9 ns longer.
   Seed 3 decides whether it is a lever.
+### progress 09:05 UTC (lever 8 seed 1; lever 9 from its graph -- two new opt-in knobs, prediction)
+- lever 8 (lever 5 minus BDC_MERGE_OUT_LINK) seed 1: 18.31 ns (lever 5 s1 18.45), odata cd3132bf, EQUIVALENT. Predicted
+  ~17.6: the counter ring's own R-only floor did fall to 16.33, but two couplings bind 0.1 ns apart: the rounds ring
+  through ulink_n11__0_folink's falling request (3.47 ns; the folink has no RFAST -- BDC_LINK_FASTFALL never reached
+  fork-output links) and the arbiter (ucond_br9 R -> ucontrol_merge0_rlink F -> merge F -> ulink_n_trueResult_12 R: the
+  olink's original reason, now through the result latch).
+- Graph (nlo_1): fastfall:folink alone -117 ps; + depth:ucontrol_merge0_rlink 17.32 (-0.99; next is ufork8 -> ulink_n7,
+  lever 5's coupling); + a 1-element latch on n30__1 17.11 (but that is lever 5's link back: not pursued).
+- bdc/emit.py: BDC_FORK_OUT_FASTFALL=1 (RFAST on fork-output links), BDC_MERGE_RES_DEPTH=N (the result latch as an
+  N-stage bd_pipe; ring_depths counts N). Unset: byte-identical on gcd, xorshift, collatz, collatz64, ipow, isprime.
+  With depth 2 counted, ring_depths no longer deepens ulink_n_trueResult_12 (variant 9a); 9b forces it back to 2
+  (BDC_LINK_DEPTHS), the graph's exact edit. simcheck PASS on both.
+- PREDICTION seed 1: 9b ~17.4 (17.32 + up to 0.3 for the new stage's wire, which is off the binding cycle); 9a not
+  modelled (removes a stage from the counter floor, but the control ring merge -> rlink(2) -> steer -> trueResult_12 has
+  only its 3 stages): 16.8-18.0. Seeds 1, 3 of each.
