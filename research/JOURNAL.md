@@ -3766,3 +3766,10 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
 - search.py --new-knobs on colr_1 / ipowr_1 / c64r_1: base == floor (no polarity change), no edit gains. Rising pass by
   stage in research/data/fifteen/README.md: datapath delays (uselect0, uaddi0, ushrsi0) and compares, plus the select
   links the select rule keeps. Their next gains are in sizing and cells, not storage.
+### progress 12:20 (lever 7: drop the select link ulink_n12__0 (umux0's select) -- prediction; the gate decides)
+- After lever 5 the counter ring's select path is merge -> olink (2.1 ns) -> fork -> ulink_n12__0 (2.8 ns) -> umux0. The
+  olink already latches the same index token; ulink_n12__0 is a rule-1 site on a select channel. BDC_NO_LINK=
+  ulink_n30__1,ulink_n12__0: nothing else changes in the emitted kernel; simcheck PASS. The select rule (never shorten a
+  select path) exists because of two traced select races (ipow umux3, collatz64 ulink_n14__1): this removes a select
+  link outright, so only the full gate (all corners, 8 routes) can accept it, and any failure is traced before reading.
+- PREDICTION (by hand from nl30's cycles): -2.0 to -2.4 ns -> ~16.4 (s1), ~15.5 (s3). Building nl3012 seeds 1, 3, 4, 5.
