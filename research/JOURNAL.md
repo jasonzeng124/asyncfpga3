@@ -3841,3 +3841,14 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   Sized to 3 (largest need seen + 1) in research/data/xorshift_sizes_T3s50_l9_bench.vh; the full gate decides.
 - PREDICTION (graph, three chain hops zeroed): 9a s1 17.76 -> 16.65; 9b 17.86 -> 17.70. Building 9c = 9a + this size,
   seeds 1, 3.
+### progress 08:58 UTC (lever 9 seed 3: seed-sensitive, not adopted; ipow lever 5 seed 3)
+- seed 3: 9a 21.20, 9b 18.05 ns (lever 5 s3 17.64), odata cd3132bf, EQUIVALENT. 2-seed means: 9a 19.48, 9b 17.96, lever 5
+  18.05. l9a_3's cycle is lever 5's own coupling at full strength: ucond_br7 -> trueResult_8 -> ufork9 -> ufork8 ->
+  ulink_n7 -> uaddi0 -> ucmpi1, with ufork8 R->ulink_n7 F and back (the adder fork's compare branch has no storage since
+  lever 5, so the fork's return-to-zero rides the compare). With trueResult_12 single (9a) nothing else slows the
+  counter ring enough to hide it. 9b's 0.1 ns is within scatter: not a lever. 9c (uack 3) is not on that cycle: only
+  its seed 1 runs, as a check of the graph's 16.65 prediction.
+- What would free it is storage on n30__1 with no request delay (graph, nlo_1: 16.73), i.e. lever 5's link back at
+  zero DELAY. A bd_link's DELAY is rule A/B's to size, not mine to set; noted, not built.
+- ipow - ulink_n31__1 seed 3: 38.20 (ipowr_3 38.78); seed 1 39.55 (39.78). -0.4 ns mean on 2 seeds, under scatter:
+  not pursued until collatz/collatz64 gate.
