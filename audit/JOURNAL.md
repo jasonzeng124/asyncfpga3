@@ -1649,3 +1649,6 @@ Third container restart (~03:00); nothing was running; all pushed. Watching.
 
 ### note 03:45
 Research 630b574a: lever 6 (fused add+compare) rejected by research itself (static worst path 7.55 ns over the safe size). No positive claim to audit.
+
+### progress 04:25 item 20
+Research cd258f06: colr = board item 20 (#21), recipe sdf 44536c3c = own T87 build; rlink 1; FF scan clean. 3 corners running (sequential).
