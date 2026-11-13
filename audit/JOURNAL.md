@@ -1706,3 +1706,6 @@ Own FF scan on the 12 further lever-5 routes: 0 missing mux (t90/logs/ffscan_t90
 
 ### note 22:24
 Research new session (6323c2e2..3a4768c8): the previous research session's lever-5 8-route runs were lost with its container; re-running. Research accepted the T90 OVERSTATED row (paired gains only from now on). New tool research/tools/fifteen/lane.sh and committed itercost vectors (not audited; the audit uses its own vectors). Audit's paired 8-route numbers (T90b/c) are pre-registered ahead of research's re-run.
+
+### progress 23:00 T90d done
+FAST_MIN on all 16 lever-5 routes (collatz64/collatz seeds 1-8): 14/14 and 13/13 everywhere vs own oracle; FF scans clean. Five NOT EQUIVALENT decodes, all the 69-CARRY4-CO2 SDF-source kind in the clocked bench harness comparators (as T60/T67): benign for the kernel.
