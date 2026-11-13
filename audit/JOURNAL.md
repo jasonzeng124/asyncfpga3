@@ -1629,3 +1629,6 @@ Container restart ~00:25 killed T88 sims (builds had finished); sims restarted (
 
 ### progress 00:52 T88
 Second container restart ~00:45. ipowr/c64r seed 1 FAST_MIN 17/17 and 14/14 kept; worst/SLOW_MAX rerunning one at a time.
+
+### progress 01:50 T88 done
+ipowr / c64r seed 1: 3 corners pass (17/17, 14/14); gains 1.17x over item 13, 1.15-1.17x over item 16 (research 1.18, 1.17).
