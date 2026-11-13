@@ -3742,3 +3742,6 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 - c64r seeds 1, 2, 4-8: 46.95 / 46.37 / 46.01 / 47.75 / 46.88 / 51.23 / 47.98, mean 47.60 (item 16 ~56.4): 1.18x; seed 9
   pending. Dynamatic 17.84.
 - ffmux_scan clean on all of them. Gates running (collatz, ipow, collatz64; 8 routes x 3 corners each).
+### progress 08:25 (ipow + result-branch latch passes the full gate 24/24 -> board item 19)
+- ipowr seeds 1-8 x 3 corners: 24/24 PASS 17/17 (4 benign F7/CARRY4 decodes), ffmux clean. BOARD-QUEUE item 19 / #20
+  (seed-1 sdf a6a2951b): 39.14 ns mean, 1.17x over item 13. collatz 14/24 and collatz64 3/24 so far, all PASS.

@@ -101,6 +101,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    (BDC_NO_LINK=ulink_n30__1), the 15 ns lead's lever 5, on the kernel bench**: #19 below. Full gate 24/24 on 8 bench
    routes. Predicted 2.12x per round over item 4 on this route (1.92-2.25 over 8), ~1.08x over item 17. Judge: `python3
    ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l5.tsv build/hw/lc_xor_s50.tsv`.
+19. **ipow item 13 + a latch on the merge fork's result branch (BDC_MERGE_RES_LINK=ucontrol_merge0), the 15 ns lead's
+   lever 1 carried to ipow by the event-graph search, on the kernel bench**: #20 below. Full gate 24/24 on 8 bench routes.
+   Predicted 1.18x per iteration over item 13 on this route (1.13-1.21 over 8). Judge: `python3 ../research/tools/
+   loop_cost_judge.py ipow build/hw/lc_ipow_r.tsv build/hw/lc_ipow_fm.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -688,6 +692,25 @@ emitted kernel). tighten.py loses that start point; the full gate decided correc
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~2.12 over x0.5 on this route. What it would mean: PASS = the
 measurability link is not needed for correctness on silicon either; FAIL with item 17 passing = it was (send both logs).
+
+
+## 20. ipow x0.75 + BDC_LINK_FASTFALL=1 + BDC_MERGE_OUT_LINK + BDC_MERGE_RES_LINK=ucontrol_merge0 -- 24/24 on 8 bench routes
+Item 13 plus the result-branch latch (research/data/fifteen, lever 1): the merge-output fork's acknowledge no longer
+waits for the loop-control join. Itercost periods seeds 1-8: 39.78 / 39.97 / 38.78 / 38.07 / 37.96 / 39.74 / 38.22 /
+40.62 ns, mean 39.14 (item 13 ~45.8: 1.17x; predicted 1.16-1.21x per seed).
+- Full gate (bench_gate.sh, 17 vectors, oracle from kernels/ipow/ipow.c): seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M ->
+  24/24 PASS 17/17; 4/8 EQUIVALENT, seeds 3, 4, 6, 7 the benign GND-buffer F7/CARRY4 kinds; ffmux_scan clean.
+- nextpnr 9c732bc6303458df. From cells/, on a checkout with BDC_MERGE_RES_LINK (922fca2b or later):
+
+    BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_bench.vh ./hw/build_bench.sh ipow
+    grep -c "ucontrol_merge0_rlink (" build/gen/ipow_kernel_bench.v    # must be 1
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # a6a2951b = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_r.tsv
+    (item 13: #14's commands for lc_ipow_fm.tsv, sdf e5000e23, if not already run)
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_r.tsv build/hw/lc_ipow_fm.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.18 on this route.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
