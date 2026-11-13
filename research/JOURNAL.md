@@ -3782,3 +3782,12 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   runs through the rounds ring (ulink_n12__2 3.3, ulink_n11__1 3.0, ucmpi1 4.7 ns). The link I removed was the storage
   that kept the merge fork decoupled -- the by-hand prediction counted only its forward delay. Not gated (slower, and it
   would also remove a select-path link). Seeds 4, 5 finish for the record.
+### progress 08:15 UTC (lever 5 on the other kernels: drop one rule-1 link on the rising cycle -- predictions)
+- After lever 1 each kernel's binding cycle has no polarity change (colr_1 / ipowr_1 / c64r_1 reports). Rule-1 links
+  between two datapath ops on it: collatz64 ulink_n30__1 (uselect0 -> ucmpi2, 2.28 ns on the cycle), collatz
+  ulink_n28__1 (uselect0 -> ucmpi2, 0.93), ipow ulink_n31__1 (ushrsi0 -> ucmpi2, 0.77). Next-worst cycles without them
+  are >= 3 ns away (34.7 / 47.5 [uses ulink_n10__2, not n28] / 32.1), and each op keeps its own matched delay, so the
+  removal saves the link's forward pass only. ring_depths re-deepens if a ring drops below 3 stages (checked in the
+  emitted Verilog).
+- PREDICTION (seed 1): collatz64 46.95 -> ~45.2; collatz 47.56 -> ~46.8; ipow 39.78 -> ~39.2. Seeds 1, 3 first; 8
+  routes and the full gate only if both seeds gain.
