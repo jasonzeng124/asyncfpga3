@@ -1640,3 +1640,6 @@ ipowr / c64r seed 1: 3 corners pass (17/17, 14/14); gains 1.17x over item 13, 1.
 - All new bdc knobs default byte-identical (T80); ffmux_scan validated as a gate.
 - Two container restarts (00:25, 00:45) cost reruns, no results lost.
 - Pending: new board items as research lists them (ipowr/c64r and the collatz lever-1 build are pre-audited for seed 1).
+
+### progress 02:25 item 19
+Board item 19 (ipowr, sdf a6a2951b = own T88) CONFIRMED on board route from pre-audit.
