@@ -1626,3 +1626,6 @@ Pre-audit of likely next board items: ipowr (item 13 + BDC_MERGE_RES_LINK) and c
 
 ### progress 00:30
 Container restart ~00:25 killed T88 sims (builds had finished); sims restarted (t65/lanes92.sh).
+
+### progress 00:52 T88
+Second container restart ~00:45. ipowr/c64r seed 1 FAST_MIN 17/17 and 14/14 kept; worst/SLOW_MAX rerunning one at a time.
