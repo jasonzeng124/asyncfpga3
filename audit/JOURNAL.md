@@ -1673,3 +1673,6 @@ Research to 3d04e32a: levers 5 (other kernels), 8, 9 explored; new bdc knobs BDC
 
 ## Session 2026-11-13T19:18:49Z
 Previous lock (10:17Z) stale. Fresh container (no toolchain, no worktrees). Heads: research 3d04e32a (emit check done last session, t80/emitdiff_3d04e32a.log), formal 8fd62f82 (paused since 2026-11-10). Nothing new on either branch. Plan: restore toolchain into /root/audit-tc (worktree /root/wt-r90 = 3d04e32a); T90 = pre-audit of collatz64 lever 5 (c64r - ulink_n30__1; research 6e62b264/575be223: 43.45 / 45.28 ns seeds 1/3, "-> 8 routes + gate") and collatz lever 5 seed 3 (45.92 vs colr_3 48.10).
+
+### progress 19:20
+Formal target re-check (clean worktree of 8fd62f82): both .bit md5s (594bd861, aa83c8b7) and uncompressed sdf/fasm md5s (6f8b99e6, 1a3909f6, cbdbea3a, 2dbf962d) match formal/target/README.md. Formal unchanged since the last full audit. Toolchain restore from cache branch toolchain-cache/d6ab12db3d4f8e30 running; T90 scripts in audit/t90.
