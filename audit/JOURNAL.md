@@ -1646,3 +1646,6 @@ Board item 19 (ipowr, sdf a6a2951b = own T88) CONFIRMED on board route from pre-
 
 ### progress 03:07
 Third container restart (~03:00); nothing was running; all pushed. Watching.
+
+### note 03:45
+Research 630b574a: lever 6 (fused add+compare) rejected by research itself (static worst path 7.55 ns over the safe size). No positive claim to audit.
