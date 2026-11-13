@@ -3926,3 +3926,21 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   (their gate vectors also span wide data); those continue.
 - Lesson for every link-removal lever: check rule E/A statically at nominal on the paths whose data range the gate's
   vectors do not span (loop counters), before reading the gate. Lever 9 (built on lever 5) inherits the hold.
+### progress 23:41 UTC (open goal-1 question: the x0.5 xorshift counter adder is statically short; nothing exercises it)
+- The same check on item 17's route (pmfr3_1 = sdf e88b0712), nominal nextpnr SDF, tighten.py rule A: uaddi0 req 4054 vs
+  peak 5524 (-1.47 ns raw, -2.20 guarded), ucmpi1 -1.02 raw, ucmpi0 -1.10 raw; uxori1/2 and umux3 also negative. At the
+  worst corner with the measured-residual guards (corner_audit): uaddi0 A' -752 ps (asks 6 -> 11); ulink_n30__1 is bound
+  by rule E at ucond_br6 with 238 ps left. Adding the two (the latch is transparent, so a late sum passes through it):
+  about -0.5 ns end to end at the worst corner for a full-length counter carry, about +0.2 ns at nominal. That is a sum
+  of two measurements, not one measured path.
+- The xors are exercised by the gate (every output bit depends on many input bits, by design); uaddi0 / ucmpi0 / ucmpi1
+  work on the loop counter and rounds, which the gate's vectors keep below 1000. So for the whole x0.5 xorshift family
+  (board list items 4, 11, 14, 17), correctness at rounds >~ 1024 rests on these static numbers, which are thin to
+  negative. This predates this session (the uniform x0.5 shrink); recorded here because it is now measured. Not put on
+  hold: the board judges (loop_cost.sh) use their own round counts, which I have not checked yet -- next.
+- Checked: cells/hw/loop_cost.sh / gen_bench.py mask xorshift's rounds to 12 bits on the board bench (DOMAIN_RESTRICTIONS),
+  so every board run of the xorshift items keeps i < 4096 (carries <= 12 bits), against the gate's <= 10. The static
+  worst cases above are for full 32-bit carries, which the board bench cannot produce either. So: the board items stay
+  meaningful for the bench's domain, but none of the x0.5 xorshift kernels is shown correct for a general 32-bit rounds.
+  Item 18's hold stays (its -4.65 ns raw is large enough that a 12-bit carry may already reach it; not quantified).
+  Owner-facing summary is in research/data/fifteen/README.md's headline.
