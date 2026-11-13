@@ -97,7 +97,12 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    BDC_FORK_OUT_LINK), the 15 ns lead's levers 1-3 (research/data/fifteen), on the kernel bench**: #18 below. Full gate
    24/24 on 8 bench routes. Predicted 1.47x per round over item 14 on this route (1.33-1.55 over 8), 1.97x over item 4.
    Judge: `python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l3.tsv build/hw/lc_xor_s50.tsv`.
-18. **xorshift at ~18.7 ns per iteration: item 17 + the rule-1 link between the loop increment and the compare dropped
+18. **[ON HOLD 2026-11-13: static bundling violation the gate cannot exercise -- rule E at the loop-exit steer ucond_br6 is
+   -4.65 ns RAW at the nominal nextpnr SDF (item 17's route: +1.70), -3.2 ns at the worst corner with the measured-residual
+   guards (corner_audit). Without ulink_n30__1 the steer's select is the add+compare carry path from ulink_n7, longer than
+   the matched add+compare delay when the counter carries far; the gate's vectors run <= 1000 rounds (carries <= 10 bits).
+   rounds above ~1024 are not covered by any check. Do not run until fixed; item 17 is the xorshift board candidate.]**
+   **xorshift at ~18.7 ns per iteration: item 17 + the rule-1 link between the loop increment and the compare dropped
    (BDC_NO_LINK=ulink_n30__1), the 15 ns lead's lever 5, on the kernel bench**: #19 below. Full gate 24/24 on 8 bench
    routes. Predicted 2.12x per round over item 4 on this route (1.92-2.25 over 8), ~1.08x over item 17. Judge: `python3
    ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_l5.tsv build/hw/lc_xor_s50.tsv`.
@@ -682,6 +687,8 @@ allows, also run item 14 (#15): l3 / item 14 isolates the three new latches (pre
 
 
 ## 19. xorshift item 17 + BDC_NO_LINK=ulink_n30__1 -- 24/24 on 8 bench routes
+**ON HOLD 2026-11-13** (see list item 18): rule E -4.65 ns raw at ucond_br6 on this route (sdf c6519c91) at the nominal
+SDF; the gate cannot exercise long counter carries. Kept for the record.
 Lever 5 of research/data/fifteen: without the rule-1 (measurability) link between the i+1 adder and the compare, the
 compare reads the adder's output directly. ring_depths() still enforces every ring's floor (nothing else changed in the
 emitted kernel). tighten.py loses that start point; the full gate decided correctness instead. Itercost periods seeds 1,

@@ -1,4 +1,6 @@
-**Best gated xorshift: board item 18, 18.69 ns per iteration (8-route mean; 17.37-20.53); gap to 15 ns: 3.7 ns.**
+**Best gated xorshift: board item 17, 20.60 ns per iteration (8-route mean); gap to 15 ns: 5.6 ns.** Lever 5 (item 18,
+18.69 ns) is ON HOLD since 2026-11-13: rule E at the loop-exit steer is -4.65 ns raw at the nominal SDF on its gated route,
+on a path (a long counter carry through add + compare) that the gate's vectors (<= 1000 rounds) never exercise.
 
 
 # xorshift at 15 ns per iteration, four-phase (PROGRAM.md FIRST, owner 2026-11-12)
@@ -14,7 +16,7 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 2. ring floor counts those latches (counter-ring pipe 3 -> 1) | BDC_RING_COUNT_OLINKS=1 | ~21.7 / ~21.7 (by hand) | 22.95 / 21.99 / 20.01 / 21.97 | not run |
 | 3. latch on the rounds fork's steer branch | BDC_FORK_OUT_LINK=n11__0 | 21.21 / 20.60 (from lever 2's graphs) | 19.86 / 20.64 / 20.91 / 21.36 (s6-9: 19.58 / 21.36 / 20.39 / 20.70; 8-route mean 20.60) | **24/24 -> board item 17** |
 | 4. placement (on lever 3) | BD_RLOC=v4 / BD_PLACE_WEIGHT=8 / BD_RLOC=v8 | 17.5-18.5 if adjacent (wire budget) | v4 20.55 / 18.75; PW8 20.89 / 19.72 (s1 / s3); v8 does not place | mixed by seed, not adopted |
-| 5. drop the rule-1 link between i+1 and the compare (on lever 3) | BDC_NO_LINK=ulink_n30__1 | ~17.9 / ~18.6 (by hand) | 18.45 / 17.64 / 18.71 / 20.15 (s6-9: 18.72 / 17.37 / 17.95 / 20.53; 8-route mean 18.69) | **24/24 -> board item 18** |
+| 5. drop the rule-1 link between i+1 and the compare (on lever 3) | BDC_NO_LINK=ulink_n30__1 | ~17.9 / ~18.6 (by hand) | 18.45 / 17.64 / 18.71 / 20.15 (s6-9: 18.72 / 17.37 / 17.95 / 20.53; 8-route mean 18.69) | 24/24, but **ON HOLD**: static rule E -4.65 ns raw (see the top) |
 | 5b. also drop ulink_n7 | BDC_NO_LINK=ulink_n30__1,ulink_n7 | ~17.5 | 21.96 (s1): ring_depths deepens ulink_n_trueResult_6, which lands on the cycle | rejected |
 | 6. the compare computes i+1 < rounds from i (dup_add.py: a duplicate add fused into it; on lever 3, without 5) | MLIR pre-pass; UCMPI1 = 9 + 6 elements (upper bound) | ~16.2 / ~17.0 (by hand) | 20.86 / 20.35 | rejected: the static worst path needs >= the safe size (below) |
 | 7. drop umux0's select link (on lever 5) | BDC_NO_LINK=ulink_n30__1,ulink_n12__0 | ~16.4 / ~15.5 (by hand) | 19.41 / 20.42 (s1 / s3): the merge fork's select branch loses its storage, the fork re-couples to umux0 (polarity change at ucontrol_merge0_f -> its olink) | rejected |

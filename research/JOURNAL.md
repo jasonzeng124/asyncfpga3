@@ -3909,3 +3909,20 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - corner_audit on collatz lever-5 routes (worst corner): s1 uaddi0 18->9, uselect0 23->13; s2 12 / 15; s3 10 / 16; merges
   -> 1 on all; ucmpi2 kept; pads on off-loop lines (umux2 2 -> 7..11). Seeds 4-8 running; the build takes the per-cell
   max over 8 routes.
+### progress 23:40 UTC (GOAL 1: xorshift lever 5 = board item 18 ON HOLD -- a static violation the gate cannot see)
+- Container restart at ~23:15 killed every job; /home/user/runs survived. Restarted the c64nl gate (1/24 done: s1
+  SLOW_MAX PASS), colnl_3 and the corner_audit queue.
+- corner_audit (worst corner, measured-residual guards) on nl30_1 (lever 5, = item 18's gated route c6519c91) asks
+  uaddi0 6 -> 27 for rule E at ucond_br6 (-3556 ps). skew.py (rule E) on the plain nextpnr SDF: ucond_br6 -4651 ps RAW
+  (-7126 guarded): the steer's request (via the add + compare matched delays, earliest 4.58 ns) beats its select (the
+  adder's carry chain then the compare's, latest 9.23 ns) launched from ulink_n7. The same route at lever 3 (pmfr3_1,
+  rebuilt = item 17's sdf e88b0712): +1699 ps raw (launch ulink_n30__1, compare only). So dropping ulink_n30__1 put the
+  adder's static worst carry in series with the compare inside one bundle that the delays do not cover.
+- Why the full gate passed 24/24: xor17's rounds are <= 1000, so i+1 carries at most 10 bits; the long path needs a carry
+  through most of the 32 bits. The xorshift datapath toggles every bit by design, the counter does not. No vector the sim
+  can afford (2^16+ rounds) reaches it, so the static rule is the only evidence there, and it fails at nominal.
+- Action: BOARD-QUEUE list item 18 (#19) ON HOLD; research/data/fifteen headline back to item 17 (20.60 ns, gap 5.6).
+  collatz / collatz64 lever 5 checked the same way: colnl_1/2 worst raw rule E +1.92/+2.13 ns, c64nl_1/2 +1.53/+1.77 ns
+  (their gate vectors also span wide data); those continue.
+- Lesson for every link-removal lever: check rule E/A statically at nominal on the paths whose data range the gate's
+  vectors do not span (loop counters), before reading the gate. Lever 9 (built on lever 5) inherits the hold.
