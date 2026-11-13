@@ -1700,3 +1700,6 @@ Own collatz64 seeds 1-8, c64r vs c64nl: own c64r = research per-seed within 0.04
 
 ### progress 22:03 T90c done
 Own collatz seeds 1-8, colr vs colnl: colr mean 48.88 (research 48.86), colnl 47.16, paired gain 1.72 ns (1.036x), 7/8 seeds gain. Pre-registered in findings/T90.md. Both kernels' lever-5 routes built for seeds 1-8 and kept in /root/t65 for the gate corners if research lists them.
+
+### progress 22:03 T90d started
+Own FF scan on the 12 further lever-5 routes: 0 missing mux (t90/logs/ffscan_t90d.txt). FAST_MIN + own oracle on the 13 remaining lever-5 routes (c64nl 2,4-8; colnl 1,2,4-8) running (lanes6.sh).
