@@ -1632,3 +1632,11 @@ Second container restart ~00:45. ipowr/c64r seed 1 FAST_MIN 17/17 and 14/14 kept
 
 ### progress 01:50 T88 done
 ipowr / c64r seed 1: 3 corners pass (17/17, 14/14); gains 1.17x over item 13, 1.15-1.17x over item 16 (research 1.18, 1.17).
+
+### summary 02:15 (since the 15:25 summary)
+- Board items 16, 17, 18 CONFIRMED on their board routes (own sdf = recipe; 3 corners vs own oracle; ratios as predicted).
+- 15 ns lead reproduced: lever 1 23.38 ns, lever 3 19.86/20.64, lever 5 18.46/17.65 (T81, T84); collatz lever 1 spot check 47.52 ns (T87); ipowr/c64r pre-audited (T88).
+- New own monitors (latch closing-edge setup, steer select, mux select) in the full stack: 10 board routes at FAST_MIN, 0 violations; tightest = xorshift exit mux umux3 0.57-0.84 ns (T83, T86). Research's i+1 margin question on item 14 is not a violation on its route (+1.67 ns at the steers).
+- All new bdc knobs default byte-identical (T80); ffmux_scan validated as a gate.
+- Two container restarts (00:25, 00:45) cost reruns, no results lost.
+- Pending: new board items as research lists them (ipowr/c64r and the collatz lever-1 build are pre-audited for seed 1).
