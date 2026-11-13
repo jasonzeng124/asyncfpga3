@@ -3863,3 +3863,19 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - Audit row (575be223, OVERSTATED): accepted. Seed 3's lever-5 gain on collatz64 is 0.90 ns paired against the audit's
   own c64r_3 (46.19), not ~2.4 against the 8-route mean. From now on every per-seed gain in this lead is quoted paired
   (same seed, both arms), and the 8-route claim only from 8 paired routes.
+### progress 22:25 UTC (collatz64 lever 5 on 6 paired routes: -0.5 to -6.0 ns; lever 9c not a lever; lever 10 predicted)
+- c64nl (item 22 + BDC_NO_LINK=ulink_n30__1), paired against item 22's per-seed periods (BOARD-QUEUE #22): s1 43.45 vs
+  46.95, s2 44.51 vs 46.37, s4 43.29 vs 46.01, s5 45.68 vs 47.75, s6 46.40 vs 46.88, s7 45.23 vs 51.23 ns; every one
+  odata 0x105 (C), ffmux clean; s2, s7 fasm_equiv NOT EQUIVALENT (kind to be checked as for the earlier items). Seeds
+  8, 9 running, then the gate. Seed 1 reproduced its earlier route (sdf aac8ef27, 43.45).
+- nl30_1 rebuilt: sdf c6519c91 = item 18's gated route, 18.45 ns: the lane flow reproduces.
+- Lever 9c (9a + rule H's uack 3 on the fork-output latch), seed 1: 17.66 ns (predicted 16.65; 9a 17.76, lever 5 18.45).
+  -0.1 against 9a: not a lever, and 9a itself was 21.20 on seed 3. Lever 9 closed.
+- Where lever 5's seed-1 cycle goes (graph arcs.tsv): 41 arcs, 18.45 ns = wire 15.82 + cell arcs 2.63. Delay-chain hops
+  (27 elements: n12__0 5, uaddi0 6, ucmpi1 9, merge 3, olink 4) 10.68 ns; handshake hops 7.77 ns (~19 hops, ~410 ps
+  each). tighten.py on the same route: uaddi0 / ucmpi1 rule A margins -2.0 / -1.4 ns at the nextpnr SDF (they cannot
+  shrink; the full gate passed them), merge "tighten to 1" but it drives the select channels (not touched: select rule),
+  umux0's select +2.7 ns (select link: not touched).
+- Lever 10: PLACE_WEIGHT on the counter ring's handshake nets only (BD_PLACE_WEIGHT_CELLS, 42 nets, x16; lever 4's PW8
+  weighted all 267). PREDICTION (lever 5 seed 1 18.45): handshake hops ~410 -> ~300 ps would be -2.1 ns, the data nets
+  pull back, so -0.5 to -2.0: s1 ~17.3 (16.5-18.0); s5/s9 (the ufork8 coupling) gain less. Seeds 1, 3, 5, 9.
