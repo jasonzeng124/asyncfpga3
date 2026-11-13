@@ -1709,3 +1709,8 @@ Research new session (6323c2e2..3a4768c8): the previous research session's lever
 
 ### progress 23:00 T90d done
 FAST_MIN on all 16 lever-5 routes (collatz64/collatz seeds 1-8): 14/14 and 13/13 everywhere vs own oracle; FF scans clean. Five NOT EQUIVALENT decodes, all the 69-CARRY4-CO2 SDF-source kind in the clocked bench harness comparators (as T60/T67): benign for the kernel.
+
+### note 23:01 research to a1c36645
+- collatz64 lever 5 paired (research 22:25/22:51): s1/2/4/5/6/7/8 = 43.45/44.51/43.29/45.68/46.40/45.23/45.95 vs own 43.48/44.54/43.28/45.69/46.39/45.24/45.94 (T90b): agree <= 0.03 ns. Their s2/s7 NOT EQUIVALENT "kind to be checked": own check (T90d) = clocked-harness CARRY4 CO2 SDF-source kind, benign. collatz colnl s2/s5 46.30/47.46 vs own 46.24/47.44.
+- Lever 9c 17.66 (not a lever) and lever 10 (negative) are rejections: not rebuilt.
+- WATCH (new collatz sizing lead, prediction 47.51 -> 39.11): research says "select paths never shortened", but its corner_audit output cuts ucontrol_merge0 5 -> 1 and ucontrol_merge1 9 -> 1 -- the merges that produce the mux select tokens (audit T65 row 3 NOTE). At 22:25 the same research session declined to tighten xorshift's merge "it drives the select channels (not touched: select rule)". When the sized collatz builds land: own seltrace of the merge->select paths, FAST_MIN on all routes + t83 mux/steer monitors; T65 row 14 (merge0 6->1 on collatz64 s7) passed, one route only.
