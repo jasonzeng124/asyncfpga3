@@ -3852,3 +3852,14 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   zero DELAY. A bd_link's DELAY is rule A/B's to size, not mine to set; noted, not built.
 - ipow - ulink_n31__1 seed 3: 38.20 (ipowr_3 38.78); seed 1 39.55 (39.78). -0.4 ns mean on 2 seeds, under scatter:
   not pursued until collatz/collatz64 gate.
+## Session 2026-11-13 22:15 UTC -- (in progress) lever 5 on collatz/collatz64 re-run after the lost session; xorshift lever 9c
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.sh fingerprint PASS)   Seeds: per lane
+### progress 22:15 UTC (lock taken; the previous session's runs died with its container)
+- Lock of session_01HC49FvPDSuteFcADNgtDWm was 13 h old (dead). Its in-flight work (collatz64 and collatz lever 5 on 8
+  routes + gate, lever 9c seed 1) left no outputs: /home/user/runs is not persistent. Re-running all of it.
+- research/tools/fifteen/lane.sh: one worktree per lane (/home/user/runs/wt/L*), bench build + itercost stack + graph;
+  writes research/data/eventgraph/graphs/NAME. The itercost one-vector files are now committed
+  (research/data/fifteen/vec_*.hex: collatz/collatz64 n=6171, xorshift 92d68ca2 x256, ipow 3^(2^31-1)).
+- Audit row (575be223, OVERSTATED): accepted. Seed 3's lever-5 gain on collatz64 is 0.90 ns paired against the audit's
+  own c64r_3 (46.19), not ~2.4 against the 8-route mean. From now on every per-seed gain in this lead is quoted paired
+  (same seed, both arms), and the 8-route claim only from 8 paired routes.
