@@ -3750,3 +3750,6 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
   PAD to 17 elements -- above the 15 used. The measured 2.2-2.6 ns settle is data-dependent (small i, short carries);
   the static worst path is what a matched delay must cover. Lever 6 cannot gain under the rules; cashing it would need a
   data-dependent delay (carry-chain completion detection), a new cell. research/data/fifteen/README.md updated.
+### progress 09:30 (collatz + result-branch latch passes the full gate 24/24 -> board item 20)
+- colr seeds 1-8 x 3 corners: 24/24 PASS 13/13 (3 benign F7 decodes), ffmux clean. BOARD-QUEUE item 20 / #21 (seed-1
+  sdf 44536c3c): 48.86 ns mean, 1.20x over item 15. collatz64's gate 7/24 so far, all PASS.
