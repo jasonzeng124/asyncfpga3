@@ -1623,3 +1623,6 @@ Research d457a2fb: lever 1 on collatz/ipow/collatz64 over 8 routes (1.20/1.17/1.
 
 ### progress 00:22 T88 started
 Pre-audit of likely next board items: ipowr (item 13 + BDC_MERGE_RES_LINK) and c64r (item 16 + it), seed 1, own builds at bb155ecf, 3 corners.
+
+### progress 00:30
+Container restart ~00:25 killed T88 sims (builds had finished); sims restarted (t65/lanes92.sh).
