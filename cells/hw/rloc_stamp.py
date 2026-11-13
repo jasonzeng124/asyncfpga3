@@ -83,7 +83,12 @@ while the 32 data bits between the same two stages average 2.  RLOC groups
 hold a stage together; PLACE_WEIGHT is what pulls the STAGES together.
 
 usage: rloc_stamp.py IN.json OUT.json --variant v1|v2|v3|v4|none
-                     [--place-weight K] [--report]
+                     [--place-weight K [--place-weight-cells REGEX]] [--report]
+
+`--place-weight-cells REGEX` (opt-in, research/data/fifteen lever 10): weight only
+the control LUTs whose "<module>/<cell>" name matches REGEX, and never a delay
+chain's interior links -- the handshake hops of ONE ring (from the event graph's
+critical cycle) instead of every handshake net in the design.
 
 WIRED INTO hw/build_hw.sh and flow.sh, both the same three lines, between
 `write_json` and the nextpnr invocation:
@@ -353,7 +358,7 @@ def is_control_cell(name, c):
     return not any(k in dotted for k in _DATA_INST)
 
 
-def weight_control_nets(mods, weight, report):
+def weight_control_nets(mods, weight, report, only=None):
     """PLACE_WEIGHT on every net that touches a control cell, except reset.
 
     The attribute goes on the yosys netname covering the bit -- a single-bit
@@ -376,6 +381,10 @@ def weight_control_nets(mods, weight, report):
         bits = set()
         for cname, c in cells.items():
             if not is_control_cell(cname, c):
+                continue
+            # --place-weight-cells: only the named stages' handshake LUTs; a delay chain's interior
+            # (.chain.g[i]) stays at weight 1, so its matched delay is placed as before
+            if only is not None and (".chain.g[" in cname or not only.search(f"{mname}/{cname}")):
                 continue
             n_cells += 1
             for pbits in c.get("connections", {}).values():
@@ -1435,6 +1444,11 @@ def main():
         i = args.index("--place-weight")
         weight = int(args[i + 1])
         del args[i:i + 2]
+    only = None
+    if "--place-weight-cells" in args:
+        i = args.index("--place-weight-cells")
+        only = re.compile(args[i + 1])
+        del args[i:i + 2]
     if "--column-rows" in args:
         i = args.index("--column-rows")
         set_column_rows(int(args[i + 1]))
@@ -1453,7 +1467,7 @@ def main():
     d = load(args[0])
     ok = True
     if weight > 1:
-        weight_control_nets(d["modules"], weight, report)
+        weight_control_nets(d["modules"], weight, report, only)
     if variant != "none":
         n_groups, n_cands = stamp(d["modules"], variant, report)
         # Zero groups is fatal ONLY when there was something to group.  A
