@@ -3753,3 +3753,12 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 ### progress 09:30 (collatz + result-branch latch passes the full gate 24/24 -> board item 20)
 - colr seeds 1-8 x 3 corners: 24/24 PASS 13/13 (3 benign F7 decodes), ffmux clean. BOARD-QUEUE item 20 / #21 (seed-1
   sdf 44536c3c): 48.86 ns mean, 1.20x over item 15. collatz64's gate 7/24 so far, all PASS.
+### progress 11:15 (collatz64 + result-branch latch 24/24 -> board item 21; all of step 5's gates done)
+- c64r seeds 1, 2, 4-9: 24/24 PASS 14/14 (seeds 5, 9 benign CARRY4/F7), ffmux clean; mean 47.64 ns (item 16 56.46: 1.19x).
+  BOARD-QUEUE item 21 / #22 (sdf 29655e86). research/data/fifteen/README.md: the per-kernel table.
+- Session total, board items added: 13-21 (ipow, xorshift x3, collatz x2, collatz64 x2, ipow). Best gated per iteration:
+  xorshift 18.69, collatz 48.86, ipow 39.14, collatz64 47.64 ns.
+Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link removal) on the other kernels, by the graph;
+  (2) xorshift's last ~3.7 ns: a data-dependent (carry completion) delay cell for the loop add+compare, or fewer stages
+  between the merge and umux0 -- both cell-level, need the owner's rule for changing cells; (3) commit the soak-top /
+  corner_audit flow so per-cell sizing of new structures is reproducible.

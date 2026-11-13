@@ -71,3 +71,15 @@ found both; the search over existing knobs could not, because bdc had no knob fo
 
 - The gate for levers 1-3 (lever 3's is running); silicon; corners or scatter (itercost bands only).
 - Seeds 4/5 of lever 3 (running).
+
+## Step 5 of PROGRAM: the other kernels
+
+The event-graph search with the new knobs (`search.py --new-knobs`) picks lever 1 alone on each; each gated 24/24 on 8
+bench routes (BOARD-QUEUE items 19-21):
+
+| kernel | before (board item) | + BDC_MERGE_RES_LINK (8-route mean) | gain | Dynamatic |
+|---|---:|---:|---:|---:|
+| xorshift | 30.0 (14) | 18.69 with levers 1-3 + 5 (item 18) | 1.61x | 12.73 |
+| collatz | 58.49 (15) | 48.86 (item 20) | 1.20x | 14.05 |
+| ipow | ~45.8 (13) | 39.14 (item 19) | 1.17x | - |
+| collatz64 | 56.46 (16) | 47.64 (item 21) | 1.19x | 17.84 |

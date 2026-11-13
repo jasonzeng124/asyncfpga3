@@ -109,6 +109,10 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
    lead's lever 1 carried to collatz by the event-graph search, on the kernel bench**: #21 below. Full gate 24/24 on 8
    bench routes. Predicted 1.25x per iteration over item 15 on this route (1.18-1.25 over 8). Judge: `python3 ../research/
    tools/loop_cost_judge.py collatz build/hw/lc_col_r.tsv build/hw/lc_col_fm.tsv`.
+21. **collatz64 item 16 + a latch on the merge fork's result branch (BDC_MERGE_RES_LINK=ucontrol_merge0), lever 1
+   carried to collatz64, on the kernel bench**: #22 below. Full gate 24/24 on 8 bench routes. Predicted 1.17x per
+   iteration over item 16 on this route (1.11-1.21 over 8). Judge: `python3 ../research/tools/loop_cost_judge.py
+   collatz64 build/hw/lc_c64_r.tsv build/hw/lc_c64_fm.tsv`.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -733,6 +737,25 @@ Item 15 plus the result-branch latch (research/data/fifteen, lever 1). Itercost 
     python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_r.tsv build/hw/lc_col_fm.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.25 on this route.
+
+
+## 22. collatz64 item 16 + BDC_MERGE_RES_LINK=ucontrol_merge0 -- 24/24 on 8 bench routes
+Item 16 plus the result-branch latch (research/data/fifteen, lever 1). Itercost periods seeds 1, 2, 4-9: 46.95 / 46.37 /
+46.01 / 47.75 / 46.88 / 51.23 / 47.98 / 47.95 ns, mean 47.64 (item 16 56.46: 1.19x). Dynamatic 17.84.
+- Full gate (bench_gate.sh, 14 vectors up to 949 steps): seeds 1, 2, 4-9 x SLOW_MAX / FAST_MIN / worst+M -> 24/24 PASS
+  14/14; 6/8 EQUIVALENT, seeds 5 and 9 the benign GND-buffer CARRY4/F7 kinds; ffmux_scan clean. (Seed 3 is excluded for
+  every collatz64 build of this family: item 16's seed 3 route had the C5FF gap.)
+- nextpnr 9c732bc6303458df. From cells/, on a checkout with BDC_MERGE_RES_LINK (922fca2b or later):
+
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_bench.vh ./hw/build_bench.sh collatz64
+    grep -c "ucontrol_merge0_rlink (" build/gen/collatz64_kernel_bench.v    # must be 1
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 29655e86 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_r.tsv
+    (item 16: #17's commands for lc_c64_fm.tsv, sdf 2c06cd36, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_r.tsv build/hw/lc_c64_fm.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.17 on this route.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
