@@ -1667,3 +1667,6 @@ Lever 7 (research 9166a842) removes umux0's select link ulink_n12__0 (own kernel
 
 ### progress 09:31 T89 done
 Lever 7 rejection reproduced (own 19.413/20.417 ns = research 19.41/20.42). Monitors: 0 violations; umux0 select margin falls to 0.77 ns (s1 FAST_MIN).
+
+### progress 09:31
+Research to 3d04e32a: levers 5 (other kernels), 8, 9 explored; new bdc knobs BDC_FORK_OUT_FASTFALL / BDC_MERGE_RES_DEPTH: emit output still byte-identical unset (t80/emitdiff_3d04e32a.log). No new board item yet.
