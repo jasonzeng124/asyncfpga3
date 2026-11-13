@@ -3745,3 +3745,8 @@ Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x v
 ### progress 08:25 (ipow + result-branch latch passes the full gate 24/24 -> board item 19)
 - ipowr seeds 1-8 x 3 corners: 24/24 PASS 17/17 (4 benign F7/CARRY4 decodes), ffmux clean. BOARD-QUEUE item 19 / #20
   (seed-1 sdf a6a2951b): 39.14 ns mean, 1.17x over item 13. collatz 14/24 and collatz64 3/24 so far, all PASS.
+### progress 09:10 (lever 6 rejected on static sizing)
+- tighten.py rule A on dup seed 1 (nextpnr SDF): bridge_i.udut.ucmpi1 (the fused add+compare) latest output 7.55 ns,
+  PAD to 17 elements -- above the 15 used. The measured 2.2-2.6 ns settle is data-dependent (small i, short carries);
+  the static worst path is what a matched delay must cover. Lever 6 cannot gain under the rules; cashing it would need a
+  data-dependent delay (carry-chain completion detection), a new cell. research/data/fifteen/README.md updated.
