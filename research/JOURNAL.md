@@ -3834,3 +3834,10 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
 - collatz - ulink_n28__1 seed 3: 45.92 (colr_3 48.10): -2.2 ns, where seed 1 gained nothing. Building seeds 2, 4-8 and
   gating all 8. collatz64 seed 2: 44.51 (c64r_2 46.37).
 - (Timestamps of this session's progress entries corrected to the commit times; I had written them ~40 min ahead.)
+### progress 08:50 UTC (lever 9c: size the fork-output latch's acknowledge line -- prediction)
+- l9a_1's cycle: ucond_br8 R -> ulink_n11__0_folink ctl F -> its uack chain, 6 elements falling (2.6 ns) -> ufork4 ->
+  ulink_n12__2. 6 is ACK_PAD, the placeholder every new link gets before tighten sizes it (the rule-1 links' UACK in
+  T3s50 are 0 or 1). tighten.py rule H on l9a_1 (raw nextpnr SDF): "tighten to 2" (margin 2381 ps); on nl30_1: 0 links.
+  Sized to 3 (largest need seen + 1) in research/data/xorshift_sizes_T3s50_l9_bench.vh; the full gate decides.
+- PREDICTION (graph, three chain hops zeroed): 9a s1 17.76 -> 16.65; 9b 17.86 -> 17.70. Building 9c = 9a + this size,
+  seeds 1, 3.
