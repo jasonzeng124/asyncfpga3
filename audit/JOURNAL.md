@@ -1694,3 +1694,6 @@ c64nl_1, c64nl_3, colnl_3 at FAST_MIN and worst with t83 monitors: 0 violations;
 
 ### note 20:54
 Research arithmetic at 3d04e32a recomputed from its own quoted per-seed values: lever 7 4-seed mean 19.44 vs lever 5 18.74; lever 9 2-seed means 9a 19.48, 9b 17.96, lever 5 18.05; ipow lever 5 mean gain 0.40 ns -- all as stated (rejections, no positive claim; per-seed values for levers 8/9 not rebuilt).
+
+### progress 21:32 T90b done
+Own collatz64 seeds 1-8, c64r vs c64nl: own c64r = research per-seed within 0.04 ns; c64nl mean 44.98 ns, paired gain 2.45 ns (1.054x), every seed gains (0.50-6.03). Pre-registered for research's 8-route claim (findings/T90.md): vs research's c64r mean 47.64 (seeds 1,2,4-9) it would read 1.059x.
