@@ -1679,3 +1679,6 @@ Formal target re-check (clean worktree of 8fd62f82): both .bit md5s (594bd861, a
 
 ### progress 19:30 T90
 Toolchain restored (nextpnr sha256 9c732bc6303458df, fingerprint OK). Own builds at 3d04e32a (two worktrees): c64r/c64nl seeds 1, 3 and colr/colnl seeds 1, 3. Bases reproduce board recipes: c64r_1 sdf 29655e86 (item 21), colr_1 44536c3c (item 20). Lever-5 sdfs: c64nl_1 aac8ef27, c64nl_3 229a0f59, colnl_1 9063dc11, colnl_3 e4ea1224. Emit diff c64r->c64nl and colr->colnl = only ulink_n30__1 / ulink_n28__1 removed, no deepening (research's claim CONFIRMED). Own FF scan: 0 missing mux on all six new routes. Period runs (itercost corner, own latmin method) running; an OOM kill (8 GLS in parallel) failed 2, rerunning; gate corners queued (lanes2.sh, 3 lanes).
+
+### progress 19:51 T90
+Own periods (itercost corner, latmin method): c64r_1 46.946 / c64nl_1 43.481 / c64r_3 46.192 / c64nl_3 45.289; colnl_1 47.520 / colr_3 48.160 / colnl_3 45.920 ns -- all within 0.06 ns of research's numbers. Research built no c64r seed 3; own c64r_3 = 46.19, so the paired seed-3 gain is 0.90 ns (research compared 45.28 with the 8-route lever-1 mean 47.64). FAST_MIN vs own oracle: c64nl_1 14/14, c64nl_3 14/14, colnl_3 13/13 (EQUIVALENT). worst/SLOW_MAX then t83 monitors queued (findings/T90.md).
