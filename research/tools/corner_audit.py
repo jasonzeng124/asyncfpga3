@@ -415,6 +415,9 @@ def knob_of_base(base, last_stage):
     return base
 
 
+MPFX = "BD_SZ_UUT_"     # macro prefix of the kernel's lines; --prefix sets it
+
+
 def macro(path):
     return "BD_SZ_" + re.sub(r"[^A-Za-z0-9]", "_", path).upper()
 
@@ -433,7 +436,7 @@ def select_path_macros(route_dir, macros):
     """sizes.vh macros guarding a select path: every BD_SZ_UUT_UMUX<n>, and the DELAY/SDELAY of every link on a channel
     bdc reads as a select (emit.select_channels on the route's input.mlir, which bdc/fusion_bench.py copies next to the
     seedN/ dirs).  No input.mlir -> the mux delays only, with a warning."""
-    out = {m for m in macros if re.fullmatch(r"BD_SZ_UUT_UMUX\d+", m)}
+    out = {m for m in macros if re.fullmatch(MPFX + r"UMUX\d+", m)}
     mlir = pathlib.Path(route_dir).resolve().parent / "input.mlir"
     if not mlir.exists():
         print("corner_audit: no %s; protecting the mux delays only" % mlir, file=sys.stderr)
@@ -445,7 +448,7 @@ def select_path_macros(route_dir, macros):
     e = emit.Emitter(f)
     for v in e.selects:
         if v in e.linked:
-            base = "BD_SZ_UUT_ULINK_" + emit.vname(v).upper()
+            base = MPFX + "ULINK_" + emit.vname(v).upper()
             out |= {m for m in macros if m in (base, base + "_SDELAY")}
     return out
 
@@ -468,12 +471,16 @@ def main():
     ap.add_argument("--shrink-selects", action="store_true",
                     help="allow shortening mux delays and select-channel links (unsafe: see the docstring)")
     ap.add_argument("--no-size", action="store_true", help="report only")
+    ap.add_argument("--prefix", default="uut.",
+                    help="the kernel's instance path in the top (soak: uut.; the kernel bench top: bridge_i.udut.)")
     ap.add_argument("--max-iter", type=int, default=30)
     ap.add_argument("--rule-a-tighten", action="store_true",
                     help="size on tighten.py's rule A even where it pairs as a bundled channel (no A' re-measure)")
     ap.add_argument("--keep-const-launch", action="store_true",
                     help="rule A exactly as tighten.py: constant drivers may launch the data path")
     a = ap.parse_args()
+    global MPFX
+    MPFX = macro(a.prefix)
     if a.inst_rx is None:
         a.inst_rx = [r"\.chain\.g\[\d+\]\.u$:0.21"]
     if a.fast_min:
@@ -566,7 +573,7 @@ def main():
 
     # ---- sensitivity: one run per line with its chains zeroed
     sized_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0
-                   and (a.all_lines or mac.startswith("BD_SZ_UUT_"))]
+                   and (a.all_lines or mac.startswith(MPFX))]
     measured_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0]
     protected = set() if a.shrink_selects else select_path_macros(a.route_dir, list(sizes))
     sens = {}                   # mac -> {key: dM}
@@ -593,7 +600,7 @@ def main():
         return min(slope(mac, k) * dd, sens[mac][k])
 
     def kernel_con(k):        # a constraint inside the harness (upipe, uspin) is reported, not sized, unless --all-lines
-        return a.all_lines or k.split()[1].startswith("uut.")
+        return a.all_lines or k.split()[1].startswith(a.prefix)
     sized = [k for k, c in cons.items() if c["rule"] in SIZED_RULES and kernel_con(k)]
     prop = dict(sizes)
     why = {}

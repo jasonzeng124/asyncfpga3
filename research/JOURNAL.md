@@ -3879,3 +3879,19 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - Lever 10: PLACE_WEIGHT on the counter ring's handshake nets only (BD_PLACE_WEIGHT_CELLS, 42 nets, x16; lever 4's PW8
   weighted all 267). PREDICTION (lever 5 seed 1 18.45): handshake hops ~410 -> ~300 ps would be -2.1 ns, the data nets
   pull back, so -0.5 to -2.0: s1 ~17.3 (16.5-18.0); s5/s9 (the ufork8 coupling) gain less. Seeds 1, 3, 5, 9.
+### progress 22:51 UTC (lever 10 negative on 2 seeds; collatz: corner_audit on bench routes, PREDICTION 47.5 -> 39.1)
+- Lever 10 (PLACE_WEIGHT x16 on the counter ring's 42 handshake nets), paired with lever 5: s1 19.70 vs 18.45, s3 17.83
+  vs 17.64. s1's cycle moved to the rounds ring (ulink_n12__2, umux2, ulink_n11__1 + the shared compare/steer/merge),
+  which the weighting pulled apart; the counter ring itself went to 19.05, not down. Variant 10b (both rings weighted,
+  45+ nets) on s1, s3 queued; seeds 5, 9 of 10 finish for the record.
+- collatz64 lever 5 seeds 8, 9: 45.95 (item 22 s8 47.98), 45.98 (47.95). Full gate running (8 routes x 3 corners).
+- collatz lever 5 (colnl): s1 47.51 (colr 47.56), s2 46.30 (47.84), s5 47.46 (49.08).
+- research/tools/corner_audit.py --prefix bridge_i.udut.: the per-cell worst-corner sizing (the flow behind T3cdb /
+  T4cdb) now runs on a kernel bench route (lane dirs: pnr/soak_xray.sdf = the itercost xray.sdf, soak_routed.json, the
+  route's sizes). Default (uut.) unchanged. On colnl_1 (worst corner, select paths never shortened): uaddi0 18 -> 9
+  (A' 209 ps left), uselect0 23 -> 13 (A 180 ps left), ucontrol_merge0 5 -> 1, ucontrol_merge1 9 -> 1, uaddi1 10 -> 9,
+  n1__1 2 -> 1; pads umux2 2 -> 11 (rule A -1473 ps at this corner), ulink_n7/n8 UACK 1 -> 2, n8 / trueResult_4 SDELAY
+  1 -> 2. ucmpi2 kept (16). umux2 and merge1 have no periodic node in the graph (off the loop).
+- PREDICTION (graph of colnl_1, each line's chain hops scaled new/old): 47.51 -> 39.11 ns, same cycle (n loop: n14__0,
+  umux0, uaddi0, uselect0, ucmpi2, steer, merge, olink) -- 1.21x. Inserted-stage wire does not apply (no new stage).
+  Next: corner_audit on colnl seeds 2-5, per-cell max (pads included), build seeds 1-8 at those sizes, gate.
