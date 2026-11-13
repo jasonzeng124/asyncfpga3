@@ -1691,3 +1691,6 @@ REPORT rows added (CONFIRMED numbers/corners; OVERSTATED minor: seed-3 collatz64
 
 ### progress 20:54 T90 monitors
 c64nl_1, c64nl_3, colnl_3 at FAST_MIN and worst with t83 monitors: 0 violations; min steer margin 3.37 (c64) / 1.97 ns (collatz), mux >= 3.02 ns. T90 pre-audit complete; T90b (seeds 2, 4-8) periods running.
+
+### note 20:54
+Research arithmetic at 3d04e32a recomputed from its own quoted per-seed values: lever 7 4-seed mean 19.44 vs lever 5 18.74; lever 9 2-seed means 9a 19.48, 9b 17.96, lever 5 18.05; ipow lever 5 mean gain 0.40 ns -- all as stated (rejections, no positive claim; per-seed values for levers 8/9 not rebuilt).
