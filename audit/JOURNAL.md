@@ -1726,3 +1726,6 @@ Merge-cut probe (colnl + merge0/merge1 -> 1 only), seeds 1, 3, FAST_MIN + worst 
 
 ### progress 23:31
 Research d5c85ab3 graph records: all 16 lever-5 route sdfs = own builds (byte-identical md5). Watching for the collatz sizing build and research's lever-5 gate result.
+
+### progress 23:44 T91 started
+Research 03b84af4/6e63890c: board item 18 (xorshift lever 5) ON HOLD -- static rule E -4.65 ns raw at ucond_br6, on long loop-counter carries the gate's <=1000-round vectors never exercise. The audit CONFIRMED item 18 (T84/T86) on those same vectors, so that verdict only covered the gate domain. T91: own rebuilds of item 18 (sdf c6519c91 reproduced) and item 17 (e88b0712 reproduced); GLS with rounds 256/1024/2048/4095 (board bench masks rounds to 12 bits; rounds 2^k put the longest carry at the exit compare) + t83 steer/mux monitors at worst+scatter and FAST_MIN. lanes8 (extra lever-5 gating) stopped to free memory.
