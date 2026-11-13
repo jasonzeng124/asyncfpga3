@@ -1664,3 +1664,6 @@ Research 59d9d9e7: "after lever 1, storage is spent on collatz/ipow/collatz64 (e
 
 ### progress 07:49 T89 started
 Lever 7 (research 9166a842) removes umux0's select link ulink_n12__0 (own kernel read): against research's select rule, gate to decide (research says so). Own pre-audit: seeds 1, 3 builds + FAST_MIN/worst with monitors.
+
+### progress 09:31 T89 done
+Lever 7 rejection reproduced (own 19.413/20.417 ns = research 19.41/20.42). Monitors: 0 violations; umux0 select margin falls to 0.77 ns (s1 FAST_MIN).
