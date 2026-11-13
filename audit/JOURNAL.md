@@ -1682,3 +1682,6 @@ Toolchain restored (nextpnr sha256 9c732bc6303458df, fingerprint OK). Own builds
 
 ### progress 19:51 T90
 Own periods (itercost corner, latmin method): c64r_1 46.946 / c64nl_1 43.481 / c64r_3 46.192 / c64nl_3 45.289; colnl_1 47.520 / colr_3 48.160 / colnl_3 45.920 ns -- all within 0.06 ns of research's numbers. Research built no c64r seed 3; own c64r_3 = 46.19, so the paired seed-3 gain is 0.90 ns (research compared 45.28 with the 8-route lever-1 mean 47.64). FAST_MIN vs own oracle: c64nl_1 14/14, c64nl_3 14/14, colnl_3 13/13 (EQUIVALENT). worst/SLOW_MAX then t83 monitors queued (findings/T90.md).
+
+### progress 20:25 T90
+Gate corners vs own oracle: c64nl_1 / c64nl_3 14/14 at FAST_MIN, worst+scatter, SLOW_MAX; colnl_3 13/13 at all three. c64nl_1 over c64r_1 (cyc350): 1.074 / 1.081 / 1.084x. t83 monitors (FAST_MIN, worst) running on the three routes.
