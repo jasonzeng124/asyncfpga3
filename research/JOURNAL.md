@@ -3773,7 +3773,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   select path) exists because of two traced select races (ipow umux3, collatz64 ulink_n14__1): this removes a select
   link outright, so only the full gate (all corners, 8 routes) can accept it, and any failure is traced before reading.
 - PREDICTION (by hand from nl30's cycles): -2.0 to -2.4 ns -> ~16.4 (s1), ~15.5 (s3). Building nl3012 seeds 1, 3, 4, 5.
-### progress 08:00 UTC (lever 7 rejected: dropping the select link re-couples the merge fork)
+### progress 07:58 UTC (lever 7 rejected: dropping the select link re-couples the merge fork)
 - nl3012 (levers 1-3 + BDC_NO_LINK=ulink_n30__1,ulink_n12__0), nextpnr 9c732bc6303458df, itercost stack: seed 1
   19.41 ns, seed 3 20.42 ns (odata cd3132bf both, the C value; seed 3's fasm_equiv difference is the benign constant
   F7BMUX decode kind). Lever 5 on the same seeds: 18.45 / 17.64. PREDICTION was 16.4 / 15.5: wrong in sign.
@@ -3782,7 +3782,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   runs through the rounds ring (ulink_n12__2 3.3, ulink_n11__1 3.0, ucmpi1 4.7 ns). The link I removed was the storage
   that kept the merge fork decoupled -- the by-hand prediction counted only its forward delay. Not gated (slower, and it
   would also remove a select-path link). Seeds 4, 5 finish for the record.
-### progress 08:15 UTC (lever 5 on the other kernels: drop one rule-1 link on the rising cycle -- predictions)
+### progress 07:59 UTC (lever 5 on the other kernels: drop one rule-1 link on the rising cycle -- predictions)
 - After lever 1 each kernel's binding cycle has no polarity change (colr_1 / ipowr_1 / c64r_1 reports). Rule-1 links
   between two datapath ops on it: collatz64 ulink_n30__1 (uselect0 -> ucmpi2, 2.28 ns on the cycle), collatz
   ulink_n28__1 (uselect0 -> ucmpi2, 0.93), ipow ulink_n31__1 (ushrsi0 -> ucmpi2, 0.77). Next-worst cycles without them
@@ -3791,7 +3791,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   emitted Verilog).
 - PREDICTION (seed 1): collatz64 46.95 -> ~45.2; collatz 47.56 -> ~46.8; ipow 39.78 -> ~39.2. Seeds 1, 3 first; 8
   routes and the full gate only if both seeds gain.
-### progress 08:30 UTC (lever 8: drop the merge's output link, keep the select link -- prediction)
+### progress 08:00 UTC (lever 8: drop the merge's output link, keep the select link -- prediction)
 - Lever 7's lesson: the merge fork's branches each need storage. The other stage between the merge and umux0 is the
   olink (BDC_MERGE_OUT_LINK, 2.13 ns on lever 5's s1 cycle). With levers 1 and 3 both fork branches already latch
   (rlink, ulink_n12__0). Dropping it (lever 5's knobs minus BDC_MERGE_OUT_LINK): emit diff = olink gone, and
@@ -3799,7 +3799,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   moves rather than vanishes. Risk: the arbiter's output RTZ follows its input's (why the olink exists).
 - PREDICTION (by hand): -2.1 + ~1.2 (the pipe's second stage, if on the cycle) -> -0.6 to -1.0 ns: ~17.6 (s1), ~16.9 (s3).
   If the arbiter re-couples, slower than lever 5. Seeds 1, 3.
-### progress 08:35 UTC (lever 5 on the other kernels: first seeds; lever 7's last seeds)
+### progress 08:18 UTC (lever 5 on the other kernels: first seeds; lever 7's last seeds)
 - lever 7 seeds 4, 5: 19.52 / 18.42 (lever 5: 18.71 / 20.15). 4-seed mean 19.44 vs lever 5's 18.74 on the same seeds:
   rejection stands.
 - collatz64 - ulink_n30__1, seed 1: 43.45 ns (c64r_1 46.95), odata 0x105 (C), fasm EQUIVALENT, emit diff = only that link
@@ -3807,7 +3807,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   also routed shorter: scatter, so more seeds).
 - collatz - ulink_n28__1, seed 1: 47.51 ns (colr_1 47.56): the link left the cycle but uselect0 routed 0.9 ns longer.
   Seed 3 decides whether it is a lever.
-### progress 09:05 UTC (lever 8 seed 1; lever 9 from its graph -- two new opt-in knobs, prediction)
+### progress 08:27 UTC (lever 8 seed 1; lever 9 from its graph -- two new opt-in knobs, prediction)
 - lever 8 (lever 5 minus BDC_MERGE_OUT_LINK) seed 1: 18.31 ns (lever 5 s1 18.45), odata cd3132bf, EQUIVALENT. Predicted
   ~17.6: the counter ring's own R-only floor did fall to 16.33, but two couplings bind 0.1 ns apart: the rounds ring
   through ulink_n11__0_folink's falling request (3.47 ns; the folink has no RFAST -- BDC_LINK_FASTFALL never reached
@@ -3822,9 +3822,15 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
 - PREDICTION seed 1: 9b ~17.4 (17.32 + up to 0.3 for the new stage's wire, which is off the binding cycle); 9a not
   modelled (removes a stage from the counter floor, but the control ring merge -> rlink(2) -> steer -> trueResult_12 has
   only its 3 stages): 16.8-18.0. Seeds 1, 3 of each.
-### progress 09:20 UTC (collatz64 lever 5: seed 3 confirms -> 8 routes + full gate; lever 8 seed 3)
+### progress 08:30 UTC (collatz64 lever 5: seed 3 confirms -> 8 routes + full gate; lever 8 seed 3)
 - c64nl_3: 45.28 ns, odata 0x105, EQUIVALENT (c64r has no seed 3; c64r 8-route mean 47.64, range 46.01-51.23). With
   seed 1 (43.45 vs 46.95) both seeds are below every lever-1 route but one. Building seeds 2, 4-8 and gating all 8
   (SLOW_MAX / FAST_MIN / worst+M, C-derived oracle c6414).
 - lever 8 seed 3: 19.03 ns (lever 5 s3 17.64; NOT EQUIVALENT = benign constant-CARRY4 DI kind). Lever 8 alone is mixed
   (-0.14 / +1.39); it stays only as lever 9's base.
+### progress 08:45 UTC (lever 9 seed 1; collatz lever 5 seed 3)
+- lever 9 seed 1: 9a 17.76, 9b 17.86 ns (lever 5 s1 18.45, lever 8 s1 18.31), odata cd3132bf, EQUIVALENT. Predicted 9b
+  ~17.4: right direction, 0.46 short. Seeds 3 running.
+- collatz - ulink_n28__1 seed 3: 45.92 (colr_3 48.10): -2.2 ns, where seed 1 gained nothing. Building seeds 2, 4-8 and
+  gating all 8. collatz64 seed 2: 44.51 (c64r_2 46.37).
+- (Timestamps of this session's progress entries corrected to the commit times; I had written them ~40 min ahead.)
