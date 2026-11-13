@@ -15,14 +15,14 @@ WT=$RUNS/wt/$L; HW=$RUNS/hw/$N; RD=$RUNS/r/$N; G=$R/research/data/eventgraph/gra
 HEAD=$(git -C "$R" rev-parse HEAD)
 exec 9> "$RUNS/wt/.$L.lock"; flock 9
 if [ -d "$WT" ]; then git -C "$WT" checkout -q --detach "$HEAD"; else git -C "$R" worktree add -q --detach "$WT" "$HEAD"; fi
-mkdir -p "$WT/build/frontend"; cp -rn "$R/build/frontend/"* "$WT/build/frontend/"
+mkdir -p "$WT/build/frontend"; cp -r --update=none "$R/build/frontend/"* "$WT/build/frontend/"
 source "${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/export.sh" > /dev/null
 mkdir -p "$HW" "$RD"
 ( cd "$WT/cells" && env "$@" NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES="$WT/$Z" \
     ./hw/build_bench.sh "$K" ) > "$HW/build.log" 2>&1 || { echo "$N BUILD FAILED (see $HW/build.log)"; exit 1; }
 B=$WT/cells/build/hw/${K}_bench_gen
 cp "$B/${K}_bench_gen".{bit,sdf,fasm} "$B/${K}_bench_gen_routed.json" "$WT/cells/build/gen/${K}_kernel_bench.v" "$HW/"
-flock 9 -u   # the worktree is free for the next build; the run reads only HW
+flock -u 9   # the worktree is free for the next build; the run reads only HW
 md5=$(md5sum "$HW/${K}_bench_gen.sdf" | cut -c1-8)
 ff=$(python3 "$R/research/tools/ffmux_scan.py" "$HW/${K}_bench_gen.fasm" > "$HW/ffmux.txt" 2>&1 && echo ffmux-clean || echo FFMUX-FLAG)
 "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" ${K}_bench_gen "$RD" "$VEC" > "$RD/../$N.run.log" 2>&1 || true
