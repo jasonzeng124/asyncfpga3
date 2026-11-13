@@ -1620,3 +1620,6 @@ Items 16, 17 at FAST_MIN with monitors: 0 violations (item 17 umux3 0.84 ns). Sw
 
 ### progress 23:57
 Research d457a2fb: lever 1 on collatz/ipow/collatz64 over 8 routes (1.20/1.17/1.18x), gates running; audit spot check T87 (colr s1) stands. Watching for board items.
+
+### progress 00:22 T88 started
+Pre-audit of likely next board items: ipowr (item 13 + BDC_MERGE_RES_LINK) and c64r (item 16 + it), seed 1, own builds at bb155ecf, 3 corners.
