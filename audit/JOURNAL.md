@@ -1661,3 +1661,6 @@ Board item 21 (c64r, sdf 29655e86 = own T88) CONFIRMED on board route from pre-a
 
 ### note 07:47
 Research 59d9d9e7: "after lever 1, storage is spent on collatz/ipow/collatz64 (each at its no-polarity-change floor)" -- a statement about research's graph model; the audit has not implemented the no-polarity-change floor: UNVERIFIED.
+
+### progress 07:49 T89 started
+Lever 7 (research 9166a842) removes umux0's select link ulink_n12__0 (own kernel read): against research's select rule, gate to decide (research says so). Own pre-audit: seeds 1, 3 builds + FAST_MIN/worst with monitors.
