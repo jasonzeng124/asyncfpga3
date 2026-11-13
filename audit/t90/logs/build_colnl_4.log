@@ -1,0 +1,66 @@
+T90 build colnl seed 4 Fri Nov 13 21:32:38 UTC 2026 research 3d04e32a
+$ BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_NO_LINK=ulink_n28__1 NEXTPNR_SEED=4 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_bench.vh ./hw/build_bench.sh collatz
+build_bench.sh: MODE=BD_NO_TIGHTEN -- building collatz_bench_gen directly, select channels at bdc/emit.py's unmeasured SELECT_PAD estimate
+wrote build/gen/collatz_kernel_bench.v: module bdc_collatz, 67 matched delay(s)
+wrote build/gen/collatz_bench_gen.v: module collatz_bench_gen (real DUT for collatz)
+build_bench.sh: WARNING: only 39 of the 40 sizes in ../research/data/collatz_sizes_T3cdb_bench.vh are used by collatz_bench_gen
+build_bench.sh: applying 40 measured  delay size(s) from ../research/data/collatz_sizes_T3cdb_bench.vh
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+== synthesis (collatz_bench_gen) ==
+             11 link/stage bank(s) that ARE one LUT (W<=2), 23 wider bank(s) where only the named bit is constrained
+             379 latch LUT(s) across those banks, 34 of them grouped (9.0%)
+             3 group(s) also hold their select consumer's LUTs
+        1   BUFG
+       64   CARRY4
+      836   FDCE
+       42   FDPE
+     1044   FDRE
+       34   LUT1
+      587   LUT2
+      167   LUT3
+      245   LUT4
+      127   LUT5
+     1071   LUT6
+        2   OBUF
+        1   BUFG
+       80   CARRY4
+      836   FDCE
+       42   FDPE
+     1044   FDRE
+      159   LUT1
+      773   LUT2
+      199   LUT3
+      249   LUT4
+      127   LUT5
+     1163   LUT6
+      426   LUT6_2
+        2   OBUF
+
+== place and route ==
+routed. (attempt 1/1: 89.85 MHz)
+TIMING: fclk0_bufg closes at 89.85 MHz (target 83 MHz)
+FASM:  4487 occupied LUT sites, 42 global buffer lines
+
+== bitstream ==
+2083882 bytes -> build/hw/collatz_bench_gen/collatz_bench_gen.bit
+routed SDF -> build/hw/collatz_bench_gen/collatz_bench_gen.sdf
+BD_DSP=1
+BD_RLOC=v2
+
+build_bench.sh PASS
+exit 0
+olink: 1 rlink: 1 n30__1: 0 n28__1: 0
+634db1891433220b47ace6b0e6a7452d  build/hw/collatz_bench_gen/collatz_bench_gen.sdf
+d7a3b4a6a6575a07a236fa68d71a92f1  build/hw/collatz_bench_gen/collatz_bench_gen.bit
+fd6f53ddde4c428fad5cab8236290446  ../research/data/collatz_sizes_T3cdb_bench.vh
+BUILDDONE
