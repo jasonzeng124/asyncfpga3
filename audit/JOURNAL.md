@@ -1688,3 +1688,6 @@ Gate corners vs own oracle: c64nl_1 / c64nl_3 14/14 at FAST_MIN, worst+scatter, 
 
 ### progress 20:36 T90
 REPORT rows added (CONFIRMED numbers/corners; OVERSTATED minor: seed-3 collatz64 gain framed against the 8-route mean). Monitors (FAST_MIN, worst) running on c64nl_1/3, colnl_3. T90b started: own collatz64 c64nl/c64r seeds 2, 4-8 (lanes4.sh) for an independent paired 8-route comparison.
+
+### progress 20:54 T90 monitors
+c64nl_1, c64nl_3, colnl_3 at FAST_MIN and worst with t83 monitors: 0 violations; min steer margin 3.37 (c64) / 1.97 ns (collatz), mux >= 3.02 ns. T90 pre-audit complete; T90b (seeds 2, 4-8) periods running.
