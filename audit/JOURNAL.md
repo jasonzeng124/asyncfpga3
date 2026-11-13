@@ -1676,3 +1676,6 @@ Previous lock (10:17Z) stale. Fresh container (no toolchain, no worktrees). Head
 
 ### progress 19:20
 Formal target re-check (clean worktree of 8fd62f82): both .bit md5s (594bd861, aa83c8b7) and uncompressed sdf/fasm md5s (6f8b99e6, 1a3909f6, cbdbea3a, 2dbf962d) match formal/target/README.md. Formal unchanged since the last full audit. Toolchain restore from cache branch toolchain-cache/d6ab12db3d4f8e30 running; T90 scripts in audit/t90.
+
+### progress 19:30 T90
+Toolchain restored (nextpnr sha256 9c732bc6303458df, fingerprint OK). Own builds at 3d04e32a (two worktrees): c64r/c64nl seeds 1, 3 and colr/colnl seeds 1, 3. Bases reproduce board recipes: c64r_1 sdf 29655e86 (item 21), colr_1 44536c3c (item 20). Lever-5 sdfs: c64nl_1 aac8ef27, c64nl_3 229a0f59, colnl_1 9063dc11, colnl_3 e4ea1224. Emit diff c64r->c64nl and colr->colnl = only ulink_n30__1 / ulink_n28__1 removed, no deepening (research's claim CONFIRMED). Own FF scan: 0 missing mux on all six new routes. Period runs (itercost corner, own latmin method) running; an OOM kill (8 GLS in parallel) failed 2, rerunning; gate corners queued (lanes2.sh, 3 lanes).

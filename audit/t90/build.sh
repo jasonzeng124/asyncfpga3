@@ -4,7 +4,7 @@
 # c64nl = c64r + BDC_NO_LINK=ulink_n30__1.  colr = item 20 recipe (T87); colnl = colr + BDC_NO_LINK=ulink_n28__1.
 # usage: build.sh c64r|c64nl|colr|colnl SEED
 set -u
-V=$1; S=$2; R=/root/wt-r90; cd $R/cells; source /root/audit-tc/openxc7/export.sh >/dev/null 2>&1
+V=$1; S=$2; R=${R:-/root/wt-r90}; cd $R/cells; source /root/audit-tc/openxc7/export.sh >/dev/null 2>&1
 BASE="BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0"
 case $V in
   c64r)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE";;
