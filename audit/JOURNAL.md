@@ -1670,3 +1670,6 @@ Lever 7 rejection reproduced (own 19.413/20.417 ns = research 19.41/20.42). Moni
 
 ### progress 09:31
 Research to 3d04e32a: levers 5 (other kernels), 8, 9 explored; new bdc knobs BDC_FORK_OUT_FASTFALL / BDC_MERGE_RES_DEPTH: emit output still byte-identical unset (t80/emitdiff_3d04e32a.log). No new board item yet.
+
+## Session 2026-11-13T19:18:49Z
+Previous lock (10:17Z) stale. Fresh container (no toolchain, no worktrees). Heads: research 3d04e32a (emit check done last session, t80/emitdiff_3d04e32a.log), formal 8fd62f82 (paused since 2026-11-10). Nothing new on either branch. Plan: restore toolchain into /root/audit-tc (worktree /root/wt-r90 = 3d04e32a); T90 = pre-audit of collatz64 lever 5 (c64r - ulink_n30__1; research 6e62b264/575be223: 43.45 / 45.28 ns seeds 1/3, "-> 8 routes + gate") and collatz lever 5 seed 3 (45.92 vs colr_3 48.10).
