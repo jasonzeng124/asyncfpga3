@@ -3799,3 +3799,11 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   moves rather than vanishes. Risk: the arbiter's output RTZ follows its input's (why the olink exists).
 - PREDICTION (by hand): -2.1 + ~1.2 (the pipe's second stage, if on the cycle) -> -0.6 to -1.0 ns: ~17.6 (s1), ~16.9 (s3).
   If the arbiter re-couples, slower than lever 5. Seeds 1, 3.
+### progress 08:35 UTC (lever 5 on the other kernels: first seeds; lever 7's last seeds)
+- lever 7 seeds 4, 5: 19.52 / 18.42 (lever 5: 18.71 / 20.15). 4-seed mean 19.44 vs lever 5's 18.74 on the same seeds:
+  rejection stands.
+- collatz64 - ulink_n30__1, seed 1: 43.45 ns (c64r_1 46.95), odata 0x105 (C), fasm EQUIVALENT, emit diff = only that link
+  (no deepening); cycle unchanged in shape, no polarity change. Better than the -1.75 predicted (uaddi0 and ulink_n14__0
+  also routed shorter: scatter, so more seeds).
+- collatz - ulink_n28__1, seed 1: 47.51 ns (colr_1 47.56): the link left the cycle but uselect0 routed 0.9 ns longer.
+  Seed 3 decides whether it is a lever.
