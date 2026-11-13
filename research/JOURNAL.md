@@ -3895,3 +3895,17 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - PREDICTION (graph of colnl_1, each line's chain hops scaled new/old): 47.51 -> 39.11 ns, same cycle (n loop: n14__0,
   umux0, uaddi0, uselect0, ucmpi2, steer, merge, olink) -- 1.21x. Inserted-stage wire does not apply (no new stage).
   Next: corner_audit on colnl seeds 2-5, per-cell max (pads included), build seeds 1-8 at those sizes, gate.
+### progress 23:08 UTC (lever 10 closed: placement weighting is seed-sensitive; collatz64 lever 5 on 8 paired routes 1.057x)
+- Lever 10b (PLACE_WEIGHT x16 on both rings that bind, counter and rounds): s1 17.79 (lever 5 18.45), s3 18.61 (17.64).
+  With 10 (19.70 / 17.83): every variant gains on one seed and loses ~1 ns on the other. Not a lever. Lever 4 (lever
+  3 + v4 / PW8) was the same. Closed: the placer has no objective for the ring's period, so weights move the problem.
+- collatz64 lever 5 (c64nl), all 8 routes, paired with item 22 (same seeds): 43.45/46.95, 44.51/46.37, 43.29/46.01,
+  45.68/47.75, 46.40/46.88, 45.23/51.23, 45.95/47.98, 45.98/47.95: mean 45.06 vs 47.64 (1.057x), every seed faster
+  (-0.48 to -6.0 ns). s2 / s7 NOT EQUIVALENT = the benign B6LUT-constant -> F7AMUX kind (checked in equiv.txt).
+  Gate: c64nl_1 SLOW_MAX PASS 14/14 EQUIVALENT; 23 runs to go.
+- An OOM kill (5 sims + 2 compiles at once) and an edit to fullstack_dump.sh under running lanes cost colnl_3/4's first
+  runs (re-running; no result read from them). fullstack_dump.sh's iverilog is now under the same compile lock as
+  build_ps.sh, so at most one compile runs at a time.
+- corner_audit on collatz lever-5 routes (worst corner): s1 uaddi0 18->9, uselect0 23->13; s2 12 / 15; s3 10 / 16; merges
+  -> 1 on all; ucmpi2 kept; pads on off-loop lines (umux2 2 -> 7..11). Seeds 4-8 running; the build takes the per-cell
+  max over 8 routes.

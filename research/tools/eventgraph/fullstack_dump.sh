@@ -23,7 +23,7 @@ cat > "$W/dump.v" <<'V'
 module dump_all; initial begin $dumpfile("dump.vcd"); $dumpvars(1, tb_ps.dut); end endmodule
 V
 cd "$W"
-iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" \
+flock /tmp/eventgraph_compile.lock iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" \
     "$G/ps/ps7_bench.v" dump.v 2>&1 | grep -v 'procedural continuous' || true
 vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=3000000 > run.log 2>&1 || true
 rm -f run.vvp
