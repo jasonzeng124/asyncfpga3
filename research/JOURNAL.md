@@ -3791,3 +3791,11 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   emitted Verilog).
 - PREDICTION (seed 1): collatz64 46.95 -> ~45.2; collatz 47.56 -> ~46.8; ipow 39.78 -> ~39.2. Seeds 1, 3 first; 8
   routes and the full gate only if both seeds gain.
+### progress 08:30 UTC (lever 8: drop the merge's output link, keep the select link -- prediction)
+- Lever 7's lesson: the merge fork's branches each need storage. The other stage between the merge and umux0 is the
+  olink (BDC_MERGE_OUT_LINK, 2.13 ns on lever 5's s1 cycle). With levers 1 and 3 both fork branches already latch
+  (rlink, ulink_n12__0). Dropping it (lever 5's knobs minus BDC_MERGE_OUT_LINK): emit diff = olink gone, and
+  ring_depths deepens ulink_n_trueResult_12 to a 2-stage pipe (the counter ring loses the olink's count), so a stage
+  moves rather than vanishes. Risk: the arbiter's output RTZ follows its input's (why the olink exists).
+- PREDICTION (by hand): -2.1 + ~1.2 (the pipe's second stage, if on the cycle) -> -0.6 to -1.0 ns: ~17.6 (s1), ~16.9 (s3).
+  If the arbiter re-couples, slower than lever 5. Seeds 1, 3.
