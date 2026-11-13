@@ -3762,3 +3762,7 @@ Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link re
   (2) xorshift's last ~3.7 ns: a data-dependent (carry completion) delay cell for the loop add+compare, or fewer stages
   between the merge and umux0 -- both cell-level, need the owner's rule for changing cells; (3) commit the soak-top /
   corner_audit flow so per-cell sizing of new structures is reproducible.
+### progress 11:45 (storage is spent on collatz, ipow, collatz64 after lever 1)
+- search.py --new-knobs on colr_1 / ipowr_1 / c64r_1: base == floor (no polarity change), no edit gains. Rising pass by
+  stage in research/data/fifteen/README.md: datapath delays (uselect0, uaddi0, ushrsi0) and compares, plus the select
+  links the select rule keeps. Their next gains are in sizing and cells, not storage.

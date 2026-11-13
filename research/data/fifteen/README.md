@@ -83,3 +83,9 @@ bench routes (BOARD-QUEUE items 19-21):
 | collatz | 58.49 (15) | 48.86 (item 20) | 1.20x | 14.05 |
 | ipow | ~45.8 (13) | 39.14 (item 19) | 1.17x | - |
 | collatz64 | 56.46 (16) | 47.64 (item 21) | 1.19x | 17.84 |
+
+After lever 1, collatz, ipow and collatz64 already run at their worst cycle with no polarity change: the search with
+every storage knob finds nothing (seed 1 of each). What is left is each datapath's rising pass (seed 1, ns on the cycle):
+collatz uselect0 10.0, uaddi0 8.4, ulink_n14__0 (select) 7.9, ucmpi2 7.8; ipow ushrsi0 10.4, ucmpi2 8.8, umux1 4.9;
+collatz64 uaddi0 11.5, uselect0 9.2, ulink_n14__0 6.8, ucmpi2 5.9. Those are matched delays sized to static worst paths
+(item 9/12/7 sizes), the select rule's links, and the compares -- sizing and cell work, not storage.
