@@ -24,8 +24,8 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
   rule. The 1.7 ns is a false path, shown with a trace (JOURNAL 2026-11-14): the select latch's data is timed against a
   request that waits for the select link's own request (3.4 ns later); traced on 12 transactions with the select
   flipping, the output request rises >= 3.6 ns after the last data change. Routes 2-4 still being checked.
-- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). The collatz lever-5 +
-  per-cell-sized candidate (not yet a board item) is clean on 6 of 7 checked routes. Until checked,
+- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). Collatz item 22 (#23) is full
+  range (static clean on 27/27 routes). Until checked,
   read each as bench range only.
 
 ## Board list, in order (owner, 2026-11-04: best first; each item judges itself)
@@ -135,6 +135,10 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    carried to collatz64, on the kernel bench**: #22 below. Full gate 24/24 on 8 bench routes. Predicted 1.17x per
    iteration over item 16 on this route (1.11-1.21 over 8). Judge: `python3 ../research/tools/loop_cost_judge.py
    collatz64 build/hw/lc_c64_r.tsv build/hw/lc_c64_fm.tsv`.
+22. **collatz at ~41 ns per iteration, FULL INPUT RANGE: item 20 + the rule-1 link between uselect0 and the compare dropped
+   (BDC_NO_LINK=ulink_n28__1) + per-cell sizes from 8 routes at both corners (collatz_sizes_T3cdb_nl2_bench.vh)**: #23
+   below. Farm, 32 seeds (fcolsz2): median 41.15 ns (38.85-43.26) vs item 20 48.86; gate 81/81; static check (rules A /
+   A' / E at nominal and worst) CLEAN on every evaluated route. Board seed 26 (sdf bc2fe0c8, 41.10 ns, the median).
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -780,6 +784,25 @@ Item 16 plus the result-branch latch (research/data/fifteen, lever 1). Itercost 
     python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_r.tsv build/hw/lc_c64_fm.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.17 on this route.
+
+## 23. collatz item 20 + BDC_NO_LINK=ulink_n28__1 + per-cell full-range sizes (T3cdb_nl2) -- 81/81 gate, static clean, 28 routes
+research/data/fifteen (2026-11-14). The rule-1 link between uselect0 and ucmpi2 removed (lever 5; statically checked,
+rule E raw +1.9..+2.3 ns at nominal on the collatz routes); then corner_audit at nominal and worst on 8 routes, per-cell
+max, select paths never shortened, merges kept at 2 (at 1 they missed rule A on 7 of 31 fresh routes). Farm request
+fcolsz2: 28 routes built, period median 41.15 ns, mean 41.22, 38.85-43.26 (item 20: 48.86, 1.19x); gate 81/81 PASS
+(SLOW_MAX / FAST_MIN / worst+M, 13/13 each); static CLEAN at both corners on all 27 evaluated routes. Full input range
+under the owner's rule. Dynamatic 14.05.
+- nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_NO_LINK=ulink_n28__1 NEXTPNR_SEED=26 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_nl2_bench.vh ./hw/build_bench.sh collatz
+    grep -c "ulink_n28__1 (" build/gen/collatz_kernel_bench.v    # must be 0
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # bc2fe0c8 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_sz.tsv
+    (item 20: #21's commands for lc_col_r.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_sz.tsv build/hw/lc_col_r.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.19 over item 20 on this route.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
