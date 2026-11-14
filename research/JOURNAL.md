@@ -4023,3 +4023,11 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - ipowr_1 rebuilt = item 19's route (sdf a6a2951b, 39.78 ns); ipowr_2 39.97. corner_audit both corners running on 1-4.
 - Machine at load 8-12 (3 gates + builds + corner_audit workers on 4 cores): everything is CPU-bound, so it only adds
   latency; memory stays under the limit since the one-compile-at-a-time lock.
+### progress 03:45 UTC (static check: colsz clean on 5 more routes; xfr needs a second round -- umux0)
+- colsz_3..7 static check: no kernel A/A'/E below 0 at either corner (colsz_2 had only the merge index, -60 ps).
+- xfr_5: umux0 (the counter's mux, size 1) rule A -62 ps worst / -35 ps nominal. Its slowest bit is a high bit of i,
+  which the vectors never toggle, so under the owner's rule this must hold statically: not covered. xfr_4 and xfr_1 do
+  not show it. tighten's "a" row for ucmpi1 (-1.0 / -0.3 ns) is the pairing that drops ulink_n30__1's 4-element lead;
+  A' (the sized form) holds -- I take A' as rule A, as corner_audit has since it was written.
+- So xfr goes through another per-cell round (static check on all 8 xfr routes, both corners; per-cell max; rebuild,
+  check, gate). Its gate (2/24 PASS) is stopped: those routes are superseded. colsz's second gate lane restarted.
