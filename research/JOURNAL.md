@@ -4037,3 +4037,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   so the loop-control range is spanned; umux3 carries the result, whose bits the vectors toggle widely. So item 19 is
   not "bench range only" under the rule; but a 1.7 ns static miss at NOMINAL on a mux is the same family as the traced
   umux3 empty-pipe select race (JOURNAL 2026-11-10). Flagged for the owner; not held. Seeds 2-4 still checking.
+### progress 04:55 UTC (xfr static check on all 8 routes: two rule-A shortfalls; xfr2 = + umux0 2, merge1 2 -- PREDICTION)
+- Kernel A / A' / E below 0 on the 8 xfr routes at either corner: only xfr_5 umux0 (-62 / -35 ps) and xfr_1 merge1 (-153 /
+  -121 ps); xfr_3, 4, 6-9 clean (A' basis). The corner_audit pad loop for hold rules H / I diverged on several routes
+  (link UACK 66-108, uxori1 6125): not used. research/data/xorshift_sizes_T3s50_fr2_bench.vh = fr + umux0 1 -> 2 +
+  merge1 1 -> 2 (merge1 back to the x0.5 base).
+- PREDICTION: umux0 is on the counter ring once per iteration, one element: +0.3 to +0.45 ns -> ~23.1-23.2 ns mean
+  (xfr 22.79). The graph scaler cannot model it (a 1-element chain has no internal hop). Building seeds 1, 3-9.
