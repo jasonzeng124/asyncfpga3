@@ -118,6 +118,26 @@ Report in `research/data/fifteen/README.md`: one table, a row per lever in the o
 applied, with predicted and measured period on four seeds and the gate status. Its first
 line is the best gated xorshift period and the gap to 15.
 
+## The farm: thousands of cores, by request (owner, 2026-11-14)
+
+The owner: "you can use as many cpus as you want if it helps you". A cluster now runs jobs for
+this branch. You commit a request, it runs as up to 256 parallel tasks in the cloud's own
+toolchain image, and the results come back on the branch `claude/cluster`. A seed gives the same
+route there as here. **Read `research/cluster/README.md` before the first use**; it has the
+request format, what a task sees, what comes back, and the limits.
+
+- Use it for everything wide: gates, route means, a sizing round checked across many routes,
+  the static check on every route of a candidate. Keep quick single experiments local.
+- Routes are now cheap, so stop deciding on two seeds. A lever is not "mixed" after two routes:
+  ask for 32. Report a candidate as a distribution over at least 32 routes (median, worst, and
+  how many routes pass the static check), not as a mean of 8. Twice already, sizes that held on the
+  routes tried failed on one more.
+- Never wait on it. If `status.txt` does not say `submitted` within 30 minutes of your push, the
+  runner is down: say so in the journal, work locally, try again next session. While a request
+  runs, do other work and look again later. Do not sit in a loop.
+- The first request is already there: `farm_check` (the xfr candidate, seeds 1 and 3). Its
+  results on `claude/cluster` are the proof that the round trip works.
+
 ## Done (kept for the record; do not redo)
 
 - **Where one iteration's time goes** (owner, 2026-11-06): `research/data/itercost/README.md`.
