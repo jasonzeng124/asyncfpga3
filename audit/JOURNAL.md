@@ -1911,3 +1911,6 @@ Research caa7cc10: corner_audit --osc; gcd item 5 static check running. Nothing 
 
 ### note 21:23
 Research bd9f770e: gcd item 5 static check (preliminary): rule E clean, rule A -210 ps nominal at ushrsi4 (spanned datapath; below the owner's 0.5 ns explanation threshold). Preliminary, research's tool; not reproduced. Watching.
+
+### progress 23:26 T107 started
+Research 0b983ea2: BOARD-QUEUE item 24 (#25) collatz64 full range = c64nl (T4cdb sizes + lever 5), board seed 17, sdf 3a370768, 45.19 ns, "ratio ~1.05 over item 21 on this route". dc970109: gcd item 5 static final (worst A' -359 ps, spanned). Own build c64nl_17 + c64r_17, FF scan, periods, 3 corners with monitors (t107/item24.sh).
