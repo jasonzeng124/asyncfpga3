@@ -4009,3 +4009,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   ucontrol_merge0 (size 1) -60 ps worst / -9 ps nominal, merge1 -17 ps worst. The merge's index path is exercised by
   every loop entry and exit in the gate (26 per run), so under the owner's rule the gate covers it; still, if more routes
   show it, colsz gets merges back at 2 (about +0.4 ns) before it becomes a board item.
+### progress 02:55 UTC (xorshift full range, 8 routes: 22.79 ns mean; the cost of the full range on record)
+- xfr seeds 1, 3-9: 22.52 / 23.58 / 23.34 / 22.82 / 23.30 / 21.78 / 21.60 / 23.36 ns, mean 22.79 (item 17, same seeds: 20.60):
+  +2.19 ns (item 17 is 1.106x faster, on the bench's range only). odata = C on all. Gate (xor17) running.
+- Static check on xfr_1: kernel A/A'/E below 0: ucontrol_merge1 (size 1) A -153 ps worst / -121 nominal; tighten's
+  bundled-channel row "a" for ucmpi1 -928 / -139 (the row corner_audit reports but does not size: it drops the upstream
+  link's lead; A' is the sized one). Decision: the merge index is a 1-bit path that every vector's loop entry and exit
+  exercises, so under the owner's rule (static check for paths the vectors do NOT span) the gate covers it. Recorded
+  rather than rebuilt; if the owner wants every A clean regardless, merges go back to 2 (~+0.4 ns each design).
+- Next kernel under the check: ipow (item 19's build, seeds 1-4, both corners).
