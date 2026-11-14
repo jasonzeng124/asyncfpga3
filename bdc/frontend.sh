@@ -176,6 +176,30 @@ echo "== $KERNEL: 4/8 opt canonicalization passes =="
 require_nonempty "$COMP/clang.opt.ll" "opt canonicalization passes"
 
 # ---------------------------------------------------------------------------
+# Step 4b (opt-in, BDC_FE_EXITCOND=1; owner 2026-11-14, research/PROGRAM.md):
+# LLVM's own exit-test rewrite. indvars turns `i + 1 < n` into `i + 1 != n`
+# (with its own proof of the loop invariant), but only when a data layout
+# names a legal integer width -- and step 3 strips it, so in step 4 it never
+# fires. Here: one more indvars (+ simplifycfg to fold the preheader / LCSSA
+# blocks the loop pass manager inserts) on step 4's output, with a data layout
+# whose ONLY native width is 32 bits (nothing gets widened to i64), then the
+# data layout is stripped again for step 6. Unset: this step does not run and
+# every file is what it was.
+# Checked with system LLVM 18 on kernels/*: xorshift's loop test becomes
+# `icmp ne`; collatz, collatz64, ipow unchanged; isprime: a one-input phi
+# folded, the inner increment loses nuw/nsw, an exit phi's operands reorder.
+# ---------------------------------------------------------------------------
+if [ "${BDC_FE_EXITCOND:-0}" = 1 ]; then
+  echo "== $KERNEL: 4b/8 indvars exit-test rewrite (BDC_FE_EXITCOND=1) =="
+  { echo 'target datalayout = "e-n32"'; cat "$COMP/clang.opt.ll"; } \
+    | "$OPT" -S -passes="function(loop(indvars)),simplifycfg" \
+    | sed "s/^target datalayout = .*$//" > "$COMP/clang.opt.iv.ll" \
+    || fail "indvars exit-test rewrite"
+  require_nonempty "$COMP/clang.opt.iv.ll" "indvars exit-test rewrite"
+  mv "$COMP/clang.opt.iv.ll" "$COMP/clang.opt.ll"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 5 -- memory dependence analysis. Attaches !dest.ops metadata to
 # load/store pairs so the handshake lowering knows which memory accesses
 # must be ordered against each other. A no-op for kernels with no array

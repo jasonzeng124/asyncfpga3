@@ -4059,3 +4059,16 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   byte-identical) and check its LLVM-level effect with the system clang / opt 18; the MLIR diff waits for a Dynamatic
   build (BOARD-QUEUE-style item for a session with one, or the owner's machine).
 - xorshift fr2 (umux0 2, merge1 2) building on 8 routes; collatz / collatz64 gates continue.
+### progress 04:59 UTC (4th container restart ~04:55; frontend knob BDC_FE_EXITCOND written, checked at the LLVM level)
+- Restart killed everything again; relaunched: xf2 builds (8 routes), the colsz and c64nl gates (one lane each), the
+  ipowr_1 full-dump run for the umux3 trace. ipow static check (routes 2-4) waits for its routes.
+- bdc/frontend.sh step 4b, opt-in BDC_FE_EXITCOND=1 (unset: step skipped, outputs unchanged): one indvars +
+  simplifycfg on step 4's output with data layout "e-n32", stripped again. Checked with system clang/opt 18 (Dynamatic's
+  pragma plugin and source-rewriter are not here, so these .ll are close to but not the frontend's): xorshift
+  `icmp slt i32 %10, %1` -> `icmp ne i32 %10, %1` (no smax: the loop is already guarded by 0 < rounds); collatz,
+  collatz64, ipow byte-identical; isprime: a one-input phi folded, the inner increment loses nuw nsw, an exit phi's
+  operand order changes. indvars alone (without simplifycfg) also added a preheader block and an LCSSA phi on every
+  kernel: simplifycfg removes them.
+- NOT done here, needs a Dynamatic build: the handshake MLIR diff per kernel, simcheck with rounds 0 / 1 / INT_MAX,
+  the static check over the full range, the gate. Every later step of the frontend (translate-llvm-to-std,
+  dynamatic-opt) is Dynamatic's.
