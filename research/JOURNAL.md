@@ -4240,3 +4240,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   one stage up. Whether that link's close can race the adder's next result depends on when its node falls (req_in low
   and the next stage high) against the next token's arrival -- the same kind of path, untimed. So xf3 is not shown
   safe statically either; the hold check for non-link senders is still the missing piece.
+Next (for this session if it lasts, else the next):
+  1. fxf3 (32 routes): if the gate passes everywhere, xf3 is the xorshift full-range candidate, with the hold blind spot
+     on ulink_n30__0_folink stated. fxne (the != test) the same way.
+  2. A hold check for latches fed by non-link senders (research/data/fifteen/hold_blind_spots_xf2_1.txt): it must flag
+     xf2_1's ulink_n_trueResult_6 (the trace: 1.85 ns at FAST_MIN). Candidates: the timed event graph with data arcs
+     and min delays; or a trace-measured hold margin per blind-spot latch (D changes inside the enable window after the
+     downstream stage has captured), reported per route as a distribution. Then re-check items 17, 19, 20, 22.
+  3. gcd's counters and compares under the full-range rule (items 1-3, 5), not yet done.
+  4. The speculative-completion incrementer (research/data/fifteen/speculative.md) after 2: its static check needs case
+     analysis, and the hold story above applies to it too.
+  5. A Dynamatic build somewhere (owner's machine or a farm task) to confirm BDC_FE_EXITCOND's handshake MLIR equals the
+     fixture-with-ne used here.

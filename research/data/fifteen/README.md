@@ -1,7 +1,8 @@
-**Full input range (owner rule 2026-11-14): no xorshift build passes both the gate and the static check yet. Candidate:
-item 17's structure with full-range sizes (xfr), 22.79 ns per iteration (8-route mean, 21.60-23.58), gate running; gap
-to 15 ns: 7.8 ns. On the bench's 12-bit range only: item 17, 20.60 ns -- so the full range costs 2.19 ns.** Lever 5 (item
-18, 18.69 ns) is ON HOLD: rule E at the loop-exit steer is -4.65 ns raw at the nominal SDF on its gated route.
+**Full input range (owner rule 2026-11-14): no xorshift build has passed both the gate and the static check on every
+route yet. xf2 (item 17's structure, full-range sizes): 28 farm routes, median 23.29 ns, but one route fails FAST_MIN on a
+hold race no static rule audits (counter loop-back pipe fed by the adder; JOURNAL 2026-11-14). xf3 (+ a latch on that
+branch): 24.19 ns on seed 1, every check passing; 32 farm routes running. Gap to 15 ns: ~9 ns. Bench range only: item 17,
+20.60 ns. Lever 5 (item 18) ON HOLD.** Collatz full range: board item 22, 41.15 ns median over 28 routes.
 
 
 # xorshift at 15 ns per iteration, four-phase (PROGRAM.md FIRST, owner 2026-11-12)
