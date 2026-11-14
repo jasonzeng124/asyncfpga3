@@ -4326,3 +4326,9 @@ Next (for this session if it lasts, else the next):
   gated ones fed by the line) to the C node. xf2_1: still 4 violations, -1159 ps (the close is 691 ps earlier than
   r[1]'s fall); xf3_1: clean. The farm numbers above (fxf2h, fxf3h, fipowrh) used the old reading; fipowrh's -1..-247
   ps flags on ulink_n_index_15 are within one element's fall and are being re-measured (ipow seed 8 rebuilt locally).
+### progress 13:36 UTC (ipow item 19's hold flags were the tool's error -- withdrawn)
+- ipowr_8 rebuilt (= fipowrh seed 8, 40616 ps, sdf 00166fca), FAST_MIN dump on e = 0 / 5 / 0 / 7 (results 1 / f3 / 1 /
+  c90f7, correct), corrected hold_trace: no violation anywhere; ulink_n_index_15 +782 ps (the old reading on this route
+  was -247). So the fipowrh flags measured the SDELAY line's fall, not the latch; item 19's flag is withdrawn in
+  BOARD-QUEUE. The fxf2h / fxf3h readings shift the same way (xf2_1 still fails at -1159 ps); the farm requests from now
+  on use the corrected tool (it is on the branch they check out).

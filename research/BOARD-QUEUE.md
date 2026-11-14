@@ -23,10 +23,9 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
   check finds only umux3 (the result mux) rule A -1.7 ns at both corners, on data the gate toggles. Full range by the
   rule. The 1.7 ns is a false path, shown with a trace (JOURNAL 2026-11-14): the select latch's data is timed against a
   request that waits for the select link's own request (3.4 ns later); traced on 12 transactions with the select
-  flipping, the output request rises >= 3.6 ns after the last data change. FLAG (2026-11-14, farm fipowrh, 31 routes):
-  the trace-measured hold check sees the next select value enter umux3's select pipe (ulink_n_index_15) stage 0 up to
-  247 ps before it closes on 15/31 routes, at FAST_MIN with the select flipping; no corruption on any route (the second
-  stage closed first). Not held; the two-stage check is the follow-up.
+  flipping, the output request rises >= 3.6 ns after the last data change. Hold check (2026-11-14): no violation once the tool measures a pipe stage's
+  close at its C node (seed 8, the worst of the earlier readings: +782 ps; the earlier -1..-247 ps flags were the
+  tool's error, JOURNAL).
 - **collatz64 (6, 12, 16, 21) and the lever-5 candidate:** umux2 misses rule A by 1.3-2.5 ns at nominal on every
   route; shown to be the same select-latch false path by trace (JOURNAL 2026-11-14). Lever-5 candidate (fc64nl, farm):
   30 routes, median 45.21 ns, gate 90/90; otherwise statically clean. Not yet a board item (gcd's counters next).
