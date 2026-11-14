@@ -4264,3 +4264,9 @@ Next (for this session if it lasts, else the next):
   n1__1, merge0_olink) are not measured yet; pipes whose data comes from the harness have no data nets (constant per run).
 - It is a trace check: it sees only what the vectors exercise, at the corner simulated. Its use: a margin per route and
   per blind-spot latch at FAST_MIN, so a route close to failing shows as a small margin instead of passing silently.
+### progress 10:17 UTC (hold_trace positive control: xf3_1 at FAST_MIN, the failing vector sequence)
+- xf3_1, FAST_MIN, rounds 3 / 4 / 8 / 5 in sequence (research/data/fifteen/vec_xorshift_hold.hex): all four results
+  correct (7b0859a0 / 77b0567e / 2932183d / d28ab0e1, from the C). hold_trace: no violation; ulink_n_trueResult_6
+  +7039 ps (xf2_1: -1850), the new ulink_n30__0_folink +6263, tightest ulink_n_index_15 +425 ps.
+- So on seed 1 the extra latch turns the hold race into ~7 ns of margin. Whether every route does is what fxf3 / fxf3h
+  (32 farm routes, the latter with this check) will say. fxf2h validates the check across routes (seed 1 must flag).
