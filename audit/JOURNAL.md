@@ -1778,3 +1778,6 @@ Two worker restarts (~06:55) killed the trace3 run. Value trace (trace2) shows b
 
 ### progress 07:18 T94
 Entry operand n_falseResult_3 is already 0 in batch 4 (bd_pipe latch output); the kernel input reaches that latch D with no storage. Hypothesis: input bit 8 (first used in batch 4) is late at the latch at SLOW_MAX. Edge trace (trace4) running. Research side: owner-provided farm (c5a0f210) running 32-route checks of fxf2/fcolsz/fc64nl; ipow item 19 umux3 false path "shown by trace" (40e531f7) to audit.
+
+### progress 07:37 T94 re-read
+Trace4: bench_op0[8] (clocked harness register, FIXED-mode S_PREP load) never loads 1 while bit 6 loads on the same edge -> kernel gets n=0. Likely a harness setup failure at the SLOW_MAX column at 83.3 MHz, not the kernel. REPORT row corrected from "FAILS" to UNVERIFIED (harness artifact under test). Running SLOW_MAX at 41.7 MHz host clock and a direct bench_op0[8] edge trace.
