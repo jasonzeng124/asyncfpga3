@@ -1750,3 +1750,6 @@ colsz (collatz lever 5 + per-cell sizes) seeds 2-8: own periods = research withi
 
 ### progress 02:09
 Research's skew.py (plain nextpnr SDF, its own guards) run for diagnosis on items 18 and 17: 8 and 12 guarded violations (t93/research_skew_*.txt). Subagent generalising the own rule-E check (t93) to every steer/mux site on both routes, own vs OR-join. lanes8 (worst/SLOW_MAX on the 13 remaining lever-5 routes) restarted.
+
+### note 02:19 research 2fc78d4e..caaf271a
+Full-range xorshift sizes: uaddi0 6 -> 13 is bound by rule A' (worst corner), not by rule E; ucmpi0/ucmpi1/ulink_n30__1 "bound by rule E with margin" (if that is corner_audit's walk, the T93 OR-join pessimism applies to those E numbers; to check with the all-sites run). Note: on item 17 the own composite rule E from ulink_n7 through the transparent ulink_n30__1 is +1022 ps worst / full carry at uaddi0 = 6 (T93), so rule A' at uaddi0 is a local rule stricter than the end-to-end steer check; it is the owner's rule (bead13d7), not contested. Owner question on "i+1 != rounds" rewrite: not the audit's to answer.
