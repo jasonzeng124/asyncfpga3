@@ -1729,3 +1729,6 @@ Research d5c85ab3 graph records: all 16 lever-5 route sdfs = own builds (byte-id
 
 ### progress 23:44 T91 started
 Research 03b84af4/6e63890c: board item 18 (xorshift lever 5) ON HOLD -- static rule E -4.65 ns raw at ucond_br6, on long loop-counter carries the gate's <=1000-round vectors never exercise. The audit CONFIRMED item 18 (T84/T86) on those same vectors, so that verdict only covered the gate domain. T91: own rebuilds of item 18 (sdf c6519c91 reproduced) and item 17 (e88b0712 reproduced); GLS with rounds 256/1024/2048/4095 (board bench masks rounds to 12 bits; rounds 2^k put the longest carry at the exit compare) + t83 steer/mux monitors at worst+scatter and FAST_MIN. lanes8 (extra lever-5 gating) stopped to free memory.
+
+### progress 00:10 T91
+Container restart ~00:09 cut the long-carry runs after 3 of 5 vectors at worst+scatter: item 18 (own l5_1 = c6519c91) correct at rounds 256/1024/2048, 0 monitor violations, ucond_br6 margin 2.27 -> 2.04 ns as carries grew to 11 bits; item 17 same, correct. Remaining vectors (seed 1 x 2048, 4095) and FAST_MIN rerunning (t91/lanes2.sh). REPORT item-18 row annotated: the audit's CONFIRMED shared the gate's <=1000-round blind spot.
