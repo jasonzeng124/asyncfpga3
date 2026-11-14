@@ -1,6 +1,7 @@
-**Best gated xorshift: board item 17, 20.60 ns per iteration (8-route mean); gap to 15 ns: 5.6 ns.** Lever 5 (item 18,
-18.69 ns) is ON HOLD since 2026-11-13: rule E at the loop-exit steer is -4.65 ns raw at the nominal SDF on its gated route,
-on a path (a long counter carry through add + compare) that the gate's vectors (<= 1000 rounds) never exercise.
+**Full input range (owner rule 2026-11-14): no xorshift build passes both the gate and the static check yet. Candidate:
+item 17's structure with full-range sizes (xfr), 22.79 ns per iteration (8-route mean, 21.60-23.58), gate running; gap
+to 15 ns: 7.8 ns. On the bench's 12-bit range only: item 17, 20.60 ns -- so the full range costs 2.19 ns.** Lever 5 (item
+18, 18.69 ns) is ON HOLD: rule E at the loop-exit steer is -4.65 ns raw at the nominal SDF on its gated route.
 
 
 # xorshift at 15 ns per iteration, four-phase (PROGRAM.md FIRST, owner 2026-11-12)
@@ -19,6 +20,7 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 5. drop the rule-1 link between i+1 and the compare (on lever 3) | BDC_NO_LINK=ulink_n30__1 | ~17.9 / ~18.6 (by hand) | 18.45 / 17.64 / 18.71 / 20.15 (s6-9: 18.72 / 17.37 / 17.95 / 20.53; 8-route mean 18.69) | 24/24, but **ON HOLD**: static rule E -4.65 ns raw (see the top) |
 | 5b. also drop ulink_n7 | BDC_NO_LINK=ulink_n30__1,ulink_n7 | ~17.5 | 21.96 (s1): ring_depths deepens ulink_n_trueResult_6, which lands on the cycle | rejected |
 | 6. the compare computes i+1 < rounds from i (dup_add.py: a duplicate add fused into it; on lever 3, without 5) | MLIR pre-pass; UCMPI1 = 9 + 6 elements (upper bound) | ~16.2 / ~17.0 (by hand) | 20.86 / 20.35 | rejected: the static worst path needs >= the safe size (below) |
+| R. full-range re-baseline of lever 3 (owner rule 2026-11-14) | xorshift_sizes_T3s50_fr_bench.vh (uaddi0 6 -> 13, uxori1/2, umux3 pads) | 22.04 / 22.61 / 22.99 / 23.50 (s1 / s3 / s4 / s5) | 22.52 / 23.58 / 23.34 / 22.82 (s6-9: 23.30 / 21.78 / 21.60 / 23.36; mean 22.79) | running; static check s1: only the merge1 index (exercised) |
 | 7. drop umux0's select link (on lever 5) | BDC_NO_LINK=ulink_n30__1,ulink_n12__0 | ~16.4 / ~15.5 (by hand) | 19.41 / 20.42 (s1 / s3): the merge fork's select branch loses its storage, the fork re-couples to umux0 (polarity change at ucontrol_merge0_f -> its olink) | rejected |
 
 The three knobs are new in `bdc/emit.py`, opt-in; with them unset the emitted Verilog is byte-identical on gcd, xorshift,
