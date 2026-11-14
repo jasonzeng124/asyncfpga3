@@ -3981,3 +3981,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   design, holds included, fails those, including lines the gate exercises. I report the plain-nextpnr numbers alongside.
 - Sizing: corner_audit at both corners on 4+ lever-3 routes (seeds 1, 3-6, rebuilding), per-cell max over every
   proposal (both corners), never shortening select paths; then build 8 routes, re-run the check on the new routes, gate.
+### progress 02:02 UTC (xorshift full-range re-baseline: sizes from 5 routes x 2 corners -- PREDICTION before building)
+- Item 17 rebuilt on seeds 1, 3-6 (pmfr3_*: 19.86 / 20.64 / 20.91 / 21.36 / 19.58 ns, the README's per-seed numbers; sdf
+  of s1 e88b0712 = item 17's). corner_audit at NOMINAL (uniform 0.288) and WORST on each; per-cell max over the 10
+  proposals -> research/data/xorshift_sizes_T3s50_fr_bench.vh: counter uaddi0 6 -> 13 (per proposal 11/6/8/6/9/6/13/9/
+  10/6: the worst corner binds, A'); ucmpi0 / ucmpi1 / ulink_n30__1 stay (12 / 9 / 4, bound by rule E with margin);
+  datapath uxori1 2 -> 7, uxori2 3 -> 7, umux3 1 -> 14 (A / A' at both corners -- the x0.5 shrink was short there too,
+  statically; the gate exercised them); merge0 3 -> 2; link SDELAY/UACK pads (rules H / I).
+- PREDICTION (each pmfr3 graph, chain hops scaled): s1 19.86 -> 22.04, s3 20.64 -> 22.61, s4 20.91 -> 22.99, s5 21.36 ->
+  23.50, s6 19.58 -> 21.19; ~ +2.0 ns, i.e. ~22.6 mean against item 17's 20.60. Cycle unchanged (counter ring).
+- Gates in progress: colsz 9/24 PASS (+1 INFRA: ivl OOM-killed, re-queued), c64nl 9/24 PASS.
