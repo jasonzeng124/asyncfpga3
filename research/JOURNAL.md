@@ -4138,3 +4138,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   the owner's point about routes not tried, again. Per-route table: research/data/fifteen/farm/fcolsz.tsv.
 - fcolsz2: merges back at 2 (research/data/collatz_sizes_T3cdb_nl2_bench.vh), farm request, 32 routes. If its static
   check is clean everywhere it becomes the collatz board candidate; expected cost ~+0.4 ns per merge on the cycle.
+### progress 08:04 UTC (farm: fxf2 back -- ONE GATE FAILURE: seed 1 FAST_MIN 6/17)
+- fxf2 (xorshift full range, round 2 sizes, item 17's knobs), seeds 1-32: 28 routes built (14, 29: harness misses 83
+  MHz; 7, 11: farm task failed in 10 s, no output -- rerun under a new name). Period median 23.29 ns, mean 23.29, best
+  20.86, worst 24.94. Static check CLEAN at both corners on 26/28; seed 1: umux2 rule A -6 nominal / -42 worst; seed 23:
+  ucmpi1 A -226 worst. Gate 83/84: **seed 1 FAST_MIN FAIL 6/17** (SLOW_MAX and worst+M pass). Seed 1's route is the same
+  as local xf2_1 (sdf dc138ea2). Table: research/data/fifteen/farm/fxf2.tsv (research/tools/fifteen/farm_table.py).
+- xfr seed 1 (round 1 sizes, umux0 1, merge1 1) passed FAST_MIN 17/17 locally; round 2 changed umux0 and merge1 and so
+  the route. Reproducing the failing run locally now to trace it before anything else. xorshift has no full-range
+  candidate until this is explained.
