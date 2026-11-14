@@ -1820,3 +1820,6 @@ Subagent: generalising the own rule-E checker (t93/sites.py) to the collatz kern
 
 ### note 09:55 research 013fd5b1..30e6290d
 Research withdrew the stale-rounds hypothesis and traced the same counter-pipe race-through as T97 (two independent traces agree); stale-rounds REPORT row removed. Next research step: xf3 (latch on the adder fork's steer branch) and a static hold check; audit when built.
+
+### progress 09:56 T99
+Own dynamic hold margins (t83 latch monitor, FAST_MIN) on 11 board routes: >= 0.63 ns (items 17/18's ulink_n_trueResult_6 > 2 ns), vs fxf2 seed 1 11 ps. No board route checked is near the T97 race. findings/T99.md, REPORT note.
