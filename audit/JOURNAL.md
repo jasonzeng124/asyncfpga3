@@ -1802,3 +1802,6 @@ fxf2 seed 1 (own build dc138ea2 = research's) FAST_MIN: 9/17 vs own oracle, vary
 
 ### progress 08:42 T96 done
 fcolsz2 seeds 2-5 own builds: periods 41.44/39.84/42.40/38.80; FAST_MIN 13/13 with monitors 0 violations on all four; seed 2 also worst and SLOW_MAX 13/13; FF clean; s5 decode benign. Pre-audited.
+
+### progress 09:13 T97
+Counter trace on a failing vector: run 2 counts 1, 2, 7 -- the counter input became 6 = mix of the stale loop-back value 4 and the new 2 (mixed latch capture on the counter loop-back path; consistent with trueResult_6 stage[0] setup 22 / hold 11 ps). Failure CONFIRMED; mechanism under trace (research also tracing, 0135caeb).
